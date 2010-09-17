@@ -1,0 +1,55 @@
+
+R version 2.7.1 (2008-06-23)
+Copyright (C) 2008 The R Foundation for Statistical Computing
+ISBN 3-900051-07-0
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> options(na.action=na.exclude) # preserve missings
+> options(contrasts=c('contr.treatment', 'contr.poly')) #ensure constrast type
+> library(survival)
+Loading required package: splines
+> 
+> #
+> # Verify that scale can be fixed at a value
+> #    coefs will differ slightly due to different iteration paths
+> tol <- .001
+> 
+> # Intercept only models
+> fit1 <- survreg(Surv(time,status) ~ 1, lung)
+> fit2 <- survreg(Surv(time,status) ~ 1, lung, scale=fit1$scale)
+> all.equal(fit1$coef, fit2$coef, tolerance= tol)
+[1] TRUE
+> all.equal(fit1$loglik, fit2$loglik, tolerance= tol)
+[1] TRUE
+> 
+> # multiple covariates
+> fit1 <- survreg(Surv(time,status) ~ age + ph.karno, lung)
+> fit2 <- survreg(Surv(time,status) ~ age + ph.karno, lung,
++ 		scale=fit1$scale)
+> all.equal(fit1$coef, fit2$coef, tolerance=tol)
+[1] TRUE
+> all.equal(fit1$loglik[2], fit2$loglik[2], tolerance=tol)
+[1] TRUE
+> 
+> # penalized models
+> fit1 <- survreg(Surv(time, status) ~ pspline(age), lung)
+> fit2 <- survreg(Surv(time, status) ~ pspline(age), lung, scale=fit1$scale)
+> all.equal(fit1$coef, fit2$coef, tolerance=tol)
+[1] TRUE
+> all.equal(fit1$loglik[2], fit2$loglik[2], tolerance=tol)
+[1] TRUE
+> 
+> rm(fit1, fit2, tol)
+> 
+> 

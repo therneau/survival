@@ -1,0 +1,299 @@
+
+R version 2.9.0 (2009-04-17)
+Copyright (C) 2009 The R Foundation for Statistical Computing
+ISBN 3-900051-07-0
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> options(na.action=na.exclude) # preserve missings
+> options(contrasts=c('contr.treatment', 'contr.poly')) #ensure constrast type
+> library(survival)
+Loading required package: splines
+> 
+> # From:	McGilchrist and Aisbett, Biometrics 47, 461-66, 1991
+> # Data on the recurrence times to infection, at the point of insertion of
+> #  the catheter, for kidney patients using portable dialysis equipment.
+> #  Catheters may be removed for reasons other than infection, in which case
+> #  the observation is censored.  Each patient has exactly 2 observations.
+> 
+> # Variables: patient, time, status, age, 
+> #	   sex (1=male, 2=female),
+> #	   disease type (0=GN, 1=AN, 2=PKD, 3=Other)
+> #	   author's estimate of the frailty
+> aeq <- function(x,y, ...) all.equal(as.vector(x), as.vector(y), ...)
+> 
+> # I don't match their answers, and I think that I'm right
+> kfit <- coxph(Surv(time, status)~ age + sex + disease + frailty(id), kidney)
+> kfit1<- coxph(Surv(time, status) ~age + sex + disease +
++ 	      frailty(id, theta=1), kidney, iter=20)
+> kfit0 <- coxph(Surv(time, status)~ age + sex + disease, kidney)
+> temp <-  coxph(Surv(time, status) ~age + sex + disease +
++ 	      frailty(id, theta=1, sparse=F), kidney)
+> 
+> 
+> # Check out the EM based score equations
+> #  temp1 and kfit1 should have essentially the same coefficients
+> #  temp2 should equal kfit1$frail
+> # equality won't be exact because of the different iteration paths
+> temp1 <- coxph(Surv(time, status) ~ age + sex + disease +
++ 	       offset(kfit1$frail[id]), kidney)
+> rr <- tapply(resid(temp1), kidney$id, sum)
+> temp2 <- log(rr/1 +1)
+> aeq(temp1$coef, kfit1$coef, tolerance=.005) 
+[1] TRUE
+> aeq(temp2, kfit1$frail, tolerance=.005)
+[1] TRUE
+> 
+> 
+> 
+> kfit
+Call:
+coxph(formula = Surv(time, status) ~ age + sex + disease + frailty(id), 
+    data = kidney)
+
+            coef     se(coef) se2    Chisq DF p      
+age          0.00318 0.0111   0.0111  0.08 1  7.8e-01
+sex         -1.48314 0.3582   0.3582 17.14 1  3.5e-05
+diseaseGN    0.08796 0.4064   0.4064  0.05 1  8.3e-01
+diseaseAN    0.35079 0.3997   0.3997  0.77 1  3.8e-01
+diseasePKD  -1.43111 0.6311   0.6311  5.14 1  2.3e-02
+frailty(id)                           0.00 0  9.3e-01
+
+Iterations: 6 outer, 35 Newton-Raphson
+     Variance of random effect= 5e-07   I-likelihood = -179.1 
+Degrees of freedom for terms= 1 1 3 0 
+Likelihood ratio test=17.6  on 5 df, p=0.00342  n= 76 
+> kfit1
+Call:
+coxph(formula = Surv(time, status) ~ age + sex + disease + frailty(id, 
+    theta = 1), data = kidney, iter = 20)
+
+                       coef     se(coef) se2     Chisq DF   p      
+age                     0.00389 0.0196   0.00943  0.04  1.0 0.84000
+sex                    -2.00764 0.5910   0.41061 11.54  1.0 0.00068
+diseaseGN               0.35335 0.7165   0.38015  0.24  1.0 0.62000
+diseaseAN               0.52341 0.7230   0.40463  0.52  1.0 0.47000
+diseasePKD             -0.45938 1.0898   0.66088  0.18  1.0 0.67000
+frailty(id, theta = 1)                           28.51 18.8 0.06900
+
+Iterations: 1 outer, 14 Newton-Raphson
+     Variance of random effect= 1   I-likelihood = -182.5 
+Degrees of freedom for terms=  0.2  0.5  1.1 18.8 
+Likelihood ratio test=63.8  on 20.6 df, p=2.53e-06  n= 76 
+> kfit0
+Call:
+coxph(formula = Surv(time, status) ~ age + sex + disease, data = kidney)
+
+
+               coef exp(coef) se(coef)      z       p
+age         0.00318     1.003   0.0111  0.285 7.8e-01
+sex        -1.48314     0.227   0.3582 -4.140 3.5e-05
+diseaseGN   0.08796     1.092   0.4064  0.216 8.3e-01
+diseaseAN   0.35079     1.420   0.3997  0.878 3.8e-01
+diseasePKD -1.43111     0.239   0.6311 -2.268 2.3e-02
+
+Likelihood ratio test=17.6  on 5 df, p=0.00342  n= 76 
+> temp
+Call:
+coxph(formula = Surv(time, status) ~ age + sex + disease + frailty(id, 
+    theta = 1, sparse = F), data = kidney)
+
+                          coef     se(coef) se2    Chisq DF   p      
+age                        0.00389 0.0186   0.0112  0.04  1.0 0.83000
+sex                       -2.00763 0.5762   0.4080 12.14  1.0 0.00049
+diseaseGN                  0.35335 0.6786   0.4315  0.27  1.0 0.60000
+diseaseAN                  0.52340 0.6891   0.4404  0.58  1.0 0.45000
+diseasePKD                -0.45934 1.0139   0.7130  0.21  1.0 0.65000
+frailty(id, theta = 1, sp                          26.23 18.7 0.12000
+
+Iterations: 1 outer, 5 Newton-Raphson
+     Variance of random effect= 1   I-likelihood = -182.5 
+Degrees of freedom for terms=  0.4  0.5  1.4 18.7 
+Likelihood ratio test=63.8  on 21.0 df, p=3.27e-06  n= 76 
+> 
+> #
+> # Now fit the data using REML
+> #
+> kfitm1 <- coxph(Surv(time,status) ~ age + sex + disease + 
++ 		frailty(id, dist='gauss'), kidney)
+> kfitm2 <- coxph(Surv(time,status) ~ age + sex + disease + 
++ 		      frailty(id, dist='gauss', sparse=F), kidney)
+> kfitm1
+Call:
+coxph(formula = Surv(time, status) ~ age + sex + disease + frailty(id, 
+    dist = "gauss"), data = kidney)
+
+                          coef     se(coef) se2    Chisq DF   p      
+age                        0.00489 0.0150   0.0106  0.11  1.0 0.74000
+sex                       -1.69728 0.4610   0.3617 13.55  1.0 0.00023
+diseaseGN                  0.17986 0.5449   0.3927  0.11  1.0 0.74000
+diseaseAN                  0.39294 0.5448   0.3982  0.52  1.0 0.47000
+diseasePKD                -1.13631 0.8252   0.6173  1.90  1.0 0.17000
+frailty(id, dist = "gauss                          17.89 12.1 0.12000
+
+Iterations: 7 outer, 42 Newton-Raphson
+     Variance of random effect= 0.493 
+Degrees of freedom for terms=  0.5  0.6  1.7 12.1 
+Likelihood ratio test=47.5  on 14.9 df, p=2.82e-05  n= 76 
+> summary(kfitm2)
+Call:
+coxph(formula = Surv(time, status) ~ age + sex + disease + frailty(id, 
+    dist = "gauss", sparse = F), data = kidney)
+
+  n= 76 
+                          coef     se(coef) se2    Chisq DF   p      
+age                        0.00492 0.0149   0.0108  0.11  1.0 0.74000
+sex                       -1.70204 0.4631   0.3613 13.51  1.0 0.00024
+diseaseGN                  0.18173 0.5413   0.4017  0.11  1.0 0.74000
+diseaseAN                  0.39442 0.5428   0.4052  0.53  1.0 0.47000
+diseasePKD                -1.13160 0.8175   0.6298  1.92  1.0 0.17000
+frailty(id, dist = "gauss                          18.13 12.3 0.12000
+
+           exp(coef) exp(-coef) lower .95 upper .95
+age            1.005      0.995    0.9760     1.035
+sex            0.182      5.485    0.0736     0.452
+diseaseGN      1.199      0.834    0.4151     3.465
+diseaseAN      1.484      0.674    0.5120     4.299
+diseasePKD     0.323      3.101    0.0650     1.601
+gauss:1        1.701      0.588    0.5181     5.586
+gauss:2        1.424      0.702    0.3851     5.266
+gauss:3        1.159      0.863    0.3828     3.511
+gauss:4        0.623      1.606    0.2340     1.657
+gauss:5        1.254      0.797    0.3981     3.953
+gauss:6        1.135      0.881    0.3834     3.360
+gauss:7        1.973      0.507    0.5694     6.834
+gauss:8        0.620      1.614    0.2166     1.772
+gauss:9        0.823      1.215    0.2888     2.346
+gauss:10       0.503      1.988    0.1747     1.448
+gauss:11       0.757      1.322    0.2708     2.113
+gauss:12       1.105      0.905    0.3343     3.651
+gauss:13       1.302      0.768    0.4275     3.967
+gauss:14       0.591      1.691    0.1854     1.885
+gauss:15       0.545      1.835    0.1858     1.598
+gauss:16       1.044      0.958    0.3142     3.470
+gauss:17       0.914      1.095    0.3000     2.782
+gauss:18       0.918      1.089    0.3248     2.597
+gauss:19       0.643      1.556    0.1951     2.117
+gauss:20       1.170      0.855    0.3453     3.963
+gauss:21       0.334      2.997    0.1020     1.091
+gauss:22       0.687      1.455    0.2353     2.006
+gauss:23       1.478      0.677    0.4756     4.592
+gauss:24       1.017      0.983    0.3156     3.278
+gauss:25       0.810      1.235    0.2749     2.384
+gauss:26       0.614      1.627    0.2149     1.757
+gauss:27       1.088      0.919    0.3282     3.610
+gauss:28       1.542      0.649    0.4923     4.829
+gauss:29       1.379      0.725    0.4377     4.342
+gauss:30       1.375      0.727    0.4444     4.253
+gauss:31       1.445      0.692    0.4703     4.438
+gauss:32       1.199      0.834    0.3521     4.085
+gauss:33       1.945      0.514    0.5523     6.849
+gauss:34       0.862      1.161    0.2769     2.682
+gauss:35       1.703      0.587    0.5266     5.508
+gauss:36       0.827      1.209    0.2281     3.002
+gauss:37       1.471      0.680    0.3894     5.555
+gauss:38       1.048      0.954    0.3068     3.579
+
+Iterations: 6 outer, 21 Newton-Raphson
+     Variance of random effect= 0.509 
+Degrees of freedom for terms=  0.5  0.6  1.7 12.3 
+Rsquare= 0.788   (max possible= 0.997 )
+Likelihood ratio test= 118  on 15.1 df,   p=0
+Wald test            = 37.4  on 15.1 df,   p=0.00119
+> #
+> # Fit the kidney data using AIC
+> #
+> 
+> # gamma, corrected aic
+> coxph(Surv(time, status) ~ age + sex + frailty(id, method='aic', caic=T), 
++       kidney)
+Call:
+coxph(formula = Surv(time, status) ~ age + sex + frailty(id, 
+    method = "aic", caic = T), data = kidney)
+
+                          coef     se(coef) se2    Chisq DF   p      
+age                        0.00364 0.0105   0.0089  0.12 1.00 0.73000
+sex                       -1.31953 0.3956   0.3250 11.13 1.00 0.00085
+frailty(id, method = "aic                          13.55 7.81 0.08700
+
+Iterations: 9 outer, 63 Newton-Raphson
+     Variance of random effect= 0.203   I-likelihood = -182.1 
+Degrees of freedom for terms= 0.7 0.7 7.8 
+Likelihood ratio test=33.3  on 9.21 df, p=0.000137  n= 76 
+> 
+> coxph(Surv(time, status) ~ age + sex + frailty(id, dist='t'), kidney)
+Call:
+coxph(formula = Surv(time, status) ~ age + sex + frailty(id, 
+    dist = "t"), data = kidney)
+
+                        coef     se(coef) se2     Chisq DF   p      
+age                      0.00561 0.0120   0.00872  0.22  1.0 0.64000
+sex                     -1.65487 0.4829   0.38527 11.74  1.0 0.00061
+frailty(id, dist = "t")                           20.33 13.9 0.12000
+
+Iterations: 8 outer, 58 Newton-Raphson
+     Variance of random effect= 0.825 
+Degrees of freedom for terms=  0.5  0.6 13.9 
+Likelihood ratio test=48.6  on 15.1 df, p=2.18e-05  n= 76 
+> coxph(Surv(time, status) ~ age + sex + frailty(id, dist='gauss', method='aic',
++ 					       caic=T), kidney)
+Call:
+coxph(formula = Surv(time, status) ~ age + sex + frailty(id, 
+    dist = "gauss", method = "aic", caic = T), data = kidney)
+
+                          coef     se(coef) se2     Chisq DF   p     
+age                        0.00303 0.0103   0.00895  0.09 1.00 0.7700
+sex                       -1.15152 0.3637   0.30556 10.03 1.00 0.0015
+frailty(id, dist = "gauss                           12.35 6.76 0.0800
+
+Iterations: 7 outer, 41 Newton-Raphson
+     Variance of random effect= 0.185 
+Degrees of freedom for terms= 0.8 0.7 6.8 
+Likelihood ratio test=28.4  on 8.22 df, p=0.000476  n= 76 
+> 
+> 
+> # uncorrected aic
+> coxph(Surv(time, status) ~ age + sex + frailty(id, method='aic', caic=F), 
++       kidney)
+Call:
+coxph(formula = Surv(time, status) ~ age + sex + frailty(id, 
+    method = "aic", caic = F), data = kidney)
+
+                          coef     se(coef) se2     Chisq DF   p      
+age                        0.00785 0.0150   0.00823  0.27  1.0 0.60000
+sex                       -1.88990 0.5611   0.39941 11.34  1.0 0.00076
+frailty(id, method = "aic                           37.46 19.7 0.00920
+
+Iterations: 8 outer, 87 Newton-Raphson
+     Variance of random effect= 0.886   I-likelihood = -182.8 
+Degrees of freedom for terms=  0.3  0.5 19.7 
+Likelihood ratio test=61.2  on 20.5 df, p=6.25e-06  n= 76 
+Warning message:
+In coxpenal.fit(X, Y, strats, offset, init = init, control, weights = weights,  :
+  Inner loop failed to coverge for iterations 4
+> 
+> coxph(Surv(time, status) ~ age + sex + frailty(id, dist='t', caic=F), kidney)
+Call:
+coxph(formula = Surv(time, status) ~ age + sex + frailty(id, 
+    dist = "t", caic = F), data = kidney)
+
+                          coef     se(coef) se2     Chisq DF   p      
+age                        0.00561 0.0120   0.00872  0.22  1.0 0.64000
+sex                       -1.65487 0.4829   0.38527 11.74  1.0 0.00061
+frailty(id, dist = "t", c                           20.33 13.9 0.12000
+
+Iterations: 8 outer, 58 Newton-Raphson
+     Variance of random effect= 0.825 
+Degrees of freedom for terms=  0.5  0.6 13.9 
+Likelihood ratio test=48.6  on 15.1 df, p=2.18e-05  n= 76 
+> 

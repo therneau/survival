@@ -1,0 +1,54 @@
+
+R version 2.9.0 Under development (unstable) (2009-03-17 r48144)
+Copyright (C) 2009 The R Foundation for Statistical Computing
+ISBN 3-900051-07-0
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> ## check that the scale option to summary.survfit works
+> ##  Marc Schwartz reported this as a bug in 2.35-3.
+> library(survival)
+Loading required package: splines
+> summary( survfit( Surv(futime, fustat)~1, data=ovarian))
+Call: survfit(formula = Surv(futime, fustat) ~ 1, data = ovarian)
+
+ time n.risk n.event survival std.err lower 95% CI upper 95% CI
+   59     26       1    0.962  0.0377        0.890        1.000
+  115     25       1    0.923  0.0523        0.826        1.000
+  156     24       1    0.885  0.0627        0.770        1.000
+  268     23       1    0.846  0.0708        0.718        0.997
+  329     22       1    0.808  0.0773        0.670        0.974
+  353     21       1    0.769  0.0826        0.623        0.949
+  365     20       1    0.731  0.0870        0.579        0.923
+  431     17       1    0.688  0.0919        0.529        0.894
+  464     15       1    0.642  0.0965        0.478        0.862
+  475     14       1    0.596  0.0999        0.429        0.828
+  563     12       1    0.546  0.1032        0.377        0.791
+  638     11       1    0.497  0.1051        0.328        0.752
+> summary( survfit( Surv(futime, fustat)~1, data=ovarian), scale=365.25)
+Call: survfit(formula = Surv(futime, fustat) ~ 1, data = ovarian)
+
+  time n.risk n.event survival std.err lower 95% CI upper 95% CI
+ 0.162     26       1    0.962  0.0377        0.890        1.000
+ 0.315     25       1    0.923  0.0523        0.826        1.000
+ 0.427     24       1    0.885  0.0627        0.770        1.000
+ 0.734     23       1    0.846  0.0708        0.718        0.997
+ 0.901     22       1    0.808  0.0773        0.670        0.974
+ 0.966     21       1    0.769  0.0826        0.623        0.949
+ 0.999     20       1    0.731  0.0870        0.579        0.923
+ 1.180     17       1    0.688  0.0919        0.529        0.894
+ 1.270     15       1    0.642  0.0965        0.478        0.862
+ 1.300     14       1    0.596  0.0999        0.429        0.828
+ 1.541     12       1    0.546  0.1032        0.377        0.791
+ 1.747     11       1    0.497  0.1051        0.328        0.752
+> 

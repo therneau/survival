@@ -1,0 +1,35 @@
+\documentclass{article}
+\usepackage{noweb}
+\usepackage[pdftex]{graphicx}
+\addtolength{\textwidth}{1in}
+\addtolength{\oddsidemargin}{-.5in}
+\setlength{\evensidemargin}{\oddsidemargin}
+
+\newcommand{\myfig}[1]{\resizebox{\textwidth}{!}
+                        {\includegraphics{figure/#1.pdf}}}
+
+\noweboptions{breakcode}
+\title{Survival Package Functions}
+\author{Terry Therneau}
+
+\begin{document}
+\maketitle
+\tableofcontents
+
+\section{Introduction}
+
+\begin{quotation}
+Let us change or traditional attitude to the construction of programs.
+Instead of imagining that our main task is to instruct a \emph{computer}
+what to do, let us concentrate rather on explaining to \emph{humans}
+what we want the computer to do.  (Donald E. Knuth, 1984).
+\end{quotation}
+
+This is the definition of a coding style called \emph{literate programming}.
+I first made use of it in the \emph{coxme} library and have become a full
+convert.  For the survival library only selected objects are documented in
+this way; whenever I find need for a major revision I ``convert'' the 
+source.
+An underlying motivation is to leave code that is well enough explained that
+someone else can take it over.
+

@@ -1,0 +1,59 @@
+
+R version 2.9.0 (2009-04-17)
+Copyright (C) 2009 The R Foundation for Statistical Computing
+ISBN 3-900051-07-0
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> #
+> library(survival)
+Loading required package: splines
+> 
+> # Some simple tests of the Surv function
+> #  The first two are motivated by a bug, pointed out by Kevin Buhr,
+> #    where a mixture of NAs and invalid values didn't work right
+> #  Even for the simplest things a test case is good.
+> #
+> aeq <- function(x,y) all.equal(as.vector(x), as.vector(y))
+> temp <- Surv(c(1, 10, 20, 30), c(2, NA, 0, 40), c(1,1,1,1))
+Warning message:
+In Surv(c(1, 10, 20, 30), c(2, NA, 0, 40), c(1, 1, 1, 1)) :
+  Stop time must be > start time, NA created
+> aeq(temp, c(1,10,NA,30,  2,NA,0,40, 1,1,1,1))
+[1] TRUE
+> 
+> temp <- Surv(c(1, 10, 20, 30), c(2, NA, 0, 40), type='interval2')
+Warning message:
+In Surv(c(1, 10, 20, 30), c(2, NA, 0, 40), type = "interval2") :
+  Invalid interval: start > stop, NA created
+> aeq(temp, c(1,10,NA,30,  2,1,0,40, 3,0,3,3))
+[1] TRUE
+> 
+> temp <- Surv(1:5)
+> aeq(temp, c(1:5, 1,1,1,1,1))
+[1] TRUE
+> 
+> temp1 <- Surv(c(1,10,NA, 30, 30), c(1,NA,10,20, 40), type='interval2')
+Warning message:
+In Surv(c(1, 10, NA, 30, 30), c(1, NA, 10, 20, 40), type = "interval2") :
+  Invalid interval: start > stop, NA created
+> temp2 <- Surv(c(1,10,10,30,30), c(9, NA, 5, 20,40), c(1, 0, 2,3,3),
++               type='interval')
+Warning message:
+In Surv(c(1, 10, 10, 30, 30), c(9, NA, 5, 20, 40), c(1, 0, 2, 3,  :
+  Invalid interval: start > stop, NA created
+> aeq(temp1, temp2)
+[1] TRUE
+> aeq(temp1, c(1,10,10,NA,30, 1,1,1,20, 40, 1,0,2,3,3))
+[1] TRUE
+> 

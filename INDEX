@@ -1,0 +1,33 @@
+Surv 	 	 Package a survival variable 
+clogit		 Conditional logistic regression
+cluster 	 Identify clusters. 
+cox.zph 	 Test the proportional hazards assumption of a Cox regression. 
+coxph 	 	 Proportional Hazards Regression 
+coxph.detail 	 Details of a cox model fit 
+coxph.object 	 Proportional Hazards Regression Object 
+coxph.rvar 	 Robust variance for a Cox model 
+frailty		 Frailty models by penalised likelihood
+is.ratetable 	 Verify that an object is of class ratetable. 
+lines.survfit 	 Add lines to a survival plot 
+plot.cox.zph 	 Graphical test of proportional hazards (requires splines)
+plot.survfit 	 Plot method for survfit. 
+print.survfit 	 Short summary of a survival curve 
+pspline		 Penalised (smoothing) splines
+pyears 	 	 Person Years 
+residuals.coxph  Calculate residuals for a coxph fit. 
+residuals.survreg Compute Residuals for survreg Objects
+ridge		 ridge regression 
+strata 	 	 Identify strata variables. 
+summary.survfit  Print a Survival Curve 
+survdiff 	 Test Survival Curve Differences 
+survexp 	 Compute Expected Survival 
+survexp.fit 	 Compute expected survival 
+survexp.usr      Mortality tables for US and some states (requires date)
+survfit 	 Compute a survival Curve for Censored Data 
+survfit.object 	 Survival Curve Object 
+survobrien 	 O'Brien's test for association of a variable with survival 
+survreg 	 Regression for a parametric survival model 
+survreg.object 	 Parametric Survival Model Object 
+survSplit	 Split data for creating time-dependent covariates.
+anova.survreg    ANOVA tables for survreg objects
+untangle.specials  Help process the 'specials' argument of the terms function. 

@@ -1,0 +1,400 @@
+\section{residuals.survreg}
+The residuals for a [[survreg]] model are one of several types
+\begin{description}
+  \item[response] residual [[y]] value on the scale of the original data 
+  \item[deviance] an approximate deviance residual.  A very bad idea 
+    statistically, retained for the sake of backwards compatability.
+  \item[dfbeta] a matrix with one row per observation and one column per
+    parameter showing the approximate influence of each observation on 
+    the final parameter value
+  \item[dfbetas] the dfbeta residuals scaled by the standard error of
+    each coefficient
+  \item[working] residuals on the scale of the linear predictor
+  \item[ldcase] likelihood displacement wrt case weights
+  \item[ldresp] likelihood displacement wrt response changes
+  \item[ldshape] likelihood displacement wrt changes in shape
+  \item[matrix] matrix of derivatives of the log-likelihood wrt paramters
+\end{description}
+
+The other parameters are 
+\begin{description}
+  \item[rsigma] whether the scale parameters should be included in the
+    result for dfbeta results.  I can think of no reason why one would not
+    want them.
+  \item[collapse] optional vector of subject identifiers.  This is for the
+    case where a subject has multiple observations in a data set, and one 
+    wants to have residuals per subject rather than residuals per observation.
+  \item[weighted] whether the residuals should be multiplied by the case
+    weights.   The sum of weighted residuals will be zero.
+\end{description}
+
+The routine starts with standard stuff, checking arguments for 
+validity and etc.  
+The two cases of response or working residuals require
+a lot less computation. and are the most common calls, so they are
+taken care of first.
+
+<<residuals.survreg>>= 
+# $Id$
+#
+#  Residuals for survreg objects
+residuals.survreg <- function(object, type=c('response', 'deviance',
+		      'dfbeta', 'dfbetas', 'working', 'ldcase',
+		      'ldresp', 'ldshape', 'matrix'), 
+		      rsigma =TRUE, collapse=FALSE, weighted=FALSE, ...) {
+    type <-match.arg(type)
+    n <- length(object$linear.predictors)
+    Terms <- object$terms
+    if(!inherits(Terms, "terms"))
+	    stop("invalid terms component of  object")
+
+    # If there was a cluster directive in the model statment then remove
+    #  it.  It does not correspond to a coefficient, and would just confuse
+    #  things later in the code.
+    cluster <- untangle.specials(Terms,"cluster")$terms
+    if (length(cluster) >0 )
+        Terms <- Terms[-cluster]
+
+    strata <- attr(Terms, 'specials')$strata
+    coef <- object$coefficients
+    intercept <- attr(Terms, "intercept") 
+    response  <- attr(Terms, "response")
+    weights <- object$weights
+    if (is.null(weights)) weighted <- FALSE
+
+    <<rsr-dist>>
+    <<rsr-data>>
+    <<rsr-resid>>
+    <<rsr-finish>>
+    }
+@ 
+
+First retrieve the distribution, which is used multiple times. 
+The common case is a character string pointing to some element of 
+[[survreg.distributions]], but the other is a user supplied
+list of the form contained there.
+Some distributions are defined as the transform of another in which
+case we need to set [[itrans]] and [[dtrans]] and follow the link,
+otherwise the transformation and its inverse are the identity.
+<<rsr-dist>>=
+if (is.character(object$dist)) 
+	    dd <- survreg.distributions[[object$dist]]
+else dd <- object$dist
+if (is.null(dd$itrans)) {
+	itrans <- dtrans <-function(x)x
+	}
+else {
+	itrans <- dd$itrans
+	dtrans <- dd$dtrans
+	}
+if (!is.null(dd$dist))  dd <- survreg.distributions[[dd$dist]]
+deviance <- dd$deviance
+dens <- dd$density
+@
+
+The next task is to decide what data we need.  The response
+is always needed, but is normally saved as a part of the 
+model.  If it is a transformed distribution such as the
+Weibull (a transform of the extreme value) the saved object
+[[y]] is the transformed data, so we need to replicate that
+part of the survreg() code.  
+(Why did I even allow for y=F in survreg?  Because I was
+mimicing the lm function --- oh the long, long consequences of
+a design decision.)
+
+The covariate matrix [[x]] will be needed for all but
+response, deviance, and working residuals. 
+If the model
+included a strata() term then there will be multiple scales,
+and the strata variable needs to be recovered. 
+The variable [[sigma]] is set to a scalar if there are no
+strata, but otherwise to a vector with [[n]] elements containing
+the appropriate scale for each subject.
+
+The leverage type residuals all need the second derivative
+matrix.  If there was a [[cluster]] statement in the model this
+will be found in [[naive.var]], otherwise in the [[var]]
+component.
+<<rsr-data>>=
+if (is.null(object$naive.var)) vv <- object$var
+else                           vv <- object$naive.var
+
+need.x <- is.na(match(type, c('response', 'deviance', 'working')))
+if (is.null(object$y) || !is.null(strata) || (need.x & is.null(object[['x']])))
+    mf <- model.frame(object)
+
+y <- object$y
+if (is.null(y)) {
+    y <- model.extract(mf, 'response')
+    if (!is.null(dd$trans)) {
+	tranfun <- dd$trans
+	exactsurv <- y[,ncol(y)] ==1
+	if (any(exactsurv)) logcorrect <-sum(log(dd$dtrans(y[exactsurv,1])))
+
+	if (type=='interval') {
+	    if (any(y[,3]==3))
+		    y <- cbind(tranfun(y[,1:2]), y[,3])
+	    else y <- cbind(tranfun(y[,1]), y[,3])
+	    }
+	else if (type=='left')
+	     y <- cbind(tranfun(y[,1]), 2-y[,2])
+	else     y <- cbind(tranfun(y[,1]), y[,2])
+	}
+    else {
+	if (type=='left') y[,2] <- 2- y[,2]
+	else if (type=='interval' && all(y[,3]<3)) y <- y[,c(1,3)]
+	}
+    }
+
+if (!is.null(strata)) {
+    temp <- untangle.specials(Terms, 'strata', 1)
+    Terms2 <- Terms[-temp$terms]
+    if (length(temp$vars)==1) strata.keep <- mf[[temp$vars]]
+    else strata.keep <- strata(mf[,temp$vars], shortlabel=TRUE)
+    strata <- as.numeric(strata.keep)
+    nstrata <- max(strata)
+    sigma <- object$scale[strata]
+    }
+else {
+    Terms2 <- Terms
+    nstrata <- 1
+    sigma <- object$scale
+    }
+        
+if (need.x) { 
+   x <- object[['x']]  #don't grab xlevels component
+   if (is.null(x)) 
+        x <- model.matrix(Terms2, mf, contrasts.arg=object$contrasts)
+    }
+@ 
+
+
+
+The most common residual is type response, which requires almost
+no more work, for the others we need to create the matrix of
+derivatives before proceeding.
+We use the [[center]] component from the deviance function for the
+distribution, which returns the data point [[y]] itself for an
+exact, left, or right censored observation, and an appropriate
+midpoint for interval censored ones.
+<<rsr-resid>>=
+if (type=='response') {
+    yhat0 <- deviance(y, sigma, object$parms)
+    rr <-  itrans(yhat0$center) - itrans(object$linear.predictor)
+    }
+else {
+    <<rtr-deriv>>
+    <<rtr-resid2>>
+    }
+@ 
+
+The matrix of derviatives is used in all of the other cases.  
+The starting point is the [[density]] function of the distribtion
+which return a matrix with columns of
+$F(x)$, $1-F(x)$, $f(x)$, $f'(x)/f(x)$ and $f''(x)/f(x)$.          %'
+The matrix type residual contains columns for each of
+$$
+   L_i \quad \frac{\partial L_i}{\partial \eta_i} 
+	\quad \frac{\partial^2 L_i}{\partial \eta_i^2}
+       \quad \frac{\partial L_i}{\partial \log(\sigma)}       
+       \quad \frac{\partial L_i}{\partial \log(\sigma)^2} 
+       \quad \frac{\partial^2 L_i}{\partial \eta \partial\log(\sigma)}
+$$
+where $L_i$ is the contribution to the log-likelihood from each
+individual.
+Note that if there are multiple scales, i.e. a strata() term in the
+model, then terms 3--6 are the derivatives for that subject with 
+respect to their \emph{particular} scale factor; derivatives with
+respect to all the other scales are zero for that subject.
+
+The log-likelihood can be written as
+\begin{eqnarray*}
+L &=& \sum_{exact}\left[ \log(f(z_i)) -\log(\sigma_i) \right] +
+      \sum_{censored} \log \left( \int_{z_i^l}^{z_i^u} f(u)du \right) \\
+  &\equiv& \sum_{exact}\left[g_1(z_i) -\log(\sigma_i) \right] +
+      \sum_{censored} \log(g_2(z_i^l, z_i^u)) \\
+ z_i &=& (y_i - \eta_i)/ \sigma_i
+ \end{eqnarray*}
+For the interval censored observations we have a $z$ defined at both the
+lower and upper endpoints. 
+The linear predictor is $\eta = X\beta$.
+
+The derivatives are shown below.
+Note that $f(-\infty) = f(\infty) = F(-\infty)=0$,
+$F(\infty)=1$, $z^u = \infty$ for a right censored observation
+and $z^l = -\infty$ for a left censored one.
+\begin{eqnarray*}
+\frac{\partial g_1}{\partial \eta} &=& - \frac{1}{\sigma}
+                \left[\frac{f'(z)}{f(z)}  \right]      \\       %'
+\frac{\partial g_2}{\partial \eta} &=& - \frac{1}{\sigma} \left[
+		\frac{f(z^u) - f(z^l)}{F(z^u) - F(z^l)}  \right] \\
+\frac{\partial^2 g_1}{\partial \eta^2} &=&  \frac{1}{\sigma^2}
+		\left[ \frac{f''(z)}{f(z)} \right]
+                 - (\partial g_1 / \partial \eta)^2                   \\
+\frac{\partial^2 g_2}{\partial \eta^2} &=&  \frac{1}{\sigma^2} \left[
+                \frac{f'(z^u) - f'(z^l)}{F(z^u) - F(z^l)} \right]
+                 - (\partial g_2 / \partial \eta)^2                 \\
+\frac{\partial g_1}{\partial \log\sigma} &=& -  \left[
+                \frac{zf'(z)}{f(z)}     \right]                          \\
+\frac{\partial g_2}{\partial \log\sigma} &=& -  \left[
+                \frac{z^uf(z^u) - z^lf(z^l)}{F(z^u) - F(z^l)} \right] \\
+\frac{\partial^2 g_1}{\partial (\log\sigma)^2} &=&   \left[
+		 \frac{z^2 f''(z) + zf'(z)}{f(z)} \right]
+		- (\partial g_1 / \partial \log\sigma)^2                   \\
+\frac{\partial^2 g_2}{\partial (\log\sigma)^2} &=&  \left[
+                \frac{(z^u)^2 f'(z^u) - (z^l)^2f'(z_l) }
+                {F(z^u) - F(z^l)} \right]
+  - \partial g_1 /\partial \log\sigma(1+\partial g_1 / \partial \log\sigma)  \\
+\frac{\partial^2 g_1}{\partial \eta \partial \log\sigma} &=&
+	       \frac{zf''(z)}{\sigma f(z)}
+       -\partial g_1/\partial \eta (1 + \partial g_1/\partial \log\sigma) \\
+\frac{\partial^2 g_2}{\partial \eta \partial \log\sigma} &=&
+	       \frac{z^uf'(z^u) -  z^lf'(z^l)}{\sigma [F(z^u) - F(z^l)]}
+       -\partial g_2/\partial \eta (1 + \partial g_2/\partial \log\sigma) \\
+\end{eqnarray*}
+
+In the code [[z]] is the relevant point for exact, left, or right
+censored data, and [[z2]] the upper endpoint for an interval censored one.
+The variable [[tdenom]] contains the denominator for each subject (which
+is the same for all derivatives for that subject).
+For an interval censored observation we try to avoid numeric cancellation
+by using the appropriate tail of the distribution.
+For instance with $(z^l, z^u) = (12,15)$ the value of $F(x)$ will be very
+near 1 and it is better to subtract two upper tail values $(1-F)$ than
+two lower tail ones $F$.
+<<rtr-deriv>>=
+status <- y[,ncol(y)]
+eta <- object$linear.predictors
+z <- (y[,1] - eta)/sigma
+dmat <- dens(z, object$parms)
+dtemp<- dmat[,3] * dmat[,4]    #f'
+if (any(status==3)) {
+    z2 <- (y[,2] - eta)/sigma
+    dmat2 <- dens(z2, object$parms)
+    }
+else {
+    dmat2 <- dmat   #dummy values
+    z2 <- 0
+    }
+
+tdenom <- ((status==0) * dmat[,2]) +  #right censored
+	  ((status==1) * 1 )       +  #exact
+	  ((status==2) * dmat[,1]) +  #left
+	  ((status==3) * ifelse(z>0, dmat[,2]-dmat2[,2], 
+	                             dmat2[,1] - dmat[,1])) #interval
+g <- log(ifelse(status==1, dmat[,3]/sigma, tdenom))  #loglik
+tdenom <- 1/tdenom
+dg <- -(tdenom/sigma) *(((status==0) * (0-dmat[,3])) +    #dg/ eta
+                        ((status==1) * dmat[,4]) +     
+                        ((status==2) * dmat[,3]) +      
+                        ((status==3) * (dmat2[,3]- dmat[,3])))
+
+ddg <- (tdenom/sigma^2) *(((status==0) * (0- dtemp)) +  #ddg/eta^2
+                          ((status==1) * dmat[,5]) +
+                          ((status==2) * dtemp) +
+                          ((status==3) * (dmat2[,3]*dmat2[,4] - dtemp))) 
+
+ds  <- ifelse(status<3, dg * sigma * z,
+	                tdenom*(z2*dmat2[,3] - z*dmat[,3]))
+dds <- ifelse(status<3, ddg* (sigma*z)^2,
+	                tdenom*(z2*z2*dmat2[,3]*dmat2[,4] -
+                                z * z*dmat[,3] * dmat[,4]))
+dsg <- ifelse(status<3, ddg* sigma*z,
+	      tdenom *(z2*dmat2[,3]*dmat2[,4] - z*dtemp))
+deriv <- cbind(g, dg, ddg=ddg- dg^2, 
+	       ds = ifelse(status==1, ds-1, ds), 
+	       dds=dds - ds*(1+ds), 
+	       dsg=dsg - dg*(1+ds))
+@
+
+Now, we can calcultate the actual residuals case by case.
+For the dfbetas there will be one column per coefficient, 
+so if there are strata column 4 of the deriv matrix needs
+to be \emph{un}collapsed into a matrix with nstrata columns.
+The same manipulation is needed for the ld residuals.
+<<rtr-resid2>>=
+if (type=='deviance') {
+    yhat0 <- deviance(y, sigma, object$parms)
+    rr <- (-1)*deriv[,2]/deriv[,3]  #working residuals
+    rr <- sign(rr)* sqrt(2*(yhat0$loglik - deriv[,1]))
+    }
+
+else if (type=='working') rr <- (-1)*deriv[,2]/deriv[,3]
+
+else if (type=='dfbeta' || type== 'dfbetas' || type=='ldcase') {
+    score <- deriv[,2] * x  # score residuals
+    if (rsigma) {
+        if (nstrata > 1) {
+            d4 <- matrix(0., nrow=n, ncol=nstrata)
+            d4[cbind(1:n, strata)] <- deriv[,4]
+            score <- cbind(score, d4)
+            }
+        else score <- cbind(score, deriv[,4])
+        }
+    rr <- score %*% vv
+    if (type=='dfbetas') rr <- rr %*% diag(1/sqrt(diag(vv)))
+    if (type=='ldcase')  rr<- rowSums(rr*score)
+    }
+
+else if (type=='ldresp') {
+    rscore <-  deriv[,3] *  (x * sigma)
+    if (rsigma) {
+        if (nstrata >1) {
+            d6 <- matrix(0., nrow=n, ncol=nstrata)
+            d6[cbind(1:n, strata)] <- deriv[,6]*sigma
+            rscore <- cbind(rscore, d6)
+            }
+        else rscore <- cbind(rscore, deriv[,6] * sigma)
+        }
+    temp <-  rscore %*% vv
+    rr <- rowSums(rscore * temp)
+    }
+
+else if (type=='ldshape') {
+    sscore <- deriv[,6] *x
+    if (rsigma) {
+        if (nstrata >1) {
+            d5 <- matrix(0., nrow=n, ncol=nstrata)
+            d5[cbind(1:n, strata)] <- deriv[,5]
+            sscore <- cbind(sscore, d5)
+            }
+        else sscore <- cbind(sscore, deriv[,5])
+        }
+    temp <- sscore %*% vv
+    rr <- rowSums(sscore * temp)
+    }
+
+else {  #type = matrix
+    rr <- deriv
+    }
+@ 
+
+Finally the two optional steps of adding case weights and
+collapsing over subject id.
+<<rsr-finish>>=
+#case weights
+if (weighted) rr <- rr * weights
+
+#Expand out the missing values in the result
+if (!is.null(object$na.action)) {
+    rr <- naresid(object$na.action, rr)
+    if (is.matrix(rr)) n <- nrow(rr)
+    else               n <- length(rr)
+    }
+
+# Collapse if desired
+if (!missing(collapse)) {
+    if (length(collapse) !=n) stop("Wrong length for 'collapse'")
+    rr <- drop(rowsum(rr, collapse))
+    }
+
+rr
+@ 
+	
+
+
+
+
+
+
+

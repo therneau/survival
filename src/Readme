@@ -1,0 +1,7 @@
+  There remains one .c file that has both Splus and R specific variants,
+cox_callback.c.  All others have been unified, and this one will be also (I
+expected to be done before now, actually).  The R CMD INSALL script is
+unhappy if the Splus version is visible; so it is temporarily renamed with
+a .csp suffix.
+
+ 
