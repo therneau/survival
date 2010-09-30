@@ -29,7 +29,11 @@ if the input data to survfit were in days,
 \item{\dots}{for future results}
 }
 \value{
-x, with the invisible flag set to prevent printing. 
+  x, with the invisible flag set to prevent printing.
+  (The default for all print functions in R is to return the object
+  passed to them; print.survfit follows the pattern.  If you want to
+  capture these printed results for further processing, see the
+  \code{table} component of \code{summary.survfit}.)  
 }
 \section{Side Effects}{
 he number of observations, the number of events,  the median survival
