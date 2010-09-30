@@ -25,6 +25,7 @@ The input arguments are
 \end{description}
 All the other arguments are common to all the methods, refer to the 
 help pages.
+
 <<survfit.coxph>>=
 survfit.coxph <-
   function(formula, newdata, se.fit=TRUE, conf.int=.95, individual=FALSE,
@@ -178,8 +179,8 @@ if (individual) {
         }
     else strata2 <- rep(0, nrow(mf2))
     
-    x2 <- model.matrix(Terms2, mf2)[,-1, drop=FALSE]  #no itercept
-    if (length(x2)==0) x2 <- matrix(0.0, nrow=nrow(mf2), col=1)
+    x2 <- model.matrix(Terms2, mf2)[,-1, drop=FALSE]  #no intercept
+    if (length(x2)==0) x2 <- matrix(0.0, nrow=nrow(mf2), ncol=1)
     else x2 <- scale(x2, center=object$means, scale=FALSE)
 
     offset2 <- model.offset(mf2)
@@ -219,7 +220,7 @@ variable names from the model, and assume that it's the right order.  %'
         temp <- untangle.specials(Terms2, 'strata')
         if (length(temp$vars)) Terms2 <- Terms2[-temp$terms]
         mf2 <- model.frame(Terms2, newdata, xlev=object$xlevels)
-        x2 <- model.matrix(Terms2, mf2)[,-1, drop=FALSE]  #no itercept
+        x2 <- model.matrix(Terms2, mf2)[,-1, drop=FALSE]  #no intercept
         x2 <- scale(x2, center=object$means, scale=FALSE)
         offset2 <- model.offset(mf2)
         if (length(offset2) >0) offset2 <- offset2 - mean(offset)
