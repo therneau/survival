@@ -137,8 +137,18 @@ commands in the configure and cleanup scripts.
 tied times, e.g., c(2, sqrt(2)^2), could lead to an inconsistent result.  Some
 parts of the code saw these as 2 unique values per the unique() function, some
 as a single value using the results of table().  We now pre-round the input
-times with as.numeric(as.character(y)).
+times to one less decimal digit than the max from .Machine$double.digits.
 
 29 July 2010: Fix 2 bugs in pyears.  The check for a US rate table was off
 (minor effect on calculations), and there was a call to julian which assumed
 that the origin argument could be a vector.  
+
+12 Oct 2010: Fix a bug in the modified lower limits for survfit (Dory & Korn).
+A logical vector was being inadvertently converted to numeric.  
+	
+17 Oct 2010: Per a request from Frank Harrell (interaction with his library),
+survfit.coxph no longer reconstructs the model frame unless it really needs
+it.  Add an argument "mf" to model.matrix.coxph for more efficient interaction
+when a routine has already recovered the model frame.
+
+

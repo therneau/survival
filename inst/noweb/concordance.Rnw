@@ -1,0 +1,283 @@
+\section{Concordance}
+ The concordance statistic is gaining popularity as a measure of goodness-of-fit
+in survival models.  Consider all pairs of subjects with
+$(r_i, r_j)$ as the two risk scores for each pair and $(s_i, s_j)$ the
+corresponding survival times.  The c-statistic is defined by dividing these
+sets into four groups.
+\begin{itemize}
+  \item Concordant pairs: for a Cox model this will be pairs where a shorter
+    survival is paired with a larger risk score, e.g. $r_i>r_j$ and $s_i < s_j$
+  \item Discordant pairs: the lower risk score has a shorter survival
+  \item Tied pairs: there are three common choices
+    \begin{itemize}
+      \item Kendall's tau: any pair where $r_i=r_j$ or $s_i = s_j$ is considered
+        tied.
+      \item AUC: pairs with $r_i=r_j$; those with $s_i=s_j$ are considered
+        incomparable.  This is the definition of the AUC in logisitic 
+        regression,
+        and has become the most common choice for Cox models as well.
+      \item Somer's D: All ties are treated as incomparable.
+    \end{itemize}
+  \item Incomparable pairs: For survival this always includes pairs where the
+    survival times cannot be ranked with certainty.  
+    For instance $s_i$ is censored
+    at time 10 and $s_j$ is an event (or censor) at time 20.  Subject $i$ may or
+    may not survive longer than subject $j$.  
+    Note that if $s_i$ is censored at time
+    10 and $s_j$ is an event at time 10 then $s_i > s_j$.  
+    Add onto this those ties that are treated as incomparable.\\
+    Observations that are in different strata are also incomparable, 
+    since the Cox
+    model only compares within strata.
+\end{itemize}
+Then the concordance statistic is defined as $(C + T/2)/(C + D + T)$. 
+The denominator is the number of comparable pairs.
+
+The program creates 4 variables, which are the number of concordant pairs, 
+discordant, tied on time, and tied on $x$ but not on time.  
+The default concordance is 
+based on the AUC definition, but all 4 values are reported back so that a user
+can recreate the others if desired.
+
+\begin{figure}
+  \myfig{balance}
+  \caption{A balanced tree of 13 nodes.}
+  \label{treefig}
+\end{figure}
+
+The primary compuational questions is how to do this efficiently, i.e., better
+that the naive $O(n^2)$ algorithm that loops across all $n(n-1)/2$ 
+possible pairs.
+The key is use of a balanced binary tree; figure  \ref{treefig} shows a tree
+using 14 different values.  For each node the left child and all its descendants
+have a smaller value tnan the parent, the right child and all its
+descendents have a larger value.
+Each node in figure \ref{treefig} is annotated with
+the number of observations in that node and its children.  
+Assume that the tree shown represents all of the subjects still alive at the
+time a particular subject ``Smith'' expires, and that Smith has the risk score
+of 5.5.  The concordant pairs are all of those with a risk score greater than
+5.5, which can be found by traversing the tree from the top down,
+adding the (parent - child) value each time we branch left (5-3),
+with a last addition of the right hand child when we 
+find the node with Smith's value (1).
+This takes a little less than $\log_2(n)$ steps on average, as compared to an
+average of $n/2$ for the naive method.  The difference can matter when $n$ is
+large since this traversal must be done for each event.
+
+If we index the nodes of the tree as 1 for the top, 2--3 for the next horizontal
+row, 4--7 for the next, \ldots then the parent-child traversal becomes particularly
+easy.  The parent of node $i$ is $i/2$ (integer arithmetic) and the children of
+node $i$ are $2i$ and $2i +1$.  In C code the indices start at 0 and the
+children are $2i+1$ and $2i+2$ and the parent is $(i-1)/2$.  The following
+bit of code returns the indices of a sorted list when placed into such a
+tree.  The cases for $n=1--3$ are hard coded for speed; this cuts off the
+bottom layer of the tree which accounts for 1/2 the nodes.
+The maximum depth of recursion is $\log_2(n) -1$.
+<<btree>>=
+btree <- function(n) {
+   tfun <- function(n, id, power) {
+       if (n==1) id
+       else if (n==2) c(2*id, id)
+       else if (n==3) c(2*id, id, 2*id+1)
+       else {
+           nleft <- if (n== power*2) power  else min(power-1, n-power/2)
+           c(tfun(nleft, 2*id, power/2), id,
+             tfun(n-(nleft+1), 2*id +1, power/2))
+           }
+       }
+   tfun(n, 1, 2^(floor(logb(n-1,2))))
+   }
+@ 
+Referring again to figure \ref{treefig}, [[btree(13)]] yields the vector
+[[8  4  9  2 10  5 11  1 12  6 13  3  7]] meaning that the smallest element
+will be in position 8 of the tree, the next smallest in position 4, etc.
+
+We can now define the C-routine that does the bulk of the work.
+First we give the outline shell of the code and then discuss the
+parts one by one.  This routine  is for ordinary survival data, and
+will be called once per stratum.
+Input variables are
+\begin{description}
+  \item[n] the number of observations
+  \item[y] matrix containing the time and status, data is sorted by ascending 
+    time, with deaths preceding censorings.
+  \item[indx] the tree node at which this observation's risk score resides
+  \item[wt] case weight for the observation
+  \item[twt] weights for each node of the tree
+  \item[count] the returned counts of concordant, discordant, tied on x, 
+    and tied on time
+\end{description}
+
+<<concordance1>>=
+#include "survS.h"
+void concordance1(Sint *n,    double *y,     Sint *ntree, 
+                  Sint *indx,  double *wt,   double *twt,
+                  double   *count) {
+    int i, j, k, index;
+    int leftchild, rightchild, parent;
+    double *time, *status;
+    
+    time = y;
+    status = y+ *n;
+    <<concordance1-work>>
+@ 
+The key part of our computation is to update the vector of weights.
+We don't actually pass the risk score values $r$ into the routine,
+it is enough for each observation to point to the appropriate tree
+node.
+The second thing to note is that we can do the comparisons sequentially
+in time, comparing each death $j$ at time $t_j$ only to those with $t > t_j$.
+The tree contains the weights for everyone whose survival is larger
+than the time currently under review, so starts with all weights [[twt]]
+equal to zero.  For any pair of observations $i,j$ we need to add [[wt[i]*wt[j]]]
+to the appropriate count.
+Starting at the largest time
+\begin{itemize}
+  \item If it is a death time, we need to process all the deaths tied at
+    this time.
+    \begin{enumerate}
+      \item Add [[wt[i] * wt[j]]] to the tied-on-time total, for all pairs $i,j$
+        of tied times.
+      \item The addition to tied-on-r will be the weight of this 
+        observation times
+        the sum of weights for all others with the same risk and a
+        a greater time, i.e., the weight found at [[indx[i]]] in the tree.
+      \item Similarly for those with smaller or larger risk scores.  First add
+        in the children of this node.  The left child will be smaller risk 
+        scores (and longer times) adding to the concordant pairs, 
+        the right child discordant.
+        Then walk up the tree to the root. 
+        At each step up we add in data for the 'not me' branch.
+        If we were the right branch (even number node) of a parent
+        then when moving up we add in the left branch counts, and vice-versa. 
+    \end{enumerate}
+    \item Now add this set of subject weights into the tree.
+\end{itemize}
+<<concordance1-work>>=
+for (i=*n-1; i>=0; ) {
+    if (status[i]==1) { /* process all tied deaths at this point */
+        j =i;
+        while (j >=0 && status[j]==1 && time[j]==time[i]) {
+            index = indx[j];
+            for (k=j+1; k<=i; k++) count[3] += wt[j]*wt[k]; /* tied on time */
+            count[2] += wt[j] * twt[index];               /* tied on x */
+            leftchild = 2*index +1;
+            if (leftchild < *ntree) {
+                count[0] += wt[j] * twt[leftchild];
+                rightchild = leftchild +1;
+                if (rightchild < *ntree) count[1] += wt[j] * twt[rightchild];
+                }
+            while (index >0) {  /* walk up the tree  */
+                parent = (index-1)/2;
+                if ((index/2)*2 == index)   /* I am the right child */
+                     count[0] += wt[j] * (twt[parent] - twt[indx]);
+                else count[1] += wt[j] * (twt[parent] - twt[indx]);
+                index = parent;
+                }
+	    j--;
+	    }                    
+        }
+    else j = i-1;
+    
+    /* Add the weights for these obs into the tree */
+    for (; i>j; i--) {
+	index = indx[i];
+	twt[index] += wt[i];
+	while (index >0) {
+	    index = (index-1)/2;
+	    twt[index] += wk[i];
+	    }
+	}
+    }
+@ 
+
+The code for [start, stop) data is quite similar.  
+As in the agreg routines there are two sort indices, the first indexes
+the data by stop time, longest to earliest, and the second by start time. 
+The [[y]] variable now has three columns.
+<<concordance2>>=
+#include "survS.h"
+void concordance1(Sint *n,     double *y,     Sint *sort1,  Sint *sort2,
+		  Sint *ntree, Sint *indx,    double *wt,   double *twt,
+                  double   *count) {
+    int i, j, k, index;
+    int iptr, jptr, istart;
+    int leftchild, rightchild, parent;
+    double *start, *stop, *status;
+    
+    start = y;
+    stop  = y + *n;
+    status = stop+ *n;
+    <<concordance2-work>>
+@ 
+
+This processing changes in 2 ways
+\begin{itemize}
+  \item The loops go from $0$ to $n-1$ instead of $n-1$ to 0.  We need
+    to use [[sort1[i]]] instead of [[i]] as the subscript for the stop and wt
+    vectors..
+    This happens enough that we use a temporary variables [[iptr]] and [[jptr]]
+    to avoid the double subscript.
+  \item As we move from the longest time to the shortest observations are added
+    into the tree of weights [[twt]] whenever we encounter their stop time. 
+    This is just as before.  Weights now also need to be removed from the 
+    tree whenever we encounter an observation's start time.  
+    It is convenient ``catch up'' on this second task whenever we encounter 
+    a death.
+\end{itemize}
+
+<<concordance2-work>>=
+istart;  /* keep track of sort1 and start times */
+for (i=0; i<n; ) {
+    iptr = sort1[isort1];
+    if (status[iptr]==1) {
+	/* Toss people out of the tree */
+	dtime = stop[iptr];
+	for (; istart < n && start[sort1[istart]] >= dtime; istart++) {
+	    jptr <- sort1[istart];
+	    index = indx[jptr];
+	    twt[index] -= wt[jptr];
+	    while (index >0) {
+		index = (index-1)/2;
+		twt[index] -= wt[jptr];
+		}
+	    }
+	    
+	/* Process deaths */
+        j =i;
+        while (j <n && status[sort1[j]]==1 && stop[sort1[j]]==stop[iptr]) {
+	    jptr =  sort1[j];
+            index = indx[jptr];
+            for (k=j+1; k<=i; k++) count[3] += wt[jptr]*wt[sort1[k]]]; 
+            count[2] += wt[jptr] * twt[index];            /* tied on x */
+            leftchild = 2*index +1;
+            if (leftchild < *ntree) {
+                count[0] += wt[jptr] * twt[leftchild];
+                rightchild = leftchild +1;
+                if (rightchild < *ntree) count[1] += wt[jptr] * twt[rightchild];
+                }
+            while (index >0) {  /* walk up the tree  */
+                parent = (index-1)/2;
+                if ((index/2)*2 == index)   /* I am the right child */
+                     count[0] += wt[jptr] * (twt[parent] - twt[indx]);
+                else count[1] += wt[jptr] * (twt[parent] - twt[indx]);
+                index = parent;
+                }
+	    j++;
+	    }                    
+        }
+    else j = i+1;
+    
+    /* Add the weights for these obs into the tree */
+    for (; i<j; i++) {
+	index = indx[iptr];
+	twt[index] += wt[iptr];
+	while (index >0) {
+	    index = (index-1)/2;
+	    twt[index] += wt[iptr];
+	    }
+	}
+    }
+@ 
+

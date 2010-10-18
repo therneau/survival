@@ -2,7 +2,8 @@
 #  has already been constructed.  
 model.matrix.coxph <- function(object, data=NULL,contrast.arg=object$contrasts,
                                mf, ...){
-    if (!is.null(object[['x']])) object[['x']] #don't match "xlevels"
+    if (is.null(data) && missing(mf) && !is.null(object[['x']])) 
+        object[['x']] #don't match "xlevels"
     else {
         Terms <- object$terms
         if (missing(mf)) {

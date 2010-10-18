@@ -248,8 +248,8 @@ survfitCI <- function(X, Y, weights,
 	#   the first time of a strata)
 	#
 	events <- kfit$n.event >0
-	if (ncurve==1) events[1] <- 1
-	else           events[1 + cumsum(c(0, kfit$strata[-ncurve]))] <- 1
+	if (ncurve==1) events[1] <- TRUE
+	else           events[1 + cumsum(c(0, kfit$strata[-ncurve]))] <- TRUE
 	zz <- 1:length(events)
 	n.lag <- rep(kfit$n.risk[events], diff(c(zz[events], 1+max(zz))))
 	std.low <- switch(conf.lower,

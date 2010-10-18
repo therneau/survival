@@ -1,11 +1,13 @@
 PARTS = main.Rnw \
 	residuals.survreg.Rnw \
-	coxsurv.Rnw
+	coxsurv.Rnw \
+	survexp.Rnw
 #	predict.coxph.Rnw \
 
 SFUN =  residuals.survreg.S\
 	survfit.coxph.R \
-	agsurv.R
+	agsurv.R\
+	survexp.S
 	 # predict.coxph.S \
 
 CFUN =  agsurv4.c agsurv5.c

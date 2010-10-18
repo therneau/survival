@@ -176,8 +176,8 @@ survfitKM <- function(x, y, casewt=rep(1,length(x)),
 	#   the first time of a strata)
 	#
 	events <- temp$n.event >0
-	if (nstrat==1) events[1] <- 1
-	else           events[1 + cumsum(c(0, strata[-nstrat]))] <- 1
+	if (nstrat==1) events[1] <- TRUE
+	else           events[1 + cumsum(c(0, strata[-nstrat]))] <- TRUE
 	zz <- 1:length(events)
 	n.lag <- rep(temp$n.risk[events], diff(c(zz[events], 1+max(zz))))
 	std.low <- switch(conf.lower,

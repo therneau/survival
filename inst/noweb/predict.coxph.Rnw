@@ -35,7 +35,8 @@ We will need the following components:
     the highly unusual case that a user specfied [[y=FALSE]] in the orignal call.
   \item for any call with either newdata, standard errors,  or type='terms'
      the original $X$ matrix, weights, strata, and offset. 
-     When checking for the existence of a saved $X$ matrix we can't use [[object$x]]
+     When checking for the existence of a saved $X$ matrix we can't
+     use [[object$x]]
      since that will also match the [[xlevels]] component.
   \item the new data matrix, if any 
 \end{itemize}

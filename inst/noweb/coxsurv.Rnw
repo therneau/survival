@@ -54,7 +54,8 @@ If the type or vartype are missing we use the appropriate one
 for the method in the Cox model.
 That is, the [[coxph]] computation used for [[method=``exact'']] is
 the same approximation used in the Kalbfleish-Prentice estimate,
-that for the Breslow method matches the Aalen survival estimate, etc.
+that for the Breslow method matches the Aalen survival estimate, and
+the Efron approximation the Efron survival estimate.
 
 <<survfit.coxph-setup>>=
 if (missing(type)) {
@@ -80,12 +81,13 @@ else conf.type <- match.arg(conf.type)
 @ 
 
 I need to retrieve a copy of the original data. 
-This includes the survival times, model matrix, 
-case weights and strata.  
-The code below currently could be made faster for the case that a user
-had save x, y, etc in the model object --- then model.frame does not
-actually need to be called.  This is very rare, except for the case of
-the cph function from the rms package, and is on my ``someday'' list.
+We always need the $X$ matrix and $y$, both of which may be found in 
+the data object.
+If the original call included either strata, offset, or weights, 
+or if either $x$
+or $y$ are missing from the [[coxph]] object, then model.frame is needed.
+(The primary user of the default case is the cph function from Frank
+Harrell's libraries, since [[coxph]] by default does not save $x$.)
 The ``failed to reconstruct'' error messages are to avoid nonsense results
 when someone changes the data set under our feet.  For instance
 \begin{verbatim}
@@ -95,23 +97,44 @@ when someone changes the data set under our feet.  For instance
 \end{verbatim}
 Also check for [[type]] of the same flavor; since [[coxph]] can only deal
 with these two types, any other must signal a change in the data.
+We have to use [[object['x']]] instead of [[object$x]] since the latter will
+pick off the [[xlevels]] component.
 <<survfit.coxph-setup>>=
-mf <- model.frame(object)
-y  <- model.response(mf)
+if (is.null(object$y) || is.null(object['x']) ||
+    !is.null(object$call$weights) || 
+    !is.null(attr(object$terms, 'specials')$strata) ||
+    !is.null(attr(object$terms, 'offset'))) {
+    
+    mf <- model.frame(object)
+    }
+else mf <- NULL  #useful for if statements later
+
+if (is.null(object[['y']])) y <- model.response(mf)
+else y <- object[['y']]
+
+if (is.null(object[['x']])) x <- model.matrix.coxph(object, mf=mf)
+else x <- object[['x']]
+
 n <- nrow(y)
-if (n != object$n[1]) stop("Failed to reconstruct the original data set")
-if (!is.null(object$y) && !all.equal(y, object$y))
+if (n != object$n[1] || nrow(x) !=n) 
     stop("Failed to reconstruct the original data set")
+
+if (is.null(mf)) wt <- rep(1., n)
+else {
+    wt <- model.weights(mf)
+    if (is.null(wt)) wt <- rep(1.0, n)
+    }
+
 type <- attr(y, 'type')
 if (type != 'right' && type != 'counting') 
     stop("Cannot handle \"", type, "\" type survival data")
 
-x  <- model.matrix.coxph(object, mf=mf)
-wt <- model.weights(mf)
-if (is.null(wt)) wt <- rep(1.0, n)
-offset <- model.offset(mf)
-if (is.null(offset)) offset <- 0
-
+if (is.null(mf)) offset <- 0
+else {
+    offset <- model.offset(mf)
+    if (is.null(offset)) offset <- 0
+    }
+    
 Terms <- object$terms
 temp <- untangle.specials(Terms, 'strata')
 if (length(temp$terms)==0) strata <- rep(0L,n)
