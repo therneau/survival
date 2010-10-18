@@ -1,3 +1,4 @@
+library(survival)
 #
 # A Cox model with a factor, followed by survexp.  
 #

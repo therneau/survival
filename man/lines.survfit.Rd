@@ -79,7 +79,7 @@ one or more curves are added to the current plot.
 \code{\link{lines}},  \code{\link{par}},  \code{\link{plot.survfit}},  \code{\link{survfit}},  \code{\link{survexp}}.   
 }
 \examples{
-fit <- survfit(Surv(time, status) ~ sex, pbc,subset=1:312)
+fit <- survfit(Surv(time, status==2) ~ sex, pbc,subset=1:312)
 plot(fit, mark.time=FALSE, xscale=365.25,
         xlab='Years', ylab='Survival')
 lines(fit[1], lwd=2, xscale=365.24)    #darken the first curve and add marks

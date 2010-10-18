@@ -8,7 +8,7 @@ The arguments for [[survexp]] are
     \begin{itemize}
       \item for the Hakulinen method it is a vector of censoring times.  This is
         the actual censoring time for censored subjecs, and is what the 
-        censoring time `would have been' for each subject who died. 
+        censoring time `would have been' for each subject who died.         %'`
       \item for the conditional method it is the usual Surv(time, status) code
       \item for the Ederer method no response is given
     \end{itemize}
@@ -46,6 +46,7 @@ survexp <- function(formula, data,
     <<survexp-setup>>
     <<survexp-compute>>
     <<survexp-format>>
+    <<survexp-finish>>
 }
 @ 
 
@@ -66,7 +67,7 @@ Terms <- if(missing(data)) terms(formula, 'ratetable')
          else              terms(formula, 'ratetable',data=data)
 @ 
 
-The function works with two data sets, the user's data on an actual set of
+The function works with two data sets, the user's data on an actual set of %'
 subjects and the reference ratetable.  
 This leads to a particular nuisance, that the variable names in the data
 set may not match those in the ratetable.  
@@ -167,17 +168,23 @@ else conditional <- FALSE
 
 The next step is to check out the ratetable. 
 For a population rate table a set of consistency checks is done by the
-[[match.ratetable]] function, giving a set of santized indices [[R]].
+[[match.ratetable]] function, giving a set of sanitized indices [[R]].
 For a Cox model [[R]] will be a model matix whose covariates are coded
 in exactly the same way that variables were coded in the original
-Cox model.
+Cox model.  We call the model.matrix.coxph function to avoid the
+steps found there (remove cluster statements, etc); the result of
+[[m[rate]]] is of class ratetable2, which needs to be turned into a 
+data frame.  We also need to use the [[mf]] argument of the function, otherwise
+it will call model.frame internally and fail when it can't find the
+response variable (which we don't need).
+
 Note that for a population rate table the standard error of the expected
 is by definition 0 (the population rate table is based on a huge sample).
 For a Cox model rate table, an se formula is currently only available for
 the Ederer method.
 
 <<survexp-compute>>=
-ovars <- attr(Terms, 'term.labels')[-rate]
+ovars <- names(m)[-c(rate, attr(Terms, 'response'))]
 	
 if (is.ratetable(ratetable)) {
     israte <- TRUE
@@ -200,9 +207,9 @@ else if (inherits(ratetable, 'coxph')) {
     if (length(strats))
         stop("survexp cannot handle stratified Cox models")
 
-    if (any(names(m[,rate])) !=  attr(ratetable$terms, 'term.labels'))
+    if (any(names(m[,rate]) !=  attr(ratetable$terms, 'term.labels')))
          stop("Unable to match new data to old formula")
-    R <- model.matrix.coxph(ratetable, data=m[,rate])
+    R <- model.matrix.coxph(ratetable, mf=data.frame(unclass(m[,rate])))
     if (no.Y) {
         if (missing(se.fit)) se.fit <- TRUE
         }
@@ -232,7 +239,7 @@ Now for the more commonly used case: returning a survival curve.
 First see if there are any grouping variables.
 The results of the [[tcut]] function are often used in person-years
 analysis, which is somewhat related to expected survival.  However
-tcut results aren't relevant here and we put in a check for the
+tcut results aren't relevant here and we put in a check for the         %'
 confused user.
 The strata command creates a single factor incorporating all the 
 variables.
@@ -311,7 +318,7 @@ else {
 @ 
 
 Last do the standard things: add the model, x, or y components to the output
-if the user asked for them.  (For this particular routine I can't think of
+if the user asked for them.  (For this particular routine I can't think of  %'
 a reason they every would.)  Copy across summary information from the 
 rate table computation if present, and add the method and class to the
 output.

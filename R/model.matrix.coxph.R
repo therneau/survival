@@ -5,7 +5,7 @@ model.matrix.coxph <- function(object, data=NULL,contrast.arg=object$contrasts,
     if (is.null(data) && missing(mf) && !is.null(object[['x']])) 
         object[['x']] #don't match "xlevels"
     else {
-        Terms <- object$terms
+        Terms <- delete.response(object$terms)
         if (missing(mf)) {
             if (is.null(data)) mf <- model.frame(object, ...)
             else mf <- model.frame(object, data=data, ...)

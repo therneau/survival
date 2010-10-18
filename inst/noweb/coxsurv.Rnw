@@ -87,7 +87,7 @@ If the original call included either strata, offset, or weights,
 or if either $x$
 or $y$ are missing from the [[coxph]] object, then model.frame is needed.
 (The primary user of the default case is the cph function from Frank
-Harrell's libraries, since [[coxph]] by default does not save $x$.)
+Harrell's libraries, since [[coxph]] by default does not save $x$.)     %'
 The ``failed to reconstruct'' error messages are to avoid nonsense results
 when someone changes the data set under our feet.  For instance
 \begin{verbatim}
@@ -100,7 +100,7 @@ with these two types, any other must signal a change in the data.
 We have to use [[object['x']]] instead of [[object$x]] since the latter will
 pick off the [[xlevels]] component.
 <<survfit.coxph-setup>>=
-if (is.null(object$y) || is.null(object['x']) ||
+if (is.null(object$y) || is.null(object[['x']]) ||
     !is.null(object$call$weights) || 
     !is.null(attr(object$terms, 'specials')$strata) ||
     !is.null(attr(object$terms, 'offset'))) {
