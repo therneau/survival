@@ -41,7 +41,7 @@ summary.ratetable <- function(object, ...) {
                     " to ", 
                  format(as.Date(max(att$cutpoints[[i]]), origin='1970/01/01')),
                     "; with ", att$dim[i],
-                    " categories\n", sep='\n')
+                    " categories\n", sep='')
                 }
 
             else {
