@@ -9,7 +9,7 @@ Returns either the expected survival of a cohort of subjects, or the
 individual expected survival for each subject. 
 }
 \usage{
-survexp(formula, data, weights, subset, na.action, times, cohort=TRUE, 
+survexp(formula, data, weights, subset, na.action, rmap, times, cohort=TRUE, 
         conditional=FALSE, ratetable=survexp.us, scale=1, npoints, 
         se.fit, model=FALSE, x=FALSE, y=FALSE)
 }
@@ -17,8 +17,8 @@ survexp(formula, data, weights, subset, na.action, times, cohort=TRUE,
 \item{formula}{
 formula object.  The response variable is a vector of follow-up times 
 and is optional.  The predictors consist of optional grouping variables 
-separated by the \code{+} operator (as in \code{survfit}), along with a \code{ratetable}  
-term.  The \code{ratetable} term matches each subject to his/her expected cohort. 
+separated by the \code{+} operator (as in \code{survfit}), and is often
+\code{~1}, i.e., expected survival for the entire group.
 }
 \item{data}{
 data frame in which to interpret the variables named in 
@@ -36,6 +36,10 @@ function to filter missing data. This is applied to the model frame after
 value for \code{na.action} is \code{na.omit}, which deletes observations that contain 
 one or more missing values. 
 }
+\item{rmap}{
+ an optional list that maps data set names to the ratetable names.  See
+ the details section below.
+ }
 \item{times}{
 vector of follow-up times at which the resulting survival curve is  
 evaluated.  If absent, the result will be reported for each unique  
@@ -89,15 +93,16 @@ Individual expected survival is usually used in models or testing, to
 `correct' for the age and sex composition of a group of subjects. 
 For instance, assume that birth date, entry date into the study, 
 sex and actual survival time are all known for a group of subjects. 
-The \code{survexp.uswhite} population tables contain expected death rates 
+The \code{survexp.us} population tables contain expected death rates 
 based on calendar year, sex and age. 
 Then 
 \preformatted{
-haz <- -log(survexp(death.time ~ ratetable(sex=sex, year=entry.dt, 
-            age=(birth.dt-entry.dt)), cohort=FALSE)) 
+  haz <- -log(survexp(fu.time ~ 1, data=mydata, 
+                      rmap = list(year=entry.dt, age=(birth.dt-entry.dt)),
+                      cohort=FALSE)) 
 }
 gives for each subject the total hazard experienced up to their observed 
-death time or censoring time. 
+death time or last follow-up time (variable fu.time) 
 This probability can be used as a rescaled time value in models: 
 \preformatted{
 glm(status ~ 1 + offset(log(haz)), family=poisson) 
@@ -107,6 +112,16 @@ In the first model, a test for intercept=0 is the one sample log-rank
 test of whether the observed group of subjects has equivalent survival to 
 the baseline population.  The second model tests for an effect of variable 
 \code{x} after adjustment for age and sex. 
+
+The ratetable being used may have different variable names than the user's
+data set, this is dealt with by the \code{rmap} argument.  
+The rate table for the above calculation was \code{survexp.us}, a call to
+\code{summary{survexp.us}} reveals that it expects to have variables 
+\code{age} = age in days, \code{sex}, and \code{year} = the date of study
+entry, we create them in the \code{rmap} line.  The sex variable is not
+mapped, therefore the code assumes that it exists in \code{mydata} in the
+correct format.  (Note: for factors such as sex, the program will match on
+any unique abbreviation, ignoring case.)
 
 Cohort survival is used to produce an overall survival curve.  This is then 
 added to the Kaplan-Meier plot of the study group for visual comparison 
@@ -143,11 +158,12 @@ Background mortality in clinical survival studies.
 \examples{
 # 
 # Stanford heart transplant data
+#  We don't have sex in the data set, but know it to be nearly all males.
 # Estimate of conditional survival  
-survexp(futime ~ ratetable(sex="male", year=accept.dt,   
+survexp(futime ~ 1, rmap=list(sex="male", year=accept.dt,   
           age=(accept.dt-birth.dt)), conditional=TRUE, data=jasa) 
-# Estimate of conditional survival stratified by prior surgery 
-survexp(futime ~ surgery + ratetable(sex="male", year=accept.dt,  
+# Estimate of expected  survival stratified by prior surgery 
+survexp(futime ~ surgery, rmap= list(sex="male", year=accept.dt,  
 	age=(accept.dt-birth.dt)), conditional=TRUE, data=jasa) 
 
 ## Compare the survival curves for the Mayo PBC data to Cox model fit

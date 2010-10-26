@@ -7,8 +7,9 @@ model.matrix.coxph <- function(object, data=NULL,contrast.arg=object$contrasts,
     else {
         Terms <- delete.response(object$terms)
         if (missing(mf)) {
-            if (is.null(data)) mf <- model.frame(object, ...)
-            else mf <- model.frame(object, data=data, ...)
+            newform <- formula(Terms)   #leave off the response
+            if (is.null(data)) mf <- model.frame(object, newform=newform, ...)
+            else mf <- model.frame(object, data=data, newform=newform, ...)
             }
 
         attr(Terms,"intercept")<- 1  #Cox model always has \Lambda_0
@@ -51,24 +52,40 @@ model.matrix.coxph <- function(object, data=NULL,contrast.arg=object$contrasts,
         }
     }
 
+#  This function is very confusung to read.  The first argument of the
+# generic model.frame is "formula", so we have to use the same.  
+# However, our first arg is actually a coxph object, from which we want
+# to extract the formula!
+#
 model.frame.coxph <- function(formula, ...) {
     dots <- list(...)
-    nargs <- dots[match(c("data", "na.action", "subset", "drop.unused.levels",
-                          "xlev"), names(dots), 0)]
+    nargs <- dots[match(c("data", "na.action", "subset", "xlev", 
+                          "newform"), names(dots), 0)]
 
+    # If nothing has changed and the coxph object had a model component,
+    #   simply return it.
     if (length(nargs) ==0  && !is.null(formula$model)) formula$model
     else {
+        # First, find out what arguments existed in the original call
         fcall <- formula$call
         indx <- match(c("formula", "data", "weights", "subset", "na.action"),
                   names(fcall), nomatch=0) 
-        if (indx[1] ==0) stop("A formula argument is required")
+        if (indx[1] ==0) stop("The coxph call is missing a formula!")
 
         temp <- fcall[c(1,indx)]  # only keep the arguments we wanted
         temp[[1]] <- as.name('model.frame')  # change the function called
         temp$xlev <- formula$xlevels
 
+        # Now, any arguments that were on this call overtake the ones that
+        #  were in the original call.  
+        # The only troublesome one is "newform": it should be "formula", but
+        #  that word is already taken.
         if (length(nargs) >0)
             temp[names(nargs)] <- nargs
+        if (!is.null(temp$newform)) {
+            temp$formula <- temp$newform
+            temp$newform <- NULL
+            }
         if (is.R()) {
             if (is.null(environment(formula$terms)))
                 eval(temp, parent.frame())

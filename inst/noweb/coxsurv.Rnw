@@ -402,8 +402,8 @@ in the [[timeforward]] variable.
 Why all this ``adding up'' nuisance?  If the subject spent time in two
 strata, the second one might be on an internal time scale of `time since
 entering the strata'.  The two intervals in newdata could be 0--10 followed
-by 0--20.  Time for the subject can't go backwards though: the change
-between internal/external time scales is a bit like following someone who
+by 0--20.  Time for the subject can't go backwards though: the change    %`
+between internal/external time scales is a bit like following someone who 
 was stepping back and forth over the international date line.
 
 In the code the [[indx]] variable points to the set of times that the
@@ -767,10 +767,9 @@ if (se.fit) {
 	result <- c(result, list(upper=temp1, lower=temp2,
 			conf.type='log-log', conf.int=conf.int))
 	}
-
-    result$call <- Call
-    if (is.R()) class(result) <- c('survfit.cox', 'survfit')
-    else        oldClass(result) <- 'survfit.cox'
-    result
     }
+result$call <- Call
+if (is.R()) class(result) <- c('survfit.cox', 'survfit')
+else        oldClass(result) <- 'survfit.cox'
+result
 @ 

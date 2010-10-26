@@ -123,14 +123,17 @@ if(length(rate) > 1)
         
 if(length(rate) == 1) {
     if (!missing(rmap)) 
-        stop("The rmap argument supercedes a ratetable() call in the formula")
+        stop("The ratetable() call in the formula is depreciated")
 
     stemp <- untangle.specials(Terms, 'ratetable')
     rcall <- as.call(parse(text=stemp$var)[[1]])   # as a call object
     rcall[[1]] <- as.name('list')                  # make it a call to list(..
     Terms <- Terms[-stemp$terms]                   # remove from the formula
     }
-else if (!missing(rmap)) rcall <- substitute(rmap)
+else if (!missing(rmap)) {
+    rcall <- substitute(rmap)
+    if (!class(rcall) || rcall[[1]] != as.name('list'))
+        stop ("Invalid rcall argument")
 else rcall <- NULL
 
 # Check that there are no illegal names in rcall, then expand it
@@ -249,7 +252,8 @@ else if (inherits(ratetable, 'coxph')) {
 
     if (any(names(m[,rate]) !=  attr(ratetable$terms, 'term.labels')))
          stop("Unable to match new data to old formula")
-    R <- model.matrix.coxph(ratetable, mf=rdata)
+    R <- model.matrix.coxph(ratetable, data=rdata)
+browser()
     if (no.Y) {
         if (missing(se.fit)) se.fit <- TRUE
         }
@@ -262,18 +266,17 @@ Now for some calculation.  If cohort is false, then any covariates on the
 right hand side (other than the rate table) are irrelevant, the function
 returns a vector of expected values rather than survival curves.
 <<survexp-compute>>=
-browser()
 if (!cohort) { #individual survival
-	if (no.Y) stop("For non-cohort, an observation time must be given")
-	if (israte)
-	    temp <- survexp.fit (cbind(1:n,R), Y, max(Y), TRUE, ratetable)
-	else temp<- survexp.cfit(cbind(1:n,R), Y, FALSE, TRUE, ratetable, FALSE)
-	xx <- temp$surv
-	names(xx) <- row.names(m)
-	na.action <- attr(m, "na.action")
-	if (length(na.action)) return(naresid(na.action, xx))
-	else return(xx)
-	}
+    if (no.Y) stop("For non-cohort, an observation time must be given")
+    if (israte)
+	 temp <- survexp.fit (cbind(1:n,R), Y, max(Y), TRUE, ratetable)
+    else temp<- survexp.cfit(cbind(1:n,R), Y, FALSE, TRUE, ratetable, FALSE)
+    xx <- temp$surv
+    names(xx) <- row.names(m)
+    na.action <- attr(m, "na.action")
+    if (length(na.action)) return(naresid(na.action, xx))
+    else return(xx)
+    }
 @ 
 
 Now for the more commonly used case: returning a survival curve.
