@@ -6,26 +6,45 @@
 # The categoricals are turned into integer subscripts
 #
 match.ratetable <- function(R, ratetable) {
-    attR <- attributes(R)
-    attributes(R) <- attR['dim']     #other attrs get in the way later
     if (!is.ratetable(ratetable)) stop("Invalid rate table")
     dimid <- attr(ratetable, 'dimid')
+    nd <- ncol(R)
 
-    ord <- match(attR$dimnames[[2]], dimid)
+    if (is.matrix(R)) {  # older style call
+        attR <- attributes(R)
+        attributes(R) <- attR['dim']     #other attrs get in the way later
+        Rnames <- attR$dimnames[[2]]
+        isDate <- attR[["isDate"]]
+        levlist <- attR[['levlist']]
+        }
+    else {  # newer style is a dataframe
+        Rnames <- names(R)
+        isDate <- rep(FALSE, nd)
+        for (i in 1:nd) {
+            temp <- ratetableDate(R[[i]])
+            if (!is.null(temp)) {
+                isDate[i] <- TRUE
+                R[[i]] <- temp
+                }
+            }
+        levlist<- sapply(R, levels)
+        }
+        
+    ord <- match(dimid, Rnames)
 
+    # This should not arise
     if (any(is.na(ord)))
-       stop(paste("Argument '", (attR$dimnames[[2]])[is.na(ord)],
-	    "' in ratetable()",
-	    " does not match the given table of event rates", sep=''))
-    nd <- length(ord)
-    if (nd != length(dimid))
-	stop("The ratetable() call has the wrong number of arguments")
-    ord[ord] <- 1:nd   #reverse the index, so "ord" can be on the right-hand
+       stop(paste("Argument '", dimid[is.na(ord)],
+	    "' needed by the ratetable was not found in the data", sep=''))
+    # Neither should this -- two argments matched one of the dimids -- since
+    #  I demand an exact match
+    if (any(duplicated(ord)))
+        stop("A ratetable argument appears twice in the data")
+    
     R <- R[,ord,drop=FALSE]  #put cols in same order as the ratetable
-
-    # Check out the dimensions of R --
     isDate <- attR[["isDate"]][ord]
     levlist <- attR[['levlist']][ord]
+
     dtemp <-dimnames(ratetable)
     rtype  <- attr(ratetable, 'type') # 1= class, 2=cont, 3=date, 4=US yr
     if (is.null(rtype)) { #old style ratetable, be backwards compatable

@@ -13,6 +13,7 @@ The arguments for [[survexp]] are
       \item for the Ederer method no response is given
     \end{itemize}
   \item[data, weights, subset, na.action] as usual
+  \item[rmap] an optional mapping for rate table variables, see more below.
   \item[times] An optional vector of time points at which to compute the
     response.  For the Hakulinen and conditional methods the program uses the
     vector of unique y values if this is missing.  For the Ederer the component
@@ -39,7 +40,7 @@ a global setting using the [[setOldClass]] function.
 if (!is.R()) setOldClass(c('survexp', 'survfit'))  #set up inheritance
 
 survexp <- function(formula, data,
-	weights, subset, na.action,
+	weights, subset, na.action, rmap, 
 	times,  cohort=TRUE,  conditional=FALSE,
 	ratetable=survexp.us, scale=1, npoints, se.fit,
 	model=FALSE, x=FALSE, y=FALSE) {
@@ -72,14 +73,16 @@ subjects and the reference ratetable.
 This leads to a particular nuisance, that the variable names in the data
 set may not match those in the ratetable.  
 For instance the United States overall death rate table [[survexp.us]] expects
-3 variables [[attr(survexp.us, 'dimid']]
+3 variables, as shown by [[summary(survexp.us)]]
 \begin{itemize}
   \item age = age in days for each subject at the start of follow-up
-  \item sex = sex of the subject, ``Male'' or ``Female'' (the routine accepts
+  \item sex = sex of the subject, ``male'' or ``female'' (the routine accepts
     any unique abbreviation and is case insensitive)
   \item year = date of the start of follow-up
     \end{itemize}
-The formula may contain a mapping between the variables in the data set and
+
+Up until the most recent revision, the
+formula could contain a mapping between the variables in the data set and
 the ratetable.  For instance
 \begin{verbatim}
   survexp( ~ sex + ratetable(age=age*365.25, sex=sex, 
@@ -88,42 +91,80 @@ the ratetable.  For instance
 \end{verbatim}
 In this case the user's data set has a variable `age' containing age in years,
 along with sex and an entry date. 
-If there is no ratetable clause in the formula we assume that all the variables
-match in name and definition.  To make later processing easier a ratetable 
-clause is added, in this case it would be [[ratetable(age=age, sex=sex, year=year]].
-<<survexp-setup>>=
+This had to be changed for two reasons.  The primary one is that the data
+in a [[ratetable]] call had to be converted into a matrix in order to ``pass
+through'' the model.frame logic.  With the recent updates to coxph so that it
+remembers factor codings correctly in new data sets, it is advantageous to
+keep factors as factors.  
+The second is that a coxph model with a large number of covariates induces a
+very long ratetable clause; at about 40 variable it causes one of the R internal
+routines to fail due to a long expression.
+A third reason, perhaps the most pressing in reality, is that I've always 
+felt that the prior code was clunky.
 
-rate <- attr(Terms, "specials")$ratetable
+The new process adds the [[rmap]] argument, an example would be 
+[[rmap=list(age =age*365.25, year=entry.dt)]].
+Any variables in the ratetable that are not found in [[rmap]] are assumed to
+not need a mapping, this would be [[sex]] in the above example.
+For backwards compatability we allow the old style argument, converting it
+into the new style.
+
+The [[rmap]] argument needs to be examined without evaluating it; we then add
+the appropriate extra variables into a temporary formula so that the model
+frame has all that is required.  The ratetable variables then can be
+retrieved from the model frame.
+
+<<survexp-setup>>=
+rate <- attr(Terms, "specials")$ratetable                   
 if(length(rate) > 1)
         stop("Can have only 1 ratetable() call in a formula")
-if(length(rate) == 0) {
-    # add a 'ratetable' call to the internal formula
-    # The dummy function stops an annoying warning message "Looking for
-    #  'formula' of mode function, ignored one of mode ..."
-    xx <- function(x) formula(x)
+        
+if(length(rate) == 1) {
+    if (!missing(rmap)) 
+        stop("The rmap argument supercedes a ratetable() call in the formula")
 
-    if(is.ratetable(ratetable))   varlist <- attr(ratetable, "dimid")
-    else if(inherits(ratetable, "coxph")) {
-        ## Remove "log" and such things, to get just the list of
-        #   variable names
-        varlist <- all.vars(delete.response(ratetable$terms))
-        }
-    else stop("Invalid rate table")
-
-    ftemp <- deparse(substitute(formula))
-    formula <- xx( paste( ftemp, "+ ratetable(",
-    		  paste( varlist, "=", varlist, collapse = ","), ")"))
-    Terms <- if (missing(data)) terms(formula, "ratetable")
-             else               terms(formula, "ratetable", data = data)
-    rate <- attr(Terms, "specials")$ratetable
+    stemp <- untangle.specials(Terms, 'ratetable')
+    rcall <- as.call(parse(text=stemp$var)[[1]])   # as a call object
+    rcall[[1]] <- as.name('list')                  # make it a call to list(..
+    Terms <- Terms[-stemp$terms]                   # remove from the formula
     }
+else if (!missing(rmap)) rcall <- substitute(rmap)
+else rcall <- NULL
+browser()
 
-# Now the formula is fixed up.  Create the model frame.
-m$formula <- Terms
+# Check that there are no illegal names in rcall, then expand it
+#  to include all the names in the ratetable
+if(is.ratetable(ratetable))   varlist <- attr(ratetable, "dimid")
+else if(inherits(ratetable, "coxph")) {
+    ## Remove "log" and such things, to get just the list of
+    #   variable names
+    varlist <- all.vars(delete.response(ratetable$terms))
+    }
+else stop("Invalid rate table")
+temp <- match(names(rcall)[-1], varlist) # 2,3,... are the argument names
+if (any(is.na(temp)))
+    stop("Variable not found in the ratetable:", (names(rcall))[is.na(temp)])
+    
+if (any(!(varlist %in% names(rcall)))) {
+    to.add <- varlist[!(varlist %in% names(rcall))]
+    temp1 <- paste(text=paste(to.add, to.add, sep='='), collapse=',')
+    if (is.null(rcall)) rcall <- parse(text=paste("list(", temp1, ")"))[[1]]
+    else {
+        temp2 <- deparse(rcall)
+        rcall <- parse(text=paste("c(", temp2, ",list(", temp1, "))"))[[1]]
+        }
+    }
+# Create a temporary formula
+newvar <- all.vars(rcall)
+if (length(newvar) > 0) {
+    tform <- paste(deparse(Terms), paste(newvar, collapse='+'), sep='+')
+    m$formula <- as.formula(tform)
+    }
 
 if (is.R())  m <- eval(m, parent.frame())
 else         m <- eval(m, sys.parent())
 @
+browser()
 
 If the user data has 0 rows, e.g. from a mistaken [[subset]] statement
 that eliminated all subjects, we need to stop early.  Otherwise the
@@ -172,9 +213,8 @@ For a population rate table a set of consistency checks is done by the
 For a Cox model [[R]] will be a model matix whose covariates are coded
 in exactly the same way that variables were coded in the original
 Cox model.  We call the model.matrix.coxph function to avoid the
-steps found there (remove cluster statements, etc); the result of
-[[m[rate]]] is of class ratetable2, which needs to be turned into a 
-data frame.  We also need to use the [[mf]] argument of the function, otherwise
+steps found there (remove cluster statements, etc).   
+We also need to use the [[mf]] argument of the function, otherwise
 it will call model.frame internally and fail when it can't find the
 response variable (which we don't need).
 
@@ -184,8 +224,8 @@ For a Cox model rate table, an se formula is currently only available for
 the Ederer method.
 
 <<survexp-compute>>=
-ovars <- names(m)[-c(rate, attr(Terms, 'response'))]
-	
+ovars <- attr(Terms, 'term.labels')
+browser()	
 if (is.ratetable(ratetable)) {
     israte <- TRUE
     if (no.Y) {
@@ -195,7 +235,7 @@ if (is.ratetable(ratetable)) {
         Y <- rep(max(times), n)
         }
     se.fit <- FALSE
-    rtemp <- match.ratetable(m[,rate], ratetable)
+    rtemp <- match.ratetable(eval(ratecall, m))
     R <- rtemp$R
     }
 else if (inherits(ratetable, 'coxph')) {
