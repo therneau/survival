@@ -37,9 +37,9 @@ summary.ratetable <- function(object, ...) {
                 }
             else if (att$type[i]>2) { #date
                 cat("\t", att$dimid[i], " ranges from " , 
-                 format(as.Date(min(att$cutpoints[[i]]), origin='1970/01/01')),
+                 format(as.Date(min(att$cutpoints[[i]]), origin='1960/01/01')),
                     " to ", 
-                 format(as.Date(max(att$cutpoints[[i]]), origin='1970/01/01')),
+                 format(as.Date(max(att$cutpoints[[i]]), origin='1960/01/01')),
                     "; with ", att$dim[i],
                     " categories\n", sep='')
                 }
