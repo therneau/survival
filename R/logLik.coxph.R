@@ -10,7 +10,8 @@ logLik.coxph <- function(x) {
 
 logLik.survreg <- function(x) {
     out <- x$loglik[2]
-    attr(out, 'df') <- sum(diag(fit$var) > 0)
+    dd <- diag(x$var)
+    attr(out, 'df') <- sum(!is.na(dd) & dd > 0)
     class(out) <- 'logLik'
     out
     }
