@@ -1,6 +1,8 @@
 # $Id: match.ratetable.S 11289 2009-06-12 18:10:51Z therneau $
-# Do a set of error checks on whether any categorical tetable() vars match the
-#   level set of the actual ratetable.  Continuous variables are left alone.
+# Do a set of error checks on whether any categorical vars match the
+#   level set of the actual ratetable.  If so they are mapped to the levels
+#   found in the ratetable.  Dates need to match dates, and others are set
+#   to simple numerics with unclass().  A matrix is returned.
 # This is called by pyears and survexp, but not by users
 #
 # The categoricals are turned into integer subscripts
@@ -8,9 +10,9 @@
 match.ratetable <- function(R, ratetable) {
     if (!is.ratetable(ratetable)) stop("Invalid rate table")
     dimid <- attr(ratetable, 'dimid')
-    nd <- ncol(R)
 
     if (is.matrix(R)) {  # older style call
+        nd <- ncol(R)
         attR <- attributes(R)
         attributes(R) <- attR['dim']     #other attrs get in the way later
         Rnames <- attR$dimnames[[2]]
@@ -18,6 +20,7 @@ match.ratetable <- function(R, ratetable) {
         levlist <- attR[['levlist']]
         }
     else {  # newer style is a dataframe
+        nd <- length(R)
         Rnames <- names(R)
         isDate <- rep(FALSE, nd)
         for (i in 1:nd) {
@@ -42,8 +45,8 @@ match.ratetable <- function(R, ratetable) {
         stop("A ratetable argument appears twice in the data")
     
     R <- R[,ord,drop=FALSE]  #put cols in same order as the ratetable
-    isDate <- attR[["isDate"]][ord]
-    levlist <- attR[['levlist']][ord]
+    isDate <- isDate[ord]
+    levlist <- levlist[ord]
 
     dtemp <-dimnames(ratetable)
     rtype  <- attr(ratetable, 'type') # 1= class, 2=cont, 3=date, 4=US yr
@@ -76,15 +79,17 @@ match.ratetable <- function(R, ratetable) {
 	    R[,i] <- temp[R[,i]]
 	    }
 
-	else {   # ratetable() thinks it is a continuous variable
-	    if (rtype[i]==1) {   #but it's not-- make sure it is an integer
+	else {   # user's data isn't a factor or date
+            R[,i] <- unclass(R[,i])  # get rid of difftimes & other such
+	    if (rtype[i]==1) {   #ratetable is a factor: ok of data is integer
 		temp <- R[,i]
 		if (any(floor(temp)!=temp) || any(temp<=0) ||
 			    max(temp) > length(dtemp[[i]]))
-		stop(paste("In ratetable(),",dimid[i],"is out of range"))
+		stop(paste("The variable", dimid[i], "is out of range"))
 		}
 	    }
 	}
+    R <- as.matrix(R)
 
     summ <- attr(ratetable, 'summary')
     if (is.null(summ))

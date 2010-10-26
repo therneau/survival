@@ -82,7 +82,8 @@ For instance the United States overall death rate table [[survexp.us]] expects
     \end{itemize}
 
 Up until the most recent revision, the
-formula could contain a mapping between the variables in the data set and
+formula contained any necessary  mapping between the variables in the data 
+set and
 the ratetable.  For instance
 \begin{verbatim}
   survexp( ~ sex + ratetable(age=age*365.25, sex=sex, 
@@ -99,8 +100,9 @@ keep factors as factors.
 The second is that a coxph model with a large number of covariates induces a
 very long ratetable clause; at about 40 variable it causes one of the R internal
 routines to fail due to a long expression.
-A third reason, perhaps the most pressing in reality, is that I've always 
-felt that the prior code was clunky.
+A third reason, perhaps the most pressing in reality, is that I've always    %'
+felt that the prior code was confusing since it used the same term 'ratetable'
+for two different tasks.
 
 The new process adds the [[rmap]] argument, an example would be 
 [[rmap=list(age =age*365.25, year=entry.dt)]].
@@ -130,7 +132,6 @@ if(length(rate) == 1) {
     }
 else if (!missing(rmap)) rcall <- substitute(rmap)
 else rcall <- NULL
-browser()
 
 # Check that there are no illegal names in rcall, then expand it
 #  to include all the names in the ratetable
@@ -154,7 +155,7 @@ if (any(!(varlist %in% names(rcall)))) {
         rcall <- parse(text=paste("c(", temp2, ",list(", temp1, "))"))[[1]]
         }
     }
-# Create a temporary formula
+# Create a temporary formula, used only in the call to model.frame
 newvar <- all.vars(rcall)
 if (length(newvar) > 0) {
     tform <- paste(deparse(Terms), paste(newvar, collapse='+'), sep='+')
@@ -164,7 +165,6 @@ if (length(newvar) > 0) {
 if (is.R())  m <- eval(m, parent.frame())
 else         m <- eval(m, sys.parent())
 @
-browser()
 
 If the user data has 0 rows, e.g. from a mistaken [[subset]] statement
 that eliminated all subjects, we need to stop early.  Otherwise the
@@ -225,7 +225,7 @@ the Ederer method.
 
 <<survexp-compute>>=
 ovars <- attr(Terms, 'term.labels')
-browser()	
+rdata <- data.frame(eval(rcall, m))  # the variables matching the ratetable
 if (is.ratetable(ratetable)) {
     israte <- TRUE
     if (no.Y) {
@@ -235,7 +235,7 @@ if (is.ratetable(ratetable)) {
         Y <- rep(max(times), n)
         }
     se.fit <- FALSE
-    rtemp <- match.ratetable(eval(ratecall, m))
+    rtemp <- match.ratetable(rdata, ratetable)
     R <- rtemp$R
     }
 else if (inherits(ratetable, 'coxph')) {
@@ -249,7 +249,7 @@ else if (inherits(ratetable, 'coxph')) {
 
     if (any(names(m[,rate]) !=  attr(ratetable$terms, 'term.labels')))
          stop("Unable to match new data to old formula")
-    R <- model.matrix.coxph(ratetable, mf=data.frame(unclass(m[,rate])))
+    R <- model.matrix.coxph(ratetable, mf=rdata)
     if (no.Y) {
         if (missing(se.fit)) se.fit <- TRUE
         }
@@ -262,6 +262,7 @@ Now for some calculation.  If cohort is false, then any covariates on the
 right hand side (other than the rate table) are irrelevant, the function
 returns a vector of expected values rather than survival curves.
 <<survexp-compute>>=
+browser()
 if (!cohort) { #individual survival
 	if (no.Y) stop("For non-cohort, an observation time must be given")
 	if (israte)

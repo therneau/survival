@@ -1,4 +1,4 @@
-# $Id: survfitKM.S 11397 2010-04-30 21:56:28Z therneau $
+# $Id: survfitKM.S 11435 2010-10-19 17:06:49Z therneau $
 #  A version that does more work in S, less in C
 survfitKM <- function(x, y, casewt=rep(1,length(x)),
 		       type=c('kaplan-meier', 'fleming-harrington', 'fh2'),

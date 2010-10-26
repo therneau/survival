@@ -143,12 +143,24 @@ times to one less decimal digit than the max from .Machine$double.digits.
 (minor effect on calculations), and there was a call to julian which assumed
 that the origin argument could be a vector.  
 
+15 July 2010: Add a coxph method for the logLik function.  This is used by
+the AIC function and was requested by a user.
+
 12 Oct 2010: Fix a bug in the modified lower limits for survfit (Dory & Korn).
-A logical vector was being inadvertently converted to numeric.  
+A logical vector was being inadvertently converted to numeric.  Pointed out
+by Andy Mugglin.  A new case was added to the test suite. 
 	
 17 Oct 2010: Per a request from Frank Harrell (interaction with his library),
 survfit.coxph no longer reconstructs the model frame unless it really needs
-it.  Add an argument "mf" to model.matrix.coxph for more efficient interaction
-when a routine has already recovered the model frame.
+it: in some cases the 'x' and 'y' matrices may be sufficient, and may be
+saved in the result.  Add an argument "mf" to model.matrix.coxph for more 
+efficient interaction when a parent routine has already recovered the model 
+frame.
+  In general, we are trying to make use of model.matrix.coxph in many of the
+routines, so that the logic contained there (remove cluster() calls, pull
+out strata, how to handle intercepts) need not be replicated in multiple 
+places.
+
+
 
 
