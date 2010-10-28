@@ -324,7 +324,7 @@ The variance has two parts, the first of which is $r_i^2 H_1$ where
 $H_1$ is returned from the [[agsurv]] routine, and the second is
 \begin{eqnarray*}
   H_2(t) &=& d'(t) V d(t) \\                                        %'
-  d(t) = \int_0^t [\overline x(t) - z] dN(t)
+  d(t) = \int_0^t [z- \overline x(s)] d\Lambda(s)
 \end{eqnarray*}
 $V$ is the variance matrix for $\beta$ from the fitted Cox
 model, and $d(t)$ is the distance between the 

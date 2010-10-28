@@ -132,8 +132,9 @@ if(length(rate) == 1) {
     }
 else if (!missing(rmap)) {
     rcall <- substitute(rmap)
-    if (!class(rcall) || rcall[[1]] != as.name('list'))
+    if (!is.call(rcall) || rcall[[1]] != as.name('list'))
         stop ("Invalid rcall argument")
+    }
 else rcall <- NULL
 
 # Check that there are no illegal names in rcall, then expand it
@@ -253,7 +254,7 @@ else if (inherits(ratetable, 'coxph')) {
     if (any(names(m[,rate]) !=  attr(ratetable$terms, 'term.labels')))
          stop("Unable to match new data to old formula")
     R <- model.matrix.coxph(ratetable, data=rdata)
-browser()
+
     if (no.Y) {
         if (missing(se.fit)) se.fit <- TRUE
         }
@@ -374,7 +375,7 @@ else {
     if (y) out$y <- Y
     }
 if (israte && !is.null(rtemp$summ)) out$summ <- rtemp$summ
-if (no.Y) out$method <- 'exact'
+if (no.Y) out$method <- 'Ederer'
 else if (conditional) out$method <- 'conditional'
 else                  out$method <- 'cohort'
 if (is.R()) class(out) <- c('survexp', 'survfit')

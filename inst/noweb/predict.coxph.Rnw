@@ -17,7 +17,7 @@ The arguments are
   \item[se.fit] Whether or not to return standard errors of the predictions.
   \item[na.action] What to do with missing values \emph{if} there is new
     data. 
-  \item[terms] The terms that are desired.  This option is almost never used,
+ \item[terms] The terms that are desired.  This option is almost never used,
     so rarely in fact that it's hard to justify keeping it.
   \item[collapse] An optional vector of subject identifiers, over which to
     sum or `collapse' the results
@@ -188,94 +188,117 @@ the martingale residual is defined as status - expected.  The 0/1
 status is saved as the last column of $y$.
 <<pcoxph-expected>>=
 if (type=='expected') {
-    if (missing(newdata) && !se.fit) {
+    if (missing(newdata))
         pred <- y[,ncol(y)] - object$residuals
-        }
-    else { 
+    if (!missing(newdata) || se.fit) {
         <<pcoxph-expected2>>
         }
     }
 @ 
 
-The more general case makes use of a C routine to calculate each subject's
-value separatedly.  
-The C routine can deal with only one strata at a time, requires the
-first data set to be in sorted order, and expects counting process data.
-<<pcoxph-expected2>>=
-if (ncol(y)==2) y <- cbind(0, y)  #C routine requires counting process style
-indx <- order(-y[,3], y[,2])
-y <- y[indx,,drop=FALSE]
-x <- x[indx,,drop=FALSE]
-oldstrat <- oldstrat[indx]
-weights <- weights[indx]
-pred <- se <- double(nrow(mf))
+The more general case makes use of the [agsurv] routine to calculate
+a survival curve for each strata.  The routine is defined in the
+section on individual Cox survival curves.  The code here closely matches
+that.  The routine only returns values at the death times, so we need
+approx to get a complete index.
 
-if (missing(newdata)) {
-    score <- exp(object$linear.predictors[indx])
-    if (is.null(oldstrat)) oldstrat <- rep(0, nrow(mf)) #dummy
-    for (i in unique(oldstrat)) {
-        j <- which(oldstrat==i)
-        nj <- length(j)
-        cfit <- .C('agsurv4',
-                   as.integer(nj),
-                   as.integer(ncol(x)),
-                   as.double(y[j,]),
-                   as.double(score[j]),
-                   as.double(weights[j]),
-                   cumhaz = double(nj),
-                   varhaz = double(nj),
-                   x[j,],
-                   object$var,
-                   double(3* ncol(x)),
-                   as.integer(1+ (object$method=='efron')),
-                   as.integer(nj),
-                   as.double(x[j,]),
-                   as.double(score[j]),
-                   as.double(y[j,]))
-        pred[j] <- cfit$cumhaz
-        se[j]   <- sqrt(cfit$varhaz)
-        }
+One non-obvious, but careful choice is to use the residuals for the predicted
+value instead of the compuation below, whenever operating on the original 
+data set.  This is a consequence of the Efron approx.  When someone in
+a new data set has exactly the same time as one of the death times in the
+original data set, the code below implicitly makes them the ``last'' death
+in the set of tied times.  
+The Efron approx puts a tie somewhere in the middle of the pack.  This is
+way too hard to work out in the code below, but thankfully the original
+Cox model already did it.  However, it does mean that a different answer will
+arise if you set newdata = the original coxph data set.  
+Standard errors have the same issue, but 1. they are hardly used and 2. the
+original coxph doesn't do that calculation. So we do what's easiest.
+
+<<pcoxph-expected2>>=
+ustrata <- unique(oldstrat)
+risk <- exp(object$linear.predictors)
+x <- scale(x, center=object$means, scale=FALSE)
+if (se.fit) { 
+    se <- double(nrow(mf))
     }
-@ 
-When there is a new data set the computations depend on the differences
-between $X\beta$ and $Z\beta$, where $X$ are the old covariates and $Z$ the
-new ones.  Centering of the covariates is not important, but we can't center
-one and not the other.  This prevents the use of [[object$linear.predictors]].
-To avoid overflow in the exp function we subtract an approximate center.
-<<pcoxph-expected2>>=
-else {
-    indx <- !(is.na(object$coefficients))
-    temp <- sum(object$coefficients * object$mean, na.rm=T)
-    xscore <- exp(as.vector(x[,indx] %*% object$coefficients[indx]) + offset -temp)
-    zscore <- exp(as.vector(newx[,indx] %*% object$coefficients[indx]) +
-                  newoffset -temp) 
-    if (ncol(newy)==2) newy <- cbind(0, newy)
+if (missing(newdata))
+    se <- double(nrow(mf))
+if (!missing(newdata)) {
+    se <- double(nrow(mf))
+    pred <- se
+    newx <- scale(newx, center=object$means, scale=FALSE)
+    newrisk <- c(exp(newx %*% object$coef))
+    }
+survtype= ifelse(fit$method=='efron', 3,2)
+for (i in ustrata) {
+    indx <- which(oldstrat == i)
+    afit <- agsurv(y[indx,,drop=F], x[indx,,drop=F], 
+                                  weights[indx], risk[indx],
+                                  survtype, survtype)
+    afit.n <- length(afit$time)
+    if (missing(newdata)) { 
+        # In this case we need se.fit, nothing else
+        j1 <- approx(afit$time, 1:afit.n, y[indx,1], method='constant',
+                     f=0, yleft=0, yright=afit.n)$y
+        chaz <- c(0, afit$cumhaz)[j1 +1]
+        varh <- c(0, cumsum(afit$varhaz))[j1 +1]
+        xbar <- rbind(0, afit$xbar)[j1+1,,drop=F]
+        if (ncol(y)==2) {
+            dt <- (chaz * x[indx,]) - xbar
+            se[indx] <- sqrt(varh + rowSums((dt %*% object$var) *dt)) *
+                risk[indx]
+            }
+        else {
+            j2 <- approx(afit$time, 1:afit.n, y[indx,2], method='constant',
+                     f=0, yleft=0, yright=afit.n)$y
+            chaz2 <- c(0, afit$cumhaz)[j2 +1]
+            varh2 <- c(0, cumsum(afit$varhaz))[j2 +1]
+            xbar2 <- rbind(0, afit$xbar)[j2+1,,drop=F]
+            dt <- (chaz * x[indx,]) - xbar
+            v1 <- varh +  rowSums((dt %*% object$var) *dt)
+            dt2 <- (chaz2 * x[indx,]) - xbar2
+            v2 <- varh2 + rowSums((dt2 %*% object$var) *dt2)
+            se[indx] <- sqrt(v2-v1)* risk[indx]
+            }
+        }
 
-    # Do one strata at a time
-    for (i in unique(oldstrat)) {
-        j <- which(oldstrat==i)
-        k <- which(newstrat==i)
-        nj <- length(j)
-        nk <- length(k)
-        if (nk > 0) {
-            cfit <- .C('agsurv4', 
-                       as.integer(nj),
-                       as.integer(ncol(x)),
-                       as.double(y[j,]),
-                       as.double(xscore[j]),
-                       as.double(weights[j]),
-                       cumhaz = double(nk),
-                       varhaz = double(nk),
-                       as.double(x[j,]),
-                       object$var,
-                       double(3* ncol(x)),
-                       as.integer(1+ (object$method=='efron')),
-                       as.integer(nk),
-                       as.double(newx[k,]),
-                       as.double(zscore[k]),
-                       as.double(newy[k,]))
-            pred[k] <- cfit$cumhaz
-            se[k]   <- sqrt(cfit$varhaz)
+    else {
+        #there is new data
+        indx2 <- which(newstrat == i)
+        j1 <- approx(afit$time, 1:afit.n, newy[indx2,1], 
+                     method='constant', f=0, yleft=0, yright=afit.n)$y
+        chaz <-c(0, afit$cumhaz)[j1+1]
+        pred[indx2] <- chaz * newrisk[indx2]
+        if (se.fit) {
+            varh <- c(0, cumsum(afit$varhaz))[j1+1]
+            xbar <- rbind(0, afit$xbar)[j1+1,,drop=F]
+            }
+        if (ncol(y)==2) {
+            if (se.fit) {
+                dt <- (chaz * newx[indx2,]) - xbar[indx2,]
+                se[indx2] <- sqrt(varh + rowSums((dt %*% object$var) *dt)) *
+                    newrisk[indx2]
+                }
+            }
+        else {
+            j2 <- approx(afit$time, 1:afit.n, newy[indx2,2], 
+                     method='constant', f=0, yleft=0, yright=afit.n)$y
+                        chaz2 <- approx(-afit$time, afit$cumhaz, -newy[indx2,2],
+                       method="constant", rule=2, f=0)$y
+            chaz2 <-c(0, afit$cumhaz)[j2+1]
+            pred[indx2] <- (chaz2 - chaz) * newrisk[indx2]
+        
+            if (se.fit) {
+                varh2 <- c(0, cumsum(afit$varhaz))[j1+1]
+                xbar2 <- rbind(0, afit$xbar)[j1+1,,drop=F]
+                dt <- (chaz * newx[indx2,]) - xbar[indx2,]
+                dt2 <- (chaz2 * newx[indx2,]) - xbar2[indx2,]
+
+                v2 <- varh2 + rowSums((dt2 %*% object$var) *dt2)
+                v1 <- varh +  rowSums((dt %*% object$var) *dt)
+                se[indx2] <- sqrt(v2-v1)* risk[indx2]
+                }
             }
         }
     }
@@ -359,7 +382,7 @@ else {
     offset <- newoffset - mean(offset)
     if (length(strat)) {
         for (i in unique(oldstrat)) {
-            j <- which(newstrat==i)    #no matches is possible
+            j <- which(newstrat==i)    #no matches is a possibility
             if (length(j) ==1) newx[j,] <- 0
             else if (length(j) >1) { 
                 xmean <- colSums(x[j,,drop=FALSE] * weights[j]) / sum(weights[j])
@@ -373,7 +396,7 @@ else {
 if (type=='lp' || type=='risk') {
     if (need.x) pred <- newx %*% coef + offset
     else pred <- object$linear.predictors
-    if (se.fit) se <- sqrt(rowSums((newx %*% object$var) *x))
+    if (se.fit) se <- sqrt(rowSums((newx %*% object$var) *newx))
 
     if (type=='risk') {
         pred <- exp(pred)
@@ -445,6 +468,11 @@ and besides it would be unkind to the user.
 Prediction of type='terms' is expected to always return a matrix, or
 the R termplot() function gets unhappy.  
 <<pcoxph-finish>>=
+if (type != 'terms') {
+    pred <- drop(pred)
+    if (se.fit) se <- drop(se)
+    }
+
 if (!is.null(na.action.used)) {
     pred <- naresid(na.action.used, pred)
     if (is.matrix(pred)) n <- nrow(pred)
