@@ -9,7 +9,7 @@ Reconstruct the model matrix for a cox model.
 }
 \usage{
 \method{model.matrix}{coxph}(object, data, contrast.arg =
-object$contrasts, mf, ...)
+ object$contrasts, mf, ...)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -22,7 +22,9 @@ object$contrasts, mf, ...)
   \item{\dots}{other possible argument to \code{model.frame}}
 }
 \details{
-for details see the documentation of the generic method.
+  When there is a \code{data} argument this function differs from most
+  of the other \code{model.matrix} methods in that the response variable
+  for the original formual is \emph{not} required to be in the data.
 }
 \value{
 The model matrix for the fit

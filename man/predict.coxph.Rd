@@ -65,7 +65,7 @@ predict(fit,type="expected")
 predict(fit,type="terms")
 predict(fit,type="lp",se.fit=TRUE)
 predict(fit,type="risk",se.fit=TRUE)
-predict(fit,type="expected",se.fit=TRUE)
+predict(fit,type="expected",se.fit=FALSE)
 predict(fit,type="terms",se.fit=TRUE)
 }
 \keyword{survival}
