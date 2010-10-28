@@ -1,6 +1,6 @@
 # The mf argument is mostly for internal calls, when the model frame
 #  has already been constructed.  
-model.matrix.coxph <- function(object, data=NULL,contrast.arg=object$contrasts,
+model.matrix.coxph <- function(object, data=NULL, contrast.arg=object$contrasts,
                                mf, ...){
     if (is.null(data) && missing(mf) && !is.null(object[['x']])) 
         object[['x']] #don't match "xlevels"
@@ -8,7 +8,7 @@ model.matrix.coxph <- function(object, data=NULL,contrast.arg=object$contrasts,
         Terms <- delete.response(object$terms)
         if (missing(mf)) {
             newform <- formula(Terms)   #leave off the response
-            if (is.null(data)) mf <- model.frame(object, newform=newform, ...)
+            if (is.null(data)) mf <- model.frame(object, ...)
             else mf <- model.frame(object, data=data, newform=newform, ...)
             }
 
