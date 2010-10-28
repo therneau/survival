@@ -264,7 +264,7 @@ Loading required package: splines
 > efit2 <- exp(-risk*chaz2)
 > 
 > all.equal(as.vector(efit), as.vector(efit2))  #ignore mismatched name attrib
-[1] "Mean relative difference: 0.4650953"
+[1] TRUE
 > 
 > #
 > # Now test the direct-adjusted curve (Ederer)
