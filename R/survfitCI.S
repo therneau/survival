@@ -10,6 +10,8 @@ survfitCI <- function(X, Y, weights,
                        conf.type=c('log',  'log-log',  'plain', 'none'),
                        conf.lower=c('usual', 'peto', 'modified'),
                        etype, id) {
+    # Turn off standard errors, as there is a major bug 10/2010
+    se.fit <- FALSE
 
     method <- match.arg(type)
     error <- match.arg(error)
