@@ -1,6 +1,6 @@
 
-R version 2.9.0 (2009-04-17)
-Copyright (C) 2009 The R Foundation for Statistical Computing
+R version 2.11.1 (2010-05-31)
+Copyright (C) 2010 The R Foundation for Statistical Computing
 ISBN 3-900051-07-0
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -37,15 +37,12 @@ Loading required package: splines
 > xdata <- expand.grid(ph.ecog=factor(1:3), sex=factor(1:2))
 > p2 <- predict(fit2, newdata=xdata, type='risk')
 > all.equal(p2, p1[c(2:4, 6:8)], check.attributes=FALSE)
-[1] "target is matrix, current is numeric"
+[1] TRUE
 > 
 > 
 > fit3 <- survreg(Surv(time, status) ~ factor(ph.ecog) + age, lung)
 > tdata <- data.frame(ph.ecog=factor(0:3), age=50)
 > predict(fit, type='lp', newdata=tdata)
-         [,1]
-1 -0.39518177
-2 -0.02634168
-3  0.52120527
-4  1.81279848
+          1           2           3           4 
+-0.39518177 -0.02634168  0.52120527  1.81279848 
 > 
