@@ -1,4 +1,5 @@
 src/Readme
 src/surv_callback.csp
 src/cox_callback.csp
-^.hg.*
+^\.hg/.*
+^\.hg$
