@@ -161,6 +161,11 @@ routines, so that the logic contained there (remove cluster() calls, pull
 out strata, how to handle intercepts) need not be replicated in multiple 
 places.
 
+27 Oct 2010: Finish corrections and test to the new code. It now passes
+the checks.  The predict.coxph routine now does strata and standard errors
+correctly, factors propogate through to predictions, and numerous small 
+errors are addressed.  Predicted survival curves for a Cox model has been
+rewritten in noweb and expanded. Change the version number to 2.36-1.
 
 
 
