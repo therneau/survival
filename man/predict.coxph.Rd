@@ -52,7 +52,16 @@ a vector or matrix of predictions, or a list containing the predictions
 (element "fit") and their standard errors (element "se.fit") if the se.fit 
 option is TRUE. 
 }
-
+\details{
+  The linear predictors for each strata are centered within each strata
+  of the model.  Two practical reasons are for numerical stability (avoid
+  large arguments to the exp function) and reproducability (addition of a
+  constant to the a covariate causes no change).  The primary underlying
+  reason is statistical: a Cox model only predicts relative risks
+  between pairs of subjects in the same strata, and hence the addition
+  of a constant to the linear predictor, either overall or only within a
+  particular stratum, has no effect on any downstream computations.  
+}
 \seealso{
 \code{\link{predict}},\code{\link{coxph}},\code{\link{termplot}} }
 
@@ -60,12 +69,8 @@ option is TRUE.
 fit <- coxph(Surv(time, status) ~ age + ph.ecog + strata(inst), lung) 
 mresid <- lung$status - predict(fit, type='expected') #Martingale resid 
 predict(fit,type="lp")
-predict(fit,type="risk")
 predict(fit,type="expected")
-predict(fit,type="terms")
-predict(fit,type="lp",se.fit=TRUE)
 predict(fit,type="risk",se.fit=TRUE)
-predict(fit,type="expected",se.fit=FALSE)
 predict(fit,type="terms",se.fit=TRUE)
 }
 \keyword{survival}

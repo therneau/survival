@@ -12,7 +12,7 @@ hazards model.
         se.fit=TRUE, conf.int=.95,
         individual=FALSE, 
         type,vartype,
-        conf.type=c("log","log-log","plain","none"), censor, ...)
+        conf.type=c("log","log-log","plain","none"), censor=TRUE, ...)
 }
 \arguments{
   \item{formula}{

@@ -17,11 +17,10 @@ object.
 }
 \arguments{
 \item{coefficients}{
-the coefficients of the linear predictor, which multiply the columns of 
-the 
-model matrix.  If the model is over-determined there will be missing 
-values in the vector corresponding to the redundant columns in the model 
-matrix. 
+  the vector of coefficients.
+  If the model is over-determined there will be missing 
+  values in the vector corresponding to the redundant columns in the model 
+  matrix. 
 }
 \item{var}{
 the variance matrix of the coefficients.  Rows and columns corresponding to 
@@ -49,7 +48,8 @@ the Wald test of whether the final coefficients differ from the initial values.
 number of iterations used. 
 }
 \item{linear.predictors}{
-the vector of linear predictors, one per subject. 
+  the vector of linear predictors, one per subject.  Note that this
+  vector has been centered, see \code{predict.coxph} for more details.
 }
 \item{residuals}{
 the martingale residuals. 

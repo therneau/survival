@@ -33,7 +33,7 @@ The model matrix for the fit
 \seealso{\code{\link{model.matrix}}}
 \examples{
 fit1 <- coxph(Surv(time, status) ~ age + factor(ph.ecog), data=lung)
-linear.predictor <- model.matrix(fit1) %*% coef(fit1)
+xfit <- model.matrix(fit1)
 
 fit2 <- coxph(Surv(time, status) ~ age + factor(ph.ecog), data=lung,
                                  x=TRUE)
