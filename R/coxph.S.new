@@ -185,6 +185,18 @@ coxph <- function(formula, data, weights, subset, na.action,
 	    fit$wald.test <-  coxph.wtest(fit$var[nabeta,nabeta], temp,
 					  control$toler.chol)$test
 	    }
+
+        # Ensure that linear predictors sum to zero within strata
+        if (length(fit$linear.predictors)) {
+            lp <- fit$linear.predictors
+            if (length(strats)) {
+                smean <- tapply(lp, strata.keep, mean)
+                fit$linear.predictors <- lp - 
+                    as.vector(smean[match(strata.keep, names(smean))]) #kill names
+                }
+            else fit$linear.predictors <- lp - mean(lp)
+            }
+
 	na.action <- attr(m, "na.action")
 	if (length(na.action)) fit$na.action <- na.action
 	if (model) fit$model <- m

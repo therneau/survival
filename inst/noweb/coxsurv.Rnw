@@ -56,6 +56,9 @@ That is, the [[coxph]] computation used for [[method=``exact'']] is
 the same approximation used in the Kalbfleish-Prentice estimate,
 that for the Breslow method matches the Aalen survival estimate, and
 the Efron approximation the Efron survival estimate.
+The other two rows of labels in [[temp1]] are historical; 
+we include them for backwards
+compatability but they don't appear in the documentation.
 
 <<survfit.coxph-setup>>=
 if (missing(type)) {
@@ -64,19 +67,22 @@ if (missing(type)) {
     survtype <- match(object$method, temp1)
         }
 else {
-    temp1 <- c("kalbfleisch-prentice", "aalen", "efron")
+    temp1 <- c("kalbfleisch-prentice", "aalen", "efron",
+               "kaplan-meier", "breslow", "fleming-harrington",
+               "greenwood", "tsiatis", "exact")
     survtype <- match(match.arg(type, temp1), temp1)
+    survtype <- c(1,2,3,1,2,3,1,2,3)[survtype]
     }
 if (missing(vartype)) {
     vartype <- survtype
     }
 else {
-    temp2 <- c("greenwood", "tsiatis", "efron", "aalen")
+    temp2 <- c("greenwood", "aalen", "efron", "tsiatis")
     vartype <- match(match.arg(vartype, temp2), temp2)
-    if (vartype=="tsiatis") vartype<- "aalen"
+    if (vartype==4) vartype<- 2
     }
 
-if (!se.fit) conf.type <- 'none'
+if (!se.fit) conf.type <- "none"
 else conf.type <- match.arg(conf.type)
 @ 
 
@@ -151,23 +157,33 @@ There are three choices for the new data
     the covariates, strata, and repsonse from the new data set.
   \item For ordinary predictions only the covariates are needed.
   \item If newdata is not present we assume that this is the ordinary case, and
-    use the value of [[object$means]] as the default covariate set.  (This is
-    not a good idea statistically.)
+    use the value of [[object$means]] as the default covariate set.  This is
+    not a good idea statistically, only because some users view this as an
+    ``average'' survival curve, which it is not.
 \end{itemize}
 Since the new data might not have all of the levels present for one of the
 factors, we need to ensure that levels match the original data.
 In all cases the computation depends only on the \emph{difference} between the
 original covariates and the target set.  We subtract the means from each
 column of the $X$ matrices to avoid any problems with overflow in the
-exponential function.
+exponential function.  For a model with a frailty term that was treated as
+sparse, those coefficients are in the [[frailty]] component and do not appear
+in the means.  Since the $X$ variables in this case are all 0/1 no centering
+is necessary for accuracy, we use 0 as a handy value.
 
 If a variable is deemed redundant the [[coxph]] routine will have set its
 coefficient to NA as a marker. 
 We want to ignore that coefficient: treating it as a zero has the 
 desired effect.
-The other special case is a null model, having either ~1 or only an offset
+Another special case is a null model, having either ~1 or only an offset
 on the right hand side.  In that case we create a dummy covariate to
 allow the rest of the code to work without special if/else.
+The last special case is a model with a sparse frailty term.  We treat
+the frailty coefficients as 0 variance (in essence as an offset).
+The frailty is removed from the model variables but kept in the risk score.
+This isn't statistically very defensible, but it is backwards compatatble.
+A non-sparse frailty is not treated in a special way.
+
 
 <<survfit.coxph-setup>>=
 if (is.null(x) || ncol(x)==0) { # a model with ~1 on the right hand side
@@ -176,16 +192,27 @@ if (is.null(x) || ncol(x)==0) { # a model with ~1 on the right hand side
     x <- matrix(0., nrow=n)
     coef <- 0.0
     varmat <- matrix(0.0,1,1)
+    risk <- rep(exp(offset- mean(offset)), length=n)
     }
 else {
     varmat <- object$var
-    x <- scale(x, center=object$means, scale=FALSE)    
     coef <- ifelse(is.na(object$coefficients), 0, object$coefficients)
+    xcenter <- object$means    
+    if (is.null(object$frail)) {
+        x <- scale(x, center=xcenter, scale=FALSE)    
+        risk <- c(exp(x%*% coef + offset - mean(offset)))
+        }
+   else {
+       x <- x[,!is.na(match(dimnames(x)[[2]], names(coef))), drop=F]
+       risk <- exp(object$linear.predictor)
+       x <- scale(x, center=xcenter, scale=FALSE)    
+       }
     }
-risk <- exp(x%*% coef + offset - mean(offset))
 
 if (individual) {
     if (missing(newdata)) stop("The newdata argument must be present")
+    if (!is.null(object$frail)) 
+        stop("The newdata argument is not supported for sparse frailty terms")
     if (!is.data.frame(newdata)) stop("Newdata must be a data frame")
     temp <- untangle.specials(Terms, 'cluster')
     if (length(temp$vars)) Terms2 <- Terms[-temp$terms]
@@ -204,7 +231,7 @@ if (individual) {
     
     x2 <- model.matrix(Terms2, mf2)[,-1, drop=FALSE]  #no intercept
     if (length(x2)==0) x2 <- matrix(0.0, nrow=nrow(mf2), ncol=1)
-    else x2 <- scale(x2, center=object$means, scale=FALSE)
+    else x2 <- scale(x2, center=xcenter, scale=FALSE)
 
     offset2 <- model.offset(mf2)
     if (length(offset2) >0) offset2 <- offset2 - mean(offset)
@@ -220,8 +247,10 @@ else {
         offset2 <- 0
         }
     else {
+      if (!is.null(object$frail)) 
+          stop("The newdata argument is not supported for sparse frailty terms")
 @
-For backwards compatabliity: I allow someone to give an ordinary vector
+For backwards compatability: I allow someone to give an ordinary vector
 instead of a data frame, when only one curve is required.  In this case
 I also need to verify that the element have a name.  If not we attach the
 variable names from the model, and assume that it's the right order.  %'
@@ -244,7 +273,7 @@ variable names from the model, and assume that it's the right order.  %'
         if (length(temp$vars)) Terms2 <- Terms2[-temp$terms]
         mf2 <- model.frame(Terms2, newdata, xlev=object$xlevels)
         x2 <- model.matrix(Terms2, mf2)[,-1, drop=FALSE]  #no intercept
-        x2 <- scale(x2, center=object$means, scale=FALSE)
+        x2 <- scale(x2, center=xcenter, scale=FALSE)
         offset2 <- model.offset(mf2)
         if (length(offset2) >0) offset2 <- offset2 - mean(offset)
         else offset2 <- 0
@@ -275,7 +304,7 @@ adding functionality and repairing some flaws in the computation of a
 weighted variance.
 In effect, the changes are similar to the rewrite of the survfitKM function
 a few years ago.  
-Computations are separate for each strata, but all have a different number
+dComputations are separate for each strata, but all have a different number
 of elements in their final result.
 So, for each strata we generate a list, and then unpack the results
 at the end.
@@ -286,7 +315,8 @@ cost, and it's easier to see what's going on than C code.
 First, compute the baseline survival curves for each strata.  If the strata
 was a factor we want to leave it in the same order, otherwise sort it.
 <<survfit.coxph-compute>>=
-ustrata <- levels(as.factor(strata))
+if (is.factor(strata)) ustrata <- levels(strata)
+else                   ustrata <- sort(unique(strata))
 nstrata <- length(ustrata)
 survlist <- vector('list', nstrata)
 if (se.fit) varhaz <- vector('list', nstrata)

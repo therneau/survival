@@ -159,11 +159,23 @@ if (any(!(varlist %in% names(rcall)))) {
         rcall <- parse(text=paste("c(", temp2, ",list(", temp1, "))"))[[1]]
         }
     }
+@ 
+
+The formula below is used only in the call to [[model.frame]] to ensure
+that the frame has both the formula and the ratetable variables.
+We don't want to modify the original formula, since we use it to create
+the $X$ matrix and the response variable.
+The non-obvious bit of code is the addition of an environment to the
+formula.  The [[model.matrix]] routine has a non-standard evaluation - it
+uses the frame of the formula, rather than the parent.frame() argument
+below, along with the [[data]] to look up variables.  
+<<survexp-setup>>= 
 # Create a temporary formula, used only in the call to model.frame
 newvar <- all.vars(rcall)
 if (length(newvar) > 0) {
     tform <- paste(deparse(Terms), paste(newvar, collapse='+'), sep='+')
-    m$formula <- as.formula(tform)
+    if (is.R()) m$formula <- as.formula(tform, environment(Terms))
+    else m$formula <- as.formula(tform)
     }
 
 if (is.R())  m <- eval(m, parent.frame())
