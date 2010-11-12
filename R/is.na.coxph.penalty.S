@@ -5,14 +5,18 @@
 #
 "[.coxph.penalty" <- function(x, ..., drop=FALSE) {
     attlist <- attributes(x)
-    attributes(x) <- attlist[match(c('dim', 'dimnames'), names(attlist), 0)] 
+    attributes(x) <- attlist[match(c('dim', 'dimnames', 'levels', 'class'), 
+                                   names(attlist), 0)] 
     x <- NextMethod('[')  #let the default method do actual subscripting
 
-    # Tack back on all of the old attributes except dim and dimnames,
-    #   which will have been properly modified by the standard [ method
+    # Tack back on all of the old attributes, except dim and dimnames
+    #   which will have been properly modified by the standard [ method,
+    #   "levels" which may have dropped some, and "class" which is special
     attributes(x) <- c(attributes(x),
                        attlist[is.na(match(names(attlist),
-                                           c("dim", "dimnames")))])
+                                 c("dim", "dimnames", "levels", "class")))])
+    # The class will have lost it's first level
+    oldClass(x) <- attlist$class
     return(x)
 }
 			  
