@@ -61,6 +61,9 @@ adjusted to this value.
 \item{n}{
 the number of observations used in the fit. 
 }
+\item{nevent}{
+the number of events (usually deaths) used in the fit. 
+}
 \item{weights}{
 the vector of case weights, if one was used. 
 }
