@@ -1,6 +1,6 @@
 
-R version 2.9.0 (2009-04-17)
-Copyright (C) 2009 The R Foundation for Statistical Computing
+R version 2.11.1 (2010-05-31)
+Copyright (C) 2010 The R Foundation for Statistical Computing
 ISBN 3-900051-07-0
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -34,9 +34,9 @@ Loading required package: splines
 [10] "frail"             "fvar"              "df"               
 [13] "df2"               "penalty"           "pterms"           
 [16] "assign2"           "history"           "coxlist1"         
-[19] "printfun"          "n"                 "terms"            
-[22] "assign"            "wald.test"         "y"                
-[25] "formula"           "call"             
+[19] "printfun"          "n"                 "nevent"           
+[22] "terms"             "assign"            "wald.test"        
+[25] "y"                 "formula"           "call"             
 > rfit
 Call:
 coxph(formula = Surv(time, status) ~ rx + frailty(litter), data = rats, 

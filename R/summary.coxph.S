@@ -14,6 +14,7 @@ summary.coxph <- function(object,  conf.int = 0.95, scale = 1, ...) {
 
     rval<-list(call=cox$call,fail=cox$fail, na.action=cox$na.action,
                 n=cox$n, loglik=cox$loglik)
+    if (!is.null(cox$nevent)) rval$nevent <- cox$nevent
 
     if (is.null(cox$naive.var)) {
         tmp <- cbind(beta, exp(beta), se, beta/se,

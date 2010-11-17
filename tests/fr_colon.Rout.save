@@ -1,6 +1,6 @@
 
-R version 2.9.0 (2009-04-17)
-Copyright (C) 2009 The R Foundation for Statistical Computing
+R version 2.11.1 (2010-05-31)
+Copyright (C) 2010 The R Foundation for Statistical Computing
 ISBN 3-900051-07-0
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -37,7 +37,7 @@ rxLev+5FU -0.4488     0.638   0.0840     0.117 -3.842 1.2e-04
 extent     0.5155     1.674   0.0796     0.110  4.701 2.6e-06
 node4      0.8799     2.411   0.0681     0.096  9.160 0.0e+00
 
-Likelihood ratio test=248  on 4 df, p=0  n= 1858 
+Likelihood ratio test=248  on 4 df, p=0  n= 1858, number of events= 920 
 > 
 > fitc2 <- coxph(Surv(time, status) ~ rx + extent + node4 + 
 + 	       frailty(id, dist='gauss', trace=T)
@@ -269,7 +269,7 @@ rxLev+5FU -0.0277     0.973   0.0848    0.1090 -0.255 8.0e-01
 extent     0.1797     1.197   0.0785    0.1036  1.735 8.3e-02
 node4      0.5219     1.685   0.0684    0.0912  5.720 1.1e-08
 
-Likelihood ratio test=63.7  on 4 df, p=4.8e-13  n= 1012 
+Likelihood ratio test=63.7  on 4 df, p=4.8e-13  n= 1012, number of events= 920 
 > 
 > #
 > # Do the factor fit, but first remove the no-event people

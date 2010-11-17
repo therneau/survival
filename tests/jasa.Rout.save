@@ -49,7 +49,7 @@ Call:
 coxph(formula = Surv(start, stop, event) ~ (age + surgery) * 
     transplant, data = jasa1, method = "breslow")
 
-  n= 170 
+  n= 170, number of events= 75 
 
                        coef exp(coef) se(coef)      z Pr(>|z|)
 age                 0.01386   1.01395  0.01813  0.765    0.445
@@ -81,13 +81,13 @@ year            -0.265     0.767    0.105 -2.522 0.012
 transplant      -0.287     0.750    0.514 -0.559 0.580
 year:transplant  0.137     1.147    0.141  0.973 0.330
 
-Likelihood ratio test=8.61  on 3 df, p=0.0349  n= 170 
+Likelihood ratio test=8.61  on 3 df, p=0.0349  n= 170, number of events= 75 
 > summary(sfit.3)
 Call:
 coxph(formula = Surv(start, stop, event) ~ (age + year) * transplant, 
     data = jasa1, method = "breslow")
 
-  n= 170 
+  n= 170, number of events= 75 
 
                     coef exp(coef) se(coef)      z Pr(>|z|)   
 age              0.01558   1.01571  0.01734  0.899  0.36887   
@@ -123,7 +123,7 @@ transplant         -0.297     0.743    0.505 -0.588 0.560
 year:transplant     0.165     1.180    0.142  1.167 0.240
 surgery:transplant -0.550     0.577    0.776 -0.709 0.480
 
-Likelihood ratio test=12.4  on 5 df, p=0.0302  n= 170 
+Likelihood ratio test=12.4  on 5 df, p=0.0302  n= 170, number of events= 75 
 > sfit.5
 Call:
 coxph(formula = Surv(start, stop, event) ~ (age + surgery) * 
@@ -138,7 +138,7 @@ year               -0.1363     0.873   0.0710 -1.921 0.055
 age:transplant      0.0269     1.027   0.0271  0.992 0.320
 surgery:transplant -0.2966     0.743   0.7580 -0.391 0.700
 
-Likelihood ratio test=16.2  on 6 df, p=0.0127  n= 170 
+Likelihood ratio test=16.2  on 6 df, p=0.0127  n= 170, number of events= 75 
 > sfit.6
 Call:
 coxph(formula = Surv(start, stop, event) ~ age * transplant + 
@@ -152,7 +152,7 @@ surgery        -0.6211     0.537   0.3679 -1.688 0.091
 year           -0.1361     0.873   0.0709 -1.919 0.055
 age:transplant  0.0270     1.027   0.0271  0.996 0.320
 
-Likelihood ratio test=16.1  on 5 df, p=0.00669  n= 170 
+Likelihood ratio test=16.1  on 5 df, p=0.00669  n= 170, number of events= 75 
 > 
 > # Survival curve for an "average" subject,
 > #  done once as overall, once via individual method

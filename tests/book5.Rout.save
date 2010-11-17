@@ -149,13 +149,13 @@ coxph(formula = Surv(time, status) ~ x, data = testw1, weights = wt,
   coef exp(coef) se(coef) z p
 x    0         1    0.586 0 1
 
-Likelihood ratio test=0  on 1 df, p=1  n= 9 
+Likelihood ratio test=0  on 1 df, p=1  n= 9, number of events= 5 
 > summary(fit)
 Call:
 coxph(formula = Surv(time, status) ~ x, data = testw1, weights = wt, 
     method = "breslow")
 
-  n= 9 
+  n= 9, number of events= 5 
 
     coef exp(coef) se(coef)     z Pr(>|z|)
 x 0.8596    2.3621   0.7131 1.205    0.228

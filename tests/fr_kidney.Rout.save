@@ -1,6 +1,6 @@
 
-R version 2.9.0 (2009-04-17)
-Copyright (C) 2009 The R Foundation for Statistical Computing
+R version 2.11.1 (2010-05-31)
+Copyright (C) 2010 The R Foundation for Statistical Computing
 ISBN 3-900051-07-0
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -102,7 +102,7 @@ diseaseGN   0.08796     1.092   0.4064  0.216 8.3e-01
 diseaseAN   0.35079     1.420   0.3997  0.878 3.8e-01
 diseasePKD -1.43111     0.239   0.6311 -2.268 2.3e-02
 
-Likelihood ratio test=17.6  on 5 df, p=0.00342  n= 76 
+Likelihood ratio test=17.6  on 5 df, p=0.00342  n= 76, number of events= 58 
 > temp
 Call:
 coxph(formula = Surv(time, status) ~ age + sex + disease + frailty(id, 

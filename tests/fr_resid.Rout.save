@@ -1,6 +1,6 @@
 
-R version 2.9.0 (2009-04-17)
-Copyright (C) 2009 The R Foundation for Statistical Computing
+R version 2.11.1 (2010-05-31)
+Copyright (C) 2010 The R Foundation for Statistical Computing
 ISBN 3-900051-07-0
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -271,7 +271,7 @@ coxph(formula = Surv(time, status) ~ age + sex + offset(temp),
 age  0.00471     1.005  0.00875  0.539 5.9e-01
 sex -1.41082     0.244  0.30916 -4.563 5.0e-06
 
-Likelihood ratio test=0  on 2 df, p=1  n= 76 
+Likelihood ratio test=0  on 2 df, p=1  n= 76, number of events= 58 
 > 
 > rm(temp1, temp2, kfitx, zed, tempf)
 > #

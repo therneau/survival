@@ -1,6 +1,6 @@
 
-R version 2.7.1 (2008-06-23)
-Copyright (C) 2008 The R Foundation for Statistical Computing
+R version 2.11.1 (2010-05-31)
+Copyright (C) 2010 The R Foundation for Statistical Computing
 ISBN 3-900051-07-0
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -139,7 +139,8 @@ Call:
 coxph(formula = Surv(time, status) ~ ph.ecog + ph.karno + pat.karno + 
     wt.loss + sex + age + meal.cal + strata(inst), data = lung)
 
-  n=167 (61 observations deleted due to missingness)
+  n= 167, number of events= 120 
+   (61 observations deleted due to missingness)
 
                 coef  exp(coef)   se(coef)      z Pr(>|z|)   
 ph.ecog    0.7299987  2.0750779  0.2689397  2.714  0.00664 **
@@ -150,7 +151,7 @@ sex       -0.6612534  0.5162039  0.2339979 -2.826  0.00471 **
 age        0.0050920  1.0051050  0.0137288  0.371  0.71071   
 meal.cal  -0.0002398  0.9997602  0.0003019 -0.794  0.42701   
 ---
-Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1 
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
 
           exp(coef) exp(-coef) lower .95 upper .95
 ph.ecog      2.0751     0.4819    1.2249    3.5153
@@ -204,5 +205,6 @@ sex       -0.66125     0.516 0.233998 -2.826 0.0047
 age        0.00509     1.005 0.013729  0.371 0.7100
 meal.cal  -0.00024     1.000 0.000302 -0.794 0.4300
 
-Likelihood ratio test=30.6  on 7 df, p=7.38e-05  n=167 (61 observations deleted due to missingness)
+Likelihood ratio test=30.6  on 7 df, p=7.38e-05  n= 167, number of events= 120 
+   (61 observations deleted due to missingness)
 > 

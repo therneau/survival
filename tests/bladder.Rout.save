@@ -1,6 +1,6 @@
 
-R version 2.7.1 (2008-06-23)
-Copyright (C) 2008 The R Foundation for Statistical Computing
+R version 2.11.1 (2010-05-31)
+Copyright (C) 2010 The R Foundation for Statistical Computing
 ISBN 3-900051-07-0
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -45,7 +45,7 @@ number:strata(enum)enum=2 -0.0984     0.906    0.119    0.1144 -0.861 0.3900
 number:strata(enum)enum=3 -0.0662     0.936    0.130    0.1167 -0.567 0.5700
 number:strata(enum)enum=4  0.0928     1.097    0.147    0.1175  0.790 0.4300
 
-Likelihood ratio test=29.4  on 12 df, p=0.00344  n= 340 
+Likelihood ratio test=29.4  on 12 df, p=0.00344  n= 340, number of events= 112 
 > 
 > # Check the rx coefs versus Wei, et al, JASA 1989
 > rx <- c(1,4,5,6)  # the treatment coefs above
@@ -68,14 +68,14 @@ Call:
 coxph(formula = Surv(start, stop, event) ~ rx + size + number + 
     cluster(id), data = bladder2, method = "breslow")
 
-  n= 178 
+  n= 178, number of events= 112 
 
            coef exp(coef) se(coef) robust se      z Pr(>|z|)   
 rx     -0.45979   0.63142  0.19996   0.25801 -1.782  0.07474 . 
 size   -0.04256   0.95833  0.06903   0.07555 -0.563  0.57317   
 number  0.17164   1.18726  0.04733   0.06131  2.799  0.00512 **
 ---
-Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1 
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
 
        exp(coef) exp(-coef) lower .95 upper .95
 rx        0.6314     1.5837    0.3808     1.047
@@ -111,7 +111,7 @@ rx     -0.5176     0.596    0.316 -1.64 0.1000
 size    0.0679     1.070    0.101  0.67 0.5000
 number  0.2360     1.266    0.076  3.10 0.0019
 
-Likelihood ratio test=9.66  on 3 df, p=0.0216  n= 85 
+Likelihood ratio test=9.66  on 3 df, p=0.0216  n= 85, number of events= 47 
 > fit2pa
 Call:
 coxph(formula = Surv(stop, event) ~ rx + size + number, data = bladder2, 
@@ -123,7 +123,7 @@ rx     -0.42421     0.654   0.4022 -1.0547 0.29
 size   -0.12503     0.882   0.1171 -1.0679 0.29
 number  0.00199     1.002   0.0938  0.0212 0.98
 
-Likelihood ratio test=2.02  on 3 df, p=0.569  n= 46 
+Likelihood ratio test=2.02  on 3 df, p=0.569  n= 46, number of events= 29 
 > fit2pb
 Call:
 coxph(formula = Surv(stop - start, event) ~ rx + size + number, 
@@ -135,7 +135,7 @@ rx     -0.25911     0.772   0.4051 -0.640 0.52
 size   -0.11636     0.890   0.1192 -0.976 0.33
 number -0.00571     0.994   0.0967 -0.059 0.95
 
-Likelihood ratio test=1.27  on 3 df, p=0.735  n= 46 
+Likelihood ratio test=1.27  on 3 df, p=0.735  n= 46, number of events= 29 
 > fit3pa
 Call:
 coxph(formula = Surv(stop, event) ~ rx + size + number, data = bladder2, 
@@ -147,6 +147,6 @@ rx     -0.8985     0.407    0.554 -1.623 0.10
 size    0.0850     1.089    0.209  0.407 0.68
 number -0.0172     0.983    0.128 -0.134 0.89
 
-Likelihood ratio test=4.16  on 3 df, p=0.245  n= 27 
+Likelihood ratio test=4.16  on 3 df, p=0.245  n= 27, number of events= 22 
 > rm(rx, cmat, wfit, fita, fit1p, fit2pa, fit2pb, fit3pa)
 > 

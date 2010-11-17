@@ -15,9 +15,11 @@ print.summary.coxph <-
     on.exit(options(savedig))
 
     omit <- x$na.action
+    cat("  n=", x$n)
+    if (!is.null(x$nevent)) cat(", number of events=", x$nevent, "\n")
+    else cat("\n")
     if (length(omit))
-	cat("  n=", x$n, " (", naprint(omit), ")\n", sep="")
-    else cat("  n=", x$n, "\n")
+	cat("   (", naprint(omit), ")\n", sep="")
 
     if (nrow(x$coef)==0) {   # Null model
 	cat ("   Null model\n")

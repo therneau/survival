@@ -1,4 +1,3 @@
-# $Id: coxph.S 11370 2009-09-30 18:02:09Z therneau $
 if (!is.R())  setOldClass(c('coxph.penal', 'coxph'))
 
 coxph <- function(formula, data, weights, subset, na.action,
@@ -143,6 +142,7 @@ coxph <- function(formula, data, weights, subset, na.action,
 	   else             stop(msg)
 	   }
 	fit$n <- nrow(Y)
+        fit$nevent <- sum(Y[,ncol(Y)])
 	fit$terms <- Terms
 	fit$assign <- assign
         if (is.R()) class(fit) <- fit$method	

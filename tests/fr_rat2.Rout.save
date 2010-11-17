@@ -1,6 +1,6 @@
 
-R version 2.9.0 (2009-04-17)
-Copyright (C) 2009 The R Foundation for Statistical Computing
+R version 2.11.1 (2010-05-31)
+Copyright (C) 2010 The R Foundation for Statistical Computing
 ISBN 3-900051-07-0
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -62,7 +62,7 @@ coxph(formula = Surv(start, stop, status) ~ rx + cluster(id),
      coef exp(coef) se(coef) robust se     z       p
 rx -0.827     0.438    0.151     0.204 -4.05 5.2e-05
 
-Likelihood ratio test=32.9  on 1 df, p=9.9e-09  n= 253 
+Likelihood ratio test=32.9  on 1 df, p=9.9e-09  n= 253, number of events= 212 
 > r2fitg
 Call:
 coxph(formula = Surv(start, stop, status) ~ rx + frailty(id), 

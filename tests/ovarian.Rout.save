@@ -66,7 +66,7 @@ coxph(formula = Surv(futime, fustat) ~ age)
      coef exp(coef) se(coef)    z      p
 age 0.162      1.18   0.0497 3.25 0.0012
 
-Likelihood ratio test=14.3  on 1 df, p=0.000156  n= 26 
+Likelihood ratio test=14.3  on 1 df, p=0.000156  n= 26, number of events= 12 
 > coxph(Surv(futime, fustat)~ resid.ds)
 Call:
 coxph(formula = Surv(futime, fustat) ~ resid.ds)
@@ -75,7 +75,7 @@ coxph(formula = Surv(futime, fustat) ~ resid.ds)
          coef exp(coef) se(coef)   z     p
 resid.ds 1.21      3.35    0.672 1.8 0.072
 
-Likelihood ratio test=3.76  on 1 df, p=0.0525  n= 26 
+Likelihood ratio test=3.76  on 1 df, p=0.0525  n= 26, number of events= 12 
 > coxph(Surv(futime, fustat)~ rx)
 Call:
 coxph(formula = Surv(futime, fustat) ~ rx)
@@ -84,7 +84,7 @@ coxph(formula = Surv(futime, fustat) ~ rx)
      coef exp(coef) se(coef)     z    p
 rx -0.596     0.551    0.587 -1.02 0.31
 
-Likelihood ratio test=1.05  on 1 df, p=0.305  n= 26 
+Likelihood ratio test=1.05  on 1 df, p=0.305  n= 26, number of events= 12 
 > coxph(Surv(futime, fustat)~ ecog.ps)
 Call:
 coxph(formula = Surv(futime, fustat) ~ ecog.ps)
@@ -93,7 +93,7 @@ coxph(formula = Surv(futime, fustat) ~ ecog.ps)
          coef exp(coef) se(coef)    z   p
 ecog.ps 0.398      1.49    0.586 0.68 0.5
 
-Likelihood ratio test=0.47  on 1 df, p=0.494  n= 26 
+Likelihood ratio test=0.47  on 1 df, p=0.494  n= 26, number of events= 12 
 > 
 > coxph(Surv(futime, fustat)~ resid.ds + rx + ecog.ps)
 Call:
@@ -105,7 +105,7 @@ resid.ds  1.347     3.844    0.680  1.980 0.048
 rx       -0.749     0.473    0.595 -1.260 0.210
 ecog.ps   0.453     1.573    0.590  0.767 0.440
 
-Likelihood ratio test=6.03  on 3 df, p=0.110  n= 26 
+Likelihood ratio test=6.03  on 3 df, p=0.110  n= 26, number of events= 12 
 > coxph(Surv(futime, fustat)~ age + rx + ecog.ps)
 Call:
 coxph(formula = Surv(futime, fustat) ~ age + rx + ecog.ps)
@@ -116,7 +116,7 @@ age      0.147     1.158   0.0463  3.17 0.0015
 rx      -0.815     0.443   0.6342 -1.28 0.2000
 ecog.ps  0.103     1.109   0.6064  0.17 0.8600
 
-Likelihood ratio test=15.9  on 3 df, p=0.00118  n= 26 
+Likelihood ratio test=15.9  on 3 df, p=0.00118  n= 26, number of events= 12 
 > coxph(Surv(futime, fustat)~ age + resid.ds + ecog.ps)
 Call:
 coxph(formula = Surv(futime, fustat) ~ age + resid.ds + ecog.ps)
@@ -127,7 +127,7 @@ age      0.142      1.15    0.052 2.740 0.0061
 resid.ds 0.663      1.94    0.750 0.883 0.3800
 ecog.ps  0.166      1.18    0.615 0.271 0.7900
 
-Likelihood ratio test=15.1  on 3 df, p=0.00173  n= 26 
+Likelihood ratio test=15.1  on 3 df, p=0.00173  n= 26, number of events= 12 
 > coxph(Surv(futime, fustat)~ age + resid.ds + rx)
 Call:
 coxph(formula = Surv(futime, fustat) ~ age + resid.ds + rx)
@@ -138,7 +138,7 @@ age       0.129     1.137   0.0473  2.718 0.0066
 resid.ds  0.696     2.006   0.7585  0.918 0.3600
 rx       -0.849     0.428   0.6392 -1.328 0.1800
 
-Likelihood ratio test=16.8  on 3 df, p=0.000789  n= 26 
+Likelihood ratio test=16.8  on 3 df, p=0.000789  n= 26, number of events= 12 
 > 
 > # Residuals
 > fit <- coxph(Surv(futime, fustat)~ age + resid.ds + rx + ecog.ps )
@@ -212,7 +212,7 @@ Likelihood ratio test=16.8  on 3 df, p=0.000789  n= 26
 Call:
 coxph(formula = Surv(futime, fustat) ~ age + ecog.ps + strata(rx))
 
-  n= 26 
+  n= 26, number of events= 12 
 
             coef exp(coef) se(coef)      z Pr(>|z|)   
 age      0.13853   1.14858  0.04801  2.885  0.00391 **
