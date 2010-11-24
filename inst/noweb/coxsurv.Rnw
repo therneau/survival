@@ -304,10 +304,11 @@ adding functionality and repairing some flaws in the computation of a
 weighted variance.
 In effect, the changes are similar to the rewrite of the survfitKM function
 a few years ago.  
-dComputations are separate for each strata, but all have a different number
-of elements in their final result.
-So, for each strata we generate a list, and then unpack the results
-at the end.
+Computations are separate for each strata, and each strata will 
+have a different number of time points in the result.
+Thus we can't preallocate a matrix.  Instead we generate an empty list,
+one per strata, and then populate it with the survival curves.
+At the end we unlist the individual components one by one.
 This is memory efficient, the number
 of curves is usually small enough that the "for" loop is no great
 cost, and it's easier to see what's going on than C code.               
@@ -336,7 +337,8 @@ per strata, that gives the number of elements belonging to each stratum.
 The reason is that each strata will have a different number of observations,
 so that a matrix form was not viable, and the underlying C routines were
 not capable of handling lists (the code predates the .Call function by 
-a decade).  The lists above will be concatonated into vectors.
+a decade).  Although a modern redesign would leave the survlist object
+above as a set of lists we retain the older form. 
 
 For [[individual=FALSE]] we have a second dimension, namely each of the
 target covariate sets (if there are multiples).  Each of these generates
@@ -394,7 +396,7 @@ if (!individual) {
 @
 In the lines just above: I have a matrix [[dt]] with one row per death
 time and one column per variable.  For each row $d_i$ separately we
-want the quadratice form $d_i V d_i'$.  The first matrix product can     %'
+want the quadratic form $d_i V d_i'$.  The first matrix product can     %'
 be done for all rows at once: found in the inner parenthesis.
 Ordinary (not matrix) multiplication followed by rowsums does the rest
 in one fell swoop.
@@ -474,7 +476,7 @@ else {
                    n.risk = unlist(n.risk),
                    n.event= unlist(n.event),
                    n.censor= unlist(n.censor),
-                   surv = surv, type=type)
+                   surv = surv, varh= varh, type=type)
     }
 @ 
 
