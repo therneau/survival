@@ -176,4 +176,4 @@ documentation but the code needed to be backwards compatable.  The other two
 conflicts were fixed in the packages that call survival.  There are still
 issues with the rms package which I am working out with Frank H.
 
-
+14 Dec 2010: Add an as.matrix method for Surv objects.

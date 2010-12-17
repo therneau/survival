@@ -196,3 +196,8 @@ Math.Surv <- function(...)  stop("Invalid operation on a survival time")
 Ops.Surv  <- function(...)  stop("Invalid operation on a survival time")
 Summary.Surv<-function(...) stop("Invalid operation on a survival time")
 is.Surv <- function(x) inherits(x, 'Surv')
+as.matrix.Surv <- function(x) {
+    y <- unclass(x)
+    attr(y, 'type') <- NULL
+    y
+    }
