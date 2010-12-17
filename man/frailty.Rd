@@ -64,7 +64,7 @@ frailty.t(x, sparse = (nclass > 5), theta, df, eps = 1e-05, tdf = 5,method = c("
     The \code{aic} method seeks to 
     maximize Akiake's information criteria 
     2*(partial likelihood - df).
-    The \code{ml} and \code{reml}
+    The \code{em} and \code{reml}
     methods are specific to Cox models with gamma and gaussian random effects,
     respectively.
     Please see further discussion below.

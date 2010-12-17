@@ -1,5 +1,5 @@
 #
-# $Id: survfitCI.S 11435 2010-10-19 17:06:49Z therneau $
+# $Id: survfitCI.S 11436 2010-10-28 02:17:21Z therneau $
 #
 # Compute the current incidence curve for a data set
 #   called from survfit.formula

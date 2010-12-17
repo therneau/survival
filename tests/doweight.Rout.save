@@ -1,6 +1,6 @@
 
-R version 2.7.1 (2008-06-23)
-Copyright (C) 2008 The R Foundation for Statistical Computing
+R version 2.11.0 (2010-04-22)
+Copyright (C) 2010 The R Foundation for Statistical Computing
 ISBN 3-900051-07-0
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -76,13 +76,13 @@ coxph(formula = Surv(time, status) ~ x, data = testw1, weights = wt,
   coef exp(coef) se(coef) z p
 x    0         1    0.586 0 1
 
-Likelihood ratio test=0  on 1 df, p=1  n= 9 
+Likelihood ratio test=0  on 1 df, p=1  n= 9, number of events= 5 
 > summary(fit)
 Call:
 coxph(formula = Surv(time, status) ~ x, data = testw1, weights = wt, 
     method = "breslow")
 
-  n= 9 
+  n= 9, number of events= 5 
 
     coef exp(coef) se(coef)     z Pr(>|z|)
 x 0.8596    2.3621   0.7131 1.205    0.228
@@ -150,7 +150,7 @@ coxph(formula = Surv(time, status) ~ x, data = testw1, weights = wt,
    coef exp(coef) se(coef)    z    p
 x 0.873      2.39    0.713 1.22 0.22
 
-Likelihood ratio test=1.75  on 1 df, p=0.186  n= 9 
+Likelihood ratio test=1.75  on 1 df, p=0.186  n= 9, number of events= 5 
 > resid(fit, type='mart')
           1           2           3           4           5           6 
  0.85334536 -0.02560716  0.32265266  0.32265266  0.71696234 -1.07772629 
@@ -187,13 +187,13 @@ coxph(formula = Surv(begin, time, status) ~ x, data = testw3,
   coef exp(coef) se(coef) z p
 x    0         1    0.586 0 1
 
-Likelihood ratio test=0  on 1 df, p=1  n= 14 
+Likelihood ratio test=0  on 1 df, p=1  n= 14, number of events= 5 
 > summary(fit)
 Call:
 coxph(formula = Surv(begin, time, status) ~ x, data = testw3, 
     weights = wt, method = "breslow")
 
-  n= 14 
+  n= 14, number of events= 5 
 
     coef exp(coef) se(coef)     z Pr(>|z|)
 x 0.8596    2.3621   0.7131 1.205    0.228
@@ -256,7 +256,7 @@ coxph(formula = Surv(begin, time, status) ~ x, data = testw3,
    coef exp(coef) se(coef)    z    p
 x 0.873      2.39    0.713 1.22 0.22
 
-Likelihood ratio test=1.75  on 1 df, p=0.186  n= 14 
+Likelihood ratio test=1.75  on 1 df, p=0.186  n= 14, number of events= 5 
 > resid(fit, type='mart', collapse=testw3$id)
           1           2           3           4           5           6 
  0.85334536 -0.02560716  0.32265266  0.32265266  0.71696234 -1.07772629 

@@ -1,4 +1,4 @@
-#  $Id: is.na.coxph.penalty.S 11166 2008-11-24 22:10:34Z therneau $
+#  $Id: is.na.coxph.penalty.S 11447 2010-11-12 15:10:18Z therneau $
 # The subscript function for coxph.penalty objects
 #  without it the "subset" arg of a model statement tosses
 #  away all of the attributes

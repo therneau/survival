@@ -167,7 +167,7 @@ correctly, factors propogate through to predictions, and numerous small
 errors are addressed.  Predicted survival curves for a Cox model has been
 rewritten in noweb and expanded. Change the version number to 2.36-1.
 
-11 Nov 2010: The prior changes broke 5 packages: the dependencies form a bigger 
+11 Nov 2010: The prior changes broke 5 packages: the dependencies form a bigger
 test suite than mine!  1. Survival curve for a coxph model with sparse
 frailty fit; fixed and added a new test case.  2. survexp could fail if 
 called from within a function due to a scoping error.  3. "Tsiatis" was once
@@ -176,4 +176,10 @@ documentation but the code needed to be backwards compatable.  The other two
 conflicts were fixed in the packages that call survival.  There are still
 issues with the rms package which I am working out with Frank H.
 
+<<<<<<< local
+18 Nov 2010: Add nevent to the coxph output and printout, in response to a 
+long standing user request.
+
+=======
 14 Dec 2010: Add an as.matrix method for Surv objects.
+>>>>>>> other

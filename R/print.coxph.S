@@ -1,4 +1,4 @@
-# $Id: print.coxph.S 11166 2008-11-24 22:10:34Z therneau $
+# $Id: print.coxph.S 11451 2010-11-19 21:36:31Z therneau $
 print.coxph <-
  function(x, digits=max(options()$digits - 4, 3), ...)
     {

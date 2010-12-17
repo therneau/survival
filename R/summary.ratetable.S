@@ -1,4 +1,4 @@
-# $Id: summary.ratetable.S 11434 2010-10-19 16:56:35Z therneau $
+# $Id: summary.ratetable.S 11437 2010-10-28 02:21:16Z therneau $
 #
 # Print out information about a rate table: it's dimensions and keywords
 #

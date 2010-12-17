@@ -81,17 +81,21 @@ survmean <- function(x, scale=1, rmean) {
         #    y that is <.5.  (The y's are in decreasing order, but may have
         #    duplicates). 
         # Nuisance 1: if one of the y's is exactly .5, we want the mean of
-        #    the corresponding x and the first x for which y<.5
+        #    the corresponding x and the first x for which y<.5.  We need to
+        #    use the equivalent of all.equal to check for a .5 however:
+        #    survfit(Surv(1:100)~1) gives a value of .5 + 1.1e-16 due to 
+        #    roundoff error.
         # Nuisance 2: there may by an NA in the y's
         # Nuisance 3: if no y's are <=.5, then we should return NA
         # 
         minmin <- function(y, x) {
-            keep <- (!is.na(y) & y <=.5)
+            tolerance <- .Machine$double.eps^.5   #same as used in all.equal()
+            keep <- (!is.na(y) & y <(.5 + tolerance))
             if (!any(keep)) NA
             else {
                 x <- x[keep]
                 y <- y[keep]
-                if (y[1] == .5 && any(y<.5)) 
+                if (abs(y[1]-.5) <tolerance  && any(y<.5)) 
                     (x[1] + x[min(which(y<.5))])/2
                 else x[1]
                 }

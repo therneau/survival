@@ -1,4 +1,4 @@
-# $Id: match.ratetable.S 11289 2009-06-12 18:10:51Z therneau $
+# $Id: match.ratetable.S 11437 2010-10-28 02:21:16Z therneau $
 # Do a set of error checks on whether any categorical vars match the
 #   level set of the actual ratetable.  If so they are mapped to the levels
 #   found in the ratetable.  Dates need to match dates, and others are set
