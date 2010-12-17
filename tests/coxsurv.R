@@ -18,6 +18,13 @@ zed   <- (which[1]+1):(which[3])
 aeq(surv1$surv[zed], temp$surv)
 aeq(surv1$time[zed], temp$time)
 
+# This call should not create a model frame in the code -- so same
+#  answer but a different path through the underlying code
+fit <- coxph(Surv(time, status) ~ age + sex + meal.cal + strata(ph.ecog),
+		x=T, data=cancer)
+surv2 <- survfit(fit)
+all.equal(surv1, surv2)
+
 #
 # Now a result with a matrix of survival curves
 #
