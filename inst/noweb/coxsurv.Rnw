@@ -41,9 +41,11 @@ survfit.coxph <-
     object <- formula     #'formula' because it has to match survfit
 
     <<survfit.coxph-setup>>
+
     result <- survfit.coxph.fit(y, x, wt, x2, risk, newrisk, strata,
                                 se.fit, survtype, vartype, varmat, 
                                 id, y2, strata2)
+
     <<survfit.coxph-finish>>
     }
 @ 
@@ -145,8 +147,10 @@ else {
 type <- attr(y, 'type')
 if (type != 'right' && type != 'counting') 
     stop("Cannot handle \"", type, "\" type survival data")
-if (!missing(id) && !is.null(id)) individual <- TRUE
-else if (missing(id) && individual) id <- rep(0,n)
+missid <- missing(id) # I need this later, and setting id below makes
+                      # "missing(id)" alwasy false
+if (!missid) individual <- TRUE
+else if (missid && individual) id <- rep(0,n)
 else id <- NULL
 
 if (individual && type!= 'counting')
@@ -293,7 +297,10 @@ Extract the data items for individual survival.
 if (individual) {
     if (missing(newdata)) 
         stop("The newdata argument must be present when individual=TRUE")
-    
+    if (!missid) {  #grab the id variable
+        id <- model.extract(mf2, "id")
+        if (is.null(id)) stop("id=NULL is an invalid argument")
+        }
     temp <- untangle.specials(Terms2, 'strata')
     if (length(temp$vars) >0) {
         strata2 <- strata(mf2[temp$vars], shortlabel=TRUE)
@@ -302,7 +309,7 @@ if (individual) {
             stop("New data set has strata levels not found in the original")
         Terms2 <- Terms2[-temp$terms]
         }
-    else strata2 <- rep(0, nrow(mf2))
+    else strata2 <- factor(rep(0, nrow(mf2)))
     
     x2 <- model.matrix(Terms2, mf2)[,-1, drop=FALSE]  #no intercept
     if (length(x2)==0) stop("Individual survival but no variables")
@@ -513,11 +520,11 @@ survival curve at exactly time 10 (someone else died),
 that jump is counted only in the first interval.
 <<survfit.coxph-compute>>=
 else {
-    onecurve <- function(slist, x2, y2, strata2, ustrata) {
+    onecurve <- function(slist, x2, y2, strata2,  newrisk) {
         ntarget <- nrow(x2)  #number of different time intervals
         surv <- vector('list', ntarget)
         n.event <- n.risk <- n.censor <- varh1 <- varh2 <-  time <- surv
-        stemp <- match(strata2, ustrata)
+        stemp <- as.integer(strata2)
         timeforward <- 0
         for (i in 1:ntarget) {
             slist <- survlist[[stemp[i]]]
@@ -527,12 +534,14 @@ else {
                 next  # No deaths or censors in user's interval.  Possible
                       # user error, but not uncommon at the tail of the curve.
                 }
+
             time[[i]] <- diff(c(y2[i,1], slist$time[indx])) #time increments
             time[[i]][1] <- time[[i]][1] + timeforward
             timeforward <- y2[i,2] - max(slist$time[indx])
             
             if (survtype==1) surv[[i]] <- slist$surv[indx]^newrisk[i]
             else             surv[[i]] <- slist$hazard[indx]*newrisk[i]
+
             n.event[[i]] <- slist$n.event[indx]
             n.risk[[i]]  <- slist$n.risk[indx]
             n.censor[[i]]<- slist$n.censor[indx]
@@ -541,7 +550,7 @@ else {
             varh2[[i]] <- rowSums((dt %*% varmat)* dt) * newrisk[i]^2
             }
         varh <- cumsum(unlist(varh1)) + unlist(varh2)
-
+cat("part2\n"; browser()
         if (survtype==1) surv <- cumprod(unlist(surv))  #increments (K-M)
         else surv <- exp(-cumsum(unlist(surv)))         #hazards
 
@@ -555,7 +564,7 @@ else {
         }
 
     if (all(id ==id[1])) {
-        result <- onecurve(survlist, x2, y2, strata2, ustrata)
+        result <- onecurve(survlist, x2, y2, strata2, newrisk)
         varh <- result$varh
         result$varh <-NULL
         }
@@ -563,19 +572,20 @@ else {
         onelist <- vector('list', length=length(unique(id)))
         for (i in unique(id)) {
             indx <- which(id==i)
-            onelist[[i]] <- onecurve(survlist, x2[indx,], y2[indx], 
-                                     strata2[indx], ustrata)
+            onelist[[i]] <- onecurve(survlist, x2[indx,,drop=FALSE], 
+                                     y2[indx,,drop=FALSE], 
+                                     strata2[indx],  newrisk[indx])
             }
         result <- list(n=unlist(lapply(onelist, function(x) x$n)),
                        time=unlist(lapply(onelist, function(x) x$time)),
                        n.risk= unlist(lapply(onelist, function(x) x$n.risk)),
-                       n.event=unlist(lapply(onelist, function(x) x$nevent)),
+                       n.event=unlist(lapply(onelist, function(x) x$n.event)),
                        n.censor=unlist(lapply(onelist, function(x) x$n.censor)),
                        surv= unlist(lapply(onelist, function(x) x$surv)))
 
         result$strata <- unlist(lapply(onelist, function(x) length(x$n.risk)))
         names(result$strata) <- unique(id)
-       result$ varh <- unlist(lapply(onelise, function(x) x$varh))
+        varh <- unlist(lapply(onelist, function(x) x$varh))
         }
     }
 @ 
