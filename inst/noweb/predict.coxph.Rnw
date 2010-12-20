@@ -1,5 +1,6 @@
-\section{predict.coxph}
-This function produces various types of predicted values from a Cox model.
+\subsection{The predict method}
+The [[predict.coxph]] function
+produces various types of predicted values from a Cox model.
 The arguments are
 \begin{description}
   \item [obejct] The result of a call to [[coxph]].
@@ -25,7 +26,7 @@ The arguments are
     no use of it however.
 \end{description}
 
-\subsection{Setup}
+%\subsection{Setup}
 The first task of the routine is to reconsruct necessary data elements
 that were not saved as a part of the [[coxph]] fit.  
 We will need the following components: 
@@ -181,7 +182,7 @@ if (!missing(newdata)) {
     }  
 @ 
 
-\subsection{Expected hazard}
+%\subsection{Expected hazard}
 When we do not need standard errors the computation of expected
 hazard is very simple since
 the martingale residual is defined as status - expected.  The 0/1
@@ -304,7 +305,7 @@ for (i in ustrata) {
     }
 @ 
 
-\subsection{Linear predictor, risk, and terms}
+%\subsection{Linear predictor, risk, and terms}
 For these three options what is returned is a \emph{relative} prediction
 which compares each observation to the average for the data set.
 Partly this is practical.  Say for instance that a treatment covariate

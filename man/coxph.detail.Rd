@@ -74,10 +74,15 @@ the Schoenfeld residuals.
 \examples{
 fit   <- coxph(Surv(futime,fustat) ~ age + rx + ecog.ps, ovarian, x=TRUE)
 fitd  <- coxph.detail(fit)
+#  There is one Schoenfeld residual fpr each unique death.  It is a
+# vector (covariates for the subject who died) - (weighted mean covariate
+# vector at that time).  The weighted mean is defined over the subjects
+# still at risk, with exp(X beta) as the weight.
+
 events <- fit$y[,2]==1
 etime  <- fit$y[events,1]   #the event times --- may have duplicates
 indx   <- match(etime, fitd$time)
-sresid <- fit$x[events,] - fitd$means[indx,]
+schoen <- fit$x[events,] - fitd$means[indx,]
 }
 \keyword{survival}
 

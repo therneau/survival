@@ -1,6 +1,6 @@
 
-R version 2.7.1 (2008-06-23)
-Copyright (C) 2008 The R Foundation for Statistical Computing
+R version 2.11.1 (2010-05-31)
+Copyright (C) 2010 The R Foundation for Statistical Computing
 ISBN 3-900051-07-0
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -36,6 +36,14 @@ Loading required package: splines
 > aeq(surv1$surv[zed], temp$surv)
 [1] TRUE
 > aeq(surv1$time[zed], temp$time)
+[1] TRUE
+> 
+> # This call should not create a model frame in the code -- so same
+> #  answer but a different path through the underlying code
+> fit <- coxph(Surv(time, status) ~ age + sex + meal.cal + strata(ph.ecog),
++ 		x=T, data=cancer)
+> surv2 <- survfit(fit)
+> all.equal(surv1, surv2)
 [1] TRUE
 > 
 > #

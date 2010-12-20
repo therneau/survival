@@ -21,4 +21,6 @@ not how to use the survival functions for data analysis.  For those who
 maintain the code it will be a big help, for everyone else I'd expect
 it to be boring.
 
+Note: The Makefile must be processed with ``R CMD make''.
+
 	Terry Therneau

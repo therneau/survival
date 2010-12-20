@@ -1,4 +1,11 @@
-\section{residuals.survreg}
+\section{Accelerated Failure Time models}
+The [[surveg]] function fits parametric failure time models.
+This includes accerated failure time models, the Weibull, log-normal,
+and log-logistic models.  
+It also fits as well as censored linear regression; with left censoring
+this is referred to in economics \emph{Tobit} regression.
+
+\subsection{Residuals}
 The residuals for a [[survreg]] model are one of several types
 \begin{description}
   \item[response] residual [[y]] value on the scale of the original data 

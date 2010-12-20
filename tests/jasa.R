@@ -57,7 +57,7 @@ fit3 <- coxph(Surv(start, stop, event) ~ age, jasa1)
 fit4 <- coxph(Surv(start, stop, event) ~ offset(age*fit1$coef), jasa1)
 
 s1 <- survfit(fit1, fit3$means, censor=FALSE)
-s2 <- survfit(fit2, fit3$means, censor=FALSE)
+s2 <- survfit(fit2, list(j.age=fit3$means), censor=FALSE)
 s3 <- survfit(fit3, censor=FALSE)
 s4 <- survfit(fit4, censor=FALSE)
 

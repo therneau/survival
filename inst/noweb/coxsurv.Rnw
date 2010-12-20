@@ -1,6 +1,6 @@
 @
-\section{Predicted survival from a Cox model}
-\subsection{Individual survival}
+\section{Cox models}
+\subsection{Predicted survival}
 The [[survfit]] method for a Cox model produces individual survival
 curves.  As might be expected these have much in common with
 ordinary survival curves, and share many of the same methods.
@@ -255,22 +255,36 @@ if (!missing(newdata)) {
     if (!is.null(object$frail))
         stop("Newdata cannot be used when a model has sparse frailty terms")
     if (is.vector(newdata, "numeric")) {
+        if (individual) stop("newdata must be a data frame")
         if (length(newdata)==length(object$coefficients)) {
-            if (is.null(names(newdata)))
+            if (is.null(names(newdata))) {
                 names(newdata) <- names(object$coefficients)
-            newdata <- as.list(newdata)
+                }
+
+            if (any(is.null(match(names(object$coefficient), names(newdata)))))
+                stop("newdata names do not match the coxph names")
+            x2 <- newdata[names(object$coefficients)] -xcenter #reorder
+            mf2 <- NULL
             }
         else stop ("Invalid newdata object")
         }
-    
-    temp <- untangle.specials(Terms, 'cluster')
-    if (length(temp$vars)) Terms2 <- Terms[-temp$terms]
-    else Terms2 <- Terms
-    if (!individual) {
-        Terms2 <- delete.response(Terms2)
-        temp <- untangle.specials(Terms2, 'strata')
-        if (length(temp$vars)) Terms2 <- Terms2[-temp$terms]
+    else {
+        <<build-mf2>>
         }
+    }
+@ 
+To build the mf2 model frame, first remove any [[cluster]]
+terms from the model. 
+If individual=FALSE, also remove the response and any strata.
+<<build-mf2>>=
+temp <- untangle.specials(Terms, 'cluster')
+if (length(temp$vars)) Terms2 <- Terms[-temp$terms]
+else Terms2 <- Terms
+if (!individual) {
+    Terms2 <- delete.response(Terms2)
+    temp <- untangle.specials(Terms2, 'strata')
+    if (length(temp$vars)) Terms2 <- Terms2[-temp$terms]
+    }
 @ 
 
 Now get the newdata model frame using 6 lines of mysterious code.
@@ -282,17 +296,16 @@ add the formula and xlev components (the second might be NULL),
 and then change the name.
 If the original call was [[survfit(fit1, newdata=mydat, conf.int=.9)]]
 the result is [[model.frame(data=mydat, formula=Terms2, xlev=object$xlev)]]
-<<survfit.coxph-setup>>=    
-    tcall <- Call[c(1, match(c('newdata', 'id'), names(Call), nomatch=0))]
-    names(tcall)[2] <- 'data'  #rename newdata to data
-    tcall$formula <- Terms2
-    tcall$xlev <- object$xlevels
-    tcall[[1]] <- as.name('model.frame')
-    mf2 <- eval(tcall)
-    }
+<<build-mf2>>=    
+tcall <- Call[c(1, match(c('newdata', 'id'), names(Call), nomatch=0))]
+names(tcall)[2] <- 'data'  #rename newdata to data
+tcall$formula <- Terms2
+tcall$xlev <- object$xlevels
+tcall[[1]] <- as.name('model.frame')
+mf2 <- eval(tcall)
 @ 
 
-Extract the data items for individual survival.
+Extract the data items for individual survival.  
 <<survfit.coxph-setup>>=
 if (individual) {
     if (missing(newdata)) 
@@ -334,10 +347,13 @@ else {
         offset2 <- 0
         }
     else {
-        x2 <- model.matrix(Terms2, mf2)[,-1, drop=FALSE]  #no intercept
-        x2 <- scale(x2, center=xcenter, scale=FALSE)
-        offset2 <- model.offset(mf2)
-        if (length(offset2) >0) offset2 <- offset2 - mean(offset)
+        if (!is.null(mf2)) {# newdata was not a vector
+            x2 <- model.matrix(Terms2, mf2)[,-1, drop=FALSE]  #no intercept
+            x2 <- scale(x2, center=xcenter, scale=FALSE)
+            offset2 <- model.offset(mf2)
+            if (length(offset2) >0) offset2 <- offset2 - mean(offset)
+            else offset2 <- 0
+            }
         else offset2 <- 0
         }
     }
@@ -550,7 +566,7 @@ else {
             varh2[[i]] <- rowSums((dt %*% varmat)* dt) * newrisk[i]^2
             }
         varh <- cumsum(unlist(varh1)) + unlist(varh2)
-cat("part2\n"; browser()
+
         if (survtype==1) surv <- cumprod(unlist(surv))  #increments (K-M)
         else surv <- exp(-cumsum(unlist(surv)))         #hazards
 
@@ -873,7 +889,7 @@ if (!censor) {
                               else x}
     keep <- (result$n.event > 0)
     if (!is.null(result$strata)) {
-        temp <- rep(names(result$strata), each=result$strata)
+        temp <- rep(names(result$strata), result$strata)
         result$strata <- c(table(temp[keep]))
         }
     result <- lapply(result, kfun, keep)
@@ -907,6 +923,7 @@ if (se.fit) {
 			conf.type='log-log', conf.int=conf.int))
 	}
     }
+result$type <- type
 result$call <- Call
 if (is.R()) class(result) <- c('survfit.cox', 'survfit')
 else        oldClass(result) <- 'survfit.cox'

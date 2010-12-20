@@ -1,4 +1,14 @@
-\section{survexp}
+\section{Expected Survival}
+The expected survival routine creates the overall survival curve for a
+\emph{group} of people.  It is possible to take the set of expected 
+survival curves for each individual and average them, which is the
+\texttt{Ederer} method below, but this is not always the wisest choice:
+the Hakulinen and conditional methods average in anothers ways, both of
+which are more sophisticated ways to deal with censoring.
+The individual curves are dervived either from population rate tables such 
+as the US annual life tables from the National Center for Health Statistics
+or the larger multi-national collection at mortality.org, or by using a
+previously fitted Cox model as the table.
 
 The arguments for [[survexp]] are
 \begin{description}

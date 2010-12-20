@@ -12,7 +12,7 @@ hazards model.
         se.fit=TRUE, conf.int=.95,
         individual=FALSE, 
         type,vartype,
-        conf.type=c("log","log-log","plain","none"), censor=TRUE, ...)
+        conf.type=c("log","log-log","plain","none"), censor=TRUE, id, ...)
 }
 \arguments{
   \item{formula}{
@@ -71,8 +71,9 @@ hazards model.
     intervals on the log hazard or log(-log(survival)). 
   }
   \item{censor}{if FALSE time points at which there are no events (only
-  censoring) are not included in the result.}  
-  \item{\dots}{for future methods}
+    censoring) are not included in the result.}
+  \item{id}{optional vector of subject identifiers, see below.}
+   \item{\dots}{for future methods}
 }
 \value{
 an object of class \code{"survfit"}.  
@@ -98,7 +99,25 @@ details. Methods defined for survfit objects are
     Users are strongly advised to use the newdata argument.  Note that
     this data set needs to contain values for the main effects but not
     for any interaction terms.
-  
+
+When the original model contained time-dependent covariates, then the
+path of that covariate through time needs to be specified in order to
+obtain a predicted curve. This requires \code{newdata} to contain
+multiple lines for each hypothetical subject which gives the covariate
+values, time interval, and strata for each line (a subject can change
+strata).
+If \code{newdata} consists of a single patient then the
+\code{individual=TRUE} argument can be used to signal that all the lines
+are for one subject.  If there are multiple prediction subjects an
+\code{id} must be added which demarks which rows go to each.
+The time interval must have the same (start, stop, status)
+variables as the original model: although the status variable is not
+used and thus can be set to a dummy value of 0 or 1, it is necessary for
+the variables to be recognized as a \code{Surv} object.
+Last, although predictions with a time-dependent covariate path can be
+useful, it is very easy to create a prediction that is senseless.  Users
+are encouraged to seek out a text that discusses the issue in detail.
+
 When all the coefficients are zero,
 the Kalbfleisch-Prentice estimator reduces to the Kaplan-Meier,
 the Aalen estimate to the exponential of Nelson's
@@ -110,8 +129,11 @@ to the variance of the coefficients.
 See \code{\link{survfit}} for more details about the counts (number of
 events, number at risk, etc.)
 
-  The censor argument was fixed at FALSE in earlier versions of the code
-  and not made  available to the user.
+The censor argument was fixed at FALSE in earlier versions of the code
+and not made  available to the user.
+The default argument is sensible in most instances --- and causes the
+familiar + sign to appear on plots --- it is not sensible for time
+dependent covariates since they lead to a large number of spurious marks.
 }
 \section{References}{
 Fleming, T. H. and Harrington, D. P. (1984).  Nonparametric estimation of the 

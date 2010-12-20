@@ -1,8 +1,8 @@
 PARTS = main.Rnw \
-	residuals.survreg.Rnw \
 	coxsurv.Rnw \
+	predict.coxph.Rnw \
 	survexp.Rnw \
-	predict.coxph.Rnw 
+	residuals.survreg.Rnw 
 
 SFUN =  residuals.survreg.S\
 	survfit.coxph.R \
@@ -12,8 +12,18 @@ SFUN =  residuals.survreg.S\
 	predict.coxph.S 
 
 CFUN =  agsurv4.c agsurv5.c
+RDIR = ../../R
+RFUN = $(SFUN:%=$(RDIR)/%)
+CFUN2= $(CFUN:%=../../src/%)
+DOCDIR= ../doc
+
+all:  $(DOCDIR)/sourcecode.pdf fun
+	
+$(DOCDIR)/sourcecode.pdf: all.pdf
+	cp all.pdf $(DOCDIR)
 
 all.pdf: all.tex
+	latex all   #twice to get the table of contents right
 	pdflatex all
 
 all.nw: $(PARTS)
@@ -22,10 +32,6 @@ all.nw: $(PARTS)
 
 all.tex: all.nw
 	noweave -delay all.nw > all.tex
-
-RDIR = ../../R
-RFUN = $(SFUN:%=$(RDIR)/%)
-CFUN2= $(CFUN:%=../../src/%)
 
 $(SFUN): all.nw
 $(CFUN): all.nw

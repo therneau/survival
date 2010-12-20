@@ -1,4 +1,4 @@
-#library(survival)
+library(survival)
 aeq <- function(x,y) all.equal(as.vector(x), as.vector(y))
 # One more test on coxph survival curves, to test out the individual
 #  option.  First fit a model with a time dependent covariate
