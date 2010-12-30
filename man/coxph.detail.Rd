@@ -35,10 +35,7 @@ coxph.detail(object, riskmat=FALSE)
     \item{nrisk}{
     number of subjects at risk.
     }
-    \item{hazard}{
-    the hazard increment.
-    }
-    \item{score}{
+   \item{score}{
     the contribution to the score vector (first derivative of the log
     partial likelihood) at each time point.
     }
@@ -46,7 +43,12 @@ coxph.detail(object, riskmat=FALSE)
     the contribution to the information matrix (second derivative of the
     log partial likelihood) at each time point.
     }
-    \item{varhaz}{
+    \item{hazard}{
+    the hazard increment.  Note that the hazard and variance of the
+    hazard are always for some particular future subject.  This routine
+    uses \code{object$mean} as the future subject.
+    }
+     \item{varhaz}{
     the variance of the hazard increment.
     }
     \item{x,y}{
@@ -74,7 +76,7 @@ the Schoenfeld residuals.
 \examples{
 fit   <- coxph(Surv(futime,fustat) ~ age + rx + ecog.ps, ovarian, x=TRUE)
 fitd  <- coxph.detail(fit)
-#  There is one Schoenfeld residual fpr each unique death.  It is a
+#  There is one Schoenfeld residual for each unique death.  It is a
 # vector (covariates for the subject who died) - (weighted mean covariate
 # vector at that time).  The weighted mean is defined over the subjects
 # still at risk, with exp(X beta) as the weight.
