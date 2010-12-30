@@ -1,4 +1,4 @@
-# $Id: Surv.S 11391 2010-02-24 19:25:00Z therneau $
+# $Id: Surv.S 11454 2010-12-20 15:05:12Z therneau $
 # Package up surivival type data as a structure
 #
 Surv <- function(time, time2, event,

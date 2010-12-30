@@ -176,10 +176,10 @@ documentation but the code needed to be backwards compatable.  The other two
 conflicts were fixed in the packages that call survival.  There are still
 issues with the rms package which I am working out with Frank H.
 
-<<<<<<< local
-18 Nov 2010: Add nevent to the coxph output and printout, in response to a 
+14 Dec 2010: Add an as.matrix method for Surv objects.
+
+18 Nov 2010: Add nevent to the coxph output and printout in response to a 
 long standing user request.
 
-=======
-14 Dec 2010: Add an as.matrix method for Surv objects.
->>>>>>> other
+20 Dec 2010: Add more test cases for survfit.coxph, which led to significant
+updates in the code.
