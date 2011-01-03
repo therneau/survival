@@ -23,6 +23,7 @@ match.ratetable <- function(R, ratetable) {
         nd <- length(R)
         Rnames <- names(R)
         isDate <- rep(FALSE, nd)
+        levlist<- lapply(R, levels)
         for (i in 1:nd) {
             temp <- ratetableDate(R[[i]])
             if (!is.null(temp)) {
@@ -30,7 +31,6 @@ match.ratetable <- function(R, ratetable) {
                 R[[i]] <- temp
                 }
             }
-        levlist<- sapply(R, levels)
         }
         
     ord <- match(dimid, Rnames)
@@ -76,12 +76,12 @@ match.ratetable <- function(R, ratetable) {
             if (any(temp==0)) 
                 stop(paste("Non-unique ratetable match for variable",
                                dimid[i]))
-	    R[,i] <- temp[R[,i]]
+	    R[,i] <- temp[as.numeric(R[,i])]
 	    }
 
 	else {   # user's data isn't a factor or date
             R[,i] <- unclass(R[,i])  # get rid of difftimes & other such
-	    if (rtype[i]==1) {   #ratetable is a factor: ok of data is integer
+	    if (rtype[i]==1) {   #ratetable is a factor: ok if data is integer
 		temp <- R[,i]
 		if (any(floor(temp)!=temp) || any(temp<=0) ||
 			    max(temp) > length(dtemp[[i]]))

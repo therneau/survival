@@ -236,6 +236,7 @@ else conditional <- FALSE
 The next step is to check out the ratetable. 
 For a population rate table a set of consistency checks is done by the
 [[match.ratetable]] function, giving a set of sanitized indices [[R]].
+This function wants characters turned to factors.
 For a Cox model [[R]] will be a model matix whose covariates are coded
 in exactly the same way that variables were coded in the original
 Cox model.  We call the model.matrix.coxph function to avoid the
@@ -251,7 +252,8 @@ the Ederer method.
 
 <<survexp-compute>>=
 ovars <- attr(Terms, 'term.labels')
-rdata <- data.frame(eval(rcall, m))  # the variables matching the ratetable
+# rdata contains the variables matching the ratetable
+rdata <- data.frame(eval(rcall, m), stringsAsFactors=TRUE)  
 if (is.ratetable(ratetable)) {
     israte <- TRUE
     if (no.Y) {
