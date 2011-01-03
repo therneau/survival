@@ -183,3 +183,9 @@ long standing user request.
 
 20 Dec 2010: Add more test cases for survfit.coxph, which led to significant
 updates in the code.
+
+1 Jan 2011: The match.ratetable would fail when passed a data frame with a 
+character variable.  This was pointed out by Heinz Tuechler, who also did most
+of the legwork to find it.  It was triggered by the first few lines of
+tests/jasa.R (expect <- ....) when options(stringsAsFactors=FALSE) is set.
+	
