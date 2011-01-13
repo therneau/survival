@@ -25,7 +25,7 @@ what to do, let us concentrate rather on explaining to \emph{humans}
 what we want the computer to do.  (Donald E. Knuth, 1984).
 \end{quotation}
 
-This is the first definition of a coding style called 
+This is the definition of a coding style called 
 \emph{literate programming}.
 I first made use of it in the \emph{coxme} library and have become a full
 convert.  For the survival library only selected objects are documented in
@@ -36,8 +36,9 @@ create and to maintain.  As to maintinance, I have found that whenver I
 need to update code I spend a lot of time in the ``what was I doing in these
 x lines?'' stage.  The code never has enough documentation, even for the
 author.  (The survival library is already better than the majority of packages
-in R, which as abysmal.  In the pre-noweb source code about 1 line in 6
-has a comment, for the noweb document the documentation/code ratio is 2:1.
+in R, whose comment level is abysmal.  
+In the pre-noweb source code about 1 line in 6
+has a comment, for the noweb document the documentation/code ratio is 2:1.)
 I also find it helps in creating new code to have the real documentation of
 intent --- formulas with integrals and such --- closely integrated.
 The second motivation is to leave code that is well enough explained that

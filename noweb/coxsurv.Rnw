@@ -22,7 +22,8 @@ The input arguments are
   \item[individual] a particular option for time-dependent covariates
   \item[type] computation type for the survival curve
   \item[vartype] computation type for the variance
-  \item[censor] if FALSE, remove any times that have no events.  This is for 
+  \item[censor] if FALSE, remove any times that have no events from the
+    output.  This is for 
     backwards compatability with older versions of the code.
   \item[id] replacement and extension for the individual argument
 \end{description}
@@ -41,11 +42,10 @@ survfit.coxph <-
     object <- formula     #'formula' because it has to match survfit
 
     <<survfit.coxph-setup>>
-
-    result <- survfit.coxph.fit(y, x, wt, x2, risk, newrisk, strata,
-                                se.fit, survtype, vartype, varmat, 
-                                id, y2, strata2)
-
+    <<survfit.coxph-result>>
+#    result <- survfit.coxph.fit(y, x, wt, x2, risk, newrisk, strata,
+#                                se.fit, survtype, vartype, varmat, 
+#                                id, y2, strata2)
     <<survfit.coxph-finish>>
     }
 @ 
@@ -65,7 +65,7 @@ that for the Breslow method matches the Aalen survival estimate, and
 the Efron approximation the Efron survival estimate.
 The other two rows of labels in [[temp1]] are historical; 
 we include them for backwards
-compatability but they don't appear in the documentation.
+compatability but they don't appear in the documentation.          %'
 
 <<survfit.coxph-setup>>=
 if (missing(type)) {
@@ -98,7 +98,8 @@ We always need the $X$ matrix and $y$, both of which may be found in
 the data object.
 If the original call included either strata, offset, or weights, 
 or if either $x$
-or $y$ are missing from the [[coxph]] object, then model.frame is needed.
+or $y$ are missing from the [[coxph]] object, 
+then the model frame will need to be reconstructed.
 We have to use [[object['x']]] instead of [[object$x]] since the latter will
 pick off the [[xlevels]] component if the [[x]] component is missing (which
 is the default).
@@ -148,7 +149,7 @@ type <- attr(y, 'type')
 if (type != 'right' && type != 'counting') 
     stop("Cannot handle \"", type, "\" type survival data")
 missid <- missing(id) # I need this later, and setting id below makes
-                      # "missing(id)" alwasy false
+                      # "missing(id)" always false
 if (!missid) individual <- TRUE
 else if (missid && individual) id <- rep(0,n)
 else id <- NULL
@@ -171,31 +172,20 @@ else {
     }
 @ 
 
-A key variable for the computation is the risk score $\exp(X\beta)$ for 
-each original observation along with the risk score for the target subject(s).
-There are three choices for the new data
-\begin{itemize}
-  \item For predictions with time-dependent covariates the user will have 
-    specified the option [[individual=TRUE]], and the new data set contains
-    the covariate trace over time of a single individual; or if [[id]] is 
-    present we have the covariate trace for multiple subjejects.
-    In either case we need to retrieve
-    the covariates, strata, and repsonse from the new data set.
-  \item For ordinary predictions only the covariates are needed.
-  \item If newdata is not present we assume that this is the ordinary case, and
-    use the value of [[object$means]] as the default covariate set.  This is
-    not a good idea statistically since many users view this as an
-    ``average'' survival curve, which it is not.
-\end{itemize}
-Since the new data might not have all of the levels present for one of the
-factors, we need to ensure that levels match the original data.
-In all cases the computation depends only on the \emph{difference} between the
-original covariates and the target set.  We subtract the means from each
-column of the $X$ matrices to avoid any problems with overflow in the
-exponential function.  For a model with a frailty term that was treated as
-sparse, those coefficients are in the [[frailty]] component and do not appear
-in the means.  Since the $X$ variables in this case are all 0/1 no centering
-is necessary for accuracy, we use 0 as a handy value.
+A model with strata by covariate interactions forms a special case for
+the calculations, one that had not been recognized in versions of the code
+before 1/1/2011.  (Results were wrong, sometimes bizzare.)  For example 
+[[coxph(Surv(time, status) ~ age * strata(sex), data=lung]].
+Create a vector [[stype]] that contains 0 for ordinary variables, 1 for
+strata terms, and 2 for strata by covariate interactions;
+this will be used later.
+<<survfit.coxph-setup>>=
+tempf <-attr(object$terms, "factors") 
+stype <- ifelse(colSums(tempf[temp$terms,,drop=FALSE]) >0,
+                attr(object$terms, "order"), 0)
+@ 
+
+
 
 If a variable is deemed redundant the [[coxph]] routine will have set its
 coefficient to NA as a marker. 
@@ -207,8 +197,8 @@ allow the rest of the code to work without special if/else.
 The last special case is a model with a sparse frailty term.  We treat
 the frailty coefficients as 0 variance (in essence as an offset).
 The frailty is removed from the model variables but kept in the risk score.
-This isn't statistically very defensible, but it is backwards compatatble.
-A non-sparse frailty is not treated in a special way.
+This isn't statistically very defensible, but it is backwards compatatble. %'
+A non-sparse frailty acts the same as an ordinary covariate.
 
 
 <<survfit.coxph-setup>>=
@@ -229,64 +219,56 @@ else {
         risk <- c(exp(x%*% coef + offset - mean(offset)))
         }
    else {
-       x <- x[,!is.na(match(dimnames(x)[[2]], names(coef))), drop=F]
+       keep <- !is.na(match(dimnames(x)[[2]], names(coef)))
+       x <- x[,keep, drop=F]
+       varmat <- varmat[keep,keep]
        risk <- exp(object$linear.predictor)
        x <- scale(x, center=xcenter, scale=FALSE)    
        }
     }
 @ 
+The [[risk]] vector and [[x]] matrix come from the original data, and are
+the raw data for the survival curve and its variance.  
+We also need the risk score $\exp(X\beta)$ for the target subject(s).
+\begin{itemize}
+  \item For predictions with time-dependent covariates the user will have 
+    either included an [[id]] statement (newer style) or specified the
+    [[individual=TRUE]] option.  If the latter, then [[newdata]] is
+    presumed to contain only a single indivual represented by multiple
+    rows.  If the former then the [[id]] variable marks separate individuals.
+    In either case we need to retrieve
+    the covariates, strata, and repsonse from the new data set.
+  \item For ordinary predictions only the covariates are needed.
+  \item If newdata is not present we assume that this is the ordinary case, and
+    use the value of [[object$means]] as the default covariate set.  This is
+    not ideal statistically since many users view this as an
+    ``average'' survival curve, which it is not.
+\end{itemize}
 
-When grabbing [newdata] we want to keep the model.frame processing, in
-particular the handling of missing values.
-For backwards compatability, I allow someone to give an ordinary vector
-instead of a data frame, when only one curve is required.  In this case
-I also need to verify that the elements have a name.  If not we attach the
-variable names from the model, and assume that it's the right order.  %'
-Then turn it into a list, like it should have been from the beginning.
-(Documentation of this ability has been suppressed, however.)
+When grabbing [newdata] we want to use model.frame processing, both to 
+handle missing values correctly and, perhaps more importantly, to correctly
+map any factor variables between the original fit and the new data.  (The
+new data will often have only one of the original levels represented.)
+Last, there is no ability to use sparse frailties and newdata together;
+it is a hard case and so rare as to not be worth it.      
 
-Once we have newdata in the correct form, pull data from it. 
+First, modify the orginal model formula. 
 If [[individual]] is false then the repsonse variable and any
 [[strata]] from the original model are not needed.  Any [[cluster]]
 terms can be deleted in either case.
-Last, there is no ability to use sparse frailties and newdata together.
 <<survfit.coxph-setup>>= 
 if (!missing(newdata)) {
     if (!is.null(object$frail))
         stop("Newdata cannot be used when a model has sparse frailty terms")
-    if (is.vector(newdata, "numeric")) {
-        if (individual) stop("newdata must be a data frame")
-        if (length(newdata)==length(object$coefficients)) {
-            if (is.null(names(newdata))) {
-                names(newdata) <- names(object$coefficients)
-                }
 
-            if (any(is.null(match(names(object$coefficient), names(newdata)))))
-                stop("newdata names do not match the coxph names")
-            x2 <- newdata[names(object$coefficients)] -xcenter #reorder
-            mf2 <- NULL
-            }
-        else stop ("Invalid newdata object")
+    temp <- untangle.specials(Terms, 'cluster')
+    if (length(temp$vars)) Terms2 <- Terms[-temp$terms]
+    else Terms2 <- Terms
+    if (!individual) {
+        Terms2 <- delete.response(Terms2)
+        if (any(stype>0)) Terms2 <- Terms2[stype==0] #strata and interactions
         }
-    else {
-        <<build-mf2>>
-        }
-    }
 @ 
-To build the mf2 model frame, first remove any [[cluster]]
-terms from the model. 
-If individual=FALSE, also remove the response and any strata.
-<<build-mf2>>=
-temp <- untangle.specials(Terms, 'cluster')
-if (length(temp$vars)) Terms2 <- Terms[-temp$terms]
-else Terms2 <- Terms
-if (!individual) {
-    Terms2 <- delete.response(Terms2)
-    temp <- untangle.specials(Terms2, 'strata')
-    if (length(temp$vars)) Terms2 <- Terms2[-temp$terms]
-    }
-@ 
-
 Now get the newdata model frame using 6 lines of mysterious code.
 First get an abbreviated form of the original call that has only the
 calling function, newdata, and id.  The calling function is always
@@ -296,16 +278,43 @@ add the formula and xlev components (the second might be NULL),
 and then change the name.
 If the original call was [[survfit(fit1, newdata=mydat, conf.int=.9)]]
 the result is [[model.frame(data=mydat, formula=Terms2, xlev=object$xlev)]]
-<<build-mf2>>=    
-tcall <- Call[c(1, match(c('newdata', 'id'), names(Call), nomatch=0))]
-names(tcall)[2] <- 'data'  #rename newdata to data
-tcall$formula <- Terms2
-tcall$xlev <- object$xlevels
-tcall[[1]] <- as.name('model.frame')
-mf2 <- eval(tcall)
+<<survfit-coxph-setup>>=    
+    tcall <- Call[c(1, match(c('newdata', 'id'), names(Call), nomatch=0))]
+    names(tcall)[2] <- 'data'  #rename newdata to data
+    tcall$formula <- Terms2
+    tcall$xlev <- object$xlevels
+    tcall[[1]] <- as.name('model.frame')
+    #mf2 <- eval(tcall)
+@     
+
+Just before the actual evaluation there is one more insertion.    
+For backwards compatability, I allow someone to give an ordinary vector
+instead of a data frame, when only one curve is required.  In this case
+I also need to verify that the elements have a name.  If not we attach the
+variable names from the model, and assume that it's the right order.  %'
+Then turn it into a list, like it should have been from the beginning.
+(Documentation of this ability has been suppressed, however.  I'm hoping  %'
+people forget it ever existed.) 
+<<survfit-coxph-setup>>=    
+
+    if (is.vector(newdata, "numeric")) {
+        if (individual) stop("newdata must be a data frame")
+        if (length(newdata)==length(object$coefficients)) {
+            if (is.null(names(newdata))) {
+                names(newdata) <- names(object$coefficients)
+                }
+
+            if (any(is.null(match(names(object$coefficient), names(newdata)))))
+                stop("newdata names do not match the coxph names")
+            tcall$data <- as.list(newdata)
+            }
+        else stop ("Invalid newdata object")
+        }
+    mf2 <- eval(tcall)
+    }
 @ 
 
-Extract the data items for individual survival.  
+Extract the data items for individual survival from the just-created frame. 
 <<survfit.coxph-setup>>=
 if (individual) {
     if (missing(newdata)) 
