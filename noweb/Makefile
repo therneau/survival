@@ -13,10 +13,10 @@ SFUN =  residuals.survreg.S\
 	predict.coxph.S 
 
 CFUN =  agsurv4.c agsurv5.c
-RDIR = ../../R
+RDIR = ../R
 RFUN = $(SFUN:%=$(RDIR)/%)
-CFUN2= $(CFUN:%=../../src/%)
-DOCDIR= ../doc
+CFUN2= $(CFUN:%=../src/%)
+DOCDIR= ../inst/doc
 
 all:  $(DOCDIR)/sourcecode.pdf fun
 
