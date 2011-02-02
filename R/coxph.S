@@ -109,8 +109,8 @@ coxph <- function(formula, data, weights, subset, na.action,
 	temp <- match((names(pterms))[pterms], attr(Terms, 'term.labels'))
 	ord <- attr(Terms, 'order')[temp]
 	if (any(ord>1)) stop ('Penalty terms cannot be in an interaction')
-	pcols <- assign[pterms]  
-  
+        pcols <- assign[match(names(pterms[pterms]), names(assign))] 
+ 
         fit <- coxpenal.fit(X, Y, strats, offset, init=init,
 				control,
 				weights=weights, method=method,

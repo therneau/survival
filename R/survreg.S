@@ -192,7 +192,7 @@ survreg <- function(formula, data, weights, subset, na.action,
         
         if (is.R()) assign <- attrassign(X, newTerms)
         else        assign <- attr( X, 'assign')   
-        pcols <- (assign[-1])[pterms]  
+        pcols <- assign[match(names(pterms[pterms]), names(assign))] 
 
         fit <- survpenal.fit(X, Y, weights, offset, init=init,
 				controlvals = control,
