@@ -3,7 +3,7 @@ Maintainer: Terry Therneau <therneau.terry@mayo.edu>
 Priority: recommended
 Package: survival
 Version: 2.36-3
-Date: 2010-12-20
+Date: 2011-02-01
 Depends: stats, utils, graphics, splines, R (>= 2.0.0)
 LazyData: Yes
 LazyLoad: Yes
@@ -12,5 +12,5 @@ Description: survival analysis: descriptive statistics, two-sample
   tests, parametric accelerated failure models, Cox model. Delayed entry
   (truncation) allowed for all models; interval censoring for parametric
   models. Case-cohort designs.
-License: GPL-2
+License: GPL (>=2)
 URL: http://r-forge.r-project.org
