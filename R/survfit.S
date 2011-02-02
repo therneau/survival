@@ -53,10 +53,12 @@ survfit <- function (formula, ...) {
             if (length(i) <=1) x$strata <- NULL
             else               x$strata  <- x$strata[indx]
 
+            x$n       <- x$n[indx]
             x$time    <- x$time[keep]
             x$n.risk  <- x$n.risk[keep]
             x$n.event <- x$n.event[keep]
-            x$n       <- x$n[indx]
+            x$n.censor<- x$n.censor[keep]
+            if (!is.null(x$enter)) x$enter <- x$enter[keep]
             }
         if (is.matrix(x$surv)) {
             if (is.null(j)) {
@@ -75,9 +77,6 @@ survfit <- function (formula, ...) {
             }
         else {
             x$surv <- x$surv[keep]
-            if (!is.null(x$enter)) x$enter <- x$enter[keep]
-            if (!is.null(x$exit.censored))
-                    x$exit.censored <- x$exit.censored[keep]
             if (!is.null(x$std.err)) x$std.err <- x$std.err[keep]
             if (!is.null(x$upper)) x$upper <- x$upper[keep]
             if (!is.null(x$lower)) x$lower <- x$lower[keep]
