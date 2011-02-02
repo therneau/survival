@@ -55,47 +55,47 @@ the assign attribute.
 termplot() function.  It led to a whole lot of changes in the test suite
 results, though, due to more "matrix" printouts.
 
-1 Oct 09: Fix a bug pointed out by Ben Domingue.  There was one if-then-else
+1 Oct 2009: Fix a bug pointed out by Ben Domingue.  There was one if-then-else
 path into step-halving in the frailty.controldf routine that would refer to
 a non-existent variable.  A very rarely followed path, obviously, and with
 the obvious fix. The mathematics of the update was fine.
 
-28 Oct 09: The basehaz function would reorder the labels of the strata
+28 Oct 2009: The basehaz function would reorder the labels of the strata
 factor.  Not a bug really, but a "why do this?"  Unintended consequence of
 a character -> factor conversion.
 
-11 Nov 09: The 'type' argument does not make sense for plot.survfit.  (If 
+11 Nov 2009: The 'type' argument does not make sense for plot.survfit.  (If 
 type='p', should one plot the tops of the step function, the bottoms, or
 both?).  Make it explicitly disallowed in response to an R-help query,
 rather than the confusing error message that currently arose.
 
-14 Dec 09: 1.Fix bug in frailty.xxx, if there is a missing value in the levels
+14 Dec 2009: 1.Fix bug in frailty.xxx, if there is a missing value in the levels
 it gets counted by "length(unique(x))" (frailty is called before NA
 removal.)  2.SurvfitCI had an incorrect CI with case weights, and 3. in
 survreg a call to resid instead of residuals.survreg, before the class
-was attached.  
+was attached.
 
-15 Dec 09: Two users pointed out a bug that crept into survreg() with a
+15 Dec 2009: Two users pointed out a bug that crept into survreg() with a
 cluster statement, when a t(x)%*%x was replaced with crossprod.  A trivial
 fix, but in response I added another test that more formally checks the
 dfbeta residuals and found a major oversight for the case of multiple
 strata.  
 
-25 Jan 10: Fix bug in summary.ratetable pointed out by Heinze Tuechler.  Added
+25 Jan 2010: Fix bug in summary.ratetable pointed out by Heinze Tuechler.  Added
 a call to the function to the test suite as well.
 
-26 Jan 10: Fix bug pointed out by Thomas Lumley -- with case weights <1 a Cox 
-model with (start, stop) input would inappropriately decide it needed to do 
+26 Jan 2010: Fix bug pointed out by Thomas Lumley -- with case weights <1 a Cox 
+model with (start, stop) input would inappropriately decide it needed to do
 step halving to find a solution, eventually failing to converge.  It was
 treating a loglik >0 as an indication of failure, but such values arise for
 small case weights. Let L(w) be the loglik for a data set where everyone is
 given a weight of w, then L(w)= wL(1) - d log(w) where d=number of deaths in
 the data.  For small enough w positivity of L(w) is certain.
 
-26 Jan 10: At the request of Alex Bokov, added the xmax, xscale, and fun
+26 Jan 2010: At the request of Alex Bokov, added the xmax, xscale, and fun
 arguments to points.survfit.
 
-8 Feb 10: Bug pointed out by Heinz Tuechler -- if a subscript was dropped from
+8 Feb 2010: Bug pointed out by Heinz Tuechler -- if a subscript was dropped from
 a rate table the 'type' attribute got dropped, e.g. survexp.usr[,1,,].
 
 24 Feb 2010: Serious bug pointed out by Kevin Buhr.  In Surv(time1, time2,stat)
@@ -128,7 +128,6 @@ process some errors were found in the test suite and corrected, e.g., a
 typo in my book led to failure of an all.equal test in book4.R.  Similar
 to the rewrite for survfit several years ago, the new code has far less use
 of .C to help transparency.
-
   Also added the noweb.R processing function from the coxme package, so that
 the noweb code can be extracted "on the fly" during installation using
 commands in the configure and cleanup scripts.  
@@ -188,4 +187,4 @@ updates in the code.
 character variable.  This was pointed out by Heinz Tuechler, who also did most
 of the legwork to find it.  It was triggered by the first few lines of
 tests/jasa.R (expect <- ....) when options(stringsAsFactors=FALSE) is set.
-	
+

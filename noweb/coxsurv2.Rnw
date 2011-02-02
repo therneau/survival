@@ -1,0 +1,538 @@
+%
+% Second part of coxsurv.Rnw, broken in two to make it easier for me
+%   to work with emacs.
+Now, we're ready to do the main compuation.                             %'
+Before this revision (the one documented here using noweb)
+there were three C routines used in calculating survival after a Cox model
+\begin{enumerate}
+  \item agsurv1 creates a single curve, but for the most general case of a
+    \emph{covariate path}.  It is used for time dependent covariates.
+  \item agsurv2 creates a set of curves.  These curves are for a fixed
+    covariate set, although (start, stop] data is supported. If there were
+    3 strata in the fit and 4 covariate sets are given, the result will be
+    12 curves.  
+  \item agsurv3 is used to create population survival curves.  The result is
+    average survival curve (for 3 different definitions of 'average').  If 
+    there were 3 strata and 100 subjects, the first curve returned would be
+    the average for those 100 individual curves in strata 1, the second for
+    strata 2, and the third for strata 3.
+\end{enumerate}
+
+In June 2010 the first two were re-written in (mostly) R, in the process of
+adding functionality and repairing some flaws in the computation of a 
+weighted variance.
+In effect, the changes are similar to the rewrite of the survfitKM function
+a few years ago.  
+
+Computations are separate for each strata, and each strata will 
+have a different number of time points in the result.
+Thus we can't preallocate a matrix.  Instead we generate an empty list,
+one per strata, and then populate it with the survival curves.
+At the end we unlist the individual components one by one.
+This is memory efficient, the number
+of curves is usually small enough that the "for" loop is no great
+cost, and it's easier to see what's going on than C code.               
+
+First, compute the baseline survival curves for each strata.  If the strata
+was a factor we want to leave it in the same order, otherwise sort it.
+This fitting routine was set out as a separate function for the sake of the rms
+package.  They want to utilize the computation, but have a different setup
+for recreation of the x and y data.
+<<survfit.coxph.fit>>=
+survfit.coxph.fit <- function(y, x, wt, x2, risk, newrisk, strata, se.fit,
+                              survtype, vartype, varmat, id, y2, strata2,
+                              unlist=TRUE) {
+    if (is.factor(strata)) ustrata <- levels(strata)
+    else                   ustrata <- sort(unique(strata))
+    nstrata <- length(ustrata)
+    survlist <- vector('list', nstrata)
+
+    for (i in 1:nstrata) {
+        indx <- which(strata== ustrata[i])
+        survlist[[i]] <- agsurv(y[indx,,drop=F], x[indx,,drop=F], 
+                                wt[indx], risk[indx],
+                                survtype, vartype)
+        }
+
+    <<survfit.coxph-compute>>
+
+    if (unlist) {
+        if (length(result)==1) # the no strata case
+            result[[1]][c("n", "time", "n.risk", "n.event", "n.censor",
+                          "surv", "std.err")]
+        else {
+            temp <-list(n   =    unlist(lapply(result, function(x) x$n)),
+                        time=    unlist(lapply(result, function(x) x$time)),
+                        n.risk=  unlist(lapply(result, function(x) x$n.risk)),
+                        n.event= unlist(lapply(result, function(x) x$n.event)),
+                        n.censor=unlist(lapply(result, function(x) x$n.censor)),
+                        strata = sapply(result, function(x) length(x$time)))
+            names(temp$strata) <- ustrata
+            
+            if ((missing(id) || is.null(id)) && nrow(x2)>1) {
+                 temp$surv <- t(matrix(unlist(lapply(result, 
+                                                        function(x) t(x$surv))),
+                                       nrow= nrow(x2)))
+                 if (se.fit) temp$std.err = t(matrix(unlist(lapply(result,
+                                                     function(x) t(x$std.err))),
+                                                     nrow= nrow(x2)))
+                 }
+            else {             
+                temp$surv <- unlist(lapply(result, function(x) x$surv))
+                if (se.fit) temp$std.err <- unlist(lapply(result, 
+                                                        function(x) x$std.err))
+                }
+            temp
+            }
+        }
+    else {
+        names(result) <- ustrata
+        result
+        }
+    }    
+@ 
+
+In an ordinary survival curve object with multiple strata, as produced by
+[[survfitKM]], the time, survival and etc components are each a
+single vector that contains the results for strata 1, followed by
+strata 2, \ldots.  The strata compontent is a vector of integers, one
+per strata, that gives the number of elements belonging to each stratum.
+The reason is that each strata will have a different number of observations,
+so that a matrix form was not viable, and the underlying C routines were
+not capable of handling lists (the code predates the .Call function by 
+a decade).  
+The underlying computation of [[survfit.coxph.fit]] naturally creates the list
+form, we unlist it to [[survfit]] form as our last action unless the 
+caller requests otherwise.
+
+For [[individual=FALSE]] we have a second dimension, namely each of the
+target covariate sets (if there are multiples).  Each of these generates
+a unique set of survival and variance(survival) values, but all of the 
+same size since each uses all the strata.  The final output structure in
+this case has single vectors for the time, number of events, number censored,
+and number at risk values since they are common to all the curves, and a
+marix of
+survival and variance estimates, one column for each of the
+distinct target values.  
+If $\Lambda_0$ is the baseline cumulative hazard from the
+above calculation, then $r_i \Lambda_0$ is the cumulative
+hazard for the $i$th new risk score $r_i$.
+The variance has two parts, the first of which is $r_i^2 H_1$ where
+$H_1$ is returned from the [[agsurv]] routine, and the second is
+\begin{eqnarray*}
+  H_2(t) &=& d'(t) V d(t) \\                                        %'
+  d(t) = \int_0^t [z- \overline x(s)] d\Lambda(s)
+\end{eqnarray*}
+$V$ is the variance matrix for $\beta$ from the fitted Cox
+model, and $d(t)$ is the distance between the 
+target covariate $z$ and the mean of the original data,
+summed up over the interval from 0 to $t$.
+Essentially the variance in $\hat \beta$ has a larger influence
+when prediction is far from the mean.
+The function below takes the basic curve from the list and multiplies
+it out to matrix form.
+<<survfit.coxph-compute>>=
+expand <- function(fit, x2, varmat, se.fit) {
+    if (survtype==1) 
+        surv <- cumprod(fit$surv)
+    else surv <- exp(-fit$cumhaz)
+
+    if (is.matrix(x2) && nrow(x2) >1) {  #more than 1 row in newdata
+        fit$surv <- outer(surv, newrisk, '^')
+        if (se.fit) {
+            varh <- matrix(0., nrow=length(fit$varhaz), ncol=nrow(x2))
+            for (i in 1:nrow(x2)) {
+                dt <- outer(fit$cumhaz, x2[i,], '*') - fit$xbar
+                varh[,i] <- (cumsum(fit$varhaz) + rowSums((dt %*% varmat)* dt))*
+                    newrisk[i]^2
+                }
+            fit$std.err <- sqrt(varh)
+            }
+        }
+    else {
+        fit$surv <- surv^newrisk
+        if (se.fit) {
+            dt <-  outer(fit$cumhaz, c(x2)) - fit$xbar
+            varh <- (cumsum(fit$varhaz) + rowSums((dt %*% varmat)* dt)) * 
+                newrisk^2
+            fit$std.err <- sqrt(varh)
+            }
+        }
+    fit
+    }
+@
+In the lines just above: I have a matrix [[dt]] with one row per death
+time and one column per variable.  For each row $d_i$ separately we
+want the quadratic form $d_i V d_i'$.  The first matrix product can     %'
+be done for all rows at once: found in the inner parenthesis.
+Ordinary (not matrix) multiplication followed by rowsums does the rest
+in one fell swoop.
+    
+Now, if [[id]] is missing we can simply apply the [[expand]] function
+to each strata.
+For the case with [[id]] not missing, we create a single survival
+curve for each unique id (subject). 
+A subject will spend blocks of time with different covariate sets,
+sometimes even jumping between strata.  Retrieve each one and save it into
+a list, and then sew them together end to end.
+The [[n]] component is the number of observations in the strata --- but this
+subject might visit several.  We report the first one they were in for
+printout.
+The [[time]] component will be cumulative on this subject's scale.     %'
+Counting this is a bit trickier than I first thought.  Say that the
+subject's first interval goes from 1 to 10, with observed time points in
+that interval at 2, 5, and 7, and a second interval from 12 to 20  with
+observed time points in the data of 15 and 18.  On the subject's time
+scale things happen at days 1, 4, 6, 12 and 15.  The deltas saved below
+are 2-1, 5-2, 7-5, 3+ 14-12, 17-14.  Note the 3+ part, kept 
+in the [[timeforward]] variable.
+Why all this ``adding up'' nuisance?  If the subject spent time in two
+strata, the second one might be on an internal time scale of `time since
+entering the strata'.  The two intervals in newdata could be 0--10 followed
+by 0--20.  Time for the subject can't go backwards though: the change    %`
+between internal/external time scales is a bit like following someone who 
+was stepping back and forth over the international date line.
+
+In the code the [[indx]] variable points to the set of times that the
+subject was present, for this row of the new data.  Note the $>$ on 
+one end and $\le$ on the other.  If someone's interval 1 was 0--10 and
+interval 2 was 10--20, and there happened to be a jump in the baseline
+survival curve at exactly time 10 (someone else died), 
+that jump is counted only in the first interval.
+<<survfit.coxph-compute>>=
+if (missing(id) || is.null(id)) 
+    result <- lapply(survlist, expand, x2, varmat, se.fit)
+else {
+    onecurve <- function(slist, x2, y2, strata2,  newrisk, se.fit) {
+        ntarget <- nrow(x2)  #number of different time intervals
+        surv <- vector('list', ntarget)
+        n.event <- n.risk <- n.censor <- varh1 <- varh2 <-  time <- surv
+        stemp <- as.integer(strata2)
+        timeforward <- 0
+        for (i in 1:ntarget) {
+            slist <- survlist[[stemp[i]]]
+            indx <- which(slist$time > y2[i,1] & slist$time <= y2[i,2])
+            if (length(indx)==0) {
+                timeforward <- timeforward + y2[i,2] - y2[i,1]
+                # No deaths or censors in user interval.  Possible
+                # user error, but not uncommon at the tail of the curve.
+                }
+            else {
+                time[[i]] <- diff(c(y2[i,1], slist$time[indx])) #time increments
+                time[[i]][1] <- time[[i]][1] + timeforward
+                timeforward <- y2[i,2] - max(slist$time[indx])
+            
+                if (survtype==1) surv[[i]] <- slist$surv[indx]^newrisk[i]
+                else             surv[[i]] <- slist$hazard[indx]*newrisk[i]
+
+                n.event[[i]] <- slist$n.event[indx]
+                n.risk[[i]]  <- slist$n.risk[indx]
+                n.censor[[i]]<- slist$n.censor[indx]
+                dt <-  outer(slist$cumhaz[indx], x2[i,]) - slist$xbar[indx,,drop=F]
+                varh1[[i]] <- slist$varhaz[indx] *newrisk[i]^2
+                varh2[[i]] <- rowSums((dt %*% varmat)* dt) * newrisk[i]^2
+                }
+            }
+
+        if (survtype==1) surv <- cumprod(unlist(surv))  #increments (K-M)
+        else surv <- exp(-cumsum(unlist(surv)))         #hazards
+
+        if (se.fit) 
+            list(n=as.vector(table(strata)[stemp[1]]),
+                   time=cumsum(unlist(time)),
+                   n.risk = unlist(n.risk),
+                   n.event= unlist(n.event),
+                   n.censor= unlist(n.censor),
+                   surv = surv,
+                   std = sqrt(cumsum(unlist(varh1)) + unlist(varh2)))
+        else list(n=as.vector(table(strata)[stemp[1]]),
+                   time=cumsum(unlist(time)),
+                   n.risk = unlist(n.risk),
+                   n.event= unlist(n.event),
+                   n.censor= unlist(n.censor),
+                   surv = surv)
+        }
+
+    if (all(id ==id[1])) {
+        result <- list(onecurve(survlist, x2, y2, strata2, newrisk, se.fit))
+        }
+    else {
+        result <- vector('list', length=length(unique(id)))
+        for (i in unique(id)) {
+            indx <- which(id==i)
+            result[[i]] <- onecurve(survlist, x2[indx,,drop=FALSE], 
+                                     y2[indx,,drop=FALSE], 
+                                     strata2[indx],  newrisk[indx], se.fit)
+            }
+        names(result) <- unique(id)
+        }
+    }
+@ 
+
+Next is the code for the [[agsurv]] function, which actually does the work.
+The estimates of survival are the Kalbfleisch-Prentice (KP), Breslow, and
+Efron.  Each has an increment at each unique death time.
+First a bit of notation:
+$Y_i(t)$ is 1 if bservation $i$ is ``at risk'' at time $t$ and 0 otherwise.
+For a simple surivival ([[ncol(y)==2]]) a subject is at risk until the
+time of censoring or death (first column of [[y]]).
+For (start, stop] data ([[ncol(y)==3]]) a subject becomes a
+part of the risk set at start+0 and stays through stop.  
+$dN_i(t)$ will be 1 if subject $i$ had an event at time $t$.
+The risk score for each subject is $r_i = \exp(X_i \beta)$. 
+
+The Breslow increment at time $t$ is $\sum w_i dN_i(t) / \sum  w_i r_i Y_i(t)$,
+the number of events at time $t$ over the number at risk at time $t$.
+The final survival is [[exp(-cumsum(increment))]].
+
+The Kalbfleish-Prentice increment is a multiplicative term $z$
+which is the solution to the equation
+$$
+\sum  w_i r_i Y_i(t) = \sum dN_i(t) w_i \frac{r_i}{1- z(t)^{r_i}}
+$$
+The left hand side is the weighted number at risk at time $t$, the
+right hand side is a sum over the tied events at that time.
+If there is only one event the equation has a closed form solution.
+If not, and knowing the solution must lie between 0 and 1, we do
+35 steps of bisection to get a solution within 1e-8.
+An alternative is to use the -log of the Breslow estimate as a starting
+estimate, which is faster but requires a more sophisticated iteration logic.
+The final curve is $\prod_t  z(t)^{r_c}$ where $r_c$ is the risk score
+for the target subject.
+
+The Efron estimate can be viewed as a modified Breslow estimate under the
+assumption that tied deaths are not really tied -- we just don't know the  %'
+order.  So if there are 3 subjects who die at some time $t$ we will have
+three psuedo-terms for $t$, $t+\epsilon$, and $t+  2\epsilon$.  All 3 subjects
+are present for the denominator of the first term, 2/3 of each for the second,
+and 1/3 for the third terms denominator.  All contribute 1/3 of the weight
+to each numerator (1/3 chance they were the one to die there).  The formulas
+will require $\sum w_i dN_i(t)$, $\sum w_ir_i dN_i(t)$, and $\sum w_i X_i
+dN_i(t)$, i.e., the sums only over the deaths.  
+
+For simple survival data the risk sum $\sum w_i r_i Y_i(t)$ for all 
+the unique death times $t$ is fast to compute as a cumulative sum, starting
+at the longest followup time an summing towards the shortest.
+There are two algorithms for (start, stop] data. 
+\begin{itemize}
+  \item Do a separate sum at each death time.  The problem is for very large
+    data sets.  For each death time the selection [[who <- (start<t & stop>=t)]]
+    is $O(n)$ and can take more time then all the remaining calculations 
+    together.
+  \item Use the difference of two cumulative sums, one ordered by start time
+    and one ordered by stop time. This is $O(2n)$ for the intial sums.  The
+    problem here is potential round off error if the sums get large, which
+    can happen if the time scale were very, very finely divided.
+    This issue is mostly precluded by subtracting means first.
+\end{itemize}
+We compute the extended number still at risk --- all whose stop time
+is $\ge$ each unique death time --- in the vector [[xin]].  From
+this we have to subtract all those who haven't actually entered yet       %'
+found in [[xout]].  Remember that (3,20] enters at time 3+.
+The total at risk at any time is the difference between them.  
+Output is only for the
+stop times; a call to approx is used to reconcile the two time sets.
+The [[irisk]] vector is for the printout, it is a sum of weighted counts
+rather than weighted risk scores.
+<<agsurv>>=
+agsurv <- function(y, x, wt, risk, survtype, vartype) {
+    nvar <- ncol(as.matrix(x))
+    status <- y[,ncol(y)]
+    dtime <- y[,ncol(y) -1]
+    death <- (status==1)
+
+    time <- sort(unique(dtime))
+    nevent <- as.vector(rowsum(wt*death, dtime))  
+    ncens  <- as.vector(rowsum(wt*(!death), dtime))
+    wrisk <- wt*risk
+    rcumsum <- function(x) rev(cumsum(rev(x))) # sum from last to first
+    nrisk <- rcumsum(rowsum(wrisk, dtime))
+    irisk <- rcumsum(rowsum(wt, dtime))
+    if (ncol(y) ==2) {
+        temp2  <- rowsum(wrisk*x, dtime)
+        xsum   <- apply(temp2, 2, rcumsum)
+        }
+    else {
+        delta <- min(diff(time))/2
+        etime <- c(sort(unique(y[,1])), max(y[,1])+delta)  #unique entry times
+        indx  <- approx(etime, 1:length(etime), time, method='constant',
+                        rule=2, f=1)$y   
+        esum <- rcumsum(rowsum(wrisk, y[,1]))  #not yet entered
+        nrisk <- nrisk - c(esum,0)[indx]
+        irisk <- irisk - c(rcumsum(rowsum(wt, y[,1])),0)[indx]
+        xout   <- apply(rowsum(wrisk*x, y[,1]), 2, rcumsum) #not yet entered
+        xin  <- apply(rowsum(wrisk*x, dtime), 2, rcumsum) # dtime or alive
+        xsum  <- xin - (rbind(xout,0))[indx,,drop=F]
+        }
+        
+    ndeath <- rowsum(status, dtime)  #unweighted death count
+@ 
+
+The KP estimate requires a short C routine to do the iteration
+efficiently, and the Efron estimate a different C routine to
+efficiently compute the partial sums.
+<<agsurv>>=
+    dtimes <- which(nevent >0)
+    ntime  <- length(time)	
+    if (survtype ==1) {
+        indx <- (which(status==1))[order(dtime[status==1])] #deaths
+        km <- .C('agsurv4',
+             as.integer(ndeath),
+             as.double(risk[indx]),
+             as.double(wt[indx]),
+             as.integer(ntime),
+             as.double(nrisk),
+             inc = double(ntime))
+        }
+
+    if (survtype==3 || vartype==3) {
+        xsum2 <- rowsum((wrisk*death) *x, dtime)
+        erisk <- rowsum(wrisk*death, dtime)  #risk score sums at each death
+	tsum  <- .C('agsurv5', 
+		    as.integer(length(nevent)),
+                    as.integer(nvar),
+		    as.integer(ndeath),
+                    as.double(nrisk),
+		    as.double(erisk),
+                    as.double(xsum),
+                    as.double(xsum2),
+                    sum1 = double(length(nevent)),
+                    sum2 = double(length(nevent)),
+                    xbar = matrix(0., length(nevent), nvar))
+        }
+    haz <- switch(survtype,
+		     nevent/nrisk,
+		     nevent/nrisk,
+		     nevent* tsum$sum1)
+    varhaz <- switch(vartype,
+                     nevent/(nrisk * 
+                               ifelse(nevent>=nrisk, nrisk, nrisk-nevent)),
+                     nevent/nrisk^2,
+                     nevent* tsum$sum2)
+    xbar <- switch(vartype,
+                   (xsum/nrisk)*haz,
+                   (xsum/nrisk)*haz,
+                   nevent * tsum$xbar)
+
+    result <- list(n= nrow(y), time=time, n.event=nevent, n.risk=irisk, 
+                   n.censor=ncens, hazard=haz, 
+                   cumhaz=cumsum(haz), varhaz=varhaz, ndeath=ndeath, 
+                   xbar=apply(matrix(xbar, ncol=nvar),2, cumsum))
+    if (survtype==1) result$surv <- km$inc
+    result
+    }
+@ 
+
+The arguments to this function are the number of unique times n, which is
+the length of the vectors ndeath (number at each time), denom, and the
+returned vector km.  The risk and wt vectors contain individual values for
+the subjects with an event.  Their length will be equal to sum(ndeath).
+<<agsurv4>>=
+#include "survS.h"
+#include "survproto.h"
+
+void agsurv4(Sint   *ndeath,   double *risk,    double *wt,
+             Sint   *sn,        double *denom,   double *km) 
+{
+    int i,j,k, l;
+    int n;  /* number of unique death times */
+    double sumt, guess, inc;    
+    
+    n = *sn;
+    j =0;
+    for (i=0; i<n; i++) {
+	if (ndeath[i] ==0) km[i] =1;
+	else if (ndeath[i] ==1) { /* not a tied death */
+	    km[i] = pow(1- wt[j]*risk[j]/denom[i], 1/risk[j]);
+	    }
+	else { /* biscection solution */
+	    guess = .5;
+	    inc = .25;
+	    for (l=0; l<35; l++) { /* bisect it to death */
+		sumt =0;
+		for (k=j; k<(j+ndeath[i]); k++) {
+		    sumt +=  wt[k]*risk[k]/(1-pow(guess, risk[k]));
+		}
+	    if (sumt < denom[i])  guess += inc;
+	    else          guess -= inc;
+	    inc = inc/2;
+	    }
+	    km[i] = guess;
+	}
+	j += ndeath[i];
+    }
+}
+@ 
+
+Do a computation which is slow in R, needed for the Efron approximation.
+Input arguments are \begin{description}
+  \item[n] number of observations (unique death times)
+  \item[d] number of deaths at that time
+  \item[nvar] number of covariates
+  \item[x1] weighted number at risk at the time
+  \item[x2] sum of weights for the deaths
+  \item[xsum] matrix containing the cumulative sum of x values
+  \item[xsum2] matrix of sums, only for the deaths
+\end{description}
+On output the values are 
+\begin{itemize}
+  \item d=0: the outputs are unchanged (they initialize at 0)
+  \item d=1
+    \begin{description}
+      \item[sum1]  [[1/x1]]
+      \item[sum2]  [[1/x1^2]]
+      \item[xbar]  [[xsum/x1^2]]
+    \end{description}
+    \item d=2
+      \begin{description}
+        \item[sum1] (1/2) [[( 1/x1 + 1/(x1 - x2/2))]]
+        \item[sum2] (1/2) (  same terms, squared)
+        \item[xbar] (1/2) [[(xsum/x1^2 + (xsum - 1/2 x3)/(x1- x2/2)^2)]]
+    \end{description}
+    \item d=3
+      \begin{description}
+        \item[sum1] (1/3) [[(1/x1 + 1/(x1 - x2/3 + 1/(x1 - 2*x2/3))]]
+        \item[sum2] (1/3) (  same terms, squared)
+        \item[xbar] (1/3) [[(xsum/x1^2 + (xsum - 1/3 xsum2)/(x1- x2/3)^2 + ]]\\
+          [[(xsum - 2/3 xsum2)/(x1- 2/3 x3)^2)]]
+      \end{description}
+    \item etc
+\end{itemize}
+Sum1 will be the increment to the hazard, sum2 the increment to the 
+first term of the variance, and xbar the increment in the hazard times
+the mean of $x$ at this point.
+
+<<agsurv5>>=
+#include "survS.h"
+void agsurv5(Sint *n,      Sint *nvar,   Sint *dd, double *x1,  
+             double *x2,   double *xsum, double *xsum2, 
+             double *sum1, double *sum2, double *xbar) {
+    double temp;
+    int i,j, k, kk;
+    double d;
+
+    for (i=0; i< *n; i++) {
+	d = dd[i];
+	if (d==1){
+	    temp = 1/x1[i];
+	    sum1[i] = temp;
+	    sum2[i] = temp*temp;
+            for (k=0; k< *nvar; k++) 
+                xbar[i+ *n*k] = xsum[i + *n*k] * temp*temp;
+	    }
+	else {
+	    temp = 1/x1[i];
+	    for (j=0; j<d; j++) {
+		temp = 1/(x1[i] - x2[i]*j/d);
+                sum1[i] += temp/d;
+                sum2[i] += temp*temp/d;
+                for (k=0; k< *nvar; k++){
+                    kk = i + *n*k;
+                    xbar[kk] += ((xsum[kk] - xsum2[kk]*j/d) * temp*temp)/d;
+                    }
+		}
+	    }
+	}
+    }
+@ 
+

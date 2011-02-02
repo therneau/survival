@@ -1,5 +1,6 @@
 PARTS = main.Rnw \
 	coxsurv.Rnw \
+	coxsurv2.Rnw \
 	predict.coxph.Rnw \
 	survexp.Rnw \
 	residuals.survreg.Rnw 
@@ -18,7 +19,7 @@ CFUN2= $(CFUN:%=../../src/%)
 DOCDIR= ../doc
 
 all:  $(DOCDIR)/sourcecode.pdf fun
-	
+
 $(DOCDIR)/sourcecode.pdf: all.pdf
 	cp all.pdf $(DOCDIR)
 
