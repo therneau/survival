@@ -1,2 +1,2 @@
 #!/bin/sh
-(cd inst/noweb; make clean)
+(cd noweb; make clean)
