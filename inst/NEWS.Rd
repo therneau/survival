@@ -4,7 +4,7 @@
 \section{Changes in version 2.36-3}{
 \itemize{
   \item{1Feb11}{Fix bugs in coxph and survreg pointed out by Heinz
-    Tuechler an dtdenes@cogpsyphy.hu, independently, that were the same
+    Tuechler and dtdenes@cogpsyphy.hu, independently, that were the same
     wrong line in both programs.  With interactions, a non-penalized
     term could be marked as penalized due to a mismatched vector length,
     leading to a spurious error message later in the code.

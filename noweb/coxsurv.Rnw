@@ -177,12 +177,13 @@ Create a vector [[stype]] that contains 0 for ordinary variables, 1 for
 strata terms, and 2 for strata by covariate interactions;
 this will be used later.
 <<survfit.coxph-setup>>=
-tempf <-attr(Terms, "factors")[-attr(Terms, 'response'),,drop=F] 
-stype <- ifelse(colSums(tempf[temp$terms,,drop=FALSE]) >0,
-                attr(Terms, "order"), 0)
+if (!is.null(x) && ncol(x) >0) { #not a ~1 or ~offset(x) model
+    tempf <-attr(Terms, "factors")[-attr(Terms, 'response'),,drop=F] 
+    stype <- ifelse(colSums(tempf[temp$terms,,drop=FALSE]) >0,
+                    attr(Terms, "order"), 0)
+    }
+else stype <- 0  #dummy value
 @ 
-
-
 
 If a variable is deemed redundant the [[coxph]] routine will have set its
 coefficient to NA as a marker. 
@@ -194,7 +195,7 @@ allow the rest of the code to work without special if/else.
 The last special case is a model with a sparse frailty term.  We treat
 the frailty coefficients as 0 variance (in essence as an offset).
 The frailty is removed from the model variables but kept in the risk score.
-This isn't statistically very defensible, but it is backwards compatatble.
+This isn't statistically very defensible, but it is backwards compatatble. %'
 A non-sparse frailty does not need special code and works out like any
 other variable.  
 
@@ -233,7 +234,7 @@ else {
    else {
        keep <- !is.na(match(dimnames(x)[[2]], names(coef)))
        x <- x[,keep, drop=F]
-       varmat <- varmat[keep,keep]
+#       varmat <- varmat[keep,keep]  #coxph already has trimmed it
        risk <- exp(object$linear.predictor)
        x <- scale(x, center=xcenter, scale=FALSE)    
        }
@@ -270,7 +271,12 @@ Any [[cluster]] terms can be deleted,
 If [[individual]] is false then the repsonse variable and any
 [[strata]] from the original model are not needed. 
 <<survfit.coxph-setup>>= 
-if (!missing(newdata)) {
+if (missing(newdata)) {
+    mf2 <- as.list(object$means)   #create a dummy newdata
+    names(mf2) <- names(object$coefficients)
+    mf2 <- as.data.frame(mf2)
+    }
+else {
     if (!is.null(object$frail))
         stop("Newdata cannot be used when a model has sparse frailty terms")
 
@@ -302,9 +308,8 @@ Hence the long [[if]] statement below.
     tcall$formula <- Terms2
     if (!is.null(object$xlevels) &&
          any(!is.na(match(names(object$xlevels), attr(Terms2, "term.labels")))))
-        tcall$xlev <- object$xlevels[match(names(object$xlevels),
-                                           attr(Terms2, "term.labels"),
-                                           nomatch=0)]
+        tcall$xlev <- object$xlevels[match( attr(Terms2, "term.labels"),
+                                           names(object$xlevels), nomatch=0)]
     tcall[[1]] <- as.name('model.frame')
     #mf2 <- eval(tcall)
 @     
@@ -417,7 +422,7 @@ else if (any(stype==2)){
                                            id=NULL, unlist=FALSE)
         temp[[i]] <- zed[[i]]
         }
-    tfun <- function(x, y) as.vector(unlist(lapply(x,y))) #no names
+    tfun <- function(x, fun) as.vector(unlist(lapply(x,fun))) #no names
     result <- list(n   =    tfun(temp, function(x) x$n),
                    time=    tfun(temp, function(x) x$time),
                    n.risk=  tfun(temp, function(x) x$n.risk),
@@ -425,16 +430,15 @@ else if (any(stype==2)){
                    n.censor=tfun(temp, function(x) x$n.censor),
                    strata = sapply(temp, function(x) length(x$time)))
     names(result$strata) <- levels(strata)
-    nscol <- ncol(temp[[1]]$surv)
-    if (nscol >1) {
+    if (nrow(x2) >1) {  #matrix result
         result$surv =  t(matrix(tfun(temp, function(x) t(x$surv)),
-                                nrow= nscol))
+                                nrow= nrow(x2)))
         if (se.fit) result$std.err =  t(matrix(tfun(temp,function(x) t(x$std)),
-                                               nrow= nscol))
+                                               nrow= nrow(x2)))
         }
     else {
         result$surv =  tfun(temp, function(x) x$surv)
-        if (se.fit) temp$std.err = tfun(temp, function(x) tx$std.err)
+        if (se.fit) temp$std.err = tfun(temp, function(x) x$std.err)
         }
     }
 @ 
@@ -450,11 +454,11 @@ else {
         }
     else {
        offset2 <- model.offset(mf2)
-        if (length(offset2) >0) offset2 <- offset2 - mean(offset)
-        else offset2 <- 0
-        x2 <- model.matrix(Terms2, mf2)[,-1, drop=FALSE]  #no intercept
-        x2 <- scale(x2, center=xcenter, scale=FALSE)
-        }
+       if (length(offset2) >0) offset2 <- offset2 - mean(offset)
+       else offset2 <- 0
+       x2 <- model.matrix(Terms2, mf2)[,-1, drop=FALSE]  #no intercept
+       x2 <- scale(x2, center=xcenter, scale=FALSE)
+       }
 
     newrisk <- exp(c(x2 %*% coef)) + offset2
     result <- survfit.coxph.fit(y, x, wt, x2, risk, newrisk, strata,

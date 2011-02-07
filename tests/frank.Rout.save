@@ -1,0 +1,45 @@
+
+R version 2.12.1 (2010-12-16)
+Copyright (C) 2010 The R Foundation for Statistical Computing
+ISBN 3-900051-07-0
+Platform: i686-pc-linux-gnu (32-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> library(survival)
+Loading required package: splines
+> #
+> # Check out intercept/interaction for Frank H
+> #
+> age2 <- lung$age - 50
+> fit1 <- coxph(Surv(time, status) ~ age * strata(sex), lung)
+> fit2 <- coxph(Surv(time, status) ~ age2*strata(sex), lung)
+> 
+> surv1 <- survfit(fit1)
+> surv2 <- survfit(fit2)
+> # The call won't match, but the rest should
+> icall <- match("call", names(surv1))
+> all.equal(unclass(surv1)[-icall], unclass(surv2)[-icall])
+[1] TRUE
+> 
+> 
+> # It should match what I get with a single strata fit
+> 
+> fit3 <- coxph(Surv(time, status) ~ age, data=lung,
++               init=fit1$coef[1], subset=(sex==1), iter=0)
+> surv1b <- survfit(fit3, newdata=fit1$means[1])
+> icall <- match("call", surv1b)
+> all.equal(unlist(surv1[1])[-icall], unlist(surv1b)[-icall])
+[1] TRUE
+> 
+> 

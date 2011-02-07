@@ -39,7 +39,7 @@ aeq(surv2$surv[zed, ], surv2[1,1:3]$surv)
 aeq(surv2$surv[zed],   (surv2[1]$surv)[,1])
 aeq(surv2$surv[zed, ], surv2[1, ]$surv)
 
-it <- coxph(Surv(time, status) ~ age + sex + meal.cal + strata(ph.ecog),
+fit <- coxph(Surv(time, status) ~ age + sex + meal.cal + strata(ph.ecog),
 		data=cancer)
 
 surv1 <- survfit(fit)

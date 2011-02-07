@@ -244,7 +244,7 @@ else {
                    n.event= unlist(n.event),
                    n.censor= unlist(n.censor),
                    surv = surv,
-                   std = sqrt(cumsum(unlist(varh1)) + unlist(varh2)))
+                   std.err = sqrt(cumsum(unlist(varh1)) + unlist(varh2)))
         else list(n=as.vector(table(strata)[stemp[1]]),
                    time=cumsum(unlist(time)),
                    n.risk = unlist(n.risk),
