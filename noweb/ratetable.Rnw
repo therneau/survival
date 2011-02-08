@@ -9,8 +9,8 @@
                         {\includegraphics{#1.pdf}}}
 
 \SweaveOpts{keep.source=TRUE}
-\title{Ratetables in the Surival Package}
-\author{Terry Therneau}
+\title{Rate tables in the Survival Package}
+\author{Terry Therneau and Megan O'Byrne}
 
 \begin{document}
 \maketitle
@@ -23,7 +23,7 @@ makefig <- function(file, top=1, right=1, left=4) {
     }
 @ 
 \section{Introduction}
-This is a short introduction to how the United States ratetables found in the 
+This is a short introduction to how the United States rate tables found in the 
 \emph{survival} package are generated.  
 Data for new calendar years is regularly added; this is stored in the data
 directory and processed by a function there into the current rate table.
@@ -62,12 +62,12 @@ and extend only to age 99.
 First year of life data for the later years is obtained from Report GMWK264A:
 Deaths under 1 Year,  by Month, Age, Race, and Sex: United States, 1999-2007,
 which can be found in the National Vital Statistics System (within NCHS). 
-The log(hazard) for the later ages is extroplated from ages 70-99 using a
+The log(hazard) for the later ages is extrapolated from ages 70-99 using a
 smoothing spline. 
 
 The source code for the \emph{survival} package contains a \texttt{noweb}
 directory with the code for this report, amongst other things, and a
-subdirectory \texttt{noweb/rates} containing the raw data for the rate tables.
+sub-directory \texttt{noweb/rates} containing the raw data for the rate tables.
 The decennial files have been subset and normalized into a common form, and
 found as \texttt{usdecennial.dat} and \texttt{minndecennial.dat}. 
 The US data contains the $q$ values for all combinations of age 
@@ -136,7 +136,7 @@ The attributes are
         If I start at age 2 with 5 years of follow-up, the rates for ages
         2--6 will be used.
       \item 3: a continuous trait, as in 2, but represented as a date.  This 
-	allows the routine to be more intellegent in handling the multiple
+	allows the routine to be more intelligent in handling the multiple
 	date formats available.
       \item 4: the calendar year dimension of a US rate table.
     \end{itemize}
@@ -262,7 +262,7 @@ rational basis.
 We have noticed that the log(hazard) is remarkably linear after age 95,
 and so do the extrapolation on that scale.  
 Figure \ref{fig:extrapolate} shows the results for the last 4 decennial
-years, along wtih 2006.
+years, along with 2006.
 
 % Because I like to manage my own plots as floating figures, I need to
 %  use plot=F. Otherwise Sweave tries to do it.
@@ -333,7 +333,7 @@ if (exists('as.Date')) { # R
 
 Adding the attributes is the fussy part, since these are what
 define a rate table.  
-Users making thier own table ``mytable''should always follow the exercise with
+Users making their own table ``mytable''should always follow the exercise with
 \texttt{is.ratetable(mytable)}, but again I cannot count on the 
 function being present.
 
