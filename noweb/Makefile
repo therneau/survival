@@ -10,7 +10,7 @@ SFUN =  residuals.survreg.S\
 	survfit.coxph.fit.R\
 	agsurv.R\
 	survexp.R \
-	predict.coxph.S 
+	predict.coxph.R 
 
 CFUN =  agsurv4.c agsurv5.c
 RDIR = ../R

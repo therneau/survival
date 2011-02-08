@@ -9,10 +9,9 @@ aeq <- function(x,y, ...) all.equal(as.vector(x), as.vector(y), ...)
 tfit <- coxph(Surv(time, status) ~ age + factor(ph.ecog), lung)
 p1 <- predict(tfit, type='risk')
 
-lung2 <- lung[lung$ph.ecog!=1,]
-p2 <- predict(tfit, type='risk', newdata=lung2)
-
-aeq(p1[is.na(lung$ph.ecog) | lung$ph.ecog!=1], p2)
+keep <- (is.na(lung$ph.ecog) | lung$ph.ecog !=1)
+p2 <- predict(tfit, type='risk', newdata=lung[keep,])
+aeq(p1[keep], p2)
 
 # Same, for survreg
 tfit <- survreg(Surv(time, status) ~ age + factor(ph.ecog), lung)
