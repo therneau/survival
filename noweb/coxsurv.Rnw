@@ -379,7 +379,7 @@ if (individual) {
     y2 <- y2[,1:2]  #throw away status, it's never used
 
     newrisk <- exp(c(x2 %*% coef)) + offset2
-    result <- survfit.coxph.fit(y, x, wt, x2, risk, newrisk, strata,
+    result <- survfitcoxph.fit(y, x, wt, x2, risk, newrisk, strata,
                                 se.fit, survtype, vartype, varmat, 
                                 id, y2, strata2)
    }
@@ -387,7 +387,7 @@ if (individual) {
 
 The odd case is when there are strata by covariate interactions, but
 individual=FALSE.  In this case the x2 matrix is different for each 
-strata, something that the survfit.coxph.fit subroutine is not set up
+strata, something that the survfitcoxph.fit subroutine is not set up
 to do.  
 This case is also very, very rare; the package existed for 15+ years before
 I became aware there even was a problem.  
@@ -417,7 +417,7 @@ else if (any(stype==2)){
         offset2 <- model.offset(mf3)
         if (is.null(offset2)) offset2 <-0
         newrisk <- c(exp(x2%*%coef)) + offset2 
-        zed<- survfit.coxph.fit(y, x, wt, x2, risk, newrisk, strata,
+        zed<- survfitcoxph.fit(y, x, wt, x2, risk, newrisk, strata,
                                            se.fit, survtype, vartype, varmat,
                                            id=NULL, unlist=FALSE)
         temp[[i]] <- zed[[i]]
@@ -461,7 +461,7 @@ else {
        }
 
     newrisk <- exp(c(x2 %*% coef)) + offset2
-    result <- survfit.coxph.fit(y, x, wt, x2, risk, newrisk, strata,
+    result <- survfitcoxph.fit(y, x, wt, x2, risk, newrisk, strata,
                                 se.fit, survtype, vartype, varmat, 
                                 id, y2, strata2)
     }

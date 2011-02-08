@@ -1,5 +1,5 @@
-\name{survfit.coxph.fit}
-\alias{survfit.coxph.fit}
+\name{survfitcoxph.fit}
+\alias{survfitcoxph.fit}
 \title{
 A direct interface to the `computational engine' of survfit.coxph
 }
@@ -10,7 +10,7 @@ A direct interface to the `computational engine' of survfit.coxph
   to unexpected errors if that data is wrong.
 }
 \usage{
-survfit.coxph.fit(y, x, wt, x2, risk, newrisk, strata, se.fit, survtype,
+survfitcoxph.fit(y, x, wt, x2, risk, newrisk, strata, se.fit, survtype,
 vartype, varmat, id, y2, strata2, unlist=TRUE)
 }
 %- maybe also 'usage' for other objects documented here.

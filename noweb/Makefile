@@ -7,7 +7,7 @@ PARTS = main.Rnw \
 
 SFUN =  residuals.survreg.S\
 	survfit.coxph.R \
-	survfit.coxph.fit.R\
+	survfitcoxph.fit.R\
 	agsurv.R\
 	survexp.R \
 	predict.coxph.R 

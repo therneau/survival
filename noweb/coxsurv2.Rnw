@@ -38,8 +38,8 @@ was a factor we want to leave it in the same order, otherwise sort it.
 This fitting routine was set out as a separate function for the sake of the rms
 package.  They want to utilize the computation, but have a different setup
 for recreation of the x and y data.
-<<survfit.coxph.fit>>=
-survfit.coxph.fit <- function(y, x, wt, x2, risk, newrisk, strata, se.fit,
+<<survfitcoxph.fit>>=
+survfitcoxph.fit <- function(y, x, wt, x2, risk, newrisk, strata, se.fit,
                               survtype, vartype, varmat, id, y2, strata2,
                               unlist=TRUE) {
     if (is.factor(strata)) ustrata <- levels(strata)
@@ -101,7 +101,7 @@ The reason is that each strata will have a different number of observations,
 so that a matrix form was not viable, and the underlying C routines were
 not capable of handling lists (the code predates the .Call function by 
 a decade).  
-The underlying computation of [[survfit.coxph.fit]] naturally creates the list
+The underlying computation of [[survfitcoxph.fit]] naturally creates the list
 form, we unlist it to [[survfit]] form as our last action unless the 
 caller requests otherwise.
 
