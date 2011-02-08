@@ -279,12 +279,8 @@ if (!missing(newdata)) {
     newx <- newx - rep(object$means, each=nrow(newx))
     newrisk <- c(exp(newx %*% object$coef))
     }
-<<<<<<< local
 
 survtype<- ifelse(object$method=='efron', 3,2)
-=======
-survtype= ifelse(object$method=='efron', 3,2)
->>>>>>> other
 for (i in ustrata) {
     indx <- which(oldstrat == i)
     afit <- agsurv(y[indx,,drop=F], x[indx,,drop=F], 
