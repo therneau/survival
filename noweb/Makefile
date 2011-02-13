@@ -1,16 +1,18 @@
 PARTS = main.Rnw \
 	coxsurv.Rnw \
 	coxsurv2.Rnw \
+	pyears.Rnw \
 	predict.coxph.Rnw \
 	survexp.Rnw \
 	residuals.survreg.Rnw 
 
-SFUN =  residuals.survreg.S\
+SFUN =  agsurv.R \
+	predict.coxph.R \
+	pyears.R \
+	residuals.survreg.S\
 	survfit.coxph.R \
 	survfitcoxph.fit.R\
-	agsurv.R\
-	survexp.R \
-	predict.coxph.R 
+	survexp.R 
 
 CFUN =  agsurv4.c agsurv5.c
 RDIR = ../R

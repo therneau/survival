@@ -125,12 +125,18 @@ The [[rmap]] argument needs to be examined without evaluating it; we then add
 the appropriate extra variables into a temporary formula so that the model
 frame has all that is required.  The ratetable variables then can be
 retrieved from the model frame.
-
+The [[pyears]] routine uses the exact rmap argument; this segment of the
+code is given its own name so that it can be included there as well.
 <<survexp-setup>>=
 rate <- attr(Terms, "specials")$ratetable                   
 if(length(rate) > 1)
         stop("Can have only 1 ratetable() call in a formula")
-        
+<<survexp-setup-rmap>>
+
+if (is.R())  m <- eval(m, parent.frame())
+else         m <- eval(m, sys.parent())
+@ 
+<<survexp-setup-rmap>>= 
 if(length(rate) == 1) {
     if (!missing(rmap)) 
         stop("The ratetable() call in the formula is depreciated")
@@ -179,7 +185,7 @@ The non-obvious bit of code is the addition of an environment to the
 formula.  The [[model.matrix]] routine has a non-standard evaluation - it
 uses the frame of the formula, rather than the parent.frame() argument
 below, along with the [[data]] to look up variables.  
-<<survexp-setup>>= 
+<<survexp-setup-rmap>>= 
 # Create a temporary formula, used only in the call to model.frame
 newvar <- all.vars(rcall)
 if (length(newvar) > 0) {
@@ -187,9 +193,6 @@ if (length(newvar) > 0) {
     if (is.R()) m$formula <- as.formula(tform, environment(Terms))
     else m$formula <- as.formula(tform)
     }
-
-if (is.R())  m <- eval(m, parent.frame())
-else         m <- eval(m, sys.parent())
 @
 
 If the user data has 0 rows, e.g. from a mistaken [[subset]] statement

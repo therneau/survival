@@ -207,7 +207,8 @@ if (!missing(newdata)) {
         else newstrat <- strata(mf2[,stemp$vars], shortlabel=TRUE)
         if (any(is.na(match(newstrat, oldstrat)))) 
             stop("New data has a strata not found in the original model")
-        if (length(temp$terms))
+        else newstrat <- factor(newstrat, levels=levels(oldstrat)) #give it all
+        if (length(stemp$terms))
             newx <- model.matrix(Terms2[-stemp$terms], mf2,
                          contr=object$contrasts)[,-1,drop=FALSE]
         else newx <- model.matrix(Terms2, mf2,
@@ -226,7 +227,7 @@ if (!missing(newdata)) {
         if (attr(newy, 'type') != attr(y, 'type'))
             stop("New data has a different survival type than the model")
         }
-    na.action.used <- mf2$na.action
+    na.action.used <- attr(mf2, 'na.action')
     }  
 @ 
 
@@ -514,10 +515,10 @@ if (type != 'terms') {
     }
 
 if (!is.null(na.action.used)) {
-    pred <- naresid(na.action.used, pred)
+    pred <- napredict(na.action.used, pred)
     if (is.matrix(pred)) n <- nrow(pred)
     else               n <- length(pred)
-    if(se.fit) se <- naresid(na.action.used, se)
+    if(se.fit) se <- napredict(na.action.used, se)
     }
 
 if (!missing(collapse)) {

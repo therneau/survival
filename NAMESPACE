@@ -14,7 +14,7 @@ export("Surv", "aareg", "attrassign",
      "pspline", "pyears", "ratetable", "ratetableDate", 
      "ridge", "strata", "survConcordance",
      "survSplit", "survdiff", "survexp",  "survfit" ,
-     "survfit.coxph.fit",
+     "survfitcoxph.fit",
      "survobrien",  "survreg", "survreg.control", "survreg.fit",
      "survreg.distributions", "survregDtest", "tcut", 
      "untangle.specials")
