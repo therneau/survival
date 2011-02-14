@@ -4,7 +4,7 @@ Priority: recommended
 Package: survival
 Version: 2.36-3
 Date: 2011-02-01
-Depends: stats, utils, graphics, splines, R (>= 2.0.0)
+Depends: stats, utils, graphics, splines, R (>= 2.10.0)
 LazyData: Yes
 LazyLoad: Yes
 Author: Terry Therneau, original Splus->R port by Thomas Lumley

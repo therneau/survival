@@ -20,10 +20,12 @@ RFUN = $(SFUN:%=$(RDIR)/%)
 CFUN2= $(CFUN:%=../src/%)
 DOCDIR= ../inst/doc
 
-all:  $(DOCDIR)/sourcecode.pdf fun
+all:  doc fun
+
+doc: $(DOCDIR)/sourcecode.pdf
 
 $(DOCDIR)/sourcecode.pdf: all.pdf
-	cp all.pdf $(DOCDIR)
+	cp all.pdf $(DOCDIR)/sourcecode.pdf
 
 all.pdf: all.tex
 	latex all   #twice to get the table of contents right
@@ -41,7 +43,7 @@ $(CFUN): all.nw
 $(CFUN2): all.nw
 $(RFUN): all.nw
 
-.PHONY: fun clean
+.PHONY: fun clean doc
 fun: $(RFUN) $(CFUN2)
 
 test: $(RFUN)
