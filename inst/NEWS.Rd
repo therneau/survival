@@ -3,7 +3,8 @@
 
 \section{Changes in version 2.36-3}{
   \itemize{
-  \item{13Feb11: Add the rmap argument to pyears, as was done for
+
+    \item{13Feb11: Add the rmap argument to pyears, as was done for
     survexp, and update the manual pages and examples. Fix one last bug
     in predict.coxph (na.action use).  Passes all the
     tests for inclusion on the next R release.}
