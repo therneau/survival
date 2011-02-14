@@ -4,24 +4,23 @@
 \section{Changes in version 2.36-3}{
   \itemize{
 
-    \item{13Feb11: Add the rmap argument to pyears, as was done for
+    \item 13 Feb 2011: Add the rmap argument to pyears, as was done for
     survexp, and update the manual pages and examples. Fix one last bug
     in predict.coxph (na.action use).  Passes all the
-    tests for inclusion on the next R release.}
+    tests for inclusion on the next R release.
 
-    \item{8Feb11}{Change the name of the new survfit.coxph.fit routine to
+    \item 8 Feb 2011: Change the name of the new survfit.coxph.fit routine to
      survfitcoxph.fit; R was mistaking it for a survfit method.  Fix
      errors in predict.coxph when there is a newdata argument, including
-     adding yet another test program.}
+     adding yet another test program.
 
-   \item{1Feb11}{Fix bugs in coxph and survreg pointed out by Heinz
+   \item 1 Feb 2011: Fix bugs in coxph and survreg pointed out by Heinz
     Tuechler and dtdenes@cogpsyphy.hu, independently, that were the same
     wrong line in both programs.  With interactions, a non-penalized
     term could be marked as penalized due to a mismatched vector length,
     leading to a spurious error message later in the code.
-  }
   
-  \item{1Feb11: Update survfit.coxph to handle the case of a strata by
+  \item 1 Feb 2011: Update survfit.coxph to handle the case of a strata by
     covariate interaction.  All prior releases of the code did this
     wrong, but it is a very rare case (found by Frank Harrell).  Added a
     new test routine coxsurv4.  Also found a bug in [.survfit; for a
@@ -29,41 +28,40 @@
     survfit.coxph, it could drop the n.censored item when subscripting.
     A minor issue was fixed in coxph: when iter=0 the output coefficient
     vector should be equal to the input even when the variance is
-    singular.}
+    singular. 
 
-  \item{30Jan11: Move the noweb files to a top level directory, out of
+  \item 30 Jan 2011: Move the noweb files to a top level directory, out of
     inst/.  They don't need to be copied to binary installs.
-    }
     
-  \item{22Jan11: Convert the Changelog files to the new inst/NEWS.Rd
-    format}
+  \item 22 Jan 2011: Convert the Changelog files to the new inst/NEWS.Rd
+    format.
   
-  \item{1 Jan 2011: The match.ratetable would fail when passed a data
+  \item 1 Jan 202011: The match.ratetable would fail when passed a data
     frame with a character variable.  This was pointed out by Heinz
     Tuechler, who also did most of the legwork to find it.  It was
     triggered by the first few lines of tests/jasa.R (expect <- ....)
-    when options(stringsAsFactors=FALSE) is set.}
+    when options(stringsAsFactors=FALSE) is set. 
  }
 }
 
 \section{Changes in version 2.36-2}{
 \itemize{
-  \item{20 Dec 2010: Add more test cases for survfit.coxph,
-    which led to significant updates in the code.}
+  \item 20 Dec 2010: Add more test cases for survfit.coxph,
+    which led to significant updates in the code. 
 
-  \item{18 Nov 2010: Add nevent to the coxph output and printout in
-    response to a long standing user request.}
+  \item 18 Nov 2010: Add nevent to the coxph output and printout in
+    response to a long standing user request.
 
-  \item{14 Dec 2010: Add an as.matrix method for Surv objects.}
+  \item 14 Dec 2010: Add an as.matrix method for Surv objects. 
 
-  \item{11 Nov 2010: The prior changes broke 5 packages: the dependencies form a bigger
+  \item 11 Nov 2010: The prior changes broke 5 packages: the dependencies form a bigger
 test suite than mine!  1. Survival curve for a coxph model with sparse
 frailty fit; fixed and added a new test case.  2. survexp could fail if 
 called from within a function due to a scoping error.  3. "Tsiatis" was once
 a valid type (alias for 'aalen')  for survfit.coxph; now removed from the 
 documentation but the code needed to be backwards compatable.  The other two
 conflicts were fixed in the packages that call survival.  There are still
-issues with the rms package which I am working out with Frank H.}
+issues with the rms package which I am working out with Frank H.
  }
 }
 
