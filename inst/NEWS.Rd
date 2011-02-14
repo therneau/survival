@@ -92,7 +92,7 @@ by Andy Mugglin.  A new case was added to the test suite. }
  }
 }
 
-\section{Changes in version 2.35: 
+\section{Changes in version 2.35}{ 
  \itemize{
   \item{15 July 2010: Add a coxph method for the logLik function.  This is used by
 the AIC function and was requested by a user.}
