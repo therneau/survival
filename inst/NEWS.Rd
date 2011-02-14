@@ -6,9 +6,14 @@
   \item{13Feb11: Add the rmap argument to pyears, as was done for
     survexp, and update the manual pages and examples. Fix one last bug
     in predict.coxph (na.action use).  Passes all the
-    tests for inclusion on the next R release.
-    }
-  \item{1Feb11: Fix bugs in coxph and survreg pointed out by Heinz
+    tests for inclusion on the next R release.}
+
+    \item{8Feb11}{Change the name of the new survfit.coxph.fit routine to
+     survfitcoxph.fit; R was mistaking it for a survfit method.  Fix
+     errors in predict.coxph when there is a newdata argument, including
+     adding yet another test program.}
+
+   \item{1Feb11}{Fix bugs in coxph and survreg pointed out by Heinz
     Tuechler and dtdenes@cogpsyphy.hu, independently, that were the same
     wrong line in both programs.  With interactions, a non-penalized
     term could be marked as penalized due to a mismatched vector length,
