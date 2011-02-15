@@ -242,42 +242,44 @@ makes that function match its documentation.}
  }
 }
 
-\section{Merge of the TMT source code tree with the Lumley code tree}{
+\section{Changes in version 2.34 and earlier}{
+\subsection{Merge of the TMT source code tree with the Lumley code tree}{
  \itemize{
 
-  \item{Issues/decisions in remerging the Mayo and R code: 
+  \item Issues/decisions in remerging the Mayo and R code: 
   For most of routines, it was easier to start with the Lumley code and add
 the Therneau fixes.  This is because Tom had expanded a lot of partial 
 matches, e.g., fit$coef in the TT code vs fit$coefficients.  Routines with
 substantial changes were, of course, a special case.
-  The most common change is an is.R() construct to choose class vs oldClass}
-  \item{xtras.R: Move anova.coxph and anova.coxphlist to their own source files.
-  The remainder of the code is R only.}
+  The most common change is an is.R() construct to choose class vs oldClass.
+  \item xtras.R: Move anova.coxph and anova.coxphlist to their own
+  source files.
+  The remainder of the code is R only.
 
-  \item{survsum: removed from package}
+  \item survsum: removed from package
 
-  \item{survreg.old: has been removed from the package}
+  \item survreg.old: has been removed from the package
 
-  \item{survfit.s: 
+  \item survfit.s: 
    Depreciate the "formula with no ~1" option
    Mayo code for [ allows for reordering curves
-   Separate out the R "basehaz" function as a separate source file}
+   Separate out the R "basehaz" function as a separate source file
 
-  \item{survfit.km.s: The major change of did not get copied into R, so lots of
+  \item survfit.km.s: The major change of did not get copied into R, so lots of
 changes.  R had "new.time" and Splus 'start.time' for the same argument.  Allow
 them both as synonyms.
    The output structure also changed: adapt the new one.  This is mostly some
 name changes in the components, removing unneeded redundancies created by
-a different programmer.}
+a different programmer. 
 
-  \item{survfit.coxph.s:  TMT code finally fixed the "Can't (yet) to case weights" 
-problem.  There must have been 10 years been the intent and execution.}
+  \item survfit.coxph.s:  TMT code finally fixed the "Can't (yet) to case weights" 
+problem.  There must have been 10 years been the intent and execution. 
 
-  \item{survexp.s:  Add "bareterms" function from R, which replaces a prior use of
-  terms.inner (in Splus but not R).}
+  \item survexp.s:  Add "bareterms" function from R, which replaces a prior use of
+  terms.inner (in Splus but not R). 
 
-  \item{survdiff.s: R code had the old (incorrect) expected <- sum(1-offset), since
-corrected to sum(-log(offset)) .}
+  \item survdiff.s: R code had the old (incorrect) expected <- sum(1-offset), since
+corrected to sum(-log(offset)) . 
 
   \item{summary.coxph.s: This was a mess, since Tom and I had independently made the
  addition of a print.summary.coxph function.  Below, TMT means that it was the
@@ -335,7 +337,7 @@ succeed, when "goodlines" is the subset with correct values.}
 }
 }
 
-\section{Older changes}{
+\subsection{Older changes}{
  \itemize{
   \item{25SepO7: How embarrassing -- someone pointed out that I had Dave Harrington's
 name spelled wrong in the options to survfit.coxph!}
@@ -417,4 +419,4 @@ the wrong height.
   \item{24Nov04: Change is.ratetable to give longer messages}
 }
 }
-
+}
