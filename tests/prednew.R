@@ -46,3 +46,24 @@ aeq(p1, p3$fit)
 aeq(p1[keep,], p4$fit)
 aeq(p3$se.fit[keep,], p4$se.fit)
 
+#
+# Check out the logic whereby predict does not need to
+#  recover the model frame.  The first call should not 
+#  need to do so, the second should in each case.
+#
+myfit <- coxph(Surv(time, status) ~ age + factor(sex), lung, x=T)
+p1 <- predict(myfit, type='risk', se=T)
+myfit2 <- coxph(Surv(time, status) ~ age + factor(sex), lung)
+p2 <- predict(myfit2, type='risk', se=T)
+aeq(p1$fit, p2$fit)
+aeq(p1$se, p2$se)
+
+p1 <- predict(myfit, type='expected', se=T)
+p2 <- predict(myfit2, type='expected', se=T)
+aeq(p1$fit, p2$fit)
+aeq(p1$se.fit, p2$se.fit)
+
+p1 <- predict(myfit, type='terms', se=T)
+p2 <- predict(myfit2, type='terms', se=T)
+aeq(p1$fit, p2$fit)
+aeq(p1$se.fit, p2$se.fit)

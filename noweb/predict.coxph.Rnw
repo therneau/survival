@@ -133,11 +133,13 @@ The untangle.specials function will return
 and the second that there is nothing to remove from the terms strucutre.
 
 <<pcoxph-getdata>>=
+have.mf <- FALSE
 if (type == 'expected') {
     y <- object[['y']]
     if (is.null(y)) {  # very rare case
         mf <- model.frame(object)
         y <-  model.extract(mf, 'response')
+        have.mf <- TRUE  #for the logic a few lines below, avoid double work
         }
     }
 
@@ -145,7 +147,7 @@ if (se.fit || !missing(newdata) || type=='terms' || has.strata) {
     need.x <- TRUE
     if (is.null(object[['x']]) || has.strata || has.weights || has.offset) {
         # I need the original model frame
-        mf <- model.frame(object)
+        if (!have.mf) mf <- model.frame(object)
         if (nrow(mf) != n)
             stop("Data is not the same size as it was in the original fit")
 
@@ -217,7 +219,7 @@ if (!missing(newdata)) {
     else {
         newx <- model.matrix(Terms2, mf2,
                          contr=object$contrasts)[,-1,drop=FALSE]
-        newstrat <- rep(0L, nrow(mf))
+        newstrat <- rep(0L, nrow(mf2))
         }
 
     newoffset <- model.offset(mf2) 
@@ -269,14 +271,10 @@ original coxph doesn't do that calculation. So we do what's easiest.
 ustrata <- unique(oldstrat)
 risk <- exp(object$linear.predictors)
 x <- x - rep(object$means, each=nrow(x))  #subtract from each column
-if (se.fit) { 
-    se <- double(nrow(mf))
-    }
-if (missing(newdata))
-    se <- double(nrow(mf))
-if (!missing(newdata)) {
-    se <- double(nrow(mf))
-    pred <- se
+if (missing(newdata)) #se.fit must be true
+    se <- double(n)
+else {
+    pred <- se <- double(nrow(mf2))
     newx <- newx - rep(object$means, each=nrow(newx))
     newrisk <- c(exp(newx %*% object$coef))
     }
