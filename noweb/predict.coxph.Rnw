@@ -189,20 +189,19 @@ else {
 Now grab data from the new data set.  We want to use model.frame
 processing, in order to correctly expand factors and such.
 We don't need weights, however, and don't want to make the user
-include them in their new dataset, have to build the call up
-the way it is done in coxph itself.  We also may not need y.
+include them in their new dataset.   Thus we build the call up
+the way it is done in coxph itself, but only keeping the newdata
+argument.  Note that terms2 may have fewer variables than the 
+original model: no cluster and if type!= expected no response.
 <<pcoxph-getdata>>=
 if (!missing(newdata)) {
-    indx <- match(c("formula", "weights", "subset", "na.action"),
-                  names(object$call), nomatch=0) 
-    temp <- object$call[c(1,indx)]  # only keep the arguments we wanted
-    temp[[1]] <- as.name('model.frame')  # change the function called
-
-    temp$formula <- Terms2  #version with no response
-    temp$data <- Call$newdata #add the new data
-    temp$xlev <- object$xlevels  #remember factor levels
-    if (is.R()) mf2 <- eval(temp, parent.frame())
-    else        mf2 <- eval(temp, sys.parent())
+    tcall <- Call[c(1, match('newdata', names(Call), nomatch=0))]
+    names(tcall)[2] <- 'data'  #rename newdata to data
+    tcall$formula <- Terms2  #version with no response
+    tcall[[1]] <- as.name('model.frame')  # change the function called
+    tcall$xlev <- object$xlevels
+    if (is.R()) mf2 <- eval(tcall, parent.frame())
+    else        mf2 <- eval(tcall, sys.parent())
 
     if (has.strata) {
         if (length(stemp$vars)==1) newstrat <- mf2[[stemp$vars]]
