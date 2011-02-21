@@ -36,7 +36,7 @@ aeq(fit5$stats[1:3], fit6$stats[1:3])  #spurious "tied on time" is produced
 
 # Start, stop simplest case
 fit7 <- survConcordance(Surv(rep(0,11), time, status) ~ y, tdata, weight=wt)
-aeq(fit5$stasts, fit7$stats)
+aeq(fit5$stats, fit7$stats)
 
 # Multiple intervals for some, but same risk sets as tdata
 tdata2 <- data.frame(time1=c(0,3, 5,  6,7,   0,  4,18,  7,  0,27,  2,  0, 
@@ -61,5 +61,3 @@ fit9 <- survConcordance(Surv(time1, time2, status) ~x + strata(grp),
                         data=tdata3, weight=wt)
 aeq(fit9$stats[1,], fit5$stats)
 aeq(fit9$stats[2,], fit4$stats)
-
-                             
