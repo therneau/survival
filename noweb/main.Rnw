@@ -6,7 +6,7 @@
 \setlength{\evensidemargin}{\oddsidemargin}
 
 \newcommand{\myfig}[1]{\resizebox{\textwidth}{!}
-                        {\includegraphics{figure/#1.pdf}}}
+                        {\includegraphics{figures/#1.pdf}}}
 
 \noweboptions{breakcode}
 \title{Survival Package Functions}
