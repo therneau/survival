@@ -1,6 +1,17 @@
 \name{NEWS}
 \title{NEWS file for the surival package}
 
+\section{Changes in version 2.36-4}{
+\itemize{
+  \item 17 Feb 2011: Fix to predict.coxph.  A small typo that only was
+  exercised if the coxph model had x=T.  Discovered via induced error in
+  the rankhazard package.  Added lines to the test suite to test for
+  this in the future.
+
+  \item Removed some files from test and src that are no longer needed.
+
+  \item Update the configure script per suggestion from Kurt H.
+  }}
 \section{Changes in version 2.36-3}{
   \itemize{
 
