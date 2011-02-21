@@ -1,6 +1,17 @@
 \name{NEWS}
 \title{NEWS file for the surival package}
 
+\section{Changes in version 2.36-5}{
+  \itemize{
+    \item 20 Feb 2011: Update survConcordance to correctly handle case
+    weights, time dependent covariates, and strata.
+
+    \item 18 Feb 2011: Bug in predict.coxph found a user (1 day after
+    36-4!).  If the coxph call had a subset and predict used newdata,
+    the subset clause was "remembered" in the newdata construction,
+    which is not appropriate.
+}}
+
 \section{Changes in version 2.36-4}{
 \itemize{
   \item 17 Feb 2011: Fix to predict.coxph.  A small typo that only was
