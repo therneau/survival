@@ -2,7 +2,8 @@
 #
 # The test for survival proposed by Peter O'Brien
 #
-survobrien <- function(formula, data= sys.frame(sys.parent())) {
+survobrien <- function(formula, data= sys.frame(sys.parent()),
+                       transform=function(r) (r-.5)/(.5+length(r)-r)) {
 
     unprotect<-function(Terms){
         namei<-as.name("I")
@@ -74,15 +75,13 @@ survobrien <- function(formula, data= sys.frame(sys.parent())) {
 	nrisk <- sum(who)
 
 	temp <- apply(x[who,,drop=FALSE], 2, rank)
-	temp <- (2*temp -1)/ (2* nrisk)   #percentiles
-	logit<- log(temp/(1-temp))           #logits
 	deaths <- (status[who]==1 & time[who]==i)
 
 	k <- seq(from=j, length.out=nrisk)
 	start[k] <- ltime
 	stop[k] <-  i
 	event[k] <- deaths
-	xx[k,] <- logit
+	xx[k,] <- transform(temp)
 	j <- j + nrisk
 	ltime <- i
 	keep.index <- c(keep.index, ord[who])

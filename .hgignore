@@ -3,3 +3,6 @@
 .*~$
 .*\.o
 .*\.so
+todo
+noweb/all*
+
