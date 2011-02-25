@@ -1,4 +1,3 @@
-# SCCS  @(#)survobrien.s	4.5 01/13/98
 #
 # The test for survival proposed by Peter O'Brien
 #

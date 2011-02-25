@@ -209,7 +209,11 @@ S_EVALUATOR
 		else           pexpect[index] += exp(-cumhaz)*temp * weight[i];
 		cumhaz += hazard;
 		}
-	    else  *offtable += thiscell * weight[i];
+	    else  {
+		*offtable += thiscell * weight[i];
+		for (j=0; j<edim; j++)
+		    if (efac[j] !=1) data2[j] += thiscell;
+		}
 
 	    for (j=0; j<odim; j++)
 		if (ofac[j] ==0) data[j] += thiscell;

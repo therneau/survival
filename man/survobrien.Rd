@@ -8,7 +8,8 @@ Peter O'Brien's test for association of a single variable with survival
 This test is proposed in Biometrics, June 1978. 
 }
 \usage{
-survobrien(formula, data)
+survobrien(formula, data,
+    transform = function(r) (r - 0.5)/(0.5 + length(r) - r))
 }
 \arguments{
 \item{formula}{
@@ -16,9 +17,11 @@ a valid formula for a cox model, without time dependent covariates.
 }
 \item{data}{
 a data frame. 
+    }
+\item{transform}{the transformation function to be applied at each
+   time point. The default is O'Brien's suggestion.}
 }
-}
-\value{
+\usage{
 a new data frame.  The original time and status variables are removed, 
 and have been replaced with \code{start}, \code{stop}, and \code{event}.  If a 
 predictor variable is a factor or is protected with \code{I()}, it is 

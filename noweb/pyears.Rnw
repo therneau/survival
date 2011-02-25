@@ -105,8 +105,7 @@ This function wants characters turned to factors.
 For a Cox model [[R]] will be a model matix whose covariates are coded
 in exactly the same way that variables were coded in the original
 Cox model.  We call the model.matrix.coxph function so as not to have to
-repeat the
-steps found there (remove cluster statements, etc).   
+repeat the steps found there (remove cluster statements, etc).   
 <<pyears-setup>>=
 # rdata contains the variables matching the ratetable
 if (has.ratetable) {
@@ -131,8 +130,15 @@ if (has.ratetable) {
         }
     else stop("Invalid ratetable")
     }
+@ 
 
-# Now process the other (non-ratetable) variables
+Now we process the non-ratetable variables. 
+Those of class [[tcut]] set up time-dependent classes.  For
+these the cutpoints attribute sets the intervals, if there
+were 4 cutpoints of 1, 5,6, and 10 the 3 intervals will be 1-5,
+5-6 and 6-10, and odims will be 3.
+All other variables are treated as factors.
+<<pyears-setup>>= 
 ovars <- attr(Terms, 'term.labels')
 if (length(ovars)==0)  {
     # no categories!
@@ -147,25 +153,24 @@ else {
     outdname <- vector("list", odim)
     for (i in 1:odim) {
         temp <- m[[ovars[i]]]
-        ctemp <- oldClass(temp)
-        if (!is.null(ctemp) && ctemp=='tcut') {
-    	X[,i] <- temp
-    	temp2 <- attr(temp, 'cutpoints')
-    	odims[i] <- length(temp2) -1
-    	ocut <- c(ocut, temp2)
-    	ofac[i] <- 0
-    	outdname[[i]] <- attr(temp, 'labels')
+        if (inherits(temp, 'tcut')) {
+            X[,i] <- temp
+            temp2 <- attr(temp, 'cutpoints')
+            odims[i] <- length(temp2) -1
+            ocut <- c(ocut, temp2)
+            ofac[i] <- 0
+            outdname[[i]] <- attr(temp, 'labels')
     	}
         else {
-    	temp2 <- as.factor(temp)
-    	X[,i] <- temp2
-    	temp3 <- levels(temp2)
-    	odims[i] <- length(temp3)
-    	ofac[i] <- 1
-    	outdname[[i]] <- temp3
+            temp2 <- as.factor(temp)
+            X[,i] <- temp2
+            temp3 <- levels(temp2)
+            odims[i] <- length(temp3)
+            ofac[i] <- 1
+            outdname[[i]] <- temp3
     	}
-        }
     }
+}
 @
 
 Now do the computations.  
@@ -193,6 +198,13 @@ everyone's enter-the-study date.  If you were born in March but
 entered in April, make it look like you entered in Febuary; that way
 you get the first 11 months at the entry year's rates, etc.  The birth
 date is entry date - age in days (based on 1/1/1960).
+
+The other aspect of the rate tables is that ``older style'' tables, those that
+have the factor attribute, contained only decennial data which the C code would
+interpolate on the fly.  The value of [[atts$factor]] was 10 indicating that
+there are 10 years in the interpolation interval.  The newer tables do not
+do this and the C code is passed a 0/1 for continuous (age and year) versus
+discrete (sex, race).
 <<pyears-compute>>=
 ocut <-c(ocut,0)   #just in case it were of length 0
 osize <- prod(odims)
@@ -251,6 +263,7 @@ if (has.ratetable) {  #include expected
     				nint:(nint*nyear))$y - .0001)
             }
         }
+
     temp <- .C("pyears1",
     		as.integer(n),
     		as.integer(ncol(Y)),
@@ -273,9 +286,10 @@ if (has.ratetable) {  #include expected
     		pn    =double(osize),
     		pcount=double(if(is.Surv(Y)) osize else 1),
     		pexpect=double(osize),
-    		offtable=double(1))[18:22]
+    		offtable=double(1),
+                DUP=FALSE)[18:22]
     }
-else {
+else {   #no expected
     temp <- .C('pyears2',
     		as.integer(n),
     		as.integer(ncol(Y)),

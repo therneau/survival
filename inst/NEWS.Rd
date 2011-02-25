@@ -1,6 +1,16 @@
 \name{NEWS}
 \title{NEWS file for the surival package}
 
+\section{Changes in version 2.36-6}{
+  \itemize{
+    \item 25 Feg 2011: Bug in pyears pointed out by Norm Phillips.  If a
+    subject started out with "off table" time, their age was not
+    incremented by that amount as they moved forward to the next "in
+    table" cell of the result.  This could lead to using the wrong
+    expected rate from the rate table.
+  }
+}
+
 \section{Changes in version 2.36-5}{
   \itemize{
     \item 20 Feb 2011: Update survConcordance to correctly handle case
