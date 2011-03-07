@@ -1,4 +1,5 @@
 PARTS = main.Rnw \
+	coxph.Rnw \
 	coxsurv.Rnw \
 	coxsurv2.Rnw \
 	predict.coxph.Rnw \
@@ -8,15 +9,16 @@ PARTS = main.Rnw \
 	residuals.survreg.Rnw 
 
 SFUN =  agsurv.R \
-	survConcordance.R \
+	coxph.R \
 	predict.coxph.R \
 	pyears.R \
 	residuals.survreg.S\
+	survConcordance.R \
+	survexp.R \
 	survfit.coxph.R \
-	survfitcoxph.fit.R\
-	survexp.R 
+	survfitcoxph.fit.R
 
-CFUN =  agsurv4.c agsurv5.c concordance1.c
+CFUN =  agsurv4.c agsurv5.c concordance1.c coxcount1.c
 RDIR = ../R
 RFUN = $(SFUN:%=$(RDIR)/%)
 CFUN2= $(CFUN:%=../src/%)
@@ -30,7 +32,7 @@ $(DOCDIR)/sourcecode.pdf: all.pdf
 	cp all.pdf $(DOCDIR)/sourcecode.pdf
 
 all.pdf: all.tex
-	latex all   #twice to get the table of contents right
+	pdflatex all   #twice to get the table of contents right
 	pdflatex all
 
 all.nw: $(PARTS)
