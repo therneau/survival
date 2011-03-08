@@ -61,6 +61,14 @@ summary.coxph <- function(object,  conf.int = 0.95, scale = 1, ...) {
                           pvalue=1 - pchisq(cox$rscore, df))
     rval$used.robust<-!is.null(cox$naive.var)
 
+    if (!is.null(cox$concordance)) {
+        if (is.matrix(cox$concordance)) temp <- colSums(cox$concordance)
+        else temp <- cox$concordance
+        rval$concordance <- c("concordance"= (temp[1] + temp[3]/2)/
+                              sum(temp[1:3]), "se"= temp[5]/(2*sum(temp[1:3])))
+    }
+        
+
     if (is.R()) class(rval)    <-"summary.coxph"
     else        oldClass(rval) <- "summary.coxph"
     rval

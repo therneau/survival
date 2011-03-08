@@ -13,12 +13,13 @@ coxph.fit <- function(x, y, strata, offset, init, control,
     # Sort the data (or rather, get a list of sorted indices)
     if (length(strata)==0) {
 	sorted <- order(time)
+        strata <- NULL
 	newstrat <- as.integer(rep(0,n))
 	}
     else {
 	sorted <- order(strata, time)
-	strata <- (as.numeric(strata))[sorted]
-	newstrat <- as.integer(c(1*(diff(strata)!=0), 1))
+	strata <- strata[sorted]
+	newstrat <- as.integer(c(1*(diff(as.numeric(strata))!=0), 1))
 	}
     if (missing(offset) || is.null(offset)) offset <- rep(0,n)
     if (missing(weights)|| is.null(weights))weights<- rep(1,n)
@@ -120,6 +121,8 @@ coxph.fit <- function(x, y, strata, offset, init, control,
 	names(resid) <- rownames
 	if (maxiter > 0) coef[which.sing] <- NA  #leave it be if iter=0 is set
 
+        concordance <- survConcordance.fit(Surv(stime, sstat), lp[sorted],
+                                           strata, weights) 
 	list(coefficients  = coef,
 		    var    = var,
 		    loglik = coxfit$loglik,
@@ -128,6 +131,7 @@ coxph.fit <- function(x, y, strata, offset, init, control,
 		    linear.predictors = as.vector(lp),
 		    residuals = resid,
 		    means = coxfit$means,
+                    concordance=concordance,
 		    method='coxph')
 	}
     }

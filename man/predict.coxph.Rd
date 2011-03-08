@@ -11,7 +11,8 @@
 \usage{
 \method{predict}{coxph}(object, newdata,
 type=c("lp", "risk", "expected", "terms"),
-se.fit=FALSE, na.action=na.pass, terms=names(object$assign), collapse, ...)
+se.fit=FALSE, na.action=na.pass, terms=names(object$assign), collapse,
+reference=c("strata", "sample"),  ...)
 }
 \arguments{
 \item{object}{
@@ -45,6 +46,7 @@ optional vector of subject identifiers.
 If specified, the output will contain one entry per subject rather than one 
 entry per observation. 
 }
+\item{reference}{reference for centering predictions}
 \item{\dots}{For future methods}
 }
 \value{
@@ -53,15 +55,29 @@ a vector or matrix of predictions, or a list containing the predictions
 option is TRUE. 
 }
 \details{
-  The linear predictors for each strata are centered within each strata
-  of the model.  Two practical reasons are for numerical stability (avoid
-  large arguments to the exp function) and reproducability (addition of a
-  constant to the a covariate causes no change).  The primary underlying
-  reason is statistical: a Cox model only predicts relative risks
-  between pairs of subjects in the same strata, and hence the addition
-  of a constant to the linear predictor, either overall or only within a
-  particular stratum, has no effect on any downstream computations.  
+  The Cox model is a \emph{relative} risk model; predictions
+of type "linear predictor", "risk", and "terms" are all
+relative to the sample from which they came.  By default, the reference
+value for each of these is the mean covariate within strata.  The
+primary underlying
+reason is statistical: a Cox model only predicts relative risks
+between pairs of subjects within the same strata, and hence the addition
+of a constant to any covariate, either overall or only within a
+particular stratum, has no effect on the fitted results.
+Using the \code{reference="strata"} option causes this to be true for
+predictions as well.
+
+When the results of \code{predict} are used in further calculations it
+may be desirable to use a fixed reference level.
+Use of \code{reference="sample"} will use the overall means, and agrees
+with the \code{linear.predictors} component of the coxph object (which
+uses the overall mean for backwards compatability with older code).
+
+Predictions of type "expected" incorportate the baseline hazard and are
+thus absolute instead of relative; the
+\code{reference} option has no effect on these.
 }
+
 \seealso{
 \code{\link{predict}},\code{\link{coxph}},\code{\link{termplot}} }
 

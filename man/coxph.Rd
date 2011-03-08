@@ -21,7 +21,7 @@ coxph(formula, data=, weights, subset,
       na.action, init, control, 
       method=c("efron","breslow","exact"), 
       singular.ok=TRUE, robust=FALSE, 
-      model=FALSE, x=FALSE, y=TRUE, ...)
+      model=FALSE, x=FALSE, y=!model, tt, ...)
 }
 \arguments{
   \item{formula}{
@@ -91,13 +91,14 @@ coxph(formula, data=, weights, subset,
     \code{model}. 
   }
   \item{x}{
-    logical value: if \code{TRUE}, the model frame is returned in
+    logical value: if \code{TRUE}, the x matrix is returned in
     component \code{x}. 
   }
   \item{y}{
-    logical value: if \code{TRUE}, the model frame is returned in
+    logical value: if \code{TRUE}, the response vector is returned in
     component \code{y}. 
   }
+  \item{tt}{optional list of time-transform functions.}
   \item{...}{Other arguments will be passed to \code{\link{coxph.control}}
   }
 }
@@ -123,7 +124,7 @@ each
 of which applies to an interval of observation (start, stop]. 
 }
 \section{Special terms}{
-There are two special terms that may be used in the model equation. 
+There are three special terms that may be used in the model equation. 
 A \code{strata} term identifies a stratified Cox model; separate baseline 
 hazard functions are fit for each strata. 
 The \code{cluster} term is used to compute a robust variance for the model. 
@@ -132,7 +133,12 @@ specifying the \code{robust=T} argument, and produces an approximate
 jackknife estimate of the variance.  If the \code{id} variable were not 
 unique, but instead 
 identifies clusters of correlated observations, then the variance 
-estimate is based on a grouped jackknife. 
+estimate is based on a grouped jackknife.
+
+A time-transform term allows variables to vary dynamically in time.  In
+this case the \code{tt} argument will be a function or a list of
+functions (if there are more than one tt() term in the model) giving the
+appropriate transform.   See the examples below.
 }
 \section{Convergence}{
 In certain data cases the actual MLE estimate of a 
@@ -200,7 +206,11 @@ summary( coxph( Surv(start, stop, event) ~ x, test2))
 
 bladder1 <- bladder[bladder$enum < 5, ] 
 coxph(Surv(stop, event) ~ (rx + size + number) * strata(enum) + 
-      cluster(id), bladder1) 
+      cluster(id), bladder1)
+
+# Fit a time transform model using current age
+coxph(Surv(time, status) ~ ph.ecog + tt(age), data=lung,
+     tt=function(x,t,...) pspline(x + t/365.25))
 }
 \keyword{survival}
 

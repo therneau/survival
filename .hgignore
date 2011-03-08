@@ -5,4 +5,7 @@
 .*\.so
 todo
 noweb/all*
+src/coxcount1.c
+src/concordance1.c
+src/agsurv[45].c
 

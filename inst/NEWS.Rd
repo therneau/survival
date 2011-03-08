@@ -3,7 +3,26 @@
 
 \section{Changes in version 2.36-6}{
   \itemize{
-    \item 25 Feg 2011: Bug in pyears pointed out by Norm Phillips.  If a
+    \item 10 Mar 2011: Add the capablilty for time-dependent
+    transformations to coxph, along with a small vignette describing use
+    of the feature.
+    
+    \item 8 Mar 2011: Expand the survConcordance function.  The function
+    now correctly handles strata and  time dependent covariates, and
+    computes a standard error for the estimate.  All computation is based
+    on a balanced binary tree strucure, which leads to computation in
+    \eqn{O(n \log_2(n))}{O(n log(n))} time.
+    The \code{coxph} function now adds concordance to its output, and
+    \code{summary.coxph} displays the result.
+
+    \item 8 Mar 2011: Add the "reference" option to predict.coxph, a
+    feature and need pointed out by Stephen Bond.
+
+    \item 4 Mar 2011: Add a makepredictcall method for pspline(), which
+    in turn required addition of a Boundary.knots argument to the
+    function.
+    
+    \item 25 Feb 2011: Bug in pyears pointed out by Norm Phillips.  If a
     subject started out with "off table" time, their age was not
     incremented by that amount as they moved forward to the next "in
     table" cell of the result.  This could lead to using the wrong

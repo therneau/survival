@@ -119,6 +119,8 @@ agreg.fit <- function(x, y, strata, offset, init, control,
 	names(resid) <- rownames
 	coef[which.sing] <- NA
 
+        concordance <- survConcordance.fit(Surv(start, stopp, event), 
+                                           lp, strata, weights) 
 	list(coefficients  = coef,
 	     var    = var,
 	     loglik = agfit$loglik,
@@ -127,13 +129,9 @@ agreg.fit <- function(x, y, strata, offset, init, control,
 	     linear.predictors = as.vector(lp),
 	     residuals = resid,
 	     means = agfit$means,
+             concordance = concordance,
 	     method= 'coxph')
 	}
     }
-
-
-
-#setInterface('agreg2', language='C', 
-#	     classes=c("
 
 

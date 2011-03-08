@@ -21,7 +21,7 @@ a data frame.
 \item{transform}{the transformation function to be applied at each
    time point. The default is O'Brien's suggestion.}
 }
-\usage{
+\value{
 a new data frame.  The original time and status variables are removed, 
 and have been replaced with \code{start}, \code{stop}, and \code{event}.  If a 
 predictor variable is a factor or is protected with \code{I()}, it is 

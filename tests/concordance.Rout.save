@@ -1,6 +1,6 @@
 
-R version 2.12.0 (2010-10-15)
-Copyright (C) 2010 The R Foundation for Statistical Computing
+R version 2.12.2 (2011-02-25)
+Copyright (C) 2011 The R Foundation for Statistical Computing
 ISBN 3-900051-07-0
 Platform: x86_64-unknown-linux-gnu (64-bit)
 
@@ -16,10 +16,10 @@ Type 'demo()' for some demos, 'help()' for on-line help, or
 'help.start()' for an HTML browser interface to help.
 Type 'q()' to quit R.
 
-> options(na.action=na.exclude) # preserve missings
-> options(contrasts=c('contr.treatment', 'contr.poly')) #ensure constrast type
 > library(survival)
 Loading required package: splines
+> options(na.action=na.exclude) # preserve missings
+> options(contrasts=c('contr.treatment', 'contr.poly')) #ensure constrast type
 > 
 > #
 > # Simple tests of concordance.  These numbers were derived in multiple
@@ -27,10 +27,30 @@ Loading required package: splines
 > #
 > aeq <- function(x,y, ...) all.equal(as.vector(x), as.vector(y), ...)
 > 
+> grank <- function(x, time, grp, wt) 
++     unlist(tapply(x, grp, rank))
+> grank2 <- function(x, time, grp, wt) {  #for case weights
++     if (length(wt)==0) wt <- rep(1, length(x))
++     z <- double(length(x))
++     for (i in unique(grp)) {
++         indx <- which(grp==i)
++         temp <- tapply(wt[indx], x[indx], sum)
++         temp <- temp/2  + c(0, cumsum(temp)[-length(temp)])
++         z[indx] <- temp[match(x[indx], names(temp))]
++     }
++     z
++ }
+> 
+> 
 > tdata <- aml[aml$x=='Maintained',]
 > tdata$y <- c(1,6,2,7,3,7,3,8,4,4,5)
+> tdata$wt <- c(1,2,3,2,1,2,3,4,3,2,1)
 > fit <- survConcordance(Surv(time, status) ~y, tdata)
 > aeq(fit$stats, c(14,24,2,0))
+[1] TRUE
+> cfit <- coxph(Surv(time, status) ~ tt(y), tdata, tt=grank, method='breslow',
++               iter=0)
+> aeq((1/cfit$var)/(2* sum(fit$stats[1:3])), fit$std^2)
 [1] TRUE
 > 
 > # Lots of ties
@@ -39,43 +59,70 @@ Loading required package: splines
 > fit2 <- survConcordance(tempx ~ tempy)
 > aeq(fit2$stats, c(13,13,5,2))
 [1] TRUE
+> cfit2 <-  coxph(tempx ~ tt(tempy), tt=grank, method='breslow', iter=0)
+> aeq((1/cfit2$var)/(2* sum(fit2$stats[1:3])), fit2$std^2)
+[1] TRUE
 > 
 > # Bigger data
 > fit3 <- survConcordance(Surv(time, status) ~ age, lung)
 > aeq(fit3$stats, c(10717, 8706, 591, 28))
+[1] TRUE
+> cfit3 <- coxph(Surv(time, status) ~ tt(age), lung, 
++                iter=0, method='breslow', tt=grank)
+> aeq((1/cfit3$var)/(2* sum(fit3$stats[1:3])), fit3$std^2)
 [1] TRUE
 > 
 > # More ties
 > fit4 <- survConcordance(Surv(time, status) ~ ph.ecog, lung)
 > aeq(fit4$stats, c(8392, 4258, 7137, 28))
 [1] TRUE
-> 
+> cfit4 <- coxph(Surv(time, status) ~ tt(ph.ecog), lung, 
++                iter=0, method='breslow', tt=grank)
 > # Case weights
-> wt <- c(1,2,3,2,1,2,3,4,3,2,1)
 > fit5 <- survConcordance(Surv(time, status) ~ y, tdata, weight=wt)
-> fit6 <- survConcordance(Surv(time, status) ~y, tdata[rep(1:11,wt),])
+> fit6 <- survConcordance(Surv(time, status) ~y, tdata[rep(1:11,tdata$wt),])
 > aeq(fit5$stats, c(70, 91, 7, 0))  # checked by hand
 [1] TRUE
-> aeq(fit5$stats[1:3], fit6$stats[1:3])  #spurious "tied on time" is produced
+> aeq(fit5$stats[1:3], fit6$stats[1:3])  #spurious "tied on time" value, ignore
+[1] TRUE
+> aeq(fit5$std, fit6$std)
+[1] TRUE
+> cfit5 <- coxph(Surv(time, status) ~ tt(y), tdata, weight=wt, 
++                iter=0, method='breslow', tt=grank2, x=T)
+> cfit6 <- coxph(Surv(time, status) ~ tt(y), tdata[rep(1:11,tdata$wt),], 
++                iter=0, method='breslow', tt=grank)
+> aeq((1/cfit6$var)/(2* sum(fit6$stats[1:3])), fit6$std^2)
+[1] TRUE
+> aeq(cfit5$var, cfit6$var)
 [1] TRUE
 > 
-> # Start, stop simplest case
+> # Start, stop simplest cases
+> fit7 <- survConcordance(Surv(rep(0,11), time, status) ~ y, tdata)
+> aeq(fit7$stats, fit$stats)
+[1] TRUE
+> aeq(fit7$std.err, fit$std.err)
+[1] TRUE
 > fit7 <- survConcordance(Surv(rep(0,11), time, status) ~ y, tdata, weight=wt)
 > aeq(fit5$stats, fit7$stats)
 [1] TRUE
 > 
 > # Multiple intervals for some, but same risk sets as tdata
-> tdata2 <- data.frame(time1=c(0,3, 5,  6,7,   0,  4,18,  7,  0,27,  2,  0, 
+> tdata2 <- data.frame(time1=c(0,3, 5,  6,7,   0,  4,17,  7,  0,16,  2,  0, 
 +                              0,9, 5),
-+                      time2=c(3,9, 13, 7,13, 18, 18,23, 28, 27,31, 34, 45, 
++                      time2=c(3,9, 13, 7,13, 18, 17,23, 28, 16,31, 34, 45, 
 +                              9,48, 60),
-+                      status=c(0,1, 1, 0,0,  1,  0,1, 0, 0,1, 1, 0, 0,1, 1),
++                      status=c(0,1, 1, 0,0,  1,  0,1, 0, 0,1, 1, 0, 0,1, 0),
 +                      y = c(1,1, 6, 2,2, 7, 3,3, 7, 3,3, 8, 4, 4,4, 5),
 +                      wt= c(1,1, 2, 3,3, 2, 1,1, 2, 3,3, 4, 3, 2,2, 1))
 > fit8 <- survConcordance(Surv(time1, time2, status) ~y, tdata2, weight=wt)
 > aeq(fit5$stats, fit8$stats)
 [1] TRUE
-> 
+> aeq(fit5$std.err, fit8$std.err)
+[1] TRUE
+> cfit8 <- coxph(Surv(time1, time2, status) ~ tt(y), tdata2, weight=wt, 
++                iter=0, method='breslow', tt=grank2, x=T)
+> aeq((1/cfit8$var)/(2* sum(fit8$stats[1:3])), fit8$std^2)
+[1] TRUE
 > 
 > # Stratified
 > tdata3 <- data.frame(time1=c(tdata2$time1, rep(0, nrow(lung))),

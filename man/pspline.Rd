@@ -2,7 +2,8 @@
 \alias{pspline}
 \title{Smoothing splines using a pspline basis}
 \usage{
-pspline(x, df=4, theta, nterm=2.5 * df, degree=3, eps=0.1, method, ...)
+pspline(x, df=4, theta, nterm=2.5 * df, degree=3, eps=0.1, method,
+   Boundary.knots=range(x), ...)
 }
 \arguments{
   \item{x}{predictor.  The function does not apply to factor variables.}
@@ -27,6 +28,7 @@ pspline(x, df=4, theta, nterm=2.5 * df, degree=3, eps=0.1, method, ...)
     If method='aic' then the degrees of freedom is chosen automatically using
     Akaike's information criterion.}
   \item{\dots}{optional arguments to the control function}
+  \item{Boundary.knots}{the spline is linear beyond the boundary knots.}
   }
 \description{
     Specifies a penalised spline basis for the predictor.

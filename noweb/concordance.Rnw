@@ -545,7 +545,6 @@ survConcordance <- function(formula, data,
     n <- nrow(Y)
 
     wt <- model.extract(m, 'weights')
-    if (length(wt) ==0) wt <- rep(1., n)
     offset<- attr(Terms, "offset")
     if (length(offset)>0) stop("Offset terms not allowed")
 
@@ -560,52 +559,19 @@ survConcordance <- function(formula, data,
     x <- model.matrix(Terms, m)[,-1, drop=FALSE]  #remove the intercept
     if (ncol(x) > 1) stop("Only one predictor variable allowed")
 
-    <<btree>>
-
-    docount <- function(stime, risk, wts) {
-        if (attr(stime, 'type') == 'right') {
-            ord <- order(stime[,1], -stime[,2])
-            ux <- sort(unique(risk))
-            n2 <- length(ux)
-            index <- btree(n2)[match(risk[ord], ux)] - 1L
-             .Call('concordance1', stime[ord,], wts[ord], index, length(ux))
-        }
-        else if (attr(stime, 'type') == "counting") {
-            sort.stop <- order(-stime[,2], stime[,3])
-            sort.start <- order(-stime[,1])
-            ux <- sort(unique(risk))
-            n2 <- length(ux)
-            index <- btree(n2)[match(risk, ux)] - 1L
-            .Call('concordance2', stime, wts, index, length(ux),
-                           sort.stop-1L, sort.start-1L)
-        }
-        else stop("Invalid survival type for concordance")
-    }
-        
+    count <- survConcordance.fit(Y, x, strat, wt)
     if (is.null(strat)) {
-        temp <- docount(Y, x, wt)
-        var <- temp[5]/(2*sum(temp[1:3]))
-        count <- temp[1:4]
-        names(count) <- c("concordant", "discordant", "tied risk", "tied time")
         concordance <- (count[1] + count[3]/2)/sum(count[1:3])
-    }
-    else {
-        ustrat <- levels(strat)[table(strat) >0]  #some strata may have 0 obs
-        count <- matrix(0., nrow=length(ustrat), ncol=5)
-        for (i in 1:length(ustrat)) {
-            keep <- which(strat == ustrat[i])
-            count[i,] <- docount(Y[keep,,drop=F], x[keep], wt[keep])
+        std.err <- count[5]/(2* sum(count[1:3]))
         }
+    else {
         temp <- colSums(count)
-        var <- temp[5]/(2*sum(temp[1:3]))
-        count <- count[,1:4]
-        dimnames(count) <- list(ustrat,  c("concordant", "discordant",
-                                           "tied risk", "tied time"))
         concordance <- (temp[1] + temp[3]/2)/ sum(temp[1:3])
-    }
+        std.err <- temp[5]/(2*sum(temp[1:3]))
+        }
 
     fit <- list(concordance= concordance, stats=count, n=n, 
-                std.err=sqrt(var), call=Call)
+                std.err=std.err, call=Call)
     na.action <- attr(m, "na.action")
     if (length(na.action)) fit$na.action <- na.action
 
@@ -623,9 +589,75 @@ print.survConcordance <- function(x, ...) {
     if(length(omit))
         cat("  n=", x$n, " (", naprint(omit), ")\n", sep = "")
     else cat("  n=", x$n, "\n")
-    cat("Concordance= ", format(x$concordance), '\n', sep='')
+    cat("Concordance= ", format(x$concordance), " se= ", format(x$std.err),
+        '\n', sep='')
     print(x$stats)
 
     invisible(x)
     }
+@ 
+
+This part of the compuation is a separate function, since it is
+also called by the coxph routines. 
+Although we are very careful to create integers and/or doubles for the
+arguments to .Call I still wrap them in the appropriate as.xxx 
+construction: ``belt and suspenders''.
+Also, referring to the the mathematics many paragraphs ago, the C routine
+returns the variance of $(C-D)/2$ and we return the standard deviation of
+$(C-D)$.
+<<survConcordance.fit>>=
+survConcordance.fit <- function(y, x, strata, weight) {    
+    <<btree>>
+
+    docount <- function(stime, risk, wts) {
+        if (attr(stime, 'type') == 'right') {
+            ord <- order(stime[,1], -stime[,2])
+            ux <- sort(unique(risk))
+            n2 <- length(ux)
+            index <- btree(n2)[match(risk[ord], ux)] - 1L
+             .Call('concordance1', stime[ord,], 
+                   as.double(wts[ord]), 
+                   as.integer(index), 
+                   as.integer(length(ux)))
+        }
+        else if (attr(stime, 'type') == "counting") {
+            sort.stop <- order(-stime[,2], stime[,3])
+            sort.start <- order(-stime[,1])
+            ux <- sort(unique(risk))
+            n2 <- length(ux)
+            index <- btree(n2)[match(risk, ux)] - 1L
+            .Call('concordance2', stime, 
+                  as.double(wts), 
+                  as.integer(index), 
+                  as.integer(length(ux)),
+                  as.integer(sort.stop-1L), 
+                  as.integer(sort.start-1L))
+        }
+        else stop("Invalid survival type for concordance")
+    }
+        
+    if (missing(weight) || length(weight)==0)
+        weight <- rep(1.0, length(x))
+    storage.mode(y) <- "double"
+    
+    if (missing(strata) || length(strata)==0) {
+        count <- docount(y, x, weight)
+        count[5] <- 2*sqrt(count[5])
+        names(count) <- c("concordant", "discordant", "tied.risk", "tied.time",
+                          "std(c-d)")
+    }
+    else {
+        ustrat <- levels(strata)[table(strata) >0]  #some strata may have 0 obs
+        count <- matrix(0., nrow=length(ustrat), ncol=5)
+        for (i in 1:length(ustrat)) {
+            keep <- which(strata == ustrat[i])
+            count[i,] <- docount(y[keep,,drop=F], x[keep], weight[keep])
+        }
+        count[,5] <- 2*sqrt(count[,5])
+        dimnames(count) <- list(ustrat,  c("concordant", "discordant",
+                                           "tied.risk", "tied.time",
+                                           "std(c-d)"))
+    }
+    count
+}
 @ 

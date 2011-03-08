@@ -14,6 +14,7 @@ SFUN =  agsurv.R \
 	pyears.R \
 	residuals.survreg.S\
 	survConcordance.R \
+	survConcordance.fit.R \
 	survexp.R \
 	survfit.coxph.R \
 	survfitcoxph.fit.R

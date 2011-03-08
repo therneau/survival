@@ -41,13 +41,16 @@ coxph <- function(formula, data, weights, subset, na.action,
 	stop(paste("Cox model doesn't support \"", type,
 			  "\" survival data", sep=''))
     weights <- model.weights(m)
-
+    data.n <- nrow(Y)   #remember this before any time transforms
+    
     strats <- attr(Terms, "specials")$strata
     if (length(strats)) {
-	temp <- untangle.specials(Terms, 'strata', 1)
-	Terms2 <- Terms[-temp$terms] #not needed for model.matrix later
-	if (length(temp$vars)==1) strata.keep <- m[[temp$vars]]
-	else strata.keep <- strata(m[,temp$vars], shortlabel=TRUE)
+	stemp <- untangle.specials(Terms, 'strata', 1)
+	if (length(stemp$terms) >0) #beware strata by covariate interactions
+            Terms2 <- Terms[-stemp$terms] #not needed for model.matrix later
+        else Terms2 <- Terms  
+	if (length(stemp$vars)==1) strata.keep <- m[[stemp$vars]]
+	else strata.keep <- strata(m[,stemp$vars], shortlabel=TRUE)
 	strats <- as.numeric(strata.keep)
 	}
     else Terms2 <- Terms
@@ -151,10 +154,9 @@ The new data frame is then a simple creation.
 <<coxph-transform>>=
 m <- m[tindex,]
 Y <- Surv(rep(counts$time, counts$nrisk), counts$status)
-type <- 'right'  # Y is now right censored, however the data started out
-strats <- rep(1:length(counts$nrisk), counts$nrisk) #one
+type <- 'right'  # new Y is right censored, even if the old was (start, stop]
+strats <- factor(rep(1:length(counts$nrisk), counts$nrisk)) 
 weights <- model.weights(m)
-browser()
 for (i in ntrans) 
     m[[timetrans$var[i]]] <- (tt[[i]])(m[[timetrans$var[i]]], Y[,1], strats, 
                                        weights)
@@ -370,14 +372,13 @@ offset <- model.offset(m)
 if (is.null(offset) | all(offset==0)) offset <- rep(0., nrow(m))
 
 cluster<- attr(Terms, "specials")$cluster
-dropx <- NULL
 if (length(cluster)) {
     if (missing(robust)) robust <- TRUE
-    tempc <- untangle.specials(Terms, 'cluster', 1:10)
-    ord <- attr(Terms, 'order')[tempc$terms]
+    tempc <- untangle.specials(Terms2, 'cluster', 1:10)
+    ord <- attr(Terms2, 'order')[tempc$terms]
     if (any(ord>1)) stop ("Cluster can not be used in an interaction")
     cluster <- strata(m[,tempc$vars], shortlabel=TRUE)  #allow multiples
-    Terms2 <- Terms2[-temp$terms]
+    Terms2 <- Terms2[-tempc$terms]
     }
 
 X <- model.matrix(Terms2, m)
@@ -414,17 +415,12 @@ the fitting routines to deal with them.
 pterms <- sapply(m, inherits, 'coxph.penalty')
 if (any(pterms)) {
     pattr <- lapply(m[pterms], attributes)
+    pname <- names(pterms)[pterms]
     # 
-    # the 'order' attribute has the same components as 'term.labels'
-    #   pterms always has 1 more (response), sometimes 2 (offset)
-    # drop the extra parts from pterms
-    temp <- c(attr(Terms, 'response'), attr(Terms, 'offset'))
-    if (length(dropx)) temp <- c(temp, dropx+1)
-    pterms <- pterms[-temp]
-    temp <- match((names(pterms))[pterms], attr(Terms, 'term.labels'))
-    ord <- attr(Terms, 'order')[temp]
+    # Check the order of any penalty terms
+    ord <- attr(Terms, "order")[match(pname, attr(Terms, 'term.labels'))]
     if (any(ord>1)) stop ('Penalty terms cannot be in an interaction')
-    pcols <- assign[match(names(pterms[pterms]), names(assign))] 
+    pcols <- assign[match(pname, names(assign))] 
     
     fit <- coxpenal.fit(X, Y, strats, offset, init=init,
                         control,
@@ -461,7 +457,7 @@ else {
        if (singular.ok) warning(msg)
        else             stop(msg)
     }
-    fit$n <- nrow(Y)
+    fit$n <- data.n
     fit$nevent <- sum(Y[,ncol(Y)])
     fit$terms <- Terms
     fit$assign <- assign
@@ -510,8 +506,8 @@ else {
     if (model) {
         if (length(timetrans)) {
             # Fix up the model frame -- still in the thinking stage
-            m[[.surv.]]   <- Y
-            m[[.strata.]] <- strats
+            m[[".surv."]]   <- Y
+            m[[".strata."]] <- strats
             stop("Time transform + model frame: code incomplete")
         }
         fit$model <- m
