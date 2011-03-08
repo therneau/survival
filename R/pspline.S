@@ -1,9 +1,8 @@
-# $Id: pspline.S 11207 2009-02-09 04:25:50Z therneau $
 #
 # the p-spline function for a Cox model
 #
 pspline <- function(x, df=4, theta, nterm=2.5*df, degree=3, eps=0.1, 
-		    method, ...) {
+		    method, Boundary.knots=range(x), ...) {
     if (!missing(theta)) {
 	method <- 'fixed'
 	if (theta <=0 || theta >=1) stop("Invalid value for theta")
@@ -24,16 +23,18 @@ pspline <- function(x, df=4, theta, nterm=2.5*df, degree=3, eps=0.1,
     
     xname <- deparse(substitute(x))
     keepx <- !is.na(x)
-    rx <- range(x[keepx])
+    if (!all(keepx)) x <- x[keepx]
     nterm <- round(nterm)
     if (nterm < 3) stop("Too few basis functions")
-    dx <- (rx[2] - rx[1])/nterm
-    knots <- c(rx[1] + dx*((-degree):(nterm-1)), rx[2]+ dx*(0:degree))
-    if (all(keepx)) newx <- spline.des(knots, x, degree+1)$design
-    else {
-	temp <- spline.des(knots, x[keepx], degree+1)$design
-	newx <- matrix(NA, length(x), ncol(temp))
-	newx[keepx,] <- temp
+    dx <- (Boundary.knots[2] - Boundary.knots[1])/nterm
+    knots <- c(Boundary.knots[1] + dx*((-degree):(nterm-1)), 
+               Boundary.knots[2]+ dx*(0:degree))
+    
+    newx <- spline.des(knots, x, degree+1)$design
+    if (!all(keepx)) {
+	temp <- matrix(NA, length(keepx), ncol(newx))
+	temp[keepx,] <- newx
+        newx <- temp
         }
     newx <- newx[,-1]              #redundant coefficient with lambda_0
     nvar <- 1 + ncol(newx)   #should be nterm + degree
@@ -88,14 +89,15 @@ pspline <- function(x, df=4, theta, nterm=2.5*df, degree=3, eps=0.1,
 	# Remove cbase from the arg list, and make it the environment
 	formals(printfun) <- alist(coef=, var=, var2=, df=, history=)
 	tempenv <- new.env(parent=asNamespace('survival'))
-	assign('cbase',  knots[2:nvar] + (rx[1] -knots[1]), envir=tempenv)
+	assign('cbase',  knots[2:nvar] + (Boundary.knots[1] -knots[1]), 
+               envir=tempenv)
 	environment(printfun) <- tempenv
 	}
     else {
 	# Somewhat simpler in Splus, but because it depends on the 
 	#  undocumented manner in which functions are stored, it might
 	#  stop working one day
-	printfun[[6]] <- knots[2:nvar] + (rx[1] - knots[1])
+	printfun[[6]] <- knots[2:nvar] + (Boundary.knots[1] - knots[1])
 	}
 	
     if (method=='fixed') {
@@ -132,8 +134,17 @@ pspline <- function(x, df=4, theta, nterm=2.5*df, degree=3, eps=0.1,
 		     cfun = frailty.controlaic)
 	}
     
-    attributes(newx) <- c(attributes(newx), temp)
-    if (is.R()) class(newx) <- 'coxph.penalty'
+    attributes(newx) <- c(attributes(newx), temp, 
+                          list(Boundary.knots=Boundary.knots))
+    if (is.R()) class(newx) <- c("pspline", 'coxph.penalty')
     else        oldClass(newx) <- 'coxph.penalty'
     newx
     }
+
+makepredictcall.pspline <- function(var, call) {
+    if (call[[1]] != as.name("pspline")) return(call)  #wrong phone number
+    newcall <- call
+    newcall["Boundary.knots"] <- attributes(var)["Boundary.knots"]
+    newcall
+}
+    

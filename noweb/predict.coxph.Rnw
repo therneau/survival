@@ -47,7 +47,8 @@ We will need the following components:
 predict.coxph <- function(object, newdata, 
 		       type=c("lp", "risk", "expected", "terms"),
 		       se.fit=FALSE, na.action=na.pass,
-		       terms=names(object$assign), collapse, ...) {
+		       terms=names(object$assign), collapse, 
+                       reference=c("strata", "sample"), ...) {
     <<pcoxph-init>>
     <<pcoxph-getdata>>
     <<pcoxph-expected>>
@@ -100,6 +101,7 @@ has.offset <- !is.null(attr(Terms, 'offset'))
 has.weights <- any(names(object$call) == 'weights')
 na.action.used <- object$na.action
 n <- length(object$residuals)
+reference <- match.arg(reference)
 @ 
 
 The next task of the routine is to reconsruct necessary data elements
@@ -383,7 +385,7 @@ For instance assume that we had a fit that was stratified by sex with
 covaritate $x$, and a second data set were created where for the
 females $x$ is replaced
 by $x+3$.  The Cox model results will be unchanged for the two
-models, but the `normalized' linear predictors $(x - \overline x)'\beta$
+models, but the `normalized' linear predictors $(x - \overline x)'\beta$ %`
 will not be the same.
 This reflects a more fundamental issue that the for a stratified
 Cox model relative risks are well defined only \emph{within} a
@@ -418,7 +420,7 @@ else {
 
 if (missing(newdata)) {
     offset <- offset - mean(offset)
-    if (has.strata) {
+    if (has.strata && reference=="strata") {
         indx <- as.integer(oldstrat)
         xmeans <- rowsum(x*weights, indx)/c(rowsum(weights, indx))
         newx <- x - xmeans[indx,]
@@ -427,7 +429,7 @@ if (missing(newdata)) {
     }
 else {
     offset <- newoffset - mean(offset)
-    if (has.strata) {
+    if (has.strata && reference=="strata") {
         indx <- as.integer(oldstrat)
         xmeans <- rowsum(x*weights, indx)/ c(rowsum(weights, indx))
         indx2 <- match(newstrat, levels(oldstrat))
