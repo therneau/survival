@@ -1,6 +1,6 @@
 
-R version 2.12.0 (2010-10-15)
-Copyright (C) 2010 The R Foundation for Statistical Computing
+R version 2.12.2 (2011-02-25)
+Copyright (C) 2011 The R Foundation for Statistical Computing
 ISBN 3-900051-07-0
 Platform: x86_64-unknown-linux-gnu (64-bit)
 
@@ -55,16 +55,20 @@ Loading required package: splines
 > aeq(p3$se.fit[keep], p4$se.fit)
 [1] TRUE
 > 
+> # The all.equal fails for type=expected, Efron approx, and tied death
+> #  times due to use of an approximation.  See comments in the source code.
+> myfit <- coxph(Surv(time, status) ~ age + factor(ph.ecog) + strata(sex), 
++                data=lung, method='breslow')
 > p1 <- predict(myfit, type='expected')
 > p2 <- predict(myfit, type="expected", newdata=lung[keep,])
 > p3 <- predict(myfit, type='expected', se.fit=TRUE)
 > p4 <- predict(myfit, type="expected", newdata=lung[keep,], se.fit=TRUE)
 > aeq(p1[keep], p2)
-[1] "Mean relative difference: 0.002096468"
+[1] TRUE
 > aeq(p1, p3$fit)
 [1] TRUE
 > aeq(p1[keep], p4$fit)
-[1] "Mean relative difference: 0.002096468"
+[1] TRUE
 > aeq(p3$se.fit[keep], p4$se.fit)
 [1] TRUE
 > 

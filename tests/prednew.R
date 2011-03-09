@@ -28,6 +28,10 @@ aeq(p1, p3$fit)
 aeq(p1[keep], p4$fit)
 aeq(p3$se.fit[keep], p4$se.fit)
 
+# The all.equal fails for type=expected, Efron approx, and tied death
+#  times due to use of an approximation.  See comments in the source code.
+myfit <- coxph(Surv(time, status) ~ age + factor(ph.ecog) + strata(sex), 
+               data=lung, method='breslow')
 p1 <- predict(myfit, type='expected')
 p2 <- predict(myfit, type="expected", newdata=lung[keep,])
 p3 <- predict(myfit, type='expected', se.fit=TRUE)
