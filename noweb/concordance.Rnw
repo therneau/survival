@@ -647,6 +647,7 @@ survConcordance.fit <- function(y, x, strata, weight) {
                           "std(c-d)")
     }
     else {
+        strata <- as.factor(strata)
         ustrat <- levels(strata)[table(strata) >0]  #some strata may have 0 obs
         count <- matrix(0., nrow=length(ustrat), ncol=5)
         for (i in 1:length(ustrat)) {

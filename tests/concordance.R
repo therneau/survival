@@ -29,7 +29,7 @@ tdata$wt <- c(1,2,3,2,1,2,3,4,3,2,1)
 fit <- survConcordance(Surv(time, status) ~y, tdata)
 aeq(fit$stats[1:4], c(14,24,2,0))
 cfit <- coxph(Surv(time, status) ~ tt(y), tdata, tt=grank, method='breslow',
-              iter=0)
+              iter=0, x=T)
 cdt <- coxph.detail(cfit)
 aeq(4*sum(cdt$imat),fit$stats[5]^2) 
 aeq(2*sum(cdt$score), diff(fit$stats[2:1]))

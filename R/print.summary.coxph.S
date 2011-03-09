@@ -43,11 +43,10 @@ print.summary.coxph <-
         cat("Concordance=", format(round(x$concordance[1],3)),
             " (se =", format(round(x$concordance[2], 3)),")\n")
     }
-    else {
-        cat("Rsquare=", format(round(x$rsq["rsq"],3)),
+    cat("Rsquare=", format(round(x$rsq["rsq"],3)),
             "  (max possible=", format(round(x$rsq["maxrsq"],3)),
             ")\n" )
-    }
+
     cat("Likelihood ratio test= ", format(round(x$logtest["test"], 2)), "  on ",
 	x$logtest["df"], " df,", "   p=", format(x$logtest["pvalue"]),
         "\n", sep = "")
