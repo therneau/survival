@@ -1,7 +1,8 @@
 
-R version 2.11.0 (2010-04-22)
-Copyright (C) 2010 The R Foundation for Statistical Computing
+R version 2.12.2 (2011-02-25)
+Copyright (C) 2011 The R Foundation for Statistical Computing
 ISBN 3-900051-07-0
+Platform: x86_64-unknown-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -65,6 +66,7 @@ transplant             1.123     0.8907    0.5911     2.132
 age:transplant         1.035     0.9659    0.9815     1.092
 surgery:transplant     0.748     1.3369    0.1692     3.306
 
+Concordance= 0.595  (se = 0.037 )
 Rsquare= 0.071   (max possible= 0.97 )
 Likelihood ratio test= 12.45  on 5 df,   p=0.02915
 Wald test            = 11.62  on 5 df,   p=0.04031
@@ -105,6 +107,7 @@ transplant         0.5522     1.8110    0.1908    1.5981
 age:transplant     1.0344     0.9668    0.9792    1.0926
 year:transplant    1.2242     0.8169    0.9259    1.6185
 
+Concordance= 0.63  (se = 0.037 )
 Rsquare= 0.084   (max possible= 0.97 )
 Likelihood ratio test= 14.85  on 5 df,   p=0.01102
 Wald test            = 13.77  on 5 df,   p=0.01716

@@ -1,7 +1,8 @@
 
-R version 2.11.1 (2010-05-31)
-Copyright (C) 2010 The R Foundation for Statistical Computing
+R version 2.12.2 (2011-02-25)
+Copyright (C) 2011 The R Foundation for Statistical Computing
 ISBN 3-900051-07-0
+Platform: x86_64-unknown-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -224,6 +225,7 @@ Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 age        1.1486     0.8706    1.0454     1.262
 ecog.ps    0.9078     1.1015    0.2641     3.120
 
+Concordance= 0.819  (se = 0.134 )
 Rsquare= 0.387   (max possible= 0.874 )
 Likelihood ratio test= 12.71  on 2 df,   p=0.001736
 Wald test            = 8.43  on 2 df,   p=0.01476

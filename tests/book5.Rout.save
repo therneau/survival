@@ -1,7 +1,8 @@
 
-R version 2.11.1 (2010-05-31)
-Copyright (C) 2010 The R Foundation for Statistical Computing
+R version 2.12.2 (2011-02-25)
+Copyright (C) 2011 The R Foundation for Statistical Computing
 ISBN 3-900051-07-0
+Platform: x86_64-unknown-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -163,6 +164,7 @@ x 0.8596    2.3621   0.7131 1.205    0.228
   exp(coef) exp(-coef) lower .95 upper .95
 x     2.362     0.4233    0.5839     9.556
 
+Concordance= 0.638  (se = 0.159 )
 Rsquare= 0.171   (max possible= 0.999 )
 Likelihood ratio test= 1.69  on 1 df,   p=0.1932
 Wald test            = 1.45  on 1 df,   p=0.2281

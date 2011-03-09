@@ -1,7 +1,8 @@
 
-R version 2.7.1 (2008-06-23)
-Copyright (C) 2008 The R Foundation for Statistical Computing
+R version 2.12.2 (2011-02-25)
+Copyright (C) 2011 The R Foundation for Statistical Computing
 ISBN 3-900051-07-0
+Platform: x86_64-unknown-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -44,4 +45,6 @@ In coxph(Surv(start, stop, status) ~ x * factor(epoch), stest) :
        0.1041579               NA               NA               NA 
 x:factor(epoch)2 x:factor(epoch)3 x:factor(epoch)4 
        1.5726996        1.5726996        1.5726996 
+> all.equal(is.na(fit1$coef), c(F,T,T,T,F,F,F), check.attributes=FALSE)
+[1] TRUE
 > 

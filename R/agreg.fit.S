@@ -85,7 +85,7 @@ agreg.fit <- function(x, y, strata, offset, init, control,
 				      "; beta may be infinite. "))
 		}
 	}
-    lp  <- x %*% coef + offset - sum(coef *agfit$means)
+    lp  <- as.vector(x %*% coef + offset - sum(coef *agfit$means))
     score <- as.double(exp(lp))
 
     agres <- .C("agmart2",
