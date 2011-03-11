@@ -30,7 +30,7 @@ pspline <- function(x, df=4, theta, nterm=2.5*df, degree=3, eps=0.1,
     knots <- c(Boundary.knots[1] + dx*((-degree):(nterm-1)), 
                Boundary.knots[2]+ dx*(0:degree))
     
-    newx <- spline.des(knots, x, degree+1)$design
+    newx <- spline.des(knots, x, degree+1, outer.ok=TRUE)$design
     if (!all(keepx)) {
 	temp <- matrix(NA, length(keepx), ncol(newx))
 	temp[keepx,] <- newx
