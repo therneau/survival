@@ -81,12 +81,12 @@ timetrans <- untangle.specials(Terms, 'tt')
 ntrans <- length(timetrans$terms)
 
 if (missing(tt) || is.null(tt)) {
-    tt <- function(x, time, riskset, weights) { #default to O'Brien's logit rank
+    tt <- function(x, time, riskset, weights){ #default to O'Brien's logit rank
         obrien <- function(x) {
             r <- rank(x)
             (r-.5)/(.5+length(r)-r)
         }
-        unlist(tapply(x, strata, obrien))
+        unlist(tapply(x, riskset, obrien))
     }
 }
 if (is.function(tt)) tt <- list(tt)  #single function becomes a list
@@ -126,12 +126,12 @@ else {
 	sort.end  <- order(-Y[,2], Y[,3])
 	sort.start<- order(-Y[,1])
 	newstrat  <- c(1L, rep(0, nrow(Y) -1))
-	}
+    }
     else {
 	sort.end  <- order(strats, -Y[,2], Y[,3])
 	sort.start<- order(strata, -Y[,1])
 	newstrat  <- c(1L, as.integer(diff(strats[sort.end])!=0))
-	}
+    }
     if (storage.mode(Y) != "double") storage.mode(Y) <- "double"
     counts <- .Call("coxcount2", Y, 
                     as.integer(sort.start -1L),
@@ -157,7 +157,7 @@ Y <- Surv(rep(counts$time, counts$nrisk), counts$status)
 type <- 'right'  # new Y is right censored, even if the old was (start, stop]
 strats <- factor(rep(1:length(counts$nrisk), counts$nrisk)) 
 weights <- model.weights(m)
-for (i in ntrans) 
+for (i in 1:ntrans) 
     m[[timetrans$var[i]]] <- (tt[[i]])(m[[timetrans$var[i]]], Y[,1], strats, 
                                        weights)
 @ 
@@ -470,7 +470,7 @@ else {
         #   na.action method, I avoid having missings re-inserted
         # I also make sure that it doesn't have to reconstruct X and Y
         fit2 <- c(fit, list(x=X, y=Y, weights=weights))
-        if (length(strats)) fit2$strata <- strata.keep
+        if (length(strats)) fit2$strata <- strats
         if (length(cluster)) {
     	temp <- residuals.coxph(fit2, type='dfbeta', collapse=cluster,
     				  weighted=TRUE)
