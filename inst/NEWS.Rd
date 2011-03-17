@@ -5,7 +5,9 @@
   \itemize{
     \item 10 Mar 2011: Add the capablilty for time-dependent
     transformations to coxph, along with a small vignette describing use
-    of the feature.
+    of the feature.  This code is still incompletely incorporated in
+    that the models work but other methods (residuals, predict, etc) are
+    not yet defined.
     
     \item 8 Mar 2011: Expand the survConcordance function.  The function
     now correctly handles strata and  time dependent covariates, and

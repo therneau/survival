@@ -6,6 +6,7 @@
 \setlength{\evensidemargin}{\oddsidemargin}
 
 \SweaveOpts{keep.source=TRUE}
+%\VignetteIndexEntry{Using Time Dependent Covariates}
 
 \title{Using Time Dependent Covariates and Time Dependent Coefficients 
   in the Cox Model}
@@ -244,17 +245,17 @@ One useful way to generate this data set is through use of the \texttt{pyears}
 function.
 
 <<>>=
-load('d1.rda')
-age2 <- tcut(d1$agechf*365.25, 0:110* 365.25, labels=0:109)
-rowid <- 1:nrow(d1)
+load('d3.rda')
+age2 <- tcut(d3$agechf*365.25, 0:110* 365.25, labels=0:109)
+rowid <- 1:nrow(d3)
 pfit <- pyears(Surv(startday, stopday, hospevt) ~ age2 + rowid,
-               data=d1, data.frame=TRUE, scale=1)
+               data=d3, data.frame=TRUE, scale=1)
 print(pfit$offtable)
 pdata <- pfit$data
 print(pdata[1:6,])
 @
 The \texttt{tcut} function attaches a set of cutpoints to the starting age
-for each subject, it's primary job is to mark the variable as time-increasing
+for each subject, it's primary job is to mark the variable as time-increasing%'
 for the \texttt{pyears} function.
 In the \texttt{pyears} call we set scale=1 to prevent the age intervals from
 being rescaled to years, this is not critical.
@@ -282,18 +283,101 @@ diagnosis of CHF, the second at the effect of current age.
 index <- as.integer(pdata$rowid)
 lagtime <- c(0, pdata$pyears[-nrow(pdata)])
 lagtime[1+ which(diff(index)==0)] <- 0 #starts at 0 for each subject
-temp <- d1$startday[index] + lagtime  #start of each new interval
-data2 <- data.frame(d1[index,], 
+temp <- d3$startday[index] + lagtime  #start of each new interval
+data2 <- data.frame(d3[index,], 
                     time1= temp,
                     time2= temp + pdata$pyears,
                     event= pdata$event,
                     age2=  1+ as.numeric(pdata$age2) )
 
-afit1 <- coxph(Surv(startday, stopday, hospevt) ~ pspline(agechf), d1)
-afit2 <- coxph(Surv(time1, time2, event) ~ pspline(age2), data2)
+afit1 <- coxph(Surv(startday, stopday, hospevt) ~ sex + pspline(agechf), d3)
+afit2 <- coxph(Surv(time1, time2, event) ~ sex + pspline(age2), data2)
 @ 
  
 \subsection{Predictable covariates, method 2}
 
- 
+Another method to create a time-changing covariate is to use the
+\emph{time-transform} feature of coxph.
+<<>>=
+afit2b <- coxph(Surv(startday, stopday, hospevt) ~ sex + tt(agechf),
+                data=d3, x=T,
+                tt=function(x, t, ...) pspline(x + t/365.25))
+@ 
+
+If there are one or more terms on the right hand side of the equation
+marked with the tt() operator, the program will pre-compute the values
+of that variable for each unique event time and strata combination.
+A user-defined function is called with arguments of
+\begin{itemize}
+  \item the covariate: whatever is inside the tt() call
+  \item the event time
+  \item the event number: if there are multiple strata and the same event
+    time occurs in two of them, they are treated separately
+  \item the weight for the observation, if the call used weights
+\end{itemize}
+There is a single call to the function with a very large $x$ vector, 
+it contains an element for each subject at risk at each event time.
+If there are multiple tt() terms in the formula, then the tt argument
+should be a list of functions with the requisite number of items.
+
+There are other interesting uses for the time-transform capability.
+One example is O'Brien's logit-rank test procedure \cite{obrien78}.
+He proposed replacing the covariate at each event time with a logit
+transform of its ranks.  
+This removes the influence of any outliers in the predictor $x$.
+For this case we ingore the event time argument and concentrate on the
+groupings.
+<<>>=
+function(x, t, riskset, weights){ 
+    obrien <- function(x) {
+        r <- rank(x)
+        (r-.5)/(.5+length(r)-r)
+    }
+    unlist(tapply(x, riskset, obrien))
+}
+@ 
+This relies on the fact that the input argments to tt() are ordered by the 
+event number or riskset.
+This function is used as a default if no tt argument is present in the
+coxph call.  (Doing so allowed me to depreciate the survobrien function).
+
+Another interesting useage is to replace the data by simple ranks, not
+rescaled to 0--1.
+<<>>=
+function(x, t, riskset, weights) 
+    unlist(tapply(x, riskset, rank))
+@ 
+The score statistic for this model is $(C-D)/2$, where $C$ and $D$ are the
+number of concordant and discordant pairs, see the
+survConcordance function.  
+The score statistic from this fit is then a test for significance of the
+concordance statistics, and is in fact the basis for the standard error
+reported by survConcordance.  
+The O'Brien test can be viewed as concordance statistic that gives equal  %'
+weight to each event time, whereas the standard concordance weights each
+event proportionally to the size of the risk set.
+(The Cox score statistic depends on the mean $x$ at each event time;
+since ranks go from 1 to number at risk the mean also scales.)
+
+Although handy, the computational impact of the tt argument should be
+considered before using it.
+The Cox model requires computation of a weighted mean and variance of
+the covariates at each event time, a process that is inherently 
+$O(ndp^2)$ where $n$ = the sample size, $d$ = the number of events and $p$=
+the number of covariates.  
+Much of the algorithmic effort in coxph() is to use updating methods for
+the mean and variance matrices, reducing the compute time to $O((n+d) p^2)$.
+When a tt term appears updating is not possible; for even moderate size
+data sets the impact of $nd$ versus $n+d$ can be surprising.
+
+
+The time-transform is a new addition and still has some rough edges.
+At this moment the $x=T$ argment is needed to get proper residuals and
+predicted values.
+Please communicate any concerns or interesting examples to the author.
+
+\begin{thebibliography}{9}
+  \bibitem{obrien78} O'Brien, Peter, ``A non-parametric test for           %'
+    association with censored data'', \emph{Biometrics} 34:243-250, 1978.
+\end{thebibliography}
 \end{document}
