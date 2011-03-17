@@ -1,0 +1,299 @@
+\documentclass{article}
+\usepackage[pdftex]{graphicx}
+\usepackage{amsmath}
+\addtolength{\textwidth}{1in}
+\addtolength{\oddsidemargin}{-.5in}
+\setlength{\evensidemargin}{\oddsidemargin}
+
+\SweaveOpts{keep.source=TRUE}
+
+\title{Using Time Dependent Covariates and Time Dependent Coefficients 
+  in the Cox Model}
+\author{Terry Therneau \and Cindy Crowson\\ Mayo Clinic}
+
+\begin{document}
+\maketitle
+
+<<preamble, echo=F>>=
+options(width=60, continue=" ")
+makefig <- function(file, top=1, right=1, left=4) {
+    pdf(file, width=9.5, height=7, pointsize=18)
+    par(mar=c(4, left, top, right) +.1)
+    }
+library(survival)
+@ 
+
+\section{Introduction}
+One of the strengths of the Cox model is its ability to encompass covariates
+that change over time, due to the theoretical foundation in martigales.
+A \emph{martingale} (original definition) is a betting strategy in games of
+chance.  One of the simplest and best known is doubling the bet each time
+you lose.  For instance consider the following game of roulette:
+\begin{equation*}
+  \begin{tabular}{rcc|c}
+    Bet & Outcome & Win  & Running total \\ \hline
+    R \$1 & Red   &  2   & 1 \\ &&&\\
+    R \$1 & Black &  0   & 0 \\
+    R \$2 & Black &  0   & -2 \\
+    B \$4 & Red   &  0   & -6 \\
+    R \$8 & Black &  0   & -14  \\
+    B \$16& Black & 32   & 2 \\ &&&\\
+    B \$1 & Red   &  0   & 1 \\
+    B \$2 & Black &  4   & 3 \\&&&\\
+    \vdots & \vdots & \vdots &\vdots
+  \end{tabular}
+\end{equation*}
+At the end of each cycle of bets the player is another \$1 ahead.
+The problem is that a modest sequence of losses will exhaust their stake.
+
+The rule for time dependent covariates in a Cox model is simple
+and essentially the same as that for gambling: you cannot look into
+the future.
+A covariate may change in any way based on past data or outcomes, but it
+may not reach ``forward'' in time.
+One of the more well known examples of this error is analysis by response:
+at the end of a trial a survival curve is made comparing those who had an
+early response to treatment (shrinkage of tumor, lowering of cholesterol,
+or whatever), and it discovered that response predicts survival.
+The problem arises because  subjects are classified as responders or 
+non-responders from the beginning of the study, i.e., they are placed into
+group A or B before the response has occurred.  
+As a consequence, any early deaths that occur before response can be
+assessed will be assigned to the non-responder group, even deaths that have
+nothing to do with the condition under study.
+
+There are many variations on the error: interpolation of the values of a
+laboratory test linearly between observation times, removing subjects who do
+not finish the treatment plan, imputing the date of an adverse event midway
+between observation times, etc.  
+All of these are similar to running a red light in your car: 
+disaster is not guarranteed
+but it is likely.
+
+The most common way to encode time-dependent covariates is to use the
+(start, stop] form of the model.
+<<echo=TRUE, eval=FALSE>>=
+fit <- coxph(Surv(time1, time2, status) ~ age + creatinine, 
+             data=mydata)
+@ 
+In this data set a patient might have the following observations
+\begin{center}
+  \begin{tabular}{ccccccc}
+    subject  & time1 & time2 & status & age & creatinine & \ldots \\ \hline
+    1 & 0 & 15 & 0 & 25 & 1.3 \\
+    1 & 15& 46 & 0 & 25 & 1.5 \\
+    1 & 46& 73 & 0 & 25 & 1.4 \\
+    1 & 73& 100& 1 & 25 & 1.6 \\
+\end{tabular}
+\end{center}
+In this case the variable \emph{age} = age at entry to the study stays the
+same from line to line, while the value of creatinine varies and is treated as
+1.3 over the interval $(0, 15]$, 1.5 over $(15, 46]$, etc.  The intervals are
+open on the left and closed on the right, which means that the creatinine
+is taken to be 1.3 on day 15.
+The status variable describes whether or not each interval end in an event.
+
+One commmon question with this data setup is whether we need to worry about
+correlated data, since a given subject has multiple observations.
+The answer is no, we do not.  The reason is that this representation is
+simply a bookkeeping trick; the likelihood equations at any time point
+use only one copy of any subject, the program picks out the correct
+row of data at any given time.
+There are two exceptions to this rule, in which case the cluster variance
+is necessary:
+\begin{itemize}
+  \item When subjects have multiple events.
+  \item When a subject appears in overlapping intervals.  This however is 
+    almost always a data error, since it corresponds to two copies of the
+    subject being present at the same time, e.g., they could meet themselves
+    on the sidewalk.
+\end{itemize}
+
+
+\section{Examples}
+\subsection{Multiple events}
+Chronic granulomatous disease (CGD) is a heterogenous group of uncommon
+inherited disorders characterized by recurrent pyogenic infections that
+usually begin early in life and may lead to death in childhood. Interferon
+gamma is a principal macrophage-activating factor shown to partially correct
+the metabolic defect in phagocytes.
+It was hypothesized that treatment with interferon might reduce
+the frequency of serious
+infections in patients with CGD.
+In 1986, Genentech, Inc. conducted a
+randomized, double-blind, placebo-controlled trial in 128 CGD patients who
+received Genentech's humanized interferon gamma (rIFN-g) or placebo three %'
+times daily for a year. The primary endpoint of the study was the time to
+the first serious infection. However, data were collected on all serious
+infections until the end of followup,
+which occurred before day 400 for most
+patients. Thirty of the 65 patients in the placebo group and 14 of the 63
+patients in the rIFN-g group had at least one serious infection.
+The total number of infections was 56 and 20 in the placebo and treatment
+groups, respectively.
+   One patient was taken off on the day of his last infection; all others
+have some followup after their last episode.
+Below are the first 10 observations, but with the listing truncatated 
+beyond the fourth infection.  Subject 2 has 7 infections, no one in the
+study has more.
+\small\begin{verbatim}
+  1 204 082888 1 2 12 147.0  62.0 2 2 2 2 414 219 373
+  2 204 082888 0 1 15 159.0  47.5 2 2 1 2 439   8  26 152 241 249 322 350
+  3 204 082988 1 1 19 171.0  72.7 1 2 1 2 382
+  4 204 091388 1 1 12 142.0  34.0 1 2 1 2 388
+  5 238 092888 0 1 17 162.5  52.7 1 2 1 1 383 246 253
+  6 245 093088 1 2 44 153.3  45.0 2 2 2 2 364
+  7 245 093088 0 1 22 175.0  59.7 1 2 1 2 364 292
+  8 245 093088 1 1  7 111.0  17.4 1 2 1 2 363
+  9 238 100488 0 1 27 176.0  82.8 2 2 1 1 349 294
+ 10 238 100488 1 1  5 113.0  19.5 1 2 1 1 371
+\end{verbatim}
+\normalsize
+
+<<>>=
+cgdname <- c("id", "center", "random.dt", "trt", "sex", "age", 
+             "height", "weight", "inheritance", "steroids", 
+             "antibiotic", "inst", "futime", paste("e", 1:7, sep=''))
+cgd1 <- read.table('cgd.dat', header=F, fill=T, col.names=cgdname,
+                   colClasses=c("integer", "integer", "character",
+                                rep("integer", 3), rep("numeric",2),
+                                rep("integer", 12)))
+
+cgd1$ninfect <- rowSums(!is.na(as.matrix(cgd1[,14:20])))
+cgd1$random.dt <- as.Date(cgd1$random.dt, format="%m%d%y")
+cgd1$sex <- factor(cgd1$sex, labels=c("M", "F"))
+cgd1$inst <- factor(cgd1$inst, labels=c("NIH", "US-Other", 
+                          "Amsterdam", "Europe-Other"))
+
+temp <- apply(as.matrix(cgd1[,13:20]), 1, function(x) {
+    z <- as.vector(x[!is.na(x)])
+    if (length(z)==1) cbind(0, z, 0)
+    else {
+        temp <- cbind(c(0, z[-1]), 
+                      c(z[-1], z[1]), 
+                      c(rep(1, length(z)-1), 0))
+        if (z[1]== z[length(z)]) temp[-nrow(temp),]
+        else temp
+    }})
+
+index <- rep(1:nrow(cgd1), unlist(lapply(temp, nrow)))
+cgd2 <- data.frame( cgd1[index, 1:12], 
+                   time1= unlist(lapply(temp, function(x) x[,1])), 
+                   time2= unlist(lapply(temp, function(x) x[,2])), 
+                   event= unlist(lapply(temp, function(x) x[,3])), 
+                   enum = unlist(lapply(temp, function(x) 1:nrow(x))))
+cfit <- coxph(Surv(time1, time2, event) ~ trt + sex + age +
+               inheritance + cluster(id), data=cgd2)
+@ 
+
+The logic for creating the time variables is
+\begin{itemize}
+  \item If a subject has no events there is a single interval from 0 to
+    last follow-up, with a status of 0.
+  \item If there are events
+    \begin{itemize}
+      \item There is an interval for each event (0, event1], (event1, event2],
+	  etc. each with status =1.
+       \item If the follow-up time exceeds the last event there will be a 
+	 final interval with status =0.
+    \end{itemize}
+\end{itemize}
+
+The result of the \texttt{apply} function above will be a list with one
+item per patient, each item being a 3 column matrix with time1, 
+time2, and status.
+The as.vector command removes names, which can speed the operation.
+The resulting data frame \texttt{cgd2} is in the proper format for the
+analysis. 
+
+
+\subsection{Changing lab tests}
+ Need an example here using merge.  Data set A has one observation per
+subject with treatment, birth, whatever.  Data set B has one observation
+per visit.
+
+\subsection{Predictable time-dependent covariates}
+Occasionaly one has a time-dependent covariate whose values in the future
+are predictable.
+The most obvious of these is patient age, occasionally this may also be
+true for the cumulative dose of a drug.
+If age is entered as a linear term in the model, then the effect of changing
+age can be ignored in a Cox model, due to the structure of the partial
+likelihood.  Assume that subject $i$ has an event at time $t_i$, with other
+subject $j \in R_i$ at risk at that time, with $a$ denoting age.
+The partial likelihood term is
+\begin{equation*}
+  \frac{e^{\beta * a_i}}{\sum_{j \in R_i} e^{\beta* a_j}} =
+  \frac{e^{\beta * (a_i + t_i)}}{\sum_{j \in R_i} e^{\beta* (a_j + t_i)}} 
+\end{equation*}
+We see that using time-dependent age (the right hand version) or age at
+baseline (left hand), the partial likelihood term is identical since
+$\exp(\beta t_i)$ cancels out of the fraction.
+Howevever, if the effect of age on risk is \emph{non-linear}, this
+cancellation does not occur.
+
+Since age changes continuously, we would in theory need a very large
+(start, stop] data set to completely capture the effect --- an interval
+per day to match the usual resolution for death times.
+In practice this level of resolution is not necessary; though we all
+grow older, risk does not increase so rapidly that we need to know
+out age to the day!  
+For most medical applications year is sufficient, but this still leads
+to a large data set.
+One useful way to generate this data set is through use of the \texttt{pyears}
+function.
+
+<<>>=
+load('d1.rda')
+age2 <- tcut(d1$agechf*365.25, 0:110* 365.25, labels=0:109)
+rowid <- 1:nrow(d1)
+pfit <- pyears(Surv(startday, stopday, hospevt) ~ age2 + rowid,
+               data=d1, data.frame=TRUE, scale=1)
+print(pfit$offtable)
+pdata <- pfit$data
+print(pdata[1:6,])
+@
+The \texttt{tcut} function attaches a set of cutpoints to the starting age
+for each subject, it's primary job is to mark the variable as time-increasing
+for the \texttt{pyears} function.
+In the \texttt{pyears} call we set scale=1 to prevent the age intervals from
+being rescaled to years, this is not critical.
+Printing out the value of offtable is important, however.  One of them
+most common mistakes in using \texttt{pyears} is mismatched scales, for
+instance if the age were in years and the follow-up time in days, and
+a common result of that error is to have follow-up time that fits into
+none of the categories.
+(Exactly this error was made in the first iteration of the above
+example, leading to multiple subjects whose ``age'' was not between 0 and 110.)
+In the resulting data frame the first observation has 7 days of follow-up,
+exactly as in the starting data.
+The second observation has been broken into 4 rows, 108.25 days at age 92,
+the a year each at age 93 and 94, and a final 236.25 days at age 95
+ending with a hospitalization.
+
+Now we combine this with the original data set using the same indexing
+trick found in the first example.
+We also need a variable containing the end time for the prior row of
+each subject and zero for the first row of each subject, which is
+\texttt{lagtime} below.
+We then fit two models.  The first looks at the effect of age at
+diagnosis of CHF, the second at the effect of current age.
+<<>>=
+index <- as.integer(pdata$rowid)
+lagtime <- c(0, pdata$pyears[-nrow(pdata)])
+lagtime[1+ which(diff(index)==0)] <- 0 #starts at 0 for each subject
+temp <- d1$startday[index] + lagtime  #start of each new interval
+data2 <- data.frame(d1[index,], 
+                    time1= temp,
+                    time2= temp + pdata$pyears,
+                    event= pdata$event,
+                    age2=  1+ as.numeric(pdata$age2) )
+
+afit1 <- coxph(Surv(startday, stopday, hospevt) ~ pspline(agechf), d1)
+afit2 <- coxph(Surv(time1, time2, event) ~ pspline(age2), data2)
+@ 
+ 
+\subsection{Predictable covariates, method 2}
+
+ 
+\end{document}
