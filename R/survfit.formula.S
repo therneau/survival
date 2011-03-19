@@ -38,12 +38,15 @@ survfit.formula <- function(formula, data, weights, subset,
     # Round the survival times.  Otherwise unique() and
     #  table() can give a different list of unique times, and both are
     #  used in the subsequent routines.  A test case with times of
-    #  sqrt(2)^2 and 2 revealed this issue.  Normally double.digits is
-    #  53 in base 2, which leads to 15 decimal digits.
-    digits <- floor((.Machine$double.digits -1) * 
-                    logb(.Machine$double.base,10)) #base 10 digits
-    Y[,1] <- signif(Y[,1], digits)
-    if (ncol(Y)==3) Y[,2] <- signif(Y[,2],digits)
+    #  sqrt(2)^2 and 2 revealed this issue. 
+    # A call to factor underlies the rounding found in table and tapply,
+    #  thus this exactly the right amount of rounding
+    rfun <- function(x) {
+        z <- factor(x)
+        (as.numeric(levels(z)))[z]  #see manual page for factor()
+    }
+    Y[,1] <- rfun(Y[,1])
+    if (ncol(Y)==3) Y[,2] <- rfun(Y[,2])
 
     if (length(etype) >0)
          temp <- survfitCI(X, Y, weights=casewt, etype=etype, id=id,  ...)

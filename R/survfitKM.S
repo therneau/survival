@@ -73,8 +73,11 @@ survfitKM <- function(x, y, casewt=rep(1,length(x)),
 	    temp <- tapply(casewt[who], 
 			   list(y[who,1], factor(y[who,2], levels=0:1)), sum)
 	    temp <- ifelse(is.na(temp), 0, temp)
-#	    time[[i]] <- as.numeric(dimnames(temp[[1]]))
-	    time[[i]] <- sort(unique(y[who,1]))   #same answer as line above
+            
+            # The two lines below are NOT identical when y[,1] = time has
+            #  values that differ by approx the machine precision.
+#	    time[[i]] <- as.numeric(dimnames(temp)[[1]])
+	    time[[i]] <- sort(unique(y[who,1]))   
 	    ntemp  <- (dim(temp))[1]
 	    nevent <- as.vector(temp[,2])
 	    ncens  <- as.vector(temp[,1])
@@ -137,7 +140,7 @@ survfitKM <- function(x, y, casewt=rep(1,length(x)),
 	n.cens[[i]]  <- ncens
 	n.risk[[i]]  <- nrisk
 	}
-    
+
     if (ny==2) {
 	temp <- list(n=n.used,
 		     time = unlist(time),

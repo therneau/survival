@@ -3,6 +3,14 @@
 
 \section{Changes in version 2.36-6}{
   \itemize{
+    \item Re-fix a bug in survfit.  It uses both unique and table in
+    various places, which do not round the same; I had added a
+    pre-rounding step to the code.  A data set from Fan Chun showed that
+    I didn't round quite enough. But the prior rounding did work for a
+    time of 2 vs (sqrt(2))^2: this bug is very hard to produce.  I now
+    use as.numeric(as.character(factor(x))), which induces exactly the
+    same rounding as table, since it is the same compuation path.
+
     \item Further changes to pspline.  The new Boundary.knots argument
     allows a user to set the boundary knots inside the range of data.
     Code for extrapolation outside that range was needed,
