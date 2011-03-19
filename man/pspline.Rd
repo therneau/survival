@@ -1,12 +1,16 @@
 \name{pspline}
 \alias{pspline}
+\alias{psplineinverse}
 \title{Smoothing splines using a pspline basis}
 \usage{
 pspline(x, df=4, theta, nterm=2.5 * df, degree=3, eps=0.1, method,
-   Boundary.knots=range(x), ...)
+   Boundary.knots=range(x), intercept=FALSE, penalty=TRUE,  ...)
 }
+\usage{psplineinverse(x)}
 \arguments{
-  \item{x}{predictor.  The function does not apply to factor variables.}
+  \item{x}{for psline: a covariate vector.
+    The function does not apply to factor variables.
+    For psplineinverse x will be the result of a pspline call.}
   \item{df}{the desired degrees of freedom.
     One of the arguments \code{df} or \code{theta}' must be given, but not both.
     If \code{df=0}, then the AIC = (loglik -df) is used to choose an
@@ -28,7 +32,12 @@ pspline(x, df=4, theta, nterm=2.5 * df, degree=3, eps=0.1, method,
     If method='aic' then the degrees of freedom is chosen automatically using
     Akaike's information criterion.}
   \item{\dots}{optional arguments to the control function}
-  \item{Boundary.knots}{the spline is linear beyond the boundary knots.}
+  \item{Boundary.knots}{the spline is linear beyond the boundary knots.
+    These default to the range of the data.}
+  \item{intercept}{if TRUE, the basis functions include the intercept.}
+  \item{penalty}{if FALSE a large number of attributes having to do with
+    penalized fits are excluded.  Most useful for exploring the code so
+    as to return a matrix with few added attributes.}
   }
 \description{
     Specifies a penalised spline basis for the predictor.
@@ -43,9 +52,11 @@ pspline(x, df=4, theta, nterm=2.5 * df, degree=3, eps=0.1, method,
 }
 
 \value{
-  Object of class \code{coxph.penalty} containing the spline basis,
+  Object of class \code{pspline, coxph.penalty} containing the spline basis,
  with the appropriate attributes to be
-recognized as a penalized term by the coxph or survreg functions.
+ recognized as a penalized term by the coxph or survreg functions.
+
+ For psplineinverse the original x vector is reconstructed.
 }
 
 \seealso{\code{\link{coxph}},\code{\link{survreg}},\code{\link{ridge}},

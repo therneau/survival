@@ -3,6 +3,13 @@
 
 \section{Changes in version 2.36-6}{
   \itemize{
+    \item Further changes to pspline.  The new Boundary.knots argument
+    allows a user to set the boundary knots inside the range of data.
+    Code for extrapolation outside that range was needed,
+    essentially a copy of the code found in ns() for the same issue.
+    Also added a psplineinverse function, which will be useful with
+    certain tt() calls in coxph.
+    
     \item 10 Mar 2011: Add the capablilty for time-dependent
     transformations to coxph, along with a small vignette describing use
     of the feature.  This code is still incompletely incorporated in

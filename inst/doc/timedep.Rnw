@@ -302,6 +302,8 @@ Another method to create a time-changing covariate is to use the
 afit2b <- coxph(Surv(startday, stopday, hospevt) ~ sex + tt(agechf),
                 data=d3, x=T,
                 tt=function(x, t, ...) pspline(x + t/365.25))
+#plot(psplineinverse(afit2b$x), exp(terms(afit2b)[,2]),
+#     xlab="Current age", ylab="Excess risk", log='y')
 @ 
 
 If there are one or more terms on the right hand side of the equation
@@ -319,6 +321,10 @@ There is a single call to the function with a very large $x$ vector,
 it contains an element for each subject at risk at each event time.
 If there are multiple tt() terms in the formula, then the tt argument
 should be a list of functions with the requisite number of items.
+
+Because of the data manipulation the termplot() function cannot 
+reconstruct the data; we have to replace it with an equivalent 
+call.  (This is still not quite working.)
 
 There are other interesting uses for the time-transform capability.
 One example is O'Brien's logit-rank test procedure \cite{obrien78}.
