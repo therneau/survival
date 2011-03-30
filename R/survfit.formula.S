@@ -39,11 +39,11 @@ survfit.formula <- function(formula, data, weights, subset,
     #  table() can give a different list of unique times, and both are
     #  used in the subsequent routines.  A test case with times of
     #  sqrt(2)^2 and 2 revealed this issue.  Normally double.digits is
-    #  53 in base 2, which leads to 15 decimal digits.
-    digits <- floor((.Machine$double.digits -1) * 
-                    logb(.Machine$double.base,10)) #base 10 digits
-    Y[,1] <- signif(Y[,1], digits)
-    if (ncol(Y)==3) Y[,2] <- signif(Y[,2],digits)
+    #  53 in base 2, which leads to 15 decimal digits; round to 14.
+#    digits <- floor((.Machine$double.digits) * 
+#                    logb(.Machine$double.base,10)) #base 10 digits
+#    Y[,1] <- signif(Y[,1], digits-1)
+#    if (ncol(Y)==3) Y[,2] <- signif(Y[,2],digits-1)
 
     if (length(etype) >0)
          temp <- survfitCI(X, Y, weights=casewt, etype=etype, id=id,  ...)

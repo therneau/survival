@@ -395,7 +395,8 @@ Thus we take a low tech solution: call the fit routine for every possible
 strata combination, and pick off the result we want from each.
 This requires a model frame that is a blend of the original data [[mf]] and
 the new data [[mf2]]. 
-You can't just paste these together, as I discovered in an evening of failures;
+You can't just paste these together, as I discovered in an evening of
+failures;  %'
 the 'terms' component of a model frame needs to be present and be compatable
 or [[model.matrix]] will fail with one of several utterly confusing messages.
 Start with tframe, a subset of rows of [[mf]] containing each unique strata.
@@ -438,7 +439,7 @@ else if (any(stype==2)){
         }
     else {
         result$surv =  tfun(temp, function(x) x$surv)
-        if (se.fit) temp$std.err = tfun(temp, function(x) x$std.err)
+        if (se.fit) result$std.err = tfun(temp, function(x) x$std.err)
         }
     }
 @ 

@@ -5,8 +5,8 @@
 \usage{
 pspline(x, df=4, theta, nterm=2.5 * df, degree=3, eps=0.1, method,
    Boundary.knots=range(x), intercept=FALSE, penalty=TRUE,  ...)
-}
-\usage{psplineinverse(x)}
+
+psplineinverse(x)}
 \arguments{
   \item{x}{for psline: a covariate vector.
     The function does not apply to factor variables.

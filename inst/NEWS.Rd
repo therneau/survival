@@ -3,11 +3,23 @@
 
 \section{Changes in version 2.36-6}{
   \itemize{
+    \item Round off error issue in survfit: it used both unique(time)
+    and table(time), and the resulting number of unique values is not
+    guarranteed to be the same for times that differ by a tiny amount.
+    Now times are coverted to a factor first.  Peter Savicky from the R
+    core team provided a nice discussion of the issue and helped me
+    clarify how best to deal with it.
+    
+    \item Round off error in print.survfit pointed out by Micheal Faye.
+    If a survival value was .5 in truth, but .5- eps due to round off
+    the printed median was wrong. But it was ok for .5+eps. Simple
+    if-then logic error.
+    
     \item Further changes to pspline.  The new Boundary.knots argument
     allows a user to set the boundary knots inside the range of data.
     Code for extrapolation outside that range was needed,
     essentially a copy of the code found in ns() for the same issue.
-    Also added a psplineinverse function, which will be useful with
+    Also added a psplineinverse function, which may be useful with
     certain tt() calls in coxph.
     
     \item 10 Mar 2011: Add the capablilty for time-dependent

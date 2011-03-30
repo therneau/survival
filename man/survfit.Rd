@@ -15,8 +15,12 @@ survfit(formula, ...)
   \item{\dots}{other arguments to the specific method}
 }
 \details{
-  For details see the documentation for the appropriate method, i.e.,
-\code{?survfit.formula} or \code{?survfit.coxph}.
+  A survival curve is based on a tabulation of the number at risk and
+  number of events at each unique death time.  When time is a floating
+  point number the definition of "unique" is subject to interpretation.
+  The code uses factor() to define the set.
+  For further details see the documentation for the appropriate method, i.e.,
+  \code{?survfit.formula} or \code{?survfit.coxph}.  
 }
 \value{
 An object of class \code{survfit} containing one or more survival curves.

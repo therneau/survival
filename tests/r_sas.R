@@ -19,7 +19,8 @@ fit2 <- survreg(Surv(log(time), status) ~ I(1000/(273.2+temp)), motor,
 		subset=(temp>150), dist='gaussian')
 
 
-# Give the quantile estimates
+# Give the quantile estimates, which is the lower half of "output 48.1.5"
+#  in the SAS 9.2 manual
 
 pp1 <- predict(fit1, newdata=list(temp=c(130,150)), p=c(.1, .5, .9),
 		      type='quantile', se=T)

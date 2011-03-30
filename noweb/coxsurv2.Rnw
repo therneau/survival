@@ -26,7 +26,7 @@ a few years ago.
 
 Computations are separate for each strata, and each strata will 
 have a different number of time points in the result.
-Thus we can't preallocate a matrix.  Instead we generate an empty list,
+Thus we can't preallocate a matrix.  Instead we generate an empty list,  %'
 one per strata, and then populate it with the survival curves.
 At the end we unlist the individual components one by one.
 This is memory efficient, the number
@@ -56,9 +56,13 @@ survfitcoxph.fit <- function(y, x, wt, x2, risk, newrisk, strata, se.fit,
     <<survfit.coxph-compute>>
 
     if (unlist) {
-        if (length(result)==1) # the no strata case
-            result[[1]][c("n", "time", "n.risk", "n.event", "n.censor",
+        if (length(result)==1) { # the no strata case
+            if (se.fit)
+                result[[1]][c("n", "time", "n.risk", "n.event", "n.censor",
                           "surv", "std.err")]
+            else result[[1]][c("n", "time", "n.risk", "n.event", "n.censor",
+                          "surv")]
+        }
         else {
             temp <-list(n   =    unlist(lapply(result, function(x) x$n)),
                         time=    unlist(lapply(result, function(x) x$time)),

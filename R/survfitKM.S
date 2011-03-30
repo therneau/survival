@@ -71,10 +71,16 @@ survfitKM <- function(x, y, casewt=rep(1,length(x)),
 	    # the "factor" + levels ensures 2 columns in temp even if all 
 	    #  are dead or  all are alive
 	    temp <- tapply(casewt[who], 
-			   list(y[who,1], factor(y[who,2], levels=0:1)), sum)
+			   list(factor(y[who,1]), 
+                                factor(y[who,2], levels=0:1)), sum)
 	    temp <- ifelse(is.na(temp), 0, temp)
-#	    time[[i]] <- as.numeric(dimnames(temp[[1]]))
-	    time[[i]] <- sort(unique(y[who,1]))   #same answer as line above
+
+            # The two lines below do not always give the same answer
+            #  When two times differ by only the machine precision, unique
+            #  will give more values, and then "time" will be a different
+            #  length than the other components
+	    time[[i]] <- as.numeric(dimnames(temp)[[1]])
+#	    time[[i]] <- sort(unique(y[who,1]))   #same answer as line above
 	    ntemp  <- (dim(temp))[1]
 	    nevent <- as.vector(temp[,2])
 	    ncens  <- as.vector(temp[,1])
@@ -92,7 +98,8 @@ survfitKM <- function(x, y, casewt=rep(1,length(x)),
 	    #  the number of rows of input (n).
 	    n <- sum(who)
 	    temp <- factor(c(rep(2,n),y[who,3]), levels=0:3)
-	    temp <- tapply(rep(casewt[who],2), list(c(y[who,1:2]), temp), sum)
+	    temp <- tapply(rep(casewt[who],2), list(factor(y[who,1:2]), temp),
+                           sum)
 	    temp <- ifelse(is.na(temp), 0, temp)
 	    time[[i]] <- as.numeric(dimnames(temp)[[1]])
 	    ntemp  <- (dim(temp))[1]

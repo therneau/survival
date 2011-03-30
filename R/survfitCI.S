@@ -43,7 +43,11 @@ survfitCI <- function(X, Y, weights,
     #  must explicitly use the redistribut-to-the-right algorithm to 
     #  compute the estimate
     #
-    time   <- Y[,ncol(Y) -1]
+    # Due to roundoff, unique(time) and table(time) may not be the same.
+    #   Dodge the issue by turning it into a factor.
+    ftime <- factor(Y[,-ncol(Y)])
+    Y[, -ncol(Y)] <- as.numeric(ftime)
+    time <- Y[,ncol(Y)-1]  #unique death times
     status <- Y[,ncol(Y)]
     ncurve <- length(levels(X))
     n <- length(time)
@@ -208,6 +212,7 @@ survfitCI <- function(X, Y, weights,
 	    kfit$type <- 'right'
 	    kfit$call <- 'call'
 	    kfit$n <- length(Y)
+            
 	    }
 	else {
 	    timex  <- vector('list', ncurve)
@@ -289,6 +294,10 @@ survfitCI <- function(X, Y, weights,
 				 conf.type='log-log', conf.int=conf.int))
 	    }
         }
+
+    # Now replace the integer times with the original time scale
+    temp <- as.numeric(levels(ftime))
+    kfit$time <- temp[kfit$time]
     kfit
     }
 
