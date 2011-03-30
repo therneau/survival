@@ -87,6 +87,8 @@ survmean <- function(x, scale=1, rmean) {
         #    roundoff error.
         # Nuisance 2: there may by an NA in the y's
         # Nuisance 3: if no y's are <=.5, then we should return NA
+        # Nuisance 4: the obs (or many) after the .5 may be censored, giving
+        #   a stretch of values = .5 +- epsilon
         # 
         minmin <- function(y, x) {
             tolerance <- .Machine$double.eps^.5   #same as used in all.equal()
@@ -95,8 +97,8 @@ survmean <- function(x, scale=1, rmean) {
             else {
                 x <- x[keep]
                 y <- y[keep]
-                if (abs(y[1]-.5) <tolerance  && any(y<.5)) 
-                    (x[1] + x[min(which(y<.5))])/2
+                if (abs(y[1]-.5) <tolerance  && any(y< y[1])) 
+                    (x[1] + x[min(which(y<y[1]))])/2
                 else x[1]
                 }
             }
