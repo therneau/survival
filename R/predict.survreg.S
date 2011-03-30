@@ -59,38 +59,31 @@ predict.survreg <-
 	    
 	if (missing(newdata) && need.x){  #need the old x
 	    x <- object[['x']] 
-	    if (is.null(x)) x <- model.matrix(Terms[-dropx], mf,
-                                              contr=object$contrasts)
+	    if (is.null(x)) x <- model.matrix(object, mf)
 	    }
 
 	else if (!missing(newdata)) {  #need the new x
 	    if (length(temp$vars)==1) newstrat <- newframe[[temp$vars]]
 	    else newstrat <- strata(newframe[,temp$vars], shortlabel=TRUE)
 	    strata <- match(newstrat, levels(strata.keep))
-	    x <- model.matrix(Terms[-dropx], newframe,
-                              contr=object$contrasts)
+	    x <- model.matrix(object, newframe)
 	    offset <- model.offset(newframe)
 	    }
 	}
 
     else {  # per subject strata not needed
-	temp <- untangle.specials(Terms, 'strata', 1)
-	if (length(temp$terms)) Terms <- Terms[-temp$terms]
-	strata <- rep(1,n); nstrata<- 1
-	if (missing(newdata) && need.x) {
-	    x <- object[['x']]  # don't accidentally get object$xlevels
-	    if (is.null(x)) {
-		mf <- model.frame(object) 
-                x <-  model.matrix(Terms, mf, contr=object$contrasts)
-		}
-	    }
-
-	else if (!missing(newdata)) {
-	    x <- model.matrix(Terms, newframe, contr=object$contrasts)
-	    offset <- 0
-	    strata <- rep(1, nrow(x))
-	    }
-	}
+        nstrata <- 1
+        if (missing(newdata)) {
+            strata <- rep(1L, n)
+            if (need.x) x <- model.matrix(object)
+        }
+	
+        else {
+            x <- model.matrix(object, newframe)
+            strata <- rep(1L, nrow(x))
+            offset <- 0
+        }
+    }
     scale <- object$scale[strata]
     #center x if terms are to be computed
     if(type=='p' || (type == "terms" && intercept)) 

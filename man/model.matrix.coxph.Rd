@@ -8,8 +8,8 @@ Model.matrix method for coxph models
 Reconstruct the model matrix for a cox model.
 }
 \usage{
-\method{model.matrix}{coxph}(object, data, contrast.arg =
- object$contrasts, mf, ...)
+\method{model.matrix}{coxph}(object, data=NULL, contrast.arg =
+ object$contrasts, ...)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -17,14 +17,16 @@ Reconstruct the model matrix for a cox model.
   \item{data}{optional, a data frame from which to obtain the data}
   \item{contrast.arg}{optional, a contrasts object describing how
     factors should be coded}
-  \item{mf}{an optional model frame.  Used interally when programs have
-    already obtained a model frame.}
   \item{\dots}{other possible argument to \code{model.frame}}
 }
 \details{
   When there is a \code{data} argument this function differs from most
   of the other \code{model.matrix} methods in that the response variable
   for the original formual is \emph{not} required to be in the data.
+
+  If the data frame contains a \code{terms} attribute then it is
+  assumed to be the result of a call to \code{model.frame}, otherwise
+  a call to \code{model.frame} is applied with the data as an argument.
 }
 \value{
 The model matrix for the fit

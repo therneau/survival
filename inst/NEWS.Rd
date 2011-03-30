@@ -3,12 +3,25 @@
 
 \section{Changes in version 2.36-6}{
   \itemize{
+    \item 31 March 2011: One of the plots in the r_sas test was wrong
+    (it's been a long time since I visually checked these).  The error
+    was in predict.survreg; it had not taken into account a change in
+    R2.7.1: the intercept attribute is reset to 1 whenever one
+    subscripts a terms object, leading to incorrect results for a model
+    with "-1" in the formula.  I used this opportunity to move most of
+    the logic into model.frame.survreg and model.matrix.survreg
+    functions.  Small change to the model.frame.coxph and
+    model.matrix.coxph functions due to a better understanding of
+    xlevels processing.
+    
     \item Round off error issue in survfit: it used both unique(time)
     and table(time), and the resulting number of unique values is not
     guarranteed to be the same for times that differ by a tiny amount.
     Now times are coverted to a factor first.  Peter Savicky from the R
     core team provided a nice discussion of the issue and helped me
-    clarify how best to deal with it.
+    clarify how best to deal with it.  The prior fix of first rounding
+    to 15 digits was good enough for almost every data set -- except the
+    one found by a local user just last week.
     
     \item Round off error in print.survfit pointed out by Micheal Faye.
     If a survival value was .5 in truth, but .5- eps due to round off
@@ -56,7 +69,7 @@
     \item 20 Feb 2011: Update survConcordance to correctly handle case
     weights, time dependent covariates, and strata.
 
-    \item 18 Feb 2011: Bug in predict.coxph found a user (1 day after
+    \item 18 Feb 2011: Bug in predict.coxph found by a user (1 day after
     36-4!).  If the coxph call had a subset and predict used newdata,
     the subset clause was "remembered" in the newdata construction,
     which is not appropriate.
