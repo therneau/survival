@@ -21,26 +21,32 @@ pspline <- function(x, df=4, theta, nterm=2.5*df, degree=3, eps=0.1,
         if (df > nterm) stop("`nterm' too small for df=",df)
     }
 
-    
     xname <- deparse(substitute(x))
     keepx <- !is.na(x)
-    if (!all(keepx)) x <- x[keepx]
+    if (!all(keepx)) x <- x[keepx] #this is done before any reference to 
+                                   # Boundary.knots, so the default works
     nterm <- round(nterm)
     if (nterm < 3) stop("Too few basis functions")
-    dx <- (Boundary.knots[2] - Boundary.knots[1])/nterm
-    knots <- c(Boundary.knots[1] + dx*((-degree):(nterm-1)), 
-               Boundary.knots[2]+ dx*(0:degree))
     
-    if (!all(keepx)) x <- x[keepx] #this is done before any reference
-                                   # to Boundary.knots, so no na.rm arg
     if (!missing(Boundary.knots)) {
-        Boundary.knots <- range(Boundary.knots)
+        if (!is.numeric(Boundary.knots) || length(Boundary.knots !=2) ||
+            Boundary.knots[1] >= Boundary.knots[2])
+            stop("Invalid values for Boundary.knots")
+            
+        # Check for data values outside the knot range
         outl <- (x < Boundary.knots[1])
         outr<- (x > Boundary.knots[2])
         outside <- outl | outr
     }
     else outside <- FALSE
 
+    # Set up the evenly spaced knots
+    dx <- (Boundary.knots[2] - Boundary.knots[1])/nterm
+    knots <- c(Boundary.knots[1] + dx*((-degree):(nterm-1)), 
+               Boundary.knots[2]+ dx*(0:degree))
+
+    # Set up the basis.  Inside the boundary knots we use spline.des.
+    # Outside of them we use  f(edge) + (x-edge)* f'(edge)
     if (any(outside)) {
         newx <- matrix(0., length(x), nterm + degree)
         if (any(outl)) {
@@ -56,6 +62,7 @@ pspline <- function(x, df=4, theta, nterm=2.5*df, degree=3, eps=0.1,
     }
     else newx <- spline.des(knots, x, degree+1, outer.ok=TRUE)$design
 
+    # put missings back in so that the number of rows is right
     if (!all(keepx)) {
 	temp <- matrix(NA, length(keepx), ncol(newx))
 	temp[keepx,] <- newx
@@ -63,7 +70,7 @@ pspline <- function(x, df=4, theta, nterm=2.5*df, degree=3, eps=0.1,
         }
 
     nvar <- ncol(newx)   #should be nterm + degree
-    dmat <- diag(nvar+1)
+    dmat <- diag(nvar)
     dmat <- apply(dmat, 2, diff, 1, 2) 
     dmat <- t(dmat) %*% dmat
 
@@ -173,8 +180,8 @@ pspline <- function(x, df=4, theta, nterm=2.5*df, degree=3, eps=0.1,
 		     cfun = frailty.controlaic)
 	}
     
-    attributes(newx) <- c(attributes(newx), list(intercept=intercept,
-                          knots=knots,
+    attributes(newx) <- c(attributes(newx), temp,
+                          list(intercept=intercept, knots=knots,
                           Boundary.knots=Boundary.knots))
     if (is.R()) class(newx) <- c("pspline", 'coxph.penalty')
     else        oldClass(newx) <- 'coxph.penalty'
