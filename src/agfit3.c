@@ -122,7 +122,7 @@ void agfit3( Sint   *maxiter,  Sint   *nusedx,  Sint   *nvarx,
 	zbeta = 0;      /* form the term beta*z   (vector mult) */
 	for (i=0; i<nvar; i++)
 	    zbeta += beta[i]*covar[i][person];
-	score[person] = zbeta + offset[person];
+	score[person] = coxsafe(zbeta + offset[person]);
         }
 
     /*
@@ -298,7 +298,10 @@ void agfit3( Sint   *maxiter,  Sint   *nusedx,  Sint   *nvarx,
 	    zbeta = 0;      /* form the term beta*z   (vector mult) */
 	    for (i=0; i<nvar; i++)
 		zbeta += newbeta[i]*covar[i][person];
-	    score[person] = zbeta + offset[person];
+	    score[person] = coxsafe(zbeta + offset[person]);
+#if 0
+	    /* I belive this text is no longer needed due to the coxsafe call
+	     */
 	    if (zbeta > 20 && *maxiter>1) {
 		/*
 		** If the above happens, then 
@@ -326,6 +329,7 @@ void agfit3( Sint   *maxiter,  Sint   *nusedx,  Sint   *nvarx,
 		    newbeta[i] = (newbeta[i] + beta[i])/2.1;
 		person = -1;  /* force the loop to start over */
 		}
+#endif
 	    }
 
 	istrat=0;

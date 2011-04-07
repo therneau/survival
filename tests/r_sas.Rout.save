@@ -1,7 +1,8 @@
 
-R version 2.9.0 (2009-04-17)
-Copyright (C) 2009 The R Foundation for Statistical Computing
+R version 2.12.2 (2011-02-25)
+Copyright (C) 2011 The R Foundation for Statistical Computing
 ISBN 3-900051-07-0
+Platform: x86_64-unknown-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -54,7 +55,8 @@ n= 30
 + 		subset=(temp>150), dist='gaussian')
 > 
 > 
-> # Give the quantile estimates
+> # Give the quantile estimates, which is the lower half of "output 48.1.5"
+> #  in the SAS 9.2 manual
 > 
 > pp1 <- predict(fit1, newdata=list(temp=c(130,150)), p=c(.1, .5, .9),
 + 		      type='quantile', se=T)
@@ -125,7 +127,6 @@ p=.3 56592.20 26036.917 10.943626     0.4600796 26611.422 120349.71
 +     temp <- kfit[i]
 +     points(temp$time, tfun(1-temp$surv), col=i, pch=i)
 +     }
-> 
 > 
 > # Now a table
 > temp <- array(0, dim=c(4,4,4))  #4 groups by 4 parameters by 4 stats
@@ -240,7 +241,8 @@ n= 9
 +            format(tapply(cracks$n, cfit$y[,3], sum)), "ML"), adj=1)
 > 
 > # Now a portion of his percentiles table
-> #  I don't get the same SE as SAS, haven't checked out why
+> #  I don't get the same SE as SAS, I haven't checked out why.  The
+> #  estimates and se for the underlying Weibull model are the same.
 > temp <- predict(cfit, type='quantile', p=plist, se=T)
 > tempse <- sqrt(temp$se[1,])
 > mat <- cbind(temp$fit[1,], tempse, 
@@ -297,6 +299,7 @@ Read 267 items
 > valve$time2[indx-1] <- valve$time2[indx-1] - .1
 > 
 > kfit <- survfit(Surv(time1, time2, status) ~1, valve, type='fh2')
+> 
 > plot(kfit, fun='cumhaz', ylab="Sample Mean Cumulative Failures", xlab='Time',
 +      ylim=range(-log(kfit$lower)))
 > title("Valve replacement data")
@@ -361,10 +364,9 @@ Read 267 items
   653      9       1   1.432   0.245   0.95056     1.913
   653      9       1   1.543   0.272   1.00909     2.076
 > 
-> # Note that I have different estimates and SE's.  We are using a
-> #  different estimator of both the curve and the se. It's a statistical 
-> #  argument  about which estimator is more appropriate (one coulde defend both
-> #  sides).
+> # Note that I have the same estimates but different SE's.  We are using a
+> #  different estimator. It's a statistical argument as to which is
+> #  better (one could defend both sides): do you favor JASA or Technometrics?
 > rm(temp, kfit, indx, xx)
 >                     
 > ######################################################

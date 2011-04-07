@@ -235,6 +235,7 @@ S_EVALUATOR
 	zbeta = offset[p];    /* form the term beta*z   (vector mult) */
 	for (i=0; i<nvar; i++)
 	    zbeta += beta[i]*covar[i][p];
+	zbeta = coxsafe(zbeta);
 	risk = exp(zbeta) * weights[p];
 	denom += risk;
 
@@ -358,6 +359,7 @@ S_EVALUATOR
 
 	    for (i=0; i<nvar; i++)
 		zbeta += beta[i]*covar[i][p];
+	    zbeta = coxsafe(zbeta);
 	    score[p] = exp(zbeta);
 	    risk = score[p] * weights[p];
 	    denom += risk;

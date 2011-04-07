@@ -132,6 +132,7 @@ void coxscore(Sint   *nx,      Sint   *nvarx,    double *y,
 	      double *weights, Sint   *method,   double *resid2,
 	      double *scratch);
 
+double coxsafe(double x);
 double **dmatrix(double *array, int ncol, int nrow);
 
 void init_doloop(int min, int max);

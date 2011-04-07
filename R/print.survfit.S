@@ -24,27 +24,29 @@ print.survfit <- function(x, scale=1,
         else             rmean <- 'none'
         }
 
-    if (is.null(rmean)) {
-        if (is.logical(print.rmean)) {
-            if (print.rmean) rmean <- 'common'
-            else             rmean <- 'none'
+    else {
+        if (is.null(rmean)) {
+            if (is.logical(print.rmean)) {
+                if (print.rmean) rmean <- 'common'
+                else             rmean <- 'none'
             }
-        else rmean <- 'none'  #no option set
+            else rmean <- 'none'  #no option set
         }
 
-    # Check validity: it can be numeric or character
-    if (is.numeric(rmean)) {
-        if (is.null(x$start.time)) {
-            if (rmean < min(x$time)) 
-                stop("Truncation point for the mean is < smallest survival")
+        # Check validity: it can be numeric or character
+        if (is.numeric(rmean)) {
+            if (is.null(x$start.time)) {
+                if (rmean < min(x$time)) 
+                    stop("Truncation point for the mean is < smallest survival")
             }
-        else if (rmean < x$start.time)
+            else if (rmean < x$start.time)
                 stop("Truncation point for the mean is < smallest survival")
         }
-    else {
-        rmean <- match.arg(rmean, c('none', 'common', 'individual'))
-        if (length(rmean)==0) stop("Invalid value for rmean option")
+        else {
+            rmean <- match.arg(rmean, c('none', 'common', 'individual'))
+            if (length(rmean)==0) stop("Invalid value for rmean option")
         }
+    }
     
     temp <- survmean(x, scale=scale, rmean)
     print(temp$matrix)

@@ -156,6 +156,7 @@ void coxfit2(Sint   *maxiter,   Sint   *nusedx,    Sint   *nvarx,
 	zbeta = offset[person];    /* form the term beta*z   (vector mult) */
 	for (i=0; i<nvar; i++)
 	    zbeta += beta[i]*covar[i][person];
+	zbeta = coxsafe(zbeta);
 	risk = exp(zbeta) * weights[person];
 
 	denom += risk;
@@ -264,8 +265,8 @@ void coxfit2(Sint   *maxiter,   Sint   *nusedx,    Sint   *nvarx,
 	    zbeta = offset[person];
 	    for (i=0; i<nvar; i++)
 		zbeta += newbeta[i]*covar[i][person];
+	    zbeta = coxsafe(zbeta);
 	    risk = exp(zbeta ) * weights[person];
-
 	    denom += risk;
 	    efron_wt += status[person] * risk;  /* sum(denom) for tied deaths*/
 

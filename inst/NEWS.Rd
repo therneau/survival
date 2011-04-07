@@ -3,12 +3,25 @@
 
 \section{Changes in version 2.36-6}{
   \itemize{
+    \item An example from A Drummond caused iteration failure in
+    coxph: x=c(1,1,1,0,1, rep(0,35)), time=1:40, status=1.  The first
+    iteration overshoots the solution and lands on an almost perfectly
+    linear part of the loglik surface, which made the second iteration
+    go to a huge number and exp() overflows.  A sanity check routine
+    coxsafe is now invoked on all values of the linear predictor.
+    
+    \item 1 April: Fix minor bug in survfit.  For left censored data
+    where all the left censored are on the very left, it would give a
+    spurious warning message when trying to create a 0 row matrix that
+    it didn't need or use.  Pointed out by Steve Su.
+    
     \item 31 March 2011: One of the plots in the r_sas test was wrong
     (it's been a long time since I visually checked these).  The error
     was in predict.survreg; it had not taken into account a change in
     R2.7.1: the intercept attribute is reset to 1 whenever one
     subscripts a terms object, leading to incorrect results for a model
-    with "-1" in the formula.  I used this opportunity to move most of
+    with "-1" in the formula and a strata(): the intercept returned
+    when removing the strata.  I used this opportunity to move most of
     the logic into model.frame.survreg and model.matrix.survreg
     functions.  Small change to the model.frame.coxph and
     model.matrix.coxph functions due to a better understanding of

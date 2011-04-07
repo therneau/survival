@@ -163,6 +163,9 @@ for (i in 1:ntrans)
 @ 
 
 This is the C code for time-transformation.
+For the first case it expects y to contain time and status sorted from
+longest time to shortest, and strata=1 for the first observation of
+each strata.  
 <<coxcount1>>=
 #include "survS.h"
 SEXP coxcount1(SEXP y2, SEXP strat2) {
@@ -209,8 +212,9 @@ SEXP coxcount1(SEXP y2, SEXP strat2) {
 	if (strata[i] ==1) stratastart =i;
 	if (status[i]==1) {
 	    dtime = time[i];
-            for (j=0; j<i; j++) *rrstatus++=0;
-	    *rrstatus++ =1;
+            for (j=stratastart; j<i; j++) *rrstatus++=0; /*non-deaths */
+	    *rrstatus++ =1; /* this death */
+            /* tied deaths */
 	    for(j= i+1; j<n && status[j]==1 && time[j]==dtime  && strata[j]==0;
 		j++) *rrstatus++ =1;
             i = j-1;

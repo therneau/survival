@@ -1,0 +1,44 @@
+
+R version 2.12.2 (2011-02-25)
+Copyright (C) 2011 The R Foundation for Statistical Computing
+ISBN 3-900051-07-0
+Platform: x86_64-unknown-linux-gnu (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> library(survival)
+Loading required package: splines
+> 
+> #
+> # The survival code was failing for certain data sets when called as
+> #    survfit(Surv(time2-time1, status) ~ ......
+> # The issue was how tied floating point numbers are handled, and the
+> #    fact that unique(x), factor(x) and tapply(x) are not guarranteed to
+> #    all be the same.  
+> # This test fails in survival 2.36-5, fixed in 2.36-6.  Data sets that
+> #    can cause it are few and far between.
+> #
+> 
+> load('ties.rda')
+> x <- time2 -time1
+> 
+> #  Here is the heart of the old problem
+> #       length(unique(x))== length(table(x))
+> #  And the prior fix which worked ALMOST always
+> #       x <- round(x, 15)
+> #       length(unique(round(x,15)))== length(table(round(x,15)))
+> 
+> fit1 <- survfit(Surv(x) ~1)
+> length(fit1$time) == length(fit1$surv)
+[1] TRUE
+> 

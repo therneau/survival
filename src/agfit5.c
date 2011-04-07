@@ -197,7 +197,7 @@ void agfit5_a(Sint *nusedx, Sint *nvarx, double *yy,
         zbeta = 0;      /* form the term beta*z   (vector mult) */
         for (i=0; i<nvar; i++)
             zbeta += beta[i]*covar[i][person];
-        score[person] = zbeta + offset[person];  /* save this away */
+        score[person] = coxsafe(zbeta + offset[person]);  /* save this away */
         }
 
     /*
@@ -359,7 +359,10 @@ S_EVALUATOR
 	    else zbeta = offset[person];
 	    for (i=0; i<nvar; i++)
 		zbeta += beta[i]*covar[i][person];
+	    zbeta = coxsafe(zbeta);
 	    score[person] = zbeta;
+#if(0)
+	    /* I believe this is unnecessary after adding coxsafe above */
 	    if (zbeta > 20 && *maxiter >1) {
 		/*
 		** If the above happens, then 
@@ -390,8 +393,9 @@ S_EVALUATOR
 		    fbeta[i] = (oldbeta[i] + fbeta[i])/2;
 		person = -1;  /* force the loop to start over */
 		}
+#endif
 	    }
-  
+
         istrat=0;
         indx2 =0;
 	denom =0;

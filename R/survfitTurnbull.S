@@ -138,17 +138,26 @@ survfitTurnbull <- function(x, y, casewt,
         #   <= the time recorded, and for an interval one that (a, b] contains
         #   the true event time.  This is motivated by data that would come
         #   from repeated visits, and agrees with Turnbull's paper.
-	temp <- matrix(jtimes, nrow=sum(status>1), ncol=njump, byrow=TRUE)
-	indx <- (1:n)[status>1] #these are the interval and lc rows of the data
-        temp1 <- (temp <= y[indx,1])   # logical matrix for the left censored
-        if (any(status>2)) #interval censored
-            temp2 <- (temp >  y[indx,1] & temp <= y[indx,2])
-        else temp2 <- FALSE & temp1
-        temp3 <- rep(status[indx]==2, njump)
-        wtmat <- matrix(as.numeric((temp3&temp1) | (!temp3 & temp2)),
+        # If all status <=1, this is the unusual case of left censoring before
+        #  some minimal time, in which case I can skip this step.  There are
+        #  no interval censored or left censored be "split".
+        if (any(status>1)) {
+            temp <- matrix(jtimes, nrow=sum(status>1), ncol=njump, byrow=TRUE)
+            indx <- (1:n)[status>1] #the subjects of interest
+            temp1 <- (temp <= y[indx,1]) # logical matrix for the left censored
+            if (any(status>2)) #interval censored
+                temp2 <- (temp >  y[indx,1] & temp <= y[indx,2])
+            else temp2 <- FALSE & temp1
+            temp3 <- rep(status[indx]==2, njump)
+            wtmat <- matrix(as.numeric((temp3&temp1) | (!temp3 & temp2)),
                         ncol=njump)
-
 	lwt <- wt[indx]  # the input vector of case weights, for these
+        }
+        else {
+            wtmat <- matrix(rep(1, length(jtimes)), nrow=1)
+            lwt <- 1
+        }
+
 	eps <- 1
 
 	# The initial "starter" KM is proportional to the number of intervals
