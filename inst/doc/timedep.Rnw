@@ -68,8 +68,7 @@ laboratory test linearly between observation times, removing subjects who do
 not finish the treatment plan, imputing the date of an adverse event midway
 between observation times, etc.  
 All of these are similar to running a red light in your car: 
-disaster is not guarranteed
-but it is likely.
+disaster is not guarranteed --- but it is likely.
 
 The most common way to encode time-dependent covariates is to use the
 (start, stop] form of the model.
@@ -92,7 +91,7 @@ same from line to line, while the value of creatinine varies and is treated as
 1.3 over the interval $(0, 15]$, 1.5 over $(15, 46]$, etc.  The intervals are
 open on the left and closed on the right, which means that the creatinine
 is taken to be 1.3 on day 15.
-The status variable describes whether or not each interval end in an event.
+The status variable describes whether or not each interval ended in an event.
 
 One commmon question with this data setup is whether we need to worry about
 correlated data, since a given subject has multiple observations.
@@ -209,10 +208,8 @@ analysis.
 
 
 \subsection{Changing lab tests}
- Need an example here using merge.  Data set A has one observation per
-subject with treatment, birth, whatever.  Data set B has one observation
-per visit.
-
+ To be filled in.
+ 
 \subsection{Predictable time-dependent covariates}
 Occasionaly one has a time-dependent covariate whose values in the future
 are predictable.
@@ -243,13 +240,29 @@ For most medical applications year is sufficient, but this still leads
 to a large data set.
 One useful way to generate this data set is through use of the \texttt{pyears}
 function.
+The following example uses data on rehospitalization for cohort of 
+rheumatoid arthritis
+patients who also have conjestive heart failure (CHF)\cite{Nicola05}.
+The variables are
+\begin{itemize}
+  \item patid: patient identifier
+  \item agechf: age at onset of CHF 
+  \item yearchf calendar year of CHF, relative to the start of the study
+  \item startday, stopday: an interval of risk
+  \item hospevt: =1 if the interval ends with a hospitalization
+  \item prevhosp: number of prior hosptializations
+  \item duration: duration of RA prior to CHF
+  \item male sex: 1 for male, 0 for female
+\end{itemize}
+The age and duration variables have been rounded to .1 year to 
+maintain patient privacy.
 
 <<>>=
-load('d3.rda')
-age2 <- tcut(d3$agechf*365.25, 0:110* 365.25, labels=0:109)
-rowid <- 1:nrow(d3)
+load('raheart.rda')
+age2 <- tcut(raheart$agechf*365.25, 0:110* 365.25, labels=0:109)
+rowid <- 1:nrow(raheart)
 pfit <- pyears(Surv(startday, stopday, hospevt) ~ age2 + rowid,
-               data=d3, data.frame=TRUE, scale=1)
+               data=raheart, data.frame=TRUE, scale=1)
 print(pfit$offtable)
 pdata <- pfit$data
 print(pdata[1:6,])
@@ -264,13 +277,15 @@ most common mistakes in using \texttt{pyears} is mismatched scales, for
 instance if the age were in years and the follow-up time in days, and
 a common result of that error is to have follow-up time that fits into
 none of the categories.
-(Exactly this error was made in the first iteration of the above
-example, leading to multiple subjects whose ``age'' was not between 0 and 110.)
+This will give a large amount of time that is outside the boundaries of the
+table.
 In the resulting data frame the first observation has 7 days of follow-up,
 exactly as in the starting data.
-The second observation has been broken into 4 rows, 108.25 days at age 92,
-the a year each at age 93 and 94, and a final 236.25 days at age 95
+The second observation has been broken into 4 rows, 109.6 days at age 92,
+then a year each at age 93 and 94, and a final 234.9 days at age 95
 ending with a hospitalization.
+(The odd fractions of a day like .575 are a consequence of rounding the
+age values to 1 digit.)
 
 Now we combine this with the original data set using the same indexing
 trick found in the first example.
@@ -283,27 +298,40 @@ diagnosis of CHF, the second at the effect of current age.
 index <- as.integer(pdata$rowid)
 lagtime <- c(0, pdata$pyears[-nrow(pdata)])
 lagtime[1+ which(diff(index)==0)] <- 0 #starts at 0 for each subject
-temp <- d3$startday[index] + lagtime  #start of each new interval
-data2 <- data.frame(d3[index,], 
+temp <- raheart$startday[index] + lagtime  #start of each new interval
+data2 <- data.frame(raheart[index,], 
                     time1= temp,
                     time2= temp + pdata$pyears,
                     event= pdata$event,
                     age2=  1+ as.numeric(pdata$age2) )
 
-afit1 <- coxph(Surv(startday, stopday, hospevt) ~ sex + pspline(agechf), d3)
-afit2 <- coxph(Surv(time1, time2, event) ~ sex + pspline(age2), data2)
+afit1 <- coxph(Surv(startday, stopday, hospevt) ~ male + pspline(agechf), 
+               data=raheart)
+afit2 <- coxph(Surv(time1, time2, event) ~ male + pspline(age2), data2)
+#termplot(afit1, terms=2, se=TRUE, xlab="Age at Diagnosis of CHF")
+#termplot(afit2, terms=2, se=TRUE, xlab="Current Age")
+
+table(with(raheart, tapply(hospevt, patid, sum)))
 @ 
- 
+In this particular case the two fits are quite similar.  
+In retrospect this perhaps should have been expected: the mean age
+for onset of CHF in this group is 75 years, which does leave a lot
+of time for aging.
+(This analysis is very preliminary, however. As shown by the last line
+above there are a few patients with a very large number of admissions,
+sometimes referred to as ``entering a revolving door'' near the end of
+their disease.  These have an untoward influence on the fit.)
+
+
 \subsection{Predictable covariates, method 2}
 
 Another method to create a time-changing covariate is to use the
 \emph{time-transform} feature of coxph.
 <<>>=
-afit2b <- coxph(Surv(startday, stopday, hospevt) ~ sex + tt(agechf),
-                data=d3, x=T,
+afit2b <- coxph(Surv(startday, stopday, hospevt) ~ male + tt(agechf),
+                data=raheart, 
                 tt=function(x, t, ...) pspline(x + t/365.25))
-#plot(psplineinverse(afit2b$x), exp(terms(afit2b)[,2]),
-#     xlab="Current age", ylab="Excess risk", log='y')
+afit2b
 @ 
 
 If there are one or more terms on the right hand side of the equation
@@ -320,11 +348,7 @@ A user-defined function is called with arguments of
 There is a single call to the function with a very large $x$ vector, 
 it contains an element for each subject at risk at each event time.
 If there are multiple tt() terms in the formula, then the tt argument
-should be a list of functions with the requisite number of items.
-
-Because of the data manipulation the termplot() function cannot 
-reconstruct the data; we have to replace it with an equivalent 
-call.  (This is still not quite working.)
+should be a list of functions with the requisite number of elements.
 
 There are other interesting uses for the time-transform capability.
 One example is O'Brien's logit-rank test procedure \cite{obrien78}.
@@ -345,7 +369,8 @@ function(x, t, riskset, weights){
 This relies on the fact that the input argments to tt() are ordered by the 
 event number or riskset.
 This function is used as a default if no tt argument is present in the
-coxph call.  (Doing so allowed me to depreciate the survobrien function).
+coxph call, but there are tt terms in the model formula.
+(Doing so allowed me to depreciate the survobrien function).
 
 Another interesting useage is to replace the data by simple ranks, not
 rescaled to 0--1.
@@ -379,11 +404,16 @@ data sets the impact of $nd$ versus $n+d$ can be surprising.
 
 The time-transform is a new addition and still has some rough edges.
 At this moment the $x=T$ argment is needed to get proper residuals and
-predicted values.
+predicted values, and termplot is unable to properly reconstruct the
+data to plot the spline fit.
 Please communicate any concerns or interesting examples to the author.
 
 \begin{thebibliography}{9}
+  \bibitem{Nicola05} Nicola PJ, Maradit-Kremers H, Roger VL, Jacobsen SJ, 
+    Crowson CS, Ballman KV, Gabriel SE. ``The risk of Congestive Heart Failure
+    in Rheumatoid Arthritis: a Population-Based Study Over 46 Years.''
+    \emph{Arthritis Rheum} 52: 412--20, 2005.
   \bibitem{obrien78} O'Brien, Peter, ``A non-parametric test for           %'
-    association with censored data'', \emph{Biometrics} 34:243-250, 1978.
+    association with censored data'', \emph{Biometrics} 34:243--250, 1978.
 \end{thebibliography}
 \end{document}
