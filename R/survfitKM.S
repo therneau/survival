@@ -74,7 +74,6 @@ survfitKM <- function(x, y, casewt=rep(1,length(x)),
 			   list(factor(y[who,1]), 
                                 factor(y[who,2], levels=0:1)), sum)
 	    temp <- ifelse(is.na(temp), 0, temp)
-<<<<<<< local
 
             # The two lines below do not always give the same answer
             #  When two times differ by only the machine precision, unique
