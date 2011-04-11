@@ -1,4 +1,3 @@
-/*  $Id: coxfit2.c 11166 2008-11-24 22:10:34Z therneau $ */
 /*
 ** here is a cox regression program, written in c
 **     uses Efron's approximation for ties

@@ -1,4 +1,3 @@
-# $Id: predict.survreg.S 11282 2009-05-21 11:00:22Z therneau $
 predict.survreg <-
     function(object, newdata, type=c('response', "link", 'lp', 'linear',
 				     'terms', 'quantile','uquantile'),

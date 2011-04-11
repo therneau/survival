@@ -1,4 +1,3 @@
-# $Id: summary.survfit.S 11427 2010-07-12 15:22:24Z therneau $
 #
 # Version with no C code, using approx() to do the subscript
 #  calculations

@@ -1,7 +1,8 @@
 
-R version 2.11.1 (2010-05-31)
-Copyright (C) 2010 The R Foundation for Statistical Computing
+R version 2.12.2 (2011-02-25)
+Copyright (C) 2011 The R Foundation for Statistical Computing
 ISBN 3-900051-07-0
+Platform: x86_64-unknown-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -25,17 +26,18 @@ Loading required package: splines
 > #
 > test3 <- data.frame(futime=1:12, fustat=c(1,0,1,0,1,0,0,0,0,0,0,0),
 + 		   x1=rep(0:1,6), x2=c(rep(0,6), rep(1,6)))
-> coxph(Surv(futime, fustat) ~ x1 + x2, test3)
+> coxph(Surv(futime, fustat) ~ x1 + x2, test3, iter=25)
 Call:
-coxph(formula = Surv(futime, fustat) ~ x1 + x2, data = test3)
+coxph(formula = Surv(futime, fustat) ~ x1 + x2, data = test3, 
+    iter = 25)
 
 
-    coef exp(coef) se(coef)         z p
-x1 -21.2  6.19e-10    23205 -0.000914 1
-x2 -21.9  2.96e-10    24795 -0.000885 1
+    coef exp(coef) se(coef)        z p
+x1 -22.2  2.28e-10    17431 -0.00127 1
+x2 -22.9  1.09e-10    18626 -0.00123 1
 
 Likelihood ratio test=10.2  on 2 df, p=0.00625  n= 12, number of events= 3 
 Warning message:
 In fitter(X, Y, strats, offset, init, control, weights = weights,  :
-  Ran out of iterations and did not converge
+  Loglik converged before variable  1,2 ; beta may be infinite. 
 > 

@@ -3,7 +3,6 @@
 
 \section{Changes in version 2.36-6}{
   \itemize{
-<<<<<<< local
     \item An example from A Drummond caused iteration failure in
     coxph: x=c(1,1,1,0,1, rep(0,35)), time=1:40, status=1.  The first
     iteration overshoots the solution and lands on an almost perfectly

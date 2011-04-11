@@ -1,4 +1,3 @@
-/* $Id: agfit3.c 11386 2010-01-26 18:07:06Z therneau $ */
 /*
 ** Anderson-Gill formulation of the Cox Model, using smart subsets
 **

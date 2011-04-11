@@ -1,4 +1,3 @@
-# $Date: 2006-08-28 18:12:46 $ $Id: survfit.formula.S 11430 2010-07-29 22:34:23Z therneau $
 survfit.formula <- function(formula, data, weights, subset, 
 			    na.action, etype, id, ...) {
     Call <- match.call()

@@ -1,4 +1,3 @@
-# $Id: survfitTurnbull.S 11238 2009-02-14 11:51:18Z therneau $
 # Compute the K-M for left/right/interval censored data via Turnbull's
 #      slow EM calculation
 # x is a factor giving the groups, y is a survival object

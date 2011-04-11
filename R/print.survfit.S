@@ -1,4 +1,3 @@
-# $Id: print.survfit.S 11453 2010-12-20 15:04:08Z therneau $
 print.survfit <- function(x, scale=1, 
 			  digits = max(options()$digits - 4, 3), 
                           print.rmean = getOption('survfit.print.rmean'),
