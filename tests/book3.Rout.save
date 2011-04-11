@@ -1,7 +1,8 @@
 
-R version 2.11.1 (2010-05-31)
-Copyright (C) 2010 The R Foundation for Statistical Computing
+R version 2.14.0 Under development (unstable) (2011-04-10 r55401)
+Copyright (C) 2011 The R Foundation for Statistical Computing
 ISBN 3-900051-07-0
+Platform: x86_64-unknown-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -125,10 +126,10 @@ Loading required package: splines
 > # Done with the formal test, now print out lots of bits
 > #
 > resid(fit)
-         1          2          3          4          5          6          7 
- 0.5211189  0.6574108  0.7897765  0.2473877 -0.6062935  0.3690249 -0.0687658 
-         8          9         10 
--1.0687658 -0.4204469 -0.4204469 
+          1           2           3           4           5           6 
+ 0.52111895  0.65741078  0.78977654  0.24738772 -0.60629349  0.36902492 
+          7           8           9          10 
+-0.06876579 -1.06876579 -0.42044692 -0.42044692 
 > resid(fit, 'scor')
           1           2           3           4           5           6 
  0.27156496 -0.20696709 -0.45771743 -0.09586133  0.13608234  0.19288983 

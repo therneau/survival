@@ -1,5 +1,5 @@
 
-R version 2.12.2 (2011-02-25)
+R version 2.14.0 Under development (unstable) (2011-04-10 r55401)
 Copyright (C) 2011 The R Foundation for Statistical Computing
 ISBN 3-900051-07-0
 Platform: x86_64-unknown-linux-gnu (64-bit)
@@ -33,18 +33,18 @@ coxph(formula = Surv(stop, event) ~ (rx + size + number) * strata(enum) +
 
 
                              coef exp(coef) se(coef) robust se      z      p
-rx                        -0.5176     0.596    0.316    0.3075 -1.683 0.0920
-size                       0.0679     1.070    0.101    0.0853  0.796 0.4300
-number                     0.2360     1.266    0.076    0.0721  3.274 0.0011
-rx:strata(enum)enum=2     -0.1018     0.903    0.504    0.3265 -0.312 0.7600
-rx:strata(enum)enum=3     -0.1823     0.833    0.558    0.3916 -0.465 0.6400
-rx:strata(enum)enum=4     -0.1332     0.875    0.658    0.4968 -0.268 0.7900
-size:strata(enum)enum=2   -0.1440     0.866    0.168    0.1119 -1.287 0.2000
-size:strata(enum)enum=3   -0.2792     0.756    0.209    0.1511 -1.847 0.0650
-size:strata(enum)enum=4   -0.2711     0.763    0.251    0.1856 -1.460 0.1400
-number:strata(enum)enum=2 -0.0984     0.906    0.119    0.1144 -0.861 0.3900
-number:strata(enum)enum=3 -0.0662     0.936    0.130    0.1167 -0.567 0.5700
-number:strata(enum)enum=4  0.0928     1.097    0.147    0.1175  0.790 0.4300
+rx                        -0.5176     0.596   0.3158    0.3075 -1.683 0.0920
+size                       0.0679     1.070   0.1012    0.0853  0.796 0.4300
+number                     0.2360     1.266   0.0761    0.0721  3.274 0.0011
+rx:strata(enum)enum=2     -0.1018     0.903   0.5043    0.3265 -0.312 0.7600
+rx:strata(enum)enum=3     -0.1823     0.833   0.5579    0.3916 -0.465 0.6400
+rx:strata(enum)enum=4     -0.1332     0.875   0.6581    0.4968 -0.268 0.7900
+size:strata(enum)enum=2   -0.1440     0.866   0.1680    0.1119 -1.287 0.2000
+size:strata(enum)enum=3   -0.2792     0.756   0.2086    0.1511 -1.847 0.0650
+size:strata(enum)enum=4   -0.2711     0.763   0.2515    0.1856 -1.460 0.1400
+number:strata(enum)enum=2 -0.0984     0.906   0.1193    0.1144 -0.861 0.3900
+number:strata(enum)enum=3 -0.0662     0.936   0.1298    0.1167 -0.567 0.5700
+number:strata(enum)enum=4  0.0928     1.097   0.1466    0.1175  0.790 0.4300
 
 Likelihood ratio test=29.4  on 12 df, p=0.00344  n= 340, number of events= 112 
 > 
@@ -55,11 +55,11 @@ Likelihood ratio test=29.4  on 12 df, p=0.00344  n= 340, number of events= 112
            [,1]       [,2]       [,3]       [,4]
 [1,] -0.5176209 -0.6194404 -0.6998771 -0.6507935
 > t(cmat) %*% wfit$var[rx,rx] %*% cmat  # var matrix (eqn 3.2)
-           [,1]       [,2]      [,3]      [,4]
-[1,] 0.09455501 0.06017669 0.0567733 0.0437777
-[2,] 0.06017669 0.13242834 0.1301156 0.1160420
-[3,] 0.05677331 0.13011557 0.1723588 0.1590865
-[4,] 0.04377770 0.11604200 0.1590865 0.2398112
+           [,1]       [,2]       [,3]      [,4]
+[1,] 0.09455501 0.06017669 0.05677331 0.0437777
+[2,] 0.06017669 0.13242834 0.13011557 0.1160420
+[3,] 0.05677331 0.13011557 0.17235879 0.1590865
+[4,] 0.04377770 0.11604200 0.15908650 0.2398112
 > 
 > # Anderson-Gill fit
 > fita <- coxph(Surv(start, stop, event) ~ rx + size + number + cluster(id),
@@ -108,10 +108,10 @@ coxph(formula = Surv(stop, event) ~ rx + size + number, data = bladder2,
     subset = (enum == 1), method = "breslow")
 
 
-          coef exp(coef) se(coef)     z      p
-rx     -0.5176     0.596    0.316 -1.64 0.1000
-size    0.0679     1.070    0.101  0.67 0.5000
-number  0.2360     1.266    0.076  3.10 0.0019
+          coef exp(coef) se(coef)      z      p
+rx     -0.5176     0.596   0.3158 -1.639 0.1000
+size    0.0679     1.070   0.1012  0.671 0.5000
+number  0.2360     1.266   0.0761  3.102 0.0019
 
 Likelihood ratio test=9.66  on 3 df, p=0.0216  n= 85, number of events= 47 
 > fit2pa
@@ -132,10 +132,10 @@ coxph(formula = Surv(stop - start, event) ~ rx + size + number,
     data = bladder2, subset = (enum == 2), method = "breslow")
 
 
-           coef exp(coef) se(coef)      z    p
-rx     -0.25911     0.772   0.4051 -0.640 0.52
-size   -0.11636     0.890   0.1192 -0.976 0.33
-number -0.00571     0.994   0.0967 -0.059 0.95
+           coef exp(coef) se(coef)       z    p
+rx     -0.25911     0.772   0.4051 -0.6396 0.52
+size   -0.11636     0.890   0.1192 -0.9759 0.33
+number -0.00571     0.994   0.0967 -0.0591 0.95
 
 Likelihood ratio test=1.27  on 3 df, p=0.735  n= 46, number of events= 29 
 > fit3pa

@@ -1,7 +1,8 @@
 
-R version 2.9.0 (2009-04-17)
-Copyright (C) 2009 The R Foundation for Statistical Computing
+R version 2.14.0 Under development (unstable) (2011-04-10 r55401)
+Copyright (C) 2011 The R Foundation for Statistical Computing
 ISBN 3-900051-07-0
+Platform: x86_64-unknown-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -206,10 +207,10 @@ n= 26
 Call:
 survreg(formula = flsurv ~ age + ecog.ps, data = idat, dist = "loglogistic")
               Value Std. Error      z        p
-(Intercept) 11.5268     1.5283  7.542 4.62e-14
-age         -0.0888     0.0240 -3.703 2.13e-04
-ecog.ps      0.0818     0.3642  0.225 8.22e-01
-Log(scale)  -0.8023     0.2706 -2.965 3.03e-03
+(Intercept) 11.5268      1.528  7.542 4.62e-14
+age         -0.0888      0.024 -3.703 2.13e-04
+ecog.ps      0.0818      0.364  0.225 8.22e-01
+Log(scale)  -0.8023      0.271 -2.965 3.03e-03
 
 Scale= 0.448 
 

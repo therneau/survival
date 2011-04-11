@@ -1,7 +1,8 @@
 
-R version 2.11.1 (2010-05-31)
-Copyright (C) 2010 The R Foundation for Statistical Computing
+R version 2.14.0 Under development (unstable) (2011-04-10 r55401)
+Copyright (C) 2011 The R Foundation for Statistical Computing
 ISBN 3-900051-07-0
+Platform: x86_64-unknown-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -96,8 +97,8 @@ Call:
 survdiff(formula = Surv(aml$time, aml$status) ~ aml$x)
 
                      N Observed Expected (O-E)^2/E (O-E)^2/V
-aml$x=Maintained    11        7    10.69      1.27      3.40
-aml$x=Nonmaintained 12       11     7.31      1.86      3.40
+aml$x=Maintained    11        7    10.69      1.27       3.4
+aml$x=Nonmaintained 12       11     7.31      1.86       3.4
 
  Chisq= 3.4  on 1 degrees of freedom, p= 0.0653 
 > 

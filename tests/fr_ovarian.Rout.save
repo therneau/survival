@@ -1,7 +1,8 @@
 
-R version 2.9.0 (2009-04-17)
-Copyright (C) 2009 The R Foundation for Statistical Computing
+R version 2.14.0 Under development (unstable) (2011-04-10 r55401)
+Copyright (C) 2011 The R Foundation for Statistical Computing
 ISBN 3-900051-07-0
+Platform: x86_64-unknown-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -59,10 +60,10 @@ Call:
 coxph(formula = Surv(futime, fustat) ~ rx + pspline(age, df = 4), 
     data = ovarian)
 
-                          coef   se(coef) se2    Chisq DF   p     
-rx                        -0.373 0.761    0.7485 0.24  1.00 0.6200
-pspline(age, df = 4), lin  0.139 0.044    0.0440 9.98  1.00 0.0016
-pspline(age, df = 4), non                        2.59  2.93 0.4500
+                          coef   se(coef) se2   Chisq DF   p     
+rx                        -0.373 0.761    0.749 0.24  1.00 0.6200
+pspline(age, df = 4), lin  0.139 0.044    0.044 9.98  1.00 0.0016
+pspline(age, df = 4), non                       2.59  2.93 0.4500
 
 Iterations: 3 outer, 14 Newton-Raphson
      Theta= 0.242 

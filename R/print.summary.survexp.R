@@ -42,8 +42,6 @@ print.summary.survexp <- function(x,
 		prmatrix(mat, rowlab=rep("", nrow(mat)))
 	else  { #print it out one strata at a time
 	    strata <- x$strata
-	    if (!is.null(x$start.time))
-		    strata <- strata[mat.keep]
 	    for (i in levels(strata)) {
 		who <- (strata==i)
 		cat("               ", i, "\n")

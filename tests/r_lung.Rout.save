@@ -1,7 +1,8 @@
 
-R version 2.7.1 (2008-06-23)
-Copyright (C) 2008 The R Foundation for Statistical Computing
+R version 2.14.0 Under development (unstable) (2011-04-10 r55401)
+Copyright (C) 2011 The R Foundation for Statistical Computing
 ISBN 3-900051-07-0
+Platform: x86_64-unknown-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -97,8 +98,8 @@ Call:
 survreg(formula = Surv(time, status) ~ sex + age + ph.ecog, data = lung)
 
 Coefficients:
-(Intercept)         sex         age     ph.ecog 
- 6.27343525  0.40109054 -0.00747544 -0.33963810 
+ (Intercept)          sex          age      ph.ecog 
+ 6.273435252  0.401090541 -0.007475439 -0.339638098 
 
 Scale= 0.731109 
 

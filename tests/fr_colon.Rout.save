@@ -1,7 +1,8 @@
 
-R version 2.11.1 (2010-05-31)
-Copyright (C) 2010 The R Foundation for Statistical Computing
+R version 2.14.0 Under development (unstable) (2011-04-10 r55401)
+Copyright (C) 2011 The R Foundation for Statistical Computing
 ISBN 3-900051-07-0
+Platform: x86_64-unknown-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -32,10 +33,10 @@ coxph(formula = Surv(time, status) ~ rx + extent + node4 + cluster(id) +
 
 
              coef exp(coef) se(coef) robust se      z       p
-rxLev     -0.0362     0.964   0.0768     0.106 -0.343 7.3e-01
-rxLev+5FU -0.4488     0.638   0.0840     0.117 -3.842 1.2e-04
-extent     0.5155     1.674   0.0796     0.110  4.701 2.6e-06
-node4      0.8799     2.411   0.0681     0.096  9.160 0.0e+00
+rxLev     -0.0362     0.964   0.0768    0.1056 -0.343 7.3e-01
+rxLev+5FU -0.4488     0.638   0.0840    0.1168 -3.842 1.2e-04
+extent     0.5155     1.674   0.0796    0.1097  4.701 2.6e-06
+node4      0.8799     2.411   0.0681    0.0961  9.160 0.0e+00
 
 Likelihood ratio test=248  on 4 df, p=0  n= 1858, number of events= 920 
 > 

@@ -1,7 +1,8 @@
 
-R version 2.11.1 (2010-05-31)
-Copyright (C) 2010 The R Foundation for Statistical Computing
+R version 2.14.0 Under development (unstable) (2011-04-10 r55401)
+Copyright (C) 2011 The R Foundation for Statistical Computing
 ISBN 3-900051-07-0
+Platform: x86_64-unknown-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -90,7 +91,7 @@ frailty(litter, theta = 1                      27.25 22.7 0.2300
 Iterations: 1 outer, 6 Newton-Raphson
      Variance of random effect= 1   I-likelihood = -181.5 
 Degrees of freedom for terms=  1.0 22.7 
-Likelihood ratio test=50.7  on 23.7 df, p=0.00100  n= 150 
+Likelihood ratio test=50.7  on 23.7 df, p=0.001  n= 150 
 > 
 > rfit2 <- coxph(Surv(time,status) ~ frailty(litter), rats)
 > rfit2
@@ -98,7 +99,7 @@ Call:
 coxph(formula = Surv(time, status) ~ frailty(litter), data = rats)
 
                 coef se(coef) se2 Chisq DF   p   
-frailty(litter)                   18.0  14.6 0.24
+frailty(litter)                   18    14.6 0.24
 
 Iterations: 6 outer, 22 Newton-Raphson
      Variance of random effect= 0.504   I-likelihood = -184.8 

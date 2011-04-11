@@ -1,7 +1,8 @@
 
-R version 2.11.1 (2010-05-31)
-Copyright (C) 2010 The R Foundation for Statistical Computing
+R version 2.14.0 Under development (unstable) (2011-04-10 r55401)
+Copyright (C) 2011 The R Foundation for Statistical Computing
 ISBN 3-900051-07-0
+Platform: x86_64-unknown-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -62,7 +63,7 @@ coxph(formula = Surv(start, stop, status) ~ rx + cluster(id),
      coef exp(coef) se(coef) robust se     z       p
 rx -0.827     0.438    0.151     0.204 -4.05 5.2e-05
 
-Likelihood ratio test=32.9  on 1 df, p=9.9e-09  n= 253, number of events= 212 
+Likelihood ratio test=32.9  on 1 df, p=9.89e-09  n= 253, number of events= 212 
 > r2fitg
 Call:
 coxph(formula = Surv(start, stop, status) ~ rx + frailty(id), 
@@ -82,13 +83,13 @@ coxph(formula = Surv(start, stop, status) ~ rx + frailty.gaussian(id),
     data = rat2)
 
                      coef  se(coef) se2   Chisq DF   p      
-rx                   -0.79 0.220    0.154 12.9   1.0 3.2e-04
+rx                   -0.79 0.22     0.154 12.9   1.0 3.2e-04
 frailty.gaussian(id)                      60.9  24.9 7.3e-05
 
 Iterations: 6 outer, 23 Newton-Raphson
      Variance of random effect= 0.303 
 Degrees of freedom for terms=  0.5 24.9 
-Likelihood ratio test=118  on 25.4 df, p=7e-14  n= 253 
+Likelihood ratio test=118  on 25.4 df, p=6.99e-14  n= 253 
 > 
 > #This example is unusual: the frailties variances end up about the same,
 > #  but the effect on rx differs.  Double check it
@@ -119,7 +120,7 @@ coxph(formula = Surv(start, stop, status) ~ rx + frailty(id,
     method = "aic"), data = rat2)
 
                           coef   se(coef) se2   Chisq DF   p      
-rx                        -0.838 0.230    0.151 13.3   1.0 0.00026
+rx                        -0.838 0.23     0.151 13.3   1.0 0.00026
 frailty(id, method = "aic                       60.4  28.2 0.00039
 
 Iterations: 10 outer, 34 Newton-Raphson

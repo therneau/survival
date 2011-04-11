@@ -90,7 +90,8 @@ summary.survexp <- function(object, times, scale=1, ...) {
 	    if (ntime ==1) temp1 <- rep(1, length(ptimes))
 	    else temp1 <- approx(stime, 1:ntime, xout=ptimes,
 			    method='constant', f=1, rule=2)$y
-	    n.risk[[i]] <- ifelse(ptimes>max(stime), last.n,
+	    n.risk[[i]] <- ifelse(ptimes>max(stime), 
+                                  fit$n.risk[length(fit$n.risk)],
 				  fit$n.risk[who[temp1]])
 	    }
 

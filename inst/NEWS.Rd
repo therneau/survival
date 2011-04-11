@@ -1,6 +1,14 @@
 \name{NEWS}
 \title{NEWS file for the surival package}
 
+\section{Changes in version 2.36-7}{
+  \itemize{
+    \item Due to changes in R 2.13 default printout, the results of many of
+    the test programs change in trivial way (one more or fewer digits).
+    Update the necessary test/___.Rout.save files.  Per the core team's
+    suggestion the dependency for the package is marked as >=2.13.
+  }
+  
 \section{Changes in version 2.36-6}{
   \itemize{
     \item An example from A Drummond caused iteration failure in
