@@ -71,7 +71,6 @@ SEXP survreg7(SEXP maxiter2,   SEXP nvarx,  SEXP y,
     /* local variables */
     int i,j;	
     int nvar, nvar2, nvar3, nstrat;
-    int newton;      /* will be 1 if the last beta was from an NR step */
     int iter;
     double newlk =0;
     double (*dolik)();   /* will point to (*dolik) or survregc2 */
@@ -268,11 +267,9 @@ SEXP survreg7(SEXP maxiter2,   SEXP nvarx,  SEXP y,
 	    /* Fisher step */
 	    cholesky3(JJ, nvar3, nfrail, jdiag, tol_chol);
 	    chsolve3(JJ, nvar3, nfrail, jdiag, u);
-	    newton =0;
 	    }
 	else {  /* Newton-Raphson step */
 	    chsolve3(hmat,nvar3, nfrail, hdiag, u);
-	    newton =1;
 	    }
 
 	for (i=0; i<nvar3; i++) {
