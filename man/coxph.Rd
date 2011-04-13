@@ -21,7 +21,7 @@ coxph(formula, data=, weights, subset,
       na.action, init, control, 
       method=c("efron","breslow","exact"), 
       singular.ok=TRUE, robust=FALSE, 
-      model=FALSE, x=FALSE, y=!model, tt, ...)
+      model=FALSE, x=FALSE, y=TRUE, tt, ...)
 }
 \arguments{
   \item{formula}{

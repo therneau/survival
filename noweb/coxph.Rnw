@@ -10,7 +10,7 @@ tt <- function(x) x
 coxph <- function(formula, data, weights, subset, na.action,
 	init, control, method= c("efron", "breslow", "exact"),
 	singular.ok =TRUE, robust=FALSE,
-	model=FALSE, x=FALSE, y=!model,  tt, ...) {
+	model=FALSE, x=FALSE, y=TRUE,  tt, ...) {
 
     method <- match.arg(method)
     Call <- match.call()
@@ -245,7 +245,6 @@ SEXP coxcount2(SEXP y2, SEXP isort1, SEXP isort2, SEXP strat2) {
     int nrisk, *atrisk;
     double *time1, *time2, *status;
     int *strata;
-    int *who;
     double dtime;
     int iptr, jptr;
 
@@ -385,6 +384,7 @@ if (length(cluster)) {
     Terms2 <- Terms2[-tempc$terms]
     }
 
+attr(Terms2, 'intercept') <- 1  #baseline hazard is always present
 X <- model.matrix(Terms2, m)
 # Attributes of X need to be saved away before the X <- X[,-1] line removes the
 #  intercept, since subscripting removes some of them!
@@ -407,7 +407,7 @@ else {
     else xlevels <- NULL
     contr.save <- attr(X, 'contrasts')
     }
-    
+
 X <- X[,-1, drop=F]  #remove the intercept column
 
 if (missing(init)) init <- NULL
