@@ -54,7 +54,7 @@ x2 <- coxph(Surv(rep(0,23),time, status) ~x, aml, method='efron')
 aeq(x1$coef, x2$coef)
 
 # Test the drop of an itercept: should have no effect
-fit2 <- coxph(Surv(Surv(time, status) ~ x -1, method='breslow',
+fit2 <- coxph(Surv(time, status) ~ x -1, method='breslow',
                    data=aml)
 aeq(fit$loglik, fit2$loglik)
 aeq(coef(fit), coef(fit2))
