@@ -7,7 +7,7 @@
     the test programs change in trivial way (one more or fewer digits).
     Update the necessary test/___.Rout.save files.  Per the core team's
     suggestion the dependency for the package is marked as >=2.13.
-  }
+  }}
   
 \section{Changes in version 2.36-6}{
   \itemize{
