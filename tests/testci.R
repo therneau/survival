@@ -44,27 +44,24 @@ aeq(fit3$surv, fit1$surv[-(1:fit1$strata[1]),])
 
 #  A second test of cumulative incidence
 # compare results to Bob Gray's functions
-#   This test is in the directory, but won't work unless you have
-#   installed the cmprsk library!
+#  The file gray1 is the result of 
 #
-temp <- suppressWarnings(library(cmprsk, logical.return=TRUE))
-if (temp) {
-    tstat <- ifelse(tdata$status==0, 0, 1+ (tdata$event=='death'))
-    gray1 <- cuminc(tdata$time, tstat)
+#    tstat <- ifelse(tdata$status==0, 0, 1+ (tdata$event=='death'))
+#    gray1 <- cuminc(tdata$time, tstat)
+load("gray1.rda")
+plot(gray1[[1]]$time, gray1[[1]]$est, type='l',
+     ylim=range(c(gray1[[1]]$est, gray1[[2]]$est)),
+     xlab="Time")
+lines(gray1[[2]]$time, gray1[[2]]$est, lty=2)
 
-    plot(gray1[[1]]$time, gray1[[1]]$est, type='l',
-         ylim=range(c(gray1[[1]]$est, gray1[[2]]$est)),
-         xlab="Time")
-    lines(gray1[[2]]$time, gray1[[2]]$est, lty=2)
+fit2 <- survfit(Surv(time, status) ~ 1, etype=event, tdata)
+matlines(fit2$time, 1-fit2$surv, col=2, lty=1:2, type='s')
 
-    fit2 <- survfit(Surv(time, status) ~ 1, etype=event, tdata)
-    matlines(fit2$time, 1-fit2$surv, col=2, lty=1:2, type='s')
-
-    # To formally match these is a bit of a nuisance.
-    #  The cuminc function returns full step function, and survfit.ci only
-    # the bottoms of the steps.
-    #  The survfit.ci function returns all time points, cuminc only the jumps.
-    temp1 <- tapply(gray1[[1]]$est, gray1[[1]]$time, max)
-    indx1 <- match(names(temp1), fit2$time)
-    aeq(temp1, 1-fit2$surv[indx1,1])
-    }
+# To formally match these is a bit of a nuisance.
+#  The cuminc function returns full step function, and survfit.ci only
+# the bottoms of the steps.
+#  The survfit.ci function returns all time points, cuminc only the jumps.
+temp1 <- tapply(gray1[[1]]$est, gray1[[1]]$time, max)
+indx1 <- match(names(temp1), fit2$time)
+aeq(temp1, 1-fit2$surv[indx1,1])
+    
