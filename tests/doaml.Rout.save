@@ -1,5 +1,5 @@
 
-R version 2.14.0 Under development (unstable) (2011-04-10 r55401)
+R version 2.13.0 RC (2011-04-11 r55409)
 Copyright (C) 2011 The R Foundation for Statistical Computing
 ISBN 3-900051-07-0
 Platform: x86_64-unknown-linux-gnu (64-bit)
@@ -59,6 +59,16 @@ Likelihood ratio test=3.3  on 1 df, p=0.0694  n= 23, number of events= 18
 -0.6494307 -0.6791937  0.3208063  0.3269751  0.3360212 -0.5970995  0.3505693 
         34         43         45         48 
 -0.5525731  0.3778334  0.5484457  0.0000000 
+> 
+> # Test the drop of an itercept: should have no effect
+> fit2 <- coxph(Surv(time, status) ~ x -1, method='breslow',
++                    data=aml)
+> aeq(fit$loglik, fit2$loglik)
+[1] TRUE
+> aeq(coef(fit), coef(fit2))
+[1] TRUE
+> aeq(fit$var, fit2$var)
+[1] TRUE
 > 
 > fit <- survfit(Surv(aml$time, aml$status) ~ aml$x)
 > fit
@@ -169,6 +179,7 @@ Likelihood ratio test=3.38  on 1 df, p=0.0658  n= 23, number of events= 18
 > x2 <- coxph(Surv(rep(0,23),time, status) ~x, aml, method='efron')
 > aeq(x1$coef, x2$coef)
 [1] TRUE
+> 
 > 
 > rm(x1, x2, atime, denom, deaths, chaz,cvar, tfit, sfit, temp, temp2, fit)
 > 

@@ -11,6 +11,13 @@ resid(fit, type='mart')
 resid(fit, type='score')
 resid(fit, type='scho')
 
+# Test the drop of an itercept: should have no effect
+fit2 <- coxph(Surv(time, status) ~ x -1, method='breslow',
+                   data=aml)
+aeq(fit$loglik, fit2$loglik)
+aeq(coef(fit), coef(fit2))
+aeq(fit$var, fit2$var)
+
 fit <- survfit(Surv(aml$time, aml$status) ~ aml$x)
 fit
 summary(fit)
@@ -53,11 +60,5 @@ x1
 x2 <- coxph(Surv(rep(0,23),time, status) ~x, aml, method='efron')
 aeq(x1$coef, x2$coef)
 
-# Test the drop of an itercept: should have no effect
-fit2 <- coxph(Surv(time, status) ~ x -1, method='breslow',
-                   data=aml)
-aeq(fit$loglik, fit2$loglik)
-aeq(coef(fit), coef(fit2))
-aeq(fit$var, fit2$var)
 
 rm(x1, x2, atime, denom, deaths, chaz,cvar, tfit, sfit, temp, temp2, fit)
