@@ -1,4 +1,3 @@
-# $Id: coxph.detail.S 11190 2009-01-26 04:38:12Z therneau $
 coxph.detail <-  function(object, riskmat=FALSE) {
     method <- object$method
     if (method!='breslow' && method!='efron')
@@ -16,10 +15,15 @@ coxph.detail <-  function(object, riskmat=FALSE) {
     strats <- attr(Terms, "specials")$strata
 
     if (is.null(y)  ||  is.null(x)) {
+        mf <- model.frame(object)
+        y <- model.response(mf)
+        x <- model.matrix(object, data=mf)
+        if (length(strats)) {
+            stemp <- untangle.specials(object$terms, 'strata', 1)
+            if (length(stemp$vars)==1) strat <- m[[stemp$vars]]
+            else strat  <- strata(m[,stemp$vars], shortlabel=TRUE)
+            }
 	temp <- coxph.getdata(object, y=TRUE, x=TRUE, strata=TRUE)
-	y <- temp$y
-	x <- temp$x
-	if (length(strats)) strat <- temp$strata
 	}
 
     nvar <- ncol(x)

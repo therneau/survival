@@ -1,6 +1,18 @@
 \name{NEWS}
 \title{NEWS file for the surival package}
 
+\section{Changes in version 2.36-9}{
+  \itemize{
+    \item Due to a mistake in my script that submits to CRAN, the fix in
+    2.36-8 below was actually not propogated to the CRAN submission.
+
+    \item Fix an error in the Cauchy example found in the survreg.distributions
+    help page, pointed out by James Price.
+
+    \item Update the coxph.getdata routine to use the model.frame.coxph
+    and model.matrix.coxph methods.
+}}
+
 \section{Changes in version 2.36-8}{
   \itemize{
     \item Unitialized variable in calcuation of the variance of the

@@ -56,7 +56,7 @@ model.matrix.coxph <- function(object, data=NULL,
 }
 
 #  This function is somewhat confusung to read: the first argument of the
-# generic model.frame is "formula", so we have to use the same.  
+# generic model.frame is "formula", so we have to use the same label.  
 # However, our first arg is actually a coxph object, from which we want
 # to extract the formula!
 #
@@ -86,6 +86,9 @@ model.frame.coxph <- function(formula, ...) {
         if (is.null(environment(formula$terms)))
                 eval(temp, parent.frame())
             else eval(temp, environment(formula$terms), parent.frame())
+        # In the line above the third argument is ignored since the 
+        #  second arg is an environment.  But we mimic model.frame.lm by
+        #  including it.
     }
 }   
 

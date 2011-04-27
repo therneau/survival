@@ -103,15 +103,24 @@ coxph(formula, data=, weights, subset,
   }
 }
 \value{
-an object of class \code{"coxph"} representing the fit. 
+an object of class \code{coxph} representing the fit. 
 See \code{coxph.object} for details.  
 }
 \section{Side Effects}{
-Depending on the call, the \code{predict}, \code{residuals}, and \code{survfit} routines may 
-need to reconstruct the x matrix created by \code{coxph}.  Differences in the 
-environment, such as which data frames are attached or the value of 
-\code{options()\$contrasts}, may cause this computation to fail or worse, to be 
-incorrect.  See the survival overview document for details. 
+  Depending on the call, the \code{predict}, \code{residuals},
+and \code{survfit} routines may 
+need to reconstruct the x matrix created by \code{coxph}.
+It is possible for this to fail, as in the example below in
+which the predict function is unable to find \code{tform}.
+
+\preformatted{  tfun <- function(tform) coxph(tform, data=lung)
+  fit <- tfun(Surv(time, status) ~ age)
+  predict(fit)}
+
+In such a case add the \code{model=TRUE} option to the
+\code{coxph} call to obviate the
+need for reconstruction, at the expense of a larger \code{fit}
+object.  
 }
 \details{
 The proportional hazards model is usually expressed in terms of a 
@@ -152,11 +161,11 @@ exceeded.
 (Nearly always the first occurs.)
 The routine attempts to detect when this has happened,
 not always successfully.
-The primary consequence for he user is that the Wald statistic,
-coefficient/se(coefficient), is not valid in this case and should be
-ignored; the likelihood ratio and Wald tests remain valid however.
+The primary consequence for he user is that the Wald statistic =
+coefficient/se(coefficient) is not valid in this case and should be
+ignored; the likelihood ratio and score tests remain valid however.
 }
-\section{PENALISED REGRESSION}{
+\section{Penalized regression}{
   \code{coxph} can now maximise a penalised partial likelihood with
 arbitrary user-defined penalty.  Supplied penalty functions include
 ridge regression (\link{ridge}), smoothing splines

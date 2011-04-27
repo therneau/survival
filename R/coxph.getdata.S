@@ -1,7 +1,7 @@
-# $Id: coxph.getdata.S 11179 2009-01-07 12:20:13Z therneau $
 #
 # Reconstruct the Cox model data.  This is done in so many routines
 #  that I extracted it out.
+# Newer routines use model.matrix.coxph and model.frame.coxph methods.
 #
 # The "stratax" name is to avoid conflicts with the strata() function, but
 #   still allow users to type "strata" as an arg.
@@ -21,8 +21,7 @@ coxph.getdata <- function(fit, y=TRUE, x=TRUE, stratax=TRUE, offset=FALSE) {
     if ( (y && is.null(ty)) || (x && is.null(tx)) ||
 	     (stratax && is.null(strat)) || offset) {
 	# get the model frame
-	m <- fit$model
-	if (is.null(m)) m <- model.frame(fit)
+	m <- model.frame(fit)
 
 	# Pull things out
 	if (y && is.null(ty)) ty <- model.extract(m, 'response')
@@ -31,31 +30,21 @@ coxph.getdata <- function(fit, y=TRUE, x=TRUE, stratax=TRUE, offset=FALSE) {
 
 	# strata was saved in the fit if and only if x was
 	if ((x || stratax) && is.null(tx)) {
-	    dropx <- untangle.specials(Terms, 'cluster')$terms
 	    if (stratax) {
 		temp <- untangle.specials(Terms, 'strata', 1)
-                dropx <- c(dropx, temp$terms)
-                #If there were multiple strata statements, glue them together
 		strat <- strata(m[temp$vars], shortlabel=T)
 		}
-	    if (x) {
-		if (length(dropx)) 
-                     tx <- model.matrix(Terms[-dropx], m,
-                                        contr=fit$contrasts)[,-1,drop=FALSE]
-		else tx <- model.matrix(Terms, m,
-                                        contr=fit$contrasts)[,-1,drop=FALSE]
-		}
+	    if (x) tx <- model.matrix(fit, data=m)
 	    }
 	}
     else if (offset)
        toff <- fit$linear.predictors -(c(tx %*% fit$coef) - 
                                         sum(fit$means*fit$coef))
 
-    temp <- NULL
-    if (y) temp <- c(temp, "y=ty")
-    if (x) temp <- c(temp, "x=tx")
-    if (stratax)  temp <- c(temp, "strata=strat")
-    if (offset)  temp <- c(temp, "offset=toff")
-
-    eval(parse(text=paste("list(", paste(temp, collapse=','), ")")))
+    temp <- list()
+    if (y) temp$y <- ty
+    if (x) temp$x <- tx
+    if (stratax)  temp$strata <- strat
+    if (offset)  temp$offset <- toff
+    temp
     }
