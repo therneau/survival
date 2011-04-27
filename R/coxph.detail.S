@@ -20,10 +20,9 @@ coxph.detail <-  function(object, riskmat=FALSE) {
         x <- model.matrix(object, data=mf)
         if (length(strats)) {
             stemp <- untangle.specials(object$terms, 'strata', 1)
-            if (length(stemp$vars)==1) strat <- m[[stemp$vars]]
-            else strat  <- strata(m[,stemp$vars], shortlabel=TRUE)
+            if (length(stemp$vars)==1) strat <- mf[[stemp$vars]]
+            else strat  <- strata(mf[,stemp$vars], shortlabel=TRUE)
             }
-	temp <- coxph.getdata(object, y=TRUE, x=TRUE, strata=TRUE)
 	}
 
     nvar <- ncol(x)
