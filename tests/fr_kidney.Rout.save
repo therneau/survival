@@ -1,5 +1,5 @@
 
-R version 2.14.0 Under development (unstable) (2011-04-10 r55401)
+R version 2.13.0 (2011-04-13)
 Copyright (C) 2011 The R Foundation for Statistical Computing
 ISBN 3-900051-07-0
 Platform: x86_64-unknown-linux-gnu (64-bit)
@@ -151,7 +151,8 @@ Call:
 coxph(formula = Surv(time, status) ~ age + sex + disease + frailty(id, 
     dist = "gauss", sparse = F), data = kidney)
 
-  n= 76 
+  n= 76, number of events= 58 
+
                           coef     se(coef) se2    Chisq DF   p      
 age                        0.00492 0.0149   0.0108  0.11  1.0 0.74000
 sex                       -1.70204 0.4631   0.3613 13.51  1.0 0.00024
@@ -208,6 +209,7 @@ gauss:38       1.048      0.954    0.3068     3.579
 Iterations: 6 outer, 21 Newton-Raphson
      Variance of random effect= 0.509 
 Degrees of freedom for terms=  0.5  0.6  1.7 12.3 
+Concordance= 0.796  (se = 0.046 )
 Rsquare= 0.788   (max possible= 0.997 )
 Likelihood ratio test= 118  on 15.1 df,   p=0
 Wald test            = 37.4  on 15.1 df,   p=0.00119

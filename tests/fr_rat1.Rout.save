@@ -1,5 +1,5 @@
 
-R version 2.14.0 Under development (unstable) (2011-04-10 r55401)
+R version 2.13.0 (2011-04-13)
 Copyright (C) 2011 The R Foundation for Statistical Computing
 ISBN 3-900051-07-0
 Platform: x86_64-unknown-linux-gnu (64-bit)
@@ -31,13 +31,14 @@ Loading required package: splines
 > names(rfit)
  [1] "coefficients"      "var"               "var2"             
  [4] "loglik"            "iter"              "linear.predictors"
- [7] "residuals"         "means"             "method"           
-[10] "frail"             "fvar"              "df"               
-[13] "df2"               "penalty"           "pterms"           
-[16] "assign2"           "history"           "coxlist1"         
-[19] "printfun"          "n"                 "nevent"           
-[22] "terms"             "assign"            "wald.test"        
-[25] "y"                 "formula"           "call"             
+ [7] "residuals"         "means"             "concordance"      
+[10] "method"            "frail"             "fvar"             
+[13] "df"                "df2"               "penalty"          
+[16] "pterms"            "assign2"           "history"          
+[19] "coxlist1"          "printfun"          "n"                
+[22] "nevent"            "terms"             "assign"           
+[25] "wald.test"         "y"                 "formula"          
+[28] "call"             
 > rfit
 Call:
 coxph(formula = Surv(time, status) ~ rx + frailty(litter), data = rats, 

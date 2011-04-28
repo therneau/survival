@@ -11,6 +11,8 @@
 
     \item Update the coxph.getdata routine to use the model.frame.coxph
     and model.matrix.coxph methods.
+
+    \item Add the concordance statistic to the printout for penalized models.
 }}
 
 \section{Changes in version 2.36-8}{
