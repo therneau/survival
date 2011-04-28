@@ -119,8 +119,7 @@ agreg.fit <- function(x, y, strata, offset, init, control,
 	names(resid) <- rownames
 	coef[which.sing] <- NA
 
-        concordance <- survConcordance.fit(Surv(start, stopp, event), 
-                                           lp, strata, weights) 
+        concordance <- survConcordance.fit(y, lp, strata, weights) 
 	list(coefficients  = coef,
 	     var    = var,
 	     loglik = agfit$loglik,

@@ -456,7 +456,7 @@ coxpenal.fit <- function(x, y, strata, offset, init, control,
     names(resid) <- rownames
 
     names(iterlist) <- names(pterms[pterms>0])
-
+        
     if (nfrail >0) {
 	lp <- offset + coxfit$fcoef[x[,fcol]]
 	if (nvar >0) {   #sparse frailties and covariates
@@ -469,6 +469,7 @@ coxpenal.fit <- function(x, y, strata, offset, init, control,
 		 linear.predictors = as.vector(lp),
 		 residuals = resid,
 		 means = means,
+                 concordance= survConcordance.fit(y, lp, strata, weights),
 		 method= c('coxph.penal', 'coxph'),
 		 frail = coxfit$fcoef,
 		 fvar  = dftemp$fvar,
@@ -485,6 +486,7 @@ coxpenal.fit <- function(x, y, strata, offset, init, control,
 		 linear.predictors = as.vector(lp),
 		 residuals = resid,
 		 means = means,
+                 concordance= survConcordance.fit(y, lp, strata, weights),
 		 method= c('coxph.penal', 'coxph'),
 		 frail = coxfit$fcoef,
 		 fvar  = dftemp$fvar,
@@ -496,14 +498,16 @@ coxpenal.fit <- function(x, y, strata, offset, init, control,
 	    }
          }
     else {  #no sparse terms
+        lp <- as.vector(x%*%coef) - sum(means*coef)
 	list(coefficients  = coef,
 	     var    = var,
 	     var2   = var2,
 	     loglik = c(loglik0, loglik1),
 	     iter   = c(iter, iter2),
-	     linear.predictors = as.vector(x%*%coef) - sum(means*coef),
+	     linear.predictors = lp,
 	     residuals = resid,
 	     means = means,
+             concordance= survConcordance.fit(y, lp, strata, weights),
 	     method= c('coxph.penal', 'coxph'),
 	     df = df, df2=dftemp$df2,
 	     penalty= c(penalty0, penalty), 

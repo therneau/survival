@@ -15,9 +15,14 @@ summary.coxph.penal <-
     on.exit(options(savedig))
 
     omit <- object$na.action
+    omit <- object$na.action
+    cat("  n=", object$n)
+    if (!is.null(object$nevent)) 
+        cat(", number of events=", object$nevent, "\n")
+    else cat("\n")
     if (length(omit))
-	cat("  n=", object$n, " (", naprint(omit), ")\n", sep="")
-    else cat("  n=", object$n, "\n")
+	cat("   (", naprint(omit), ")\n\n", sep="")
+    else cat("\n")
 
     coef <- object$coefficients
     if (length(coef)==0 && length(object$frail)==0)
@@ -122,6 +127,14 @@ summary.coxph.penal <-
     if (is.null(object$df)) df <- sum(!is.na(coef))
     else  df <- round(sum(object$df),2)
     cat("Degrees of freedom for terms=", format(round(object$df,1)), "\n")
+    if (!is.null(object$concordance)) {
+        if (is.matrix(object$concordance)) temp <- colSums(object$concordance)
+        else temp <- object$concordance
+        temp2 <- c("concordance"= (temp[1] + temp[3]/2)/
+                              sum(temp[1:3]), "se"= temp[5]/(2*sum(temp[1:3])))
+        cat("Concordance=", format(round(temp2[1],3)),
+            " (se =", format(round(temp2[2], 3)),")\n")
+    }
     cat("Rsquare=", format(round(1-exp(-logtest/object$n),3)),
 	"  (max possible=", format(round(1-exp(2*object$loglik[1]/object$n),3)),
 	")\n" )
