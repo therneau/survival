@@ -24,7 +24,7 @@
 **  go astray. 
 */
 
-#define LARGE 21
+#define LARGE 22
 
 double coxsafe(double x) {
     if (x< -LARGE) return(-LARGE);

@@ -60,8 +60,8 @@ This also neatly solves the question of time-dependent covariates.
   \label{treefig}
 \end{figure}
 
-Figure  \ref{treefig} shows a balanced binary tree containing 
-using 13 risk scores.  For each node the left child and all its descendants
+Figure  \ref{treefig} shows a balanced binary tree containing  
+13 risk scores.  For each node the left child and all its descendants
 have a smaller value than the parent, the right child and all its
 descendents have a larger value.
 Each node in figure \ref{treefig} is also annotated with the total weight

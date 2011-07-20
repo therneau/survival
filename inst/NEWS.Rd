@@ -1,5 +1,22 @@
 \name{NEWS}
 \title{NEWS file for the surival package}
+\section{Changes in version 2.36-10}{
+  \itemize{
+    \item Punctuation error in psline made it impossible for a user to
+    specify the boundary.knots argument.  Pointed out by Brandon
+    Stewart.
+
+    \item Add an "id" variable to the output of survobrien.
+
+    \item The survfitCI routine would fail for a curve with only one
+    jump point (a matrix collapsed into a vector).
+
+    \item Fix an error in survfit.coxph when the coxph model has both a
+    strata by covariate interaction and a cluster statement.  The
+    cluster term was not dropped from the Terms object as it should have
+    been, led to a spurious "variable not found" error.   Pointed out
+    by Eva Bouguen.
+}}
 
 \section{Changes in version 2.36-9}{
   \itemize{

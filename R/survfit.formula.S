@@ -38,15 +38,23 @@ survfit.formula <- function(formula, data, weights, subset,
     # times to a certain number of digits.  This approach worked
     # almost all the time, but only almost.  The better logic is
     # now in the individual compuation routines
-
-    if (length(etype) >0)
-         temp <- survfitCI(X, Y, weights=casewt, etype=etype, id=id,  ...)
-    else if (attr(Y, 'type') != 'right' && attr(Y, 'type') != 'counting')
-         temp <- survfitTurnbull(X, Y, casewt, ...)
-    else temp <- survfitKM(X, Y, casewt, ...)
-
-    if (is.R()) class(temp) <- 'survfit'
-    else        oldClass(temp) <- "survfit"
+    if (attr(Y, 'type') != 'right' && attr(Y, 'type') != 'counting'){
+        if (!is.null(etype)) 
+            stop(paste("Cumulative incidence computation doesn't support \"", 
+                       type, "\" survival data", sep=''))
+        else temp <-  survfitTurnbull(X, Y, casewt, ...)
+    }
+    else {
+        # Sometimes a user will ask for a competing risk curve, but there is
+        #  only one event type (often a result of a subset= clause).  In that
+        #  case the usual KM is the same and faster.
+        deaths <- Y[,ncol(Y)] ==1
+        if (!is.null(etype) && length(unique(etype[deaths]))>1)
+            temp <- survfitCI(X, Y, weights=casewt, etype=etype, id=id,  ...)
+        else temp <- survfitKM(X, Y, casewt, ...)
+    }
+    
+    class(temp) <- 'survfit'
     if (!is.null(attr(m, 'na.action')))
 	    temp$na.action <- attr(m, 'na.action')
 
