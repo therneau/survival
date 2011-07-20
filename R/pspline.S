@@ -29,7 +29,7 @@ pspline <- function(x, df=4, theta, nterm=2.5*df, degree=3, eps=0.1,
     if (nterm < 3) stop("Too few basis functions")
     
     if (!missing(Boundary.knots)) {
-        if (!is.numeric(Boundary.knots) || length(Boundary.knots !=2) ||
+        if (!is.numeric(Boundary.knots) || length(Boundary.knots) !=2 ||
             Boundary.knots[1] >= Boundary.knots[2])
             stop("Invalid values for Boundary.knots")
             
