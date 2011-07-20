@@ -89,7 +89,7 @@ survobrien <- function(formula, data= sys.frame(sys.parent()),
     if (any(keepers)){
 	temp <- m[keep.index, keepers, drop=FALSE]
 	names(temp) <- kname
-	data.frame(start, stop, event, temp, xx)
+	data.frame(start, stop, event, temp, xx, id=keep.index)
         }
-    else  data.frame(start, stop, event, xx)
+    else  data.frame(start, stop, event, xx, id=keep.index)
     }
