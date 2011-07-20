@@ -70,7 +70,8 @@ survfitCI <- function(X, Y, weights,
                           exclude=NA)[,,2]
 	    temp <- temp / ifelse(kfit$n.event==0, 1, kfit$n.event)  # percents
 	    jumps <- -diff(c(1, kfit$surv))
-	    newjump <- jumps * temp
+	    newjump <- jumps * as.matrix(temp) #as.matrix in case only 1 event
+                                               # type
 	    newsurv <- apply(newjump, 2, function(x) 1 - cumsum(x))
 	    }
 	else {  # do it one curve at a time
