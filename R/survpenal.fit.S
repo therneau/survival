@@ -342,8 +342,9 @@ survpenal.fit<- function(x, y, weights, offset, init, controlvals, dist,
     # Manufacture the list of calls to cfun, with appropriate arguments
     #
     temp1 <- c('x', 'coef', 'plik', 'loglik', 'status', 'neff',  'df', 'trH')
-    temp2 <- c('frailx', 'fcoef', 'loglik',  'fit$loglik', 'status', 'n.eff')
-    temp3 <- c('x[,pen.col]', 'coef[pen.col]','loglik',
+    temp2 <- c('frailx', 'fcoef', 'fit$loglik-fit$penalty',  'fit$loglik', 
+               'status', 'n.eff')
+    temp3 <- c('x[,pen.col]', 'coef[pen.col]', 'fit$loglik-fit$penalty',
 	       'fit$loglik', 'status', 'n.eff')
     calls <- vector('expression', length(cfun))
     cargs <- lapply(pattr, function(x) x$cargs)

@@ -2,6 +2,11 @@
 \title{NEWS file for the surival package}
 \section{Changes in version 2.36-10}{
   \itemize{
+    \item A variable name was incorrect in survpenal.fit.  This was in a
+    program path that had never been traversed until Carina Salt used
+    survreg with a psline(..., method='aic') call, leading to a
+    "variable not found" message.
+
     \item Punctuation error in psline made it impossible for a user to
     specify the boundary.knots argument.  Pointed out by Brandon
     Stewart.
