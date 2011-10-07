@@ -125,7 +125,7 @@ The [[rmap]] argument needs to be examined without evaluating it; we then add
 the appropriate extra variables into a temporary formula so that the model
 frame has all that is required.  The ratetable variables then can be
 retrieved from the model frame.
-The [[pyears]] routine uses the exact rmap argument; this segment of the
+The [[pyears]] routine uses the same rmap argument; this segment of the
 code is given its own name so that it can be included there as well.
 <<survexp-setup>>=
 rate <- attr(Terms, "specials")$ratetable                   
@@ -242,7 +242,7 @@ For a population rate table a set of consistency checks is done by the
 This function wants characters turned to factors.
 For a Cox model [[R]] will be a model matix whose covariates are coded
 in exactly the same way that variables were coded in the original
-Cox model.  We call the model.matrix.coxph function to avoid the
+Cox model.  We call the model.matrix.coxph function to avoid repeating the
 steps found there (remove cluster statements, etc).   
 We also need to use the [[mf]] argument of the function, otherwise
 it will call model.frame internally and fail when it can't find the
