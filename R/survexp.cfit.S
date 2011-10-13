@@ -1,4 +1,4 @@
-# $Id: survexp.cfit.S 11166 2008-11-24 22:10:34Z therneau $
+#
 #
 #  Do expected survival based on a Cox model
 #   A fair bit of the setup work is identical to survfit.coxph, i.e.,
@@ -7,7 +7,7 @@
 #  The execution path for individual survival is completely separate, and
 #    a whole lot simpler.
 #
-survexp.cfit <- function(x, y, death, individual, cox, se.fit, method) {
+survexp.cfit <- function(group, x, y, death, individual, cox, se.fit, method) {
     if (!is.matrix(x)) stop("x must be a matrix")
 
     #
@@ -16,7 +16,7 @@ survexp.cfit <- function(x, y, death, individual, cox, se.fit, method) {
     #
     if (individual) {
 	fit <- survfit.coxph(cox, se.fit=FALSE)
-	risk <- x[,-1,drop=FALSE] %*% cox$coefficients  -  
+	risk <- x %*% cox$coefficients  -  
 		           sum(cox$coefficients *cox$means)
 	nt <- length(fit$time)
 	surv <- approx(-c(0,fit$time), c(1,fit$surv), -y,
@@ -31,10 +31,10 @@ survexp.cfit <- function(x, y, death, individual, cox, se.fit, method) {
     cn <- nrow(cy)
     nvar <- length(cox$coefficients)
 
-    if (ncol(x) != (1+ nvar))
+    if (ncol(x) != nvar)
 	stop("x matrix does not match the cox fit")
 
-    ngrp <- max(x[,1])
+    ngrp <- group
     if (!is.logical(death)) stop("Invalid value for death indicator")
 
     if (missing(method))
@@ -63,10 +63,10 @@ survexp.cfit <- function(x, y, death, individual, cox, se.fit, method) {
     # Process the new data
     #
     if (missing(y) || is.null(y)) y <- rep(max(cy[,2]), nrow(x))
-    ord <- order(x[,1])
-    x[,1] <- x[,1] - min(x[,1])
+    ord <- order(group)
+    group <- group - min(group)
     n <- nrow(x)
-    ncurve <- length(unique(x[,1]))
+    ncurve <- length(unique(group))
     npt <- length(unique(cy[cy[,3]==1,2]))  #unique death times
     storage.mode(cy) <- 'double'
     xxx  <- .C('agsurv3', as.integer(n),
@@ -76,6 +76,7 @@ survexp.cfit <- function(x, y, death, individual, cox, se.fit, method) {
 			  as.integer(se.fit),
 			  as.double(score),
 			  y = as.double(y[ord]),
+                          as.integer(group[ord]),
 			  x[ord,],
 			  cox$coefficients,
 			  cox$var,

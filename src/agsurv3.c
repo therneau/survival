@@ -1,4 +1,3 @@
-/*  SCCS $Id: agsurv3.c 11183 2009-01-21 13:33:40Z therneau $ */
 /*
 ** Create the cohort survival curve(s) for a set of subjects.
 **
@@ -14,8 +13,8 @@
 **    score  - the risk score for the old subjects
 **    y -  the max fu time for each subject
 **    score[n] - vector of weights
-**    r  =    an nvar+1 column matrix.  Column 1 is the group designator (for
-**              multiple survival curves).  Columns 2 to nvar+1 are the X data
+**    strata = the group designator (for multiple survival curves)
+**    r  =    an nvar column matrix containing the X data
 **              for the new subjects.
 **    var    = Cox variance matrix
 **    mean   = vector of means, for the Cox program
@@ -73,11 +72,11 @@ void agsurv3(Sint   *sn,    Sint   *snvar,    Sint   *sncurve,
 	     Sint   *snpt,  Sint   *sse,      double *score, 
 	     double *sy,    double *r,        double *coef, 
 	     double *var,   double *cmean,    Sint   *scn, 
-	     double *cy,    double *cx,       double *ssurv,
+	     double *cy,    double *grpx,     double *cx,       double *ssurv,
 	     double *varh,  double *sused,    Sint   *smethod)
 {
-S_EVALUATOR
-    register int i,j,k,l;
+
+    int i,j,k,l;
     double *start, *stop, *event;
     int cn;
     int npt,
@@ -115,7 +114,7 @@ S_EVALUATOR
     start = cy;
     stop  = cy+ cn;
     event = cy+ cn+ cn;
-    strata = r;
+    strata = grpx;
 
     /*
     ** scratch space
@@ -139,7 +138,7 @@ S_EVALUATOR
     **  Set up the ragged arrays
     */
     if (se==1) oldx = dmatrix(cx, cn, nvar);
-    newx = dmatrix(r+n, n, nvar);
+    newx = dmatrix(r, n, nvar);
     imat = dmatrix(var,  nvar, nvar);
     surv = dmatrix(ssurv, npt, ncurve);
     vsurv = dmatrix(varh,  npt, ncurve);
