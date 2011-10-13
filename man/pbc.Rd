@@ -22,7 +22,7 @@ this version has fewer missing values.
 \format{
   \tabular{ll}{
     age:\tab in years\cr
-    albumin:\tab serum albumin (mg/dl)\cr
+    albumin:\tab serum albumin (g/dl)\cr
     alk.phos:\tab alkaline phosphotase (U/liter)\cr
     ascites:\tab presence of ascites \cr
     ast:\tab aspartate aminotransferase, once called SGOT (U/ml)\cr

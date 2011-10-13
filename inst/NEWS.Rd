@@ -2,6 +2,14 @@
 \title{NEWS file for the surival package}
 \section{Changes in version 2.36-10}{
   \itemize{
+    \item 30 Sept 2011: The na.action argument was being ignored in
+    predict.coxph; pointed out by Cindy Crowson.
+
+    \item The log-likelihood for survreg was incorrect when there are
+    case weights in the model.  The error is a fixed constant for any
+    given data set, so had no impact on tests or inferences.  The error
+    and correction were pointed out by Robert Kusher.
+    
     \item A variable name was incorrect in survpenal.fit.  This was in a
     program path that had never been traversed until Carina Salt used
     survreg with a psline(..., method='aic') call, leading to a
@@ -21,6 +29,10 @@
     cluster term was not dropped from the Terms object as it should have
     been, led to a spurious "variable not found" error.   Pointed out
     by Eva Bouguen.
+
+    \item If a coxph model with penalized terms (frailty, pspline) also
+    had a redundant covariate, the linear predictor would be returned as
+    NA.  Pointed out by Pavel Krivitsky.
 }}
 
 \section{Changes in version 2.36-9}{
