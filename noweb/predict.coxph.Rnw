@@ -31,12 +31,12 @@ The first task of the routine is to reconsruct necessary data elements
 that were not saved as a part of the [[coxph]] fit.  
 We will need the following components: 
 \begin{itemize}
-  \item for type=`expected' residuals we need the orignal survival y.  This
+  \item for type=`expected' residuals we need the orignal survival y.  This %'`
     is saved in coxph objects by default so will only need to be fetched in
     the highly unusual case that a user specfied [[y=FALSE]] in the orignal call.
   \item for any call with either newdata, standard errors,  or type='terms'
      the original $X$ matrix, weights, strata, and offset. 
-     When checking for the existence of a saved $X$ matrix we can't
+     When checking for the existence of a saved $X$ matrix we can't    %'
      use [[object$x]]
      since that will also match the [[xlevels]] component.
   \item the new data matrix, if any 
@@ -64,7 +64,7 @@ statement, offset, etc.
 The [[Terms2]] object is a model statement without the strata or cluster terms,
 appropriate for recreating the matrix of covariates $X$.
 For type=expected the response variable needs to be kept, if not we remove
-it as well since the user's newdata might not contain one.
+it as well since the user's newdata might not contain one.    %'
 <<pcoxph-init>>=
 if (!inherits(object, 'coxph'))
     stop("Primary argument much be a coxph object")
@@ -108,14 +108,14 @@ The next task of the routine is to reconsruct necessary data elements
 that were not saved as a part of the [[coxph]] fit.  
 We will need the following components: 
 \begin{itemize}
-  \item for type=`expected' residuals we need the orignal survival y.  This
+  \item for type=`expected' residuals we need the orignal survival y.  This %'`
     is saved in coxph objects by default so will only need to be fetched in
     the highly unusual case that a user specfied [[y=FALSE]] in the orignal 
     call.
   \item for any call with either newdata, standard errors,  strata, 
     or type='terms'
      the original $X$ matrix, weights, strata, and offset. 
-     When checking for the existence of a saved $X$ matrix we can't 
+     When checking for the existence of a saved $X$ matrix we can't        %'
      use [[object$x]]
      since that will also match the [[xlevels]] component.
   \item the new data matrix, if present, along with offset and strata.
@@ -202,9 +202,10 @@ argument.  Note that terms2 may have fewer variables than the
 original model: no cluster and if type!= expected no response.
 <<pcoxph-getdata>>=
 if (!missing(newdata)) {
-    tcall <- Call[c(1, match('newdata', names(Call), nomatch=0))]
+    tcall <- Call[c(1, match("newdata", names(Call), nomatch=0))]
     names(tcall)[2] <- 'data'  #rename newdata to data
     tcall$formula <- Terms2  #version with no response
+    tcall$na.action <- na.action #always present, since there is a default
     tcall[[1]] <- as.name('model.frame')  # change the function called
     tcall$xlev <- object$xlevels
     if (is.R()) mf2 <- eval(tcall, parent.frame())

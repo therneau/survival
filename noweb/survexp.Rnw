@@ -297,8 +297,8 @@ returns a vector of expected values rather than survival curves.
 if (!cohort) { #individual survival
     if (no.Y) stop("For non-cohort, an observation time must be given")
     if (israte)
-	 temp <- survexp.fit (cbind(1:n,R), Y, max(Y), TRUE, ratetable)
-    else temp<- survexp.cfit(cbind(1:n,R), Y, FALSE, TRUE, ratetable, FALSE)
+	 temp <- survexp.fit (1:n, R, Y, max(Y), TRUE, ratetable)
+    else temp<- survexp.cfit(1:n, R, Y, FALSE, TRUE, ratetable, FALSE)
     xx <- temp$surv
     names(xx) <- row.names(m)
     na.action <- attr(m, "na.action")
@@ -330,10 +330,10 @@ else {
 
 #do the work
 if (israte)
-    temp <- survexp.fit(cbind(as.numeric(X),R), Y, newtime,
+    temp <- survexp.fit(as.numeric(X), R, Y, newtime,
 		       conditional, ratetable)
 else {
-    temp <- survexp.cfit(cbind(as.numeric(X),R), Y, conditional, FALSE,
+    temp <- survexp.cfit(as.numeric(X), R, Y, conditional, FALSE,
 		       ratetable, se.fit=se.fit)
     newtime <- temp$times
     }
