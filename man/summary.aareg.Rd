@@ -70,7 +70,8 @@ of the effect.  For instance when two models include a common variable,
 "age" for instance, this may help to assess how much the fit changed due
 to the other variables, in leiu of overlaying the two plots.  (Of course
 the plots are often highly non-linear, so it is only a rough substitute).
-The slope is not directly related to the test statistic.
+The slope is not directly related to the test statistic, as the latter
+is invariant to any monotone transformation of time.
 }
 \seealso{
 aareg, plot.aareg
