@@ -17,7 +17,11 @@ R/survConcordance.*
 R/survexp.R
 R/survfit.coxph.R
 R/survfitcoxph.*R
+R/survfit.
 noweb/.*.pdf
 noweb/figures/.*.pdf
 noweb/.*.aux
+inst/doc/.*aux
+inst/doc/.*log
+inst/doc/all.pdf
 

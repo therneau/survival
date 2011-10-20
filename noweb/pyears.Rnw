@@ -366,7 +366,7 @@ na.action <- attr(m, "na.action")
 if (length(na.action))  out$na.action <- na.action
 if (model) out$model <- m
 else {
-    if (x) out$x <- cbind(X, R)
+    if (x) out$x <- X
     if (y) out$y <- Y
     }
 oldClass(out) <- 'pyears'

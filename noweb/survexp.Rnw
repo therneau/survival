@@ -108,7 +108,8 @@ through'' the model.frame logic.  With the recent updates to coxph so that it
 remembers factor codings correctly in new data sets, it is advantageous to
 keep factors as factors.  
 The second is that a coxph model with a large number of covariates induces a
-very long ratetable clause; at about 40 variable it causes one of the R internal
+very long ratetable clause; at about 40 variable it caused one of the 
+R internal
 routines to fail due to a long expression.
 A third reason, perhaps the most pressing in reality, is that I've always    %'
 felt that the prior code was confusing since it used the same term 'ratetable'
@@ -139,7 +140,7 @@ else         m <- eval(m, sys.parent())
 <<survexp-setup-rmap>>= 
 if(length(rate) == 1) {
     if (!missing(rmap)) 
-        stop("The ratetable() call in the formula is depreciated")
+        stop("The ratetable() call in a formula is depreciated")
 
     stemp <- untangle.specials(Terms, 'ratetable')
     rcall <- as.call(parse(text=stemp$var)[[1]])   # as a call object
@@ -397,8 +398,7 @@ output.
 <<survexp-finish>>=
 if (model) out$model <- m
 else {
-    if (x) out$x <- structure(cbind(X, R),
-	dimnames=list(row.names(m), c("group", varlist ))) ### was dimid)))
+    if (x) out$x <- X
     if (y) out$y <- Y
     }
 if (israte && !is.null(rtemp$summ)) out$summ <- rtemp$summ

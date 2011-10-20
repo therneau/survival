@@ -65,13 +65,6 @@ void agsurv2(Sint   *sn,      Sint   *snvar,    double *y,
 	     Sint   *snsurv,  double *d,        Sint   *sncurve,
              double *newx,    double *newrisk);
 
-void agsurv3(Sint   *sn,    Sint   *snvar,    Sint   *sncurve, 
-	     Sint   *snpt,  Sint   *sse,      double *score, 
-	     double *sy,    double *r,        double *coef, 
-	     double *var,   double *cmean,    Sint   *scn, 
-	     double *cy,    double *cx,       double *ssurv,
-	     double *varh,  double *sused,    Sint   *smethod);
-
 void chinv2  (double **matrix, int n);
 int cholesky2(double **matrix, int n, double toler);
 void chsolve2(double **matrix, int n, double *y);
@@ -153,12 +146,6 @@ void pyears2(Sint   *sn,      Sint   *sny,   Sint   *sdoevent,
 	     Sint   *odims,   double *socut, double *sodata,
 	     double *pyears,  double *pn,    double *pcount, 
 	     double *offtable);
-
-void pyears3(Sint   *sdeath,    Sint   *sn,    Sint   *sedim, 
-	     Sint   *efac,      Sint   *edims, double *secut, 
-	     double *expect,    double *sx,    double *y, 
-	     Sint   *sntime,    Sint   *sngrp, double *times,
-	     double *esurv,     Sint   *nsurv);
 
 double pystep(int nc,        int  *index,  int  *index2,   double *wt, 
 	      double *data,  Sint *fac,    Sint *dims,     double **cuts, 

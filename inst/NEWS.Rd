@@ -1,5 +1,12 @@
 \name{NEWS}
 \title{NEWS file for the surival package}
+\section{Changes in versoin 2.36-11}{
+  \itemize{
+    \item Make survexp more efficient.  The X matrix was being modified
+    in several places, leading to multiple copies of the data.  When the
+    data set was large this would lead to a memory shortage.
+}}
+
 \section{Changes in version 2.36-10}{
   \itemize{
     \item 30 Sept 2011: The na.action argument was being ignored in

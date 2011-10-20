@@ -67,7 +67,8 @@ survexp.cfit <- function(group, x, y, death, individual, cox, se.fit, method) {
     group <- group - min(group)
     n <- nrow(x)
     ncurve <- length(unique(group))
-    npt <- length(unique(cy[cy[,3]==1,2]))  #unique death times
+    utimes <- unique(cy[cy[,3]==1,2])
+    npt <- length(utimes)  #unique death times
     storage.mode(cy) <- 'double'
     xxx  <- .C('agsurv3', as.integer(n),
 			  as.integer(nvar),
@@ -82,17 +83,17 @@ survexp.cfit <- function(group, x, y, death, individual, cox, se.fit, method) {
 			  cox$var,
 			  cox$means,
 			  as.integer(cn),
-			  cy = cy,
+			  cy,
 			  as.double(cx),
 			  surv = matrix(0.0, npt, ncurve),
 			  varhaz = matrix(0.0, npt, ncurve),
 			  nrisk  = matrix(0.0, npt, ncurve),
-			  as.integer(method))
+			  as.integer(method), DUP=FALSE)
 
     surv <- apply(xxx$surv, 2, cumprod)
     if (se.fit)
-	list(surv=surv, n=xxx$nrisk, times=xxx$cy[1:npt,1],
+	list(surv=surv, n=xxx$nrisk, times=utimes,
 			se=sqrt(xxx$varhaz)/surv)
     else
-	list(surv=surv, n=xxx$nrisk, times=xxx$cy[1:npt,1] )
+	list(surv=surv, n=xxx$nrisk, times=utimes )
     }
