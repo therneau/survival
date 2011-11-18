@@ -71,7 +71,7 @@ double survregc1(int n,          int nvar,      int nstrat,     int whichcase,
     double  sz;
     double  sig2;
     double  funs[4], ufun[4];
-    int     fgrp;
+    int     fgrp =0;        /* the =0 to quiet a compiler warning */
     double  w;
     /* add "=0" to keep the compiler from worrying about uninitialized vars */
     double g=0, dg=0, ddg=0, dsig=0, ddsig=0, dsg=0;

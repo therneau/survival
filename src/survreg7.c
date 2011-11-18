@@ -188,6 +188,7 @@ SEXP survreg7(SEXP maxiter2,   SEXP nvarx,  SEXP y,
     if (ny==2) {
 	time1= REAL(y);
 	status = time1 +n;
+        time2 = NULL;       /*quiet a compiler warning*/
 	}
     else {
 	time1= REAL(y);

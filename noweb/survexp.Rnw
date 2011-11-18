@@ -137,7 +137,7 @@ if(length(rate) > 1)
 if (is.R())  m <- eval(m, parent.frame())
 else         m <- eval(m, sys.parent())
 @ 
-<<survexp-setup-rmap>>= 
+<<survexp-setup-rmap>>=
 if(length(rate) == 1) {
     if (!missing(rmap)) 
         stop("The ratetable() call in a formula is depreciated")
@@ -152,7 +152,7 @@ else if (!missing(rmap)) {
     if (!is.call(rcall) || rcall[[1]] != as.name('list'))
         stop ("Invalid rcall argument")
     }
-else rcall <- NULL
+else rcall <- NULL   # A ratetable, but not rcall argument
 
 # Check that there are no illegal names in rcall, then expand it
 #  to include all the names in the ratetable
@@ -163,6 +163,7 @@ else if(inherits(ratetable, "coxph")) {
     varlist <- all.vars(delete.response(ratetable$terms))
     }
 else stop("Invalid rate table")
+
 temp <- match(names(rcall)[-1], varlist) # 2,3,... are the argument names
 if (any(is.na(temp)))
     stop("Variable not found in the ratetable:", (names(rcall))[is.na(temp)])

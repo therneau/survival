@@ -38,7 +38,7 @@ if TRUE, pointwise standard errors are produced for the predictions.
   the missing value action for the new data.  The default is to include
   all observations.
   When there is no newdata, then the behavior of missing is dictated by
-  the na.action option of the original fit.
+  the na.action option of the original fit.}
 \item{terms}{
 if type="terms", this argument can be used to specify which terms should be 
 included; the default is all. 

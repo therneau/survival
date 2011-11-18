@@ -55,7 +55,7 @@ if (any(attr(Terms, 'order') >1))
         stop("Pyears cannot have interaction terms")
 
 rate <- attr(Terms, "specials")$ratetable                   
-if (length(rate) >0 || !missing(rmap)) {
+if (length(rate) >0 || !missing(rmap) || !missing(ratetable)) {
     has.ratetable <- TRUE
     if(length(rate) > 1)
         stop("Can have only 1 ratetable() call in a formula")

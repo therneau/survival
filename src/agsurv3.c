@@ -119,7 +119,7 @@ void agsurv3(Sint   *sn,    Sint   *snvar,    Sint   *sncurve,
     nscore = (double *) ALLOC(need, sizeof(double));
     for (i=0; i<need; i++) nscore[i] =0.0;  /* R doesn't zero the memory */
     mean = nscore +n;
-    isurv  = mean + n;
+    isurv  = mean + nvar;
     for (i=0; i<n; i++) isurv[i]=1;
     if (se==1) {
 	a = isurv + n;
