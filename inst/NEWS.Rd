@@ -1,10 +1,17 @@
 \name{NEWS}
 \title{NEWS file for the surival package}
-\section{Changes in versoin 2.36-11}{
+\section{Changes in version 2.36-11}{
   \itemize{
     \item Make survexp more efficient.  The X matrix was being modified
     in several places, leading to multiple copies of the data.  When the
     data set was large this would lead to a memory shortage.
+
+    \item Add the quantile.survfit function.  This allows a user to
+    extract arbitrary quantiles from a fitted curve (and std err).
+
+    \item Fix an error in predict.coxph.  When the model had a strata
+    and the newdata and reference="sample" arguements were used, it
+    would (incorrectly) ask for a strata variable in the new data set.
 }}
 
 \section{Changes in version 2.36-10}{
