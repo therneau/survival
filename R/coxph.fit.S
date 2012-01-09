@@ -14,7 +14,7 @@ coxph.fit <- function(x, y, strata, offset, init, control,
     if (length(strata)==0) {
 	sorted <- order(time)
         strata <- NULL
-	newstrat <- as.integer(rep(0,n))
+	newstrat <- as.integer(rep(0,n))2
 	}
     else {
 	sorted <- order(strata, time)

@@ -1,5 +1,6 @@
 PARTS = main.Rnw \
 	coxph.Rnw \
+	exact.Rnw \
 	coxsurv.Rnw \
 	coxsurv2.Rnw \
 	predict.coxph.Rnw \
@@ -19,7 +20,9 @@ SFUN =  agsurv.R \
 	survfit.coxph.R \
 	survfitcoxph.fit.R
 
-CFUN =  agsurv4.c agsurv5.c concordance1.c coxcount1.c
+CFUN =  agsurv4.c agsurv5.c concordance1.c coxcount1.c \
+        coxexact.c
+
 RDIR = ../R
 RFUN = $(SFUN:%=$(RDIR)/%)
 CFUN2= $(CFUN:%=../src/%)
