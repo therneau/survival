@@ -11,6 +11,6 @@ coxph.control <- function(eps=1e-9,
     if (eps <= toler.chol) 
 	    warning("For numerical accuracy, tolerance should be < eps")
     if (toler.inf <=0) stop ("The inf.warn setting must be >0")
-    list(eps=eps, toler.chol=toler.chol, iter.max=iter.max, 
-	 toler.inf=toler.inf, outer.max=outer.max)
+    list(eps=eps, toler.chol=toler.chol, iter.max=as.integer(iter.max), 
+	 toler.inf=toler.inf, outer.max=as.integer(outer.max))
     }
