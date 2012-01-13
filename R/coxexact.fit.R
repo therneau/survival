@@ -40,26 +40,34 @@ coxexact.fit <- function(x, y, strata, offset, init, control,
     # Prescale the data set to improve numerical accuracy.
     #  We will undo the scaling before finishing up.
     newx <- scale(x)
-    
-    cfit <- .Call("Coxexact", 
-                  as.integer(maxiter),
+#    newx <- scale(x, scale=NULL)  #debug
+    rescale <- attr(newx, "scaled:scale")
+    means   <- attr(newx, "scaled:center")
+
+    cfit <- .Call("coxexact", 
+                  as.integer(control$iter.max),
                   as.double(y),  # interger data?  Just in case.
                   newx,
                   as.double(offset),
                   as.integer(newstrat),
-                  as.double(init),
+                  as.double(init*rescale),
                   as.double(control$eps),
                   as.double(control$toler.chol)
               )
 
-    var <- matrix(agfit$imat,nvar,nvar)
-    coef <- agfit$coef
-    if (agfit$flag < nvar) which.sing <- diag(var)==0
+    loglik <- cfit$loglik[1:2]  #these are packed into one vector
+    sctest <- cfit$loglik[3]
+    iter <- cfit$loglik[5]
+    flag <- cfit$loglik[4]
+    var <- matrix(cfit$imat,nvar,nvar)
+    coef <- cfit$coef
+
+    if (flag < nvar) which.sing <- diag(var)==0
     else which.sing <- rep(FALSE,nvar)
 
-    infs <- abs(agfit$u %*% var)
+    infs <- abs(cfit$u %*% var)
     if (control$iter.max >1) {
-	if (agfit$flag == 1000)
+	if (flag == 1000)
 	       warning("Ran out of iterations and did not converge")
 	    else {
 		infs <- ((infs > control$eps) & 
@@ -72,30 +80,36 @@ coxexact.fit <- function(x, y, strata, offset, init, control,
 	}
 
     names(coef) <- dimnames(x)[[2]]
-    lp  <- x %*% coef + offset - sum(coef *agfit$means)
-    score <- as.double(exp(lp[sorted]))
-    agres <- .C("agmart",
+    lp  <- newx %*% coef + offset 
+    score <- as.double(exp(lp))
+
+    # The coxmart call expects data in time order, this
+    #  routine has it in reverse time order
+    cxres <- .C("coxmart",
 		   as.integer(n),
-		   as.integer(0),
-		   sstart, sstop,
-		   sstat,
-		   score,
-		   rep(1.0, n),
-		   newstrat,
-		   resid=double(n),
-                   PACKAGE = 'survival')
+		   as.integer(0),   #method
+		   rev(as.double(y[,1])),
+		   rev(as.integer(y[,2])),
+                   rev(newstrat),
+                   rev(score),
+                   rep(1.0, n),  #weights
+                   resid=double(n),
+                   DUP=FALSE)
+
     resid <- double(n)
-    resid[sorted] <- agres$resid
+    resid[sorted] <- rev(cxres$resid)
     names(resid) <- rownames
     coef[which.sing] <- NA
 
-    list(coefficients  = coef,
-		var    = var,
-		loglik = agfit$loglik,
-		score  = agfit$sctest,
-		iter   = agfit$iter,
+    scmat <- diag(1/rescale, nvar,nvar)
+browser()
+    list(coefficients  = coef/rescale,
+		var    = scmat %*% var %*% scmat,
+		loglik = loglik,
+		score  = sctest,
+		iter   = iter,
 		linear.predictors = lp,
 		residuals = resid,
-		means = agfit$means,
+		means = means,
 		method= 'coxph')
     }

@@ -45,13 +45,15 @@ The intial condition $D(0,n)=1$ is important to all three routines.
 
 <<excox-recur>>=
 double coxd0(int d, int n, double *score, double *dmat,
-             int nrow) {
+             int dmax) {
     double *dn;
+    
     if (d==0) return(1.0);
-    dn = dmat + (n-1)*nrow + d -1;  /* pointer to dmat[d][n] */
+    dn = dmat + (n-1)*dmax + d -1;  /* pointer to dmat[d][n] */
+
     if (*dn ==0) {  /* still to be computed */
-	*dn = score[n-1]* coxd0(d-1, n-1, score, dmat, nrow);
-    	if (d<n) *dn += coxd0(d, n-1, score, dmat, nrow);
+        *dn = score[n-1]* coxd0(d-1, n-1, score, dmat, dmax);
+    	if (d<n) *dn += coxd0(d, n-1, score, dmat, dmax);
     }
     return(*dn);
 }
@@ -63,36 +65,43 @@ coefficient. It will be called separately and with a separate array
 The second derivative calculation is per pair of variables; the
 \texttt{d1j} and \texttt{d1k} arrays are the appropriate first derivative
 arrays of saved values.
+It is possible for the first derivative to be exactly 0 (if all values
+of the covariate are 0 for instance) in which case we will recalculate the
+value multiple times unneccarily, since we are using value=0 as a marker for
+``not yet computed''.           
+This case is essentially nonexistent in real data, however.
 
 <<excox-recur>>=
 double coxd1(int d, int n, double *score, double *dmat, double *d1,
-	     double *covar, int nrow) {
+	     double *covar, int dmax) {
+    int indx;
     
-    indx = (n-1)*nrow + d -1;  /*index to the current array member d1[d][n]*/
+    indx = (n-1)*dmax + d -1;  /*index to the current array member d1[d][n]*/
     if (d1[indx] ==0) { /* still to be computed */
-	d1[indx] = score[n-1]* covar[n-1]* coxd0(d-1, n-1, score, dmat, nrow);
-	if (d<n) d1[indx] += coxd1(d, n-1, score, dmat, d1, covar, nrow);
+	d1[indx] = score[n-1]* covar[n-1]* coxd0(d-1, n-1, score, dmat, dmax);
+	if (d<n) d1[indx] += coxd1(d, n-1, score, dmat, d1, covar, dmax);
 	if (d>1) d1[indx] += score[n-1]*
-	                coxd1(d-1, n-1, score, dmat, d1, covar, nrow);
+	                coxd1(d-1, n-1, score, dmat, d1, covar, dmax);
     }
     return(d1[indx]);
 }
 
 double coxd2(int d, int n, double *score, double *dmat, double *d1j,
              double *d1k, double *d2, double *covarj, double *covark,
-             int nrow) {
+             int dmax) {
     int indx;
     
-    indx <- (n-1)*nrow + d -1;  /*index to the current array member d1[d][n]*/
+    indx = (n-1)*dmax + d -1;  /*index to the current array member d1[d][n]*/
     if (d2[indx] ==0) { /*still to be computed */
-	d2[indx] = coxd0(d-1, n-1, scorfe, dmat, nrow)*score[n-1] *
+	d2[indx] = coxd0(d-1, n-1, score, dmat, dmax)*score[n-1] *
 	    covarj[n-1]* covark[n-1];
-	if (d<n) d2[index] += coxd2(d, n-1, score, dmat, d1j, d1k, d2, covarj, 
-				  covark, nrow);
-	if (d>1) d2[index] += score[indx] * (
-	    coxd2(d-1, n-1, score, dmat, d1j, d1k, d2, covarj, covark, nrow) +
-	    covarj[n-1] * coxd1(d-1, n-1, dmat, d1j, covarj, nrow)+
-	    covark[n-1] *coxd1(d-1, n-1, dmat, d1j, covarj, nrow));
+	if (d<n) d2[indx] += coxd2(d, n-1, score, dmat, d1j, d1k, d2, covarj, 
+				  covark, dmax);
+	if (d>1) d2[indx] += score[n-1] * (
+	    coxd2(d-1, n-1, score, dmat, d1j, d1k, d2, covarj, covark, dmax) +
+	    covarj[n-1] * coxd1(d-1, n-1, score, dmat, d1j, covarj, dmax) +
+	    covark[n-1] * coxd1(d-1, n-1, score, dmat, d1k, covark, dmax));
+	printf(" d=%d, n=%d, d2=%f\n", d, n, d2[indx]);
 	}
     return(d2[indx]);
 }
@@ -108,40 +117,52 @@ All other input arguments are treated as read only.
 #include <math.h>
 #include "survS.h"
 #include "survproto.h"
+#include <R_ext/Utils.h>
 
-<<agcox-recur>>
+<<excox-recur>>
 
 SEXP coxexact(SEXP maxiter2,  SEXP y2, 
-	      SEXP covar2,    SEXP offset2, SEXP ibeta,
-	      SEXP strata2,   SEXP eps2,    SEXP toler2) {
-    int i,j,k, person;
+	      SEXP covar2,    SEXP offset2, SEXP strata2,
+	      SEXP ibeta,     SEXP eps2,    SEXP toler2) {
+    int i,j,k;
     int     iter;
     
     double **covar, **imat;  /*ragged arrays */
     double *time, *status;   /* input data */
+    double *offset;
     int    *strata;
-    double *a, *newbeta;
-    double  zbeta, risk;
-    double  ndead;
+    int    sstart;   /* starting obs of current strata */
+    double *score;
+    double *oldbeta;
+    double  zbeta;
     double  newlk=0;
+    double  temp;
     int     halving;    /*are we doing step halving at the moment? */
     int     nrisk;   /* number of subjects in the current risk set */
-  
+    int dsize,       /* memory needed for one coxc0, coxc1, or coxd2 array */
+	dmemtot,     /* amount needed for all arrays */
+	maxdeath,    /* max tied deaths within a strata */
+	ndeath;      /* number of deaths at the current time point */
+    double dtime;    /* time value under current examiniation */
+    double *dmem0, **dmem1, *dmem2; /* pointers to memory */
+    double *dtemp;   /* used for zeroing the memory */
+    double *d1;     /* current first derivatives from coxd1 */
+    double d0;      /* global sum from coxc0 */
+        
     /* copies of scalar input arguments */
-    int     n, nvar, maxiter;
+    int     nused, nvar, maxiter;
     double  eps, toler;
     
     /* returned objects */
-    SEXP imat2, means2, beta2, u2, loglik2;
+    SEXP imat2, beta2, u2, loglik2;
     double *beta, *u, *loglik;
     SEXP rlist, rlistnames;
     int nprotect;  /* number of protect calls I have issued */
     
     <<excox-setup>>
     <<excox-strata>>	  
-    <<excox-iter1>>
+    <<excox-iter0>>
     <<excox-iter>>
-    <<excox-finish>>
     }
 @ 
 
@@ -149,9 +170,8 @@ Setup is ordinary.  Grab S objects and assign others.
 I use \verb!R_alloc! for temporary ones since it is released automatically on
 return.
 <<excox-setup>>=
-nused = LENTGH(covar2);
-nvar  = NCOL(covar2);
-method = asInteger(method2);
+nused = LENGTH(offset2);
+nvar  = ncols(covar2);
 maxiter = asInteger(maxiter2);
 eps  = asReal(eps2);     /* convergence criteria */
 toler = asReal(toler2);  /* tolerance for cholesky */
@@ -162,8 +182,13 @@ toler = asReal(toler2);  /* tolerance for cholesky */
 */
 covar= dmatrix(REAL(covar2), nused, nvar);
 time = REAL(y2);
-status = y2 +n;
+status = time +nused;
 strata = INTEGER(PROTECT(duplicate(strata2)));
+offset = REAL(offset2);
+
+/* temporary vectors */
+score = (double *) R_alloc(nused+nvar, sizeof(double));
+oldbeta = score + nused;
 
 /* 
 ** create output variables
@@ -202,46 +227,44 @@ strata has the number of events, last has -1;
 
 <<excox-strata>>= 
 strata[0] =1;  /* in case the parent forgot */
-dmem = 0;
-temp =0;
+dsize = 0;
+
 maxdeath =0;
 j=0;   /* start of the strata */
-for (i=0; i<n;) {
+for (i=0; i<nused;) {
   if (strata[i]==1) { /* first obs of a new strata */
       if (i>0) {
-	  strata[j] = temp; /* number of deaths in the strata */
+	  strata[j] = maxdeath; /* number of deaths in the strata */
           strata[i-1] = -1;  /* marks the last obs of a strata */
 	  j = i;
-	  if (temp*nrisk >dmem) dmem = temp*nrisk;
+	  if (maxdeath*nrisk >dsize) dsize = maxdeath*nrisk;
           }
-      if (temp > maxdeath) maxdeath = temp;
-      temp=0;
+      maxdeath =0;  /* max tied deaths at any time in this strata */
       nrisk=0;
       ndeath =0;
       }
   dtime = time[i];
-  while (i<n && time[i] ==dtime) {
+  ndeath =0;  /*number tied here */
+  while (i<nused && time[i] ==dtime) {
       nrisk++;
       ndeath += status[i];
       i++;
       }
-  if (ndeath > temp) temp=ndeath;
+  if (ndeath > maxdeath) maxdeath=ndeath;
   }
-if (temp*nrisk >dmem) dmem = temp*nrisk;
-if (temp > maxdeath) maxdeath=temp;
-mstrata[j] = temp;
+if (maxdeath*nrisk >dsize) dsize = maxdeath*nrisk;
+strata[j] = maxdeath;
 
 /* Now allocate memory for the scratch arrays 
-   Each per-variable slice is of size dmem 
+   Each per-variable slice is of size dsize 
 */
-dmemtot = dmem * (nvar*(nvar+1))/2 + nvar + 1;
-dmem0 = (double *) Calloc(dmemtot, sizeof(double)); /*pointer to memory */
-dmem1 = (double **) Calloc(nvar, sizeof(double*));
-dmem1[0] = dmem0 + dmem; /*points to the first derivative mem */
-for (i=1; i<nvar; i++) dmem1[i] = dmem1[i-1] + dmem;
-dmem2 = dmem1[nvar-1] + dmem;  /* second derivatives */
+dmemtot = dsize * ((nvar*(nvar+1))/2 + nvar + 1);
+dmem0 = (double *) R_alloc(dmemtot, sizeof(double)); /*pointer to memory */
+dmem1 = (double **) R_alloc(nvar, sizeof(double*));
+dmem1[0] = dmem0 + dsize; /*points to the first derivative memory */
+for (i=1; i<nvar; i++) dmem1[i] = dmem1[i-1] + dsize;
 
-d1 = (double *) Calloc(nvar, sizeof(double)); /*first deriv results */
+d1 = (double *) R_alloc(nvar, sizeof(double)); /*first deriv results */
 @
 
 Here is a standard iteration step. Walk forward to a new time,
@@ -258,52 +281,59 @@ first, and second derivatives at this time point are
      \frac{\partial D(d,n)}{\partial \beta_k} D^{-2}(d,n)
 \end{align}
 
+Even the efficient calculation can be compuatationally intense, so check for
+user interrupt requests on a regular basis.
 <<excox-addup>>=
-for (i=0; i<n; ) {
+for (i=0; i<nused; ) {
     if (strata[i] >0) { /* first obs of a new strata */
         maxdeath= strata[i];
-        dtemp = dptr;
+        dtemp = dmem0;
         for (j=0; j<dmemtot; j++) *dtemp++ =0.0;
 	sstart =i;
 	nrisk =0;
     }
     
-    xtime = time[i];  /*current unique time */
+    dtime = time[i];  /*current unique time */
     ndeath =0;
-    while (time[i] == xtime) {
-	zbeta=0;
+    while (time[i] == dtime && i<nused) {
+	zbeta= offset[i];
 	for (j=0; j<nvar; j++) zbeta += covar[j][i] * beta[j];
 	score[i] = exp(zbeta);
 	if (status[i]==1) {
-	    newlik += zbeta;
+	    newlk += zbeta;
 	    for (j=0; j<nvar; j++) u[j] += covar[j][i];
 	    ndeath++;
-	    }
+        }
 	nrisk++;
 	i++;
 	if (strata[i] <0) break; /* last obs of a strata */
-    	}
-    
+    }
+
     /* We have added up over the death time, now process it */
     if (ndeath >0) { /* Add to the loglik */
 	d0 = coxd0(ndeath, nrisk, score+sstart, dmem0, maxdeath);
-	newlik -= log(d0);
-	dmem2 = dmem0 + (nvar+1)*dsize;  /* start for the second deriv memory */
+	R_CheckUserInterrupt();
+	newlk -= log(d0);
+	dmem2 = dmem0 + (nvar+1)*dsize;  /*start for the second deriv memory */
 	for (j=0; j<nvar; j++) { /* for each covariate */
-	    dtemp += dsize; /*memory for jth derivative */
 	    d1[j] = coxd1(ndeath, nrisk, score+sstart, dmem0, dmem1[j], 
-                       covar[j]+sstart, maxdeath) / d0;
+			  covar[j]+sstart, maxdeath) / d0;
+	    if (ndeath > 2) R_CheckUserInterrupt();
 	    u[j] -= d1[j];
 	    for (k=0; k<= j; k++) {  /* second derivative*/
+		printf("ndeath= %d, j=%d, k=%d\n", ndeath, j, k);
 		temp = coxd2(ndeath, nrisk, score+sstart, dmem0, dmem1[j],
-			     dmem1[k], dmem22, covar[j] + sstart, 
-                             covar[k] + sstart, maxdeath);
-		imat[j][k] += temp/d0 - d1[j]*d1[k];
+			     dmem1[k], dmem2, covar[j] + sstart, 
+			     covar[k] + sstart, maxdeath);
+		if (ndeath > 5) R_CheckUserInterrupt();
+		imat[k][j] += temp/d0 - d1[j]*d1[k];
+		printf("d2=%f, d1=%f, d1=%f, imat=%f\n", temp, d1[j], d1[k],
+		       imat[k][j]);
 		dmem2 += dsize;
-		}
 	    }
 	}
     }
+ }
 @ 
         
 Do the first iteration of the solution.  The first iteration is
@@ -316,7 +346,7 @@ we pay no attention to convergence criteria or diagnositics.
 /*
 ** do the initial iteration step
 */
-newlik =0;
+newlk =0;
 for (i=0; i<nvar; i++) {
     u[i] =0;
     for (j=0; j<nvar; j++)
@@ -325,17 +355,17 @@ for (i=0; i<nvar; i++) {
 <<excox-addup>>
 
 loglik[0] = newlk;   /* save the loglik for iteration zero  */
-loglik[1] = newlik;  /* and it is our current best guess */
+loglik[1] = newlk;  /* and it is our current best guess */
 /* 
 **   update the betas and compute the score test 
 */
 for (i=0; i<nvar; i++) /*use 'd1' as a temp to save u0, for the score test*/
     d1[i] = u[i];
 
-loglik[3] = cholesky2(imat, nvar, *tol_chol);
-chsolve2(imat,nvar,d1);        /* u replaced by  u *inverse(imat) */
+loglik[3] = cholesky2(imat, nvar, toler);
+chsolve2(imat,nvar, u);        /* u replaced by  u *inverse(imat) */
 
-loglik[2] =0;
+loglik[2] =0;                  /* score test stored here */
 for (i=0; i<nvar; i++)
     loglik[2] +=  u[i]*d1[i];
 
@@ -343,6 +373,7 @@ if (maxiter==0) {
     iter =0;  /*number of iterations */
     <<excox-finish>>
     }
+
 /*
 **  Never, never complain about convergence on the first step.  That way,
 **  if someone has to they can force one iter at a time.
@@ -359,7 +390,7 @@ beta:
 \begin{enumerate}
   \item Compute the loglik, first, and second derivatives
   \item If the loglik has converged, return beta and information
-    about it.  Don't update beta.
+    about it.  Don't update beta.          %'
   \item If not converged
     \begin itemize
       \item If The loglik got worse try beta= (beta + oldbeta)/2
@@ -369,7 +400,7 @@ beta:
 
 <<excox-iter>>=
 halving =0 ;             /* =1 when in the midst of "step halving" */
-for (iter=1; iter<=*maxiter; iter++) {
+for (iter=1; iter<=maxiter; iter++) {
     newlk =0;
     for (i=0; i<nvar; i++) {
         u[i] =0;
@@ -381,14 +412,14 @@ for (iter=1; iter<=*maxiter; iter++) {
     /* am I done?
     **   update the betas and test for convergence
     */
-    loglik[3] = cholesky2(imat, nvar, *tol_chol); 
+    loglik[3] = cholesky2(imat, nvar, toler); 
 
-    if (fabs(1-(loglik[1]/newlk))<=*eps && halving==0) { /* all done */
+    if (fabs(1-(loglik[1]/newlk))<= eps && halving==0) { /* all done */
         loglik[1] = newlk;
        <<excox-finish>>
         }
 
-    if (iter==*maxiter) break;  /*skip the step halving and etc */
+    if (iter==maxiter) break;  /*skip the step halving and etc */
 
     if (newlk < loglik[1])   {    /*it is not converging ! */
     	halving =1;
@@ -414,7 +445,6 @@ for (iter=1; iter<=*maxiter; iter++) {
 loglik[1] = newlk;
 loglik[3] = 1000;  /* signal no convergence */
 <<excox-finish>>
-}
 @
 
 The common code for finishing.  Invert the information matrix, copy it
