@@ -46,12 +46,10 @@ aeq(resid(fit2)[-2], c(0, 2/3, -1/3, -4/3,  1, 0))  #values from the book
 # Now a multivariate case: start/stop data uses a different C routine
 #
 zz <- rep(0, nrow(lung))
-fit1 <- coxph(Surv(time, status) ~ age + ph.ecog + sex, lung, method="exact",
-              iter=0)
+fit1 <- coxph(Surv(time, status) ~ age + ph.ecog + sex, lung, method="exact")
 fit2 <- coxph(Surv(zz, time, status) ~ age + ph.ecog + sex, lung,
-              method="exact", iter=0)
+              method="exact")
 aeq(fit1$loglik, fit2$loglik)
 aeq(fit1$var, fit2$var)
-
-fit1x <-  coxph(Surv(time, status) ~ age + ph.ecog + sex, lung, method="exact",
-                iter=3)
+aeq(fit1$score, fit2$score)
+aeq(fit1$resid, fit2$resid)

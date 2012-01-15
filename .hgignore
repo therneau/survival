@@ -22,4 +22,4 @@ noweb/.*.pdf
 noweb/figures/.*.pdf
 noweb/.*.aux
 inst/doc/
-
+test.local

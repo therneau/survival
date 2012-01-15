@@ -102,7 +102,6 @@ coxexact.fit <- function(x, y, strata, offset, init, control,
     coef[which.sing] <- NA
 
     scmat <- diag(1/rescale, nvar,nvar)
-browser()
     list(coefficients  = coef/rescale,
 		var    = scmat %*% var %*% scmat,
 		loglik = loglik,
