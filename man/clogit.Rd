@@ -36,19 +36,27 @@ clogit(formula, data, method=c("exact", "approximate", "efron", "breslow"),
   The computation of the exact partial likelihood can be very slow,
   however.  If a particular strata had say 10 events out of 20 subjects
   we have to add up a denominator that involves all possible ways of
-  choosing 10 out of 20, which is 20!/(10! 10!) = 184756 terms.  Most of
-  the time conditional logistic is run on case/control pairs or
-  k-matched data (case + k controls) which involves choosing 1 out of k,
-  so the issue does not arise.  Normally the Efron or Brelsow
-  approximation
-  will be adequate -- they are identical in the 1 of k case.  The
-  Efron will be superior, but the 'appoximate' option maps to the
+  choosing 10 out of 20, which is 20!/(10! 10!) = 184756 terms. (Gail et
+  al describe a fast recursion method, which largely ameleorates 
+  this however; 
+  it was incorporated into version 2.36-11 of the survival package.)
+  However, most of the time conditional logistic modeling 
+  is applied to case/control pairs or
+  k-matched data (case + k controls), 
+  both of which involve choosing 1 out of k, and the computational issue
+  does not arise.  
+  The 'appoximate' option maps to the
   Breslow approximation for historical reasons.
   }
 \seealso{\code{\link{strata}},\code{\link{coxph}},\code{\link{glm}} }
 
 \examples{
 \dontrun{clogit(case~spontaneous+induced+strata(stratum),data=infert)}
+}
+\section{References}{
+  Michell H Gail, Jay H Lubin and Lawrence V Rubinstein.  Likelihood
+calculations for matched case-control studies and survival studies with
+tied death times.  Biometrika 68:703-707, 1980.
 }
 \keyword{survival}%-- one or more ...
 \keyword{models}

@@ -15,6 +15,11 @@
     \item Fix an error in predict.coxph.  When the model had a strata
     and the newdata and reference="sample" arguements were used, it
     would (incorrectly) ask for a strata variable in the new data set.
+
+    \item Incorporate the fast subsets algorithm of Gail et al, when 
+    using coxph with the "exact" option.  The speed increase is profound 
+    though at the cost of some memory.  Note that this is not yet 
+    implemented for (start,stop) coxph models.
 }}
 
 \section{Changes in version 2.36-10}{
