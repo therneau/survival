@@ -1,6 +1,5 @@
 \name{clogit}
 \alias{clogit}
-%- Also NEED an `\alias' for EACH other topic documented here.
 \title{Conditional logistic regression }
 \description{
   Estimates a logistic regression model by maximising the conditional
@@ -11,9 +10,9 @@
   with older software.
 }
 \usage{
-clogit(formula, data, method=c("exact", "approximate"), na.action=getOption("na.action"), subset=NULL,control=coxph.control())
+clogit(formula, data, method=c("exact", "approximate", "efron", "breslow"),
+     na.action=getOption("na.action"), subset=NULL,control=coxph.control())
 }
-%- maybe also `usage' for other objects documented here.
 \arguments{
   \item{formula}{Model formula}
   \item{data}{data frame }
@@ -28,8 +27,24 @@ clogit(formula, data, method=c("exact", "approximate"), na.action=getOption("na.
   \code{"coxph"} object.
 }
 \author{Thomas Lumley}
+\details{
+  A stratified Cox model with time=constant, status of 1=case 0=control,
+  and using the exact partial likelihood has the same likelihood formula
+  as a conditional logistic regression.  The clogit routine uses creates
+  a dummy variable of times (all 1) and then calls coxph.
 
-
+  The computation of the exact partial likelihood can be very slow,
+  however.  If a particular strata had say 10 events out of 20 subjects
+  we have to add up a denominator that involves all possible ways of
+  choosing 10 out of 20, which is 20!/(10! 10!) = 184756 terms.  Most of
+  the time conditional logistic is run on case/control pairs or
+  k-matched data (case + k controls) which involves choosing 1 out of k,
+  so the issue does not arise.  Normally the Efron or Brelsow
+  approximation
+  will be adequate -- they are identical in the 1 of k case.  The
+  Efron will be superior, but the 'appoximate' option maps to the
+  Breslow approximation for historical reasons.
+  }
 \seealso{\code{\link{strata}},\code{\link{coxph}},\code{\link{glm}} }
 
 \examples{

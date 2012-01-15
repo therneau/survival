@@ -6,6 +6,9 @@
     in several places, leading to multiple copies of the data.  When the
     data set was large this would lead to a memory shortage.
 
+    \item Cause anova.coxph to call anova.coxme when a list of models
+    has both coxph and coxme objects.
+
     \item Add the quantile.survfit function.  This allows a user to
     extract arbitrary quantiles from a fitted curve (and std err).
 
