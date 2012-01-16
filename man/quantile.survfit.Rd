@@ -5,12 +5,14 @@
   a survfit object.
 }
 \usage{
-\method{quantile}{survfit}(x, probs = c(0.25, 0.5, 0.75), conf.int = TRUE)
+\method{quantile}{survfit}(x, probs = c(0.25, 0.5, 0.75), conf.int = TRUE,
+...)
 }
 \arguments{
   \item{x}{a result of the survfit function}
   \item{probs}{numeric vector of probabilities with values in [0,1].}
   \item{conf.int}{should lower and upper confidence limits be returned?}
+  \item{...}{optional arguments for other methods}
 }
 \details{
   The kth quantile for a survival curve S(t) is the location at which

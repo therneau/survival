@@ -228,7 +228,7 @@ predict.survreg <-
 #	    else pred<- Build.terms(x, coef, NULL, asgn, FALSE)
 #	    const<- attr(pred, 'constant')
 #	    }
-#        }
+        }
 
     #Expand out the missing values in the result
     # 

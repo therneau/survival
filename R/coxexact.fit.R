@@ -83,21 +83,18 @@ coxexact.fit <- function(x, y, strata, offset, init, control,
     lp  <- newx %*% coef + offset 
     score <- as.double(exp(lp))
 
-    # The coxmart call expects data in time order, this
-    #  routine has it in reverse time order
-    cxres <- .C("coxmart",
+    # Compute the residuals
+    cxres <- .C("coxmart2",
 		   as.integer(n),
-		   as.integer(0),   #method
-		   rev(as.double(y[,1])),
-		   rev(as.integer(y[,2])),
-                   rev(newstrat),
-                   rev(score),
+		   as.double(y[,1]),
+		   as.integer(y[,2]),
+                   newstrat,
+                   score,
                    rep(1.0, n),  #weights
                    resid=double(n),
                    DUP=FALSE)
-
     resid <- double(n)
-    resid[sorted] <- rev(cxres$resid)
+    resid[sorted] <- cxres$resid
     names(resid) <- rownames
     coef[which.sing] <- NA
 

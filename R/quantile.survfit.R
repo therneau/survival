@@ -47,7 +47,7 @@ doquant <- function(p, time, surv, upper, lower) {
     else rbind(qq, findq(time, lower, p), findq(time, upper, p))
     }
 
-quantile.survfit <- function(x, probs=c(.25, .5, .75), conf.int=TRUE) {
+quantile.survfit <- function(x, probs=c(.25, .5, .75), conf.int=TRUE, ...) {
     if (!inherits(x, "survfit")) stop("Must be a survfit object")
 
     if (any(probs <0 | probs >=1)) stop("Invalid probability")
@@ -137,7 +137,7 @@ quantile.survfit <- function(x, probs=c(.25, .5, .75), conf.int=TRUE) {
             else {
                 for (strata in 1:nstrat) {
                     z <- x[i]
-                    qmat[i,] <- doqant(z$time, z$surv)
+                    qmat[i,] <- doquant(z$time, z$surv)
                 }
                 return(qmat)
             }
