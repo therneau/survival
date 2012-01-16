@@ -41,7 +41,7 @@ survfit.formula <- function(formula, data, weights, subset,
     if (attr(Y, 'type') != 'right' && attr(Y, 'type') != 'counting'){
         if (!is.null(etype)) 
             stop(paste("Cumulative incidence computation doesn't support \"", 
-                       type, "\" survival data", sep=''))
+                       etype, "\" survival data", sep=''))
         else temp <-  survfitTurnbull(X, Y, casewt, ...)
     }
     else {

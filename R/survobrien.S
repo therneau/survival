@@ -93,7 +93,7 @@ survobrien <- function(formula, data, subset,
         else {
             temp <- unique(data.frame(y[,1], strata.keep)[y[,2]==1,])
             etime <- temp[,1]
-            indx <- lappy(1:nrow(temp), function(x)
+            indx <- lapply(1:nrow(temp), function(x)
                           which(y[,2] >= temp[x,1] & strata.keep == temp[x,2]))
         }
     }
