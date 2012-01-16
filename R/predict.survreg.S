@@ -212,22 +212,23 @@ predict.survreg <-
 		else    const <- 0
 	    }
 
-	else {
-	    # Splus: use Build.terms to do the work
-	    asgn <- attr(x, 'assign')
-	    attr(x, 'constant') <- object$means
-	    terms <- match.arg(Terms, labels.lm(object))
-	    asgn <- asgn[terms]
-
-	    if (se.fit) {
-		temp <- Build.terms(x, coef, vv, asgn, FALSE)
-		pred <- temp$fit
-		se   <- temp$se.fit
-		}
-	    else pred<- Build.terms(x, coef, NULL, asgn, FALSE)
-	    const<- attr(pred, 'constant')
-	    }
-        }
+#  Splus code, commented out to stop a warning from R CMD check
+#	else {
+#	    # Splus: use Build.terms to do the work
+#	    asgn <- attr(x, 'assign')
+#	    attr(x, 'constant') <- object$means
+#	    terms <- match.arg(Terms, labels.lm(object))
+#	    asgn <- asgn[terms]
+#
+#	    if (se.fit) {
+#		temp <- Build.terms(x, coef, vv, asgn, FALSE)
+#		pred <- temp$fit
+#		se   <- temp$se.fit
+#		}
+#	    else pred<- Build.terms(x, coef, NULL, asgn, FALSE)
+#	    const<- attr(pred, 'constant')
+#	    }
+#        }
 
     #Expand out the missing values in the result
     # 
