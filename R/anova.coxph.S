@@ -1,7 +1,10 @@
 # $Id$
 # The anova function for a coxph object
 anova.coxph <- function (object, ...,  test = 'Chisq') {
-    # All the ... args need to be coxph fits.  If any of them
+    if (!inherits(object, "coxph"))
+        stop ("argument must be a cox model")
+
+    # All the ... args need to be coxph or coxme fits.  If any of them
     #  have a name attached, e.g., 'charlie=T' we assume a priori
     #  that they are illegal
     #
@@ -15,12 +18,17 @@ anova.coxph <- function (object, ...,  test = 'Chisq') {
                 collapse = ", ")))
     dotargs <- dotargs[!named]
 
-    # Now check that they are all cox models
-    is.coxmodel <- unlist(lapply(dotargs, function(x) inherits(x,  "coxph")))
-    dotargs <- dotargs[is.coxmodel]
-    # If multiple models remain, call a smarter function
-    if (length(dotargs) > 0) 
-        return(anova.coxphlist(c(list(object), dotargs), test = test))
+    if (length(dotargs) >0) {
+        # Check that they are all cox or coxme models
+        is.coxmodel <-unlist(lapply(dotargs, function(x) inherits(x, "coxph")))
+        is.coxme <- unlist(lapply(dotargs, function(x) inherits(x, "coxme")))
+        if (!all(is.coxmodel | is.coxme))
+            stop("All arguments must be Cox models")
+        
+        if (any(is.coxme))
+            return(anova.coxmelist(c(list(object), dotargs), test = test))
+        else return(anova.coxphlist(c(list(object), dotargs), test = test))
+    }
 
     #
     # I have one Cox model 

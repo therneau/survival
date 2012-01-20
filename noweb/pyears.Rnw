@@ -240,11 +240,11 @@ if (has.ratetable) {  #include expected
             offset <- bdate - as.Date(paste(byear, "01/01", sep='/'), 
                                       origin="1960/01/01")
             }
-        else if (exists('month.day.year')) { # Splus, usually
-            bdate <- R[,cols[2]] - R[,cols[1]]
-            byear <- month.day.year(bdate)$year
-            offset <- bdate - julian(1,1,byear)
-            }
+        #else if (exists('month.day.year')) { # Splus, usually
+        #    bdate <- R[,cols[2]] - R[,cols[1]]
+        #    byear <- month.day.year(bdate)$year
+        #    offset <- bdate - julian(1,1,byear)
+        #    }
         else if (exists('date.mdy')) { # Therneau's date class is available
             bdate <- as.date(R[,cols[2]] - R[,cols[1]])
             byear <- date.mdy(bdate)$year

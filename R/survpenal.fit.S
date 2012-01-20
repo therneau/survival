@@ -305,12 +305,12 @@ survpenal.fit<- function(x, y, weights, offset, init, controlvals, dist,
     # The variables parms, sd, and n2 are used for fdensity evaluation
     #
     if (is.R()) rho <- new.env()  
-    else rho <- new.frame(list(pfun1=pfun1, theta1=NULL, extra1=NULL,
-			   nfrail=nfrail, pcols=pcols, pattr=pattr,
-			   length2=length2, full.imat=full.imat,
-			   ipenal = ipenal, nvar=nvar,
-			   coxlist1=coxlist1, coxlist2=coxlist2, 
-                           sd=sd, parms=parms, n2=n2))
+    #Splus    else rho <- new.frame(list(pfun1=pfun1, theta1=NULL, extra1=NULL,
+    #			   nfrail=nfrail, pcols=pcols, pattr=pattr,
+    #			   length2=length2, full.imat=full.imat,
+    #			   ipenal = ipenal, nvar=nvar,
+    #			   coxlist1=coxlist1, coxlist2=coxlist2, 
+    #                       sd=sd, parms=parms, n2=n2))
 
     #
     # "Unpack" the passed in paramter list, 
@@ -333,10 +333,10 @@ survpenal.fit<- function(x, y, weights, offset, init, controlvals, dist,
 	thetalist[[i]] <- temp$theta
 	iterlist[[i]] <- temp
 	}
-    if (!is.R()) {
-	assign('thetalist', thetalist, frame=rho)
-    	assign('extralist', extralist, frame=rho)
-	}
+#    if (!is.R()) {  # Splus support
+#	assign('thetalist', thetalist, frame=rho)
+#    	assign('extralist', extralist, frame=rho)
+#	}
 
     #
     # Manufacture the list of calls to cfun, with appropriate arguments
@@ -417,7 +417,7 @@ survpenal.fit<- function(x, y, weights, offset, init, controlvals, dist,
     # The "effective n" of the model
     temp <-  mean(exp(fit0$coef[-1]))   #overall sd
     n.eff <- sd$variance(temp^2) * (solve(matrix(fit0$var,1+nstrat2)))[1,1]
-    if (!is.R()) assign('n.eff', n.eff, frame=rho)
+    #if (!is.R()) assign('n.eff', n.eff, frame=rho)
 
     #
     # Fit the model with all covariates
@@ -486,10 +486,10 @@ survpenal.fit<- function(x, y, weights, offset, init, controlvals, dist,
 	    if (nfrail >0) coxlist1 <- get('coxlist1', envir=rho)
 	    if (ptype >1 ) coxlist2 <- get('coxlist2', envir=rho)
 	    }
-	else {
-	    if (nfrail >0) coxlist1 <- get('coxlist1', frame=rho)
-	    if (ptype >1 ) coxlist2 <- get('coxlist2', frame=rho)
-	    }
+	#else {
+	#    if (nfrail >0) coxlist1 <- get('coxlist1', frame=rho)
+	#    if (ptype >1 ) coxlist2 <- get('coxlist2', frame=rho)
+	#    }
 
 	# If any penalties were infinite, the C code has made hdiag=1 out
 	#  of self-preservation (avoid zero divides).  But such coefs are 
@@ -536,7 +536,7 @@ survpenal.fit<- function(x, y, weights, offset, init, controlvals, dist,
 	    done <- done & temp$done
     	    }
 	if (done) break
-	if (!is.R()) assign('thetalist', thetalist, frame=rho)
+	#if (!is.R()) assign('thetalist', thetalist, frame=rho)
 
 	# 
 	# Choose starting estimates for the next iteration

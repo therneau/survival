@@ -58,11 +58,11 @@ survexp.fit <- function(group, x, y, times, death, ratetable) {
             offset <- as.numeric(bdate - 
                                  as.Date(paste(byear, '01/01', sep='/')))
             }
-        else if (exists('month.day.year')) { # Splus, usually
-            bdate <- x[,cols[2]] - x[,cols[1]]
-            byear <- month.day.year(bdate)$year
-            offset <- bdate - julian(1,1,byear)
-            }
+        #else if (exists('month.day.year')) { # Splus, usually
+        #    bdate <- x[,cols[2]] - x[,cols[1]]
+        #    byear <- month.day.year(bdate)$year
+        #    offset <- bdate - julian(1,1,byear)
+        #    }
         else if (exists('date.mdy')) { # the TMT date class is available
             bdate <- as.date(x[,cols[2]] - x[,cols[1]])
             byear <- date.mdy(bdate)$year
