@@ -65,7 +65,21 @@ coxph.fit <- function(x, y, strata, offset, init, control,
 		   as.double(control$eps),
 		   as.double(control$toler.chol),
 		   sctest=as.double(method=="efron") )
-
+    coxfit2 <- .Call("coxfit6", 
+                     as.integer(maxiter),
+                     stime, 
+                     sstat,
+                     x[sorted,],
+                     as.double(offset[sorted] - mean(offset)),
+                     as.double(weights),
+                     newstrat,
+                     as.integer(method=="efron"),
+                     as.double(control$eps),
+                     as.double(control$toler.chol),
+                     as.double(init),
+                     as.integer(0))  # don't rescale
+    browser()
+                     
     if (nullmodel) {
 	score <- exp(offset[sorted])
 	coxres <- .C("coxmart", as.integer(n),
