@@ -451,7 +451,7 @@ else {
     }
 
 if (type=='lp' || type=='risk') {
-    if (use.x) pred <- newx %*% coef + offset
+    if (use.x) pred <- drop(newx %*% coef) + offset
     else pred <- object$linear.predictors
     if (se.fit) se <- sqrt(rowSums((newx %*% object$var) *newx))
 

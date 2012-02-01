@@ -19,7 +19,12 @@
     \item Incorporate the fast subsets algorithm of Gail et al, when 
     using coxph with the "exact" option.  The speed increase is profound 
     though at the cost of some memory.  Note that this is not yet 
-    implemented for (start,stop) coxph models.
+    implemented for (start,stop) coxph models.  Reflect this in the
+    documentation for the clogit routine.
+
+    \item Change the C routine under coxph.fit from .C to .Call
+    semantics to improve memory efficiency, in particular fewer copies
+    of the X matrix.  
 }}
 
 \section{Changes in version 2.36-10}{

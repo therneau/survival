@@ -1,7 +1,8 @@
 
-R version 2.11.1 (2010-05-31)
-Copyright (C) 2010 The R Foundation for Statistical Computing
+R version 2.14.0 (2011-10-31)
+Copyright (C) 2011 The R Foundation for Statistical Computing
 ISBN 3-900051-07-0
+Platform: i686-pc-linux-gnu (32-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -45,4 +46,7 @@ Loading required package: splines
 > predict(fit, type='lp', newdata=tdata)
           1           2           3           4 
 -0.39518177 -0.02634168  0.52120527  1.81279848 
+> predict(fit3, type='lp', newdata=tdata)
+       1        2        3        4 
+6.399571 6.142938 5.770523 4.916993 
 > 

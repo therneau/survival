@@ -3,7 +3,7 @@ survdiff <- function(formula, data, subset, na.action, rho=0) {
     m <- match.call(expand.dots=FALSE)
     m$rho <- NULL
 
-    if (!is.formula(formula))
+    if (!inherits(formula, 'formula'))
         stop("The 'formula' argument is not a formula")
 
     Terms <- if(missing(data)) terms(formula, 'strata')

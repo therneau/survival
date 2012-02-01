@@ -113,7 +113,7 @@ predict.survreg <-
  	    pred <- object$linear.predictors
 #	    names(pred) <- names(object$residuals)
 	    }
-	else  pred <- x %*% coef  + offset
+	else  pred <- drop(x %*% coef)  + offset
 	if (se.fit) se <- sqrt(diag(x %*% vv %*% t(x)))
 
 	if (type=='response') {

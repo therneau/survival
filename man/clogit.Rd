@@ -30,21 +30,21 @@ clogit(formula, data, method=c("exact", "approximate", "efron", "breslow"),
 \details{
   A stratified Cox model with time=constant, status of 1=case 0=control,
   and using the exact partial likelihood has the same likelihood formula
-  as a conditional logistic regression.  The clogit routine uses creates
-  a dummy variable of times (all 1) and then calls coxph.
+  as a conditional logistic regression.  The clogit routine creates
+  the necessary dummy variable of times (all 1) and then calls coxph.
 
   The computation of the exact partial likelihood can be very slow,
   however.  If a particular strata had say 10 events out of 20 subjects
   we have to add up a denominator that involves all possible ways of
-  choosing 10 out of 20, which is 20!/(10! 10!) = 184756 terms. (Gail et
+  choosing 10 out of 20, which is 20!/(10! 10!) = 184756 terms. Gail et
   al describe a fast recursion method, which largely ameleorates 
-  this however; 
-  it was incorporated into version 2.36-11 of the survival package.)
-  However, most of the time conditional logistic modeling 
+  this; 
+  it was incorporated into version 2.36-11 of the survival package.
+  (Most of the time conditional logistic modeling 
   is applied to case/control pairs or
-  k-matched data (case + k controls), 
+  k-matched data (1 case + k controls), 
   both of which involve choosing 1 out of k, and the computational issue
-  does not arise.  
+  above does not arise.)  
   The 'appoximate' option maps to the
   Breslow approximation for historical reasons.
   }
