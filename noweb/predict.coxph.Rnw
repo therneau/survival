@@ -31,12 +31,12 @@ The first task of the routine is to reconsruct necessary data elements
 that were not saved as a part of the [[coxph]] fit.  
 We will need the following components: 
 \begin{itemize}
-  \item for type=`expected' residuals we need the orignal survival y.  This
+  \item for type=`expected' residuals we need the orignal survival y.  This %'`
     is saved in coxph objects by default so will only need to be fetched in
     the highly unusual case that a user specfied [[y=FALSE]] in the orignal call.
   \item for any call with either newdata, standard errors,  or type='terms'
      the original $X$ matrix, weights, strata, and offset. 
-     When checking for the existence of a saved $X$ matrix we can't
+     When checking for the existence of a saved $X$ matrix we can't    %'
      use [[object$x]]
      since that will also match the [[xlevels]] component.
   \item the new data matrix, if any 
@@ -64,7 +64,7 @@ statement, offset, etc.
 The [[Terms2]] object is a model statement without the strata or cluster terms,
 appropriate for recreating the matrix of covariates $X$.
 For type=expected the response variable needs to be kept, if not we remove
-it as well since the user's newdata might not contain one.
+it as well since the user's newdata might not contain one.    %'
 <<pcoxph-init>>=
 if (!inherits(object, 'coxph'))
     stop("Primary argument much be a coxph object")
@@ -108,20 +108,22 @@ The next task of the routine is to reconsruct necessary data elements
 that were not saved as a part of the [[coxph]] fit.  
 We will need the following components: 
 \begin{itemize}
-  \item for type=`expected' residuals we need the orignal survival y.  This
+  \item for type=`expected' residuals we need the orignal survival y.  This %'`
     is saved in coxph objects by default so will only need to be fetched in
     the highly unusual case that a user specfied [[y=FALSE]] in the orignal 
-    call.
-  \item for any call with either newdata, standard errors,  strata, 
+    call.  We also need the strata in this case.  Grabbing it is the same
+    amount of work as grabbing X, so gets lumped into the case below in the
+    code.
+  \item for any call with either standard errors,  reference strata, 
     or type='terms'
      the original $X$ matrix, weights, strata, and offset. 
-     When checking for the existence of a saved $X$ matrix we can't 
+     When checking for the existence of a saved $X$ matrix we can't        %'
      use [[object$x]]
      since that will also match the [[xlevels]] component.
   \item the new data matrix, if present, along with offset and strata.
 \end{itemize}
 For the case that none of the above are needed, we can use the 
-[[linear.predictors]] component of the fit.  The variable [[need.x]] signals
+[[linear.predictors]] component of the fit.  The variable [[use.x]] signals
 this case, which takes up almost none of the code but is common in usage.
 
 The check below that nrow(mf)==n is to avoid data sets that change under our
@@ -132,7 +134,7 @@ One other non-obvious case is that coxph treats the model [[age:strata(grp)]]
 as though it were [[age:strata(grp) + strata(grp)]].  
 The untangle.specials function will return 
 [[vars= strata(grp),  terms=integer(0)]]; the first shows a strata to extract
-and the second that there is nothing to remove from the terms strucutre.
+and the second that there is nothing to remove from the terms structure.
 
 <<pcoxph-getdata>>=
 have.mf <- FALSE
@@ -145,8 +147,9 @@ if (type == 'expected') {
         }
     }
 
-if (se.fit || !missing(newdata) || type=='terms' || has.strata) {
-    need.x <- TRUE
+if (se.fit || type=='terms' || 
+    (has.strata && (reference=="strata" || type=="expected"))) {
+    use.x <- TRUE
     if (is.null(object[['x']]) || has.weights || has.offset ||
          (has.strata && is.null(object$strata))) {
         # I need the original model frame
@@ -187,9 +190,15 @@ if (se.fit || !missing(newdata) || type=='terms' || has.strata) {
     }
 }
 else {
+    # I won't need strata in this case either
+    if (has.strata) {
+        stemp <- untangle.specials(Terms, 'strata', 1)
+        Terms2  <- Terms2[-stemp$terms]
+        has.strata <- FALSE  #remaining routine never needs to look
+    }
     oldstrat <- rep(0L, n)
     offset <- 0
-    need.x <- FALSE
+    use.x <- FALSE
 }
 @ 
 
@@ -202,9 +211,11 @@ argument.  Note that terms2 may have fewer variables than the
 original model: no cluster and if type!= expected no response.
 <<pcoxph-getdata>>=
 if (!missing(newdata)) {
-    tcall <- Call[c(1, match('newdata', names(Call), nomatch=0))]
+    use.x <- TRUE  #we do use an X matrix later
+    tcall <- Call[c(1, match("newdata", names(Call), nomatch=0))]
     names(tcall)[2] <- 'data'  #rename newdata to data
     tcall$formula <- Terms2  #version with no response
+    tcall$na.action <- na.action #always present, since there is a default
     tcall[[1]] <- as.name('model.frame')  # change the function called
     tcall$xlev <- object$xlevels
     if (is.R()) mf2 <- eval(tcall, parent.frame())
@@ -320,6 +331,7 @@ for (i in ustrata) {
 
     else {
         #there is new data
+        use.x <- TRUE
         indx2 <- which(newstrat == i)
         j1 <- approx(afit$time, 1:afit.n, newy[indx2,1], 
                      method='constant', f=0, yleft=0, yright=afit.n)$y
@@ -425,7 +437,7 @@ if (missing(newdata)) {
         xmeans <- rowsum(x*weights, indx)/c(rowsum(weights, indx))
         newx <- x - xmeans[indx,]
         }
-    else if (need.x) newx <- x - rep(object$means, each=nrow(x))
+    else if (use.x) newx <- x - rep(object$means, each=nrow(x))
     }
 else {
     offset <- newoffset - mean(offset)
@@ -439,7 +451,7 @@ else {
     }
 
 if (type=='lp' || type=='risk') {
-    if (need.x) pred <- newx %*% coef + offset
+    if (use.x) pred <- drop(newx %*% coef) + offset
     else pred <- object$linear.predictors
     if (se.fit) se <- sqrt(rowSums((newx %*% object$var) *newx))
 

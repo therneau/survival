@@ -106,8 +106,11 @@ survreg <- function(formula, data, weights, subset, na.action,
     if (!is.null(dlist$trans)) {
 	tranfun <- dlist$trans
 	exactsurv <- Y[,ncol(Y)] ==1
-	if (any(exactsurv)) logcorrect <-sum(log(dlist$dtrans(Y[exactsurv,1])))
-
+	if (any(exactsurv)) {
+            if (is.null(weights))
+                 logcorrect <- sum(log(dlist$dtrans(Y[exactsurv, 1])))
+            else logcorrect <- sum(weights[exactsurv]*log(dlist$dtrans(Y[exactsurv, 1])))
+         }
 	if (type=='interval') {
 	    if (any(Y[,3]==3))
 		    Y <- cbind(tranfun(Y[,1:2]), Y[,3])

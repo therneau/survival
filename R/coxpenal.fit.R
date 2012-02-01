@@ -1,4 +1,3 @@
-# SCCS @(#)coxpenal.fit.s	1.8 06/12/00
 #
 # General penalized likelihood
 #
@@ -456,11 +455,11 @@ coxpenal.fit <- function(x, y, strata, offset, init, control,
     names(resid) <- rownames
 
     names(iterlist) <- names(pterms[pterms>0])
-        
     if (nfrail >0) {
 	lp <- offset + coxfit$fcoef[x[,fcol]]
 	if (nvar >0) {   #sparse frailties and covariates
-	    lp <- lp + x[,-fcol,drop=FALSE] %*%coef - sum(means*coef)
+	    lp <- lp + x[,-fcol,drop=FALSE] %*%coxfit$coef - 
+                sum(means*coxfit$coef)
 	    list(coefficients  = coef,
 		 var    = var,
 		 var2   = var2,
@@ -498,7 +497,7 @@ coxpenal.fit <- function(x, y, strata, offset, init, control,
 	    }
          }
     else {  #no sparse terms
-        lp <- as.vector(x%*%coef) - sum(means*coef)
+        lp <- offset + as.vector(x%*%coxfit$coef) - sum(means*coxfit$coef)
 	list(coefficients  = coef,
 	     var    = var,
 	     var2   = var2,

@@ -3,7 +3,7 @@
 #
 library(survival)
 
-options(na.action=na.exclude) # preserve missings
+options(na.action="na.exclude") # preserve missings
 options(contrasts=c('contr.treatment', 'contr.poly')) #ensure constrast type
 aeq <- function(x,y, ...) all.equal(as.vector(x), as.vector(y), ...)
 
@@ -26,10 +26,6 @@ aeq(p1[keep], p2)
 # Now repeat it tossing the missings
 options(na.action=na.omit) 
 keep2 <- (lung$ph.ecog[!is.na(lung$ph.ecog)] !=1)
-tfit2 <- coxph(Surv(time, status) ~ age + factor(ph.ecog), lung)
-p3 <- predict(tfit2, type='risk')
-p4 <- predict(tfit2, type='risk', newdata=lung2)
-aeq(p3[keep2] , p4)
 
 tfit2 <- survreg(Surv(time, status) ~ age + factor(ph.ecog), lung)
 p3 <- predict(tfit2, type='response')

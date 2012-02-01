@@ -1,8 +1,10 @@
-# $Id: survdiff.S 11166 2008-11-24 22:10:34Z therneau $
 survdiff <- function(formula, data, subset, na.action, rho=0) {
     call <- match.call()
     m <- match.call(expand.dots=FALSE)
     m$rho <- NULL
+
+    if (!inherits(formula, 'formula'))
+        stop("The 'formula' argument is not a formula")
 
     Terms <- if(missing(data)) terms(formula, 'strata')
 	     else              terms(formula, 'strata', data=data)

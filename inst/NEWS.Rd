@@ -1,7 +1,51 @@
 \name{NEWS}
 \title{NEWS file for the surival package}
+\section{Changes in version 2.36-11}{
+  \itemize{
+    \item Make survexp more efficient.  The X matrix was being modified
+    in several places, leading to multiple copies of the data.  When the
+    data set was large this would lead to a memory shortage.
+
+    \item Cause anova.coxph to call anova.coxme when a list of models
+    has both coxph and coxme objects.
+
+    \item Add the quantile.survfit function.  This allows a user to
+    extract arbitrary quantiles from a fitted curve (and std err).
+
+    \item Fix an error in predict.coxph.  When the model had a strata
+    and the newdata and reference="sample" arguments were used, it
+    would (incorrectly) ask for a strata variable in the new data set.
+
+    \item Incorporate the fast subsets algorithm of Gail et al, when 
+    using coxph with the "exact" option.  The speed increase is profound 
+    though at the cost of some memory.    Reflect this in the
+    documentation for the clogit routine.
+    Note that the fast computation is not yet 
+    implemented for (start,stop) coxph models.
+
+    \item Change the C routine used by coxph.fit from .C to .Call
+    semantics to improve memory efficiency, in particular fewer copies
+    of the X matrix.
+
+    \item Add scaling to the above routine.  This was prompted by a user
+    who had some variables with a 0-1 range and others that were
+    0 - 10^7, resulting in 0 digits of accuracy in the variance matrix.
+    (Economics data).
+
+    \item Comment out some code sections that are specific to Splus.
+    This reduced the number of "function not found" warnings from R CMD check.
+}}
+
 \section{Changes in version 2.36-10}{
   \itemize{
+    \item 30 Sept 2011: The na.action argument was being ignored in
+    predict.coxph; pointed out by Cindy Crowson.
+
+    \item The log-likelihood for survreg was incorrect when there are
+    case weights in the model.  The error is a fixed constant for any
+    given data set, so had no impact on tests or inferences.  The error
+    and correction were pointed out by Robert Kusher.
+    
     \item A variable name was incorrect in survpenal.fit.  This was in a
     program path that had never been traversed until Carina Salt used
     survreg with a psline(..., method='aic') call, leading to a
@@ -21,6 +65,10 @@
     cluster term was not dropped from the Terms object as it should have
     been, led to a spurious "variable not found" error.   Pointed out
     by Eva Bouguen.
+
+    \item If a coxph model with penalized terms (frailty, pspline) also
+    had a redundant covariate, the linear predictor would be returned as
+    NA.  Pointed out by Pavel Krivitsky.
 }}
 
 \section{Changes in version 2.36-9}{

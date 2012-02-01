@@ -1,7 +1,8 @@
 
-R version 2.11.0 (2010-04-22)
-Copyright (C) 2010 The R Foundation for Statistical Computing
+R version 2.14.0 (2011-10-31)
+Copyright (C) 2011 The R Foundation for Statistical Computing
 ISBN 3-900051-07-0
+Platform: i686-pc-linux-gnu (32-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -21,7 +22,7 @@ Type 'q()' to quit R.
 > library(survival)
 Loading required package: splines
 > 
-> options(na.action=na.exclude) # preserve missings
+> options(na.action="na.exclude") # preserve missings
 > options(contrasts=c('contr.treatment', 'contr.poly')) #ensure constrast type
 > aeq <- function(x,y, ...) all.equal(as.vector(x), as.vector(y), ...)
 > 
@@ -46,11 +47,6 @@ Loading required package: splines
 > # Now repeat it tossing the missings
 > options(na.action=na.omit) 
 > keep2 <- (lung$ph.ecog[!is.na(lung$ph.ecog)] !=1)
-> tfit2 <- coxph(Surv(time, status) ~ age + factor(ph.ecog), lung)
-> p3 <- predict(tfit2, type='risk')
-> p4 <- predict(tfit2, type='risk', newdata=lung2)
-> aeq(p3[keep2] , p4)
-[1] TRUE 
 > 
 > tfit2 <- survreg(Surv(time, status) ~ age + factor(ph.ecog), lung)
 > p3 <- predict(tfit2, type='response')

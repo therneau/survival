@@ -27,6 +27,34 @@ surg:\tab time from surgery to registration (0=short, 1=long)\cr
 node4:\tab more than 4 positive lymph nodes\cr
 etype:\tab event type: 1=recurrence,2=death\cr
 }}
+\note{The study is originally described in Laurie (1989). 
+  The main report is found in Moertel (1990).  This data set is closest
+  to that of the final report in Moertel (1991).
+   A version of the data with less follow-up time was used in the
+   paper by Lin (1994).
+   }
+\references{
+  JA Laurie, CG Moertel, TR Fleming, HS Wieand, JE Leigh, J Rubin,
+  GW McCormack, JB Gerstner, JE Krook and J Malliard.  Surgical
+  adjuvant therapy of large-bowel carcinoma: An evaluation of
+  levamisole and the combination of levamisole and fluorouracil:
+  The North Central Cancer Treatment Group and the Mayo Clinic.
+  J Clinical Oncology, 7:1447-1456, 1989.
 
-\source{Danyu Lin}
+DY Lin.  Cox regression analysis of multivariate failure time data:
+  the marginal approach.  Statistics in Medicine, 13:2233-2247, 1994.
+
+  CG Moertel, TR Fleming, JS MacDonald, 
+DG Haller, JA Laurie, PJ Goodman, JS Ungerleider, 
+WA Emerson, DC Tormey, JH Glick, MH Veeder and JA Maillard. 
+Levamisole and fluorouracil for adjuvant therapy of 
+resected colon carcinoma. New England J of Medicine, 332:352-358,
+1990.
+
+ CG Moertel,  TR Fleming,  JS MacDonald, DG Haller, JA Laurie, CM Tangen,
+ JS Ungerleider, WA Emerson, DC Tormey, JH Glick, MH Veeder and JA
+ Maillard, Fluorouracil plus Levamisole as and effective adjuvant
+ therapy after resection of stage II colon carcinoma: a final report.
+ Annals of Internal Med, 122:321-326, 1991.
+  }
 \keyword{survival}

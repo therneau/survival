@@ -16,7 +16,8 @@
 **      expect      the actual table of expected rates
 **
 **    subject data
-**      x[edim +1, n]  the first column is the group, the rest are where each
+**      group
+**      x[edim, n]  the first column is the group, the rest are where each
 **                      subject indexes into the expected table, at time 0
 **      y[n]         the time at risk for each subject
 **
@@ -36,7 +37,7 @@
 /* names that begin with "s" will be re-declared in the main body */
 void pyears3(Sint   *sdeath,    Sint   *sn,    Sint   *sedim, 
 	     Sint   *efac,      Sint   *edims, double *secut, 
-	     double *expect,    double *sx,    double *y, 
+	     double *expect,    Sint   *grpx, double *sx,    double *y, 
 	     Sint   *sntime,    Sint   *sngrp, double *times,
 	     double *esurv,     Sint   *nsurv)
     {
@@ -69,7 +70,7 @@ S_EVALUATOR
     edim = *sedim;
     ntime = *sntime;
     ngrp  = *sngrp;
-    x     = dmatrix(sx, n, edim+1);
+    x     = dmatrix(sx, n, edim);
     data2 = (double *)ALLOC(edim+1, sizeof(double));
     wvec  = (double *)ALLOC(ntime*ngrp, sizeof(double));
     for (j=0; j<ntime*ngrp; j++) wvec[j] =0;
@@ -89,9 +90,9 @@ S_EVALUATOR
 	** initialize
 	*/
 	cumhaz =0;
-	for (j=0; j<edim; j++) data2[j] = x[j+1][i];
+	for (j=0; j<edim; j++) data2[j] = x[j][i];
 	timeleft = y[i];
-	group = x[0][i] -1;
+	group = grpx[i] -1;
 	time =0;      /*change this later to an input paramter, i.e., start */
 
 	/*

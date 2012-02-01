@@ -108,7 +108,8 @@ through'' the model.frame logic.  With the recent updates to coxph so that it
 remembers factor codings correctly in new data sets, it is advantageous to
 keep factors as factors.  
 The second is that a coxph model with a large number of covariates induces a
-very long ratetable clause; at about 40 variable it causes one of the R internal
+very long ratetable clause; at about 40 variable it caused one of the 
+R internal
 routines to fail due to a long expression.
 A third reason, perhaps the most pressing in reality, is that I've always    %'
 felt that the prior code was confusing since it used the same term 'ratetable'
@@ -125,7 +126,7 @@ The [[rmap]] argument needs to be examined without evaluating it; we then add
 the appropriate extra variables into a temporary formula so that the model
 frame has all that is required.  The ratetable variables then can be
 retrieved from the model frame.
-The [[pyears]] routine uses the exact rmap argument; this segment of the
+The [[pyears]] routine uses the same rmap argument; this segment of the
 code is given its own name so that it can be included there as well.
 <<survexp-setup>>=
 rate <- attr(Terms, "specials")$ratetable                   
@@ -136,10 +137,10 @@ if(length(rate) > 1)
 if (is.R())  m <- eval(m, parent.frame())
 else         m <- eval(m, sys.parent())
 @ 
-<<survexp-setup-rmap>>= 
+<<survexp-setup-rmap>>=
 if(length(rate) == 1) {
     if (!missing(rmap)) 
-        stop("The ratetable() call in the formula is depreciated")
+        stop("The ratetable() call in a formula is depreciated")
 
     stemp <- untangle.specials(Terms, 'ratetable')
     rcall <- as.call(parse(text=stemp$var)[[1]])   # as a call object
@@ -151,7 +152,7 @@ else if (!missing(rmap)) {
     if (!is.call(rcall) || rcall[[1]] != as.name('list'))
         stop ("Invalid rcall argument")
     }
-else rcall <- NULL
+else rcall <- NULL   # A ratetable, but not rcall argument
 
 # Check that there are no illegal names in rcall, then expand it
 #  to include all the names in the ratetable
@@ -162,6 +163,7 @@ else if(inherits(ratetable, "coxph")) {
     varlist <- all.vars(delete.response(ratetable$terms))
     }
 else stop("Invalid rate table")
+
 temp <- match(names(rcall)[-1], varlist) # 2,3,... are the argument names
 if (any(is.na(temp)))
     stop("Variable not found in the ratetable:", (names(rcall))[is.na(temp)])
@@ -242,7 +244,7 @@ For a population rate table a set of consistency checks is done by the
 This function wants characters turned to factors.
 For a Cox model [[R]] will be a model matix whose covariates are coded
 in exactly the same way that variables were coded in the original
-Cox model.  We call the model.matrix.coxph function to avoid the
+Cox model.  We call the model.matrix.coxph function to avoid repeating the
 steps found there (remove cluster statements, etc).   
 We also need to use the [[mf]] argument of the function, otherwise
 it will call model.frame internally and fail when it can't find the
@@ -297,8 +299,8 @@ returns a vector of expected values rather than survival curves.
 if (!cohort) { #individual survival
     if (no.Y) stop("For non-cohort, an observation time must be given")
     if (israte)
-	 temp <- survexp.fit (cbind(1:n,R), Y, max(Y), TRUE, ratetable)
-    else temp<- survexp.cfit(cbind(1:n,R), Y, FALSE, TRUE, ratetable, FALSE)
+	 temp <- survexp.fit (1:n, R, Y, max(Y), TRUE, ratetable)
+    else temp<- survexp.cfit(1:n, R, Y, FALSE, TRUE, ratetable, FALSE)
     xx <- temp$surv
     names(xx) <- row.names(m)
     na.action <- attr(m, "na.action")
@@ -330,10 +332,10 @@ else {
 
 #do the work
 if (israte)
-    temp <- survexp.fit(cbind(as.numeric(X),R), Y, newtime,
+    temp <- survexp.fit(as.numeric(X), R, Y, newtime,
 		       conditional, ratetable)
 else {
-    temp <- survexp.cfit(cbind(as.numeric(X),R), Y, conditional, FALSE,
+    temp <- survexp.cfit(as.numeric(X), R, Y, conditional, FALSE,
 		       ratetable, se.fit=se.fit)
     newtime <- temp$times
     }
@@ -397,8 +399,7 @@ output.
 <<survexp-finish>>=
 if (model) out$model <- m
 else {
-    if (x) out$x <- structure(cbind(X, R),
-	dimnames=list(row.names(m), c("group", varlist ))) ### was dimid)))
+    if (x) out$x <- X
     if (y) out$y <- Y
     }
 if (israte && !is.null(rtemp$summ)) out$summ <- rtemp$summ

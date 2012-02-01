@@ -7,13 +7,12 @@
 Compute expected survival times. 
 }
 \usage{
-survexp.fit(x, y, times, death, ratetable)
+survexp.fit(group, x, y, times, death, ratetable)
 }
 \arguments{
-\item{x}{
-a matrix. The first column contains the group, 
-an integer value that divides the subjects into subsets. 
-Remaining columns must match the dimensions of the \code{ratetable}, 
+ \item{group}{if there are multiple survival curves this identifies the group,
+ otherwise it is a constant.  Must be an integer.}
+\item{x}{A matrix whose columns match the dimensions of the \code{ratetable}, 
 in the correct order. 
 }
 \item{y}{

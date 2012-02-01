@@ -1,5 +1,5 @@
 
-R version 2.14.0 Under development (unstable) (2011-04-10 r55401)
+R version 2.14.0 (2011-10-31)
 Copyright (C) 2011 The R Foundation for Statistical Computing
 ISBN 3-900051-07-0
 Platform: x86_64-unknown-linux-gnu (64-bit)
@@ -159,7 +159,7 @@ Iterations: 4 outer, 12 Newton-Raphson
      Theta= 0.926 
 Degrees of freedom for terms= 0.4 2.1 1.0 
 Likelihood ratio test=5.2  on 1.5 df, p=0.0441  n= 228 
-> lfit7$coef
- (Intercept) 
-1.478986e-09 
+> signif(lfit7$coef,6)
+(Intercept) 
+1.47899e-09 
 > 

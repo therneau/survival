@@ -27,8 +27,8 @@ survdiff.fit(y, x, strat, rho = 0)
 is.category(x)
 match.ratetable(R, ratetable)
 \method{as.matrix}{ratetable}(x, ...)
-is.na.ratetable2(x)
-is.na.coxph.penalty(x)
+\method{is.na}{ratetable2}(x)
+\method{is.na}{coxph.penalty}(x)
 coxpenal.df(hmat, hinv, fdiag, assign.list, ptype, nvar, pen1,
     pen2, sparse)
 coxpenal.fit(x, y, strata, offset, init, control, weights, method,
