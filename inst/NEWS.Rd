@@ -23,10 +23,17 @@
     Note that the fast computation is not yet 
     implemented for (start,stop) coxph models.
 
-    \item Change the C routine used by
-    coxph.fit from .C to .Call
+    \item Change the C routine used by coxph.fit from .C to .Call
     semantics to improve memory efficiency, in particular fewer copies
-    of the X matrix.  
+    of the X matrix.
+
+    \item Add scaling to the above routine.  This was prompted by a user
+    who had some variables with a 0-1 range and others that were
+    0 - 10^7, resulting in 0 digits of accuracy in the variance matrix.
+    (Economics data).
+
+    \item Comment out some code sections that are specific to Splus.
+    This reduced the number of "function not found" warnings from R CMD check.
 }}
 
 \section{Changes in version 2.36-10}{

@@ -77,8 +77,8 @@ coxph.fit <- function(x, y, strata, offset, init, control,
                      as.double(control$eps),
                      as.double(control$toler.chol),
                      as.double(init),
-                     as.integer(0))  # don't rescale
-                     
+                     as.integer(1))  # internally rescale
+
     if (nullmodel) {
 	score <- exp(offset[sorted])
 	coxres <- .C("coxmart", as.integer(n),

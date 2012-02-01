@@ -155,8 +155,11 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
 	for (person=0; person<nused; person++) covar[i][person] -=temp;
 	if (doscale==1) {  /* and also scale it */
 	    temp =0;
-	    for (person=0; person<nused; person++) temp += abs(covar[i][person]);
-	    temp = nused/temp;   /* scaling */
+	    for (person=0; person<nused; person++) {
+		temp += fabs(covar[i][person]);
+	    }
+	    if (temp > 0) temp = nused/temp;   /* scaling */
+	    else temp=1.0; /* rare case of a constant covariate */
 	    scale[i] = temp;
 	    for (person=0; person<nused; person++)  covar[i][person] *= temp;
 	    }
@@ -304,8 +307,9 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
 	}
     if (maxiter==0) {
 	chinv2(imat,nvar);
-	for (i=1; i<nvar; i++) {
-	    beta[i] = beta[i]*scale[i];  /*return to original scale */
+	for (i=0; i<nvar; i++) {
+	    beta[i] *= scale[i];  /*return to original scale */
+	    u[i] /= scale[i];
 	    imat[i][i] *= scale[i]*scale[i];
 	    for (j=0; j<i; j++) {
 		imat[j][i] *= scale[i]*scale[j];
@@ -425,6 +429,7 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
 	    chinv2(imat, nvar);     /* invert the information matrix */
 	    for (i=0; i<nvar; i++) {
 		beta[i] = newbeta[i]*scale[i];
+		u[i] /= scale[i];
 		imat[i][i] *= scale[i]*scale[i];
 		for (j=0; j<i; j++) {
 		    imat[j][i] *= scale[i]*scale[j];
@@ -460,6 +465,7 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
     chinv2(imat, nvar);
     for (i=0; i<nvar; i++) {
 	beta[i] = newbeta[i]*scale[i];
+	u[i] /= scale[i];
 	imat[i][i] *= scale[i]*scale[i];
 	for (j=0; j<i; j++) {
 	    imat[j][i] *= scale[i]*scale[j];
