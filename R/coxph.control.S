@@ -1,4 +1,3 @@
-# $Id: coxph.control.S 11280 2009-05-20 19:22:46Z therneau $
 #
 # Gather all of the control parameters for coxph into one spot
 #

@@ -115,7 +115,7 @@ survobrien <- function(formula, data, subset,
                      list(1L*(newdata[[1]]==rep(etime, nrisk) &y[indx2,2]==1)))
     }
     names(newdata) <- dimnames(y)[[2]]
-browser()                          
+
     # Add any untransformed variables
     if (any(keepers)) {
         temp <- lapply(myvars[keepers], function(x) all.vars(parse(text=x)))

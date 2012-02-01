@@ -1,4 +1,3 @@
-# $Id: anova.survreglist.S 11230 2009-02-09 23:37:55Z therneau $
 anova.survreglist <- function(object, ..., test = c("Chisq", "none")) {
     diff.term <- function(term.labels, i)
 	    {

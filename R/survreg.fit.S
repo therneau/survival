@@ -1,5 +1,4 @@
 # 
-#  $Id: survreg.fit.S 11285 2009-06-10 22:32:00Z therneau $
 #  Do the actual fit of a survreg model.  This routine is for the case
 #   of no penalized terms (splines, etc).
 #
