@@ -64,9 +64,11 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
     double *scale;
     double  denom=0, zbeta, risk;
     double  temp, temp2;
-    int     ndead;
+    int     ndead;  /* actually, the sum of their weights */
     double  newlk=0;
-    double  dtime, d2, deadwt;
+    double  dtime, d2;
+    double  deadwt;  /*sum of case weights for the deaths*/
+    double  efronwt; /* sum of weighted risk scores for the deaths*/
     int     halving;    /*are we doing step halving at the moment? */
     int     nrisk;   /* number of subjects in the current risk set */
  
@@ -110,7 +112,7 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
     **  we are going to modify it, due to the way this routine was
     **  was called.  In this case NAMED(covar2) will =0
     */
-    if (NAMED(covar2)>0) covar2 = PROTECT(duplicate(covar2)); 
+    if (NAMED(covar2)>0) PROTECT(covar2 = duplicate(covar2)); 
     covar= dmatrix(REAL(covar2), nused, nvar);
 
     PROTECT(imat2 = allocVector(REALSXP, nvar*nvar)); 
@@ -146,11 +148,12 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
     **  much more stable.
     */
     for (i=0; i<nvar; i++) {
+	temp=0;
 	for (person=0; person<nused; person++) temp += covar[i][person];
 	temp /= nused;
 	means[i] = temp;
+	for (person=0; person<nused; person++) covar[i][person] -=temp;
 	if (doscale==1) {  /* and also scale it */
-	    for (person=0; person<nused; person++) covar[i][person] -=temp;
 	    temp =0;
 	    for (person=0; person<nused; person++) temp += abs(covar[i][person]);
 	    temp = nused/temp;   /* scaling */
@@ -191,7 +194,8 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
 
 	dtime = time[person];
 	ndead =0; /*number of deaths at this time point */
-	deadwt =0;  /* sum of weights for deaths at this time */
+	deadwt =0;  /* sum of weights for the deaths */
+	efronwt=0;  /* sum of weighted risks for the deaths */
 	while(person >=0 &&time[person]==dtime) {
 	    /* walk through the this set of tied times */
 	    nrisk++;
@@ -210,8 +214,9 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
 	        }
 
 	    if (status[person]==1) {
-		ndead++;   /* number of deaths at this time point */
-		deadwt += risk;
+		ndead++;
+		deadwt += weights[person];
+		efronwt += risk;
 		loglik[1] += weights[person]*zbeta;
 
 		for (i=0; i<nvar; i++) 
@@ -236,7 +241,7 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
 	   
 		for (i=0; i<nvar; i++) {
 		    temp2= a[i]/ denom;  /* mean */
-		    u[i] -= deadwt * temp2;
+		    u[i] -=  deadwt* temp2;
 		    for (j=0; j<=i; j++)
 			imat[j][i] += deadwt*(cmat[i][j] - temp2*a[j])/denom;
 		    }
@@ -247,7 +252,7 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
 		**  three deaths are all in, in the second they are 2/3
 		**  in the sums, and in the last 1/3 in the sum.  Let k go
 		**  from 0 to (ndead -1), then we will sequentially use
-		**     denom - (k/ndead)*deadwt as the denominator
+		**     denom - (k/ndead)*efronwt as the denominator
 		**     a - (k/ndead)*a2 as the "a" term
 		**     cmat - (k/ndead)*cmat2 as the "cmat" term
 		**  and reprise the equations just above.
@@ -255,7 +260,7 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
 		for (k=0; k<ndead; k++) {
 		    temp = (double)k/ ndead;
 		    wtave = deadwt/ndead;
-		    d2 = denom - temp*deadwt;
+		    d2 = denom - temp*efronwt;
 		    loglik[1] -= wtave* log(d2);
 		    for (i=0; i<nvar; i++) {
 			temp2 = (a[i] - temp*a2[i])/ d2;
@@ -297,7 +302,6 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
     for (i=0; i<nvar; i++) {
 	newbeta[i] = beta[i] + a[i];
 	}
-    printf("u=%f, a=%f, imat=%f, newbeta=%f\n", *u, *a, imat[0][0], *newbeta);
     if (maxiter==0) {
 	chinv2(imat,nvar);
 	for (i=1; i<nvar; i++) {
@@ -315,7 +319,7 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
     ** here is the main loop
     */
     halving =0 ;             /* =1 when in the midst of "step halving" */
-    for (*iter=1; *iter<= maxiter; *iter++) {
+    for (*iter=1; *iter<= maxiter; (*iter)++) {
 	newlk =0;
 	for (i=0; i<nvar; i++) {
 	    u[i] =0;
@@ -340,6 +344,7 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
 	    dtime = time[person];
 	    deadwt =0;
 	    ndead =0;
+	    efronwt =0;
 	    while(person>=0 && time[person]==dtime) {
 		nrisk++;
 		zbeta = offset[person];
@@ -357,11 +362,12 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
 
 		if (status[person]==1) {
 		    ndead++;
-		    deadwt += risk;
+		    deadwt += weights[person];
 		    newlk += weights[person] *zbeta;
 		    for (i=0; i<nvar; i++) 
 			u[i] += weights[person] *covar[i][person];
 		    if (method==1) { /* Efron */
+			efronwt += risk;
 			for (i=0; i<nvar; i++) {
 			    a2[i] +=  risk*covar[i][person];
 			    for (j=0; j<=i; j++)
@@ -375,7 +381,6 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
 	        }
 
 	    if (ndead >0) {  /* add up terms*/
-		printf("denom=%f, ndead=%d, deadwt=%f\n", denom, ndead, deadwt);
 		if (method==0) { /* Breslow */
 		    newlk -= deadwt* log(denom);
 		    for (i=0; i<nvar; i++) {
@@ -390,7 +395,7 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
 		    for (k=0; k<ndead; k++) {
 			temp = (double)k / ndead;
 			wtave= deadwt/ ndead;
-			d2= denom - temp* deadwt;
+			d2= denom - temp* efronwt;
 			newlk -= wtave* log(d2);
 			for (i=0; i<nvar; i++) {
 			    temp2 = (a[i] - temp*a2[i])/ d2;
@@ -436,17 +441,16 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
 		for (i=0; i<nvar; i++)
 		    newbeta[i] = (newbeta[i] + beta[i]) /2; /*half of old increment */
 		}
-	    else {
-		halving=0;
-		loglik[1] = newlk;
-		chsolve2(imat,nvar,u);
-
-		j=0;
-		for (i=0; i<nvar; i++) {
-		    beta[i] = newbeta[i];
-		    newbeta[i] = newbeta[i] +  u[i];
-		    }
-		}
+	else {
+	    halving=0;
+	    loglik[1] = newlk;
+	    chsolve2(imat,nvar,u);
+	    j=0;
+	    for (i=0; i<nvar; i++) {
+		beta[i] = newbeta[i];
+		newbeta[i] = newbeta[i] +  u[i];
+	        }
+	    }
 	}   /* return for another iteration */
 
     /*
