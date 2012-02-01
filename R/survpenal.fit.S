@@ -1,5 +1,4 @@
 # 
-#  $Id: survpenal.fit.S 11194 2009-02-01 13:32:50Z therneau $
 # fit a penalized parametric model
 #
 survpenal.fit<- function(x, y, weights, offset, init, controlvals, dist, 
