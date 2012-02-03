@@ -1,5 +1,11 @@
 \name{NEWS}
 \title{NEWS file for the surival package}
+\section{Changes in version 2.36-12}{
+  \itemize{
+    \item Fix a bug in the new fast subsets code.  The test suite had no
+    examples of strata + lots of tied times, so of course that's the
+    case where I had an indexing error.
+    }}
 \section{Changes in version 2.36-11}{
   \itemize{
     \item Make survexp more efficient.  The X matrix was being modified

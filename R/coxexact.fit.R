@@ -20,7 +20,7 @@ coxexact.fit <- function(x, y, strata, offset, init, control,
     else {
 	sorted <- order(strata, -y[,1])
 	strata <- (as.numeric(strata))[sorted]
-	newstrat <- as.integer(c(1*(diff(strata)!=0), 1))
+	newstrat <- as.integer(c(1, 1*(diff(strata)!=0)))
 	}
     y <- y[sorted,]
     x <- x[sorted,]

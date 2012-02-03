@@ -228,7 +228,7 @@ are part of the computation for n=40.  To make this
 work we need to index our matrices, within any strata,
 by the maximum number of tied deaths in the strata.
 We save this in the strata variable: first obs of a new
-strata has the number of events, last has -1.
+strata has the number of events.
 And what if a strata had 0 events?  We mark it with a 1.
 
 <<excox-strata>>= 
@@ -242,7 +242,6 @@ for (i=0; i<nused;) {
       if (i>0) {
           /* If maxdeath <2 leave the strata alone at it's current value of 1 */
 	  if (maxdeath >1) strata[j] = maxdeath;
-          strata[i-1] = -1;  /* marks the last obs of a strata */
 	  j = i;
 	  if (maxdeath*nrisk >dsize) dsize = maxdeath*nrisk;
           }
@@ -252,10 +251,11 @@ for (i=0; i<nused;) {
       }
   dtime = time[i];
   ndeath =0;  /*number tied here */
-  while (i<nused && time[i] ==dtime) {
+  while (time[i] ==dtime) {
       nrisk++;
       ndeath += status[i];
       i++;
+      if (i>=nused || strata[i] >0) break;  /*tied deaths don't cross strata */
       }
   if (ndeath > maxdeath) maxdeath=ndeath;
   }
@@ -301,7 +301,7 @@ for (i=0; i<nused; ) {
     
     dtime = time[i];  /*current unique time */
     ndeath =0;
-    while (time[i] == dtime && i<nused) {
+    while (time[i] == dtime) {
 	zbeta= offset[i];
 	for (j=0; j<nvar; j++) zbeta += covar[j][i] * beta[j];
 	score[i] = exp(zbeta);
@@ -312,7 +312,7 @@ for (i=0; i<nused; ) {
         }
 	nrisk++;
 	i++;
-	if (strata[i] <0) break; /* last obs of a strata */
+	if (i>=nused || strata[i] >0) break; 
     }
 
     /* We have added up over the death time, now process it */

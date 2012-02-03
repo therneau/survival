@@ -144,12 +144,13 @@ SEXP coxexact(SEXP maxiter2,  SEXP y2,
           nrisk++;
           ndeath += status[i];
           i++;
+	  if (strata[i]==1) break;  /* ties don't cross strata */
           }
       if (ndeath > maxdeath) maxdeath=ndeath;
       }
     if (maxdeath*nrisk >dsize) dsize = maxdeath*nrisk;
     if (maxdeath >1) strata[j] = maxdeath;
-
+printf("maxdeath=%d, nrisk=%d, dsize=%d\n", maxdeath, nrisk, dsize);
     /* Now allocate memory for the scratch arrays 
        Each per-variable slice is of size dsize 
     */
