@@ -130,7 +130,6 @@ SEXP coxexact(SEXP maxiter2,  SEXP y2,
           if (i>0) {
               /* If maxdeath <2 leave the strata alone at it's current value of 1 */
               if (maxdeath >1) strata[j] = maxdeath;
-              strata[i-1] = -1;  /* marks the last obs of a strata */
               j = i;
               if (maxdeath*nrisk >dsize) dsize = maxdeath*nrisk;
               }
@@ -140,10 +139,11 @@ SEXP coxexact(SEXP maxiter2,  SEXP y2,
           }
       dtime = time[i];
       ndeath =0;  /*number tied here */
-      while (i<nused && time[i] ==dtime) {
+      while (time[i] ==dtime) {
           nrisk++;
           ndeath += status[i];
           i++;
+          if (i>=nused || strata[i] >0) break;  /*tied deaths don't cross strata */
           }
       if (ndeath > maxdeath) maxdeath=ndeath;
       }
@@ -179,7 +179,7 @@ SEXP coxexact(SEXP maxiter2,  SEXP y2,
         
         dtime = time[i];  /*current unique time */
         ndeath =0;
-        while (time[i] == dtime && i<nused) {
+        while (time[i] == dtime) {
             zbeta= offset[i];
             for (j=0; j<nvar; j++) zbeta += covar[j][i] * beta[j];
             score[i] = exp(zbeta);
@@ -190,7 +190,7 @@ SEXP coxexact(SEXP maxiter2,  SEXP y2,
             }
             nrisk++;
             i++;
-            if (strata[i] <0) break; /* last obs of a strata */
+            if (i>=nused || strata[i] >0) break; 
         }
 
         /* We have added up over the death time, now process it */
@@ -284,7 +284,7 @@ SEXP coxexact(SEXP maxiter2,  SEXP y2,
             
             dtime = time[i];  /*current unique time */
             ndeath =0;
-            while (time[i] == dtime && i<nused) {
+            while (time[i] == dtime) {
                 zbeta= offset[i];
                 for (j=0; j<nvar; j++) zbeta += covar[j][i] * beta[j];
                 score[i] = exp(zbeta);
@@ -295,7 +295,7 @@ SEXP coxexact(SEXP maxiter2,  SEXP y2,
                 }
                 nrisk++;
                 i++;
-                if (strata[i] <0) break; /* last obs of a strata */
+                if (i>=nused || strata[i] >0) break; 
             }
 
             /* We have added up over the death time, now process it */

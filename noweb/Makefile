@@ -1,6 +1,6 @@
 PARTS = main.Rnw \
 	coxph.Rnw \
-	exact.Rnw \
+	exact.nw \
 	coxsurv.Rnw \
 	coxsurv2.Rnw \
 	predict.coxph.Rnw \
