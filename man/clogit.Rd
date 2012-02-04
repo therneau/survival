@@ -41,9 +41,8 @@ clogit(formula, data, method=c("exact", "approximate", "efron", "breslow"),
   this; 
   it was incorporated into version 2.36-11 of the survival package.
   (Most of the time conditional logistic modeling 
-  is applied to case/control pairs or
-  k-matched data (1 case + k controls), 
-  both of which involve choosing 1 out of k, and the computational issue
+  is applied data with 1 case + k controls per set, 
+  which involves choosing 1 out of k and the computational issue
   above does not arise.)  
   The 'appoximate' option maps to the
   Breslow approximation for historical reasons.
@@ -51,7 +50,21 @@ clogit(formula, data, method=c("exact", "approximate", "efron", "breslow"),
 \seealso{\code{\link{strata}},\code{\link{coxph}},\code{\link{glm}} }
 
 \examples{
-\dontrun{clogit(case~spontaneous+induced+strata(stratum),data=infert)}
+\dontrun{clogit(case ~ spontaneous + induced + strata(stratum), data=infert)}
+
+# A multinomial response recoded to use clogit
+#  The data set has one copy per possible outcome level, with new
+#  variable tocc = target occupation for this copy, and "case"
+#  whether that is the actual outcome for each subject.
+# See the catspec package for more details.
+resp <- levels(logan$occupation)
+n <- nrow(logan)
+indx <- rep(1:n, length(nresp))
+logan2 <- data.frame(logan[indx,],
+                     id = indx,
+                     tocc = factor(resp, each=n))
+logan2$case <- (logan2$occupation == logan2$tocc)
+clogit(case ~ tocc + tocc:education + strata(id), logan2)
 }
 \section{References}{
   Michell H Gail, Jay H Lubin and Lawrence V Rubinstein.  Likelihood

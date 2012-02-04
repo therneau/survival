@@ -20,10 +20,9 @@ coxexact.fit <- function(x, y, strata, offset, init, control,
     else {
 	sorted <- order(strata, -y[,1])
 	strata <- (as.numeric(strata))[sorted]
-	newstrat <- as.integer(c(1*(diff(strata)!=0), 1))
+	newstrat <- as.integer(c(1, 1*(diff(strata)!=0)))
 	}
     y <- y[sorted,]
-    x <- x[sorted,]
     if (is.null(offset)) offset <- rep(0.,n)
     else offset <- offset[sorted]
 
@@ -39,7 +38,7 @@ coxexact.fit <- function(x, y, strata, offset, init, control,
 
     # Prescale the data set to improve numerical accuracy.
     #  We will undo the scaling before finishing up.
-    newx <- scale(x)
+    newx <- scale(x[sorted,])
 #    newx <- scale(x, scale=NULL)  #debug
     rescale <- attr(newx, "scaled:scale")
     means   <- attr(newx, "scaled:center")
