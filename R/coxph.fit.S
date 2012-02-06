@@ -65,18 +65,19 @@ coxph.fit <- function(x, y, strata, offset, init, control,
 #		   as.double(control$eps),
 #		   as.double(control$toler.chol),
 #		   sctest=as.double(method=="efron") )
+    storage.mode(weights) <- storage.mode(init) <- "double"
     coxfit <- .Call("coxfit6", 
                      as.integer(maxiter),
                      stime, 
                      sstat,
                      x[sorted,],
                      as.double(offset[sorted] - mean(offset)),
-                     as.double(weights),
+                     weights,
                      newstrat,
                      as.integer(method=="efron"),
                      as.double(control$eps),
                      as.double(control$toler.chol),
-                     as.double(init),
+                     init,
                      as.integer(1))  # internally rescale
 
     if (nullmodel) {

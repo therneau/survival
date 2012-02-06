@@ -82,24 +82,36 @@ survexp.fit <- function(group, x, y, times, death, ratetable) {
             }
 	}
 
-    temp <- .C('pyears3',
-		    as.integer(death),
-		    as.integer(nrow(x)),
-		    as.integer(length(atts$dim)),
-		    as.integer(rfac),
-		    as.integer(atts$dim),
-		    as.double(unlist(cuts)),
-		    ratetable,
-                    as.integer(group),
-		    as.double(x),
-		    as.double(y),
-		    as.integer(ntime),
-		    as.integer(ngrp),
-		    as.double(times),
-		    surv = double(ntime * ngrp),
-		    n   = integer(ntime *ngrp), dup=FALSE)
-    if (ntime==1) list(surv=temp$surv, n=temp$n)
-    else if (ngrp >1)
+#    temp <- .C('pyears3',
+#		    as.integer(death),
+#		    as.integer(nrow(x)),
+#		    as.integer(length(atts$dim)),
+#		    as.integer(rfac),
+#		    as.integer(atts$dim),
+#		    as.double(unlist(cuts)),
+#		    ratetable,
+#                   as.integer(group),
+#		    as.double(x),
+#		    as.double(y),
+#		    as.integer(ntime),
+#		    as.integer(ngrp),
+#		    as.double(times),
+#		    surv = double(ntime * ngrp),
+#		    n   = integer(ntime *ngrp), dup=FALSE)
+   storage.mode(x) <- storage.mode(y) <- "double"
+   storage.mode(times) <- "double"
+   temp <- .Call('pyears3b',
+                 as.integer(death),
+                 as.integer(rfac),
+                 as.integer(atts$dim),
+                 as.double(unlist(cuts)),
+                 ratetable,
+                 as.integer(group),
+                 x, y, times,
+                 as.integer(ngrp))
+
+   if (ntime==1) list(surv=temp$surv, n=temp$n)
+   else if (ngrp >1)
 	 list(surv=apply(matrix(temp$surv, ntime, ngrp),2,cumprod),
 		 n=   matrix(temp$n, ntime, ngrp))
     else list(surv=cumprod(temp$surv), n=temp$n)

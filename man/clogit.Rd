@@ -10,16 +10,21 @@
   with older software.
 }
 \usage{
-clogit(formula, data, method=c("exact", "approximate", "efron", "breslow"),
-     na.action=getOption("na.action"), subset=NULL,control=coxph.control())
+clogit(formula, data, weights, subset, na.action,
+ method=c("exact", "approximate", "efron", "breslow"),
+ \dots)
 }
 \arguments{
   \item{formula}{Model formula}
   \item{data}{data frame }
-  \item{method}{correct or approximate conditonal likelihood?}
-  \item{na.action}{missing value handling}
-  \item{subset}{subset of records to use }
-  \item{control}{control values}
+  \item{weights}{optional, names the variable containing case weights}
+  \item{subset}{optional, subset the data}
+  \item{na.action}{optional na.action argument.  By default the
+    global option \code{na.action} is used.}
+  \item{method}{use the correct (exact) calculation in the conditional
+    likelihood or one of the approximations}
+  \item{\dots}{optional arguments, which will be passed to
+  \code{coxph.control}}
 }
 
 \value{
@@ -41,11 +46,17 @@ clogit(formula, data, method=c("exact", "approximate", "efron", "breslow"),
   this; 
   it was incorporated into version 2.36-11 of the survival package.
   (Most of the time conditional logistic modeling 
-  is applied data with 1 case + k controls per set, 
+  is applied data with 1 case + k controls per set, however, 
   which involves choosing 1 out of k and the computational issue
-  above does not arise.)  
+  above does not arise.)
   The 'appoximate' option maps to the
   Breslow approximation for historical reasons.
+
+  It is not clear how case weights should be handled.  For instance if
+  there are two deaths in a strata, one with weight=1 and one with
+  weight=2, should the likelihood calculation consider all subsets of
+  size 2 or all subsets of size 3?
+  Consequently, case weights are ignored by the routine.
   }
 \seealso{\code{\link{strata}},\code{\link{coxph}},\code{\link{glm}} }
 
@@ -53,16 +64,16 @@ clogit(formula, data, method=c("exact", "approximate", "efron", "breslow"),
 \dontrun{clogit(case ~ spontaneous + induced + strata(stratum), data=infert)}
 
 # A multinomial response recoded to use clogit
-#  The data set has one copy per possible outcome level, with new
-#  variable tocc = target occupation for this copy, and "case"
-#  whether that is the actual outcome for each subject.
+#  The revised data set has one copy per possible outcome level, with new
+#  variable tocc = target occupation for this copy, and case = whether
+#  that is the actual outcome for each subject.
 # See the catspec package for more details.
 resp <- levels(logan$occupation)
 n <- nrow(logan)
-indx <- rep(1:n, length(nresp))
+indx <- rep(1:n, length(resp))
 logan2 <- data.frame(logan[indx,],
                      id = indx,
-                     tocc = factor(resp, each=n))
+                     tocc = factor(rep(resp, each=n)))
 logan2$case <- (logan2$occupation == logan2$tocc)
 clogit(case ~ tocc + tocc:education + strata(id), logan2)
 }
@@ -71,5 +82,5 @@ clogit(case ~ tocc + tocc:education + strata(id), logan2)
 calculations for matched case-control studies and survival studies with
 tied death times.  Biometrika 68:703-707, 1980.
 }
-\keyword{survival}%-- one or more ...
+\keyword{survival}
 \keyword{models}

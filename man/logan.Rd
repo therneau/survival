@@ -1,7 +1,7 @@
 \name{logan}
 \docType{data}
 \alias{logan}
-\title{Data from the 1972-78 GSS data used by Logan (1983: 332-333)}
+\title{Data from the 1972-78 GSS data used by Logan}
 \usage{data(logan)}
 \description{
 Intergenerational occupational mobility data with covariates.
@@ -9,7 +9,9 @@ Intergenerational occupational mobility data with covariates.
 \format{
   A data frame with 838 observations on the following 4 variables.
   \describe{
-    \item{occupation}{subject's occupation, a factor with levels \code{farm}, \code{operatives}, \code{craftsmen}, \code{sales}, and \code{professional}}
+    \item{occupation}{subject's occupation, a factor with levels
+      \code{farm}, \code{operatives}, \code{craftsmen}, \code{sales},
+       and \code{professional}}
     \item{focc}{father's occupation}
     \item{education}{total years of schooling, 0 to 20}
     \item{race}{levels of \code{non-black} and \code{black}}

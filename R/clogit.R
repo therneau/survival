@@ -32,7 +32,10 @@ clogit<-function(formula,data, weights, subset, na.action,
     coxcall$method <- switch(match.arg(method),exact="exact",
                                                efron="efron",
                              "breslow")
-
+    if (!is.null(coxcall$weights)) {
+        coxcall$weights <- NULL
+        warning("Weights are ignored in clogit")
+    }
     coxcall<-eval(coxcall, sys.frame(sys.parent()))
     coxcall$userCall<-sys.call()
     

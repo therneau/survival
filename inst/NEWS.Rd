@@ -4,9 +4,13 @@
   \itemize{
     \item Fix a bug in the new fast subsets code.  The test suite had no
     examples of strata + lots of tied times, so of course that's the
-    case where I had an indexing error.
+    case where I had an indexing error.  Add a test case using the
+    clogit function, which exercises this.
+
+    \item Further memory tuning for survexp.
     }}
-\section{Changes in version 2.36-11}{
+
+    \section{Changes in version 2.36-11}{
   \itemize{
     \item Make survexp more efficient.  The X matrix was being modified
     in several places, leading to multiple copies of the data.  When the
@@ -26,8 +30,8 @@
     using coxph with the "exact" option.  The speed increase is profound 
     though at the cost of some memory.    Reflect this in the
     documentation for the clogit routine.
-    Note that the fast computation is not yet 
-    implemented for (start,stop) coxph models.
+    Note that the fast computation is not yet implemented for
+    (start,stop) coxph models.
 
     \item Change the C routine used by coxph.fit from .C to .Call
     semantics to improve memory efficiency, in particular fewer copies
