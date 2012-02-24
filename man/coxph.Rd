@@ -132,7 +132,14 @@ as time marches onward we observe the events for a subject, rather
 like watching a Geiger counter. 
 The data for a subject is presented as multiple rows or "observations", 
 each 
-of which applies to an interval of observation (start, stop]. 
+of which applies to an interval of observation (start, stop].
+
+The routine internally scales and centers data to avoid overflow in
+the argument to the exponential function.  These actions do not change
+the result, but lead to more numerical stability.
+However, arguments to offset are not scaled since there are situations
+where a large offset value is a purposefully used.
+Users should not use normally allow large numeric offset values.
 }
 \section{Special terms}{
 There are three special terms that may be used in the model equation. 
