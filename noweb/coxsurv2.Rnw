@@ -36,7 +36,7 @@ cost, and it's easier to see what's going on than C code.
 First, compute the baseline survival curves for each strata.  If the strata
 was a factor we want to leave it in the same order, otherwise sort it.
 This fitting routine was set out as a separate function for the sake of the rms
-package.  They want to utilize the computation, but have a difffor recreation of the x and y data.
+package.  They want to utilize the computation, but have a diffferent recreation of the x and y data.
 <<survfitcoxph.fit>>=
 survfitcoxph.fit <- function(y, x, wt, x2, risk, newrisk, strata, se.fit,
                               survtype, vartype, varmat, id, y2, strata2,
@@ -260,9 +260,10 @@ else {
         result <- list(onecurve(survlist, x2, y2, strata2, newrisk, se.fit))
         }
     else {
-        result <- vector('list', length=length(unique(id)))
-        for (i in unique(id)) {
-            indx <- which(id==i)
+        uid <- unique(id)
+        result <- vector('list', length=length(uid))
+        for (i in 1:length(uid)) {
+            indx <- which(id==uid[i])
             result[[i]] <- onecurve(survlist, x2[indx,,drop=FALSE], 
                                      y2[indx,,drop=FALSE], 
                                      strata2[indx],  newrisk[indx], se.fit)
@@ -507,21 +508,25 @@ the mean of $x$ at this point.
 
 <<agsurv5>>=
 #include "survS.h"
-void agsurv5(Sint *n,      Sint *nvar,   Sint *dd, double *x1,  
+void agsurv5(Sint *n2,     Sint *nvar2,  Sint *dd, double *x1,  
              double *x2,   double *xsum, double *xsum2, 
              double *sum1, double *sum2, double *xbar) {
     double temp;
     int i,j, k, kk;
     double d;
+    int n, nvar;
+    
+    n = n2[0];
+    nvar = nvar2[0];
 
-    for (i=0; i< *n; i++) {
+    for (i=0; i< n; i++) {
 	d = dd[i];
 	if (d==1){
 	    temp = 1/x1[i];
 	    sum1[i] = temp;
 	    sum2[i] = temp*temp;
-            for (k=0; k< *nvar; k++) 
-                xbar[i+ *n*k] = xsum[i + *n*k] * temp*temp;
+            for (k=0; k< nvar; k++) 
+                xbar[i+ n*k] = xsum[i + n*k] * temp*temp;
 	    }
 	else {
 	    temp = 1/x1[i];
@@ -529,8 +534,8 @@ void agsurv5(Sint *n,      Sint *nvar,   Sint *dd, double *x1,
 		temp = 1/(x1[i] - x2[i]*j/d);
                 sum1[i] += temp/d;
                 sum2[i] += temp*temp/d;
-                for (k=0; k< *nvar; k++){
-                    kk = i + *n*k;
+                for (k=0; k< nvar; k++){
+                    kk = i + n*k;
                     xbar[kk] += ((xsum[kk] - xsum2[kk]*j/d) * temp*temp)/d;
                     }
 		}

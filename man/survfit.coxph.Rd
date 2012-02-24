@@ -29,7 +29,9 @@ hazards model.
     \code{coxph} fit. 
   }
   \item{individual}{
-    a logical value indicating whether each row of \code{newdata} represents
+    This argument has been superseded by the \code{id} argument and is
+    present only for backwards compatability.
+    A logical value indicating whether each row of \code{newdata} represents
     a distinct individual (FALSE, the default), 
     or if each row of the data frame represents different 
     time epochs for only one individual (TRUE).  
@@ -72,7 +74,17 @@ hazards model.
   }
   \item{censor}{if FALSE time points at which there are no events (only
     censoring) are not included in the result.}
-  \item{id}{optional vector of subject identifiers, see below.}
+  \item{id}{optional variable name of subject identifiers.  If this is
+    present, then each group of rows with the same subject id represents
+    the covariate path through time of a single subject, and the result
+    will contain one curve per subject.  If the \code{coxph} fit had
+    strata then that must also be specified in \code{newdata}.
+    If missing, then each
+    individual row of \code{newdata} is presumed to represent a distinct
+    subject and there will be \code{nrow(newdata)} times the number of
+    strata curves in the result (one for each strata/subject combination).
+    result.}
+  
    \item{\dots}{for future methods}
 }
 \value{
@@ -84,9 +96,11 @@ details. Methods defined for survfit objects are
 }
 \details{
     Serious thought has been given to removing the `default' for
-    \code{newdata}, since the resulting curve(s) almost never make sense.
+    \code{newdata}, which is to use a single "psuedo" subject with
+    covariate values equal to the means of the data set.
+    The resulting curve(s) almost never make sense.
     It remains due to the unwarranted attachment to the option shown by
-    other packages and by users.  Two particularly egregious examples
+    some users and by other packages.  Two particularly egregious examples
     are factor variables and interactions.  Suppose one were studying
     interspecies transmission of a virus, and the data set has a factor
     variable with levels ("pig", "chicken") and about equal numbers of
@@ -105,11 +119,8 @@ path of that covariate through time needs to be specified in order to
 obtain a predicted curve. This requires \code{newdata} to contain
 multiple lines for each hypothetical subject which gives the covariate
 values, time interval, and strata for each line (a subject can change
-strata).
-If \code{newdata} consists of a single patient then the
-\code{individual=TRUE} argument can be used to signal that all the lines
-are for one subject.  If there are multiple prediction subjects an
-\code{id} must be added which demarks which rows go to each.
+strata), along with an \code{id} variable
+ which demarks which rows belong to each subject.
 The time interval must have the same (start, stop, status)
 variables as the original model: although the status variable is not
 used and thus can be set to a dummy value of 0 or 1, it is necessary for

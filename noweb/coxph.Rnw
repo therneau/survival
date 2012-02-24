@@ -8,11 +8,11 @@ and proceeds from there.
 <<coxph>>=
 tt <- function(x) x
 coxph <- function(formula, data, weights, subset, na.action,
-	init, control, method= c("efron", "breslow", "exact"),
+	init, control, ties= c("efron", "breslow", "exact"),
 	singular.ok =TRUE, robust=FALSE,
-	model=FALSE, x=FALSE, y=TRUE,  tt, ...) {
+	model=FALSE, x=FALSE, y=TRUE,  tt, method=ties, ...) {
 
-    method <- match.arg(method)
+    ties <- match.arg(ties)
     Call <- match.call()
 
     # create a call to model.frame() that contains the formula (required)

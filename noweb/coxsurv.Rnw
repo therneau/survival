@@ -378,7 +378,7 @@ if (individual) {
         stop("Survival type of newdata does not match the fitted model")
     if (attr(y2, "type") != "counting")
         stop("Individual=TRUE is only valid for counting process data")
-    y2 <- y2[,1:2]  #throw away status, it's never used
+    y2 <- y2[,1:2, drop=F]  #throw away status, it's never used
 
     newrisk <- exp(c(x2 %*% coef)) + offset2
     result <- survfitcoxph.fit(y, x, wt, x2, risk, newrisk, strata,
