@@ -16,7 +16,7 @@ residuals.coxph.penal <- function(object,
 	sparsename <- (names(object$pterms))[object$pterms==2]
 	x <- object[['x']]  #don't accidentally get object$xlevels
 	if (is.null(x)) {
-	    temp <- coxph.getdata(object, y=TRUE, x=TRUE, strata=TRUE)
+	    temp <- coxph.getdata(object, y=TRUE, x=TRUE, stratax=TRUE)
 	    if (is.null(object$y)) object$y <- temp$y
 	    if (is.null(object$strata)) object$strata <- temp$strata
 	    x <- temp$x

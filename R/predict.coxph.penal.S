@@ -29,7 +29,7 @@ predict.coxph.penal <- function(object,  newdata,
 	    # I need the X matrix
 	    x <- object[['x']]  # object$x might grab object$xlevels
 	    if (is.null(x)) {
-		temp <- coxph.getdata(object, y=TRUE, x=TRUE, strata=TRUE)
+		temp <- coxph.getdata(object, y=TRUE, x=TRUE, stratax=TRUE)
 		if (is.null(object$y)) object$y <- temp$y
 		if (is.null(object$strata)) object$strata <- temp$strata
 		x <- temp$x

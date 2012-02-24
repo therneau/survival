@@ -535,7 +535,7 @@ survConcordance <- function(formula, data,
                             weights, subset, na.action) {
     Call <- match.call()  # save a copy of of the call, as documentation
 
-    m <- match.call(expand=FALSE)
+    m <- match.call(expand.dots=FALSE)
     m[[1]] <- as.name("model.frame")
     m$formula <- if(missing(data)) terms(formula, "strata")
                  else              terms(formula, "strata", data=data)
