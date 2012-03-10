@@ -15,3 +15,21 @@ fit3 <- coxph(Surv(futime, fustat) ~ x1 + x2, test3, iter=25)
 
 all.equal(round(fit3$coef,1), c(-22.2, -22.9), check.attributes=FALSE)
 all.equal(round(fit3$log, 4),c(-6.8669, -1.7918))
+
+#
+# Actual solution
+#  time 1, 12 at risk,  3 each of x1/x2 = 00, 01, 10, 11
+#  time 2, 10 at risk,                     2, 3,  2 ,  3
+#  time 5, 8  at risk,                     1, 3,  1,   3
+# Let r1 = exp(beta1), r2= exp(beta2)
+# loglik = -log(3 + 3r1 + 3r2 + 3 r1*r2) - log(2 + 2r1 + 3r2 + 3 r1*r2) -
+#           log(1 + r1  + 3r2 + 3 r1*r2)
+true <- function(beta) {
+    r1 <- exp(beta[1])
+    r2 <- exp(beta[2])
+    loglik <- -log(3*(1+ r1+ r2+ r1*r2)) - log(2+ 2*r1 + 3*r2 + 3*r1*r2) -
+               log(1 + r1 + 3*r2 + 3*r1*r2)
+    loglik
+}
+
+all.equal(fit3$loglik[2], true(fit3$coef), check.attributes=FALSE)

@@ -22,12 +22,17 @@
 **  usually converges before xbeta gets to 15, so this protection should not
 **  harm the iteration path of even edge cases; only fix those that truely
 **  go astray. 
+**
+** The truncation turns out not to be necessary for small values, since a risk
+**  score of exp(-50) or exp(-1000) or 0 all give essentially the same effect.
+** We only cut these off enough to avoid underflow.
 */
 
 #define LARGE 22
+#define SMALL -200
 
 double coxsafe(double x) {
-    if (x< -LARGE) return(-LARGE);
+    if (x< SMALL) return(SMALL);
     if (x> LARGE) return(LARGE);
     return (x);
     }

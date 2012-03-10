@@ -8,9 +8,11 @@ PARTS = main.Rnw \
 	survexp.Rnw \
 	pyears.Rnw \
 	residuals.survreg.Rnw 
+#	coxdetail.nw
 
 SFUN =  agsurv.R \
 	coxph.R \
+#	coxph.detail.R \
 	predict.coxph.R \
 	pyears.R \
 	residuals.survreg.S\
@@ -21,7 +23,8 @@ SFUN =  agsurv.R \
 	survfitcoxph.fit.R
 
 CFUN =  agsurv4.c agsurv5.c concordance1.c coxcount1.c \
-        coxexact.c
+        coxexact.c 
+#	coxdetail2.c
 
 RDIR = ../R
 RFUN = $(SFUN:%=$(RDIR)/%)

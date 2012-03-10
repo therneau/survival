@@ -147,8 +147,8 @@ if (type == 'expected') {
         }
     }
 
-if (se.fit || type=='terms' || 
-    (has.strata && (reference=="strata" || type=="expected"))) {
+if (se.fit || type=='terms' || (!missing(newdata) && type=="expected") ||
+    (has.strata && (reference=="strata") || type=="expected")) {
     use.x <- TRUE
     if (is.null(object[['x']]) || has.weights || has.offset ||
          (has.strata && is.null(object$strata))) {
@@ -433,19 +433,19 @@ else {
 if (missing(newdata)) {
     offset <- offset - mean(offset)
     if (has.strata && reference=="strata") {
-        indx <- as.integer(oldstrat)
-        xmeans <- rowsum(x*weights, indx)/c(rowsum(weights, indx))
-        newx <- x - xmeans[indx,]
+        # We can't use as.integer(oldstrat) as an index, if oldstrat is
+        #   a factor variable with unrepresented levels as.integer could
+        #   give 1,2,5 for instance.
+        xmeans <- rowsum(x*weights, oldstrat)/c(rowsum(weights, oldstrat))
+        newx <- x - xmeans[match(oldstrat,row.names(xmeans)),]
         }
     else if (use.x) newx <- x - rep(object$means, each=nrow(x))
     }
 else {
     offset <- newoffset - mean(offset)
     if (has.strata && reference=="strata") {
-        indx <- as.integer(oldstrat)
-        xmeans <- rowsum(x*weights, indx)/ c(rowsum(weights, indx))
-        indx2 <- match(newstrat, levels(oldstrat))
-        newx <- newx - xmeans[indx2,]
+        xmeans <- rowsum(x*weights, oldstrat)/c(rowsum(weights, oldstrat))
+        newx <- newx - xmeans[match(newstrat, row.names(xmeans)),]
         }
     else newx <- newx - rep(object$means, each=nrow(newx))
     }

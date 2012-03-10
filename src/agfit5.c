@@ -1,4 +1,3 @@
-/* $Id*/
 /* A reentrant version of the agfit program, for penalized effects modeling
 **   with reasonable efficiency (I hope).  The important arrays are saved
 **   from call to call so as to speed up the process.  The x-matrix itself
@@ -100,8 +99,6 @@ void agfit5_a(Sint *nusedx, Sint *nvarx, double *yy,
 	       Sint *methodx, Sint *ptype2, Sint *pdiag2,
 	       Sint *nfrail,  Sint *frail2,
                void *fexpr1, void *fexpr2, void *rho) {
-
-    S_EVALUATOR
 
     int i,j,k, person;
     int     nused, nvar;
@@ -361,8 +358,9 @@ S_EVALUATOR
 		zbeta += beta[i]*covar[i][person];
 	    zbeta = coxsafe(zbeta);
 	    score[person] = zbeta;
+	    zbeta = coxsafe(zbeta);
 #if(0)
-	    /* I believe this is unnecessary after adding coxsafe above */
+	    /* I believe this is unnecessary after adding coxsafe calls */
 	    if (zbeta > 20 && *maxiter >1) {
 		/*
 		** If the above happens, then 
@@ -648,8 +646,6 @@ S_EVALUATOR
 
 static double **cmatrix(double *data, int ncol, int nrow)
     {
-S_EVALUATOR
-
     int i,j;
     double **pointer;
     double *temp;
@@ -672,8 +668,6 @@ S_EVALUATOR
 	}
 
 static void cmatrix_free(double **data) {
-S_EVALUATOR
-
     Free(*data);
     Free(data);
     }
@@ -681,8 +675,6 @@ S_EVALUATOR
 
 void agfit5_c(Sint *nusedx, Sint *nvar, Sint *strata,
 	      Sint *methodx, double *expect) {
-S_EVALUATOR
-
     int i, j, k, ksave;
     int p, istrat, indx2;
     double denom, e_denom;

@@ -1,5 +1,31 @@
 \name{NEWS}
-\title{NEWS file for the surival package}
+\title{NEWS file for the survival package}
+\section{Changes in version 2.36-13}{
+  \itemize{
+    \item Fix a bug pointed out by Charles Berry: predict for a Cox
+    model which has strata, and the strata is a factor with not all its
+    levels represented in the data.  I had a mistake in the subscripting
+    logic: number of groups is not equal to max(as.integer(strata)).
+    
+    \item Changes to avoid overflow in the exponent made in 2.36-6
+    caused failure for one special usage: in case-cohort designs a dummy
+    offset of -100 could be added to some observations.  This was being
+    rounded away.  The solution is to 1: have coxsafe not truncate small
+    exponents and 2: do not recenter user provided offset values.
+
+    \item Fix bug in survfit.coxph.  Due to an indexing error I would
+    sometimes create a huge scratch vector midway through the
+    calculations (size = max value of "id"); the final result was always
+    correct however.  Data set provided by Cindy Crowson which had a
+    user id in the billions.
+
+    \item Fix bug pointed out by Nicholas Horton: predictions of
+    type expected, with newdata, from a Cox model without a strata
+    statement would fail with "x not found".  A misplaced parenthesis
+    from an earlier update caused it to not recreate the X matrix even
+    though it was needed later. 
+    }}
+
 \section{Changes in version 2.36-12}{
   \itemize{
     \item Fix a bug in the new fast subsets code.  The test suite had no

@@ -63,7 +63,7 @@ coxph(formula, data=, weights, subset,
     are no tied death times all the methods are equivalent. 
     Nearly all Cox regression programs use the Breslow method by default, 
     but not this one. 
-    The Efron approximation is used as the default here, as it is much more 
+    The Efron approximation is used as the default here, it is more 
     accurate when dealing with tied death times, and is as efficient 
     computationally. 
     The ``exact partial likelihood'' is 

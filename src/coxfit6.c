@@ -355,7 +355,7 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
 		for (i=0; i<nvar; i++)
 		    zbeta += newbeta[i]*covar[i][person];
 		zbeta = coxsafe(zbeta);
-		risk = exp(zbeta ) * weights[person];
+		risk = exp(zbeta) * weights[person];
 		denom += risk;
 
 		for (i=0; i<nvar; i++) {
