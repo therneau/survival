@@ -2,6 +2,10 @@
 \title{NEWS file for the survival package}
 \section{Changes in version 2.36-13}{
   \itemize{
+    \item Fix a bug in summary.survfit for a multiple-strata survival
+    object.  If one of the curves had no data after application of the
+    times argument, an output label was the wrong length.
+    
     \item Fix a bug pointed out by Charles Berry: predict for a Cox
     model which has strata, and the strata is a factor with not all its
     levels represented in the data.  I had a mistake in the subscripting
@@ -23,7 +27,8 @@
     type expected, with newdata, from a Cox model without a strata
     statement would fail with "x not found".  A misplaced parenthesis
     from an earlier update caused it to not recreate the X matrix even
-    though it was needed later. 
+    though it was needed later.  Also add some further information to
+    the predict manual page to clarify an issue when there is a frailty term.
     }}
 
 \section{Changes in version 2.36-12}{

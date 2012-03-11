@@ -173,7 +173,9 @@ summary.survfit <- function(object, times, censored=FALSE,
 	    }
 	if (!is.null(fit$strata)) {
 	    scount <- unlist(lapply(newtimes, length))
-	    strata <- factor(rep(1:nstrat, scount), labels=names(fit$strata))
+            names(scount) <-names(fit$strata)
+            scount <- scount[scount>0]
+            strata <- factor(rep(names(scount), scount))
 	    }
 	}
 

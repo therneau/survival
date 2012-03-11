@@ -51,9 +51,13 @@ predict.coxph <- function(object, newdata,
                        reference=c("strata", "sample"), ...) {
     <<pcoxph-init>>
     <<pcoxph-getdata>>
-    <<pcoxph-expected>>
-    <<pcoxph-simple>>
-    <<pcoxph-terms>>
+    if (type=="expected") {
+        <<pcoxph-expected>>
+        }
+    else {
+        <<pcoxph-simple>>
+        <<pcoxph-terms>>
+        }
     <<pcoxph-finish>>
     }
 @ 
@@ -256,12 +260,10 @@ hazard is very simple since
 the martingale residual is defined as status - expected.  The 0/1
 status is saved as the last column of $y$.
 <<pcoxph-expected>>=
-if (type=='expected') {
-    if (missing(newdata))
-        pred <- y[,ncol(y)] - object$residuals
-    if (!missing(newdata) || se.fit) {
-        <<pcoxph-expected2>>
-        }
+if (missing(newdata))
+    pred <- y[,ncol(y)] - object$residuals
+if (!missing(newdata) || se.fit) {
+    <<pcoxph-expected2>>
     }
 @ 
 

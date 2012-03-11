@@ -9,7 +9,7 @@ predict.coxph.penal <- function(object,  newdata,
     Terms <- object$terms
     pterms <- object$pterms
     # If there are no sparse terms
-    if (!any(pterms==2) || type=='expected' || 
+    if (!any(pterms==2) ||  
 	(missing(newdata) && se.fit==FALSE && type!='terms')) 
 	    NextMethod('predict',object,...)
     else {
@@ -48,6 +48,10 @@ predict.coxph.penal <- function(object,  newdata,
 	    se <- sqrt(object$fvar[indx])
 	    pred <- object$linear.predictor
 	    if (type=='risk') pred <- exp(pred)
+            if (type=='expected') {
+                pred <- fit$y[,ncol(fit$y)] -fit$residuals 
+                se.fit=FALSE
+                }
 	    }
 	else {
 	    # temporarily remove the sparse term, call NextMethod,
