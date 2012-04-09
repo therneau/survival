@@ -311,12 +311,12 @@ aareg <- function(formula, data, weights, subset, na.action,
 	#   though it will always be ignored in the overall chisquare test
 	if (test=='aalen') {
 	    temp <- twt* coefficient
-	    test.statistic <- apply(temp, 2, sum)
+	    test.statistic <- colSums(temp)
 	    test.var <- t(temp) %*% temp
 	    }
 	else if (test=='nrisk') {
 	    temp <- coefficient * nrisk
-	    test.statistic <- apply(temp, 2, sum)
+	    test.statistic <- colSums(temp)
 	    test.var <- t(temp) %*% temp
 	    }
 	else  {
