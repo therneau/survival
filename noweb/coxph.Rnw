@@ -376,13 +376,17 @@ if (is.null(offset) | all(offset==0)) offset <- rep(0., nrow(m))
 
 cluster<- attr(Terms, "specials")$cluster
 if (length(cluster)) {
-    if (missing(robust)) robust <- TRUE
+    robust <- TRUE  #flag to later compute a robust variance
     tempc <- untangle.specials(Terms2, 'cluster', 1:10)
     ord <- attr(Terms2, 'order')[tempc$terms]
     if (any(ord>1)) stop ("Cluster can not be used in an interaction")
     cluster <- strata(m[,tempc$vars], shortlabel=TRUE)  #allow multiples
     Terms2 <- Terms2[-tempc$terms]
     }
+else {
+    if (!missing(robust)) warning("The robust option is depricated")
+    else robust <- FALSE
+}
 
 attr(Terms2, 'intercept') <- 1  #baseline hazard is always present
 X <- model.matrix(Terms2, m)
