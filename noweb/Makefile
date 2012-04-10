@@ -12,7 +12,6 @@ PARTS = main.Rnw \
 
 SFUN =  agsurv.R \
 	coxph.R \
-#	coxph.detail.R \
 	predict.coxph.R \
 	pyears.R \
 	residuals.survreg.S\

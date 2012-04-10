@@ -37,8 +37,9 @@ SEXP fexpr,rho;
 	}
 
     /** eval function */
-    PROTECT(coxlist=eval(lang2(fexpr,data),rho));
-    UNPROTECT(2);
+    PROTECT(temp=lang2(fexpr, data));
+    PROTECT(coxlist=eval(temp,rho));
+    UNPROTECT(3);
     PROTECT(coxlist);
     /* stick it back in the calling frame */
     if (which==1)

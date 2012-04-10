@@ -1,5 +1,20 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 2.36-14}{
+  \itemize{
+    \item Add further documentation to the aareg function.
+  
+    \item Depricate the robust option in coxph.  When there are multiple
+    observations per subject using a "cluster(id)" term gives the right
+    answer and robust=T without that term an incorrect answer; when
+    there is only one obs per subject both paths get it right.  Thus the
+    robust option is unnecessary and can lead users astray.
+
+    \item Change the ratetableDate function so that it still supports
+    chron objects, but never requires the chron library.  This
+    eliminates a warning message in the package checks.  
+}}
+
 \section{Changes in version 2.36-13}{
   \itemize{
     \item Fix a bug in summary.survfit for a multiple-strata survival

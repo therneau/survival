@@ -82,10 +82,8 @@ coxph(formula, data=, weights, subset,
     the missing coefficients are treated as zeros. 
   }
   \item{robust}{
-    if \code{TRUE} a robust variance estimate is returned.
-    Default is \code{TRUE} if the model includes a \code{cluster}
-    operative, 
-    \code{FALSE} otherwise. 
+    this argument has been depricated, use a cluster term in the model
+    instead.
   }
   \item{model}{
     logical value: if \code{TRUE}, the model frame is returned in component

@@ -99,8 +99,25 @@ response vector y be included in the saved result.
 }
 }
 \value{
-an object of class \code{"aareg"} 
-representing the fit.
+  an object of class \code{"aareg"} 
+  representing the fit, with the following components:
+  \item{n}{vector containing the number of observations in the data set,
+    the number of event times, and the number of event times used in the
+    computation}
+  \item{times}{vector of sorted event times, which may contain
+    duplicates}
+  \item{nrisk}{vector containing the number of subjects at risk, of the
+    same length as \code{times}}
+  \item{coefficient}{matrix of coefficients, with one row per event and
+    one column per covariate}
+  \item{test.statistic}{the value of the test statistic, a vector with
+    one element per covariate}
+  \item{test.var}{variance-covariance matrix for the test}
+  \item{test}{the type of test; a copy of the \code{test} argument
+    above}
+  \item{tweight}{matrix of weights used in the computation, one row per
+    event}
+  \item{call}{a copy of the call that produced this result}
 }
 \details{
 The Aalen model assumes that the cumulative hazard H(t) for a subject
