@@ -49,7 +49,7 @@ predict.coxph.penal <- function(object,  newdata,
 	    pred <- object$linear.predictor
 	    if (type=='risk') pred <- exp(pred)
             if (type=='expected') {
-                pred <- fit$y[,ncol(fit$y)] -fit$residuals 
+                pred <- object$y[,ncol(fit$y)] -object$residuals 
                 se.fit=FALSE
                 }
 	    }
