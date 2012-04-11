@@ -14,4 +14,4 @@ Description: survival analysis: descriptive statistics, two-sample
   models. Case-cohort designs.
 License: GPL (>=2)
 URL: http://r-forge.r-project.org
-Enhances: coxme, date, chron
+

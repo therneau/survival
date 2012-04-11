@@ -1,3 +1,4 @@
+/* Automatically generated from all.nw using noweb */
 #include <math.h>
 #include "survS.h"
 #include "survproto.h"
@@ -12,7 +13,7 @@ double coxd0(int d, int n, double *score, double *dmat,
 
     if (*dn ==0) {  /* still to be computed */
         *dn = score[n-1]* coxd0(d-1, n-1, score, dmat, dmax);
-        if (d<n) *dn += coxd0(d, n-1, score, dmat, dmax);
+            if (d<n) *dn += coxd0(d, n-1, score, dmat, dmax);
     }
     return(*dn);
 }
@@ -157,7 +158,7 @@ SEXP coxexact(SEXP maxiter2,  SEXP y2,
     dmem1 = (double **) R_alloc(nvar, sizeof(double*));
     dmem1[0] = dmem0 + dsize; /*points to the first derivative memory */
     for (i=1; i<nvar; i++) dmem1[i] = dmem1[i-1] + dsize;
-    d1 = (double *) R_alloc(nvar, sizeof(double)); /*first deriv results */      
+    d1 = (double *) R_alloc(nvar, sizeof(double)); /*first deriv results */
     /*
     ** do the initial iteration step
     */
@@ -270,7 +271,7 @@ SEXP coxexact(SEXP maxiter2,  SEXP y2,
         for (i=0; i<nvar; i++) {
             u[i] =0;
             for (j=0; j<nvar; j++)
-                imat[i][j] =0;
+                    imat[i][j] =0;
             }
         for (i=0; i<nused; ) {
             if (strata[i] >0) { /* first obs of a new strata */
@@ -319,7 +320,7 @@ SEXP coxexact(SEXP maxiter2,  SEXP y2,
                 }
             }
          }
-            
+                   
         /* am I done?
         **   update the betas and test for convergence
         */
@@ -354,20 +355,20 @@ SEXP coxexact(SEXP maxiter2,  SEXP y2,
         if (iter==maxiter) break;  /*skip the step halving and etc */
 
         if (newlk < loglik[1])   {    /*it is not converging ! */
-            halving =1;
-            for (i=0; i<nvar; i++)
-                beta[i] = (oldbeta[i] + beta[i]) /2; /*half of old increment */
-            }
-        else {
-            halving=0;
-            loglik[1] = newlk;
-            chsolve2(imat,nvar,u);
-
-            for (i=0; i<nvar; i++) {
-                oldbeta[i] = beta[i];
-                beta[i] = beta[i] +  u[i];
+                halving =1;
+                for (i=0; i<nvar; i++)
+                    beta[i] = (oldbeta[i] + beta[i]) /2; /*half of old increment */
                 }
-            }
+        else {
+                halving=0;
+                loglik[1] = newlk;
+                chsolve2(imat,nvar,u);
+
+                for (i=0; i<nvar; i++) {
+                    oldbeta[i] = beta[i];
+                    beta[i] = beta[i] +  u[i];
+                    }
+                }
         }   /* return for another iteration */
 
 

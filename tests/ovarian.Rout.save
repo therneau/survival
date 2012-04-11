@@ -1,8 +1,8 @@
 
-R version 2.14.0 Under development (unstable) (2011-04-10 r55401)
-Copyright (C) 2011 The R Foundation for Statistical Computing
+R version 2.15.0 (2012-03-30)
+Copyright (C) 2012 The R Foundation for Statistical Computing
 ISBN 3-900051-07-0
-Platform: x86_64-unknown-linux-gnu (64-bit)
+Platform: i686-pc-linux-gnu (32-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -287,12 +287,6 @@ Call: survfit(formula = fit, newdata = list(age = c(30, 70), ecog.ps = c(2,
 > detach()
 > 
 > 
-> # Test the robust=T option of coxph
-> fit <- coxph(Surv(futime, fustat) ~ age + ecog.ps + rx, ovarian, robust=T)
-> rr <- resid(fit, type='dfbeta')
-> all.equal(as.vector(t(rr) %*% rr), as.vector(fit$var))
-[1] TRUE
-> 
 > # Check of offset + surv, added 7/2000
 > fit1 <- coxph(Surv(futime, fustat) ~ age + rx, ovarian,
 + 	      control=coxph.control(eps=1e-8))
@@ -318,5 +312,8 @@ Call: survfit(formula = fit, newdata = list(age = c(30, 70), ecog.ps = c(2,
 > all.equal(survfit(fit, censor=FALSE)$surv, exp(-baseline))
 [1] TRUE
 > 
-> rm(fit, fit1, fit2, ord, eta, risk, rsum, dead, baseline, rr, sfit)
+> rm(fit, fit1, fit2, ord, eta, risk, rsum, dead, baseline, sfit)
 > 
+> proc.time()
+   user  system elapsed 
+  0.264   0.028   0.288 

@@ -4,6 +4,22 @@
   \itemize{
     \item More work on "predvars" handling for the pspline function,
     when used in predict calls.  Add a new test of this to the suite.
+    Fixes a bug pointed out by C Crowson.
+
+    \item Deprecate the "robust" option of coxph.  When there are
+    multiple observations per subject it is almost surely the wrong
+    thing to do, while adding a "cluster(id)" term does the correct
+    thing. When there is only one obs per subject both methods work
+    correctly.
+
+    \item Add documentation of the output structure to the aareg help
+    file.
+
+    \item Change ratetableDate so that it still allows use of chron
+    objects, but doesn't need the chron library.  This eliminates a
+    warning messge from the package checks, but is also a reasonable
+    support strategy for a moribund package.  (Some local users keep
+    datasets for a long long time.)
 }}
 
 \section{Changes in version 2.36-13}{

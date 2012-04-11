@@ -1,8 +1,8 @@
 
-R version 2.12.2 (2011-02-25)
-Copyright (C) 2011 The R Foundation for Statistical Computing
+R version 2.15.0 (2012-03-30)
+Copyright (C) 2012 The R Foundation for Statistical Computing
 ISBN 3-900051-07-0
-Platform: x86_64-unknown-linux-gnu (64-bit)
+Platform: i686-pc-linux-gnu (32-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -399,15 +399,17 @@ TRUE
 > test1 <- data.frame(time=  c(9, 3,1,1,6,6,8),
 +                     status=c(1,NA,1,0,1,1,0),
 +                     x=     c(0, 2,1,1,1,0,0),
-+ 		    wt=    c(3,0,1,1,1,1,1))
++ 		    wt=    c(3,0,1,1,1,1,1),
++                     id=    1:7)
 > testx <- data.frame(time=  c(4,4,4,1,1,2,2,3),
 +                     status=c(1,1,1,1,0,1,1,0),
 +                     x=     c(0,0,0,1,1,1,0,0),
-+ 		    wt=    c(1,1,1,1,1,1,1,1))
++ 		    wt=    c(1,1,1,1,1,1,1,1),
++                     id=    1:8)
 >  
-> fit1 <- coxph(Surv(time, status) ~x, test1, method='breslow', weights=wt,
-+ 	      robust=T)
-> fit2 <- coxph(Surv(time, status) ~x, testx, method='breslow', robust=T)
+> fit1 <- coxph(Surv(time, status) ~x + cluster(id), test1, method='breslow',
++               weights=wt)
+> fit2 <- coxph(Surv(time, status) ~x + cluster(id), testx, method='breslow')
 > 
 > db1 <- resid(fit1, 'dfbeta', weighted=F)
 > db1 <- db1[-2]         #toss the missing
@@ -422,3 +424,6 @@ TRUE
 [1] TRUE
 > 
 > 
+> proc.time()
+   user  system elapsed 
+  0.292   0.036   0.325 

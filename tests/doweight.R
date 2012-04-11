@@ -217,15 +217,17 @@ rm(fit, fit0, rr1, rr2, dt, dt0)
 test1 <- data.frame(time=  c(9, 3,1,1,6,6,8),
                     status=c(1,NA,1,0,1,1,0),
                     x=     c(0, 2,1,1,1,0,0),
-		    wt=    c(3,0,1,1,1,1,1))
+		    wt=    c(3,0,1,1,1,1,1),
+                    id=    1:7)
 testx <- data.frame(time=  c(4,4,4,1,1,2,2,3),
                     status=c(1,1,1,1,0,1,1,0),
                     x=     c(0,0,0,1,1,1,0,0),
-		    wt=    c(1,1,1,1,1,1,1,1))
+		    wt=    c(1,1,1,1,1,1,1,1),
+                    id=    1:8)
  
-fit1 <- coxph(Surv(time, status) ~x, test1, method='breslow', weights=wt,
-	      robust=T)
-fit2 <- coxph(Surv(time, status) ~x, testx, method='breslow', robust=T)
+fit1 <- coxph(Surv(time, status) ~x + cluster(id), test1, method='breslow',
+              weights=wt)
+fit2 <- coxph(Surv(time, status) ~x + cluster(id), testx, method='breslow')
 
 db1 <- resid(fit1, 'dfbeta', weighted=F)
 db1 <- db1[-2]         #toss the missing

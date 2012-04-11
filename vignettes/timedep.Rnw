@@ -1,11 +1,10 @@
 \documentclass{article}
-\usepackage[pdftex]{graphicx}
 \usepackage{amsmath}
+\usepackage{Sweave}
 \addtolength{\textwidth}{1in}
 \addtolength{\oddsidemargin}{-.5in}
 \setlength{\evensidemargin}{\oddsidemargin}
 
-\SweaveOpts{keep.source=TRUE}
 %\VignetteIndexEntry{Using Time Dependent Covariates}
 
 \title{Using Time Dependent Covariates and Time Dependent Coefficients 
@@ -15,6 +14,7 @@
 \begin{document}
 \maketitle
 
+\SweaveOpts{keep.source=TRUE}
 <<preamble, echo=F>>=
 options(width=60, continue=" ")
 makefig <- function(file, top=1, right=1, left=4) {

@@ -279,11 +279,13 @@ subterms <- function(x, i) {
     predvars <- attr(x, "predvars")
     x <- x[i]
     if (!is.null(predvars)) {
-        j <- 1 + attr(x, 'response')   # predvars is a call object
-                                       # arg for response, one for the function name
-        if (is.logical(i)) attr(x, "predvars") <- predvars[c(rep(FALSE,j), i)]
-        else if (all(i<0)) attr(x, "predvars")  <- predvars[i-j] 
-        else attr(x, "predvars")  <- prevars[i+j]
+        #predvars is a call.  When subscripting we need to keep the
+        #  first element, which is as.name("list"), and optionally
+        #  the response which will be second.  Our index i aligns
+        #  with the remainder of the elements
+        k <- 1:(1+ attr(x, 'response')) #either 1 or 1:2
+        j <- seq(along=predvars)[-k] #what we index to
+        attr(x, "predvars") <- predvars[c(k, j[i])]
     }
     x
 }
