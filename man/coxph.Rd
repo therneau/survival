@@ -82,7 +82,7 @@ coxph(formula, data=, weights, subset,
     the missing coefficients are treated as zeros. 
   }
   \item{robust}{
-    this argument has been depricated, use a cluster term in the model
+    this argument has been deprecated, use a cluster term in the model
     instead.
   }
   \item{model}{

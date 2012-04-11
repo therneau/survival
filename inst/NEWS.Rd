@@ -4,7 +4,10 @@
   \itemize{
     \item More work on "predvars" handling for the pspline function,
     when used in predict calls.  Add a new test of this to the suite.
-    
+}}
+
+\section{Changes in version 2.36-13}{
+  \itemize{
     \item Fix a bug in summary.survfit for a multiple-strata survival
     object.  If one of the curves had no data after application of the
     times argument, an output label was the wrong length.
