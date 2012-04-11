@@ -37,11 +37,6 @@ summary(sfit)
 detach()
 
 
-# Test the robust=T option of coxph
-fit <- coxph(Surv(futime, fustat) ~ age + ecog.ps + rx, ovarian, robust=T)
-rr <- resid(fit, type='dfbeta')
-all.equal(as.vector(t(rr) %*% rr), as.vector(fit$var))
-
 # Check of offset + surv, added 7/2000
 fit1 <- coxph(Surv(futime, fustat) ~ age + rx, ovarian,
 	      control=coxph.control(eps=1e-8))
