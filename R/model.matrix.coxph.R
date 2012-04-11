@@ -31,12 +31,17 @@ model.matrix.coxph <- function(object, data=NULL,
         dropx <- c(dropx, temp$terms)
         }
 
+    # I need to keep the intercept in the model when creating the
+    #   model matrix (so factors generate correct columns), then
+    #   remove it.
     if (length(dropx)) {
-        # I need to keep the intercept in the model when creating the
-        #   model matrix (so factors generate correct columns), then
-        #   remove it.
         newTerms <- Terms[-dropx]
-        X <- model.matrix(newTerms, mf, contrasts=contrast.arg)
+        # The predvars attribute, if present, is lost when we
+        #  subscript.  The attribute is a Call, so has one more element
+        #  than term wrt subscripting, i.e., the called function "list"
+        if (!is.null(attr(terms, "predvars"))) 
+            attr(newTerms, "predvars") <- attr(terms, "predvars")[-(dropx+1)]
+         X <- model.matrix(newTerms, mf, contrasts=contrast.arg)
         }
     else {
         newTerms <- Terms
@@ -55,7 +60,7 @@ model.matrix.coxph <- function(object, data=NULL,
     X
 }
 
-#  This function is somewhat confusung to read: the first argument of the
+#  This function is somewhat confusing to read: the first argument of the
 # generic model.frame is "formula", so we have to use the same label.  
 # However, our first arg is actually a coxph object, from which we want
 # to extract the formula!
@@ -77,7 +82,7 @@ model.frame.coxph <- function(formula, ...) {
         temp <- fcall[c(1,indx)]  # only keep the arguments we wanted
         temp[[1]] <- as.name('model.frame')  # change the function called
         temp$xlev <- formula$xlevels
-
+        temp$formula <- terms(formula)  #keep the predvars attribute
         # Now, any arguments that were on this call overtake the ones that
         #  were in the original call.  
         if (length(nargs) >0)
@@ -86,7 +91,7 @@ model.frame.coxph <- function(formula, ...) {
         if (is.null(environment(formula$terms)))
                 eval(temp, parent.frame())
             else eval(temp, environment(formula$terms), parent.frame())
-        # In the line above the third argument is ignored since the 
+        # In the line just above the third argument is ignored since the 
         #  second arg is an environment.  But we mimic model.frame.lm by
         #  including it.
     }

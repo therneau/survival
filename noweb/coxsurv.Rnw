@@ -262,7 +262,8 @@ When grabbing [newdata] we want to use model.frame processing, both to
 handle missing values correctly and, perhaps more importantly, to correctly
 map any factor variables between the original fit and the new data.  (The
 new data will often have only one of the original levels represented.)
-This requires use of [[model.frame]] logic.
+Also, we want to correctly handle data-dependent nonlinear terms such as
+ns and pspline.
 Last, there is no ability to use sparse frailties and newdata together;
 it is a hard case and so rare as to not be worth it.      
 
@@ -270,10 +271,26 @@ First, remove unnecessary terms from the orginal model formula.
 Any [[cluster]] terms can be deleted,
 If [[individual]] is false then the repsonse variable and any
 [[strata]] from the original model are not needed. 
+We have to be careful in subscripting a terms object, since this will
+remove the predvars attribute (at least currently).
+The delete.response function works correctly, however.
 <<survfit.coxph-setup>>= 
+subterms <- function(x, i) {
+    predvars <- attr(x, "predvars")
+    x <- x[i]
+    if (!is.null(predvars)) {
+        j <- 1 + attr(x, 'response')   # predvars is a call object
+                                       # arg for response, one for the function name
+        if (is.logical(i)) attr(x, "predvars") <- predvars[c(rep(FALSE,j), i)]
+        else if (all(i<0)) attr(x, "predvars")  <- predvars[i-j] 
+        else attr(x, "predvars")  <- prevars[i+j]
+    }
+    x
+}
 temp <- untangle.specials(Terms, 'cluster')
 if (length(temp$vars)) {
-    Terms <- Terms[-temp$terms]
+    ptemp <- attr(temp, "predvars")
+    Terms <- subterms(Terms, -temp$terms)
     stype <- stype[-temp$terms]
 }
 if (missing(newdata)) {
@@ -287,7 +304,7 @@ else {
 
     if (!individual) {
         Terms2 <- delete.response(Terms)
-        if (any(stype>0)) Terms2 <- Terms2[stype==0] #strata and interactions
+        if (any(stype>0)) Terms2 <- subterms(Terms2,stype==0) #strata and interactions
         }
     else Terms2 <- Terms
 @ 

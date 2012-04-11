@@ -44,6 +44,11 @@ model.matrix.survreg <- function(object, data,  ...) {
             newTerms <- Terms[-dropx]
             # R (version 2.7.1) adds intercept=T anytime you drop something
             attr(newTerms, 'intercept') <- attr(Terms, 'intercept')
+            # The predvars attribute, if present, is lost when we
+            #  subscript.  The attribute is a Call, so has one more element
+            #  than term wrt subscripting, i.e., the called function "list"
+            if (!is.null(attr(terms, "predvars"))) 
+                attr(newTerms, "predvars") <- attr(terms, "predvars")[-(dropx+1)]
         }
         else newTerms <- Terms
 

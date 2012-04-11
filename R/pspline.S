@@ -76,14 +76,14 @@ pspline <- function(x, df=4, theta, nterm=2.5*df, degree=3, eps=0.1,
 
     if (intercept) xnames <-paste('ps(', xname, ')', 1:nvar, sep='')
     else {
-        newx <- newx[,-1]
-        dmat <- dmat[-1,-1]                  # rows corresponding to the 0 coef
+        newx <- newx[,-1, drop=FALSE]
+        dmat <- dmat[-1,-1, drop=FALSE]    # rows corresponding to the 0 coef
         xnames <-paste('ps(', xname, ')', 1+ 2:nvar, sep='')
     }
 
     if (!penalty) {
         attributes(newx) <- c(attributes(newx), list(intercept=intercept,
-                                          knots=knots,
+                                          nterm=nterm,
                                           Boundary.knots=Boundary.knots))
         if (is.R()) class(newx) <- "pspline"
         else        oldClass(newx) <- "pspline"
@@ -181,7 +181,7 @@ pspline <- function(x, df=4, theta, nterm=2.5*df, degree=3, eps=0.1,
 	}
     
     attributes(newx) <- c(attributes(newx), temp,
-                          list(intercept=intercept, knots=knots,
+                          list(intercept=intercept, nterm=nterm,
                           Boundary.knots=Boundary.knots))
     if (is.R()) class(newx) <- c("pspline", 'coxph.penalty')
     else        oldClass(newx) <- 'coxph.penalty'
@@ -190,8 +190,9 @@ pspline <- function(x, df=4, theta, nterm=2.5*df, degree=3, eps=0.1,
 
 makepredictcall.pspline <- function(var, call) {
     if (call[[1]] != as.name("pspline")) return(call)  #wrong phone number
-    newcall <- call
-    newcall["Boundary.knots"] <- attributes(var)["Boundary.knots"]
+    newcall <- call[1:2]  #don't let the user override anything
+    at <- attributes(var)[c("nterm", "intercept", "Boundary.knots")]
+    newcall[names(at)] <- at
     newcall
 }
     
