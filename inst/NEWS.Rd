@@ -2,6 +2,11 @@
 \title{NEWS file for the survival package}
 \section{Changes in version 2.36-14}{
   \itemize{
+    \item Add the anova.coxmelist function.  This is in the survival
+    package rather than in coxme since "anova(fit1, fit2)" is valid when
+    fit1 is a coxph and fit2 a coxme object, which will cause this
+    function to be called by way of anova.coxph.
+    
     \item More work on "predvars" handling for the pspline function,
     when used in predict calls.  Add a new test of this to the suite.
     Fixes a bug pointed out by C Crowson.
