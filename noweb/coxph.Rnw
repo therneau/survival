@@ -25,8 +25,7 @@ coxph <- function(formula, data, weights, subset, na.action,
     temp[[1]] <- as.name('model.frame')  # change the function called
 
     special <- c("strata", "cluster", "tt")
-    temp$formula <- if(missing(data)) terms(formula, special)
-                    else              terms(formula, special, data=data)
+    temp$formula <- terms(formula, specials=special)
     if (is.R()) m <- eval(temp, parent.frame())
     else        m <- eval(temp, sys.parent())
 
