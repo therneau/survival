@@ -1,10 +1,10 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
-\section{Changes in version 2.36-14}{
+\section{Changes in version 2.36-13}{
   \itemize{
     \item Add the anova.coxmelist function.  This is in the survival
     package rather than in coxme since "anova(fit1, fit2)" is valid when
-    fit1 is a coxph and fit2 a coxme object, which will cause this
+    fit1 is a coxph and fit2 a coxme object, a case which will cause this
     function to be called by way of anova.coxph.
     
     \item More work on "predvars" handling for the pspline function,
@@ -23,12 +23,9 @@
     \item Change ratetableDate so that it still allows use of chron
     objects, but doesn't need the chron library.  This eliminates a
     warning messge from the package checks, but is also a reasonable
-    support strategy for a moribund package.  (Some local users keep
+    support strategy for a moribund package.  (Some of the local users keep
     datasets for a long long time.)
-}}
 
-\section{Changes in version 2.36-13}{
-  \itemize{
     \item Fix a bug in summary.survfit for a multiple-strata survival
     object.  If one of the curves had no data after application of the
     times argument, an output label was the wrong length.
