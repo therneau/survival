@@ -8,8 +8,9 @@
     function to be called by way of anova.coxph.
     
     \item More work on "predvars" handling for the pspline function,
-    when used in predict calls.  Add a new test of this to the suite.
-    Fixes a bug pointed out by C Crowson.
+    when used in predict calls.  Add a new test of this to the suite,
+    and the makepredictcall method to the namespace.
+    Fixes a bug pointed out by C Crowson.  
 
     \item Deprecate the "robust" option of coxph.  When there are
     multiple observations per subject it is almost surely the wrong

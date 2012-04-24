@@ -1,0 +1,60 @@
+
+R version 2.14.0 (2011-10-31)
+Copyright (C) 2011 The R Foundation for Statistical Computing
+ISBN 3-900051-07-0
+Platform: x86_64-unknown-linux-gnu (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> library(survival)
+Loading required package: splines
+> #
+> # Tests with the pspline function, to verify the prediction aspects
+> #
+> options(na.action=na.exclude)
+> aeq <- function(x,y, ...) all.equal(as.vector(x), as.vector(y), ...)
+> 
+> spfit <- coxph(Surv(time, status) ~ pspline(age) + ph.ecog, lung)
+> 
+> spfit2 <- coxph(Surv(time, status) ~ pspline(age) + ph.ecog, lung, x=TRUE)
+> x2 <- model.matrix(spfit)
+> all.equal(spfit2$x, x2)
+[1] TRUE
+> 
+> keep <- (lung$age < 60)
+> x3 <- model.matrix(spfit, data=lung[keep,])  
+> attr(x3, 'assign') <- NULL #subscripting loses the assign attr below
+> all.equal(napredict(spfit$na.action,x2)[keep,], x3)
+[1] TRUE
+> 
+> p2 <- predict(spfit, newdata=lung[keep,])
+> aeq(p2, predict(spfit)[keep])
+[1] TRUE
+> 
+> 
+> p3 <- survfit(spfit)
+> p4 <- survfit(spfit, newdata=lung[1:2,])
+> temp <- scale(x2[1:2,], center=spfit$means, scale=FALSE)%*% coef(spfit)
+> aeq(p3$time, p4$time)
+[1] TRUE
+> aeq(outer(-log(p3$surv), exp(temp), '*'), -log(p4$surv))
+[1] TRUE
+> 
+> # Check out model.frame
+> spfit3 <- coxph(Surv(time, status) ~ pspline(age) + sex, lung,
++                 model=TRUE)  #avoid the missing value
+> m2 <- model.frame(spfit3, data=lung[keep,])
+> all.equal(m2, spfit3$model[keep,])
+[1] TRUE
+> 
+> 
