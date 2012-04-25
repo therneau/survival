@@ -1,4 +1,4 @@
-# $Id: predict.coxph.penal.S 11204 2009-02-06 13:14:06Z therneau $
+# $Id: predict.coxph.penal.S 11516 2012-04-24 12:49:14Z therneau $
 predict.coxph.penal <- function(object,  newdata, 
 				type=c("lp", "risk", "expected", "terms"),
 				se.fit=FALSE, terms=names(object$assign), 

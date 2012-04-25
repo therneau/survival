@@ -1,4 +1,4 @@
-# $Id: residuals.coxph.penal.S 11174 2008-12-29 03:56:01Z therneau $
+# $Id: residuals.coxph.penal.S 11516 2012-04-24 12:49:14Z therneau $
 residuals.coxph.penal <- function(object, 
             type=c("martingale", "deviance", "score", "schoenfeld",
 			  "dfbeta", "dfbetas", "scaledsch","partial"),
