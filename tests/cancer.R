@@ -24,3 +24,11 @@ cox.zph(temp, transform='identity')
 
 coxph(Surv(rep(0,length(time)), time, status) ~ ph.ecog + ph.karno + pat.karno
 		+ wt.loss + sex + age + meal.cal + strata(inst), lung)
+
+#
+# Tests of using "."
+#
+fit1 <- coxph(Surv(time, status) ~ . - meal.cal - wt.loss - inst, lung)
+fit2 <- update(fit1, .~. - ph.karno)
+fit3 <- coxph(Surv(time, status) ~ age + sex + ph.ecog + pat.karno, lung)
+all.equal(fit2, fit3)

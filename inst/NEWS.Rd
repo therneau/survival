@@ -1,5 +1,12 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 2.36-14}{
+  \itemize {
+    \item A supposedly cosmetic change to coxph in the last release
+    caused formulas with a "." on the right hand side to fail.  Fix this
+    and add a case with "." to the test suite.
+    }}
+
 \section{Changes in version 2.36-13}{
   \itemize{
     \item Add the anova.coxmelist function.  This is in the survival

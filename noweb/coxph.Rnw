@@ -23,15 +23,17 @@ coxph <- function(formula, data, weights, subset, na.action,
     if (indx[1] ==0) stop("A formula argument is required")
     temp <- Call[c(1,indx)]  # only keep the arguments we wanted
     temp[[1]] <- as.name('model.frame')  # change the function called
-
+    
     special <- c("strata", "cluster", "tt")
-    temp$formula <- terms(formula, specials=special)
+    temp$formula <- if(missing(data)) terms(formula, special)
+                    else              terms(formula, special, data=data)
     if (is.R()) m <- eval(temp, parent.frame())
     else        m <- eval(temp, sys.parent())
 
     if (nrow(m) ==0) stop("No (non-missing) observations")
-    Terms <- attr(m, 'terms')
+    Terms <- terms(m)
 
+    
     if (missing(control)) control <- coxph.control(...)
     Y <- model.extract(m, "response")
     if (!inherits(Y, "Surv")) stop("Response must be a survival object")
