@@ -173,9 +173,14 @@ summary.survfit <- function(object, times, censored=FALSE,
 	    }
 	if (!is.null(fit$strata)) {
 	    scount <- unlist(lapply(newtimes, length))
-            names(scount) <-names(fit$strata)
-            scount <- scount[scount>0]
-            strata <- factor(rep(names(scount), scount))
+            # If scount were c(4,0,10) this says we have 4 lines of the first
+            #   level, 0 of the second, and 10 of the third
+            # A good argument can be made for keeping all 3 levels in the 
+            # resultant strata variable, but somewhere long ago I had code
+            # that only retained the two nonzeros.  Backwards compatabilty...
+            strata <- factor(rep(1:nstrat, scount),
+                             levels=1:nstrat[scount>0], 
+                             labels=strata.names[scount>0])
 	    }
 	}
 

@@ -65,6 +65,9 @@ we include them for backwards
 compatability but they don't appear in the documentation.          %'
 
 <<survfit.coxph-setup>>=
+if (!is.null(attr(object$terms, "specials")$tt))
+    stop("The survfit function can not yet process coxph models with a tt term")
+
 if (missing(type)) {
     # Use the appropriate one from the model
     temp1 <- c("exact", "breslow", "efron")
@@ -338,28 +341,24 @@ Hence the long [[if]] statement below.
 Just before the actual evaluation there is one more insertion.    
 For backwards compatability, I allow someone to give an ordinary vector
 instead of a data frame (when only one curve is required).  In this case
-I also need to verify that the elements have a name.  If not we attach the
-variable names from the model, and assume that it's the right order.  %'
+I also need to verify that the elements have a name. 
 Then turn it into a list, like it should have been from the beginning.
-(Documentation of this ability has been suppressed, however.  I'm hoping  %'
+(Documentation of this ability has been suppressed, however.  I'm hoping 
 people forget it ever existed.) 
 <<survfit.coxph-setup>>=    
-
     if (is.vector(newdata, "numeric")) {
         if (individual) stop("newdata must be a data frame")
-        if (length(newdata)==length(object$coefficients)) {
-            if (is.null(names(newdata))) {
-                names(newdata) <- names(object$coefficients)
+        if (is.null(names(newdata))) {
+                stop("Newdata argument must be a data frame")
                 }
-
-            if (any(is.null(match(names(object$coefficient), names(newdata)))))
-                stop("newdata names do not match the coxph names")
-            tcall$data <- as.list(newdata)
-            }
-        else stop ("Invalid newdata object")
+        tcall$data <- data.frame(as.list(newdata))
+        newdata <- matrix(newdata, nrow=1)  #for the check below
         }
     mf2 <- eval(tcall, parent.frame())
-    }
+    if (nrow(mf2) != nrow(newdata))
+        warning(paste("'newdata' had", nrow(newdata), 
+                      "but the variable(s) found have", nrow(mf2), "rows"))
+}
 @ 
 
 Now, finally, extract the [[x2]] matrix from the just-created frame.

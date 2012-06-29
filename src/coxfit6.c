@@ -112,10 +112,15 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
     **  we are going to modify it, due to the way this routine was
     **  was called.  In this case NAMED(covar2) will =0
     */
-    if (NAMED(covar2)>0) PROTECT(covar2 = duplicate(covar2)); 
+    nprotect =0;
+    if (NAMED(covar2)>0) {
+	PROTECT(covar2 = duplicate(covar2)); 
+	nprotect++;
+	}
     covar= dmatrix(REAL(covar2), nused, nvar);
 
     PROTECT(imat2 = allocVector(REALSXP, nvar*nvar)); 
+    nprotect++;
     imat = dmatrix(REAL(imat2),  nvar, nvar);
     a = (double *) R_alloc(2*nvar*nvar + 4*nvar, sizeof(double));
     newbeta = a + nvar;
@@ -141,7 +146,7 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
     flag = INTEGER(flag2);
     PROTECT(iter2 = allocVector(INTSXP, 1));
     iter = INTEGER(iter2);
-    nprotect = 8;
+    nprotect += 7;
 
     /*
     ** Subtract the mean from each covar, as this makes the regression

@@ -14,6 +14,7 @@ survConcordance(formula, data, weights, subset, na.action)
 \item{formula}{
 a formula with a survival time on the left and a single covariate on the
 right, along with an optional \code{strata()} term.
+The left hand term can also be a numeric vector.
 }
 \item{data}{
 a data frame
@@ -39,7 +40,8 @@ curve.  A value of 1 signifies perfect agreement, .6-.7 is
 a common result for survival data, .5 is an agreement that is no
 better than chance, and .3-.4 is the performace of some stock market analysts.
 
-The computation involves all n(n-1)/2 pairs of data points in the sample.
+The computation involves all n(n-1)/2 pairs of data points in the
+sample.
 For survival data, however, some of the pairs are incomparable.  
 For instance a pair of times (5+, 8), the first being a censored value.
 We do not know whether the first survival time is greater than or less than
@@ -61,7 +63,10 @@ Kendall's tau uses ties of both types.
 All of the components are returned
 in the result, however, so people can compute other combinations if interested.
 (If two observations have the same survival and the same x, they are counted
-in the tied survival time category).  
+in the tied survival time category).
+
+The algorithm is based on a balanced binary tree, which allows the computation
+to be done in O(n log n) time.
 }
 \seealso{
 summary.coxph

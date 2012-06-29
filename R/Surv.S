@@ -1,8 +1,9 @@
-# $Id: Surv.S 11454 2010-12-20 15:05:12Z therneau $
+#
 # Package up surivival type data as a structure
 #
 Surv <- function(time, time2, event,
-	      type=c('right', 'left', 'interval', 'counting', 'interval2'),
+	      type=c('right', 'left', 'interval', 'counting', 'interval2',
+                     "mstate"),
 		       origin=0) {
 
     if (missing(time)) stop ("Must have a time argument")
@@ -15,13 +16,14 @@ Surv <- function(time, time2, event,
     # and missing(event) instead?  Because we want to assume that 
     # "Surv(a,b)" has the variable b matched to event rather than time2.
     #
-    if (missing(type)) {
+    mtype <- match.arg(type)
+    if (missing(type) || mtype=="mstate") {
 	if (ng==1 || ng==2) type <- 'right'
 	else if (ng==3)     type <- 'counting'
         else stop ("No time variable!") # no time variable at all!
 	}
     else {
-	type <- match.arg(type)
+        type <- mtype
 	if (ng!=3 && (type=='interval' || type =='counting'))
 		stop("Wrong number of args for this type of survival data")
 	if (ng!=2 && (type=='right' || type=='left' ||  type=='interval2'))
@@ -31,24 +33,32 @@ Surv <- function(time, time2, event,
     if (ng==1) {
         if (!is.numeric(time)) stop("Time variable is not numeric")
 	ss <- cbind(time=time-origin, status=1)
+        type <- "right"
 	}
     else if (type=='right' || type=='left') {
         if (!is.numeric(time)) stop("Time variable is not numeric")
 	if (missing(event))   event <- time2  # treat time2 as event
         if (length(event) != nn) stop ("Time and status are different lengths")
-	if (is.logical(event)) status <- as.numeric(event)
-	else  if (is.numeric(event)) {
-	    who2 <- !is.na(event)
-	    if (max(event[who2]) ==2) status <- event -1
-	    else status <- event
-	    temp <- (status==0 | status==1)
-	    status <- ifelse(temp, status, NA)
-	    if (!all(temp[who2], na.rm=TRUE))
+        if (mtype=="mstate") {
+            mstat <- as.factor(event)
+            status <- as.numeric(mstat) -1
+            type <- "mright"
+        }
+	else {
+            if (is.logical(event)) status <- as.numeric(event)
+            else  if (is.numeric(event)) {
+                who2 <- !is.na(event)
+                if (max(event[who2]) ==2) status <- event -1
+                else status <- event
+                temp <- (status==0 | status==1)
+                status <- ifelse(temp, status, NA)
+                if (!all(temp[who2], na.rm=TRUE))
 		    warning("Invalid status value, converted to NA")
 	    }
-	else stop("Invalid status value, must be logical or numeric")
+            else stop("Invalid status value, must be logical or numeric")
+        }
 	ss <- cbind(time=time-origin, status=status)
-	}
+    }
     else  if (type=='counting') {
 	if (length(time2) !=nn) stop ("Start and stop are different lengths")
 	if (length(event)!=nn) stop ("Start and event are different lengths")
@@ -59,7 +69,13 @@ Surv <- function(time, time2, event,
 	    time[temp] <- NA
 	    warning("Stop time must be > start time, NA created")
 	    }
-	if (is.logical(event)) status <- as.numeric(event)
+        if (mtype=="mstate") {
+            mstat <- as.factor(event)
+            status <- as.numeric(mstat) -1
+            type <- "mcounting"
+        }
+	else {
+            if (is.logical(event)) status <- as.numeric(event)
 	    else  if (is.numeric(event)) {
 		who2 <- !is.na(event)
 		if (max(event[who2])==2) status <- event - 1
@@ -70,6 +86,7 @@ Surv <- function(time, time2, event,
 		    warning("Invalid status value, converted to NA")
 		}
 	    else stop("Invalid status value, must be logical or numeric")
+        }
 	ss <- cbind(start=time-origin, stop=time2-origin, status=status)
 	}
 
@@ -116,6 +133,7 @@ Surv <- function(time, time2, event,
 
     dimnames(ss) <- list(NULL, dimnames(ss)[[2]]) #kill any tag-along row names
     attr(ss, "type")  <- type
+    if (mtype=="mstate") attr(ss, "states") <- levels(mstat)[-1]
     if (is.R()) class(ss) <- 'Surv'
     else        oldClass(ss) <- 'Surv'
     ss
@@ -126,34 +144,46 @@ print.Surv <- function(x, quote=FALSE, ...) {
     }
 
 as.character.Surv <- function(x, ...) {
-    if (is.R()) class(x) <- NULL
-    else        oldClass(x) <- NULL
-    type <- attr(x, 'type')
-    if (type=='right') {
-	temp <- x[,2]
-	temp <- ifelse(is.na(temp), "?", ifelse(temp==0, "+"," "))
-	paste(format(x[,1]), temp, sep='')
-	}
-    else if (type=='counting') {
-	temp <- x[,3]
-	temp <- ifelse(is.na(temp), "?", ifelse(temp==0, "+"," "))
-	paste('(', format(x[,1]), ',', format(x[,2]), temp,
-			 ']', sep='')
-	}
-    else if (type=='left') {
-	temp <- x[,2]
-	temp <- ifelse(is.na(temp), "?", ifelse(temp==0, "<"," "))
-	paste(temp, format(x[,1]), sep='')
-	}
-    else {   #interval type
-	stat <- x[,3]
-	temp <- c("+", "", "-", "]")[stat+1]
-	temp2 <- ifelse(stat==3,
+    switch(attr(x, "type"),
+           "right"={
+               temp <- x[,2]
+               temp <- ifelse(is.na(temp), "?", ifelse(temp==0, "+"," "))
+               paste(format(x[,1]), temp, sep='')
+           },
+           "counting"= {
+               temp <- x[,3]
+               temp <- ifelse(is.na(temp), "?", ifelse(temp==0, "+",""))
+               paste('(', format(x[,1]), ',', format(x[,2]), temp,
+                     ']', sep='')
+           },
+           "left" ={
+               temp <- x[,2]
+               temp <- ifelse(is.na(temp), "?", ifelse(temp==0, "<"," "))
+               paste(temp, format(x[,1]), sep='')
+           },
+           "interval"= {
+               stat <- x[,3]
+               temp <- c("+", "", "-", "]")[stat+1]
+               temp2 <- ifelse(stat==3,
 			 paste("[", format(x[,1]), ", ",format(x[,2]), sep=''),
 			 format(x[,1]))
-	ifelse(is.na(stat), "NA", paste(temp2, temp, sep=''))
-	}
-    }
+               ifelse(is.na(stat), "NA", paste(temp2, temp, sep=''))
+           },
+           "mright" = {  #multi-state
+               temp <- x[,2]
+               end <- paste("(", attr(x, "states"), ')',sep='') #endpoint
+               temp <- ifelse(is.na(temp), "?", ifelse(temp==0, "+", end[temp]))
+               paste(format(x[,1]), temp, sep='')
+           },
+           "mcounting"= {
+               temp <- x[,3]
+               end <- paste("(", attr(x, "states"), ')', sep='') #endpoint
+               temp <- ifelse(is.na(temp), "?", ifelse(temp==0, "+", end[temp]))
+               paste('(', format(x[,1]), ',', format(x[,2]), temp,
+                     ']', sep='')
+           })
+}
+
 
 "[.Surv" <- function(x, i, j, drop=FALSE) {
     # If only 1 subscript is given, the result will still be a Surv object,

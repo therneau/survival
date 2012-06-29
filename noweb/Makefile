@@ -7,7 +7,9 @@ PARTS = main.Rnw \
 	concordance.Rnw \
 	survexp.Rnw \
 	pyears.Rnw \
-	residuals.survreg.Rnw 
+	survival.Rnw \
+	residuals.survreg.Rnw \
+	tail
 #	coxdetail.nw
 
 SFUN =  agsurv.R \
@@ -22,7 +24,8 @@ SFUN =  agsurv.R \
 	survfitcoxph.fit.R
 
 CFUN =  agsurv4.c agsurv5.c concordance1.c coxcount1.c \
-        coxexact.c 
+        coxexact.c \
+	msurv.c
 #	coxdetail2.c
 
 RDIR = ../R
@@ -43,7 +46,6 @@ all.pdf: all.tex
 
 all.nw: $(PARTS)
 	cat $(PARTS) > all.nw
-	echo "\\end{document}" >> all.nw
 
 all.tex: all.nw
 	noweave -delay all.nw > all.tex

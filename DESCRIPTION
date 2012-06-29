@@ -2,7 +2,7 @@ Title: Survival analysis, including penalised likelihood.
 Maintainer: Terry Therneau <therneau.terry@mayo.edu>
 Priority: recommended
 Package: survival
-Version: 2.36-14
+Version: 2.36-15
 Date: 2012-02-03
 Depends: stats, utils, graphics, splines, R (>= 2.13.0)
 LazyData: Yes

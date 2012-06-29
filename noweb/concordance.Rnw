@@ -543,7 +543,10 @@ survConcordance <- function(formula, data,
     Terms <- attr(m, 'terms')
 
     Y <- model.extract(m, "response")
-    if (!inherits(Y, "Surv")) stop("Response must be a survival object")
+    if (!inherits(Y, "Surv")) {
+        if (is.numeric(Y) && is.vector(Y))  Y <- Surv(Y)
+        else stop("left hand side of the formula  must be a numeric vector or a surival")
+    }
     n <- nrow(Y)
 
     wt <- model.extract(m, 'weights')

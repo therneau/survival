@@ -24,7 +24,7 @@ So if $n=6$ and $d=2$ we would have the 15 pairs 12, 13, .... 56;
 for $n=5$ and $d=3$ there would be 10 triples 123, 124, 125, /ldot, 345.
 
 The brute force computation of all subsets can take a very long time.
-Gail et al \cite{Gaill81} show simple recursion formulas that speed
+Gail et al \cite{Gail81} show simple recursion formulas that speed
 this up considerably.  Let $D(d,n)$ be the denominator with $d$
 deaths and $n$ subjects.  Then
 \begin{align}
@@ -36,7 +36,7 @@ deaths and $n$ subjects.  Then
  \frac{\partial^2D(d,n}{\partial \beta_j \partial \beta_k} &=
    \frac{\partial^2D(d,n-1)}{\partial \beta_j \partial \beta_k} +
      r_n\frac{\partial^2D(d-1,n-1)}{\partial \beta_j \partial \beta_k} +
-     x_{nj}r_n\frac{\partial D(d-1, n-1)}{\partial \beta_k} + \nobumber \\
+     x_{nj}r_n\frac{\partial D(d-1, n-1)}{\partial \beta_k} + \nonumber \\
      &  x_{nk}r_n\frac{\partial D(d-1, n-1)}{\partial \beta_j} +
       x_{nj}x_{nk}r_n D(d-1, n-1) \label{d2}
 \end{align}

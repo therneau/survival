@@ -5,7 +5,7 @@ survfit.formula <- function(formula, data, weights, subset,
     # create a copy of the call that has only the arguments we want,
     #  and use it to call model.frame()
     mfnames <- c('formula', 'data', 'weights', 'subset','na.action',
-                 'etype', 'id')  #legal args for model.frame
+                 'istate', 'id')  #legal args for model.frame
     temp <- Call[c(1, match(mfnames, names(Call), nomatch=0))]
     temp[[1]] <- as.name("model.frame")
     if (is.R()) m <- eval.parent(temp)
@@ -29,8 +29,8 @@ survfit.formula <- function(formula, data, weights, subset,
     if (length(ll) == 0) X <- factor(rep(1,n))  # ~1 on the right
     else X <- strata(m[ll])
     
-    etype <- model.extract(m, 'etype')
     id    <- model.extract(m, 'id')
+    istate <- model.extract(m,"istate")
 
     if (!is.Surv(Y)) stop("y must be a Surv object")
 
@@ -38,22 +38,16 @@ survfit.formula <- function(formula, data, weights, subset,
     # times to a certain number of digits.  This approach worked
     # almost all the time, but only almost.  The better logic is
     # now in the individual compuation routines
-    if (attr(Y, 'type') != 'right' && attr(Y, 'type') != 'counting'){
-        if (!is.null(etype)) 
-            stop(paste("Cumulative incidence computation doesn't support \"", 
-                       etype, "\" survival data", sep=''))
-        else temp <-  survfitTurnbull(X, Y, casewt, ...)
-    }
+    if (attr(Y, 'type') == 'left' || attr(Y, 'type') == 'interval')
+        temp <-  survfitTurnbull(X, Y, casewt, ...)
+    else if (attr(Y, 'type') == "right" || attr(Y, 'type')== "counting")
+        temp <- survfitKM(X, Y, casewt, ...)
+    else if (attr(Y, 'type') == "mright" || attr(Y, "type")== "mcounting")
+        temp <- survfitCI(X, Y, weights=casewt, id=id,  istate=istate, ...)
     else {
-        # Sometimes a user will ask for a competing risk curve, but there is
-        #  only one event type (often a result of a subset= clause).  In that
-        #  case the usual KM is the same and faster.
-        deaths <- Y[,ncol(Y)] ==1
-        if (!is.null(etype) && length(unique(etype[deaths]))>1)
-            temp <- survfitCI(X, Y, weights=casewt, etype=etype, id=id,  ...)
-        else temp <- survfitKM(X, Y, casewt, ...)
+        # This should never happen
+        stop("unrecognized survival type")
     }
-    
     class(temp) <- 'survfit'
     if (!is.null(attr(m, 'na.action')))
 	    temp$na.action <- attr(m, 'na.action')

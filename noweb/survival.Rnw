@@ -1,0 +1,379 @@
+\section{Survival curves}
+\subsection{Cumulative Incidence}
+Consider the following simple multi-state model for patients awaiting
+a liver transplant.
+Endpoints are transplant, death, and removal from the waiting list for
+other causes, of which the first two are the most common.
+We would like to know, at any given time, what fraction of patients have
+reached each of the endpoints.
+(This was a study of a transplant program's liver allocation policies,
+and death after transplant is not of interest for this analysis.)
+This result is known as a cumulative incidence curve and is produced
+by the survfitCI function.
+
+<<survfitCI>>=
+survfitCI <- function(X, Y, weights, 
+                      type=c('kaplan-meier', 'fleming-harrington', 'fh2'),
+                      error=c('greenwood', "tsiatis"), se.fit=TRUE,
+                      conf.int= .95,
+                      conf.type=c('log',  'log-log',  'plain', 'none'),
+                      conf.lower=c('usual', 'peto', 'modified'),
+                      id, istate) {
+    <<sci-check-args>>
+    <<sci-compute>>
+    <<sci-finish>>
+}
+@ 
+
+Start by checking the arguments for validity.  
+<<sci-check-args>>=
+method <- match.arg(type)
+error <- match.arg(error)
+error.int <- match(error, c("greenwood", "tsiatis"))
+conf.type <- match.arg(conf.type)
+conf.lower<- match.arg(conf.lower)
+
+type <- attr(Y, "type")
+if (type!='mright' && type!='mcounting')
+    stop(paste("cumulative incidence computation doesn't support \"", type,
+              "\" survival data", sep=''))
+n <- nrow(Y)
+if (length(X) != n) stop("wrong length for X")
+if (missing(weights)) weights <- rep(1.0, n)
+if (length(weights) != n) stop("wrong length for weights")
+X <- as.factor(X)
+if (missing(id) || is.null(id)) id <- 1:n
+else if (length(id) != n) stop("wrong length for id")
+@ 
+
+If an istate argument was supplied, then this gives the initial state
+for each observation of the data, and the total set of states will
+be the the union of those in the survival time (attribute ``states'')
+and the initial state.
+If no istate argument was given, then we assume that everyone
+starts in state ``none'', and the final result will not include a curve
+for that although we will compute it.
+If there is an id variable and a subject has multiple rows, only the
+initial state for the first time point of each subject is used.
+The integer vectors istate and estate start at 0 for the convenience
+of the C code.  
+This works out well for the none state, since no one ever transitions into
+it I can use the ``status'' column of my survival data as the ending state.
+
+<<sci-check-args>>=
+if (missing(istate) || length(istate)==0) {
+    istate <- rep(0L, n)  
+    states <- 0:length(attr(Y, "states"))
+    state.labels <- c(NA, attr(Y, "states"))  #mark it as one we won't use
+    estate <- as.integer(Y[,ncol(Y)])  #ending state for each subject
+    status <- as.integer(estate>0)
+}
+else {
+    istate <- as.factor(istate)
+    state.labels <- unique(c(attr(Y, "states"), levels(istate)))
+    states <- 1:length(state.labels)
+    istate <- match(istate, state.labels) -1L
+    estate <- as.integer(Y[,ncol(Y)]) -1L
+    status <- as.integer(estate > -1)
+    if (any(istate==estate)) stop("transition from one state to the same state")
+} 
+nstate <- length(states)
+@ 
+
+
+
+Due to roundoff [[unique(time]] and [[table(time)]] may not be the
+same.  Variants of this can catch us when counting the number at risk, tied
+event times, etc.
+Avoid this by turning time into a factor and then back to
+numeric.  Deal with the integer numeric until all is done, then
+put the correct values back on.
+<<sci-check-args>>=
+ftime <- factor(Y[, -ncol(Y)])  # both start and stop time, if present
+itime <- matrix(as.integer(ftime), nrow=n)
+@ 
+
+If there is start, stop time data and an id variable, then we have the case
+of subjects being followed forward in time.
+Make sure that each subject is a contiguous set of intervals.
+Replace values for istate on the second, third, \ldots interval for a
+subject with the state they just came from.
+Also verify that subject don't change groups.
+<<sci-compute>>=
+if (any(duplicated(id))) {
+    if (ncol(Y) ==2) stop("multiple obs per subject requires start/stop data")
+    indx <- order(id, itime[,2])
+    temp <- c(0, as.numeric((etype[indx])[-n])) 
+    istate <- ifelse(duplicated(id[indx]), temp, istate)
+
+    temp <- c(0, itime[indx,2][-n]) #lagged ending time of the interval
+    if (any(duplicated(id[indx]) & itime[indx,1] != temp))
+        stop("time intervals for a subject must form a continuous series")
+
+    temp <- c(X[1], (X[indx])[-n])  #lagged X
+    if (any(duplicated(id[indx]) & X[indx]!= temp))
+        stop("a subject may not change from one group to another")
+}
+@ 
+
+Based on Andersen, Borgan, Gill and Keiding (ABGK) \cite{Andersen93} 
+equation 4.4.1 the transition
+matrix is
+\begin{align*}
+  P(t) &= P(0) \prod_{s<t} H(s) \\
+  H_{ij}(s) &= d_{ij}(s)/n_i(s), \, i\ne j
+\end{align*}
+Here $d_{ij}(s)$ is the weighted number of subjects who are observed to make a
+transition from state $i$ to state $j$ at exactly time $s$, it is 
+the multivariate analog to the number of deaths at a time point.
+The weighted number at risk in state $i$ is $n_i(s)$, and $H$ is the
+empirical hazard matrix for all pairs of transitions.
+The diagonal elements of $H$ are defined so that row sums of $H$ are 1 
+(everyone either stays in the state or goes somewhere else).
+$P$ will be an $m+1$ by $m+1$ matrix, $P_{ij}(t)$  gives the probability that
+a subject starting in state $i$ at time 0 will be in state $j$ at time $t$.
+$P(0)$ is the distribtion of subjects at the start of the follow-up.
+
+When there is an [[id]] variable we compute the variance using an 
+infinitesimal jackknife.  To this end consider a weighted estimate.
+Assume that we have done the computation up
+to time $t-$, and have the estimate $P(t-)$ and the matrix of per subject
+derivatives $D(t) = \partial P(t-)/\partial w_i$. 
+The jth element of $P(t)$ and it's derivative will be
+\begin{align}
+  P_k(t) &= \sum_j P_j(t-) H_{jk}(t)  \nonumber \\
+  D_{ik} &= \frac{\partial P_k(t)}{\partial w_i} \nonumber \\ &= 
+  \sum_j \frac{\partial P_j(t-)}{\partial w_i} H_{jk}(t) + 
+  P_j(t-) \frac{\partial H_{jk}(t)}{\partial w_i} \label{eq:recur} \\
+  \frac{\partial H_{jk}(t)}{\partial w_i} &= 
+    \begin{array}{cc}
+    H_{jk}(t) \left[ \frac{\delta_{ijk}(t)}{d_{jk}(t)} - 
+      \frac{Y_{ij}(t)}{n_j(t)} \right]& j\ne k \\
+     H_{jk}(t) \left[\frac{\delta_{ij.}(t)}{d_{jk}(t)} - 
+       \frac{Y_{ij}(t)}{n_j(t)}\right] & j = k 
+    \end{array}   
+      \label{eq:recur2}
+\end{align}
+where $Y_{ij}(t)$ is 1 if subject $i$ is in state $j$ at time $t$,
+$\delta_{ijk}$ is 1 if subject $i$ had a transition from $j$ to $k$
+at that time point and $\delta_{ij.}$ is 1 for any transition from 
+state $j$.
+Then the variance of $P_k(t)$ is $\sum_i w_i D_{ik}^2$.  
+The above derivation assumes legal data, i.e., that a given subject is
+in only one state at a given time, and that there is only one copy
+of the subject present (you can't have two obs each with weight 1/2).
+
+The first term of \ref{eq:recur} is a simple matrix multiplication where
+$D$ is $n$ by $p$ and $p$ is the number of states.
+The second term \eqref{eq:recur2} is a bit more complex.
+The first part of it will add $P_j H_{jk}/d_j$ to the $j$th element
+of $D_i$ and P_k H_{jk}/d_j to the $k$ th element of $D_i$
+for each subject $i$ who had an event.
+The second part of \eqref{eq:recur2} will subtract $(P/d) H$ from each
+row of $D$ corresponding to a subject at risk.  
+
+
+If there is not an id variable we can use the asymptotic formula
+of 4.4.20 of ABGK.
+
+
+To compute the transitions I need to know the prior state for each
+observation.
+Also check for no illegal overlaps, e.g., (0,10) and (6,15) as two
+successive intervals for a subject.
+Such data would produce an answer, but one without any meaning.
+
+Since computations are done separately for each level of X,
+start by making a the two key arrays for the computation, which is
+done in C code for speed.
+At each unique death time I have the length $m+1$ vector containing the
+number at risk in each state just prior to that time,
+and the $m+1$ by $m+1$ matrix containing the number of jumps from state
+$i$ to state $j$.
+The C code does this from largest time to smallest.
+<<sci-compute>>=
+docurve <- function(who) {
+    itemp <- itime[who,,drop=FALSE]
+    ntime <- max(itime)             #number of unique times
+    if (ncol(itemp)==1) {
+        dsort <- order(itemp[,1])
+        isort <- NULL
+    }
+    else {
+        dsort <- order(itemp[,2])
+        isort <- order(itemp[,1])
+    }
+    mfit <- .Call("msurv",
+                  nrisk = matrix(0L, nstate, ntime),
+                  wrisk = matrix(0., nstate, ntime),
+                  nevent= array (0L, dim=c(nstate, nstate, ntime)),
+                  wevent= array (0., dim=c(nstate, nstate, ntime)),
+                  itime[who,],
+                  status[who],
+                  istate[who],
+                  estate[who], 
+                  weights[who],
+                  dsort -1L,
+                  isort -1L)
+    P <- matrix(0., nrow= 1+ ntime, ncol=nstate)
+    temp <- table(factor(((istate[who])[dsort])[!duplicated((id[who])[dsort])],
+                  levels= (1:nstate) -1))
+    P[1,]<- as.vector(temp)/sum(temp)
+
+    if (se.fit) {
+        semat <- matrix(0., ntime, nstate)
+        if (influence) {
+            nperson <- length(unique(id))
+            dmat <- matrix(0., nperson, nstate)
+        }
+    }
+    times <- sort(unique(itemp[status[who]==1,ncol(itemp)]))
+    for (i in 1:ntime) {
+        indx <- 1+ ntime -i
+        risk2 <-ifelse(mfit$nrisk[, indx]==0, 1, mfit$nrisk[, indx]) #avoid 0/0
+        Hmat <- mfit$wevent[,, indx]/ risk2
+        diag(Hmat) <- 1- rowSums(Hmat)
+        P[i+1,] <- P[i,] %*% Hmat
+        
+        if (se.fit) {
+            if (sum(mfit$nevent[,,indx]) ==0 ) {
+                if (i>1) semat[i,] <- semat[i-1,]
+            }
+            else {
+                deaths <- which(status==1 & itemp[,ncol(itemp)]==times[i])
+                if (influence) {
+                    dmat <- dmat %*% Hmat
+                    if (ncol(itime)==2) 
+                        atrisk <- (id[itemp[,1] <times[i] & 
+                                      itemp[,2] >= times[i]])
+                    else atrisk <- id[itemp[,1] >= times[i]]
+                    dmat[atrisk,] <- dmat[atrisk,] - 
+                        rep((P[i,]/risk2) %*% Hmat, each=length(atrisk))
+                    tindx <- cbind(id[deaths], istate[deaths])
+                    dmat[tindx] <- dmat[tindx] +P[i, istate[deaths]] * 
+                        diag(Hmat)[istate[deaths]] / risk2[istate[deaths]]
+                    tindx <- cbind(id[deaths], estate[who])
+                    dmat[tindx] <- dmat[tindx] + P[i, istate[deaths]] *
+                        Hmat[cbind(istate[deaths], estate[deaths])] /
+                            risk2[istate[deaths]}
+                    se[i,] <- se[i,] + colSums(dmat*dmat*weights)
+                } 
+                else stop("code not done")
+            }
+        }
+    }
+
+    if (se.fit) 
+        list(events=mfit$nevent, risk=mfit$nrisk, prob=P, se=sqrt(se))
+    else 
+        list(events=mfit$nevent, risk=mfit$nrisk, prob=P)
+}
+
+# Call the function for each group in turn
+ngroup <- length(levels(X))
+if (ngroup ==1) fit <- docurve(rep(TRUE, n))
+else {
+    fitlist <- vector("list", ngroup)
+    for (i in ngroup) fitlist[[i]] <- docurve(X== levels(X)[i])
+}
+browser()
+@ 
+
+<<sci-finish>>=
+@ 
+
+The weighted number at risk is a sum of case weights, nevent is a count and
+wevent the total weight of the deaths.
+The first four arguments will have their valued filled in.
+<<msurv>>=
+/*  -*- c -*-  */
+#include "Rinternals.h"
+SEXP msurv(SEXP nrisk2, SEXP wrisk2, SEXP nevent2, SEXP wevent2,
+           SEXP itime2, SEXP status2,
+           SEXP prior2, SEXP etype2,  SEXP wt2,
+           SEXP dsort2, SEXP isort2) {
+    int i,j,k;
+    double *wrisk, *wevent, *wt;
+    int    *nrisk, *status, *prior, *etype, *nevent;
+    int    *dtime,  *etime;  /* death time and optional entry time */
+    int    *dsort, *isort;
+    int    eflag, i2, k2;
+    SEXP   retlist;  
+    int    time;  /* current time of interest */
+    int    ntime, nstate, n;
+    static const char *outnames[]= {"nrisk", "wrisk", "nevent", "wevent", ""};
+    
+    nrisk = INTEGER(nrisk2);
+    wrisk = REAL(wrisk2);
+    wevent= REAL(wevent2);
+    nevent= INTEGER(nevent2);
+    dtime = INTEGER(itime2);
+    status= INTEGER(status2);
+    prior = INTEGER(prior2);
+    etype = INTEGER(etype2);
+    wt    = REAL(wt2);
+    dsort = INTEGER(dsort2);
+    nstate= nrows(nrisk2);
+    n     = length(dsort2);
+    
+    /* 
+    ** Add up the risk set and the deaths 
+    **   Walk backwards through the observations and through time
+    */
+    if (ncols(itime2)==2) {
+	etime = dtime;
+	dtime += n;  /* point at the death time */
+        isort = INTEGER(isort2);
+	eflag=1;
+        i2 = n-1;
+        k2 = isort[i2];
+	}
+    else eflag=0;
+    
+    for (i=n-1; i>=0; ) {
+        k = dsort[i];
+	time = dtime[k];  /* current time of interest (there may be ties) */
+
+	while (eflag==1 && i2>=0 && etime[k2] >=time) {
+	    /* remove those who start later than "time" from the risk set */
+	    wrisk[prior[k2]] -= wt[k2];
+	    nrisk[prior[k2]] --;
+	    i2--;
+	    k2 = isort[i2];
+	}
+ 
+	
+	if (i<(n-1)) {
+	    /* new death time */
+	    for (j=0; j<nstate; j++) nrisk[j+nstate] = nrisk[j];
+	    nrisk += nstate;
+	    wrisk += nstate;
+	    nevent += nstate*nstate;
+            wevent += nstate*nstate;
+	    }
+	    
+	while(i >=0 && dtime[k] == time) {
+	    if (status[k] ==1) {
+                nevent[prior[k]+ nstate*etype[k]]++;
+                wevent[prior[k] +nstate*etype[k]] += wt[k];
+            }
+            wrisk[prior[k]] += wt[k];
+	    nrisk[prior[k]] ++;
+	    i--;
+	    k = dsort[i];
+	    }
+	}
+    
+    /*
+    ** Create output structure
+    */
+    PROTECT(retlist = mkNamed(VECSXP, outnames));
+    SET_VECTOR_ELT(retlist, 0, nrisk2);
+    SET_VECTOR_ELT(retlist, 1, wrisk2);
+    SET_VECTOR_ELT(retlist, 2, nevent2);
+    SET_VECTOR_ELT(retlist, 3, wevent2);
+    UNPROTECT(1);
+    return(retlist);
+}	
+@ 
+

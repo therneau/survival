@@ -1,5 +1,28 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 2.37-1}{
+  \itemize{
+    \item Allow an ordinary vector as the left hand side of survConcordance.
+
+    \item Update anova.coxphlist to reject models with a robust variance.
+ 
+    \item The survfit function had an undocumented backwards-compatability 
+    that allows the newdata argument to be a vector with no names.  An
+    example from Damon Krstajic showed that this no longer works when the
+    original model has a matrix in the formula.  Removed the feature.
+    (This is for survfit.coxph.)
+
+    \item Fix an issue in summary.survfit pointed out by Frank Harrell.  The
+    strata variable for the output always had its labels in sorted order,
+    even when a factor creating the survival curves was otherwise.  (This was
+    due to a call to factor() in the code.)  The print routine would then
+    list curves in sorted order, which might well be contrary to the user's
+    wishes.
+
+    \item Add the anova.coxmelist function to the namespace so that it is
+    visible.
+    }}
+
 \section{Changes in version 2.36-14}{
   \itemize {
     \item A supposedly cosmetic change to coxph in the last release

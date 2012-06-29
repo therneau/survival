@@ -5,6 +5,8 @@ anova.coxphlist <- function (object, test =  'Chisq' ,...) {
     if (!is.list(object)) stop("First argument must be a list")
     if (!all(unlist(lapply(object, function(x) inherits(x, 'coxph')))))
 	     stop("Argument must be a list of coxph models")
+    if (any(sapply(object, function(x) !is.null(x$naive.var))))
+        stop("Can't do anova tables with robust variances")
     
     responses <- as.character(unlist(lapply(object, 
 				     function(x) deparse(formula(x)[[2]]))))
