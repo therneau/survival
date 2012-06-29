@@ -1,5 +1,5 @@
-# The mf argument is mostly for internal calls, when the model frame
-#  has already been constructed.  
+# In internal use "data" will often be an already derived model frame.
+#  We detect this via it having a terms attribute.
 model.matrix.coxph <- function(object, data=NULL, 
                                contrast.arg=object$contrasts, ...) {
     
@@ -64,16 +64,22 @@ model.matrix.coxph <- function(object, data=NULL,
 # generic model.frame is "formula", so we have to use the same label.  
 # However, our first arg is actually a coxph object, from which we want
 # to extract the formula!
-#
+#  There are two separate paths:
+#     1. no new arguments
+#          -- if there is a "model" component that that's what we want
+#          -- if not, recall all the original arguments, maybe replace some
+#     2. there is a new data argument
+#          -- only remember the prior formula
 model.frame.coxph <- function(formula, ...) {
     dots <- list(...)
-    nargs <- dots[match(c("data", "na.action", "subset"), names(dots), 0)] 
+    nargs <- dots[match(c("data", "na.action", "subset", "weights"), 
+                        names(dots), 0)] 
 
     # If nothing has changed and the coxph object had a model component,
     #   simply return it.
-    if (length(nargs) ==0  && !is.null(formula$model)) formula$model
-    else {
-        # First, find out what arguments existed in the original call
+    if (length(nargs) ==0  && !is.null(formula$model)) mf <- formula$model
+    else if (is.null(nargs$data)) {
+        # Rebuild the original call to model.frame
         fcall <- formula$call
         indx <- match(c("formula", "data", "weights", "subset", "na.action"),
                   names(fcall), nomatch=0) 
@@ -88,13 +94,22 @@ model.frame.coxph <- function(formula, ...) {
         if (length(nargs) >0)
             temp[names(nargs)] <- nargs
 
-        if (is.null(environment(formula$terms)))
-                eval(temp, parent.frame())
-            else eval(temp, environment(formula$terms), parent.frame())
-        # In the line just above the third argument is ignored since the 
-        #  second arg is an environment.  But we mimic model.frame.lm by
-        #  including it.
+        eval(temp, parent.frame())
+        # Since this is a call to model.frame with a formula as the first
+        #  argument, the second arg above is ignored.  Leave it in for
+        #  form.
+       if (!is.null(attr(Terms, "dataClasses")))
+	   .checkMFClasses(attr(Terms, "dataClasses"), mf)
+    }         
+    else {
+        # Use the old terms (which preserves transformations), 
+        #  new versions of all else
+        newargs <- c(nargs, list(formula=terms(formula), xlev=formula$xlevels))
+        mf <- do.call("model.frame", newargs)
+        if (!is.null(attr(Terms, "dataClasses")))
+	   .checkMFClasses(attr(Terms, "dataClasses"), mf)
     }
+    mf
 }   
 
         
