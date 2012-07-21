@@ -8,6 +8,7 @@ noweb/all*
 src/coxcount1.c
 src/concordance1.c
 src/agsurv[45].c
+src/msurv.c
 R/agsurv.R
 R/coxph.R
 R/predict.coxph.R
