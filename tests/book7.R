@@ -38,6 +38,7 @@ aeq(fit1$loglik[2], truth1$loglik)
 aeq(1/truth1$imat, fit1$var)
 aeq(truth1$mart, resid(fit1)[c(3:7,1)])
 
+# Beta is infinite for this model, so we will get a warning message
 fit2 <-  coxph(Surv(time, status) ~x, test1, method='exact')
 aeq(resid(fit2)[-2], c(0, 2/3, -1/3, -4/3,  1, 0))  #values from the book
 

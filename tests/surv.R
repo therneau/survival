@@ -5,7 +5,7 @@ library(survival)
 #  The first two are motivated by a bug, pointed out by Kevin Buhr,
 #    where a mixture of NAs and invalid values didn't work right
 #  Even for the simplest things a test case is good.
-#
+#  All of these should produce warning messages
 aeq <- function(x,y) all.equal(as.vector(x), as.vector(y))
 temp <- Surv(c(1, 10, 20, 30), c(2, NA, 0, 40), c(1,1,1,1))
 aeq(temp, c(1,10,NA,30,  2,NA,0,40, 1,1,1,1))

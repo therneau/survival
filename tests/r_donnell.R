@@ -49,6 +49,9 @@ title("Donnell data")
 #
 # Compute the path of the iteration
 #
+#  All the intermediate stops produce an ignorable "did not converge"
+# warning
+options(warn=-1) #turn them off
 niter <- 14
 donpath <- matrix(0,niter+1,2)
 for (i in 0:niter){
@@ -58,3 +61,4 @@ for (i in 0:niter){
     }
 points(donpath[,1], donpath[,2])
 lines(donpath[,1], donpath[,2], col=4)
+options(warn=0)  #reset

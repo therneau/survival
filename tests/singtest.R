@@ -3,7 +3,8 @@ options(contrasts=c('contr.treatment', 'contr.poly')) #ensure constrast type
 library(survival)
 
 #
-# A simple test of the singular=ok option
+# A simple test of an overdetermined system
+#  Should give a set of NA coefficients
 #
 test1 <- data.frame(time=  c(4, 3,1,1,2,2,3),
 		    status=c(1,NA,1,0,1,1,0),
@@ -17,6 +18,7 @@ stest <- data.frame(start  = 10*temp,
 		    x      = c(test1$x+ 1:7, rep(test1$x,3)),
 		    epoch  = rep(1:4, rep(7,4)))
 
+# Will create a warning about a singular X matrix
 fit1 <- coxph(Surv(start, stop, status) ~ x * factor(epoch), stest)
 fit1$coef    # elements 2:4 should be NA
 all.equal(is.na(fit1$coef), c(F,T,T,T,F,F,F), check.attributes=FALSE)
