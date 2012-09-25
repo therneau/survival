@@ -32,16 +32,16 @@ agreg.fit <- function(x, y, strata, offset, init, control,
 	x <- matrix(1:n, ncol=1)
 	maxiter <- 0
 	nullmodel <- TRUE
+        if (length(init) !=0) stop("Wrong length for inital values")
 	}
     else {
 	nullmodel <- FALSE
 	maxiter <- control$iter.max
-	}
-
-    if (!is.null(init)) {
+        
+        if (is.null(init)) init <- rep(0., nvar)
 	if (length(init) != nvar) stop("Wrong length for inital values")
 	}
-	else init <- rep(0,nvar)
+
     agfit <- .C("agfit3", iter= as.integer(maxiter),
 		as.integer(n),
 		as.integer(nvar), 
