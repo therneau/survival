@@ -94,20 +94,21 @@ model.frame.coxph <- function(formula, ...) {
         if (length(nargs) >0)
             temp[names(nargs)] <- nargs
 
-        eval(temp, parent.frame())
+        mf <- eval(temp, parent.frame())
         # Since this is a call to model.frame with a formula as the first
         #  argument, the second arg above is ignored.  Leave it in for
         #  form.
-       if (!is.null(attr(Terms, "dataClasses")))
-	   .checkMFClasses(attr(Terms, "dataClasses"), mf)
+       if (!is.null(attr(formula$terms, "dataClasses")))
+	   .checkMFClasses(attr(formula$terms, "dataClasses"), mf)
+        mf
     }         
     else {
         # Use the old terms (which preserves transformations), 
-        #  new versions of all else
+        #  new versions of everything else
         newargs <- c(nargs, list(formula=terms(formula), xlev=formula$xlevels))
         mf <- do.call("model.frame", newargs)
-        if (!is.null(attr(Terms, "dataClasses")))
-	   .checkMFClasses(attr(Terms, "dataClasses"), mf)
+        if (!is.null(attr(formual$terms, "dataClasses")))
+	   .checkMFClasses(attr(formula$terms, "dataClasses"), mf)
     }
     mf
 }   
