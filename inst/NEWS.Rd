@@ -2,6 +2,12 @@
 \title{NEWS file for the survival package}
 \section{Changes in version 2.37-1}{
   \itemize{
+    \item The fitting functions would report an error for a null model
+      (no X variables) if init was specified as numeric(0) rather than NULL.
+    
+    \item Update the description and citation files to use the new
+    "person" function described in the R Journal.
+
     \item Allow an ordinary vector as the left hand side of survConcordance.
 
     \item Update anova.coxphlist to reject models with a robust variance.
@@ -21,14 +27,28 @@
 
     \item Add the anova.coxmelist function to the namespace so that it is
     visible.
-    }}
+
+    \item Fix a bug pointed out by Yi Zhang and Mickael Hartweg.
+    If a coxph model used an offset, then a predicted survival curve
+    that used newdata (and the
+    offset variable of course) would be wrong, e.g. survival values > 1.
+    A simple misplaced parenthesis was the cause.
+    A recent paper by Langholz shows how to get absolute survival from
+    case-control data using an offset, which seems to have suddenly made this
+    feature popular.
+
+    \item Per further interaction with Yi Zhang, a few items were
+    missing from the S3methods in the NAMESPACE file: as.matrix.Surv,
+    model.matrix.coxph, model.matrix.survreg, model.frame.survreg.
+}}
 
 \section{Changes in version 2.36-14}{
-  \itemize {
+  \itemize{
     \item A supposedly cosmetic change to coxph in the last release
-    caused formulas with a "." on the right hand side to fail.  Fix this
-    and add a case with "." to the test suite.
-    }}
+	caused formulas with a "." on the right hand side to fail.  Fix this
+	and add a case with "." to the test suite.
+      }
+    }
 
 \section{Changes in version 2.36-13}{
   \itemize{

@@ -1,15 +1,26 @@
-citHeader("To cite package 'survival' in publications use:")
+#citHeader("To cite package 'survival' in publications use:")
      
 # Grab the version and date from the DESCRIPTION file
 if(!exists("meta") || is.null(meta)) meta <- packageDescription("survival")
 year <- sub(".*(2[[:digit:]]{3})-.*", "\\1", meta$Date)
 vers <- paste("R package version", meta$Version)
 
-citEntry(entry="Manual",
-	title = "A Package for Survival Analysis in S",
-	author= personList(as.person("Terry Therneau")),
-	year =year,
-	note =vers,
-	textVersion= paste("Terry Therneau (", year, 
-	").  A Package for Survival Analysis in S. ",
-	vers, ".", sep=""))
+bibentry(bibtype="Manual",
+         title = "A Package for Survival Analysis in S",
+	 author= person(c("Terry M"), "Therneau"),
+	 year =year,
+	 note =vers,
+ 	 url="http://CRAN.R-project.org/package=survival",
+	 key= "survival-package"
+	 )
+bibentry(bibtype= "Book",
+         title="Modeling Survival Data: Extending the {C}ox Model",
+	 author=c(person(c("Terry M.", "Therneau")),
+	          person(c("Patricia M.", "Grambsch"))),
+         year = "2000",
+         publisher= "Springer",
+         address = "New York",
+         isbn = "0-387-98784-3",
+	 key = "survival-book"
+	 )
+4
