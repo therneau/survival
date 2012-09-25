@@ -4,7 +4,7 @@
 \title{Ovarian Cancer Survival Data}
 \usage{ovarian}
 \description{Survival in a randomised trial comparing two treatments for
-    ovarian cancer (? from an Eastern Cooperative Oncology Group study)}
+    ovarian cancer}
 \format{
   \tabular{ll}{
     futime:\tab survival or censoring time\cr
@@ -16,6 +16,15 @@
   }
 }
 \source{Terry Therneau}
-\references{for ECOG performance status: \url{http://ecog.dfci.harvard.edu/~ecogdba/general/perf_stat.html}}
+\references{
+   Edmunson, J.H., Fleming, T.R., Decker, D.G.,
+    Malkasian, G.D., Jefferies, J.A., Webb, M.J., and Kvols, L.K.,
+    Different Chemotherapeutic Sensitivities and Host Factors Affecting
+    Prognosis in Advanced Ovarian Carcinoma vs. Minimal Residual Disease.
+    Cancer Treatment Reports, 63:241-47, 1979.
+    
+  for ECOG performance status:
+  \url{http://ecog.org/general/perf_stat.html}
+  }
 \keyword{datasets}
 \keyword{survival}

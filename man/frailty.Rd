@@ -104,8 +104,11 @@ routine they choose.  A weakness is that it is very difficult for the
 modeling routine to know whether a sensible penalty routine has been
 supplied.
 
-For Cox models the \code{coxme} package has replaced superseded
-this method.
+Note that use of a frailty term implies a mixed effects model and use of
+a cluster term implies a GEE approach; these cannot be mixed.
+
+The \code{coxme} package has superseded
+this method.  It is faster, more stable, and more flexible.
 }
 \section{References}{
 S Ripatti and J Palmgren, Estimation of multivariate frailty 

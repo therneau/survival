@@ -25,6 +25,9 @@ The function's only action is semantic, to mark a variable as the
 cluster indicator.
 The resulting variance is what is known as the ``working independence''
 variance  in a GEE model.
+Note that one cannot use both a frailty term and a cluster term in the
+same model, the first is a mixed-effects approach to correlation and the
+second a GEE approach, and these don't mix.
 }
 \seealso{
 \code{\link{coxph}},  \code{\link{survreg}}   
