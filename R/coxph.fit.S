@@ -43,7 +43,7 @@ coxph.fit <- function(x, y, strata, offset, init, control,
     else {
 	nullmodel <- FALSE
 	maxiter <- control$iter.max
-	if (!missing(init) && !is.null(init)) {
+	if (!missing(init) && length(init)>0) {
 	    if (length(init) != nvar) stop("Wrong length for inital values")
 	    }
 	else init <- rep(0,nvar)
