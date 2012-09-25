@@ -342,7 +342,7 @@ Just before the actual evaluation there is one more insertion.
 For backwards compatability, I allow someone to give an ordinary vector
 instead of a data frame (when only one curve is required).  In this case
 I also need to verify that the elements have a name. 
-Then turn it into a list, like it should have been from the beginning.
+Then turn it into a data frame, like it should have been from the beginning.
 (Documentation of this ability has been suppressed, however.  I'm hoping 
 people forget it ever existed.) 
 <<survfit.coxph-setup>>=    
@@ -351,9 +351,12 @@ people forget it ever existed.)
         if (is.null(names(newdata))) {
                 stop("Newdata argument must be a data frame")
                 }
-        tcall$data <- data.frame(as.list(newdata))
+        newdata <- data.frame(as.list(newdata))
+        tcall$data <- newdata
         newdata <- matrix(newdata, nrow=1)  #for the check below
         }
+    else if (is.list(newdata)) newdata <- data.frame(newdata) 
+
     mf2 <- eval(tcall, parent.frame())
     if (nrow(mf2) != nrow(newdata))
         warning(paste("'newdata' had", nrow(newdata), 
@@ -398,7 +401,7 @@ if (individual) {
         stop("Individual=TRUE is only valid for counting process data")
     y2 <- y2[,1:2, drop=F]  #throw away status, it's never used
 
-    newrisk <- exp(c(x2 %*% coef)) + offset2
+    newrisk <- exp(c(x2 %*% coef) + offset2)
     result <- survfitcoxph.fit(y, x, wt, x2, risk, newrisk, strata,
                                 se.fit, survtype, vartype, varmat, 
                                 id, y2, strata2)
@@ -437,7 +440,7 @@ else if (any(stype==2)){
         x2 <- scale(x2, center=xcenter, scale=FALSE)
         offset2 <- model.offset(mf3)
         if (is.null(offset2)) offset2 <-0
-        newrisk <- c(exp(x2%*%coef)) + offset2 
+        newrisk <- c(exp(x2%*%coef) + offset2)
         zed<- survfitcoxph.fit(y, x, wt, x2, risk, newrisk, strata,
                                            se.fit, survtype, vartype, varmat,
                                            id=NULL, unlist=FALSE)
@@ -481,7 +484,7 @@ else {
        x2 <- scale(x2, center=xcenter, scale=FALSE)
        }
 
-    newrisk <- exp(c(x2 %*% coef)) + offset2
+    newrisk <- exp(c(x2 %*% coef) + offset2)
     result <- survfitcoxph.fit(y, x, wt, x2, risk, newrisk, strata,
                                 se.fit, survtype, vartype, varmat, 
                                 id, y2, strata2)
