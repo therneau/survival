@@ -27,7 +27,7 @@ ratetable(...)
 
 \examples{
 
-fit <- survfit(Surv(time, status) ~ sex, pbc,subset=1:312)
+fit <- survfit(Surv(time, status==2) ~ sex, pbc,subset=1:312)
 
 # The data set does not have entry date, use the midpoint of the study
 efit <- survexp(~ ratetable(sex=sex,age=age*365.35,year=as.Date('1979/1/1')) +

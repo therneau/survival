@@ -88,8 +88,10 @@ predictions will always be for a random effect of zero.
 \code{\link{predict}},\code{\link{coxph}},\code{\link{termplot}} }
 
 \examples{
-fit <- coxph(Surv(time, status) ~ age + ph.ecog + strata(inst), lung) 
-mresid <- lung$status - predict(fit, type='expected') #Martingale resid 
+options(na.action=na.exclude) # retain NA in predictions
+fit <- coxph(Surv(time, status) ~ age + ph.ecog + strata(inst), lung)
+#lung data set has status coded as 1/2
+mresid <- (lung$status-1) - predict(fit, type='expected') #Martingale resid 
 predict(fit,type="lp")
 predict(fit,type="expected")
 predict(fit,type="risk",se.fit=TRUE)
