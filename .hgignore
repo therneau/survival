@@ -9,6 +9,7 @@ src/coxcount1.c
 src/concordance1.c
 src/agsurv[45].c
 src/msurv.c
+src/symbols.rds
 R/agsurv.R
 R/coxph.R
 R/predict.coxph.R

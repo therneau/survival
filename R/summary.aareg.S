@@ -64,11 +64,12 @@ summary.aareg <- function(object, maxtime, test=c('aalen', 'nrisk'), scale=1,...
 	    if (!is.null(object$cluster)) influence <- rowsum(influence, cluster)
 	    test.var2 <- t(influence) %*% influence
 	    }
+        else test.var2 <- NULL
 	}
     else {  #use the value that was passed in
 	test.stat <- object$test.statistic
 	test.var  <- object$test.var
-	test.var2 <- object$test.var2
+	test.var2 <- object$test.var2   #NULL if dfbeta option was false
 	}
 
     # create the matrix for printing out

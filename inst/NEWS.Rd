@@ -2,6 +2,10 @@
 \title{NEWS file for the survival package}
 \section{Changes in version 2.37-1}{
   \itemize{
+    \item Fix bug in summary.aareg, which was unhappy (for no cause) if
+    the maxtime option was used for a fit that did not include the
+    dfbeta option.  Pointed out by Asa Johannesen.
+    
     \item The fitting functions would report an error for a null model
       (no X variables) if init was specified as numeric(0) rather than NULL.
     
@@ -30,8 +34,8 @@
 
     \item Fix a bug pointed out by Yi Zhang and Mickael Hartweg.
     If a coxph model used an offset, then a predicted survival curve
-    that used newdata (and the
-    offset variable of course) would be wrong, e.g. survival values > 1.
+    that used newdata (and the offset variable of course) would be
+    wrong, e.g. survival values > 1.
     A simple misplaced parenthesis was the cause.
     A recent paper by Langholz shows how to get absolute survival from
     case-control data using an offset, which seems to have suddenly made this
