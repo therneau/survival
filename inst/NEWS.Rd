@@ -1,6 +1,6 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
-\section{Changes in version 2.37-1}{
+\section{Changes in version 2.36-15}{
   \itemize{
     \item Fix bug in summary.aareg, which was unhappy (for no cause) if
     the maxtime option was used for a fit that did not include the

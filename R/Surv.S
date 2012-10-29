@@ -226,8 +226,12 @@ Math.Surv <- function(...)  stop("Invalid operation on a survival time")
 Ops.Surv  <- function(...)  stop("Invalid operation on a survival time")
 Summary.Surv<-function(...) stop("Invalid operation on a survival time")
 is.Surv <- function(x) inherits(x, 'Surv')
-as.matrix.Surv <- function(x) {
+as.matrix.Surv <- function(x, ...) {
     y <- unclass(x)
     attr(y, 'type') <- NULL
     y
     }
+
+# if the definition below isn't present, then is.matrix(x) is a no-op when
+#  x is a survival object
+is.matrix.Surv <- function(x) FALSE  
