@@ -12,7 +12,7 @@ survobrien <- function(formula, data, subset,
         temp <- (r -.5)/ length(r[!is.na(r)]) #percentiles
         log(temp/(1-temp)) #logits
     }
-    else if (length(transform(1:10) != 10))
+    else if (length(transform(1:10)) != 10)
         stop("Transform function must be 1 to 1")
 
     # create a call to model.frame() that contains the formula (required)
