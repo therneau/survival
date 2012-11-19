@@ -22,7 +22,11 @@ plot.survfit<- function(x, conf.int,  mark.time=TRUE,
 	logax  <- log
         }
 
-    if (missing(firstx)) {
+    if (missing(firsty) & x$type=="mright" || x$type=="mcounting") {
+        firsty <- NA
+        firstx <- min(x$time)
+    }
+    else if (missing(firstx)) {
 	if (!is.null(x$start.time)) 
 	     firstx <- x$start.time
 	else {
@@ -227,11 +231,11 @@ plot.survfit<- function(x, conf.int,  mark.time=TRUE,
 	who <- (stemp==j)
 	xx <- c(firstx, stime[who])
 	nn <- length(xx)
-	if (x$type == 'counting') {
+	if (x$type == 'counting' || x$type=="mcounting") {
 	    deaths <- c(-1, x$n.censor[who])
 	    zero.one <- 1
 	    }
-	else if (x$type == 'right') {
+	else if (x$type == 'right' || x$type == "mright") {
 	    deaths <- c(-1, x$n.event[who])
 	    zero.one <- 0
 	    }

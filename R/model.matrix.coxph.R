@@ -107,7 +107,7 @@ model.frame.coxph <- function(formula, ...) {
         #  new versions of everything else
         newargs <- c(nargs, list(formula=terms(formula), xlev=formula$xlevels))
         mf <- do.call("model.frame", newargs)
-        if (!is.null(attr(formual$terms, "dataClasses")))
+        if (!is.null(attr(formula$terms, "dataClasses")))
 	   .checkMFClasses(attr(formula$terms, "dataClasses"), mf)
     }
     mf

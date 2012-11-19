@@ -1,5 +1,5 @@
 survfit.formula <- function(formula, data, weights, subset, 
-			    na.action, etype, id, ...) {
+			    na.action, etype, id, istate, ...) {
     Call <- match.call()
     Call[[1]] <- as.name('survfit')  #make nicer printout for the user
     # create a copy of the call that has only the arguments we want,
@@ -48,7 +48,9 @@ survfit.formula <- function(formula, data, weights, subset,
         # This should never happen
         stop("unrecognized survival type")
     }
-    class(temp) <- 'survfit'
+    if (is.null(temp$states)) class(temp) <- 'survfit'
+    else class(temp) <- c("survfitmulti", "survfit")
+
     if (!is.null(attr(m, 'na.action')))
 	    temp$na.action <- attr(m, 'na.action')
 

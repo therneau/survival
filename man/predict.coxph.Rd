@@ -48,7 +48,7 @@ optional vector of subject identifiers.
 If specified, the output will contain one entry per subject rather than one 
 entry per observation. 
 }
-\item{reference}{reference for centering predictions}
+\item{reference}{reference for centering predictions, see details below}
 \item{\dots}{For future methods}
 }
 \value{
@@ -74,6 +74,9 @@ may be desirable to use a fixed reference level.
 Use of \code{reference="sample"} will use the overall means, and agrees
 with the \code{linear.predictors} component of the coxph object (which
 uses the overall mean for backwards compatability with older code).
+Predictions of \code{type="terms"} are almost invariably passed
+forward to further calculation, so for these we default to using
+the sample as the reference.
 
 Predictions of type "expected" incorporate the baseline hazard and are
 thus absolute instead of relative; the

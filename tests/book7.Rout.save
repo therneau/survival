@@ -1,6 +1,6 @@
 
-R version 2.14.0 (2011-10-31)
-Copyright (C) 2011 The R Foundation for Statistical Computing
+R version 2.15.1 (2012-06-22) -- "Roasted Marshmallows"
+Copyright (C) 2012 The R Foundation for Statistical Computing
 ISBN 3-900051-07-0
 Platform: i686-pc-linux-gnu (32-bit)
 
@@ -64,6 +64,7 @@ Loading required package: splines
 > aeq(truth1$mart, resid(fit1)[c(3:7,1)])
 [1] TRUE
 > 
+> # Beta is infinite for this model, so we will get a warning message
 > fit2 <-  coxph(Surv(time, status) ~x, test1, method='exact')
 Warning message:
 In fitter(X, Y, strats, offset, init, control, weights = weights,  :
@@ -88,3 +89,6 @@ In fitter(X, Y, strats, offset, init, control, weights = weights,  :
 > aeq(fit1$resid, fit2$resid)
 [1] TRUE
 > 
+> proc.time()
+   user  system elapsed 
+  0.940   0.036   0.968 

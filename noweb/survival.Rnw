@@ -14,7 +14,7 @@ by the survfitCI function.
 <<survfitCI>>=
 survfitCI <- function(X, Y, weights, 
                       type=c('kaplan-meier', 'fleming-harrington', 'fh2'),
-                      error=c('greenwood', "tsiatis"), se.fit=TRUE,
+                      error, se.fit=TRUE,
                       conf.int= .95,
                       conf.type=c('log',  'log-log',  'plain', 'none'),
                       conf.lower=c('usual', 'peto', 'modified'),
@@ -28,8 +28,6 @@ survfitCI <- function(X, Y, weights,
 Start by checking the arguments for validity.  
 <<sci-check-args>>=
 method <- match.arg(type)
-error <- match.arg(error)
-error.int <- match(error, c("greenwood", "tsiatis"))
 conf.type <- match.arg(conf.type)
 conf.lower<- match.arg(conf.lower)
 
@@ -47,40 +45,32 @@ else if (length(id) != n) stop("wrong length for id")
 @ 
 
 If an istate argument was supplied, then this gives the initial state
-for each observation of the data, and the total set of states will
+for each observation of the data.
+If not then all subjects are assumed to start in an initial state
+named ``(Initial)''.  The total set of states will
 be the the union of those in the survival time (attribute ``states'')
 and the initial state.
 If no istate argument was given, then we assume that everyone
 starts in state ``none'', and the final result will not include a curve
 for that although we will compute it.
-If there is an id variable and a subject has multiple rows, only the
-initial state for the first time point of each subject is used.
-The integer vectors istate and estate start at 0 for the convenience
-of the C code.  
-This works out well for the none state, since no one ever transitions into
-it I can use the ``status'' column of my survival data as the ending state.
+The integer vectors istate and estate start at 1 for R indexing, but
+will have 1 subtracted for the C code. 
 
 <<sci-check-args>>=
 if (missing(istate) || length(istate)==0) {
-    istate <- rep(0L, n)  
-    states <- 0:length(attr(Y, "states"))
-    state.labels <- c(NA, attr(Y, "states"))  #mark it as one we won't use
-    estate <- as.integer(Y[,ncol(Y)])  #ending state for each subject
-    status <- as.integer(estate>0)
+    istate <- rep("(Initial)", n)
+    if (any(attr(Y, "states") == "(Initial)"))
+        stop ("input data has a state named '(Initial)'")
 }
-else {
-    istate <- as.factor(istate)
-    state.labels <- unique(c(attr(Y, "states"), levels(istate)))
-    states <- 1:length(state.labels)
-    istate <- match(istate, state.labels) -1L
-    estate <- as.integer(Y[,ncol(Y)]) -1L
-    status <- as.integer(estate > -1)
-    if (any(istate==estate)) stop("transition from one state to the same state")
-} 
+istate <- as.factor(istate)
+state.labels <- unique(c(attr(Y, "states"), levels(istate)))
+states <- 1:length(state.labels)
+istate <- match(istate, state.labels) 
+estate <- as.integer(Y[,ncol(Y)])  # 0 for censored
+status <- pmin(estate, 1L)
+if (any(istate==estate)) stop("transition from one state to the same state")
 nstate <- length(states)
 @ 
-
-
 
 Due to roundoff [[unique(time]] and [[table(time)]] may not be the
 same.  Variants of this can catch us when counting the number at risk, tied
@@ -113,44 +103,55 @@ if (any(duplicated(id))) {
     temp <- c(X[1], (X[indx])[-n])  #lagged X
     if (any(duplicated(id[indx]) & X[indx]!= temp))
         stop("a subject may not change from one group to another")
+    ijack <- TRUE  #use infinitesimal jackknife estimate
 }
+else ijack <- TRUE  # the alternate code isn't done
 @ 
 
 Based on Andersen, Borgan, Gill and Keiding (ABGK) \cite{Andersen93} 
 equation 4.4.1 the transition
 matrix is
-\begin{align*}
-  P(t) &= P(0) \prod_{s<t} H(s) \\
-  H_{ij}(s) &= d_{ij}(s)/n_i(s), \, i\ne j
-\end{align*}
-Here $d_{ij}(s)$ is the weighted number of subjects who are observed to make a
-transition from state $i$ to state $j$ at exactly time $s$, it is 
+\begin{align}
+  P(t) &= P(0) \prod_{s<t} [I+ h(s)] \label{eq:prob}\\
+  h_{jk}(s) &= d_{jk}(s)/n_j(s), \, j\ne k \label{eq:H}
+\end{align}
+Here $d_{jk}(s)$ is the weighted number of subjects who are observed to make a
+transition from state $j$ to state $k$ at exactly time $s$, it is 
 the multivariate analog to the number of deaths at a time point.
-The weighted number at risk in state $i$ is $n_i(s)$, and $H$ is the
+The weighted number at risk in state $j$ is $n_j(s)$, and $h$ is the
 empirical hazard matrix for all pairs of transitions.
-The diagonal elements of $H$ are defined so that row sums of $H$ are 1 
-(everyone either stays in the state or goes somewhere else).
-$P$ will be an $m+1$ by $m+1$ matrix, $P_{ij}(t)$  gives the probability that
-a subject starting in state $i$ at time 0 will be in state $j$ at time $t$.
+The diagonal elements of $h$ are defined so that row sums of $h$ are 0.
+$P$ will be an $m$ by $m$ matrix, $P_{jk}(t)$  gives the probability that
+a subject starting in state $j$ at time 0 will be in state $k$ at time $t$.
 $P(0)$ is the distribtion of subjects at the start of the follow-up.
+
+An alternative defintion uses the cumulative hazard matrix $H$.
+\begin{align*}
+   H(t) &= \sum_{s \le t} h(s) \\
+   P(t) &= P(0) e^{H(t)}
+\end{align*}
+where $e$ is the matrix exponential.  This corresponds to the Fleming-Harrington
+estimate of survival in a simple survival curve.
 
 When there is an [[id]] variable we compute the variance using an 
 infinitesimal jackknife.  To this end consider a weighted estimate.
 Assume that we have done the computation up
 to time $t-$, and have the estimate $P(t-)$ and the matrix of per subject
-derivatives $D(t) = \partial P(t-)/\partial w_i$. 
-The jth element of $P(t)$ and it's derivative will be
+derivatives $D_{ij}(t) = \partial P_j(t-)/\partial w_i$. 
+The jth element of $P(t)$ is the sum over all the prior states times the
+probability of transition from that state to $j$.  
+The derivative with respect to subject is derived using the chain rule.
 \begin{align}
-  P_k(t) &= \sum_j P_j(t-) H_{jk}(t)  \nonumber \\
-  D_{ik} &= \frac{\partial P_k(t)}{\partial w_i} \nonumber \\ &= 
-  \sum_j \frac{\partial P_j(t-)}{\partial w_i} H_{jk}(t) + 
-  P_j(t-) \frac{\partial H_{jk}(t)}{\partial w_i} \label{eq:recur} \\
-  \frac{\partial H_{jk}(t)}{\partial w_i} &= 
+  P_j(t) &= \sum_k P_k(t-) [I + H_{kj}(t)]  \nonumber \\
+  D_{ij} &= \frac{\partial P_j(t)}{\partial w_i} \nonumber \\ &= 
+  \sum_k \left[\frac{\partial P_k(t-)}{\partial w_i} [I +H_{kj}(t)] + 
+  P_k(t-) \frac{\partial H_{kj}(t)}{\partial w_i} \right]\label{eq:recur} \\
+  \frac{\partial H_{kj}(t)}{\partial w_i} &= 
     \begin{array}{cc}
-    H_{jk}(t) \left[ \frac{\delta_{ijk}(t)}{d_{jk}(t)} - 
-      \frac{Y_{ij}(t)}{n_j(t)} \right]& j\ne k \\
-     H_{jk}(t) \left[\frac{\delta_{ij.}(t)}{d_{jk}(t)} - 
-       \frac{Y_{ij}(t)}{n_j(t)}\right] & j = k 
+       Y_{ik}(t)\left[\delta_{ikj}(t) - H_{kj}(t)
+         \right] /n_k(t) & j\ne k \\
+      Y_{ij}(t) \left[-\delta_{ij.}(t) - H_{jj}(t)
+           \right]/n_j(t) & j = k \\
     \end{array}   
       \label{eq:recur2}
 \end{align}
@@ -158,23 +159,45 @@ where $Y_{ij}(t)$ is 1 if subject $i$ is in state $j$ at time $t$,
 $\delta_{ijk}$ is 1 if subject $i$ had a transition from $j$ to $k$
 at that time point and $\delta_{ij.}$ is 1 for any transition from 
 state $j$.
-Then the variance of $P_k(t)$ is $\sum_i w_i D_{ik}^2$.  
+Then the variance of $P_k(t)$ is estimates as $\sum_i w_i D_{ik}^2$.  
 The above derivation assumes legal data, i.e., that a given subject is
 in only one state at a given time, and that there is only one copy
 of the subject present (you can't have two obs each with weight 1/2).
 
-The first term of \ref{eq:recur} is a simple matrix multiplication where
+The first term of \eqref{eq:recur} is a simple matrix multiplication where
 $D$ is $n$ by $p$ and $p$ is the number of states.
-The second term \eqref{eq:recur2} is a bit more complex.
-The first part of it will add $P_j H_{jk}/d_j$ to the $j$th element
-of $D_i$ and P_k H_{jk}/d_j to the $k$ th element of $D_i$
-for each subject $i$ who had an event.
-The second part of \eqref{eq:recur2} will subtract $(P/d) H$ from each
-row of $D$ corresponding to a subject at risk.  
+The second term \eqref{eq:recur2} has two parts.  
+The derivative of the numerator of \eqref{eq:H} 
+$d_{jk}(s)= \sum_i \delta_{ijk}(s)$ will affect only subjects $i$ who had
+a transition at time $s$ and only two elements of $H$: the transition that
+occured for that subject and the diagonal element for that row.
+The derivative of the denominator of \eqref{eq:H} is the $H$ portion of
+\eqref{eq:recur2} and involves all subjects still at risk at time $s$.
 
 
 If there is not an id variable we can use the asymptotic formula
-of 4.4.20 of ABGK.
+of 4.4.20 of ABGK.  
+This starts with the variance covariance matrix of $h$.  The covariance
+matrix between rows of $h$ is zero.  Within the $i$th row we have
+\begin{align*}
+  {\rm var}(h_{ii}(t)) &= \frac{[n_i(t) - d_{i.}(t)]d_{i.}(t)}{n_i(t)^3} \\
+  {\rm var}(h_{ij}(t)) &= \frac{[n_i(t) - d_{ij}(t)]d_{ij}(t)}{n_i(t)^3},
+  \; i\ne j \\
+  {\rm cov}(h_{ii}(t), h_{ij}(t)) &=\frac{[n_i(t) - d_{i.}(t)]d_{ij}(t)}
+                          {n_i(t)^3}, \; i\ne j \\
+  {\rm cov}(h_{ij}(t), h_{ik}(t)) &= -\frac{d_{ij}(t) d_{ik}(t)}{n_i(t)^3},
+     \; i\ne j \ne k
+\end{align*}
+If there are $k$ states then this result can be kept in a $k\times k \times k$
+array.
+The variance matrix for the cumulative hazard $H$ is the sum of the 
+variances for each individual death time.
+We can multiply each of these by $n_i/(n_i-d_i)$ to get the more common
+formula used by Aalen and Tsiatis, or by $[n_i/(n_i - d_i)]^2$ to get
+the Greenwood like estimate.  
+
+The closed form variance for $P$ is 
+                          
 
 
 To compute the transitions I need to know the prior state for each
@@ -183,25 +206,31 @@ Also check for no illegal overlaps, e.g., (0,10) and (6,15) as two
 successive intervals for a subject.
 Such data would produce an answer, but one without any meaning.
 
-Since computations are done separately for each level of X,
-start by making a the two key arrays for the computation, which is
-done in C code for speed.
-At each unique death time I have the length $m+1$ vector containing the
-number at risk in each state just prior to that time,
-and the $m+1$ by $m+1$ matrix containing the number of jumps from state
-$i$ to state $j$.
-The C code does this from largest time to smallest.
+Computations are done separately for each level of X,
+set this up as a function [[docurve]].
+Start by ordering the the times within the subset, then call the C routine
+to calculate 
+\begin{description}
+  \item [nrisk] number at risk just prior to time t
+  \item [wrisk] weighted number at risk = sum of weights for those at risk
+  \item [nevent] number of events (deaths)
+  \item [wevent] weighted number of events
+\end{description}
+The returned arrays are ordered from largest time to smallest time.
 <<sci-compute>>=
 docurve <- function(who) {
     itemp <- itime[who,,drop=FALSE]
-    ntime <- max(itime)             #number of unique times
+    utime <- sort(unique(itime[,ncol(itime)])) 
+    ntime <- length(utime) #number of unique event times
     if (ncol(itemp)==1) {
         dsort <- order(itemp[,1])
         isort <- NULL
+        censor <- table(itemp[,1], status[who]==0)[,2]
     }
     else {
         dsort <- order(itemp[,2])
         isort <- order(itemp[,1])
+        censor <- table(itemp[,2], status[who]==0)[,2]
     }
     mfit <- .Call("msurv",
                   nrisk = matrix(0L, nstate, ntime),
@@ -210,76 +239,117 @@ docurve <- function(who) {
                   wevent= array (0., dim=c(nstate, nstate, ntime)),
                   itime[who,],
                   status[who],
-                  istate[who],
-                  estate[who], 
+                  istate[who] -1L,
+                  estate[who] -1L, 
                   weights[who],
                   dsort -1L,
                   isort -1L)
-    P <- matrix(0., nrow= 1+ ntime, ncol=nstate)
-    temp <- table(factor(((istate[who])[dsort])[!duplicated((id[who])[dsort])],
-                  levels= (1:nstate) -1))
-    P[1,]<- as.vector(temp)/sum(temp)
+    <<docurve-create-p>> 
 
-    if (se.fit) {
-        semat <- matrix(0., ntime, nstate)
-        if (influence) {
-            nperson <- length(unique(id))
-            dmat <- matrix(0., nperson, nstate)
-        }
-    }
-    times <- sort(unique(itemp[status[who]==1,ncol(itemp)]))
-    for (i in 1:ntime) {
-        indx <- 1+ ntime -i
-        risk2 <-ifelse(mfit$nrisk[, indx]==0, 1, mfit$nrisk[, indx]) #avoid 0/0
-        Hmat <- mfit$wevent[,, indx]/ risk2
-        diag(Hmat) <- 1- rowSums(Hmat)
-        P[i+1,] <- P[i,] %*% Hmat
+    n.risk <- t(mfit$nrisk[, ntime:1])
+    n.event <- apply(mfit$nevent[,,ntime:1], 3:2, sum)
         
-        if (se.fit) {
-            if (sum(mfit$nevent[,,indx]) ==0 ) {
-                if (i>1) semat[i,] <- semat[i-1,]
-            }
-            else {
-                deaths <- which(status==1 & itemp[,ncol(itemp)]==times[i])
-                if (influence) {
-                    dmat <- dmat %*% Hmat
-                    if (ncol(itime)==2) 
-                        atrisk <- (id[itemp[,1] <times[i] & 
-                                      itemp[,2] >= times[i]])
-                    else atrisk <- id[itemp[,1] >= times[i]]
-                    dmat[atrisk,] <- dmat[atrisk,] - 
-                        rep((P[i,]/risk2) %*% Hmat, each=length(atrisk))
-                    tindx <- cbind(id[deaths], istate[deaths])
-                    dmat[tindx] <- dmat[tindx] +P[i, istate[deaths]] * 
-                        diag(Hmat)[istate[deaths]] / risk2[istate[deaths]]
-                    tindx <- cbind(id[deaths], estate[who])
-                    dmat[tindx] <- dmat[tindx] + P[i, istate[deaths]] *
-                        Hmat[cbind(istate[deaths], estate[deaths])] /
-                            risk2[istate[deaths]}
-                    se[i,] <- se[i,] + colSums(dmat*dmat*weights)
-                } 
-                else stop("code not done")
-            }
-        }
-    }
+    rlist <- list(n=nrow(itemp), time= utime, n.risk=n.risk,
+                  n.event =n.event, n.censor=as.vector(censor),
+                  surv= P[-1,])
+    if (se.fit) rlist$std.err =sqrt(semat[-1,])
+    rlist
+}
+@
+Now create the probability matrix $P$ and its standard error.
+For simplicity both of these have an initial row corresponding to the
+starting states (the error is 0 for this row), then one for each
+unique death time.  We'll later throw away this first row.
+A standard error is the long part of the computation.  
+It keeps an array [[dmat]] with one row per subject and one column
+per state that captures equation \eqref{eq:recur}, updated at each
+time point.
+<<docurve-create-p>>= 
+P <- matrix(0., nrow= 1+ ntime, ncol=nstate)
+temp <- table(factor(((istate[who])[dsort])[!duplicated((id[who])[dsort])],
+              levels= 1:nstate))
+P[1,]<- as.vector(temp)/sum(temp)
 
-    if (se.fit) 
-        list(events=mfit$nevent, risk=mfit$nrisk, prob=P, se=sqrt(se))
-    else 
-        list(events=mfit$nevent, risk=mfit$nrisk, prob=P)
+if (se.fit) {
+    semat <- matrix(0., ntime+1, nstate)
+    if (ijack) {
+        nperson <- length(unique(id))
+        dmat <- matrix(0., nperson, nstate)
+    }
 }
 
+for (i in 1:ntime) {
+    indx <- 1+ ntime -i
+    risk2 <-ifelse(mfit$nrisk[, indx]==0, 1, mfit$nrisk[, indx]) #avoid 0/0
+    Hmat <- mfit$wevent[,, indx]/ risk2
+    diag(Hmat) <- -rowSums(Hmat)
+    IHmat <- Hmat + diag(nstate)
+    P[i+1,] <- P[i,] %*% IHmat
+    
+    if (se.fit) {
+        if (sum(mfit$nevent[,,indx]) ==0 ) {
+            semat[i+1,] <- semat[i,]
+        }
+        else {
+            deaths <- which(status==1 & itemp[,ncol(itemp)]==utime[i])
+            if (ijack) {
+                dmat <- dmat %*% IHmat
+                if (ncol(itime)==2) 
+                    atrisk <- (id[itemp[,1] <utime[i] & 
+                                  itemp[,2] >= utime[i]])
+                else atrisk <- id[itemp[,1] >= utime[i]]
+                dmat[atrisk,] <- dmat[atrisk,] - 
+                    rep((P[i,]/risk2) %*% Hmat, each=length(atrisk))
+                tindx <- cbind(id[deaths], istate[deaths])
+                dmat[tindx] <- dmat[tindx] +P[i, istate[deaths]] * 
+                    diag(Hmat)[istate[deaths]] / sum(weights[deaths])
+                tindx <- cbind(id[deaths], estate[deaths])
+                dmat[tindx] <- dmat[tindx] + P[i, istate[deaths]] *
+                    Hmat[cbind(istate[deaths], estate[deaths])] /
+                        sum(weights[deaths])
+                semat[i+1,] <- colSums(dmat*dmat*weights)
+            } 
+            else stop("code not done")
+        }
+    }
+}
+@
+
+<<sci-compute>>= 
 # Call the function for each group in turn
 ngroup <- length(levels(X))
-if (ngroup ==1) fit <- docurve(rep(TRUE, n))
+if (ngroup ==1) {
+    fit <- docurve(rep(TRUE, n))
+}
 else {
     fitlist <- vector("list", ngroup)
     for (i in ngroup) fitlist[[i]] <- docurve(X== levels(X)[i])
+    extract <- function(x, name) unlist(lapply(x, function(x) x[[name]]))
+    mextract <- function(x, name) matrix(unlist(lapply(x, function(x)
+                                                       t(x[[name]])),
+                                                ncol=nstate, byrow=T))
+    fit <- list(n=      extract(fitlist, "n"),
+                time=   extract(fitlist, "time"),
+                n.risk =mextract(fitlist, "n.risk"),
+                n.event=extract(fitlist, "n.event"),
+                n.censor=extract(fitlist, "n.censor"),
+                surv =  mextract(fitlise, "surv"))
+    if (se.fit) fit$std.err <- mextract(fitlist, "std.err")
+    fit$strata <- unlist(lapply(fitlist$time, length))
+    names(fit$strata) <- levels(X)
 }
-browser()
 @ 
 
+Convert time back to the original scale.
+If the initial state is a dummy, then drop that column from the results
+so that it doesn't get printed or plotted.
 <<sci-finish>>=
+fit$time <- as.numeric(levels(ftime)[fit$time])  #return to original time values
+dimnames(fit$surv) <- list(NULL, state.labels)
+
+fit$type <- type
+fit$states <- state.labels
+fit
 @ 
 
 The weighted number at risk is a sum of case weights, nevent is a count and

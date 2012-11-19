@@ -96,6 +96,8 @@ coxexact.fit <- function(x, y, strata, offset, init, control,
     resid[sorted] <- cxres$resid
     names(resid) <- rownames
     coef[which.sing] <- NA
+    lp.unsort <- double(n)
+    lp.unsort[sorted] <- lp
 
     scmat <- diag(1/rescale, nvar,nvar)
     list(coefficients  = coef/rescale,
@@ -103,7 +105,7 @@ coxexact.fit <- function(x, y, strata, offset, init, control,
 		loglik = loglik,
 		score  = sctest,
 		iter   = iter,
-		linear.predictors = lp,
+		linear.predictors = lp.unsort,
 		residuals = resid,
 		means = means,
 		method= 'coxph')

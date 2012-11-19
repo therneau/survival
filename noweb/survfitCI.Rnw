@@ -31,7 +31,7 @@ survfitCI <- function(X, Y, weights, id, istate,
 #        warning("Only the infinetesimal jackknife error is supported for CI curves")
     conf.type <- match.arg(conf.type)
     conf.lower<- match.arg(conf.lower)
-(
+
     type <- attr(Y, "type")
     if (type !='mright' && type!='mcounting' && 
         type != "right" && type != "counting")

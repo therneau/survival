@@ -15,7 +15,7 @@ anova.coxmelist <- function (object, test =  'Chisq' ,...) {
     #  use of the formula.coxme method.  (Otherwise we'd get a circular
     #  dependency that survival needs coxme which needs survival which...)
     rfun <- function(x)
-        if (inherits(x, "coxph")) formula(x) else x$formula[[1]]
+        if (inherits(x, "coxph")) formula(x) else x$call$formula
             
     responses <- as.character(sapply(object, 
 				     function(x) deparse(rfun(x)[[2]])))

@@ -2,15 +2,33 @@
 \title{NEWS file for the survival package}
 \section{Changes in version 2.37-1}{
   \itemize{
-    \item Fix bug in summary.aareg, which was unhappy (for no cause) if
+    \item The fast subsets routine coxexact.fit incorrectlyreturned the
+    linear predictor vector in the (internal) sorted order rather than
+    data set order.  Pointed out by Tatsuki Koyama, affecting the result
+    of a clogit call.  6Nov2012
+    
+    \item Jason Law pointed out that the sample data set "rats" is from
+    the paper by Mantel et.al, but the documentation was for a data
+    set from Gail, Santner and Brown.  Add the Gail data rats2 and fix
+    the documentation for rats.
+    
+    \item For predict.coxph with type="terms", use "sample" as the
+    default value for the reference option.  For all others the default
+    remains "strata", the current value.  Type terms are nearly always passed
+    forward for further manipulation and per strata centering can mess
+    things up: termplot() for instance will no longer show a smooth
+    function if the results are recentered within strata.
+        
+    \item Fix bug in summary.aareg, which was unhappy (without cause) if
     the maxtime option was used for a fit that did not include the
     dfbeta option.  Pointed out by Asa Johannesen.
     
-    \item The fitting functions would report an error for a null model
+    \item The coxph fitting functions would report an error for a null model
       (no X variables) if init was specified as numeric(0) rather than NULL.
     
     \item Update the description and citation files to use the new
-    "person" function described in the R Journal.
+    "person" function described in the R Journal.  Also add the
+    ByteCompile directive per suggestion of R core.
 
     \item Allow an ordinary vector as the left hand side of survConcordance.
 
@@ -18,19 +36,23 @@
  
     \item The survfit function had an undocumented backwards-compatability 
     that allows the newdata argument to be a vector with no names.  An
-    example from Damon Krstajic showed that this no longer works when the
+    example from Damon Krstajic showed that this does not work when the
     original model has a matrix in the formula.  Removed the feature.
-    (This is for survfit.coxph.)
+    (This is for survfit.coxph.)  Also force an error in the case where
+    some variables were found in the newdata argument and some in the
+    parent frame, as this is almost certainly a user mistake.
 
     \item Fix an issue in summary.survfit pointed out by Frank Harrell.  The
     strata variable for the output always had its labels in sorted order,
     even when a factor creating the survival curves was otherwise.  (This was
     due to a call to factor() in the code.)  The print routine would then
     list curves in sorted order, which might well be contrary to the user's
-    wishes.
+    wishes.  The curves were correct.
 
     \item Add the anova.coxmelist function to the namespace so that it is
-    visible.
+    visible.  If someone has a list of models the first of which was
+    a coxph fit and the list includes coxme fits, then anova.coxph will
+    be the function called by R, and it will call anova.coxmelist.
 
     \item Fix a bug pointed out by Yi Zhang and Mickael Hartweg.
     If a coxph model used an offset, then a predicted survival curve
@@ -107,7 +129,7 @@
     statement would fail with "x not found".  A misplaced parenthesis
     from an earlier update caused it to not recreate the X matrix even
     though it was needed later.  Also add some further information to
-    the predict manual page to clarify an issue when there is a frailty term.
+    the predict manual page to clarify an issue with frailty terms.
     }}
 
 \section{Changes in version 2.36-12}{

@@ -50,7 +50,7 @@ S-plus is sometimes useful.
 \seealso{\code{\link{terms}},\code{\link{model.matrix}}}
 
 \examples{
-formula <- Surv(time,status)~factor(edema)
+formula <- Surv(time,status)~factor(ph.ecog)
 tt <- terms(formula)
 mf <- model.frame(tt,data=lung)
 mm <- model.matrix(tt,mf)
@@ -61,4 +61,4 @@ attr(mm,"assign")
 ## alternate style assign attribute
 attrassign(mm,tt)
 }
-\keyword{models}%-- one or more ...
+\keyword{models}

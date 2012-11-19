@@ -20,7 +20,7 @@ formula. Argument matching is special for this function, see Details below.
 }
 \usage{
 Surv(time, time2, event,
-    type=c('right', 'left', 'interval', 'counting', 'interval2'),
+    type=c('right', 'left', 'interval', 'counting', 'interval2', 'mstate'),
     origin=0)
 is.Surv(x)
 }
@@ -47,7 +47,7 @@ is.Surv(x)
   \item{type}{
     character string specifying the type of censoring. Possible values
     are \code{"right"}, \code{"left"}, \code{"counting"},
-    \code{"interval"}, or \code{"interval2"}.  The default is
+    \code{"interval"}, \code{"interval2"} or \code{"mstate"}.  The default is
     \code{"right"} or \code{"counting"} depending on whether the
     \code{time2} argument is absent or present, respectively.
   }
@@ -114,6 +114,10 @@ guess wrong.
 In any questionable case it is safer to use logical coding,
 e.g., \code{Surv(time, status==3)} would indicate that a \code{3} is
 the code for an event.
+
+For multi-state survival (type= "mstate") the status variable can have
+multiple levels.  The first of these will stand for censoring, and the
+others for various event types, e.g., causes of death.  
 
 Surv objects can be subscripted either as an object, e.g.
 \code{x[1:3]} using a single subscript;

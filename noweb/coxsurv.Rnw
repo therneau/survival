@@ -345,6 +345,13 @@ I also need to verify that the elements have a name.
 Then turn it into a data frame, like it should have been from the beginning.
 (Documentation of this ability has been suppressed, however.  I'm hoping 
 people forget it ever existed.) 
+
+One more wrinkle is that in this particular case I do not want to find variables
+in the parent environment.  Say a variable ``zed'' is in the formula, not in
+mf2, but found in the global environment.  We want to give a not found message
+for zed.  The model.frame function ignores the environment argument of eval
+so we can't use \texttt{eval(tcall, NULL)}; instead it will use the environment
+tacked onto the formula.  So set it to NULL instead.
 <<survfit.coxph-setup>>=    
     if (is.vector(newdata, "numeric")) {
         if (individual) stop("newdata must be a data frame")
@@ -355,13 +362,10 @@ people forget it ever existed.)
         tcall$data <- newdata
         newdata <- matrix(newdata, nrow=1)  #for the check below
         }
-    else if (is.list(newdata)) newdata <- data.frame(newdata) 
-
-    mf2 <- eval(tcall, parent.frame())
-    if (nrow(mf2) != nrow(newdata))
-        warning(paste("'newdata' had", nrow(newdata), 
-                      "but the variable(s) found have", nrow(mf2), "rows"))
-}
+   
+    environment(tcall$formula) <- NULL
+    mf2 <- eval(tcall)
+    }
 @ 
 
 Now, finally, extract the [[x2]] matrix from the just-created frame.

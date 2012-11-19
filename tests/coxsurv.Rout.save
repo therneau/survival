@@ -1,6 +1,6 @@
 
-R version 2.12.1 (2010-12-16)
-Copyright (C) 2010 The R Foundation for Statistical Computing
+R version 2.15.1 (2012-06-22) -- "Roasted Marshmallows"
+Copyright (C) 2012 The R Foundation for Statistical Computing
 ISBN 3-900051-07-0
 Platform: i686-pc-linux-gnu (32-bit)
 
@@ -114,6 +114,17 @@ Loading required package: splines
 > all.equal(unclass(surv2[,2])[-length(surv3)], unclass(surv3)[-length(surv3)])
 [1] TRUE
 > 
-> rm(fit, surv1, temp, which, zed,dummy, surv2, surv3)
 > 
 > 
+> # Test out offsets, which have recently become popular due to a Langholz paper
+> fit1 <- coxph(Surv(time, status) ~ age + ph.ecog, lung)
+> fit2 <- coxph(Surv(time, status) ~ age + offset(ph.ecog * fit1$coef[2]), lung)
+> 
+> surv1 <- survfit(fit1, newdata=data.frame(age=50, ph.ecog=1))
+> surv2 <- survfit(fit2, newdata=data.frame(age=50, ph.ecog=1))
+> all.equal(surv1$surv, surv2$surv)
+[1] TRUE
+> 
+> proc.time()
+   user  system elapsed 
+  0.316   0.032   0.342 

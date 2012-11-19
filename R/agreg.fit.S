@@ -29,10 +29,11 @@ agreg.fit <- function(x, y, strata, offset, init, control,
         #  To keep the C code to a small set, we call the usual routines, but
 	#  with a dummy X matrix and 0 iterations
 	nvar <- 1
-	x <- matrix(1:n, ncol=1)
+	x <- matrix(1:n, ncol=1)  #keep the .C call happy
 	maxiter <- 0
 	nullmodel <- TRUE
         if (length(init) !=0) stop("Wrong length for inital values")
+        init <- 0.0  #dummy value to keep the .C call happy (doesn't like 0 length)
 	}
     else {
 	nullmodel <- FALSE

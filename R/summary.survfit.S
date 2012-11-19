@@ -179,7 +179,7 @@ summary.survfit <- function(object, times, censored=FALSE,
             # resultant strata variable, but somewhere long ago I had code
             # that only retained the two nonzeros.  Backwards compatabilty...
             strata <- factor(rep(1:nstrat, scount),
-                             levels=1:nstrat[scount>0], 
+                             levels=(1:nstrat)[scount>0], 
                              labels=strata.names[scount>0])
 	    }
 	}

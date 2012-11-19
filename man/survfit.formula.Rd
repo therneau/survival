@@ -12,7 +12,7 @@ cumulative incidence curve.
 }
 \usage{
 \method{survfit}{formula}(formula, data, weights, subset, na.action,  
-        etype, id, ...)
+        etype, id, istate, ...)
 }
 \arguments{
   \item{formula}{
@@ -55,6 +55,9 @@ cumulative incidence curve.
     the compuation of
     a cumulative prevalence estimate, i.e., the incidence over time.
   }
+  \item{istate}{for multi-state models, identifies the initial state of
+  each subject} 
+
   \item{\dots}{
     The following additional arguments are passed to internal functions
     called by \code{survfit}.

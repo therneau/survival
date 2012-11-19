@@ -2,11 +2,12 @@ Title: Survival Analysis
 Maintainer: Terry Therneau <therneau.terry@mayo.edu>
 Priority: recommended
 Package: survival
-Version: 2.36-15
-Date: 2012-02-03
+Version: 2.37-1
+Date: 2012-11-01
 Depends: stats, utils, graphics, splines, R (>= 2.13.0)
 LazyData: Yes
 LazyLoad: Yes
+ByteCompile: Yes
 Authors@R: c(person(c("Terry", "M"), "Therneau", 
                     email="therneau.terry@mayo.edu",
 	            role=c("aut", "cre")),

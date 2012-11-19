@@ -22,6 +22,7 @@ The arguments are
     so rarely in fact that it's hard to justify keeping it.
   \item[collapse] An optional vector of subject identifiers, over which to
     sum or `collapse' the results
+  \item[reference] the reference context for centering the results
   \item[\ldots] All predict methods need to have a \ldots argument; we make
     no use of it however.
 \end{description}
@@ -105,7 +106,9 @@ has.offset <- !is.null(attr(Terms, 'offset'))
 has.weights <- any(names(object$call) == 'weights')
 na.action.used <- object$na.action
 n <- length(object$residuals)
-reference <- match.arg(reference)
+
+if (missing(reference) && type=="terms") reference <- "sample"
+else reference <- match.arg(reference)
 @ 
 
 The next task of the routine is to reconsruct necessary data elements

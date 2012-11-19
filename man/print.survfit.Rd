@@ -36,7 +36,7 @@ if the input data to survfit were in days,
   \code{table} component of \code{summary.survfit}.)  
 }
 \section{Side Effects}{
-he number of observations, the number of events,  the median survival
+The number of observations, the number of events,  the median survival
 with its confidence interval, and optionally the
 restricted mean survival (\code{rmean}) and its standard error, are printed.
 If there are multiple curves, there is one line of output for each. 
