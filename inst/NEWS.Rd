@@ -2,7 +2,7 @@
 \title{NEWS file for the survival package}
 \section{Changes in version 2.37-1}{
   \itemize{
-    \item The fast subsets routine coxexact.fit incorrectlyreturned the
+    \item The fast subsets routine coxexact.fit incorrectly returned the
     linear predictor vector in the (internal) sorted order rather than
     data set order.  Pointed out by Tatsuki Koyama, affecting the result
     of a clogit call.  6Nov2012
