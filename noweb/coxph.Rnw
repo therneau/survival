@@ -40,7 +40,7 @@ coxph <- function(formula, data, weights, subset, na.action,
     extraArgs <- list(...)
     if (length(extraArgs)) {
 	controlargs <- names(formals(coxph.control)) #legal arg names
-	indx <- match(names(extraArgs), controlargs, nomatch=0L)
+	indx <- pmatch(names(extraArgs), controlargs, nomatch=0L)
 	if (any(indx==0L))
             stop(gettextf("Argument %s not matched", names(extraArgs)[indx==0L]),
                  domain = NA)

@@ -1,6 +1,23 @@
-\section{Cumulative Incidence}
+\section{Competing risks}
 \newcommand{\Twid}{\mbox{\(\tt\sim\)}}
-Produce cumulative incidence curves.  The cannonical call is
+The competing risks routine is very general, allowing subjects
+to enter or exit states multiple times.
+For this reason I prefer the label ``current prevalence'' estimate, 
+since it estimates what fraction of the subjects are in any
+given state across time.
+The easiest way to understand the estimate is to consider first the
+case of no censoring.  
+In that setting the estimate of $F_k(t) = 1-S_k(t)$ is the number of
+subjects in state $k$ at time $t$ divided by $n$, the original
+sample size.
+When there is censoring the conceptually simple way to extend this
+is via the redistribute-to-the-right algorithm, which allocates the
+case weight for a censored subject evenly to all the others in the
+same state at the time of censoring.  
+
+The literature refers to the as ``cumulative incidence'' curves,
+which is confusing, but the routine name survfitCI endures.
+The cannonical call is
 \begin{semiverbatim}
   fit <- survfit(Surv(time, status, type='mstate') {\Twid} sex, data=mine)
 \end{semiverbatim}
@@ -23,7 +40,7 @@ survfitCI <- function(X, Y, weights, id, istate,
                       se.fit=TRUE,
                       conf.int= .95,
                       conf.type=c('log',  'log-log',  'plain', 'none'),
-                      conf.lower=c('usual', 'peto', 'modified'){
+                      conf.lower=c('usual', 'peto', 'modified')){
 
     method <- match.arg(type)
 #    error <- match.arg(error)
@@ -47,7 +64,7 @@ survfitCI <- function(X, Y, weights, id, istate,
         stop("istate should be a vector of integers")
     
     if (length(istate) ==1) istate <- rep(istate,n)
-    if (length(istate) !n) stop ("wrong length for istate")
+    if (length(istate) !=n) stop ("wrong length for istate")
     states <- sort(unique(c(0,istate, status)))
     istate <- factor(istate, levels=states) #force a common set of states for all
                                             #subsequent table commands
@@ -125,7 +142,7 @@ For the status variable a value if 0 is ``no event''.  For the state variables 0
 which is the first level of the factor, is normally the initial state.  
 We compute the curve for state 0, but it is not reported back as part of the
 results.
-<<surfitCI-compute>>=
+<<survfitCI-compute>>=
 docurve1 <- function(time, status, istate, wt) {
     timeset  <- sort(unique(time))
     n <- length(time)
@@ -134,6 +151,7 @@ docurve1 <- function(time, status, istate, wt) {
     vP <- P  #variance
     U <- matrix(0., n, nstate)
     P[1,] <- tapply(wt, factor(istate, levels=states))/sum(wt)
+    state <- istate   #current state for each subject
     for (i in 1:n) {
         atrisk <- (time >= timeset[i])
         if (all(status[atrisk]==0))  { # all censored here
@@ -154,6 +172,7 @@ docurve1 <- function(time, status, istate, wt) {
                 newstate <- status[person]
                 U[person, newstate] <- U[person, newstate] +
                     (1 + wt[person]/ns[state[person]]) / state[person]
+                state[person] <- newstate
                 }
             vP[i,] <- colSums(wt*U*U)
             }
@@ -167,8 +186,8 @@ We want to ensure that a subject's weight is fixed, that they have a
 continuous period of observation, and that they don't
 transfer from a state to itself.
 
-<<survfitCIstartstop>>=
-if (missing(id) !! is.null(id))
+<<survfitCI-startstop>>=
+if (missing(id) || is.null(id))
     stop("the id argument is required for start:stop data")
 
 indx <- order(id, Y[,2])  #ordered event times within subject
@@ -187,13 +206,13 @@ if (any(same & Y[indx1,3] == Y[indx2,3]) & Y[indx1,3] !=0) {
     who <-  1 + min(which(same & Y[indx1,1] != Y[indx2,2]))
     stop("subject changes to the same state, id", (id[indx1])[who])
     }
-if (any(same & weights[indx1] != weights[indx3])) {
-    who <-  1 + min(which(same & weights[indx1] != weights[indx3]))
+if (any(same & weights[indx1] != weights[indx2])) {
+    who <-  1 + min(which(same & weights[indx1] != weights[indx2]))
     stop("subject changes weights, id", (id[indx1])[who])
     }
 @ 
             
-<<survfit-finish>>= 
+<<survfitCI-finish>>= 
 #	
 # Last bit: add in the confidence bands (also stolen from survfit.km)
 #
@@ -244,5 +263,4 @@ if (se.fit) {
         }
     }
 kfit
-}
 @

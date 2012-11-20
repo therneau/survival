@@ -1,6 +1,6 @@
 library(survival)
 #
-# A test of nesting.  It makes sure tha model.frame is built correctly
+# A test of nesting.  It makes sure the model.frame is built correctly
 #
 tfun <- function(fit, mydata) {
     survfit(fit, newdata=mydata)

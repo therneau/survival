@@ -40,12 +40,12 @@ agreg.fit(x, y, strata, offset, init, control, weights, method,
     rownames)
 agexact.fit(x, y, strata, offset, init, control, weights, method,
     rownames) 
-survfitCI(X, Y, weights,  type=c('kaplan-meier', 'fleming-harrington', 'fh2'),
-                       error=c('greenwood', "tsiatis"), se.fit=TRUE,
+survfitCI(X, Y, weights,  id, istate,
+                       type=c('kaplan-meier', 'fleming-harrington', 'fh2'),
+                       se.fit=TRUE,
                        conf.int= .95,
                        conf.type=c('log',  'log-log',  'plain', 'none'),
-                       conf.lower=c('usual', 'peto', 'modified'),
-                       etype, id)
+                       conf.lower=c('usual', 'peto', 'modified'))
 survfitKM(x, y, casewt=rep(1,length(x)),
                        type=c('kaplan-meier', 'fleming-harrington', 'fh2'),
                        error=c('greenwood', "tsiatis"), se.fit=TRUE,

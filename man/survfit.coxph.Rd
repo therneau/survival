@@ -12,7 +12,8 @@ hazards model.
         se.fit=TRUE, conf.int=.95,
         individual=FALSE, 
         type,vartype,
-        conf.type=c("log","log-log","plain","none"), censor=TRUE, id, ...)
+        conf.type=c("log","log-log","plain","none"), censor=TRUE, id,
+        newstrata, na.action=na.pass, ...)
 }
 \arguments{
   \item{formula}{
@@ -84,6 +85,18 @@ hazards model.
     subject and there will be \code{nrow(newdata)} times the number of
     strata curves in the result (one for each strata/subject combination).
     result.}
+
+  \item{newstrata}{if the original coxph model had strata, should the
+    predictions be for all strata, or only for those in newdata?
+    The default for this is TRUE if either the \code{id} or
+    \code{individual} argument is present, as these require strata for
+    the resulting curves to make sense.
+    Otherwise the default is FALSE, which means to ignore any strata
+    variable in the newdata data set, and produce predicted survivals
+    for the entire set of strata in the original model. In this case
+    some components of the output will be matrices with one column for
+    each row of newdata.}
+  \item{na.action}{the na.action to be used on the newdata argument}
   
    \item{\dots}{for future methods}
 }
@@ -114,7 +127,7 @@ details. Methods defined for survfit objects are
     this data set needs to contain values for the main effects but not
     for any interaction terms.
 
-When the original model contained time-dependent covariates, then the
+When the original model contains time-dependent covariates, then the
 path of that covariate through time needs to be specified in order to
 obtain a predicted curve. This requires \code{newdata} to contain
 multiple lines for each hypothetical subject which gives the covariate
@@ -134,7 +147,8 @@ the Kalbfleisch-Prentice estimator reduces to the Kaplan-Meier,
 the Aalen estimate to the exponential of Nelson's
 cumulative hazard estimate, and the Efron estimate to the
 Fleming-Harrington estimate of survival.
-The variances of the curves from a Cox model are larger, however, due
+The variances of the curves from a Cox model are larger than these
+non-parametrec estimates, however, due
 to the variance of the coefficients.
 
 See \code{\link{survfit}} for more details about the counts (number of
@@ -144,7 +158,7 @@ The censor argument was fixed at FALSE in earlier versions of the code
 and not made  available to the user.
 The default argument is sensible in most instances --- and causes the
 familiar + sign to appear on plots --- it is not sensible for time
-dependent covariates since they lead to a large number of spurious marks.
+dependent covariates since it may lead to a large number of spurious marks.
 }
 \section{References}{
 Fleming, T. H. and Harrington, D. P. (1984).  Nonparametric estimation of the 

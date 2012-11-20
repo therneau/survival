@@ -26,6 +26,7 @@ The input arguments are
     output.  This is for 
     backwards compatability with older versions of the code.
   \item[id] replacement and extension for the individual argument
+  \item[newstrata] does the new data set contain strata, and I should obey it?
 \end{description}
 All the other arguments are common to all the methods, refer to the 
 help pages.
@@ -35,7 +36,8 @@ survfit.coxph <-
   function(formula, newdata, se.fit=TRUE, conf.int=.95, individual=FALSE,
             type, vartype,
             conf.type=c("log", "log-log", "plain", "none"),
-            censor=TRUE, id, ...) {
+            censor=TRUE, id, newstrata=missing(id),
+            na.action=na.pass, ...) {
 
     Call <- match.call()
     Call[[1]] <- as.name("survfit")  #nicer output for the user
@@ -154,8 +156,19 @@ if (!missid) individual <- TRUE
 else if (missid && individual) id <- rep(0,n)
 else id <- NULL
 
+if (individual && missing(newdata)) {
+    warning("the id and/or individual options only make sense with new data")
+    individual <- FALSE
+}
+
 if (individual && type!= 'counting')
     stop("The individual option is  only valid for start-stop data")
+if (!missing(newstrata)) {
+    if (!is.logical(newstrata)) stop("newstrata must be TRUE/FALSE")
+    if (individual && !newstrata)
+        stop("newstrata must be TRUE for the individual or id options")
+}
+else newstrata <- individual
 
 if (is.null(mf)) offset <- 0
 else {
@@ -267,8 +280,18 @@ map any factor variables between the original fit and the new data.  (The
 new data will often have only one of the original levels represented.)
 Also, we want to correctly handle data-dependent nonlinear terms such as
 ns and pspline.
-Last, there is no ability to use sparse frailties and newdata together;
-it is a hard case and so rare as to not be worth it.      
+However, the simple call found in predict.lm, say,
+[[model.frame(Terms, data=newdata, ..]] won't work here for
+two reasons. 
+The first is the decision that for a stratified model, if newdata
+does not contain the strata variable we will produce curves for
+all the strata.  The above would fail in that case with a
+``variable not found'' message.  (If I could
+go back in time this feature might disappear.)
+The second is that we might have an [[id]] statement in this
+call, which is another variable to be fetched.
+There is no ability to use sparse frailties and newdata together;
+it is a hard case and so rare as to not be worth it.
 
 First, remove unnecessary terms from the orginal model formula. 
 Any [[cluster]] terms can be deleted,
@@ -307,79 +330,86 @@ else {
     if (!is.null(object$frail))
         stop("Newdata cannot be used when a model has sparse frailty terms")
 
-    if (!individual) {
-        Terms2 <- delete.response(Terms)
-        if (any(stype>0)) Terms2 <- subterms(Terms2,stype==0) #strata and interactions
-        }
-    else Terms2 <- Terms
+    Terms2 <- Terms 
+    if (!individual)  Terms2 <- delete.response(Terms)
+    if (!newstrata && (any(stype>0))) 
+        Terms2 <- subterms(Terms2,stype==0) #remove strata and interactions
+    <<survfit.coxph-newdata2>>
+    }
 @ 
-Now get the newdata model frame using 6 lines of mysterious code.
-First get an abbreviated form of the original call that has only the
-calling function, newdata, and id.  The calling function is always
-element 1, the others are found by name.
-Now manipulate it: change the name of ``newdata'' to ``data'',
-add the formula and xlev components (the second might be NULL),
-and then change the name.
-If the original call was [[survfit(fit1, newdata=mydat, conf.int=.9)]]
-the result is [[model.frame(data=mydat, formula=Terms2, xlev=object$xlev)]].
-Well almost that -- I discovered that if xlevels contains any variable
-that is no longer in the model then one gets a spurious warning message
-out of the [[model.frame]] function.
-Hence the long [[if]] statement below.
-<<survfit.coxph-setup>>=    
-    tcall <- Call[c(1, match(c('newdata', 'id'), names(Call), nomatch=0))]
-    names(tcall)[2] <- 'data'  #rename newdata to data
-    tcall$formula <- Terms2
-    if (!is.null(object$xlevels) &&
-         any(!is.na(match(names(object$xlevels), attr(Terms2, "term.labels")))))
-        tcall$xlev <- object$xlevels[match( attr(Terms2, "term.labels"),
-                                           names(object$xlevels), nomatch=0)]
-    tcall[[1]] <- as.name('model.frame')
-    #mf2 <- eval(tcall)
-@     
-
-Just before the actual evaluation there is one more insertion.    
+Now get the newdata model frame.
+Two things need to be cleared up first.  
+If xlevels contains any variable that is no longer in the model 
+then one gets a spurious warning message
+out of the [[model.frame]] function.  
+This happens if there was a strata object removed using subterms above.
 For backwards compatability, I allow someone to give an ordinary vector
 instead of a data frame (when only one curve is required).  In this case
 I also need to verify that the elements have a name. 
 Then turn it into a data frame, like it should have been from the beginning.
 (Documentation of this ability has been suppressed, however.  I'm hoping 
 people forget it ever existed.) 
-
-One more wrinkle is that in this particular case I do not want to find variables
-in the parent environment.  Say a variable ``zed'' is in the formula, not in
-mf2, but found in the global environment.  We want to give a not found message
-for zed.  The model.frame function ignores the environment argument of eval
-so we can't use \texttt{eval(tcall, NULL)}; instead it will use the environment
-tacked onto the formula.  So set it to NULL instead.
-<<survfit.coxph-setup>>=    
-    if (is.vector(newdata, "numeric")) {
-        if (individual) stop("newdata must be a data frame")
-        if (is.null(names(newdata))) {
-                stop("Newdata argument must be a data frame")
-                }
-        newdata <- data.frame(as.list(newdata))
-        tcall$data <- newdata
-        newdata <- matrix(newdata, nrow=1)  #for the check below
-        }
-   
-    environment(tcall$formula) <- NULL
-    mf2 <- eval(tcall)
+<<survfit.coxph-newdata2>>=
+if (!is.null(object$xlevels) && 
+    any(!is.na(match(names(object$xlevels), attr(Terms2, "term.labels")))))
+        myxlev <- object$xlevels[match( attr(Terms2, "term.labels"),
+                                           names(object$xlevels), nomatch=0)]
+else myxlev <- object$xlevels
+ 
+if (is.vector(newdata, "numeric")) {
+    if (individual) stop("newdata must be a data frame")
+    if (is.null(names(newdata))) {
+        stop("Newdata argument must be a data frame")
     }
+    newdata <- data.frame(as.list(newdata))
+}
 @ 
+Finally get my new model frame mf2.
+If all is particularly simple we can use a simple call.
+Otherwise get an abbreviated form of the original call that has only the
+calling function, na.action, and id.  The calling function is always
+element 1, the others are found by name.
+Now manipulate it: add the formula, data and xlev components (the last might be NULL),
+and then change the name of the call.
+If the original call was [[survfit(fit1, newdata=mydat, conf.int=.9)]]
+the result is [[model.frame(data= copy of newdat, formula=Terms2, xlev=myxlev)]].
+
+There is one more issue to trip you up, which is that model.frame is
+special.  
+It totally ignores any scoping arguments passed to it, e.g. the the second and
+third arguments to eval.  Variables are first searched for in the
+data, and then in the environment of the formula.
+What to do?
+\begin{itemize}
+  \item We don't dare modify the environment of the formula.
+    It is needed for the sneaky caller who uses his own function
+    inside the formula, 'mycosine' say, and that function can only be found if we
+    retain the environment.  
+  \item Assign the data argument. The code originally would retain the ``newdata''
+    part of the call, and then rename it to ``data'' in the tcall list.
+    But then it would not be found if survfit were called from inside another
+    function.  The assignment happens in this context so we are ok.
+\end{itemize}    
+
+<<survfit.coxph-newdata2>>= 
+if (newstrata && missid) 
+    mf2 <- model.frame(Terms2, data=newdata, na.action=na.action, xlev=myxlev)
+else {
+    tcall <- Call[c(1, match(c('id', "na.action"), names(Call), nomatch=0))]
+    tcall$data <- newdata
+    tcall$formula <- Terms2
+    if (!is.null(object$xlevels)) tcall$xlev <- myxlev
+    tcall[[1]] <- as.name('model.frame')
+    mf2 <- eval(tcall)
+}
+@     
 
 Now, finally, extract the [[x2]] matrix from the just-created frame.
 For individual=TRUE there must be a newdata argument, it must have any
 strata variables that were present in the original model, and the levels
 of those strata must exist in the original model.
 <<survfit.coxph-result>>=
-if (individual) {
-    if (missing(newdata)) 
-        stop("The newdata argument must be present when individual=TRUE")
-    if (!missid) {  #grab the id variable
-        id <- model.extract(mf2, "id")
-        if (is.null(id)) stop("id=NULL is an invalid argument")
-        }
+if (newstrata) {
     temp <- untangle.specials(Terms2, 'strata')
     if (length(temp$vars) >0) {
         strata2 <- strata(mf2[temp$vars], shortlabel=TRUE)
@@ -389,6 +419,15 @@ if (individual) {
         Terms2 <- Terms2[-temp$terms]
         }
     else strata2 <- factor(rep(0, nrow(mf2)))
+}
+
+if (individual) {
+    if (missing(newdata)) 
+        stop("The newdata argument must be present when individual=TRUE")
+    if (!missid) {  #grab the id variable
+        id <- model.extract(mf2, "id")
+        if (is.null(id)) stop("id=NULL is an invalid argument")
+        }
     
     x2 <- model.matrix(Terms2, mf2)[,-1, drop=FALSE]  #no intercept
     if (length(x2)==0) stop("Individual survival but no variables")
@@ -479,22 +518,32 @@ else {
     if (missing(newdata)) {
         x2 <- matrix(0.0, nrow=1, ncol=ncol(x))
         offset2 <- 0
-        }
+    }
     else {
        offset2 <- model.offset(mf2)
        if (length(offset2) >0) offset2 <- offset2 - mean(offset)
        else offset2 <- 0
        x2 <- model.matrix(Terms2, mf2)[,-1, drop=FALSE]  #no intercept
        x2 <- scale(x2, center=xcenter, scale=FALSE)
-       }
+   }
 
     newrisk <- exp(c(x2 %*% coef) + offset2)
     result <- survfitcoxph.fit(y, x, wt, x2, risk, newrisk, strata,
                                 se.fit, survtype, vartype, varmat, 
                                 id, y2, strata2)
+    if (newstrata) {
+        <<newstrata-fixup>>
     }
+}
 @ 
 
+The newstrata argument is a recent addition.  If someone
+used it, then they don't want the usual behavior of 
+all strata for each variable combination.
+We need to pick off of the right bits
+<<newstrata-fixup>>=
+warning("newstrata argument under construction, value ignored")
+@ 
 
 Finally, the last (somewhat boring) part of the code.  
 First, if given the argument [[censor=FALSE]] we need to

@@ -122,7 +122,6 @@ coxph.fit <- function(x, y, strata, offset, init, control,
 	names(coef) <- dimnames(x)[[2]]
 	lp <- c(x %*% coef) + offset - sum(coef*coxfit$means)
 	score <- exp(lp[sorted])
-browser()
 	coxres <- .C("coxmart", as.integer(n),
 				as.integer(method=='efron'),
 				stime,
