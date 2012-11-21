@@ -7,7 +7,6 @@ PARTS = main.Rnw \
 	concordance.Rnw \
 	survexp.Rnw \
 	pyears.Rnw \
-	survival.Rnw \
 	residuals.survreg.Rnw \
 	survfitCI.Rnw \
 	tail

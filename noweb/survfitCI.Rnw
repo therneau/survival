@@ -18,9 +18,9 @@ same state at the time of censoring.
 The literature refers to the as ``cumulative incidence'' curves,
 which is confusing, but the routine name survfitCI endures.
 The cannonical call is
-\begin{semiverbatim}
-  fit <- survfit(Surv(time, status, type='mstate') {\Twid} sex, data=mine)
-\end{semiverbatim}
+\begin{verbatim}
+  fit <- survfit(Surv(time, status, type='mstate') ~ sex, data=mine)
+\end{verbatim}
  Optionally, there can be an id statement
 or cluster term to indicate a data set with multiple transitions per subject.
 A multi-state survival has a status variable with multiple levels,
@@ -58,39 +58,50 @@ survfitCI <- function(X, Y, weights, id, istate,
     n <- nrow(Y)
     status <- Y[,ncol(Y)]
     ncurve <- length(levels(X))
-    n <- length(time)
-    if (missing(istate)) istate <- rep(0L, length(time))
+    
+    state.names <- attr(Y, "states")
+    if (missing(istate) || is.null(istate)) istate <- rep(0L, length(time))
+    else if (is.factor(istate) || is.character(istate)) {
+        # Match levels with the survival variable
+        temp <- as.factor(istate)
+        state.names <- unique(c(attr(Y, "states"), levels(istate)))
+        istate <- as.numeric(factor(as.character(istate), levels=state.names))
+    }
     else if (!is.numeric(istate) || any(istate != floor(istate)))
-        stop("istate should be a vector of integers")
+        stop("istate should be a vector of integers or a factor")
     
     if (length(istate) ==1) istate <- rep(istate,n)
     if (length(istate) !=n) stop ("wrong length for istate")
-    states <- sort(unique(c(0,istate, status)))
-    istate <- factor(istate, levels=states) #force a common set of states for all
-                                            #subsequent table commands
+    states <- sort(unique(c(istate, 1:length(attr(Y, "states"))))) #list of all
+    if (length(id) ==0) id <- 1:n
+    
+    <<survfitCI-compute>>  
 
     curves <- vector("list", ncurve)
+    names(curves) <- levels(X)
+                            
     if (ncol(Y)==2) {  # 1 transition per subject
-        ftime <- as.numeric(factor(time)) # avoid time round-off issues
-        indx <- which(status[i] == istate[i])
+        indx <- which(status == istate & status!=0)
         if (length(indx)) {
             warning("an observation transitions to it's starting state, ignored")
             status[indx] <- 0
         }
-        
-        for (i in unique(X)) {
+        if (length(id) && any(duplicated(id)))
+            stop("Cannot have duplicate id values with (time, status) data")
+
+        entry <- rep(min(0, 2*min(Y[,1])), n)
+        for (i in levels(X)) {
             indx <- which(X==i)
-            curves[[i]] <- docurve1(ftime[indx], status[indx], istate[indx],
-                                    weights[indx], states)
+            curves[[i]] <- docurve1(entry, Y[indx,1], status[indx], istate[indx],
+                                    weights[indx], states, id[indx])
         }
     }
     else {
         <<survfitCI-startstop>>
     }
 
-    <<survfitCI-compute>>
     <<survfitCI-finish>>
-    }
+}
 @         
         
 In the multi-state case we can calculate the current prevalence
@@ -100,7 +111,8 @@ vector $p(t)$ using the product-limit form
          &= p(0) \prod_{s<=t} H(s)
 \end{align*}
 Where $p$ is a row vector and $H$ is the multi-state hazard matrix.  
-At each event time we define $H_{jk}(t) = \sum_i w_i dN_{ijk}(t)/ \sum w_iY_{ij}{t}$
+At each event time we define 
+$$H_{jk}(t) = \sum_i w_i dN_{ijk}(t)/ \sum w_iY_{ij}{t}$$
 where $N_{ijk}$ counts the number of observed trasitions between 
 state $j$ and state $k$ for subject $i$, $Y_{ij}(t)$ is 1 if subject $i$ is in
 state $j$ at time $t$,  $w_i$ is the weight for subject $i$, 
@@ -109,75 +121,113 @@ Row $j$ of $H(t)$ describes the fate of those subjects in state $j$, going from
 time $t$ to time $t+0$.  
 The diagonal elements of $H$ are set so that each row of $H$ sums to 1
 (everyone has to go somewhere). 
-The matrix $A(t)$ has off diagonal elements $\sum_{s \le t} H(s)$, 
-but the diagonal is chosen to give row sums of 0.
 This formula collapses to the Kaplan-Meier in the simple case where $P(t)$ is a
 vector of length 2 with state 1 = alive and state 2 = dead. 
 
-The hazard based estimate of survival is $p(t) = p(0) \exp(H(t))$, using the
-matrix exponential function.  It reduces to the Fleming-Harrington estimate in
-the two state case.   The analog of the fh2 estimate comes from treating tied
+A complementary formula is the hazard based calculation
+$$S(t) = I-P = \exp^{-A(t)} $$
+where exp is the matrix exponential.
+The matrix $A(t)$ has off diagonal elements $\sum_{s \le t} H(s)$, 
+but the diagonal is chosen to give row sums of 0.
+This collapses to $\exp(-\Lambda(t))$ in the alive/dead case.
+The analog of the fh2 estimate comes from treating tied
 event times of the same type (same states) as sequential.
+The variance for these estimates is harder, so we haven't persued it in the
+code yet.
 
 A robust variance for the product-limit estimate is based on the
 chain rule.  Consider the $n$ by $k$ matrix of per subject influence values
-\begin{align*}
-  U_{ik}(t) &= \frac{\parial p_k(t)}{w_i} \\
-            &= \frac{\partial p(t-) H_{.k}(t)}{w_i} \\
-           &= U{.k}(t-) H_{k.}(t) + 
-                     p(t) \frac{\partial H_{.k}(t)}{\partial w_i}\\
+\begin{align}
+  U_{ik}(t) &= \frac{\partial p_k(t)}{\partial w_i} \nonumber \\
+            &= \frac{\partial[ p(t-) H_{.k}(t)]}{\partial w_i} \label{ci0} \\
+           &= U{i.}(t-) H_{.k}(t) + 
+                     p(t) \frac{\partial H_{.k}(t)}{\partial w_i} \label{ci1}\\
+           &= U(t-) H(t) +  p(t) \frac{\partial H_{.k}(t)}{\partial w_i} \nonumber\\
+                    
  \frac{\partial H_{jk}(t)}{\partial w_i} &=  \left\{ \begin{array}{ll}
-       Y{ij}(t) dN{ijk}(t) (\sum_l w_l Y_l(t))^{-1} - w_i  (\sum_l w_l Y_l(t))^{-2} &
+       dN_{ijk}(t) (\sum_l w_l Y_{lj}(t))^{-1} - w_i  (\sum_l w_l Y_{lj}(t))^{-2} &
          j \ne k \\
-       -sum_{j\ne k}  \frac{\partial H_{jk}(t)}{\partial w_i} & j=k \\
-       \end{array} \right.
-\end{align*}
+       -\sum_{j\ne k}  \frac{\partial H_{jk}(t)}{\partial w_i} & j=k \\
+       \end{array} \right. \label{ci2}
+\end{align}
 where $H_{.k}$ is the $k$th column of $H$.
+Equation \eqref{ci0} replaces $p(t)$ with the last step of the compuation that
+created it.  The next writes this out carefully using the chain rule.
+The very last line is not as intimidating as it looks: since a given subject 
+can only make at most 1 transition at a given time the partial for any subject
+only has two elements.  
+For any subject $i$ who goes from state $j$ to state $k$, 
+$U_{ij}$ will decrease by the increment and $U_{ij}$ will increase.
+
 The variance-covariance matrix for the states is $U'WU$ where $W$ is a diagonal 
 matrix of case weights, but we report back only the
 diagonal of this.
 
-Start with the function for a single curve with time/status data.
+Below is the function for a single curve.
 For the status variable a value if 0 is ``no event''.  For the state variables 0,
 which is the first level of the factor, is normally the initial state.  
-We compute the curve for state 0, but it is not reported back as part of the
-results.
+We compute the curve for state 0 if it is present, but that curve won't be
+reported back to the user.
 <<survfitCI-compute>>=
-docurve1 <- function(time, status, istate, wt) {
-    timeset  <- sort(unique(time))
-    n <- length(time)
-    nstate <- length(levels(istate))
-    P <- matrix(0., nrow= nrow(events)+1, ncol=nstate)
-    vP <- P  #variance
-    U <- matrix(0., n, nstate)
-    P[1,] <- tapply(wt, factor(istate, levels=states))/sum(wt)
-    state <- istate   #current state for each subject
-    for (i in 1:n) {
-        atrisk <- (time >= timeset[i])
-        if (all(status[atrisk]==0))  { # all censored here
-            P[i+1,] <- P[i,]
+docurve1 <- function(entry, etime, status, istate, wt, states, id) {
+    #
+    # round off error can cause trouble: if two times are within machine
+    #  precsion unique(time) and the table command will differ
+    ftime <- factor(etime)
+    ntime <- length(levels(ftime))
+    timeset <- as.numeric(levels(ftime))
+    ftime <- as.numeric(ftime)
+    
+    nstate <- length(states)
+    Pmat <- matrix(0., nrow= ntime, ncol=nstate)
+    vP <- Pmat  #variance
+    uid <- unique(id)
+    U <- matrix(0., length(uid), nstate)  #one row per subject
+    P <- tapply(wt, factor(istate, levels=states), sum) / sum(wt)
+    P <- Pmat[1,] <- ifelse(is.na(P), 0, P)
+    cstate <- istate   #current state for each subject
+    
+    nrisk <- integer(ntime)  #to be returned
+    wrisk <- double(ntime)  #weighted number at risk
+    nevent <- table(ftime, status>0)
+    for (i in 1:ntime) {
+        atrisk <- (ftime >=i & timeset[i] > entry)
+        nrisk[i] <- sum(atrisk)
+        wrisk[i] <- sum(wt[atrisk])
+        tiedtime <- (ftime==i)
+        if (nevent[i,2] ==0)  { # all censored here
+            Pmat[i,] <- P
             if (i>1) vP[i,] <- vP[i-1,]
          }
         else {
             # do real work
-            ns <- tapply(wt[atrisk], state[atrisk], sum)
-            who <- (time=timeset[i] & status >0)  #the events at this time
-            H <- tapply(wt, list(state[who], factor(status[who], levels=states)),
-                        sum)/ ns
+            #  A bit of nuisance is to force tapply to give totals for all states
+            stemp <-  factor(cstate[atrisk], levels=states) 
+            ns <- as.vector(tapply(wt[atrisk], stemp, sum))
+            who <- which(tiedtime & status >0)  #the events at this time
+            nevent[i] <- length(who)
+            H <- tapply(wt[who], list(factor(cstate[who], levels=states),
+                                      factor(status[who], levels=states)),sum)/ns
             H <- ifelse(is.na(H), 0, H)
             diag(H) <- 1- rowSums(H)
+            P <- Pmat[i,] <- P %*% H
 
-            U <- U %*% H
-            for (person in which(who)) {
-                newstate <- status[person]
-                U[person, newstate] <- U[person, newstate] +
-                    (1 + wt[person]/ns[state[person]]) / state[person]
-                state[person] <- newstate
-                }
-            vP[i,] <- colSums(wt*U*U)
-            }
+            newstate <- match(status[who], states)  # where the transitions go
+            oldstate <- match(cstate[who], states)  # where they came from
+            temp <- P[oldstate] *(1 + wt[who]/ns[oldstate]) / ns[oldstate]
+            U <- U%*%H 
+            indx <- match(id[who], uid)
+            U[cbind(indx, oldstate)] <- U[cbind(indx, oldstate)] - temp
+            U[cbind(indx, newstate)] <- U[cbind(indx, newstate)] + temp
+            cstate[who] <- newstate
+
+            vP[i,] <- colSums(wt[match(uid, id)]*U*U)
+        }
     }
-    list(time=timeset, surv=1-P, std=sqrt(vP)/(1-P))
+    browser()
+    list(time =as.vector(timeset), surv=1-Pmat, std=sqrt(vP)/ifelse(vP==0, 1,Pmat), 
+         n.event= as.vector(nevent[,2]), n.risk= as.vector(nrisk),
+         w.risk=wrisk)
 }
 @ 
         
@@ -197,22 +247,51 @@ same <- (id[indx1] == id[indx2] & !is.na(indx1) & !is.na(indx2)) #indx1, indx2= 
 if (any(same & X[indx1] != X[indx2])) {
     who <- 1 + min(which(same & X[indx1] != X[indx2]))
     stop("subject is in two different groups, id", (id[indx1])[who])
-    }
+}
 if (any(same & Y[indx1,1] != Y[indx2,2])) {
     who <- 1 + min(which(same & Y[indx1,1] != Y[indx2,2]))
     stop("gap in follow-up, id", (id[indx1])[who])
-    }
+}
+if (any(Y[indx1,1] == Y[indx1,2])) 
+    stop("cannot have start time = stop time")
+
 if (any(same & Y[indx1,3] == Y[indx2,3]) & Y[indx1,3] !=0) {
     who <-  1 + min(which(same & Y[indx1,1] != Y[indx2,2]))
     stop("subject changes to the same state, id", (id[indx1])[who])
-    }
+}
 if (any(same & weights[indx1] != weights[indx2])) {
     who <-  1 + min(which(same & weights[indx1] != weights[indx2]))
-    stop("subject changes weights, id", (id[indx1])[who])
-    }
+    stop("subject changes case weights, id", (id[indx1])[who])
+}
+
+for (i in levels(X)) {
+    indx <- which(X==i)
+    curves[i] <- docurve1(Y[indx,1], Y[indx,2], status[indx], 
+                          istate[indx], weights[indx], states, id[indx])
+}
 @ 
             
 <<survfitCI-finish>>= 
+# Turn the result into a survfit type object
+grabit <- function(clist, element) {
+    temp <-(clist[[1]][[element]]) 
+    if (is.matrix(temp)) {
+        nc <- ncol(temp)
+        matrix(unlist(lapply(clist, function(x) t(x[[element]]))),
+                        byrow=T, ncol=nc)
+        }
+    else as.vector(unlist(lapply(clist, function(x) x[element])))
+    }
+kfit <- list(n =      grabit(curves, "n"),
+             time =   grabit(curves, "time"),
+             n.risk=  grabit(curves, "n.risk"),
+             n.event= grabit(curves, "n.event"),
+             surv   = grabit(curves, "surv"))
+if (length(curves) >1)
+    kfit$strata <- unlist(lapply(curves, function(x) length(x$time)))
+if (se.fit) kfit$std.err <- grabit(curves, "std")/kfit$surv
+
+
 #	
 # Last bit: add in the confidence bands (also stolen from survfit.km)
 #

@@ -5,13 +5,13 @@ survfit.formula <- function(formula, data, weights, subset,
     # create a copy of the call that has only the arguments we want,
     #  and use it to call model.frame()
     mfnames <- c('formula', 'data', 'weights', 'subset','na.action',
-                 'istate', 'id')  #legal args for model.frame
+                 'istate', 'id', "etype")  #legal args for model.frame
     temp <- Call[c(1, match(mfnames, names(Call), nomatch=0))]
     temp[[1]] <- as.name("model.frame")
     if (is.R()) m <- eval.parent(temp)
     else        m <- eval(temp, sys.parent())
     
-    Terms <- terms(formula, 'strata')
+    Terms <- terms(formula, c("strata", "cluster"))
     ord <- attr(Terms, 'order')
     if (length(ord) & any(ord !=1))
 	    stop("Interaction terms are not valid for this function")
@@ -25,15 +25,36 @@ survfit.formula <- function(formula, data, weights, subset,
 
     if (!is.null(attr(Terms, 'offset'))) warning("Offset term ignored")
 
+    id    <- model.extract(m, 'id')
+    istate <- model.extract(m,"istate")
+    temp <- untangle.specials(Terms, "cluster")
+    if (length(temp$var)>0) {
+        if (length(temp$vars) > 1) stop("can not have two cluster terms")
+        if (!is.null(id)) stop("can not have both a cluster term and an id variable")       
+        id <- mf[temp$vars]
+        Terms <- Terms[-temp$terms]
+    }
+
     ll <- attr(Terms, 'term.labels')
     if (length(ll) == 0) X <- factor(rep(1,n))  # ~1 on the right
     else X <- strata(m[ll])
     
-    id    <- model.extract(m, 'id')
-    istate <- model.extract(m,"istate")
-
     if (!is.Surv(Y)) stop("y must be a Surv object")
+    
+    # Backwards support for the now-depreciated etype argument
+    etype <- model.extract(m, "etype")
+    if (!is.null(etype)) {
+        etype <- as.factor(etype)
+        status <- factor(ifelse(Y[,ncol(Y)]==0, 0, as.numeric(etype)),
+                        labels=c("censor", levels(etype)))
 
+        if (attr(Y, 'type') == "right")
+            Y <- Surv(Y[,1], status, type="mstate")
+        else if (attr(Y, "type") == "counting")
+            Y <- Surv(Y[,1], Y[,2], status, type="mstate")
+        else stop("etype argument incompatable with survival type")
+    }
+                         
     # At one point there were lines here to round the survival
     # times to a certain number of digits.  This approach worked
     # almost all the time, but only almost.  The better logic is

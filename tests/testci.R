@@ -6,6 +6,21 @@ library(survival)
 # Test out the survfit.ci function, which does competing risk
 #   estimates
 #
+# First trivial test
+tdata <- data.frame(time=(1:8)^2,
+                    status = c(0,1,0,1,0,1,0,1),
+                    event =c(1,1,2,2,1,2,3,2),
+                    grp = c(1,2,1,2,1,2,1,2))
+fit1 <- survfit(Surv(time, status*event, type='mstate') ~1, tdata)
+
+                    
+
+
+
+
+
+
+
 # For this we need the sequential MGUS data set, using the first
 #   obs for each subject
 #
