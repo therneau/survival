@@ -295,23 +295,24 @@ it is a hard case and so rare as to not be worth it.
 
 First, remove unnecessary terms from the orginal model formula. 
 Any [[cluster]] terms can be deleted,
-If [[individual]] is false then the repsonse variable and any
-[[strata]] from the original model are not needed. 
+If [[individual]] is false then the repsonse variable can go.
+If [[!newstrata]] we can remove strata variables.
+The reason for this is so that the program won't ask for variables
+in the new data frame when we won't need them.
 We have to be careful in subscripting a terms object, since this will
 remove the predvars attribute (at least currently).
+Both clauses below are trial and error guesses based on a set of examples.
 The delete.response function works correctly, however.
 <<survfit.coxph-setup>>= 
 subterms <- function(x, i) {
+    dataClasses <- attr(x, "dataClasses")
     predvars <- attr(x, "predvars")
     x <- x[i]
-    if (!is.null(predvars)) {
-        #predvars is a call.  When subscripting we need to keep the
-        #  first element, which is as.name("list"), and optionally
-        #  the response which will be second.  Our index i aligns
-        #  with the remainder of the elements
-        k <- 1:(1+ attr(x, 'response')) #either 1 or 1:2
-        j <- seq(along=predvars)[-k] #what we index to
-        attr(x, "predvars") <- predvars[c(k, j[i])]
+    if (!is.null(predvars)) 
+        attr(x, "predvars") <- attr(x, "variables")
+    if (!is.null(dataClasses)){
+        temp <- dimnames(attr(x, 'factors'))[[1]]
+        attr(x, "dataClasses") <- dataClasses[temp]
     }
     x
 }
