@@ -1,6 +1,8 @@
 \name{lines.survfit}
 \alias{lines.survfit}
 \alias{points.survfit}
+\alias{lines.survfitms}
+\alias{points.survfitms}
 \title{
   Add Lines or Points to a Survival Plot 
 }
@@ -13,6 +15,8 @@ generated with \code{plot.survfit}.
 lwd=1, mark.time=TRUE, 
 	xscale=1,  firstx=0, firsty=1, xmax, fun, conf.int=FALSE,  ...)
 \method{points}{survfit}(x, xscale, xmax, fun, ...)
+\method{lines}{survfitms}(x, fun="event", \dots)
+\method{points}{survfitms}(x, fun="event", \dots)
 }
 
 \arguments{
@@ -78,6 +82,14 @@ one or more curves are added to the current plot.
 \seealso{
 \code{\link{lines}},  \code{\link{par}},  \code{\link{plot.survfit}},  \code{\link{survfit}},  \code{\link{survexp}}.   
 }
+\details{When the \code{survfit} function creates a multi-state survival curve
+  the resulting object has class `survfitms'.  The only difference in
+  the plots is that that it defaults to a curve that goes from lower
+  left to upper right (starting at 0), where survival curves default
+  to starting at 1 and going down.  All other options are identical.
+  (They are not listed in the usage line above because the code checks
+  on CRAN are happier this way.)
+}    
 \examples{
 fit <- survfit(Surv(time, status==2) ~ sex, pbc,subset=1:312)
 plot(fit, mark.time=FALSE, xscale=365.25,

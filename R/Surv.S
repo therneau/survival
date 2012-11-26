@@ -173,14 +173,14 @@ as.character.Surv <- function(x, ...) {
            },
            "mright" = {  #multi-state
                temp <- x[,2]
-               end <- paste("(", attr(x, "states"), ')',sep='') #endpoint
-               temp <- ifelse(is.na(temp), "?", ifelse(temp==0, "+", end[temp]))
+               end <- c("+", paste(":", attr(x, "states"), sep='')) #endpoint
+               temp <- ifelse(is.na(temp), "?", end[temp+1])
                paste(format(x[,1]), temp, sep='')
            },
            "mcounting"= {
                temp <- x[,3]
-               end <- paste("(", attr(x, "states"), ')', sep='') #endpoint
-               temp <- ifelse(is.na(temp), "?", ifelse(temp==0, "+", end[temp]))
+               end <- c("+", paste(":", attr(x, "states"), sep='')) #endpoint
+               temp <- ifelse(is.na(temp), "?", end[temp+1])
                paste('(', format(x[,1]), ',', format(x[,2]), temp,
                      ']', sep='')
            })

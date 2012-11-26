@@ -40,10 +40,7 @@ plot.survfit<- function(x, conf.int,  mark.time=TRUE,
     # The special x axis style only applies when firstx is not given
     if (missing(xaxs) && firstx!=0) xaxs<- par('xaxs')  # use the default
 
-    if (!inherits(x, 'survfit'))
-	    stop("First arg must be the result of survfit")
-
-    if (missing(conf.int)) {
+     if (missing(conf.int)) {
 	if (is.null(x$strata) && !is.matrix(x$surv)) conf.int <-TRUE
 	else conf.int <- FALSE
         }

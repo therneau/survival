@@ -1,13 +1,15 @@
 \name{plot.survfit}
 \alias{plot.survfit}
+\alias{plot.survfitms}
 \title{
-  Plot Method for 'survfit' 
+  Plot method for \code{survfit} objects 
 }
 \usage{
 \method{plot}{survfit}(x, conf.int=, mark.time=TRUE, 
  mark=3, col=1, lty=1, lwd=1, cex=1, log=FALSE, xscale=1, yscale=1,  
  firstx=0, firsty=1, xmax, ymin=0, fun, 
- xlab="", ylab="", xaxs="S", ...)
+ xlab="", ylab="", xaxs="S", \dots)
+\method{plot}{survfitms}(x, fun="event", \dots)
 }
 \arguments{
   \item{x}{
@@ -122,14 +124,14 @@ The \code{log=T} option does extra work to avoid log(0), and to try to create a
 pleasing result.  If there are zeros, they are plotted by default at 
 0.8 times the smallest non-zero value on the curve(s). 
 }
-\section{Bugs}{
-Survival curve objects created from a \code{coxph} model does not include
-the censoring times. Therefore, specifying \code{mark.time=T} does not work.
-If you want to mark censoring times on the curve(s) resulting   
-from a \code{coxph} fit, provide a vector of times as the
-\code{mark.time} argument  
-in the call to \code{plot.survfit} or \code{lines.survfit}.  
-}
+\details{When the \code{survfit} function creates a multi-state survival curve
+  the resulting object has class `survfitms'.  The only difference in
+  the plots is that that it defaults to a curve that goes from lower
+  left to upper right (starting at 0), where survival curves default
+  to starting at 1 and going down.  All other options are identical.
+  (They are not listed in the usage line above because the code checks
+  on CRAN are happier this way.)
+}    
 \seealso{
 \code{\link{par}},  
 \code{\link{survfit}},  

@@ -55,8 +55,10 @@ tdata <- data.frame(time=mgus1$stop,
                     status=mgus1$status,
                     event=mgus1$event,
                     sex=mgus1$sex,
-                    stat2= factor(ifelse(mgus1$status==0, 0, as.numeric(mgus1$event)),
-                                  levels=0:2, labels=c("censor", levels(mgus1$event)))
+                    stat2= factor(ifelse(mgus1$status==0, 0, 
+                                         as.numeric(mgus1$event)),
+                                  levels=0:2, 
+                                  labels=c("censor", levels(mgus1$event)))
                     )[mgus1$start==0,]
 
 # Ensure the old-style call using "etype" works (backwards compatability)

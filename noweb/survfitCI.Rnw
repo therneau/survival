@@ -361,17 +361,18 @@ than $P$, with standard error of ${rm se}(P)/(1-P)$.
 if (se.fit) {
     std.err <- kfit$std.err
     zval <- qnorm(1- (1-conf.int)/2, 0,1)
-    surv <- 1-kfit$P
+    surv <- 1-kfit$prev
 
     if (conf.type=='plain') {
         temp <- zval* std.err
-        kfit <- c(kfit, list(lower =pmax(kfit$P-temp, 0), upper=pmin(kfit$P+temp, 1),
+        kfit <- c(kfit, list(lower =pmax(kfit$prev-temp, 0), 
+                             upper=pmin(kfit$prev+temp, 1),
     			 conf.type='plain', conf.int=conf.int))
         }
 
     if (conf.type=='log') {
         #avoid some "log(0)" messages
-        xx <- ifelse(kfit$P==1, 1, 1- kfit$P)  
+        xx <- ifelse(kfit$prev==1, 1, 1- kfit$prev)  
 
         temp1 <- ifelse(surv==0, NA, exp(log(xx) + zval* std.err/xx))
         temp2 <- ifelse(surv==0, NA, exp(log(xx) - zval* std.err/xx))
@@ -393,8 +394,8 @@ if (se.fit) {
     }
 
 kfit$states <- state.names
+kfit$type   <- attr(Y, "type")
 class(kfit) <- "survfitms"
 kfit
 @
 
-The print function is almost identical to that in 

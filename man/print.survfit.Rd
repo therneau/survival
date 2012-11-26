@@ -1,5 +1,6 @@
 \name{print.survfit}
 \alias{print.survfit}
+\alias{print.survfitms}
 \title{
   Print a Short Summary of a Survival Curve 
 }
@@ -13,6 +14,7 @@ median.
 \method{print}{survfit}(x, scale=1, digits = max(options()$digits - 4,3),
     print.rmean=getOption("survfit.print.rmean"),
     rmean = getOption('survfit.rmean'),...)
+\method{print}{survfitms}(x, \dots)
 }
 \arguments{
 \item{x}{
@@ -70,7 +72,13 @@ line at 0.5 on the plot of the survival curve and its confidence bands.
 The intersection of the line with the lower CI band defines the lower limit 
 for the median's interval, and similarly for the upper band.  If any of the 
 intersections is not a point, then we use the smallest point of intersection, 
-e.g., if the survival curve were exactly equal to 0.5 over an interval. 
+e.g., if the survival curve were exactly equal to 0.5 over an interval.
+
+When the \code{survfit} function creates a multi-state survival curve
+the resulting object has class `survfitms'.  There is no
+difference in the result or argument of the print function, however.
+(The other arguments are not listed in the usage line above
+because the code checks on CRAN are happier this way.)
 }
 \section{References}{
 Miller, Rupert G., Jr. (1981).  

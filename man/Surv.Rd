@@ -47,9 +47,7 @@ is.Surv(x)
   \item{type}{
     character string specifying the type of censoring. Possible values
     are \code{"right"}, \code{"left"}, \code{"counting"},
-    \code{"interval"}, \code{"interval2"} or \code{"mstate"}.  The default is
-    \code{"right"} or \code{"counting"} depending on whether the
-    \code{time2} argument is absent or present, respectively.
+    \code{"interval"}, \code{"interval2"} or \code{"mstate"}.  
   }
   \item{origin}{
     for counting process data, the hazard function origin.  This option
@@ -71,32 +69,27 @@ is.Surv(x)
   inherits from class \code{"Surv"}, otherwise an \code{FALSE}.
 }
 \details{
-  Typical usages are
-\preformatted{
-Surv(time, event)
-Surv(time, time2, event, type= )
-}
-The \code{time},\code{time2} and \code{event} arguments are matched by
-position, not by name, so use, eg, \code{Surv(time, dead)} rather than
-\code{Surv(time, event=dead)}
+  When the \code{type} argument is missing the code assumes a type based
+  on the following rules:
+  \itemize{
+    \item If there are two unnamed arguments, they will match \code{time} and
+     \code{event} in that order.  If there are three unnamed arguments
+     they match \code{time}, \code{time2} and \code{event}.
+     \item If the event variable is a factor then type \code{mstate} is
+     assumed.  Otherwise type \code{right} if there is no \code{time2}
+     argumement, and type \code{counting} if there is.
+   }
 
-In theory it is possible to represent interval censored data without a 
-third column containing the explicit status.  Exact, right censored, 
-left censored and interval censored observation would be represented as 
-intervals of [a,a], (a, infinity), (-infinity,b), and [a,b]  
-respectively; each interval is a pair of time points 
-within which the event is  
-known to have occurred. 
-
-If \code{type="interval2"} then the representation given above is 
-assumed, with \code{NA} taking the place of infinity.  
-If \code{type="interval"} then \code{event} must be given.  
-If \code{event} is \code{0}, \code{1}, or \code{2}, 
-the relevant 
-information is assumed to be contained in \code{time},
-the value in \code{time2} is ignored,
-and the second column of the internal representation contains a 
-placeholder value.
+   As a consequence the \code{type} argument can usually be omitted.
+        
+   Interval censored data can be represented in two ways.  For the first
+   use type = interval and the codes shown above.  In that usage the
+   value of the {time2} argument is ignored unless event=3.
+   The second approach is to think of each observation as a time
+   interval with (-infinity, t) for left censored, (t, infinity) for
+   right censored, (t,t) for exact and (t1, t2) for an interval.
+   This is the approach used for type = interval2, with NA taking
+   the place of infinity.  It has proven to be the more useful.
 
 Presently, the only methods allowing interval censored data are the 
 parametric models computed by \code{survreg} and survival curves
