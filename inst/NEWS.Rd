@@ -2,6 +2,11 @@
 \title{NEWS file for the survival package}
 \section{Changes in version 2.37-1}{
   \itemize{
+    \item The code has had several "if.R" clauses to accomodate Splus vs
+    R differences, which are mostly class vs oldClass.  These are now being
+    removed as I encounter them; since our institution no longer uses
+    Splus I can no longer test the clauses' validity.
+    
     \item The fast subsets routine coxexact.fit incorrectly returned the
     linear predictor vector in the (internal) sorted order rather than
     data set order.  Pointed out by Tatsuki Koyama, affecting the result
@@ -9,8 +14,8 @@
     
     \item Jason Law pointed out that the sample data set "rats" is from
     the paper by Mantel et.al, but the documentation was for a data
-    set from Gail, Santner and Brown.  Add the Gail data rats2 and fix
-    the documentation for rats.
+    set from Gail, Santner and Brown.  Added the Gail data as rats2 and
+    fixed the documentation for rats.
     
     \item For predict.coxph with type="terms", use "sample" as the
     default value for the reference option.  For all others the default
@@ -38,16 +43,17 @@
     that allows the newdata argument to be a vector with no names.  An
     example from Damon Krstajic showed that this does not work when the
     original model has a matrix in the formula.  Removed the feature.
-    (This is for survfit.coxph.)  Also force an error in the case where
-    some variables were found in the newdata argument and some in the
-    parent frame, as this is almost certainly a user mistake.
+    (This is for survfit.coxph.)  Also clarified the code and its 
+    documentation about what is found where -- environments, formulas,
+    and the arguments of eval, which fixes a problem pointed out by xxx
+    where the result of a Surv call is used in the coxph formula.
 
     \item Fix an issue in summary.survfit pointed out by Frank Harrell.  The
     strata variable for the output always had its labels in sorted order,
     even when a factor creating the survival curves was otherwise.  (This was
     due to a call to factor() in the code.)  The print routine would then
     list curves in sorted order, which might well be contrary to the user's
-    wishes.  The curves were correct.
+    wishes.  The curves were numerically correct.
 
     \item Add the anova.coxmelist function to the namespace so that it is
     visible.  If someone has a list of models the first of which was
