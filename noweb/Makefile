@@ -26,7 +26,7 @@ SFUN =  agsurv.R \
 
 CFUN =  agsurv4.c agsurv5.c concordance1.c coxcount1.c \
         coxexact.c \
-	msurv.c
+#	msurv.c
 #	coxdetail2.c
 
 RDIR = ../R

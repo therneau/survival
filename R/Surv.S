@@ -17,6 +17,9 @@ Surv <- function(time, time2, event,
     # "Surv(a,b)" has the variable b matched to event rather than time2.
     #
     mtype <- match.arg(type)
+
+    # If type is missing or it is "mstate", I need to figure out for myself
+    #  whether I have (time1, time2, status) or (time, status) data
     if (missing(type) || mtype=="mstate") {
 	if (ng==1 || ng==2) type <- 'right'
 	else if (ng==3)     type <- 'counting'
@@ -30,7 +33,7 @@ Surv <- function(time, time2, event,
 		stop("Wrong number of args for this type of survival data")
 	}
 
-    if (ng==1) {
+    if (ng==1) { # only a time variable given
         if (!is.numeric(time)) stop("Time variable is not numeric")
 	ss <- cbind(time=time-origin, status=1)
         type <- "right"
@@ -39,8 +42,8 @@ Surv <- function(time, time2, event,
         if (!is.numeric(time)) stop("Time variable is not numeric")
 	if (missing(event))   event <- time2  # treat time2 as event
         if (length(event) != nn) stop ("Time and status are different lengths")
-        if (mtype=="mstate") {
-            mstat <- as.factor(event)
+        if (mtype=="mstate" || (is.factor(event) && length(levels(event))>2)) {
+             mstat <- as.factor(event)
             status <- as.numeric(mstat) -1
             type <- "mright"
         }
@@ -69,7 +72,7 @@ Surv <- function(time, time2, event,
 	    time[temp] <- NA
 	    warning("Stop time must be > start time, NA created")
 	    }
-        if (mtype=="mstate") {
+        if (mtype=="mstate" || (is.factor(event) && length(levels(event))>2)) {
             mstat <- as.factor(event)
             status <- as.numeric(mstat) -1
             type <- "mcounting"
@@ -85,10 +88,10 @@ Surv <- function(time, time2, event,
 		if (!all(temp[who2], na.rm=TRUE))
 		    warning("Invalid status value, converted to NA")
 		}
-	    else stop("Invalid status value, must be logical or numeric")
+	    else stop("Invalid status value")
         }
 	ss <- cbind(start=time-origin, stop=time2-origin, status=status)
-	}
+    }
 
     else {  #interval censored data
 	if (type=='interval2') {
@@ -133,9 +136,8 @@ Surv <- function(time, time2, event,
 
     dimnames(ss) <- list(NULL, dimnames(ss)[[2]]) #kill any tag-along row names
     attr(ss, "type")  <- type
-    if (mtype=="mstate") attr(ss, "states") <- levels(mstat)[-1]
-    if (is.R()) class(ss) <- 'Surv'
-    else        oldClass(ss) <- 'Surv'
+    if (type=="mright" || type=="mcounting") attr(ss, "states") <- levels(mstat)[-1]
+    class(ss) <- 'Surv'
     ss
     }
 
@@ -194,29 +196,21 @@ as.character.Surv <- function(x, ...) {
     #  behavior drives the choice of default.
     if (missing(j)) {
         type <- attr(x, 'type')
-        if (is.R()) {
-            ctemp <- class(x)
-            class(x) <- 'matrix'
-            x <- x[i,, drop=FALSE]
-            class(x) <- ctemp
-            attr(x, 'type') <- type
-            x
-            }
-        else {
-            ctemp <- oldClass(x)
-            oldClass(x) <- NULL
-            x <- x[i,, drop=FALSE]
-            attr(x, "type") <- type
-            oldClass(x) <- ctemp
-            x
-            }
-        }
+        states <- attr(x, 'states')
+        ctemp <- class(x)
+        class(x) <- 'matrix'
+        x <- x[i,, drop=FALSE]
+        class(x) <- ctemp
+        attr(x, 'type') <- type
+        if (!is.null(states)) attr(x, "states") <- states
+        x
+    }
     else { # return  a matrix or vector
 	if (is.R()) class(x) <- 'matrix'
         else oldClass(x) <- NULL
 	NextMethod("[")
-	}
     }
+}
 
 is.na.Surv <- function(x) {
     as.vector(rowSums(is.na(unclass(x))) >0)
@@ -228,7 +222,8 @@ Summary.Surv<-function(...) stop("Invalid operation on a survival time")
 is.Surv <- function(x) inherits(x, 'Surv')
 as.matrix.Surv <- function(x, ...) {
     y <- unclass(x)
-    attr(y, 'type') <- NULL
+    attr(y, "type") <- NULL
+    attr(y, "states") <- NULL
     y
     }
 

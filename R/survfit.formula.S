@@ -28,10 +28,10 @@ survfit.formula <- function(formula, data, weights, subset,
     id    <- model.extract(m, 'id')
     istate <- model.extract(m,"istate")
     temp <- untangle.specials(Terms, "cluster")
-    if (length(temp$var)>0) {
+    if (length(temp$vars)>0) {
         if (length(temp$vars) > 1) stop("can not have two cluster terms")
         if (!is.null(id)) stop("can not have both a cluster term and an id variable")       
-        id <- mf[temp$vars]
+        id <- m[temp$vars]
         Terms <- Terms[-temp$terms]
     }
 
@@ -70,7 +70,7 @@ survfit.formula <- function(formula, data, weights, subset,
         stop("unrecognized survival type")
     }
     if (is.null(temp$states)) class(temp) <- 'survfit'
-    else class(temp) <- c("survfitmulti", "survfit")
+    else class(temp) <- c("survfitms")
 
     if (!is.null(attr(m, 'na.action')))
 	    temp$na.action <- attr(m, 'na.action')
