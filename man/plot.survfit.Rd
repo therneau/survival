@@ -8,7 +8,6 @@
  mark=3, col=1, lty=1, lwd=1, cex=1, log=FALSE, xscale=1, yscale=1,  
  firstx=0, firsty=1, xmax, ymin=0, fun, 
  xlab="", ylab="", xaxs="S", \dots)
-\method{plot}{survfitms}(x, fun="event", \dots)
 }
 \arguments{
   \item{x}{

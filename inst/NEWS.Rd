@@ -2,6 +2,16 @@
 \title{NEWS file for the survival package}
 \section{Changes in version 2.37-1}{
   \itemize{
+    \item Add a new multi-state type to the Surv object.  Update the
+    survfit routine to work with it, and add a proper variance.
+    More functionality is planned.
+    
+    \item Remove the fr_colon.R test program.  It tests an ability that
+    has been superseded by coxme, on a numerically touchy data set, and
+    it was slow besides.  For several other tests that produce warning
+    messages and are supposed to produce said messages, add extra
+    comments to that effect so testers will know it is expected.
+    
     \item The code has had several "if.R" clauses to accomodate Splus vs
     R differences, which are mostly class vs oldClass.  These are now being
     removed as I encounter them; since our institution no longer uses

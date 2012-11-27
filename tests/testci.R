@@ -65,7 +65,7 @@ tdata <- data.frame(time=mgus1$stop,
 fit1 <- survfit(Surv(time, status) ~ 1, etype=event, tdata)
 fit1b <-survfit(Surv(time, stat2) ~1, tdata)
 indx <- match("call", names(fit1)) 
-all.equal(fit1[-indx], fit1b[-indx])
+all.equal(unclass(fit1)[-indx], unclass(fit1b)[-indx])
 
 # Now get the overall survival, and the hazard for progression
 fit2 <- survfit(Surv(time, status) ~1, tdata)  #overall to "first bad thing"
@@ -106,18 +106,19 @@ aeq(fit3$prev, fit1$prev[-(1:fit1$strata[1]),])
 #    tstat <- ifelse(tdata$status==0, 0, 1+ (tdata$event=='death'))
 #    gray1 <- cuminc(tdata$time, tstat)
 load("gray1.rda")
-plot(gray1[[1]]$time, gray1[[1]]$est, type='l',
-     ylim=range(c(gray1[[1]]$est, gray1[[2]]$est)),
-     xlab="Time")
-lines(gray1[[2]]$time, gray1[[2]]$est, lty=2)
-
 fit2 <- survfit(Surv(time, status) ~ 1, etype=event, tdata)
-matlines(fit2$time, fit2$prev, col=2, lty=1:2, type='s')
 
+if (FALSE) {
+    # lines of the two graphs should overlay
+    plot(gray1[[1]]$time, gray1[[1]]$est, type='l',
+         ylim=range(c(gray1[[1]]$est, gray1[[2]]$est)),
+         xlab="Time")
+    lines(gray1[[2]]$time, gray1[[2]]$est, lty=2)
+    matlines(fit2$time, fit2$prev, col=2, lty=1:2, type='s')
+}
 # To formally match these is a bit of a nuisance.
-#  The cuminc function returns full step function, and survfit.ci only
+#  The cuminc function returns a full step function, and survfit only
 # the bottoms of the steps.
-#  The survfit.ci function returns all time points, cuminc only the jumps.
 temp1 <- tapply(gray1[[1]]$est, gray1[[1]]$time, max)
 indx1 <- match(names(temp1), fit2$time)
 aeq(temp1, fit2$prev[indx1,1])

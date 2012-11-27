@@ -1,7 +1,8 @@
 
-R version 2.7.1 (2008-06-23)
-Copyright (C) 2008 The R Foundation for Statistical Computing
+R version 2.15.2 (2012-10-26) -- "Trick or Treat"
+Copyright (C) 2012 The R Foundation for Statistical Computing
 ISBN 3-900051-07-0
+Platform: i686-pc-linux-gnu (32-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -83,6 +84,9 @@ n= 210
 > #
 > # Compute the path of the iteration
 > #
+> #  All the intermediate stops produce an ignorable "did not converge"
+> # warning
+> options(warn=-1) #turn them off
 > niter <- 14
 > donpath <- matrix(0,niter+1,2)
 > for (i in 0:niter){
@@ -90,25 +94,10 @@ n= 210
 + 		    donnell, maxiter=i)
 +     donpath[i+1,] <- c(fit$coef, log(fit$scale))
 +     }
-Warning messages:
-1: In survreg.fit(X, Y, weights, offset, init = init, controlvals = control,  :
-  Ran out of iterations and did not converge
-2: In survreg.fit(X, Y, weights, offset, init = init, controlvals = control,  :
-  Ran out of iterations and did not converge
-3: In survreg.fit(X, Y, weights, offset, init = init, controlvals = control,  :
-  Ran out of iterations and did not converge
-4: In survreg.fit(X, Y, weights, offset, init = init, controlvals = control,  :
-  Ran out of iterations and did not converge
-5: In survreg.fit(X, Y, weights, offset, init = init, controlvals = control,  :
-  Ran out of iterations and did not converge
-6: In survreg.fit(X, Y, weights, offset, init = init, controlvals = control,  :
-  Ran out of iterations and did not converge
-7: In survreg.fit(X, Y, weights, offset, init = init, controlvals = control,  :
-  Ran out of iterations and did not converge
-8: In survreg.fit(X, Y, weights, offset, init = init, controlvals = control,  :
-  Ran out of iterations and did not converge
-9: In survreg.fit(X, Y, weights, offset, init = init, controlvals = control,  :
-  Ran out of iterations and did not converge
 > points(donpath[,1], donpath[,2])
 > lines(donpath[,1], donpath[,2], col=4)
+> options(warn=0)  #reset
 > 
+> proc.time()
+   user  system elapsed 
+  1.196   0.020   1.209 

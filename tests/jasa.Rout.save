@@ -1,8 +1,8 @@
 
-R version 2.12.2 (2011-02-25)
-Copyright (C) 2011 The R Foundation for Statistical Computing
+R version 2.15.2 (2012-10-26) -- "Trick or Treat"
+Copyright (C) 2012 The R Foundation for Statistical Computing
 ISBN 3-900051-07-0
-Platform: x86_64-unknown-linux-gnu (64-bit)
+Platform: i686-pc-linux-gnu (32-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -250,7 +250,7 @@ Call: survfit(formula = sfit.1, newdata = data, individual = T)
 > fit3 <- coxph(Surv(start, stop, event) ~ age, jasa1)
 > fit4 <- coxph(Surv(start, stop, event) ~ offset(age*fit1$coef), jasa1)
 > 
-> s1 <- survfit(fit1, fit3$means, censor=FALSE)
+> s1 <- survfit(fit1, list(j.age=fit3$means), censor=FALSE)
 > s2 <- survfit(fit2, list(j.age=fit3$means), censor=FALSE)
 > s3 <- survfit(fit3, censor=FALSE)
 > s4 <- survfit(fit4, censor=FALSE)
@@ -283,7 +283,7 @@ Call: survfit(formula = sfit.1, newdata = data, individual = T)
 [1] TRUE
 > detach("jasa1")
 > 
-> rm(s1, s2, s3, s4, s5, tdata, ll, ss, data)
-> rm(fit1, fit2, fit3, fit4, fit, j.age)
-> rm(sfit.1, sfit.2, sfit.3, sfit.4, sfit.5, sfit.6)
 > 
+> proc.time()
+   user  system elapsed 
+  0.408   0.048   0.451 

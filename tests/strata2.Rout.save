@@ -1,7 +1,8 @@
 
-R version 2.11.1 (2010-05-31)
-Copyright (C) 2010 The R Foundation for Statistical Computing
+R version 2.15.2 (2012-10-26) -- "Trick or Treat"
+Copyright (C) 2012 The R Foundation for Statistical Computing
 ISBN 3-900051-07-0
+Platform: i686-pc-linux-gnu (32-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -27,6 +28,9 @@ Loading required package: splines
 > tdata <- lung
 > tdata$sex <- lung$sex +3
 > 
+> # Both of these should produce warning messages about singular X, since there
+> #  are ph.ecog=3 subjects in only 1 of the strata. 
+> # Does not affect the test 
 > fit1 <- coxph(Surv(time, status) ~ age + sex:strata(ph.ecog), lung)
 Warning message:
 In coxph(Surv(time, status) ~ age + sex:strata(ph.ecog), lung) :
@@ -43,3 +47,6 @@ In coxph(Surv(time, status) ~ age + sex:strata(ph.ecog), tdata) :
 > aeq(predict(fit1), predict(fit2))
 [1] TRUE
 > 
+> proc.time()
+   user  system elapsed 
+  0.200   0.028   0.224 

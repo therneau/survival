@@ -344,18 +344,19 @@ If xlevels contains any variable that is no longer in the model
 then one gets a spurious warning message
 out of the [[model.frame]] function.  
 This happens if there was a strata object removed using subterms above.
-For backwards compatability, I allow someone to give an ordinary vector
+Second, for backwards compatability, I allow someone to give an ordinary vector
 instead of a data frame (when only one curve is required).  In this case
 I also need to verify that the elements have a name. 
 Then turn it into a data frame, like it should have been from the beginning.
 (Documentation of this ability has been suppressed, however.  I'm hoping 
 people forget it ever existed.) 
 <<survfit.coxph-newdata2>>=
-if (!is.null(object$xlevels) && 
-    any(!is.na(match(names(object$xlevels), attr(Terms2, "term.labels")))))
-        myxlev <- object$xlevels[match( attr(Terms2, "term.labels"),
-                                           names(object$xlevels), nomatch=0)]
-else myxlev <- object$xlevels
+if (!is.null(object$xlevels)) { 
+    myxlev <- object$xlevels[match(attr(Terms2, "term.labels"),
+                                   names(object$xlevels), nomatch=0)]
+    if (length(myxlev)==0) myxlev <- NULL
+    }
+else myxlev <- NULL
  
 if (is.vector(newdata, "numeric")) {
     if (individual) stop("newdata must be a data frame")

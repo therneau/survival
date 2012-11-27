@@ -106,7 +106,8 @@ object.  Otherwise we can drop columns freely
 
 The summary.survfit and summary.survfitms functions share a large
 amount of code.  
-Both are included here in order to have common source for the largest
+Both are included here in order to have common source for the most
+subtle
 block of it, which has to do with selecting intermediate time points.
 
 <<survfitms-summary>>=
@@ -144,12 +145,15 @@ summary.survfit <- function(object, times, censored=FALSE,
     <<survsum-findrows>>
 
     # Create an output structure
-    if (all(indx1 == seq(along=fit$time))) {
+    if (length(indx1)==length(fit$time) && all(indx1 == seq(along=fit$time))) {
         temp <- object  #no change
         temp$time <- temp$time/scale
         temp$table <- table
+        if (!is.null(temp$strata))
+            temp$strata <- factor(stemp, labels=strata.names)
+
     }
-    else if (missing(times)) {
+    else if (missing(times)) {  #default censor=FALSE case
         temp <- object
         temp$time <- temp$time[indx1]/scale
         temp$table <- table
@@ -157,40 +161,46 @@ summary.survfit <- function(object, times, censored=FALSE,
                     "surv", "std.err", "lower", "upper")) {
             zed <- temp[[j]]
             if (!is.null(zed)) {
-                if (is.matrix(zed)) temp[[j]] <- zed[j,,drop=FALSE]
-                else temp[[j]] <- zed[j]
+                if (is.matrix(zed)) temp[[j]] <- zed[indx1,,drop=FALSE]
+                else temp[[j]] <- zed[indx1]
             }
         }
         if (!is.null(temp$strata))
             temp$strata <- factor(stemp[indx1], levels=1:nstrat,
                                   labels=strata.names)
     }
-    else {
-        temp <- list(n=object$n, time=newtime/scale, 
+    else { #times argument was given
+        temp <- list(n=object$n, time=times/scale, 
                      n.risk=n.risk, n.event=n.event,
                      conf.int=fit$conf.int, type=fit$type, table=table)
         if (!is.null(n.censor)) temp$n.censor <- n.censor
         if (!is.null(n.enter))  temp$n.enter <- n.enter
         if (!is.null(fit$start.time)) temp$start.time <- fit$start.time
-
+            
+        # why the rbind?  The user may have specified a time point before
+        #  the first event, and indx1=1 indicates that case
         if (is.matrix(fit$surv)) {
-            temp$surv <- fit$surv[indx1,,drop=FALSE]
-            if (!is.null(std.err)) temp$std.err <-fit$std.err[indx1,,drop=FALSE]
+            temp$surv <- rbind(1, fit$surv)[indx1,,drop=FALSE]
+            if (!is.null(fit$std.err))
+                temp$std.err <- rbind(0, fit$std.err)[indx1,,drop=FALSE]
             if (!is.null(fit$lower)) {
-                temp$lower <- fit$lower[indx1,,drop=FALSE]
-                temp$upper <- fit$upper[indx1,,drop=FALSE]
+                temp$lower <- rbind(1, fit$lower)[indx1,,drop=FALSE]
+                temp$upper <- rbind(1, fit$upper)[indx1,,drop=FALSE]
             }
         }
         else {
-            temp$surv <- fit$surv[indx1]
-            if (!is.null(std.err)) temp$std.err <- fit$std.err[indx1]
+            temp$surv <- c(1, fit$surv)[indx1]
+            if (!is.null(fit$std.err)) temp$std.err <- c(0,fit$std.err)[indx1]
             if (!is.null(fit$lower)) {
-                temp$lower <- fit$lower[indx1]
-                temp$upper <- fit$upper[indx1]
+                temp$lower <- c(1, fit$lower)[indx1]
+                temp$upper <- c(1, fit$upper)[indx1]
             }
         }
-        if (!is.null(fit$strata)) 
-                temp$strata <- strata
+        if (!is.null(fit$strata)) {
+            scount <- unlist(lapply(newtimes, length))
+            temp$strata <- factor(rep(1:nstrat, scount), levels=1:nstrat,
+                                  labels=strata.names)
+        }
     
         if (length(rmean.endtime)>0  && !is.na(rmean.endtime)) 
             temp$rmean.endtime <- rmean.endtime
@@ -198,9 +208,9 @@ summary.survfit <- function(object, times, censored=FALSE,
         temp$call <- fit$call
         if (!is.null(fit$na.action)) temp$na.action <- fit$na.action
   
-        class(temp) <- 'summary.survfit'
     }
-    
+    temp$std.err <- temp$std.err*temp$surv  #std error of the survival curve
+    class(temp) <- 'summary.survfit'
     temp
 }
 @ 
@@ -211,6 +221,7 @@ if (missing(times)) {
     # just pick off the appropriate rows of the output
     if (censored) indx1 <- seq(along=fit$time)
     else indx1 <- which(fit$n.event>0)
+}
 @ 
 
 This second case is actual work, since may invovle ``in between'' points
@@ -367,10 +378,12 @@ summary.survfitms <- function(object, times, censored=FALSE,
     <<survsum-findrows>>
 
     # Create an output structure
-    if (all(indx1 == seq(along=fit$time))) {
+    if (length(indx1)== length(fit$time) && all(indx1 == seq(along=fit$time))) {
         temp <- object  #no change
         temp$time <- temp$time/scale
         temp$table <- table
+        if (!is.null(temp$strata)) 
+            temp$strata <- factor(stemp, levels=1:nstrat, labels=strata.names)
     }
     else if (missing(times)) {
         temp <- object
@@ -380,8 +393,8 @@ summary.survfitms <- function(object, times, censored=FALSE,
                     "prev", "std.err", "lower", "upper")) {
             zed <- temp[[j]]
             if (!is.null(zed)) {
-                if (is.matrix(zed)) temp[[j]] <- zed[j,,drop=FALSE]
-                else temp[[j]] <- zed[j]
+                if (is.matrix(zed)) temp[[j]] <- zed[indx1,,drop=FALSE]
+                else temp[[j]] <- zed[indx1]
             }
         }
         temp$cumhaz <- fit$cumhaz[,,indx1,drop=FALSE]
@@ -390,42 +403,51 @@ summary.survfitms <- function(object, times, censored=FALSE,
                                   labels=strata.names)
     }
     else {
-        temp <- list(n=object$n, time=newtime/scale, 
+        temp <- list(n=object$n, time=times/scale, 
                      n.risk=n.risk, n.event=n.event,
                      conf.int=fit$conf.int, type=fit$type, table=table)
         if (!is.null(n.censor)) temp$n.censor <- n.censor
         if (!is.null(n.enter))  temp$n.enter <- n.enter
         if (!is.null(fit$start.time)) temp$start.time <- fit$start.time
 
+        # why the rbind?  The user may have specified a time point before
+        #  the first event, and indx1=1 indicates that case
+        # the cumhaz array can't be done with a 1-liner
         if (is.matrix(fit$prev)) {
-            temp$prev <- fit$prev[indx1,,drop=FALSE]
-            temp$cumhaz <- fit$cumhaz[,,indx1, drop=FALSE]
-            if (!is.null(std.err)) temp$std.err <-fit$std.err[indx1,,drop=FALSE]
+            temp$prev <- rbind(0, fit$prev)[indx1,,drop=FALSE]
+            zz <- ifelse(indx1==1, NA, indx1-1)
+            temp$cumhaz <- fit$cumhaz(,,zz, drop=FALSE)
+            temp$cumhaz <- ifelse(is.na(temp$cumhaz), 0, temp$cumhaz)
+            if (!is.null(fit$std.err)) 
+                temp$std.err <- rbind(0, fit$std.err)[indx1,,drop=FALSE]
             if (!is.null(fit$lower)) {
-                temp$lower <- fit$lower[indx1,,drop=FALSE]
-                temp$upper <- fit$upper[indx1,,drop=FALSE]
+                temp$lower <- rbind(0, fit$lower)[indx1,,drop=FALSE]
+                temp$upper <- rbind(0, fit$upper)[indx1,,drop=FALSE]
             }
         }
         else {
-            temp$prev <- fit$prev[indx1]
-            temp$cumhaz <- fit$cumhaz[indx1]
-            if (!is.null(std.err)) temp$std.err <- fit$std.err[indx1]
+            temp$prev <- c(0, fit$prev[indx1])
+            temp$cumhaz <- c(0, fit$cumhaz[indx1])
+            if (!is.null(fit$std.err)) temp$std.err <- c(0, fit$std.err)[indx1]
             if (!is.null(fit$lower)) {
-                temp$lower <- fit$lower[indx1]
-                temp$upper <- fit$upper[indx1]
+                temp$lower <- c(0, fit$lower)[indx1]
+                temp$upper <- c(0, fit$upper)[indx1]
             }
         }
-        if (!is.null(fit$strata)) 
-                temp$strata <- strata
+        if (!is.null(fit$strata)) {
+            scount <- unlist(lapply(newtimes, length))
+            temp$strata <- factor(rep(1:nstrat, scount), levels=1:nstrat,
+                                  labels=strata.names)
+        }
 
         temp$call <- fit$call
         if (!is.null(fit$na.action)) temp$na.action <- fit$na.action
   
-        class(temp) <- 'summary.survfit'
     }
         
     if (length(rmean.endtime)>0  && !is.na(rmean.endtime)) 
             temp$rmean.endtime <- rmean.endtime
+    class(temp) <- "summary.survfitms"
     temp
 }
 @ 

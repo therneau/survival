@@ -31,7 +31,7 @@ survfit.formula <- function(formula, data, weights, subset,
     if (length(temp$vars)>0) {
         if (length(temp$vars) > 1) stop("can not have two cluster terms")
         if (!is.null(id)) stop("can not have both a cluster term and an id variable")       
-        id <- m[temp$vars]
+        id <- m[[temp$vars]]
         Terms <- Terms[-temp$terms]
     }
 

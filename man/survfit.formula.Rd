@@ -42,18 +42,12 @@ cumulative incidence curve.
     Default is \code{options()$na.action}. 
   }
   \item{etype}{
-    a variable giving the type of event.
-    Presence of this variable signals the program to compute the cumulative
-    incidece estimate.  For each event \code{status==1}, the etype
-    variable indicates the type of event.  For a censored observation the
-    value of \code{etype} is ignored - but do not set it to NA, since that
-    will cause na.action to delete the observation.
+    a variable giving the type of event.  This has been superseded by
+    multi-state Surv objects; see example below.
   }
   \item{id}{
     identifies individual subjects, when a given person can have multiple
-    lines of data. when used with the \code{etype} variable, this allows
-    the compuation of
-    a cumulative prevalence estimate, i.e., the incidence over time.
+    lines of data.
   }
   \item{istate}{for multi-state models, identifies the initial state of
   each subject} 
@@ -167,8 +161,9 @@ For instance, in patients with MGUS, conversion to an overt plasma
 cell malignancy occurs at a nearly constant rate among those still alive.    
 A Kaplan-Meier estimate, treating death due to other causes as censored,
 gives a 20 year cumulate rate of 33\% for the 241 early patients of Kyle.  
-This estimates the incidence of conversion, if other causes of death were
-removed.
+This estimates the incidence of conversion if all other causes of death were
+removed, which is an unrealistic assumption given the mean starting age
+of 63 and a median follow up of over 21 years.
   
 The CI estimate, on the other hand, estimates the total number of
 conversions that will actually occur.  Because the population is older,
@@ -249,17 +244,19 @@ fit  <- survfit(Surv(time, time, status, type='interval') ~1,
 #
 # Time to progression/death for patients with monoclonal gammopathy
 #  Competing risk curves (cumulative incidence)
-fit1 <- survfit(Surv(stop, event=='progression') ~1, data=mgus1,
+fitKM <- survfit(Surv(stop, event=='progression') ~1, data=mgus1,
                     subset=(start==0))
-fit2 <- survfit(Surv(stop, status) ~1, data=mgus1,
-                    subset=(start==0), etype=event) #competing risks
+
+fitCI <- survfit(Surv(stop, status*as.numeric(event), type="mstate") ~1,
+                    data=mgus1, subset=(start==0))
+
 # CI curves are always plotted from 0 upwards, rather than 1 down
-plot(fit2, fun='event', xscale=365.25, xmax=7300, mark.time=FALSE,
+plot(fitCI, xscale=365.25, xmax=7300, mark.time=FALSE,
             col=2:3, xlab="Years post diagnosis of MGUS")
-lines(fit1, fun='event', xscale=365.25, xmax=7300, mark.time=FALSE,
+lines(fitKM, fun='event', xscale=365.25, xmax=7300, mark.time=FALSE,
             conf.int=FALSE)
-text(10, .4, "Competing Risk: death", col=3)
-text(16, .15,"Competing Risk: progression", col=2)
+text(10, .4, "Competing risk: death", col=3)
+text(16, .15,"Competing risk: progression", col=2)
 text(15, .30,"KM:prog")
 }
 \keyword{survival}

@@ -79,10 +79,13 @@ is.Surv(x)
      assumed.  Otherwise type \code{right} if there is no \code{time2}
      argumement, and type \code{counting} if there is.
    }
-
    As a consequence the \code{type} argument can usually be omitted.
-        
-   Interval censored data can be represented in two ways.  For the first
+
+   When the survival type is "mstate" then the status variable will be
+   treated as a factor.  The first level of the factor is taken to
+   represent censoring and remaining ones a transition to the given state.
+   
+    Interval censored data can be represented in two ways.  For the first
    use type = interval and the codes shown above.  In that usage the
    value of the {time2} argument is ignored unless event=3.
    The second approach is to think of each observation as a time

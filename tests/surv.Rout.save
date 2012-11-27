@@ -1,7 +1,8 @@
 
-R version 2.9.0 (2009-04-17)
-Copyright (C) 2009 The R Foundation for Statistical Computing
+R version 2.15.2 (2012-10-26) -- "Trick or Treat"
+Copyright (C) 2012 The R Foundation for Statistical Computing
 ISBN 3-900051-07-0
+Platform: i686-pc-linux-gnu (32-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -23,7 +24,7 @@ Loading required package: splines
 > #  The first two are motivated by a bug, pointed out by Kevin Buhr,
 > #    where a mixture of NAs and invalid values didn't work right
 > #  Even for the simplest things a test case is good.
-> #
+> #  All of these should produce warning messages
 > aeq <- function(x,y) all.equal(as.vector(x), as.vector(y))
 > temp <- Surv(c(1, 10, 20, 30), c(2, NA, 0, 40), c(1,1,1,1))
 Warning message:
@@ -57,3 +58,6 @@ In Surv(c(1, 10, 10, 30, 30), c(9, NA, 5, 20, 40), c(1, 0, 2, 3,  :
 > aeq(temp1, c(1,10,10,NA,30, 1,1,1,20, 40, 1,0,2,3,3))
 [1] TRUE
 > 
+> proc.time()
+   user  system elapsed 
+  0.176   0.016   0.188 

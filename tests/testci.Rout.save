@@ -1,8 +1,8 @@
 
-R version 2.13.0 RC (2011-04-12 r55424)
-Copyright (C) 2011 The R Foundation for Statistical Computing
+R version 2.15.2 (2012-10-26) -- "Trick or Treat"
+Copyright (C) 2012 The R Foundation for Statistical Computing
 ISBN 3-900051-07-0
-Platform: x86_64-unknown-linux-gnu (64-bit)
+Platform: i686-pc-linux-gnu (32-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -20,48 +20,113 @@ Type 'q()' to quit R.
 > options(contrasts=c('contr.treatment', 'contr.poly')) #ensure constrast type
 > library(survival)
 Loading required package: splines
+> aeq <- function(x,y,...) all.equal(as.vector(x), as.vector(y),...)
 > 
 > #
 > # Test out the survfit.ci function, which does competing risk
 > #   estimates
 > #
+> # First trivial test
+> tdata <- data.frame(time=c(1,2,2,3,3,3,5,6),
++                     status = c(0,1,0,1,0,1,0,1),
++                     event =  c(1,1,2,2,1,2,3,2),
++                     grp = c(1,2,1,2,1,2,1,2))
+> fit <- survfit(Surv(time, status*event, type='mstate') ~1, tdata)
+> 
+> byhand <- function() {
++     #everyone starts in state 0
++     p1 <- c(1,0,0)
++ 
++     p2 <- c(6/7, 1/7, 0)  # 0-1 transition at time 2
++     u2 <- matrix(rep(c(1/49, -1/49, 0), each=8), ncol=3) #leverage matrix at time 2
++     u2[1,] <- 0  #subject 1 is not present
++     u2[2,1:2] <- u2[2, 1:2] + c(-1/7, 1/7)
++ 
++     p3 <- c((6/7)*(3/5), 1/7, 12/35) # 0-2 transition at time 3, 5 at risk
++     h3 <- matrix(c(3/5, 0, 2/5, 0,1,0, 0,1,0), byrow=T, ncol=3) #hazard mat
++     u3 <- u2 %*% h3
++     u3[4:8,1] <- u3[4:8,1] + p2[1]*2/25
++     u3[4:8,3] <- u3[4:8,3]  -p2[1]*2/25
++     u3[4,] <- u3[4,] + c(-p2[1]/5, 0, p2[1]/5)
++     u3[6,] <- u3[4,]
++  
++     p6 <- c(0, 1/7, 6/7) # 0-2 at time 6, 1 at risk
++     h6 <- matrix(c(-1,0,1,0,1,0,0,1,0), byrow=T, ncol=3)
++     u6 <- cbind(0, u3[,2], -u3[,2])
++     
++     V <- rbind(0, colSums(u2^2), 
++                   colSums(u3^2),
++                   colSums(u3^2),
++                   colSums(u6^2))
++     list(P=rbind(p1, p2, p3, p3, p6), u2=u2, u3=u3, u6=u6, V=V)
++ }
+> bfit <- byhand()
+> aeq(fit$prev, bfit$P[,-1])
+[1] TRUE
+> aeq(fit$n.risk, c(8,7,5,2,1))
+[1] TRUE
+> aeq(fit$n.event, c(0,1,2,0,1))
+[1] TRUE
+> aeq(fit$std^2, bfit$V[,-1])
+[1] TRUE
+> 
+> #
 > # For this we need the sequential MGUS data set, using the first
 > #   obs for each subject
 > #
-> aeq <- function(x,y, ...) all.equal(as.vector(x), as.vector(y), ...)
-> 
 > tdata <- data.frame(time=mgus1$stop,
 +                     status=mgus1$status,
 +                     event=mgus1$event,
-+                     sex=mgus1$sex)[mgus1$start==0,]
++                     sex=mgus1$sex,
++                     stat2= factor(ifelse(mgus1$status==0, 0, 
++                                          as.numeric(mgus1$event)),
++                                   levels=0:2, 
++                                   labels=c("censor", levels(mgus1$event)))
++                     )[mgus1$start==0,]
 > 
+> # Ensure the old-style call using "etype" works (backwards compatability)
 > fit1 <- survfit(Surv(time, status) ~ 1, etype=event, tdata)
+> fit1b <-survfit(Surv(time, stat2) ~1, tdata)
+> indx <- match("call", names(fit1)) 
+> all.equal(unclass(fit1)[-indx], unclass(fit1b)[-indx])
+[1] TRUE
 > 
 > # Now get the overall survival, and the hazard for progression
 > fit2 <- survfit(Surv(time, status) ~1, tdata)  #overall to "first bad thing"
 > fit3 <- survfit(Surv(time, status*(event=='progression')) ~1, tdata,
 +                 type='fleming')
+> fit4 <- survfit(Surv(time, status*(event=='death')) ~1, tdata,
++                 type='fleming')
+> 
+> aeq(fit1$n.risk, fit2$n.risk)
+[1] TRUE
+> aeq(fit1$n.event, fit2$n.event)
+[1] TRUE
 > 
 > # Classic CI formula
 > #  integral [hazard(t) S(t-0) dt], where S= "survival to first event"
-> haz <- diff(c(0, -log(fit3$surv))) #Aalen hazard estimate
+> haz1 <- diff(c(0, -log(fit3$surv))) #Aalen hazard estimate for progression
+> haz2 <- diff(c(0, -log(fit4$surv))) #Aalen estimate for death
 > tsurv <- c(1, fit2$surv[-length(fit2$surv)])  #lagged survival
-> ci <- cumsum(haz *tsurv)
-> aeq(1-ci, fit1$surv[,1])
+> ci1 <- cumsum(haz1 *tsurv)
+> ci2 <- cumsum(haz2 *tsurv)
+> aeq(cbind(ci1, ci2), fit1$prev)
 [1] TRUE
 > 
 > #
 > # Now, make sure that it works for subgroups
 > #
-> fit1 <- survfit(Surv(time, status) ~ sex, etype=event, tdata)
-> fit2 <- survfit(Surv(time, status) ~ 1, etype=event, tdata,
+> fit1 <- survfit(Surv(time, stat2) ~ sex, tdata)
+> fit2 <- survfit(Surv(time, stat2) ~ 1, tdata,
 +                         subset=(sex=='male'))
-> fit3 <- survfit(Surv(time, status) ~ 1, etype=event, tdata,
+> fit3 <- survfit(Surv(time, stat2) ~ 1, tdata,
 +                    subset=(sex=='female'))
 > 
-> aeq(fit2$surv, fit1$surv[1:fit1$strata[1],])
+> aeq(fit2$prev, fit1$prev[1:fit1$strata[1],])
 [1] TRUE
-> aeq(fit3$surv, fit1$surv[-(1:fit1$strata[1]),])
+> aeq(fit2$std, fit1$std[1:fit1$strata[1],])
+[1] TRUE
+> aeq(fit3$prev, fit1$prev[-(1:fit1$strata[1]),])
 [1] TRUE
 > 
 > #  A second test of cumulative incidence
@@ -71,21 +136,25 @@ Loading required package: splines
 > #    tstat <- ifelse(tdata$status==0, 0, 1+ (tdata$event=='death'))
 > #    gray1 <- cuminc(tdata$time, tstat)
 > load("gray1.rda")
-> plot(gray1[[1]]$time, gray1[[1]]$est, type='l',
-+      ylim=range(c(gray1[[1]]$est, gray1[[2]]$est)),
-+      xlab="Time")
-> lines(gray1[[2]]$time, gray1[[2]]$est, lty=2)
-> 
 > fit2 <- survfit(Surv(time, status) ~ 1, etype=event, tdata)
-> matlines(fit2$time, 1-fit2$surv, col=2, lty=1:2, type='s')
 > 
+> if (FALSE) {
++     # lines of the two graphs should overlay
++     plot(gray1[[1]]$time, gray1[[1]]$est, type='l',
++          ylim=range(c(gray1[[1]]$est, gray1[[2]]$est)),
++          xlab="Time")
++     lines(gray1[[2]]$time, gray1[[2]]$est, lty=2)
++     matlines(fit2$time, fit2$prev, col=2, lty=1:2, type='s')
++ }
 > # To formally match these is a bit of a nuisance.
-> #  The cuminc function returns full step function, and survfit.ci only
+> #  The cuminc function returns a full step function, and survfit only
 > # the bottoms of the steps.
-> #  The survfit.ci function returns all time points, cuminc only the jumps.
 > temp1 <- tapply(gray1[[1]]$est, gray1[[1]]$time, max)
 > indx1 <- match(names(temp1), fit2$time)
-> aeq(temp1, 1-fit2$surv[indx1,1])
+> aeq(temp1, fit2$prev[indx1,1])
 [1] TRUE
 >     
 > 
+> proc.time()
+   user  system elapsed 
+  1.088   0.032   1.119 
