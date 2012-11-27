@@ -395,7 +395,6 @@ if (se.fit) {
 
 kfit$states <- state.names
 kfit$type   <- attr(Y, "type")
-class(kfit) <- "survfitms"
 kfit
 @
 

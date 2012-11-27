@@ -3,6 +3,15 @@ print.survfit <- function(x, scale=1,
                           print.rmean = getOption('survfit.print.rmean'),
                           rmean = getOption('survfit.rmean'), ...) {
 
+    if (inherits(x, "survfitms")) {
+        x$surv <- 1- x$prev
+        if (is.matrix(x$surv)) dimnames(x$surv) <- list(NULL, x$states)
+        if (!is.null(x$lower)) {
+            x$lower <- 1- x$lower
+            x$upper <- 1- x$upper
+        }
+    }
+
     if (!is.null(cl<- x$call)) {
 	cat("Call: ")
 	dput(cl)

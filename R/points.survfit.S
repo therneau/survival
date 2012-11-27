@@ -3,8 +3,17 @@ points.survfit <- function(x, xscale, xmax, fun, ...) {
     ssurv <- x$surv
     stime <- x$time
 
+     if (inherits(x, "survfitms")) {
+        x$surv <- 1- x$prev
+        if (is.matrix(x$surv)) dimnames(x$surv) <- list(NULL, x$states)
+        if (!is.null(x$lower)) {
+            x$lower <- 1- x$lower
+            x$upper <- 1- x$upper
+        }
+        if (missing(fun)) fun <- "event"
+    }
 
-    if (is.null(x$strata)) {
+   if (is.null(x$strata)) {
 	nstrat <- 1
 	stemp <- rep(1, length(x$time))
 	}

@@ -10,6 +10,16 @@ plot.survfit<- function(x, conf.int,  mark.time=TRUE,
     if (any(dotnames=='type'))
         stop("The graphical argument 'type' is not allowed")
     
+    if (inherits(x, "survfitms")) {
+        x$surv <- 1- x$prev
+        if (is.matrix(x$surv)) dimnames(x$surv) <- list(NULL, x$states)
+        if (!is.null(x$lower)) {
+            x$lower <- 1- x$lower
+            x$upper <- 1- x$upper
+        }
+        if (missing(fun)) fun <- "event"
+    }
+
     if (is.logical(log)) {
 	logy <- log
 	logx <- FALSE

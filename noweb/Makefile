@@ -9,7 +9,7 @@ PARTS = main.Rnw \
 	pyears.Rnw \
 	residuals.survreg.Rnw \
 	survfitCI.Rnw \
-	survms.Rnw \
+	survfitms.Rnw \
 	tail
 #	coxdetail.nw
 

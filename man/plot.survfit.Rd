@@ -1,6 +1,5 @@
 \name{plot.survfit}
 \alias{plot.survfit}
-\alias{plot.survfitms}
 \title{
   Plot method for \code{survfit} objects 
 }
@@ -124,13 +123,12 @@ The \code{log=T} option does extra work to avoid log(0), and to try to create a
 pleasing result.  If there are zeros, they are plotted by default at 
 0.8 times the smallest non-zero value on the curve(s). 
 }
-\details{When the \code{survfit} function creates a multi-state survival curve
-  the resulting object has class `survfitms'.  The only difference in
+\details{
+  When the \code{survfit} function creates a multi-state survival curve
+  the resulting object also has class `survfitms'.  The only difference in
   the plots is that that it defaults to a curve that goes from lower
   left to upper right (starting at 0), where survival curves default
   to starting at 1 and going down.  All other options are identical.
-  (They are not listed in the usage line above because the code checks
-  on CRAN are happier this way.)
 }    
 \seealso{
 \code{\link{par}},  

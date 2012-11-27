@@ -70,7 +70,7 @@ survfit.formula <- function(formula, data, weights, subset,
         stop("unrecognized survival type")
     }
     if (is.null(temp$states)) class(temp) <- 'survfit'
-    else class(temp) <- c("survfitms")
+    else class(temp) <- c("survfitms", "survfit")
 
     if (!is.null(attr(m, 'na.action')))
 	    temp$na.action <- attr(m, 'na.action')

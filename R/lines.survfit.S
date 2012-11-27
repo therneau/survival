@@ -4,6 +4,16 @@ lines.survfit <- function(x, type='s', mark=3, col=1, lty=1, lwd=1,
 			  firstx=0, firsty=1, xmax, fun,
 			  conf.int=FALSE, ...) {
 
+    if (inherits(x, "survfitms")) {
+        x$surv <- 1- x$prev
+        if (is.matrix(x$surv)) dimnames(x$surv) <- list(NULL, x$states)
+        if (!is.null(x$lower)) {
+            x$lower <- 1- x$lower
+            x$upper <- 1- x$upper
+        }
+        if (missing(fun)) fun <- "event"
+    }
+
     if (missing(firstx)) {
 	if (!is.null(x$start.time)) 
 	     firstx <- x$start.time
