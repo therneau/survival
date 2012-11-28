@@ -1,6 +1,6 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
-\section{Changes in version 2.37-1}{
+\section{Changes in version 2.36-15}{
   \itemize{
     \item Add a new multi-state type to the Surv object.  Update the
     survfit routine to work with it, and add a proper variance.
