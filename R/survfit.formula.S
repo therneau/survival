@@ -44,9 +44,22 @@ survfit.formula <- function(formula, data, weights, subset,
     # Backwards support for the now-depreciated etype argument
     etype <- model.extract(m, "etype")
     if (!is.null(etype)) {
+        if (attr(Y, "type") == "mcounting" ||
+            attr(Y, "type") == "mright")
+            stop("cannot use both the etype argument and mstate survival type")
+        if (length(istate)) 
+            stop("cannot use both the etype and istate arguments")
+        status <- Y[,ncol(Y)]
         etype <- as.factor(etype)
-        status <- factor(ifelse(Y[,ncol(Y)]==0, 0, as.numeric(etype)),
-                        labels=c("censor", levels(etype)))
+        temp <- table(etype, status==0)
+
+        if (all(rowSums(temp==0) ==1)) {
+            # The user had a unique level of etype for the censors
+            newlev <- levels(etype)[order(-temp[,2])] #censors first
+        }
+        else newlev <- c(" ", levels(etype)[temp[,1] >0])
+        status <- factor(ifelse(status==0,0, as.numeric(etype)),
+                             labels=newlev)
 
         if (attr(Y, 'type') == "right")
             Y <- Surv(Y[,1], status, type="mstate")

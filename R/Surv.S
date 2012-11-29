@@ -227,6 +227,6 @@ as.matrix.Surv <- function(x, ...) {
     y
     }
 
-# if the definition below isn't present, then is.matrix(x) is a no-op when
-#  x is a survival object
-is.matrix.Surv <- function(x) FALSE  
+# This was added, reconsidered, removed.  It forces as.matrix(Surv) to actually
+#  invoke the as.matrix.Surv method, but has other consequences
+#is.matrix.Surv <- function(x) FALSE  

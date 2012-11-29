@@ -74,11 +74,10 @@ model.frame.coxph <- function(formula, ...) {
     dots <- list(...)
     nargs <- dots[match(c("data", "na.action", "subset", "weights"), 
                         names(dots), 0)] 
-
     # If nothing has changed and the coxph object had a model component,
     #   simply return it.
-    if (length(nargs) ==0  && !is.null(formula$model)) mf <- formula$model
-    else if (is.null(nargs$data)) {
+    if (length(nargs) ==0  && !is.null(formula$model)) formula$model
+    else {
         # Rebuild the original call to model.frame
         fcall <- formula$call
         indx <- match(c("formula", "data", "weights", "subset", "na.action"),
@@ -94,23 +93,16 @@ model.frame.coxph <- function(formula, ...) {
         if (length(nargs) >0)
             temp[names(nargs)] <- nargs
 
-        mf <- eval(temp, parent.frame())
-        # Since this is a call to model.frame with a formula as the first
-        #  argument, the second arg above is ignored.  Leave it in for
-        #  form.
+        # The documentation for model.frame implies that the environment arge
+        #  to mf is ignored, but if we omit it there is a problem.
+        if (is.null(environment(formula$terms))) 
+            mf <- eval(temp, parent.frame())
+        else mf <- eval(temp, environment(formula$terms), parent.frame())
+
        if (!is.null(attr(formula$terms, "dataClasses")))
 	   .checkMFClasses(attr(formula$terms, "dataClasses"), mf)
         mf
     }         
-    else {
-        # Use the old terms (which preserves transformations), 
-        #  new versions of everything else
-        newargs <- c(nargs, list(formula=terms(formula), xlev=formula$xlevels))
-        mf <- do.call("model.frame", newargs)
-        if (!is.null(attr(formula$terms, "dataClasses")))
-	   .checkMFClasses(attr(formula$terms, "dataClasses"), mf)
-    }
-    mf
 }   
 
         

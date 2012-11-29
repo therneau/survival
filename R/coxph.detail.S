@@ -69,9 +69,8 @@ coxph.detail <-  function(object, riskmat=FALSE) {
 			  i = double(ndeath*nvar*nvar),
 	                  rmat = rmat,
 	                  nrisk2 = double(ndeath),
-			  double(nvar*(3 + 2*nvar)),
-                          PACKAGE = 'survival')
-    keep <- 1:ff$ndeath
+			  double(nvar*(3 + 2*nvar)))
+     keep <- 1:ff$ndeath
     vname<- dimnames(x)[[2]]
     time <- y[ff$index[keep],2]
     names(time) <- NULL

@@ -60,8 +60,7 @@ agexact.fit <- function(x, y, strata, offset, init, control,
 		   integer(2*n),
 		   as.double(control$eps),
 		   as.double(control$toler.chol),
-		   sctest=double(1),
-                   PACKAGE = "survival")
+		   sctest=double(1))
 
     var <- matrix(agfit$imat,nvar,nvar)
     coef <- agfit$coef
@@ -93,8 +92,8 @@ agexact.fit <- function(x, y, strata, offset, init, control,
 		   score,
 		   rep(1.0, n),
 		   newstrat,
-		   resid=double(n),
-                   PACKAGE = 'survival')
+		   resid=double(n))
+
     resid <- double(n)
     resid[sorted] <- agres$resid
     names(resid) <- rownames

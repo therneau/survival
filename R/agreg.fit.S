@@ -64,8 +64,7 @@ agreg.fit <- function(x, y, strata, offset, init, control,
 		double(2*nvar*nvar +nvar*3 + n),
 		as.double(control$eps),
 		as.double(control$toler.chol),
-		sctest=as.double(method=='efron'),
-                PACKAGE = 'survival')
+		sctest=as.double(method=='efron'))
 
     var <- matrix(agfit$imat,nvar,nvar)
     coef <- agfit$coef
@@ -101,8 +100,7 @@ agreg.fit <- function(x, y, strata, offset, init, control,
 		score,
 		as.double(weights),
 		resid=double(n),
-		double(2*sum(event)),
-                PACKAGE= 'survival')
+		double(2*sum(event)))
     resid <- agres$resid
 
     if (nullmodel) {

@@ -158,6 +158,7 @@ plot.survfit<- function(x, conf.int,  mark.time=TRUE,
     if (is.matrix(ssurv)) ncurve <- nstrat * ncol(ssurv)
     else 		  ncurve <- nstrat
 
+    misslty <- missing(lty)
     mark <- rep(mark, length.out=ncurve)
     col  <- rep(col, length.out=ncurve)
     lty  <- rep(lty, length.out=ncurve)
@@ -269,7 +270,7 @@ plot.survfit<- function(x, conf.int,  mark.time=TRUE,
 		yend <- c(yend,min(yy))
 
 		if (conf.int && !is.null(supper)) {
-		    if (ncurve==1) lty[i] <- lty[i] +1
+		    if (ncurve==1 && misslty) lty[i] <- lty[i] +1
 		    yy <- c(firsty, supper[who,k])
 		    lines(dostep(xx,yy), lty=lty[i], col=col[i], lwd=lwd[i])
 		    yy <- c(firsty, slower[who,k])
@@ -299,7 +300,7 @@ plot.survfit<- function(x, conf.int,  mark.time=TRUE,
 	    yend <- c(yend,min(yy))
 
 	    if (conf.int==TRUE && !is.null(supper)) {
-		if (ncurve==1) lty[i] <- lty[i] +1
+		if (ncurve==1 && misslty) lty[i] <- lty[i] +1
 		yy <- c(firsty, supper[who])
 		lines(dostep(xx,yy), lty=lty[i], col=col[i], lwd=lwd[i])
 		yy <- c(firsty, slower[who])
