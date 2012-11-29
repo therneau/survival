@@ -1,4 +1,3 @@
-# $Id: summary.aareg.S 11250 2009-03-19 13:44:59Z tlumley $
 # The summary routine for aareg models.
 # A lot of the work below relates to one particular issue: the coeffients
 #  of an aareg model often get "wild" near the end (at the largest times).

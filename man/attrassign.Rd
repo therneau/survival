@@ -2,7 +2,6 @@
 \alias{attrassign.default}
 \alias{attrassign}
 \alias{attrassign.lm}
-%- Also NEED an `\alias' for EACH other topic documented here.
 \title{Create new-style "assign" attribute}
 \description{
 The \code{"assign"} attribute on model matrices describes which columns
