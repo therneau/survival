@@ -52,8 +52,8 @@ survfitCI <- function(X, Y, weights, id, istate,
     type <- attr(Y, "type")
     if (type !='mright' && type!='mcounting' && 
         type != "right" && type != "counting")
-	stop(paste("Cumulative incidence computation doesn't support \"", type,
-			  "\" survival data", sep=''))
+        stop(paste("Cumulative incidence computation doesn't support \"", type,
+                          "\" survival data", sep=''))
 
     n <- nrow(Y)
     status <- Y[,ncol(Y)]
@@ -107,11 +107,16 @@ The statename vector is not modified.
         if (length(id) && any(duplicated(id)))
             stop("Cannot have duplicate id values with (time, status) data")
 
-        entry <- rep(min(-1, 2*min(Y[,1])-1), n)  #dummy entry time that is < any event
+        # dummy entry time that is < any event time
+        entry <- rep(min(-1, 2*min(Y[,1])-1), n)  
         for (i in levels(X)) {
             indx <- which(X==i)
-            curves[[i]] <- docurve1(entry[indx], Y[indx,1], status[indx], istate[indx],
-                                    weights[indx], states, id[indx])
+#            curves[[i]] <- docurve1(entry[indx], Y[indx,1], status[indx], 
+#                                    istate[indx], weights[indx], states, 
+#                                    id[indx])
+            curves[[i]] <- docurve2(entry[indx], Y[indx,1], status[indx], 
+                                    istate[indx], weights[indx], states, 
+                                    id[indx])
         }
     }
     else {
@@ -225,7 +230,7 @@ docurve1 <- function(entry, etime, status, istate, wt, states, id) {
         if (nevent[i,2] ==0)  { # all censored here
             Pmat[i,] <- P
             if (i>1) {
-                A[,,i] <- A[,,i=1]
+                A[,,i] <- A[,,i-1]
                 vP[i,] <- vP[i-1,]
                 }
          }
@@ -265,7 +270,12 @@ docurve1 <- function(entry, etime, status, istate, wt, states, id) {
          w.risk=wrisk, cumhaz=A)
 }
 @ 
-        
+
+The above function was used to work through all of my test cases, 
+but is too slow in large data sets.
+Rewrite it using underlying C-code, but retain the former one for
+debugging purposes.  It appears at the end of this chapter.
+
 The setup for (start, stop] data is a bit more work.  
 We want to ensure that a subject's weight is fixed, that they have a
 continuous period of observation, and that they don't
@@ -310,7 +320,9 @@ istate <- temp[match(id, uid)]  #replicate it to full length
 # Now to work
 for (i in levels(X)) {
     indx <- which(X==i)
-    curves[[i]] <- docurve1(Y[indx,1], Y[indx,2], status[indx], 
+#    curves[[i]] <- docurve1(Y[indx,1], Y[indx,2], status[indx], 
+#                          istate[indx], weights[indx], states, id[indx])
+    curves[[i]] <- docurve2(Y[indx,1], Y[indx,2], status[indx], 
                           istate[indx], weights[indx], states, id[indx])
 }
 @ 
@@ -353,7 +365,7 @@ We make the assumption that $\log(1-P)$ will have better CI behavior
 than $P$, with standard error of ${rm se}(P)/(1-P)$.
 
 <<survfitCI-finish>>=
-#	
+#       
 # Last bit: add in the confidence bands:
 #   modeled on survfit.km, though for P instead of S
 #   
@@ -367,7 +379,7 @@ if (se.fit) {
         temp <- zval* std.err
         kfit <- c(kfit, list(lower =pmax(kfit$prev-temp, 0), 
                              upper=pmin(kfit$prev+temp, 1),
-    			 conf.type='plain', conf.int=conf.int))
+                         conf.type='plain', conf.int=conf.int))
         }
 
     if (conf.type=='log') {
@@ -377,7 +389,7 @@ if (se.fit) {
         temp1 <- ifelse(surv==0, NA, exp(log(xx) + zval* std.err/xx))
         temp2 <- ifelse(surv==0, NA, exp(log(xx) - zval* std.err/xx))
         kfit <- c(kfit, list(lower=pmax(1-temp1,0), upper= 1- temp2,
-    			 conf.type='log', conf.int=conf.int))
+                         conf.type='log', conf.int=conf.int))
         }
 
     if (conf.type=='log-log') {
@@ -389,7 +401,7 @@ if (se.fit) {
         temp2 <- exp(-exp(log(-log(xx)) - zval*std.err/(xx*log(xx))))
         temp2 <- ifelse(who, temp3, temp2)
         kfit <- c(kfit, list(lower=1-temp1, upper=1-temp2,
-    			 conf.type='log-log', conf.int=conf.int))
+                         conf.type='log-log', conf.int=conf.int))
         }
     }
 
@@ -398,3 +410,39 @@ kfit$type   <- attr(Y, "type")
 kfit
 @
 
+The updated docurve function is here
+<<survfitCI-compute>>=
+docurve2 <- function(entry, etime, status, istate, wt, states, id) {
+    #
+    # round off error can cause trouble: if two times are within machine
+    #  precsion then "unique(time)" and the "table" command may differ
+    # solve this by using creating a factor
+    ftime <- factor(c(entry,etime))
+    ntime <- length(levels(ftime))
+    timeset <- as.numeric(levels(ftime))
+    ftime <- matrix(as.integer(ftime), ncol=2)
+    
+    nstate <- length(states)
+    uid <- sort(unique(id))
+    P <- as.vector(tapply(wt, factor(istate, levels=states), sum) / sum(wt))
+    P <- ifelse(is.na(P), 0, P) # initial probability distribution
+    cstate <- istate[match(uid, id)]   #current state for each observation
+    
+    storage.mode(wt) <- "double" # just in case someone had integer weights
+    storage.mode(cstate) <- "integer"
+    storage.mode(status) <- "integer"
+    fit <- .Call("survfitci", ftime, 
+                 order(ftime[,1]),
+                 order(ftime[,2]),
+                 length(timeset),
+                 status,
+                 cstate,
+                 weight,
+                 match(id, uid),
+                 P)
+    list(time=timeset, pmat=t(fit$pmat), std=sqrt(t(fit$varmat)),
+         n.risk = t(fit$n.riks),n.event = fit$n.event, 
+         n.censor=fit$n.censor, 
+         cumhaz=array(fit$cumhaz, dim=c(nstate,nstate, length(timeset))))
+}
+@

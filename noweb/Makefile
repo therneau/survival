@@ -9,6 +9,7 @@ PARTS = main.Rnw \
 	pyears.Rnw \
 	residuals.survreg.Rnw \
 	survfitCI.Rnw \
+	msurv.nw \
 	survfitms.Rnw \
 	tail
 #	coxdetail.nw
@@ -28,7 +29,7 @@ SFUN =  agsurv.R \
 
 CFUN =  agsurv4.c agsurv5.c concordance1.c coxcount1.c \
         coxexact.c \
-#	msurv.c
+	survfitci.c
 #	coxdetail2.c
 
 RDIR = ../R
