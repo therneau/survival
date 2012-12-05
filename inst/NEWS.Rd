@@ -2,7 +2,7 @@
 \title{NEWS file for the survival package}
 \section{Changes in version 2.37-2}{
   \itemize{
-    item Two bug fixes that were turned up by running tests for all the
+    \item Two bugs were turned up by running tests for all the
     packages that depend on survival (158 of them).
 }}
 \section{Changes in version 2.37-1}{

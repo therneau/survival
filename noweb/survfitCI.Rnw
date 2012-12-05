@@ -418,10 +418,11 @@ docurve2 <- function(entry, etime, status, istate, wt, states, id) {
     #  precsion then "unique(time)" and the "table" command may differ
     # solve this by using creating a factor
     ftime <- factor(c(entry,etime))
-    ntime <- length(levels(ftime))
-    timeset <- as.numeric(levels(ftime))
+    ltime <- levels(ftime)
     ftime <- matrix(as.integer(ftime), ncol=2)
-    
+    n <- length(entry)
+    timeset <- as.numeric(ltime[sort(unique(ftime[,2]))]) #unique event times
+     
     nstate <- length(states)
     uid <- sort(unique(id))
     P <- as.vector(tapply(wt, factor(istate, levels=states), sum) / sum(wt))
@@ -431,13 +432,14 @@ docurve2 <- function(entry, etime, status, istate, wt, states, id) {
     storage.mode(wt) <- "double" # just in case someone had integer weights
     storage.mode(cstate) <- "integer"
     storage.mode(status) <- "integer"
+    # C code has 0 based subscripts
     fit <- .Call("survfitci", ftime, 
-                 order(ftime[,1]),
-                 order(ftime[,2]),
+                 order(ftime[,1]) - 1L,
+                 order(ftime[,2]) - 1L,
                  length(timeset),
                  status,
-                 cstate,
-                 weight,
+                 cstate - 1L,
+                 wt,
                  match(id, uid),
                  P)
     list(time=timeset, pmat=t(fit$pmat), std=sqrt(t(fit$varmat)),

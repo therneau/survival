@@ -62,6 +62,7 @@ int i, j, k, kk;   /* generic loop indices */
 int ck, itime, eptr; /*specific indices */
 int ctime;      /*current time of interest, in the main loop */
 int nprotect;   /* number of protect calls issued */
+int oldstate, newstate; /*when changing state */
 
 double temp, *temp2;  /* scratch */
 double *p;         /* current prevalence vector */
@@ -130,6 +131,7 @@ nprotect = 8;
 /* allocate space for scratch vectors */
 p = (double *) R_alloc(2*nstate, sizeof(double));
 temp2 = p + nstate;
+atrisk = (int *) R_alloc(nperson, sizeof(int));
 wtp = (double *) R_alloc(nperson, sizeof(double));
 hmat = (double**) dmatrix2(nstate, nstate);
 umat = (double**) dmatrix2(nperson, nstate);
@@ -170,20 +172,20 @@ There are four indexing patterns in play which may be confusing.
 
 <<survfitci-compute>>=
 itime =0; /*current time index, for output arrays */
-etime  = 0; /*index to sort1, the entry times */
+eptr  = 0; /*index to sort1, the entry times */
 for (i=0; i<n; ) {
-    ck <- sort2[i];
+    ck = sort2[i];
     ctime = etime[ck];  /* current time value of interest */
         
     /* Add subjects whose entry time is < ctime into the counts */
     for (; eptr<n; eptr++) {
-	k <- sort1[eptr];
+	k = sort1[eptr];
 	if (entry[k] < ctime) {
-	    kk <- cstate[id[k]];
+	    kk = cstate[id[k]];  /*current state of the addition */
 	    ns[kk]++;
 	    ws[kk] += wt[k];
-	    wtp[id[kk]] = wt[k];
-	    atrisk[id[kk]] =1;   /* mark them as being at risk */
+	    wtp[id[k]] = wt[k];
+	    atrisk[id[k]] =1;   /* mark them as being at risk */
 	}
 	else break;
     }
@@ -195,8 +197,9 @@ for (i=0; i<n; ) {
     for (; i<n; i++) {
 	j= sort2[i];
 	if (etime[j] == ctime) {
-	    ns[cstate[id[j]]]--;
-	    ws[cstate[id[j]]] -= wt[j];
+	    oldstate = cstate[id[j]]; /*current state */
+	    ns[oldstate]--;
+	    ws[oldstate] -= wt[j];
 	    if (status[j] >0) cstate[id[j]] = status[j]-1; /*new state */
 	    atrisk[id[j]] =0;
 	}
@@ -224,12 +227,14 @@ nevent[itime] =0;
 ncensor[itime] =0;
 wevent =0;
 for (j=i; j<n; j++) {
-    k <- sort2[j];
+    k = sort2[j];
     if (etime[k] == ctime) {
 	if (status[k] >0) {
+	    newstate = status[k] -1;  /* 0 based subscripts */
+	    oldstate = cstate[id[k]];
 	    nevent[itime]++;
 	    wevent += wt[k];
-	    hmat[cstate[id[k]]][status[k]] += wt[k];
+	    hmat[oldstate][newstate] += wt[k];
 	}
 	else ncensor[itime]++;
     }
@@ -292,12 +297,14 @@ for (j=0; j<nperson; j++) {
 
 /* Update U, part 3.  An addition for each event */
 for (j=0; j<n; j++) {
-    k <- sort2[j];
+    k = sort2[j];
     if (etime[k] == ctime) {
 	if (status[k] >0) {
 	    kk = id[k];  /* row number in U */
-	    umat[kk][cstate[kk]] -= p[cstate[kk]]/ns[kk];
-	    umat[kk][status[k]]  += p[cstate[kk]]/ns[kk];
+	    oldstate= cstate[kk];
+	    newstate= status[k] -1;
+	    umat[kk][oldstate] -= p[oldstate]/ns[kk];
+	    umat[kk][newstate] += p[newstate]/ns[kk];
 	}
     }
     else break;
@@ -321,7 +328,7 @@ for (j=0; j<nstate; j++) p[j] = temp2[j];
 @ 
 
 <<survfitci-compute-update>>=
-/* Update the matrices that will be passed back */
+/* store into the matrices that will be passed back */
 for (j=0; j<nstate; j++) {
     *pmat++ = p[j];
     *nrisk++ = ns[j];
