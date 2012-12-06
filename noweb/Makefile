@@ -11,11 +11,13 @@ PARTS = main.Rnw \
 	survfitCI.Rnw \
 	msurv.nw \
 	survfitms.Rnw \
+	plot.Rnw \
 	tail
 #	coxdetail.nw
 
 SFUN =  agsurv.R \
 	coxph.R \
+	plot.survfit.R \
 	predict.coxph.R \
 	pyears.R \
 	residuals.survreg.S\

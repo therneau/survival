@@ -355,7 +355,6 @@ if (se.fit) kfit$std.err <- grabit(curves, "std")
 if (state0) {
     kfit$prev <- kfit$prev[,-1]
     if (se.fit) kfit$std.err <- kfit$std.err[,-1]
-    kfit$cumhaz <- kfit$cumhaz[,-1,-1]
 }
 @ 
 

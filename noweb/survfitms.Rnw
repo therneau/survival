@@ -32,12 +32,12 @@ object.  Otherwise we can drop columns freely
     if (missing(..1)) i<- NULL  else i <- sort(..1)
     if (missing(..2)) j<- NULL  else j <- ..2
     if (is.null(x$strata)) {
-        if (is.matrix(x$surv)) {
+        if (is.matrix(x$prev)) {
             # No strata, but a matrix of prevalence values
             indx <- nmatch(i, x$states)
             if (any(is.na(indx)))
                 stop("unmatched subscript", i[is.na(indx)])
-            else i <- as.vector[indx]
+            else i <- as.vector(indx)
             x$states <- x$states[i]
             
             if (nrow(x$prev)==1 && length(i) > 1) drop<- FALSE
