@@ -88,7 +88,8 @@ int *id;            /* for each obs, which subject is it */
     
 /* returned objects */
 SEXP rlist;         /* the returned list and variable names of same */  
-const char *rnames[]= {"nrisk","nevent","ncensor", "prev", "cumhaz", "var"};
+const char *rnames[]= {"nrisk","nevent","ncensor", "prev", 
+		       "cumhaz", "var", ""};
 SEXP pmat2, vmat2, cumhaz2;  /*list components */
 SEXP nevent2, ncensor2, nrisk2;
 double *pmat, *vmat, *cumhaz;
@@ -100,8 +101,9 @@ The two that will be updated need to be replaced by duplicates.
 <<survfitci-declare>>=
 ntime= asInteger(ntime2);
 nperson = LENGTH(cstate2);
-cstate2 = PROTECT(duplicate(cstate2));
 n   = LENGTH(sort12);
+PROTECT(cstate2 = duplicate(cstate2));
+cstate  = INTEGER(cstate2);
 entry= INTEGER(ftime2);
 etime= entry + n;
 sort1= INTEGER(sort12);
@@ -109,7 +111,7 @@ sort2= INTEGER(sort22);
 status= INTEGER(status2);
 wt = REAL(wt2);
 id = INTEGER(id2);
-p2 = PROTECT(duplicate(p2));  /*copy of initial prevalence */
+PROTECT(p2 = duplicate(p2));  /*copy of initial prevalence */
 p = REAL(p2);
 nstate = LENGTH(p2);  /* number of states */
 
@@ -129,8 +131,9 @@ cumhaz = REAL(cumhaz2);
 nprotect = 8;  
 
 /* allocate space for scratch vectors */
-p = (double *) R_alloc(2*nstate, sizeof(double));
-temp2 = p + nstate;
+ws = (double *) R_alloc(2*nstate, sizeof(double));
+temp2 = ws + nstate;
+ns  = (int *) R_alloc(nstate, sizeof(int));
 atrisk = (int *) R_alloc(nperson, sizeof(int));
 wtp = (double *) R_alloc(nperson, sizeof(double));
 hmat = (double**) dmatrix2(nstate, nstate);
@@ -139,7 +142,8 @@ chaz = (double**) dmatrix2(nstate, nstate);
 
 /* R_alloc does not zero allocated memory */
 for (i=0; i<nstate; i++) {
-    p[i] =0;
+    ws[i] =0;
+    ns[i] =0;
     for (j=0; j<nstate; j++) {
             hmat[i][j] =0;
             chaz[i][j] =0;
@@ -176,7 +180,7 @@ eptr  = 0; /*index to sort1, the entry times */
 for (i=0; i<n; ) {
     ck = sort2[i];
     ctime = etime[ck];  /* current time value of interest */
-        
+
     /* Add subjects whose entry time is < ctime into the counts */
     for (; eptr<n; eptr++) {
 	k = sort1[eptr];
@@ -204,7 +208,8 @@ for (i=0; i<n; ) {
 	    atrisk[id[j]] =0;
 	}
 	else break;
-    }	
+    }
+    itime++;  
 }  
 @
  
@@ -252,6 +257,8 @@ if (nevent[itime]> 0) {
 	    }
 	    hmat[j][j] =1 -temp/ws[j]; /*rows sum to one */
 	}
+	else hmat[j][j] =1.0; 
+ 
     }
     <<survfitci-compute-U>>
     <<survfitci-compute-P>>
@@ -281,7 +288,7 @@ for (j=0; j<nperson; j++) { /* row of U */
 	for (kk=0; kk<nstate; kk++) 
 		temp2[k] += umat[j][kk] * hmat[kk][k];
     }  
-    for (k=0; i<nstate; k++) umat[j][k] = temp2[k];
+    for (k=0; k<nstate; k++) umat[j][k] = temp2[k];
  }
 
 /* Update U, part 2, subtract from everyone at risk 
@@ -289,22 +296,22 @@ for (j=0; j<nperson; j++) { /* row of U */
 for (j=0; j<nstate; j++) hmat[j][j] -= 1;
 for (j=0; j<nperson; j++) {
     if (atrisk[j]==1) {
-	kk = cstate[k];
+	kk = cstate[j];
 	for (k=0; k<nstate; k++) 
 	    umat[j][k] -= (p[kk]/ws[kk])* hmat[kk][k];
     }
  }
 
 /* Update U, part 3.  An addition for each event */
-for (j=0; j<n; j++) {
+for (j=i; j<n; j++) {
     k = sort2[j];
     if (etime[k] == ctime) {
 	if (status[k] >0) {
 	    kk = id[k];  /* row number in U */
 	    oldstate= cstate[kk];
 	    newstate= status[k] -1;
-	    umat[kk][oldstate] -= p[oldstate]/ns[kk];
-	    umat[kk][newstate] += p[newstate]/ns[kk];
+	    umat[kk][oldstate] -= p[oldstate]/ws[oldstate];
+	    umat[kk][newstate] += p[oldstate]/ws[oldstate];
 	}
     }
     else break;

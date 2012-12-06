@@ -111,13 +111,13 @@ The statename vector is not modified.
         entry <- rep(min(-1, 2*min(Y[,1])-1), n)  
         for (i in levels(X)) {
             indx <- which(X==i)
-#            curves[[i]] <- docurve1(entry[indx], Y[indx,1], status[indx], 
-#                                    istate[indx], weights[indx], states, 
-#                                    id[indx])
+ #           temp  <- docurve1(entry[indx], Y[indx,1], status[indx], 
+ #                                   istate[indx], weights[indx], states, 
+ #                                   id[indx])
             curves[[i]] <- docurve2(entry[indx], Y[indx,1], status[indx], 
                                     istate[indx], weights[indx], states, 
                                     id[indx])
-        }
+         }
     }
     else {
         <<survfitCI-startstop>>
@@ -320,7 +320,7 @@ istate <- temp[match(id, uid)]  #replicate it to full length
 # Now to work
 for (i in levels(X)) {
     indx <- which(X==i)
-#    curves[[i]] <- docurve1(Y[indx,1], Y[indx,2], status[indx], 
+#    temp <- docurve1(Y[indx,1], Y[indx,2], status[indx], 
 #                          istate[indx], weights[indx], states, id[indx])
     curves[[i]] <- docurve2(Y[indx,1], Y[indx,2], status[indx], 
                           istate[indx], weights[indx], states, id[indx])
@@ -342,6 +342,7 @@ kfit <- list(n =      as.vector(table(X)),
              time =   grabit(curves, "time"),
              n.risk=  grabit(curves, "n.risk"),
              n.event= grabit(curves, "n.event"),
+             n.censor=grabit(curves, "n.censor"),
              prev   = grabit(curves, "pmat"))
 nstate <- length(states)
 kfit$cumhaz <- array(unlist(lapply(curves, function(x) x$cumhaz)),
@@ -414,8 +415,8 @@ The updated docurve function is here
 <<survfitCI-compute>>=
 docurve2 <- function(entry, etime, status, istate, wt, states, id) {
     #
-    # round off error can cause trouble: if two times are within machine
-    #  precsion then "unique(time)" and the "table" command may differ
+    # round off error can cause trouble, if two times are within machine
+    #  precsion
     # solve this by using creating a factor
     ftime <- factor(c(entry,etime))
     ltime <- levels(ftime)
@@ -440,11 +441,11 @@ docurve2 <- function(entry, etime, status, istate, wt, states, id) {
                  status,
                  cstate - 1L,
                  wt,
-                 match(id, uid),
+                 match(id, uid) -1L,
                  P)
-    list(time=timeset, pmat=t(fit$pmat), std=sqrt(t(fit$varmat)),
-         n.risk = t(fit$n.riks),n.event = fit$n.event, 
-         n.censor=fit$n.censor, 
+     list(time=timeset, pmat=t(fit$p), std=sqrt(t(fit$var)),
+         n.risk = colSums(fit$nrisk),n.event = fit$nevent, 
+         n.censor=fit$ncensor, 
          cumhaz=array(fit$cumhaz, dim=c(nstate,nstate, length(timeset))))
 }
 @

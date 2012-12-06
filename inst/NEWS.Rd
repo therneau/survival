@@ -8,7 +8,8 @@
 \section{Changes in version 2.37-1}{
   \itemize{
     \item Add a new multi-state type to the Surv object.  Update the
-    survfit routine to work with it, and add a proper variance.
+    survfit routine to work with it.  The major change is addition
+    of a proper variance for this case.
     More functionality is planned.
     
     \item Remove the fr_colon.R test program.  It tests an ability that
