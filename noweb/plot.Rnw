@@ -27,12 +27,11 @@ plot.survfit<- function(x, conf.int,  mark.time=TRUE,
     <<plot-draw>>    
 }
 
-lines.survfit <- function(x, conf.int,
-                          mark.time=TRUE,
+lines.survfit <- function(x, type='s', 
                           mark=3, col=1, lty=1, lwd=1,
-			  xscale=1, yscale=1, 
+                          mark.time=TRUE, xscale=1, 
 			  firstx=0, firsty=1, xmax,
-                          fun, type="s", ...) {
+                          fun,  conf.int=FALSE, ...) {
     isplot <- FALSE
     <<plot-transform-ms>>
     <<plot-common-args>>
@@ -50,7 +49,7 @@ lines.survfit <- function(x, conf.int,
     <<plot-draw>>
 }
 
-points.survfit <- function(x, cex=1, xscale=1, yscale=1,
+points.survfit <- function(x, xscale=1,
                            xmax, fun, ...) {
     <<plot-transform-ms>>
     <<plot-common-args>>
@@ -76,11 +75,12 @@ if (inherits(x, "survfitms")) {
 <<plot-common-args>>=
 ssurv <- as.matrix(x$surv)
 stime <- x$time
-supper <- as.matrix(x$upper)
-slower <- as.matrix(x$lower)
-if (is.null(x$n.event)) mark.time <- FALSE   #expected survival curve
-     
-if (is.null(x$upper)) conf.int <- FALSE    
+if( !is.null(x$upper)) {
+    supper <- as.matrix(x$upper)
+    slower <- as.matrix(x$lower)
+}
+else conf.int=FALSE
+
 # Two cases where we don't put marks at the censoring times
 if (inherits(x, 'survexp') || inherits(x, 'survfit.coxph')) {
     if (missing(mark.time)) mark.time <- FALSE
@@ -98,11 +98,10 @@ else {
 
 # Default is to add confidence bands if there is only 1 curve, otherwise not
 ncurve <- nstrat * ncol(ssurv)
-if (missing(conf.int)) {
+if (missing(conf.int) && isplot) {  
     if (ncurve==1) conf.int <-TRUE
     else conf.int <- FALSE
 }
-
 @ 
 The xmax argument is used to prune back the survival curve to a small
 set of time points.  
@@ -155,7 +154,7 @@ if (!missing(xmax) && any(x$time>xmax)) {
 stime <- stime/xscale  #scaling is deferred until xmax processing is done
 
 if (!missing(fun)) {
-    if (missing(xaxs)) xaxs <- par('xaxs')
+    if (isplot && missing(xaxs)) xaxs <- par('xaxs')
     
     if (is.character(fun)) {
         tfun <- switch(fun,
@@ -189,8 +188,10 @@ and for other the default is 0.
 The other issue is that if log scale has been chosen we want
 to use a different default.  However, the lines routine has
 no way of knowing if this is the case.
+Expected curves have a NULL value for [[type]].
 <<plot-first-arg>>=
-if (missing(firsty) & x$type=="mright" || x$type=="mcounting") {
+if (missing(firsty) && (is.null(x$type) || 
+                        x$type=="mright" || x$type=="mcounting")) {
     firsty <- NA
     firstx <- min(stime)
 }
@@ -237,7 +238,7 @@ else {
 }
 @ 
 
-Here is the rest of the setup for the plot routine, having to do with
+Here is the rest of the setup for the plot routine, mostly having to do with
 setting up axes.
 <<plot-plot-setup1>>= 
 if (is.logical(log)) {
@@ -310,9 +311,16 @@ if(yscale != 1) {
     else par(usr =par("usr")/c(1, 1, yscale, yscale))   
 }
 @ 
+The use of [[par(usr)]] just above is a bit sneaky.  I want the
+lines and points routines to be able to add to the plot, \emph{without}
+passing them a global parameter that determines the y-scale or forcing
+the user to repeat it.
+Why didn't I use the same trick for xscale?  Lack of foresight.
+And now there are hundreds of lines of code that have an xscale
+argument to lines() so I don't dare drop it.
 
-These functions do the actual drawing.
 
+The next functions do the actual drawing.
 <<plot-functions>>=
 # Create a step function, removing redundancies that sometimes occur in
 #  curves with lots of censoring.
@@ -363,12 +371,12 @@ xend <- yend <- double(ncurve)
 
 for (i in unique(stemp)) {  #for each strata
     who <- which(stemp==i)
-    xx <- stime[who]
+    xx <- c(firstx, stime[who])
     censor <- if (is.null(x$n.censor))
         (x$n.event[who] ==0)  else (x$n.censor[who] >0) #places with a censoring
-browser()
+#browser()
     for (j in 1:ncol(ssurv)) {
-        yy <- ssurv[who,j]
+        yy <- c(firsty, ssurv[who,j])
         if (isplot || plot.surv) {
             lines(dostep(xx, yy), lty=lty[c2], col=col[c2], lwd=lwd[c2]) 
             if (mark.time) drawmark(xx, yy, mark.time, censor, 
@@ -380,10 +388,10 @@ browser()
         c2 <- c2 +1
 
         if (conf.int) {
-            lines(dostep(xx, slower[who,j]), lty=lty[c2], col=col[c2],
+            lines(dostep(xx, c(firsty, slower[who,j])), lty=lty[c2], col=col[c2],
                   lwd=lwd[c2])
             c2 <- c2 +1
-            lines(dostep(xx, supper[who,j]), lty=lty[c2], col=col[c2],
+            lines(dostep(xx, c(firsty, supper[who,j])), lty=lty[c2], col=col[c2],
                   lwd= lwd[c2])
             c2 <- c2 + 1
         }

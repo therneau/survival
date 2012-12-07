@@ -116,7 +116,7 @@ The statename vector is not modified.
  #                                   id[indx])
             curves[[i]] <- docurve2(entry[indx], Y[indx,1], status[indx], 
                                     istate[indx], weights[indx], states, 
-                                    id[indx])
+                                    id[indx], se.fit)
          }
     }
     else {
@@ -198,7 +198,7 @@ cstate and U objects have only one row per subject.
 This leads to indices of [[atrisk]] for the set of rows in the risk set but
 [[aindx]] for the subjects in the risk set, [[death]] for the rows that have
 an event as some given time and [[dindx]] for the corresponding subjects.
-<<survfitCI-compute>>=
+<<survfitCI-compute-old>>=
 docurve1 <- function(entry, etime, status, istate, wt, states, id) {
     #
     # round off error can cause trouble: if two times are within machine
@@ -323,7 +323,7 @@ for (i in levels(X)) {
 #    temp <- docurve1(Y[indx,1], Y[indx,2], status[indx], 
 #                          istate[indx], weights[indx], states, id[indx])
     curves[[i]] <- docurve2(Y[indx,1], Y[indx,2], status[indx], 
-                          istate[indx], weights[indx], states, id[indx])
+                          istate[indx], weights[indx], states, id[indx], se.fit)
 }
 @ 
             
@@ -412,7 +412,7 @@ kfit
 
 The updated docurve function is here
 <<survfitCI-compute>>=
-docurve2 <- function(entry, etime, status, istate, wt, states, id) {
+docurve2 <- function(entry, etime, status, istate, wt, states, id, se.fit) {
     #
     # round off error can cause trouble, if two times are within machine
     #  precsion
@@ -441,10 +441,15 @@ docurve2 <- function(entry, etime, status, istate, wt, states, id) {
                  cstate - 1L,
                  wt,
                  match(id, uid) -1L,
-                 P)
-     list(time=timeset, pmat=t(fit$p), std=sqrt(t(fit$var)),
-         n.risk = colSums(fit$nrisk),n.event = fit$nevent, 
-         n.censor=fit$ncensor, 
-         cumhaz=array(fit$cumhaz, dim=c(nstate,nstate, length(timeset))))
+                 P, as.integer(se.fit))
+    if (se.fit) 
+        list(time=timeset, pmat=t(fit$p), std=sqrt(t(fit$var)),
+             n.risk = colSums(fit$nrisk),n.event = fit$nevent, 
+             n.censor=fit$ncensor, 
+             cumhaz=array(fit$cumhaz, dim=c(nstate,nstate, length(timeset))))
+    else list(time=timeset, pmat=t(fit$p),
+             n.risk = colSums(fit$nrisk),n.event = fit$nevent, 
+             n.censor=fit$ncensor, 
+             cumhaz=array(fit$cumhaz, dim=c(nstate,nstate, length(timeset))))
 }
 @

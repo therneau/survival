@@ -11,7 +11,7 @@ for them.
 <<survfitci-dmatrix>>
 SEXP survfitci(SEXP ftime2,  SEXP sort12,  SEXP sort22, SEXP ntime2,
                     SEXP status2, SEXP cstate2, SEXP wt2,  SEXP id2,
-                    SEXP p2) {   
+                    SEXP p2,  SEXP sefit2) {   
     <<survfitci-declare>>
     <<survfitci-compute>>
     <<survfitci-return>>
@@ -35,6 +35,7 @@ object and [[zed]] to the contents of the object.
   \item[id] The subject id for each observation.
   \item[p] The initial distribution of states.  This will be updated during
     computation to be the current distribution.
+  \item[sefit] If 1 then do the se compuatation, otherwise forget it.
 \end{description}
 
 The local dmatrix2 function makes it easier to declare ragged arrays,
@@ -85,6 +86,7 @@ int *status;        /*0=censored, 1,2,... new states */
 int *cstate;        /* current state for each subject */
 double *wt;         /* weight for each observation */
 int *id;            /* for each obs, which subject is it */
+int sefit;
     
 /* returned objects */
 SEXP rlist;         /* the returned list and variable names of same */  
@@ -114,11 +116,14 @@ id = INTEGER(id2);
 PROTECT(p2 = duplicate(p2));  /*copy of initial prevalence */
 p = REAL(p2);
 nstate = LENGTH(p2);  /* number of states */
+sefit = asInteger(sefit2);
 
 /* allocate space for the output objects */
 PROTECT(pmat2 = allocMatrix(REALSXP, nstate, ntime));
 pmat = REAL(pmat2);
-PROTECT(vmat2 = allocMatrix(REALSXP, nstate, ntime));
+if (sefit >0)
+    PROTECT(vmat2 = allocMatrix(REALSXP, nstate, ntime));
+else PROTECT(vmat2 = allocMatrix(REALSXP, 1, 1)); /* dummy object */
 vmat = REAL(vmat2);
 PROTECT(nevent2 = allocVector(INTSXP, ntime));
 nevent = INTEGER(nevent2);
@@ -137,7 +142,7 @@ ns  = (int *) R_alloc(nstate, sizeof(int));
 atrisk = (int *) R_alloc(nperson, sizeof(int));
 wtp = (double *) R_alloc(nperson, sizeof(double));
 hmat = (double**) dmatrix2(nstate, nstate);
-umat = (double**) dmatrix2(nperson, nstate);
+if (sefit >0) umat = (double**) dmatrix2(nperson, nstate);
 chaz = (double**) dmatrix2(nstate, nstate);
 
 /* R_alloc does not zero allocated memory */
@@ -260,7 +265,9 @@ if (nevent[itime]> 0) {
 	else hmat[j][j] =1.0; 
  
     }
-    <<survfitci-compute-U>>
+    if (sefit >0) {
+	<<survfitci-compute-U>>
+    }
     <<survfitci-compute-P>>
 }
 @ 
@@ -324,6 +331,7 @@ mulitplying it by $H$.
 <<survfitci-compute-P>>= 
 /* Finally, update chaz and p.  */
 for (j=0; j<nstate; j++) {
+    if (sefit ==0) hmat[j][j] -= 1;  /* conversion to H2*/
     for (k=0; k<nstate; k++) chaz[j][k] += hmat[j][k];
     
     hmat[j][j] +=1;  /* change from H2 to H */
@@ -341,9 +349,11 @@ for (j=0; j<nstate; j++) {
     *nrisk++ = ns[j];
     for (k=0; k<nstate; k++) *cumhaz++ = chaz[k][j];
     temp=0;
-    for (k=0; k<nperson; k++) 
-	temp += wtp[k] * umat[k][j]*umat[k][j];
-    *vmat++ = temp;
+    if (sefit >0) {
+	for (k=0; k<nperson; k++) 
+	    temp += wtp[k] * umat[k][j]*umat[k][j];
+	*vmat++ = temp;
+    }
  }
 @ 
 
