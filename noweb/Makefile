@@ -47,8 +47,7 @@ $(DOCDIR)/sourcecode.pdf: all.pdf
 	cp all.pdf $(DOCDIR)/sourcecode.pdf
 
 all.pdf: all.tex
-	pdflatex all   #twice to get the table of contents right
-	pdflatex all
+	texi2dvi --pdf all.tex
 
 all.nw: $(PARTS)
 	cat $(PARTS) > all.nw
