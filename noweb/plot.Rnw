@@ -1,6 +1,8 @@
 \section{Plotting survival curves}
-I found some problems where plot.survfit, lines.survfit, and points.survfit
-sometimes did different things.
+I found a problem where plot.survfit, lines.survfit, and points.survfit
+sometimes did different things.  
+This is due to copied code that later changed in one function but not 
+another.
 Since they have so much code in common, this file consolodates them in
 order to  restore order by using common code blocks.
 
@@ -17,13 +19,13 @@ plot.survfit<- function(x, conf.int,  mark.time=TRUE,
     if (any(dotnames=='type'))
         stop("The graphical argument 'type' is not allowed")
     
-    isplot <- TRUE
     <<plot-transform-ms>>
     <<plot-plot-setup1>>
     <<plot-common-args>>
-    <<plot-first-arg>>
+    <<plot-first1>>
     <<plot-plot-setup2>> 
     <<plot-functions>>
+    plot.surv <- TRUE
     <<plot-draw>>    
 }
 
@@ -32,7 +34,6 @@ lines.survfit <- function(x, type='s',
                           mark.time=TRUE, xscale=1, 
 			  firstx=0, firsty=1, xmax,
                           fun,  conf.int=FALSE, ...) {
-    isplot <- FALSE
     <<plot-transform-ms>>
     <<plot-common-args>>
 
@@ -44,7 +45,7 @@ lines.survfit <- function(x, type='s',
         if (temp=="only") plot.surv <- FALSE  else plot.surv <- TRUE
     }
     
-    <<plot-first-arg>>
+    <<plot-first2>>
     <<plot-functions>>
     <<plot-draw>>
 }
@@ -95,14 +96,9 @@ else {
     nstrat <- length(x$strata)
     stemp <- rep(1:nstrat, x$strata) # same length as stime
 }
-
-# Default is to add confidence bands if there is only 1 curve, otherwise not
 ncurve <- nstrat * ncol(ssurv)
-if (missing(conf.int) && isplot) {  
-    if (ncurve==1) conf.int <-TRUE
-    else conf.int <- FALSE
-}
 @ 
+
 The xmax argument is used to prune back the survival curve to a small
 set of time points.  
 This is a bit of bother since we have to do our own clipping of the
@@ -154,8 +150,6 @@ if (!missing(xmax) && any(x$time>xmax)) {
 stime <- stime/xscale  #scaling is deferred until xmax processing is done
 
 if (!missing(fun)) {
-    if (isplot && missing(xaxs)) xaxs <- par('xaxs')
-    
     if (is.character(fun)) {
         tfun <- switch(fun,
     		   'log' = function(x) x,
@@ -179,7 +173,6 @@ if (!missing(fun)) {
 }
 @ 
 
-Do the setup of the mark.time parameters and for the firstx argument.
 The plot and points routines need to process the [[firstx]] and
 [[firsty]] arguments since their lines start there, but the
 points routine does not use these.
@@ -189,7 +182,7 @@ The other issue is that if log scale has been chosen we want
 to use a different default.  However, the lines routine has
 no way of knowing if this is the case.
 Expected curves have a NULL value for [[type]].
-<<plot-first-arg>>=
+<<plot-first1>>=
 if (missing(firsty) && (is.null(x$type) || 
                         x$type=="mright" || x$type=="mcounting")) {
     firsty <- NA
@@ -199,13 +192,33 @@ else if (missing(firstx)) {
     if (!is.null(x$start.time)) 
         firstx <- x$start.time
     else {
-        if (isplot && 
-            (logx || (!missing(fun) && is.character(fun) && fun=='cloglog')))
+        if (logx || (!missing(fun) && is.character(fun) && fun=='cloglog'))
             firstx <- min(stime[stime>0])
-        else      firstx <- min(0, x$time)
+        else      firstx <- min(0, stime)
     }
 }
 
+#The default for plot is to add confidence limits if there is only one curve
+if (missing(conf.int)) conf.int <- (ncurve==1)
+<<plot-setup-marks>>
+@
+
+The dumbed down version for lines, which won't know about log.
+<<plot-first2>>=
+if (missing(firsty) && (is.null(x$type) || 
+                        x$type=="mright" || x$type=="mcounting")) {
+    firsty <- NA
+    firstx <- min(stime)
+}
+else if (missing(firstx)) {
+    if (!is.null(x$start.time)) 
+        firstx <- x$start.time
+    else  firstx <- min(0, stime)
+}
+<<plot-setup-marks>>
+@ 
+
+<<plot-setup-marks>>=
 # Marks are not placed on confidence bands
 mark <- rep(mark, length.out=ncurve)
 mcol <- rep(col,  length.out=ncurve)
@@ -254,7 +267,9 @@ else {
 }
 
 # The special x axis style only applies when firstx is not given
-if (missing(xaxs) && firstx!=0) xaxs<- par('xaxs')  # use the default
+if (missing(xaxs) && (firstx!=0 || !missing(fun) ||
+                      (missing(fun) && inherits(x, "survfitms"))))
+    xaxs <- par("xaxs")  #use the default
 @ 
 
 <<plot-plot-setup2>>=
@@ -374,10 +389,9 @@ for (i in unique(stemp)) {  #for each strata
     xx <- c(firstx, stime[who])
     censor <- if (is.null(x$n.censor))
         (x$n.event[who] ==0)  else (x$n.censor[who] >0) #places with a censoring
-#browser()
     for (j in 1:ncol(ssurv)) {
         yy <- c(firsty, ssurv[who,j])
-        if (isplot || plot.surv) {
+        if (plot.surv) {
             lines(dostep(xx, yy), lty=lty[c2], col=col[c2], lwd=lwd[c2]) 
             if (mark.time) drawmark(xx, yy, mark.time, censor, 
                               pch=mark[c1], col=mcol[c1])

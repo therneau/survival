@@ -226,7 +226,3 @@ as.matrix.Surv <- function(x, ...) {
     attr(y, "states") <- NULL
     y
     }
-
-# This was added, reconsidered, removed.  It forces as.matrix(Surv) to actually
-#  invoke the as.matrix.Surv method, but has other consequences
-#is.matrix.Surv <- function(x) FALSE  

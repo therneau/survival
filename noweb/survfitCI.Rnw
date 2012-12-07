@@ -165,7 +165,6 @@ chain rule.  Consider the $n$ by $k$ matrix of per subject influence values
             &= \frac{\partial[ p(t-) H_{.k}(t)]}{\partial w_i} \label{ci0} \\
            &= U{i.}(t-) H_{.k}(t) + 
                      p(t-) \frac{\partial H_{.k}(t)}{\partial w_i} \label{ci1}\\
-                     
  \frac{\partial H_{jk}(t)}{\partial w_i} &=  \left\{ \begin{array}{ll}
         \left( dN_{ijk}(t) - Y_{ij}(t)H_{jk} \right)/n_j(t) & j \ne k \\
         \left( -dN_{ij.}(t) - Y_{ij}(t)(H_{jj}-1) \right)/n_j(t) & j=k \\

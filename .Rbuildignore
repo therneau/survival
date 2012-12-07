@@ -3,5 +3,6 @@ src/surv_callback.csp
 src/cox_callback.csp
 src/pyears3.c
 inst/doc/validate.tex
-
+.hg
+.hgignore
 
