@@ -189,7 +189,7 @@ predict.survreg <-
 		se<-matrix(ncol=nterms,nrow=NROW(x))
 		dimnames(se)<-list(rownames(x),names(asgn))
 		R<-object$var
-		ip <- real(NROW(x))
+		ip <- double(NROW(x))
 		}
 	    for (i in 1:nterms){
 		ii<-asgn[[i]]
