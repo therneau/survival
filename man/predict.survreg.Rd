@@ -58,11 +58,12 @@ censored data. \emph{Biometrics,} 48, 507-528.
 \code{\link{survreg}},  \code{\link{residuals.survreg}}   
 }
 \examples{
-# Draw figure 1 from Escobar and Meeker
-fit <- survreg(Surv(time,status) ~ age + age^2, data=stanford2, 
+# Draw figure 1 from Escobar and Meeker, 1992.
+fit <- survreg(Surv(time,status) ~ age + I(age^2), data=stanford2, 
 	dist='lognormal') 
-plot(stanford2$age, stanford2$time, xlab='Age', ylab='Days', 
-	xlim=c(0,65), ylim=c(.01, 10^6), log='y') 
+with(stanford2, plot(age, time, xlab='Age', ylab='Days', 
+	xlim=c(0,65), ylim=c(.1, 10^5), log='y', type='n'))
+with(stanford2, points(age, time, pch=c(2,4)[status+1], cex=.7))
 pred <- predict(fit, newdata=list(age=1:65), type='quantile', 
 	         p=c(.1, .5, .9)) 
 matlines(1:65, pred, lty=c(2,1,2), col=1) 
