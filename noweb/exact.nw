@@ -21,7 +21,7 @@ The hard part of this computation is $D$, which is a sum
 where $S(d,n)$ is the set of all possible subsets of size $d$ from $n$
 objects, and $s_1, s_2, \ldots$ indexes the current selection.
 So if $n=6$ and $d=2$ we would have the 15 pairs 12, 13, .... 56;
-for $n=5$ and $d=3$ there would be 10 triples 123, 124, 125, /ldot, 345.
+for $n=5$ and $d=3$ there would be 10 triples 123, 124, 125, \ldots, 345.
 
 The brute force computation of all subsets can take a very long time.
 Gail et al \cite{Gail81} show simple recursion formulas that speed
@@ -64,7 +64,7 @@ double coxd0(int d, int n, double *score, double *dmat,
 @ 
 
 The next routine calculates the derivative with respect to a particular
-coefficient. It will be called one for each covariate with d1 pointing to
+coefficient. It will be called once for each covariate with d1 pointing to
 the work array for that covariate.
 The second derivative calculation is per pair of variables; the
 \texttt{d1j} and \texttt{d1k} arrays are the appropriate first derivative
