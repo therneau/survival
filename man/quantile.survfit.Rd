@@ -16,12 +16,16 @@
 }
 \details{
   The kth quantile for a survival curve S(t) is the location at which
-  a horizontal line at height 1-k intersects the plot of S(t).
+  a horizontal line at height p= 1-k intersects the plot of S(t).
   Since S(t) is a step function, it is possible for the curve to have a
   horizontal segment at exactly 1-k, in which case the midpoint of the
   horizontal segment is returned.  This mirrors the standard behavior of
   the median when data is uncensored.  If the survival curve does not
   fall to 1-k, then that quantile is undefined.
+
+  In order to be consistent with other quantile functions, the argument
+  \code{prob} of this function applies to the cumulative distribution
+  function F(t) = 1-S(t).  
 
   Confidence limits for the values are based on the intersection of the
   horizontal line at 1-k with the upper and lower limits for the

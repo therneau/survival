@@ -1,5 +1,4 @@
-# $Id: print.summary.survfit.S 11408 2010-07-07 12:15:58Z therneau $
-print.summary.survfit <- function(x, 
+print.summary.survfitms <- function(x, 
 				  digits = max(options()$digits - 4, 3), ...) {
     savedig <- options(digits=digits)
     on.exit(options(savedig))
@@ -14,21 +13,21 @@ print.summary.survfit <- function(x,
     if (length(omit)) 
 	    cat(naprint(omit), "\n")
     if (x$type == 'right' || is.null(x$n.enter)) {
-	mat <- cbind(x$time, x$n.risk, x$n.event, x$surv)
+	mat <- cbind(x$time, x$n.risk, x$n.event, x$prev)
 	cnames <- c("time", "n.risk", "n.event")
         }
 
     else if (x$type == 'counting') {
 	mat <- cbind(x$time, x$n.risk, x$n.event, x$n.enter,
-		     x$n.censor, x$surv)
+		     x$n.censor, x$prev)
 	cnames <- c("time", "n.risk", "n.event", 
 		    "entered", "censored")
         }
 
-    if (is.matrix(x$surv)) ncurve <- ncol(x$surv)
+    if (is.matrix(x$prev)) ncurve <- ncol(x$prev)
     else	           ncurve <- 1
     if (ncurve==1) {                 #only 1 curve
-	cnames <- c(cnames, "survival")
+	cnames <- c(cnames, "prevalence")
 	if (!is.null(x$std.err)) {
 	    if (is.null(x$lower)) {
 		mat <- cbind(mat, x$std.err)
@@ -42,7 +41,7 @@ print.summary.survfit <- function(x,
 	        }	
 	    }
         }
-    else cnames <- c(cnames, paste("survival", seq(ncurve), sep=''))
+    else cnames <- c(cnames, paste("prevalence", seq(ncurve), sep=''))
 
     if (!is.null(x$start.time)) {
 	mat.keep <- mat[,1] >= x$start.time

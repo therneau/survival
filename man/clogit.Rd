@@ -33,24 +33,36 @@ clogit(formula, data, weights, subset, na.action,
 }
 \author{Thomas Lumley}
 \details{
-  A stratified Cox model with time=constant, status of 1=case 0=control,
+  It turns out that the logliklihood for a conditional logistic
+  regresson model = loglik from a Cox model with a particular data
+  structure.  Proving this is a nice homework exercise for a PhD
+  statistics class; not too hard, but the fact that it is true is
+  surprising.
+
+  When a well tested Cox model routine is available many packages use
+  this `trick' rather than writing a new software routine from
+  scratch, and this is what the clogit routine does.
+  In detail,  a stratified Cox model with each case/control group
+  assigned to its own stratum, time set to a constant,
+  status of 1=case 0=control,
   and using the exact partial likelihood has the same likelihood formula
   as a conditional logistic regression.  The clogit routine creates
-  the necessary dummy variable of times (all 1) and then calls coxph.
+  the necessary dummy variable of times (all 1) and the strata,
+  then calls coxph.
 
   The computation of the exact partial likelihood can be very slow,
   however.  If a particular strata had say 10 events out of 20 subjects
   we have to add up a denominator that involves all possible ways of
   choosing 10 out of 20, which is 20!/(10! 10!) = 184756 terms. Gail et
-  al describe a fast recursion method, which largely ameleorates 
-  this; 
-  it was incorporated into version 2.36-11 of the survival package.
-  (Most of the time conditional logistic modeling 
+  al describe a fast recursion method which largely ameleorates 
+  this; it was incorporated into version 2.36-11 of the survival package.
+  Most of the time conditional logistic modeling 
   is applied data with 1 case + k controls per set, however, 
-  which involves choosing 1 out of k and the computational issue
-  above does not arise.)
+  where the above the computational issue above does not arise.
+  Thus most users will not notice the change but for others
+  computation time will drop precipitously.
   The 'appoximate' option maps to the
-  Breslow approximation for historical reasons.
+  Breslow approximation for the Cox model, for historical reasons.
 
   It is not clear how case weights should be handled.  For instance if
   there are two deaths in a strata, one with weight=1 and one with
@@ -67,7 +79,7 @@ clogit(formula, data, weights, subset, na.action,
 #  The revised data set has one copy per possible outcome level, with new
 #  variable tocc = target occupation for this copy, and case = whether
 #  that is the actual outcome for each subject.
-# See the catspec package for more details.
+# See the catspec package for more details on the Logan approach.
 resp <- levels(logan$occupation)
 n <- nrow(logan)
 indx <- rep(1:n, length(resp))

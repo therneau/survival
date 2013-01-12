@@ -1,5 +1,25 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 2.37-3}{
+  \itemize{
+    \item Not all combinations of strata Y/N and CI Y/N worked in the
+    quantile.survfit function, pointed out by Daniel Wallschlaeger
+    (missing a function argument in one if-else combination).
+    Added a new test routine that verifies all paths.
+
+    \item The first example in predict.survreg help file needed to have
+    \code{I(age^2)} instead of \code{age^2} in the model: R ignores the
+    second form. (I'm sure this worked at one time, perhaps in Splus).
+    It also needed different plot symbols to actually match the
+    referenced figure.  Pointed out by Evan Newell.
+
+    \item Fix a long-standing problem with cch pointed out by Ornulf Borgan
+    leading to incorrect standard errors.  A check in the underlying
+    coxph routines to deal with out of bounds exponents, added in
+    version 2.36-6, interacted badly with the -100 offset used in cch.
+    It only affected models using (start, stop) survival times.  
+}}
+
 \section{Changes in version 2.37-2}{
   \itemize{
     \item Two bugs were turned up by running tests for all the

@@ -10,8 +10,10 @@ src/concordance1.c
 src/agsurv[45].c
 src/msurv.c
 src/symbols.rds
+src/survfitci.c
 R/agsurv.R
 R/coxph.R
+R/plot.survfit.R
 R/predict.coxph.R
 R/pyears.R
 R/residuals.survreg.S
