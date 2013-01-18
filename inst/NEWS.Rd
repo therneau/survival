@@ -2,6 +2,8 @@
 \title{NEWS file for the survival package}
 \section{Changes in version 2.37-3}{
   \itemize{
+    \item Add the US population data set.
+    
     \item Not all combinations of strata Y/N and CI Y/N worked in the
     quantile.survfit function, pointed out by Daniel Wallschlaeger
     (missing a function argument in one if-else combination).
