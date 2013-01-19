@@ -8,6 +8,7 @@ PARTS = main.Rnw \
 	survexp.Rnw \
 	pyears.Rnw \
 	residuals.survreg.Rnw \
+	survfit.Rnw \
 	survfitCI.Rnw \
 	msurv.nw \
 	survfitms.Rnw \
@@ -24,6 +25,7 @@ SFUN =  agsurv.R \
 	survConcordance.R \
 	survConcordance.fit.R \
 	survexp.R \
+	survfit.R \
 	survfitCI.R \
 	survfit.coxph.R \
 	survfitcoxph.fit.R \

@@ -1,0 +1,503 @@
+\section{Case-cohort models}
+Prentice proposed a case-cohort design for large survey studies such
+as the Women's Health Study, where the population size makes it infeasable
+to collect data on all of the cases.  
+In this case we might collect data on a random subcohort $SC$ of the full
+cohort of subjects $C$ along with information on all subjects $E$ who experience
+an event.
+Let $n$ be the size of the full cohort, $m$ the size of the subcohort $SC$ and
+$d$ be the number of events.  
+
+Let $x$ be the covariate vector.  The kernel of the Cox model's score equation
+has a term for each event $i$ of $x_i(t_i) - \bar{x}(t_i)$ where 
+$\bar{x}$ is the mean of all subjects at risk at that time.  
+In a case-cohort data set the naive estimate of $\bar{x}$ based on the
+available data will not be correct since the data set is enriched for deaths.
+The methods below all use a Cox model as the base, but ``fix up'' the result
+to correct for this bias.
+
+<<cch>>=
+cch <- function(formula, data, weights, subset, na.action,
+                subcoh, id, stratum, cohort.size, 
+                method=c("Prentice", "SelfPrentice", "LinYing","I.Borgan","II.Borgan"),
+                robust=FALSE){
+    Call <- match.call()
+    method <- match.arg(method)
+    
+    <<cch-process-args>>
+    <<cch-setup-data>>
+    <<cch-fit>>
+    <<cch-finish>>
+}
+@ 
+
+The call processing is a little unusual due to backwards compatability with
+an older version of the program which used separate model statements for
+each of the [[subcoh]], [[id]], and [[stratum]] arguments.
+This was a bad design because it does not properly handle missing values.
+The obvious way to check this is [[is.formula(subcoh)]] but that would start
+by retrieving the subcoh argument, which will fail if the variable is part
+of the data frame.
+Instead we have to parse the call itself and look for a tilde.  If there
+is one, then we add this to the current formula minus the tilde, otherwise
+add the argument as is.
+<<cch-process-args>>=
+addterm <- function(oldform, new) {
+    j <- length(oldform)
+    oldform[[j]] <- call("+", oldform[[j]], new[[2]])
+}
+newterm <- list()
+
+if (missing(subcoh)) stop ("the subcoh argument is required")
+else {
+    if (is.call(Call$subcoh) && Call$subcoh[[1]] == as.name("~")) 
+        newterm$subcoh <- Call$subcoh[[2]]
+    else newterm$subcoh <- Call$subcoh
+}
+if (!missing(id)){
+    if (is.call(Call$id) && Call$id[[1]] == as.name("~")) 
+        newterm$id <- Call$id[[2]]
+    else newterm$id <- Call$id
+}
+if (!missing(stratum)) {
+    if (is.call(Call$stratum) && call$stratum[[i]] == as.name("~"))
+        newterm$stratum <- Call$stratum[[2]]
+    else newterm$stratum <- Call$stratum
+}
+
+newform <- formula
+for (i in newterm) newform <- addterm(newform, newterm)
+    
+# Formulas can also have cluster and strata terms in them
+# The next few lines are standard and almost identical to coxph
+indx <- match(c("formula", "data", "weights", "subset", "na.action"),
+              names(Call), nomatch=0) 
+if (indx[1] ==0) stop("A formula argument is required")
+temp <- Call[c(1,indx)]  # only keep the arguments we wanted
+temp[[1]] <- as.name('model.frame')  # change the function called
+    
+special <- c("strata", "cluster")
+temp$formula <- if(missing(data)) terms(newform, special)
+                else              terms(newform, special, data=data)
+mf <- eval(temp, parent.frame())
+Terms <- terms(mf)
+@ 
+
+Now do a sanity check: squawk if they had both an id argument and
+a cluster term, or both a stratum argument and a strata term.
+<<cch-process-args>>=
+extras <- seq(length=length(newterm), to=length(mf))
+names(extras) <- names(newterm)
+
+tdrop <- extras
+if (!is.null(attr(Terms, "specials")$id)) {
+    if (!is.null(newterm$id)) 
+        stop("cannot have both an id argument and a cluster term in the formula")
+    temp <- untangle.specials(Terms, "cluster")
+    id <- m[[temp$vars]]
+    tdrop <- c(tdrop, temp$terms)  #to be dropped later
+}
+else id <- mf[[extras["id"]]]  #will usually be NULL
+
+if (!is.null(attr(Terms, "specials")$strata)) {
+    if (!is.null(newterms$stratum))
+        stop("cannot have both a stratum argument and a strata term in the formula")
+    temp <- untangle.specials(Terms, "strata")
+    if (length(temp$vars)==1) strata <- m[[stemp$vars]]
+    else strata <- strata(m[, temp$vars], shortlabel=TRUE)
+    tdrop <- c(tdrop, temp$terms)
+}
+else strata <- mf[[extras["stratum"]]]
+
+subcoh <- mf[[extras["subcoh"]]]
+                  
+Terms <- Terms[-tdrop]
+@ 
+
+Now do a few checks on the retrieved variables
+<<cch-process args>>=
+n <- nrow(mf)  #number of observations
+if (is.logical(subcoh)) subcoh <- as.numeric(subcoh)
+if (!all(subcoh %in% 0:1))
+    stop("subcoh values must be 0/1 or FALSE/TRUE")
+if (n > sum(cohort.size))
+    stop("number of records is greater than the cohort size")
+
+if (!is.null(strata)) {
+    if (method == "Prentice") method <- "I.Borgan"
+    if (method == "Self-Prentice") method <- "II.Borgan"
+    if (!(method %in% c("I.Borgan", "II.Borgan")))
+        stop("invalid method for stratified data")
+    strata <- as.factor(strata)
+    if (length(cohort.size)!=length(levels(strata)))
+            stop("cohort.size and stratum do not match")
+    subcohort.sizes <- table(strata)
+}
+else {
+    if (length(cohort.size)!=1)
+            stop("cohort size must be a scalar for unstratified analysis")
+    subcohort.sizes <- n
+}
+if (robust && method != "LinYing") 
+    warning ("robust option ignored for this method")
+
+if (!is.null(id) && any(duplicated(id))) 
+    stop ("multiple records per id not allowed")
+@ 
+
+Now create the data set that will be used for the calls to the underlying
+coxph code.  It will be a (start, stop] data set, even if the input data
+is not.
+
+<<cch-setup-data>>=
+Y <-  model.extract(m, "response")
+if(!inherits(Y, "Surv"))
+    stop("Response must be a survival object")
+ytype <- attr(Y, "type")
+if (!ytype %in% c("right", "counting"))
+    stop("Cox model doesn't support \"", type, "\" survival data")
+if (ytype == "right") 
+    cdata <- data.frame(tstart= rep(0., n),
+                        tstop = Y[,1],
+                        cens  = Y[,2],
+                        X = model.matrix(Terms, mf)[, -1, drop=FALSE)
+else cdata <- data.frame(tstart= Y[,1],
+                         tstop = Y[,2],
+                         cens =  Y[,3],
+                         X = model.matrix(Terms, mf[, -1, drop=FALSE)))
+
+if (any (!subcoh & cens==0))
+    stop ("every observation should either be in the subcohort or be an event")
+
+
+
+@ 
+
+                 Y[,3])
+    if (any(!subcoh & !cens))
+        stop(sum(!subcoh & !cens),"censored observations not in subcohort")
+    cc<-cens+1-subcoh
+    texit<-switch(itype+1, stop(), Y[,1], Y[,2])
+    tenter<-switch(itype+1, stop(), rep(0,length(texit)), Y[,1])
+    X <- model.matrix(Terms, m)
+    X <- X[,2:ncol(X)]
+    fitter <- get(method)
+    if (stratified)        
+        out<-fitter(tenter=tenter, texit=texit, cc=cc, id=id, X=X,
+                    stratum=as.numeric(stratum), stratum.sizes=cohort.size)
+    else
+        out<-fitter(tenter=tenter, texit=texit, cc=cc, id=id, X=X, ntot=nn, robust=robust)
+    out$method <- method
+    names(out$coefficients) <- dimnames(X)[[2]]
+    if(!is.null(out$var))
+        dimnames(out$var) <- list(dimnames(X)[[2]], dimnames(X)[[2]])
+    if(!is.null(out$naive.var))
+        dimnames(out$naive.var) <- list(dimnames(X)[[2]], dimnames(X)[[2]])
+    out$call <- call
+    out$cohort.size <- cohort.size
+    out$stratified<-stratified
+    if (stratified){
+        out$stratum<-stratum
+        out$subcohort.size <-subcohort.sizes
+    } else {
+        out$subcohort.size <- tt[2]
+    }
+    class(out) <- "cch"
+    out
+}
+
+### Subprograms
+
+Prentice <- function(tenter, texit, cc,  id, X, ntot,robust){
+    eps <- 0.00000001
+    cens <- as.numeric(cc>0) # Censorship indicators
+    subcoh <- as.numeric(cc<2) # Subcohort indicators
+
+    ## Calculate Prentice estimate
+    ent2 <- tenter
+    ent2[cc==2] <- texit[cc==2]-eps
+    fit1 <- coxph(Surv(ent2,texit,cens)~X,eps=eps,x=TRUE)
+
+    ## Calculate Prentice estimate and variance
+    nd <- sum(cens) # Number of failures
+    nc <- sum(subcoh) # Number in subcohort
+    ncd <- sum(cc==1) #Number of failures in subcohort
+    X <- as.matrix(X)
+    aent <- c(tenter[cc>0],tenter[cc<2])
+    aexit <- c(texit[cc>0],texit[cc<2])
+    aX <- rbind(as.matrix(X[cc>0,]),as.matrix(X[cc<2,]))
+    aid <- c(id[cc>0],id[cc<2])
+    dum <- rep(-100,nd)
+    dum <- c(dum,rep(0,nc))
+    gp <- rep(1,nd)
+    gp <- c(gp,rep(0,nc))
+    fit <- coxph(Surv(aent,aexit,gp)~aX+offset(dum)+cluster(aid),eps=eps,x=TRUE,
+                 iter.max=35,init=fit1$coefficients)
+    db <- resid(fit,type="dfbeta")
+    db <- as.matrix(db)
+    db <- db[gp==0,]
+    fit$phase2var<-(1-(nc/ntot))*t(db)%*%(db)
+    fit$naive.var <- fit$naive.var+fit$phase2var
+    fit$var<-fit$naive.var
+    
+    fit$coefficients <- fit$coef <- fit1$coefficients
+    fit
+}
+
+SelfPrentice <- function(tenter, texit, cc,  id, X, ntot,robust){
+    eps <- 0.00000001
+    cens <- as.numeric(cc>0) # Censorship indicators
+    subcoh <- as.numeric(cc<2) # Subcohort indicators
+
+    ## Calculate Self-Prentice estimate and variance
+    nd <- sum(cens) # Number of failures
+    nc <- sum(subcoh) # Number in subcohort
+    ncd <- sum(cc==1) #Number of failures in subcohort
+    X <- as.matrix(X)
+    aent <- c(tenter[cc>0],tenter[cc<2])
+    aexit <- c(texit[cc>0],texit[cc<2])
+    aX <- rbind(as.matrix(X[cc>0,]),as.matrix(X[cc<2,]))
+    aid <- c(id[cc>0],id[cc<2])
+    dum <- rep(-100,nd)
+    dum <- c(dum,rep(0,nc))
+    gp <- rep(1,nd)
+    gp <- c(gp,rep(0,nc))
+    fit <- coxph(Surv(aent,aexit,gp)~aX+offset(dum)+cluster(aid),eps=eps,x=TRUE)
+    db <- resid(fit,type="dfbeta")
+    db <- as.matrix(db)
+    db <- db[gp==0,,drop=FALSE]
+    fit$phase2var<-(1-(nc/ntot))*t(db)%*%(db)
+    fit$naive.var <- fit$naive.var+fit$phase2var
+    fit$var<-fit$naive.var
+    fit
+}
+
+LinYing <- function(tenter, texit, cc,  id, X, ntot,robust){
+    eps <- 0.000000001
+    cens <- as.numeric(cc>0) # Censorship indicators
+    subcoh <- as.numeric(cc<2) # Subcohort indicators
+    nd <- sum(cens) # Number of failures
+    nc <- sum(subcoh) # Number in subcohort
+    ncd <- sum(cc==1) #Number of failures in subcohort
+
+    ## Calculate Lin-Ying estimate and variance
+    offs <- rep((ntot-nd)/(nc-ncd),length(texit))
+    offs[cc>0] <- 1
+    loffs <- log(offs)
+    fit <- coxph(Surv(tenter, texit, cens)~X+offset(loffs)+cluster(id),
+                 eps=eps,x=TRUE)
+    db <- resid(fit,type="dfbeta")
+    db <- as.matrix(db)
+    db0 <- db[cens==0,,drop=FALSE]
+    dbm <- apply(db0,2,mean)
+    db0 <- sweep(db0,2,dbm)
+    fit$phase2var<-(1-(nc-ncd)/(ntot-nd))*crossprod(db0)
+    fit$naive.var <- fit$naive.var+fit$phase2var
+    if (robust)
+        fit$var<- crossprod(db,db/offs)+fit$phase2var
+    else
+        fit$var<-fit$naive.var
+    fit
+}
+
+I.Borgan <- function(tenter, texit, cc,  id, X, stratum, stratum.sizes){
+  eps <- 0.00000001
+  nobs <- length(texit)
+  idx <- 1:length(nobs)
+  jj <- max(stratum)
+  nn <- stratum.sizes  ## Cohort stratum sizes
+  n <- table(stratum)  ## Sample stratum sizes
+  d <- table(stratum[cc>0]) ## Failures in each stratum
+  tt <- table(cc,stratum)
+  cens <- as.numeric(cc>0) ## Failure indicators
+  subcoh <- as.numeric(cc<2) ## Subcohort indicators
+  nd <- sum(cens) ## Number of failures
+  nc <- sum(subcoh) ## Number in subcohort
+  ncd <- sum(as.numeric(cc==1)) #Number of failures in subcohort
+  m0 <- tt[1,] ## Subcohort stratum sizes (noncases only)
+  if (ncd>0) m <- m0+tt[2,] else m <- m0 #Subcohort stratum sizes
+  X <- as.matrix(X)
+  kk <- ncol(X) ## Number of variables
+  wt <- as.vector(nn/m) ## Weights for Estimator I
+  stratum <- c(stratum[cc>0],stratum[cc<2])
+  w <- wt[stratum]
+  ent <- c(tenter[cc > 0], tenter[cc < 2])
+  exit <- c(texit[cc > 0], texit[cc < 2])
+  X <- rbind(as.matrix(X[cc > 0,  ]), 
+             as.matrix(X[cc < 2,  ]))
+  id <- c(id[cc > 0], id[cc < 2])
+  dum <- rep(-100, nd)
+  dum <- c(dum, rep(0, nc))
+  gp <- rep(1, nd)
+  gp <- c(gp, rep(0, nc))
+  w[gp==1] <- 1
+  fit <- coxph(Surv(ent,exit,gp)~X+offset(dum)+cluster(id),
+               weights=w, eps=eps,x=T, iter.max=25)  
+  score <- resid(fit, type = "score", weighted=F)
+  sc <- resid(fit, type="score", collapse=id, weighted=T)
+  score <- as.matrix(score)
+  score <- score[gp == 0,,drop=F]
+  st <- stratum[gp==0]
+  sto <- st %o% rep(1,kk)
+  Index <- col(score)
+  tscore <- tapply(score,list(sto,Index),mean)
+  pscore <- tapply(score,list(sto,Index))
+  score <- score-tscore[pscore]
+  delta <- matrix(0,kk,kk)
+  opt <- NULL
+  for (j in 1:jj) {
+    temp <- t(score[st==j,])%*%score[st==j,]/(m[j]-1)
+    delta <- matrix(delta+(wt[j]-1)*nn[j]*temp,kk,kk)
+    if(is.null(opt)) 
+      opt <- nn[j]*sqrt(diag(fit$naive.var %*% temp %*% fit$naive.var)) 
+    else
+      opt <- rbind(opt,nn[j]*sqrt(diag(fit$naive.var %*% temp %*% fit$naive.var))) 
+  }
+  z <- apply(opt,2,sum)
+  fit$opt <- sweep(opt,2,z,FUN="/")
+  fit$phase2var<-fit$naive.var%*%delta%*%fit$naive.var
+  fit$naive.var <- fit$naive.var+fit$phase2var
+  fit$var<-fit$naive.var
+  fit$delta <- delta
+  fit$sc <- sc
+  fit
+}
+
+II.Borgan <- function(tenter, texit, cc,  id, X, stratum, stratum.sizes){
+  eps <- 0.00000001
+  jj <- max(stratum)
+  nn <- stratum.sizes  ## Cohort stratum sizes
+  n <- table(stratum)  ## Sample stratum sizes
+  d <- table(stratum[cc>0]) ## Failures in each stratum
+  tt <- table(cc,stratum)
+  cens <- as.numeric(cc>0) ## Failure indicators
+  subcoh <- as.numeric(cc<2) ## Subcohort indicators
+  nd <- sum(cens) ## Number of failures
+  nc <- sum(subcoh) ## Number in subcohort
+  ncd <- sum(as.numeric(cc==1)) #Number of failures in subcohort
+  m0 <- tt[1,] ## Subcohort stratum sizes (controls only)
+  if (ncd>0) m <- m0+tt[2,] else m <- m0 #Subcohort stratum sizes
+  X <- as.matrix(X)
+  kk <- ncol(X) ## Number of variables
+  nn0 <- nn-as.vector(d) #Noncases in cohort
+  wt <- as.vector(nn0/m0)
+  w <- wt[stratum]
+  w[cens==1] <- 1
+  fit <- coxph(Surv(tenter,texit,cens)~X+cluster(id),
+               weights=w,eps=eps,x=T, iter.max=25)  ## Borgan Estimate II
+  score <- resid(fit, type = "score", weighted=F)
+  sc <- resid(fit,type="score", collapse=id, weighted=T)
+  score <- as.matrix(score)
+  score <- score[cens == 0,,drop=F] ## Scores for controls
+  st <- stratum[cens==0] ## Stratum indicators for controls
+  sto <- st %o% rep(1,kk)
+  Index <- col(score)
+  tscore <- tapply(score,list(sto,Index),mean) ## Within stratum control score means
+  pscore <- tapply(score,list(sto,Index))
+  score <- score-tscore[pscore] ## Subtract off within stratum score means
+  delta <- matrix(0,kk,kk)
+  opt <- NULL
+  for (j in 1:jj) {
+    temp <- t(score[st==j,])%*%score[st==j,]/(m0[j]-1) ## Borgan equation (19)
+    delta <- delta+(wt[j]-1)*nn0[j]*temp ## Borgan equation (17)
+    if(is.null(opt)) 
+      opt <- nn0[j]*sqrt(diag(fit$naive.var %*% temp %*% fit$naive.var)) 
+    else
+      opt <- rbind(opt,nn0[j]*sqrt(diag(fit$naive.var %*% temp %*% fit$naive.var))) 
+  }
+  z <- apply(opt,2,sum)
+  fit$opt <- sweep(opt,2,z,FUN="/")
+  fit$phase2var<-fit$naive.var %*% delta %*% fit$naive.var
+  fit$naive.var <- fit$naive.var+fit$phase2var
+  fit$var<-fit$naive.var
+  fit$delta <- delta
+  fit$sc <- sc
+  fit
+}
+
+## Methods
+
+vcov.cch<-function(object,...) object$var
+
+"print.cch"<- function(x,...)
+{
+    ## produces summary from an x of the class "cch"
+    call<-x$call
+    coef <- coef(x)
+    method <- x$method
+    se <- sqrt(diag(vcov(x)))
+    Z<- abs(coef/se)
+    p<- pnorm(Z)
+    cohort.size<-x$cohort.size
+    subcohort.size<-x$subcohort.size
+    coefficients <- matrix(0, nrow = length(coef), ncol = 4)
+    dimnames(coefficients) <- list(names(coef), c("Value", 
+                                                  "SE", "Z", "p"))
+    coefficients[, 1] <- coef
+    coefficients[, 2] <- se
+    coefficients[, 3] <- Z
+    coefficients[, 4] <- 2*(1-p)
+
+ 
+    if (x$stratified){
+        cat("Exposure-stratified case-cohort analysis,", x$method, "method.\n")
+        m<-rbind(subcohort=x$subcohort.size, cohort=x$cohort.size)
+        prmatrix(m,quote=FALSE)
+    } else{
+        cat("Case-cohort analysis,")
+        cat("x$method,", x$method,"\n with subcohort of",
+            x$subcohort.size,"from cohort of", x$cohort.size,"\n\n")
+    }
+    cat("Call: "); print(x$call)
+    cat("\nCoefficients:\n")
+    print(coefficients)
+    invisible(x)
+}
+
+
+"summary.cch"<-function(object,...)
+{
+    ## produces summary from an object of the class "cch"
+    call<-object$call
+	coef <- coef(object)
+	method <- object$method
+	se <- sqrt(diag(vcov(object)))
+      Z<- abs(coef/se)
+      p<- pnorm(Z)
+      cohort.size<-object$cohort.size
+      subcohort.size<-object$subcohort.size
+    coefficients <- matrix(0, nrow = length(coef), ncol = 4)
+    dimnames(coefficients) <- list(names(coef), c("Value", 
+                                                  "SE", "Z", "p"))
+    coefficients[, 1] <- coef
+    coefficients[, 2] <- se
+    coefficients[, 3] <- Z
+    coefficients[, 4] <- 2*(1-p)
+    structure(list(call=call, method=method, cohort.size=cohort.size,
+                   subcohort.size=subcohort.size, coefficients = coefficients,
+                   stratified=object$stratified), 
+              class = "summary.cch")
+}
+
+print.summary.cch <- function(x,digits=3,...){
+
+    if (x$stratified){
+        cat("Exposure-stratified case-cohort analysis,", x$method, "method.\n")
+        m<-rbind(subcohort=x$subcohort.size, cohort=x$cohort.size)
+        prmatrix(m,quote=FALSE)
+    } else{
+        cat("Case-cohort analysis,")
+        cat("x$method,", x$method,"\n with subcohort of",
+            x$subcohort.size,"from cohort of", x$cohort.size,"\n\n")
+    }
+    cat("Call: "); print(x$call)
+    cat("\nCoefficients:\n")
+    output<-cbind(Coef=x$coefficients[,1],HR=exp(x$coefficients[,1]),
+                  "(95%"=exp(x$coefficients[,1]-1.96*x$coefficients[,2]),
+                  "CI)"=exp(x$coefficients[,1]+1.96*x$coefficients[,2]),
+                  "p"=x$coefficients[,4]
+                  )
+    print(round(output,3))
+    invisible(x)
+}
+
