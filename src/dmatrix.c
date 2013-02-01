@@ -1,4 +1,4 @@
-/* $Id: dmatrix.c 11357 2009-09-04 15:22:46Z therneau $
+/* $Id: dmatrix.c 11525 2012-12-07 17:20:39Z therneau $
 **
 ** set up ragged arrays, with #of columns and #of rows,
 **  where nrow (second arg) is what R thinks are columns

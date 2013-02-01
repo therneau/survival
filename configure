@@ -1,4 +1,4 @@
 #!/bin/sh
-(cd noweb; ${R_HOME}/bin${R_ARCH_BIN}/R CMD make fun)
+(cd noweb; ${R_HOME}/bin${R_ARCH_BIN}/R CMD make doc fun)
 
 
