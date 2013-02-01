@@ -126,6 +126,7 @@ The statename vector is not modified.
          }
     }
     else {
+        <<survfitCI-idcheck>>
         <<survfitCI-startstop>>
     }
 
@@ -286,7 +287,7 @@ We want to ensure that a subject's weight is fixed, that they have a
 continuous period of observation, and that they don't
 transfer from a state to itself.
 
-<<survfitCI-startstop>>=
+<<survfitCI-idcheck>>=
 if (missing(id) || is.null(id))
     stop("the id argument is required for start:stop data")
 
@@ -313,7 +314,9 @@ if (any(same & weights[indx1] != weights[indx2])) {
     who <-  1 + min(which(same & weights[indx1] != weights[indx2]))
     stop("subject changes case weights, id ", (id[indx1])[who])
 }
+@ 
 
+<<survfitCI-startstop>>=
 # We only want to pay attention to the istate variable for the very first
 #  observation of any given subject, but the program logic does better with
 #  a full one.  So construct one that will do this

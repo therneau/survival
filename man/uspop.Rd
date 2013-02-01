@@ -11,11 +11,12 @@
 }
 \details{ This data is often used as a "standardized" population for
   epidemiolgy studies.}
-}
+
 \source{
 NP2008_D1:  Projected Population by Single Year of Age, Sex, Race, and Hispanic 
 Origin for the United States: July 1, 2000 to July 1, 2050,
-www.census.gov/population/projections
+www.census.gov/population/projections.
+}
 \examples{
 us50 <- uspop[51:101,, "2000"]  #US 2000 population, 50 and over
 age <- as.integer(dimnames(us50)[[1]])

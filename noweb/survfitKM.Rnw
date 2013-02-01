@@ -75,18 +75,28 @@ xint <- as.numeric(x)
 for (i in 1:nstrat) {
     who <- which(xint==i)
     if (ny==2) {
+        if (error==4 && any(duplicate(id))) {
+            temp <- (id[duplicate(id)])[1]
+            stop(paste("subject", temp, 
+                       "is at risk in overlapping time intervals"))
+        }
         ftime <- factor(y[who,1])
+        indx <- order(ftime, -status[who]) #censors after deaths
         survlist[[i]] <- c(list(time=as.numeric(levels(ftime))),
                            .Call("survkm1",
-                                 as.integer(ftime),
-                                 as.integer(y[who,2]),
+                                 as.integer(ftime[indx]),
+                                 as.integer(y[who[indx],2]),
+                                 as.double(wt[who[indx]]),
                                  method,
                                  error,
-                                 length(levels(ftime)),
-                                 id[who]))
+                                 length(levels(ftime)))
     }
     else {
         ftime <- factor(y[who, 1:2])
+        # Be careful that no one person has overlapping time intervals
+        if (error==4) {
+            <<survfitKM-checkid>>
+        }
         survlist[[i]] <- c(list(time=as.numeric(levels(ftime))),
                            .Call("survkm2",
                                  as.integer(ftime),
@@ -98,8 +108,35 @@ for (i in 1:nstrat) {
     }
 }     
 @ 
+ 
+indx <- order(id, Y[,2])  #ordered event times within subject
+indx1 <- c(NA, indx)  #a pair of lagged indices
+indx2 <- c(indx, NA)
+same <- (id[indx1] == id[indx2] & !is.na(indx1) & !is.na(indx2)) #indx1, indx2= same id?
+if (any(same & X[indx1] != X[indx2])) {
+    who <- 1 + min(which(same & X[indx1] != X[indx2]))
+    stop("subject is in two different groups, id ", (id[indx1])[who])
+}
+if (any(same & Y[indx1,2] != Y[indx2,1])) {
+    who <- 1 + min(which(same & Y[indx1,2] != Y[indx2,1]))
+    stop("gap in follow-up, id ", (id[indx1])[who])
+}
+if (any(Y[,1] == Y[,2])) 
+    stop("cannot have start time == stop time")
 
-Now for the real work using C routines
+if (any(same & Y[indx1,3] == Y[indx2,3] & Y[indx1,3] !=0)) {
+    who <-  1 + min(which(same & Y[indx1,1] != Y[indx2,2]))
+    stop("subject changes to the same state, id ", (id[indx1])[who])
+}
+if (any(same & weights[indx1] != weights[indx2])) {
+    who <-  1 + min(which(same & weights[indx1] != weights[indx2]))
+    stop("subject changes case weights, id ", (id[indx1])[who])
+}
+ 
+Now for the real work using C routines. 
+My standard for a variable named ``zed'' is to use zed2 for the S object
+and zed for the data part of the object; the latter is what the C code
+works with.
 <<survfitkm1.c>>=
 /*  -*- c -*-  */
 #include <math.h>
@@ -107,12 +144,13 @@ Now for the real work using C routines
 #include "survproto.h"
 
 SEXP survkm1(SEXP itime2,  SEXP status2, SEXP wt2, SEXP method2,  
-	     SEXP error2,  SEXP ntime2,  SEXP id2) {
+	     SEXP error2,  SEXP ntime2 {
     int i, j, k;
-    
+    int n;        /* number of observations */
     /* Data passed in */
-    int ntime, method, error;
-    int *itime, *status, *id;
+    int ntime;  /* number of unique times = length of output vectors */
+    int method, error;
+    int *itime, *status;
     double *wt;
     
     /*
@@ -120,203 +158,356 @@ SEXP survkm1(SEXP itime2,  SEXP status2, SEXP wt2, SEXP method2,
     */
     SEXP nrisk2, nevent2, ncensor2, surv, cumhaz;
     double *nrisk, *nevent, *ncensor, *surv, *cumhaz;
-    
+    SEXP ievent2, icensor2; /* integer counts, in case of weights */
+    int *ievent, *icensor;
+    const char *rnames[]={"nrisk", "nevent", "ncensor", "surv",
+			  "cumhaz", "std", "ievent", "icensor", ""};
+    /*
+    ** Get copies of the input data
+    */
     ntime = asInteger(ntime2);
     method= asInteger(method2);
     error = asInteger(error2);
     itime = INTEGER(itime2);
     status= INTEGER(status2);
     wt    = REAL(wt2);
-    if (method==4) id = integer(id2);
+    if (method==4) id = INTEGER(id2);
+    n = LENGTH(itime);
     
+    /*
+    ** create output objects
+    */
+    PROTECT(nrisk2 = allocVector(REALSXP, ntime));
+    nrisk = REAL(nrisk2);
+    PROTECT(nevent2 = allocVector(REALSXP, ntime));
+    nevent = REAL(nevent2);
+    PROTECT(ncensor2 = allocVector(REALSXP, ntime));
+    ncensor = REAL(ncensor2);
+    PROTECT(surv2 = allocVector(REALSXP, ntime));
+    surv = REAL(surv2);
+    PROTECT(cumhaz2 = allocVector(REALSXP, ntime));
+    cumhaz = REAL(cumhaz2);
+    PROTECT(ievent2 = allocVector(INTSXP, ntime));
+    ievent = INTEGER(ivent2);
+    PROTECT(icensor2 = allocVector(INTSXP, ntime));
+    icensor = INTEGER(icensor2);
+    if (error=0) PROTECT(var2 = allocVector(REALSXP, 1));/* no std wanted */
+    else PROTECT(var2= allocVector(REALSXP, ntime));
+    var = REAL(var2);
+    
+    /*
+    ** first pass, from largest time to smallest, count up
+    **  number events, number at risk, number censored
+    */
+    i = n -1;
+    temp =0;  /* accumulates number at risk */
+    for (j=ntime-1; j>=0; j--) {
+	nevent[j] = 0; ievent[j]=0;
+	ncensor[j]= 0; icensor[j]=0;
+	ctime = itime[i];  /* current time of interest */
+	while(itime[i]== ctime && i>=0) {
+	    temp += wt[i];
+	    if (status[i]==1){
+                nevent[j] += wt[i];
+                ievent[j]++;
+	    }
+	    else{
+              ncensor[j] += wt[i];
+              icensor[j]++;
+	    }
+	    i--;
+	}
+	nrisk[j] = temp;
+    }
+    
+    /*
+    ** Second pass, from smallest time to largest, accumulate
+    **  the cumulative hazard and survival
+    */
+    <<km-compute>>
+    if (error >0) {
+	<<km-var>>
+    }
+
+    /*
+    ** create the output structure
+    */
+    PROTECT(rlist = mkNamed(VEXSXP, rnames));
+    SET_VECTOR_ELT(rlist, 0, nrisk2);
+    SET_VECTOR_ELT(rlist, 1, nevent2);
+    SET_VECTOR_ELT(rlist, 2, ncensor2);
+    SET_VECTOR_ELT(rlist, 3, surv2);
+    SET_VECTOR_ELT(rlist, 4, cumhaz2);
+    SET_VECTOR_ELT(rlist, 5, var2);
+    SET_VECTOR_ELT(rlist, 1, ievent2);
+    SET_VECTOR_ELT(rlist, 2, icensor2);
+    UNPROTECT(9); /*once there is NO chance of a memory allocation, we let go*/
+    return(rlist);
+}
 @ 
 
+Let $Y_i(t)=1$ if observation $i$ is at risk at time $t$ and 0 otherwise,
+$s_i(t)$ be 1 at the point of an event for subject $i$ (status of 1),
+$w_i$ be the case weight for observation $i$,
+and $u_j$ $j=1,2, \ldots$ be the unique death times.
 
+Define
+\begin{center}
+  \begin{tabular}{r@{=}rl}
+    $r_j$& $\sum Y_i(u_j) w_i$ & weighted number at risk \\
+    $d_j$& $\sum s_i(u_j) w__i$ & weighted number of events \\
+    $c_j)$& $\sum (Y_i(u_j)-s_i(u_j)) w_i$ & weighted number of censored values
+  \end{tabular}
+\end{center}
+For (start, stop] data there will also be $e_j$ which counts the number
+of subjects who enter at time $t$.
+Also, let $f_j$ be the total number of failures (deaths) at time $t$, not
+weighted.
 
- 
-    
-    #
-    # Each of the necessary output objects is originally a list with one
-    #  element per strata.  This doesn't use up extra S memory, the number
-    #  of curves is usually small enough that the "for" loop is no great
-    #  cost, and it's easier to see what's going on than C code.
-    # If tapply gets fast again, this code will also be fast.
-    # The remaining C-code is simple, but hard to do cleanly in S
-    #  Let nrisk=A and nevent=B.  The terms in returned sum1 and sum2 are
-    #     If ndead= 0, sum1=sum2=1 (avoids a 0/0 in the S code)
-    #     If ndead= 1, sum1=1/A and sum2= 1/A*A
-    #     If ndead= 2, sum1= (1/2)[ 1/A + 1/(A- B/2)]
-    #                  sum2= (1/2)[ 1/A^2 + (1/(A-B/2))^2]
-    #     If ndead =3, sum1 = (1/3)[1/A + 1/(A-B/3) + 1/(A -2B/3)]
-    #     If ndead =4, sum1 = (1/4)[1/A + 1/(A-B/4) + 1/(A -2B/4) + 1/(A-3B/4)]
-    #		 and etc.
-    time   <- vector('list', nstrat)
-    n.risk <- vector('list', nstrat)
-    surv   <- vector('list', nstrat)
-    n.cens <- vector('list', nstrat)
-    n.event<- vector('list', nstrat)
-    strata <- integer(nstrat)
-    if (se.fit) varhaz <- vector('list', nstrat)
-    if (ny==3)  n.enter <- vector('list', nstrat)
+The cumulative hazard estimates are the Nelson-Aalen-Breslow (same estimate,
+three different papers in three places) or the Fleming-Harrington.
+\begin{align*}
+  \Lambda_A(t) &\ \sum{u_j \le t} d_j/r_j \\
+  \Lambda_{FH}(t) &= \sum{u_j \le t} \frac{d_j}
+         {(1/f_j) \sum_{k=0}^{f_j-1} (r_j - kd_j/f_j)}
+\end{align*}
+To understand the Fleming-Harrington estimate, suppose that at some time
+point we had three deaths out of 10 at risk.  The Aalen estimate gives a
+hazard estimate of 3/10.  
+The FH estimate assumes that the deaths didn't actually all happen at once,
+even though rounding in the data collection process makes it appear that
+way, so the better estimate is 1/10 + 1/9 + 1/8.  The third person to die,
+whoever that was, would have had only 8 at risk when thier event happened.
 
-    uniquex <- sort(unique(x))
-    for (i in 1:nstrat) {
-	who <- (x== uniquex[i])
-	if (ny==2) {
-	    # the "factor" + levels ensures 2 columns in temp even if all 
-	    #  are dead or  all are alive
-	    temp <- tapply(casewt[who], 
-			   list(factor(y[who,1]), 
-                                factor(y[who,2], levels=0:1)), sum)
-	    temp <- ifelse(is.na(temp), 0, temp)
+The estimate of survival is either the Kaplan-Meier or the exponential
+of the hazard.
+\begin{equation*}
+  KM(t) = \prod_{u_j \le t} \frac{r_j - d_j}{r_j}
+\end{equation*}
 
-            # The two lines below do not always give the same answer
-            #  When two times differ by only the machine precision, unique
-            #  will give more values, and then "time" will be a different
-            #  length than the other components
-	    time[[i]] <- as.numeric(dimnames(temp)[[1]])
-#	    time[[i]] <- sort(unique(y[who,1]))   #same answer as line above
-	    ntemp  <- (dim(temp))[1]
-	    nevent <- as.vector(temp[,2])
-	    ncens  <- as.vector(temp[,1])
-	    nrisk  <- rev(cumsum(rev(temp %*% c(1,1))))
-	    ndead  <- as.vector(table(y[who,1], factor(y[who,2], 
-                                                       levels=0:1)) [,2])
-	    }
-	else {
-	    #    The counting process case
-	    # We have to be a bit more clever here -- if I did a table of the
-	    #  start times and a separate one of the stop times, they wouldn't
-	    #  necessarily match.  So do it all at once with a fake 'status'
-	    #  variable which is ==2 for start times and = status for stop
-	    # Also, the number of rows in output (ntemp) may be bigger than
-	    #  the number of rows of input (n).
-	    n <- sum(who)
-	    temp <- factor(c(rep(2,n),y[who,3]), levels=0:3)
-	    temp <- tapply(rep(casewt[who],2), list(factor(y[who,1:2]), temp),
-                           sum)
-	    temp <- ifelse(is.na(temp), 0, temp)
-	    time[[i]] <- as.numeric(dimnames(temp)[[1]])
-	    ntemp  <- (dim(temp))[1]
-	    nevent <- as.vector(temp[,2])
-	    ncens  <- as.vector(temp[,1])
-	    nenter <- as.vector(temp[,3])
-	    nrisk  <- cumsum(nenter - (nevent + ncens))
-	    nrisk  <- c(0, nrisk[-ntemp])  #risk counts change at time t+0
-	    n.enter[[i]] <- nenter
-	    # again, a fake status to make sure that all the times appear
-	    ndead <- as.vector(table(y[who,1:2], 
-				 factor(c(rep(0,n),y[who,3]), levels=0:2))[,2])
-	    }
-	
-	strata[i] <- ntemp
-	trisk <- ifelse(nrisk==0, 1, nrisk) #avoid 0/0 cases
-
-	if (method==1) surv[[i]] <- cumprod((trisk-nevent)/trisk)
-	if (method==2) {
-	    hazard <- nevent/trisk  #Nelson's hazard estimate
-	    surv[[i]] <- exp(- cumsum(hazard))
-	    }
-	if (method==3) {
-	    tsum  <- .C('survfit4', as.integer(length(ncens)),
-			            as.integer(ndead),
-			            sum1 = as.double(nrisk),
-			            sum2 = as.double(nevent),
-			copy=c(FALSE,FALSE,TRUE,TRUE))
-	    hazard <- nevent *tsum$sum1
-	    surv[[i]] <- exp(-cumsum(hazard))
-	    }
-
-	if (se.fit) {
-	    if (error.int==1) # Greenwood
-		    varhaz[[i]] <- cumsum(nevent/(trisk*(trisk-nevent)))
-	    else {
-		if (method <3) varhaz[[i]] <- cumsum(nevent/(trisk^2))
-		else 	       varhaz[[i]] <- cumsum(nevent* tsum$sum2)
-		}
-	    }
-	n.event[[i]] <- nevent
-	n.cens[[i]]  <- ncens
-	n.risk[[i]]  <- nrisk
-	}
-
-    if (ny==2) {
-	temp <- list(n=n.used,
-		     time = unlist(time),
-		     n.risk = unlist(n.risk),
-		     n.event= unlist(n.event),
-		     n.censor = unlist(n.cens),
-		     surv = unlist(surv),
-		     type='right')
-	}
-    else {
-	temp <- list(n=n.used,
-		     time = unlist(time),
-		     n.risk = unlist(n.risk),
-		     n.event= unlist(n.event),
-		     n.censor = unlist(n.cens),
-		     n.enter  = unlist(n.enter),
-		     surv = unlist(surv),
-		     type='counting')
-	}
-
-    if (nstrat >1) {
-	names(strata) <- xlev[sort(unique(x))]
-	temp$strata <- strata
-	}
-
-    if (!missing(start.time)) {
-	    temp$start.time <- start.time # user defined time to start
-	    temp$n.all <- n.all
-	    }
-
-    if (se.fit) {
-	std.err <- sqrt(unlist(varhaz))
-	temp$std.err <- std.err
-	#
-	# n.lag = the # at risk the last time there was an event (or
-	#   the first time of a strata)
-	#
-	events <- temp$n.event >0
-	if (nstrat==1) events[1] <- TRUE
-	else           events[1 + cumsum(c(0, strata[-nstrat]))] <- TRUE
-	zz <- 1:length(events)
-	n.lag <- rep(temp$n.risk[events], diff(c(zz[events], 1+max(zz))))
-	std.low <- switch(conf.lower,
-			  'usual' = std.err,
-			  'peto' = sqrt((1-temp$surv)/ temp$n.risk),
-			  'modified' = std.err * sqrt(n.lag/temp$n.risk))
-	zval <- qnorm(1- (1-conf.int)/2, 0,1)
-
-	if (conf.type=='plain') {
-	    temp1 <- temp$surv + zval* std.err * temp$surv
-	    temp2 <- temp$surv - zval* std.low * temp$surv
-	    temp <- c(temp, list(upper=pmin(temp1,1), lower=pmax(temp2,0),
-				 conf.type='plain', conf.int=conf.int))
-	    }
-
-	if (conf.type=='log') {
-	    #avoid some "log(0)" messages
-	    xx <- ifelse(temp$surv==0,1,temp$surv)  
-
-	    temp1 <- ifelse(temp$surv==0, NA, exp(log(xx) + zval* std.err))
-	    temp2 <- ifelse(temp$surv==0, NA, exp(log(xx) - zval* std.low))
-	    temp <- c(temp, list(upper=pmin(temp1,1), lower=temp2,
-				 conf.type='log', conf.int=conf.int))
-	    }
-
-	if (conf.type=='log-log') {
-	    who <- (temp$surv==0 | temp$surv==1) #special cases
-	    temp3 <- ifelse(temp$surv==0, NA, 1)
-	    xx <- ifelse(who, .1,temp$surv)  #avoid some "log(0)" messages
-	    temp1 <- exp(-exp(log(-log(xx)) + zval*std.err/log(xx)))
-	    temp1 <- ifelse(who, temp3, temp1)
-	    temp2 <- exp(-exp(log(-log(xx)) - zval*std.low/log(xx)))
-	    temp2 <- ifelse(who, temp3, temp2)
-	    temp <- c(temp, list(upper=temp1, lower=temp2,
-				 conf.type='log-log', conf.int=conf.int))
-	    }
+<<km-compute>>=
+tempc =0;  /*accumulates the chaz */
+temps =1;  /*accumulates the survival */
+tempv =0;  /*accumulates the variance */
+if (method==1) {  /*KM survival and Aalen hazard, 99% of the calls */
+    for (j=0; j<ntime; j++) {
+        if (nevent[j] >0) {
+    	temps *= (nrisk[j] - nevent[j])/nevent[j];
+    	tempc += nevent[j]/nrisk[j];
         }
-
-    temp
+        surv[j] = temps;
+        chaz[j] = tempc;
     }
+}
+else if (method==2) { /*Aalen hazard and exponent for survival */
+    for (j=0; j<ntime; j++) {
+        if (nevent[j] >0) tempc += nevent[j]/nrisk[j];
+        chaz[j] = tempc;
+        surv[j] = exp(-tempc);
+    }
+}
+else { /* FH hazard, rarest call */
+    for (j=0; j<ntime; j++) {
+        if (nevent[j] >0) {
+    	 temp <- nevent[j]/ievent[j]; 
+    	 for (k=0; i<ievent[j]; k++) 
+    	    tempc += temp/(nnrisk[j] - k*temp);
+        }
+        chaz[j] = tempc;
+        surv[j] = exp(-tempc);
+    }
+}
+@ 
+
+The variance of the cumulative hazard comes in 3 flavors.
+The Greenwood and the Aalen estimates are simple.
+\begin{align*}
+  V_A(t) &= \sum_{u_j \le t}  \frac{d_j}{r_j^2} \\
+  V_G(t) &= \sum_{u_j \le t}  \frac{d_j}{r_j(r_j-d_j)} \\
+  V_J(t) &= \sum_i [w_i J_i(t)]^2
+\end{align*}
+The infinitesimal jackknife estimate is a sum over all the subjects of
+that subject's influence on $\Lambda(t)$.  The individual influences
+are 
+\begin{align*}
+  J_i(t) &= \frac{\partial \Lambda(t)}{\partial w_i} \\
+         &= J_i(t-) +  \frac{\partial \sum_k w_k d_k(t)/sum_k w_k Y_k(t)}
+                {\partial w_i} \\
+         &= J_i(t-) + \frac{d_k(t) - Y_k(t) \lambda(t)}{/sum_k w_k Y_k(t)}
+\end{align*}
+The influence terms accumulate just as the cumulative hazard does.
+Computation of the IJ estimate requires an extra scratch vector.
+With the FH hazard estimate things are bit more bother.  
+If there are 3 tied deaths, say, then the computation has to add up
+3 increments.
+
+<<km-var>>=
+temp =0;
+if (error==1) { /* Greenwood */
+    for (j=0; j<ntime; j++) 
+        if (nevent[j] >0) temp += nevent[j]/(nrisk[j] * (nrisk[j]-nevent[j]));
+    var[j] = temp;
+}
+else if (error==2) { /* Aalen */
+    for (j=0; j<ntime; j++)
+	if (nevent[j]>0) temp += nevent[j]/(nrisk[j] * nrisk[j]);
+    var[j] = temp;
+}
+else {
+    inf  = (double *) Ralloc(n, sizeof(double));  /* scratch space */
+    for (i=0; i<n; i++) inf[i] =0;
+    i =0;
+    v0 =0;  /* sum of squares that don't need updating */
+    for (j=0; j<ntime; j++) {
+	if (nevent[j] >0) {  /*nothing changes at non-event times */
+	    ctime = time[i];  /*current event time */
+	    if (method <3) { /* variance of the Aalen hazard */
+		for (;i<n && time[i]==ctime; i++) 
+		    inf[i] += (status[i] - nevent[j]/nrisk[j])/ nrisk[j];
+		for (k=i; k<n; k++)
+		    inf[k] -= nevent[j]/(nrisk[j]*nrisk[j]);
+		}
+	    else { /* variance for the FH hazard */
+		temp = nevent[j]/ ievent[j];
+		inc1 =0; /* influence at this time for non-deaths*/
+		inc2 =0;  /* influence contribution for deaths */
+		for (k=0; k<ievent[j]; k++) {
+		    inc1 -= temp/((nrisk - k*nevent[j])*(nrisk-k*nevent[j]));
+		    inc2 += (1/(nrisk - k*nevent[j]) + inc1*(ievent[j]-k))/
+			ievent[k];
+		}
+		for (; i<n && time[i]==ctime; i++) {
+		    if (status[i]==1) inf[i] += inc2;
+                    else inf[i] += inc1;
+		    v0 += wt[i]*wt[i]*inf[i]*inf[i];
+		}
+		for (k=i; k<n; k++) inf[k] += inc2;
+	    }
+	    /* add it up */
+	    var[j] = v0;
+	    for (k=i; k<n; i++) var[j] += wt[i]*wt[i]*inf[i]*inf[i];
+	}
+        else var[j] = v0;     
+    }
+}
+@ 
+  
+The routine for start-stop data has to do more work to count up the number
+at risk, but once that is done the computations are the same.
+There is, however, a bit more bookkeeping for the infinitesimal jackknife,
+due to the fact that one subject may be represented in multiple observations.
+<<survfitkm2.c>>=
+/*  -*- c -*-  */
+#include <math.h>
+#include "survS.h
+#include "survproto.h"
+
+SEXP survkm2(SEXP itime2,  SEXP status2, SEXP wt2, SEXP method2,  
+	     SEXP error2,  SEXP ntime2,  SEXP id2, SEXP nid2,
+             SEXP sort1) {
+    int i, j, k;
+    int n;        /* number of observations */
+    int nid;      /* number of unique id values */
+    /* Data passed in */
+    int ntime;  /* number of unique times = length of output vectors */
+    int method, error;
+    int *start, *stop, *status, *id;
+    double *wt;
+    
+    /*
+    ** output vectors
+    */
+    SEXP nrisk2, nevent2, ncensor2, surv, cumhaz;
+    double *nrisk, *nevent, *ncensor, *surv, *cumhaz;
+    SEXP ievent2, icensor2; /* integer counts, in case of weights */
+    int *ievent, *icensor;
+    const char *rnames[]={"nrisk", "nevent", "ncensor", "surv",
+			  "cumhaz", "std", "ievent", "icensor", ""};
+    /*
+    ** Get copies of the input data
+    */
+    ntime = asInteger(ntime2);
+    n = LENGTH(itime);
+    nid= asInteger(nid);
+    method= asInteger(method2);
+    error = asInteger(error2);
+    start = INTEGER(itime2);
+    stop =  start + n;
+    status= INTEGER(status2);
+    wt    = REAL(wt2);
+    if (method==4) id = INTEGER(id2);
+    n = LENGTH(itime);
+    id = INTEGER(id2);
+    nid= asInteger(nid);
+    
+    /*
+    ** create output objects
+    */
+    PROTECT(nrisk2 = allocVector(REALSXP, ntime));
+    nrisk = REAL(nrisk2);
+    PROTECT(nevent2 = allocVector(REALSXP, ntime));
+    nevent = REAL(nevent2);
+    PROTECT(ncensor2 = allocVector(REALSXP, ntime));
+    ncensor = REAL(ncensor2);
+    PROTECT(surv2 = allocVector(REALSXP, ntime));
+    surv = REAL(surv2);
+    PROTECT(cumhaz2 = allocVector(REALSXP, ntime));
+    cumhaz = REAL(cumhaz2);
+    PROTECT(ievent2 = allocVector(INTSXP, ntime));
+    ievent = INTEGER(ivent2);
+    PROTECT(icensor2 = allocVector(INTSXP, ntime));
+    icensor = INTEGER(icensor2);
+    if (error=0) PROTECT(var2 = allocVector(REALSXP, 1));/* no std wanted */
+    else PROTECT(var2= allocVector(REALSXP, ntime));
+    var = REAL(var2);
+    
+    /*
+    ** first pass, from largest time to smallest, count up
+    **  number events, number at risk, number censored
+    */
+    i = n -1;
+    temp =0;  /* accumulates number at risk */
+    for (j=ntime-1; j>=0; j--) {
+	nevent[j] = 0; ievent[j]=0;
+	ncensor[j]= 0; icensor[j]=0;
+	ctime = itime[i];  /* current time of interest */
+	while(itime[i]== ctime && i>=0) {
+	    temp += wt[i];
+	    if (status[i]==1){
+                nevent[j] += wt[i];
+                ievent[j]++;
+	    }
+	    else{
+              ncensor[j] += wt[i];
+              icensor[j]++;
+	    }
+	    i--;
+	}
+	nrisk[j] = temp;
+    }
+    
+    /*
+    ** Second pass, from smallest time to largest, accumulate
+    **  the cumulative hazard and survival
+    */
+    <<km-compute>>
+    if (error >0) {
+	<<km-var>>
+    }
+
+    /*
+    ** create the output structure
+    */
+    PROTECT(rlist = mkNamed(VEXSXP, rnames));
+    SET_VECTOR_ELT(rlist, 0, nrisk2);
+    SET_VECTOR_ELT(rlist, 1, nevent2);
+    SET_VECTOR_ELT(rlist, 2, ncensor2);
+    SET_VECTOR_ELT(rlist, 3, surv2);
+    SET_VECTOR_ELT(rlist, 4, cumhaz2);
+    SET_VECTOR_ELT(rlist, 5, var2);
+    SET_VECTOR_ELT(rlist, 1, ievent2);
+    SET_VECTOR_ELT(rlist, 2, icensor2);
+    UNPROTECT(9); /*once there is NO chance of a memory allocation, we let go*/
+    return(rlist);
+}
+@ 

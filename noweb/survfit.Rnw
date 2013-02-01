@@ -13,7 +13,7 @@ survfit <- function(formula, ...) {
 }
 
 <<survfit-subscript>>
-<<surfit-formula>>
+<<survfit-formula>>
 @ 
 
 The result of a survival curve can have a [[surv]] component that is a
