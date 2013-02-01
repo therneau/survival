@@ -386,9 +386,10 @@ xend <- yend <- double(ncurve)
 
 for (i in unique(stemp)) {  #for each strata
     who <- which(stemp==i)
-    xx <- c(firstx, stime[who])
     censor <- if (is.null(x$n.censor))
         (x$n.event[who] ==0)  else (x$n.censor[who] >0) #places with a censoring
+    xx <- c(firstx, stime[who])
+    censor <- c(FALSE, censor)  #no mark at firstx
     for (j in 1:ncol(ssurv)) {
         yy <- c(firsty, ssurv[who,j])
         if (plot.surv) {

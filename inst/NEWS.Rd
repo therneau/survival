@@ -2,7 +2,17 @@
 \title{NEWS file for the survival package}
 \section{Changes in version 2.37-3}{
   \itemize{
-    \item Add the US population data set.
+    \item Error in plot.survfit pointed out by K Hoggart -- the "+"
+    signs for censored observations were printing one survival time to
+    the left of the proper spot.
+    
+    \item Repair an error in using double subscripts for the survfitms
+    objects.
+    
+    \item Add the US population data set, with totals by age and sex for
+    2000 onward.  It is named uspop2, since
+    there is already a "uspop" data set containing decennial totals from
+    1790 to 1970.
     
     \item Not all combinations of strata Y/N and CI Y/N worked in the
     quantile.survfit function, pointed out by Daniel Wallschlaeger

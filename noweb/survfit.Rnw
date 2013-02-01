@@ -113,7 +113,7 @@ survfit.formula <- function(formula, data, weights, subset,
     # create a copy of the call that has only the arguments we want,
     #  and use it to call model.frame()
     indx <- match(c('formula', 'data', 'weights', 'subset','na.action',
-                    'istate', 'id', "etype"), names(call), nomatch=0)
+                    'istate', 'id', "etype"), names(Call), nomatch=0)
     #It's very hard to get the next error message other than malice
     #  eg survfit(wt=Surv(time, status) ~1) 
     if (indx[1]==0) stop("a formula argument is required")
@@ -185,7 +185,7 @@ survfit.formula <- function(formula, data, weights, subset,
     if (attr(Y, 'type') == 'left' || attr(Y, 'type') == 'interval')
         temp <-  survfitTurnbull(X, Y, casewt, ...)
     else if (attr(Y, 'type') == "right" || attr(Y, 'type')== "counting")
-        temp <- survfitKM(X, Y, casewt, id=id, ...)
+        temp <- survfitKM(X, Y, casewt, ...)
     else if (attr(Y, 'type') == "mright" || attr(Y, "type")== "mcounting")
         temp <- survfitCI(X, Y, weights=casewt, id=id,  istate=istate, ...)
     else {

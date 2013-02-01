@@ -38,7 +38,7 @@ sum that is closely related to the Cox model score statistic.
 \begin{align}
   N &= \sum_{i=1}^n w_i \delta_i H(t_i) (s_i(t_i) - .5) /label{eq:n} \\
   D &= \sum_{i=1}^n w_i \delta_i H(t_i) \label{eq:d}
-\end{align*}
+\end{align}
 where $H(t)$ is a prespecified function of time, $\delta_i=1$ if
 the subject is an event, and
 $s_i$ is the scaled rank of the observation at that time point,
