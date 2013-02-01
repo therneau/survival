@@ -36,7 +36,7 @@ In Therneau, Schemper and Kremers (in press) we show that a time weighted
 concordace statistic can be written as $N/D$ where each is a
 sum that is closely related to the Cox model score statistic.
 \begin{align}
-  N &= \sum_{i=1}^n w_i \delta_i H(t_i) (s_i(t_i) - .5) /label{eq:n} \\
+  N &= \sum_{i=1}^n w_i \delta_i H(t_i) (s_i(t_i) - .5) \label{eq:n} \\
   D &= \sum_{i=1}^n w_i \delta_i H(t_i) \label{eq:d}
 \end{align}
 where $H(t)$ is a prespecified function of time, $\delta_i=1$ if
@@ -181,14 +181,15 @@ We recognized equation \eqref{eq:n} as the score statistic from a time
 weighted Cox model with the scaled rank $s(t)$ as the covariate.
 The Cox variance for each term is 
 \begin{equation}
- V(t) &= \sum_{i \in R(t)} Y_i(t) w_i (s_i(t) - .5)^2 / 
+ V(t) = \sum_{i \in R(t)} Y_i(t) w_i (s_i(t) - .5)^2 / 
                    \sum_{i \in R(t)} Y_i(t) w_i 
 \end{equation} 
 As an update formula for $V$ consider the variance of the
 unscaled ranks.
 The key formula is below,
 true for any set of values $x$ and centering constant $c$.
-begin{equation*} \sum w_i(x_i - \overline{x})^2 = \sum w_i(x_i-c)^2 - 
+\begin{equation*} 
+  \sum w_i(x_i - \overline{x})^2 = \sum w_i(x_i-c)^2 - 
     \sum w_i(c - \overline{x})^2
 \end{equation*}
 true for any set of values $x$ and centering constant $c$.
