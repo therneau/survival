@@ -70,25 +70,21 @@ test: $(RFUN)
 
 %.R: 
 	echo "# Automatically generated from all.nw using noweb" > $@
-	echo "source('noweb.R'); print(notangle(nwread('all.nw'), target='$(*F)'), file='zz')" | $(R_HOME)/bin$(R_ARCH_BIN)/R --vanilla --slave
+	echo "require(noweb); notangle('all.nw', target='$(*F)', out='zz')" | $(R_HOME)/bin$(R_ARCH_BIN)/R --vanilla --slave
 	cat zz >> $@
 	rm zz
-#	notangle -R$(*F) all.nw >> $@
 
 %.S: 
 	echo "# Automatically generated from all.nw using noweb" > $@
-	echo "source('noweb.R'); print(notangle(nwread('all.nw'), target='$(*F)'), file='zz')" | $(R_HOME)/bin$(R_ARCH_BIN)/R   --vanilla --slave
+	echo "require(noweb); notangle('all.nw', target='$(*F)', out='zz')" | $(R_HOME)/bin$(R_ARCH_BIN)/R --vanilla --slave
 	cat zz >> $@
 	rm zz
-#	notangle -R$(*F) all.nw >> $@
 
 %.c: 
 	echo "/* Automatically generated from all.nw using noweb */" > $@
-	echo "source('noweb.R'); print(notangle(nwread('all.nw'), target='$(*F)'), file='zz')" |  $(R_HOME)/bin$(R_ARCH_BIN)/R  --vanilla --slave
+	echo "require(noweb); notangle('all.nw', target='$(*F)', out='zz')" | $(R_HOME)/bin$(R_ARCH_BIN)/R --vanilla --slave
 	cat zz >> $@
 	rm zz
-#	notangle -R$(*F) all.nw >> $@
-
 clean:
 	-rm all.nw all.log all.aux all.toc all.tex 
 	-rm $(RFUN)

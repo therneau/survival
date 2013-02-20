@@ -369,7 +369,7 @@ drawmark <- function(x, y, mark.time, censor, ...) {
     }
     else { #interpolate
         xx <- mark.time
-        yy <- approx(x, y, xx, method="constant", f=0)
+        yy <- approx(x, y, xx, method="constant", f=0)$y
     }
     points(xx, yy, ...)
         
@@ -394,8 +394,8 @@ for (i in unique(stemp)) {  #for each strata
         yy <- c(firsty, ssurv[who,j])
         if (plot.surv) {
             lines(dostep(xx, yy), lty=lty[c2], col=col[c2], lwd=lwd[c2]) 
-            if (mark.time) drawmark(xx, yy, mark.time, censor, 
-                              pch=mark[c1], col=mcol[c1])
+            if (is.numeric(mark.time) || mark.time) 
+                drawmark(xx, yy, mark.time, censor, pch=mark[c1], col=mcol[c1])
         }
         xend[c1] <- max(xx)
         yend[c1] <- yy[length(yy)]
