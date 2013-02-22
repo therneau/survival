@@ -4,7 +4,10 @@
   \itemize{
     \item Error in plot.survfit pointed out by K Hoggart -- the "+"
     signs for censored observations were printing one survival time to
-    the left of the proper spot.
+    the left of the proper spot.  Eik Vettorazi found another error if
+    mark.time is a vector of numerics.  These are the results of merging
+    the code for plot, lines and points due to some discrepancies between
+    them + not having any graphical tests.
     
     \item Repair an error in using double subscripts for the survfitms
     objects.
@@ -21,7 +24,7 @@
 
     \item The first example in predict.survreg help file needed to have
     \code{I(age^2)} instead of \code{age^2} in the model: R ignores the
-    second form. (I'm sure this worked at one time, perhaps in Splus).
+    second form. (I'm almost sure this worked at one time, perhaps in Splus).
     It also needed different plot symbols to actually match the
     referenced figure.  Pointed out by Evan Newell.
 
@@ -29,7 +32,7 @@
     leading to incorrect standard errors.  A check in the underlying
     coxph routines to deal with out of bounds exponents, added in
     version 2.36-6, interacted badly with the -100 offset used in cch.
-    It only affected models using (start, stop) survival times.  
+    It only affected models using (start, stop) survival times. 
 }}
 
 \section{Changes in version 2.37-2}{
