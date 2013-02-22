@@ -441,7 +441,7 @@ docurve2 <- function(entry, etime, status, istate, wt, states, id, se.fit) {
     storage.mode(cstate) <- "integer"
     storage.mode(status) <- "integer"
     # C code has 0 based subscripts
-    fit <- .Call("survfitci", ftime, 
+    fit <- .Call(Csurvfitci, ftime, 
                  order(ftime[,1]) - 1L,
                  order(ftime[,2]) - 1L,
                  length(timeset),

@@ -48,25 +48,9 @@ coxph.fit <- function(x, y, strata, offset, init, control,
 	    }
 	else init <- rep(0,nvar)
 	}
-#    coxfit2 <- .C("coxfit2", iter=as.integer(maxiter),
-#		   as.integer(n),
-#		   as.integer(nvar), stime,
-#		   sstat,
-#		   x= x[sorted,] ,
-#		   as.double(offset[sorted] - mean(offset)),
-#		   as.double(weights),
-#		   newstrat,
-#		   means= double(nvar),
-#		   coef= as.double(init),
-#		   u = double(nvar),
-#		   imat= double(nvar*nvar), loglik=double(2),
-#		   flag=integer(1),
-#		   double(2*n + 2*nvar*nvar + 3*nvar),
-#		   as.double(control$eps),
-#		   as.double(control$toler.chol),
-#		   sctest=as.double(method=="efron") )
+
     storage.mode(weights) <- storage.mode(init) <- "double"
-    coxfit <- .Call("coxfit6", 
+    coxfit <- .Call(Ccoxfit6, 
                      as.integer(maxiter),
                      stime, 
                      sstat,
@@ -82,7 +66,7 @@ coxph.fit <- function(x, y, strata, offset, init, control,
 
     if (nullmodel) {
 	score <- exp(offset[sorted])
-	coxres <- .C("coxmart", as.integer(n),
+	coxres <- .C(Ccoxmart, as.integer(n),
 				as.integer(method=='efron'),
 				stime,
 				sstat,
@@ -122,7 +106,7 @@ coxph.fit <- function(x, y, strata, offset, init, control,
 	names(coef) <- dimnames(x)[[2]]
 	lp <- c(x %*% coef) + offset - sum(coef*coxfit$means)
 	score <- exp(lp[sorted])
-	coxres <- .C("coxmart", as.integer(n),
+	coxres <- .C(Ccoxmart, as.integer(n),
 				as.integer(method=='efron'),
 				stime,
 				sstat,

@@ -44,7 +44,7 @@ agexact.fit <- function(x, y, strata, offset, init, control,
 	}
     else init <- rep(0,nvar)
 
-    agfit <- .C("agexact", iter= as.integer(control$iter.max),
+    agfit <- .C(Cagexact, iter= as.integer(control$iter.max),
 		   as.integer(n),
 		   as.integer(nvar), sstart, sstop,
 		   sstat,
@@ -84,7 +84,7 @@ agexact.fit <- function(x, y, strata, offset, init, control,
     names(coef) <- dimnames(x)[[2]]
     lp  <- x %*% coef + offset - sum(coef *agfit$means)
     score <- as.double(exp(lp[sorted]))
-    agres <- .C("agmart",
+    agres <- .C(Cagmart,
 		   as.integer(n),
 		   as.integer(0),
 		   sstart, sstop,

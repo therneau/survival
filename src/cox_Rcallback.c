@@ -13,7 +13,6 @@
 /**
 *** We need to call fexpr in environment rho in R
 *** These return lists, which need to be processed to get at the elements
-*** They are passed in to coxfit4_a as void * and cast to  SEXPs there. 
 ***
 *** Also, we pass in the length of coef rather than messing about in
 *** the calling environment to find it.

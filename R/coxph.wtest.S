@@ -28,7 +28,7 @@ coxph.wtest <- function(var, b, toler.chol=1e-9) {
             stop("First argument must be a square matrix")
     if (nrow(var) != nvar) stop("Argument lengths do not match")
 
-    temp <- .C('coxph_wtest', df=as.integer(nvar),
+    temp <- .C(Ccoxph_wtest, df=as.integer(nvar),
                               as.integer(ntest),
                               as.double(var),
                               tests= as.double(b),

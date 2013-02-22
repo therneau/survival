@@ -396,7 +396,7 @@ survpenal.fit<- function(x, y, weights, offset, init, controlvals, dist,
     wt <-  -1*deriv$ddg*weights
     coef[1] <- sum(weights*deriv$dg + wt*(yy -offset)) / sum(wt)
 
-    fit0 <- .Call('survreg6',
+    fit0 <- .Call(Csurvreg6,
 		  iter = as.integer(20),
 		  nvar = as.integer(1),
 		  as.double(y),
@@ -447,7 +447,7 @@ survpenal.fit<- function(x, y, weights, offset, init, controlvals, dist,
     iterfail <- NULL
     thetasave <- unlist(thetalist)
     for (iterx in 1:outer.max) {
-	fit <- .Call('survreg7',
+	fit <- .Call(Csurvreg7,
 		   iter = as.integer(iter.max),
 		   as.integer(nvar),
 		   as.double(y),

@@ -624,7 +624,7 @@ survConcordance.fit <- function(y, x, strata, weight) {
             ux <- sort(unique(risk))
             n2 <- length(ux)
             index <- btree(n2)[match(risk[ord], ux)] - 1L
-             .Call('concordance1', stime[ord,], 
+             .Call(Cconcordance1, stime[ord,], 
                    as.double(wts[ord]), 
                    as.integer(index), 
                    as.integer(length(ux)))
@@ -636,7 +636,7 @@ survConcordance.fit <- function(y, x, strata, weight) {
             n2 <- length(ux)
             index <- btree(n2)[match(risk, ux)] - 1L
 
-            .Call('concordance2', stime, 
+            .Call(Cconcordance2, stime, 
                   as.double(wts), 
                   as.integer(index), 
                   as.integer(length(ux)),

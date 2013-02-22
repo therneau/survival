@@ -104,7 +104,7 @@ aareg <- function(formula, data, weights, subset, na.action,
     X <- X[ord,,drop=FALSE]
 
     storage.mode(Y) <- 'double'
-    ff <- .C("coxdetail", as.integer(nused),
+    ff <- .C(Ccoxdetail, as.integer(nused),
 			  as.integer(nvar),
 			  ndeath= as.integer(ndeath),
 			  y = Y[ord,],

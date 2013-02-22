@@ -1,4 +1,4 @@
-useDynLib(survival)
+useDynLib(survival, .registration = TRUE)
 importFrom(splines, ns, spline.des)
 import(stats,graphics)
 export("Surv", "aareg", "attrassign", 

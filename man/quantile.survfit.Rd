@@ -8,7 +8,7 @@
 \usage{
 \method{quantile}{survfit}(x, probs = c(0.25, 0.5, 0.75), conf.int = TRUE,
   tolerance= sqrt(.Machine$double.eps), ...)
-\method{quantile}{survfitmv}(x, probs = c(0.25, 0.5, 0.75), conf.int = TRUE,
+\method{quantile}{survfitms}(x, probs = c(0.25, 0.5, 0.75), conf.int = TRUE,
   tolerance= sqrt(.Machine$double.eps), ...)
 }
 \arguments{

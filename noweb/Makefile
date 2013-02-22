@@ -41,7 +41,7 @@ RFUN = $(SFUN:%=$(RDIR)/%)
 CFUN2= $(CFUN:%=../src/%)
 DOCDIR= ../inst/doc
 
-all:  doc fun
+all:  noweb.sty doc fun
 
 doc: $(DOCDIR)/sourcecode.pdf
 
@@ -55,7 +55,8 @@ all.nw: $(PARTS)
 	cat $(PARTS) > all.nw
 
 all.tex: all.nw
-	noweave -delay all.nw > all.tex
+	echo "library(noweb); notangle('all.nw')" | $(R_HOME)/bin$(R_ARCH_BIN)/R --vanilla --slave
+#	noweave -delay all.nw > all.tex
 
 $(SFUN): all.nw
 $(CFUN): all.nw
@@ -89,3 +90,7 @@ clean:
 	-rm all.nw all.log all.aux all.toc all.tex 
 	-rm $(RFUN)
 	-rm $(CFUN2)
+	-rm noweb.sty
+
+noweb.sty:
+	echo 'library(noweb); data(noweb); cat(noweb.sty, sep="\n", file="noweb.sty") |  $(R_HOME)/bin$(R_ARCH_BIN)/R --vanilla --slave

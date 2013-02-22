@@ -128,11 +128,10 @@ survfitKM <- function(x, y, casewt=rep(1,length(x)),
 	    surv[[i]] <- exp(- cumsum(hazard))
 	    }
 	if (method==3) {
-	    tsum  <- .C('survfit4', as.integer(length(ncens)),
+	    tsum  <- .C(Csurvfit4, as.integer(length(ncens)),
 			            as.integer(ndead),
 			            sum1 = as.double(nrisk),
-			            sum2 = as.double(nevent),
-			copy=c(FALSE,FALSE,TRUE,TRUE))
+			            sum2 = as.double(nevent))
 	    hazard <- nevent *tsum$sum1
 	    surv[[i]] <- exp(-cumsum(hazard))
 	    }

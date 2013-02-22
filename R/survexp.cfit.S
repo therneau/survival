@@ -70,7 +70,7 @@ survexp.cfit <- function(group, x, y, death, individual, cox, se.fit, method) {
     utimes <- unique(cy[cy[,3]==1,2])
     npt <- length(utimes)  #unique death times
     storage.mode(cy) <- 'double'
-    xxx  <- .C('agsurv3', as.integer(n),
+    xxx  <- .C(Cagsurv3, as.integer(n),
 			  as.integer(nvar),
 			  as.integer(ncurve),
 			  as.integer(npt),

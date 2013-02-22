@@ -84,25 +84,9 @@ survexp.fit <- function(group, x, y, times, death, ratetable) {
             }
 	}
 
-#    temp <- .C('pyears3',
-#		    as.integer(death),
-#		    as.integer(nrow(x)),
-#		    as.integer(length(atts$dim)),
-#		    as.integer(rfac),
-#		    as.integer(atts$dim),
-#		    as.double(unlist(cuts)),
-#		    ratetable,
-#                   as.integer(group),
-#		    as.double(x),
-#		    as.double(y),
-#		    as.integer(ntime),
-#		    as.integer(ngrp),
-#		    as.double(times),
-#		    surv = double(ntime * ngrp),
-#		    n   = integer(ntime *ngrp), dup=FALSE)
    storage.mode(x) <- storage.mode(y) <- "double"
    storage.mode(times) <- "double"
-   temp <- .Call('pyears3b',
+   temp <- .Call(Cpyears3b,
                  as.integer(death),
                  as.integer(rfac),
                  as.integer(atts$dim),

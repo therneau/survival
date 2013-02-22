@@ -43,7 +43,7 @@ coxexact.fit <- function(x, y, strata, offset, init, control,
     rescale <- attr(newx, "scaled:scale")
     means   <- attr(newx, "scaled:center")
 
-    cfit <- .Call("coxexact", 
+    cfit <- .Call(Ccoxexact, 
                   as.integer(control$iter.max),
                   as.double(y),  # interger data?  Just in case.
                   newx,
@@ -83,7 +83,7 @@ coxexact.fit <- function(x, y, strata, offset, init, control,
     score <- as.double(exp(lp))
 
     # Compute the residuals
-    cxres <- .C("coxmart2",
+    cxres <- .C(Ccoxmart2,
 		   as.integer(n),
 		   as.double(y[,1]),
 		   as.integer(y[,2]),

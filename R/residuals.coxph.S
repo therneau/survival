@@ -73,7 +73,7 @@ residuals.coxph <-
  	    if (mintime < 0) y <- cbind(2*mintime -1, y)
  	    else             y <- cbind(-1,y)
  	    }
-	temp <- .C("coxscho", n=as.integer(n),
+	temp <- .C(Ccoxscho, n=as.integer(n),
 			    as.integer(nvar),
 			    as.double(y),
 			    resid=  as.double(x),
@@ -104,7 +104,7 @@ residuals.coxph <-
 
     if (type=='score') {
 	if (ny==2) {
-	    resid <- .C("coxscore", as.integer(n),
+	    resid <- .C(Ccoxscore, as.integer(n),
 				as.integer(nvar),
 				as.double(y),
 				x=as.double(x),
@@ -116,7 +116,7 @@ residuals.coxph <-
 				double(2*nvar))$resid
 	    }
 	else {
-	    resid<- .C("agscore",
+	    resid<- .C(Cagscore,
 				as.integer(n),
 				as.integer(nvar),
 				as.double(y),

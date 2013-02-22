@@ -31,6 +31,7 @@ coxpenal.fit <- function(x, y, strata, offset, init, control,
 	status <- y[,3]
 	andersen <- TRUE
 	routines <- paste('agfit5', c('a', 'b', 'c'), sep='_')
+#        routines <- c(Cagfit5a, Cagfit5b, Cagfit5c)
         }
     else {
 	if (length(strata) ==0) {
@@ -45,6 +46,7 @@ coxpenal.fit <- function(x, y, strata, offset, init, control,
 	status <- y[,2]
 	andersen <- FALSE
 	routines <- paste('coxfit5', c('a', 'b', 'c'), sep='_')
+#        routines <- c(Ccoxfit5a, Ccoxfit5b, Ccoxfit5c)
         }
 
     n.eff <- sum(y[,ncol(y)])  #effective n for a Cox model is #events
