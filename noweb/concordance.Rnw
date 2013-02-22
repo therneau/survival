@@ -1,19 +1,19 @@
 \subsection{Concordance}
  The concordance statistic is gaining popularity as a measure of goodness-of-fit
 in survival models.  Consider all pairs of subjects with
-$(x_i, x_j)$ as the two risk scores for each pair and $(y_i, y_j)$ the
+$(r_i, r_j)$ as the two risk scores for each pair and $(s_i, s_j)$ the
 corresponding survival times.  The c-statistic is defined by dividing these
 sets into four groups.
 \begin{itemize}
   \item Concordant pairs: for a Cox model this will be pairs where a shorter
-    survival is paired with a larger risk score, e.g. $x_i>x_j$ and $y_i < y_j$
+    survival is paired with a larger risk score, e.g. $r_i>r_j$ and $s_i < s_j$
   \item Discordant pairs: the lower risk score has a shorter survival
   \item Tied pairs: there are three common choices
     \begin{itemize}
-      \item Kendall's tau: any pair where $x_i=x_j$ or $y_i = y_j$ is considered
+      \item Kendall's tau: any pair where $r_i=r_j$ or $s_i = s_j$ is considered
         tied.
-      \item AUC: pairs with $x_i=x_j$ are tied; 
-	those with $y_i=y_j$ are considered
+      \item AUC: pairs with $r_i=r_j$ are tied; 
+	those with $s_i=s_j$ are considered
         incomparable.  This is the definition of the AUC in logisitic 
         regression,
         and has become the most common choice for Cox models as well.
@@ -21,53 +21,24 @@ sets into four groups.
     \end{itemize}
   \item Incomparable pairs: For survival this always includes pairs where the
     survival times cannot be ranked with certainty.  
-    For instance $y_i$ is censored
-    at time 10 and $y_j$ is an event (or censor) at time 20.  Subject $i$ may or
+    For instance $s_i$ is censored
+    at time 10 and $s_j$ is an event (or censor) at time 20.  Subject $i$ may or
     may not survive longer than subject $j$.  
-    Note that if $y_i$ is censored at time
-    10 and $y_j$ is an event at time 10 then $y_i > y_j$.  
+    Note that if $s_i$ is censored at time
+    10 and $s_j$ is an event at time 10 then $s_i > s_j$.  
     Add onto this those ties that are treated as incomparable.\\
     Observations that are in different strata are also incomparable, 
     since the Cox
     model only compares within strata.
 \end{itemize}
+Then the concordance statistic is defined as $(C + T/2)/(C + D + T)$. 
+The denominator is the number of comparable pairs.
 
-In Therneau, Schemper and Kremers (in press) we show that a time weighted
-concordace statistic can be written as $N/D$ where each is a
-sum that is closely related to the Cox model score statistic.
-\begin{align}
-  N &= \sum_{i=1}^n w_i \delta_i H(t_i) (s_i(t_i) - .5) \label{eq:n} \\
-  D &= \sum_{i=1}^n w_i \delta_i H(t_i) \label{eq:d}
-\end{align}
-where $H(t)$ is a prespecified function of time, $\delta_i=1$ if
-the subject is an event, and
-$s_i$ is the scaled rank of the observation at that time point,
-among all those still at risk at that time.
-Let $Y_i(t)=1$ is subject $i$ is currently at risk at time $t$,
-then
-\begin{align*}
-  s_i(t) &= \sum w_j Y_j(t) [I(x_j < x_i) + .5I(x_j=x_i)] / \sum w_j Y_j(t) \\
-  s_i(t)-.5   &= \sum w_j Y_j(t)[I(x_j < x_i) - I(x_j > x_i)]/ 2\sum w_j Y_j(t)
-\end{align*}
-The mean value of $s$ at any time point is 1/2.
-The second equation shows that $s- 1/2$ can be computed using the number of
-observations less than the point minus the number above.  
-(Sort of like one's rank in an organization: the number under you minus the
-number above you.)
-
-Common weight functions are
-\begin{itemize}
-  \item The weighted number at risk $H(t) = n(t) =\sum w_j Y_j(t)$.  This is the
-    usual definition of the concordance.
-  \item $H(t) = S(t)$ where $S$ is the overall survival function.
-  \item $H(t) = S(t)/G(t)$, where $G$ is the estimated censoring distribution.
-    This is the estimate proposed by Schemper.
-  \item $H(t) = n(t)/ G^2(t)$, proposed by Uno.
-\end{itemize}
-
-In addition to the concordance the program reports back
-the number of concordant pairs, 
+The program creates 4 variables, which are the number of concordant pairs, 
 discordant, tied on time, and tied on $x$ but not on time.  
+The default concordance is 
+based on the AUC definition, but all 4 values are reported back so that a user
+can recreate the others if desired.
 
 The primary compuational questions is how to do this efficiently, i.e., better
 that the naive $O(n^2)$ algorithm that loops across all $n(n-1)/2$ 
@@ -79,7 +50,7 @@ There are two key ideas.
   score is higher, lower, or tied and add it into the totals.
 This also neatly solves the question of time-dependent covariates.
 \item To count the number higher and lower we need to rank the subjects
-  in the risk set by their scores $x_i$.  This can be done in $O(\log n)$
+  in the risk set by their scores $r_i$.  This can be done in $O(\log n)$
   time if the data is kept in a binary tree.
 \end{enumerate}
 
@@ -94,8 +65,7 @@ Figure  \ref{treefig} shows a balanced binary tree containing
 have a smaller value than the parent, the right child and all its
 descendents have a larger value.
 Each node in figure \ref{treefig} is also annotated with the total weight
-of observations in that node, the total weight for all branches to the left and
-the total for all branches to the right
+of observations in that node and the weight for all its children 
 (not shown on graph).  
 Assume that the tree shown represents all of the subjects still alive at the
 time a particular subject ``Smith'' expires, and that Smith has the risk score
@@ -106,8 +76,10 @@ node),
 with a last addition of the right hand child when we 
 find the node with Smith's value (1).      %'
 There are 3 concordant and 12-3=9 discordant pairs.
-This takes a little less than $\log_2(n)$ steps on average., 
-In the code below we start at Smith's node and walk up.
+This takes a little less than $\log_2(n)$ steps on average, as compared to an
+average of $n/2$ for the naive method.  The difference can matter when $n$ is
+large since this traversal must be done for each event.
+(In the code below we start at Smith's node and walk up.)             %'
 
 The classic way to store trees is as a linked list.  There are several 
 algorithms for adding and subtracting nodes from a tree while maintaining
@@ -121,7 +93,7 @@ If we index the nodes of the tree as 1 for the top, 2--3 for the next
 horizontal row, 4--7 for the next, \ldots then the parent-child 
 traversal becomes particularly easy.
 The parent of node $i$ is $i/2$ (integer arithmetic) and the children of
-node $i$ are $2i$ and $2i +1$.  In C code the indices start at 0, the
+node $i$ are $2i$ and $2i +1$.  In C code the indices start at 0 and the
 children are $2i+1$ and $2i+2$ and the parent is $(i-1)/2$.  The following
 bit of code returns the indices of a sorted list when placed into such a
 tree.  
@@ -177,47 +149,54 @@ btree <- function(n) {
 @ 
 
 A second question is how to compute the variance of the result.  
-We recognized equation \eqref{eq:n} as the score statistic from a time
-weighted Cox model with the scaled rank $s(t)$ as the covariate.
-The Cox variance for each term is 
-\begin{equation}
- V(t) = \sum_{i \in R(t)} Y_i(t) w_i (s_i(t) - .5)^2 / 
-                   \sum_{i \in R(t)} Y_i(t) w_i 
-\end{equation} 
-As an update formula for $V$ consider the variance of the
-unscaled ranks.
-The key formula is below,
-true for any set of values $x$ and centering constant $c$.
-\begin{equation*} 
-  \sum w_i(x_i - \overline{x})^2 = \sum w_i(x_i-c)^2 - 
+The insight used here is to consider a Cox model with time dependent
+covariates, where the covariate $x$ at each death time has been
+transformed into ${\rm rank}(x)$. 
+It is easy to show that the Cox score statistic contribution at each death
+is $(D-C)/2$ where $C$ and $D$ are the number of concordant
+and discordant pairs contributed at that death time (for a Cox fit using the
+Breslow approximation).
+The contribution to the variance of the score statistic is 
+$V(t) =\sum (r_i - \overline{r})^2 /n$, the $r_i$ being the ranks at
+that time point and $n$ the number at risk.  
+How can we update this sum using an update formula?  
+First remember the identity
+\begin{equation*} \sum w_i(x_i - \overline{x})^2 = \sum w_i(x_i-c)^2 - 
     \sum w_i(c - \overline{x})^2
 \end{equation*}
 true for any set of values $x$ and centering constant $c$.
+For weighted data define the rank of an observation with risk score $r_k$
+as
+\begin{equation*}
+  {\rm rank} = \sum_{r_i<r_k} w_i + (1/2)\sum_{r_i=r_k} w_i
+\end{equation*}
+These correspond to the midpoints of the rise on an empirical CDF, and
+for unweighted data without ties gives ranks of .5, 1.5, \ldots, $n-.5$.
    
 Assume we have just added obs $k$ to the tree.
 Since the mean rank = $\mu_g = \sum(w_i)/2$ the grand mean increases by
     $w_k/2$.
 Let $\mu_\ell$ be the mean rank for all observations currently in the
-tree of rank lower than $x_k$, the item we are about to add,
+tree of rank lower than $r_k$, the item we are about to add,
 $\mu_u$ be the mean for all those above in rank (after the addition), 
 $\mu_g$ the grand mean, and $\mu_n$ the new grand mean after adding
 in subject $k$.
 We have 
 \begin{align*}
-  \mu_\ell &= \sum_{x_i<x_k} w_i/2 \\
-  \mu_u & =  \sum_{x_i<=x_k} w_i + \sum_{x_i \ge x_k} w_i/2
+  \mu_\ell &= \sum_{r_i<r_k} w_i/2 \\
+  \mu_u & =  \sum_{r_i<=r_k} w_i + \sum_{r_i \ge r_k} w_i/2
 \end{align*}  
 
-For items of lower rank than $x_k$, none of their ranks will change
+For items of lower rank than $r_k$, none of their ranks will change
 with the addition of this new observation.  This leads to the 
 update formula on the third line below.  (I'm using $i<k$ as shorthand  %'
-for $x_i < x_k$ below)
+for $r_i < r_k$ below)
 \begin{align}
-   \sum_{i<k} w_i(x_i - \mu_g)^2 &= \sum_{i<k} w_i(x_i - \mu_\ell)^2 +
+   \sum_{i<k} w_i(r_i - \mu_g)^2 &= \sum_{i<k} w_i(r_i - \mu_\ell)^2 +
       (\sum_{i<k} w_i)(\mu_\ell - \mu_g)^2 \nonumber \\
-   \sum_{i<k} w_i(x_i - \mu_n)^2 &= \sum_{i<k} w_i(x_i - \mu_\ell)^2 +
+   \sum_{i<k} w_i(r_i - \mu_n)^2 &= \sum_{i<k} w_i(r_i - \mu_\ell)^2 +
       (\sum_{i<k} w_i)(\mu_\ell - \mu_n)^2 \nonumber \\
-   \sum_{i<k} w_i(x_i - \mu_n)^2 -   \sum_{i<k} w_i(x_i - \mu_g)^2 &=
+   \sum_{i<k} w_i(r_i - \mu_n)^2 -   \sum_{i<k} w_i(r_i - \mu_g)^2 &=
     (\sum_{i<k} w_i) [(\mu_\ell - \mu_n)^2 - (\mu_\ell - \mu_g)^2] 
               \nonumber \\
    &=  (\sum_{i<k} w_i)(\mu_n+ \mu_g - 2\mu_{\ell})(\mu_n - \mu_g) 
@@ -225,12 +204,12 @@ for $x_i < x_k$ below)
    &=  (\sum_{i<k} w_i)(\mu_n+ \mu_g - 2\mu_{\ell}) w_k/2 \label{lower}
 \end{align}
 
-For items of larger rank than $x_k$, all of the ranks increase by $w_k$
+For items of larger rank than $r_k$, all of the ranks increase by $w_k$
 when we add the new item and $\mu_u$ increases by $w_k$, 
 thus the sum of squares within the group
 is unchanged.  The same derivation as above gives an update of
 \begin{align}
-  \sum_{i>k} w_i(x_i - \mu_n)^2 -   \sum_{i>k} w_i(x_i - \mu_g)^2 &=
+  \sum_{i>k} w_i(r_i - \mu_n)^2 -   \sum_{i>k} w_i(r_i - \mu_g)^2 &=
     (\sum_{i>k} w_i) [(\mu_u -\mu_n)^2 - ((\mu_u-w_k) - \mu_g)^2] \nonumber \\
   &= (\sum_{i>k} w_i) (\mu_n + z - 2\mu_u)(\mu_n -z) \label{upper1} \\
   &= (\sum_{i>k} w_i) (\mu_n+z - 2\mu_u) (-w_k/2) \label{upper}\\
@@ -261,18 +240,17 @@ Input variables are
   \item[n] the number of observations
   \item[y] matrix containing the time and status, data is sorted by ascending 
     time, with deaths preceding censorings.
+  \item[indx] the tree node at which this observation's risk score resides  %'
   \item[wt] case weight for the observation
-  \item[indx] the tree node at which this observation's risk score resides
-  \item[timewt] time weighting, one value for each event time
   \item[sum] scratch space, weights for each node of the tree: 
     3 values are for the node, all left children, and all right children
- \end{description}
-My general rule is that the R object will be called wt2 and the C pointer
-to its contents called wt; similarly for other variables.
+  \item[count] the returned counts of concordant, discordant, tied on x, 
+    tied on time, and the variance
+\end{description}
 
 <<concordance1>>=
 #include "survS.h"
-SEXP concordance1(SEXP y2, SEXP wt2,  SEXP indx2, SEXP timewt2, SEXP ntree2) {
+SEXP concordance1(SEXP y, SEXP wt2,  SEXP indx2, SEXP ntree2) {
     int i, j, k, index;
     int child, parent;
     int n, ntree;
@@ -280,30 +258,25 @@ SEXP concordance1(SEXP y2, SEXP wt2,  SEXP indx2, SEXP timewt2, SEXP ntree2) {
     double *twt, *nwt, *count;
     double vss, myrank, wsum1, wsum2, wsum3; /*sum of wts below, tied, above*/
     double lmean, umean, oldmean, newmean;
-    double rank;    
+        
     double ndeath;   /* weighted number of deaths at this point */
-    double temp;
-
+    
     SEXP count2;
-    double *wt, *timewt;
+    double *wt;
     int    *indx;
     
-    n = nrows(y2);
+    n = nrows(y);
     ntree = asInteger(ntree2);
     wt = REAL(wt2);
     indx = INTEGER(indx2);
-    timewt = REAL(timewt2);
     
-    time = REAL(y2);
+    time = REAL(y);
     status = time + n;
-    PROTECT(count2 = allocVector(REALSXP, 6));
-    count = REAL(count2);  /* return vector*/
-    nwt = (double *) R_alloc(2*ntree, sizeof(double));
-    twt= nwt + ntree;  
-    for (i=0; i< ntree; i++) {
-        nwt[i]= 0.0;  /* weights for all those tied at this risk */
-        twt[i]= 0.0;  /* node + kids */
-    }
+    PROTECT(count2 = allocVector(REALSXP, 5));
+    count = REAL(count2);  /* count5 contains the information matrix */
+    twt = (double *) R_alloc(2*ntree, sizeof(double));
+    nwt = twt + ntree;
+    for (i=0; i< 2*ntree; i++) twt[i] =0.0;
     for (i=0; i<5; i++) count[i]=0.0;
     vss=0;
 
@@ -313,22 +286,13 @@ SEXP concordance1(SEXP y2, SEXP wt2,  SEXP indx2, SEXP timewt2, SEXP ntree2) {
     return(count2);
 }
 @ 
-Because of tied death times the computation is done in three stages.
-First is to add up the all of the intermediate portions for this death
-time, overall all of the deaths.  It turns out that the
-effect of the tied deaths on each other always adds up to exactly zero, so
-we can compute all of the updates and \emph{then} add them into the 
-tree of ranks.
-The second step is to update the current variance of the ranks, at the
-same time updating the tree.
-Last we add the intermediate terms into the total statistic.
 The key part of our computation is to update the vectors of weights.
-We don't actually pass the risk score values $r$ into the routine, 
+We don't actually pass the risk score values $r$ into the routine,   %'
 it is enough for each observation to point to the appropriate tree
 node.
-The tree contains the data for everyone whose survival is larger
+The tree contains the  for everyone whose survival is larger
 than the time currently under review, so starts with all weights
-equal to zero, we then add subjects to the risk set one by one.  
+equal to zero.  
 For any pair of observations $i,j$ we need to add [[wt[i]*wt[j]]]
 to the appropriate count.
 Starting at the largest time (which is sorted last), walk through the tree.
@@ -338,12 +302,10 @@ Starting at the largest time (which is sorted last), walk through the tree.
     \begin{enumerate}
       \item Add [[wt[i] * wt[j]]] to the tied-on-time total, 
 	for all pairs $i,j$ of tied times.
-      \item The addition to tied-on-risk will be the weight of this 
+      \item The addition to tied-on-r will be the weight of this 
         observation times
         the sum of weights for all others with the same risk score and a
         a greater time, i.e., the weight found at [[indx[i]]] in the tree.
-        (At the moment of calculation only the longer times have been added
-        into the tree).
       \item Similarly for those with smaller or larger risk scores.  First add
         in the children of this node.  The left child will be smaller risk 
         scores (and longer times) adding to the concordant pairs, 
@@ -360,36 +322,27 @@ Starting at the largest time (which is sorted last), walk through the tree.
 for (i=n-1; i>=0; ) {
     ndeath =0;
     if (status[i]==1) { /* process all tied deaths at this point */
-	rank =0;  /* sum of ranks-mean for deaths at this point */
         for (j=i; j>=0 && status[j]==1 && time[j]==time[i]; j--) {
             ndeath += wt[j];
             index = indx[j];
-	    rank += (nwt[index] - twt[0])/2;  
             for (k=i; k>j; k--) count[3] += wt[j]*wt[k]; /* tied on time */
             count[2] += wt[j] * nwt[index];              /* tied on x */
 	    child = (2*index) +1;  /* left child */
-	    if (child < ntree) {
+	    if (child < ntree)
 		count[0] += wt[j] * twt[child];  /*left children */
-		rank += wt[j] * twt[child];
-	    }
 	    child++;
-	    if (child < ntree) {
+	    if (child < ntree)
                 count[1] += wt[j] * twt[child]; /*right children */
-	    }
+	    
             while (index >0) {  /* walk up the tree  */
 		parent = (index-1)/2;
-		if (index & 1) {   /* I am the left child */
+		if (index & 1)   /* I am the left child */
 		    count[1] += wt[j] * (twt[parent] - twt[index]);
-		}
-		else {
-		    count[0] += wt[j] * (twt[parent] - twt[index]);
-		    rank += wt[j] * (twt[parent] - twt[index]);
-		}
+		else count[0] += wt[j] * (twt[parent] - twt[index]);
 		index = parent;
+		}
 	    }
-	}
-    rank /= twt[0];
-    }                    
+	}                    
     else j = i-1;
     
     /* Add the weights for these obs into the tree and update variance*/
@@ -406,9 +359,8 @@ for (i=n-1; i>=0; ) {
 	while (index >0) {
 	    parent = (index-1)/2;
             twt[parent] += wt[i];
-            if (!(index&1)) /* I am a right child */{
+            if (!(index&1)) /* I am a right child */
                 wsum1 += (twt[parent] - twt[index]);
-                 }
             index=parent;
             }
         wsum3 = twt[0] - (wsum1 + wsum2); /* sum of weights above */
@@ -420,13 +372,7 @@ for (i=n-1; i>=0; ) {
         vss += wsum3*(newmean+ oldmean+ wt[i]- 2*umean) *(oldmean-newmean);
         vss += wt[i]* (myrank -newmean)*(myrank -newmean);
 	}
-    if (ndeath >0) { /* add to the statistic */
-    printf("vss=%f, rank=%f, twt=%f, timewt=%f\n", vss, rank, twt[0], *timewt);
-       temp = *timewt / twt[0];
-	count[4] += temp*temp * ndeath * vss;
-	count[5] += *timewt * rank;
-	timewt++;
-	}
+    count[4] += ndeath * vss/twt[0];
     }
 @ 
 
@@ -586,10 +532,9 @@ the same node of the tree.
 Here is the main routine.
 <<survConcordance>>=
 survConcordance <- function(formula, data,
-                            weights, subset, na.action,
-                            timewt=c("n", "S", "n/G", "S/G", "n/G2")) {
+                            weights, subset, na.action) {
     Call <- match.call()  # save a copy of of the call, as documentation
-    timewt <- match.arg(timewt)
+
     m <- match.call(expand.dots=FALSE)
     m[[1]] <- as.name("model.frame")
     m$formula <- if(missing(data)) terms(formula, "strata")
@@ -619,7 +564,7 @@ survConcordance <- function(formula, data,
     x <- model.matrix(Terms, m)[,-1, drop=FALSE]  #remove the intercept
     if (ncol(x) > 1) stop("Only one predictor variable allowed")
 
-    count <- survConcordance.fit(Y, x, strat, wt, timewt)
+    count <- survConcordance.fit(Y, x, strat, wt)
     if (is.null(strat)) {
         concordance <- (count[1] + count[3]/2)/sum(count[1:3])
         std.err <- count[5]/(2* sum(count[1:3]))
@@ -670,10 +615,10 @@ will both be zero, but the calculated variance of $C-D$ can be a nonzero
 tiny number due to round off error.  Since this can cause a warning message
 from the sqrt function we check and correct this.
 <<survConcordance.fit>>=
-survConcordance.fit <- function(y, x, strata, weight, timewt) {    
+survConcordance.fit <- function(y, x, strata, weight) {    
     <<btree>>
 
-    docount <- function(stime, risk, wts, twt) {
+    docount <- function(stime, risk, wts) {
         if (attr(stime, 'type') == 'right') {
             ord <- order(stime[,1], -stime[,2])
             ux <- sort(unique(risk))
@@ -682,7 +627,6 @@ survConcordance.fit <- function(y, x, strata, weight, timewt) {
              .Call('concordance1', stime[ord,], 
                    as.double(wts[ord]), 
                    as.integer(index), 
-                   rev(twt),
                    as.integer(length(ux)))
         }
         else if (attr(stime, 'type') == "counting") {
@@ -704,36 +648,10 @@ survConcordance.fit <- function(y, x, strata, weight, timewt) {
         
     if (missing(weight) || length(weight)==0)
         weight <- rep(1.0, length(x))
-   
-    if (is.na(match(timewt, c("n", "S", "n/G", "S/G", "n/G2"))))
-        stop("invalid option for timewt")
-    if (attr(y, "type")=="counting" && !(timewt %in% c("n", "S")))
-        stop("invalid weighting option for counting process survival")
-
-    # create the weighting vector, start with a call to survfit
-    if (missing(strata) || length(strata)==0) {
-        stemp <- strata(rep(1, nrow(y)))
-        sfit <- survfitKM(stemp, y, casewt=weight, se.fit=FALSE)
-        dtimes <- (sfit$n.event>0)
-        if (timewt == "n") twt <- sfit$n.risk[dtimes]
-        else if (timewt == "S") twt <- sfit$surv[dtimes]
-        else {
-            gfit <- survfitKM(stemp, Surv(y[,1], 1-y[,2]), 
-                              casewt=weight, se.fit=FALSE)
-            etime <- sfit$time[dtimes]
-            gg <- summary(gfit, time=etime, extend=TRUE)
-            if (timewt== "n/G") twt <- sfit$n.risk[dtimes]/gg$surv
-            else if (timewt=="S/G") twt <- sfit$surv[dtimes]/gg$surv
-            else twt <- sfit$n.risk[dtimes]/gg$surv
-        }
-    }
-    else { #stratified case
-        sfit <- survfitKM(strata, y, wt, se.fit=FALSE)
-    }
-  
     storage.mode(y) <- "double"
+    
     if (missing(strata) || length(strata)==0) {
-        count <- docount(y, x, weight, twt)
+        count <- docount(y, x, weight)
         if (count[1]==0 && count[2]==0) count[5]<-0
         else count[5] <- 2*sqrt(count[5])
         names(count) <- c("concordant", "discordant", "tied.risk", "tied.time",
