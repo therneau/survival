@@ -24,7 +24,7 @@ When a survfit object has only one or the other of the two, we allow a
 single subscript to be used and map it appropriately.
 
 <<survfit-subscript>>=
-"[.survfit" <- function(x, ..., drop=FALSE) {
+"[.survfit" <- function(x, ..., drop=TRUE) {
     if (missing(..1)) i<- NULL  else i <- ..1
     if (missing(..2)) j<- NULL  else j <- ..2
     if (is.null(i) && is.null(j)) return (x) #no subscripts present!
@@ -33,7 +33,7 @@ single subscript to be used and map it appropriately.
     
     if (is.null(x$strata)) {
         if (is.matrix(x$surv)) {
-            if (is.null(j) && !is.null(i)) j <- i
+            if (is.null(j) && !is.null(i)) j <- i #special case noted above
             x$surv <- x$surv[,j,drop=drop]
             if (!is.null(x$std.err)) x$std.err <- x$std.err[,j,drop=drop]
             if (!is.null(x$upper)) x$upper <- x$upper[,j,drop=drop]
@@ -69,6 +69,9 @@ single subscript to be used and map it appropriately.
             if (!is.null(x$enter)) x$enter <- x$enter[keep]
         }
         if (is.matrix(x$surv)) {
+            # If the curve has been selected by strata and keep has only
+            #  one row, we don't want to lose the second subscript too
+            if (!is.null(i) && (is.null(j) ||length(j) >1)) drop <- FALSE
             if (is.null(j)) {
                 x$surv <- x$surv[keep,,drop=drop]
                 if (!is.null(x$std.err)) 
@@ -77,7 +80,7 @@ single subscript to be used and map it appropriately.
                 if (!is.null(x$lower)) x$lower <-x$lower[keep,,drop=drop]
             }
             else {
-                x$surv <- x$surv[keep,j]
+                x$surv <- x$surv[keep,j, drop=drop]
                 if (!is.null(x$std.err)) 
                     x$std.err <- x$std.err[keep,j, drop=drop]
                 if (!is.null(x$upper)) x$upper <- x$upper[keep,j, drop=drop]

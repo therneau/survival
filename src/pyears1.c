@@ -56,7 +56,7 @@ void pyears1(Sint   *sn,      Sint   *sny,      Sint   *sdoevent,
 	     double *sodata,  double *pyears,   double *pn, 
 	     double *pcount,  double *pexpect,  double *offtable)
     {
-S_EVALUATOR
+
     int i,j;
     int     n,
 	    ny,

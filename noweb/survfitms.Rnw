@@ -71,7 +71,8 @@ object.  Otherwise we can drop columns freely
             x$n.censor<- x$n.censor[keep]
             }
         if (is.matrix(x$prev)) { 
-            if (length(keep) <2) drop <- FALSE
+            # If [i,] selected only 1 row, don't collapse the columns
+            if (length(keep) <2 && (is.null(j) || length(j) >1)) drop <- FALSE
             if (is.null(j)) {  #only subscript rows (strata)
                 x$prev <- x$prev[keep,,drop=drop]
                 x$cumhaz <- x$cumhaz[,,keep, drop=drop]

@@ -302,8 +302,6 @@ void agfit5_b(Sint *maxiter, Sint *nusedx, Sint *nvarx,
 	       Sint *nfrail, double *fbeta, double *fdiag,
                void *fexpr1, void *fexpr2, void *rho)
 {
-S_EVALUATOR
-
     int i,j,k, person;
     int ii;
     int     iter;

@@ -2,20 +2,27 @@
 \title{NEWS file for the survival package}
 \section{Changes in version 2.37-3}{
   \itemize{
+    \item Minor flaw in [.survfit.  If "fit" had multiple curves, and
+    fit$surv was a matrix, and one of those curves had only a single observation
+    time, fit[i,] would collapse columns when "i" selected that curve,
+    though it shouldn't.  
+
+    \item Changed all of the .C and .Call statements to make use of
+    "registered native routines", per R-core request. Add file src/init.c 
+
     \item Error in plot.survfit pointed out by K Hoggart -- the "+"
     signs for censored observations were printing one survival time to
     the left of the proper spot.  Eik Vettorazi found another error if
     mark.time is a vector of numerics.  These are the results of merging
     the code for plot, lines and points due to some discrepancies between
-    them + not having any graphical tests.
+    them, plus not having any graphical checks in the test suite.
     
     \item Repair an error in using double subscripts for the survfitms
     objects.
     
-    \item Add the US population data set, with totals by age and sex for
-    2000 onward.  It is named uspop2, since
-    there is already a "uspop" data set containing decennial totals from
-    1790 to 1970.
+    \item Add the US population data set, with yearly totals by age and sex 
+    for 2000 onward.  It is named uspop2, since there is already a "uspop" 
+    data set containing decennial totals from 1790 to 1970.
     
     \item Not all combinations of strata Y/N and CI Y/N worked in the
     quantile.survfit function, pointed out by Daniel Wallschlaeger

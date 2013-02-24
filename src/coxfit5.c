@@ -91,15 +91,14 @@ static Sint   *zflag;
 
 static double **cmatrix(double *, int, int);
 
-void coxfit5_a(Sint *nusedx, Sint *nvarx, double *yy, 
-	       double *covar2, double *offset2,
-	       double *weights2, Sint *strata,  Sint *sorted,
-	       double *means, double *beta, double *u, 
-	       double *loglik, 
-	       Sint *methodx, Sint *ptype2, Sint *pdiag2,
-	       Sint *nfrail,  Sint *frail2,
-               void *fexpr1, void *fexpr2, void *rho) {
-S_EVALUATOR
+void coxfit5_a(Sint *nusedx,     Sint *nvarx,     double *yy, 
+	       double *covar2,   double *offset2, double *weights2,
+	       Sint *strata,     Sint *sorted,    double *means, 
+               double *beta,     double *u,       double *loglik, 
+	       Sint *methodx,    Sint *ptype2,    Sint *pdiag2,
+	       Sint *nfrail,     Sint *frail2,
+               void *fexpr1,     void *fexpr2,    void *rho) {
+
     int i,j,k, p, istrat;
     int ii; 
     int     nused, nvar;
@@ -289,7 +288,7 @@ void coxfit5_b(Sint *maxiter, Sint *nusedx, Sint *nvarx,
 	       Sint *nfrail, double *fbeta, double *fdiag,
                void *fexpr1, void *fexpr2, void *rho)
 {
-S_EVALUATOR
+
     int i,j,k, p;
     int ii, istrat, ip;
     int     iter;
@@ -536,7 +535,7 @@ S_EVALUATOR
 
 static double **cmatrix(double *data, int ncol, int nrow)
     {
-S_EVALUATOR
+
     int i,j;
     double **pointer;
     double *temp;
@@ -567,7 +566,6 @@ static void cmatrix_free(double **data)
 
 void coxfit5_c (Sint *nusedx, Sint *nvar, Sint *strata, Sint *methodx, 
 		double *expect) {
-S_EVALUATOR
     double hazard, 
            denom,
            temp, temp2,

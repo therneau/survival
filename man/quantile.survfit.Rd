@@ -69,7 +69,7 @@
 }
 \examples{
 fit <- survfit(Surv(time, status) ~ ph.ecog, data=lung)
-quantile(fit, )
+quantile(fit)
 
 cfit <- coxph(Surv(time, status) ~ age + strata(ph.ecog), data=lung)
 csurv<- survfit(cfit, newdata=data.frame(age=c(40, 60, 80)),

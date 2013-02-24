@@ -40,7 +40,7 @@ void pyears3(Sint   *sdeath,    Sint   *sn,    Sint   *sedim,
 	     Sint   *sntime,    Sint   *sngrp, double *times,
 	     double *esurv,     Sint   *nsurv)
     {
-S_EVALUATOR
+
     int i,j,k;
     int     n,
 	    death,
