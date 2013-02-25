@@ -48,14 +48,14 @@ doc: $(DOCDIR)/sourcecode.pdf
 $(DOCDIR)/sourcecode.pdf: all.pdf
 	cp all.pdf $(DOCDIR)/sourcecode.pdf
 
-all.pdf: all.tex
+all.pdf: all.tex noweb.sty
 	texi2dvi --pdf all.tex
 
 all.nw: $(PARTS)
 	cat $(PARTS) > all.nw
 
 all.tex: all.nw
-	echo "library(noweb); notangle('all.nw')" | $(R_HOME)/bin$(R_ARCH_BIN)/R --vanilla --slave
+	echo "library(noweb); noweave('all.nw')" | $(R_HOME)/bin$(R_ARCH_BIN)/R --vanilla --slave
 #	noweave -delay all.nw > all.tex
 
 $(SFUN): all.nw
@@ -93,4 +93,4 @@ clean:
 	-rm noweb.sty
 
 noweb.sty:
-	echo 'library(noweb); data(noweb); cat(noweb.sty, sep="\n", file="noweb.sty") |  $(R_HOME)/bin$(R_ARCH_BIN)/R --vanilla --slave
+	echo 'library(noweb); data(noweb); cat(noweb.sty, sep="\n", file="noweb.sty")' |  $(R_HOME)/bin$(R_ARCH_BIN)/R --vanilla --slave

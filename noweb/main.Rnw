@@ -1,7 +1,6 @@
 \documentclass{article}
 \usepackage{noweb}
 \usepackage{amsmath}
-\usepackage[pdftex]{graphicx}
 \usepackage{fancyvrb}
 \addtolength{\textwidth}{1in}
 \addtolength{\oddsidemargin}{-.5in}
