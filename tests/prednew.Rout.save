@@ -1,8 +1,8 @@
 
-R version 2.12.2 (2011-02-25)
-Copyright (C) 2011 The R Foundation for Statistical Computing
+R Under development (unstable) (2013-02-24 r62054) -- "Unsuffered Consequences"
+Copyright (C) 2013 The R Foundation for Statistical Computing
 ISBN 3-900051-07-0
-Platform: x86_64-unknown-linux-gnu (64-bit)
+Platform: i686-pc-linux-gnu (32-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -28,7 +28,7 @@ Loading required package: splines
 > 
 > myfit <- coxph(Surv(time, status) ~ age + factor(ph.ecog) + strata(sex), lung)
 > 
-> keep <- which(lung$sex==1 & (lung$ph.ecog==1 | lung$ph.ecog==2))
+> keep <- which(lung$inst<13 & (lung$ph.ecog==1 | lung$ph.ecog==2))
 > p1 <- predict(myfit, type='lp')
 > p2 <- predict(myfit, type="lp", newdata=lung[keep,])
 > p3 <- predict(myfit, type='lp', se.fit=TRUE)
@@ -113,3 +113,6 @@ Loading required package: splines
 > aeq(p1$se.fit, p2$se.fit)
 [1] TRUE
 > 
+> proc.time()
+   user  system elapsed 
+  0.380   0.016   0.394 

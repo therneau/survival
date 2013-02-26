@@ -1,5 +1,14 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 2.37-4}{
+  \itemize{
+    \item Subscripting error in predict.coxph for type=expected, se=T,
+    strata in the model, newdata, and multiple strata in the new data
+    set.  Pointed out by Chris Andrews.  The test program has been
+    tweaked to include multiple strata in newdata.
+}}
+    
+
 \section{Changes in version 2.37-3}{
   \itemize{
     \item Minor flaw in [.survfit.  If "fit" had multiple curves, and

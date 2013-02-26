@@ -9,7 +9,7 @@ aeq <- function(x,y) all.equal(as.vector(x), as.vector(y))
 
 myfit <- coxph(Surv(time, status) ~ age + factor(ph.ecog) + strata(sex), lung)
 
-keep <- which(lung$sex==1 & (lung$ph.ecog==1 | lung$ph.ecog==2))
+keep <- which(lung$inst<13 & (lung$ph.ecog==1 | lung$ph.ecog==2))
 p1 <- predict(myfit, type='lp')
 p2 <- predict(myfit, type="lp", newdata=lung[keep,])
 p3 <- predict(myfit, type='lp', se.fit=TRUE)

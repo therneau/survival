@@ -1,8 +1,8 @@
 
-R version 2.12.2 (2011-02-25)
-Copyright (C) 2011 The R Foundation for Statistical Computing
+R Under development (unstable) (2013-02-24 r62054) -- "Unsuffered Consequences"
+Copyright (C) 2013 The R Foundation for Statistical Computing
 ISBN 3-900051-07-0
-Platform: x86_64-unknown-linux-gnu (64-bit)
+Platform: i686-pc-linux-gnu (32-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -432,7 +432,10 @@ n= 21
 > points(kfit$time, qnorm(1-kfit$surv), pch='+')
 > 
 > dev.off()  #close the plot file
-null device 
-          1 
+pdf 
+  2 
 > 
 > 
+> proc.time()
+   user  system elapsed 
+  5.312   0.044   5.358 
