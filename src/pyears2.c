@@ -1,4 +1,3 @@
-/* $Id: pyears2.c 11166 2008-11-24 22:10:34Z therneau $ */
 /*
 **  Person-years calculations.
 **     same as pyears1, but no expected rates

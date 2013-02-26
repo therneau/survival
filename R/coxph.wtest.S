@@ -1,4 +1,3 @@
-# $Id: coxph.wtest.S 11166 2008-11-24 22:10:34Z therneau $
 #
 # A Wald test routine, used by the Cox model
 #  Why not just do  sum(b * solve(var, b))? -- because the solve

@@ -1,4 +1,3 @@
-/* $Id: pyears1.c 11192 2009-01-26 04:40:23Z therneau $ */
 /*
 **  Person-years calculations, in its most general
 **

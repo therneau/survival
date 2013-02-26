@@ -1,4 +1,3 @@
-#  $Id: residuals.coxph.S 11204 2009-02-06 13:14:06Z therneau $
 residuals.coxph <-
   function(object, type=c("martingale", "deviance", "score", "schoenfeld",
 			  "dfbeta", "dfbetas", "scaledsch","partial"),
