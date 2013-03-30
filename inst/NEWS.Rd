@@ -1,5 +1,14 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 2.37-5}{
+  \itemize{
+    \item Per a request from Milan Bouchet-Valet fix an issue in survfit
+    that arose when the OutDec option is set to ',': it did not
+    correctly convert times back from character to numeric.
+    \item The plot.survfit function now obeys "cex" for the size of the
+      marks used for censored observations.
+}}
+
 \section{Changes in version 2.37-4}{
   \itemize{
     \item Subscripting error in predict.coxph for type=expected, se=T,

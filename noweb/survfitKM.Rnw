@@ -82,7 +82,8 @@ for (i in 1:nstrat) {
         }
         ftime <- factor(y[who,1])
         indx <- order(ftime, -status[who]) #censors after deaths
-        survlist[[i]] <- c(list(time=as.numeric(levels(ftime))),
+        survlist[[i]] <- c(list(time=type.convert(levels(ftime), as.is=TRUE, 
+                                                  dec=getOption("OutDec")),
                            .Call("survkm1",
                                  as.integer(ftime[indx]),
                                  as.integer(y[who[indx],2]),

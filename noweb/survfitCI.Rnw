@@ -212,7 +212,9 @@ docurve1 <- function(entry, etime, status, istate, wt, states, id) {
     # solve this by using creating a factor
     ftime <- factor(etime)
     ntime <- length(levels(ftime))
-    timeset <- as.numeric(levels(ftime))
+    # If someone has chosen to set the OutSep option to ',' (France) the simple 
+    #  as.numeric(levels(ftime)) will fail
+    timeset <- type.convert(levels(ftime), as.is=TRUE, dec=getOption("OutDec"))
     ftime <- as.numeric(ftime)
     
     nstate <- length(states)

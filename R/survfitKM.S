@@ -84,8 +84,9 @@ survfitKM <- function(x, y, casewt=rep(1,length(x)),
             #  When two times differ by only the machine precision, unique
             #  will give more values, and then "time" will be a different
             #  length than the other components
-	    time[[i]] <- as.numeric(dimnames(temp)[[1]])
-#	    time[[i]] <- sort(unique(y[who,1]))   #same answer as line above
+	    time[[i]] <- type.convert(dimnames(temp)[[1]], as.is=TRUE,
+                                      dec=getOption("OutDec"))
+#	    time[[i]] <- sort(unique(y[who,1]))   # old version of line above
 	    ntemp  <- (dim(temp))[1]
 	    nevent <- as.vector(temp[,2])
 	    ncens  <- as.vector(temp[,1])

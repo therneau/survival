@@ -1,0 +1,633 @@
+\subsection{Anderson-Gill fits}
+When the survival data set has (start, stop] data a couple of computational
+issues are added.  
+A primary one is how to do this compuation efficiently.
+At each event time we need to compute 3 quantities, each of them added up 
+over the current risk set.
+\begin{itemize}
+  \item The weighted sum of the risk scores $\sum w_i r_i$ where
+    $r_i = \exp(\eta_i)$ and $\eta_i = x_{i1}\beta_1 + x_{i2}\beta_2 +\ldots$
+    is the current linear predictor.
+  \item The weighted mean of the covariates $x$, with weight $w_i r_i$.
+  \item The weighted variance-covariance matrix of $x$.
+\end{itemize}
+The current risk set at some event time $t$ is the set of all (start, stop]
+intervals that overlap $t$, and are part of the same strata. 
+The round/square brackets in the prior sentence are important: for an event time
+$t=20$ the interval $(5,20]$ is considered to overlap $t$ and the interval
+$(20,55]$ does not overlap $t$.
+    
+Our routine for the simple right censored Cox model computes these efficiently
+by keeping a cumulative sum.  Starting with the longest survival move
+backwards through time, adding subjects to the sums as we go.
+For this routine subjects we also move backwards through time, and subjects both
+enter and leave the sums.  
+The code below creates two sort indices, one orders the data by reverse stop
+time and the other by reverse start time.
+
+The fit routine is called by the coxph function with arguements
+\begin{description}
+  \item[x] matrix of covariates
+  \item[y] three column matrix containing the start time, stop time, and event
+    for each observation
+  \item[strata] for stratified fits, the strata of each subject
+  \item[offset] the offset, usually a vector of zeros
+  \item[init] initial estimate for the coefficients
+  \item[control] results of the coxph.control function
+  \item[weights] case weights, often a vector of ones.
+  \item[method] how ties are handled: 1=Breslow, 2=Efron
+  \item[rownames] used to label the residuals
+\end{description}
+
+<<agreg.fit>>=
+agreg.fit <- function(x, y, strata, offset, init, control,
+			weights, method, rownames)
+    {
+    n <- nrow(y)
+    nvar <- ncol(x)
+    start <- y[,1]
+    stopp <- y[,2]
+    event <- y[,3]
+    if (all(event==0)) stop("Can't fit a Cox model with 0 failures")
+
+    # Sort the data (or rather, get a list of sorted indices)
+    #  For both stop and start times, the indices go from last to first
+    if (length(strata)==0) {
+	sort.end  <- order(-stopp, event)
+	sort.start<- order(-start)
+	newstrat  <- n
+	}
+    else {
+	sort.end  <- order(strata, -stopp, event)
+	sort.start<- order(strata, -start)
+	newstrat  <- cumsum(table(strata))
+	}
+    if (missing(offset) || is.null(offset)) offset <- rep(0.0, n)
+    if (missing(weights)|| is.null(weights))weights<- rep(1.0, n)
+    else if (any(weights<=0)) stop("Invalid weights, must be >0")
+
+    if (is.null(nvar) || nvar==0) {
+	# A special case: Null model.  Just return obvious stuff
+        #  To keep the C code to a small set, we call the usual routines, but
+	#  with a dummy X matrix and 0 iterations
+	nvar <- 1
+	x <- matrix(1:n, ncol=1)  #keep the .C call happy
+	maxiter <- 0
+	nullmodel <- TRUE
+        if (length(init) !=0) stop("Wrong length for inital values")
+        init <- 0.0  #dummy value to keep the .C call happy (doesn't like 0 length)
+	}
+    else {
+	nullmodel <- FALSE
+	maxiter <- control$iter.max
+        
+        if (is.null(init)) init <- rep(0., nvar)
+	if (length(init) != nvar) stop("Wrong length for inital values")
+	}
+
+    agfit <- .Call(y, x, newstrat, weights, offset,
+                   sort1, sort2, as.integer(method=="efron"),
+                   as.integer(maxiter), 
+                   as.double(control$eps),
+                   as.double(control$toler.chol))
+
+    <<agreg4-fixup>>
+    <<agreg4-finish>>
+    }
+}  
+@
+
+Upon return we need to clean up two simple things.
+The first is that if any of the covariates were redudant then this
+will be marked by zeros on the diagonal of the variance matrix.
+Replace these coefficients and their variances with NA.
+The second is to post a warning message about possible infinite coefficients.
+The algorithm for determining this is unreliable, unfortunately.  
+Sometimes coefficients are marked as infinite when the solution is not tending
+to infinity (usually associated with a very skewed covariate), and sometimes
+one that is tending to infinity is not marked.  Que sera sera.
+<<agreg-fixup>>=
+var <- matrix(agfit$imat,nvar,nvar)
+coef <- agfit$coef
+if (agfit$flag < nvar) which.sing <- diag(var)==0
+else which.sing <- rep(FALSE,nvar)
+
+infs <- abs(agfit$u %*% var)
+if (maxiter >1) {
+    if (agfit$flag == 1000)
+        warning("Ran out of iterations and did not converge")
+    else {
+        infs <- ((infs > control$eps) & 
+                 infs > control$toler.inf*abs(coef))
+        if (any(infs))
+            warning(paste("Loglik converged before variable ",
+                          paste((1:nvar)[infs],collapse=","),
+				      "; beta may be infinite. "))
+    }
+}
+@ 
+
+The last of the code is very standard.  Compute residuals and package
+up the results.
+<<agreg-finish>>=
+lp  <- as.vector(x %*% coef + offset - sum(coef *agfit$means))
+score <- as.double(exp(lp))
+
+agres <- .C(Cagmart2,
+as.integer(n),
+as.integer(method=='efron'),
+as.double(start), 
+as.double(stopp),
+as.integer(event),
+as.integer(length(newstrat)), 
+as.integer(newstrat),
+as.integer(sort.end-1), 
+as.integer(sort.start-1),
+score,
+as.double(weights),
+resid=double(n),
+double(2*sum(event)))
+resid <- agres$resid
+
+if (nullmodel) {
+    resid <- agres$resid
+    names(resid) <- rownames
+
+    list(loglik=agfit$loglik[2],
+         linear.predictors = offset,
+         residuals = resid,
+         method= c("coxph.null", 'coxph') )
+}
+else {
+    names(coef) <- dimnames(x)[[2]]
+    names(resid) <- rownames
+    coef[which.sing] <- NA
+
+    concordance <- survConcordance.fit(y, lp, strata, weights) 
+    list(coefficients  = coef,
+         var    = var,
+         loglik = agfit$loglik,
+         score  = agfit$sctest,
+         iter   = agfit$iter,
+         linear.predictors = as.vector(lp),
+         residuals = resid,
+         means = agfit$means,
+         concordance = concordance,
+         method= 'coxph')
+}
+@
+
+The details of the C code contain the more challenging part of the
+computations.
+It starts with the usual dull stuff.
+My standard coding style for a variable zed to to use
+[[zed2]] as the variable name for the R object, and [[zed]] for
+the pointer to the contents of the object, i.e., what the
+C code will manipulate.
+For the matrix objects I make use of ragged arrays, this simply
+allows for reference to the i,j element as \code{cmat[i][j]}
+and makes for more readable code.
+
+<<agfit4>>=
+#include <math.h>
+#include "survS.h" 
+#include "survproto.h"
+
+SEXP agfit4(SEXP surv2,      SEXP covar2,
+	    SEXP  strata2,   SEXP weigths2,  SEXP offset2,
+	    SEXP sort12,     SEXP sort22,    SEXP method2,
+	    SEXP maxiter2,   SEXP  eps2,     SEXP tolerance2) { 
+
+    int i,j,k,person;
+    int indx2, istrat, p;
+    int ksave;
+    int     iter;
+    int     nused, nvar;
+
+    double **covar, **cmat, **imat;  /*ragged array versions*/
+    double *a, *newbeta, *maxbeta;
+    double *a2, **cmat2;
+    double *score;
+    double  denom, zbeta, risk;
+    double  time;
+    double  temp, temp2;
+    double  newlk =0;
+    int     halving;    /*are we doing step halving at the moment? */
+    double  tol_chol;
+    int     method;
+    double  meanwt;
+    int itemp, deaths;
+    double efron_wt, d2;
+
+    /* returned objects */
+    SEXP imat2, means2, beta2, u2, loglik2;
+    double *beta, *u, *loglik, *means;
+    SEXP sctest2, flag2, iter2;
+    double *sctest;
+    int *flag, *iter;
+    SEXP rlist;
+    static const char *outnames[]={"coef", "u", "imat", "loglik", "means",
+				   "sctest", "flag", "iter", ""};
+    int nprotect;  /* number of protect calls I have issued */
+
+    /* get sizes and constants */
+    nused = nrows(covar2);
+    nvar  = ncols(covar2);
+    nstrat= LENGTH(strata2);
+    method= asInteger(method2);
+    tol_chol = asREAL(tolerance);
+    
+    /*
+    ** scratch space
+    **  nvar: mean, a, a2, newbeta, maxbeta
+    **  nvar*nvar: cmat, cmat2
+    **  n: score, eta
+    */
+    score = (double *) R_ALLOC(2*n + 5*nvar + 2*nvar*nvar, sizeof(double));
+    eta = score +n;
+    mean = eta + n;
+    a = mean + nvar;
+    a2 = a +nvar;
+    maxbeta = a2 + nvar;
+    newbeta = maxbeta + nvar;
+
+    /*
+    **  Set up the ragged arrays
+    **  covar2 might not need to be duplicated, even though
+    **  we are going to modify it, due to the way this routine was
+    **  was called.  In this case NAMED(covar2) will =0
+    */
+    nprotect =0;
+    if (NAMED(covar2)>0) {
+	PROTECT(covar2 = duplicate(covar2)); 
+	nprotect++;
+	}
+    covar= dmatrix(covar2, nused, nvar);
+    imat = dmatrix(imat2,  nvar, nvar);
+    cmat = dmatrix(newbeta+nvar,   nvar, nvar);
+    cmat2= dmatrix(newbeta+ 2*nvar*nvar, nvar, nvar);
+
+    /*
+    ** create the output structures
+    */
+    PROTECT(beta2 = duplicate(ibeta));
+    beta = REAL(beta2);
+    PROTECT(means2 = allocVector(REALSXP, nvar));
+    means = REAL(means2);
+    PROTECT(u2 = allocVector(REALSXP, nvar));
+    u = REAL(u2);
+    PROTECT(loglik2 = allocVector(REALSXP, 2)); 
+    loglik = REAL(loglik2);
+    PROTECT(sctest2 = allocVector(REALSXP, 1));
+    sctest = REAL(sctest2);
+    PROTECT(flag2 = allocVector(INTSXP, 1));
+    flag = INTEGER(flag2);
+    PROTECT(iter2 = allocVector(INTSXP, 1));
+    iter = INTEGER(iter2);
+    PROTECT(rlist = mkNamded(VECSXP, outnames));
+    nprotect += 8;
+    SET_VECTOR_ELT(rlist, 0, beta2);
+    SET_VECTOR_ELT(rlist, 1, imat2);
+    SET_VECTOR_ELT(rlist, 2, means2);
+    SET_VECTOR_ELT(rlist, 3, u2);
+    SET_VECTOR_ELT(rlist, 4, loglik2);
+    SET_VECTOR_ELT(rlist, 5, sctest2);
+    SET_VECTOR_ELT(rlist, 6, flag2);
+    SET_VECTOR_ELT(rlist, 7, iter2);
+
+    /*
+    ** Subtract the mean from each covar, as this makes the variance
+    **  computation much more stable
+    */
+    for (i=0; i<nvar; i++) {
+	temp=0;
+	for (person=0; person<nused; person++) temp += covar[i][person];
+	temp /= nused;
+	means[i] = temp;
+	tmax = covar[i][0] - temp;
+	tmin = tmax;
+	for (person=0; person<nused; person++)
+	    covar[i][person] -=temp;
+        }
+    ndeath =0;
+    for (i=0; i<nused; i++) ndeath += status[i];
+    
+    <<agfit4-iter>>
+    <<agfit4-finish>>
+}
+@ 
+
+As we walk through the risk sets observations are both added and
+removed from a set of running totals.  
+In order to avoid catastrophic cancellation we need to make sure that
+the terms being added are of modest size and that the weights are
+not extreme.
+We have 6 running totals: 
+\begin{itemize}
+  \item sum of the weights, denom = $\sum w_i r_i$
+  \item totals for each covariate a[j] = $\sum w_ir_i x_{ij}$
+  \item totals for each covariate pair cmat[j,k]=  $\sum w_ir_i x_{ij} x_{ik}$
+  \item the same three quantities, but only for times that are exactly
+    tied with the current death time,  named efron\_wt, a2, cmat2.
+    These are used for the Efron approximation.
+\end{itemize}
+
+The three primary quantities for the Cox model are the log-likelihood $L$,
+the score vector $U$ and the Hessian matrix $H$.
+\begin{array*}
+  L &=  \sum_i w_i \delta_i \left[r_i - \log(d(t)) \right] \\
+  d(t) &= \sum_j w_j r_j Y_j(t)
+    \right] \\
+  U_k  &= \sum_i w_i \delta_i \left[ (X_{ik} - \mu_k(t_i)) \right] \\
+  \mu_k(t) &= \frac{\sum_j w_j r_j Y_j(t) X_{jk}} {d(t)} \\
+  H_{kl}  &= \sum_i \w_i \delta_i V_{kl}(t_i) \\
+  V_{kl}(t) &= \frac{\sum_j w_j r_j Y_j(t) [X_{jk} - \mu_k(t)]
+     [X_{jl}- \mu_l(t)]} {d(t)} \\
+            &= \frac{\sum_j w_j r_j Y_j(t) X_{jk}X_{jl}} {d(t)}
+                  - d(t) \mu_k(t) \mu_l(t) 
+\end{array*}
+In the above $\delta_i =1$ for an event and 0 otherwise, $w_i$ is the per
+subject weight, and $Y_i(t)$ is 1 if observation $i$ is at risk at time $t$.
+The vector $\mu(t)$ is the weighted mean of the covariates at time $t$
+using a weight of $w r Y(t)$ for each subject, and $V(t)$ is the weighted
+variance matrix of $X$ at time $t$.
+
+Tied deaths and the Efron approximation add a small complication to the
+formula.  Say there are three tied deaths at some particular time $t$.
+When calculating the denominator $d(t)$, mean $\mu(t)$ and variance
+$V(t)$ at that time the inclusion value $Y_i(t)$ is 0 or 1 for all other
+subjects, as usual, but for the three tied deaths Y(t) is taken to
+be 1 for the first death, 2/3 for the second, and 1/3 for the third.
+The idea is that if the tied death times were randomly broken by adding
+a small random amount then each of these threes would be in the first risk set,
+have 2/3 chance of being in the second, and 1/3 chance of being in the risk
+set for the third death.
+
+The variance formula is stable if $\mu$ is small relative to
+    the total variance.  This is guarranteed by subtracting the mean
+    from each covariate before any other computations are performed.
+Weighted sums can still be unstable if the weights get out of hand.
+Because of the exponential $r_i = exp(\eta_i)$ for this step
+the original centering of the $X$ matrix may not be enough. 
+A particular example was a data set on hospital adverse events with
+``number of nurse shift changes to date'' as a time dependent covariate.
+At any particular time point the covariate varied only by $\pm 3$ between
+subjects (weekends often use 12 hour nurse shifts instead of 8 hour).  The
+regression coefficient was around 1 and the data duration was 11 weeks
+(about 200 shifts) so that $eta$ values could be over 100 even after
+centering.  We keep a time dependent average of $\eta$ and renorm the
+weights as necessary.
+
+The last numerical problem is when one or more coefficients gets too
+large.
+This can lead to numerical difficulty based on a small number
+of observations or even on a single large outlier.
+This occassionally happens when a coefficient is tending to infinity, but is
+more often due to a very bad step in the intermediate Newton-Raphson path.
+We cut this at 20.  The rationale is that exp(2) is greater than the
+current US population, so corresponds to a relative risk larger
+than any imaginable.
+
+<<agfit4-addup>>=
+for (i=0; i<nvar; i++) {
+    u[i] =0;
+    a[i] =0;
+    for (j=0; j<nvar; j++) {
+        imat[i][j] =0 ;
+        cmat[i][j] =0;
+    }
+}
+
+for (person=0; person<nused; person++) {
+    zbeta = 0;      /* form the term beta*z   (vector mult) */
+    for (i=0; i<nvar; i++)
+        zbeta += beta[i]*covar[i][person];
+    eta[person] = zbeta + offset[person];
+}
+
+/*
+**  'person' walks through the stop times from largest to smallest
+**     (sort1[0] points to the largest stop time, sort1[1] the next, ...)
+**  'time' is the time of current interest, which also goes from smallest
+**      to largest.  
+**  'indx2' walks through the start times.  It will be smaller than 
+**    'person': if person=27 that means that 27 subjects have stop >=time,
+**    and are thus potential members of the risk set.  If 'indx2' =9,
+**    that means that 9 subjects have start >=time and thus are NOT part
+**    of the risk set.  (stop > start for each subject guarrantees that
+**    the 9 are a subset of the 27). 
+**  Basic algorithm: move 'person' forward, adding the new subject into
+**    the risk set.  If this is a new, unique death time, take selected
+**    old obs out of the sums, add in obs tied at this time, then
+**    add terms to the loglik, etc.
+*/
+istrat=0;
+indx2 =0;
+denom =0;
+meaneta =0;
+nrisk =0;
+newlk =0;
+for (person=0; person<nused;) {
+    p = sort1[person];
+    if (event[p]==0){
+        nrisk++;
+        meaneta += eta[p];
+        risk = exp(eta[p]) * weights[p];
+        denom += risk;
+        for (i=0; i<nvar; i++) {
+    	a[i] += risk*covar[i][p];
+    	for (j=0; j<=i; j++)
+    	    cmat[i][j] += risk*covar[i][p]*covar[j][p];
+    	}
+        
+        person++;
+        }
+    else {
+        time = stop[p];
+        /*
+        ** subtract out the subjects whose start time is to the right
+        */
+        for (; indx2<strata[istrat]; indx2++) {
+	    p = sort2[indx2];
+	    if (start[p] < time) break;
+	    nrisk--;
+	    meaneta -= score[p];
+	    risk = exp(score[p]) * weights[p];
+	    denom -= risk;
+	    for (i=0; i<nvar; i++) {
+		a[i] -= risk*covar[i][p];
+		for (j=0; j<=i; j++)
+		    cmat[i][j] -= risk*covar[i][p]*covar[j][p];
+    	    }
+    	}
+
+	/* 
+	** If the average eta value has gotton out of hand, fix it.
+        ** We must avoid overflow in the exp function (~750 on Intel)
+        ** but don't want to take action very often.  One of the
+        ** case-cohort papers uses an offset of -100, so use that
+	** as a lower limit guide.
+	*/
+	if (abs(meaneta/nrisk) > 110) {  
+	    meaneta = meaneta/nrisk;
+	    for (i=0; i<n; i++) eta[i] -= meaneta;
+	    temp = exp(-meaneta);
+	    denom *= temp;
+	    for (i=0; i<n; i++) {
+		a[i] *= temp;
+		for (j=0; j<n; j++) cmat[i][j]*= temp;
+	    }
+	    meaneta =0;
+	}
+            
+        /*
+        ** compute the averages over subjects with
+        **   exactly this death time (a2 & c2)
+        ** (and add them into a and cmat while we are at it).
+        */
+        efron_wt =0;
+        meanwt =0;
+        for (i=0; i<nvar; i++) {
+	    a2[i]=0;
+	    for (j=0; j<nvar; j++) {
+		cmat2[i][j]=0;
+    	    }
+    	}
+        deaths=0;
+        for (k=person; k<strata[istrat]; k++) {
+	    p = sort1[k];
+	    if (stop[p] < time) break;
+	    risk = exp(score[p]) * weights[p];
+	    denom += risk;
+	    for (i=0; i<nvar; i++) {
+		a[i] += risk*covar[i][p];
+		for (j=0; j<=i; j++)
+		    cmat[i][j] += risk*covar[i][p]*covar[j][p];
+    	    }
+	    if (event[p]==1) {
+		deaths += event[p];
+		efron_wt += risk*event[p];
+		meanwt += weights[p];
+		for (i=0; i<nvar; i++) {
+		    a2[i]+= risk*covar[i][p];
+		    for (j=0; j<=i; j++)
+			cmat2[i][j] += risk*covar[i][p]*covar[j][p];
+    		}
+	    }
+    	}
+        ksave = k;
+	    
+	/*
+        ** Add results into u and imat for all events at this time point
+        */
+        meanwt /= deaths;
+        itemp = -1;
+        for (; person<ksave; person++) {
+	    p = sort1[person];
+	    if (event[p]==1) {
+		itemp++;
+		temp = itemp*method/deaths;
+		d2 = denom - temp*efron_wt;
+		newlk +=  weights[p]*score[p] -meanwt *log(d2);
+		for (i=0; i<nvar; i++) {
+		    temp2 = (a[i] - temp*a2[i])/d2;
+		    u[i] += weights[p]*covar[i][p] - meanwt*temp2;
+		    for (j=0; j<=i; j++)
+			imat[j][i] += meanwt* (
+    				(cmat[i][j] - temp*cmat2[i][j])/d2-
+    				   temp2*(a[j]-temp*a2[j])/d2);
+    		}
+    	    }
+    	}
+    }
+
+    if (person == strata[istrat]) {
+        istrat++;
+        denom =0;
+        indx2 = person;
+        for (i=0; i<nvar; i++) {
+	    a[i] =0;
+	    for (j=0; j<nvar; j++) {
+		cmat[i][j]=0;
+    	    }
+    	}
+    }
+}   /* end  of accumulation loop */
+@ 
+
+<<agfit4-iter>>=
+/* First iteration, which has different ending criteria */
+<<agfit4-addup>>
+loglik[0] = newlk;   /* save the loglik for iteration zero  */
+loglik[1] = newlk;
+
+/* Use the initial variance matrix to set a maximum coefficient */
+for (i=0; i<nvar; i++) 
+    maxbeta[i] = 20* sqrt(imat[i][i]/ndeath);
+
+/* Calculate the score test
+for (i=0; i<nvar; i++) /*use 'a' as a temp to save u0, for the score test*/
+    a[i] = u[i];
+flag = cholesky2(imat, nvar, *tol_chol);
+chsolve2(imat,nvar,a);        /* a replaced by  a *inverse(i) */
+*sctest=0;
+for (i=0; i<nvar; i++)
+    *sctest +=  u[i]*a[i];
+
+if (maxiter ==0) {
+    chinv2(imat, nvar);
+    <<agfit4-finish>>
+}
+else {  
+    /* Update beta for the next iteration
+    **  Never complain about convergence on this first step or impose step
+    **  halving.  That way someone can force one iter at a time.
+    */
+    for (i=0; i<nvar; i++) {
+	oldbeta = beta[i];
+	beta[i] = beta[i] + a[i];
+    }
+}
+    
+/* main loop */
+halving =0 ;             /* =1 when in the midst of "step halving" */
+for (*iter=1; iter<= maxiter; iter++) {
+    <<afit4-addup>>
+
+    *flag = cholesky2(imat, nvar, *tol_chol);
+    if fabs(1-(loglik[1]/newlk))<=*eps  && halving==0)){ /* all done */
+	<<agfit4-finish>> 
+    }
+
+    if (*iter < maxiter) { /*update beta */
+	if (newlk < loglik[1])   {    /*it is not converging ! */
+	    halving =1;
+	    for (i=0; i<nvar; i++)
+		beta[i] = (oldbeta[i] + beta[i]) /2; /*half of old increment */
+	}
+	else {
+	    halving=0;
+	    loglik[1] = newlk;
+	    chsolve2(imat,nvar,u);
+
+	    for (i=0; i<nvar; i++) {
+		oldbeta[i] = beta[i];
+		beta[i] = beta[i] +  u[i];
+		if (beta[i]> maxbeta[i]) beta[i] = maxbeta[i];
+		else (beta[i] < -maxbeta[i]) beta[i] = -maxbeta[i];
+	    }
+	}
+    }  
+} /*return for another iteration */
+@ 
+
+Save away the final bits, compute the inverse of imat and symmetrize it,
+release memory and return.
+<<agfit4-finish>>= 
+loglik[1] = newlk;
+chinv2(imat, nvar);
+for (i=1; i<nvar; i++)
+    for (j=0; j<i; j++)  imat[i][j] = imat[j][i];
+UNPROTECT(nprotect);
+return(rlist);
+@ 

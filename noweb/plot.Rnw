@@ -362,7 +362,7 @@ dostep <- function(x,y) {
     }
 }
 
-drawmark <- function(x, y, mark.time, censor, ...) {
+drawmark <- function(x, y, mark.time, censor, cex, ...) {
     if (!is.numeric(mark.time)) {
         xx <- x[censor]
         yy <- y[censor]
@@ -371,7 +371,7 @@ drawmark <- function(x, y, mark.time, censor, ...) {
         xx <- mark.time
         yy <- approx(x, y, xx, method="constant", f=0)$y
     }
-    points(xx, yy, ...)
+    points(xx, yy, cex=cex, ...)
         
 }
 @ 
@@ -395,7 +395,8 @@ for (i in unique(stemp)) {  #for each strata
         if (plot.surv) {
             lines(dostep(xx, yy), lty=lty[c2], col=col[c2], lwd=lwd[c2]) 
             if (is.numeric(mark.time) || mark.time) 
-                drawmark(xx, yy, mark.time, censor, pch=mark[c1], col=mcol[c1])
+                drawmark(xx, yy, mark.time, censor, pch=mark[c1], col=mcol[c1],
+                         cex=cex)
         }
         xend[c1] <- max(xx)
         yend[c1] <- yy[length(yy)]

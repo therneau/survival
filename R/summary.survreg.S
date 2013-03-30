@@ -2,7 +2,7 @@
 summary.survreg<- function(object, correlation = FALSE,...)
 {
     if (!is.null(object$fail)) {
-	warning(" Survreg failed.", x$fail, "   No summary provided\n")
+	warning(" Survreg failed.", object$fail, "   No summary provided\n")
 	return(invisible(object))
 	}
     wt <- object$weights

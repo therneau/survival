@@ -83,7 +83,9 @@ coxph(formula, data=, weights, subset,
   }
   \item{robust}{
     this argument has been deprecated, use a cluster term in the model
-    instead.
+    instead.  (The two options accomplish the same goal -- creation of a
+    robust variance -- but the second
+    is more flexible).
   }
   \item{model}{
     logical value: if \code{TRUE}, the model frame is returned in component
