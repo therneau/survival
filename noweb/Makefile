@@ -1,6 +1,7 @@
 PARTS = main.Rnw \
 	coxph.Rnw \
 	exact.nw \
+	agreg.Rnw \
 	coxsurv.Rnw \
 	coxsurv2.Rnw \
 	predict.coxph.Rnw \
@@ -16,7 +17,8 @@ PARTS = main.Rnw \
 	tail
 #	coxdetail.nw
 
-SFUN =  agsurv.R \
+SFUN =  agreg.fit.R \
+	agsurv.R \
 	coxph.R \
 	plot.survfit.R \
 	predict.coxph.R \
@@ -32,6 +34,7 @@ SFUN =  agsurv.R \
 	survfitms.R
 
 CFUN =  agsurv4.c agsurv5.c concordance1.c coxcount1.c \
+	agfit4.c \
         coxexact.c \
 	survfitci.c
 #	coxdetail2.c
@@ -87,7 +90,7 @@ test: $(RFUN)
 	cat zz >> $@
 	rm zz
 clean:
-	-rm all.nw all.log all.aux all.toc all.tex 
+	-rm all.nw all.log all.aux all.toc all.tex all.bbl all.blg
 	-rm $(RFUN)
 	-rm $(CFUN2)
 	-rm noweb.sty

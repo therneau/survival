@@ -37,6 +37,7 @@ static const R_CMethodDef Centries[] = {
 };
 
 static const R_CallMethodDef Callentries[] = {
+    {"Cagfit4",       (DL_FUNC) &agfit4,      12},
     {"Cconcordance1", (DL_FUNC) &concordance1, 4}, 
     {"Cconcordance2", (DL_FUNC) &concordance2, 6}, 
     {"Ccoxcount1",    (DL_FUNC) &coxcount1,    2},
