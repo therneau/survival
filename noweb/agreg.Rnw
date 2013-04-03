@@ -53,13 +53,13 @@ agreg.fit <- function(x, y, strata, offset, init, control,
     # Sort the data (or rather, get a list of sorted indices)
     #  For both stop and start times, the indices go from last to first
     if (length(strata)==0) {
-	sort.end  <- order(-stopp, event)
-	sort.start<- order(-start)
+	sort.end  <- order(-stopp, event) -1L #indices start at 0 for C code
+	sort.start<- order(-start) -1L
 	newstrat  <- n
 	}
     else {
-	sort.end  <- order(strata, -stopp, event)
-	sort.start<- order(strata, -start)
+	sort.end  <- order(strata, -stopp, event) -1L
+	sort.start<- order(strata, -start) -1L
 	newstrat  <- cumsum(table(strata))
 	}
     if (missing(offset) || is.null(offset)) offset <- rep(0.0, n)
@@ -85,16 +85,16 @@ agreg.fit <- function(x, y, strata, offset, init, control,
 	if (length(init) != nvar) stop("Wrong length for inital values")
 	}
 
-    agfit <- .Call("Cagfit4", 
+    agfit <- .Call(Cagfit4, 
                    y, x, newstrat, weights, offset,
-                   init, sort1, sort2, as.integer(method=="efron"),
+                   init, sort.start, sort.end, 
+                   as.integer(method=="efron"),
                    as.integer(maxiter), 
                    as.double(control$eps),
                    as.double(control$toler.chol))
-
+browser()
     <<agreg-fixup>>
     <<agreg-finish>>
-    }
 }  
 @
 
@@ -253,6 +253,9 @@ SEXP agfit4(SEXP surv2,      SEXP covar2,    SEXP strata2,
     sort1  = INTEGER(sort12);
     sort2  = INTEGER(sort22);
     strata = INTEGER(strata2);
+    for (i=0; i<nused; i++)
+        printf("input %d, start, stop event= %f %f %f\n", 
+               i, start[i], stop[i], event[i]);
     /*
     ** scratch space
     **  nvar: a, a2, newbeta, maxbeta
@@ -271,7 +274,8 @@ SEXP agfit4(SEXP surv2,      SEXP covar2,    SEXP strata2,
     **  we are going to modify it, due to the way this routine was
     **  was called.  In this case NAMED(covar2) will =0
     */
-    nprotect =0;
+    PROTECT(imat2 = allocVector(REALSXP, nvar*nvar));
+    nprotect =1;
     if (NAMED(covar2)>0) {
 	PROTECT(covar2 = duplicate(covar2)); 
 	nprotect++;
@@ -284,31 +288,28 @@ SEXP agfit4(SEXP surv2,      SEXP covar2,    SEXP strata2,
     /*
     ** create the output structures
     */
-    PROTECT(beta2 = duplicate(ibeta2));
-    beta = REAL(beta2);
-    PROTECT(means2 = allocVector(REALSXP, nvar));
-    means = REAL(means2);
-    PROTECT(u2 = allocVector(REALSXP, nvar));
-    u = REAL(u2);
-    PROTECT(loglik2 = allocVector(REALSXP, 2)); 
-    loglik = REAL(loglik2);
-    PROTECT(sctest2 = allocVector(REALSXP, 1));
-    sctest = REAL(sctest2);
-    PROTECT(flag2 = allocVector(INTSXP, 1));
-    flag = INTEGER(flag2);
-    PROTECT(iter2 = allocVector(INTSXP, 1));
-    iter = INTEGER(iter2);
     PROTECT(rlist = mkNamed(VECSXP, outnames));
-    nprotect += 8;
-    SET_VECTOR_ELT(rlist, 0, beta2);
-    SET_VECTOR_ELT(rlist, 1, imat2);
-    SET_VECTOR_ELT(rlist, 2, means2);
-    SET_VECTOR_ELT(rlist, 3, u2);
-    SET_VECTOR_ELT(rlist, 4, loglik2);
-    SET_VECTOR_ELT(rlist, 5, sctest2);
-    SET_VECTOR_ELT(rlist, 6, flag2);
-    SET_VECTOR_ELT(rlist, 7, iter2);
+    nprotect++;
+    beta2 = SET_VECTOR_ELT(rlist, 0, duplicate(ibeta2));
+    beta  = REAL(beta2);
 
+    u2 =    SET_VECTOR_ELT(rlist, 1, allocVector(REALSXP, nvar));
+    u = REAL(u2);
+
+    SET_VECTOR_ELT(rlist, 2, imat2);
+    loglik2 = SET_VECTOR_ELT(rlist, 3, allocVector(REALSXP, 2)); 
+    loglik  = REAL(loglik2);
+
+    means2 = SET_VECTOR_ELT(rlist, 4, allocVector(REALSXP, nvar));
+    means  = REAL(means2);
+
+    sctest2 = SET_VECTOR_ELT(rlist, 5, allocVector(REALSXP, 1));
+    sctest =  REAL(sctest2);
+    flag2  =  SET_VECTOR_ELT(rlist, 6, allocVector(INTSXP, 1));
+    flag   =  INTEGER(flag2);
+    iter2  =  SET_VECTOR_ELT(rlist, 7, allocVector(INTSXP, 1));
+    iter = INTEGER(iter2);
+    
     /*
     ** Subtract the mean from each covar, as this makes the variance
     **  computation much more stable
@@ -446,6 +447,8 @@ for (person=0; person<nused;) {
         meaneta += eta[p];
         risk = exp(eta[p]) * weights[p];
         denom += risk;
+printf("person=%d, eta=%f, weights=%f, risk=%f, denom=%f\n",
+       p, eta[p], weights[p], risk, denom);
         for (i=0; i<nvar; i++) {
     	a[i] += risk*covar[i][p];
     	for (j=0; j<=i; j++)
@@ -472,11 +475,12 @@ for (person=0; person<nused;) {
 		    cmat[i][j] -= risk*covar[i][p]*covar[j][p];
     	    }
     	}
+	printf(" stop time= %f, denom=%f\n", time, denom);
 
 	/* 
 	** If the average eta value has gotton out of hand, fix it.
         ** We must avoid overflow in the exp function (~750 on Intel)
-        ** but don't want to take action very often.  One of the
+        ** but don not want to take action very often.  One of the
         ** case-cohort papers uses an offset of -100, so use that
 	** as a lower limit guide.
 	*/
@@ -506,11 +510,13 @@ for (person=0; person<nused;) {
     	    }
     	}
         deaths=0;
+	printf("k=%d, strata=%d\n", person, strata[istrat]);
         for (k=person; k<strata[istrat]; k++) {
 	    p = sort1[k];
 	    if (stop[p] < time) break;
 	    risk = exp(eta[p]) * weights[p];
 	    denom += risk;
+printf(" at the death, p= %d, denom=%f\n", p, denom);
 	    for (i=0; i<nvar; i++) {
 		a[i] += risk*covar[i][p];
 		for (j=0; j<=i; j++)
@@ -541,6 +547,7 @@ for (person=0; person<nused;) {
 		temp = itemp*method/deaths;
 		d2 = denom - temp*efron_wt;
 		newlk +=  weights[p]*eta[p] -meanwt *log(d2);
+printf("denom=%f, d2=%f, newlk=%f, eta=%f\n", denom, d2, newlk, eta[p]);
 		for (i=0; i<nvar; i++) {
 		    temp2 = (a[i] - temp*a2[i])/d2;
 		    u[i] += weights[p]*covar[i][p] - meanwt*temp2;
@@ -577,7 +584,7 @@ loglik[1] = newlk;
 for (i=0; i<nvar; i++) 
     maxbeta[i] = 20* sqrt(imat[i][i]/ndeath);
 
-/* Calculate the score test
+/* Calculate the score test */
 for (i=0; i<nvar; i++) /*use 'a' as a temp to save u0, for the score test*/
     a[i] = u[i];
 *flag = cholesky2(imat, nvar, tol_chol);
@@ -587,6 +594,7 @@ for (i=0; i<nvar; i++)
     *sctest +=  u[i]*a[i];
 
 if (maxiter ==0) {
+    *iter =0;
     chinv2(imat, nvar);
     <<agfit4-finish>>
 }
@@ -603,7 +611,7 @@ else {
     
 /* main loop */
 halving =0 ;             /* =1 when in the midst of "step halving" */
-for (*iter=1; *iter<= maxiter; *iter++) {
+for (*iter=1; *iter<= maxiter; (*iter)++) {
     <<agfit4-addup>>
 
     *flag = cholesky2(imat, nvar, tol_chol);
@@ -640,6 +648,7 @@ loglik[1] = newlk;
 chinv2(imat, nvar);
 for (i=1; i<nvar; i++)
     for (j=0; j<i; j++)  imat[i][j] = imat[j][i];
+
 UNPROTECT(nprotect);
 return(rlist);
 @ 
