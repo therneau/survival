@@ -7,10 +7,12 @@ todo
 noweb/all*
 src/coxcount1.c
 src/concordance1.c
+src/agfit4.c
 src/agsurv[45].c
 src/msurv.c
 src/symbols.rds
 src/survfitci.c
+R/agreg.fit.R
 R/agsurv.R
 R/coxph.R
 R/plot.survfit.R

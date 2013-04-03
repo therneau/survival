@@ -87,12 +87,11 @@ agreg.fit <- function(x, y, strata, offset, init, control,
 
     agfit <- .Call(Cagfit4, 
                    y, x, newstrat, weights, offset,
-                   init, sort.start, sort.end, 
+                   init, sort.end, sort.start, 
                    as.integer(method=="efron"),
                    as.integer(maxiter), 
                    as.double(control$eps),
                    as.double(control$toler.chol))
-browser()
     <<agreg-fixup>>
     <<agreg-finish>>
 }  
@@ -253,9 +252,7 @@ SEXP agfit4(SEXP surv2,      SEXP covar2,    SEXP strata2,
     sort1  = INTEGER(sort12);
     sort2  = INTEGER(sort22);
     strata = INTEGER(strata2);
-    for (i=0; i<nused; i++)
-        printf("input %d, start, stop event= %f %f %f\n", 
-               i, start[i], stop[i], event[i]);
+
     /*
     ** scratch space
     **  nvar: a, a2, newbeta, maxbeta
@@ -372,7 +369,7 @@ $V(t)$ at that time the inclusion value $Y_i(t)$ is 0 or 1 for all other
 subjects, as usual, but for the three tied deaths Y(t) is taken to
 be 1 for the first death, 2/3 for the second, and 1/3 for the third.
 The idea is that if the tied death times were randomly broken by adding
-a small random amount then each of these threes would be in the first risk set,
+a small random amount then each of these three would be in the first risk set,
 have 2/3 chance of being in the second, and 1/3 chance of being in the risk
 set for the third death.
 
@@ -380,7 +377,7 @@ The variance formula is stable if $\mu$ is small relative to
     the total variance.  This is guarranteed by subtracting the mean
     from each covariate before any other computations are performed.
 Weighted sums can still be unstable if the weights get out of hand.
-Because of the exponential $r_i = exp(\eta_i)$ for this step
+Because of the exponential $r_i = exp(\eta_i)$ 
 the original centering of the $X$ matrix may not be enough. 
 A particular example was a data set on hospital adverse events with
 ``number of nurse shift changes to date'' as a time dependent covariate.
@@ -397,9 +394,11 @@ This can lead to numerical difficulty based on a small number
 of observations or even on a single large outlier.
 This occassionally happens when a coefficient is tending to infinity, but is
 more often due to a very bad step in the intermediate Newton-Raphson path.
-We cut this at 20.  The rationale is that exp(2) is greater than the
-current US population, so corresponds to a relative risk larger
-than any imaginable.
+We use a cutpoint of $\beta *{\rm std}(x) < 20$, where the standard
+deviation is the average std of $x$ within a risk set.
+The rationale is that exp(20) is greater than the
+current US population, so such a coefficient corresponds to a between
+subject relative risk that is larger than any imaginable.
 
 <<agfit4-addup>>=
 for (i=0; i<nvar; i++) {
@@ -419,10 +418,9 @@ for (person=0; person<nused; person++) {
 }
 
 /*
-**  'person' walks through the stop times from largest to smallest
-**     (sort1[0] points to the largest stop time, sort1[1] the next, ...)
-**  'time' is the time of current interest, which also goes from smallest
-**      to largest.  
+**  'person' walks through the the data from 1 to n,
+**     sort1[0] points to the largest stop time, sort1[1] the next, ...
+**  'time' is a scratch variable holding the time of current interest
 **  'indx2' walks through the start times.  It will be smaller than 
 **    'person': if person=27 that means that 27 subjects have stop >=time,
 **    and are thus potential members of the risk set.  If 'indx2' =9,
@@ -447,16 +445,14 @@ for (person=0; person<nused;) {
         meaneta += eta[p];
         risk = exp(eta[p]) * weights[p];
         denom += risk;
-printf("person=%d, eta=%f, weights=%f, risk=%f, denom=%f\n",
-       p, eta[p], weights[p], risk, denom);
         for (i=0; i<nvar; i++) {
-    	a[i] += risk*covar[i][p];
-    	for (j=0; j<=i; j++)
-    	    cmat[i][j] += risk*covar[i][p]*covar[j][p];
+	    a[i] += risk*covar[i][p];
+	    for (j=0; j<=i; j++)
+		cmat[i][j] += risk*covar[i][p]*covar[j][p];
     	}
-        
-        person++;
-        }
+	person++;
+	/* nothing more needs to be done for this obs */
+    }
     else {
         time = stop[p];
         /*
@@ -475,16 +471,15 @@ printf("person=%d, eta=%f, weights=%f, risk=%f, denom=%f\n",
 		    cmat[i][j] -= risk*covar[i][p]*covar[j][p];
     	    }
     	}
-	printf(" stop time= %f, denom=%f\n", time, denom);
 
 	/* 
 	** If the average eta value has gotton out of hand, fix it.
         ** We must avoid overflow in the exp function (~750 on Intel)
         ** but don not want to take action very often.  One of the
-        ** case-cohort papers uses an offset of -100, so use that
-	** as a lower limit guide.
+        ** case-cohort papers suggests an offset of -100, so use that
+	** to guide our cutoff.
 	*/
-	if (abs(meaneta/nrisk) > 110) {  
+	if (abs(meaneta/nrisk) > 105) {  
 	    meaneta = meaneta/nrisk;
 	    for (i=0; i<nused; i++) eta[i] -= meaneta;
 	    temp = exp(-meaneta);
@@ -510,13 +505,12 @@ printf("person=%d, eta=%f, weights=%f, risk=%f, denom=%f\n",
     	    }
     	}
         deaths=0;
-	printf("k=%d, strata=%d\n", person, strata[istrat]);
         for (k=person; k<strata[istrat]; k++) {
 	    p = sort1[k];
 	    if (stop[p] < time) break;
 	    risk = exp(eta[p]) * weights[p];
 	    denom += risk;
-printf(" at the death, p= %d, denom=%f\n", p, denom);
+
 	    for (i=0; i<nvar; i++) {
 		a[i] += risk*covar[i][p];
 		for (j=0; j<=i; j++)
@@ -547,7 +541,7 @@ printf(" at the death, p= %d, denom=%f\n", p, denom);
 		temp = itemp*method/deaths;
 		d2 = denom - temp*efron_wt;
 		newlk +=  weights[p]*eta[p] -meanwt *log(d2);
-printf("denom=%f, d2=%f, newlk=%f, eta=%f\n", denom, d2, newlk, eta[p]);
+
 		for (i=0; i<nvar; i++) {
 		    temp2 = (a[i] - temp*a2[i])/d2;
 		    u[i] += weights[p]*covar[i][p] - meanwt*temp2;
@@ -573,6 +567,14 @@ printf("denom=%f, d2=%f, newlk=%f, eta=%f\n", denom, d2, newlk, eta[p]);
     }
 }   /* end  of accumulation loop */
 @ 
+
+When using the Breslow approximation the loop just below the line
+[[itemp==1]] is not strictly necessary: if there were deaths=$k$ tied
+deaths there will be $k$ passes through the loop but each adds
+exactly the same increment to the sums, so we could replace it
+with a multiplication.
+However, the cost of the loop is trivial if $k$ is small, and if
+$k$ is large one should not be using a Breslow approximation.
 
 <<agfit4-iter>>=
 /* First iteration, which has different ending criteria */
@@ -608,7 +610,50 @@ else {
 	beta[i] = beta[i] + a[i];
     }
 }
-    
+@ 
+The Cox model calculation rarely gets into numerical difficulty, and when it
+does step halving is always sufficient.
+Let $\beta^{(0)}$, $\beta^{(1)}$, etc be the iteration steps in the search 
+for the maximum likelihood solution $\hat \beta$.
+The flow of the algorithm is 
+\begin{enumerate} 
+  \item For the $k$th iteration, start with the new trial estimate
+    $\beta^{(k)}$.  This new estimate is [[beta]] in the code and the
+    most recent successful estimate is [[oldbeta]].
+  \item For this new trial estimate, compute the log-likelihood, and the
+    first and second derivatives.
+  \item Test if the log-likelihood has converged \emph{and} the last estimate
+    was not generated by step-halving.  In the latter case the algorithm may
+    \emph{appear} to have converged but the solution is not sure.
+    \begin{itemize}
+      \item if so return beta and the the other information
+      \item if this was the last iteration, return beta, the other information,
+        and a warning flag
+      \item otherwise, compute the next guess and return to the top
+        \begin{itemize}
+          \item if our latest trial guess [[beta]] made things worse use step
+            halving: $\beta^{(k+1)}$ = oldbeta + (beta-oldbeta)/2.  
+            The assumption is that the current trial step was in the right
+            direction, it just went too far. 
+          \item otherwise take a Newton-Raphson step
+        \end{itemize}
+    \end{itemize}
+\end{enumerate}
+
+I am particularly careful not to make a mistake that I have seen in several
+other Cox model programs.  All the hard work is to calculate the first
+and second derivatives $U$ (u) and $H$ (imat), once we have them the next
+Newton-Rhapson update $UH^{-1}$ is just a little bit more.  Many programs
+succumb to the temptation of this ``one more for free'' idea, and as a
+consequence return $\beta^{(k+1)}$ along with the log-likelihood and
+variance matrix $H^{-1}$ for $\beta^{(k)}$.
+If a user has specified
+for instance only 1 or 2 iterations the answers can be seriously
+out of joint, whereas  
+if iteration has gone to completion they will differ by only a gnat's
+eyelash (so what's the point of doing it).
+
+<<agfit4-iter>>=
 /* main loop */
 halving =0 ;             /* =1 when in the midst of "step halving" */
 for (*iter=1; *iter<= maxiter; (*iter)++) {
