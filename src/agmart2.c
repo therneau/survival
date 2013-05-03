@@ -1,5 +1,4 @@
-/* $Id: agmart2.c 11357 2009-09-04 15:22:46Z therneau $
-**
+/*
 ** Compute the martingale residual for a counting process model
 **
 ** Input
@@ -125,7 +124,7 @@ void agmart2(Sint   *n,     Sint   *method,  double *start,   double *stop,
 	    k=0;
 	    for (i=strata_start; i<person; i++) {
 		p = sort1[i];
-		for (; dtimes[k] >= stop[p] && k<ndeath; k++);  
+		for (; k< ndeath && dtimes[k] >= stop[p]; k++);  
 		for (j=k; j<ndeath; j++)
 		    if (start[p] < dtimes[j]) resid[p] -= score[p]*haz[j];
 		}
