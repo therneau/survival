@@ -4,7 +4,7 @@ import(stats,graphics)
 export("Surv", "aareg", "attrassign", 
      "basehaz", "cch", "clogit", "cluster", "cox.zph", 
      "coxph", "coxph.control", "coxph.detail", "coxph.fit",
-     "format.Surv", 
+     "coxph.wtest", "format.Surv", 
      "frailty",  "frailty.gamma", 
      "frailty.gaussian", "frailty.t", "is.Surv", 
      "is.na.Surv", "is.na.coxph.penalty", 
@@ -86,6 +86,7 @@ S3method(ratetableDate, POSIXt)
 S3method(ratetableDate, Date)
 S3method(ratetableDate, date)
 S3method(ratetableDate, chron)
+S3method(rep, Surv)
 S3method(residuals, coxph)
 S3method(residuals, coxph.null)
 S3method(residuals, coxph.penal)
