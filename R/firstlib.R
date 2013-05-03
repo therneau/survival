@@ -15,7 +15,3 @@
 
 is.category <- function(x) inherits(x,"factor") || is.factor(x)
 
-
-
-labels.survreg <- function(object, ...) attr(object,"term.labels")
-
