@@ -1,11 +1,11 @@
 \name{flcdata}
 \alias{flcdata}
 \docType{data}
-\title{Assay of serum free light chain for 7874 random subjects.}
+\title{Assay of serum free light chain for 7874 subjects.}
 \description{
   This is a stratified random sample containing 1/2 of the subjects from
-  a study of the possible relationship between serum free light chain
-  and excess mortality.  The original sample contains samples on
+  a study of the relationship between serum free light chain
+  and mortality.  The original sample contains samples on
   approximately 2/3 of the residents of Olmsted County aged 50 or greater.
 }
 \usage{data(flcdata)}
@@ -18,7 +18,7 @@
       was obtained}
     \item{\code{kappa}}{serum free light chain, kappa portion}
     \item{\code{lambda}}{serum free light chain, lambda portion}
-    \item{\code{group}}{the FLC group for the subject, used in the
+    \item{\code{group}}{the FLC group for the subject, as used in the
       original analysis}
     \item{\code{creatinine}}{serum creatinine}
     \item{\code{mgus}}{1 if the subject had been diagnosed with
@@ -32,13 +32,14 @@
   }
 }
 \details{In 1995 Dr. Robert Kyle embarked on a study to determine the
-  prevalence of MGUS in Olmsted County, Minnesota, a condition which is
+  prevalence of monoclonal gammopathy of undetermined significance
+  (MGUS) in Olmsted County, Minnesota, a condition which is
   normally only found by chance from a test (serum electrophoresis)
   which is ordered for other causes.  Later work suggested that one
   component of immunoglobulin production, the serum free light chain,
   might be a possible marker for immune disregulation.  In 2010
   Dr. Angela Dispenzieri and colleagues assayed FLC levels on those
-  samples from the original study for which they had permission and from
+  samples from the original study for which they had patient permission and from
   which sufficient material remained for further testing.  They found
   that elevated FLC levels were indeed associated with higher death
   rates.
