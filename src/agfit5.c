@@ -4,13 +4,13 @@
 **   is the most important of these.
 ** This is the version with the "smart sorting" speedup.
 **
-** agfit5_a: Entry and intial iteration step for beta=initial, theta=0
+** agfit5a: Entry and intial iteration step for beta=initial, theta=0
 **              (no frailty)
 **            Most of the same arguments as agfit2.
 **            Allocate and save arrays in static locations.
-** agfit5_b: Iterate to convergence given an initial value.
-** agfit5_c: Compute residuals and release the saved memory.
-**
+** agfit5b: Iterate to convergence given an initial value.
+** agfit5c: Compute residuals and release the saved memory.
+*
 **  the input parameters are
 **
 **       maxiter      :number of iterations
@@ -90,7 +90,7 @@ static Sint   *zflag;
 
 static double **cmatrix(double *, int, int);
 
-void agfit5_a(Sint *nusedx, Sint *nvarx, double *yy, 
+void agfit5a(Sint *nusedx, Sint *nvarx, double *yy, 
 	       double *covar2, double *offset2,
 	       double *weights2, 
 	       Sint   *strata,  Sint   *sort,
@@ -295,7 +295,7 @@ void agfit5_a(Sint *nusedx, Sint *nvarx, double *yy,
 ** This call is used for iteration
 */
 
-void agfit5_b(Sint *maxiter, Sint *nusedx, Sint *nvarx, 
+void agfit5b(Sint *maxiter, Sint *nusedx, Sint *nvarx, 
 	       Sint *strata, double *beta, double *u,
 	       double *imat2,  double *jmat2, double *loglik, 
 	       Sint *flag,  double *eps, double *tolerch, Sint *methodx, 
@@ -671,7 +671,7 @@ static void cmatrix_free(double **data) {
     }
 
 
-void agfit5_c(Sint *nusedx, Sint *nvar, Sint *strata,
+void agfit5c(Sint *nusedx, Sint *nvar, Sint *strata,
 	      Sint *methodx, double *expect) {
     int i, j, k, ksave;
     int p, istrat, indx2;

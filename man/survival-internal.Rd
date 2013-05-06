@@ -6,7 +6,6 @@
 \alias{coxpenal.df}
 \alias{coxpenal.fit}
 \alias{coxph.fit}
-\alias{coxph.wtest}
 \alias{is.category}
 \alias{is.na.ratetable2}
 \alias{is.na.coxph.penalty}

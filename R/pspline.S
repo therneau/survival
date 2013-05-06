@@ -132,12 +132,12 @@ pspline <- function(x, df=4, theta, nterm=2.5*df, degree=3, eps=0.1,
 	# The printfun needs to remember the spline's knots,
 	#  but I don't need (or want) to carry around the entire upteen 
 	#  variables defined here as an environment
-	# Remove cbase from the arg list, and make it the environment
-	formals(printfun) <- alist(coef=, var=, var2=, df=, history=)
-	tempenv <- new.env(parent=asNamespace('survival'))
-	assign('cbase',  knots[2:nvar] + (Boundary.knots[1] -knots[1]), 
-               envir=tempenv)
-	environment(printfun) <- tempenv
+	# So fill in defaults for the cbase argument, and
+        #  force the function's environment to simplicity (amnesia)
+        temp <- formals(printfun)
+        temp$cbase <- knots[2:nvar] + (Boundary.knots[1] -knots[1]) 
+	formals(printfun) <- temp
+        environment(printfun) <- .GlobalEnv
 	}
     else {
 	# Somewhat simpler in Splus, but because it depends on the 

@@ -114,7 +114,7 @@ else which.sing <- rep(FALSE,nvar)
 
 infs <- abs(agfit$u %*% var)
 if (maxiter >1) {
-    if (agfit$flag == 1000)
+    if (agfit$iter > maxiter)
         warning("Ran out of iterations and did not converge")
     else {
         infs <- ((infs > control$eps) & 
@@ -141,8 +141,8 @@ agres <- .C(Cagmart2,
             as.integer(event),
             as.integer(length(newstrat)), 
             as.integer(newstrat),
-            as.integer(sort.end-1), 
-            as.integer(sort.start-1),
+            as.integer(sort.end), 
+            as.integer(sort.start),
             score,
             as.double(weights),
             resid=double(n),
@@ -387,6 +387,9 @@ regression coefficient was around 1 and the data duration was 11 weeks
 (about 200 shifts) so that $eta$ values could be over 100 even after
 centering.  We keep a time dependent average of $\eta$ and renorm the
 weights as necessary.
+Since it would be possible for a malicious user to have a stratified
+model with mean x=1 in one strata and 1000 in another, which would
+also defeat the use of the overall centering, this check is done per strata.
 
 The last numerical problem is when one or more coefficients gets too
 large.
@@ -394,10 +397,10 @@ This can lead to numerical difficulty based on a small number
 of observations or even on a single large outlier.
 This occassionally happens when a coefficient is tending to infinity, but is
 more often due to a very bad step in the intermediate Newton-Raphson path.
-We use a cutpoint of $\beta *{\rm std}(x) < 20$, where the standard
+We use a cutpoint of $\beta *{\rm std}(x) < 23$, where the standard
 deviation is the average std of $x$ within a risk set.
-The rationale is that exp(20) is greater than the
-current US population, so such a coefficient corresponds to a between
+The rationale is that exp(23) is greater than the
+current world population, so such a coefficient corresponds to a between
 subject relative risk that is larger than any imaginable.
 
 <<agfit4-addup>>=
@@ -557,6 +560,8 @@ for (person=0; person<nused;) {
     if (person == strata[istrat]) {
         istrat++;
         denom =0;
+        meaneta=0;
+        nrisk =0;
         indx2 = person;
         for (i=0; i<nvar; i++) {
 	    a[i] =0;
@@ -584,7 +589,7 @@ loglik[1] = newlk;
 
 /* Use the initial variance matrix to set a maximum coefficient */
 for (i=0; i<nvar; i++) 
-    maxbeta[i] = 20* sqrt(imat[i][i]/ndeath);
+    maxbeta[i] = 23/ sqrt(imat[i][i]/ndeath);
 
 /* Calculate the score test */
 for (i=0; i<nvar; i++) /*use 'a' as a temp to save u0, for the score test*/
@@ -597,7 +602,6 @@ for (i=0; i<nvar; i++)
 
 if (maxiter ==0) {
     *iter =0;
-    chinv2(imat, nvar);
     <<agfit4-finish>>
 }
 else {  
@@ -683,6 +687,7 @@ for (*iter=1; *iter<= maxiter; (*iter)++) {
 	    }
 	}
     }  
+    R_CheckUserInterrupt();  /* be polite -- did the user hit cntrl-C? */
 } /*return for another iteration */
 @ 
 

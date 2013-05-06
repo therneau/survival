@@ -16,6 +16,7 @@
 
 #include "R.h"
 #include "Rinternals.h"
+#include <R_ext/Utils.h>  
 #ifdef USING_R
    /* typedef int Sint; */
 #define S_EVALUATOR    /* Turn this into a "blank line" in R */

@@ -2,9 +2,14 @@
 \title{NEWS file for the survival package}
 \section{Changes in version 2.37-5}{
   \itemize{
+    \item Kazuki Yoshida pointed out that rep() had no method for Surv
+    objects.  This caused the survSplit routine to fail if the data
+    frame contained a Surv object.  3May13
+    
     \item Per a request from Milan Bouchet-Valet fix an issue in survfit
     that arose when the OutDec option is set to ',': it did not
     correctly convert times back from character to numeric.
+
     \item The plot.survfit function now obeys "cex" for the size of the
       marks used for censored observations.
 }}
