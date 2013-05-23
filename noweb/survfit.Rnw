@@ -25,6 +25,14 @@ single subscript to be used and map it appropriately.
 
 <<survfit-subscript>>=
 "[.survfit" <- function(x, ..., drop=TRUE) {
+    nmatch <- function(indx, target) { 
+        # This function lets R worry about character, negative, or logical subscripts
+        #  It always returns a set of positive integer indices
+        temp <- 1:length(target)
+        names(temp) <- target
+        temp[indx]
+    }
+
     if (missing(..1)) i<- NULL  else i <- ..1
     if (missing(..2)) j<- NULL  else j <- ..2
     if (is.null(i) && is.null(j)) return (x) #no subscripts present!
@@ -44,24 +52,21 @@ single subscript to be used and map it appropriately.
     else {
         if (is.null(i)) keep <- seq(along.with=x$time)
         else {
-            if (!is.numeric(i)) {  #character subscripts
-                indx  <- match(i, names(x$strata))
-                if (any(is.na(indx))) {
-                    stop(paste("subscript(s)", 
+            indx <- nmatch(i, names(x$strata)) #strata to keep
+            if (any(is.na(indx))) 
+                stop(paste("strata", 
                                paste(i[is.na(indx)], collapse=' '),
                                'not matched'))
-                }
-                else i <- indx
-            }
-            # Now, i may not be in order, hence the list/unlist construct
-            #  which will reorder the data in the curves
+ 
+            # Now, indx may not be in order: some can use curve[3:2] to reorder
+            #  The list/unlist construct will reorder the data
             temp <- rep(1:length(x$strata), x$strata)
-            keep <- unlist(lapply(i, function(x) which(temp==x)))
+            keep <- unlist(lapply(indx, function(x) which(temp==x)))
 
-            if (length(i) <=1 && drop) x$strata <- NULL
+            if (length(indx) <=1 && drop) x$strata <- NULL
             else               x$strata  <- x$strata[i]
 
-            x$n       <- x$n[i]
+            x$n       <- x$n[indx]
             x$time    <- x$time[keep]
             x$n.risk  <- x$n.risk[keep]
             x$n.event <- x$n.event[keep]
