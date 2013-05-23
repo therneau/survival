@@ -23,7 +23,9 @@ lose the matrix nature of the result as it will lead to an invalid
 object.  Otherwise we can drop columns freely
 <<survfitms-subscript>>=
 "[.survfitms" <- function(x, ..., drop=TRUE) {
-    nmatch <- function(indx, target) {
+    nmatch <- function(indx, target) { 
+        # This function lets R worry about character, negative, or logical subscripts
+        #  It always returns a set of positive integer indices
         temp <- 1:length(target)
         names(temp) <- target
         temp[indx]
@@ -58,11 +60,15 @@ object.  Otherwise we can drop columns freely
             if (any(is.na(indx))) 
                 stop(paste("strata", 
                                paste(i[is.na(indx)], collapse=' '),
-                               'not matched'))
-            strat <- rep(names(x$strata), x$strata)
-            keep <- seq(along.with=strat)[strat %in% names(indx)]
-            if (length(indx) <=1) x$strata <- NULL
-            else                  x$strata  <- x$strata[indx]
+                           'not matched'))
+
+            # Now, i may not be in order: a user has curve[3:2] to reorder a plot
+            # Hence the list/unlist construct which will reorder the data in the curves
+            temp <- rep(1:length(x$strata), x$strata)
+            keep <- unlist(lapply(i, function(x) which(temp==x)))
+
+            if (length(i) <=1 && drop) x$strata <- NULL
+            else               x$strata  <- x$strata[indx]
 
             x$n       <- x$n[indx]
             x$time    <- x$time[keep]

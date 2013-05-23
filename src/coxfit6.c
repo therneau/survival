@@ -42,6 +42,7 @@
 **       cmat(nvar,nvar)       ragged array
 **       cmat2(nvar,nvar)
 **       newbeta(nvar)         always contains the "next iteration"
+**       maxbeta(nvar)         limits on beta
 **
 **  calls functions:  cholesky2, chsolve2, chinv2
 **
@@ -64,13 +65,16 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
     double *scale;
     double  denom=0, zbeta, risk;
     double  temp, temp2;
-    int     ndead;  /* actually, the sum of their weights */
+    int     ndead;  /* number of death obs at a time point */
+    double  tdeath=0;  /* ndead= total at a given time point, tdeath= all */
+
     double  newlk=0;
     double  dtime, d2;
     double  deadwt;  /*sum of case weights for the deaths*/
     double  efronwt; /* sum of weighted risk scores for the deaths*/
     int     halving;    /*are we doing step halving at the moment? */
     int     nrisk;   /* number of subjects in the current risk set */
+    double  *maxbeta;
  
     /* copies of scalar input arguments */
     int     nused, nvar, maxiter;
@@ -122,10 +126,11 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
     PROTECT(imat2 = allocVector(REALSXP, nvar*nvar)); 
     nprotect++;
     imat = dmatrix(REAL(imat2),  nvar, nvar);
-    a = (double *) R_alloc(2*nvar*nvar + 4*nvar, sizeof(double));
+    a = (double *) R_alloc(2*nvar*nvar + 5*nvar, sizeof(double));
     newbeta = a + nvar;
     a2 = newbeta + nvar;
-    scale = a2 + nvar;
+    maxbeta = a2 + nvar;
+    scale = maxbeta + nvar;
     cmat = dmatrix(scale + nvar,   nvar, nvar);
     cmat2= dmatrix(scale + nvar +nvar*nvar, nvar, nvar);
 
@@ -152,18 +157,24 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
     ** Subtract the mean from each covar, as this makes the regression
     **  much more stable.
     */
+    tdeath=0; temp2=0;
+    for (i=0; i<nused; i++) {
+	temp2 += weights[i];
+	tdeath += weights[i] * status[i];
+    }	
     for (i=0; i<nvar; i++) {
 	temp=0;
-	for (person=0; person<nused; person++) temp += covar[i][person];
-	temp /= nused;
+	for (person=0; person<nused; person++) 
+	    temp += weights[person] * covar[i][person];
+	temp /= temp2;
 	means[i] = temp;
 	for (person=0; person<nused; person++) covar[i][person] -=temp;
 	if (doscale==1) {  /* and also scale it */
 	    temp =0;
 	    for (person=0; person<nused; person++) {
-		temp += fabs(covar[i][person]);
+		temp += weights[person] * fabs(covar[i][person]);
 	    }
-	    if (temp > 0) temp = nused/temp;   /* scaling */
+	    if (temp > 0) temp = temp2/temp;   /* scaling */
 	    else temp=1.0; /* rare case of a constant covariate */
 	    scale[i] = temp;
 	    for (person=0; person<nused; person++)  covar[i][person] *= temp;
@@ -210,7 +221,6 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
 	    zbeta = offset[person];    /* form the term beta*z (vector mult) */
 	    for (i=0; i<nvar; i++)
 		zbeta += beta[i]*covar[i][person];
-	    zbeta = coxsafe(zbeta);
 	    risk = exp(zbeta) * weights[person];
 	    denom += risk;
 
@@ -288,6 +298,13 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
 	    }
 	}   /* end  of accumulation loop */
     loglik[0] = loglik[1]; /* save the loglik for iter 0 */
+    
+    /*
+    ** Use the initial variance matrix to set a maximum coefficient
+    **  (The matrix contains the variance of X * weighted number of deaths)
+    */
+    for (i=0; i<nvar; i++) 
+	maxbeta[i] = 20* sqrt(imat[i][i]/tdeath);
 
     /* am I done?
     **   update the betas and test for convergence
@@ -359,7 +376,6 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
 		zbeta = offset[person];
 		for (i=0; i<nvar; i++)
 		    zbeta += newbeta[i]*covar[i][person];
-		zbeta = coxsafe(zbeta);
 		risk = exp(zbeta) * weights[person];
 		denom += risk;
 
@@ -459,6 +475,8 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
 	    for (i=0; i<nvar; i++) {
 		beta[i] = newbeta[i];
 		newbeta[i] = newbeta[i] +  u[i];
+		if (newbeta[i] > maxbeta[i]) newbeta[i] = maxbeta[i];
+		else if (newbeta[i] < -maxbeta[i]) newbeta[i] = -maxbeta[i];
 	        }
 	    }
 	}   /* return for another iteration */
