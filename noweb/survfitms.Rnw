@@ -1,4 +1,4 @@
-\subsection{Printing and plotting}
+\subsubsection{Printing and plotting}
 The [[survfitms]] class differs from a [[survfit]], but many of the
 same methods nearly apply.
 <<survfitms>>=
@@ -122,8 +122,8 @@ summary.survfit <- function(object, times, censored=FALSE,
     if (!inherits(fit, 'survfit'))
 	    stop("summary.survfit can only be used for survfit objects")
 
-    # The print.rmean option is depreciated, still paid
-    #   attention to in print.survfit, but ignored here
+    # The print.rmean option is depreciated, it is still listened
+    #   to in print.survfit, but ignored here
     if (is.null(rmean)) rmean <- "none"
 
     temp <- survmean(fit, scale=scale, rmean)  
@@ -420,7 +420,7 @@ summary.survfitms <- function(object, times, censored=FALSE,
         if (is.matrix(fit$prev)) {
             temp$prev <- rbind(0, fit$prev)[indx1,,drop=FALSE]
             zz <- ifelse(indx1==1, NA, indx1-1)
-            temp$cumhaz <- fit$cumhaz(,,zz, drop=FALSE)
+            temp$cumhaz <- fit$cumhaz[,,zz, drop=FALSE]
             temp$cumhaz <- ifelse(is.na(temp$cumhaz), 0, temp$cumhaz)
             if (!is.null(fit$std.err)) 
                 temp$std.err <- rbind(0, fit$std.err)[indx1,,drop=FALSE]
