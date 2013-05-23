@@ -201,7 +201,7 @@ SEXP agfit4(SEXP surv2,      SEXP covar2,    SEXP strata2,
     int i,j,k,person;
     int indx2, istrat, p;
     int ksave, nrisk, ndeath;
-    int nused, nvar, nstrat;
+    int nused, nvar;
 
     double **covar, **cmat, **imat;  /*ragged array versions*/
     double *a, *oldbeta, *maxbeta;
@@ -237,7 +237,6 @@ SEXP agfit4(SEXP surv2,      SEXP covar2,    SEXP strata2,
     /* get sizes and constants */
     nused = nrows(covar2);
     nvar  = ncols(covar2);
-    nstrat= LENGTH(strata2);
     method= asInteger(method2);
     eps   = asReal(eps2);
     tol_chol = asReal(tolerance2);
@@ -344,18 +343,17 @@ We have 6 running totals:
 
 The three primary quantities for the Cox model are the log-likelihood $L$,
 the score vector $U$ and the Hessian matrix $H$.
-\begin{array*}
+\begin{align*}
   L &=  \sum_i w_i \delta_i \left[r_i - \log(d(t)) \right] \\
-  d(t) &= \sum_j w_j r_j Y_j(t)
-    \right] \\
+  d(t) &= \sum_j w_j r_j Y_j(t) \\
   U_k  &= \sum_i w_i \delta_i \left[ (X_{ik} - \mu_k(t_i)) \right] \\
   \mu_k(t) &= \frac{\sum_j w_j r_j Y_j(t) X_{jk}} {d(t)} \\
-  H_{kl}  &= \sum_i \w_i \delta_i V_{kl}(t_i) \\
+  H_{kl}  &= \sum_i w_i \delta_i V_{kl}(t_i) \\
   V_{kl}(t) &= \frac{\sum_j w_j r_j Y_j(t) [X_{jk} - \mu_k(t)]
      [X_{jl}- \mu_l(t)]} {d(t)} \\
             &= \frac{\sum_j w_j r_j Y_j(t) X_{jk}X_{jl}} {d(t)}
                   - d(t) \mu_k(t) \mu_l(t) 
-\end{array*}
+\end{align*}
 In the above $\delta_i =1$ for an event and 0 otherwise, $w_i$ is the per
 subject weight, and $Y_i(t)$ is 1 if observation $i$ is at risk at time $t$.
 The vector $\mu(t)$ is the weighted mean of the covariates at time $t$
