@@ -25,7 +25,7 @@ enter and leave the sums.
 The code below creates two sort indices, one orders the data by reverse stop
 time and the other by reverse start time.
 
-The fit routine is called by the coxph function with arguements
+The fit routine is called by the coxph function with arguments
 \begin{description}
   \item[x] matrix of covariates
   \item[y] three column matrix containing the start time, stop time, and event
@@ -71,7 +71,7 @@ agreg.fit <- function(x, y, strata, offset, init, control,
         #  To keep the C code to a small set, we call the usual routines, but
 	#  with a dummy X matrix and 0 iterations
 	nvar <- 1
-	x <- matrix(1:n, ncol=1)  #keep the .C call happy
+	x <- matrix(as.double(1:n), ncol=1)  #keep the .C call happy
 	maxiter <- 0
 	nullmodel <- TRUE
         if (length(init) !=0) stop("Wrong length for inital values")
@@ -220,8 +220,9 @@ SEXP agfit4(SEXP surv2,      SEXP covar2,    SEXP strata2,
     /* inputs */
     double *start, *stop, *event;
     double *weights, *offset;
-    int *sort1, *sort2, method, maxiter;
+    int *sort1, *sort2, maxiter;
     int *strata;
+    double method;  /* saving this as double forces some double arithmetic */
 
     /* returned objects */
     SEXP imat2, means2, beta2, u2, loglik2;
@@ -473,25 +474,6 @@ for (person=0; person<nused;) {
     	    }
     	}
 
-	/* 
-	** If the average eta value has gotton out of hand, fix it.
-        ** We must avoid overflow in the exp function (~750 on Intel)
-        ** but don not want to take action very often.  One of the
-        ** case-cohort papers suggests an offset of -100, so use that
-	** to guide our cutoff.
-	*/
-	if (abs(meaneta/nrisk) > 105) {  
-	    meaneta = meaneta/nrisk;
-	    for (i=0; i<nused; i++) eta[i] -= meaneta;
-	    temp = exp(-meaneta);
-	    denom *= temp;
-	    for (i=0; i<nvar; i++) {
-		a[i] *= temp;
-		for (j=0; j<nvar; j++) cmat[i][j]*= temp;
-	    }
-	    meaneta =0;
-	}
-            
         /*
         ** compute the averages over subjects with
         **   exactly this death time (a2 & c2)
@@ -511,6 +493,8 @@ for (person=0; person<nused;) {
 	    if (stop[p] < time) break;
 	    risk = exp(eta[p]) * weights[p];
 	    denom += risk;
+            nrisk++;
+            meaneta += eta[p];
 
 	    for (i=0; i<nvar; i++) {
 		a[i] += risk*covar[i][p];
@@ -530,6 +514,29 @@ for (person=0; person<nused;) {
     	}
         ksave = k;
 	    
+	/* 
+	** If the average eta value has gotton out of hand, fix it.
+        ** We must avoid overflow in the exp function (~750 on Intel)
+        ** and want to act well before that, but not take action very often.  
+        ** One of the case-cohort papers suggests an offset of -100 meaning
+        ** that etas of 50-100 can occur in "ok" data, so make it larger than this.
+	*/
+	if (abs(meaneta) > (nrisk *110)) {  
+	    meaneta = meaneta/nrisk;
+	    for (i=0; i<nused; i++) eta[i] -= meaneta;
+	    temp = exp(-meaneta);
+	    denom *= temp;
+	    for (i=0; i<nvar; i++) {
+		a[i] *= temp;
+                a2[i] *= temp;
+		for (j=0; j<nvar; j++) {
+                    cmat[i][j]*= temp;
+                    cmat2[i][j] *= temp;
+                }
+	    }
+	    meaneta =0;
+	}
+            
 	/*
         ** Add results into u and imat for all events at this time point
         */
@@ -539,7 +546,7 @@ for (person=0; person<nused;) {
 	    p = sort1[person];
 	    if (event[p]==1) {
 		itemp++;
-		temp = itemp*method/deaths;
+		temp = itemp*method/(double) deaths;
 		d2 = denom - temp*efron_wt;
 		newlk +=  weights[p]*eta[p] -meanwt *log(d2);
 
@@ -572,7 +579,7 @@ for (person=0; person<nused;) {
 @ 
 
 When using the Breslow approximation the loop just below the line
-[[itemp==1]] is not strictly necessary: if there were deaths=$k$ tied
+[[itemp==1]] is not strictly necessary: if there were \texttt{deaths}=$k$ tied
 deaths there will be $k$ passes through the loop but each adds
 exactly the same increment to the sums, so we could replace it
 with a multiplication.
