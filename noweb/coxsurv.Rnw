@@ -301,24 +301,42 @@ The reason for this is so that the program won't ask for variables
 in the new data frame when we won't need them.
 We have to be careful in subscripting a terms object, since this will
 remove the predvars attribute (at least currently).
-Both clauses below are trial and error guesses based on a set of examples.
-The delete.response function works correctly, however.
+
+The predvars component is a call objects with one element for each
+item in the formula, ``tt'' in the call below is the terms object
+which represents the formaula and ``i'' is a general subscript.
+The predvars component is a call object with one element for each
+term in the formula, so y ~ age + ns(height) would lead to a predvars
+of length 4, element 1 is the call itself to ``list'', 2 would be y, etc.
+The dataClasses attribute is a list with names and can be subscripted in that
+way.
 <<survfit.coxph-setup>>= 
-subterms <- function(x, i) {
-    dataClasses <- attr(x, "dataClasses")
-    predvars <- attr(x, "predvars")
-    x <- x[i]
-    if (!is.null(predvars)) 
-        attr(x, "predvars") <- attr(x, "variables")
+subterms <- function(tt, i) {
+    dataClasses <- attr(tt, "dataClasses")
+    predvars <- attr(tt, "predvars")
+    tt <- tt[i]
+    if (!is.null(predvars)) {
+        if (attr(tt, "response")) {
+            if (is.logical(i)) j <- c(TRUE, TRUE, i)
+            else if (all(i<0)) j <- i - 2  #shift the index
+            else j <- c(1:2, i+2)
+        }
+        else {
+            if (is.logical(i)) j <- c(TRUE, i)
+            else if (all(i<0)) j <- i-1
+            else  j <- c(1, i+1)
+        }
+        attr(tt, "predvars") <- predvars[j]
+        }
+    
     if (!is.null(dataClasses)){
-        temp <- dimnames(attr(x, 'factors'))[[1]]
-        attr(x, "dataClasses") <- dataClasses[temp]
+        temp <- dimnames(attr(tt, 'factors'))[[1]]
+        attr(tt, "dataClasses") <- dataClasses[temp]
     }
-    x
+    tt
 }
 temp <- untangle.specials(Terms, 'cluster')
 if (length(temp$vars)) {
-    ptemp <- attr(temp, "predvars")
     Terms <- subterms(Terms, -temp$terms)
     stype <- stype[-temp$terms]
 }
@@ -326,7 +344,7 @@ if (missing(newdata)) {
     mf2 <- as.list(object$means)   #create a dummy newdata
     names(mf2) <- names(object$coefficients)
     mf2 <- as.data.frame(mf2)
-    }
+}
 else {
     if (!is.null(object$frail))
         stop("Newdata cannot be used when a model has sparse frailty terms")
@@ -430,6 +448,7 @@ if (individual) {
         id <- model.extract(mf2, "id")
         if (is.null(id)) stop("id=NULL is an invalid argument")
         }
+    else id <- rep(1, nrow(mf2))
     
     x2 <- model.matrix(Terms2, mf2)[,-1, drop=FALSE]  #no intercept
     if (length(x2)==0) stop("Individual survival but no variables")
