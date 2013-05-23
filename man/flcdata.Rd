@@ -18,7 +18,7 @@
       was obtained}
     \item{\code{kappa}}{serum free light chain, kappa portion}
     \item{\code{lambda}}{serum free light chain, lambda portion}
-    \item{\code{group}}{the FLC group for the subject, as used in the
+    \item{\code{flc.grp}}{the FLC group for the subject, as used in the
       original analysis}
     \item{\code{creatinine}}{serum creatinine}
     \item{\code{mgus}}{1 if the subject had been diagnosed with

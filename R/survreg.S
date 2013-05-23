@@ -244,7 +244,7 @@ survreg <- function(formula, data, weights, subset, na.action,
         if (length(cluster))
              fit$var <- crossprod(rowsum(residuals.survreg(fit, 'dfbeta'), 
                                          cluster))
-        else fit$var <- crossprod(rowsum(residuals.survreg(fit, 'dfbeta')))
+        else fit$var <- crossprod(residuals.survreg(fit, 'dfbeta'))
         if (!model) fit$model <- NULL  # take it back out
         }
 

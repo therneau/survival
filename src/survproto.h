@@ -2,16 +2,13 @@
 ** Prototypes of all the survival functions
 **  Including this in each routine helps prevent mismatched argument errors
 */
-void agfit3( Sint   *maxiter,  Sint   *nusedx,  Sint   *nvarx, 
-	     double *start,    double *stop,    Sint   *event, 
-	     double *covar2,   double *offset,  double *weights,
-	     Sint   *nstrat,   Sint   *strata,  Sint   *sort1,
-	     Sint   *sort2,    double *means,   double *beta, 
-	     double *u,        double *imat2,   double loglik[2], 
-	     Sint   *flag,     double *work,   
-	     double *eps,      double *tol_chol, double *sctest);
+SEXP agfit4(SEXP surv2,      SEXP covar2,    SEXP strata2,
+            SEXP weights2,   SEXP offset2,   SEXP ibeta2,
+            SEXP sort12,     SEXP sort22,    SEXP method2,
+            SEXP maxiter2,   SEXP  eps2,     SEXP tolerance2);
 
-void agfit5_a(Sint *nusedx,     Sint *nvarx,     double *yy, 
+
+void agfit5a(Sint *nusedx,     Sint *nvarx,     double *yy, 
 	      double *covar2,   double *offset2, double *weights2, 
 	      int   *strata,    Sint   *sort,    double *means,   
               double *beta,     double *u,       double *loglik, 
@@ -19,7 +16,7 @@ void agfit5_a(Sint *nusedx,     Sint *nvarx,     double *yy,
 	      Sint *nfrail,     Sint *frail2,
               void *fexpr1,     void *fexpr2,    void *rho) ;
 
-void agfit5_b( Sint *maxiter,   Sint *nusedx,    Sint *nvarx, 
+void agfit5b( Sint *maxiter,   Sint *nusedx,    Sint *nvarx, 
 	       Sint *strata,    double *beta,    double *u,
 	       double *imat2,   double *jmat2,   double *loglik, 
 	       Sint *flag,      double *eps,     double *tolerch, 
@@ -27,7 +24,7 @@ void agfit5_b( Sint *maxiter,   Sint *nusedx,    Sint *nvarx,
 	       double *fdiag,
                void *fexpr1,    void *fexpr2,     void *rho);
 
-void agfit5_c(Sint *nusedx,   Sint *nvar,    Sint *strata,
+void agfit5c(Sint *nusedx,   Sint *nvar,    Sint *strata,
 	      Sint *methodx,  double *expect) ;
  
 void agexact(Sint *maxiter,  Sint *nusedx,   Sint *nvarx,   double *start, 

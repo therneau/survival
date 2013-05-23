@@ -2,6 +2,13 @@
 \title{NEWS file for the survival package}
 \section{Changes in version 2.37-5}{
   \itemize{
+    \item For competing risks curves that use the istate option, the
+    plotted curves now start with the correct (initial) prevalence of
+    each state.  22May13
+    
+    \item The survreg function failed with the "robust=T"
+    option. Pointed out by Jon Peck.  Test case added.  6May13
+    
     \item Kazuki Yoshida pointed out that rep() had no method for Surv
     objects.  This caused the survSplit routine to fail if the data
     frame contained a Surv object.  3May13

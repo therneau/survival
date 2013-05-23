@@ -27,7 +27,8 @@ The other parameters are
 \begin{description}
   \item[rsigma] whether the scale parameters should be included in the
     result for dfbeta results.  I can think of no reason why one would not
-    want them.
+    want them --- unless of course the scale was fixed by the user, in 
+    which case there is no parameter.
   \item[collapse] optional vector of subject identifiers.  This is for the
     case where a subject has multiple observations in a data set, and one 
     wants to have residuals per subject rather than residuals per observation.
@@ -54,6 +55,9 @@ residuals.survreg <- function(object, type=c('response', 'deviance',
     Terms <- object$terms
     if(!inherits(Terms, "terms"))
 	    stop("invalid terms component of  object")
+    
+    # If the variance wasn't estimated then it has no error
+    if (nrow(object$var) == length(object$coefficients)) rsigma <- FALSE
 
     # If there was a cluster directive in the model statment then remove
     #  it.  It does not correspond to a coefficient, and would just confuse
@@ -215,13 +219,13 @@ respect to their \emph{particular} scale factor; derivatives with
 respect to all the other scales are zero for that subject.
 
 The log-likelihood can be written as
-\begin{eqnarray*}
-L &=& \sum_{exact}\left[ \log(f(z_i)) -\log(\sigma_i) \right] +
+\begin{align*}
+L &= \sum_{exact}\left[ \log(f(z_i)) -\log(\sigma_i) \right] +
       \sum_{censored} \log \left( \int_{z_i^l}^{z_i^u} f(u)du \right) \\
-  &\equiv& \sum_{exact}\left[g_1(z_i) -\log(\sigma_i) \right] +
+  &\equiv \sum_{exact}\left[g_1(z_i) -\log(\sigma_i) \right] +
       \sum_{censored} \log(g_2(z_i^l, z_i^u)) \\
- z_i &=& (y_i - \eta_i)/ \sigma_i
- \end{eqnarray*}
+ z_i &= (y_i - \eta_i)/ \sigma_i
+ \end{align*}
 For the interval censored observations we have a $z$ defined at both the
 lower and upper endpoints. 
 The linear predictor is $\eta = X\beta$.
@@ -230,35 +234,35 @@ The derivatives are shown below.
 Note that $f(-\infty) = f(\infty) = F(-\infty)=0$,
 $F(\infty)=1$, $z^u = \infty$ for a right censored observation
 and $z^l = -\infty$ for a left censored one.
-\begin{eqnarray*}
-\frac{\partial g_1}{\partial \eta} &=& - \frac{1}{\sigma}
+\begin{align*}
+\frac{\partial g_1}{\partial \eta} &= - \frac{1}{\sigma}
                 \left[\frac{f'(z)}{f(z)}  \right]      \\       %'
-\frac{\partial g_2}{\partial \eta} &=& - \frac{1}{\sigma} \left[
+\frac{\partial g_2}{\partial \eta} &= - \frac{1}{\sigma} \left[
 		\frac{f(z^u) - f(z^l)}{F(z^u) - F(z^l)}  \right] \\
-\frac{\partial^2 g_1}{\partial \eta^2} &=&  \frac{1}{\sigma^2}
+\frac{\partial^2 g_1}{\partial \eta^2} &=  \frac{1}{\sigma^2}
 		\left[ \frac{f''(z)}{f(z)} \right]
                  - (\partial g_1 / \partial \eta)^2                   \\
-\frac{\partial^2 g_2}{\partial \eta^2} &=&  \frac{1}{\sigma^2} \left[
+\frac{\partial^2 g_2}{\partial \eta^2} &=  \frac{1}{\sigma^2} \left[
                 \frac{f'(z^u) - f'(z^l)}{F(z^u) - F(z^l)} \right]
                  - (\partial g_2 / \partial \eta)^2                 \\
-\frac{\partial g_1}{\partial \log\sigma} &=& -  \left[
+\frac{\partial g_1}{\partial \log\sigma} && -  \left[
                 \frac{zf'(z)}{f(z)}     \right]                          \\
-\frac{\partial g_2}{\partial \log\sigma} &=& -  \left[
+\frac{\partial g_2}{\partial \log\sigma} &= -  \left[
                 \frac{z^uf(z^u) - z^lf(z^l)}{F(z^u) - F(z^l)} \right] \\
 \frac{\partial^2 g_1}{\partial (\log\sigma)^2} &=&   \left[
 		 \frac{z^2 f''(z) + zf'(z)}{f(z)} \right]
 		- (\partial g_1 / \partial \log\sigma)^2                   \\
-\frac{\partial^2 g_2}{\partial (\log\sigma)^2} &=&  \left[
+\frac{\partial^2 g_2}{\partial (\log\sigma)^2} &=  \left[
                 \frac{(z^u)^2 f'(z^u) - (z^l)^2f'(z_l) }
                 {F(z^u) - F(z^l)} \right]
   - \partial g_1 /\partial \log\sigma(1+\partial g_1 / \partial \log\sigma)  \\
-\frac{\partial^2 g_1}{\partial \eta \partial \log\sigma} &=&
+\frac{\partial^2 g_1}{\partial \eta \partial \log\sigma} &=
 	       \frac{zf''(z)}{\sigma f(z)}
        -\partial g_1/\partial \eta (1 + \partial g_1/\partial \log\sigma) \\
-\frac{\partial^2 g_2}{\partial \eta \partial \log\sigma} &=&
+\frac{\partial^2 g_2}{\partial \eta \partial \log\sigma} &=
 	       \frac{z^uf'(z^u) -  z^lf'(z^l)}{\sigma [F(z^u) - F(z^l)]}
        -\partial g_2/\partial \eta (1 + \partial g_2/\partial \log\sigma) \\
-\end{eqnarray*}
+\end{align*}
 
 In the code [[z]] is the relevant point for exact, left, or right
 censored data, and [[z2]] the upper endpoint for an interval censored one.
