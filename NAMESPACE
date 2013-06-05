@@ -18,6 +18,7 @@ export("Surv", "aareg", "attrassign",
      "survobrien",  "survreg", "survreg.control", "survreg.fit",
      "survreg.distributions", "survregDtest", "tcut", "tt",
      "untangle.specials")
+S3method('[', aareg)
 S3method('[', Surv)
 S3method('[', cox.zph)
 S3method('[', coxph.penalty)

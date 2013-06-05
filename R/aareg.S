@@ -366,11 +366,6 @@ aareg <- function(formula, data, weights, subset, na.action,
 
 "[.aareg" <- function(x, ..., drop=FALSE) {
     if (!inherits(x, 'aareg')) stop ("Must be an aareg object")
-
-    # There is a bug in Splus6, the "=FALSE" on drop is ignored as a
-    #   default.  Add temporary hack
-    drop <- FALSE
-
     i <- ..1
     if (is.matrix(x$coefficient)) {
 	x$coefficient <- x$coefficient[,i, drop=drop]
