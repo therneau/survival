@@ -299,40 +299,30 @@ If [[individual]] is false then the repsonse variable can go.
 If [[!newstrata]] we can remove strata variables.
 The reason for this is so that the program won't ask for variables
 in the new data frame when we won't need them.
-We have to be careful in subscripting a terms object, since this will
-remove the predvars attribute (at least currently).
 
+The dataClasses and predvars attributes, if present, have elements
+in the same order as the first dimension of the ``factors'' attribute
+of the terms.
+Subscripting the terms argument does not preserve dataClasses or 
+predvars, however.  Use the pre and post subscripting factors attribute
+to determine what elements of them to keep.
 The predvars component is a call objects with one element for each
-item in the formula, ``tt'' in the call below is the terms object
-which represents the formaula and ``i'' is a general subscript.
-The predvars component is a call object with one element for each
 term in the formula, so y ~ age + ns(height) would lead to a predvars
-of length 4, element 1 is the call itself to ``list'', 2 would be y, etc.
-The dataClasses attribute is a list with names and can be subscripted in that
-way.
+of length 4, element 1 is the call itself, 2 would be y, etc.
+The dataClasses object is a simple list.
 <<survfit.coxph-setup>>= 
 subterms <- function(tt, i) {
     dataClasses <- attr(tt, "dataClasses")
     predvars <- attr(tt, "predvars")
+    oldnames <-  dimnames(attr(tt, 'factors'))[[1]]
     tt <- tt[i]
-    if (!is.null(predvars)) {
-        if (attr(tt, "response")) {
-            if (is.logical(i)) j <- c(TRUE, TRUE, i)
-            else if (all(i<0)) j <- i - 2  #shift the index
-            else j <- c(1:2, i+2)
+    index <- match(dimnames(attr(tt, 'factors'))[[1]], oldnames)
+    if (length(index) >0) {
+        if (!is.null(predvars)) 
+            attr(tt, "predvars") <- predvars[c(1, index+1)]
+        if (!is.null(dataClasses))
+            attr(tt, "dataClasses") <- dataClasses[index]
         }
-        else {
-            if (is.logical(i)) j <- c(TRUE, i)
-            else if (all(i<0)) j <- i-1
-            else  j <- c(1, i+1)
-        }
-        attr(tt, "predvars") <- predvars[j]
-        }
-    
-    if (!is.null(dataClasses)){
-        temp <- dimnames(attr(tt, 'factors'))[[1]]
-        attr(tt, "dataClasses") <- dataClasses[temp]
-    }
     tt
 }
 temp <- untangle.specials(Terms, 'cluster')

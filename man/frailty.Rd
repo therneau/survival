@@ -12,9 +12,12 @@ a Cox or survreg model.
 }
 \usage{
 frailty(x, distribution="gamma", ...)
-frailty.gamma(x, sparse = (nclass > 5), theta, df, eps = 1e-05, method = c("em","aic", "df", "fixed"), ...) 
-frailty.gaussian(x, sparse = (nclass > 5), theta, df, method =c("reml","aic", "df", "fixed"), ...)
-frailty.t(x, sparse = (nclass > 5), theta, df, eps = 1e-05, tdf = 5,method = c("aic", "df", "fixed"), ...)
+frailty.gamma(x, sparse = (nclass > 5), theta, df, eps = 1e-05,
+         method = c("em","aic", "df", "fixed"), ...) 
+frailty.gaussian(x, sparse = (nclass > 5), theta, df,
+         method =c("reml","aic", "df", "fixed"), ...)
+frailty.t(x, sparse = (nclass > 5), theta, df, eps = 1e-05, tdf = 5,
+         method = c("aic", "df", "fixed"), ...)
 }
 
 \arguments{
