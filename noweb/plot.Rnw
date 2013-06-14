@@ -85,7 +85,10 @@ if( !is.null(x$upper)) {
     supper <- as.matrix(x$upper)
     slower <- as.matrix(x$lower)
 }
-else conf.int=FALSE
+else {
+    conf.int=FALSE
+    supper <- NULL  #marker for later code
+}
 
 # Two cases where we don't put marks at the censoring times
 if (inherits(x, 'survexp') || inherits(x, 'survfit.coxph')) {
