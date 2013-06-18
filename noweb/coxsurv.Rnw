@@ -188,11 +188,20 @@ maybe more than one (multiple strata terms are legal).  If it has
 a 1 in a column that corresponds to something of order 2 or
 greater, that is a strata by covariate interaction.
 <<survfit.coxph-setup>>=
+<<<<<<< local
+if (!is.null(x) && ncol(x) >0) { #not a ~1 or ~offset(x) model
+    if (!is.null(i = attr(Terms, "specials")$strata)) 
+        stype <- attr(Terms, "factors")[i,] * (1+ attr(Terms, "order")>1)
+    else stype <- pmin(attr(Terms, "order"), 2)
+    }
+else stype <- 0  #dummy value
+=======
 if (has.strata) {
     temp <- attr(Terms, "specials")$strata
     factors <- attr(Terms, "factors")[temp,]
     strata.interaction <- any(t(factors)*attr(Terms, "order") >1)
 }
+>>>>>>> other
 @ 
 
 If a variable is deemed redundant the [[coxph]] routine will have set its
@@ -478,7 +487,71 @@ if (individual) {
    }
 @ 
 
+<<<<<<< local
+The odd case is when there are strata by covariate interactions, but
+individual=FALSE.  In this case the x2 matrix is different for each 
+strata, something that the survfitcoxph.fit subroutine is not set up
+to do.  
+This case is also very rare; the package existed for 15+ years before
+I became aware there even was a problem.  
+Thus we take a low tech solution: call the fit routine for every possible
+strata combination, and pick off the result we want from each.
+This requires a model frame that is a blend of the original data [[mf]] and
+the new data [[mf2]]. 
+You can't just paste these together, as I discovered in an evening of
+failures;  %'
+the 'terms' component of a model frame needs to be present and be compatable
+or [[model.matrix]] will fail with one of several utterly confusing messages.
+Start with tframe, a subset of rows of [[mf]] containing each unique strata.
+Create mf3 as nrow(mf2) identical copies of one row of tframe, then fill in
+new values for the mf2 variables.  We now have an mf ``copy'' with all the
+right data, and it has all the right variable names in the right order, which
+is necessary to successfully paste the original mf terms attribute onto it.  
+<<survfit.coxph-result>>= 
+else if (any(stype==2)){
+    tframe <- mf[match(levels(strata), strata),]
+    temp <- vector('list', nrow(tframe))  #number of strata
+    for (i in 1:nrow(tframe)) {
+        mf3 <- tframe[rep(i, nrow(mf2)),]
+        mf3[names(mf2)] <- mf2
+        attr(mf3, 'terms') <- attr(mf, 'terms')
+browser()
+        x2 <- model.matrix(Terms[stype!=1], data=mf3,
+                           xlev=object$xlevels)[,-1,drop=FALSE]
+        x2 <- scale(x2, center=xcenter, scale=FALSE)
+        offset2 <- model.offset(mf3)
+        if (is.null(offset2)) offset2 <-0
+        newrisk <- c(exp(x2%*%coef) + offset2)
+        zed<- survfitcoxph.fit(y, x, wt, x2, risk, newrisk, strata,
+                                           se.fit, survtype, vartype, varmat,
+                                           id=NULL, unlist=FALSE)
+        temp[[i]] <- zed[[i]]
+        }
+    tfun <- function(x, fun) as.vector(unlist(lapply(x,fun))) #no names
+    result <- list(n   =    tfun(temp, function(x) x$n),
+                   time=    tfun(temp, function(x) x$time),
+                   n.risk=  tfun(temp, function(x) x$n.risk),
+                   n.event= tfun(temp, function(x) x$n.event),
+                   n.censor=tfun(temp, function(x) x$n.censor),
+                   strata = sapply(temp, function(x) length(x$time)))
+    names(result$strata) <- levels(strata)
+    if (nrow(x2) >1) {  #matrix result
+        result$surv =  t(matrix(tfun(temp, function(x) t(x$surv)),
+                                nrow= nrow(x2)))
+        if (se.fit) result$std.err =  t(matrix(tfun(temp,function(x) t(x$std)),
+                                               nrow= nrow(x2)))
+        }
+    else {
+        result$surv =  tfun(temp, function(x) x$surv)
+        if (se.fit) result$std.err = tfun(temp, function(x) x$std.err)
+        }
+    }
+@ 
+
+The last two are the easy cases.  First if there is no newdata argument, the
+=======
 If there is no newdata argument, the
+>>>>>>> other
 centering means that we need to predict for x2=0.
 The second the most common call to the routine.
 <<survfit.coxph-result>>=
