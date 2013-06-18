@@ -27,9 +27,7 @@ coxph <- function(formula, data, weights, subset, na.action,
     special <- c("strata", "cluster", "tt")
     temp$formula <- if(missing(data)) terms(formula, special)
                     else              terms(formula, special, data=data)
-    if (is.R()) m <- eval(temp, parent.frame())
-    else        m <- eval(temp, sys.parent())
-
+    m <- eval(temp, parent.frame())
     if (nrow(m) ==0) stop("No (non-missing) observations")
     Terms <- terms(m)
 
@@ -56,17 +54,36 @@ coxph <- function(formula, data, weights, subset, na.action,
     weights <- model.weights(m)
     data.n <- nrow(Y)   #remember this before any time transforms
     
+    cluster<- attr(Terms, "specials")$cluster
+    if (length(cluster)) {
+        robust <- TRUE  #flag to later compute a robust variance
+        tempc <- untangle.specials(Terms, 'cluster', 1:10)
+        ord <- attr(Terms, 'order')[tempc$terms]
+        if (any(ord>1)) stop ("Cluster can not be used in an interaction")
+        cluster <- strata(m[,tempc$vars], shortlabel=TRUE)  #allow multiples
+        Terms2 <- Terms[-tempc$terms]
+    }
+    else {
+        Terms2 <- Terms
+        if (!missing(robust)) warning("The robust option is depricated")
+        else robust <- FALSE
+    }
+
+    # Save away xlevels after removing cluster (we don't want to save upteen
+    #  levels of that variable, which we will never need), but before removing
+    #  the strata variable, the latter we may need for a predict call.
+    #
+    xlevels <- .getXlevels(Terms2, m)
+
     strats <- attr(Terms, "specials")$strata
     if (length(strats)) {
-	stemp <- untangle.specials(Terms, 'strata', 1)
+	stemp <- untangle.specials(Terms2, 'strata', 1)
 	if (length(stemp$terms) >0) #beware strata by covariate interactions
-            Terms2 <- Terms[-stemp$terms] #not needed for model.matrix later
-        else Terms2 <- Terms  
+            Terms2 <- Terms2[-stemp$terms] #not needed for model.matrix later
 	if (length(stemp$vars)==1) strata.keep <- m[[stemp$vars]]
 	else strata.keep <- strata(m[,stemp$vars], shortlabel=TRUE)
 	strats <- as.numeric(strata.keep)
 	}
-    else Terms2 <- Terms
     
     timetrans <- attr(Terms, "specials")$tt
     if (length(timetrans)) {
@@ -387,44 +404,14 @@ with new data, and build the $X$ matrix.
 offset <- model.offset(m)
 if (is.null(offset) | all(offset==0)) offset <- rep(0., nrow(m))
 
-cluster<- attr(Terms, "specials")$cluster
-if (length(cluster)) {
-    robust <- TRUE  #flag to later compute a robust variance
-    tempc <- untangle.specials(Terms2, 'cluster', 1:10)
-    ord <- attr(Terms2, 'order')[tempc$terms]
-    if (any(ord>1)) stop ("Cluster can not be used in an interaction")
-    cluster <- strata(m[,tempc$vars], shortlabel=TRUE)  #allow multiples
-    Terms2 <- Terms2[-tempc$terms]
-    }
-else {
-    if (!missing(robust)) warning("The robust option is depricated")
-    else robust <- FALSE
-}
 
 attr(Terms2, 'intercept') <- 1  #baseline hazard is always present
 X <- model.matrix(Terms2, m)
 # Attributes of X need to be saved away before the X <- X[,-1] line removes the
 #  intercept, since subscripting removes some of them!
 Xatt <- attributes(X)
-if (is.R()) {
-     assign <- lapply(attrassign(X, Terms2)[-1], function(x) x-1)
-     xlevels <- .getXlevels(Terms2, m)
-     contr.save <- attr(X, 'contrasts')
-     }
-else {
-    assign <- lapply(attr(X, 'assign')[-1], function(x) x -1)
-    xvars <- as.character(attr(Terms2, 'variables'))
-    xvars <- xvars[-attr(Terms2, 'response')]
-    if (length(xvars) >0) {
-            xlevels <- lapply(m[xvars], levels)
-            xlevels <- xlevels[!unlist(lapply(xlevels, is.null))]
-            if(length(xlevels) == 0)
-                    xlevels <- NULL
-            }
-    else xlevels <- NULL
-    contr.save <- attr(X, 'contrasts')
-    }
-
+assign <- lapply(attrassign(X, Terms2)[-1], function(x) x-1)
+contr.save <- attr(X, 'contrasts')
 X <- X[,-1, drop=F]  #remove the intercept column
 
 if (missing(init)) init <- NULL

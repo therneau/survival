@@ -2,6 +2,14 @@
 \title{NEWS file for the survival package}
 \section{Changes in version 2.37-5}{
   \itemize{
+    \item Change survfit.coxph routine so that it detects whether
+    newdata contains or does not contain strata variables, and act
+    accordingly.  Retain strata levels in the coxph routine for use
+    in the survfit routine, to correctly reconstruct strata levels.
+    Warn about curves with interactions.  18Ju13
+
+    \item Add a dim method for survival curves.
+    
     \item For competing risks curves that use the istate option, the
     plotted curves now start with the correct (initial) prevalence of
     each state.  22May13

@@ -68,12 +68,11 @@ all.equal(s1$surv, s4$surv)
 # Still the same answer, fit multiple strata at once
 #  Strata 1 has independent coefs of strata 2, so putting in
 #    the other data should not affect it
-attach(jasa1)
-ll <- length(start)
+ll <- nrow(jasa1)
 ss <- rep(0:1, c(ll,ll))
-tdata <- data.frame(start=rep(start,2), stop=rep(stop,2),
+tdata <- with(jasa1, data.frame(start=rep(start,2), stop=rep(stop,2),
 		    event=rep(event,2), ss=ss, age=rep(age,2),
-		    age2 = (rep(age,2))^2 * ss)
+		    age2 = (rep(age,2))^2 * ss))
 fit <- coxph(Surv(start, stop, event) ~ age*strata(ss) + age2, tdata)
 #  Above replaced these 2 lines, which kill Splus5 as of 8/98
 #    Something with data frames, I expect.
@@ -82,5 +81,5 @@ fit <- coxph(Surv(start, stop, event) ~ age*strata(ss) + age2, tdata)
 all.equal(fit$coef[1], fit3$coef)
 s5 <- survfit(fit, data.frame(age=fit3$means, age2=0, ss=0), censor=FALSE)
 all.equal(s5$surv[1:(s5$strata[1])],  s3$surv)
-detach("jasa1")
+
 

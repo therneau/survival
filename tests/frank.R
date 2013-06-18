@@ -21,3 +21,4 @@ surv1b <- survfit(fit3, newdata=fit1$means[1])
 icall <- match("call", surv1b)
 all.equal(unlist(surv1[1])[-icall], unlist(surv1b)[-icall])
 
+x1 <- survfit(fit1, newdata=list(age=rep(fit1$means[1],2)))

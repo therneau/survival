@@ -13,7 +13,7 @@ hazards model.
         individual=FALSE, 
         type,vartype,
         conf.type=c("log","log-log","plain","none"), censor=TRUE, id,
-        newstrata, na.action=na.pass, ...)
+        na.action=na.pass, ...)
 }
 \arguments{
   \item{formula}{
@@ -86,16 +86,6 @@ hazards model.
     strata curves in the result (one for each strata/subject combination).
     result.}
 
-  \item{newstrata}{if the original coxph model had strata, should the
-    predictions be for all strata, or only for those in newdata?
-    The default for this is TRUE if either the \code{id} or
-    \code{individual} argument is present, as these require strata for
-    the resulting curves to make sense.
-    Otherwise the default is FALSE, which means to ignore any strata
-    variable in the newdata data set, and produce predicted survivals
-    for the entire set of strata in the original model. In this case
-    some components of the output will be matrices with one column for
-    each row of newdata.}
   \item{na.action}{the na.action to be used on the newdata argument}
   
    \item{\dots}{for future methods}
@@ -122,10 +112,7 @@ details. Methods defined for survfit objects are
     ages ranging from 50 to 80, and a model with age*sex.  The ``mean''
     value for the age:sex interaction term will be about 30, a value
     that does not occur in the data.
-
-    Users are strongly advised to use the newdata argument.  Note that
-    this data set needs to contain values for the main effects but not
-    for any interaction terms.
+    Users are strongly advised to use the newdata argument. 
 
 When the original model contains time-dependent covariates, then the
 path of that covariate through time needs to be specified in order to
@@ -141,6 +128,20 @@ the variables to be recognized as a \code{Surv} object.
 Last, although predictions with a time-dependent covariate path can be
 useful, it is very easy to create a prediction that is senseless.  Users
 are encouraged to seek out a text that discusses the issue in detail.
+
+When a model contains strata but no time-dependent covariates the user
+of this routine has a choice.
+If newdata argument does not contain strata variables then the returned
+object will be a matrix of survival curves with one row for each strata
+in the model and one column for each row in newdata.
+(This is the historical behavior of the routine.)
+If newdata does contain strata variables, then the result will contain
+one curve per row of newdata, based on the appropriate stratum of the
+original model.  In the rare case of a model with strata by covariate
+interactions the strata variable must be included in newdata.
+(The model Surv(time, status) ~ age*strata(sex) expands internally to
+strata(sex) + age:sex; the sex variable is needed for the second term
+of the model.)
 
 When all the coefficients are zero,
 the Kalbfleisch-Prentice estimator reduces to the Kaplan-Meier,
@@ -183,9 +184,9 @@ model for survival data. \emph{Annals of Statistics}
 \bold{9}, 93-108. 
 }
 \seealso{
-\code{\link{print}},  
-\code{\link{plot}},  
-\code{\link{lines}},   
+\code{\link{print.survfit}},  
+\code{\link{plot.survfit}},  
+\code{\link{lines.survfit}},   
 \code{\link{coxph}},  
 \code{\link{Surv}},  
 \code{\link{strata}}.   

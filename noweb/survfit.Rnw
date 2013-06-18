@@ -24,6 +24,18 @@ When a survfit object has only one or the other of the two, we allow a
 single subscript to be used and map it appropriately.
 
 <<survfit-subscript>>=
+dim.survfit <- function(x) {
+    if (is.null(x$strata)) {
+        if (is.matrix(x$surv)) ncol(x$surv)
+        else 1
+    }
+    else {
+        nr <- length(x$strata)
+        if (is.matrix(x$xurv)) c(nr, ncol(x$surv))
+        else nr
+    }
+}
+
 "[.survfit" <- function(x, ..., drop=TRUE) {
     nmatch <- function(indx, target) { 
         # This function lets R worry about character, negative, or logical subscripts
