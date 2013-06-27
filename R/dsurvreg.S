@@ -1,4 +1,3 @@
-# $Id: dsurvreg.S 11166 2008-11-24 22:10:34Z therneau $
 # The density, quantile, and CDF functions for those distributions
 #   supported by survreg
 #
@@ -51,3 +50,10 @@ qsurvreg <- function(p, mean, scale=1, distribution='weibull', parms) {
 	x*scale + mean
 	}
     }
+
+rsurvreg <- function(n, mean, scale=1, distribution='weibull', parms) {
+    if (missing(parms)) 
+        qsurvreg(runif(n), mean, scale, distribution)
+    else
+        qsurvreg(runif(n), mean, scale, distribution, parms) 
+}

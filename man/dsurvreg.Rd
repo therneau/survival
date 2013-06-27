@@ -2,17 +2,20 @@
 \alias{dsurvreg}
 \alias{psurvreg}
 \alias{qsurvreg}
+\alias{rsurvreg}
 \title{
   Distributions available in survreg.
 }
 \description{
-Density, cumulative probability, and quantiles for the set of distributions
-supported by the \code{survreg} function.
+  Density, cumulative distribution function, quantile function and random
+  generation for the set of distributions
+  supported by the \code{survreg} function.
 }
 \usage{
 dsurvreg(x, mean, scale=1, distribution='weibull', parms)
 psurvreg(q, mean, scale=1, distribution='weibull', parms)
 qsurvreg(p, mean, scale=1, distribution='weibull', parms)
+rsurvreg(n, mean, scale=1, distribution='weibull', parms)
 }
 \arguments{
 \item{x}{
@@ -27,15 +30,15 @@ Missing values (\code{NA}s) are allowed.
 vector of probabilities. 
 Missing values (\code{NA}s) are allowed. 
 }
-\item{mean}{
-vector of means. 
-This is replicated to be the same length as \code{p} 
-or \code{q}.
+\item{n} {number of random deviates to produce}
+\item{mean}{vector of linear predictors for the model.  
+This is replicated to be the same length as \code{p}, \code{q}
+or \code{n}.
 }
 \item{scale}{
 vector of (positive) scale factors.
-This is replicated to be the same length as \code{p} 
-or \code{q}.
+This is replicated to be the same length as \code{p},
+\code{q} or \code{n}.
 }
 \item{distribution}{
 character string giving the name of the distribution.  This must be one
@@ -59,16 +62,21 @@ Elements of \code{q} or
 \code{p} that are missing will cause the corresponding 
 elements of the result to be missing. 
 
-The \code{mean} and \code{scale}
+The \code{location} and \code{scale}
 values are as they would be for \code{survreg}.
-In particular, if
-the distribution is one that involves a transformation, then they are the
-mean and scale of the transformed distribution.  
+The label "mean" was an unfortunate choice (made in mimicry of qnorm);
+since almost none of these distributions are symmetric it will not
+actually be a mean, but corresponds instead to the linear predictor of
+a fitted model.
+Translation to the usual parameterization found in a textbook is not
+always obvious.
 For example, the Weibull distribution is fit using the
 Extreme value distribution along with a log transformation.
 Letting \eqn{F(t) = 1 - \exp[-(at)^p]}{F(t) = 1 - exp(-(at)^p)}
 be the cumulative distribution of the
-Weibull, the mean corresponds to \eqn{-\log(a)}{-log(a)} and the scale
+Weibull using a standard parameterization in terms of
+\eqn{a} and \eqn{p},
+the survreg location corresponds to \eqn{-\log(a)}{-log(a)} and the scale
 to \eqn{1/p} 
 (Kalbfleish and Prentice, section 2.2.2).
 }

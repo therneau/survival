@@ -36,7 +36,8 @@ cost, and it's easier to see what's going on than C code.
 First, compute the baseline survival curves for each strata.  If the strata
 was a factor we want to leave it in the same order, otherwise sort it.
 This fitting routine was set out as a separate function for the sake of the rms
-package.  They want to utilize the computation, but have a diffferent recreation of the x and y data.
+package.  They want to utilize the computation, but have a diffferent 
+recreation process for the x and y data.
 <<survfitcoxph.fit>>=
 survfitcoxph.fit <- function(y, x, wt, x2, risk, newrisk, strata, se.fit,
                               survtype, vartype, varmat, id, y2, strata2,
@@ -45,6 +46,7 @@ survfitcoxph.fit <- function(y, x, wt, x2, risk, newrisk, strata, se.fit,
     else                   ustrata <- sort(unique(strata))
     nstrata <- length(ustrata)
     survlist <- vector('list', nstrata)
+    names(survlist) <- ustrata
 
     for (i in 1:nstrata) {
         indx <- which(strata== ustrata[i])
@@ -64,26 +66,35 @@ survfitcoxph.fit <- function(y, x, wt, x2, risk, newrisk, strata, se.fit,
                           "surv")]
         }
         else {
-            temp <-list(n   =    unlist(lapply(result, function(x) x$n)),
-                        time=    unlist(lapply(result, function(x) x$time)),
-                        n.risk=  unlist(lapply(result, function(x) x$n.risk)),
-                        n.event= unlist(lapply(result, function(x) x$n.event)),
-                        n.censor=unlist(lapply(result, function(x) x$n.censor)),
+            temp <-list(n   =    unlist(lapply(result, function(x) x$n),
+                                        use.names=FALSE),
+                        time=    unlist(lapply(result, function(x) x$time),
+                                        use.names=FALSE),
+                        n.risk=  unlist(lapply(result, function(x) x$n.risk),
+                                        use.names=FALSE),
+                        n.event= unlist(lapply(result, function(x) x$n.event),
+                                        use.names=FALSE),
+                        n.censor=unlist(lapply(result, function(x) x$n.censor),
+                                        use.names=FALSE),
                         strata = sapply(result, function(x) length(x$time)))
-            names(temp$strata) <- ustrata
+            names(temp$strata) <- names(result)
             
             if ((missing(id) || is.null(id)) && nrow(x2)>1) {
                  temp$surv <- t(matrix(unlist(lapply(result, 
-                                                        function(x) t(x$surv))),
+                                   function(x) t(x$surv)), use.names=FALSE),
                                        nrow= nrow(x2)))
-                 if (se.fit) temp$std.err = t(matrix(unlist(lapply(result,
-                                                     function(x) t(x$std.err))),
-                                                     nrow= nrow(x2)))
+                 dimnames(temp$surv) <- list(NULL, row.names(x2))
+                 if (se.fit) 
+                     temp$std.err <- t(matrix(unlist(lapply(result,
+                                    function(x) t(x$std.err)), use.names=FALSE),
+                                             nrow= nrow(x2)))
                  }
             else {             
-                temp$surv <- unlist(lapply(result, function(x) x$surv))
-                if (se.fit) temp$std.err <- unlist(lapply(result, 
-                                                        function(x) x$std.err))
+                temp$surv <- unlist(lapply(result, function(x) x$surv),
+                                    use.names=FALSE)
+                if (se.fit) 
+                    temp$std.err <- unlist(lapply(result, 
+                                   function(x) x$std.err), use.names=FALSE)
                 }
             temp
             }
@@ -142,6 +153,7 @@ expand <- function(fit, x2, varmat, se.fit) {
 
     if (is.matrix(x2) && nrow(x2) >1) {  #more than 1 row in newdata
         fit$surv <- outer(surv, newrisk, '^')
+        dimnames(fit$surv) <- list(NULL, row.names(x2))
         if (se.fit) {
             varh <- matrix(0., nrow=length(fit$varhaz), ncol=nrow(x2))
             for (i in 1:nrow(x2)) {
@@ -268,7 +280,7 @@ else {
                                      y2[indx,,drop=FALSE], 
                                      strata2[indx],  newrisk[indx], se.fit)
             }
-        names(result) <- unique(id)
+        names(result) <- uid
         }
     }
 @ 

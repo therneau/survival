@@ -2,6 +2,11 @@
 \title{NEWS file for the survival package}
 \section{Changes in version 2.37-5}{
   \itemize{
+    \item Fix a bug in survfit.coxph pointed out by Chris Andrews, whose
+    root cause was incorrect curve labels when the id option is used. 27Jun13
+    
+    \item Add rsurvreg routine.
+    
     \item Change survfit.coxph routine so that it detects whether
     newdata contains or does not contain strata variables, and act
     accordingly.  Retain strata levels in the coxph routine for use

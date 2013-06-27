@@ -83,7 +83,7 @@ survreg(Surv(time, status) ~ ph.ecog + sex, lung, dist=my.weibull)
 # Weibull parametrisation
 y<-rweibull(1000, shape=2, scale=5)
 survreg(Surv(y)~1, dist="weibull")
-# survreg parameters are scale=1/shape, intercept=log(scale)
+# survreg scale parameter maps to 1/shape, linear predictor to log(scale)
 
 # Cauchy fit
 mycauchy <- list(name='Cauchy',
