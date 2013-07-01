@@ -484,7 +484,7 @@ The second the most common call to the routine.
 <<survfit.coxph-result>>=
 else {
     if (missing(newdata)) {
-        if (strata.interaction)
+        if (has.strata && strata.interaction)
             stop ("Models with strata by covariate interaction terms require newdata")
         x2 <- matrix(0.0, nrow=1, ncol=ncol(x))
         offset2 <- 0

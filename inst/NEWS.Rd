@@ -2,6 +2,10 @@
 \title{NEWS file for the survival package}
 \section{Changes in version 2.37-5}{
   \itemize{
+    \item Change code in the coxpenal.fit routine: use of a vector of
+    symbols as arguments to my .C calls was confusing a new CRAN
+    consistency check.  Both the old and new are legal R.
+    
     \item Fix a bug in survfit.coxph pointed out by Chris Andrews, whose
     root cause was incorrect curve labels when the id option is used. 27Jun13
     
