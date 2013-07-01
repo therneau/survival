@@ -30,7 +30,7 @@ Missing values (\code{NA}s) are allowed.
 vector of probabilities. 
 Missing values (\code{NA}s) are allowed. 
 }
-\item{n} {number of random deviates to produce}
+\item{n}{number of random deviates to produce}
 \item{mean}{vector of linear predictors for the model.  
 This is replicated to be the same length as \code{p}, \code{q}
 or \code{n}.
