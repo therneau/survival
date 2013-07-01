@@ -1,7 +1,6 @@
 
-R version 2.15.2 (2012-10-26) -- "Trick or Treat"
-Copyright (C) 2012 The R Foundation for Statistical Computing
-ISBN 3-900051-07-0
+R version 3.0.0 (2013-04-03) -- "Masked Marvel"
+Copyright (C) 2013 The R Foundation for Statistical Computing
 Platform: i686-pc-linux-gnu (32-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -98,7 +97,7 @@ transplant      -0.59388   0.55218  0.54222 -1.095  0.27339
 age:transplant   0.03380   1.03438  0.02795  1.209  0.22653   
 year:transplant  0.20228   1.22419  0.14247  1.420  0.15566   
 ---
-Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
                 exp(coef) exp(-coef) lower .95 upper .95
 age                1.0157     0.9845    0.9818    1.0508
@@ -265,12 +264,11 @@ Call: survfit(formula = sfit.1, newdata = data, individual = T)
 > # Still the same answer, fit multiple strata at once
 > #  Strata 1 has independent coefs of strata 2, so putting in
 > #    the other data should not affect it
-> attach(jasa1)
-> ll <- length(start)
+> ll <- nrow(jasa1)
 > ss <- rep(0:1, c(ll,ll))
-> tdata <- data.frame(start=rep(start,2), stop=rep(stop,2),
+> tdata <- with(jasa1, data.frame(start=rep(start,2), stop=rep(stop,2),
 + 		    event=rep(event,2), ss=ss, age=rep(age,2),
-+ 		    age2 = (rep(age,2))^2 * ss)
++ 		    age2 = (rep(age,2))^2 * ss))
 > fit <- coxph(Surv(start, stop, event) ~ age*strata(ss) + age2, tdata)
 > #  Above replaced these 2 lines, which kill Splus5 as of 8/98
 > #    Something with data frames, I expect.
@@ -281,9 +279,9 @@ Call: survfit(formula = sfit.1, newdata = data, individual = T)
 > s5 <- survfit(fit, data.frame(age=fit3$means, age2=0, ss=0), censor=FALSE)
 > all.equal(s5$surv[1:(s5$strata[1])],  s3$surv)
 [1] TRUE
-> detach("jasa1")
+> 
 > 
 > 
 > proc.time()
    user  system elapsed 
-  0.408   0.048   0.451 
+  0.420   0.064   0.484 

@@ -1,8 +1,7 @@
 
-R version 2.14.0 (2011-10-31)
-Copyright (C) 2011 The R Foundation for Statistical Computing
-ISBN 3-900051-07-0
-Platform: x86_64-unknown-linux-gnu (64-bit)
+R version 3.0.0 (2013-04-03) -- "Masked Marvel"
+Copyright (C) 2013 The R Foundation for Statistical Computing
+Platform: i686-pc-linux-gnu (32-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -35,7 +34,7 @@ Warning message:
 In fitter(X, Y, strats, offset, init, control, weights = weights,  :
   Loglik converged before variable  1,2 ; beta may be infinite. 
 > 
-> all.equal(round(fit3$coef,1), c(-22.2, -22.9), check.attributes=FALSE)
+> all(fit3$coef < -22)
 [1] TRUE
 > all.equal(round(fit3$log, 4),c(-6.8669, -1.7918))
 [1] TRUE
@@ -59,3 +58,6 @@ In fitter(X, Y, strats, offset, init, control, weights = weights,  :
 > all.equal(fit3$loglik[2], true(fit3$coef), check.attributes=FALSE)
 [1] TRUE
 > 
+> proc.time()
+   user  system elapsed 
+  0.216   0.020   0.233 

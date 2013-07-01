@@ -1,7 +1,7 @@
 
-R version 2.9.0 (2009-04-17)
-Copyright (C) 2009 The R Foundation for Statistical Computing
-ISBN 3-900051-07-0
+R version 3.0.0 (2013-04-03) -- "Masked Marvel"
+Copyright (C) 2013 The R Foundation for Statistical Computing
+Platform: i686-pc-linux-gnu (32-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -50,8 +50,13 @@ Loading required package: splines
 [1] TRUE
 > all.equal(ztemp2$Chisq[2:3], ztemp$Chisq[3:4])
 [1] TRUE
-> all.equal(ztemp2$P[2:3], ztemp$P[3:4])
+> # Change from ztemp2$P; it's a data frame and in R 3.0.2 abbreviated names
+> #   give a warning
+> all.equal(ztemp2[[4]][2:3], ztemp[[4]][3:4])
 [1] TRUE
 > 
 > 
 > 
+> proc.time()
+   user  system elapsed 
+  0.284   0.020   0.301 
