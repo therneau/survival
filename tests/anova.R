@@ -26,8 +26,8 @@ all.equal(ztemp$Df[-1], c(1,1,3))
 ztemp2 <- anova(fit3, fit2, fit1)
 all.equal(ztemp2$loglik, ztemp$loglik[-1])
 all.equal(ztemp2$Chisq[2:3], ztemp$Chisq[3:4])
-# Change from ztemp2$P in R 3.0.2, it's a data frame and now verboten to
-#  use abbreviated names there
+# Change from ztemp2$P; it's a data frame and in R 3.0.2 abbreviated names
+#   give a warning
 all.equal(ztemp2[[4]][2:3], ztemp[[4]][3:4])
 
 
