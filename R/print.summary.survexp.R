@@ -14,24 +14,26 @@ print.summary.survexp <- function(x,
 	    cat(naprint(omit), "\n")
 
     mat <- cbind(x$time, x$n.risk,  x$surv)
-    cnames <- c("time", "n.risk")
+    if (is.matrix(x$n.risk)) 
+        cnames <- c("time", paste("nrisk", 1:ncol(x$n.risk), sep=''))
+    else cnames <- c("time", "n.risk")
 
     if (is.matrix(x$surv)) ncurve <- ncol(x$surv)
     else	           ncurve <- 1
     if (ncurve==1) {                 #only 1 curve
 	cnames <- c(cnames, "survival")
-	if (!is.null(x$std.err)) {
-	    if (is.null(x$lower)) {
-		mat <- cbind(mat, x$std.err)
-		cnames <- c(cnames, "std.err")
-	        }
-	    else {
-		mat <- cbind(mat, x$std.err, x$lower, x$upper)
-		cnames <- c(cnames, 'std.err',
-			    paste("lower ", x$conf.int*100, "% CI", sep=''),
-			    paste("upper ", x$conf.int*100, "% CI", sep=''))
-	        }	
-	    }
+#	if (!is.null(x$std.err)) {
+#	    if (is.null(x$lower)) {
+#		mat <- cbind(mat, x$std.err)
+#		cnames <- c(cnames, "std.err")
+#	        }
+#	    else {
+#		mat <- cbind(mat, x$std.err, x$lower, x$upper)
+#		cnames <- c(cnames, 'std.err',
+#			    paste("lower ", x$conf.int*100, "% CI", sep=''),
+#			    paste("upper ", x$conf.int*100, "% CI", sep=''))
+#	        }	
+#	    }
         }
     else cnames <- c(cnames, paste("survival", seq(ncurve), sep=''))
 

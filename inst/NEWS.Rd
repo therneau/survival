@@ -2,9 +2,16 @@
 \title{NEWS file for the survival package}
 \section{Changes in version 2.37-5}{
   \itemize{
-    \item Change code in the coxpenal.fit routine: use of a vector of
+    \item Survexp can now produce expecteds based on a stratified Cox
+    model.  Add the 'individual.s' and 'individual.h' options to return
+    indivudual survival and cumulative hazard estimates, respectively.
+    The result of survfit now (sometimes) includes the cumulative
+    hazard.  This will be expanded. 29Jul13
+    
+    \item Change code in the coxpenal.fit routine: the use of a vector of
     symbols as arguments to my .C calls was confusing a new CRAN
-    consistency check.  Both the old and new are legal R.
+    consistency check.  (Both the old and new are legal R; but the old
+    was an unusual construction.)
     
     \item Fix a bug in survfit.coxph pointed out by Chris Andrews, whose
     root cause was incorrect curve labels when the id option is used. 27Jun13
@@ -12,8 +19,9 @@
     \item Add rsurvreg routine.
     
     \item Change survfit.coxph routine so that it detects whether
-    newdata contains or does not contain strata variables, and act
-    accordingly.  Retain strata levels in the coxph routine for use
+    newdata contains or does not contain strata variables, and acts
+    accordingly. If it does the output will not contain all newdata *
+    strata combinations. Retain strata levels in the coxph routine for use
     in the survfit routine, to correctly reconstruct strata levels.
     Warn about curves with interactions.  18Ju13
 

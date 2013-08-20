@@ -61,9 +61,9 @@ survfitcoxph.fit <- function(y, x, wt, x2, risk, newrisk, strata, se.fit,
         if (length(result)==1) { # the no strata case
             if (se.fit)
                 result[[1]][c("n", "time", "n.risk", "n.event", "n.censor",
-                          "surv", "std.err")]
+                          "surv", "cumhaz", "std.err")]
             else result[[1]][c("n", "time", "n.risk", "n.event", "n.censor",
-                          "surv")]
+                          "surv", "cumhaz")]
         }
         else {
             temp <-list(n   =    unlist(lapply(result, function(x) x$n),
@@ -84,6 +84,9 @@ survfitcoxph.fit <- function(y, x, wt, x2, risk, newrisk, strata, se.fit,
                                    function(x) t(x$surv)), use.names=FALSE),
                                        nrow= nrow(x2)))
                  dimnames(temp$surv) <- list(NULL, row.names(x2))
+                 temp$cumhaz <- t(matrix(unlist(lapply(result, 
+                                   function(x) t(x$cumhaz)), use.names=FALSE),
+                                       nrow= nrow(x2)))
                  if (se.fit) 
                      temp$std.err <- t(matrix(unlist(lapply(result,
                                     function(x) t(x$std.err)), use.names=FALSE),
@@ -91,6 +94,8 @@ survfitcoxph.fit <- function(y, x, wt, x2, risk, newrisk, strata, se.fit,
                  }
             else {             
                 temp$surv <- unlist(lapply(result, function(x) x$surv),
+                                    use.names=FALSE)
+                temp$cumhaz <- unlist(lapply(result, function(x) x$cumhaz),
                                     use.names=FALSE)
                 if (se.fit) 
                     temp$std.err <- unlist(lapply(result, 
@@ -163,6 +168,7 @@ expand <- function(fit, x2, varmat, se.fit) {
                 }
             fit$std.err <- sqrt(varh)
             }
+        fit$cumhaz <- outer(fit$cumhaz, newrisk, '*')
         }
     else {
         fit$surv <- surv^newrisk
@@ -172,6 +178,7 @@ expand <- function(fit, x2, varmat, se.fit) {
                 newrisk^2
             fit$std.err <- sqrt(varh)
             }
+        fit$cumhaz <- fit$cumhaz * newrisk
         }
     fit
     }
@@ -222,6 +229,7 @@ else {
         ntarget <- nrow(x2)  #number of different time intervals
         surv <- vector('list', ntarget)
         n.event <- n.risk <- n.censor <- varh1 <- varh2 <-  time <- surv
+        hazard  <- vector('list', ntarget)
         stemp <- as.integer(strata2)
         timeforward <- 0
         for (i in 1:ntarget) {
@@ -237,9 +245,9 @@ else {
                 time[[i]][1] <- time[[i]][1] + timeforward
                 timeforward <- y2[i,2] - max(slist$time[indx])
             
+                hazard[[i]] <- slist$hazard[indx]*newrisk[i]
                 if (survtype==1) surv[[i]] <- slist$surv[indx]^newrisk[i]
-                else             surv[[i]] <- slist$hazard[indx]*newrisk[i]
-
+                
                 n.event[[i]] <- slist$n.event[indx]
                 n.risk[[i]]  <- slist$n.risk[indx]
                 n.censor[[i]]<- slist$n.censor[indx]
@@ -249,8 +257,9 @@ else {
                 }
             }
 
+        cumhaz <- cumsum(unlist(hazard))
         if (survtype==1) surv <- cumprod(unlist(surv))  #increments (K-M)
-        else surv <- exp(-cumsum(unlist(surv)))         #hazards
+        else surv <- exp(-cumhaz)
 
         if (se.fit) 
             list(n=as.vector(table(strata)[stemp[1]]),
@@ -259,13 +268,15 @@ else {
                    n.event= unlist(n.event),
                    n.censor= unlist(n.censor),
                    surv = surv,
+                   cumhaz= cumhaz,
                    std.err = sqrt(cumsum(unlist(varh1)) + unlist(varh2)))
         else list(n=as.vector(table(strata)[stemp[1]]),
                    time=cumsum(unlist(time)),
                    n.risk = unlist(n.risk),
                    n.event= unlist(n.event),
                    n.censor= unlist(n.censor),
-                   surv = surv)
+                   surv = surv,
+                   cumhaz= cumhaz)
         }
 
     if (all(id ==id[1])) {
@@ -390,7 +401,7 @@ efficiently compute the partial sums.
 <<agsurv>>=
     dtimes <- which(nevent >0)
     ntime  <- length(time)	
-    if (survtype ==1) {
+    if (survtype ==1) {  #Kalbfleisch-Prentice
         indx <- (which(status==1))[order(dtime[status==1])] #deaths
         km <- .C(Cagsurv4,
              as.integer(ndeath),
@@ -401,7 +412,7 @@ efficiently compute the partial sums.
              inc = double(ntime))
         }
 
-    if (survtype==3 || vartype==3) {
+    if (survtype==3 || vartype==3) {  # Efron approx
         xsum2 <- rowsum((wrisk*death) *x, dtime)
         erisk <- rowsum(wrisk*death, dtime)  #risk score sums at each death
 	tsum  <- .C(Cagsurv5, 

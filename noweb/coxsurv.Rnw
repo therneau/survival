@@ -534,7 +534,8 @@ new <- list(n = result$n[indx3],
             n.event=result$n.event[indx2],
             n.censor=result$n.censor[indx2],
             strata = temp,
-            surv= result$surv[indx4])
+            surv= result$surv[indx4],
+            cumhaz = result$cumhaz[indx4])
 if (se.fit) new$std.err <- result$std.err[indx4]
 result <- new
 @ 

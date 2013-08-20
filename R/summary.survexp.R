@@ -1,7 +1,8 @@
 #
 # Almost identical to summary.survfit.  The big differences
-#  are no call to the survmean function (irrelevant), and
+#  are no calls to the survmean function (irrelevant), and
 #  there is no censoring, extend, or rmean argument.
+# And there is never an se, upper or lower component.
 # Because survexp objects do not contain n.event or n.censor, 
 #  subsetting is easier.
 
@@ -14,8 +15,9 @@ summary.survexp <- function(object, times, scale=1, ...) {
     #  Make a copy of it that is always a matrix, to simplify the number of
     #  cases for our subscripting work below.  At the end of the routine
     #  we'll turn it back into a vector if needed.  Similar treatment is
-    #  given to the standard error and confidence limits.
+    #  given to the n.risk argument.
     surv <- as.matrix(fit$surv)
+    n.risk <- as.matrix(fit$n.risk)
     if (is.null(fit$strata)) {
 	nstrat <- 1
 	stemp <- rep(1, nrow(surv))
@@ -27,17 +29,16 @@ summary.survexp <- function(object, times, scale=1, ...) {
         strata.names <- names(fit$strata)
 	}
 
-    if (is.null(fit$std.err)) std.err <- NULL
-    else 		      std.err <- fit$std.err * surv
+#    if (is.null(fit$std.err)) std.err <- NULL
+#    else 		      std.err <- fit$std.err * surv
 
-    if (!is.null(fit$lower)) {
-	lower <- as.matrix(fit$lower)
-	upper <- as.matrix(fit$upper)
-        }
+#    if (!is.null(fit$lower)) {
+#	lower <- as.matrix(fit$lower)
+#	upper <- as.matrix(fit$upper)
+#        }
 
     if (missing(times)) {
         times <- fit$time
-        n.risk<- fit$n.risk
         strata <- factor(stemp, labels=strata.names)
     }
     else {  
@@ -49,7 +50,7 @@ summary.survexp <- function(object, times, scale=1, ...) {
 	#   survival surv[[1], surv[[2]], etc.
 	# For the survival, stderr, and confidence limits it suffices
 	#   to create a single list 'indx1' containing a subscripting vector
-	indx1 <- n.risk <- newtimes <- vector('list', nstrat)
+	indx1 <- indx2 <- newtimes <- vector('list', nstrat)
 	n <- length(stemp)
 	for (i in 1:nstrat) {
 	    who <- (1:n)[stemp==i]  # the rows of the object for this strata
@@ -90,9 +91,8 @@ summary.survexp <- function(object, times, scale=1, ...) {
 	    if (ntime ==1) temp1 <- rep(1, length(ptimes))
 	    else temp1 <- approx(stime, 1:ntime, xout=ptimes,
 			    method='constant', f=1, rule=2)$y
-	    n.risk[[i]] <- ifelse(ptimes>max(stime), 
-                                  fit$n.risk[length(fit$n.risk)],
-				  fit$n.risk[who[temp1]])
+	    indx2[[i]] <- ifelse(ptimes>max(stime), 
+                                  length(n.risk), who[temp1])
 	    }
 
 	# Now create the output list
@@ -101,11 +101,12 @@ summary.survexp <- function(object, times, scale=1, ...) {
 
 	indx1 <- unlist(indx1)
 	surv <- (rbind(1.,surv))[indx1,,drop=FALSE]
-	if (!is.null(std.err)) std.err <- rbind(0.,std.err)[indx1,,drop=FALSE]
-	if (!is.null(fit$lower)) {
-	    lower <- rbind(1.,lower)[indx1,,drop=FALSE]
-	    upper <- rbind(1.,upper)[indx1,,drop=FALSE]
-	    }
+        n.risk <- n.risk[unlist(indx2),, drop=FALSE]
+#	if (!is.null(std.err)) std.err <- rbind(0.,std.err)[indx1,,drop=FALSE]
+#	if (!is.null(fit$lower)) {
+#	    lower <- rbind(1.,lower)[indx1,,drop=FALSE]
+#	    upper <- rbind(1.,upper)[indx1,,drop=FALSE]
+#	    }
 	if (!is.null(fit$strata)) {
 	    scount <- unlist(lapply(newtimes, length))
 	    strata <- factor(rep(1:nstrat, scount), labels=names(fit$strata))
@@ -116,24 +117,25 @@ summary.survexp <- function(object, times, scale=1, ...) {
     # Final part of the routine: paste the material together into
     #  the correct output structure
     #
-    temp <- list(surv=surv, time=times/scale, n.risk=n.risk)
+    temp <- list(time=times/scale, n.risk=n.risk, surv=surv)
 
     if (ncol(surv)==1) {
 	# Make surve & etc vectors again
 	temp$surv <- drop(temp$surv)
-	if (!is.null(std.err)) temp$std.err <- drop(std.err)
-	if (!is.null(fit$lower)) {
-	    temp$lower <- drop(lower)
-	    temp$upper <- drop(upper)
-	    }
+        temp$n.risk <- drop(temp$n.risk)
+#	if (!is.null(std.err)) temp$std.err <- drop(std.err)
+#	if (!is.null(fit$lower)) {
+#	    temp$lower <- drop(lower)
+#	    temp$upper <- drop(upper)
+#	    }
 	}
-    else {
-	if (!is.null(std.err)) temp$std.err <- std.err
-	if (!is.null(fit$lower)) {
-	    temp$lower <- lower
-	    temp$upper <- upper
-	    }
-	}
+#    else {
+#	if (!is.null(std.err)) temp$std.err <- std.err
+#	if (!is.null(fit$lower)) {
+#	    temp$lower <- lower
+#	    temp$upper <- upper
+#	    }
+#	}
 
     if (!is.null(fit$strata)) {
 	temp$strata <- strata

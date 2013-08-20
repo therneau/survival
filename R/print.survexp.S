@@ -1,4 +1,3 @@
-# $Id: print.survexp.S 11166 2008-11-24 22:10:34Z therneau $
 print.survexp <- function(x, scale=1, digits = max(options()$digits - 4, 3), naprint=FALSE, ...) {
     if (!inherits(x, 'survexp'))
 	    stop("Invalid data")
@@ -25,10 +24,14 @@ print.survexp <- function(x, scale=1, digits = max(options()$digits - 4, 3), nap
 	    }
 	if (is.matrix(x$surv)) cname <- dimnames(x$surv)[[2]]
 	else                     cname <- "survival"
+        if (is.matrix(x$n.risk)) 
+            cname <- c(paste("nrisk", 1:ncol(x$n.risk), sep=''), cname)
+        else cname <- c("n.risk", cname)
+
 	if (!is.null(x$std.err))
 	      cname <- c(cname, paste("se(", cname, ")", sep=''))
 	prmatrix(mat, rowlab=rep("", nrow(mat)),
-		   collab=c("Time", "n.risk", cname))
+		   collab=c("Time", cname))
 	}
     else  { #print it out one strata at a time, since n's differ
 	if (is.null(x$std.err)) tname <- 'survival'
