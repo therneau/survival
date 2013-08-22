@@ -1,7 +1,6 @@
 
-R version 2.15.0 (2012-03-30)
-Copyright (C) 2012 The R Foundation for Statistical Computing
-ISBN 3-900051-07-0
+R Under development (unstable) (2013-06-30 r63119) -- "Unsuffered Consequences"
+Copyright (C) 2013 The R Foundation for Statistical Computing
 Platform: i686-pc-linux-gnu (32-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -219,7 +218,7 @@ coxph(formula = Surv(futime, fustat) ~ age + ecog.ps + strata(rx))
 age      0.13853   1.14858  0.04801  2.885  0.00391 **
 ecog.ps -0.09670   0.90783  0.62994 -0.154  0.87800   
 ---
-Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
         exp(coef) exp(-coef) lower .95 upper .95
 age        1.1486     0.8706    1.0454     1.262
@@ -257,11 +256,11 @@ Call: survfit(formula = fit)
 Call: survfit(formula = fit, newdata = list(age = c(30, 70), ecog.ps = c(2, 
     3)))
 
-     records n.max n.start events median 0.95LCL 0.95UCL
-rx=1      13    13      13      7     NA      NA      NA
-rx=1      13    13      13      7    268     115      NA
-rx=2      13    13      13      5     NA      NA      NA
-rx=2      13    13      13      5    365     353      NA
+        records n.max n.start events median 0.95LCL 0.95UCL
+1, rx=1      13    13      13      7     NA      NA      NA
+2, rx=1      13    13      13      7    268     115      NA
+1, rx=2      13    13      13      5     NA      NA      NA
+2, rx=2      13    13      13      5    365     353      NA
 > summary(sfit)
 Call: survfit(formula = fit, newdata = list(age = c(30, 70), ecog.ps = c(2, 
     3)))
@@ -316,4 +315,4 @@ Call: survfit(formula = fit, newdata = list(age = c(30, 70), ecog.ps = c(2,
 > 
 > proc.time()
    user  system elapsed 
-  0.264   0.028   0.288 
+  0.256   0.040   0.292 
