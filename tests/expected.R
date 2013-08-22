@@ -280,7 +280,3 @@ for (i in 1:3) {
     }
 
 all.equal(as.vector(efit$surv), as.vector(cumprod(cond)))
-
-rm(wt, cond, efit, tt, surv, hak1, hak2)
-rm(fit, dummy, ss, efit2, chaz, chaz2, risk)
-rm(d2, direct)

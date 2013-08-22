@@ -28,4 +28,5 @@ noweb/.*.pdf
 noweb/figures/.*.pdf
 noweb/.*.aux
 inst/doc/
+vigtemp/
 test.local

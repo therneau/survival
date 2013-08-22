@@ -58,6 +58,7 @@ dim.survfit <- function(x) {
             if (!is.null(x$std.err)) x$std.err <- x$std.err[,j,drop=drop]
             if (!is.null(x$upper)) x$upper <- x$upper[,j,drop=drop]
             if (!is.null(x$lower)) x$lower <- x$lower[,j,drop=drop]
+            if (!is.null(x$cumhaz)) x$cumhaz <- x$cumhaz[,j,drop=drop]
         }
         else warning("survfit object has only a single survival curve")
     }
@@ -95,6 +96,7 @@ dim.survfit <- function(x) {
                         x$std.err <- x$std.err[keep,,drop=drop]
                 if (!is.null(x$upper)) x$upper <-x$upper[keep,,drop=drop]
                 if (!is.null(x$lower)) x$lower <-x$lower[keep,,drop=drop]
+                if (!is.null(x$cumhaz)) x$cumhaz <-x$cumhaz[keep,,drop=drop]
             }
             else {
                 x$surv <- x$surv[keep,j, drop=drop]
@@ -102,6 +104,7 @@ dim.survfit <- function(x) {
                     x$std.err <- x$std.err[keep,j, drop=drop]
                 if (!is.null(x$upper)) x$upper <- x$upper[keep,j, drop=drop]
                 if (!is.null(x$lower)) x$lower <- x$lower[keep,j, drop=drop]
+                if (!is.null(x$cumhaz)) x$cumhaz <- x$cumhaz[keep,j, drop=drop]
                 }
         }
         else {
@@ -109,6 +112,7 @@ dim.survfit <- function(x) {
             if (!is.null(x$std.err)) x$std.err <- x$std.err[keep]
             if (!is.null(x$upper)) x$upper <- x$upper[keep]
             if (!is.null(x$lower)) x$lower <- x$lower[keep]
+            if (!is.null(x$cumhaz)) x$cumhaz <- x$cumhaz[keep]
         }
     }
     x
