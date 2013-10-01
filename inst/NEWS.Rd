@@ -2,6 +2,12 @@
 \title{NEWS file for the survival package}
 \section{Changes in version 2.37-5}{
   \itemize{
+    \item Allow for Inf as the end of the time interval, interval
+    censored data in the Surv function.
+    
+    \item The predict.coxph function would fail if it had both a newdata
+    and a collapse argument.  Pointed out by Julian Bothe.  25Sep13
+    
     \item Survexp can now produce expecteds based on a stratified Cox
     model.  Add the 'individual.s' and 'individual.h' options to return
     indivudual survival and cumulative hazard estimates, respectively.

@@ -86,13 +86,14 @@ is.Surv(x)
    represent censoring and remaining ones a transition to the given state.
    
     Interval censored data can be represented in two ways.  For the first
-   use type = interval and the codes shown above.  In that usage the
-   value of the {time2} argument is ignored unless event=3.
+   use \code{type = "interval"} and the codes shown above.  In that usage the
+   value of the \code{time2} argument is ignored unless event=3.
    The second approach is to think of each observation as a time
    interval with (-infinity, t) for left censored, (t, infinity) for
    right censored, (t,t) for exact and (t1, t2) for an interval.
-   This is the approach used for type = interval2, with NA taking
-   the place of infinity.  It has proven to be the more useful.
+   This is the approach used for type = interval2.  Infinite values can
+   be represented either by actual infinity (Inf) or NA.
+   The second form has proven to be the more useful one.
 
 Presently, the only methods allowing interval censored data are the 
 parametric models computed by \code{survreg} and survival curves
@@ -103,7 +104,7 @@ The distinction is important for counting process data and
 the Cox model. 
 
 The function tries to distinguish between the use of 0/1 and 1/2 coding for 
-left and right censored data using 
+censored data via the condition 
 \code{if (max(status)==2)}. 
 If 1/2 coding is used and all the subjects are censored, it will 
 guess wrong.
@@ -115,10 +116,11 @@ For multi-state survival (type= "mstate") the status variable can have
 multiple levels.  The first of these will stand for censoring, and the
 others for various event types, e.g., causes of death.  
 
-Surv objects can be subscripted either as an object, e.g.
-\code{x[1:3]} using a single subscript;
-in which case the \code{drop} argument is ignored;
-or as a matrix, using two arguments.
+Surv objects can be subscripted either as a vector, e.g.
+\code{x[1:3]} using a single subscript,
+in which case the \code{drop} argument is ignored and the result will be
+a survival object; 
+or as a matrix by using two subscripts.
 If the second subscript is missing and \code{drop=F}
 (the default),
 the result of the subscripting will be a Surv object, e.g., 

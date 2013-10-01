@@ -99,9 +99,20 @@ Surv <- function(time, time2, event,
 	    if (!is.numeric(time2)) stop("Time2 must be numeric")
 	    if (length(time2) !=nn) 
 		    stop ("Time1 and time2 are different lengths")
-	    status <- ifelse(is.na(time), 2,
-		      ifelse(is.na(time2),0,
+            backwards <- (!is.na(time1) & !is.na(time2) & time1 > time2)
+            unknown <- (time1== Inf | time2 == -Inf | 
+                        (is.na(time1) & is.na(time2)))
+            time <- ifelse(time==Inf, NA, time)    #all for Inf
+            time2 <- ifelse(time2== -Inf, NA, time2)  
+	    status <- ifelse(is.na(time),  2,
+		      ifelse(is.na(time2), 0,
 		      ifelse(time==time2, 1,3)))
+
+            if (any(backwards)) {
+                warning("Invalid interval: start > stop, NA created")
+                status[backwards] <- NA
+            }
+            if (any(unknown)) status[unknown] <- NA
 	    time <- ifelse(status!=2, time, time2)
 	    type <- 'interval'
 	    }
@@ -125,7 +136,7 @@ Surv <- function(time, time2, event,
 
 	temp <- (status==3 & time>time2)
 	if (any(temp & !is.na(temp))) {
-	    time[temp] <- NA
+	    status[temp] <- NA
 	    warning("Invalid interval: start > stop, NA created")
 	    }
 

@@ -203,11 +203,10 @@ function with doubly censored data. \emph{J Am Stat Assoc},
 
 }
 \seealso{
-\code{\link{survfit.coxph}} for survival curves from Cox models.
-  
-\code{\link{print}},  
-\code{\link{plot}},  
-\code{\link{lines}},   
+\code{\link{survfit.coxph}} for survival curves from Cox models.  
+\code{\link{print.survfit}},  
+\code{\link{plot.survfit}},  
+\code{\link{lines.survfit}},   
 \code{\link{coxph}},  
 \code{\link{Surv}},  
 \code{\link{strata}}.   

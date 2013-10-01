@@ -219,7 +219,7 @@ original model: no cluster and if type!= expected no response.
 <<pcoxph-getdata>>=
 if (!missing(newdata)) {
     use.x <- TRUE  #we do use an X matrix later
-    tcall <- Call[c(1, match("newdata", names(Call), nomatch=0))]
+    tcall <- Call[c(1, match(c("newdata", "collapse"), names(Call), nomatch=0))]
     names(tcall)[2] <- 'data'  #rename newdata to data
     tcall$formula <- Terms2  #version with no response
     tcall$na.action <- na.action #always present, since there is a default
@@ -228,6 +228,9 @@ if (!missing(newdata)) {
     if (is.R()) mf2 <- eval(tcall, parent.frame())
     else        mf2 <- eval(tcall, sys.parent())
 
+    collapse <- model.extract(mf2, "collapse")
+    n2 <- nrow(mf2)
+    
     if (has.strata) {
         if (length(stemp$vars)==1) newstrat <- mf2[[stemp$vars]]
         else newstrat <- strata(mf2[,stemp$vars], shortlabel=TRUE)
@@ -254,7 +257,8 @@ if (!missing(newdata)) {
             stop("New data has a different survival type than the model")
         }
     na.action.used <- attr(mf2, 'na.action')
-    }  
+    } 
+else n2 <- n
 @ 
 
 %\subsection{Expected hazard}
@@ -542,8 +546,8 @@ if (!is.null(na.action.used)) {
     if(se.fit) se <- napredict(na.action.used, se)
     }
 
-if (!missing(collapse)) {
-    if (length(collapse) != n) stop("Collapse vector is the wrong length")
+if (!missing(collapse) && !is.null(collapse)) {
+    if (length(collapse) != n2) stop("Collapse vector is the wrong length")
     pred <- rowsum(pred, collapse)  # in R, rowsum is a matrix, always
     if (se.fit) se <- sqrt(rowsum(se^2, collapse))
     if (type != 'terms') {
