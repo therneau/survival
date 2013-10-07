@@ -1,0 +1,1019 @@
+\documentclass{article}[11pt]
+\usepackage{Sweave}
+\usepackage{amsmath}
+\addtolength{\textwidth}{1in}
+\addtolength{\oddsidemargin}{-.5in}
+\setlength{\evensidemargin}{\oddsidemargin}
+%\VignetteIndexEntry{Cox models and ``type 3'' Tests}
+
+
+\SweaveOpts{keep.source=TRUE, fig=FALSE}
+% Ross Ihaka suggestions
+\DefineVerbatimEnvironment{Sinput}{Verbatim} {xleftmargin=2em}
+\DefineVerbatimEnvironment{Soutput}{Verbatim}{xleftmargin=2em}
+\DefineVerbatimEnvironment{Scode}{Verbatim}{xleftmargin=2em}
+\fvset{listparameters={\setlength{\topsep}{0pt}}}
+\renewenvironment{Schunk}{\vspace{\topsep}}{\vspace{\topsep}}
+
+\SweaveOpts{width=6,height=4}
+\setkeys{Gin}{width=\textwidth}
+<<echo=FALSE>>=
+options(continue="  ", width=60)
+options(SweaveHooks=list(fig=function() par(mar=c(4.1, 4.1, .3, 1.1))))
+pdf.options(pointsize=8) #text in graph about the same as regular text
+@ 
+
+\title{Cox models and ``type III'' tests}
+\author{Terry M Therneau \\ \emph{Mayo Clinic}}
+\newcommand{\myfig}[1]{\includegraphics[height=!, width=\textwidth]
+                        {tests-#1.pdf}}
+\newcommand{\code}[1]{\texttt{#1}}
+
+\newcommand{\ybar}{\overline{y}}
+
+\begin{document}
+  \maketitle
+\section{Introduction}
+This note started with an interchange on the R-help list that 
+became a bit adversarial.
+A user asked ``how do I do a type III test using the Cox model'', and I
+replied that, in essence, this was not a well defined question.
+If he/she could define exactly what it was that they were after, then
+I would look into it.
+The inevitable response was that ``SAS does it''.
+
+So what exactly is it that SAS does? 
+A look in the phreg documentation turned up no leads.
+Several grant deadlines were looming and I got testy at this point, 
+so the discussion didn't get any further.
+The present note tries to clarify the issues.
+What SAS calls a \emph{type 3} test is rooted in linear models,
+and has several issues even in that domain;
+but how exactly do those arguments play out in a Cox model, and
+how do they relate to the usual likelihood ratio and score tests?
+
+For the impatient readers among you I'll list the main outline and
+conclusions of this report at the start.
+\begin{itemize}
+  \item SAS type 3 is a particular algorithm for computing a particular
+    linear models estimate known as ``Yates' weighted squares of means'',
+    which traces back to a 1934 paper by Frank Yates \cite{Yates34}.
+    \begin{itemize} 
+      \item Scholarly papers discussing fundamental flaws in the Yates
+        approach have appeared 2--3 times per decade in the statistics
+        literature, with no apparent effect on the type 3 superiority
+        myth. 
+        The paper of Aitkin \cite{Aitkin1978} along with its discussion
+        is fundamental.
+       \item My own view is that for balanced or near balanced experiments 
+         the Yates' hypothesis is reasonable, but for most biological data 
+         it corresponds to a valid test of a completely irrelevant question.
+    \end{itemize}
+  \item I have a natural antipathy for ``grafting'' linear models ideas onto
+    the Cox model, since I've found that some things do indeed transfer over
+    but many (most) do not.  
+    \begin{itemize}
+      \item For a linear model there are multiple ways to
+        compute and/or understand any particular estimate, including the
+        Yates approach.  
+      \item These different approaches will \emph{not} be identical
+        when copied over to the Cox model case, thus it is important to
+        carefully understand what computation is being done.
+    \end{itemize}
+  \item A good portion of this note is focused on linear models and 
+    computations, in order to set the necessary groundwork for the Cox
+    case.
+  \item From testing, we believe that the SAS phreg code performs a defined
+    set of contrasts in the coefficients of the model, predicated on using
+    a particular set of dummy covariates for any factor variables.
+\end{itemize}    
+    
+\section{Linear approximations and the Cox model}
+\label{sect:transfer}
+One foundation of my concern has to do with the relationship between
+linear models and coxph.
+The solution to the Cox model equations
+can be represented as an iteratively reweighted least-squares problem, with
+an updated weight matrix and adjusted dependent variable at each iteration,
+rather like a GLM model.
+The formula is rather complex;
+mathematical details of this are shown in the appendix.
+This fact has been rediscovered multiple times, and leads to the notion
+that since the last iteration of the fit \emph{looks} 
+just like a set of least-squares
+equations, then various least squares ideas could be carried over to the
+proportional hazards model by simply writing them out using these final terms.
+
+In practice, sometimes this works and sometimes it doesn't.  
+The Wald statistic is one example of the former type, which
+is reliable as long as the coefficients $\beta$ are not too large.  
+\footnote{
+  In practice failure only occurs in the rare case that one of the coefficients 
+is tending to infinity.  However, in that case the failure is complete: 
+the likelihood
+ratio and score tests behave perfectly well but the Wald test is worthless.)
+This particular linear models ``carry over'' is quite sensible in
+nearly all data sets.}
+A counter example is found in two ideas used to examine model
+adequacy: adjusted variable plots and constructed variable plots, each
+of which was carried over to the Cox model case by extending the 
+linear-model like form of the estimating equations.
+After a fair bit of exploring I found neither is worth doing
+\ref{Therneau00}.
+Copying over a linear models formula simply did not work in this case.
+
+Thus I am naturally suspicious whenever a linear models idea is grafted
+onto a Cox model computation.  Has the necessary legwork been done to ensure
+that the procedure actually works in the case at hand?  I have not found any
+such for the SAS computation of ``type 3'' results in their phreg procedure.
+This doesn't mean it won't work, all might well be ok.  
+Addition of a new method to a package without reporting such an 
+investigation is irresponsible, however.
+
+\section{Data set}
+We will motivate our discussion with the simple case of a two-way
+analysis, illustated with a data set from the survival package.
+The ``flcdata'' data frame contains the results of a small number
+of laboratory tests done on a on a large fraction of the 1995
+population of Olmsted County, Minnesota aged 50 or older
+\ref{Kyle06, Dispenzieri12}.
+The supplied R data set contains a random sample of this larger study.
+The primary purpose of the study was to measure the amounts of
+plasma immunoglobulins and their components.  
+Intact immunoglobulins are composed of a heavy chain and light chain
+portion.  In normal subjects there is overproduction of the light chain 
+component by the immune cells leading to a small amount of 
+\emph{free light chain}  in the circulation.
+Excessive amounts of free light chain (FLC) are thought to be a marker of
+disregulation in the immune system.
+Free light chains have two major forms denoted as kappa and lambda,
+we will use the sum of the two.
+
+An important medical question is whether high levels of FLC have an
+impact on survival, which will be explored using a Cox model.  
+To explore linear models we will compare FLC values between males
+and females.
+A confounding factor is that free light chain values rise with age, in
+part because it is eliminated by the kidneys and renal function
+declines with age.
+The age distribution of males and females differs, so we
+will need to adjust our simple comparison between the sexes
+for age effects.
+The impact of age on mortality is of course even greater
+and so correction for the age imbalance is is critical when exploring
+the impact of FLC on survival.
+
+The table below shows the data divided into
+5 age groups for convenience, with the observation count and
+average flc value for each cell.
+In a real analysis I would never divide age into groups this
+way since the true age effect is quite certainly a smooth function.
+But it is convenient for illustration.
+<<>>=
+library(survival)
+age2 <- cut(flcdata$age, c(50, 59, 69, 79, 89, 120), include.lowest=TRUE,
+            labels=c("50-59", "60-69", "70-79", "80-89", "90+"))
+counts <- with(flcdata, table(sex, age2))
+counts
+#
+#row percentages
+round(100*counts/rowSums(counts))
+#
+# cell means
+flc <- flcdata$kappa + flcdata$lambda
+cellmean <- with(flcdata, tapply(flc, list(sex, age2), mean, na.rm=T))
+round(cellmean, 1)
+@ 
+The table of row percentages confirms that there is a greater percentage of
+females in the oldest ages.
+
+Notice that the male/female difference in FLC varies with age, 
+\Sexpr{round(cellmean[1,1],1)} versus \Sexpr{round(cellmean[2,1],1)}
+at age 50--59 and \Sexpr{round(cellmean[1,5],1)} versus
+ \Sexpr{round(cellmean[2,5],1)} at age 90.
+The data does not fit a simple additive model; there are ``interactions''
+to use statisical parlance.
+An excess of free light chain is thought to be at least partly a reflection of 
+immune senescence, and due to our hormonal backgrounds men and women simply
+do not age in quite the same way.
+
+A basic truth about biological data is that interactions \emph{always} exist.
+That is, whatever the data source, values in a table like the above will
+all be different, and those values will never follow
+a simple pattern.
+Our statistical models often summarize data as though a simple pattern
+holds; these models may be close to the truth and are often useful,
+but we should never make the mistake of believing that a simple model is
+perfect.
+
+
+\section{Linear models}
+If we ignore the age effect, then everyone agrees on the best estimate
+of FLC, i.e., the simple average of FLC values
+within each sex.
+The male-female difference is estimated as the difference of these means.
+This is what is obtained from the simple linear model of FLC on sex,
+for all packages.
+Once we step beyond this and adjust for age, 
+the relevant linear models can be looked
+at in several ways; we will explore three of them below.
+This ``all roads lead to Rome'' property of linear models is one of their
+fascinating aspects, at least mathematically.
+
+\subsection{Population based estimates}
+% create a table which will be referred to often
+\begin{table} \centering
+  \begin{tabular}{rlcccc}
+    &50--59& 60--69 & 70--79 & 80--89 & 90+ \\ \hline
+<<echo=FALSE, results=tex>>=
+cat("Female ")
+for (i in 1:5) cat(" & $n_{1", i, "}$ =", counts[1,i], sep='')
+cat(" \\\\\n")
+for (i in 1:5) cat(" & $\\ybar_{1", i, "}$ =", sprintf("%3.1f", cellmean[1,i]))
+cat("\\\\ \\hline \n Male")
+for (i in 1:5) cat(" & $n_{2", i, "}$ =", counts[2,i])
+cat(" \\\\\n")
+for (i in 1:5) cat(" & $\\ybar_{2", i, "}$ =", sprintf("%3.1f", cellmean[2,i]))
+cat("\\\\\n")
+@ 
+\end{tabular}
+\caption{Means and cell counts for the FLC data.}
+\label{tab:means}
+\end{table}
+
+So what does the a statement like ``the average FLC for females'' or
+``the effect of sex on FLC'' actually mean?
+Any linear model based answer to such questions can always be written
+be written as a weighted average over
+the subjects,
+with the weights reflective of some decision on our part.
+I have worked with a number of epidemiology studies over my career,
+and perhaps because of this the population view is the most
+compelling for me.
+That is, each estimate answers the question for a particular population;
+and we can understand the estimate by asking exactly what \emph{is} 
+that population, and does using said population make sense?
+
+\begin{figure}
+  \myfig{pop1}
+  \caption{Reference populations for the FLC study: m = males, f = females,
+    o = overall, v= minimum variance, y = Yates.}
+  \label{figpop}
+\end{figure}
+
+There are in general three competing interests for creating the weights.
+\begin{enumerate}
+  \item The result should reflect a population of interest.
+  \item The result should balance on important confounders.
+  \item Estimates should have minimal variance.
+\end{enumerate}
+It is in general not possible to satisfy all three perfectly.
+
+Table \ref{tab:means} shows the sample size and mean for each of
+our 10 groups.
+Figure \ref{figpop} shows the overall distribution of the males and
+the females along with three possible reference popultions.
+<<pop1, fig=TRUE, echo=TRUE, include=FALSE>>=
+popmat <- matrix(0, 5,5)
+mf <- rowSums(counts) #defined above: counts by sex/age grp
+popmat[,1] <- counts[1,]/mf[1]
+popmat[,2] <- counts[2,]/mf[2]
+popmat[,3] <- colSums(counts)/sum(counts)
+temp <- 1/colSums(1/counts)
+popmat[,4] <- temp/sum(temp)
+popmat[,5] <- 1/5
+matplot(1:5,  popmat, col=1:5, pch="fmovy", type='b',
+        ylab="Fraction", xaxt='n', xlab="Age Group")
+axis(1, 1:5, dimnames(counts)[[2]])
+@
+
+%We will skip past a set of linear model theory (see your favorite
+%textbook) and simply state that 
+%\begin{itemize}
+%  \item any admissible linear models estimate $e$
+%    involving age, sex and flc
+%    can be written as weighted sum $e = \sum c_{ij} \ybar_{ij}$ of the values
+%    in this table; 
+%  \item any estimate with $c_{1j}=c_{2j}$ for each $j$ will balance on age, 
+%    i.e. one that has equal weights for males and females in each age
+%    group;
+%  \item a weighted sum $\sum w_k z_k$ will have minimum variance when
+%    the weights are chosen proportional to 1/var($z_k$).
+%\end{itemize}
+
+To balance on age weights $w$ need to be assigned to each observation
+proportional to $p_i/ \hat p_{ij}$ where 
+$p_i$ is fraction for age $i$ in the target population and
+$\hat p_{ij}$ is the observed fraction in each age/sex group. 
+This leaves considerable scope for variation in estimates, however.
+We will consider four particular estimators
+\begin{enumerate}
+  \item The unadjusted estimate (no correction for age) mentioned above,
+    which is also the overall minimum
+    variance least squares estimate.
+    Observation weights are 1. In general, minimum variance estimates
+    will have weights as close as possible to equal.
+
+  \item The minimum variance estimate, subject to balance on
+    age group.  The weight for observations in the two cells for
+    column $j$ of the table are proportional to
+    $w_{1j} = n_{2j}/n_{+j}$ and $w_{2j} = n_{1j}/n_{j+}$, where $+$
+    indicates adding over the appropriate margin.  Note that this gives
+    the minimum of the sum (var(female average) + var(male average)).
+
+  \item The population balanced estimate, which balances on age group
+    and also  preserves the
+    overall marginal distribution of ages in the weighted sample.
+    That is, the weighted age distribution is the same as the overall
+    population distribution.
+    Weights are proportional to $w_{1j}= n_{+j}/n_{1j}$ and
+    $w_{2j} = n_{j+}/n_{2j}$.
+
+  \item Yates' weighted means estimate, which corresponds to a reference
+    population that has an even distribution across the categories, e.g.,
+    there are as many 90+ year old males as 50-59 year old females.
+    Case weights are proportional to the inverse of the cell count.
+    The SAS type 3 approach is closely related to the Yates estimate.
+\end{enumerate}
+
+Options 3 and 4 are specific cases of norming to an external population.
+If $p_i$ is the proportion of subjects in age group $i$ in the norming
+population then the case weights will be $p_i/ \hat p_{si}$ where
+$\hat p$ is the observed proportion in that sex/age group.
+This approach is closely related to inverse probability weights.
+Table \ref{tab:est} shows the per observation case weights for each
+of the estimates.
+
+<<weights>>=
+casewt <- array(1, dim=c(2,5,4)) # case weights by sex, age group, estimator
+csum <- colSums(counts)
+casewt[,,2] <- counts[2:1,] / rep(csum, each=2)
+casewt[,,3] <- rep(csum, each=2)/counts
+casewt[,,4] <- 1/counts
+#renorm each so that the mean weight is 1
+for (i in 1:4) {
+    for (j in 1:2) {
+        meanwt <- sum(casewt[j,,i]*counts[j,])/ sum(counts[j,])
+        casewt[j,,i] <- casewt[j,,i]/ meanwt
+    }
+}
+#
+# Calculate means and variances
+#
+wmean <- matrix(0, 2, 4)
+indx <- with(flcdata, tapply(flc, list(sex, age2)))
+wtmat <- matrix(0., nrow=nrow(flcdata), ncol=4)
+female <- (flcdata$sex=='F')
+for (i in 1:4) {
+    wtmat[,i] <- (casewt[,,i])[indx]
+    wmean[,i] <- c(weighted.mean(flc[female], wtmat[female ,i]),
+                   weighted.mean(flc[!female],wtmat[!female, i]))
+    }
+@ 
+
+\begin{table} \centering
+  \begin{tabular}{rlrrrrr|r}
+    &&50--59& 60--69 & 70--79 & 80--89 & 90+ & mean\\ \hline
+<<echo=FALSE, results=tex>>=
+tname <- c("Simple", "Min var", "Population", "Yates")
+for (i in 1:2) {
+    for (j in 1:4) {
+        cat("&",tname[j], " & ",
+            paste(sprintf("%4.2f", casewt[i,,j]), collapse= " & "),
+            sprintf("& %4.2f", wmean[i,j]),
+             "\\\\\n")
+       if (j==1) cat(c("Female", "Male")[i])
+    }
+    if (i==1) cat("\\hline ")
+}
+@     
+  \end{tabular}
+  \caption{Observation weights for each data point
+    corresponding to four basic approaches. 
+    All weights are normed so as to have an average value of 1.}
+  \label{tab:est}
+\end{table}
+
+Looking at the table notice the per observation weights for 
+the $\ge 90$ age group, 
+which is the one with the greatest female/male imbalance in the
+population.  
+For all but the unbalanced estimate (which ignores age) the males are
+given a weight that is approximately 3 times that for females
+in order to rebalance the shortage of males in that category.
+However, the
+absolute values of the weights differ considerably, especially
+for the Yates estimate.
+
+In figure \ref{figpop} and table \ref{tab:est} the population average and
+minimum variance estimates have nearly the same weights, but this is
+not necessarily always the case.  Consider the following simple study:
+$$
+  \begin{tabular}{c|ccccc}
+  & \multicolumn{5}{c}{Group} \\
+  & 1& 2& 3& 4& 5 \\ \hline
+  F & 25 & 20 & 10 & 5 & 1\\
+  M & 25 & 30 & 40 & 45& 49
+  \end{tabular}
+$$
+<<echo=FALSE>>=
+# compute for the example above
+tmat <- matrix(c(25,25,20,30,10,40,5,45,1,49), nrow=2)
+vsum <- 1/colSums(1/tmat)
+vsum <- round(vsum/sum(vsum),2)
+@ 
+The target distribution for the overall population is 1/5 for each group,
+but that for the minimum variance comparison is
+(\Sexpr{vsum[1]}, \Sexpr{vsum[2]}, \Sexpr{vsum[3]}, \Sexpr{vsum[4]}, 
+\Sexpr{vsum[5]});
+the F/M comparisons in the later columns is much less precise and so recieve
+a lower weight.
+
+\subsection{Estimates and contrasts}
+Thankfully we don't need to memorize a collection optimal weighting
+formulas such as those found in table \ref{tab:est}:
+if the problem can be cast as a linear regression
+with appropriate coefficients, then the optimal weights arise
+automatically ``behind the scenes'' as part of the matrix formulas for
+least squares.  This is a consequence of the
+fact that linear regression produces
+minimum variance unbiased estimates (MVUBE).
+The two minimum variance models result from simple fits:
+<<>>=
+fit1 <- lm(flc ~ sex, data=flcdata)
+fit2 <- lm(flc ~ sex + age2, data=flcdata)
+coef(fit1)
+coef(fit1)
+@
+The coefficient for \code{sex} in the first model is
+the male-female contrast found in table \ref{tab:est} of
+\Sexpr{round(wmean[2,1],2)} - \Sexpr{round(wmean[1,1],2)},
+and likewise for fit2 and the minimum variance balanced estimate
+from the table.
+The lm fit is a lot less work
+and computes the correct standard error as well.
+The other two estimates involve constraints and are just a bit less
+straightforward.
+
+One approach is to use \emph{contrasts} which are linear combinations of
+coefficients.
+Let $\theta$ be the set of coefficients for a linear model fit and
+$C$ be a contrast matrix with $k$ rows and one column per coefficient.
+Then $C\theta$ is a vector of length $k$ containing the contrasts
+and
+$V = \hat\sigma^2 C (X'X)^{-1}C'$ is its variance matrix.
+Here is a simple contrast function which will carry out these calculations
+for us.
+<<>>=
+contrast <- function(cmat, fit) {
+    varmat <- vcov(fit)
+    beta <- coef(fit)
+    if (!is.matrix(cmat)) cmat <- matrix(cmat, nrow=1)
+    if (ncol(cmat) != length(beta)) stop("wrong dimension for contrast")
+    list(est = drop(cmat %*% beta), var=drop(cmat %*% varmat %*% t(cmat)))
+    }
+@
+
+To explore the population averaged and Yates models,
+start with a fit that uses the cell means as our parameters.
+<<>>=
+mfit <- lm(flc ~ interaction(sex, age2) -1, flcdata, x=TRUE)
+matrix(coef(mfit), nrow=2, dimnames=dimnames(counts))
+
+xtx <- t(mfit$x) %*% mfit$x
+dimnames(xtx) <- NULL
+xtx
+@
+This coding was chosen because the fit is so simple.
+The estimated coefficients are the cell means and the $X'X$ matrix is diagonal
+containing the counts in each cell.
+We can write the four estimates presented in table \ref{tab:est}
+in terms of contrasts.
+Any contrast that gives the same weight to $\hat\theta_{Fj}$ and
+$\hat\theta_{Mj}$ for age group $j$ will provide an age-corrected estimate
+of the gender effect.
+\begin{itemize}
+   \item The unadjusted model will use contrast weights proportional to the cell
+counts: the variance of each cell mean is proportional to 1/count, and
+optimal estimates use weights proportional to the inverse of the variance.
+
+  \item The variance of the estimated difference within an age group,
+   $(\theta_{Fj} - \theta_{Mj})$, will be proportional to $1/n_{1j} + 1/n_{2j}$
+   and the minimum variance balanced model (i.e. fit2) uses weights 
+   inversely proportional to this.
+
+ \item The population weighted
+     estimate will use age weights proportional to the total sample count
+    for each age group.
+
+ \item Yates' weighted means estimate uses weights of 1/5.
+\end{itemize}
+
+Expanding on the last of these, for Yates method the estimated mean FLC
+for females is $(\theta_{11} + \theta_{12}+ \theta_{13} + \theta_{14}
+ + \theta_{15})/5$, which is the expectation for a perfectly balanced
+ population.
+ The contrast between females and males is
+ $(\sum_j \theta_{1j} - \sum_j \theta_{2j}) /5$, and a comparison of this value
+ with its estimated variance is a test for equality of the males and
+ females.
+ The table below shows the contrast weights for each of the four
+ estimates.
+
+<<cwt>>=
+cellwt <- 0* casewt  #create the right size matrix
+for (i in 1:4) {
+    cellwt[,,i] <- casewt[,,i] * counts
+    cellwt[,,i] <- cellwt[,,i] / rowSums(cellwt[,,i])
+    }
+#
+#write out the weights for the reader
+temp <- rbind(cellwt[1:2,,1], cellwt[1,,2],cellwt[1,,3], cellwt[1,,4])
+dimnames(temp) <- list(c("Unadjusted, F", "Unadjusted, M", "Min variance",
+                         "Population", "Yates"), dimnames(counts)[[2]])
+round(temp,3)
+@ 
+
+\begin{table} \centering
+  \begin{tabular}{r  cccc}
+      & female & male & contrast & se(cont) \\ \hline
+<<echo=FALSE, results=tex>>=
+# This is repeated below for the reader's edification
+tfun <- function(wt) {
+    cmat <- rbind(c(wt* 0:1), c(wt* 1:0), c(wt * c(-1,1)))
+    temp <- contrast(cmat, mfit)
+    c(temp$est, 100*sqrt(temp$var[3,3]))
+}
+cat(paste(c("Unadjusted", sprintf("%4.2f", tfun(cellwt[,,1]))), 
+          collapse=" & "), "\\\\ \n")
+cat(paste(c("Min variance", sprintf("%4.2f", tfun(cellwt[,,2]))), 
+          collapse=" & "), "\\\\ \n")
+cat(paste(c("Population", sprintf("%4.2f", tfun(cellwt[,,3]))), 
+          collapse=" & "), "\\\\ \n")
+cat(paste(c("Yates", sprintf("%4.2f", tfun(cellwt[,,4]))), 
+          collapse=" & "), "\\\\ \n")
+@ 
+\end{tabular}
+\caption{Estimated contrasts for the mean female FLC, mean male FLC,
+  male - female difference, and standard error of the difference.}
+\label{tab:contrast}
+\end{table}
+
+Now compute the contrast for ``difference in mean FLC between males
+and females'', using each of the four weightings.
+The result is shown in table \ref{tab:contrast}.
+<<contrasts>>=
+tfun <- function(wt) {
+    cmat <- rbind(c(wt* 1:0), c(wt* 0:1), c(wt * c(-1,1)))
+    temp <- contrast(cmat, mfit)
+    c(temp$est, sqrt(temp$var[3,3]))
+}
+cmat <- matrix(0, 4,4)
+for (i in 1:4) cmat[i,] <- tfun(cellwt[,,i])
+@ 
+
+Males have slightly higher average FLC values than females.
+The unadjusted estimate underestimates the difference due to
+imbalance in age: FLC rises with age and the male population
+has a lower average age.  It has the smallest variance but this
+is immaterial due to the bias.
+As pointed out before, the minimum variance balanced estimate
+and the population balanced estimate have nearly the same weights
+for this data set and so give nearly identical contrasts and standard
+errors.
+The Yates estimate gives the largest estimated difference since
+it corresponds to a fictional population containing a large fraction
+in the oldest age category, where the male/female difference happens
+to be greatest.
+It pays a large price for this reweighting, however, in terms of
+standard error.
+
+The \emph{cell means} coding in terms of $\theta$ was convenient for
+showing how contrasts work.
+Contrasts can also be applied to the more standard parameterizations of
+a two way linear model
+\begin{equation}
+  y_{ij} = \mu + \alpha_i + \beta_j + \gamma_{ij} \label{std}
+\end{equation}
+Equation \eqref{std} is overdetermined and contraints must be
+added.
+The usual textbook ones are $\sum_i \alpha_i =0$, $\sum_j \beta_j=0$,
+and $\sum_i \gamma_{ij} = \sum_j \gamma_{ij} =0$.
+For illustration here I will use the default contraint used by SAS,
+which sets the last level
+of each main effect and the last 5 interactions to zero.
+
+<<>>=
+oldopt <- options(contrasts = c("contr.SAS", "contr.poly"))
+sfit1 <- lm(flc ~ sex, data=flcdata)
+summary(sfit1)$coef[,1:2]
+#
+sfit2 <- lm(flc ~ sex + age2, data=flcdata)
+summary(sfit2)$coef[,1:2]
+#
+sfit3 <- lm(flc ~ sex + age2 + sex*age2, data=flcdata, x=TRUE)
+summary(sfit3)$coef[,1:2]
+#
+options(oldopt) 
+@
+Comparing these results to table \ref{tab:contrast} we see that
+the two coefficients for sfit1 correspond to the 
+estimated mean effect for males and the female-male
+difference of the unadjusted contrast, and similarly for the
+first two coefficients of sfit2 and the minimum variance constrats.
+The third fit sfit3 does not map so directly to any of the contrasts.
+
+For both mfit and sfit3, the fits using cell means and SAS codings
+respectively, we retained the $X$ matrix from the fit by using the
+\code{x=TRUE} argument.  This allows for a map from one set of
+coefficients to the other.
+Let $X$ be the model matrix from one of the SAS type fits
+and $Z$ that from the cell means parameterization mfit.
+Then
+\begin{align*}
+  X \beta &= Z \theta \\
+  Z^+ X\beta &=  \theta \\
+  M \beta &= \theta
+\end{align*}
+where $Z^+$ is a generalized inverse of $Z$; which can be easily
+obtained with the singular value decomposition.
+This gives a mapping from the coefficient set of one model
+to that of the other.
+<<map>>=
+map <- function(from, to) {
+    temp <- svd(to)
+    temp$v %*% diag(1/temp$d) %*% t(temp$u) %*% from
+}
+
+map3 <- map(sfit3$x, mfit$x)
+# check that it works. The "as.vector" tosses away names
+all.equal(as.vector(map3 %*% sfit3$coef), as.vector(mfit$coef))
+@ 
+
+This allows me to write the prior four contrasts in terms of the
+coefficients for the SAS model sfit3:
+$C \theta = C (M \beta) = (CM) \beta$
+where $M$ is the mapping matrix \code{map3} above.
+<<>>=
+sascont <- matrix(0, 10, 4)
+for (i in 1:4) sascont[,i] <- c(cellwt[,,i] * c(-1,1)) %*% map3
+dimnames(sascont) <- list(names(sfit3$coef), 
+                          c("simple", "min var", "population", "Yates"))
+round(sascont,4)
+@ 
+
+A general principle is that a given hypothesis may be represented as
+a simple contrast in one coding but be complex in another.  
+The unadjusted test is a trivial contrast in the sfit1 coding, but a 
+complex and non-obvious one in the sfit3 coding.  
+The Yates test cannot be expressed as a contrast using the sfit1 or sfit2
+coding, is simple and obvious in the cell means coding, and also has
+simple coefficients in the sfit3 coding.
+Que sera sera.
+
+When dealing with the cell means model the matrix $M$ turns out to
+be quite simple. 
+Pick any row of \code{sfit3\$x} that corresponds to a subject in the
+first cell of our counts table, i.e., the first element of $\theta$.
+This is the first row of $M$.  
+Proceed likewise for the remaining 9 cells to get the full 10 by 10
+$M$ matrix.  
+<<>>=
+wtindex <- with(flcdata, tapply(flc, list(sex, age2)))  #reprise
+map3b <- sfit3$x[match(1:10, wtindex),]
+all.equal(map3, map3b, check.attributes=FALSE)
+@ 
+ 
+\subsection{Sums of squares and projections}
+The most classic exposition of least squares is as a set of
+projections, each on to a smaller space.
+Computationally we represent this as a series of model fits,
+each fit summarized by the improvement in fit over the prior 
+one.
+<<anova>>=
+options(show.signif.stars = FALSE) #be intelligent 
+sfit0  <- lm(flc ~ 1, flcdata)
+sfit1b <- lm(flc ~ age2, flcdata)
+anova(sfit0, sfit1b, sfit2, sfit3)
+@ 
+The second row is a test for the age effect.
+The third row of the above table summarizes the improvment in
+fit for the model with sex + age2 over the model with just age2.
+Interestingly, this test is completely identical to our second
+contrast.  
+Our first contrast is identical to an anova table that compares
+the intercept-only fit to one with sex; the second line from
+\code{anova(sfit0, sfit1, sfit2)}.
+
+Interestingly, the Yates test can also be obtained from an
+anova approach:
+ \begin{enumerate}
+   \item Create the X matrix for a fully saturated and overdetermined model
+     \begin{itemize}
+       \item column 1 = mean
+       \item column 2,3 = indicators for female and male, respectively
+       \item column 4,5,6,7 = indicators for the five age groups
+       \item columns 8-17 = indicators for the 10 age*sex interactions
+       \item It is important that the columns be ordered as intercept,
+           then main effects, then second order interactions, etc.
+           The main effects need not list sex first.
+     \end{itemize}
+   \item Starting from the left, remove any column that is a linear 
+     combination of prior columns.  
+     In the FLC data this leave precisely the matrix \code{fit3\$x}.  
+     The columns for male, age 90+ and half the interactions are removed.
+   \item Rearrange the columns so that the main effect we wish to test is
+     placed \emph{after} other main effects and any interactions that
+     involve said main effect.,
+   \item Now create a sequential anova table; the test for addition of the
+     rearranged ``main effect'' term will be equal to the Yates contrast
+     for that effect.
+ \end{enumerate}
+This algorithm is the defintion of SAS type 3 sums of squares.
+A proof of this rather surprising result is found in Aitkin \cite{Aitkin78}.
+
+The algorithm is particularly apropos for SAS since it does its computations
+in exactly this way: X is formed using all possible columns and redundant ones
+are detected ``on the fly'' during computatation of the generalized inverse 
+of $X'X^-$.  
+Linear models can be viewed as geometric projections onto a sequence 
+of subspaces, the SS for a term is the squared length of the residual
+vector when that term is removed.  The residual vector is always orthagonal
+to the subspace of the projection.
+Viewed this way the Yates SS corresponds to a row space which is orthagonal
+to the the remaining mean, age group, and interaction terms.
+
+In R we can do the same test via the \code{drop1} command.
+This requires just a bit of trickery: the default form of the drop1
+command will always order the terms so that interactions are last.
+By giving an explicit formula we can force the chosen order.
+<<type3>>=
+tfit <- lm(flc ~ age2 + sex:age2 + sex, flcdata)
+drop1(tfit, . ~ ., test="F")
+#
+yates <- contrast(rep(c(1,-1),5)/5, mfit)
+yates$est/sqrt(yates$var)
+@ 
+
+The anova table for a nested sequence of models $A$, $A+B$, $A + B +C$, \ldots
+has a simple interpretation, outside of contrasts or populations,
+as an improvment in fit.  Did the variable(s) $B$ add significantly 
+to the goodness of fit for a model with just $A$, was $C$ an important
+addition to a model that already includes $A$ and $B$?  
+This is based on the likelihood ratio test (LRT),
+and extends naturally to all other models based on likelihoods.
+One oft voiced and justified complaint about type 3 is that when one
+shoehorns the Yates approach into the LRT framework it doesn't really fit.
+Adding the main effect terms to the anova table after the interactions is
+not a de novo addition; one had to peek ahead --- the columns of $X$ added
+last to the model were already used to decide which ``iteraction'' 
+columns of $X$ to keep.
+
+\subsection{Missing cells}
+What happens to all of these estimates if there is a missing cell?
+Assume for instance that our data had no males aged 80--89.
+Compuation of the simple unbalanced estimator is unchanged,
+but there is no way to create a balanced estimate;
+the Yates and population balanced estimates are undefined.
+The minimum variance balanced estimate for sex from an \code{age + sex}
+model will essentially ignore the data for all subjects in the
+age 80--89 category: the male/female difference can no be estimated
+and thus has ``infinite variance'' leading to a weight of zero for that
+age category.
+The SAS type 3 column elimination algorithm still proceeds, and in this 
+case produces a ``pseudo Yates'' estimate that corresponds to a population
+with no subjects aged 80--89 and equal numbers of subjects in 
+each of the other age/sex strata.
+
+For more complicated patterns of missing cells the type 3 algorithm will
+always produce an answer, but the result is often not easy to guess,
+nor is it at all clear that said result is useful.
+Type 3 is not a panacea in such cases, nor is any other automatic
+algorithm.
+
+
+\section{Cox models}
+To adapt the Yates estimate to a Cox model we have three primary choices
+which are to use case weights so as to match the population, a post-fit
+contrast, or a sequential anova table with the $X$ matrix rearranged.
+The secondary option is whether one uses the likelihood ratio, score, or
+Wald test statistic.
+For the contrast, remember that the Cox model does not have an intercept
+coefficient as this is absorbed into the baseline hazard.
+<<coxfit>>=
+cfit1 <- coxph(Surv(futime, death) ~ age2 + sex, flcdata)
+cfit1
+anova(cfit1)
+
+# Fit using case weights
+wt4 <- cellwt[wtindex]/ mean(cellwt[indx])
+cfit2 <- coxph(Surv(futime, death) ~ age2 + sex, weight=wt4,
+               robust=TRUE, data=flcdata)
+cfit2
+
+# Post fit contrast, using the standard coding
+cfit3 <- coxph(Surv(futime, death) ~ sex + age2 + sex:age2, flcdata,
+               x=T)
+ctemp <- contrast(c(1, rep(0,4), rep(.2,4)), cfit3)
+c(contr= ctemp$est, sd= sqrt(ctemp$var), z= ctemp$est/sqrt(ctemp$var))
+
+# The psuedo-anova form using rearranged terms.
+tfit <- coxph(Surv(futime, death) ~ cfit3$x[,-1], flcdata)
+anova(tfit, cfit3)
+@ 
+
+\section{Which estimate is best?}
+Deciding which estimate is the best one can be complicated.
+Unfortunately a lot of statisical textbooks emphasise the peculiar
+situation of data with exactly the same number of subjects in each cell. 
+Such date is \emph{extremely} peculiar if you work in medicine; 
+in 30 years work and several hundred studies I have seen 2 cases.
+In the case of a balanced study all four contrasts above will give exactly the
+same result.
+This has led many to avoid the above question, instead pining for that
+distant Eden where
+the meaning of ``row effect'' is perfectly unambiguous.
+But we are faced with real data and so need to make a choice.
+
+The question has long been debated in depth by wiser heads than mine.
+Important papers are the 1934 discussions by
+Yates \cite{Yates34}, Nelder \cite{Nelder} and particularly
+the 1978 Aitkin \cite{Aitkin78} discussion.
+Aitkin's summary states that 
+``It is shown that a standard method of analysis used in many ANOVA programs,
+equivalent to Yates's method of weighted squares of means, may lead to 
+inappropriate models.''
+This was read before the Royal Statistical
+Society and includes remarks by 10 discussants forming a who's who of
+statistical theory (F Yates, J Nelder, DR Cox, \ldots).
+Despite the long tradition among RSS discussants of first congratulating the 
+speaker and then roundly criticising
+each one their conclusions, not one defense of the Yates approach is raised!
+I would hightlight two of the remarks.  The first by R Gabriel recommends
+that section 2 of this paper should ``be required reading for all students
+of analysis of variance''.  I concur.
+A second is the first sentence of F Yates' comments that
+``Professor Aitkin creates the impression that
+my paper advocated without reservation the method of weighted squares of
+means.'' That is, the current proponents of the Yates weighted mean
+approach (SAS) give it far more weight than the original author.
+
+I have two primary problems with the SAS type 3 approach.
+The first and greatest is that their documentation recommends the method
+with \emph{no} reference to the substantial and sophisticated literature
+discussing the weaknesses of the approach.  
+This represents a level of narcissism which is completely unprofessional.
+The second is that their documentation explains the method is a way that
+is almost impenetrably opaque.  
+They start with the columns of X which remain after elimination 
+of linearly dependencies (labeled as L1, L2, \ldots), and then cite
+the orthoganality principle which arises from viewing the rearranged
+anova table as a series of projections.  
+If this is the only documentation one has, there will not be 1 person in 
+100 who can
+explain the actual biological hypothesis which is being addressed by a type 3
+test.
+It is essentially a description of their computer algorithm.
+
+
+The uncorrected estimate has the lowest variance for both the individual
+means and for the contrast, but is essentially unsafe.  
+Age matters, and we should correct for it.
+Beyond this, the prevailing consensus is that no single ``automatic''
+approach will be correct for all problems.
+
+The minimum-variance balanced design and the population matched balanced
+design have weights that are nearly identical in this data set.
+The increase in variance over the naive, uncorrected estimate
+is small, \Sexpr{signif(cont1$var[3,3], 3)} vs. 
+\Sexpr{signif(cont2$var[3,3], 3)}
+or \Sexpr{signif(cont3$var[3,3], 3)}.           %$
+We have gained balance for a very small price.
+
+The minimum-variance and population matched approaches will not always
+be so similar, for instance consider a data set that had the counts shown
+in a table below.
+The population-matched approach will give equal weight to
+all columns but the minimum variance estimate will use
+weights proportional to 9, 25 and
+16, respectively.
+\begin{center}
+  \begin{tabular}{r|rrr}
+    & \multicolumn{3}{c}{Group} \\
+    & 1 & 2 & 3 \\ \hline
+    female & 10&  50&  80\\
+    male   & 90 & 50 & 20
+ \end{tabular}
+\end{center}
+For this reason the minimum variance estimate is sometimes disparaged,
+in that it uses weights that do not correspond
+to any population and which may sometimes be surprising in magnitude.
+On the other hand it corresponds to a simple nested anova model,
+\code{lm(flc ~ age + sex)}, and those who focus on that approach 
+recommend it.  The direct extension of the LRT and anova table to
+more complicated models such as the logistic or Cox model 
+further recommends the approach, it appears the most sensible to me.
+
+The Yates estimate pays a high price for the unbalanced weights that
+it imposes: a standard error that is about 2.5 times larger than the
+best estimates.
+Far more problematic is that it answers a question nobody asked, which
+is the effect of sex on FLC for a population that has exactly the same
+number of subjects in each of the 20 age/sex groups.
+This is a population we will never observe, and  
+any answer based on such a fiction is simply irrelevant.
+
+I think there are 3 primary reasons that the Yates approach is used.
+The first occurs in planned industrial or laboratory studies where designed
+experiments are possible, and the planned study has equal numbers of
+observations per cell.  Unfortunately in the final data set one or a small
+handful of values are missing due to assay errors or other misadventures.
+In this case the Yates contrast is a sensible approach, and estimates what the
+experiment should have been.
+One variant of this argument occurs in a multi-institutional study
+where each institution is treated as a factor, e.g. the assumption
+that each enrolling center may have a different baseline
+rate of response due to somewhat different patient populations.
+When considering an ``average'' treatment effect do we want to treat
+all institutions equally (Yates), or give more weight to those who
+enrolled more subjects?  There is a reasonable argument for the former
+but it is a matter of significant disagreement.
+
+A second reason for the Yates estimate is that it is
+attractive to those analysts who most
+long for the lost paradise of perfect balance,
+but are faced with unbalanced data in practice.
+By pretending that the data were balanced via a convenient contrast
+perhaps Eden can be regained?  
+I have no sympathy with this single-minded fascination for the balanced
+linear model.
+
+What if one were to take a subset of the given data such that the subset 
+were balanced, and do analysis on that subset?  
+Then all worries about which contrast is best could be ignored. 
+\footnote{I have actually seen this proposed in a statistics book.  
+The example involved an industrial experiment on soldering circuit boards
+and one combination had had some extra observations made.
+This additional data was thrown away in order to restore balance and
+achieve ``interpretable estimates''.  This leaves me aghast.}
+But which subset to keep?  
+Suppose we were to compute the answer for all possible
+balanced subsets and then take the average?  It turns out that this is simply 
+a computationally expensive way to perform the Yates procedure.
+
+The third and likely the primary reason for the estimate's
+endurance is that
+SAS has adopted it under the label of ``type 3 estimable functions'',
+and promoted it as though it were a best solution through throughout their
+documentation.  It is the default in much of their printout.
+An essentially impenetrable description of type III has helped to
+perpetuate the deception that there is something magically optimal
+about the approach.
+
+\section{Appendix}
+At any time point $t$ let $w(t)$ be a vector of weights with
+$$
+w_i(t) = d(t) Y_i(t) exp(X_i \beta) / \sum_j  Y_j(t) exp(X_j \beta) $$
+Here $Y_i(t)$ is the 0/1 indicator of whether subject $i$ is at risk at time
+$t$, $d(t)$ records the number of deaths at time $t$, $X_i$ is the
+vector of covariates for subject $i$ and $\beta$ is a
+vector of coefficients.
+Let the matrix $W(t) = diag(w) - w'w$.  
+Then the Cox model information matrix, under the Breslow approximation,
+can be written as
+$${\cal I} = X' [\sum_t W(t)] X $$
+The $X$ matrix does not have an intercept column.
+The Newton-Raphson update to coeficient vector at this point is
+the solution to 
+$$
+X' [\sum_t W(t)] X \delta = X' [\sum W(t) Z(t)]
+$$
+where $Z(t)$ is a vector indicating the deaths at time $t$.
+
+
+\begin{thebibliography}{9}
+  \bibitem{Aitkin78} M. Aitkin (1978).
+    The analysis of unbalanced cross classifications (with discussion).
+    \emph{J Royal Stat Soc A} 141:195-226.
+
+  \bibitem{Dispenzieri12} A. Dispenzieri, J. Katzmann, R. Kyle, 
+    D. Larson, T. Therneau, C. Colby,
+         R. Clark, .G Mead, S. Kumar, 
+         L..J Melton III and  S.V. Rajkumar (2012).
+    \emph{Use of monclonal serum immunoglobulin free light chains to predict 
+            overall survival in the general population},
+    Mayo Clinic Proc 87:512--523.
+  
+  \bibitem{Kyle06} R. Kyle, T. Therneau, S.V. Rajkumar,
+            D. Larson, M. Plevak, J. Offord,
+            A. Dispenzieri, J. Katzmann, and L.J. Melton, III (2006),
+	    \emph{Prevalence of monoclonal gammopathy of 
+              undetermined significance},
+	    New England J Medicine 354:1362--1369.
+    
+  \bibitem{Yates34} F. Yates (1934). 
+    The analysis of multiple classifications with
+    unequal numbers in the different classes. \emph{J Am Stat Assoc},
+    29:51--66.
+\end{thebibliography}
+\end{document}
