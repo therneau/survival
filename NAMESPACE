@@ -1,23 +1,26 @@
 useDynLib(survival, .registration = TRUE)
 importFrom(splines, ns, spline.des)
 import(stats,graphics)
-export("Surv", "aareg", "attrassign", 
-     "basehaz", "cch", "clogit", "cluster", "cox.zph", 
-     "coxph", "coxph.control", "coxph.detail", "coxph.fit",
-     "coxph.wtest", "format.Surv", 
-     "frailty",  "frailty.gamma", 
-     "frailty.gaussian", "frailty.t", "is.Surv", 
-     "is.na.Surv", "is.na.coxph.penalty", 
-     "is.na.ratetable",  "is.ratetable", 
-     "labels.survreg", "match.ratetable", 
-     "psurvreg", "qsurvreg", "dsurvreg",
-     "pspline", "pyears", "ratetable", "ratetableDate", 
-     "ridge", "strata", "survConcordance",
-     "survSplit", "survdiff", "survexp",  "survfit" ,
-     "survfitcoxph.fit",
-     "survobrien",  "survreg", "survreg.control", "survreg.fit",
-     "survreg.distributions", "survregDtest", "tcut", "tt",
-     "untangle.specials")
+export("Surv", "aareg", "agreg.fit",
+       "agexact.fit", "attrassign", 
+       "basehaz", "cch", "clogit", "cluster", "cox.zph", 
+       "coxph", "coxph.control", "coxph.detail", "coxph.fit",
+       "coxph.wtest", "format.Surv", 
+       "frailty",  "frailty.gamma", 
+       "frailty.gaussian", "frailty.t", "is.Surv", 
+       "is.na.Surv", "is.na.coxph.penalty", 
+       "is.na.ratetable",  "is.ratetable", 
+       "labels.survreg", "match.ratetable", 
+       "psurvreg", "qsurvreg", "dsurvreg",
+       "pspline", "pyears", "ratetable", "ratetableDate", 
+       "ridge", "strata", "survConcordance",
+       "survSplit", "survdiff", "survexp",  "survfit" ,
+       "survfitcoxph.fit", "survfitKM", "survfitCI",
+       "survobrien",  
+       "survpenal.fit", "survConcordance.fit",
+       "survreg", "survreg.control", "survreg.fit",
+       "survreg.distributions", "survregDtest", "tcut", "tt",
+       "untangle.specials")
 S3method('[', aareg)
 S3method('[', Surv)
 S3method('[', cox.zph)

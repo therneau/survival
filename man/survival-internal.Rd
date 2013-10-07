@@ -1,11 +1,9 @@
 \name{survival-internal}
 \alias{survival-internal}
 \alias{agexact.fit}
-\alias{agreg.fit}
 \alias{as.matrix.ratetable}
 \alias{coxpenal.df}
 \alias{coxpenal.fit}
-\alias{coxph.fit}
 \alias{is.category}
 \alias{is.na.ratetable2}
 \alias{is.na.coxph.penalty}
@@ -32,11 +30,7 @@ coxpenal.df(hmat, hinv, fdiag, assign.list, ptype, nvar, pen1,
     pen2, sparse)
 coxpenal.fit(x, y, strata, offset, init, control, weights, method,
     rownames, pcols, pattr, assign)
-coxph.fit(x, y, strata, offset, init, control, weights, method,
-    rownames)
 coxph.wtest(var, b, toler.chol = 1e-09)
-agreg.fit(x, y, strata, offset, init, control, weights, method,
-    rownames)
 agexact.fit(x, y, strata, offset, init, control, weights, method,
     rownames) 
 survfitCI(X, Y, weights,  id, istate,
