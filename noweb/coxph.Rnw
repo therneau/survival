@@ -65,8 +65,9 @@ coxph <- function(formula, data, weights, subset, na.action,
     }
     else {
         Terms2 <- Terms
-        if (!missing(robust)) warning("The robust option is depricated")
-        else robust <- FALSE
+       # if (!missing(robust)) warning("The robust option is depricated")
+       # else robust <- FALSE
+        if (missing(robust)) robust <- FALSE
     }
 
     # Save away xlevels after removing cluster (we don't want to save upteen

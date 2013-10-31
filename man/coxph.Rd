@@ -146,12 +146,18 @@ There are three special terms that may be used in the model equation.
 A \code{strata} term identifies a stratified Cox model; separate baseline 
 hazard functions are fit for each strata. 
 The \code{cluster} term is used to compute a robust variance for the model. 
-The term \code{+ cluster(id)} where each value of \code{id} is unique is equivalent to 
-specifying the \code{robust=T} argument, and produces an approximate 
-jackknife estimate of the variance.  If the \code{id} variable were not 
-unique, but instead 
-identifies clusters of correlated observations, then the variance 
-estimate is based on a grouped jackknife.
+The term \code{+ cluster(id)} where each value of \code{id} is unique is
+equivalent to 
+specifying the \code{robust=T} argument.
+If the \code{id} variable is not 
+unique, it is assumed that it identifies clusters of correlated
+observations.
+The robust estimate arises from many different arguments and thus has
+had many labels.  It is variously known as the
+Huber sandwich estimator, White's estimate (linear models/econometrics),
+the Horvitz-Thompson estimate (survey sampling), the working
+independence variance (generalized estimating equations), the
+infinitesimal jackknife, and the Wei, Lin, Weissfeld (WLW) estimate.
 
 A time-transform term allows variables to vary dynamically in time.  In
 this case the \code{tt} argument will be a function or a list of
