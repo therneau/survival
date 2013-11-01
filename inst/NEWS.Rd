@@ -2,7 +2,9 @@
 \title{NEWS file for the survival package}
 \section{Changes in version 2.37-5}{
   \itemize{
-    \item Allow for Inf as the end of the time interval, interval
+    \item Add the logLik method for coxph and survfit objects.
+    
+    \item Allow for Inf as the end of the time interval, for interval
     censored data in the Surv function.
     
     \item The predict.coxph function would fail if it had both a newdata

@@ -66,7 +66,7 @@ conclusions of this report at the start.
         not nearly as certain.
         Scholarly papers discussing fundamental issues with using
         the Yates approach as a default analysis method
-        have appeared 2--3 times per decade in the statistics
+        have appeared almost yearly in the statistics
         literature, with no apparent effect on the type 3 superiority
         myth. 
         The paper of Aitkin \cite{Aitkin78} along with its discussion
@@ -90,11 +90,11 @@ conclusions of this report at the start.
     computations, in order to set the necessary groundwork for the Cox
     case.
   \item The SAS type 3 computation for linear models is sophisticated and
-    reliable; that used in phreg is not.
+    reliable; that used in phreg is not.  I would in fact describe this 
+    recent addition as a statistical disaster.
     The calculated results depend on which
-    paricular coding is chosen for the dummy variables that
-    represent the factors.  The usual defaults lead to a  
-    completely useless result.
+    paricular coding is chosen for the factors, 
+    and will normally lead to a dangerously misleading result.
 \end{itemize}    
     
 \section{Linear approximations and the Cox model}
@@ -847,13 +847,13 @@ distant Eden where the meaning of ``row effect'' is perfectly unambiguous.
 But we are faced with real data and need to make a choice.
 
 The question has long been debated in depth by wiser heads than mine.
-Important papers are the 1934 discussion by
-Yates \cite{Yates34}, Nelder \cite{Nelder77} in 1977 and particularly
-the 1978 paper and discussion of Aitkin \cite{Aitkin78}.
+In a companion paper to his presentation at the joint statistical meetings
+in 1992, Mcnaughton \cite{Mcnaughton1992} list 54 references to the topic
+between 1952 and 1991.  
 Several discussion points recur:
 \begin{enumerate}
   \item No one approach works for all problems.  Any author who proposes
-    such is immediately presented with counterexamples.
+    such is quickly presented with counterexamples.
   \item Many take the sequential ANOVA table as primary, i.e., a set of
     nested models along with likelihood ratio tests (LRT), and decry
     all comparisons of ``main effects in the presence of interaction.''
@@ -867,6 +867,9 @@ Those in group 2 argue strongly against the Yates weighting and those in group 3
 argue for the Yates contrast.  
 Group 4 is somewhat inexplicable to me, since any
 arbitrary change in the choice of constraints will change all the patterns.
+I fear that an openening sentence from the overview/review of Herr in 1968
+is still apropos, ``In an attempt to understand how we have arrived at our
+present state of ignorance, let us consider \ldots''.
 
 There are some cases where the Yates approach is clearly sensible, for instance
 a designed experiment which has become unbalanced due to a failed
@@ -880,14 +883,14 @@ Do we give each patient equal weight (MVUE) or each center equal weight (Yates).
 A tounge-in-cheek but nevertheless excellent commentary on the subject is
 given by the old curmudgeon, aka Guernsey McPearson \cite{Senn1, Senn2}.
 
-I find Aitkin's paper particularly useful.  
+I find the 1978 paper by Aitkin particularly useful.  
 This was read before the Royal Statistical
 Society and includes remarks by 10 discussants forming a who's who of
 statistical theory (F Yates, J Nelder, DR Cox, DF Andrews, KR Gabriel, \ldots).
 The summary of the paper states that 
 ``It is shown that a standard method of analysis used in many ANOVA programs,
 equivalent to Yates's method of weighted squares of means, may lead to 
-inappropriate models'', and the paper goes on to carefully show why no one
+inappropriate models''; the paper goes on to carefully show why no one
 method can work in all cases.
 Despite the long tradition among RSS discussants of first congratulating the 
 speaker and then skewering every one their conclusions, 
@@ -1744,6 +1747,10 @@ http://www.senns.demon.co.uk/wprose.html, \emph{Multi-centre trials and
     Use of monoclonal serum immunoglobulin free light chains to predict 
             overall survival in the general population,
     \emph{Mayo Clinic Proc} 87:512--523.
+    
+  \bibitem{Herr86} D. G. Herr (1986).
+   On the History of ANOVA in Unbalanced, Factorial Designs: The First 30 Years.
+    \emph{Amer Statistician} 40:265-270. 
   
   \bibitem{Kyle06} R. Kyle, T. Therneau, S.V. Rajkumar,
             D. Larson, M. Plevak, J. Offord,
@@ -1752,6 +1759,10 @@ http://www.senns.demon.co.uk/wprose.html, \emph{Multi-centre trials and
               undetermined significance,
 	    \emph{New England J Medicine} 354:1362--1369.
             
+  \bibitem{D. B. Macnaughton (1992).  Which sum of squares are best in an
+    unbalanced analysis of variance.  www.matstat.com/ss.
+                 
+
   \bibitem{Nelder77} J. Nelder (1977).  A reformulation of linear models 
      (with discussion). 
      \emph{J Royal Stat Soc A} 140:48--76.
@@ -1761,6 +1772,8 @@ http://www.senns.demon.co.uk/wprose.html, \emph{Multi-centre trials and
     chapter 15.
    
    \bibitem{Searle71} S. R. Searle, \emph{Linear Models}, Wiley, New York, 1971.
+   
+   \bibitem{Senn} S. Senn aka Guernsey McPearson.  
   
   \bibitem{Therneau00} T. M. Therneau and P. M. Grambsch, \emph{Modeling Survival
     Data: Extending the Cox Model}, Springer-Verlag, New York, 2000.
