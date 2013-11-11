@@ -918,7 +918,7 @@ But we are faced with real data and need to make a choice.
 
 The question has long been debated in depth by wiser heads than mine.
 In a companion paper to his presentation at the joint statistical meetings
-in 1992, Macnaughton \cite{Macnaughton1992} lists 54 references to the topic
+in 1992, Macnaughton \cite{Macnaughton92} lists 54 references to the topic
 between 1952 and 1991.  
 Several discussion points recur:
 \begin{enumerate}
@@ -937,8 +937,8 @@ Those in group 1 argue strongly against the Yates weighting and those in group 2
 argue for the Yates contrast.  
 Group 3 is somewhat inexplicable to me since any
 change in the choice of constraints will change all the patterns.
-I fear that an opening sentence from the 1968 overview/review of Herr
-\cite{Herr68}
+I fear that an opening sentence from a 1986 overview/review of Herr
+\cite{Herr86}
 is still apropos, ``In an attempt to understand how we have arrived at our
 present state of ignorance \ldots''.
 
@@ -956,7 +956,7 @@ Do we give each patient equal weight (MVUE) or each center equal weight (Yates).
 A tongue-in-cheek but nevertheless excellent commentary on the subject is
 given by the old curmudgeon, aka Guernsey McPearson \cite{Senn1, Senn2}.
 
-I find the 1978 paper by Aitkin \cite{Aiking78} particularly useful.  
+I find the 1978 paper by Aitkin \cite{Aitkin78} particularly useful.  
 This was read before the Royal Statistical
 Society and includes remarks by 10 discussants forming a who's who of
 statistical theory (F Yates, J Nelder, DR Cox, DF Andrews, KR Gabriel, \ldots).
