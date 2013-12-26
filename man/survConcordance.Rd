@@ -1,5 +1,6 @@
 \name{survConcordance}
 \alias{survConcordance}
+\alias{survConcordance.fit}
 \title{
   Compute a concordance measure.
 }
@@ -9,6 +10,7 @@ survival time and a single continuous covariate
 }
 \usage{
 survConcordance(formula, data, weights, subset, na.action)
+survConcordance.fit(y, x, strata, weight)
 }
 \arguments{
 \item{formula}{
@@ -20,6 +22,8 @@ The left hand term can also be a numeric vector.
 a data frame
 }
 \item{weights,subset,na.action}{as for \code{coxph}}
+\item{x, y, strata, weight}{predictor, response, strata, and weight
+  vectors for the direct call}
 }
 \value{
 an object containing the concordance, followed by the
@@ -27,6 +31,11 @@ number of pairs that agree, disagree, are tied, and are
 not comparable.  
 }
 \details{
+The \code{survConcordance.fit} function computes the result but does
+no data checking whatsoever.
+It is intended as a hook for other packages that wish to compute
+concordance, and the data has already been assembled and verified.
+  
 Concordance is defined as Pr(agreement) for any two randomly chosen
 observations, where in this case agreement means that the observation
 with the shorter survival time of the two 

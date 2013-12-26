@@ -67,8 +67,8 @@ conclusions of this report at the start.
          Scholarly papers discussing fundamental issues with using
         the Yates approach as a default analysis method
         have appeared almost yearly in the statistics
-        literature, with no apparent effect on the type 3 superiority
-        myth. 
+        literature, with little apparent effect on the usage of the 
+        method.
         The paper of Aitkin \cite{Aitkin78} along with its discussion
         is a fundamental resource on the topic.
        \item My own view is that for balanced or near balanced experiments 
@@ -148,7 +148,7 @@ investigation is irresponsible, however.
 We will motivate our discussion with the simple case of a two-way
 analysis.
 The \code{flcdata} data frame contains the results of a small number
-of laboratory tests done on a on a large fraction of the 1995
+of laboratory tests done on a large fraction of the 1995
 population of Olmsted County, Minnesota aged 50 or older
 \cite{Kyle06, Dispenzieri12}.
 The R data set contains a 50\% random sample of this larger study
@@ -241,7 +241,7 @@ fascinating aspects, at least mathematically.
 \begin{figure}
   \myfig{pop}
   \caption{Three possible adjusting populations for the FLC data
-    set, a data set based reference in black, least squares based
+    set, a empirical reference in black, least squares based
   one in red, and the US 2000 reference population as `u'.}
   \label{fig:pop}
 \end{figure}
@@ -264,7 +264,7 @@ Here are four common choices.
         to use an external population as the reference age distribution,
         for instance the US 2000 census distribution.  This aids in 
         comparing results between studies.
-      \item Data reference.  The overall population structure of the data.
+      \item Empirical population.  The overall population structure of the data.
       \item Least squares.  The population structure that minimizes the
         variance of the estimated female-male difference.
     \end{enumerate}
@@ -275,7 +275,7 @@ can be rewritten as a weighted sum of the data points with weight
 matrix $W= (X'X)^{-1}X'$, each row of $W$ is the weight vector for
 the corresponding element of $\hat\beta$.  So we can backtrack and
 see what population assumption was underneath any given fit
-by looking at the weights underlying the sex coefficient.
+by looking at the weights for the sex coefficient.
 Consider the two fits below. 
 In both the second coefficient is an estimate of the overall 
 difference in FLC values between the sexes.  
@@ -308,13 +308,13 @@ males and females is the unweighted density of each.
 Because this data set is very large and age is coded in years
 we can get a density estimate by simple counting.
 The result is coded below and shown in figure \ref{fig:pop}.
-The data set reference and least squares reference are nearly
-identical.
+The emprical reference and least squares reference are nearly
+identical.  This is not a surprise.
 Least squares fits produce minimum variance unbiased estimates (MVUE),
 and the variance of a weighted average is minimized by using weights
 proportional to the sample size, thus the MVUE estimate will give highest
 weights to those ages with a lot of people.
-The weights are not \emph{exactly} which proportional to sample size for
+The weights are not \emph{exactly} proportional to sample size for
 each age.
 As we all know, for a given sample size $n$ a study comparing two groups 
 will have
@@ -336,25 +336,29 @@ matplot(50:100, cbind(tab0/sum(tab0), tab2/sum(tab2)),
 
 us2000 <- rowSums(uspop2[51:101,,'2000'])
 matpoints(50:100, us2000/sum(us2000), pch='u')
-legend(60, .02, c("Data reference", "LS reference"),
+legend(60, .02, c("Empirical reference", "LS reference"),
        lty=1, col=1:2, bty='n')
 @ 
-
-In practice the data-set reference and population reference methods 
-are normally done using a smoothed or grouped density.  
+If we try to use population reference adjustment directly on
+ages a problem immediately arises: in the US reference 
+\Sexpr{round(100*us2000[46]/sum(us2000),2)}\% of the population is
+aged 95 years, and our sample has 0 95 year old males; no reweighting
+can fix this.
 The traditional epidemiology approach groups ages into 5 year intervals
 up to age 85 and will set weights within age/sex strata such that the
 sum of weights for females = sum of weights for males within each age
 group (balance), and the total sum of weights in an age group is 
-equal to the reference population.
-An increasingly popular approach for data-set reference
-is to use inverse probability weights based on logistic regression,
-e.g. in the causal models literature.
-This approach is illustrated in the vignette on adjusted survival
-curves.
+equal to the reference population.  We will treat age as a categorical
+predictor in the next section.
+An increasingly popular approach for the empirical reference population
+is to use a smoothed age effect, via the
+use of inverse probability weights based on logistic regression,
+e.g. in the causal models literature and propensity score literature.
+This approach is illustrated in a vignette on adjusted survival
+curves which is also in the survival package.
 
 \subsection{Categorical predictors and contrasts}
-When the adjusting variable is categorical --- a factor in R or a 
+When the adjusting variable or variables are categorical --- a factor in R or a 
 class variable in SAS --- then two more aspects come into play.
 The first is that any estimate of interest can be written in terms
 of the cell means. 
@@ -390,7 +394,7 @@ is added to the list of common estimates:
   \item Population adjusted
     \begin{enumerate}
       \item External reference
-      \item Data reference
+      \item Empirical (data set) reference
       \item Least squares
       \item Uniform. A population in which each combination of the
         factors has the same frequency of occurrence.
@@ -422,8 +426,8 @@ theta <- matrix(coef(yatesfit), nrow=2)
 dimnames(theta) <- dimnames(counts)
 round(theta,2)
 @ 
-
-Any particular weighted average of the coefficients along with its
+For a linear model fit,
+any particular weighted average of the coefficients along with its
 variance and the corresponding sums of squares can be computed using
 the \code{contrast} function given below.
 Let $C$ be a contrast matrix with $k$ rows, each containing
@@ -559,11 +563,6 @@ for (i in 1:2) {
     All weights are normed so as to have an average value of 1.}
   \label{tab:est}
 \end{table}
-Males have slightly higher average FLC values than females.
-The unadjusted estimate underestimates the difference due to
-imbalance in age: FLC rises with age and the male population
-has a lower average age.  It has the smallest variance but this
-is immaterial due to the bias.
 
 Looking at table \ref{tab:est} notice the per observation weights for 
 the $\ge 90$ age group, 
@@ -573,8 +572,7 @@ For all but the unbalanced estimate (which ignores age) the males are
 given a weight that is approximately 3 times that for females
 in order to rebalance the shortage of males in that category.
 However, the
-absolute values of the weights differ considerably, especially
-for the Yates estimate.
+absolute values of the weights differ considerably.
 
 \subsection{Different codings}
 Because the cell means are a sufficient statistic, all of the estimates based
@@ -594,10 +592,9 @@ $n_{+j}/n_{++}$, the overall frequency of each age group, where a $+$
 in the subscript stands for addition over that subscript in the table
 of counts.  
 The US population weights use the population frequency of each age group.
-
-The MVUE contrast has weights that are somewhat more complicated of
-$w_j/\sum w_j$ where $w_j = 1/(1/n_{1j} + 1/n_{2j})$, and are not very
-intuitive.
+The MVUE contrast has weights of
+$w_j/\sum w_j$ where $w_j = 1/(1/n_{1j} + 1/n_{2j})$, which are admittedly
+not very intuitive.
 $$
 \begin{tabular}{rrrrrr}
   & 50--59 & 60--69 & 70--79 & 80--89 & 90+ \\ \hline
@@ -612,18 +609,21 @@ $$
 In the alternate model \code{y \textasciitilde sex + age2} 
 the MVUE contrast is much
 simpler, namely (0, 1, 0,0,0,0,0), and can be read directly off the
-printout as $\beta/se(\beta)$. 
+printout as $\beta/se(\beta)$.  
+The computer's calculation of $(X'X)^{-1}$ has derived the ``complex''
+MVUE weights for us without needing to lift a pencil.
 The Yates contrast, however, cannot be created from the coefficients of the
 simpler model at all.
+This observation holds in general: a contrast that is simple to write down
+in one coding may appear complicated in another, or not even be possible.
 
-%This observation holds in general: a contrast that is simple to write down
-%in one coding may appear complicated in another, or not even be possible.
+\subsection{Computing the Yates contrast}
 The usual and more familiar coding for a two way model is
 \begin{equation}
   y_{ij} = \mu + \alpha_i + \beta_j + \gamma_{ij} \label{std}
 \end{equation}
 What do the Yates' estimates look like in this form?  Let $e_i$ be the
-Yates estimate for row $i$ row $k$ the number of columns in the two way table
+Yates estimate for row $i$ and $k$ the number of columns in the two way table
 of $\theta$ values.  Then
 \begin{align*}
   e_i &= (1/k)\sum_{j=1}^k \theta_{ij} \\
@@ -636,14 +636,17 @@ and the Yates test for row effect is
              \label{ycont}
 \end{align}
 
-Equation \eqref{std} is overdetermined and constraints must be
-added to create a unique solution.
+Equation \eqref{std} is overdetermined and all computer
+programs add constraints in order to guarrantee a unique solution.
+However those constraints are applied, however, equation \eqref{ycont}
+holds.
 The default in R is treatment contrasts, which use the first level
 of any factor as a reference level.
-Under this constraint the first level is set to zero, i.e., all
+Under this constraint the reference coefficients are set to zero, i.e., all
 coefficients of equations \eqref{std} and \eqref{ycont} 
 above where $i=1$ or $j=1$.
-We have been computing the male - female contrast so $i=2$ and $i'=1$
+We have been computing the male - female contrast,
+corresponding to $i=2$ and $i'=1$
 in equation \eqref{ycont}, and the Yates contrast for sex becomes
 $\alpha_2 + 1/5(\gamma_{22} +\gamma_{23} +\gamma_{24} +\gamma_{25})$.
 <<treatment>>=
@@ -685,8 +688,9 @@ SAS to English translation.
     coefficient vector.  
     Remove all of these aliased rows from the SAS symbolic printout to get
     the actual contrast that is used; this will agree with my notation.
-  \item The SAS printout corresponds to the female-male contrast and I have
-    focused on male-female.  This changes the signs of the contrast coefficients
+  \item The SAS printout corresponds to a female-male contrast and I have
+    been using male-female for illustration.  
+    This changes the signs of the contrast coefficients
     but not the result.
 \end{itemize}
 The \code{estimate} statement in the SAS code required that all of
@@ -711,6 +715,41 @@ The Yates test cannot be expressed as a contrast using the sfit1 or sfit2
 coding, is simple and obvious in the cell means coding, and has
 simple but non obvious coefficients in the sfit3 coding.
 Que sera sera.
+
+So, how do we actually compute the Yates contrast in a computer program?
+We will take it as a give that no one wants to memorize contrast formulas.
+Three algorithms are provided in the \code{yates} function, which has been
+added to the survival package.
+
+The averaging method.  The key idea of this approach is to reprise
+equation \eqref{ycont}.
+The key step is \Sexpr{xref <- unique(model.matrix(fit))}.  We then average
+all rows of \code{xref} where sex = female, and all those where sex = male;
+the difference of these is the Yates contrast vector for sex.
+This approach is closely related to the SAS type IV calculation.
+
+The SAS type III method uses a dependency matrix $D$.  Start by writing the
+$X$ matrix for the problem using all of the parameters in equation \eqref{std}.
+For our flc example this will have colums for intercept (1), sex (2), age group
+(5) and the age group by sex interaction (10) = 18 columns.  Now define the
+lower triangular square matrix $D$ such that 
+\begin{itemize}
+  \item If the $i$th column of $X$ can be written as a linear combination of
+    columns 1 through $i-1$, then row $i$ of $D$ contains that linear
+    combination and $D_{ii}=0$.
+  \item If the $i$th column is not linearly dependent on earlier ones then
+    $D_{ii}=1$ and $D_{ij}=0$ for all $j \ne i$.
+\end{itemize}
+Columns of $D$ that correspond to linearly dependent columns of $X$ will be
+identically zero and can be discarded.  
+The result of this operation replicates table 12.2 in the SAS reference
+\cite{SASguide} labeled ``the form of estimable functions''.
+To obtain the Yates contrasts for an effect replace the appropriate
+columns of $D$ with the resdiuals from a regression on all columns to the
+right of it. 
+(Inspection shows that colums of any effect are already orthagonal to
+everything except interactions that include said effect, so the regression
+need not include all columns.)
 
 \subsection{Sums of squares and projections}
 \label{sect:anova}

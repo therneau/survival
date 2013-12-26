@@ -113,8 +113,6 @@ h4 <- ratewalk(c(temp2-temp1, 2, 2, tyear), 4383, survexp.usr)
 aeq(-log(exp1$surv), c(sum(h1$hazard), sum(h2$hazard), sum(h3$hazard),
                        sum(h4$hazard)))
 
-rm(temp1, temp2, zz, exp1, h1, h2, h3, h4 )
-
 #
 # Simple case 2: make sure that the averages are correct, for Ederer method
 #
@@ -198,9 +196,6 @@ for (i in 1:6) con[i] <- exp(mean(log(cond[i, i:6])))
 
 all.equal(exp1$surv[match(futime, xtime)], cumprod(con))
 cumprod(con)
-
-rm(con, cond, exp1, exp2, wt, temp1, temp2, age)
-rm(exp3, exp4, futime, xtime)
 
 #
 # Test out expected survival, when the parent pop is another Cox model

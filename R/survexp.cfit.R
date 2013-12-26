@@ -1,5 +1,6 @@
 #  Do expected survival based on a Cox model
 #  This version relies on the survfit routine to do most of
+
 #   the work.
 survexp.cfit <- function(group, ndata, y, method, coxfit, weights) {
     # If it is individual survival, call the predict method
