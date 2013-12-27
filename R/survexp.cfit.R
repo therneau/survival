@@ -1,6 +1,5 @@
 #  Do expected survival based on a Cox model
 #  This version relies on the survfit routine to do most of
-
 #   the work.
 survexp.cfit <- function(group, ndata, y, method, coxfit, weights) {
     # If it is individual survival, call the predict method
@@ -23,9 +22,9 @@ survexp.cfit <- function(group, ndata, y, method, coxfit, weights) {
     n <- length(group)    # matches nrow(ndata)
 
     # If the Cox model had strata then the newdata object also had to contain
-    #  the strata (needed to fully identify the new subjects), and in this
-    #  the n survival curves will be "strung out" as a single surv vector in
-    #  the result, along with a strata component saying how many points for each.
+    #  the strata (needed to fully identify the new subjects), and then the
+    #  n survival curves will be "strung out" as a single surv vector in the
+    #  result, along with a strata component saying how many points for each.
     # If the Cox model did not have strata, sfit$surv and sfit$cumhaz will be
     #  matrices with n columns.
     # The output should be a list with components time, n, and surv.
@@ -44,6 +43,7 @@ survexp.cfit <- function(group, ndata, y, method, coxfit, weights) {
         temp <- weights[group==i]
         gmat[group==i, i] <- temp/sum(temp)
     }
+browser()
 
     # If the result is a set of curves with strata rather than a matrix, we
     #  need to index into it, using a code trick taken from summary.survfit

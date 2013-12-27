@@ -27,9 +27,9 @@ coxph <- function(formula, data, weights, subset, na.action,
     special <- c("strata", "cluster", "tt")
     temp$formula <- if(missing(data)) terms(formula, special)
                     else              terms(formula, special, data=data)
-    m <- eval(temp, parent.frame())
-    if (nrow(m) ==0) stop("No (non-missing) observations")
-    Terms <- terms(m)
+    mf <- eval(temp, parent.frame())
+    if (nrow(mf) ==0) stop("No (non-missing) observations")
+    Terms <- terms(mf)
 
     
     ## We want to pass any ... args to coxph.control, but not pass things
@@ -45,13 +45,13 @@ coxph <- function(formula, data, weights, subset, na.action,
     }
     if (missing(control)) control <- coxph.control(...)
 
-    Y <- model.extract(m, "response")
+    Y <- model.extract(mf, "response")
     if (!inherits(Y, "Surv")) stop("Response must be a survival object")
     type <- attr(Y, "type")
     if (type!='right' && type!='counting')
 	stop(paste("Cox model doesn't support \"", type,
 			  "\" survival data", sep=''))
-    weights <- model.weights(m)
+    weights <- model.weights(mf)
     data.n <- nrow(Y)   #remember this before any time transforms
     
     cluster<- attr(Terms, "specials")$cluster
@@ -60,37 +60,34 @@ coxph <- function(formula, data, weights, subset, na.action,
         tempc <- untangle.specials(Terms, 'cluster', 1:10)
         ord <- attr(Terms, 'order')[tempc$terms]
         if (any(ord>1)) stop ("Cluster can not be used in an interaction")
-        cluster <- strata(m[,tempc$vars], shortlabel=TRUE)  #allow multiples
-        Terms2 <- Terms[-tempc$terms]
+        cluster <- strata(mf[,tempc$vars], shortlabel=TRUE)  #allow multiples
+        dropterms <- tempc$terms  #we won't want this in the X matrix
+        # Save away xlevels after removing cluster (we don't want to save upteen
+        #  levels of that variable, which we will never need).
+        xlevels <- .getXlevels(Terms[-tempc$terms], mf)
     }
     else {
-        Terms2 <- Terms
-       # if (!missing(robust)) warning("The robust option is depricated")
-       # else robust <- FALSE
+        dropterms <- NULL
         if (missing(robust)) robust <- FALSE
+        xlevels <- .getXlevels(Terms, mf)
     }
-
-    # Save away xlevels after removing cluster (we don't want to save upteen
-    #  levels of that variable, which we will never need), but before removing
-    #  the strata variable, the latter we may need for a predict call.
-    #
-    xlevels <- .getXlevels(Terms2, m)
 
     strats <- attr(Terms, "specials")$strata
     if (length(strats)) {
-	stemp <- untangle.specials(Terms2, 'strata', 1)
-	if (length(stemp$terms) >0) #beware strata by covariate interactions
-            Terms2 <- Terms2[-stemp$terms] #not needed for model.matrix later
-	if (length(stemp$vars)==1) strata.keep <- m[[stemp$vars]]
-	else strata.keep <- strata(m[,stemp$vars], shortlabel=TRUE)
+	stemp <- untangle.specials(Terms, 'strata', 1)
+	if (length(stemp$vars)==1) strata.keep <- mf[[stemp$vars]]
+	else strata.keep <- strata(mf[,stemp$vars], shortlabel=TRUE)
 	strats <- as.numeric(strata.keep)
 	}
     
     timetrans <- attr(Terms, "specials")$tt
+    if (missing(tt)) tt <- NULL
     if (length(timetrans)) {
-        <<coxph-transform>>
-        }
-
+         <<coxph-transform>>
+         }
+    
+    contrast.arg <- NULL  #due to shared code with model.matrix.coxph
+    <<coxph-make-X>>
     <<coxph-setup>>
     <<coxph-penal>>
     <<coxph-compute>>
@@ -103,7 +100,9 @@ The model frame is expanded to a ``fake'' data set that has a
 separate stratum for each unique event-time/strata combination,
 and any tt() terms in the formula are processed.  
 The first step is to create the index vector [[tindex]] and
-new strata [[.strata.]].  
+new strata [[.strata.]].   This last is included in a model.frame call
+(for others to use), internally the code simply replaces the [[strats]]
+variable.
 A (modestly) fast C-routine first counts up and indexes the observations.
 We start out with error checks; since the computation can be slow we want
 to complain early.
@@ -111,7 +110,7 @@ to complain early.
 timetrans <- untangle.specials(Terms, 'tt')
 ntrans <- length(timetrans$terms)
 
-if (missing(tt) || is.null(tt)) {
+if (is.null(tt)) {
     tt <- function(x, time, riskset, weights){ #default to O'Brien's logit rank
         obrien <- function(x) {
             r <- rank(x)
@@ -134,7 +133,7 @@ if (is.list(tt)) {
         else stop("Wrong length for tt argument")
     }
 }
-else stop("The tt argument must contain function or list of functions")
+else stop("The tt argument must contain a function or list of functions")
 
 if (ncol(Y)==2) {
     if (length(strats)==0) {
@@ -183,13 +182,13 @@ The C routine has returned a list with 4 elements
 \end{description}
 The new data frame is then a simple creation.
 <<coxph-transform>>=
-m <- m[tindex,]
+mf <- mf[tindex,]
 Y <- Surv(rep(counts$time, counts$nrisk), counts$status)
 type <- 'right'  # new Y is right censored, even if the old was (start, stop]
-strats <- factor(rep(1:length(counts$nrisk), counts$nrisk)) 
-weights <- model.weights(m)
+strats <- rep(1:length(counts$nrisk), counts$nrisk)
+weights <- model.weights(mf)
 for (i in 1:ntrans) 
-    m[[timetrans$var[i]]] <- (tt[[i]])(m[[timetrans$var[i]]], Y[,1], strats, 
+    mf[[timetrans$var[i]]] <- (tt[[i]])(mf[[timetrans$var[i]]], Y[,1], strats, 
                                        weights)
 @ 
 
@@ -401,29 +400,99 @@ return(rlist);
  
 We now return to the original thread of the program, though perhaps
 with new data, and build the $X$ matrix.
+Creation of the $X$ matrix for a Cox model requires just a bit of
+trickery.  
+The baseline hazard for a Cox model plays the role of an intercept,
+but does not appear in the $X$ matrix.  
+However, to create the columns of $X$ for factor variables correctly,
+we need to call the model.matrix routine in such a way that it \emph{thinks}
+there is an intercept.
+If there are strata the proper $X$ matrix is constructed as though there
+were one intercept per strata.
+One simple way to handle this is to call model.matrix on the original formula
+and then remove the terms we don't need.  
+However, 
+\begin{enumerate}
+  \item The cluster() term, if any, could lead to thousands of extraneous
+    ``intercept'' columns which are never needed.
+  \item Likewise, nested  case-control models can have thousands of strata,
+    again leading to intercepts we never needed.
+  \item If there are strata by factor interactions in the model, however, 
+    the dummy intercepts-per-strata columns are necessary information for the
+    model.matrix routine to correctly compute other columns of $X$.
+\end{enumerate}
+Thus, the usual plan is to remove cluster and strata terms from the ``Terms''
+object before calling model.matrix.  
+The \code{assign} attribute of the resulting model matrix then needs to be
+fixed up, since we want it to index into the original formula.
+For example imagine the right hand side of \code{age + strata(sex) + trt}
+where trt is a factor with 3 levels.
+The assign attribute from the modified formula will be (0,1,2,2)
+corresponding to the intercept, age, and treatment columns.
+The final $X$ matrix has no intercept, and a proper assign attribute of
+(1,3,3) since trt is the third variable in the original formula.
+
+The dropterms contains terms to drop before creation of the X matrix.
+It was initialized far above in the code when we dealt
+with cluster terms.
+<<coxph-make-X>>=
+attr(Terms, "intercept") <- TRUE
+adrop <- 0  #levels of "assign" to be dropped; 0= intercept
+stemp <- untangle.specials(Terms, 'strata', 1)
+if (length(stemp$vars) > 0) {  #if there is a strata statement
+    hasinteractions <- FALSE
+    for (i in stemp$vars) {  #multiple strata terms are allowed
+        # The factors att has one row for each variable in the frame, one
+        #   col for each term in the model.  Pick rows for each strata
+        #   var, and find if it participates in any interactions.
+        if (any(attr(Terms, 'order')[attr(Terms, "factors")[i,] >0] >0))
+            hasinteractions <- TRUE  
+        }
+    if (!hasinteractions) 
+        dropterms <- c(dropterms, stemp$terms)
+    else adrop <- c(0, match(stemp$var, colnames(attr(Terms, 'factors'))))
+}
+
+if (length(dropterms)) {
+    temppred <- attr(terms, "predvars")
+    Terms2 <- Terms[ -dropterms]
+    if (!is.null(temppred)) {
+        # subscripting a Terms object currently drops predvars, in error
+        attr(Terms2, "predvars") <- temppred[-(1+dropterms)] # "Call" object
+    }
+    X <- model.matrix(Terms2, mf, constrasts=contrast.arg)
+    # we want to number the terms wrt the original model matrix
+    # Do not forget the intercept, which will be a zero
+    renumber <- match(colnames(attr(Terms2, "factors")), 
+                      colnames(attr(Terms,  "factors")))
+    attr(X, "assign") <- c(0, renumber)[1+attr(X, "assign")]
+}
+else X <- model.matrix(Terms, mf, contrasts=contrast.arg)
+
+# drop the intercept, and strata if necessary
+Xatt <- attributes(X) 
+xdrop <- Xatt$assign %in% adrop  #columns to drop
+X <- X[, !xdrop, drop=FALSE]
+attr(X, "assign") <- Xatt$assign[!xdrop]
+if (any(adrop>0)) attr(X, "contrasts") <- Xatt$contrasts[-adrop]
+else attr(X, "contrasts") <- Xatt$contrasts
+@ 
+
 <<coxph-setup>>=
-offset <- model.offset(m)
-if (is.null(offset) | all(offset==0)) offset <- rep(0., nrow(m))
+offset <- model.offset(mf)
+if (is.null(offset) | all(offset==0)) offset <- rep(0., nrow(mf))
 
-
-attr(Terms2, 'intercept') <- 1  #baseline hazard is always present
-X <- model.matrix(Terms2, m)
-# Attributes of X need to be saved away before the X <- X[,-1] line removes the
-#  intercept, since subscripting removes some of them!
-Xatt <- attributes(X)
-assign <- lapply(attrassign(X, Terms2)[-1], function(x) x-1)
-contr.save <- attr(X, 'contrasts')
-X <- X[,-1, drop=F]  #remove the intercept column
-
+assign <- attrassign(X, Terms)
+contr.save <- attr(X, "contrasts")
 if (missing(init)) init <- NULL
 @
 
 Check for penalized terms in the model, and set up infrastructure for
 the fitting routines to deal with them.
 <<coxph-penal>>=
-pterms <- sapply(m, inherits, 'coxph.penalty')
+pterms <- sapply(mf, inherits, 'coxph.penalty')
 if (any(pterms)) {
-    pattr <- lapply(m[pterms], attributes)
+    pattr <- lapply(mf[pterms], attributes)
     pname <- names(pterms)[pterms]
     # 
     # Check the order of any penalty terms
@@ -434,7 +503,7 @@ if (any(pterms)) {
     fit <- coxpenal.fit(X, Y, strats, offset, init=init,
                         control,
                         weights=weights, method=method,
-                        row.names(m), pcols, pattr, assign)
+                        row.names(mf), pcols, pattr, assign)
 }
 @ 
 
@@ -451,15 +520,14 @@ else {
     else stop(paste ("Unknown method", method))
 
     fit <- fitter(X, Y, strats, offset, init, control, weights=weights,
-                  method=method, row.names(m))
+                  method=method, row.names(mf))
 }
 @ 
 
 <<coxph-finish>>=
 if (is.character(fit)) {
     fit <- list(fail=fit)
-    if (is.R()) class(fit) <- 'coxph'
-    else oldClass(fit) <- 'coxph'
+    class(fit) <- 'coxph'
 }
 else {
     if (!is.null(fit$coefficients) && any(is.na(fit$coefficients))) {
@@ -473,8 +541,8 @@ else {
     fit$nevent <- sum(Y[,ncol(Y)])
     fit$terms <- Terms
     fit$assign <- assign
-    if (is.R()) class(fit) <- fit$method	
-    else       oldClass(fit) <-  fit$method[1]
+    class(fit) <- fit$method	
+
     if (robust) {
         fit$naive.var <- fit$var
         fit$method    <- method
@@ -513,22 +581,18 @@ else {
         fit$wald.test <-  coxph.wtest(fit$var[nabeta,nabeta], temp,
     				  control$toler.chol)$test
     }
-    na.action <- attr(m, "na.action")
+    na.action <- attr(mf, "na.action")
     if (length(na.action)) fit$na.action <- na.action
     if (model) {
         if (length(timetrans)) {
             # Fix up the model frame -- still in the thinking stage
-            m[[".surv."]]   <- Y
-            m[[".strata."]] <- strats
+            mf[[".surv."]]   <- Y
+            mf[[".strata."]] <- strats
             stop("Time transform + model frame: code incomplete")
         }
-        fit$model <- m
+        fit$model <- mf
     }
     if (x)  {
-        Xatt$dim <- attr(X, 'dim')
-        Xatt$dimnames <- attr(X, 'dimnames')
-        Xatt$assign <- Xatt$assign[-1]
-        attributes(X) <- Xatt
         fit$x <- X
         if (length(strats)) {
             if (length(timetrans)) fit$strata <- strats
@@ -555,4 +619,94 @@ if (any(offset !=0)) fit$offset <- offset
 fit$call <- Call
 fit$method <- method
 fit
+@ 
+
+The model.matrix and model.frame routines are called after a Cox model to
+reconstruct those portions.  
+Much of their code is shared with the coxph routine.
+
+<<model.matrix.coxph>>=
+# In internal use "data" will often be an already derived model frame.
+#  We detect this via it having a terms attribute.
+model.matrix.coxph <- function(object, data=NULL, 
+                               contrast.arg=object$contrasts, ...) {
+    # 
+    # If the object has an "x" component, return it, unless a new
+    #   data set is given
+    if (is.null(data) && !is.null(object[['x']])) 
+        return(object[['x']]) #don't match "xlevels"
+
+    Terms <- delete.response(object$terms)
+    if (is.null(data)) mf <- model.frame(object)
+    else {
+        if (is.null(attr(data, "terms")))
+            mf <- model.frame(Terms, data, xlev=object$xlevels)
+        else mf <- data  #assume "data" is already a model frame
+    }
+
+    cluster <- attr(Terms, "specials")$cluster
+    if (length(cluster)) {
+        temp <- untangle.specials(Terms, "cluster")
+        dropterms <- temp$terms
+    }
+    else dropterms <- NULL
+    
+    <<coxph-make-X>>
+    X
+}
+@ 
+
+In parallel is the model.frame routine, which reconstructs the model frame.
+<<model.matrix.coxph>>=
+model.frame.coxph <- function(formula, ...) {
+    dots <- list(...)
+    nargs <- dots[match(c("data", "na.action", "subset", "weights"), 
+                        names(dots), 0)] 
+    # If nothing has changed and the coxph object had a model component,
+    #   simply return it.
+    if (length(nargs) ==0  && !is.null(formula$model)) return(formula$model)
+    else {
+        # Rebuild the original call to model.frame
+        Terms <- terms(formula)
+        fcall <- formula$call
+        indx <- match(c("formula", "data", "weights", "subset", "na.action"),
+                  names(fcall), nomatch=0) 
+        if (indx[1] ==0) stop("The coxph call is missing a formula!")
+   
+        temp <- fcall[c(1,indx)]  # only keep the arguments we wanted
+        temp[[1]] <- as.name('model.frame')  # change the function called
+        temp$xlev <- formula$xlevels
+        temp$formula <- Terms   #keep the predvars attribute
+        # Now, any arguments that were on this call overtake the ones that
+        #  were in the original call.  
+        if (length(nargs) >0)
+            temp[names(nargs)] <- nargs
+
+        # The documentation for model.frame implies that the environment arg
+        #  to eval will be ignored, but if we omit it there is a problem.
+        if (is.null(environment(formula$terms))) 
+            mf <- eval(temp, parent.frame())
+        else mf <- eval(temp, environment(formula$terms), parent.frame())
+
+	if (!is.null(attr(formula$terms, "dataClasses")))
+	    .checkMFClasses(attr(formula$terms, "dataClasses"), mf)
+       
+       if (!is.null(attr(Terms, "specials")$tt)) {
+          # Do time transform
+	  tt <- eval(formula$call$tt)
+	  Y <- model.response(mf)
+	  strats <- attr(Terms, "specials")$strata
+	  if (length(strats)) {
+	      stemp <- untangle.specials(Terms, 'strata', 1)
+	      if (length(stemp$vars)==1) strata.keep <- mf[[stemp$vars]]
+	      else strata.keep <- strata(mf[,stemp$vars], shortlabel=TRUE)
+	      strats <- as.numeric(strata.keep)
+          }
+ 	  
+          <<coxph-transform>>
+          mf[[".strata."]] <- strats
+       }
+       mf
+    }
+}
 @ 

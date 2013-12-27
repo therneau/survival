@@ -41,7 +41,7 @@ cch <- function(formula, data=sys.parent(), subcoh, id, stratum=NULL, cohort.siz
             warning("stratum levels and names(cohort.size) do not agree")
         subcohort.sizes<-table(stratum)
     } else if(!stratified) {
-        if (!(method =="LinYing"))
+        if (!(method =="LinYing") && robust)
             warning("`robust' ignored for  method (",method,")")
         if (!is.null(stratum))
             warning("'stratum' ignored for method (",method,")")

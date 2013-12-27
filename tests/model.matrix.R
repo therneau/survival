@@ -29,3 +29,30 @@ xtest <- model.matrix(fit1, data=test2)
 dummy <- fit2$x
 dummy[,1] <- 0
 all.equal(xtest[-2,], dummy, check.attributes=FALSE)
+
+# The case of a strata by factor interaction
+#  Use iter=0 since there are too many covariates and it won't converge
+test1$x2 <- factor(rep(1:2, length=7))
+fit3 <- coxph(Surv(time, status) ~ strata(x2)*z, test1, iter=0)
+xx <- model.matrix(fit3)
+all.equal(attr(xx, "assign"), c(2,2,3,3))
+all.equal(colnames(xx), c("zb", "zc", "strata(x2)x2=2:zb",
+                          "strata(x2)x2=2:zc"))
+all.equal(attr(xx, "contrasts"), list(z="contr.treatment"))
+
+fit3b <-   coxph(Surv(time, status) ~ strata(x2)*z, test1, iter=0, x=TRUE)
+all.equal(fit3b$x, xx)
+
+
+# A model with  a tt term
+fit4 <- coxph(Surv(time, status) ~ tt(x) + x, test1, iter=0,
+              tt = function(x, t, ...) x*t)
+ff <- model.frame(fit4)
+# There is 1 subject in the final risk set, 4 at risk at time 6, 6 at time 1
+# The .strata. variable numbers from last time point to first
+all.equal(ff$.strata., rep(1:3, c(1, 4,6)))
+all.equal(ff[["tt(x)"]], ff$x* c(9,6,1)[ff$.strata.])
+
+xx <- model.matrix(fit4)
+all.equal(xx[,1], ff[[2]], check.attributes=FALSE)
+

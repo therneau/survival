@@ -2,7 +2,24 @@
 \title{NEWS file for the survival package}
 \section{Changes in version 2.37-5}{
   \itemize{
-    \item Add the logLik method for coxph and survfit objects.
+    \item Updates to the model.matrix and model.frame logic for
+    coxph.  A note from F Harrell showed that I was not correctly
+    dealing with the "assign" attribute when there are strata * factor
+    interactions.  This led to cleanup in other cases that I had missed
+    but which never had proven fatal.  Also added support for tt() terms
+    to the stand alone model.matrix and model.frame functions.  (No,
+    residuals are still not available, but this was necessary first step
+    to that end.) 26Dec13
+    
+    \item The Surv function now remembers attributes of the input
+    variables that were passed to it; they are saved as
+    "inputAttributes".  This allows the rms package, for instance, to
+    retain labels and units through the call.
+    
+    \item Update summary.coxph.penal to produce an object, which in turn
+    has a print method, i.e., make it a "standard" summary function.
+    
+    \item Add a logLik method for coxph and survfit objects.
     
     \item Allow for Inf as the end of the time interval, for interval
     censored data in the Surv function.
@@ -17,9 +34,9 @@
     hazard.  This will be expanded. 29Jul13
     
     \item Change code in the coxpenal.fit routine: the use of a vector of
-    symbols as arguments to my .C calls was confusing a new CRAN
-    consistency check.  (Both the old and new are legal R; but the old
-    was an unusual construction.)
+    symbols as arguments to my .C calls was confusing to a new CRAN
+    consistency check.  Both the old and new are legal R; but the old
+    was admittedly an unusual construction and it was simpler to change it.
     
     \item Fix a bug in survfit.coxph pointed out by Chris Andrews, whose
     root cause was incorrect curve labels when the id option is used. 27Jun13
@@ -28,8 +45,9 @@
     
     \item Change survfit.coxph routine so that it detects whether
     newdata contains or does not contain strata variables, and acts
-    accordingly. If it does the output will not contain all newdata *
-    strata combinations. Retain strata levels in the coxph routine for use
+    accordingly. If newdata does containe strata then  the output will
+    contain only those data-value and strata combinations specified by the
+    user. Retain strata levels in the coxph routine for use
     in the survfit routine, to correctly reconstruct strata levels.
     Warn about curves with interactions.  18Ju13
 

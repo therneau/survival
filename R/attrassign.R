@@ -29,9 +29,7 @@ attrassign.default<-function(object, tt, ...){
         if (is.null(aa))
                 stop("argument is not really a model matrix")
         ll<-attr(tt,"term.labels")
-        if (attr(tt,"intercept")>0)
-                ll<-c("(Intercept)",ll)
-        aaa<-factor(aa,labels=ll)
-        split(order(aa),aaa)
+        temp <- c("(Intercept)", ll)[aa+1]  #vector of term names
+        split(seq(along=temp), temp)
 }
 

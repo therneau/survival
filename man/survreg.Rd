@@ -96,7 +96,7 @@ survreg(Surv(futime, fustat) ~ ecog.ps + rx, ovarian,
 
 #
 # A model with different baseline survival shapes for two groups, i.e.,
-#   two different scales
+#   two different scale parameters
 survreg(Surv(time, status) ~ ph.ecog + age + strata(sex), lung)
 
 # There are multiple ways to parameterize a Weibull distribution. The survreg 

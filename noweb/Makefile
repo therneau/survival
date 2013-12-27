@@ -20,6 +20,7 @@ PARTS = main.Rnw \
 SFUN =  agreg.fit.R \
 	agsurv.R \
 	coxph.R \
+	model.matrix.coxph.R \
 	plot.survfit.R \
 	predict.coxph.R \
 	pyears.R \

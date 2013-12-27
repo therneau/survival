@@ -29,7 +29,7 @@ Surv <- function(time, time2, event,
 
 
     # If type is missing or it is "mstate", I need to figure out for myself
-    #  whether I have (time1, time2, status) or (time, status) data
+    #  whether I have (time, time2, status) or (time, status) data
     if (missing(type) || mtype=="mstate") {
 	if (ng==1 || ng==2) type <- 'right'
 	else if (ng==3)     type <- 'counting'
@@ -109,7 +109,7 @@ Surv <- function(time, time2, event,
 	    if (!is.numeric(time2)) stop("Time2 must be numeric")
 	    if (length(time2) !=nn) 
 		    stop ("time and time2 are different lengths")
-            backwards <- (!is.na(time1) & !is.na(time2) & time1 > time2)
+            backwards <- (!is.na(time) & !is.na(time2) & time > time2)
             unknown <- (time== Inf | time2 == -Inf | 
                         (is.na(time) & is.na(time2)))
             time <- ifelse(time==Inf, NA, time)    #all for Inf
