@@ -7,7 +7,7 @@ model.matrix.coxph <- function(object, data=NULL,
     # If the object has an "x" component, return it, unless a new
     #   data set is given
     if (is.null(data) && !is.null(object[['x']])) 
-        return(object[['x']]) #don't match "xlevels"
+        return(object[['x']]) #object$x might fetch "xlevels" instead
 
     Terms <- delete.response(object$terms)
     if (is.null(data)) mf <- model.frame(object)
@@ -33,7 +33,7 @@ model.matrix.coxph <- function(object, data=NULL,
             # The factors att has one row for each variable in the frame, one
             #   col for each term in the model.  Pick rows for each strata
             #   var, and find if it participates in any interactions.
-            if (any(attr(Terms, 'order')[attr(Terms, "factors")[i,] >0] >0))
+            if (any(attr(Terms, 'order')[attr(Terms, "factors")[i,] >0] >1))
                 hasinteractions <- TRUE  
             }
         if (!hasinteractions) 
@@ -57,13 +57,14 @@ model.matrix.coxph <- function(object, data=NULL,
     }
     else X <- model.matrix(Terms, mf, contrasts=contrast.arg)
 
-    # drop the intercept, and strata if necessary
+    # drop the intercept after the fact, and also drop strata if necessary
     Xatt <- attributes(X) 
-    xdrop <- Xatt$assign %in% adrop  #columns to drop
+    xdrop <- Xatt$assign %in% adrop  #columns to drop (always the intercept)
     X <- X[, !xdrop, drop=FALSE]
     attr(X, "assign") <- Xatt$assign[!xdrop]
-    if (any(adrop>0)) attr(X, "contrasts") <- Xatt$contrasts[-adrop]
-    else attr(X, "contrasts") <- Xatt$contrasts
+    #if (any(adrop>0)) attr(X, "contrasts") <- Xatt$contrasts[-adrop]
+    #else attr(X, "contrasts") <- Xatt$contrasts
+    attr(X, "contrasts") <- Xatt$contrasts
     X
 }
 model.frame.coxph <- function(formula, ...) {

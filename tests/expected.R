@@ -260,7 +260,7 @@ for (i in 1:3) {
     surv <- surv * exp(-haz[i]*risk)
     }
 
-all.equal(as.vector(efit$surv), as.vector(cumprod(hak2)))
+all.equal(as.vector(efit$surv), as.vector(cumprod(hak1)))
 
 #
 #  Now do the conditional estimate

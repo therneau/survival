@@ -109,21 +109,20 @@ Surv <- function(time, time2, event,
 	    if (!is.numeric(time2)) stop("Time2 must be numeric")
 	    if (length(time2) !=nn) 
 		    stop ("time and time2 are different lengths")
-            backwards <- (!is.na(time) & !is.na(time2) & time > time2)
-            unknown <- (time== Inf | time2 == -Inf | 
-                        (is.na(time) & is.na(time2)))
-            time <- ifelse(time==Inf, NA, time)    #all for Inf
+            time  <- ifelse(time==Inf, NA, time)    #allow Inf for upper/lower
             time2 <- ifelse(time2== -Inf, NA, time2)  
-	    status <- ifelse(is.na(time),  2,
+            backwards <- (!is.na(time) & !is.na(time2) & time > time2)
+            unknown <-  (is.na(time) & is.na(time2))
+ 	    status <- ifelse(is.na(time),  2,
 		      ifelse(is.na(time2), 0,
 		      ifelse(time==time2, 1,3)))
+	    time <- ifelse(status!=2, time, time2)
 
             if (any(backwards)) {
                 warning("Invalid interval: start > stop, NA created")
                 status[backwards] <- NA
             }
             if (any(unknown)) status[unknown] <- NA
-	    time <- ifelse(status!=2, time, time2)
 	    type <- 'interval'
 	    }
 	else {  #check legality of event code
@@ -140,20 +139,19 @@ Surv <- function(time, time2, event,
 		if (!is.numeric(time2)) stop("Time2 must be numeric")
 		if (length(time2) !=nn) 
 		    stop ("time and time2 are different lengths")
-		}
+                temp <- (status==3 & time>time2)
+                if (any(temp & !is.na(temp))) {
+                    status[temp] <- NA
+                    warning("Invalid interval: start > stop, NA created")
+                }
+            }
 	    else time2 <- 1  #dummy value, time2 is never used
-	    }
-
-	temp <- (status==3 & time>time2)
-	if (any(temp & !is.na(temp))) {
-	    status[temp] <- NA
-	    warning("Invalid interval: start > stop, NA created")
-	    }
+        }
 
 	ss <- cbind(time1=time-origin, 
 		    time2=ifelse(!is.na(status) & status==3, time2-origin, 1),
 		    status=status)
-	}
+    }
 
     dimnames(ss) <- list(NULL, dimnames(ss)[[2]]) #kill any tag-along row names
     attr(ss, "type")  <- type

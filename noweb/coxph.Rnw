@@ -62,12 +62,13 @@ coxph <- function(formula, data, weights, subset, na.action,
         if (any(ord>1)) stop ("Cluster can not be used in an interaction")
         cluster <- strata(mf[,tempc$vars], shortlabel=TRUE)  #allow multiples
         dropterms <- tempc$terms  #we won't want this in the X matrix
+        dropcon <- tempc$vars
         # Save away xlevels after removing cluster (we don't want to save upteen
         #  levels of that variable, which we will never need).
         xlevels <- .getXlevels(Terms[-tempc$terms], mf)
     }
     else {
-        dropterms <- NULL
+        dropterms <- dropcons <- NULL
         if (missing(robust)) robust <- FALSE
         xlevels <- .getXlevels(Terms, mf)
     }
@@ -416,14 +417,17 @@ However,
   \item The cluster() term, if any, could lead to thousands of extraneous
     ``intercept'' columns which are never needed.
   \item Likewise, nested  case-control models can have thousands of strata,
-    again leading to intercepts we never needed.
-  \item If there are strata by factor interactions in the model, however, 
+    again leading man intercepts we never need.
+  \item If there are strata by factor interactions in the model, 
     the dummy intercepts-per-strata columns are necessary information for the
     model.matrix routine to correctly compute other columns of $X$.
 \end{enumerate}
-Thus, the usual plan is to remove cluster and strata terms from the ``Terms''
-object before calling model.matrix.  
-The \code{assign} attribute of the resulting model matrix then needs to be
+For reasons 1 and 2 above the usual plan is to remove cluster and strata 
+terms from the ``Terms'' object \emph{before} calling model.matrix,
+unless there are strata by covariate interactions in which case we remove
+them after.
+For the first strategy the \code{assign} attribute of the resulting 
+model matrix then needs to be
 fixed up, since we want it to index into the original formula.
 For example imagine the right hand side of \code{age + strata(sex) + trt}
 where trt is a factor with 3 levels.
@@ -432,7 +436,8 @@ corresponding to the intercept, age, and treatment columns.
 The final $X$ matrix has no intercept, and a proper assign attribute of
 (1,3,3) since trt is the third variable in the original formula.
 
-The dropterms contains terms to drop before creation of the X matrix.
+
+The dropterms variable contains terms to drop before creation of the X matrix.
 It was initialized far above in the code when we dealt
 with cluster terms.
 <<coxph-make-X>>=
@@ -445,7 +450,7 @@ if (length(stemp$vars) > 0) {  #if there is a strata statement
         # The factors att has one row for each variable in the frame, one
         #   col for each term in the model.  Pick rows for each strata
         #   var, and find if it participates in any interactions.
-        if (any(attr(Terms, 'order')[attr(Terms, "factors")[i,] >0] >0))
+        if (any(attr(Terms, 'order')[attr(Terms, "factors")[i,] >0] >1))
             hasinteractions <- TRUE  
         }
     if (!hasinteractions) 
@@ -469,13 +474,14 @@ if (length(dropterms)) {
 }
 else X <- model.matrix(Terms, mf, contrasts=contrast.arg)
 
-# drop the intercept, and strata if necessary
+# drop the intercept after the fact, and also drop strata if necessary
 Xatt <- attributes(X) 
-xdrop <- Xatt$assign %in% adrop  #columns to drop
+xdrop <- Xatt$assign %in% adrop  #columns to drop (always the intercept)
 X <- X[, !xdrop, drop=FALSE]
 attr(X, "assign") <- Xatt$assign[!xdrop]
-if (any(adrop>0)) attr(X, "contrasts") <- Xatt$contrasts[-adrop]
-else attr(X, "contrasts") <- Xatt$contrasts
+#if (any(adrop>0)) attr(X, "contrasts") <- Xatt$contrasts[-adrop]
+#else attr(X, "contrasts") <- Xatt$contrasts
+attr(X, "contrasts") <- Xatt$contrasts
 @ 
 
 <<coxph-setup>>=

@@ -723,7 +723,7 @@ added to the survival package.
 
 The averaging method.  The key idea of this approach is to reprise
 equation \eqref{ycont}.
-The key step is \Sexpr{xref <- unique(model.matrix(fit))}.  We then average
+The key step is \code{xref <- unique(model.matrix(fit))}.  We then average
 all rows of \code{xref} where sex = female, and all those where sex = male;
 the difference of these is the Yates contrast vector for sex.
 This approach is closely related to the SAS type IV calculation.

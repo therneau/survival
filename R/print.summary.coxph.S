@@ -1,4 +1,3 @@
-# $Id $
 print.summary.coxph <-
  function(x, digits = max(getOption('digits')-3, 3),  
              signif.stars = getOption("show.signif.stars"), ...) {

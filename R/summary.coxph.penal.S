@@ -108,7 +108,6 @@ summary.coxph.penal <-  function(object, conf.int = 0.95, scale=1,
         names(rval$concordance) <- c("concordance", "se")
     }
  
-    rval
     class(rval) <- "summary.coxph.penal"
-    invisible(rval)
+    rval
     }
