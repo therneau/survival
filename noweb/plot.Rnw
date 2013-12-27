@@ -258,7 +258,7 @@ if (is.logical(log)) {
 }
 else {
     ylog <- (log=='y' || log=='xy')
-    logx <- (log=='x' || log=='xy')
+    xlog <- (log=='x' || log=='xy')
     logax  <- log
 }
 

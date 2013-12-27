@@ -12,11 +12,12 @@ Authors@R: c(person(c("Terry", "M"), "Therneau",
 	            role=c("aut", "cre")),
              person("Lumley", "Thomas", role=c("ctb", "trl"),
 	       comment="original S->R port and maintainer until 2009"))
-Author: Terry Therneau
+Author: Terry M Therneau
 Description: survival analysis: descriptive statistics, two-sample
   tests, parametric accelerated failure models, Cox model. Delayed entry
   (truncation) allowed for all models; interval censoring for parametric
   models. Case-cohort designs.
 License: LGPL (>=2)
 URL: http://r-forge.r-project.org
+
 
