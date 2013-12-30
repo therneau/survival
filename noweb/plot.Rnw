@@ -42,14 +42,6 @@ lines.survfit <- function(x, type='s',
     if (missing(firsty) && !is.null(x$prev0)) firsty <- 1-x$prev0
     <<plot-common-args>>
     <<plot-firstx>>
-
-    if (is.logical(conf.int)) plot.surv <- TRUE
-    else {
-        temp <- pmatch(conf.int, c("both", "only", "none"))
-        if (is.na(temp)) stop("invalid value for conf.int")
-        if (temp=="none") conf.int <- FALSE  else conf.int <- TRUE
-        if (temp=="only") plot.surv <- FALSE  else plot.surv <- TRUE
-    }
     <<plot-functions>>
     <<plot-draw>>
 }
@@ -58,6 +50,7 @@ points.survfit <- function(x, xscale=1,
                            xmax, fun, ...) {
     <<plot-transform-ms>>
     firstx <- NA  # flag used in the common args
+    conf.int <- FALSE
     <<plot-common-args>>
     if (ncol(ssurv)==1) points(stime, ssurv, ...)
     else  matpoints(stime, ssurv, ...)
@@ -86,7 +79,7 @@ if( !is.null(x$upper)) {
     slower <- as.matrix(x$lower)
 }
 else {
-    conf.int=FALSE
+    conf.int <- FALSE
     supper <- NULL  #marker for later code
 }
 
@@ -210,6 +203,13 @@ if (missing(firstx)) {
 # The default for plot and lines is to add confidence limits
 #  if there is only one curve
 if (missing(conf.int)) conf.int <- (ncurve==1)
+if (is.logical(conf.int)) plot.surv <- TRUE
+else {
+    temp <- match.arg(conf.int, c("both", "only", "none"))
+    if (is.na(temp)) stop("invalid value for conf.int")
+    if (temp=="none") conf.int <- FALSE  else conf.int <- TRUE
+    if (temp=="only") plot.surv <- FALSE  else plot.surv <- TRUE
+}
 <<plot-setup-marks>>
 @
 

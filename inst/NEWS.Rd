@@ -2,14 +2,19 @@
 \title{NEWS file for the survival package}
 \section{Changes in version 2.37-5}{
   \itemize{
+    \item The modeling routines are set in two parts, e.g., coxph sets
+    up the model and coxph.fit does the work.  Export more of the ".fit"
+    routines to make it easier for other packages to build on top of
+    this one.
+    
     \item Updates to the model.matrix and model.frame logic for
     coxph.  A note from F Harrell showed that I was not correctly
     dealing with the "assign" attribute when there are strata * factor
     interactions.  This led to cleanup in other cases that I had missed
     but which never had proven fatal.  Also added support for tt() terms
-    to the stand alone model.matrix and model.frame functions.  (No,
-    residuals are still not available, but this was necessary first step
-    to that end.) 26Dec13
+    to the stand alone model.matrix and model.frame functions.
+    (Residuals for tt models are still not available, but this was a
+    necessary first step to that end.) 26Dec13
     
     \item The Surv function now remembers attributes of the input
     variables that were passed to it; they are saved as

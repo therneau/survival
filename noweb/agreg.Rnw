@@ -65,6 +65,7 @@ agreg.fit <- function(x, y, strata, offset, init, control,
     if (missing(offset) || is.null(offset)) offset <- rep(0.0, n)
     if (missing(weights)|| is.null(weights))weights<- rep(1.0, n)
     else if (any(weights<=0)) stop("Invalid weights, must be >0")
+    else weights <- as.vector(weights)
 
     if (is.null(nvar) || nvar==0) {
 	# A special case: Null model.  Just return obvious stuff
@@ -85,9 +86,13 @@ agreg.fit <- function(x, y, strata, offset, init, control,
 	if (length(init) != nvar) stop("Wrong length for inital values")
 	}
 
+    # the returned value of agfit$coef starts as a copy of init, so make sure
+    #  is is a vector and not a matrix.
     agfit <- .Call(Cagfit4, 
-                   y, x, newstrat, weights, offset,
-                   init, sort.end, sort.start, 
+                   y, x, newstrat, weights, 
+                   as.vector(offset),
+                   as.vector(init), 
+                   sort.end, sort.start, 
                    as.integer(method=="efron"),
                    as.integer(maxiter), 
                    as.double(control$eps),

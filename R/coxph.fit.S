@@ -61,7 +61,7 @@ coxph.fit <- function(x, y, strata, offset, init, control,
                      as.integer(method=="efron"),
                      as.double(control$eps),
                      as.double(control$toler.chol),
-                     init,
+                     as.vector(init),
                      as.integer(1))  # internally rescale
 
     if (nullmodel) {

@@ -7,7 +7,7 @@ model.matrix.coxph <- function(object, data=NULL,
     # If the object has an "x" component, return it, unless a new
     #   data set is given
     if (is.null(data) && !is.null(object[['x']])) 
-        return(object[['x']]) #object$x might fetch "xlevels" instead
+        return(object[['x']]) #don't match "xlevels"
 
     Terms <- delete.response(object$terms)
     if (is.null(data)) mf <- model.frame(object)
