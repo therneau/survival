@@ -1,14 +1,14 @@
-\name{flcdata}
-\alias{flcdata}
+\name{flchain}
+\alias{flchain}
 \docType{data}
 \title{Assay of serum free light chain for 7874 subjects.}
 \description{
   This is a stratified random sample containing 1/2 of the subjects from
-  a study of the relationship between serum free light chain
+  a study of the relationship between serum free light chain (FLC)
   and mortality.  The original sample contains samples on
   approximately 2/3 of the residents of Olmsted County aged 50 or greater.
 }
-\usage{data(flcdata)}
+\usage{data(flchain)}
 \format{
   A data frame with 7874 persons containing the following variables.
   \describe{
@@ -52,8 +52,10 @@
   This data set contains an age and sex stratified random sample that
   includes 7874 of the original 15759 subjects.  The original subject
   identifiers and dates have been removed to protect patient identity.
+  Subsampling was done to further protect this information.
 }
-\source{The primary investigator and statistician for the study.}
+\source{The primary investigator (A Dispenzieri) and statistician (T
+  Therneau) for the study.}
 
 \references{
 A Dispenzieri, J Katzmann, R Kyle, D Larson, T Therneau, C Colby,
@@ -70,10 +72,10 @@ R Kyle, T Therneau, SV Rajkumar,
 	    New England J Medicine 354:1362-1369.
 }
 \examples{
-data(flcdata)
-age.grp <-  cut(flcdata$age, c(49,54, 59,64, 69,74,79, 89, 110),
+data(flchain)
+age.grp <-  cut(flchain$age, c(49,54, 59,64, 69,74,79, 89, 110),
                labels= paste(c(50,55,60,65,70,75,80,90),
                              c(54,59,64,69,74,79,89,109), sep='-'))
-table(flcdata$sex, age.grp)
+table(flchain$sex, age.grp)
 }
 \keyword{datasets}

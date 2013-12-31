@@ -20,7 +20,7 @@ export("Surv", "aareg", "agreg.fit",
        "survobrien",  
        "survpenal.fit", "survConcordance.fit",
        "survreg", "survreg.control", "survreg.fit",
-       "survreg.distributions", "survregDtest", "tcut", "tt",
+       "survreg.distributions", "survregDtest", "tcut", 
        "untangle.specials")
 S3method('[', aareg)
 S3method('[', Surv)

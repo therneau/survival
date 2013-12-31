@@ -147,7 +147,7 @@ investigation is irresponsible, however.
 \section{Data set}
 We will motivate our discussion with the simple case of a two-way
 analysis.
-The \code{flcdata} data frame contains the results of a small number
+The \code{flchain} data frame contains the results of a small number
 of laboratory tests done on a large fraction of the 1995
 population of Olmsted County, Minnesota aged 50 or older
 \cite{Kyle06, Dispenzieri12}.
@@ -187,19 +187,19 @@ unbalanced at the older ages, from about 1/2 females in the youngest
 group to a 4:1 ratio in the oldest.
 <<data, fig=TRUE, include=FALSE>>=
 library(survival)
-age2 <- cut(flcdata$age, c(49, 59, 69, 79, 89, 120),
+age2 <- cut(flchain$age, c(49, 59, 69, 79, 89, 120),
             labels=c("50-59", "60-69", "70-79", "80-89", "90+"))
-counts <- with(flcdata, table(sex, age2))
+counts <- with(flchain, table(sex, age2))
 counts
 #
-flcdata$flc <- flcdata$kappa + flcdata$lambda
-male <- (flcdata$sex=='M')
-mlow <- with(flcdata[male,],  smooth.spline(age, flc))
-flow <- with(flcdata[!male,], smooth.spline(age, flc))
+flchain$flc <- flchain$kappa + flchain$lambda
+male <- (flchain$sex=='M')
+mlow <- with(flchain[male,],  smooth.spline(age, flc))
+flow <- with(flchain[!male,], smooth.spline(age, flc))
 plot(flow, type='l', ylim=range(flow$y, mlow$y),
      xlab="Age", ylab="FLC")
 lines(mlow, col=2)
-cellmean <- with(flcdata, tapply(flc, list(sex, age2), mean, na.rm=T))
+cellmean <- with(flchain, tapply(flc, list(sex, age2), mean, na.rm=T))
 matpoints(c(55,65,75, 85, 95), t(cellmean), pch='fm', col=1:2)
 
 round(cellmean, 2)
@@ -287,8 +287,8 @@ negative values for the females and positive for the males.
 <<>>=
 us2000 <- rowSums(uspop2[51:101,,'2000'])
 
-fit1 <- lm(flc ~ sex, flcdata, x=TRUE)
-fit2 <- lm(flc ~ sex + ns(age,4), flcdata, x=TRUE)
+fit1 <- lm(flc ~ sex, flchain, x=TRUE)
+fit2 <- lm(flc ~ sex + ns(age,4), flchain, x=TRUE)
 c(fit1$coef[2], fit2$coef[2])
 
 wt1  <- solve(t(fit1$x)%*%fit1$x, t(fit1$x))[2,]
@@ -328,8 +328,8 @@ cases where there is minimal overlap between M/F age distributions.
 should mean is much more difficult.)
 <<pop, fig=TRUE, include=FALSE>>=
 us2000 <- rowSums(uspop2[51:101,,'2000'])
-tab0 <- table(flcdata$age)
-tab2 <- tapply(abs(wt2), flcdata$age, sum)
+tab0 <- table(flchain$age)
+tab2 <- tapply(abs(wt2), flchain$age, sum)
 matplot(50:100, cbind(tab0/sum(tab0), tab2/sum(tab2)),
         type='l', lty=1,
         xlab="Age", ylab="Density")
@@ -421,7 +421,7 @@ groups.
 We can obtain the building blocks for Yates estimates by using the
 interaction function and omitting an intercept.
 <<yfit>>=
-yatesfit <- lm(flc ~ interaction(sex, age2) -1, data=flcdata)
+yatesfit <- lm(flc ~ interaction(sex, age2) -1, data=flchain)
 theta <- matrix(coef(yatesfit), nrow=2)
 dimnames(theta) <- dimnames(counts)
 round(theta,2)
@@ -478,9 +478,9 @@ dimnames(emat) <- list(c("Unadjusted", "MVUE: continuous age",
 #unadjusted
 emat[1,] <- c(summary(fit1)$coef[2,1:2], anova(fit1)["sex", "Sum Sq"])
 # MVUE -- do the two fits
-fit2 <- lm(flc ~ ns(age,4) + sex, flcdata)
+fit2 <- lm(flc ~ ns(age,4) + sex, flchain)
 emat[2,] <- c(summary(fit2)$coef[6, 1:2], anova(fit2)["sex", "Sum Sq"])
-fit2 <- lm(flc ~ age2 + sex, flcdata)
+fit2 <- lm(flc ~ age2 + sex, flchain)
 emat[3,] <- c(summary(fit2)$coef[6, 1:2], anova(fit2)["sex", "Sum Sq"])
 
 #Remainder, use contrasts
@@ -650,7 +650,7 @@ corresponding to $i=2$ and $i'=1$
 in equation \eqref{ycont}, and the Yates contrast for sex becomes
 $\alpha_2 + 1/5(\gamma_{22} +\gamma_{23} +\gamma_{24} +\gamma_{25})$.
 <<treatment>>=
-fit3 <- lm(flc ~ sex * age2, flcdata)
+fit3 <- lm(flc ~ sex * age2, flchain)
 coef(fit3)
 contrast(c(0,1, 0,0,0,0, .2,.2,.2,.2), fit3) #Yates
 @ 
@@ -660,9 +660,9 @@ i.e., all coefficients with $i=2$ or $j=5$ in equations
 \eqref{std} and \eqref{ycont} are set to zero.
 <<sas>>=
 options(contrasts=c("contr.SAS", "contr.poly"))
-sfit1 <- lm(flc ~ sex, flcdata)
-sfit2 <- lm(flc ~ sex + age2, flcdata)
-sfit3 <- lm(flc ~ sex * age2, flcdata)
+sfit1 <- lm(flc ~ sex, flchain)
+sfit2 <- lm(flc ~ sex + age2, flchain)
+sfit3 <- lm(flc ~ sex * age2, flchain)
 contrast(c(0,-1, 0,0,0,0, -.2,-.2,-.2,-.2), sfit3) # Yates for SAS coding
 @
 The appendix contains SAS code and output for the three models
@@ -760,8 +760,8 @@ each fit summarized by the change from the prior fit
 in terms of residual sum of squares.
 <<anova>>=
 options(show.signif.stars = FALSE) #exhibit intelligence
-sfit0  <- lm(flc ~ 1, flcdata)
-sfit1b <- lm(flc ~ age2, flcdata)
+sfit0  <- lm(flc ~ 1, flchain)
+sfit1b <- lm(flc ~ age2, flchain)
 anova(sfit0, sfit1b, sfit2, sfit3)
 @ 
 The second row is a test for the age effect.
@@ -916,11 +916,11 @@ When applied to other codings the results of this procedure can be
 surprising.
 <<nstt>>=
 options(contrasts = c("contr.treatment", "contr.poly")) #R default
-fit3a <- lm(flc ~ sex * age2, flcdata)
+fit3a <- lm(flc ~ sex * age2, flchain)
 options(contrasts = c("contr.SAS", "contr.poly"))
-fit3b <- lm(flc~ sex * age2, flcdata)
+fit3b <- lm(flc~ sex * age2, flchain)
 options(contrasts=c("contr.sum", "contrl.poly"))
-fit3c <- lm(flc ~ sex * age2, flcdata)
+fit3c <- lm(flc ~ sex * age2, flchain)
 #
 nstt <- c(0,1, rep(0,8))  #test only the sex coef = the NSTT method
 temp <- rbind(unlist(contrast(nstt, fit3a)),
@@ -1051,7 +1051,7 @@ To start, take a look at the overall data.
 Compute the relative death rates for each age/sex cell.
 <<relrate>>=
 options(contrasts= c("contr.treatment", "contr.poly")) # R default
-cfit0 <- coxph(Surv(futime, death) ~ interaction(sex, age2), flcdata)
+cfit0 <- coxph(Surv(futime, death) ~ interaction(sex, age2), flchain)
 cmean <- matrix(c(0, coef(cfit0)), nrow=2)
 cmean <- rbind(cmean, cmean[2,] - cmean[1,])
 dimnames(cmean) <- list(c("F", "M", "M/F"), dimnames(counts)[[2]])
@@ -1073,9 +1073,9 @@ anova tables for the linear model, and are produced by the
 same R command.
 <<cox anova>>=
 options(contrasts=c("contr.SAS", "contr.poly"))
-cfit1 <- coxph(Surv(futime, death) ~ sex, flcdata)
-cfit2 <- coxph(Surv(futime, death) ~ age2 + sex, flcdata)
-cfit3 <- coxph(Surv(futime, death) ~ sex * age2, flcdata)
+cfit1 <- coxph(Surv(futime, death) ~ sex, flchain)
+cfit2 <- coxph(Surv(futime, death) ~ age2 + sex, flchain)
+cfit3 <- coxph(Surv(futime, death) ~ sex * age2, flchain)
 #
 summary(cfit1)$coef
 summary(cfit2)$coef[,1:3]
@@ -1100,7 +1100,7 @@ stratify on the enrolling center.
 The estimated sex effect for this data set are very similar to the additive model
 fit.
 <<>>=
-cfit4 <- coxph(Surv(futime, death) ~ sex + strata(age2), flcdata)
+cfit4 <- coxph(Surv(futime, death) ~ sex + strata(age2), flchain)
 summary(cfit4)$coef
 @ 
 
@@ -1153,7 +1153,7 @@ As a final check, look at the NSTT version of the LRT, which corresponds
 to simply dropping the sex column from the $X$ matrix.
 <<nstt-lrt>>=
 xmat3 <- model.matrix(cfit3)
-cfit3b <- coxph(Surv(futime, death) ~ xmat3[,-1], flcdata)
+cfit3b <- coxph(Surv(futime, death) ~ xmat3[,-1], flchain)
 anova(cfit3b, cfit3)
 @ 
 This agrees with the LR ``type 3'' test of the phreg printout.
@@ -1172,7 +1172,7 @@ are not as far apart as they were for the linear regression.
 There are fewer subjects at the higher ages but they die more
 frequently.
 <<>>=
-with(flcdata, table(sex, age2, death))[,,2] #table of deaths per cell
+with(flchain, table(sex, age2, death))[,,2] #table of deaths per cell
 @ 
 
 Last, look at the output of the weighted models, both 
@@ -1185,10 +1185,10 @@ since we are approaching it via a survey sampling computation.
 The tapply function creates a per-subject index into the case weight
 table created earlier.
 <<coxfit>>=
-wtindx <- with(flcdata, tapply(death, list(sex, age2)))
-cfitpop <- coxph(Surv(futime, death) ~ sex, flcdata,
+wtindx <- with(flchain, tapply(death, list(sex, age2)))
+cfitpop <- coxph(Surv(futime, death) ~ sex, flchain,
                 robust=TRUE, weight = (casewt[,,3])[wtindx]) 
-cfityates <- coxph(Surv(futime, death) ~ sex, flcdata,
+cfityates <- coxph(Surv(futime, death) ~ sex, flchain,
                 robust=TRUE, weight = (casewt[,,4])[wtindx])
 #
 # Glue it into a table for viewing
@@ -1245,6 +1245,161 @@ to make this a particularly unfortunate event.
 
 
 \appendix
+\section{Computing the Yates estimate}
+We will take it as a given that no one wants to memorize contrast formulas,
+and so we need a way to compute Yates contrasts automatically in a computer
+program.  
+The most direct method is to encode the original fit in terms of the 
+cell means, as has been done throughout this report.  
+The Yates contrast is then simply an average of estimates across the
+appropriate margin.
+However, we normally will want to solve the linear or Cox model fit in
+a more standard coding and then compute the Yates contrast after the fact.
+Note that the computation requires estimates of the cell means, whether
+they were explicit parameters or not, i.e., the model fit must include
+``interaction'' terms.
+
+Here are three common algorithms for this post-hoc computation.
+All of them depend, directly or indirectly, on the breakdown found earlier
+in equation \eqref{std}.
+
+\begin{align}
+  y_{ij} &= \mu + \alpha_i + \beta_j + \gamma_{ij} + \epsilon \label{a1} \\
+         &= \theta_{ij} + \epsilon \label{a2}\\
+  \theta_{ij} &=  \mu + \alpha_i + \beta_j + \gamma_{ij} \label{a4} \\
+\end{equation}
+Equation \eqref{a1} is the standard form from our linear models textbooks,
+equation \eqref{a2} is the cell means form, and \eqref{a3} is the
+result of matching them together.
+Using this equivalence a Yates test for row effects will be
+\begin{align}
+  0 &= e_i - e_{i'} \quad \forall i,i' \nonumber \\
+    &= (\alpha_i - \alpha_{i'}) + (1/k)\sum_j(\gamma_{ij} - \gamma_{i'j})
+             \label{ycont2}
+\end{align}
+where the subscripts $i$ and $i'$ range over the rows and $k$ is the
+number of columns.
+
+\subsection{NSTT method}
+The first calculation method is based on a simple observation.  
+If we impose the standard sums constraint on equation \eqref{a1}
+which is often found in textbooks (but nowhere else
+$\sum_i \alpha_i = \sum_j \beta_j = 0$, $\sum_i\gamma_{ij} =0 \; \forall j$ 
+and $\sum_j \gamma_{ij} = 0 \; \forall i$,
+then the last term in equation \eqref{ycont2} is identically 0.
+Thus the Yates contrast corresponds exactly to a test of $\alpha=0$.
+In R we can choose this coding by using the \code{contr.sum} option.
+This approach has the appearance of simplicity: we can do an ordinary
+test for row effects within an interaction model.
+The car package (Companion to Applied Regression text) package uses
+this procedure.  
+Here is another commonly cited R code for ``type III'' computation based 
+on the same process.
+
+<<>>=
+options(contrasts=c("contr.sum", "contr.poly"))
+fit <- lm(flc ~ sex * age2, data=flchain)
+drop1(fit, .~.)
+@ 
+
+The problem with this approach is that it depends critically on use of
+the sum constraints.  If we apply the same code after fitting the data
+set under the more usual constraints a completely different value 
+ensues.
+<<>>=
+options(contrasts=c("contr.SAS", "contr.poly"))
+fit <- lm(flc ~ sex * age2, data=flchain)
+drop1(fit, .~.)
+@ 
+Each diffent choice of contrasts, other than contr.sum, gives a different
+answer, all of which are nonsensical.
+I thus refer to this as the Not Safe Type Three (NSTT) algorithm,
+``not SAS type three'' and ``nonsense type three'' are two other sensible
+expansions of the acronym.
+This approach should NEVER be used in practice.
+
+\subsetcion{ATT}
+The key idea of the averaging approach (Averaged Type Three)
+is to directly evaluate equation \eqref{ycont2}.
+The key step is \code{xtemp <- unique(model.matrix(fit))}.  We then average
+all rows of \code{xtemp} where sex = female, and all those where sex = male;
+the difference of these is the Yates contrast vector for sex.
+This approach is closely related to the SAS type IV calculation.
+(It may actually be completely identical, but I have not proven this.)
+
+\subsection{STT}
+The SAS type III method takes a different approach, based on a
+a dependency matrix $D$.  Start by writing the
+$X$ matrix for the problem using all of the parameters in equation \eqref{a1}.
+For our flc example this will have colums for intercept (1), sex (2), age group
+(5) and the age group by sex interaction (10) = 18 columns.  Now define the
+lower triangular square matrix $D$ such that 
+\begin{itemize}
+  \item If the $i$th column of $X$ can be written as a linear combination of
+    columns 1 through $i-1$, then row $i$ of $D$ contains that linear
+    combination and $D_{ii}=0$.
+  \item If the $i$th column is not linearly dependent on earlier ones then
+    $D_{ii}=1$ and $D_{ij}=0$ for all $j \ne i$.
+\end{itemize}
+Columns of $D$ that correspond to linearly dependent columns of $X$ will be
+identically zero and can be discarded (or not) at this point.  
+The result of this operation replicates table 12.2 in the SAS reference
+\cite{SASguide} labeled ``the form of estimable functions''.
+To obtain the Yates contrasts for an effect replace the appropriate
+columns of $D$ with the resdiuals from a regression on all columns to the
+right of it.
+Simple inspection shows that the columns of $D$ corresponding to any given
+effect will already be orthagonal to other effects in $D$ \emph{except}
+those for interactions that contain it; so the regression does not have
+to include all columns to the right.  
+
+It is easy to demonstrate that this gives the uniform population contrast
+(Yates) for a large number of data sets, 
+but I have not yet constructed a proof. 
+(I suspect it could be approached using the Rao-Blackwell theorem, but
+any hints are welcome.)
+
+
+\subsection{Missing cells}
+When there are combinations of factors with 0 subjects in that group,
+it is not possible to create a uniform population via reweighting, of either
+subjects or parameters. 
+There is thus no Yates contrast possible corresponding to the hypothetical
+population of interest.  
+For that matter, adjustment to any fixed population is no longer possible,
+such as the US 2000 reference, unless groups are pooled so as to remove the
+zero, and even then the estimate could be problematic due to extreme
+weights.
+
+This fact does not stop each of the above 3 algorithms from 
+executing and producing a number. 
+This raises two further issues.
+First, what does that number \emph{mean}?  Much ink has been spilled on this
+subject, but I personally have never been able to come to grips with a
+satisfactory explanation so have nothing to offer on the subject.
+I would be very reluctant to use such an estimate.
+The second issue is that the computational algorithms become more fragile.
+\begin{itemize}
+  \item The NSTT algorithm is a disaster in waiting, 
+    so little more needs to be said about situations where its behavior
+    may be even worse.
+  \item When fitting the original model, there will be one or more NA
+    coefficients, due to the linear dependencies that arise.  A natural
+    extension of the ATT method is to leave these out of the sums 
+    when computing each average.
+    However, there are data sets for which the particular set of coefficients
+    set to NA will depend on the order in which variables were listed in
+    the model statement, which in turn will change the result.
+  \item For the STT method, our statement that certain other columns in $D$ 
+    will be orthagonal to the chosen effect is no longer true.  To match
+    SAS, the orthagonalization step above should include only those
+    effects further to the right that contain the chosen effect (the one we
+    are constructing a contrast vector for).
+    As a side effect, this makes the 
+    STT result invariant to the order of the variables in the
+    model statement.
+\end{itemize}
+
 \section{SAS computations}
 The following code was executed in version 9.3 of SAS.
 \begin{verbatim}
