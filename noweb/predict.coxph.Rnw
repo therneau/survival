@@ -207,6 +207,9 @@ include them in their new dataset.   Thus we build the call up
 the way it is done in coxph itself, but only keeping the newdata
 argument.  Note that terms2 may have fewer variables than the 
 original model: no cluster and if type!= expected no response.
+If the original model had a strata, but newdata does not, we need to
+remove the strata from xlev to stop a spurious warning message.
+
 <<pcoxph-getdata>>=
 if (!missing(newdata)) {
     use.x <- TRUE  #we do use an X matrix later
@@ -215,9 +218,14 @@ if (!missing(newdata)) {
     tcall$formula <- Terms2  #version with no response
     tcall$na.action <- na.action #always present, since there is a default
     tcall[[1]] <- as.name('model.frame')  # change the function called
-    tcall$xlev <- object$xlevels
-    if (is.R()) mf2 <- eval(tcall, parent.frame())
-    else        mf2 <- eval(tcall, sys.parent())
+    
+    if (!is.null(attr(Terms, "specials")$strata) && !has.strata) {
+       temp.lev <- object$xlevels
+       temp.lev[[stemp$vars]] <- NULL
+       tcall$xlev <- temp.lev
+    }
+    else tcall$xlev <- object$xlevels
+    mf2 <- eval(tcall, parent.frame())
 
     collapse <- model.extract(mf2, "collapse")
     n2 <- nrow(mf2)
