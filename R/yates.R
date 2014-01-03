@@ -39,7 +39,7 @@ yates <- function(fit, method=c("ATT", "STT", "NSTT")) {
     # The matrix "included" has a row for each term, 1= term + extenders
     forder <- attr(Terms, "order")
     fvar <- dimnames(dfac)[[1]] %in% names(xcon)
-    fterm <- colSums(dfac[!fvar,]) ==0  #terms that involve only factors
+    fterm <- colSums(dfac[!fvar,,drop=FALSE]) ==0  #terms involve only factors
     included <- diag(ncol(dfac)) #one row for each term, it + others
     for (i in which(fterm)) {
         temp <- dfac[,i] * dfac
@@ -76,9 +76,29 @@ yates <- function(fit, method=c("ATT", "STT", "NSTT")) {
             clist[[i]] <- dtemp[-1,] - rep(dtemp[1,], each=nrow(dtemp)-1)
         }            
     } else {
-        #SAS type III method, first build the D matrix
+        # function to give a full contrast matrix
+        cmat <- function(x) {
+            if (is.factor(x)) {
+                n <- length(levels(x))
+                temp <- diag(n)
+                dimnames(temp) <- list(level(x), levels(x))
+                temp
+            }
+            else NULL
+        }
+        # Get the full, nothing missing, model matrix
+        xfull <- model.matrix(model.frame(fit), 
+                              contrasts.arg=lapply(fit$contrasts, cmat),
+                              xlev=fit$xlevels)
+        #SAS type III method, first build the D matrix for each term
+        for (i in adjust) {
+            icol <- ax %in% which(included[i,] >0)
+            xfac <- unique(X[, icol, drop=FALSE])
+            
+        
         
         
     }
+browser()
 clist
 }
