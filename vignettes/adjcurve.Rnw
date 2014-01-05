@@ -5,7 +5,6 @@
 \addtolength{\oddsidemargin}{-.5in}
 \setlength{\evensidemargin}{\oddsidemargin}
 
-
 \SweaveOpts{keep.source=TRUE, fig=FALSE}
 % Ross Ihaka suggestions
 \DefineVerbatimEnvironment{Sinput}{Verbatim} {xleftmargin=2em}
@@ -21,18 +20,17 @@
 options(continue="  ", width=60)
 options(SweaveHooks=list(fig=function() par(mar=c(4.1, 4.1, .3, 1.1))))
 pdf.options(pointsize=8) #text in graph about the same as regular text
+require(survival)
 @ 
 
 \title{Adjusted Survival Curves}
 \author{Terry M Therneau, Cynthia S Crowson, Elizabeth J Atkinson}
+\date{}  % no date
 \newcommand{\myfig}[1]{\includegraphics[height=!, width=\textwidth]
                         {adjcurve-#1.pdf}}
 
 \begin{document}
   \maketitle
-<<echo=FALSE>>=
-require(survival)
-@ 
 
 \section{Introduction}
 Suppose we want to investigate to what extent some factor influences
@@ -50,46 +48,35 @@ using insulin.
 
 
 The ideal way to test this is with a controlled clinical trial.
-This is of course not always possible, and assessment of 
-current data that includes and adjusts for such confounders is also needed.
+This is of course not always possible, and assessments using available 
+data that includes and adjusts for such confounders is also needed.
 There is extensive literature --- and debate --- on this topic in the 
 areas of modeling and testing.
 The subtopic of how to create honest survival curve estimates in the
-presence of confounders is less well known, and is the topic
+presence of confounders is less well known, and is the focus
 of this note.
-
-\begin{figure}[hb] \centering
-  \begin{tabular}{rccc}
-    Marginal: & balance data on $c$& $\longrightarrow$ &  
-    survival curves by $x$ \\
-    Conditional: & survival curves by $x$ and $c$ &  $\longrightarrow$ & 
-        average curves over $c$ to balance
-  \end{tabular}
-  \caption{Two approaches}
-  \label{figtwo}
-\end{figure}
-    
-Assme that we have an effect of interes $x$ and a set of possible confounding
+   
+Assume that we have an effect of interest $x$ and a set of possible confounding
 variables $c$. There are two main approaches to adjustment.
 The first approach, sometimes known as \emph{marginal} analysis,
 modifies the data so that
 the confounders $c$ are balanced across the factor of interest $x$, we can then
-proceed with simple analyses of survival verus $x$ using the 
+proceed with simple analysis of survival versus $x$ using the 
 reformulated data, ignoring the confounders.
 The second approach seeks to understand and model the effect of each
 confounder, with this we can then correct for them.  
 This is often called the \emph{conditional} approach since we are
-examinining the conditional survivals given $x$ and $c$.
+examining the conditional survivals given $x$ and $c$.
 From these conditional survivals average curves are created that balance
 on the confounder.
 As shown below, these differ essentially in the \emph{order}
-in which the two necessary operatations are done, balancing and survival
+in which the two necessary operations are done, balancing and survival
 curve creation.
 \begin{center}
   \begin{tabular}{rccc}
-    Marginal: & balance data on $c$ & $\Longrightarrow$ & 
+    Marginal: & balance data on $c$ & $\longrightarrow$ & 
              form survival curves by $x$ \\
-    Conditional: & form survival curves by $x$ and $c$& $\Longrightarrow$ &
+    Conditional: & form survival curves by $x$ and $c$& $\longrightarrow$ &
         average curves over $c$ to balance
   \end{tabular}
 \end{center}
@@ -111,16 +98,16 @@ at least a few variables.
 \section{Free Light Chain}
 Our example data set for this comparison uses a particular
 assay of plasma immunoglobulins and is based on work of Dr Angela Dispenzieri
-and her collleagues at the Mayo Clinic \cite{Dispenzieri12}.
+and her colleagues at the Mayo Clinic \cite{Dispenzieri12}.
 In brief, plasma cells are responsible for the production of
 immunoglobulins; they comprise a small portion ($<1$\%) of the 
 total blood and marrow hematapoetic cell population in normal patients.
-The normal human repetoire is estimated to contain over
+The normal human repertoire is estimated to contain over
 $10^{8}$ unique immunoglobulins, conferring a broad range of immune
 protection.  In multiple myeloma, the most common form of plasma
 cell malignancy, almost all of
 the circulating antigen will be the product of a single malignant clone.
-An electrophoretic examination of circulating immunoglobulins will
+An electrophoresis examination of circulating immunoglobulins will
 exhibit a ``spike'' corresponding to this unique molecule.
 This anomaly is used both as a diagnostic method and in monitoring
 the course of the disease under treatment.
@@ -131,48 +118,21 @@ hematology research group \cite{Kyle93}.  In 1995
 Dr Robert Kyle undertook a population based study of this, and collected
 serum samples on 19,261 of the 24,539 residents of Olmsted County, Minnesota,
 aged 50 years or more \cite{Kyle06}.
-In 2010 Dr. Dispensizeri assayed a subfraction of the immunogloblin,
+In 2010 Dr. Dispenzieri assayed a sub fraction of the immunoglobulins,
 the free light chain (FLC), on 15,748 of these subjects who had sufficient 
 remaining sera from the original sample collection.
 All studies took place under the oversight of the appropriate Institutional 
-Review Boards, which ensure rigourous safety and ethical standards in
+Review Boards, which ensure rigorous safety and ethical standards in
 research.
-
-Our data set is an age and sex stratified sample of this second data set
-and contains 7874 of the subjects from the original study.
-It is included in the survival package as the data frame \texttt{flchain}.
-Figure \ref{flc1} shows the survival curves for three subgroups of
-the patients: those whose total free light chain (FLC) is in the upper
-10\% of all values found in the full study,
-those in the 70--89th pecentile, and the remainder.
-There is a clear survival effect.
-Average free light chain amounts rise with age, however, 
-at least in part because it is eliminated through the kidneys and renal
-function declines with age.  
-Table \ref{tflc1} shows the FLC by age distribution.
-In the highest decile of FLC (group 3)  over half the subjects are
-age 70 or older compared to only 23\% in those below the 70th percentile.
-How much of the survival difference is truly associated with FLC
-and how much is simply an artifact of age?
-    
-<<flc1, echo=FALSE, fig=TRUE, include=FALSE>>=
-group3 <- factor(1+ 1*(flchain$flc.grp >7) + 1*(flchain$flc.grp >9),
-                      levels=1:3, 
-                      labels=c("FLC < 3.38", "3.38 - 4.71", "FLC > 4.71"))
-flchain$group3 <- group3
-sfit1 <- survfit(Surv(futime, death) ~ group3, flchain)
-plot(sfit1, mark.time=F, col=c(1,2,4), lty=1, lwd=2,
-     xscale=365.25, xlab="Years from Sample", 
-     ylab="Survival")
-text(c(11.1, 10.5, 7.5), c(.88, .57, .4),
-     c("FLC < 3.38", "3.38 - 4.71", "FLC > 4.71"), col=c(1,2,4))     
-@ 
 
 \begin{table} \centering
   \begin{tabular}{r|cccc}
   & 50--59 & 60--69 & 70--79 & 80+ \\ \hline
 
 <<echo=FALSE, fig=FALSE, results=tex>>=
+group3 <- factor(1+ 1*(flchain$flc.grp >7) + 1*(flchain$flc.grp >9),
+                      levels=1:3, 
+                      labels=c("FLC < 3.38", "3.38 - 4.71", "FLC > 4.71"))
 age1 <- cut(flchain$age, c(49,59,69,79, 110))
 levels(age1) <- c(paste(c(50,60,70), c(59,69,79), sep='-'), '80+')
 temp1 <- table(group3, age1)
@@ -191,6 +151,50 @@ cat(paste(c("FLC high", pfun(temp1[3,], temp2[3,])), collapse=" & "), "\n")
 \label{tflc1}
 \end{table}
 
+Our data set is an age and sex stratified sample of this second data set
+and contains 7874 of the subjects from the original study.
+It is included in the survival package as the data frame \texttt{flchain}.
+Figure \ref{flc1} shows the survival curves for three subgroups of
+the patients: those whose total free light chain (FLC) is in the upper
+10\% of all values found in the full study,
+those in the 70--89th percentile, and the remainder.
+There is a clear survival effect.
+Average free light chain amounts rise with age, however, 
+at least in part because it is eliminated through the kidneys and renal
+function declines with age.  
+Table \ref{tflc1} shows the FLC by age distribution.
+In the highest decile of FLC (group 3)  over half the subjects are
+age 70 or older compared to only 23\% in those below the 70th percentile.
+How much of the survival difference is truly associated with FLC
+and how much is simply an artifact of age?
+ 
+The data set contains 3 subjects whose blood sample was obtained on the day
+of their death.  It is rather odd to think of a sample obtained on
+the final day as ``predicting'' death, or indeed for any results obtained
+during a patient's final mortality cascade. 
+There are also a few patients with no follow-up beyond the clinic visit
+at which the assay occurred.
+Therefore, all the analyses below have excluded subjects with less than 7 days of
+follow-up.
+   
+<<flc1, fig=TRUE, include=FALSE>>=
+fdata <- flchain[flchain$futime > 7,]
+fdata$group <- factor(1+ 1*(fdata$flc.grp >7) + 1*(fdata$flc.grp >9),
+                      levels=1:3, 
+                      labels=c("FLC < 3.38", "3.38 - 4.71", "FLC > 4.71"))
+fdata$age2 <- cut(fdata$age, c(49,54, 59,64, 69,74,79, 89, 110),
+                  labels = c(paste(c(50,55,60,65,70,75,80),
+                                 c(54,59,64,69,74,79,89), sep='-'), "90+"))
+		      
+sfit1 <- survfit(Surv(futime, death) ~ group, fdata)
+plot(sfit1, mark.time=F, col=c(1,2,4), lty=1, lwd=2,
+     xscale=365.25, xlab="Years from Sample", 
+     ylab="Survival")
+text(c(11.1, 10.5, 7.5), c(.88, .57, .4),
+     c("FLC < 3.38", "3.38 - 4.71", "FLC > 4.71"), col=c(1,2,4))     
+@ 
+
+
 \section{Marginal methods}
 \subsection{Selection}
 \begin{figure}[tb]
@@ -200,8 +204,8 @@ cat(paste(c("FLC high", pfun(temp1[3,], temp2[3,])), collapse=" & "), "\n")
            (as found in  figure \ref{flc1}).}
 \label{flc2}
 \end{figure}
-<<flc2, echo=FALSE, fig=TRUE, include=FALSE>>=
-temp <- with(flchain, table(group3, age2, sex))
+<<flc2, fig=TRUE, include=FALSE>>=
+temp <- with(fdata, table(group, age2, sex))
 size <- apply(temp, 2:3, min)
 
 set.seed(1978)
@@ -210,22 +214,22 @@ dd <- dim(temp)
 for (i in 1:dd[1]) {
     for (j in 1:dd[2]) {
         for (k in 1:dd[3]) {
-            indx <- which(as.numeric(group3)==i &
-                          as.numeric(age2) ==j &
-                          as.numeric(flchain$sex) ==k)
+            indx <- which(as.numeric(fdata$group)==i &
+                          as.numeric(fdata$age2) ==j &
+                          as.numeric(fdata$sex) ==k)
             select <- c(select, sample(indx, size[j,k]))
         }
     }
 }
 
-data2 <- flchain[select,]
-sfit2 <- survfit(Surv(futime, death) ~ group3, data2)
+data2 <- fdata[select,]
+sfit2 <- survfit(Surv(futime, death) ~ group, data2)
 plot(sfit2, mark.time=F, col=c(1,2,4), lty=1, lwd=2,
      xscale=365.25, xlab="Years from Sample", 
      ylab="Survival")
 lines(sfit1,  mark.time=F, col=c(1,2,4), lty=2, lwd=1,
       xscale=365.25)
-legend(2,.4, levels(flchain$group3), lty=1, col=c(1,2,4),
+legend(2,.4, levels(fdata$group), lty=1, col=c(1,2,4),
                bty='n', lwd=2)
 @ 
 
@@ -237,12 +241,8 @@ legend(2,.4, levels(flchain$group3), lty=1, col=c(1,2,4),
 FLC group & 50--54& 55--59& 60--64 & 65--69 & 70--74 & 75--79 & 80--89& 90+ \\
    \hline
 <<echo=F, results=tex>>=
-age2 <- cut(flchain$age, c(49,54, 59,64, 69,74,79, 89, 110))
-levels(age2) <- paste(c(50,55,60,65,70,75,80,90),
-                      c(54,59,64,69,74,79,89,109), sep='-')
-flchain$age2 <- age2
 
-tab1 <- with(flchain, table(group3, age2, sex))
+tab1 <- with(fdata, table(group, age2, sex))
 cat("Low&", paste(tab1[1,,1], collapse=" &"), "\\\\\n")
 cat("Med&", paste(tab1[2,,1], collapse=" &"), "\\\\\n")
 cat("High&", paste(tab1[3,,1], collapse=" &"), "\\\\\n")
@@ -278,12 +278,12 @@ number possible for which we can get perfect balance.
     \multicolumn{2}{c}{FLC high} \\
  & Total & Subset & Total & Subset & Total & Subset \\ \hline
 <<echo=FALSE, results=tex>>=
-tab3 <- with(flchain, table(age2, group3))
+tab3 <- with(fdata, table(age2, group))
 tab3 <- round(100*scale(tab3, center=F, scale=colSums(tab3)))
-tab4 <- with(data2, table(age2, group3))
+tab4 <- with(data2, table(age2, group))
 tab4 <- round(100*scale(tab4, center=F, scale=colSums(tab4)))
 tab5 <- cbind(tab3[,1], tab4[,1], tab3[,2], tab4[,2], tab3[,3], tab4[,3])
-pfun <- function(x) paste(ifelse(x<10, paste("\\phantom{0} ", x), x),
+pfun <- function(x) paste(ifelse(x<10, paste("\\phantom{0}", x), x),
                           collapse=" &")
 dtemp <- dimnames(tab5)[[1]]
 for (j in 1:7) 
@@ -321,10 +321,10 @@ population of subjects.
 
 <<echo=FALSE>>=
 # I can't seem to put this all into an Sexpr
-z1 <- with(flchain,table(age, sex, group3))
+z1 <- with(fdata,table(age, sex, group))
 z2<- apply(z1, 1:2, min)
 ztemp <-  3*sum(z2)
-z1b <- with(flchain, table(age>64, sex, group3))
+z1b <- with(fdata, table(age>64, sex, group))
 ztemp2 <- sum(apply(z1b, 1:2, min))
 
 @ 
@@ -356,7 +356,7 @@ program need no further processing.
 We can also use the usual statistical tests to check for
 differences between the curves.
 <<>>=
-survdiff(Surv(futime, death) ~ group3, data=data2)
+survdiff(Surv(futime, death) ~ group, data=data2)
 @ 
 
 \subsection{Reweighting}
@@ -375,7 +375,7 @@ the target distribution $\pi$.
 When results from multiple studies are to be compared,
 the target distribution $\pi$ will often be based on external criteria,
 e.g., the US 2000 population,
-and the result from the reweighted sample is called the \emph{direct adjustment}
+and the result from the re weighted sample is called the \emph{direct adjustment}
 method. 
 An obvious advantage of this approach, as compared to subset selection,
 is that the resulting curves represent a tangible and well defined group.
@@ -387,13 +387,13 @@ package in R.  It is an array of counts with dimensions of age,
 sex, and calendar year.  We only want ages of 50 and over, and the population
 data set has collapsed ages of 100 and over into a single category.
 We create a table \texttt{tab100} of observed age/sex counts within group 
-for our own data, using the same upper age grouping.
-New weights are the values $\pi/p$ = pi.us/tab100.
+for our own data, using the same upper age threshold.
+New weights are the values $\pi/p$ = \texttt{pi.us/tab100}.
 <<>>=
 refpop <- uspop2[as.character(50:100),c("female", "male"), "2000"]
 pi.us  <- refpop/sum(refpop)
-age100 <- factor(ifelse(flchain$age >100, 100, flchain$age), levels=50:100)
-tab100 <- with(flchain, table(age100, sex, group3))/ nrow(flchain)
+age100 <- factor(ifelse(fdata$age >100, 100, fdata$age), levels=50:100)
+tab100 <- with(fdata, table(age100, sex, group))/ nrow(fdata)
 us.wt  <- rep(pi.us, 3)/ tab100  #new weights by age,sex, group
 range(us.wt)
 @ 
@@ -402,20 +402,20 @@ at all ages, but our data set does not have representatives in every
 age/sex/FLC group combination.
 (There are 32 zeros in tab100).  
 Let us repeat the process, collapsing the US population from single years into
-the 5 year age groups defined previously.
+the 8 age groups used previously in table \ref{tab2}.
 Merging the per age/sex/group weights found in the 3-dimensional array
 \texttt{us.wt} into the data set as per-subject weights uses matrix 
 subscripts, a useful but less known feature of R.
 <<>>=
 temp <- as.numeric(cut(50:100, c(49, 54, 59, 64, 69, 74, 79, 89, 110)+.5))
 pi.us<- tapply(refpop, list(temp[row(refpop)], col(refpop)), sum)/sum(refpop)
-tab2 <- with(flchain, table(age2, sex, group3))/ nrow(flchain)
+tab2 <- with(fdata, table(age2, sex, group))/ nrow(fdata)
 us.wt <- rep(pi.us, 3)/ tab2
 range(us.wt)
-index <- with(flchain, cbind(as.numeric(age2), as.numeric(sex), 
-                           as.numeric(group3)))
-flchain$uswt <- us.wt[index]                      %$
-sfit3a <-survfit(Surv(futime, death) ~ group3, data=flchain, weight=uswt) 
+index <- with(fdata, cbind(as.numeric(age2), as.numeric(sex), 
+                           as.numeric(group)))
+fdata$uswt <- us.wt[index]                      
+sfit3a <-survfit(Surv(futime, death) ~ group, data=fdata, weight=uswt) 
 @ 
 \begin{figure}[tb]
   \myfig{flc3a}
@@ -433,20 +433,20 @@ on the Olmsted County population they are quite similar as shown in
 figure \ref{flc3a}.  Not surprisingly, the population adjusted survival curves
 based on these two reference populations nearly overlap.
 
-<<flc3a, echo=T, fig=TRUE, include=FALSE >>=
-tab1 <- with(flchain, table(age2, sex))/ nrow(flchain)
+<<flc3a,  fig=TRUE, include=FALSE >>=
+tab1 <- with(fdata, table(age2, sex))/ nrow(fdata)
 matplot(1:8, cbind(pi.us, tab1), pch="fmfm", col=c(2,2,1,1),
         xlab="Age group", ylab="Fraction of population",
         xaxt='n')
-axis(1, 1:8, levels(flchain$age2))
+axis(1, 1:8, levels(fdata$age2))
 
-tab2 <- with(flchain, table(age2, sex, group3))/nrow(flchain)
-tab3 <- with(flchain, table(group3)) / nrow(flchain)
+tab2 <- with(fdata, table(age2, sex, group))/nrow(fdata)
+tab3 <- with(fdata, table(group)) / nrow(fdata)
 
 rwt <- rep(tab1,3)/tab2 
 round(rwt[,1,], 1) #show female data
-flchain$rwt <- rwt[index]  # add per subject weights to the data set
-sfit3 <- survfit(Surv(futime, death) ~ group3, data=flchain, weight=rwt)
+fdata$rwt <- rwt[index]  # add per subject weights to the data set
+sfit3 <- survfit(Surv(futime, death) ~ group, data=fdata, weight=rwt)
 @ 
 
 \begin{figure}[tb]
@@ -458,7 +458,7 @@ sfit3 <- survfit(Surv(futime, death) ~ group3, data=flchain, weight=rwt)
   \label{flc3}
 \end{figure}
 
-<<flc3, echo=FALSE, fig=TRUE, include=FALSE>>=
+<<flc3, fig=TRUE, include=FALSE>>=
 plot(sfit3, mark.time=F, col=c(1,2,4), lty=1, lwd=2,
      xscale=365.25, xlab="Years from Sample", 
      ylab="Survival")
@@ -466,7 +466,7 @@ lines(sfit3a,  mark.time=F, col=c(1,2,4), lty=1, lwd=1,
       xscale=365.25)
 lines(sfit1,  mark.time=F, col=c(1,2,4), lty=2, lwd=1,
       xscale=365.25)
-legend(2,.4, levels(flchain$group3), lty=1, col=c(1,2,4),
+legend(2,.4, levels(fdata$group), lty=1, col=c(1,2,4),
                bty='n', lwd=2)
 @ 
  
@@ -492,19 +492,19 @@ Horvitz-Thompsen variance estimate used in survey sampling \cite{Binder92}.
 The score test from \texttt{coxph} is equivalent to the log-rank test that
 is often used to label curves.
 <<>>=
-id <- 1:nrow(flchain)
-cfit <- coxph(Surv(futime, death) ~ group3 + cluster(id), data=flchain, 
+id <- 1:nrow(fdata)
+cfit <- coxph(Surv(futime, death) ~ group + cluster(id), data=fdata, 
               weight=rwt)
 summary(cfit)$robscore
 
 require(survey)
-sdes <- svydesign(id = ~0, weights=~rwt, data=flchain)
-dfit <- svykm(Surv(futime, death) ~ group3, design=sdes)
+sdes <- svydesign(id = ~0, weights=~rwt, data=fdata)
+dfit <- svykm(Surv(futime, death) ~ group, design=sdes)
 # the next line is painfully slow for this large a data set
 #dfit <- svykm(Surv(futime, death) ~ group, design=sdes, se=TRUE)
 # coming in a future survival release
 #sfit3 <- survfit(Surv(futime, death) ~ group + cluster(id), 
-#                 data=flchain, weight=rwt)
+#                 data=fdata, weight=rwt)
 @ 
 Note: including the \texttt{cluster} term in the coxph call causes it to
 treat the weights as resampling values and thus to use the proper 
@@ -522,36 +522,36 @@ $\pi$ we can use Bayes rule to rewrite the weights as
   \frac{1}{w_{asi}} &= \frac{{\rm Pr}({\rm age}=a, {\rm sex} =s, 
                                           {\rm group}=i)}
             {{\rm Pr}({\rm age}=a, {\rm sex} =s)} \\
-    &= {\rm Pr}({\rm group}=1 | {\rm age}=a, {\rm sex} =s)
+    &= {\rm Pr}({\rm group}=i | {\rm age}=a, {\rm sex} =s)
 \end{align*}
 
 This last is precisely the probability estimated by a logistic
-regression model, leading to \emph{inverse probabililty weighting}
+regression model, leading to \emph{inverse probability weighting}
 as an alternate label for this approach.
 We can reproduce the weights calculated just above with three
 logistic regression models.
-<<echo=T>>=
+<<ipw>>=
 options(na.action="na.exclude")
-gg <- as.numeric(flchain$group3)
-lfit1 <- glm(I(gg==1) ~ factor(age2) * sex, data=flchain,
+gg <- as.numeric(fdata$group)
+lfit1 <- glm(I(gg==1) ~ factor(age2) * sex, data=fdata,
             family="binomial")
-lfit2 <- glm(I(gg==2) ~ factor(age2) * sex, data=flchain,
+lfit2 <- glm(I(gg==2) ~ factor(age2) * sex, data=fdata,
             family="binomial")
-lfit3 <- glm(I(gg==3) ~ factor(age2) * sex, data=flchain,
+lfit3 <- glm(I(gg==3) ~ factor(age2) * sex, data=fdata,
             family="binomial")
 temp <- ifelse(gg==1, predict(lfit1, type='response'),
                ifelse(gg==2, predict(lfit2, type='response'),
                       predict(lfit3, type='response')))
-all.equal(1/temp, flchain$rwt)
+all.equal(1/temp, fdata$rwt)
 @ 
 If there were only 2 groups then only a single regression model is
 needed since P(group 2) = 1 - P(group 1).
 Note the setting of na.action, which causes the predicted vector to have
 the same length as the original data even when there are missing values.
-This simplifies merging the derived weights with the original data set.
+This simplifies using the derived weights with the original data set.
 
 An advantage of the regression framework is that one can easily
-accomodate more variables by using a model with additive terms
+accommodate more variables by using a model with additive terms
 and only a few selected interactions, and the model can contain continuous
 as well as categorical predictors.
 The disadvantage is that such models are often used without the necessary
@@ -564,23 +564,42 @@ How well does this work?
 Since the goal of reweighting is to standardize the ages,
 a reasonable check is to compute and plot the reweighted 
 age distribution for each flc group.
-<<flc4,echo=FALSE, fig=T, include=F>>=
-lfit1b <-glm(I(gg==1) ~ age + sex, data=flchain,
+ 
+\begin{figure}[tb]
+  \myfig{flc4}
+  \caption{The re-weighted age distribution using logistic regression
+    with continuous age, for females, FLC groups 1--3.
+    The target distribution is shown as a ``+''. 
+  The original unadjusted distribution is shown as dashed lines.}
+  \label{flc4}
+\end{figure}
+Figure \ref{flc4} shows the result. 
+The reweighted age distribution is not perfectly balanced, i.e., the 123
+symbols do not over plot one another, but in this case the simple linear
+model has done an excellent job.
+We emphasize that whenever the reweighting is based on a simplified model
+then such a check is obligatory.  
+It is quite common that a simple model is not sufficient and the resulting
+weight adjustment is inadequate. 
+Like a duct tape auto repair, proceeding forward as though
+the underlying problem has been addressed is then most unwise.
+<<flc4, fig=T, include=F>>=
+lfit1b <-glm(I(gg==1) ~ age + sex, data=fdata,
             family="binomial")
-lfit2b <- glm(I(gg==2) ~ age +sex, data=flchain,
+lfit2b <- glm(I(gg==2) ~ age +sex, data=fdata,
             family="binomial")
-lfit3b <- glm(I(gg==3) ~ age + sex, data=flchain,
+lfit3b <- glm(I(gg==3) ~ age + sex, data=fdata,
             family="binomial")
 
 # weights for each group using simple logistic
 twt <- ifelse(gg==1, 1/predict(lfit1b, type="response"),
               ifelse(gg==2, 1/predict(lfit2b, type="response"),
                                      1/predict(lfit3b, type="response")))
-tdata <- data.frame(flchain, lwt=twt)
+tdata <- data.frame(fdata, lwt=twt)
 
 #grouped plot for the females
 temp <- tdata[tdata$sex=='F',]
-temp$gg <- as.numeric(temp$group3)
+temp$gg <- as.numeric(temp$group)
 c1 <- with(temp[temp$gg==1,], tapply(lwt, age2, sum))
 c2 <- with(temp[temp$gg==2,], tapply(lwt, age2, sum))
 c3 <- with(temp[temp$gg==3,], tapply(lwt, age2, sum))
@@ -590,36 +609,18 @@ ytemp <- 100* cbind(c1/sum(c1), c2/sum(c2), c3/sum(c3))
 
 matplot(xtemp, ytemp, col=c(1,2,4),
         xlab="Age group", ylab="Weighted frequency (%)", xaxt='n')
-ztab <- table(flchain$age2)
+ztab <- table(fdata$age2)
 points(1:8, 100*ztab/sum(ztab), pch='+', cex=1.5, lty=2)
 # Add the unadjusted
 temp <- tab2[,1,]
 temp <- scale(temp, center=F, scale=colSums(temp))
 matlines(1:8, 100*temp, pch='o', col=c(1,2,4), lty=2)
-axis(1, 1:8, levels(flchain$age2))
-@ 
-\begin{figure}[tb]
-  \myfig{flc4}
-  \caption{The re-weighted age distribution using logistic regression
-    with continuous age, for females, FLC groups 1--3.
-    The target distribution is shown as a ``+''. 
-  The original unadjusted distribution is showns as dashed lines.}
-  \label{flc4}
-\end{figure}
-Figure \ref{flc4} shows the result. 
-The reweighted age distribution is not perfectly balanced, i.e., the 123
-symbols do not overplot one another, but in this case the simple linear
-model has done an excellent job.
-We emphasize that whenever the reweighting is based on a simplified model
-then such a check is obligatory.  
-It is quite common that a simple model is not sufficient and the resulting
-weight adjustment is inadequate. 
-Like a duct tape auto repair, proceeding forward as though
-the underlying problem has been addressed is then most unwise.
+axis(1, 1:8, levels(fdata$age2))
+@
 
 \paragraph{Rescaled weights}
 As the weights were defined in equation \ref{wt1}, the sum of weights
-for each of the groups is \Sexpr{nrow(flchain)}, 
+for each of the groups is \Sexpr{nrow(fdata)}, 
 the number of observations in the
 data set.  Since the number of subjects in group 3 is one seventh
 of that in group 1, the average weight in group 3 is much larger.
@@ -636,20 +637,20 @@ In its simplest form, the weights in each group are scaled to add up to the
 number of subjects in the group.
 <<>>=
 # compute new weights
-wtscale <- table(flchain$group3)/ tapply(flchain$rwt, flchain$group3, sum)
-wt2 <- c(flchain$rwt * wtscale[flchain$group3])
-c("rescaled cv"= sd(wt2)/mean(wt2), "rwt cv"=sd(flchain$rwt)/mean(flchain$rwt))
+wtscale <- table(fdata$group)/ tapply(fdata$rwt, fdata$group, sum)
+wt2 <- c(fdata$rwt * wtscale[fdata$group])
+c("rescaled cv"= sd(wt2)/mean(wt2), "rwt cv"=sd(fdata$rwt)/mean(fdata$rwt))
 
-cfit2a <- coxph(Surv(futime, death) ~ group3 + cluster(id),
-                data=flchain, weight= rwt)
-cfit2b <- coxph(Surv(futime, death) ~ group3 + cluster(id),
-                data=flchain, weight=wt2) 
+cfit2a <- coxph(Surv(futime, death) ~ group + cluster(id),
+                data=fdata, weight= rwt)
+cfit2b <- coxph(Surv(futime, death) ~ group + cluster(id),
+                data=fdata, weight=wt2) 
 round(c(cfit2a$rscore, cfit2b$rscore),1)
 @ 
 The rescaling results in weights that are much less variable
 across groups.
 This operation has no impact on the individual survival curves or
-their standard errors, since within group we have multipled all weights
+their standard errors, since within group we have multiplied all weights
 by a constant.
 When comparing curves across groups, however, the rescaled weights
 reduce the standard error of the test statistic.
@@ -660,8 +661,9 @@ this particular data set the improvement is not very large.
 In the marginal approach we first balance the data set and then compute
 results on the adjusted data.  
 In the conditional approach we first compute a predicted survival curve
-for each subject that accounts for flc group, and then take a weighted
-average of the curves.
+for each subject that accounts for flc group, age and sex, 
+and then take a weighted average of the curves to get an overall estimate
+for each flc group.
 For both methods a central consideration is the population of interest,
 which drives the weights.  Modeling has not removed the question of
 \emph{who} these curves should represent, it has simply changed the order of
@@ -676,14 +678,14 @@ In the marginal approach it was important to find age/sex groups for
 which the probability of membership within each FLC group was constant
 within the strata (independent of age and sex, within strata), 
 in this case it is important that the survival for each FLC group is
-constant in each strata with each age/sex stratum.  Homogeneity of
+constant in each age/sex stratum.  Homogeneity of
 membership within each stratum and homogeneity of survival within each
 stratum may lead to different partitions for some data sets.
 
 Computing curves for all the combinations is easy.
-<<echo=TRUE>>=
-allfit <- survfit(Surv(futime/365.25, death) ~ group3 + 
-                               age2 + sex, flchain)
+<<strata>>=
+allfit <- survfit(Surv(futime/365.25, death) ~ group + 
+                               age2 + sex, fdata)
 temp <- summary(allfit)$table
 temp[1:6, c(1,4)] #abbrev printout to fit page
 @ 
@@ -692,16 +694,16 @@ The resultant survival object has 48 curves: 8 age groups * 2 sexes *
 To get a single curve for the first FLC group we need to take a weighted
 average over the 16 age/sex combinations that apply to that group,
 and similarly for the second and third FLC subset.
-Combining the curves is a bit of a nuisance computationally, 
+Combining the curves is a bit of a nuisance computationally
 because each of them is reported on a different set of time points.
 A solution is to use the 
 \texttt{summary} function for survfit objects along with the \texttt{times}
 argument of that function.  
-this was originally designed to allow printout of curves at selected
+This feature was originally designed to allow printout of curves at selected
 time points (6 months, 1 year, \ldots), but can also be used to 
 select a common set of time points for averaging.
-We will arbitrarily use 4 per year, which is sufficient to create a smooth
-plot over the time span of interest.
+We will arbitrarily use 4 per year, which is sufficient to create a
+visually smooth plot over the time span of interest.
 By default \texttt{summary} does not return data for times beyond the
 end of a curve,
 i.e., when there are no subjects left at risk;
@@ -712,11 +714,11 @@ sex within age within group order.
 The overall curve is a weighted average chosen to match the original
 age/sex distribution of the population.
 
-<<flc5, echo=T, fig=T, include=F>>=
+<<flc5, fig=TRUE, include=FALSE>>=
 xtime <- seq(0, 14, length=57)  #four points/year for 14 years
 smat <- matrix(0, nrow=57, ncol=3) # survival curves
 serr <- smat  #matrix of standard errors
-pi <- with(flchain, table(age2, sex))/nrow(flchain)  #overall dist
+pi <- with(fdata, table(age2, sex))/nrow(fdata)  #overall dist
 for (i in 1:3) {
     temp <- allfit[1:16 + (i-1)*16] #curves for group i
     for (j in 1:16) {
@@ -746,17 +748,19 @@ of downward shift.
 There are two major disadvantages to the stratified curves.
 The first is that when the original data set is small 
 or the number of confounders is
-large, it is not always feasable to stratify into a
+large, it is not always feasible to stratify into a
 large enough set of groups that each will be homogeneous.
 The second is a technical aspect of the standard error estimate.
-When a Kaplan-Meier curve drops to zero the usual standard error
+Since the curves are formed from disjoint sets of observations they
+are independent and the variance of the weighted average is then a weighted
+sum of variances.  However,
+when a Kaplan-Meier curve drops to zero the usual standard error
 estimate at that point involves 0/0 and becomes undefined,
 leading to the NaN (not a number) value in R. 
 Thus the  overall standard error becomes undefined if any of the 
-component curves
-falls to zero.  
-In the above example this happens to all the curves at about the
-half way point.
+component curves falls to zero.  
+In the above example this happens  at about the
+half way point of the graph.
 (Other software packages carry forward the se value from the last
 no-zero point on the curve, but the statistical validity of this is
 uncertain.)
@@ -764,22 +768,23 @@ uncertain.)
 To test for overall difference between the curves we can use a stratified
 test statistic, which is a sum of the test statistics computed within each
 subgroup.  The most common choice is the stratified log-rank statistic
-which is shown below.
+which is shown below.  
+The score test from a stratified Cox model would give the same result.
 <<>>=
-survdiff(Surv(futime, death) ~ group3 + strata(age2, sex), flchain)
+survdiff(Surv(futime, death) ~ group + strata(age2, sex), fdata)
 @ 
 
 \subsection{Modeling}
-An alternative approach to stratification
+The other approach for conditional estimation
 is to model the risks due to the confounders.
 Though we have left it till last, this is usually the first 
 (and most often the only) approach used by most data analysts.
 
 Let's start with the very simplest method: a stratified Cox
 model.
-<<flc8, echo=TRUE, eval=TRUE, fig=FALSE, include=FALSE>>=
-cfit4a <- coxph(Surv(futime, death) ~ age + sex + strata(group3),
-               data=flchain)
+<<flc8, echo=TRUE, eval=TRUE, fig=TRUE, include=FALSE>>=
+cfit4a <- coxph(Surv(futime, death) ~ age + sex + strata(group),
+               data=fdata)
 surv4a <- survfit(cfit4a)
 plot(surv4a, col=c(1,2,4), mark.time=F, xscale=365.25,
      xlab="Years post sample", ylab="Survival")
@@ -800,16 +805,16 @@ However, we are interested in the adjusted survival of a \emph{cohort}
 of subjects in each range of FLC, and
 the survival of an ``average'' subject is not the average
 survival of a cohort.
-The sex variable is particularly problematic since the mean of the
-0/1 indicator variable is biologically inane.
 The third and most serious issue is that it is not clear exactly
-what these ``adjusted'' curves represent.
+what these ``adjusted'' curves represent --- 
+exactly who \emph{is} this subject a sex of 
+\Sexpr{round(cfit4a[['means']][2],2)}?
 Multiple authors have commented on this problem,
 see Thomsen et al \cite{Thomsen91}, Nieto and Coresh \cite{Nieto96}
 or chapter 10 of Therneau and Grambsh \cite{Therneau00} for examples.
 Even worse is a Cox model that treated the FLC group as a covariate,
-since that will impose a constraint of proportional hazards across the
-3 FLC groups.
+since that will impose a an additional constraint of proportional 
+hazards across the 3 FLC groups.
 
 \begin{figure}
   \myfig{flc6}
@@ -819,65 +824,47 @@ since that will impose a constraint of proportional hazards across the
   \label{flc6}
 \end{figure}
 
-We can address the second problem by doing a proper average.
-The Cox model fit above can produce the predicted curves for any
-age/sex combination. 
-The most straighforward approach is to retrieve the predicted individual 
+We can address this last problem  problem by doing a proper average.
+A Cox model fit can produce the predicted curves for any
+age/sex combination. The key idea is to produce a predicted survival
+curve for every subject of some hypothetical population, and then
+take the average of these curves.
+The most straightforward approach is to retrieve the predicted individual 
 curves for all
-\Sexpr{nrow(flchain)} subjects in the data set, assuming each of the three
+\Sexpr{nrow(fdata)} subjects in the data set, assuming each of the three
 FLC strata one by one, and take a simple average for each strata.
 For this particular data set that is a bit slow since it involves
-\Sexpr{nrow(flchain)} curves.  However there are only 98
-unique age/sex pairs in the data and it is sufficient to obtain survival
-curves for this subset and take a weighted average.
-We will make use of the survexp function, which is designed to create
-population average curves.
+\Sexpr{nrow(fdata)} curves.  However there are only 98
+unique age/sex pairs in the data, 
+it is sufficient to obtain the 98 * 3 FLC groups unique curves and
+take a weighted average.
+We will make use of the survexp function, which is designed for just this
+purpose.
 Start by creating a data set which has one row for each age/sex combination
 along with its count.
-The replicate it into 3 copies, assigning one copy to each of the three
+Then replicate it into 3 copies, assigning one copy to each of the three
 FLC strata.  
-The predicted curve for the first copy corresponds to a population that
-has 
 
 <<flc6, echo=TRUE, fig=TRUE, include=FALSE>>=
-temp <- with(flchain, table(age, sex))
-uage <- as.numeric(dimnames(temp)[[1]])
-tdata <- data.frame(age=uage[row(temp)],
-                    sex=c("F","M")[col(temp)],
-                    count= c(temp))
+tab4a <- with(fdata, table(age, sex))
+uage <- as.numeric(dimnames(tab4a)[[1]])
+tdata <- data.frame(age = uage[row(tab4a)],
+                    sex = c("F","M")[col(tab4a)],
+                    count= c(tab4a))
 tdata3 <- tdata[rep(1:nrow(tdata), 3),]  #three copies
-tdata3$group3 <- factor(rep(1:3, each=nrow(tdata)), 
-                       labels=levels(flchain$group3))
-sfit4a <- survexp(~group3, data=tdata3, weight = count, 
+tdata3$group <- factor(rep(1:3, each=nrow(tdata)), 
+                       labels=levels(fdata$group))
+sfit4a <- survexp(~group, data=tdata3, weight = count, 
                     ratetable=cfit4a) 
-
-                    
-uage <- sort(unique(flchain$age))  #age 98 has none, nuisance
-tdata <- data.frame(age=rep(uage, 2),
-                    sex=factor(rep(levels(flchain$sex), each=length(uage))))
-sfit4a <- survfit(cfit4a, newdata=tdata, se.fit=FALSE)
-tab4a <- with(flchain, table(age, sex))
-sfit4a$surv <- sfit4a$surv %*% c(tab4a/sum(tab4a))
 
 plot(sfit4a, mark.time=F, col=c(1,2,4), lty=1, lwd=2,
      xscale=365.25, xlab="Years from Sample", 
      ylab="Survival")
 lines(sfit3,  mark.time=F, col=c(1,2,4), lty=2, lwd=1,
       xscale=365.25)
-legend(2,.4, c("Group 1", "Group 2", "Group 3"), lty=1, col=c(1,2,4),
+legend(2,.4, c("FLC low", "FLC med", "FLC high"), lty=1, col=c(1,2,4),
                bty='n', lwd=2)
 @ 
-The above code is a bit sneaky.  I know that the result from the
-survfit function has a matrix of survival curves \texttt{sfit4a\$surv} 
-which is a matrix of 104 columns, one for each row in the tdata data
-frame.  
-The matrix multiplication replaces it with a single column containing
-the weighted average of these, which also happens to be a legal survfit
-object and thus is easy to plot.  
-A better approach (for anyone but the author of the package) is to use
-the survexp function, which is designed for just such a case.
-
-
 Figure \ref{flc6} shows the result.  Comparing this to the prior 3
 adjustments shown in figures \ref{flc3}, \ref{flc4}, and \ref{flc5}
 we see that this result is different.  Why?
@@ -891,52 +878,76 @@ which were based on the same subsets.
 The Cox based result is systematically higher than the stratified
 one, however, so something more is indicated.
 
+Aside: 
+An alternate computational approach is to create the individual 
+survival curves using
+the \texttt{survfit} function and then take averages.
+<<>>=
+tfit <- survfit(cfit4a, newdata=tdata, se.fit=FALSE)
+curves <- vector('list', 3)
+twt <- c(tab4a)/sum(tab4a)
+for (i in 1:3) {
+    temp <- tfit[i,]
+    curves[[i]] <- list(time=temp$time, surv= c(temp$surv %*% twt))
+    }
+@ 
+The above code is a bit sneaky.  I know that the result from the
+survfit function contains a matrix \texttt{tfit\$surv} 
+of 104 columns, one for each row in the tdata data
+frame, each column containing the curves for the three strata one after
+the other.  Sub setting \texttt{tfit} results in the matrix for a single
+flc group.
+Outside of R an approach like the above may be needed, however.
+
 \begin{figure}
   \myfig{flc6b}
   \caption{Left panel: comparison of Cox model based adjustment (solid) with the
-     curves based on a marginal adjustment.  
+     curves based on marginal adjustment (dashed).  
+     The Cox model curves without (black) and with (red) an age*sex interaction
+           term overlay.
      Right panel: plot of the predicted relative risks from a Cox model
      \texttt{crate} versus population values from 
      the Minnesota rate table.}
   \label{flc6b}
 \end{figure}
 
-Suspicion should first fall on the use of a simple linear model for
-age and sex. 
-Start by fitting a slightly more refined model that allows
+So why are the modeling results so different than either reweighting
+or stratification?
+Suspicion first falls on the use of a simple linear model for
+age and sex, so start by
+fitting a slightly more refined model that allows
 for a different slope for the two sexes, but is still linear in age.
 In this particular data set an external check on the fit is also
 available via the Minnesota death rate tables, which are included
 with the survival package as \texttt{survexp.mn}.  This is an
 array that contains daily death rates by age, sex, and calender year.
-
 <<flc6b, fig=TRUE, include=FALSE>>=
 par(mfrow=c(1,2))
+cfit4b <- coxph(Surv(futime, death) ~ age*sex + strata(group),
+                fdata)
+sfit4b <- survexp(~group, data=tdata3, ratetable=cfit4b, weights=count)
+plot(sfit4b, fun='event', xscale=365.25,
+     xlab="Years from sample", ylab="Deaths")
+lines(sfit3, mark.time=FALSE, fun='event', xscale=365.25, lty=2)
+lines(sfit4a, fun='event', xscale=365.25, col=2)
 
-cfit4b <- coxph(Surv(futime, death) ~ age*sex + strata(group3),
-                flchain)
-sfit4b <- survfit(cfit4b, tdata, se=F)
-
-sfit4b$surv <- sfit4b$surv %*% c(tab4a/sum(tab4a))
-plot(sfit4b, mark.time=FALSE, fun='cumhaz', xscale=365.25,
-     xlab="Years from sample", ylab="Cumulative Hazard")
-lines(sfit3, mark.time=FALSE, fun='cumhaz', xscale=365.25, lty=2)
-
-temp <- median(flchain$sample.yr)                                %$
+temp <- median(fdata$sample.yr)                                
 mrate <- survexp.mn[as.character(uage),, as.character(temp)]
 crate <- predict(cfit4b, newdata=tdata, reference='sample', type='lp')
-crate <- matrix(crate, ncol=2)[,2:1] # mrate has males then females
+crate <- matrix(crate, ncol=2)[,2:1] # mrate has males then females, match it
 # crate contains estimated log(hazards) relative to a baseline,
 #  and mrate absolute hazards, make both relative to a 70 year old
 for (i in 1:2) {
     mrate[,i] <- log(mrate[,i]/ mrate[21,2])
     crate[,i] <- crate[,i] - crate[21,2]
     }
-matplot(mrate, crate,  pch='mf')
-abline(0, 1)
+matplot(mrate, crate, col=2:1, type='l')
+abline(0, 1, lty=2, col=4)
 @ 
 The resulting curves are shown in the left panel of
-figure \ref{flc6b} and reveal that 
+figure \ref{flc6b} and reveal that addition of an interaction term
+did not change the predictions, and that the Cox model result
+for the highest risk group is distinctly different
 predicted survival for the highest FLC group is distinctly different
 when using model based prediction.
 The right hand panel of the figure shows that though there are slight
@@ -944,22 +955,22 @@ differences with the Minnesota values, linearity of the age effect
 is very well supported. 
 So where exactly does the model go wrong?  Since this is such a
 large data set we have the luxury of looking at subsets.
-Since this would be a very large number of curves to plot ---
-age by sex by FLC = 48 --- an overlay of the observed and expected
+This would be a very large number of curves to plot ---
+age by sex by FLC = 48 --- so an overlay of the observed and expected
 curves by group would be too confusing.
 Instead we will summarize each of the groups according to their
 observed and predicted number of events.
 <<fig=TRUE, include=FALSE>>=
-obs <- with(flchain, tapply(death, list(age2, sex, group3), sum))
-pred<- with(flchain, tapply(predict(cfit4b, type='expected'),
-              list(age2, sex, group3), sum))
+obs <- with(fdata, tapply(death, list(age2, sex, group), sum))
+pred<- with(fdata, tapply(predict(cfit4b, type='expected'),
+              list(age2, sex, group), sum))
 excess <- matrix(obs/pred, nrow=8)  #collapse 3 way array to 2
 dimnames(excess) <- list(dimnames(obs)[[1]], c("low F", "low M",
                                                "med F", "med M",
                                                "high F", "high M"))
 round(excess, 1)
 @ 
-The excess risks, defines as the observed/expected number of deaths,
+The excess risks, defined as the observed/expected number of deaths,
 are mostly modest ranging from .8 to 1.2.
 The primary exception exception is the high FLC group for ages 50--59
 which has values of 1.6 to 2.5;  
@@ -968,20 +979,20 @@ age 50--54 and 55--59 groups.
 Since this is also the age category with the highest count in the data
 set, this overestimation will have a large impact on the overall
 curve for high FLC subset, which is exactly where the the deviation
-in figure \ref{flc6b} was observed to lie.
+in figure \ref{flc6b} is observed to lie.
 There is also mild evidence for a linear trend in age for the low FLC females,
 in the other direction.
 Altogether this suggests that the model might need to have a different
 age coefficient for each of the three FLC groups.
 <<>>=
-cfit5a <- coxph(Surv(futime, death) ~ group3:age +sex + 
-                strata(group3), flchain) 
-cfit5b <- coxph(Surv(futime, death) ~ group3:(age +sex) + 
-                strata(group3), flchain)
-cfit5c <- coxph(Surv(futime, death) ~ group3:(age *sex) + 
-                strata(group3), flchain)
+cfit5a <- coxph(Surv(futime, death) ~ group:age +sex + 
+                strata(group), fdata) 
+cfit5b <- coxph(Surv(futime, death) ~ group:(age +sex) + 
+                strata(group), fdata)
+cfit5c <- coxph(Surv(futime, death) ~ group:(age *sex) + 
+                strata(group), fdata)
 
-options(show.signif.stars=FALSE) #remove bad option
+options(show.signif.stars=FALSE) # see footnote
 anova(cfit4a, cfit5a, cfit5b, cfit5c)
 temp <- coef(cfit5a)
 names(temp) <- c("sex", "ageL", "ageM", "ageH")
@@ -990,14 +1001,11 @@ round(temp,3)
 The model with separate age coefficients for each FLC group gives a
 major improvement in goodness of fit, 
 but adding separate sex coefficients per group
-or separate age coefficients per sex does not add importantly
-beyond that 
+or further interactions does not add importantly
+beyond that. 
 \footnote{There are certain TV shows that make one dumber just by
   watching them; adding stars to the output has the same effect on 
-  statisticians.  
-  We have purposefully turned off the show.signif.stars option.}.
-The age coefficients decrease with FLC group, as predicted by
-the prior pattern of residuals.
+  statisticians.}
 
 \begin{figure}
   \myfig{flc7}
@@ -1013,21 +1021,16 @@ right corner.  The updated survival curves are shown in
 figure \ref{flc7} and now are 
 in closer concordance with the marginal fit.
 <<flc7, include=FALSE, fig=TRUE>>=
-pred5a <- with(flchain, tapply(predict(cfit5a, type='expected'),
-              list(age2, sex, group3), sum))
+pred5a <- with(fdata, tapply(predict(cfit5a, type='expected'),
+              list(age2, sex, group), sum))
 excess5a <- matrix(obs/pred5a, nrow=8,
                    dimnames=dimnames(excess))
 round(excess5a, 1)
 
-
-sfit5a <- survfit(cfit5a, newdata=data.frame(tdata, group3="FLC < 3.38"), 
-                 se=FALSE)
-sfit5b <- survfit(cfit5a, newdata=data.frame(tdata, group3="3.38 - 4.71"),
-                  se=FALSE)
-sfit5c <- survfit(cfit5a, newdata=data.frame(tdata, group3="FLC > 4.71"),
-                  se=FALSE)
-plot(sfit3, mark.time=FALSE, fun='cumhaz', xscale=365.25, lty=2,
-     xlab="Years from sample", ylab="Cumulative Hazard")
+sfit5  <- survexp(~group,  data=tdata3, ratetable=cfit5a, weights=count)
+plot(sfit3, fun='event', xscale=365.25, mark.time=FALSE, lty=2,
+     xlab="Years from sample", ylab="Deaths")
+lines(sfit5, fun='event', xscale=365.25)
 @ 
 One problem with the model based estimate is that standard errors for the
 curves are complex.
@@ -1042,14 +1045,14 @@ A proper variance for the unweighted average has been derived by Gail and
 Byar \cite{Gail86},
 but this has not been implemented in any of the standard packages, nor extended
 to the weighted case.  
-A bootstrap estimate would appear to be the most feasable.
+A bootstrap estimate would appear to be the most feasible.
 
 \section{Conclusions}
 When two populations need to be adjusted and one is much larger than the other, 
 the balanced subset method has been popular.
 It is most often seen in the
 context of a case-control study, with cases as the rarer group and a set
-of matched contols selected from the larger one.  
+of matched controls selected from the larger one.  
 This method has the advantage that the usual standard error estimates from a 
 standard package are appropriate, so no further work is required.
 However, in the general situation it leads to a correct answer but for the wrong

@@ -34,6 +34,7 @@ options(contrasts=c("contr.treatment", "contr.poly")) #reset default
 
 \begin{document}
   \maketitle
+  \tableofcontents
 \section{Introduction}
 This note started with an interchange on the R-help list that 
 became a bit adversarial.
@@ -68,7 +69,7 @@ conclusions of this report at the start.
         the Yates approach as a default analysis method
         have appeared almost yearly in the statistics
         literature, with little apparent effect on the usage of the 
-        method.  Senn \cite{Sennxx} provides hope for change in one area.
+        method.  
        \item My own view is that for balanced or near balanced experiments 
          the Yates' hypothesis is very sensible, but for most biological data 
          it corresponds to a valid test of a completely irrelevant question.
@@ -92,7 +93,7 @@ conclusions of this report at the start.
     The SAS type 3 computation for linear models is sophisticated and
     reliable; that used in phreg is neither.  I would describe this 
     recent addition as a black eye for the SAS package, seriously
-    undermining their reputation for reliable compuatation.
+    undermining their reputation for reliable computation.
     The calculated phreg results depend on which
     particular coding is chosen for the factors, the default coding
     leads to an unexpected result, and labeling that output as ``type 3''
@@ -190,7 +191,7 @@ unbalanced at the older ages, from about 1/2 females in the youngest
 group to a 4:1 ratio in the oldest.
 <<data, fig=TRUE, include=FALSE>>=
 library(survival)
-age2 <- cut(flchain$age, c(49, 59, 69, 79, 89, 120),                   %$
+age2 <- cut(flchain$age, c(49, 59, 69, 79, 89, 120),                   
             labels=c("50-59", "60-69", "70-79", "80-89", "90+"))
 counts <- with(flchain, table(sex, age2))
 counts
@@ -236,11 +237,12 @@ The male-female difference is estimated as the difference of these means.
 This is what is obtained from a simple linear regression of FLC on sex.
 Once we step beyond this and adjust for age, 
 the relevant linear models can be looked
-at in several ways; we will explore four of them below.
+at in several ways; we will explore three of them below:
+contrasts, case weights, and nesting.
 This ``all roads lead to Rome'' property of linear models is one of their
 fascinating aspects, at least mathematically.
 
-\subsection{Continuous adjustment}
+\subsection{Case weights}
 \begin{figure}
   \myfig{pop}
   \caption{Three possible adjusting populations for the FLC data
@@ -273,14 +275,16 @@ Here are four common choices.
         variance of the estimated female-male difference.
     \end{enumerate}
 \end{enumerate}
-
+The principle idea behind case weights is to reweight the data such that
+confounders become balanced, i.e., ages are balanced when examining the
+sex effect and sex is balanced when examining age.
 Any fitted least squares estimate
 can be rewritten as a weighted sum of the data points with weight
 matrix $W= (X'X)^{-1}X'$. $W$ has $p$ rows, one per coefficient,
 each row is the weight vector for
 the corresponding element of $\hat\beta$.  So we can backtrack and
 see what population assumption was underneath any given fit
-by looking at the weights for the sex coefficient.
+by looking at the weights for the relevant coefficient(s).
 Consider the two fits below. 
 In both the second coefficient is an estimate of the overall 
 difference in FLC values between the sexes.  
@@ -298,22 +302,23 @@ c(fit1$coef[2], fit2$coef[2])
 
 wt1  <- solve(t(fit1$x)%*%fit1$x, t(fit1$x))[2,] # unadjusted
 wt2 <-  solve(t(fit2$x)%*%fit2$x, t(fit2$x))[2,] # age-adjusted
+table(wt1, flchain$sex)
 @ 
 
 To reconstruct the implied population density, one can
 use the density function with \code{wt1} or \code{wt2} as
 the case weights.
 Examination of \code{wt1} immediately shows that the values
-are $1/n_f$ for females and $1/n_m$ for males where
+are $-1/n_f$ for females and $1/n_m$ for males where
 $n_f$ and $n_m$ are number of males and females, respectively.
 The linear model \code{fit1} is the simple difference in male
 and female means; the implied population structure for
 males and females is the unweighted density of each.
 
 Because this data set is very large and age is coded in years
-we can get a density estimate by simple counting.
+we can get a density estimate for fit2 by simple counting.
 The result is coded below and shown in figure \ref{fig:pop}.
-The emprical reference and least squares reference are nearly
+The empirical reference and least squares reference are nearly
 identical.  This is not a surprise.
 Least squares fits produce minimum variance unbiased estimates (MVUE),
 and the variance of a weighted average is minimized by using weights
@@ -350,7 +355,7 @@ If we try to apply population reference adjustment directly
 a problem immediately arises: in the US reference 
 \Sexpr{round(100*us2000[46]/sum(us2000),2)}\% of the population is
 aged 95 years, and our sample has no 95 year old males; it is
-not possible to reweight the sample so as to exactly match the
+not possible to re weight the sample so as to exactly match the
 US population reference.
 This occurs in any data set that is divided into small strata.
 The traditional epidemiology approach to this is to use wider
@@ -398,7 +403,7 @@ that paper.
 (Interestingly, his computational process turns out to be closely 
 related to the fast Fourier transform.)
 
-The second facet of categorical variables is that another population 
+The second facet of categorical variables is that another adjustment 
 is added to the list of common estimates:
 \begin{enumerate}
   \item Unadjusted 
@@ -457,7 +462,7 @@ qform <- function(beta, var) # quadratic form b' (V-inverse) b
     sum(beta * solve(var, beta))
 contrast <- function(cmat, fit) {
     varmat <- vcov(fit)
-    if (class(fit) == "lm") sigma2 <- summary(fit)$sigma^2              %$
+    if (class(fit) == "lm") sigma2 <- summary(fit)$sigma^2              
     else sigma2 <- 1   # for the Cox model case
 
     beta <- coef(fit)
@@ -481,7 +486,7 @@ contrast(yates.sex[2,]-yates.sex[,1], yatesfit) # male - female contrast
 # Create the estimates table -- lots of fits
 emat <- matrix(0., 6, 3)
 dimnames(emat) <- list(c("Unadjusted", "MVUE: continuous age", 
-                         "MVUE: categorical age", "Emprical (data) reference",
+                         "MVUE: categorical age", "Empirical (data) reference",
                          "US200 reference", "Uniform (Yates)"),
                        c("est", "se", "SS"))
 
@@ -532,7 +537,7 @@ as a weighted sum of the y values.
 Weighted averages have 
 minimal variance when all of the weights are close to 1.  
 The unadjusted estimate adheres to this precisely and the data-reference
-and UMVE stay as close as possible to constant weights, subject to balancing the
+and MVUE stay as close as possible to constant weights, subject to balancing the
 population.  The Yates estimate, by treating every cell equally,
 implicitly gives much larger weights to the oldest ages.
 Table \ref{tab:est} shows the effective observation weights used for each of the
@@ -557,7 +562,7 @@ for (i in 1:4) {
   \begin{tabular}{rlrrrrr}
     &&50--59& 60--69 & 70--79 & 80--89 & 90+ \\ \hline
 <<echo=FALSE, results=tex>>=
-tname <- c("Unadjusted", "Min var", "Emprical", "Yates")
+tname <- c("Unadjusted", "Min var", "Empirical", "Yates")
 for (i in 1:2) {
     for (j in 1:4) {
         cat("&",tname[j], " & ",
@@ -581,7 +586,7 @@ which is the one with the greatest female/male imbalance in the
 population.  
 For all but the unbalanced estimate (which ignores age) the males are
 given a weight that is approximately 3 times that for females
-in order to rebalance the shortage of males in that category.
+in order to re balance the shortage of males in that category.
 However, the
 absolute values of the weights differ considerably.
 
@@ -647,7 +652,7 @@ and the Yates test for row effect is
 \end{align}
 
 Equation \eqref{std} is overdetermined and all computer
-programs add constraints in order to guarrantee a unique solution.
+programs add constraints in order to guarantee a unique solution.
 However those constraints are applied, however, equation \eqref{ycont}
 holds.
 The default in R is treatment contrasts, which use the first level
@@ -670,7 +675,7 @@ The usual constraint is SAS is to use the last level of any class
 variable as the reference group,
 i.e., all coefficients with $i=2$ or $j=5$ in equations 
 \eqref{std} and \eqref{ycont} are set to zero.
-<<sas>>=
+<<SAS>>=
 options(contrasts=c("contr.SAS", "contr.poly"))
 sfit1 <- lm(flc ~ sex, flchain)
 sfit2 <- lm(flc ~ sex + age2, flchain)
@@ -721,8 +726,8 @@ know a way to avoid this and enter only the non-aliased values.)
 
 So, how do we actually compute the Yates contrast in a computer program?
 We will take it as a give that no one wants to memorize contrast formulas.
-Appendix \ref{sect:coding} describes three algorithms for the compuation.
-These are implimented in the \code{yates} function, which has been
+Appendix \ref{sect:coding} describes three algorithms for the computation.
+These are implemented in the \code{yates} function, which has been
 added to the survival package.  
 
 One of these three (NSTT) is completely unreliable, but is included because
@@ -730,7 +735,7 @@ it is so often found in code.
 If one uses the sum constraints commonly found in textbooks,
 which corresponds to the \code{contr.sum} constraint in R and to \code{effect}
 constraints in SAS, and there are no missing cells, then the last term
-in equaion \eqref{ycont} is zero and the simple 
+in equation \eqref{ycont} is zero and the simple 
 contrast $\alpha_i =0$ will be equal to the Yates contrast for sex. 
 I often see this method recommended on R help in response to
 the question of ``how to obtain type III'', computed either by use of the 
@@ -746,7 +751,7 @@ options(contrasts = c("contr.treatment", "contr.poly")) #R default
 fit3a <- lm(flc ~ sex * age2, flchain)
 options(contrasts = c("contr.SAS", "contr.poly"))
 fit3b <- lm(flc~ sex * age2, flchain)
-options(contrasts=c("contr.sum", "contrl.poly"))
+options(contrasts=c("contr.sum", "contr.poly"))
 fit3c <- lm(flc ~ sex * age2, flchain)
 #
 nstt <- c(0,1, rep(0,8))  #test only the sex coef = the NSTT method
@@ -856,7 +861,7 @@ one of which defines type 3 and the other type 4.
 I found it very challenging to recreate their algorithm from this document.
 Historical knowledge of the underlying linear model algorithms used by
 SAS is a useful
-and almost necessary adjuct, as many of the steps in the document are side
+and almost necessary adjunct, as many of the steps in the document are side
 effects of their calculation.
 
 When there are missing cells, then it is not possible to compute a 
@@ -901,8 +906,8 @@ Several discussion points recur:
   \item Many take the sequential ANOVA table as primary, i.e., a set of
     nested models along with likelihood ratio tests (LRT), and decry
     all comparisons of ``main effects in the presence of interaction.''
-    Since population weightings other than the LS one do not fit nicely into
-    the nested framework they are excluded.
+    Population weightings other than the LS one do not fit nicely into
+    the nested framework.
   \item Others are distressed by the fact that the MVUE adjusting population
     is data dependent, so that one is ``never sure exactly what 
     hypothesis being tested''.  
@@ -915,7 +920,7 @@ Those in group 1 argue strongly against the Yates weighting and those in group 2
 argue for the Yates contrast.  
 Group 3 is somewhat inexplicable to me since any
 change in the choice of constraint type will change all the patterns.
-I fear that an opening sentence from a 1986 overview/review of Herr
+I fear that an opening phrase from the 1986 overview/review of Herr
 \cite{Herr86}
 is still apropos, ``In an attempt to understand how we have arrived at our
 present state of ignorance \ldots''.
@@ -934,9 +939,13 @@ Do we give each patient equal weight (MVUE) or each center equal weight (Yates).
 A tongue-in-cheek but nevertheless excellent commentary on the subject is
 given by the old curmudgeon, aka Guernsey McPearson \cite{Senn1, Senn2}.
 A modern summary with focus on the clinical trials arena is found in 
-chapter 14 of the textbook by  Senn \cite{Senn07}.
+chapter 14 of the textbook by  Senn \cite{Senn07}
 
-I find the 1978 paper by Aitkin \cite{Aitkin78} particularly useful.  
+I have found two papers particularly useful in thinking about this.
+Senn \ref{Senn00} points out the strong parallels beween tests for main effects
+when there may be interactions and meta analyses, cross connecting these two
+approaches is illuminating.
+A classic reference is the 1978 paper by Aitkin \cite{Aitkin78}.
 This was read before the Royal Statistical
 Society and includes remarks by 10 discussants forming a who's who of
 statistical theory (F Yates, J Nelder, DR Cox, DF Andrews, KR Gabriel, \ldots).
@@ -955,18 +964,14 @@ being that the computations could be performed on a desk calculator.
 I have two primary problems with the SAS type 3 approach.
 The first and greatest is that their documentation recommends the method
 with no reference to this substantial and sophisticated literature
-discussing strengths and weaknesses of the approach.  
+discussing strengths and weaknesses of the Yates contrast.  
 This represents a level of narcissism which is completely unprofessional.
 %Recommending the type III approach as best for all cases, as they do, has
 %caused actual harm.
 The second is that their documentation explains the method is a way that
 is almost impenetrably opaque.  
-They start with the columns of X which remain after elimination 
-of linearly dependencies (labeled as L1, L2, \ldots), and then cite
-an orthogannlity principle which arises from viewing Yates contrast
-as a particular linear projection.  
-If this is the only documentation one has, there will not be 1 person in 
-100 who can
+If this is the only documentation one has, there will not be 1 statistician 
+in 20 who would be able to
 explain the actual biological hypothesis which is being addressed by 
 a type 3 test.
 
@@ -1026,7 +1031,7 @@ anova(cfit1)
 anova(cfit2)
 @ 
 Without adjustment for age the LRT for sex is only
-\Sexpr{round(2*diff(cfit1$loglik),1)}, and after adjustment for %$
+\Sexpr{round(2*diff(cfit1$loglik),1)}, and after adjustment for 
 age it increases to \Sexpr{round(anova(cfit2)[3,2],2)}.
 Since females are older, not adjusting for age almost complete
 erases evidence of their actual survival advantage.
@@ -1203,7 +1208,7 @@ The Yates contrast is then simply an average of estimates across the
 appropriate margin.
 However, we normally will want to solve the linear or Cox model fit in
 a more standard coding and then compute the Yates contrast after the fact.
-Note that any population renorming requires estimates of the cell means, 
+Note that any population re norming requires estimates of the cell means, 
 whether
 they were explicit parameters or not, i.e., the model fit must include
 interaction terms.
@@ -1235,19 +1240,20 @@ cells.
 
 <<ydata>>= 
 data1 <- data.frame(y = rep(1:6, length=20),
-                    x = factor(letters[rep(1:3, length=20)]),
-                    z = factor(LETTERS[rep(1:4, length=10)]))
+                    x1 = factor(letters[rep(1:3, length=20)]),
+                    x2 = factor(LETTERS[rep(1:4, length=10)]),
+		    x3 = 1:20)
 data1$x1[19] <- 'c'
-data1 <- data1[order(data1$x, data1$z),]
+data1 <- data1[order(data1$x1, data1$x2),]
 row.names(data1) <- NULL
-with(data1, table(x,z)
+with(data1, table(x1,x2))
      
 # data2 -- single missing cell
-indx <- with(data1, x=='a' & z=='D')
+indx <- with(data1, x1=='a' & x2=='D')
 data2 <- data1[!indx,]
 
 #data3 -- missing the diagonal
-data3 <- data1[as.numeric(data1$x) != as.numeric(data1$z),]
+data3 <- data1[as.numeric(data1$x1) != as.numeric(data1$x2),]
 @
 
 \subsection{NSTT method}
@@ -1266,8 +1272,10 @@ which is based on the same process.
 
 <<>>=
 options(contrasts=c("contr.sum", "contr.poly"))
-fit <- lm(y ~ x * z, data1)
-drop1(fit, .~.)
+fit1 <- lm(y ~ x1*x2, data1)
+drop1(fit1, .~.)
+y1 <- yates(fit1, method="NSTT")
+y1$ss
 @ 
 
 The problem with this approach is that it depends critically on use of
@@ -1276,11 +1284,14 @@ set under the more usual constraints a completely different value
 ensues.
 <<>>=
 options(contrasts=c("contr.SAS", "contr.poly"))
-fit2 <- lm(y ~ x*z, data1)
-drop1(fit2, .~.)
+fit2 <- lm(y ~ x1*x2, data1)
+options(contrasts=c("contr.treatment", "contr.poly"))
+fit3 <- lm(y ~ x1*x2, data1)
+cbind(contr.sum= y1$ss, contr.SAS =yates(fit2, method="NSTT")$ss,
+                  contr.treatment =yates(fit3, method="NSTT")$ss)
 @ 
-Each diffent choice of contrasts, other than contr.sum, gives a different
-answer, all of which are nonsensical.
+Both common choices of contrasts give a different answer than contr.sum,
+and both are useless.
 I thus refer to this as the Not Safe Type Three (NSTT) algorithm,
 ``not SAS type three'' and ``nonsense type three'' are two other sensible
 expansions.
@@ -1291,23 +1302,30 @@ The key idea of the averaging approach (Averaged Type Three)
 is to directly evaluate equation \eqref{ycont2}.
 The first step of the computation is shown below
 <<att>>=
-X <- model.matrix(fit)
+X <- model.matrix(fit2)
 ux <- unique(X)
 ux
 indx <- rep(1:3, c(4,4,4))
-effects <- t(rowsum(ux, indx)/4)
+effects <- t(rowsum(ux, indx)/4)  # turn sideways to fit the paper better
+effects
 effects[,-1] - effects[,1]
 @ 
-The data set ux has 12 rows, one for each of the 12 unique x*z combinations.
+The data set ux has 12 rows, one for each of the 12 unique x*x2 combinations.
 Because data1 was sorted, the first 4 rows correspond to x=1, the next 4
 to x=2 and the next to x=3 which is useful for illustration but has no
 impact on the computation.
-If we a
+The average of rows 1-4 (column 1 of \code{effects} above) is the estimated
+average response for subjects with x1=a, assuming a uniform distribution over
+the 12 cells.  
+Any two differences between the three effects is an equivalent basis for
+computing the Yates contrast.
+
+
 \subsection{STT}
 The SAS type III method takes a different approach, based on a
 a dependency matrix $D$.  Start by writing the
 $X$ matrix for the problem using all of the parameters in equation \eqref{a1}.
-For our flc example this will have colums for intercept (1), sex (2), age group
+For our flc example this will have columns for intercept (1), sex (2), age group
 (5) and the age group by sex interaction (10) = 18 columns.  Now define the
 lower triangular square matrix $D$ such that 
 \begin{itemize}
@@ -1322,10 +1340,10 @@ identically zero and can be discarded (or not) at this point.
 The result of this operation replicates table 12.2 in the SAS reference
 \cite{SASguide} labeled ``the form of estimable functions''.
 To obtain the Yates contrasts for an effect replace the appropriate
-columns of $D$ with the resdiuals from a regression on all columns to the
+columns of $D$ with the residuals from a regression on all columns to the
 right of it.
 Simple inspection shows that the columns of $D$ corresponding to any given
-effect will already be orthagonal to other effects in $D$ \emph{except}
+effect will already be orthogonal to other effects in $D$ \emph{except}
 those for interactions that contain it; so the regression does not have
 to include all columns to the right.  
 
@@ -1367,8 +1385,8 @@ The second issue is that the computational algorithms become more fragile.
     were listed in
     the model statement, which in turn will change the ATT result.
   \item For the STT method, our statement that certain other columns in $D$ 
-    will be orthagonal to the chosen effect is no longer true.  To match
-    SAS, the orthagonalization step above should include only those
+    will be orthogonal to the chosen effect is no longer true.  To match
+    SAS, the orthogonalization step above should include only those
     effects further to the right that contain the chosen effect (the one we
     are constructing a contrast vector for).
     As a side effect, this makes the 
@@ -1853,8 +1871,12 @@ sex*age2                35374.0501       4        5.3258        0.2555
 
    \bibitem{Senn2} S. Senn. Good mixed centre practice.
           www.senns.demon.co.uk/wprose.html\#Mixed. 
+
    \bibitem{Senn07} S. Senn. Statistical Issues in Drug Development,
       Wiley, New York, 2007.
+
+   \bibitem{Senn00} S. Senn. The many modes of meta.
+            Drug Information J 34:535–549, 2000.
 
   \bibitem{Therneau00} T. M. Therneau and P. M. Grambsch, \emph{Modeling Survival
     Data: Extending the Cox Model}, Springer-Verlag, New York, 2000.
