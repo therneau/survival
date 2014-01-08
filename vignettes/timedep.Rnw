@@ -150,40 +150,12 @@ study has more.
 \end{verbatim}
 \normalsize
 
+The data set \texttt{cgd} is included in the survival package.
+Below we list the first few observations of that data set:
 <<>>=
-cgdname <- c("id", "center", "random.dt", "trt", "sex", "age", 
-             "height", "weight", "inheritance", "steroids", 
-             "antibiotic", "inst", "futime", paste("e", 1:7, sep=''))
-cgd1 <- read.table('cgd.dat', header=F, fill=T, col.names=cgdname,
-                   colClasses=c("integer", "integer", "character",
-                                rep("integer", 3), rep("numeric",2),
-                                rep("integer", 12)))
-
-cgd1$ninfect <- rowSums(!is.na(as.matrix(cgd1[,14:20])))
-cgd1$random.dt <- as.Date(cgd1$random.dt, format="%m%d%y")
-cgd1$sex <- factor(cgd1$sex, labels=c("M", "F"))
-cgd1$inst <- factor(cgd1$inst, labels=c("NIH", "US-Other", 
-                          "Amsterdam", "Europe-Other"))
-
-temp <- apply(as.matrix(cgd1[,13:20]), 1, function(x) {
-    z <- as.vector(x[!is.na(x)])
-    if (length(z)==1) cbind(0, z, 0)
-    else {
-        temp <- cbind(c(0, z[-1]), 
-                      c(z[-1], z[1]), 
-                      c(rep(1, length(z)-1), 0))
-        if (z[1]== z[length(z)]) temp[-nrow(temp),]
-        else temp
-    }})
-
-index <- rep(1:nrow(cgd1), unlist(lapply(temp, nrow)))
-cgd2 <- data.frame( cgd1[index, 1:12], 
-                   time1= unlist(lapply(temp, function(x) x[,1])), 
-                   time2= unlist(lapply(temp, function(x) x[,2])), 
-                   event= unlist(lapply(temp, function(x) x[,3])), 
-                   enum = unlist(lapply(temp, function(x) 1:nrow(x))))
-cfit <- coxph(Surv(time1, time2, event) ~ trt + sex + age +
-               inheritance + cluster(id), data=cgd2)
+cgd[1:10, c("id", "tstart", "tstop", "status", "enum", "treat")]
+cfit <- coxph(Surv(tstart, tstop, status) ~ treat + sex + age +
+               inherit + cluster(id), data=cgd)
 @ 
 
 The logic for creating the time variables is
@@ -197,14 +169,10 @@ The logic for creating the time variables is
        \item If the follow-up time exceeds the last event there will be a 
 	 final interval with status =0.
     \end{itemize}
+   \item The enum variable is simply 1,2,\ldots for each subject.  It 
+often proves useful in analysis, for instance \texttt{subset=(enum==1)}
+within a model restricts analysis to the first event for each subject.
 \end{itemize}
-
-The result of the \texttt{apply} function above will be a list with one
-item per patient, each item being a 3 column matrix with time1, 
-time2, and status.
-The as.vector command removes names, which can speed the operation.
-The resulting data frame \texttt{cgd2} is in the proper format for the
-analysis. 
 
 
 \subsection{Changing lab tests}
