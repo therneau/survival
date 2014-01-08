@@ -17,6 +17,7 @@
 
 \SweaveOpts{width=6,height=4}
 \setkeys{Gin}{width=\textwidth}
+
 <<echo=FALSE>>=
 options(continue="  ", width=60)
 options(SweaveHooks=list(fig=function() par(mar=c(4.1, 4.1, .3, 1.1))))
@@ -35,6 +36,7 @@ options(contrasts=c("contr.treatment", "contr.poly")) #reset default
 \begin{document}
   \maketitle
   \tableofcontents
+
 \section{Introduction}
 This note started with an interchange on the R-help list that 
 became a bit adversarial.
@@ -665,7 +667,7 @@ corresponding to $i=2$ and $i'=1$
 in equation \eqref{ycont}, and the Yates contrast for sex becomes
 $\alpha_2 + 1/5(\gamma_{22} +\gamma_{23} +\gamma_{24} +\gamma_{25})$.
 The code below verifies that this contrast plus the usual R fit replicates
-the results in table \ref{allest}.
+the results in table \ref{tab:allest}.
 <<treatment>>=
 fit3 <- lm(flc ~ sex * age2, flchain)
 coef(fit3)
@@ -727,8 +729,6 @@ know a way to avoid this and enter only the non-aliased values.)
 So, how do we actually compute the Yates contrast in a computer program?
 We will take it as a give that no one wants to memorize contrast formulas.
 Appendix \ref{sect:coding} describes three algorithms for the computation.
-These are implemented in the \code{yates} function, which has been
-added to the survival package.  
 
 One of these three (NSTT) is completely unreliable, but is included because
 it is so often found in code.
@@ -976,7 +976,7 @@ explain the actual biological hypothesis which is being addressed by
 a type 3 test.
 
 \section{Cox models}
-\subsection{LRT tests and contrasts}
+\subsection{Tests and contrasts}
 Adapting the Yates test to a Cox model is problematic from the start.
 First, what do we mean by a ``balanced population''?
 In survival data, the variance of the hazard ratio for each particular
@@ -986,6 +986,11 @@ Carrying this forward to the canonical problem of adjusting a treatment
 effect for enrolling center, does this
 lead to equal numbers of subjects
 or equal numbers of events?
+Two centers might have equal numbers of patients but different number
+of events because one initiated the study at a later time (less
+follow up per subject), or it might have the same follow up time but
+a lower death rate.  Should we reweight in one case (which one), both,
+or neither?
 The second issue is that the per-cell hazard ratio estimates are no
 longer a minimally sufficient statistic, so underlying arguments
 about a reference population no longer directly translate into a contrast
@@ -1014,124 +1019,79 @@ with males always slightly ahead in the race to a coffin.
 The size of the disadvantage for males decreases in the last 2
 decades, however.
 
+The possible ways to adjust for age in comparing the two sexes
+are
+\begin{enumerate}
+  \item The likelihood ratio test.  This is analogous to the
+    sequential ANOVA table in a linear model, and has the strongest
+    theoretical justification.
+  \item A stratified Cox model, with age group as the stratification
+    factor.  This gives a more general and rigorous adjustment for
+    age.  Stratification on institution is a common approach in clinical trials.
+ \item The Wald or score test for the sex coefficient, in a model that
+    adjusts for age.  This is analogous to Wald tests in the linear
+    model, and is asymptotically equivalent the the LRT.
+  \item The test from a reweighted model, using case weights.  Results
+    using this approach have been central to causal model literature,
+    particularly adjustment
+    for covariate imbalances in observational studies.  (Also known
+    as \emph{marginal structural models}).  
+    Adjustment to a unform population is also possible.
+  \item A Yates-like contrast in the Cox model coefficients.
+    \begin{itemize}
+      \item A reliable algorithm such as cell means coding.
+      \item Unreliable approach such as the NSTT
+        \end{itemize}
+\end{enumerate}
+I have listed these in order from the most to the least available 
+justification, both in terms of practical experience and
+available theory.
 The two standard models are for sex alone, and sex after age.
 Likelihood ratio tests for these models are the natural analog to
 anova tables for the linear model, and are produced by the
-same R command.
+same R command.  Here are results for the first three, along
+with the unadjusted model that contains sex only.
 <<cox anova>>=
 options(contrasts=c("contr.SAS", "contr.poly"))
 cfit1 <- coxph(Surv(futime, death) ~ sex, flchain)
 cfit2 <- coxph(Surv(futime, death) ~ age2 + sex, flchain)
-cfit3 <- coxph(Surv(futime, death) ~ sex * age2, flchain)
+cfit3 <- coxph(Surv(futime, death) ~ sex + strata(age2), flchain)
+# Unadjusted
+summary(cfit1)
 #
-summary(cfit1)$coef
-summary(cfit2)$coef[,1:3]
+# LRT
+anova(cfit2)
+#
+# Stratified
+anova(cfit3)
+summary(cfit3)
+#
+# Wald test
+signif(summary(cfit2)$coefficients, 3)
 #
 anova(cfit1)
 anova(cfit2)
 @ 
 Without adjustment for age the LRT for sex is only
-\Sexpr{round(2*diff(cfit1$loglik),1)}, and after adjustment for 
-age it increases to \Sexpr{round(anova(cfit2)[3,2],2)}.
-Since females are older, not adjusting for age almost complete
-erases evidence of their actual survival advantage.
+\Sexpr{round(2*diff(cfit1$loglik),1)}, and after adjustment for  %$
+a it increases to \Sexpr{round(anova(cfit2)[3,2],2)}.
+Since females are older, not adjusting for age almost completely
+erases the evidence of their actual survival advantage.
+Results of the LRT
+are unchanged if we change to any of the other possible codings for
+the factor variables (not shown).
+Adjusting for age group using a stratified model gives almost identical
+results to the sequential LRT, in this case.
 The Wald tests for sex are equal to $[\beta/ se(\beta)]^2$ using the
 sex coefficient from the fits,
 \Sexpr{round(summary(cfit1)$coef[1,4]^2,2)} and 
-\Sexpr{round(summary(cfit2)$coef[5,4]^2,2)},
-respectively.
+\Sexpr{round(summary(cfit2)$coef[5,4]^2,2)}
+for the unadjusted and adjusted models, respectively.
 Unlike a linear model they are not exactly equal to the 
-anova table results, based on log-likelihood, but tell the same story.
-A common adjustment for institution in a multi-center study is to
-stratify on the enrolling center.
-If we follow the same logic and stratify on age groups, the
-resulting estimated
-sex effect for this data set is very similar to the additive model
-fit.
-<<>>=
-cfit4 <- coxph(Surv(futime, death) ~ sex + strata(age2), flchain)
-summary(cfit4)$coef
-@ 
+anova table results based on the log-likelihood, but tell the same story.
 
-The coefficients, variances and log-likelihoods for cfit2
-are identical to the phreg output for an additive model as
-found in the appendix.
-As expected, the ``type III'' results for the additive model
-are simply the Wald tests for the fit.
-<<>>=
-contrast(diag(5)[1:4,], cfit2)$ss #Wald test for age
-@ 
-Results of the sequential analysis --- which SAS refers to as type 1 ---
-are unchanged if we change to any of the other possible codings for
-the factor variables (not shown).
-
-Now for the main event: look at the model that contains interactions.
-We surmised this model along with contrast calculations to be the most likely
-way in which the phreg code would implement type 3, as it is the
-easiest to integrate with existing code. 
-Results are shown in the last SAS fit of the appendix.
-Below we compute the Yates and the NSTT contrasts for both age and sex.
-The NSTT contrast is trivial, simply 1's and 0's to pick off the
-main effects coefficients for sex and age.
-The Yates contrasts were computed above for linear models, we just need
-to remove the intercept term since this is absorbed into the baseline
-hazard of a Cox model.
-<<coxcon1>>=
-nstt.sex <- diag(9)[1,]  #contrast for sex
-nstt.age <- diag(9)[2:5,]
-ysex <- yates.sex[1,-1] - yates.sex[2,-1]  #test for sex, drop intercept
-#
-contrast(ysex, cfit3)$ss
-contrast(nstt.sex, cfit3)$ss
-contrast(nstt.age, cfit3)$ss
-@ 
-Comparing these results to the SAS printout labeled as ``Type III Wald''
-shows that phreg is using the NSTT method.
-This is a bit of a shock.
-All of the SAS literature on type III emphasizes the care with which 
-they form the calculation so as to always produce a Yates contrast
-(or in the case of missing cells a Yates-like one),
-and there was no hint in the documentation that phreg does anything different.
-As a double check direct contrast statements
-corresponding to the Yates and NSTT contrasts were added to the SAS code,
-and give confirmatory results.  
-A further run which forced sum constraints by adding
-\code{'/ effect'} to the SAS class statement (not shown) restored the
-correct Yates contrast, as expected.
-As a final check, look at the NSTT version of the LRT, which corresponds
-to simply dropping the sex column from the $X$ matrix.
-<<nstt-lrt>>=
-xmat3 <- model.matrix(cfit3)
-cfit3b <- coxph(Surv(futime, death) ~ xmat3[,-1], flchain)
-anova(cfit3b, cfit3)
-@ 
-This agrees with the LR ``type 3'' test of the phreg printout.
-
-\subsection{Comparing estimates}
-Since we have come all this way, one may as well look at the 
-Cox model estimates a little more deeply.
-Since it gives more weight to the larger ages, where the sex effect
-is smallest, the Yates estimate of treatment effect is smaller than
-the result of cfit2. Nevertheless,
-the Yates and the sequential test are more similar for the survival 
-outcome than for the linear models.
-This is due to the fact that the variances of the individual hazards
-for each sex/age combination are proportional to the number of
-deaths in that cell rather than the number of subjects per cell.
-A table of the number of deaths is not as imbalanced as the
-table of subject counts, and so the Yates and MLE ``populations''
-are not as far apart as they were for the linear regression.
-There are fewer subjects at the higher ages but they die more
-frequently.
-<<>>=
-with(flchain, table(sex, age2, death))[,,2] #table of deaths per cell
-@ 
-
-Last, look at the output of the weighted models, both 
-population and Yates.
-The case weight argument does translate directly from the
-linear model to the Cox case (or any other) and so is of
-interest.
+Now consider weighted models, with both empirical and uniform distributions
+as the target age distribution.
 The fits require use of a robust variance,
 since we are approaching it via a survey sampling computation.
 The tapply function creates a per-subject index into the case weight
@@ -1149,21 +1109,113 @@ tfun <- function(fit, indx=1) {
     c(fit$coef[indx], sqrt(fit$var[indx,indx]))
   }
 coxp <- rbind(tfun(cfit1), tfun(cfit2,5), tfun(cfitpop), tfun(cfityates))
-dimnames(coxp) <- list(c("Unadjusted", "Sequential", "Balanced Pop", 
-                         "Equal Pop"),
+dimnames(coxp) <- list(c("Unadjusted", "Additive", "Emprical Population", 
+                         "Uniform Population"),
                       c("Effect", "se(effect)"))
 signif(coxp,3)
 @ 
 The population estimates based on reweighting lie somewhere between
 the unadjusted and the sequential results.
-Balancing to the hypothetical population with equal numbers of
-subjects per cell yields a smaller estimate because it gives
-extreme weights to the oldest age group, where the male/female
-difference is smallest.
-The argument for balancing an experiment in this way is much
-weaker in a Cox model, since it leads to optimal power
-only under the null hypothesis of no difference in death rates
-between the age groups.
+We expect that balancing to the emprical population will give a
+solution that is similar to the age + sex model, in the same
+way that the close but not idential to the MVUE estimate in a linear
+model. 
+Balancing to a hypothetical population with equal numbers in each
+age group yields a substantially smaller estimate of effect. since it gives
+large weights to the oldest age group, 
+where in this data set the male/female difference is smallest.
+
+Last, look at constructed contrasts from a cell means model.  We
+can either fit this using the interaction, or apply the previous
+contrast matrix to the coefficients found above.
+Since the ``intercept'' of a Cox model is absorbed into the baseline
+hazard our contrast matrix will have one less column.
+<<>>=
+cfit4 <- coxph(Surv(futime, death) ~ sex * age2, flchain)
+# Uniform population contrast
+ysex <- c(0,-1, 0,0,0,0, -.2,-.2,-.2,-.2) #Yates for sex, SAS coding
+contrast(ysex[-1], cfit4) 
+# Verify using cell means coding
+cfit4b <- coxph(Surv(futime, death) ~ interaction(sex, age2), flchain)
+temp <- matrix(c(0, coef(cfit4b)),2)  # the female 50-59 is reference
+diff(rowMeans(temp)) #direct estimate of the Yates
+#
+temp2 <- rbind(temp, temp[2,] - temp[1,])
+dimnames(temp2) <- list(c('female', 'male', 'difference'), levels(age2))
+round(temp2, 3)
+#                        
+#
+# NSTT contrast
+contrast(c(1,0,0,0,0,0,0,0,0), cfit4)
+@ 
+In the case of a two level covariate such as sex, the NSTT algorithm 
+plus the SAS coding yields an estimate and test for a difference in
+sex for the \emph{first} age group;
+the proper contrast is an average.
+Since it gives more weight to the larger ages, where the sex effect
+is smallest, the Yates-like contrast is smaller than the result from an
+additive model \code{cfit2}.
+Nevertheless, this contrast and
+the sequential test are more similar for the survival 
+outcome than for the linear models.
+This is due to the fact that the variances of the individual hazards
+for each sex/age combination are proportional to the number of
+deaths in that cell rather than the number of subjects per cell.
+A table of the number of deaths is not as imbalanced as the
+table of subject counts, and so the Yates and MLE ``populations''
+are not as far apart as they were for the linear regression.
+There are fewer subjects at the higher ages but they die more
+frequently.
+ 
+Why is the Yates-like contrast so different than the result of 
+creating a uniform age distribution using case weights followed
+by an MLE estimate?  Again, the MLE estimate has death counts as
+the effective weights; the case-weighted uniform population
+has smaller weights for the youngest age group and that group also
+has the lowest death rate, resulting in lower inflence for that group
+and an estimate shrunken towards the 90+ difference of
+\Sexpr{round(temp2[3,5], 3)}.
+All told, for survival models 
+adjustment to a uniform population is a slippery target.
+
+\subsection{SAS phreg results}
+Now for the main event: what does SAS do?
+First, for the simple case of an additive model
+the SAS results are identical to those shown above.
+The coefficients, variances and log-likelihoods for cfit2
+are identical to the phreg output for an additive model, as
+found in the appendix.
+As would be expected from the linear models case, 
+the ``type III'' results for the additive model
+are simply the Wald tests for the fit, repackaged with a new label.
+
+Now look at the model that contains interactions.
+We originally surmised that a contrast calculation would be the
+most likely
+way in which the phreg code would implement type 3, as it is the
+easiest to integrate with existing code. 
+Results are shown in the last SAS fit of the appendix.
+Comparing these results of the SAS printout labeled as ``Type III Wald''
+to the contrasts calculated above shows that phreg is using the NSTT method.
+This is a bit of a shock.
+All of the SAS literature on type III emphasizes the care with which 
+they form the calculation so as to always produce a Yates contrast
+(or in the case of missing cells a Yates-like one),
+and there was no hint in the documentation that phreg does anything different.
+As a double check direct contrast statements
+corresponding to the Yates and NSTT contrasts were added to the SAS code,
+and give confirmatory results.  
+A further run which forced sum constraints by adding
+\code{'/ effect'} to the SAS class statement (not shown) restored the
+correct Yates contrast, as expected.
+As a final check, look at the NSTT version of the LRT, which corresponds
+to simply dropping the sex column from the $X$ matrix.
+<<nstt-lrt>>=
+xmat4 <- model.matrix(cfit4)
+cfit4b <- coxph(Surv(futime, death) ~ xmat4[,-1], flchain)
+anova(cfit4b, cfit4)
+@ 
+This agrees with the LR ``type 3'' test of the phreg printout.
 
 \subsection{Conclusion}
 Overall, both rebalanced estimates and coefficient contrasts are 
@@ -1181,7 +1233,7 @@ in this note.
 No special role is apparent, at least to this author, for regular or even
 sporadic use of a Yates contrast in survival models.  
 The addition of such a feature and label to the SAS phreg package is
-a statistical disaster, one that knowledgeable and conscientious
+a statistical calamaty, one that knowledgeable and conscientious
 statistical practitioners will likely have to fight for the rest of their
 careers.
 In the common case of a treatment comparison, adjusted for enrolling center,
@@ -1198,7 +1250,7 @@ to make this a particularly unfortunate event.
 
 \appendix
 \section{Computing the Yates estimate}
-\label{sect:compute}
+\label{sect:coding}
 We will take it as a given that no one wants to memorize contrast formulas,
 and so we need a way to compute Yates contrasts automatically in a computer
 program.  
@@ -1213,7 +1265,7 @@ whether
 they were explicit parameters or not, i.e., the model fit must include
 interaction terms.
 
-Here are three common algorithms for this post-hoc computation.
+Here are three algorithms for this post-hoc computation.
 All of them depend, directly or indirectly, on the breakdown found earlier
 in equation \eqref{std}.
 \begin{align}
@@ -1274,8 +1326,6 @@ which is based on the same process.
 options(contrasts=c("contr.sum", "contr.poly"))
 fit1 <- lm(y ~ x1*x2, data1)
 drop1(fit1, .~.)
-y1 <- yates(fit1, method="NSTT")
-y1$ss
 @ 
 
 The problem with this approach is that it depends critically on use of
@@ -1285,10 +1335,10 @@ ensues.
 <<>>=
 options(contrasts=c("contr.SAS", "contr.poly"))
 fit2 <- lm(y ~ x1*x2, data1)
+drop1(fit2, .~.)
 options(contrasts=c("contr.treatment", "contr.poly"))
 fit3 <- lm(y ~ x1*x2, data1)
-cbind(contr.sum= y1$ss, contr.SAS =yates(fit2, method="NSTT")$ss,
-                  contr.treatment =yates(fit3, method="NSTT")$ss)
+drop1(fit3, .~.)
 @ 
 Both common choices of contrasts give a different answer than contr.sum,
 and both are useless.
@@ -1308,7 +1358,8 @@ ux
 indx <- rep(1:3, c(4,4,4))
 effects <- t(rowsum(ux, indx)/4)  # turn sideways to fit the paper better
 effects
-effects[,-1] - effects[,1]
+yates <- effects[,-1] - effects[,1]
+yates
 @ 
 The data set ux has 12 rows, one for each of the 12 unique x*x2 combinations.
 Because data1 was sorted, the first 4 rows correspond to x=1, the next 4
@@ -1320,6 +1371,18 @@ the 12 cells.
 Any two differences between the three effects is an equivalent basis for
 computing the Yates contrast.
 
+We can verify that the resulting estimates correspond to a uniform 
+target population by directly examing the case weights for the estimate.
+Each of them gives a total weight of 1/4 to each level of x2.
+Each element of $\beta\beta$ is a weighted average of the data, revealed
+by the rows of the matrix $(X'X)^{-1}X'$.   
+The estimate are a wieghted sum of the coefficients, so are also a
+weighted average of the $y$ values.
+<<>>=
+wt <- solve(t(X) %*% X, t(X)) # twelve rows (one per coef), n columns
+casewt <- t(effects) %*% wt   # case weights for the three "row efffects"
+for (i in 1:3) print(tapply(casewt[i,], data1$x2, sum))
+@ 
 
 \subsection{STT}
 The SAS type III method takes a different approach, based on a
@@ -1352,6 +1415,16 @@ It is easy to demonstrate that this gives the uniform population contrast
 but I have not yet constructed a proof. 
 (I suspect it could be approached using the Rao-Blackwell theorem.)  
 
+\subsection{Bystanders}
+What about a model that has a extra predictor, such as \code{x3} in
+our example data and in the fit below?
+<<>>=
+fit4 <- lm(y ~ x1*x2 + x3, data=data1)
+@ 
+The standard approach is to ignore this variable when setting up
+``type III'' tests: the contast for \code{x1} will be the same as
+it was in the prior model, with a 0 row in the middle for the x3
+coefficient.
 
 \subsection{Missing cells}
 When there are combinations of factors with 0 subjects in that group,
@@ -1370,7 +1443,7 @@ This raises two further issues.
 First, what does that number \emph{mean}?  Much ink has been spilled on this
 subject, but I personally have never been able to come to grips with a
 satisfactory explanation and so have nothing to offer on the topic.
-I would be very reluctant to use such an estimate, however.
+I am  reluctant to use such estimates.
 The second issue is that the computational algorithms become more fragile.
 \begin{itemize}
   \item The NSTT algorithm is a disaster in waiting, 
@@ -1741,6 +1814,7 @@ age2      4  1   -1.15226    0.11072   108.3077     <.0001
 \end{verbatim}
 \normalsize
 
+The model with age*sex interaction.
 \small
 \begin{verbatim}
                         Model Fit Statistics
@@ -1876,7 +1950,7 @@ sex*age2                35374.0501       4        5.3258        0.2555
       Wiley, New York, 2007.
 
    \bibitem{Senn00} S. Senn. The many modes of meta.
-            Drug Information J 34:535–549, 2000.
+            Drug Information J 34:535-549, 2000.
 
   \bibitem{Therneau00} T. M. Therneau and P. M. Grambsch, \emph{Modeling Survival
     Data: Extending the Cox Model}, Springer-Verlag, New York, 2000.
