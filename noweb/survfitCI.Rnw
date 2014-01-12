@@ -291,6 +291,7 @@ The setup for (start, stop] data is a bit more work.
 We want to ensure that a subject's weight is fixed, that they have a
 continuous period of observation, and that they don't
 transfer from a state to itself.
+The last is not strictly an error, so onl warn.
 
 <<survfitCI-idcheck>>=
 if (missing(id) || is.null(id))
@@ -313,7 +314,7 @@ if (any(Y[,1] == Y[,2]))
 
 if (any(same & Y[indx1,3] == Y[indx2,3] & Y[indx1,3] !=0)) {
     who <-  1 + min(which(same & Y[indx1,1] != Y[indx2,2]))
-    stop("subject changes to the same state, id ", (id[indx1])[who])
+    warning("subject changes to the same state, id ", (id[indx1])[who])
 }
 if (any(same & weights[indx1] != weights[indx2])) {
     who <-  1 + min(which(same & weights[indx1] != weights[indx2]))
@@ -373,6 +374,7 @@ if (se.fit) kfit$std.err <- grabit(curves, "std")
 if (state0) {
     kfit$prev <- kfit$prev[,-1]
     if (se.fit) kfit$std.err <- kfit$std.err[,-1]
+    kfit$prev0 <- kfit$prev0[-1]
 }
 @ 
 

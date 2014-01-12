@@ -1,7 +1,16 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 2.37-6}{
+  \itemize{
+    \item The plot for competing risk curves could have a spurious
+    segment.  (Found within 3 hours of submitting 2.37-5 to CRAN.)
+  }
+}  
 \section{Changes in version 2.37-5}{
   \itemize{
+    \item Add vignette on adjusted survival curves.
+    \item Add vignette concerning "type 3" tests.
+    
     \item Make the tt() function invisible outside of a coxph formula.
     There was a complaint about conflicts with another package, and
     there is not really a good reason to have it be a global name.
