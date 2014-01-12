@@ -4,6 +4,7 @@ Priority: recommended
 Package: survival
 Version: 2.37-5
 Depends: stats, utils, graphics, splines, R (>= 2.13.0)
+Suggests: survey
 LazyData: Yes
 LazyLoad: Yes
 ByteCompile: Yes

@@ -2,6 +2,11 @@
 \title{NEWS file for the survival package}
 \section{Changes in version 2.37-5}{
   \itemize{
+    \item Make the tt() function invisible outside of a coxph formula.
+    There was a complaint about conflicts with another package, and
+    there is not really a good reason to have it be a global name.
+    An R-devel discussion just over 1 year ago showed how to accomplish this.
+   
     \item The modeling routines are set in two parts, e.g., coxph sets
     up the model and coxph.fit does the work.  Export more of the ".fit"
     routines to make it easier for other packages to build on top of

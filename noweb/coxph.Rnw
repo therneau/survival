@@ -6,7 +6,7 @@ The source was converted to noweb when adding time-transform terms.
 The call starts out with the basic building of a model frame
 and proceeds from there.
 <<coxph>>=
-tt <- function(x) x
+#tt <- function(x) x
 coxph <- function(formula, data, weights, subset, na.action,
 	init, control, ties= c("efron", "breslow", "exact"),
 	singular.ok =TRUE, robust=FALSE,
@@ -23,6 +23,11 @@ coxph <- function(formula, data, weights, subset, na.action,
     if (indx[1] ==0) stop("A formula argument is required")
     temp <- Call[c(1,indx)]  # only keep the arguments we wanted
     temp[[1]] <- as.name('model.frame')  # change the function called
+    
+    # Make "tt" visible for coxph formulas, but nowhere else
+    coxenv <- new.env(parent= environment(formula))
+    assign("tt", function(x) x, env=coxenv)
+    environment(formula) <- coxenv
     
     special <- c("strata", "cluster", "tt")
     temp$formula <- if(missing(data)) terms(formula, special)
