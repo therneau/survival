@@ -24,14 +24,16 @@ coxph <- function(formula, data, weights, subset, na.action,
     temp <- Call[c(1,indx)]  # only keep the arguments we wanted
     temp[[1]] <- as.name('model.frame')  # change the function called
     
-    # Make "tt" visible for coxph formulas, but nowhere else
-    coxenv <- new.env(parent= environment(formula))
-    assign("tt", function(x) x, env=coxenv)
-    environment(formula) <- coxenv
-    
     special <- c("strata", "cluster", "tt")
     temp$formula <- if(missing(data)) terms(formula, special)
                     else              terms(formula, special, data=data)
+    # Make "tt" visible for coxph formulas, without making it visible elsewhere
+    if (!is.null(attr(temp$formula), "specials")$tt) {
+        coxenv <- new.env(parent= environment(formula))
+        assign("tt", function(x) x, env=coxenv)
+        environment(temp$formula) <- coxenv
+    }
+
     mf <- eval(temp, parent.frame())
     if (nrow(mf) ==0) stop("No (non-missing) observations")
     Terms <- terms(mf)

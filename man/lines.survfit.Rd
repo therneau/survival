@@ -1,6 +1,7 @@
 \name{lines.survfit}
 \alias{lines.survfit}
 \alias{points.survfit}
+\alias{lines.survexp}
 \title{
   Add Lines or Points to a Survival Plot 
 }
@@ -12,6 +13,7 @@ generated with \code{plot.survfit}.
 \method{lines}{survfit}(x, type="s", mark=3, col=1, lty=1,
         lwd=1, cex=1, mark.time=TRUE, 
 	xscale=1,  firstx=0, firsty=1, xmax, fun, conf.int=FALSE,  ...)
+\method{lines}{survexp}(x, type="l", ...)
 \method{points}{survfit}(x, xscale, xmax, fun, ...)
 }
 
@@ -21,7 +23,10 @@ a survival object, generated from the \code{survfit} or \code{survexp} functions
 }
 \item{type}{
 the line type, as described in \code{lines}.  The default is a step function 
-for \code{survfit} objects, and a connected line for \code{survexp} objects. 
+for \code{survfit} objects, and a connected line for \code{survexp}
+objects.
+All other arguments for \code{lines.survexp} are identical to those
+for \code{lines.survfit}.
 }
 \item{mark, col, lty, lwd, cex}{
   vectors giving the mark symbol, color, line type, line width and

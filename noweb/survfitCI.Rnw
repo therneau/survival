@@ -374,7 +374,7 @@ if (se.fit) kfit$std.err <- grabit(curves, "std")
 if (state0) {
     kfit$prev <- kfit$prev[,-1]
     if (se.fit) kfit$std.err <- kfit$std.err[,-1]
-    kfit$prev0 <- kfit$prev0[-1]
+    kfit$prev0 <- kfit$prev0[,-1]
 }
 @ 
 

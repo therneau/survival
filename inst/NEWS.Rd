@@ -4,6 +4,10 @@
   \itemize{
     \item The plot for competing risk curves could have a spurious
     segment.  (Found within 3 hours of submitting 2.37-5 to CRAN.)
+
+    \item The lines method for survexp objects was defaulting to a
+    step function, restore the documented default of a connected
+    line.
   }
 }  
 \section{Changes in version 2.37-5}{

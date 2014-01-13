@@ -28,6 +28,7 @@ plot.survfit<- function(x, conf.int,  mark.time=TRUE,
     <<plot-plot-setup2>> 
     <<plot-functions>>
     plot.surv <- TRUE
+    type <- 's'
     <<plot-draw>>    
 }
 
@@ -392,7 +393,9 @@ for (i in unique(stemp)) {  #for each strata
     for (j in 1:ncol(ssurv)) {
         yy <- c(firsty[i,j], ssurv[who,j])
         if (plot.surv) {
-            lines(dostep(xx, yy), lty=lty[c2], col=col[c2], lwd=lwd[c2]) 
+            if (type=='s')
+                lines(dostep(xx, yy), lty=lty[c2], col=col[c2], lwd=lwd[c2]) 
+            else lines(xx, yy, type=type, lty=lty[c2], col=col[c2], lwd=lwd[c2])
             if (is.numeric(mark.time) || mark.time) 
                 drawmark(xx, yy, mark.time, censor, pch=mark[c1], col=mcol[c1],
                          cex=cex)
@@ -403,13 +406,23 @@ for (i in unique(stemp)) {  #for each strata
         c2 <- c2 +1
 
         if (conf.int) {
-            lines(dostep(xx, c(firsty[i,j], slower[who,j])), lty=lty[c2], 
-                  col=col[c2],lwd=lwd[c2])
-            c2 <- c2 +1
-            lines(dostep(xx, c(firsty[i,j], supper[who,j])), lty=lty[c2], 
-                  col=col[c2], lwd= lwd[c2])
-            c2 <- c2 + 1
-        }
+            if (type == 's') {
+                lines(dostep(xx, c(firsty[i,j], slower[who,j])), lty=lty[c2], 
+                      col=col[c2],lwd=lwd[c2])
+                c2 <- c2 +1
+                lines(dostep(xx, c(firsty[i,j], supper[who,j])), lty=lty[c2], 
+                      col=col[c2], lwd= lwd[c2])
+                c2 <- c2 + 1
+            }
+            else {
+                lines(xx, c(firsty[i,j], slower[who,j]), lty=lty[c2], 
+                      col=col[c2],lwd=lwd[c2], type=type) 
+                c2 <- c2 +1
+                lines(xx, c(firsty[i,j], supper[who,j]), lty=lty[c2], 
+                      col=col[c2], lwd= lwd[c2], type= type)
+                c2 <- c2 + 1
+            }
+         }
     }
 }
 invisible(list(x=xend, y=yend))
