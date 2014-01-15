@@ -1,6 +1,7 @@
 \name{tcut}
 \alias{tcut}
 \alias{[.tcut}
+\alias{levels.tcut}
 \title{Factors for person-year calculations}
 \description{
 Attaches categories for person-year calculations to a variable without
@@ -8,6 +9,7 @@ losing the underlying continuous representation
 }
 \usage{
 tcut(x, breaks, labels, scale=1)
+\method{levels}{tcut}(x)
 }
 %- maybe also `usage' for other objects documented here.
 \arguments{

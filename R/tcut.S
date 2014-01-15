@@ -1,4 +1,3 @@
-# $Id: tcut.S 11166 2008-11-24 22:10:34Z therneau $
 tcut <-  function (x, breaks, labels, scale=1){
     # avoid some problems with dates
     x <- as.numeric(x)
@@ -43,3 +42,5 @@ tcut <-  function (x, breaks, labels, scale=1){
     else        oldClass(x) <- 'tcut'
     x
     }
+
+levels.tcut <- function(x) attr(x, 'labels')

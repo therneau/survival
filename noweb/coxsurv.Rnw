@@ -101,7 +101,8 @@ If the original call included either strata, offset, or weights,
 or if either $x$
 or $y$ are missing from the [[coxph]] object, 
 then the model frame will need to be reconstructed.
-We have to use [[object['x']]] instead of [[object$x]] since the latter will
+We have to use [[object['x']]] instead of \texttt{object\$x} since
+the latter will
 pick off the [[xlevels]] component if the [[x]] component is missing (which
 is the default).
 <<survfit.coxph-setup>>=
@@ -115,6 +116,7 @@ if (is.null(object$y) || is.null(object[['x']]) ||
     }
 else mf <- NULL  #useful for if statements later
 @ 
+
 If a model frame was created, then it is trivial to grab [[y]]
 from the new frame and compare it to [[object$y]] from the
 original one.  This is to avoid nonsense results that arise
@@ -172,11 +174,11 @@ else {
 Terms <- object$terms
 if (!has.strata)  strata <- rep(0L,n)
 else {
+    stangle <- untangle.specials(Terms, 'strata') # used multiple times
     strata <- object$strata #try this first
     if (is.null(strata)){
-        temp <- untangle.specials(Terms, 'strata')
-        if (length(temp$vars) ==1) strata <- mf[[temp$vars]]
-        else strata <- strata(mf[, temp$vars], shortlabel=TRUE)
+        if (length(stangle$vars) ==1) strata <- mf[[stangle$vars]]
+        else strata <- strata(mf[, stangle$vars], shortlabel=TRUE)
     }
 }
 @
@@ -368,21 +370,15 @@ If the original call was [[survfit(fit1, newdata=mydat, conf.int=.9)]]
 the result is [[model.frame(data= copy of newdat, formula=Terms2, xlev=myxlev)]].
 If there is no id argument we use a simple call, except that we allow the
 user to leave out any strata() variables if they so desire,
-\emph{if} there are no strata by covariate interactions
-The only way to tell if they have left some out is to try the call and
-see if it fails.  If it does we take the strata component out of [[Terms2]]
-\emph{and} out of [[xlevels]] and try again.
-If xlevels contains any variable that is no longer in the model 
-then one gets a spurious warning message
-out of the [[model.frame]] function.  
+\emph{if} there are no strata by covariate interactions.
 
-There is one more issue to trip you up, which is that model.frame is
-special.  
-It totally ignores any scoping arguments passed to it, e.g. the the second and
-third arguments to eval.  Variables are first searched for in the
-data, and then in the environment of the formula.
-What to do?
+How does one check if the strata variables are or are not available in
+the call?
+My first attempt at this was to wrap the call in a try() construct and
+see if it failed.  This doesn't work. 
 \begin{itemize}
+  \item What if there is no strata variable in newdata, but they do have, 
+    by bad luck, a variable of the same name in their main directory?
   \item It would seem like changing the environment to NULL would be wise,
     so that we don't find variables anywhere but in the data argument,
     a sort of sandboxing.  Not wise: you then won't find functions like ``log''.
@@ -390,22 +386,33 @@ What to do?
     It is needed for the sneaky caller who uses his own function
     inside the formula, 'mycosine' say, and that function can only be 
     found if we retain the environment.  
-  \item Assign the data argument. The code originally would retain the 
-    ``newdata'' part of the call and rename it to ``data'' in the 
-    tcall list.
-    But then it would not be found if survfit were called from inside another
-    function.  The assignment happens in this context so we are ok.
-\end{itemize}    
-
+\end{itemize}
+One way out of this is to evaluate each of the strata terms
+(there can be more than one) one at a time, in an environment that knows
+nothing except "list" and a fake definition of "strata", and newdata.
+Variables that are part of the global environment won't be found.
+I even watch out for the case of either "strata" or "list" is the name of
+the stratification variable, which causes my fake strata function to 
+return a function when said variable is not in newdata.
 <<survfit.coxph-newdata2>>= 
 if (missid) {
     if (has.strata && !strata.interaction) {
-        mf2 <- try(model.frame(Terms2, data=newdata, 
-                               na.action=na.action, xlev=object$xlevels), 
-                   TRUE)
-        if (is.data.frame(mf2)) found.strata <- TRUE
+        found.strata <- TRUE
+        tempenv <- new.env(, parent=emptyenv())
+        assign("strata", function(..., na.group, shortlabel, sep)
+                       list(...), envir=tempenv)
+        assign("list", list, envir=tempenv)
+        for (svar in stangle$vars) {
+            temp <- try(eval(parse(text=svar), newdata, tempenv),
+                                silent=TRUE)
+            if (!is.list(temp) || 
+                any(unlist(lapply(temp, class))== "function"))
+                found.strata <- FALSE
+        }
+
+        if (found.strata) mf2 <- model.frame(Terms2, data=newdata, 
+                               na.action=na.action, xlev=object$xlevels)
         else {
-            found.strata <- FALSE
             Terms2 <- subterms(Terms2, -attr(Terms2, 'specials')$strata)
             if (!is.null(object$xlevels)) { 
                 myxlev <- object$xlevels[match(attr(Terms2, "term.labels"),

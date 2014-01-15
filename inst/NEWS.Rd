@@ -8,6 +8,7 @@
     \item The lines method for survexp objects was defaulting to a
     step function, restore the documented default of a connected
     line.
+    \item Add a levels method for tcut objects. 14Jan2014
   }
 }  
 \section{Changes in version 2.37-5}{

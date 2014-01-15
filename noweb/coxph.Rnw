@@ -28,7 +28,7 @@ coxph <- function(formula, data, weights, subset, na.action,
     temp$formula <- if(missing(data)) terms(formula, special)
                     else              terms(formula, special, data=data)
     # Make "tt" visible for coxph formulas, without making it visible elsewhere
-    if (!is.null(attr(temp$formula), "specials")$tt) {
+    if (!is.null(attr(temp$formula, "specials")$tt)) {
         coxenv <- new.env(parent= environment(formula))
         assign("tt", function(x) x, env=coxenv)
         environment(temp$formula) <- coxenv
