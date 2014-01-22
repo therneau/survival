@@ -486,29 +486,28 @@ Estimation based on reweighted data is a common theme in survey sampling.
 Correct standard errors for the curves are readily computed using
 methods from that literature, and are available in some software packages.
 In R the \texttt{svykm} routine in the \texttt{survey} package handles both this
-simple case and more complex sampling schemes.
+simple case and more complex sampling schemes.  
 Tests of the curves can be done using a weighted Cox model;
 the robust variance produced by \texttt{coxph} is identical to the standard
 Horvitz-Thompsen variance estimate used in survey sampling \cite{Binder92}.
 The score test from \texttt{coxph} is equivalent to the log-rank test that
 is often used to label curves.
+(In the example below the sykm function is only run if the survey package
+is already loaded, as the variance calculation is very slow for this large
+data set.)
 <<>>=
 id <- 1:nrow(fdata)
 cfit <- coxph(Surv(futime, death) ~ group + cluster(id), data=fdata, 
               weight=rwt)
 summary(cfit)$robscore
 
-require(survey)
-sdes <- svydesign(id = ~0, weights=~rwt, data=fdata)
-dfit <- svykm(Surv(futime, death) ~ group, design=sdes)
-# the next line is painfully slow for this large a data set
-#dfit <- svykm(Surv(futime, death) ~ group, design=sdes, se=TRUE)
-# coming in a future survival release
-#sfit3 <- survfit(Surv(futime, death) ~ group + cluster(id), 
-#                 data=fdata, weight=rwt)
+if (exists("svykm")) { #true if the survey package is loaded
+    sdes <- svydesign(id = ~0, weights=~rwt, data=fdata)
+    dfit <- svykm(Surv(futime, death) ~ group, design=sdes, se=TRUE)
+}
 @ 
 Note: including the \texttt{cluster} term in the coxph call causes it to
-treat the weights as resampling values and thus to use the proper 
+treat the weights as resampling values and thus use the proper 
 survey sampling style variance.  
 The default without that term would be to treat the case weights as
 replication counts. 

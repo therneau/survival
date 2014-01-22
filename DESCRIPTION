@@ -2,16 +2,15 @@ Title: Survival Analysis
 Maintainer: Terry M Therneau <therneau.terry@mayo.edu>
 Priority: recommended
 Package: survival
-Version: 2.37-6
+Version: 2.37-7
 Depends: stats, utils, graphics, splines, R (>= 2.13.0)
-Suggests: survey
 LazyData: Yes
 LazyLoad: Yes
 ByteCompile: Yes
-Authors@R: c(person(c("Terry", "M"), "Therneau", 
+Authors@R: c(person(c("Terry", "M"), "Therneau",
                     email="therneau.terry@mayo.edu",
 	            role=c("aut", "cre")),
-             person("Lumley", "Thomas", role=c("ctb", "trl"),
+             person("Thomas", "Lumley", role=c("ctb", "trl"),
 	       comment="original S->R port and maintainer until 2009"))
 Description: survival analysis: descriptive statistics, two-sample
   tests, parametric accelerated failure models, Cox model. Delayed entry

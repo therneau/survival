@@ -1,5 +1,17 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 2.37-7}{
+  \itemize{
+    \item Remove a dependency on the survey package from the adjusted
+    survival curves vignette, at the request of CRAN.  (The base +
+    required bundle needs to be capable of a stand-alone build.)
+    
+    \item Fix error in calcuation of the y-axis range for survival curve
+    plots whenever the "fun" argument could produce infinite values,
+    e.g., complimentary log-log plots transform 1 to -Inf.  Pointed out
+    by Eva Boj del Val.  (Add finite=TRUE to range() call).
+}}
+
 \section{Changes in version 2.37-6}{
   \itemize{
     \item The plot for competing risk curves could have a spurious
