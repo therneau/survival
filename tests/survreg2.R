@@ -37,7 +37,7 @@ for (i in 1:7) {
     }
 ijack[2,] <- NA  # stick the NA back in
 ijack <- (rep(c(fit1$coef, log(fit1$scale)), each=nrow(db1)) - ijack)/eps
-all.equal(db1, ijack, tol=eps)
+all.equal(db1, ijack, tolerance=eps)
 all.equal(t(db1[-2,])%*% db1[-2,], fit1$var)
 
 # This is a harder test since there are multiple strata and multiple 
@@ -58,5 +58,5 @@ for (i in 1:nrow(db1)) {
     ijack[i,] <- c(coef(tfit), log(tfit$scale)) 
     }
 ijack <- (rep(c(fit1$coef, log(fit1$scale)), each=nrow(db1)) - ijack)/eps
-all.equal(db1, ijack, tol=eps*2)
+all.equal(db1, ijack, tolerance=eps*2)
 
