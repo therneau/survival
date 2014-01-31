@@ -354,7 +354,7 @@ dostep <- function(x,y) {
         # (1, .2), (1.4, .2), (1.8, .2), (2.3, .2), (2.9, .2), (3, .1)
         # with (1, .2), (3, .1).  They are slow, and can smear the looks
         # of the line type.
-        dupy <- c(!duplicated(y)[-n], TRUE)
+        dupy <- c(y[-1]!=y[-n], TRUE)
         n2 <- sum(dupy)
         
         #create a step function

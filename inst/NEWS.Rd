@@ -1,5 +1,16 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 2.37-8}{
+  \itemize{
+    \item Fix a rare bug in plot.survfit: if a multistate curve rose and
+    then later fell to exactly the same value, the line would be
+    incorrect.
+
+    \item Todo: error in anova.coxph for models with a subset
+    \item Todo: censor marks should be curve-specific in multistate
+    models
+}}
+    
 \section{Changes in version 2.37-7}{
   \itemize{
     \item Remove a dependency on the survey package from the adjusted
