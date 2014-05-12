@@ -286,8 +286,7 @@ if (has.ratetable) {  #include expected
     		pn    =double(osize),
     		pcount=double(if(is.Surv(Y)) osize else 1),
     		pexpect=double(osize),
-    		offtable=double(1),
-                DUP=FALSE)[18:22]
+    		offtable=double(1))[18:22]
     }
 else {   #no expected
     temp <- .C(Cpyears2,
