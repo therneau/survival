@@ -355,6 +355,7 @@ dostep <- function(x,y) {
         # with (1, .2), (3, .1).  They are slow, and can smear the looks
         # of the line type.
         dupy <- c(y[-1]!=y[-n], TRUE)
+        dupy <- dupy & !is.na(dupy)  #CI values may be NA when survival =0
         n2 <- sum(dupy)
         
         #create a step function

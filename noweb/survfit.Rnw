@@ -14,6 +14,7 @@ survfit <- function(formula, ...) {
 
 <<survfit-subscript>>
 <<survfit-formula>>
+<<survfit-Surv>>    
 @ 
 
 The result of a survival curve can have a [[surv]] component that is a
@@ -225,4 +226,17 @@ survfit.formula <- function(formula, data, weights, subset,
     temp$call <- Call
     temp
     }
+@ 
+
+Once upon a time I allowed survfit to be called without the 
+`\textasciitilde 1' portion of the formula.
+This was a mistake for multiple reasons, but the biggest problem is timing.
+If the subject has a data statement but the first argument is not a formula,
+R needs to evaluate Surv(t,s) to know that it is a survival object, 
+but it also needs to know that this is a survival object before evaluation
+in order to dispatch the correct method.  
+The method below helps give a useful error message in some cases.
+<<survfit-Surv>>=
+survfit.Surv <- function(formula, ...)
+    stop("the survfit function requires a formula as its first argument")
 @ 

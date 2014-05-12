@@ -61,6 +61,24 @@ coxph <- function(formula, data, weights, subset, na.action,
     weights <- model.weights(mf)
     data.n <- nrow(Y)   #remember this before any time transforms
     
+    # The time transform will expand the data frame mf.  To do this
+    #  it needs Y and the strata.  Everything else (cluster, offset, weights)
+    #  should be extracted after the transform
+    #
+    strats <- attr(Terms, "specials")$strata
+    if (length(strats)) {
+	stemp <- untangle.specials(Terms, 'strata', 1)
+	if (length(stemp$vars)==1) strata.keep <- mf[[stemp$vars]]
+	else strata.keep <- strata(mf[,stemp$vars], shortlabel=TRUE)
+	strats <- as.numeric(strata.keep)
+	}
+    
+    timetrans <- attr(Terms, "specials")$tt
+    if (missing(tt)) tt <- NULL
+    if (length(timetrans)) {
+         <<coxph-transform>>
+         }
+   
     cluster<- attr(Terms, "specials")$cluster
     if (length(cluster)) {
         robust <- TRUE  #flag to later compute a robust variance
@@ -79,20 +97,6 @@ coxph <- function(formula, data, weights, subset, na.action,
         if (missing(robust)) robust <- FALSE
         xlevels <- .getXlevels(Terms, mf)
     }
-
-    strats <- attr(Terms, "specials")$strata
-    if (length(strats)) {
-	stemp <- untangle.specials(Terms, 'strata', 1)
-	if (length(stemp$vars)==1) strata.keep <- mf[[stemp$vars]]
-	else strata.keep <- strata(mf[,stemp$vars], shortlabel=TRUE)
-	strats <- as.numeric(strata.keep)
-	}
-    
-    timetrans <- attr(Terms, "specials")$tt
-    if (missing(tt)) tt <- NULL
-    if (length(timetrans)) {
-         <<coxph-transform>>
-         }
     
     contrast.arg <- NULL  #due to shared code with model.matrix.coxph
     <<coxph-make-X>>
