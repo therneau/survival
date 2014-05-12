@@ -116,6 +116,7 @@ SEXP pyears3b(SEXP   death2,    SEXP   efac2,   SEXP edims2,
 
     /* compute */
     for (i=0; i<n; i++) {
+	R_CheckUserInterrupt();  /* check for control-C */
 	/*
 	** initialize
 	*/

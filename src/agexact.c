@@ -252,6 +252,7 @@ void agexact(Sint *maxiter,  Sint *nusedx,   Sint *nvarx,   double *start,
 	    }
 
 	for (person=0; person<n; ) {
+	    R_CheckUserInterrupt();
 	    if (event[person]==0) person++;
 	    else {
 		denom =0;

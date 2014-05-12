@@ -111,6 +111,7 @@ void pyears2(Sint   *sn,      Sint   *sny,   Sint   *sdoevent,
 
     *offtable =0;
     for (i=0; i<n; i++) {
+	R_CheckUserInterrupt();  /* in case of long calculations */
 	/*
 	** initialize
 	** "data" will be the vector of starting values for each subject

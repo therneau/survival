@@ -346,6 +346,7 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
     */
     halving =0 ;             /* =1 when in the midst of "step halving" */
     for (*iter=1; *iter<= maxiter; (*iter)++) {
+	R_CheckUserInterrupt();  
 	newlk =0;
 	for (i=0; i<nvar; i++) {
 	    u[i] =0;

@@ -85,6 +85,7 @@ void pyears3(Sint   *sdeath,    Sint   *sn,    Sint   *sedim,
 	}
 
     for (i=0; i<n; i++) {
+	R_CheckUserInterrupt();  /*check for control-C */
 	/*
 	** initialize
 	*/
