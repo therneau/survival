@@ -1,2 +1,3 @@
 #!/bin/sh
 (cd noweb; make clean)
+(cd tests; rm plot1.pdf)

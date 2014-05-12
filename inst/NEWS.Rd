@@ -2,11 +2,18 @@
 \title{NEWS file for the survival package}
 \section{Changes in version 2.37-8}{
   \itemize{
+    \item Fix bug pointed out by D Dunker: if a model had both tt() and
+    cluster() terms it would fail with a length error.
+    
     \item Fix a rare bug in plot.survfit: if a multistate curve rose and
     then later fell to exactly the same value, the line would be
     incorrect.
+    
+    \item Add calls to the R_CheckUserInterrupt to several routines, so
+    that long calculations can be interrupted by the user.
 
-    \item Todo: error in anova.coxph for models with a subset
+    \item The anova.coxph function would fail if the original call had a
+    subset argument. Pointed out by R Fisher.   11May2014
     \item Todo: censor marks should be curve-specific in multistate
     models
 }}

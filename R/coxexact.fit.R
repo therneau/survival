@@ -90,8 +90,7 @@ coxexact.fit <- function(x, y, strata, offset, init, control,
                    newstrat,
                    score,
                    rep(1.0, n),  #weights
-                   resid=double(n),
-                   DUP=FALSE)
+                   resid=double(n))
     resid <- double(n)
     resid[sorted] <- cxres$resid
     names(resid) <- rownames

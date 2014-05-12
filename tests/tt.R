@@ -36,3 +36,13 @@ fit2 <- coxph(Surv(futime, status) ~ x + tt(age), tdata,
 
 dfit <- coxph(Surv(futime, status) ~ x + tt(age), tdata,
               tt= function(x, t, ...) x+t, iter=0, x=T)
+
+#
+# Check that cluster, weight, and offset were correctly expanded
+#
+tdata <- data.frame(tdata, grp=sample(1:100, 500, replace=TRUE),
+                    casewt = sample(1:5, 500, replace=TRUE),
+                    zz = rnorm(500))
+dfit2 <- coxph(Surv(futime, status) ~ x + tt(age) + offset(zz) + cluster(grp),
+               weight=casewt, data=tdata,
+               tt= function(x, t, ...) x+t)

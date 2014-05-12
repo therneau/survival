@@ -129,10 +129,10 @@ pleasing result.  If there are zeros, they are plotted by default at
   left to upper right (starting at 0), where survival curves default
   to starting at 1 and going down.  All other options are identical.
 }    
-\seealso{
+\seealso{ \code{\link{points.survfit}},
+\code{\link{lines.survfit}},   
 \code{\link{par}},  
-\code{\link{survfit}},  
-\code{\link{lines.survfit}}.   
+\code{\link{survfit}}  
 }
 \examples{
 leukemia.surv <- survfit(Surv(time, status) ~ x, data = aml) 

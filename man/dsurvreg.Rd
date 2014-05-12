@@ -33,7 +33,7 @@ Missing values (\code{NA}s) are allowed.
 \item{n}{number of random deviates to produce}
 \item{mean}{vector of linear predictors for the model.  
 This is replicated to be the same length as \code{p}, \code{q}
-or \code{n}.
+or \code{n}.  
 }
 \item{scale}{
 vector of (positive) scale factors.
@@ -107,5 +107,3 @@ plot(x, haz, log='xy', ylab="Hazard") #line with slope (1/scale -1)
 }
 }
 \keyword{distribution}
-% docclass is function
-% Converted by Sd2Rd version 37351.

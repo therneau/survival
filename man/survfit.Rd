@@ -35,7 +35,8 @@ manipulations, and this case is no longer supported.
 \seealso{\code{\link{survfit.formula}},
          \code{\link{survfit.coxph}},
 	 \code{\link{survfit.object}}, \code{\link{print.survfit}},
-	 \code{\link{plot.survfit}}, \code{\link{summary.survfit}}}
+	 \code{\link{plot.survfit}}, \code{\link{quantile.survfit}},
+	 \code{\link{summary.survfit}}}
 
 \keyword{ survival}
 

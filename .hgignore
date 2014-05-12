@@ -30,3 +30,4 @@ noweb/.*.aux
 inst/doc/
 vigtemp/
 test.local
+tests/plot1.pdf
