@@ -44,9 +44,13 @@ clogit<-function(formula,data, weights, subset, na.action,
 }
 
 
-print.clogit<-function(x,...){
+print.clogit <- function(x,...){
 
     x$call<-x$userCall
     NextMethod()
 
 }
+
+survfit.clogit <- function(formula, ...)
+    stop("predicted survival curves are not defined for a clogit model")
+
