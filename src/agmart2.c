@@ -1,6 +1,6 @@
 /*
 ** Compute the martingale residual for a counting process model
-**
+**   This routine has been superseded by agmart3
 ** Input
 **      n       number of subjects
 **      method  will be ==1 for the Efron method
