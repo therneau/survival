@@ -11,7 +11,7 @@
 static const R_CMethodDef Centries[] = {
     {"Cagfit5a",    (DL_FUNC) &agfit5a,  20},
     {"Cagfit5b",    (DL_FUNC) &agfit5b,  19},
-    {"Cagfit5c",    (DL_FUNC) &agfit5c,   5},
+    {"Cagfit5c",    (DL_FUNC) &agfit5c,   1},
     {"Cagsurv3",    (DL_FUNC) &agsurv3,   19},
     {"Cagsurv4",    (DL_FUNC) &agsurv4,    6},
     {"Cagsurv5",    (DL_FUNC) &agsurv5,   10},
@@ -37,6 +37,7 @@ static const R_CMethodDef Centries[] = {
 
 static const R_CallMethodDef Callentries[] = {
     {"Cagfit4",       (DL_FUNC) &agfit4,      12},
+    {"Cagmart3",      (DL_FUNC) &agmart3,      6},
     {"Cconcordance1", (DL_FUNC) &concordance1, 4}, 
     {"Cconcordance2", (DL_FUNC) &concordance2, 6}, 
     {"Ccoxcount1",    (DL_FUNC) &coxcount1,    2},
@@ -56,7 +57,8 @@ void R_init_survival(DllInfo *dll){
     /* My take on the documentation is that adding the following line
        will make symbols available ONLY through the above tables.
        Anyone who then tried to link to my C code would be SOL.
-       It also wouldn't work with .C(routines[1], ....
+       It also wouldn't work with .C("whatever", ....) which I use in
+       my test directory.
     */
    /* R_useDynamicSymbols(dll, FALSE);  */
 }

@@ -81,6 +81,15 @@ aeq(truth$mart, fit$resid[c(2:6,1)])
 aeq(truth$scho, resid(fit, 'schoen'))
 aeq(truth$score, resid(fit, 'score')[c(3:7,1)])
 
+# Per comments in the source code, the below is expected to fail for Efron 
+#  at the tied death times.  (When predicting for new data, predict
+#  treats a time in the new data set that exactly matches one in the original
+#  as being just after the original, i.e., experiences the full hazard
+#  jump there, in the same way that censors do.)
+expect <- predict(fit, type='expected', newdata=test1) #force recalc
+use <- !(test1$time==6 | is.na(test1$status))
+aeq(test1$status[use] - resid(fit)[use], expect[use])  
+
 sfit <- survfit(fit, list(x=0), censor=FALSE)
 aeq(sfit$surv, truth$surv)
 aeq(sfit$std.err^2, truth$var)

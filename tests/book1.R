@@ -77,6 +77,8 @@ aeq(1/truth$imat, fit$var)
 aeq(truth$mart, fit$resid[c(2:6,1)])
 aeq(truth$scho, resid(fit, 'schoen'))
 aeq(truth$score, resid(fit, 'score')[c(3:7,1)])
+expect <- predict(fit, type='expected', newdata=test1) #force recalc
+aeq(test1$status[-2] -fit$resid, expect[-2]) #tests the predict function
 
 sfit <- survfit(fit, list(x=0), censor=FALSE)
 aeq(sfit$std.err^2, truth$var[c(1,2,4)]) # sfit skips time 8 (no events there)

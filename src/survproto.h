@@ -24,9 +24,11 @@ void agfit5b( Sint *maxiter,   Sint *nusedx,    Sint *nvarx,
 	       double *fdiag,
                void *fexpr1,    void *fexpr2,     void *rho);
 
-void agfit5c(Sint *nusedx,   Sint *nvar,    Sint *strata,
-	      Sint *methodx,  double *expect) ;
- 
+void agfit5c();
+
+SEXP agmart3(SEXP surv2, SEXP score2, SEXP weight2, SEXP strata2,
+	     SEXP sort2, SEXP method2);
+
 void agexact(Sint *maxiter,  Sint *nusedx,   Sint *nvarx,   double *start, 
 	     double *stop,   Sint *event,    double *covar2,double *offset, 
 	     Sint   *strata, double *means,  double *beta,  double *u, 

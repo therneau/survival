@@ -1,8 +1,7 @@
 
-R version 2.14.0 Under development (unstable) (2011-04-10 r55401)
-Copyright (C) 2011 The R Foundation for Statistical Computing
-ISBN 3-900051-07-0
-Platform: x86_64-unknown-linux-gnu (64-bit)
+R Under development (unstable) (2014-05-11 r65563) -- "Unsuffered Consequences"
+Copyright (C) 2014 The R Foundation for Statistical Computing
+Platform: i686-pc-linux-gnu (32-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -114,6 +113,9 @@ Loading required package: splines
 > aeq(truth$scho, resid(fit, 'schoen'))
 [1] TRUE
 > aeq(truth$score, resid(fit, 'score'))
+[1] TRUE
+> expect <- predict(fit, type='expected', newdata=test2) #force recalc
+> aeq(test2$event -fit$resid, expect) #tests the predict function
 [1] TRUE
 > 
 > sfit <- survfit(fit, list(x=0), censor=FALSE)
@@ -252,3 +254,6 @@ Call: survfit(formula = fit, newdata = list(x = 2))
     8      4       1    0.258   0.437      0.00928            1
     9      5       2    0.181   0.377      0.00302            1
 > 
+> proc.time()
+   user  system elapsed 
+  0.240   0.024   0.262 

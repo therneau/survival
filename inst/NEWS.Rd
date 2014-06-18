@@ -2,6 +2,12 @@
 \title{NEWS file for the survival package}
 \section{Changes in version 2.37-8}{
   \itemize{
+    \item Martingale residuals could be incorrect for the case of model with
+    (start, stop] data and a pspline term.  Refactor the code so that
+    all of the possible code paths call the same C routine to do the residuals.
+    Add a new test for this case, and further tests to verify that
+    predict(type='expected') and residuals agree.
+    
     \item Fix bug pointed out by D Dunker: if a model had both tt() and
     cluster() terms it would fail with a length error.
     
@@ -14,8 +20,6 @@
 
     \item The anova.coxph function would fail if the original call had a
     subset argument. Pointed out by R Fisher.   11May2014
-    \item Todo: censor marks should be curve-specific in multistate
-    models
 }}
     
 \section{Changes in version 2.37-7}{

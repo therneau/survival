@@ -84,6 +84,8 @@ aeq(1/truth$imat, fit$var)
 aeq(truth$mart, fit$resid)
 aeq(truth$scho, resid(fit, 'schoen'))
 aeq(truth$score, resid(fit, 'score'))
+expect <- predict(fit, type='expected', newdata=test2) #force recalc
+aeq(test2$event -fit$resid, expect) #tests the predict function
 
 sfit <- survfit(fit, list(x=0), censor=FALSE)
 aeq(sfit$std.err^2, truth$var) 

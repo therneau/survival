@@ -428,7 +428,7 @@ However,
   \item The cluster() term, if any, could lead to thousands of extraneous
     ``intercept'' columns which are never needed.
   \item Likewise, nested  case-control models can have thousands of strata,
-    again leading man intercepts we never need.
+    again leading many intercepts we never need.
   \item If there are strata by factor interactions in the model, 
     the dummy intercepts-per-strata columns are necessary information for the
     model.matrix routine to correctly compute other columns of $X$.
@@ -674,6 +674,21 @@ model.matrix.coxph <- function(object, data=NULL,
 @ 
 
 In parallel is the model.frame routine, which reconstructs the model frame.
+This routine currently doesn't do all that we want.  To wit, the following code
+fails:
+\begin{verbatim}
+> tfun <- function(formula, ndata) {
+      fit <- coxph(formula, data=ndata)
+      model.frame(fit)
+      }
+> tfun(Surv(time, status) ~ age, lung)
+Error: ndata not found
+\end{verbatim}
+The genesis of this problem is hard to unearth, but has to do with non standard
+evaluation rules used by model.frame.default.  In essence it pays attention to 
+the environment of the formula, but the enclos argument of eval appears to be
+ignored.  I've not yet found a solution.
+
 <<model.matrix.coxph>>=
 model.frame.coxph <- function(formula, ...) {
     dots <- list(...)

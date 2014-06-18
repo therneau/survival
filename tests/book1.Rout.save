@@ -1,7 +1,7 @@
 
-R version 2.11.1 (2010-05-31)
-Copyright (C) 2010 The R Foundation for Statistical Computing
-ISBN 3-900051-07-0
+R Under development (unstable) (2014-05-11 r65563) -- "Unsuffered Consequences"
+Copyright (C) 2014 The R Foundation for Statistical Computing
+Platform: i686-pc-linux-gnu (32-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -113,6 +113,9 @@ In fitter(X, Y, strats, offset, init, control, weights = weights,  :
 [1] TRUE
 > aeq(truth$score, resid(fit, 'score')[c(3:7,1)])
 [1] TRUE
+> expect <- predict(fit, type='expected', newdata=test1) #force recalc
+> aeq(test1$status[-2] -fit$resid, expect[-2]) #tests the predict function
+[1] TRUE
 > 
 > sfit <- survfit(fit, list(x=0), censor=FALSE)
 > aeq(sfit$std.err^2, truth$var[c(1,2,4)]) # sfit skips time 8 (no events there)
@@ -220,3 +223,6 @@ Call: survfit(formula = fit, newdata = list(x = 2))
     6      4       2 1.71e-03 1.98e-02     2.33e-13            1
     9      1       1 8.52e-12 5.29e-10     1.22e-64            1
 > 
+> proc.time()
+   user  system elapsed 
+  0.240   0.028   0.265 

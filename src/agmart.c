@@ -1,6 +1,8 @@
-/* $Id: agmart.c 11357 2009-09-04 15:22:46Z therneau $
-*
+/*
 ** Compute the martingale residual for a counting process model
+**  This routine is only used by the exact partial likelihood routine
+**  agexact.fit, which has such low usage that it and components have
+**  not been coverted to faster algorithms as other routines have.
 **
 ** Input
 **      n       number of subjects

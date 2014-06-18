@@ -1,7 +1,7 @@
 
-R version 2.7.1 (2008-06-23)
-Copyright (C) 2008 The R Foundation for Statistical Computing
-ISBN 3-900051-07-0
+R Under development (unstable) (2014-05-11 r65563) -- "Unsuffered Consequences"
+Copyright (C) 2014 The R Foundation for Statistical Computing
+Platform: i686-pc-linux-gnu (32-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -39,7 +39,7 @@ Loading required package: splines
 > tfit3 <- coxph(Surv(zz,time,status) ~x + frailty(zz, theta=0, sparse=T), test1)
 > 
 > temp <- c('coefficients', 'var', 'loglik', 'linear.predictors',
-+ 	  'means', 'n')
++ 	  'means', 'n', 'concordance')
 > 
 > all.equal(tfit1[temp], tfit2[temp])
 [1] TRUE
@@ -85,3 +85,6 @@ Loading required package: splines
 > 
 > rm(test3, test4, tfit1, tfit2, tfit3, temp, zz)
 > 
+> proc.time()
+   user  system elapsed 
+  0.220   0.024   0.242 

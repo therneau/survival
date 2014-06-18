@@ -87,11 +87,15 @@ agreg.fit <- function(x, y, strata, offset, init, control,
 	}
 
     # the returned value of agfit$coef starts as a copy of init, so make sure
-    #  is is a vector and not a matrix.
+    #  is is a vector and not a matrix; as.double does so.
+    # Solidify the storage mode of other arguments
+    storage.mode(y) <- storage.mode(x) <- "double"
+    storage.mode(offset) <- storage.mode(weights) <- "double"
+    storage.mode(newstrat) <- "integer"
     agfit <- .Call(Cagfit4, 
                    y, x, newstrat, weights, 
-                   as.vector(offset),
-                   as.vector(init), 
+                   offset,
+                   as.double(init), 
                    sort.end, sort.start, 
                    as.integer(method=="efron"),
                    as.integer(maxiter), 
@@ -137,27 +141,13 @@ up the results.
 <<agreg-finish>>=
 lp  <- as.vector(x %*% coef + offset - sum(coef *agfit$means))
 score <- as.double(exp(lp))
-
-agres <- .C(Cagmart2,
-            as.integer(n),
-            as.integer(method=='efron'),
-            as.double(start), 
-            as.double(stopp),
-            as.integer(event),
-            as.integer(length(newstrat)), 
-            as.integer(newstrat),
-            as.integer(sort.end), 
-            as.integer(sort.start),
-            score,
-            as.double(weights),
-            resid=double(n),
-            double(2*sum(event)))
-resid <- agres$resid
-
+resid <- .Call(Cagmart3,
+               y, score, weights,
+               newstrat,
+               cbind(sort.end, sort.start),
+               as.integer(method=='efron'))
+names(resid) <- rownames
 if (nullmodel) {
-    resid <- agres$resid
-    names(resid) <- rownames
-
     list(loglik=agfit$loglik[2],
          linear.predictors = offset,
          residuals = resid,
@@ -165,7 +155,6 @@ if (nullmodel) {
 }
 else {
     names(coef) <- dimnames(x)[[2]]
-    names(resid) <- rownames
     coef[which.sing] <- NA
 
     concordance <- survConcordance.fit(y, lp, strata, weights) 

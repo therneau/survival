@@ -1,8 +1,7 @@
 
-R version 2.14.0 Under development (unstable) (2011-04-10 r55401)
-Copyright (C) 2011 The R Foundation for Statistical Computing
-ISBN 3-900051-07-0
-Platform: x86_64-unknown-linux-gnu (64-bit)
+R Under development (unstable) (2014-05-11 r65563) -- "Unsuffered Consequences"
+Copyright (C) 2014 The R Foundation for Statistical Computing
+Platform: i686-pc-linux-gnu (32-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -114,6 +113,16 @@ Loading required package: splines
 > aeq(truth$score, resid(fit, 'score')[c(3:7,1)])
 [1] TRUE
 > 
+> # Per comments in the source code, the below is expected to fail for Efron 
+> #  at the tied death times.  (When predicting for new data, predict
+> #  treats a time in the new data set that exactly matches one in the original
+> #  as being just after the original, i.e., experiences the full hazard
+> #  jump there, in the same way that censors do.)
+> expect <- predict(fit, type='expected', newdata=test1) #force recalc
+> use <- !(test1$time==6 | is.na(test1$status))
+> aeq(test1$status[use] - resid(fit)[use], expect[use])  
+[1] TRUE
+> 
 > sfit <- survfit(fit, list(x=0), censor=FALSE)
 > aeq(sfit$surv, truth$surv)
 [1] TRUE
@@ -212,3 +221,6 @@ Call: survfit(formula = fit, newdata = list(x = 2))
     6      4       2 2.87e-05 5.69e-04     3.96e-22            1
     9      1       1 1.08e-17 1.04e-15     1.07e-99            1
 > 
+> proc.time()
+   user  system elapsed 
+  0.236   0.024   0.256 
