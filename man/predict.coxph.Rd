@@ -20,8 +20,12 @@ the results of a coxph fit.
 }
 \item{newdata}{
   Optional new data at which to do predictions.
-  If absent predictions are for the 
-data frame used in the original fit. 
+  If absent predictions are for the  data frame used in the original
+  fit. 
+  When coxph has been called with a formula argument created in another
+  context, i.e., coxph has been called within another function and the
+  formula was passed as an argument to that function, there can be
+  problems finding the data set.  See the note below.
 }
 \item{type}{
 the type of predicted value. 
@@ -85,6 +89,24 @@ thus absolute instead of relative; the
 Models that contain a \code{frailty} term are a special case: due
 to the technical difficulty, when there is a \code{newdata} argument the
 predictions will always be for a random effect of zero.  
+}
+\note{
+Some predictions can be obtained directly from the coxph object, and for
+others it is necessary for the routine to have the entirety of the
+original data set, e.g., for type = \code{terms} or if standard errors
+are requested.
+This extra information is saved in the coxph object if
+\code{model=TRUE}, if not the original data is reconstructed.
+If it is known that such residuals will be required overall execution will be
+slightly faster if the model information is saved. 
+
+In some cases the reconstruction can fail.
+The most common is when coxph has been called inside another function
+and the formula was passed as one of the arguments to that enclosing
+function.  Another is when the data set has changed between the original
+call and the time of the prediction call.
+In each of these the simple solution is to add \code{model=TRUE} to the
+original coxph call.
 }
 
 \seealso{
