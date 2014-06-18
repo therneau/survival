@@ -1,4 +1,3 @@
-# $Id: frailty.gaussian.S 11381 2009-12-18 03:50:50Z therneau $
 # 
 # Defining function for gaussian frailty fits
 #
@@ -76,7 +75,11 @@ frailty.gaussian <- function(x, sparse=(nclass >5), theta, df,
     # The final coxph object will contain a copy of printfun.  Stop it from
     #   also containing huge unnecessary variables, e.g. 'x', known at this 
     #   point in time.  Not an issue for pfun, which does not get saved.
-    if (is.R()) environment(printfun)<- asNamespace('survival')
+    # Setting to globalenv() will not suffice since coxph.wtest is not visible 
+    #   outside the survival library's name space.
+    temp <- new.env(parent=globalenv())
+    assign("cox.zph", cox.zph, envir=temp) #make a private copy
+    environment(printfun) <- temp
 
    if (method=='reml') {
 	temp <- list(pfun=pfun, 
