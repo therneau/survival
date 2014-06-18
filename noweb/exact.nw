@@ -7,8 +7,8 @@ Then for the exact parial likelihood, the contribution at this time point
 is
 \begin{align*}
   L &= \sum_{i=1}^d \log(r_i) - \log(D) \\
-  \frac{\partial L}{\partial \beta_j} &= x_{ij} -  
-               \frac{\partial D}{\partial \beta_j} D^{-1} \\
+  \frac{\partial L}{\partial \beta_j} &= x_{ij} - (1/D)  
+               \frac{\partial D}{\partial \beta_j} \\
   \frac{\partial^2 L}{\partial \beta_j \partial \beta_k} &=
   (1/D^2)\left[D\frac{\partial^2D}{\partial \beta_j \partial \beta_k} -
       \frac{\partial D}{\partial \beta_j}\frac{\partial D}{\partial \beta_k}
@@ -16,7 +16,7 @@ is
 \end{align*}
 The hard part of this computation is $D$, which is a sum
 \begin{equation*}
-  D = \sum_{S(d,n)} r_{s_1}r_{s_2} \ldots r_{sd}
+  D = \sum_{S(d,n)} r_{s_1}r_{s_2} \ldots r_{s_d}
 \end{equation*}
 where $S(d,n)$ is the set of all possible subsets of size $d$ from $n$
 objects, and $s_1, s_2, \ldots$ indexes the current selection.
