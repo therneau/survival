@@ -22,12 +22,16 @@
     \item Return the weights vector, if present, as part of the survreg
     object.
     
+    \item For interval censored points and the symmetric distributions
+    (Gaussian and logistic) response type residuals were incorrect.
+    Silly error: needed (x-mean)/scale not x/scale - mean.
+
     \item Martingale residuals could be incorrect for the case of model with
     (start, stop] data and a pspline term.  Refactor the code so that
     all of the possible code paths call the same C routine to do the residuals.
     Add a new test for this case, and further tests to verify that
     predict(type='expected') and residuals agree.
-    
+        
     \item Fix bug pointed out by D Dunker: if a model had both tt() and
     cluster() terms it would fail with a length error.
     

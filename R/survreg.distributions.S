@@ -1,4 +1,3 @@
-# $Id: survreg.distributions.S 11198 2009-02-02 05:01:22Z therneau $
 #
 # Create the survreg.distributions object
 #
@@ -15,11 +14,13 @@ survreg.distributions <- list(
 	status <- y[,ncol(y)]
 	width <- ifelse(status==3,(y[,2] - y[,1])/scale, 1)
 	temp <- width/(exp(width)-1)
+        # the definition of "center" is discussed in the parametric
+        #   section of the survival document
 	center <- ifelse(status==3, y[,1] - log(temp), y[,1])
 	temp3 <- (-temp) + log(1- exp(-exp(width)))
-	best <- ifelse(status==1, -(1+log(scale)),
+	loglik <- ifelse(status==1, -(1+log(scale)),
 				    ifelse(status==3, temp3, 0))
-	list(center=center, loglik=best) 
+	list(center=center, loglik=loglik) 
 	},
     density = function(x,parms) {
 	w <- exp(x)
@@ -40,12 +41,13 @@ logistic = list(
     deviance= function(y, scale, parms) {
 	status <- y[,ncol(y)]
 	width <- ifelse(status==3,(y[,2] - y[,1])/scale, 0)
-	center <- y[,1] - width/2
+        # for the symmetric distributions "center" is obvious
+	center <- ifelse(status==3, rowMeans(y), y[,1])
 	temp2 <- ifelse(status==3, exp(width/2), 2) #avoid a log(0) message
 	temp3 <- log((temp2-1)/(temp2+1))
-	best <- ifelse(status==1, -log(4*scale),
+	loglik <- ifelse(status==1, -log(4*scale),
 				    ifelse(status==3, temp3, 0))
-	list(center=center, loglik=best) 
+	list(center=center, loglik=loglik) 
 	},
     density = function(x, parms) {
 	w <- exp(x)
@@ -65,11 +67,11 @@ gaussian = list(
     deviance= function(y, scale, parms) {
 	status <- y[,ncol(y)]
 	width <- ifelse(status==3,(y[,2] - y[,1])/scale, 0)
-	center <- y[,1] - width/2
+	center <- ifelse(status==3, rowMeans(y), y[,1])
 	temp2 <- log(1 - 2*pnorm(width/2))
-	best <- ifelse(status==1, -log(sqrt(2*pi)*scale),
+	loglik <- ifelse(status==1, -log(sqrt(2*pi)*scale),
 				ifelse(status==3, temp2, 0))
-	list(center=center, loglik=best) 
+	list(center=center, loglik=loglik) 
 	},
     density = function(x, parms) {
 	cbind(pnorm(x), pnorm(-x), dnorm(x), -x, x^2-1)	
@@ -140,11 +142,11 @@ t = list(
     deviance= function(y, scale, parms) {
 	status <- y[,ncol(y)]
 	width <- ifelse(status==3,(y[,2] - y[,1])/scale, 0)
-	center <- y[,1] - width/2
+	center <- ifelse(status==3, rowMeans(y), y[,1])
 	temp2 <- log(1 - 2*pt(width/2, df=parms))
-	best <- ifelse(status==1, -log(dt(0, df=parms)*scale),
+	loglik <- ifelse(status==1, -log(dt(0, df=parms)*scale),
 				ifelse(status==3, temp2, 0))
-	list(center=center, loglik=best) 
+	list(center=center, loglik=loglik) 
 	},
     density = function(x, df) {
 	cbind(pt(x, df), pt(-x, df), dt(x,df),

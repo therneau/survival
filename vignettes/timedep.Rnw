@@ -24,50 +24,55 @@ makefig <- function(file, top=1, right=1, left=4) {
 library(survival)
 @ 
 
-\section{Introduction}
+\section{Time dependent covariates}
 One of the strengths of the Cox model is its ability to encompass covariates
-that change over time, due to the theoretical foundation in martigales.
-A \emph{martingale} (original definition) is a betting strategy in games of
-chance.  One of the simplest and best known is doubling the bet each time
-you lose.  For instance consider the following game of roulette:
-\begin{equation*}
-  \begin{tabular}{rcc|c}
-    Bet & Outcome & Win  & Running total \\ \hline
-    R \$1 & Red   &  2   & 1 \\ &&&\\
-    R \$1 & Black &  0   & 0 \\
-    R \$2 & Black &  0   & -2 \\
-    B \$4 & Red   &  0   & -6 \\
-    R \$8 & Black &  0   & -14  \\
-    B \$16& Black & 32   & 2 \\ &&&\\
-    B \$1 & Red   &  0   & 1 \\
-    B \$2 & Black &  4   & 3 \\&&&\\
-    \vdots & \vdots & \vdots &\vdots
-  \end{tabular}
-\end{equation*}
-At the end of each cycle of bets the player is another \$1 ahead.
-The problem is that a modest sequence of losses will exhaust their stake.
+that change over time.
+The practical reason for this is based on the underlying way in which the Cox
+model works: at each event time the program compares the current 
+covariate values of the subject
+who had the event to the current values of all others who were at risk
+at that time. 
+So computationally, we only need to know covariate values at that point in
+time.
+The model had a theoretical foundation in martigale theory,
+a mathematical construct which arose out of the study of games of chance.
+A key underlying condition for a martingale like game is that present
+actions depend only on the past. The decision of whether to play and the
+size of a bet can depend in any way on
+prior bets and patterns of won/lost, but cannot look into the future.
+If this holds then multiple properties can be proven about the
+resulting random walk, including the \emph{gambler's ruin}, i.e., that 
+no pattern of betting can erase the house advantage.
 
 The rule for time dependent covariates in a Cox model is simple
 and essentially the same as that for gambling: you cannot look into
 the future.
 A covariate may change in any way based on past data or outcomes, but it
-may not reach ``forward'' in time.
+may not reach forward in time.
 One of the more well known examples of this error is analysis by response:
 at the end of a trial a survival curve is made comparing those who had an
 early response to treatment (shrinkage of tumor, lowering of cholesterol,
-or whatever), and it discovered that response predicts survival.
+or whatever) to those who did not, and it discovered that responders have
+a better curve.  A Cox model will demonstrate a strong ``significant'' effect.
 The problem arises because  subjects are classified as responders or 
 non-responders from the beginning of the study, i.e., they are placed into
 group A or B before the response has occurred.  
 As a consequence, any early deaths that occur before response can be
 assessed will be assigned to the non-responder group, even deaths that have
 nothing to do with the condition under study.
+If response is instead coded as a time-dependent covariate which starts at
+0 for all subjects and is recoded to 1 only when the response occurs, then the
+problem disappears.
 
 There are many variations on the error: interpolation of the values of a
 laboratory test linearly between observation times, removing subjects who do
 not finish the treatment plan, imputing the date of an adverse event midway
-between observation times, etc.  
-All of these are similar to running a red light in your car: 
+between observation times, etc. 
+Using future data will very often generate large bias in the results, which can
+be positive, negative, or sometimes barely visible.
+It is nearly impossible to predict a priori either the direction or size of
+the bias.
+Using such a covariate is similar to running a red light in your car: 
 disaster is not guarranteed --- but it is likely.
 
 The most common way to encode time-dependent covariates is to use the
@@ -133,9 +138,11 @@ The total number of infections was 56 and 20 in the placebo and treatment
 groups, respectively.
    One patient was taken off on the day of his last infection; all others
 have some followup after their last episode.
-Below are the first 10 observations, but with the listing truncatated 
-beyond the fourth infection.  Subject 2 has 7 infections, no one in the
-study has more.
+Below are the first 10 observations, see the help page for \texttt{cgd}
+for the full list of variable names. The last few columns contain the 
+duration of follow-up for the subject followed by infection times.
+Subject 1 had 2 infections during the study, subject 2 had 7, and subject
+3 had none.
 \small\begin{verbatim}
   1 204 082888 1 2 12 147.0  62.0 2 2 2 2 414 219 373
   2 204 082888 0 1 15 159.0  47.5 2 2 1 2 439   8  26 152 241 249 322 350
@@ -203,7 +210,7 @@ Since age changes continuously, we would in theory need a very large
 per day to match the usual resolution for death times.
 In practice this level of resolution is not necessary; though we all
 grow older, risk does not increase so rapidly that we need to know
-out age to the day!  
+our age to the day!  
 For most medical applications year is sufficient, but this still leads
 to a large data set.
 One useful way to generate this data set is through use of the \texttt{pyears}
