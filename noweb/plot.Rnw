@@ -195,7 +195,7 @@ The points routine doesn't have to deal with this nuisance.
 <<plot-firstx>>=
 if (missing(firstx)) {
     if (!is.null(x$start.time)) 
-        firstx <- x$start.time
+        firstx <- x$start.time/xscale
     else {
         if (xlog) firstx <- min(stime[stime>0])
         else      firstx <- min(0, stime)

@@ -13,7 +13,7 @@ survexp(formula, data, weights, subset, na.action, rmap, times,
         method=c("ederer", "hakulinen", "conditional", "individual.h",
                  "individual.s"),
         cohort=TRUE, conditional=FALSE,
-        ratetable=survexp.us, scale=1,
+        ratetable=survival::survexp.us, scale=1,
         se.fit, model=FALSE, x=FALSE, y=FALSE)
 }
 \arguments{
@@ -65,7 +65,11 @@ the \code{formula}.
   if it is present and TRUE it implies \code{method='conditional'}.}
 
 \item{ratetable}{ a table of event rates,
-  such as \code{survexp.uswhite}, or a fitted Cox model. }
+  such as \code{survexp.mn}, or a fitted Cox model.
+  Note the \code{survival::} prefix in the default argument is present
+  to avoid the (rare) case of a user who expects the default table
+  but just happens to have an object named "survexp.us" in their own
+  directory.  
 
 \item{scale}{
 numeric value to scale the results.  If \code{ratetable} is in units/day, 

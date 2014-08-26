@@ -9,7 +9,7 @@ It identifies stratification variables when they appear on the right hand
 side of a formula. 
 }
 \usage{
-strata(..., na.group=FALSE, shortlabel=FALSE, sep=', ')
+strata(..., na.group=FALSE, shortlabel, sep=', ')
 }
 \arguments{
 \item{\dots}{
@@ -20,7 +20,8 @@ a logical variable, if \code{TRUE}, then missing values are treated as a
 distinct level of each variable. 
 }
 \item{shortlabel}{if \code{TRUE} omit variable names from resulting
-  factor labels}
+  factor labels.  The default action is to omit the names if all of the
+  arguments are factors, and none of them was named.}
 \item{sep}{
 the character used to separate groups, in the created label
 }
@@ -37,9 +38,9 @@ but for the labeling of the factors (\code{strata} is more verbose).
 \code{\link{coxph}}, \code{\link{interaction}}
 }
 \examples{
-a<-factor(rep(1:3,4))
-b<-factor(rep(1:4,3))
-levels(strata(a))
+a <- factor(rep(1:3,4), labels="low", "medium", "high")
+b <- factor(rep(1:4,3))
+levels(strata(b))
 levels(strata(a,b,shortlabel=TRUE))
 
 coxph(Surv(futime, fustat) ~ age + strata(rx), data=ovarian) 

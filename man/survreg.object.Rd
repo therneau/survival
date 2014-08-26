@@ -60,7 +60,7 @@ a vector of the column means of the coefficient matrix.
 }
 \item{dist}{
 the distribution used in the fit.
-
+\item{weights}{included for a weighted fit.}
 
 The object will also have the following components found in 
 other model results (some are optional):

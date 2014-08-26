@@ -1,7 +1,6 @@
-# $Id: strata.S 11166 2008-11-24 22:10:34Z therneau $
 # Create a strata variable, possibly from many objects
 #
-strata <- function(..., na.group=FALSE, shortlabel=FALSE, sep=', ') {
+strata <- function(..., na.group=FALSE, shortlabel, sep=', ') {
     # First, grab a copy of the call, which will be used to manufacture
     #  labels for unlabeled arguments
     # Then get the arguments as a list
@@ -11,10 +10,17 @@ strata <- function(..., na.group=FALSE, shortlabel=FALSE, sep=', ') {
     #  it instead
     if(length(allf) == 1 && is.list(ttt <- unclass(allf[[1]]))) allf <- ttt
     nterms <- length(allf)
-
+ 
     # Keep the names of named args as their label, what was typed otherwise
-    if (is.null(names(allf))) argname <- words[1:nterms]
-    else argname <- ifelse(names(allf) == '', words[1:nterms], names(allf))
+    if (is.null(names(allf))) {
+        argname <- words[1:nterms]
+        if (missing(shortlabel))
+            shortlabel <- all(sapply(allf, function(x) inherits(x, 'factor')))
+    }
+    else {
+        argname <- ifelse(names(allf) == '', words[1:nterms], names(allf))
+        if (missing(shortlabel)) shortlabel <- FALSE
+    }
 
     # Process the first argument
     what <- allf[[1]]

@@ -163,6 +163,7 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
 	tdeath += weights[i] * status[i];
     }	
     for (i=0; i<nvar; i++) {
+	maxbeta[i] =0;  /* temporary, keep the max abs for the covariate */
 	temp=0;
 	for (person=0; person<nused; person++) 
 	    temp += weights[person] * covar[i][person];
@@ -177,7 +178,19 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
 	    if (temp > 0) temp = temp2/temp;   /* scaling */
 	    else temp=1.0; /* rare case of a constant covariate */
 	    scale[i] = temp;
-	    for (person=0; person<nused; person++)  covar[i][person] *= temp;
+	    for (person=0; person<nused; person++) {
+		covar[i][person] *= temp;
+		if (fabs(covar[i][person]) > maxbeta[i])
+		    maxbeta[i] = fabs(covar[i][person]);
+		}
+	    }
+	else { 
+	    /* scaling is only turned off during debugging 
+	       still, cover the case */
+	    for (person=0; person<nused; person++) {
+		if (fabs(covar[i][person]) > maxbeta[i])
+		    maxbeta[i] = fabs(covar[i][person]);
+		}
 	    }
 	}
     if (doscale==1) {
@@ -186,6 +199,20 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
     else {
 	for (i=0; i<nvar; i++) scale[i] = 1.0;
 	}
+
+    /* 
+    **	Set the max beta.  For safety we want beta*x < log(max double) so 
+    **  the the risk score exp(x beta) never becomes either infinite or 0.
+    **  This limit is around 700 for most hardware.  Since exp(23) > population
+    **  of the earth, any beta*x over 20 is a silly relative risk for a Cox
+    **  model, however.  
+    **   We want to cut off huge values, but not take action very often since
+    **  doing so can mess up the iteration in general.
+    **  One of the case-cohort papers suggests using anoffset of -100 to 
+    **  indicate "no risk", meaning that x*beta values of 50-100 can occur 
+    **  in "ok" data sets.  Compromise.
+    */
+    for (i=0; i<nvar; i++) maxbeta[i] = 200/maxbeta[i];
 
     /*
     ** do the initial iteration step
@@ -298,13 +325,6 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
 	    }
 	}   /* end  of accumulation loop */
     loglik[0] = loglik[1]; /* save the loglik for iter 0 */
-    
-    /*
-    ** Use the initial variance matrix to set a maximum coefficient
-    **  (The matrix contains the variance of X * weighted number of deaths)
-    */
-    for (i=0; i<nvar; i++) 
-	maxbeta[i] = 20* sqrt(imat[i][i]/tdeath);
 
     /* am I done?
     **   update the betas and test for convergence

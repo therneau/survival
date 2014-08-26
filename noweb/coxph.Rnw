@@ -60,7 +60,9 @@ coxph <- function(formula, data, weights, subset, na.action,
 			  "\" survival data", sep=''))
     weights <- model.weights(mf)
     data.n <- nrow(Y)   #remember this before any time transforms
-    
+
+    <<coxph-bothsides>>
+        
     # The time transform will expand the data frame mf.  To do this
     #  it needs Y and the strata.  Everything else (cluster, offset, weights)
     #  should be extracted after the transform
@@ -106,7 +108,23 @@ coxph <- function(formula, data, weights, subset, na.action,
     <<coxph-finish>>
     }
 @     
-    
+
+An increasingly common error is for users to put the time variable on
+both sides of the formula, in the mistaken idea that this will
+deal with a failure of proportional hazards.
+Add a test for such models, and bail out.
+The \code{variables} attribute of the Terms object is the expression form
+of a list that contains the response variable followed by the predictors.
+Subscripting this, element 1 is the call to ``list'' itself so we always
+retain it.
+<<coxph-bothsides>>=
+ytemp <- all.vars(attr(Terms, 'variables')[1:2])
+xtemp <- all.vars(attr(Terms, 'variables')[-2])
+if (any(!is.na(match(xtemp, ytemp))))
+    stop("a variable appears on both the left and right sides of the formula")
+@ 
+
+
 At this point we deal with any time transforms.  
 The model frame is expanded to a ``fake'' data set that has a
 separate stratum for each unique event-time/strata combination,

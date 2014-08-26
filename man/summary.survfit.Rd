@@ -19,7 +19,8 @@
     \item{times}{
     vector of times; 
     the returned matrix will contain 1 row for each time. 
-    This must be in increasing order and missing values are not allowed. 
+    The vector will be sorted into increasing order;
+    missing values are not allowed. 
     If \code{censored=T}, the default \code{times} vector contains all
     the unique times in \code{fit}, otherwise
     the default \code{times} vector uses only the event (death) times. 

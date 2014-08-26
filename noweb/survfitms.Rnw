@@ -179,6 +179,8 @@ summary.survfit <- function(object, times, censored=FALSE,
                                   labels=strata.names)
     }
     else { #times argument was given
+        if (!is.numeric(times)) stop ("times must be numeric")
+        times <- sort(times)
         temp <- list(n=object$n, time=times/scale, 
                      n.risk=n.risk, n.event=n.event,
                      conf.int=fit$conf.int, type=fit$type, table=table)

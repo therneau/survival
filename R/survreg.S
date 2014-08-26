@@ -228,6 +228,7 @@ survreg <- function(formula, data, weights, subset, na.action,
     fit$contrasts <- contr.save
     if (length(xlevels)) fit$xlevels <- xlevels
     fit$means <- apply(X,2, mean)
+    if (!is.null(weights)) fit$weights <- weights
     fit$call <- Call
     fit$dist <- dist
     if (model) fit$model <- m

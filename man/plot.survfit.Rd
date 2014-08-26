@@ -120,14 +120,19 @@ This may be useful for labeling.
 A plot of survival curves is produced, one curve for each strata. 
 The \code{log=T} option does extra work to avoid log(0), and to try to create a 
 pleasing result.  If there are zeros, they are plotted by default at 
-0.8 times the smallest non-zero value on the curve(s). 
+0.8 times the smallest non-zero value on the curve(s).
+
+Curves are plotted in the same order as they are listed by \code{print}
+(which gives a 1 line summary of each).
+This will be the order in which \code{col}, \code{lty}, etc are used.
 }
 \details{
   When the \code{survfit} function creates a multi-state survival curve
-  the resulting object also has class `survfitms'.  The only difference in
-  the plots is that that it defaults to a curve that goes from lower
-  left to upper right (starting at 0), where survival curves default
-  to starting at 1 and going down.  All other options are identical.
+  the resulting object also has class `survfitms'.
+  Competing risk curves are a common case.  The only difference in
+  the plots is that multi-state defaults to a curve that goes from lower
+  left to upper right (starting at 0), where survival curves by default
+  start at 1 and go down.  All other options are identical.
 }    
 \seealso{ \code{\link{points.survfit}},
 \code{\link{lines.survfit}},   
