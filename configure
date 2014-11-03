@@ -1,4 +1,0 @@
-#!/bin/sh
-(cd noweb; R CMD make doc fun)
-
-

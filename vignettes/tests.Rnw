@@ -193,6 +193,7 @@ unbalanced at the older ages, from about 1/2 females in the youngest
 group to a 4:1 ratio in the oldest.
 <<data, fig=TRUE, include=FALSE>>=
 library(survival)
+library(splines)
 age2 <- cut(flchain$age, c(49, 59, 69, 79, 89, 120),                   
             labels=c("50-59", "60-69", "70-79", "80-89", "90+"))
 counts <- with(flchain, table(sex, age2))

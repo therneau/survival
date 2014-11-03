@@ -1,0 +1,146 @@
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage{Sweave}
+\addtolength{\textwidth}{1in}
+\addtolength{\oddsidemargin}{-.5in}
+\setlength{\evensidemargin}{\oddsidemargin}
+
+\SweaveOpts{keep.source=TRUE, fig=FALSE}
+%\VignetteIndexEntry{Splines and interactions}
+% Ross Ihaka suggestions
+\DefineVerbatimEnvironment{Sinput}{Verbatim} {xleftmargin=2em}
+\DefineVerbatimEnvironment{Soutput}{Verbatim}{xleftmargin=2em}
+\DefineVerbatimEnvironment{Scode}{Verbatim}{xleftmargin=2em}
+\fvset{listparameters={\setlength{\topsep}{0pt}}}
+\renewenvironment{Schunk}{\vspace{\topsep}}{\vspace{\topsep}}
+
+\SweaveOpts{width=6,height=4}
+\setkeys{Gin}{width=\textwidth}
+
+<<echo=FALSE>>=
+options(continue="  ", width=60)
+options(SweaveHooks=list(fig=function() par(mar=c(4.1, 4.1, .3, 1.1))))
+pdf.options(pointsize=8) #text in graph about the same as regular text
+options(contrasts=c("contr.treatment", "contr.poly")) #reset default
+@ 
+
+\title{Spline terms with interactions in a Cox model}
+\author{Terry Therneau}
+
+\begin{document}
+\maketitle
+This is a topic that comes up just often enough in my work that I end up
+re-discovering how to do it correctly about once a year.
+A note showing how may be useful to others.
+
+As an example we will use the effect of age on survival in the 
+\texttt{flchain} data set, a population based sample of subjects from
+Olmsted County, Minnesota.
+If we look at a simple model using age and sex we see that both 
+are very significant.
+<<fit1, fig=TRUE>>=
+require(survival)
+options(show.signif.stars=FALSE) # display intelligence
+fit1 <- coxph(Surv(futime, death) ~ sex + pspline(age, 3), data=flchain)
+fit1
+termplot(fit1, term=2, se=TRUE, col.term=1, col.se=1,
+         ylab="log hazard")
+@ 
+
+We used a smoothing spline because the printout then nicely
+segregates the linear and non-linear effects.
+The non-linearity is not very large, as compared to the linear portion,
+but still may be important.
+
+We would like to go forward and fit separate age curves for the males and
+the females, since the above fit makes an unwarranted 
+assumption that the male/female
+ratio of death rates will be the same at all ages. 
+The primary problem is that a formula of 
+\texttt{sex * pspline(age)} does not work;
+the coxph routine is not clever enough to do the right thing automatically.
+(Perhaps some future version will be sufficiently bright, but don't hold
+your breath).
+Thus we need to create our own dummy variables to handle the interaction.
+
+<<fit2>>=
+agem <- with(flchain, ifelse(sex=="M", age, 60))
+agef <- with(flchain, ifelse(sex=="F", age, 60))
+fit2 <- coxph(Surv(futime, death) ~ sex + pspline(agef, df=3)
+              + pspline(agem, df=3), data=flchain)
+anova(fit2, fit1)
+@ 
+ 
+The gain in this particular problem is not great, but we will forge ahead.
+You might well ask why we used 60 as a dummy value of \texttt{agem} for
+the females instead of 0?
+There is nothing special about the choice, and any value within
+the range of ages would do as well though I try to pick one where the
+standard errors of the curves are not outrageous.  
+If a value of 0 is used it forces the pspline function to create a basis
+set that includes all the empty space between 0 and 50, and do predictions
+at 0; these last can become numerically unstable leading to errors or
+incorrect values.
+
+The Cox model deals with relative hazards, when doing a plot we will usually
+want to specify who our reference is.  
+By default the termplot function uses an average reference, that is, any
+plot will be centered to have an average log hazard of 0.
+In this case, we will decide to use 65 year old males as our reference, with
+all of the hazards relative to them. 
+
+<<plot2, fig=TRUE>>=
+# predictions
+pterm <- termplot(fit2, term=2:3, se=TRUE, plot=FALSE)
+# reference
+refdata <- data.frame(sex=c('F', 'M'), agef=c(65, 60), agem=c(60,65))
+pred.ref <- predict(fit2, newdata=refdata, type="lp")
+# females
+tempf <- pterm$agef$y + outer(pterm$agef$se, c(0, -1.96, 1.96))
+frow <- which(pterm$agef$x == 65)
+tempf <- tempf  - tempf[frow,1]  # shift curves
+# males
+tempm <- pterm$agem$y + outer(pterm$agem$se, c(0, -1.96, 1.96))
+mrow  <- which(pterm$agem$x == 65)
+tempm <- tempm + diff(pred.ref) - tempm[mrow,1]
+# plot
+matplot(pterm$agef$x, exp(tempf), log='y', col=1, 
+        lty=c(1,2,2), type='l', lwd=c(2,1,1),
+        xlab="Age", ylab="Relative risk of death")
+matlines(pterm$agem$x, exp(tempm), log='y', 
+         col=2, lwd=c(2,1,1), lty=c(1,2,2))
+legend(80, 1, c("Female", "Male"), lty=1, lwd=2, col=1:2, bty='n')
+@ 
+
+\begin{enumerate}
+  \item The termplot routine is used to get the data points for the plot,
+    without executing a plot, by use of the \texttt{plot=FALSE} argument.
+    The result is a list with one element per term; each element of the list
+    contains x, y, and se components.
+  \item We had decided to center the female curve at age 65, risk =1.  The
+    relative offset for the male curve can be derived directly from
+    \texttt{fit2} by adding up the right coefficients, and I used to do it that
+    way but would get it wrong one time out of two.  
+    So instead use the \texttt{predict} routine to get predicted log hazards
+    for males and females at a particular age.  This tells me how far apart
+    the curves should be at that point.
+  \item Get the predicted curve and confidence bands for the females
+    as a matrix \texttt{tempf}, and then shift them by subtracting the value
+    for a 65 year old female.  Do the same for males, also adding in
+    the curve separation.
+  \item The male and female portions don't have quite the same set of age
+    values, there are no 95 year old males in the data set for example,
+    so the plot needs to be done in two steps.
+\end{enumerate}
+
+The final curves for males and female are not quite parallel.
+One thing the plot does not display is that the spacing between the
+male and female points also has a standard error.
+This moves the entire bundle of three red curves up and down.  It is not
+clear how best to add this information into the plot.
+For questions of parallism and shape, as here, it seemed best to
+ignore it;
+if someone were reading individual male/female differences off the plot
+a different choice would be appropriate.
+\end{document}
+

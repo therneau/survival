@@ -30,4 +30,8 @@ noweb/.*.aux
 inst/doc/
 vigtemp/
 test.local
+vignettes/*.pdf
+vignettes/*.tex
+vignettes/*.log
+
 tests/plot1.pdf

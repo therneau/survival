@@ -2,6 +2,11 @@
 \title{NEWS file for the survival package}
 \section{Changes in version 2.37-8}{
   \itemize{
+    \item Replace all instances of the obsolete prmatrix function.
+    
+    \item Modify pyears to allow cbind(time, count) as the response,
+    giving a cumulative sum of counts.
+    
     \item The lines.survfit function was incorrect for data sets that
     used the start.time option and xscale (it neglected to rescale the
     start time.)
