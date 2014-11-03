@@ -203,13 +203,14 @@ function with doubly censored data. \emph{J Am Stat Assoc},
 
 }
 \seealso{
-\code{\link{survfit.coxph}} for survival curves from Cox models.  
+  \code{\link{survfit.coxph}} for survival curves from Cox models,
+  \code{\link{survfit.object}} for a description of the components of a
+  survfit object,
 \code{\link{print.survfit}},  
 \code{\link{plot.survfit}},  
 \code{\link{lines.survfit}},   
 \code{\link{coxph}},  
-\code{\link{Surv}},  
-\code{\link{strata}}.   
+\code{\link{Surv}}.  
 }
 \examples{
 #fit a Kaplan-Meier and plot it 

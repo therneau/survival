@@ -55,7 +55,6 @@ the \code{formula}.
   hazard \code{individual.h} for each subject.
   The default is to use \code{method='ederer'} if the formula has no
   response, and  \code{method='hakulinen'} otherwise.}
-
 \item{cohort}{logical value.  This argument has been superseded by the
   \code{method} argument.  To maintain backwards compatability,
   if is present and TRUE, it implies \code{method='individual.s'}.}
@@ -69,7 +68,7 @@ the \code{formula}.
   Note the \code{survival::} prefix in the default argument is present
   to avoid the (rare) case of a user who expects the default table
   but just happens to have an object named "survexp.us" in their own
-  directory.  
+  directory.} 
 
 \item{scale}{
 numeric value to scale the results.  If \code{ratetable} is in units/day, 

@@ -100,7 +100,7 @@ survreg(Surv(futime, fustat) ~ ecog.ps + rx, ovarian,
 survreg(Surv(time, status) ~ ph.ecog + age + strata(sex), lung)
 
 # There are multiple ways to parameterize a Weibull distribution. The survreg 
-# function imbeds it in a general location-scale familiy, which is a 
+# function embeds it in a general location-scale family, which is a 
 # different parameterization than the rweibull function, and often leads
 # to confusion.
 #   survreg's scale  =    1/(rweibull shape)
