@@ -334,7 +334,7 @@ vcov.cch<-function(object,...) object$var
     if (x$stratified){
         cat("Exposure-stratified case-cohort analysis,", x$method, "method.\n")
         m<-rbind(subcohort=x$subcohort.size, cohort=x$cohort.size)
-        prmatrix(m,quote=FALSE)
+        print(m,quote=FALSE)
     } else{
         cat("Case-cohort analysis,")
         cat("x$method,", x$method,"\n with subcohort of",
@@ -376,7 +376,7 @@ print.summary.cch <- function(x,digits=3,...){
     if (x$stratified){
         cat("Exposure-stratified case-cohort analysis,", x$method, "method.\n")
         m<-rbind(subcohort=x$subcohort.size, cohort=x$cohort.size)
-        prmatrix(m,quote=FALSE)
+        print(m,quote=FALSE)
     } else{
         cat("Case-cohort analysis,")
         cat("x$method,", x$method,"\n with subcohort of",
