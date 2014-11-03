@@ -92,8 +92,6 @@ test: $(RFUN)
 	rm zz
 clean:
 	-rm all.nw all.log all.aux all.toc all.tex all.bbl all.blg
-	-rm $(RFUN)
-	-rm $(CFUN2)
 	-rm noweb.sty
 
 noweb.sty:
