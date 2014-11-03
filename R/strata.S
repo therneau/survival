@@ -22,6 +22,13 @@ strata <- function(..., na.group=FALSE, shortlabel, sep=', ') {
         if (missing(shortlabel)) shortlabel <- FALSE
     }
 
+    # If the arguments are not all the same length, stop now    
+    # Mostly this is to stop calls with an improper object
+    arglength <- sapply(allf, length)
+    if (any(arglength != arglength[1])) 
+        stop("all arguments must be the same length")
+    if (!all(sapply(allf, is.atomic))) stop("all arguments must be vectors")
+
     # Process the first argument
     what <- allf[[1]]
     if(is.null(levels(what)))
