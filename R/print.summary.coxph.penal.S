@@ -31,11 +31,11 @@ print.summary.coxph.penal <-
 		       format(signif(print1[,6], 2)))
     temp <- ifelse(is.na(print1), "", temp)
     dimnames(temp) <- dimnames(print1)
-    prmatrix(temp, quote=FALSE)
+    print(temp, quote=FALSE)
 
     if(length(x$conf.int) >0 ) {
         cat("\n")
-        prmatrix(x$conf.int)
+        print(x$conf.int)
         }
     logtest <- -2 * (x$loglik[1] - x$loglik[2])
     sctest <- x$score

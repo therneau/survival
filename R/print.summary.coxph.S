@@ -30,11 +30,11 @@ print.summary.coxph <-
         cat("\n")
         if (is.R()) printCoefmat(x$coefficients, digits=digits,
                                  signif.stars=signif.stars, ...)
-        else prmatrix(x$coefficients)
+        else print(x$coefficients)
         }
     if(!is.null(x$conf.int)) {
         cat("\n")
-        prmatrix(x$conf.int)
+        print(x$conf.int)
         }
     cat("\n")
 

@@ -1,4 +1,3 @@
-# $Id: print.coxph.S 11451 2010-11-19 21:36:31Z therneau $
 print.coxph <-
  function(x, digits=max(options()$digits - 4, 3), ...)
     {
@@ -33,7 +32,7 @@ print.coxph <-
 	    "se(coef)", "robust se", "z", "p"))
 	}
     cat("\n")
-    prmatrix(tmp)
+    print(tmp)
 
     logtest <- -2 * (x$loglik[1] - x$loglik[2])
     if (is.null(x$df)) df <- sum(!is.na(coef))

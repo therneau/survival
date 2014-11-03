@@ -30,8 +30,8 @@ print.survexp <- function(x, scale=1, digits = max(options()$digits - 4, 3), nap
 
 	if (!is.null(x$std.err))
 	      cname <- c(cname, paste("se(", cname, ")", sep=''))
-	prmatrix(mat, rowlab=rep("", nrow(mat)),
-		   collab=c("Time", cname))
+        dimnames(mat) <- list(rep("", nrow(mat)), cname)
+	print(mat)
 	}
     else  { #print it out one strata at a time, since n's differ
 	if (is.null(x$std.err)) tname <- 'survival'
@@ -42,7 +42,7 @@ print.survexp <- function(x, scale=1, digits = max(options()$digits - 4, 3), nap
 	    mat <- cbind(c(x$n.risk), c(x$surv), c(x$std.err*x$surv))
 	    dimnames(mat) <- list(levs, c("n.risk", tname))
 	    cat(" Survival at time", x$time, "\n")
-	    prmatrix(mat)
+	    print(mat)
 	    }
 	else {
 	    for (i in 1:nstrat) {
@@ -51,8 +51,9 @@ print.survexp <- function(x, scale=1, digits = max(options()$digits - 4, 3), nap
 		if (!is.null(x$std.err)) mat<- cbind(mat,
 			   x$std.err[,i] * x$surv[,i])
 		if (!naprint) mat <- mat[!is.na(mat[,3]),,drop=FALSE]
-		prmatrix(mat, rowlab=rep("",nrow(mat)),
-				collab=c("Time", "n.risk", tname))
+                dimnames(mat) <- list(rep("",nrow(mat)),
+                                      c("Time", "n.risk", tname)) 
+		print(mat)
 		cat("\n")
 		}
 	    }

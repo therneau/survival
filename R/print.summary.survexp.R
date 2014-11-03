@@ -39,20 +39,15 @@ print.summary.survexp <- function(x,
 
     if (!is.matrix(mat)) mat <- matrix(mat, nrow=1)
     if (!is.null(mat)) {
-	dimnames(mat) <- list(NULL, cnames)
-	if (is.null(x$strata))
-		prmatrix(mat, rowlab=rep("", nrow(mat)))
+	dimnames(mat) <- list(rep("", nrow(mat)), cnames)
+	if (is.null(x$strata)) print(mat)
 	else  { #print it out one strata at a time
 	    strata <- x$strata
 	    for (i in levels(strata)) {
 		who <- (strata==i)
 		cat("               ", i, "\n")
-		if (sum(who) ==1)
-			print(mat[who,])
-	        else
-		    prmatrix(mat[who,], rowlab=rep("", sum(who)))
-
-		cat("\n")
+                print(mat[who,])
+                cat("\n")
  	        }
 	    }
         }
