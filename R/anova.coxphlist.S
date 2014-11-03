@@ -1,4 +1,3 @@
-# $Id$
 # This is usually called from anova.coxph, not a user
 #  It's first argument must be a list of coxph models
 anova.coxphlist <- function (object, test =  'Chisq' ,...) {
@@ -23,7 +22,9 @@ anova.coxphlist <- function (object, test =  'Chisq' ,...) {
     if (nmodels == 1) # only one model remains
         return(anova.coxph(object[[1]], test = test))
     loglik <- unlist(lapply(object, function(x) x$loglik[2]))
-    df <- unlist(lapply(object, function(x) sum(!is.na(coef(x)))))
+    df <- unlist(lapply(object, function(x) 
+                        if (!is.null(x$df)) sum(x$df)
+                        else sum(!is.na(coef(x)))))
 
     table <- data.frame(loglik, Chisq= c(NA, abs(2*diff(loglik))), 
                         Df= abs(c(NA, diff(df))))
