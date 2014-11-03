@@ -3,7 +3,8 @@ Maintainer: Terry M Therneau <therneau.terry@mayo.edu>
 Priority: recommended
 Package: survival
 Version: 2.37-8
-Depends: stats, utils, graphics, splines, R (>= 2.13.0)
+Depends: R (>= 2.13.0), graphics, stats
+Imports: splines
 LazyData: Yes
 LazyLoad: Yes
 ByteCompile: Yes

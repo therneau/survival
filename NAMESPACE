@@ -1,6 +1,8 @@
 useDynLib(survival, .registration = TRUE)
-importFrom(splines, ns, spline.des)
-import(stats,graphics)
+importFrom(splines, spline.des)
+importFrom(stats, anova, logLik, makepredictcall, model.frame, model.matrix,
+           predict, quantile, residuals, vcov, extractAIC)
+importFrom(graphics, plot, points, lines)
 export("Surv", "aareg", "agreg.fit",
        "agexact.fit", "attrassign", 
        "basehaz", "cch", "clogit", "cluster", "cox.zph", 
@@ -10,7 +12,7 @@ export("Surv", "aareg", "agreg.fit",
        "frailty.gaussian", "frailty.t", "is.Surv", 
        "is.na.Surv", "is.na.coxph.penalty", 
        "is.na.ratetable",  "is.ratetable", 
-       "labels.survreg", "match.ratetable", 
+       "labels.survreg", "match.ratetable", "neardate",
        "psurvreg", "qsurvreg", "dsurvreg",
        "pspline", "pyears", "ratetable", "ratetableDate", 
        "ridge", "strata", "survConcordance",
@@ -21,7 +23,7 @@ export("Surv", "aareg", "agreg.fit",
        "survpenal.fit", "survConcordance.fit",
        "survreg", "survreg.control", "survreg.fit",
        "survreg.distributions", "survregDtest", "tcut",
-       "untangle.specials")
+       "tmerge", "untangle.specials")
 S3method('[', aareg)
 S3method('[', Surv)
 S3method('[', cox.zph)
