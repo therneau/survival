@@ -345,7 +345,7 @@ else if (prod(odims) ==1) {  #don't make it an array
         if (expect=='pyears') out$expected <- out$expected/scale
         if (!is.null(rtemp$summ)) out$summary <- rtemp$summ
         }
-    if (dpount) out$event <- temp$pcount
+    if (docount) out$event <- temp$pcount
     }
 else {
     out <- list(call = call,
