@@ -31,7 +31,8 @@ options(contrasts=c("contr.treatment", "contr.poly")) #reset default
 \maketitle
 This is a topic that comes up just often enough in my work that I end up
 re-discovering how to do it correctly about once a year.
-A note showing how may be useful to others.
+A note showing how may be useful to others, it is certainly a useful
+reference for me.
 
 As an example we will use the effect of age on survival in the 
 \texttt{flchain} data set, a population based sample of subjects from
@@ -61,7 +62,11 @@ The primary problem is that a formula of
 the coxph routine is not clever enough to do the right thing automatically.
 (Perhaps some future version will be sufficiently bright, but don't hold
 your breath).
-Thus we need to create our own dummy variables to handle the interaction.
+If we were using regression splines instead, e.g. \texttt{ns(age, df=4)},
+the coxph routine would succeed but the plotting would fail; the 
+solution below works for both cases.
+
+We need to create our own dummy variables to handle the interaction.
 
 <<fit2>>=
 agem <- with(flchain, ifelse(sex=="M", age, 60))
@@ -75,7 +80,7 @@ The gain in this particular problem is not great, but we will forge ahead.
 You might well ask why we used 60 as a dummy value of \texttt{agem} for
 the females instead of 0?
 There is nothing special about the choice, and any value within
-the range of ages would do as well though I try to pick one where the
+the range of ages would do as well, though I try to pick one where the
 standard errors of the curves are not outrageous.  
 If a value of 0 is used it forces the pspline function to create a basis
 set that includes all the empty space between 0 and 50, and do predictions
@@ -86,7 +91,7 @@ The Cox model deals with relative hazards, when doing a plot we will usually
 want to specify who our reference is.  
 By default the termplot function uses an average reference, that is, any
 plot will be centered to have an average log hazard of 0.
-In this case, we will decide to use 65 year old males as our reference, with
+In this case, we decided to use 65 year old females as our reference, with
 all of the hazards relative to them. 
 
 <<plot2, fig=TRUE>>=
@@ -123,11 +128,12 @@ legend(80, 1, c("Female", "Male"), lty=1, lwd=2, col=1:2, bty='n')
     way but would get it wrong one time out of two.  
     So instead use the \texttt{predict} routine to get predicted log hazards
     for males and females at a particular age.  This tells me how far apart
-    the curves should be at that point.
+    the curves should be at that point.  We force the females to go through
+    0, which is exp(0) =1 on the hazard scale.
   \item Get the predicted curve and confidence bands for the females
     as a matrix \texttt{tempf}, and then shift them by subtracting the value
-    for a 65 year old female.  Do the same for males, also adding in
-    the curve separation.
+    for a 65 year old female.  Do the same for males, plus adding in
+    the curve separation at age 65 from \texttt{pred.ref}.
   \item The male and female portions don't have quite the same set of age
     values, there are no 95 year old males in the data set for example,
     so the plot needs to be done in two steps.
@@ -139,8 +145,8 @@ male and female points also has a standard error.
 This moves the entire bundle of three red curves up and down.  It is not
 clear how best to add this information into the plot.
 For questions of parallism and shape, as here, it seemed best to
-ignore it;
-if someone were reading individual male/female differences off the plot
+ignore it, which is what the termplot function also does.
+If someone were reading individual male/female differences off the plot
 a different choice would be appropriate.
 \end{document}
 

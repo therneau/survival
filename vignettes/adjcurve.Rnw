@@ -17,11 +17,15 @@
 \setkeys{Gin}{width=\textwidth}
 %\VignetteIndexEntry{Adjusted Survival Curves}
 
-<<echo=FALSE>>=
+<<init, echo=FALSE>>=
 options(continue="  ", width=60)
 options(SweaveHooks=list(fig=function() par(mar=c(4.1, 4.1, .3, 1.1))))
 pdf.options(pointsize=8) #text in graph about the same as regular text
-if (!exists('coxph')) library(survival)
+require(survival, quietly=TRUE)
+fdata <- flchain[flchain$futime > 7,]
+fdata$age2 <- cut(fdata$age, c(0,54, 59,64, 69,74,79, 89, 110),
+                  labels = c(paste(c(50,55,60,65,70,75,80),
+                                 c(54,59,64,69,74,79,89), sep='-'), "90+"))
 @ 
 
 \title{Adjusted Survival Curves}
@@ -57,37 +61,59 @@ The subtopic of how to create honest survival curve estimates in the
 presence of confounders is less well known, and is the focus
 of this note.
    
-Assume that we have an effect of interest $x$ and a set of possible confounding
-variables $c$. There are two main approaches to adjustment.
-The first approach, sometimes known as \emph{marginal} analysis,
-modifies the data so that
-the confounders $c$ are balanced across the factor of interest $x$, we can then
-proceed with simple analysis of survival versus $x$ using the 
+Assume that we have an effect of interest, treatment say, 
+and a set of possible confounding variables. 
+Creation a pair of adjusted survival curves has two parts:
+definition of a reference population for the confounders, 
+and then the computation of estimated curves for
+that population.  There are important choices in both steps.
+The first, definition of a target, is often not explicitly stated but
+can be critical.
+If an outcome differs with age, myocardial infarction say, and two treatments
+also had age dependent efficacy, then the comparison will depend greatly on
+whether we are talking about a population of young, middle aged, or older 
+subjects.
+
+The computational step has two main approaches.  
+The first, sometimes known as \emph{marginal} analysis, first modifies
+the data so that it is balanced with respect to the confounding variables,
+by forcing the distribution of each subgroup to match that of the target.
+We can then proceed with a simple analysis of survival using the 
 reformulated data, ignoring the confounders.
 The second approach seeks to understand and model the effect of each
 confounder, with this we can then correct for them.  
+From a comprehensive overall model we can obtain predicted survival curves
+for any configuration of variables, and from these get predicted overall
+curves for the reference population.
 This is often called the \emph{conditional} approach since we are
-examining the conditional survivals given $x$ and $c$.
-From these conditional survivals average curves are created that balance
-on the confounder.
-As shown below, these differ essentially in the \emph{order}
+using conditional survival curves given covariates $x$.
+
+A third but more minor choice is division of the covariates $x$ into effects
+of interest vs. confounders.  
+For instance, we might want to see separate curves for two treatments, each
+ajusted for age and sex.  The reference population will describe and age and
+sex distribution.  For simplicity we will use $x$ to describe all the
+confounding variables and use $c$ for the control variable(s), e.g. treatment.
+The set $c$ might be empty, producing single overall curve, but this is
+the uncommon case.
+As shown below, our two methods differ essentially in the \emph{order}
 in which the two necessary operations are done, balancing and survival
 curve creation.
 \begin{center}
   \begin{tabular}{rccc}
-    Marginal: & balance data on $c$ & $\longrightarrow$ & 
-             form survival curves by $x$ \\
-    Conditional: & form survival curves by $x$ and $c$& $\longrightarrow$ &
-        average curves over $c$ to balance
-  \end{tabular}
+    Marginal: & balance data on $x$ & $\longrightarrow$ & 
+             form survival curves for each $c$\\
+    Conditional: & predicted curves for $\{x,c\}$ subset
+    & $\longrightarrow$ & averge the predictions for each $c$
+   \end{tabular}
 \end{center}
-
-
-Many analyses use combinations of these, of course, balancing on
+We can think of them as ``balance and then model'' versus 
+``model then balance''.
+An analysis might use a combinations of these, of course, balancing on
 some factors and modeling others.
 All analyses are marginal analyses with respect to important predictors
-that are unknown to us, and most are conditional with respect to
-at least a few variables.
+that are unknown to us, although in that case we have no assurance of
+balance on those factors.
 
 \begin{figure}[tb]
   \myfig{flc1}
@@ -100,14 +126,15 @@ at least a few variables.
 Our example data set for this comparison uses a particular
 assay of plasma immunoglobulins and is based on work of Dr Angela Dispenzieri
 and her colleagues at the Mayo Clinic \cite{Dispenzieri12}.
-In brief, plasma cells are responsible for the production of
-immunoglobulins; they comprise a small portion ($<1$\%) of the 
+In brief, plasma cells (PC) are responsible for the production of
+immunoglobulins; PC comprise a small portion ($<1$\%) of the 
 total blood and marrow hematapoetic cell population in normal patients.
 The normal human repertoire is estimated to contain over
 $10^{8}$ unique immunoglobulins, conferring a broad range of immune
 protection.  In multiple myeloma, the most common form of plasma
 cell malignancy, almost all of
-the circulating antigen will be the product of a single malignant clone.
+the circulating antigen will be identical, the product of a single malignant 
+clone.
 An electrophoresis examination of circulating immunoglobulins will
 exhibit a ``spike'' corresponding to this unique molecule.
 This anomaly is used both as a diagnostic method and in monitoring
@@ -126,15 +153,34 @@ All studies took place under the oversight of the appropriate Institutional
 Review Boards, which ensure rigorous safety and ethical standards in
 research.
 
+A subset of the Dispensieri study is available is available in the survival
+package as data set \texttt{flchain}.  
+Because the original study assayed nearly the entire population, there is
+concern that some portions of the anonymized data could be linked to actual
+subjects by a dilegent searcher, and so only a subset of the study has been
+made available as a measure to strengthen anonyminity.
+It was randomly selected from the whole within sex and age 
+group strata so as to preserve the age/sex structure. 
+The data set contains 3 subjects whose blood sample was obtained on the day
+of their death.  It is rather odd to think of a sample obtained on
+the final day as ``predicting'' death, or indeed for any results obtained
+during a patient's final mortality cascade. 
+There are also a few patients with no follow-up beyond the clinic visit
+at which the assay occurred.
+We have chosen in this analysis analysis to exclude 
+the handful of subjects with less 
+than 7 days of follow-up, leaving \Sexpr{nrow(fdata)} observations.
+
+
 \begin{table} \centering
-  \begin{tabular}{r|cccc}
+  \begin{tabular}{l|cccc}
   & 50--59 & 60--69 & 70--79 & 80+ \\ \hline
 
 <<echo=FALSE, fig=FALSE, results=tex>>=
-group3 <- factor(1+ 1*(flchain$flc.grp >7) + 1*(flchain$flc.grp >9),
+group3 <- factor(1+ 1*(fdata$flc.grp >7) + 1*(fdata$flc.grp >9),
                       levels=1:3, 
                       labels=c("FLC < 3.38", "3.38 - 4.71", "FLC > 4.71"))
-age1 <- cut(flchain$age, c(49,59,69,79, 110))
+age1 <- cut(fdata$age, c(49,59,69,79, 110))
 levels(age1) <- c(paste(c(50,60,70), c(59,69,79), sep='-'), '80+')
 temp1 <- table(group3, age1)
 temp2 <- round(100* temp1/rowSums(temp1))
@@ -142,9 +188,9 @@ pfun <- function(x,y) {
     paste(ifelse(x<1000, "\\phantom{0}", ""), x, " (", 
           ifelse(y<10,   "\\phantom{0}", ""), y,  ") ", sep="")
 }
-cat(paste(c("FLC low", pfun(temp1[1,], temp2[1,])), collapse=" & "), "\\\\\n")
-cat(paste(c("FLC med", pfun(temp1[2,], temp2[2,])), collapse=" & "), "\\\\\n")
-cat(paste(c("FLC high", pfun(temp1[3,], temp2[3,])), collapse=" & "), "\n")
+cat(paste(c("FLC $<$ 3.38", pfun(temp1[1,], temp2[1,])), collapse=" & "), "\\\\\n")
+cat(paste(c("FLC 3.38--4.71", pfun(temp1[2,], temp2[2,])), collapse=" & "), "\\\\\n")
+cat(paste(c("FLC $>$ 4.71", pfun(temp1[3,], temp2[3,])), collapse=" & "), "\n")
 @ 
 \end{tabular}
 \caption{Comparison of the age distributions (percents) for each of the
@@ -152,40 +198,32 @@ cat(paste(c("FLC high", pfun(temp1[3,], temp2[3,])), collapse=" & "), "\n")
 \label{tflc1}
 \end{table}
 
-Our data set is an age and sex stratified sample of this second data set
-and contains 7874 of the subjects from the original study.
-It is included in the survival package as the data frame \texttt{flchain}.
 Figure \ref{flc1} shows the survival curves for three subgroups of
 the patients: those whose total free light chain (FLC) is in the upper
 10\% of all values found in the full study,
 those in the 70--89th percentile, and the remainder.
-There is a clear survival effect.
+There is a clear survival effect.  
 Average free light chain amounts rise with age, however, 
 at least in part because it is eliminated through the kidneys and renal
 function declines with age.  
-Table \ref{tflc1} shows the FLC by age distribution.
+Table \ref{tflc1} shows the age distribution for each of the three groups. 
 In the highest decile of FLC (group 3)  over half the subjects are
 age 70 or older compared to only 23\% in those below the 70th percentile.
 How much of the survival difference is truly associated with FLC
 and how much is simply an artifact of age?
- 
-The data set contains 3 subjects whose blood sample was obtained on the day
-of their death.  It is rather odd to think of a sample obtained on
-the final day as ``predicting'' death, or indeed for any results obtained
-during a patient's final mortality cascade. 
-There are also a few patients with no follow-up beyond the clinic visit
-at which the assay occurred.
-Therefore, all the analyses below have excluded subjects with less than 7 days of
-follow-up.
-   
+ (The cutpoints are arbitrary, but we have chosen to mimic the original study
+and retain them.  Division into three groups is a convenient number to 
+illustrate the methods in this vignette, but we do not make any claim that
+such a categorization is optimal or even sensible statistical practice.)
+ The R code for figure 1 is shown below.  
 <<flc1, fig=TRUE, include=FALSE>>=
-fdata <- flchain[flchain$futime > 7,]
+fdata <- flchain[flchain$futime >=7,]
+fdata$age2 <- cut(fdata$age, c(0,54, 59,64, 69,74,79, 89, 110),
+                  labels = c(paste(c(50,55,60,65,70,75,80),
+                                 c(54,59,64,69,74,79,89), sep='-'), "90+"))
 fdata$group <- factor(1+ 1*(fdata$flc.grp >7) + 1*(fdata$flc.grp >9),
                       levels=1:3, 
                       labels=c("FLC < 3.38", "3.38 - 4.71", "FLC > 4.71"))
-fdata$age2 <- cut(fdata$age, c(49,54, 59,64, 69,74,79, 89, 110),
-                  labels = c(paste(c(50,55,60,65,70,75,80),
-                                 c(54,59,64,69,74,79,89), sep='-'), "90+"))
 		      
 sfit1 <- survfit(Surv(futime, death) ~ group, fdata)
 plot(sfit1, mark.time=F, col=c(1,2,4), lty=1, lwd=2,
@@ -195,46 +233,33 @@ text(c(11.1, 10.5, 7.5), c(.88, .57, .4),
      c("FLC < 3.38", "3.38 - 4.71", "FLC > 4.71"), col=c(1,2,4))     
 @ 
 
-
-\section{Marginal methods}
-\subsection{Selection}
-\begin{figure}[tb]
-  \myfig{flc2}
-  \caption{Survival curves from a balanced subset are shown as solid
-        lines, dashed lines are curves for the unweighted data set 
-           (as found in  figure \ref{flc1}).}
-\label{flc2}
-\end{figure}
-<<flc2, fig=TRUE, include=FALSE>>=
-temp <- with(fdata, table(group, age2, sex))
-size <- apply(temp, 2:3, min)
-
-set.seed(1978)
-select <- NULL
-dd <- dim(temp)
-for (i in 1:dd[1]) {
-    for (j in 1:dd[2]) {
-        for (k in 1:dd[3]) {
-            indx <- which(as.numeric(fdata$group)==i &
-                          as.numeric(fdata$age2) ==j &
-                          as.numeric(fdata$sex) ==k)
-            select <- c(select, sample(indx, size[j,k]))
-        }
-    }
-}
-
-data2 <- fdata[select,]
-sfit2 <- survfit(Surv(futime, death) ~ group, data2)
-plot(sfit2, mark.time=F, col=c(1,2,4), lty=1, lwd=2,
-     xscale=365.25, xlab="Years from Sample", 
-     ylab="Survival")
-lines(sfit1,  mark.time=F, col=c(1,2,4), lty=2, lwd=1,
-      xscale=365.25)
-legend(2,.4, levels(fdata$group), lty=1, col=c(1,2,4),
-               bty='n', lwd=2)
-@ 
+\section{Populations}
+There are a few populations that are commonly used as the
+reference group.
+\begin{enumerate}
+  \item Emprical.  The overall distribution of confounders $x$ in the
+    data set as a whole.  For this study we would use the observed
+    age/sex distribution, ignoring FLC group.  This is also may be
+    called the ``sample'' or ``data'' distribution.
+  \item External reference.  The distribution from some external
+    study or standard.  
+  \item Internal reference.  A particular subset of the data is
+    chosen as the reference, and other subsets are then aligned with
+    it.  
+\end{enumerate}
+Method 2 is common in epidemiology, using a reference popultion based
+on a large external population such as the age/sex distribution of the
+2000 United States census.  Method 3 most often arises in
+the case-control setting, where one group is small and precious 
+(a rare disease say) and the other group (the controls) from which we can
+sample is much larger.  
+In each case the final result of the computation can be thought of as the
+expected answer we ``would obtain'' in a study that was perfectly balanced with
+respect to the list of confounders $x$.
+Population 1 is the most frequent.
 
 
+\section{Marginal approach}
 \begin{table} \centering
   \begin{tabular}{crrrrrrrr}
   \multicolumn{3}{c}{Females} \\
@@ -261,64 +286,104 @@ cat("High&", paste(tab1[3,,2], collapse=" &"), "\n")
 \label{tab2}
 \end{table}
 
- One way to balance the data set is to select a subset of subjects
-such that the subset is balanced.
-Table \ref{tab2} is shows an expanded age/sex distribution for the 
-study.
-The balanced subset has all \Sexpr{tab1[3,1,1]} 
-females aged 50--54 from FLC group 3,
+\subsection{Selection}
+One approach for balancing is to select a subset of the data
+such that the its disctribution matches
+the referent for each level of $c$, i.e., for each curve that we wish to
+obtain.  
+As an example we take a case-control like approach to the FLC data,
+with FLC high
+as the ``cases'' since it is the smallest group.
+Table \ref{tab2} shows a detailed distribution of the data with
+respect to age and sex.
+ The balanced subset has all \Sexpr{tab1[3,1,1]} 
+females aged 50--54 from the high FLC group,
 a random sample of \Sexpr{tab1[3,1,1]} out of the \Sexpr{tab1[1,1,1]}
-females in FLC group 1, and \Sexpr{tab1[3,1,1]} out of \Sexpr{tab1[2,1,1]}
-of the females in FLC group 2 for that age group.
-The same is done for all of the triplets in the table: select the largest
-number possible for which we can get perfect balance.
+females in the age 50--54 low FLC group, 
+and \Sexpr{tab1[3,1,1]} out of \Sexpr{tab1[2,1,1]} for the middle FLC.
+Continue this for all age/sex subsets.
+We cannot \emph{quite} compute a true case-control estimate for this
+data since there are not enough ``controls'' in the female 90+ category
+to be able to select one unique control for each case,
+and likewise in the male 80-89 and 90+ age groups.  
+To get around this we will sample with 
+replacement in these strata.
 
-\begin{table}[tb] \centering
-  \begin{tabular}{ccccccc}
-  &\multicolumn{2}{c}{FLC low} & \multicolumn{2}{c}{FLC med}&
-    \multicolumn{2}{c}{FLC high} \\
- & Total & Subset & Total & Subset & Total & Subset \\ \hline
-<<echo=FALSE, results=tex>>=
-tab3 <- with(fdata, table(age2, group))
-tab3 <- round(100*scale(tab3, center=F, scale=colSums(tab3)))
-tab4 <- with(data2, table(age2, group))
-tab4 <- round(100*scale(tab4, center=F, scale=colSums(tab4)))
-tab5 <- cbind(tab3[,1], tab4[,1], tab3[,2], tab4[,2], tab3[,3], tab4[,3])
-pfun <- function(x) paste(ifelse(x<10, paste("\\phantom{0}", x), x),
-                          collapse=" &")
-dtemp <- dimnames(tab5)[[1]]
-for (j in 1:7) 
-    cat(dtemp[j], " &", pfun(tab5[j,]), "\\\\\n")
-cat(dtemp[8], " & ",    pfun(tab5[8,]), "\n")
+\begin{figure}[tb]
+  \myfig{flc2}
+  \caption{Survival curves from a case-control sample are shown as solid
+        lines, dashed lines are curves for the unweighted data set 
+           (as found in  figure \ref{flc1}).}
+\label{flc2}
+\end{figure}
+<<flc2, echo=FALSE, fig=TRUE, include=FALSE>>=
+temp <- with(fdata, table(group, age2, sex))
+dd <- dim(temp)
+
+# Select subjects
+set.seed(1978)
+select <- array(vector('list', length=prod(dd)), dim=dd)
+for (j in 1:dd[2]) {
+    for (k in 1:dd[3]) {
+        n <- temp[3,j,k] # how many to select
+        for (i in 1:2) {
+            indx <- which(as.numeric(fdata$group)==i &
+                          as.numeric(fdata$age2) ==j &
+                          as.numeric(fdata$sex) ==k)
+            select[i,j,k] <- list(sample(indx, n, replace=(n> temp[i,j,k])))
+        }
+        indx <- which(as.numeric(fdata$group)==3 &
+                      as.numeric(fdata$age2) ==j &
+                      as.numeric(fdata$sex) ==k)
+        select[3,j,k] <- list(indx)  #keep all the group 3 = high
+    }
+}
+
+data2 <- fdata[unlist(select),]
+sfit2 <- survfit(Surv(futime, death) ~ group, data2)
+plot(sfit2, mark.time=F, col=c(1,2,4), lty=1, lwd=2,
+     xscale=365.25, xlab="Years from Sample", 
+     ylab="Survival")
+lines(sfit1,  mark.time=F, col=c(1,2,4), lty=2, lwd=1,
+      xscale=365.25)
+legend(2,.4, levels(fdata$group), lty=1, col=c(1,2,4),
+               bty='n', lwd=2)
 @ 
-\end{tabular}
-\caption{Age distributions (\%) of the original data set along with that of
-         the subset, for the three FLC groups.}
-\label{tflc2}
-\end{table}
 
-The survival curves for the balanced subset are shown in figure \ref{flc2}.  
-Two features stand out.  First we see that adjustment for
+
+
+%\begin{table}[tb] \centering
+%  \begin{tabular}{ccccccc}
+%  &\multicolumn{2}{c}{FLC low} & \multicolumn{2}{c}{FLC med}&
+%    \multicolumn{2}{c}{FLC high} \\
+% & Total & Subset & Total & Subset & Total & Subset \\ \hline
+%<<echo=FALSE, results=tex>>=
+%tab3 <- with(fdata, table(age2, group))
+%tab3 <- round(100*scale(tab3, center=F, scale=colSums(tab3)))
+%tab4 <- with(data2, table(age2, group))
+%tab4 <- round(100*scale(tab4, center=F, scale=colSums(tab4)))
+%tab5 <- cbind(tab3[,1], tab4[,1], tab3[,2], tab4[,2], tab3[,3], tab4[,3])
+%pfun <- function(x) paste(ifelse(x<10, paste("\\phantom{0}", x), x),
+%                          collapse=" &")
+%dtemp <- dimnames(tab5)[[1]]
+%for (j in 1:7) 
+%    cat(dtemp[j], " &", pfun(tab5[j,]), "\\\\\n")
+%cat(dtemp[8], " & ",    pfun(tab5[8,]), "\n")
+%@ 
+%\end{tabular}
+%\caption{Age distributions (\%) of the original data set along with that of
+%         the subset, for the three FLC groups.}
+%\label{tflc2}
+%\end{table}
+
+The survival curves for the subset data are shown in figure \ref{flc2}.  
+The curve for the high risk group is unchanged, since by definition
+all of those subjects were retained.  We see that adjustment for
 age and sex has reduced the apparent survival difference between
-the groups by about half, but a clinically significant effect for
+the groups by about half, but a clinically important effect for
 high FLC values remains.
-The second is that the curve for group 1 has moved a lot while that
-for group 3 has changed hardly at all.
-This is a consequence of an overall shift in the distribution of
-ages, as shown in table \ref{tflc2}.
-For group 3, the subsetting process has hardly shifted the age distribution,
-whereas for group 1 it has moved the average age from young to old.
-
-The subsetting approach is most often labeled as a ``case-control'' method,
-and is applied in the situation
-where one of the groups is small and precious (a rare disease say) and the
-other group (the controls) is much larger.
-Since there are excess controls the final age/sex distribution will
-match that of the cases, and the resulting survival curves have a ready
-interpretation. 
-Interpretation of the curves for the FLC data is much less clear;
-we have gained an unbiased comparison, but for a very peculiar
-population of subjects.
+The curve for group 1 has moved more than that for group 2 since the
+age/sex adjustment is more severe for that group.
 
 <<echo=FALSE>>=
 # I can't seem to put this all into an Sexpr
@@ -327,30 +392,18 @@ z2<- apply(z1, 1:2, min)
 ztemp <-  3*sum(z2)
 z1b <- with(fdata, table(age>64, sex, group))
 ztemp2 <- sum(apply(z1b, 1:2, min))
-
 @ 
-A second deficit of the matching approach is that the
-choice of our matching criteria is somewhat arbitrary.
-We want to make the subsets fine enough that subjects are biologically
-homogeneous within age group,
-yet large enough so as to limit the number of subjects excluded.
-For instance, if we had divided the
-data set only into age 50--64 versus $\ge$ 65, the upper group would still be
-quite heterogeneous with respect to expected survival (a 70 vs 90 year old
-for instance) and the distribution of ages within the upper
-group would remain unbalanced.  The resulting data set would have been
-larger, however, 
-%with \Sexpr{ztemp2} in each group rather than
-%\Sexpr{nrow(data2)/3}. 
-due to less stringent balancing criteria.
-On the other hand, if we had done a very fine division, say by age in weeks,
-the resulting matched data set will be reduced to almost zero;
-we become hostage to the random fluctuations in sample size for these small
-groups.
-In this large data set we have the luxury of dividing finely enough to
-create acceptably homogeneous groups, but this is not common.
 
-@ 
+In actual practice, case-control designs arise when matching and
+selection can occur \emph{before} data collection, leading to a
+substantial decrease in the amount of data that needs to be
+gathered and a consequent cost or time savings.  
+When a data set is already in hand it has two major disadvantages.
+The first is that the approach wastes data; throwing away information in
+order to achieve balance is always a bad idea.
+As important is that though it returns an unbiased comparison, the result
+is for a very odd reference population.
+
 One advantage of matched subsets is that standard variance calculations
 for the curves are correct; the values provided by the usual Kaplan-Meier
 program need no further processing.
@@ -362,26 +415,21 @@ survdiff(Surv(futime, death) ~ group, data=data2)
 
 \subsection{Reweighting}
 \label{sect:logistic}
-Another way to adjust the data is by reweighting.
+A more natural way to adjust the data distribution is by weighting.
 Let $\pi(a,s)$, $a$ = age group, $s$ = sex be a target population age/sex
 distribution for our graph,
-and $p(a,s,i)$ the observed probability of each group/age/sex combination
-in the data.  Each of these will sum to 1.
+and $p(a,s,i)$ the observed probability of each age/sex/group combination
+in the data.  Both $\pi$ and $p$ sum to 1.
 Then if each observation in the data set is given a case weight of
 \begin{equation}
   w_{asi} = \frac{\pi(a,s)}{p(a,s,i)} \label{wt1}
 \end{equation}
 the weighted age/sex distribution for each of the groups will equal 
 the target distribution $\pi$.
-When results from multiple studies are to be compared,
-the target distribution $\pi$ will often be based on external criteria,
-e.g., the US 2000 population,
-and the result from the re weighted sample is called the \emph{direct adjustment}
-method. 
-An obvious advantage of this approach, as compared to subset selection,
+An obvious advantage of this approach
 is that the resulting curves represent a tangible and well defined group.
 
-As an example, we will adjust our curves to match the age/sex distribution
+As an example, we will first adjust our curves to match the age/sex distribution
 of the 2000 US population, a common reference target in epidemiology studies.
 The \texttt{uspop2} data set is found in later releases of the survival
 package in R.  It is an array of counts with dimensions of age,
@@ -400,8 +448,8 @@ range(us.wt)
 @ 
 There are infinite weights!  This is because the US population has coverage
 at all ages, but our data set does not have representatives in every 
-age/sex/FLC group combination.
-(There are 32 zeros in tab100).  
+age/sex/FLC group combination; there are for instance no 95 year old males in
+in the data set. 
 Let us repeat the process, collapsing the US population from single years into
 the 8 age groups used previously in table \ref{tab2}.
 Merging the per age/sex/group weights found in the 3-dimensional array
@@ -425,14 +473,12 @@ sfit3a <-survfit(Surv(futime, death) ~ group, data=fdata, weight=uswt)
   \label{flc3a}
 \end{figure}
 
-Since the present data set is itself population based and has excellent coverage
-of the county, it
-is sensible to use the overall age/sex distribution of the sample itself as
-our target distribution $\pi$.
-If we compare the target distribution $\pi$ based on the US population and
-on the Olmsted County population they are quite similar as shown in 
-figure \ref{flc3a}.  Not surprisingly, the population adjusted survival curves
-based on these two reference populations nearly overlap.
+A more common choice is to use the overall age/sex distribution of the 
+sample itself as
+our target distribution $\pi$, i.e., the emprical distribtion.
+Since FLC data set is population based and has excellent coverage
+of the county, this will not differ greatly from the US population in this
+case, as is diplayed in figure \ref{flc3a}.
 
 <<flc3a,  fig=TRUE, include=FALSE >>=
 tab1 <- with(fdata, table(age2, sex))/ nrow(fdata)
@@ -445,9 +491,12 @@ tab2 <- with(fdata, table(age2, sex, group))/nrow(fdata)
 tab3 <- with(fdata, table(group)) / nrow(fdata)
 
 rwt <- rep(tab1,3)/tab2 
-round(rwt[,1,], 1) #show female data
 fdata$rwt <- rwt[index]  # add per subject weights to the data set
 sfit3 <- survfit(Surv(futime, death) ~ group, data=fdata, weight=rwt)
+
+temp <- rwt[,1,]   #show female data
+temp <- temp %*% diag(1/apply(temp,2,min))
+round(temp, 1) #show female data
 @ 
 
 \begin{figure}[tb]
@@ -470,8 +519,11 @@ lines(sfit1,  mark.time=F, col=c(1,2,4), lty=2, lwd=1,
 legend(2,.4, levels(fdata$group), lty=1, col=c(1,2,4),
                bty='n', lwd=2)
 @ 
- 
-We see that for the low FLC group there are somewhat larger weights for
+
+The calculation of weights is shown above, and finishes with a table
+of the weigths for the females.  The table was to have a miniumn weight
+of 1 in each column for simpler reading.
+We see that for the low FLC group there are larger weights for
 the older ages, whereas the high FLC group requires substantial
 weights for the youngest ages in order to achieve balance.
 The resulting survival curve is shown in figure \ref{flc3}.  The
@@ -490,8 +542,8 @@ simple case and more complex sampling schemes.
 Tests of the curves can be done using a weighted Cox model;
 the robust variance produced by \texttt{coxph} is identical to the standard
 Horvitz-Thompsen variance estimate used in survey sampling \cite{Binder92}.
-The score test from \texttt{coxph} is equivalent to the log-rank test that
-is often used to label curves.
+The robust score test from \texttt{coxph} corresponds to a logrank test 
+corrected for weighting.
 (In the example below the sykm function is only run if the survey package
 is already loaded, as the variance calculation is very slow for this large
 data set.)
@@ -511,9 +563,9 @@ treat the weights as resampling values and thus use the proper
 survey sampling style variance.  
 The default without that term would be to treat the case weights as
 replication counts. 
-(This same alternate variance estimate is also called for when there are
+This same alternate variance estimate is also called for when there are
 correlated observations; many users will be more familiar with the
-cluster statement in that context.)
+cluster statement in that context.
 
 \paragraph{Inverse probability weighting}
 Notice that when using the overall population as the target distribution
@@ -548,7 +600,7 @@ If there were only 2 groups then only a single regression model is
 needed since P(group 2) = 1 - P(group 1).
 Note the setting of na.action, which causes the predicted vector to have
 the same length as the original data even when there are missing values.
-This simplifies using the derived weights with the original data set.
+This simplifies merging the derived weights with the original data set.
 
 An advantage of the regression framework is that one can easily
 accommodate more variables by using a model with additive terms
