@@ -220,4 +220,9 @@ psplineinverse <- function(x) {
     }
 }
 
-    
+as.matrix.pspline <- function(x, ...) {
+    temp <- attributes(x)
+    attributes(x) <- temp['dim']
+    x
+}
+
