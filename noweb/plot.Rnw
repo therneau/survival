@@ -342,9 +342,11 @@ The next functions do the actual drawing.
 # Create a step function, removing redundancies that sometimes occur in
 #  curves with lots of censoring.
 dostep <- function(x,y) {
-    if (is.na(x[1] + y[1])) {
-        x <- x[-1]
-        y <- y[-1]
+    keep <- is.finite(x) & is.finite(y)    
+    if (!all(keep)) {
+        # these won't plot anyway, so simplify (CI values are often NA)
+        x <- x[keep]
+        y <- y[keep]
     }
     n <- length(x)
     if (n==1)       list(x=x, y=y)
@@ -352,15 +354,20 @@ dostep <- function(x,y) {
     else {
         # replace verbose horizonal sequences like
         # (1, .2), (1.4, .2), (1.8, .2), (2.3, .2), (2.9, .2), (3, .1)
-        # with (1, .2), (3, .1).  They are slow, and can smear the looks
-        # of the line type.
-        dupy <- c(y[-1]!=y[-n], TRUE)
-        dupy <- dupy & !is.na(dupy)  #CI values may be NA when survival =0
-        n2 <- sum(dupy)
-        
+        # with (1, .2), (.3, .2),(3, .1).  
+        #  They are slow, and can smear the looks of the line type.
+        temp <- rle(y)$lengths
+        drops <- 1 + cumsum(temp[-length(temp)])  # points where the curve drops
+
         #create a step function
-        xrep <- rep(x[dupy], c(1, rep(2, n2-1)))
-        yrep <- rep(y[dupy], c(rep(2, n2-1), 1))
+        if (n %in% drops) {  #the last point is a drop
+            xrep <- c(x[1], rep(x[drops], each=2))
+            yrep <- rep(y[c(1,drops)], c(rep(2, length(drops)), 1))
+        }
+        else {
+            xrep <- c(x[1], rep(x[drops], each=2), x[n])
+            yrep <- c(rep(y[c(1,drops)], each=2))
+        }
         list(x=xrep, y=yrep)
     }
 }
@@ -375,7 +382,6 @@ drawmark <- function(x, y, mark.time, censor, cex, ...) {
         yy <- approx(x, y, xx, method="constant", f=0)$y
     }
     points(xx, yy, cex=cex, ...)
-        
 }
 @ 
 
