@@ -25,12 +25,12 @@ frailty.gaussian <- function(x, sparse=(nclass >5), theta, df,
 
     nclass <- length(unique(x[!is.na(x)]))
     if (sparse){
-	x <-as.numeric(as.factor(x))
+        x <- as.numeric(factor(x))   #if there are missing levels, drop them
 	if (is.R()) class(x) <- "coxph.penalty"
 	else        oldClass(x) <- "coxph.penalty"
 	}
     else{
-	x <- as.factor(x)
+	x <- factor(x)
         nclass <- length(levels(x))
 	if (is.R()) {
             class(x) <- c("coxph.penalty", class(x))
