@@ -2,6 +2,12 @@
 \title{NEWS file for the survival package}
 \section{Changes in version 2.37-8}{
   \itemize{
+    \item The term frailty(x) would fail if x were a factor, and not all
+    levels were present.  Pointed out by Theodor Balan.
+    
+    \item Fix error of "abs" instead of "fabs" in the agfit4.c code;
+    pointed out to me by CRAN.
+    
     \item Replace all instances of the obsolete prmatrix function.
     
     \item Modify pyears to allow cbind(time, count) as the response,
