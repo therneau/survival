@@ -17,10 +17,10 @@
   }
 }
 \source{
-  N. R. Bohidar and J. L. Ciminera.
+  N. Mantel, N. R. Bohidar and J. L. Ciminera.
   Mantel-Haenszel analyses of litter-matched time to response data,
   with modifications for recovery of interlitter information.
-  Cancer Research, 37:3863-3868, 1977. 5 
+  Cancer Research, 37:3863-3868, 1977.  
 }
 \references{
   E. W. Lee, L. J. Wei, and D. Amato,
