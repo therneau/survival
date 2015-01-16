@@ -2,6 +2,14 @@
 \title{NEWS file for the survival package}
 \section{Changes in version 2.37-8}{
   \itemize{
+    \item Robust variance is not supported for a coxph model with the
+    "exact" approximation.  (Rarely requested and a lot of work to add.)
+    Add an error message to clogit(), so users get a more useful notice of
+    the issue rather than a late error from residuals.coxph.
+    
+    \item Update the rats data set: it now includes both female and male
+    litters so as to match the documentation.
+    
     \item The term frailty(x) would fail if x were a factor, and not all
     levels were present.  Pointed out by Theodor Balan.
     
@@ -11,7 +19,8 @@
     \item Replace all instances of the obsolete prmatrix function.
     
     \item Modify pyears to allow cbind(time, count) as the response,
-    giving a cumulative sum of counts.
+    giving a cumulative sum of counts, when the counts per observation
+    may be other than 0/1.
     
     \item The lines.survfit function was incorrect for data sets that
     used the start.time option and xscale (it neglected to rescale the
