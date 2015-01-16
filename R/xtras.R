@@ -23,18 +23,3 @@ rep.Surv <- function(x, ...) {
     x[indx,]
 }
 
-logLik.coxph <- function(object, ...) {
-    val <- object$loglik[length(object$loglik)]
-    attr(val, "df") <- sum(!is.na(object$coef))
-    attr(val, "nobs") <- object$n
-    class(val) <- "logLik"
-    val
-}
-
-logLik.survreg <- function(object, ...) {
-    val <- object$loglik[2]
-    attr(val, "df") <- object$df
-    attr(val, "nobs") <- object$df + object$df.residual
-    class(val) <- "logLik"
-    val
-}

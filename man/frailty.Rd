@@ -131,9 +131,11 @@ coxph(Surv(time, status) ~ age + frailty(inst, df=4), lung)
 
 # Litter effects for the rats data
 rfit2a <- survreg(Surv(time, status) ~ rx +
-                  frailty.gaussian(litter, df=13, sparse=FALSE), rats )
+                  frailty.gaussian(litter, df=13, sparse=FALSE), rats,
+                  subset= (sex=='f'))
 rfit2b <- survreg(Surv(time, status) ~ rx +
-                  frailty.gaussian(litter, df=13, sparse=TRUE), rats )
+                  frailty.gaussian(litter, df=13, sparse=TRUE), rats,
+                  subset= (sex=='f'))
 }
 \keyword{survival}
 

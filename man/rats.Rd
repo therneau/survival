@@ -17,10 +17,10 @@
   }
 }
 \source{
-  N. R. Bohidar and J. L. Ciminera.
+  N. Mantel, N. R. Bohidar and J. L. Ciminera.
   Mantel-Haenszel analyses of litter-matched time to response data,
   with modifications for recovery of interlitter information.
-  Cancer Research, 37:3863-3868, 1977. 5 
+  Cancer Research, 37:3863-3868, 1977.  
 }
 \references{
   E. W. Lee, L. J. Wei, and D. Amato,
@@ -28,6 +28,7 @@
     correlated failure time observations,
     in "Survival Analysis, State of the Art", Kluwer, 1992.
   }
-\note{The subset of females (odd numbered litters) was used Lee et al.}
+  \note{Since only 2/150 of the male rats have a tumor, most analyses use
+    only females (odd numbered litters), e.g. Lee et al.}
 \keyword{survival}
 \keyword{datasets}

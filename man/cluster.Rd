@@ -33,8 +33,10 @@ second a GEE approach, and these don't mix.
 \code{\link{coxph}},  \code{\link{survreg}}   
 }
 \examples{
-marginal.model <- coxph(Surv(time, status) ~ rx + cluster(litter), rats)
-frailty.model  <- coxph(Surv(time, status) ~ rx + frailty(litter), rats)
+marginal.model <- coxph(Surv(time, status) ~ rx + cluster(litter), rats,
+                         subset=(sex=='f'))
+frailty.model  <- coxph(Surv(time, status) ~ rx + frailty(litter), rats,
+                         subset=(sex=='f'))
 }
 \keyword{survival}
 

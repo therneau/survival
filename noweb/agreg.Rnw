@@ -121,13 +121,13 @@ coef <- agfit$coef
 if (agfit$flag < nvar) which.sing <- diag(var)==0
 else which.sing <- rep(FALSE,nvar)
 
-infs <- abs(agfit$u %*% var)
+infs <- fabs(agfit$u %*% var)
 if (maxiter >1) {
     if (agfit$iter > maxiter)
         warning("Ran out of iterations and did not converge")
     else {
         infs <- ((infs > control$eps) & 
-                 infs > control$toler.inf*abs(coef))
+                 infs > control$toler.inf*fabs(coef))
         if (any(infs))
             warning(paste("Loglik converged before variable ",
                           paste((1:nvar)[infs],collapse=","),
@@ -515,7 +515,7 @@ for (person=0; person<nused;) {
         ** One of the case-cohort papers suggests an offset of -100 meaning
         ** that etas of 50-100 can occur in "ok" data, so make it larger than this.
 	*/
-	if (abs(meaneta) > (nrisk *110)) {  
+	if (fabs(meaneta) > (nrisk *110)) {  
 	    meaneta = meaneta/nrisk;
 	    for (i=0; i<nused; i++) eta[i] -= meaneta;
 	    temp = exp(-meaneta);

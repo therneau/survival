@@ -6,12 +6,12 @@ frailty.t <- function(x, sparse=(nclass>5), theta, df, eps= 1e-5,  tdf=5,
 			  method=c("aic", "df", "fixed"), ...) {
     nclass <- length(unique(x[!is.na(x)]))
     if (sparse){
-	x <-as.numeric(as.factor(x))
+	x <-as.numeric(factor(x))
 	if (is.R()) class(x) <- "coxph.penalty"
 	else        oldClass(x) <- "coxph.penalty"
         }
     else{
-	x <- as.factor(x)
+	x <- factor(x)
 	if (is.R()) class(x) <- c("coxph.penalty",class(x))
 	else        oldClass(x) <- "coxph.penalty"
 	attr(x,'contrasts') <- contr.treatment(nclass, contrasts=FALSE)

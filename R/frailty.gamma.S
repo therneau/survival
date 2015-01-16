@@ -4,9 +4,9 @@
 frailty.gamma <- function(x, sparse=(nclass >5), theta, df, eps= 1e-5, 
 			  method=c("em", "aic", "df", "fixed"), ...) {
     nclass <- length(unique(x[!is.na(x)]))
-    if (sparse)	x <-as.numeric(as.factor(x))
+    if (sparse)	x <-as.numeric(factor(x))  #drop extra levels if a factor
     else{
-	x <- as.factor(x)
+	x <- factor(x)
 	attr(x,'contrasts') <- contr.treatment(nclass, contrasts=FALSE)
                 }
     if (is.R()) class(x) <- c("coxph.penalty",class(x))
