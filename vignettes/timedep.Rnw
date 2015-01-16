@@ -24,49 +24,80 @@ makefig <- function(file, top=1, right=1, left=4) {
 library(survival)
 @ 
 
+\section{Introduction}
+This vignette covers 3 somewhat different but interrelated concepts:
+\begin{itemize}
+  \item An introduction to time dependent covariates, along with some
+    of the most common mistakes.
+  \item Tricks and tools for creating time-dependent covariates, or rather the
+    data sets used to encode them.
+  \item Time dependent coefficients.
+    
 \section{Time dependent covariates}
 One of the strengths of the Cox model is its ability to encompass covariates
-that change over time.
+that change over time.  
 The practical reason for this is based on the underlying way in which the Cox
 model works: at each event time the program compares the current 
 covariate values of the subject
 who had the event to the current values of all others who were at risk
 at that time. 
-So computationally, we only need to know covariate values at that point in
-time.
-The model had a theoretical foundation in martigale theory,
+One can think of it as a lottery model, where at 
+each death time there is a drawing to decide which subject ``wins'' the
+event.  Each subject's risk score determines how likely they are to win,
+e.g., how many ``tickets'' they have in the drawing.
+The model tries to assign a risk score to each subject that best predicts
+the outcome of each drawing based on 
+\begin{itemize}
+  \item The risk set: which subjects are present for each event; the set of
+    those able to ``win the prize''.
+  \item The covariate values of each subject just prior to the event time.
+\end{itemize}
+
+The model has a theoretical foundation in martigale theory,
 a mathematical construct which arose out of the study of games of chance.
 A key underlying condition for a martingale like game is that present
-actions depend only on the past. The decision of whether to play and the
-size of a bet can depend in any way on
+actions depend only on the past. The decision of whether to play
+(in the risk set or not) and the
+size of a bet (covariates) can depend in any way on
 prior bets and patterns of won/lost, but cannot look into the future.
 If this holds then multiple properties can be proven about the
-resulting random walk, including the \emph{gambler's ruin}, i.e., that 
-no pattern of betting can erase the house advantage.
+resulting process.
 
-The rule for time dependent covariates in a Cox model is simple
-and essentially the same as that for gambling: you cannot look into
-the future.
+The key rule for time dependent covariates in a Cox model is simple
+and essentially the same as that for gambling: \emph{you cannot look into
+the future}.
 A covariate may change in any way based on past data or outcomes, but it
 may not reach forward in time.
-One of the more well known examples of this error is analysis by response:
+One of the more well known examples of this error is analysis by 
+treatment response:
 at the end of a trial a survival curve is made comparing those who had an
 early response to treatment (shrinkage of tumor, lowering of cholesterol,
 or whatever) to those who did not, and it discovered that responders have
-a better curve.  A Cox model will demonstrate a strong ``significant'' effect.
-The problem arises because  subjects are classified as responders or 
-non-responders from the beginning of the study, i.e., they are placed into
-group A or B before the response has occurred.  
-As a consequence, any early deaths that occur before response can be
+a better curve.  
+A Cox model fit to the same data will demonstrate a strong 
+``significant'' effect.
+The problem arises because any early deaths, those that occur before response 
+can be
 assessed will be assigned to the non-responder group, even deaths that have
 nothing to do with the condition under study.
-If response is instead coded as a time-dependent covariate which starts at
-0 for all subjects and is recoded to 1 only when the response occurs, then the
-problem disappears.
+The alarm about this incorrect approach has been sounded often
+\cite{xxx} but is routinely re-discovered.
+A slightly subtler form of the error is found in Bonadonna and Valagussa
+\cite{Benadona81, Bonadonna85}.  Breast cancer chemotherapy patients were
+divided into three groups based on whether the patient eventually
+received $>85$\%, 65--85\% or $<65$\% of the dose planned at the start of
+their treatment.  The chemotherapy regiment spans 12 weeks of treatment
+and the early deaths, not surprisingly, do not get all their dose.  
+
+If response is instead coded as a time-dependent covariate whose values 
+depend only on the past, then the problem disappears.
+For treatment response this will be a variable that starts at
+0 for all subjects and is recoded to 1 only when the response occurs.
+For dose it would cumulative dose to date.
 
 There are many variations on the error: interpolation of the values of a
 laboratory test linearly between observation times, removing subjects who do
-not finish the treatment plan, imputing the date of an adverse event midway
+not finish the treatment plan, imputing the date of an adverse event at midway
 between observation times, etc. 
 Using future data will very often generate large bias in the results, which can
 be positive, negative, or sometimes barely visible.
@@ -115,8 +146,13 @@ is necessary:
 \end{itemize}
 
 
-\section{Examples}
-\subsection{Multiple events}
+\section{Building Data sets}
+\subsection{The timemerge function}
+A useful function for building data sets is \code{timemerge}, which is
+part of the survival library.  For our first example we will show how the 
+\code{cgd} data set is created that allows for analysis of a recurrent
+event.
+
 Chronic granulomatous disease (CGD) is a heterogenous group of uncommon
 inherited disorders characterized by recurrent pyogenic infections that
 usually begin early in life and may lead to death in childhood. Interferon
@@ -138,12 +174,13 @@ The total number of infections was 56 and 20 in the placebo and treatment
 groups, respectively.
    One patient was taken off on the day of his last infection; all others
 have some followup after their last episode.
-Below are the first 10 observations, see the help page for \texttt{cgd}
+Below are the first 10 observations, see the help page for \texttt{cgdraw}
 for the full list of variable names. The last few columns contain the 
 duration of follow-up for the subject followed by infection times.
 Subject 1 had 2 infections during the study, subject 2 had 7, and subject
 3 had none.
-\small\begin{verbatim}
+\small
+\begin{verbatim}
   1 204 082888 1 2 12 147.0  62.0 2 2 2 2 414 219 373
   2 204 082888 0 1 15 159.0  47.5 2 2 1 2 439   8  26 152 241 249 322 350
   3 204 082988 1 1 19 171.0  72.7 1 2 1 2 382
@@ -157,16 +194,17 @@ Subject 1 had 2 infections during the study, subject 2 had 7, and subject
 \end{verbatim}
 \normalsize
 
-The data set \texttt{cgd} is included in the survival package.
-Below we list the first few observations of that data set:
-<<>>=
-cgd[1:10, c("id", "tstart", "tstop", "status", "enum", "treat")]
-cfit <- coxph(Surv(tstart, tstop, status) ~ treat + sex + age +
-               inherit + cluster(id), data=cgd)
-@ 
-
-The logic for creating the time variables is
+The data set above is included as \code{cgdraw} in the survival
+library, and is a simple read of the above data set.
+We want to turn this into a data set that has survival in a counting
+process form.
 \begin{itemize}
+  \item Each row of the resulting data set represents a time interval
+    (time1, time2] which is open on the left and closed on the right.
+    Covariate values for that row are the covariate values that apply
+    over that interval.
+  \item The event variable for each row is 1 if that time interval ends
+    with an event and 0 otherwise.
   \item If a subject has no events there is a single interval from 0 to
     last follow-up, with a status of 0.
   \item If there are events
@@ -180,6 +218,28 @@ The logic for creating the time variables is
 often proves useful in analysis, for instance \texttt{subset=(enum==1)}
 within a model restricts analysis to the first event for each subject.
 \end{itemize}
+
+The tmerge routine starts with a basic data set that contains each subject's
+time interval and baseline covariates, and then sequentially adds time
+dependent information by weaving it in.  We first make a data set
+\code{tdata} that has all of the event times in it.
+<<cgd1>>=
+tdata <- with(cgdraw, data.frame(id2=rep(id, 7),
+                                 etime = c(etime1, etime2, etime3, etime4,
+                                           etime5, etime6, etime7)))
+tdata <- na.omit(tdata)  #toss missing values
+
+# Remove etime variables from the starting data set
+indx <- match(paste("etime", 1:7, sep=''), names(cgdraw))
+cgd1 <- tmerge(cgdraw[, -indx], tname =c(id="id", end="futime", start="time1"))
+
+# Add the event times
+cgd1 <- with(tdata, tmerge(cgd1, id=id2, status= event(etime), 
+                           enum=cumcount(etime)))
+
+@ 
+
+
 
 
 \subsection{Changing lab tests}
@@ -368,6 +428,30 @@ since ranks go from 1 to number at risk the mean also scales.)
 Although handy, the computational impact of the tt argument should be
 considered before using it.
 The Cox model requires computation of a weighted mean and variance of
+the covariates at each event time, a process that is inherently 
+$O(ndp^2)$ where $n$ = the sample size, $d$ = the number of events and $p$=
+the number of covariates.  
+Much of the algorithmic effort in coxph() is to use updating methods for
+the mean and variance matrices, reducing the compute time to $O((n+d) p^2)$.
+When a tt term appears updating is not possible; for even moderate size
+data sets the impact of $nd$ versus $n+d$ can be surprising.
+
+
+The time-transform is a new addition and still has some rough edges.
+At this moment the $x=T$ argment is needed to get proper residuals and
+predicted values, and termplot is unable to properly reconstruct the
+data to plot the spline fit.
+Please communicate any concerns or interesting examples to the author.
+
+\begin{thebibliography}{9}
+  \bibitem{Nicola05} Nicola PJ, Maradit-Kremers H, Roger VL, Jacobsen SJ, 
+    Crowson CS, Ballman KV, Gabriel SE. ``The risk of Congestive Heart Failure
+    in Rheumatoid Arthritis: a Population-Based Study Over 46 Years.''
+    \emph{Arthritis Rheum} 52: 412--20, 2005.
+  \bibitem{obrien78} O'Brien, Peter, ``A non-parametric test for           %'
+    association with censored data'', \emph{Biometrics} 34:243--250, 1978.
+\end{thebibliography}
+\end{document}
 the covariates at each event time, a process that is inherently 
 $O(ndp^2)$ where $n$ = the sample size, $d$ = the number of events and $p$=
 the number of covariates.  
