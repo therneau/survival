@@ -1,15 +1,15 @@
-\name{cgd}
+\name{cgd0}
 \docType{data}
-\alias{cgd}
-\alias{cgd.raw}
+\alias{cgd0}
 \title{Chronic Granulotomous Disease data}
+
 
 \description{Data are from a placebo controlled trial of gamma
   interferon in chronic granulotomous disease (CGD).
   Contains the data on time to serious infections observed through
   end of study for each patient. 
 }
-\usage{cgd}
+\usage{cgd0}
 \format{
   \describe{
    \item{id}{subject identifiction number}
@@ -24,23 +24,21 @@
    \item{steroids}{use of steroids at study entry,1=yes}
    \item{propylac}{use of prophylactic antibiotics at study entry}
    \item{hos.cat}{a categorization of the centers into 4 groups}
-   \item{tstart, tstop}{start and end of each time interval }
-   \item{status}{1=the interval ends with an infection }
-   \item{enum}{observation number within subject}
+   \item{futime}{days to last follow-up}
+   \item{etime1-etime7}{up to 7 infection times for the subject}
    }
  }
  \details{
-   The \code{cgd0} data set is in the form found in the references,
+   The \code{cgdraw} data set (this one) is in the form found in the references,
    with one line per patient and no recoding of the variables.
-   The \code{cgd} data set (this one) has been cast into (start, stop]
-   format with one line per event, and covariates
-   such as center recoded as factors
-   to include meaningful labels. 
-}
+
+   The \code{cgd} data set has been further processed so as to have one
+   line per event, with covariates such as center recoded as factors
+   to include meaningful labels. }
 \source{
   Fleming and Harrington, Counting Processes and Survival Analysis,
   appendix D.2. 
 }
-\seealso{\code{link{cgd0}}}
+\seealso{\code{\link{cgd}}}
 \keyword{datasets}
 \keyword{survival}

@@ -35,3 +35,4 @@ vignettes/.*.pdf
 vignettes/.*.tex
 vignettes/.*.log
 tests/plot1.pdf
+temp
