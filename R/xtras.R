@@ -8,7 +8,8 @@ vcov.survreg<-function (object, ...) {
         object$var
     }
 
-
+# The extractAIC methods for coxph and survreg objects are defined
+#  in the stats package.  Don't reprise them here.
 extractAIC.coxph.penal<- function(fit,scale,k=2,...){
         edf<-sum(fit$df)
         loglik <- fit$loglik[length(fit$loglik)]
