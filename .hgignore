@@ -15,6 +15,7 @@ src/survfitci.c
 R/agreg.fit.R
 R/agsurv.R
 R/coxph.R
+R/model.matrix.coxph.R
 R/plot.survfit.R
 R/predict.coxph.R
 R/pyears.R
