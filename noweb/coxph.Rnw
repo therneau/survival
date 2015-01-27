@@ -79,7 +79,7 @@ coxph <- function(formula, data, weights, subset, na.action,
     if (length(timetrans)) {
          <<coxph-transform>>
          }
-   
+
     cluster<- attr(Terms, "specials")$cluster
     if (length(cluster)) {
         robust <- TRUE  #flag to later compute a robust variance
@@ -518,6 +518,10 @@ attr(X, "contrasts") <- Xatt$contrasts
 offset <- model.offset(mf)
 if (is.null(offset) | all(offset==0)) offset <- rep(0., nrow(mf))
 else if (any(!is.finite(offset))) stop("offsets must be finite")
+    
+weights <- model.weights(mf)
+if (!is.null(weights) && any(!is.finite(weights)))
+    stop("weights must be finite")   
 
 assign <- attrassign(X, Terms)
 contr.save <- attr(X, "contrasts")
