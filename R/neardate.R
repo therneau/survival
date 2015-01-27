@@ -71,7 +71,6 @@ neardate <- function(id1, id2, y1, y2, best=c("after", "prior"),
     else 
         indx2 <- approx(hash2, 1:n2, hash1, method="constant", yleft=1,
                         yright=NA, rule=2, f=1)$y
-browser()
-    rowid[ifelse(id1== id2[indx2], indx2, NA)
-    ifelse(is.na(result), nomatch, result)
+
+    rowid[ifelse(id1== id2[indx2], indx2, NA)]
 }

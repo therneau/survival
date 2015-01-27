@@ -1,4 +1,4 @@
-tmerge <- function(data, id, ..., tname) {
+tmerge <- function(data1, data2, id, ..., tstart) {
     Call <- match.call()
     # The function wants to recognize special keywords in the
     #  arguments, so define a set of functions which will be used to
@@ -12,54 +12,44 @@ tmerge <- function(data, id, ..., tname) {
            envir=new)
     assign("cumevent", function(...) {x <- list(...); class(x) <-"cumevent"; x},
            envir=new)
- 
-    if (missing(data)) stop("a data argument is required")
-    dname <- names(data)
+    if (missing(data1)) stop("the data1 argument is required")
+    if (missing(id)) stop("the id argument is required")
+                          
+    newdata <- data1
+    row.names(newdata) <- NULL
 
-    if (is.null(attr(data, "tname"))) {
-        # The identites of the key variables are not yet known
-        if (missing(tname))
-            stop("the key variables must be identified")
-        if (is.null(names(tname)) || !is.character(tname))
-            stop("tname must be a named list of character strings")
-        indx <- match(names(tname),  c("id", "start", "end", "status"))
-        if (any(is.na(indx)))
-            stop("unrecognized element in 'tname' argument")
-        if (all(indx!=1)) stop("an id variable must be identified")
-        if (all(indx!=3)) stop("a time variable for the intervals must be identified")
-        dindx <- match(tname, dname)
-        if (any(is.na(indx)))
-            stop(paste("variable", tname[is.na(indx)], "not found in data"))
-
-        if (all(indx!=2)) {
-            tname <- c(tname, start="tstart")
-            data <- cbind(data, tstart =0)
-        }
-
-        if (all (indx !=4)) # no "status" variable
-            tname <- tname[c("id", "start", "end")]
-        else tname <- tname[c("id", "start", "end", "status")]
-
-        dindx <- match(tname, names(data))
-        if (is.na(dindx[2])) {
-            # No start variable, initialize it to zeros
-            data[[tname[2]]] <- rep(0., nrow(data))
-        }
-        dindx <- match(tname, names(data))
-        if (any(is.na(dindx))) {
-            stop(names(tname[is.na(dindx)]), "variable not found")
-        }
-
-        if (any(data[[tname[2]]] >= data[[tname[3]]]))
-            stop("start time >= end time for at least one observation")
+    # The id variable is found in data2, if present
+    if (!missing(data2)) {
+        id <- eval(Call[["id"]], data2)
+        if (!missing(tstart)) tstart <- eval(Call[["tstart"]], data2)
     }
-    else tname <- attr(data, 'tname') # data is a prior tmerge object
+
+    temp <- attr(data, "tname")
+    if (is.null(temp)) { 
+        #first call to the function.  Add variables to the base data set
+        tname <- c(id="id", tstart="tstart", tstop="tstop") 
+        if (length(id) != nrow(newdata)) stop("wrong length for id")
+        newdata$id <- id
+        if (missing(tstart)) {
+            newdata$tstart <- newdata$tstop <- rep(0, nrow(newdata))
+        }
+        else {
+            if (length(tstart) != nrow(newdata))
+                stop("wrong length for tstart")
+            newdata$tstart <- newdata$tstop <- tstart
+        }
+    }
+    else {
+        indx <- match(tname, names(data1))
+        if (any(is.na(indx))) 
+            stop("data1 does not match its own tname attribute")
+    }
 
     # The ... arguments, but don't evaluate them yet
-    unused <- Call[is.na(match(names(Call), c("data", "id", "tname")))]
+    unused <- Call[is.na(match(names(Call), 
+                               c("data1", "data2", "id", "tstart")))]
     if (length(unused) ==1) {
-        # An initial call, usually, with nothing to add.  Rather than indent
-        #  the entire remainder of the code put a return here.
+        # An initial call that added nothing.  Very odd.
         attr(data, "tname") <- tname
         attr(data, "tcount") <- NULL  #remove tcount if it exists
         return(data)
@@ -69,7 +59,9 @@ tmerge <- function(data, id, ..., tname) {
     # Each of the newvars should be a time variable which fits into the
     # time scale of the starter data set
     unused[[1]] <- as.name("list")  # The as-yet unused arguments
-    args <- eval(unused, envir=new)
+    if (missing(data2)) args <- eval(unused, envir=new)
+    else  args <- eval(unused, data2, enclos=new)
+
     argclass <- sapply(args, function(x) (class(x))[1])
     argname <- names(args)
     if (any(argname== "")) stop("all additional argments must have a name")
@@ -79,27 +71,19 @@ tmerge <- function(data, id, ..., tname) {
         stop(paste("argument(s)", argname[is.na(check)], 
                    "not a recognized type"))
 
-    dname <- match(tname, names(data))
-    names(dname) <- names(tname)
-    if (any(is.na(dname))) 
-        stop("data set does not match its own tname attribute")
-                   
-    indx <- match(id, data[[dname["id"]]])
+    indx <- match(id, newdata[[tname["id"]]])
     if (any(is.na(indx))) stop("new data has subjects not in the base data set")
-
 
     # The tcount matrix is useful for debugging
     tcount <- matrix(0L, length(argname), 7)
     dimnames(tcount) <- list(argname, c("early","late", "gap", "within", 
                                         "tied edge", "front edge", "back edge"))
-
-    newdata <- data
-    row.names(newdata) <- NULL
-
+    tevent <- attr(data, "tevent") # event type variables
+    
     for (i in 1:length(args)) {
-        baseid <- newdata[[dname["id"]]]
-        dstart <- newdata[[dname["start"]]]
-        dstop  <- newdata[[dname["end"]]]
+        baseid <- newdata[[tname["id"]]]
+        dstart <- newdata[[tname["tstart"]]]
+        dstop  <- newdata[[tname["tstop"]]]
 
         # if an event time is missing then skip that obs
         etime <- args[[i]][[1]]
@@ -107,15 +91,19 @@ tmerge <- function(data, id, ..., tname) {
         etime <- etime[keep]
         id <- id[keep]
 
+        # indx1 points to the closest start time in the baseline data (data1)
+        #  that is <= etime.  indx2 to the closest end time that is >=etime.
+        # If etime falls into a (tstart, tstop) interval, these will bracket
+        #  it.
         indx1 <- neardate(id, baseid, etime, dstart, best="prior")
-        indx2 <- neardate(id, baseid, etime, dstart, best="after")
-browser()
+        indx2 <- neardate(id, baseid, etime, dstop , best="after")
+
         # The event times fall into one of 5 categories
         #   1. Before the first interval
         #   2. After the last interval
         #   3. Outside any interval but with time span, i.e, it falls into
         #       a gap in follow-up
-        #   4. Strictly inside an interval (don't touch either end)
+        #   4. Strictly inside an interval (does't touch either end)
         #   5. Inside an interval, but touching.
         itype <- ifelse(is.na(indx1), 1,
                         ifelse(is.na(indx2), 2, 
@@ -126,33 +114,39 @@ browser()
         # Subdivide the events that touch on a boundary
         #   Common: e.g. the subject has time intervals of
         #      (a,b] and (b,c] with a new count at b.
-        #  Start: an interval (a,b], new count at a, subject not at risk at a-0
-        #  End: similar to start
-        #  
+        #  1: intervals of (a,b] (b,d], new count at b
+        #  2: intervals of (a,b] (c,d] with c>b, new count at c
+        #  3: intervals of (a,b] (c,d] with c>b, new count at b
+        #
         subtype <- ifelse(itype!=5, 0, 
                           ifelse(indx1 == indx2+1, 1,
                                  ifelse(etime==dstart[indx1], 2, 3)))
         tcount[i,] <- table(factor(itype+subtype, levels=c(1:4, 6:8)))
 
+        # Look to see if this term has one or two arguments.  If one arg
+        #  then the increment is 1, else it is the second arg.  The myfun()
+        #  function returns the totals by unique subject/time pair
+        #
         if (length(args[[i]]) >1) {
             if (length(args[[i]]) > 2) 
                 stop("too many variables in an", argclass[i], "call")
             if (diff(sapply(args[[i]], length)) !=0)
                 stop("different lengths in an", argclass[i], "call")
             yinc <- args[[i]][[2]]
-            if (!is.numeric(istep)) 
+            if (!is.numeric(yinc)) 
                 stop("non numeric increment in an", argclass[i], "call")
-            mfun <- function(x, grp) {
+            myfun <- function(x, grp) {
                 temp <- tapply(yinc[grp], x[grp], sum)
                 ifelse(is.na(temp), 0, temp)
             }
         }
         else {
-            mfun <- function(x, grp) table(x[grp])
+            myfun <- function(x, grp) table(x[grp])
             yinc <- rep(1L, length(etime))     # each counts as 1
         }
-   
+ 
         # Now fold it in
+        # The "increment" variable contains the "jump" at each time.
         increment <- rep(0, nrow(newdata))
         eflag <- (argclass[i] %in% c("event", "cumevent")) # 'event' type
         if (eflag) {
@@ -166,7 +160,13 @@ browser()
                 itemp <- as.numeric(names(count3))
                 increment[itemp] <- increment[itemp] + c(count3)
             }
-            #subtype 2 and type 3 events are ignored
+            if (any(itype==2)) { #extend the window of observation
+                count2 <- myfun(indx1, itype==2)
+                itemp <- as.numeric(names(count2))
+                increment[itemp] <- increment[itemp] + c(count2)
+                newdata[itype==2, tname[["tstop"]]] <- etime[itype==2]
+            }
+            #subtype 2, type 1 and type 3 events are ignored
         }
         else {
             if (any(itype==1)) {
@@ -237,10 +237,10 @@ browser()
             #  rindx is the index of rows for each changed interval
             rindx <- which(diff(newindx)==0)  #the added rows
             newtimes <- (etime[indx4])[first]
-            newdata[rindx,   dname["end"]] <- newtimes
-            newdata[rindx+1, dname["start"]] <- newtimes
-            if (!is.na(dname["status"]))
-                newdata[rindx,   dname["status"]] <- 0
+            newdata[rindx,   tname["tstop"]] <- newtimes
+            newdata[rindx+1, tname["tstart"]] <- newtimes
+            for (i in tevent)
+                newdata[rindx, i] <- 0
             if (eflag) increment[rindx] <- newcount
             else       increment[rindx+1] <- newcount
         }
@@ -254,9 +254,28 @@ browser()
             newdata[[argname[i]]] <- temp + increment[indx] - temp[indx]
         }
         else newdata[[argname[i]]] <- increment
+
+        if (eflag) tevent <- c(tevent, argname[i]) #this is an event type var
+    }
+    
+    #
+    # Clean up rows that are redundant, usually a (0,0) row followed by
+    #   a (0,t) row, which happens with the first call.
+    #
+browser()
+    time1 <- newdata[[tname[2]]]
+    time2 <- newdata[[tname[3]]]
+    ties <- (time1==time2)
+    if (any(ties)) {
+        id <- newdata[[tname[1]]]
+        n <- nrow(newdata)
+        touch <- ((id[-1] == id[-n]) & time1[-1] == time2[-n])
+        toss <- c(ties[-n] & touch, FALSE)
+        if (any(toss)) newdata <- newdata[!toss,]
     }
     
     attr(newdata, "tcount") <- tcount
+    if (length(tevent)) attr(newdata, "tevent") <- tevent
     row.names(newdata) <- NULL
     newdata
 }
