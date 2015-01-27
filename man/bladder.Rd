@@ -18,7 +18,8 @@ of recurrences is 9.
 
 Bladder is the data set that appears most commonly in the literature. 
 It uses only the 85 subjects with nonzero follow-up who were
-assigned to either thiotepa or placebo.  The status variable is 1 for
+assigned to either thiotepa or placebo, and only the first four recurrences
+for any patient.  The status variable is 1 for
 recurrence and 0 for everything else (including death for any reason).
 The data set is laid out in the competing risks format of the paper by
 Wei, Lin, and Weissfeld.
@@ -27,8 +28,9 @@ Bladder2 uses the same subset of subjects as bladder, but formated in the
 (start, stop] or Anderson-Gill style.  
 Note that in transforming from the WLW to the AG style data set there
 is a quite common programming mistake that leads to extra follow-up time
-for 12 subjects (all those with more than 4 recurrences); this includes
-some earlier releases of the data in R.
+for 12 subjects: all those with follow-up beyond their 4th recurrence).
+Over this extended time these subjects are by definition not at risk for
+another event in the WLW data set.
 }
 \format{
   bladder1

@@ -121,13 +121,13 @@ coef <- agfit$coef
 if (agfit$flag < nvar) which.sing <- diag(var)==0
 else which.sing <- rep(FALSE,nvar)
 
-infs <- fabs(agfit$u %*% var)
+infs <- abs(agfit$u %*% var)
 if (maxiter >1) {
     if (agfit$iter > maxiter)
         warning("Ran out of iterations and did not converge")
     else {
         infs <- ((infs > control$eps) & 
-                 infs > control$toler.inf*fabs(coef))
+                 infs > control$toler.inf*abs(coef))
         if (any(infs))
             warning(paste("Loglik converged before variable ",
                           paste((1:nvar)[infs],collapse=","),

@@ -7,23 +7,25 @@ since it estimates what fraction of the subjects are in any
 given state across time.
 The easiest way to understand the estimate is to consider first the
 case of no censoring.  
-In that setting the estimate of $F_k(t) = 1-S_k(t)$ is the number of
-subjects in state $k$ at time $t$ divided by $n$, the original
+In that setting the estimate of $F_k(t) = 1-S_k(t)$ for all states
+is obtained from a simple table of the current state at time $t$
+of the subjects, divided by $n$, the original
 sample size.
 When there is censoring the conceptually simple way to extend this
 is via the redistribute-to-the-right algorithm, which allocates the
 case weight for a censored subject evenly to all the others in the
 same state at the time of censoring.  
 
-The literature refers to the as ``cumulative incidence'' curves,
-which is confusing, but the routine name survfitCI endures.
+The literature refers to these as ``cumulative incidence'' curves,
+which is confusing since prevalence is not the integral of incidence,
+but the routine name survfitCI endures.
 The cannonical call is
 \begin{verbatim}
   fit <- survfit(Surv(time, status, type='mstate') ~ sex, data=mine)
 \end{verbatim}
  Optionally, there can be an id statement
 or cluster term to indicate a data set with multiple transitions per subject.
-A multi-state survival has a status variable with multiple levels,
+A multi-state survival fit has a status variable with multiple levels,
 the first of which by default is censoring, and others indicating
 the type of transition that occured.
 The result will be a matrix of survival curves, one for each event type.
@@ -194,16 +196,25 @@ the derivation of \eqref{ci2}, ``left as an exercise for the reader'').
 The weighted sum of each column of $U$ must zero (if computed correctly)
 and the weighted sum of squares for each column will be the infinitesimal
 jackknife estimate of variance for the elements of $p$.
-The entire variance-covariance matrix for the states is $U'WU$ where $W$ is a diagonal 
-matrix of case weights, but we currently don't report that back.
+The entire variance-covariance matrix for the states is $U'W^2U$ where 
+$W$ is a diagonal 
+matrix of weights, but we currently don't report that back.
+Note that this is for sampling weights.  
+If one has real case weights, where an integer weight of 2 means 2 observations
+that were collapsed in to one row of data to save space, then the
+formula is $U'WU$.  
+Case weights were somewhat common in my youth, dut tosmall computer memory,
+but I haven't seen such data in 20 years.
 
 Below is the function for a single curve.
 For the status variable a value if 0 is ``no event''.  
 One nuisance in the function is that we need to ensure the
-tapply command gives totals for all states, not just the ones present in the data
-(a subgroup might not have them all) which lead to factor commands.
+tapply command gives totals for all states, not just the ones present in the
+data --- a call using the \code{subset} argument might not have all the states
+--- which lead to factor commands.
 Another more confusing one is for multiple rows per subject data, where the 
-cstate and U objects have only one row per subject.
+cstate and U objects have only one row per subject; 
+any given subject is only in one state at a time.
 This leads to indices of [[atrisk]] for the set of rows in the risk set but
 [[aindx]] for the subjects in the risk set, [[death]] for the rows that have
 an event as some given time and [[dindx]] for the corresponding subjects.
@@ -273,7 +284,7 @@ docurve1 <- function(entry, etime, status, istate, wt, states, id) {
             U[cbind(dindx, newstate)] <- U[cbind(dindx, newstate)] + temp
             cstate[dindx] <- newstate
             P <- Pmat[i,] <- c(P %*% H)
-            vP[i,] <- colSums(wt[match(uid, id)]*U*U)
+            vP[i,] <- colSums((wt[match(uid, id)] *U)^2)
         }
     }
     list(time =as.vector(timeset), pmat=Pmat, std=sqrt(vP),
@@ -285,13 +296,13 @@ docurve1 <- function(entry, etime, status, istate, wt, states, id) {
 The above function was used to work through all of my test cases, 
 but is too slow in large data sets.
 Rewrite it using underlying C-code, but retain the former one for
-debugging purposes.  It appears at the end of this chapter.
+debugging purposes.  The C code appears at the end of this chapter.
 
 The setup for (start, stop] data is a bit more work.  
 We want to ensure that a subject's weight is fixed, that they have a
 continuous period of observation, and that they don't
 transfer from a state to itself.
-The last is not strictly an error, so onl warn.
+The last is not strictly an error, so only warn.
 
 <<survfitCI-idcheck>>=
 if (missing(id) || is.null(id))

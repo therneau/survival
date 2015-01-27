@@ -66,9 +66,9 @@ cumulative incidence curve.
       \item{error}{
 	a character string specifying the error.  Possible values are 
 	\code{"greenwood"} for the Greenwood formula or 
-	\code{"tsiatis"} for the Tsiatis formula, 
-	(only the first character is 
-	necessary).  
+	\code{"tsiatis"} or \code{"aalen"} for the Tsiatis/Aalen formula, 
+	or \code{"robust"} for a robust variance.  The last of these
+	is assumed if non-integer case weights are provided.	
       }
       \item{conf.type}{
 	One of \code{"none"}, \code{"plain"}, \code{"log"} (the default),

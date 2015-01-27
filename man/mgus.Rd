@@ -40,7 +40,7 @@ mgus1
     event:\tab a factor containing the event type: censor, death, or plasma cell malignancy \cr
     enum: \tab event number for each subject: 1 or 2
   }
-  
+} 
 \details{
  Plasma cells are responsible for manufacturing immunoglobulins, an
 important part of the immune defense. At any given time there are
@@ -57,11 +57,10 @@ Due to the diligence of the principle investigator 0 subjects have
 been lost to follow-up.
 
 Three subjects had MGUS detected on the day of death.  In data set
-\code{mgus2} these subjects have the time to MGUS coded as .5 day before
+\code{mgus1} these subjects have the time to MGUS coded as .5 day before
 the death in order to avoid tied times.
 
-These data sets were updated in Jan 2015 to correct some small errors
-that were noticed.
+These data sets were updated in Jan 2015 to correct some small errors.
 }
 \source{
 Mayo Clinic data courtesy of Dr. Robert Kyle.
@@ -79,7 +78,7 @@ legend(0, .8, c("Death/male", "Death/female", "PCM/male", "PCM/female"),
 title("Curves for the first of plasma cell malignancy or death")
 # The plot shows that males have a higher death rate than females (no
 # surprise) but their rates of conversion to PCM are essentially the same.
-
+}
 \references{
  R Kyle, Benign monoclonal gammopathy -- after 20 to 35 years of
  follow-up,

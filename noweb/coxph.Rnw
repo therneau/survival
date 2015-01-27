@@ -58,7 +58,6 @@ coxph <- function(formula, data, weights, subset, na.action,
     if (type!='right' && type!='counting')
 	stop(paste("Cox model doesn't support \"", type,
 			  "\" survival data", sep=''))
-    weights <- model.weights(mf)
     data.n <- nrow(Y)   #remember this before any time transforms
 
     <<coxph-bothsides>>
@@ -80,7 +79,7 @@ coxph <- function(formula, data, weights, subset, na.action,
     if (length(timetrans)) {
          <<coxph-transform>>
          }
-   
+
     cluster<- attr(Terms, "specials")$cluster
     if (length(cluster)) {
         robust <- TRUE  #flag to later compute a robust variance
@@ -217,6 +216,8 @@ Y <- Surv(rep(counts$time, counts$nrisk), counts$status)
 type <- 'right'  # new Y is right censored, even if the old was (start, stop]
 strats <- rep(1:length(counts$nrisk), counts$nrisk)
 weights <- model.weights(mf)
+if (!is.null(weights) && any(!is.finite(weights)))
+    stop("weights must be finite")   
 for (i in 1:ntrans) 
     mf[[timetrans$var[i]]] <- (tt[[i]])(mf[[timetrans$var[i]]], Y[,1], strats, 
                                        weights)
@@ -516,6 +517,11 @@ attr(X, "contrasts") <- Xatt$contrasts
 <<coxph-setup>>=
 offset <- model.offset(mf)
 if (is.null(offset) | all(offset==0)) offset <- rep(0., nrow(mf))
+else if (any(!is.finite(offset))) stop("offsets must be finite")
+    
+weights <- model.weights(mf)
+if (!is.null(weights) && any(!is.finite(weights)))
+    stop("weights must be finite")   
 
 assign <- attrassign(X, Terms)
 contr.save <- attr(X, "contrasts")

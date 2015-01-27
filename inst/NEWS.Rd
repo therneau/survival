@@ -2,6 +2,10 @@
 \title{NEWS file for the survival package}
 \section{Changes in version 2.37-8}{
   \itemize{
+    \item Add error check for infitinte weights or offsets.  This in respose
+    to a bug report where someone did this on purpose, trying to mimic
+    cure fractions, and then complained that survfit.coxph failed.
+
     \item Robust variance is not supported for a coxph model with the
     "exact" approximation.  (Rarely requested and a lot of work to add.)
     Add an error message to clogit(), so users get a more useful notice of
@@ -25,11 +29,11 @@
     \item The lines.survfit function was incorrect for data sets that
     used the start.time option and xscale (it neglected to rescale the
     start time.)
-    
+
     \item An increasingly common error is for user to put the time
     variable on both sides of a coxph equation in the mistaken belief
     that this is a way to create time-dependent coefficients.  Generate
-    and error message for this case.
+    an error message for this case.
     
     \item Update the basehaz function to a simple alias for "survfit".
     Prior versions called surfit but then only returned part of the

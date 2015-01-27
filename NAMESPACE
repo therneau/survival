@@ -1,5 +1,5 @@
 useDynLib(survival, .registration = TRUE)
-importFrom(splines, spline.des)
+importFrom(splines, spline.des, ns)
 importFrom(stats, anova, logLik, makepredictcall, model.frame, model.matrix,
            predict, quantile, residuals, vcov, extractAIC)
 importFrom(graphics, plot, points, lines)
