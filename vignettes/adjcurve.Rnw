@@ -30,7 +30,7 @@ fdata$age2 <- cut(fdata$age, c(0,54, 59,64, 69,74,79, 89, 110),
 
 \title{Adjusted Survival Curves}
 \author{Terry M Therneau, Cynthia S Crowson, Elizabeth J Atkinson}
-\date{}  % no date
+\date{Jan 2015}  
 \newcommand{\myfig}[1]{\includegraphics[height=!, width=\textwidth]
                         {adjcurve-#1.pdf}}
 

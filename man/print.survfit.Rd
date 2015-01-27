@@ -31,7 +31,7 @@ if the input data to survfit were in days,
 \value{
   x, with the invisible flag set to prevent printing.
   (The default for all print functions in R is to return the object
-  passed to them; print.survfit follows the pattern.  If you want to
+  passed to them; print.survfit complies with this pattern.  If you want to
   capture these printed results for further processing, see the
   \code{table} component of \code{summary.survfit}.)  
 }
@@ -80,7 +80,7 @@ Miller, Rupert G., Jr. (1981).
 New York:Wiley, p 71. 
 }
 \seealso{
-\code{\link{summary.survfit}}. 
+\code{\link{summary.survfit}}, \code{\link{quantile.survfit}} 
 }
 \keyword{survival}
 % docclass is function
