@@ -14,6 +14,7 @@ PARTS = main.Rnw \
 	msurv.nw \
 	survfitms.Rnw \
 	plot.Rnw \
+	tmerge.Rnw\
 	tail
 #	coxdetail.nw
 
@@ -32,7 +33,8 @@ SFUN =  agreg.fit.R \
 	survfitCI.R \
 	survfit.coxph.R \
 	survfitcoxph.fit.R \
-	survfitms.R
+	survfitms.R\
+	tmerge.R
 
 CFUN =  agsurv4.c agsurv5.c concordance1.c coxcount1.c \
 	agfit4.c \

@@ -25,26 +25,28 @@ library(survival)
 @ 
 
 \section{Introduction}
-This vignette covers 3 somewhat different but interrelated concepts:
+This vignette covers 3  different but interrelated concepts:
 \begin{itemize}
   \item An introduction to time dependent covariates, along with some
     of the most common mistakes.
-  \item Tricks and tools for creating time-dependent covariates, or rather the
+  \item Tools for creating time-dependent covariates, or rather the
     data sets used to encode them.
   \item Time dependent coefficients.
     
 \section{Time dependent covariates}
 One of the strengths of the Cox model is its ability to encompass covariates
 that change over time.  
-The practical reason for this is based on the underlying way in which the Cox
+The practical reason that time-dependent covariates work
+is based on the underlying way in which the Cox
 model works: at each event time the program compares the current 
 covariate values of the subject
 who had the event to the current values of all others who were at risk
 at that time. 
 One can think of it as a lottery model, where at 
 each death time there is a drawing to decide which subject ``wins'' the
-event.  Each subject's risk score determines how likely they are to win,
-e.g., how many ``tickets'' they have in the drawing.
+event.  Each subject's risk score $\exp(X\beta)$
+determines how likely they are to win,
+e.g., how many ``tickets'' they have purchased for the drawing.
 The model tries to assign a risk score to each subject that best predicts
 the outcome of each drawing based on 
 \begin{itemize}
@@ -57,7 +59,7 @@ The model has a theoretical foundation in martigale theory,
 a mathematical construct which arose out of the study of games of chance.
 A key underlying condition for a martingale like game is that present
 actions depend only on the past. The decision of whether to play
-(in the risk set or not) and the
+(is one in the risk set or not) and the
 size of a bet (covariates) can depend in any way on
 prior bets and patterns of won/lost, but cannot look into the future.
 If this holds then multiple properties can be proven about the
@@ -77,8 +79,8 @@ a better curve.
 A Cox model fit to the same data will demonstrate a strong 
 ``significant'' effect.
 The problem arises because any early deaths, those that occur before response 
-can be
-assessed will be assigned to the non-responder group, even deaths that have
+can be assessed,
+will all be assigned to the non-responder group, even deaths that have
 nothing to do with the condition under study.
 The alarm about this incorrect approach has been sounded often
 \cite{xxx} but is routinely re-discovered.
@@ -93,17 +95,17 @@ If response is instead coded as a time-dependent covariate whose values
 depend only on the past, then the problem disappears.
 For treatment response this will be a variable that starts at
 0 for all subjects and is recoded to 1 only when the response occurs.
-For dose it would cumulative dose to date.
+For dose it would measure cumulative dose to date.
 
 There are many variations on the error: interpolation of the values of a
 laboratory test linearly between observation times, removing subjects who do
-not finish the treatment plan, imputing the date of an adverse event at midway
+not finish the treatment plan, imputing the date of an adverse event as midway
 between observation times, etc. 
-Using future data will very often generate large bias in the results, which can
-be positive, negative, or sometimes barely visible.
-It is nearly impossible to predict a priori either the direction or size of
-the bias.
-Using such a covariate is similar to running a red light in your car: 
+Using future data will often generate large positive or negative bias in the 
+coefficients, sometimes it generates little bias ata all.
+It is nearly impossible to predict a priori which of these will occur in any
+given data set.
+Using such a covariate is similar to jogging across a Los Angeles freeway:
 disaster is not guarranteed --- but it is likely.
 
 The most common way to encode time-dependent covariates is to use the
@@ -112,7 +114,7 @@ The most common way to encode time-dependent covariates is to use the
 fit <- coxph(Surv(time1, time2, status) ~ age + creatinine, 
              data=mydata)
 @ 
-In this data set a patient might have the following observations
+In data set \code{mydata} a patient might have the following observations
 \begin{center}
   \begin{tabular}{ccccccc}
     subject  & time1 & time2 & status & age & creatinine & \ldots \\ \hline
@@ -132,7 +134,8 @@ The status variable describes whether or not each interval ended in an event.
 One commmon question with this data setup is whether we need to worry about
 correlated data, since a given subject has multiple observations.
 The answer is no, we do not.  The reason is that this representation is
-simply a bookkeeping trick; the likelihood equations at any time point
+simply a programming trick.
+The likelihood equations at any time point
 use only one copy of any subject, the program picks out the correct
 row of data at any given time.
 There are two exceptions to this rule, in which case the cluster variance
@@ -146,39 +149,95 @@ is necessary:
 \end{itemize}
 
 
-\section{Building Data sets}
-\subsection{The timemerge function}
-A useful function for building data sets is \code{timemerge}, which is
-part of the survival library.  For our first example we will show how the 
-\code{cgd} data set is created that allows for analysis of a recurrent
-event.
+\section{Building time-dependent sets with tmerge}
+\subsection{The function}
+A useful function for building data sets is \code{tmerge}, which is
+part of the survival library. 
+The motivating case for \code{tmerge} came from a particular problem.
+The Rochester Epidemiology Project has tracked all subjects living in
+Olmsted County, Minnesota, from 1965 to the present.  
+For an investigation of cumulative comorbidity we had three data sets
+\begin{itemize}
+  \item base: demographic data such as subject identifier, sex, 
+    and birth date
+  \item timeline: one or more rows for each subject containing 
+    age intervals during which they were a resident of the county.  
+    The important variables are id, age1 (start) and age2 (end).  
+  \item outcome: one row for each age/outcome pair of interest.  The
+    outcomes were 20 comorbid conditions as defined by NIH.
+\end{itemize}
 
+The structure of building the data is shown below.
+(The data for this example unfortunately cannot be included in the survival
+library so the code is shown but not executed.)
+
+<<rep, eval=FALSE, echo=TRUE>>=
+newd <- tmerge(data1=base, data2=timeline, id=repid, tstart=age1, 
+               tstop=age2, options(id="repid"))
+newd <- tmerge(newd, outcome, id=repid, mtype = cumevent(age))
+newd <- with(subset(outcome, event='diabetes'), 
+             tmerge(newd, id=repid, diabetes= tdc(age)))
+newd <- with(subset(outcome, event='arthritis'),
+             tmerge(newd, id=repid, event =tdc(age)))
+@ 
+
+The first call to tmerge adds the timeline for each observation to the
+baseline data.  
+The \code{tstart} and \code{tstop} arguments refer to the starting and
+ending times for each subject and are taken from data set 2 (\code{data2}).
+The \code{options} argument tells the routine that the identifier variable
+in data set 1 is called `repid', and will cause the identifier variable
+in the ouput data set \code{newd} to have that name.  
+By default, the names of the three key variables are ``id'', ``tstart'', 
+and ``tstop''.
+
+Each subsequent call adds a new variable to the data set.
+The second line creates an event variable which is a cumulative count of
+the number of outcomes seen so far for each subject.  
+The third and fourh lines create a time dependent covariate (tdc) which will
+be 0 until the age of diabetes or arthritis and 1 thereafter.  
+This is the basic working approach for all uses of tmerge: first establish
+the range over which the subject is at risk, and then add events and/or
+time dependent covariates to the data set one by one.  
+These additions will often increase the number of rows in the data
+set.
+Say at some stage subject ``Smith'' has time intervals of
+(0,15), (15,40) and (40,100) and we add a time dependent covariate \code{sbp}
+(systolic blood pressure)
+which is evaluated at months 6, 12, and 24 with values of
+134, 126, and 140, respectively.  In the resulting
+data set Smith will have intervals of 
+\begin{center}
+  \begin{tabular}{rrrrrr}
+    (0,6)  &(6,12) & (12,15) & (15,24) & (24,40) & (40,100)\\
+    prior  &  134  &  126    &  126    &  140    & 140
+  \end{tabular}
+\end{center}
+The value over the interval (0,6) will be the value of the variable
+\code{sbp} in data set 1, if the variable existed there, or NA otherwise.
+
+\subsubsection{CGD data set}
 Chronic granulomatous disease (CGD) is a heterogenous group of uncommon
 inherited disorders characterized by recurrent pyogenic infections that
 usually begin early in life and may lead to death in childhood. Interferon
-gamma is a principal macrophage-activating factor shown to partially correct
-the metabolic defect in phagocytes.
-It was hypothesized that treatment with interferon might reduce
-the frequency of serious
-infections in patients with CGD.
+gamma is a macrophage-activating factor shown to partially correct
+the metabolic defect in phagocytes, and it
+was hypothesized that treatment with interferon might reduce
+the frequency of serious infections in patients with CGD.
 In 1986, Genentech, Inc. conducted a
 randomized, double-blind, placebo-controlled trial in 128 CGD patients who
 received Genentech's humanized interferon gamma (rIFN-g) or placebo three %'
-times daily for a year. The primary endpoint of the study was the time to
-the first serious infection. However, data were collected on all serious
+times daily for a year. Data were collected on all serious
 infections until the end of followup,
-which occurred before day 400 for most
-patients. Thirty of the 65 patients in the placebo group and 14 of the 63
-patients in the rIFN-g group had at least one serious infection.
-The total number of infections was 56 and 20 in the placebo and treatment
-groups, respectively.
-   One patient was taken off on the day of his last infection; all others
+which occurred before day 400 for most patients.
+  One patient was taken off on the day of his last infection; all others
 have some followup after their last episode.
-Below are the first 10 observations, see the help page for \texttt{cgdraw}
+
+Below are the first 10 observations, see the help page for \texttt{cgd0}
 for the full list of variable names. The last few columns contain the 
 duration of follow-up for the subject followed by infection times.
-Subject 1 had 2 infections during the study, subject 2 had 7, and subject
-3 had none.
+Subject 1 was followed for 414 days and had 2 infections during the study, 
+subject 2 had 7 infections, and subject 3 had none.
 \small
 \begin{verbatim}
   1 204 082888 1 2 12 147.0  62.0 2 2 2 2 414 219 373
@@ -194,7 +253,7 @@ Subject 1 had 2 infections during the study, subject 2 had 7, and subject
 \end{verbatim}
 \normalsize
 
-The data set above is included as \code{cgdraw} in the survival
+The data set above is included as \code{cgd0} in the survival
 library, and is a simple read of the above data set.
 We want to turn this into a data set that has survival in a counting
 process form.
@@ -203,47 +262,126 @@ process form.
     (time1, time2] which is open on the left and closed on the right.
     Covariate values for that row are the covariate values that apply
     over that interval.
-  \item The event variable for each row is 1 if that time interval ends
+  \item The event variable for each row $i$ is 1 if that time interval ends
     with an event and 0 otherwise.
-  \item If a subject has no events there is a single interval from 0 to
-    last follow-up, with a status of 0.
-  \item If there are events
-    \begin{itemize}
-      \item There is an interval for each event (0, event1], (event1, event2],
-	  etc. each with status =1.
-       \item If the follow-up time exceeds the last event there will be a 
-	 final interval with status =0.
-    \end{itemize}
-   \item The enum variable is simply 1,2,\ldots for each subject.  It 
-often proves useful in analysis, for instance \texttt{subset=(enum==1)}
-within a model restricts analysis to the first event for each subject.
 \end{itemize}
 
-The tmerge routine starts with a basic data set that contains each subject's
-time interval and baseline covariates, and then sequentially adds time
-dependent information by weaving it in.  We first make a data set
-\code{tdata} that has all of the event times in it.
+We don't want the variables etime1--etime7 in the final data set, so they are
+left out of the data1 argument in the first call.
 <<cgd1>>=
-tdata <- with(cgdraw, data.frame(id2=rep(id, 7),
-                                 etime = c(etime1, etime2, etime3, etime4,
-                                           etime5, etime6, etime7)))
-tdata <- na.omit(tdata)  #toss missing values
-
-# Remove etime variables from the starting data set
-indx <- match(paste("etime", 1:7, sep=''), names(cgdraw))
-cgd1 <- tmerge(cgdraw[, -indx], tname =c(id="id", end="futime", start="time1"))
-
-# Add the event times
-cgd1 <- with(tdata, tmerge(cgd1, id=id2, status= event(etime), 
-                           enum=cumcount(etime)))
-
+newcgd <- tmerge(cgd0[, 1:13], cgd0, id=id, tstop=futime)
+newcgd <- tmerge(newcgd, cgd0, id=id, infect = event(etime1))
+attr(newcgd, "tcount")
+newcgd <- with(cgd0, tmerge(newcgd, id=id, infect = event(etime2))
+newcgd <- tmerge(newcgd, cgd0, id=id, infect = event(etime3)) 
+newcgd <- tmerge(newcgd, cgd0, id=id, infect = event(etime4), 
+                 infect= event(etime5), infect=event(etime6),
+                 infect= event(etime7))
+attr(newcgd, "tcount")
+all.equal(newcgd[, c("id", "tstart", "tstop", "infect")], 
+          cgd   [, c("id", "tstart", "tstop", "status")], 
+          check.attributes=FALSE)
 @ 
 
+\begin{itemize}
+  \item A standard way to build data sets is one addition at a time,
+    as shown by the etime1, etime2, and etime3 lines.  When multiple
+    additions come from the same data set, however, one can do multiples
+    at a time as shown in the last addition.
+    They are processed one at a time within the code so the
+    outcome of the two approaches is identical.
+    Additions with a missing time value are skipped.
+  \item The result of \code{tmerge} is a data frame with a few extra
+    attributes. One of these, tcount, is designed to help visualize
+    the process.
+    Assume that a subject already had 3 intervals of (2,5), (5,10)
+    and (14,40).
+    A new event at time 1 would be ``early'' while one at time 50
+    is after any interval and would be recorded as ``late''.  An event at
+    time 3 would is within an interval, one at 5 is on the border of two
+    intervals, one at 14 is at the leading edge of an interval and one at
+    time 10 in on the trailing edge.
+    In this data set all new additions fell stricly within prior intervals.
+    We also see that etime6 and etime7 each added only a single event to 
+    the data.
+  \item If two observations in data2 for a single person share exactly
+    the same time, the new value with be the sum of the contributions.
+    The ``tied times'' column tells how often this happened; in some
+    data sets this behaviour might not be desired and one would need to
+    break the ties.
+  \item The data2 argument is not required.  Sometimes the ``where'' form
+    will be more convenient, as shown in the addition of etime2.
+  \item These extra attributes of the data frame are ephemeral: they will be
+    lost as soon as any further manipulation is done.  This was part of
+    the design.
+\end{itemize}
 
+The last line above shows that the created data set is identical to
+\code{cgd}, a (start, stop] version of the CGD data, also part of the
+survival library; this had been created by hand several years earlier.
 
+\subsection{Stanford heart transplant}
+The \code{jasa} data set contains information from the Stanford heart
+transplant study, in the form that it appeared in the J. Amer Statistical
+Assoc paper of Crowley and Hu \cite{Crowley77}.
+Each row also contain also contains the calculated age, time to transplant
+and time to last follow-up calculated from these values.
+Patients were on medical treatmant from their entry to the study until
+a matching heart became available, at which time they transferred to 
+surgical treatment.  
+As is often the case with real data, this data set contains a few anomalies 
+that need to be dealt with when setting up an analysis data set.
+\begin{enumerate}
+  \item The coefficients in table 5.2 of the definitive analysis found in
+    Kalbfliesch and Prentice will only be obtained if covariates are defined
+    in precisely the same way.  For age this is (age in days)/ 365.25 - 40 
+    years, and for year of enrollment it is the number of years since the
+    start of the study: (entry date - 1967/10/1)/365.25.
+  \item One subject died on the day of entry.  However (0,0) is an illegal
+    time interval for the program.  It suffices to have them die on day
+    0.5.
+  \item A subject transplanted on day 10 is considered to have been on medical
+    treatment for days 1--10 and as transplanted starting on day 11.
+    That is, except for patient 38 who died during the procedure on day 5.
+    They should be treated as a transplant death; the problem is resolved by
+    moving the transplant day to 4.5.
+\end{enumerate}
+Since time is in days the fractional time of 0.5 could be any chosen value
+$t$ with $0 < t < 1$, it will not affect the results.
+<<stanford>>=
+tdata <- jasa[, -(1:4)]  #leave off the dates, temporary data set
+tdata$futime <- pmax(.5, tdata$futime)  # the death on day 0
+indx <- with(tdata, which(wait.time == futime))
+tdata$wait.time[indx] <- tdata$wait.time[indx] - .5  #the tied transplant
+sdata <- tmerge(tdata, tdata, id=1:nrow(tdata), 
+                death = event(futime, fustat), 
+                transplant = tdc(wait.time))
+attr(sdata, "tcount")
+coxph(Surv(tstart, tstop, death) ~ age + transplant, sdata)
+@ 
 
-\subsection{Changing lab tests}
- To be filled in.
+This example shows one special case for the \code{tmerge} function that 
+is moderately
+common: when the data1 and data2 arguments are the same, and the first
+created variable is an event code, then the range for each subject is
+inferred to be from 0 to that event time: an explicit \code{tstop} argument
+is not required.  It also makes use of a two argument form of \code{event}.
+Each of the \code{event}, \code{cumevent}, \code{tdc} and \code{cumtdc}
+may have a second argument, which will be used as the value or increment
+to the event code or time dependent covariate.
+If not present a value of 1 is assumed.
+
+As a further example of time dependent covariates consider the PBC data.
+The \code{pbc} data set contains baseline data and follow-up status
+for a set of subjects with primary biliary cirrhosis, while the
+\code{pbcseq} data set contains repeated laboratory values.
+<<pbc>>=
+temp <- subset(pbc, select=c(id:sex, stage))
+pbc2 <- tmerge(temp, temp, id=id, status = event(time, status))
+pbc2 <- tmerge(pbc2, pbcseq, id=id, ascites = tdc(day, ascites),
+               bili = tdc(day, bili), albumin = tdc(day, albumin),
+               protime = tdc(day, protime), alkphos = tdc(day, alk.phos))
+@ 
  
 \subsection{Predictable time-dependent covariates}
 Occasionaly one has a time-dependent covariate whose values in the future
