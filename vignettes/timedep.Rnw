@@ -4,6 +4,7 @@
 \addtolength{\textwidth}{1in}
 \addtolength{\oddsidemargin}{-.5in}
 \setlength{\evensidemargin}{\oddsidemargin}
+\newcommand{\code}[1]{\texttt{#1}}
 
 %\VignetteIndexEntry{Using Time Dependent Covariates}
 
@@ -32,7 +33,8 @@ This vignette covers 3  different but interrelated concepts:
   \item Tools for creating time-dependent covariates, or rather the
     data sets used to encode them.
   \item Time dependent coefficients.
-    
+\end{itemize}
+
 \section{Time dependent covariates}
 One of the strengths of the Cox model is its ability to encompass covariates
 that change over time.  
@@ -83,9 +85,9 @@ can be assessed,
 will all be assigned to the non-responder group, even deaths that have
 nothing to do with the condition under study.
 The alarm about this incorrect approach has been sounded often
-\cite{xxx} but is routinely re-discovered.
-A slightly subtler form of the error is found in Bonadonna and Valagussa
-\cite{Benadona81, Bonadonna85}.  Breast cancer chemotherapy patients were
+\cite{Anderson83, Buyse96, Suissa08} but is routinely re-discovered.
+A slightly subtler form of the error is discussed in Redmond et al
+\cite{Redmond83}.  Breast cancer chemotherapy patients were
 divided into three groups based on whether the patient eventually
 received $>85$\%, 65--85\% or $<65$\% of the dose planned at the start of
 their treatment.  The chemotherapy regiment spans 12 weeks of treatment
@@ -102,10 +104,10 @@ laboratory test linearly between observation times, removing subjects who do
 not finish the treatment plan, imputing the date of an adverse event as midway
 between observation times, etc. 
 Using future data will often generate large positive or negative bias in the 
-coefficients, sometimes it generates little bias ata all.
+coefficients, but sometimes it generates little bias at all.
 It is nearly impossible to predict a priori which of these will occur in any
 given data set.
-Using such a covariate is similar to jogging across a Los Angeles freeway:
+Using such a covariate is similar to jogging across the Los Angeles freeway:
 disaster is not guarranteed --- but it is likely.
 
 The most common way to encode time-dependent covariates is to use the
@@ -124,12 +126,12 @@ In data set \code{mydata} a patient might have the following observations
     1 & 73& 100& 1 & 25 & 1.6 \\
 \end{tabular}
 \end{center}
-In this case the variable \emph{age} = age at entry to the study stays the
+In this case the variable \code{age} = age at entry to the study stays the
 same from line to line, while the value of creatinine varies and is treated as
 1.3 over the interval $(0, 15]$, 1.5 over $(15, 46]$, etc.  The intervals are
 open on the left and closed on the right, which means that the creatinine
 is taken to be 1.3 on day 15.
-The status variable describes whether or not each interval ended in an event.
+The status variable describes whether or not each interval ends in an event.
 
 One commmon question with this data setup is whether we need to worry about
 correlated data, since a given subject has multiple observations.
@@ -137,37 +139,39 @@ The answer is no, we do not.  The reason is that this representation is
 simply a programming trick.
 The likelihood equations at any time point
 use only one copy of any subject, the program picks out the correct
-row of data at any given time.
-There are two exceptions to this rule, in which case the cluster variance
-is necessary:
+row of data at each time.
+There two exceptions to this rule:
 \begin{itemize}
-  \item When subjects have multiple events.
+  \item When subjects have multiple events, then the rows for events are
+    correlated and a cluster variance is needed.
   \item When a subject appears in overlapping intervals.  This however is 
     almost always a data error, since it corresponds to two copies of the
-    subject being present at the same time, e.g., they could meet themselves
-    on the sidewalk.
+    subject being present in the same strata at the same time, e.g.,
+    they could meet themselves on the sidewalk.
 \end{itemize}
+A subject can be at risk in multiple strata at the same time, however.  
+This corresponds to being simultaneously at risk for two distinct outcomes.
 
 
 \section{Building time-dependent sets with tmerge}
 \subsection{The function}
 A useful function for building data sets is \code{tmerge}, which is
 part of the survival library. 
-The motivating case for \code{tmerge} came from a particular problem.
-The Rochester Epidemiology Project has tracked all subjects living in
+The motivating case for \code{tmerge} came from a particular problem:
+the Rochester Epidemiology Project has tracked all subjects living in
 Olmsted County, Minnesota, from 1965 to the present.  
 For an investigation of cumulative comorbidity we had three data sets
 \begin{itemize}
-  \item base: demographic data such as subject identifier, sex, 
-    and birth date
+  \item base: demographic data such as sex and birth date
   \item timeline: one or more rows for each subject containing 
     age intervals during which they were a resident of the county.  
-    The important variables are id, age1 (start) and age2 (end).  
+    The important variables are id, age1 and age2; each (age1, age2)
+    pair marks an interval of residence.  
   \item outcome: one row for each age/outcome pair of interest.  The
     outcomes were 20 comorbid conditions as defined by NIH.
 \end{itemize}
 
-The structure of building the data is shown below.
+The structure for building the data is shown below.
 (The data for this example unfortunately cannot be included in the survival
 library so the code is shown but not executed.)
 
@@ -187,21 +191,24 @@ The \code{tstart} and \code{tstop} arguments refer to the starting and
 ending times for each subject and are taken from data set 2 (\code{data2}).
 The \code{options} argument tells the routine that the identifier variable
 in data set 1 is called `repid', and will cause the identifier variable
-in the ouput data set \code{newd} to have that name.  
+in the final output data set \code{newd} to have that name.  
 By default, the names of the three key variables are ``id'', ``tstart'', 
-and ``tstop''.
+and ``tstop''; these uniquely identify each row of the final data set.
 
 Each subsequent call adds a new variable to the data set.
 The second line creates an event variable which is a cumulative count of
-the number of outcomes seen so far for each subject.  
-The third and fourh lines create a time dependent covariate (tdc) which will
-be 0 until the age of diabetes or arthritis and 1 thereafter.  
-This is the basic working approach for all uses of tmerge: first establish
+the number of comorbidities thus far, for each subject.  
+The third line creates a time dependent covariate (tdc) which will
+be 0 until the age of diabetes and is 1 thereafter, the fourth
+line creates a time dependent variable for the presence of arthritis.
+
+This is the basic working approach for \code{tmerge}: first establish
+baseline covariates and 
 the range over which the subject is at risk, and then add events and/or
 time dependent covariates to the data set one by one.  
 These additions will often increase the number of rows in the data
 set.
-Say at some stage subject ``Smith'' has time intervals of
+Say at some stage subject Smith has time intervals of
 (0,15), (15,40) and (40,100) and we add a time dependent covariate \code{sbp}
 (systolic blood pressure)
 which is evaluated at months 6, 12, and 24 with values of
@@ -210,20 +217,17 @@ data set Smith will have intervals of
 \begin{center}
   \begin{tabular}{rrrrrr}
     (0,6)  &(6,12) & (12,15) & (15,24) & (24,40) & (40,100)\\
-    prior  &  134  &  126    &  126    &  140    & 140
+        &  134  &  126    &  126    &  140    & 140
   \end{tabular}
 \end{center}
 The value over the interval (0,6) will be the value of the variable
-\code{sbp} in data set 1, if the variable existed there, or NA otherwise.
+\code{sbp} in data set 1 --- if the variable existed there it is
+assumed to contain the baseline value --- or NA otherwise.
 
 \subsubsection{CGD data set}
 Chronic granulomatous disease (CGD) is a heterogenous group of uncommon
 inherited disorders characterized by recurrent pyogenic infections that
-usually begin early in life and may lead to death in childhood. Interferon
-gamma is a macrophage-activating factor shown to partially correct
-the metabolic defect in phagocytes, and it
-was hypothesized that treatment with interferon might reduce
-the frequency of serious infections in patients with CGD.
+usually begin early in life and may lead to death in childhood.
 In 1986, Genentech, Inc. conducted a
 randomized, double-blind, placebo-controlled trial in 128 CGD patients who
 received Genentech's humanized interferon gamma (rIFN-g) or placebo three %'
@@ -236,7 +240,7 @@ have some followup after their last episode.
 Below are the first 10 observations, see the help page for \texttt{cgd0}
 for the full list of variable names. The last few columns contain the 
 duration of follow-up for the subject followed by infection times.
-Subject 1 was followed for 414 days and had 2 infections during the study, 
+Subject 1 was followed for 414 days and had 2 infections on days 219 and 373, 
 subject 2 had 7 infections, and subject 3 had none.
 \small
 \begin{verbatim}
@@ -254,7 +258,7 @@ subject 2 had 7 infections, and subject 3 had none.
 \normalsize
 
 The data set above is included as \code{cgd0} in the survival
-library, and is a simple read of the above data set.
+library. 
 We want to turn this into a data set that has survival in a counting
 process form.
 \begin{itemize}
@@ -271,8 +275,7 @@ left out of the data1 argument in the first call.
 <<cgd1>>=
 newcgd <- tmerge(cgd0[, 1:13], cgd0, id=id, tstop=futime)
 newcgd <- tmerge(newcgd, cgd0, id=id, infect = event(etime1))
-attr(newcgd, "tcount")
-newcgd <- with(cgd0, tmerge(newcgd, id=id, infect = event(etime2))
+newcgd <- with(cgd0, tmerge(newcgd, id=id, infect = event(etime2)))
 newcgd <- tmerge(newcgd, cgd0, id=id, infect = event(etime3)) 
 newcgd <- tmerge(newcgd, cgd0, id=id, infect = event(etime4), 
                  infect= event(etime5), infect=event(etime6),
@@ -293,32 +296,32 @@ all.equal(newcgd[, c("id", "tstart", "tstop", "infect")],
     Additions with a missing time value are skipped.
   \item The result of \code{tmerge} is a data frame with a few extra
     attributes. One of these, tcount, is designed to help visualize
-    the process.
+    the process, and was printed out after the last step above.
+    (Printing after every step may often be useful.)
     Assume that a subject already had 3 intervals of (2,5), (5,10)
     and (14,40).
     A new event at time 1 would be ``early'' while one at time 50
     is after any interval and would be recorded as ``late''.  An event at
-    time 3 would is within an interval, one at 5 is on the border of two
+    time 3 is within an interval, one at 5 is on the border of two
     intervals, one at 14 is at the leading edge of an interval and one at
     time 10 in on the trailing edge.
     In this data set all new additions fell stricly within prior intervals.
     We also see that etime6 and etime7 each added only a single event to 
     the data.
   \item If two observations in data2 for a single person share exactly
-    the same time, the new value with be the sum of the contributions.
+    the same time, the created value will be the sum of the contributions.
     The ``tied times'' column tells how often this happened; in some
     data sets this behaviour might not be desired and one would need to
-    break the ties.
+    break the ties before calling tmerge.
   \item The data2 argument is not required.  Sometimes the ``where'' form
     will be more convenient, as shown in the addition of etime2.
-  \item These extra attributes of the data frame are ephemeral: they will be
-    lost as soon as any further manipulation is done.  This was part of
-    the design.
+  \item The extra attributes of the data frame are ephemeral: they will be
+    lost as soon as any further manipulation is done.  This is intentional.
 \end{itemize}
 
 The last line above shows that the created data set is identical to
 \code{cgd}, a (start, stop] version of the CGD data, also part of the
-survival library; this had been created by hand several years earlier.
+survival library, which had been created by hand several years earlier.
 
 \subsection{Stanford heart transplant}
 The \code{jasa} data set contains information from the Stanford heart
@@ -332,8 +335,9 @@ surgical treatment.
 As is often the case with real data, this data set contains a few anomalies 
 that need to be dealt with when setting up an analysis data set.
 \begin{enumerate}
-  \item The coefficients in table 5.2 of the definitive analysis found in
-    Kalbfliesch and Prentice will only be obtained if covariates are defined
+  \item The coefficients in table 6.1 of the definitive analysis found in
+    Kalbfliesch and Prentice \cite{Kalbfleisch02}
+    will only be obtained if covariates are defined
     in precisely the same way.  For age this is (age in days)/ 365.25 - 40 
     years, and for year of enrollment it is the number of years since the
     start of the study: (entry date - 1967/10/1)/365.25.
@@ -355,35 +359,181 @@ indx <- with(tdata, which(wait.time == futime))
 tdata$wait.time[indx] <- tdata$wait.time[indx] - .5  #the tied transplant
 sdata <- tmerge(tdata, tdata, id=1:nrow(tdata), 
                 death = event(futime, fustat), 
-                transplant = tdc(wait.time))
+                trans = tdc(wait.time))
 attr(sdata, "tcount")
-coxph(Surv(tstart, tstop, death) ~ age + transplant, sdata)
+coxph(Surv(tstart, tstop, death) ~ age + trans, sdata)
 @ 
 
 This example shows one special case for the \code{tmerge} function that 
 is moderately
 common: when the data1 and data2 arguments are the same, and the first
 created variable is an event code, then the range for each subject is
-inferred to be from 0 to that event time: an explicit \code{tstop} argument
+inferred to be from 0 to the event time: an explicit \code{tstop} argument
 is not required.  It also makes use of a two argument form of \code{event}.
 Each of the \code{event}, \code{cumevent}, \code{tdc} and \code{cumtdc}
 may have a second argument, which will be used as the value or increment
 to the event code or time dependent covariate.
-If not present a value of 1 is assumed.
+If not present a value of 1 is used.
+If the variable being created is already a part of data1, then our updates
+make changes to that variable.
+Be careful of this.  This feature is what allowed for the 
+\code{infection} indicator to be build up incrementally in the cgd
+example given earlier, but quite surprising results can occur when you
+think a new variable is being created de novo but the name already is
+in use.  (As an example change ``trans'' to ``transplant'' in the
+code just above).
+For a variable that is not in data1, the starting point is either a vector of
+NA values or a vector of zeros; the first is used for a \code{tdc}
+(or \code{cumtdc}) call that has two arguments, and the zero vector for all
+other cases.
 
 As a further example of time dependent covariates consider the PBC data.
 The \code{pbc} data set contains baseline data and follow-up status
 for a set of subjects with primary biliary cirrhosis, while the
 \code{pbcseq} data set contains repeated laboratory values.
+The first data set contains data on 312 subjects in a clinical trial plus
+106 that agreed to be followed off protocol, the second data set has data
+only on the protocol subjects.
+
 <<pbc>>=
-temp <- subset(pbc, select=c(id:sex, stage))
+temp <- subset(pbc, id <= 312, select=c(id:sex, stage))
 pbc2 <- tmerge(temp, temp, id=id, status = event(time, status))
 pbc2 <- tmerge(pbc2, pbcseq, id=id, ascites = tdc(day, ascites),
                bili = tdc(day, bili), albumin = tdc(day, albumin),
                protime = tdc(day, protime), alkphos = tdc(day, alk.phos))
+attr(pbc2, "tcount")
+coxph(Surv(time, status==2) ~ log(bili) + log(protime), pbc)$coef
+coxph(Surv(tstart, tstop, status==2) ~ log(bili) + log(protime), pbc2)$coef
 @ 
- 
-\subsection{Predictable time-dependent covariates}
+The coeffcients of bilirubin and probrombin time are somewhat larger in
+the time-dependent analysis than using only baseline values.  
+In this autoimmune disease there is steady progression of liver damage, along
+with a steady rise in these two markers of dysfunction.  
+The baseline analysis captures patients' disease status at the start, the
+time-dependent also is able to account for those who progress more quickly.
+
+The tcount results are interesting.  For the first addition of ascites we
+have 312 observations on a leading edge of follow up 
+(all of the lab values at time 0) and 1495 within the subjects' follow-up
+interval.  This causes a new breakpoint to be added at each laboratory date,
+and for subsequent additions these 1495 are all on a boundary of two 
+intervals.  Another 138 lab values occurred after the last follow-up date
+of the pbc data set and are ignored.
+The data for the pbcseq data set was gathered at a later calendar time.
+Since having lab tests done is a certain marker of survival, 
+would a  better analysis have first used this data to extend the last follow-up
+date for these 138 subjects?
+Not necessarily.
+
+Odd things happen in survival analysis when risk sets are extended piecemeal.
+A basic tenet of the Cox model (or a survival curve) is that if someone is
+marked as being ``at risk'' over some interval $(s, t)$, this means that 
+``if they had had an event over that interval, we would have seen it.''
+Say someone ended their initial follow-up time at 3000 days and then had a
+lab test at 3300 days (subjects returned about once a year).
+If we only extend the time of those who had a test, then saying that this
+subject was at risk during the interval (3000, 3300) is false: if they
+had died in that interval, they would not have gotton the extension and this
+analysis would not have noticed.  
+We need to extend the followup time of all subjects.  
+In the study all subjects were actively followed up and the
+results of that endeavor are in the futime and status variables of the 
+pbcseq data set.  Extension needs to use those variables and not just the
+presence of another laboratory result.
+
+\section{Time dependent coefficients}
+Time dependent covariates and time dependent coefficients are two
+different extensions of a Cox model, as shown in the two equations
+below.
+\begin{align}
+  \lambda(t) &= \lambda_0(t) e^{\beta X(t)} \label{tdcovar} \\
+  \lambda(t) &= \lambda_0(t) e^{\beta(t) X} \label{tdbeta} 
+\end{align}
+Equation \eqref{tdcovar} is a time dependent covariate, a commonly used
+and well understood useage.
+Equation \eqref{tdbeta} has a time dependent coefficient.
+These models are much less common, but represent one way to deal with
+non-proportional hazards -- the proportional hazard assumption is
+precisely that the coefficient does not change over time: $\beta(t) = c$.
+The \code{cox.zph} function will plot an estimate of $\beta(t)$ for
+a study and is used to diagnose and understand non-proportional
+hazards.
+Here for example is a test case using the veterans cancer data.
+
+<<veteran1, fig=TRUE>>=
+options(show.signif.stars = FALSE)  # display intelligence
+vfit <- coxph(Surv(time, status) ~ trt + prior + karno, veteran)
+vfit
+quantile(veteran$karno)
+
+zp <- cox.zph(vfit, transform= function(time) log(time +20))
+zp
+plot(zp[3])
+abline(0,0, col=2)
+@ 
+
+Karnofsky score is a very important predictor, but its effect is not
+constant over time, as shown by both the test and the plot. 
+Early on it has a large negative
+effect: the risk of someone at the first quartile is
+approximately exp(35* .03377) = 3.2 fold times that of someone at
+the third quartile, but by 200 days this has waned.
+The cox.zph function does not produce a formal fit, however,
+only a graph and a linear test of whether the graph is ``flat''.
+What if we want to actually fit the model?
+
+If $\beta(t)$ is assumed to have a simple functional form, we can 
+fool an ordinary Cox model program in to doing the fit.
+The particular form $\beta(t) = a + b\log(t)$ has for instance often
+been assumed.  
+Then $\beta(t) x = ax + b \log(t) x = ax + b z$ for the special time
+dependent covariate $z = \log(t) x$.
+The time scale for the plot above of $\log(t + 20)$ was chosen
+to make the first part of the plot roughly linear.
+The simple linear model does not fit over the entire range, but we 
+will forge ahead.
+(Most who fit the log(t) form have not bothered to even look at a plot.)
+An obvious but incorrect approach is
+<<vfit2, echo=TRUE, eval=FALSE>>=
+vfit2 <- coxph(Surv(time, status) ~ trt + prior + karno +
+                I(karno * log(time + 20)), data=veteran)
+@ 
+This error has been made often enough the the \code{coxph} routine has been
+updated to print an error message for such attempts.
+The issue is that the above code does not actually create a time dependent 
+covariate,
+rather it creates a time-static variable based on the single value
+of ``time'' for each subject in the data set; no differently that if we had
+constructed the variable outside of a \code{coxph} call.
+This variable most definitely breaks the rule about not looking into the
+future, and one would quickly find the circularity: large values of 
+\code{time} predict long survival well,  because long survival leads to 
+large values for \code{time}; the resulting coefficient is very large.
+
+A true time-dependent covariate can be constructed using the 
+\emph{time-transform} functionality of coxph.
+<<vet3>>=
+vfit3 <-  coxph(Surv(time, status) ~ trt + prior + karno + tt(karno),
+                data=veteran,
+                tt = function(x, t, ...) x * log(t+20))
+vfit3
+@ 
+The time dependent coefficient is estimated to be
+$\beta(t) =$ \Sexpr{round(coef(vfit3)[3], 3)} + 
+  \Sexpr{round(coef(vfit3)[4], 3)} * log(t + 20).
+We can add said line to the above plot via \code{abline(coef(vfit3)[3:4])}.
+Not surprisingly, the result is rather too high for time $>$ 200.
+
+(The same dichotomy exists in SAS phreg, by the way.  A new covariate
+based on \code{time} will be fixed,  and a programming statement within
+phreg that 
+uses \code{time} as a variable will generate time-dependent objects.
+The error is less likely there because phreg's model statement has no
+equivalent to the \code{I()} function, i.e., you cannot create new
+variables on-the-fly.)
+
+
+\section{Predictable time-dependent covariates}
 Occasionaly one has a time-dependent covariate whose values in the future
 are predictable.
 The most obvious of these is patient age, occasionally this may also be
@@ -404,121 +554,51 @@ Howevever, if the effect of age on risk is \emph{non-linear}, this
 cancellation does not occur.
 
 Since age changes continuously, we would in theory need a very large
-(start, stop] data set to completely capture the effect --- an interval
+data set to completely capture the effect, an interval
 per day to match the usual resolution for death times.
 In practice this level of resolution is not necessary; though we all
 grow older, risk does not increase so rapidly that we need to know
 our age to the day!  
-For most medical applications year is sufficient, but this still leads
-to a large data set.
-One useful way to generate this data set is through use of the \texttt{pyears}
-function.
-The following example uses data on rehospitalization for cohort of 
-rheumatoid arthritis
-patients who also have conjestive heart failure (CHF)\cite{Nicola05}.
-The variables are
-\begin{itemize}
-  \item patid: patient identifier
-  \item agechf: age at onset of CHF 
-  \item yearchf calendar year of CHF, relative to the start of the study
-  \item startday, stopday: an interval of risk
-  \item hospevt: =1 if the interval ends with a hospitalization
-  \item prevhosp: number of prior hosptializations
-  \item duration: duration of RA prior to CHF
-  \item male sex: 1 for male, 0 for female
-\end{itemize}
-The age and duration variables have been rounded to .1 year to 
-maintain patient privacy.
 
-<<>>=
-load('raheart.rda')
-age2 <- tcut(raheart$agechf*365.25, 0:110* 365.25, labels=0:109)
-rowid <- 1:nrow(raheart)
-pfit <- pyears(Surv(startday, stopday, hospevt) ~ age2 + rowid,
-               data=raheart, data.frame=TRUE, scale=1)
-print(pfit$offtable)
-pdata <- pfit$data
-print(pdata[1:6,])
-@
-The \texttt{tcut} function attaches a set of cutpoints to the starting age
-for each subject, it's primary job is to mark the variable as time-increasing%'
-for the \texttt{pyears} function.
-In the \texttt{pyears} call we set scale=1 to prevent the age intervals from
-being rescaled to years, this is not critical.
-Printing out the value of offtable is important, however.  One of them
-most common mistakes in using \texttt{pyears} is mismatched scales, for
-instance if the age were in years and the follow-up time in days, and
-a common result of that error is to have follow-up time that fits into
-none of the categories.
-This will give a large amount of time that is outside the boundaries of the
-table.
-In the resulting data frame the first observation has 7 days of follow-up,
-exactly as in the starting data.
-The second observation has been broken into 4 rows, 109.6 days at age 92,
-then a year each at age 93 and 94, and a final 234.9 days at age 95
-ending with a hospitalization.
-(The odd fractions of a day like .575 are a consequence of rounding the
-age values to 1 digit.)
-
-Now we combine this with the original data set using the same indexing
-trick found in the first example.
-We also need a variable containing the end time for the prior row of
-each subject and zero for the first row of each subject, which is
-\texttt{lagtime} below.
-We then fit two models.  The first looks at the effect of age at
-diagnosis of CHF, the second at the effect of current age.
-<<>>=
-index <- as.integer(pdata$rowid)
-lagtime <- c(0, pdata$pyears[-nrow(pdata)])
-lagtime[1+ which(diff(index)==0)] <- 0 #starts at 0 for each subject
-temp <- raheart$startday[index] + lagtime  #start of each new interval
-data2 <- data.frame(raheart[index,], 
-                    time1= temp,
-                    time2= temp + pdata$pyears,
-                    event= pdata$event,
-                    age2=  1+ as.numeric(pdata$age2) )
-
-afit1 <- coxph(Surv(startday, stopday, hospevt) ~ male + pspline(agechf), 
-               data=raheart)
-afit2 <- coxph(Surv(time1, time2, event) ~ male + pspline(age2), data2)
-#termplot(afit1, terms=2, se=TRUE, xlab="Age at Diagnosis of CHF")
-#termplot(afit2, terms=2, se=TRUE, xlab="Current Age")
-
-table(with(raheart, tapply(hospevt, patid, sum)))
+One method to create a time-changing covariate is to use the
+\emph{time-transform} feature of coxph.  Below is an example using
+the pbc data set.  The longest follow-up time in that data
+set is over 13 years, follow-up time is in days,  and we might worry that
+the intermediate data set would be huge.
+The program only needs the value of the time dependent covariate(s) for
+each subject at the times of events, however, so the maximum number
+or rows in the intermediate data set is
+the number of subjects times the number of unique event times.
+<<pbctime>>=
+pfit1 <- coxph(Surv(time, status==2) ~ log(bili) + ascites + age, pbc)
+pfit2 <- coxph(Surv(time, status==2) ~ log(bili) + ascites + tt(age),
+                data=pbc,
+                tt=function(x, t, ...) {
+                    age <- x + t/365.25 
+                    cbind(age=age, age2= (age-50)^2, age3= (age-50)^3)
+                })
+pfit2
+anova(pfit2)
+# anova(pfit1, pfit2)  #this fails
+2*(pfit2$loglik - pfit1$loglik)[2]
 @ 
-In this particular case the two fits are quite similar.  
-In retrospect this perhaps should have been expected: the mean age
-for onset of CHF in this group is 75 years, which does leave a lot
-of time for aging.
-(This analysis is very preliminary, however. As shown by the last line
-above there are a few patients with a very large number of admissions,
-sometimes referred to as ``entering a revolving door'' near the end of
-their disease.  These have an untoward influence on the fit.)
+Since initial age is in years and time is in days, it was important
+to scale within the pspline function.
+The likelihood ratio of 10.8 on 2 degrees of freedom shows that the additional
+terms are mildly significant.
 
-
-\subsection{Predictable covariates, method 2}
-
-Another method to create a time-changing covariate is to use the
-\emph{time-transform} feature of coxph.
-<<>>=
-afit2b <- coxph(Surv(startday, stopday, hospevt) ~ male + tt(agechf),
-                data=raheart, 
-                tt=function(x, t, ...) pspline(x + t/365.25))
-afit2b
-@ 
-
-If there are one or more terms on the right hand side of the equation
+When there are one or more terms on the right hand side of the equation
 marked with the tt() operator, the program will pre-compute the values
-of that variable for each unique event time and strata combination.
+of that variable for each unique event time.
 A user-defined function is called with arguments of
 \begin{itemize}
   \item the covariate: whatever is inside the tt() call
   \item the event time
   \item the event number: if there are multiple strata and the same event
-    time occurs in two of them, they are treated separately
+    time occurs in two of them, they can be treated separately
   \item the weight for the observation, if the call used weights
 \end{itemize}
-There is a single call to the function with a very large $x$ vector, 
+There is a single call to the function with a large $x$ vector, 
 it contains an element for each subject at risk at each event time.
 If there are multiple tt() terms in the formula, then the tt argument
 should be a list of functions with the requisite number of elements.
@@ -576,10 +656,11 @@ data sets the impact of $nd$ versus $n+d$ can be surprising.
 
 
 The time-transform is a new addition and still has some rough edges.
-At this moment the $x=T$ argment is needed to get proper residuals and
+At this moment the $x=TRUE$ argment is needed to get proper residuals and
 predicted values, and termplot is unable to properly reconstruct the
-data to plot the spline fit.
+data to plot a fit.
 Please communicate any concerns or interesting examples to the author.
+
 
 \begin{thebibliography}{9}
   \bibitem{Nicola05} Nicola PJ, Maradit-Kremers H, Roger VL, Jacobsen SJ, 
@@ -606,11 +687,32 @@ data to plot the spline fit.
 Please communicate any concerns or interesting examples to the author.
 
 \begin{thebibliography}{9}
-  \bibitem{Nicola05} Nicola PJ, Maradit-Kremers H, Roger VL, Jacobsen SJ, 
-    Crowson CS, Ballman KV, Gabriel SE. ``The risk of Congestive Heart Failure
-    in Rheumatoid Arthritis: a Population-Based Study Over 46 Years.''
-    \emph{Arthritis Rheum} 52: 412--20, 2005.
-  \bibitem{obrien78} O'Brien, Peter, ``A non-parametric test for           %'
-    association with censored data'', \emph{Biometrics} 34:243--250, 1978.
+  \bibitem{Anderson83} Anderson JR, Cain KC, and Gelber RD. 
+    Analysis of survival by tumor response. J Clinical Oncology
+    1:710--719, 1983.
+
+    \bibitem{Buyse96} M Buyse and P Piedbois.  
+      The relationship between response to treatment
+and survival time.  Stat in Med 15:2797--2812, 1996.
+
+   \bibitem{Crowley77} J Crowley and M Hu.
+     Covariance analysis of heart transplant survival data.
+     J American Statistical Assoc, 72:27--36, 1977.
+
+    \bibitem{Kalbfleisch02} J Kalbfleisch and R Prentice.  
+      The statistical analysis of failure
+       time data, second edition. Wiley, 2002.
+
+  \bibitem{obrien78} O'Brien, Peter. A non-parametric test for     
+    association with censored data, Biometrics 34:243--250, 1978.
+
+  \bibitem{Redmond83} Redmond C, Fisher B, Wieand HS. 
+      The methodologic dilemma in retrospectively correlating the amount of
+      chemotherapy received in adjuvant therapy protocols with disease free 
+      survival: a commentary. 
+      Cancer Treatment Reports 67:519--526, 1983.
+
+   \bibitem{Suissa08} S Suissa. 
+    Immortal time bias in pharmacoepidemiology. Am J Epi, 167:492-499, 2008.
 \end{thebibliography}
 \end{document}

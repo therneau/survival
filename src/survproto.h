@@ -207,3 +207,5 @@ void survpenal(int whichcase, int nfrail,    int  nvar2,    double **hmat,
 	       int ptype,     int pdiag,     SEXP pexpr1,   double *cptr1, 
 	       SEXP pexpr2,   double *cptr2, SEXP rho);
 
+SEXP tmerge (SEXP id2,  SEXP time1x, SEXP time2x, SEXP newx2,
+	     SEXP nid2, SEXP ntime2, SEXP x2,  SEXP indx2); 

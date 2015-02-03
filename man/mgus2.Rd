@@ -2,7 +2,7 @@
 \alias{mgus2}
 \docType{data}
 \title{Monoclonal gammapothy data}
-}
+
 \description{Natural history of 1341 sequential patients with monoclonal
   gammapothy of undetermined significance (MGUS).
 }
@@ -29,12 +29,10 @@
 }
 \source{Mayo Clinic data courtesy of Dr. Robert Kyle.  All patient
   identifiers have been removed, age rounded to the nearest year, and
-  follow-up times rounded to the nearest month.
+  follow-up times rounded to the nearest month.}
 \references{
-Kyle paper
-}
-\examples{
-data(mgus2)
-## maybe str(mgus2) ; plot(mgus2) ...
+  R. Kyle, T. Therneau, V. Rajkumar, J. Offord, D. Larson, M. Plevak,
+  and L. J. Melton III, A long-terms study of prognosis in monoclonal
+  gammopathy of undertermined significance. New Engl J Med, 346:564-569 (2002).
 }
 \keyword{datasets}

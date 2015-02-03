@@ -126,7 +126,7 @@ significance (MGUS).
 The curve below shows ordinary Kaplan-Meier survival for these subjects,
 the mean age at diagnosis is just over 70 years.
 <<mgus1, fig=TRUE>>=
-oldpar <- par(mfrow=c(2,1)
+oldpar <- par(mfrow=c(2,1))
 hist(mgus2$age, nclass=30, main='')
 with(mgus, tapply(age, sex, mean))
 
@@ -230,8 +230,8 @@ The necessary data set will have two rows for each subject who has further
 follow-up after a PCM and one row for all others.
 
 <<mgus4, echo=TRUE, fig=TRUE>>=
-newdata <- tmerge(mgus2, id=mgus2$id, death=event(mgus2$futime, mgus2$death))
-newdata <- with(mgus2,  tmerge(newdata, id, pcm=event(pctime)))
+newdata <- tmerge(mgus2, mgus2,  id=id, death=event(futime, death))
+newdata <- tmerge(newdata, mgus2, id, pcm=event(pctime)))
 newdata$event <- with(newdata, factor(death*2 + pcm, 0:2,
                                       labels=c("censor", "pcm", "death")))
 table(newdata$event)
@@ -306,8 +306,6 @@ options(show.signif.stars = FALSE)  # display intellegence
 cfit1 <- coxph(Surv(stop, event=='death') ~ age + sex + mspike, data=mtemp)
 cfit2 <- coxph(Surv(stop, event=='pcm') ~ age + sex + mspike, mtemp)
 rbind(coef(cfit1), coef(cfit2))
-
-
 @ 
 
 \end{document}
