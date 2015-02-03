@@ -22,9 +22,12 @@ R/pyears.R
 R/residuals.survreg.S
 R/survConcordance.*
 R/survexp.R
+R/survfitCI.R
 R/survfit.coxph.R
 R/survfitcoxph.*R
-R/survfit.
+R/survfit.R
+R/survfitms.R
+R/tmerge.R
 noweb/*.pdf
 vignettes/*.pdf
 noweb/figures/.*.pdf

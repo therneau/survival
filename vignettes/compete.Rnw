@@ -122,12 +122,12 @@ so curves for the plotted states start at 0.
 Here is an example using a simple competing risks problem.
 The \code{mgus2} data set contains the progression and survival time
 for 1384 subjects diagnosed with monoclonal gammopathy of undertermined
-significance (MGUS).  
+significance (MGUS).  Survival and progression time are in months. 
 The curve below shows ordinary Kaplan-Meier survival for these subjects,
 the mean age at diagnosis is just over 70 years.
 <<mgus1, fig=TRUE>>=
-oldpar <- par(mfrow=c(2,1))
-hist(mgus2$age, nclass=30, main='')
+oldpar <- par(mfrow=c(1,2))
+hist(mgus2$age, nclass=30, main='', xlab="Age")
 with(mgus, tapply(age, sex, mean))
 
 mfit1 <- survfit(Surv(futime, death) ~ sex, data=mgus2)
@@ -142,15 +142,16 @@ The second model for these subjects is competing risks, which corresponds to
 our second figure above.
 For this model we are only interested in the first event for each
 subject.
-Formally we are treating progression as an \emph{absorbing state}, i.e., one 
+Formally we are treating progression to a plama cell malignancy (PCM)
+as an \emph{absorbing state}, i.e., one 
 that subjects never exit.  
 We create a variable containing the time of
 the first progression, death, or last follow-up along with an event
 variable that contains the outcome.
 
 <<mgus2, echo=TRUE, fig=TRUE>>=
-etime <- with(mgus2, ifelse(is.na(pctime), futime, pctime))
-event <- with(mgus2, ifelse(is.na(pctime), 2*death, 1))
+etime <- with(mgus2, ifelse(pstat==0, futime, ptime))
+event <- with(mgus2, ifelse(pstat==0, 2*death, 1))
 event <- factor(event, 0:2, labels=c("censor", "pcm", "death"))
 table(event)
 
@@ -178,24 +179,24 @@ with the exception of the \code{event} variable.
     state survival the status is normally 0/1 or TRUE/FALSE.  
     The first level of the factor must be censoring, which is the status code
     for those whose follow-up terminated without reaching either endpoint.
-    Codes for the remaining states can be in any order.  
-    There is no restriction on what labels are used for the states.
+    Codes for the remaining states can be in any order. The labels for the
+    states unrestricted.
   \item A simple print of the \code{mfit1} object shows the order in
     which the curves will be displayed.  This information was used to 
     choose the line types and colors for the curves.
   \item Since these are prevalence estimates, the curves start at 0.
 \end{enumerate}
 
-A common mistake with competing risks is to use the KM separately on each
+A common mistake with competing risks is to use the Kaplan-Meier
+separately on each
 event type while treating other event types as censored.
-The next plot is an example of this looking at plasma cell malignancy.
+The next plot is an example of this for the PCM endpoint.
 <<mgus3, fig=TRUE>>=
-badstatus <- ifelse(is.na(mgus2$pctime), 0, 1)
-pcmbad <- survfit(Surv(etime, badstaus) ~ sex, data=mgus2)
+pcmbad <- survfit(Surv(etime, pstat) ~ sex, data=mgus2)
 plot(pcmbad[2], mark.time=FALSE, lwd=2, fun="event", conf=FALSE, xscale=30.5,
-     xlab="Years post diagnosis", ylab="Prevalence")
+     xlab="Years post diagnosis", ylab="Fraction with PCM")
 lines(mfit2[2,1], lty=2, lwd=2, mark.time=FALSE, conf=FALSE, xscale=30.5)
-legend(0, .25, c("Males, PCM, incorrect curve", "Males, PCM, competing risk"),
+legend(0, .28, c("Males, PCM, incorrect curve", "Males, PCM, competing risk"),
        col=1, lwd=2, lty=c(1,2), bty='n')
 @ 
 There are two problems with the \code{pcmbad} fit.  
@@ -212,9 +213,9 @@ The above code chose to plot only a subset of the curves, something that is
 often desireable in competing risks problems to avoid a
 ``tangle of yarn'' plot that simply has too many elements.
 For competing risks the curves appear as a matrix, for the purpose of
-subscripting, with the outcomes as the second subscript.  
-The outcomes are in the order of the factor levels, as displayed by
-our earlier call to \code{table(mgus1\$event)}.   
+subscripting, with the outcomes as the second subscript. 
+These outcomes are in to order of the levels of \code{event},
+i.e., as displayed by our earlier call to \code{table(mgus1\$event)}.   
 The first subscript indexes the groups formed by the right hand side of
 the model formula, and will be in the same order as simple survival curves.
 Thus \code{mfit[2,1]} corresponds to \code{\[male, pcm\]}.
@@ -228,43 +229,56 @@ with ``plasma cell malignancy'' as the upper state and no arrow for
 a return from that state to health.  
 The necessary data set will have two rows for each subject who has further
 follow-up after a PCM and one row for all others.
+The data set is created using the \code{tmerge} function, which is
+discussed in more detail in another vignette.
 
 <<mgus4, echo=TRUE, fig=TRUE>>=
 newdata <- tmerge(mgus2, mgus2,  id=id, death=event(futime, death))
-newdata <- tmerge(newdata, mgus2, id, pcm=event(pctime)))
-newdata$event <- with(newdata, factor(death*2 + pcm, 0:2,
-                                      labels=c("censor", "pcm", "death")))
-table(newdata$event)
+newdata <- tmerge(newdata, mgus2, id, pcm = event(ptime, pstat))
+newdata <- tmerge(newdata, newdata, id, enum=cumtdc(tstart))
+with(newdata, table(death, pcm))
+@ 
+We need to decide what to do with the 9 subjects who have PCM
+and death declared on the same day.  
+One choice would be to move their malignancy date back: though
+undetected, the disease had to have been present for some amount of time.
+But how far back, and how would it affect the plot?
+Below we will simply consider them a death on that day, effectively
+not passing through the PCM state.
+(The last tmerge line above creates a variable \code{enum} which
+simply counts rows for each person.)
 
-mfit3 <- survfit(Surv(start, stop, event) ~ sex, data=mgus1, id=id)
-plot(mfit3, mark.time=FALSE, col=c(1,1,2,2), lty=c(2,1,2,1), lwd=2,
-     xscale=365.25,
-     xlab="Years post MGUS diagnosis", ylab="Prevalence")
-legend(25, .5, c("death:female", "death:male", "pcm:female", "pcm:male"), 
-       col=c(1,2,1,2), lty=c(1,1,2,2), lwd=2, bty='n')
+<<mgus4g>>=
+temp <- with(newdata, ifelse(death==1, 2, pcm))
+newdata$event <- factor(temp, 0:2, labels=c("censor", "pcm", "death"))  
+mfit3 <- survfit(Surv(tstart, tstop, event) ~ sex, data=newdata, id=id)
+plot(mfit3[,1], mark.time=FALSE, col=1:2, lty=1, lwd=2,
+     xscale=30.5,
+     xlab="Years post MGUS diagnosis", ylab="Prevalence of PCM")
+legend(4, .04, c("female", "male"), lty=1, col=1:2, lwd=2, bty='n') 
 @ 
 This plot is quite different in that it shows the fraction of subjects
-who have progressed and are \emph{currently} alive as the dashed lines.
+who have progressed and are \emph{currently} alive. 
 Looking at the lower scenario in figure \ref{sfig1}, this is the fraction
 of subjects in the upper right box.
-The dashed curve goes up whenever someone enters the box and down when
+The curve goes up whenever someone enters the box and down when
 they leave.
 Myeloma survival was quite short during this calendar period and so the 
-proportion in the PCM state is always small.
+proportion in the PCM state rarely rises above 2 percent.
 I have often found the three curve display below useful in these cases.
-It combines the results from competing risk model use above
+It combines the results from competing risk model used above
 along with a second fit that treats death
 after PCM as a separate state from death before progression.
 Only males are shown in the plot to minimize overlap.
 <<mgus5, echo=TRUE, fig=TRUE>>=
-d2 <- with(mgus1, ifelse(enum==2, 4, as.numeric(event)))
+d2 <- with(newdata, ifelse(enum==2, 4, as.numeric(event)))
 e2 <- factor(d2, labels=c("censor", "pcm", "death w/o pcm", 
                           "death after pcm"))
-mfit4 <- survfit(Surv(start, stop, e2) ~ sex, data=mgus1, id=id)
+mfit4 <- survfit(Surv(tstart, tstop, e2) ~ sex, data=newdata, id=id)
 plot(mfit2[2,], lty=c(2,1),
-     xscale=365.25, mark.time=FALSE, lwd=2, 
+     xscale=30.5, mark.time=FALSE, lwd=2, 
      xlab="Years post diagnosis", ylab="Prevalence")
-lines(mfit4[2,3], mark.time=FALSE, xscale=365.25, col=2, lty=2, lwd=2,
+lines(mfit4[2,3], mark.time=FALSE, xscale=30.5, col=2, lty=2, lwd=2,
       conf=FALSE)
 
 legend(20, .5, c("male:death w/o pcm", "male: ever pcm", 

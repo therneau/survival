@@ -281,6 +281,7 @@ newcgd <- tmerge(newcgd, cgd0, id=id, infect = event(etime4),
                  infect= event(etime5), infect=event(etime6),
                  infect= event(etime7))
 attr(newcgd, "tcount")
+newcgd <- tmerge(newcgd, newcgd, id, enum=cumtdc(tstart))
 all.equal(newcgd[, c("id", "tstart", "tstop", "infect")], 
           cgd   [, c("id", "tstart", "tstop", "status")], 
           check.attributes=FALSE)
@@ -310,11 +311,12 @@ all.equal(newcgd[, c("id", "tstart", "tstop", "infect")],
     the data.
   \item If two observations in data2 for a single person share exactly
     the same time, the created value will be the sum of the contributions.
-    The ``tied times'' column tells how often this happened; in some
+    The ``tied'' column tells how often this happened; in some
     data sets this behaviour might not be desired and one would need to
     break the ties before calling tmerge.
-  \item The data2 argument is not required.  Sometimes the ``where'' form
-    will be more convenient, as shown in the addition of etime2.
+  \item Sometimes the ``where'' form of the call may be more
+    convenient than using the data2 argument.  An example is shown
+    in the addition of etime2.
   \item The extra attributes of the data frame are ephemeral: they will be
     lost as soon as any further manipulation is done.  This is intentional.
 \end{itemize}
@@ -325,10 +327,10 @@ survival library, which had been created by hand several years earlier.
 
 \subsection{Stanford heart transplant}
 The \code{jasa} data set contains information from the Stanford heart
-transplant study, in the form that it appeared in the J. Amer Statistical
-Assoc paper of Crowley and Hu \cite{Crowley77}.
-Each row also contain also contains the calculated age, time to transplant
-and time to last follow-up calculated from these values.
+transplant study, in the form that it appeared in the 
+paper of Crowley and Hu \cite{Crowley77}.
+Each row also contain also contains the age, time to transplant
+and time to last follow-up calculated from these dates.
 Patients were on medical treatmant from their entry to the study until
 a matching heart became available, at which time they transferred to 
 surgical treatment.  
@@ -379,13 +381,21 @@ make changes to that variable.
 Be careful of this.  This feature is what allowed for the 
 \code{infection} indicator to be build up incrementally in the cgd
 example given earlier, but quite surprising results can occur when you
-think a new variable is being created de novo but the name already is
+think a new variable is being created de novo but its name already is
 in use.  (As an example change ``trans'' to ``transplant'' in the
 code just above).
 For a variable that is not in data1, the starting point is either a vector of
 NA values or a vector of zeros; the first is used for a \code{tdc}
 (or \code{cumtdc}) call that has two arguments, and the zero vector for all
 other cases.
+
+The \code{tcount} table for the above fit shows all the deaths at the
+trailing edge of their interval, not surprising since last follow-up was
+used to define the interval of risk.
+Three of the transplants happened on day 0, one of which we moved to 0.5,
+the other 2 listed as occuring on the leading edge of the follow-up
+interval.  The other 67 transplants were strictly within the (0, last follow up)
+interval of each subject.
 
 As a further example of time dependent covariates consider the PBC data.
 The \code{pbc} data set contains baseline data and follow-up status
@@ -401,9 +411,8 @@ pbc2 <- tmerge(temp, temp, id=id, status = event(time, status))
 pbc2 <- tmerge(pbc2, pbcseq, id=id, ascites = tdc(day, ascites),
                bili = tdc(day, bili), albumin = tdc(day, albumin),
                protime = tdc(day, protime), alkphos = tdc(day, alk.phos))
-attr(pbc2, "tcount")
-coxph(Surv(time, status==2) ~ log(bili) + log(protime), pbc)$coef
-coxph(Surv(tstart, tstop, status==2) ~ log(bili) + log(protime), pbc2)$coef
+coef(coxph(Surv(time, status==2) ~ log(bili) + log(protime), pbc))
+coef(coxph(Surv(tstart, tstop, status==2) ~ log(bili) + log(protime), pbc2))
 @ 
 The coeffcients of bilirubin and probrombin time are somewhat larger in
 the time-dependent analysis than using only baseline values.  
@@ -412,6 +421,9 @@ with a steady rise in these two markers of dysfunction.
 The baseline analysis captures patients' disease status at the start, the
 time-dependent also is able to account for those who progress more quickly.
 
+<<>>=
+attr(pbc2, "tcount")
+@ 
 The tcount results are interesting.  For the first addition of ascites we
 have 312 observations on a leading edge of follow up 
 (all of the lab values at time 0) and 1495 within the subjects' follow-up
@@ -421,20 +433,20 @@ intervals.  Another 138 lab values occurred after the last follow-up date
 of the pbc data set and are ignored.
 The data for the pbcseq data set was gathered at a later calendar time.
 Since having lab tests done is a certain marker of survival, 
-would a  better analysis have first used this data to extend the last follow-up
-date for these 138 subjects?
+would a  better analysis have first used this information
+to extend the last follow-up date for these 138 subjects?
 Not necessarily.
 
 Odd things happen in survival analysis when risk sets are extended piecemeal.
 A basic tenet of the Cox model (or a survival curve) is that if someone is
 marked as being ``at risk'' over some interval $(s, t)$, this means that 
-``if they had had an event over that interval, we would have seen it.''
+``if they had had an event over that interval, we would have recorded it.''
 Say someone ended their initial follow-up time at 3000 days and then had a
-lab test at 3300 days (subjects returned about once a year).
+lab test at 3350 days (subjects returned about once a year).
 If we only extend the time of those who had a test, then saying that this
-subject was at risk during the interval (3000, 3300) is false: if they
-had died in that interval, they would not have gotton the extension and this
-analysis would not have noticed.  
+subject was at risk during the interval (3000, 3350) is false: if they
+had died in that interval, they would not have had the lab test and not
+obtained the extension.
 We need to extend the followup time of all subjects.  
 In the study all subjects were actively followed up and the
 results of that endeavor are in the futime and status variables of the 
@@ -473,16 +485,16 @@ abline(0,0, col=2)
 @ 
 
 Karnofsky score is a very important predictor, but its effect is not
-constant over time, as shown by both the test and the plot. 
+constant over time as shown by both the test and the plot. 
 Early on it has a large negative
 effect: the risk of someone at the first quartile is
-approximately exp(35* .03377) = 3.2 fold times that of someone at
+approximately exp(35*.03377) = 3.2 fold times that of someone at
 the third quartile, but by 200 days this has waned.
 The cox.zph function does not produce a formal fit, however,
 only a graph and a linear test of whether the graph is ``flat''.
 What if we want to actually fit the model?
 
-If $\beta(t)$ is assumed to have a simple functional form, we can 
+If $\beta(t)$ is assumed to have a simple functional form we can 
 fool an ordinary Cox model program in to doing the fit.
 The particular form $\beta(t) = a + b\log(t)$ has for instance often
 been assumed.  
@@ -492,23 +504,24 @@ The time scale for the plot above of $\log(t + 20)$ was chosen
 to make the first part of the plot roughly linear.
 The simple linear model does not fit over the entire range, but we 
 will forge ahead.
-(Most who fit the log(t) form have not bothered to even look at a plot.)
+(After all, most who fit the log(t) form have not bothered to even 
+look at a plot.)
 An obvious but incorrect approach is
 <<vfit2, echo=TRUE, eval=FALSE>>=
 vfit2 <- coxph(Surv(time, status) ~ trt + prior + karno +
                 I(karno * log(time + 20)), data=veteran)
 @ 
-This error has been made often enough the the \code{coxph} routine has been
+This mistake has been made often enough the the \code{coxph} routine has been
 updated to print an error message for such attempts.
 The issue is that the above code does not actually create a time dependent 
 covariate,
-rather it creates a time-static variable based on the single value
-of ``time'' for each subject in the data set; no differently that if we had
+rather it creates a time-static value for each subject based on their value
+for the covariate \code{time}; no differently than if we had
 constructed the variable outside of a \code{coxph} call.
 This variable most definitely breaks the rule about not looking into the
 future, and one would quickly find the circularity: large values of 
-\code{time} predict long survival well,  because long survival leads to 
-large values for \code{time}; the resulting coefficient is very large.
+\code{time} predict long survival,  because long survival leads to 
+large values for \code{time}; the resulting model coefficient is large.
 
 A true time-dependent covariate can be constructed using the 
 \emph{time-transform} functionality of coxph.
@@ -525,7 +538,7 @@ We can add said line to the above plot via \code{abline(coef(vfit3)[3:4])}.
 Not surprisingly, the result is rather too high for time $>$ 200.
 
 (The same dichotomy exists in SAS phreg, by the way.  A new covariate
-based on \code{time} will be fixed,  and a programming statement within
+based on \code{time} will be fixed,  while a programming statement within
 phreg that 
 uses \code{time} as a variable will generate time-dependent objects.
 The error is less likely there because phreg's model statement has no
@@ -567,7 +580,7 @@ set is over 13 years, follow-up time is in days,  and we might worry that
 the intermediate data set would be huge.
 The program only needs the value of the time dependent covariate(s) for
 each subject at the times of events, however, so the maximum number
-or rows in the intermediate data set is
+of rows in the intermediate data set is
 the number of subjects times the number of unique event times.
 <<pbctime>>=
 pfit1 <- coxph(Surv(time, status==2) ~ log(bili) + ascites + age, pbc)
@@ -659,31 +672,6 @@ The time-transform is a new addition and still has some rough edges.
 At this moment the $x=TRUE$ argment is needed to get proper residuals and
 predicted values, and termplot is unable to properly reconstruct the
 data to plot a fit.
-Please communicate any concerns or interesting examples to the author.
-
-
-\begin{thebibliography}{9}
-  \bibitem{Nicola05} Nicola PJ, Maradit-Kremers H, Roger VL, Jacobsen SJ, 
-    Crowson CS, Ballman KV, Gabriel SE. ``The risk of Congestive Heart Failure
-    in Rheumatoid Arthritis: a Population-Based Study Over 46 Years.''
-    \emph{Arthritis Rheum} 52: 412--20, 2005.
-  \bibitem{obrien78} O'Brien, Peter, ``A non-parametric test for           %'
-    association with censored data'', \emph{Biometrics} 34:243--250, 1978.
-\end{thebibliography}
-\end{document}
-the covariates at each event time, a process that is inherently 
-$O(ndp^2)$ where $n$ = the sample size, $d$ = the number of events and $p$=
-the number of covariates.  
-Much of the algorithmic effort in coxph() is to use updating methods for
-the mean and variance matrices, reducing the compute time to $O((n+d) p^2)$.
-When a tt term appears updating is not possible; for even moderate size
-data sets the impact of $nd$ versus $n+d$ can be surprising.
-
-
-The time-transform is a new addition and still has some rough edges.
-At this moment the $x=T$ argment is needed to get proper residuals and
-predicted values, and termplot is unable to properly reconstruct the
-data to plot the spline fit.
 Please communicate any concerns or interesting examples to the author.
 
 \begin{thebibliography}{9}
