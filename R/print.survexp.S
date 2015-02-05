@@ -27,6 +27,7 @@ print.survexp <- function(x, scale=1, digits = max(options()$digits - 4, 3), nap
         if (is.matrix(x$n.risk)) 
             cname <- c(paste("nrisk", 1:ncol(x$n.risk), sep=''), cname)
         else cname <- c("n.risk", cname)
+        cname <- c("time", cname)
 
 	if (!is.null(x$std.err))
 	      cname <- c(cname, paste("se(", cname, ")", sep=''))

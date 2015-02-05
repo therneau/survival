@@ -124,12 +124,10 @@ sdata <- tmerge(tdata, tdata, id=1:nrow(tdata),
                 death = event(futime, fustat), 
                 trans = tdc(wait.time))
 attr(sdata, "tcount")
-
-fit <- coxph(Surv(tstart, tstop, death) ~ trans + age, data=sdata)
-
-attr(jasa2, "tcount")
 # Shows two subjects transplanted on the day of entry, the "front edge" of
 #  their follow-up interval
+
+fit <- coxph(Surv(tstart, tstop, death) ~ trans + age, data=sdata)
 }
 \keyword{ survival }
 
