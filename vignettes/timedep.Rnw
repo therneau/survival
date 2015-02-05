@@ -317,6 +317,11 @@ all.equal(newcgd[, c("id", "tstart", "tstop", "infect")],
   \item Sometimes the ``where'' form of the call may be more
     convenient than using the data2 argument.  An example is shown
     in the addition of etime2.
+  \item The last addition after printing the tcount attribute adds a
+    simple time-dependent variable \code{enum} which is a running observation
+    count for each subject.  This can often be a useful variable in later
+    models or processing, e.g. \code{enum==1} select off the first row
+    for each subject.
   \item The extra attributes of the data frame are ephemeral: they will be
     lost as soon as any further manipulation is done.  This is intentional.
 \end{itemize}

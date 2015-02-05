@@ -391,7 +391,7 @@ if (n4 > 0) {
     jrep <- rep(1:nrow(newdata), irep)  #stutter the duplicated rows
     newdata <- newdata[jrep,]  #expand it out
     dstart <- dstart[jrep]
-    dstop <-  dstart[jrep]
+    dstop <-  dstop[jrep]
 
     #fix up times
     nfix <- length(erow)

@@ -232,7 +232,7 @@ follow-up after a PCM and one row for all others.
 The data set is created using the \code{tmerge} function, which is
 discussed in more detail in another vignette.
 
-<<mgus4, echo=TRUE, fig=TRUE>>=
+<<mgus4, echo=TRUE>>=
 newdata <- tmerge(mgus2, mgus2,  id=id, death=event(futime, death))
 newdata <- tmerge(newdata, mgus2, id, pcm = event(ptime, pstat))
 newdata <- tmerge(newdata, newdata, id, enum=cumtdc(tstart))
@@ -248,7 +248,7 @@ not passing through the PCM state.
 (The last tmerge line above creates a variable \code{enum} which
 simply counts rows for each person.)
 
-<<mgus4g>>=
+<<mgus4g, fig=TRUE>>=
 temp <- with(newdata, ifelse(death==1, 2, pcm))
 newdata$event <- factor(temp, 0:2, labels=c("censor", "pcm", "death"))  
 mfit3 <- survfit(Surv(tstart, tstop, event) ~ sex, data=newdata, id=id)
@@ -281,7 +281,7 @@ plot(mfit2[2,], lty=c(2,1),
 lines(mfit4[2,3], mark.time=FALSE, xscale=30.5, col=2, lty=2, lwd=2,
       conf=FALSE)
 
-legend(20, .5, c("male:death w/o pcm", "male: ever pcm", 
+legend(4, .5, c("male:death w/o pcm", "male: ever pcm", 
                  "male: death after pcm"), col=c(1,1,2), lty=c(1,2,2), 
              lwd=2, bty='n')
 @ 
@@ -313,13 +313,45 @@ plasma cell malignancy as an absorbins state.
 
 The Cox model approach starts by fitting models to each of the transitions.
 <<cfit1>>=
-mtemp <- mgus1[mgus1$start==0,]
-mtemp$age <- mtemp$age/10   #age in decades
+mtemp <- mgus2
+mtemp$age <- mtemp$age/10   #age in decades (easier coefficients)
 
-options(show.signif.stars = FALSE)  # display intellegence
-cfit1 <- coxph(Surv(stop, event=='death') ~ age + sex + mspike, data=mtemp)
-cfit2 <- coxph(Surv(stop, event=='pcm') ~ age + sex + mspike, mtemp)
-rbind(coef(cfit1), coef(cfit2))
+options(show.signif.stars = FALSE)  # display intelligence
+cfit1 <- coxph(Surv(futime, death) ~ age + sex + mspike, data=mtemp)
+cfit1
+cfit2 <- coxph(Surv(ptime, pstat) ~ age + sex + mspike, mtemp)
+cfit2
+quantile(mgus2$mspike, na.rm=TRUE)
 @ 
+The effect of age and sex on non-PCM mortality is profound, which is not
+a surprise given the median starting age of \Sexpr{median(mgus2$age)}.   %$
+The size of the serum monoclonal spike is of no consequence for
+this endpoint.  
+The mspike size has a major impact on progression, however; each 1 gram
+change increases risk by \Sexpr{round(exp(coef(cfit2)[3]) ,1)} fold,
+and the interquartile range is close to 1g.
+Meantime the effect of age on progression rate is much less pronounced,
+with a coefficient 1/4 that for mortality, and the effect of sex
+is neglible.
 
+Notice that we did not do anything special to the data set or event codes
+for the Cox model.  The focus of coxph is on the event rates, for which the
+correct denominator is the set of all subjects still at risk.  This is
+exactly what is encoded by the (futime, death) and (ptime, pstat) pairs.
+
+The effect of sex on the \emph{lifetime} probability of PCM is not zero,
+however.  Because of a longer lifetime, an average female with MGUS will 
+spend more total years at risk for PCM than the average male, and so has
+a larger lifetime risk of PCM.  
+The average rate of progression is about 2.7\% per year, as shown below,
+while the average post diagnosis lifetime is about 18 months longer for 
+females.  The competing risks plot below shows
+<<mpyears>>=
+pfit1 <- pyears(Surv(ptime, pstat) ~ sex, mtemp, scale=30.5)
+round(100* pfit1$event/pfit1$pyears, 1)  # PCM rate
+
+temp <- summary(mfit1, rmean="common")
+round(temp$table[,1:5], 1)
+
+@ 
 \end{document}
