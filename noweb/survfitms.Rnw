@@ -136,6 +136,11 @@ summary.survfit <- function(object, times, censored=FALSE,
     table <- temp$matrix  #for inclusion in the output list
     rmean.endtime <- temp$end.time
 
+    if (!missing(times)) {
+        if (!is.numeric(times)) stop ("times must be numeric")
+        times <- sort(times)
+    }
+
     # The fit$surv object is sometimes a vector and sometimes a
     #  matrix.  We calculate row indices first, and then deal
     #  with the cases at the end.
@@ -179,8 +184,6 @@ summary.survfit <- function(object, times, censored=FALSE,
                                   labels=strata.names)
     }
     else { #times argument was given
-        if (!is.numeric(times)) stop ("times must be numeric")
-        times <- sort(times)
         temp <- list(n=object$n, time=times/scale, 
                      n.risk=n.risk, n.event=n.event,
                      conf.int=fit$conf.int, type=fit$type, table=table)
@@ -363,6 +366,10 @@ summary.survfitms <- function(object, times, censored=FALSE,
 	    stop("summary.survfitms can only be used for survfitms objects")
 
     if (is.null(rmean)) rmean <- "none"
+    if (!missing(times)) {
+        if (!is.numeric(times)) stop ("times must be numeric")
+        times <- sort(times)
+    }
 
     # add some temps to make survmean work
     object$surv <- 1-object$prev

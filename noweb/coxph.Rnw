@@ -471,7 +471,7 @@ The dropterms variable contains terms to drop before creation of the X matrix.
 It was initialized far above in the code when we dealt
 with cluster terms.
 <<coxph-make-X>>=
-attr(Terms, "intercept") <- TRUE
+attr(Terms, "intercept") <- 1
 adrop <- 0  #levels of "assign" to be dropped; 0= intercept
 stemp <- untangle.specials(Terms, 'strata', 1)
 if (length(stemp$vars) > 0) {  #if there is a strata statement
