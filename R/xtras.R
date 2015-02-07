@@ -24,3 +24,15 @@ rep.Surv <- function(x, ...) {
     x[indx,]
 }
 
+# This function is just like all.vars -- except that it does not recur
+#  on the $ sign, and it only follows first arguments of many
+terms.inner <- function(x) {
+    if (class(x) == "formula") c(terms.inner(x[[2]]), terms.inner(x[[3]]))
+    else if (class(x)== "call" && 
+             (x[[1]] != as.name("$") && x[[1]] != as.name("["))) {
+        if (x[[1]]
+        if (x[[1]] %in% 
+        
+     else(deparse(x))
+}
+

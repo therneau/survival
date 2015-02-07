@@ -8,7 +8,7 @@
   in the creation of such data sets.
 }
 \usage{
-tmerge(data1, data2,  id,\dots, options)
+tmerge(data1, data2,  id,\dots, tstart, tstop, options)
 }
 \arguments{
   \item{data1}{the primary data set, to which new variables and/or
@@ -17,7 +17,13 @@ tmerge(data1, data2,  id,\dots, options)
     will be found}
   \item{id}{subject identifier}
 
-  \item{\dots}{operations that add new variables or intervals, see below}
+  \item{\dots}{operations that add new variables or intervals, see
+    below}
+  \item{tstart}{optional variable to define the valid time range for
+    each subject, only used on an initial call}
+   \item{tstop}{optional variable to define the valid time range for
+    each subject, only used on an initial call}
+  
   \item{options}{a list of options.  Valid ones are id, tstart, and
     tstop, which will be the names of the three mandatory variables
     in the output data.  The other is defer, which sets a numeric

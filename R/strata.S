@@ -15,7 +15,8 @@ strata <- function(..., na.group=FALSE, shortlabel, sep=', ') {
     if (is.null(names(allf))) {
         argname <- words[1:nterms]
         if (missing(shortlabel))
-            shortlabel <- all(sapply(allf, function(x) inherits(x, 'factor')))
+            shortlabel <- all(sapply(allf, 
+                  function(x) is.character(x) | inherits(x, 'factor')))
     }
     else {
         argname <- ifelse(names(allf) == '', words[1:nterms], names(allf))
