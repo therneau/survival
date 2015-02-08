@@ -1,7 +1,6 @@
 
-R Under development (unstable) (2013-02-22 r62040) -- "Unsuffered Consequences"
-Copyright (C) 2013 The R Foundation for Statistical Computing
-ISBN 3-900051-07-0
+R Under development (unstable) (2014-09-01 r66509) -- "Unsuffered Consequences"
+Copyright (C) 2014 The R Foundation for Statistical Computing
 Platform: i686-pc-linux-gnu (32-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -19,7 +18,6 @@ Type 'q()' to quit R.
 > #
 > # Formal test of the quantile routine for survfit
 > library(survival)
-Loading required package: splines
 > aeq <- function(x, y, ...) all.equal(as.vector(x), as.vector(y), ...)
 > 
 > # There are 8 cases:  strata Y/N,  ncol(surv) >1,  conf.int = T/F
@@ -130,11 +128,7 @@ Loading required package: splines
 +                     status=mgus1$status,
 +                     event= mgus1$event,
 +                     sex=mgus1$sex,
-+                     stat2= factor(ifelse(mgus1$status==0, 0, 
-+                                          as.numeric(mgus1$event)),
-+                                   levels=0:2, 
-+                                   labels=c("censor", levels(mgus1$event)))
-+                     )[mgus1$start==0,]
++                     stat2= mgus1$event)
 > mdata$stat2[seq(1, nrow(mdata), by=5)] <- "censor"
 > 
 > fit3 <- survfit(Surv(time, stat2) ~sex, mdata)
@@ -169,4 +163,4 @@ Loading required package: splines
 > 
 > proc.time()
    user  system elapsed 
-  0.520   0.048   0.552 
+  0.344   0.024   0.367 

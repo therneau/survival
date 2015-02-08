@@ -8,7 +8,7 @@ library(survival)
 #    3863-3868, November 77)
 
 rfit <- coxph(Surv(time,status) ~ rx + frailty(litter), rats,
-	     method='breslow')
+	     method='breslow', subset= (sex=='f'))
 names(rfit)
 rfit
 
@@ -17,8 +17,8 @@ rfit$df
 rfit$history[[1]]
 
 rfit1 <- coxph(Surv(time,status) ~ rx + frailty(litter, theta=1), rats,
-	     method='breslow')
+	     method='breslow', subset=(sex=="f"))
 rfit1
 
-rfit2 <- coxph(Surv(time,status) ~ frailty(litter), rats)
+rfit2 <- coxph(Surv(time,status) ~ frailty(litter), rats, subset=(sex=='f'))
 rfit2

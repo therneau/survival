@@ -2,6 +2,10 @@
 \title{NEWS file for the survival package}
 \section{Changes in version 2.37-8}{
   \itemize{
+    \item An error was found in the mgus data set (a progression after
+    death).  Now corrected, and added a little more follow-up time for
+    some subjects.
+    
     \item Add error check for infitinte weights or offsets.  This in respose
     to a bug report where someone did this on purpose, trying to mimic
     cure fractions, and then complained that survfit.coxph failed.
@@ -33,7 +37,7 @@
     \item An increasingly common error is for user to put the time
     variable on both sides of a coxph equation in the mistaken belief
     that this is a way to create time-dependent coefficients.  Generate
-    an error message for this case.
+    a warning message for this case.
     
     \item Update the basehaz function to a simple alias for "survfit".
     Prior versions called surfit but then only returned part of the

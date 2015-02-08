@@ -90,11 +90,7 @@ mdata <- data.frame(time=mgus1$stop,
                     status=mgus1$status,
                     event= mgus1$event,
                     sex=mgus1$sex,
-                    stat2= factor(ifelse(mgus1$status==0, 0, 
-                                         as.numeric(mgus1$event)),
-                                  levels=0:2, 
-                                  labels=c("censor", levels(mgus1$event)))
-                    )[mgus1$start==0,]
+                    stat2= mgus1$event)
 mdata$stat2[seq(1, nrow(mdata), by=5)] <- "censor"
 
 fit3 <- survfit(Surv(time, stat2) ~sex, mdata)

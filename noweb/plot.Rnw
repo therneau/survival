@@ -336,13 +336,13 @@ Why didn't I use the same trick for xscale?  Lack of foresight.
 And now there are hundreds of lines of code that have an xscale
 argument to lines() so I don't dare drop it.
 
-
 The next functions do the actual drawing.
 <<plot-functions>>=
 # Create a step function, removing redundancies that sometimes occur in
 #  curves with lots of censoring.
 dostep <- function(x,y) {
-    keep <- is.finite(x) & is.finite(y)    
+    keep <- is.finite(x) & is.finite(y) 
+    if (!any(keep)) return()  #all points were infinite or NA
     if (!all(keep)) {
         # these won't plot anyway, so simplify (CI values are often NA)
         x <- x[keep]

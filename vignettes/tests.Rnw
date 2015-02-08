@@ -25,7 +25,7 @@ pdf.options(pointsize=8) #text in graph about the same as regular text
 options(contrasts=c("contr.treatment", "contr.poly")) #reset default
 @ 
 
-\title{Cox models and ``type III'' tests}
+\title{Populations, Cox models, and ``type III'' tests}
 \author{Terry M Therneau \\ \emph{Mayo Clinic}}
 \newcommand{\myfig}[1]{\includegraphics[height=!, width=\textwidth]
                         {tests-#1.pdf}}
@@ -38,72 +38,72 @@ options(contrasts=c("contr.treatment", "contr.poly")) #reset default
   \tableofcontents
 
 \section{Introduction}
-This note started with an interchange on the R-help list that 
-became a bit adversarial.
+This note started with an interchange on the R-help.
 A user asked ``how do I do a type III test using the Cox model'', and I
-replied that, in essence, this was not a well defined question.
+replied that this was not a well defined question.
 If he/she could define exactly what it was that they were after, then
 I would look into it.
-The inevitable response was that ``SAS does it''.
+To which the response was that ``SAS does it''.
+A grant deadline was looming so the discussion did not get any further
+at that point, but it eventually led to a much longer investigation
+on my part, which is summarized in this note.  
+There are three central ideas as it turns out: populations, compuatation,
+and the mapping linear models ideas onto the Cox model.
 
-So what exactly is it that SAS does? 
-A look in the phreg documentation turned up no leads.
-Several grant deadlines were looming and I got testy at this point, 
-so the discussion didn't get any further.
-The present note tries to clarify the issues.
-What SAS calls a \emph{type 3} test is rooted in linear models,
-and is based on a moderately complex argument.  
-How exactly does that argument play out in a Cox model, what
-exactly are the calculations used, and
-how do they relate to the usual likelihood ratio and score tests?
+The first idea, and perhaps the central one, is using the model fit from 
+a current data set to predict for a new population.  
+This plays an important role in predicted survival curves, see for instance
+the vignette on that topic or chapter 10 of our book \cite{Therneau00};
+recognizing that ``type 3'' tests are simply another variant on that theme was
+a pivotal step in my understanding.  
+This immediately leads to the important subtopic of ``prediction for
+\emph{which} population''.  The SAS type 3 compuations corresponds to a very 
+particular and inflexible choice.
 
-For the impatient readers among you I'll list the main outline and
-conclusions of this report at the start.
+The second theme is computational: given some summary measure and a population
+for which you wish to predict it, the result will be some sort of weighted
+average.  There are two primary ways to set up this compuation.  In a linear
+model one of them can be reduced to a particular contrast 
+$C \hat\beta$ in the fitted coefficients $\hat\beta$, which is an appealing
+choice since follow-up computations such as the variance of the estimate
+become particularly simple.  A common, simple, but unreliable algorithm
+for creating $C$ has been a major source of confusion (hereafter referred to
+as the NSTT: not safe type three).
+
+The last theme is how the linear models formulae map to the Cox model case.
+In particular, there is a strong temptation to use $C \hat\beta$ with
+$C$ taken from linear models machinery and $\hat\beta$ from a fitted
+Cox model.  The problem is that this implicitly requires a replacement
+of $E[\exp(X)]$ with $\exp(E[X])$.
+For a Cox model $C \beta$ is certainly a valid statistic for any $C$,
+we just have no clear idea of what it is testing.
+
+For the impatient readers among you I'll list the main conclusions
+of this report at the start.
 \begin{itemize}
-  \item SAS type 3 is a particular algorithm for computing a
-    linear models estimate known as ``Yates' weighted squares of means'',
-    which traces back to a 1934 paper by F. Yates \cite{Yates34}.
-    \begin{itemize} 
-      \item The utility of the Yates approach for selected designs is
-        unquestioned, but whether it is always applicable is 
-        far more controversial.
-         Scholarly papers discussing fundamental issues with using
-        the Yates approach as a default analysis method
-        have appeared almost yearly in the statistics
+  \item SAS type 3 predicts for a population with a uniform distribution
+    across all categorical predictors.
+    Scholarly papers discussing fundamental issues with using
+        such an approach as a default analysis method
+        have appeared almost biannually in the statistics
         literature, with little apparent effect on the usage of the 
-        method.  
-       \item My own view is that for balanced or near balanced experiments 
-         the Yates' hypothesis is very sensible, but for most biological data 
-         it corresponds to a valid test of a completely irrelevant question.
-    \end{itemize}
-  \item I have a natural antipathy for grafting linear models ideas onto
-    the Cox model, since I've found that some things do indeed transfer over
-    but many (most) do not.  
-    \begin{itemize}
-      \item For a linear model there are multiple ways to
-        compute and/or understand any particular estimate, including the
-        Yates approach.  
-      \item These different approaches will \emph{not} be identical
-        when copied over to the Cox model case, thus it is important to
-        carefully understand what computation is being done.
-    \end{itemize}
-  \item A good portion of this note is focused on linear models and 
-    computations, in order to set the necessary groundwork for the Cox
-    case.
-  \item  If one is going to use the Yates approach it should at least be
-    computed correctly.
-    The SAS type 3 computation for linear models is sophisticated and
-    reliable; that used in phreg is neither.  I would describe this 
-    recent addition as a black eye for the SAS package, seriously
-    undermining their reputation for reliable computation.
-    The calculated phreg results depend on which
-    particular coding is chosen for the factors, the default coding
-    leads to an unexpected result, and labeling that output as ``type 3''
-    is deceptive.  Documentation of the
-    actual procedure is completely lacking.
-    (This is true for SAS version 9.3; I will update this note if 
+        method. 
+    SAS documentation of type 3 is almost entirely focused on the
+    algorithm they use for computing $C$ and ignores the population issue.
+  \item Population predictions very often make sense, including the
+    question the type 3 approach is attempting to address.  There are
+    valid ways to compute these estimates for a Cox model, they are
+    closely related the inverse probability weight (IPW) methods used
+    in propensity scores and marginal structural models.
+  \item The agorithm used to compute $C$ by the SAS glm procedure is 
+    sophisticated and reliable. 
+    The SAS phreg procedure uses the linear models approach
+    of $C \hat\beta$ to compute a ``type 3'' contrast, 
+    with $C$ computed via the NSTT.
+    The combination is a statistical disaster.     
+    (This is true for SAS version 9.4; I will update this note if 
     things change.)
-\end{itemize}    
+\end{itemize} 
     
 \section{Linear approximations and the Cox model}
 \label{sect:transfer}
@@ -135,14 +135,6 @@ After a fair bit of exploring I found neither is worth doing
 \cite{Therneau00}.
 Copying over a linear models formula simply did not work in this case.
 
-Thus I am naturally suspicious whenever a linear model idea is grafted
-onto a Cox model computation.  Has the necessary legwork been done to ensure
-that the procedure actually works in the case at hand?  I have not found any
-such for the SAS computation of type 3 results in their phreg procedure.
-This doesn't mean it won't work, all might well be OK.  
-Addition of a new method to a package without reporting such an 
-investigation is irresponsible, however.
-
 \begin{figure}
   \myfig{data}
   \caption{Average free light chain for males and females.  The figure
@@ -159,8 +151,8 @@ population of Olmsted County, Minnesota aged 50 or older
 \cite{Kyle06, Dispenzieri12}.
 The R data set contains a 50\% random sample of this larger study
 and is included as a part of the survival package.
-The primary purpose of the study was to measure the amounts of
-plasma immunoglobulins and their components.  
+The primary purpose of the study was to measure the amount of
+plasma immunoglobulins and its components.  
 Intact immunoglobulins are composed of a heavy chain and light chain
 portion.  In normal subjects there is overproduction of the light chain 
 component by the immune cells leading to a small amount of 
@@ -221,16 +213,58 @@ An excess of free light chain is thought to be at least partly a reflection of
 immune senescence, and due to our hormonal backgrounds men and women simply
 do not age in quite the same way.
 
-Real data always has interactions.  The treatment effect of a drug will not be
+\section{Population averages}
+The question of how to test for a main effect in the presence of interaction
+is an old one.
+At one time this author considered the phrase ``main effect in the presence
+of interaction'' to be an oxymoron, but long experience with clinical
+data sets has led me to the opposite conclusion.
+Real data always has interactions.  
+The treatment effect of a drug will not be
 exactly the same for old and young, thin and obese, physically active and
-sedentary, high vs low metabolism, etc.  Explicit recognition of this is
+sedentary, etc.  
+Explicit recognition of this is
 an underlying rationale of the current drive towards ``personalized medicine'',
 though that buzzword often focuses only on genetic differences.
-Any given data set will often be too small to chart these variations, and
-our statistical models will will ignore complex confounding, but interactions
-are nevertheless still present.
-Any estimate of an overall main effect is in truth an averaged effect over some
-population of confounders.
+Any given data set may often be too small to explore these variations and
+our statistical models will of necessity smooth over the complexity,
+but interactions are nevertheless still present.
+
+Consider the data shown in figure \ref{fig1} below, which shows a particular
+laboratory test value by age and sex.  
+We see that the sex effect varies by age.  
+Given this, what could be meant by a ``main effect'' of sex? 
+One sensible approach is to select a fixed \emph{population} for the
+ages, and then compute the
+average sex effect over that population.
+Indeed this is precisely what many computations do behind the scenes,
+e.g. the ``type 3'' estimates found in linear models.
+
+There are three essential components to the calculation: a reference
+population for the confounders, a summary measure of interest, and
+a computational algorithm.  
+To understand how linear models methods may (or may not) extend to the
+proportional hazards model it is useful consider all three facets;
+each is revealing.
+
+Four possible choices for a target popluation of ages are given below.
+\begin{enumerate}
+  \item Empricial: the age distribution of the sample at hand, also called
+    the data distribution. In our sample this would be the age distribution
+    of all \Sexpr{nrow(fdata)} subjects, ignoring sex.
+  \item SAS: a uniform distribution is assumed over all categorical
+    adjusters, and the data distribution for continuous ones.
+  \item External reference: a fixed external population, e.g. the age 
+    distribution of the US 2010 census.  
+  \item MVUE: minimum variance unbiased; the implicit population corresponding
+    to a multivariate least squares fit.
+\end{enumerate}
+Method 3 is common in epidemiology, method 1 is found in traditional
+survey sampling and in other common cases as we will see below.
+The type 3 estimates of SAS correspond to population 2.
+If there an interaction between two categorical variables x1 and x2, then
+the uniform distribution is taken to be over all combinations 
+formed by the pair, and similarly for higher order interactions.
 
 \section{Linear models and populations}
 If we ignore the age effect, then everyone agrees on the best estimate

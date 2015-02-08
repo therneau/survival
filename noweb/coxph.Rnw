@@ -117,10 +117,12 @@ of a list that contains the response variable followed by the predictors.
 Subscripting this, element 1 is the call to ``list'' itself so we always
 retain it.
 <<coxph-bothsides>>=
-ytemp <- all.vars(attr(Terms, 'variables')[1:2])
-xtemp <- all.vars(attr(Terms, 'variables')[-2])
-if (any(!is.na(match(xtemp, ytemp))))
-    stop("a variable appears on both the left and right sides of the formula")
+if (length(attr(Terms, 'variables')) > 2) { # a ~1 formula has length 2
+    ytemp <- terms.inner(attr(Terms, 'variables')[1:2])
+    xtemp <- terms.inner(attr(Terms, 'variables')[-2])
+    if (any(!is.na(match(xtemp, ytemp))))
+        warning("a variable appears on both the left and right sides of the formula")
+}
 @ 
 
 

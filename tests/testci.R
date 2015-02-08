@@ -48,30 +48,21 @@ aeq(fit$n.event, c(0,1,2,0,1))
 aeq(fit$std^2, bfit$V[,-1])
 
 #
-# For this we need the sequential MGUS data set, using the first
-#   obs for each subject
+# For this we need the competing risks MGUS data set, first
+#  event
 #
-tdata <- data.frame(time=mgus1$stop,
-                    status=mgus1$status,
-                    event=mgus1$event,
-                    sex=mgus1$sex,
-                    stat2= factor(ifelse(mgus1$status==0, 0, 
-                                         as.numeric(mgus1$event)),
-                                  levels=0:2, 
-                                  labels=c("censor", levels(mgus1$event)))
-                    )[mgus1$start==0,]
-
+tdata <- mgus1[mgus1$enum==1,]
 # Ensure the old-style call using "etype" works (backwards compatability)
-fit1 <- survfit(Surv(time, status) ~ 1, etype=event, tdata)
-fit1b <-survfit(Surv(time, stat2) ~1, tdata)
+fit1 <- survfit(Surv(stop, status) ~ 1, etype=event, tdata)
+fit1b <-survfit(Surv(stop, event) ~1, tdata)
 indx <- match("call", names(fit1)) 
 all.equal(unclass(fit1)[-indx], unclass(fit1b)[-indx])
 
 # Now get the overall survival, and the hazard for progression
-fit2 <- survfit(Surv(time, status) ~1, tdata)  #overall to "first bad thing"
-fit3 <- survfit(Surv(time, status*(event=='progression')) ~1, tdata,
+fit2 <- survfit(Surv(stop, status) ~1, tdata)  #overall to "first bad thing"
+fit3 <- survfit(Surv(stop, status*(event=='pcm')) ~1, tdata,
                 type='fleming')
-fit4 <- survfit(Surv(time, status*(event=='death')) ~1, tdata,
+fit4 <- survfit(Surv(stop, status*(event=='death')) ~1, tdata,
                 type='fleming')
 
 aeq(fit1$n.risk, fit2$n.risk)
@@ -89,11 +80,11 @@ aeq(cbind(ci1, ci2), fit1$prev)
 #
 # Now, make sure that it works for subgroups
 #
-fit1 <- survfit(Surv(time, stat2) ~ sex, tdata)
-fit2 <- survfit(Surv(time, stat2) ~ 1, tdata,
-                        subset=(sex=='male'))
-fit3 <- survfit(Surv(time, stat2) ~ 1, tdata,
-                   subset=(sex=='female'))
+fit1 <- survfit(Surv(stop, event) ~ sex, tdata)
+fit2 <- survfit(Surv(stop, event) ~ 1, tdata,
+                        subset=(sex=='female'))
+fit3 <- survfit(Surv(stop, event) ~ 1, tdata,
+                   subset=(sex=='male'))
 
 aeq(fit2$prev, fit1$prev[1:fit1$strata[1],])
 aeq(fit2$std, fit1$std[1:fit1$strata[1],])
@@ -102,11 +93,11 @@ aeq(fit3$prev, fit1$prev[-(1:fit1$strata[1]),])
 #  A second test of cumulative incidence
 # compare results to Bob Gray's functions
 #  The file gray1 is the result of 
-#
+#    library(cmprsk)
 #    tstat <- ifelse(tdata$status==0, 0, 1+ (tdata$event=='death'))
-#    gray1 <- cuminc(tdata$time, tstat)
+#    gray1 <- cuminc(tdata$stop, tstat)
 load("gray1.rda")
-fit2 <- survfit(Surv(time, status) ~ 1, etype=event, tdata)
+fit2 <- survfit(Surv(stop, event) ~ 1, tdata)
 
 if (FALSE) {
     # lines of the two graphs should overlay
@@ -119,7 +110,7 @@ if (FALSE) {
 # To formally match these is a bit of a nuisance.
 #  The cuminc function returns a full step function, and survfit only
 # the bottoms of the steps.
-temp1 <- tapply(gray1[[1]]$est, gray1[[1]]$time, max)
+temp1 <- tapply(gray1[[1]]$est, gray1[[1]]$time, max)[-1]  #toss time 0
 indx1 <- match(names(temp1), fit2$time)
 aeq(temp1, fit2$prev[indx1,1])
     

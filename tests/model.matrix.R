@@ -36,8 +36,8 @@ test1$x2 <- factor(rep(1:2, length=7))
 fit3 <- coxph(Surv(time, status) ~ strata(x2)*z, test1, iter=0)
 xx <- model.matrix(fit3)
 all.equal(attr(xx, "assign"), c(2,2,3,3))
-all.equal(colnames(xx), c("zb", "zc", "strata(x2)x2=2:zb",
-                          "strata(x2)x2=2:zc"))
+all.equal(colnames(xx), c("zb", "zc", "strata(x2)2:zb",
+                          "strata(x2)2:zc"))
 all.equal(attr(xx, "contrasts"), 
           list("strata(x2)"= "contr.treatment", z="contr.treatment"))
 
