@@ -132,7 +132,7 @@ with(mgus, tapply(age, sex, mean))
 
 mfit1 <- survfit(Surv(futime, death) ~ sex, data=mgus2)
 mfit1
-plot(mfit1, col=c(1,2), xscale=30.5, mark.time=FALSE, lwd=2,
+plot(mfit1, col=c(1,2), xscale=12, mark.time=FALSE, lwd=2,
      xlab="Years post diagnosis", ylab="Survival")
 legend(6, .8, c("female", "male"), col=1:2, lwd=2, bty='n')
 par(oldpar)
@@ -158,17 +158,10 @@ table(event)
 mfit2 <- survfit(Surv(etime, event) ~ sex, data=mgus2)
 mfit2
 plot(mfit2, col=c(1,1,2,2), lty=c(2,1,2,1),
-     xscale=30.5, mark.time=FALSE, lwd=2, 
+     xscale=12, mark.time=FALSE, lwd=2, 
      xlab="Years post diagnosis", ylab="Prevalence")
 legend(7, .6, c("death:female", "death:male", "pcm:female", "pcm:male"), 
        col=c(1,2,1,2), lty=c(1,1,2,2), lwd=2, bty='n')
-
-# Add the expected curves
-#sfit1 <- survexp( ~ sex, data=mgus, ratetable=survexp.mn,
-#                 rmap = list(sex=sex, age= age*365.25,
-#                         year = as.Date(paste(dxyr+1900, "/07/01", sep=''))),
-#                 times=(0:35)*365.25)
-#lines(sfit1, xscale= 365.25, col=1:2, lty=3, fun='event')
 @ 
 
 The \code{mfit2} call is nearly identical to that for an ordinary Kaplan-Meier, 
@@ -193,9 +186,9 @@ event type while treating other event types as censored.
 The next plot is an example of this for the PCM endpoint.
 <<mgus3, fig=TRUE>>=
 pcmbad <- survfit(Surv(etime, pstat) ~ sex, data=mgus2)
-plot(pcmbad[2], mark.time=FALSE, lwd=2, fun="event", conf=FALSE, xscale=30.5,
+plot(pcmbad[2], mark.time=FALSE, lwd=2, fun="event", conf=FALSE, xscale=12,
      xlab="Years post diagnosis", ylab="Fraction with PCM")
-lines(mfit2[2,1], lty=2, lwd=2, mark.time=FALSE, conf=FALSE, xscale=30.5)
+lines(mfit2[2,1], lty=2, lwd=2, mark.time=FALSE, conf=FALSE, xscale=12)
 legend(0, .28, c("Males, PCM, incorrect curve", "Males, PCM, competing risk"),
        col=1, lwd=2, lty=c(1,2), bty='n')
 @ 
@@ -204,56 +197,71 @@ The first is that it attempts to estimate the expected rate of plasma cell
 malignancy if all other causes of death were disallowed, i.e., 
 in a world that does not exist. 
 In this hypothetical world it is indeed true that many more subjects would
-progress to PCM, but it is not a world that I will ever inhabit.
+progress to PCM, but it is not a world that any of us will ever inhabit
+and so is of questionable interest.
 The second problem is that the computation for this
 hypothetical case is only correct if all of the competing endpoints
 are independent, a situation which is almost never true.
+The competing risks curve estimates the fraction of MGUS subjects who will 
+actually experience PCM, also known as the lifetime risk.
+
 
 The above code chose to plot only a subset of the curves, something that is
 often desireable in competing risks problems to avoid a
 ``tangle of yarn'' plot that simply has too many elements.
-For competing risks the curves appear as a matrix, for the purpose of
-subscripting, with the outcomes as the second subscript. 
-These outcomes are in to order of the levels of \code{event},
+This is done by subscripting the survfit object.
+For subscripting, the competing risks the curves appear as a matrix
+with the outcomes as the second subscript. 
+They are in to order of the levels of \code{event},
 i.e., as displayed by our earlier call to \code{table(mgus1\$event)}.   
 The first subscript indexes the groups formed by the right hand side of
 the model formula, and will be in the same order as simple survival curves.
-Thus \code{mfit[2,1]} corresponds to \code{\[male, pcm\]}.
+Thus \code{mfit[2,1]} corresponds to \code{[male, pcm]}.
 
 A last example using the MGUS data treats it as a multi-state model.
 In this version a subject can have multiple transitions and thus multiple
 lines in the data set, and it is necessary to identify which data rows go
-with which subject via the \code{id} argument.
+with which subject via the \code{id} argument of \code{survfit}.
 Our model looks like the illness-death model of figure \ref{sfig1} but
 with ``plasma cell malignancy'' as the upper state and no arrow for
 a return from that state to health.  
-The necessary data set will have two rows for each subject who has further
+The necessary data set will have two rows for any subject who has further
 follow-up after a PCM and one row for all others.
 The data set is created using the \code{tmerge} function, which is
 discussed in more detail in another vignette.
 
-<<mgus4, echo=TRUE>>=
+We need to decide what to do with the 9 subjects who have PCM
+and death declared on the same day.
+They slipped through without comment in the earlier competing risks analysis,
+only when setting up this data set did I notice the ties.  Looking
+back at the code, these subjects were counted as a progression (entirely
+by chance).
+In retrospect this is defensible: even though
+undetected, the disease had to have been present for some amount of time and
+so progression did occur first.
+For the multi-state model we need to be more explicit: a sojourn of 0 time
+within a state is not allowed.
+Below we push the progression time back by .1 month when there is a tie, but
+that amount is entirely arbitrary.
+
+T<<mgus4, echo=TRUE>>=
+ptemp <- with(mgus2, ifelse(ptime==futime & pstat==1, ptime-.1, ptime))
 newdata <- tmerge(mgus2, mgus2,  id=id, death=event(futime, death))
-newdata <- tmerge(newdata, mgus2, id, pcm = event(ptime, pstat))
+newdata <- tmerge(newdata, mgus2, id, pcm = event(ptemp, pstat))
 newdata <- tmerge(newdata, newdata, id, enum=cumtdc(tstart))
 with(newdata, table(death, pcm))
 @ 
-We need to decide what to do with the 9 subjects who have PCM
-and death declared on the same day.  
-One choice would be to move their malignancy date back: though
-undetected, the disease had to have been present for some amount of time.
-But how far back, and how would it affect the plot?
-Below we will simply consider them a death on that day, effectively
-not passing through the PCM state.
-(The last tmerge line above creates a variable \code{enum} which
-simply counts rows for each person.)
+THe table above shows that there are no observations in \code{newdata}
+that have both a pcm and death.
+The last tmerge line above creates a variable \code{enum} which
+simply counts rows for each person; it will be used later.
 
 <<mgus4g, fig=TRUE>>=
 temp <- with(newdata, ifelse(death==1, 2, pcm))
 newdata$event <- factor(temp, 0:2, labels=c("censor", "pcm", "death"))  
 mfit3 <- survfit(Surv(tstart, tstop, event) ~ sex, data=newdata, id=id)
 plot(mfit3[,1], mark.time=FALSE, col=1:2, lty=1, lwd=2,
-     xscale=30.5,
+     xscale=12,
      xlab="Years post MGUS diagnosis", ylab="Prevalence of PCM")
 legend(4, .04, c("female", "male"), lty=1, col=1:2, lwd=2, bty='n') 
 @ 
@@ -263,7 +271,7 @@ Looking at the lower scenario in figure \ref{sfig1}, this is the fraction
 of subjects in the upper right box.
 The curve goes up whenever someone enters the box and down when
 they leave.
-Myeloma survival was quite short during this calendar period and so the 
+Myeloma survival was quite short during the era of this study and the 
 proportion in the PCM state rarely rises above 2 percent.
 I have often found the three curve display below useful in these cases.
 It combines the results from competing risk model used above
@@ -276,12 +284,12 @@ e2 <- factor(d2, labels=c("censor", "pcm", "death w/o pcm",
                           "death after pcm"))
 mfit4 <- survfit(Surv(tstart, tstop, e2) ~ sex, data=newdata, id=id)
 plot(mfit2[2,], lty=c(2,1),
-     xscale=30.5, mark.time=FALSE, lwd=2, 
+     xscale=12, mark.time=FALSE, lwd=2, 
      xlab="Years post diagnosis", ylab="Prevalence")
-lines(mfit4[2,3], mark.time=FALSE, xscale=30.5, col=2, lty=2, lwd=2,
+lines(mfit4[2,3], mark.time=FALSE, xscale=12, col=2, lty=2, lwd=2,
       conf=FALSE)
 
-legend(4, .5, c("male:death w/o pcm", "male: ever pcm", 
+legend(15, .5, c("male:death w/o pcm", "male: ever pcm", 
                  "male: death after pcm"), col=c(1,1,2), lty=c(1,2,2), 
              lwd=2, bty='n')
 @ 
@@ -298,20 +306,18 @@ order to model the outcomes, see for instance the msm package.
 For simple two-state survival the Cox model leads to two relationships
 \begin{align}
   \lambda(t)  &= \lambda_0(t) e^{X\beta}  \label{hazard} \\
-  \log(S(t))  &= \log(S_0(t)) e^{X\beta} \label{surv}\\
+  \Lambda(t)  &= \log(\Lambda_0(t)) e^{X\beta} \label{surv}\\
   \end{align}
-That is, there is a single simple relationship both for the rate (the
-arrow in figure \ref{sfig1}) and for one of the prevalence 
-values (left most box).
-For multi-state models this simplicity no longer holds.
-One either fits Cox models for the rates, assuming proportional hazards there,
-or a Fine-Gray model to the (log) prevalence values, assuming proportional
-hazards there.  The latter is only possible for the competing risk form of
-a multi-state model found in the upper right of figure \ref{sfig1}, 
-so we will use the MGUS data in competing risks form as an example, i.e., with
-plasma cell malignancy as an absorbins state.
+and the survival curve is $S(t) = \exp(-\Lambda(t))$.
+That is, there is a single simple linear predictor for both for the rate (the
+arrow in figure \ref{sfig1}) and for the prevalence 
+value of the left hand box.
+For multi-state models this simplicity no longer holds: proportional
+hazards no longer leads to proportional survival curves.
 
+\subsection{Competing risks, Cox model}
 The Cox model approach starts by fitting models to each of the transitions.
+We will illustrate using the competing risks example.
 <<cfit1>>=
 mtemp <- mgus2
 mtemp$age <- mtemp$age/10   #age in decades (easier coefficients)
@@ -319,19 +325,26 @@ mtemp$age <- mtemp$age/10   #age in decades (easier coefficients)
 options(show.signif.stars = FALSE)  # display intelligence
 cfit1 <- coxph(Surv(futime, death) ~ age + sex + mspike, data=mtemp)
 cfit1
+@ 
+The effect of age and sex on non-PCM mortality is profound, which is not
+a surprise given the median starting age of \Sexpr{median(mgus2$age)}.%$
+Risk rises by \Sexpr{round(exp(coef(cfit1)[1]),1)} per decade of age and
+males have \Sexpr{round(exp(coef(cfit1)[2]),1)} times a great a hazard
+as females
+The size of the serum monoclonal spike is of no consequence for
+this endpoint either statistically or clinically.  
+
+<<cfit2>>=
 cfit2 <- coxph(Surv(ptime, pstat) ~ age + sex + mspike, mtemp)
 cfit2
 quantile(mgus2$mspike, na.rm=TRUE)
 @ 
-The effect of age and sex on non-PCM mortality is profound, which is not
-a surprise given the median starting age of \Sexpr{median(mgus2$age)}.   %$
-The size of the serum monoclonal spike is of no consequence for
-this endpoint.  
 The mspike size has a major impact on progression, however; each 1 gram
-change increases risk by \Sexpr{round(exp(coef(cfit2)[3]) ,1)} fold,
-and the interquartile range is close to 1g.
-Meantime the effect of age on progression rate is much less pronounced,
-with a coefficient 1/4 that for mortality, and the effect of sex
+change increases risk by \Sexpr{round(exp(coef(cfit2)[3]) ,1)} fold.
+The interquartile range the serum spike is 0.9 gram so this risk increase
+is visible.
+Meantime the effect of age on the progression rate is much less pronounced,
+with a coefficient only 1/4 that for mortality, while the effect of sex
 is neglible.
 
 Notice that we did not do anything special to the data set or event codes
@@ -343,15 +356,146 @@ The effect of sex on the \emph{lifetime} probability of PCM is not zero,
 however.  Because of a longer lifetime, an average female with MGUS will 
 spend more total years at risk for PCM than the average male, and so has
 a larger lifetime risk of PCM.  
-The average rate of progression is about 2.7\% per year, as shown below,
-while the average post diagnosis lifetime is about 18 months longer for 
-females.  The competing risks plot below shows
+The average rate of progression is about 1\% per year, as shown below,
+while the average post diagnosis lifetime is 18 months longer for 
+females. 
 <<mpyears>>=
-pfit1 <- pyears(Surv(ptime, pstat) ~ sex, mtemp, scale=30.5)
+pfit1 <- pyears(Surv(ptime, pstat) ~ sex, mtemp, scale=12)
 round(100* pfit1$event/pfit1$pyears, 1)  # PCM rate
 
-temp <- summary(mfit1, rmean="common")
+temp <- summary(mfit1, rmean="common")  #print the mean survival time
 round(temp$table[,1:5], 1)
+@ 
+
+Prevalence estimates from the multi-state model involve $\exp(\Lambda(t))$
+but now $\Lambda$ is a square nstate by nstate matrix.
+The $i,j$ off diagonal element of $\Lamba$ is the the cumulative
+hazard for the $i \rightarrow j$ transition, which is estimated by the 
+Cox model for that transition.  
+The diagonal elements of $\Lambda$ are filled in last and are chosen 
+such that row sums of $\Lambda$ are 0.
+\begin{equation}
+  P(t) = e^{\Lambda(t)} \label{matexp}
+\end{equation}
+This is the exponential of a matrix, a notoriously ill-conditioned computation.
+An R function for calculation is \code{expm} from the
+Matrix package.
+For illustration we will compute the 10 year probabilities of PCM from the
+model for males and females under 4 cases: age of 60 vs 80 and a serum mspike
+of 0.5 vs 1.5, which are approximately the quartiles of each.  
+The \code{summary.survfit} function was originally written to make it easy
+to print out survival curves at 1,2, \ldots years, but is now more often
+used to pluck off data from selected times for further processing.
+(Remember that age was recoded to decades and that time is
+in months.)
+<<mprev>>=
+tdata <- expand.grid(mspike=c(.5, 1.5), age=c(6,8), sex=c("F", "M"))
+surv1 <- survfit(cfit1, newdata=tdata)
+surv2 <- survfit(cfit2, newdata=tdata)
+@ 
+
+The $\Lambda$ matrix is particularly easy in this case.  There are 3
+states: initial diagosis, PCM and death, but only the $1\rightarrow 2$
+and $1 \rightarrow 3$ transitions are possible so all the other off
+diagonal elements are 0.  Element of the resulting 3 by 3 matrix are
+the probability of going from state $i$ to state $j$ in 10 years,
+since everyone starts in state 1 we are only interested in the first row.
+<<mprev2>>=
+require(Matrix)
+pfun <- function(chaz1, chaz2, time) {
+    Lambda <- matrix(0., 3,3)
+    Lambda[1,2] <- chaz1
+    Lambda[1,3] <- chaz2
+    diag(Lambda) <- -rowSums(Lambda)
+    expm(Lambda)
+}
+chaz1 <- summary(surv1, times=12* 1:10)$cumhaz 
+chaz2 <- summary(surv2, times=12* 1:10)$cumhaz 
+prev <- matrix(0, 10, 8) #progression curves
+for (i in 1:10) {
+    for (j in 1:8) 
+        prev[i,j] <- pfun(chaz1[i,j], chaz2[i,j])[1, 3]
+}
+prev <- array(prev, dim=c(10,4,2))
+dimnames(prev) <- list(1:10,
+                       c("50:0.5", "50:1.5", "80:0.5", "80:1.5"),
+                       c("female", "male"))
+round(100*prev, 1)
+@ 
+The above table shows that females
+have a higher 10 year risk of \emph{observed} progression, even
+though their hazard at any given moment is nearly identical to males.
+The difference is less than our ``back of the envelope''
+person-years estimate of 1\% * 1.5 years above which did not fully take age
+into account (females are slightly older than males at diagnosis).
+
+To create the entire curve of predicted prevalence values we could
+extend the above calculation, but matrix exponentials are slow and can
+be inaccurate.  In the competing risks case the prevalence function 
+has an alternate form known as the cumulative incidence function
+\begin{equation}
+  CI_k(t) = \int_0^t \lambda_k(u) S(u-) du \label{cuminc}
+\end{equation}
+where $\lambda_k$ is the incidence function for outcome $k$ and $S$ is the
+overall survival curve of time to any endpoint.  
+Proving that $P_{1k}$ as computed by a matrix exponential is equivalent to the CI
+is well beyond the scope of this vignette.
+(This name is one of the more unfortunate ones in the survival lexicon, since
+we normally use `incidence' and `hazard' as interchangeable synonyms but 
+the CI is \emph{not} a cumulative hazard.)
+For the general case it is simplest to 
+use the \code{mstate} package; it was designed for this task and can also
+create appropriate confidence intervals.  
+
+\subsection{Fine-Gray model}
+For the competing risk case the Fine-Gray model provides an alternate way of
+looking at the data. 
+As we saw above, the impact of a particular covariate on the final prevalance
+values $P$ can be complex, even if the models for the hazards are relatively
+simple. 
+The idea is to start with the values $F_k(t) = 1- P_{1k}(t)$, each of which
+is an analog to the survival probability in the two state model, and assume
+that 
+\begin{equation}
+  \log(F_k(t)) =  \log(F_0(t)) e^{X\beta}  \label{FG}
+\end{itemize}
+In the same way that our multivariate Cox model \code{cfit1} made the
+simplifying assumtion that the impact of male sex is to increase the
+death hazard by a factor of \Sexpr{round(exp(coef(cfit1)['sexM']), 2)}
+indepent of the subject's age or serum mspike value,
+this model assumes that each covariate's effect on $F$ is a constant,
+independent of other variables.  
+Both assumptions are wonderfully simplifying with respect to understanding
+a covariate --- assuming of course that the assumption is correct.
+Let us look at the effect of sex on PCM using the Fine-Gray model, which
+can be computed using the \code{cmprsk} package.
+<<finegray>>=
+require(cmprsk)
+temp <- newdata[newdata$enum==1,] 
+temp$fstat <- with(temp, as.numeric(event))  # 1=censor, 2=pcm, 3=death
+temp$nsex  <- with(temp, 1* (sex=='F'))
+fgfit <- with(temp, crr(tstop, fstat, cov1= cbind(nsex, age, mspike),
+                        failcode=2, cencode=1, variance=TRUE))
+fgfit
+@ 
+The program has determined that female sex increases the PCM outcome by
+exp(\Sexpr{round(coef(fgfit)[1], 3)} = \Sexpr{round(exp(coef(fgfit)[1]),1)}
+fold, for all values of age and mspike.
+
+The primary strength of the Fine-Gray model with respect to the Cox model
+approach is that if ``lifetime risk'' is a primary question then it has given
+us a simple and digestible answer to that question.  A primary problem of the
+model is that we can't go backwards.  
+If one fits a set of Cox models then information on both the arrows (hazards)
+and the boxes (prevalence) of figure \ref{fig1} can be examined post fit.
+With the Fine-Gray we have information only on the boxes.
+To compare the two fits we can look at what the female/male ratios were
+for each of our four chosen age/mspike combinations.
+<<fine2>>=
+fval <- log(1-prev)
+round(fval['progression',, 'female'] / fval['progression',, 'male'], 2)
+@ 
 
 @ 
+
 \end{document}
