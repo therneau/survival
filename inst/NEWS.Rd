@@ -41,7 +41,9 @@
     
     \item Update the basehaz function to a simple alias for "survfit".
     Prior versions called surfit but then only returned part of the
-    object.
+    object.  Update 2/2015: reverted the change.  It turns out that 6
+    different packages that depend on survival also depended on the
+    old behavior.  
     
     \item Make the default value for the shortlabel argument of strata()
     more nuanced.  If the argument is a single factor, assume that we

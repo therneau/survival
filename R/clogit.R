@@ -18,12 +18,13 @@ clogit<-function(formula, data, weights, subset, na.action,
     mf[[1]] <- as.name("model.frame")
     mf$na.action <- "na.pass"
     nrows<-NROW(eval(mf, parent.frame()))
+    method <- match.arg(method)
 
     # Catch the rare case of a person asking for robust variance, and give
     #  them a nicer warning than will occur if they fall through to the
     #  coxph call
-    method <- match.arg(method)
-    temp <- terms(formula, special='cluster')
+    if (missing(data)) temp <- terms(formula, special='cluster')
+    else temp <- terms(formula, special="cluster", data=data)
     if (!is.null(attr(temp, 'specials')$cluster) && method=="exact")
         stop("robust variance plus the exact method is not supported")
 

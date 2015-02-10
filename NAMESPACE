@@ -10,8 +10,7 @@ export("Surv", "aareg", "agreg.fit",
        "coxph.wtest", "format.Surv", 
        "frailty",  "frailty.gamma", 
        "frailty.gaussian", "frailty.t", "is.Surv", 
-       "is.na.Surv", "is.na.coxph.penalty", 
-       "is.na.ratetable",  "is.ratetable", 
+       "is.ratetable", 
        "labels.survreg", "match.ratetable", "neardate",
        "psurvreg", "qsurvreg", "dsurvreg",
        "pspline", "pyears", "ratetable", "ratetableDate", 
@@ -52,6 +51,11 @@ S3method(attrassign, default)
 S3method(attrassign, lm)
 S3method(extractAIC,coxph.penal)
 S3method(dim, survfit)
+S3method(format, Surv)
+S3method(is.na, Surv)
+S3method(is.na, coxph.penalty)
+S3method(is.na, ratetable)
+S3method(labels, survreg)
 S3method(levels, tcut)
 S3method(lines, aareg)
 S3method(lines, survexp)

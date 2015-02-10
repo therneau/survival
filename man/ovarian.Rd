@@ -22,9 +22,6 @@
     Different Chemotherapeutic Sensitivities and Host Factors Affecting
     Prognosis in Advanced Ovarian Carcinoma vs. Minimal Residual Disease.
     Cancer Treatment Reports, 63:241-47, 1979.
-    
-  for ECOG performance status:
-  \url{http://ecog.org/general/perf_stat.html}
   }
 \keyword{datasets}
 \keyword{survival}

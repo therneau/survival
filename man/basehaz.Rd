@@ -5,26 +5,34 @@
   Compute the predicted survival curve for a Cox model.
 }
 \usage{
-basehaz(\dots)
+basehaz(fit, centered=TRUE)
 }
 \arguments{
-  \item{\dots}{arguments to \code{survfit}}
+  \item{fit}{a coxph fit}
+  \item{centered}{if TRUE return data from a predicted survival curve at
+    the mean values of the covariates \code{fit$mean}, if FALSE return a
+    prediction for all covariates equal to zero.}
 }
 \details{
   This function is simply an alias for \code{survfit}, which is the
   actual function that does all the computations.  See the manual page
-  for that function for the remainder of the arguments.
-  Since survival curves after a Cox model are based on the baseline
-  hazard function, users often look for a function of that name.
+  for that function for the preferred use.  This function survives only
+  for backwards support of prior usage.
 
-  Earlier versions of this function would return only selected portions
-  of the survfit object, and also renamed the cumulative hazard portion as
-  'hazard'.
+  The function returns a data frame containing the \code{time},
+  \code{cumhaz} and optionally the strata (if the fitted Cox model used
+  a strata statement), which are copied the \code{survfit} result.
+  If there are factor variables in the model, then the default
+  predictions at the "mean" are meaningless since they do not correspond
+  to any possible subject; correct results require use of the
+  \code{newdata} argument of survfit.  Results for all covariates =0 are
+  normally only of use as a building block for further calcuations.
 }
 \value{
-  the result of a call to \code{survfit}
+  a data frame with variable names of \code{hazard}, \code{time} and
+  optionally \code{strata}.  The first is actually the cumulative hazard.
 }
 
-\seealso{\code{\link{survfit}}}
+\seealso{\code{\link{survfit.coxph}}}
 \keyword{survival }
 

@@ -5,6 +5,7 @@
 \addtolength{\oddsidemargin}{-.5in}
 \setlength{\evensidemargin}{\oddsidemargin}
 %\VignetteIndexEntry{Multi-state models and competing risks}
+%\VignetteDepends{cmprsk, Matrix}
 
 \SweaveOpts{keep.source=TRUE, fig=FALSE}
 % Ross Ihaka suggestions
@@ -244,7 +245,7 @@ within a state is not allowed.
 Below we push the progression time back by .1 month when there is a tie, but
 that amount is entirely arbitrary.
 
-T<<mgus4, echo=TRUE>>=
+<<mgus4, echo=TRUE>>=
 ptemp <- with(mgus2, ifelse(ptime==futime & pstat==1, ptime-.1, ptime))
 newdata <- tmerge(mgus2, mgus2,  id=id, death=event(futime, death))
 newdata <- tmerge(newdata, mgus2, id, pcm = event(ptemp, pstat))
@@ -369,7 +370,7 @@ round(temp$table[,1:5], 1)
 
 Prevalence estimates from the multi-state model involve $\exp(\Lambda(t))$
 but now $\Lambda$ is a square nstate by nstate matrix.
-The $i,j$ off diagonal element of $\Lamba$ is the the cumulative
+The $i,j$ off diagonal element of $\Lambda$ is the the cumulative
 hazard for the $i \rightarrow j$ transition, which is estimated by the 
 Cox model for that transition.  
 The diagonal elements of $\Lambda$ are filled in last and are chosen 
@@ -458,7 +459,7 @@ is an analog to the survival probability in the two state model, and assume
 that 
 \begin{equation}
   \log(F_k(t)) =  \log(F_0(t)) e^{X\beta}  \label{FG}
-\end{itemize}
+\end{equation}
 In the same way that our multivariate Cox model \code{cfit1} made the
 simplifying assumtion that the impact of male sex is to increase the
 death hazard by a factor of \Sexpr{round(exp(coef(cfit1)['sexM']), 2)}
@@ -479,7 +480,7 @@ fgfit <- with(temp, crr(tstop, fstat, cov1= cbind(nsex, age, mspike),
 fgfit
 @ 
 The program has determined that female sex increases the PCM outcome by
-exp(\Sexpr{round(coef(fgfit)[1], 3)} = \Sexpr{round(exp(coef(fgfit)[1]),1)}
+exp(\Sexpr{round(fgfit$coef[1], 3)} = \Sexpr{round(exp(fgfit$coef[1]),1)}
 fold, for all values of age and mspike.
 
 The primary strength of the Fine-Gray model with respect to the Cox model
@@ -487,15 +488,9 @@ approach is that if ``lifetime risk'' is a primary question then it has given
 us a simple and digestible answer to that question.  A primary problem of the
 model is that we can't go backwards.  
 If one fits a set of Cox models then information on both the arrows (hazards)
-and the boxes (prevalence) of figure \ref{fig1} can be examined post fit.
+and the boxes (prevalence) of figure \ref{sfig1} can be examined post fit.
 With the Fine-Gray we have information only on the boxes.
 To compare the two fits we can look at what the female/male ratios were
 for each of our four chosen age/mspike combinations.
-<<fine2>>=
-fval <- log(1-prev)
-round(fval['progression',, 'female'] / fval['progression',, 'male'], 2)
-@ 
-
-@ 
 
 \end{document}

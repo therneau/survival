@@ -5,6 +5,7 @@ Package: survival
 Version: 2.37-8
 Depends: R (>= 2.13.0), graphics, stats
 Imports: splines
+Suggests: Matrix, cmprsk
 LazyData: Yes
 LazyLoad: Yes
 ByteCompile: Yes

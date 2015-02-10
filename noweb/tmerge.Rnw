@@ -165,7 +165,7 @@ if (!missing(tstop) || length(tname)==0) {
         baseid <- data1[[topt$id]]
         if (any(duplicated(baseid))) {
             indx <- order(newdata$id, newdata$tstop)
-            if (any(indx != seq(along=index))) {
+            if (any(indx != seq(along.with=indx))) {
                 # sort the data
                 newdata <- newdata[indx,]
                 baseid <- baseid[indx]
@@ -204,7 +204,7 @@ if (!missing(tstop) || length(tname)==0) {
         else {
             if (nrow(data1) != nrow(data2))
                 stop("nrow(data1) != nrow(data2) and data1 is missing the id")
-            indx2 <- seq.int(along=id)
+            indx2 <- seq.int(along.with=id)
             newdata[topt$id] <- id
             }
         newdata[indx2, topt$tstart] <- tstart
@@ -226,7 +226,7 @@ be merging in a variable like ``day of first diabetes diagnosis'' which
 is missing for those who never had that outcome occur.
 <<tmerge-addvar>>=
 saveid <- id
-for (ii in seq(along=args)) {
+for (ii in seq(along.with=args)) {
     argi <- args[[ii]]
     baseid <- newdata[[topt$id]]
     dstart <- newdata[[topt$tstart]]
@@ -258,8 +258,8 @@ for (ii in seq(along=args)) {
     #   to an event to be labeled as itype=3 (or itype=2 if this was the last
     #   interval for the subject) and so map later in time.
     defer <- rep(0., nrow(newdata))
-    if (topt$defer >0 && length(event) && 
-        argtype[ii] %in% c("tdc", "cumtdc")) {
+    if (topt$defer >0 && length(tevent) && 
+        argclass[ii] %in% c("tdc", "cumtdc")) {
         for (ename in tevent) {
             temp <- newdata[[ename]]
             if (is.logical(temp)) defer[temp] <- topt$defer

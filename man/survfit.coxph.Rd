@@ -98,11 +98,11 @@ details. Methods defined for survfit objects are
 \code{lines}, and \code{points}. 
 }
 \details{
-    Serious thought has been given to removing the `default' for
+    Serious thought has been given to removing the default value for
     \code{newdata}, which is to use a single "psuedo" subject with
-    covariate values equal to the means of the data set.
-    The resulting curve(s) almost never make sense.
-    It remains due to the unwarranted attachment to the option shown by
+    covariate values equal to the means of the data set, since
+    the resulting curve(s) almost never make sense.
+    It remains due to an unwarranted attachment to the option shown by
     some users and by other packages.  Two particularly egregious examples
     are factor variables and interactions.  Suppose one were studying
     interspecies transmission of a virus, and the data set has a factor
@@ -136,10 +136,11 @@ object will be a matrix of survival curves with one row for each strata
 in the model and one column for each row in newdata.
 (This is the historical behavior of the routine.)
 If newdata does contain strata variables, then the result will contain
-one curve per row of newdata, based on the appropriate stratum of the
+one curve per row of newdata, based on the indicated stratum of the
 original model.  In the rare case of a model with strata by covariate
-interactions the strata variable must be included in newdata.
-(The model Surv(time, status) ~ age*strata(sex) expands internally to
+interactions the strata variable must be included in newdata, the
+routine does not allow it to be omitted (predictions become too confusing).
+(Note that the model Surv(time, status) ~ age*strata(sex) expands internally to
 strata(sex) + age:sex; the sex variable is needed for the second term
 of the model.)
 
