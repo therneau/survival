@@ -175,7 +175,7 @@ chain rule.  Consider the $n$ by $k$ matrix of per subject influence values
 \begin{align}
   U_{ik}(t) &= \frac{\partial p_k(t)}{\partial w_i} \nonumber \\
             &= \frac{\partial[ p(t-) H_{.k}(t)]}{\partial w_i} \label{ci0} \\
-           &= U{i.}(t-) H_{.k}(t) + 
+           &= U_{i.}(t-) H_{.k}(t) + 
                      p(t-) \frac{\partial H_{.k}(t)}{\partial w_i} \label{ci1}\\
  \frac{\partial H_{jk}(t)}{\partial w_i} &=  \left\{ \begin{array}{ll}
         \left( dN_{ijk}(t) - Y_{ij}(t)H_{jk} \right)/n_j(t) & j \ne k \\
@@ -196,14 +196,14 @@ the derivation of \eqref{ci2}, ``left as an exercise for the reader'').
 The weighted sum of each column of $U$ must zero (if computed correctly)
 and the weighted sum of squares for each column will be the infinitesimal
 jackknife estimate of variance for the elements of $p$.
-The entire variance-covariance matrix for the states is $U'W^2U$ where 
+The entire variance-covariance matrix for the states is $U'WU$ where 
 $W$ is a diagonal 
 matrix of weights, but we currently don't report that back.
 Note that this is for sampling weights.  
 If one has real case weights, where an integer weight of 2 means 2 observations
 that were collapsed in to one row of data to save space, then the
-formula is $U'WU$.  
-Case weights were somewhat common in my youth, dut tosmall computer memory,
+formula is $U'W^2U$.  
+Case weights were somewhat common in my youth, due to small computer memory,
 but I haven't seen such data in 20 years.
 
 Below is the function for a single curve.

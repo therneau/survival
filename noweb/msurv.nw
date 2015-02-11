@@ -1,3 +1,4 @@
+\subsubsection{C-code}
 (This is set up as a separate file in the source code directory since
 it is easier to make the code stay in C-mode if the file has a .nw 
 extension.)
@@ -166,7 +167,6 @@ the round and square brackets, so we need [[entry < ctime <= event]],
 where [[ctime]] is the unique event time of current interest.
 The basic loop is to add new subjects to the risk set, compute,
 save results, then remove expired ones from the risk set.
-then remove old one.
 The [[ns]] and [[ws]] vectors keep track of the number of subjects
 currently in eachs state and the weighted number currently in each
 state.  
@@ -226,7 +226,7 @@ and contains the transitions at that time point.
 So the $jk$ element is the (weighted) fraction who change from state $j$
 to state $k$, and the $jj$ element the fraction who stay put.
 Each row of $H$ by definition sums to 1.  
-If no one is in the state the $jj$ element is set to 1.
+If no one is in the state then the $jj$ element is set to 1.
 A second version which we call H2 has 1 subtracted from each diagonal and so
 that the row sums are 0, we go back and
 forth depending on which is needed at the moment.
@@ -360,7 +360,7 @@ for (j=0; j<nstate; j++) {
     temp=0;
     if (sefit >0) {
 	for (k=0; k<nperson; k++) 
-	    temp += wtp[k]* wtp[k]* umat[k][j]*umat[k][j];
+	    temp += wtp[k]* umat[k][j]*umat[k][j];
 	*vmat++ = temp;
     }
  }
