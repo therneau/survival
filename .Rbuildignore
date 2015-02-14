@@ -7,3 +7,5 @@ inst/doc/validate.tex
 .hgignore
 test.local
 vigtemp
+vignettes/*.aux
+vignettes/*.log

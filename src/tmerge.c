@@ -2,7 +2,7 @@
 ** Fill in a new time-dependent variable
 ** 
 **  id: subjec id in the baseline datata set (integer)
-**  time1, time2: time intervals in the baseline data
+**  time1, time2: time intervals in the baseline data, only the second is needed
 **  nid, ntime: the id and time point for the new covariate
 **  x:  vaule of the new covariate
 **  indx:  starting point for matching in the baseline
@@ -11,13 +11,13 @@
 **   for a given id are together, and in order.
 */
 #include "survS.h"
-SEXP tmerge(SEXP id2,  SEXP time1x, SEXP time2x, SEXP newx2,
+SEXP tmerge(SEXP id2,  SEXP time2x, SEXP newx2,
             SEXP nid2, SEXP ntime2, SEXP x2,  SEXP indx2) {
     int i, k;
     int n1, n2;
 
     int *id, *nid;
-    double *time1, *time2, 
+    double *time2, 
 	   *ntime, *x;
     int *indx;
     double *newx;

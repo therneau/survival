@@ -88,13 +88,12 @@ coxph <- function(formula, data, weights, subset, na.action,
         if (any(ord>1)) stop ("Cluster can not be used in an interaction")
         cluster <- strata(mf[,tempc$vars], shortlabel=TRUE)  #allow multiples
         dropterms <- tempc$terms  #we won't want this in the X matrix
-        dropcon <- tempc$vars
         # Save away xlevels after removing cluster (we don't want to save upteen
         #  levels of that variable, which we will never need).
         xlevels <- .getXlevels(Terms[-tempc$terms], mf)
     }
     else {
-        dropterms <- dropcons <- NULL
+        dropterms <- NULL
         if (missing(robust)) robust <- FALSE
         xlevels <- .getXlevels(Terms, mf)
     }

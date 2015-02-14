@@ -1,8 +1,7 @@
 
-R version 2.14.0 Under development (unstable) (2011-04-10 r55401)
-Copyright (C) 2011 The R Foundation for Statistical Computing
-ISBN 3-900051-07-0
-Platform: x86_64-unknown-linux-gnu (64-bit)
+R Under development (unstable) (2015-02-12 r67812) -- "Unsuffered Consequences"
+Copyright (C) 2015 The R Foundation for Statistical Computing
+Platform: i686-pc-linux-gnu (32-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -19,7 +18,6 @@ Type 'q()' to quit R.
 > options(na.action=na.exclude) # preserve missings
 > options(contrasts=c('contr.treatment', 'contr.poly')) #ensure constrast type
 > library(survival)
-Loading required package: splines
 > 
 > #
 > # The residual methods treat a sparse frailty as a fixed offset with
@@ -39,7 +37,7 @@ Loading required package: splines
 > kfitx <- coxph(Surv(time, status) ~ age + sex + offset(tempf),kidney,
 + 	       eps=1e-7)
 > 
-> # These are not precisely the same, due to different iteration paths
+> # These are not always precisely the same, due to different iteration paths
 > aeq(kfitx$coef, kfit1$coef)
 [1] TRUE
 > 
@@ -55,14 +53,17 @@ Loading required package: splines
 > 
 > # These are not the same, due to a different variance matrix
 > #  The frailty model's variance is about 2x the naive "assume an offset" var
-> # The score residuals are equal, however.
+> # Expect a value of about 0.5
 > aeq(resid(kfit1, type='dfbeta'), resid(kfitx, type='dfbeta'))
 [1] "Mean relative difference: 0.5216263"
+> 
+> # Force equality
 > zed <- kfitx
 > zed$var <- kfit1$var
 > aeq(resid(kfit1, type='dfbeta'), resid(zed, type='dfbeta'))
 [1] TRUE
 > 
+> # The score residuals are equal, however.
 > 
 > temp1 <- resid(kfit1, type='score')
 > temp2 <- resid(kfitx, type='score')
@@ -81,8 +82,9 @@ Loading required package: splines
 > temp2 <- predict(kfitx, type='terms', se.fit=T)
 > aeq(temp1$fit[,1:2], temp2$fit)
 [1] TRUE
-> aeq(temp1$se.fit[,1:2], temp2$se.fit)  #should be false
-[1] "Mean relative difference: 0.3024526"
+> # the next is not equal, all.equal returns a character string in that case
+> is.character(aeq(temp1$se.fit[,1:2], temp2$se.fit))
+[1] TRUE
 > mean(temp1$se.fit[,1:2]/ temp2$se.fit)
 [1] 1.433017
 > aeq(as.vector(temp1$se.fit[,3])^2, 
@@ -356,3 +358,6 @@ Likelihood ratio test=33.4  on 13.8 df, p=0.00234  n= 76
 > 
 > 
 > 
+> proc.time()
+   user  system elapsed 
+  0.356   0.036   0.389 

@@ -2,7 +2,6 @@
 print.summary.survreg <- function(x, digits = max(options()$digits - 4, 3),
 				  ...) {
     correl <- x$correlation
-    n <- x$n
 
     if(is.null(digits))
         digits <- options()$digits

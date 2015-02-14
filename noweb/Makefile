@@ -39,7 +39,7 @@ SFUN =  agreg.fit.R \
 CFUN =  agsurv4.c agsurv5.c concordance1.c coxcount1.c \
 	agfit4.c \
         coxexact.c \
-	survfitci.c
+	survfitci.c 
 #	coxdetail2.c
 
 RDIR = ../R

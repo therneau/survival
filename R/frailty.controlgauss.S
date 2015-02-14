@@ -65,7 +65,6 @@ frailty.controlgauss <- function(opt, iter, old, fcoef, trH, loglik){
 		    #  which is built into S, and implements Brent's method?
 		    # Because all we want is the next guess for x.  The interal
 		    #  loop of coxph is calling us, not the other way around.
-		    guess <- history[iter- (2:0),1]
 		    R <- tempy[b1]/ tempy[b1+1]
 		    S <- tempy[b1]/ tempy[b1-1]
 		    U <- R/S

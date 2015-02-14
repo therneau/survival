@@ -6,7 +6,6 @@ predict.coxph.penal <- function(object,  newdata,
  
     type <- match.arg(type)
     n <- object$n
-    Terms <- object$terms
     pterms <- object$pterms
     # If there are no sparse terms
     if (!any(pterms==2) ||  
@@ -56,13 +55,11 @@ predict.coxph.penal <- function(object,  newdata,
 	else {
 	    # temporarily remove the sparse term, call NextMethod,
 	    #  and then put it back
+            oldTerms <- object$terms
 	    temp <- attr(object$terms, 'term.labels')
 	    object$terms <- object$terms[-match(sparsename, temp)]
-            temp<-match(sparsename,terms)
-            oldTerms<-terms
-            if (!is.na(temp)) terms<-terms[-temp]
-	    pred <- NextMethod('predict',object,terms=terms,...)
-            terms<- oldTerms
+            pred <- NextMethod('predict',object,terms=terms,...)
+            object$terms<- oldTerms
 	  
 	    if (se.fit) {
 		se <- pred$se.fit

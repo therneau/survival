@@ -28,8 +28,6 @@ frailty.controlaic <- function(parms, iter, old, n, df, loglik) {
 
     history <- rbind(old$history,c(old$theta, loglik, df, loglik-df, 
 				   loglik -dfc))
-    if (is.null(parms$trace)) trace <-FALSE
-    else trace <- parms$trace
     
     if (iter==2) {  #Third guess
 	theta <- mean(history[,1])
