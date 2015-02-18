@@ -50,7 +50,6 @@ predict.survreg <-
 	#
 	mf <- model.frame(object)
 	temp <- untangle.specials(Terms, 'strata', 1)
-	dropx <- temp$terms
 	if (length(temp$vars)==1) strata.keep <- mf[[temp$vars]]
 	else strata.keep <- strata(mf[,temp$vars], shortlabel=TRUE)
 	strata <- as.numeric(strata.keep)
@@ -189,7 +188,6 @@ predict.survreg <-
 		se<-matrix(ncol=nterms,nrow=NROW(x))
 		dimnames(se)<-list(rownames(x),names(asgn))
 		R<-object$var
-		ip <- double(NROW(x))
 		}
 	    for (i in 1:nterms){
 		ii<-asgn[[i]]
@@ -207,9 +205,6 @@ predict.survreg <-
 		if (se.fit)
 			se<-se[,terms,drop=FALSE]
 		}
-	    if (hasintercept)
-		    const <- coef(object)['(Intercept']
-		else    const <- 0
 	    }
 
 #  Splus code, commented out to stop a warning from R CMD check

@@ -451,7 +451,7 @@ coxpenal.fit <- function(x, y, strata, offset, init, control,
         }
  
    if (nfrail >0) {
-       lp <- offset + coxfit$fcoef[x[,fcol]]
+       lp <- offset + coxfit$fcoef[frailx]
        	if (nvar >0)    #sparse frailties and covariates
 	    lp <- lp + x[,-fcol,drop=FALSE] %*%coxfit$coef - 
                 sum(means*coxfit$coef)

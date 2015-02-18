@@ -5,7 +5,6 @@
 #  does a bit more than equation 15.
 #
 frailty.gammacon <- function(d, nu) {
-    nfrail <- length(d)
     maxd <- max(d)
     if (nu > 1e7*maxd) term1 <- sum(d*d)/nu  #second order Taylor series
     else               term1 <- sum(d + nu*log(nu/(nu+d)))  #easy part

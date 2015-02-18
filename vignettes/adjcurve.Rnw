@@ -13,7 +13,7 @@
 \fvset{listparameters={\setlength{\topsep}{0pt}}}
 \renewenvironment{Schunk}{\vspace{\topsep}}{\vspace{\topsep}}
 
-\SweaveOpts{width=6,height=4}
+\SweaveOpts{prefix.string=figures/adjcurve,width=6,height=4}
 \setkeys{Gin}{width=\textwidth}
 %\VignetteIndexEntry{Adjusted Survival Curves}
 
@@ -32,7 +32,7 @@ fdata$age2 <- cut(fdata$age, c(0,54, 59,64, 69,74,79, 89, 110),
 \author{Terry M Therneau, Cynthia S Crowson, Elizabeth J Atkinson}
 \date{Jan 2015}  
 \newcommand{\myfig}[1]{\includegraphics[height=!, width=\textwidth]
-                        {adjcurve-#1.pdf}}
+                        {figures/adjcurve-#1.pdf}}
 
 \begin{document}
   \maketitle
@@ -75,9 +75,11 @@ whether we are talking about a population of young, middle aged, or older
 subjects.
 
 The computational step has two main approaches.  
-The first, sometimes known as \emph{marginal} analysis, first modifies
-the data so that it is balanced with respect to the confounding variables,
-by forcing the distribution of each subgroup to match that of the target.
+The first, sometimes known as \emph{marginal} analysis, first reweights
+the data such that each subgroup's weighted distribution matches that
+of our population target.
+An immediate consequence is that all subgroups will be 
+ balanced with respect to the confounding variables.
 We can then proceed with a simple analysis of survival using the 
 reformulated data, ignoring the confounders.
 The second approach seeks to understand and model the effect of each
@@ -91,10 +93,10 @@ using conditional survival curves given covariates $x$.
 A third but more minor choice is division of the covariates $x$ into effects
 of interest vs. confounders.  
 For instance, we might want to see separate curves for two treatments, each
-ajusted for age and sex.  The reference population will describe and age and
+adjusted for age and sex.  The reference population will describe the age and
 sex distribution.  For simplicity we will use $x$ to describe all the
 confounding variables and use $c$ for the control variable(s), e.g. treatment.
-The set $c$ might be empty, producing single overall curve, but this is
+The set $c$ might be empty, producing a single overall curve, but this is
 the uncommon case.
 As shown below, our two methods differ essentially in the \emph{order}
 in which the two necessary operations are done, balancing and survival
@@ -104,7 +106,7 @@ curve creation.
     Marginal: & balance data on $x$ & $\longrightarrow$ & 
              form survival curves for each $c$\\
     Conditional: & predicted curves for $\{x,c\}$ subset
-    & $\longrightarrow$ & averge the predictions for each $c$
+    & $\longrightarrow$ & average the predictions for each $c$
    \end{tabular}
 \end{center}
 We can think of them as ``balance and then model'' versus 
@@ -126,8 +128,8 @@ balance on those factors.
 Our example data set for this comparison uses a particular
 assay of plasma immunoglobulins and is based on work of Dr Angela Dispenzieri
 and her colleagues at the Mayo Clinic \cite{Dispenzieri12}.
-In brief, plasma cells (PC) are responsible for the production of
-immunoglobulins; PC comprise a small portion ($<1$\%) of the 
+In brief: plasma cells (PC) are responsible for the production of
+immunoglobulins, but PC comprise only a small portion ($<1$\%) of the 
 total blood and marrow hematapoetic cell population in normal patients.
 The normal human repertoire is estimated to contain over
 $10^{8}$ unique immunoglobulins, conferring a broad range of immune
@@ -146,19 +148,19 @@ hematology research group \cite{Kyle93}.  In 1995
 Dr Robert Kyle undertook a population based study of this, and collected
 serum samples on 19,261 of the 24,539 residents of Olmsted County, Minnesota,
 aged 50 years or more \cite{Kyle06}.
-In 2010 Dr. Dispenzieri assayed a sub fraction of the immunoglobulins,
+In 2010 Dr. Angela Dispenzieri assayed a sub fraction of the immunoglobulins,
 the free light chain (FLC), on 15,748 of these subjects who had sufficient 
 remaining sera from the original sample collection.
 All studies took place under the oversight of the appropriate Institutional 
 Review Boards, which ensure rigorous safety and ethical standards in
 research.
 
-A subset of the Dispensieri study is available is available in the survival
+A subset of the Dispenzieri study is available in the survival
 package as data set \texttt{flchain}.  
 Because the original study assayed nearly the entire population, there is
 concern that some portions of the anonymized data could be linked to actual
-subjects by a dilegent searcher, and so only a subset of the study has been
-made available as a measure to strengthen anonyminity.
+subjects by a diligent searcher, and so only a subset of the study has been
+made available as a measure to strengthen anonymity.
 It was randomly selected from the whole within sex and age 
 group strata so as to preserve the age/sex structure. 
 The data set contains 3 subjects whose blood sample was obtained on the day
@@ -167,7 +169,7 @@ the final day as ``predicting'' death, or indeed for any results obtained
 during a patient's final mortality cascade. 
 There are also a few patients with no follow-up beyond the clinic visit
 at which the assay occurred.
-We have chosen in this analysis analysis to exclude 
+We have chosen in this analysis to exclude 
 the handful of subjects with less 
 than 7 days of follow-up, leaving \Sexpr{nrow(fdata)} observations.
 
@@ -211,7 +213,7 @@ In the highest decile of FLC (group 3)  over half the subjects are
 age 70 or older compared to only 23\% in those below the 70th percentile.
 How much of the survival difference is truly associated with FLC
 and how much is simply an artifact of age?
- (The cutpoints are arbitrary, but we have chosen to mimic the original study
+ (The cut points are arbitrary, but we have chosen to mimic the original study
 and retain them.  Division into three groups is a convenient number to 
 illustrate the methods in this vignette, but we do not make any claim that
 such a categorization is optimal or even sensible statistical practice.)
@@ -233,13 +235,13 @@ text(c(11.1, 10.5, 7.5), c(.88, .57, .4),
      c("FLC < 3.38", "3.38 - 4.71", "FLC > 4.71"), col=c(1,2,4))     
 @ 
 
-\section{Populations}
+\section{Reference populations}
 There are a few populations that are commonly used as the
 reference group.
 \begin{enumerate}
-  \item Emprical.  The overall distribution of confounders $x$ in the
+  \item Empirical.  The overall distribution of confounders $x$ in the
     data set as a whole.  For this study we would use the observed
-    age/sex distribution, ignoring FLC group.  This is also may be
+    age/sex distribution, ignoring FLC group.  This is also
     called the ``sample'' or ``data'' distribution.
   \item External reference.  The distribution from some external
     study or standard.  
@@ -247,7 +249,7 @@ reference group.
     chosen as the reference, and other subsets are then aligned with
     it.  
 \end{enumerate}
-Method 2 is common in epidemiology, using a reference popultion based
+Method 2 is common in epidemiology, using a reference population based
 on a large external population such as the age/sex distribution of the
 2000 United States census.  Method 3 most often arises in
 the case-control setting, where one group is small and precious 
@@ -288,7 +290,7 @@ cat("High&", paste(tab1[3,,2], collapse=" &"), "\n")
 
 \subsection{Selection}
 One approach for balancing is to select a subset of the data
-such that the its disctribution matches
+such that its distribution matches
 the referent for each level of $c$, i.e., for each curve that we wish to
 obtain.  
 As an example we take a case-control like approach to the FLC data,
@@ -401,7 +403,7 @@ gathered and a consequent cost or time savings.
 When a data set is already in hand it has two major disadvantages.
 The first is that the approach wastes data; throwing away information in
 order to achieve balance is always a bad idea.
-As important is that though it returns an unbiased comparison, the result
+Second is that though it returns an unbiased comparison, the result
 is for a very odd reference population.
 
 One advantage of matched subsets is that standard variance calculations
@@ -475,10 +477,10 @@ sfit3a <-survfit(Surv(futime, death) ~ group, data=fdata, weight=uswt)
 
 A more common choice is to use the overall age/sex distribution of the 
 sample itself as
-our target distribution $\pi$, i.e., the emprical distribtion.
+our target distribution $\pi$, i.e., the empirical distribution.
 Since FLC data set is population based and has excellent coverage
 of the county, this will not differ greatly from the US population in this
-case, as is diplayed in figure \ref{flc3a}.
+case, as is displayed in figure \ref{flc3a}.
 
 <<flc3a,  fig=TRUE, include=FALSE >>=
 tab1 <- with(fdata, table(age2, sex))/ nrow(fdata)
@@ -521,7 +523,8 @@ legend(2,.4, levels(fdata$group), lty=1, col=c(1,2,4),
 @ 
 
 The calculation of weights is shown above, and finishes with a table
-of the weigths for the females.  The table was to have a miniumn weight
+of the weights for the females.  The table was scaled so as 
+to have a minimum weight
 of 1 in each column for simpler reading.
 We see that for the low FLC group there are larger weights for
 the older ages, whereas the high FLC group requires substantial
@@ -542,9 +545,9 @@ simple case and more complex sampling schemes.
 Tests of the curves can be done using a weighted Cox model;
 the robust variance produced by \texttt{coxph} is identical to the standard
 Horvitz-Thompsen variance estimate used in survey sampling \cite{Binder92}.
-The robust score test from \texttt{coxph} corresponds to a logrank test 
+The robust score test from \texttt{coxph} corresponds to a log-rank test 
 corrected for weighting.
-(In the example below the sykm function is only run if the survey package
+(In the example below the svykm function is only run if the survey package
 is already loaded, as the variance calculation is very slow for this large
 data set.)
 <<>>=
@@ -626,8 +629,9 @@ age distribution for each flc group.
   \label{flc4}
 \end{figure}
 Figure \ref{flc4} shows the result. 
-The reweighted age distribution is not perfectly balanced, i.e., the 123
-symbols do not over plot one another, but in this case the simple linear
+The reweighted age distribution is not perfectly balanced, i.e., the 
+`1', `2' and `3' symbols do no exactly overlay one another,
+but in this case the simple linear
 model has done an excellent job.
 We emphasize that whenever the reweighting is based on a simplified model
 then such a check is obligatory.  
@@ -1080,9 +1084,9 @@ excess5a <- matrix(obs/pred5a, nrow=8,
 round(excess5a, 1)
 
 sfit5  <- survexp(~group,  data=tdata3, ratetable=cfit5a, weights=count)
-plot(sfit3, fun='event', xscale=365.25, mark.time=FALSE, lty=2,
+plot(sfit3, fun='event', xscale=365.25, mark.time=FALSE, lty=2, col=c(1,2,4),
      xlab="Years from sample", ylab="Deaths")
-lines(sfit5, fun='event', xscale=365.25)
+lines(sfit5, fun='event', xscale=365.25, col=c(1,2,4))
 @ 
 One problem with the model based estimate is that standard errors for the
 curves are complex.
@@ -1135,6 +1139,47 @@ a different distribution of covariates than the one in the training data.
 It may be applicable in cases such as rare subsets where population
 reweighting is problematic, with the understanding that one is depending
 heavily on extrapolation in this case, which is always dangerous.
+
+\section{A note on type 3 tests}
+One particular software package (not R) and its proponents are very fond
+of something called ``type 3'' tests.
+Said tests are closely tied to a particular reference population:
+\begin{itemize}
+  \item For all continuous covariates in the model, the empirical 
+    distribution is used as the reference.
+  \item For all categorical adjusters, a uniform distribution over the 
+    categories is used.
+\end{itemize}
+
+  Figure \ref{flc8} shows the fit from such a model.  Not surprisingly, the
+predicted death rate is very high: 1/4 of our population is over 80 years old! 
+The authors do not find such a prediction particularly useful
+since we don't ever expect to see a population like this
+(it's sort of like planning for the zombie apocalypse),
+but for those enamored of type 3 tests this shows how to create the
+corresponding curves.
+
+<<flc8, include=FALSE, fig=TRUE>>=
+# there is a spurious warning from the model below: R creates 3 unneeded
+# columns in the X matrix
+cfit6 <- coxph(Surv(futime, death) ~ group:age2 + sex + strata(group), fdata)
+
+saspop <- with(fdata, expand.grid(age2= levels(age2), sex= levels(sex),
+                                  group = levels(group)))
+
+sfit6  <- survexp(~group,  data=saspop, ratetable=cfit6)
+plot(sfit6, fun='event', xscale=365.25, mark.time=FALSE, lty=1, col=c(1,2,4),
+     xlab="Years from sample", ylab="Deaths")
+lines(sfit5, fun='event', xscale=365.25, lty=2, col=c(1,2,4))
+@ 
+\begin{figure}
+  \myfig{flc8}
+  \caption{Adjusted survival for the 3 FLC groups based on a fit with
+    categorical age, and predicting for a uniform age/sex population.
+    Dashed lines show the predictions from the marginal model.}
+  \label{flc8}
+\end{figure}
+
 
 \bibliographystyle{plain}
 \bibliography{refer}

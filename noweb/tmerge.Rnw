@@ -442,10 +442,9 @@ else {
         else newvar <- rep(NA_real_, nrow(newdata))
         }
     # id can be any data type; feed integers to the C routine
-    storage.mode(dstart) <- storage.mode(dstop) <- "double"
+    storage.mode(yinc) <- storage.mode(dstop) <- "double"
     storage.mode(newvar) <- storage.mode(etime) <- "double"
-    storage.mode(yinc) <- "double"
-    newvar <- .Call("tmerge", match(baseid, baseid), dstart, dstop, newvar, 
+    newvar <- .Call("tmerge", match(baseid, baseid), dstop, newvar, 
                     match(id, baseid)[keep], etime[keep], 
                     yinc[keep], indx[keep])
 }

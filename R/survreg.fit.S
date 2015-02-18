@@ -8,7 +8,6 @@ survreg.fit<- function(x, y, weights, offset, init, controlvals, dist,
     iter.max <- controlvals$iter.max
     eps <- controlvals$rel.tolerance
     toler.chol <- controlvals$toler.chol
-    debug <- controlvals$debug
 
     if (!is.matrix(x)) stop("Invalid X matrix ")
     n <- nrow(x)
@@ -42,7 +41,7 @@ survreg.fit<- function(x, y, weights, offset, init, controlvals, dist,
         #  2 evals and all others 1, so the call to the routine will have n2
         #  values.
 	dnum <- 4  # flag for the C routine
-	n2 <- n + sum(y[,ny]==3)  
+	n2 <- n + sum(y[,ny]==3)  # not needed, keep for documentation
         
 	#
         # Create an expression that will be evaluated by the C-code,

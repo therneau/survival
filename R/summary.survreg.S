@@ -5,7 +5,6 @@ summary.survreg<- function(object, correlation = FALSE,...)
 	warning(" Survreg failed.", object$fail, "   No summary provided\n")
 	return(invisible(object))
 	}
-    wt <- object$weights
     
     nvar0 <- length(object$coefficients)
     nvar <- nrow(object$var)
@@ -26,7 +25,6 @@ summary.survreg<- function(object, correlation = FALSE,...)
         return(invisible(object))
         }
 
-    nsingular <- nvar - p
     if (is.null(object$naive.var)){
         table <- matrix(rep(coef, 4), ncol = 4)
         dimnames(table) <- list(cname, c("Value", "Std. Error", "z", "p"))

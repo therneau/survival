@@ -10,10 +10,7 @@ survfitTurnbull <- function(x, y, casewt,
 		       start.time) {
 			     
     type <- match.arg(type)
-    method <- match(type, c("kaplan-meier", "fleming-harrington", "fh2"))
-
     error <- match.arg(error)
-    error.int <- match(error, c("greenwood", "tsiatis"))
     conf.type <- match.arg(conf.type)
     conf.lower<- match.arg(conf.lower)
     if (is.logical(conf.int)) {
@@ -37,7 +34,6 @@ survfitTurnbull <- function(x, y, casewt,
         #  correct action would be, actually.
         #
 	ny <- ncol(y)      
-	n.all <- c(table(x))   # remember the original data size
 	# remove any obs whose end time is <= start.time
 	keep <- (y[,ny-1] >= start.time)
 	if (all(keep==FALSE))
@@ -261,7 +257,7 @@ survfitTurnbull <- function(x, y, casewt,
 		conf.upper <- vector('list', nstrat)
 		se.fit <- TRUE
 		}
-	    else se <- FALSE
+	    else se.fit <- FALSE
 	    }
 	if (se.fit) {
 	    std.err[[i]]    <- tfit$std.err

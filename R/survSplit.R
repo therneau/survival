@@ -1,13 +1,9 @@
-
-
 survSplit<-function(data, cut, end,event,start,id=NULL,
                     zero=0,episode=NULL){
 
   cut<-sort(cut)
   ntimes <- length(cut)
   n <- nrow(data)
-  p <- ncol(data)
-  
   newdata <- lapply(data,rep,ntimes+1)
 
   endtime <- rep(c(cut, Inf) ,each=n)

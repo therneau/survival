@@ -4,7 +4,6 @@ coxph.detail <-  function(object, riskmat=FALSE) {
 	stop(paste("Detailed output is not available for the", method,
 			"method"))
     n <- length(object$residuals)
-    rr <- object$residuals
     weights <- object$weights        #always present if there are weights
     x <- object[['x']]
     y <- object$y

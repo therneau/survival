@@ -47,7 +47,7 @@ To which the response was that ``SAS does it''.
 A grant deadline was looming so the discussion did not get any further
 at that point, but it eventually led to a much longer investigation
 on my part, which is summarized in this note.  
-There are three central ideas as it turns out: populations, compuatation,
+There are three central ideas as it turns out: populations, computation,
 and the mapping linear models ideas onto the Cox model.
 
 The first idea, and perhaps the central one, is using the model fit from 
@@ -57,12 +57,12 @@ the vignette on that topic or chapter 10 of our book \cite{Therneau00};
 recognizing that ``type 3'' tests are simply another variant on that theme was
 a pivotal step in my understanding.  
 This immediately leads to the important subtopic of ``prediction for
-\emph{which} population''.  The SAS type 3 compuations corresponds to a very 
+\emph{which} population''.  The SAS type 3 computations corresponds to a very 
 particular and inflexible choice.
 
 The second theme is computational: given some summary measure and a population
 for which you wish to predict it, the result will be some sort of weighted
-average.  There are two primary ways to set up this compuation.  In a linear
+average.  There are two primary ways to set up this computation.  In a linear
 model one of them can be reduced to a particular contrast 
 $C \hat\beta$ in the fitted coefficients $\hat\beta$, which is an appealing
 choice since follow-up computations such as the variance of the estimate
@@ -95,7 +95,7 @@ of this report at the start.
     valid ways to compute these estimates for a Cox model, they are
     closely related the inverse probability weight (IPW) methods used
     in propensity scores and marginal structural models.
-  \item The agorithm used to compute $C$ by the SAS glm procedure is 
+  \item The algorithm used to compute $C$ by the SAS glm procedure is 
     sophisticated and reliable. 
     The SAS phreg procedure uses the linear models approach
     of $C \hat\beta$ to compute a ``type 3'' contrast, 
@@ -247,9 +247,9 @@ To understand how linear models methods may (or may not) extend to the
 proportional hazards model it is useful consider all three facets;
 each is revealing.
 
-Four possible choices for a target popluation of ages are given below.
+Four possible choices for a target population of ages are given below.
 \begin{enumerate}
-  \item Empricial: the age distribution of the sample at hand, also called
+  \item Empirical: the age distribution of the sample at hand, also called
     the data distribution. In our sample this would be the age distribution
     of all \Sexpr{nrow(fdata)} subjects, ignoring sex.
   \item SAS: a uniform distribution is assumed over all categorical
@@ -417,7 +417,7 @@ The first is that any estimate of interest can be written in terms
 of the cell means. 
 Formally, the cell means are a \emph{sufficient statistic} for the data.
 For our data set and using the categorized variable \code{age2}
-let $\theta_{ij}$ parametrize these means.
+let $\theta_{ij}$ parameterize these means.
 $$
   \begin{tabular}{cccccc}
     &50--59 & 60--69 & 70-79 & 80-89 & 90+ \\ \hline
@@ -688,7 +688,7 @@ and the Yates test for row effect is
              \label{ycont}
 \end{align}
 
-Equation \eqref{std} is overdetermined and all computer
+Equation \eqref{std} is over determined and all computer
 programs add constraints in order to guarantee a unique solution.
 However those constraints are applied, however, equation \eqref{ycont}
 holds.
@@ -977,7 +977,7 @@ A modern summary with focus on the clinical trials arena is found in
 chapter 14 of the textbook by  Senn \cite{Senn07}
 
 I have found two papers particularly useful in thinking about this.
-Senn \ref{Senn00} points out the strong parallels beween tests for main effects
+Senn \ref{Senn00} points out the strong parallels between tests for main effects
 when there may be interactions and meta analyses, cross connecting these two
 approaches is illuminating.
 A classic reference is the 1978 paper by Aitkin \cite{Aitkin78}.
@@ -1071,7 +1071,7 @@ are
     particularly adjustment
     for covariate imbalances in observational studies.  (Also known
     as \emph{marginal structural models}).  
-    Adjustment to a unform population is also possible.
+    Adjustment to a uniform population is also possible.
   \item A Yates-like contrast in the Cox model coefficients.
     \begin{itemize}
       \item A reliable algorithm such as cell means coding.
@@ -1144,16 +1144,16 @@ tfun <- function(fit, indx=1) {
     c(fit$coef[indx], sqrt(fit$var[indx,indx]))
   }
 coxp <- rbind(tfun(cfit1), tfun(cfit2,5), tfun(cfitpop), tfun(cfityates))
-dimnames(coxp) <- list(c("Unadjusted", "Additive", "Emprical Population", 
+dimnames(coxp) <- list(c("Unadjusted", "Additive", "Empirical Population", 
                          "Uniform Population"),
                       c("Effect", "se(effect)"))
 signif(coxp,3)
 @ 
 The population estimates based on reweighting lie somewhere between
 the unadjusted and the sequential results.
-We expect that balancing to the emprical population will give a
+We expect that balancing to the empirical population will give a
 solution that is similar to the age + sex model, in the same
-way that the close but not idential to the MVUE estimate in a linear
+way that the close but not identical to the MVUE estimate in a linear
 model. 
 Balancing to a hypothetical population with equal numbers in each
 age group yields a substantially smaller estimate of effect. since it gives
@@ -1207,7 +1207,7 @@ creating a uniform age distribution using case weights followed
 by an MLE estimate?  Again, the MLE estimate has death counts as
 the effective weights; the case-weighted uniform population
 has smaller weights for the youngest age group and that group also
-has the lowest death rate, resulting in lower inflence for that group
+has the lowest death rate, resulting in lower influence for that group
 and an estimate shrunken towards the 90+ difference of
 \Sexpr{round(temp2[3,5], 3)}.
 All told, for survival models 
@@ -1268,7 +1268,7 @@ in this note.
 No special role is apparent, at least to this author, for regular or even
 sporadic use of a Yates contrast in survival models.  
 The addition of such a feature and label to the SAS phreg package is
-a statistical calamaty, one that knowledgeable and conscientious
+a statistical calamity, one that knowledgeable and conscientious
 statistical practitioners will likely have to fight for the rest of their
 careers.
 In the common case of a treatment comparison, adjusted for enrolling center,
@@ -1407,11 +1407,11 @@ Any two differences between the three effects is an equivalent basis for
 computing the Yates contrast.
 
 We can verify that the resulting estimates correspond to a uniform 
-target population by directly examing the case weights for the estimate.
+target population by directly examining the case weights for the estimate.
 Each of them gives a total weight of 1/4 to each level of x2.
 Each element of $\beta\beta$ is a weighted average of the data, revealed
 by the rows of the matrix $(X'X)^{-1}X'$.   
-The estimate are a wieghted sum of the coefficients, so are also a
+The estimate are a weighted sum of the coefficients, so are also a
 weighted average of the $y$ values.
 <<>>=
 wt <- solve(t(X) %*% X, t(X)) # twelve rows (one per coef), n columns
@@ -1457,7 +1457,7 @@ our example data and in the fit below?
 fit4 <- lm(y ~ x1*x2 + x3, data=data1)
 @ 
 The standard approach is to ignore this variable when setting up
-``type III'' tests: the contast for \code{x1} will be the same as
+``type III'' tests: the contrast for \code{x1} will be the same as
 it was in the prior model, with a 0 row in the middle for the x3
 coefficient.
 

@@ -15,7 +15,7 @@
 \fvset{listparameters={\setlength{\topsep}{0pt}}}
 \renewenvironment{Schunk}{\vspace{\topsep}}{\vspace{\topsep}}
 
-\SweaveOpts{width=6,height=4}
+\SweaveOpts{prefix.string=figures/compete,width=6,height=4}
 \setkeys{Gin}{width=\textwidth}
 <<echo=FALSE>>=
 options(continue="  ", width=60)
@@ -29,7 +29,7 @@ require("survival")
 \author{Terry M Therneau \\ \emph{Mayo Clinic}}
 \newcommand{\code}[1]{\texttt{#1}}
 \newcommand{\myfig}[1]{\includegraphics[height=!, width=\textwidth]
-                        {compete-#1.pdf}}
+                        {figures/compete-#1.pdf}}
 
 \begin{document}
 \maketitle
@@ -101,7 +101,7 @@ is equal to 1: each person has to be somewhere.
 I will refer to the resulting values as \emph{prevalence} estimates.  
 In the simple two state model the prevalence in the alive state is the
 usual Kaplan-Meier survival estimate, and we have P(alive) = 1 - P(dead).  
-In simple studies we have gotton used to the idea of using P(dead) and
+In simple studies we have gotten used to the idea of using P(dead) and
 1- P(dead) interchangeably, but that habit needs to be left behind for
 competing risk and multi-state models, for them the values $1-P$ 
 = probability of being in \emph{any} other state are not very useful.
@@ -115,14 +115,14 @@ downhill from 1.
 The survfit routine's historical default for the 2 state case is to 
 print and plot P(alive), which reflects that the
 author of the routine was working primarily in cancer trials at the time 
-the default behaviour was chosen.
+the default behavior was chosen.
 In the multi-state case, however, the curve for the initial state (leftmost
 in my diagrams) is rarely part of the display, 
 so curves for the plotted states start at 0.
 
 Here is an example using a simple competing risks problem.
 The \code{mgus2} data set contains the progression and survival time
-for 1384 subjects diagnosed with monoclonal gammopathy of undertermined
+for 1384 subjects diagnosed with monoclonal gammopathy of undetermined
 significance (MGUS).  Survival and progression time are in months. 
 The curve below shows ordinary Kaplan-Meier survival for these subjects,
 the mean age at diagnosis is just over 70 years.
@@ -143,7 +143,7 @@ The second model for these subjects is competing risks, which corresponds to
 our second figure above.
 For this model we are only interested in the first event for each
 subject.
-Formally we are treating progression to a plama cell malignancy (PCM)
+Formally we are treating progression to a plasma cell malignancy (PCM)
 as an \emph{absorbing state}, i.e., one 
 that subjects never exit.  
 We create a variable containing the time of
@@ -208,7 +208,7 @@ actually experience PCM, also known as the lifetime risk.
 
 
 The above code chose to plot only a subset of the curves, something that is
-often desireable in competing risks problems to avoid a
+often desirable in competing risks problems to avoid a
 ``tangle of yarn'' plot that simply has too many elements.
 This is done by subscripting the survfit object.
 For subscripting, the competing risks the curves appear as a matrix
@@ -252,7 +252,7 @@ newdata <- tmerge(newdata, mgus2, id, pcm = event(ptemp, pstat))
 newdata <- tmerge(newdata, newdata, id, enum=cumtdc(tstart))
 with(newdata, table(death, pcm))
 @ 
-THe table above shows that there are no observations in \code{newdata}
+The table above shows that there are no observations in \code{newdata}
 that have both a pcm and death.
 The last tmerge line above creates a variable \code{enum} which
 simply counts rows for each person; it will be used later.
@@ -296,7 +296,7 @@ legend(15, .5, c("male:death w/o pcm", "male: ever pcm",
 @ 
 
 When using multi-state data to create Aalen-Johansen curves individuals
-are not allowed to have gaps in the middle of their timeline.
+are not allowed to have gaps in the middle of their time line.
 For example someone who is known to be in state 1 at time $s$ and in state 3 at
 time $t>s$, but the exact time they entered state 3 is unknown, nor whether
 they visited other states during the interim.
@@ -346,7 +346,7 @@ The interquartile range the serum spike is 0.9 gram so this risk increase
 is visible.
 Meantime the effect of age on the progression rate is much less pronounced,
 with a coefficient only 1/4 that for mortality, while the effect of sex
-is neglible.
+is negligible.
 
 Notice that we did not do anything special to the data set or event codes
 for the Cox model.  The focus of coxph is on the event rates, for which the
@@ -380,8 +380,9 @@ such that row sums of $\Lambda$ are 0.
 \end{equation}
 This is the exponential of a matrix, a notoriously ill-conditioned computation.
 An R function for calculation is \code{expm} from the
-Matrix package.
-For illustration we will compute the 10 year probabilities of PCM from the
+Matrix package, the \code{mstate} package uses a different computational
+path that avoids matrix exponentials.
+For illustration we will compute the 20 year probabilities of PCM from the
 model for males and females under 4 cases: age of 60 vs 80 and a serum mspike
 of 0.5 vs 1.5, which are approximately the quartiles of each.  
 The \code{summary.survfit} function was originally written to make it easy
@@ -396,7 +397,7 @@ surv2 <- survfit(cfit2, newdata=tdata)
 @ 
 
 The $\Lambda$ matrix is particularly easy in this case.  There are 3
-states: initial diagosis, PCM and death, but only the $1\rightarrow 2$
+states: initial diagnosis, PCM and death, but only the $1\rightarrow 2$
 and $1 \rightarrow 3$ transitions are possible so all the other off
 diagonal elements are 0.  Element of the resulting 3 by 3 matrix are
 the probability of going from state $i$ to state $j$ in 10 years,
@@ -410,25 +411,28 @@ pfun <- function(chaz1, chaz2, time) {
     diag(Lambda) <- -rowSums(Lambda)
     expm(Lambda)
 }
-chaz1 <- summary(surv1, times=12* 1:10)$cumhaz 
-chaz2 <- summary(surv2, times=12* 1:10)$cumhaz 
-prev <- matrix(0, 10, 8) #progression curves
-for (i in 1:10) {
+chaz1 <- summary(surv1, times=60*1:4)$cumhaz 
+chaz2 <- summary(surv2, times=60*1:4)$cumhaz 
+prev <- matrix(0, 4, 8) #progression curves
+for (i in 1:4) {
     for (j in 1:8) 
         prev[i,j] <- pfun(chaz1[i,j], chaz2[i,j])[1, 3]
 }
-prev <- array(prev, dim=c(10,4,2))
-dimnames(prev) <- list(1:10,
+prev <- array(prev, dim=c(4,4,2))
+dimnames(prev) <- list(c(5,10,15,20),
                        c("50:0.5", "50:1.5", "80:0.5", "80:1.5"),
                        c("female", "male"))
-round(100*prev, 1)
+round(100*prev[4,,], 1)  #males and females at 20 years
 @ 
 The above table shows that females
-have a higher 10 year risk of \emph{observed} progression, even
+have a higher risk of \emph{observed} progression, even
 though their hazard at any given moment is nearly identical to males.
-The difference is less than our ``back of the envelope''
-person-years estimate of 1\% * 1.5 years above which did not fully take age
-into account (females are slightly older than males at diagnosis).
+The difference at 20 years is on the order of our ``back of the envelope''
+person-years estimate of 1\% progression per year * 1.5 more years of life
+for the females.  
+Eighty year olds have a lower cumulative rate of PCM than 50 year
+olds due to a higher death rate, even though the hazard function for
+PCM rises with age.
 
 To create the entire curve of predicted prevalence values we could
 extend the above calculation, but matrix exponentials are slow and can
@@ -438,36 +442,39 @@ has an alternate form known as the cumulative incidence function
   CI_k(t) = \int_0^t \lambda_k(u) S(u-) du \label{cuminc}
 \end{equation}
 where $\lambda_k$ is the incidence function for outcome $k$ and $S$ is the
-overall survival curve of time to any endpoint.  
-Proving that $P_{1k}$ as computed by a matrix exponential is equivalent to the CI
-is well beyond the scope of this vignette.
-(This name is one of the more unfortunate ones in the survival lexicon, since
-we normally use `incidence' and `hazard' as interchangeable synonyms but 
+overall survival curve for ``time to any endpoint''.  
+Proving that $P_{1k}$ as computed by a matrix exponential is equivalent 
+to $CI(t)$ is well beyond the scope of this vignette.
+(The label ``CI''  is one of the more unfortunate ones in the survival lexicon,
+since we normally use `incidence' and `hazard' as interchangeable synonyms but 
 the CI is \emph{not} a cumulative hazard.)
 For the general case it is simplest to 
-use the \code{mstate} package; it was designed for this task and can also
-create appropriate confidence intervals.  
+use the \code{mstate} package; it was designed for this task and will also
+compute appropriate confidence intervals.  
 
 \subsection{Fine-Gray model}
 For the competing risk case the Fine-Gray model provides an alternate way of
 looking at the data. 
-As we saw above, the impact of a particular covariate on the final prevalance
+As we saw above, the impact of a particular covariate on the final prevalence
 values $P$ can be complex, even if the models for the hazards are relatively
 simple. 
 The idea is to start with the values $F_k(t) = 1- P_{1k}(t)$, each of which
-is an analog to the survival probability in the two state model, and assume
-that 
+is an analog to the survival probability in the two state model: it is the
+probability that you will \emph{not} be in state $k$ by time $t$.  
+Unlike actual survival curves $F(\infty)$ is normally not zero.
+They refer to $\log(F)$ as a \emph{subdistribution} function and assume that
 \begin{equation}
   \log(F_k(t)) =  \log(F_0(t)) e^{X\beta}  \label{FG}
 \end{equation}
 In the same way that our multivariate Cox model \code{cfit1} made the
-simplifying assumtion that the impact of male sex is to increase the
+simplifying assumption that the impact of male sex is to increase the
 death hazard by a factor of \Sexpr{round(exp(coef(cfit1)['sexM']), 2)}
-indepent of the subject's age or serum mspike value,
-this model assumes that each covariate's effect on $F$ is a constant,
+independent of the subject's age or serum mspike value,
+this model assumes that each covariate's effect on $\log(F)$ is a constant,
 independent of other variables.  
 Both assumptions are wonderfully simplifying with respect to understanding
-a covariate --- assuming of course that the assumption is correct.
+a covariate --- assuming of course that the particular assumption is correct.
+(In a multi-state model at least one of the two must be false.)
 Let us look at the effect of sex on PCM using the Fine-Gray model, which
 can be computed using the \code{cmprsk} package.
 <<finegray>>=
@@ -480,17 +487,50 @@ fgfit <- with(temp, crr(tstop, fstat, cov1= cbind(nsex, age, mspike),
 fgfit
 @ 
 The program has determined that female sex increases the PCM outcome by
-exp(\Sexpr{round(fgfit$coef[1], 3)} = \Sexpr{round(exp(fgfit$coef[1]),1)}
+exp(\Sexpr{round(fgfit$coef[1], 3)} = \Sexpr{round(exp(fgfit$coef[1]),2)}
 fold, for all values of age and mspike.
 
 The primary strength of the Fine-Gray model with respect to the Cox model
 approach is that if ``lifetime risk'' is a primary question then it has given
 us a simple and digestible answer to that question.  A primary problem of the
-model is that we can't go backwards.  
-If one fits a set of Cox models then information on both the arrows (hazards)
-and the boxes (prevalence) of figure \ref{sfig1} can be examined post fit.
-With the Fine-Gray we have information only on the boxes.
+model is that we can't go backwards: the matrix exponential $\exp(A)$ is
+defined for an transition matrix $A$, but $\log(B)$ exists
+for only select matrices $B$.
+If one fits a set of Cox models to the arrows (hazards)
+then the boxes (prevalence) of figure \ref{sfig1} can be examined post fit.
+With the Fine-Gray approach we have information only on the boxes.
+
 To compare the two fits we can look at what the female/male ratios were
 for each of our four chosen age/mspike combinations.
+<<compare>>=
+fine.f <- log(1- prev)    #log(1-P) for the 4 time points
+round(fine.f[,,1] / fine.f[,,2], 2)
+@ 
+The Cox models, which assume proportional hazards, show a larger subdistribution
+hazard for those who are older, those with higher mspike values, and at longer
+follow-up times.  The overall average, however, is similar.
+
+
+\section{Conclusions}
+When working with acute disease such as advanced cancer or end-stage liver
+disease there is often a single dominating endpoint.
+Ordinary single event Kaplan-Meier curves and Cox models are then
+efficient and sufficient tools for much of the analysis.  
+Such data was the primary use case for survival analysis earlier in the
+author's career.  
+Data with multiple important endpoints is now common, and multi-state
+methods are an important addition to the statistical toolbox.  
+As shown above, they are now readily available and easy to use.
+
+It is sometimes assumed that the presence of competing risks 
+\emph{requires} the use of a Fine-Gray model (I have seen it in referee
+reports), but this is not correct.  
+It is often very useful, but is one available option among many.
+Grasping the big picture for a multi-state data set is always a challenge
+and we should make use of as many tools as possible.
+An advantage of the  Cox model is that it has better diagnostic tools
+available, e.g., evaluation of the proportional hazards assumption via
+\code{cox.zph} or the martingale residuals, which can help to further
+refine our understanding.
 
 \end{document}

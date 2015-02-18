@@ -2,6 +2,11 @@
 \title{NEWS file for the survival package}
 \section{Changes in version 2.37-8}{
   \itemize{
+    \item Fix an error discovered by CRAN, which triggered a core dump
+    for them on a particular manual page (but never for me).  The linear
+    predictors from a frailty model contained NA values (incorrect),
+    leading to failure in survConcordance.fit. (2015/2/16).
+    
     \item An error was found in the mgus data set (a progression after
     death).  Now corrected, and added a little more follow-up time for
     some subjects.

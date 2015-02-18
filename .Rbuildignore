@@ -7,3 +7,8 @@ inst/doc/validate.tex
 .hgignore
 test.local
 vigtemp
+vignettes/*.aux
+vignettes/*.log
+vignettes/*.tex
+noweb/noweb.sty
+

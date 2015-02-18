@@ -14,7 +14,7 @@
 \fvset{listparameters={\setlength{\topsep}{0pt}}}
 \renewenvironment{Schunk}{\vspace{\topsep}}{\vspace{\topsep}}
 
-\SweaveOpts{width=6,height=4}
+\SweaveOpts{prefix.string=figures/splines,width=6,height=4}
 \setkeys{Gin}{width=\textwidth}
 
 <<echo=FALSE>>=
@@ -144,7 +144,7 @@ One thing the plot does not display is that the spacing between the
 male and female points also has a standard error.
 This moves the entire bundle of three red curves up and down.  It is not
 clear how best to add this information into the plot.
-For questions of parallism and shape, as here, it seemed best to
+For questions of parallelism and shape, as here, it seemed best to
 ignore it, which is what the termplot function also does.
 If someone were reading individual male/female differences off the plot
 a different choice would be appropriate.

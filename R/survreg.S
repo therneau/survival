@@ -127,9 +127,6 @@ survreg <- function(formula, data, weights, subset, na.action,
 	else if (type=='interval' && all(Y[,3]<3)) Y <- Y[,c(1,3)]
 	}
 
-    if (is.null(dlist$itrans)) itrans <- function(x) x
-    else itrans <- dlist$itrans
-
     if (!is.null(dlist$scale)) {
         if (!missing(scale)) warning(paste(dlist$name, 
                            "has a fixed scale, user specified value ignored"))
@@ -223,7 +220,6 @@ survreg <- function(formula, data, weights, subset, na.action,
 
     if (!score) fit$score <- NULL   #do not return the score vector
     fit$df.residual <- n - sum(fit$df)
-#   fit$fitted.values <- itrans(fit$linear.predictors)
     fit$terms <- Terms
     fit$contrasts <- contr.save
     if (length(xlevels)) fit$xlevels <- xlevels

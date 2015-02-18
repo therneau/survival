@@ -14,11 +14,11 @@ Authors@R: c(person(c("Terry", "M"), "Therneau",
 	            role=c("aut", "cre")),
              person("Thomas", "Lumley", role=c("ctb", "trl"),
 	       comment="original S->R port and maintainer until 2009"))
-Description: survival analysis: descriptive statistics, two-sample
-  tests, parametric accelerated failure models, Cox model. Delayed entry
-  (truncation) allowed for all models; interval censoring for parametric
-  models.
+Description: Contains the core survival analysis routines, including
+	     definition of Surv objects, 
+	     Kaplan-Meier and Aalen-Johansen (multi-state) curves, Cox models,
+	     and parametric accelerated failure time models.
 License: LGPL (>=2)
-URL: http://r-forge.r-project.org
+
 
 

@@ -396,10 +396,9 @@ agsurv <- function(y, x, wt, risk, survtype, vartype) {
 @ 
 
 The KP estimate requires a short C routine to do the iteration
-efficiently, and the Efron estimate a different C routine to
+efficiently, and the Efron estimate needs a second C routine to
 efficiently compute the partial sums.
 <<agsurv>>=
-    dtimes <- which(nevent >0)
     ntime  <- length(time)	
     if (survtype ==1) {  #Kalbfleisch-Prentice
         indx <- (which(status==1))[order(dtime[status==1])] #deaths

@@ -39,7 +39,7 @@ SFUN =  agreg.fit.R \
 CFUN =  agsurv4.c agsurv5.c concordance1.c coxcount1.c \
 	agfit4.c \
         coxexact.c \
-	survfitci.c
+	survfitci.c 
 #	coxdetail2.c
 
 RDIR = ../R
@@ -49,10 +49,7 @@ DOCDIR= ../inst/doc
 
 all:  noweb.sty doc fun
 
-doc: $(DOCDIR)/sourcecode.pdf
-
-$(DOCDIR)/sourcecode.pdf: all.pdf
-	cp all.pdf $(DOCDIR)/sourcecode.pdf
+doc: all.pdf 
 
 all.pdf: all.tex noweb.sty
 	texi2dvi --pdf all.tex
@@ -70,7 +67,7 @@ $(CFUN2): all.nw
 $(RFUN): all.nw
 
 .PHONY: fun clean doc
-fun: $(RFUN) $(CFUN2)
+fun: $(RFUN) $(CFUN2) noweb.sty
 
 test: $(RFUN)
 	echo $(RFUN)

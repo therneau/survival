@@ -15,7 +15,10 @@
 \begin{document}
 \maketitle
 
+\SweaveOpts{prefix.string=figures/compete,width=6,height=4}
+\setkeys{Gin}{width=\textwidth}
 \SweaveOpts{keep.source=TRUE}
+
 <<preamble, echo=F>>=
 options(width=60, continue=" ")
 makefig <- function(file, top=1, right=1, left=4) {
@@ -57,7 +60,7 @@ the outcome of each drawing based on
   \item The covariate values of each subject just prior to the event time.
 \end{itemize}
 
-The model has a theoretical foundation in martigale theory,
+The model has a theoretical foundation in martingale theory,
 a mathematical construct which arose out of the study of games of chance.
 A key underlying condition for a martingale like game is that present
 actions depend only on the past. The decision of whether to play
@@ -108,7 +111,7 @@ coefficients, but sometimes it generates little bias at all.
 It is nearly impossible to predict a priori which of these will occur in any
 given data set.
 Using such a covariate is similar to jogging across the Los Angeles freeway:
-disaster is not guarranteed --- but it is likely.
+disaster is not guaranteed --- but it is likely.
 
 The most common way to encode time-dependent covariates is to use the
 (start, stop] form of the model.
@@ -133,7 +136,7 @@ open on the left and closed on the right, which means that the creatinine
 is taken to be 1.3 on day 15.
 The status variable describes whether or not each interval ends in an event.
 
-One commmon question with this data setup is whether we need to worry about
+One common question with this data setup is whether we need to worry about
 correlated data, since a given subject has multiple observations.
 The answer is no, we do not.  The reason is that this representation is
 simply a programming trick.
@@ -225,7 +228,7 @@ The value over the interval (0,6) will be the value of the variable
 assumed to contain the baseline value --- or NA otherwise.
 
 \subsubsection{CGD data set}
-Chronic granulomatous disease (CGD) is a heterogenous group of uncommon
+Chronic granulomatous disease (CGD) is a heterogeneous group of uncommon
 inherited disorders characterized by recurrent pyogenic infections that
 usually begin early in life and may lead to death in childhood.
 In 1986, Genentech, Inc. conducted a
@@ -306,13 +309,13 @@ all.equal(newcgd[, c("id", "tstart", "tstop", "infect")],
     time 3 is within an interval, one at 5 is on the border of two
     intervals, one at 14 is at the leading edge of an interval and one at
     time 10 in on the trailing edge.
-    In this data set all new additions fell stricly within prior intervals.
+    In this data set all new additions fell strictly within prior intervals.
     We also see that etime6 and etime7 each added only a single event to 
     the data.
   \item If two observations in data2 for a single person share exactly
     the same time, the created value will be the sum of the contributions.
     The ``tied'' column tells how often this happened; in some
-    data sets this behaviour might not be desired and one would need to
+    data sets this behavior might not be desired and one would need to
     break the ties before calling tmerge.
   \item Sometimes the ``where'' form of the call may be more
     convenient than using the data2 argument.  An example is shown
@@ -336,7 +339,7 @@ transplant study, in the form that it appeared in the
 paper of Crowley and Hu \cite{Crowley77}.
 Each row also contain also contains the age, time to transplant
 and time to last follow-up calculated from these dates.
-Patients were on medical treatmant from their entry to the study until
+Patients were on medical treatment from their entry to the study until
 a matching heart became available, at which time they transferred to 
 surgical treatment.  
 As is often the case with real data, this data set contains a few anomalies 
@@ -398,7 +401,7 @@ The \code{tcount} table for the above fit shows all the deaths at the
 trailing edge of their interval, not surprising since last follow-up was
 used to define the interval of risk.
 Three of the transplants happened on day 0, one of which we moved to 0.5,
-the other 2 listed as occuring on the leading edge of the follow-up
+the other 2 listed as occurring on the leading edge of the follow-up
 interval.  The other 67 transplants were strictly within the (0, last follow up)
 interval of each subject.
 
@@ -419,7 +422,7 @@ pbc2 <- tmerge(pbc2, pbcseq, id=id, ascites = tdc(day, ascites),
 coef(coxph(Surv(time, status==2) ~ log(bili) + log(protime), pbc))
 coef(coxph(Surv(tstart, tstop, status==2) ~ log(bili) + log(protime), pbc2))
 @ 
-The coeffcients of bilirubin and probrombin time are somewhat larger in
+The coefficients of bilirubin and prothrombin time are somewhat larger in
 the time-dependent analysis than using only baseline values.  
 In this autoimmune disease there is steady progression of liver damage, along
 with a steady rise in these two markers of dysfunction.  
@@ -432,7 +435,7 @@ attr(pbc2, "tcount")
 The tcount results are interesting.  For the first addition of ascites we
 have 312 observations on a leading edge of follow up 
 (all of the lab values at time 0) and 1495 within the subjects' follow-up
-interval.  This causes a new breakpoint to be added at each laboratory date,
+interval.  This causes a new break point to be added at each laboratory date,
 and for subsequent additions these 1495 are all on a boundary of two 
 intervals.  Another 138 lab values occurred after the last follow-up date
 of the pbc data set and are ignored.
@@ -467,7 +470,7 @@ below.
   \lambda(t) &= \lambda_0(t) e^{\beta(t) X} \label{tdbeta} 
 \end{align}
 Equation \eqref{tdcovar} is a time dependent covariate, a commonly used
-and well understood useage.
+and well understood usage.
 Equation \eqref{tdbeta} has a time dependent coefficient.
 These models are much less common, but represent one way to deal with
 non-proportional hazards -- the proportional hazard assumption is
@@ -552,7 +555,7 @@ variables on-the-fly.)
 
 
 \section{Predictable time-dependent covariates}
-Occasionaly one has a time-dependent covariate whose values in the future
+Occasionally one has a time-dependent covariate whose values in the future
 are predictable.
 The most obvious of these is patient age, occasionally this may also be
 true for the cumulative dose of a drug.
@@ -568,7 +571,7 @@ The partial likelihood term is
 We see that using time-dependent age (the right hand version) or age at
 baseline (left hand), the partial likelihood term is identical since
 $\exp(\beta t_i)$ cancels out of the fraction.
-Howevever, if the effect of age on risk is \emph{non-linear}, this
+However, if the effect of age on risk is \emph{non-linear}, this
 cancellation does not occur.
 
 Since age changes continuously, we would in theory need a very large
@@ -626,7 +629,7 @@ One example is O'Brien's logit-rank test procedure \cite{obrien78}.
 He proposed replacing the covariate at each event time with a logit
 transform of its ranks.  
 This removes the influence of any outliers in the predictor $x$.
-For this case we ingore the event time argument and concentrate on the
+For this case we ignore the event time argument and concentrate on the
 groupings.
 <<>>=
 function(x, t, riskset, weights){ 
@@ -637,13 +640,13 @@ function(x, t, riskset, weights){
     unlist(tapply(x, riskset, obrien))
 }
 @ 
-This relies on the fact that the input argments to tt() are ordered by the 
+This relies on the fact that the input arguments to tt() are ordered by the 
 event number or riskset.
 This function is used as a default if no tt argument is present in the
 coxph call, but there are tt terms in the model formula.
 (Doing so allowed me to depreciate the survobrien function).
 
-Another interesting useage is to replace the data by simple ranks, not
+Another interesting usage is to replace the data by simple ranks, not
 rescaled to 0--1.
 <<>>=
 function(x, t, riskset, weights) 
@@ -674,7 +677,7 @@ data sets the impact of $nd$ versus $n+d$ can be surprising.
 
 
 The time-transform is a new addition and still has some rough edges.
-At this moment the $x=TRUE$ argment is needed to get proper residuals and
+At this moment the $x=TRUE$ argument is needed to get proper residuals and
 predicted values, and termplot is unable to properly reconstruct the
 data to plot a fit.
 Please communicate any concerns or interesting examples to the author.
