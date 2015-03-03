@@ -1,6 +1,16 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
-\section{Changes in version 2.37-8}{
+\section{Changes in version 2.38-2}{
+  \itemize{
+    \item Move the anova.coxphlist function from the survival package to
+    coxme.  (2015/3/3)
+
+    \item Change the logLik method for coxph models so that the nobs
+    component is the number of events rather than the number of rows in
+    the data.  This is superior for follow on methods such as AIC.
+}}
+
+\section{Changes in version 2.38-1}{
   \itemize{
     \item Fix an error discovered by CRAN, which triggered a core dump
     for them on a particular manual page (but never for me).  The linear

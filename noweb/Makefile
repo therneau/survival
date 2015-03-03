@@ -89,8 +89,9 @@ test: $(RFUN)
 	echo "require(noweb); notangle('all.nw', target='$(*F)', out='zz')" | $(R_HOME)/bin$(R_ARCH_BIN)/R --vanilla --slave
 	cat zz >> $@
 	rm zz
+
 clean:
-	-rm all.nw all.log all.aux all.toc all.tex all.bbl all.blg
+	-rm all.nw all.log all.aux all.toc all.tex all.bbl all.blg all.out
 	-rm noweb.sty
 
 noweb.sty:

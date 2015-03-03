@@ -3,7 +3,9 @@
 #
 logLik.coxph <- function(object, ...) {
     out <- object$loglik[2]
-    attr(out, 'df') <- sum(!is.na(coefficients(object)))
+    if (!is.null(object$df)) attr(out, "df") <- object$df[2]
+    else  attr(out, 'df') <- sum(!is.na(coefficients(object)))
+    attr(out, "nobs") <- object$nevent
     class(out) <- 'logLik'
     out
     }
@@ -11,8 +13,9 @@ logLik.coxph <- function(object, ...) {
 logLik.survreg <- function(object, ...) {
     out <- object$loglik[2]
     dd <- diag(object$var)
-    attr(out, 'df') <- sum(!is.na(dd) & dd > 0)
-    attr(out, "nobs") <- object$df + object$df.residual
+    if (!is.null(object$df)) attr(out, "df") <- sum(object$df)
+    else attr(out, 'df') <- sum(!is.na(dd) & dd > 0)
+#    attr(out, "nobs") <- sum(object$df) + object$df.residual
     class(out) <- 'logLik'
     out
     }
