@@ -54,13 +54,18 @@ clogit(formula, data, weights, subset, na.action,
   however.  If a particular strata had say 10 events out of 20 subjects
   we have to add up a denominator that involves all possible ways of
   choosing 10 out of 20, which is 20!/(10! 10!) = 184756 terms. Gail et
-  al describe a fast recursion method which largely ameleorates 
-  this; it was incorporated into version 2.36-11 of the survival package.
+  al describe a fast recursion method which partly ameleorates 
+  this; it was incorporated into version 2.36-11 of the survival
+  package.  The compuation remains infeasable for very large groups of
+  ties, say 100 ties out of 500 subjects, and may even lead to integer
+  overflow for the subscripts -- in this latter case the routine will
+  refuse to undertake the task.  The Efron approximation is normally a
+  sufficiently accurate substitute.
+
   Most of the time conditional logistic modeling 
-  is applied data with 1 case + k controls per set, however, 
-  where the above the computational issue above does not arise.
-  Thus most users will not notice the change but for others
-  computation time will drop precipitously.
+  is applied data with 1 case + k controls per set, however, in
+  which case all of the approximations for ties lead to exactly the
+  same result.  
   The 'appoximate' option maps to the
   Breslow approximation for the Cox model, for historical reasons.
 

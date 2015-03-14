@@ -8,6 +8,12 @@
     \item Change the logLik method for coxph models so that the nobs
     component is the number of events rather than the number of rows in
     the data.  This is superior for follow on methods such as AIC.
+
+    \item Add a test to the coxexact.c routine: one user had invoked it
+    with a large data set containing an excessive number of ties,
+    leading to an integer overflow in subscripts.  (In any case, the
+    time needed to compute this case would be measured in decades.)
+    Add some more explanation to the help pages as well.
 }}
 
 \section{Changes in version 2.38-1}{

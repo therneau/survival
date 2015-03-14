@@ -68,9 +68,7 @@ coxph(formula, data=, weights, subset,
     computationally. 
     The ``exact partial likelihood'' is 
     equivalent to a conditional logistic model, and is appropriate when
-    the times are a small set of discrete values.
-    If there are a large number of ties and (start, stop) style survival
-    data the computational time will be excessive. 
+    the times are a small set of discrete values.  See further below.
   }
   \item{singular.ok}{
     logical value indicating how to handle collinearity in the model matrix. 
@@ -180,6 +178,32 @@ The primary consequence for he user is that the Wald statistic =
 coefficient/se(coefficient) is not valid in this case and should be
 ignored; the likelihood ratio and score tests remain valid however.
 }
+\section{Ties}
+There are three possible choices for handling tied event times.
+The Breslow approximation is the easiest to program and hence became the
+first option coded for almost all computer routines. It then ended up
+as the default option when other options were added in order to "maintain
+backwards compatability".  The Efron option is more accurate if there are
+a large number of ties, and it is the default option here.
+In practice the number of ties is usually small, in which case all the
+methods are statistically indistinguishable.
+
+Using the "exact partial likelihood" approach the Cox partial likelihood
+is equivalent to that for matched logisitic regression.  (The
+\code{clogit} function uses the \code{coxph} code to do the fit.)
+It is technically appropriate when the time scale is discrete and has
+only a few unique values, and some packages refer to this as the
+"discrete" option.  There is also an "exact marginal likelihood" due to
+Prentice which is not implemented here.
+
+The calculation of the exact partial likelihood is numerically intense.
+Say for instance 15 of 180 subjects at risk had an event on day 7; then
+the code needs to compute sums over all 180-choose-15 > 10^43 different
+possible subsets of size 15.  There is an efficient recursive algorithm
+for this task, but even with this the compuatation can be insufferably
+long.  With (start, stop) data it is much worse since the recursion
+needs to start anew for each unique start time.
+
 \section{Penalized regression}{
   \code{coxph} can now maximise a penalised partial likelihood with
 arbitrary user-defined penalty.  Supplied penalty functions include
