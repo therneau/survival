@@ -183,12 +183,15 @@ the $X$ matrix and the response variable.
 The non-obvious bit of code is the addition of an environment to the
 formula.  The [[model.matrix]] routine has a non-standard evaluation - it
 uses the frame of the formula, rather than the parent.frame() argument
-below, along with the [[data]] to look up variables.  
+below, along with the [[data]] to look up variables. 
+If a formula is long enough deparse() will give two lines, hence the
+extra paste call to re-collapse it into one.
 <<survexp-setup-rmap>>= 
 # Create a temporary formula, used only in the call to model.frame
 newvar <- all.vars(rcall)
 if (length(newvar) > 0) {
-    tform <- paste(deparse(Terms), paste(newvar, collapse='+'), sep='+')
+    tform <- paste(paste(deparse(Terms), collapse=""),  
+                   paste(newvar, collapse='+'), sep='+')
     m$formula <- as.formula(tform, environment(Terms))
     }
 @

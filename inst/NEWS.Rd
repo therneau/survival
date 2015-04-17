@@ -2,6 +2,8 @@
 \title{NEWS file for the survival package}
 \section{Changes in version 2.38-2}{
   \itemize{
+    \item Pyears could fail on very long formulas due to a parsing error.
+    
     \item Move the anova.coxphlist function from the survival package to
     coxme.  (2015/3/3)
 

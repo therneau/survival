@@ -653,6 +653,13 @@ This tells a very different story than the Cox model prevalence curves.
 Which is correct?  Individual non-parametric prevalence curves are
 not as helpful as one would hope: there are simply too few progression
 events when separated into 8 groups.  
+
+<<timedep>>=
+fgfit3 <- with(temp, crr(etime, fstat, cov1= cbind(age, msex,  mspike),
+                        failcode=2, cencode=1, variance=TRUE,
+                        cov2=msex, tf = function(x) log(x)))
+@ 
+
 A deeper analysis is called for, but will have to be left for another day.
 
 
