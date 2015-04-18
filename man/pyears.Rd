@@ -111,6 +111,9 @@ check.
 \item{call}{
 an image of the call to the function. 
 }
+\item{observations} the number of observations in the input data set,
+after any missings were removed.}
+
 \item{na.action}{
 the \code{na.action} attribute contributed by an \code{na.action}
 routine, if any. 

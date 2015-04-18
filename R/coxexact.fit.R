@@ -26,10 +26,20 @@ coxexact.fit <- function(x, y, strata, offset, init, control,
     if (is.null(offset)) offset <- rep(0.,n)
     else offset <- offset[sorted]
 
-    if (is.null(nvar)) {
-	# A special case: Null model.  Not worth coding up
-	stop("Cannot handle a null model + exact calculation (yet)")
-	}
+    if (nvar==0) {
+	# A special case: Null model.  Trick the C code, which requires
+        #   at least one variable, by creating one and then doing 0
+        #   iterations at beta=0
+        x <- matrix(1:n, ncol=1)
+        init <- NULL
+        maxiter <- 0
+        nullmodel <- TRUE
+        nvar <- 1
+    }
+    else {
+        maxiter <- control$iter.max
+        nullmodel <- FALSE
+    }
 
     if (!is.null(init)) {
 	if (length(init) != nvar) stop("Wrong length for inital values")
@@ -44,7 +54,7 @@ coxexact.fit <- function(x, y, strata, offset, init, control,
     means   <- attr(newx, "scaled:center")
 
     cfit <- .Call(Ccoxexact, 
-                  as.integer(control$iter.max),
+                  as.integer(maxiter),
                   as.double(y),  # interger data?  Just in case.
                   newx,
                   as.double(offset),
@@ -53,6 +63,24 @@ coxexact.fit <- function(x, y, strata, offset, init, control,
                   as.double(control$eps),
                   as.double(control$toler.chol)
               )
+    if (nullmodel) {
+        score <- exp(offset[sorted])
+        cxres <- .C(Ccoxmart2,
+                    as.integer(n),
+                    as.double(y[,1]),
+                    as.integer(y[,2]),
+                    newstrat,
+                    score,
+                    rep(1.0, n),  #weights
+                    resid=double(n))
+        resid <- double(n)
+        resid[sorted] <- cxres$resid
+        names(resid) <- rownames
+        return( list(loglik = cfit$loglik[1],
+                     linear.predictors = offset,
+                     residuals = resid,
+                     method= c("coxph.null", "coxph")))
+    }
 
     loglik <- cfit$loglik[1:2]  #these are packed into one vector
     sctest <- cfit$loglik[3]

@@ -360,6 +360,7 @@ else {
     if (docount)
     	out$event <- array(temp$pcount, dim=odims, dimnames=outdname)
     }
+out$observations <- nrow(m)
 na.action <- attr(m, "na.action")
 if (length(na.action))  out$na.action <- na.action
 if (model) out$model <- m

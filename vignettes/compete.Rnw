@@ -28,7 +28,7 @@ require("survival")
 \title{Multi-state models and competing risks}
 \author{Terry M Therneau \\ \emph{Mayo Clinic}}
 \newcommand{\code}[1]{\texttt{#1}}
-\newcommand{\myfig}[1]{\includegraphics[height=!, width=\textwidth]
+newcommand{\myfig}[1]{\includegraphics[height=!, width=\textwidth]
                         {figures/compete-#1.pdf}}
 
 \begin{document}
@@ -171,6 +171,10 @@ that subjects never exit.
 We create a variable \code{etime} containing the time of
 the first progression, death, or last follow-up along with an event
 variable that contains the outcome.
+The starting data set \code{mgus2} has two pairs of variables
+\code{(ptime, pstat)} that contain the time to progression
+and \code{(futime, status)} that contain the time to death or last known
+alive, ignoring progression.
 
 <<mgus2, echo=TRUE, fig=TRUE>>=
 etime <- with(mgus2, ifelse(pstat==0, futime, ptime))
@@ -243,8 +247,8 @@ Thus \code{mfit[2,1]} corresponds to males and the pcm endpoint.
 A third example using the MGUS data treats it as a multi-state model.
 In this version a subject can have multiple transitions and thus multiple
 rows in the data set, and it is necessary to identify which data rows go
-with which subject via the \code{id} argument of \code{survfit} (valid
-valid estimates standard errors both depend on this).
+with which subject via the \code{id} argument of \code{survfit} 
+(valid estimates standard errors both depend on this).
 Our model looks like the illness-death model of figure \ref{sfig1} but
 with ``plasma cell malignancy'' as the upper state and no arrow for
 a return from that state to health.  
@@ -289,7 +293,7 @@ plot(mfit3[,1], mark.time=FALSE, col=1:2, lty=1, lwd=2,
 legend(4, .04, c("female", "male"), lty=1, col=1:2, lwd=2, bty='n') 
 @ 
 This plot is quite different in that it shows the fraction of subjects
-are \emph{currently} in the PCM state. 
+\emph{currently} in the PCM state. 
 Looking at the lower scenario in figure \ref{sfig1}, this is the fraction
 of subjects in the upper right box.
 The curve goes up whenever someone enters the box and down when
@@ -317,11 +321,13 @@ legend(15, .5, c("male:death w/o pcm", "male: ever pcm",
              lwd=2, bty='n')
 @ 
 
-When using multi-state data to create Aalen-Johansen curves individuals
+When using multi-state data to create Aalen-Johansen estimates individuals
 are not allowed to have gaps in the middle of their time line.
-For example someone who is known to be in state 1 at time $s$ and in state 3 at
-time $t>s$, but the exact time they entered state 3 is unknown, nor whether
-they visited other states during the interim.
+For example a data with (0, 30, pcm) and (50,70, death) as the two observations
+for a subject; the time from 30-70 is not accounted for.
+The method also does not account for what is known as panel data, 
+where a subject's state is recorded at some a priori time such as a
+physician visit but the actual times of state transitions are unknown.
 Such data requires further assumptions about the transition process in
 order to model the outcomes, see for instance the msm package.
 
@@ -329,19 +335,20 @@ order to model the outcomes, see for instance the msm package.
 For simple two-state survival the Cox model leads to three relationships
 \begin{align}
   \lambda(t)  &= \lambda_0(t) e^{X\beta}  \label{hazard} \\
-  \log(\Lambda(t))  &= \log(\Lambda_0(t)) e^{X\beta} \label{cumhaz}\\
+  \Lambda(t)  &= \Lambda_0(t) e^{X\beta} \label{cumhaz}\\
   S(t)       &= \exp(-\Lambda(t))  \label{surv}
   \end{align}
 where $\lambda$, $\Lambda$ and $S$ are the hazard, cumulative hazard
 and survival functions, respectively.
 There is a single linear predictor which governs
-both for the rate $\lambda$ (the arrow in figure \ref{sfig1}) and the 
+both the rate $\lambda$ (the arrow in figure \ref{sfig1}) and the 
 prevalence value of the left hand box $S$.
 For multi-state models this simplicity no longer holds: proportional
 hazards does not lead to proportional prevalence curves.
 
 \subsection{Competing risks, Cox model}
-The Cox model approach starts by fitting models to each of the transitions.
+The Cox model approach starts by fitting 
+separate models to each of the transitions.
 We will illustrate using the MGUS example.
 <<cfit1>>=
 mtemp <- mgus2
@@ -356,8 +363,8 @@ cfit2
 The effect of age and sex on non-PCM mortality is profound, which is not
 a surprise given the median starting age of \Sexpr{median(mgus2$age)}.   %$
 Risk rises \Sexpr{round(exp(coef(cfit2)[1]),1)} fold per decade of age and
-males have \Sexpr{round(exp(coef(cfit2)[2]),1)} times as great a hazard
-as females.
+the death rate for males is \Sexpr{round(exp(coef(cfit2)[2]),1)} times as great
+as that for females.
 The size of the serum monoclonal spike is of no consequence for
 this endpoint either statistically or clinically.  
 
@@ -370,7 +377,7 @@ The mspike size has a major impact on progression, however; each 1 gram
 change increases risk by \Sexpr{round(exp(coef(cfit1)[3]) ,1)} fold.
 The interquartile range of \code{mspike} is 0.9 gram so this risk increase
 is clinically important.
-Meantime the effect of age on the progression rate is much less pronounced,
+The effect of age on the progression rate is much less pronounced,
 with a coefficient only 1/4 that for mortality, while the effect of sex
 on progression is negligible.
 
@@ -397,7 +404,7 @@ round(temp$table[,1:6], 1)
 Prevalence estimates from the multi-state model involve the matrix $A(t; x)$
 of cumulative hazard estimates.
 The $i,j$ off diagonal element of $A(t;x)$ is the the cumulative
-hazard $\Lambda_{ij}(t;x)$ for the $i \rightarrow j$ transition, obtained
+hazard $\lambda_{ij}(t;x)$ for the $i \rightarrow j$ transition, obtained
 from the fitted Cox model for that transition.
 These predicted hazards are formed for a chosen set of covariates $x$,
 e.g. in the model above we could for instance choose predicted 
@@ -461,7 +468,7 @@ A computational nuisance is that the \code{surv1} and \code{surv2}
 curves do not necessarily jump at the same time.
 We use the summary function to select values on a common time scale.
 (The \code{summary.survfit} function was original written to provide printed
-values at specified times, but turns out to to also be an easy way to pluck off 
+values at specified times, but turns out to be an easy way to pluck off 
 values.)
 <<mprev2>>=
 cifun <- function(surv1, surv2) {
@@ -506,7 +513,7 @@ round(100*t(progmat), 1)  #males and females at 20 years
 The above table shows that females are modeled to 
 have a higher risk of 20 year progression, even
 though their hazard at any given moment is nearly identical to males.
-The difference at 20 years is on the order of our ``back of the envelope''
+The difference at 20 years is on the order of our ``back of the napkin''
 person-years estimate of 1\% progression per year * 1.5 more years of life
 for the females, but the progression fraction varies substantially by group.  
 Eighty year olds have a lower cumulative rate of PCM than 50 year
@@ -566,7 +573,7 @@ $T^*= I(\mbox{endpoint}=k)T + I(\mbox{endpoint}\ne k)\infty$.
 Fine and Gray refer to $F_k$ as a subdistribution function.
 In an analog to the survival probability in the two state model define
 \begin{equation}
-  \gamma_k(t) = - d \log[1-F_k(t)]/dt \label{FG}
+  \gamma_k(t) = - d \log[1-F_k(t)]/dt \label{FG}I 
 \end{equation}
 and assume that $\gamma_k(t;x) = \gamma_{k0}(t) \exp(X\beta)$.
 In a 2 state model $\gamma$ is the usual hazard function.
@@ -575,9 +582,11 @@ simplifying assumption that the impact of male sex is to increase the
 hazard for death
 by a factor of \Sexpr{round(exp(coef(cfit2)['sexM']), 2)}
 independent of the subject's age or serum mspike value,
-this model assumes that each covariate's effect on $\log(1-F)$ is a constant,
+the Fine-Gray model assumes that each covariate's effect on $\log(1-F)$ 
+is a constant,
 independent of other variables.  
-Both assumptions are wonderfully simplifying with respect to understanding
+Both model's assumptions are wonderfully simplifying with respect to 
+understanding
 a covariate --- assuming of course that either assumption is correct.
 (In a multi-state model at least one of the two must be false.)
 

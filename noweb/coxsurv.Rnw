@@ -73,13 +73,13 @@ if (missing(type)) {
     # Use the appropriate one from the model
     temp1 <- c("exact", "breslow", "efron")
     survtype <- match(object$method, temp1)
-        }
+}
 else {
     temp1 <- c("kalbfleisch-prentice", "aalen", "efron",
                "kaplan-meier", "breslow", "fleming-harrington",
                "greenwood", "tsiatis", "exact")
     survtype <- match(match.arg(type, temp1), temp1)
-    survtype <- c(1,2,3,1,2,3,1,2,3)[survtype]
+    survtype <- c(1,2,3,1,2,3,2,2,1)[survtype]
     }
 if (missing(vartype)) {
     vartype <- survtype

@@ -146,7 +146,7 @@ vector $p(t)$ using the product-limit form
          &= p(0) \prod_{s<=t} H(s)
 \end{align*}
 Where $p$ is a row vector and $H$ is the multi-state hazard matrix.  
-At each event time we define 
+At each event time we define the off diagonal elements of $H$ by
 $$H_{jk}(t) = \sum_i w_i dN_{ijk}(t)/ \sum w_iY_{ij}{t}$$
 where $N_{ijk}$ counts the number of observed trasitions between 
 state $j$ and state $k$ for subject $i$, $Y_{ij}(t)$ is 1 if subject $i$ is in
@@ -158,17 +158,6 @@ The diagonal elements of $H$ are set so that each row of $H$ sums to 1
 (everyone has to go somewhere). 
 This formula collapses to the Kaplan-Meier in the simple case where $P(t)$ is a
 vector of length 2 with state 1 = alive and state 2 = dead. 
-
-A complementary formula is the hazard based calculation
-$$S(t) = I-P = \exp^{-A(t)} $$
-where exp is the matrix exponential and $A$ is the cumulative hazard matrix.
-The matrix $A(t)$ has off diagonal elements $\sum_{s \le t} H(s)$, 
-but the diagonal is chosen to give row sums of 0.
-This collapses to $\exp(-\Lambda(t))$ in the alive/dead case.
-The analog of the fh2 estimate comes from treating tied
-event times of the same type (same states) as sequential.
-The variance for these estimates is harder, so we haven't persued it in the
-code yet.
 
 A robust variance for the product-limit estimate is based on the
 chain rule.  Consider the $n$ by $k$ matrix of per subject influence values

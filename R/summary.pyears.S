@@ -21,6 +21,9 @@ summary.pyears <- function(object, ...) {
         cat("Matches to the chosen rate table:\n  ", 
             object$summary)
         }
+    cat("Observations in the data set:", object$observations, "\n")
+    if (!is.null(object$na.action))
+      cat("  (", naprint(object$na.action), ")\n", sep='')
     cat("\n")
     }
 

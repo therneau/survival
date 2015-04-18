@@ -2,7 +2,19 @@
 \title{NEWS file for the survival package}
 \section{Changes in version 2.38-2}{
   \itemize{
+    \item Fix an error in the tmerge function.  Using the options
+    argument would generate a spurious error.
     \item Pyears could fail on very long formulas due to a parsing error.
+    
+    \item Add the number of observations used and deleted due to missing
+    to summary.pyears.
+    
+    \item Allow the combination of a null coxph model (~1 on the right)
+    and the exact calculation for tied times.  No one had ever asked for
+    this before.  (2015/3/25)
+    
+    \item Shorten the default printout for survfit. The records, n.max
+    and n.start columns are often the same: if so suppress duplicates.
     
     \item Move the anova.coxphlist function from the survival package to
     coxme.  (2015/3/3)

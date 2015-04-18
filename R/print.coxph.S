@@ -39,15 +39,12 @@ print.coxph <-
     else  df <- round(sum(x$df),2)
     cat("\n")
     cat("Likelihood ratio test=", format(round(logtest, 2)), "  on ",
-	df, " df,", " p=", format(1 - pchisq(logtest, df)),  sep="")
+	df, " df,", " p=", format(1 - pchisq(logtest, df)), "\n",  sep="")
     omit <- x$na.action
-    cat("  n=", x$n)
+    cat("n=", x$n)
     if (!is.null(x$nevent)) cat(", number of events=", x$nevent, "\n")
     else cat("\n")
     if (length(omit))
-	cat("   (", naprint(omit), ")\n", sep="")
-#    if (length(x$icc))
-#	cat("   number of clusters=", x$icc[1],
-#	    "    ICC=", format(x$icc[2:3]), "\n")
+	cat("\   (", naprint(omit), ")\n", sep="")
     invisible(x)
     }

@@ -48,7 +48,7 @@ The overall organ shortage remains acute, however.
 period <- cut(transplant$year, c(1989, 1992, 1995, 1997, 2000),
               labels=c('90-92', '93-95', '96-97', '98-99'))
 pfit <- survfit(Surv(futime, event) ~ period, transplant)
-pfit[2,]  #time to liver transplant
+pfit[,2]  #time to liver transplant
 plot(pfit[,2], mark.time=FALSE, col=1:4, lwd=2, xmax=735,
        xscale=30.5, xlab="Months", ylab="Fraction transplanted",
        xaxt = 'n')

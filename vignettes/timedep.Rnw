@@ -71,10 +71,24 @@ If this holds then multiple properties can be proven about the
 resulting process.
 
 The key rule for time dependent covariates in a Cox model is simple
-and essentially the same as that for gambling: \emph{you cannot look into
+and essentially the same as that for gambling: \emph{you cannot look
 the future}.
 A covariate may change in any way based on past data or outcomes, but it
 may not reach forward in time.
+A good example of this is found in a recent analysis from the Mayo Clinic
+study of aging (MCSA), a study which enrolled a stratified random sample from
+the population of Olmsted County and then has followed them forward in
+time.  The occurence of mild cognitive impairment (MCI), dementia, and
+death are all of interest.  
+The paper starts out with a table comparing baseline covariates for those
+who never progress to MCI versus those who ever did,
+there is also a table of baseline covariates versus survival.
+Both of these are fine: if you think in terms of an R formula they
+could be written as \code{future ~ past}.
+A model that predicts survival as a function of ever versus never MCI
+is not correct, however; that is a model with a future occurence on
+both sides of the equation.
+
 One of the more well known examples of this error is analysis by 
 treatment response:
 at the end of a trial a survival curve is made comparing those who had an
@@ -87,8 +101,28 @@ The problem arises because any early deaths, those that occur before response
 can be assessed,
 will all be assigned to the non-responder group, even deaths that have
 nothing to do with the condition under study.
+Below is a simple example based on the advanced lung cancer data set.
+Assume that subjects came in every monthly for 12 cycles of treatment,
+and randomly declare a ``response'' for 5\% of the subjects at each
+visit.
+<<fake, fig=TRUE>>=
+set.seed(1953)  # a good year
+nvisit <- floor(pmin(lung$time/30.5, 12))
+response <- rbinom(nrow(lung), nvisit, .05) > 0
+badfit <- survfit(Surv(time/365.25, status) ~ response, data=lung)
+plot(badfit, mark.time=FALSE, lty=1:2, 
+     xlab="Years post diagnosis", ylab="Survival")
+legend(1.5, .85, c("Responders", "Non-responders"), 
+       lty=2:1, bty='n')
+@ 
+What is most surprising about this error is the \emph{size} of the
+false effect that is produced.
+A Cox model using the above data reports a hazard ratio of 1.9 fold
+with a p-value of less than 1 in 1000.
+
 The alarm about this incorrect approach has been sounded often
-\cite{Anderson83, Buyse96, Suissa08} but is routinely re-discovered.
+\cite{Anderson83, Buyse96, Suissa08} but the analysis is routinely 
+re-discovered.
 A slightly subtler form of the error is discussed in Redmond et al
 \cite{Redmond83}.  Breast cancer chemotherapy patients were
 divided into three groups based on whether the patient eventually
@@ -292,19 +326,19 @@ all.equal(newcgd[, c("id", "tstart", "tstop", "infect")],
 
 \begin{itemize}
   \item A standard way to build data sets is one addition at a time,
-    as shown by the etime1, etime2, and etime3 lines.  When multiple
-    additions come from the same data set, however, one can do multiples
-    at a time as shown in the last addition.
-    They are processed one at a time within the code so the
-    outcome of the two approaches is identical.
-    Additions with a missing time value are skipped.
+    as shown by the \code{event(etime1)} and \code{event(etime2)}
+    lines above.  When multiple additions are done using the same d
+    the same data set, however, they can also be done using as single
+    call as shown by the line that adds etime4--etime7.
+    When there are multiple arguments they are processed sequentially.
+ \item Additions with a missing time value are skipped.
   \item The result of \code{tmerge} is a data frame with a few extra
     attributes. One of these, tcount, is designed to help visualize
     the process, and was printed out after the last step above.
     (Printing after every step may often be useful.)
     Assume that a subject already had 3 intervals of (2,5), (5,10)
     and (14,40).
-    A new event at time 1 would be ``early'' while one at time 50
+    A new event added at time 1 would be ``early'' while one at time 50
     is after any interval and would be recorded as ``late''.  An event at
     time 3 is within an interval, one at 5 is on the border of two
     intervals, one at 14 is at the leading edge of an interval and one at
@@ -320,7 +354,7 @@ all.equal(newcgd[, c("id", "tstart", "tstop", "infect")],
   \item Sometimes the ``where'' form of the call may be more
     convenient than using the data2 argument.  An example is shown
     in the addition of etime2.
-  \item The last addition after printing the tcount attribute adds a
+  \item The last addition above, after printing the tcount attribute, adds a
     simple time-dependent variable \code{enum} which is a running observation
     count for each subject.  This can often be a useful variable in later
     models or processing, e.g. \code{enum==1} select off the first row
@@ -381,11 +415,12 @@ created variable is an event code, then the range for each subject is
 inferred to be from 0 to the event time: an explicit \code{tstop} argument
 is not required.  It also makes use of a two argument form of \code{event}.
 Each of the \code{event}, \code{cumevent}, \code{tdc} and \code{cumtdc}
+functions
 may have a second argument, which will be used as the value or increment
 to the event code or time dependent covariate.
 If not present a value of 1 is used.
-If the variable being created is already a part of data1, then our updates
-make changes to that variable.
+Also note that if the variable being created is already a part of data1, 
+then our updates make changes to that variable.
 Be careful of this.  This feature is what allowed for the 
 \code{infection} indicator to be build up incrementally in the cgd
 example given earlier, but quite surprising results can occur when you

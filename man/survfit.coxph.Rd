@@ -50,7 +50,7 @@ hazards model.
   \item{type,vartype}{
     a character string specifying the type of survival curve. 
     Possible values are  \code{"aalen"}, \code{"efron"}, or
-    \code{"kalbfleish-prentice"} 
+    \code{"kalbfleisch-prentice"} 
     (only the first two characters are necessary). 
     The default is to match the computation used in the Cox model.
     The Nelson-Aalen-Breslow estimate for \code{ties='breslow'}, the Efron

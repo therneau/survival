@@ -6,7 +6,7 @@
 \setlength{\evensidemargin}{\oddsidemargin}
 
 \SweaveOpts{keep.source=TRUE, fig=FALSE}
-%\VignetteIndexEntry{Splines and interactions}
+%\VignetteIndexEntry{Splines, plots, and interactions}
 % Ross Ihaka suggestions
 \DefineVerbatimEnvironment{Sinput}{Verbatim} {xleftmargin=2em}
 \DefineVerbatimEnvironment{Soutput}{Verbatim}{xleftmargin=2em}
@@ -24,23 +24,76 @@ pdf.options(pointsize=8) #text in graph about the same as regular text
 options(contrasts=c("contr.treatment", "contr.poly")) #reset default
 @ 
 
-\title{Spline terms with interactions in a Cox model}
+\title{Spline terms in a Cox model}
 \author{Terry Therneau}
 
 \begin{document}
 \maketitle
-This is a topic that comes up just often enough in my work that I end up
-re-discovering how to do it correctly about once a year.
+This is a pair of topics that comes up just often enough in my work 
+that I end up re-discovering how to do it correctly about once a year.
 A note showing how may be useful to others, it is certainly a useful
 reference for me.
 
+\section{Plotting smooth terms}
+Here is a simple example using the MGUS data.
+(And turning off the garish color defaults of termplot).
+<<mplot, fig=TRUE>>=
+require(survival)
+mfit <- coxph(Surv(futime, death) ~ sex + pspline(age), data=mgus)
+termplot(mfit, term=2, se=TRUE, col.term=1, col.se=1)
+@ 
+
+Two questions of the plot are ``how was it centered'' and whether we
+can easily plot it on the hazard as opposed to the log hazard scale.
+The solution to both is to use the plot=FALSE option of termplot,
+which returns the data points that would be plotted back to the user.
+
+<<mplot2>>=
+ptemp <- termplot(mfit, se=TRUE, plot=FALSE)
+attributes(ptemp)
+ptemp$age[1:4,]
+@ 
+
+The termplot function depends on a call to predict with type='terms',
+which returns a centered set of predictions.
+Like a simple linear model fit, the intercept is a separate term, which is
+found in the ``constant'' attribute above,
+and each column of the result is centered at zero.  
+Since any given $x$ value may appear multiple times in the data and thus in
+the result of predict,
+and the termplot function removes duplicates, the plot may not
+be exactly centered at zero however.
+
+Now suppose we want to redraw this on log scale with age 50 as the reference,
+i.e., the  risk is 1 for a 50 year old.  
+Since the Cox model is a relative hazards model we can choose whatever center
+we like.
+(If there were no one of exactly age 50 in the data set the first line 
+below would need to do an interpolation, e.g. by using the approx function.)
+
+<<mplot3, fig=TRUE>>=
+center <- with(ptemp$age, y[x==50])
+ytemp <- ptemp$age$y + outer(ptemp$age$se, c(0, -1.96, 1.96), '*')
+matplot(ptemp$age$x, exp(ytemp - center), log='y',
+        type='l', lty=c(1,2,2), col=1, 
+        xlab="Age at diagnosis", ylab="Relative death rate")
+@ 
+
+Voila! We now have a plot that is more interpretable.  
+The approach is appropriate for any term, not just psplines.
+The above plot uses log scale for the y axis which is appropriate
+for the question of whether a non-linear age effect was even necessary
+for this data set (it is not),
+one could remove the log argument to emphasize the Gomperzian effect of
+age on mortality.
+
+\section{Splines in an interaction}
 As an example we will use the effect of age on survival in the 
 \texttt{flchain} data set, a population based sample of subjects from
 Olmsted County, Minnesota.
 If we look at a simple model using age and sex we see that both 
 are very significant.
 <<fit1, fig=TRUE>>=
-require(survival)
 options(show.signif.stars=FALSE) # display intelligence
 fit1 <- coxph(Surv(futime, death) ~ sex + pspline(age, 3), data=flchain)
 fit1
