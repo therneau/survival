@@ -23,10 +23,9 @@
     component is the number of events rather than the number of rows in
     the data.  This is superior for follow on methods such as AIC.
 
-    \item Add a test to the coxexact.c routine: one user had invoked it
-    with a large data set containing an excessive number of ties,
-    leading to an integer overflow in subscripts.  (In any case, the
-    time needed to compute this case would be measured in decades.)
+    \item Add a test to the coxexact.c routine for too large a data set;
+    too many tied times could lead to integer overflow.  "Fixing" the error
+    is not sensible: the computation for such a data set would take decades.
     Add some more explanation to the help pages as well.
 }}
 
