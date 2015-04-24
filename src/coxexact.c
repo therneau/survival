@@ -70,8 +70,9 @@ SEXP coxexact(SEXP maxiter2,  SEXP y2,
     int     nrisk;   /* number of subjects in the current risk set */
     int dsize,       /* memory needed for one coxc0, coxc1, or coxd2 array */
         dmemtot,     /* amount needed for all arrays */
-        maxdeath,    /* max tied deaths within a strata */
         ndeath;      /* number of deaths at the current time point */
+    double maxdeath;    /* max tied deaths within a strata */
+
     double dtime;    /* time value under current examiniation */
     double *dmem0, **dmem1, *dmem2; /* pointers to memory */
     double *dtemp;   /* used for zeroing the memory */
@@ -121,7 +122,7 @@ SEXP coxexact(SEXP maxiter2,  SEXP y2,
     loglik = REAL(loglik2);
     nprotect = 5;
     strata[0] =1;  /* in case the parent forgot */
-    dsize = 0;
+    temp = 0;      /* temp variable for dsize */
 
     maxdeath =0;
     j=0;   /* start of the strata */
@@ -131,7 +132,7 @@ SEXP coxexact(SEXP maxiter2,  SEXP y2,
               /* If maxdeath <2 leave the strata alone at it's current value of 1 */
               if (maxdeath >1) strata[j] = maxdeath;
               j = i;
-              if (maxdeath*nrisk >dsize) dsize = maxdeath*nrisk;
+              if (maxdeath*nrisk > temp) temp = maxdeath*nrisk;
               }
           maxdeath =0;  /* max tied deaths at any time in this strata */
           nrisk=0;
@@ -147,13 +148,18 @@ SEXP coxexact(SEXP maxiter2,  SEXP y2,
           }
       if (ndeath > maxdeath) maxdeath=ndeath;
       }
-    if (maxdeath*nrisk >dsize) dsize = maxdeath*nrisk;
+    if (maxdeath*nrisk > temp) temp = maxdeath*nrisk;
     if (maxdeath >1) strata[j] = maxdeath;
 
     /* Now allocate memory for the scratch arrays 
        Each per-variable slice is of size dsize 
     */
+    dsize = temp;
+    temp    = temp * ((nvar*(nvar+1))/2 + nvar + 1);
     dmemtot = dsize * ((nvar*(nvar+1))/2 + nvar + 1);
+    if (temp != dmemtot) { /* the subscripts will overflow */
+        error("(number at risk) * (number tied deaths) is too large");
+    }
     dmem0 = (double *) R_alloc(dmemtot, sizeof(double)); /*pointer to memory */
     dmem1 = (double **) R_alloc(nvar, sizeof(double*));
     dmem1[0] = dmem0 + dsize; /*points to the first derivative memory */

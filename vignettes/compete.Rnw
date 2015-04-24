@@ -28,7 +28,7 @@ require("survival")
 \title{Multi-state models and competing risks}
 \author{Terry M Therneau \\ \emph{Mayo Clinic}}
 \newcommand{\code}[1]{\texttt{#1}}
-newcommand{\myfig}[1]{\includegraphics[height=!, width=\textwidth]
+\newcommand{\myfig}[1]{\includegraphics[height=!, width=\textwidth]
                         {figures/compete-#1.pdf}}
 
 \begin{document}
