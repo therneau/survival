@@ -15,7 +15,11 @@
 \fvset{listparameters={\setlength{\topsep}{0pt}}}
 \renewenvironment{Schunk}{\vspace{\topsep}}{\vspace{\topsep}}
 
-\SweaveOpts{prefix.string=figures/compete,width=6,height=4}
+% I had been putting figures in the figures/ directory, but the standard
+%  R build script does not copy it and then R CMD check fails
+\SweaveOpts{prefix.string=compete,width=6,height=4}
+\newcommand{\myfig}[1]{\includegraphics[height=!, width=\textwidth]
+                        {compete-#1.pdf}}
 \setkeys{Gin}{width=\textwidth}
 <<echo=FALSE>>=
 options(continue="  ", width=60)
@@ -28,8 +32,6 @@ require("survival")
 \title{Multi-state models and competing risks}
 \author{Terry M Therneau \\ \emph{Mayo Clinic}}
 \newcommand{\code}[1]{\texttt{#1}}
-newcommand{\myfig}[1]{\includegraphics[height=!, width=\textwidth]
-                        {figures/compete-#1.pdf}}
 
 \begin{document}
 \maketitle

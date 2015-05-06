@@ -178,7 +178,7 @@ The primary consequence for he user is that the Wald statistic =
 coefficient/se(coefficient) is not valid in this case and should be
 ignored; the likelihood ratio and score tests remain valid however.
 }
-\section{Ties}
+\section{Ties}{
 There are three possible choices for handling tied event times.
 The Breslow approximation is the easiest to program and hence became the
 first option coded for almost all computer routines. It then ended up
@@ -203,7 +203,7 @@ possible subsets of size 15.  There is an efficient recursive algorithm
 for this task, but even with this the compuatation can be insufferably
 long.  With (start, stop) data it is much worse since the recursion
 needs to start anew for each unique start time.
-
+}
 \section{Penalized regression}{
   \code{coxph} can now maximise a penalised partial likelihood with
 arbitrary user-defined penalty.  Supplied penalty functions include

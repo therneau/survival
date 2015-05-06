@@ -13,7 +13,7 @@
 \fvset{listparameters={\setlength{\topsep}{0pt}}}
 \renewenvironment{Schunk}{\vspace{\topsep}}{\vspace{\topsep}}
 
-\SweaveOpts{prefix.string=figures/adjcurve,width=6,height=4}
+\SweaveOpts{prefix.string=adjcurve,width=6,height=4}
 \setkeys{Gin}{width=\textwidth}
 %\VignetteIndexEntry{Adjusted Survival Curves}
 
@@ -32,7 +32,7 @@ fdata$age2 <- cut(fdata$age, c(0,54, 59,64, 69,74,79, 89, 110),
 \author{Terry M Therneau, Cynthia S Crowson, Elizabeth J Atkinson}
 \date{Jan 2015}  
 \newcommand{\myfig}[1]{\includegraphics[height=!, width=\textwidth]
-                        {figures/adjcurve-#1.pdf}}
+                        {adjcurve-#1.pdf}}
 
 \begin{document}
   \maketitle

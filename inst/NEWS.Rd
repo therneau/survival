@@ -2,6 +2,11 @@
 \title{NEWS file for the survival package}
 \section{Changes in version 2.38-2}{
   \itemize{
+    \item Update anova.coxph to use the model.frame.coxph function; the 
+    current code had scoping errors if embedded in a function.  Add an
+    anova.coxph.penal function to correctly handle models with pspline
+    terms.
+
     \item Fix an error in the tmerge function.  Using the options
     argument would generate a spurious error.
     \item Pyears could fail on very long formulas due to a parsing error.
@@ -42,7 +47,7 @@
     
     \item Add error check for infitinte weights or offsets.  This in respose
     to a bug report where someone did this on purpose, trying to mimic
-    cure fractions, and then complained that survfit.coxph failed.
+    cure fractions, and then found that survfit.coxph failed.
 
     \item Robust variance is not supported for a coxph model with the
     "exact" approximation.  (Rarely requested and a lot of work to add.)
