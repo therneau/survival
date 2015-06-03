@@ -208,7 +208,7 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
     **  model, however.  
     **   We want to cut off huge values, but not take action very often since
     **  doing so can mess up the iteration in general.
-    **  One of the case-cohort papers suggests using anoffset of -100 to 
+    **  One of the case-cohort papers suggests using an offset of -100 to 
     **  indicate "no risk", meaning that x*beta values of 50-100 can occur 
     **  in "ok" data sets.  Compromise.
     */
