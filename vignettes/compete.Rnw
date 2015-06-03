@@ -15,7 +15,7 @@
 \fvset{listparameters={\setlength{\topsep}{0pt}}}
 \renewenvironment{Schunk}{\vspace{\topsep}}{\vspace{\topsep}}
 
-\SweaveOpts{prefix.string=figures/compete,width=6,height=4}
+\SweaveOpts{prefix.string=compete,width=6,height=4}
 \setkeys{Gin}{width=\textwidth}
 <<echo=FALSE>>=
 options(continue="  ", width=60)
@@ -29,7 +29,11 @@ require("survival")
 \author{Terry M Therneau \\ \emph{Mayo Clinic}}
 \newcommand{\code}[1]{\texttt{#1}}
 \newcommand{\myfig}[1]{\includegraphics[height=!, width=\textwidth]
-                        {figures/compete-#1.pdf}}
+                        {compete-#1.pdf}}
+
+<<check, echo=FALSE, results=tex>>=
+if (require("cmprsk", quietly=TRUE)) cat("\\newcommand{\\CMPRSK}{}%\n")
+@ 
 
 \begin{document}
 \maketitle
@@ -562,6 +566,7 @@ compute appropriate confidence intervals. The latter are complex since they
 must account for the uncertainty in the underlying Cox models.
 
 \subsection{Fine-Gray model}
+\ifdefined\CMPRSK
 For the competing risk case the Fine-Gray model provides an alternate way of
 looking at the data. 
 As we saw above, the impact of a particular covariate on the final prevalence
@@ -670,7 +675,9 @@ fgfit3 <- with(temp, crr(etime, fstat, cov1= cbind(age, msex,  mspike),
 @ 
 
 A deeper analysis is called for, but will have to be left for another day.
-
+\else
+This section requires the cmprsk library, so was not created.
+\fi
 
 
 \section{Conclusions}
@@ -701,5 +708,6 @@ available, e.g., evaluation of the proportional hazards assumption via
 \code{cox.zph} or the martingale residuals, which can help to further
 refine our understanding.
 It is also easier to link hazard rates to a biologic rationale
-(perhaps incorrectly) which can help in explaining a data set.  
+(perhaps incorrectly) which can help in explaining a data set.
+
 \end{document}

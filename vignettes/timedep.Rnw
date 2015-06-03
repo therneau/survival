@@ -15,7 +15,7 @@
 \begin{document}
 \maketitle
 
-\SweaveOpts{prefix.string=figures/compete,width=6,height=4}
+\SweaveOpts{prefix.string=compete,width=6,height=4}
 \setkeys{Gin}{width=\textwidth}
 \SweaveOpts{keep.source=TRUE}
 

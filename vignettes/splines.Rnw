@@ -14,7 +14,7 @@
 \fvset{listparameters={\setlength{\topsep}{0pt}}}
 \renewenvironment{Schunk}{\vspace{\topsep}}{\vspace{\topsep}}
 
-\SweaveOpts{prefix.string=figures/splines,width=6,height=4}
+\SweaveOpts{prefix.string=splines,width=6,height=4}
 \setkeys{Gin}{width=\textwidth}
 
 <<echo=FALSE>>=
