@@ -1,7 +1,6 @@
 
-R version 2.15.0 (2012-03-30)
-Copyright (C) 2012 The R Foundation for Statistical Computing
-ISBN 3-900051-07-0
+R Under development (unstable) (2015-05-14 r68368) -- "Unsuffered Consequences"
+Copyright (C) 2015 The R Foundation for Statistical Computing
 Platform: i686-pc-linux-gnu (32-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -19,7 +18,6 @@ Type 'q()' to quit R.
 > options(na.action=na.exclude) # preserve missings
 > options(contrasts=c('contr.treatment', 'contr.poly')) #ensure constrast type
 > library(survival)
-Loading required package: splines
 > 
 > # Tests of the weighted Cox model
 > #
@@ -77,7 +75,8 @@ coxph(formula = Surv(time, status) ~ x, data = testw1, weights = wt,
   coef exp(coef) se(coef) z p
 x    0         1    0.586 0 1
 
-Likelihood ratio test=0  on 1 df, p=1  n= 9, number of events= 5 
+Likelihood ratio test=0  on 1 df, p=1
+n= 9, number of events= 5 
 > summary(fit)
 Call:
 coxph(formula = Surv(time, status) ~ x, data = testw1, weights = wt, 
@@ -152,7 +151,8 @@ coxph(formula = Surv(time, status) ~ x, data = testw1, weights = wt,
    coef exp(coef) se(coef)    z    p
 x 0.873      2.39    0.713 1.22 0.22
 
-Likelihood ratio test=1.75  on 1 df, p=0.186  n= 9, number of events= 5 
+Likelihood ratio test=1.75  on 1 df, p=0.186
+n= 9, number of events= 5 
 > resid(fit, type='mart')
           1           2           3           4           5           6 
  0.85334536 -0.02560716  0.32265266  0.32265266  0.71696234 -1.07772629 
@@ -189,7 +189,8 @@ coxph(formula = Surv(begin, time, status) ~ x, data = testw3,
   coef exp(coef) se(coef) z p
 x    0         1    0.586 0 1
 
-Likelihood ratio test=0  on 1 df, p=1  n= 14, number of events= 5 
+Likelihood ratio test=0  on 1 df, p=1
+n= 14, number of events= 5 
 > summary(fit)
 Call:
 coxph(formula = Surv(begin, time, status) ~ x, data = testw3, 
@@ -259,7 +260,8 @@ coxph(formula = Surv(begin, time, status) ~ x, data = testw3,
    coef exp(coef) se(coef)    z    p
 x 0.873      2.39    0.713 1.22 0.22
 
-Likelihood ratio test=1.75  on 1 df, p=0.186  n= 14, number of events= 5 
+Likelihood ratio test=1.75  on 1 df, p=0.186
+n= 14, number of events= 5 
 > resid(fit, type='mart', collapse=testw3$id)
           1           2           3           4           5           6 
  0.85334536 -0.02560716  0.32265266  0.32265266  0.71696234 -1.07772629 
@@ -426,4 +428,4 @@ TRUE
 > 
 > proc.time()
    user  system elapsed 
-  0.292   0.036   0.325 
+  0.272   0.044   0.313 

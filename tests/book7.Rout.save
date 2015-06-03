@@ -1,7 +1,6 @@
 
-R version 2.15.1 (2012-06-22) -- "Roasted Marshmallows"
-Copyright (C) 2012 The R Foundation for Statistical Computing
-ISBN 3-900051-07-0
+R Under development (unstable) (2015-05-14 r68368) -- "Unsuffered Consequences"
+Copyright (C) 2015 The R Foundation for Statistical Computing
 Platform: i686-pc-linux-gnu (32-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -17,7 +16,6 @@ Type 'demo()' for some demos, 'help()' for on-line help, or
 Type 'q()' to quit R.
 
 > library(survival)
-Loading required package: splines
 > options(na.action=na.exclude)
 > options(contrasts=c('contr.treatment', 'contr.poly')) #ensure constrast type
 > 
@@ -91,4 +89,4 @@ In fitter(X, Y, strats, offset, init, control, weights = weights,  :
 > 
 > proc.time()
    user  system elapsed 
-  0.940   0.036   0.968 
+  0.712   0.028   0.737 

@@ -1,5 +1,5 @@
 
-R Under development (unstable) (2015-02-12 r67812) -- "Unsuffered Consequences"
+R Under development (unstable) (2015-05-14 r68368) -- "Unsuffered Consequences"
 Copyright (C) 2015 The R Foundation for Statistical Computing
 Platform: i686-pc-linux-gnu (32-bit)
 
@@ -274,7 +274,8 @@ coxph(formula = Surv(time, status) ~ age + sex + offset(temp),
 age  0.00471     1.005  0.00875  0.539 5.9e-01
 sex -1.41082     0.244  0.30916 -4.563 5.0e-06
 
-Likelihood ratio test=0  on 2 df, p=1  n= 76, number of events= 58 
+Likelihood ratio test=0  on 2 df, p=1
+n= 76, number of events= 58 
 > 
 > rm(temp1, temp2, kfitx, zed, tempf)
 > #
@@ -360,4 +361,4 @@ Likelihood ratio test=33.4  on 13.8 df, p=0.00234  n= 76
 > 
 > proc.time()
    user  system elapsed 
-  0.356   0.036   0.389 
+  0.256   0.028   0.280 
