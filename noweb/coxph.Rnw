@@ -515,6 +515,8 @@ attr(X, "assign") <- Xatt$assign[!xdrop]
 attr(X, "contrasts") <- Xatt$contrasts
 @ 
 
+Finish the setup.  If someone includes and init statement, make sure
+that it does not lead to instant code failure due to overflow/underflow.
 <<coxph-setup>>=
 offset <- model.offset(mf)
 if (is.null(offset) | all(offset==0)) offset <- rep(0., nrow(mf))
@@ -527,6 +529,12 @@ if (!is.null(weights) && any(!is.finite(weights)))
 assign <- attrassign(X, Terms)
 contr.save <- attr(X, "contrasts")
 if (missing(init)) init <- NULL
+else {
+    if (length(init) != ncol(X)) stop("wrong length for init argument")
+    temp <- X %*% init - sum(colMeans(X) * init)
+    if (any(temp < .Machine$double.min.exp | temp > .Machine$double.max.exp))
+        stop("initial values lead to overflow or underflow of the exp function")
+}
 @
 
 Check for penalized terms in the model, and set up infrastructure for

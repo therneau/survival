@@ -2,6 +2,16 @@
 \title{NEWS file for the survival package}
 \section{Changes in version 2.38-2}{
   \itemize{
+    \item Make the parts of the competing risks vignette conditional
+    which depend on the cmprsk library.  Otherwise the build fails for
+    those without the pacakge.
+    
+    \item The coxph function could fail converge for a set of very collinear
+    predictors when using (start, stop) data; revealed in a test case
+    sent by G Borstrom.  This was due to deficiency in a check for
+    near infinite coefficients, which had already been updated for some
+    but not all cases.  (2015/6/3)
+    
     \item Update anova.coxph to use the model.frame.coxph function; the 
     current code had scoping errors if embedded in a function.  Add an
     anova.coxph.penal function to correctly handle models with pspline
@@ -9,7 +19,7 @@
 
     \item Fix an error in the tmerge function.  Using the options
     argument would generate a spurious error.
-    \item Pyears could fail on very long formulas due to a parsing error.
+    \item Pyears could fail on very long formulas due to a deparse() issue.
     
     \item Add the number of observations used and deleted due to missing
     to summary.pyears.

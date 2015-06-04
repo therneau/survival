@@ -1,6 +1,6 @@
 
-R version 3.0.1 (2013-05-16) -- "Good Sport"
-Copyright (C) 2013 The R Foundation for Statistical Computing
+R Under development (unstable) (2015-05-14 r68368) -- "Unsuffered Consequences"
+Copyright (C) 2015 The R Foundation for Statistical Computing
 Platform: i686-pc-linux-gnu (32-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -18,7 +18,6 @@ Type 'q()' to quit R.
 > options(na.action=na.exclude) # preserve missings
 > options(contrasts=c('contr.treatment', 'contr.poly')) #ensure constrast type
 > library(survival)
-Loading required package: splines
 > 
 > # From:	McGilchrist and Aisbett, Biometrics 47, 461-66, 1991
 > # Data on the recurrence times to infection, at the point of insertion of
@@ -102,7 +101,8 @@ diseaseGN   0.08796     1.092   0.4064  0.216 8.3e-01
 diseaseAN   0.35079     1.420   0.3997  0.878 3.8e-01
 diseasePKD -1.43111     0.239   0.6311 -2.268 2.3e-02
 
-Likelihood ratio test=17.6  on 5 df, p=0.00342  n= 76, number of events= 58 
+Likelihood ratio test=17.6  on 5 df, p=0.00342
+n= 76, number of events= 58 
 > temp
 Call:
 coxph(formula = Surv(time, status) ~ age + sex + disease + frailty(id, 
@@ -300,4 +300,4 @@ Likelihood ratio test=48.6  on 15.1 df, p=2.18e-05  n= 76
 > 
 > proc.time()
    user  system elapsed 
-  0.504   0.028   0.532 
+  0.376   0.032   0.403 
