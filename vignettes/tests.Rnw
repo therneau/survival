@@ -27,8 +27,6 @@ options(contrasts=c("contr.treatment", "contr.poly")) #reset default
 
 \title{Populations, Cox models, and ``type III'' tests}
 \author{Terry M Therneau \\ \emph{Mayo Clinic}}
-\newcommand{\myfig}[1]{\includegraphics[height=!, width=\textwidth]
-                        {tests-#1.pdf}}
 \newcommand{\code}[1]{\texttt{#1}}
 
 \newcommand{\ybar}{\overline{y}}
@@ -251,7 +249,7 @@ Four possible choices for a target population of ages are given below.
 \begin{enumerate}
   \item Empirical: the age distribution of the sample at hand, also called
     the data distribution. In our sample this would be the age distribution
-    of all \Sexpr{nrow(fdata)} subjects, ignoring sex.
+    of all \Sexpr{nrow(flchain)} subjects, ignoring sex.
   \item SAS: a uniform distribution is assumed over all categorical
     adjusters, and the data distribution for continuous ones.
   \item External reference: a fixed external population, e.g. the age 
@@ -1104,8 +1102,7 @@ summary(cfit3)
 # Wald test
 signif(summary(cfit2)$coefficients, 3)
 #
-anova(cfit1)
-anova(cfit2)
+anova(cfit1, cfit2)
 @ 
 Without adjustment for age the LRT for sex is only
 \Sexpr{round(2*diff(cfit1$loglik),1)}, and after adjustment for  %$

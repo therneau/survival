@@ -103,7 +103,10 @@ anova.coxph <- function (object, ...,  test = 'Chisq') {
     if (length(test) >0 && test[1]=='Chisq') {
         table[['Pr(>|Chi|)']] <- 1- pchisq(table$Chisq, table$Df)
         }
-    row.names(table) <- c('NULL', attr(terms(object), "term.labels"))
+  
+    temp <- attr(terms(object), "term.labels")
+    if (has.strata) temp <- temp[-stemp$terms]
+    row.names(table) <- c('NULL', temp)
 
     title <- paste("Analysis of Deviance Table\n Cox model: response is ",
 		   deparse(object$terms[[2]]),
