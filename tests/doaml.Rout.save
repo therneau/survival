@@ -1,5 +1,5 @@
 
-R Under development (unstable) (2015-05-14 r68368) -- "Unsuffered Consequences"
+R Under development (unstable) (2015-06-04 r68474) -- "Unsuffered Consequences"
 Copyright (C) 2015 The R Foundation for Statistical Computing
 Platform: i686-pc-linux-gnu (32-bit)
 
@@ -29,7 +29,7 @@ coxph(formula = Surv(aml$time, aml$status) ~ aml$x, method = "breslow")
 
 
                     coef exp(coef) se(coef)    z     p
-aml$xNonmaintained 0.904      2.47    0.512 1.77 0.078
+aml$xNonmaintained 0.904     2.470    0.512 1.77 0.078
 
 Likelihood ratio test=3.3  on 1 df, p=0.0694
 n= 23, number of events= 18 
@@ -172,7 +172,7 @@ coxph(formula = Surv(time, status) ~ x, data = aml, method = "efron")
 
 
                 coef exp(coef) se(coef)    z     p
-xNonmaintained 0.916       2.5    0.512 1.79 0.074
+xNonmaintained 0.916     2.498    0.512 1.79 0.074
 
 Likelihood ratio test=3.38  on 1 df, p=0.0658
 n= 23, number of events= 18 
@@ -185,4 +185,4 @@ n= 23, number of events= 18
 > 
 > proc.time()
    user  system elapsed 
-  0.236   0.020   0.250 
+  0.244   0.012   0.250 

@@ -1,5 +1,5 @@
 
-R Under development (unstable) (2015-05-14 r68368) -- "Unsuffered Consequences"
+R Under development (unstable) (2015-06-04 r68474) -- "Unsuffered Consequences"
 Copyright (C) 2015 The R Foundation for Statistical Computing
 Platform: i686-pc-linux-gnu (32-bit)
 
@@ -60,13 +60,13 @@ Call:
 coxph(formula = Surv(time, status) ~ age + sex + disease + frailty(id), 
     data = kidney)
 
-            coef     se(coef) se2    Chisq DF p      
-age          0.00318 0.0111   0.0111  0.08 1  7.8e-01
-sex         -1.48314 0.3582   0.3582 17.14 1  3.5e-05
-diseaseGN    0.08796 0.4064   0.4064  0.05 1  8.3e-01
-diseaseAN    0.35079 0.3997   0.3997  0.77 1  3.8e-01
-diseasePKD  -1.43111 0.6311   0.6311  5.14 1  2.3e-02
-frailty(id)                           0.00 0  9.3e-01
+                 coef  se(coef)       se2     Chisq DF       p
+age          3.18e-03  1.11e-02  1.11e-02  8.14e-02  1   0.775
+sex         -1.48e+00  3.58e-01  3.58e-01  1.71e+01  1 3.5e-05
+diseaseGN    8.80e-02  4.06e-01  4.06e-01  4.68e-02  1   0.829
+diseaseAN    3.51e-01  4.00e-01  4.00e-01  7.70e-01  1   0.380
+diseasePKD  -1.43e+00  6.31e-01  6.31e-01  5.14e+00  1   0.023
+frailty(id)                                2.71e-05  0   0.933
 
 Iterations: 6 outer, 35 Newton-Raphson
      Variance of random effect= 5e-07   I-likelihood = -179.1 
@@ -77,13 +77,13 @@ Call:
 coxph(formula = Surv(time, status) ~ age + sex + disease + frailty(id, 
     theta = 1), data = kidney, iter = 20)
 
-                       coef     se(coef) se2     Chisq DF   p      
-age                     0.00389 0.0196   0.00943  0.04  1.0 0.84000
-sex                    -2.00764 0.5910   0.41061 11.54  1.0 0.00068
-diseaseGN               0.35335 0.7165   0.38015  0.24  1.0 0.62000
-diseaseAN               0.52341 0.7230   0.40463  0.52  1.0 0.47000
-diseasePKD             -0.45938 1.0898   0.66088  0.18  1.0 0.67000
-frailty(id, theta = 1)                           28.51 18.8 0.06900
+                           coef se(coef)      se2    Chisq   DF       p
+age                     0.00389  0.01959  0.00943  0.03933  1.0 0.84280
+sex                    -2.00764  0.59104  0.41061 11.53834  1.0 0.00068
+diseaseGN               0.35335  0.71653  0.38015  0.24319  1.0 0.62191
+diseaseAN               0.52341  0.72298  0.40463  0.52413  1.0 0.46909
+diseasePKD             -0.45938  1.08977  0.66088  0.17770  1.0 0.67336
+frailty(id, theta = 1)                            28.50571 18.8 0.06909
 
 Iterations: 1 outer, 14 Newton-Raphson
      Variance of random effect= 1   I-likelihood = -182.5 
@@ -94,12 +94,12 @@ Call:
 coxph(formula = Surv(time, status) ~ age + sex + disease, data = kidney)
 
 
-               coef exp(coef) se(coef)      z       p
-age         0.00318     1.003   0.0111  0.285 7.8e-01
-sex        -1.48314     0.227   0.3582 -4.140 3.5e-05
-diseaseGN   0.08796     1.092   0.4064  0.216 8.3e-01
-diseaseAN   0.35079     1.420   0.3997  0.878 3.8e-01
-diseasePKD -1.43111     0.239   0.6311 -2.268 2.3e-02
+               coef exp(coef) se(coef)     z       p
+age         0.00318   1.00319  0.01115  0.29   0.775
+sex        -1.48314   0.22692  0.35823 -4.14 3.5e-05
+diseaseGN   0.08796   1.09194  0.40637  0.22   0.829
+diseaseAN   0.35079   1.42020  0.39972  0.88   0.380
+diseasePKD -1.43111   0.23904  0.63111 -2.27   0.023
 
 Likelihood ratio test=17.6  on 5 df, p=0.00342
 n= 76, number of events= 58 
@@ -108,13 +108,13 @@ Call:
 coxph(formula = Surv(time, status) ~ age + sex + disease + frailty(id, 
     theta = 1, sparse = F), data = kidney)
 
-                          coef     se(coef) se2    Chisq DF   p      
-age                        0.00389 0.0186   0.0112  0.04  1.0 0.83000
-sex                       -2.00763 0.5762   0.4080 12.14  1.0 0.00049
-diseaseGN                  0.35335 0.6786   0.4315  0.27  1.0 0.60000
-diseaseAN                  0.52340 0.6891   0.4404  0.58  1.0 0.45000
-diseasePKD                -0.45934 1.0139   0.7130  0.21  1.0 0.65000
-frailty(id, theta = 1, sp                          26.23 18.7 0.12000
+                              coef se(coef)      se2    Chisq   DF       p
+age                        0.00389  0.01865  0.01120  0.04342  1.0 0.83494
+sex                       -2.00763  0.57624  0.40799 12.13849  1.0 0.00049
+diseaseGN                  0.35335  0.67865  0.43154  0.27109  1.0 0.60260
+diseaseAN                  0.52340  0.68910  0.44038  0.57690  1.0 0.44753
+diseasePKD                -0.45934  1.01394  0.71297  0.20523  1.0 0.65053
+frailty(id, theta = 1, sp                            26.23016 18.7 0.11573
 
 Iterations: 1 outer, 5 Newton-Raphson
      Variance of random effect= 1   I-likelihood = -182.5 
@@ -133,13 +133,13 @@ Call:
 coxph(formula = Surv(time, status) ~ age + sex + disease + frailty(id, 
     dist = "gauss"), data = kidney)
 
-                          coef     se(coef) se2    Chisq DF   p      
-age                        0.00489 0.015    0.0106  0.11  1.0 0.74000
-sex                       -1.69728 0.461    0.3617 13.55  1.0 0.00023
-diseaseGN                  0.17986 0.545    0.3927  0.11  1.0 0.74000
-diseaseAN                  0.39294 0.545    0.3982  0.52  1.0 0.47000
-diseasePKD                -1.13631 0.825    0.6173  1.90  1.0 0.17000
-frailty(id, dist = "gauss                          17.89 12.1 0.12000
+                              coef se(coef)      se2    Chisq   DF       p
+age                        0.00489  0.01497  0.01059  0.10678  1.0 0.74384
+sex                       -1.69728  0.46101  0.36170 13.55454  1.0 0.00023
+diseaseGN                  0.17986  0.54485  0.39273  0.10897  1.0 0.74131
+diseaseAN                  0.39294  0.54482  0.39816  0.52016  1.0 0.47077
+diseasePKD                -1.13631  0.82519  0.61728  1.89621  1.0 0.16850
+frailty(id, dist = "gauss                            17.89195 12.1 0.12376
 
 Iterations: 7 outer, 42 Newton-Raphson
      Variance of random effect= 0.493 
@@ -222,10 +222,10 @@ Call:
 coxph(formula = Surv(time, status) ~ age + sex + frailty(id, 
     method = "aic", caic = T), data = kidney)
 
-                          coef     se(coef) se2     Chisq DF   p      
-age                        0.00364 0.0105   0.00891  0.12 1.00 0.73000
-sex                       -1.31953 0.3956   0.32497 11.13 1.00 0.00085
-frailty(id, method = "aic                           13.55 7.81 0.08700
+                              coef se(coef)      se2    Chisq   DF       p
+age                        0.00364  0.01048  0.00891  0.12053 1.00 0.72846
+sex                       -1.31953  0.39556  0.32497 11.12781 1.00 0.00085
+frailty(id, method = "aic                            13.55258 7.81 0.08692
 
 Iterations: 9 outer, 63 Newton-Raphson
      Variance of random effect= 0.203   I-likelihood = -182.1 
@@ -237,10 +237,10 @@ Call:
 coxph(formula = Surv(time, status) ~ age + sex + frailty(id, 
     dist = "t"), data = kidney)
 
-                        coef     se(coef) se2     Chisq DF   p      
-age                      0.00561 0.012    0.00872  0.22  1.0 0.64000
-sex                     -1.65487 0.483    0.38527 11.74  1.0 0.00061
-frailty(id, dist = "t")                           20.33 13.9 0.12000
+                            coef se(coef)      se2    Chisq   DF       p
+age                      0.00561  0.01203  0.00872  0.21774  1.0 0.64077
+sex                     -1.65487  0.48294  0.38527 11.74180  1.0 0.00061
+frailty(id, dist = "t")                            20.33462 13.9 0.11752
 
 Iterations: 8 outer, 58 Newton-Raphson
      Variance of random effect= 0.825 
@@ -252,10 +252,10 @@ Call:
 coxph(formula = Surv(time, status) ~ age + sex + frailty(id, 
     dist = "gauss", method = "aic", caic = T), data = kidney)
 
-                          coef     se(coef) se2     Chisq DF   p     
-age                        0.00303 0.0103   0.00895  0.09 1.00 0.7700
-sex                       -1.15152 0.3637   0.30556 10.03 1.00 0.0015
-frailty(id, dist = "gauss                           12.35 6.76 0.0800
+                              coef se(coef)      se2    Chisq   DF      p
+age                        0.00303  0.01031  0.00895  0.08646 1.00 0.7687
+sex                       -1.15152  0.36368  0.30556 10.02558 1.00 0.0015
+frailty(id, dist = "gauss                            12.35238 6.76 0.0800
 
 Iterations: 7 outer, 41 Newton-Raphson
      Variance of random effect= 0.185 
@@ -270,10 +270,10 @@ Call:
 coxph(formula = Surv(time, status) ~ age + sex + frailty(id, 
     method = "aic", caic = F), data = kidney)
 
-                          coef     se(coef) se2     Chisq DF   p      
-age                        0.00785 0.015    0.00823  0.27  1.0 0.60000
-sex                       -1.88990 0.561    0.39941 11.34  1.0 0.00076
-frailty(id, method = "aic                           37.46 19.7 0.00920
+                              coef se(coef)      se2    Chisq   DF       p
+age                        0.00785  0.01503  0.00823  0.27284  1.0 0.60143
+sex                       -1.88990  0.56114  0.39941 11.34311  1.0 0.00076
+frailty(id, method = "aic                            37.45897 19.7 0.00918
 
 Iterations: 8 outer, 87 Newton-Raphson
      Variance of random effect= 0.886   I-likelihood = -182.8 
@@ -288,10 +288,10 @@ Call:
 coxph(formula = Surv(time, status) ~ age + sex + frailty(id, 
     dist = "t", caic = F), data = kidney)
 
-                          coef     se(coef) se2     Chisq DF   p      
-age                        0.00561 0.012    0.00872  0.22  1.0 0.64000
-sex                       -1.65487 0.483    0.38527 11.74  1.0 0.00061
-frailty(id, dist = "t", c                           20.33 13.9 0.12000
+                              coef se(coef)      se2    Chisq   DF       p
+age                        0.00561  0.01203  0.00872  0.21774  1.0 0.64077
+sex                       -1.65487  0.48294  0.38527 11.74180  1.0 0.00061
+frailty(id, dist = "t", c                            20.33462 13.9 0.11752
 
 Iterations: 8 outer, 58 Newton-Raphson
      Variance of random effect= 0.825 
@@ -300,4 +300,4 @@ Likelihood ratio test=48.6  on 15.1 df, p=2.18e-05  n= 76
 > 
 > proc.time()
    user  system elapsed 
-  0.376   0.032   0.403 
+  0.396   0.028   0.419 

@@ -77,7 +77,7 @@ anova.coxph <- function (object, ...,  test = 'Chisq') {
     loglik[1] <- object$loglik[1]
     
     # Now refit intermediate models
-    for (i in seq.int(1, length=nmodel-1)){
+    for (i in seq.int(1, length.out =nmodel-1)){
         if (length(object$offset)) {
             if (has.strata) 
                 tfit <- coxph(Y ~ X[,assign <= alevels[i]] + strata(strats) +

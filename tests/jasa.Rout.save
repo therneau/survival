@@ -1,5 +1,5 @@
 
-R Under development (unstable) (2015-05-14 r68368) -- "Unsuffered Consequences"
+R Under development (unstable) (2015-06-04 r68474) -- "Unsuffered Consequences"
 Copyright (C) 2015 The R Foundation for Statistical Computing
 Platform: i686-pc-linux-gnu (32-bit)
 
@@ -76,10 +76,10 @@ coxph(formula = Surv(start, stop, event) ~ year * transplant,
     data = jasa1, method = "breslow")
 
 
-                  coef exp(coef) se(coef)      z     p
-year            -0.265     0.767    0.105 -2.522 0.012
-transplant      -0.287     0.750    0.514 -0.559 0.580
-year:transplant  0.137     1.147    0.141  0.973 0.330
+                  coef exp(coef) se(coef)     z     p
+year            -0.265     0.767    0.105 -2.52 0.012
+transplant      -0.287     0.750    0.514 -0.56 0.576
+year:transplant  0.137     1.147    0.141  0.97 0.331
 
 Likelihood ratio test=8.61  on 3 df, p=0.0349
 n= 170, number of events= 75 
@@ -118,12 +118,12 @@ coxph(formula = Surv(start, stop, event) ~ (year + surgery) *
     transplant, data = jasa1, method = "breslow")
 
 
-                     coef exp(coef) se(coef)      z     p
-year               -0.254     0.776    0.108 -2.360 0.018
-surgery            -0.237     0.789    0.628 -0.377 0.710
-transplant         -0.297     0.743    0.505 -0.588 0.560
-year:transplant     0.165     1.180    0.142  1.167 0.240
-surgery:transplant -0.550     0.577    0.776 -0.709 0.480
+                     coef exp(coef) se(coef)     z     p
+year               -0.254     0.776    0.108 -2.36 0.018
+surgery            -0.237     0.789    0.628 -0.38 0.707
+transplant         -0.297     0.743    0.505 -0.59 0.557
+year:transplant     0.165     1.180    0.142  1.17 0.243
+surgery:transplant -0.550     0.577    0.776 -0.71 0.479
 
 Likelihood ratio test=12.4  on 5 df, p=0.0302
 n= 170, number of events= 75 
@@ -133,13 +133,13 @@ coxph(formula = Surv(start, stop, event) ~ (age + surgery) *
     transplant + year, data = jasa1, method = "breslow")
 
 
-                      coef exp(coef) se(coef)      z     p
-age                 0.0150     1.015   0.0176  0.855 0.390
-surgery            -0.4202     0.657   0.6156 -0.683 0.490
-transplant          0.0741     1.077   0.3311  0.224 0.820
-year               -0.1363     0.873   0.0710 -1.921 0.055
-age:transplant      0.0269     1.027   0.0271  0.992 0.320
-surgery:transplant -0.2966     0.743   0.7580 -0.391 0.700
+                      coef exp(coef) se(coef)     z     p
+age                 0.0150    1.0152   0.0176  0.85 0.393
+surgery            -0.4202    0.6569   0.6156 -0.68 0.495
+transplant          0.0741    1.0769   0.3311  0.22 0.823
+year               -0.1363    0.8726   0.0710 -1.92 0.055
+age:transplant      0.0269    1.0273   0.0271  0.99 0.321
+surgery:transplant -0.2966    0.7434   0.7580 -0.39 0.696
 
 Likelihood ratio test=16.2  on 6 df, p=0.0127
 n= 170, number of events= 75 
@@ -149,12 +149,12 @@ coxph(formula = Surv(start, stop, event) ~ age * transplant +
     surgery + year, data = jasa1, method = "breslow")
 
 
-                  coef exp(coef) se(coef)      z     p
-age             0.0153     1.015   0.0175  0.873 0.380
-transplant      0.0446     1.046   0.3217  0.139 0.890
-surgery        -0.6211     0.537   0.3679 -1.688 0.091
-year           -0.1361     0.873   0.0709 -1.919 0.055
-age:transplant  0.0270     1.027   0.0271  0.996 0.320
+                  coef exp(coef) se(coef)     z     p
+age             0.0153    1.0154   0.0175  0.87 0.383
+transplant      0.0446    1.0456   0.3217  0.14 0.890
+surgery        -0.6211    0.5373   0.3679 -1.69 0.091
+year           -0.1361    0.8728   0.0709 -1.92 0.055
+age:transplant  0.0270    1.0274   0.0271  1.00 0.319
 
 Likelihood ratio test=16.1  on 5 df, p=0.00669
 n= 170, number of events= 75 
@@ -287,4 +287,4 @@ Call: survfit(formula = sfit.1, newdata = data, individual = T)
 > 
 > proc.time()
    user  system elapsed 
-  0.380   0.028   0.401 
+  0.384   0.020   0.398 

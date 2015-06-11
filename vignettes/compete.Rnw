@@ -33,11 +33,10 @@ require("survival")
 \title{Multi-state models and competing risks}
 \author{Terry M Therneau \\ \emph{Mayo Clinic}}
 \newcommand{\code}[1]{\texttt{#1}}
-\newcommand{\myfig}[1]{\includegraphics[height=!, width=\textwidth]
-                        {compete-#1.pdf}}
 
 <<check, echo=FALSE, results=tex>>=
-if (require("cmprsk", quietly=TRUE)) cat("\\newcommand{\\CMPRSK}{}%\n")
+cmplib <- require("cmprsk", quietly=TRUE)
+if (cmplib) cat("\\newcommand{\\CMPRSK}{}%\n")
 @ 
 
 \begin{document}
@@ -604,22 +603,23 @@ Let us look at the effect of sex on PCM using the Fine-Gray model, which
 can be computed using the \code{cmprsk} package.
 It does not use model formulas so variables need to be vectors or matrices.
 <<finegray>>=
-require(cmprsk)
-temp <- mtemp
-temp$fstat <- as.numeric(event)  # 1=censor, 2=pcm, 3=death
-temp$msex  <- with(temp, 1* (sex=='M'))
-fgfit1 <- with(temp, crr(etime, fstat, cov1= cbind(age, msex,  mspike),
+if (cmplib) {
+    temp <- mtemp
+    temp$fstat <- as.numeric(event)  # 1=censor, 2=pcm, 3=death
+    temp$msex  <- with(temp, 1* (sex=='M'))
+    fgfit1 <- with(temp, crr(etime, fstat, cov1= cbind(age, msex,  mspike),
                         failcode=2, cencode=1, variance=TRUE))
-fgfit2 <- with(temp, crr(etime, fstat, cov1=cbind(age, msex, mspike),
+    fgfit2 <- with(temp, crr(etime, fstat, cov1=cbind(age, msex, mspike),
                          failcode=3, cencode=1, variance=TRUE))
-cmat <- rbind("FineGray: PCM" = fgfit1$coef,
-              "Cox: PCM" = coef(cfit1),
-              "FineGray: death" = fgfit2$coef,
-              "Cox: death" = coef(cfit2))
-round(cmat,2)
+    cmat <- rbind("FineGray: PCM" = fgfit1$coef,
+                  "Cox: PCM" = coef(cfit1),
+                  "FineGray: death" = fgfit2$coef,
+                  "Cox: death" = coef(cfit2))
+    round(cmat,2)
+}
 @ 
 The program has determined that female sex increases the PCM outcome by
-exp(\Sexpr{round(fgfit1$coef[1], 3)}) = \Sexpr{round(exp(fgfit1$coef[1]),2)}
+exp(.21) = 1.24 
 fold, for all values of age and mspike.
 The Cox model shows no effect of sex on the instantaneous hazard, but
 as shown in the last section Cox models do predict higher female prevalence.
@@ -631,7 +631,7 @@ The primary strength of the Fine-Gray model with respect to the Cox model
 approach is that if ``lifetime risk'' is a primary question then 
 the model has given
 us a simple and digestible answer to that question:
-females have a \Sexpr{round(exp(-fgfit1$coef[1]),2)} fold higher risk.    %$
+females have a 1.2 fold higher risk. 
 A primary problem of the
 model is that we can't go backwards: there is not a simple analog to the
 Aalen-Johansen estimator to carry one from $F$ back to $\Lambda$.
@@ -656,6 +656,7 @@ are displayed below with predictions for mspike=0.5 on the left and 1.5 on
 the right.  
 
 <<finegray2, fig=TRUE>>=
+if (cmplib) {
 par(mfrow=c(1,2))
 fdata <- model.matrix(~age + sex + mspike, data=tdata)[,-1] #remove intercept
 fpred <- predict(fgfit1, cov1=fdata)
@@ -666,6 +667,7 @@ legend(0, .22, c("Female, 60", "Male, 60","Female: 80", "Male, 80"),
        col=c(1,2,1,2), lty=c(1,1,2,2), lwd=2, bty='n')
 matplot(fpred[,1]/12, fpred[,c(3,5,7,9)], col=c(1,1,2,2), lty=c(1,2,1,2),
        type='l', lwd=2, xlab="Years", ylab="FG predicted")
+}
 @ 
 
 This tells a very different story than the Cox model prevalence curves.
@@ -674,6 +676,7 @@ not as helpful as one would hope: there are simply too few progression
 events when separated into 8 groups.  
 
 <<timedep>>=
+if (cmplib)
 fgfit3 <- with(temp, crr(etime, fstat, cov1= cbind(age, msex,  mspike),
                         failcode=2, cencode=1, variance=TRUE,
                         cov2=msex, tf = function(x) log(x)))

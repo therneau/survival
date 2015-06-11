@@ -76,15 +76,19 @@ print.coxph.penal <-  function(x, terms=FALSE, maxlabel=25,
 	}
 
     # Format out the NA's 
-    temp <- cbind(format(print1[,1]), format(print1[,2]), 
-		       format(print1[,3]),
-		       format(round(print1[,4], 2)),
-		       format(round(print1[,5], 2)),
-		       format(signif(print1[,6], 2)))
-    temp <- ifelse(is.na(print1), "", temp)
-    dimnames(temp) <- list(substring(pname1,1, maxlabel), 
-			     c("coef","se(coef)", "se2", "Chisq","DF","p"))
-    print(temp, quote=FALSE)
+#    temp <- cbind(format(print1[,1]), format(print1[,2]), 
+#		       format(print1[,3]),
+#		       format(round(print1[,4], 2)),
+#		       format(round(print1[,5], 2)),
+#		       format(signif(print1[,6], 2)))
+#    temp <- ifelse(is.na(print1), "", temp)
+#    dimnames(temp) <- list(substring(pname1,1, maxlabel), 
+#			     c("coef","se(coef)", "se2", "Chisq","DF","p"))
+#    print(temp, quote=FALSE)
+    dimnames(print1) <-  list(substring(pname1,1, maxlabel), 
+                              c("coef","se(coef)", "se2", "Chisq","DF","p"))
+    printCoefmat(print1, signif.stars=FALSE, P.values=TRUE, has.Pvalue=TRUE,
+                 na.print="")
 	
     #
     # Write out the remaider of the info

@@ -313,7 +313,7 @@ else tempy <- range(ssurv, firsty, finite=TRUE, na.rm=TRUE)
     
 if (missing(fun)) {
     tempx <- c(tempx, firstx)
-    tempy <- c(tempy, ymin)
+    if (!ylog) tempy <- c(tempy, ymin)
 }
 
 #

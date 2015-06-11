@@ -1,5 +1,5 @@
 
-R Under development (unstable) (2015-05-14 r68368) -- "Unsuffered Consequences"
+R Under development (unstable) (2015-06-04 r68474) -- "Unsuffered Consequences"
 Copyright (C) 2015 The R Foundation for Statistical Computing
 Platform: i686-pc-linux-gnu (32-bit)
 
@@ -255,10 +255,10 @@ Call:
 coxph(formula = Surv(time, status) ~ age + sex + frailty(id, 
     dist = "gauss"), data = kidney)
 
-                          coef     se(coef) se2     Chisq DF   p     
-age                        0.00471 0.0125   0.00856  0.14  1.0 0.7100
-sex                       -1.41082 0.4452   0.31504 10.04  1.0 0.0015
-frailty(id, dist = "gauss                           26.54 14.7 0.0290
+                              coef se(coef)      se2    Chisq   DF      p
+age                        0.00471  0.01248  0.00856  0.14267  1.0 0.7056
+sex                       -1.41082  0.44518  0.31504 10.04319  1.0 0.0015
+frailty(id, dist = "gauss                            26.54461 14.7 0.0294
 
 Iterations: 6 outer, 39 Newton-Raphson
      Variance of random effect= 0.569 
@@ -270,9 +270,9 @@ coxph(formula = Surv(time, status) ~ age + sex + offset(temp),
     data = kidney, init = kfit1$coef, iter = 0)
 
 
-        coef exp(coef) se(coef)      z       p
-age  0.00471     1.005  0.00875  0.539 5.9e-01
-sex -1.41082     0.244  0.30916 -4.563 5.0e-06
+        coef exp(coef) se(coef)     z     p
+age  0.00471   1.00472  0.00875  0.54  0.59
+sex -1.41082   0.24394  0.30916 -4.56 5e-06
 
 Likelihood ratio test=0  on 2 df, p=1
 n= 76, number of events= 58 
@@ -349,8 +349,8 @@ Call:
 coxph(formula = Surv(time, status) ~ frailty(id, dist = "gauss"), 
     data = kidney)
 
-                          coef se(coef) se2 Chisq DF   p    
-frailty(id, dist = "gauss                   23    13.8 0.057
+                          coef se(coef) se2 Chisq   DF     p
+frailty(id, dist = "gauss                      23 13.8 0.057
 
 Iterations: 7 outer, 39 Newton-Raphson
      Variance of random effect= 0.458 
@@ -361,4 +361,4 @@ Likelihood ratio test=33.4  on 13.8 df, p=0.00234  n= 76
 > 
 > proc.time()
    user  system elapsed 
-  0.256   0.028   0.280 
+  0.280   0.008   0.281 

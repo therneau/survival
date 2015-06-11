@@ -4,8 +4,8 @@
 \title{logLik method for a Cox model}
 \description{The logLik function for survival models}
 \usage{
-logLik.coxph(object, ...)
-logLik.survreg(object, ...)
+\method{logLik}{coxph}(object, ...)
+\method{logLik}{survreg}(object, ...)
 }
 \arguments{
   \item{object}{the result of a \code{coxph} or \code{survreg} fit}
@@ -34,7 +34,7 @@ logLik.survreg(object, ...)
    American Statistical Assoc. 90 (430): 791.
 
    Raftery A.E. (1995), "Bayesian Model Selection in Social Research",
-   Sociological methodology, 25, p. 111‑196.
+   Sociological methodology, 111-196.
  }
  \seealso{\code{\link{logLik}}}
  \author{Terry Therneau}

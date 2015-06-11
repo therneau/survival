@@ -1,8 +1,7 @@
 
-R version 2.14.0 Under development (unstable) (2011-04-10 r55401)
-Copyright (C) 2011 The R Foundation for Statistical Computing
-ISBN 3-900051-07-0
-Platform: x86_64-unknown-linux-gnu (64-bit)
+R Under development (unstable) (2015-06-04 r68474) -- "Unsuffered Consequences"
+Copyright (C) 2015 The R Foundation for Statistical Computing
+Platform: i686-pc-linux-gnu (32-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -19,7 +18,6 @@ Type 'q()' to quit R.
 > options(na.action=na.exclude) # preserve missings
 > options(contrasts=c('contr.treatment', 'contr.poly')) #ensure constrast type
 > library(survival)
-Loading required package: splines
 > 
 > #
 > # Here is a test case with multiple smoothing terms
@@ -42,10 +40,10 @@ Call:
 coxph(formula = Surv(time, status) ~ ph.ecog + pspline(age, 3), 
     data = lung)
 
-                        coef   se(coef) se2     Chisq DF   p      
-ph.ecog                 0.4480 0.11707  0.11678 14.64 1.00 0.00013
-pspline(age, 3), linear 0.0113 0.00928  0.00928  1.47 1.00 0.22000
-pspline(age, 3), nonlin                          2.08 2.08 0.37000
+                            coef se(coef)      se2    Chisq   DF       p
+ph.ecog                  0.44802  0.11707  0.11678 14.64453 1.00 0.00013
+pspline(age, 3), linear  0.01126  0.00928  0.00928  1.47231 1.00 0.22498
+pspline(age, 3), nonlin                             2.07924 2.08 0.37143
 
 Iterations: 4 outer, 12 Newton-Raphson
      Theta= 0.861 
@@ -57,10 +55,10 @@ Call:
 coxph(formula = Surv(time, status) ~ ph.ecog + pspline(age, 4), 
     data = lung)
 
-                        coef   se(coef) se2     Chisq DF   p      
-ph.ecog                 0.4505 0.11766  0.11723 14.66 1.00 0.00013
-pspline(age, 4), linear 0.0112 0.00927  0.00927  1.45 1.00 0.23000
-pspline(age, 4), nonlin                          2.96 3.08 0.41000
+                            coef se(coef)      se2    Chisq   DF       p
+ph.ecog                  0.45047  0.11766  0.11723 14.65751 1.00 0.00013
+pspline(age, 4), linear  0.01117  0.00927  0.00927  1.45195 1.00 0.22822
+pspline(age, 4), nonlin                             2.95816 3.08 0.41197
 
 Iterations: 4 outer, 11 Newton-Raphson
      Theta= 0.797 
@@ -72,10 +70,10 @@ Call:
 coxph(formula = Surv(time, status) ~ ph.ecog + pspline(age, 8), 
     data = lung)
 
-                        coef   se(coef) se2     Chisq DF   p      
-ph.ecog                 0.4764 0.12024  0.11925 15.70 1.00 7.4e-05
-pspline(age, 8), linear 0.0117 0.00923  0.00923  1.61 1.00 2.0e-01
-pspline(age, 8), nonlin                          6.93 6.99 4.3e-01
+                            coef se(coef)      se2    Chisq   DF       p
+ph.ecog                  0.47640  0.12024  0.11925 15.69732 1.00 7.4e-05
+pspline(age, 8), linear  0.01172  0.00923  0.00923  1.61161 1.00    0.20
+pspline(age, 8), nonlin                             6.93188 6.99    0.43
 
 Iterations: 5 outer, 15 Newton-Raphson
      Theta= 0.691 
@@ -87,10 +85,10 @@ Call:
 coxph(formula = Surv(time, status) ~ ph.ecog + pspline(wt.loss, 
     3), data = lung)
 
-                          coef     se(coef) se2     Chisq DF   p      
-ph.ecog                    0.51545 0.12960  0.12737 15.82 1.00 0.00007
-pspline(wt.loss, 3), line -0.00702 0.00655  0.00655  1.15 1.00 0.28000
-pspline(wt.loss, 3), nonl                            2.45 2.09 0.31000
+                              coef se(coef)      se2    Chisq   DF     p
+ph.ecog                    0.51545  0.12960  0.12737 15.81939 1.00 7e-05
+pspline(wt.loss, 3), line -0.00702  0.00655  0.00655  1.14638 1.00  0.28
+pspline(wt.loss, 3), nonl                             2.44612 2.09  0.31
 
 Iterations: 3 outer, 10 Newton-Raphson
      Theta= 0.776 
@@ -102,12 +100,12 @@ Call:
 coxph(formula = Surv(time, status) ~ ph.ecog + pspline(age, 3) + 
     pspline(wt.loss, 3), data = lung)
 
-                          coef     se(coef) se2     Chisq DF   p      
-ph.ecog                    0.47422 0.13495  0.13206 12.35 1.00 0.00044
-pspline(age, 3), linear    0.01368 0.00976  0.00974  1.96 1.00 0.16000
-pspline(age, 3), nonlin                              1.90 2.07 0.40000
-pspline(wt.loss, 3), line -0.00717 0.00661  0.00660  1.18 1.00 0.28000
-pspline(wt.loss, 3), nonl                            2.08 2.03 0.36000
+                              coef se(coef)      se2    Chisq   DF       p
+ph.ecog                    0.47422  0.13495  0.13206 12.34842 1.00 0.00044
+pspline(age, 3), linear    0.01368  0.00976  0.00974  1.96406 1.00 0.16108
+pspline(age, 3), nonlin                               1.90116 2.07 0.40284
+pspline(wt.loss, 3), line -0.00717  0.00661  0.00660  1.17529 1.00 0.27832
+pspline(wt.loss, 3), nonl                             2.07729 2.03 0.35929
 
 Iterations: 4 outer, 12 Newton-Raphson
      Theta= 0.85 
@@ -118,3 +116,6 @@ Likelihood ratio test=25.2  on 7.06 df, p=0.000726
 > 
 > rm(fit1, fit2, fit3, fit4, fit5)
 > 
+> proc.time()
+   user  system elapsed 
+  0.276   0.024   0.294 

@@ -20,19 +20,22 @@ print.coxph <-
 
     if (is.null(x$naive.var)) {
 	tmp <- cbind(coef, exp(coef), se, coef/se,
-	       signif(1 - pchisq((coef/ se)^2, 1), digits -1))
+#	       signif(1 - pchisq((coef/ se)^2, 1), digits -1))
+               1- pchisq((coef/se)^2, 1))
 	dimnames(tmp) <- list(names(coef), c("coef", "exp(coef)",
 	    "se(coef)", "z", "p"))
 	}
     else {
 	nse <- sqrt(diag(x$naive.var))
 	tmp <- cbind(coef, exp(coef), nse, se, coef/se,
-	       signif(1 - pchisq((coef/se)^2, 1), digits -1))
+#	       signif(1 - pchisq((coef/se)^2, 1), digits -1))
+	       1 - pchisq((coef/se)^2, 1))
 	dimnames(tmp) <- list(names(coef), c("coef", "exp(coef)",
 	    "se(coef)", "robust se", "z", "p"))
 	}
     cat("\n")
-    print(tmp)
+ #   print(tmp)
+    printCoefmat(tmp, signif.stars=FALSE, P.values=TRUE, has.Pvalue=TRUE)
 
     logtest <- -2 * (x$loglik[1] - x$loglik[2])
     if (is.null(x$df)) df <- sum(!is.na(coef))

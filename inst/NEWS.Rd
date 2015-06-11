@@ -2,8 +2,13 @@
 \title{NEWS file for the survival package}
 \section{Changes in version 2.38-2}{
   \itemize{
-    \item Make the parts of the competing risks vignette conditional
-    which depend on the cmprsk library.  Otherwise the build fails for
+    \item Change print.coxph to use the printCoefmat routine, which l
+    leads to nicer p-values.  Other print routines will follow unless
+    there is an outcry.  (But I forced signif.stars=FALSE: my tolerance of
+    bad practice has limits.)
+    
+    \item Make those parts of the competing risks vignette which depend
+    on the cmprsk library conditional.  Otherwise the build fails for
     those without the pacakge.
     
     \item The coxph function could fail converge for a set of very collinear

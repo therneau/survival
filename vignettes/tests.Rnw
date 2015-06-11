@@ -7,7 +7,7 @@
 %\VignetteIndexEntry{Cox models and ``type 3'' Tests}
 
 
-\SweaveOpts{keep.source=TRUE, fig=FALSE}
+\SweaveOpts{prefix.string=tests,width=6,height=4, keep.source=TRUE, fig=FALSE}
 % Ross Ihaka suggestions
 \DefineVerbatimEnvironment{Sinput}{Verbatim} {xleftmargin=2em}
 \DefineVerbatimEnvironment{Soutput}{Verbatim}{xleftmargin=2em}
@@ -28,6 +28,8 @@ options(contrasts=c("contr.treatment", "contr.poly")) #reset default
 \title{Populations, Cox models, and ``type III'' tests}
 \author{Terry M Therneau \\ \emph{Mayo Clinic}}
 \newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\myfig}[1]{\includegraphics[height=!, width=\textwidth]
+                        {tests-#1.pdf}}
 
 \newcommand{\ybar}{\overline{y}}
 

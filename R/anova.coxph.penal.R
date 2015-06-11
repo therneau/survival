@@ -81,7 +81,7 @@ anova.coxph.penal <- function (object, ...,  test = 'Chisq') {
     # Now refit intermediate models
     assign2 <- assign[!(assign %in% pindex)]
     pform   <- paste("mf[['", pname, "']]", sep='')
-    for (i in seq.int(1, length=nmodel-1)){
+    for (i in seq.int(1, length.out=nmodel-1)){
         j <- assign2[assign2 <= alevels[i]]
         if (length(j)) form <- "Y ~ X[,j]"
         else           form <- "Y ~"
