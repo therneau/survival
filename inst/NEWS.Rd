@@ -1,5 +1,11 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 2.38-3}{
+  \itemize{
+    \item Add a length method for Surv objects.  Requested by Max Kuhn.
+    (2015/6/17).
+}}
+
 \section{Changes in version 2.38-2}{
   \itemize{
     \item Change print.coxph to use the printCoefmat routine, which l

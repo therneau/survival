@@ -254,3 +254,4 @@ as.matrix.Surv <- function(x, ...) {
     attr(y, "inputAttributes") <- NULL
     y
     }
+length.Surv <- function(x) nrow(x)
