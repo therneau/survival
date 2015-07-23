@@ -2,6 +2,8 @@
 \title{NEWS file for the survival package}
 \section{Changes in version 2.38-3}{
   \itemize{
+    \item Add more imports to the NAMESPACE file per a request from CRAN
+
     \item Add a length method for Surv objects.  Requested by Max Kuhn.
     (2015/6/17).
 }}
@@ -1005,8 +1007,8 @@ succeed, when "goodlines" is the subset with correct values.}
 
 \subsection{Older changes}{
  \itemize{
-  \item{25SepO7: How embarrassing -- someone pointed out that I had Dave Harrington's
-name spelled wrong in the options to survfit.coxph!}
+   \item{25SepO7: How embarrassing -- someone pointed out that I had Dave
+     Harrington's name spelled wrong in the options to survfit.coxph!}
 
   \item{9Jul07: In a model with offsets, survreg mistakenly omitted the offset
 from the returned linear.predictor component.}

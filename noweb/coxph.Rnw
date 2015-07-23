@@ -230,6 +230,9 @@ longest time to shortest, and strata=1 for the first observation of
 each strata.  
 <<coxcount1>>=
 #include "survS.h"
+/*
+** Count up risk sets and identify who is in each
+*/
 SEXP coxcount1(SEXP y2, SEXP strat2) {
     int ntime, nrow;
     int i, j, n;
@@ -301,6 +304,7 @@ at each death we need to list out all the subjects at risk into the index
 vector which is an $O(n)$ process, tree or not.
 <<coxcount1>>=
 #include "survS.h"
+/* count up risk sets and identify who is in each, (start,stop] version */
 SEXP coxcount2(SEXP y2, SEXP isort1, SEXP isort2, SEXP strat2) {
     int ntime, nrow;
     int i, j, istart, n;

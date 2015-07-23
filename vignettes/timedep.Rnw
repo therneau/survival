@@ -70,11 +70,38 @@ prior bets and patterns of won/lost, but cannot look into the future.
 If this holds then multiple properties can be proven about the
 resulting process.
 
+A simple way to code time-dependent covariates uses intervals of time.
+Consider a subject with follow-up from time 0 to death at 185 days, 
+and assume that we have a time dependent covariate (creatinine) that was 
+measured at day 0, 90 and 120 with values of .9, 1.5, and 1.2 mg/dl.
+A way to encode that data for the computer is to break 
+the subject's time into 3 time intervals 0-90, 90-120, 120-185, 
+with one row of data for each interval.  
+The data might look like the following
+<<testdata, echo=FALSE, eval=TRUE>>=
+tdata <- data.frame(subject=c(5,5,5), time1=c(0,90, 120),
+                    time2 = c(90, 120, 185), death=c(0,0,1),
+                    creatinine=c(0.9, 1.5, 1.2))
+tdata
+@ 
+We read this as stating that over the interval from 0 to 90 the creatinine
+for subject ``5'' was 0.9 (last known level), 
+and that this interval did not end in a death.
+The underlying code treats intervals as open on the left and closed on the
+right, e.g. the creatinine on exactly day 90 is 0.9. 
+One way to think of this is that all changes for a given day (covariates or
+status) are recorded at the end of the day.
+
+
 The key rule for time dependent covariates in a Cox model is simple
 and essentially the same as that for gambling: \emph{you cannot look
 the future}.
 A covariate may change in any way based on past data or outcomes, but it
 may not reach forward in time.
+In the above simple data set this means that we cannot assume a creatinine
+of 1.1 on day 30, for instance;  on day 30 the later value of 1.5 has
+not yet been seen.
+
 A good example of this is found in a recent analysis from the Mayo Clinic
 study of aging (MCSA), a study which enrolled a stratified random sample from
 the population of Olmsted County and then has followed them forward in

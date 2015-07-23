@@ -1,28 +1,37 @@
 useDynLib(survival, .registration = TRUE)
 importFrom(splines, spline.des, ns)
-importFrom(stats, anova, logLik, makepredictcall, model.frame, model.matrix,
-           predict, quantile, residuals, vcov, extractAIC)
-importFrom(graphics, plot, points, lines)
-export("Surv", "aareg", "agreg.fit",
-       "agexact.fit", "attrassign", 
-       "basehaz", "cch", "clogit", "cluster", "cox.zph", 
-       "coxph", "coxph.control", "coxph.detail", "coxph.fit",
-       "coxph.wtest", "format.Surv", 
-       "frailty",  "frailty.gamma", 
-       "frailty.gaussian", "frailty.t", "is.Surv", 
-       "is.na.Surv", "is.ratetable", 
-       "labels.survreg", "match.ratetable", "neardate",
-       "psurvreg", "qsurvreg", "dsurvreg",
-       "pspline", "pyears", "ratetable", "ratetableDate", 
-       "ridge", "strata", "survConcordance",
-       "survSplit", "survdiff", "survexp",  "survfit" ,
-       "survfit.formula",
-       "survfitcoxph.fit", "survfitKM", "survfitCI",
-       "survobrien",  
-       "survpenal.fit", "survConcordance.fit",
-       "survreg", "survreg.control", "survreg.fit",
-       "survreg.distributions", "survregDtest", "tcut",
-       "tmerge", "untangle.specials")
+importFrom(stats, anova, approx, as.formula, coef, coefficients,
+           contr.treatment, cor, delete.response, extractAIC, formula, 
+           logLik, makepredictcall, median, model.extract,
+           model.frame, model.matrix, model.offset, model.response,
+           model.weights, na.fail, na.pass, napredict, naprint, naresid,
+           pchisq, pnorm, printCoefmat, predict, qnorm, quantile,
+           resid, residuals, runif, stat.anova, terms, var, vcov,
+           .checkMFClasses, .getXlevels)
+importFrom(graphics, plot, points, lines, axis, box, matlines, matplot, 
+           matpoints, par)
+importFrom(methods, as)
+importFrom(utils, getS3method, type.convert)
+export(Surv, aareg, agreg.fit,
+       agexact.fit, attrassign, 
+       basehaz, cch, clogit, cluster, cox.zph, 
+       coxph, coxph.control, coxph.detail, coxph.fit,
+       coxph.wtest, format.Surv, 
+       frailty,  frailty.gamma, 
+       frailty.gaussian, frailty.t, is.Surv, 
+       is.na.Surv, is.ratetable, 
+       labels.survreg, match.ratetable, neardate,
+       psurvreg, qsurvreg, dsurvreg,
+       pspline, pyears, ratetable, ratetableDate, 
+       ridge, strata, survConcordance,
+       survSplit, survdiff, survexp,  survfit ,
+       survfit.formula,
+       survfitcoxph.fit, survfitKM, survfitCI,
+       survobrien,  
+       survpenal.fit, survConcordance.fit,
+       survreg, survreg.control, survreg.fit,
+       survreg.distributions, survregDtest, tcut,
+       tmerge, untangle.specials)
 S3method('[', aareg)
 S3method('[', Surv)
 S3method('[', cox.zph)
