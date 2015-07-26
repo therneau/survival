@@ -35,7 +35,7 @@ Then the concordance statistic is defined as $(C + T/2)/(C + D + T)$.
 The denominator is the number of comparable pairs.
 We can rewrite this as a correlation like value that goes from -1 to 1
 with $2C -1 = (C-D)/(C+D +T)$.  
-This latter is a bit clearer to code.
+This latter is a bit clearer to code so is used below.
 
 The program creates 4 variables, which are the number of concordant pairs, 
 discordant, tied on time, and tied on $x$ but not on time.  
@@ -90,8 +90,8 @@ algorithms for adding and subtracting nodes from a tree while maintaining
 the balance (red-black trees, AA trees, etc) but we take a different 
 approach.  Since we need to deal with case weights in the model and we
 know all the risk score at the outset, the full set of risk scores is
-organised into a tree at the beginning and node counts are changed to zero
-as observations are removed.  
+organised into a tree at the beginning and node incremented/decremented as
+observations are added and removed.  
 
 If we index the nodes of the tree as 1 for the top, 2--3 for the next 
 horizontal row, 4--7 for the next, \ldots then the parent-child 
@@ -157,7 +157,7 @@ One approach is to compute an infinitesimal jackknife (IJ) estimate,
 for which we need derivatives with respect to the weights.
 For each event the two numbers of interest are the 
 numerator $C-D$ and the denominator $C+D + T$,
-which can be written in terms of the weights.
+which can be written directly in terms of the weights.
 
 \begin{align*}
   C -D  &= \sum_i w_i \delta_i \sum_{t_j > t_i} w_j \rm{sign}(r_i - r_j) \\
@@ -173,21 +173,23 @@ $k$ are
   \frac{\partial C+D+T}{\partial w_k} &= \sum_{t_j > t_k} w_j \delta_k +
                                 \sum_{t_j < t_k} w_j \delta_j  \label{derivT}\\
 \end{align*}
-
 We need to keep two vectors of derivatives each of length $n$, the number
-of observations.
-I had originally avoided this because it appears to be an $O(nd)$
+of observations.  The parent routine in R will worry about data sets with
+multiple rows per subject, for which the person has to be added back 
+together.
+
+I had originally avoided this approach because it appears to be an $O(nd)$
 computation, adding a bit to each at-risk subject each time there is an
 event.  A key insight due to David Watson is that we can avoid this.
-Within the tree we keep the sum of weights for each node and its two 
+Within the tree we keep the sum of weights for each node and its left and right
 children, along with a parallel triple that totals only the deaths.   
-The tree is updated as each subject is added and later deleted, containing
+The tree is updated as each subject is added or deleted, containing
 the current cumulative totals.  We only need to update derivative values for
 each subject when the subject enters and when they leave.
-For ordinary Cox models everyone enters at 0, or rather leaves at zero since
-our code will go from longest to shortest time.
+(For ordinary Cox models everyone enters at 0, or rather leaves at zero since
+our code will go from longest to shortest time.)
 
-A second question variance estimate is based on the Cox model.  
+A second variance estimate is based on the Cox model.  
 The insight used here is to consider a Cox model with time dependent
 covariates, where the covariate $x$ at each death time has been
 transformed into ${\rm rank}(x)$. 
@@ -212,9 +214,8 @@ as
 \end{equation*}
 These correspond to the midpoints of the rise on an empirical CDF, and
 for unweighted data without ties gives ranks of .5, 1.5, \ldots, $n-.5$.
-   
-A second short lemma is that the mean rank $\overline{r}$ of the
-Cox model has a simple form.
+A second short lemma is that the mean rank $\overline{r}$ of these
+values has a simple form.
 \begin{equation*}
   \overline{r} = (\sum w_i r_i)/(\sum w_i) = \sum w_i/2
 \end{equation*}
@@ -299,9 +300,12 @@ Input variables are
   \item[indx] the tree node at which this observation's risk score resides  %'
   \item[wt] case weight for the observation
   \item[sum] scratch space, weights for each node of the tree: 
-    3 values are for the node, all left children, and all right children
+    3 values are for the node, all left children, and all right children,
+    a second three for the subset of deaths.
   \item[count] the returned counts of concordant, discordant, tied on x, 
     tied on time, and the variance
+  \item[ijn, ijd] vectors containing the infinitesimal jackknife estimate
+    for the numerator and denominator.
 \end{description}
 
 <<concordance1>>=
@@ -312,12 +316,14 @@ SEXP concordance1(SEXP y, SEXP wt2,  SEXP indx2, SEXP ntree2) {
     int n, ntree;
     double *time, *status;
     double *twt, *nwt, *count;
+    double *death1, *death2, *death3; /* sum of
     double vss, myrank, wsum1, wsum2, wsum3; /*sum of wts below, tied, above*/
+    double death1, death2, death3;  /*death weith
     double lmean, umean, oldmean, newmean;
         
     double ndeath;   /* weighted number of deaths at this point */
     
-    SEXP count2;
+    SEXP count2, ij2;  /* the returned vector of counts, and of the IJ values*/
     double *wt;
     int    *indx;
     

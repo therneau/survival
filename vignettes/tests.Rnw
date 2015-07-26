@@ -25,7 +25,7 @@ pdf.options(pointsize=8) #text in graph about the same as regular text
 options(contrasts=c("contr.treatment", "contr.poly")) #reset default
 @ 
 
-\title{Populations, Cox models, and ``type III'' tests}
+\title{Contrasts, populations, and ``type III'' tests}
 \author{Terry M Therneau \\ \emph{Mayo Clinic}}
 \newcommand{\code}[1]{\texttt{#1}}
 \newcommand{\myfig}[1]{\includegraphics[height=!, width=\textwidth]
@@ -38,6 +38,52 @@ options(contrasts=c("contr.treatment", "contr.poly")) #reset default
   \tableofcontents
 
 \section{Introduction}
+\begin{table} \centering
+  \begin{tabular} {crrrrr} 
+    & \multicolumn{5}{c}{Group} \\
+    &A & B & C & D & E \\
+<<echo=FALSE, results='tex'>>=
+tab1 <- with(fdata, tapply(flc, list(sex, age2), mean))
+cat("female&" , paste(round(tab1[1,], 1), collapse=" & "), "\\\\ \n")
+cat("male &"  , paste(round(tab1[2,], 1), collapse=" & "), "\n")
+@ 
+ \caption{Fitted values from a linear model with two factors.}
+ \label{tab1}
+ \end{table}
+
+One of the annoying design shortfalls of R, inherited from S, is how 
+modeling functions deal with categorical predictors.
+For a simple model such as \code{y ~ age + treatment} where the latter is
+a categorical, we will normally want to compare pairs of treatments.
+One way to do this is to set up the columns of 0/1 dummy variables that
+represent treatment so that the comparisons of interest appear directly
+as coefficients in the fit. If for instance there were three treatments,
+a control and two active agents then the two natural comparisons are
+control vs. agent1 and control vs. agent2.
+R does this for us without a hitch and nearly automatically, with several
+options to help control exactly how said 0/1 variables are created.
+But what if there were 4 treatments and we want to look at all 6 pairwise
+comparisons?  This cannot be set up so that all 6 will appear as one
+coefficient in the fit, 
+one needs a mechanism to compute these 6 estimates or \emph{contrasts} after the
+fit. 
+As a more complex case consider the simple data shown in table \ref{tab1}, 
+which are fitted values
+from a linear model on two factors along with their interaction.
+There are any number of comparisons that we might want to make 
+in the data set: a trend test across the groups, overall or separately for
+each sex, all pairwise comparisons between groups, etc.
+A standard mechanism for this after-the-fit estimates has been lacking.
+There are several addons that address parts of the question such as
+\code{pairwise.t.tests} or \code{TukeyHSD}, but they are not applicable to
+coxph models.  
+
+The \code{yates} function was motivated by the more perplexing problem of
+population contrasts, which it also addresses.
+
+
+
+
 This note started with an interchange on the R-help.
 A user asked ``how do I do a type III test using the Cox model'', and I
 replied that this was not a well defined question.
