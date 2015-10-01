@@ -7,6 +7,22 @@ a programming perspective it was a good idea.
 At one time, long long ago, we allowed the function to be called with
 ``Surv(time, status)'' as the formula, i.e., without a tilde.  That was
 a bad idea, now abandoned.
+
+A note on times:  one of the things that drove me nuts was the problem of
+``tied but not quite tied'' times.  
+As an example consider two values of 24173 = 23805 + 368. These are values from
+an actual study with times in days.
+However, the data set chose to use age in years, and saved those values out
+in a CSV file, resulting in values for the above of 66.18206708000000 
+and 66.18206708000001.
+The R phrase \code{unique(x)} sees these two values as distinct but 
+\code{table(x)} and \code{tapply} see it as a single value since they 
+first apply \code{factor} to the values, and that in turn uses 
+\code{as.character}.  
+Since the survfit routines use \code{table} and then turn the labels back
+into a vector of times, in order to ensure a consistent treatment of near
+ties.  
+
 <<survfit>>=
 survfit <- function(formula, ...) {
     UseMethod("survfit", formula)
