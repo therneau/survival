@@ -8,13 +8,14 @@ consolodates them so as to restore order by using common code blocks.
 First define the top level routines.
 
 <<plot.survfit>>=
-plot.survfit<- function(x, conf.int,  mark.time=TRUE,
+plot.survfit<- function(x, conf.int,  mark.time=FALSE,
 			mark=3, col=1,lty=1, lwd=1, 
                         cex=1, log=FALSE,
 			xscale=1, yscale=1, 
 			firstx=0, firsty=1,
 			xmax, ymin=0,
-			fun, xlab="", ylab="", xaxs='S', ...) {
+			fun, xlab="", ylab="", xaxs='S', 
+                        conf.times, conf.cap=.01, conf.offset=.02, ...) {
 
     dotnames <- names(list(...))
     if (any(dotnames=='type'))
@@ -37,7 +38,8 @@ lines.survfit <- function(x, type='s',
                           cex=1,
                           mark.time=TRUE, xscale=1, 
 			  firstx=0, firsty=1, xmax,
-                          fun,  conf.int=FALSE, ...) {
+                          fun,  conf.int=FALSE,  
+                          conf.times, conf.cap=.01, conf.offset=.02, ...) {
     xlog <- par("xlog")
     <<plot-transform-ms>>
     if (missing(firsty) && !is.null(x$prev0)) firsty <- 1-x$prev0
@@ -150,7 +152,7 @@ if (!missing(xmax) && any(x$time>xmax)) {
         slower <- slower[keepy,,drop=FALSE]
     }
 }
-stime <- stime/xscale  #scaling is deferred until xmax processing is done
+#stime <- stime/xscale  #scaling is deferred until xmax processing is done
 
 if (!missing(fun)) {
     if (is.character(fun)) {
@@ -204,7 +206,13 @@ if (missing(firstx)) {
 
 # The default for plot and lines is to add confidence limits
 #  if there is only one curve
-if (missing(conf.int)) conf.int <- (ncurve==1)
+if (missing(conf.int) && missing(conf.times))  conf.int <- (ncurve==1)
+if (missing(conf.times)) conf.times <- NULL   
+else {
+    if (!is.numeric(conf.times)) stop('conf.times must be numeric')
+    conf.int <- TRUE
+}
+
 if (is.logical(conf.int)) plot.surv <- TRUE
 else {
     temp <- match.arg(conf.int, c("both", "only", "none"))
@@ -221,14 +229,16 @@ mark <- rep(mark, length.out=ncurve)
 mcol <- rep(col,  length.out=ncurve)
 if (is.numeric(mark.time)) mark.time <- sort(mark.time)
 
-# The actual number of curves is ncurve*3 if there are confidence bands
+# The actual number of curves is ncurve*3 if there are confidence bands,
+#  unless conf.times has been given.  Colors and line types in the latter
+#  match the curves
 # If the number of line types is 1 and lty is an integer, then use lty 
 #    for the curve and lty+1 for the CI
 # If the length(lty) <= length(ncurve), use the same color for curve and CI
 #   otherwise assume the user knows what they are about and has given a full
 #   vector of line types.
 # Colors and line widths work like line types, excluding the +1 rule.
-if (conf.int) {
+if (conf.int & is.null(conf.times)) {
     if (length(lty)==1 && is.numeric(lty))
         lty <- rep(c(lty, lty+1, lty+1), ncurve)
     else if (length(lty) <= ncurve)
@@ -327,14 +337,19 @@ if(yscale != 1) {
     if (ylog) par(usr =par("usr") -c(0, 0, log10(yscale), log10(yscale))) 
     else par(usr =par("usr")/c(1, 1, yscale, yscale))   
 }
+if (xscale !=1) {
+    if (xlog) par(usr =par("usr") -c(log10(xscale), log10(xscale), 0,0)) 
+    else par(usr =par("usr")/c(xscale, xscale, 1, 1))   
+}  
 @ 
 The use of [[par(usr)]] just above is a bit sneaky.  I want the
 lines and points routines to be able to add to the plot, \emph{without}
 passing them a global parameter that determines the y-scale or forcing
 the user to repeat it.
-Why didn't I use the same trick for xscale?  Lack of foresight.
-And now there are hundreds of lines of code that have an xscale
-argument to lines() so I don't dare drop it.
+The xscale argument was added before yscale, and before I saw this
+trick.  
+By then there were hundreds of lines of code that have an xscale
+argument to lines() so the other change was to ignore the argument there.
 
 The next functions do the actual drawing.
 <<plot-functions>>=
@@ -392,6 +407,8 @@ The code to draw the lines and confidence bands.
 c1 <- 1  # keeps track of the curve number
 c2 <- 1  # keeps track of the lty, col, etc
 xend <- yend <- double(ncurve)
+temp.offset <- 0
+temp.cap    <- conf.cap    * diff(par("usr")[1:2])
 
 for (i in unique(stemp)) {  #for each strata
     who <- which(stemp==i)
@@ -411,10 +428,28 @@ for (i in unique(stemp)) {  #for each strata
         }
         xend[c1] <- max(xx)
         yend[c1] <- yy[length(yy)]
+
+        if (conf.int && !is.null(conf.times)) {
+            # add vertical bars at the specified times
+            x2 <- conf.times + temp.offset
+            templow <- approx(x2, c(firsty[i,j], slower[who,j]), conf.times,
+                              method='constant', f=1)$y
+            temphigh<- approx(x2, c(firsty[i,j], supper[who,j]), conf.times,
+                              method='constant', f=1)$y
+            segments(x2, templow, x2, temphigh,
+                      lty=lty[c2], col=col[c2], lwd=lwd[c2])
+            if (conf.cap>0) {
+                segments(x2-temp.cap, templow, x2+temp.cap, templow,
+                         lty=lty[c2], col=col[c2], lwd=lwd[c2] )
+                segments(x2-temp.cap, temphigh, x2+temp.cap, temphigh,
+                          lty=lty[c2], col=col[c2], lwd=lwd[c2])
+            }
+            temp.offset <- temp.offset + conf.offset* diff(par("usr")[1:2])
+        }
         c1 <- c1 +1
         c2 <- c2 +1
 
-        if (conf.int) {
+        if (conf.int && is.null(conf.times)) {
             if (type == 's') {
                 lines(dostep(xx, c(firsty[i,j], slower[who,j])), lty=lty[c2], 
                       col=col[c2],lwd=lwd[c2])
@@ -432,6 +467,7 @@ for (i in unique(stemp)) {  #for each strata
                 c2 <- c2 + 1
             }
          }
+
     }
 }
 invisible(list(x=xend, y=yend))
