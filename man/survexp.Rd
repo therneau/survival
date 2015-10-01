@@ -57,7 +57,7 @@ the \code{formula}.
   response, and  \code{method='hakulinen'} otherwise.}
 \item{cohort}{logical value.  This argument has been superseded by the
   \code{method} argument.  To maintain backwards compatability,
-  if is present and TRUE, it implies \code{method='individual.s'}.}
+  if is present and FALSE, it implies \code{method='individual.s'}.}
 
 \item{conditional}{logical value.  This argument has been superseded by the
   \code{method} argument.  To maintain backwards compatability,

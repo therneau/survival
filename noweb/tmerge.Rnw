@@ -5,7 +5,7 @@ The primary arguments are
 \begin{itemize}
   \item data1: the base data set that will be added onto
   \item data2: the source for new variables, optional
-  \item id: id variable in the new data set
+  \item id: id variable in the new data
   \item additional arguments that add variables
   \item options
 \end{itemize}
@@ -51,17 +51,21 @@ tmerge <- function(data1, data2, id, ..., tstart, tstop, options) {
 The program can't use formulas because the \ldots arguments need to be
 named.  This results in a bit of evaluation magic to correctly assess
 arguments.  
-The tname option is used if someone wants to name
-the three key variables something else.  
 The routine below could have been set out as a separate top-level routine,
 the argument is where we want to document it: within the tmerge page or not.
 <<tmerge-setup>>= 
 tmerge.control <- function(id="id", tstart="tstart", tstop="tstop",  defer =0) {
     if (length(defer) !=1 || !is.numeric(defer) || defer <0)
         stop("defer option must be a non-negative number")
-    if (!is.character(id)) stop("id option must be a character string")
-    if (!is.character(tstart)) stop("tstart option must be a character string") 
-     if (!is.character(tstop)) stop("tstop option must be a character string") 
+    if (length(id) != 1 || make.names(id) != id)
+        stop("id option must be a valid variable name")
+    if (!is.null(tstart) && 
+        (length(tstart) !=1 || make.names(tstart) != tstart))
+        stop("tstart option must be NULL or a valid variable name")
+    if (length(tstop) != 1 || make.names(tstop) != tstop)
+        stop("tstop option must be a valid variable name") 
+    if (length(defer) !=1 || !is.numeric(defer) || defer < 0)
+        stop("defer option must be a number >= 0")
    list(id=id, tstart=tstart, tstop=tstop, defer=defer)
 }
 
@@ -221,7 +225,8 @@ else { #not a first call
 Now for the real work.  For each additional argument we first match the
 id/time pairs of the new data to the current data set, and categorize
 each into a type.  If the time value in data2 is NA, then that
-addition is skipped.  This is a convenience for the user, who will often
+addition is skipped (or if the argument is NA).
+This is a convenience for the user, who will often
 be merging in a variable like ``day of first diabetes diagnosis'' which
 is missing for those who never had that outcome occur.
 <<tmerge-addvar>>=
@@ -234,8 +239,18 @@ for (ii in seq(along.with=args)) {
     
     # if an event time is missing then skip that obs
     etime <- argi[[1]]
-    keep <- !is.na(etime)
-    etime <- etime[keep]
+    if (length(argi)>1) {
+        keep <- !(is.na(etime) | is.na(argi[[2]]))
+        if (!all(keep)) {
+            etime <- etime[keep]
+            argi[[2]] <- (argi[[2]])[keep]
+            }
+        }
+    else {
+      keep <- !is.na(etime)
+      etime <- etime[keep]
+      }
+    
     id <- saveid[keep]
     if (length(etime) != length(id)) 
         stop("argument", argname[ii], "is not the same length as id")

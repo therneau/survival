@@ -73,19 +73,19 @@ test: $(RFUN)
 	echo $(RFUN)
 
 %.R: 
-	echo "# Automatically generated from all.nw using noweb" > $@
+	echo "# Automatically generated from the noweb directory" > $@
 	echo "require(noweb); notangle('all.nw', target='$(*F)', out='zz')" | $(R_HOME)/bin$(R_ARCH_BIN)/R --vanilla --slave
 	cat zz >> $@
 	rm zz
 
 %.S: 
-	echo "# Automatically generated from all.nw using noweb" > $@
+	echo "# Automatically generated from the noweb directory" > $@
 	echo "require(noweb); notangle('all.nw', target='$(*F)', out='zz')" | $(R_HOME)/bin$(R_ARCH_BIN)/R --vanilla --slave
 	cat zz >> $@
 	rm zz
 
 %.c: 
-	echo "/* Automatically generated from all.nw using noweb */" > $@
+	echo "/* Automatically generated from the noweb directory */" > $@
 	echo "require(noweb); notangle('all.nw', target='$(*F)', out='zz')" | $(R_HOME)/bin$(R_ARCH_BIN)/R --vanilla --slave
 	cat zz >> $@
 	rm zz

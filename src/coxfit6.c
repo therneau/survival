@@ -212,7 +212,7 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
     **  indicate "no risk", meaning that x*beta values of 50-100 can occur 
     **  in "ok" data sets.  Compromise.
     */
-    for (i=0; i<nvar; i++) maxbeta[i] = 200/maxbeta[i];
+    for (i=0; i<nvar; i++) maxbeta[i] = 2000/maxbeta[i];
 
     /*
     ** do the initial iteration step
@@ -480,12 +480,13 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
 	    }
 	    goto finish;
 	}
+printf("iter=%d, loglik=%f, newlk=%f, flag=%d\n", *iter, loglik[1], newlk,
+       *flag);
 
 	if (*iter== maxiter) break;  /*skip the step halving calc*/
-
 	if (newlk < loglik[1])   {    /*it is not converging ! */
 		halving =1;
-		for (i=0; i<nvar; i++)
+		for (i=0; i<nvar; i++) 
 		    newbeta[i] = (newbeta[i] + beta[i]) /2; /*half of old increment */
 		}
 	else {
@@ -494,9 +495,11 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
 	    chsolve2(imat,nvar,u);
 	    j=0;
 	    for (i=0; i<nvar; i++) {
-		beta[i] = newbeta[i];
+			beta[i] = newbeta[i];
 		newbeta[i] = newbeta[i] +  u[i];
-		if (newbeta[i] > maxbeta[i]) newbeta[i] = maxbeta[i];
+		if (newbeta[i] > maxbeta[i]) {
+		    newbeta[i] = maxbeta[i];
+		    }
 		else if (newbeta[i] < -maxbeta[i]) newbeta[i] = -maxbeta[i];
 	        }
 	    }

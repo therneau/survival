@@ -35,11 +35,8 @@ coxph(formula, data=, weights, subset,
     argument. 
   }
   \item{weights}{
-    vector of case weights.  If \code{weights} is a vector of integers,
-    then the 
-    estimated coefficients are equivalent to estimating the model from data 
-    with the individual cases replicated as many times as indicated by 
-    \code{weights}. 
+    vector of case weights.  For a thorough discussion of these see the
+    book by Therneau and Grambsch.
   }
   \item{subset}{
     expression indicating which subset of the rows of data should be used in 

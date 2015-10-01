@@ -1,11 +1,20 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 2.38-4}{
+  \itemize{
+    \item Fix an error in the help page for the cohort
+    argument of survexp, pointed out by Karl Ove Hufthammer.
+}}
+
 \section{Changes in version 2.38-3}{
   \itemize{
     \item Add more imports to the NAMESPACE file per a request from CRAN
 
     \item Add a length method for Surv objects.  Requested by Max Kuhn.
     (2015/6/17).
+
+    \item Fix an error in neardate. When both input data sets were
+    unsorted the last match could be wrong.
 }}
 
 \section{Changes in version 2.38-2}{
@@ -207,7 +216,7 @@
     The result of survfit now (sometimes) includes the cumulative
     hazard.  This will be expanded. 29Jul13
     
-    \item Change code in the coxpenal.fit routine: the use of a vector of
+2    \item Change code in the coxpenal.fit routine: the use of a vector of
     symbols as arguments to my .C calls was confusing to a new CRAN
     consistency check.  Both the old and new are legal R; but the old
     was admittedly an unusual construction and it was simpler to change it.
