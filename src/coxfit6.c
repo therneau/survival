@@ -276,7 +276,7 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
 	        }
 	    
 	    person--;
-	    if (strata[person]==1) break;  /*ties don't cross strata */
+	    if (person>=0 && strata[person]==1) break;  /*ties don't cross strata */
 	    }
 
 
@@ -423,7 +423,7 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
 	  	    }
 		
 		person--;
-		if (strata[person]==1) break; /*tied times don't cross strata*/
+		if (person>0 && strata[person]==1) break; /*tied times don't cross strata*/
 	        }
 
 	    if (ndead >0) {  /* add up terms*/

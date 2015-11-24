@@ -4,6 +4,15 @@
   \itemize{
     \item Fix an error in the help page for the cohort
     argument of survexp, pointed out by Karl Ove Hufthammer.
+
+    \item The anova and logLik functions would fail when given a
+    null model (right hand side of 1 or only an offset).  Pointed
+    out by Karl Ove Hufthammer.
+
+    \item The recently added code to generate an error when the same
+    variable appears on both sides of a formula in coxph (a good idea)
+    caused a failure if there was offset statement that contains a '-'
+    sign.  Pointed out by Abra Jeffers.
 }}
 
 \section{Changes in version 2.38-3}{

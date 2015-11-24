@@ -83,6 +83,13 @@ other arguments which will be passed to \code{survreg.control}.
 \value{
 an object of class \code{survreg} is returned.
 }
+\details{
+  All the distributions are cast into a location-scale framework, based
+  on chapter 2.2 of Kalbfleisch and Prentice.  The resulting
+  parameterization of the distributions is sometimes (e.g. gaussian)
+  identical to the usual form found in statistics textbooks, but other
+  times (e.g. Weibull) it is not.  See the book for detailed formulas.
+  }
 \seealso{
 \code{\link{survreg.object}}, \code{\link{survreg.distributions}},
 \code{\link{pspline}}, \code{\link{frailty}}, \code{\link{ridge}}
@@ -114,4 +121,8 @@ survreg(Surv(y)~1, dist="weibull")
 tobinfit <- survreg(Surv(durable, durable>0, type='left') ~ age + quant,
 	            data=tobin, dist='gaussian')
 }
+\references{
+  Kalbfleisch, J. D. and Prentice, R. L., The statistical analysis of
+  failure time data, Wiley, 2002.
+  }
 \keyword{survival}

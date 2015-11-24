@@ -53,7 +53,7 @@ resected colon carcinoma. New England J of Medicine, 332:352-358,
 
  CG Moertel,  TR Fleming,  JS MacDonald, DG Haller, JA Laurie, CM Tangen,
  JS Ungerleider, WA Emerson, DC Tormey, JH Glick, MH Veeder and JA
- Maillard, Fluorouracil plus Levamisole as and effective adjuvant
+ Maillard, Fluorouracil plus Levamisole as an effective adjuvant
  therapy after resection of stage II colon carcinoma: a final report.
  Annals of Internal Med, 122:321-326, 1991.
   }

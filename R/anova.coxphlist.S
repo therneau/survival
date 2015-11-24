@@ -21,9 +21,11 @@ anova.coxphlist <- function (object, test =  'Chisq' ,...) {
     nmodels <- length(object)
     if (nmodels == 1) # only one model remains
         return(anova.coxph(object[[1]], test = test))
-    loglik <- unlist(lapply(object, function(x) x$loglik[2]))
+    # The model ~1 only has one loglik value, hence the rev(x)[1], not x[2]
+    loglik <- unlist(lapply(object, function(x) rev(x$loglik)[1]))
     df <- unlist(lapply(object, function(x) 
                         if (!is.null(x$df)) sum(x$df)
+                        else if (is.null(coef(x))) 0
                         else sum(!is.na(coef(x)))))
 
     table <- data.frame(loglik, Chisq= c(NA, abs(2*diff(loglik))), 

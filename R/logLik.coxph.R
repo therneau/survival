@@ -10,6 +10,15 @@ logLik.coxph <- function(object, ...) {
     out
     }
 
+# Cox models with no covariates
+logLik.coxph.null <- function(object, ...) {
+    out <- object$loglik[1]
+    attr(out, "df") <- 0
+    attr(out, "nobs") <- object$nevent
+    class(out) <- "loglik"
+    out
+}
+    
 logLik.survreg <- function(object, ...) {
     out <- object$loglik[2]
     dd <- diag(object$var)
