@@ -47,6 +47,7 @@ object.  Otherwise we can drop columns freely
             if (nrow(x$prev)==1 && length(j) > 1) drop<- FALSE
             x$prev <- x$prev[,j,drop=drop]
             x$cumhaz <- x$cumhaz[j,j,, drop=drop]
+            x$prev0  <- x$prev0[j]
             if (!is.null(x$std.err)) x$std.err <- x$std.err[,j,drop=drop]
             if (!is.null(x$upper)) x$upper <- x$upper[,j,drop=drop]
             if (!is.null(x$lower)) x$lower <- x$lower[,j,drop=drop]
@@ -54,7 +55,10 @@ object.  Otherwise we can drop columns freely
         else warning("Survfit object has only a single survival curve")
         }
     else {
-        if (is.null(i)) keep <- seq(along.with=x$time) # rows to keep
+        if (is.null(i)) {
+            keep <- seq(along.with=x$time) # rows to keep
+            indx <- seq(along=x$strata)
+        }
         else {
             indx <- nmatch(i, names(x$strata)) #strata to keep
             if (any(is.na(indx))) 
@@ -82,18 +86,20 @@ object.  Otherwise we can drop columns freely
             if (is.null(j)) {  #only subscript rows (strata)
                 x$prev <- x$prev[keep,,drop=drop]
                 x$cumhaz <- x$cumhaz[,,keep, drop=drop]
+                x$prev0 <- x$prev0[indx,,drop=drop]
                 if (!is.null(x$std.err)) 
                         x$std.err <- x$std.err[keep,,drop=drop]
                 if (!is.null(x$upper)) x$upper <-x$upper[keep,,drop=drop]
                 if (!is.null(x$lower)) x$lower <-x$lower[keep,,drop=drop]
                 }
             else { #subscript both rows (strata) and columns (states)
-                indx <- nmatch(j, x$states)
-                if (any(is.na(indx))) 
-                    stop("unmatched subscript", j[indx])
-                else j <- as.vector(indx)
+                temp <- nmatch(j, x$states)
+                if (any(is.na(temp))) 
+                    stop("unmatched subscript", j[temp])
+                else j <- as.vector(temp)
                 x$states <- x$states[j]
                 x$prev <- x$prev[keep,j, drop=drop]
+                x$prev0 <- x$prev0[indx, j, drop=drop]
                 x$cumhaz <- x$cumhaz[j,j,keep, drop=drop]
                 if (!is.null(x$std.err)) x$std.err <- x$std.err[keep,j,drop=drop]
                 if (!is.null(x$upper)) x$upper <- x$upper[keep,j, drop=drop]
@@ -102,6 +108,7 @@ object.  Otherwise we can drop columns freely
             }
         else {
             x$prev <- x$prev[keep]
+            x$prev0 <- x$prev0[indx]
             x$cumhaz <- x$cumhaz[keep]
             if (!is.null(x$std.err)) x$std.err <- x$std.err[keep]
             if (!is.null(x$upper)) x$upper <- x$upper[keep]
