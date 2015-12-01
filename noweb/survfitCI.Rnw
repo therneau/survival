@@ -446,7 +446,7 @@ docurve2 <- function(entry, etime, status, istate, wt, states, id, se.fit) {
     uid <- sort(unique(id))
     P <- as.vector(tapply(wt, factor(istate, levels=states), sum) / sum(wt))
     P <- ifelse(is.na(P), 0, P) # initial probability distribution
-    cstate <- istate[match(uid, id)]   #current state for each observation
+    cstate <- istate[match(uid, id)]   #initial state for each observation
     
     storage.mode(wt) <- "double" # just in case someone had integer weights
     storage.mode(cstate) <- "integer"

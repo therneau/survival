@@ -15,7 +15,7 @@ plot.survfit<- function(x, conf.int,  mark.time=FALSE,
 			firstx=0, firsty=1,
 			xmax, ymin=0,
 			fun, xlab="", ylab="", xaxs='S', 
-                        conf.times, conf.cap=.01, conf.offset=.02, ...) {
+                        conf.times, conf.cap=.005, conf.offset=.012, ...) {
 
     dotnames <- names(list(...))
     if (any(dotnames=='type'))
@@ -36,10 +36,10 @@ plot.survfit<- function(x, conf.int,  mark.time=FALSE,
 lines.survfit <- function(x, type='s', 
                           mark=3, col=1, lty=1, lwd=1,
                           cex=1,
-                          mark.time=TRUE, xscale=1, 
+                          mark.time=FALSE, xscale=1, 
 			  firstx=0, firsty=1, xmax,
                           fun,  conf.int=FALSE,  
-                          conf.times, conf.cap=.01, conf.offset=.02, ...) {
+                          conf.times, conf.cap=.005, conf.offset=.012, ...) {
     xlog <- par("xlog")
     <<plot-transform-ms>>
     if (missing(firsty) && !is.null(x$prev0)) firsty <- 1-x$prev0
@@ -197,7 +197,7 @@ The points routine doesn't have to deal with this nuisance.
 <<plot-firstx>>=
 if (missing(firstx)) {
     if (!is.null(x$start.time)) 
-        firstx <- x$start.time/xscale
+        firstx <- x$start.time
     else {
         if (xlog) firstx <- min(stime[stime>0])
         else      firstx <- min(0, stime)
@@ -210,7 +210,7 @@ if (missing(conf.int) && missing(conf.times))  conf.int <- (ncurve==1)
 if (missing(conf.times)) conf.times <- NULL   
 else {
     if (!is.numeric(conf.times)) stop('conf.times must be numeric')
-    conf.int <- TRUE
+    if (missing(conf.int)) conf.int <- TRUE
 }
 
 if (is.logical(conf.int)) plot.surv <- TRUE
@@ -329,7 +329,7 @@ if (missing(fun)) {
 #
 # Draw the basic box
 #
-plot(range(tempx, finite=TRUE, na.rm=TRUE), 
+plot(range(tempx, finite=TRUE, na.rm=TRUE)/xscale, 
      range(tempy, finite=TRUE, na.rm=TRUE)*yscale, 
      type='n', log=logax, xlab=xlab, ylab=ylab, xaxs=xaxs,...)
 
@@ -339,7 +339,7 @@ if(yscale != 1) {
 }
 if (xscale !=1) {
     if (xlog) par(usr =par("usr") -c(log10(xscale), log10(xscale), 0,0)) 
-    else par(usr =par("usr")/c(xscale, xscale, 1, 1))   
+    else par(usr =par("usr")*c(xscale, xscale, 1, 1))   
 }  
 @ 
 The use of [[par(usr)]] just above is a bit sneaky.  I want the
@@ -407,8 +407,10 @@ The code to draw the lines and confidence bands.
 c1 <- 1  # keeps track of the curve number
 c2 <- 1  # keeps track of the lty, col, etc
 xend <- yend <- double(ncurve)
-temp.offset <- 0
-temp.cap    <- conf.cap    * diff(par("usr")[1:2])
+if (length(conf.offset) ==1) 
+    temp.offset <- (1:ncurve - (ncurve-1)/2)* conf.offset* diff(par("usr")[1:2])
+else temp.offset <- rep(conf.offset, length=ncurve) *  diff(par("usr")[1:2])
+temp.cap    <-  conf.cap    * diff(par("usr")[1:2])
 
 for (i in unique(stemp)) {  #for each strata
     who <- which(stemp==i)
@@ -431,10 +433,10 @@ for (i in unique(stemp)) {  #for each strata
 
         if (conf.int && !is.null(conf.times)) {
             # add vertical bars at the specified times
-            x2 <- conf.times + temp.offset
-            templow <- approx(x2, c(firsty[i,j], slower[who,j]), conf.times,
+            x2 <- conf.times + temp.offset[c1]
+            templow <- approx(xx, c(firsty[i,j], slower[who,j]), x2,
                               method='constant', f=1)$y
-            temphigh<- approx(x2, c(firsty[i,j], supper[who,j]), conf.times,
+            temphigh<- approx(xx, c(firsty[i,j], supper[who,j]), x2,
                               method='constant', f=1)$y
             segments(x2, templow, x2, temphigh,
                       lty=lty[c2], col=col[c2], lwd=lwd[c2])
@@ -444,7 +446,7 @@ for (i in unique(stemp)) {  #for each strata
                 segments(x2-temp.cap, temphigh, x2+temp.cap, temphigh,
                           lty=lty[c2], col=col[c2], lwd=lwd[c2])
             }
-            temp.offset <- temp.offset + conf.offset* diff(par("usr")[1:2])
+           
         }
         c1 <- c1 +1
         c2 <- c2 +1
