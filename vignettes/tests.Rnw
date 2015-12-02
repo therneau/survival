@@ -6,7 +6,6 @@
 \setlength{\evensidemargin}{\oddsidemargin}
 %\VignetteIndexEntry{Cox models and ``type 3'' Tests}
 
-
 \SweaveOpts{prefix.string=tests,width=6,height=4, keep.source=TRUE, fig=FALSE}
 % Ross Ihaka suggestions
 \DefineVerbatimEnvironment{Sinput}{Verbatim} {xleftmargin=2em}
@@ -42,8 +41,13 @@ options(contrasts=c("contr.treatment", "contr.poly")) #reset default
   \begin{tabular} {crrrrr} 
     & \multicolumn{5}{c}{Group} \\
     &A & B & C & D & E \\
-<<echo=FALSE, results='tex'>>=
-tab1 <- with(fdata, tapply(flc, list(sex, age2), mean))
+<<echo=FALSE, results=tex>>=
+library(survival)
+age2 <- cut(flchain$age, c(49, 59, 69, 79, 89, 120),                   
+            labels=c("50-59", "60-69", "70-79", "80-89", "90+"))
+
+flchain$flc <- flchain$kappa + flchain$lambda                    
+tab1 <- with(flchain, tapply(flc, list(sex, age2), mean))
 cat("female&" , paste(round(tab1[1,], 1), collapse=" & "), "\\\\ \n")
 cat("male &"  , paste(round(tab1[2,], 1), collapse=" & "), "\n")
 @ 

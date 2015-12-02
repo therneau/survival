@@ -480,8 +480,6 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
 	    }
 	    goto finish;
 	}
-printf("iter=%d, loglik=%f, newlk=%f, flag=%d\n", *iter, loglik[1], newlk,
-       *flag);
 
 	if (*iter== maxiter) break;  /*skip the step halving calc*/
 	if (newlk < loglik[1])   {    /*it is not converging ! */

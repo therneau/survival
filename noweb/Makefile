@@ -74,19 +74,19 @@ test: $(RFUN)
 
 %.R: 
 	echo "# Automatically generated from the noweb directory" > $@
-	echo "require(noweb); notangle('all.nw', target='$(*F)', out='zz')" | $(R_HOME)/bin$(R_ARCH_BIN)/R --vanilla --slave
+	echo "require(noweb); notangle('all.nw', target='$(*F)', out='zz')" | $(R_HOME)/bin$(R_ARCH_BIN)/R  --slave
 	cat zz >> $@
 	rm zz
 
 %.S: 
 	echo "# Automatically generated from the noweb directory" > $@
-	echo "require(noweb); notangle('all.nw', target='$(*F)', out='zz')" | $(R_HOME)/bin$(R_ARCH_BIN)/R --vanilla --slave
+	echo "require(noweb); notangle('all.nw', target='$(*F)', out='zz')" | $(R_HOME)/bin$(R_ARCH_BIN)/R  --slave
 	cat zz >> $@
 	rm zz
 
 %.c: 
 	echo "/* Automatically generated from the noweb directory */" > $@
-	echo "require(noweb); notangle('all.nw', target='$(*F)', out='zz')" | $(R_HOME)/bin$(R_ARCH_BIN)/R --vanilla --slave
+	echo "require(noweb); notangle('all.nw', target='$(*F)', out='zz')" | $(R_HOME)/bin$(R_ARCH_BIN)/R  --slave
 	cat zz >> $@
 	rm zz
 
@@ -95,4 +95,4 @@ clean:
 	-rm noweb.sty
 
 noweb.sty:
-	echo 'library(noweb); data(noweb); cat(noweb.sty, sep="\n", file="noweb.sty")' |  $(R_HOME)/bin$(R_ARCH_BIN)/R --vanilla --slave
+	echo 'library(noweb); data(noweb); cat(noweb.sty, sep="\n", file="noweb.sty")' |  $(R_HOME)/bin$(R_ARCH_BIN)/R  --slave

@@ -31,6 +31,7 @@ noweb/*.pdf
 vignettes/*.pdf
 noweb/figures/.*.pdf
 noweb/.*.aux
+noweb/noweb.sty
 inst/doc/
 vigtemp/
 test.local

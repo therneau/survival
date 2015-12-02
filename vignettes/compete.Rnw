@@ -5,7 +5,6 @@
 \addtolength{\oddsidemargin}{-.5in}
 \setlength{\evensidemargin}{\oddsidemargin}
 %\VignetteIndexEntry{Multi-state models and competing risks}
-%\VignetteDepends{cmprsk}
 
 \SweaveOpts{keep.source=TRUE, fig=FALSE}
 % Ross Ihaka suggestions
@@ -221,9 +220,9 @@ event type while treating other event types as censored.
 The next plot is an example of this for the PCM endpoint.
 <<mgus3, fig=TRUE>>=
 pcmbad <- survfit(Surv(etime, pstat) ~ sex, data=mgus2)
-plot(pcmbad[2], mark.time=FALSE, lwd=2, fun="event", conf=FALSE, xscale=12,
+plot(pcmbad[2], mark.time=FALSE, lwd=2, fun="event", conf.int=FALSE, xscale=12,
      xlab="Years post diagnosis", ylab="Fraction with PCM")
-lines(mfit2[2,1], lty=2, lwd=2, mark.time=FALSE, conf=FALSE, xscale=12)
+lines(mfit2[2,1], lty=2, lwd=2, mark.time=FALSE, conf.int=FALSE, xscale=12)
 legend(0, .28, c("Males, PCM, incorrect curve", "Males, PCM, competing risk"),
        col=1, lwd=2, lty=c(1,2), bty='n')
 @ 
@@ -322,7 +321,7 @@ plot(mfit2[2,], lty=c(2,1),
      xscale=12, mark.time=FALSE, lwd=2, 
      xlab="Years post diagnosis", ylab="Prevalence")
 lines(mfit4[2,3], mark.time=FALSE, xscale=12, col=2, lty=2, lwd=2,
-      conf=FALSE)
+      conf.int=FALSE)
 
 legend(15, .5, c("male:death w/o pcm", "male: ever pcm", 
                  "male: death after pcm"), col=c(1,1,2), lty=c(1,2,2), 

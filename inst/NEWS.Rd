@@ -2,6 +2,21 @@
 \title{NEWS file for the survival package}
 \section{Changes in version 2.38-4}{
   \itemize{
+    \item Add the conf.times argument to plot.survfit.  This
+    allows for confidence bars at specified times, which are useful
+    when the plot is crowded.
+
+    \item Survfit changes that are NOT backward compatable!
+    \itemize{
+      \item Change the default for mark.time to FALSE
+      \item Change the behavior of xscale so that it matches that of
+      yscale, i.e., follow on annotation such as legend or locator is in the
+      orignal scale of the data.
+      \item For a matrix of curves, e.g. competing risks, print and
+      plot them in column major order rather than row major, in order
+      to match usual R behavior.
+      }
+    
     \item Fix an error in the help page for the cohort
     argument of survexp, pointed out by Karl Ove Hufthammer.
 
