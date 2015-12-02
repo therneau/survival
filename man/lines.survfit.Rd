@@ -11,7 +11,7 @@ generated with \code{plot.survfit}.
 }
 \usage{
 \method{lines}{survfit}(x, type="s", mark=3, col=1, lty=1,
-        lwd=1, cex=1, mark.time=TRUE, 
+        lwd=1, cex=1, mark.time=FALSE, 
 	xscale=1,  firstx=0, firsty=1, xmax, fun, conf.int=FALSE,
         conf.times, conf.cap=.005, conf.offset=.012,  ...)
 \method{lines}{survexp}(x, type="l", ...)
@@ -42,8 +42,8 @@ If \code{mark.time} is a numeric vector, then curves are marked at
 the specified time points. 
 }
 \item{xscale}{
-a number used to divide the x values.  If time was originally in days, a 
-value of 365.25 would give a plotted scale in years. 
+  this parameter is no longer necessary and is ignored.  See the
+  note in \code{\link{plot.survfit}}.
 }
 \item{firstx, firsty}{
 the starting point for the survival curves.  If either of these is set to 
@@ -64,7 +64,7 @@ argument instead: "log" is the same as using the \code{log=T} option,
 "event" plots cumulative events (f(y) = 1-y), 
 "cumhaz" plots the cumulative hazard function (f(y) = -log(y)) 
 and "cloglog" creates a complimentary log-log survival plot  
-(f(y) = log(-log(y) along with log scale for the x-axis). 
+(f(y) = log(-log(y))) along with log scale for the x-axis. 
 }
 \item{conf.int}{
 if \code{TRUE}, confidence bands for the curves are also plotted. 

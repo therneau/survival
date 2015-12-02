@@ -4,7 +4,7 @@
   Plot method for \code{survfit} objects 
 }
 \usage{
-\method{plot}{survfit}(x, conf.int=, mark.time=TRUE, 
+\method{plot}{survfit}(x, conf.int=, mark.time=FALSE, 
  mark=3, col=1, lty=1, lwd=1, cex=1, log=FALSE, xscale=1, yscale=1,  
  firstx=0, firsty=1, xmax, ymin=0, fun, 
  xlab="", ylab="", xaxs="S",  conf.times, conf.cap=.005,
@@ -121,7 +121,7 @@
     region. If this is a single number then each curve's bars are offset
     by this amount from the prior curve's bars, if it is a vector the values are
     used directly.}
-  }
+
   \item{\dots}{for future methods}
 }
 \value{
@@ -154,7 +154,13 @@ This will be the order in which \code{col}, \code{lty}, etc are used.
   If curves are steep at that point, the visual impact can sometimes
   substantially differ for positive and negative values of
   \code{conf.offset}.
-}    
+}
+\note{In prior versions the behavior of \code{xscale} and
+  \code{yscale} differed: the first changed the scale both for the plot
+  and for all subsequent actions such as adding a legend, whereas \code{yscale}
+  affected only the axis label.  This was normalized in version 2-36.4,
+  and both parameters now only affect the labeling.
+  }
 \seealso{ \code{\link{points.survfit}},
 \code{\link{lines.survfit}},   
 \code{\link{par}},  

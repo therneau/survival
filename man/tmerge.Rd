@@ -126,11 +126,11 @@ tdata <- jasa[, -(1:4)]  #leave off the dates, temporary data set
 tdata$futime <- pmax(.5, tdata$futime)  # the death on day 0
 indx <- with(tdata, which(wait.time == futime))
 tdata$wait.time[indx] <- tdata$wait.time[indx] - .5  #the tied transplant
-sdata <- tmerge(tdata, tdata, id=1:nrow(tdata), 
+sdata <- tmerge(jasa[,c(6,7,11:14)], tdata, id=1:nrow(tdata), 
                 death = event(futime, fustat), 
                 trans = tdc(wait.time))
 attr(sdata, "tcount")
-# Shows two subjects transplanted on the day of entry, the "front edge" of
+# Shows two subjects transplanted on the day of entry, the "leading edge" of
 #  their follow-up interval
 
 fit <- coxph(Surv(tstart, tstop, death) ~ trans + age, data=sdata)
