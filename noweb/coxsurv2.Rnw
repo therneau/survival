@@ -339,7 +339,7 @@ dN_i(t)$, i.e., the sums only over the deaths.
 
 For simple survival data the risk sum $\sum w_i r_i Y_i(t)$ for all 
 the unique death times $t$ is fast to compute as a cumulative sum, starting
-at the longest followup time an summing towards the shortest.
+at the longest followup time and summing towards the shortest.
 There are two algorithms for (start, stop] data. 
 \begin{itemize}
   \item Do a separate sum at each death time.  The problem is for very large

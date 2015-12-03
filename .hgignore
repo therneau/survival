@@ -7,6 +7,7 @@ todo
 noweb/all*
 src/coxcount1.c
 src/concordance1.c
+src/coxexact.c
 src/agfit4.c
 src/agsurv[45].c
 src/symbols.rds
@@ -31,6 +32,7 @@ noweb/*.pdf
 vignettes/*.pdf
 noweb/figures/.*.pdf
 noweb/.*.aux
+noweb/.*.tex
 noweb/noweb.sty
 inst/doc/
 vigtemp/

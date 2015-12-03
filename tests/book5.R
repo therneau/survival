@@ -3,8 +3,8 @@ options(na.action=na.exclude) # preserve missings
 options(contrasts=c('contr.treatment', 'contr.poly')) #ensure constrast type
 
 # Tests of the weighted Cox model
-#  This is section 1.3 of my appendix -- no yet found in any of the
-#  printings though, it awaits the next edition
+#  This is section 1.3 of my appendix -- not yet found in the book
+#  though, it awaits the next edition
 #
 # Similar data set to test1, but add weights,
 #                                    a double-death/censor tied time
