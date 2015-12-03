@@ -168,20 +168,20 @@ There are 3 cases:
 newdata <- data1  # make a copy
 if (length(tname)==0) { 
     # This is a first call
-    indx <- match(c(topt$id, topt$tstop, topt$tstart), names(data1), nomatch=0)
+    indx <- match(c(topt$idname, topt$tname2, topt$tname1), names(data1), nomatch=0)
     if (all(indx[1:2] >0) && missing(tstop)) {
         # case 1 above, just some data checks
-        if (indx[3]==0) newdata[[topt$tstart]] <- 0
-        if (!is.numeric(newdata[[topt$tstart]]) || 
-            !is.numeric(newdata[[topt$tstop]]))
+        if (indx[3]==0) newdata[[topt$tname1]] <- 0
+        if (!is.numeric(newdata[[topt$tname1]]) || 
+            !is.numeric(newdata[[topt$tname2]]))
             stop("start and end variables must be numeric")
-        if (any(newdata[[topt$tstart]]  >= newdata[[topt$tstop]])) 
+        if (any(newdata[[topt$tname1]]  >= newdata[[topt$tname2]])) 
             stop("stop time must be > start time for all observations")
 
         # If there are duplicated ids, then we need to ensure that each subject
         #  is a sequential set of observations, sorted by time (just sort it)
         # If tstart was not supplied, we need to fix up our "0" created above
-        baseid <- data1[[topt$id]]
+        baseid <- data1[[topt$idname]]
         if (any(duplicated(baseid))) {
             indx <- order(newdata$id, newdata$tstop)
             if (any(indx != seq(along.with=indx))) {
@@ -213,7 +213,7 @@ if (length(tname)==0) {
             stop("stop time must be > start time for all observations")
 
         if (indx[1] >0) { # the id variable is in data1
-            baseid <- data1[[topt$id]]
+            baseid <- data1[[topt$idname]]
             if (any(duplicated(baseid))) 
                 stop("duplicate identifiers in data1")
             indx2 <- match(id, baseid)
@@ -224,14 +224,14 @@ if (length(tname)==0) {
             if (nrow(data1) != nrow(data2))
                 stop("nrow(data1) != nrow(data2) and data1 is missing the id")
             indx2 <- seq.int(along.with=id)
-            newdata[topt$id] <- id
+            newdata[topt$idname] <- id
             }
-        newdata[indx2, topt$tstart] <- tstart
-        newdata[indx2, topt$tstop]  <- tstop
+        newdata[indx2, topt$tname1] <- tstart
+        newdata[indx2, topt$tname2]  <- tstop
     }
 }
 else { #not a first call
-    if (any(is.na(match(id, data1[[topt$id]]))))
+    if (any(is.na(match(id, data1[[topt$idname]]))))
         stop("id values found in data2 which are not in data1")
 }
 @ 
@@ -250,9 +250,9 @@ of the call.
 saveid <- id
 for (ii in seq(along.with=args)) {
     argi <- args[[ii]]
-    baseid <- newdata[[topt$id]]
-    dstart <- newdata[[topt$tstart]]
-    dstop  <- newdata[[topt$tstop]]
+    baseid <- newdata[[topt$idname]]
+    dstart <- newdata[[topt$tname1]]
+    dstop  <- newdata[[topt$tname2]]
     argcen <- argi$censor
     
     # if an event time is missing then skip that obs
@@ -418,8 +418,8 @@ if (n4 > 0) {
     for (j in 1:nfix) temp[[j]] <-  -(seq(n.add[j] -1, 0)) + iend[j]
     newrows <- unlist(temp)
     dstart[newrows] <- dstop[newrows-1] <- unlist(icount)
-    newdata[[topt$tstart]] <- dstart
-    newdata[[topt$tstop]]  <- dstop
+    newdata[[topt$tname1]] <- dstart
+    newdata[[topt$tname2]]  <- dstop
     for (ename in tevent) newdata[newrows-1, ename] <- tcens[[ename]]
     if (topt$defer > 0) {
         defer <- defer[jrep]
@@ -427,7 +427,7 @@ if (n4 > 0) {
     } else defer <- rep(0, nrow(newdata))
 
     # refresh indices
-    baseid <- newdata[[topt$id]]
+    baseid <- newdata[[topt$idname]]
     indx1 <- neardate(id, baseid, etime, dstart, best="prior")
     indx2 <- neardate(id, baseid, etime, dstop+ defer , best="after")
     subtype[itype==4] <- 1  #all the "insides" are now on a tied edge
@@ -486,7 +486,7 @@ newdata[[argname[ii]]] <- newvar
 
 Finish up by adding the attributes and the class
 <<tmerge-finish>>=
-attr(newdata, "tname") <- topt[c("id", "tstart", "tstop")]
+attr(newdata, "tname") <- topt[c("idname", "tname1", "tname2")]
 attr(newdata, "tcount") <- rbind(attr(data1, "tcount"), tcount)
 if (length(tevent)) {
     attr(newdata, "tevent") <- tevent
