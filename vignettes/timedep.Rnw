@@ -220,73 +220,58 @@ This corresponds to being simultaneously at risk for two distinct outcomes.
 \section{Building time-dependent sets with tmerge}
 \subsection{The function}
 A useful function for building data sets is \code{tmerge}, which is
-part of the survival library. 
-The motivating case for \code{tmerge} came from a particular problem:
-the Rochester Epidemiology Project has tracked all subjects living in
-Olmsted County, Minnesota, from 1965 to the present.  
-For an investigation of cumulative comorbidity we had three data sets
+part of the survival library.
+The basic form of the function is 
+<<eval=FALSE, echo=TRUE>>=
+newdata <- tmerge(data1, data2, id, newvar=tdc(time, value), ...)
+@ 
+Where \code{data1} is the starting data set and additions to the data are
+taken from \code{data2}.
+Each addition is fitted into the original data in the same way that one
+would slide a new card into an existing deck of cards. 
+In the above example a new time dependent covariate ``newvar'' will be
+created based on (time, value) pairs found in \code{data2}.
+
+As a first illustration consider the \code{jasa} data set, which contains
+data from the Stanford Heart Transplant study.
+The data is laid out in the form found in the JASA methods paper which
+introduced the data set to statistics, with
+one line per subject that contains the baseline covariates along with
+dates of enrollment, transplant, and death or last follow-up.
+We want to create \code{transplant} as a time dependent covariate.
+Our starting data set will simply contain the baseline variables of age and
+prior bypass surgery.
+The second data set contains the times to transplant and death.
+There are a couple of wrinkles in setting up the second data set.
 \begin{itemize}
-  \item base: demographic data such as sex and birth date
-  \item timeline: one or more rows for each subject containing 
-    age intervals during which they were a resident of the county.  
-    The important variables are id, age1 and age2; each (age1, age2)
-    pair marks an interval of residence.  
-  \item outcome: one row for each age/outcome pair of interest.  The
-    outcomes were 20 comorbid conditions as defined by NIH.
+  \item One subject died on the day of enrollment, which leads to an interval
+    of length 0, something that the \code{coxph} function will reject.  As
+    a workaround, have them die on day 0.5.
+  \item One subject dies on the day of transplant, leading again to a zero
+    length interval. Move their transplant date ahead by 1/2 a day.
 \end{itemize}
-
-The structure for building the data is shown below.
-(The data for this example unfortunately cannot be included in the survival
-library so the code is shown but not executed.)
-
-<<rep, eval=FALSE, echo=TRUE>>=
-newd <- tmerge(data1=base, data2=timeline, id=repid, tstart=age1, 
-               tstop=age2, options(id="repid"))
-newd <- tmerge(newd, outcome, id=repid, mtype = cumevent(age))
-newd <- with(subset(outcome, event='diabetes'), 
-             tmerge(newd, id=repid, diabetes= tdc(age)))
-newd <- with(subset(outcome, event='arthritis'),
-             tmerge(newd, id=repid, event =tdc(age)))
+<<jasa>>=
+temp <- with(jasa, data.frame(id=1:nrow(jasa),
+                              txtime = ifelse(tx.date < fu.date,
+                                              tx.date - accept.dt,
+                                              (tx.date - accept.dt) - .5),
+                              futime = ifelse(fu.date > accept.dt,
+                                              fu.date - accept.dt, .5),
+                              fustat = fustat))
+newdat <- tmerge(jasa[,c('age', 'surgery')], temp, id,
+                 death= event(futime, fustat), transplant= tdc(txtime))
+newdat[1:6,]
+coxph(Surv(tstart, tstop, death) ~ transplant, newdat)                      
 @ 
 
-The first call to tmerge adds the timeline for each observation to the
-baseline data.  
-The \code{tstart} and \code{tstop} arguments refer to the starting and
-ending times for each subject and are taken from data set 2 (\code{data2}).
-The \code{options} argument tells the routine that the identifier variable
-in data set 1 is called `repid', and will cause the identifier variable
-in the final output data set \code{newd} to have that name.  
-By default, the names of the three key variables are ``id'', ``tstart'', 
-and ``tstop''; these uniquely identify each row of the final data set.
-
-Each subsequent call adds a new variable to the data set.
-The second line creates an event variable which is a cumulative count of
-the number of comorbidities thus far, for each subject.  
-The third line creates a time dependent covariate (tdc) which will
-be 0 until the age of diabetes and is 1 thereafter, the fourth
-line creates a time dependent variable for the presence of arthritis.
-
-This is the basic working approach for \code{tmerge}: first establish
-baseline covariates and 
-the range over which the subject is at risk, and then add events and/or
-time dependent covariates to the data set one by one.  
-These additions will often increase the number of rows in the data
-set.
-Say at some stage subject Smith has time intervals of
-(0,15), (15,40) and (40,100) and we add a time dependent covariate \code{sbp}
-(systolic blood pressure)
-which is evaluated at months 6, 12, and 24 with values of
-134, 126, and 140, respectively.  In the resulting
-data set Smith will have intervals of 
-\begin{center}
-  \begin{tabular}{rrrrrr}
-    (0,6)  &(6,12) & (12,15) & (15,24) & (24,40) & (40,100)\\
-        &  134  &  126    &  126    &  140    & 140
-  \end{tabular}
-\end{center}
-The value over the interval (0,6) will be the value of the variable
-\code{sbp} in data set 1 --- if the variable existed there it is
-assumed to contain the baseline value --- or NA otherwise.
+The tmerge call above adds two new variables to the baseline data: a
+time dependent event \code{death} and a time dependent covariate 
+\code{transplant}, along with the time variables \code{tstart} and \code{tstop}
+which are always added.
+For subject 4 the translant event happens between enrollment and death,
+and causes the baseline row for the subject to be split into two.
+Subject 3 was transplanted on the day of enrollment, so addition of the
+transplant covariate did not require generation of a new observation.
 
 \subsubsection{CGD data set}
 Chronic granulomatous disease (CGD) is a heterogeneous group of uncommon
@@ -337,39 +322,50 @@ process form.
 We don't want the variables etime1--etime7 in the final data set, so they are
 left out of the data1 argument in the first call.
 <<cgd1>>=
+dim(cgd0)
 newcgd <- tmerge(cgd0[, 1:13], cgd0, id=id, tstop=futime)
-newcgd <- tmerge(newcgd, cgd0, id=id, infect = event(etime1))
-newcgd <- with(cgd0, tmerge(newcgd, id=id, infect = event(etime2)))
+newcgd <- tmerge(newcgd, cgd0, id=id, infect = event(etime1)) 
+newcgd <- tmerge(newcgd, cgd0, id=id, infect = event(etime2)) 
 newcgd <- tmerge(newcgd, cgd0, id=id, infect = event(etime3)) 
-newcgd <- tmerge(newcgd, cgd0, id=id, infect = event(etime4), 
-                 infect= event(etime5), infect=event(etime6),
-                 infect= event(etime7))
-attr(newcgd, "tcount")
+newcgd <- tmerge(newcgd, cgd0, id=id, infect = event(etime4)) 
+newcgd <- tmerge(newcgd, cgd0, id=id, infect = event(etime5)) 
+newcgd <- tmerge(newcgd, cgd0, id=id, infect = event(etime6)) 
+newcgd <- tmerge(newcgd, cgd0, id=id, infect = event(etime7)) 
 newcgd <- tmerge(newcgd, newcgd, id, enum=cumtdc(tstart))
-all.equal(newcgd[, c("id", "tstart", "tstop", "infect")], 
-          cgd   [, c("id", "tstart", "tstop", "status")], 
-          check.attributes=FALSE)
+dim(newcgd)
+newcgd[1:5,]
+attr(newcgd, "tcount")
+coxph(Surv(tstart, tstop, infect) ~ treat + inherit + steroids +
+      + cluster(id), newcgd)
 @ 
 
+These lines show a canonical way to use tmerge: each call adds one
+more bit of information to the data set.
 \begin{itemize}
-  \item A standard way to build data sets is one addition at a time,
-    as shown by the \code{event(etime1)} and \code{event(etime2)}
-    lines above.  When multiple additions are done using the same d
-    the same data set, however, they can also be done using as single
-    call as shown by the line that adds etime4--etime7.
-    When there are multiple arguments they are processed sequentially.
+  \item The first call sets the time \emph{range} for each subject to
+    be from 0 (default) to last follow-up.  If a later call tried to
+    add an event outside that range, at time = -2 say, that addition
+    would be ignored.  The range can be set explicitly by using
+    the tstop and (optional) tstart arguments, or implicitly via
+    adding a terminal event as was done in the jasa example above.
+    This first data set has \Sexpr{nrow(cgd0)} rows.
+  \item Each additional call then adds either an endpoint or a covariate,
+    splitting individual rows of the input in two as necessary.
+    An \code{event} or \code{cumevent} directive adds events, while
+    a \code{tdc} or \code{cumtdc} one adds a time dependent covariate.
+    Events happen at the ends of intervals which time-dependent covariates 
+    happen at the start of an interval.  
  \item Additions with a missing time value are skipped.
   \item The result of \code{tmerge} is a data frame with a few extra
     attributes. One of these, tcount, is designed to help visualize
     the process, and was printed out after the last step above.
-    (Printing after every step may often be useful.)
     Assume that a subject already had 3 intervals of (2,5), (5,10)
     and (14,40).
     A new event added at time 1 would be ``early'' while one at time 50
     is after any interval and would be recorded as ``late''.  An event at
     time 3 is within an interval, one at 5 is on the border of two
-    intervals, one at 14 is at the leading edge of an interval and one at
-    time 10 in on the trailing edge.
+    intervals, one at 14 is at the leading edge of an interva, one at
+    time 10 in on the trailing edge and at time 11 is in a gap.
     In this data set all new additions fell strictly within prior intervals.
     We also see that etime6 and etime7 each added only a single event to 
     the data.
@@ -378,21 +374,30 @@ all.equal(newcgd[, c("id", "tstart", "tstop", "infect")],
     The ``tied'' column tells how often this happened; in some
     data sets this behavior might not be desired and one would need to
     break the ties before calling tmerge.
-  \item Sometimes the ``where'' form of the call may be more
-    convenient than using the data2 argument.  An example is shown
-    in the addition of etime2.
-  \item The last addition above, after printing the tcount attribute, adds a
+  \item The last tmerge call adds a
     simple time-dependent variable \code{enum} which is a running observation
     count for each subject.  This can often be a useful variable in later
     models or processing, e.g. \code{enum==1} select off the first row
     for each subject.
   \item The extra attributes of the data frame are ephemeral: they will be
     lost as soon as any further manipulation is done.  This is intentional.
+  \item One can verify that the resulting data set is equivalent to
+    \code{cgd}, a (start, stop] version of the CGD data, also part of the
+    survival library, which had been created by hand several years earlier.
 \end{itemize}
 
-The last line above shows that the created data set is identical to
-\code{cgd}, a (start, stop] version of the CGD data, also part of the
-survival library, which had been created by hand several years earlier.
+The \code{tmerge} function processes arguemts sequentially, and the 
+above example can be rewritten as below.  There is no computational
+advantage of one versus the other.
+<<cgd1b>>= 
+test  <- tmerge(cgd0[, 1:13], cgd0, id=id, tstop=futime,
+                 infect = event(etime1), infect= event(etime2),
+                 infect = event(etime3), infect= event(etime4),
+                 infect = event(etime5), infect= event(etime6),
+                 infect = event(etime7))
+test <- tmerge(test, test,  id= id, enum = cumtdc(tstart))
+all.equal(newcgd, test)
+@ 
 
 \subsection{Stanford heart transplant}
 The \code{jasa} data set contains information from the Stanford heart
@@ -522,6 +527,76 @@ In the study all subjects were actively followed up and the
 results of that endeavor are in the futime and status variables of the 
 pbcseq data set.  Extension needs to use those variables and not just the
 presence of another laboratory result.
+
+\subsubsection{REP}
+The motivating case for \code{tmerge} came from a particular problem:
+the Rochester Epidemiology Project has tracked all subjects living in
+Olmsted County, Minnesota, from 1965 to the present.  
+For an investigation of cumulative comorbidity we had three data sets
+\begin{itemize}
+  \item base: demographic data such as sex and birth date
+  \item timeline: one or more rows for each subject containing 
+    age intervals during which they were a resident of the county.  
+    The important variables are id, age1 and age2; each (age1, age2)
+    pair marks an interval of residence.  
+  \item outcome: one row for each age/outcome pair of interest.  The
+    outcomes were 20 comorbid conditions as defined by NIH.
+\end{itemize}
+
+The structure for building the data is shown below.
+(The data for this example unfortunately cannot be included in the survival
+library so the code is shown but not executed.)
+
+<<rep, eval=FALSE, echo=TRUE>>=
+newd <- tmerge(data1=base, data2=timeline, id=repid, tstart=age1, 
+               tstop=age2, options(id="repid"))
+newd <- tmerge(newd, outcome, id=repid, mtype = cumevent(age))
+newd <- with(subset(outcome, event='diabetes'), 
+             tmerge(newd, id=repid, diabetes= tdc(age)))
+newd <- with(subset(outcome, event='arthritis'),
+             tmerge(newd, id=repid, event =tdc(age)))
+@ 
+
+The first call to tmerge adds the timeline for each observation to the
+baseline data.  
+The \code{tstart} and \code{tstop} arguments refer to the starting and
+ending times for each subject and are taken from data set 2 (\code{data2}).
+The \code{options} argument tells the routine that the identifier variable
+in data set 1 is called `repid', and will cause the identifier variable
+in the final output data set \code{newd} to have that name.  
+By default, the names of the three key variables are ``id'', ``tstart'', 
+and ``tstop''; these uniquely identify each row of the final data set.
+
+Each subsequent call adds a new variable to the data set.
+The second line creates an event variable which is a cumulative count of
+the number of comorbidities thus far, for each subject.  
+The third line creates a time dependent covariate (tdc) which will
+be 0 until the age of diabetes and is 1 thereafter, the fourth
+line creates a time dependent variable for the presence of arthritis.
+
+This is the basic working approach for \code{tmerge}: first establish
+baseline covariates and 
+the range over which the subject is at risk, and then add events and/or
+time dependent covariates to the data set one by one.  
+These additions will often increase the number of rows in the data
+set.
+Say at some stage subject Smith has time intervals of
+(0,15), (15,40) and (40,100) and we add a time dependent covariate \code{sbp}
+(systolic blood pressure)
+which is evaluated at months 6, 12, and 24 with values of
+134, 126, and 140, respectively.  In the resulting
+data set Smith will have intervals of 
+\begin{center}
+  \begin{tabular}{rrrrrr}
+    (0,6)  &(6,12) & (12,15) & (15,24) & (24,40) & (40,100)\\
+        &  134  &  126    &  126    &  140    & 140
+  \end{tabular}
+\end{center}
+The value over the interval (0,6) will be the value of the variable
+\code{sbp} in data set 1 --- if the variable existed there it is
+assumed to contain the baseline value --- or NA otherwise.
+
+
 
 \section{Time dependent coefficients}
 Time dependent covariates and time dependent coefficients are two

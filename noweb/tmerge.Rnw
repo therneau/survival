@@ -62,22 +62,22 @@ arguments.
 The routine below could have been set out as a separate top-level routine,
 the argument is where we want to document it: within the tmerge page or not.
 <<tmerge-setup>>= 
-tmerge.control <- function(id="id", tstart="tstart", tstop="tstop",  
+tmerge.control <- function(idname="id", tname1="tstart", tname2="tstop",  
                            defer =0, nadrop=TRUE) {
     if (length(defer) !=1 || !is.numeric(defer) || defer <0)
         stop("defer option must be a non-negative number")
-    if (length(id) != 1 || make.names(id) != id)
-        stop("id option must be a valid variable name")
-    if (!is.null(tstart) && 
-        (length(tstart) !=1 || make.names(tstart) != tstart))
+    if (length(idname) != 1 || make.names(idname) != idname)
+        stop("idname option must be a valid variable name")
+    if (!is.null(tname1) && 
+        (length(tname1) !=1 || make.names(tname1) != tname1))
         stop("tstart option must be NULL or a valid variable name")
-    if (length(tstop) != 1 || make.names(tstop) != tstop)
+    if (length(tname2) != 1 || make.names(tname2) != tname2)
         stop("tstop option must be a valid variable name") 
     if (length(defer) !=1 || !is.numeric(defer) || defer < 0)
         stop("defer option must be a number >= 0")
     if (length(nadrop) !=1 || ! is.logical(nadrop))
         stop("nadrop option must be TRUE or FALSE")
-   list(id=id, tstart=tstart, tstop=tstop, defer=defer, nadrop=nadrop)
+   list(idname=idname, tname1=tname1, tname2=tname2, defer=defer, nadrop=nadrop)
 }
 
 tname <- attr(data1, "tname")
@@ -140,8 +140,8 @@ wrong in their usage.
 # The tcount matrix is useful for debugging
 tcount <- matrix(0L, length(argname), 8)
 dimnames(tcount) <- list(argname, c("early","late", "gap", "within", 
-                                  "boundary", "leading", "trailing",
-                                  "tied"))
+                                    "boundary", "leading", "trailing",
+                                    "tied"))
 tevent <- attr(data1, "tevent") # event type variables
 tcens  <- attr(data1, "tcensor")# censor code for variables
 if (is.null(tcens)) tcens <- vector('list', 0)
@@ -470,7 +470,7 @@ else {
                    ifelse(subtype==3, indx2+1L, indx2))
 
     if (is.null(newvar)) {
-        if (length(argi)==1) newvar <- rep(0.0, nrow(newdata))
+        if (is.null(argi$value)) newvar <- rep(0.0, nrow(newdata))
         else newvar <- rep(NA_real_, nrow(newdata))
         }
     # id can be any data type; feed integers to the C routine
@@ -487,10 +487,10 @@ newdata[[argname[ii]]] <- newvar
 Finish up by adding the attributes and the class
 <<tmerge-finish>>=
 attr(newdata, "tname") <- topt[c("id", "tstart", "tstop")]
-attr(newdata, "tcount") <- tcount
+attr(newdata, "tcount") <- rbind(attr(data1, "tcount"), tcount)
 if (length(tevent)) {
     attr(newdata, "tevent") <- tevent
-    attr(newdata, "tcens" ) <- tcens
+    attr(newdata, "tcensor" ) <- tcens
     }
 row.names(newdata) <- NULL
 class(newdata) <- c("data.frame")
