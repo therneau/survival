@@ -4,17 +4,29 @@ The idea is to build up a time dependent data set one endpoint at at time.
 The primary arguments are
 \begin{itemize}
   \item data1: the base data set that will be added onto
-  \item data2: the source for new variables, optional
-  \item id: id variable in the new data
-  \item additional arguments that add variables
+  \item data2: the source for new information
+  \item id: the subject identifier in the new data
+  \item \ldots: additional arguments that add variables to the data set
+  \item tstart, tstop: used to set the time range for each subject
   \item options
 \end{itemize}
 The created data set has three new variables (at least), which are
 \code{id}, \code{tstart} and \code{tstop}.
 
-The key part are the \ldots arguments, which are one of four types.
-Tdc and cumtdc add a time dependent variable, event and cumevent
-add a new endpoint (event).
+The key part of the call are the ``\ldots'' arguments 
+which each can be one of four types:
+tdc() and cumtdc() add a time dependent variable, event() and cumevent()
+add a new endpoint.
+In the survival routines time intervals are open on the left and
+closed on the right, i.e.,  (tstart, tstop].
+Time dependent covariates apply from the start of an interval and events
+occur at the end of an interval.
+If a data set already had intervals of (0,10] and (10, 14] a new time
+dependent covariate or event at time 8 would lead to three intervals of
+(0,8], (8,10], and (10,14];
+the new time-dependent covariate value would be added to the second interval,
+a new event would be added to the first one.
+      
 A typical call would be
 \begin{verbatim}
  newdata <- tmerge(newdata, old, id=clinic, diabetes=tdc(diab.time))
@@ -46,8 +58,8 @@ tmerge <- function(data1, data2, id, ..., tstart, tstop, options) {
         class(x) <-"cumevent"; x},
            envir=new)
 
-    if (missing(data1)) stop("the data1 argument is required")
-    if (missing(id)) stop("the id argument is required")
+    if (missing(data1) || missing(data2) || missing(id)) 
+        stop("the data1, data2, and id arguments are required")
     if (!inherits(data1, "data.frame")) stop("data1 must be a data frame")
     
     <<tmerge-setup>>
@@ -61,11 +73,13 @@ named.  This results in a bit of evaluation magic to correctly assess
 arguments.  
 The routine below could have been set out as a separate top-level routine,
 the argument is where we want to document it: within the tmerge page or not.
+I decided on the former.
 <<tmerge-setup>>= 
 tmerge.control <- function(idname="id", tname1="tstart", tname2="tstop",  
-                           defer =0, nadrop=TRUE) {
-    if (length(defer) !=1 || !is.numeric(defer) || defer <0)
-        stop("defer option must be a non-negative number")
+                           delay =0, nadrop=TRUE, ...) {
+    extras <- list(...)
+    if (length(extras) > 0) 
+        stop("unrecognized option:", names(extras))
     if (length(idname) != 1 || make.names(idname) != idname)
         stop("idname option must be a valid variable name")
     if (!is.null(tname1) && 
@@ -73,15 +87,16 @@ tmerge.control <- function(idname="id", tname1="tstart", tname2="tstop",
         stop("tstart option must be NULL or a valid variable name")
     if (length(tname2) != 1 || make.names(tname2) != tname2)
         stop("tstop option must be a valid variable name") 
-    if (length(defer) !=1 || !is.numeric(defer) || defer < 0)
-        stop("defer option must be a number >= 0")
+    if (length(delay) !=1 || !is.numeric(delay) || delay < 0)
+        stop("delay option must be a number >= 0")
     if (length(nadrop) !=1 || ! is.logical(nadrop))
         stop("nadrop option must be TRUE or FALSE")
-   list(idname=idname, tname1=tname1, tname2=tname2, defer=defer, nadrop=nadrop)
+   list(idname=idname, tname1=tname1, tname2=tname2, delay=delay, nadrop=nadrop)
 }
 
 tname <- attr(data1, "tname")
-if (!is.null(tname) && any(is.null(match(unlist(tname), names(data1)))))
+firstcall <- is.null(tname)  #first call to the function
+if (!firstcall && any(is.null(match(unlist(tname), names(data1)))))
     stop("data1 does not match its own tname attribute")
 if (!missing(options)) {
     if (!is.list(options)) stop("options must be a list")
@@ -96,17 +111,33 @@ if (!missing(options)) {
 else if (length(tname)) topt <- do.call(tmerge.control, tname)
 else  topt <- tmerge.control()
 
-# id, tstart, tstop are found in data2, if it is present
-if (!missing(data2)) {
-    id <- eval(Call[["id"]], data2)
-    if (!missing(tstart)) tstart <- eval(Call[["tstart"]], data2)
-    if (!missing(tstop))  tstop <-  eval(Call[["tstop"]],  data2)
-}
+# id, tstart, tstop are found in data2
+if (missing(id)) stop("the id argument is required")
+if (missing(data1) || missing(data2))
+    stop("two data sets are required")
+id <- eval(Call[["id"]], data2)
+if (is.null(id)) stop("the id variable is null")
 
-if (!missing(tstart) && length(tstart) != length(id))
-    stop("tstart and id must be the same length")
-if (!missing(tstop) && length(tstop) != length(id))
-    stop("tstop and id must be the same length")
+if (firstcall) {
+    if (!missing(tstop)) {
+         tstop <-  eval(Call[["tstop"]],  data2)
+         if (length(tstop) != length(id))
+             stop("tstop and id must be the same length")
+         # The neardate routine will check for legal tstop data type
+      }
+    if (!missing(tstart)) {
+        tstart <- eval(Call[["tstart"]], data2)
+        if (length(tstart)==1) tstart <- rep(tstart, length(id))
+        if  (length(tstart) != length(id))        
+            stop("tstart and id must be the same length")
+        if (any(tstart >= tstop))
+            stop("tstart must be < tstop")
+         }
+}
+else {
+    if (!missing(tstart) || !missing(tstop))
+        stop("tstart and tstop arguments only apply to the first call")
+}
 @ 
 
 Get the \ldots arguments.  They are evaluated in a special frame,
@@ -131,6 +162,7 @@ if (any(is.na(check)))
     stop(paste("argument(s)", argname[is.na(check)], 
                    "not a recognized type"))
 @ 
+
 The tcount matrix keeps track of what we have done, and is added to
 the final object at the end.  
 This is useful to the user for debugging what may have gone right or
@@ -148,86 +180,71 @@ if (is.null(tcens)) tcens <- vector('list', 0)
 @ 
 
 The very first call to the routine is special, since this is when the
-range of legal times is set.  If \code{tname} is present then it is not
-a first call.
-There are 3 cases:
+range of legal times is set. We also apply an initial sort to the data
+if necessary so that times are in order.
+There are 2 cases:
 \begin{enumerate}
-  \item The id and tstop variables are both found in data1, and 
-    there is no tstop argument. This 
-    means that the user has already taken care of the work.  We just need
-    to note the variable names in the topt list, check that the data looks
-    good to us, and go on.
   \item Adding a time range: tstop comes from data2, optional tstart, and the
-    id can be simply matched, by which we mean no duplicates in data1.
-  \item The most common case.  The row counts of data1 and data2 exactly
-    match, there is no tstop, and the first optional argument is an
+    id can be simply matched, by which we mean no duplicates in data1
+    or that they have the same id string.
+  \item The more common case: there is no tstop, one observation per subject,
+    and the first optional argument is an
     event or cumevent.  We then use its time as the range.
 \end{enumerate} 
+One thing we could add, but didn't, was to warn if any of the three new
+variables will stomp on ones already in data1.
 
 <<tmerge-setup>>= 
-newdata <- data1  # make a copy
-if (length(tname)==0) { 
-    # This is a first call
-    indx <- match(c(topt$idname, topt$tname2, topt$tname1), names(data1), nomatch=0)
-    if (all(indx[1:2] >0) && missing(tstop)) {
-        # case 1 above, just some data checks
-        if (indx[3]==0) newdata[[topt$tname1]] <- 0
-        if (!is.numeric(newdata[[topt$tname1]]) || 
-            !is.numeric(newdata[[topt$tname2]]))
-            stop("start and end variables must be numeric")
-        if (any(newdata[[topt$tname1]]  >= newdata[[topt$tname2]])) 
-            stop("stop time must be > start time for all observations")
-
-        # If there are duplicated ids, then we need to ensure that each subject
-        #  is a sequential set of observations, sorted by time (just sort it)
-        # If tstart was not supplied, we need to fix up our "0" created above
-        baseid <- data1[[topt$idname]]
-        if (any(duplicated(baseid))) {
-            indx <- order(newdata$id, newdata$tstop)
-            if (any(indx != seq(along.with=indx))) {
-                # sort the data
-                newdata <- newdata[indx,]
-                baseid <- baseid[indx]
-            }
-            newid <- !duplicated(baseid)   #is this row a new id value?
-            n <- nrow(newdata)
-            if (length(tstart) ==0) 
-                newdata$tstart <- ifelse(newid, 0, c(0, newdata$tstop[-n]))
+newdata <- data1 #make a copy
+if (firstcall) {
+    # The line below finds id, tstop, and tstart variables in data1
+    indx <- match(c(topt$idname, topt$tname1, topt$tname2), names(data1), 
+                  nomatch=0)
+    if (any(indx>0) && FALSE) {  # warning currently turned off. Be chatty?
+        overwrite <- c(topt$idname, topt$tname1, topt$tname2)[indx]
+        warning("overwriting data1 variables", overwrite)
+        }
+    
+    if (missing(tstop)) { # case 2
+        if (length(argclass)==0 || argclass[1] != "event")
+            stop("neither a tstop argument nor an initial event argument was found")
+        tstop <- args[[1]][[1]]
+        if (nrow(data1) != length(id))
+            stop("no tstop argument and nrow(data1) != length(id)")
+    }
+    else { # case 1
+        # Do data set 1 and 2 both have the id variable?  This is the
+        #  less usual case of separate timeline and baseline data sets (for
+        #  which the routine was originally written).
+        if (indx[1] > 0) {
+            baseid <- data1[[indx[1]]]
+            if (all(baseid == id)) newdata <- data1
             else {
-                ok <- (newid[-1] | newdata$tstart[-1] >= newdata$tstop[-n])
-                if (any(!ok)) stop("overlapping time intervals for a subject")
+                if (any(duplicated(baseid)))
+                    stop("data1 and data2 both have the id variable, and data1 has duplicates")
+                indx2 <- match(id, baseid)
+                if (any(is.na(indx2)))
+                    stop("'id' has values not in data1")
+                newdata <- data1[indx2,]
             }
         }
-    } else {
-        if (missing(tstop)) {
-            # case 3 above
-            if (length(argclass)==0 || argclass[1] != "event")
-                stop("neither a tstop argument nor an initial event argument was found")
-            tstop <- args[[1]][[1]]
-            }
-        # case 2 and checks for case 3
-        if (any(is.na(tstop))) 
-            stop("missing time value, when that variable defines the span")
-        if (missing(tstart)) tstart <- rep(0, length(id))
-        if (any(tstart >= tstop)) 
-            stop("stop time must be > start time for all observations")
+        else if (nrow(data1) != length(id))
+            stop("on the first call data1 and data2 must have the same number of rows or must share an id variable")
+        else newdata[topt$idname] <- id   #assume the same order
+    }
 
-        if (indx[1] >0) { # the id variable is in data1
-            baseid <- data1[[topt$idname]]
-            if (any(duplicated(baseid))) 
-                stop("duplicate identifiers in data1")
-            indx2 <- match(id, baseid)
-            if (any(is.na(indx2)))
-                stop("'id' has values not in data1")
-            }
-        else {
-            if (nrow(data1) != nrow(data2))
-                stop("nrow(data1) != nrow(data2) and data1 is missing the id")
-            indx2 <- seq.int(along.with=id)
-            newdata[topt$idname] <- id
-            }
-        newdata[indx2, topt$tname1] <- tstart
-        newdata[indx2, topt$tname2]  <- tstop
+    # checks common to both
+    # at this point newdata and data2 are in the same order, same # rows
+    if (any(is.na(tstop))) 
+        stop("missing time value, when that variable defines the span")
+    if (missing(tstart)) tstart <- rep(0, length(id))
+    newdata[[topt$idname]] <- id
+    newdata[[topt$tname1]] <- tstart
+    newdata[[topt$tname2]] <- tstop
+    if (any(duplicated(id))) {
+        # sort by time within id
+        indx1 <- match(id, unique(id))
+        newdata <- newdata[order(indx1, tstop),]
     }
 }
 else { #not a first call
@@ -287,21 +304,16 @@ for (ii in seq(along.with=args)) {
     #  that is <= etime.  indx2 to the closest end time that is >=etime.
     # If etime falls into a (tstart, tstop) interval, indx1 and indx2
     #   will match
-    # If the "defer" argument is set and this event is of type tdc, then
-    #   any event times are artificially moved left by "defer" amount wrt
-    #   doing the indx2 match.  This will cause an insertion that is too close
-    #   to an event to be labeled as itype=3 (or itype=2 if this was the last
-    #   interval for the subject) and so map later in time.
-    defer <- rep(0., nrow(newdata))  # how much to move each obs
-    if (topt$defer >0 && length(tevent) && 
-        argclass[ii] %in% c("tdc", "cumtdc")) {
-        for (ename in tevent) {
-            temp <- newdata[[ename]]
-            defer[temp != tcens[[ename]]] <- topt$defer # all uncensored
-         }
+    # If the "delay" argument is set and this event is of type tdc, then
+    #   move any etime that is after the entry time for a subject.
+    if (topt$delay >0 && argclass[ii] %in% c("tdc", "cumtdc")) {
+        mintime <- tapply(dstart, baseid, min)
+        index <- match(id, names(mintime))
+        etime <- ifelse(etime <= mintime[index], etime, etime+ topt$delay)
     }
+    
     indx1 <- neardate(id, baseid, etime, dstart, best="prior")
-    indx2 <- neardate(id, baseid, etime, dstop+defer, best="after")
+    indx2 <- neardate(id, baseid, etime, dstop, best="after")
 
     # The event times fall into one of 5 categories
     #   1. Before the first interval
@@ -421,15 +433,11 @@ if (n4 > 0) {
     newdata[[topt$tname1]] <- dstart
     newdata[[topt$tname2]]  <- dstop
     for (ename in tevent) newdata[newrows-1, ename] <- tcens[[ename]]
-    if (topt$defer > 0) {
-        defer <- defer[jrep]
-        defer[newrows] <- 0
-    } else defer <- rep(0, nrow(newdata))
 
     # refresh indices
     baseid <- newdata[[topt$idname]]
     indx1 <- neardate(id, baseid, etime, dstart, best="prior")
-    indx2 <- neardate(id, baseid, etime, dstop+ defer , best="after")
+    indx2 <- neardate(id, baseid, etime, dstop, best="after")
     subtype[itype==4] <- 1  #all the "insides" are now on a tied edge
     itype[itype==4]   <- 5  
 }

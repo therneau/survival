@@ -206,12 +206,12 @@ use only one copy of any subject, the program picks out the correct
 row of data at each time.
 There two exceptions to this rule:
 \begin{itemize}
-  \item When subjects have multiple events, then the rows for events are
-    correlated and a cluster variance is needed.
+  \item When subjects have multiple events, then the rows for the events are
+    correlated within subject and a cluster variance is needed.
   \item When a subject appears in overlapping intervals.  This however is 
     almost always a data error, since it corresponds to two copies of the
     subject being present in the same strata at the same time, e.g.,
-    they could meet themselves on the sidewalk.
+    she could meet herself at a party.
 \end{itemize}
 A subject can be at risk in multiple strata at the same time, however.  
 This corresponds to being simultaneously at risk for two distinct outcomes.
@@ -221,6 +221,33 @@ This corresponds to being simultaneously at risk for two distinct outcomes.
 \subsection{The function}
 A useful function for building data sets is \code{tmerge}, which is
 part of the survival library.
+The idea is to build up a time dependent data set one endpoint at at time.
+The primary arguments are
+\begin{itemize}
+  \item data1: the base data set that will be added onto
+  \item data2: the source for new information
+  \item id: the subject identifier in the new data
+  \item \ldots: additional arguments that add variables to the data set
+  \item tstart, tstop: used to set the time range for each subject
+  \item options
+\end{itemize}
+The created data set has three new variables (at least), which are
+\code{id}, \code{tstart} and \code{tstop}.
+
+The key part of the call are the ``\ldots'' arguments 
+which each can be one of four types:
+tdc() and cumtdc() add a time dependent variable, event() and cumevent()
+add a new endpoint.
+In the survival routines time intervals are open on the left and
+closed on the right, i.e.,  (tstart, tstop].
+Time dependent covariates apply from the start of an interval and events
+occur at the end of an interval.
+If a data set already had intervals of (0,10] and (10, 14] a new time
+dependent covariate or event at time 8 would lead to three intervals of
+(0,8], (8,10], and (10,14];
+the new time-dependent covariate value would be added to the second interval,
+a new event would be added to the first one.
+
 The basic form of the function is 
 <<eval=FALSE, echo=TRUE>>=
 newdata <- tmerge(data1, data2, id, newvar=tdc(time, value), ...)
@@ -230,7 +257,8 @@ taken from \code{data2}.
 The idea behind the function is that each addition will be ``slipped in''
 to the original data in the same way that one
 would slide a new card into an existing deck of cards. 
-It is a complex function, and we illustrate it below with a set of
+It is a subtle function and still undergoing growing pains;
+we illustrate it below with a set of
 examples that sequentially reveal its features.
 
 \subsection{CGD data set}
@@ -249,8 +277,8 @@ have some followup after their last episode.
 Below are the first 10 observations, see the help page for \texttt{cgd0}
 for the full list of variable names. The last few columns contain the 
 duration of follow-up for the subject followed by infection times.
-Subject 1 was followed for 414 days and had 2 infections on days 219 and 373, 
-subject 2 had 7 infections, and subject 3 had none.
+Subject 1 was followed for 414 days and had infections on days 219 and 373, 
+subject 2 had 7 infections and subject 3 had none.
 \small
 \begin{verbatim}
   1 204 082888 1 2 12 147.0  62.0 2 2 2 2 414 219 373
@@ -306,13 +334,13 @@ coxph(Surv(tstart, tstop, infect) ~ treat + inherit + steroids +
 These lines show the canonical way to use tmerge: each call adds one
 more bit of information to the data set.
 \begin{itemize}
-  \item The first call sets the time \emph{range} for each subject to
+  \item The first call sets the \emph{time range} for each subject to
     be from 0 (default) to last follow-up.  If a later call tried to
     add an event outside that range, at time = -2 say, that addition
     would be ignored.  The range can be set explicitly by using
     the tstop and (optional) tstart arguments, or implicitly
-    as will be done in an example below.
-    This first data set has \Sexpr{nrow(cgd0)} rows, the same number as
+    as will be done in the heart transplant example below.
+    This first result has \Sexpr{nrow(cgd0)} rows, the same number as
     \code{cgd0}.
   \item Each additional call then adds either an endpoint or a covariate,
     splitting individual rows of the input in two as necessary.
@@ -320,10 +348,10 @@ more bit of information to the data set.
     a \code{tdc} or \code{cumtdc} one adds a time dependent covariate.
     Events happen at the ends of intervals and time-dependent covariates 
     change at the start of an interval.  
- \item Additions with a missing time value are ignored.
+  \item Additions from \code{data2} with a missing time value are ignored.
   \item The result of \code{tmerge} is a data frame with a few extra
     attributes. One of these, tcount, is designed to help visualize
-    the process, and was printed out after the last step above.
+    the process and was printed out after the last step above.
     Assume that a subject already had 3 intervals of (2,5), (5,10)
     and (14,40).
     A new event added at time 1 would be ``early'' while one at time 50
@@ -336,7 +364,8 @@ more bit of information to the data set.
     We also see that etime6 and etime7 each added only a single event to 
     the data.
   \item If two observations in data2 for a single person share exactly
-    the same time, the created value will be the sum of the contributions.
+    the same time, the created value will be the later contribution for
+    tdc() or event() calls, cumtdc() and cumevent() will add.
     The ``tied'' column tells how often this happened; in some
     data sets this behavior might not be desired and one would need to
     break the ties before calling tmerge.
@@ -348,8 +377,8 @@ more bit of information to the data set.
   \item The extra attributes of the data frame are ephemeral: they will be
     lost as soon as any further manipulation is done.  This is intentional.
   \item One can verify that the resulting data set is equivalent to
-    \code{cgd}, a (start, stop] version of the CGD data, also part of the
-    survival library, which had been created by hand several years earlier.
+    \code{cgd}, a (start, stop] version of the CGD data in the
+    survival library which had been created by hand several years earlier.
 \end{itemize}
 
 The \code{tmerge} function processes arguments sequentially, and the 
@@ -381,19 +410,18 @@ that need to be dealt with when setting up an analysis data set.
     will only be obtained if covariates are defined
     in precisely the same way.  For age this is (age in days)/ 365.25 - 40 
     years, and for year of enrollment it is the number of years since the
-    start of the study: (entry date - 1967/10/1)/365.25.  We'll ignore
-    this for now.
+    start of the study: (entry date - 1967/10/1)/365.25. 
   \item One subject died on the day of entry.  However (0,0) is an illegal
-    time interval for the \code{coxph}.  It suffices to have them die on day
-    0.5.
+    time interval for the \code{coxph} routine.  
+    It suffices to have them die on day 0.5.
   \item A subject transplanted on day 10 is considered to have been on medical
     treatment for days 1--10 and as transplanted starting on day 11.
     That is, except for patient 38 who died during the procedure on day 5.
     They should be treated as a transplant death; the problem is resolved by
-    moving the transplant day to 4.5.
+    moving this transplant to day 4.5.
 \end{enumerate}
-Since time is in days the fractional time of 0.5 could be any chosen value
-between 0 and 1, it will not affect the results.
+Since time is in days the fractional time of 0.5 could be any value
+between 0 and 1, our choice will not affect the results.
 <<stanford>>=
 tdata <- with(jasa, data.frame(subject = 1:nrow(jasa),
                                txtime= ifelse(tx.date== accept.dt,
@@ -405,35 +433,39 @@ sdata <- tmerge(jasa[,c("age", "surgery")], tdata, id=subject,
                   death = event(futime, fustat),
                   transplant =  tdc(txtime))
 attr(sdata, "tcount")
+sdata$age <- (sdata$age/365.25) -40
 coxph(Surv(tstart, tstop, death) ~ age + transplant, sdata)
 @ 
 
 This example shows a special case for the \code{tmerge} function that 
-is moderately common: if the first
+is quite common: if the first
 created variable is an event then the time range for each subject is
 inferred to be from 0 to the event time: explicit \code{tstop} 
 and \code{tstart} arguments are not required.
 It also makes use of a two argument form of \code{event}.
 Each of the \code{event}, \code{cumevent}, \code{tdc} and \code{cumtdc}
 functions
-may have a second argument, which will be used as the value
+may have a second argument, which if present will be used as the value
 for the event code or time dependent covariate.
 If this second argument is not present a value of 1 is used.
 
 If a created variable is not already in data1, 
-the starting vector is either a vector of zeros, or NA for a
-for a \code{tdc} or \code{cumtdc} call that has two arguments.
+the starting value \emph{before} the first definition of that
+variable is a NA for a
+\code{tdc} or \code{cumtdc} call that has two arguments and 0
+in all other cases.
 If the variable being created is already a part of data1, 
 then our updates make changes to that variable.
 Be careful of this.  This feature is what allowed for the 
 \code{infection} indicator to be build up incrementally in the cgd
-example given earlier, but quite surprising results can occur when you
+example above, but quite surprising results can occur when you
 think a new variable is being created de novo but its name already is
 in use. 
 
 The \code{tcount} table for the above fit shows all the deaths at the
-trailing edge of their interval, which is expected since last follow-up was
-used to define the interval of risk.
+trailing edge of their interval, which is expected since the time
+of death or last follow-up was
+used to define each subject's interval of risk.
 Three of the transplants happened on day 0, one of which we moved to 0.5,
 the other 2 are listed as occurring on the leading edge of the first
 follow-up interval for the subject.  
@@ -447,41 +479,48 @@ for a set of subjects with primary biliary cirrhosis, while the
 subjects.  
 The first data set contains data on 312 subjects in a clinical trial plus
 106 that agreed to be followed off protocol, the second data set has data
-only on the protocol subjects.
+only on the trial subjects.
 
 <<pbc>>=
-temp <- subset(pbc, id <= 312, select=c(id:sex, stage))
+temp <- subset(pbc, id <= 312, select=c(id:sex, stage)) # baseline
 pbc2 <- tmerge(temp, temp, id=id, death = event(time, status))
 pbc2 <- tmerge(pbc2, pbcseq, id=id, ascites = tdc(day, ascites),
                bili = tdc(day, bili), albumin = tdc(day, albumin),
-               protime = tdc(day, protime), alkphos = tdc(day, alk.phos))
+               protime = tdc(day, protime), alk.phos = tdc(day, alk.phos))
 rbind(
 coef(coxph(Surv(time, status==2) ~ log(bili) + log(protime), pbc)),
 coef(coxph(Surv(tstart, tstop, death==2) ~ log(bili) + log(protime), pbc2)))
 @ 
+Again, we start the build with a baseline data set that has a subset of
+the variables.  
+This is due to my own frugality --- I happen to like data sets that are a 
+little more trim.  It is not a requirement of the tmerge function, however,
+and a user is certainly free to skip the first step above and build
+\code{pbc2} directly from data set \code{pbc}.
+
 The coefficients of bilirubin and prothrombin time are somewhat larger in
-the time-dependent analysis than using only baseline values.  
-In this autoimmune disease there is steady progression of liver damage, along
-with a steady rise in these two markers of dysfunction.  
+the time-dependent analysis than the fit using only baseline values.  
+In this autoimmune disease there is steady progression of liver damage,
+accompanied by a steady rise in these two markers of dysfunction.  
 The baseline analysis captures patients' disease status at the start, the
 time-dependent analysis is able to account for those who progress more quickly.
 
 By default \code{tmerge} ignores any updates from \code{data2} that have
-a missing value for either the time or the value,
-and in the pbcseq data set there are several observations with a 
-missing alkiline phosphotase value.
+a missing value for either the time or the value.
+In the pbcseq data set there are several observations with a 
+missing alkaline phosphotase value.
 A consequence of this behavior is that the pbc2 data set effectively
-uses ``last value carried forward'' values for alkphos, replacing those
+uses ``last value carried forward'' values for alk.phos, replacing those
 missing values. 
-One can change the default by adding 
-\code{options=list(nadrop=FALSE)} to the second call above. 
 Subject 6 for instance has a total follow-up of 2503, and alk.phos values
-of 682 and NA on days 1492 and 2453, respectively.
-With \code{nadrop=FALSE} their alkiline phosphotase value over the
-inteval (2453, 2503] will be missing and with the default setting it will
-be 682 over that interval.
-(Any \code{tdc} calls with a missing time are still ignored, independent
-of the nadrop value, since we would not know where to insert them.)
+of 682 and NA on days 1492 and 2453, respectively; in the final data
+set it is coded 682 from 1492 until last follow up.
+One can change this default by adding 
+\code{options=list(nadrop=FALSE)} to the second call above, in which case 
+the alkaline phosphotase value over the
+inteval (2453, 2503] will be missing.
+Any \code{tdc} calls with a missing time are still ignored, independent
+of the nadrop value, since we would not know where to insert them.
 
 <<>>=
 attr(pbc2, "tcount")
@@ -494,39 +533,119 @@ The tcount results are interesting.  For the first addition of ascites we
 have \Sexpr{atemp[1, 'leading']} observations on a leading edge of follow up,
 which is all of
 the baseline lab values at time 0,  
-and \Sexpr{atemp[1, 'within']} within the subjects' follow-up
-interval.  This causes a new break point to be added at each laboratory date,
-and for subsequent additions these \Sexpr{atemp[1, 'within']} times lie on
+and \Sexpr{atemp[1, 'within']} further additions within the subjects' follow-up
+interval.  The latter cause a new break point to be added at each of these
+intermediate laboratory dates,
+for subsequent additions these \Sexpr{atemp[1, 'within']} times lie on
 a boundary of two intervals.  
-Another \Sexpr{atemp[1, 'late']} non-missing alkiline phosphotase
+Another \Sexpr{atemp[1, 'late']} non-missing alkaline phosphotase
 values occurred after the last follow-up date
 of the pbc data set and are ignored.  
 Bilirubin is missing on no subjects, so it's addition creates a few more
-unique break points in the follow-up.  
+unique break points in the follow-up, namely those clinical visits for
+which the asities value was missing.
 
 The data for the pbcseq data set was assembled at a later calendar time
 than the primary data set.
-Since having lab tests done is a certain marker of survival, 
-would a  better analysis have first used this information
-to extend the last follow-up date for these \Sexpr{atemp[2,'late']} subjects
+Since having lab test results is a certain marker that the patient is still
+alive,
+would a  better analysis have used this test information
+to extend the last follow-up date for these \Sexpr{atemp[2,'late']} 
+``late'' subjects
 with a later laboratory date?
 Not necessarily.
 
 Odd things happen in survival analysis when risk sets are extended piecemeal.
-A basic tenet of the Cox model (or a survival curve) is that if someone is
+A basic tenet of the Cox model is that if someone is
 marked as being ``at risk'' over some interval $(s, t)$, this means that 
 ``if they had had an event over that interval, we would have recorded it.''
 Say someone ended their initial follow-up time at 3000 days and then had a
 lab test at 3350 days (subjects returned about once a year).
 If we only extend the time of those who had a test, then saying that this
 subject was at risk during the interval (3000, 3350) is false: if they
-had died in that interval, they would not have had the lab test and not
-obtained the extension, nor would their death have been recorded in the
-original data set.
-We would need to create and record an updated followup time, and deaths,
-for of all subjects.  
+had died in that interval, they would not have had the lab test and would not
+obtained the extension, nor would their death have been updated in the
+original \code{pbc} data set.
 The cutoff rule of \code{tmerge} is purposefully conservative to avoid
 creating such anomalies.
+
+In the case of the PBC data set this author happens to know that active
+follow-up was continued for all subjects, both those that did and did not
+return for further laboratory tests.  This updated follow-up information is
+included in the pbcseq data and could have been used to set a wider 
+time range.  Such is not always the case, however.  
+Automatic additions to a data set via electronic systems can be particularly
+troublesome.  
+One case from the author's experience involved a study of patient outcomes
+after organ transplant. Cases
+were actively followed up for 3 years, at which time priorities shifted and 
+the clerical staff responsible for this aspect of the study were reassigned.  
+Automatic updates
+from a state death index contiued to accumulate, however.  A Kaplan-Meier
+curve computed at 5 years showed the remarkable result of a 3 year survival 
+of .9 followed by a precipitous drop to 0 at 5 years!
+This is because there was, by definition, 100\% mortality
+in all those subjects with more than 3 years of supposed follow-up.
+
+\subsection{Time delay and other options}
+The \code{options} argument to the tmerge routine is a list with
+one or more of the following five elements, listed below along with their
+default values.
+\begin{itemize}
+  \item idname = 'id'
+  \item t1name = 'tstart'
+  \item t2name = 'tstop'
+  \item dropna = TRUE
+  \item delay  = 0
+\end{itemize}
+The first three of these are the variable names that will be used
+for the identifier, start, and stop variables which are added to 
+the output data set. 
+They only need to be specified one time within a series of tmerge calls in
+order to effect a change.
+The dropna option has been discussed above; it affects tdc() and
+cumtdc() directives within a single tmerge call.
+The delay option also affects only a single call, and causes any tdc
+or cumtdc action in that call to be delayed by a fixed amount.
+The final two tmerge calls below are \emph{almost} identical in their action:
+<<echo=TRUE, eval=FALSE>>=
+temp <- subset(pbc, id <= 312, select=c(id:sex, stage))
+pbc2 <- tmerge(temp, temp, id=id, death = event(time, status))
+pbc2a <- tmerge(pbc2, pbcseq, id=id, ascites = tdc(day, ascites),
+               bili = tdc(day, bili), options= list(delay=14))
+pbc2b <- tmerge(pbc2, pbcseq, id=id, ascites = tdc(day+14, ascites),
+               bili = tdc(day+14, bili))
+@ 
+The difference between \code{pbc2a} and \code{pbc2b}
+is that the first call does not defer
+baseline values for each subject, i.e., any value with a time that is
+on or before the the  subject's first time point, as that will introduce 
+missing values into the result.
+
+The more important question is \emph{why} one would wish to delay
+or lag a time dependent covariate.
+One reason is to check for cases of reverse causality.  It is sometimes
+the case that a covariate measured soon before death is not a predictor
+of death but rather is simply a marker for a death that is
+already in progress.
+A simple example would the the time dependent covariate ``have called in
+the family for a final visit''.  
+A less obvious one from the author's experience occurs when a clinical
+visit spans more than one day, the endpoint is progression, and one or more
+laboratory results that were used to define ``progression'' get recorded in
+the data set 1-2 days before the progression event.  
+(They were perhaps pulled automatically from a laboratory information system).
+One then ends up with the tautology of a test value predicting its own result.
+
+Even more subtle biases can occur via coding errors.
+For any data set containing constructed time-dependent covariates,
+It has become the author's practice to re-run the analyses after adding 
+a 7-14 day lag to key variables.
+When the results show a substantial change, and this is not infrequent,
+understanding why is an critical step.  
+Even if there is not an actual error, one has to question the value of a
+covariate that can predict death within the next week but fails 
+for longer prognostication.  
 
 \subsubsection{REP}
 The motivating case for \code{tmerge} came from a particular problem:
@@ -538,7 +657,8 @@ For an investigation of cumulative comorbidity we had three data sets
   \item timeline: one or more rows for each subject containing 
     age intervals during which they were a resident of the county.  
     The important variables are id, age1 and age2; each (age1, age2)
-    pair marks an interval of residence.  
+    pair marks an interval of residence. Disjoint intervals are not
+    uncommon.
   \item outcome: one row for each age/outcome pair of interest.  The
     outcomes were 20 comorbid conditions as defined by NIH.
 \end{itemize}
@@ -551,52 +671,41 @@ library so the code is shown but not executed.)
 newd <- tmerge(data1=base, data2=timeline, id=repid, tstart=age1, 
                tstop=age2, options(id="repid"))
 newd <- tmerge(newd, outcome, id=repid, mtype = cumevent(age))
-newd <- with(subset(outcome, event='diabetes'), 
-             tmerge(newd, id=repid, diabetes= tdc(age)))
-newd <- with(subset(outcome, event='arthritis'),
-             tmerge(newd, id=repid, event =tdc(age)))
+newd <- tmerge(newd, subset(outcome, event='diabetes'), 
+               diabetes= tdc(age))
+newd <- tmerge(newd, subset(outcome, event='arthritis'), 
+               arthritis= tdc(age))
 @ 
-
 The first call to tmerge adds the timeline for each observation to the
-baseline data.  
-The \code{tstart} and \code{tstop} arguments refer to the starting and
-ending times for each subject and are taken from data set 2 (\code{data2}).
-The \code{options} argument tells the routine that the identifier variable
-in data set 1 is called `repid', and will cause the identifier variable
-in the final output data set \code{newd} to have that name.  
-By default, the names of the three key variables are ``id'', ``tstart'', 
-and ``tstop''; these uniquely identify each row of the final data set.
-
+baseline data.
+When, as in this case, the baseline and timeline data sets have a diffrent
+observation count, the baseline data set much contain a copy of the
+id variable (here \code{repid}) and is constrained to have only a
+single line for each id value.  
 Each subsequent call adds a new variable to the data set.
 The second line creates an event variable which is a cumulative count of
-the number of comorbidities thus far, for each subject.  
+the number of comorbidities thus far for each subject.  
 The third line creates a time dependent covariate (tdc) which will
 be 0 until the age of diabetes and is 1 thereafter, the fourth
 line creates a time dependent variable for the presence of arthritis.
 
-This is the basic working approach for \code{tmerge}: first establish
-baseline covariates and 
-the range over which the subject is at risk, and then add events and/or
-time dependent covariates to the data set one by one.  
-These additions will often increase the number of rows in the data
-set.
-Say at some stage subject Smith has time intervals of
-(0,15), (15,40) and (40,100) and we add a time dependent covariate \code{sbp}
-(systolic blood pressure)
-which is evaluated at months 6, 12, and 24 with values of
-134, 126, and 140, respectively.  In the resulting
-data set Smith will have intervals of 
-\begin{center}
-  \begin{tabular}{rrrrrr}
-    (0,6)  &(6,12) & (12,15) & (15,24) & (24,40) & (40,100)\\
-        &  134  &  126    &  126    &  140    & 140
-  \end{tabular}
-\end{center}
-The value over the interval (0,6) will be the value of the variable
-\code{sbp} in data set 1 --- if the variable existed there it is
-assumed to contain the baseline value --- or NA otherwise.
-
-
+Time dependent covariates that occur before the start of a subject's
+follow-up interval or during a gap in time do not generate a new time
+point, but they do set the value of that covariate for future times.
+Events that occur in a gap are not counted.
+The rationale is that during a subject's time within the county we would
+like the variable ``prior diagnosis of diabetes'' 
+to be accurate, even if that diagnosis occured during a prior period when
+the subject was not a resident. 
+For events outside of the timeline, we have no way to know who the appropriate
+comparison group is, and so ignore those events.  
+(Formally, the risk set would the set of
+all non-residents who, if they were to have had an event at the same age, 
+we would find out about it
+because they will later move to the county, have a medical encounter here,
+and have that event written into the ``prior
+conditions'' section of the medical record.)
+county.)
 
 \section{Time dependent coefficients}
 Time dependent covariates and time dependent coefficients are two
@@ -618,7 +727,7 @@ hazards.
 Here for example is a test case using the veterans cancer data.
 
 <<veteran1, fig=TRUE>>=
-options(show.signif.stars = FALSE)  # display intelligence
+options(show.signif.stars = FALSE)  # display user intelligence
 vfit <- coxph(Surv(time, status) ~ trt + prior + karno, veteran)
 vfit
 quantile(veteran$karno)
