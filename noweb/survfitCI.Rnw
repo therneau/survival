@@ -60,7 +60,7 @@ survfitCI <- function(X, Y, weights, id, istate,
     type <- attr(Y, "type")
     if (type !='mright' && type!='mcounting' && 
         type != "right" && type != "counting")
-        stop(paste("Cumulative incidence computation doesn't support \"", type,
+        stop(paste("multi-state computation doesn't support \"", type,
                           "\" survival data", sep=''))
 
     n <- nrow(Y)
@@ -147,16 +147,16 @@ vector $p(t)$ using the product-limit form
 \end{align*}
 Where $p$ is a row vector and $H$ is the multi-state hazard matrix.  
 At each event time we define the off diagonal elements of $H$ by
-$$H_{jk}(t) = \sum_i w_i dN_{ijk}(t)/ \sum w_iY_{ij}{t}$$
+$$H_{jk}(t) = \sum_i w_i dN_{ijk}(t)/ \sum w_iY_{ij}(t)$$
 where $N_{ijk}$ counts the number of observed trasitions between 
 state $j$ and state $k$ for subject $i$, $Y_{ij}(t)$ is 1 if subject $i$ is in
 state $j$ at time $t$,  $w_i$ is the weight for subject $i$, 
 and 0/0 is treated as 0.
 Row $j$ of $H(t)$ describes the fate of those subjects in state $j$, going from
-time $t$ to time $t+0$.  
+time $t-0$ to time $t$.  
 The diagonal elements of $H$ are set so that each row of $H$ sums to 1
 (everyone has to go somewhere). 
-This formula collapses to the Kaplan-Meier in the simple case where $P(t)$ is a
+This formula collapses to the Kaplan-Meier in the simple case where $p(t)$ is a
 vector of length 2 with state 1 = alive and state 2 = dead. 
 
 A robust variance for the product-limit estimate is based on the
@@ -168,7 +168,7 @@ chain rule.  Consider the $n$ by $k$ matrix of per subject influence values
                      p(t-) \frac{\partial H_{.k}(t)}{\partial w_i} \label{ci1}\\
  \frac{\partial H_{jk}(t)}{\partial w_i} &=  \left\{ \begin{array}{ll}
         \left( dN_{ijk}(t) - Y_{ij}(t)H_{jk} \right)/n_j(t) & j \ne k \\
-        \left( -dN_{ij.}(t) - Y_{ij}(t)(H_{jj}-1) \right)/n_j(t) & j=k \\
+        -\left(dN_{ij.}(t) - Y_{ij}(t)(1-H_{jj}) \right)/n_j(t) & j=k \\
        \end{array} \right. \label{ci2}
 \end{align}
 where $H_{.k}$ is the $k$th column of $H$ amd $n_j(t)= \sum_i Y_{ij}(t)w_i$
@@ -180,7 +180,9 @@ The first term of \eqref{ci1} is the formula for ordinary matrix multiplication.
 In equation \eqref{ci2} the derivative of $H$ with respect to subject $i$
 will be a matrix which is non-zero only for the row corresponding to the
 current state of the subject.  (I've skipped some intermediate steps in
-the derivation of \eqref{ci2}, ``left as an exercise for the reader'').
+the derivation, they are left as an exercise for the reader).
+Since each row of $H$ sums to a constant, each row of the deviative must
+sum to zero.
 
 The weighted sum of each column of $U$ must zero (if computed correctly)
 and the weighted sum of squares for each column will be the infinitesimal
