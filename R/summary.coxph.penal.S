@@ -106,7 +106,7 @@ summary.coxph.penal <-  function(object, conf.int = 0.95, scale=1,
         else temp <- cox$concordance
         rval$concordance <- c((temp[1] + temp[3]/2)/sum(temp[1:3]), 
                                temp[5]/(2*sum(temp[1:3])))
-        names(rval$concordance <- c("C", "se(C)")
+        names(rval$concordance) <- c("C", "se(C)")
     }
  
     class(rval) <- "summary.coxph.penal"
