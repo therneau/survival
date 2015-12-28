@@ -68,11 +68,11 @@ SEXP survsplit(SEXP tstart2, SEXP tstop2, SEXP cut2) {
 	    k++;
 	    }
 	else {
-	    for (j=0; j<ncut & (cut[j]<= tstart[i]); j++);
+	    for (j=0; (j<ncut) && (cut[j]<= tstart[i]); j++);
 	    start[k] = tstart[i];
 	    row[k] =i+1;
 	    interval[k] = j;
-	    for (; j<ncut & (cut[j] < tstop[i]); j++) {
+	    for (; (j<ncut) && (cut[j] < tstop[i]); j++) {
 		if (cut[j] > tstart[i]) {
 		    end[k] = cut[j];
 		    censor[k] =1;
