@@ -174,14 +174,15 @@ for (i in 0:5) {
 @ 
 The \code{coxph} routine declares convergence after 4 iterations.
 
-The martingale residuals are a simple function of the cumulative hazard,
+The martingale residuals are a simple function of the cumulative hazard
+which was listed in table \ref{tab:val1},
 $M_i = \delta_i - r\lhat(t_i)$.
 \begin{center}
 \begin{tabular}{c|lrr}
 Subject &\multicolumn{1}{c}{$\Lambda_0$} & $\Mhat(0)$ & $\Mhat(\bhat)$ \\ 
 	\hline
 1& $1/(3r+3)$ & $1-1/6$ & .728714 \\
-2& $1/(3r+3)$ & $0-1/6& --.271286 \\
+2& $1/(3r+3)$ & $0-1/6$ & --.271286 \\
 3& $1/(3r+3) + 2/(r+3)$ &1/3 & --.457427 \\
 4& $1/(3r+3) + 2/(r+3)$ &1/3 & .666667 \\
 5&   $1/(3r+3) + 2/(r+3)$ &--2/3 & --.333333 \\
