@@ -42,7 +42,6 @@
 **       cmat(nvar,nvar)       ragged array
 **       cmat2(nvar,nvar)
 **       newbeta(nvar)         always contains the "next iteration"
-**       maxbeta(nvar)         limits on beta
 **
 **  calls functions:  cholesky2, chsolve2, chinv2
 **
@@ -74,8 +73,7 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
     double  efronwt; /* sum of weighted risk scores for the deaths*/
     int     halving;    /*are we doing step halving at the moment? */
     int     nrisk;   /* number of subjects in the current risk set */
-    double  *maxbeta;
- 
+
     /* copies of scalar input arguments */
     int     nused, nvar, maxiter;
     int     method;
@@ -126,11 +124,10 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
     PROTECT(imat2 = allocVector(REALSXP, nvar*nvar)); 
     nprotect++;
     imat = dmatrix(REAL(imat2),  nvar, nvar);
-    a = (double *) R_alloc(2*nvar*nvar + 5*nvar, sizeof(double));
+    a = (double *) R_alloc(2*nvar*nvar + 4*nvar, sizeof(double));
     newbeta = a + nvar;
     a2 = newbeta + nvar;
-    maxbeta = a2 + nvar;
-    scale = maxbeta + nvar;
+    scale = a2 + nvar;
     cmat = dmatrix(scale + nvar,   nvar, nvar);
     cmat2= dmatrix(scale + nvar +nvar*nvar, nvar, nvar);
 
@@ -163,7 +160,6 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
 	tdeath += weights[i] * status[i];
     }	
     for (i=0; i<nvar; i++) {
-	maxbeta[i] =0;  /* temporary, keep the max abs for the covariate */
 	temp=0;
 	for (person=0; person<nused; person++) 
 	    temp += weights[person] * covar[i][person];
@@ -180,39 +176,16 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
 	    scale[i] = temp;
 	    for (person=0; person<nused; person++) {
 		covar[i][person] *= temp;
-		if (fabs(covar[i][person]) > maxbeta[i])
-		    maxbeta[i] = fabs(covar[i][person]);
-		}
-	    }
-	else { 
-	    /* scaling is only turned off during debugging 
-	       still, cover the case */
-	    for (person=0; person<nused; person++) {
-		if (fabs(covar[i][person]) > maxbeta[i])
-		    maxbeta[i] = fabs(covar[i][person]);
 		}
 	    }
 	}
-    if (doscale==1) {
+ 
+   if (doscale==1) {
 	for (i=0; i<nvar; i++) beta[i] /= scale[i]; /*rescale initial betas */
 	}
     else {
 	for (i=0; i<nvar; i++) scale[i] = 1.0;
 	}
-
-    /* 
-    **	Set the max beta.  For safety we want beta*x < log(max double) so 
-    **  the the risk score exp(x beta) never becomes either infinite or 0.
-    **  This limit is around 700 for most hardware.  Since exp(23) > population
-    **  of the earth, any beta*x over 20 is a silly relative risk for a Cox
-    **  model, however.  
-    **   We want to cut off huge values, but not take action very often since
-    **  doing so can mess up the iteration in general.
-    **  One of the case-cohort papers suggests using an offset of -100 to 
-    **  indicate "no risk", meaning that x*beta values of 50-100 can occur 
-    **  in "ok" data sets.  Compromise.
-    */
-    for (i=0; i<nvar; i++) maxbeta[i] = 2000/maxbeta[i];
 
     /*
     ** do the initial iteration step
@@ -279,7 +252,6 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
 	    if (person>=0 && strata[person]==1) break;  /*ties don't cross strata */
 	    }
 
-
 	if (ndead >0) {  /* we need to add to the main terms */
 	    if (method==0) { /* Breslow */
 		loglik[1] -= deadwt* log(denom);
@@ -343,11 +315,13 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
     /*
     **  Never, never complain about convergence on the first step.  That way,
     **  if someone HAS to they can force one iter at a time.
+    ** A non-finite loglik comes from exp overflow and requires almost
+    **  malicious initial values.
     */
     for (i=0; i<nvar; i++) {
 	newbeta[i] = beta[i] + a[i];
-	}
-    if (maxiter==0) {
+    }
+    if (maxiter==0 || isnan(loglik[0]) || 0 != isinf(loglik[0])) {
 	chinv2(imat,nvar);
 	for (i=0; i<nvar; i++) {
 	    beta[i] *= scale[i];  /*return to original scale */
@@ -356,8 +330,8 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
 	    for (j=0; j<i; j++) {
 		imat[j][i] *= scale[i]*scale[j];
 		imat[i][j] = imat[j][i];
-		}
 	    }
+	}
 	goto finish;
     }
 
@@ -404,7 +378,7 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
 		    a[i] += risk*covar[i][person];
 		    for (j=0; j<=i; j++)
 		    cmat[i][j] += risk*covar[i][person]*covar[j][person];
-		    }
+		}
 
 		if (status[person]==1) {
 		    ndead++;
@@ -418,13 +392,13 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
 			    a2[i] +=  risk*covar[i][person];
 			    for (j=0; j<=i; j++)
 				cmat2[i][j] += risk*covar[i][person]*covar[j][person];
-			    }   
-		        }
-	  	    }
+			}   
+		    }
+		}
 		
 		person--;
 		if (person>0 && strata[person]==1) break; /*tied times don't cross strata*/
-	        }
+	    }
 
 	    if (ndead >0) {  /* add up terms*/
 		if (method==0) { /* Breslow */
@@ -435,8 +409,8 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
 			for (j=0; j<=i; j++)
 			    imat[j][i] +=  (deadwt/denom)*
 				(cmat[i][j] - temp2*a[j]);
-		        }
-    		    }
+		    }
+		}
 		else  { /* Efron */
 		    for (k=0; k<ndead; k++) {
 			temp = (double)k / ndead;
@@ -450,16 +424,16 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
 				imat[j][i] +=  (wtave/d2)*
 				    ((cmat[i][j] - temp*cmat2[i][j]) -
 				    temp2*(a[j]-temp*a2[j]));
-    		            }
-    		        }
+			}
+		    }
 
 		    for (i=0; i<nvar; i++) { /*in anticipation */
 			a2[i] =0;
 			for (j=0; j<nvar; j++) cmat2[i][j] =0;
-		        }
-	            }
+		    }
 		}
-	    }   /* end  of accumulation loop  */
+	    }
+	}   /* end  of accumulation loop  */
 
 	/* am I done?
 	**   update the betas and test for convergence
@@ -481,12 +455,16 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
 	    goto finish;
 	}
 
+	/* a non-finite loglik is very rare: a step so bad that we get
+	** an overflow of the exp function
+	*/
 	if (*iter== maxiter) break;  /*skip the step halving calc*/
-	if (newlk < loglik[1])   {    /*it is not converging ! */
-		halving =1;
-		for (i=0; i<nvar; i++) 
-		    newbeta[i] = (newbeta[i] + beta[i]) /2; /*half of old increment */
-		}
+	if (newlk < loglik[1] || isnan(newlk) || 0!=isinf(newlk) )   {    
+	    /*it is not converging ! */
+	    halving =1;
+	    for (i=0; i<nvar; i++) 
+		newbeta[i] = (newbeta[i] + beta[i]) /2; /*half of old increment */
+	}
 	else {
 	    halving=0;
 	    loglik[1] = newlk;
@@ -495,13 +473,18 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
 	    for (i=0; i<nvar; i++) {
 			beta[i] = newbeta[i];
 		newbeta[i] = newbeta[i] +  u[i];
+		/*
+		** This code was a mistake.  If X is collinear we can easlily
+		**  create a beta which is large while eta is restrained
+		
 		if (newbeta[i] > maxbeta[i]) {
 		    newbeta[i] = maxbeta[i];
 		    }
 		else if (newbeta[i] < -maxbeta[i]) newbeta[i] = -maxbeta[i];
-	        }
+	        */
 	    }
-	}   /* return for another iteration */
+	}
+    }  /* return for another iteration */
 
     /*
     ** We end up here only if we ran out of iterations 
@@ -515,9 +498,9 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
 	for (j=0; j<i; j++) {
 	    imat[j][i] *= scale[i]*scale[j];
 	    imat[i][j] = imat[j][i];
-	    }
 	}
-    *flag = 1000;
+    }
+   *flag = 1000;
 
 
 finish:
