@@ -63,17 +63,20 @@ clogit(formula, data, weights, subset, na.action,
   sufficiently accurate substitute.
 
   Most of the time conditional logistic modeling 
-  is applied data with 1 case + k controls per set, however, in
+  is applied data with 1 case + k controls per set, in
   which case all of the approximations for ties lead to exactly the
   same result.  
   The 'appoximate' option maps to the
   Breslow approximation for the Cox model, for historical reasons.
 
-  It is not clear how case weights should be handled.  For instance if
+  Case weights are not allowed when the exact option is used, as the
+  likelihood is not defined for fractional weights.
+  Even with integer case weights it is not clear how they should be  
+  handled.  For instance if
   there are two deaths in a strata, one with weight=1 and one with
   weight=2, should the likelihood calculation consider all subsets of
   size 2 or all subsets of size 3?
-  Consequently, case weights are ignored by the routine.
+  Consequently, case weights are ignored by the routine in this case.
   }
 \seealso{\code{\link{strata}},\code{\link{coxph}},\code{\link{glm}} }
 
@@ -84,7 +87,7 @@ clogit(formula, data, weights, subset, na.action,
 #  The revised data set has one copy per possible outcome level, with new
 #  variable tocc = target occupation for this copy, and case = whether
 #  that is the actual outcome for each subject.
-# See the catspec package for more details on the Logan approach.
+# See the reference below for the data.
 resp <- levels(logan$occupation)
 n <- nrow(logan)
 indx <- rep(1:n, length(resp))
@@ -98,6 +101,9 @@ clogit(case ~ tocc + tocc:education + strata(id), logan2)
   Michell H Gail, Jay H Lubin and Lawrence V Rubinstein.  Likelihood
 calculations for matched case-control studies and survival studies with
 tied death times.  Biometrika 68:703-707, 1980.
+
+John A. Logan. A multivariate model for mobility tables.
+Am J Sociology 89:324-349, 1983.
 }
 \keyword{survival}
 \keyword{models}
