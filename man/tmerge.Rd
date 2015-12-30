@@ -25,7 +25,7 @@ tmerge(data1, data2,  id,\dots, tstart, tstop, options)
     each subject, only used on an initial call}
   
   \item{options}{a list of options.  Valid ones are idname, tname1,
-    tname2, delay and nadrop.  See the explanation below.
+    tname2, delay and nadrop.  See the explanation below.}
 }
 \details{
  The program is usually run in multiple passes, the first of which

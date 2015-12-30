@@ -1,22 +1,22 @@
 \name{survfit.object}
 \alias{survfit.object}
+\alias{survfitms.object}
 \title{
   Survival Curve Object 
 }
 \description{
 This class of objects is returned by the \code{survfit} class of functions
-to represent a fitted survival curve. 
+to represent a fitted survival curve.
+For a multi-state model the object has class \code{c('survfitms', 'survfit')}.
 
 Objects of this class have methods for the functions \code{print},
 \code{summary}, \code{plot}, \code{points} and \code{lines}. The
 \code{\link{print.survfit}} method does more computation than is typical
 for a print method and is documented on a separate page.
-Class of objects that represent a fitted survival curve. 
 }
 \section{Structure}{
 The following components must be included in a legitimate 
-\code{survfit} 
-object. 
+\code{survfit} or \code{survfitms} object. 
 }
 \arguments{
 \item{n}{
@@ -44,16 +44,26 @@ values of the number at risk).
 }
 \item{surv}{
 the estimate of survival at time t+0. 
-This may be a vector or a matrix. 
+This may be a vector or a matrix. The latter occurs when a set of
+survival curves is created from a single Cox model, in which case
+there is one column for each covariate set. 
 }
+\item{prev}
+a multi-state survival will have this component instead of \code{surv}.
+It will be a matrix containing the estimated prevalance (probability)
+of each state at each time, one column per state.
+
 \item{std.err}{
-the standard error of the cumulative hazard or -log(survival). 
+for a survival curve this contains standard error of the cumulative
+hazard or -log(survival), for a multi-state curve it contains the
+standard error of the prevalence.  This difference is a reflection of
+the fact that each is the natural calculation for that case.
 }
 \item{upper}{
-upper confidence limit for the survival curve. 
+upper confidence limit for the survival curve or prevalence
 }
 \item{lower}{
-lower confidence limit for the survival curve. 
+lower confidence limit for the survival curve or prevalence. 
 }
 \item{strata}{
 if there are multiple curves, this component gives the number of elements of 
@@ -71,7 +81,6 @@ for counting process data, and any time that the
 the total number of observations that were available.
 Not all may have been used in creating the curve, in which case this value
 will be larger than \code{n} above.
-of observations that were available
 }
 \item{conf.type}{
 the approximation used to compute the confidence limits. 
@@ -93,13 +102,10 @@ type of survival censoring.
 }
 \section{Subscripts}{
 Survfit objects that contain multiple survival curves can be subscripted. 
-This is most often used to plot a subset of the curves. 
-Usually a single subscript will be used.  In one particular case --
-survival curves for multiple covariate values, from a Cox model that includes 
-a \code{strata} statement -- there is a matrix of 
-curves and 2 subscripts may be used. 
-(In this case \code{summary.survfit} will 
-also print the data as a matrix). 
+This is most often used to plot a subset of the curves.
+If the \code{surv} or \code{prev} object is a matrix then the
+\code{survfit} object will be treated as a matrix, otherwise only a
+single subscript is used.
 }
 \seealso{
 \code{\link{plot.survfit}},  
