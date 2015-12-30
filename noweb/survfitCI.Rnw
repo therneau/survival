@@ -202,7 +202,7 @@ For the status variable a value if 0 is ``no event''.
 One nuisance in the function is that we need to ensure the
 tapply command gives totals for all states, not just the ones present in the
 data --- a call using the \code{subset} argument might not have all the states
---- which lead to factor commands.
+--- which leads to using factor commands.
 Another more confusing one is for multiple rows per subject data, where the 
 cstate and U objects have only one row per subject; 
 any given subject is only in one state at a time.
@@ -279,7 +279,7 @@ docurve1 <- function(entry, etime, status, istate, wt, states, id) {
         }
     }
     list(time =as.vector(timeset), pmat=Pmat, std=sqrt(vP),
-         n.event= as.vector(nevent[,2]), n.risk= as.vector(nrisk),
+         n.event= table(ftime, status)[,-1], n.risk= as.vector(nrisk),
          w.risk=wrisk, cumhaz=A)
 }
 @ 
@@ -438,7 +438,7 @@ docurve2 <- function(entry, etime, status, istate, wt, states, id, se.fit) {
     #
     # round off error can cause trouble, if two times are within machine
     #  precsion
-    # solve this by using creating a factor
+    # solve this by creating a factor
     ftime <- factor(c(entry,etime))
     ltime <- levels(ftime)
     ftime <- matrix(as.integer(ftime), ncol=2)
@@ -466,11 +466,13 @@ docurve2 <- function(entry, etime, status, istate, wt, states, id, se.fit) {
     prev0 <- table(factor(cstate, levels=states), exclude=NA)/length(cstate)
     if (se.fit) 
         list(time=timeset, pmat=t(fit$p), std=sqrt(t(fit$var)),
-             n.risk = colSums(fit$nrisk),n.event = fit$nevent, 
+             n.risk = colSums(fit$nrisk),
+             n.event = table(ftime[,2], status)[,-1], 
              n.censor=fit$ncensor, prev0 = prev0,
              cumhaz=array(fit$cumhaz, dim=c(nstate,nstate, length(timeset))))
     else list(time=timeset, pmat=t(fit$p),
-             n.risk = colSums(fit$nrisk),n.event = fit$nevent, 
+             n.risk = colSums(fit$nrisk), 
+             n.event = table(ftime[,2], status)[,-1], 
              n.censor=fit$ncensor,  prev0=prev0,
              cumhaz=array(fit$cumhaz, dim=c(nstate,nstate, length(timeset))))
 }
