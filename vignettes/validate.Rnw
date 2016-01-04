@@ -58,18 +58,18 @@ realm is ``repeatability'', i.e.
 that a new release of a given package or routine
 will give the same results as it did the week before.
 Users of the software often assume the word implies a more 
-rigorous criterion, namely that the routine gives the \emph{correct} answer.
+rigorous criterion, namely that the routine gives \emph{correct} answers.
 
 Validation of the latter type is rare, however; 
 and I surmise that a primary reason for this is that
 working out correct answers is boring, tedious work.
 This note contains a set of examples, often very simple, that have evolved over
-multiple decades and began as handwritten notes in a binder.
-They have proven very extremely useful in debugging the methods, not least
-because all the intermediate steps of each calculation are transparent.
-They have been incorporated into the formal test suite for the
+multiple decades.
+They have proven extremely useful in debugging the methods, not least
+because all the intermediate steps of each calculation are transparent,
+and have been incorporated into the formal test suite for the
 survival package as the files \code{book1.R}, \code{book2.R}, etc.
-They continue to be a resource for its defence:
+They also continue to be a resource for package's defence:
 I have been told multiple times that some person or group cannot use R
 in their work because ``SAS is validated'' while R is not. 
 The survival package passes all of the tests below   
@@ -91,7 +91,7 @@ an event at time $t$.
 At each death time we have the following quantities:
 \begin{align}
   d(t) &= \sum_i Y_i(t) w_i r_i \\
-  LPL(t) &= \left( \sum_i \delta_i(t) \log(r_i) \right) / \log(d(t))
+  LPL(t) &= \left( \sum_i \delta_i(t) \log(r_i) \right) / \log(d(t)) \\
   \xbar(t) &= \left( \sum_i Y_i(t) w_i r_i x_i \right) /d(t) \\
   U(t)     &= \sum_i \delta_i(t) (x_i - \xbar(t)) \\
   H(t)     &= \sum_i Y_i(t) (x_i - \xbar(t))^2 / d(t) \\
@@ -120,7 +120,7 @@ the risk score is $\exp(0) =1$ for those with $x=0$.
 Table \ref{tab:val1} shows the data set along with the mean and
 increment to the hazard at each time point.
 
-\begin{table} \centering
+\begin{table}[b] \centering
 \begin{tabular}{ccc|cc|cc}
 &&& \multicolumn{2}{c|}{$\xbar(t)$} & \multicolumn{2}{c}{$d\lhat_0(t)$} \\
 Time& Status& $x$& Breslow& Efron& Breslow& Efron \\ \hline 
@@ -140,7 +140,7 @@ Time& Status& $x$& Breslow& Efron& Breslow& Efron \\ \hline
 The log partial likelihood (LPL) has a term for each event; each term is
 the log of the ratio of the score for the subject who had an event over
 the sum of scores for those who did not.
-The first derivative $U$ of the LPL and 
+The LPL, first derivative $U$ of the LPL and 
 second derivative (or Hession) $\imat$ are:
 \begin{eqnarray*}
 LPL &=& \{\beta- \log(3r+3)\} + \{\beta - \log(r+3)\} +
@@ -155,7 +155,7 @@ U &=& \left(1-\frac{r}{r+1}\right) + \left(1-\frac{r}{r+3}\right) +
   &=& \frac{r}{(r+1)^2} + \frac{6r}{(r+3)^2}.
 \end{eqnarray*}
 (For a 0/1 covariate the variance formula \eqref{H2} simplifies to
-$\xbar - \xbar^2$, but only in that case.)
+$\xbar - \xbar^2$, but only in that case.  We used this fact above.)
 
 The following function computes these quantities.
 <<breslow1>>=
@@ -170,6 +170,7 @@ breslow1 <- function(beta) {
 beta <- log((3 + sqrt(33))/2)
 temp <- rbind(breslow1(0), breslow1(beta))
 dimnames(temp)[[1]] <- c("beta=0", "beta=solution")
+temp
 @ 
 
 The maximum partial likelihood occurs when $U(\beta)=0$, namely 
@@ -195,39 +196,44 @@ for (i in 1:6) {
 iter
 
 # coxph fits
-test1 <- data.frame(time=  c(9, 3,1,1,6,6,8),
-                    status=c(1,NA,1,0,1,1,0),
-                    x=     c(0, 2,1,1,1,0,0))
+test1 <- data.frame(time=  c(1, 1, 6, 6, 8, 9),
+                    status=c(1, 0, 1, 1, 0, 1),
+                    x=     c(1, 1, 1, 0, 0, 0))
 temp <- matrix(0, nrow=6, ncol=4, 
-                 dimnames=list(1:6, c("iter", "loglik", "beta", "H")))
+                 dimnames=list(1:6, c("iter", "beta", "loglik", "H")))
 for (i in 0:5) {
     tfit <- coxph(Surv(time, status) ~ x, data=test1, 
                   ties="breslow", iter.max=i)
-    temp[i+1,] <- c(tfit$iter, tfit$loglik[2], coef(tfit), 1/vcov(tfit))
+    temp[i+1,] <- c(tfit$iter, coef(tfit), tfit$loglik[2], 1/vcov(tfit))
 }
 temp
 @ 
 The \code{coxph} routine declares convergence after 4 iterations for this
-data set, so the last two call with \code{iter.max} of 4 and 5 give 
+data set, so the last two calls with \code{iter.max} of 4 and 5 give 
 identical results.
 
-The martingale residuals are defined as $O-E$ = observed - expected where
-the observed is the observed number of events for the subject (0 or 1) and
-the expected is the expected number assuming that the model is 
+The martingale residuals are defined as $O-E$ = observed - expected, where
+the observed is the number of events for the subject (0 or 1) and
+$E$ is the expected number assuming that the model is 
 completely correct.  
 For the first death all 6 subjects are at risk,
 and the martingale formulation views the outcome as a lottery in which
 the subjects hold $r$, $r$, $r$, 1, 1 and 1 tickets, respectively.  
 The contribution to $E$ for subject 1 at time 1 is thus $r/(r+3)$.
 Carrying this forward the residuals can be written as simple function of the 
-cumulative baseline hazard shown in the `Breslow' column of table 
-\ref{tab:val1}
+cumulative baseline hazard $\Lambda_0(t)$, the Nelson
+cumulative hazard estimator with case weights of $w_ir_i$; this is 
+shown in the `Breslow' column of table \ref{tab:val1}.
+(Also known as the Aalen estimate, Breslow estimate, and all possible
+combinations of the three names.)
+Then the residual can be written as
+
 \begin{equation}
   M_i = \delta_i - \exp(x_i\beta)\lhat(t_i) \label{mart}
 \end{equation}
 Each of the two subjects who die at time 6 are credited with the full
-increment at time 6.
-Residuals at $\beta=0$ and $\bhat$ are given below.
+hazard increment at time 6.
+Residuals at $\beta=0$ and $\bhat$ are shown in table \ref{mart1}.
 <<mresid1>>=
 mresid1 <- function(r) {
     status <- c(1,0,1,1,0,1)
@@ -239,7 +245,7 @@ mresid1 <- function(r) {
 r0 <- mresid1(1)
 r1 <- round(mresid1((3 + sqrt(33))/2), 6)
 @ 
-\begin{center}
+\begin{table} \centering
 \begin{tabular}{c|lrr}
 Subject &\multicolumn{1}{c}{$\Lambda_0$} & $\Mhat(0)$ & $\Mhat(\bhat)$ \\ 
 	\hline
@@ -250,17 +256,45 @@ Subject &\multicolumn{1}{c}{$\Lambda_0$} & $\Mhat(0)$ & $\Mhat(\bhat)$ \\
 5&   $1/(3r+3) + 2/(r+3)$ & $-2/3$ & \Sexpr{r1[5]} \\
 6 &   $1/(3r+3) + 2/(r+3) +1$ & $-2/3$ & \Sexpr{r1[6]}
 \end{tabular}
-\end{center}
+\caption{Martingale residuals for data set test1 using the Breslow
+  approximation for ties.}
+\label{mart1}
+\end{table}
 
-The score residual $L_i$ can be calculated from the entries in
-table \ref{tab:val1}.
-For subject number 3, for instance, we have
-\begin{eqnarray*}
- L_3 &=&\int_0^6 \{1 - \xbar(t)\}  d\Mhat_3(t) \\
-	&=& \left(1-\frac{r}{r+1}\right) \frac{r}{3r+3} + 
-	\left(1-\frac{r}{r+3}\right) \left(1-\frac{2r}{r+3}\right) .
-\end{eqnarray*}
-Let $a=(r+1)(3r+3)$ and $b=(r+3)^2$; then the residuals are as follows.
+\begin{table} \centering
+  \begin{tabular}{cccc}
+    &\multicolumn{3}{c}{Time} \\
+  Subject & 1 & 6 & 9 \\ \hline
+ 1&$ \left(1- \frac{r}{r+1} \right) \left(1- \frac{r}{3r+3} \right)$  \\
+ 2& $\left(1- \frac{r}{r+1} \right) \left(0- \frac{r}{3r+3} \right)$  \\
+ 3& $\left(1- \frac{r}{r+1} \right) \left(0- \frac{r}{3r+3} \right)$ &
+    $\left(1- \frac{r}{r+3} \right) \left(1- \frac{2r}{r+3} \right)$ & \\
+ 4& $\left(0- \frac{r}{r+1} \right) \left(0- \frac{1}{3r+3} \right)$ &
+    $\left(0- \frac{r}{r+3} \right) \left(1- \frac{2}{r+3} \right)$ & \\
+ 5& $\left(0- \frac{r}{r+1} \right) \left(0- \frac{1}{3r+3} \right)$ &
+    $\left(0- \frac{r}{r+3} \right) \left(0- \frac{2}{r+3} \right)$ & \\
+ 6& $\left(0- \frac{r}{r+1} \right) \left(0- \frac{1}{3r+3} \right)$ &
+    $\left(0- \frac{r}{r+3} \right) \left(0- \frac{2}{r+3} \right)$ & 
+    (0 - 0) (1-1)
+    \end{tabular}
+  \caption{The matrix of contributions to the score statistic $U$. 
+    The row sums are the score residuals and the column sums are
+    the Schoenfeld residuals.}
+  \label{scoretab1}
+\end{table}
+ 
+The score statistic $U$ can be written as a two way sum
+involving the covariate(s) and the martingale residuals
+\begin{equation}
+  U = \sum_{i=1}^n \int [x_i - \xbar(t)] dM_i(t) \label{score}
+\end{equation}
+The martingale residual $M$ has jumps at the observed 
+deaths, leading to table \ref{scoretab1}.
+The score residuals $L_i$ are defined as the per-patient contributions to
+this total, i.e., the row sums, and the Schoenfeld residuals are the
+per-time point contributions, i.e., the column sums.
+Let $a=(r+1)(3r+3)$ and $b=(r+3)^2$; then the score
+residuals are as follows.
 <<echo=FALSE>>=
 sfun <- function(r) {
     a <- (r+1)*(3*r+3)
@@ -282,18 +316,19 @@ Subject & $L$& $L(0)$ &$ L(\bhat)$ \\ \hline
 \end{tabular}
 \end{center}
 
-The Schoenfeld residuals are defined for each death
-and are $x_i - \xbar(t_i)$, the covariate for the subject who had
+The Schoenfeld residuals can be re-written as a value for each death of
+$x_i - \xbar(t_i)$, the covariate for the subject who had
 the event minus the (weighted) mean at that time.
-The values are $1-r/(r+1) = 1/(r+1)$, 
+The values are $1-r/(r+1)$, 
 $1 -r/(r+3)$, $0- r/(r+3)$,
 and 0 at times 1, 6, 6, and 9, respectively.
-The original definition of Schoenfeld has one value per death time and will
-sum the two contributions at time 6.
+In the matrix form of table \ref{scoretab1} the two contributions at
+time 6 are summed.
 The version with one residual per event works better for plotting,
 however, and that is what the program returns.
 
-The Nelson--Aalen estimate of the hazard is closely related to the
+As stated above there is a close connection between the
+Nelson--Aalen estimate estimate of cumulative hazard and the
 Breslow approximation for ties.
 The baseline hazard is shown as the column $\Lambda_0$ in table \ref{tab:val1}.
 The hazard estimate for a subject with covariate $x_i$ is
@@ -356,23 +391,30 @@ Time  & $c$ \\ \hline
 \end{center}
 
 
-
 \subsection{Efron approximation}
 The Efron approximation \cite{Efron77}
 differs from the Breslow only at day 6, where two
-deaths occur.  
-A useful way to think about the approximation is this: assume that if the
-data had been measured with higher accuracy then the deaths would not have been
-tied --- two cases died on day 6 but they did not perish at the
-same instant on that day.  
-There are thus two separate events on day 6.  Four subjects were alive and
-at risk for the first of the events.  Three subjects were at risk for the
-second event, either subjects 3, 5, and 6 or subjects 2, 5, and 6, but we
+deaths occur.
+A useful way to view the approximation is to recast the problem as
+a lottery model.  On day 1 there were 6 subjects in the lottery and
+1 ticket was drawn, at which time they became inelegible for further
+drawings and withdrew.
+On day 6 there were 4 subjects in the drawing (at risk) 
+and two tickets (deaths) were drawn.
+The Breslow approximation considers all four subjects to be eligible for
+both drawings, which implies that one of them could in theory have won 
+both, that is, died twice.
+This is clearly impossible.
+The Efron approximation treats the two drawings on day 6 as sequential.
+All four subjects were alive and
+at risk for the first of them.  
+Three subjects were elibible for the second drawing,
+either subjects 3, 5, and 6 or subjects 2, 5, and 6, but we
 do not know which.  
 In some sense then, subjects 3 and 4 each have ``.5 probability" of 
-being at risk for the
-second event at time $6 + \epsilon$.
-In the computation, we treat the two deaths as two separate times (two terms
+being at risk for the second event at time 6.
+In the computation, we treat the two deaths at time 6 as two separate times 
+(two terms
 in the loglik), with subjects 3 and 4 each having a case weight of 1/2 for the
 second event.
 The mean covariate for the second event is then
@@ -399,7 +441,6 @@ where $\phi=\arccos\{(45/23)\sqrt{3/23}\}$ via the standard formula
 for the roots of a cubic equation.
 This yields $r \approx 5.348721$ or $\bhat = \log(r) \approx 1.676857$.
 Plugging this value into the formulas above yields
-
 $$
 \begin{array}{ll}
  LL(0)=-4.276666 & LL(\bhat)=-3.358979 \\
@@ -408,19 +449,36 @@ $$
 \end{array}
 $$
 
-The cumulative hazard now has a jump of size
-$1/(r+3) + 2/(r+5)$ at time 6.
-Efron \cite{Efron77} did not discuss estimation of the cumulative
-hazard, 
-but it follows directly from the same argument as that used for
-the loglikelihood so we refer to it as the ``Efron'' estimate of
-the hazard.
-In {\splus} this hazard is the default whenever the Efron approximation for
-ties is used.
-For simple survival curves (i.e., the no-covariate case), this 
-estimator was
-explored by Fleming and Harrington \cite{Fleming84}
-as an alternative to the Kaplan--Meier.
+The martingale residuals are again $O-E$, but the expected part of the
+calculation is modified.  
+For the first drawing at time 6 the total number of ``tickets'' in the
+drawing is $r+3$; subject 4 has an increment of $r/(r+3)$ and the others
+$1/(r+3)$ to their expected value.
+For the second event at time 6 subjects 3 and 4 have a weight of 1/2,
+the total number of tickets is $(r+5)/2$
+and the consequent increment in the cumulative hazard is $2/(r+5)$.
+This leads to the Fleming-Harrington \cite{Fleming84}
+estimate of cumulative hazard.
+Subjects 3 and 4 recieve 1/2 of this second increment to $E$ and subjects
+5 and 6 the full increment.
+Efron \cite{Efron77} did not discuss residuals so did not derive this
+portion, we neverthess sometime refer to this using combinations of
+Fleming, Harrington, Efron in the same way as the Nelson-Aalen-Breslow
+estimate.  The martingale residuals are
+
+\begin{center}
+\begin{tabular}{cl}
+   Subject & $M_i$ \\ \hline
+   1 & $1 - r/(3r+3)$ \\
+   2 & $0 - r/(3r+3)$ \\
+   3 & $1 - r/(3r+3) - r/(r+3) - r/(r+5)$ \\
+   4 & $1 - 1/(3r+3) - 1/(r+3) - 1/(r+5)$ \\
+   5 & $0 - 1/(3r+3) - 1/(r+3) - 2/(r+5)$ \\
+   6 & $0 - 1/(3r+3) - 1/(r+3) - 2/(r+5) - 1$ \\
+\end{tabular}  
+\end{center}
+
+
 
   The variance formula for the baseline hazard function
 is extended in the same way, and is

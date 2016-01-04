@@ -31,8 +31,7 @@ R/tmerge.R
 noweb/*.pdf
 vignettes/*.pdf
 noweb/figures/.*.pdf
-noweb/.*.aux
-noweb/.*.tex
+noweb/code*
 noweb/noweb.sty
 inst/doc/
 vigtemp/
