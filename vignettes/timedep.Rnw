@@ -493,8 +493,8 @@ coef(coxph(Surv(tstart, tstop, death==2) ~ log(bili) + log(protime), pbc2)))
 @ 
 Again, we start the build with a baseline data set that has a subset of
 the variables.  
-This is due to my own frugality --- I happen to like data sets that are a 
-little more trim.  It is not a requirement of the tmerge function, however,
+This is due to my own frugality --- I happen to like data sets that are 
+more trim.  It is not a requirement of the tmerge function, however,
 and a user is certainly free to skip the first step above and build
 \code{pbc2} directly from data set \code{pbc}.
 
@@ -734,8 +734,9 @@ quantile(veteran$karno)
 
 zp <- cox.zph(vfit, transform= function(time) log(time +20))
 zp
-plot(zp[3])
+plot(zp[3])    # a plot for the 3rd variable in the fit
 abline(0,0, col=2)
+abline(h= vfit$coef[3], col=3, lwd=2, lty=2)
 @ 
 
 Karnofsky score is a very important predictor, but its effect is not
@@ -743,26 +744,111 @@ constant over time as shown by both the test and the plot.
 Early on it has a large negative
 effect: the risk of someone at the first quartile is
 approximately exp(35*.03377) = 3.2 fold times that of someone at
-the third quartile, but by 200 days this has waned.
-The cox.zph function does not produce a formal fit, however,
-only a graph and a linear test of whether the graph is ``flat''.
-What if we want to actually fit the model?
+the third quartile, but by 200 days this has waned and is not much
+different from zero.  
+One explanation is that, in this very acute illness, any measure
+that is over 6 months old is no longer relevant.
 
+The proportional hazards model estimates an average hazard over time,
+the value of which is shown by the dashed horizontal line.
+The use of an average hazard is often reasonable, the proportional hazards
+assumption is after all never precisely true.
+In this case, however, the departure is quite large and a time dependent
+coefficient is a more useful summary of the actual state.
+The cox.zph plot is excellent for diagnosis but does not, however,
+produce a formal fit of $\beta(t)$.
+What if we want to fit the model?
+
+\subsection{Step functions}
+One of the simplest extensions is a step function for $\beta(t)$, i.e.,
+different coefficients over different time intervals.
+An easy way to do this is to use the \code{survSplit} function to
+break the data set into time dependent parts.
+We will arbitrarily divide the veteran's data into 3 epochs of the first
+3 months, 3-6 months, and greater than 6 months.
+<<split>>=
+vet2 <- survSplit(veteran, cut=c(90, 180), end="time", event="status",
+                  episode= "tgroup", id="id")
+vet2[1:7, c("id", "tstart", "time", "status", "tgroup", "age", "karno")]
+@ 
+The first subject died at 72 days, their data is unchanged.
+The second and third subjects contribute time to each of the three
+intervals.
+<<split2>>=
+vfit2 <- coxph(Surv(tstart, time, status) ~ trt + prior + 
+                  karno:factor(tgroup), data=vet2)
+vfit2
+cox.zph(vfit2)
+@ 
+A fit to the revised data shows that the effect of baseline Karnofsky score
+is essentially limited to the first two months.
+The \code{cox.zph} function shows no further time dependent effect
+of Karnofsky score.
+This last is of course no surprise, since we used the original graph to
+pick the cut points.  
+A ``test'' that the coefficients for the three intervals are different
+will be biased by this sequential process and should be viewed with
+caution.
+
+Survival curves post fit require a little more care.
+The default curve uses the mean covariate values, 
+which is always problematic and completely useless in this case.  
+Look at the set of saved means for the model:
+<<split3>>=
+vfit2$means
+@ 
+The default curve will be for someone on treatment arm
+\Sexpr{round(vfit2$means[1], 2)},  %$
+which applies to no one,
+and a single set of ``blended'' values of the Karnofsky score, each times
+the three Karnofsky coefficients.
+This is easily rectified by creating a new data set with time intervals.
+
+<<split4>>=
+quantile(veteran$karno)
+cdata <- data.frame(tstart= rep(c(0,30,60), 2),
+                    time =  rep(c(30,60, 100), 2),
+                    status= rep(0,6),   #necessary, but ignored
+                    tgroup= rep(1:3, 2),
+                    trt  =  rep(1,6),
+                    prior=  rep(0,6),
+                    karno=  rep(c(40, 75), each=3),
+                    curve=  rep(1:2, each=3))
+cdata
+sfit <- survfit(vfit2, newdata=cdata, id=curve)
+km <- survfit(Surv(time, status) ~ I(karno>60), veteran)
+plot(km, xmax=120, col=1:2, lwd=2, 
+     xlab="Days from enrollment", ylab="Survival")
+lines(sfit, col=1:2, lty=2, lwd=2)
+@ 
+In the new data set the \code{tgroup} variable correctly tracks time
+intervals. 
+The default behavior for survival curves based on a coxph model is to
+create one curve for each line in the input data; the \code{id}
+option causes it to use a set of lines for each curve.
+Karnofsky scores at the 25th and 75th percentiles roughly represent the 
+average score for the lower half of the subjects and that for the upper half,
+respectively, and are plotted over the top of the Kaplan-Meier
+curves for those below and above the median.
+At 30 days the Cox model curves essentially become parallel.
+
+\subsection{Continuous time-dependent coefficients}
 If $\beta(t)$ is assumed to have a simple functional form we can 
 fool an ordinary Cox model program in to doing the fit.
 The particular form $\beta(t) = a + b\log(t)$ has for instance often
 been assumed.  
 Then $\beta(t) x = ax + b \log(t) x = ax + b z$ for the special time
 dependent covariate $z = \log(t) x$.
-The time scale for the plot above of $\log(t + 20)$ was chosen
-to make the first part of the plot roughly linear.
-The simple linear model does not fit over the entire range, but we 
-will forge ahead.
+The time scale for the \code{cox.zph} plot used
+further above of $\log(t + 20)$ was chosen
+to make the first 200 days of the plot roughly linear.
+Per the figure this simple linear model does not fit over the entire range, 
+but we will forge ahead and use it as an example anyway.
 (After all, most who fit the log(t) form have not bothered to even 
 look at a plot.)
 An obvious but incorrect approach is
-<<vfit2, echo=TRUE, eval=FALSE>>=
-vfit2 <- coxph(Surv(time, status) ~ trt + prior + karno +
+<<vfit3, echo=TRUE, eval=FALSE>>=
+vfit3 <- coxph(Surv(time, status) ~ trt + prior + karno +
                 I(karno * log(time + 20)), data=veteran)
 @ 
 This mistake has been made often enough the the \code{coxph} routine has been
@@ -775,7 +861,7 @@ constructed the variable outside of a \code{coxph} call.
 This variable most definitely breaks the rule about not looking into the
 future, and one would quickly find the circularity: large values of 
 \code{time} predict long survival,  because long survival leads to 
-large values for \code{time}; the resulting model coefficient is large.
+large values for \code{time}.
 
 A true time-dependent covariate can be constructed using the 
 \emph{time-transform} functionality of coxph.
@@ -788,16 +874,28 @@ vfit3
 The time dependent coefficient is estimated to be
 $\beta(t) =$ \Sexpr{round(coef(vfit3)[3], 3)} + 
   \Sexpr{round(coef(vfit3)[4], 3)} * log(t + 20).
-We can add said line to the above plot via \code{abline(coef(vfit3)[3:4])}.
-Not surprisingly, the result is rather too high for time $>$ 200.
+We can add said line to the \code{cox.zph} plot.
+Not surprisingly, the result is rather too high for time $>$ 200
+and underestimates the initial slope.
+Still the fit is better than a horizontal line, as confirmed
+by the p-value for the slope term in \code{vfit3}.
+(The p-value for that term from cox.zph is nearly identical, as it
+must be, since the tests in cox.zph are for a linear effect on the
+chosen time scale.)
+<<vet3b>>=
+plot(zp[3])
+abline(coef(vfit3)[3:4], col=2)
+@ 
 
-(The same dichotomy exists in SAS phreg, by the way.  A new covariate
-based on \code{time} will be fixed,  while a programming statement within
-phreg that 
+This same coding dichotomy exists in SAS phreg, by the way.  Adding
+\code{time} to the right hand side of the model statement will create
+the time-fixed (incorrect) variable,
+while a programming statement within phreg that 
 uses \code{time} as a variable will generate time-dependent objects.
 The error is less likely there because phreg's model statement has no
-equivalent to the \code{I()} function, i.e., you cannot create new
-variables on-the-fly.)
+equivalent to the \code{I()} function, i.e., you cannot simply write
+``log(time)'' on the right hand side.
+
 
 
 \section{Predictable time-dependent covariates}

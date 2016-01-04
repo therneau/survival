@@ -4,12 +4,18 @@ print.survfit <- function(x, scale=1,
                           rmean = getOption('survfit.rmean'), ...) {
 
     if (inherits(x, "survfitms")) {
+        # The curve 1-prev = chance you are NOT in state __ does not make
+        #  much sense for a multi-state model.  But -- the median and n are
+        #  the same, so we were lazy and didn't write a new routine.
+        # The formulas for mean time don't work, however.
+        #  
         x$surv <- 1- x$prev
         if (is.matrix(x$surv)) dimnames(x$surv) <- list(NULL, x$states)
         if (!is.null(x$lower)) {
             x$lower <- 1- x$lower
             x$upper <- 1- x$upper
         }
+        rmean <- "none"
     }
 
     if (!is.null(cl<- x$call)) {
@@ -135,6 +141,8 @@ survmean <- function(x, scale=1, rmean) {
         # Lining up the terms for "varmean" is tricky -- the easiest 
         #   check is to look at the homework solution on page 195-196
         #   of Miller, Survival Analysis, Wiley, 1981.
+        # Computing the mean sojourn time for a multi-state curve is
+        #  a completely different task.
         if (!is.na(end.time)) {
             hh <- ifelse((n.risk-n.event)==0, 0, 
 		       n.event /(n.risk *(n.risk -n.event)))
@@ -192,6 +200,9 @@ survmean <- function(x, scale=1, rmean) {
 
     #Four cases: strata Y/N  by  ncol(surv)>1 Y/N
     #  Repeat the code, with minor variations, for each one
+    if (is.matrix(surv) && !is.matrix(x$n.event))  #make it easier
+        x$n.event <- matrix(rep(x$n.event, ncol(surv)), ncol=ncol(surv))
+
     if (is.null(x$strata)) {
         if (rmean=='none') end.time <- NA
         else if (is.numeric(rmean)) end.time <- rmean
@@ -201,10 +212,12 @@ survmean <- function(x, scale=1, rmean) {
 	    out <- matrix(0, ncol(surv), ncols)
 	    for (i in 1:ncol(surv)) {
 		if (is.null(x$conf.int))
-		     out[i,] <- pfun(x$n, stime, surv[,i], x$n.risk, x$n.event,
+		     out[i,] <- pfun(x$n, stime, surv[,i], x$n.risk, 
+                                     x$n.event[,i],
 				      NULL, NULL, start.time, end.time)
-		else out[i,] <- pfun(x$n, stime, surv[,i], x$n.risk, x$n.event,
-				    x$lower[,i], x$upper[,i], start.time,
+		else out[i,] <- pfun(x$n, stime, surv[,i], x$n.risk, 
+                                     x$n.event[,i],
+                                     x$lower[,i], x$upper[,i], start.time,
                                      end.time)
 		}
 	    dimnames(out) <- list(dimnames(surv)[[2]], plab)
@@ -228,24 +241,24 @@ survmean <- function(x, scale=1, rmean) {
 	    ns <- ncol(surv)
 	    out <- matrix(0, nstrat*ns, ncols)
             if (is.null(dimnames(surv)[[2]]))
-                dimnames(out) <- list(rep(names(x$strata), rep(ns,nstrat)), 
+                dimnames(out) <- list(rep(names(x$strata), ns), 
                                       plab)
             else {
-                cname <- outer(dimnames(surv)[[2]], names(x$strata), paste,
+                cname <- outer(names(x$strata), dimnames(surv)[[2]], paste,
                                sep=", ")
                 dimnames(out) <- list(c(cname), plab)
                 }
 	    k <- 0
-	    for (i in 1:nstrat) {
-		who <- (stemp==i)
- 		for (j in 1:ns) {
+	    for (j in 1:ns) {
+ 		for (i in 1:nstrat) {
+                    who <- (stemp==i)
 		    k <- k+1
 		    if (is.null(x$lower))
 		         out[k,] <- pfun(x$n[i], stime[who], surv[who,j],
-					 x$n.risk[who], x$n.event[who],
+					 x$n.risk[who], x$n.event[who,j],
 					 NULL, NULL, start.time, end.time[i])
 		    else out[k,] <- pfun(x$n[i], stime[who], surv[who,j],
-					 x$n.risk[who], x$n.event[who],
+					 x$n.risk[who], x$n.event[who,j],
 					 x$lower[who,j], x$upper[who,j], 
 					 start.time, end.time[i])
 		    }
