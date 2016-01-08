@@ -450,14 +450,14 @@ $$
 $$
 
 The martingale residuals are again $O-E$, but the expected part of the
-calculation is modified.  
+calculation changes.
 For the first drawing at time 6 the total number of ``tickets'' in the
 drawing is $r+3$; subject 4 has an increment of $r/(r+3)$ and the others
 $1/(r+3)$ to their expected value.
 For the second event at time 6 subjects 3 and 4 have a weight of 1/2,
 the total number of tickets is $(r+5)/2$
 and the consequent increment in the cumulative hazard is $2/(r+5)$.
-This leads to the Fleming-Harrington \cite{Fleming84}
+This $\beta=0$ this calculation is equivalent to the Fleming-Harrington \cite{Fleming84}
 estimate of cumulative hazard.
 Subjects 3 and 4 recieve 1/2 of this second increment to $E$ and subjects
 5 and 6 the full increment.
@@ -644,14 +644,30 @@ after reaching this point.
 The information matrix, which measures the curvature of the likelihood
 function, rapidly goes to zero as $\beta$ grows.
 
+It is difficult to describe a satisfactory definition of the expected number
+of events for each subject and thus a definition of the proper
+martingale residual for the exact calculation.
+Among other things it should lead to a consistent score residual,
+i.e., ones that sum to the total score statistic $U$
+\begin{align*}
+  L_i &= \int (x_i - \xbar(t)) dM_i(t) \\
+  \sum L_i &= U
+\end{align*}
+The residuals defined above for the Breslow and Efron approximations have this property,
+for instance.
+The exact partial likelihood contribution to $U$ for a set of set of $k$
+tied deaths, however, is a sum of all subsets of size $k$; how would one
+partition this term as a simple sum over subjects?
+
 The exact partial likelihood is infrequently used and examination of 
 post fit residuals is even rarer.
 The survival package (and all others that I know of) takes the easy
-road in this case and uses the Breslow-Nelson-Aalen hazard to form
-residuals.
-All residuals at $\bhat=0$ are thus identical to those for a
-Breslow approximation.
-At $\bhat=\infty$ the martingale residuals are still well defined.
+road in this case and uses equation \eqref{mart} along with the 
+Nelson-Aalen-Breslow hazard to form residuals.
+They are certainly not correct, but the viable options were to use
+this, the Efron residuals, or an error message.
+
+At $\bhat=\infty$ these residuals are still well defined.
 Subjects 1 to 3, those with a covariate of 1, experience a hazard of
 $r/(3r+3)=1/3$ at time 1.  Subject 3 accumulates a hazard of 1/3 at
 time 1 and a further hazard of 2 at time 6.
@@ -660,10 +676,6 @@ The remaining subjects are at an infinitely lower risk during days
 1 unit of hazard at the last event.
 The residuals are thus $1-1/3=2/3$, $0-1/3$, $1-7/3= -4/3$, $1-0$, 0, and 0, 
 respectively, for the six subjects.
-
-Values for the score and Schoenfeld residuals can be
-derived similarly as the limit as $r\rightarrow \infty$ of the formulae
-in Section \ref{sect:valbreslow}.
 
 \section{Test data 2}
 This data set also has a single covariate, but in this case 
@@ -876,8 +888,6 @@ $d\lhat$ & $\frac{2}{3r+2} $ &  $\frac{1}{3r+2} + \frac{1}{2r+2}$
 \renewcommand{\arraystretch}{1}
 
 
-
-% SCCS %W% %G%
 \section{Test data 3}
 This is very similar to test data 1, but with the addition of case
 weights.
@@ -938,7 +948,7 @@ I  &=& [(4r^2 + 11r)/(r^2 + 11r +7) - \xbar_1^2] + 10(\xbar_2 - \xbar_2^2)
 \end{eqnarray*}
 
  The solution corresponds to $U(\beta)=0$ and can be computed using a
-simple search.  
+simple search for the zero of the equation.
 <<wt1>>=
 ufun <- function(r) {
     xbar <- c( (2*r^2 + 11*r)/(r^2 + 11*r +7), 11*r/(11*r + 5), 2*r/(2*r +1))
@@ -1003,11 +1013,9 @@ I&5 &$(1-13/19)(0-1/19) + (1-11/16)(0-5/8)$  \\
 \end{tabular}
 \end{center}
 
-SAS returns the unweighted residuals as given above;
-it is the weighted sum of residuals that totals zero, $\sum w_i \Mhat_i=0$,
-likewise for the score and Schoenfeld residuals evaluated at $\bhat$.
 {\splus} also returns unweighted residuals by default, with an option to
-return the weighted version.
+return the weighted version;
+it is the weighted sum of residuals that totals zero, $\sum w_i \Mhat_i=0$.
 Whether the weighted or the unweighted form is more useful depends on the
 intended application, neither is more ``correct'' than the other.
 {\splus} does differ for the dfbeta residuals, for which the default is
