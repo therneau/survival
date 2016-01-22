@@ -1,41 +1,58 @@
-survSplit<-function(data, cut, end,event,start,id=NULL,
-                    zero=0,episode=NULL){
+survSplit<-function(data, cut, end, event, start="tstart", id, zero=0,
+                     episode) {
+    if (!is.numeric(cut) || any(!is.finite(cut)))
+        stop("cut must be a vector of finite numbers")
+    cut<-sort(cut)
+    ntimes <- length(cut)
+    n <- nrow(data)
+    if (missing(end) || missing(event))
+        stop("the end and event arguments are required")
 
-  cut<-sort(cut)
-  ntimes <- length(cut)
-  n <- nrow(data)
-  newdata <- lapply(data,rep,ntimes+1)
+    if (is.character(event) && length(event) ==1 &&
+        event %in% names(data)) status <- data[[event]]
+    else stop("'event' must be a variable name in the data set")
 
-  endtime <- rep(c(cut, Inf) ,each=n)
+    if (is.character(end) && length(end) ==1 &&
+        end %in% names(data)) time2 <- data[[end]]
+    else stop("'end' must be a variable name in the data set")
 
-  eventtime<-newdata[[end]]
+    if (!(is.character(start) && length(start)==1))
+        stop("'start' must be a variable name")
+    else {
+        if (start %in% names(data)) time1 <- data[[start]]
+        else {
+            time1 <- rep(0., length.out = n)
+            start <- make.names(start)  #force valid syntax
+        }
+    }
+    if (any(time1 >= time2))
+        stop("start time must be < stop time")
 
-  if( start %in% names(data))
-    starttime<-data[[start]]
-  else
-    starttime<-rep(zero,length.out=n)
+    if (!missing(id)) {
+        if (!(is.character(id) && length(id)==1))
+            stop("'id' must be a variable name")
+        else {
+            if (!(id %in% names(data)))
+                data[[make.names(id)]] <- 1:n
+        }
+    }
 
-  starttime<-c(starttime, pmax(starttime, rep(cut,each=n)))
-  
-  epi<-rep(0:ntimes,each=n)
-  
-  status <- ifelse( eventtime <= endtime & eventtime>starttime,
-                   newdata[[event]], 0)
-  endtime<- pmin(endtime,eventtime)
+    if (is.logical(status)) censor <- FALSE
+    else if (is.factor(status)) censor <- levels(status)[1]
+    else censor <- max(status) -1
 
-  drop<-starttime>=endtime
-  
-  newdata<-do.call("data.frame",newdata)
-  newdata[,start]<-starttime
-  newdata[,end]<-endtime
-  newdata[,event]<-status
-  if (!is.null(id))
-    newdata[,id]<-rep(rownames(data),ntimes+1)
-  if (!is.null(episode))
-    newdata[,episode]<-epi
-  
-  newdata<-newdata[!drop,]
 
-  newdata
+    index <- .Call("survsplit", time1, time2, cut)
+    newdata <- data[index$row,]
+    row.names(newdata) <- NULL    # erase R's manufactured row names
+    newdata[[start]] <- index$start
+    newdata[[end]]   <- index$end
+    status <- newdata[[event]]
+    status[index$censor] <- censor
+    newdata[[event]] <- status
 
+    if (!missing(episode)) newdata[[episode]] <- index$interval +1
+
+    newdata
 }
+

@@ -17,15 +17,6 @@ Surv <- function(time, time2, event,
     # "Surv(a,b)" has the variable b matched to event rather than time2.
     #
     mtype <- match.arg(type)
-    # Retain any attributes of the input arguments. Originally requested
-    #  by the rms package
-    inputAttributes <- list()
-    if (!is.null(attributes(time)))
-        inputAttributes$time  <-attributes(time)
-    if (!missing(time2) && !is.null(attributes(time2)))
-        inputAttributes$time2 <- attributes(time2)
-    if (!missing(event) && !is.null(attributes(event)))
-        inputAttributes$event <- attributes(event)
 
 
     # If type is missing or it is "mstate", I need to figure out for myself
@@ -50,7 +41,10 @@ Surv <- function(time, time2, event,
 	}
     else if (type=='right' || type=='left') {
         if (!is.numeric(time)) stop("Time variable is not numeric")
-	if (missing(event))   event <- time2  # treat time2 as event
+	if (missing(event))   {
+            event <- time2  # treat time2 as event
+            time2 <- NULL   # force any inputAttributes to attach to "event"
+        }
         if (length(event) != nn) stop ("Time and status are different lengths")
         if (mtype=="mstate" || (is.factor(event) && length(levels(event))>2)) {
             mstat <- as.factor(event)
@@ -152,6 +146,16 @@ Surv <- function(time, time2, event,
 		    time2=ifelse(!is.na(status) & status==3, time2-origin, 1),
 		    status=status)
     }
+
+    # Retain any attributes of the input arguments. Originally requested
+    #  by the rms package
+    inputAttributes <- list()
+    if (!is.null(attributes(time)))
+        inputAttributes$time  <-attributes(time)
+    if (!missing(time2) && !is.null(attributes(time2)))
+        inputAttributes$time2 <- attributes(time2)
+    if (!missing(event) && !is.null(attributes(event)))
+        inputAttributes$event <- attributes(event)
 
     dimnames(ss) <- list(NULL, dimnames(ss)[[2]]) #kill any tag-along row names
     attr(ss, "type")  <- type

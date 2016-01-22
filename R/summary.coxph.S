@@ -1,4 +1,3 @@
-# $Id 
 summary.coxph <- function(object,  conf.int = 0.95, scale = 1, ...) {
     cox<-object
     beta <- cox$coefficients
@@ -62,10 +61,13 @@ summary.coxph <- function(object,  conf.int = 0.95, scale = 1, ...) {
     rval$used.robust<-!is.null(cox$naive.var)
 
     if (!is.null(cox$concordance)) {
+        # A stratified model has a matrix of values, one row per strata
         if (is.matrix(cox$concordance)) temp <- colSums(cox$concordance)
         else temp <- cox$concordance
-        rval$concordance <- c("concordance"= (temp[1] + temp[3]/2)/
-                              sum(temp[1:3]), "se"= temp[5]/(2*sum(temp[1:3])))
+        # C= (concordant + tied/2)/(concordant + discordant + tied)
+        rval$concordance <- c((temp[1] + temp[3]/2)/sum(temp[1:3]), 
+                               temp[5]/(2*sum(temp[1:3])))
+        names(rval$concordance) <- c("C", "se(C)")
     }
         
 

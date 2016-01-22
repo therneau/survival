@@ -2,6 +2,12 @@
 \title{NEWS file for the survival package}
 \section{Changes in version 2.38-4}{
   \itemize{
+    \item Update survSplit: it now handles all types of status variables
+    (0/1, TRUE/FALSE, factors), the id and episode arguments are useful
+    for start/stop data, data retains its original sort order (new
+    observations are inserted rather than at the end), and it the
+    function is used in a vignette.
+    
     \item Add the conf.times argument to plot.survfit.  This
     allows for confidence bars at specified times, which are useful
     when the plot is crowded.
@@ -10,7 +16,8 @@
     \itemize{
       \item Change the default for mark.time to FALSE
       \item Change the behavior of xscale so that it matches that of
-      yscale, i.e., follow on annotation such as legend or locator is in the
+      yscale, i.e., it changes only the label and not the underlying
+      scale.  Follow on annotations such as legend or locator are in the
       orignal scale of the data.
       \item For a matrix of curves, e.g. competing risks, print and
       plot them in column major order rather than row major, in order

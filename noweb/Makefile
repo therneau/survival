@@ -49,24 +49,24 @@ DOCDIR= ../inst/doc
 
 all:  noweb.sty doc fun
 
-doc: all.pdf 
+doc: code.pdf 
 
-all.pdf: all.tex noweb.sty
-	texi2dvi --pdf all.tex
+code.pdf: code.tex noweb.sty
+	pdflatex code.tex
+	pdflatex code.tex
 
-all.nw: $(PARTS)
-	cat $(PARTS) > all.nw
+code.nw: $(PARTS)
+	cat $(PARTS) > code.nw
 
-all.tex: all.nw
-	echo "library(noweb); noweave('all.nw')" | $(R_HOME)/bin$(R_ARCH_BIN)/R --vanilla --slave
-#	noweave -delay all.nw > all.tex
+code.tex: code.nw
+	echo "library(noweb); noweave('code.nw')" | R  --slave
 
-$(SFUN): all.nw
-$(CFUN): all.nw
-$(CFUN2): all.nw
-$(RFUN): all.nw
+$(SFUN): code.nw
+$(CFUN): code.nw
+$(CFUN2): code.nw
+$(RFUN): code.nw
 
-.PHONY: fun clean doc
+.PHONY: fun clean doc all
 fun: $(RFUN) $(CFUN2) noweb.sty
 
 test: $(RFUN)
@@ -74,25 +74,25 @@ test: $(RFUN)
 
 %.R: 
 	echo "# Automatically generated from the noweb directory" > $@
-	echo "require(noweb); notangle('all.nw', target='$(*F)', out='zz')" | $(R_HOME)/bin$(R_ARCH_BIN)/R  --slave
+	echo "require(noweb); notangle('code.nw', target='$(*F)', out='zz')" | R  --slave
 	cat zz >> $@
 	rm zz
 
 %.S: 
 	echo "# Automatically generated from the noweb directory" > $@
-	echo "require(noweb); notangle('all.nw', target='$(*F)', out='zz')" | $(R_HOME)/bin$(R_ARCH_BIN)/R  --slave
+	echo "require(noweb); notangle('code.nw', target='$(*F)', out='zz')" | R  --slave
 	cat zz >> $@
 	rm zz
 
 %.c: 
 	echo "/* Automatically generated from the noweb directory */" > $@
-	echo "require(noweb); notangle('all.nw', target='$(*F)', out='zz')" | $(R_HOME)/bin$(R_ARCH_BIN)/R  --slave
+	echo "require(noweb); notangle('code.nw', target='$(*F)', out='zz')" | R  --slave
 	cat zz >> $@
 	rm zz
 
 clean:
-	-rm all.nw all.log all.aux all.toc all.tex all.bbl all.blg all.out
+	-rm code.nw code.log code.aux code.toc code.tex code.bbl code.blg code.out
 	-rm noweb.sty
 
 noweb.sty:
-	echo 'library(noweb); data(noweb); cat(noweb.sty, sep="\n", file="noweb.sty")' |  $(R_HOME)/bin$(R_ARCH_BIN)/R  --slave
+	echo 'library(noweb); data(noweb); cat(noweb.sty, sep="\n", file="noweb.sty")' |  R  --slave

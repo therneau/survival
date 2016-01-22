@@ -172,7 +172,7 @@ $k$ are
           \sum_{t_j < t_k} w_j \delta_j \rm{sign}(r_k - r_j) \label{derivC} \\
   \frac{\partial C+D+T}{\partial w_k} &= \sum_{t_j > t_k} w_j \delta_k +
                                 \sum_{t_j < t_k} w_j \delta_j  \label{derivT}\\
-\end{align*}
+\end{align}
 We need to keep two vectors of derivatives each of length $n$, the number
 of observations.  The parent routine in R will worry about data sets with
 multiple rows per subject, for which the person has to be added back 
@@ -194,7 +194,7 @@ The insight used here is to consider a Cox model with time dependent
 covariates, where the covariate $x$ at each death time has been
 transformed into ${\rm rank}(x)$. 
 One can show that the Cox score statistic contribution of
-$\r_i - \overline{r}$ at each death time is equal to 
+$r_i - \overline{r}$ at each death time is equal to 
 $(C-D)/2$ where $C$ and $D$ are the number of concordant
 and discordant pairs comparing that death to all those at risk,
 and using the Breslow approximation for ties.
@@ -229,7 +229,7 @@ We can divide the subjects currently in the tree into 3 groups.
   \item Those tied with the new addition.  Their rank will increase by
     $w_k/2$.
   \item Those above the new addition.  Their rank increases by $w_k$.
-\end{itemize}
+\end{enumerate}
 
 
 

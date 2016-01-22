@@ -164,12 +164,19 @@ mfit1 <- survfit(Surv(futime, death) ~ sex, data=mgus2)
 mfit1
 plot(mfit1, col=c(1,2), xscale=12, mark.time=FALSE, lwd=2,
      xlab="Years post diagnosis", ylab="Survival")
-legend(6, .8, c("female", "male"), col=1:2, lwd=2, bty='n')
+legend(80, .8, c("female", "male"), col=1:2, lwd=2, bty='n')
 par(oldpar)
 @ 
 
+(The xscale and yscale arguments to \code{plot.survfit} affect only the
+axis labels, not the data.  Further additions to the plot region
+such as \code{legend}, \code{lines}, or \code{text} remain in the 
+original scale.  This simplifies programmatic additions such as adding
+another curve to the plot, while making eyeball additions such as a 
+legend less clear.)
+
 A second model for these subjects is competing risks, which corresponds to
-our second figure above.
+the second scenario in figure \ref{sfig1}.
 For this model we are only interested in the first event for each
 subject.
 Formally we are treating progression to a plasma cell malignancy (PCM)
@@ -191,10 +198,10 @@ table(event)
 
 mfit2 <- survfit(Surv(etime, event) ~ sex, data=mgus2)
 mfit2
-plot(mfit2, col=c(1,1,2,2), lty=c(2,1,2,1),
-     xscale=12, mark.time=FALSE, lwd=2, 
+plot(mfit2, col=c(1,2,1,2), lty=c(2,2,1,1),
+     mark.time=FALSE, lwd=2,  xscale=12,
      xlab="Years post diagnosis", ylab="Prevalence")
-legend(20, .6, c("death:female", "death:male", "pcm:female", "pcm:male"), 
+legend(240, .6, c("death:female", "death:male", "pcm:female", "pcm:male"), 
        col=c(1,2,1,2), lty=c(1,1,2,2), lwd=2, bty='n')
 @ 
 
@@ -205,7 +212,7 @@ with the exception of the \code{event} variable.
     whereas for ordinary single
     state survival the status is either 0/1 or TRUE/FALSE.  
     The first level of the factor must be censoring, which is the status code
-    for those whose follow-up terminated without reaching either endpoint.
+    for those whose follow-up terminated without reaching an endpoint.
     Codes for the remaining states can be in any order. The labels for the
     states are unrestricted.
   \item A simple print of the \code{mfit1} object shows the order in
@@ -213,6 +220,9 @@ with the exception of the \code{event} variable.
     choose the line types and colors for the curves.
   \item Since these are prevalence estimates, the curves start at 0.
 \end{enumerate}
+The multi-event curves can be subscripted as though they were a matrix.
+The first subscript indexes the groupings found on the right hand side of
+the formula, sex in this case, and the second subscript the endpoints.
 
 A common mistake with competing risks is to use the Kaplan-Meier
 separately on each
@@ -222,8 +232,8 @@ The next plot is an example of this for the PCM endpoint.
 pcmbad <- survfit(Surv(etime, pstat) ~ sex, data=mgus2)
 plot(pcmbad[2], mark.time=FALSE, lwd=2, fun="event", conf.int=FALSE, xscale=12,
      xlab="Years post diagnosis", ylab="Fraction with PCM")
-lines(mfit2[2,1], lty=2, lwd=2, mark.time=FALSE, conf.int=FALSE, xscale=12)
-legend(0, .28, c("Males, PCM, incorrect curve", "Males, PCM, competing risk"),
+lines(mfit2[2,1], lty=2, lwd=2, mark.time=FALSE, conf.int=FALSE)
+legend(0, 1, c("Males, PCM, incorrect curve", "Males, PCM, competing risk"),
        col=1, lwd=2, lty=c(1,2), bty='n')
 @ 
 There are two problems with the \code{pcmbad} fit.  
@@ -297,7 +307,7 @@ mfit3 <- survfit(Surv(tstart, tstop, event) ~ sex, data=newdata, id=id)
 plot(mfit3[,1], mark.time=FALSE, col=1:2, lty=1, lwd=2,
      xscale=12,
      xlab="Years post MGUS diagnosis", ylab="Prevalence of PCM")
-legend(4, .04, c("female", "male"), lty=1, col=1:2, lwd=2, bty='n') 
+legend(48, .04, c("female", "male"), lty=1, col=1:2, lwd=2, bty='n') 
 @ 
 This plot is quite different in that it shows the fraction of subjects
 \emph{currently} in the PCM state. 
@@ -320,17 +330,18 @@ mfit4 <- survfit(Surv(tstart, tstop, e2) ~ sex, data=newdata, id=id)
 plot(mfit2[2,], lty=c(2,1),
      xscale=12, mark.time=FALSE, lwd=2, 
      xlab="Years post diagnosis", ylab="Prevalence")
-lines(mfit4[2,3], mark.time=FALSE, xscale=12, col=2, lty=2, lwd=2,
+lines(mfit4[2,3], mark.time=FALSE, col=2, lty=2, lwd=2,
       conf.int=FALSE)
 
-legend(15, .5, c("male:death w/o pcm", "male: ever pcm", 
+legend(180, .5, c("male:death w/o pcm", "male: ever pcm", 
                  "male: death after pcm"), col=c(1,1,2), lty=c(1,2,2), 
              lwd=2, bty='n')
 @ 
 
 When using multi-state data to create Aalen-Johansen estimates individuals
 are not allowed to have gaps in the middle of their time line.
-For example a data with (0, 30, pcm) and (50,70, death) as the two observations
+For example a data set with 
+(0, 30, pcm) and (50,70, death) as the two observations
 for a subject; the time from 30-70 is not accounted for.
 The method also does not account for what is known as panel data, 
 where a subject's state is recorded at some a priori time such as a

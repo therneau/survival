@@ -51,6 +51,7 @@ tab1 <- with(flchain, tapply(flc, list(sex, age2), mean))
 cat("female&" , paste(round(tab1[1,], 1), collapse=" & "), "\\\\ \n")
 cat("male &"  , paste(round(tab1[2,], 1), collapse=" & "), "\n")
 @ 
+\end{tabular}
  \caption{Fitted values from a linear model with two factors.}
  \label{tab1}
  \end{table}
@@ -280,7 +281,7 @@ Any given data set may often be too small to explore these variations and
 our statistical models will of necessity smooth over the complexity,
 but interactions are nevertheless still present.
 
-Consider the data shown in figure \ref{fig1} below, which shows a particular
+Consider the data shown in figure \ref{fig:data} above, which shows a particular
 laboratory test value by age and sex.  
 We see that the sex effect varies by age.  
 Given this, what could be meant by a ``main effect'' of sex? 
@@ -1027,7 +1028,8 @@ A modern summary with focus on the clinical trials arena is found in
 chapter 14 of the textbook by  Senn \cite{Senn07}
 
 I have found two papers particularly useful in thinking about this.
-Senn \ref{Senn00} points out the strong parallels between tests for main effects
+Senn \cite{Senn00} points out the strong parallels between tests for 
+main effects
 when there may be interactions and meta analyses, cross connecting these two
 approaches is illuminating.
 A classic reference is the 1978 paper by Aitkin \cite{Aitkin78}.

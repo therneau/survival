@@ -412,13 +412,14 @@ if (length(conf.offset) ==1)
 else temp.offset <- rep(conf.offset, length=ncurve) *  diff(par("usr")[1:2])
 temp.cap    <-  conf.cap    * diff(par("usr")[1:2])
 
-for (i in unique(stemp)) {  #for each strata
-    who <- which(stemp==i)
-    censor <- if (is.null(x$n.censor))
-        (x$n.event[who] ==0)  else (x$n.censor[who] >0) #places with a censoring
-    xx <- c(firstx, stime[who])
-    censor <- c(FALSE, censor)  #no mark at firstx
-    for (j in 1:ncol(ssurv)) {
+for (j in 1:ncol(ssurv)) {
+    for (i in unique(stemp)) {  #for each strata
+        who <- which(stemp==i)
+        censor <- if (is.null(x$n.censor))
+            (x$n.event[who] ==0)  else (x$n.censor[who] >0) #censoring ties
+        xx <- c(firstx, stime[who])
+        censor <- c(FALSE, censor)  #no mark at firstx
+    
         yy <- c(firsty[i,j], ssurv[who,j])
         if (plot.surv) {
             if (type=='s')

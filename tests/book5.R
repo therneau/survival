@@ -32,6 +32,7 @@ byhand <- function(beta, newx=0) {
     loglik <- 11*beta - (log(r^2 + 11*r +7) + 10*log(11*r +5) +2*log(2*r+1))
     hazard <- c(1/(r^2 + 11*r +7), 10/(11*r +5), 2/(2*r+1))
     xbar <- c((2*r^2 + 11*r)*hazard[1], 11*r/(11*r +5), r*hazard[3])
+    U <- 11- (xbar[1] + 10*xbar[2] + 2*xbar[3])
     imat <- (4*r^2 + 11*r)*hazard[1] - xbar[1]^2 +
             10*(xbar[2] - xbar[2]^2) + 2*(xbar[3] - xbar[3]^2)
 
@@ -64,7 +65,7 @@ byhand <- function(beta, newx=0) {
     var.g <- cumsum(hazard^2/ c(1,10,2))
     var.d <- cumsum((xbar-newx)*hazard)
 
-    list(loglik=loglik, imat=imat, hazard=hazard, xbar=xbar,
+    list(loglik=loglik, U=U, imat=imat, hazard=hazard, xbar=xbar,
          mart=c(1,0,1,1,1,0,0,1,0)-expected, expected=expected,
          score=rowSums(resid), schoen=c(2,1,1,0,1) - xbar[c(1,2,2,2,3)],
          varhaz=(var.g + var.d^2/imat)* exp(2*beta*newx))
@@ -92,7 +93,7 @@ sfit <- survfit(fit0, list(x=pi), censor=FALSE)
 aeq(sfit$std.err^2, truth0$var)
 aeq(-log(sfit$surv), cumsum(truth0$haz))
 
-truth <- byhand(fit$coef, .3)
+truth <- byhand(0.85955744, .3)
 aeq(truth$loglik, fit$loglik[2])
 aeq(1/truth$imat, fit$var)
 aeq(truth$mart, fit$resid)
