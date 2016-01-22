@@ -20,7 +20,7 @@ jasa1
    fu.date:\tab end of followup \cr
    fustat:\tab dead or alive \cr
    surgery:\tab prior bypass surgery\cr
-   age: \tab age (in days)\cr
+   age: \tab age (in years)\cr
    futime:\tab followup time\cr
    wait.time:\tab time before transplant\cr
    transplant:\tab transplant indicator\cr
