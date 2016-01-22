@@ -318,7 +318,7 @@ replacement in these strata.
            (as found in  figure \ref{flc1}).}
 \label{flc2}
 \end{figure}
-<<flc2, echo=FALSE, fig=TRUE, include=FALSE>>=
+<<flc2, echo=TRUE, fig=TRUE, include=FALSE>>=
 temp <- with(fdata, table(group, age2, sex))
 dd <- dim(temp)
 
