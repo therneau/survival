@@ -59,7 +59,7 @@ code.nw: $(PARTS)
 	cat $(PARTS) > code.nw
 
 code.tex: code.nw
-	echo "library(noweb); noweave('code.nw')" | $(R_HOME)/bin$(R_ARCH_BIN)/R  --slave
+	echo "library(noweb); noweave('code.nw')" | R  --slave
 
 $(SFUN): code.nw
 $(CFUN): code.nw
@@ -74,19 +74,19 @@ test: $(RFUN)
 
 %.R: 
 	echo "# Automatically generated from the noweb directory" > $@
-	echo "require(noweb); notangle('code.nw', target='$(*F)', out='zz')" | $(R_HOME)/bin$(R_ARCH_BIN)/R  --slave
+	echo "require(noweb); notangle('code.nw', target='$(*F)', out='zz')" | R  --slave
 	cat zz >> $@
 	rm zz
 
 %.S: 
 	echo "# Automatically generated from the noweb directory" > $@
-	echo "require(noweb); notangle('code.nw', target='$(*F)', out='zz')" | $(R_HOME)/bin$(R_ARCH_BIN)/R  --slave
+	echo "require(noweb); notangle('code.nw', target='$(*F)', out='zz')" | R  --slave
 	cat zz >> $@
 	rm zz
 
 %.c: 
 	echo "/* Automatically generated from the noweb directory */" > $@
-	echo "require(noweb); notangle('code.nw', target='$(*F)', out='zz')" | $(R_HOME)/bin$(R_ARCH_BIN)/R  --slave
+	echo "require(noweb); notangle('code.nw', target='$(*F)', out='zz')" | R  --slave
 	cat zz >> $@
 	rm zz
 
@@ -95,4 +95,4 @@ clean:
 	-rm noweb.sty
 
 noweb.sty:
-	echo 'library(noweb); data(noweb); cat(noweb.sty, sep="\n", file="noweb.sty")' |  $(R_HOME)/bin$(R_ARCH_BIN)/R  --slave
+	echo 'library(noweb); data(noweb); cat(noweb.sty, sep="\n", file="noweb.sty")' |  R  --slave
