@@ -53,7 +53,7 @@ tmerge <- function(data1, data2, id, ..., tstart, tstop, options) {
         x <- list(time=time, value=value, censor=censor); 
         class(x) <-"event"; x},
            envir=new)
-    assign("cumevent", function(time, value=NULL, levels=NULL) {
+    assign("cumevent", function(time, value=NULL, censor=NULL) {
         x <- list(time=time, value=value, censor=censor); 
         class(x) <-"cumevent"; x},
            envir=new)
