@@ -74,6 +74,9 @@ SEXP concordance1(SEXP y, SEXP wt2,  SEXP indx2, SEXP ntree2);
 SEXP concordance2(SEXP y,     SEXP wt2,  SEXP indx2, SEXP ntree2,
                   SEXP sortstop, SEXP sortstart) ;
 
+void cox_callback(int which, double *coef, double *first, double *second,
+		  double *penalty, int *flag, int p, SEXP fexpr, SEXP rho);
+
 SEXP coxcount1(SEXP y2, SEXP strat2) ;
 SEXP coxcount2(SEXP y2, SEXP isort1, SEXP isort2, SEXP strat2) ;
 
