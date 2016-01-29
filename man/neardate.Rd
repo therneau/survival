@@ -20,8 +20,11 @@ nomatch = NA_integer_)
     but any orderable data type is allowed}
   \item{y2}{reference set of dates}
 
-  \item{best}{find the index of the first y2 value prior to or equal to
-    the target y1 value, for each subject, or the one after?}
+  \item{best}{if \code{best='prior'} find the index of the first
+    y2 value less than or equal to
+    the target y1 value, for each subject.
+    If \code{best='after'} find the first y2 value which is greater than
+    or equal to the target y1 value, for each subject.}
 
   \item{nomatch}{the value to return for items without a match}
 }
