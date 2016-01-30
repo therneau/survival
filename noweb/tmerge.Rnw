@@ -53,7 +53,7 @@ tmerge <- function(data1, data2, id, ..., tstart, tstop, options) {
         x <- list(time=time, value=value, censor=censor); 
         class(x) <-"event"; x},
            envir=new)
-    assign("cumevent", function(time, value=NULL, levels=NULL) {
+    assign("cumevent", function(time, value=NULL, censor=NULL) {
         x <- list(time=time, value=value, censor=censor); 
         class(x) <-"cumevent"; x},
            envir=new)
@@ -75,37 +75,45 @@ The routine below could have been set out as a separate top-level routine,
 the argument is where we want to document it: within the tmerge page or not.
 I decided on the former.
 <<tmerge-setup>>= 
-tmerge.control <- function(idname="id", tname1="tstart", tname2="tstop",  
+tmerge.control <- function(idname="id", tstartname="tstart", tstopname="tstop",  
                            delay =0, nadrop=TRUE, ...) {
     extras <- list(...)
     if (length(extras) > 0) 
-        stop("unrecognized option:", names(extras))
+        stop("unrecognized option(s):", paste(names(extras), collapse=', '))
     if (length(idname) != 1 || make.names(idname) != idname)
         stop("idname option must be a valid variable name")
-    if (!is.null(tname1) && 
-        (length(tname1) !=1 || make.names(tname1) != tname1))
+    if (!is.null(tstartname) && 
+        (length(tstartname) !=1 || make.names(tstartname) != tstartname))
         stop("tstart option must be NULL or a valid variable name")
-    if (length(tname2) != 1 || make.names(tname2) != tname2)
+    if (length(tstopname) != 1 || make.names(tstopname) != tstopname)
         stop("tstop option must be a valid variable name") 
     if (length(delay) !=1 || !is.numeric(delay) || delay < 0)
         stop("delay option must be a number >= 0")
     if (length(nadrop) !=1 || ! is.logical(nadrop))
         stop("nadrop option must be TRUE or FALSE")
-   list(idname=idname, tname1=tname1, tname2=tname2, delay=delay, nadrop=nadrop)
+   list(idname=idname, tstartname=tstartname, tstopname=tstopname, delay=delay, nadrop=nadrop)
 }
 
 tname <- attr(data1, "tname")
 firstcall <- is.null(tname)  #first call to the function
 if (!firstcall && any(is.null(match(unlist(tname), names(data1)))))
     stop("data1 does not match its own tname attribute")
+
 if (!missing(options)) {
     if (!is.list(options)) stop("options must be a list")
     if (!is.null(tname)) {
-        # Changing a name partway through a set of calls?
-        if (any(!is.na(match(names(options), names(tname)))))
-            stop("cannot change names in mid-stream")
-        topt <- do.call(tmerge.control, c(tname, options))
+        # If an option name matches one already in tname, don't confuse
+        #  the tmerge.control routine with duplicate arguments
+        temp <- match(names(options), names(tname), nomatch=0)
+        topt <- do.call(tmerge.control, c(options, tname[temp==0]))
+        if (any(temp >0)) {
+            # A variable name is changing midstream, update the
+            # variable names in data1
+            varname <- tname[c("idname", "tstartname", "tstopname")]
+            temp2 <- match(varname, names(data1))
+            names(data1)[temp2] <- varname
         }
+    }
     else topt <- do.call(tmerge.control, options)
 }
 else if (length(tname)) topt <- do.call(tmerge.control, tname)
@@ -115,7 +123,7 @@ else  topt <- tmerge.control()
 if (missing(id)) stop("the id argument is required")
 if (missing(data1) || missing(data2))
     stop("two data sets are required")
-id <- eval(Call[["id"]], data2)
+id <- eval(Call[["id"]], data2, enclos=emptyenv()) #don't find it elsewhere
 if (is.null(id)) stop("the id variable is null")
 
 if (firstcall) {
@@ -198,49 +206,46 @@ variables will stomp on ones already in data1.
 newdata <- data1 #make a copy
 if (firstcall) {
     # The line below finds id, tstop, and tstart variables in data1
-    indx <- match(c(topt$idname, topt$tname1, topt$tname2), names(data1), 
+    indx <- match(c(topt$idname, topt$tstartname, topt$tstopname), names(data1), 
                   nomatch=0)
-    if (any(indx>0) && FALSE) {  # warning currently turned off. Be chatty?
-        overwrite <- c(topt$idname, topt$tname1, topt$tname2)[indx]
-        warning("overwriting data1 variables", overwrite)
+    if (any(indx[2:3]>0) && FALSE) {  # warning currently turned off. Be chatty?
+        overwrite <- c(topt$tstartname, topt$tstopname)[indx[2:3]]
+        warning("overwriting data1 variables", paste(overwrite, collapse=' '))
         }
     
+    if (indx[1] == 0) {
+        # the topt$id variable name is not in data1.  Deal with the
+        # fairly common case that data1 == data2.  If data1 has the
+        # variable used as 'id' in data2, add it to data1 under the
+        # new name
+        temp <- as.character(Call[["id"]])
+        if (is.name(Call[["id"]]) && !is.na(match(temp, names(data1))))
+            data1[[topt$idname]] <- data1[[temp]]
+        else stop("id variable not found in data1")
+    }
+
+    baseid <- data1[[indx[1]]]
+    if (all(baseid == id)) newdata <- data1
+    else {
+        if (any(duplicated(baseid)))
+            stop("data1 and data2 both have the id variable, and data1 has duplicates")
+        indx2 <- match(id, baseid)
+        if (any(is.na(indx2)))
+            stop("'id' has values not in data1")
+        newdata <- data1[indx2,]
+        }
     if (missing(tstop)) { # case 2
         if (length(argclass)==0 || argclass[1] != "event")
             stop("neither a tstop argument nor an initial event argument was found")
         tstop <- args[[1]][[1]]
-        if (nrow(data1) != length(id))
-            stop("no tstop argument and nrow(data1) != length(id)")
-    }
-    else { # case 1
-        # Do data set 1 and 2 both have the id variable?  This is the
-        #  less usual case of separate timeline and baseline data sets (for
-        #  which the routine was originally written).
-        if (indx[1] > 0) {
-            baseid <- data1[[indx[1]]]
-            if (all(baseid == id)) newdata <- data1
-            else {
-                if (any(duplicated(baseid)))
-                    stop("data1 and data2 both have the id variable, and data1 has duplicates")
-                indx2 <- match(id, baseid)
-                if (any(is.na(indx2)))
-                    stop("'id' has values not in data1")
-                newdata <- data1[indx2,]
-            }
         }
-        else if (nrow(data1) != length(id))
-            stop("on the first call data1 and data2 must have the same number of rows or must share an id variable")
-        else newdata[topt$idname] <- id   #assume the same order
-    }
-
-    # checks common to both
+    
     # at this point newdata and data2 are in the same order, same # rows
     if (any(is.na(tstop))) 
         stop("missing time value, when that variable defines the span")
     if (missing(tstart)) tstart <- rep(0, length(id))
-    newdata[[topt$idname]] <- id
-    newdata[[topt$tname1]] <- tstart
-    newdata[[topt$tname2]] <- tstop
+    newdata[[topt$tstartname]] <- tstart
+    newdata[[topt$tstopname]] <- tstop
     if (any(duplicated(id))) {
         # sort by time within id
         indx1 <- match(id, unique(id))
@@ -249,10 +254,9 @@ if (firstcall) {
 }
 else { #not a first call
     if (any(is.na(match(id, data1[[topt$idname]]))))
-        stop("id values found in data2 which are not in data1")
+        stop("id values were found in data2 which are not in data1")
 }
 @ 
-
 
 Now for the real work.  For each additional argument we first match the
 id/time pairs of the new data to the current data set, and categorize
@@ -268,8 +272,8 @@ saveid <- id
 for (ii in seq(along.with=args)) {
     argi <- args[[ii]]
     baseid <- newdata[[topt$idname]]
-    dstart <- newdata[[topt$tname1]]
-    dstop  <- newdata[[topt$tname2]]
+    dstart <- newdata[[topt$tstartname]]
+    dstop  <- newdata[[topt$tstopname]]
     argcen <- argi$censor
     
     # if an event time is missing then skip that obs
@@ -430,8 +434,8 @@ if (n4 > 0) {
     for (j in 1:nfix) temp[[j]] <-  -(seq(n.add[j] -1, 0)) + iend[j]
     newrows <- unlist(temp)
     dstart[newrows] <- dstop[newrows-1] <- unlist(icount)
-    newdata[[topt$tname1]] <- dstart
-    newdata[[topt$tname2]]  <- dstop
+    newdata[[topt$tstartname]] <- dstart
+    newdata[[topt$tstopname]]  <- dstop
     for (ename in tevent) newdata[newrows-1, ename] <- tcens[[ename]]
 
     # refresh indices
@@ -494,7 +498,7 @@ newdata[[argname[ii]]] <- newvar
 
 Finish up by adding the attributes and the class
 <<tmerge-finish>>=
-attr(newdata, "tname") <- topt[c("idname", "tname1", "tname2")]
+attr(newdata, "tname") <- topt[c("idname", "tstartname", "tstopname")]
 attr(newdata, "tcount") <- rbind(attr(data1, "tcount"), tcount)
 if (length(tevent)) {
     attr(newdata, "tevent") <- tevent

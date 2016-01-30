@@ -24,11 +24,11 @@ tmerge(data1, data2,  id,\dots, tstart, tstop, options)
    \item{tstop}{optional variable to define the valid time range for
     each subject, only used on an initial call}
   
-  \item{options}{a list of options.  Valid ones are idname, tname1,
-    tname2, delay and nadrop.  See the explanation below.}
+  \item{options}{a list of options.  Valid ones are idname, tstartname,
+    tstopname, delay and nadrop.  See the explanation below.}
 }
 \details{
- The program is usually run in multiple passes, the first of which
+ The program is often run in multiple passes, the first of which
  defines the basic structure, and subsequent ones that add new
  variables to that structure.  For a more complete explanation of how this
  routine works refer to the vignette on time-dependent variables.
@@ -84,7 +84,7 @@ can be used to change these names.
   fall inside an existing interval and cause it to be split into two.
   Observations that fall exactly on the edge of an interval but within the
   (min, max] time for a subject are counted
-  as "leading" edge, "trailing" or "boundary".
+  as being on a "leading" edge, "trailing" edge or "boundary".
   The first corresponds for instance
   to an occurence at 17 for someone with an intervals of (0,15] and (17, 35].
   A \code{tdc} at time 17  will affect this interval
@@ -109,13 +109,13 @@ can be used to change these names.
 # The first data set contains data on 312 subjects in a clinical trial plus
 # 106 that agreed to be followed off protocol, the second data set has data
 # only on the trial subjects.
-temp <- subset(pbc, id <= 312, select=c(id:sex, stage)) # baseline
-pbc2 <- tmerge(temp, temp, id=id, death = event(time, status))
+temp <- subset(pbc, id <= 312, select=c(id:sex, stage)) # baseline data
+pbc2 <- tmerge(temp, temp, id=id, endpt = event(time, status))
 pbc2 <- tmerge(pbc2, pbcseq, id=id, ascites = tdc(day, ascites),
                bili = tdc(day, bili), albumin = tdc(day, albumin),
                protime = tdc(day, protime), alk.phos = tdc(day, alk.phos))
 
-fit <- coxph(Surv(tstart, tstop, death) ~ protime + log(bili), data=pbc2)
+fit <- coxph(Surv(tstart, tstop, endpt==2) ~ protime + log(bili), data=pbc2)
 }
 \keyword{ survival }
 

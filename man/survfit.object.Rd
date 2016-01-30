@@ -48,10 +48,11 @@ This may be a vector or a matrix. The latter occurs when a set of
 survival curves is created from a single Cox model, in which case
 there is one column for each covariate set. 
 }
-\item{prev}
+\item{prev}{
 a multi-state survival will have this component instead of \code{surv}.
 It will be a matrix containing the estimated prevalance (probability)
 of each state at each time, one column per state.
+}
 
 \item{std.err}{
 for a survival curve this contains standard error of the cumulative

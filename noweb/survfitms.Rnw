@@ -77,6 +77,7 @@ object.  Otherwise we can drop columns freely
             x$n       <- x$n[indx]
             x$time    <- x$time[keep]
             x$n.risk  <- x$n.risk[keep]
+            x$n.event <- x$n.event[keep]
             x$n.censor<- x$n.censor[keep]
             }
         if (is.matrix(x$prev)) { 
@@ -86,7 +87,6 @@ object.  Otherwise we can drop columns freely
                 x$prev <- x$prev[keep,,drop=drop]
                 x$cumhaz <- x$cumhaz[,,keep, drop=drop]
                 x$prev0 <- x$prev0[indx,,drop=drop]
-                x$n.event <- x$n.event[keep,,drop=drop]
                 if (!is.null(x$std.err)) 
                         x$std.err <- x$std.err[keep,,drop=drop]
                 if (!is.null(x$upper)) x$upper <-x$upper[keep,,drop=drop]
@@ -100,7 +100,6 @@ object.  Otherwise we can drop columns freely
                 x$states <- x$states[j]
                 x$prev <- x$prev[keep,j, drop=drop]
                 x$prev0 <- x$prev0[indx, j, drop=drop]
-                x$n.event <- x$n.event[keep, j, drop=drop]
                 x$cumhaz <- x$cumhaz[j,j,keep, drop=drop]
                 if (!is.null(x$std.err)) x$std.err <- x$std.err[keep,j,drop=drop]
                 if (!is.null(x$upper)) x$upper <- x$upper[keep,j, drop=drop]
@@ -111,7 +110,6 @@ object.  Otherwise we can drop columns freely
             x$prev <- x$prev[keep]
             x$prev0 <- x$prev0[indx]
             x$cumhaz <- x$cumhaz[keep]
-            x$n.event <- x$n.event[keep]
             if (!is.null(x$std.err)) x$std.err <- x$std.err[keep]
             if (!is.null(x$upper)) x$upper <- x$upper[keep]
             if (!is.null(x$lower)) x$lower <- x$lower[keep]
@@ -122,29 +120,37 @@ object.  Otherwise we can drop columns freely
 
 @ 
 
-The summary.survfit function has  
-been rewritten multiple times due to the complexity of
-operating with the ``times'' argument.
-The version below has opted for simplicity by doing that portion 
-separately per curve.
-<<survfit-summary>>=
+The summary.survfit and summary.survfitms functions share a large
+amount of code.  
+Both are included here in order to have common source for the most
+subtle
+block of it, which has to do with selecting intermediate time points.
+
+<<survfitms-summary>>=
 summary.survfit <- function(object, times, censored=FALSE, 
 			    scale=1, extend=FALSE, 
                             rmean=getOption('survfit.rmean'),
                             ...) {
-    if (!inherits(object, 'survfit'))
+    fit <- object
+    if (!inherits(fit, 'survfit'))
 	    stop("summary.survfit can only be used for survfit objects")
 
     # The print.rmean option is depreciated, it is still listened
     #   to in print.survfit, but ignored here
     if (is.null(rmean)) rmean <- "none"
 
-    temp <- survmean(object, scale=scale, rmean)  
+    temp <- survmean(fit, scale=scale, rmean)  
     table <- temp$matrix  #for inclusion in the output list
     rmean.endtime <- temp$end.time
 
+    if (!missing(times)) {
+        if (!is.numeric(times)) stop ("times must be numeric")
+        times <- sort(times)
+    }
+
     # The fit$surv object is sometimes a vector and sometimes a
-    #  matrix. 
+    #  matrix.  We calculate row indices first, and then deal
+    #  with the cases at the end.
     nsurv <- if (is.matrix(fit$surv)) nrow(fit$surv) else length(fit$surv)
     if (is.null(fit$strata)) {
 	nstrat <- 1
@@ -157,38 +163,35 @@ summary.survfit <- function(object, times, censored=FALSE,
         strata.names <- names(fit$strata)
     }
 
-    # The simple case is when "times" is not present
-    if (missing(times)) {
-        if (censored) {
-            result <- object  # no more to do
-            result$time <- result$time/scale
-            result$table <- table
-            if (!is.null(result$strata))
-                result$strata <- factor(stemp, labels=strata.names)
-            }
-       else {
-           if (is.matrix(object$n.event)) 
-               indx <- which(rowSums(object$n.event) > 0)
-           else indx <- which(object$n.event > 0)
-           
-           result <- list(n= object$n, time= object$time[indx]/scale, 
-                          table= table)
-           for (j in c("n.risk", "n.event", "n.censor", "n.enter", "prev",
-                    "surv", "std.err", "cumhaz", "lower", "upper")) {
-               zed <- object[[j]]
-               if (!is.null(zed)) {
-                   if (is.matrix(zed)) result[[j]] <- zed[indx,,drop=FALSE]
-                   else result[[j]] <- zed[indx]
-               }
-           }
-           if (!is.null(temp$strata))
-               temp$strata <- factor(stemp[indx], levels=1:nstrat,
-                                     labels=strata.names)
-       }
+    <<survsum-findrows>>
+
+    # Create an output structure
+    if (length(indx1)==length(fit$time) && all(indx1 == seq(along=fit$time))) {
+        temp <- object  #no change
+        temp$time <- temp$time/scale
+        temp$table <- table
+        if (!is.null(temp$strata))
+            temp$strata <- factor(stemp, labels=strata.names)
+
     }
-    else { # there was a times argument
-        <<survfitms-times>>
-        result <- list(n=object$n, time=times/scale, 
+    else if (missing(times)) {  #default censor=FALSE case
+        temp <- object
+        temp$time <- temp$time[indx1]/scale
+        temp$table <- table
+        for (j in c("n.risk", "n.event", "n.censor", "n.enter",
+                    "surv", "std.err", "cumhaz", "lower", "upper")) {
+            zed <- temp[[j]]
+            if (!is.null(zed)) {
+                if (is.matrix(zed)) temp[[j]] <- zed[indx1,,drop=FALSE]
+                else temp[[j]] <- zed[indx1]
+            }
+        }
+        if (!is.null(temp$strata))
+            temp$strata <- factor(stemp[indx1], levels=1:nstrat,
+                                  labels=strata.names)
+    }
+    else { #times argument was given
+        temp <- list(n=object$n, time=times/scale, 
                      n.risk=n.risk, n.event=n.event,
                      conf.int=fit$conf.int, type=fit$type, table=table)
         if (!is.null(n.censor)) temp$n.censor <- n.censor
@@ -237,76 +240,48 @@ summary.survfit <- function(object, times, censored=FALSE,
 }
 @ 
 
-The case with a times argument is actual work, since may 
-invovle ``in between'' points in the curves.
-Let's say that we have lines in the data for times 1,2, 5, and 6, and 8 
-and a user has chosen [[times=c(3,5, 9)]].
-The printout will have 
+Grab rows: if there is no [[times]] argument it is easy
+<<survsum-findrows>>=
+if (missing(times)) {
+    # just pick off the appropriate rows of the output
+    if (censored) indx1 <- seq(along=fit$time)
+    else indx1 <- which(fit$n.event>0)
+}
+@ 
+
+This second case is actual work, since may invovle ``in between'' points
+in the curves.
+Let's say that we have a line in the data for times 1,2, 5, and 6, and 8 
+and a user chose [[times=c(3,5, 9)]].
+At time 3 we have
 \begin{itemize}
-  \item the number at risk at times 3,5, and 9.  Think of the number at
-    risk as a right continuous step function which we will interpolate.
-    After time 8 the number at risk drops by the number of events or censors
-    at that time point.  This is only necessary if extend is true.
-  \item the number of events and censorings are the number that occured in
-    each interval, which is again interpolation on a right continuous function.
-  \item the survival estimate interpolates a left continuous function. 
-  \item the number of events may be a matrix, do that calculation per column
+  \item nrisk[3] = value at the next time point >= 3
+  \item nevent[1] + nevent[2] = value since last printout line. 
+    However, if there are multiple strata the curves for all strata
+    are laid end to end in a single vector; our first row for a curve
+    needs to use all events since the start of the curve.
+  \item ncensor works like nevent
+  \item survival[2] = survival at the last time point <=3
 \end{itemize}
-A principle tool is the findInterval function, treating each curve as though
-it were a separate subject.
-In R version 3.3 this gained a ``left.open'' argument, for the 
-moment we work around that.
+At time 5 we pick values directly off the data, since we match.
+At time 9 we report nothing if [[extend]] is FALSE, or the value
+at the end of the curve.  In this case we need to calculate the
+number at risk ourselves, however.
+This logic works out best if we do it curve by curve.
 
-<<survfitms-times>>=
-interval2 <- function(x, vec, rightmost.closed=FALSE, all.inside=FALSE,
-                      left.open=FALSE) {
-    if (left.open) {
-        n <- length(vec)
-        n - findInterval(-x, -vec[n:1], rightmost.closed, all.inside)
-    }
-    else findInterval(x, vec, rightmost.closed, all.inside)
-}   
+<<survsum-findrows>>=
+else {  
+    # The one line function below might be opaque (even to me) --
+    # For n.event, we want to know the number since the last chosen
+    #  printout time point.  Start with the curve of cumulative
+    #  events at c(0, stime) (the input time points), which is
+    #  the cumsum below; pluck off the values corresponding to our
+    #  time points, the [x] below; then get the difference since the
+    #  last chosen time point (or from 0, for the first chosen point).
+    cfun <- function(x, data) diff(c(0, cumsum(c(0,data))[x]))
 
-indxfun <- function(x, times) {
-    # This function is called once per curve
-    ntime <- lenth(times)
-    maxindx <- length(x$time)
-    index1 <- interval2(times, x$time, left.open=TRUE)
-    index2 <- interval2(times, x$time, left.open=FALSE)
-    # A time point is strictly to the left of the survival data
-    #  if index2 =0, strictly to the right if index1 = ntime
-    
-@
-	
-else {
-    if (nstrat ==1) {
-        id.curve <- rep(1, length(n.risk))
-        id.times <- rep(1, length(times))
-        time2 <- times
-        first <- 1
-        }
-    else {
-        id.curve <- rep(1:nstrat, object$strata)
-        id.times <- rep(1:nstrat, each=length(times))
-        time2 <- rep(times, nstrat)
-        first <- seq(1, length=nstrat, by=length(times))
-        }
-    indx1 <- neardate(id.times, id.curve, time2, object$time, 
-                      best= "prior", nomatch =0)
-    indx2 <- neardate(id.times, id.curve, time2, object$time, 
-                      best ="after", nomatch =0)
-    
-    # For a time that is before the first data point in a curve
-    #  indx1 will be 0, for one that is after the last indx2 will be 0
-    ccens <- cumsum(object$n.censor)
-    n.censor <- diff(c(0, ccens)[indx+1])
-    n.censor[first] <- 
-    n.censor <- c(0, cumsum(object$n.censor)[indx1+1]) #cumulative censored
-    n.censor <- ifelse(first, ncensor, diff(c(0, n.censor)))
-    
-    
-    if (!extend) indx1[indx2==0] <- 0  # don't use times after the end
-        
+
+    # Process the curves one at a time,
     #   adding the results for that curve onto a list, so the
     #   number of events will be n.enter[[1]], n.enter[[2]], etc.
     # For the survival, stderr, and confidence limits it suffices
@@ -388,9 +363,8 @@ else {
 @ 
 
 
-Repeat the code for survfitms objects.  The only real differences are
-the preservation of [[prev]] and [[cumhaz]] instead of [[surv]],
-and that n.event may be a matrix.
+Repeat the code for survfitms objects.  The only real difference is
+the preservation of [[prev]] and [[cumhaz]] instead of [[surv]].
 
 <<survfitms-summary>>=
 summary.survfitms <- function(object, times, censored=FALSE, 
