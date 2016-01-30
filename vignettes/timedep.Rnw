@@ -95,14 +95,15 @@ status) are recorded at the end of the day.
 
 The key rule for time dependent covariates in a Cox model is simple
 and essentially the same as that for gambling: \emph{you cannot look
-the future}.
+into the future}.
 A covariate may change in any way based on past data or outcomes, but it
 may not reach forward in time.
-In the above simple data set this means that we cannot assume a creatinine
-of 1.1 on day 30, for instance;  on day 30 the later value of 1.5 has
+In the above simple data set this means that we cannot add a linear
+interpolation between the creatinine values 0.9 and 1.5 to get a
+predicted value of 1.1 on day 100; on day 100 the later value of 1.5 has
 not yet been seen.
 
-A good example of this is found in a recent analysis from the Mayo Clinic
+A an example consider a recent analysis from the Mayo Clinic
 study of aging (MCSA), a study which enrolled a stratified random sample from
 the population of Olmsted County and then has followed them forward in
 time.  The occurence of mild cognitive impairment (MCI), dementia, and
@@ -112,8 +113,9 @@ who never progress to MCI versus those who ever did,
 there is also a table of baseline covariates versus survival.
 Both of these are fine: if you think in terms of an R formula they
 could be written as \code{future ~ past}.
-A model that predicts survival as a function of ever versus never MCI
-is not correct, however; that is a model with a future occurence on
+A table that compared the survival of those who did or did not progress
+to MCI, however, would be invalid.
+It corresonds to a model with a future occurence on
 both sides of the equation.
 
 One of the more well known examples of this error is analysis by 
@@ -129,7 +131,7 @@ can be assessed,
 will all be assigned to the non-responder group, even deaths that have
 nothing to do with the condition under study.
 Below is a simple example based on the advanced lung cancer data set.
-Assume that subjects came in every monthly for 12 cycles of treatment,
+Assume that subjects came in monthly for 12 cycles of treatment,
 and randomly declare a ``response'' for 5\% of the subjects at each
 visit.
 <<fake, fig=TRUE>>=
@@ -154,7 +156,7 @@ A slightly subtler form of the error is discussed in Redmond et al
 \cite{Redmond83}.  Breast cancer chemotherapy patients were
 divided into three groups based on whether the patient eventually
 received $>85$\%, 65--85\% or $<65$\% of the dose planned at the start of
-their treatment.  The chemotherapy regiment spans 12 weeks of treatment
+their treatment.  The chemotherapy regimen spans 12 weeks of treatment
 and the early deaths, not surprisingly, do not get all their dose.  
 
 If response is instead coded as a time-dependent covariate whose values 
@@ -171,7 +173,7 @@ Using future data will often generate large positive or negative bias in the
 coefficients, but sometimes it generates little bias at all.
 It is nearly impossible to predict a priori which of these will occur in any
 given data set.
-Using such a covariate is similar to jogging across the Los Angeles freeway:
+Using such a covariate is similar to jogging across a Los Angeles freeway:
 disaster is not guaranteed --- but it is likely.
 
 The most common way to encode time-dependent covariates is to use the
@@ -257,8 +259,7 @@ taken from \code{data2}.
 The idea behind the function is that each addition will be ``slipped in''
 to the original data in the same way that one
 would slide a new card into an existing deck of cards. 
-It is a subtle function and still undergoing growing pains;
-we illustrate it below with a set of
+It is a complex function, and we illustrate it below with a set of
 examples that sequentially reveal its features.
 
 \subsection{CGD data set}
@@ -408,33 +409,47 @@ that need to be dealt with when setting up an analysis data set.
   \item The coefficients in table 6.1 of the definitive analysis found in
     Kalbfliesch and Prentice \cite{Kalbfleisch02}
     will only be obtained if covariates are defined
-    in precisely the same way.  For age this is (age in days)/ 365.25 - 40 
+    in precisely the same way, since they include interactions.
+    (Table 5.2 in the original edition).
+    For age this is (age in days)/ 365.25 - 40 
     years, and for year of enrollment it is the number of years since the
     start of the study: (entry date - 1967/10/1)/365.25. 
+
   \item One subject died on the day of entry.  However (0,0) is an illegal
     time interval for the \code{coxph} routine.  
     It suffices to have them die on day 0.5.
+    An alternative is to add 1 day to everyone's follow-up, e.g., subject
+    2 who enrolled on Jan 2 1968 and died on Jan 7 would be credited with 6
+    days.  (This is what Kalbfleisch and Prentice do in their
+    textbook.)  The result is the same from either strategy.
+
   \item A subject transplanted on day 10 is considered to have been on medical
     treatment for days 1--10 and as transplanted starting on day 11.
-    That is, except for patient 38 who died during the procedure on day 5.
+    That is, except for patient 38 who died on the same day as their procedure.
     They should be treated as a transplant death; the problem is resolved by
-    moving this transplant to day 4.5.
+    moving this transplant back .5 day.
 \end{enumerate}
 Since time is in days the fractional time of 0.5 could be any value
 between 0 and 1, our choice will not affect the results.
+
 <<stanford>>=
 tdata <- with(jasa, data.frame(subject = 1:nrow(jasa),
-                               txtime= ifelse(tx.date== accept.dt,
+                               futime= pmax(.5, tx.date - accept.dt),
+                               txtime= ifelse(tx.date== fu.date,
                                               (tx.date -accept.dt) -.5,
                                               (tx.date - accept.dt)),
-                               futime= pmax(.5, fu.date - accept.dt),
                                fustat = fustat))
-sdata <- tmerge(jasa[,c("age", "surgery")], tdata, id=subject,
+
+sdata <- tmerge(jasa[,c("age", "surgery", "accept.dt")], tdata, id=subject,
                   death = event(futime, fustat),
                   transplant =  tdc(txtime))
 attr(sdata, "tcount")
-sdata$age <- (sdata$age/365.25) -40
-coxph(Surv(tstart, tstop, death) ~ age + transplant, sdata)
+sdata$age <- sdata$age -48
+sdata$year <- as.numeric(sdata$accept.dt - as.Date("1967-10-01"))/365.25
+
+# model 6 of the table in K&P
+coxph(Surv(tstart, tstop, death) ~ age*transplant + surgery + year, 
+      data= sdata, ties="breslow")
 @ 
 
 This example shows a special case for the \code{tmerge} function that 
@@ -466,8 +481,8 @@ The \code{tcount} table for the above fit shows all the deaths at the
 trailing edge of their interval, which is expected since the time
 of death or last follow-up was
 used to define each subject's interval of risk.
-Three of the transplants happened on day 0, one of which we moved to 0.5,
-the other 2 are listed as occurring on the leading edge of the first
+Two of the transplants happened on day 0
+and are listed as occurring on the leading edge of the first
 follow-up interval for the subject.  
 The other 67 transplants were strictly within the (0, last follow up)
 interval of each subject.

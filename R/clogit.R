@@ -2,7 +2,7 @@
 ##
 ## case ~ exposure + strata(matching)
 ##
-clogit<-function(formula, data, weights, subset, na.action,
+clogit <- function(formula, data, weights, subset, na.action,
                  method=c("exact","approximate", "efron", "breslow"),
                  ... ) {
     
@@ -18,16 +18,7 @@ clogit<-function(formula, data, weights, subset, na.action,
     mf[[1]] <- as.name("model.frame")
     mf$na.action <- "na.pass"
     nrows<-NROW(eval(mf, parent.frame()))
-    method <- match.arg(method)
-
-    # Catch the rare case of a person asking for robust variance, and give
-    #  them a nicer warning than will occur if they fall through to the
-    #  coxph call
-    if (missing(data)) temp <- terms(formula, special='cluster')
-    else temp <- terms(formula, special="cluster", data=data)
-    if (!is.null(attr(temp, 'specials')$cluster) && method=="exact")
-        stop("robust variance plus the exact method is not supported")
-
+ 
     # Now build a call to coxph with the formula fixed up to have
     #  our special left hand side.
     coxcall <- Call
@@ -38,13 +29,25 @@ clogit<-function(formula, data, weights, subset, na.action,
     environment(newformula) <- environment(formula)
     coxcall$formula<-newformula
 
+    # Set the method, with "approximate" matched to "breslow"
+    method <- match.arg(method)
     coxcall$method <- switch(method, exact="exact",
                              efron="efron",
                              "breslow")
-    if (!is.null(coxcall$weights)) {
-        coxcall$weights <- NULL
-        warning("Weights are ignored in clogit")
-    }
+ 
+    # If the method is "exact", then case weights nor robust variance are
+    #  possible
+    if (method =="exact") {
+        if (missing(data)) temp <- terms(formula, special='cluster')
+        else temp <- terms(formula, special="cluster", data=data)
+        if (!is.null(attr(temp, 'specials')$cluster) && method=="exact")
+            stop("robust variance plus the exact method is not supported")
+
+        if (!is.null(coxcall$weights)) {
+            coxcall$weights <- NULL
+            warning("weights ignored: not possible for the exact method")
+        }
+    }   
     coxcall<-eval(coxcall, sys.frame(sys.parent()))
     coxcall$userCall<-sys.call()
     
@@ -54,7 +57,6 @@ clogit<-function(formula, data, weights, subset, na.action,
 
 
 print.clogit <- function(x,...){
-
     x$call<-x$userCall
     NextMethod()
 
