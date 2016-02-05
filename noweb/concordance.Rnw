@@ -1,24 +1,23 @@
 \subsection{Concordance}
- The concordance statistic has gained popularity as a measure of goodness-of-fit
+ The concordance statistic is gaining popularity as a measure of goodness-of-fit
 in survival models.  Consider all pairs of subjects with
 $(r_i, r_j)$ as the two risk scores for each pair and $(s_i, s_j)$ the
 corresponding survival times.  The c-statistic is defined by dividing these
 sets into four groups.
 \begin{itemize}
   \item Concordant pairs: for a Cox model this will be pairs where a shorter
-    survival is paired with a larger risk score, e.g. $r_i>r_j$ and $s_i < s_j$.
-    For logistic regression the larger risk score is paired with the larger
-    response.
+    survival is paired with a larger risk score, e.g. $r_i>r_j$ and $s_i < s_j$
   \item Discordant pairs: the lower risk score has a shorter survival
   \item Tied pairs: there are three common choices
     \begin{itemize}
-      \item Kendall's tau-b: any pair where $r_i=r_j$ or $s_i = s_j$ 
-        is considered tied.
-      \item Somer's D: pairs with $r_i=r_j$ are tied; 
-	those with $s_i=s_j$ are considered incomparable. 
-        This is the definition of the AUC in logisitic 
-        regression and is the common choice for Cox models as well.
-      \item Gamma: All ties are treated as incomparable.
+      \item Kendall's tau: any pair where $r_i=r_j$ or $s_i = s_j$ is considered
+        tied.
+      \item AUC: pairs with $r_i=r_j$ are tied; 
+	those with $s_i=s_j$ are considered
+        incomparable.  This is the definition of the AUC in logisitic 
+        regression,
+        and has become the most common choice for Cox models as well.
+      \item Somer's D: All ties are treated as incomparable.
     \end{itemize}
   \item Incomparable pairs: For survival this always includes pairs where the
     survival times cannot be ranked with certainty.  
@@ -29,13 +28,11 @@ sets into four groups.
     10 and $s_j$ is an event at time 10 then $s_i > s_j$.  
     Add onto this those ties that are treated as incomparable.\\
     Observations that are in different strata are also incomparable, 
-    since the Cox model only compares within strata.
+    since the Cox
+    model only compares within strata.
 \end{itemize}
 Then the concordance statistic is defined as $(C + T/2)/(C + D + T)$. 
 The denominator is the number of comparable pairs.
-We can rewrite this as a correlation like value that goes from -1 to 1
-with $2C -1 = (C-D)/(C+D +T)$.  
-This latter is a bit clearer to code so is used below.
 
 The program creates 4 variables, which are the number of concordant pairs, 
 discordant, tied on time, and tied on $x$ but not on time.  
@@ -68,16 +65,15 @@ Figure  \ref{treefig} shows a balanced binary tree containing
 have a smaller value than the parent, the right child and all its
 descendents have a larger value.
 Each node in figure \ref{treefig} is also annotated with the total weight
-of observations in that node and the weight for all its children. 
-(These weights are not shown on the graph.  For this example assume that
-all weights are 1.).  
+of observations in that node and the weight for all its children 
+(not shown on graph).  
 Assume that the tree shown represents all of the subjects still alive at the
 time a particular subject ``Smith'' expires, and that Smith has the risk score
-38.  The concordant pairs are all of those with a risk score greater than
-38, which can be found by traversing the tree from the top down,
-adding the (parent - child) value each time we branch left (5-3 at the 44
+2.1.  The concordant pairs are all of those with a risk score greater than
+2.1, which can be found by traversing the tree from the top down,
+adding the (parent - child) value each time we branch left (5-3 at the 2.6
 node),
-with a last addition of the right hand sum of weights when we 
+with a last addition of the right hand child when we 
 find the node with Smith's value (1).      %'
 There are 3 concordant and 12-3=9 discordant pairs.
 This takes a little less than $\log_2(n)$ steps on average, as compared to an
@@ -90,8 +86,8 @@ algorithms for adding and subtracting nodes from a tree while maintaining
 the balance (red-black trees, AA trees, etc) but we take a different 
 approach.  Since we need to deal with case weights in the model and we
 know all the risk score at the outset, the full set of risk scores is
-organised into a tree at the beginning and node incremented/decremented as
-observations are added and removed.  
+organised into a tree at the beginning and node counts are changed to zero
+as observations are removed.  
 
 If we index the nodes of the tree as 1 for the top, 2--3 for the next 
 horizontal row, 4--7 for the next, \ldots then the parent-child 
@@ -103,7 +99,7 @@ bit of code returns the indices of a sorted list when placed into such a
 tree.  
 The basic idea is that the rows of the tree start at indices 1, 2, 4, \ldots.
 For the above tree, the last row will contains the 1st, 3rd, \ldots, 11th
-smallest ranks.  The next row above contains half of the
+smallest ranks.  The next row above contains every other value of the
 ranks \emph{not yet assigned}, and etc to the top of the tree.  There is
 some care to make sure the result is an integer.
 <<btree>>=
@@ -152,56 +148,18 @@ btree <- function(n) {
    }
 @ 
 
-The next question is how to compute a variance for the result.
-One approach is to compute an infinitesimal jackknife (IJ) estimate,
-for which we need derivatives with respect to the weights.
-For each event the two numbers of interest are the 
-numerator $C-D$ and the denominator $C+D + T$,
-which can be written directly in terms of the weights.
-
-\begin{align*}
-  C -D  &= \sum_i w_i \delta_i \sum_{t_j > t_i} w_j \rm{sign}(r_i - r_j) \\
-  C +D+T &= \sum_i w_i \delta_i \sum_{t_j > t_i} w_j 
- \end{align*}
-
-The first derivatives of these quantities with respect to an arbitrary subject
-$k$ are
-\begin{align}
-  \frac{\partial C-D}{\partial w_k} &= 
-         \sum_{t_j > t_k} w_j \delta_k \rm{sign}(r_k - r_j) -
-          \sum_{t_j < t_k} w_j \delta_j \rm{sign}(r_k - r_j) \label{derivC} \\
-  \frac{\partial C+D+T}{\partial w_k} &= \sum_{t_j > t_k} w_j \delta_k +
-                                \sum_{t_j < t_k} w_j \delta_j  \label{derivT}\\
-\end{align}
-We need to keep two vectors of derivatives each of length $n$, the number
-of observations.  The parent routine in R will worry about data sets with
-multiple rows per subject, for which the person has to be added back 
-together.
-
-I had originally avoided this approach because it appears to be an $O(nd)$
-computation, adding a bit to each at-risk subject each time there is an
-event.  A key insight due to David Watson is that we can avoid this.
-Within the tree we keep the sum of weights for each node and its left and right
-children, along with a parallel triple that totals only the deaths.   
-The tree is updated as each subject is added or deleted, containing
-the current cumulative totals.  We only need to update derivative values for
-each subject when the subject enters and when they leave.
-(For ordinary Cox models everyone enters at 0, or rather leaves at zero since
-our code will go from longest to shortest time.)
-
-A second variance estimate is based on the Cox model.  
+A second question is how to compute the variance of the result.  
 The insight used here is to consider a Cox model with time dependent
 covariates, where the covariate $x$ at each death time has been
 transformed into ${\rm rank}(x)$. 
-One can show that the Cox score statistic contribution of
-$r_i - \overline{r}$ at each death time is equal to 
-$(C-D)/2$ where $C$ and $D$ are the number of concordant
-and discordant pairs comparing that death to all those at risk,
-and using the Breslow approximation for ties.
+It is easy to show that the Cox score statistic contribution at each death
+is $(D-C)/2$ where $C$ and $D$ are the number of concordant
+and discordant pairs contributed at that death time (for a Cox fit using the
+Breslow approximation).
 The contribution to the variance of the score statistic is 
 $V(t) =\sum (r_i - \overline{r})^2 /n$, the $r_i$ being the ranks at
 that time point and $n$ the number at risk.  
-How can we update this sum?  
+How can we update this sum using an update formula?  
 First remember the identity
 \begin{equation*} \sum w_i(x_i - \overline{x})^2 = \sum w_i(x_i-c)^2 - 
     \sum w_i(c - \overline{x})^2
@@ -214,25 +172,10 @@ as
 \end{equation*}
 These correspond to the midpoints of the rise on an empirical CDF, and
 for unweighted data without ties gives ranks of .5, 1.5, \ldots, $n-.5$.
-A second short lemma is that the mean rank $\overline{r}$ of these
-values has a simple form.
-\begin{equation*}
-  \overline{r} = (\sum w_i r_i)/(\sum w_i) = \sum w_i/2
-\end{equation*}
-Thus when adding a new subject $k$ to the tree the grand mean increases by
+   
+Assume we have just added obs $k$ to the tree.
+Since the mean rank = $\mu_g = \sum(w_i)/2$ the grand mean increases by
     $w_k/2$.
-
-We can divide the subjects currently in the tree into 3 groups.
-\begin{enumerate}
-  \item Those with risk score lower than the new addition.  Their rank will
-    not change.
-  \item Those tied with the new addition.  Their rank will increase by
-    $w_k/2$.
-  \item Those above the new addition.  Their rank increases by $w_k$.
-\end{enumerate}
-
-
-
 Let $\mu_\ell$ be the mean rank for all observations currently in the
 tree of rank lower than $r_k$, the item we are about to add,
 $\mu_u$ be the mean for all those above in rank (after the addition), 
@@ -300,12 +243,9 @@ Input variables are
   \item[indx] the tree node at which this observation's risk score resides  %'
   \item[wt] case weight for the observation
   \item[sum] scratch space, weights for each node of the tree: 
-    3 values are for the node, all left children, and all right children,
-    a second three for the subset of deaths.
+    3 values are for the node, all left children, and all right children
   \item[count] the returned counts of concordant, discordant, tied on x, 
     tied on time, and the variance
-  \item[ijn, ijd] vectors containing the infinitesimal jackknife estimate
-    for the numerator and denominator.
 \end{description}
 
 <<concordance1>>=
@@ -316,14 +256,12 @@ SEXP concordance1(SEXP y, SEXP wt2,  SEXP indx2, SEXP ntree2) {
     int n, ntree;
     double *time, *status;
     double *twt, *nwt, *count;
-    double *death1, *death2, *death3; /* sum of
     double vss, myrank, wsum1, wsum2, wsum3; /*sum of wts below, tied, above*/
-    double death1, death2, death3;  /*death weith
     double lmean, umean, oldmean, newmean;
         
     double ndeath;   /* weighted number of deaths at this point */
     
-    SEXP count2, ij2;  /* the returned vector of counts, and of the IJ values*/
+    SEXP count2;
     double *wt;
     int    *indx;
     
@@ -352,7 +290,7 @@ The key part of our computation is to update the vectors of weights.
 We don't actually pass the risk score values $r$ into the routine,   %'
 it is enough for each observation to point to the appropriate tree
 node.
-The tree contains the  weights for everyone whose survival is larger
+The tree contains the  for everyone whose survival is larger
 than the time currently under review, so starts with all weights
 equal to zero.  
 For any pair of observations $i,j$ we need to add [[wt[i]*wt[j]]]
