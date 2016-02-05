@@ -454,12 +454,23 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
 	    }
 	    goto finish;
 	}
-
-	/* a non-finite loglik is very rare: a step so bad that we get
-	** an overflow of the exp function
+	/*
+	** a non-finite loglik is very rare: a step so bad that we get
+	** an overflow of the exp function.
+	**  When this happens back up one iteration and quit
 	*/
+	if (isnan(newlk) || 0!=isinf(newlk)) {
+	    for (i=0; i<nvar; i++) newbeta[i]= beta[i];
+	    /* we want to recompute imat, as it is likely NaN or Inf as well 
+	    **  The "fabs()" check further above will test true on the next
+	    **  iteration, but just in case this was the last force one more
+	    */
+	    maxiter++;
+	    continue;
+	    }
+
 	if (*iter== maxiter) break;  /*skip the step halving calc*/
-	if (newlk < loglik[1] || isnan(newlk) || 0!=isinf(newlk) )   {    
+	if (newlk < loglik[1])   {    
 	    /*it is not converging ! */
 	    halving =1;
 	    for (i=0; i<nvar; i++) 
