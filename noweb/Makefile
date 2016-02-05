@@ -25,7 +25,7 @@ SFUN =  agreg.fit.R \
 	plot.survfit.R \
 	predict.coxph.R \
 	pyears.R \
-	residuals.survreg.S\
+	residuals.survreg.R\
 	survConcordance.R \
 	survConcordance.fit.R \
 	survexp.R \
