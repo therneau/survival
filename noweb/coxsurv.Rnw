@@ -222,9 +222,14 @@ neighborhood of zero.
 One particular special case (that gave me fits for a while) is when there
 are non-heirarchical models, for example [[~ age + age:sex]].  
 The fit of such a model will \emph{not} be the same using the variable
-[[age2 <- age-50]]; I originally thought it was a flaw induced by my 
-subtraction.  This is simply a bad model and it is not clear that there
-is any ``correct'' behavior in creating predicted survival curves.
+[[age2 = age-50]]; I originally thought it was a flaw induced by my 
+subtraction.  A quick test shows that two \code{lm} models fit this way
+have different linear predictors, two \code{coxph} models have different
+predictors and log-likelihood, etc.
+This is simply a bad model and there is no
+``correct'' behavior in creating predicted survival curves.
+Strata by covariate interactions work, however, because the coxph code treats
+\code{age:strata(sex)} as though it were \code{age*strata(sex)}.
 
 <<survfit.coxph-setup>>=
 if (is.null(x) || ncol(x)==0) { # a model with ~1 on the right hand side
