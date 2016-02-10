@@ -27,11 +27,14 @@ rep.Surv <- function(x, ...) {
 # This function is just like all.vars -- except that it does not recur
 #  on the $ sign, it follows both arguments of +, * and - in order to
 #  track formulas, all arguments of Surv, and only the first of things 
-#  like ns().
+#  like ns().  And - it works only on formulas.
 # This is used to generate a warning in coxph if the same variable is used
-#  on both sides, so perfection is not required.
+#  on both sides, so perfection is not required of the function.
 terms.inner <- function(x) {
-    if (class(x) == "formula") c(terms.inner(x[[2]]), terms.inner(x[[3]]))
+    if (inherits(x, "formula")) {
+        if (length(x) ==3) c(terms.inner(x[[2]]), terms.inner(x[[3]]))
+        else terms.inner(x[[2]])
+    }
     else if (class(x)== "call" && 
              (x[[1]] != as.name("$") && x[[1]] != as.name("["))) {
         if (x[[1]] == '+' || x[[1]]== '*' || x[[1]] == '-') {

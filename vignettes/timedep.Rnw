@@ -95,7 +95,7 @@ status) are recorded at the end of the day.
 
 The key rule for time dependent covariates in a Cox model is simple
 and essentially the same as that for gambling: \emph{you cannot look
-the future}.
+into the future}.
 A covariate may change in any way based on past data or outcomes, but it
 may not reach forward in time.
 In the above simple data set this means that we cannot add a linear

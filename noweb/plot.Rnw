@@ -86,11 +86,6 @@ else {
     supper <- NULL  #marker for later code
 }
 
-# Two cases where we don't put marks at the censoring times
-if (inherits(x, 'survexp') || inherits(x, 'survfit.coxph')) {
-    if (missing(mark.time)) mark.time <- FALSE
-}
-    
 # set up strata
 if (is.null(x$strata)) {
     nstrat <- 1

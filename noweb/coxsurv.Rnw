@@ -41,7 +41,6 @@ survfit.coxph <-
     Call <- match.call()
     Call[[1]] <- as.name("survfit")  #nicer output for the user
     object <- formula     #'formula' because it has to match survfit
-
     <<survfit.coxph-setup>>
     <<survfit.coxph-result>>
     <<survfit.coxph-finish>>
@@ -64,6 +63,20 @@ the Efron approximation the Efron survival estimate.
 The other two rows of labels in [[temp1]] are historical; 
 we include them for backwards
 compatability but they don't appear in the documentation.          %'
+
+One particular special case (that gave me fits for a while) is when there
+are non-heirarchical models, for example [[~ age + age:sex]].  
+The fit of such a model will \emph{not} be the same using the variable
+[[age2 <- age-50]]; I originally thought it was a flaw induced by my 
+subtraction.  
+The routine simply cannot give a sensible curve for a model like this.
+The issue continued to surprise me each time I rediscovered it,
+leading to an error message for my own protection.  I'm
+not convinced at this time that there is a sensible survival curve
+that \emph{could} be calculated for such a model.
+A model with \code{age + age:strata(sex)} will be ok, because the
+coxph routine treats this last term as though it had a * in it, i.e.,
+fits a stratified model.
 
 <<survfit.coxph-setup>>=
 if (!is.null(attr(object$terms, "specials")$tt))
@@ -92,6 +105,14 @@ else {
 
 if (!se.fit) conf.type <- "none"
 else conf.type <- match.arg(conf.type)
+
+tfac <- attr(terms(object), 'factors')
+temp <- attr(terms(object), 'specials')$strata 
+has.strata <- !is.null(temp)
+if (has.strata) 
+    tfac <- tfac[,tfac[temp,] ==0]  # toss out strata terms
+if (any(tfac >1))
+    stop("not able to create a curve for models that contain an interaction without the lower order effect")
 @ 
 
 I need to retrieve a copy of the original data. 
@@ -106,7 +127,6 @@ the latter will
 pick off the [[xlevels]] component if the [[x]] component is missing (which
 is the default).
 <<survfit.coxph-setup>>=
-has.strata <- !is.null(attr(object$terms, 'specials')$strata) 
 if (is.null(object$y) || is.null(object[['x']]) ||
     !is.null(object$call$weights) || 
     (has.strata && is.null(object$strata)) ||
@@ -121,11 +141,11 @@ If a model frame was created, then it is trivial to grab [[y]]
 from the new frame and compare it to [[object$y]] from the
 original one.  This is to avoid nonsense results that arise
 when someone changes the data set under our feet.  For instance
-\begin{verbatim}
+<<dummy>>=
   fit <- coxph(Surv(time,status) ~ age, data=lung)
   lung <- lung[1:100,]
   survfit(fit)
-\end{verbatim}
+@
 
 <<survfit.coxph-setup>>=
 if (is.null(mf)) y <- object[['y']]
@@ -219,12 +239,6 @@ Any constant can be subtracted, mathematically the results are identical as long
 as the same values are subtracted from the old and new $X$ data.  
 The mean is used because it is handy, we just need to get $X\beta$ in the
 neighborhood of zero.
-One particular special case (that gave me fits for a while) is when there
-are non-heirarchical models, for example [[~ age + age:sex]].  
-The fit of such a model will \emph{not} be the same using the variable
-[[age2 <- age-50]]; I originally thought it was a flaw induced by my 
-subtraction.  This is simply a bad model and it is not clear that there
-is any ``correct'' behavior in creating predicted survival curves.
 
 <<survfit.coxph-setup>>=
 if (is.null(x) || ncol(x)==0) { # a model with ~1 on the right hand side
@@ -319,7 +333,7 @@ subterms <- function(tt, i) {
     tt
 }
 temp <- untangle.specials(Terms, 'cluster')
-if (length(temp$vars)) 
+if (length(temp$terms)) 
     Terms <- subterms(Terms, -temp$terms)
 
 if (missing(newdata)) {
@@ -450,7 +464,9 @@ if (has.strata && found.strata) { #pull them off
     strata2 <- factor(strata2, levels=levels(strata))
     if (any(is.na(strata2)))
         stop("New data set has strata levels not found in the original")
-    Terms2 <- Terms2[-temp$terms]
+    # An expression like age:strata(sex) will have temp$vars= "strata(sex)"
+    #  and temp$terms = integer(0).  This does not work as a subscript
+    if (length(temp$terms) >0) Terms2 <- Terms2[-temp$terms]
 }
 else strata2 <- factor(rep(0, nrow(mf2)))
 

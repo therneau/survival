@@ -219,16 +219,19 @@ if (firstcall) {
         # variable used as 'id' in data2, add it to data1 under the
         # new name
         temp <- as.character(Call[["id"]])
-        if (is.name(Call[["id"]]) && !is.na(match(temp, names(data1))))
+        if (is.name(Call[["id"]]) && !is.na(match(temp, names(data1)))) {
             data1[[topt$idname]] <- data1[[temp]]
+            baseid <- data1[[temp]]
+            }
         else stop("id variable not found in data1")
     }
+    else baseid <- data1[[indx[1]]]
 
-    baseid <- data1[[indx[1]]]
+    if (any(duplicated(baseid))) 
+        stop("for the first call (that establishes the time range) data1 must have no duplicat identifiers")
+
     if (all(baseid == id)) newdata <- data1
     else {
-        if (any(duplicated(baseid)))
-            stop("data1 and data2 both have the id variable, and data1 has duplicates")
         indx2 <- match(id, baseid)
         if (any(is.na(indx2)))
             stop("'id' has values not in data1")
@@ -239,11 +242,13 @@ if (firstcall) {
             stop("neither a tstop argument nor an initial event argument was found")
         tstop <- args[[1]][[1]]
         }
-    
+     
     # at this point newdata and data2 are in the same order, same # rows
     if (any(is.na(tstop))) 
         stop("missing time value, when that variable defines the span")
     if (missing(tstart)) tstart <- rep(0, length(id))
+    if (any(tstart >= tstop)) 
+        stop("tstart must be > tstop")
     newdata[[topt$tstartname]] <- tstart
     newdata[[topt$tstopname]] <- tstop
     if (any(duplicated(id))) {
@@ -251,6 +256,11 @@ if (firstcall) {
         indx1 <- match(id, unique(id))
         newdata <- newdata[order(indx1, tstop),]
     }
+    n <- nrow(newdata)
+    temp <- newdata[[topt$idname]]
+    if (any(newdata$tstart[-n] > newdata$tstop[-1] &
+            temp[-n] == temp[-1]))
+        stop("there are overlapping time intervals")
 }
 else { #not a first call
     if (any(is.na(match(id, data1[[topt$idname]]))))
