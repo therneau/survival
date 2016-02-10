@@ -1,5 +1,7 @@
 # $Id: plot.cox.zph.S 11275 2009-04-06 16:18:00Z therneau $
-plot.cox.zph <- function(x, resid=TRUE, se=TRUE, df=4, nsmo=40, var, ...) {
+plot.cox.zph <- function(x, resid=TRUE, se=TRUE, df=4, nsmo=40, 
+                         var, xlab="Time", ylab="", lty=1:2, col=1, lwd=1,
+                         ...) {
     xx <- x$x
     yy <- x$y
     d <- nrow(yy)
@@ -20,7 +22,7 @@ plot.cox.zph <- function(x, resid=TRUE, se=TRUE, df=4, nsmo=40, var, ...) {
 	seval <- d*((pmat%*% xtx) *pmat) %*% rep(1, df)
 	}
 
-    ylab <- paste("Beta(t) for", dimnames(yy)[[2]])
+    if (missing(ylab)) ylab <- paste("Beta(t) for", dimnames(yy)[[2]])
     if (missing(var)) var <- 1:nvar
     else {
 	if (is.character(var)) var <- match(var, dimnames(yy)[[2]])
@@ -49,6 +51,9 @@ plot.cox.zph <- function(x, resid=TRUE, se=TRUE, df=4, nsmo=40, var, ...) {
 	for (i in 1:8) xaxislab[i] <- format(temp[i])
 	}
 
+    col <- rep(col, length=2)
+    lwd <- rep(lwd, length=2)
+    lty <- rep(lty, length=2)
     for (i in var) {
 	y <- yy[,i]
 	yhat <- pmat %*% qr.coef(qmat, y)
@@ -62,21 +67,23 @@ plot.cox.zph <- function(x, resid=TRUE, se=TRUE, df=4, nsmo=40, var, ...) {
 	    }
 
 	if (x$transform=='identity')
-	    plot(range(xx), yr, type='n', xlab="Time", ylab=ylab[i], ...)
+	    plot(range(xx), yr, type='n', xlab=xlab, ylab=ylab[i], ...)
 	else if (x$transform=='log')
-	    plot(range(xx), yr, type='n', xlab="Time", ylab=ylab[i], log='x',
+	    plot(range(xx), yr, type='n', xlab=xlab, ylab=ylab[i], log='x',
 			...)
 	else {
-	    plot(range(xx), yr, type='n', xlab="Time", ylab=ylab[i], axes=FALSE,...)
+	    plot(range(xx), yr, type='n', xlab=xlab, ylab=ylab[i], 
+                 axes=FALSE,...)
 	    axis(1, xaxisval, xaxislab)
 	    axis(2)
 	    box()
 	    }
 	if (resid) points(xx, y)
-	lines(pred.x, yhat)
+
+	lines(pred.x, yhat, lty=lty[1], col=col[1], lwd=lwd[1])
 	if (se) {
-	    lines(pred.x, yup,lty=2)
-	    lines(pred.x, ylow, lty=2)
+	    lines(pred.x, yup,  col=col[2], lty=lty[2], lwd=lwd[2])
+	    lines(pred.x, ylow, col=col[2], lty=lty[2], lwd=lwd[2])
 	    }
 	}
     }
