@@ -148,14 +148,63 @@ btree <- function(n) {
    }
 @ 
 
+<<<<<<< local
 A second question is how to compute the variance of the result.  
+=======
+The next question is how to compute a variance for the result.
+One approach is to compute an infinitesimal jackknife (IJ) estimate,
+for which we need derivatives with respect to the weights.
+For each event the two numbers of interest are the 
+numerator $C-D$ and the denominator $C+D + T$,
+which can be written directly in terms of the weights.
+
+\begin{align*}
+  C -D  &= \sum_i w_i \delta_i \sum_{t_j > t_i} w_j \rm{sign}(r_i - r_j) \\
+  C +D+T &= \sum_i w_i \delta_i \sum_{t_j > t_i} w_j 
+ \end{align*}
+
+The first derivatives of these quantities with respect to an arbitrary subject
+$k$ are
+\begin{align}
+  \frac{\partial C-D}{\partial w_k} &= 
+         \sum_{t_j > t_k} w_j \delta_k \rm{sign}(r_k - r_j) -
+          \sum_{t_j < t_k} w_j \delta_j \rm{sign}(r_k - r_j) \label{derivC} \\
+  \frac{\partial C+D+T}{\partial w_k} &= \sum_{t_j > t_k} w_j \delta_k +
+                                \sum_{t_j < t_k} w_j \delta_j  \label{derivT}\\
+\end{align}
+We need to keep two vectors of derivatives each of length $n$, the number
+of observations.  The parent routine in R will worry about data sets with
+multiple rows per subject, for which the person has to be added back 
+together.
+
+I had originally avoided this approach because it appears to be an $O(nd)$
+computation, adding a bit to each at-risk subject each time there is an
+event.  A key insight due to David Watson is that we can avoid this.
+Within the tree we keep the sum of weights for each node and its left and right
+children, along with a parallel triple that totals only the deaths.   
+The tree is updated as each subject is added or deleted, containing
+the current cumulative totals.  We only need to update derivative values for
+each subject when the subject enters and when they leave.
+(For ordinary Cox models everyone enters at 0, or rather leaves at zero since
+our code will go from longest to shortest time.)
+
+A second variance estimate is based on the Cox model.  
+>>>>>>> other
 The insight used here is to consider a Cox model with time dependent
 covariates, where the covariate $x$ at each death time has been
 transformed into ${\rm rank}(x)$. 
+<<<<<<< local
 It is easy to show that the Cox score statistic contribution at each death
 is $(D-C)/2$ where $C$ and $D$ are the number of concordant
 and discordant pairs contributed at that death time (for a Cox fit using the
 Breslow approximation).
+=======
+One can show that the Cox score statistic contribution of
+$r_i - \overline{r}$ at each death time is equal to 
+$(C-D)/2$ where $C$ and $D$ are the number of concordant
+and discordant pairs comparing that death to all those at risk,
+and using the Breslow approximation for ties.
+>>>>>>> other
 The contribution to the variance of the score statistic is 
 $V(t) =\sum (r_i - \overline{r})^2 /n$, the $r_i$ being the ranks at
 that time point and $n$ the number at risk.  
@@ -176,6 +225,21 @@ for unweighted data without ties gives ranks of .5, 1.5, \ldots, $n-.5$.
 Assume we have just added obs $k$ to the tree.
 Since the mean rank = $\mu_g = \sum(w_i)/2$ the grand mean increases by
     $w_k/2$.
+<<<<<<< local
+=======
+
+We can divide the subjects currently in the tree into 3 groups.
+\begin{enumerate}
+  \item Those with risk score lower than the new addition.  Their rank will
+    not change.
+  \item Those tied with the new addition.  Their rank will increase by
+    $w_k/2$.
+  \item Those above the new addition.  Their rank increases by $w_k$.
+\end{enumerate}
+
+
+
+>>>>>>> other
 Let $\mu_\ell$ be the mean rank for all observations currently in the
 tree of rank lower than $r_k$, the item we are about to add,
 $\mu_u$ be the mean for all those above in rank (after the addition), 
