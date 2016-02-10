@@ -76,7 +76,7 @@ the argument is where we want to document it: within the tmerge page or not.
 I decided on the former.
 <<tmerge-setup>>= 
 tmerge.control <- function(idname="id", tstartname="tstart", tstopname="tstop",  
-                           delay =0, nadrop=TRUE, ...) {
+                           delay =0, na.rm=TRUE, ...) {
     extras <- list(...)
     if (length(extras) > 0) 
         stop("unrecognized option(s):", paste(names(extras), collapse=', '))
@@ -89,9 +89,9 @@ tmerge.control <- function(idname="id", tstartname="tstart", tstopname="tstop",
         stop("tstop option must be a valid variable name") 
     if (length(delay) !=1 || !is.numeric(delay) || delay < 0)
         stop("delay option must be a number >= 0")
-    if (length(nadrop) !=1 || ! is.logical(nadrop))
-        stop("nadrop option must be TRUE or FALSE")
-   list(idname=idname, tstartname=tstartname, tstopname=tstopname, delay=delay, nadrop=nadrop)
+    if (length(na.rm) !=1 || ! is.logical(na.rm))
+        stop("na.rm option must be TRUE or FALSE")
+   list(idname=idname, tstartname=tstartname, tstopname=tstopname, delay=delay, na.rm=na.rm)
 }
 
 tname <- attr(data1, "tname")
@@ -275,7 +275,7 @@ addition is skipped (or if the argument is NA).
 This is a convenience for the user, who will often
 be merging in a variable like ``day of first diabetes diagnosis'' which
 is missing for those who never had that outcome occur.
-If the nadrop option is true, we do the same for the variable argument
+If the na.rm option is true, we do the same for the variable argument
 of the call.
 <<tmerge-addvar>>=
 saveid <- id
@@ -293,7 +293,7 @@ for (ii in seq(along.with=args)) {
    if (!is.null(argi$value)) {
        if (length(argi$value) != length(saveid))
             stop("argument", argname[ii], "is not the same length as id")
-        if (topt$nadrop) keep <- !(is.na(etime) | is.na(argi$value))
+        if (topt$na.rm) keep <- !(is.na(etime) | is.na(argi$value))
         else keep <- !is.na(etime)
         if (!all(keep)) {
             etime <- etime[keep]
