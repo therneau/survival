@@ -145,7 +145,6 @@ Call:
 coxph(formula = Surv(time, status) ~ x, data = testw1, weights = wt, 
     method = "breslow", iter = 0)
 
-
    coef exp(coef) se(coef) z p
 x 0.000     1.000    0.586 0 1
 
@@ -206,4 +205,4 @@ Score (logrank) test = 1.52  on 1 df,   p=0.217
 > 
 > proc.time()
    user  system elapsed 
-  0.232   0.008   0.239 
+  0.228   0.012   0.236 

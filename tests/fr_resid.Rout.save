@@ -1,6 +1,6 @@
 
-R Under development (unstable) (2015-06-04 r68474) -- "Unsuffered Consequences"
-Copyright (C) 2015 The R Foundation for Statistical Computing
+R Under development (unstable) (2016-01-29 r70039) -- "Unsuffered Consequences"
+Copyright (C) 2016 The R Foundation for Statistical Computing
 Platform: i686-pc-linux-gnu (32-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -269,7 +269,6 @@ Call:
 coxph(formula = Surv(time, status) ~ age + sex + offset(temp), 
     data = kidney, init = kfit1$coef, iter = 0)
 
-
         coef exp(coef) se(coef)     z     p
 age  0.00471   1.00472  0.00875  0.54  0.59
 sex -1.41082   0.24394  0.30916 -4.56 5e-06
@@ -361,4 +360,4 @@ Likelihood ratio test=33.4  on 13.8 df, p=0.00234  n= 76
 > 
 > proc.time()
    user  system elapsed 
-  0.280   0.008   0.281 
+  0.248   0.020   0.262 

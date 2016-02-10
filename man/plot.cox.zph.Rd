@@ -7,8 +7,8 @@
 Displays a graph of the scaled Schoenfeld residuals, along with a smooth curve. 
 }
 \usage{
-\method{plot}{cox.zph}(x, resid=TRUE, se=TRUE, df=4, var,
-        xkab="Time", ylab, lty=1:2, col=1, lwd=1, ...)
+\method{plot}{cox.zph}(x, resid=TRUE, se=TRUE, df=4, nsmo=40, var,
+        xlab="Time", ylab, lty=1:2, col=1, lwd=1, ...)
 }
 \arguments{
 \item{x}{
@@ -25,6 +25,9 @@ will be added.
 the degrees of freedom for the fitted natural spline, \code{df=2} leads 
 to a linear fit. 
 }
+
+\item{nsmo}{number of points to use for the lines}
+
 \item{var}{
 the set of variables for which plots are desired.  By default, plots are 
 produced in turn for each variable of a model.  Selection of a single variable 

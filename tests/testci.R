@@ -44,7 +44,7 @@ byhand <- function() {
 bfit <- byhand()
 aeq(fit$prev, bfit$P[,-1])
 aeq(fit$n.risk, c(8,7,5,2,1))
-aeq(fit$n.event, c(0,1,2,0,1))
+aeq(fit$n.event, c(0,1,0,0,0, 0,0 ,2,0,1))
 aeq(fit$std^2, bfit$V[,-1])
 
 #
@@ -66,7 +66,7 @@ fit4 <- survfit(Surv(stop, status*(event=='death')) ~1, tdata,
                 type='fleming')
 
 aeq(fit1$n.risk, fit2$n.risk)
-aeq(fit1$n.event, fit2$n.event)
+aeq(rowSums(fit1$n.event), fit2$n.event)
 
 # Classic CI formula
 #  integral [hazard(t) S(t-0) dt], where S= "survival to first event"

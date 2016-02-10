@@ -1,6 +1,6 @@
 
-R Under development (unstable) (2014-09-01 r66509) -- "Unsuffered Consequences"
-Copyright (C) 2014 The R Foundation for Statistical Computing
+R Under development (unstable) (2016-01-29 r70039) -- "Unsuffered Consequences"
+Copyright (C) 2016 The R Foundation for Statistical Computing
 Platform: i686-pc-linux-gnu (32-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -63,7 +63,7 @@ Type 'q()' to quit R.
 [1] TRUE
 > aeq(fit$n.risk, c(8,7,5,2,1))
 [1] TRUE
-> aeq(fit$n.event, c(0,1,2,0,1))
+> aeq(fit$n.event, c(0,1,0,0,0, 0,0 ,2,0,1))
 [1] TRUE
 > aeq(fit$std^2, bfit$V[,-1])
 [1] TRUE
@@ -89,7 +89,7 @@ Type 'q()' to quit R.
 > 
 > aeq(fit1$n.risk, fit2$n.risk)
 [1] TRUE
-> aeq(fit1$n.event, fit2$n.event)
+> aeq(rowSums(fit1$n.event), fit2$n.event)
 [1] TRUE
 > 
 > # Classic CI formula
@@ -146,4 +146,4 @@ Type 'q()' to quit R.
 > 
 > proc.time()
    user  system elapsed 
-  0.232   0.040   0.272 
+  0.252   0.016   0.262 

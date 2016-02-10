@@ -1070,7 +1070,10 @@ and survival time.  Stat in Med 15:2797--2812, 1996.
      Covariance analysis of heart transplant survival data.
      J American Statistical Assoc, 72:27--36, 1977.
 
-    \bibitem{Kalbfleisch02} J Kalbfleisch and R Prentice.  
+   \bibitem{Gail72} M H Gail. Does cardiac transplantation prolong life? 
+     A reassessment. Annals Int Medicine 76:815-17, 1972.
+       
+   \bibitem{Kalbfleisch02} J Kalbfleisch and R Prentice.  
       The statistical analysis of failure
        time data, second edition. Wiley, 2002.
 

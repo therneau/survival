@@ -1,6 +1,6 @@
 
-R Under development (unstable) (2015-06-04 r68474) -- "Unsuffered Consequences"
-Copyright (C) 2015 The R Foundation for Statistical Computing
+R Under development (unstable) (2016-01-29 r70039) -- "Unsuffered Consequences"
+Copyright (C) 2016 The R Foundation for Statistical Computing
 Platform: i686-pc-linux-gnu (32-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -134,7 +134,6 @@ Call:
 coxph(formula = Surv(time, status) ~ x, data = testw1, weights = wt, 
     iter = 0)
 
-
    coef exp(coef) se(coef) z p
 x 0.000     1.000    0.584 0 1
 
@@ -189,4 +188,4 @@ Score (logrank) test = 1.58  on 1 df,   p=0.2094
 > 
 > proc.time()
    user  system elapsed 
-  0.232   0.020   0.246 
+  0.220   0.020   0.233 

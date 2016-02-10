@@ -244,7 +244,7 @@ for (i in 1:ntrans) {
     newtt <- (tt[[i]])(mf[[timetrans$var[i]]], Y[,1], strats, weights)
     mf[[timetrans$var[i]]] <- newtt
     nclass <- class(newtt)
-    if (any(nclass) %in% pmethod) { # It has a makepredictcall method
+    if (any(nclass %in% pmethod)) { # It has a makepredictcall method
         dummy <- as.call(list(as.name(class(newtt)[1]), tcall[[i]][[2]]))
         ptemp <- makepredictcall(newtt, dummy)
         pvars[[timetrans$terms[i]+2]] <- ptemp

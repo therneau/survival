@@ -1,6 +1,6 @@
 
-R Under development (unstable) (2015-06-04 r68474) -- "Unsuffered Consequences"
-Copyright (C) 2015 The R Foundation for Statistical Computing
+R Under development (unstable) (2016-01-29 r70039) -- "Unsuffered Consequences"
+Copyright (C) 2016 The R Foundation for Statistical Computing
 Platform: i686-pc-linux-gnu (32-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -26,7 +26,6 @@ Type 'q()' to quit R.
 > fit
 Call:
 coxph(formula = Surv(aml$time, aml$status) ~ aml$x, method = "breslow")
-
 
                     coef exp(coef) se(coef)    z     p
 aml$xNonmaintained 0.904     2.470    0.512 1.77 0.078
@@ -170,7 +169,6 @@ Call: survfit(formula = tfit)
 Call:
 coxph(formula = Surv(time, status) ~ x, data = aml, method = "efron")
 
-
                 coef exp(coef) se(coef)    z     p
 xNonmaintained 0.916     2.498    0.512 1.79 0.074
 
@@ -185,4 +183,4 @@ n= 23, number of events= 18
 > 
 > proc.time()
    user  system elapsed 
-  0.244   0.012   0.250 
+  0.204   0.036   0.236 

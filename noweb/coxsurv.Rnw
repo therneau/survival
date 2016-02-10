@@ -109,8 +109,12 @@ else conf.type <- match.arg(conf.type)
 tfac <- attr(terms(object), 'factors')
 temp <- attr(terms(object), 'specials')$strata 
 has.strata <- !is.null(temp)
-if (has.strata) 
-    tfac <- tfac[,tfac[temp,] ==0]  # toss out strata terms
+if (has.strata) {
+    # Toss out strata terms in tfac before doing the test 1 line below, as
+    #  strata end up in the model with age:strat(grp) terms or *strata() terms
+    #  (There might be more than one strata term)
+    for (i in temp) tfac <- tfac[,tfac[i,] ==0]  # toss out strata terms
+    }
 if (any(tfac >1))
     stop("not able to create a curve for models that contain an interaction without the lower order effect")
 @ 
