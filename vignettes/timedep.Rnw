@@ -547,11 +547,11 @@ Subject 6 for instance has a total follow-up of 2503, and alk.phos values
 of 682 and NA on days 1492 and 2453, respectively; in the final data
 set it is coded 682 from day 1492 until last follow up.
 One can change this default by adding 
-\code{options=list(nadrop=FALSE)} to the second call above, in which case 
+\code{options=list(na.rm=FALSE)} to the second call above, in which case 
 the alkaline phosphotase value over the
 inteval (2453, 2503] will become missing.
 Any \code{tdc} calls with a missing time are still ignored, independent
-of the nadrop value, since we would not know where to insert them.
+of the na.rm value, since we would not know where to insert them.
 
 <<>>=
 attr(pbc2, "tcount")
@@ -626,7 +626,7 @@ default values.
   \item idname = 'id'
   \item tstartname = 'tstart'
   \item tstopname = 'tstop'
-  \item dropna = TRUE
+  \item na.rm = TRUE
   \item delay  = 0
 \end{itemize}
 The first three of these are the variable names that will be used
@@ -634,7 +634,7 @@ for the identifier, start, and stop variables which are added to
 the output data set. 
 They only need to be specified one time within a series of tmerge calls in
 order to effect a change.
-The dropna option has been discussed above; it affects tdc() and
+The na.rm option has been discussed above; it affects tdc() and
 cumtdc() directives within a single tmerge call.
 The delay option causes any tdc
 or cumtdc action in the tmerge call to be delayed by a fixed amount.
@@ -714,7 +714,7 @@ must contain a copy of the
 id variable (here \code{repid}), and data1 is constrained to have only a
 single line for each id value. (Subjects have a single baseline.) 
 Each subsequent call adds a new variable to the data set.
-The second line creates an event variable which is a cumulative count of
+The second line creates a covariate which is a cumulative count of
 the number of comorbidities thus far for each subject.  
 The third line creates a time dependent covariate (tdc) which will
 be 0 until the age of diabetes and is 1 thereafter, the fourth
@@ -729,8 +729,8 @@ like the variable ``prior diagnosis of diabetes''
 to be accurate, even if that diagnosis occured during a prior period when
 the subject was not a resident. 
 For events outside of the timeline, we have no way to know who the appropriate
-comparison group is, and so ignore those events.  
-(Formally, the risk set would the set of
+comparison group is, and so must ignore those events.  
+(Formally, the risk set would be the set of
 all non-residents who, if they were to have had an event at the same age, 
 we would find out about it
 because they will later move to the county, have a medical encounter here,

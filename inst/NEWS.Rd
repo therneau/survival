@@ -1,12 +1,22 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
-\section{Changes in version 2.38-4}{
+\section{Changes in version 2.38-5}{
   \itemize{
+    \item Add more graphical arguments to plot.cox.zph in response to user
+    request.
+    
+    \item Remove some of last vestiges of Splus support from the header
+    files for the C code, per a request from R core to remove mention of S.h.
+    
+    \item Multiple updates and corrections to the tmerge function,
+    including improvements to the vignette.  (As a result of using it in
+    a class and the TA trying out all manner of combinations.)
+    
     \item Update survSplit: it now handles all types of status variables
     (0/1, TRUE/FALSE, factors), the id and episode arguments are useful
-    for start/stop data, data retains its original sort order (new
-    observations are inserted rather than at the end), and it the
-    function is used in a vignette.
+    for start/stop data, the data retains its original sort order (new
+    observations are inserted rather than at the end), and the
+    function is illustrated in a vignette.
     
     \item Add the conf.times argument to plot.survfit.  This
     allows for confidence bars at specified times, which are useful
@@ -20,8 +30,8 @@
       scale.  Follow on annotations such as legend or locator are in the
       orignal scale of the data.
       \item For a matrix of curves, e.g. competing risks, print and
-      plot them in column major order rather than row major, in order
-      to match usual R behavior.
+      plot them in column major order rather than row major, so as 
+      to match the usual R behavior.
       }
     
     \item Fix an error in the help page for the cohort

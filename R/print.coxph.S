@@ -33,8 +33,7 @@ print.coxph <-
 	dimnames(tmp) <- list(names(coef), c("coef", "exp(coef)",
 	    "se(coef)", "robust se", "z", "p"))
 	}
-    cat("\n")
- #   print(tmp)
+
     printCoefmat(tmp, signif.stars=FALSE, P.values=TRUE, has.Pvalue=TRUE)
 
     logtest <- -2 * (x$loglik[1] - x$loglik[2])

@@ -25,7 +25,7 @@ tmerge(data1, data2,  id,\dots, tstart, tstop, options)
     each subject, only used on an initial call}
   
   \item{options}{a list of options.  Valid ones are idname, tstartname,
-    tstopname, delay and nadrop.  See the explanation below.}
+    tstopname, delay and na.rm.  See the explanation below.}
 }
 \details{
  The program is often run in multiple passes, the first of which
@@ -48,8 +48,8 @@ tmerge(data1, data2,  id,\dots, tstart, tstop, options)
    \code{x} is missing the count variable starts at 0 for each subject
    and becomes 1 at the time of the event; if \code{x} is present the
    count is set to the value of \code{x}.
-   If a given subject has multiple rows of data with the same time value
-   the sum of those rows will be assigned.
+   If the option \code{na.rm=TRUE} missing values of \code{x} are
+   first removed.
 
  \item{newname = cumtdc(y,x)}{Similar to tdc, except that the event
    count is accumulated over time for each subject.}
