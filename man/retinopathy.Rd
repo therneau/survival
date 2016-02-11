@@ -2,9 +2,9 @@
 \alias{retinopathy}
 \docType{data}
 \title{Diabetic Retinopathy}
-}
+
 \description{A trial of laser coagulation as a treatment to delay
-  diabetic retinopathy.}
+  diabetic retinopathy.
 }
 \usage{data("retinopathy")}
 \format{
