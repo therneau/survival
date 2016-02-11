@@ -10,6 +10,7 @@ src/concordance1.c
 src/coxexact.c
 src/agfit4.c
 src/agsurv[45].c
+src/msurv.c
 src/symbols.rds
 src/survfitci.c
 R/agreg.fit.R
