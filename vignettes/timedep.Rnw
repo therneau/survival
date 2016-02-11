@@ -447,14 +447,14 @@ tdata <- with(jasa, data.frame(subject = subject,
 
 sdata <- tmerge(jasa, tdata, id=subject,
                   death = event(futime, fustat),
-                  transplant =  tdc(txtime), 
+                  trt   =  tdc(txtime), 
                   options= list(idname="subject"))
 attr(sdata, "tcount")
 sdata$age <- sdata$age -48
 sdata$year <- as.numeric(sdata$accept.dt - as.Date("1967-10-01"))/365.25
 
 # model 6 of the table in K&P
-coxph(Surv(tstart, tstop, death) ~ age*transplant + surgery + year, 
+coxph(Surv(tstart, tstop, death) ~ age*trt + surgery + year, 
       data= sdata, ties="breslow")
 @ 
 
@@ -481,7 +481,12 @@ Be careful of this.  This feature is what allowed for the
 \code{infection} indicator to be build up incrementally in the cgd
 example above, but quite surprising results can occur when you
 think a new variable is being created de novo but its name is already
-in use. 
+in use.  For example, if we name the new variable
+`transplant' in the third line of \code{sdata} above it collides
+with an existing variable in the \code{jasa} data set; the result
+is to not create a time-dependent transplant variable at all.
+(The author made this mistake and spent several hours searching the tmerge
+code for an error that wasn't there.)
 
 The \code{tcount} table for the above fit shows all the deaths at the
 trailing edge of their interval, which is expected since the time

@@ -266,6 +266,7 @@ else { #not a first call
     if (any(is.na(match(id, data1[[topt$idname]]))))
         stop("id values were found in data2 which are not in data1")
 }
+if (any(tstart >= tstop)) stop("tstart must be < tstop")
 @ 
 
 Now for the real work.  For each additional argument we first match the
