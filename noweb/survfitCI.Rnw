@@ -300,27 +300,28 @@ if (missing(id) || is.null(id))
     stop("the id argument is required for start:stop data")
 
 indx <- order(id, Y[,2])  #ordered event times within subject
-indx1 <- c(NA, indx)  #a pair of lagged indices
-indx2 <- c(indx, NA)
-same <- (id[indx1] == id[indx2] & !is.na(indx1) & !is.na(indx2)) #indx1, indx2= same id?
+indx1 <- indx[-length(indx)]  #a pair of lagged indices
+indx2 <- indx[-1]
+#if indx1[5] == index2[5] that means that the 5th and 6th are the same id
+same <- (id[indx1] == id[indx2])
 if (any(same & X[indx1] != X[indx2])) {
-    who <- 1 + min(which(same & X[indx1] != X[indx2]))
-    stop("subject is in two different groups, id ", (id[indx1])[who])
+    who <- min(which(same & X[indx1] != X[indx2]))
+    stop("subject is in two different groups, id ", id[indx1[who]])
 }
 if (any(same & Y[indx1,2] != Y[indx2,1])) {
-    who <- 1 + min(which(same & Y[indx1,2] != Y[indx2,1]))
-    stop("gap in follow-up, id ", (id[indx1])[who])
+    who <- min(which(same & Y[indx1,2] != Y[indx2,1]))
+    stop("gap in follow-up, id ", id[indx1[who]])
 }
 if (any(Y[,1] == Y[,2])) 
     stop("cannot have start time == stop time")
 
-if (any(same & Y[indx1,3] == Y[indx2,3] & Y[indx1,3] !=0)) {
-    who <-  1 + min(which(same & Y[indx1,1] != Y[indx2,2]))
-    warning("subject changes to the same state, id ", (id[indx1])[who])
+if (any(same & (Y[indx1,3] == Y[indx2,3]) & (Y[indx1,3] !=0))) {
+    who <-  min(which(same & (Y[indx1,3] == Y[indx2,3]) & (Y[indx1,3] !=0)))
+    warning("subject changes to the same state, id ", id[indx1[who]])
 }
 if (any(same & weights[indx1] != weights[indx2])) {
-    who <-  1 + min(which(same & weights[indx1] != weights[indx2]))
-    stop("subject changes case weights, id ", (id[indx1])[who])
+    who <-  min(which(same & weights[indx1] != weights[indx2]))
+    stop("subject changes case weights, id ", id[indx1[who]])
 }
 @ 
 
