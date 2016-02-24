@@ -149,6 +149,7 @@ else {
     odims <- ofac <- double(odim)
     X <- matrix(0, n, odim)
     outdname <- vector("list", odim)
+    names(outdname) <- attr(Terms, 'term.labels')
     for (i in 1:odim) {
         temp <- m[[ovars[i]]]
         if (inherits(temp, 'tcut')) {
@@ -361,6 +362,7 @@ else {
     	out$event <- array(temp$pcount, dim=odims, dimnames=outdname)
     }
 out$observations <- nrow(m)
+out$terms <- Terms
 na.action <- attr(m, "na.action")
 if (length(na.action))  out$na.action <- na.action
 if (model) out$model <- m
