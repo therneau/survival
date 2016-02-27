@@ -20,7 +20,7 @@ R/model.matrix.coxph.R
 R/plot.survfit.R
 R/predict.coxph.R
 R/pyears.R
-R/residuals.survreg.S
+R/residuals.survreg.R
 R/survConcordance.*
 R/survexp.R
 R/survfitCI.R

@@ -193,8 +193,7 @@ if necessary so that times are in order.
 There are 2 cases:
 \begin{enumerate}
   \item Adding a time range: tstop comes from data2, optional tstart, and the
-    id can be simply matched, by which we mean no duplicates in data1
-    or that they have the same id string.
+    id can be simply matched, by which we mean no duplicates in data1.
   \item The more common case: there is no tstop, one observation per subject,
     and the first optional argument is an
     event or cumevent.  We then use its time as the range.
@@ -258,6 +257,7 @@ if (firstcall) {
     }
     n <- nrow(newdata)
     temp <- newdata[[topt$idname]]
+    if (any(tstart >= tstop)) stop("tstart must be < tstop")
     if (any(newdata$tstart[-n] > newdata$tstop[-1] &
             temp[-n] == temp[-1]))
         stop("there are overlapping time intervals")
@@ -266,7 +266,6 @@ else { #not a first call
     if (any(is.na(match(id, data1[[topt$idname]]))))
         stop("id values were found in data2 which are not in data1")
 }
-if (any(tstart >= tstop)) stop("tstart must be < tstop")
 @ 
 
 Now for the real work.  For each additional argument we first match the

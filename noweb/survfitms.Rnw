@@ -244,8 +244,10 @@ Grab rows: if there is no [[times]] argument it is easy
 <<survsum-findrows>>=
 if (missing(times)) {
     # just pick off the appropriate rows of the output
+    # For a survfitms object n.event is a matrix, pick off all rows with an
+    #  event for some endpoint.
     if (censored) indx1 <- seq(along=fit$time)
-    else indx1 <- which(fit$n.event>0)
+    else indx1 <- which(rowSums(as.matrix(fit$n.event)) >0)
 }
 @ 
 

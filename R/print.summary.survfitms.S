@@ -13,12 +13,12 @@ print.summary.survfitms <- function(x,
     if (length(omit)) 
 	    cat(naprint(omit), "\n")
     if (x$type == 'right' || is.null(x$n.enter)) {
-	mat <- cbind(x$time, x$n.risk, x$n.event, x$prev)
+	mat <- cbind(x$time, x$n.risk, rowSums(x$n.event), x$prev)
 	cnames <- c("time", "n.risk", "n.event")
         }
 
     else if (x$type == 'counting') {
-	mat <- cbind(x$time, x$n.risk, x$n.event, x$n.enter,
+	mat <- cbind(x$time, x$n.risk, rowSums(x$n.event), x$n.enter,
 		     x$n.censor, x$prev)
 	cnames <- c("time", "n.risk", "n.event", 
 		    "entered", "censored")
