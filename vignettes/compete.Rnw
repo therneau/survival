@@ -523,33 +523,21 @@ For multi-state models this simplicity no longer holds: proportional
 hazards does not lead to proportional prevalence curves.
 The task before us is more complex.
 
-I have come to the opinion that the analysis of multi-state data has four
-key steps.
+The analysis of multi-state data has four
+key steps.  In order of importance:
 \begin{enumerate}
-  \item  Draw the figure.
-  \item Think through the arrows.
-  \item Build a correct data set.
-  \item Fit the data. Create prevalence curves and other summaries.
-\end{enumerate}
-
-These are it turns out also in order of importance. 
-As seen in figure 2 above and the examples, there will often be multiple
-possible constructions for a data set, each of which is illuminating.
-Step 2 has a number of important subcategories:
-\begin{enumerate}
-  \item  Draw the figure.
-  \item Think through the arrows.
+  \item  Draw a box and arrow figure describing the model.
+  \item Think through the rates (arrows).
     \begin{enumerate}
-      \item Ask again, is this the right or best figure?
-      \item Which covariates should be attached to each arrow? 
+      \item Which covariates should be attached to each rate? 
         Sometimes a covariate is important for one transition but not for
         another.
-      \item For which transitions should one or more of the  covariate be 
+      \item For which transitions should one or more of the covariates be 
         constrained to have the same coefficient? 
-        Sometimes there will be a bilogic rationale for this.  For other 
-        studies an equivalence is forced just because we have too many 
-        unknowns and need to thin the herd --- the same reason models
-        have few interaction terms.
+        Sometimes there will be a biologic rationale for this.  For other 
+        studies an equivalence is forced simply because we have too many 
+        unknowns and need to thin the herd (often the same reason that models
+        have few interaction terms).
       \item Which, if any, of the transitions should share the same baseline 
           hazard?  I've seen some discussion of this in models of
           graft vs host disease.  Most of the time though, they are 
@@ -557,45 +545,39 @@ Step 2 has a number of important subcategories:
        \item What is an approriate correlation structure for the random effect,
          if any?  Do some pairs of transitions have a shared effect?  
          Some pairs independent ones and others none?   
-         I don't currently have a method to fit it, but I've sometimes
-         thought that there would be an effect $b_i$ for one transtion and 
-         $k b_i$ for another: the same group(s) are high or low but the effect
-         is attenuated for some transition types.
          Mixed effects Cox models tend to need larger sample size --- do 
          you have enough?
     \end{enumerate}
-   \item Build a correct data set.
-  \item Fit the data.
+  \item Build an appropriate data set.
+  \item Fit the data.  Examine multiple summaries of the
+    model fit, including prevalence curves.
     \end{enumerate}
+Step 1 is key to the entire process.
+We saw in figure 2 and the examples above that multiple views of a
+process can be useful, and this will hold for modeling as well.
 Step 3 will often
-be the one that demands the most time and attention to detail.
+be the one that demands the most attention to detail.
 
-
-
-\subsection{Competing risks, Cox model}
-The Cox model approach starts by fitting 
-separate models to each of the transitions.
-We will illustrate using the competing risks form of the MGUS data.
+\subsection{Rate models}
+Start with the simplest model for the MGUS data: 
+a competing risks model (upper left of figure 2), distinct baseline
+hazards for the two rates, no shared coefficients, and three covariates.
 <<cfit1>>=
-mtemp <- mgus2
-mtemp$age <- mtemp$age/10   #age in decades (easier coefficients)
-mtemp$etime <- etime
-mtemp$event <- event
-
 options(show.signif.stars = FALSE)  # display intelligence
-cfit2 <- coxph(Surv(futime, death) ~ age + sex + mspike, data=mtemp)
-cfit2
+mtemp <- mgus2
+mtemp$age <- mtemp$age/10  # age in decades
+cfit2 <- coxph(Surv(etime, event=="death") ~ age + sex + mspike, mtemp)
 @ 
 The effect of age and sex on non-PCM mortality is profound, which is not
 a surprise given the median starting age of \Sexpr{median(mgus2$age)}.   %$
 Risk rises \Sexpr{round(exp(coef(cfit2)[1]),1)} fold per decade of age and
 the death rate for males is \Sexpr{round(exp(coef(cfit2)[2]),1)} times as great
-as that for females.
-The size of the serum monoclonal spike is of no consequence for
-this endpoint either statistically or clinically.  
+as that for females.  
+The size of the serum monoclonal spike has almost no impact on non-PCM 
+mortality.
 
 <<cfit2>>=
-cfit1 <- coxph(Surv(ptime, pstat) ~ age + sex + mspike, mtemp)
+cfit1 <- coxph(Surv(etime, event=="pcm") ~ age + sex + mspike, mtemp)
 cfit1
 quantile(mgus2$mspike, na.rm=TRUE)
 @ 
@@ -605,12 +587,25 @@ The interquartile range of \code{mspike} is 0.9 gram so this risk increase
 is clinically important.
 The effect of age on the progression rate is much less pronounced,
 with a coefficient only 1/4 that for mortality, while the effect of sex
-on progression is negligible.
+on progression is completely negligible.
 
-Notice that we did not do anything special to the data set or event codes
-for the Cox model.  The focus of coxph is on the event rates, for which the
-correct denominator is the set of all subjects still at risk.  This is
-exactly what is encoded by the (futime, death) and (ptime, pstat) pairs.
+Notice that each coxph fit essentially ignores the other event type(s).
+In the figure, each rate (arrow) depends only on the box from which
+it originates and the events which it enumerates.
+Rates are instantaneous quantities, and depend only on the set of subjects
+who are at risk at at a given  moment;
+if someone is not at risk it really does not matter why.
+
+When computing the prevalence of each state, on the other hand, all the
+rates must be considered at once.  
+The Aalen-Johansen estimate applies as before, but now the individual
+entries $\lamda_{ij}(t)$ in each cell of the transition matrix are taken
+from the relevant fit.
+As is also the case with predicted survival curves from a simple 
+Cox model, predicted prevalence curves correspond to a set of
+prespecifed covariate values.  
+As an example we will generate the curves for 
+
 
 The effect of sex on the \emph{lifetime} probability of PCM is not zero,
 however.  Because of a longer lifetime, an average female with MGUS will 
@@ -627,11 +622,38 @@ temp <- summary(mfit1, rmean="common")  #print the mean survival time
 round(temp$table[,1:6], 1)
 @ 
 
-Prevalence estimates from the multi-state model involve the matrix $A(t; x)$
-of cumulative hazard estimates.
-The $i,j$ off diagonal element of $A(t;x)$ is the the cumulative
-hazard $\lambda_{ij}(t;x)$ for the $i \rightarrow j$ transition, obtained
-from the fitted Cox model for that transition.
+Prevalence estimates for the multi-state model are based on the
+Aalen-Johansen estimate and have the same matrix form as shown in 
+equation \eqref{AJ}.
+However in this case the individual elements $t_{ij}$ within the
+transition matrices $T$ are predicted hazards from the relevant Cox
+model.
+
+<<mprev>>=
+tdata <- expand.grid(mspike=c(.5, 1.5), age=c(6,8), sex=c("F", "M"))
+tmat <- matrix(list(), 3, 3,
+               dimnames=list(c("Entry", "PCM", "Death"), 
+               c("Entry", "PCM", "Death")))
+tmat[1,2] <- list(survfit(cfit1, newdata=tdata))  # time to progression curves
+tmat[1,3] <- list(survfit(cfit2, newdata=tdata))  # time to death curves
+csurv <- survfit(tmat)
+
+
+
+For the 2 state competing risks model $T$ has the form
+\begin{equation}
+  T(s) = \left( \begin{array}{ccc} 
+    & \lambda_{12}(s) & \lambda_{13}(s) \\ 0&0&1 \\ 0 &0 &1 \end{array}
+  \right) \label{crmat}
+\end{equation}
+The model \code{cfit1} is the source for $\lambda_{12}$ = the rate of
+transition from the entry state to PCM, 
+and $\lambda_{13}$ is the rate from entry to death. 
+The zeros in the second and third row correspond to the fact that,
+for this diagram, the PCM and death states are absorbing.
+The diagon elements of $T$ are filled in last and are chosen to make each row
+sum to 1.  
+
 These predicted hazards are formed for a chosen set of covariates $x$,
 e.g. in the model above we could for instance choose predicted 
 transitions for a 72 year old male with an mspike value of 1.1.
@@ -641,32 +663,6 @@ The notion of a baseline hazard, i.e. the hazard for a subject
 with all covariates
 equal to zero, is sometimes of mathematical convenience but only rarely
 corresponds to any patient of interest.
-The diagonal elements of $A$ are filled in last and are chosen 
-such that row sums of are 0.
-
-The obvious analog to the univariate survival curve in equation 
-\eqref{surv} is the matrix exponential.
-\begin{equation*}
-  p(t;x) = e^{A(t;x)} \label{matexp}
-\end{equation*}
-However, this computational approach is valid only if the $A$ matrix is 
-separable, i.e.,
-$A(t;x) = A(x) g(t)$, something that holds true if there are no
-time dependent covariates in the model and if all the 
-transitions share the same baseline hazard: a very unusual case.
-The matrix exponential formulation is fundamental to multi-state models
-with constant hazard however,  see for instance the vignette for
-the \code{msm} package.
-For the Cox model we use the Aalen-Johansen estimator --- the same approach
-used by \code{survfit} for non-parametric estimates.
-\begin{equation}
-  p(t;x) = \prod_{s\le t} (I + dA(s;x)) \label{ajest}
-\end{equation}
-where the term $dA$ is the increment in $A$ at time $s$, and
-there is an increment at each event time.
-As with survival curves from an ordinary Cox model, any such curve is computed
-for a prespecified set of covariate values $x$ which must be chosen by the
-user.
 
 For illustration we will compute the probabilities of PCM from the
 model for males and females under 4 cases: age of 60 vs 80 and a serum mspike
@@ -682,14 +678,6 @@ The individual survival curves are not actually of interest, since
 each is a Cox model analog of the `pcmbad' curve we criticized earlier.
 Instead, the cumulative hazard portion of the results are used to
 build an Aalen-Johansen estimate.
-The $A$ matrix is particularly easy in the competing risk case: 
-all rows but the first
-will be 0, since only the $1\rightarrow 2$
-and $1 \rightarrow 3$ transitions are possible.
-Elements of the resulting 3 by 3 matrix $p(t)$ are
-the probability of going from state $i$ to state $j$,
-since everyone starts in state 1 we are only interested in the first row
-of $P$.
 A computational nuisance is that the \code{surv1} and \code{surv2} 
 curves do not necessarily jump at the same time.
 We use the summary function to select values on a common time scale.
@@ -701,14 +689,14 @@ cifun <- function(surv1, surv2) {
     utime <- sort(unique(surv1$time, surv2$time))
     jump1 <- diff(c(0, summary(surv1, times=utime, extend=TRUE)$cumhaz))
     jump2 <- diff(c(0, summary(surv2, times=utime, extend=TRUE)$cumhaz))
-    dA  <- diag(3)
+    T  <- diag(3)
     prev  <- matrix(0., nrow= 1+length(utime), ncol=3)
     prev[1,1] <- 1  #initial prevalence at time 0: all are in the left box
     for (i in 1:length(utime)) {
-        dA[1,2] <- jump1[i]  #fill in the first row of dA(s)
-        dA[1,3] <- jump2[i]
-        dA[1,1] <- 1- (jump1[i] + jump2[i])
-        prev[i+1,] <- prev[i,] %*% dA
+        T[1,2] <- jump1[i]  #fill in the first row of T(s)
+        T[1,3] <- jump2[i]
+        T[1,1] <- 1- (jump1[i] + jump2[i])
+        prev[i+1,] <- prev[i,] %*% T
     }
     list(time=c(0, utime), P = prev)
 }
