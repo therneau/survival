@@ -68,9 +68,9 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
     double  tdeath=0;  /* ndead= total at a given time point, tdeath= all */
 
     double  newlk=0;
-    double  dtime, d2;
+    double  dtime;
     double  deadwt;  /*sum of case weights for the deaths*/
-    double  efronwt; /* sum of weighted risk scores for the deaths*/
+    double  denom2;  /* sum of weighted risk scores for the deaths*/
     int     halving;    /*are we doing step halving at the moment? */
     int     nrisk;   /* number of subjects in the current risk set */
 
@@ -214,7 +214,7 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
 	dtime = time[person];
 	ndead =0; /*number of deaths at this time point */
 	deadwt =0;  /* sum of weights for the deaths */
-	efronwt=0;  /* sum of weighted risks for the deaths */
+	denom2=0;  /* sum of weighted risks for the deaths */
 	while(person >=0 &&time[person]==dtime) {
 	    /* walk through the this set of tied times */
 	    nrisk++;
@@ -222,45 +222,45 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
 	    for (i=0; i<nvar; i++)
 		zbeta += beta[i]*covar[i][person];
 	    risk = exp(zbeta) * weights[person];
-	    denom += risk;
-
-	    /* a is the vector of weighted sums of x, cmat sums of squares */
-	    for (i=0; i<nvar; i++) {
-		a[i] += risk*covar[i][person];
-		for (j=0; j<=i; j++)
-		    cmat[i][j] += risk*covar[i][person]*covar[j][person];
+	    if (status[person] ==0) {
+		denom += risk;
+		/* a contains weighted sums of x, cmat sums of squares */
+		for (i=0; i<nvar; i++) {
+		    a[i] += risk*covar[i][person];
+		    for (j=0; j<=i; j++)
+			cmat[i][j] += risk*covar[i][person]*covar[j][person];
 	        }
-
-	    if (status[person]==1) {
+	    }	
+	    else {
 		ndead++;
 		deadwt += weights[person];
-		efronwt += risk;
+		denom2 += risk;
 		loglik[1] += weights[person]*zbeta;
 
-		for (i=0; i<nvar; i++) 
+		for (i=0; i<nvar; i++) {
 		    u[i] += weights[person]*covar[i][person];
-		if (method==1) { /* Efron */
-		    for (i=0; i<nvar; i++) {
-			a2[i] +=  risk*covar[i][person];
-			for (j=0; j<=i; j++)
-			    cmat2[i][j] += risk*covar[i][person]*covar[j][person];
+		    a2[i] +=  risk*covar[i][person];
+		    for (j=0; j<=i; j++)
+			cmat2[i][j] += risk*covar[i][person]*covar[j][person];
 		        }
-		    }
-	        }
-	    
+	    }
 	    person--;
 	    if (person>=0 && strata[person]==1) break;  /*ties don't cross strata */
 	    }
 
 	if (ndead >0) {  /* we need to add to the main terms */
 	    if (method==0) { /* Breslow */
+		denom += denom2;
 		loglik[1] -= deadwt* log(denom);
 	   
 		for (i=0; i<nvar; i++) {
+		    a[i] += a2[i];
 		    temp2= a[i]/ denom;  /* mean */
 		    u[i] -=  deadwt* temp2;
-		    for (j=0; j<=i; j++)
+		    for (j=0; j<=i; j++) {
+			cmat[i][j] += cmat2[i][j];
 			imat[j][i] += deadwt*(cmat[i][j] - temp2*a[j])/denom;
+			}
 		    }
 		}
 	    else { /* Efron */
@@ -268,34 +268,30 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
 		** If there are 3 deaths we have 3 terms: in the first the
 		**  three deaths are all in, in the second they are 2/3
 		**  in the sums, and in the last 1/3 in the sum.  Let k go
-		**  from 0 to (ndead -1), then we will sequentially use
-		**     denom - (k/ndead)*efronwt as the denominator
-		**     a - (k/ndead)*a2 as the "a" term
-		**     cmat - (k/ndead)*cmat2 as the "cmat" term
-		**  and reprise the equations just above.
+		**  1 to ndead: we sequentially add a2/ndead and cmat2/ndead
+		**  and efron_wt/ndead to the totals.
 		*/
+		wtave = deadwt/ndead;
 		for (k=0; k<ndead; k++) {
-		    temp = (double)k/ ndead;
-		    wtave = deadwt/ndead;
-		    d2 = denom - temp*efronwt;
-		    loglik[1] -= wtave* log(d2);
+		    denom += denom2/ndead;
+		    loglik[1] -= wtave* log(denom);
 		    for (i=0; i<nvar; i++) {
-			temp2 = (a[i] - temp*a2[i])/ d2;
+			a[i] += a2[i]/ndead;
+			temp2 = a[i]/denom;
 			u[i] -= wtave *temp2;
-			for (j=0; j<=i; j++)
-			    imat[j][i] +=  (wtave/d2) *
-				((cmat[i][j] - temp*cmat2[i][j]) -
-					  temp2*(a[j]-temp*a2[j]));
-		        }
-		    }
-		
-		for (i=0; i<nvar; i++) {
-		    a2[i]=0;
-		    for (j=0; j<nvar; j++) cmat2[i][j]=0;
+			for (j=0; j<=i; j++) {
+			    cmat[i][j] += cmat2[i][j]/ndead;
+			    imat[j][i] += wtave*(cmat[i][j] - temp2*a[j])/denom;
+			}	
 		    }
 		}
+	    }	
+	    for (i=0; i<nvar; i++) {
+		a2[i]=0;
+		for (j=0; j<nvar; j++) cmat2[i][j]=0;
 	    }
-	}   /* end  of accumulation loop */
+	}
+    }   /* end  of accumulation loop */
     loglik[0] = loglik[1]; /* save the loglik for iter 0 */
 
     /* am I done?
@@ -365,74 +361,76 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
 	    dtime = time[person];
 	    deadwt =0;
 	    ndead =0;
-	    efronwt =0;
+	    denom2 =0;
 	    while(person>=0 && time[person]==dtime) {
 		nrisk++;
 		zbeta = offset[person];
 		for (i=0; i<nvar; i++)
 		    zbeta += newbeta[i]*covar[i][person];
 		risk = exp(zbeta) * weights[person];
-		denom += risk;
 
-		for (i=0; i<nvar; i++) {
-		    a[i] += risk*covar[i][person];
-		    for (j=0; j<=i; j++)
-		    cmat[i][j] += risk*covar[i][person]*covar[j][person];
-		}
+		if (status[person] ==0) {
+		    denom += risk;
 
-		if (status[person]==1) {
+		    for (i=0; i<nvar; i++) {
+			a[i] += risk*covar[i][person];
+			for (j=0; j<=i; j++)
+			    cmat[i][j] += risk* covar[i][person]* covar[j][person];		
+		    }
+		} else {	
 		    ndead++;
+		    denom2 += risk;		    
 		    deadwt += weights[person];
 		    newlk += weights[person] *zbeta;
-		    for (i=0; i<nvar; i++) 
+		    for (i=0; i<nvar; i++) {
 			u[i] += weights[person] *covar[i][person];
-		    if (method==1) { /* Efron */
-			efronwt += risk;
-			for (i=0; i<nvar; i++) {
-			    a2[i] +=  risk*covar[i][person];
-			    for (j=0; j<=i; j++)
-				cmat2[i][j] += risk*covar[i][person]*covar[j][person];
+			a2[i] +=  risk*covar[i][person];
+			for (j=0; j<=i; j++)
+			    cmat2[i][j] += risk*covar[i][person]*covar[j][person];	
 			}   
 		    }
-		}
-		
 		person--;
 		if (person>0 && strata[person]==1) break; /*tied times don't cross strata*/
-	    }
+	    }		
 
 	    if (ndead >0) {  /* add up terms*/
 		if (method==0) { /* Breslow */
+		    denom += denom2;
 		    newlk -= deadwt* log(denom);
 		    for (i=0; i<nvar; i++) {
+			a[i] += a2[i];
 			temp2= a[i]/ denom;  /* mean */
 			u[i] -= deadwt* temp2;
-			for (j=0; j<=i; j++)
+			for (j=0; j<=i; j++) {
+			    cmat[i][j] += cmat2[i][j];
 			    imat[j][i] +=  (deadwt/denom)*
 				(cmat[i][j] - temp2*a[j]);
-		    }
-		}
-		else  { /* Efron */
-		    for (k=0; k<ndead; k++) {
-			temp = (double)k / ndead;
-			wtave= deadwt/ ndead;
-			d2= denom - temp* efronwt;
-			newlk -= wtave* log(d2);
-			for (i=0; i<nvar; i++) {
-			    temp2 = (a[i] - temp*a2[i])/ d2;
-			    u[i] -= wtave*temp2;
-			    for (j=0; j<=i; j++)
-				imat[j][i] +=  (wtave/d2)*
-				    ((cmat[i][j] - temp*cmat2[i][j]) -
-				    temp2*(a[j]-temp*a2[j]));
 			}
 		    }
-
-		    for (i=0; i<nvar; i++) { /*in anticipation */
-			a2[i] =0;
-			for (j=0; j<nvar; j++) cmat2[i][j] =0;
+		}
+		else  { /* Efron */	
+		    wtave= deadwt/ ndead;
+		    for (k=0; k<ndead; k++) {
+			denom += denom2/ndead;
+			newlk -= wtave* log(denom);
+			for (i=0; i<nvar; i++) {
+			    a[i] += a2[i]/ndead;
+			    temp2 = a[i]/denom;
+			    u[i] -= wtave*temp2;
+			    for (j=0; j<=i; j++) {
+				cmat[i][j] += cmat2[i][j]/ndead;
+				imat[j][i] +=  (wtave/denom)*
+				    (cmat[i][j] - temp2*a[j]);
+			    }
+			}
 		    }
 		}
-	    }
+		denom2=0;
+		for (i=0; i<nvar; i++) { /*in anticipation */
+		    a2[i] =0;
+		    for (j=0; j<nvar; j++) cmat2[i][j] =0;
+		}
+	    }	
 	}   /* end  of accumulation loop  */
 
 	/* am I done?

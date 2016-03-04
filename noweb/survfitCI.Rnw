@@ -29,11 +29,10 @@ A multi-state survival fit has a status variable with multiple levels,
 the first of which by default is censoring, and others indicating
 the type of transition that occured.
 The result will be a matrix of survival curves, one for each event type.
-Subjects are assumed
-to start in a "null" state, which is not tabulated for survival.
-To change this behavior, give all subjects some other initial state.
+In no initial state is specified then subjects are assumed
+to start in a "null" state, which gets listed last and by default will
+not be printed or plotted.  (But it is present, with a name of `');
   
-
 The first part of the code is standard, parsing out options and
 checking the data.
 <<survfitCI>>= 
@@ -58,9 +57,9 @@ survfitCI <- function(X, Y, weights, id, istate,
     }
 
     type <- attr(Y, "type")
-    if (type !='mright' && type!='mcounting' && 
-        type != "right" && type != "counting")
-        stop(paste("multi-state computation doesn't support \"", type,
+    # This line should be unreachable, unless they call "surfitCI"
+    if (type !='mright' && type!='mcounting')
+         stop(paste("multi-state computation doesn't support \"", type,
                           "\" survival data", sep=''))
 
     n <- nrow(Y)
@@ -68,7 +67,12 @@ survfitCI <- function(X, Y, weights, id, istate,
     ncurve <- length(levels(X))
     
     state.names <- attr(Y, "states")
-    if (missing(istate) || is.null(istate)) istate <- rep(0L, n)
+    nstate <- length(state.names) 
+    has.istate <- !missing(istate)
+    if (missing(istate) || is.null(istate)) {
+        istate <- rep(nstate+ 1L, n)
+        state.names <- c(state.names, "")
+        }
     else if (is.factor(istate) || is.character(istate)) {
         # Match levels with the survival variable
         temp <- as.factor(istate)
@@ -78,34 +82,30 @@ survfitCI <- function(X, Y, weights, id, istate,
         state.names <- unique(c(attr(Y, "states"), appear))
         istate <- as.numeric(factor(as.character(istate), levels=state.names))
     }
-    else if (!is.numeric(istate) || any(istate != floor(istate)))
+    else {
+        if (!is.numeric(istate) || any(istate != floor(istate)) || 
+             any(istate < 1))
         stop("istate should be a vector of integers or a factor")
+        if (max(istate) > nstate) 
+            state.names <- c(state.names, (1+nstate):max(istate))
+        }
     
     if (length(id) ==0) id <- 1:n
-    # these next two lines should be impossible, since istate came from the data frame
+    # these next two lines should be impossible, since istate came from 
+    #   the data frame
     if (length(istate) ==1) istate <- rep(istate,n)
     if (length(istate) !=n) stop ("wrong length for istate")
 
-    states <- sort(unique(c(istate, 1:length(attr(Y, "states"))))) #list of all
+    # The states of the status variable are the first columns in the output
+    states <- unique(c(1:nstate, istate))
     <<survfitCI-compute>>  
 @
  
 To make it easier to keep track of things in the computational kernel that does
-all the real work, we reset the states, initial state, and status vectors
-to all be integers 1, 2, \ldots, nstate, where ``1'' is the first state.
+all the real work, we have ensured that any ending states (ones you can reach)
+are 1, 2, 3 \ldots.
 The status vector will have values of 0 for censored.
-Per earlier discussion 1 will often be the unnamed initial state, which
-will later be dropped from the output.
-The statename vector is not modified.
 <<survfitCI>>=
-    if (any(states==0)) {
-        state0 <- TRUE
-        states <- states + 1
-        istate <- istate + 1
-        status <- ifelse(status==0, 0, status+1)
-        }
-    else state0 <- FALSE
-    
     curves <- vector("list", ncurve)
     names(curves) <- levels(X)
                             
@@ -209,11 +209,12 @@ any given subject is only in one state at a time.
 This leads to indices of [[atrisk]] for the set of rows in the risk set but
 [[aindx]] for the subjects in the risk set, [[death]] for the rows that have
 an event as some given time and [[dindx]] for the corresponding subjects.
+
 <<survfitCI-compute-old>>=
 docurve1 <- function(entry, etime, status, istate, wt, states, id) {
     #
     # round off error can cause trouble: if two times are within machine
-    #  precsion then "unique(time)" and the "table" command may differ
+    #  precision then "unique(time)" and the "table" command may differ
     # solve this by using creating a factor
     ftime <- factor(etime)
     ntime <- length(levels(ftime))
@@ -372,13 +373,7 @@ kfit$cumhaz <- array(unlist(lapply(curves, function(x) x$cumhaz)),
 if (length(curves) >1)
     kfit$strata <- unlist(lapply(curves, function(x) length(x$time)))
 if (se.fit) kfit$std.err <- grabit(curves, "std")
-
-# if state 0 was present, remove it
-if (state0) {
-    kfit$prev <- kfit$prev[,-1]
-    if (se.fit) kfit$std.err <- kfit$std.err[,-1]
-    kfit$prev0 <- kfit$prev0[,-1]
-}
+kfit$istate <- has.istate  # used later in plots
 @ 
 
 Add the confidence bands.  The idea is modeled on survfitKM but with
@@ -467,12 +462,12 @@ docurve2 <- function(entry, etime, status, istate, wt, states, id, se.fit) {
     prev0 <- table(factor(cstate, levels=states), exclude=NA)/length(cstate)
     if (se.fit) 
         list(time=timeset, pmat=t(fit$p), std=sqrt(t(fit$var)),
-             n.risk = colSums(fit$nrisk),
+             n.risk = t(fit$nrisk),
              n.event = table(ftime[,2], status)[,-1], 
              n.censor=fit$ncensor, prev0 = prev0,
              cumhaz=array(fit$cumhaz, dim=c(nstate,nstate, length(timeset))))
     else list(time=timeset, pmat=t(fit$p),
-             n.risk = colSums(fit$nrisk), 
+             n.risk = t(fit$nrisk), 
              n.event = table(ftime[,2], status)[,-1], 
              n.censor=fit$ncensor,  prev0=prev0,
              cumhaz=array(fit$cumhaz, dim=c(nstate,nstate, length(timeset))))

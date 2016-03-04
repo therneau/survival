@@ -65,9 +65,9 @@ object.  Otherwise we can drop columns freely
                 stop(paste("strata", 
                                paste(i[is.na(indx)], collapse=' '),
                            'not matched'))
-
-            # Now, i may not be in order: a user has curve[3:2] to reorder a plot
-            # Hence the list/unlist construct which will reorder the data in the curves
+            # Now, i may not be in order: a user has curve[3:2] to reorder 
+            #  a plot.  Hence the list/unlist construct which will reorder
+            #  the data in the curves
             temp <- rep(1:length(x$strata), x$strata)
             keep <- unlist(lapply(i, function(x) which(temp==x)))
 
