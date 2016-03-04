@@ -48,9 +48,7 @@ anova.survreglist <- function(object, ..., test = c("Chisq", "none")) {
 		      Test = effects, 
 		      Df = c(NA, ddf), 
 		      Deviance = c(NA, dm2loglik), check.names = FALSE)
-    if (is.R())
-	    aod<-structure(aod,heading=heading,class=c("anova","data.frame"))
-#    else aod <- as.anova(aod, heading)  #code for Splus
+    aod<-structure(aod,heading=heading,class=c("anova","data.frame"))
 
     if(test != "none") {
 	n <- length(object[[1]]$residuals)
