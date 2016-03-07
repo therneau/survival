@@ -3,13 +3,10 @@
 it is easier to make the code stay in C-mode if the file has a .nw 
 extension.)
 
-First define a function that allocates a ragged array.  The code has 
-many matrices, and it is easier to use \verb!x[i][j]! notation
-for them.
 <<survfitci>>=
 #include "survS.h"
-
 <<survfitci-dmatrix>>
+
 SEXP survfitci(SEXP ftime2,  SEXP sort12,  SEXP sort22, SEXP ntime2,
                     SEXP status2, SEXP cstate2, SEXP wt2,  SEXP id2,
                     SEXP p2,  SEXP sefit2) {   
@@ -168,7 +165,7 @@ where [[ctime]] is the unique event time of current interest.
 The basic loop is to add new subjects to the risk set, compute,
 save results, then remove expired ones from the risk set.
 The [[ns]] and [[ws]] vectors keep track of the number of subjects
-currently in eachs state and the weighted number currently in each
+currently in each state and the weighted number currently in each
 state.  
 There are four indexing patterns in play which may be confusing.
 \begin{itemize}

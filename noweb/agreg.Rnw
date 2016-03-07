@@ -196,7 +196,7 @@ SEXP agfit4(SEXP surv2,      SEXP covar2,    SEXP strata2,
 
     int i,j,k,person;
     int indx2, istrat, p;
-    int ksave, nrisk, ndeath;
+    int ksave, nrisk;
     int nused, nvar;
  
     double **covar, **cmat, **imat;  /*ragged array versions*/
@@ -254,12 +254,13 @@ SEXP agfit4(SEXP surv2,      SEXP covar2,    SEXP strata2,
 
     /*
     ** scratch space
-    **  nvar: a, a2, newbeta, scale
+    **  nvar: a, a2, oldbeta, scale
     **  nvar*nvar: cmat, cmat2
     **  n: eta
     */
     eta = (double *) R_alloc(nused + 5*nvar + 2*nvar*nvar, sizeof(double));
     a = eta + nused;
+    a2= a + nvar;
     scale  = a2 + nvar;
     oldbeta = scale + nvar;   
 

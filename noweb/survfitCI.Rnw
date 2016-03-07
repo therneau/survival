@@ -466,15 +466,16 @@ docurve2 <- function(entry, etime, status, istate, wt, states, id, se.fit) {
                  match(id, uid) -1L,
                  P, as.integer(se.fit))
     p0 <- table(factor(cstate, levels=states), exclude=NA)/length(cstate)
+    n.event <- table(ftime[,2], factor(status,c(0,states)))[,-1]
     if (se.fit) 
         list(time=timeset, pstate=t(fit$p), std=sqrt(t(fit$var)),
              n.risk = t(fit$nrisk),
-             n.event = table(ftime[,2], status)[,-1], 
+             n.event = n.event, 
              n.censor=fit$ncensor, p0 = p0,
              cumhaz=array(fit$cumhaz, dim=c(nstate,nstate, length(timeset))))
     else list(time=timeset, pstate=t(fit$p),
              n.risk = t(fit$nrisk), 
-             n.event = table(ftime[,2], status)[,-1], 
+             n.event = n.event, 
              n.censor=fit$ncensor,  p0=p0,
              cumhaz=array(fit$cumhaz, dim=c(nstate,nstate, length(timeset))))
 }

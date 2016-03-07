@@ -43,7 +43,11 @@ object.  Otherwise we can drop columns freely
             i <- NULL
         }
     }
-    if (is.null(i)) i <- 1:n
+    if (is.null(i)) {
+        i2 <- 1:n
+        if (is.null(strata)) i <- 1
+        else i <- seq(along=strata)
+    }
     else {
         if (is.null(x$strata) && (length(i) > 1 || i != 1))
             stop("subscript out of bounds")
@@ -60,7 +64,7 @@ object.  Otherwise we can drop columns freely
 
         if (length(i) <=1 && drop) x$strata <- NULL
         else               x$strata  <- x$strata[indx]
-        i <- keep
+        i2 <- keep
     }
 
     if (!is.null(j)) {
@@ -69,23 +73,36 @@ object.  Otherwise we can drop columns freely
             stop("subscript out of bounds", j[is.na(indx)])
         else j <- as.vector(indx)
     }
-    else if (is.matrix(x$pstate)) j <- 1:ncol(x$pstate)
 
-    if (length(i) ==1 && !is.null(j) && missing(drop)) drop <- FALSE
+    if (length(i2) ==1 && !is.null(j) && missing(drop)) drop <- FALSE
  
-    # all the elements that have "nstate" elements or columns
+    # all the elements that can have "nstate" elements or columns
+    #  The n.event variable can have fewer
     temp <- c("states", "n.risk", "n.event", "n.censor", "pstate", 
-              "p0", "cumhaz", "std.err", "lower", "upper")
+              "cumhaz", "std.err", "lower", "upper")
     sfun <- function(z) {
-        if (is.array(z)) {
-            if (length(dim(z)) > 2) z[j,j,i, drop=drop]  
-            else z[i,j, drop=drop]
+        if (is.null(j)) {
+            if (is.array(z)) {
+                if (length(dim(z)) > 2) z[,,i2, drop=drop]  
+                else z[i2,,drop=drop]
+            }
+            else z
         }
-        else z[j]
+        else {
+            if (is.array(z)) {
+                if (length(dim(z)) > 2) z[j,j,i2, drop=drop]  
+                else z[i2,j, drop=drop]
+            }
+            else z[j]
+        }
     }
-
     for (k in temp) x[[k]] <- sfun(x[[k]])
-    x$time <- x$time[i]
+    x$n <- x$n[i]
+    x$time <- x$time[i2]
+
+    if (is.null(j)) x$p0<- x$p0[i,]
+    else x$p0 <- x$p0[i,j]
+    
     x
 }
 @ 
@@ -107,9 +124,9 @@ summary.survfit <- function(object, times, censored=FALSE,
 
     # The print.rmean option is depreciated, it is still listened
     #   to in print.survfit, but ignored here
-    if (is.null(rmean)) rmean <- "none"
+    if (is.null(rmean)) rmean <- "common"
 
-    temp <- survmean(fit, scale=scale, rmean)  
+    temp <- survmean2(fit, scale=scale, rmean)  
     table <- temp$matrix  #for inclusion in the output list
     rmean.endtime <- temp$end.time
 
@@ -221,7 +238,7 @@ if (missing(times)) {
 }
 @ 
 
-This second case is actual work, since may invovle ``in between'' points
+This second case is actual work, since may involve ``in between'' points
 in the curves.
 Let's say that we have a line in the data for times 1,2, 5, and 6, and 8 
 and a user chose \code{times=c(3,5, 9)}.
@@ -341,13 +358,13 @@ the preservation of \code{pstate} and \code{cumhaz} instead of \code{surv}.
 <<survfitms-summary>>=
 summary.survfitms <- function(object, times, censored=FALSE, 
 			    scale=1, extend=FALSE, 
-                            rmean,
+                            rmean= getOption("survfit.rmean"),
                             ...) {
     fit <- object
     if (!inherits(fit, 'survfitms'))
 	    stop("summary.survfitms can only be used for survfitms objects")
 
-    if (is.null(rmean)) rmean <- "none"
+    if (is.null(rmean)) rmean <- "common"
     if (!missing(times)) {
         if (!is.numeric(times)) stop ("times must be numeric")
         times <- sort(times)
@@ -361,7 +378,7 @@ summary.survfitms <- function(object, times, censored=FALSE,
         temp$n.event <- rowSums(temp$n.event)
         dimnames(temp$surv) <- list(NULL, object$states)
     }
-    temp <- survmean(temp, scale=scale, rmean=)  
+    temp <- survmean2(temp, scale=scale, rmean=rmean)  
     table <- temp$matrix  #for inclusion in the output list
     rmean.endtime <- temp$end.time
 
@@ -457,19 +474,22 @@ summary.survfitms <- function(object, times, censored=FALSE,
 }
 
 <<printms>>
+<<survmean2>>
 @ 
 
 Printing for a survfitms object is different than for a survfit one.
 The big difference is that I don't have an estimate of the median, or
-any other quantile for that matter.  
-I thought about ``time in state, given that you ever got there'', 
-but the death state lasts forever so that didn't seem useful.
-In it's place we put the number of events for each state, with
-$n$ being the maximum number ever at risk in that state.
+any other quantile for that matter.  Mean time in state makes sense, but
+I don't have a standard error for it at the moment.
+The other is that there is usually a mismatch between the n.event matrix
+and the n.risk matrix.  
+The latter has all the states that were possible whereas the former only
+has states with an arrow pointing in.  We need to manufacture the 0 events
+for the other states.
 
 <<printms>>=
 print.survfitms <- function(x, scale=1,
-                            digits = max(options()$digits - 4, 3),  ...) {
+                            rmean = getOption("survfit.rmean"), ...) {
     if (!is.null(cl<- x$call)) {
 	cat("Call: ")
 	dput(cl)
@@ -477,10 +497,45 @@ print.survfitms <- function(x, scale=1,
         }	
     omit <- x$na.action
     if (length(omit)) cat("  ", naprint(omit), "\n")
-    savedig <- options(digits=digits)
-    on.exit(options(savedig))
 
-    nstate <- length(x$states)
+    if (is.null(rmean)) rmean <- "common"
+    if (is.numeric(rmean)) {
+        if (is.null(x$start.time)) {
+            if (rmean < min(x$time)) 
+                stop("Truncation point for the mean is < smallest survival")
+        }
+        else if (rmean < x$start.time)
+            stop("Truncation point for the mean is < smallest survival")
+    }
+    else {
+        rmean <- match.arg(rmean, c('none', 'common', 'individual'))
+        if (length(rmean)==0) stop("Invalid value for rmean option")
+    }
+
+    temp <- survmean2(x, scale=scale, rmean)
+    if (is.null(temp$end.time)) print(temp$matrix, ...)
+    else {
+        etime <- temp$end.time
+        dd <- dimnames(temp$matrix)
+        cname <- dd[[2]]
+        cname[length(cname)] <- paste0(cname[length(cname)], '*')
+        dd[[2]] <- cname
+        dimnames(temp$matrix) <- dd
+        print(temp$matrix, ...)
+        if (length(etime) ==1)
+             cat("   *mean time in state, restricted (max time = ", 
+                 format(etime), ")\n")
+        else cat("   *mean time in state, restricted (per curve cutoff)\n")
+    }
+    invisible(x)
+}
+@ 
+
+This part of the computation is set out separately since it is called
+by both print and summary.
+<<survmean2>>=
+survmean2 <- function(x, scale, rmean) {
+    nstate <- length(x$states)  #there will always be at least 1 state
     ngrp   <- max(1, length(x$strata))
     if (ngrp >1)  {
         igrp <- rep(1:ngrp, x$strata)
@@ -491,18 +546,8 @@ print.survfitms <- function(x, scale=1,
         rname <- NULL
         }
 
-    if (nstate > 1) {
-        nc <- ncol(x$n.risk)
-        maxrisk <- tapply(x$n.risk, list(rep(igrp, nc), col(x$n.risk)), max)
-        dimnames(maxrisk) <- list(rname, x$states)
-        }
-    else {
-        maxrisk <- tapply(x$n.risk, igrp, max)
-        names(maxrisk) <- rname
-        }
-
-    # The n.event matrix may not have as many columns as n.risk.  It's
-    #  colnames are the first elements of states
+    # The n.event matrix may not have nstate columms.  Its
+    #  colnames are the first elements of states, however
     if (is.matrix(x$n.event)) {
         nc <- ncol(x$n.event)
         nevent <- tapply(x$n.event, list(rep(igrp, nc), col(x$n.event)), sum)
@@ -513,13 +558,48 @@ print.survfitms <- function(x, scale=1,
         names(nevent) <- rname
         }
 
-    doprint <- which(colSums(maxrisk) > 0)
-    tmat <- cbind(maxrisk[,doprint], NA,  nevent)
-    dimnames(tmat)[[2]] <- c((dimnames(maxrisk)[[2]])[doprint], 
-                             " ", dimnames(nevent)[[2]])
-    cat("    max number at risk  |  number of events\n")
-    print(tmat, na.print=" | ")
-        
+    outmat <- matrix(0., nrow=nstate*ngrp , ncol=2)
+    outmat[,1] <- rep(x$n, nstate)
+    outmat[1:length(nevent), 2] <- c(nevent)
+  
+    if (ngrp >1) 
+        rowname <- c(outer(rname, x$states, paste, sep=", "))
+    else rowname <- x$states
+
+    # Caculate the mean time in each state
+    if (rmean != "none") {
+        if (is.numeric(rmean)) maxtime <- rep(rmean, ngrp)
+        else if (rmean=="common") maxtime <- rep(max(x$time), ngrp)
+        else maxtime <- tapply(x$time, igrp, max)
+    
+        meantime <- matrix(0., ngrp, nstate)
+        p0 <- matrix(x$p0, nrow=ngrp)  #in case there is only one row
+        for (i in 1:ngrp) {
+            if (is.matrix(x$pstate))
+                temp <- rbind(p0[i,], x$pstate[igrp==i,, drop=FALSE])
+            else temp <- matrix(c(p0[i,], x$pstate[igrp==i]), ncol=1)
+
+            if (is.null(x$start.time)) tt <- c(0, x$time[igrp==i])
+            else tt <- c(x$start.time, x$time[igrp==i])
+
+            # Now cut it off at maxtime
+            delta <- diff(c(tt[tt<maxtime[i]], maxtime[i]))
+            if (length(delta) > nrow(temp)) delta <- delta[1:nrow(temp)]
+            if (length(delta) < nrow(temp))
+                delta <- c(delta, rep(0, nrow(temp) - length(delta)))
+            meantime[i,] <- colSums(delta*temp)
+        }
+
+        outmat <- cbind(outmat, c(meantime))
+        cname <- c("n", "nevent", "mean")
+        # report back a single time, if there is only one
+        if (all(maxtime == maxtime[1])) maxtime <- maxtime[1]
+    }
+    else cname <- c("n", "nevent")
+    dimnames(outmat) <- list(rowname, cname)
+
+    if (rmean=='none') list(matrix=outmat)
+    else list(matrix=outmat, end.time=maxtime)
 }
 @ 
 
