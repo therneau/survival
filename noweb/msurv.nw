@@ -91,7 +91,7 @@ int sefit;
     
 /* returned objects */
 SEXP rlist;         /* the returned list and variable names of same */  
-const char *rnames[]= {"nrisk","nevent","ncensor", "prev", 
+const char *rnames[]= {"nrisk","nevent","ncensor", "p", 
 		       "cumhaz", "var", ""};
 SEXP pmat2, vmat2, cumhaz2;  /*list components */
 SEXP nevent2, ncensor2, nrisk2;

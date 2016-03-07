@@ -2,9 +2,15 @@
 \newcommand{\Twid}{\mbox{\(\tt\sim\)}}
 The competing risks routine is very general, allowing subjects
 to enter or exit states multiple times.
-For this reason I prefer the label ``current prevalence'' estimate, 
+For this reason I prefer the label \emph{current prevalence} estimate, 
 since it estimates what fraction of the subjects are in any
-given state across time.
+given state across time.  
+However the word ``prevalence'' is likely to generate confusion whenever
+death is one of the states, due to its historic use as the fraction of
+living subjects who have a particular condition.
+We will use the phrase \emph{probability in state} or simply $P$
+from this point forward.
+
 The easiest way to understand the estimate is to consider first the
 case of no censoring.  
 In that setting the estimate of $F_k(t) = 1-S_k(t)$ for all states
@@ -365,8 +371,8 @@ kfit <- list(n =      as.vector(table(X)),
              n.risk=  grabit(curves, "n.risk"),
              n.event= grabit(curves, "n.event"),
              n.censor=grabit(curves, "n.censor"),
-             prev   = grabit(curves, "pmat"),
-             prev0  = grabit(curves, "prev0"))
+             pstate   = grabit(curves, "pstate"),
+             p0  = grabit(curves, "p0"))
 nstate <- length(states)
 kfit$cumhaz <- array(unlist(lapply(curves, function(x) x$cumhaz)),
                            dim=c(nstate, nstate, length(kfit$time)))
@@ -391,18 +397,18 @@ than $P$, with standard error of ${rm se}(P)/(1-P)$.
 if (se.fit) {
     std.err <- kfit$std.err
     zval <- qnorm(1- (1-conf.int)/2, 0,1)
-    surv <- 1-kfit$prev
+    surv <- 1-kfit$pstate
 
     if (conf.type=='plain') {
         temp <- zval* std.err
-        kfit <- c(kfit, list(lower =pmax(kfit$prev-temp, 0), 
-                             upper=pmin(kfit$prev+temp, 1),
+        kfit <- c(kfit, list(lower =pmax(kfit$pstate-temp, 0), 
+                             upper=pmin(kfit$pstate+temp, 1),
                          conf.type='plain', conf.int=conf.int))
         }
 
     if (conf.type=='log') {
         #avoid some "log(0)" messages
-        xx <- ifelse(kfit$prev==1, 1, 1- kfit$prev)  
+        xx <- ifelse(kfit$pstate==1, 1, 1- kfit$pstate)  
 
         temp1 <- ifelse(surv==0, NA, exp(log(xx) + zval* std.err/xx))
         temp2 <- ifelse(surv==0, NA, exp(log(xx) - zval* std.err/xx))
@@ -459,17 +465,17 @@ docurve2 <- function(entry, etime, status, istate, wt, states, id, se.fit) {
                  wt,
                  match(id, uid) -1L,
                  P, as.integer(se.fit))
-    prev0 <- table(factor(cstate, levels=states), exclude=NA)/length(cstate)
+    p0 <- table(factor(cstate, levels=states), exclude=NA)/length(cstate)
     if (se.fit) 
-        list(time=timeset, pmat=t(fit$p), std=sqrt(t(fit$var)),
+        list(time=timeset, pstate=t(fit$p), std=sqrt(t(fit$var)),
              n.risk = t(fit$nrisk),
              n.event = table(ftime[,2], status)[,-1], 
-             n.censor=fit$ncensor, prev0 = prev0,
+             n.censor=fit$ncensor, p0 = p0,
              cumhaz=array(fit$cumhaz, dim=c(nstate,nstate, length(timeset))))
-    else list(time=timeset, pmat=t(fit$p),
+    else list(time=timeset, pstate=t(fit$p),
              n.risk = t(fit$nrisk), 
              n.event = table(ftime[,2], status)[,-1], 
-             n.censor=fit$ncensor,  prev0=prev0,
+             n.censor=fit$ncensor,  p0=p0,
              cumhaz=array(fit$cumhaz, dim=c(nstate,nstate, length(timeset))))
 }
 @

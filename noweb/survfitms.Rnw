@@ -1,5 +1,5 @@
 \subsubsection{Printing and plotting}
-The [[survfitms]] class differs from a [[survfit]], but many of the
+The \code{survfitms} class differs from a \code{survfit}, but many of the
 same methods nearly apply.
 <<survfitms>>=
 # Methods for survfitms objects
@@ -11,12 +11,12 @@ The subscript method is a near copy of that for survfit
 objects, but with a slightly different set of components. 
 The object could have strata and will almost always have multiple
 columns.  If there is only one subscript it is preferentially
-associated with the strata, if there is no strata argument [[i]]
+associated with the strata, if there is no strata argument \code{i}
 will associate with the columns.
 If there are two subscripts the first goes with the strata.
-The little [[nmatch]] function allow the user to use either names
+The little \code{nmatch} function allow the user to use either names
 or integer indices.
-The drop argument is important when strata get subscripted such that
+The drop argument is important when rows get subscripted such that
 only one row remains and there
 are multiple columns: in that case we do \emph{not} want to 
 lose the matrix nature of the result as it will lead to an invalid
@@ -33,91 +33,61 @@ object.  Otherwise we can drop columns freely
         
     if (missing(..1)) i<- NULL  else i <- sort(..1)
     if (missing(..2)) j<- NULL  else j <- ..2
-    if (is.null(x$strata)) {
-        if (is.matrix(x$prev)) {
-            # No strata, but a matrix of prevalence values
-            #  In this case, allow them to use a single i subscript as well
-            if (is.null(j) && !is.null(i)) j <- i
-            indx <- nmatch(j, x$states)
-            if (any(is.na(indx)))
-                stop("unmatched subscript", j[is.na(indx)])
-            else j <- as.vector(indx)
-            x$states <- x$states[j]
-            
-            if (nrow(x$prev)==1 && length(j) > 1) drop<- FALSE
-            x$prev <- x$prev[,j,drop=drop]
-            x$cumhaz <- x$cumhaz[j,j,, drop=drop]
-            x$prev0  <- x$prev0[j]
-            if (!is.null(x$std.err)) x$std.err <- x$std.err[,j,drop=drop]
-            if (!is.null(x$upper)) x$upper <- x$upper[,j,drop=drop]
-            if (!is.null(x$lower)) x$lower <- x$lower[,j,drop=drop]
-            }
-        else warning("Survfit object has only a single survival curve")
+    n <- length(x$time)
+
+    if (is.null(x$strata) && is.matrix(x$pstate)) {
+        # No strata, but a matrix of prevalence values
+        #  In this case, allow them to use a single i subscript as well
+        if (is.null(j) && !is.null(i)) {
+            j <- i
+            i <- NULL
         }
+    }
+    if (is.null(i)) i <- 1:n
     else {
-        if (is.null(i)) {
-            keep <- seq(along.with=x$time) # rows to keep
-            indx <- seq(along=x$strata)
-        }
-        else {
-            indx <- nmatch(i, names(x$strata)) #strata to keep
-            if (any(is.na(indx))) 
-                stop(paste("strata", 
-                               paste(i[is.na(indx)], collapse=' '),
-                           'not matched'))
-            # Now, i may not be in order: a user has curve[3:2] to reorder 
-            #  a plot.  Hence the list/unlist construct which will reorder
-            #  the data in the curves
-            temp <- rep(1:length(x$strata), x$strata)
-            keep <- unlist(lapply(i, function(x) which(temp==x)))
+        if (is.null(x$strata) && (length(i) > 1 || i != 1))
+            stop("subscript out of bounds")
+        indx <- nmatch(i, names(x$strata)) #strata to keep
+        if (any(is.na(indx))) 
+            stop(paste("strata", 
+                       paste(i[is.na(indx)], collapse=' '),
+                       'not matched'))
+        # Now, i may not be in order: a user has curve[3:2] to reorder 
+        #  a plot.  Hence the "unlist(lapply(" construct which will reorder
+        #  the data in the curves
+        temp <- rep(1:length(x$strata), x$strata)
+        keep <- unlist(lapply(i, function(x) which(temp==x)))
 
-            if (length(i) <=1 && drop) x$strata <- NULL
-            else               x$strata  <- x$strata[indx]
-
-            x$n       <- x$n[indx]
-            x$time    <- x$time[keep]
-            x$n.risk  <- x$n.risk[keep]
-            x$n.event <- x$n.event[keep]
-            x$n.censor<- x$n.censor[keep]
-            }
-        if (is.matrix(x$prev)) { 
-            # If [i,] selected only 1 row, don't collapse the columns
-            if (length(keep) <2 && (is.null(j) || length(j) >1)) drop <- FALSE
-            if (is.null(j)) {  #only subscript rows (strata)
-                x$prev <- x$prev[keep,,drop=drop]
-                x$cumhaz <- x$cumhaz[,,keep, drop=drop]
-                x$prev0 <- x$prev0[indx,,drop=drop]
-                if (!is.null(x$std.err)) 
-                        x$std.err <- x$std.err[keep,,drop=drop]
-                if (!is.null(x$upper)) x$upper <-x$upper[keep,,drop=drop]
-                if (!is.null(x$lower)) x$lower <-x$lower[keep,,drop=drop]
-                }
-            else { #subscript both rows (strata) and columns (states)
-                temp <- nmatch(j, x$states)
-                if (any(is.na(temp))) 
-                    stop("unmatched subscript", j[temp])
-                else j <- as.vector(temp)
-                x$states <- x$states[j]
-                x$prev <- x$prev[keep,j, drop=drop]
-                x$prev0 <- x$prev0[indx, j, drop=drop]
-                x$cumhaz <- x$cumhaz[j,j,keep, drop=drop]
-                if (!is.null(x$std.err)) x$std.err <- x$std.err[keep,j,drop=drop]
-                if (!is.null(x$upper)) x$upper <- x$upper[keep,j, drop=drop]
-                if (!is.null(x$lower)) x$lower <- x$lower[keep,j, drop=drop]
-                }
-            }
-        else {
-            x$prev <- x$prev[keep]
-            x$prev0 <- x$prev0[indx]
-            x$cumhaz <- x$cumhaz[keep]
-            if (!is.null(x$std.err)) x$std.err <- x$std.err[keep]
-            if (!is.null(x$upper)) x$upper <- x$upper[keep]
-            if (!is.null(x$lower)) x$lower <- x$lower[keep]
-            }
-        }
-    x
+        if (length(i) <=1 && drop) x$strata <- NULL
+        else               x$strata  <- x$strata[indx]
+        i <- keep
     }
 
+    if (!is.null(j)) {
+        indx <- nmatch(j, x$states)
+        if (any(is.na(indx)))
+            stop("subscript out of bounds", j[is.na(indx)])
+        else j <- as.vector(indx)
+    }
+    else if (is.matrix(x$pstate)) j <- 1:ncol(x$pstate)
+
+    if (length(i) ==1 && !is.null(j) && missing(drop)) drop <- FALSE
+ 
+    # all the elements that have "nstate" elements or columns
+    temp <- c("states", "n.risk", "n.event", "n.censor", "pstate", 
+              "p0", "cumhaz", "std.err", "lower", "upper")
+    sfun <- function(z) {
+        if (is.array(z)) {
+            if (length(dim(z)) > 2) z[j,j,i, drop=drop]  
+            else z[i,j, drop=drop]
+        }
+        else z[j]
+    }
+
+    for (k in temp) x[[k]] <- sfun(x[[k]])
+    x$time <- x$time[i]
+    x
+}
 @ 
 
 The summary.survfit and summary.survfitms functions share a large
@@ -240,7 +210,7 @@ summary.survfit <- function(object, times, censored=FALSE,
 }
 @ 
 
-Grab rows: if there is no [[times]] argument it is easy
+Grab rows: if there is no \code{times} argument it is easy
 <<survsum-findrows>>=
 if (missing(times)) {
     # just pick off the appropriate rows of the output
@@ -254,7 +224,7 @@ if (missing(times)) {
 This second case is actual work, since may invovle ``in between'' points
 in the curves.
 Let's say that we have a line in the data for times 1,2, 5, and 6, and 8 
-and a user chose [[times=c(3,5, 9)]].
+and a user chose \code{times=c(3,5, 9)}.
 At time 3 we have
 \begin{itemize}
   \item nrisk[3] = value at the next time point >= 3
@@ -266,7 +236,7 @@ At time 3 we have
   \item survival[2] = survival at the last time point <=3
 \end{itemize}
 At time 5 we pick values directly off the data, since we match.
-At time 9 we report nothing if [[extend]] is FALSE, or the value
+At time 9 we report nothing if \code{extend} is FALSE, or the value
 at the end of the curve.  In this case we need to calculate the
 number at risk ourselves, however.
 This logic works out best if we do it curve by curve.
@@ -366,12 +336,12 @@ else {
 
 
 Repeat the code for survfitms objects.  The only real difference is
-the preservation of [[prev]] and [[cumhaz]] instead of [[surv]].
+the preservation of \code{pstate} and \code{cumhaz} instead of \code{surv}.
 
 <<survfitms-summary>>=
 summary.survfitms <- function(object, times, censored=FALSE, 
 			    scale=1, extend=FALSE, 
-                            rmean=getOption('survfit.rmean'),
+                            rmean,
                             ...) {
     fit <- object
     if (!inherits(fit, 'survfitms'))
@@ -383,18 +353,22 @@ summary.survfitms <- function(object, times, censored=FALSE,
         times <- sort(times)
     }
 
-    # add some temps to make survmean work
-    object$surv <- 1-object$prev
-    if (is.matrix(object$surv)) 
-        dimnames(object$surv) <- list(NULL, object$states)
-    temp <- survmean(object, scale=scale, rmean)  
+    # For the survmean function, collapse the n.event and n.risk arrays
+    temp <- object
+    temp$surv <- object$pstate
+    if (is.matrix(object$n.risk)) {
+        temp$n.risk <- rowSums(temp$n.risk)
+        temp$n.event <- rowSums(temp$n.event)
+        dimnames(temp$surv) <- list(NULL, object$states)
+    }
+    temp <- survmean(temp, scale=scale, rmean=)  
     table <- temp$matrix  #for inclusion in the output list
     rmean.endtime <- temp$end.time
 
-    # The fit$prev object is usually a matrix but can be a vector
+    # The fit$pstate object is usually a matrix but can be a vector
     #  We calculate row indices first, and then deal
     #  with the cases at the end.
-    nprev <- if (is.matrix(fit$prev)) nrow(fit$prev) else length(fit$prev)
+    nprev <- if (is.matrix(fit$pstate)) nrow(fit$pstate) else length(fit$pstate)
     if (is.null(fit$strata)) {
 	nstrat <- 1
 	stemp <- rep(1L, nprev)
@@ -444,8 +418,8 @@ summary.survfitms <- function(object, times, censored=FALSE,
         # why the rbind?  The user may have specified a time point before
         #  the first event, and indx1=1 indicates that case
         # the cumhaz array can't be done with a 1-liner
-        if (is.matrix(fit$prev)) {
-            temp$prev <- rbind(0, fit$prev)[indx1,,drop=FALSE]
+        if (is.matrix(fit$pstate)) {
+            temp$pstate <- rbind(0, fit$pstate)[indx1,,drop=FALSE]
             zz <- ifelse(indx1==1, NA, indx1-1)
             temp$cumhaz <- fit$cumhaz[,,zz, drop=FALSE]
             temp$cumhaz <- ifelse(is.na(temp$cumhaz), 0, temp$cumhaz)
@@ -457,7 +431,7 @@ summary.survfitms <- function(object, times, censored=FALSE,
             }
         }
         else {
-            temp$prev <- c(0, fit$prev[indx1])
+            temp$pstate <- c(0, fit$pstate[indx1])
             temp$cumhaz <- c(0, fit$cumhaz[indx1])
             if (!is.null(fit$std.err)) temp$std.err <- c(0, fit$std.err)[indx1]
             if (!is.null(fit$lower)) {
@@ -481,4 +455,71 @@ summary.survfitms <- function(object, times, censored=FALSE,
     class(temp) <- "summary.survfitms"
     temp
 }
+
+<<printms>>
 @ 
+
+Printing for a survfitms object is different than for a survfit one.
+The big difference is that I don't have an estimate of the median, or
+any other quantile for that matter.  
+I thought about ``time in state, given that you ever got there'', 
+but the death state lasts forever so that didn't seem useful.
+In it's place we put the number of events for each state, with
+$n$ being the maximum number ever at risk in that state.
+
+<<printms>>=
+print.survfitms <- function(x, scale=1,
+                            digits = max(options()$digits - 4, 3),  ...) {
+    if (!is.null(cl<- x$call)) {
+	cat("Call: ")
+	dput(cl)
+	cat("\n")
+        }	
+    omit <- x$na.action
+    if (length(omit)) cat("  ", naprint(omit), "\n")
+    savedig <- options(digits=digits)
+    on.exit(options(savedig))
+
+    nstate <- length(x$states)
+    ngrp   <- max(1, length(x$strata))
+    if (ngrp >1)  {
+        igrp <- rep(1:ngrp, x$strata)
+        rname <- names(x$strata)
+        }
+    else {
+        igrp <- rep(1, length(x$time))
+        rname <- NULL
+        }
+
+    if (nstate > 1) {
+        nc <- ncol(x$n.risk)
+        maxrisk <- tapply(x$n.risk, list(rep(igrp, nc), col(x$n.risk)), max)
+        dimnames(maxrisk) <- list(rname, x$states)
+        }
+    else {
+        maxrisk <- tapply(x$n.risk, igrp, max)
+        names(maxrisk) <- rname
+        }
+
+    # The n.event matrix may not have as many columns as n.risk.  It's
+    #  colnames are the first elements of states
+    if (is.matrix(x$n.event)) {
+        nc <- ncol(x$n.event)
+        nevent <- tapply(x$n.event, list(rep(igrp, nc), col(x$n.event)), sum)
+        dimnames(nevent) <- list(rname, x$states[1:nc])
+        }
+    else {
+        nevent <- tapply(x$n.event, igrp, sum)
+        names(nevent) <- rname
+        }
+
+    doprint <- which(colSums(maxrisk) > 0)
+    tmat <- cbind(maxrisk[,doprint], NA,  nevent)
+    dimnames(tmat)[[2]] <- c((dimnames(maxrisk)[[2]])[doprint], 
+                             " ", dimnames(nevent)[[2]])
+    cat("    max number at risk  |  number of events\n")
+    print(tmat, na.print=" | ")
+        
+}
+@ 
+

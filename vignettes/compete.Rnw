@@ -119,20 +119,23 @@ The two other primary decisions are the choice of time scale for
 the fits, e.g. time from entry to the study vs. time from entry to
 the state, and what covariates will be used .
 
-\section{Multi-state prevalence curves}
+\section{Multi-state curves}
 \subsection{Aalen-Johansen estimate}
 A starting point for analysis is to compute and plot 
-`prevalence' or `occupancy' estimates.
-This is a vector function $p(t)$ that estimates the fraction
-of subjects in each state at time $t$.
-We compute this using the Aalen-Johansen estimate via the 
+estimates of $p(t)$, which is a vector containing the probalilty of being
+in each of the states at time $t$.
+If there were no censoring then $p$ becomes a simple a tabulation at time
+$t$ of all the states.
+For the general case we compute this
+this using the Aalen-Johansen estimate via the 
 \code{survfit} function.
 
 Mathematically the estimate is simple.
 For each unique time that an event occurs form the
-transition matrix $T(t)$ with elements
- $t_{ij}(t) =$ the fraction of subjects in state $i$ at time $t$
-who transition to state $j$ at that time.
+transition matrix $T(t)$ with elements or rates of 
+ $\lambda_{ij}(t) =$ the fraction of subjects who transition from
+state $i$ to $j$ at time $t$, among those in state $i$ just prior to 
+time $t$.
 ($T$ is equal to the identity matrix at any time point without an
 observed transition.) 
 Then
@@ -147,8 +150,8 @@ $d(t)$ the number of deaths at that time point.
 All subjects start in the alive state and thus $p(0) = (1,0)$ and
 the transition matrix is 
 \begin{equation*}
-  T(t) = \left( \begin{array}{cc} 
-    [n(t)- d(t)]/n(t)  & n(t)/d(t) \\\\ 0 & 1 \end{array}
+  T(s) = \left( \begin{array}{cc} 
+    [n(s)- d(t)]/n(s)  & n(s)/d(s) \\\\ 0 & 1 \end{array}
   \right)
 \end{equation*}
 The second row corresponds to the fact that death is an absorbing state.
@@ -163,7 +166,7 @@ For the two state alive-dead model the Aalen-Johansen (AJ) estimate
 has reprised the KM.
 Repeating the same matrix exercise for the competing risks case shown in the
 upper right of figure \ref{mfig1} 
-recovers the well known cumulative incidence estimate;
+recovers the well known cumulative incidence (CI) estimate;
 it is also a special case of the AJ estimate.
 The AJ estimate is very flexible: subjects can visit multiple states
 during the course of a study, subjects can start after time 0 (delayed
@@ -176,27 +179,24 @@ infinitesimal jackknife.
 Let $D(t)$ be a matrix with one row per subject and one column per state.
 Each row contains the \emph{change} in $p(t)$ corresponding to subject $i$,
 i.e., the derivative of $p$ with respect to the $i$th subject's case
-weight $dp(t)/dw_i$. The $V(t) = D'D$ is the estimated variance-covariance
+weight $dp(t)/dw_i$. Then $V(t) = D'D$ is the estimated variance-covariance
 matrix of the estimates at time $t$.
 
-The $p(t)$ vector estimates the fraction of subjects in each state at
-time $t$.  It obeys the obvious constraint that the sum of states at any time
+The $p(t)$ vector obeys the obvious constraint that the sum of states at 
+any time
 is equal to 1: each person has to be somewhere.
-I will refer to the resulting values as \emph{prevalence} estimates. 
-If there is no censoring then prevalence is particularly easy: at a
-given time just count the fraction of subjects in each state.
-(In epidemiology the prevalence is normally defined as the proportion 
-among those
-who are not dead; here we do not treat the death state any differently
-than the others.)
+I prefer the label \emph{current prevalence} estimate, 
+since it estimates what fraction of the subjects are in any
+given state across time.  
+However the word ``prevalence'' is likely to generate confusion whenever
+death is one of the states, due to its historic use as the fraction of
+living subjects who have a particular condition.
+We will use the phrase \emph{probability in state} or simply $p$
+from this point forward.
 
-In the simple two state model the prevalence in the alive state is the
+In the simple two state model the Pr(alive) is the 
 usual KM survival estimate, and we have 
 $p_1(t) = 1- p2(t)$, Pr(alive) = 1 - Pr(dead).  
-For simple survival we have gotten used to the idea of using Pr(dead) and
-1- Pr(dead) interchangeably, but that habit needs to be left behind for
-multi-state models, for them the values $1-p_k(t)$ 
-= probability(any other state than $k$) are not very useful.
 Plots for the 2 state case sometimes choose to show p(alive)
 and sometimes p(dead). Which one is used often depends on a historical
 whim of the disease specialty; 
@@ -208,10 +208,18 @@ The survfit routine's historical default for the 2 state case is to
 print and plot Pr(alive)= $p_1(t)$, which reflects that the
 author of the routine was working primarily in cancer trials at the time 
 said default was chosen.
+
+For simple survival we have gotten used to the idea of using Pr(dead) and
+Pr(alive) interchangeably, but that habit needs to be left behind for
+multi-state models, for them curves of $1-p_k(t)$ 
+= probability(any other state than $k$) are not useful.
 In the multi-state case individual curves can go both up and down.
 For competing risks the curve for the initial state (leftmost in 
-in the diagram) is rarely included in the final plot and the remaining curves 
-rise from 0.
+in the diagram) is rarely included in the final plot; since the curves sum to
+1 the full set is redundant, Pr(nothing yet) is usually the least interesting
+of the set, and so is left off to make the plot less busy.
+The remaining curves in the competing risks case rise from 0.
+(This bothers some researchers as it 'just looks wrong' to them.)
 
 \subsection{Examples}
 Start with a simple competing risks problem.

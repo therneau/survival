@@ -48,23 +48,23 @@ This may be a vector or a matrix. The latter occurs when a set of
 survival curves is created from a single Cox model, in which case
 there is one column for each covariate set. 
 }
-\item{prev}{
+\item{pstate}{
 a multi-state survival will have this component instead of \code{surv}.
-It will be a matrix containing the estimated prevalance (probability)
+It will be a matrix containing the estimated probability
 of each state at each time, one column per state.
 }
 
 \item{std.err}{
 for a survival curve this contains standard error of the cumulative
 hazard or -log(survival), for a multi-state curve it contains the
-standard error of the prevalence.  This difference is a reflection of
+standard error of pstate.  This difference is a reflection of
 the fact that each is the natural calculation for that case.
 }
 \item{upper}{
-upper confidence limit for the survival curve or prevalence
+upper confidence limit for the survival curve or probability
 }
 \item{lower}{
-lower confidence limit for the survival curve or prevalence. 
+lower confidence limit for the survival curve or probability
 }
 \item{strata}{
 if there are multiple curves, this component gives the number of elements of 
@@ -104,7 +104,7 @@ type of survival censoring.
 \section{Subscripts}{
 Survfit objects that contain multiple survival curves can be subscripted. 
 This is most often used to plot a subset of the curves.
-If the \code{surv} or \code{prev} object is a matrix then the
+If the \code{surv} or \code{pstate} object is a matrix then the
 \code{survfit} object will be treated as a matrix, otherwise only a
 single subscript is used.
 }
