@@ -27,7 +27,7 @@ pdf.options(pointsize=10) #text in graph about the same as regular text
 options(contrasts=c("contr.treatment", "contr.poly")) #ensure default
 
 require("survival")
-@ 
+@
 
 \title{Multi-state models and competing risks}
 \author{Terry M Therneau \\ \emph{Mayo Clinic}}
@@ -626,7 +626,7 @@ if someone is not at risk it really does not matter why.
 When computing the prevalence of each state, on the other hand, all the
 rates must be considered at once.  
 The Aalen-Johansen estimate applies as before, but now the individual
-entries $\lamda_{ij}(t)$ in each cell of the transition matrix are taken
+entries $\lambda_{ij}(t)$ in each cell of the transition matrix are taken
 from the relevant fit.
 As is also the case with predicted survival curves from a simple 
 Cox model, predicted prevalence curves correspond to a set of
@@ -657,6 +657,7 @@ transition matrices $T$ are predicted hazards from the relevant Cox
 model.
 
 <<mprev>>=
+if (FALSE) {  #still incomplete
 tdata <- expand.grid(mspike=c(.5, 1.5), age=c(6,8), sex=c("F", "M"))
 tmat <- matrix(list(), 3, 3,
                dimnames=list(c("Entry", "PCM", "Death"), 
@@ -664,7 +665,8 @@ tmat <- matrix(list(), 3, 3,
 tmat[1,2] <- list(survfit(cfit1, newdata=tdata))  # time to progression curves
 tmat[1,3] <- list(survfit(cfit2, newdata=tdata))  # time to death curves
 csurv <- survfit(tmat)
-
+}
+@ 
 
 
 For the 2 state competing risks model $T$ has the form
@@ -678,7 +680,7 @@ transition from the entry state to PCM,
 and $\lambda_{13}$ is the rate from entry to death. 
 The zeros in the second and third row correspond to the fact that,
 for this diagram, the PCM and death states are absorbing.
-The diagon elements of $T$ are filled in last and are chosen to make each row
+The diagonal elements of $T$ are filled in last and are chosen to make each row
 sum to 1.  
 
 These predicted hazards are formed for a chosen set of covariates $x$,

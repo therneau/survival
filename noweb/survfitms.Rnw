@@ -109,6 +109,27 @@ One part of the code that once was subtle is dealing with
 intermediate time points; the findInterval function in base R has
 made that much easier.
 
+The key computational idea is to create a pair of variables
+\code{indx1} and \code{indx2}, which point to the appropriate rows of the 
+input data.  
+When there is a \code{times} argument is when this gets interesting.
+Say that the data has values at time 5, 10, 15, 20 \ldots, and a user asks
+for \code{times=c(7, 15, 20)}.  
+In the input object \code{n.risk} refers to the number at risk just before
+time 5, 10, \ldots; it is a left-continuous function.  
+The survival is a right-continuous function.  So at time 7 we want to 
+take the survival from time 5 and number at risk from time 10;
+\code{indx1} will be the right-continuous index and \code{indx2} the
+left continuous one. 
+For counts of events, censoring, and entry we want to know the total
+number that happened during the intervals of 0-7, 7-15, and 15-20.
+Technically censorings at time 15 happen just after time 15 so would
+go into the third line of the report.
+However, this would lead to terrible confusion for the user since
+using \code{times=c(5, 10, 15, 20)} would lead to different counts than
+a call that did not contain the times argument, so all 3 of the intermediates
+are computed using indx1.
+
 <<survfitms-summary>>=
 summary.survfit <- function(object, times, censored=FALSE, 
 			    scale=1, extend=FALSE, 
@@ -121,6 +142,18 @@ summary.survfit <- function(object, times, censored=FALSE,
     # The print.rmean option is depreciated, it is still listened
     #   to in print.survfit, but ignored here
     if (is.null(rmean)) rmean <- "common"
+    if (is.numeric(rmean)) {
+        if (is.null(x$start.time)) {
+            if (rmean < min(x$time)) 
+                stop("Truncation point for the mean is < smallest survival")
+        }
+        else if (rmean < x$start.time)
+            stop("Truncation point for the mean is < smallest survival")
+    }
+    else {
+        rmean <- match.arg(rmean, c('none', 'common', 'individual'))
+        if (length(rmean)==0) stop("Invalid value for rmean option")
+    }
 
     temp <- survmean(fit, scale=scale, rmean)  
     table <- temp$matrix  #for inclusion in the output list
@@ -149,19 +182,19 @@ summary.survfit <- function(object, times, censored=FALSE,
     <<survsum-findrows>>
 
     # Create an output structure
+    temp <- object
+    temp$table <- table
+    if (length(rmean.endtime)>0  && !is.na(rmean.endtime)) 
+            temp$rmean.endtime <- rmean.endtime
     if (length(indx1)==length(fit$time) && all(indx1 == seq(along=fit$time))) {
-        temp <- object  #no change
         temp$time <- temp$time/scale
-        temp$table <- table
         if (!is.null(temp$strata))
             temp$strata <- factor(stemp, labels=strata.names)
 
     }
     else if (missing(times)) {  #default censor=FALSE case
-        temp <- object
         temp$time <- temp$time[indx1]/scale
-        temp$table <- table
-        for (j in c("n.risk", "n.event", "n.censor", "n.enter",
+        for (j in c("n.risk", "n.event", "n.censor", "n.enter", "pstate",
                     "surv", "std.err", "cumhaz", "lower", "upper")) {
             zed <- temp[[j]]
             if (!is.null(zed)) {
@@ -174,50 +207,27 @@ summary.survfit <- function(object, times, censored=FALSE,
                                   labels=strata.names)
     }
     else { #times argument was given
-        temp <- list(n=object$n, time=times/scale, 
-                     n.risk=n.risk, n.event=n.event,
-                     conf.int=fit$conf.int, type=fit$type, table=table)
-        if (!is.null(n.censor)) temp$n.censor <- n.censor
-        if (!is.null(n.enter))  temp$n.enter <- n.enter
-        if (!is.null(fit$start.time)) temp$start.time <- fit$start.time
-            
-        # why the rbind?  The user may have specified a time point before
-        #  the first event, and indx1=1 indicates that case
-        if (is.matrix(fit$surv)) {
-            temp$surv <- rbind(1, fit$surv)[indx1,,drop=FALSE]
-            if (!is.null(fit$std.err))
-                temp$std.err <- rbind(0, fit$std.err)[indx1,,drop=FALSE]
-            if (!is.null(fit$lower)) {
-                temp$lower <- rbind(1, fit$lower)[indx1,,drop=FALSE]
-                temp$upper <- rbind(1, fit$upper)[indx1,,drop=FALSE]
-             }
-            if (!is.null(fit$cumhaz))
-                temp$cumhaz <- rbind(0, fit$cumhaz)[indx1,,drop=FALSE]
+        temp$time <- unlist(newtime)/scale
+        tfun <- function(x, init=0) {
+             if (is.matrix(x)) 
+                rbind(rep(init, ncol(x)), x)[1+indx1,,drop=FALSE]
+             else c(init, x)[1 + indx1]
         }
-        else {
-            temp$surv <- c(1, fit$surv)[indx1]
-            if (!is.null(fit$std.err)) temp$std.err <- c(0,fit$std.err)[indx1]
-            if (!is.null(fit$lower)) {
-                temp$lower <- c(1, fit$lower)[indx1]
-                temp$upper <- c(1, fit$upper)[indx1]
-            }
-            if (!is.null(fit$cumhaz)) temp$cumhaz <- c(0, fit$cumhaz)[indx1]
+        temp$surv <- tfun(temp$surv, 1)
+        for (j in c("n.risk", "std.err", "cumhaz", "lower", "upper")) {
+            if (!is.null(temp[[j]])) temp[[j]] <- tfun(temp[[j]])
         }
+        for (j in c("n.event", "n.censor", "n.enter")){
+            zed <- temp[[j]]
+            if (!is.null(zed)) temp[[j]] <- cfun(zed)
+        }
+        
         if (!is.null(fit$strata)) {
-            scount <- unlist(lapply(newtimes, length))
+            scount <- unlist(lapply(ilist1, length))
             temp$strata <- factor(rep(1:nstrat, scount), levels=1:nstrat,
                                   labels=strata.names)
         }
-    
-        if (length(rmean.endtime)>0  && !is.na(rmean.endtime)) 
-            temp$rmean.endtime <- rmean.endtime
-
-        temp$call <- fit$call
-        if (!is.null(fit$na.action)) temp$na.action <- fit$na.action
-  
     }
-    if (!is.null(temp$std.err))
-        temp$std.err <- temp$std.err*temp$surv  #std error of the survival curve
     class(temp) <- 'summary.survfit'
     temp
 }
@@ -236,33 +246,19 @@ if (missing(times)) {
 
 This second case is actual work, since may involve ``in between'' points
 in the curves.
-Let's say that we have a line in the data for times 1,2, 5, and 6, and 8 
-and a user chose \code{times=c(3,5, 9)}.
-At time 3 we have
-\begin{itemize}
-  \item nrisk[3] = value at the next time point >= 3
-  \item nevent[1] + nevent[2] = value since last printout line. 
-    However, if there are multiple strata the curves for all strata
-    are laid end to end in a single vector; our first row for a curve
-    needs to use all events since the start of the curve.
-  \item ncensor works like nevent
-  \item survival[2] = survival at the last time point <=3
-\end{itemize}
-At time 5 we pick values directly off the data, since we match.
-At time 9 we report nothing if \code{extend} is FALSE, or the value
-at the end of the curve.  In this case we need to calculate the
-number at risk ourselves, however.
-This logic works out best if we do it curve by curve.
+In R version 3.2.? findInterval gains an argument so as to return both
+left and right continuous results, but I currently need to integrate with
+an older version.
 
 <<survsum-findrows>>=
 else { 
-    # Process the curves one at a time,
-    #   adding the results for that curve onto a list, so the
-    #   number of events will be n.enter[[1]], n.enter[[2]], etc.
-    # For the survival, stderr, and confidence limits it suffices
-    #   to create a single list 'indx1' containing a subscripting vector
-    indx1 <- n.risk <- n.event <- newtimes <- vector('list', nstrat)
-    n.censor <- n.enter <- vector('list', nstrat)
+    find2 <- function(x, vec, leftmost.closed=FALSE, lcont=TRUE) {
+        if (lcont) findInterval(x, vec, leftmost.closed)
+        else length(vec) - findInterval(-x, rev(-vec), leftmost.closed)
+    }
+    # Process the curves one at a time, adding them to the two lists
+    ilist1 <- ilist2 <- ilist3 <- vector('list', nstrat)
+    newtime <- ilist1
     n <- length(stemp)
     for (i in 1:nstrat) {
         who <- (1:n)[stemp==i]  # the rows of the object for this strata
@@ -277,62 +273,48 @@ else {
             maxtime <- max(stime)
             ptimes <- ptimes[ptimes <= maxtime]
     	}
-        newtimes[[i]] <- ptimes
+        j <- find2(ptimes, stime) 
+        ilist1[[i]] <- c(0, who)[1+ j]
+        ilist2[[i]] <- c(0, who)[1+ find2(ptimes, stime, lcont=FALSE)]
+        ilist3[[i]] <- j  #index within a group
+        newtime[[i]] <- ptimes
+    }
+    indx1 <- unlist(ilist1)
+    indx2 <- unlist(ilist2)
 
-        indx <- findInterval(ptimes, stime)
-        indx1[[i]] <- who[indx]
-
-        # indx gives the index of the first value of stime that
-        #  is <= each ptime
-        # It will be zero for times that are before the first event,
-        #  and length(stime) for any times after the last point in the curve.
-        # The cfun function below gives total counts, accounting for the
-        #  zeros in indx
-        cfun <- function(x, indx, init=0) {
-            if (is.matrix(x)) apply(x, 2, function(z) {
-                temp <- ifelse(indx==0, init, cumsum(z)[indx])
-                diff((c(0, temp)))
-                })
-            else {
-                temp <- ifelse(indx==0, init, cumsum(x)[indx])
-                diff(c(0, temp))
-                }
+    # All of the indices (ilist1, indx1, ...) contain 0 for a time point that
+    #  is prior to the first observed time in the curve.  Times that
+    #  are >= to the last observed time will point to that last observed
+    #  time.  Variable ilist3 contains indices that are relative to the
+    #  start of a curve, all other indices point to row numbers in the
+    #  entire object.
+    #  
+    cfun <- function(x, init=0) {  #cumulative counts over a time interval
+        tlist <- vector("list", nstrat)
+        if (is.matrix(x)) {
+            for (i in 1:nstrat) {
+                # stemp is 1,1,1,....2,2,2,,.. to mark curves
+                x2 <- x[stemp==i,]  # all those in the group
+                j  <- ilist3[[i]]
+                tlist[[i]] <- apply(rbind(0,0, x2), 2, function(z) {
+                    (diff(cumsum(z)))[1+j]})
             }
- 
-        n.event[[i]] <- cfun(fit$n.event[who], indx)
-        n.risk[[i]]  <- c(0, fit$n.risk[who])[i+1]
-  
-        if (!is.null(fit$n.censor)) {
-    	    n.censor[[i]] <- cfun(fit$n.censor[who], indx)
-    	    }
-        if (!is.null(fit$n.enter)) {
-    	    n.enter[[i]] <- cfun(fit$n.enter[who], indx)
-    	    }
-     }
-	
-    # unlisting a list of matrices is a bit more work
-    # all the ones in each list have the same number of columns, so it would
-    #  be easy if they were in row major order.
-    matunlist <- function(z) {
-        if (is.matrix(z[[1]])) {
-            nc <- ncol(z[[1]])
-            matrix(unlist(lapply(z, t)), byrow=TRUE, ncol=nc)
+            matrix(unlist(lapply(tlist, t)), byrow=T, ncol=ncol(x))
+        } 
+        else {
+            for (i in 1:nstrat) {
+                x2 <- x[stemp==i]
+                tlist[[i]] <- diff(cumsum(c(0,0,x2)))[1 + ilist3[[i]]]
+            }
+            unlist(tlist)
         }
-        else unlist(z)
-        }
-        
-    times  <- unlist(newtimes)
-    n.risk <-  matunlist(n.risk)
-    n.event <- matunlist(n.event)
-    n.censor<- matunlist(n.censor)  #may be NULL
-    n.enter <- matunlist(n.enter)
-    indx1 <- unlist(indx1)
+    }
 }
 @ 
 
-
 Repeat the code for survfitms objects.  The only real difference is
-the preservation of \code{pstate} and \code{cumhaz} instead of \code{surv}.
+the preservation of \code{pstate} and \code{cumhaz} instead of \code{surv},
+use of survmean2, and use of p0 for initial states.
 
 <<survfitms-summary>>=
 summary.survfitms <- function(object, times, censored=FALSE, 
@@ -343,6 +325,8 @@ summary.survfitms <- function(object, times, censored=FALSE,
     if (!inherits(fit, 'survfitms'))
 	    stop("summary.survfitms can only be used for survfitms objects")
 
+    # The print.rmean option is depreciated, it is still listened
+    #   to in print.survfit, but ignored here
     if (is.null(rmean)) rmean <- "common"
     if (is.numeric(rmean)) {
         if (is.null(x$start.time)) {
@@ -356,23 +340,23 @@ summary.survfitms <- function(object, times, censored=FALSE,
         rmean <- match.arg(rmean, c('none', 'common', 'individual'))
         if (length(rmean)==0) stop("Invalid value for rmean option")
     }
-       
+
+    temp <- survmean2(fit, scale=scale, rmean)  
+    table <- temp$matrix  #for inclusion in the output list
+    rmean.endtime <- temp$end.time
+
     if (!missing(times)) {
         if (!is.numeric(times)) stop ("times must be numeric")
         times <- sort(times)
     }
 
-    temp <- survmean2(fit, scale=scale, rmean=rmean)  
-    table <- temp$matrix  #for inclusion in the output list
-    rmean.endtime <- temp$end.time
-
-    # The fit$pstate object is usually a matrix but can be a vector
-    #  We calculate row indices first, and then deal
+    # The fit$surv object is sometimes a vector and sometimes a
+    #  matrix.  We calculate row indices first, and then deal
     #  with the cases at the end.
-    nprev <- if (is.matrix(fit$pstate)) nrow(fit$pstate) else length(fit$pstate)
+    nsurv <- if (is.matrix(fit$surv)) nrow(fit$surv) else length(fit$surv)
     if (is.null(fit$strata)) {
 	nstrat <- 1
-	stemp <- rep(1L, nprev)
+	stemp <- rep(1L, nsurv)
         strata.names <- ""
 	}
     else   {
@@ -384,75 +368,62 @@ summary.survfitms <- function(object, times, censored=FALSE,
     <<survsum-findrows>>
 
     # Create an output structure
-    if (length(indx1)== length(fit$time) && all(indx1 == seq(along=fit$time))) {
-        temp <- object  #no change
+    temp <- object
+    temp$table <- table
+    if (length(rmean.endtime)>0  && !is.na(rmean.endtime)) 
+            temp$rmean.endtime <- rmean.endtime
+    if (length(indx1)==length(fit$time) && all(indx1 == seq(along=fit$time))) {
         temp$time <- temp$time/scale
-        temp$table <- table
-        if (!is.null(temp$strata)) 
-            temp$strata <- factor(stemp, levels=1:nstrat, labels=strata.names)
+        if (!is.null(temp$strata))
+            temp$strata <- factor(stemp, labels=strata.names)
+
     }
-    else if (missing(times)) {
-        temp <- object
+    else if (missing(times)) {  #default censor=FALSE case
         temp$time <- temp$time[indx1]/scale
-        temp$table <- table
-        for (j in c("n.risk", "n.event", "n.censor", 
-                    "prev", "std.err", "lower", "upper")) {
+        for (j in c("n.risk", "n.event", "n.censor", "n.enter", "pstate",
+                    "pstate", "std.err", "cumhaz", "lower", "upper")) {
             zed <- temp[[j]]
             if (!is.null(zed)) {
                 if (is.matrix(zed)) temp[[j]] <- zed[indx1,,drop=FALSE]
                 else temp[[j]] <- zed[indx1]
             }
         }
-        temp$cumhaz <- fit$cumhaz[,,indx1,drop=FALSE]
         if (!is.null(temp$strata))
             temp$strata <- factor(stemp[indx1], levels=1:nstrat,
                                   labels=strata.names)
     }
-    else {
-        temp <- list(n=object$n, time=times/scale, 
-                     n.risk=n.risk, n.event=n.event,
-                     conf.int=fit$conf.int, type=fit$type, table=table)
-        if (!is.null(n.censor)) temp$n.censor <- n.censor
-        if (!is.null(n.enter))  temp$n.enter <- n.enter
-        if (!is.null(fit$start.time)) temp$start.time <- fit$start.time
+    else { #times argument was given
+        temp$time <- unlist(newtime)/scale
+        tfun <- function(x, init=0) {
+            if (is.matrix(x)) 
+                rbind(rep(init, ncol(x)), x)[1+indx1,,drop=FALSE]
+            else c(init, x)[1 + indx1]
+        }
 
-        # why the rbind?  The user may have specified a time point before
-        #  the first event, and indx1=1 indicates that case
-        # the cumhaz array can't be done with a 1-liner
-        if (is.matrix(fit$pstate)) {
-            temp$pstate <- rbind(0, fit$pstate)[indx1,,drop=FALSE]
-            zz <- ifelse(indx1==1, NA, indx1-1)
-            temp$cumhaz <- fit$cumhaz[,,zz, drop=FALSE]
-            temp$cumhaz <- ifelse(is.na(temp$cumhaz), 0, temp$cumhaz)
-            if (!is.null(fit$std.err)) 
-                temp$std.err <- rbind(0, fit$std.err)[indx1,,drop=FALSE]
-            if (!is.null(fit$lower)) {
-                temp$lower <- rbind(0, fit$lower)[indx1,,drop=FALSE]
-                temp$upper <- rbind(0, fit$upper)[indx1,,drop=FALSE]
+        temp$pstate <- tfun(temp$pstate, 0)
+        # fix up the initial states
+        if (any(indx1==0)) {
+            if (nstrat==1) temp$sstate[indx1==0,] <- temp$p0
+            else {
+                ninit <- sapply(ilist1, function(x) sum(x==0))
+                zz <- rep(1:nstrat, ninit)
+                temp$pstate[indx1==0,] <- temp$p0[zz,]
             }
         }
-        else {
-            temp$pstate <- c(0, fit$pstate[indx1])
-            temp$cumhaz <- c(0, fit$cumhaz[indx1])
-            if (!is.null(fit$std.err)) temp$std.err <- c(0, fit$std.err)[indx1]
-            if (!is.null(fit$lower)) {
-                temp$lower <- c(0, fit$lower)[indx1]
-                temp$upper <- c(0, fit$upper)[indx1]
-            }
+        for (j in c("n.risk", "std.err", "cumhaz", "lower", "upper")) {
+            if (!is.null(temp[[j]])) temp[[j]] <- tfun(temp[[j]])
         }
+        for (j in c("n.event", "n.censor", "n.enter")){
+            zed <- temp[[j]]
+            if (!is.null(zed)) temp[[j]] <- cfun(zed)
+        }
+        
         if (!is.null(fit$strata)) {
-            scount <- unlist(lapply(newtimes, length))
+            scount <- unlist(lapply(ilist1, length))
             temp$strata <- factor(rep(1:nstrat, scount), levels=1:nstrat,
                                   labels=strata.names)
         }
-
-        temp$call <- fit$call
-        if (!is.null(fit$na.action)) temp$na.action <- fit$na.action
-  
     }
-        
-    if (length(rmean.endtime)>0  && !is.na(rmean.endtime)) 
-            temp$rmean.endtime <- rmean.endtime
     class(temp) <- "summary.survfitms"
     temp
 }

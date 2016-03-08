@@ -8,20 +8,20 @@ print.summary.survfitms <- function(x,
 	dput(cl)
 	cat("\n")
 	}
-
+    tsum <- function(x) {
+        if (is.matrix(x)) rowSums(x) else x
+    }
     omit <- x$na.action
     if (length(omit)) 
 	    cat(naprint(omit), "\n")
     if (x$type == 'mright' || is.null(x$n.enter)) {
-	mat <- cbind(x$time, x$n.risk, rowSums(x$n.event), x$pstate)
+	mat <- cbind(x$time, tsum(x$n.risk), tsum(x$n.event), x$pstate)
 	cnames <- c("time", "n.risk", "n.event")
         }
 
     else if (x$type == 'mcounting') {
-	mat <- cbind(x$time, x$n.risk, rowSums(x$n.event), x$n.enter,
-		     x$n.censor, x$pstate)
-	cnames <- c("time", "n.risk", "n.event", 
-		    "entered", "censored")
+	mat <- cbind(x$time, tsum(x$n.risk), tsum(x$n.event), x$pstate,)
+	cnames <- c("time", "n.risk", "n.event")
         }
 
     if (is.matrix(x$pstate)) ncurve <- ncol(x$pstate)
@@ -41,7 +41,7 @@ print.summary.survfitms <- function(x,
 	        }	
 	    }
         }
-    else cnames <- c(cnames, paste("P", seq(ncurve), sep=''))
+    else cnames <- c(cnames, paste0("P(", x$states[1:ncurve], ")"))
 
     if (!is.null(x$start.time)) {
 	mat.keep <- mat[,1] >= x$start.time
