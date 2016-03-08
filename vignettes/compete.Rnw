@@ -277,10 +277,11 @@ event <- factor(event, 0:2, labels=c("censor", "pcm", "death"))
 table(event)
 
 mfit2 <- survfit(Surv(etime, event) ~ sex, data=mgus2)
-mfit2
+print(mfit2, rmean=240, scale=12)
+
 plot(mfit2, col=c(1,2,1,2), lty=c(2,2,1,1),
      mark.time=FALSE, lwd=2,  xscale=12,
-     xlab="Years post diagnosis", ylab="Prevalence")
+     xlab="Years post diagnosis", ylab="Probability in State")
 legend(240, .6, c("death:female", "death:male", "pcm:female", "pcm:male"), 
        col=c(1,2,1,2), lty=c(1,1,2,2), lwd=2, bty='n')
 @ 
@@ -302,15 +303,28 @@ with the exception of the \code{event} variable.
   \item The default plot does not include the curve for the initial state,
     the remaining curves all start at 0.
 \end{enumerate}
-The reason for point 3 above is simply that multiple event curves can 
-very quickly get too busy with all the multiple lines.
-Since the three MGUS states of entry/pcm/death must sum to 1, one of the
+
+The printout shows that a male subject will spend, on average,
+8.7 of the first 20 years post diagnosis in the entry state, 1.1
+years in the PCM state and 10.3 of those 20 in the death state.
+If a cutoff time is not given the default is to use the maximum observed
+time for all curves, which is 424 months in this case.
+
+When the \code{survfit} call does not contain an \code{istate} directive
+then all of the subjects are assumed to begin in an unnamed ``entry''
+state, which has a blank label on the printout.
+By default this state is not plotted -- point 3 above --
+for the simple reason that multiple event curves can 
+very quickly get overcrowded with all the multiple lines.
+Since the three MGUS states of entry/pcm/death must sum to 1 at any
+given time (everyone has to be somewhere), one of the
 three curves is redundant and the ``fraction still in the entry state''
-curve is normally the least interesting.  
-If the \code{survfit} call contains an \code{istate} directive, i.e., 
-subjects do not necessarily all start in the same state, then the program
-assumes that all states might be interesting and does not omit
-any states from the estimates or plot.
+curve is normally the least interesting. 
+Technically, the default is to not plot any unnamed state, unless it is
+the only state in the object.
+One can easily add this line to the plot if desired, e.g.,
+\code{lines(mfit2[,3], col=4, lty=1:2)};
+the subscripting operation has removed the first two states.
 
 A common mistake with competing risks is to use the Kaplan-Meier
 separately on each
@@ -331,15 +345,16 @@ malignancy if all other causes of death were to be disallowed.
 In this hypothetical world it is indeed true that many more subjects would
 progress to PCM (the incorrect curve is higher), but it is also 
 not a world that any of us will ever inhabit.
-This author views it in much the same light as supposed medieval arguments about
+This author views the result in much the same light as supposed 
+medieval arguments about
 how many angels can dance on the head of a pin.
 The second problem is that the computation for this
 hypothetical case is only correct if all of the competing endpoints
 are independent, a situation which is almost never true.
 We thus have an unreliable estimate of an uninteresting quantity.
 The competing risks curve on the other hand
-estimates the fraction of MGUS subjects who \emph{will} 
-experience PCM, a quantity sometimes known as the lifetime risk,
+estimates the fraction of MGUS subjects who \emph{will experience} 
+PCM, a quantity sometimes known as the lifetime risk,
 and one which is actually observable.
 
 The last example chose to plot only a subset of the curves, something that is
@@ -352,7 +367,7 @@ The columns are in order of the levels of \code{event},
 i.e., as displayed by our earlier call to \code{table(event)}.   
 The first subscript indexes the groups formed by the right hand side of
 the model formula, and will be in the same order as simple survival curves.
-Thus \code{mfit2[2,1]} corresponds to males and the PCM endpoint.
+Thus \code{mfit2[2,1]} corresponds to males (2) and the PCM endpoint (1).
 
 \begin{figure}
 <<crfig2, echo=FALSE, fig=TRUE>>=
@@ -408,7 +423,7 @@ Our model looks like the illness-death model of figure \ref{mfig1} but
 with ``plasma cell malignancy'' as the upper state and no arrow for
 a return from that state to health.  
 The necessary data set will have two rows for any subject who has further
-follow-up after a PCM and one row for all others.
+follow-up after a PCM and a single row for all others.
 The data set is created below using the \code{tmerge} function, which is
 discussed in detail in another vignette.
 
@@ -443,6 +458,7 @@ simply counts rows for each person; it will be used later.
 temp <- with(newdata, ifelse(death==1, 2, pcm))
 newdata$event <- factor(temp, 0:2, labels=c("censor", "pcm", "death"))  
 mfit3 <- survfit(Surv(tstart, tstop, event) ~ sex, data=newdata, id=id)
+print(mfit3, rmean=240, digits=2)
 plot(mfit3[,1], mark.time=FALSE, col=1:2, lty=1:2, lwd=2,
      xscale=12,
      xlab="Years post MGUS diagnosis", ylab="Prevalence of PCM")
@@ -456,6 +472,9 @@ The curve goes up whenever someone enters the box (progression) and down when
 they leave (death).
 Myeloma survival was quite short during the era of this study and the 
 proportion currently in the PCM state rarely rises above 2 percent.
+The mean time in state for PCM is higher for mfit2 and mfit3, since in
+the former someone who converts to PCM at 5 years, say, will spend the
+next 15 in the PCM state.
 
 I have often found the three curve display below useful in these cases.
 It combines the results from competing risk model used above

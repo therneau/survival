@@ -126,7 +126,7 @@ summary.survfit <- function(object, times, censored=FALSE,
     #   to in print.survfit, but ignored here
     if (is.null(rmean)) rmean <- "common"
 
-    temp <- survmean2(fit, scale=scale, rmean)  
+    temp <- survmean(fit, scale=scale, rmean)  
     table <- temp$matrix  #for inclusion in the output list
     rmean.endtime <- temp$end.time
 
@@ -259,24 +259,13 @@ number at risk ourselves, however.
 This logic works out best if we do it curve by curve.
 
 <<survsum-findrows>>=
-else {  
-    # The one line function below might be opaque (even to me) --
-    # For n.event, we want to know the number since the last chosen
-    #  printout time point.  Start with the curve of cumulative
-    #  events at c(0, stime) (the input time points), which is
-    #  the cumsum below; pluck off the values corresponding to our
-    #  time points, the [x] below; then get the difference since the
-    #  last chosen time point (or from 0, for the first chosen point).
-    cfun <- function(x, data) diff(c(0, cumsum(c(0,data))[x]))
-
-
+else { 
     # Process the curves one at a time,
     #   adding the results for that curve onto a list, so the
     #   number of events will be n.enter[[1]], n.enter[[2]], etc.
     # For the survival, stderr, and confidence limits it suffices
     #   to create a single list 'indx1' containing a subscripting vector
     indx1 <- n.risk <- n.event <- newtimes <- vector('list', nstrat)
-    n.enter <- vector('list', nstrat)
     n.censor<- vector('list', nstrat)
     n <- length(stemp)
     for (i in 1:nstrat) {
@@ -292,61 +281,34 @@ else {
             maxtime <- max(stime)
             ptimes <- ptimes[ptimes <= maxtime]
     	}
-
         newtimes[[i]] <- ptimes
 
-        # If we tack a -1 onto the front of the vector of survival
-        #  times, then indx1 is the subscript for that vector
-        #  corresponding to the list of "ptimes".  If the input
-        #  data had stime=c(10,20) and ptimes was c(5,10,15,20),
-        #  the result would be 1,2,2,3.
-        # For n.risk we want a slightly different index: 2,2,3,3.
-        #  "In between" times point to the next higher index for n.risk,
-        #  but the next lower one for survival. (Survival drops at time t,
-        #  the n.risk immediately afterwords at time t+0: you were at
-        #  risk just before you die, but not a moment after). The
-        #  extra point needs to be added at the end.
-        #
-        ntime <- length(stime)  #number of points
-        temp1 <- approx(c(mintime-1, stime), 0:ntime, xout=ptimes,
-    		    method='constant', f=0, rule=2)$y
-        indx1[[i]] <- ifelse(temp1==0, 1, 1+ who[pmax(1,temp1)])
-        # Why not just "who[temp1]" instead of who[pmax(1,temp1)] in the
-        #  line just above?  When temp1 has zeros, the first expression
-        #  gives a vector that is shorter than temp1, and the ifelse
-        #  doesn't work right due to mismatched lengths.  
-        n.event[[i]] <- cfun(temp1+1, fit$n.event[who])
+        indx <- findInterval(ptimes, stime)
+        indx1[[i]] <- who[indx]
 
+        # indx gives the index of the first value of stime that
+        #  is <= each ptime
+        # It will be zero for times that are before the first event,
+        #  and length(stime) for any times after the last point in the curve.
+        # The cfun function below gives total counts, accounting for the
+        #  zeros in indx
+        cfun <- function(x, indx, init=0) {
+            temp <- ifelse(indx==0, init, x[indx])
+            diff(c(0, temp))
+            }
+ 
+        nevent[[i]] <- cfun(fit$n.event[who], indx1)
+        nrisk[[i]]  <- c(0, fit$n.risk[who])[i+1]
+  
         if (!is.null(fit$n.censor)) {
-    	    n.censor[[i]] <- cfun(temp1+1, fit$n.censor[who])
-    	    j <- who[ntime]  #last time point in the data
-    	    last.n <- fit$n.risk[j] - (fit$n.event[j]+ fit$n.censor[j])
+    	    n.censor[[i]] <- cfun(fit$n.censor[who], indx1)
     	    }
-        else {
-    	# this is for the older survfit objects, which don't contain
-    	#  n.censor.  In this case, we don't know how many of the
-    	#  people at the last time are censored then & how many go
-    	#  on further.  Assume we lose them all.  Note normally
-    	#  extend=FALSE, so this number isn't printed anyway.
-    	last.n <- 0
-    	}
-
-        # Compute the number at risk.  If stime = 1,10, 20 and ptime=3,10,
-        #   12, then temp1 = 2,2,3: the nrisk looking ahead
-        # approx() doesn't work if stime is of length 1
-        if (ntime ==1) temp1 <- rep(1, length(ptimes))
-        else temp1 <- approx(stime, 1:ntime, xout=ptimes,
-    		    method='constant', f=1, rule=2)$y
-        n.risk[[i]] <- ifelse(ptimes>max(stime), last.n,
-    			  fit$n.risk[who[temp1]])
      }
 	
     times  <- unlist(newtimes)
     n.risk <-  unlist(n.risk)
     n.event <- unlist(n.event)
-    n.enter <- unlist(n.enter)   #may be NULL
     n.censor<- unlist(n.censor)  #may be NULL
-    
     indx1 <- unlist(indx1)
 }
 @ 
@@ -365,20 +327,25 @@ summary.survfitms <- function(object, times, censored=FALSE,
 	    stop("summary.survfitms can only be used for survfitms objects")
 
     if (is.null(rmean)) rmean <- "common"
+    if (is.numeric(rmean)) {
+        if (is.null(x$start.time)) {
+            if (rmean < min(x$time)) 
+                stop("Truncation point for the mean is < smallest survival")
+        }
+        else if (rmean < x$start.time)
+            stop("Truncation point for the mean is < smallest survival")
+    }
+    else {
+        rmean <- match.arg(rmean, c('none', 'common', 'individual'))
+        if (length(rmean)==0) stop("Invalid value for rmean option")
+    }
+       
     if (!missing(times)) {
         if (!is.numeric(times)) stop ("times must be numeric")
         times <- sort(times)
     }
 
-    # For the survmean function, collapse the n.event and n.risk arrays
-    temp <- object
-    temp$surv <- object$pstate
-    if (is.matrix(object$n.risk)) {
-        temp$n.risk <- rowSums(temp$n.risk)
-        temp$n.event <- rowSums(temp$n.event)
-        dimnames(temp$surv) <- list(NULL, object$states)
-    }
-    temp <- survmean2(temp, scale=scale, rmean=rmean)  
+    temp <- survmean2(fit, scale=scale, rmean=rmean)  
     table <- temp$matrix  #for inclusion in the output list
     rmean.endtime <- temp$end.time
 
@@ -598,8 +565,8 @@ survmean2 <- function(x, scale, rmean) {
     else cname <- c("n", "nevent")
     dimnames(outmat) <- list(rowname, cname)
 
-    if (rmean=='none') list(matrix=outmat)
-    else list(matrix=outmat, end.time=maxtime)
+    if (rmean=='none') list(matrix=outmat/scale)
+    else list(matrix=outmat/scale, end.time=maxtime/scale)
 }
 @ 
 

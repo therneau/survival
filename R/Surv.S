@@ -18,7 +18,6 @@ Surv <- function(time, time2, event,
     #
     mtype <- match.arg(type)
 
-
     # If type is missing or it is "mstate", I need to figure out for myself
     #  whether I have (time, time2, status) or (time, status) data
     if (missing(type) || mtype=="mstate") {
@@ -159,8 +158,12 @@ Surv <- function(time, time2, event,
 
     dimnames(ss) <- list(NULL, dimnames(ss)[[2]]) #kill any tag-along row names
     attr(ss, "type")  <- type
-    if (type=="mright" || type=="mcounting") 
-        attr(ss, "states") <- levels(mstat)[-1]
+    if (type=="mright" || type=="mcounting") {
+        states <- levels(mstat)[-1]
+        if (any(is.na(states) | states=='') )
+            stop("each state must have a non-blank name")
+        attr(ss, "states") <- states
+    }
     if (length(inputAttributes) > 0) 
         attr(ss, "inputAttributes") <- inputAttributes
     class(ss) <- 'Surv'
