@@ -16,11 +16,7 @@ will associate with the columns.
 If there are two subscripts the first goes with the strata.
 The little \code{nmatch} function allow the user to use either names
 or integer indices.
-The drop argument is important when rows get subscripted such that
-only one row remains and there
-are multiple columns: in that case we do \emph{not} want to 
-lose the matrix nature of the result as it will lead to an invalid
-object.  Otherwise we can drop columns freely
+
 <<survfitms-subscript>>=
 "[.survfitms" <- function(x, ..., drop=TRUE) {
     nmatch <- function(indx, target) { 
@@ -109,9 +105,9 @@ object.  Otherwise we can drop columns freely
 
 The summary.survfit and summary.survfitms functions share a large
 amount of code.  
-Both are included here in order to have common source for the most
-subtle
-block of it, which has to do with selecting intermediate time points.
+One part of the code that once was subtle is dealing with
+intermediate time points; the findInterval function in base R has
+made that much easier.
 
 <<survfitms-summary>>=
 summary.survfit <- function(object, times, censored=FALSE, 
@@ -266,7 +262,7 @@ else {
     # For the survival, stderr, and confidence limits it suffices
     #   to create a single list 'indx1' containing a subscripting vector
     indx1 <- n.risk <- n.event <- newtimes <- vector('list', nstrat)
-    n.censor<- vector('list', nstrat)
+    n.censor <- n.enter <- vector('list', nstrat)
     n <- length(stemp)
     for (i in 1:nstrat) {
         who <- (1:n)[stemp==i]  # the rows of the object for this strata
@@ -293,22 +289,43 @@ else {
         # The cfun function below gives total counts, accounting for the
         #  zeros in indx
         cfun <- function(x, indx, init=0) {
-            temp <- ifelse(indx==0, init, x[indx])
-            diff(c(0, temp))
+            if (is.matrix(x)) apply(x, 2, function(z) {
+                temp <- ifelse(indx==0, init, cumsum(z)[indx])
+                diff((c(0, temp)))
+                })
+            else {
+                temp <- ifelse(indx==0, init, cumsum(x)[indx])
+                diff(c(0, temp))
+                }
             }
  
-        nevent[[i]] <- cfun(fit$n.event[who], indx1)
-        nrisk[[i]]  <- c(0, fit$n.risk[who])[i+1]
+        n.event[[i]] <- cfun(fit$n.event[who], indx)
+        n.risk[[i]]  <- c(0, fit$n.risk[who])[i+1]
   
         if (!is.null(fit$n.censor)) {
-    	    n.censor[[i]] <- cfun(fit$n.censor[who], indx1)
+    	    n.censor[[i]] <- cfun(fit$n.censor[who], indx)
+    	    }
+        if (!is.null(fit$n.enter)) {
+    	    n.enter[[i]] <- cfun(fit$n.enter[who], indx)
     	    }
      }
 	
+    # unlisting a list of matrices is a bit more work
+    # all the ones in each list have the same number of columns, so it would
+    #  be easy if they were in row major order.
+    matunlist <- function(z) {
+        if (is.matrix(z[[1]])) {
+            nc <- ncol(z[[1]])
+            matrix(unlist(lapply(z, t)), byrow=TRUE, ncol=nc)
+        }
+        else unlist(z)
+        }
+        
     times  <- unlist(newtimes)
-    n.risk <-  unlist(n.risk)
-    n.event <- unlist(n.event)
-    n.censor<- unlist(n.censor)  #may be NULL
+    n.risk <-  matunlist(n.risk)
+    n.event <- matunlist(n.event)
+    n.censor<- matunlist(n.censor)  #may be NULL
+    n.enter <- matunlist(n.enter)
     indx1 <- unlist(indx1)
 }
 @ 
@@ -378,7 +395,7 @@ summary.survfitms <- function(object, times, censored=FALSE,
         temp <- object
         temp$time <- temp$time[indx1]/scale
         temp$table <- table
-        for (j in c("n.risk", "n.event", "n.censor", "n.enter",
+        for (j in c("n.risk", "n.event", "n.censor", 
                     "prev", "std.err", "lower", "upper")) {
             zed <- temp[[j]]
             if (!is.null(zed)) {
@@ -490,7 +507,7 @@ print.survfitms <- function(x, scale=1,
         dimnames(temp$matrix) <- dd
         print(temp$matrix, ...)
         if (length(etime) ==1)
-             cat("   *mean time in state, restricted (max time = ", 
+             cat("   *mean time in state, restricted (max time =", 
                  format(etime), ")\n")
         else cat("   *mean time in state, restricted (per curve cutoff)\n")
     }

@@ -12,22 +12,22 @@ print.summary.survfitms <- function(x,
     omit <- x$na.action
     if (length(omit)) 
 	    cat(naprint(omit), "\n")
-    if (x$type == 'right' || is.null(x$n.enter)) {
-	mat <- cbind(x$time, x$n.risk, rowSums(x$n.event), x$prev)
+    if (x$type == 'mright' || is.null(x$n.enter)) {
+	mat <- cbind(x$time, x$n.risk, rowSums(x$n.event), x$pstate)
 	cnames <- c("time", "n.risk", "n.event")
         }
 
-    else if (x$type == 'counting') {
+    else if (x$type == 'mcounting') {
 	mat <- cbind(x$time, x$n.risk, rowSums(x$n.event), x$n.enter,
-		     x$n.censor, x$prev)
+		     x$n.censor, x$pstate)
 	cnames <- c("time", "n.risk", "n.event", 
 		    "entered", "censored")
         }
 
-    if (is.matrix(x$prev)) ncurve <- ncol(x$prev)
+    if (is.matrix(x$pstate)) ncurve <- ncol(x$pstate)
     else	           ncurve <- 1
     if (ncurve==1) {                 #only 1 curve
-	cnames <- c(cnames, "prevalence")
+	cnames <- c(cnames, "P")
 	if (!is.null(x$std.err)) {
 	    if (is.null(x$lower)) {
 		mat <- cbind(mat, x$std.err)
@@ -41,7 +41,7 @@ print.summary.survfitms <- function(x,
 	        }	
 	    }
         }
-    else cnames <- c(cnames, paste("prevalence", seq(ncurve), sep=''))
+    else cnames <- c(cnames, paste("P", seq(ncurve), sep=''))
 
     if (!is.null(x$start.time)) {
 	mat.keep <- mat[,1] >= x$start.time
