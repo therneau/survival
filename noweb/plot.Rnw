@@ -67,8 +67,13 @@ if (inherits(x, "survfitms")) {
     x$surv <- 1- x$pstate
     if (is.matrix(x$surv)) {
         dimnames(x$surv) <- list(NULL, x$states)
-        x$surv <- x$surv[, x$states != '']
+        if (ncol(x$surv) > 1 && any(x$states == '')) {
+            x$surv <- x$surv[, x$states != '']
+            if (is.matrix(x$p0)) x$p0 <- x$p0[, x$states != '']
+            else x$p0 <- x$p0[x$states != '']
+        }
     }
+
     if (!is.null(x$lower)) {
         x$lower <- 1- x$lower
         x$upper <- 1- x$upper

@@ -48,9 +48,9 @@ if (cmplib) cat("\\newcommand{\\CMPRSK}{}%\n")
 # A note to readers of this code: drawing multi-state figures in this
 #  way via polygon and arrows statements is a major PITA.  Don't mimic
 #  the code below, instead do yourself a favor and use a package
-#  designed for the task such as diagram, DiagrammeR, or Gmisc.
-# As a recommended package that is included by lots of others I try to
-#  limit dependencies in the survival vignettes.
+#  designed for the task such as diagram, DiagrammeR, shape or Gmisc.
+# Survival is a recommended package that is included by lots of others so
+#  I try to limit dependencies in the survival vignettes.
 #
 par(mar=c(.1, .1, .1, .1))
 frame()
@@ -345,9 +345,8 @@ malignancy if all other causes of death were to be disallowed.
 In this hypothetical world it is indeed true that many more subjects would
 progress to PCM (the incorrect curve is higher), but it is also 
 not a world that any of us will ever inhabit.
-This author views the result in much the same light as supposed 
-medieval arguments about
-how many angels can dance on the head of a pin.
+This author views the result in much the same light as discussions of
+survival after the zombie apocalypse.
 The second problem is that the computation for this
 hypothetical case is only correct if all of the competing endpoints
 are independent, a situation which is almost never true.

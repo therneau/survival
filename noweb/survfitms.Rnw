@@ -295,16 +295,17 @@ else {
             for (i in 1:nstrat) {
                 # stemp is 1,1,1,....2,2,2,,.. to mark curves
                 x2 <- x[stemp==i,]  # all those in the group
-                j  <- ilist3[[i]]
-                tlist[[i]] <- apply(rbind(0,0, x2), 2, function(z) {
-                    (diff(cumsum(z)))[1+j]})
+                j  <- c(0, ilist3[[i]])
+                tlist[[i]] <- apply(rbind(0, x2), 2, function(z) {
+                    diff(cumsum(z)[1+j])})
             }
             matrix(unlist(lapply(tlist, t)), byrow=T, ncol=ncol(x))
         } 
         else {
             for (i in 1:nstrat) {
-                x2 <- x[stemp==i]
-                tlist[[i]] <- diff(cumsum(c(0,0,x2)))[1 + ilist3[[i]]]
+                x2 <- x[stemp==i] 
+                j  <- c(0, ilist3[[i]])
+                tlist[[i]] <- diff(cumsum(c(0,x2))[1+j])
             }
             unlist(tlist)
         }
@@ -380,7 +381,7 @@ summary.survfitms <- function(object, times, censored=FALSE,
     }
     else if (missing(times)) {  #default censor=FALSE case
         temp$time <- temp$time[indx1]/scale
-        for (j in c("n.risk", "n.event", "n.censor", "n.enter", "pstate",
+        for (j in c("n.risk", "n.event", "n.censor", "n.enter",
                     "pstate", "std.err", "cumhaz", "lower", "upper")) {
             zed <- temp[[j]]
             if (!is.null(zed)) {
@@ -479,7 +480,7 @@ print.survfitms <- function(x, scale=1,
         print(temp$matrix, ...)
         if (length(etime) ==1)
              cat("   *mean time in state, restricted (max time =", 
-                 format(etime), ")\n")
+                 format(etime, ...), ")\n")
         else cat("   *mean time in state, restricted (per curve cutoff)\n")
     }
     invisible(x)
@@ -545,7 +546,7 @@ survmean2 <- function(x, scale, rmean) {
             meantime[i,] <- colSums(delta*temp)
         }
 
-        outmat <- cbind(outmat, c(meantime))
+        outmat <- cbind(outmat, c(meantime)/scale)
         cname <- c("n", "nevent", "mean")
         # report back a single time, if there is only one
         if (all(maxtime == maxtime[1])) maxtime <- maxtime[1]
@@ -553,8 +554,8 @@ survmean2 <- function(x, scale, rmean) {
     else cname <- c("n", "nevent")
     dimnames(outmat) <- list(rowname, cname)
 
-    if (rmean=='none') list(matrix=outmat/scale)
-    else list(matrix=outmat/scale, end.time=maxtime/scale)
+    if (rmean=='none') list(matrix=outmat)
+    else list(matrix=outmat, end.time=maxtime/scale)
 }
 @ 
 
