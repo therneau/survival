@@ -458,6 +458,7 @@ temp <- with(newdata, ifelse(death==1, 2, pcm))
 newdata$event <- factor(temp, 0:2, labels=c("censor", "pcm", "death"))  
 mfit3 <- survfit(Surv(tstart, tstop, event) ~ sex, data=newdata, id=id)
 print(mfit3, rmean=240, digits=2)
+mfit3$transtions
 plot(mfit3[,1], mark.time=FALSE, col=1:2, lty=1:2, lwd=2,
      xscale=12,
      xlab="Years post MGUS diagnosis", ylab="Prevalence of PCM")
@@ -475,11 +476,25 @@ The mean time in state for PCM is higher for mfit2 and mfit3, since in
 the former someone who converts to PCM at 5 years, say, will spend the
 next 15 in the PCM state.
 
-I have often found the three curve display below useful in these cases.
+The result of \code{print(mfit3)} reveals, as expected, less time spent
+in the PCM state.  In the prior \code{mfit2} model subjects who enter
+that state remain there for the duration, in this one they quickly
+pass through.
+It is worthwhile to check the \code{transitions} table in the output 
+simply as a data check. In this case it shows subjects going from the
+entry (unnamed) state to PCM and death along with transitions from PCM
+to death.  This is as expected.  
+An error in creating the input data can lead to surprising counts
+and an even more surprising curve.
+
+I have often found the three curve display below useful in the case
+of a transient state.
 It combines the results from competing risk model used above
 along with a second fit that treats death
 after PCM as a separate state from death before progression,
 the \emph{multi-state 2} model of figure \ref{mfig2}.
+In this plot the fraction of subjects currently in the PCM state
+is shown by the distance between the two curves.
 Only males are shown in the plot to minimize overlap.
 <<mgus5, echo=TRUE, fig=TRUE>>=
 # Death after PCM will correspond to data rows with

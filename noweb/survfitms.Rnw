@@ -95,6 +95,7 @@ or integer indices.
     for (k in temp) x[[k]] <- sfun(x[[k]])
     x$n <- x$n[i]
     x$time <- x$time[i2]
+    x$transitions <- NULL  # this is incorrect after subscripting
 
     if (is.null(j)) x$p0<- x$p0[i,]
     else x$p0 <- x$p0[i,j]

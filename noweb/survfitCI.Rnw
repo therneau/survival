@@ -124,6 +124,12 @@ The status vector will have values of 0 for censored.
         if (length(id) && any(duplicated(id)))
             stop("Cannot have duplicate id values with (time, status) data")
 
+        # make a table of transitions.  The from can range across
+        #  all of the states, to can only have nstate categories
+        nst <- length(state.names)
+        transitions <- table(factor(istate, 1:nst), factor(Y[,2], 1:nstate))
+        dimnames(transitions) <-list(from=state.names, to=state.names[1:nstate])
+                             
         # dummy entry time that is < any event time
         entry <- rep(min(-1, 2*min(Y[,1])-1), n)  
         for (i in levels(X)) {
@@ -330,6 +336,16 @@ if (any(same & weights[indx1] != weights[indx2])) {
     who <-  min(which(same & weights[indx1] != weights[indx2]))
     stop("subject changes case weights, id ", id[indx1[who]])
 }
+
+# Make the table of transitions
+nst <- length(state.names)
+first <- indx[!duplicated(id[indx])]
+transitions <- table(factor(istate[first], 1:nst), 
+                     factor(Y[first,3], 1:nstate))
+if (any(same))
+    transitions <- transitions + table(factor(Y[indx1[same],3], 1:nst),
+                                       factor(Y[indx2[same],3], 1:nstate))
+dimnames(transitions) = list(from=state.names, to=state.names[1:nstate])
 @ 
 
 <<survfitCI-startstop>>=
@@ -372,7 +388,8 @@ kfit <- list(n =      as.vector(table(X)),
              n.event= grabit(curves, "n.event"),
              n.censor=grabit(curves, "n.censor"),
              pstate   = grabit(curves, "pstate"),
-             p0  = grabit(curves, "p0"))
+             p0  = grabit(curves, "p0"),
+             transitions = transitions)
 nstate <- length(states)
 kfit$cumhaz <- array(unlist(lapply(curves, function(x) x$cumhaz)),
                            dim=c(nstate, nstate, length(kfit$time)))

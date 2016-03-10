@@ -48,10 +48,11 @@ This may be a vector or a matrix. The latter occurs when a set of
 survival curves is created from a single Cox model, in which case
 there is one column for each covariate set. 
 }
-\item{pstate}{
+\item{pstate, p0}{
 a multi-state survival will have this component instead of \code{surv}.
 It will be a matrix containing the estimated probability
 of each state at each time, one column per state.
+The \code{p0} matrix contains the initial distribution of states.
 }
 
 \item{std.err}{
@@ -89,6 +90,9 @@ the approximation used to compute the confidence limits.
 \item{conf.int}{
 the level of the confidence limits, e.g. 90 or 95\%. 
 }
+\item{transitions}{for multi-state data, the total number
+  of transitions of each type.}
+
 \item{na.action}{
 the returned value from the na.action function, if any.  It will be used 
 in the printout of the curve, e.g., the number of observations deleted due 
