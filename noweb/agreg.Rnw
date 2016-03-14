@@ -140,7 +140,7 @@ if (maxiter >1) {
 The last of the code is very standard.  Compute residuals and package
 up the results.
 <<agreg-finish>>=
-lp  <- as.vector(x %*% coef + offset - sum(coef *agfit$means))
+lp  <- as.vector(x %*% coef + offset - sum(coef * colMeans(X)))
 score <- as.double(exp(lp))
 resid <- .Call(Cagmart3,
                y, score, weights,
@@ -166,7 +166,7 @@ else {
          iter   = agfit$iter,
          linear.predictors = as.vector(lp),
          residuals = resid,
-         means = agfit$means,
+         means = colMeans(X),
          concordance = concordance,
          method= 'coxph')
 }
@@ -194,9 +194,9 @@ SEXP agfit4(SEXP surv2,      SEXP covar2,    SEXP strata2,
 	    SEXP maxiter2,   SEXP  eps2,     SEXP tolerance2,
 	    SEXP doscale2) { 
 
-    int i,j,k,person;
+    int i,j,k, ii, person;
     int indx2, istrat, p;
-    int ksave, nrisk;
+    int nrisk;
     int nused, nvar;
  
     double **covar, **cmat, **imat;  /*ragged array versions*/
@@ -211,25 +211,25 @@ SEXP agfit4(SEXP surv2,      SEXP covar2,    SEXP strata2,
     int     halving;    /*are we doing step halving at the moment? */
     double  tol_chol, eps;
     double  meanwt;
-    int itemp, deaths;
-    double efron_wt, d2, meaneta;
+    int deaths;
+    double denom2, meaneta;
 
     /* inputs */
     double *start, *stop, *event;
     double *weights, *offset;
     int *sort1, *sort2, maxiter;
-    int *strata;
+    int *strata, nstrat;
     double method;  /* saving this as double forces some double arithmetic */
     int doscale;
 
     /* returned objects */
-    SEXP imat2, means2, beta2, u2, loglik2;
-    double *beta, *u, *loglik, *means;
+    SEXP imat2, beta2, u2, loglik2;
+    double *beta, *u, *loglik;
     SEXP sctest2, flag2, iter2;
     double *sctest;
     int *flag, *iter;
     SEXP rlist;
-    static const char *outnames[]={"coef", "u", "imat", "loglik", "means",
+    static const char *outnames[]={"coef", "u", "imat", "loglik",
 				   "sctest", "flag", "iter", ""};
     int nprotect;  /* number of protect calls I have issued */
 
@@ -241,6 +241,7 @@ SEXP agfit4(SEXP surv2,      SEXP covar2,    SEXP strata2,
     tol_chol = asReal(tolerance2);
     maxiter = asInteger(maxiter2);
     doscale = asInteger(doscale2);
+    nstrat = LENGTH(strata2);
   
     /* input arguments */
     start = REAL(surv2);
@@ -296,9 +297,6 @@ SEXP agfit4(SEXP surv2,      SEXP covar2,    SEXP strata2,
     loglik2 = SET_VECTOR_ELT(rlist, 3, allocVector(REALSXP, 2)); 
     loglik  = REAL(loglik2);
 
-    means2 = SET_VECTOR_ELT(rlist, 4, allocVector(REALSXP, nvar));
-    means  = REAL(means2);
-
     sctest2 = SET_VECTOR_ELT(rlist, 5, allocVector(REALSXP, 1));
     sctest =  REAL(sctest2);
     flag2  =  SET_VECTOR_ELT(rlist, 6, allocVector(INTSXP, 1));
@@ -308,33 +306,37 @@ SEXP agfit4(SEXP surv2,      SEXP covar2,    SEXP strata2,
     
     /*
     ** Subtract the mean from each covar, as this makes the variance
-    **  computation much more stable
+    **  computation much more stable.  The mean is taken per stratum,
+    **  the scaling is overall.
     */
-    temp2 =0;
-    for (i=0; i<nused; i++) temp2 += weights[i];  /* sum of weights */
-
     for (i=0; i<nvar; i++) {
-	temp=0;
-	for (person=0; person<nused; person++)
-            temp += weights[i] * covar[i][person];
-	temp /= temp2;
-	means[i] = temp;
-	for (person=0; person<nused; person++)
-	    covar[i][person] -=temp;
+        person=0;
+        for (istrat=0; istrat<nstrat; istrat++) {
+            temp=0;
+            temp2 =0;
+            k = person;
+            for (; person<strata[istrat]; person++) {
+                j = sort2[person];
+                temp += weights[j] * covar[i][j];
+                temp2 += weights[j];
+            }
+            temp /= temp2;   /* mean for this covariate, this strata */
+	    for (; k< person; k++) covar[i][person] -=temp;
+	    }
+	
         if (doscale ==1) { /* also scale the regression */
+	    /* this cannot be done per stratum */
 	    temp =0;
-	    for (person=0; person<nused; person++)
+	    temp2 =0;
+	    for (person=0; person<nused; person++) {
 		temp += weights[person] * fabs(covar[i][person]);
-	    if (temp >0) temp = temp2/temp;
+		temp2 += weights[person];
+		}
+	    if (temp >0) temp = temp2/temp;  /* 1/scale */
 	    else temp = 1.0;  /* rare case of a constant covariate */
             scale[i] = temp;
 	    for (person=0; person<nused; person++) {
 		covar[i][person] *= temp;
-	    }
-	} else {
-	    /* scaling is only turned off during debugging 
-	       still, cover the case */
-	    for (person=0; person<nused; person++) {
 	    }
 	}
     }
@@ -360,7 +362,7 @@ We have 6 running totals:
   \item totals for each covariate a[j] = $\sum w_ir_i x_{ij}$
   \item totals for each covariate pair cmat[j,k]=  $\sum w_ir_i x_{ij} x_{ik}$
   \item the same three quantities, but only for times that are exactly
-    tied with the current death time,  named efron\_wt, a2, cmat2.
+    tied with the current death time,  named denom2, a2, cmat2.
     These are used for the Efron approximation.
 \end{itemize}
 
@@ -392,11 +394,29 @@ be 1 for the first death, 2/3 for the second, and 1/3 for the third.
 The idea is that if the tied death times were randomly broken by adding
 a small random amount then each of these three would be in the first risk set,
 have 2/3 chance of being in the second, and 1/3 chance of being in the risk
-set for the third death.
+set for the third death.  
+In the code this means that at a death time we add the \code{denom2},
+\code{a2} and \code{c2} portions in a little at at time: add in 1/3 of
+them, update totals, another 1/3, update totals, last 1/3, and update totals.
 
 The variance formula is stable if $\mu$ is small relative to
-    the total variance.  This is guarranteed by subtracting the mean
-    from each covariate before any other computations are performed.
+the total variance.  This is guarranteed by having a working estimate $m$
+of the mean along with the formula:
+\begin{align*}
+  (1/n) \sum w_ir_i(x_i- \bar x)^2 &= (1/n)\sum w_ir_i(x_i-m)^2 - 
+           [{\rm mean}(x -m)]^2 \\
+  {\rm mean}(x-m) &= (1/n) \sum w_ir_i (x_i -m)\\
+    n &= \sum w_ir_i
+\end{equation*}
+A refinement of this is to scale the covariates, since the Cholesky
+decomposition can lose precision when variables are on vastly differnt
+scales.  We do this centering and scaling once at the beginning of the
+calculation.
+Centering is done per strata --- what if someone had two strata and
+a covariate with mean 0 in the first but mean one million in the second?
+(Users do amazing things).  Scaling is required to be a single
+value,however.  
+
 Weighted sums can still be unstable if the weights get out of hand.
 Because of the exponential $r_i = exp(\eta_i)$ 
 the original centering of the $X$ matrix may not be enough. 
@@ -408,25 +428,23 @@ regression coefficient was around 1 and the data duration was 11 weeks
 (about 200 shifts) so that $eta$ values could be over 100 even after
 centering.  We keep a time dependent average of $\eta$ and renorm the
 weights as necessary.
-Since it would be possible for a malicious user to have a stratified
-model with mean x=1 in one strata and 1000 in another, which would
-also defeat the use of the overall centering, this check is done per strata.
 
 The last numerical problem is when one or more coefficients gets too
-large.
+large, leading to a huge weight exp(eta).
+This usually happens when a coefficient is tending to infinity, but can
+also be due to a bad step in the intermediate Newton-Raphson path.
+In the infinite coefficient case the
+log-likelihood trends to an asymptote and there is a race between 3
+conditions: convergence of the loglik, an overflow of exp for one or
+more observations, or singularity of the variance matrix. 
 In earlier versions of this code I had a check for each coefficient, but
-this failed in an economics data set set by a user which had extreme
+this failed in an economics data set sent by a user which had extreme
 correlation of the coefficients.  
-This can lead to numerical difficulty based on a small number
-of observations or even on a single large outlier.
-This occassionally happens when a coefficient is tending to infinity, but is
-more often due to a very bad step in the intermediate Newton-Raphson path.
-We use a cutpoint of $\beta *{\rm std}(x) < 23$, where the standard
-deviation is the average std of $x$ within a risk set.
-The rationale is that exp(23) is greater than the
-current world population, so such a coefficient corresponds to a between
-subject relative risk that is larger than any imaginable.
+We can normally stop the overflow by scaling: keep track of the average 
+linear predictor and subtract it when creating weights.
 
+The next section of code adds up the totals for a given iteration.
+This is the workhorse.
 <<agfit4-addup>>=
 for (i=0; i<nvar; i++) {
     u[i] =0;
@@ -467,6 +485,45 @@ nrisk =0;
 newlk =0;
 for (person=0; person<nused;) {
     p = sort1[person];
+    time = stop[p];
+    /*
+    ** subtract out the subjects whose start time is to the right
+    ** first find out if everyone is removed (this happens often when
+    ** the tt() function is used, so it is worth checking).
+    */
+    temp =0;
+    for (; indx2<strata[istrat]; indx2++) {
+	p = sort1[indx2];
+	if (start[p] < time) break;
+	nrisk--;
+    }
+    if (nrisk==0) { /*completely new risk set */
+	denom=0; meaneta=0;
+	for (i=0; i<nvar; i++) {
+	    a[i] =0;
+	    for (j=0; j<=i; j++) cmat[i][j] =0;
+	}
+    }
+    else {
+	for (; indx2<strata[istrat]; indx2++) {
+	    p = sort1[indx2];
+	    if (start[p] < time) break;
+	    meaneta -= eta[p];
+	    risk = exp(eta[p]) * weights[p];
+	    denom -= risk;
+	    temp += risk;
+	    for (i=0; i<nvar; i++) {
+		a[i] -= risk*covar[i][p];
+		for (j=0; j<=i; j++)
+		    cmat[i][j] -= risk*covar[i][p]*covar[j][p];
+    	    }
+	}
+	if (denom/temp < 1e-9) {
+            <<overflow-fix>>
+	}
+	<<fixeta>>
+    }
+
     if (event[p]==0){
         nrisk++;
         meaneta += eta[p];
@@ -480,31 +537,12 @@ for (person=0; person<nused;) {
 	person++;
 	/* nothing more needs to be done for this obs */
     }
-    else {
-        time = stop[p];
-        /*
-        ** subtract out the subjects whose start time is to the right
-        */
-        for (; indx2<strata[istrat]; indx2++) {
-	    p = sort2[indx2];
-	    if (start[p] < time) break;
-	    nrisk--;
-	    meaneta -= eta[p];
-	    risk = exp(eta[p]) * weights[p];
-	    denom -= risk;
-	    for (i=0; i<nvar; i++) {
-		a[i] -= risk*covar[i][p];
-		for (j=0; j<=i; j++)
-		    cmat[i][j] -= risk*covar[i][p]*covar[j][p];
-    	    }
-    	}
-
+    else {   /* a death */
         /*
         ** compute the averages over subjects with
         **   exactly this death time (a2 & c2)
-        ** (and add them into a and cmat while we are at it).
         */
-        efron_wt =0;
+        denom2 =0;
         meanwt =0;
         for (i=0; i<nvar; i++) {
 	    a2[i]=0;
@@ -517,99 +555,159 @@ for (person=0; person<nused;) {
 	    p = sort1[k];
 	    if (stop[p] < time) break;
 	    risk = exp(eta[p]) * weights[p];
-	    denom += risk;
             nrisk++;
             meaneta += eta[p];
 
-	    for (i=0; i<nvar; i++) {
-		a[i] += risk*covar[i][p];
-		for (j=0; j<=i; j++)
-		    cmat[i][j] += risk*covar[i][p]*covar[j][p];
-    	    }
-	    if (event[p]==1) {
-		deaths += event[p];
-		efron_wt += risk*event[p];
+	    if (event[p] ==0) {
+		denom += risk;
+ 		for (i=0; i<nvar; i++) {
+                    u[i] += weights[p] * covar[i][p];
+                    a[i] += risk*covar[i][p];
+		    for (j=0; j<=i; j++)
+			cmat[i][j] += risk*covar[i][p]*covar[j][p];
+		}
+	    }
+	    else {
+		deaths ++;
+		denom2 += risk*event[p];
 		meanwt += weights[p];
+		newlk += weights[p]* eta[p];
 		for (i=0; i<nvar; i++) {
+                    u[i] += weights[p] * covar[i][p];
 		    a2[i]+= risk*covar[i][p];
 		    for (j=0; j<=i; j++)
 			cmat2[i][j] += risk*covar[i][p]*covar[j][p];
     		}
 	    }
     	}
-        ksave = k;
-	    
-	/* 
-	** If the average eta value has gotton out of hand, fix it.
-        ** We must avoid overflow in the exp function (~750 on Intel)
-        ** and want to act well before that, but not take action very often.  
-        ** One of the case-cohort papers suggests an offset of -100 meaning
-        ** that etas of 50-100 can occur in "ok" data, so make it larger than this.
-	*/
-	if (fabs(meaneta) > (nrisk *110)) {  
-	    meaneta = meaneta/nrisk;
-	    for (i=0; i<nused; i++) eta[i] -= meaneta;
-	    temp = exp(-meaneta);
-	    denom *= temp;
-	    for (i=0; i<nvar; i++) {
-		a[i] *= temp;
-                a2[i] *= temp;
-		for (j=0; j<nvar; j++) {
-                    cmat[i][j]*= temp;
-                    cmat2[i][j] *= temp;
-                }
-	    }
-	    meaneta =0;
-	}
-            
-	/*
-        ** Add results into u and imat for all events at this time point
-        */
-        meanwt /= deaths;
-        itemp = -1;
-        for (; person<ksave; person++) {
-	    p = sort1[person];
-	    if (event[p]==1) {
-		itemp++;
-		temp = itemp*method/(double) deaths;
-		d2 = denom - temp*efron_wt;
-		newlk +=  weights[p]*eta[p] -meanwt *log(d2);
+	<<breslow-efron>>
+        <<fixeta>>
+    }
+}   /* end  of accumulation loop */
 
-		for (i=0; i<nvar; i++) {
-		    temp2 = (a[i] - temp*a2[i])/d2;
-		    u[i] += weights[p]*covar[i][p] - meanwt*temp2;
-		    for (j=0; j<=i; j++)
-			imat[j][i] += meanwt* (
-    				(cmat[i][j] - temp*cmat2[i][j])/d2-
-    				   temp2*(a[j]-temp*a2[j])/d2);
+@ 
+
+The last step in the above loop is to add the terms to the loglik, score and
+information matrices.  Assume that there were 3 tied deaths.
+The difference between the Efron and Breslow approximations is the for the
+Efron the three tied subjects are given a weight of 1/3 for the first, 2/3 for
+the second, and 3/3 for the third death; for the Breslow they get 3/3 for
+all of them.  
+<<breslow-efron>>= 
+/*
+** Add results into u and imat for all events at this time point
+*/
+if (method==0 || deaths ==1) { /*Breslow */
+    denom += denom2;
+    newlk -= meanwt*denom;  /* meanwt is the sum of weights for these deaths */ 
+    for (i=0; i<nvar; i++) {
+	a[i] += a2[i];
+	temp = a[i]/denom;   /*mean covariate at this time */
+	u[i] -= meanwt*temp;
+	for (j=0; j<=i; j++) {
+	    cmat[i][j] += cmat2[i][j];
+	    imat[i][j] += meanwt*((cmat[i][j]/denom) - temp*temp);
+	}
+    }
+    newlk -= nrisk*denom;
+    person =k;
+    }
+else {
+    meanwt /= deaths;
+    for (k=0; k<deaths; k++) {
+	p = sort2[person];
+	if (event[p] ==1) {
+	    denom += denom2/deaths;
+	    newlk -= meanwt*log(denom);
+	    for (i=0; i<nvar; i++) {
+		a[i] += a2[i]/deaths;
+		temp = a[i]/denom;
+		u[i] -= meanwt*temp;
+		for (j=0; j<=i; j++) {
+		    cmat[i][j] += cmat2[i][j]/deaths;
+		    imat[i][j] += meanwt*((cmat[i][j]/denom) - temp*temp);
     		}
     	    }
     	}
     }
-
-    if (person == strata[istrat]) {
-        istrat++;
-        denom =0;
-        meaneta=0;
-        nrisk =0;
-        indx2 = person;
-        for (i=0; i<nvar; i++) {
-	    a[i] =0;
-	    for (j=0; j<nvar; j++) {
-		cmat[i][j]=0;
-    	    }
-    	}
+}
+  
+/* zero subtotals at the end of a stratum */
+if (person == strata[istrat]) {
+    istrat++;
+    denom =0;
+    meaneta=0;
+    nrisk =0;
+    indx2 = person;
+    for (i=0; i<nvar; i++) {
+	a[i] =0;
+	for (j=0; j<nvar; j++) cmat[i][j]=0;
     }
-}   /* end  of accumulation loop */
+}
 @ 
 
-When using the Breslow approximation the loop just below the line
-[[itemp==1]] is not strictly necessary: if there were \texttt{deaths}=$k$ tied
-deaths there will be $k$ passes through the loop but each adds
-exactly the same increment to the sums, so we could replace it
-with a multiplication.
-However, the cost of the loop is trivial if $k$ is small, and if
-$k$ is large one should not be using a Breslow approximation.
+The next bit of code exists for the sake of rather rare data sets.
+Assume that there is a time dependent covariate that rapidly climbs 
+in such a way that the eta gets large but the range of eta stays
+modest.  An example would be something like ``payments made to date'' for
+a portfolio of loans.  Then even though the data has been centered and
+the global mean is fine, the current values of eta are outrageous with
+respect to the exp function.
+Since replaceing eta with (eta -c) for any c does not change the likelihood,
+do it.  Unfortunately, we can't do this once and for all: this is a step that 
+will occur at least twice per iteration for those rare cases, e.g., eta is
+too small at early times and too large at late ones.
+<<fixeta>>=
+/* 
+** If the average eta value has gotton out of hand, fix it.
+** We must avoid overflow in the exp function (~750 on Intel)
+** and want to act well before that, but not take action very often.  
+** One of the case-cohort papers suggests an offset of -100 meaning
+** that etas of 50-100 can occur in "ok" data, so make it larger 
+** than this.
+*/
+if (fabs(meaneta) > (nrisk *150)) {  
+    meaneta = meaneta/nrisk;
+    for (i=0; i<nused; i++) eta[i] -= meaneta;
+    temp = exp(-meaneta);
+    denom *= temp;
+    for (i=0; i<nvar; i++) {
+	a[i] *= temp;
+	for (j=0; j<nvar; j++) {
+	    cmat[i][j]*= temp;
+	}
+    }
+    meaneta =0;
+}
+@         
+
+This next bit of code is very rare. It occurs when the subjects who have
+just been dropped from the risk set had essentially all the weight,
+so much so that the running totals of \code{denom}, \code{a}, and \code{cmat}
+have lost nearly all of their precision.
+The only recourse is to rebuild them from scratch.
+<<overflow-fix>>=
+denom=0;
+for (i=0; i<nvar; i++) {
+    a[i] =0;
+    for (j=0; j<=i; j++) cmat[i][j] =0;
+    }
+if (istrat==0) ii =0; else ii= strata[istrat-1];
+for (k=ii; k<strata[istrat]; k++) {
+    p = sort2[k];
+    if (stop[p] <= time) break;  /* further subjects have not yet been added*/
+    if (start[p] < time) {  
+	risk = weights[p] *eta[p];
+	denom += risk;
+	for (i=0; i<nvar; i++) {
+	    a[i] += risk * covar[i][p];
+	    for (j=0; j<=i; j++) cmat[i][j] += risk * covar[i][p]*covar[i][p];
+	}
+    }
+}
+@ 
+
+Now, I'm finally to the actual iteration steps.
 
 <<agfit4-iter>>=
 /* First iteration, which has different ending criteria */
@@ -642,7 +740,7 @@ else {
 }
 @ 
 The Cox model calculation rarely gets into numerical difficulty, and when it
-does step halving is always sufficient.
+does step halving has always been sufficient.
 Let $\beta^{(0)}$, $\beta^{(1)}$, etc be the iteration steps in the search 
 for the maximum likelihood solution $\hat \beta$.
 The flow of the algorithm is 
@@ -652,14 +750,19 @@ The flow of the algorithm is
     most recent successful estimate is [[oldbeta]].
   \item For this new trial estimate, compute the log-likelihood, and the
     first and second derivatives.
-  \item Test if the log-likelihood has converged \emph{and} the last estimate
+  \item Test if the log-likelihood if finite, has converged \emph{and} 
+    the last estimate
     was not generated by step-halving.  In the latter case the algorithm may
     \emph{appear} to have converged but the solution is not sure.
+    An infinite loglik is very rare: I've seen exactly one of these and it was
+    due to overflow of the exp function.
     \begin{itemize}
       \item if so return beta and the the other information
       \item if this was the last iteration, return beta, the other information,
-        and a warning flag
-      \item otherwise, compute the next guess and return to the top
+        and a warning flag.
+        If even step halving has failed for the last iteration, return the
+            last good one we had.
+     \item otherwise, compute the next guess and return to the top
         \begin{itemize}
           \item if our latest trial guess [[beta]] made things worse use step
             halving: $\beta^{(k+1)}$ = oldbeta + (beta-oldbeta)/2.  
@@ -676,7 +779,7 @@ and second derivatives $U$ (u) and $H$ (imat), once we have them the next
 Newton-Rhapson update $UH^{-1}$ is just a little bit more.  Many programs
 succumb to the temptation of this ``one more for free'' idea, and as a
 consequence return $\beta^{(k+1)}$ along with the log-likelihood and
-variance matrix $H^{-1}$ for $\beta^{(k)}$.
+variance matrix for $\beta^{(k)}$.
 If a user has specified
 for instance only 1 or 2 iterations the answers can be seriously
 out of joint, whereas  
@@ -686,15 +789,27 @@ eyelash (so what's the point of doing it).
 <<agfit4-iter>>=
 /* main loop */
 halving =0 ;             /* =1 when in the midst of "step halving" */
-for (*iter=1; *iter<= maxiter; (*iter)++) {
+for (*iter=1; *iter<= maxiter+1; (*iter)++) {
     <<agfit4-addup>>
 
     *flag = cholesky2(imat, nvar, tol_chol);
-    if (fabs(1-(loglik[1]/newlk))<= eps  && halving==0){ /* all done */
+    if (isnan(loglik[1])==0 && isinf(loglik[1]) ==0 &&
+        fabs(1-(loglik[1]/newlk))<= eps  && halving==0){ /* all done */
 	<<agfit4-finish>> 
     }
 
-    if (*iter < maxiter) { /*update beta */
+    if (*iter == maxiter) {
+	 if (newlk < loglik[1]) {
+	     /* 
+	     ** The routine has not made progress past the last good value.
+	     **  recompute the information matrix for that value
+	     */
+	     for (i=0; i<nvar; i++) beta[i] = oldbeta[i];
+	 } else {
+	     <<agfit4-finish>>
+	 }
+    }
+    else {
 	if (newlk < loglik[1])   {    /*it is not converging ! */
 	    halving =1;
 	    for (i=0; i<nvar; i++)

@@ -13,7 +13,7 @@
 **    The lower triangle need not be filled in at the start.
 **
 **  Return value:  the rank of the matrix (non-negative definite), or -rank
-**     it not SPD or NND
+**     if it not SPD or NND
 **
 **  If a column is deemed to be redundant, then that diagonal is set to zero.
 **
