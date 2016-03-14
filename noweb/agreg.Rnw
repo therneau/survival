@@ -119,7 +119,7 @@ one that is tending to infinity is not marked.  Que sera sera.
 <<agreg-fixup>>=
 var <- matrix(agfit$imat,nvar,nvar)
 coef <- agfit$coef
-if (agfit$flag < nvar) which.sing <- diag(var)==0
+if (agfit$flag[1] < nvar) which.sing <- diag(var)==0
 else which.sing <- rep(FALSE,nvar)
 
 infs <- abs(agfit$u %*% var)
@@ -140,7 +140,7 @@ if (maxiter >1) {
 The last of the code is very standard.  Compute residuals and package
 up the results.
 <<agreg-finish>>=
-lp  <- as.vector(x %*% coef + offset - sum(coef * colMeans(X)))
+lp  <- as.vector(x %*% coef + offset - sum(coef * colMeans(x)))
 score <- as.double(exp(lp))
 resid <- .Call(Cagmart3,
                y, score, weights,
@@ -166,7 +166,7 @@ else {
          iter   = agfit$iter,
          linear.predictors = as.vector(lp),
          residuals = resid,
-         means = colMeans(X),
+         means = colMeans(x),
          concordance = concordance,
          method= 'coxph')
 }
@@ -297,11 +297,11 @@ SEXP agfit4(SEXP surv2,      SEXP covar2,    SEXP strata2,
     loglik2 = SET_VECTOR_ELT(rlist, 3, allocVector(REALSXP, 2)); 
     loglik  = REAL(loglik2);
 
-    sctest2 = SET_VECTOR_ELT(rlist, 5, allocVector(REALSXP, 1));
+    sctest2 = SET_VECTOR_ELT(rlist, 4, allocVector(REALSXP, 1));
     sctest =  REAL(sctest2);
-    flag2  =  SET_VECTOR_ELT(rlist, 6, allocVector(INTSXP, 1));
+    flag2  =  SET_VECTOR_ELT(rlist, 5, allocVector(INTSXP, 3));
     flag   =  INTEGER(flag2);
-    iter2  =  SET_VECTOR_ELT(rlist, 7, allocVector(INTSXP, 1));
+    iter2  =  SET_VECTOR_ELT(rlist, 6, allocVector(INTSXP, 1));
     iter = INTEGER(iter2);
     
     /*
