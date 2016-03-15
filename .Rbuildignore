@@ -11,4 +11,4 @@ vignettes/*.aux
 vignettes/*.log
 vignettes/*.tex
 noweb/noweb.sty
-
+fail

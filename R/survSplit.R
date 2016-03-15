@@ -41,8 +41,9 @@ survSplit<-function(data, cut, end, event, start="tstart", id, zero=0,
     else if (is.factor(status)) censor <- levels(status)[1]
     else censor <- max(status) -1
 
-
-    index <- .Call("survsplit", time1, time2, cut)
+    storage.mode(time1) <- "double"
+    storage.mode(time2) <- "double"
+    index <- .Call("survsplit", time1, time2, as.double(cut))
     newdata <- data[index$row,]
     row.names(newdata) <- NULL    # erase R's manufactured row names
     newdata[[start]] <- index$start
@@ -51,8 +52,10 @@ survSplit<-function(data, cut, end, event, start="tstart", id, zero=0,
     status[index$censor] <- censor
     newdata[[event]] <- status
 
-    if (!missing(episode)) newdata[[episode]] <- index$interval +1
-
+    if (!missing(episode)) {
+        if (!is.character(episode)) stop("episode must be a character string")
+        newdata[[make.names(episode)]] <- index$interval +1
+    }
     newdata
 }
 
