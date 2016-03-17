@@ -1,0 +1,111 @@
+\documentclass{article}
+\title{Overflow example}
+\newcommand{\code}[1]{\texttt{#1}}
+\begin{document}
+
+<<readin>>=
+adata <- read.csv('overflow.csv')
+dim(adata)
+etime <- table(adata$end[adata$status==1])
+sum(etime)
+length(etime)
+etime
+@ 
+This data set has 240 thousand lines and 145 thousand events, but only
+48 unique event times.  This makes it possible to debug issues with the
+code in a simple fashion.  The time variable has been changed to 1, 2,
+\ldots to make things even simpler.  There are a \emph{lot} of tied events.
+
+<<skew>>=
+with(adata, quantile(v2, 0:10/10))
+with(adata, quantile(v2, 990:1000/1000))
+
+b <- seq(0, .007, length=15)
+logb <- double(15)
+for (i in 1:15) 
+    logb[i] <- coxph(Surv(start, end, status) ~ v2, data=adata, iter=0,
+                     init=b[i])$loglik[1]
+plot(b, logb/1e5)
+@ 
+The first problem with the data set is variable \code{v2} which is terribly
+skewed.  
+The second is that the log-likelihood is asymmetric around the maximum of
+about .004.  
+
+<<initial>>=
+fit0 <- coxph(Surv(start, end, status) ~ v2, data=adata, iter=0)
+dt0 <- coxph.detail(fit0)
+beta1 <- sum(dt0$score)/ sum(dt0$imat)
+beta1
+@ 
+
+The very first iteration of the program takes far too large
+a step; the initial value for $\hat beta$ is approximately 25 times
+too large.
+The effect of this on our calculations is catastrophic: here are the
+quantiles of the risk weights $\exp(X \beta)$.
+
+<<risk>>=
+rwt <- exp(.1 * (adata$v2 - mean(adata$v2)))
+wt2 <- sort(rwt/sum(rwt))
+cumsum(rev(wt2))[1:5]
+@ 
+
+The largest observation has 55\% of the total weight, the first 2 99.5\% and
+the first 5 99.99\%. 
+Look at what happens to our calculation of the variance, which uses the centered
+values. Compute the mean and variance at each of the 48 death times.
+
+<<var>>=
+vmean <- vvar <- double(48)
+for (i in 1:48) {
+    atrisk <- with(adata, which(start < i & end >= i))
+    denom <- sum(rwt[atrisk])
+    vmean[i] <- sum((rwt*adata$v2)[atrisk])/ denom
+    vvar[i]  <- sum(rwt[atrisk]*(adata$v2[atrisk] - vmean[i])^2)  / denom
+}
+signif(vmean,4)
+signif(vvar, 3)
+@ 
+
+The standard formula used by the routine is below, where $m$ is
+the current working definition of the mean and the weights are 
+scaled so as to add to 1.
+\begin{equation}
+  \sum w_i (x_i - \bar x)^2 = \sum w_i(x-m)^2 - (m- \bar x)^2 \label{vvar}
+\end{equation}
+The routine uses the grand mean for $m$ (\Sexpr{round(mean(adata$v2), 3)}), %$
+while $\bar x$ is the actual mean over the current risk set.
+With 16 digits of accuracy, the formula is doomed to fail for any term where
+the the true variance is proprotional to the 16th or smaller digit of the 
+second term in equation eqref{vvar}.  That is, for almost all of the 48 death
+times.
+
+The log-likelihood ends up as NaN for this estimate as well, for essentially
+the same reason.  The contribution to the partial likelihood is the probability
+for the subject who perished = $w_i/ \sum w_j$ where $i$ indexes the death
+and $j$ the risk set.  This fraction becomes 0 due to round off error and
+the log is undefined.  
+
+The update formulas do hold in the neighborhood of the MLE, which is between
+.003 and .004.  
+<<try4>>=
+fit4 <- coxph(Surv(start, end, status) ~ v2, adata, iter=0, init=.004)
+rwt <- exp(.04 * (adata$v2 - mean(adata$v2)))
+for (i in 1:48) {
+    atrisk <- with(adata, which(start < i & end >= i))
+    denom <- sum(rwt[atrisk])
+    vmean[i] <- sum((rwt*adata$v2)[atrisk])/ denom
+    vvar[i]  <- sum(rwt[atrisk]*(adata$v2[atrisk] - vmean[i])^2)  / denom
+}
+signif(vmean,4)
+signif(vvar, 3)
+@ 
+
+Given this, the iteration succeeds if step halving is invoked whenever the 
+loglik is infinite or NaN, the information matrix drops in rank, or the 
+step has increased the loglik.
+<<fit>>= 
+fit <- coxph(Surv(start, end, status) ~ v2, adata)
+@
+\end{document}
