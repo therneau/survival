@@ -819,8 +819,8 @@ for (*iter=1; *iter<= maxiter; (*iter)++) {
 
     rank2 = cholesky2(imat, nvar, tol_chol);
     fail = isnan(loglik[1]) + isinf(loglik[1]) + (rank-rank2);
-    printf("fail=%d, loglik=%e, change=%e\n", fail, newlk,
-           1-(loglik[1]/newlk));
+/*    printf("fail=%d, loglik=%e, change=%e\n", fail, newlk,
+           1-(loglik[1]/newlk)); */
     if (fail ==0 && halving ==0 &&
         fabs(1-(loglik[1]/newlk))<= eps){ /* all done */
 	<<agfit4-finish>> 

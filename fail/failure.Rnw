@@ -3,6 +3,7 @@
 \newcommand{\code}[1]{\texttt{#1}}
 \begin{document}
 
+\section{Overflow example}
 <<readin>>=
 adata <- read.csv('overflow.csv')
 dim(adata)
@@ -102,10 +103,42 @@ signif(vmean,4)
 signif(vvar, 3)
 @ 
 
-Given this, the iteration succeeds if step halving is invoked whenever the 
+The iteration succeeds if step halving is invoked whenever the 
 loglik is infinite or NaN, the information matrix drops in rank, or the 
-step has increased the loglik.
+step has increased the loglikelihood.
 <<fit>>= 
 fit <- coxph(Surv(start, end, status) ~ v2, adata)
+quantile(exp(fit$linear.predictor), c(0, .5, .9, .99, .999, 1))
 @
+The utility of the fit remains dubious, however; the final model is driven
+by a miniscule fraction of the subjects (16 out of 240 thousand) who have risks
+of 100 fold.
+
+\section{Corrleation example}
+This example was pointed out by Brian Borstrom and uses the mort data
+set from the eha package.
+The data set contains mortality data from a parish in northern Sweden, for
+all males born in the years 1800--1820 and who survived to age 40, 
+followed until death or their 60th birthday.  
+The start-stop aspect is due to subjects who change social strata.
+
+<<mort1>>=
+load('mort.rda')
+mort[1:5,]
+fita <- coxph(Surv(enter, exit, event) ~ ses*birthdate, mort)
+@ 
+
+In survival version 2.38.4 iteration for this simple model gets stuck,
+while the eha package succeeds.
+
+@ 
+In survival version 2.38.4 iteration for this simple model gets stuck
+and does not reach a solution, while other packages such as eha
+succeeded.
+Centering birthdate by subtraction of 1800 led to success.
+What was the issue?
+
+<<steps>>=
+ 
+@ 
 \end{document}
