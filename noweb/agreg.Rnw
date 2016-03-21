@@ -159,7 +159,9 @@ if (nullmodel) {
 else {
     names(coef) <- dimnames(x)[[2]]
     if (maxiter > 0) coef[which.sing] <- NA  # always leave iter=0 alone
-
+    flag <- agfit$flag
+    names(flag) <- c("rank", "rescale", "step halving")
+    
     concordance <- survConcordance.fit(y, lp, strata, weights) 
     list(coefficients  = coef,
          var    = var,
@@ -171,6 +173,7 @@ else {
          means = colMeans(x),
          concordance = concordance,
          first = agfit$u,
+         info = flag,
          method= 'coxph')
 }
 @
@@ -396,22 +399,19 @@ for (istrat=0; istrat<nstrat; istrat++) {
 	   person = k;
 	   indx1 =k;  /* we can move on */
        }
-       printf("time=%4.1f\n", dtime);
+
        for (; indx1 < strata[istrat]; indx1++) {
 	   p1 = sort1[indx1];
 	   if (start[p1] < dtime) break;
-           printf(" r: keep[%d] = %d\n", p1, keep[p1]);
 	   keep[p1]--;
        }
        for (; person < strata[istrat]; person++) {
 	   p = sort2[person];
 	   if (tstop[p] < dtime) break;
-           printf(" a: keep[%d] = %d\n", p, keep[p]);
 	   if (keep[p] ==1) keep[p] =2;
        }
    }
 }
-for (i=0; i<nused; i++) printf("keep[%d] = %d\n", i, keep[i]);
 @ 
 
 At one point I spent a lot of time worrying about $r_i$ value that are too
@@ -513,10 +513,12 @@ large, leading to a huge weight exp(eta).
 This usually happens when a coefficient is tending to infinity, but can
 also be due to a bad step in the intermediate Newton-Raphson path.
 In the infinite coefficient case the
-log-likelihood trends to an asymptote and there is a race between 3
+log-likelihood trends to an asymptote and there is a race between four
 conditions: convergence of the loglik, an overflow of exp for one or
-more observations, or singularity of the variance matrix. 
-We watch for all three.
+more observations, singularity of the variance matrix, or an invalid
+log-likelihood.
+The last of these occurs when the denominator becomes $<0$ due to
+round off so that log(denom) is undefined.  
 
 The next section of code adds up the totals for a given iteration.
 This is the workhorse.
@@ -608,18 +610,10 @@ for (istrat=0; istrat < nstrat; istrat++) {
 	    p = sort2[person];
 	    if (tstop[p] < dtime) break; /* do not add */
 	    risk = exp(eta[p]) * weights[p];
-	    nrisk++;
-	    meaneta += eta[p];
 
-	    if (event[p] ==0 && keep[p] >0) {
-		denom += risk;
-		for (i=0; i<nvar; i++) {
-		    a[i] += risk*covar[i][p];
-		    for (j=0; j<=i; j++)
-			cmat[i][j] += risk*covar[i][p]*covar[j][p];
-		}
-	    }
-	    else {
+	    if (event[p] ==1 ){
+                nrisk++;
+                meaneta += eta[p];
 		deaths++;
 		denom2 += risk*event[p];
 		meanwt += weights[p];
@@ -631,6 +625,16 @@ for (istrat=0; istrat < nstrat; istrat++) {
                         cmat2[i][j] += risk*covar[i][p]*covar[j][p];
                 }
             }
+	    else if (keep[p] >0) {
+                nrisk++;
+                meaneta += eta[p];
+		denom += risk;
+		for (i=0; i<nvar; i++) {
+		    a[i] += risk*covar[i][p];
+		    for (j=0; j<=i; j++)
+			cmat[i][j] += risk*covar[i][p]*covar[j][p];
+		}
+	    }
         }
 	<<breslow-efron>>
         <<fixeta>>
@@ -694,7 +698,7 @@ if (start[sort1[indx1]] >= dtime) {
     for (; indx1<strata[istrat]; indx1++) {
 	p1 = sort1[indx1];
 	if (start[p1] < dtime) break;
-        if (keep[p] == 0) continue;  /* skip any never-at-risk rows */
+        if (keep[p1] == 0) continue;  /* skip any never-at-risk rows */
 	nrisk--;
 	if (nrisk ==0) {
 	    meaneta =0;

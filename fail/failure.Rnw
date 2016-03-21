@@ -181,9 +181,6 @@ all.equal(fit0$coef, sfit0$coef)
 
 sdata$fakeph <- sdata$ph.ecog + sdata$tstart
 sfit <- coxph(Surv(tstart, time, status) ~ fakeph + age, sdata)
-
-
-temp <- survSplit(lung[1:10, 2:6], seq(100, 1000, 100), end="time", event="status")
 @ 
 
 <<dummy>>=
@@ -192,7 +189,7 @@ test2 <- data.frame(start=c(1, 2, 5, 2, 1, 7, 3, 4, 8, 8),
                     stop =c(2, 3, 6, 7, 8, 9, 9, 9,14,17),
                     event=c(1, 1, 1, 1, 1, 1, 1, 0, 0, 0),
                     x    =c(1, 0, 0, 1, 0, 1, 1, 1, 0, 0) )
-test2b <- survSplit(test2, c(6.,9.), end='stop', event='event', start='start')
+test2b <- survSplit(test2, c(6,9), end='stop', event='event', start='start')
 fit1 <- coxph(Surv(start, stop, event) ~ x, test2)
 fit2 <- coxph(Surv(start, stop, event) ~ x, test2b)
 
