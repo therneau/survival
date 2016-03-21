@@ -125,20 +125,76 @@ The start-stop aspect is due to subjects who change social strata.
 <<mort1>>=
 load('mort.rda')
 mort[1:5,]
-fita <- coxph(Surv(enter, exit, event) ~ ses*birthdate, mort)
+fita <- coxph(Surv(enter, exit, event) ~ ses*birthdate, mort, x=T)
+cor(fita$x)
+svd(fita$var)$d
+@ 
+A singular value decomposition shows that the information
+matrix has a condition number of about $10^{11}$, which is large.
+(The ratio of the largest and smallest singular values.)
+The cholesky decomposition is still stable. 
+The very high correlation, however, makes this susceptible to round off
+errors.  Centering the data after forming the interactions does not
+help with this.
+
+When the data is pre-centered the correlation number is much more
+sensible and the condtion number is on the order of 1500, making it
+a well behaved problem.
+However, the number of iterations is exactly the same.
+This fact was a surprise to me when I first encountered it. 
+When using Newton-Raphson iteration the iteration path is completely
+invariant to any affine transformation of the covariates,
+as long as accuracy is not lost.  
+Centering does change the ses coefficient, but not the predictions.
+<<center>>=
+birth2 <- mort$birthdate -1800
+fitb <-  coxph(Surv(enter, exit, event) ~ ses*birth2, mort, x=TRUE)
+cor(fitb$x)
+svd(fitb$var)$d
+all.equal(predict(fita), predict(fitb))
 @ 
 
-In survival version 2.38.4 iteration for this simple model gets stuck,
-while the eha package succeeds.
-
+In the 2015 version of the library, iteration for this simple model got stuck,
+while the eha package succeeded (pointed out by Goran Borstrom).
+A small mistake in the information matrix sufficed.
+We can force failure in the current code making year less centered, but it
+requires a strong shift.
+<<center2>>=
+birth3 <- mort$birthdate + 1e7
+fitc <-  coxph(Surv(enter, exit, event) ~ ses*birth3, mort, x=TRUE)
 @ 
-In survival version 2.38.4 iteration for this simple model gets stuck
-and does not reach a solution, while other packages such as eha
-succeeded.
-Centering birthdate by subtraction of 1800 led to success.
-What was the issue?
 
-<<steps>>=
- 
+\section{Sliding mean}
+This is synthetic data that follows a particular example.  The covariate was
+the number of nursing shift changes, with a hypothesis that each hand off
+increased the chance of an adverse event. 
+The number of changes moves almost in lockstep for subjects: the normal shift
+is 8 hours during the week and 12 on the weekend.  
+For this reason the covariate turned out to be uninteresting, but it did cause
+the routine to fail.
+
+<<sliding>>=
+fit0 <- coxph(Surv(time, status) ~ ph.ecog + age, lung) 
+sdata <- survSplit(lung, seq(5, 1000, by=50), end="time", event="status")
+sfit0 <- coxph(Surv(tstart, time, status) ~ ph.ecog + age, sdata)
+all.equal(fit0$coef, sfit0$coef)
+
+sdata$fakeph <- sdata$ph.ecog + sdata$tstart
+sfit <- coxph(Surv(tstart, time, status) ~ fakeph + age, sdata)
+
+
+temp <- survSplit(lung[1:10, 2:6], seq(100, 1000, 100), end="time", event="status")
+@ 
+
+<<dummy>>=
+# start simple
+test2 <- data.frame(start=c(1, 2, 5, 2, 1, 7, 3, 4, 8, 8),
+                    stop =c(2, 3, 6, 7, 8, 9, 9, 9,14,17),
+                    event=c(1, 1, 1, 1, 1, 1, 1, 0, 0, 0),
+                    x    =c(1, 0, 0, 1, 0, 1, 1, 1, 0, 0) )
+test2b <- survSplit(test2, c(6.,9.), end='stop', event='event', start='start')
+fit1 <- coxph(Surv(start, stop, event) ~ x, test2)
+fit2 <- coxph(Surv(start, stop, event) ~ x, test2b)
+
 @ 
 \end{document}

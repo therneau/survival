@@ -54,12 +54,12 @@ agreg.fit <- function(x, y, strata, offset, init, control,
     # Sort the data (or rather, get a list of sorted indices)
     #  For both stop and start times, the indices go from last to first
     if (length(strata)==0) {
-	sort.end  <- order(-stopp, -event) -1L #indices start at 0 for C code
+	sort.end  <- order(-stopp) -1L #indices start at 0 for C code
 	sort.start<- order(-start) -1L
 	newstrat  <- n
 	}
     else {
-	sort.end  <- order(strata, -stopp, -event) -1L
+	sort.end  <- order(strata, -stopp) -1L
 	sort.start<- order(strata, -start) -1L
 	newstrat  <- cumsum(table(strata))
 	}
@@ -158,7 +158,7 @@ if (nullmodel) {
 }
 else {
     names(coef) <- dimnames(x)[[2]]
-    coef[which.sing] <- NA
+    if (maxiter > 0) coef[which.sing] <- NA  # always leave iter=0 alone
 
     concordance <- survConcordance.fit(y, lp, strata, weights) 
     list(coefficients  = coef,
@@ -170,6 +170,7 @@ else {
          residuals = resid,
          means = colMeans(x),
          concordance = concordance,
+         first = agfit$u,
          method= 'coxph')
 }
 @
@@ -196,8 +197,8 @@ SEXP agfit4(SEXP surv2,      SEXP covar2,    SEXP strata2,
 	    SEXP maxiter2,   SEXP  eps2,     SEXP tolerance2,
 	    SEXP doscale2) { 
 
-    int i,j,k, ii, person;
-    int indx2, istrat, p, p1;
+    int i,j,k, person;
+    int indx1, istrat, p, p1;
     int nrisk;
     int nused, nvar;
     int rank, rank2, fail;
@@ -208,7 +209,7 @@ SEXP agfit4(SEXP surv2,      SEXP covar2,    SEXP strata2,
     double *a2, **cmat2;
     double *eta;
     double  denom, zbeta, risk;
-    double  time;
+    double  dtime;
     double  temp, temp2;
     double  newlk =0;
     int     halving;    /*are we doing step halving at the moment? */
@@ -216,6 +217,7 @@ SEXP agfit4(SEXP surv2,      SEXP covar2,    SEXP strata2,
     double  meanwt;
     int deaths;
     double denom2, meaneta;
+    int *keep;               /* marker for useless obs */
 
     /* inputs */
     double *start, *tstop, *event;
@@ -260,13 +262,14 @@ SEXP agfit4(SEXP surv2,      SEXP covar2,    SEXP strata2,
     ** scratch space
     **  nvar: a, a2, oldbeta, scale
     **  nvar*nvar: cmat, cmat2
-    **  nused:  eta
+    **  nused:  eta, keep
     */
     eta = (double *) R_alloc(nused + 4*nvar + 2*nvar*nvar, sizeof(double));
     a = eta + nused;
     a2= a + nvar;
     scale  = a2 + nvar;
-    oldbeta = scale + nvar;   
+    oldbeta = scale + nvar;
+    keep = (int *) R_alloc(nused, sizeof(int));
 
     /*
     **  Set up the ragged arrays
@@ -350,17 +353,14 @@ SEXP agfit4(SEXP surv2,      SEXP covar2,    SEXP strata2,
 	for (i=0; i<nvar; i++) beta[i] /= scale[i]; /* rescale initial betas */
 	}
     else {for (i=0; i<nvar; i++) scale[i] = 1.0;}
-
+    <<agfit4-toss>>
     <<agfit4-iter>>
     <<agfit4-finish>>
 }
 @ 
 
 As we walk through the risk sets observations are both added and
-removed from a set of running totals.  
-In order to avoid catastrophic cancellation we need to make sure that
-the terms being added are of modest size and that the weights are
-not extreme.
+removed from a set of running totals. 
 We have 6 running totals: 
 \begin{itemize}
   \item sum of the weights, denom = $\sum w_i r_i$
@@ -370,6 +370,76 @@ We have 6 running totals:
     tied with the current death time,  named denom2, a2, cmat2.
     This allows for easy compuatation of the Efron approximation for ties.
 \end{itemize}
+
+Observations that are not part of any risk set can goof up my algorithm
+(nrisk will be negative), so we do a first pass to mark them in the
+\code{keep} vector.  For most sensible data sets all elements of 
+\code{keep} will be positive, but survSplit can create observations that 
+are not used.
+
+<<agfit4-toss>>=
+indx1 =0;
+person =0;
+for (k=0; k<nused; k++) keep[k] =1;
+for (istrat=0; istrat<nstrat; istrat++) {
+   while(person < strata[istrat]) {
+       /* find the next death */
+       for (k=person; k< strata[istrat]; k++) {
+	   p = sort2[k];
+	   if (event[p] ==1) {
+	       dtime = tstop[p];
+	       break;
+	   }
+       }
+       if (k== strata[istrat]) {
+	   /* no more deaths in this strata */
+	   person = k;
+	   indx1 =k;  /* we can move on */
+       }
+       printf("time=%4.1f\n", dtime);
+       for (; indx1 < strata[istrat]; indx1++) {
+	   p1 = sort1[indx1];
+	   if (start[p1] < dtime) break;
+           printf(" r: keep[%d] = %d\n", p1, keep[p1]);
+	   keep[p1]--;
+       }
+       for (; person < strata[istrat]; person++) {
+	   p = sort2[person];
+	   if (tstop[p] < dtime) break;
+           printf(" a: keep[%d] = %d\n", p, keep[p]);
+	   if (keep[p] ==1) keep[p] =2;
+       }
+   }
+}
+for (i=0; i<nused; i++) printf("keep[%d] = %d\n", i, keep[i]);
+@ 
+
+At one point I spent a lot of time worrying about $r_i$ value that are too
+large, but it turns out that the overall scale of the weights does not
+really matter since they always appear as a ratio.  
+(Assuming we avoid exponential overflow and underflow, of course.)
+What does get the code in trouble is when there are large and small
+weights and we get an update of large + small - large.
+For example suppose a data set has a time dependent covariate which grows
+with time and the data has values like below:
+\begin{center}
+  \begin{tabular}{ccccc}
+    time1 & time2 & status & x \hline \\
+    0   &    90  &  1     & 1 \\
+    0   &    105  &  0     & 2  \\
+    100 &    120  &  1     & 50  \\
+    100 &    124  &  0     & 51 
+    \end{tabular} 
+\end{center}
+The code moves from large times to small, so the first risk set considered has
+subjects 3 and 4, the second has 1 and 2.  
+The original code would do removals only when necessary, i.e., at the
+event times of 120 and 90, and additions as they came along.  
+This leads to adding in subjects 1 and 2 before 3 and 4 are removed;
+for a coefficient greater than about .5 this leads to a loss of all of
+all significant digits.  
+The defense is to remove subjects from the risk set as early
+as possible, and defer additions as long as possible.
 
 The three primary quantities for the Cox model are the log-likelihood $L$,
 the score vector $U$ and the Hessian matrix $H$.
@@ -436,7 +506,7 @@ subjects (weekends often use 12 hour nurse shifts instead of 8 hour).  The
 regression coefficient was around 1 and the data duration was 11 weeks
 (about 200 shifts) so that $eta$ values could be over 100 even after
 centering.  We keep a time dependent average of $\eta$ and renorm the
-weights as necessary.
+weights as necessary.  This should be very rare.
 
 The last numerical problem is when one or more coefficients gets too
 large, leading to a huge weight exp(eta).
@@ -446,29 +516,23 @@ In the infinite coefficient case the
 log-likelihood trends to an asymptote and there is a race between 3
 conditions: convergence of the loglik, an overflow of exp for one or
 more observations, or singularity of the variance matrix. 
-In earlier versions of this code I had a check for each coefficient, but
-this failed in an economics data set sent by a user which had extreme
-correlation of the coefficients.  
-We can normally stop the overflow by scaling: keep track of the average 
-linear predictor and subtract it when creating weights.
+We watch for all three.
 
 The next section of code adds up the totals for a given iteration.
 This is the workhorse.
- For a given death time all of the events tied at
+For a given death time all of the events tied at
 that time must be handled together, hence the main loop below proceeds in
-batches: an outer one that goes to the next death time and inner ones that
-walk through rows at that time.  Censored additions to the risk set
-can happen one at a time.
+batches:
+\begin{enumerate}
+  \item Find the time of the next death (within this stratum). If there are
+    none zero the totals and move ahead to the next.
+  \item Remove all observations in the stratum with time1 > dtime.
+    What survSplit was used to create a data set, this will often remove all.
+    If so we can rezero temporaries and regain precision.
+  \item Add new observations to the risk set and to the death counts.
+\end{enumerate}
 
-It is only necessary to remove subjects from the risk sets at each
-unique death time.
-When a user has a tt() term this can generate data with disjoint time sets,
-i.e., all the subjects current at risk are removed a select times and new
-ones added.  The code below tries to be efficient for this by first checking,
-if everyone was removed before doing the subtractions, and doing this before
-adding new subjects to the risk set.  This latter is why we sort events
-first within a tied time, so that it is triggered before adding anyone
-censored at exactly that time.
+
 <<agfit4-addup>>=
 for (i=0; i<nvar; i++) {
     u[i] =0;
@@ -489,67 +553,68 @@ for (person=0; person<nused; person++) {
 /*
 **  'person' walks through the the data from 1 to n,
 **     sort1[0] points to the largest stop time, sort1[1] the next, ...
-**  'time' is a scratch variable holding the time of current interest
-**  'indx2' walks through the start times.  It will be smaller than 
-**    'person': if person=27 that means that 27 subjects have tstop >=time,
-**    and are thus potential members of the risk set.  If 'indx2' =9,
-**    that means that 9 subjects have start >=time and thus are NOT part
-**    of the risk set.  (tstop > start for each subject guarrantees that
-**    the 9 are a subset of the 27). 
-**  Basic algorithm: move 'person' forward, adding the new subject into
-**    the risk set.  If this is a new, unique death time, take selected
-**    old obs out of the sums, add in obs tied at this time, then
-**    add terms to the loglik, etc.
+**  'dtime' is a scratch variable holding the time of current interest
+**  'indx1' walks through the start times.  
 */
-istrat=0;
-indx2 =0;
-denom =0;
-meaneta =0;
-nrisk =0;
+person =0;
+indx1 =0;
 newlk =0;
-for (person=0; person<nused;) {
-    p = sort2[person];
-    time = tstop[p];
-
-    if (event[p]==0){
-        nrisk++;
-        meaneta += eta[p];
-        risk = exp(eta[p]) * weights[p];
-        denom += risk;
-        for (i=0; i<nvar; i++) {
-	    a[i] += risk*covar[i][p];
-	    for (j=0; j<=i; j++)
-		cmat[i][j] += risk*covar[i][p]*covar[j][p];
-    	}
-	person++;
-	/* nothing more needs to be done for this obs */
+for (istrat=0; istrat < nstrat; istrat++) {
+    for (i=0; i<nvar; i++) {
+	u[i] =0;
+	a[i] =0;
+	for (j=0; j<nvar; j++) {
+	    imat[i][j] =0 ;
+	    cmat[i][j] =0;
+	}
     }
-    else {   /* a death */
+    denom =0;
+    nrisk =0;
+    meaneta =0;
+    while (person < strata[istrat]) {
+        /* find the next death time in this stratum */
+	for (k=person; k<strata[istrat]; k++) {
+	    p = sort2[k];
+	    if (event[p] == 1) {
+		dtime = tstop[p];
+		break;
+	    }
+	}
+        if (k == strata[istrat]) {
+            /* no more deaths in this stratum, we can move on */
+            person = k;
+            indx1 = k;
+            break;
+        }
+    
+        /* remove any subjects no longer at risk */
         <<agreg-remove>>
-        /*
-        ** compute the averages over subjects with
-        **   exactly this death time (a2 & c2)
-        */
-        denom2 =0;
-        meanwt =0;
-        for (i=0; i<nvar; i++) {
+
+	/* 
+	** add any new subjects who are at risk 
+	** denom2, a2, cmat2, and deaths count only the deaths
+	*/
+	denom2= 0;
+	meanwt =0;
+	deaths=0;    
+	for (i=0; i<nvar; i++) {
 	    a2[i]=0;
 	    for (j=0; j<nvar; j++) {
 		cmat2[i][j]=0;
-    	    }
-    	}
-        deaths=0;
-        for (; person<strata[istrat]; person++) {
+	    }
+	}
+	
+	for (; person<strata[istrat]; person++) {
 	    p = sort2[person];
-	    if (tstop[p] < time) break;
+	    if (tstop[p] < dtime) break; /* do not add */
 	    risk = exp(eta[p]) * weights[p];
-            nrisk++;
-            meaneta += eta[p];
+	    nrisk++;
+	    meaneta += eta[p];
 
-	    if (event[p] ==0) {
+	    if (event[p] ==0 && keep[p] >0) {
 		denom += risk;
- 		for (i=0; i<nvar; i++) {
-                    a[i] += risk*covar[i][p];
+		for (i=0; i<nvar; i++) {
+		    a[i] += risk*covar[i][p];
 		    for (j=0; j<=i; j++)
 			cmat[i][j] += risk*covar[i][p]*covar[j][p];
 		}
@@ -558,32 +623,19 @@ for (person=0; person<nused;) {
 		deaths++;
 		denom2 += risk*event[p];
 		meanwt += weights[p];
-		newlk += weights[p]* eta[p];
-		for (i=0; i<nvar; i++) {
+                newlk += weights[p]* eta[p];
+                for (i=0; i<nvar; i++) {
                     u[i] += weights[p] * covar[i][p];
-		    a2[i]+= risk*covar[i][p];
-		    for (j=0; j<=i; j++)
-			cmat2[i][j] += risk*covar[i][p]*covar[j][p];
-    		}
-	    }
-    	}
+                    a2[i]+= risk*covar[i][p];
+                    for (j=0; j<=i; j++)
+                        cmat2[i][j] += risk*covar[i][p]*covar[j][p];
+                }
+            }
+        }
 	<<breslow-efron>>
         <<fixeta>>
     }
-    /* zero subtotals at the end of a stratum */
-    if (person == strata[istrat]) {
-	istrat++;
-	denom =0;
-	meaneta=0;
-	nrisk =0;
-	indx2 = person;
-	for (i=0; i<nvar; i++) {
-	    a[i] =0;
-	    for (j=0; j<nvar; j++) cmat[i][j]=0;
-	}
-    }
 }   /* end  of accumulation loop */
-
 @ 
 
 The last step in the above loop is to add the terms to the loglik, score and
@@ -592,6 +644,10 @@ The difference between the Efron and Breslow approximations is that for the
 Efron the three tied subjects are given a weight of 1/3 for the first, 2/3 for
 the second, and 3/3 for the third death; for the Breslow they get 3/3 for
 all of them.  
+Note that \code{imat} is symmetric, and that the cholesky routine will
+utilize the upper triangle of the matrix as input, using the lower part for
+its own purposes.  The inverse from \code{chinv} is also in the upper
+triangle.
 <<breslow-efron>>= 
 /*
 ** Add results into u and imat for all events at this time point
@@ -605,7 +661,7 @@ if (method==0 || deaths ==1) { /*Breslow */
 	u[i] -= meanwt*temp;
 	for (j=0; j<=i; j++) {
 	    cmat[i][j] += cmat2[i][j];
-	    imat[i][j] += meanwt*((cmat[i][j]/denom) - temp*temp);
+	    imat[j][i] += meanwt*((cmat[i][j]- temp*a[j])/denom);
 	}
     }
 }
@@ -620,8 +676,8 @@ else {
 	    u[i] -= meanwt*temp;
 	    for (j=0; j<=i; j++) {
 		cmat[i][j] += cmat2[i][j]/deaths;
-		imat[i][j] += meanwt*((cmat[i][j]/denom) - temp*temp);
-    	    }
+                imat[j][i] += meanwt*((cmat[i][j]- temp*a[j])/denom);
+            }
     	}
     }
 }
@@ -629,29 +685,26 @@ else {
 
 Code to process the removals:
 <<agreg-remove>>=
-if (start[sort1[indx2]] >= time) {
+if (start[sort1[indx1]] >= dtime) {
     /*
     ** subtract out the subjects whose start time is to the right
-    ** first find out if everyone is removed (this happens often when
-    ** the tt() function is used, so it is worth checking).
+    ** If everyone is removed reset the totals to zero.  (This happens when
+    ** the survSplit function is used, so it is worth checking).
     */
-    for (k=indx2; k<strata[istrat]; k++) {
-	p1 = sort1[k];
-	if (start[p1] < time) break;
+    for (; indx1<strata[istrat]; indx1++) {
+	p1 = sort1[indx1];
+	if (start[p1] < dtime) break;
+        if (keep[p] == 0) continue;  /* skip any never-at-risk rows */
 	nrisk--;
-    }
-    if (nrisk==0) { /*completely new risk set */
-	denom=0; meaneta=0;
-	for (i=0; i<nvar; i++) {
-	    a[i] =0;
-	    for (j=0; j<=i; j++) cmat[i][j] =0;
+	if (nrisk ==0) {
+	    meaneta =0;
+	    denom =0;
+	    for (i=0; i<nvar; i++) {
+		a[i] =0;
+		for (j=0; j<=i; j++) cmat[i][j] =0;
+	    }
 	}
-    }
-    else {
-        temp = denom;
-	for (; indx2<strata[istrat]; indx2++) {
-	    p1 = sort1[indx2];
-	    if (start[p1] < time) break;
+	else {
 	    meaneta -= eta[p1];
 	    risk = exp(eta[p1]) * weights[p1];
 	    denom -= risk;
@@ -660,9 +713,6 @@ if (start[sort1[indx2]] >= time) {
 		for (j=0; j<=i; j++)
 		    cmat[i][j] -= risk*covar[i][p1]*covar[j][p1];
 	    }
-	}
-	if (denom/temp < 1e-9) {
-	    <<overflow-fix>>
 	}
 	<<fixeta>>
     }
@@ -676,20 +726,23 @@ modest.  An example would be something like ``payments made to date'' for
 a portfolio of loans.  Then even though the data has been centered and
 the global mean is fine, the current values of eta are outrageous with
 respect to the exp function.
-Since replaceing eta with (eta -c) for any c does not change the likelihood,
+Since replacing eta with (eta -c) for any c does not change the likelihood,
 do it.  Unfortunately, we can't do this once and for all: this is a step that 
 will occur at least twice per iteration for those rare cases, e.g., eta is
 too small at early times and too large at late ones.
 <<fixeta>>=
 /* 
-** If the average eta value has gotton out of hand, fix it.
+** If the average eta value is out of hand, fix it.
 ** We must avoid overflow in the exp function (~750 on Intel)
 ** and want to act well before that, but not take action very often.  
 ** One of the case-cohort papers suggests an offset of -100 meaning
 ** that etas of 50-100 can occur in "ok" data, so make it larger 
 ** than this.
+** If the range of eta is more then log(1e16) = 37 then the data is
+**  hopeless: some observations have effectively 0 weight.  Keeping
+**  the mean sensible suffices to keep the max in check.
 */
-if (fabs(meaneta) > (nrisk *150)) {  
+if (fabs(meaneta/nrisk) > 200) {  
     flag[1]++;  /* a count, for debugging/profiling purposes */
     meaneta = meaneta/nrisk;
     for (i=0; i<nused; i++) eta[i] -= meaneta;
@@ -704,33 +757,6 @@ if (fabs(meaneta) > (nrisk *150)) {
     meaneta =0;
 }
 @         
-
-This next bit of code is very rare. It occurs when the subjects who have
-just been dropped from the risk set had essentially all the weight,
-so much so that the running totals of \code{denom}, \code{a}, and \code{cmat}
-have lost nearly all of their precision.
-The only recourse is to rebuild all the totals from scratch.
-<<overflow-fix>>=
-flag[2]++;  /*a count, for debugging/profiling */
-denom=0;
-for (i=0; i<nvar; i++) {
-    a[i] =0;
-    for (j=0; j<=i; j++) cmat[i][j] =0;
-    }
-if (istrat==0) ii =0; else ii= strata[istrat-1]; /*start of current strata*/
-for (k=ii; k<strata[istrat]; k++) {
-    p1 = sort2[k];
-    if (tstop[p1] <= time) break;  /* further subjects are not yet at risk */
-    if (start[p1] < time) {  
-	risk = weights[p1] *eta[p1];
-	denom += risk;
-	for (i=0; i<nvar; i++) {
-	    a[i] += risk * covar[i][p1];
-	    for (j=0; j<=i; j++) cmat[i][j] += risk * covar[i][p1]*covar[i][p1];
-	}
-    }
-}
-@ 
 
 Now, I'm finally to the actual iteration steps.
 
@@ -835,7 +861,7 @@ for (*iter=1; *iter<= maxiter; (*iter)++) {
 	if (*iter == maxiter-1) {
 	    for (i=0; i<nvar; i++) beta[i] = oldbeta[i];
 	 } else {
-	    halving =1;
+	    halving =1; flag[2]++;
 	    for (i=0; i<nvar; i++)
 		beta[i] = (oldbeta[i] + beta[i]) /2; /*half of old increment */
 	}
