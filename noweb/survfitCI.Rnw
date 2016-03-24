@@ -84,9 +84,9 @@ survfitCI <- function(X, Y, weights, id, istate,
         temp <- as.factor(istate)
         # append any starting states not found in Y, but remember that
         #  if istate was a factor then not all its levels might appear
-        appear <- (levels(istate))[unique(as.numeric(istate))]
+        appear <- (levels(temp))[unique(as.numeric(temp))]
         state.names <- unique(c(attr(Y, "states"), appear))
-        istate <- as.numeric(factor(as.character(istate), levels=state.names))
+        istate <- as.numeric(factor(as.character(temp), levels=state.names))
     }
     else {
         if (!is.numeric(istate) || any(istate != floor(istate)) || 
