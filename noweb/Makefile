@@ -4,6 +4,7 @@ PARTS = main.Rnw \
 	agreg.Rnw \
 	coxsurv.Rnw \
 	coxsurv2.Rnw \
+	finegray.Rnw \
 	predict.coxph.Rnw \
 	concordance.Rnw \
 	survexp.Rnw \
@@ -21,6 +22,7 @@ PARTS = main.Rnw \
 SFUN =  agreg.fit.R \
 	agsurv.R \
 	coxph.R \
+	finegray.R \
 	model.matrix.coxph.R \
 	plot.survfit.R \
 	predict.coxph.R \

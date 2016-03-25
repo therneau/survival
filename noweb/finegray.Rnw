@@ -1,0 +1,248 @@
+\section{The Fine-Gray model}
+For competing risks with ending states 1, 2, \ldots $k$, 
+the Fine-Gray approach turns these into a set of simple 2-state
+Cox models:
+\begin{itemize}
+  \item (not yet in state 1) $\longrightarrow$ state 1
+  \item (not yet in state 2) $\longrightarrow$ state 2
+  \item \ldots
+\end{itemize}
+Each of these is now a simple Cox model, assuming that we are willing
+to make a proportional hazards assumption.
+There is one added complication:
+when estimating the first model, one wants to use the data set that
+would have occured if the subjects being followed for state 1 had
+not had an artificial censoring, that is, had been clinically followed
+as though they were still in the denominator of subjects who are at
+risk of transition to state 1.
+Sometimes this can be filled in directly, e.g., if we knew the enrollment
+dates for each subject along with the date that follow-up for the
+study was terminated, and there was no lost to follow-up (only administrative
+censoring.)
+In practice what is done is to estimate the overall censoring distribution and
+give subjects artificial follow-up.
+
+The function below creates a data set that can then be used with coxph.
+It has a lot of commonality with \code{survSplit}.
+
+<<finegray>>= 
+finegray <- function(formula, data, weights, subset, na.action= na.pass,
+                     endpoint, tstart="tstart", wt="fgwt"){
+    Call <- match.call()
+    indx <- match(c("formula", "data", "weights", "subset", "id"),
+              names(Call), nomatch=0) 
+    if (indx[1] ==0) stop("A formula argument is required")
+    temp <- Call[c(1,indx)]  # only keep the arguments we wanted
+    temp$na.action <- na.action
+    temp[[1]] <- as.name('model.frame')  # change the function called
+
+    special <- c("strata", "cluster")
+    temp$formula <- if(missing(data)) terms(formula, special)
+    else              terms(formula, special, data=data)
+
+    mf <- eval(temp, parent.frame())
+    if (nrow(mf) ==0) stop("No (non-missing) observations")
+    Terms <- terms(mf)
+
+    Y <- model.extract(mf, "response")
+    if (!inherits(Y, "Surv")) stop("Response must be a survival object")
+    type <- attr(Y, "type")
+    if (type!='mright' && type!='mcounting')
+	stop("Fine-Gray model requires a multi-state survival")
+    nY <- ncol(Y)
+    states <- attr(Y, "states")
+
+    strats <- attr(Terms, "specials")$strata
+    if (length(strats)) {
+	stemp <- untangle.specials(Terms, 'strata', 1)
+	if (length(stemp$vars)==1) strata <- mf[[stemp$vars]]
+	else strata <- survival::strata(mf[,stemp$vars], shortlabel=TRUE)
+        istrat <- as.numeric(strata)
+	}
+    else istrat <- rep(1, nrow(mf))
+    
+    id <- model.extract(mf, "id")
+    cluster<- attr(Terms, "specials")$cluster
+    if (length(cluster)) {
+        if (!is.null(id)) stop("an id argument and a cluster() term are redundant")
+        tempc <- untangle.specials(Terms, 'cluster', 1:10)
+        ord <- attr(Terms, 'order')[tempc$terms]
+        if (any(ord>1)) stop ("Cluster can not be used in an interaction")
+        id <- strata(mf[,tempc$vars], shortlabel=TRUE)  #allow multiples
+    }
+    
+    # If there is start-stop data, then there needs to be a cluster()
+    #  argument or an id argument, and we check that this is indeed
+    #  a competing risks form of data.
+    if (type=="mcounting") {
+        if (is.null(id)) stop("(start, stop] data requires a subject id")
+        else {
+            index <- order(id, Y[,2]) # by time within id
+            temp <- Y[index,]
+            first <- which(!duplicated(id[index]))
+            last  <- c(first[-1] -1, length(id))
+            if (any(temp[-last, 3]) != 0)
+                stop("a subject has a transition before their last time point")
+            delta <- c(temp[-1,1], 0) - temp[,2]
+            if (any(delta[-last] !=0)) stop("a subject has gaps in their fu time")
+        }
+    }
+
+    if (missing(endpoint)) enum <- 1  #generate a data set for which endpoint?
+    else {
+        index <- match(endpoint, states)
+        if (any(is.na(index)))
+            stop ("endpoint argument has a state that is not in the data")
+        enum <- index[1]
+        if (length(index) > 1) warning("only the first endpoint was used")
+    }
+        
+    # Did the user hand me a Surv call with multiple variables, or a
+    #  premade Surv object?
+    if (class(formula[[2]]) == "call" && formula[[2]][[1]]== as.name("Surv")){
+        # it was a call, figure out the names
+        # The user might have used something like Surv(status=abc, time=fred),
+        #  so use match.call to resolve it.
+        was.a.call <- TRUE
+        temp <- match.call(Surv, formula[[2]])
+        for (i in c("time", "time2", "event")) {
+            if (!(is.null(temp[[i]]) || is.name(temp[[i]])))
+                stop("cannot deal with complex arguments within a Surv call")
+        }
+        if (nY ==2) {
+            end <- as.character(temp$time)
+            if (is.null(temp$status)) event <- as.character(temp$time2)
+            else event <- as.character(temp$event)
+        }
+        else {
+            tstart <- as.character(temp$time)
+            end   <-  as.character(temp$time2)
+            event <-  as.character(temp$event)
+            }
+    }
+     else {
+        if (class(formula[[2]]) != "name")
+            stop("left hand side not recognized")
+        was.a.call <- FALSE
+        survname <-as.character(formual[[2]])
+    }
+    <<finegray-censor>>   
+    <<finegray-build>>
+}  
+@
+
+The censoring distribution is estimated as a simple KM with one modification.
+In a time to death KM say that subject A has an event and subject B is censored
+on the exact same day.  We assume that B was at risk for said event when 
+computing the estimate.  The set of subjects at risk is left continuous
+and the estimated survival is right-continuous.
+For the reverse case of computing the censoring distribution, the FG estimate
+does not assume that subject A was at risk of censoring on that day.
+The risk set is right-continuous and the function left continuous.
+A fix to this is break any ties by making
+all the event times just a little bit shorter.
+To avoid issues with times that are nearly identical (but not quite) we first
+convert to an integer time scale.
+Since this is a competing risks data set any non-censored observation for a
+subject is their last, so this time shift does not goof up the alignment
+of start, stop data.
+
+<<finegray-censor>>=
+find2 <- function(x, vec, left.open=FALSE, ...) {
+    if (!left.open) findInterval(x, vec, ...)
+    else {
+        # the left.open arg is a recent addition to findInterval, and I want
+        #  this to work in 3.2.0 (institutional installs).  In another cycle or
+        #  so we can drop this workaround
+        #
+        1 + length(x) - findInterval(-x, rev(-vec), ...)
+    }
+}
+    
+if (ncol(Y) ==2) {
+    temp <- min(Y[,1], na.rm=TRUE)
+    if (temp >0) zero <- 0
+    else zero <- 2*temp -1  # a value less than any observed y
+    Y <- cbind(zero, Y)  # add a start column
+}
+utime <- sort(unique(Y[,2]))  # all the unique end times
+newtime <- matrix(findInterval(Y[,1:2], utime), ncol=2) 
+status <- Y[,3]
+newtime[status !=0, 2] <- newtime[status !=0,2] - .2
+csurv <- survfit(Surv(newtime[,1], newtime[,2], status==0) ~ istrat)
+@ 
+
+Say we are looking at endpoint 1 with events at times 1, 10, and 50,
+and the censoring distribution has events at 30, 40, 50.
+Some one who experiences endpoint 2 at time 5 will need to have two 
+observations:
+from 0 to 30 they have weight 1, and from 30+ to 50 a weight of csurv[t=30].
+Technically they would have different weights on (0,30], (30,40], (40,50] 
+and 50+,
+but the weights in our derived data set only need to be correct at the event
+times, as that is the only time they will be used for computation.
+However, say another subject experiences endpoint 2 at time 45.  Their weight
+is 1 for the events at times 1 and 10, but is csurv(t=50)/csurv(t=40).
+They don't need an extra event at time 40 to reset the weight, but the 
+C routine needs to know about that change in csurv.
+In order to create a compact data set we pass the full set of times and
+survivals from csurv, along with the ones that are important.
+
+For each stratum separately, find the set of necessary times.  This is
+equivalent to the number of censoring distribution intervals into which
+an event time falls.  Use the left-hand endpoints of those intervals as
+my cut points in a call to the C routine, those are the points at which
+weights need to change.
+
+<<finegray-build>>=
+status <- Y[, 3]
+if (!is.null(attr(Y, "states"))) {
+    status <- factor(status, labels=c("censor", attr(Y, "states")))
+    censor <- "censor"
+}
+else censor <- 0
+
+stratfun <- function(i) {
+    if (dim(csurv) >1) temp <- csurv[i]  # censoring curve for this stratum
+    else temp <- csurv   #avoid a warning message
+    ctime <- utime[temp$time[temp$n.event >0]]
+    cprob <- temp$surv[temp$n.event >0]
+    
+    keep <- which(istrat ==i)
+    tdata <- mf[istrat ==i, -1, drop=FALSE]
+    times <- unique(Y[keep & status == enum, 2]) #unique event times 
+    if (length(times)==0) return(tdata)  #no events in this stratum
+
+    index <- unique(find2(sort(times), ctime, left.open=TRUE))
+    # times before the first ctime get index 1, then 2, etc.
+    # if "index" appears, I need the weight for that interval, which means
+    #   a cut point at the front end of the interval to reset it.
+    cuts <- ctime[index]
+    expand <- (Y[keep, 3] !=0 & Y[keep,3] != enum) #which rows to expand wts
+    split <- .Call("finegray", Y[keep,1], Y[keep,2], as.double(cuts), 
+                   c(1.0, cprob[index]), expand, max(times),
+                   ctime, cprob)
+browser()
+    tdata <- tdata[split$row,,drop=FALSE]
+    tstat <- ifelse(status[split$row]== enum, 1, 0)
+    tstat[split$censor] <- censor
+    if (was.a.call) {
+        tdata[[tstart]] <- split$start
+        tdata[[end]]    <- split$end
+        tdata[[event]]  <- tstat
+    }
+    else tdata[[sname]] <- Surv(split$start, split$end, tstat)
+    tdata[[wt]] <- split$wt
+    tdata
+}
+
+if (max(istrat) ==1) result <- stratfun(1)
+else {
+    tlist <- lapply(1:max(istrat), stratfun)
+    result <- do.call("rbind", tlist)
+}
+
+rownames(result) <- NULL   #remove all the odd labels that R adds
+attr(result, "event") <- states[enum]
+result
+@ 

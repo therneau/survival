@@ -9,7 +9,7 @@ survdiff.fit <- function(y, x, strat, rho=0) {
 
     ngroup <- length(unique(x))
     if (ngroup <2) stop ("There is only 1 group")
-    if (is.category(x)) x <- as.numeric(x)
+    if (inherits(x, "factor")) x <- as.numeric(x)
     else x <- match(x, unique(x))
 
     if (missing(strat)) strat <- rep(1,n)
