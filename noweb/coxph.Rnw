@@ -14,43 +14,7 @@ coxph <- function(formula, data, weights, subset, na.action,
 
     ties <- match.arg(ties)
     Call <- match.call()
-
-    # create a call to model.frame() that contains the formula (required)
-    #  and any other of the relevant optional arguments
-    # then evaluate it in the proper frame
-    indx <- match(c("formula", "data", "weights", "subset", "na.action"),
-                  names(Call), nomatch=0) 
-    if (indx[1] ==0) stop("A formula argument is required")
-    temp <- Call[c(1,indx)]  # only keep the arguments we wanted
-    temp[[1]] <- as.name('model.frame')  # change the function called
-    
-    special <- c("strata", "cluster", "tt")
-    temp$formula <- if(missing(data)) terms(formula, special)
-                    else              terms(formula, special, data=data)
-    # Make "tt" visible for coxph formulas, without making it visible elsewhere
-    if (!is.null(attr(temp$formula, "specials")$tt)) {
-        coxenv <- new.env(parent= environment(formula))
-        assign("tt", function(x) x, env=coxenv)
-        environment(temp$formula) <- coxenv
-    }
-
-    mf <- eval(temp, parent.frame())
-    if (nrow(mf) ==0) stop("No (non-missing) observations")
-    Terms <- terms(mf)
-
-    
-    ## We want to pass any ... args to coxph.control, but not pass things
-    ##  like "dats=mydata" where someone just made a typo.  The use of ...
-    ##  is simply to allow things like "eps=1e6" with easier typing
-    extraArgs <- list(...)
-    if (length(extraArgs)) {
-	controlargs <- names(formals(coxph.control)) #legal arg names
-	indx <- pmatch(names(extraArgs), controlargs, nomatch=0L)
-	if (any(indx==0L))
-            stop(gettextf("Argument %s not matched", names(extraArgs)[indx==0L]),
-                 domain = NA)
-    }
-    if (missing(control)) control <- coxph.control(...)
+    <<coxph-getdata>>
 
     Y <- model.extract(mf, "response")
     if (!inherits(Y, "Surv")) stop("Response must be a survival object")
@@ -106,6 +70,46 @@ coxph <- function(formula, data, weights, subset, na.action,
     <<coxph-finish>>
     }
 @     
+
+Standard code to grab the data.
+<<coxph-getdata>>=
+# create a call to model.frame() that contains the formula (required)
+#  and any other of the relevant optional arguments
+# then evaluate it in the proper frame
+indx <- match(c("formula", "data", "weights", "subset", "na.action"),
+              names(Call), nomatch=0) 
+if (indx[1] ==0) stop("A formula argument is required")
+temp <- Call[c(1,indx)]  # only keep the arguments we wanted
+temp[[1]] <- as.name('model.frame')  # change the function called
+
+special <- c("strata", "cluster", "tt")
+temp$formula <- if(missing(data)) terms(formula, special)
+                else              terms(formula, special, data=data)
+# Make "tt" visible for coxph formulas, without making it visible elsewhere
+if (!is.null(attr(temp$formula, "specials")$tt)) {
+    coxenv <- new.env(parent= environment(formula))
+    assign("tt", function(x) x, env=coxenv)
+    environment(temp$formula) <- coxenv
+}
+
+mf <- eval(temp, parent.frame())
+if (nrow(mf) ==0) stop("No (non-missing) observations")
+Terms <- terms(mf)
+
+
+## We want to pass any ... args to coxph.control, but not pass things
+##  like "dats=mydata" where someone just made a typo.  The use of ...
+##  is simply to allow things like "eps=1e6" with easier typing
+extraArgs <- list(...)
+if (length(extraArgs)) {
+    controlargs <- names(formals(coxph.control)) #legal arg names
+    indx <- pmatch(names(extraArgs), controlargs, nomatch=0L)
+    if (any(indx==0L))
+        stop(gettextf("Argument %s not matched", names(extraArgs)[indx==0L]),
+             domain = NA)
+}
+if (missing(control)) control <- coxph.control(...)
+@ 
 
 An increasingly common error is for users to put the time variable on
 both sides of the formula, in the mistaken idea that this will
