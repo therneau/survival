@@ -600,7 +600,7 @@ survConcordance <- function(formula, data,
     Call <- match.call()  # save a copy of of the call, as documentation
 
     m <- match.call(expand.dots=FALSE)
-    m[[1]] <- as.name("model.frame")
+    m[[1L]] <-  quote(stats::model.frame)
     m$formula <- if(missing(data)) terms(formula, "strata")
                  else              terms(formula, "strata", data=data)
     m <- eval(m, sys.parent())

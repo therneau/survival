@@ -37,7 +37,7 @@ predict.survreg <-
     else  need.x <- FALSE
 
     if (!missing(newdata)){
-        newframe <- model.frame(Terms, data=newdata, na.action= na.action,
+        newframe <- stats::model.frame(Terms, data=newdata, na.action= na.action,
                                 xlev=object$xlevels)
         na.action.used <- attr(newframe, 'na.action')
         }
@@ -48,7 +48,7 @@ predict.survreg <-
 	#
 	# We need to reconstruct the original "strata" variable
 	#
-	mf <- model.frame(object)
+	mf <- stats::model.frame(object)
 	temp <- untangle.specials(Terms, 'strata', 1)
 	if (length(temp$vars)==1) strata.keep <- mf[[temp$vars]]
 	else strata.keep <- strata(mf[,temp$vars], shortlabel=TRUE)

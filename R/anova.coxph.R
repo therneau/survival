@@ -48,7 +48,7 @@ anova.coxph <- function (object, ...,  test = 'Chisq') {
     has.strata <- !is.null(attr(terms(object), "specials")$strata)
     if (is.null(object[['y']]) || (has.strata && is.null(object$strata))) {
         # We need the model frame
-        mf <- model.frame(object)
+        mf <- stats::model.frame(object)
         Y <- model.response(mf)
         X <- model.matrix(object, mf)
         if (has.strata) {

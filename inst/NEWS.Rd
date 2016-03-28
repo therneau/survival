@@ -2,6 +2,11 @@
 \title{NEWS file for the survival package}
 \section{Changes in version 2.38-6}{
   \itemize{
+    \item Replace any refrences to model.frame with "stats::model.frame"
+    (all 38 of them).  The model.frame function uses non-standard
+    evaluation rules, and holding its hand like this is the only way to
+    ensure that we don't call a user function of the same name.
+    
     \item The Surv function would almost always label the columns of the
     resulting matrix, and the glmnet function depended on this. It now
     always labels them per a request from Trevor Hastie.

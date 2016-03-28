@@ -10,7 +10,7 @@ model.frame.survreg <- function (formula, ...) {
         if (indx[1] == 0) 
             stop("The coxph call is missing a formula!")
         temp <- fcall[c(1, indx)]
-        temp[[1]] <- as.name("model.frame")
+        temp[[1L]] <- quote(stats::model.frame)
         temp$xlev <- formula$xlevels
         if (length(nargs) > 0) 
             temp[names(nargs)] <- nargs
@@ -58,10 +58,10 @@ model.matrix.survreg <- function(object, data,  ...) {
         #  strata, and cluster.  For the original data we can assume they
         #  are present.
         if (missing(data)) 
-            mf <- model.frame(object, ...)
+            mf <- stats::model.frame(object, ...)
         else {
             if (is.null(attr(data, "terms")))
-                mf <- model.frame(newTerms, data, xlev=object$xlevels)
+                mf <- stats::model.frame(newTerms, data, xlev=object$xlevels)
             else mf <- data  #assume we were given a model frame     
         }
         model.matrix(newTerms, mf, contrasts.arg= object$contrasts)

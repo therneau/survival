@@ -19,7 +19,7 @@ aareg <- function(formula, data, weights, subset, na.action,
     Terms <- if(missing(data)) terms(formula, special)
 	     else              terms(formula, special, data=data)
     m$formula <- Terms
-    m[[1]] <- as.name("model.frame")
+    m[[1L]] <- quote(stats::model.frame)
     m <- eval(m, sys.parent())
 
     test <- match.arg(test)     #check for legal argument

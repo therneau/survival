@@ -47,7 +47,7 @@ call <- match.call()
 m <- match.call(expand.dots=FALSE)
 m <- m[c(1, match(c('formula', 'data', 'weights', 'subset', 'na.action'),
     	      names(m), nomatch=0))]
-m[[1]] <- as.name("model.frame")
+m[[1L]] <- quote(stats::model.frame)
 
 Terms <- if(missing(data)) terms(formula, 'ratetable')
          else              terms(formula, 'ratetable',data=data)

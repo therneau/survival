@@ -80,7 +80,7 @@ indx <- match(c("formula", "data", "weights", "subset", "na.action"),
               names(Call), nomatch=0) 
 if (indx[1] ==0) stop("A formula argument is required")
 temp <- Call[c(1,indx)]  # only keep the arguments we wanted
-temp[[1]] <- as.name('model.frame')  # change the function called
+temp[[1L]] <- quote(stats::model.frame)  # change the function called
 
 special <- c("strata", "cluster", "tt")
 temp$formula <- if(missing(data)) terms(formula, special)
@@ -724,10 +724,10 @@ model.matrix.coxph <- function(object, data=NULL,
         return(object[['x']]) #don't match "xlevels"
 
     Terms <- delete.response(object$terms)
-    if (is.null(data)) mf <- model.frame(object)
+    if (is.null(data)) mf <- stats::model.frame(object)
     else {
         if (is.null(attr(data, "terms")))
-            mf <- model.frame(Terms, data, xlev=object$xlevels)
+            mf <- stats::model.frame(Terms, data, xlev=object$xlevels)
         else mf <- data  #assume "data" is already a model frame
     }
 
@@ -776,7 +776,7 @@ model.frame.coxph <- function(formula, ...) {
         if (indx[1] ==0) stop("The coxph call is missing a formula!")
    
         temp <- fcall[c(1,indx)]  # only keep the arguments we wanted
-        temp[[1]] <- as.name('model.frame')  # change the function called
+        temp[[1]] <- quote(stats::model.frame)  # change the function called
         temp$xlev <- formula$xlevels
         temp$formula <- Terms   #keep the predvars attribute
         # Now, any arguments that were on this call overtake the ones that

@@ -15,7 +15,7 @@ clogit <- function(formula, data, weights, subset, na.action,
     indx <- match(c("formula", "data"), names(Call), nomatch=0)
     if (indx[1]==0) stop("A formula argument is required")
     mf <- Call[c(1,indx)]
-    mf[[1]] <- as.name("model.frame")
+    mf[[1L]] <- quote(stats::model.frame)
     mf$na.action <- "na.pass"
     nrows<-NROW(eval(mf, parent.frame()))
  

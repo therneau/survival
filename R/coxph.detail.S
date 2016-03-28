@@ -14,7 +14,7 @@ coxph.detail <-  function(object, riskmat=FALSE) {
     strats <- attr(Terms, "specials")$strata
 
     if (is.null(y)  ||  is.null(x)) {
-        mf <- model.frame(object)
+        mf <- stats::model.frame(object)
         y <- model.response(mf)
         x <- model.matrix(object, data=mf)
         if (length(strats)) {

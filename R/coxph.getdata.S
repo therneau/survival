@@ -21,7 +21,7 @@ coxph.getdata <- function(fit, y=TRUE, x=TRUE, stratax=TRUE, offset=FALSE) {
     if ( (y && is.null(ty)) || (x && is.null(tx)) ||
 	     (stratax && is.null(strat)) || offset) {
 	# get the model frame
-	m <- model.frame(fit)
+	m <- stats::model.frame(fit)
 
 	# Pull things out
 	if (y && is.null(ty)) ty <- model.extract(m, 'response')

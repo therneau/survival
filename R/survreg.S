@@ -9,7 +9,7 @@ survreg <- function(formula, data, weights, subset, na.action,
                   names(Call), nomatch=0) 
     if (indx[1] ==0) stop("A formula argument is required")
     temp <- Call[c(1,indx)]  # only keep the arguments we wanted
-    temp[[1]] <- as.name('model.frame')  # change the function called
+    temp[[1L]] <- quote(stats::model.frame)   # change the function called
 
     special <- c("strata", "cluster")
     temp$formula <- if(missing(data)) terms(formula, special)

@@ -53,7 +53,7 @@ anova.coxph.penal <- function (object, ...,  test = 'Chisq') {
     # The following line causes pspline terms to be re-evaluated correctly
     #  The predvars attr for them does not retrieve the correct penalty
     attr(object$terms, "predvars") <- NULL
-    mf <- model.frame(object)  # we must have the model frame
+    mf <- stats::model.frame(object)  # we must have the model frame
     Y <- model.response(mf)
     X <- model.matrix(object, mf)
     assign <- attr(X, 'assign') 

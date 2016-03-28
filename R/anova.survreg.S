@@ -8,7 +8,7 @@ anova.survreg <- function(object, ..., test = c("Chisq", "none")) {
     Terms <- object$terms
     term.labels <- attr(Terms, "term.labels")
     nt <- length(term.labels)
-    m <- model.frame(object)
+    m <- stats::model.frame(object)
     family.obj <- object$family
     y <- model.extract(m, "response")
     if(!inherits(y, "Surv"))

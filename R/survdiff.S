@@ -9,7 +9,7 @@ survdiff <- function(formula, data, subset, na.action, rho=0) {
     Terms <- if(missing(data)) terms(formula, 'strata')
 	     else              terms(formula, 'strata', data=data)
     m$formula <- Terms
-    m[[1]] <- as.name("model.frame")
+    m[[1L]] <- quote(stats::model.frame)
     if (is.R()) m <- eval(m, parent.frame())
     else        m <- eval(m, sys.parent())
 

@@ -8,11 +8,11 @@ cch <- function(formula, data=sys.parent(), subcoh, id, stratum=NULL, cohort.siz
     
     if (is.data.frame(data)){
         if (inherits(id,"formula"))
-            id<-model.frame(id,data,na.action=na.fail)[,1]
+            id<- stats::model.frame(id,data,na.action=na.fail)[,1]
         if (inherits(subcoh,"formula"))
-            subcoh<-model.frame(subcoh,data,na.action=na.fail)[,1]
+            subcoh<- stats::model.frame(subcoh,data,na.action=na.fail)[,1]
         if (inherits(stratum,"formula"))
-            stratum<-model.frame(stratum,data,na.action=na.fail)[,1]
+            stratum<- stats::model.frame(stratum,data,na.action=na.fail)[,1]
     }
 
     ## Check id, subcoh and cohort.size variables
@@ -54,7 +54,7 @@ cch <- function(formula, data=sys.parent(), subcoh, id, stratum=NULL, cohort.siz
     ## Evaluate model formula
     m <- match.call(expand.dots=FALSE)
     m$method <- m$cohort.size <- m$id <- m$subcoh <- m$stratum <-m$robust<- NULL
-    m[[1]] <- as.name("model.frame")
+    m[[1L]] <- quote(stats::model.frame)
     m <- eval(m,sys.parent())
     Terms <- attr(m,"terms")
     Y <- model.extract(m, "response")

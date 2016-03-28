@@ -136,7 +136,7 @@ if (is.null(object$y) || is.null(object[['x']]) ||
     (has.strata && is.null(object$strata)) ||
     !is.null(attr(object$terms, 'offset'))) {
     
-    mf <- model.frame(object)
+    mf <- stats::model.frame(object)
     }
 else mf <- NULL  #useful for if statements later
 @ 
@@ -428,7 +428,7 @@ if (missid) {
                 found.strata <- FALSE
         }
 
-        if (found.strata) mf2 <- model.frame(Terms2, data=newdata, 
+        if (found.strata) mf2 <- stats::model.frame(Terms2, data=newdata, 
                                na.action=na.action, xlev=object$xlevels)
         else {
             Terms2 <- subterms(Terms2, -attr(Terms2, 'specials')$strata)
@@ -438,12 +438,12 @@ if (missid) {
                 if (length(myxlev)==0) myxlev <- NULL
             }
             else myxlev <- NULL
-            mf2 <- model.frame(Terms2, data=newdata, na.action=na.action, 
+            mf2 <- stats::model.frame(Terms2, data=newdata, na.action=na.action, 
                                xlev=myxlev)
             }
         }
     else {
-        mf2 <- model.frame(Terms2, data=newdata, na.action=na.action, 
+        mf2 <- stats::model.frame(Terms2, data=newdata, na.action=na.action, 
                             xlev=object$xlevels)
         found.strata <- has.strata  #would have failed otherwise
         }
@@ -454,7 +454,7 @@ else {
     tcall$data <- newdata
     tcall$formula <- Terms2
     tcall$xlev <- object$xlevels
-    tcall[[1]] <- as.name('model.frame')
+    tcall[[1L]] <- quote(stats::model.frame)
     mf2 <- eval(tcall)
     found.strata <- has.strata # would have failed otherwise
 }
