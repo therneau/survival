@@ -1,8 +1,27 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 2.38-6}{
+  \itemize{
+    \item The Surv function would almost always label the columns of the
+    resulting matrix, and the glmnet function depended on this. It now
+    always labels them per a request from Trevor Hastie.
+
+    \item Add the finegray function and expand the competing risks
+    vignette to document it.
+
+    \item Changes to the iteration path and convergence tests for coxph
+    models with (start, stop] data, driven by two user examples that
+    failed.  The data sets had serious statistical issues of
+    collinearity and/or outliers such that the final fits are not
+    practically useful, but now the routine finishes gracefully instead
+    of dying.  The upshot is much more care about the order in which
+    additions and subtractions of large numbers are done, so as to avoid
+    cancellation error.
+}}
+    
 \section{Changes in version 2.38-5}{
   \itemize{
-    \item Add more graphical arguments to plot.cox.zph in response to user
+    \item Add more graphical arguments to plot.cox.zph in response to a user
     request.
     
     \item Remove some of last vestiges of Splus support from the header
@@ -10,12 +29,12 @@
     
     \item Multiple updates and corrections to the tmerge function,
     including improvements to the vignette.  (As a result of using it in
-    a class and the TA trying out all manner of combinations.)
+    a class where the TA tried out all manner of combinations.)
     
     \item Update survSplit: it now handles all types of status variables
     (0/1, TRUE/FALSE, factors), the id and episode arguments are useful
     for start/stop data, the data retains its original sort order (new
-    observations are inserted rather than at the end), and the
+    observations are inserted rather than put at the end), and the
     function is illustrated in a vignette.
     
     \item Add the conf.times argument to plot.survfit.  This

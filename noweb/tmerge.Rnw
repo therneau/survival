@@ -229,7 +229,7 @@ if (firstcall) {
     if (any(duplicated(baseid))) 
         stop("for the first call (that establishes the time range) data1 must have no duplicat identifiers")
 
-    if (all(baseid == id)) newdata <- data1
+    if (length(baseid)== length(id) && all(baseid == id)) newdata <- data1
     else {
         indx2 <- match(id, baseid)
         if (any(is.na(indx2)))

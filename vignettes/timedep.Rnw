@@ -803,11 +803,11 @@ break the data set into time dependent parts.
 We will arbitrarily divide the veteran's data into 3 epochs of the first
 3 months, 3-6 months, and greater than 6 months.
 <<split>>=
-vet2 <- survSplit(veteran, cut=c(90, 180), end="time", event="status",
+vet2 <- survSplit(Surv(time, status) ~ ., data= veteran, cut=c(90, 180), 
                   episode= "tgroup", id="id")
 vet2[1:7, c("id", "tstart", "time", "status", "tgroup", "age", "karno")]
 @ 
-The first subject died at 72 days, their data is unchanged.
+The first subject died at 72 days, his data is unchanged.
 The second and third subjects contribute time to each of the three
 intervals.
 <<split2>>=

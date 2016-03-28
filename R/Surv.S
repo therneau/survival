@@ -17,14 +17,14 @@ Surv <- function(time, time2, event,
     # "Surv(a,b)" has the variable b matched to event rather than time2.
     #
     mtype <- match.arg(type)
-
+    
     # If type is missing or it is "mstate", I need to figure out for myself
     #  whether I have (time, time2, status) or (time, status) data
     if (missing(type) || mtype=="mstate") {
 	if (ng==1 || ng==2) type <- 'right'
 	else if (ng==3)     type <- 'counting'
         else stop ("No time variable!") # no time variable at all!
-	}
+    }
     else {
         type <- mtype
 	if (ng!=3 && (type=='interval' || type =='counting'))
@@ -156,7 +156,10 @@ Surv <- function(time, time2, event,
     if (!missing(event) && !is.null(attributes(event)))
         inputAttributes$event <- attributes(event)
 
-    dimnames(ss) <- list(NULL, dimnames(ss)[[2]]) #kill any tag-along row names
+    # kill any tag-along row names
+    if (ncol(ss) ==2) dimnames(ss) <- list(NULL, c("time", "status"))
+    else dimnames(ss) <- list(NULL, c("time", "time2", "status"))
+                                           
     attr(ss, "type")  <- type
     if (type=="mright" || type=="mcounting") {
         states <- levels(mstat)[-1]

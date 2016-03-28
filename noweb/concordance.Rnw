@@ -679,9 +679,12 @@ will both be zero, but the calculated variance of $C-D$ can be a nonzero
 tiny number due to round off error.  Since this can cause a warning message
 from the sqrt function we check and correct this.
 <<survConcordance.fit>>=
-survConcordance.fit <- function(y, x, strata, weight) {    
+survConcordance.fit <- function(y, x, strata, weight) { 
+    # The coxph program may occassionally fail, and this will kill the C
+    #  routine below
+    if (any(is.na(x)) || any(is.na(y))) return(NULL)   
     <<btree>>
-
+        
     docount <- function(stime, risk, wts) {
         if (attr(stime, 'type') == 'right') {
             ord <- order(stime[,1], -stime[,2])
