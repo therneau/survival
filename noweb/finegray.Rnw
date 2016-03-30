@@ -26,10 +26,11 @@ The function below creates a data set that can then be used with coxph.
 It has a lot of commonality with \code{survSplit}.
 
 <<finegray>>= 
-finegray <- function(formula, data, weights, subset, na.action= na.pass,
-                     endpoint, tstart="tstart", wt="fgwt"){
+finegray <- function(formula, data, subset, na.action= na.pass,
+                     endpoint, count="", id="", tstart="fgstart", 
+                     end="fgend", status="fgstat", wt="fgwt") {
     Call <- match.call()
-    indx <- match(c("formula", "data", "weights", "subset", "id"),
+    indx <- match(c("formula", "data", "subset", "id"),
               names(Call), nomatch=0) 
     if (indx[1] ==0) stop("A formula argument is required")
     temp <- Call[c(1,indx)]  # only keep the arguments we wanted
@@ -84,7 +85,10 @@ finegray <- function(formula, data, weights, subset, na.action= na.pass,
             if (any(temp[-last, 3]) != 0)
                 stop("a subject has a transition before their last time point")
             delta <- c(temp[-1,1], 0) - temp[,2]
-            if (any(delta[-last] !=0)) stop("a subject has gaps in their fu time")
+            if (any(delta[-last] !=0)) 
+                stop("a subject has gaps in time")
+            if (any(Y[first,1] > min(Y[,2])))
+                stop("the routine does not allow for delayed entry")
         }
     }
 
@@ -105,27 +109,24 @@ finegray <- function(formula, data, weights, subset, na.action= na.pass,
         #  so use match.call to resolve it.
         was.a.call <- TRUE
         temp <- match.call(Surv, formula[[2]])
-        for (i in c("time", "time2", "event")) {
-            if (!(is.null(temp[[i]]) || is.name(temp[[i]])))
-                stop("cannot deal with complex arguments within a Surv call")
-        }
         if (nY ==2) {
-            end <- as.character(temp$time)
-            if (is.null(temp$status)) event <- as.character(temp$time2)
-            else event <- as.character(temp$event)
+            if (is.name(temp$time)) end <- as.character(temp$time)
+            if (is.null(temp$status){
+                if (is.name(temp$time2))  event <- as.character(temp$time2)
+            else if (is.name(temp$event)) event <- as.character(temp$event)
         }
         else {
-            tstart <- as.character(temp$time)
-            end   <-  as.character(temp$time2)
-            event <-  as.character(temp$event)
+            if (is.name(temp$time)) tstart <- as.character(temp$time)
+            if (is.name(temp$time2))end   <-  as.character(temp$time2)
+            if (is.name(temp$event))event <-  as.character(temp$event)
             }
     }
      else {
-        if (class(formula[[2]]) != "name")
-            stop("left hand side not recognized")
-        was.a.call <- FALSE
-        survname <-as.character(formual[[2]])
-    }
+          if (class(formula[[2]]) == "name") {
+             was.a.call <- FALSE
+             survname <- as.character(formula[[2]])
+         }
+     }
     <<finegray-censor>>   
     <<finegray-build>>
 }  
@@ -155,7 +156,7 @@ find2 <- function(x, vec, left.open=FALSE, ...) {
         #  this to work in 3.2.0 (institutional installs).  In another cycle or
         #  so we can drop this workaround
         #
-        2 + length(x) - findInterval(-x, rev(-vec), ...)
+        length(vec) - findInterval(-x, rev(-vec), ...)
     }
 }
     
@@ -188,51 +189,57 @@ The censoring distribution will have the following shape:
     \end{tabular}
   \end{center}
 Notice that at time 4, the event at time 4 is not counted in the risk set
-so the jump is 8/10 rather than 8/11. Likewise at time 8 the risk set has 4 instead
-of 5.  Censors occur after deaths.
-Though there are 6 unique weights, 
-in the created data set for event type 1 we only need to know case
-weights at times 1, 4, 5, and 10.
-To make a minimal size data set the weight are defined over intervals of (0,1],
-(1,5] and (5,10].
+so the jump is 8/10 rather than 8/11. 
+Likewise at time 8 the risk set has 4 instead of 5:
+censors occur after deaths.
 
-The subject who has an event of type 2 at time 2, before the first censoring,
-will get all 3 intervals with weights of 1, .9167, and .4583.
-The event at time 5 has a weight of 1 in the first two intervals and 
-.4583/.7333 = (5/6)(3/4) in the third; their censoring distribution starts
-at time 5+.  The event at time 8 has a weight of 1 for all intervals.
+When creating the data set for event type 1, subjects who have an event of
+type 2 get extended out using this censoring distribution.  The event at
+time 2, for instance, appears as a censored observation with time dependent
+weights of $C(t)$.  The type 2 event at time 5 has weight 1 up through time 5,
+then weights of $C(t)/C(5)$ for the remainder.
+This means a weight of 1 over (5,6], 5/6 over (6,8], (5/6)(3/4) over (9,12]
+and etc. 
+
+Though there are 6 unique censoring intervals, 
+in the created data set for event type 1 we only need to know case
+weights at times 1, 4, 5, and 10; the information from the (4,6] and (6,8] 
+intervals will never be used.  
+To create a minimal sized data set we can leave those intervals out. 
+$C(t)$ only drops to zero if the largest time(s) are censored observations, so
+by definition no events lie in an interval with $C(t)=0$.
 
 <<finegray-build>>=
 status <- Y[, 3]
 
-stratfun <- function(i) {
-    if (dim(csurv) >1) temp <- csurv[i]  # censoring curve for this stratum
-    else temp <- csurv   # skip the subscript to avoid a warning message
-    ctime <- utime[temp$time[temp$n.event >0]]
-    cprob <- temp$surv[temp$n.event >0]
-    
-    keep <- which(istrat ==i)
-    tdata <- mf[istrat ==i, -1, drop=FALSE]
-    times <- sort(unique(Y[keep & status == enum, 2])) #unique event times 
-    if (length(times)==0) return(tdata)  #no events in this stratum
+# keep only the event times, and convert back to the original time units
+ctime <- utime[csurv$time[csurv$n.event > 0]]
+cprob <- csurv$surv[csurv$n.event > 0]
+if (is.null(csurv$strata)) cstrat <- rep(1, length(ctime))  
+else {
+    cstrat <- (rep(1:length(csurv$strata), csurv$strata))[csurv$n.event > 0]
+}
+maxtime <- max(Y[,2])
 
-    index <- pmin(length(times), find2(times, ctime, left.open=TRUE))
-    # times before the first ctime get index 0, those between 1 and 2 get 1, etc
-    # find the max time in each interval.  Since times are ordered, I want
-    # the last appearance of each unique index 
-    index2 <- rev(!duplicated(rev(index)))
-    # times[index2] will be the cutpoints = event times at which unique weight
-    #  applies.  probs will be the censoring distribution at those times
-    cuts <- times[index2]
-    probs <- c(1.0, cprob)[1+ index[index2]]  
-browser()
+# Do computations separately for each stratum
+stratfun <- function(i) {
+    keep <- which(istrat ==i)
+    tdata <- mf[keep, -1, drop=FALSE]
+    times <- sort(unique(Y[keep & status == enum, 2])) #unique event times 
+    if (length(times)==0) return(NULL)  #no events in this stratum
+
+    ct2 <- c(ctime[cstrat==i], maxtime)
+    cp2 <- c(1.0, cprob[cstrat==i])
+    index <- find2(times, ct2, left.open=TRUE)
+    index <- sort(unique(index))  # the intervals that were actually seen
+    # times before the first ctime get index 0, those between 1 and 2 get 1
+    ckeep <- rep(FALSE, length(ct2))
+    ckeep[index] <- TRUE
     expand <- (Y[keep, 3] !=0 & Y[keep,3] != enum) #which rows to expand
-    split <- .Call("finegray", Y[keep,1], Y[keep,2], as.double(cuts), 
-                   probs, expand, ctime, cprob)
-browser()
+    split <- .Call("finegray", Y[keep,1], Y[keep,2], ct2, cp2, expand, 
+                   c(TRUE, ckeep)) 
     tdata <- tdata[split$row,,drop=FALSE]
     tstat <- ifelse(status[split$row]== enum, 1, 0)
-    tstat[split$censor] <- censor
     if (was.a.call) {
         tdata[[tstart]] <- split$start
         tdata[[end]]    <- split$end
