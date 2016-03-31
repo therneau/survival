@@ -73,7 +73,7 @@ SEXP finegray(SEXP tstart2, SEXP tstop2,   SEXP ctime2,   SEXP cprob2,
     wt2 =    SET_VECTOR_ELT(rlist, 3, allocVector(REALSXP, n2));
     wt = REAL(wt2);
     add2 =   SET_VECTOR_ELT(rlist, 4, allocVector(INTSXP, n2));
-    add = integer(add2);
+    add = INTEGER(add2);
     
     /* do the work */
     k =0; 

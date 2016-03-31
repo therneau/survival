@@ -819,22 +819,84 @@ compute appropriate confidence intervals. The latter are complex since they
 must account for the uncertainty in the underlying Cox models.
 
 \subsection{Fine-Gray model}
-\ifdefined\CMPRSK
 For the competing risk case the Fine-Gray model provides an alternate way of
 looking at the data. 
 As we saw above, the impact of a particular covariate on the final prevalence
 values $P$ can be complex, even if the models for the hazards are relatively
 simple. 
-Start with the functions $F_k(t) = P_{1k}(t)$, which can
+The primary idea is to turn the multi-state problem into a set of
+two-state ones.  
+For the MGUS data these are (entry/PCM) $\longrightarrow$ death and
+(entry/death) \longrightarrow PCM.  
+An interesting aspect of this is that the fit can be done as a
+two stage process: the first stage creates a special data set while the
+second applies the usual \code{coxph} or \code{survfit} programs to
+those data sets.
+
+<<fg1>>=
+pcmdat <- finegray(Surv(etime, event) ~ sex, data=mgus2,
+                   endpoint="pcm")
+pcmdat[1:4,]
+pfit <- survfit(Surv(fgtime1, fgtime2, fgstatus) ~ sex, data=pcmdat, weight=fgwt)
+
+deathdat <- finegray(Surv(etime, event) ~ sex, data=mgus2,
+                     endpoint="death")
+dfit <- survfit(Surv(fgtime1, fgtime2, fgstatus) ~ sex, 
+                  data=deathdat, weight=fgwt)
+par(mfrow=c(1,2))
+plot(mfit2, col=c(1,2,1,2), lty=c(2,2,1,1),
+     lwd=2,  xscale=12,
+     xlab="Years post diagnosis", ylab="Probability in State")
+text(240, .4, "Competing risks survival")
+plot(dfit, fun='event', col=1:2, lwd=2,  xscale=12,
+     xlab="Years post diagnosis", ylab="Probability in State")
+lines(pfit, fun='event', lwd=2, col=1:2, lty=2) 
+text(240, .4, "Ordinary survival, FG data")
+@ 
+The two curves are almost identical, and in fact would be identical if we
+had accounted for the slightly different censoring patterns in males and
+females (by adding \code{strata(sex)} to the right hand side of the
+\code{finegray} formula).
+
+A Cox model fit to the constructed data set yields the Fine-Gray
+model.  
+<<fg2>>=
+fgfit1 <- coxph(Surv(fgstart, etime, event) ~ sex, data=pcmdat,
+               weight= fgwt)
+summary(fgfit1)
+
+plot(mfit2[,1], col=1:2,
+     lwd=2,  xscale=12,
+     xlab="Years post diagnosis", ylab="Fraction with PCM")
+tfit <- survfit(fgfit1, newdata=data.frame(sex=c("F", "M")))
+lines(tfit, fun="event", lty=2, lwd=2, col=1:2)
+legend(12, .2, c("Female, Aalen-Johansen", "Male, Aalen-Johansen",
+                 "Female, Fine-Gray", "Male, Fine-Gray"),
+       col=1:2, lty=c(1,1,2,2), bty='n')
+@ 
+The model states that males have a lower rate of \emph{observed} PCM, 
+by a factor of \Sexpr{round(exp(coef(fgsex)), 2)}, and that
+this hazard ratio is constant over time.
+When there is only a single categorical 0/1 covariate the Fine-Gray model
+reduces to Gray's test of the subdistribution function, in the same way
+that the usual Cox model with a single categorical predictor is equivalent
+to the log-rank test.
+An overlaid plot of the non-parametric Aalen-Johansen estimates for the
+PCM state and that of the Fine-Gray estimate show that proportional hazards
+is not unreasonable for this question.
+
+The mathematics behind the Fine-Gray estimate starts with
+the functions $F_k(t) = P_{1k}(t)$, which can
 be thought of as the distribution function for the improper random variable
 $T^*= I(\mbox{endpoint}=k)T + I(\mbox{endpoint}\ne k)\infty$.
 Fine and Gray refer to $F_k$ as a subdistribution function.
-In an analog to the survival probability in the two state model define
+In analogy to the survival probability in the two state model define
 \begin{equation}
   \gamma_k(t) = - d \log[1-F_k(t)]/dt \label{FG}I 
 \end{equation}
 and assume that $\gamma_k(t;x) = \gamma_{k0}(t) \exp(X\beta)$.
-In a 2 state model $\gamma$ is the usual hazard function.
+In a 2 state alive $\longrightarrow$ death model $\gamma$ becomes the
+usual hazard function.
 In the same way that our multivariate Cox model \code{cfit2} made the
 simplifying assumption that the impact of male sex is to increase the
 hazard for death
@@ -845,8 +907,37 @@ is a constant,
 independent of other variables.  
 Both model's assumptions are wonderfully simplifying with respect to 
 understanding
-a covariate --- assuming of course that either assumption is correct.
-(In a multi-state model at least one of the two must be false.)
+a covariate --- assuming of course that the assumptions of
+additivity across covariates, linearity, and proportional hazards 
+are all correct.
+In a multi-state model, however, proportional hazards cannot hold for 
+both the per-transition and Fine-Gray models formulations;
+if it is true for one it will not be true for the other.
+
+Now consider a multivariate fit on age, sex, and serum m-spike.
+We found earlier that sex has an effect on death rates but not on
+PCM, and conversely that the size of the serum m-spike has an effect
+on PCM but not death rates.  
+In the non-parametric curves both variables had an effect on the lifetime
+probabilities of ``death without PCM'' and ``PCM before death''.
+<<fg3>>=
+pdata2 <- finegray(Surv(etime, event) ~ ., mgus2, na.action=na.pass)
+ddata2 <- finegray(Surv(etime, event) ~ ., mgus2, na.action=na.pass,
+                   endpoint= "death")
+fgfit2a <- coxph(Surv(fgtime1, fgtime2, fgstatus) ~ age + sex + mspike,
+                 data=pdata2, weight=fgwt)
+fgfit2a
+
+fgfit2b <-  coxph(Surv(fgtime1, fgtime2, fgstatus) ~ age + sex + mspike,
+                 data=ddata2, weight=fgwt)
+fgfit2b
+@ 
+The Fine-Gray show an effect of both variables on the subdistribution
+rates.  Males have a lower lifetime risk of PCM before death and a higher 
+risk of death before PCM, while a higher serum m-spike works in the opposite
+direction.
+
+
 
 Let us look at the effect of sex on PCM using the Fine-Gray model, which
 can be computed using the \code{cmprsk} package.

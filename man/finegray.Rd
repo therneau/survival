@@ -8,7 +8,7 @@
 }
 \usage{
 finegray(formula, data, subset, na.action= na.pass, endpoint,
-    count="", tstart="fgstart", end="fgend", status="fgstat", wt="fgwt")
+    prefix="fg", count, id)
 }
 \arguments{
   \item{formula}{a standard model formula, with survival on the left and
@@ -29,40 +29,44 @@ finegray(formula, data, subset, na.action= na.pass, endpoint,
 \item{endpoint}{
    the endpoint for which a data set will be generated.  The default is
    to use the first endpoint state.
-}
-\item{count}{a variable name in the output data set that will contain
+ }
+
+ \item{prefix}{the routine will add 4 variables to the data set: a start
+   and end time for each interval, status, and a weight for the
+   interval. The default names of these are "fgtime1", "fgtime2", "fgstatus",
+   and "fgwt"; the \code{prefix} argument determines the initial portion of
+   the new names.
+ }
+
+ \item{count}{a variable name in the output data set for an optional
+   variable that will contain
   the the replication count for each row of the input data.  If a row is
   expanded into multiple lines it will contain 1, 2, etc.
 }
 
-\item{tstart, end, status}{output variable names for the survival time
-  variables.  See the details below.}
-\item{wt}{output variable name for the created weight variable.}
+\item{id}{optional, the variable name in the data set which identifies
+  subjects.}
 }
+
 \details{
   The function expects a multi-state survival expression or variable as
   the left hand side of the formula, e.g. \code{Surv(atime, astat)}
   where \code{astat} is a factor whose first level represents censoring
-  and remaining levels are states.
+  and remaining levels are states.  The output data set will contain simple
+  survival data (status of 0/1) for a single endpoint of interest.
   In the output data set subjects who did not experience the event of
-  interest, i.e., the \code{endpoint} argument, become censored subjects
+  interest become censored subjects
   whose times are artificially extended over multiple intervals, with a
   decreasing case weight from interval to interval.  
   The output data set will normally contain many more rows than the
   input.
 
-  The output data set contains a simple (start, end, event) survival
-  times where the event is 0 or 1.  
-  To the extent possible, the created output data set will reuse variable
-  names from the input, i.e., in the example just given the output data set
-  would contain the variables "tstart", "atime", and "status".
-  However, the parsing portion is (purposefully) unsophisticated, and if
-  confused the function will fall back to the default names given in the
-  \code{tstart}, \code{end} and \code{status} arguments.  The expression
-  \code{Surv( (atime), astat)} is sufficient, for example.
-
   Time dependent covariates are allowed, but not (currently) delayed
-  entry.
+  entry.  If there are time dependent covariates, e.g.., the input data
+  set had \code{Surv(entry, exit, stat)} as the left hand side, then
+  an \code{id} statement is required.  The program does data checks
+  in this case, and needs to know which rows belong to each subject.
+  
   See the competing risks vignette for more details.
 }
 \value{a data frame}
@@ -90,6 +94,10 @@ curves <- survfit(Surv(etime, event) ~ sex, data=mgus2)
 # FG model for PCM
 pdata <- finegray(Surv(etime, event) ~ ., data=mgus2)
 fgfit <- coxph(Surv(etime, event) ~ age + sex, weight=fgwt, data=pdata)
+
+# Keep all variables, all rows, and do the computation separately by sex
+adata <- finegray(Surv(etime, event) ~ . + strata(sex),
+             data=mgus2, na.action=na.pass)
 }
 \keyword{survival}
 

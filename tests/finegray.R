@@ -6,8 +6,8 @@ fdata <- data.frame(time  =c(1,2,3,4,4,4,5,5,6,8,8, 9,10,12),
                              c("cen", "type1", "type2")),      
                     x     =c(5,4,3,1,2,1,1,2,2,4,6,1,2, 0),
                     id = 1:14)
-test1 <- finegray(Surv(time, status) ~., fdata)
-test2 <- finegray(Surv(time, status) ~x, fdata, event=2)
+test1 <- finegray(Surv(time, status) ~., fdata, count="fgcount")
+test2 <- finegray(Surv(time, status) ~x, fdata, endpoint="type2")
 
 # When creating the censoring time distribution remember that
 #  censors happen after deaths, so the distribution does not drop until
@@ -24,21 +24,26 @@ csurv <- list(time=c(0, 3, 4, 6, 8, 9),
 #  weight of (9,12] /(4,5] = (5*4*2)/(7*5*3) = 8/21 at time 10.  The last
 #  censor at time 6 has a weight of 2/3 at time 10.
 
-tid <- c(1, 2,2,2,2, 3:5, 6,6, 7:10, 11, 11, 12:14)
-temp1 <- data.frame(id=tid, start=0, fdata[tid,],
-                    wt= c(1, csurv$p[c(1,2,3,6)], 1,1,1,1, 8/21, 1,1,1, 1, 
-                         1, 2/3, 1,1,1))
-temp1$time <- [c(2,3,4,5, 9,10, 15, 16)] <- c(3,4,5,10, 5,10, 5,10)
-temp1$start[c(2,3,4,5, 9,10, 15,16)] <- c(0,3,4,5, 0,5, 0,5)
-row.names(temp1) <- NULL
-tfit <- survfit(Surv(start, time, status==1) ~1, temp1, weight=wt)
+all.equal(test1$id, c(1, 2,2,2,2, 3:6, 7, 7, 8:11, 11, 12:14))
+twt <- c(1, csurv$p[c(1,2,3,6)], 1,1,1, 1, 1, 5/12, 1,1,1,  
+                         1, 1/2, 1,1,1)
+all.equal(test1$fgwt, twt)
+#extra obs will end at times found in csurv$time, or max(time)=12
+all.equal(test1$fgt2[test1$fgcount>0], c(4,6,12, 12,12))
 
+#
+# Verify the data reproduces a multi-state curve
+#  censoring times may be different in the two setups so only 
+#  compare at the event times
+sfit <- survfit(Surv(time, status) ~1, fdata)
+sfit1<- survfit(Surv(fgtime1, fgtime2, fgstatus) ~1, test1, weight=fgwt)
+i1 <- sfit$n.event[,1] > 0
+i2 <- sfit1$n.event > 0
+all.equal(sfit$pstate[i1, 1], 1- sfit1$surv[i2])
 
-fdata$stat2 <- as.numeric(fdata$status) -1
-ctest <- crprep("time", "stat2", data=fdata, trans=1:2, cens=0, 
-                keep=c("id", 'x'))
-subset(ctest, failcode==1)
+sfit2 <- survfit(Surv(fgtime1, fgtime2, fgstatus) ~1, test2, weight=fgwt)
+i1 <- sfit$n.event[,2] > 0
+i2 <- sfit2$n.event > 0
+all.equal(sfit$pstate[i1, 2], 1- sfit2$surv[i2])
 
-xfit <- survfit(Surv(Tstart, Tstop, status==1) ~1, ctest, weight=weight.cens,
-                subset=(failcode==1))
 

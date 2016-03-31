@@ -26,15 +26,13 @@ The function below creates a data set that can then be used with coxph.
 It has a lot of commonality with \code{survSplit}.
 
 <<finegray>>= 
-finegray <- function(formula, data, subset, na.action= na.pass,
-                     endpoint, count="", id="", tstart="fgstart", 
-                     end="fgend", status="fgstat", wt="fgwt") {
+finegray <- function(formula, data, subset, na.action,
+                     endpoint, prefix="fg", count="", id) {
     Call <- match.call()
-    indx <- match(c("formula", "data", "subset", "id"),
+    indx <- match(c("formula", "data", "subset", "na.action"),
               names(Call), nomatch=0) 
     if (indx[1] ==0) stop("A formula argument is required")
     temp <- Call[c(1,indx)]  # only keep the arguments we wanted
-    temp$na.action <- na.action
     temp[[1L]] <- quote(stats::model.frame)  # change the function called
 
     special <- c("strata", "cluster")
@@ -59,6 +57,7 @@ finegray <- function(formula, data, subset, na.action= na.pass,
 	if (length(stemp$vars)==1) strata <- mf[[stemp$vars]]
 	else strata <- survival::strata(mf[,stemp$vars], shortlabel=TRUE)
         istrat <- as.numeric(strata)
+        mf[stemp$vars] <- NULL
 	}
     else istrat <- rep(1, nrow(mf))
     
@@ -66,10 +65,9 @@ finegray <- function(formula, data, subset, na.action= na.pass,
     cluster<- attr(Terms, "specials")$cluster
     if (length(cluster)) {
         if (!is.null(id)) stop("an id argument and a cluster() term are redundant")
-        tempc <- untangle.specials(Terms, 'cluster', 1:10)
-        ord <- attr(Terms, 'order')[tempc$terms]
-        if (any(ord>1)) stop ("Cluster can not be used in an interaction")
+        tempc <- untangle.specials(Terms, 'cluster', 1)
         id <- strata(mf[,tempc$vars], shortlabel=TRUE)  #allow multiples
+        mf[tempc$vars] <- NULL
     }
     
     # If there is start-stop data, then there needs to be a cluster()
@@ -100,33 +98,11 @@ finegray <- function(formula, data, subset, na.action= na.pass,
         enum <- index[1]
         if (length(index) > 1) warning("only the first endpoint was used")
     }
+    
+    # make sure count, if present is syntactically valid
+    if (!missing(count)) count <- make.names(count) else count <- NULL
+    oname <- paste0(prefix, c("time1", "time2", "status", "wt"))
         
-    # Did the user hand me a Surv call with multiple variables, or a
-    #  premade Surv object?
-    if (class(formula[[2]]) == "call" && formula[[2]][[1]]== as.name("Surv")){
-        # it was a call, figure out the names
-        # The user might have used something like Surv(status=abc, time=fred),
-        #  so use match.call to resolve it.
-        was.a.call <- TRUE
-        temp <- match.call(Surv, formula[[2]])
-        if (nY ==2) {
-            if (is.name(temp$time)) end <- as.character(temp$time)
-            if (is.null(temp$status){
-                if (is.name(temp$time2))  event <- as.character(temp$time2)
-            else if (is.name(temp$event)) event <- as.character(temp$event)
-        }
-        else {
-            if (is.name(temp$time)) tstart <- as.character(temp$time)
-            if (is.name(temp$time2))end   <-  as.character(temp$time2)
-            if (is.name(temp$event))event <-  as.character(temp$event)
-            }
-    }
-     else {
-          if (class(formula[[2]]) == "name") {
-             was.a.call <- FALSE
-             survname <- as.character(formula[[2]])
-         }
-     }
     <<finegray-censor>>   
     <<finegray-build>>
 }  
@@ -170,7 +146,7 @@ utime <- sort(unique(Y[,2]))  # all the unique end times
 newtime <- matrix(findInterval(Y[,1:2], utime), ncol=2) 
 status <- Y[,3]
 newtime[status !=0, 2] <- newtime[status !=0,2] - .2
-csurv <- survfit(Surv(newtime[,1], newtime[,2], status==0) ~ istrat)
+csurv <- survfit(Surv(newtime[,1], newtime[,2], status==0) ~ istrat, se.fit=FALSE)
 @ 
 
 Consider the following data set: 
@@ -223,7 +199,7 @@ maxtime <- max(Y[,2])
 
 # Do computations separately for each stratum
 stratfun <- function(i) {
-    keep <- which(istrat ==i)
+    keep <- (istrat ==i)
     tdata <- mf[keep, -1, drop=FALSE]
     times <- sort(unique(Y[keep & status == enum, 2])) #unique event times 
     if (length(times)==0) return(NULL)  #no events in this stratum
@@ -240,13 +216,12 @@ stratfun <- function(i) {
                    c(TRUE, ckeep)) 
     tdata <- tdata[split$row,,drop=FALSE]
     tstat <- ifelse(status[split$row]== enum, 1, 0)
-    if (was.a.call) {
-        tdata[[tstart]] <- split$start
-        tdata[[end]]    <- split$end
-        tdata[[event]]  <- tstat
-    }
-    else tdata[[sname]] <- Surv(split$start, split$end, tstat)
-    tdata[[wt]] <- split$wt
+
+    tdata[[oname[1]]] <- split$start
+    tdata[[oname[2]]] <- split$end
+    tdata[[oname[3]]] <- tstat
+    tdata[[oname[4]]] <- split$wt
+    if (!is.null(count)) tdata[[count]] <- split$add
     tdata
 }
 
