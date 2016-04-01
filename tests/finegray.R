@@ -1,5 +1,4 @@
 library(survival)
-
 # Test data set for Fine-Gray regression
 fdata <- data.frame(time  =c(1,2,3,4,4,4,5,5,6,8,8, 9,10,12),
                     status=factor(c(1,2,0,1,0,0,2,1,0,0,2, 0,1 ,0), 0:2,
@@ -29,21 +28,51 @@ twt <- c(1, csurv$p[c(1,2,3,6)], 1,1,1, 1, 1, 5/12, 1,1,1,
                          1, 1/2, 1,1,1)
 all.equal(test1$fgwt, twt)
 #extra obs will end at times found in csurv$time, or max(time)=12
-all.equal(test1$fgt2[test1$fgcount>0], c(4,6,12, 12,12))
+all.equal(test1$fgstop[test1$fgcount>0], c(4,6,12, 12,12))
 
 #
 # Verify the data reproduces a multi-state curve
 #  censoring times may be different in the two setups so only 
 #  compare at the event times
 sfit <- survfit(Surv(time, status) ~1, fdata)
-sfit1<- survfit(Surv(fgtime1, fgtime2, fgstatus) ~1, test1, weight=fgwt)
+sfit1<- survfit(Surv(fgstart, fgstop, fgstatus) ~1, test1, weight=fgwt)
 i1 <- sfit$n.event[,1] > 0
 i2 <- sfit1$n.event > 0
 all.equal(sfit$pstate[i1, 1], 1- sfit1$surv[i2])
 
-sfit2 <- survfit(Surv(fgtime1, fgtime2, fgstatus) ~1, test2, weight=fgwt)
+sfit2 <- survfit(Surv(fgstart, fgstop, fgstatus) ~1, test2, weight=fgwt)
 i1 <- sfit$n.event[,2] > 0
 i2 <- sfit2$n.event > 0
 all.equal(sfit$pstate[i1, 2], 1- sfit2$surv[i2])
 
 
+# A larger example
+etime <- with(mgus2, ifelse(pstat==0, futime, ptime))
+event <- with(mgus2, ifelse(pstat==0, 2*death, 1))
+e2 <- factor(event, 0:2, c('censor', 'pcm', 'death'))
+id <- 1:nrow(mgus2)
+edata <- finegray(Surv(etime, e2) ~ sex + id, mgus2, endpoint="pcm")
+
+# Build the KM by hand
+# An event at time x is not "at risk" for censoring at time x (Geskus 2011)
+tt <- sort(unique(etime))  # all the times
+ntime <- length(tt)
+nrisk <- nevent <- km <- double(ntime)
+for (i in 1:ntime) {
+    nrisk[i] <- sum((etime > tt[i] & event >0) | (etime >= tt[i] & event==0))
+    nevent[i] <- sum(etime == tt[i] & event==0)
+}
+G <- cumprod(1- nevent/nrisk)
+
+# The weight is defined as w(t)= G(t-)/G(s-) where s is the event time
+# for a subject who experiences an endpoint other then the one of interest
+type2 <- event[edata$id]==2  # the rows to be expanded
+# These rows are copied over as is: endpoint 1 and censors
+all(edata$fgstop[!type2] == etime[edata$id[!type2]])
+all(edata$fgstart[!type2] ==0) 
+all(edata$fgwt[!type2] ==1)
+
+tdata <- edata[type2,]  #expanded rows
+first <- match(tdata$id, tdata$id)  #points to the first row for each subject
+Gwt <- c(1, G)[match(tdata$fgstop, tt)]  # G(t-)
+all.equal(tdata$fgwt, Gwt/Gwt[first])

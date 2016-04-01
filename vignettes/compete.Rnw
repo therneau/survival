@@ -583,9 +583,9 @@ key steps.  In order of importance:
           hazard?  I've seen some discussion of this in models of
           graft vs host disease.  Most of the time though, they are 
           assumed to all be different.
-       \item What is an approriate correlation structure for the random effect,
-         if any?  Do some pairs of transitions have a shared effect?  
-         Some pairs independent ones and others none?   
+      \item What is an approriate correlation structure for the random effect,
+         if any?  Do some pairs of transitions have a shared effect,  
+         some pairs separate effects and others no random effect?   
          Mixed effects Cox models tend to need larger sample size --- do 
          you have enough?
     \end{enumerate}
@@ -827,31 +827,31 @@ simple.
 The primary idea is to turn the multi-state problem into a set of
 two-state ones.  
 For the MGUS data these are (entry/PCM) $\longrightarrow$ death and
-(entry/death) \longrightarrow PCM.  
+(entry/death) $\longrightarrow$ PCM.  
 An interesting aspect of this is that the fit can be done as a
 two stage process: the first stage creates a special data set while the
 second applies the usual \code{coxph} or \code{survfit} programs to
 those data sets.
 
-<<fg1>>=
+<<fg1, fig=TRUE>>=
 pcmdat <- finegray(Surv(etime, event) ~ sex, data=mgus2,
                    endpoint="pcm")
 pcmdat[1:4,]
-pfit <- survfit(Surv(fgtime1, fgtime2, fgstatus) ~ sex, data=pcmdat, weight=fgwt)
+pfit <- survfit(Surv(fgstart, fgstop, fgstatus) ~ sex, data=pcmdat, weight=fgwt)
 
 deathdat <- finegray(Surv(etime, event) ~ sex, data=mgus2,
                      endpoint="death")
-dfit <- survfit(Surv(fgtime1, fgtime2, fgstatus) ~ sex, 
+dfit <- survfit(Surv(fgstart, fgstop, fgstatus) ~ sex, 
                   data=deathdat, weight=fgwt)
 par(mfrow=c(1,2))
 plot(mfit2, col=c(1,2,1,2), lty=c(2,2,1,1),
      lwd=2,  xscale=12,
      xlab="Years post diagnosis", ylab="Probability in State")
-text(240, .4, "Competing risks survival")
+text(240, .4, "CR survival")
 plot(dfit, fun='event', col=1:2, lwd=2,  xscale=12,
      xlab="Years post diagnosis", ylab="Probability in State")
 lines(pfit, fun='event', lwd=2, col=1:2, lty=2) 
-text(240, .4, "Ordinary survival, FG data")
+text(240, .4, "Survival, FG data")
 @ 
 The two curves are almost identical, and in fact would be identical if we
 had accounted for the slightly different censoring patterns in males and
@@ -860,8 +860,8 @@ females (by adding \code{strata(sex)} to the right hand side of the
 
 A Cox model fit to the constructed data set yields the Fine-Gray
 model.  
-<<fg2>>=
-fgfit1 <- coxph(Surv(fgstart, etime, event) ~ sex, data=pcmdat,
+<<fg2, fig=TRUE>>=
+fgfit1 <- coxph(Surv(fgstart, fgstop, fgstatus) ~ sex, data=pcmdat,
                weight= fgwt)
 summary(fgfit1)
 
@@ -875,7 +875,7 @@ legend(12, .2, c("Female, Aalen-Johansen", "Male, Aalen-Johansen",
        col=1:2, lty=c(1,1,2,2), bty='n')
 @ 
 The model states that males have a lower rate of \emph{observed} PCM, 
-by a factor of \Sexpr{round(exp(coef(fgsex)), 2)}, and that
+by a factor of \Sexpr{round(exp(coef(fgfit1)), 2)}, and that
 this hazard ratio is constant over time.
 When there is only a single categorical 0/1 covariate the Fine-Gray model
 reduces to Gray's test of the subdistribution function, in the same way
@@ -915,20 +915,15 @@ both the per-transition and Fine-Gray models formulations;
 if it is true for one it will not be true for the other.
 
 Now consider a multivariate fit on age, sex, and serum m-spike.
-We found earlier that sex has an effect on death rates but not on
-PCM, and conversely that the size of the serum m-spike has an effect
-on PCM but not death rates.  
-In the non-parametric curves both variables had an effect on the lifetime
-probabilities of ``death without PCM'' and ``PCM before death''.
 <<fg3>>=
 pdata2 <- finegray(Surv(etime, event) ~ ., mgus2, na.action=na.pass)
 ddata2 <- finegray(Surv(etime, event) ~ ., mgus2, na.action=na.pass,
                    endpoint= "death")
-fgfit2a <- coxph(Surv(fgtime1, fgtime2, fgstatus) ~ age + sex + mspike,
+fgfit2a <- coxph(Surv(fgstart, fgstop, fgstatus) ~ age + sex + mspike,
                  data=pdata2, weight=fgwt)
 fgfit2a
 
-fgfit2b <-  coxph(Surv(fgtime1, fgtime2, fgstatus) ~ age + sex + mspike,
+fgfit2b <-  coxph(Surv(fgstart, fgstop, fgstatus) ~ age + sex + mspike,
                  data=ddata2, weight=fgwt)
 fgfit2b
 @ 
@@ -936,31 +931,6 @@ The Fine-Gray show an effect of both variables on the subdistribution
 rates.  Males have a lower lifetime risk of PCM before death and a higher 
 risk of death before PCM, while a higher serum m-spike works in the opposite
 direction.
-
-
-
-Let us look at the effect of sex on PCM using the Fine-Gray model, which
-can be computed using the \code{cmprsk} package.
-It does not use model formulas so variables need to be vectors or matrices.
-<<finegray>>=
-if (cmplib) {
-    temp <- mtemp
-    temp$fstat <- as.numeric(event)  # 1=censor, 2=pcm, 3=death
-    temp$msex  <- with(temp, 1* (sex=='M'))
-    fgfit1 <- with(temp, crr(etime, fstat, cov1= cbind(age, msex,  mspike),
-                        failcode=2, cencode=1, variance=TRUE))
-    fgfit2 <- with(temp, crr(etime, fstat, cov1=cbind(age, msex, mspike),
-                         failcode=3, cencode=1, variance=TRUE))
-    cmat <- rbind("FineGray: PCM" = fgfit1$coef,
-                  "Cox: PCM" = coef(cfit1),
-                  "FineGray: death" = fgfit2$coef,
-                  "Cox: death" = coef(cfit2))
-    round(cmat,2)
-}
-@ 
-The program has determined that female sex increases the PCM outcome by
-exp(.21) = 1.24 
-fold, for all values of age and mspike.
 The Cox model shows no effect of sex on the instantaneous hazard, but
 as shown in the last section Cox models do predict higher female prevalence.
 We had also seen that older subjects are less likely to experience PCM
@@ -971,13 +941,28 @@ The primary strength of the Fine-Gray model with respect to the Cox model
 approach is that if ``lifetime risk'' is a primary question then 
 the model has given
 us a simple and digestible answer to that question:
-females have a 1.2 fold higher risk. 
-A primary problem of the
-model is that we can't go backwards: there is not a simple analog to the
-Aalen-Johansen estimator to carry one from $F$ back to $\Lambda$.
-If one fits a set of Cox models to the arrows (hazards)
-then the boxes (prevalence) of figure \ref{mfig1} can be examined post fit.
-With the Fine-Gray approach we have information only on the boxes.
+``females have a 1.2 fold higher risk, after adjustment for age and serum
+m-spike''.
+This simplicity is not without price, however, and the author is personally
+not a fan of the Fine-Gray approach.
+There are four issues.
+\begin{itemize}
+  \item The approach is viable only for competing risks and not for
+    any other multi-state model.
+  \item Proportional hazards is often violated in the FG setup, and to a
+    much larger extent than for per-transition models using the same
+    data.
+  \item From the per-transition models one can work forward and compute
+    the $P(t)$, the occupancy probabilities for each state over time;
+    both are useful.
+    There are no tools to work backwards from a Fine-Gray summary to the
+    individual hazards.
+  \item The overall summary is too simplistic in many cases.
+  \item The risk sets are odd.
+\end{itemize}
+The last of these is perhaps the most frequently listed issue with the Fine-Gray
+model, but I think it is actually a minor complaint, but the others are
+substantial.
 
 To compare the two fits we can look at what the female/male ratios
 for each of our four chosen age/mspike combinations,
@@ -996,18 +981,14 @@ are displayed below with predictions for mspike=0.5 on the left and 1.5 on
 the right.  
 
 <<finegray2, fig=TRUE>>=
-if (cmplib) {
 par(mfrow=c(1,2))
-fdata <- model.matrix(~age + sex + mspike, data=tdata)[,-1] #remove intercept
-fpred <- predict(fgfit1, cov1=fdata)
-matplot(fpred[,1]/12, fpred[,c(2,4,6,8)], col=c(1,1,2,2), lty=c(1,2,1,2),
-        ylim=range(fpred[,-1]),
-       type='l', lwd=2, xlab="Years", ylab="FG predicted")
+tdata <- expand.grid(mspike=c(.5, 1.5), age=c(6,8), sex=c("F", "M"))
+fsurv1 <- survfit(fgfit2a, newdata=tdata)  # time to progression curves
+fsurv2 <- survfit(fgfit2b, newdata=tdata)  # time to death curves
+plot(fsurv1[,1], xscale=12, col=1, lty=1:2, lwd=2,
+     xlab="Years", ylab="FG predicted")
 legend(0, .22, c("Female, 60", "Male, 60","Female: 80", "Male, 80"),
        col=c(1,2,1,2), lty=c(1,1,2,2), lwd=2, bty='n')
-matplot(fpred[,1]/12, fpred[,c(3,5,7,9)], col=c(1,1,2,2), lty=c(1,2,1,2),
-       type='l', lwd=2, xlab="Years", ylab="FG predicted")
-}
 @ 
 
 This tells a very different story than the Cox model prevalence curves.
@@ -1015,17 +996,7 @@ Which is correct?  Individual non-parametric prevalence curves are
 not as helpful as one would hope: there are simply too few progression
 events when separated into 8 groups.  
 
-<<timedep>>=
-if (cmplib)
-fgfit3 <- with(temp, crr(etime, fstat, cov1= cbind(age, msex,  mspike),
-                        failcode=2, cencode=1, variance=TRUE,
-                        cov2=msex, tf = function(x) log(x)))
-@ 
-
-A deeper analysis is called for, but will have to be left for another day.
-\else
-This section requires the cmprsk library, so was not created.
-\fi
+A deeper analysis is called for, but will have to be left for Cindy.
 
 
 \section{Conclusions}

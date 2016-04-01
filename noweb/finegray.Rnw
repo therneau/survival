@@ -23,16 +23,15 @@ In practice what is done is to estimate the overall censoring distribution and
 give subjects artificial follow-up.
 
 The function below creates a data set that can then be used with coxph.
-It has a lot of commonality with \code{survSplit}.
-
 <<finegray>>= 
-finegray <- function(formula, data, subset, na.action,
+finegray <- function(formula, data, subset, na.action= na.pass,
                      endpoint, prefix="fg", count="", id) {
     Call <- match.call()
-    indx <- match(c("formula", "data", "subset", "na.action"),
+    indx <- match(c("formula", "data", "subset"),
               names(Call), nomatch=0) 
     if (indx[1] ==0) stop("A formula argument is required")
     temp <- Call[c(1,indx)]  # only keep the arguments we wanted
+    temp$na.action <- na.action
     temp[[1L]] <- quote(stats::model.frame)  # change the function called
 
     special <- c("strata", "cluster")
@@ -62,6 +61,18 @@ finegray <- function(formula, data, subset, na.action,
     else istrat <- rep(1, nrow(mf))
     
     id <- model.extract(mf, "id")
+    if (!is.null(id)) {
+        # get rid of the parenthesis that model.frame puts around the name
+        # in an expression like Surv(time, stat) ~ ., id=clinic the id will
+        # end up being a duplicate, so toss it.
+        temp <- grepl("^\\(.*\\)$", names(mf))
+        if (sum(temp) ==1) { # failsafe
+            temp2 <- names(mf)[temp]
+            temp2 <- substring(temp2, 2, nchar(temp2) -1) 
+            if (temp2 %in% names(mf)) mf <- mf[!temp]  #duplicate variable name
+            else names(mf)[temp] <- temp2
+        }
+    }
     cluster<- attr(Terms, "specials")$cluster
     if (length(cluster)) {
         if (!is.null(id)) stop("an id argument and a cluster() term are redundant")
@@ -73,21 +84,21 @@ finegray <- function(formula, data, subset, na.action,
     # If there is start-stop data, then there needs to be a cluster()
     #  argument or an id argument, and we check that this is indeed
     #  a competing risks form of data.
+    delay <- FALSE  # is there delayed entry?
     if (type=="mcounting") {
         if (is.null(id)) stop("(start, stop] data requires a subject id")
         else {
             index <- order(id, Y[,2]) # by time within id
-            temp <- Y[index,]
+            sorty <- Y[index,]
             first <- which(!duplicated(id[index]))
             last  <- c(first[-1] -1, length(id))
-            if (any(temp[-last, 3]) != 0)
+            if (any(sorty[-last, 3]) != 0)
                 stop("a subject has a transition before their last time point")
-            delta <- c(temp[-1,1], 0) - temp[,2]
+            delta <- c(sorty[-1,1], 0) - sorty[,2]
             if (any(delta[-last] !=0)) 
                 stop("a subject has gaps in time")
-            if (any(Y[first,1] > min(Y[,2])))
-                stop("the routine does not allow for delayed entry")
-        }
+            if (any(Y[first,1] > min(Y[,2]))) delay <- TRUE
+         }
     }
 
     if (missing(endpoint)) enum <- 1  #generate a data set for which endpoint?
@@ -101,7 +112,7 @@ finegray <- function(formula, data, subset, na.action,
     
     # make sure count, if present is syntactically valid
     if (!missing(count)) count <- make.names(count) else count <- NULL
-    oname <- paste0(prefix, c("time1", "time2", "status", "wt"))
+    oname <- paste0(prefix, c("start", "stop", "status", "wt"))
         
     <<finegray-censor>>   
     <<finegray-build>>
@@ -124,13 +135,17 @@ Since this is a competing risks data set any non-censored observation for a
 subject is their last, so this time shift does not goof up the alignment
 of start, stop data.
 
+The truncation distribution due to delayed entry is on the reverse time scale.
+Geskus assumes that ties are ordered as event < censor < truncation, so on
+the reverse scale we don't need to fudge the times.
+
 <<finegray-censor>>=
 find2 <- function(x, vec, left.open=FALSE, ...) {
     if (!left.open) findInterval(x, vec, ...)
     else {
         # the left.open arg is a recent addition to findInterval, and I want
         #  this to work in 3.2.0 (institutional installs).  In another cycle or
-        #  so we can drop this workaround
+        #  so we can drop this workaround and call findInterval directly
         #
         length(vec) - findInterval(-x, rev(-vec), ...)
     }
@@ -142,11 +157,28 @@ if (ncol(Y) ==2) {
     else zero <- 2*temp -1  # a value less than any observed y
     Y <- cbind(zero, Y)  # add a start column
 }
-utime <- sort(unique(Y[,2]))  # all the unique end times
+utime <- sort(unique(c(Y[,1:2])))  # all the unique times
 newtime <- matrix(findInterval(Y[,1:2], utime), ncol=2) 
 status <- Y[,3]
+
 newtime[status !=0, 2] <- newtime[status !=0,2] - .2
-csurv <- survfit(Surv(newtime[,1], newtime[,2], status==0) ~ istrat, se.fit=FALSE)
+csurv <- survfit(Surv(newtime[,1], newtime[,2], status==0) ~ istrat, 
+                 se.fit=FALSE)
+@ 
+
+If there is a dely, we still do the computations on the integer scale.
+Otherwise we will someday be clobbered by times that differ only in
+round off error. The only nuisance is the status variable, which is
+1 for the first row of each subject, when the subject is not in time
+order in the data set.  The offset of .2 used above is not needed, but due
+to the underlying integer scale it doesn't harm anything either.
+<<finegray-censor>>= 
+if (delay) {
+    tstat <- rep(0L, nrow(mf))
+    tstat[first] <- 1L
+    dsurv <- survfit(Surv(-newtime[,2], -newtime[,1], tstat) ~ istrat, 
+                     se.fit =FALSE)
+}
 @ 
 
 Consider the following data set: 
@@ -164,10 +196,9 @@ The censoring distribution will have the following shape:
        & 1.0000 & .9167 & .7333 & .6111 & .4583
     \end{tabular}
   \end{center}
-Notice that at time 4, the event at time 4 is not counted in the risk set
+Notice that the event at time 4 is not counted in the risk set at time 4,
 so the jump is 8/10 rather than 8/11. 
-Likewise at time 8 the risk set has 4 instead of 5:
-censors occur after deaths.
+Likewise at time 8 the risk set has 4 instead of 5: censors occur after deaths.
 
 When creating the data set for event type 1, subjects who have an event of
 type 2 get extended out using this censoring distribution.  The event at
@@ -185,12 +216,34 @@ To create a minimal sized data set we can leave those intervals out.
 $C(t)$ only drops to zero if the largest time(s) are censored observations, so
 by definition no events lie in an interval with $C(t)=0$.
 
+If there is delayed entry, then the set of intervals is larger due to a merge
+with the jumps in dsurv.
+The truncation distribution dsurv ($H$) will become 0 at the first entry time; 
+it is a left continuous function whereas csurv ($G$) is right continuous.  
+However, since the weights are defined as $G(t-)H(t-)$ the details don't
+matter.  We can slide $H$ one point to the left and merge them at the
+jump points.
+
 <<finegray-build>>=
 status <- Y[, 3]
 
 # keep only the event times, and convert back to the original time units
-ctime <- utime[csurv$time[csurv$n.event > 0]]
-cprob <- csurv$surv[csurv$n.event > 0]
+if (delay) {
+    dtime <- rev(-dsurv$time[dsurv$n.event > 0])
+    dprob <- c(rev(dsurv$surv[dsurv$n.event > 0]), 1) 
+    ctime <- csurv$time[csurv$n.event > 0]
+    cprob <- c(1, csurv$surv[csurv$n.event > 0]) 
+    temp <- sort(unique(dtime, ctime)) # these will all be integers
+    index1 <- findInterval(temp, dtime)
+    index2 <- findInterval(temp, ctime)
+    ctime <- utime[temp]
+    cprob <- dprob[index1+1] * cprob[index2+1]  # G(t)H(t), eq 11 in Geskus
+}
+else {
+    ctime <- utime[csurv$time[csurv$n.event > 0]]
+    cprob <- csurv$surv[csurv$n.event > 0]
+}
+    
 if (is.null(csurv$strata)) cstrat <- rep(1, length(ctime))  
 else {
     cstrat <- (rep(1:length(csurv$strata), csurv$strata))[csurv$n.event > 0]

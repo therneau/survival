@@ -3,8 +3,8 @@
 \title{Create data for a Fine-Gray model}
 \description{
   The Fine-Gray model can be fit by first creating a special data set,
-  and then fitting a Cox model to the result.  This routine creates the
-  data.
+  and then fitting a weighted Cox model to the result.  This routine creates the
+  data set.
 }
 \usage{
 finegray(formula, data, subset, na.action= na.pass, endpoint,
@@ -26,14 +26,14 @@ finegray(formula, data, subset, na.action= na.pass, endpoint,
     a function which indicates what should happen when the data contain
     NAs.  The default is set by the na.action setting of options.
 }
-\item{endpoint}{
-   the endpoint for which a data set will be generated.  The default is
-   to use the first endpoint state.
+\item{etype}{
+   the event type for which a data set will be generated.  The default is
+   to use whichever is listed first in the multi-state survival object.
  }
 
  \item{prefix}{the routine will add 4 variables to the data set: a start
    and end time for each interval, status, and a weight for the
-   interval. The default names of these are "fgtime1", "fgtime2", "fgstatus",
+   interval. The default names of these are "fgstart", "fgstop", "fgstatus",
    and "fgwt"; the \code{prefix} argument determines the initial portion of
    the new names.
  }
@@ -53,7 +53,7 @@ finegray(formula, data, subset, na.action= na.pass, endpoint,
   the left hand side of the formula, e.g. \code{Surv(atime, astat)}
   where \code{astat} is a factor whose first level represents censoring
   and remaining levels are states.  The output data set will contain simple
-  survival data (status of 0/1) for a single endpoint of interest.
+  survival data (status = 0 or 1) for a single endpoint of interest.
   In the output data set subjects who did not experience the event of
   interest become censored subjects
   whose times are artificially extended over multiple intervals, with a
@@ -81,7 +81,7 @@ finegray(formula, data, subset, na.action= na.pass, endpoint,
 }
 \author{Terry Therneau}
 \seealso{\code{\link{coxph}}}
-}
+
 \examples{
 # Treat time to death and plasma cell malignancy as competing risks
 etime <- with(mgus2, ifelse(pstat==0, futime, ptime))
@@ -89,13 +89,14 @@ event <- with(mgus2, ifelse(pstat==0, 2*death, 1))
 event <- factor(event, 0:2, labels=c("censor", "pcm", "death"))
 
 # multi-state curves
-curves <- survfit(Surv(etime, event) ~ sex, data=mgus2)
+curves <- survfit(Surv(etime, event) ~ ., data=mgus2)
 
 # FG model for PCM
 pdata <- finegray(Surv(etime, event) ~ ., data=mgus2)
-fgfit <- coxph(Surv(etime, event) ~ age + sex, weight=fgwt, data=pdata)
+fgfit <- coxph(Surv(fgstart, fgstop, fgstatus) ~ age + sex,
+                     weight=fgwt, data=pdata)
 
-# Keep all variables, all rows, and do the computation separately by sex
+# Compute the weights separately by sex
 adata <- finegray(Surv(etime, event) ~ . + strata(sex),
              data=mgus2, na.action=na.pass)
 }

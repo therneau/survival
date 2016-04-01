@@ -137,6 +137,9 @@ void coxscore(Sint   *nx,      Sint   *nvarx,    double *y,
 double coxsafe(double x);
 double **dmatrix(double *array, int ncol, int nrow);
 
+SEXP finegray(SEXP tstart2, SEXP tstop2,   SEXP ctime2,   SEXP cprob2, 
+	      SEXP extend2, SEXP keep2);
+
 void init_doloop(int min, int max);
 int doloop      (int nloops, int *index);
 
