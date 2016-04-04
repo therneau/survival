@@ -50,14 +50,13 @@ all.equal(sfit$pstate[i1, 2], 1- sfit2$surv[i2])
 etime <- with(mgus2, ifelse(pstat==0, futime, ptime))
 event <- with(mgus2, ifelse(pstat==0, 2*death, 1))
 e2 <- factor(event, 0:2, c('censor', 'pcm', 'death'))
-id <- 1:nrow(mgus2)
 edata <- finegray(Surv(etime, e2) ~ sex + id, mgus2, endpoint="pcm")
 
-# Build the KM by hand
+# Build G(t) = the KM of the censoring distribution
 # An event at time x is not "at risk" for censoring at time x (Geskus 2011)
 tt <- sort(unique(etime))  # all the times
 ntime <- length(tt)
-nrisk <- nevent <- km <- double(ntime)
+nrisk <- nevent <- double(ntime)
 for (i in 1:ntime) {
     nrisk[i] <- sum((etime > tt[i] & event >0) | (etime >= tt[i] & event==0))
     nevent[i] <- sum(etime == tt[i] & event==0)
@@ -75,4 +74,74 @@ all(edata$fgwt[!type2] ==1)
 tdata <- edata[type2,]  #expanded rows
 first <- match(tdata$id, tdata$id)  #points to the first row for each subject
 Gwt <- c(1, G)[match(tdata$fgstop, tt)]  # G(t-)
-all.equal(tdata$fgwt, Gwt/Gwt[first])
+all.equal(edata$fgwt, Gwt/Gwt[first])
+
+# A test with left truncation 
+# Ties are assumed to be ordered as event, censor, entry
+# H(t) = truncation distribution, and is calculated on a reverse time scale
+# Since there is only one row per subject every obs is a "start" event.
+# Per equation 5 and 6 of Geskus both G and H are right continuous functions
+#  (the value at t- epsilon is different than the value at t).
+fdata <- data.frame(time1 = c(0,0,0,3,2,0,0,1,0,7,5, 0, 0, 0),
+                    time2 = c(1,2,3,4,4,4,5,5,6,8,8, 9,10,12),
+                    status= c(1,2,0,1,0,0,2,1,0,0,2, 0, 1 ,0), 
+                    x     = c(5,4,3,1,2,1,1,2,2,4,6, 1, 2, 0),
+                    id = 1:14)
+tdata <- finegray(Surv(time1, time2, factor(status, 0:2) ~ x, id=id, fdata)
+
+tt <- sort(unique(c(fdata$time1, fdata$time2)))
+ntime <- length(tt)
+Grisk <- Gevent <- double(ntime)
+Hrisk <- Hevent <- double(ntime)
+for (i in 1:ntime) {
+    Grisk[i] <- with(fdata, sum((time2 > tt[i] & status >0 & time1 < tt[i]) | 
+                                (time2 >= tt[i] & status ==0 & time1 < tt[i])))
+    Gevent[i]<- with(fdata, sum(time2 == tt[i] & status==0))
+    Hrisk[i] <- with(fdata, sum(time2 > tt[i] & time1 <= tt[i]))
+    Hevent[i]<- with(fdata, sum(time1 == tt[i]))
+}
+G <- cumprod(1- Gevent/pmax(1,Grisk))
+G2 <- survfit(Surv(time1, time2 - .1*(status !=0), status==0) ~1, fdata)
+all.equal(G2$surv[G2$n.event>0], G[Gevent>0])
+
+H <- double(ntime)
+# The loop below is exactly the definition (equation 6)
+for (i in 1:ntime) 
+    H[i] <- prod((1- Hevent/pmax(1, Hrisk))[-(i:1)])
+H2 <- rev(cumprod(rev(1 - Hevent/pmax(1, Hrisk))))  #alternate form
+H3 <- survfit(Surv(-time2, -time1, rep(1,14)) ~1, fdata) # form 3
+all.equal(tt, -rev(H3$time))
+# c(0,H) = H(t-), due to time reversal H2 = H(t-) already
+all.equal(c(0, H), c(H2, 1))  
+all.equal(H2, rev(H3$surv))
+
+
+
+# Larger test: the mgus2 data on age scale
+start <- mgus2$age  # age in years
+end   <- start + etime/12  #etime in months
+tt <- sort(unique(c(start, end)))  # all the times
+ntime <- length(tt)
+Grisk <- Gevent <-  double(ntime)
+Hrisk <- Hevent <-  double(ntime)
+for (i in 1:ntime) {
+    Grisk[i] <- sum(((end > tt[i] & event >0) | (end >= tt[i] & event==0)) &
+                      (tt[i] > start))
+    Gevent[i] <- sum(end == tt[i] & event==0)
+    Hrisk[i]  <- sum(start <= tt[i] & end > tt[i])
+    Hevent[i] <- sum(start == tt[i])
+}
+G <- cumprod(1 - Gevent/pmax(1, Grisk))         # pmax to avoid 0/0
+H <- rev(cumprod(rev(1-Hevent/pmax(1,Hrisk))))
+H <- c(H[-1], 1)  #make it right continuous
+# matplot(tt, cbind(G, H), type='s', lty=1)
+
+wdata <- finegray(Surv(start, end, event) ~ sex + id, mgus2)
+type2 <- event[wdata$id]==2  # the rows to be expanded
+tdata <- edata[type2,]
+first <- match(tdata$id, tdata$id)
+
+Gwt <- c(1, G)[match(tdata$fgstop, tt)]  # G(t-)
+Hwt <- c(0, H)[match(tdata$fgstop, tt)]  # H(t-)
+all.equal(tdata$fgwt,  (Gwt/Gwt[first]) * (Hwt / Hwt[first]))
+

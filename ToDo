@@ -1,0 +1,13 @@
+model.matrix for tt() terms
+finish the competing risks vignette
+update penalized models
+terms for cox.zph
+add design of the survival library document to vignettes
+include.lowest for tcut (first find out what the issue is)
+add "fun" to summary.survfit
+validation vignette
+Fine-Gray model
+
+DONE:
+
+change label in the concordance found in coxph output

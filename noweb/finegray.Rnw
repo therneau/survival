@@ -84,6 +84,8 @@ finegray <- function(formula, data, subset, na.action= na.pass,
     # If there is start-stop data, then there needs to be a cluster()
     #  argument or an id argument, and we check that this is indeed
     #  a competing risks form of data.
+    # Mark the first and last obs of each subject, as we need it later.
+    #  Observations may not be in time order within a subject
     delay <- FALSE  # is there delayed entry?
     if (type=="mcounting") {
         if (is.null(id)) stop("(start, stop] data requires a subject id")
@@ -98,8 +100,13 @@ finegray <- function(formula, data, subset, na.action= na.pass,
             if (any(delta[-last] !=0)) 
                 stop("a subject has gaps in time")
             if (any(Y[first,1] > min(Y[,2]))) delay <- TRUE
+            temp1 <- temp2 <- rep(FALSE, nrow(mf))
+            temp1[index[first]] <- TRUE
+            temp2[index[last]]  <- TRUE
+            first <- temp1  #used later
+            last <-  temp2
          }
-    }
+    } else last <- rep(TRUE, nrow(mf))  
 
     if (missing(endpoint)) enum <- 1  #generate a data set for which endpoint?
     else {
@@ -119,25 +126,27 @@ finegray <- function(formula, data, subset, na.action= na.pass,
 }  
 @
 
-The censoring distribution is estimated as a simple KM with one modification.
-In a time to death KM say that subject A has an event and subject B is censored
-on the exact same day.  We assume that B was at risk for said event when 
-computing the estimate.  The set of subjects at risk is left continuous
-and the estimated survival is right-continuous.
-For the reverse case of computing the censoring distribution, the FG estimate
-does not assume that subject A was at risk of censoring on that day.
-The risk set is right-continuous and the function left continuous.
-A fix to this is break any ties by making
-all the event times just a little bit shorter.
+The censoring and truncation distributions are
+\begin{align*}
+  G(t) &= \prod{s \le t} \left(1 - \frac{c(s)}{r_c(s)} \right ) \\
+  H(t) &= \prod{s > t} \left(1 - \frac{e(s)}{r_e(s)} \right ) 
+\end{align*}
+where $c(t)$ is the number of subjects censored at time $t$, $e(t)$ is the
+number who enter at time $t$, and $r$ is the size of the relevant risk set.
+These are equations 5 and  6 of Geskus (Biometrics 2011).
+Note that both $G$ and $H$ are right continuous functions.
+For tied times the assumption is that event $<$ censor $<$ entry.
+Thus $G$ we use a modified Kapan-Meier where any events at censoring time $t$ are
+removed from the risk set just before time $t$.
 To avoid issues with times that are nearly identical (but not quite) we first
-convert to an integer time scale.
+convert to an integer time scale, and then move events backwards by .2.
 Since this is a competing risks data set any non-censored observation for a
 subject is their last, so this time shift does not goof up the alignment
 of start, stop data.
-
-The truncation distribution due to delayed entry is on the reverse time scale.
-Geskus assumes that ties are ordered as event < censor < truncation, so on
-the reverse scale we don't need to fudge the times.
+For the truncation distribution it is the subjects with times 
+at or before time $t$ that
+are in the risk set $r_e(t)$ for truncation at (or before) $t$.
+$H$ can be calculated using an ordinary KM on the reverse time scale.
 
 <<finegray-censor>>=
 find2 <- function(x, vec, left.open=FALSE, ...) {
@@ -162,23 +171,20 @@ newtime <- matrix(findInterval(Y[,1:2], utime), ncol=2)
 status <- Y[,3]
 
 newtime[status !=0, 2] <- newtime[status !=0,2] - .2
-csurv <- survfit(Surv(newtime[,1], newtime[,2], status==0) ~ istrat, 
+Gsurv <- survfit(Surv(newtime[,1], newtime[,2], status==0) ~ istrat, 
                  se.fit=FALSE)
 @ 
 
-If there is a dely, we still do the computations on the integer scale.
+The calculation for $H$ is also done on the integer scale.
 Otherwise we will someday be clobbered by times that differ only in
 round off error. The only nuisance is the status variable, which is
-1 for the first row of each subject, when the subject is not in time
-order in the data set.  The offset of .2 used above is not needed, but due
+1 for the first row of each subject, since the data set may not
+be in sorted order.  The offset of .2 used above is not needed, but due
 to the underlying integer scale it doesn't harm anything either.
 <<finegray-censor>>= 
-if (delay) {
-    tstat <- rep(0L, nrow(mf))
-    tstat[first] <- 1L
-    dsurv <- survfit(Surv(-newtime[,2], -newtime[,1], tstat) ~ istrat, 
+if (delay) 
+    Hsurv <- survfit(Surv(-newtime[,2], -newtime[,1], first) ~ istrat, 
                      se.fit =FALSE)
-}
 @ 
 
 Consider the following data set: 
@@ -203,8 +209,8 @@ Likewise at time 8 the risk set has 4 instead of 5: censors occur after deaths.
 When creating the data set for event type 1, subjects who have an event of
 type 2 get extended out using this censoring distribution.  The event at
 time 2, for instance, appears as a censored observation with time dependent
-weights of $C(t)$.  The type 2 event at time 5 has weight 1 up through time 5,
-then weights of $C(t)/C(5)$ for the remainder.
+weights of $G(t)$.  The type 2 event at time 5 has weight 1 up through time 5,
+then weights of $G(t)/C(5)$ for the remainder.
 This means a weight of 1 over (5,6], 5/6 over (6,8], (5/6)(3/4) over (9,12]
 and etc. 
 
@@ -213,13 +219,13 @@ in the created data set for event type 1 we only need to know case
 weights at times 1, 4, 5, and 10; the information from the (4,6] and (6,8] 
 intervals will never be used.  
 To create a minimal sized data set we can leave those intervals out. 
-$C(t)$ only drops to zero if the largest time(s) are censored observations, so
-by definition no events lie in an interval with $C(t)=0$.
+$G(t)$ only drops to zero if the largest time(s) are censored observations, so
+by definition no events lie in an interval with $G(t)=0$.
 
 If there is delayed entry, then the set of intervals is larger due to a merge
-with the jumps in dsurv.
-The truncation distribution dsurv ($H$) will become 0 at the first entry time; 
-it is a left continuous function whereas csurv ($G$) is right continuous.  
+with the jumps in Hsurv.
+The truncation distribution Hsurv ($H$) will become 0 at the first entry time; 
+it is a left continuous function whereas Gsurv ($G$) is right continuous.  
 However, since the weights are defined as $G(t-)H(t-)$ the details don't
 matter.  We can slide $H$ one point to the left and merge them at the
 jump points.
@@ -229,24 +235,26 @@ status <- Y[, 3]
 
 # keep only the event times, and convert back to the original time units
 if (delay) {
-    dtime <- rev(-dsurv$time[dsurv$n.event > 0])
-    dprob <- c(rev(dsurv$surv[dsurv$n.event > 0]), 1) 
-    ctime <- csurv$time[csurv$n.event > 0]
-    cprob <- c(1, csurv$surv[csurv$n.event > 0]) 
+    dtime <- rev(-Hsurv$time[Hsurv$n.event > 0])
+    dprob <- c(rev(Hsurv$surv[Hsurv$n.event > 0])[-1], 1)
+    ctime <- Gsurv$time[Gsurv$n.event > 0]
+    cprob <- c(1, Gsurv$surv[Gsurv$n.event > 0]) 
     temp <- sort(unique(dtime, ctime)) # these will all be integers
     index1 <- findInterval(temp, dtime)
     index2 <- findInterval(temp, ctime)
     ctime <- utime[temp]
-    cprob <- dprob[index1+1] * cprob[index2+1]  # G(t)H(t), eq 11 in Geskus
+browser()
+    cprob <- dprob[index1] * cprob[index2+1]  # G(t)H(t), eq 11 in Geskus
 }
 else {
-    ctime <- utime[csurv$time[csurv$n.event > 0]]
-    cprob <- csurv$surv[csurv$n.event > 0]
+    ctime <- utime[Gsurv$time[Gsurv$n.event > 0]]
+    cprob <- Gsurv$surv[Gsurv$n.event > 0]
 }
     
-if (is.null(csurv$strata)) cstrat <- rep(1, length(ctime))  
+if (is.null(Gsurv$strata)) cstrat <- rep(1, length(ctime))  
 else {
-    cstrat <- (rep(1:length(csurv$strata), csurv$strata))[csurv$n.event > 0]
+    cstrat <- (rep(1:length(Gsurv$strata), Gsurv$strata))
+    cstrat <- cstrat[findInterval(ctime, Gsurv$time)]
 }
 maxtime <- max(Y[,2])
 
@@ -264,7 +272,7 @@ stratfun <- function(i) {
     # times before the first ctime get index 0, those between 1 and 2 get 1
     ckeep <- rep(FALSE, length(ct2))
     ckeep[index] <- TRUE
-    expand <- (Y[keep, 3] !=0 & Y[keep,3] != enum) #which rows to expand
+    expand <- (Y[keep, 3] !=0 & Y[keep,3] != enum & last) #which rows to expand
     split <- .Call("finegray", Y[keep,1], Y[keep,2], ct2, cp2, expand, 
                    c(TRUE, ckeep)) 
     tdata <- tdata[split$row,,drop=FALSE]
