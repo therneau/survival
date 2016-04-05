@@ -1,5 +1,5 @@
 library(survival)
-# Test data set for Fine-Gray regression
+# Test data set 1 for Fine-Gray regression
 fdata <- data.frame(time  =c(1,2,3,4,4,4,5,5,6,8,8, 9,10,12),
                     status=factor(c(1,2,0,1,0,0,2,1,0,0,2, 0,1 ,0), 0:2,
                              c("cen", "type1", "type2")),      
@@ -46,7 +46,9 @@ i2 <- sfit2$n.event > 0
 all.equal(sfit$pstate[i1, 2], 1- sfit2$surv[i2])
 
 
-# A larger example
+#
+# Test data set 2: use the larger MGUS data set
+#  Time is in months which leads to lots of ties
 etime <- with(mgus2, ifelse(pstat==0, futime, ptime))
 event <- with(mgus2, ifelse(pstat==0, 2*death, 1))
 e2 <- factor(event, 0:2, c('censor', 'pcm', 'death'))
@@ -74,9 +76,21 @@ all(edata$fgwt[!type2] ==1)
 tdata <- edata[type2,]  #expanded rows
 first <- match(tdata$id, tdata$id)  #points to the first row for each subject
 Gwt <- c(1, G)[match(tdata$fgstop, tt)]  # G(t-)
-all.equal(edata$fgwt, Gwt/Gwt[first])
+all.equal(tdata$fgwt, Gwt/Gwt[first])
 
-# A test with left truncation 
+if (FALSE) {
+    # Compare with mstate
+    require(mstate)
+    mtest2 <- crprep(Tstop=etime, status=event, fdata, id=mgus2$id, prec=1e12)
+    type2 <- event[mtest2$id] ==2
+    tdata <- mtest2[type2,]  #expanded rows
+    Gwt <- c(1, G)[match(tdata$Tstop, tt)]  # G(t-)
+    first <- match(tdata$id, tdata$id)
+    all.equal(tdata$weight.cens, Gwt/Gwt[first])
+}
+
+
+# Test data 3, left truncation.
 # Ties are assumed to be ordered as event, censor, entry
 # H(t) = truncation distribution, and is calculated on a reverse time scale
 # Since there is only one row per subject every obs is a "start" event.
@@ -87,8 +101,6 @@ fdata <- data.frame(time1 = c(0,0,0,3,2,0,0,1,0,7,5, 0, 0, 0),
                     status= c(1,2,0,1,0,0,2,1,0,0,2, 0, 1 ,0), 
                     x     = c(5,4,3,1,2,1,1,2,2,4,6, 1, 2, 0),
                     id = 1:14)
-tdata <- finegray(Surv(time1, time2, factor(status, 0:2) ~ x, id=id, fdata)
-
 tt <- sort(unique(c(fdata$time1, fdata$time2)))
 ntime <- length(tt)
 Grisk <- Gevent <- double(ntime)
@@ -105,19 +117,45 @@ G2 <- survfit(Surv(time1, time2 - .1*(status !=0), status==0) ~1, fdata)
 all.equal(G2$surv[G2$n.event>0], G[Gevent>0])
 
 H <- double(ntime)
-# The loop below is exactly the definition (equation 6)
+# The loop below uses the definition of equation 6 in Geskus
 for (i in 1:ntime) 
     H[i] <- prod((1- Hevent/pmax(1, Hrisk))[-(i:1)])
 H2 <- rev(cumprod(rev(1 - Hevent/pmax(1, Hrisk))))  #alternate form
-H3 <- survfit(Surv(-time2, -time1, rep(1,14)) ~1, fdata) # form 3
+H3 <- survfit(Surv(-time2, -time1, rep(1,14)) ~1, fdata) # alternate 3
 all.equal(tt, -rev(H3$time))
-# c(0,H) = H(t-), due to time reversal H2 = H(t-) already
+# c(0,H) = H(t-), H2 = H(t-) already due to the time reversal
 all.equal(c(0, H), c(H2, 1))  
 all.equal(H2, rev(H3$surv))
 
+fg <- finegray(Surv(time1, time2, factor(status, 0:2)) ~ x, id=id, fdata)
+stat2 <- !is.na(match(fg$id, fdata$id[fdata$status==2]))  #expanded ids
+all(fg$fgwt[!stat2] ==1)  #ordinary rows are left alone
+all(fg$fgstart[!stat2] == fdata$time1[fdata$status !=2])
+all(fg$fgstop[!stat2]  == fdata$time2[fdata$status !=2])
+
+tdata <- fg[stat2,]
+index <- match(tdata$id, tdata$id)   # points to the first row for each
+Gwt <- c(1, G)[match(tdata$fgstop, tt)]  # G(t-)
+Hwt <- c(0, H)[match(tdata$fgstop, tt)]  # H(t-)
+all.equal(tdata$fgwt,  Gwt*Hwt/(Gwt*Hwt)[index])
+
+if (FALSE) {
+    # Compare with mstate
+    mtest3 <- crprep(Tstop="time2", Tstart="time1", status="status",
+                     data=fdata, id="id")
+    type2 <- fdata$status[mtest3$id] ==2
+    tdata <- mtest3[type2,]  #expanded rows
+    Gwt <- c(1, G)[match(tdata$Tstop, tt)]  # G(t-)
+    Hwt <- c(1, H)[match(tdata$Tstop, tt)]  # H(t-)
+    first <- match(tdata$id, tdata$id)
+    all.equal(tdata$weight.cens, Gwt/Gwt[first])  
+    all.equal(tdata$weight.trunc, Hwt/Hwt[first])
+}
 
 
-# Larger test: the mgus2 data on age scale
+#
+# Test data 4: mgus2 data on age scale
+#
 start <- mgus2$age  # age in years
 end   <- start + etime/12  #etime in months
 tt <- sort(unique(c(start, end)))  # all the times
@@ -134,11 +172,10 @@ for (i in 1:ntime) {
 G <- cumprod(1 - Gevent/pmax(1, Grisk))         # pmax to avoid 0/0
 H <- rev(cumprod(rev(1-Hevent/pmax(1,Hrisk))))
 H <- c(H[-1], 1)  #make it right continuous
-# matplot(tt, cbind(G, H), type='s', lty=1)
 
-wdata <- finegray(Surv(start, end, event) ~ sex + id, mgus2)
+wdata <- finegray(Surv(start, end, e2) ~ ., id=id, mgus2)
 type2 <- event[wdata$id]==2  # the rows to be expanded
-tdata <- edata[type2,]
+tdata <- wdata[type2,]
 first <- match(tdata$id, tdata$id)
 
 Gwt <- c(1, G)[match(tdata$fgstop, tt)]  # G(t-)

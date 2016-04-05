@@ -27,7 +27,7 @@ The function below creates a data set that can then be used with coxph.
 finegray <- function(formula, data, subset, na.action= na.pass,
                      endpoint, prefix="fg", count="", id) {
     Call <- match.call()
-    indx <- match(c("formula", "data", "subset"),
+    indx <- match(c("formula", "data", "subset", "id"),
               names(Call), nomatch=0) 
     if (indx[1] ==0) stop("A formula argument is required")
     temp <- Call[c(1,indx)]  # only keep the arguments we wanted
@@ -239,11 +239,10 @@ if (delay) {
     dprob <- c(rev(Hsurv$surv[Hsurv$n.event > 0])[-1], 1)
     ctime <- Gsurv$time[Gsurv$n.event > 0]
     cprob <- c(1, Gsurv$surv[Gsurv$n.event > 0]) 
-    temp <- sort(unique(dtime, ctime)) # these will all be integers
+    temp <- sort(unique(c(dtime, ctime))) # these will all be integers
     index1 <- findInterval(temp, dtime)
     index2 <- findInterval(temp, ctime)
     ctime <- utime[temp]
-browser()
     cprob <- dprob[index1] * cprob[index2+1]  # G(t)H(t), eq 11 in Geskus
 }
 else {
