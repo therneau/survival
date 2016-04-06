@@ -115,7 +115,8 @@ fit1 <- coxph(Surv(start, stop, event) ~ x + strata(group), test2b,
               iter=1, method="breslow")
 aeq(fit1$coef, beta1)
 
-fit <- coxph(Surv(start, stop, event) ~x, test2b, eps=1e-8, method='breslow')
+fit <- coxph(Surv(start, stop, event) ~x + strata(group),
+             test2b, eps=1e-8, method='breslow')
 aeq(3*truth$loglik, fit$loglik[2])
 aeq(3*truth$imat, 1/fit$var)
 aeq(rep(truth$mart,3), fit$resid)
