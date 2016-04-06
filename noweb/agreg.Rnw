@@ -219,7 +219,7 @@ SEXP agfit4(SEXP surv2,      SEXP covar2,    SEXP strata2,
     double  tol_chol, eps;
     double  meanwt;
     int deaths;
-    double denom2, meaneta;
+    double denom2, etasum;
     int *keep;               /* marker for useless obs */
 
     /* inputs */
@@ -374,10 +374,18 @@ We have 6 running totals:
     This allows for easy compuatation of the Efron approximation for ties.
 \end{itemize}
 
-Observations that are not part of any risk set can goof up my algorithm
-(nrisk will be negative), so we do a first pass to mark them in the
+We have to be careful to never subtract out an observation before it
+is added in, as the number at risk counter could become zero when it
+really should not be so; certain subtotals would then be inappropriately
+zeroed.  The algorithm moves forward to the next unique ending time,
+removes old observations, and then adds new ones.
+Observations that are not part of any risk set add unnecessary noise since
+they will be added and then subtracted from all the totals, but the
+intermediate values are never used.  If said observation had a large risk
+score this could be exceptionally bad.
+We do a first pass to mark them in the
 \code{keep} vector.  For most sensible input all the elements of 
-\code{keep} will be positive, but survSplit can create observations that 
+\code{keep} will be 1= true, but survSplit can create observations that 
 are not used.
 
 <<agfit4-toss>>=
@@ -439,7 +447,10 @@ This leads to adding in subjects 1 and 2 before 3 and 4 are removed;
 for a coefficient greater than about .5 this leads to a loss of all of
 all significant digits.  
 The defense is to remove subjects from the risk set as early
-as possible, and defer additions as long as possible.
+as possible, and defer additions as long as possible. 
+That is, every time we hit a new (unique) death time, and only then,
+update the totals.  First remove any
+old observations and then add any new ones.
 
 The three primary quantities for the Cox model are the log-likelihood $L$,
 the score vector $U$ and the Hessian matrix $H$.
@@ -556,32 +567,35 @@ for (i=0; i<nvar; i++) {
 }
 
 person =0;
-for (istrat=0; istrat < nstrat; istrat++) {
-    if (istrat==0) indx1=0;
-    else  indx1 = strata[istrat-1];
-
-    for (i=0; i<nvar; i++) {
-	a[i] =0;
-	for (j=0; j<nvar; j++) cmat[i][j] =0;
-    }
-    denom =0;  
-    nrisk =0;
-    meaneta =0;
-    while (person < strata[istrat]) {
-        /* find the next death time in this stratum */
-	for (k=person; k<strata[istrat]; k++) {
-	    p = sort2[k];
-	    if (event[p] == 1) {
-		dtime = tstop[p];
-		break;
+indx1 =0;
+for (i=0; i<nvar; i++) {
+    a[i] =0;
+    for (j=0; j<nvar; j++) cmat[i][j] =0;
+}
+denom=0;
+nrisk=0;
+etasum =0;
+while (person < nused) {
+    /* find the next death time */
+    for (k=person; nused; k++) {
+	if (k == strata[istrat]) {
+	    /* hit a new stratum; reset temporary sums */
+	    denom = 0;
+	    nrisk = 0;
+	    etasum =0;
+	    for (i=0; i<nvar; i++) {
+		a[i] =0;
+		for (j=0; j<nvar; j++) cmat[i][j] =0;
 	    }
 	}
-        if (k == strata[istrat]) {
-            /* no more deaths in this stratum, we can move on */
-            person = k;
-            break;
-        }
-    
+	p = sort2[k];
+	if (event[p] == 1) {
+	    dtime = tstop[p];
+	    break;
+	}
+    }
+    if (k == nused) person =k;  /* no more deaths */
+    else {
         /* remove any subjects no longer at risk */
         <<agreg-remove>>
 
@@ -601,12 +615,12 @@ for (istrat=0; istrat < nstrat; istrat++) {
 	
 	for (; person<strata[istrat]; person++) {
 	    p = sort2[person];
-	    if (tstop[p] < dtime) break; /* do not add */
+	    if (tstop[p] < dtime) break; /* no more to add */
 	    risk = exp(eta[p]) * weights[p];
 
 	    if (event[p] ==1 ){
                 nrisk++;
-                meaneta += eta[p];
+                etasum += eta[p];
 		deaths++;
 		denom2 += risk*event[p];
 		meanwt += weights[p];
@@ -620,7 +634,7 @@ for (istrat=0; istrat < nstrat; istrat++) {
             }
 	    else if (keep[p] >0) {
                 nrisk++;
-                meaneta += eta[p];
+                etasum += eta[p];
 		denom += risk;
 		for (i=0; i<nvar; i++) {
 		    a[i] += risk*covar[i][p];
@@ -635,7 +649,7 @@ for (istrat=0; istrat < nstrat; istrat++) {
 }   /* end  of accumulation loop */
 @ 
 
-The last step in the above loop is to add the terms to the loglik, score and
+The last step in the above loop adds terms to the loglik, score and
 information matrices.  Assume that there were 3 tied deaths.
 The difference between the Efron and Breslow approximations is that for the
 Efron the three tied subjects are given a weight of 1/3 for the first, 2/3 for
@@ -682,37 +696,35 @@ else {
 
 Code to process the removals:
 <<agreg-remove>>=
-if (start[sort1[indx1]] >= dtime) {
-    /*
-    ** subtract out the subjects whose start time is to the right
-    ** If everyone is removed reset the totals to zero.  (This happens when
-    ** the survSplit function is used, so it is worth checking).
-    */
-    for (; indx1<strata[istrat]; indx1++) {
-	p1 = sort1[indx1];
-	if (start[p1] < dtime) break;
-        if (keep[p1] == 0) continue;  /* skip any never-at-risk rows */
-	nrisk--;
-	if (nrisk ==0) {
-	    meaneta =0;
-	    denom =0;
-	    for (i=0; i<nvar; i++) {
-		a[i] =0;
-		for (j=0; j<=i; j++) cmat[i][j] =0;
-	    }
+/*
+** subtract out the subjects whose start time is to the right
+** If everyone is removed reset the totals to zero.  (This happens when
+** the survSplit function is used, so it is worth checking).
+*/
+for (; indx1<strata[istrat]; indx1++) {
+    p1 = sort1[indx1];
+    if (start[p1] < dtime) break;
+    if (keep[p1] == 0) continue;  /* skip any never-at-risk rows */
+    nrisk--;
+    if (nrisk ==0) {
+	etasum =0;
+	denom =0;
+	for (i=0; i<nvar; i++) {
+	    a[i] =0;
+	    for (j=0; j<=i; j++) cmat[i][j] =0;
 	}
-	else {
-	    meaneta -= eta[p1];
-	    risk = exp(eta[p1]) * weights[p1];
-	    denom -= risk;
-	    for (i=0; i<nvar; i++) {
-		a[i] -= risk*covar[i][p1];
-		for (j=0; j<=i; j++)
-		    cmat[i][j] -= risk*covar[i][p1]*covar[j][p1];
-	    }
-	}
-	<<fixeta>>
     }
+    else {
+	etasum -= eta[p1];
+	risk = exp(eta[p1]) * weights[p1];
+	denom -= risk;
+	for (i=0; i<nvar; i++) {
+	    a[i] -= risk*covar[i][p1];
+	    for (j=0; j<=i; j++)
+		cmat[i][j] -= risk*covar[i][p1]*covar[j][p1];
+	}
+    }
+    <<fixeta>>
 }
 @ 
 
@@ -727,23 +739,24 @@ Since replacing eta with (eta -c) for any c does not change the likelihood,
 do it.  Unfortunately, we can't do this once and for all: this is a step that 
 will occur at least twice per iteration for those rare cases, e.g., eta is
 too small at early times and too large at late ones.
+I've seen this issue in about 1 data set per decade.
 <<fixeta>>=
 /* 
-** If the average eta value is out of hand, fix it.
 ** We must avoid overflow in the exp function (~750 on Intel)
 ** and want to act well before that, but not take action very often.  
 ** One of the case-cohort papers suggests an offset of -100 meaning
 ** that etas of 50-100 can occur in "ok" data, so make it larger 
 ** than this.
 ** If the range of eta is more then log(1e16) = 37 then the data is
-**  hopeless: some observations have effectively 0 weight.  Keeping
-**  the mean sensible suffices to keep the max in check.
+**  hopeless: some observations will have effectively 0 weight.  Keeping
+**  the mean sensible suffices to keep the max in check for all other
+*   data sets.
 */
-if (fabs(meaneta/nrisk) > 200) {  
+if (fabs(etasum/nrisk) > 200) {  
     flag[1]++;  /* a count, for debugging/profiling purposes */
-    meaneta = meaneta/nrisk;
-    for (i=0; i<nused; i++) eta[i] -= meaneta;
-    temp = exp(-meaneta);
+    temp = etasum/nrisk;
+    for (i=0; i<nused; i++) eta[i] -= temp;
+    temp = exp(-temp);
     denom *= temp;
     for (i=0; i<nvar; i++) {
 	a[i] *= temp;
@@ -751,7 +764,7 @@ if (fabs(meaneta/nrisk) > 200) {
 	    cmat[i][j]*= temp;
 	}
     }
-    meaneta =0;
+    etasum =0;
 }
 @         
 
@@ -802,14 +815,13 @@ The flow of the algorithm is
     the last estimate
     was not generated by step-halving.  In the latter case the algorithm may
     \emph{appear} to have converged but the solution is not sure.
-    An infinite loglik is very rare: I've seen exactly one of these and it was
-    due to overflow of the exp function.
+    An infinite loglik is very rare, it arises when denom <0 due to catastrophic
+    loss of significant digits when range(eta) is too large.
     \begin{itemize}
-      \item if so return beta and the the other information
-      \item if this was the last iteration, return beta, the other information,
+      \item if converged return beta and the the other information
+      \item if this was the last iteration, return the best beta found so
+        far (perhaps beta, more likely oldbeta), the other information,
         and a warning flag.
-        If even step halving has failed for the last iteration, return the
-            last good one we had.
      \item otherwise, compute the next guess and return to the top
         \begin{itemize}
           \item if our latest trial guess [[beta]] made things worse use step
@@ -830,14 +842,14 @@ consequence return $\beta^{(k+1)}$ along with the log-likelihood and
 variance matrix for $\beta^{(k)}$.
 If a user has specified
 for instance only 1 or 2 iterations the answers can be seriously
-out of joint, whereas  
-if iteration has gone to completion they will differ by only a gnat's
+out of joint.
+If iteration has gone to completion they will differ by only a gnat's
 eyelash (so what's the point of doing it).
 
 <<agfit4-iter>>=
 /* main loop */
 halving =0 ;             /* =1 when in the midst of "step halving" */
-for (*iter=1; *iter<= maxiter; (*iter)++) {
+for (*iter=1; *iter< maxiter; (*iter)++) {
     <<agfit4-addup>>
 
     rank2 = cholesky2(imat, nvar, tol_chol);
@@ -852,15 +864,10 @@ for (*iter=1; *iter<= maxiter; (*iter)++) {
     if (fail >0 || newlk < loglik[1]) {
         /* 
 	** The routine has not made progress past the last good value.
-	**  If this is the last iter, recompute the information matrix 
-	**    for that value, otherwise do step halving
 	*/
-	if (*iter == maxiter-1) {
-	    for (i=0; i<nvar; i++) beta[i] = oldbeta[i];
-	 } else {
-	    halving =1; flag[2]++;
-	    for (i=0; i<nvar; i++)
-		beta[i] = (oldbeta[i] + beta[i]) /2; /*half of old increment */
+	halving =1; flag[2]++;
+	for (i=0; i<nvar; i++)
+	    beta[i] = (oldbeta[i] + beta[i]) /2; /*half of old increment */
 	}
     }
     else {
