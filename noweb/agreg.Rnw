@@ -596,6 +596,8 @@ while (person < nused) {
 		a[i] =0;
 		for (j=0; j<nvar; j++) cmat[i][j] =0;
 	    }
+            person =k;  /* skip to end of stratum */
+            indx1  =k; 
 	}
 	p = sort2[k];
 	if (event[p] == 1) {

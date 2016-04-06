@@ -111,6 +111,10 @@ aeq(rep(truth0$mart,3), fit0$resid)
 aeq(rep(truth0$scho,3),  resid(fit0, 'schoen'))
 aeq(rep(truth0$score,3), resid(fit0, 'score')) 
 
+fit1 <- coxph(Surv(start, stop, event) ~ x + strata(group), test2b, 
+              iter=1, method="breslow")
+aeq(fit1$coef, beta1)
+
 fit <- coxph(Surv(start, stop, event) ~x, test2b, eps=1e-8, method='breslow')
 aeq(3*truth$loglik, fit$loglik[2])
 aeq(3*truth$imat, 1/fit$var)
