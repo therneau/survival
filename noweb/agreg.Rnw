@@ -325,16 +325,17 @@ SEXP agfit4(SEXP surv2,      SEXP covar2,    SEXP strata2,
         for (istrat=0; istrat<nstrat; istrat++) {
             temp=0;
             temp2 =0;
-            k = person;
-            for (; person<strata[istrat]; person++) {
-                j = sort2[person];
+            for (k=person; k<strata[istrat]; k++) {
+                j = sort2[k];
                 temp += weights[j] * covar[i][j];
                 temp2 += weights[j];
             }
             temp /= temp2;   /* mean for this covariate, this strata */
-	    for (; k< person; k++) covar[i][k] -=temp;
+	    for (; person< strata[istrat]; person++) {
+                j = sort2[person];
+                covar[i][j] -=temp;
 	    }
-	
+	}
         if (doscale ==1) { /* also scale the regression */
 	    /* this cannot be done per stratum */
 	    temp =0;
@@ -497,7 +498,7 @@ of the mean along with the formula:
            (\mu -m)^2 \\
    \mu &= (1/n) \sum w_ir_i (x_i -m)\\
     n &= \sum w_ir_i
-\end{equation*}
+\end{align*}
 A refinement of this is to scale the covariates, since the Cholesky
 decomposition can lose precision when variables are on vastly different
 scales.  We do this centering and scaling once at the beginning of the
@@ -585,7 +586,7 @@ for (i=0; i<nvar; i++) {
 
 while (person < nused) {
     /* find the next death time */
-    for (k=person; nused; k++) {
+    for (k=person; k< nused; k++) {
 	if (k == strata[istrat]) {
 	    /* hit a new stratum; reset temporary sums */
             istrat++;

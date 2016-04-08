@@ -2,6 +2,9 @@
 \title{NEWS file for the survival package}
 \section{Changes in version 2.38-6}{
   \itemize{
+    \item Label the output dimnames from pyears with the variable names
+    from the model.  This makes it easier to read.
+    
     \item Replace any refrences to model.frame with "stats::model.frame"
     (all 38 of them).  The model.frame function uses non-standard
     evaluation rules, and holding its hand like this is the only way to
@@ -14,14 +17,22 @@
     \item Add the finegray function and expand the competing risks
     vignette to document it.
 
+    \item Add a check to the quantile.survfit function for multi-state
+    models; quantiles are not well defined for this case.
+
     \item Changes to the iteration path and convergence tests for coxph
     models with (start, stop] data, driven by two user examples that
     failed.  The data sets had serious statistical issues of
     collinearity and/or outliers such that the final fits are not
     practically useful, but now the routine finishes gracefully instead
     of dying.  The upshot is much more care about the order in which
-    additions and subtractions of large numbers are done, so as to avoid
+    additions and subtractions of large numbers are done so as to avoid
     cancellation error.
+
+    \item Fix an error to summary.survfit with the times argument: for
+    intermediate time points it would sometimes choose the wrong value
+    for the number at risk.  (Number at risk is a left continuous
+    function.) 
 }}
     
 \section{Changes in version 2.38-5}{

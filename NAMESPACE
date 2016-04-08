@@ -9,9 +9,9 @@ importFrom(stats, anova, approx, as.formula, coef, coefficients,
            resid, residuals, runif, stat.anova, terms, var, vcov,
            .checkMFClasses, .getXlevels)
 importFrom(graphics, plot, points, lines, axis, box, matlines, matplot, 
-           matpoints, par)
+           matpoints, par, segments)
 importFrom(methods, as)
-importFrom(utils, getS3method, type.convert)
+importFrom(utils, getS3method, type.convert, methods)
 export(Surv, aareg, agreg.fit,
        agexact.fit, attrassign, 
        basehaz, cch, clogit, cluster, cox.zph, 

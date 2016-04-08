@@ -41,7 +41,8 @@ py1 <- pyears(temp.time ~ temp.age + temp.yr, scale=1) #output in days
 xx <- matrix(0, nrow=14, ncol=11)
 xx[cbind(3:11, 3:11)] <- 156
 xx[cbind(3:12, 2:11)] <- c(209, 210, rep(c(209, 209, 209, 210),2))
-dimnames(xx) <- list(c('0-18', paste(18:30, 19:31, sep='-')), 1954:1964)
+dimnames(xx) <- list(temp.age= c('0-18', paste(18:30, 19:31, sep='-')), 
+                     temp.yr = 1954:1964)
 all.equal(xx, py1$pyears)
 all.equal(203, py1$offtable)
 all.equal(1*(xx>0), py1$n)
@@ -131,7 +132,8 @@ py1 <- pyears(temp.time ~ temp.age + temp.yr, scale=1) #output in days
 xx <- matrix(0, nrow=14, ncol=11)
 xx[cbind(3:11, 3:11)] <- 156
 xx[cbind(3:12, 2:11)] <- c(209, 210, rep(c(209, 209, 209, 210),2))
-dimnames(xx) <- list(c('0-18', paste(18:30, 19:31, sep='-')), 1954:1964)
+dimnames(xx) <- list(temp.age= c('0-18', paste(18:30, 19:31, sep='-')), 
+                     temp.yr = 1954:1964)
 all.equal(xx, py1$pyears)
 all.equal(203, py1$offtable)
 all.equal(1*(xx>0), py1$n)

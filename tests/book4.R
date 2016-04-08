@@ -95,12 +95,12 @@ aeq(rep(truth0$mart,3), fit0$resid)
 aeq(rep(truth0$scho,3),  resid(fit0, 'schoen'))
 aeq(rep(truth0$score,3), resid(fit0, 'score')) 
 
-fit <- coxph(Surv(start, stop, event) ~x + strata(group), test2b, eps=1e-8)
-aeq(3*truth$loglik, fit$loglik[2])
-aeq(3*truth$imat, 1/fit$var)
-aeq(rep(truth$mart,3), fit$resid)
-aeq(rep(truth$scho,3), resid(fit, 'schoen'))
-aeq(rep(truth$score,3), resid(fit, 'score'))
+fit3 <- coxph(Surv(start, stop, event) ~x + strata(group), test2b, eps=1e-8)
+aeq(3*truth$loglik, fit3$loglik[2])
+aeq(3*truth$imat, 1/fit3$var)
+aeq(rep(truth$mart,3), fit3$resid)
+aeq(rep(truth$scho,3), resid(fit3, 'schoen'))
+aeq(rep(truth$score,3), resid(fit3, 'score'))
 
 # 
 # Done with the formal test, now print out lots of bits

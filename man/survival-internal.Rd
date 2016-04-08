@@ -4,7 +4,6 @@
 \alias{as.matrix.ratetable}
 \alias{coxpenal.df}
 \alias{coxpenal.fit}
-\alias{is.category}
 \alias{is.na.ratetable2}
 \alias{is.na.coxph.penalty}
 \alias{match.ratetable}
@@ -21,7 +20,6 @@ survreg.fit(x, y, weights, offset, init, controlvals, dist, scale = 0,
 survpenal.fit(x, y, weights, offset, init, controlvals, dist, scale = 0,
     nstrat = 1, strata, pcols, pattr, assign, parms = NULL)
 survdiff.fit(y, x, strat, rho = 0)
-is.category(x)
 match.ratetable(R, ratetable)
 \method{as.matrix}{ratetable}(x, ...)
 \method{is.na}{ratetable2}(x)

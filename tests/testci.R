@@ -65,7 +65,7 @@ fit3 <- survfit(Surv(stop, status*(event=='pcm')) ~1, tdata,
 fit4 <- survfit(Surv(stop, status*(event=='death')) ~1, tdata,
                 type='fleming')
 
-aeq(fit1$n.risk, fit2$n.risk)
+aeq(fit1$n.risk[,3], fit2$n.risk)
 aeq(rowSums(fit1$n.event), fit2$n.event)
 
 # Classic CI formula
@@ -75,7 +75,7 @@ haz2 <- diff(c(0, -log(fit4$surv))) #Aalen estimate for death
 tsurv <- c(1, fit2$surv[-length(fit2$surv)])  #lagged survival
 ci1 <- cumsum(haz1 *tsurv)
 ci2 <- cumsum(haz2 *tsurv)
-aeq(cbind(ci1, ci2), fit1$prev)
+aeq(cbind(ci1, ci2), fit1$pstate[,1:2])
 
 #
 # Now, make sure that it works for subgroups
@@ -112,5 +112,5 @@ if (FALSE) {
 # the bottoms of the steps.
 temp1 <- tapply(gray1[[1]]$est, gray1[[1]]$time, max)[-1]  #toss time 0
 indx1 <- match(names(temp1), fit2$time)
-aeq(temp1, fit2$prev[indx1,1])
+aeq(temp1, fit2$pstate[indx1,1])
     

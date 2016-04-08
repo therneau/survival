@@ -1,7 +1,6 @@
 
-R version 2.12.1 (2010-12-16)
-Copyright (C) 2010 The R Foundation for Statistical Computing
-ISBN 3-900051-07-0
+R Under development (unstable) (2016-03-23 r70368) -- "Unsuffered Consequences"
+Copyright (C) 2016 The R Foundation for Statistical Computing
 Platform: i686-pc-linux-gnu (32-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -19,7 +18,6 @@ Type 'q()' to quit R.
 > options(na.action=na.exclude) # preserve missings
 > options(contrasts=c('contr.treatment', 'contr.poly')) #ensure constrast type
 > library(survival)
-Loading required package: splines
 > {if (is.R()) mdy.date <- function(m, d, y) {
 +     y <- ifelse(y<100, y+1900, y)
 +     as.Date(paste(m,d,y, sep='/'), "%m/%d/%Y")
@@ -60,7 +58,8 @@ Loading required package: splines
 > xx <- matrix(0, nrow=14, ncol=11)
 > xx[cbind(3:11, 3:11)] <- 156
 > xx[cbind(3:12, 2:11)] <- c(209, 210, rep(c(209, 209, 209, 210),2))
-> dimnames(xx) <- list(c('0-18', paste(18:30, 19:31, sep='-')), 1954:1964)
+> dimnames(xx) <- list(temp.age= c('0-18', paste(18:30, 19:31, sep='-')), 
++                      temp.yr = 1954:1964)
 > all.equal(xx, py1$pyears)
 [1] TRUE
 > all.equal(203, py1$offtable)
@@ -166,7 +165,8 @@ Loading required package: splines
 > xx <- matrix(0, nrow=14, ncol=11)
 > xx[cbind(3:11, 3:11)] <- 156
 > xx[cbind(3:12, 2:11)] <- c(209, 210, rep(c(209, 209, 209, 210),2))
-> dimnames(xx) <- list(c('0-18', paste(18:30, 19:31, sep='-')), 1954:1964)
+> dimnames(xx) <- list(temp.age= c('0-18', paste(18:30, 19:31, sep='-')), 
++                      temp.yr = 1954:1964)
 > all.equal(xx, py1$pyears)
 [1] TRUE
 > all.equal(203, py1$offtable)
@@ -667,3 +667,6 @@ Rate table with dimension(s): age amount sex duration status
 	duration ranges from 0 to 16; with 6 categories
 	status has levels of: Never Current Former
 > 
+> proc.time()
+   user  system elapsed 
+  0.416   0.032   0.446 

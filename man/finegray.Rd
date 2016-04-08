@@ -26,7 +26,7 @@ finegray(formula, data, subset, na.action= na.pass, endpoint,
     a function which indicates what should happen when the data contain
     NAs.  The default is set by the na.action setting of options.
 }
-\item{etype}{
+\item{endpoint}{
    the event type for which a data set will be generated.  The default is
    to use whichever is listed first in the multi-state survival object.
  }
@@ -76,7 +76,7 @@ finegray(formula, data, subset, na.action= na.pass, endpoint,
 
   Geskus RB (2011). Cause-Specific Cumulative Incidence Estimation and the
   Fine and Gray Model Under Both Left Truncation and Right Censoring.
-  Biometrics 67, 39–49.
+  Biometrics 67, 39-49.
 
 }
 \author{Terry Therneau}
@@ -87,9 +87,6 @@ finegray(formula, data, subset, na.action= na.pass, endpoint,
 etime <- with(mgus2, ifelse(pstat==0, futime, ptime))
 event <- with(mgus2, ifelse(pstat==0, 2*death, 1))
 event <- factor(event, 0:2, labels=c("censor", "pcm", "death"))
-
-# multi-state curves
-curves <- survfit(Surv(etime, event) ~ ., data=mgus2)
 
 # FG model for PCM
 pdata <- finegray(Surv(etime, event) ~ ., data=mgus2)

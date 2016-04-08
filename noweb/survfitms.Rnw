@@ -144,11 +144,11 @@ summary.survfit <- function(object, times, censored=FALSE,
     #   to in print.survfit, but ignored here
     if (is.null(rmean)) rmean <- "common"
     if (is.numeric(rmean)) {
-        if (is.null(x$start.time)) {
-            if (rmean < min(x$time)) 
+        if (is.null(object$start.time)) {
+            if (rmean < min(object$time)) 
                 stop("Truncation point for the mean is < smallest survival")
         }
-        else if (rmean < x$start.time)
+        else if (rmean < object$start.time)
             stop("Truncation point for the mean is < smallest survival")
     }
     else {
@@ -209,13 +209,19 @@ summary.survfit <- function(object, times, censored=FALSE,
     }
     else { #times argument was given
         temp$time <- unlist(newtime)/scale
-        tfun <- function(x, init=0) {
+        tfun <- function(x, init=0, index=indx1) {
              if (is.matrix(x)) 
-                rbind(rep(init, ncol(x)), x)[1+indx1,,drop=FALSE]
-             else c(init, x)[1 + indx1]
+                rbind(rep(init, ncol(x)), x)[1+index,,drop=FALSE]
+             else c(init, x)[1 + index]
         }
-        temp$surv <- tfun(temp$surv, 1)
-        for (j in c("n.risk", "std.err", "cumhaz", "lower", "upper")) {
+        tfun2 <- function(x, end=0, index=indx2) {
+             if (is.matrix(x)) 
+                rbind(x, rep(end, ncol(x)))[1+index,,drop=FALSE]
+             else c(x,end)[1 + index]
+        }
+        temp$surv  <- tfun(temp$surv, 1)
+        temp$n.risk <- tfun2(temp$n.risk)
+        for (j in c("std.err", "cumhaz", "lower", "upper")) {
             if (!is.null(temp[[j]])) temp[[j]] <- tfun(temp[[j]])
         }
         for (j in c("n.event", "n.censor", "n.enter")){
@@ -229,12 +235,20 @@ summary.survfit <- function(object, times, censored=FALSE,
                                   labels=strata.names)
         }
     }
+
+    # An ordinary survfit object contain std(cum hazard), change scales
+    temp$std.err <- temp$std.err * temp$surv 
     class(temp) <- 'summary.survfit'
     temp
 }
 @ 
 
-Grab rows: if there is no \code{times} argument it is easy
+Grab rows: if there is no \code{times} argument it is easy.
+At the end \code{indx1} is the right continuous index and \code{indx2}
+the left continuous one.  If a curve has jumps at 1 and 2, at time 1.5
+the survival is the same as that at time 1 (indx1), the number at risk the
+same as time 2 (indx2).
+
 <<survsum-findrows>>=
 if (missing(times)) {
     # just pick off the appropriate rows of the output
@@ -242,6 +256,7 @@ if (missing(times)) {
     #  event for some endpoint.
     if (censored) indx1 <- seq(along=fit$time)
     else indx1 <- which(rowSums(as.matrix(fit$n.event)) >0)
+    indx2 <- indx1
 }
 @ 
 
@@ -253,9 +268,9 @@ an older version.
 
 <<survsum-findrows>>=
 else { 
-    find2 <- function(x, vec, leftmost.closed=FALSE, lcont=TRUE) {
-        if (lcont) findInterval(x, vec, leftmost.closed)
-        else length(vec) - findInterval(-x, rev(-vec), leftmost.closed)
+    find2 <- function(x, vec, left.open=FALSE, ...) {
+        if (!left.open) findInterval(x, vec, left.open=FALSE, ...)
+        else length(vec) - findInterval(-x, rev(-vec), left.open=FALSE, ...)
     }
     # Process the curves one at a time, adding them to the two lists
     ilist1 <- ilist2 <- ilist3 <- vector('list', nstrat)
@@ -276,7 +291,7 @@ else {
     	}
         j <- find2(ptimes, stime) 
         ilist1[[i]] <- c(0, who)[1+ j]
-        ilist2[[i]] <- c(0, who)[1+ find2(ptimes, stime, lcont=FALSE)]
+        ilist2[[i]] <- c(0, who)[1+ find2(ptimes, stime, left.open=TRUE)]
         ilist3[[i]] <- j  #index within a group
         newtime[[i]] <- ptimes
     }
@@ -331,11 +346,11 @@ summary.survfitms <- function(object, times, censored=FALSE,
     #   to in print.survfit, but ignored here
     if (is.null(rmean)) rmean <- "common"
     if (is.numeric(rmean)) {
-        if (is.null(x$start.time)) {
-            if (rmean < min(x$time)) 
+        if (is.null(object$start.time)) {
+            if (rmean < min(object$time)) 
                 stop("Truncation point for the mean is < smallest survival")
         }
-        else if (rmean < x$start.time)
+        else if (rmean < object$start.time)
             stop("Truncation point for the mean is < smallest survival")
     }
     else {
@@ -396,12 +411,16 @@ summary.survfitms <- function(object, times, censored=FALSE,
     }
     else { #times argument was given
         temp$time <- unlist(newtime)/scale
-        tfun <- function(x, init=0) {
+        tfun <- function(x, init=0, index= indx1) {
             if (is.matrix(x)) 
-                rbind(rep(init, ncol(x)), x)[1+indx1,,drop=FALSE]
-            else c(init, x)[1 + indx1]
+                rbind(rep(init, ncol(x)), x)[1+index,,drop=FALSE]
+            else c(init, x)[1 + index]
         }
-
+        tfun2 <- function(x, end=0, index=indx2) {
+             if (is.matrix(x)) 
+                rbind(x, rep(end, ncol(x)))[1+index,,drop=FALSE]
+             else c(x,end)[1 + index]
+        }
         temp$pstate <- tfun(temp$pstate, 0)
         # fix up the initial states
         if (any(indx1==0)) {
@@ -412,7 +431,8 @@ summary.survfitms <- function(object, times, censored=FALSE,
                 temp$pstate[indx1==0,] <- temp$p0[zz,]
             }
         }
-        for (j in c("n.risk", "std.err", "cumhaz", "lower", "upper")) {
+        temp$n.risk <- tfun2(temp$n.risk)
+        for (j in c("std.err", "cumhaz", "lower", "upper")) {
             if (!is.null(temp[[j]])) temp[[j]] <- tfun(temp[[j]])
         }
         for (j in c("n.event", "n.censor", "n.enter")){

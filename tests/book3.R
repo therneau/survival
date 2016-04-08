@@ -115,13 +115,13 @@ fit1 <- coxph(Surv(start, stop, event) ~ x + strata(group), test2b,
               iter=1, method="breslow")
 aeq(fit1$coef, beta1)
 
-fit <- coxph(Surv(start, stop, event) ~x + strata(group),
+fit3 <- coxph(Surv(start, stop, event) ~x + strata(group),
              test2b, eps=1e-8, method='breslow')
-aeq(3*truth$loglik, fit$loglik[2])
-aeq(3*truth$imat, 1/fit$var)
-aeq(rep(truth$mart,3), fit$resid)
-aeq(rep(truth$scho,3), resid(fit, 'schoen'))
-aeq(rep(truth$score,3), resid(fit, 'score'))
+aeq(3*truth$loglik, fit3$loglik[2])
+aeq(3*truth$imat, 1/fit3$var)
+aeq(rep(truth$mart,3), fit3$resid)
+aeq(rep(truth$scho,3), resid(fit3, 'schoen'))
+aeq(rep(truth$score,3), resid(fit3, 'score'))
 
 # 
 # Done with the formal test, now print out lots of bits

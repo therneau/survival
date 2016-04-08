@@ -1,6 +1,6 @@
 
-R Under development (unstable) (2014-05-11 r65563) -- "Unsuffered Consequences"
-Copyright (C) 2014 The R Foundation for Statistical Computing
+R Under development (unstable) (2016-03-23 r70368) -- "Unsuffered Consequences"
+Copyright (C) 2016 The R Foundation for Statistical Computing
 Platform: i686-pc-linux-gnu (32-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -18,7 +18,6 @@ Type 'q()' to quit R.
 > options(na.action=na.exclude) # preserve missings
 > options(contrasts=c('contr.treatment', 'contr.poly')) #ensure constrast type
 > library(survival)
-Loading required package: splines
 > 
 > #
 > # Test the logic of the penalized code by fitting some no-frailty models
@@ -37,6 +36,9 @@ Loading required package: splines
 > tfit1 <- coxph(Surv(time,status) ~x, test1, eps=1e-7)
 > tfit2 <- coxph(Surv(time,status) ~x + frailty(zz, theta=0, sparse=T), test1)
 > tfit3 <- coxph(Surv(zz,time,status) ~x + frailty(zz, theta=0, sparse=T), test1)
+Warning message:
+In coxph(Surv(zz, time, status) ~ x + frailty(zz, theta = 0, sparse = T),  :
+  a variable appears on both the left and right sides of the formula
 > 
 > temp <- c('coefficients', 'var', 'loglik', 'linear.predictors',
 + 	  'means', 'n', 'concordance')
@@ -67,6 +69,9 @@ Loading required package: splines
 + 	       + strata(x2), test3)
 > tfit3 <- coxph(Surv(zz,time,status) ~x + frailty(zz, theta=0, sparse=T)
 + 	         + strata(x2), test3)
+Warning message:
+In coxph(Surv(zz, time, status) ~ x + frailty(zz, theta = 0, sparse = T) +  :
+  a variable appears on both the left and right sides of the formula
 > 
 > all.equal(tfit1[temp], tfit2[temp])
 [1] TRUE
@@ -87,4 +92,4 @@ Loading required package: splines
 > 
 > proc.time()
    user  system elapsed 
-  0.220   0.024   0.242 
+  0.308   0.024   0.325 

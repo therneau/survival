@@ -63,56 +63,6 @@ for (i in 1:4) {
 temp <- quantile(sfit, qq, conf.int=FALSE)
 all.equal(qtot$quantile, temp)
 
-#
-# Third case -- a survfitms object, which results from cumulative
-#  incidence curves.
-#
-tdata <- data.frame(time=c(1,2,2,3,3,3,5,6),
-                    status = c(0,1,0,1,0,1,0,1),
-                    event =  c(1,1,2,2,1,2,3,2),
-                    grp = c(1,2,1,2,1,2,1,2))
-
-fit1 <- survfit(Surv(time, status*event, type='mstate') ~1, tdata)
-temp <- quantile(fit1, c(.1, .2, .5))
-aeq(temp$quantile, matrix(c(2, NA, NA, 3,3,6), nrow=2, byrow=TRUE))
-aeq(temp$lower   , matrix(c(2,  2, NA, 3,3,3), nrow=2, byrow=TRUE))
-aeq(temp$upper   , c(NA,6, rep(NA,4)))
-
-fit2 <- survfit(Surv(time, status*event, type='mstate') ~1, tdata, 
-                conf.int=FALSE)
-temp <- quantile(fit2, c(.1, .2, .5))
-aeq(temp, matrix(c(2, NA, NA, 3,3,6), nrow=2, byrow=TRUE))
-
-# Use a larger data set for the multi-group + multi-column case, the MGUS data
-#  However, it has almost no censoring, so add a little to make the
-#  quantiles not be exactly even percentiles
-mdata <- data.frame(time=mgus1$stop,
-                    status=mgus1$status,
-                    event= mgus1$event,
-                    sex=mgus1$sex,
-                    stat2= mgus1$event)
-mdata$stat2[seq(1, nrow(mdata), by=5)] <- "censor"
-
-fit3 <- survfit(Surv(time, stat2) ~sex, mdata)
-temp1 <- quantile(fit3, 0:10/20)
-temp2 <- quantile(fit3, 0:10/20, conf.int=FALSE)
-aeq(temp1$quantile, temp2)
-
-for (i in 1:2) {
-    for (j in 1:2){
-        temp3 <- quantile(fit3[i,j], 0:10/20)
-        print(c(aeq(temp1$quantile[i,j,], temp3$quantile),
-                aeq(temp1$upper[i,j,], temp3$upper),
-                aeq(temp1$lower[i,j,], temp3$lower)))
-    }
-}
-
-# Do one set of quantiles by brute force        
-zz <- 1:fit3$strata[1]
-temp3 <- double(10)
-tt <- fit3$time[zz]
-for (i in 1:10) temp3[i] <- min(tt[fit3$prev[zz,2] > i/20])
-aeq(temp3, temp2[1,2,2:11])
 
 
 

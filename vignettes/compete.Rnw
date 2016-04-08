@@ -857,7 +857,7 @@ pcmdat[1:4,]
 pfit <- survfit(Surv(fgstart, fgstop, fgstatus) ~ sex,
                 data=pcmdat, weight=fgwt)
 
-deathdat <- finegray(Surv(etime, event) ~ 1, data=mgus2,
+deathdat <- finegray(Surv(etime, event) ~ sex, data=mgus2,
                      endpoint="death")
 dfit <- survfit(Surv(fgstart, fgstop, fgstatus) ~ sex, 
                   data=deathdat, weight=fgwt)
