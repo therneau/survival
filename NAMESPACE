@@ -10,6 +10,7 @@ importFrom(stats, anova, approx, as.formula, coef, coefficients,
            .checkMFClasses, .getXlevels)
 importFrom(graphics, plot, points, lines, axis, box, matlines, matplot, 
            matpoints, par, segments)
+importFrom(Matrix, expm)
 importFrom(methods, as)
 importFrom(utils, getS3method, type.convert, methods)
 export(Surv, aareg, agreg.fit,
@@ -131,6 +132,7 @@ S3method(summary, survreg)
 S3method(summary,cch)
 S3method(survfit, coxph)
 S3method(survfit, formula)
+S3method(survfit, matrix)
 S3method(survfit, Surv)
 S3method(vcov, cch)
 S3method(vcov, coxph)

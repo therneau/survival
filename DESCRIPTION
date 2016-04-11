@@ -4,8 +4,7 @@ Priority: recommended
 Package: survival
 Version: 2.38-6
 Depends: R (>= 2.13.0), graphics, stats
-Imports: splines, methods
-Suggests: cmprsk
+Imports: splines, methods, Matrix
 LazyData: Yes
 LazyLoad: Yes
 ByteCompile: Yes
