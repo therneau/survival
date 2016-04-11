@@ -8,12 +8,12 @@
   individual hazard estimates.  Each row of P will sum to 1.
 }
 \usage{
-\method{survfit}{matrix}(x, p0, method = c("discrete", "matexp"))
+\method{survfit}{matrix}(formula, p0, method = c("discrete", "matexp"), ...)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
-  \item{x}{a matrix of lists, each element of which is either NULL or
-    a survival curve object.
+  \item{formula}{a matrix of lists, each element of which is either NULL or
+    a survival curve object. 
 }
 \item{p0}{the initial state vector.  The names of this vector are used
   as the names of the states in the output object.
@@ -21,7 +21,8 @@
   \item{method}{
     use a product of discrete hazards, or a product of matrix exponentials.
     See details below.
-}
+  }
+  \item{...}{further arguments for other methods}
 }
 \details{
   When using predicted survival curves from a Cox model, it is possible
@@ -46,10 +47,9 @@
 }
 \value{a survfitms object}
 \author{Terry Therneau}
-%%  ~~who you are~~
-}
+
 \note{The R syntax for creating a matrix of lists is very fussy.}
-}
+
 \seealso{\code{\link{survfit}}}
 
 \examples{
@@ -57,7 +57,7 @@ etime <- with(mgus2, ifelse(pstat==0, futime, ptime))
 event <- with(mgus2, ifelse(pstat==0, 2*death, 1))
 event <- factor(event, 0:2, labels=c("censor", "pcm", "death"))
 
-cfit1 <- coxph(Surv(etime, event=="PCM") ~ age + sex, mgus2)
+cfit1 <- coxph(Surv(etime, event=="pcm") ~ age + sex, mgus2)
 cfit2 <- coxph(Surv(etime, event=="death") ~ age + sex, mgus2)
 
 # predicted competing risk curves for a 72 year old with mspike of 1.2

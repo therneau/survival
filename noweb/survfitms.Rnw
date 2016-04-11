@@ -269,8 +269,8 @@ an older version.
 <<survsum-findrows>>=
 else { 
     find2 <- function(x, vec, left.open=FALSE, ...) {
-        if (!left.open) findInterval(x, vec, left.open=FALSE, ...)
-        else length(vec) - findInterval(-x, rev(-vec), left.open=FALSE, ...)
+        if (!left.open) findInterval(x, vec, ...)
+        else length(vec) - findInterval(-x, rev(-vec), ...)
     }
     # Process the curves one at a time, adding them to the two lists
     ilist1 <- ilist2 <- ilist3 <- vector('list', nstrat)

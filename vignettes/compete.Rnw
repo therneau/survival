@@ -30,13 +30,9 @@ require("survival")
 @
 
 \title{Multi-state models and competing risks}
-\author{Terry M Therneau \\ \emph{Mayo Clinic}}
+\author{Terry Therneau \and Cynthia Crowson \and Elizabeth Atkinson\\ 
+  \emph{Mayo Clinic}}
 \newcommand{\code}[1]{\texttt{#1}}
-
-<<check, echo=FALSE, results=tex>>=
-cmplib <- require("cmprsk", quietly=TRUE)
-if (cmplib) cat("\\newcommand{\\CMPRSK}{}%\n")
-@ 
 
 \begin{document}
 \maketitle
@@ -743,7 +739,7 @@ The approach has a number of caveats, however.
 The \code{mstate} package addresses these issues, at the price of a 
 somewhat more complex syntax.
  
-
+<<year20>>=
 # Print out a M/F results at 20 years
 temp <- summary(csurv, time=20*12)$pstate
 cbind(newdata, PCM= round(100*temp[,2], 1))
@@ -784,18 +780,18 @@ two stage process: the first stage creates a special data set while the
 second fits a weighted \code{coxph} or \code{survfit} model to the data.
 The data set can be created using the \code{finegray} command.
 
-<<fg1, fig=TRUE>>=
+<<fg1>>=
 # (first three lines are identical to an earlier section)
 etime <- with(mgus2, ifelse(pstat==0, futime, ptime))
 event <- with(mgus2, ifelse(pstat==0, 2*death, 1))
 event <- factor(event, 0:2, labels=c("censor", "pcm", "death"))
 
 pcmdat <- finegray(Surv(etime, event) ~ ., data=mgus2,
-                   endpoint="pcm")
+                   etype="pcm")
 pcmdat[1:4, c(1:3, 11:14)]
 
 deathdat <- finegray(Surv(etime, event) ~ ., data=mgus2,
-                     endpoint="death")
+                     etype="death")
 dim(pcmdat)
 dim(deathdat)
 dim(mgus2)
@@ -805,9 +801,10 @@ one for the PCM endpoint and one for the death endpoint.
 In each, four new variables have been added containing a survival
 time \code{(fgstart, fgstop, fgstatus)} with an 'ordinary' status of
 0/1, along with a case weight and a large number of new rows.
-We can use this new data set as yet another way to compute the
-multi-state survival, though there is not good reason to use this
-rather round about approach:
+We can use this new data set as yet another way to compute
+multi-state survival curves, though there is not good reason to use this
+rather round about approach instead of 
+the simpler \code{survfit(Surv(etime, event) ~ sex)}.
 <<pfit2>>=
 # The PCM curves of the multi-state model
 pfit2 <- survfit(Surv(fgstart, fgstop, fgstatus) ~ sex,
@@ -836,7 +833,7 @@ fgfit2
 mfit2 <- survfit(Surv(etime, event) ~ sex, data=mgus2) #reprise the AJ
 plot(mfit2[,1], col=1:2,
      lwd=2,  xscale=12,
-     conf.times=c(5, 15, 30)*12,
+     conf.times=c(5, 15, 25)*12,
      xlab="Years post diagnosis", ylab="Fraction with PCM")
 ndata <- data.frame(sex=c("F", "M"))
 fgsurv1 <- survfit(fgfit1, ndata)
@@ -873,7 +870,7 @@ The mathematics behind the Fine-Gray estimate starts with
 the functions $F_k(t) = P_{1k}(t)$, where $P$ is the probablility in state
 function esimated by the AJ estimate.  This can
 be thought of as the distribution function for the improper random variable
-$T^*= I(\mbox{endpoint}=k)T + I(\mbox{endpoint}\ne k)\infty$.
+$T^*= I(\mbox{etype}=k)T + I(\mbox{etype}\ne k)\infty$.
 Fine and Gray refer to $F_k$ as a subdistribution function.
 In analogy to the survival probability in the two state model define
 \begin{equation}

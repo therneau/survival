@@ -7,7 +7,7 @@
   data set.
 }
 \usage{
-finegray(formula, data, subset, na.action= na.pass, endpoint,
+finegray(formula, data, subset, na.action= na.pass, etype,
     prefix="fg", count, id)
 }
 \arguments{
@@ -26,7 +26,7 @@ finegray(formula, data, subset, na.action= na.pass, endpoint,
     a function which indicates what should happen when the data contain
     NAs.  The default is set by the na.action setting of options.
 }
-\item{endpoint}{
+\item{etype}{
    the event type for which a data set will be generated.  The default is
    to use whichever is listed first in the multi-state survival object.
  }

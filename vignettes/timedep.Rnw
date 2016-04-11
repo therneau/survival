@@ -10,7 +10,8 @@
 
 \title{Using Time Dependent Covariates and Time Dependent Coefficients 
   in the Cox Model}
-\author{Terry Therneau \and Cindy Crowson\\ Mayo Clinic}
+\author{Terry Therneau \and Cynthia Crowson \and Elizabeth Atkinson\\ 
+   \emph{Mayo Clinic}}
 
 \begin{document}
 \maketitle

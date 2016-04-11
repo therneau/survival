@@ -6,7 +6,7 @@ fdata <- data.frame(time  =c(1,2,3,4,4,4,5,5,6,8,8, 9,10,12),
                     x     =c(5,4,3,1,2,1,1,2,2,4,6,1,2, 0),
                     id = 1:14)
 test1 <- finegray(Surv(time, status) ~., fdata, count="fgcount")
-test2 <- finegray(Surv(time, status) ~x, fdata, endpoint="type2")
+test2 <- finegray(Surv(time, status) ~x, fdata, etype="type2")
 
 # When creating the censoring time distribution remember that
 #  censors happen after deaths, so the distribution does not drop until
@@ -52,7 +52,7 @@ all.equal(sfit$pstate[i1, 2], 1- sfit2$surv[i2])
 etime <- with(mgus2, ifelse(pstat==0, futime, ptime))
 event <- with(mgus2, ifelse(pstat==0, 2*death, 1))
 e2 <- factor(event, 0:2, c('censor', 'pcm', 'death'))
-edata <- finegray(Surv(etime, e2) ~ sex + id, mgus2, endpoint="pcm")
+edata <- finegray(Surv(etime, e2) ~ sex + id, mgus2, etype="pcm")
 
 # Build G(t) = the KM of the censoring distribution
 # An event at time x is not "at risk" for censoring at time x (Geskus 2011)

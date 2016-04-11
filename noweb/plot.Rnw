@@ -94,6 +94,8 @@ else {
     supper <- NULL  #marker for later code
 }
 
+if (missing(mark.time) & !missing(mark)) mark.time <- TRUE
+
 # set up strata
 if (is.null(x$strata)) {
     nstrat <- 1

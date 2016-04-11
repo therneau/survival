@@ -27,16 +27,18 @@ mfit <- survfit(Surv(t1, t2, state) ~ 1, mtest, id=id)
 #9+                  15            0     0  19/32 13/32  1->b, 3->c & exit
 # 10+            1   5                19/64 19/64 13/32  1->a
 
+# In mfit, the "entry" state is last in the matrices
 all.equal(mfit$n.risk, matrix(c(0,1,1,2,2,1,0,0,
                                 0,0,1,1,1,1,2,1,
                                 0,0,0,0,0,1,0,0,
                                 4,4,3,2,1,1,0,0), ncol=4))
-all.equal(mfit$prev,  matrix(c(8,  8, 14, 14, 7, 0,  9.5, 9.5, 
+all.equal(mfit$pstate,  matrix(c(8,  8, 14, 14, 7, 0,  9.5, 9.5, 
                                 0,  6,  6, 12, 12,19,9.5, 9.5, 
                                 0,  0,  0,  0, 7, 13, 13, 13,
                                24, 18, 12,  6, 6, 0, 0,  0)/32, ncol=4))
 all.equal(mfit$n.event, matrix(c(1,0,1,0,0,0,1,0,
                                  0,1,0,1,0,1,0,0,
-                                 0,0,0,0,1,1,0,0), ncol=3))
+                                 0,0,0,0,1,1,0,0,
+                                 0,0,0,0,0,0,0,0), ncol=4))
 all.equal(mfit$time, c(2, 3, 4, 5, 8, 9, 10, 11))
 

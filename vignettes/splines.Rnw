@@ -16,6 +16,7 @@
 
 \SweaveOpts{prefix.string=splines,width=6,height=4}
 \setkeys{Gin}{width=\textwidth}
+\newcommand{\code}[1]{\texttt{#1}}
 
 <<echo=FALSE>>=
 options(continue="  ", width=60)
@@ -36,7 +37,7 @@ reference for me.
 
 \section{Plotting smooth terms}
 Here is a simple example using the MGUS data.
-(And turning off the garish color defaults of termplot).
+I prefer a simpler color palette than the default found in termplot.
 <<mplot, fig=TRUE>>=
 require(survival)
 mfit <- coxph(Surv(futime, death) ~ sex + pspline(age), data=mgus)
@@ -72,9 +73,10 @@ we like.
 below would need to do an interpolation, e.g. by using the approx function.)
 
 <<mplot3, fig=TRUE>>=
-center <- with(ptemp$age, y[x==50])
-ytemp <- ptemp$age$y + outer(ptemp$age$se, c(0, -1.96, 1.96), '*')
-matplot(ptemp$age$x, exp(ytemp - center), log='y',
+ageterm <- ptemp$age  # this will be a data frame
+center <- with(ageterm, y[x==50])
+ytemp <- ageterm$y + outer(ageterm$se, c(0, -1.96, 1.96), '*')
+matplot(ageterm$x, exp(ytemp - center), log='y',
         type='l', lty=c(1,2,2), col=1, 
         xlab="Age at diagnosis", ylab="Relative death rate")
 @ 
@@ -101,8 +103,9 @@ termplot(fit1, term=2, se=TRUE, col.term=1, col.se=1,
          ylab="log hazard")
 @ 
 
-We used a smoothing spline because the printout then nicely
-segregates the linear and non-linear effects.
+We used a \code{pspline} term rather than \code{ns}, say, 
+because the printout for a pspline nicely
+segregates the linear and non-linear age effects.
 The non-linearity is not very large, as compared to the linear portion,
 but still may be important.
 
@@ -113,13 +116,14 @@ ratio of death rates will be the same at all ages.
 The primary problem is that a formula of 
 \texttt{sex * pspline(age)} does not work;
 the coxph routine is not clever enough to do the right thing automatically.
-(Perhaps some future version will be sufficiently bright, but don't hold
+(Perhaps some future version will be sufficiently intelligent, but don't hold
 your breath).
 If we were using regression splines instead, e.g. \texttt{ns(age, df=4)},
-the coxph routine would succeed but the plotting would fail; the 
-solution below works for both cases.
+a simple call coxph routine using the interaction term would succeed,
+but then termplot would fall short.  The solution below suffices for all
+cases.
 
-We need to create our own dummy variables to handle the interaction.
+First, we need to create our own dummy variables to handle the interaction.
 
 <<fit2>>=
 agem <- with(flchain, ifelse(sex=="M", age, 60))

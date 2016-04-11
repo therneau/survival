@@ -1,9 +1,9 @@
 # Create the Aalen-Johansen estimate by joining a set of 
 #  survival curves.  Actually the cumulative hazard estimates are used.
 #
-survfit.matrix <- function(x, p0, method=c("discrete", "matexp")) {
+survfit.matrix <- function(formula, p0, method=c("discrete", "matexp"), ...) {
     Call <- match.call()
-    curves <- x
+    curves <- formula
     if (!is.matrix(curves)) 
              stop("input must be a square matrix of survival curves")
     if (!is.list(curves)) stop("input must be a matrix of survival curves")
@@ -57,7 +57,8 @@ survfit.matrix <- function(x, p0, method=c("discrete", "matexp")) {
     }
     else method <- match.arg(method)
     
-    docurve <- function(z) {
+    docurve <- function(z, nonzero, nstate) {
+        # z is a list of survival curves
         utime <- lapply(z, function(x) x$time[x$n.event>0])
         utime <- sort(unique(unlist(utime)))  # set of unique times
         cumhaz<- lapply(z, function(x)
@@ -76,10 +77,27 @@ survfit.matrix <- function(x, p0, method=c("discrete", "matexp")) {
             }
             else {
                 diag(Tmat) <- diag(Tmat) - rowSums(Tmat) #rows sum to 0
-                prev[i+1,] <- prev[i,] %*% expm(Tmat)
+                prev[i+1,] <- as.vector(prev[i,] %*% expm(Tmat))
             }
         }
-        list(time = utime, pstate= prev[-1,])
+
+        # Fill in the n.risk and n.event matrices
+        zz <- matrix(0, nstate, nstate)
+        from <- (row(zz))[nonzero]
+        to   <- (col(zz))[nonzero]
+        n.risk <- n.event <- matrix(0, length(utime), ncol= nstate)
+        # the n.risk matrix is based on "from", n.event on "to"
+        # If multiple curves come from the same source, we blithely
+        #  assume that they will agree on the sample size.  If multiples
+        #  go to the same ending, add the events.
+        for (i in 1:length(z)) {
+            index <- findInterval(utime, z[[i]]$time)
+            n.risk[,from[i]] <- c(0, z[[i]]$n.risk)[index +1]
+            n.event[, to[i]] <- n.event[,to[i]] + z[[i]]$n.event[index]
+        }
+        # All the curves should have the same n
+        list(n = z[[1]]$n, time = utime, pstate= prev[-1,], 
+             n.risk= n.risk, n.event=n.event)
     }
         
     # The output will have nstate columns, one for each state, and 
@@ -91,50 +109,50 @@ survfit.matrix <- function(x, p0, method=c("discrete", "matexp")) {
     nstrat <- length(curves[[1]]$strata)
     if (length(dd) ==1) {
         if (dd==1) {  #only one curve
-            fit <- docurve(curves)
-            fit$n.risk <- curves[[1]]$n.risk
-            fit$n.event<- curves[[1]]$n.event
-        }
-        if (nstrat ==0) { 
-            # the most common case: multiple target values in newdata
-            #  but no strata
-            temp <- vector("list", dd)
-            for (i in 1:dd)
-                temp[[i]] <- docurve(lapply(curves, function(x) x[i]))
-            nn <- sapply(temp, function(x) length(x$time))
-            if (any(nn != nn[1])) stop("internal error 1, survfit.matrix")
-            fit <- list()
-            fit$time <- unlist(sapply(temp, function(x) x$time))
-            fit$pstate <- do.call("rbind", lapply(temp, function(x) x$pstate))
-            index <- match(fit$time, curves[[1]]$time)
-            fit$n.risk <- curves[[1]]$n.risk[index]
-            fit$n.event<- curves[[1]]$n.event[index]
-            names(nn) <- paste0("row", 1:dd)
-            fit$strata <- nn
+            fit <- docurve(curves, nonzero, nstate)
         } else {
-            # one target value in newdata, multiple strata in the Cox model
-            temp <- vector("list", dd)
+            # the most common case is multiple target values in newdata
+            #  but no strata
+            tlist <- vector("list", dd)
             for (i in 1:dd)
-                temp[[i]] <- docurve(lapply(curves, function(x) x[i]))
-            nn <- sapply(temp, function(x) length(x$time))
+                tlist[[i]] <- docurve(lapply(curves, function(x) x[i]),
+                                      nonzero, nstate)
             fit <- list()
-            fit$time <- unlist(sapply(temp, function(x) x$time))
-            fit$pstate <- do.call("rbind", sapply(temp, function(x) x$pstate))
-            fit$n.risk <- unlist(sapply(1:dd, function(i) {
-                index <- match(temp[[i]]$time, curves[[1]][i]$time)
-                curves[[1]][i]$n.risk[index]
-            }))
-            fit$n.event <- unlist(sapply(1:dd, function(i) {
-                index <- match(temp[[i]]$time, curves[[1]][i]$time)
-                curves[[1]][i]$n.event[index]
-            }))
-            names(nn) <- names(curves[[1]]$strata)
-            fit$strata <- nn
+            fit$n <- tlist[[1]]$n
+            fit$time <- unlist(sapply(tlist, function(x) x$time))
+            fit$pstate <- do.call("rbind", lapply(tlist, function(x) x$pstate))
+            fit$n.risk <- do.call("rbind", lapply(tlist, function(x) x$n.risk))
+            fit$n.event<- do.call("rbind", lapply(tlist, function(x) x$n.event))
+            ntemp <- unlist(sapply(tlist, function(x) length(x$time)))
+            if (nstrat > 0) names(ntemp) <- names(strata)
+            else  names(ntemp) <- paste0("new", 1:dd)
+            fit$strata <- ntemp
         }
     }
-    else{  # both strata and newdata, yipes!
-        stop("code not yet finished for this case ")
+    else {  
+        # both strata and multiple columns
+        tlist <- vector("list", prod(dd))
+        k <- 1
+        for (j in 1:dd[2]) {
+            for (j in 1:dd[1]) {
+                tlist[[k]] <- docurve(lapply(curves, function(x) x[i,j]),
+                                      nonzero, nstate)
+                k <- k+1
+            }
+        }
+        
+        fit <- list()
+        fit$n <- tlist[[1]]$n
+        fit$time <- unlist(sapply(tlist, function(x) x$time))
+        fit$pstate <- do.call("rbind", lapply(tlist, function(x) x$pstate))
+        fit$n.risk <- do.call("rbind", lapply(tlist, function(x) x$n.risk))
+        fit$n.event<- do.call("rbind", lapply(tlist, function(x) x$n.event))
+        ntemp <- unlist(sapply(tlist, function(x) length(x$time)))
+        names(ntemp) <- as.vector(outer(names(strata), paste0("new", 1:dd[2]), 
+                                        paste, sep=", "))
+        fit$strata <- ntemp
     }
+
     if (length(fit$strata) > 0) {
         ns <- length(fit$strata)
         fit$p0 <- matrix(rep(p0, each=ns), nrow=ns)
@@ -142,6 +160,7 @@ survfit.matrix <- function(x, p0, method=c("discrete", "matexp")) {
     else fit$p0 <- p0
     fit$states <- states
     fit$n <- curves[[1]]$n
+    fit$call <- Call
     class(fit) <- c("survfitms", "survfit")
     fit
 }

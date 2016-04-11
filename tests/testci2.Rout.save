@@ -1,7 +1,6 @@
 
-R version 2.15.2 (2012-10-26) -- "Trick or Treat"
-Copyright (C) 2012 The R Foundation for Statistical Computing
-ISBN 3-900051-07-0
+R Under development (unstable) (2016-02-15 r70179) -- "Unsuffered Consequences"
+Copyright (C) 2016 The R Foundation for Statistical Computing
 Platform: i686-pc-linux-gnu (32-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -17,7 +16,6 @@ Type 'demo()' for some demos, 'help()' for on-line help, or
 Type 'q()' to quit R.
 
 > library(survival)
-Loading required package: splines
 > 
 > #
 > # Test the multi-state version of the CI curve
@@ -71,7 +69,7 @@ Loading required package: splines
 > #    c     0   0     0    0     0                      1    23/4 23/4
 > #    d     0   0     0    0     0                                      23/4 31/4
 > 
-> # fit$prev for time i and state j = total weight at that time/state in the
+> # fit$pstate for time i and state j = total weight at that time/state in the
 > #  above table (original weight + redistrib), divided by 10.
 > 
 > # time            5  6   10    15    18    20     25    30    34    40    50
@@ -88,18 +86,18 @@ Loading required package: splines
 > 
 > #dimnames(truth) <- list(c(5, 6, 10, 15, 18, 20, 25, 30, 34, 40, 50),
 > #                        c('a', 'b', 'c', 'd')
-> all.equal(truth, fit$prev)
+> all.equal(truth, fit$pstate[,1:4])
 [1] TRUE
 > 
 > # Test the dfbetas
-> dfbeta <- array(0., dim=c(6, nrow(fit$prev), ncol(fit$prev)))
+> dfbeta <- array(0., dim=c(6, nrow(fit$pstate), ncol(fit$pstate)))
 > eps <- 1e-6
 > for (i in 1:6) {
 +     twt <- tdata$wt
 +     twt[tdata$id ==i] <- twt[tdata$id==i] + eps
 +     tfit <- survfit(Surv(time1, time2, stat2) ~ cluster(id), tdata,
 +                     weight=twt)
-+     dfbeta[i,,] <- (tfit$prev - fit$prev)/eps
++     dfbeta[i,,] <- (tfit$pstate - fit$pstate)/eps
 + }
 > twt <- tdata$wt[match(1:6, tdata$id)]
 > temp <- (twt*dfbeta) * dfbeta
@@ -134,4 +132,4 @@ Loading required package: splines
 > 
 > proc.time()
    user  system elapsed 
-  0.264   0.012   0.273 
+  1.208   0.032   1.236 
