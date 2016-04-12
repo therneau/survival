@@ -61,18 +61,8 @@ finegray <- function(formula, data, subset, na.action= na.pass,
     else istrat <- rep(1, nrow(mf))
     
     id <- model.extract(mf, "id")
-    if (!is.null(id)) {
-        # get rid of the parenthesis that model.frame puts around the name
-        # in an expression like Surv(time, stat) ~ ., id=clinic the id will
-        # end up being a duplicate, so toss it.
-        temp <- grepl("^\\(.*\\)$", names(mf))
-        if (sum(temp) ==1) { # failsafe
-            temp2 <- names(mf)[temp]
-            temp2 <- substring(temp2, 2, nchar(temp2) -1) 
-            if (temp2 %in% names(mf)) mf <- mf[!temp]  #duplicate variable name
-            else names(mf)[temp] <- temp2
-        }
-    }
+    if (!is.null(id)) mf["(id)"] <- NULL  # don't leave it in result
+
     cluster<- attr(Terms, "specials")$cluster
     if (length(cluster)) {
         if (!is.null(id)) stop("an id argument and a cluster() term are redundant")

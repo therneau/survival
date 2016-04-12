@@ -387,7 +387,7 @@ kfit <- list(n =      as.vector(table(X)),
              n.risk=  grabit(curves, "n.risk"),
              n.event= grabit(curves, "n.event"),
              n.censor=grabit(curves, "n.censor"),
-             pstate   = grabit(curves, "pstate"),
+             prev   = grabit(curves, "prev"),
              p0  = grabit(curves, "p0"),
              transitions = transitions)
 nstate <- length(states)
@@ -414,18 +414,18 @@ than $P$, with standard error of ${rm se}(P)/(1-P)$.
 if (se.fit) {
     std.err <- kfit$std.err
     zval <- qnorm(1- (1-conf.int)/2, 0,1)
-    surv <- 1-kfit$pstate
+    surv <- 1-kfit$prev
 
     if (conf.type=='plain') {
         temp <- zval* std.err
-        kfit <- c(kfit, list(lower =pmax(kfit$pstate-temp, 0), 
-                             upper=pmin(kfit$pstate+temp, 1),
+        kfit <- c(kfit, list(lower =pmax(kfit$prev-temp, 0), 
+                             upper=pmin(kfit$prev+temp, 1),
                          conf.type='plain', conf.int=conf.int))
         }
 
     if (conf.type=='log') {
         #avoid some "log(0)" messages
-        xx <- ifelse(kfit$pstate==1, 1, 1- kfit$pstate)  
+        xx <- ifelse(kfit$prev==1, 1, 1- kfit$prev)  
 
         temp1 <- ifelse(surv==0, NA, exp(log(xx) + zval* std.err/xx))
         temp2 <- ifelse(surv==0, NA, exp(log(xx) - zval* std.err/xx))
@@ -485,12 +485,12 @@ docurve2 <- function(entry, etime, status, istate, wt, states, id, se.fit) {
     p0 <- table(factor(cstate, levels=states), exclude=NA)/length(cstate)
     n.event <- table(ftime[,2], factor(status,c(0,states)))[,-1]
     if (se.fit) 
-        list(time=timeset, pstate=t(fit$p), std=sqrt(t(fit$var)),
+        list(time=timeset, prev=t(fit$p), std=sqrt(t(fit$var)),
              n.risk = t(fit$nrisk),
              n.event = n.event, 
              n.censor=fit$ncensor, p0 = p0,
              cumhaz=array(fit$cumhaz, dim=c(nstate,nstate, length(timeset))))
-    else list(time=timeset, pstate=t(fit$p),
+    else list(time=timeset, prev=t(fit$p),
              n.risk = t(fit$nrisk), 
              n.event = n.event, 
              n.censor=fit$ncensor,  p0=p0,

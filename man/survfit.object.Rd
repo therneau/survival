@@ -48,11 +48,15 @@ This may be a vector or a matrix. The latter occurs when a set of
 survival curves is created from a single Cox model, in which case
 there is one column for each covariate set. 
 }
-\item{pstate, p0}{
-a multi-state survival will have this component instead of \code{surv}.
+\item{prev, p0}{
+  a multi-state survival will have the \code{prev} component
+  instead of \code{surv}.
 It will be a matrix containing the estimated probability
 of each state at each time, one column per state.
 The \code{p0} matrix contains the initial distribution of states.
+(On further reflection pstate= "probability in state" would have been
+a better label than "prevalence", but by that point too many other
+packages were dependent on the form of the result.)
 }
 
 \item{std.err}{

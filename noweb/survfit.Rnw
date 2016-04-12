@@ -49,7 +49,7 @@ dim.survfit <- function(x) {
     else {
         nr <- length(x$strata)
         if (is.matrix(x$surv)) c(nr, ncol(x$surv))
-        else if (is.matrix(x$pstate)) c(nr, ncol(x$pstate))
+        else if (is.matrix(x$prev)) c(nr, ncol(x$prev))
         else nr
     }
 }

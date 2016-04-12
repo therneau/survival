@@ -96,7 +96,7 @@ survfit.matrix <- function(formula, p0, method=c("discrete", "matexp"), ...) {
             n.event[, to[i]] <- n.event[,to[i]] + z[[i]]$n.event[index]
         }
         # All the curves should have the same n
-        list(n = z[[1]]$n, time = utime, pstate= prev[-1,], 
+        list(n = z[[1]]$n, time = utime, prev= prev[-1,], 
              n.risk= n.risk, n.event=n.event)
     }
         
@@ -119,11 +119,11 @@ survfit.matrix <- function(formula, p0, method=c("discrete", "matexp"), ...) {
                                       nonzero, nstate)
             fit <- list()
             fit$n <- tlist[[1]]$n
-            fit$time <- unlist(sapply(tlist, function(x) x$time))
-            fit$pstate <- do.call("rbind", lapply(tlist, function(x) x$pstate))
+            fit$time <- unlist(lapply(tlist, function(x) x$time))
+            fit$prev <- do.call("rbind", lapply(tlist, function(x) x$prev))
             fit$n.risk <- do.call("rbind", lapply(tlist, function(x) x$n.risk))
             fit$n.event<- do.call("rbind", lapply(tlist, function(x) x$n.event))
-            ntemp <- unlist(sapply(tlist, function(x) length(x$time)))
+            ntemp <- unlist(lapply(tlist, function(x) length(x$time)))
             if (nstrat > 0) names(ntemp) <- names(strata)
             else  names(ntemp) <- paste0("new", 1:dd)
             fit$strata <- ntemp
@@ -143,11 +143,11 @@ survfit.matrix <- function(formula, p0, method=c("discrete", "matexp"), ...) {
         
         fit <- list()
         fit$n <- tlist[[1]]$n
-        fit$time <- unlist(sapply(tlist, function(x) x$time))
-        fit$pstate <- do.call("rbind", lapply(tlist, function(x) x$pstate))
+        fit$time <- unlist(lapply(tlist, function(x) x$time))
+        fit$prev <- do.call("rbind", lapply(tlist, function(x) x$prev))
         fit$n.risk <- do.call("rbind", lapply(tlist, function(x) x$n.risk))
         fit$n.event<- do.call("rbind", lapply(tlist, function(x) x$n.event))
-        ntemp <- unlist(sapply(tlist, function(x) length(x$time)))
+        ntemp <- unlist(lapply(tlist, function(x) length(x$time)))
         names(ntemp) <- as.vector(outer(names(strata), paste0("new", 1:dd[2]), 
                                         paste, sep=", "))
         fit$strata <- ntemp

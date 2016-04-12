@@ -156,9 +156,15 @@ Surv <- function(time, time2, event,
     if (!missing(event) && !is.null(attributes(event)))
         inputAttributes$event <- attributes(event)
 
-    # kill any tag-along row names
-    if (ncol(ss) ==2) dimnames(ss) <- list(NULL, c("time", "status"))
-    else dimnames(ss) <- list(NULL, c("time", "time2", "status"))
+    # In rare cases there are no column names, and I have discovered that
+    #  people depend on them.
+    cname <- dimnames(ss)[[2]]
+    if (length(cname) ==0) {
+        if (ncol(ss)==2) cname <- c("time", "status")
+        else if (type=="counting") cname <- c("start", "stop", "status")
+        else cname <- c("time1", "time2", "status")
+    }
+    dimnames(ss) <- list(NULL, cname)  #kill extraneous row names
                                            
     attr(ss, "type")  <- type
     if (type=="mright" || type=="mcounting") {

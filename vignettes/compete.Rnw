@@ -307,8 +307,9 @@ with the exception of the \code{event} variable.
   \item A simple print of the \code{mfit2} object shows the order in
     which the curves will be displayed.  This information was used to 
     choose the line types and colors for the curves.
-  \item The default plot does not include the curve for the initial state,
-    the remaining curves all start at 0.
+  \item The \code{mfit2} object contains curves for all the states, but 
+    the entry state is not plotted by default.
+    The remaining curves all start at 0.
 \end{enumerate}
 
 The printout shows that a male subject will spend, on average,
@@ -317,21 +318,26 @@ years in the PCM state and 10.3 of those 20 in the death state.
 If a cutoff time is not given the default is to use the maximum observed
 time for all curves, which is 424 months in this case.
 
+The result of a multi-state survfit is a matrix of probabilities with
+one row per time and one column per state.
+First are the states found in the event variable (excluding
+censoring) and then any states found in the \code{istate} variable,
+removing any duplicates.  
 When the \code{survfit} call does not contain an \code{istate} directive
 then all of the subjects are assumed to begin in an unnamed ``entry''
-state, which has a blank label on the printout.
-By default this state is not plotted -- point 3 above --
+state with a default name of '' (the empty string).
+By default any state with this name is not plotted -- point 3 above --
 for the simple reason that multiple event curves can 
 very quickly get overcrowded with all the multiple lines.
 Since the three MGUS states of entry/pcm/death must sum to 1 at any
 given time (everyone has to be somewhere), one of the
 three curves is redundant and the ``fraction still in the entry state''
 curve is normally the least interesting. 
-Technically, the default is to not plot any unnamed state, unless it is
-the only state in the object.
-One can easily add this line to the plot if desired, e.g.,
-\code{lines(mfit2[,3], col=4, lty=1:2)};
-the subscripting operation has removed the first two states.
+One can easily add this last state to the plot if desired, e.g.,
+\code{lines(mfit2[,3], col=4, lty=1:2)}, which is the ordering
+of the states in the printout.
+(One can use e.g. \code{mfit2[, 'pcm']} to select a state as
+well, but subscripting using an empty string does not work.)
 
 A common mistake with competing risks is to use the Kaplan-Meier
 separately on each
@@ -686,7 +692,7 @@ four subjects, and $\lambda_{13}$ = the rate of transition to the ``death
 before PCM state''.  These are placed into a matrixx and 
 combined using a third call.
 
-<<PCM curve, fig=TRUE>>=
+<<PCMcurve, fig=TRUE>>=
 newdata <- expand.grid(sex=c("F", "M"), age=c(60, 80), mspike=1.2)
 newdata
 
@@ -741,7 +747,7 @@ somewhat more complex syntax.
  
 <<year20>>=
 # Print out a M/F results at 20 years
-temp <- summary(csurv, time=20*12)$pstate
+temp <- summary(csurv, time=20*12)$prev
 cbind(newdata, PCM= round(100*temp[,2], 1))
 @ 
 The above table shows that females are modeled to 

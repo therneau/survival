@@ -31,7 +31,7 @@ or integer indices.
     if (missing(..2)) j<- NULL  else j <- ..2
     n <- length(x$time)
 
-    if (is.null(x$strata) && is.matrix(x$pstate)) {
+    if (is.null(x$strata) && is.matrix(x$prev)) {
         # No strata, but a matrix of prevalence values
         #  In this case, allow them to use a single i subscript as well
         if (is.null(j) && !is.null(i)) {
@@ -74,7 +74,7 @@ or integer indices.
  
     # all the elements that can have "nstate" elements or columns
     #  The n.event variable can have fewer
-    temp <- c("states", "n.risk", "n.event", "n.censor", "pstate", 
+    temp <- c("states", "n.risk", "n.event", "n.censor", "prev", 
               "cumhaz", "std.err", "lower", "upper")
     sfun <- function(z) {
         if (is.null(j)) {
@@ -195,7 +195,7 @@ summary.survfit <- function(object, times, censored=FALSE,
     }
     else if (missing(times)) {  #default censor=FALSE case
         temp$time <- temp$time[indx1]/scale
-        for (j in c("n.risk", "n.event", "n.censor", "n.enter", "pstate",
+        for (j in c("n.risk", "n.event", "n.censor", "n.enter", "prev",
                     "surv", "std.err", "cumhaz", "lower", "upper")) {
             zed <- temp[[j]]
             if (!is.null(zed)) {
@@ -330,7 +330,7 @@ else {
 @ 
 
 Repeat the code for survfitms objects.  The only real difference is
-the preservation of \code{pstate} and \code{cumhaz} instead of \code{surv},
+the preservation of \code{prev} and \code{cumhaz} instead of \code{surv},
 use of survmean2, and use of p0 for initial states.
 
 <<survfitms-summary>>=
@@ -398,7 +398,7 @@ summary.survfitms <- function(object, times, censored=FALSE,
     else if (missing(times)) {  #default censor=FALSE case
         temp$time <- temp$time[indx1]/scale
         for (j in c("n.risk", "n.event", "n.censor", "n.enter",
-                    "pstate", "std.err", "cumhaz", "lower", "upper")) {
+                    "prev", "std.err", "cumhaz", "lower", "upper")) {
             zed <- temp[[j]]
             if (!is.null(zed)) {
                 if (is.matrix(zed)) temp[[j]] <- zed[indx1,,drop=FALSE]
@@ -421,14 +421,14 @@ summary.survfitms <- function(object, times, censored=FALSE,
                 rbind(x, rep(end, ncol(x)))[1+index,,drop=FALSE]
              else c(x,end)[1 + index]
         }
-        temp$pstate <- tfun(temp$pstate, 0)
+        temp$prev <- tfun(temp$prev, 0)
         # fix up the initial states
         if (any(indx1==0)) {
             if (nstrat==1) temp$sstate[indx1==0,] <- temp$p0
             else {
                 ninit <- sapply(ilist1, function(x) sum(x==0))
                 zz <- rep(1:nstrat, ninit)
-                temp$pstate[indx1==0,] <- temp$p0[zz,]
+                temp$prev[indx1==0,] <- temp$p0[zz,]
             }
         }
         temp$n.risk <- tfun2(temp$n.risk)
@@ -552,9 +552,9 @@ survmean2 <- function(x, scale, rmean) {
         meantime <- matrix(0., ngrp, nstate)
         p0 <- matrix(x$p0, nrow=ngrp)  #in case there is only one row
         for (i in 1:ngrp) {
-            if (is.matrix(x$pstate))
-                temp <- rbind(p0[i,], x$pstate[igrp==i,, drop=FALSE])
-            else temp <- matrix(c(p0[i,], x$pstate[igrp==i]), ncol=1)
+            if (is.matrix(x$prev))
+                temp <- rbind(p0[i,], x$prev[igrp==i,, drop=FALSE])
+            else temp <- matrix(c(p0[i,], x$prev[igrp==i]), ncol=1)
 
             if (is.null(x$start.time)) tt <- c(0, x$time[igrp==i])
             else tt <- c(x$start.time, x$time[igrp==i])

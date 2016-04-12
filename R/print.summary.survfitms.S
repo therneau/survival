@@ -15,16 +15,16 @@ print.summary.survfitms <- function(x,
     if (length(omit)) 
 	    cat(naprint(omit), "\n")
     if (x$type == 'mright' || is.null(x$n.enter)) {
-	mat <- cbind(x$time, tsum(x$n.risk), tsum(x$n.event), x$pstate)
+	mat <- cbind(x$time, tsum(x$n.risk), tsum(x$n.event), x$prev)
 	cnames <- c("time", "n.risk", "n.event")
         }
 
     else if (x$type == 'mcounting') {
-	mat <- cbind(x$time, tsum(x$n.risk), tsum(x$n.event), x$pstate,)
+	mat <- cbind(x$time, tsum(x$n.risk), tsum(x$n.event), x$prev,)
 	cnames <- c("time", "n.risk", "n.event")
         }
 
-    if (is.matrix(x$pstate)) ncurve <- ncol(x$pstate)
+    if (is.matrix(x$prev)) ncurve <- ncol(x$prev)
     else	           ncurve <- 1
     if (ncurve==1) {                 #only 1 curve
 	cnames <- c(cnames, "P")

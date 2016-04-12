@@ -113,7 +113,8 @@ The paper starts out with a table comparing baseline covariates for those
 who never progress to MCI versus those who ever did,
 there is also a table of baseline covariates versus survival.
 Both of these are fine: if you think in terms of an R formula they
-could be written as \code{future ~ past}.
+could be written with future outcomes on the left hand side of the formula
+and past informatio on the right.  
 A table that compared the survival of those who did or did not progress
 to MCI, however, would be invalid.
 It corresonds to a model with a future occurence on
@@ -430,7 +431,7 @@ that need to be dealt with when setting up an analysis data set.
     For age this is (age in days)/ 365.25 - 48 
     years, and for year of enrollment it is the number of years since the
     start of the study: (entry date - 1967/10/1)/365.25. 
-    (Until I figured this out I would get occassional ``why is coxph giving
+    (Until I figured this out I would get occasional ``why is coxph giving
     the wrong answers'' emails.)
 \end{enumerate}
 Since time is in days the fractional time of 0.5 could be any value

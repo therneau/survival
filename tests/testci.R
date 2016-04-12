@@ -42,7 +42,7 @@ byhand <- function() {
     list(P=rbind(p1, p2, p3, p3, p6), u2=u2, u3=u3, u6=u6, V=V)
 }
 bfit <- byhand()
-aeq(fit$pstate, bfit$P[,c(2,3,1)])
+aeq(fit$prev, bfit$P[,c(2,3,1)])
 aeq(fit$n.risk[,3], c(8,7,5,2,1))
 aeq(fit$n.event[,1:2], c(0,1,0,0,0, 0,0 ,2,0,1))
 aeq(fit$std^2, bfit$V[,c(2,3,1)])
@@ -75,7 +75,7 @@ haz2 <- diff(c(0, -log(fit4$surv))) #Aalen estimate for death
 tsurv <- c(1, fit2$surv[-length(fit2$surv)])  #lagged survival
 ci1 <- cumsum(haz1 *tsurv)
 ci2 <- cumsum(haz2 *tsurv)
-aeq(cbind(ci1, ci2), fit1$pstate[,1:2])
+aeq(cbind(ci1, ci2), fit1$prev[,1:2])
 
 #
 # Now, make sure that it works for subgroups
@@ -86,9 +86,9 @@ fit2 <- survfit(Surv(stop, event) ~ 1, tdata,
 fit3 <- survfit(Surv(stop, event) ~ 1, tdata,
                    subset=(sex=='male'))
 
-aeq(fit2$pstate, fit1$pstate[1:fit1$strata[1],])
+aeq(fit2$prev, fit1$prev[1:fit1$strata[1],])
 aeq(fit2$std, fit1$std[1:fit1$strata[1],])
-aeq(fit3$pstate, fit1$pstate[-(1:fit1$strata[1]),])
+aeq(fit3$prev, fit1$prev[-(1:fit1$strata[1]),])
 
 #  A second test of cumulative incidence
 # compare results to Bob Gray's functions
@@ -105,12 +105,12 @@ if (FALSE) {
          ylim=range(c(gray1[[1]]$est, gray1[[2]]$est)),
          xlab="Time")
     lines(gray1[[2]]$time, gray1[[2]]$est, lty=2)
-    matlines(fit2$time, fit2$pstate, col=2, lty=1:2, type='s')
+    matlines(fit2$time, fit2$prev, col=2, lty=1:2, type='s')
 }
 # To formally match these is a bit of a nuisance.
 #  The cuminc function returns a full step function, and survfit only
 # the bottoms of the steps.
 temp1 <- tapply(gray1[[1]]$est, gray1[[1]]$time, max)[-1]  #toss time 0
 indx1 <- match(names(temp1), fit2$time)
-aeq(temp1, fit2$pstate[indx1,1])
+aeq(temp1, fit2$prev[indx1,1])
     

@@ -38,12 +38,12 @@ sfit <- survfit(Surv(time, status) ~1, fdata)
 sfit1<- survfit(Surv(fgstart, fgstop, fgstatus) ~1, test1, weight=fgwt)
 i1 <- sfit$n.event[,1] > 0
 i2 <- sfit1$n.event > 0
-all.equal(sfit$pstate[i1, 1], 1- sfit1$surv[i2])
+all.equal(sfit$prev[i1, 1], 1- sfit1$surv[i2])
 
 sfit2 <- survfit(Surv(fgstart, fgstop, fgstatus) ~1, test2, weight=fgwt)
 i1 <- sfit$n.event[,2] > 0
 i2 <- sfit2$n.event > 0
-all.equal(sfit$pstate[i1, 2], 1- sfit2$surv[i2])
+all.equal(sfit$prev[i1, 2], 1- sfit2$surv[i2])
 
 
 #

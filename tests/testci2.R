@@ -52,7 +52,7 @@ fit <- survfit(Surv(time1, time2, stat2) ~1, id=id, weight=wt, tdata)
 #    c     0   0     0    0     0                      1    23/4 23/4
 #    d     0   0     0    0     0                                      23/4 31/4
 
-# fit$pstate for time i and state j = total weight at that time/state in the
+# fit$prev for time i and state j = total weight at that time/state in the
 #  above table (original weight + redistrib), divided by 10.
 
 # time            5  6   10    15    18    20     25    30    34    40    50
@@ -69,17 +69,17 @@ truth <- truth[c(1:6, 6:11),]/10  #the explicit censor at 22
 
 #dimnames(truth) <- list(c(5, 6, 10, 15, 18, 20, 25, 30, 34, 40, 50),
 #                        c('a', 'b', 'c', 'd')
-all.equal(truth, fit$pstate[,1:4])
+all.equal(truth, fit$prev[,1:4])
 
 # Test the dfbetas
-dfbeta <- array(0., dim=c(6, nrow(fit$pstate), ncol(fit$pstate)))
+dfbeta <- array(0., dim=c(6, nrow(fit$prev), ncol(fit$prev)))
 eps <- 1e-6
 for (i in 1:6) {
     twt <- tdata$wt
     twt[tdata$id ==i] <- twt[tdata$id==i] + eps
     tfit <- survfit(Surv(time1, time2, stat2) ~ cluster(id), tdata,
                     weight=twt)
-    dfbeta[i,,] <- (tfit$pstate - fit$pstate)/eps
+    dfbeta[i,,] <- (tfit$prev - fit$prev)/eps
 }
 twt <- tdata$wt[match(1:6, tdata$id)]
 temp <- (twt*dfbeta) * dfbeta

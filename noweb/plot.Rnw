@@ -20,7 +20,8 @@ plot.survfit<- function(x, conf.int,  mark.time=FALSE,
     dotnames <- names(list(...))
     if (any(dotnames=='type'))
         stop("The graphical argument 'type' is not allowed")
-    
+    if (missing(mark.time) & !missing(mark)) mark.time <- TRUE
+  
     <<plot-transform-ms>>
     if (missing(firsty) && !is.null(x$p0)) firsty <- 1-x$p0
     <<plot-plot-setup1>>
@@ -41,6 +42,8 @@ lines.survfit <- function(x, type='s',
                           fun,  conf.int=FALSE,  
                           conf.times, conf.cap=.005, conf.offset=.012, ...) {
     xlog <- par("xlog")
+   if (missing(mark.time) & !missing(mark)) mark.time <- TRUE
+ 
     <<plot-transform-ms>>
     if (missing(firsty) && !is.null(x$p0)) firsty <- 1-x$p0
     <<plot-common-args>>
@@ -64,7 +67,7 @@ Block of code to transform components of a [[survfitms]] object
 so that the standard plotting methods work.
 <<plot-transform-ms>>=
 if (inherits(x, "survfitms")) {
-    x$surv <- 1- x$pstate
+    x$surv <- 1- x$prev
     if (is.matrix(x$surv)) {
         dimnames(x$surv) <- list(NULL, x$states)
         if (ncol(x$surv) > 1 && any(x$states == '')) {
@@ -93,8 +96,6 @@ else {
     conf.int <- FALSE
     supper <- NULL  #marker for later code
 }
-
-if (missing(mark.time) & !missing(mark)) mark.time <- TRUE
 
 # set up strata
 if (is.null(x$strata)) {

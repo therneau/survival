@@ -9,7 +9,7 @@ print.survfit <- function(x, scale=1,
         #  the same, so we were lazy and didn't write a new routine.
         # The formulas for mean time don't work, however.
         #  
-        x$surv <- 1- x$pstate
+        x$surv <- 1- x$prev
         if (is.matrix(x$surv)) dimnames(x$surv) <- list(NULL, x$states)
         if (!is.null(x$lower)) {
             x$lower <- 1- x$lower
