@@ -959,6 +959,27 @@ non-linear terms such as \code{pspline} or \code{ns}, and
 additivity by exploring interactions.  
 All are obvious and important next steps.
 
+A weakness of the Fine-Gray approach is that since the two endpoints
+are modeled separately, the results do not have to be consistent.
+Below is a graph of the predicted fraction who have experienced neither
+endpoint.  For subjects diagnosed at age 80 it predicts that more than 
+100\% will eventually either progress or die without progression.
+Predictions based on the Aalen-Johansen approach do not have this issue.
+<<finegray3>>=
+fsurv2 <- survfit(fgfit2b, newdata)  # time to progression curves
+xtime <- 0:(30*12)  #40 years
+y1a <- 1 -summary(fsurv1, times=xtime)$surv  #predicted pcm
+y1b <- 1 -summary(fsurv2, times=xtime)$surv) #predicted deaths before pcm
+y1  <- 1 - (y1a + y1b)  #neither
+
+matplot(xtime/12, y1, col=1:2, lty=c(1,1,2,2,),
+        xlab="Years post diagnosis", ylab="FG: neither endpoint")
+abline(0,0, col=3)
+legend(11, .8, c("Female, 60", "Male, 60","Female: 80", "Male, 80"),
+       col=c(1,2,1,2), lty=c(1,1,2,2), lwd=2, bty='n')
+@ 
+
+
 The primary strength of the Fine-Gray model with respect to the Cox model
 approach is that if lifetime risk is a primary question then 
 the model has given
@@ -967,8 +988,8 @@ us a simple and digestible answer to that question:
 and serum m-spike''.
 This simplicity is not without a price, however, and the author is personally
 not a fan of the Fine-Gray approach.
-There are four issues.
-\begin{itemize}
+There are five issues.
+\begin{enumerate}
   \item The attempt to capture a complex process as a single value will
     in many (perhaps most) cases be
     grasping for a simplicity that does not exist.
@@ -977,6 +998,7 @@ There are four issues.
     strong ones.  For the FG model these need to hold for a combined process
     --- the mixture of transition rates to each endpoint --- which is a
     much stronger set of requirements. 
+  \item The sum of predictions need not be consistent.
   \item From the per-transition models one can work forward and compute
     $P(t)$, the occupancy probabilities for each state over time;
     both the hazard ratios and $P$ are useful summaries of the data.
@@ -987,30 +1009,33 @@ There are four issues.
   \item The risk sets are odd.
 \end{itemize}
 The last of these is perhaps the most frequently listed issue with the Fine-Gray
-model, but I think it is actually a minor complaint.  The first issue is
+model, but it is actually a minor complaint.  The first issue is
 substantial, and checking the model assumptions in a Fine-Gray fit is
-mandatory.
+mandatory.  The second point is alarming but it does not have a practical
+impact unless there is long follow-up.
 
 \section{Other software}
 \subsection{mstate}
-For risk models that have shared coefficients or baseline hazards, one
-will fit the set of Cox models for the rates `all at once' on a combined
+How does one fit risk models that have shared coefficients or baseline hazards?
+One approach is to
+fit the set of Cox models for the rates `all at once' on a combined
 data set.  For the simple competing risks MGUS fit above, assume that
 we wanted to add hemoglobin to the fit, with a common coefficient for
 both the PCM and death endpoint.  (Anemia is a feature of both PCM and old
 age.)  Create a stacked data set with $2n$ observations, the first $n$
-are the data set we would use for time to PCM, a 0/1 status variable
-encoding PCM, and the
-second $n$ observations are the data set we would have used for the 
-death without PCM fits, with status encoding the death endpoint.
-A last variable \code{group} would be 'pcm' for the first $n$ and
-'death' for the second.  Then fit a model
+are the data set we would use for a time to PCM analysis, 
+with a simple 0/1 status variable encoding a PCM outcome.
+The second $n$ observations are the data set we would have used for the 
+`death before PCM' fits, with status encoding the death endpoint.
+A last variable \code{group} is added which is 'pcm' for the first $n$ 
+observations and
+'death' for the remainder.  Then fit a model
 <<eval=FALSE, echo=TRUE>>=
  allfit <- coxph(Surv(etime, status) ~ hgb + (age + sex)*strata(group),
                  data=stacked)
 @ 
 This fits a common effect for hemoglobin (hgb), but separate age and sex
-effects for the two endpoints.
+effects for the two endpoints along with separate baseline hazards.
 
 When there are multiple states and constraints then creating the necessary
 data set can be a challenge, one that is capably addressed by
@@ -1026,8 +1051,8 @@ There are two broad classes of multi-state data:
     current state assessed at each visit.  We don't know when the transitions
     between states occur, or if other states may have been visited in the
     interim, only the subject's state at specific times. 
-  \item Survival data arises when we observe the transitions directly, or
-    know their timing;  death for example.
+  \item Survival data arises when we observe the transition times;
+    death for example.
 \end{itemize}
 
 The overall model (boxes and arrows), the quantities of interest (transition
@@ -1058,7 +1083,7 @@ The model may often be useful, but is one available option among many.
 Grasping the big picture for a multi-state data set is always a challenge
 and we should make use of as many tools as possible.
 We are often minded of the story of a centenarian on his 100th birthday
-proclaiming that he was looking forward to many more years because
+proclaiming that he was looking forward to many more years ahead because
 ``I read the obituaries every day, and you almost never see someone 
 over 100 listed there''.  
 It is not always easy to jump between observed
