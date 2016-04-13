@@ -237,7 +237,7 @@ summary.survfit <- function(object, times, censored=FALSE,
     }
 
     # An ordinary survfit object contain std(cum hazard), change scales
-    temp$std.err <- temp$std.err * temp$surv 
+    if (!is.null(temp$std.err)) temp$std.err <- temp$std.err * temp$surv 
     class(temp) <- 'summary.survfit'
     temp
 }

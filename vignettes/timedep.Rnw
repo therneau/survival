@@ -107,17 +107,17 @@ not yet been seen.
 A an example consider a recent analysis from the Mayo Clinic
 study of aging (MCSA), a study which enrolled a stratified random sample from
 the population of Olmsted County and then has followed them forward in
-time.  The occurence of mild cognitive impairment (MCI), dementia, and
+time.  The occurrence of mild cognitive impairment (MCI), dementia, and
 death are all of interest.  
 The paper starts out with a table comparing baseline covariates for those
 who never progress to MCI versus those who ever did,
 there is also a table of baseline covariates versus survival.
 Both of these are fine: if you think in terms of an R formula they
 could be written with future outcomes on the left hand side of the formula
-and past informatio on the right.  
+and past information on the right.  
 A table that compared the survival of those who did or did not progress
 to MCI, however, would be invalid.
-It corresonds to a model with a future occurence on
+It corresponds to a model with a future occurrence on
 both sides of the equation.
 
 One of the more well known examples of this error is analysis by 
@@ -536,7 +536,7 @@ time-dependent analysis is able to account for those who progress more quickly.
 In the pbc data set the status variable is 0= censored, 1= liver transplant 
 and 2= death; the above analyses were models of time to death, censoring
 at transplant.  
-(At the time of the PBC study liver transplantion was still in its infancy and
+(At the time of the PBC study liver transplantation was still in its infancy and
 it is fair to view the 19/312 subjects who received the procedure as a
 random sample. 
 In the modern era there are far more waiting recipients than organs and
@@ -556,7 +556,7 @@ set it is coded 682 from day 1492 until last follow up.
 One can change this default by adding 
 \code{options=list(na.rm=FALSE)} to the second call above, in which case 
 the alkaline phosphotase value over the
-inteval (2453, 2503] will become missing.
+interval (2453, 2503] will become missing.
 Any \code{tdc} calls with a missing time are still ignored, independent
 of the na.rm value, since we would not know where to insert them.
 
@@ -581,7 +581,7 @@ values occurred after the last follow-up date
 of the pbc data set and are ignored.  
 Bilirubin is missing on no subjects, so it's addition creates a few more
 unique break points in the follow-up, namely those clinical visits for
-which the asities value was missing.
+which the ascites value was missing.
 
 The data for the pbcseq data set was assembled at a later calendar time
 than the primary data set.
@@ -619,7 +619,7 @@ after organ transplant. Cases
 were actively followed up for 3 years, at which time priorities shifted and 
 the clerical staff responsible for the active follow-up were reassigned.  
 Automatic updates
-from a state death index contiued to accumulate, however.  A Kaplan-Meier
+from a state death index continued to accumulate, however.  A Kaplan-Meier
 curve computed at 5 years showed the remarkable result of a 3 year survival 
 of .9 followed by a precipitous drop to 0 at 5 years!
 This is because there was, by definition, 100\% mortality
@@ -680,7 +680,7 @@ For any data set containing constructed time-dependent covariates,
 it has become the author's practice to re-run the analyses after adding 
 a 7-14 day lag to key variables.
 When the results show a substantial change, and this is not infrequent,
-understanding why this occured is an critical step.  
+understanding why this occurred is an critical step.  
 Even if there is not an actual error, one has to question the value of a
 covariate that can predict death within the next week but fails 
 for a longer horizon.  
@@ -697,7 +697,7 @@ For an investigation of cumulative comorbidity we had three data sets
     The important variables are id, age1 and age2; each (age1, age2)
     pair marks an interval of residence. Disjoint intervals are not
     uncommon.
-  \item outcome: one row for the first occurence of each outcome of interest.  
+  \item outcome: one row for the first occurrence of each outcome of interest.  
     The outcomes were 20 comorbid conditions as defined by NIH.
 \end{itemize}
 
@@ -714,7 +714,7 @@ newd <- tmerge(newd, subset(outcome, event='diabetes'),
 newd <- tmerge(newd, subset(outcome, event='arthritis'), 
                arthritis= tdc(age))
 @ 
-The first call to tmerge adds the timeline for each observation to the
+The first call to tmerge adds the time line for each observation to the
 baseline data.
 For this first call both data1 and data2 
 must contain a copy of the
@@ -733,9 +733,9 @@ point, but they do set the value of that covariate for future times.
 Events that occur in a gap are not counted.
 The rationale is that during a subject's time within the county we would
 like the variable ``prior diagnosis of diabetes'' 
-to be accurate, even if that diagnosis occured during a prior period when
+to be accurate, even if that diagnosis occurred during a prior period when
 the subject was not a resident. 
-For events outside of the timeline, we have no way to know who the appropriate
+For events outside of the time line, we have no way to know who the appropriate
 comparison group is, and so must ignore those events.  
 (Formally, the risk set would be the set of
 all non-residents who, if they were to have had an event at the same age, 
@@ -1023,7 +1023,7 @@ function(x, t, riskset, weights){
 }
 @ 
 This relies on the fact that the input arguments to tt() are ordered by the 
-event number or riskset.
+event number or risk set.
 This function is used as a default if no tt argument is present in the
 coxph call, but there are tt terms in the model formula.
 (Doing so allowed me to depreciate the survobrien function).

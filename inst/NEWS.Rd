@@ -1,5 +1,10 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 2.39}{
+  \itemize{
+    \item Small updates based on feedback from CRAN
+}}
+
 \section{Changes in version 2.38-6}{
   \itemize{
     \item Label the output dimnames from pyears with the variable names

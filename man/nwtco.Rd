@@ -23,9 +23,6 @@
     paper}
   }
 }
-\source{
-  \url{http://faculty.washington.edu/norm/software.html}
-}
 \references{
   NE Breslow and N Chatterjee (1999),
   Design and analysis of two-phase studies with binary outcome applied

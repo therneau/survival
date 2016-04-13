@@ -118,15 +118,15 @@ finegray <- function(formula, data, subset, na.action= na.pass,
 
 The censoring and truncation distributions are
 \begin{align*}
-  G(t) &= \prod{s \le t} \left(1 - \frac{c(s)}{r_c(s)} \right ) \\
-  H(t) &= \prod{s > t} \left(1 - \frac{e(s)}{r_e(s)} \right ) 
+  G(t) &= \prod_{s \le t} \left(1 - \frac{c(s)}{r_c(s)} \right ) \\
+  H(t) &= \prod_{s > t} \left(1 - \frac{e(s)}{r_e(s)} \right ) 
 \end{align*}
 where $c(t)$ is the number of subjects censored at time $t$, $e(t)$ is the
 number who enter at time $t$, and $r$ is the size of the relevant risk set.
 These are equations 5 and  6 of Geskus (Biometrics 2011).
 Note that both $G$ and $H$ are right continuous functions.
 For tied times the assumption is that event $<$ censor $<$ entry.
-Thus $G$ we use a modified Kapan-Meier where any events at censoring time $t$ are
+For $G$ we use a modified Kapan-Meier where any events at censoring time $t$ are
 removed from the risk set just before time $t$.
 To avoid issues with times that are nearly identical (but not quite) we first
 convert to an integer time scale, and then move events backwards by .2.
@@ -171,6 +171,8 @@ round off error. The only nuisance is the status variable, which is
 1 for the first row of each subject, since the data set may not
 be in sorted order.  The offset of .2 used above is not needed, but due
 to the underlying integer scale it doesn't harm anything either.
+Reversal of the time scale leads to a left continuous function which
+we fix up later.
 <<finegray-censor>>= 
 if (delay) 
     Hsurv <- survfit(Surv(-newtime[,2], -newtime[,1], first) ~ istrat, 
@@ -216,9 +218,7 @@ If there is delayed entry, then the set of intervals is larger due to a merge
 with the jumps in Hsurv.
 The truncation distribution Hsurv ($H$) will become 0 at the first entry time; 
 it is a left continuous function whereas Gsurv ($G$) is right continuous.  
-However, since the weights are defined as $G(t-)H(t-)$ the details don't
-matter.  We can slide $H$ one point to the left and merge them at the
-jump points.
+We can slide $H$ one point to the left and merge them at the jump points.
 
 <<finegray-build>>=
 status <- Y[, 3]

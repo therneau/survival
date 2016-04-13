@@ -1,3 +1,7 @@
+noweb/*.aux
+noweb/*.log
+noweb/*.tex
+noweb/*.out
 src/Readme
 src/surv_callback.csp
 src/cox_callback.csp
@@ -12,3 +16,4 @@ vignettes/*.log
 vignettes/*.tex
 noweb/noweb.sty
 fail
+src/coxfit7.ctemp

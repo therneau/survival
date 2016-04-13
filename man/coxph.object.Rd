@@ -64,6 +64,8 @@ the number of observations used in the fit.
 \item{nevent}{
 the number of events (usually deaths) used in the fit. 
 }
+\item{concordance}{the concordance, as computed by survConcordance.}
+\item{first}{the first derivative vector at the solution.}
 \item{weights}{
 the vector of case weights, if one was used. 
 }
