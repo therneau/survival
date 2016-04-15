@@ -78,18 +78,6 @@ first <- match(tdata$id, tdata$id)  #points to the first row for each subject
 Gwt <- c(1, G)[match(tdata$fgstop, tt)]  # G(t-)
 all.equal(tdata$fgwt, Gwt/Gwt[first])
 
-if (FALSE) {
-    # Compare with mstate
-    require(mstate)
-    mtest2 <- crprep(Tstop=etime, status=event, fdata, id=mgus2$id, prec=1e12)
-    type2 <- event[mtest2$id] ==2
-    tdata <- mtest2[type2,]  #expanded rows
-    Gwt <- c(1, G)[match(tdata$Tstop, tt)]  # G(t-)
-    first <- match(tdata$id, tdata$id)
-    all.equal(tdata$weight.cens, Gwt/Gwt[first])
-}
-
-
 # Test data 3, left truncation.
 # Ties are assumed to be ordered as event, censor, entry
 # H(t) = truncation distribution, and is calculated on a reverse time scale
@@ -138,20 +126,6 @@ index <- match(tdata$id, tdata$id)   # points to the first row for each
 Gwt <- c(1, G)[match(tdata$fgstop, tt)]  # G(t-)
 Hwt <- c(0, H)[match(tdata$fgstop, tt)]  # H(t-)
 all.equal(tdata$fgwt,  Gwt*Hwt/(Gwt*Hwt)[index])
-
-if (FALSE) {
-    # Compare with mstate
-    mtest3 <- crprep(Tstop="time2", Tstart="time1", status="status",
-                     data=fdata, id="id")
-    type2 <- fdata$status[mtest3$id] ==2
-    tdata <- mtest3[type2,]  #expanded rows
-    Gwt <- c(1, G)[match(tdata$Tstop, tt)]  # G(t-)
-    Hwt <- c(1, H)[match(tdata$Tstop, tt)]  # H(t-)
-    first <- match(tdata$id, tdata$id)
-    all.equal(tdata$weight.cens, Gwt/Gwt[first])  
-    all.equal(tdata$weight.trunc, Hwt/Hwt[first])
-}
-
 
 #
 # Test data 4: mgus2 data on age scale

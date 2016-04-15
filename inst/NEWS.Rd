@@ -1,6 +1,6 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
-\section{Changes in version 2.39}{
+\section{Changes in version 2.39-2}{
   \itemize{
     \item Small updates based on feedback from CRAN
 }}

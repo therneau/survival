@@ -284,6 +284,7 @@ table(event)
 
 mfit2 <- survfit(Surv(etime, event) ~ sex, data=mgus2)
 print(mfit2, rmean=240, scale=12)
+mfit2$transitions
 
 plot(mfit2, col=c(1,2,1,2), lty=c(2,2,1,1),
      mark.time=FALSE, lwd=2,  xscale=12,
@@ -307,8 +308,14 @@ with the exception of the \code{event} variable.
     which the curves will be displayed.  This information was used to 
     choose the line types and colors for the curves.
   \item The \code{mfit2} object contains curves for all the states, but 
-    the entry state is not plotted by default.
+    by default the entry state will not be plotted.
     The remaining curves all start at 0.
+  \item The transitions component of the result is useful as a
+    data check, e.g., if it showed a transition from death to PCM.
+  \item Each subject's initial state is specified by the \code{istate}
+    argument.  When this is omitted all subjects 
+    are assumed to all start from an entry state named '' (the empty
+    string), as displayed in the printout above.
 \end{enumerate}
 
 The printout shows that a male subject will spend, on average,
@@ -320,12 +327,9 @@ time for all curves, which is 424 months in this case.
 The result of a multi-state survfit is a matrix of probabilities with
 one row per time and one column per state.
 First are the states found in the event variable (excluding
-censoring) and then any states found in the \code{istate} variable,
+censoring) and then the states found in the \code{istate} variable,
 removing any duplicates.  
-When the \code{survfit} call does not contain an \code{istate} directive
-then all of the subjects are assumed to begin in an unnamed ``entry''
-state with a default name of '' (the empty string).
-By default any state with this name is not plotted -- point 3 above --
+By default an unnamed state is not plotted -- point 3 above --
 for the simple reason that multiple event curves can 
 very quickly get overcrowded with all the multiple lines.
 Since the three MGUS states of entry/pcm/death must sum to 1 at any
@@ -333,10 +337,10 @@ given time (everyone has to be somewhere), one of the
 three curves is redundant and the ``fraction still in the entry state''
 curve is normally the least interesting. 
 One can easily add this last state to the plot if desired, e.g.,
-\code{lines(mfit2[,3], col=4, lty=1:2)}, which is the ordering
-of the states in the printout.
+\code{lines(mfit2[,3], col=4, lty=1:2)}, since entry is the third state
+in the printout.
 (One can use e.g. \code{mfit2[, 'pcm']} to select a state as
-well, but subscripting using an empty string does not work.)
+well, but an empty string does not work as the subscript.)
 
 A common mistake with competing risks is to use the Kaplan-Meier
 separately on each
@@ -967,12 +971,12 @@ endpoint.  For subjects diagnosed at age 80 it predicts that more than
 Predictions based on the Aalen-Johansen approach do not have this issue.
 <<finegray3>>=
 fsurv2 <- survfit(fgfit2b, newdata)  # time to progression curves
-xtime <- 0:(30*12)  #40 years
+xtime <- 0:(30*12)  #30 years
 y1a <- 1 -summary(fsurv1, times=xtime)$surv  #predicted pcm
-y1b <- 1 -summary(fsurv2, times=xtime)$surv) #predicted deaths before pcm
+y1b <- 1 -summary(fsurv2, times=xtime)$surv #predicted deaths before pcm
 y1  <- 1 - (y1a + y1b)  #neither
 
-matplot(xtime/12, y1, col=1:2, lty=c(1,1,2,2,),
+matplot(xtime/12, y1, col=1:2, lty=c(1,1,2,2),
         xlab="Years post diagnosis", ylab="FG: neither endpoint")
 abline(0,0, col=3)
 legend(11, .8, c("Female, 60", "Male, 60","Female: 80", "Male, 80"),
@@ -990,14 +994,14 @@ This simplicity is not without a price, however, and the author is personally
 not a fan of the Fine-Gray approach.
 There are five issues.
 \begin{enumerate}
-  \item The attempt to capture a complex process as a single value will
-    in many (perhaps most) cases be
-    grasping for a simplicity that does not exist.
+  \item The attempt to capture a complex process as a single value is
+    grasping for a simplicity that does not exist for many (perhaps most)
+    data sets.
      The necessary assumptions in a multivariate Cox model of proportional
     hazards, linearity of continuous variables, and no interactions are
     strong ones.  For the FG model these need to hold for a combined process
-    --- the mixture of transition rates to each endpoint --- which is a
-    much stronger set of requirements. 
+    --- the mixture of transition rates to each endpoint --- which turns out
+    to be a more difficult barrier. 
   \item The sum of predictions need not be consistent.
   \item From the per-transition models one can work forward and compute
     $P(t)$, the occupancy probabilities for each state over time;
@@ -1005,12 +1009,20 @@ There are five issues.
     We don't have tools to work backwards from a Fine-Gray fit to the
     per transition hazards.
   \item The approach is viable only for competing risks and not for
-    any other multi-state model.
+    other multi-state models.
   \item The risk sets are odd.
-\end{itemize}
+\end{enumerate}
 The last of these is perhaps the most frequently listed issue with the Fine-Gray
-model, but it is actually a minor complaint.  The first issue is
-substantial, and checking the model assumptions in a Fine-Gray fit is
+model, but it is actually a minor complaint.  
+The state probabilities $P(t)$ in a multi-state model are implicitly 
+fractions of the total population
+we started with: someone who dies in month 1 is still a part of the denominator
+for the fraction of subjects with PCM at 20 years.  
+In the Fine-Gray formulas this subject explicitly appears in risk set 
+denominators at a later time, which looks odd but is more of an artifact.
+
+The first issue is substantial, however,
+and checking the model assumptions of a Fine-Gray fit is
 mandatory.  The second point is alarming but it does not have a practical
 impact unless there is long follow-up.
 

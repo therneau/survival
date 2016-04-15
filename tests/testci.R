@@ -47,6 +47,10 @@ aeq(fit$n.risk[,3], c(8,7,5,2,1))
 aeq(fit$n.event[,1:2], c(0,1,0,0,0, 0,0 ,2,0,1))
 aeq(fit$std^2, bfit$V[,c(2,3,1)])
 
+sfit <- summary(fit, times=c(1, 3.5, 6))
+aeq(sfit$prev, bfit$P[c(1,3,5), c(2,3,1)])
+aeq(sfit$n.risk[,3], c(8, 2, 1))
+
 #
 # For this we need the competing risks MGUS data set, first
 #  event

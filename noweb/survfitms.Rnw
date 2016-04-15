@@ -168,7 +168,7 @@ summary.survfit <- function(object, times, censored=FALSE,
     # The fit$surv object is sometimes a vector and sometimes a
     #  matrix.  We calculate row indices first, and then deal
     #  with the cases at the end.
-    nsurv <- if (is.matrix(fit$surv)) nrow(fit$surv) else length(fit$surv)
+    nsurv <- length(fit$time)
     if (is.null(fit$strata)) {
 	nstrat <- 1
 	stemp <- rep(1L, nsurv)
@@ -367,10 +367,10 @@ summary.survfitms <- function(object, times, censored=FALSE,
         times <- sort(times)
     }
 
-    # The fit$surv object is sometimes a vector and sometimes a
+    # The fit$prev object is sometimes a vector and sometimes a
     #  matrix.  We calculate row indices first, and then deal
     #  with the cases at the end.
-    nsurv <- if (is.matrix(fit$surv)) nrow(fit$surv) else length(fit$surv)
+    nsurv <- length(fit$time)
     if (is.null(fit$strata)) {
 	nstrat <- 1
 	stemp <- rep(1L, nsurv)
