@@ -47,9 +47,12 @@ aeq(fit$n.risk[,3], c(8,7,5,2,1))
 aeq(fit$n.event[,1:2], c(0,1,0,0,0, 0,0 ,2,0,1))
 aeq(fit$std^2, bfit$V[,c(2,3,1)])
 
-sfit <- summary(fit, times=c(1, 3.5, 6))
-aeq(sfit$prev, bfit$P[c(1,3,5), c(2,3,1)])
-aeq(sfit$n.risk[,3], c(8, 2, 1))
+# Times purposely has values that are before the start, exact, intermediate
+#  and after the end of the observed times
+sfit <- summary(fit, times=c(0, 1, 3.5, 6, 7), extend=TRUE)
+aeq(sfit$prev, rbind(c(0,0,1), bfit$P[c(1,3,5,5), c(2,3,1)]))
+aeq(sfit$n.risk[,3], c(8,8, 2, 1, 0))
+aeq(sfit$n.event,  matrix(c(0,0,1,0,0, 0,0,2,1,0, 0,0,0,0,0), ncol=3))
 
 #
 # For this we need the competing risks MGUS data set, first

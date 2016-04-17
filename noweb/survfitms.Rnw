@@ -424,7 +424,7 @@ summary.survfitms <- function(object, times, censored=FALSE,
         temp$prev <- tfun(temp$prev, 0)
         # fix up the initial states
         if (any(indx1==0)) {
-            if (nstrat==1) temp$sstate[indx1==0,] <- temp$p0
+            if (nstrat==1) temp$prev[indx1==0,] <- temp$p0
             else {
                 ninit <- sapply(ilist1, function(x) sum(x==0))
                 zz <- rep(1:nstrat, ninit)
