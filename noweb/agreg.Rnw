@@ -885,16 +885,18 @@ for (*iter=1; *iter<= maxiter; (*iter)++) {
     <<agfit4-addup>>
    
 } /*return for another iteration */
-
-<<agfit4-finish>>
 @ 
 
 Save away the final bits, compute the inverse of imat and symmetrize it,
 release memory and return.
+If the routine did not converge (iter== maxiter), then the cholesky
+routine will not have been called.
+
 <<agfit4-finish>>=
 (*iter)--;  /* the loop index is always 1 beyond where it finished */
 flag[0] = rank; 
 loglik[1] = newlk;
+if (*iter == maxiter) cholesky2(imat, nvar, tol_chol);
 chinv2(imat, nvar);
 for (i=0; i<nvar; i++) {
     beta[i] *= scale[i];  /* return to original scale */
