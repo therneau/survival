@@ -84,49 +84,41 @@ text(90, 30, "...", cex=2)
 text(c(55, 73), c(30, 30), c("0", "1"))
 par(oldpar)
 @
-  \caption{Four multi-state models.  In the upper left is simple survival,
- in the upper right an example of competing risks, 
- in the lower left a multi-state
- illness-death model, and the lower right one of sequential events.}
+  \caption{Four multi-state models.  The upper left panel depicts simple survival,
+ the upper right is an example of competing risks, 
+ the lower left panel is a multi-state
+ illness-death model, and the lower right panel depicts sequential events.}
  \label{mfig1}
 \end{figure}
 
-For all multi-state models the first task is to draw a graph of
-states and transitions,
-figure \ref{mfig1} contains some simple examples.
-Each box is a patient state and each arrow a possible transition.
-The top left figure is simple survival: all patients start in the
-alive state and can make a single transition to death.
-The top right depicts classic competing risks:
-all subjects start on the left, and each can make a single transition
+A multi-state model is used to model a process where subjects transition from one state to the next. For instance, a standard survival curve can be thought of as a simple multi-state model with two states (alive and dead) and one transition between those two states.  A diagram illustrating this process is shown in the top left corner of figure \ref{mfig1}. In these types of diagrams, each box is a state and each arrow is a possible transition. The top right diagram depicts a classic competing risk analysis, where
+all subjects start on the left and each subject can make a single transition
 to one of 3 terminal states.
-The bottom figure shows a simple multi-state situation known as
+The bottom left diagram shows a common multi-state situation known as
 the illness-death model with recovery.
-The lower right represents sequential events such as repeated
-infections in the CGD study, in that case one subject had 8
+Finally, the lower right diagram represents sequential events, such as repeated
+infections in the CGD study. In that case one subject had 8
 events so there are 9 states corresponding to entry into the study 
-(0 infections) and first, second, \ldots event.
+(0 infections) and the first, second, \ldots, eighth events.
 
-As will be shown below there are often multiple choices for the
+As will be shown below, there are often multiple choices for the
 state and transition diagram, and for some data sets it is revealing to
-look at a problem from multiple views.
-The two other primary decisions are the choice of time scale for
-the fits, e.g. time from entry to the study vs. time from entry to
-the state, and what covariates will be used .
+look at a problem from multiple views. In addition to deciding the diagram that best matches the research questions, the two other primary decisions are the choice of time scale for
+the fits, e.g., time from entry in the study vs. time from entry in
+the state, and what covariates will be used.
 
 \section{Multi-state curves}
 \subsection{Aalen-Johansen estimate}
-A starting point for analysis is to compute and plot 
+As a starting point for the analysis, it is important to compute and plot 
 estimates of $p(t)$, which is a vector containing the probability of being
 in each of the states at time $t$.
-If there were no censoring then $p$ becomes a simple a tabulation at time
+If there is no censoring then $p$ becomes a simple tabulation at time
 $t$ of all the states.
-For the general case we compute this
-this using the Aalen-Johansen estimate via the 
+For the general case, we compute this using the Aalen-Johansen estimate via the 
 \code{survfit} function.
 
 Mathematically the estimate is simple.
-For each unique time that an event occurs form the
+For each unique time where an event occurs, form the
 transition matrix $T(t)$ with elements or rates of 
  $\lambda_{ij}(t) =$ the fraction of subjects who transition from
 state $i$ to $j$ at time $t$, among those in state $i$ just prior to 
@@ -139,14 +131,14 @@ Then
 \end{equation}
 where $p(0)$ is the initial distribution of subjects.
 
-Let's work this out for the simple two-state alive$\longrightarrow${dead} model.
+Let's work this out for the simple two-state alive $\rightarrow$ {death} model.
 Let $n(t)$ be the number of subjects still at risk at time $t$ and
 $d(t)$ the number of deaths at that time point.
 All subjects start in the alive state and thus $p(0) = (1,0)$ and
 the transition matrix is 
 \begin{equation*}
   T(s) = \left( \begin{array}{cc} 
-    [n(s)- d(t)]/n(s)  & n(s)/d(s) \\\\ 0 & 1 \end{array}
+    \frac{n(s)- d(s)}{n(s)}  & \frac{n(s)}{d(s)} \\\\ 0 & 1 \end{array}
   \right)
 \end{equation*}
 The second row corresponds to the fact that death is an absorbing state.
@@ -159,21 +151,21 @@ them leads to
 which we recognize as the Kaplan-Meier estimate of survival.
 For the two state alive-dead model the Aalen-Johansen (AJ) estimate
 has reprised the KM.
-In the competing risks case $P(t)$ 
-has an alternate form known as the \emph{cumulative incidence} function
+In the competing risks case $p(t)$ 
+has an alternate form known as the \emph{cumulative incidence} (CI) function
 \begin{equation}
   CI_k(t) = \int_0^t \lambda_k(u) S(u-) du \label{cuminc}
 \end{equation}
-where $\lambda_k$ is the incidence function for outcome $k$ and $S$ is the
+where $\lambda_k$ is the incidence function for outcome $k$, and $S$ is the
 overall survival curve for ``time to any endpoint''.  
 (The label ``cumulative incidence''  is one of the more unfortunate ones in 
 the survival lexicon,
 since we normally use `incidence' and `hazard' as interchangeable synonyms but 
 the CI is \emph{not} a cumulative hazard.)
-Repeating the same matrix exercise for the competing risks case shown in the
-upper right of figure \ref{mfig1} exactly recovers the CI estimate:
-it is also a special case of the Aalen-Johansen.
-The AJ estimate is very flexible: subjects can visit multiple states
+Repeating the same matrix exercise for the competing risks, i.e. writing
+out the Aalen-Johansen computation, exactly recovers the CI formula.
+The CI is also a special case of the Aalen-Johansen.
+The AJ estimate is very flexible; subjects can visit multiple states
 during the course of a study, subjects can start after time 0 (delayed
 entry), and they can start in any of the states. 
 The \code{survfit} function implements the AJ estimate and 
@@ -188,201 +180,46 @@ weight $dp(t)/dw_i$. Then $V(t) = D'D$ is the estimated variance-covariance
 matrix of the estimates at time $t$.
 
 
-The $p(t)$ vector obeys the obvious constraint that the sum of states at 
+The $p(t)$ vector obeys the obvious constraint that its sum at 
 any time
-is equal to 1: each person has to be somewhere.
+is equal to one; each person has to be somewhere.
 I prefer the label \emph{current prevalence} estimate, 
 since it estimates what fraction of the subjects are in any
 given state across time.  
 However the word ``prevalence'' is likely to generate confusion whenever
-death is one of the states, due to its historic use as the fraction of
+death is one of the states, due to its traditional use as the fraction of
 living subjects who have a particular condition.
 We will use the phrase \emph{probability in state} or simply $p$
 from this point forward.
 
-In the simple two state model the Pr(alive) is the 
+In the simple two state model Pr(alive) is the 
 usual KM survival estimate, and we have 
 $p_1(t) = 1- p2(t)$, Pr(alive) = 1 - Pr(dead).  
-Plots for the 2 state case sometimes choose to show p(alive)
-and sometimes p(dead). Which one is used often depends on a historical
+Plots for the 2 state case sometimes choose to show Pr(alive)
+and sometimes Pr(dead). Which one is used often depends on a historical
 whim of the disease specialty; 
 cardiology journals for instance quite often use Pr(event) resulting in curves
 that rise starting from zero, 
 while oncology journals invariably use Pr(alive) giving curves that fall 
 downhill from 1.
-The survfit routine's historical default for the 2 state case is to 
+The \code{survfit} routine's historical default for the 2 state case is to 
 print and plot Pr(alive)= $p_1(t)$, which reflects that the
 author of the routine was working primarily in cancer trials at the time 
 said default was chosen.
 
 For simple survival we have gotten used to the idea of using Pr(dead) and
 Pr(alive) interchangeably, but that habit needs to be left behind for
-multi-state models, for them curves of $1-p_k(t)$ 
+multi-state models, as curves of $1-p_k(t)$ 
 = probability(any other state than $k$) are not useful.
-In the multi-state case individual curves can go both up and down.
+In the multi-state case, individual curves can go both up and down.
 For competing risks the curve for the initial state (leftmost
-in the diagram) is rarely included in the final plot; since the curves sum to
-1 the full set is redundant, Pr(nothing yet) is usually the least interesting
-of the set, and so is left off to make the plot less busy.
+in the diagram) is rarely included in the final plot. Since the curves sum to
+1, the full set is redundant.  Pr(nothing yet) is usually the least 
+interesting of the set and so it is left off to make the plot less busy.
 The remaining curves in the competing risks case rise from 0.
 (This bothers some researchers as it 'just looks wrong' to them.)
 
 \subsection{Examples}
-Start with a simple competing risks problem.
-The \code{mgus2} data set contains the time to plasma cell malignancy (PCM)
-and/or death
-for 1384 subjects diagnosed with monoclonal gammopathy of undetermined
-significance (MGUS).  Survival and progression time are in months. 
-The code below creates an ordinary Kaplan-Meier curve of
-post-diagnosis survival for these subjects, along with a histogram of
-age at diagnosis.
-The mean age at diagnosis is just over 70 years.
-
-<<mgus1, fig=TRUE>>=
-oldpar <- par(mfrow=c(1,2))
-hist(mgus2$age, nclass=30, main='', xlab="Age")
-with(mgus2, tapply(age, sex, mean))
-
-mfit1 <- survfit(Surv(futime, death) ~ sex, data=mgus2)
-mfit1
-plot(mfit1, col=c(1,2), xscale=12, mark.time=FALSE, lwd=2,
-     xlab="Years post diagnosis", ylab="Survival")
-legend(200, .8, c("female", "male"), col=1:2, lwd=2, bty='n')
-par(oldpar)
-@ 
-
-The xscale and yscale arguments to \code{plot.survfit} affect only the
-axis labels, not the data.  Further additions to the plot region
-such as \code{legend}, \code{lines}, or \code{text} remain in the 
-original scale.  This simplifies programmatic additions such as adding
-another curve to the plot, while making eyeball additions such as a 
-legend less clear.
-
-As a second model for these subjects we will use competing risks
-with plasma cell malignancy (PCM) and death without malignancy
-as the two terminal states, as shown in the upper left of figure \ref{mfig2}.
-For this model we are only interested in the first event for each
-subject.
-Formally we are treating progression to a plasma cell malignancy (PCM)
-as an \emph{absorbing state}, i.e., one 
-that subjects never exit.  
-We create a variable \code{etime} containing the time to 
-the first of progression, death, or last follow-up along with an event
-variable that contains the outcome.
-The starting data set \code{mgus2} has two pairs of variables
-\code{(ptime, pstat)} that contain the time to progression
-and \code{(futime, status)} that contain the time to death or last known
-alive.
-The code below creates the necessary \code{etime} and \code{event}
-variables, then computes and plots the competing risks estimate.
-
-<<mgus2, echo=TRUE, fig=TRUE>>=
-etime <- with(mgus2, ifelse(pstat==0, futime, ptime))
-event <- with(mgus2, ifelse(pstat==0, 2*death, 1))
-event <- factor(event, 0:2, labels=c("censor", "pcm", "death"))
-table(event)
-
-mfit2 <- survfit(Surv(etime, event) ~ sex, data=mgus2)
-print(mfit2, rmean=240, scale=12)
-mfit2$transitions
-
-plot(mfit2, col=c(1,2,1,2), lty=c(2,2,1,1),
-     mark.time=FALSE, lwd=2,  xscale=12,
-     xlab="Years post diagnosis", ylab="Probability in State")
-legend(240, .6, c("death:female", "death:male", "pcm:female", "pcm:male"), 
-       col=c(1,2,1,2), lty=c(1,1,2,2), lwd=2, bty='n')
-@ 
-
-The \code{mfit2} call is nearly identical to that for an ordinary Kaplan-Meier, 
-with the exception of the \code{event} variable.
-\begin{enumerate}
-  \item The event variable was created as a \emph{factor}; 
-    whereas for ordinary single
-    state survival the status is either 0/1 or TRUE/FALSE.  
-    The first level of the factor must be censoring, which is the status code
-    for those whose follow-up terminated without reaching a new endpoint.
-    Codes for the remaining states can be in any order. The labels for the
-    states are unrestricted, e.g., the first one does not have to be ``censor''.
-    (It will however be treated as censoring, whatever the name.)
-  \item A simple print of the \code{mfit2} object shows the order in
-    which the curves will be displayed.  This information was used to 
-    choose the line types and colors for the curves.
-  \item The \code{mfit2} object contains curves for all the states, but 
-    by default the entry state will not be plotted.
-    The remaining curves all start at 0.
-  \item The transitions component of the result is useful as a
-    data check, e.g., if it showed a transition from death to PCM.
-  \item Each subject's initial state is specified by the \code{istate}
-    argument.  When this is omitted all subjects 
-    are assumed to all start from an entry state named '' (the empty
-    string), as displayed in the printout above.
-\end{enumerate}
-
-The printout shows that a male subject will spend, on average,
-8.7 of the first 20 years post diagnosis in the entry state, 1.1
-years in the PCM state and 10.3 of those 20 in the death state.
-If a cutoff time is not given the default is to use the maximum observed
-time for all curves, which is 424 months in this case.
-
-The result of a multi-state survfit is a matrix of probabilities with
-one row per time and one column per state.
-First are the states found in the event variable (excluding
-censoring) and then the states found in the \code{istate} variable,
-removing any duplicates.  
-By default an unnamed state is not plotted -- point 3 above --
-for the simple reason that multiple event curves can 
-very quickly get overcrowded with all the multiple lines.
-Since the three MGUS states of entry/pcm/death must sum to 1 at any
-given time (everyone has to be somewhere), one of the
-three curves is redundant and the ``fraction still in the entry state''
-curve is normally the least interesting. 
-One can easily add this last state to the plot if desired, e.g.,
-\code{lines(mfit2[,3], col=4, lty=1:2)}, since entry is the third state
-in the printout.
-(One can use e.g. \code{mfit2[, 'pcm']} to select a state as
-well, but an empty string does not work as the subscript.)
-
-A common mistake with competing risks is to use the Kaplan-Meier
-separately on each
-event type while treating other event types as censored.
-The next plot is an example of this for the PCM endpoint.
-<<mgus3, fig=TRUE>>=
-pcmbad <- survfit(Surv(etime, pstat) ~ sex, data=mgus2)
-plot(pcmbad[2], mark.time=FALSE, lwd=2, fun="event", conf.int=FALSE, xscale=12,
-     xlab="Years post diagnosis", ylab="Fraction with PCM")
-lines(mfit2[2,1], lty=2, lwd=2, mark.time=FALSE, conf.int=FALSE)
-legend(0, .25, c("Males, PCM, incorrect curve", "Males, PCM, competing risk"),
-       col=1, lwd=2, lty=c(1,2), bty='n')
-@ 
-
-There are two problems with the \code{pcmbad} fit.  
-The first is that it attempts to estimate the expected rate of plasma cell 
-malignancy if all other causes of death were to be disallowed.
-In this hypothetical world it is indeed true that many more subjects would
-progress to PCM (the incorrect curve is higher), but it is also 
-not a world that any of us will ever inhabit.
-This author views the result in much the same light as discussions of
-survival after the zombie apocalypse.
-The second problem is that the computation for this
-hypothetical case is only correct if all of the competing endpoints
-are independent, a situation which is almost never true.
-We thus have an unreliable estimate of an uninteresting quantity.
-The competing risks curve on the other hand
-estimates the fraction of MGUS subjects who \emph{will experience} 
-PCM, a quantity sometimes known as the lifetime risk,
-and one which is actually observable.
-
-The last example chose to plot only a subset of the curves, something that is
-often desirable in competing risks problems to avoid a
-``tangle of yarn'' plot that simply has too many elements.
-This is done by subscripting the survfit object.
-For subscripting, multi-state curves behave as a matrix
-with the outcomes as the second subscript. 
-The columns are in order of the levels of \code{event},
-i.e., as displayed by our earlier call to \code{table(event)}.   
-The first subscript indexes the groups formed by the right hand side of
-the model formula, and will be in the same order as simple survival curves.
-Thus \code{mfit2[2,1]} corresponds to males (2) and the PCM endpoint (1).
 
 \begin{figure}
 <<crfig2, echo=FALSE, fig=TRUE>>=
@@ -426,16 +263,174 @@ text(40, 10, "Multi-state 2")
 @ 
 \caption{Three models for the MGUS data.}
 \label{mfig2}
-\end{figure}
+\end{figure} 
+
+Start with a simple competing risks problem as illustrated in the first diagram of figure \ref{mfig2}.
+The \code{mgus2} data set contains the time to plasma cell malignancy (PCM)
+and/or death
+for 1384 subjects diagnosed with monoclonal gammopathy of undetermined
+significance (MGUS).  Survival and progression time are in months. 
+The code below creates an ordinary Kaplan-Meier curve of
+post-diagnosis survival for these subjects, along with a histogram of
+age at diagnosis.
+The mean age at diagnosis is just over 70 years.
+
+<<mgus1, fig=TRUE>>=
+oldpar <- par(mfrow=c(1,2))
+hist(mgus2$age, nclass=30, main='', xlab="Age")
+with(mgus2, tapply(age, sex, mean))
+
+mfit1 <- survfit(Surv(futime, death) ~ sex, data=mgus2)
+mfit1
+plot(mfit1, col=c(1,2), xscale=12, mark.time=FALSE, lwd=2,
+     xlab="Years post diagnosis", ylab="Survival")
+legend("topright", c("female", "male"), col=1:2, lwd=2, bty='n')
+par(oldpar)
+@ 
+
+The xscale and yscale arguments to \code{plot.survfit} affect only the
+axis labels, not the data.  Further additions to the plot region
+such as \code{legend}, \code{lines}, or \code{text} remain in the 
+original scale.  This simplifies programmatic additions such as adding
+another curve to the plot, while making interactive additions such as a 
+legend somewhat less simple.
+
+As a second model for these subjects we will use competing risks
+with PCM and death without malignancy
+as the two terminal states, as shown in the upper left of figure \ref{mfig2}.
+For this model we are only interested in the first event for each
+subject.
+Formally we are treating progression to a PCM
+as an \emph{absorbing state}, i.e., one 
+that subjects never exit.  
+We create a variable \code{etime} containing the time to 
+the first of progression, death, or last follow-up along with an event
+variable that contains the outcome.
+The starting data set \code{mgus2} has two pairs of variables
+\code{(ptime, pstat)} that contain the time to progression
+and \code{(futime, status)} that contain the time to death or last known
+alive.
+The code below creates the necessary \code{etime} and \code{event}
+variables, then computes and plots the competing risks estimate.
+
+<<mgus2, echo=TRUE, fig=TRUE>>=
+etime <- with(mgus2, ifelse(pstat==0, futime, ptime))
+event <- with(mgus2, ifelse(pstat==0, 2*death, 1))
+event <- factor(event, 0:2, labels=c("censor", "pcm", "death"))
+table(event)
+
+mfit2 <- survfit(Surv(etime, event) ~ sex, data=mgus2)
+print(mfit2, rmean=240, scale=12)
+mfit2$transitions
+
+plot(mfit2, col=c(1,2,1,2), lty=c(2,2,1,1),
+     mark.time=FALSE, lwd=2,  xscale=12,
+     xlab="Years post diagnosis", ylab="Probability in State")
+legend(240, .6, c("death:female", "death:male", "pcm:female", "pcm:male"), 
+       col=c(1,2,1,2), lty=c(1,1,2,2), lwd=2, bty='n')
+@ 
+
+The \code{mfit2} call is nearly identical to that for an ordinary Kaplan-Meier, 
+with the exception of the \code{event} variable.
+\begin{enumerate}
+  \item The event variable was created as a \emph{factor}, 
+    whereas for ordinary single
+    state survival the status is either 0/1 or TRUE/FALSE.  
+    The first level of the factor must be censoring, which is the status code
+    for those whose follow-up terminated without reaching a new endpoint.
+    Codes for the remaining states can be in any order. The labels for the
+    states are unrestricted, e.g., the first one does not have to be ``censor''.
+    (It will however be treated as censoring, whatever the name.)
+  \item A simple print of the \code{mfit2} object shows the order in
+    which the curves will be displayed.  This information was used to 
+    choose the line types and colors for the curves.
+  \item The \code{mfit2} object contains curves for all the states, but 
+    by default the entry state will not be plotted.
+    The remaining curves all start at 0.
+  \item The transitions component of the result is useful as a
+    data check, e.g., if it showed a transition from death to PCM.
+  \item Each subject's initial state is specified by the \code{istate}
+    argument.  When this is omitted all subjects 
+    are assumed to start from an entry state named `` '' (the empty
+    string), as seen in the printout above.
+\end{enumerate}
+
+The printout shows that a male subject will spend, on average,
+8.7 of his first 20 years post diagnosis in the entry state, 1.1
+years in the PCM state and 10.3 of those 20 in the death state.
+If a cutoff time is not given the default is to use the maximum observed
+time for all curves, which is 424 months in this case.
+
+The result of a multi-state \code{survfit} is a matrix of probabilities with
+one row per time and one column per state.
+First are the states found in the event variable (excluding
+censoring) and then the states found in the \code{istate} variable,
+removing any duplicates.  
+By default any unnamed state is not plotted -- point 3 above --
+for the simple reason that multiple event curves can 
+very quickly get overcrowded with all the multiple lines.
+Since the three MGUS states of entry/pcm/death must sum to 1 at any
+given time (everyone has to be somewhere), one of the
+three curves is redundant and the ``fraction still in the entry state''
+curve is normally the least interesting. 
+One can easily add this last state to the plot if desired, e.g.,
+\code{lines(mfit2[,3], col=4, lty=1:2)}, since entry is the third state
+in the printout.
+(One can use, e.g., \code{mfit2[, 'pcm']} to select a state as
+well, but an empty string does not work as the subscript.)
+
+A common mistake with competing risks is to use the Kaplan-Meier
+separately on each
+event type while treating other event types as censored.
+The next plot is an example of this for the PCM endpoint.
+<<mgus3, fig=TRUE>>=
+pcmbad <- survfit(Surv(etime, pstat) ~ sex, data=mgus2)
+plot(pcmbad[2], mark.time=FALSE, lwd=2, fun="event", conf.int=FALSE, xscale=12,
+     xlab="Years post diagnosis", ylab="Fraction with PCM")
+lines(mfit2[2,1], lty=2, lwd=2, mark.time=FALSE, conf.int=FALSE)
+legend(0, .25, c("Males, PCM, incorrect curve", "Males, PCM, competing risk"),
+       col=1, lwd=2, lty=c(1,2), bty='n')
+@ 
+
+There are two problems with the \code{pcmbad} fit.  
+The first is that it attempts to estimate the expected rate of
+plasma cell malignancy (PCM)
+if all other causes of death were to be disallowed.
+In this hypothetical world it is indeed true that many more subjects would
+progress to PCM (the incorrect curve is higher), but it is also 
+not a world that any of us will ever inhabit.
+This author views the result in much the same light as discussions of
+survival after the zombie apocalypse.
+The second problem is that the computation for this
+hypothetical case is only correct if all of the competing endpoints
+are independent, a situation which is almost never true.
+We thus have an unreliable estimate of an uninteresting quantity.
+The competing risks curve, on the other hand,
+estimates the fraction of MGUS subjects who \emph{will experience} 
+PCM, a quantity sometimes known as the lifetime risk,
+and one which is actually observable.
+
+The last example chose to plot only a subset of the curves, something that is
+often desirable in competing risks problems to avoid a
+``tangle of yarn'' plot that simply has too many elements.
+This is done by subscripting the \code{survfit} object.
+For subscripting, multi-state curves behave as a matrix
+with the outcomes as the second subscript. 
+The columns are in order of the levels of \code{event},
+i.e., as displayed by our earlier call to \code{table(event)}.   
+The first subscript indexes the groups formed by the right hand side of
+the model formula, and will be in the same order as simple survival curves.
+Thus \code{mfit2[2,1]} corresponds to males (2) and the PCM endpoint (1).
+Curves are listed and plotted in the usual matrix order of R.
 
 A third example using the MGUS data treats it as a multi-state model
 and it shown in the upper right of figure \ref{mfig2}.
 In this version a subject can have multiple transitions and thus multiple
-rows in the data set, and it is necessary to identify which data rows go
-with which subject via the \code{id} argument of \code{survfit},
+rows in the data set.  In this case it is necessary to identify which data rows go
+with which subject via the \code{id} argument of \code{survfit};
 valid estimates of the curves and their standard errors both depend on this.
 Our model looks like the illness-death model of figure \ref{mfig1} but
-with ``plasma cell malignancy'' as the upper state and no arrow for
+with ``PCM'' as the upper state and no arrow for
 a return from that state to health.  
 The necessary data set will have two rows for any subject who has further
 follow-up after a PCM and a single row for all others.
@@ -444,9 +439,9 @@ discussed in detail in another vignette.
 
 We need to decide what to do with the 9 subjects who have PCM
 and death declared at the same month. 
-(It turns out that many of these were cancer cases discovered at autopsy.)
-They slipped through without comment in the earlier competing risks analysis,
-only when setting up this second data set did I notice the ties.  Looking
+(Some of these were cancer cases discovered at autopsy.)
+They slipped through without comment in the earlier competing risks analysis;
+only when setting up this second data set did we notice the ties.  Looking
 back at the code, the prior example counted these subjects as a progression. 
 In retrospect this is a defensible choice: even though
 undetected before death, 
@@ -466,7 +461,7 @@ with(newdata, table(death, pcm))
 @ 
 The table above shows that there are no observations in \code{newdata}
 that have both a PCM and death, i.e., the ties have been resolved.
-The last tmerge line above creates a variable \code{enum} which
+The last \code{tmerge} line above creates a variable \code{enum} which
 simply counts rows for each person; it will be used later.
 
 <<mgus4g, fig=TRUE>>=
@@ -474,7 +469,7 @@ temp <- with(newdata, ifelse(death==1, 2, pcm))
 newdata$event <- factor(temp, 0:2, labels=c("censor", "pcm", "death"))  
 mfit3 <- survfit(Surv(tstart, tstop, event) ~ sex, data=newdata, id=id)
 print(mfit3, rmean=240, digits=2)
-mfit3$transtions
+mfit3$transitions
 plot(mfit3[,1], mark.time=FALSE, col=1:2, lty=1:2, lwd=2,
      xscale=12,
      xlab="Years post MGUS diagnosis", ylab="Prevalence of PCM")
@@ -483,18 +478,15 @@ legend(48, .04, c("female", "male"), lty=1:2, col=1:2, lwd=2, bty='n')
 This plot is quite different in that it shows the fraction of subjects
 \emph{currently} in the PCM state. 
 Looking at our multi-state diagram this is the fraction
-of subjects in the upper right box.
+of subjects in the upper right PCM box.
 The curve goes up whenever someone enters the box (progression) and down when
 they leave (death).
 Myeloma survival was quite short during the era of this study and the 
 proportion currently in the PCM state rarely rises above 2 percent.
-The mean time in state for PCM is higher for mfit2 and mfit3, since in
-the former someone who converts to PCM at 5 years, say, will spend the
-next 15 in the PCM state.
 
 The result of \code{print(mfit3)} reveals, as expected, less time spent
-in the PCM state.  In the prior \code{mfit2} model subjects who enter
-that state remain there for the duration, in this one they quickly
+in the PCM state.  In the prior \code{mfit2} model, subjects who enter
+that state remain there for the duration; in this one they quickly
 pass through.
 It is worthwhile to check the \code{transitions} table in the output 
 simply as a data check. In this case it shows subjects going from the
@@ -503,7 +495,7 @@ to death.  This is as expected.
 An error in creating the input data can lead to surprising counts
 and an even more surprising curve.
 
-I have often found the three curve display below useful in the case
+We have often found the three curve display below useful in the case
 of a transient state.
 It combines the results from competing risk model used above
 along with a second fit that treats death
@@ -536,36 +528,36 @@ interval censoring, also known as panel data,
 where a subject's current state is recorded at some fixed time such as a
 medical center visit but the actual times of transitions are unknown.
 Such data requires further assumptions about the transition process in
-order to model the outcomes and have a more complex likelihood, 
-the \code{msm} package for instance deals with data of this type.
+order to model the outcomes and has a more complex likelihood. 
+The \code{msm} package, for instance, deals with data of this type.
 If subjects reliably come in at regular intervals then the 
 difference between the two results can be small, e.g., the 
 \code{msm} routine estimates time until progression \emph{occurred}
 whereas \code{survfit} estimates time until progression was \emph{observed}.
 
 \begin{itemize}
-  \item When using multi-state data to create Aalen-Johansen estimates 
+  \item When using multi-state data to create Aalen-Johansen estimates, 
     individuals
     are not allowed to have gaps in the middle of their time line.
-    For example in a data set with 
-    (0, 30, pcm) and (50,70, death) as the two observations
-    for a subject, the time from 30-70 is not accounted for.
+    An example of this would be a data set with 
+    (0, 30, pcm] and (50,70, death] as the two observations
+    for a subject where the time from 30-70 is not accounted for.
   \item Subjects must stay in the same group over their entire observation
-    time, i.e., variables on the right hand side of the equation can not be
-    time dependent. 
-  \item A transition to the same state is allowed, e.g. observations of
-    (0,50, 1), (50, 75, 3), (75, 89, 3), (89, 93, 3) and (93, 100, 4) 
+    time, i.e., variables on the right hand side of the equation cannot be
+    time-dependent. 
+  \item A transition to the same state is allowed, e.g., observations of
+    (0,50, 1], (50, 75, 3], (75, 89, 4], (89, 93, 4] and (93, 100, 4] 
     for a subject who goes
     from entry to state 1, then to state 3, and finally to state 4.
     However, a warning message is issued for the data set in this case, since
     stuttering may instead be the result of a coding mistake.
     The same result is obtained if 
     the last three observations were collapsed to a single row of 
-    (75, 100, 4).
+    (75, 100, 4].
 \end{itemize}
 
 \section{Rate models}
-For simple two-state survival the Cox model leads to three relationships
+For simple two-state survival, the Cox model leads to three relationships
 \begin{align}
   \lambda(t)  &= \lambda_0(t) e^{X\beta}  \label{hazard} \\
   \Lambda(t)  &= \Lambda_0(t) e^{X\beta} \label{cumhaz}\\
@@ -576,18 +568,18 @@ and survival functions, respectively.
 There is a single linear predictor which governs
 both the rate $\lambda$ (the arrow in figure \ref{mfig1}) and probability
 of residing in the left hand box of the figure.
-For multi-state models this simplicity no longer holds: proportional
-hazards does not lead to proportional prevalence curves.
+For multi-state models this simplicity no longer holds; proportional
+hazards does not lead to proportional $p(t)$ curves.
 The task before us is more complex.
 
 The analysis of multi-state data has four
 key steps.  In order of importance:
 \begin{enumerate}
-  \item  Draw a box and arrow figure describing the model.
+  \item Draw a box and arrow figure describing the model.
   \item Think through the rates (arrows).
     \begin{enumerate}
       \item Which covariates should be attached to each rate? 
-        Sometimes a covariate is important for one transition but not for
+        Sometimes a covariate is important for one transition, but not for
         another.
       \item For which transitions should one or more of the covariates be 
         constrained to have the same coefficient? 
@@ -611,24 +603,23 @@ key steps.  In order of importance:
     model fit, including the predicted occupancy curves.
 \end{enumerate}
 Step 1 is key to the entire endeavor.
-We saw in figure 2 and the examples above that multiple views of a
+We saw in figure \ref{mfig2} and the examples above that multiple views of a
 multi-state process can be useful, and this will hold for modeling as well.
 Step 3 will often
 be the one that demands the most attention to detail.
 
 \subsection{MGUS example}
 Start with the simplest model for the MGUS data: 
-a competing risks model (upper left of figure 2), distinct baseline
+a competing risks model (upper left diagram of figure \ref{mfig2}), distinct baseline
 hazards for the two rates, no shared coefficients, and three covariates.
 <<cfit1>>=
 options(show.signif.stars = FALSE)  # display intelligence
 cfit2 <- coxph(Surv(etime, event=="death") ~ age + sex + mspike, mgus2)
-summary(cfit2, scale=c(10, 1, 1))
+summary(cfit2, scale=c(10, 1, 1))   # scale age in decades 
 
 @ 
 The effect of age and sex on non-PCM mortality is profound, which is not
-a surprise given the median starting age of \Sexpr{median(mgus2$age)}.   %$
-Risk rises \Sexpr{round(exp(10*coef(cfit2)[1]),1)} fold per decade of age and
+a surprise given the median starting age of \Sexpr{median(mgus2$age)}. Risk rises \Sexpr{round(exp(10*coef(cfit2)[1]),1)} fold per decade of age and
 the death rate for males is \Sexpr{round(exp(coef(cfit2)[2]),1)} times as great
 as that for females.  
 The size of the serum monoclonal spike has almost no impact on non-PCM 
@@ -649,7 +640,7 @@ with a coefficient only 1/4 that for mortality, while the effect of sex
 on progression is completely negligible.
 
 The effect of sex on the \emph{lifetime} probability of PCM is not zero,
-however.  Because of a longer lifetime, an average female with MGUS will 
+however.  Because of a longer lifetime, a female with MGUS will on average
 spend more total years at risk for PCM than the average male, and so has
 a larger lifetime risk of PCM.  
 The average rate of progression is about 1\% per year, as shown below,
@@ -664,14 +655,14 @@ temp <- summary(mfit1, rmean="common")  #print the mean survival time
 round(temp$table[,1:6], 1)
 @ 
 
-Notice that each coxph fit essentially ignores the other event type(s).
+Notice that each \code{coxph} fit essentially ignores the other event type(s).
 In the figure, each rate (arrow) depends only on the box from which
 it originates and the events which it enumerates.
 Rates are instantaneous quantities, and depend only on the set of subjects
 who are at risk at at a given  moment;
 if someone is not at risk it really does not matter why.
 
-When computing the prevalence of each state, on the other hand, all the
+When computing $p(t)$, on the other hand, all the
 rates must be considered at once.  
 The Aalen-Johansen estimate applies as before, but now the individual
 entries $\lambda_{ij}(t)$ in each cell of the transition matrix are taken
@@ -689,7 +680,7 @@ works with a matrix of this form:
   \left( \begin{array}{ccc}  & \lambda_{12}{t} & \lambda_{13}(t) \\
        0 &  & 0 \\ 0 & 0 &  \end{array} \right)
 \end{equation*}
-As before, the diagonal elements are chosen so that each row sums to 1.
+As before, the diagonal elements are chosen so that each row sums to 1.  
 Standard survival curve calculations for a Cox model can be used to
 obtain $\lambda_{12}$, the rate of transition to the PCM state for our
 four subjects, and $\lambda_{13}$ = the rate of transition to the ``death
@@ -701,9 +692,11 @@ newdata <- expand.grid(sex=c("F", "M"), age=c(60, 80), mspike=1.2)
 newdata
 
 temp <- matrix(list(), 3,3)
+dimnames(temp) <- list(from=c("Entry", "PCM", "Death"),
+                       to  =c("Entry", "PCM", "Death"))
 temp[1,2] <- list(survfit(cfit1, newdata, std.err=FALSE))
 temp[1,3] <- list(survfit(cfit2, newdata, std.err=FALSE))
-csurv  <- survfit(temp, p0 =c(entry=1, PCM=0, death=0))
+csurv  <- survfit(temp, p0 =c(1,0,0))
 plot(csurv[,2], xmax=25*12, xscale=12, 
      xlab="Years after MGUS diagnosis", ylab="PCM",
      col=1:2, lty=c(1,1,2,2), lwd=2)
@@ -711,18 +704,16 @@ legend(10, .14, outer(c("female", "male   "),
                      c("diagnosis at age 60", "diagnosis at age 80"), 
                       paste, sep=", "),
        col=1:2, lty=c(1,1,2,2), bty='n', lwd=2)
-
-#tfit <- survfit(Surv(etime, event) ~ sex + I(age > 70), mgus2)
-#lines(tfit[,1], col=c('blue', 'green'), lty=3)
 @ 
-The individual survival curves are not actually of interest, since 
+The individual survival curves that result from \code{survfit(cfit1)}
+and \code{survfit(cfit2)} are not actually of interest, since 
 each is a Cox model analog of the pcmbad curve we criticized earlier.
-The cumulative hazard portion of the result is what is used to
+The cumulative hazard portion of the results is what is used to
 build an Aalen-Johansen estimate.
 (Calling \code{survfit} on a set of \code{survfit} objects is, I admit, a
 bit confusing.  
 It would perhaps have been better to name the second routine
-``AalenJohansen'', but I use this often and didn't want to type that 
+``AalenJohansen'', but we use this often and didn't want to type that 
 long a name.)
 
 Sex has nearly no effect on the hazard of PCM, i.e., on any given day the
@@ -730,14 +721,14 @@ risk of conversion for a male is essentially the same as for a female of the
 same age.  
 Yet we see above that the fitted Cox models predict a higher lifetime risk 
 for females, and an age effect on lifetime risk that is far from proportional.
-(Very few subjects acquire PCM more than 15 years after a MGUS diagnosis at
+Very few subjects acquire PCM more than 15 years after a MGUS diagnosis at
 age 80 for the obvious reason: very few of them will still 
-be alive.)
+be alive.
 
 Creating the `list' form matrix above is quite easy, in particular we do
 not need to fill in elements on the diagonal, nor those for which no 
 transitions occur, e.g., from death back to the entry state. 
-The resulting survfit object is easy to plot or print using standard calls.
+The resulting \code{survfit} object is easy to plot or print using standard calls.
 The approach has a number of caveats, however.
 \begin{itemize}
   \item It does not produce standard errors for the curves, as a consequence
@@ -774,7 +765,7 @@ values $P$ can be complex, even if the models for the hazards are relatively
 simple. 
 The primary idea of the Fine-Gray approach is to turn the multi-state 
 problem into a collection of two-state ones. 
-In the upper right panel of figure 1, draw a circle around all of the
+In the upper right diagram of figure 1, draw a circle around all of the
 states except the chosen endpoint and collapse them into a single meta-state.
 For the MGUS data these are 
 \begin{itemize}
@@ -811,10 +802,10 @@ dim(pcmdat)
 dim(deathdat)
 dim(mgus2)
 @ 
-The \code{finegray} command has been used to create two data sets,
+The \code{finegray} command has been used to create two data sets:
 one for the PCM endpoint and one for the death endpoint.
 In each, four new variables have been added containing a survival
-time \code{(fgstart, fgstop, fgstatus)} with an 'ordinary' status of
+time \code{(fgstart, fgstop, fgstatus)} with an `ordinary' status of
 0/1, along with a case weight and a large number of new rows.
 We can use this new data set as yet another way to compute
 multi-state survival curves, though there is no good reason to use this
@@ -836,7 +827,7 @@ females (by adding \code{strata(sex)} to the right hand side of the
 
 
 A Cox model fit to the constructed data set yields the Fine-Gray
-models for plasma cell malignancy and for death.  
+models for PCM and for death.  
 <<fg2, fig=TRUE>>=
 fgfit1 <- coxph(Surv(fgstart, fgstop, fgstatus) ~ sex, data=pcmdat,
                weight= fgwt)
@@ -853,7 +844,7 @@ plot(mfit2[,1], col=1:2,
 ndata <- data.frame(sex=c("F", "M"))
 fgsurv1 <- survfit(fgfit1, ndata)
 lines(fgsurv1, fun="event", lty=2, lwd=2, col=1:2)
-legend(12, .2, c("Female, Aalen-Johansen", "Male, Aalen-Johansen",
+legend("topleft", c("Female, Aalen-Johansen", "Male, Aalen-Johansen",
                  "Female, Fine-Gray", "Male, Fine-Gray"),
        col=1:2, lty=c(1,1,2,2), bty='n')
 
@@ -864,7 +855,6 @@ temp <- matrix(list(), 3,3)
 temp[1,2] <- list(survfit(pfitr, ndata, std.err=FALSE))
 temp[1,3] <- list(survfit(dfitr, ndata, std.err=FALSE))
 rcurve <- survfit(temp, p0=c(entry=1, pcm=0, death=0))
-#lines(rcurve[,2], col=4, lty=3)
 @ 
 The FG model states that males have a lower rate of \emph{observed} PCM, 
 by a factor of \Sexpr{round(exp(coef(fgfit1)), 2)}, and that
@@ -882,17 +872,17 @@ that a \code{coxph} fit with a single categorical predictor is equivalent
 to the log-rank test.
 
 The mathematics behind the Fine-Gray estimate starts with
-the functions $F_k(t) = P_{1k}(t)$, where $P$ is the probability in state
+the functions $F_k(t) = p_k(t)$, where $p$ is the probability in state
 function estimated by the AJ estimate.  This can
 be thought of as the distribution function for the improper random variable
-$T^*= I(\mbox{etype}=k)T + I(\mbox{etype}\ne k)\infty$.
+$T^*= I(\mbox{event type}=k)T + I(\mbox{event type}\ne k)\infty$.
 Fine and Gray refer to $F_k$ as a subdistribution function.
 In analogy to the survival probability in the two state model define
 \begin{equation}
   \gamma_k(t) = - d \log[1-F_k(t)]/dt \label{FG}I 
 \end{equation}
 and assume that $\gamma_k(t;x) = \gamma_{k0}(t) \exp(X\beta)$.
-In a 2 state alive $\longrightarrow$ death model $\gamma$ becomes the
+In a 2 state alive $\longrightarrow$ death model, $\gamma$ becomes the
 usual hazard function $\lambda$.
 In the same way that our multivariate Cox model \code{cfit2} made the
 simplifying assumption that the impact of male sex is to increase the
@@ -905,36 +895,36 @@ independent of other variables.
 Both model's assumptions are wonderfully simplifying with respect to 
 understanding
 a covariate, since we can think about each one separately from the others.
-This is of course under the assumption that the model is correct:
+This is, of course, under the assumption that the model is correct:
 additivity across covariates, linearity, and proportional hazards 
 all hold.
 In a multi-state model, however, these assumptions cannot hold for 
 both the per-transition and Fine-Gray models formulations at the same time;
-if it is true for one it will not be true for the other.
+if it is true for one, it will not be true for the other.
 
 Now consider a multivariate fit on age, sex, and serum m-spike.
 <<fg3>>=
 fgfit2a <- coxph(Surv(fgstart, fgstop, fgstatus) ~ age + sex + mspike,
                  data=pcmdat, weight=fgwt)
-fgfit2a
 
 fgfit2b <-  coxph(Surv(fgstart, fgstop, fgstatus) ~ age + sex + mspike,
                  data=deathdat, weight=fgwt)
-fgfit2b
+round(rbind(PCM= coef(fgfit2a), death=coef(fgfit2b)), 3)
 @ 
-The Fine-Gray fits show an effect of both variables on the subdistribution
+The Fine-Gray fits show an effect of all three  variables on the subdistribution
 rates.  Males have a lower lifetime risk of PCM before death and a higher 
 risk of death before PCM, while a high serum m-spike works in the opposite
-direction.
-The Cox models showed no effect of sex on the instantaneous hazard and none
+direction.  
+The Cox models showed no effect of sex on the instantaneous hazard 
+of PCM and none
 for serum m-spike on the death rate.
-However, as shown in the last section the Cox models do predict 
+However, as shown in the last section, the Cox models do predict 
 a greater lifetime risk for females.
 We had also seen that older subjects are less likely to experience PCM
 due to the competing risk of death;
 this is reflected in the FG model as a negative coefficient for age.
 
-Now compute predicted survival curves for the model, and show it
+Now compute predicted survival curves for the model, and show them
 alongside the predictions from the multi-state model.
 
 <<finegray2, fig=TRUE>>=
@@ -968,37 +958,43 @@ the \code{cox.zph} function,
 linearity of the continuous variables age and mspike by using
 non-linear terms such as \code{pspline} or \code{ns}, and
 additivity by exploring interactions.  
-All are obvious and important next steps.
+All are obvious and important next steps.  For instance, the proportional hazards assumption for age shows clear violations.
+
+<<finegray-check, fig=TRUE>>=
+zph.fgfit2a <- cox.zph(fgfit2a)
+zph.fgfit2a
+plot(zph.fgfit2a[1])
+abline(h=coef(fgfit2a)[1], lty=2, col=2)
+@
 
 A weakness of the Fine-Gray approach is that since the two endpoints
 are modeled separately, the results do not have to be consistent.
 Below is a graph of the predicted fraction who have experienced neither
-endpoint.  For subjects diagnosed at age 80 the Fine-Gray
-models predict that more than 
+endpoint.  For subjects diagnosed at age 80 the Fine-Gray models predict that more than 
 100\% will either progress or die by 30 years.
 Predictions based on the Aalen-Johansen approach do not have this issue.
 <<finegray3, fig=TRUE>>=
 fsurv2 <- survfit(fgfit2b, newdata)  # time to progression curves
 xtime <- 0:(30*12)  #30 years
-y1a <- 1 -summary(fsurv1, times=xtime)$surv  #predicted pcm
-y1b <- 1 -summary(fsurv2, times=xtime)$surv #predicted deaths before pcm
-y1  <- 1 - (y1a + y1b)  #neither
+y1a <- 1 - summary(fsurv1, times=xtime)$surv  #predicted pcm
+y1b <- 1 - summary(fsurv2, times=xtime)$surv #predicted deaths before pcm
+y1  <- (y1a + y1b)  #either
 
 matplot(xtime/12, y1, col=1:2, lty=c(1,1,2,2), type='l',
-        xlab="Years post diagnosis", ylab="FG: neither endpoint")
-abline(0,0, col=3)
-legend(12, .9, c("Female, 60", "Male, 60","Female: 80", "Male, 80"),
+        xlab="Years post diagnosis", ylab="FG: either endpoint")
+abline(h=1, col=3)
+legend("bottomright", c("Female, 60", "Male, 60","Female: 80", "Male, 80"),
        col=c(1,2,1,2), lty=c(1,1,2,2), lwd=2, bty='n')
 @ 
 
 
 The primary strength of the Fine-Gray model with respect to the Cox model
-approach is that if lifetime risk is a primary question then 
+approach is that if lifetime risk is a primary question, then 
 the model has given
 us a simple and digestible answer to that question:
 ``females have a 1.2 fold higher chance of PCM, after adjustment for age 
 and serum m-spike''.
-This simplicity is not without a price, however, and these authors are
+This simplicity is not without a price, however, and these authors are 
 not proponents of the approach.
 There are five issues.
 \begin{enumerate}
@@ -1012,8 +1008,8 @@ There are five issues.
     to be a more difficult barrier. 
   \item The sum of predictions need not be consistent.
   \item From the per-transition models one can work forward and compute
-    $P(t)$, the occupancy probabilities for each state over time;
-    both the hazard ratios and $P$ are useful summaries of the data.
+    $p(t)$, the occupancy probabilities for each state over time;
+    both the hazard ratios and $p$ are useful summaries of the data.
     We don't have tools to work backwards from a Fine-Gray fit to the
     per transition hazards.
   \item The approach is viable only for competing risks and not for
@@ -1022,7 +1018,7 @@ There are five issues.
 \end{enumerate}
 The last of these is perhaps the most frequently listed issue with the Fine-Gray
 model, but it is actually a minor complaint.  
-The state probabilities $P(t)$ in a multi-state model are implicitly 
+The state probabilities $p(t)$ in a multi-state model are implicitly 
 fractions of the total population
 we started with: someone who dies in month 1 is still a part of the denominator
 for the fraction of subjects with PCM at 20 years.  
@@ -1031,7 +1027,7 @@ denominators at a later time, which looks odd but is more of an artifact.
 
 The first issue is substantial, however,
 and checking the model assumptions of a Fine-Gray fit is
-mandatory.  The second point is alarming but it does not have a practical
+mandatory.  The second point is alarming, but it does not have a practical
 impact unless there is long follow-up.
 
 \section{Stacked data sets}
@@ -1041,12 +1037,12 @@ fit the set of Cox models for the rates `all at once' on a combined
 data set.  For the simple competing risks MGUS fit above, assume that
 we wanted to add hemoglobin to the fit, with a common coefficient for
 both the PCM and death endpoint.  (Anemia is a feature of both PCM and old
-age.)  Create a stacked data set with $2n$ observations, the first $n$
-are the data set we would use for a time to PCM analysis, 
+age.)  Create a stacked data set with $2n$ observations.  The first $n$
+rows are the data set we would use for a time to PCM analysis, 
 with a simple 0/1 status variable encoding the PCM outcome.
-The second $n$ observations are the data set we would have used for the 
+The second $n$ rows are the data set we would have used for the 
 `death before PCM' fits, with status encoding the death-before-PCM endpoint.
-A last variable \code{group} is added which is 'pcm' for the first $n$ 
+A last variable, \code{group},  is 'pcm' for the first $n$ 
 observations and
 'death' for the remainder.  Then fit a model
 <<pcmstack, echo=TRUE>>=
@@ -1060,17 +1056,17 @@ This fits a common effect for hemoglobin (hgb) but separate age and sex
 effects for the two endpoints, along with separate baseline hazards.
 
 
-\section{Tutorial in biostatistics}
+\section{Reproducing the output in ``Tutorial in biostatistics: Competing risks and multi-state models''}
 An excellent introduction to multi-state models is found in 
 Putter, Fiocco and Geskus, \emph{Tutorial in biostatistics:
   Competing risks and multi-state models} \cite{Putter07}.
 In this section we recreate the graphs and tables from
-the paper, it parallels a similar document that is a vignette
+the paper; it parallels a similar document that is a vignette
 in the \code{mstate} package.  
-This text will make the most sense if it
+The following text will make the most sense if it
 is read in parallel with the paper.
 
-The tutorial uses two data sets which are included in the mstate
+The tutorial uses two data sets which are included in the \code{mstate}
 package.  
 The first is data from 329 homosexual men from the Amsterdam Cohort
 Studies on HIV infection and AIDS.  A competing risks analysis is
@@ -1105,12 +1101,13 @@ legend(8, .2, c("AIDS", "SI"), lty=1, lwd=2, col=1:2, bty='n')
 @ 
 
 We will use "Txx" to stand for figures or page numbers in the tutorial.
-Figure T2 shows the two Kaplan-Meier curves, with one going uphill
+figure T2 shows the two Kaplan-Meier curves, with one going uphill
 and the other downhill.
-The fact that they cross is used to emphasise the inconsistency of the
-two estimates, i.e. that they add to more than 1.0.
+The fact that they cross is used to emphasize the inconsistency of the
+two estimates, i.e., that they add to more than 1.0.
 
 <<fitT2, fig=TRUE>>=
+# re-create figure T2
 plot(bad1, conf.int=FALSE, xmax=13, 
      xlab="Years from HIV infection", ylab="Probability")
 lines(bad2, conf.int=FALSE, fun='event', xmax=13)
@@ -1119,11 +1116,12 @@ text(c(8,8), c(.8, .22), c("AIDS", "SI"))
 
 Figure T3 adds the Aalen-Johansen curves on top of this.
 Plotting the competing risk curve for AIDS ``down from the top'' is
-something we do not recommend:
+something we do not recommend, since 
 it is not ``survival free of AIDS'' which is what a naive reader of
 such a curve would expect.
 
 <<figT3, fig=TRUE>>=
+# re-create figure T3
 plot(bad1, conf.int=FALSE, xmax=13, col="lightgray",
      xlab="Years from HIV infection", ylab="Probability")
 lines(bad2, conf.int=FALSE, fun='event', xmax=13, col='lightgray')
@@ -1134,9 +1132,10 @@ lines(ajfit[,1], conf.int=FALSE, lwd=2, ,xmax=13, fun=function(x) x)
 @ 
 
 Figure T4 is a stacked plot of the competing risks outcome.
-We can modify the ajfit object by replacing each row of the
-\code{prev} component with the cumulative sum, and then plot the result
+We can modify the \code{ajfit} object by replacing each row of the
+\code{prev} component with the cumulative sum, and then plot the result.
 <<figT4, fig=TRUE>>=
+# re-create figure T4
 temp <- ajfit
 temp$prev <- t(apply(temp$prev, 1, cumsum))  # apply() transposes
 plot(temp, xmax=13, lwd=2, col=1, ylim=c(0,1), 
@@ -1157,7 +1156,7 @@ cfit2
 
 We can achieve the same result using a stacked data set, which will
 have 329 rows = number of subjects for the AIDS endpoint, followed by
-329 for the SI endpoint.  
+329 rows for the SI endpoint.  
 We had to be a bit cautious since the tutorial uses
 \code{cause} for the event type and the data set \code{aidsii} already
 has a variable by that name; 
@@ -1173,14 +1172,13 @@ cfit3
 sum(coef(cfit3))
 @ 
 
-The use of an interaction term gives a different form for the coefficients,
-the second is now the different in CCR-5 effect between the two endpoints.
+The use of an interaction term gives a different form for the coefficients;
+the second is now the difference in CCR-5 effect between the two endpoints.
 Which form one prefers is a matter of taste.
-In the tutorial, the stacked data set also has indicator variables for
-the types.  We can repeat that instead of using the interaction to
+In the tutorial, the stacked data set also has individual indicator 
+variables for \code{ccr} within type.
+We can reprise that approach instead of using the interaction to
 get yet a third equivalent fit.
-The model \code{cfit4} assumes that the baseline hazards for the two
-endpoints are proportional.
 <<stack2>>=
 stack$ccr5.1 <- (stack$ccr5=="WM") * (stack$cause == "AIDS")
 stack$ccr5.2 <- (stack$ccr5=="WM") * (stack$cause == "SI")
@@ -1198,12 +1196,13 @@ cfit4b <-  coxph(Surv(time, status) ~ ccr5*cause, stack) #same result
 
 We can now generate the Aalen-Johansen curves for \code{cfit4}.  This starts
 with obtaining the predictions for the two levels of
-CCR-5 and for the two endpoints = four curves.
+CCR-5 and for the two endpoints, which results in four curves.
 The first two are for AIDS and the second two for SI.
 The temporary matrix \code{smat} can have the states in any order we
-wish (as long as we plug our curves into the right position!),
-we have used the order found above in the non-parametric curves \code{fit2}.
+wish (as long as we plug our curves into the right position!);
+we have chosen the order found above in the non-parametric curves \code{fit2}.
 <<figT5, fig=TRUE>>=
+# re-create figure T5 in a single panel
 tdata <- expand.grid(ccr5=c("WW","WM"), cause=c("AIDS", "SI"))
 tdata
 
@@ -1222,7 +1221,7 @@ legend(0, .4, c("AIDS, WW", "AIDS, WM", "SI, WW", "SI, WM"),
        col=1:2, lty=c(1,1,2,2), lwd=2, bty='n')
 @ 
 
-Because the entry state has a name the plot command would have shown
+Because the entry state has a name, the plot command would have shown
 all 3 curves by default; the 1:2 subscript restricts it to the first two.
 
 \subsubsection{Fine-Gray fits}
@@ -1243,22 +1242,25 @@ The predicted curves based on the Fine-Gray model use the ordinary
 survival tools (not Aalen-Johansen), since they are ordinary 
 Cox models on a special data set.
 <<figT8, fig=TRUE>>=
-fit3 <- survfit(Surv(time, event) ~ ccr5, adata)
+# re-create figure T8: Fine-Gray curves
+fgsurv1<-survfit(fgfit1,newdata=tdata)
+fgsurv2<-survfit(fgfit2,newdata=tdata)
+
 oldpar <- par(mfrow=c(1,2), mar=c(4.1, 3.1, 3.1, 1)) #leave room for title
-plot(fit3[,1], col=1:2, lty=c(1,1,2,2), lwd=2, xmax=13,
-     ylim=c(0, .5),
+plot(fgsurv1, col=1:2, lty=c(1,1,2,2), lwd=2, xmax=13,
+     ylim=c(0, .5),fun='event',
      xlab="Years from HIV infection", ylab="Probability")
 title("AIDS")
-plot(fit3[,2], col=1:2, lty=c(1,1,2,2), lwd=2, xmax=13,
-     ylim=c(0, .5), 
+plot(fgsurv2, col=1:2, lty=c(1,1,2,2), lwd=2, xmax=13,
+     ylim=c(0, .5), fun='event',
      xlab="Years from HIV infection", ylab="Probability")
 title("SI appearance")     
 par(oldpar)
 @ 
 
-The last plot in the section contains the non-parametric fits.
+The last plot in this section of the tutorial contains the non-parametric fits.
 <<figT9, fig=TRUE>>=
-# Curves by CCR type = figure T9
+# re-create figure T9: curves by CCR type
 aj2 <- survfit(Surv(time, event) ~ ccr5, adata)
 oldpar <- par(mfrow=c(1,2))
 plot(aj2[,1], xmax=13, col=1:2, lwd=2, ylim=c(0, .5),
@@ -1297,12 +1299,12 @@ that tracks a subject from state to state using
 \code{(tstart, tstop)} intervals of time.
 The \code{enum} variable is 1 for a subject who has had
 platelet recovery.  
-We also shorten one of the factor label so as to better fit
-the printout on a page
+We also shorten one of the factor labels so as to better fit
+the printout on a page. 
 Printout of a subset of rows shows that subjects 8 and 11
 achieve PR, subject 9 is censored at 3.5 years (1264/365),
 and subject 10 dies at about 1 year.
-We then generate the multistate $P(t)$ curves, a 
+We then generate the multi-state $P(t)$ curves, a 
 plot that does not appear in the tutorial.
 It shows the rapid onset of platelet recovery followed by a slow but 
 steady conversion of these patients to relapse or death.
@@ -1311,15 +1313,15 @@ temp <- subset(ebmt3, select = -c(prtime, prstat, rfstime, rfsstat))
 edata <- tmerge(temp, ebmt3, id, 
                 rstat = event(rfstime, rfsstat),
                 pstat = event(prtime, prstat),
-                enum  = cumtdc(prtime))
-print(edata[15:20,-(3:5)], digits=2)
+                enum  = tdc(prtime))
+print(edata[15:20,-(3:5)])
 
 # Check that no one has recovery and death on the same day
 with(edata, table(rstat, pstat))
 
 # Create the factor outcome
 edata$event <- with(edata, factor(pstat + 2*rstat, 0:2,
-                                    c("censor", "PR", "RelDeath")))
+                           labels = c("censor", "PR", "RelDeath")))
 levels(edata$drmatch) <- c("Match", "Mismatch")
 
 surv1 <- survfit(Surv(tstart, tstop, event) ~ 1, edata, id=id)
@@ -1331,9 +1333,9 @@ legend(1000, .2, c("Platelet recovery", "Death or Relapse"),
 @ 
 
 Many of the fits in the paper make use of a stacked data set.
-Subjects can go from baseline to platelet recovery (temp1),
-baseline to death/relapse (temp2) or from PR to the death/relapse state
-(temp3).
+Subjects can go from baseline to platelet recovery (\code{temp1}),
+baseline to death/relapse (\code{temp2}) or from PR to the death/relapse state
+(\code{temp3}).
 <<data2>>=
 temp1 <- with(edata, data.frame(edata[enum==0,], status=pstat[enum==0], 
                  trans="1->2", from=1, to=2))  # baseline to PR
@@ -1344,12 +1346,13 @@ temp3 <- with(edata, data.frame(edata[enum==1,], status=rstat[enum==1],
 edata2 <- rbind(temp1, temp2, temp3)  # the stacked data set
 @ 
 
-The first fit, found in the left colums of table T3, has separate strata
+The first fit, found in the left columns of table T3, has separate strata
 and covariate effects for each of the three transitions.
 We can fit the model in multiple ways: first as 3 separate fits
-(efit1.1, 1.2, 1.3), then using the stacked data set and a strata by
-covariate interaction (efit1b) and then rewriting the model to get a
-slightly different variable coding (efit1c).
+(\code{efit1.1}, \code{efit1.2}, \code{efit1.3}),
+then using the stacked data set and a strata by
+covariate interaction (\code{efit1b}) and then rewriting the model to get a
+slightly different variable coding (\code{efit1c}).
 In the first two fits below everyone has \code{tstart=0} and so 
 \code{tstart} can be left out of the model statement.
 (Or left in: it has no effect.)
@@ -1366,7 +1369,7 @@ efit2.3 <- coxph(Surv(tstart, tstop, event=='RelDeath') ~
 round(cbind('1->2'= coef(efit1.2) , '1->3'= coef(efit1.3), 
             '2->3' =coef(efit2.3)), 3)
 @ 
-These match the coefficients matches the left column of table T3,
+These coefficients match those in the left column of table T3,
 which lists all six coefficients for the 1.2 transition, then the
 six for the 1.3 transition, and finally the six for the 2.3 transition.
 This is a rational way to present the results to a reader.
@@ -1395,11 +1398,12 @@ first the six coefficients for the
 the 1.3 and 2.3 transitions.  
 In its favor, this makes it easy to see if there are significant differences 
 in, e.g., the disease effect for transition 1.2 and 1.3.
-The last fit gives the same coefficients as the separate fits but in a different
+The last fit gives the same coefficients as the separate fits,
+but in a different
 order.  
 We can see from the log-likelihoods that the three fits are equivalent.
 
-Unlike '*' and '+' the '/' operator is not symmetric.  
+Unlike '*' and '+', the '/' operator is not symmetric.  
 An equivalent form
 to \code{a/b} is \code{a \%in\% b}, which is supposed to help us remember
 which should be first.  
@@ -1431,7 +1435,7 @@ round(summary(efit2b)$coefficients[, c(1,3)], 3)
 @ 
 This matches the second column of table T3, though again the model
 coefficients are not in the same order as the table.  
-(In table T3 the first 6 coeffiencts in columns 2 and 3 are left blank since
+(In table T3 the first 6 coefficients in columns 2 and 3 are left blank since
 they are unchanged from column 1; this confused me at first.)
 The NA in position 2 of \code{efit2c} is due to the fact that the model
 as written
@@ -1440,12 +1444,12 @@ These are confounded and as a result \code{coxph} fits one more
 coefficient than it needs,
 2 instead of 1.  In such a situation the last coefficient is the one set to NA.
 
-Rather than using the plot of figure T14 along a ``they look parallel''
+Rather than using the plot of figure T14 along with a ``they look parallel''
 argument, we can more directly assess the proportional hazards
 assumption in model efit2a by using the \code{cox.zph} routine.
-We chose to plot on the $\sqrt{t}$ scale to emphasise the first year, where
+We chose to plot on the $\sqrt{t}$ scale to emphasize the first year, where
 more events occur.  There is little formal evidence for non-proportional
-hazards, with a p-value of 0.27, though the confidence limit are very wide.
+hazards, with a p-value of 0.27, though the confidence limits are very wide.
 <<zph, fig=TRUE>>=
 z2 <- cox.zph(efit2a, transform=function(x) sqrt(x))
 plot(z2[7], resid=FALSE)
@@ -1458,11 +1462,6 @@ a covariate, i.e., we simply add \code{tstart} as a variable in
 the model.  We had not changed the data set from days to years, as
 the tutorial did; to match their coefficient this extra variable
 needs to be in years.
-The coefficients in table S4 use a ``clock reset'' approach, where time
-is measured from the entry to the state. 
-These fits use the same data set, but with \code{Surv(tstop-tstart, status)}
-rather than \code{Surv(tstart, tstop, status)} as the left hand side
-of the equation.
 
 <<tableS4>>=
 # The extra variable for column 3 of table 3
@@ -1475,16 +1474,16 @@ The Cox model fit for \code{efit3} produces a warning message that a time
 variable appears on both sides of the equation.
 This is a warning that should not be ignored without careful thought,
 since it is often associated with an invalid model. 
-In short, a model man not include a time dependent covariate whose value (at
+In short, a Cox model may not include a time-dependent covariate whose value (at
 any given event time) is dependent on the future.
 In this case we are okay.  Because all the observations are on a common
-time scale, the value of \code{start} does not become ``known'' for subject
+time scale, the value of \code{tstart} does not become ``known'' for a subject
 until all of the subjects have passed that time point.
 
 Table T4 reruns all the models using a ``clock reset'' time scale.
 These are the same models as before but with \code{tstop-tstart} as
 the time value.  The code below gives the first column of the
-table and the others follow as in the above code for table T3.
+table.
 
 <<tableT4>>=
 efit4 <- coxph(Surv(tstop - tstart, status) ~ 
@@ -1495,11 +1494,10 @@ index4 <- index[7:18]  # leave off transition 1->2
 round(mycoef4[index4,], 3)  
 @ 
 
-We now predict the future state of a patient, using as as our reference
+We now predict the future state of a patient, using as our reference
 set two subjects who are $\le 20$ years old, gender matched, AML, with and
-without T-cell depletion. 
-We will use the fit from column 2 of tabl
-We will use the fit from column 2 of table T3, which has proportional hazards 
+without T-cell depletion. We will use the fit from column 2 of table T3,
+which has proportional hazards 
 for the two transitions to Relapse/Death and a separate baseline hazard for
 the PR transition.
 We can predict the hazard for the $1\rightarrow 2$ transition from model
@@ -1561,23 +1559,23 @@ PR, but at a cost of the durability of the PR; essentially all of the
 ``extra'' failures under TCD have passed through the PR state.
 
 Last, we redraw this figure as a stacked diagram.  The authors are not
-themselves enamoured of the stacked form, at least partly because the
+themselves enamored of the stacked form, at least partly because the
 impression it gives can depend on the order of the states.
-We split it as two figures as the version with both TCD and no TCD together
-had too many crossing lines.  Figure T15 corresponds to the left hand panel.
+We split it as two figures because the version with both TCD and no TCD together
+had too many crossing lines.  Figure T15 corresponds to the left panel.
 <<figT14, fig=TRUE>>=
 tcurve <- ecurve2
 tcurve$prev <- t(apply(tcurve$prev, 1, cumsum))
 oldpar <- par(mfrow=c(1,2), mar=c(4.1, 3.1, 3.1, .1))
-plot(tcurve[1,1:3], col=1, xscale=365.25, ylim=c(0,1), 
+plot(tcurve[1,1:4], col=1, xscale=365.25, ylim=c(0,1), 
       xlab="Years since transplant", ylab="Predicted probabilities")
-text(rep(6*365, 4), c(.2, .5, .7, .9), cex=.7, 
+text(rep(4*365, 4), c(.4, .55, .7, .95), cex=.7, 
      c("Alive in remission, PR", "Relapse or death after PR",
        "Relapse or death without PR", "Alive in remission, no PR"))
 title("No TCD")
-plot(tcurve[2,1:3], col=1, xscale=365.25, ylim=c(0,1), 
+plot(tcurve[2,1:4], col=1, xscale=365.25, ylim=c(0,1), 
       xlab="Years since transplant", ylab="Predicted probabilities")
-text(rep(6*365, 4), c(.3, .65, .82, .95), cex=.7, 
+text(rep(4*365, 4), c(.45, .7, .82, .95), cex=.7, 
      c("Alive in remission, PR", "Relapse or death after PR",
        "Relapse or death without PR", "Alive in remission, no PR"))
 title("TCD")
@@ -1585,67 +1583,71 @@ par(oldpar)
 @ 
 
 A last task is to draw the curves using only the overall fits, e.g.,
-\code{efit2b}.  This will be neccesary for more models with shared
+\code{efit2b}.  This will be necessary for models with shared
 coefficients across some strata, for instance, since they can
-only be fit using the stacked data form
-At the moment the survfit routine gets confused by these more 
-complex models, but we are working on rectifying this.
+only be fit using the stacked data form.
+At the moment the \code{survfit} routine gets confused by 
+models that contain nesting (\code{\%in\% or \backslash}) operators).
+However, since the predicted values are independent of exactly how factors
+are coded in the model this is only a nuisance: rerun the fit using
+dummy variables or * operators and obtain the curves from it.
 
 \section{Other software}
-When there are thee states or so with multiple transtions and contraints, then
-the `by hand' approach used above for creating a stacked data sets, labeling
-coefficients, and producing mult-state curves all become a challenge.
-(It is still fairly easy to do, just not easy to ensure it has
+\subsection{the mstate package}
+As the number of states + transitions (arrows + boxes) gets larger then
+the `by hand' approach used above for creating a stacked data set, labeling
+coefficients, and producing multi-state curves becomes a challenge.
+(It is still fairly easy to do, just not as easy to ensure it has
 been done \emph{correctly}.)
 The \code{mstate} package starts with a definition of the matrix of possible
-transitions and uses that to drive tools that build and analyse the stacked
+transitions and uses that to drive tools that build and analyze the stacked
 data set in a more automated fashion. 
-We highly recommend it for more complex models.
-A second advantage mstate is that all the Cox
+We recommend it for more complex models.  (The tutorial above is about at
+our personal threshold.)
+A second advantage of \code{mstate} is that all the Cox
 model fits are now in one well indexed object, which allows for calculation 
-of proper confidence intervals for the state probabilities $P(t)$.
+of proper confidence intervals for the state probabilities $p(t)$.
 (Since all of the steps used the same transition matrix template, the
 necessary computations are scripted and reliable.)
 
-\subsection{msm}
+\subsection{The \code{msm} package}
 There are two broad classes of multi-state data:
 \begin{itemize}
   \item Panel data arises when subjects have regular visits, with the
     current state assessed at each visit.  We don't know when the transitions
     between states occur, or if other states may have been visited in the
-    interim, only the subject's state at specific times.  
+    interim --- only the subject's state at specific times.  
   \item Survival data arises when we observe the transition times;
-    death for example.
+    death, for example.
 \end{itemize}
 
 The overall model (boxes and arrows), the quantities of interest (transition
-rates and $P(t)$), and the desired printout and graphs are identical for
+rates and $p(t)$), and the desired printout and graphs are identical for
 the two cases.  Much of the work in
 creating a data set is also nearly the same.  
 The underlying likelihood equations and resulting analytical methods for
 solving the problem are, however, completely different.  
-The msm package addresses panel data, while survival, mstate, and a host of
-others are devoted to the second.
-
+The \code{msm} package addresses panel data, while \code{survival}, \code{mstate}, and a host of
+others are devoted to survival data.
 
 \section{Conclusions}
-When working with acute disease such as advanced cancer or end-stage liver
-disease there is often a single dominating endpoint.
+When working with acute diseases,  such as advanced cancer or end-stage liver
+disease, there is often a single dominating endpoint.
 Ordinary single event Kaplan-Meier curves and Cox models are then
 efficient and sufficient tools for much of the analysis.  
 Such data was the primary use case for survival analysis earlier in the
-author's career.  
+authors' careers.  
 Data with multiple important endpoints is now common, and multi-state
 methods are an important addition to the statistical toolbox.  
 As shown above, they are now readily available and easy to use.
 
 It is sometimes assumed that the presence of competing risks 
-\emph{requires} the use of a Fine-Gray model (I have seen it in referee
+\emph{requires} the use of a Fine-Gray model (we have seen it in referee
 reports), but this is not correct.  
 The model may often be useful, but is one available option among many.
 Grasping the big picture for a multi-state data set is always a challenge
 and we should make use of as many tools as possible.
-We are often minded of the story of a centenarian on his 100th birthday
+We are often reminded of the story of a centenarian on his 100th birthday
 proclaiming that he was looking forward to many more years ahead because
 ``I read the obituaries every day, and you almost never see someone 
 over 100 listed there''.  
