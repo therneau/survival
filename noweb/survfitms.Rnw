@@ -290,8 +290,9 @@ else {
             ptimes <- ptimes[ptimes <= maxtime]
     	}
         j <- find2(ptimes, stime) 
-        ilist1[[i]] <- c(0, who)[1+ j]
-        ilist2[[i]] <- c(0, who)[1+ find2(ptimes, stime, left.open=TRUE)]
+        zero <- min(who) -1  # times smaller than the left point
+        ilist1[[i]] <- c(zero, who)[1+ j]
+        ilist2[[i]] <- c(zero, who)[1+ find2(ptimes, stime, left.open=TRUE)]
         ilist3[[i]] <- j  #index within a group
         newtime[[i]] <- ptimes
     }

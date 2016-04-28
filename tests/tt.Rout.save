@@ -1,6 +1,6 @@
 
-R Under development (unstable) (2014-09-01 r66509) -- "Unsuffered Consequences"
-Copyright (C) 2014 The R Foundation for Statistical Computing
+R Under development (unstable) (2016-04-12 r70470) -- "Unsuffered Consequences"
+Copyright (C) 2016 The R Foundation for Statistical Computing
 Platform: i686-pc-linux-gnu (32-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -66,4 +66,4 @@ Type 'q()' to quit R.
 > 
 > proc.time()
    user  system elapsed 
- 10.192   1.060  11.287 
+  7.400   0.376   7.779 

@@ -1,5 +1,22 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+
+\section{Changes in version 2.39-3}{
+  \itemize{
+    \item For multi-state curves, the returned n.event component lost
+    its dimensions if any of the curves had only one observation.
+
+    \item Fix error in summary.survreg.  For multiple curves and
+    requested time points at or before the first time point in the data,
+    the values from curve 1 was used for all.  Pointed out by T Eigentler.
+
+    \item Fix an unitialized variable in C code, pointed out by Brian Ripley.
+
+    \item Add another section to the competing risks vignette, which
+    works through the examples from
+    "Tutorial in biostatistics: competing risks and multistate models".
+}}
+
 \section{Changes in version 2.39-2}{
   \itemize{
     \item Small updates based on feedback from CRAN

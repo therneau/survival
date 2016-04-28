@@ -289,7 +289,7 @@ for (ii in seq(along.with=args)) {
     # if an event time is missing then skip that obs
     etime <- argi$time
     if (length(etime) != length(saveid))
-        stop("argument", argname[ii], "is not the same length as id")
+        stop("argument ", argname[ii], " is not the same length as id")
    if (!is.null(argi$value)) {
        if (length(argi$value) != length(saveid))
             stop("argument", argname[ii], "is not the same length as id")

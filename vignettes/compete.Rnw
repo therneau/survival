@@ -1075,11 +1075,24 @@ AIDS diagnosis as the endpoints.
 The second data set is from the European Blood and Marrow Transplant
 (EBMT) registry, and follows 2204 subjects who had a transplant forward
 to relapse or death, with platelet recovery as an intermediate state.
-<<>>=
-require(mstate, quietly = TRUE)
-data(aidssi)  # AIDS data set
-data(ebmt3)   # transplant data set
-@ 
+
+% Since survival is a required package, we want it to not depend on any
+% packages which are not also baseline or required.  So we print out one 
+% thing for readers of the vignette, which is what we expect them to do,
+% but actually do another, which is to load a local copy of the data sets.
+%  The lines below were originally an Sweave block with eval=FALSE, but
+% this gives a false positive CRAN check wrt requirement of mstate.
+%
+\begin{verbatim}
+    > require(mstate, quietly = TRUE)
+    > data(aidssi)  # AIDS data set
+    > data(ebmt3)   # transplant data set
+\end{verbatim}
+<<echo=FALSE, eval=TRUE>>=
+if (file.exists("mstate.rda")) load("mstate.rda") else {
+    stop("no local copy of mstate data was found")
+}
+@
 
 \subsection{Competing risk}
 We first create the multi-state status variable and use it to plot
@@ -1286,7 +1299,6 @@ whether donor and recipient are sex matched.
 We first reprise table T2 to verify that we have the
 same data set.
 <<tableT2>>=
-data(ebmt3)
 table(ebmt3$dissub)
 table(ebmt3$drmatch)
 table(ebmt3$tcd)
@@ -1587,13 +1599,13 @@ A last task is to draw the curves using only the overall fits, e.g.,
 coefficients across some strata, for instance, since they can
 only be fit using the stacked data form.
 At the moment the \code{survfit} routine gets confused by 
-models that contain nesting (\code{\%in\% or \backslash}) operators).
+models that contain nesting (\code{\%in\%} or /) operators).
 However, since the predicted values are independent of exactly how factors
 are coded in the model this is only a nuisance: rerun the fit using
-dummy variables or * operators and obtain the curves from it.
+dummy variables or * operators and obtain the curves from the latter.
 
 \section{Other software}
-\subsection{the mstate package}
+\subsection{The mstate package}
 As the number of states + transitions (arrows + boxes) gets larger then
 the `by hand' approach used above for creating a stacked data set, labeling
 coefficients, and producing multi-state curves becomes a challenge.
