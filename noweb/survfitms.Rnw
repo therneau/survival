@@ -136,7 +136,7 @@ summary.survfit <- function(object, times, censored=FALSE,
 			    scale=1, extend=FALSE, 
                             rmean=getOption('survfit.rmean'),
                             ...) {
-    fit <- object
+    fit <- object  #make a local copy
     if (!inherits(fit, 'survfit'))
 	    stop("summary.survfit can only be used for survfit objects")
 
@@ -159,85 +159,113 @@ summary.survfit <- function(object, times, censored=FALSE,
     temp <- survmean(fit, scale=scale, rmean)  
     table <- temp$matrix  #for inclusion in the output list
     rmean.endtime <- temp$end.time
-
-    if (!missing(times)) {
-        if (!is.numeric(times)) stop ("times must be numeric")
-        times <- sort(times)
+    
+    fit$time <- fit$time/scale
+    if (!is.null(fit$strata)) {
+        nstrat <-  length(fit$strata)
+        sindx <- rep(1:nstrat, fit$strata)
     }
 
-    # The fit$surv object is sometimes a vector and sometimes a
-    #  matrix.  We calculate row indices first, and then deal
-    #  with the cases at the end.
-    nsurv <- length(fit$time)
-    if (is.null(fit$strata)) {
-	nstrat <- 1
-	stemp <- rep(1L, nsurv)
-        strata.names <- ""
-	}
-    else   {
-	nstrat <- length(fit$strata)
-	stemp <- rep(1:nstrat, fit$strata)
-        strata.names <- names(fit$strata)
+    delta <- function(x, indx) {  # sums between chosen times
+        if (!is.null(x) && length(indx) >0) {
+            fx <- function(x, indx) diff(c(0, cumsum(x[indx])))
+            if (is.matrix(x)) apply(x, 2, fx, indx=indx)
+            else fx(x, indx)
+        }
+        else NULL
     }
 
-    <<survsum-findrows>>
-
-    # Create an output structure
-    temp <- object
-    temp$table <- table
-    if (length(rmean.endtime)>0  && !is.na(rmean.endtime)) 
-            temp$rmean.endtime <- rmean.endtime
-    if (length(indx1)==length(fit$time) && all(indx1 == seq(along=fit$time))) {
-        temp$time <- temp$time/scale
-        if (!is.null(temp$strata))
-            temp$strata <- factor(stemp, labels=strata.names)
-
+    # select, pasting a value on the front for indices of 0 
+    ssub <- function(x, indx, init=0) {  #select an object and index
+        if (!is.null(x) && length(indx)>0) {
+            if (is.matrix(x)) rbind(init, x)[indx+1,,drop=FALSE]
+            else c(init, x)[indx+1]
+        }
+        else NULL
     }
-    else if (missing(times)) {  #default censor=FALSE case
-        temp$time <- temp$time[indx1]/scale
-        for (j in c("n.risk", "n.event", "n.censor", "n.enter", "prev",
-                    "surv", "std.err", "cumhaz", "lower", "upper")) {
-            zed <- temp[[j]]
-            if (!is.null(zed)) {
-                if (is.matrix(zed)) temp[[j]] <- zed[indx1,,drop=FALSE]
-                else temp[[j]] <- zed[indx1]
+    # select, pasting a value on the back for longer indices (for n.risk)
+    ssub2 <- function(x, indx, end=0) {
+        if (!is.null(x) && length(indx)>0) {
+            if (is.matrix(x)) rbind(x, end)[indx,,drop=FALSE]
+            else c(x, end)[indx]
+        }
+        else NULL
+    }
+
+ 
+    # There are 4 cases: 'times' argument is absent or present,
+    #  strata is absent or present.  It is easiest to do them
+    #  separately.
+    if (missing(times)) {
+        # There will be no indices before, after, or in-between observed
+        # times, so ssub and ssub2 are identical
+        if (!censor) {
+            indx1 <- which(rowSums(as.matrix(fit$n.event)) >0)
+            for (i in c("time","n.risk", "n.event", "surv", "std.err", 
+                        "upper", "lower"))
+                fit[[i]] <- ssub[fit[[i]], indx1]
+            if (is.null(fit$strata)) {
+                for (i in c("n.enter", "n.censor"))
+                    if (!is.null(fit[[i]]))
+                        fit[[i]] <- delta(fit[[i]], indx1)
+                }
+                else {
+                    for (i in c("n.enter", "n.censor")) {
+                        if (!is.null(fit[[i]]))
+                            fit[[i]] <- unlist(sapply(1:strat, function(x) 
+                               delta(fit$[[i]][sindx==i], indx1[sindx==i])))
+                    }
+                    fit$strata[] <- as.vector(table(sindx))  #retain names
+                }
             }
         }
-        if (!is.null(temp$strata))
-            temp$strata <- factor(stemp[indx1], levels=1:nstrat,
-                                  labels=strata.names)
+    }  #if missing(times) and censor=TRUE, fit is ok as it is
+
+    else { # This is the harder case
+        <<survfitms-findrows>>
+        if (is.null(fit$strata)) {
+            ftemp <- findrows(fit, 1:length(fit$time), extend, times/scale)
+            fit$time <- ftemp$time
+            for (i in c("surv", "upper", "lower"))
+                     fit[[i]] <- ssub(fit[[i]], ftemp$indx1, 1)
+            fit$std.err <- ssub(fit$std.err, ftemp$indx1, 0)
+            fit$n.risk <- ssub2(fit$n.risk,  ftemp$indx2)
+            for (i in c("n.event", "n.censor", "n.enter"))
+                fit[[i]] <- delta(fit[[i]], ftemp$indx1)
+         }
+        else {
+            # do the curves one at a time, unlist it at the end
+            ltemp <- vector("list", nstrat)
+            for (j in 1:nstrat) {
+                temp <- findrows(fit, which(stemp==j), extend, 
+                                       times/scale)
+                temp$time <- ftemp$time
+                for (i in c("surv", "upper", "lower"))
+                     temp[[i]] <- ssub(temp[[i]], ftemp$indx1, 1)
+                temp$std.err <- ssub(temp$std.err, ftemp$indx1, 0)
+                temp$n.risk <- ssub2(temp$n.risk,  ftemp$indx2)
+                for (i in c("n.event", "n.censor", "n.enter"))
+                    temp[[i]] <- delta(temp[[i]], ftemp$indx1)
+                ltemp[[j]] <- temp
+            }
+            
+            for (i in names(ltemp[[1]])) {
+                temp <- lapply(ltemp, function(x) x[[i]])
+                if (is.matrix(fit[[i]]))
+                    fit[[i]] <- do.call("rbind", temp)
+                else fit[[i]] <- unlist(temp)
+            }
+            fit$strata[] <- sapply(ltemp, function(x) length(x$time))
+        }
     }
-    else { #times argument was given
-        temp$time <- unlist(newtime)/scale
-        tfun <- function(x, init=0, index=indx1) {
-             if (is.matrix(x)) 
-                rbind(rep(init, ncol(x)), x)[1+index,,drop=FALSE]
-             else c(init, x)[1 + index]
-        }
-        tfun2 <- function(x, end=0, index=indx2) {
-             if (is.matrix(x)) 
-                rbind(x, rep(end, ncol(x)))[1+index,,drop=FALSE]
-             else c(x,end)[1 + index]
-        }
-        temp$surv  <- tfun(temp$surv, 1)
-        temp$n.risk <- tfun2(temp$n.risk)
-        for (j in c("std.err", "cumhaz", "lower", "upper")) {
-            if (!is.null(temp[[j]])) temp[[j]] <- tfun(temp[[j]])
-        }
-        for (j in c("n.event", "n.censor", "n.enter")){
-            zed <- temp[[j]]
-            if (!is.null(zed)) temp[[j]] <- cfun(zed)
-        }
-        
-        if (!is.null(fit$strata)) {
-            scount <- unlist(lapply(ilist1, length))
-            temp$strata <- factor(rep(1:nstrat, scount), levels=1:nstrat,
-                                  labels=strata.names)
-        }
-    }
+ 
+    # finish off the output structure
+    fit$table <- table
+    if (length(rmean.endtime)>0  && !is.na(rmean.endtime)) 
+            fit$rmean.endtime <- rmean.endtime
 
     # An ordinary survfit object contain std(cum hazard), change scales
-    if (!is.null(temp$std.err)) temp$std.err <- temp$std.err * temp$surv 
+    if (!is.null(fit$std.err)) fit$std.err <- fit$std.err * fit$surv 
     class(temp) <- 'summary.survfit'
     temp
 }
@@ -246,87 +274,31 @@ summary.survfit <- function(object, times, censored=FALSE,
 Grab rows: if there is no \code{times} argument it is easy.
 At the end \code{indx1} is the right continuous index and \code{indx2}
 the left continuous one.  If a curve has jumps at 1 and 2, at time 1.5
-the survival is the same as that at time 1 (indx1), the number at risk the
-same as time 2 (indx2).
+the survival is the value at time 1 (indx1), the number at risk the
+number at time 2 (indx2).
 
-<<survsum-findrows>>=
-if (missing(times)) {
-    # just pick off the appropriate rows of the output
-    # For a survfitms object n.event is a matrix, pick off all rows with an
-    #  event for some endpoint.
-    if (censored) indx1 <- seq(along=fit$time)
-    else indx1 <- which(rowSums(as.matrix(fit$n.event)) >0)
-    indx2 <- indx1
-}
-@ 
-
-This second case is actual work, since may involve ``in between'' points
-in the curves.
-In R version 3.2.? findInterval gains an argument so as to return both
-left and right continuous results, but I currently need to integrate with
-an older version.
-
-<<survsum-findrows>>=
-else { 
+<<survfitms-findrows>>=
+findrow <- function(fit, who, times, extend) {
     find2 <- function(x, vec, left.open=FALSE, ...) {
         if (!left.open) findInterval(x, vec, ...)
         else length(vec) - findInterval(-x, rev(-vec), ...)
     }
-    # Process the curves one at a time, adding them to the two lists
-    ilist1 <- ilist2 <- ilist3 <- vector('list', nstrat)
-    newtime <- ilist1
-    n <- length(stemp)
-    for (i in 1:nstrat) {
-        who <- (1:n)[stemp==i]  # the rows of the object for this strata
-        stime <- fit$time[who]
 
-        # First, toss any printing times that are outside our range
-        if (is.null(fit$start.time)) mintime <- min(stime, 0)
-        else                         mintime <- fit$start.time
-        ptimes <- times[times >= mintime]
+    # First, toss any printing times that are outside our range
+    if (is.null(fit$start.time)) mintime <- min(fit$time[who], 0)
+    else                         mintime <- fit$start.time
+    ptimes <- times[times >= mintime]
 
-        if (!extend) {
-            maxtime <- max(stime)
-            ptimes <- ptimes[ptimes <= maxtime]
-    	}
-        j <- find2(ptimes, stime) 
-        zero <- min(who) -1  # times smaller than the left point
-        ilist1[[i]] <- c(zero, who)[1+ j]
-        ilist2[[i]] <- c(zero, who)[1+ find2(ptimes, stime, left.open=TRUE)]
-        ilist3[[i]] <- j  #index within a group
-        newtime[[i]] <- ptimes
+    if (!extend) {
+        maxtime <- max(fit$time[who])
+        ptimes <- ptimes[ptimes <= maxtime]
     }
-    indx1 <- unlist(ilist1)
-    indx2 <- unlist(ilist2)
+        
+    j <- find2(ptimes, fit$time[who]) 
+    indx1 <- c(0, who)[1+j]
+    indx2 <- c(0, who)[1+ find2(ptimes, fit$time[who], left.open=TRUE)]
 
-    # All of the indices (ilist1, indx1, ...) contain 0 for a time point that
-    #  is prior to the first observed time in the curve.  Times that
-    #  are >= to the last observed time will point to that last observed
-    #  time.  Variable ilist3 contains indices that are relative to the
-    #  start of a curve, all other indices point to row numbers in the
-    #  entire object.
-    #  
-    cfun <- function(x, init=0) {  #cumulative counts over a time interval
-        tlist <- vector("list", nstrat)
-        if (is.matrix(x)) {
-            for (i in 1:nstrat) {
-                # stemp is 1,1,1,....2,2,2,,.. to mark curves
-                x2 <- x[stemp==i,]  # all those in the group
-                j  <- c(0, ilist3[[i]])
-                tlist[[i]] <- apply(rbind(0, x2), 2, function(z) {
-                    diff(cumsum(z)[1+j])})
-            }
-            matrix(unlist(lapply(tlist, t)), byrow=T, ncol=ncol(x))
-        } 
-        else {
-            for (i in 1:nstrat) {
-                x2 <- x[stemp==i] 
-                j  <- c(0, ilist3[[i]])
-                tlist[[i]] <- diff(cumsum(c(0,x2))[1+j])
-            }
-            unlist(tlist)
-        }
-    }
+    list(indx1= indx1, indx2= indx2, time=ptimes)
 }
 @ 
 

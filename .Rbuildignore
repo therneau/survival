@@ -2,10 +2,18 @@ noweb/*.aux
 noweb/*.log
 noweb/*.tex
 noweb/*.out
+noweb/*.pdf
+noweb/casecohort.Rnw
+noweb/concordance.old.Rnw
+noweb/figures
+noweb/predict.coxph.Rnw
+noweb/ratetable.Rnw
 src/Readme
 src/surv_callback.csp
 src/cox_callback.csp
 src/pyears3.c
+tests/plot.R
+tests/plot1.pdf.save
 inst/doc/validate.tex
 .hg
 .hgignore
@@ -17,3 +25,5 @@ vignettes/*.tex
 noweb/noweb.sty
 fail
 src/coxfit7.ctemp
+Readme.md
+

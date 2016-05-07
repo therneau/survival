@@ -9,11 +9,11 @@ exectuted results.  The noweb package documents and writes out source code
 for functions.  Use "R CMD make fun" to create the objects in ../R.  (If you
 don't, changes here will have no effect on the final pacakge.)
 
-The result file all.pdf is documentation for understanding the code, 
+The result file code.pdf is documentation for understanding the code, 
 not how to use the survival functions for data analysis.  For those who
 maintain the code it will be a big help, for everyone else I'd expect
 it to be boring.
 
-Use ``R CMD make'' to create the documentation file.
+Use make code.pdf to create the documentation file.
 
 	Terry Therneau

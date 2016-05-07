@@ -206,7 +206,7 @@ survmean <- function(x, scale=1, rmean) {
     if (is.null(x$strata)) {
         if (rmean=='none') end.time <- NA
         else if (is.numeric(rmean)) end.time <- rmean
-        else end.time <- max(x$time)
+        else end.time <- max(stime)
 
 	if (is.matrix(surv)) {
 	    out <- matrix(0, ncol(surv), ncols)
@@ -232,7 +232,7 @@ survmean <- function(x, scale=1, rmean) {
 	nstrat <- length(x$strata)
 	stemp <- rep(1:nstrat,x$strata)  # the index vector for strata1, 2, etc
 
-        last.time <- (rev(x$time))[match(1:nstrat, rev(stemp))]
+        last.time <- (rev(stime))[match(1:nstrat, rev(stemp))]
         if (rmean=='none') end.time <- rep(NA, nstrat)
         else if (is.numeric(rmean)) end.time <- rep(rmean, nstrat)
         else if (rmean== 'common')  end.time <- rep(median(last.time), nstrat)
