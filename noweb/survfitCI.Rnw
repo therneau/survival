@@ -178,18 +178,18 @@ chain rule.  Consider the $n$ by $k$ matrix of per subject influence values
             &= \frac{\partial[ p(t-) H_{.k}(t)]}{\partial w_i} \label{ci0} \\
            &= U_{i.}(t-) H_{.k}(t) + 
                      p(t-) \frac{\partial H_{.k}(t)}{\partial w_i} \label{ci1}\\
- \frac{\partial H_{jk}(t)}{\partial w_i} &=  \left\{ \begin{array}{ll}
-        \left( dN_{ijk}(t) - Y_{ij}(t)H_{jk} \right)/n_j(t) & j \ne k \\
-        -\left(dN_{ij.}(t) - Y_{ij}(t)(1-H_{jj}) \right)/n_j(t) & j=k \\
+ \frac{\partial H_{jk}(t)}{\partial w_g} &=  \left\{ \begin{array}{ll}
+        \left( dN_{gjk}(t) - Y_{gj}(t)H_{jk} \right)/n_j(t) & j \ne k \\
+        -\left(dN_{gj.}(t) - Y_{gj}(t)(1-H_{jj}) \right)/n_j(t) & j=k \\
        \end{array} \right. \label{ci2}
 \end{align}
-where $H_{.k}$ is the $k$th column of $H$ amd $n_j(t)= \sum_i Y_{ij}(t)w_i$
+where $H_{.k}$ is the $k$th column of $H$ and $n_j(t)= \sum_i Y_{ij}(t)w_i$
 is the weighted number of subjects in state $j$.
 Equation \eqref{ci0} replaces $p(t)$ with the last step of the compuation that
-created it.  The next writes this out carefully using the chain rule, leading
-to an recursive equation.
+created it.  The next writes this out carefully using the 
+product rule for derivatives, leading to a recursive equation.
 The first term of \eqref{ci1} is the formula for ordinary matrix multiplication.
-In equation \eqref{ci2} the derivative of $H$ with respect to subject $i$
+In equation \eqref{ci2} the derivative of $H$ with respect to subject $g$
 will be a matrix which is non-zero only for the row corresponding to the
 current state of the subject.  (I've skipped some intermediate steps in
 the derivation, they are left as an exercise for the reader).
