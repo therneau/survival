@@ -4,7 +4,7 @@
 \title{Smoothing splines using a pspline basis}
 \usage{
 pspline(x, df=4, theta, nterm=2.5 * df, degree=3, eps=0.1, method,
-   Boundary.knots=range(x), intercept=FALSE, penalty=TRUE,  ...)
+   Boundary.knots=range(x), intercept=FALSE, penalty=TRUE, combine, ...)
 
 psplineinverse(x)}
 \arguments{
@@ -36,8 +36,12 @@ psplineinverse(x)}
     These default to the range of the data.}
   \item{intercept}{if TRUE, the basis functions include the intercept.}
   \item{penalty}{if FALSE a large number of attributes having to do with
-    penalized fits are excluded.  Most useful for exploring the code so
-    as to return a matrix with few added attributes.}
+    penalized fits are excluded.  This is useful to create a pspline
+    basis matrix for other uses.}
+  \item{combine}{an optional vector of increasing integers.  If two
+    adjacent values of \code{combine} are equal, then the corresponding
+    coefficients of the fit are forced to be equal.  This is useful for
+    monotone fits, see the vignette for more details.
   }
 \description{
     Specifies a penalised spline basis for the predictor.
@@ -48,7 +52,8 @@ psplineinverse(x)}
     indistinguishable for any number of basis functions greater than about 
     2-3 times the degrees of freedom. 
     Eilers and Marx point out that if the basis functions are evenly spaced,
-    this leads to significant computational simplifications.
+    this leads to significant computational simplification, they refer
+    to the result as a p-spline.
 }
 
 \value{
