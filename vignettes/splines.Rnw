@@ -45,7 +45,7 @@ mfit
 termplot(mfit, term=2, se=TRUE, col.term=1, col.se=1)
 @ 
 Note that the \code{term=2} option is passed directly from the
-\code{termplot} routine to a \code{predict(fit, type='terms') call.
+\code{termplot} routine to a \code{predict(fit, type='terms')} call.
 For coxph models, the \code{predict} function allows terms to be
 specified either by position or name.
 Other routines, e.g. \code{gam}, respond only to a name.

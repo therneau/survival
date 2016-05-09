@@ -43,6 +43,7 @@ psplineinverse(x)}
     coefficients of the fit are forced to be equal.  This is useful for
     monotone fits, see the vignette for more details.
   }
+  }
 \description{
     Specifies a penalised spline basis for the predictor.
     This is done by fitting a comparatively small set of splines and

@@ -14,7 +14,6 @@ src/cox_callback.csp
 src/pyears3.c
 tests/plot.R
 tests/plot1.pdf.save
-inst/doc/validate.tex
 .hg
 .hgignore
 test.local

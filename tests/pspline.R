@@ -30,7 +30,7 @@ aeq(outer(-log(p3$surv), exp(temp), '*'), -log(p4$surv))
 spfit3 <- coxph(Surv(time, status) ~ pspline(age) + sex, lung,
                 model=TRUE)  #avoid the missing value
 m2 <- model.frame(spfit3, data=lung[keep,])
-all.equal(m2, spfit3$model[keep,])
+all.equal(m2, spfit3$model[keep,], check.attributes=FALSE)
 
 #
 # Test of residuals, in response to a reported bug.  The routines for
