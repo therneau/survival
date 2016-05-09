@@ -77,9 +77,9 @@ Call: survfit(formula = Surv(time, status) ~ ph.ecog, data = lung)
 
                 ph.ecog=3 
  time n.risk n.event survival std.err lower 95% CI upper 95% CI
-   30     63       0        1       0            0            0
-   60     63       0        1       0            0            0
-   90     63       0        1       0            0            0
+   30      1       0        1       0            1            1
+   60      1       0        1       0            1            1
+   90      1       0        1       0            1            1
 
 > print(temp[2:3])
 Call: survfit(formula = Surv(time, status) ~ ph.ecog, data = lung)
@@ -219,4 +219,4 @@ n= 167, number of events= 120
 > 
 > proc.time()
    user  system elapsed 
-  0.280   0.024   0.297 
+  1.816   0.088   1.902 

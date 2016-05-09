@@ -22,8 +22,9 @@ vigtemp
 vignettes/*.aux
 vignettes/*.log
 vignettes/*.tex
+vignettes/*.pdf
+vignettes/tutorial.Rnw
 noweb/noweb.sty
 fail
-src/coxfit7.ctemp
 Readme.md
 

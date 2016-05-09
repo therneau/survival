@@ -1,6 +1,14 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
 
+\section{Changes in version 2.39-4}{
+  \itemize{
+    \item Create a stronger test suite for summary.survreg, and use
+    it to actually fix the error that 2.39-3 claimed to fix.  This
+    uncovered a long-standing inaccuracy with n.risk for in-between
+    time points.
+ }}
+  
 \section{Changes in version 2.39-3}{
   \itemize{
     \item For multi-state curves, the returned n.event component lost
@@ -11,10 +19,6 @@
     the values from curve 1 was used for all.  Pointed out by T Eigentler.
 
     \item Fix an unitialized variable in C code, pointed out by Brian Ripley.
-
-    \item Add another section to the competing risks vignette, which
-    works through the examples from
-    "Tutorial in biostatistics: competing risks and multistate models".
 }}
 
 \section{Changes in version 2.39-2}{
