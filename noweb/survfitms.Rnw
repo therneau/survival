@@ -125,7 +125,7 @@ dim.survfitms <- function(x) {
 }
 @ 
 
-The summary.survfit and summary.survfitms functions share a large
+The summary.survfit and summary.survfitms functions share a significant
 amount of code.  
 One part of the code that once was subtle is dealing with
 intermediate time points; the findInterval function in base R has
@@ -176,7 +176,6 @@ summary.survfit <- function(object, times, censored=FALSE,
     fit$time <- fit$time/scale
     if (!is.null(fit$strata)) {
         nstrat <-  length(fit$strata)
-        sindx <- rep(1:nstrat, fit$strata)
     }    
     delta <- function(x, indx) {  # sums between chosen times
         if (!is.null(x) && length(indx) >0) {
@@ -211,7 +210,8 @@ summary.survfit <- function(object, times, censored=FALSE,
  
     # Expand the strata
     if (!is.null(fit$strata)) 
-        fit$strata <- factor(rep(names(fit$strata), fit$strata))
+        fit$strata <- factor(rep(1:nstrat, fit$strata), 1:nstrat,
+                             labels= names(fit$strata))
     class(fit) <- "summary.survfit"
     fit
 }
@@ -239,12 +239,15 @@ if (!censored) {
                 fit[[i]] <- delta(fit[[i]], index)
     }
     else {
+        sindx <- rep(1:nstrat, fit$strata)
         for (i in c("n.enter", "n.censor")) {
             if (!is.null(fit[[i]]))
                 fit[[i]] <- unlist(sapply(1:nstrat, function(x) 
                              delta(fit[[i]][sindx==i], index[sindx==i])))
         }
-        fit$strata[] <- as.vector(table(sindx[index]))  #retain names
+        # the "factor" is needed for the case that a strata has no
+        #  events at all, and hence 0 lines of output
+        fit$strata[] <- as.vector(table(factor(sindx[index], 1:nstrat))) 
     }
 }
 #if missing(times) and censored=TRUE, the fit object is ok as it is
@@ -257,7 +260,8 @@ it fills in an initial value.
 <<survfitms-times>>=
 ssub <- function(x, indx, init=0) {  #select an object and index
     if (!is.null(x) && length(indx)>0) {
-        if (is.matrix(x)) rbind(init, x)[indx+1,,drop=FALSE]
+        # the as.vector() is a way to keep R from adding "init" as a row name
+        if (is.matrix(x)) rbind(as.vector(init), x)[indx+1,,drop=FALSE]
         else c(init, x)[indx+1]
     }
     else NULL

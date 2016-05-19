@@ -21,6 +21,22 @@ survfit(formula, ...)
   The code uses factor() to define the set.
   For further details see the documentation for the appropriate method, i.e.,
   \code{?survfit.formula} or \code{?survfit.coxph}.  
+
+  A survfit object may contain a single curve, a set of curves, or a
+  matrix curves.
+  Predicted curves from a \code{coxph} model have one row for each
+  stratum in the Cox model fit and one column for each specified
+  covariate set.
+  Curves from a multi-state model have one row for each stratum and
+  a column for each state, the strata corrspond to predictors on the
+  right hand side of the equation.  The default printing and plotting
+  order for curves is by column, as with other matrices.
+
+  Curves can be subscripted using either a single or double subscript.
+  If the set of curves is a matrix, as in the above, and one of the
+  dimensions is 1 then the code allows a single subscript to be used.
+  (That is, it is not quite as general as using a single subscript for
+  a numeric matrix.)
 }
 \value{
 An object of class \code{survfit} containing one or more survival curves.
@@ -28,7 +44,9 @@ An object of class \code{survfit} containing one or more survival curves.
 \author{Terry Therneau}
 \note{Older releases of the code also allowed the specification for 
 a single curve
-to omit the right hand of the formula, i.e., \code{~ 1}.  
+to omit the right hand of the formula, i.e.,
+\code{survfit(Surv(time, status))}, in which case the formula argument
+is not actually a formula.
 Handling this case required some non-standard and fairly fragile 
 manipulations, and this case is no longer supported.
 }

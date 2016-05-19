@@ -5,5 +5,5 @@ This is the source code for the "survival" package in R.  It gets posted to the 
 The vignette "tutorial.Rnw" is not posted to CRAN, since it requires data from
 the mstate package, survival is a recommended package, and such packages can 
 only depend on other recommended packages.  (This allows for a consistent 
-distribution bundle.)
+distribution bundle.)  It is included here however.
 

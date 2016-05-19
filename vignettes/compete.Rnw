@@ -176,8 +176,19 @@ infinitesimal jackknife.
 Let $D(t)$ be a matrix with one row per subject and one column per state.
 Each row contains the \emph{change} in $p(t)$ corresponding to subject $i$,
 i.e., the derivative of $p$ with respect to the $i$th subject's case
-weight $dp(t)/dw_i$. Then $V(t) = D'D$ is the estimated variance-covariance
-matrix of the estimates at time $t$.
+weight $dp(t)/dw_i$. Then $V(t) = D'WD$ is the estimated variance-covariance
+matrix of the estimates at time $t$, where $W$ is a diagonal matrix of
+observation weights.
+If a single subject is represented by multiple rows in the data set, then
+$D$ is first collapsed to have one row per subject, the new row for subject
+$i$ is the sum of the rows for the observations that represented the 
+subject.  This is essentially the same algorithm as the robust variance for
+a Cox model.
+For simple two state alive -> dead model, the IJ estimate of variance 
+is identical to the traditional Greenwood estimate for the variance of the
+surivival curve $S$. 
+(This was a surprise when we first observed it; proving the equivalence
+was not straightforward.)
 
 
 The $p(t)$ vector obeys the obvious constraint that its sum at 

@@ -51,10 +51,10 @@ specified either by position or name.
 Other routines, e.g. \code{gam}, respond only to a name.
 (This can be a bit of a pain since it must exactly match the 
 \emph{printed} call
-in both spelling and spacing; and the printed spacing in
+in both spelling and spacing; and the printed spacing
 may not match what the user typed.)
 
-Three questions of the plot are whether the curve is significantly 
+Three questions are whether the curve is significantly 
 non-linear, how the curve is centered and whether we
 can easily plot it on the hazard as opposed to the log hazard scale.
 The first question is answered by the printout,
@@ -75,8 +75,8 @@ and each column of the result is centered so that the average predicted
 value is zero.
 Since any given $x$ value may appear multiple times in the data and thus in
 the result of predict, 
-and the termplot function removes duplicates, the plot will normally not
-be precisely centered at zero.
+and the termplot function removes duplicates, the data returned by
+\code{termplot} may not be precisely centered at zero.
 
 Now suppose we want to redraw this on log scale with age 50 as the reference,
 i.e., the  risk is 1 for a 50 year old.  
@@ -94,11 +94,13 @@ matplot(ageterm$x, exp(ytemp - center), log='y',
         xlab="Age at diagnosis", ylab="Relative death rate")
 @ 
 
-Voila! We now have a plot that is more interpretable.  
+Voila! We now have a plot that is interpretable with respect to a fixed
+reference.
+
 The approach is appropriate for any term, not just psplines.
 The above plot uses log scale for the y axis which is appropriate
 for the question of whether a non-linear age effect was even necessary
-for this data set (it is not),
+for this model (it is not),
 one could remove the log argument to emphasize the Gomperzian effect of
 age on mortality.
 
@@ -208,20 +210,71 @@ The non-linearity is not very large, as compared to the linear portion,
 but still may be important.
 
 We would like to go forward and fit separate age curves for the males and
-the females, since the above fit makes an unwarranted 
+the females, since the above fit makes an untested
 assumption that the male/female
 ratio of death rates will be the same at all ages. 
 The primary problem is that a formula of 
 \texttt{sex * pspline(age)} does not work;
-the coxph routine is not clever enough to do the right thing automatically.
+the coxph routine is not clever enough to do the right thing automatically
+for \code{pspline} interactions.
 (Perhaps some future version will be sufficiently intelligent, but don't hold
 your breath).
-If we were using regression splines instead, e.g. \texttt{ns(age, df=4)},
-a simple call coxph routine using the interaction term would succeed,
-but then termplot would fall short.  The solution below suffices for all
-cases.
 
-First, we need to create our own dummy variables to handle the interaction.
+As a first solution we will use regression splines, i.e., splines
+that can be represented using a basis matrix.
+
+<<nfit>>=
+options(show.signif.stars=FALSE)  # display statistical intellegence
+require(splines, quietly=TRUE)
+nfit1 <- coxph(Surv(futime, death) ~ sex + age, flchain)
+nfit2 <- coxph(Surv(futime, death) ~ sex + ns(age, df=3), flchain)
+nfit3 <- coxph(Surv(futime, death) ~ sex * ns(age, df=3), flchain)
+anova(nfit1, nfit2, nfit3)
+@ 
+The nonlinear term is significant but the interaction is not.
+Nevertheless we would like to plot the two estimated curves for 
+\code{nfit3}, expecting that they will be approximately parallel.
+The \code{termplot} routine is not able to deal with models that
+have an interaction and will bow out with a warning message;
+we use explicit prediction instead, which is nearly as easy.
+<<nfit2>>=
+pdata <- expand.grid(age= 50:99, sex=c("F", "M"))
+pdata[1:5,]
+
+ypred <- predict(nfit3, newdata=pdata, se=TRUE)
+yy <- ypred$fit + outer(ypred$se, c(0, -1.96, 1.96), '*')
+matplot(50:99, exp(matrix(yy, ncol=6)), type='l', lty=c(1,1,2,2,2,2),
+        lwd=2, col=1:2, log='y',
+        xlab="Age", ylab="Relative risk")
+legend(55, 20, c("Female", "Male"), lty=1, lwd=2, col=1:2, bty='n')
+abline(h=1)
+@
+The \code{ns} function generates a basis of dummy variables to represent
+the spline, which will work automatically in interactions. 
+The coefficients that result are not very interpretable, but the result of
+predict is invariant to this.  
+The issues as compared to using \code{termplot} are
+\begin{enumerate}
+  \item We need to provide our own set of predictor values for the plot,
+    whereas \code{termplot} would automatcially use the set of unique
+    age and sex values.  
+  \item Keeping track of the indexing.  The predict function produces
+    two vectors each of length \code{nrow(pdata)} with a predicted
+    value and its standard error, one value for each row of 
+    \code{pdata}.  The data set is in order of females, then males.
+    We fold it into an appropriate matrix for use with matplot.
+  \item The vertical centering of the curves corresponds to an average
+    population predictor of$\eta = X\beta =0$; i.e., the average over the
+    subjects in the data set.  This is a consequence of the
+    variable centering that \code{coxph} does for numerical stability.
+    To center at some particular (age, sex) pair obtain the predicted
+    value for that fictional subject and subtract the resulting
+    value from \code{yy}.
+\end{enumerate}   
+
+To create the same figure with \code{pspline} curves it is necessary
+to code the males and females as two separate terms.
+To do this create our own dummy variables to handle the interaction.
 
 <<fit2>>=
 agem <- with(flchain, ifelse(sex=="M", age, 60))
@@ -230,71 +283,39 @@ fit2 <- coxph(Surv(futime, death) ~ sex + pspline(agef, df=3)
               + pspline(agem, df=3), data=flchain)
 anova(fit2, fit1)
 @ 
- 
-The gain in this particular problem is not great, but we will forge ahead.
 You might well ask why we used 60 as a dummy value of \texttt{agem} for
 the females instead of 0?
-There is nothing special about the choice, and any value within
-the range of ages would do as well, though I try to pick one where the
-standard errors of the curves are not outrageous.  
 If a value of 0 is used it forces the pspline function to create a basis
 set that includes all the empty space between 0 and 50, and do predictions
 at 0; these last can become numerically unstable leading to errors or
 incorrect values.
-
-The Cox model deals with relative hazards, when doing a plot we will usually
-want to specify who our reference is.  
-By default the termplot function uses an average reference, that is, any
-plot will be centered to have an average log hazard of 0.
-In this case, we decided to use 65 year old females as our reference, with
-all of the hazards relative to them. 
+Best is to pick a value close to the mean, though any value within the
+range will do.  For this plot we will use a 65 year old female as the
+reference.
 
 <<plot2, fig=TRUE>>=
 # predictions
-pterm <- termplot(fit2, term=2:3, se=TRUE, plot=FALSE)
+pdata2 <- pdata
+pdata2$agem <- with(pdata2, ifelse(sex=="M", age, 60))
+pdata2$agef <- with(pdata2, ifelse(sex=="F", age, 60))
+ypred2 <- predict(fit2, pdata2, se=TRUE)
+yy <- ypred2$fit + outer(ypred2$se, c(0, -1.96, 1.96), '*')
+
 # reference
-refdata <- data.frame(sex=c('F', 'M'), agef=c(65, 60), agem=c(60,65))
-pred.ref <- predict(fit2, newdata=refdata, type="lp")
-# females
-tempf <- pterm$agef$y + outer(pterm$agef$se, c(0, -1.96, 1.96))
-frow <- which(pterm$agef$x == 65)
-tempf <- tempf  - tempf[frow,1]  # shift curves
-# males
-tempm <- pterm$agem$y + outer(pterm$agem$se, c(0, -1.96, 1.96))
-mrow  <- which(pterm$agem$x == 65)
-tempm <- tempm + diff(pred.ref) - tempm[mrow,1]
+refdata <- data.frame(sex='F', agef=65, agem=60)
+ref <- predict(fit2, newdata=refdata, type="lp")
+
 # plot
-matplot(pterm$agef$x, exp(tempf), log='y', col=1, 
-        lty=c(1,2,2), type='l', lwd=c(2,1,1),
-        xlab="Age", ylab="Relative risk of death")
-matlines(pterm$agem$x, exp(tempm), log='y', 
-         col=2, lwd=c(2,1,1), lty=c(1,2,2))
-legend(80, 1, c("Female", "Male"), lty=1, lwd=2, col=1:2, bty='n')
+matplot(50:99, exp(matrix(yy-ref, ncol=6)), type='l', lty=c(1,1,2,2,2,2),
+        lwd=2, col=1:2, log='y',
+        xlab="Age", ylab="Relative risk")
+legend(55, 20, c("Female", "Male"), lty=1, lwd=2, col=1:2, bty='n')
+abline(h=1)
 @ 
 
-\begin{enumerate}
-  \item The termplot routine is used to get the data points for the plot,
-    without executing a plot, by use of the \texttt{plot=FALSE} argument.
-    The result is a list with one element per term; each element of the list
-    contains x, y, and se components.
-  \item We had decided to center the female curve at age 65, risk =1.  The
-    relative offset for the male curve can be derived directly from
-    \texttt{fit2} by adding up the right coefficients, and I used to do it that
-    way but would get it wrong one time out of two.  
-    So instead use the \texttt{predict} routine to get predicted log hazards
-    for males and females at a particular age.  This tells me how far apart
-    the curves should be at that point.  We force the females to go through
-    0, which is exp(0) =1 on the hazard scale.
-  \item Get the predicted curve and confidence bands for the females
-    as a matrix \texttt{tempf}, and then shift them by subtracting the value
-    for a 65 year old female.  Do the same for males, plus adding in
-    the curve separation at age 65 from \texttt{pred.ref}.
-  \item The male and female portions don't have quite the same set of age
-    values, there are no 95 year old males in the data set for example,
-    so the plot needs to be done in two steps.
-\end{enumerate}
-
-The final curves for males and female are not quite parallel.
+The final curves for males and female are not quite parallel,
+most of the difference is at the highest ages, however, where there
+are very few subjects.
 One thing the plot does not display is that the spacing between the
 male and female points also has a standard error.
 This moves the entire bundle of three red curves up and down.  It is not
