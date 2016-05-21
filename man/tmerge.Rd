@@ -76,9 +76,10 @@ can be used to change these names.
   New time values that occur before the first interval for a subject
   are "early", those after the last interval for a subject are "late",
   and those that fall into a gap are of type "gap".
-  Intervals are assumed to be of the form (a,b], open on the left and closed
-  on the right; a new time exactly coincident with the start of a subject's
-  times will thus be "early".
+  All these are are consider to outside the specified time frame for the
+  given subject.  An event of this type will be discarded.  A
+  time-dependent covariate value will be applied to later intervals but
+  will not generate a new time point in the output.
 
   The most common type will usually be "within", for those new times that
   fall inside an existing interval and cause it to be split into two.
@@ -93,9 +94,10 @@ can be used to change these names.
   The last case is where the main data set has touching
   intervals for a subject, e.g. (17, 28] and (28,35] and a new occurence
   lands at the join.  Events will go to the earlier interval and counts
-  to the latter one.
+  to the latter one.  A last column shows the number of additions where
+  where the id and time point were identical.
 
-  These extra attributes are ephemeral, and will be discarded
+  These extra attributes are ephemeral and will be discarded
   if the dataframe is modified in any way.  This is intentional.
 }
 \author{Terry Therneau}
