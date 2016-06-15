@@ -697,6 +697,8 @@ obtain $\lambda_{12}$, the rate of transition to the PCM state for our
 four subjects, and $\lambda_{13}$ = the rate of transition to the ``death
 before PCM'' state.  These are placed into a matrix and 
 combined using a third call.
+The standard errors from the individual curves won't be used and the
+survfit routine is a bit faster if we skip them.
 
 <<PCMcurve, fig=TRUE>>=
 newdata <- expand.grid(sex=c("F", "M"), age=c(60, 80), mspike=1.2)

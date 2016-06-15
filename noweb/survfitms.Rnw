@@ -137,10 +137,10 @@ at once.  But that approach, though efficient in theory, runs into
 two problems.  First is the extrapolated value for the curves at
 time points before the first event, which is allowed to be different
 for different curves in survfitms objects. 
-The second is there is interpolation of a sort: the n.event and n.censor
+The second is that there is interpolation of a sort: the n.event and n.censor
 components are summed over intervals when the selected time points are
 sparse, and that process is very tricky for multiple curves at once.
-At one point the code took that approach, but it was too complex.
+At one point the code took that approach, but it became too complex to maintain.
 The current approach is slower but more transparent: do the individual
 curves one by one, then paste together the results.
 
@@ -180,7 +180,11 @@ summary.survfit <- function(object, times, censored=FALSE,
     delta <- function(x, indx) {  # sums between chosen times
         if (!is.null(x) && length(indx) >0) {
             fx <- function(x, indx) diff(c(0, c(0, cumsum(x))[indx+1]))
-            if (is.matrix(x)) apply(x, 2, fx, indx=indx)
+            if (is.matrix(x)) {
+                temp <- apply(x, 2, fx, indx=indx)
+                # don't return a vector when only 1 time point is given
+                if (is.matrix(temp)) temp else matrix(temp, nrow=1)
+            }
             else fx(x, indx)
         }
         else NULL
@@ -191,6 +195,7 @@ summary.survfit <- function(object, times, censored=FALSE,
     }
     else {
         <<survfitms-times>>
+        times <- sort(times)  #in case the user forgot
         if (is.null(fit$strata)) fit <- findrow(fit, times, extend)
         else {
             ltemp <- vector("list", nstrat)
@@ -205,7 +210,7 @@ summary.survfit <- function(object, times, censored=FALSE,
     if (length(rmean.endtime)>0  && !is.na(rmean.endtime)) 
             fit$rmean.endtime <- rmean.endtime
 
-    # An ordinary survfit object contain std(cum hazard), change scales
+    # An ordinary survfit object contains std(cum hazard), change scales
     if (!is.null(fit$std.err)) fit$std.err <- fit$std.err * fit$surv 
  
     # Expand the strata
@@ -407,7 +412,10 @@ summary.survfitms <- function(object, times, censored=FALSE,
     delta <- function(x, indx) {  # sums between chosen times
         if (!is.null(x) && length(indx) >0) {
             fx <- function(x, indx) diff(c(0, c(0, cumsum(x))[indx+1]))
-            if (is.matrix(x)) apply(x, 2, fx, indx=indx)
+            if (is.matrix(x)) {
+                temp <- apply(x, 2, fx, indx=indx)
+                if (is.matrix(temp)) temp else matrix(temp, nrow=1)
+            }
             else fx(x, indx)
         }
         else NULL
@@ -418,6 +426,7 @@ summary.survfitms <- function(object, times, censored=FALSE,
     }
     else {
         <<survfitms-times>>
+        times <- sort(times)
         if (is.null(fit$strata)) fit <- findrow(fit, times, extend, fit$p0)
         else {
             ltemp <- vector("list", nstrat)

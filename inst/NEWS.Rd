@@ -1,9 +1,28 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
 
+\section{Changes in version 2.39-5}{
+  \itemize{
+    \item The summary.survfit routine assumed that the times argument
+    was sorted, contrary to the documentation.  Pointed out by Torsten
+    Hothorn.
+    \item The tmerge function would fail if the time variable was a Date
+  object.  It was due to the fact that as.Date(as.numeric(x)) 
+  fails when x is a date.  (A design flaw in Date, IMHO).
+
+    \item An earlier change in dim.survfit had felled the survfit.matrix
+    function: it incorrectly assumed strata when there were none.
+    Unfortunately this didn't generate an error but rather multiple
+    copies of a single curve (and an incomprehensible explanation of
+    this single curve in the vignette).  Pointed out by E Lundt.
+
+    \item print.summary.survfitms would complain if only a single time
+    was specified.  A case where drop=FALSE was needed.
+}}
+
 \section{Changes in version 2.39-4}{
   \itemize{
-    \item Create a stronger test suite for summary.survreg, and use
+    \item Create a stronger test suite for summary.survfit, and use
     it to actually fix the error that 2.39-3 claimed to fix.  This
     uncovered a long-standing inaccuracy with n.risk for in-between
     time points.

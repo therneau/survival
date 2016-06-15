@@ -23,6 +23,7 @@ vignettes/.*.log
 vignettes/.*.tex
 vignettes/.*.pdf
 vignettes/tutorial.Rnw
+inst/doc/tutorial.*
 noweb/noweb.sty
 fail
 Readme.md

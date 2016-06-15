@@ -443,7 +443,13 @@ if (n4 > 0) {
     iend <- (cumsum(irep))[irep >1]  #end row of each duplication set
     for (j in 1:nfix) temp[[j]] <-  -(seq(n.add[j] -1, 0)) + iend[j]
     newrows <- unlist(temp)
-    dstart[newrows] <- dstop[newrows-1] <- unlist(icount)
+    
+    # icount is a list, each element of which is a vector
+    # the natural way to turn that into a vector is unlist(), but that
+    # leads to problems if etime is a date: we lose the time origin
+    if (is.numeric(icount[[1]])) icount <- unlist(icount)
+    else  icount <- do.call('c', icount)
+    dstart[newrows] <- dstop[newrows-1] <- icount
     newdata[[topt$tstartname]] <- dstart
     newdata[[topt$tstopname]]  <- dstop
     for (ename in tevent) newdata[newrows-1, ename] <- tcens[[ename]]

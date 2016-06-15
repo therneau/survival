@@ -162,6 +162,15 @@ The default argument is sensible in most instances --- and causes the
 familiar + sign to appear on plots --- it is not sensible for time
 dependent covariates since it may lead to a large number of spurious marks.
 }
+
+\section{Notes}{
+If the following pair of lines is used inside of another function then
+the \code{model=TRUE} argument must be added to the coxph call:
+\code{fit <- coxph(...); survfit(fit)}.
+This is a consequence of the non-standard evaluation process used by the
+\code{model.frame} function when a formula is involved.
+}
+
 \section{References}{
 Fleming, T. H. and Harrington, D. P. (1984).  Nonparametric estimation of the 
 survival distribution in censored data.  \emph{Comm. in Statistics}  
