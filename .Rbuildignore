@@ -18,12 +18,11 @@ tests/plot1.pdf.save
 .hgignore
 test.local
 vigtemp
+vignette2
 vignettes/.*.aux
 vignettes/.*.log
 vignettes/.*.tex
 vignettes/.*.pdf
-vignettes/tutorial.Rnw
-inst/doc/tutorial.*
 noweb/noweb.sty
 fail
 Readme.md

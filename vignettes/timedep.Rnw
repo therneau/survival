@@ -318,7 +318,7 @@ We don't need variables etime1--etime7 in the final data set, so they are
 left out of the data1 argument in the first call.
 <<cgd1>>=
 dim(cgd0)
-newcgd <- tmerge(cgd0[, 1:13], cgd0, id=id, tstop=futime)
+newcgd <- tmerge(data1=cgd0[, 1:13], data2=cgd0, id=id, tstop=futime)
 newcgd <- tmerge(newcgd, cgd0, id=id, infect = event(etime1)) 
 newcgd <- tmerge(newcgd, cgd0, id=id, infect = event(etime2)) 
 newcgd <- tmerge(newcgd, cgd0, id=id, infect = event(etime3)) 
@@ -414,7 +414,8 @@ that need to be dealt with when setting up an analysis data set.
     An alternative is to add 1 day to everyone's follow-up, e.g., subject
     2 who enrolled on Jan 2 1968 and died on Jan 7 would be credited with 6
     days.  (This is what Kalbfleisch and Prentice do in their
-    textbook.)  The result is the same from either strategy.
+    textbook.)  The result of the final \code{coxph} call is the
+     same from either strategy.
 
   \item A subject transplanted on day 10 is considered to have been on medical
     treatment for days 1--10 and as transplanted starting on day 11.
@@ -427,7 +428,7 @@ that need to be dealt with when setting up an analysis data set.
     Kalbfliesch and Prentice \cite{Kalbfleisch02}
     will only be obtained if covariates are defined
     in precisely the same way, since their models include interactions.
-    (Table 5.2 in the original edition).
+    (Table 5.2 in the original edition of the book).
     For age this is (age in days)/ 365.25 - 48 
     years, and for year of enrollment it is the number of years since the
     start of the study: (entry date - 1967/10/1)/365.25. 
@@ -487,7 +488,8 @@ in use.  For example, if we name the new variable
 `transplant' in the third line of \code{sdata} above it collides
 with an existing variable in the \code{jasa} data set; the result
 is to not create a time-dependent transplant variable at all.
-(The author made this mistake and spent several hours searching the tmerge
+(The author made this mistake himself when creating this vignette,
+ and then spent several hours searching the tmerge
 code for an error that wasn't there.)
 
 The \code{tcount} table for the above fit shows all the deaths at the
@@ -666,7 +668,7 @@ One reason is to check for cases of reverse causality.  It is sometimes
 the case that a covariate measured soon before death is not a predictor
 of death but rather is simply a marker for an event that is
 already in progress.
-A simple example would the the time dependent covariate ``have called in
+A simple example would the the time dependent covariate ``have called
 the family for a final visit''.  
 A less obvious one from the author's experience occurs when a clinical
 visit spans more than one day, the endpoint is progression, and one or more
@@ -683,7 +685,33 @@ When the results show a substantial change, and this is not infrequent,
 understanding why this occurred is an critical step.  
 Even if there is not an actual error, one has to question the value of a
 covariate that can predict death within the next week but fails 
-for a longer horizon.  
+for a longer horizon. 
+
+\subsection{Cumulative events}
+The action of the \code{cumevent} operator is different than \code{cumtdc}
+in several ways.  Say that we have a subject with outcomes of one
+type at times 5, 10, and 15 and another type at times 6 and 15, with a
+follow-up interval of 0 to 20. 
+For illustration I'll call the first event 'athsma' and the second 'IBD' 
+(a disease
+flare in inflammatory bowel disease).  A resulting data set would have the
+following form:
+\begin{center}
+  \begin{tabular}{rcccc}
+    &\multicolumn{2}{c}{cumtdc} & \multicolumn{2}{c}{cumevent} \\
+interval  & athsma & IBD & athsma & IBD \\ \hline
+(0, 5] & 0 &0 & 1 & 0 \\
+(5, 6] & 1 &0 & 0 & 1 \\
+(6, 10]& 1 &1 & 2 & 0 \\
+(10, 15] & 2& 1& 3 & 2 \\
+(15, 20] & 3& 2& 0 & 0
+\end{tabular}
+\end{center}
+Events happen at the ends of an interval and time-dependent covariates
+change the following intervals. 
+More importantly, time-dependent covariates persist while events
+do not, a \code{cumevent} action simply changes the label attached
+to an event.  
 
 \subsubsection{REP}
 The motivating case for \code{tmerge} came from a particular problem:
@@ -698,7 +726,8 @@ For an investigation of cumulative comorbidity we had three data sets
     pair marks an interval of residence. Disjoint intervals are not
     uncommon.
   \item outcome: one row for the first occurrence of each outcome of interest.  
-    The outcomes were 20 comorbid conditions as defined by NIH.
+    The outcomes were 20 comorbid conditions as defined by a particular
+    research initiative from the National Institutes of Health.
 \end{itemize}
 
 The structure for building the data is shown below.
@@ -920,7 +949,7 @@ by the p-value for the slope term in \code{vfit3}.
 (The p-value for that term from cox.zph is nearly identical, as it
 must be, since the tests in cox.zph are for a linear effect on the
 chosen time scale.)
-<<vet3b>>=
+<<vet3b, fig=TRUE>>=
 plot(zp[3])
 abline(coef(vfit3)[3:4], col=2)
 @ 

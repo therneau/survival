@@ -7,8 +7,10 @@
     was sorted, contrary to the documentation.  Pointed out by Torsten
     Hothorn.
     \item The tmerge function would fail if the time variable was a Date
-  object.  It was due to the fact that as.Date(as.numeric(x)) 
-  fails when x is a date.  (A design flaw in Date, IMHO).
+      object.  It was due to the fact that as.Date(as.numeric(x)) 
+      fails when x is a date.  (A design flaw in Date, IMHO).  There were
+      also flaws when both the first and second data set were not sorted
+      by id; added a more complete test case for this.
 
     \item An earlier change in dim.survfit had felled the survfit.matrix
     function: it incorrectly assumed strata when there were none.
