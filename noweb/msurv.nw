@@ -4,7 +4,7 @@ it is easier to make the code stay in C-mode if the file has a .nw
 extension.)
 
 <<survfitci>>=
-#include "survS.h"
+/* #include "survS.h"
 <<survfitci-dmatrix>>
 
 SEXP survfitci(SEXP ftime2,  SEXP sort12,  SEXP sort22, SEXP ntime2,

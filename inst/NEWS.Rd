@@ -1,6 +1,11 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
-
+\section{Changes in version 2.39-6}{
+  \itemize{
+    \item Fix some labeling errors in the graphs for the adjusted
+    survival curves vignetes (consequences of the xscale change in
+    2.38-5).
+}}
 \section{Changes in version 2.39-5}{
   \itemize{
     \item The summary.survfit routine assumed that the times argument
