@@ -55,7 +55,7 @@ It will be a matrix containing the estimated probability
 of each state at each time, one column per state.
 The \code{p0} matrix contains the initial distribution of states.
 (On further reflection pstate= "probability in state" would have been
-a better label than "prevalence", but by that point too many other
+a much better label than "prevalence", but by that point too many other
 packages were dependent on the form of the result.)
 }
 
@@ -65,6 +65,10 @@ hazard or -log(survival), for a multi-state curve it contains the
 standard error of pstate.  This difference is a reflection of
 the fact that each is the natural calculation for that case.
 }
+\item{cumhaz hazard}{optional.  For a multi-state curve this is
+  an k by k array for each time point, where k is the number of
+  states.}
+
 \item{upper}{
 upper confidence limit for the survival curve or probability
 }
@@ -108,11 +112,15 @@ an image of the call that produced the object.
 \item{type}{
 type of survival censoring. 
 }
+\item{influence}{optional.  A list with one element per stratum, each
+  element of the list is an array indexed by time, state, and subject.
+  It contains the influence of each subject on the estimate.
+  If stata is NULL this will be an array or matrix.}
 }
 \section{Subscripts}{
 Survfit objects that contain multiple survival curves can be subscripted. 
-This is most often used to plot a subset of the curves.
-If the \code{surv} or \code{pstate} object is a matrix then the
+This is often used to plot a subset of the curves.
+If the \code{surv} or \code{prev} component is a matrix then the
 \code{survfit} object will be treated as a matrix, otherwise only a
 single subscript is used.
 }

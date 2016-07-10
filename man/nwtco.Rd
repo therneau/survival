@@ -3,7 +3,7 @@
 \docType{data}
 \title{Data from the National Wilm's Tumor Study}
 \description{
-  Missing data/masurement error example. Tumor histology predicts
+  Measurement error example. Tumor histology predicts
   survival, but prediction is stronger with central lab histology than
   with the local institution determination.
 }

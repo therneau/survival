@@ -4,7 +4,7 @@ it is easier to make the code stay in C-mode if the file has a .nw
 extension.)
 
 <<survfitci>>=
-/* #include "survS.h"
+#include "survS.h"
 <<survfitci-dmatrix>>
 
 SEXP survfitci(SEXP ftime2,  SEXP sort12,  SEXP sort22, SEXP ntime2,
@@ -33,7 +33,8 @@ object and [[zed]] to the contents of the object.
   \item[id] The subject id for each observation.
   \item[p] The initial distribution of states.  This will be updated during
     computation to be the current distribution.
-  \item[sefit] If 1 then do the se compuatation, otherwise forget it.
+  \item[sefit] If 1 then do the se compuatation, if 2 also return the full
+    influence matrix upon which it is based, if 0 the se is not needed.
 \end{description}
 
 The local dmatrix2 function makes it easier to declare ragged arrays,
@@ -60,10 +61,9 @@ Declare all of the variables.
 int i, j, k, kk;   /* generic loop indices */
 int ck, itime, eptr; /*specific indices */
 int ctime;      /*current time of interest, in the main loop */
-int nprotect;   /* number of protect calls issued */
 int oldstate, newstate; /*when changing state */
 
-double temp, *temp2;  /* scratch */
+double temp, *temp2;  /* sratch */
 double *p;         /* current prevalence vector */
 double **hmat;      /* hazard matrix at this time point */
 double **umat;     /* per subject leverage at this time point */
@@ -89,10 +89,9 @@ int sefit;
 /* returned objects */
 SEXP rlist;         /* the returned list and variable names of same */  
 const char *rnames[]= {"nrisk","nevent","ncensor", "p", 
-		       "cumhaz", "var", ""};
-SEXP pmat2, vmat2, cumhaz2;  /*list components */
-SEXP nevent2, ncensor2, nrisk2;
-double *pmat, *vmat, *cumhaz;
+		       "cumhaz", "var", "influence", ""};
+SEXP setemp;
+double *pmat, *vmat, *cumhaz, *usave;
 int  *ncensor, *nrisk, *nevent;
 @ 
 
@@ -100,8 +99,8 @@ Now set up pointers for all of the R objects sent to us.
 The two that will be updated need to be replaced by duplicates.
 <<survfitci-declare>>=
 ntime= asInteger(ntime2);
-nperson = LENGTH(cstate2);
-n   = LENGTH(sort12);
+nperson = LENGTH(cstate2); /* number of unique subjects */
+n   = LENGTH(sort12);    /* number of observations in the data */
 PROTECT(cstate2 = duplicate(cstate2));
 cstate  = INTEGER(cstate2);
 entry= INTEGER(ftime2);
@@ -116,23 +115,29 @@ p = REAL(p2);
 nstate = LENGTH(p2);  /* number of states */
 sefit = asInteger(sefit2);
 
-/* allocate space for the output objects */
-PROTECT(pmat2 = allocMatrix(REALSXP, nstate, ntime));
-pmat = REAL(pmat2);
-if (sefit >0)
-    PROTECT(vmat2 = allocMatrix(REALSXP, nstate, ntime));
-else PROTECT(vmat2 = allocMatrix(REALSXP, 1, 1)); /* dummy object */
-vmat = REAL(vmat2);
-PROTECT(nevent2 = allocVector(INTSXP, ntime));
-nevent = INTEGER(nevent2);
-PROTECT(ncensor2= allocVector(INTSXP, ntime));
-ncensor = INTEGER(ncensor2);
-PROTECT(nrisk2 = allocMatrix(INTSXP, nstate, ntime));
-nrisk = INTEGER(nrisk2);
-PROTECT(cumhaz2= allocVector(REALSXP, nstate*nstate*ntime));
-cumhaz = REAL(cumhaz2);
-nprotect = 8;  
+/* allocate space for the output objects
+** the ones that are put into a list do not need to be protected
+*/
+PROTECT(rlist=mkNamed(VECSXP, rnames));
+setemp = SET_VECTOR_ELT(rlist, 0, allocMatrix(INTSXP, nstate, ntime));
+nrisk = INTEGER(setemp);
+setemp = SET_VECTOR_ELT(rlist, 1, allocVector(INTSXP, ntime));
+nevent = INTEGER(setemp);
+setemp = SET_VECTOR_ELT(rlist, 2, allocVector(INTSXP, ntime));
+ncensor = INTEGER(setemp);
+setemp  = SET_VECTOR_ELT(rlist, 3, allocMatrix(REALSXP, nstate, ntime));
+pmat = REAL(setemp);
+setemp = SET_VECTOR_ELT(rlist, 4, allocVector(REALSXP, nstate*nstate*ntime));
+cumhaz = REAL(setemp);
 
+if (sefit >0) {
+    setemp = SET_VECTOR_ELT(rlist, 5,  allocMatrix(REALSXP, nstate, ntime));
+    vmat=REAL(setemp);
+}
+if (sefit >1) {
+    setemp = SET_VECTOR_ELT(rlist, 6, allocVector(REALSXP, n*nstate*ntime));
+    usave = REAL(setemp);
+}
 /* allocate space for scratch vectors */
 ws = (double *) R_alloc(2*nstate, sizeof(double));
 temp2 = ws + nstate;
@@ -140,8 +145,8 @@ ns  = (int *) R_alloc(nstate, sizeof(int));
 atrisk = (int *) R_alloc(nperson, sizeof(int));
 wtp = (double *) R_alloc(nperson, sizeof(double));
 hmat = (double**) dmatrix2(nstate, nstate);
-if (sefit >0) umat = (double**) dmatrix2(nperson, nstate);
 chaz = (double**) dmatrix2(nstate, nstate);
+if (sefit >0)  umat = (double**) dmatrix2(nperson, nstate);
 
 /* R_alloc does not zero allocated memory */
 for (i=0; i<nstate; i++) {
@@ -360,18 +365,13 @@ for (j=0; j<nstate; j++) {
 	    temp += wtp[k]* umat[k][j]*umat[k][j];
 	*vmat++ = temp;
     }
+    if (sefit > 1)
+        for (k=0; k<nperson; k++) *usave++ = umat[k][j];
  }
 @ 
 
 <<survfitci-return>>=
 /* return a list */
-PROTECT(rlist=mkNamed(VECSXP, rnames));
-SET_VECTOR_ELT(rlist, 0, nrisk2);
-SET_VECTOR_ELT(rlist, 1, nevent2);
-SET_VECTOR_ELT(rlist, 2, ncensor2);
-SET_VECTOR_ELT(rlist, 3, pmat2);
-SET_VECTOR_ELT(rlist, 4, cumhaz2);
-SET_VECTOR_ELT(rlist, 5, vmat2);
-UNPROTECT(nprotect +1);
+UNPROTECT(3);
 return(rlist);
 @  

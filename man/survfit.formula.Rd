@@ -113,9 +113,14 @@ cumulative incidence curve.
       }
       \item{se.fit}{
 	a logical value indicating whether standard errors should be 
-	computed.  Default is \code{TRUE}. 
+	computed.  Default is \code{TRUE}.
       }
-      
+      \item{influence}{a logical value indicating whether to return the
+	infinitesimal jackknife (influence) values for each subject.
+	These contain the values of the derivative of each value
+	with respect to the case weights of each subject i:
+	\eqn{\partial p/\partial w_i}{dp/dw[i]},
+	evaluated at the vector of weights \eqn{w=1}.
     }
   }
 }
