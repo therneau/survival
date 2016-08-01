@@ -362,7 +362,7 @@ for (j=0; j<nstate; j++) {
     temp=0;
     if (sefit >0) {
 	for (k=0; k<nperson; k++) 
-	    temp += wtp[k]* umat[k][j]*umat[k][j];
+	    temp += wtp[k]* wtp[k]*umat[k][j]*umat[k][j];
 	*vmat++ = temp;
     }
     if (sefit > 1)

@@ -863,13 +863,13 @@ the survival of an ``average'' subject is not the average
 survival of a cohort.
 The third and most serious issue is that it is not clear exactly
 what these ``adjusted'' curves represent --- 
-exactly who \emph{is} this subject a sex of 
+exactly who \emph{is} this subject with a sex of 
 \Sexpr{round(cfit4a[['means']][2],2)}?
 Multiple authors have commented on this problem,
 see Thomsen et al \cite{Thomsen91}, Nieto and Coresh \cite{Nieto96}
 or chapter 10 of Therneau and Grambsh \cite{Therneau00} for examples.
 Even worse is a Cox model that treated the FLC group as a covariate,
-since that will impose a an additional constraint of proportional 
+since that will impose an additional constraint of proportional 
 hazards across the 3 FLC groups.
 
 \begin{figure}

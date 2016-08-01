@@ -52,7 +52,7 @@ lines.survfit <- function(x, type='s',
     <<plot-draw>>
 }
 
-points.survfit <- function(x, xscale=1,
+points.survfit <- function(x, xscale=1, firsty =1,
                            xmax, fun, ...) {
     <<plot-transform-ms>>
     firstx <- NA  # flag used in the common args

@@ -10,7 +10,7 @@ Surv <- function(time, time2, event,
     if (!is.numeric(time)) stop ("Time variable is not numeric")
     nn <- length(time)
 
-    # ng = number of the first 3 arguments that is present
+    # ng = number of the first 3 arguments that are present
     ng <- (!missing(time)) + (!missing(time2)) + (!missing(event)) 
     # The logic below uses "ng" throughout; why not use "missing(time2)"
     # and missing(event) instead?  Because we want to assume that 
@@ -45,7 +45,7 @@ Surv <- function(time, time2, event,
             time2 <- NULL   # force any inputAttributes to attach to "event"
         }
         if (length(event) != nn) stop ("Time and status are different lengths")
-        if (mtype=="mstate" || (is.factor(event) && length(levels(event))>2)) {
+        if (mtype=="mstate" || (is.factor(event))) {
             mstat <- as.factor(event)
             status <- as.numeric(mstat) -1
             type <- "mright"
