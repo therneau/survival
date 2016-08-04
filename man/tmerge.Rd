@@ -39,7 +39,7 @@ tmerge(data1, data2,  id,\dots, tstart, tstop, options)
  Time dependent covariates change their values before an event,
  events are outcomes.
  \itemize{
-   \item{newname = tdc(y, x)}{A new time dependent covariate
+   \item{newname = tdc(y, x)}{ A new time dependent covariate
      variable will created. 
    The argument \code{y} is assumed to be on the
    scale of the start and end time, and each instance decribes the
@@ -51,20 +51,27 @@ tmerge(data1, data2,  id,\dots, tstart, tstop, options)
    If the option \code{na.rm=TRUE} missing values of \code{x} are
    first removed.
 
- \item{newname = cumtdc(y,x)}{Similar to tdc, except that the event
+ \item{newname = cumtdc(y,x)}{ Similar to tdc, except that the event
    count is accumulated over time for each subject.}
 
- \item{newname = event(y,x)}{Mark an event at time y.
+ \item{newname = event(y,x)}{ Mark an event at time y.
    In the ususal case that \code{x} is missing the new 0/1 variable
    will be similar to the 0/1 status variable of a survival time.
  }
- \item{newname = cumevent(y,x)}{Cumulative events}.
+ \item{newname = cumevent(y,x)}{ Cumulative events}.
  }
 }
 
 The function adds three new variables to the output data set: 
 \code{tstart}, \code{tstop}, and \code{id}.  The \code{options} argument
 can be used to change these names.
+The \code{na.rm} option affects creation of time-dependent covariates.
+Should a data row in \code{data2} that has a missing value for the
+variable be ignored (na.rm=FALSE, default) or should it generate an
+observation with a value of NA?  The default value leads to
+"last value carried forward" behavior.
+The \code{delay} option causes a time-dependent covariate's new
+value to be delayed, see the vignette for an example.
 }
 
 \value{a data frame with two extra attributes \code{tname} and
@@ -76,7 +83,7 @@ can be used to change these names.
   New time values that occur before the first interval for a subject
   are "early", those after the last interval for a subject are "late",
   and those that fall into a gap are of type "gap".
-  All these are are consider to outside the specified time frame for the
+  All these are are considered to be outside the specified time frame for the
   given subject.  An event of this type will be discarded.  A
   time-dependent covariate value will be applied to later intervals but
   will not generate a new time point in the output.
