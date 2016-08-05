@@ -71,6 +71,7 @@ T. M. Therneau and P. M. Grambsch, Modeling Survival Data: Extending
 T. M. Therneau and S.A. Mamilton,
 rhDNase as an example of recurrent event analysis, Statistics
 in Medicine, 16:2029-2047, 1997.
+}
 \examples{
 # Build the start-stop data set for analysis, and
 #  replicate line 2 of table 8.13

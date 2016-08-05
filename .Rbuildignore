@@ -26,4 +26,5 @@ vignettes/.*.pdf
 noweb/noweb.sty
 fail
 Readme.md
+R/plot.survexp.R.notdone
 
