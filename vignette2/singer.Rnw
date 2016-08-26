@@ -1,0 +1,187 @@
+\documentclass{article}[11pt]
+\usepackage{Sweave}
+\usepackage{amsmath}
+\addtolength{\textwidth}{1in}
+\addtolength{\oddsidemargin}{-.5in}
+\setlength{\evensidemargin}{\oddsidemargin}
+%\VignetteIndexEntry{Applied Longitudinal Regression Analysis}
+
+\SweaveOpts{keep.source=TRUE, fig=FALSE}
+% Ross Ihaka suggestions
+\DefineVerbatimEnvironment{Sinput}{Verbatim} {xleftmargin=2em}
+\DefineVerbatimEnvironment{Soutput}{Verbatim}{xleftmargin=2em}
+\DefineVerbatimEnvironment{Scode}{Verbatim}{xleftmargin=2em}
+\fvset{listparameters={\setlength{\topsep}{0pt}}}
+\renewenvironment{Schunk}{\vspace{\topsep}}{\vspace{\topsep}}
+
+% I had been putting figures in the figures/ directory, but the standard
+%  R build script does not copy it and then R CMD check fails
+\SweaveOpts{prefix.string=tutorial,width=6,height=4}
+\newcommand{\myfig}[1]{\includegraphics[height=!, width=\textwidth]
+                        {tutorial-#1.pdf}}
+\setkeys{Gin}{width=\textwidth}
+<<echo=FALSE>>=
+options(continue="  ", width=60)
+options(SweaveHooks=list(fig=function() par(mar=c(4.1, 4.1, .3, 1.1))))
+pdf.options(pointsize=10) #text in graph about the same as regular text
+options(contrasts=c("contr.treatment", "contr.poly")) #ensure default
+
+require("survival")
+@
+\title{Examples from Singer and Willett}
+\author{Terry Therneau}
+\newcommand{\code}[1]{\texttt{#1}}
+
+\begin{document}
+\maketitle
+
+\section{Introduction}
+This vignette shows R textbook examples from the book
+\emph{Applied Longitudinal Data Analysis: Modeling Change and
+  Event Occurence} by Judith D. Singer and John B. Willett.
+A version of the examples is housed at the Institute for Digital
+Research and Education and the University of California Los Angeles,
+\url{http://www.ats.ucla.edu/stat/r/examples/alda}.
+
+A user's question caused me to work through one of the chapters.
+The UCLA code at that time (Aug 2016) did not make use of 
+many of the features of the package and so does many things in a tedious
+way.  This note gives a more succinct version.
+
+\section{Chapter 14}
+First read in the data and do simple summaries.
+<<readit>>=
+require(survival)
+rearrest <-read.table("http://www.ats.ucla.edu/stat/examples/alda/rearrest.csv",
+                      sep=",", header=T)
+dim(rearrest)
+names(rearrest)
+table(table(rearrest$id))
+@ 
+
+
+# The example page uses a horrible amount of code to do the work.
+
+fit14 <- survfit(Surv(months, censor==0) ~ personal, rearrest)
+
+# Their plots all erroneously extend the leftmost point as a horizontal line,
+#  all the way to the left axis
+#
+plot(fit14, lty=1:2, xaxs= 'r')
+legend("bottomleft", c("Personal=0", "Personal=1"), lty=1:2)
+
+plot(fit14, lty=1:2, fun="cumhaz")
+legend("bottomright", c("Personal=0", "Personal=1"), lty=1:2)
+
+smooth <- function(width, time, survive){
+    n=length(time)
+    lo=time[1] + width
+    hi=time[n] - width
+    npt=50
+    inc=(hi-lo)/npt
+    s=lo+t(c(1:npt))*inc
+    slag = c(1, survive[1:n-1])
+    h=1-survive/slag
+    x1 = as.vector(rep(1, npt))%*%(t(time))
+    x2 = t(s)%*%as.vector(rep(1,n)) 
+    x = (x1 - x2) / width
+    k=.75*(1-x*x)*(abs(x)<=1)
+    lambda=(k%*%h)/width
+    list(x = s, y = c(lambda))
+}
+
+bw1  <- smooth(8, fit14[1]$time, fit14[1]$surv)
+bw2  <- smooth(8, fit14[2]$time, fit14[2]$surv)
+
+plot(bw1, type='l', xlim=c(0,36), ylim=c(0,.08), 
+     xlab = "Months after release", ylab = "Smoothed hazard")  
+lines(bw2, lty=2)
+
+# Again, this is wrongly extended
+loglog <- function(x) log( -log(x))
+plot(fit14, fun= loglog, lty=1:2, 
+     xlab="Months after release", ylab="log(cumulative hazard)")
+
+# Fit Cox models
+f14.2 <- coxph(Surv(months, censor==0) ~ personal, data=rearrest)
+
+tdata   <- data.frame(personal=0:1)
+surv2   <- survfit(f14.2, newdata= tdata)
+
+plot(surv2, fun= loglog, xmax=30,
+  xlab = "Months after release", ylab = "log(Cumulative Hazard)")
+points(fit14, fun= loglog, pch='+x')
+
+# Repeat on Cumhaz scale
+plot(surv2, fun= 'cumhaz', xmax=30,
+  xlab = "Months after release", ylab = "log(Cumulative Hazard)")
+points(fit14, fun='cumhaz', pch="+x")
+
+# Table 14.1A
+summary(f14.2)
+
+summary(coxph(Surv(months, censor==0) ~ property, data=rearrest))
+summary(coxph(Surv(months, censor==0) ~ cage, data=rearrest))
+summary(coxph(Surv(months, censor==0) ~ personal + property + cage, 
+              data=rearrest))
+
+# Build the table.  Make sure any missing are included
+options(na.action = "na.exclude")
+f14.2 <- eval(f14.2$call)
+risk.score <- function(id, fit= f14.2, data=rearrest) {
+    score <- predict(fit)
+    new <- data.frame(ID=       data$id,
+                      personal= data$personal,
+                      property= data$property,
+                      "centered age"= data$cage,
+                      "risk.score"  = score,
+                      day = data$months * (365/12),
+                      months = data$months,
+                      censor = data$censor)
+    new[match(id, new$ID, nomatch=0),]
+}
+
+tab14.2 <- risk.score(c(22, 8, 187, 26, 5, 130, 106, 33))
+tab14.2
+
+# Figure 14.4    
+cox14 <- coxph(Surv(months, censor==0)~personal + property + cage,
+                  data=rearrest)
+base <- with(rearrest, data.frame(personal=c(0, mean(personal)),
+                                  property=c(0, mean(property)),
+                                  cage= c(0,0)))
+base
+
+s14 <- survfit(cox14, newdata=base)
+plot(s14, lty=1:2, 
+     xlab="Months after release", ylab="Estimated Survival")
+plot(s14, lty=1:2, fun='cumhaz',
+     xlab="Months after release", ylab="Estimated Cumulative Hazard")
+
+smooth.base <- smooth(8, s14[1]$time, s14[1]$surv)
+smooth.ave  <- smooth(8, s14[2]$time, s14[2]$surv)
+
+plot(smooth.base, type='l', xlim=c(0,36), ylim=c(0, .08), 
+     xlab = "Months after release", ylab = "Smoothed hazard")        
+lines(smooth.ave, lty=2)
+
+# Repeat for a different set of predictions
+base <- data.frame(personal=c(0,1,0,1), property=c(0,0,1,1), cage=c(0,0,0,0))
+base
+s14 <- survfit(cox14, newdata=base)
+plot(s14, lty=1:4, 
+     xlab="Months after release", ylab="Estimated Survival")
+legend(1, .3, c('base', 'personal', 'property', 'both'), lty=1:4, bty='n')
+plot(s14, lty=1:4, fun='cumhaz',
+     xlab="Months after release", ylab="Estimated Cumulative Hazard")
+legend(0, 1.5, c('base', 'personal', 'property', 'both'), lty=1:4, bty='n')
+
+plot(c(0,36), c(0,.08), type='n',
+     xlab = "Months after release", ylab = "Smoothed hazard")
+for (i in 1:4) {
+    temp <- smooth(8, s14[i]$time, s14[i]$surv)
+    lines(temp, lty=i)
+}
+legend('topright' ,c('base', 'personal', 'property', 'both'), lty=1:4,
+       bty='n')
+
