@@ -56,6 +56,7 @@ points.survfit <- function(x, xscale, xmax, fun, censor=FALSE,
                            col=1, pch, ...) {
     # this function is used rarely
     conf.int <- FALSE  # never draw these with 'points'
+
     <<plot-transform-ms>>
     firstx <- firsty <- NA # part of the common args, but irrelevant for points
     <<plot-common-args>>

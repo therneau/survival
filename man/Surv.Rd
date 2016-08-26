@@ -86,7 +86,7 @@ is.Surv(x)
      assumed.  Otherwise type \code{right} if there is no \code{time2}
      argumement, and type \code{counting} if there is.
    }
-   As a consequence the \code{type} argument can usually be omitted.
+   As a consequence the \code{type} argument will normally be omitted.
 
    When the survival type is "mstate" then the status variable will be
    treated as a factor.  The first level of the factor is taken to

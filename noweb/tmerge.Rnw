@@ -124,7 +124,7 @@ if (missing(id)) stop("the id argument is required")
 if (missing(data1) || missing(data2))
     stop("two data sets are required")
 id <- eval(Call[["id"]], data2, enclos=emptyenv()) #don't find it elsewhere
-if (is.null(id)) stop("the id variable is null")
+if (is.null(id)) stop("id variable not found in data2")
 
 if (firstcall) {
     if (!missing(tstop)) {
@@ -214,8 +214,8 @@ if (firstcall) {
     
     if (indx[1] == 0) {
         # the topt$id variable name is not in data1.  Deal with the
-        # fairly common case that data1 == data2.  If data1 has the
-        # variable used as 'id' in data2, add it to data1 under the
+        # fairly common case that data1 == data2.  If data1 contains the
+        # same variable used as 'id' in data2, add it to data1 under the
         # new name
         temp <- as.character(Call[["id"]])
         if (is.name(Call[["id"]]) && !is.na(match(temp, names(data1)))) {
@@ -229,6 +229,7 @@ if (firstcall) {
     if (any(duplicated(baseid))) 
         stop("for the first call (that establishes the time range) data1 must have no duplicate identifiers")
 
+	
     if (length(baseid)== length(id) && all(baseid == id)) newdata <- data1
     else {
         indx2 <- match(id, baseid)
@@ -306,9 +307,10 @@ for (ii in seq(along.with=args)) {
       }
     id <- saveid[keep]
     
-    # For an event or cumevent, one of the later steps becomes much
-    #  easier if we sort the new data by id and time
-    indx <- order(id, etime)
+    # Later steps become easier if we sort the new data by id and time
+    #  The match() is critical when baseid is not in sorted order.  The
+    #  etime part of the sort will change from one ii value to the next.
+    indx <- order(match(id, baseid), etime)
     id <- id[indx]
     etime <- etime[indx]
     if (!is.null(argi$value))
@@ -470,7 +472,7 @@ Counts are more work and for this we use a C routine.
 # add it in
 if (argclass[ii] %in% c("cumtdc", "cumevent")) {
     if (!is.numeric(yinc)) stop("invalid increment for cumtdc or cumevent")
-    yinc <- unlist(tapply(yinc, id, cumsum))
+    yinc <- unlist(tapply(yinc, match(id, baseid), cumsum))
     }
 
 newvar <- newdata[[argname[ii]]]  #does the variable exist? 
@@ -520,7 +522,8 @@ if (length(tevent)) {
     attr(newdata, "tevent") <- tevent
     attr(newdata, "tcensor" ) <- tcens
     }
-row.names(newdata) <- NULL
+row.names(newdata) <- NULL  #These are a mess; kill them off.
+# Not that it works: R just assigns new row names.
 class(newdata) <- c("data.frame")
 newdata
 @ 

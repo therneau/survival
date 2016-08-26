@@ -1,6 +1,21 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 2.39-6}{
+  \itemize{
+    \item Fix some labeling errors in the graphs for the adjusted
+    survival curves vignette (consequences of the xscale change in
+    2.38-5).
+    \item Update multi-state survival so that the robust (default)
+    variance for a weighted data set treats these as sampling weights
+    rather than case weights.  This makes it consistent with the
+    behavior of coxph.  (Multiplication of all the weights by a constant
+    now leaves the variance unchanged.)
 
+    \item Surv(time, status) would fail when status was a factor with
+    only two levels.  This was due to an assumption that no user would
+    ever want this, i.e., do it on purpose, so it must be a mistake
+    which should be caught.  Bad idea.
+}}
 \section{Changes in version 2.39-5}{
   \itemize{
     \item The summary.survfit routine assumed that the times argument
@@ -10,7 +25,7 @@
       object.  It was due to the fact that as.Date(as.numeric(x)) 
       fails when x is a date.  (A design flaw in Date, IMHO).  There were
       also flaws when both the first and second data set were not sorted
-      by id; add a more complete test case for this.
+      by id; added a more complete test case for this.
 
     \item An earlier change in dim.survfit had felled the survfit.matrix
     function: it incorrectly assumed strata when there were none.

@@ -121,6 +121,10 @@ dim.survfitms <- function(x) {
         else x$p0 <- x$p0[i,j]  
     }
     else if (!is.null(j)) x$p0 <- x$p0[j]
+    if (!is.null(x$influence)) {
+        if (length(i)>1) x$influence <- x$influence[i]
+        else x$influence <- x$influence[[i]]
+    }
     x
 }
 @ 

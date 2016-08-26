@@ -35,7 +35,7 @@ efit <- survexp(~ ratetable(sex=sex,age=age*365.35,year=as.Date('1979/1/1')) +
 \dontrun{
 plot(fit, mark.time=F, xscale=365.25, xlab="Years post diagnosis",
         ylab="Survival")
-lines(efit, col=2, xscale=365.25) # Add the expected survival line
+lines(efit, col=2) # Add the expected survival line
 }
 }
 \keyword{survival}%-- one or more ...

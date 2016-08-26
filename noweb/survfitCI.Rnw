@@ -47,7 +47,8 @@ survfitCI <- function(X, Y, weights, id, istate,
                       se.fit=TRUE,
                       conf.int= .95,
                       conf.type=c('log',  'log-log',  'plain', 'none'),
-                      conf.lower=c('usual', 'peto', 'modified')){
+                      conf.lower=c('usual', 'peto', 'modified'),
+                      influence = FALSE){
 
     method <- match.arg(type)
 #    error <- match.arg(error)
@@ -396,6 +397,10 @@ kfit$cumhaz <- array(unlist(lapply(curves, function(x) x$cumhaz)),
 if (length(curves) >1)
     kfit$strata <- unlist(lapply(curves, function(x) length(x$time)))
 if (se.fit) kfit$std.err <- grabit(curves, "std")
+if (influence) {
+    if (length(curves) ==1) kfit$influence <- curves[[1]]$influence
+    else   kfit$influence <- lapply(curves, function(x) x$influence)
+}
 kfit$istate <- has.istate  # used later in plots
 @ 
 
@@ -464,7 +469,7 @@ docurve2 <- function(entry, etime, status, istate, wt, states, id, se.fit) {
     timeset <- as.numeric(ltime[sort(unique(ftime[,2]))]) #unique event times
      
     nstate <- length(states)
-    uid <- sort(unique(id))
+    uid <- unique(id)
     P <- as.vector(tapply(wt, factor(istate, levels=states), sum) / sum(wt))
     P <- ifelse(is.na(P), 0, P) # initial probability distribution
     cstate <- istate[match(uid, id)]   #initial state for each observation
@@ -481,19 +486,26 @@ docurve2 <- function(entry, etime, status, istate, wt, states, id, se.fit) {
                  cstate - 1L,
                  wt,
                  match(id, uid) -1L,
-                 P, as.integer(se.fit))
+                 P, as.integer(se.fit) + 2L*as.integer(influence))
     p0 <- table(factor(cstate, levels=states), exclude=NA)/length(cstate)
     n.event <- table(ftime[,2], factor(status,c(0,states)))[,-1, drop=FALSE]
     if (se.fit) 
-        list(time=timeset, prev=t(fit$p), std=sqrt(t(fit$var)),
+        out <- list(time=timeset, prev=t(fit$p), std=sqrt(t(fit$var)),
              n.risk = t(fit$nrisk),
              n.event = n.event, 
              n.censor=fit$ncensor, p0 = p0,
              cumhaz=array(fit$cumhaz, dim=c(nstate,nstate, length(timeset))))
-    else list(time=timeset, prev=t(fit$p),
+    else out <- list(time=timeset, prev=t(fit$p),
              n.risk = t(fit$nrisk), 
              n.event = n.event, 
              n.censor=fit$ncensor,  p0=p0,
              cumhaz=array(fit$cumhaz, dim=c(nstate,nstate, length(timeset))))
+    if (influence) {
+        temp <-  array(fit$influence, 
+                       dim=c(length(uid), nstate, length(timeset)),
+                       dimnames=list(uid, NULL, NULL))
+        out$influence <- aperm(temp, c(3,2,1))
+    }
+    out
 }
 @
