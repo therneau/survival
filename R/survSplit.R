@@ -1,14 +1,18 @@
 survSplit <- function(formula, data, subset, na.action=na.pass,
                               cut, start="tstart", id, zero=0, episode,
-                              end, event) {
+                              end="tstop", event="event") {
     Call <- match.call()
-
     if (missing(formula) || is.data.frame(formula)) {
         # an old style call
         # match arguments and build a formula
-        if (is.data.frame(formula)) data <- formula
-        else if (missing(data)) stop("a data frame is required")
-
+        if (missing(data)) {
+            if (!missing(formula)) {
+                names(Call)[[2]] <- "data"
+                # The line above is sneaky: it makes model.frame() work later
+                data <- formula
+            }
+            else  stop("a data frame is required")
+        }
         if (missing(end) || missing(event))
             stop("either a formula or the end and event arguments are required")
 
@@ -25,12 +29,11 @@ survSplit <- function(formula, data, subset, na.action=na.pass,
         if (start %in% names(data)) temp <- paste(start, end, event, sep=',')
         else temp <- paste(end, event, sep=',')
         
-        formula <- as.formula(paste("Surv(", temp, ")"))
+        formula <- as.formula(paste("Surv(", temp, ")~ ."))
     }
-
     else if (missing(formula)) 
         stop("either a formula or the end and event arguments are required")
-
+ 
     # create a call to model.frame() that contains the formula (required)
     #  and any other of the relevant optional arguments
     # then evaluate it in the proper frame
@@ -80,26 +83,32 @@ survSplit <- function(formula, data, subset, na.action=na.pass,
     if (class(formula[[2]]) == "call" && formula[[2]][[1]]== as.name("Surv")){
         # it was a call, figure out the names
         # The user might have used something like Surv(status=abc, time=fred),
-        #  so use match.call to resolve it.
+        #  so use match.call to find "abc" and "fred".  But give up if there
+        #  is anything complex.
         temp <- match.call(Surv, formula[[2]])
-        for (i in c("time", "time2", "event")) {
-            if (!(is.null(temp[[i]]) || is.name(temp[[i]])))
-                stop("cannot deal with complex arguments within a Surv call")
-        }
-        if (nY ==2) {
-            end <- temp$time
-            if (is.null(temp$status)) event <- temp$time2
-            else event <- temp$event
+        if (nY==2) {
+            if (missing(end) && !is.null(temp[["time"]]) 
+                && is.name(temp[["time"]]))
+                end <- as.character(temp[["time"]])  # $time might match 'time2'
+             
+            if (missing(event) && !is.null(temp$time2) && is.name(temp$time2)) 
+                event <- as.character(temp$time2)
+            if (missing(event) && !is.null(temp$event) && is.name(temp$event))
+                event <- as.character(temp$event)
         }
         else {
-            start <- temp$time
-            end   <- temp$time2
-            event <- temp$event
-            }
+            if (missing(end) && !is.null(temp[["time"]]) 
+                && is.name(temp["time"]))
+                start <- as.character(temp[["time"]])
+            if (missing(end) && !is.null(temp$time2) && is.name(temp$time2)) 
+                end <- as.character(temp$time2)
+            if (missing(event) && !is.null(temp$event) && is.name(temp$event))
+                event <- as.character(temp$event)
+        }
 
-        newdata[[as.character(start)]] <- index$start
-        newdata[[as.character(end)]]   <- index$end
-        newdata[[as.character(event)]] <- status
+        newdata[[start]] <- index$start
+        newdata[[end]]   <- index$end
+        newdata[[event]] <- status
     }
     else {
         if (class(formula[[2]]) != "name")

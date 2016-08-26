@@ -101,7 +101,7 @@ dim.survfit <- function(x) {
             x$n.risk  <- x$n.risk[keep]
             x$n.event <- x$n.event[keep]
             x$n.censor<- x$n.censor[keep]
-            if (!is.null(x$enter)) x$enter <- x$enter[keep]
+            if (!is.null(x$n.enter)) x$n.enter <- x$n.enter[keep]
         }
         if (is.matrix(x$surv)) {
             # If the curve has been selected by strata and keep has only

@@ -7,8 +7,10 @@
     was sorted, contrary to the documentation.  Pointed out by Torsten
     Hothorn.
     \item The tmerge function would fail if the time variable was a Date
-  object.  It was due to the fact that as.Date(as.numeric(x)) 
-  fails when x is a date.  (A design flaw in Date, IMHO).
+      object.  It was due to the fact that as.Date(as.numeric(x)) 
+      fails when x is a date.  (A design flaw in Date, IMHO).  There were
+      also flaws when both the first and second data set were not sorted
+      by id; add a more complete test case for this.
 
     \item An earlier change in dim.survfit had felled the survfit.matrix
     function: it incorrectly assumed strata when there were none.
@@ -17,7 +19,24 @@
     this single curve in the vignette).  Pointed out by E Lundt.
 
     \item print.summary.survfitms would complain if only a single time
-    was specified.  A case where drop=FALSE was needed.
+    was returned.  A case where drop=FALSE was needed.
+
+    \item Add a test for survSplit to ensure that it works with both the
+    formula based and old interface.  Add documention on
+    how variable names are chosen to the help file.
+
+    \item Error in subscripting survival curves: if fit was a survfit
+    curve from left-truncated data, fit[k] had an incorrect n.enter
+    component.  (An old error, which shows how rarely that component is
+    used.)  Pointed out by Beth Atkinson.
+
+    \item Remove n.enter from the default printout of summary.survfit,
+    to make the printout more compact.
+    It remains in the summary object but was very rarely used.
+    \item Update the points.survfit function to handle multiple colors
+    and/or plotting characters.  If a survfit object has multiple curves
+    we cycle through these in the same manner as matpoints would.
+    
 }}
 
 \section{Changes in version 2.39-4}{

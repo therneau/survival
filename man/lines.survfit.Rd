@@ -15,7 +15,8 @@ generated with \code{plot.survfit}.
 	xscale=1,  firstx=0, firsty=1, xmax, fun, conf.int=FALSE,
         conf.times, conf.cap=.005, conf.offset=.012,  ...)
 \method{lines}{survexp}(x, type="l", ...)
-\method{points}{survfit}(x, xscale, xmax, fun, ...)
+\method{points}{survfit}(x, xscale, xmax, fun, censor=FALSE, col=1, pch,
+...)
 }
 
 \arguments{
@@ -31,8 +32,18 @@ for \code{lines.survfit}.
 }
 \item{mark, col, lty, lwd, cex}{
   vectors giving the mark symbol, color, line type, line width and
-  character size for the added curves. 
+  character size for the added curves.  Of this set only color is
+  applicable to \code{points}.
 }
+\item{pch}{plotting characters for points,  in the style of
+  \code{matplot}, i.e., either a single string of characters of which
+  the first will be used for the first curve, etc; or a vector
+  of characters or integers, one element per curve.
+}
+\item{censor}{should censoring times be displayed for the \code{points}
+  function?
+}  
+  
 \item{...}{other graphical parameters}
 \item{mark.time}{
 controls the labeling of the curves.   

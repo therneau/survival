@@ -10,7 +10,7 @@
 \usage{
 survSplit(formula, data, subset, na.action=na.pass,
             cut, start="tstart", id, zero=0, episode,
-                              end, event)
+                              end="tstop", event="event")
 }
 %- maybe also `usage' for other objects documented here.
 \arguments{
@@ -51,13 +51,22 @@ survSplit(formula, data, subset, na.action=na.pass,
   argument. 
   The right hand side of the formula can be used to delimit variables
   that should be retained; normally one will use \code{ ~ .} as a
-  shorthand to retain them all.
-  The \code{end} and \code{event} arguments give backwards
-  compatability with an older version which lacked a formula interface.
+  shorthand to retain them all.  When called in this way the routine
+  will try to retain variable names, e.g. \code{Surv(adam, joe, fred)~.}
+  will result in a data set with those same variable names for
+  \code{tstart}, \code{end}, and \code{event} options rather than
+  the defaults.  Any user specified values for these options will be
+  used if they are present, of course.
+  However, the routine is not sophisticated; it only does this
+  substitution for simple names.  A call of \code{Surv(time, stat==2)}
+  for instance will result in use of the 'event' argument for that
+  variable name.
+  The \code{end} and \code{event} arguments are required if there is
+  no formula.
 
   Rows of data with a missing time or status are copied across
   unchanged, unless the na.action argument is changed from its default
-  value of \code{na.pass} of course.  But in the latter case any row
+  value of \code{na.pass}.  But in the latter case any row
   that is missing for any variable will be removed, which is rarely
   what is desired.
   }
@@ -66,11 +75,10 @@ survSplit(formula, data, subset, na.action=na.pass,
 
 \examples{
 fit1 <- coxph(Surv(time, status) ~ karno + age + trt, veteran)
-
+plot(cox.zph(fit1)[1])
 # a cox.zph plot of the data suggests that the effect of Karnofsky score
-#  has faded by 120 days-- plot(cox.zph(fit)[1]) -- and begins to
-#  diminish by 60 days.
-# Fit a model with separate coefficeints for the three intervals
+#  begins to diminish by 60 days and has faded away by 120 days.
+# Fit a model with separate coefficients for the three intervals.
 #
 vet2 <- survSplit(Surv(time, status) ~., veteran,
                    cut=c(60, 120), episode ="timegroup")
@@ -81,7 +89,6 @@ c(overall= coef(fit1)[1],
   t60_120= sum(coef(fit2)[c(1,4)]),
   t120   = sum(coef(fit2)[c(1,5)]))
 }
-
 
 \keyword{survival }
 \keyword{utilities}

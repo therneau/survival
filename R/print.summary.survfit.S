@@ -18,10 +18,9 @@ print.summary.survfit <- function(x,
         }
 
     else if (x$type == 'counting') {
-	mat <- cbind(x$time, x$n.risk, x$n.event, x$n.enter,
+	mat <- cbind(x$time, x$n.risk, x$n.event,
 		     x$n.censor, x$surv)
-	cnames <- c("time", "n.risk", "n.event", 
-		    "entered", "censored")
+	cnames <- c("time", "n.risk", "n.event", "censored")
         }
 
     if (is.matrix(x$surv)) ncurve <- ncol(x$surv)

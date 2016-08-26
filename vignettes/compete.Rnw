@@ -194,10 +194,10 @@ was not straightforward.)
 The $p(t)$ vector obeys the obvious constraint that its sum at 
 any time
 is equal to one; each person has to be somewhere.
-I prefer the label \emph{current prevalence} estimate, 
+I originally chose to label this as the \emph{current prevalence} estimate, 
 since it estimates what fraction of the subjects are in any
 given state across time.  
-However the word ``prevalence'' is likely to generate confusion whenever
+However the word ``prevalence'' is certain to generate confusion whenever
 death is one of the states, due to its traditional use as the fraction of
 living subjects who have a particular condition.
 We will use the phrase \emph{probability in state} or simply $p$
@@ -404,7 +404,7 @@ legend(0, .25, c("Males, PCM, incorrect curve", "Males, PCM, competing risk"),
 @ 
 
 There are two problems with the \code{pcmbad} fit.  
-The first is that it attempts to estimate the expected rate of
+The first is that it attempts to estimate the expected occurence of
 plasma cell malignancy (PCM)
 if all other causes of death were to be disallowed.
 In this hypothetical world it is indeed true that many more subjects would
@@ -483,7 +483,7 @@ print(mfit3, rmean=240, digits=2)
 mfit3$transitions
 plot(mfit3[,1], mark.time=FALSE, col=1:2, lty=1:2, lwd=2,
      xscale=12,
-     xlab="Years post MGUS diagnosis", ylab="Prevalence of PCM")
+     xlab="Years post MGUS diagnosis", ylab="Fraction in the PCM state")
 legend(48, .04, c("female", "male"), lty=1:2, col=1:2, lwd=2, bty='n') 
 @ 
 This plot is quite different in that it shows the fraction of subjects
@@ -524,7 +524,7 @@ e2 <- factor(d2, labels=c("censor", "pcm", "death w/o pcm",
 mfit4 <- survfit(Surv(tstart, tstop, e2) ~ sex, data=newdata, id=id)
 plot(mfit2[2,], lty=c(1,2),
      xscale=12, mark.time=FALSE, lwd=2, 
-     xlab="Years post diagnosis", ylab="Prevalence")
+     xlab="Years post diagnosis", ylab="Probability in State")
 lines(mfit4[2,3], mark.time=FALSE, col=2, lty=1, lwd=2,
       conf.int=FALSE)
 
@@ -679,7 +679,7 @@ The Aalen-Johansen estimate applies as before, but now the individual
 entries $\lambda_{ij}(t)$ in each cell of the transition matrix are taken
 from the relevant fit.
 As is also the case with predicted survival curves from a simple 
-Cox model, predicted prevalence curves correspond to a set of
+Cox model, predicted probability-in-state curves correspond to a set of
 prespecified covariate values.  
 As an example we will generate the curves for four hypothetical
 subjects: male and female, age 60 and 80, and serum m-spike of 1.2 grams.
@@ -773,7 +773,7 @@ for the females, but the progression fraction varies substantially by group.
 \section{Fine-Gray model}
 For the competing risk case the Fine-Gray model provides an alternate way of
 looking at the data. 
-As we saw above, the impact of a particular covariate on the final prevalence
+As we saw above, the impact of a particular covariate on the final
 values $P$ can be complex, even if the models for the hazards are relatively
 simple. 
 The primary idea of the Fine-Gray approach is to turn the multi-state 
@@ -869,7 +869,7 @@ temp[1,2] <- list(survfit(pfitr, ndata, std.err=FALSE))
 temp[1,3] <- list(survfit(dfitr, ndata, std.err=FALSE))
 rcurve <- survfit(temp, p0=c(entry=1, pcm=0, death=0))
 @ 
-The FG model states that males have a lower rate of \emph{observed} PCM, 
+The FG model states that males have a less \emph{observed} PCM, 
 by a factor of \Sexpr{round(exp(coef(fgfit1)), 2)}, and that
 this hazard ratio is constant over time.
 An overlaid plot of the non-parametric Aalen-Johansen estimates for the
@@ -1005,7 +1005,7 @@ The primary strength of the Fine-Gray model with respect to the Cox model
 approach is that if lifetime risk is a primary question, then 
 the model has given
 us a simple and digestible answer to that question:
-``females have a 1.2 fold higher chance of PCM, after adjustment for age 
+``females have a 1.2 fold higher lifetime risk of PCM, after adjustment for age 
 and serum m-spike''.
 This simplicity is not without a price, however, and these authors are 
 not proponents of the approach.

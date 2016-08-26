@@ -52,14 +52,39 @@ lines.survfit <- function(x, type='s',
     <<plot-draw>>
 }
 
-points.survfit <- function(x, xscale=1,
-                           xmax, fun, ...) {
+points.survfit <- function(x, xscale, xmax, fun, censor=FALSE,
+                           col=1, pch, ...) {
+    # this function is used rarely
+    conf.int <- FALSE  # never draw these with 'points'
     <<plot-transform-ms>>
-    firstx <- NA  # flag used in the common args
-    conf.int <- FALSE
+    firstx <- firsty <- NA # part of the common args, but irrelevant for points
     <<plot-common-args>>
-    if (ncol(ssurv)==1) points(stime, ssurv, ...)
-    else  matpoints(stime, ssurv, ...)
+
+    if (ncurve==1 || (length(col)==1 && missing(pch))) {
+        if (censor) points(stime, ssurv, ...)
+        else points(stime[x$n.event>0], ssurv[x$n.event>0], ...)
+    }
+    else {
+        c2 <- 1  #cycles through the colors and characters
+        col <- rep(col, length=ncurve)
+        if (!missing(pch)) {
+            if (length(pch)==1)
+                pch2 <- rep(strsplit(pch, '')[[1]], length=ncurve)
+            else pch2 <- rep(pch, length=ncurve)
+        }
+        for (j in 1:ncol(ssurv)) {
+            for (i in unique(stemp)) {
+                if (censor) who <- which(stemp==i)
+                else who <- which(stemp==i & x$n.event >0)
+                if (missing(pch))
+                    points(stime[who], ssurv[who,j], col=col[c2], ...)
+                else
+                    points(stime[who], ssurv[who,j], col=col[c2], 
+                           pch=pch2[c2], ...) 
+                c2 <- c2+1
+            }
+        }
+    }
 }
 @ 
 
