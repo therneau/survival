@@ -1,32 +1,20 @@
 \documentclass{article}[11pt]
-\usepackage{Sweave}
-\usepackage{amsmath}
 \addtolength{\textwidth}{1in}
 \addtolength{\oddsidemargin}{-.5in}
 \setlength{\evensidemargin}{\oddsidemargin}
 %\VignetteIndexEntry{Applied Longitudinal Regression Analysis}
 
-\SweaveOpts{keep.source=TRUE, fig=FALSE}
-% Ross Ihaka suggestions
-\DefineVerbatimEnvironment{Sinput}{Verbatim} {xleftmargin=2em}
-\DefineVerbatimEnvironment{Soutput}{Verbatim}{xleftmargin=2em}
-\DefineVerbatimEnvironment{Scode}{Verbatim}{xleftmargin=2em}
-\fvset{listparameters={\setlength{\topsep}{0pt}}}
-\renewenvironment{Schunk}{\vspace{\topsep}}{\vspace{\topsep}}
-
-% I had been putting figures in the figures/ directory, but the standard
-%  R build script does not copy it and then R CMD check fails
-\SweaveOpts{prefix.string=tutorial,width=6,height=4}
-\newcommand{\myfig}[1]{\includegraphics[height=!, width=\textwidth]
-                        {tutorial-#1.pdf}}
-\setkeys{Gin}{width=\textwidth}
 <<echo=FALSE>>=
+require(survival, quietly=TRUE)
+require(knitr, quietly=TRUE)
+# Some output options for knitr that I favor
+opts_chunk$set(comment=NA, tidy=FALSE, highlight=FALSE, echo=FALSE,
+               fig.with=7, fig.height=5.5, fig.path="figures/",
+               out.width="\\textwidth", out.height="!", device="pdf",
+               cache=TRUE, background="#FFFFFF",
+               warning=FALSE, error=FALSE)
 options(continue="  ", width=60)
-options(SweaveHooks=list(fig=function() par(mar=c(4.1, 4.1, .3, 1.1))))
 pdf.options(pointsize=10) #text in graph about the same as regular text
-options(contrasts=c("contr.treatment", "contr.poly")) #ensure default
-
-require("survival")
 @
 \title{Examples from Singer and Willett}
 \author{Terry Therneau}
@@ -44,144 +32,346 @@ Research and Education and the University of California Los Angeles,
 \url{http://www.ats.ucla.edu/stat/r/examples/alda}.
 
 A user's question caused me to work through one of the chapters.
-The UCLA code at that time (Aug 2016) did not make use of 
-many of the features of the package and so does many things in a tedious
+The code on the website at that time (Aug 2016) did not make use of 
+several features of the package and so does many things in a tedious
 way.  This note gives a more succinct version.
+Our code starts by setting 3 options.
+\begin{itemize}
+  \item The stringsAsFactors option is useful when reading in data from an
+    external source, since an automatic conversion to a factor (categorical)
+    variable is very confusing when it was not anticipated, e.g. a numeric
+    speadsheet column that contains an unexpected string such as ``below limit''
+    or ``not available'' in one entry.
+  \item The na.action option causes predictions and residuals to contain missing
+    values when the source data has missings, though they are removed for 
+    creating the fit. The vector of predicted values will line up with the
+    source data set.
+    The default \code{na.omit} value causes missing observations 
+    to be absent from the vector of predictions.  
+  \item Labeling results as 'significant' or not via the addition of asterisks 
+    is bad science; we forestall this lamentable practice.
+\end{itemize}
+In the particular data sets used for these chapters there are no missing values 
+and
+no suprises were found in the .csv file, so the first two of the options
+are not strictly necessary.
+<<options>>=
+options(stringsAsFactors = FALSE,
+        na.action = na.exclude,
+        show.signif.stars= FALSE)
+@ 
+
+\section{Chapter 10}
+<<read10>>=
+ucla <- "http://www.ats.ucla.edu/stat/r/examples/alda/data/" 
+teachers <- read.table(paste0(ucla, "teachers.csv"), sep=',', header=TRUE)
+
+tsurv <- survfit(Surv(t, censor==0) ~1, data= teachers)
+hazard <- tsurv$n.event/ tsurv$n.risk
+
+table10.1 <- cbind(time= tsurv$time, risk= tsurv$n.risk, left= tsurv$n.event,
+      censored = tsurv$n.censor, hazard=hazard, survival=tsurv$surv)
+round(table10.1, 5)
+
+plot(tsurv$time, hazard, ylim=c(0, .15),
+     ylab="Estimated hazard", xlab="Years in teaching")
+
+plot(c(0, tsurv$time), c(1,tsurv$surv), type='l', lwd=2, ylim=c(0,1), 
+     xlab="Years in teaching", ylab="Estimated survival probability")
+abline(h=.5, lty=2)
+abline(v=6.5, lty=2)
+#abline(v= quantile(tsurv, .5, conf.int=FALSE), lty=2) # actual median
+
+@ 
 
 \section{Chapter 14}
-First read in the data and do simple summaries.
-<<readit>>=
+First read in the data and do simple summaries. 
+The \code{table(table(id))} construct tells that there are 194 subjects and
+that each has a single row of data.
+<<read14>>=
 require(survival)
-rearrest <-read.table("http://www.ats.ucla.edu/stat/examples/alda/rearrest.csv",
-                      sep=",", header=T)
+rearrest <-read.table(paste0(ucla, "rearrest.csv", sep=",", header=T)
 dim(rearrest)
 names(rearrest)
 table(table(rearrest$id))
 @ 
 
+Generate the graphs in figure 14.1, page 505. 
+First is the ordinary survival curves by the \code{personal} variable,
+and then a plot of the cumulative hazard function. 
+<<surv14.1>>= 
+surv14.1 <- survfit(Surv(months, censor==0) ~ personal, rearrest)
+surv14.1
 
-# The example page uses a horrible amount of code to do the work.
+plot(surv14.1, lty=1:2, col=1:2, lwd=2, 
+     xlab="Months after release", ylab="Estimated Survival")
+legend("bottomleft", c("Personal=0", "Personal=1"), 
+       lty=1, lwd=2, col=1:2, bty='n')
 
-fit14 <- survfit(Surv(months, censor==0) ~ personal, rearrest)
+plot(surv14.1, lty=1:2, fun="cumhaz", lwd =2, 
+      xlab="Months after release", ylab="Estimated cumulative hazard")
+legend("bottomright", c("Personal=0", "Personal=1"), 
+       lwd=2, lty=1:2, bty='n')
+@ 
+The default printout for a survfit object shows a single line for
+each curve giving the number of subjects, events, and median survival
+for each.  
+Lines in a plot are drawn in the same order as the printout, which
+allows us to match the desired line type, color, and label to each.
+There was a historical precident (now fading) for having the top left
+of a survival curve touch the vertical axis and this is the default
+for the first plot.  To restor the normal R plot spacing add the
+\code{xaxs = 'r'} argument to the plot.
+I slightly prefer legends without boxes and hence a \code{bty='n'}
+in the legend call.
 
-# Their plots all erroneously extend the leftmost point as a horizontal line,
-#  all the way to the left axis
-#
-plot(fit14, lty=1:2, xaxs= 'r')
-legend("bottomleft", c("Personal=0", "Personal=1"), lty=1:2)
+There are multiple R functions for smoothing general scatterplot, but far
+fewer for smoothing a hazard. One simple approach is
+to smooth the cumulative hazard function using a spline and then plot the
+derivative of the smooth, this is the function smooth1 below.
+The degrees of freedom for the spline controls the amount of smoothing.
+Techinically one needs to also ensure
+that the smoothed cumulative hazard is monotone, but this usually
+holds for small to modest values of degrees of freedom with further intervention.
+The second function uses the method found in the UCLA file.
+It is based on the fact that $dS/dt = -\lambda(t) S(t)$.  The code first
+creates a discrete derivative $h= -[S(t_{i+1}) - S(t_i)/ S(t_i)$ and then
+applies a smoothing kernel to those points.
+Both functions require a single survival curve as input. We can subscript
+survfit objects, e.g., \code{surv14.1[1]} is the curve for the population=0
+group and \code{surv14.1[2]} contains the curve for the second group.
 
-plot(fit14, lty=1:2, fun="cumhaz")
-legend("bottomright", c("Personal=0", "Personal=1"), lty=1:2)
+<<dosmooth>>=
+smooth1 <- function(fit, df) {  
+    # "fit"= a single survival curve, -log(S) = cumulative hazard
+    #  the curve will not include the (0,1) point
+    spl <- smooth.spline(c(0, fit$time), c(0, -log(fit$surv)), df=df)
+    predict(spl, deriv=1)
+    }
+smooth2 <- function(fit, width) {
+    time <- fit$time
+    surv <- fit$surv
+    n <-length(time)
+    npt <- 50
+    newx <- seq(time[1] + width, time[n]-width, length= npt)
 
-smooth <- function(width, time, survive){
-    n=length(time)
-    lo=time[1] + width
-    hi=time[n] - width
-    npt=50
-    inc=(hi-lo)/npt
-    s=lo+t(c(1:npt))*inc
-    slag = c(1, survive[1:n-1])
-    h=1-survive/slag
-    x1 = as.vector(rep(1, npt))%*%(t(time))
-    x2 = t(s)%*%as.vector(rep(1,n)) 
-    x = (x1 - x2) / width
-    k=.75*(1-x*x)*(abs(x)<=1)
-    lambda=(k%*%h)/width
-    list(x = s, y = c(lambda))
-}
+    slag <- c(1, surv[1:n-1])  #S[i-1] 
+    h    <- (slag -surv)/slag
+    xx <- outer(newx, time, '-')/width  # differences
+    kernel <- .75 * pmax(1-xx^2, 0)
+    list(x=newx, y = as.vector(kernel %*% h)/width)
+    }
+sm1a <- smooth1(surv14.1[1], df=5)
+sm1b <- smooth1(surv14.1[2], df=5)
+sm2a <- smooth2(surv14.1[1], width=8)
+sm2b <- smooth2(surv14.1[2], width=8)
+plot(range(sm1a$x, sm1b$x), c(0, max(sm1a$y, sm1b$y)), type='n',
+     xlab="Months after release", ylab="Smoothed hazard")
+lines(sm1a, lwd=2)
+lines(sm1b, lwd=2, lty=2)
+lines(sm2a, lwd=2, col=2)
+lines(sm2b, lwd=2, lty=2, col=2)
+legend("topright", c("personal=0, spline", "personal=1, spline",
+                     "personal=0, kernel", "personal=1, kernel"),
+       lty=1:2, col=c(1,1,2,2), bty='n')
+@
 
-bw1  <- smooth(8, fit14[1]$time, fit14[1]$surv)
-bw2  <- smooth(8, fit14[2]$time, fit14[2]$surv)
-
-plot(bw1, type='l', xlim=c(0,36), ylim=c(0,.08), 
-     xlab = "Months after release", ylab = "Smoothed hazard")  
-lines(bw2, lty=2)
-
-# Again, this is wrongly extended
+Now generate the curves on log(-log) scale.  The plot function for
+survival curves allows an arbitrary transformation of the y axis.
+<<loglog>>=
 loglog <- function(x) log( -log(x))
-plot(fit14, fun= loglog, lty=1:2, 
+plot(surv14.1, fun= loglog, lty=1:2, 
      xlab="Months after release", ylab="log(cumulative hazard)")
+@
 
-# Fit Cox models
-f14.2 <- coxph(Surv(months, censor==0) ~ personal, data=rearrest)
+Fit Cox models with personal, property, centered age, and
+combinations of them as covariates.  Then plot the predicted
+survival curves from those Cox models. 
+The KM curves are overlaid as points.
+<<coxfit>>= 
+cox14.1 <- coxph(Surv(months, censor==0) ~ personal, data=rearrest)
+cox14.2 <- coxph(Surv(months, censor==0) ~ property, data=rearrest)
+cox14.3 <- coxph(Surv(months, censor==0) ~ cage,     data=rearrest)
+cox14.4 <- coxph(Surv(months, censor==0) ~ personal + property + cage,
+                  data=rearrest)
 
-tdata   <- data.frame(personal=0:1)
-surv2   <- survfit(f14.2, newdata= tdata)
+summary(cox14.1)
+print(cox14.2)
+print(cox14.3)
+anova(cox14.4)
+@ 
 
-plot(surv2, fun= loglog, xmax=30,
+Create predicted survival curves for selected subjects.
+Using the first fit predicted curves are for subjects with
+the two values of personal=0 and personal =1.
+Curves are created by first creating a dummy data set which contains
+the desired covariate values, with one row per subject to be predicted.
+The resulting survfit object will have one curve per row.
+
+<<coxcurv1>>= 
+tdata   <- data.frame(personal=0:1) # covariates for prediction
+csurv.1   <- survfit(cox14.1, newdata= tdata)
+plot(csurv.1, fun= loglog, xmax=30,
   xlab = "Months after release", ylab = "log(Cumulative Hazard)")
-points(fit14, fun= loglog, pch='+x')
+legend("bottomright", c("Personal=0", "Personal=1"), lty=1:2, bty='n')
+# Add the Kaplan-Meier curves to the plot as points
+points(surv14.1, fun=loglog, pch="+x")
 
-# Repeat on Cumhaz scale
-plot(surv2, fun= 'cumhaz', xmax=30,
-  xlab = "Months after release", ylab = "log(Cumulative Hazard)")
-points(fit14, fun='cumhaz', pch="+x")
+# Repeat the plot using cumulative hazard scale
+plot(csurv.1, fun= "cumhaz", xmax=30,
+  xlab = "Months after release", ylab = "Cumulative Hazard")
+# Add the Kaplan-Meier curves to the plot as points
+points(surv14.1, fun='cumhaz', pch="+x")
+legend("bottomright", c("Personal=0", "Personal=1"), lty=1:2, bty='n')
 
-# Table 14.1A
-summary(f14.2)
-
-summary(coxph(Surv(months, censor==0) ~ property, data=rearrest))
-summary(coxph(Surv(months, censor==0) ~ cage, data=rearrest))
-summary(coxph(Surv(months, censor==0) ~ personal + property + cage, 
-              data=rearrest))
-
-# Build the table.  Make sure any missing are included
-options(na.action = "na.exclude")
-f14.2 <- eval(f14.2$call)
-risk.score <- function(id, fit= f14.2, data=rearrest) {
-    score <- predict(fit)
-    new <- data.frame(ID=       data$id,
+# Build a table of predictions, table 14.2 page 533
+risk.score <- function(id, fit= cox14.1, data=rearrest) {
+     new <- data.frame(ID=       data$id,
                       personal= data$personal,
                       property= data$property,
                       "centered age"= data$cage,
-                      "risk.score"  = score,
+                      "risk.score"  = predict(fit),
                       day = data$months * (365/12),
                       months = data$months,
                       censor = data$censor)
-    new[match(id, new$ID, nomatch=0),]
+   as.matrix(new[match(id, new$ID, nomatch=0),])
 }
 
 tab14.2 <- risk.score(c(22, 8, 187, 26, 5, 130, 106, 33))
-tab14.2
+print(tab14.2, digits=3)
+@ 
 
+Create predicted survival curves from the multivariate model.
+The first curve is for someone with both personal and
+property equal to 0 and an age at the center of the data set.
+The second is for non-existent subject with a
+personal and property values equal to the mean of the data
+set. 
+It is unclear what subject a ``mean'' curve represents when
+one or more of the variables is discrete.  
+Mathematically it is the predicted curve for a subject who
+has a value of \Sexpr{mean(rearrest$personal)} for the yes/no
+question of whether the prisoner had a record of crime against
+persons and \Sexpr{mean(rearrest$property)} for the yes/no question
+of whether the prisoner had a record including property crimes.
+The curve can \emph{not} be interpreted as an overall average
+survival, even for continuous covariates such as age.
+That has not stopped such curves from common use, however.
+
+<<coxsurv2>>=
 # Figure 14.4    
-cox14 <- coxph(Surv(months, censor==0)~personal + property + cage,
-                  data=rearrest)
-base <- with(rearrest, data.frame(personal=c(0, mean(personal)),
-                                  property=c(0, mean(property)),
-                                  cage= c(0,0)))
-base
+base <- data.frame(personal=c(0, mean(rearrest$personal)),
+                   property=c(0, mean(rearrest$property)),
+                   cage= c(0,0))
+base #verify that the data set is as expected. One prediction per row.
 
-s14 <- survfit(cox14, newdata=base)
-plot(s14, lty=1:2, 
+csurv.2 <- survfit(cox14.4, newdata=base)
+plot(csurv.2, lty=1:2, 
      xlab="Months after release", ylab="Estimated Survival")
-plot(s14, lty=1:2, fun='cumhaz',
+plot(csurv.2, lty=1:2, fun='cumhaz',
      xlab="Months after release", ylab="Estimated Cumulative Hazard")
 
-smooth.base <- smooth(8, s14[1]$time, s14[1]$surv)
-smooth.ave  <- smooth(8, s14[2]$time, s14[2]$surv)
+sm1a  <- smooth1(csurv.2[1], df=5)
+sm1b  <- smooth1(csurv.2[2], df=5)
+sm2a  <- smooth2(csurv.2[1], width=8)
+sm2b  <- smooth2(csurv.2[2], width=8)
+plot(sm1a, type='l', lty=1, ylim=c(0, max(sm1a$y, sm1b$y)),
+     xlab = "Months after release", ylab = "Smoothed hazard") 
+lines(sm1b, lty=2)
+lines(sm2a, lty=1, col=2)
+lines(sm2b, lty=2, col=2)
+@ 
 
-plot(smooth.base, type='l', xlim=c(0,36), ylim=c(0, .08), 
-     xlab = "Months after release", ylab = "Smoothed hazard")        
-lines(smooth.ave, lty=2)
+Repeat the plots for model 4 with the last set of predicted values,
+which are the 4 combinations of personal 0 or 1 with property 0 or 1,
+along with the mean age.
 
-# Repeat for a different set of predictions
+<<coxsurv3>>=
 base <- data.frame(personal=c(0,1,0,1), property=c(0,0,1,1), cage=c(0,0,0,0))
 base
-s14 <- survfit(cox14, newdata=base)
-plot(s14, lty=1:4, 
+csurv3 <- survfit(cox14.4, newdata=base)
+plot(csurv3, lty=1:4, 
      xlab="Months after release", ylab="Estimated Survival")
-legend(1, .3, c('base', 'personal', 'property', 'both'), lty=1:4, bty='n')
-plot(s14, lty=1:4, fun='cumhaz',
+legend(1, .3, c('neither', 'personal', 'property', 'both'), lty=1:4, bty='n')
+#
+plot(csurv3, lty=1:4, fun='cumhaz',
      xlab="Months after release", ylab="Estimated Cumulative Hazard")
-legend(0, 1.5, c('base', 'personal', 'property', 'both'), lty=1:4, bty='n')
+legend(0, 1.5, c('neither', 'personal', 'property', 'both'), lty=1:4, bty='n')
 
-plot(c(0,36), c(0,.08), type='n',
-     xlab = "Months after release", ylab = "Smoothed hazard")
-for (i in 1:4) {
-    temp <- smooth(8, s14[i]$time, s14[i]$surv)
-    lines(temp, lty=i)
-}
-legend('topright' ,c('base', 'personal', 'property', 'both'), lty=1:4,
-       bty='n')
+#
+plot(csurv3, lty=1:4, fun=loglog,
+     xlab="Months after release", ylab="log(Cumulative Hazard)")
+legend("bottomright", c('neither', 'personal', 'property', 'both'), 
+       lty=1:4, bty='n')
+@
 
+\section{Chapter 15}
+The data set used in this example is not in the same place as the others.
+There is a link to download all of the R data sets on the main page
+\url{http://www.ats.ucla.edu/stat/r/examples/alda/}, and the resulting
+zip file does contain a \code{firstcocaine.csv} file.
+However, the results from that file are not the same as the SAS results on
+the same page; instead we downloaded the SAS data files and use the
+\code{haven} package to translate the data set to R.  It contains 106 more
+subjects than the csv file. The he downloaded data was
+stored in temp/aldasas; this is stored in the \code{alda} variable.
+
+To analysis the time-dependent covariates mj, od, and sd it is easiest
+in R to create a start-stop data set using the tmerge function.
+<<data15>>=
+#firstcocaine <- read.table(paste0(ucla, "firstcocaine.csv"), sep=',')
+alda <- "~/temp/aldasas/"
+require(haven)
+firstcocaine <- read_sas(paste0(alda, "firstcocaine.sas7bdat"))
+names(firstcocaine) <- tolower(names(firstcocaine))
+basevars <- subset(firstcocaine,,c(id, birthyr, rural, earlyod, earlymj))
+coke2 <- tmerge(basevars, firstcocaine, id=id, 
+                coke = event(cokeage, 1-censor),
+                usedmj= tdc(mjage), soldmj = tdc(sellmjage),
+                usedod= tdc(odage), moreod = tdc(sdage))
+subset(firstcocaine, id==27)
+subset(coke2, id==27)
+@ 
+Data has been printed out for subject 24, who started mj at age 21 and
+od at age 22, and experiences the cocaine endpoint at age 34. 
+In the expanded data set \code{coke2} there is a line of
+data for each of the time periods (0, 21], (21, 22] and (22,34], the last 
+of which ends with a cocaine event.  During the second period the time
+dependent covariate \code{usemj} has become true, and during the third
+period \code{usedod} has been added.
+As a test of the data verify that Cox models using the three time fixed
+covariates give identical results for the two data sets. 
+<<cfixed>>= 
+# Time fixed covariates
+cfit1 <- coxph(Surv(cokeage, censor==0) ~  birthyr + earlymj + earlyod,
+               firstcocaine)
+cfit1
+
+cfit1b <- coxph(Surv(tstart, tstop, coke) ~ birthyr + earlymj + earlyod,
+               data=coke2)
+cfit1b
+@ 
+
+Now fit the models with time-varying covariates.
+<<cvary>>=
+cfit2 <- coxph(Surv(tstart, tstop, coke) ~ birthyr + usedmj + usedod,
+               data=coke2)
+cfit2
+
+cfit3 <- coxph(Surv(tstart, tstop, coke) ~ birthyr + usedmj + soldmj +
+                   usedod + moreod, data=coke2)
+cfit3
+
+cfit4 <- coxph(Surv(tstart, tstop, coke) ~ birthyr + earlymj +usedmj + soldmj +
+                   earlyod + usedod + moreod, data=coke2)
+@ 
+
+It is worth checking whether the effect of birth year is linear.  We
+see that 
+evidence for non-linearity is small both by the p-value (.26) and the
+graph: one can easily draw a line that stays within the confidence bands.
+<<nonlin>>=
+cfit2b <- coxph(Surv(tstart, tstop, coke) ~ pspline(birthyr) + usedmj + usedod,
+               data=coke2)
+termplot(cfit2b, term=1, se=TRUE, col.se=1, col.term=1)
+@ 
