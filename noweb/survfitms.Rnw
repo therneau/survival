@@ -21,7 +21,7 @@ or integer indices.
 <<dim.survfitms>>=
 dim.survfitms <- function(x) {
     if (is.null(x$strata)) {
-        if (is.matrix(x$surv)) c(1L, ncol(x$surv))
+        if (is.matrix(x$prev)) c(1L, ncol(x$prev))
         else 1L
     }
     else {
@@ -59,8 +59,8 @@ dim.survfitms <- function(x) {
     #  subscript from the program's view, i.e, the row indices to keep
     if (is.null(i)) {
         i2 <- 1:n
-        if (is.null(strata)) i <- 1
-        else i <- seq(along=strata)
+        if (is.null(x$strata)) i <- 1
+        else i <- seq(along=x$strata)
     }
     else {
         if (is.null(x$strata) && (length(i) > 1 || i != 1))
@@ -122,8 +122,14 @@ dim.survfitms <- function(x) {
     }
     else if (!is.null(j)) x$p0 <- x$p0[j]
     if (!is.null(x$influence)) {
-        if (length(i)>1) x$influence <- x$influence[i]
-        else x$influence <- x$influence[[i]]
+        if (length(i) >1) x$influence <- x$influence[i]
+        else if (is.list(x$influence)) x$influence <- x$influence[[1]]
+    
+        if (!is.null(j)) {
+            if (is.list(x$influence)) 
+                x$influence <- lapply(x$influence, function(x) x[,j,])
+            else x$influence <- x$influence[,j,]
+        }
     }
     x
 }

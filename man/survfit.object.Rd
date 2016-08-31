@@ -62,7 +62,7 @@ packages were dependent on the form of the result.)
 \item{std.err}{
 for a survival curve this contains standard error of the cumulative
 hazard or -log(survival), for a multi-state curve it contains the
-standard error of pstate.  This difference is a reflection of
+standard error of prev.  This difference is a reflection of
 the fact that each is the natural calculation for that case.
 }
 \item{cumhaz hazard}{optional.  For a multi-state curve this is
@@ -115,7 +115,7 @@ type of survival censoring.
 \item{influence}{optional.  A list with one element per stratum, each
   element of the list is an array indexed by time, state, and subject.
   It contains the influence of each subject on the estimate.
-  If stata is NULL this will be an array or matrix.}
+  If strata is NULL this will be an array or matrix.}
 }
 \section{Subscripts}{
 Survfit objects that contain multiple survival curves can be subscripted. 
