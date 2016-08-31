@@ -42,5 +42,9 @@ vignettes/.*.pdf
 vignettes/.*.tex
 vignettes/.*.log
 vignettes/figures
+vignette2/.*.pdf
+vignette2/figures
+vignette2/.*.tex
+vignette2/.*.log
 tests/plot1.pdf
 temp
