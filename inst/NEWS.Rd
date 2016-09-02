@@ -5,6 +5,7 @@
     \item Fix some labeling errors in the graphs for the adjusted
     survival curves vignette (consequences of the xscale change in
     2.38-5).
+    
     \item Update multi-state survival so that the robust (default)
     variance for a weighted data set treats these as sampling weights
     rather than case weights.  This makes it consistent with the
@@ -13,8 +14,10 @@
 
     \item Surv(time, status) would fail when status was a factor with
     only two levels.  This was due to an assumption that no user would
-    ever want this, i.e., do it on purpose, so it must be a mistake
-    which should be caught.  Bad idea.
+    ever want this, i.e., ever do it on purpose.  Then it must be a mistake
+    which should be caught.  This was a bad idea.
+
+    \item Add the start.time argument to survfit.coxph.
 }}
 \section{Changes in version 2.39-5}{
   \itemize{

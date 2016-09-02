@@ -26,6 +26,7 @@ The input arguments are
     output.  This is for 
     backwards compatability with older versions of the code.
   \item[id] replacement and extension for the individual argument
+  \item[start.time] Start a curve at a later timepoint than zero.
 \end{description}
 All the other arguments are common to all the methods, refer to the 
 help pages.
@@ -35,7 +36,7 @@ survfit.coxph <-
   function(formula, newdata, se.fit=TRUE, conf.int=.95, individual=FALSE,
             type, vartype,
             conf.type=c("log", "log-log", "plain", "none"),
-            censor=TRUE, id,
+            censor=TRUE, id, start.time,
             na.action=na.pass, ...) {
 
     Call <- match.call()
@@ -163,9 +164,28 @@ else {
 if (is.null(object[['x']])) x <- model.matrix.coxph(object, data=mf)
 else x <- object[['x']]
 
-n <- nrow(y)
-if (n != object$n[1] || nrow(x) !=n) 
-    stop("Failed to reconstruct the original data set")
+if (!missing(start.time)) {
+    if (!is.numeric(start.time) || length(start.time) > 1)
+        stop("start.time must be a single numeric value")
+    # Start the curves after start.time
+    # To do so, remove any rows of the data with an endpoint before that
+    #  time.
+    if (ncol(y)==3) {
+        keep <- y[,2] > start.time
+        y[keep,1] <- pmax(y[keep,1], start.time)
+    }
+    else keep <- y[,1] > start.time
+    if (!any(y[keep, ncol(y)]==1)) 
+        stop("start.time argument has removed all endpoints")
+    y <- y[keep,,drop=FALSE]
+    x <- x[keep,,drop=FALSE]
+    n <- nrow(y)
+}
+else {
+    n <- nrow(y)
+    if (n != object$n[1] || nrow(x) !=n) 
+        stop("Failed to reconstruct the original data set")
+}
 
 if (is.null(mf)) wt <- rep(1., n)
 else {

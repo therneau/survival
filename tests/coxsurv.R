@@ -85,3 +85,12 @@ fit2 <- coxph(Surv(time, status) ~ age + offset(ph.ecog * fit1$coef[2]), lung)
 surv1 <- survfit(fit1, newdata=data.frame(age=50, ph.ecog=1))
 surv2 <- survfit(fit2, newdata=data.frame(age=50, ph.ecog=1))
 all.equal(surv1$surv, surv2$surv)
+
+#
+# Check out the start.time option
+#
+surv3 <- survfit(fit1, newdata=data.frame(age=50, ph.ecog=1),
+                 start.time=100)
+index <- match(surv3$time, surv1$time)
+rescale <- summary(surv1, time=100)$surv
+all.equal(surv3$surv, surv1$surv[index]/rescale)

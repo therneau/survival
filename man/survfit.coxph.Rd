@@ -13,6 +13,7 @@ hazards model.
         individual=FALSE, 
         type,vartype,
         conf.type=c("log","log-log","plain","none"), censor=TRUE, id,
+        start.time,
         na.action=na.pass, ...)
 }
 \arguments{
@@ -86,6 +87,10 @@ hazards model.
     strata curves in the result (one for each strata/subject combination).
     result.}
 
+  \item{start.time}{optional starting time, a single numeric value.
+    If present the returned curve contains survival after
+    \code{start.time} conditional on surviving to \code{start.time}.
+    }
   \item{na.action}{the na.action to be used on the newdata argument}
   
    \item{\dots}{for future methods}
