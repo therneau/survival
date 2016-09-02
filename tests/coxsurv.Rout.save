@@ -1,7 +1,6 @@
 
-R version 2.15.1 (2012-06-22) -- "Roasted Marshmallows"
-Copyright (C) 2012 The R Foundation for Statistical Computing
-ISBN 3-900051-07-0
+R Under development (unstable) (2016-05-06 r70588) -- "Unsuffered Consequences"
+Copyright (C) 2016 The R Foundation for Statistical Computing
 Platform: i686-pc-linux-gnu (32-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -19,7 +18,6 @@ Type 'q()' to quit R.
 > options(na.action=na.exclude) # preserve missings
 > options(contrasts=c('contr.treatment', 'contr.poly')) #ensure constrast type
 > library(survival)
-Loading required package: splines
 > 
 > #
 > # Test out subscripting in the case of a coxph survival curve
@@ -125,6 +123,16 @@ Loading required package: splines
 > all.equal(surv1$surv, surv2$surv)
 [1] TRUE
 > 
+> #
+> # Check out the start.time option
+> #
+> surv3 <- survfit(fit1, newdata=data.frame(age=50, ph.ecog=1),
++                  start.time=100)
+> index <- match(surv3$time, surv1$time)
+> rescale <- summary(surv1, time=100)$surv
+> all.equal(surv3$surv, surv1$surv[index]/rescale)
+[1] TRUE
+> 
 > proc.time()
    user  system elapsed 
-  0.316   0.032   0.342 
+  1.268   0.072   1.335 

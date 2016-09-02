@@ -11,9 +11,10 @@ tdata <- data.frame(id=c(1,1,1,1, 2,2,2, 3,3, 4,4,4,4, 5, 6, 6),
                     wt = c(2,2,2,2, 1,1,1, 3,3, 1,1,1,1, 2, 1,1),
                     stringsAsFactors=TRUE)
 tdata$stat2 <- factor(tdata$status * as.numeric(tdata$event),
-                      labels=c(" ", levels(tdata$event)))
+                      labels=c("censor", levels(tdata$event)))
          
-fit <- survfit(Surv(time1, time2, stat2) ~1, id=id, weight=wt, tdata)
+fit <- survfit(Surv(time1, time2, stat2) ~1, id=id, weight=wt, tdata,
+               influence=TRUE)
 
 # The exact figures for testci2.
 # The subject data of  id, weight, (transition time, transition)
@@ -72,19 +73,26 @@ truth <- truth[c(1:6, 6:11),]/10  #the explicit censor at 22
 all.equal(truth, fit$prev[,1:4])
 
 # Test the dfbetas
-dfbeta <- array(0., dim=c(6, nrow(fit$prev), ncol(fit$prev)))
-eps <- 1e-6
+# It was a big surprise, but the epsilon where a finite difference approx to
+#  the derivative is most accurate is around 1e-7 = approx sqrt(precision).
+# Smaller eps makes the all.equal test worse.
+dfbeta <- 0*fit$influence # same dimension
+eps <- sqrt(.Machine$double.eps)     
 for (i in 1:6) {
     twt <- tdata$wt
     twt[tdata$id ==i] <- twt[tdata$id==i] + eps
     tfit <- survfit(Surv(time1, time2, stat2) ~ cluster(id), tdata,
                     weight=twt)
-    dfbeta[i,,] <- (tfit$prev - fit$prev)/eps
+    dfbeta[,,i] <- (tfit$prev - fit$prev)/eps  #finite difference approx
 }
-twt <- tdata$wt[match(1:6, tdata$id)]
-temp <- (twt*dfbeta) * dfbeta
-tstd <- sqrt(apply(temp, 2:3, sum))
-all.equal(tstd, fit$std.err, tolerance=eps)
+all.equal(dfbeta, fit$influence, tolerance= eps*10)
+twt <- tdata$wt[match(1:6, tdata$id)]  # six unique weights
+temp <- dfbeta
+for (i in 1:6) temp[,,i] <- temp[,,i]* twt[i]
+std2 <- sqrt(apply(temp^2, 1:2, sum))
+
+all.equal(fit$std, sqrt(apply(temp^2, 1:2, sum)), tolerance=eps,
+          check.attributes=FALSE)
 
 if (FALSE) {
     # a plot of the data that helped during creation of the example
