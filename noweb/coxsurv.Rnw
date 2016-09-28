@@ -164,6 +164,12 @@ else {
 if (is.null(object[['x']])) x <- model.matrix.coxph(object, data=mf)
 else x <- object[['x']]
 
+missid <- missing(id) # I need this later, and setting id below makes
+                      # "missing(id)" always false
+if (!missid) individual <- TRUE
+else if (missid && individual) id <- rep(0,n)  #dummy value
+else id <- NULL
+
 if (!missing(start.time)) {
     if (!is.numeric(start.time) || length(start.time) > 1)
         stop("start.time must be a single numeric value")
@@ -179,6 +185,7 @@ if (!missing(start.time)) {
         stop("start.time argument has removed all endpoints")
     y <- y[keep,,drop=FALSE]
     x <- x[keep,,drop=FALSE]
+    if (length(id) >0 ) id <- id[keep]
     n <- nrow(y)
 }
 else {
@@ -196,11 +203,6 @@ else {
 type <- attr(y, 'type')
 if (type != 'right' && type != 'counting') 
     stop("Cannot handle \"", type, "\" type survival data")
-missid <- missing(id) # I need this later, and setting id below makes
-                      # "missing(id)" always false
-if (!missid) individual <- TRUE
-else if (missid && individual) id <- rep(0,n)  #dummy value
-else id <- NULL
 
 if (individual && missing(newdata)) {
     stop("the id and/or individual options only make sense with new data")
