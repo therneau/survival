@@ -3,7 +3,7 @@ bibentry(bibtype="Manual",
 	 author= person(c("Terry M"), "Therneau"),
 	 year =2015,
 	 note ="version 2.38",
- 	 url="http://CRAN.R-project.org/package=survival",
+ 	 url="https://CRAN.R-project.org/package=survival",
 	 key= "survival-package"
 	 )
 bibentry(bibtype= "Book",

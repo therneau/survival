@@ -2,6 +2,8 @@
 \title{NEWS file for the survival package}
 \section{Changes in version 2.39-6}{
   \itemize{
+    \item The rsurvreg function was not exported.  NAMESPACE fix.
+    
     \item Fix some labeling errors in the graphs for the adjusted
     survival curves vignette (consequences of the xscale change in
     2.38-5).
@@ -17,7 +19,7 @@
     ever want this, i.e., ever do it on purpose.  Then it must be a mistake
     which should be caught.  This was a bad idea.
 
-    \item Add the start.time argument to survfit.coxph.
+    \item Add the start.time argument to survfit.coxph. 10Sep2017
 }}
 \section{Changes in version 2.39-5}{
   \itemize{

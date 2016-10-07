@@ -1,12 +1,16 @@
 model.matrix for tt() terms
-finish the competing risks vignette
+
+look at printCoefmat
+
+pyears with an I() term on the right hand side, "tform" is wrong.
+
 update penalized models
 terms for cox.zph, it also needs to ignore NA coefficients.
 add design of the survival library document to vignettes
+
 include.lowest for tcut (first find out what the issue is)
+
 add "fun" to summary.survfit
-validation vignette
+ 
+?Surv claims that -Inf is allowed, but survreg chokes.
 
-DONE:
-
-change label in the concordance found in coxph output
