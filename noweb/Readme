@@ -6,14 +6,12 @@ the documentation, and through it the reliability of the package.
 These files are processed using the noweb package, NOT by Sweave or knitr.
 The purpose of the latter two is to create reports that interweave text and
 exectuted results.  The noweb package documents and writes out source code
-for functions.  Use "R CMD make fun" to create the objects in ../R.  (If you
+for functions.  Use "make fun" to create the objects in ../R.  (If you
 don't, changes here will have no effect on the final pacakge.)
 
 The result file code.pdf is documentation for understanding the code, 
 not how to use the survival functions for data analysis.  For those who
 maintain the code it will be a big help, for everyone else I'd expect
-it to be boring.
-
-Use make code.pdf to create the documentation file.
+it to be boring.  To create code.pdf type  "make doc".
 
 	Terry Therneau

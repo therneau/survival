@@ -15,6 +15,7 @@ PARTS = main.Rnw \
 	msurv.nw \
 	survfitms.Rnw \
 	plot.Rnw \
+	statefig.Rnw\
 	tmerge.Rnw\
 	tail
 #	coxdetail.nw
@@ -28,6 +29,7 @@ SFUN =  agreg.fit.R \
 	predict.coxph.R \
 	pyears.R \
 	residuals.survreg.R\
+	statefig.R \
 	survConcordance.R \
 	survConcordance.fit.R \
 	survexp.R \

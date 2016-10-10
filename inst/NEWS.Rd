@@ -2,8 +2,10 @@
 \title{NEWS file for the survival package}
 \section{Changes in version 2.39-6}{
   \itemize{
+    \item Add the statefig function and a multi-state vignette.
+
     \item The rsurvreg function was not exported.  NAMESPACE fix.
-    
+
     \item Fix some labeling errors in the graphs for the adjusted
     survival curves vignette (consequences of the xscale change in
     2.38-5).
@@ -16,8 +18,8 @@
 
     \item Surv(time, status) would fail when status was a factor with
     only two levels.  This was due to an assumption that no user would
-    ever want this, i.e., ever do it on purpose.  Then it must be a mistake
-    which should be caught.  This was a bad idea.
+    ever want this, i.e., ever do it on purpose, and so it must be a mistake
+    which should be caught.  This was a bad assumption.
 
     \item Add the start.time argument to survfit.coxph. 10Sep2017
 }}
