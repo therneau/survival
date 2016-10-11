@@ -2,6 +2,11 @@
 \title{NEWS file for the survival package}
 \section{Changes in version 2.39-6}{
   \itemize{
+    \item Deal with "almost tied" survival times in the survfit and
+    coxph routines.  Uses the same rule and tolerance as the all.equal
+    function to declare two time value equal.  These values arise due to
+    round off errors from cacluations such as days/365.25.
+    
     \item Add the statefig function and a multi-state vignette.
 
     \item The rsurvreg function was not exported.  NAMESPACE fix.

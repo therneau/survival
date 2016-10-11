@@ -167,7 +167,7 @@ else x <- object[['x']]
 missid <- missing(id) # I need this later, and setting id below makes
                       # "missing(id)" always false
 if (!missid) individual <- TRUE
-else if (missid && individual) id <- rep(0,n)  #dummy value
+else if (missid && individual) id <- rep(0,nrow(y))  #dummy value
 else id <- NULL
 
 if (!missing(start.time)) {

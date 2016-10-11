@@ -60,7 +60,7 @@ Declare all of the variables.
 <<survfitci-declare>>=
 int i, j, k, kk;   /* generic loop indices */
 int ck, itime, eptr; /*specific indices */
-int ctime;      /*current time of interest, in the main loop */
+double ctime;      /*current time of interest, in the main loop */
 int oldstate, newstate; /*when changing state */
 
 double temp, *temp2;  /* sratch */
@@ -78,7 +78,7 @@ double **chaz;     /* cumulative hazard matrix */
 
 /* pointers to the R variables */
 int *sort1, *sort2;  /*sort index for entry time, event time */
-int *entry,* etime;  /*entry time, event time */
+double *entry,* etime;  /*entry time, event time */
 int ntime;          /* number of unique event time values */
 int *status;        /*0=censored, 1,2,... new states */
 int *cstate;        /* current state for each subject */
@@ -103,7 +103,7 @@ nperson = LENGTH(cstate2); /* number of unique subjects */
 n   = LENGTH(sort12);    /* number of observations in the data */
 PROTECT(cstate2 = duplicate(cstate2));
 cstate  = INTEGER(cstate2);
-entry= INTEGER(ftime2);
+entry= REAL(ftime2);
 etime= entry + n;
 sort1= INTEGER(sort12);
 sort2= INTEGER(sort22);

@@ -79,14 +79,7 @@ survfitKM <- function(x, y, casewt=rep(1,length(x)),
 			   list(factor(y[who,1]), 
                                 factor(y[who,2], levels=0:1)), sum)
 	    temp <- ifelse(is.na(temp), 0, temp)
-
-            # The two lines below do not always give the same answer
-            #  When two times differ by only the machine precision, unique
-            #  will give more values, and then "time" will be a different
-            #  length than the other components
-	    time[[i]] <- type.convert(dimnames(temp)[[1]], as.is=TRUE,
-                                      dec=getOption("OutDec"))
-#	    time[[i]] <- sort(unique(y[who,1]))   # old version of line above
+	    time[[i]] <- sort(unique(y[who,1]))   # old version of line above
 	    ntemp  <- (dim(temp))[1]
 	    nevent <- as.vector(temp[,2])
 	    ncens  <- as.vector(temp[,1])

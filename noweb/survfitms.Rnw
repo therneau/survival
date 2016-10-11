@@ -557,6 +557,7 @@ survmean2 <- function(x, scale, rmean) {
         else maxtime <- tapply(x$time, igrp, max)
     
         meantime <- matrix(0., ngrp, nstate)
+        if (!is.null(x$influence)) stdtime <- meantime
         p0 <- matrix(x$p0, nrow=ngrp)  #in case there is only one row
         for (i in 1:ngrp) {
             if (is.matrix(x$prev))
@@ -572,10 +573,14 @@ survmean2 <- function(x, scale, rmean) {
             if (length(delta) < nrow(temp))
                 delta <- c(delta, rep(0, nrow(temp) - length(delta)))
             meantime[i,] <- colSums(delta*temp)
-        }
 
+            if (!is.null(x$influence)) {
+                # calculate the variance
+                <<msvar>>
+           }
+        }
         outmat <- cbind(outmat, c(meantime)/scale)
-        cname <- c("n", "nevent", "mean")
+        cname <- c("n", "nevent", "rmean")
         # report back a single time, if there is only one
         if (all(maxtime == maxtime[1])) maxtime <- maxtime[1]
     }
@@ -587,3 +592,17 @@ survmean2 <- function(x, scale, rmean) {
 }
 @ 
 
+The influence array is of the same shape as the \code{prev}, but with
+one copy per subject.  For the variance we do exactly the same
+calculation as the mean, once per subject, and add up the squares of
+the result.  
+As with \code{prev} and \code{p0} a major nuisance for all this is
+the fact that the results at time 0 are in a separate object.
+This is a consequence of how survfit objects were set up 20+ years ago,
+namely that the starting point (time=0, surv=1) was not stored in the object.
+With (start, stop] data we want to save a starting time = min of the 
+start values, and with multi-state the starting estimate is a vector.
+It would be so much easier if I had kept it the other way -- but with 400
+dependent packages change is very hard.  
+<<<msvar>>=
+@ 

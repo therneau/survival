@@ -80,23 +80,26 @@ survfitCI <- function(X, Y, weights, id, istate,
         istate <- rep(nstate+ 1L, n)
         state.names <- c(state.names, "")
         }
-    else if (is.factor(istate) || is.character(istate)) {
-        # Match levels with the survival variable
-        temp <- as.factor(istate)
-        # append any starting states not found in Y, but remember that
-        #  if istate was a factor then not all its levels might appear
-        appear <- (levels(temp))[unique(as.numeric(temp))]
-        state.names <- unique(c(attr(Y, "states"), appear))
-        istate <- as.numeric(factor(as.character(temp), levels=state.names))
-    }
     else {
-        if (!is.numeric(istate) || any(istate != floor(istate)) || 
-             any(istate < 1))
-        stop("istate should be a vector of integers or a factor")
-        if (max(istate) > nstate) 
-            state.names <- c(state.names, (1+nstate):max(istate))
+        if (influence) 
+            stop("concurrent use of the istate and influence options is not yet supported")
+        if (is.factor(istate) || is.character(istate)) {
+            # Match levels with the survival variable
+            temp <- as.factor(istate)
+            # append any starting states not found in Y, but remember that
+            #  if istate was a factor then not all its levels might appear
+            appear <- (levels(temp))[unique(as.numeric(temp))]
+            state.names <- unique(c(attr(Y, "states"), appear))
+            istate <- as.numeric(factor(as.character(temp), levels=state.names))
         }
-    
+        else {
+            if (!is.numeric(istate) || any(istate != floor(istate)) || 
+                any(istate < 1))
+                stop("istate should be a vector of integers or a factor")
+            if (max(istate) > nstate) 
+                state.names <- c(state.names, (1+nstate):max(istate))
+        }
+    }  
     if (length(id) ==0) id <- 1:n
     # these next two lines should be impossible, since istate came from 
     #   the data frame
@@ -132,7 +135,7 @@ The status vector will have values of 0 for censored.
         dimnames(transitions) <-list(from=state.names, to=state.names[1:nstate])
                              
         # dummy entry time that is < any event time
-        entry <- rep(min(-1, 2*min(Y[,1])-1), n)  
+        entry <- rep(0L, nrow(Y))  # due to the use of normalizetime  
         for (i in levels(X)) {
             indx <- which(X==i)
  #           temp  <- docurve1(entry[indx], Y[indx,1], status[indx], 
@@ -225,17 +228,7 @@ an event as some given time and [[dindx]] for the corresponding subjects.
 
 <<survfitCI-compute-old>>=
 docurve1 <- function(entry, etime, status, istate, wt, states, id) {
-    #
-    # round off error can cause trouble: if two times are within machine
-    #  precision then "unique(time)" and the "table" command may differ
-    # solve this by using creating a factor
-    ftime <- factor(etime)
-    ntime <- length(levels(ftime))
-    # If someone has chosen to set the OutSep option to ',' (France) the simple 
-    #  as.numeric(levels(ftime)) will fail
-    timeset <- type.convert(levels(ftime), as.is=TRUE, dec=getOption("OutDec"))
-    ftime <- as.numeric(ftime)
-    
+    ntime <- length(unique(etime))
     nstate <- length(states)
     Pmat <- matrix(0., nrow= ntime, ncol=nstate)
     vP <- Pmat  #variance
@@ -248,12 +241,12 @@ docurve1 <- function(entry, etime, status, istate, wt, states, id) {
     
     nrisk <- integer(ntime)  #to be returned
     wrisk <- double(ntime)  #weighted number at risk
-    nevent <- table(ftime, status>0)
+    nevent <- table(time, status>0)
     for (i in 1:ntime) {
-        atrisk <- (ftime >=i & timeset[i] > entry)
+        atrisk <- (time >=i & timeset[i] > entry)
         nrisk[i] <- sum(atrisk)
         wrisk[i] <- sum(wt[atrisk])
-        tiedtime <- (ftime==i)
+        tiedtime <- (time==i)
         if (nevent[i,2] ==0)  { # all censored here
             Pmat[i,] <- P
             if (i>1) {
@@ -293,7 +286,7 @@ docurve1 <- function(entry, etime, status, istate, wt, states, id) {
         }
     }
     list(time =as.vector(timeset), pmat=Pmat, std=sqrt(vP),
-         n.event= table(ftime, status)[,-1], n.risk= as.vector(nrisk),
+         n.event= table(time, status)[,-1], n.risk= as.vector(nrisk),
          w.risk=wrisk, cumhaz=A)
 }
 @ 
@@ -459,15 +452,8 @@ kfit
 The updated docurve function is here
 <<survfitCI-compute>>=
 docurve2 <- function(entry, etime, status, istate, wt, states, id, se.fit) {
-    #
-    # round off error can cause trouble, if two times are within machine
-    #  precsion
-    # solve this by creating a factor
-    ftime <- factor(c(entry,etime))
-    ltime <- levels(ftime)
-    ftime <- matrix(as.integer(ftime), ncol=2)
-    timeset <- as.numeric(ltime[sort(unique(ftime[,2]))]) #unique event times
-     
+    # entry and etime will be integers, due to a prior normalizetime call
+    timeset <- sort(unique(etime))
     nstate <- length(states)
     uid <- unique(id)
     P <- as.vector(tapply(wt, factor(istate, levels=states), sum) / sum(wt))
@@ -478,9 +464,9 @@ docurve2 <- function(entry, etime, status, istate, wt, states, id, se.fit) {
     storage.mode(cstate) <- "integer"
     storage.mode(status) <- "integer"
     # C code has 0 based subscripts
-    fit <- .Call(Csurvfitci, ftime, 
-                 order(ftime[,1]) - 1L,
-                 order(ftime[,2]) - 1L,
+    fit <- .Call(Csurvfitci, c(entry, etime), 
+                 order(entry) - 1L,
+                 order(etime) - 1L,
                  length(timeset),
                  status,
                  cstate - 1L,
@@ -488,7 +474,7 @@ docurve2 <- function(entry, etime, status, istate, wt, states, id, se.fit) {
                  match(id, uid) -1L,
                  P, as.integer(se.fit) + 2L*as.integer(influence))
     p0 <- table(factor(cstate, levels=states), exclude=NA)/length(cstate)
-    n.event <- table(ftime[,2], factor(status,c(0,states)))[,-1, drop=FALSE]
+    n.event <- table(etime, factor(status,c(0,states)))[,-1, drop=FALSE]
     if (se.fit) 
         out <- list(time=timeset, prev=t(fit$p), std=sqrt(t(fit$var)),
              n.risk = t(fit$nrisk),

@@ -114,7 +114,7 @@ is the radius.  Then we have
 \begin{align*}
   r^2 & = z^2 + (r-dz)^2 \\
   2rdz &= z^2 + (dz)^2 \\
-  r   &= \left[z (1+ d^2)]/ 2d
+  r   &= \left[z (1+ d^2) \right ]/ 2d
 \end{align*}
 Be careful with negative $d$, which is used to denote left-hand arcs.
 
@@ -123,7 +123,7 @@ and the center of the circle is at
 $C = (A+B)/2 + (r - dz)(\sin \theta, -\cos \theta)$.
 We then need to draw the arc $C + r(\cos \phi, \sin \phi)$ for some range
 of angles $\phi$.
-The angles to the centers of the boxes are $\atan(A-C)$ and $\atan(B-C)$,
+The angles to the centers of the boxes are $\arctan(A-C)$ and $\arctan(B-C)$,
 but we want to start and end outside the box.
 It turned out that this is more subtle than I thought.
 The solution below uses two helper functions \code{statefigx} and

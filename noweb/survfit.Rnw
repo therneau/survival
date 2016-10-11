@@ -19,9 +19,27 @@ The R phrase \code{unique(x)} sees these two values as distinct but
 \code{table(x)} and \code{tapply} see it as a single value since they 
 first apply \code{factor} to the values, and that in turn uses 
 \code{as.character}.  
-The survfit routines use \code{table} and then turn the labels back
-into a vector of times, in order to ensure a consistent treatment of near
-ties.  
+As an even more relvant example consider the following code:
+<<test>>=
+tfun <- function(start, gap) {
+    as.numeric(start)/365.25 - as.numeric(start + gap)/365.25
+}
+
+test <- logical(200)
+for (i in 1:200) {
+    test[i] <- tfun(as.Date("2010/01/01"), 29) == 
+               tfun(as.Date("2010/01/01") + i, 29)
+}
+table(test)
+@ 
+The number of FALSE entries in the table depends on machine, compiler,
+and a host of other issues.
+There is discussion of this general issue in the R FAQ: ``why doesn't R
+think these numbers are equal''.
+The Kaplan-Meier and Cox model both pay careful attention to ties, and
+so both now use the \code{normalizetime} routine to first preprocess
+the time data.  It uses the same rules as \code{all.equal} to
+adjudicate ties and near ties.
 
 <<survfit>>=
 survfit <- function(formula, ...) {
@@ -219,20 +237,19 @@ survfit.formula <- function(formula, data, weights, subset,
         else stop("etype argument incompatable with survival type")
     }
                          
-    # At one point there were lines here to round the survival
-    # times to a certain number of digits.  This approach worked
-    # almost all the time, but only almost.  The better logic is
-    # now in the individual compuation routines
+    # Deal with the near-ties problem
+    newY <- normalizetime(Y)
     if (attr(Y, 'type') == 'left' || attr(Y, 'type') == 'interval')
-        temp <-  survfitTurnbull(X, Y, casewt, ...)
+        temp <-  survfitTurnbull(X, newY, casewt, ...)
     else if (attr(Y, 'type') == "right" || attr(Y, 'type')== "counting")
-        temp <- survfitKM(X, Y, casewt, ...)
+        temp <- survfitKM(X, newY, casewt, ...)
     else if (attr(Y, 'type') == "mright" || attr(Y, "type")== "mcounting")
-        temp <- survfitCI(X, Y, weights=casewt, id=id,  istate=istate, ...)
+        temp <- survfitCI(X, newY, weights=casewt, id=id,  istate=istate, ...)
     else {
         # This should never happen
         stop("unrecognized survival type")
     }
+    temp$time <- attr(newY, 'utime')[temp$time]  #put real times back in
     if (is.null(temp$states)) class(temp) <- 'survfit'
     else class(temp) <- c("survfitms", "survfit")
 

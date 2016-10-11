@@ -5,6 +5,9 @@ The source was converted to noweb when adding time-transform terms.
 
 The call starts out with the basic building of a model frame
 and proceeds from there.
+The normalizetime function is used to adjucate near ties in the time
+variable, numerical precision issues that occur when users base
+caculations on days/365.25 instead of days.
 <<coxph>>=
 #tt <- function(x) x
 coxph <- function(formula, data, weights, subset, na.action,
@@ -23,7 +26,7 @@ coxph <- function(formula, data, weights, subset, na.action,
 	stop(paste("Cox model doesn't support \"", type,
 			  "\" survival data", sep=''))
     data.n <- nrow(Y)   #remember this before any time transforms
-
+    Y <- normalizetime(Y, replace=TRUE)
     <<coxph-bothsides>>
         
     # The time transform will expand the data frame mf.  To do this
@@ -42,7 +45,7 @@ coxph <- function(formula, data, weights, subset, na.action,
     if (missing(tt)) tt <- NULL
     if (length(timetrans)) {
          <<coxph-transform>>
-         }
+        }
 
     cluster<- attr(Terms, "specials")$cluster
     if (length(cluster)) {
@@ -232,10 +235,12 @@ The \code{timetrans\$terms} value is a count of the right hand side of
 the formula.  Some objects in the terms structure are unevaluated calls
 that include y, this adds 2 to the count (the call to ``list'' and
 the response).
+
 <<coxph-transform>>=
-mf <- mf[tindex,]
 Y <- Surv(rep(counts$time, counts$nrisk), counts$status)
 type <- 'right'  # new Y is right censored, even if the old was (start, stop]
+
+mf <- mf[tindex,]
 strats <- rep(1:length(counts$nrisk), counts$nrisk)
 weights <- model.weights(mf)
 if (!is.null(weights) && any(!is.finite(weights)))
@@ -796,7 +801,7 @@ model.frame.coxph <- function(formula, ...) {
        if (!is.null(attr(Terms, "specials")$tt)) {
           # Do time transform
 	  tt <- eval(formula$call$tt)
-	  Y <- model.response(mf)
+	  Y <- normalizetime(model.response(mf), replace=TRUE)
 	  strats <- attr(Terms, "specials")$strata
 	  if (length(strats)) {
 	      stemp <- untangle.specials(Terms, 'strata', 1)

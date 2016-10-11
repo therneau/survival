@@ -31,13 +31,12 @@
 
 <<echo=FALSE>>=
 require(survival)
-load("../data/flt3.rda")
 #require(Rcolorbrewer)
 #brewer.pal(5, "Dark2")
 palette(c("#000000", "#D95F02", "#1B9E77", "#7570B3", "#E7298A", "#66A61E"))
 options(continue=' ')
 
-# These functions are used in the document, but discussed only at the end
+# These functions are used in the document, but not discussed until the end
 crisk <- function(what, horizontal = TRUE, ...) {
     nstate <- length(what)
     connect <- matrix(0, nstate, nstate,
@@ -82,7 +81,7 @@ The \code{flt3} data set contains simulated data which closely mimics
 that from a CALGB trial in subjects with FLT3 mutated acute myeloid
 leukemia.
 In this randomized comparison of two conditioning regimens the
-cannonical path for a subject is initial therapy $\rightarrow$
+canonical path for a subject is initial therapy $\rightarrow$
 complete response (CR) $\rightarrow$
 hematologic stem cell transplant (HSCT) $\rightarrow$
 sustained remission, followed by relapse or death.
@@ -97,7 +96,7 @@ complete response (crtime) or relapse after CR (rltime).
 Subject 1 did not receive a transplant as shown by the NA value,
 with similar missing values for CR and relapse.
 Potential covariates are treatment, sex, and the mutation type;
-this introduduction will use only the treatment variable.
+this introduction will use only the treatment variable.
 
 \begin{figure}
   \myfig{sfit0}
@@ -364,7 +363,7 @@ etab
 In the final result there are \Sexpr{ctab[1]} subjects with only a single
 row of data, \Sexpr{ctab[2]} with 2 rows, etc.
 The table of \code{id} by \code{event} contains only 0 and 1 as values,
-i.e., no one has two events of the same type, which correct for this
+i.e., no one has two events of the same type, which is correct for this
 data set.  Overall \Sexpr{etab['CR']} of the \Sexpr{nrow(flt3)} subjects
 experience a CR at some point in the study.
 
@@ -381,7 +380,7 @@ looks more closely at this.
 As was noted before arm B has an increased number of late responses.
 The duration of response is also increased: 
 the solid curves show the number of subjects still in response, and
-we see that they spread further apart than the dotted ``ever in response''
+we see that they spread farther apart than the dotted ``ever in response''
 curves. 
 The figure shows only the first eight months in order to better visualize
 the details, but continuing the curves out to 48 months reveals a similar
@@ -405,7 +404,7 @@ state3(c("Entry", "CR", "Death/Relapse"))
 
 par(oldpar)
 @ 
-Rather than create a new data set the above code modifies the event
+Rather than create a new data set, the above code modifies the event
 variable so as to ignore transitions to the transplant state.
 They become a non-event, in the same way that extra lines with
 a status of zero are used to create time-dependent covariates for
@@ -418,7 +417,7 @@ It contains, for each subject, that subject's influence on the
 time by state matrix of results; subject is the third dimension of
 the array.
 Specifically it is the set of infinitesimal jackknife (IJ) values.
-The pointwise variance for $P_k(t)$ = probaility of state $k$ at
+The pointwise variance for $P_k(t)$ = probability of state $k$ at
 time $t$ is $\sum_i J_{ik}^2(t)$ where $J_{ik}(t)$ is the IJ inflence
 of subject $i$ on $P_k(t)$.
 The IJ values allow us to calculate the variance/covariance matrix 
@@ -443,7 +442,7 @@ The overall restricted mean survival for the study is about 30 of the first
 48 months post entry;
 on this backdrop an extra 5 of those 30 months in a complete response is
 likely a substantial advantage from a patient's point of view.
-The less imporant answer is to test whether the apparent gain is sufficiently
+The less important answer is to test whether the apparent gain is sufficiently
 rare from a mathematical point of view, i.e., ``statistical'' significance.
 The standard errors of the two values are each 1.12, and since they are based
 on disjoint subjects the values are independent, leading to a standard error
@@ -498,7 +497,7 @@ event2 <- factor(event2, 1:6, c(levels(data2$event), "tx after CR"))
 txsurv <- survfit(Surv(tstart, tstop, event2) ~ trt, data2, id=id,
                   subset=(priortx ==0))
 
-layout(matrix(c(1,1,2,0),2,2), widths=2:1)
+layout(matrix(c(1,1,1,2,2,0),3,3), widths=2:1)
 oldpar <- par(mar=c(5.1, 4.1, 1,.1))
 plot(txsurv[,c(3,5)], col=1:2, lty=c(1,1,2,2), lwd=2, xmax=48,
      xaxt='n', xlab="Months", ylab="Transplanted")
@@ -527,7 +526,7 @@ whenever someone receives a transplant and goes down whenever someone
 leaves the state.
 At 36 months treatment arm B (dashed) has a lower fraction who have died,
 the survivors are about evenly split between those who have received a
-stem cell transplant and those whose last state is a complete response
+transplant and those whose last state is a complete response
 (only a few of the latter are post transplant). 
 The fraction currently in relapse -- a transient state -- is about 5\% for
 each arm.
@@ -584,7 +583,7 @@ standard graphical options of color, line type, etc.
 \end{enumerate}
  
 The first few state space diagrams were competing risk models, which use
-the following derived function.  It accepts a vecor of state names,
+the following derived function.  It accepts a vector of state names,
 where the first name is the starting state and the remainder are the
 possible outcomes.
 <<crisk>>=
@@ -640,7 +639,7 @@ state4 <- function() {
 @
 
 \section{Conclusion}
-With a data set such as this we can fit multiple multi-state models.
+With a data set such as this we can fit many different multi-state models.
 A primary point of this vignette is to show that these fits are easy
 to do, and can give substantial further
 insight into a data set.

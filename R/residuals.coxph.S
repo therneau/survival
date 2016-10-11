@@ -95,7 +95,7 @@ residuals.coxph <-
 	if (otype=='scaledsch') {
 	    ndead <- sum(deaths)
 	    coef <- ifelse(is.na(object$coefficients), 0, object$coefficients)
-	    rr <- drop(rr %*% vv *ndead + rep(coef, each=nrow(rr))
+	    rr <- drop(rr %*% vv *ndead + rep(coef, each=nrow(rr)))
 	    }
 	return(rr)
 	}

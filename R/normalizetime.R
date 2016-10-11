@@ -1,23 +1,40 @@
 #
 # Create time values such that tiny differences are treated as a tie
-#  The actions and arguments are the same as all.equal
+#  The actions and tolerance are the same as all.equal
 #
-normalizetime <- function(x, tolerance = sqrt(.Machine$double.eps)) {
-    if (is.Surv(x)) y <- sort(x[, -ncol(x)])
-    else y <- sort(x)
+normalizetime <- function(x, replace=TRUE,
+                          tolerance = sqrt(.Machine$double.eps)) {
+    if (is.Surv(x)) y <- sort(unique(x[, -ncol(x)]))
+    else y <- sort(unique(x))
 
     dy <- diff(y)
     tied <- ((dy <=tolerance) |( (dy/ mean(abs(y)) <=tolerance)))
-    newy <- y[c(!tied, TRUE)]
+    if (!any(tied)) return(x)   # all values are unique
+
+    cuts <- y[c(TRUE, !tied)]
+    cuts[length(cuts)] <- max(y) + 1 + abs(max(y))  #last interval includes all
     
     if (is.Surv(x)) {
-        x[, -ncol(x)] <- findInterval(x[, -ncol(x)], newy)
-        attr(x, 'utime') <- newy
-        x
+        z <- findInterval(x[, -ncol(x)], cuts)
+        if (replace) {
+            z <- matrix(c(cuts[z], as.integer(x[,ncol(x)])), ncol=ncol(x))
+            attributes(z) <- attributes(x)
+        }
+        else {
+            z <- matrix(c(z, as.integer(x[,ncol(x)])), ncol=ncol(x))
+            attributes(z) <- attributes(x)
+            attr(z, 'utime') <-  unname(cuts)
+        }
     } else {
-        z <- findInterval(x, newy)
-        attributes(z) <- attributes(x)
-        attr(z, 'utime') <- newy
-        class(z) <- "normalizetime"
-        z}
+        z <- findInterval(x, cuts)
+        if (replace) {
+            z <- cuts[z]
+            attributes(z) <- attributes(x)
+        }
+        else {
+            attributes(z) <- attributes(x)
+            attr(z, 'utime') <- unname(cuts)
+        }
+    }
+    z
 }
