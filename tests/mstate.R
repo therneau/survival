@@ -42,3 +42,19 @@ all.equal(mfit$n.event, matrix(c(1,0,1,0,0,0,1,0,
                                  0,0,0,0,0,0,0,0), ncol=4))
 all.equal(mfit$time, c(2, 3, 4, 5, 8, 9, 10, 11))
 
+
+# Somewhat more complex.
+#  Scramble the input data
+#  Not everyone starts at the same time or in the same state
+#  Two "istates" that vary, only the first should be noticed.
+#
+mtest2 <- data.frame(id= c(1, 1, 1,  2,  3,  4, 4, 4,  5, 5),
+                     t1= c(0, 4, 9,  1,  2,  0, 2, 8,  1, 3),
+                     t2= c(4, 9, 10, 5,  9,  2, 8, 9,  3, 11),
+                     st= c(1, 2,  1, 2,  3,  1, 3, 0,  2,  0),
+                     i0= c(4, 4,  4, 1,  4,  4, 4, 1,  2,  2))
+
+mtest2 <- mtest2[c(10, 9, 1, 2, 5, 4, 3, 7, 8, 6),]
+mtest2$st <- factor(mtest2$st, c(0:4),
+                    labels=c("censor", "1", "2", "3", "entry"))
+mfit2 <- survfit(Surv(t1, t2, st) ~ 1, mtest2, id=id, istate=i0)

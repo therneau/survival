@@ -81,8 +81,6 @@ survfitCI <- function(X, Y, weights, id, istate,
         state.names <- c(state.names, "")
         }
     else {
-        if (influence) 
-            stop("concurrent use of the istate and influence options is not yet supported")
         if (is.factor(istate) || is.character(istate)) {
             # Match levels with the survival variable
             temp <- as.factor(istate)
@@ -112,7 +110,7 @@ survfitCI <- function(X, Y, weights, id, istate,
 @
  
 To make it easier to keep track of things in the computational kernel that does
-all the real work, we have ensured that any ending states (ones you can reach)
+all the real work, we ensure that any ending states (ones you can reach)
 are 1, 2, 3 \ldots.
 The status vector will have values of 0 for censored.
 <<survfitCI>>=
@@ -128,8 +126,8 @@ The status vector will have values of 0 for censored.
         if (length(id) && any(duplicated(id)))
             stop("Cannot have duplicate id values with (time, status) data")
 
-        # make a table of transitions.  The from can range across
-        #  all of the states, to can only have nstate categories
+        # make a table of transitions.  Variable 'from' can range across
+        #  all of the states, 'to' can only have nstate categories
         nst <- length(state.names)
         transitions <- table(factor(istate, 1:nst), factor(Y[,2], 1:nstate))
         dimnames(transitions) <-list(from=state.names, to=state.names[1:nstate])
@@ -449,18 +447,65 @@ kfit$type   <- attr(Y, "type")
 kfit
 @
 
-The updated docurve function is here
+The updated docurve function is here.
+One issue that was not recognized originally is delayed entry.  If most
+of the subjects start at time 0, say, but one of them starts at day 100
+then that last subject is not a part of $p_0$.
+We will define $p_0$ as the distribution of states just before the first
+event. 
+The code above has already ensured that each subject has a unique
+value for istate, so we don't have to search for the right one.
+The initial vector and leverage are 
+\begin{align*}
+  p_0 &= (\sum I{s_i=1}w_i, \sum I{s_i=2}w_i, \ldots)/ \sum w_i \\
+  \frac{\partial p_0}{\partial w_k} &= 
+  [(I{s_k=1}, I{s_k=2}, ...)- p_0]/\sum w_i
+\end{align*}
+
+The input data set is not necessarily sorted by time or subject.
+The data has been checked so that subjects don't have gaps, however.
+The cstate variable has a value for each subject is their first istate
+value.  Only those intervals that overlap the first event time contribute
+to $p_0$.   
+Now: what to report as the ``time'' for the initial row.  The values for
+it come from (first event time -0), smallest \code{etime} with status $>0$.
+But for normal plotting the smallest start time seems to be a good
+default.
+In the usual (start, stop] data 
+a large chunk of the subjects have a common start time.
+If the first event doesn't happen for a while
+and subjects are dribbling in this is subject to debate.
+Que sera sera.
 <<survfitCI-compute>>=
 docurve2 <- function(entry, etime, status, istate, wt, states, id, se.fit) {
-    # entry and etime will be integers, due to a prior normalizetime call
     timeset <- sort(unique(etime))
     nstate <- length(states)
     uid <- unique(id)
-    P <- as.vector(tapply(wt, factor(istate, levels=states), sum) / sum(wt))
-    P <- ifelse(is.na(P), 0, P) # initial probability distribution
-    cstate <- istate[match(uid, id)]   #initial state for each observation
-    
+    index <- match(id, uid)
+    first <- match(uid, id)  # first row for each subject
+    cstate <- istate[first]  
+
     storage.mode(wt) <- "double" # just in case someone had integer weights
+    # Compute p0
+    if (all(status==0))  t0 <- max(etime)  #failsafe
+    else t0 <- min(etime[status!=0])  # first transition event
+    at.zero <- (entry < t0 & etime >= t0) 
+    wtsum <- sum(wt[at.zero])  # weights for a subject may change
+    p0 <- tapply(wt[at.zero], factor(istate[at.zero], levels=states), sum) /
+          wtsum
+    p0 <- ifelse(is.na(p0), 0, p0)  # if not in at.zero, tapply gives NA
+    # initial leverage matrix
+    if (se.fit) {
+        nid <- length(uid)
+        i0 <- matrix(0., nid, nstate)
+        if (all(p0 <1)) {  #actually have to compute it
+            i0[cbind(index[at.zero], istate[at.zero])] <- 1/wtsum
+            i0 <- i0 - rep(p0/wtsum, each=nid)
+        }
+    }
+    else i0 <- 0.  #dummy value for .Call below
+    browser()
+    
     storage.mode(cstate) <- "integer"
     storage.mode(status) <- "integer"
     # C code has 0 based subscripts
@@ -471,24 +516,28 @@ docurve2 <- function(entry, etime, status, istate, wt, states, id, se.fit) {
                  status,
                  cstate - 1L,
                  wt,
-                 match(id, uid) -1L,
-                 P, as.integer(se.fit) + 2L*as.integer(influence))
-    p0 <- table(factor(cstate, levels=states), exclude=NA)/length(cstate)
+                 index -1L,
+                 p0, i0,
+                 as.integer(se.fit) + 2L*as.integer(influence))
+
     n.event <- table(etime, factor(status,c(0,states)))[,-1, drop=FALSE]
+    n0 <- sum(at.zero)
     if (se.fit) 
-        out <- list(time=timeset, prev=t(fit$p), std=sqrt(t(fit$var)),
-             n.risk = t(fit$nrisk),
-             n.event = n.event, 
-             n.censor=fit$ncensor, p0 = p0,
+        out <- list(time= timeset, 
+             pstate = fit$p, std=fit$std,
+             n.risk = fit$nrisk,
+             n.event= fit$nevent,
+             n.censor=fit$ncensor,
              cumhaz=array(fit$cumhaz, dim=c(nstate,nstate, length(timeset))))
-    else out <- list(time=timeset, prev=t(fit$p),
-             n.risk = t(fit$nrisk), 
-             n.event = n.event, 
-             n.censor=fit$ncensor,  p0=p0,
+    else out <- list(time= timeset, 
+             pstate = fit$p,
+             n.risk = fit$nrisk, 
+             n.event = fit$nevent, 
+             n.censor= fit$ncensor, 
              cumhaz=array(fit$cumhaz, dim=c(nstate,nstate, length(timeset))))
     if (influence) {
         temp <-  array(fit$influence, 
-                       dim=c(length(uid), nstate, length(timeset)),
+                       dim=c(length(uid), nstate, 1+ length(timeset)),
                        dimnames=list(uid, NULL, NULL))
         out$influence <- aperm(temp, c(3,2,1))
     }

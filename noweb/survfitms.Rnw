@@ -604,5 +604,5 @@ With (start, stop] data we want to save a starting time = min of the
 start values, and with multi-state the starting estimate is a vector.
 It would be so much easier if I had kept it the other way -- but with 400
 dependent packages change is very hard.  
-<<<msvar>>=
+<<msvar>>=
 @ 
