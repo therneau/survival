@@ -4,7 +4,7 @@
 #
 normalizetime <- function(x, replace=TRUE,
                           tolerance = sqrt(.Machine$double.eps)) {
-    if (is.Surv(x)) y <- sort(unique(x[, -ncol(x)]))
+    if (is.Surv(x)) y <- sort(unique(c(x[, -ncol(x)])))
     else y <- sort(unique(x))
 
     dy <- diff(y)
@@ -12,8 +12,6 @@ normalizetime <- function(x, replace=TRUE,
     if (!any(tied)) return(x)   # all values are unique
 
     cuts <- y[c(TRUE, !tied)]
-    cuts[length(cuts)] <- max(y) + 1 + abs(max(y))  #last interval includes all
-    
     if (is.Surv(x)) {
         z <- findInterval(x[, -ncol(x)], cuts)
         if (replace) {

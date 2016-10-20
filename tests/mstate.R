@@ -2,6 +2,8 @@
 # A tiny multi-state example
 #
 library(survival)
+aeq <- function(x, y) all.equal(as.vector(x), as.vector(y))
+
 mtest <- data.frame(id= c(1, 1, 1,  2,  3,  4, 4, 4,  5, 5),
                     t1= c(0, 4, 9,  0,  2,  0, 2, 8,  1, 3),
                     t2= c(4, 9, 10, 5,  9,  2, 8, 9,  3, 11),
@@ -44,9 +46,9 @@ all.equal(mfit$time, c(2, 3, 4, 5, 8, 9, 10, 11))
 
 
 # Somewhat more complex.
-#  Scramble the input data
+#  Scramble the input data to test sorting
 #  Not everyone starts at the same time or in the same state
-#  Two "istates" that vary, only the first should be noticed.
+#  Some subjects' i0 variable is inconsistent, only the first is noticed
 #
 mtest2 <- data.frame(id= c(1, 1, 1,  2,  3,  4, 4, 4,  5, 5),
                      t1= c(0, 4, 9,  1,  2,  0, 2, 8,  1, 3),
@@ -57,4 +59,20 @@ mtest2 <- data.frame(id= c(1, 1, 1,  2,  3,  4, 4, 4,  5, 5),
 mtest2 <- mtest2[c(10, 9, 1, 2, 5, 4, 3, 7, 8, 6),]
 mtest2$st <- factor(mtest2$st, c(0:4),
                     labels=c("censor", "1", "2", "3", "entry"))
-mfit2 <- survfit(Surv(t1, t2, st) ~ 1, mtest2, id=id, istate=i0)
+mfit2 <- survfit(Surv(t1, t2, st) ~ 1, mtest2, id=id, istate=i0,
+                 influence=TRUE)
+
+for (i in c("n.event", "n.censor"))
+    print(all.equal(mfit[[i]], mfit2[[i]]))
+
+aeq(mfit2$p0, c(1,1,0,2)/4)
+icheck <- function(j, eps=1e-5) {
+    wt <- ifelse(mtest2$id==i, 1+ eps, 1)
+browser()
+    mtemp <-  survfit(Surv(t1, t2, st) ~ 1, mtest2, id=id, istate=i0, 
+                      weights=wt)
+    deriv <- (mtemp$prev - mfit2$prev)/eps
+    deriv
+}
+
+                

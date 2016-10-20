@@ -1,22 +1,36 @@
-/* $Id: dmatrix.c 11525 2012-12-07 17:20:39Z therneau $
+/*
+** set up the indices so that C code can use x[i][j] notation for R
+**  matrices.  Remember that R sees matrices in column order and C in
+**  row order, so every reference in the C code will be x[col][row].
 **
-** set up ragged arrays, with #of columns and #of rows,
-**  where nrow (second arg) is what R thinks are columns
-**  but C thinks are rows.
+** array = pointer to the data
+** nrow, ncol = number of rows and colums, from R's point of view.
 */
 #include "survS.h"
 #include "survproto.h"
 
-double **dmatrix(double *array, int ncol, int nrow)
+double **dmatrix(double *array, int nrow, int ncol)
     {
-
     int i;
     double **pointer;
 
-    pointer = (double **) ALLOC(nrow, sizeof(double *));
-    for (i=0; i<nrow; i++) {
+    pointer = (double **) ALLOC(ncol, sizeof(double *));
+    for (i=0; i<ncol; i++) {
 	pointer[i] = array;
-	array += ncol;
+	array += nrow;
+	}
+    return(pointer);
+    }
+
+int **imatrix(int *array, int nrow, int ncol)
+    {
+    int i;
+    int **pointer;
+
+    pointer = (int **) ALLOC(ncol, sizeof(int *));
+    for (i=0; i<ncol; i++) {
+	pointer[i] = array;
+	array += nrow;
 	}
     return(pointer);
     }

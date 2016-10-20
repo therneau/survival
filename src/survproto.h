@@ -135,7 +135,8 @@ void coxscore(Sint   *nx,      Sint   *nvarx,    double *y,
 	      double *scratch);
 
 double coxsafe(double x);
-double **dmatrix(double *array, int ncol, int nrow);
+double **dmatrix(double *array, int nrow, int ncol);
+int    **imatrix(int *array, int nrow, int ncol);
 
 SEXP finegray(SEXP tstart2, SEXP tstop2,   SEXP ctime2,   SEXP cprob2, 
 	      SEXP extend2, SEXP keep2);
@@ -176,9 +177,9 @@ void survdiff2(Sint   *nn,     Sint   *nngroup,    Sint   *nstrat,
 
 void survfit4(Sint *n,	Sint *dd,  double *x1,  double *x2) ;
 
- SEXP survfitci(SEXP ftime2,  SEXP sort12,  SEXP sort22, SEXP ntime2,
+SEXP survfitci(SEXP ftime2,     SEXP sort12,  SEXP sort22, SEXP ntime2,
                     SEXP status2, SEXP cstate2, SEXP wt2,  SEXP id2,
-                    SEXP p2,  SEXP sefit2) ;
+                    SEXP p2,      SEXP i02,     SEXP sefit2) ;
   
 SEXP survreg6(SEXP maxiter2,   SEXP nvarx,  SEXP y,
 	      SEXP ny2,        SEXP covar2, SEXP wtx,

@@ -249,7 +249,7 @@ survfit.formula <- function(formula, data, weights, subset,
         # This should never happen
         stop("unrecognized survival type")
     }
-    temp$time <- attr(newY, 'utime')[temp$time]  #put real times back in
+
     if (is.null(temp$states)) class(temp) <- 'survfit'
     else class(temp) <- c("survfitms", "survfit")
 

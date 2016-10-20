@@ -5,8 +5,8 @@ extension.)
 
 <<survfitci>>=
 #include "survS.h"
-double **dmatrix();
-<<survfitci-dmatrix>>
+#include "survproto.h"
+#include <math.h>
 
 SEXP survfitci(SEXP ftime2,  SEXP sort12,  SEXP sort22, SEXP ntime2,
                     SEXP status2, SEXP cstate2, SEXP wt2,  SEXP id2,
@@ -39,23 +39,6 @@ object and [[zed]] to the contents of the object.
     influence matrix upon which it is based, if 0 the se is not needed.
 \end{description}
 
-The dmatrix function is defined elsewhere and works with doubles.
-This variant is a copy for integers.  They allow use to use the
-\verb!x[i][j]! notation for arrays.  Remember that if R views an array
-as n by k, our C code sees it as k by n.
-<<survfitci-dmatrix>>=
-static int **imatrix(int *array, int nrow, int ncol) {
-    int i;
-    int **mat;
-
-    mat = (int **) R_alloc(nrow, sizeof(int *));
-    for (i=0; i<nrow; i++) {
-        mat[i] = array;
-        array += ncol;
-        }
-    return(mat);
-    }
-@        
 
 Declare all of the variables.
 <<survfitci-declare>>=
@@ -64,12 +47,14 @@ int ck, itime, eptr; /*specific indices */
 double ctime;      /*current time of interest, in the main loop */
 int oldstate, newstate; /*when changing state */
 
-double temp, *temp2;  /* scratch */
+double temp, *temp2;  /* scratch double, and vector of length nstate */
+double *dptr;      /* reused in multiple contexts */
 double *p;         /* current prevalence vector */
 double **hmat;      /* hazard matrix at this time point */
 double **umat;     /* per subject leverage at this time point */
 int *atrisk;       /* 1 if the subject is currently at risk */
 int   *ns;         /* number curently in each state */
+int   *nev;        /* number of events at this time, by state */
 double *ws;        /* weighted count of number state */
 double *wtp;       /* case weights indexed by subject */
 double wevent;     /* weighted number of events at current time */
@@ -91,10 +76,10 @@ int sefit;
 /* returned objects */
 SEXP rlist;         /* the returned list and variable names of same */  
 const char *rnames[]= {"nrisk","nevent","ncensor", "p", 
-		       "cumhaz", "var", "influence", ""};
+		       "cumhaz", "std", "influence", ""};
 SEXP setemp;
 double **pmat, **vmat, *cumhaz, *usave;
-int  *ncensor, **nrisk, *nevent;
+int  *ncensor, **nrisk, **nevent;
 @ 
 
 Now set up pointers for all of the R objects sent to us.
@@ -123,19 +108,19 @@ sefit = asInteger(sefit2);
 */
 PROTECT(rlist=mkNamed(VECSXP, rnames));
 setemp = SET_VECTOR_ELT(rlist, 0, allocMatrix(INTSXP, ntime, nstate));
-nrisk =  imatrix(INTEGER(setemp), nstate, ntime);  /* time by state */
-setemp = SET_VECTOR_ELT(rlist, 1, allocVector(INTSXP, ntime));
-nevent = INTEGER(setemp);  /* total at each time */
+nrisk =  imatrix(INTEGER(setemp), ntime, nstate);  /* time by state */
+setemp = SET_VECTOR_ELT(rlist, 1, allocMatrix(INTSXP, ntime, nstate));
+nevent = imatrix(INTEGER(setemp), ntime, nstate);  /* time by state */
 setemp = SET_VECTOR_ELT(rlist, 2, allocVector(INTSXP, ntime));
 ncensor = INTEGER(setemp);  /* total at each time */
-setemp  = SET_VECTOR_ELT(rlist, 3, allocMatrix(REALSXP, ntime+1, nstate));
-pmat =   dmatrix(REAL(setemp), nstate, ntime +1);
+setemp  = SET_VECTOR_ELT(rlist, 3, allocMatrix(REALSXP, ntime, nstate));
+pmat =   dmatrix(REAL(setemp), ntime, nstate);
 setemp = SET_VECTOR_ELT(rlist, 4, allocVector(REALSXP, nstate*nstate*ntime));
 cumhaz = REAL(setemp);
 
 if (sefit >0) {
-    setemp = SET_VECTOR_ELT(rlist, 5,  allocMatrix(REALSXP, ntime+1, nstate));
-    vmat= dmatrix(REAL(setemp), nstate, ntime+1);
+    setemp = SET_VECTOR_ELT(rlist, 5,  allocMatrix(REALSXP, ntime, nstate));
+    vmat= dmatrix(REAL(setemp), ntime, nstate);
 }
 if (sefit >1) {
     setemp = SET_VECTOR_ELT(rlist, 6, allocVector(REALSXP, n*nstate*ntime));
@@ -145,7 +130,8 @@ if (sefit >1) {
 /* allocate space for scratch vectors */
 ws = (double *) R_alloc(2*nstate, sizeof(double)); /*weighted number in state */
 temp2 = ws + nstate;
-ns  = (int *) R_alloc(nstate, sizeof(int));
+ns    = (int *) R_alloc(2*nstate, sizeof(int));
+nev   = ns + nstate;
 atrisk = (int *) R_alloc(nperson, sizeof(int));
 wtp = (double *) R_alloc(nperson, sizeof(double));
 hmat = (double**) dmatrix((double *)R_alloc(nstate*nstate, sizeof(double)),
@@ -154,12 +140,13 @@ chaz = (double**) dmatrix((double *)R_alloc(nstate*nstate, sizeof(double)),
                            nstate, nstate);
 if (sefit >0)  
     umat = (double**) dmatrix((double *)R_alloc(nperson*nstate, sizeof(double)),
-                           nperson, nstate);
+                           nstate, nperson);
 
 /* R_alloc does not zero allocated memory */
 for (i=0; i<nstate; i++) {
     ws[i] =0;
     ns[i] =0;
+    nev[i] =0;
     for (j=0; j<nstate; j++) {
             hmat[i][j] =0;
             chaz[i][j] =0;
@@ -173,12 +160,12 @@ are computed in R, and compute the initial variance.
 <<survfitci-declare>>=
 for (i=0; i<nstate; i++) pmat[i][0] = p[i];
 if (sefit > 0) {
-    temp2 = i0;
+    dptr = i0;
     for (j=0; j<nstate; j++) {
 	temp =0;
 	for (k=0; i<nperson; i++) {
-	    temp += wtp[k]*wtp[k] * (*temp2) * (*temp2);
-	    umat[k][j] = *temp2++;
+	    temp += wtp[k]*wtp[k] * (*dptr) * (*dptr);
+	    umat[k][j] = *dptr++;
 	    }
 	vmat[j][0] = temp;
     }
@@ -267,7 +254,7 @@ for (j=0; j<nstate; j++) {
  }
 
 /* Count up the number of events and censored at this time point */
-nevent[itime] =0;
+for (k=0; k<nstate; k++) nev[k] =0;
 ncensor[itime] =0;
 wevent =0;
 for (j=i; j<n; j++) {
@@ -276,7 +263,7 @@ for (j=i; j<n; j++) {
 	if (status[k] >0) {
 	    newstate = status[k] -1;  /* 0 based subscripts */
 	    oldstate = cstate[id[k]];
-	    nevent[itime]++;
+	    nev[newstate]++;
 	    wevent += wt[k];
 	    hmat[oldstate][newstate] += wt[k];
 	}
@@ -285,7 +272,7 @@ for (j=i; j<n; j++) {
     else break;
  }
         
-if (nevent[itime]> 0) { 
+if (wevent > 0) {  /* there was at least one event with weight > 0 */
     /* finish computing H */
     for (j=0; j<nstate; j++) {
 	if (ns[j] >0) {
@@ -383,14 +370,15 @@ for (j=0; j<nstate; j++) p[j] = temp2[j];
 /* store into the matrices that will be passed back
    and put them in the order that the R code would like*/
 for (j=0; j<nstate; j++) {
-    pmat[j][itime+1] = p[j];
+    pmat[j][itime] = p[j];
     nrisk[j][itime] = ns[j];
+    nevent[j][itime] = nev[j];
     for (k=0; k<nstate; k++) *cumhaz++ = chaz[k][j];
-    temp=0;
     if (sefit >0) {
+	temp =0;
 	for (k=0; k<nperson; k++) 
 	    temp += wtp[k]* wtp[k]*umat[k][j]*umat[k][j];
-	vmat[k][itime+1] = sqrt(temp);
+	vmat[j][itime] = sqrt(temp);
     }
     if (sefit > 1)
         for (k=0; k<nperson; k++) *usave++ = umat[k][j];

@@ -46,7 +46,7 @@ static const R_CallMethodDef Callentries[] = {
     {"Ccoxfit6",      (DL_FUNC) &coxfit6,     12},
     {"Cfinegray",     (DL_FUNC) &finegray,     6},
     {"Cpyears3b",     (DL_FUNC) &pyears3b,    10},
-    {"Csurvfitci",    (DL_FUNC) &survfitci,   10},
+    {"Csurvfitci",    (DL_FUNC) &survfitci,   11},
     {"Csurvreg6",     (DL_FUNC) &survreg6,    15},
     {"Csurvreg7",     (DL_FUNC) &survreg7,    21},
     {"Csurvsplit",    (DL_FUNC) &survsplit,    3},
@@ -60,8 +60,6 @@ void R_init_survival(DllInfo *dll){
     /* My take on the documentation is that adding the following line
        will make symbols available ONLY through the above tables.
        Anyone who then tried to link to my C code would be SOL.
-       It also wouldn't work with .C("whatever", ....) which I use in
-       my test directory.
     */
    /* R_useDynamicSymbols(dll, FALSE);  */
 }
