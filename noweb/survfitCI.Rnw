@@ -160,45 +160,51 @@ vector $p(t)$ using the product-limit form
          &= p(0) \prod_{s<=t} H(s)
 \end{align*}
 Where $p$ is a row vector and $H$ is the multi-state hazard matrix.  
-At each event time we define the off diagonal elements of $H$ by
-$$H_{jk}(t) = \sum_i w_i dN_{ijk}(t)/ \sum w_iY_{ij}(t)$$
-where $N_{ijk}$ counts the number of observed trasitions between 
-state $j$ and state $k$ for subject $i$, $Y_{ij}(t)$ is 1 if subject $i$ is in
-state $j$ at time $t$,  $w_i$ is the weight for subject $i$, 
-and 0/0 is treated as 0.
-Row $j$ of $H(t)$ describes the fate of those subjects in state $j$, going from
-time $t-0$ to time $t$.  
-The diagonal elements of $H$ are set so that each row of $H$ sums to 1
-(everyone has to go somewhere). 
+$H(t)$ is a simple transition matrix.  
+Row $j$ of $H$ describes the outcome of everyone who was in state $j$ at
+time $t-0$; and is the fraction of them who are in states $1, 2, \ldots$
+at time $t+0$.  
+Let $Y_{ij}(t)$ be the indicator function which is 1 if subject $i$
+is in state $j$ at time $t-0$, then
+\begin{equation}
+  H_{jk}(t) = \frac{\sum_i w_i Y_{ij}(t) Y_{ik}(t+)}
+                  {\sum_i w_i Y_{ij}(t)} \label{H}
+\end{equation}
+Each row of $H$ sums to 1: everyone has to go somewhere. 
 This formula collapses to the Kaplan-Meier in the simple case where $p(t)$ is a
 vector of length 2 with state 1 = alive and state 2 = dead. 
 
-A robust variance for the product-limit estimate is based on the
-chain rule.  Consider the $n$ by $k$ matrix of per subject influence values
+A robust variance for the product estimate is recursive.
+First, the derivative of a matrix product $AB$ is $d(A)B + Ad(B)$ where
+$d(A)$ is the elementwise derivative of $A$ and similarly for $B$.
+(Write out each element of the matrix product.)
+Consider $U(t)$, the $n$ by $k$ matrix of per subject influence values at 
+time $t$.
+Since $p(t) = p(t-)H(t)$, the $i$th row of U satisfies
 \begin{align}
-  U_{ik}(t) &= \frac{\partial p_k(t)}{\partial w_i} \nonumber \\
-            &= \frac{\partial[ p(t-) H_{.k}(t)]}{\partial w_i} \label{ci0} \\
-           &= U_{i.}(t-) H_{.k}(t) + 
-                     p(t-) \frac{\partial H_{.k}(t)}{\partial w_i} \label{ci1}\\
- \frac{\partial H_{jk}(t)}{\partial w_g} &=  \left\{ \begin{array}{ll}
-        \left( dN_{gjk}(t) - Y_{gj}(t)H_{jk} \right)/n_j(t) & j \ne k \\
-        -\left(dN_{gj.}(t) - Y_{gj}(t)(1-H_{jj}) \right)/n_j(t) & j=k \\
-       \end{array} \right. \label{ci2}
-\end{align}
-where $H_{.k}$ is the $k$th column of $H$ and $n_j(t)= \sum_i Y_{ij}(t)w_i$
-is the weighted number of subjects in state $j$.
-Equation \eqref{ci0} replaces $p(t)$ with the last step of the compuation that
-created it.  The next writes this out carefully using the 
-product rule for derivatives, leading to a recursive equation.
-The first term of \eqref{ci1} is the formula for ordinary matrix multiplication.
-In equation \eqref{ci2} the derivative of $H$ with respect to subject $g$
-will be a matrix which is non-zero only for the row corresponding to the
-current state of the subject.  (I've skipped some intermediate steps in
-the derivation, they are left as an exercise for the reader).
+  U_i(t) &= \frac{partial p(t)}{\partial w_i} \nonumber \\
+         &= \frac{\partial p(t-)}{\partial w_i} H(t) + 
+           p(t-) \frac{\partial H(t}{\partial w_i} \nonumber \\
+         &= U_i(t-) H(t) +  p(t-) \frac{\partial H(t}{\partial w_i} 
+           \label{ci}
+\end{align}  
+The first term of \mathref{ci} becomes ordinary matrix multiplication. 
+For the second, notice that subject $i$ participates in only one
+row of $H$, the state of said subject just prior to time $t$,
+say it is state $j$.
+Let $n_j(t)= \sum_i Y_{ij}(t)w_i$ be the weighted number of subjects
+in state $j$, the particpants in $H_j(t)$ = row $j$ of $H$.
+Using equation \mathref{H}, 
+the derivative with respect to subject $i$ is $(1_i - H_j)/n_j$
+where $1_i$ is a vector with 1 in the state that subject $i$ occupies
+at time $t+0$.
+The derivative of $H$ with respect to subject $g$
+will thus be a matrix which is non-zero only for the row corresponding to the 
+current state of the subject. 
 Since each row of $H$ sums to a constant, each row of the deviative must
 sum to zero.
 
-The weighted sum of each column of $U$ must zero (if computed correctly)
+The weighted sum of each column of $U$ must also be zero (if computed correctly)
 and the weighted sum of squares for each column will be the infinitesimal
 jackknife estimate of variance for the elements of $p$.
 The entire variance-covariance matrix for the states is $U'W^2U$ where 

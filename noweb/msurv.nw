@@ -263,23 +263,26 @@ for (j=i; j<n; j++) {
 	if (status[k] >0) {
 	    newstate = status[k] -1;  /* 0 based subscripts */
 	    oldstate = cstate[id[k]];
-	    nev[newstate]++;
-	    wevent += wt[k];
-	    hmat[oldstate][newstate] += wt[k];
+	    if (oldstate != newstate) {
+		/* A "move" to the same state doesn't count */
+		nev[newstate]++;
+		wevent += wt[k];
+		hmat[oldstate][newstate] += wt[k];
+	    }
 	}
 	else ncensor[itime]++;
     }
     else break;
  }
         
-if (wevent > 0) {  /* there was at least one event with weight > 0 */
+if (wevent > 0) {  /* there was at least one move with weight > 0 */
     /* finish computing H */
     for (j=0; j<nstate; j++) {
 	if (ns[j] >0) {
 	    temp =0;
 	    for (k=0; k<nstate; k++) {
 		temp += hmat[j][k];
-		hmat[j][k] /= ws[j]; /* events/n */
+		hmat[j][k] /= ws[j];  /* events/n */
 	    }
 	    hmat[j][j] =1 -temp/ws[j]; /*rows sum to one */
 	}
@@ -296,69 +299,44 @@ if (wevent > 0) {  /* there was at least one event with weight > 0 */
 The most complicated part of the code is the update of the
 per subject influence matrix $U$, which has nperson rows and
 nstate columns.  It has 3 steps.
-Refer to equation \eqref{ci2} for the mathematical details.
+Refer to equation \eqref{ci1} for the derivation.
+Let $m$ and $n$ be the old and new states for subject $i$. Then
+\begin{equation*}
+  U_{ij}(t) = \sum_k \left[ U_{ik}(t-)H_{kj}\right] + (I_{n=k} - H_{mj})/ n_m
+\end{equation}
 \begin{enumerate}
-  \item The entire matrix is multiplied by $H$.
-  \item Consider the scaled matrix J whose $k$th row is the
-    matrix H2 scaled by the value p[k]/ws[k]. (Probability of being
-    in the state divided by the weighted number in the state).
-    If subject $i$ is currently at risk and currently in state $k$,
-    then row $k$ of $J$ is subtracted from U[i,].
-  \item For each subject $i$ who had an event at this time and went
-    from state $j$ to state $k$, U[i,j] will decrease by p[j]/ws[j]
-    and U[i,k] will increase by the same amount.
+  \item The first term above is simple matrix multiplication.
+  \item The second adds a vector with mean zero.
 \end{enumerate}
 If standard errors are not needed we can skip this calculation, which
 speeds up the code considerably.
 
 <<survfitci-compute-U>>= 
-/* Update U, part 1  U = U %*% H -- matrix multiplication */
+/* Update U */
 for (j=0; j<nperson; j++) { /* row of U */
-    for (k=0; k<nstate; k++) { /* column of U */
-	temp2[k]=0;
+    newstate = status[k] -1;  /* 0 based subscripts */
+    oldstate = cstate[id[k]];
+    for (k =0; k<nstate; k++) {
+	if (atrisk[j]==0) temp2[k] = 0;
+	else {
+	    if (k==newstate) temp2[k]= (1 - hmat[oldstate,k]) / ws[oldstate];
+	    else temp2[k] = (-hmat[oldstate,k]/ ws[oldstate]);
+	}
 	for (kk=0; kk<nstate; kk++) 
 		temp2[k] += umat[j][kk] * hmat[kk][k];
     }  
     for (k=0; k<nstate; k++) umat[j][k] = temp2[k];
  }
-
-/* Update U, part 2, subtract from everyone at risk 
-       For this I need H2 */
-for (j=0; j<nstate; j++) hmat[j][j] -= 1;
-for (j=0; j<nperson; j++) {
-    if (atrisk[j]==1) {
-	kk = cstate[j];
-	for (k=0; k<nstate; k++) 
-	    umat[j][k] -= (p[kk]/ws[kk])* hmat[kk][k];
-    }
- }
-
-/* Update U, part 3.  An addition for each event */
-for (j=i; j<n; j++) {
-    k = sort2[j];
-    if (etime[k] == ctime) {
-	if (status[k] >0) {
-	    kk = id[k];  /* row number in U */
-	    oldstate= cstate[kk];
-	    newstate= status[k] -1;
-	    umat[kk][oldstate] -= p[oldstate]/ws[oldstate];
-	    umat[kk][newstate] += p[oldstate]/ws[oldstate];
-	}
-    }
-    else break;
- }
 @
 
 Now update the cumulative hazard by adding H2 to it, and 
 update $p$ to $pH$.
-If sefit is 1 then H has already been transformed to H2 form.
 <<survfitci-compute-P>>= 
 /* Finally, update chaz and p.  */
 for (j=0; j<nstate; j++) {
-    if (sefit ==0) hmat[j][j] -= 1;  /* conversion to H2*/
     for (k=0; k<nstate; k++) chaz[j][k] += hmat[j][k];
-    
-    hmat[j][j] +=1;  /* change from H2 to H */
+    chaz[j][j] -=1;  /* Update using H2 */
+
     temp2[j] =0;
     for (k=0; k<nstate; k++)
 	temp2[j] += p[k] * hmat[k][j];
@@ -367,8 +345,7 @@ for (j=0; j<nstate; j++) p[j] = temp2[j];
 @ 
 
 <<survfitci-compute-update>>=
-/* store into the matrices that will be passed back
-   and put them in the order that the R code would like*/
+/* store into the matrices that will be passed back */
 for (j=0; j<nstate; j++) {
     pmat[j][itime] = p[j];
     nrisk[j][itime] = ns[j];
