@@ -112,10 +112,13 @@ an image of the call that produced the object.
 \item{type}{
 type of survival censoring. 
 }
-\item{influence}{optional.  A list with one element per stratum, each
-  element of the list is an array indexed by time, state, and subject.
-  It contains the influence of each subject on the estimate.
-  If strata is NULL this will be an array or matrix.}
+\item{influence}{optional, for survfitms objects only.
+  A list with one element per stratum, each
+  element of the list is an array indexed by subject, time, state.
+  The time dimension will have one more element than the \code{prev}
+  matrix, the first row is the subject's influence on the initial
+  prevalence (just before the first time point).  
+  If there is only one curve a list is not needed.}
 }
 \section{Subscripts}{
 Survfit objects that contain multiple survival curves can be subscripted. 

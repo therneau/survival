@@ -78,13 +78,15 @@ state5 <- function(what, ...) {
 
 \section{Data set}
 The \code{flt3} data set contains simulated data which closely mimics
-that from a CALGB trial in subjects with FLT3 mutated acute myeloid
+that from a trial in subjects with FLT3 mutated acute myeloid
 leukemia.
 In this randomized comparison of two conditioning regimens the
 canonical path for a subject is initial therapy $\rightarrow$
 complete response (CR) $\rightarrow$
 hematologic stem cell transplant (HSCT) $\rightarrow$
 sustained remission, followed by relapse or death.
+The purpose of the vignette is to introduce multi-state survival
+curves, and show how they can be used.
 
 <<overall>>=
 flt3[1:5,]

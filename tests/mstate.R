@@ -1,7 +1,7 @@
 #
 # A tiny multi-state example
 #
-library(survival)
+#library(survival)
 aeq <- function(x,y) all.equal(as.vector(x), as.vector(y))
 mtest <- data.frame(id= c(1, 1, 1,  2,  3,  4, 4, 4,  5, 5),
                     t1= c(0, 4, 9,  0,  2,  0, 2, 8,  1, 3),
@@ -48,6 +48,7 @@ all.equal(mfit$time, c(2, 3, 4, 5, 8, 9, 10, 11))
 #  Scramble the input data
 #  Not everyone starts at the same time or in the same state
 #  Two "istates" that vary, only the first should be noticed.
+#  Case weights
 #
 tdata <- data.frame(id= c(1, 1, 1,  2,  3,  4, 4, 4,  5,  5),
                     t1= c(0, 4, 9,  1,  2,  0, 2, 8,  1,  3),
@@ -69,7 +70,7 @@ tfun <- function(wt, data=tdata) {
 # w[9] is the weight for subject 5 at time 1.5, for instance
 p0 <- function(w) c(w[4], w[9], 0, w[1]+ w[6])/ (w[1]+ w[4] + w[6] + w[9])
 
-#  aj2 = Aalen-Johansen matrix at time 2, etc.
+#  aj2 = Aalen-Johansen H matrix at time 2, etc.
 aj2 <- function(w) {
     rbind(c(1, 0, 0, 0),    # state a (1) stays put
           c(0, 1, 0, 0),
@@ -129,16 +130,24 @@ doprev <- function(w) {
 # Check the pstate estimate
 w1 <- rep(1, 10)
 mtest2 <- tfun(w1)
-mfit2 <- survfit(Surv(t1, t2, st) ~ 1, tdata, id=id, istate=i0) #rdered
-all.equal(mfit2$prev, doprev(w1))
+mfit2 <- survfit(Surv(t1, t2, st) ~ 1, tdata, id=id, istate=i0) # ordered
+aeq(mfit2$prev, doprev(w1))
 aeq(mfit2$p0, p0(w1))
 
 mfit2b <- survfit(Surv(t1, t2, st) ~ 1, mtest2, id=id, istate=i0)#scrambled
-all.equal(mfit2b$prev, doprev(w1))
+aeq(mfit2b$prev, doprev(w1))
 aeq(mfit2b$p0, p0(w1))
 
 mfit2b$call <- mfit2$call <- NULL
 all.equal(mfit2b, mfit2) 
+
+# Now the harder one, where subjects change weights
+mtest3 <- tfun(1:10)  
+mfit3  <- survfit(Surv(t1, t2, st) ~ 1, mtest3, id=id, istate=i0,
+                  weights=wt, influence=TRUE)
+aeq(mfit3$p0, p0(1:10))
+aeq(mfit3$prev, doprev(1:10))
+    
 
 # The derivative of a matrix product AB is (dA)B + A(dB) where dA is the
 #  elementwise derivative of A and etc for B.
@@ -154,5 +163,74 @@ dp0 <- function(w) {
         c(0, 1, 0, 0) - p) / sum(w0)
 }
   
-mfit3 <- survfit(Surv(t1, t2, st) ~ 1, tdata, id=id, istate=i0,
-                 influence=TRUE)
+
+dp2 <- function(w) {
+    h2 <- aj2(w)   # H matrix at time 2
+    part1 <- dp0(w) %*% h2
+
+    # 1 and 4 in state 4, obs 1 and 6, 4 moves to a
+    mult  <- p0(w)[4]/(w[1] + w[6])  #p(t-) / weights in state
+    part2 <- rbind((c(0,0,0,1)- h2[4,]) * mult,
+                   0,
+                   0,
+                   (c(1,0,0,0) - h2[4,]) * mult,
+                   0)
+    part1 + part2
+}
+
+dp3 <- function(w) {
+    dp2(w) %*% aj3(w)
+}
+
+dp4 <- function(w) {
+    h4 <- aj4(w)   # H matrix at time 4
+    part1 <- dp3(w) %*% h4
+
+    # subjects 1 and 3 in state 4, obs 1 and 5, 1 moves to a
+    mult <- doprev(w)[2,4]/ (w[1] + w[5])   # p_4(time 4-0) / wt
+    part2 <- rbind((c(1,0,0,0)- h4[4,]) * mult,
+                   0,
+                   (c(0,0,0,1)- h4[4,]) * mult,
+                   0,
+                   0)
+    part1 + part2
+}
+dp5 <- function(w) {
+    h5 <- aj5(w)   # H matrix at time 5
+    part1 <- dp4(w) %*% h5
+
+    # subjects 124 in state 1, obs 2,4,7, 2 goes to 2
+    mult <- doprev(w)[3,1]/ (denom <- w[2] + w[4] + w[7]) 
+    part2 <- rbind((c(1,0,0,0)- h5[1,]) * mult,
+                   (c(0,1,0,0)- h5[1,]) * mult,
+                   0,
+                   (c(1,0,0,0)- h5[1,]) * mult,
+                   0)
+    part1 + part2
+}
+dp8 <- function(w) {
+    h8 <- aj8(w)   # H matrix at time 8
+    part1 <- dp5(w) %*% h8
+
+    # subjects 14 in state 1, obs 2 &7, 4 goes to c
+    mult <- doprev(w)[4, 1]/ (w[2] + w[7]) 
+    part2 <- rbind((c(1,0,0,0)- h8[1,]) * mult,
+                   0,
+                   0,
+                   (c(0,0,1,0)- h8[1,]) * mult,
+                   0)
+    part1 + part2
+}
+dp9 <- function(w) dp8(w) %*% aj9(w)
+dp10<- function(w) dp9(w) %*% aj10(w)
+
+w1 <- 1:10
+aeq(mfit3$influence[,1,], dp0(w1))
+aeq(mfit3$influence[,2,], dp2(w1))
+aeq(mfit3$influence[,3,], dp3(w1))
+aeq(mfit3$influence[,4,], dp4(w1))
+aeq(mfit3$influence[,5,], dp5(w1))
+aeq(mfit3$influence[,6,], dp8(w1))
+aeq(mfit3$influence[,7,], dp9(w1))
+aeq(mfit3$influence[,8,], dp10(w1))
+aeq(mfit3$influence[,9,], dp10(w1)) # no changes at time 11

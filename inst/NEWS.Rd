@@ -2,10 +2,15 @@
 \title{NEWS file for the survival package}
 \section{Changes in version 2.39-6}{
   \itemize{
-    \item Deal with "almost tied" survival times in the survfit and
+    \item Add a more thorough test case for multi-state survival:
+    not all subjects start in the same state, delayed entry, and
+    case weights that change within a subject.  This uncovered some
+    errors.  More carefully document the influence option.
+    
+    \item Consistently deal with "almost tied" survival times in the survfit and
     coxph routines.  Uses the same rule and tolerance as the all.equal
-    function to declare two time value equal.  These values arise due to
-    round off errors from cacluations such as days/365.25.
+    function to declare two time value equal.  The issue arises due to
+    round off errors, e.g., from cacluations using days/365.25.
     
     \item Add the statefig function and a multi-state vignette.
 

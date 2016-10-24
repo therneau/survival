@@ -123,7 +123,7 @@ dim.survfitms <- function(x) {
     else if (!is.null(j)) x$p0 <- x$p0[j]
     if (!is.null(x$influence)) {
         if (length(i) >1) x$influence <- x$influence[i]
-        else if (is.list(x$influence)) x$influence <- x$influence[[1]]
+        else if (is.list(x$influence)) x$influence <- x$influence[[i]]
     
         if (!is.null(j)) {
             if (is.list(x$influence)) 
@@ -557,12 +557,12 @@ survmean2 <- function(x, scale, rmean) {
         else maxtime <- tapply(x$time, igrp, max)
     
         meantime <- matrix(0., ngrp, nstate)
-        if (!is.null(x$influence)) stdtime <- meantime
         p0 <- matrix(x$p0, nrow=ngrp)  #in case there is only one row
+        if (!is.null(x$influence)) stdtime <- meantime
         for (i in 1:ngrp) {
             if (is.matrix(x$prev))
                 temp <- rbind(p0[i,], x$prev[igrp==i,, drop=FALSE])
-            else temp <- matrix(c(p0[i,], x$prev[igrp==i]), ncol=1)
+            else temp <- matrix(c(p0[i], x$prev[igrp==i]), ncol=1)
 
             if (is.null(x$start.time)) tt <- c(0, x$time[igrp==i])
             else tt <- c(x$start.time, x$time[igrp==i])
@@ -576,11 +576,20 @@ survmean2 <- function(x, scale, rmean) {
 
             if (!is.null(x$influence)) {
                 # calculate the variance
-                <<msvar>>
+                if (is.list(x$influence))
+                    itemp <- apply(x$influence[[i]], 1,
+                                   function(x) colSums(x*delta))
+                else itemp <- apply(x$influence, 1,
+                                    function(x) colSums(x*delta))
+                stdtime[i,] <- sqrt(rowSums(itemp^2))
            }
         }
         outmat <- cbind(outmat, c(meantime)/scale)
         cname <- c("n", "nevent", "rmean")
+        if (!is.null(x$influence)) {
+            outmat <- cbind(outmat, c(stdtime)/scale)
+            cname <- c(cname, "std(rmean)")
+        }
         # report back a single time, if there is only one
         if (all(maxtime == maxtime[1])) maxtime <- maxtime[1]
     }
@@ -592,7 +601,8 @@ survmean2 <- function(x, scale, rmean) {
 }
 @ 
 
-The influence array is of the same shape as the \code{prev}, but with
+The influence array has subject for the first element, the other two
+mimic the is of the same shape as the \code{prev}, but with
 one copy per subject.  For the variance we do exactly the same
 calculation as the mean, once per subject, and add up the squares of
 the result.  

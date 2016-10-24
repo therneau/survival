@@ -68,6 +68,7 @@ double *entry,* etime;  /*entry time, event time */
 int ntime;          /* number of unique event time values */
 int *status;        /*0=censored, 1,2,... new states */
 int *cstate;        /* current state for each subject */
+int *dstate;        /* the next state, =cstate if not an event time */
 double *wt;         /* weight for each observation */
 double *i0;         /* initial influence */
 int *id;            /* for each obs, which subject is it */
@@ -123,7 +124,7 @@ if (sefit >0) {
     vmat= dmatrix(REAL(setemp), ntime, nstate);
 }
 if (sefit >1) {
-    setemp = SET_VECTOR_ELT(rlist, 6, allocVector(REALSXP, n*nstate*ntime));
+    setemp = SET_VECTOR_ELT(rlist, 6, allocVector(REALSXP, n*nstate*(ntime+1)));
     usave = REAL(setemp);
 }
 
@@ -132,7 +133,8 @@ ws = (double *) R_alloc(2*nstate, sizeof(double)); /*weighted number in state */
 temp2 = ws + nstate;
 ns    = (int *) R_alloc(2*nstate, sizeof(int));
 nev   = ns + nstate;
-atrisk = (int *) R_alloc(nperson, sizeof(int));
+atrisk = (int *) R_alloc(2*nperson, sizeof(int));
+dstate = atrisk + nperson;
 wtp = (double *) R_alloc(nperson, sizeof(double));
 hmat = (double**) dmatrix((double *)R_alloc(nstate*nstate, sizeof(double)),
                            nstate, nstate);
@@ -152,22 +154,27 @@ for (i=0; i<nstate; i++) {
             chaz[i][j] =0;
     }
 }
-for (i=0; i<nperson; i++) atrisk[i] =0;
+for (i=0; i<nperson; i++) {
+    atrisk[i] =0;
+    dstate[i] = cstate[i];  /* cstate starts as the initial state */
+}
 @ 
 
-Insert the initial prevalence and the initial influence data, which
-are computed in R, and compute the initial variance.
+Copy over the initial influence data, which was computed in R.
 <<survfitci-declare>>=
-for (i=0; i<nstate; i++) pmat[i][0] = p[i];
 if (sefit > 0) {
     dptr = i0;
-    for (j=0; j<nstate; j++) {
-	temp =0;
-	for (k=0; i<nperson; i++) {
-	    temp += wtp[k]*wtp[k] * (*dptr) * (*dptr);
-	    umat[k][j] = *dptr++;
+    if (sefit >1) {
+        for (j=0; j<nstate; j++) {
+            for (i=0; i<nperson; i++) {
+                umat[i][j] = *dptr;
+                *usave++ = *dptr++;   /* save in the output */
 	    }
-	vmat[j][0] = temp;
+	}
+    } else {
+	for (j=0; j<nstate; j++) {
+            for (i=0; i<nperson; i++) umat[i][j] = *dptr++;
+	}
     }
 }
 @ 
@@ -264,7 +271,8 @@ for (j=i; j<n; j++) {
 	    newstate = status[k] -1;  /* 0 based subscripts */
 	    oldstate = cstate[id[k]];
 	    if (oldstate != newstate) {
-		/* A "move" to the same state doesn't count */
+		/* A "move" to the same state does not count */
+		dstate[id[k]] = newstate;
 		nev[newstate]++;
 		wevent += wt[k];
 		hmat[oldstate][newstate] += wt[k];
@@ -297,36 +305,47 @@ if (wevent > 0) {  /* there was at least one move with weight > 0 */
 @ 
 
 The most complicated part of the code is the update of the
-per subject influence matrix $U$, which has nperson rows and
-nstate columns.  It has 3 steps.
+per subject influence matrix $U$.
+The influence for a subject is the derivative of the current
+estimates wrt the case weight of that subject.  Siince $p$ is a
+vector the influence $U$ is easily represented as a matrix with one row
+per subject and one column per state. 
 Refer to equation \eqref{ci1} for the derivation.
-Let $m$ and $n$ be the old and new states for subject $i$. Then
+
+Let $m$ and $n$ be the old and new states for subject $i$, and
+$n_m$ the sum of weights for all subjects at risk in state $m$.
+Then
 \begin{equation*}
-  U_{ij}(t) = \sum_k \left[ U_{ik}(t-)H_{kj}\right] + (I_{n=k} - H_{mj})/ n_m
+  U_{ij}(t) = \sum_k \left[ U_{ik}(t-)H_{kj}\right] + p_m(t-)(I_{n=j} - H_{mj})/ n_m
 \end{equation}
 \begin{enumerate}
   \item The first term above is simple matrix multiplication.
   \item The second adds a vector with mean zero.
 \end{enumerate}
-If standard errors are not needed we can skip this calculation, which
-speeds up the code considerably.
+If standard errors are not needed we can skip this calculation.
 
-<<survfitci-compute-U>>= 
-/* Update U */
-for (j=0; j<nperson; j++) { /* row of U */
-    newstate = status[k] -1;  /* 0 based subscripts */
-    oldstate = cstate[id[k]];
-    for (k =0; k<nstate; k++) {
-	if (atrisk[j]==0) temp2[k] = 0;
-	else {
-	    if (k==newstate) temp2[k]= (1 - hmat[oldstate,k]) / ws[oldstate];
-	    else temp2[k] = (-hmat[oldstate,k]/ ws[oldstate]);
-	}
-	for (kk=0; kk<nstate; kk++) 
+<<survfitci-compute-U>>=
+if (sefit >0) {
+    /* Update U, part 1  U = U %*% H -- matrix multiplication */
+    for (j=0; j<nperson; j++) { /* row of U */
+	for (k=0; k<nstate; k++) { /* column of U */
+	    temp2[k]=0;
+	    for (kk=0; kk<nstate; kk++) 
 		temp2[k] += umat[j][kk] * hmat[kk][k];
-    }  
-    for (k=0; k<nstate; k++) umat[j][k] = temp2[k];
- }
+	}  
+	for (k=0; k<nstate; k++) umat[j][k] = temp2[k];
+    }
+
+    /* step 2, add in dH term */
+    for (j=0; j<nperson; j++) {
+	if (atrisk[j]==1) {
+            oldstate = cstate[j];
+	    for (k=0; k<nstate; k++)
+		umat[j][k] -= hmat[oldstate][k]* p[oldstate]/ ws[oldstate];
+	    umat[j][dstate[j]] += p[oldstate]/ws[oldstate];
+	}
+    }
+}
 @
 
 Now update the cumulative hazard by adding H2 to it, and 
