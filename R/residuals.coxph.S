@@ -16,8 +16,8 @@ residuals.coxph <-
     rr <- object$residuals
     y <- object$y
     x <- object[['x']]  # avoid matching object$xlevels
-    vv <- object$naive.var
-    if (is.null(vv)) vv <- object$var
+    vv <- drop(object$naive.var)
+    if (is.null(vv)) vv <- drop(object$var)
     weights <- object$weights
     if (is.null(weights)) weights <- rep(1,n)
     strat <- object$strata

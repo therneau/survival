@@ -332,12 +332,12 @@ else {
                  p0     = grabit(curves, "p0"),
                  transitions = transitions,
                  strata= unlist(lapply(curves, function(x) length(x$time))))
-    kfit$p0 <- matrix(kfit$p0, ncol=nstate, byrow=TRUE,
+    kfit$p0 <- matrix(kfit$p0, ncol=nst, byrow=TRUE,
                       dimnames=list(names(curves), state.names))
     if (se.fit) {
         kfit$std.err <- grabit(curves, "std.err")
         kfit$sp0<- matrix(grabit(curves, "sp0"),
-                          ncol=nstate, byrow=TRUE)
+                          ncol=nst, byrow=TRUE)
     }
     kfit$cumhaz <- array(unlist(lapply(curves, function(x) x$cumhaz)),
                            dim=c(nstate, nstate, length(kfit$time)))
@@ -477,13 +477,13 @@ docurve2 <- function(entry, etime, status, istate, wt, states, id,
              n.risk = fit$nrisk,
              n.event= fit$nevent,
              n.censor=fit$ncensor,
-             cumhaz=array(fit$cumhaz, dim=c(nstate,nstate, length(timeset))))
+             cumhaz=array(fit$cumhaz, dim=c(nstate, nstate, length(timeset))))
     else out <- list(n=length(etime), time= timeset, p0=p0,
              prev = fit$p,
              n.risk = fit$nrisk, 
              n.event = fit$nevent, 
              n.censor= fit$ncensor, 
-             cumhaz=array(fit$cumhaz, dim=c(nstate,nstate, length(timeset))))
+             cumhaz=array(fit$cumhaz, dim=c(nstate, nstate, length(timeset))))
     if (influence) {
         temp <-  array(fit$influence, 
                        dim=c(length(uid), nstate, 1+ length(timeset)),

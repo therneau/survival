@@ -1,7 +1,7 @@
 #
 # A tiny multi-state example
 #
-#library(survival)
+library(survival)
 aeq <- function(x,y) all.equal(as.vector(x), as.vector(y))
 mtest <- data.frame(id= c(1, 1, 1,  2,  3,  4, 4, 4,  5, 5),
                     t1= c(0, 4, 9,  0,  2,  0, 2, 8,  1, 3),
@@ -234,3 +234,10 @@ aeq(mfit3$influence[,6,], dp8(w1))
 aeq(mfit3$influence[,7,], dp9(w1))
 aeq(mfit3$influence[,8,], dp10(w1))
 aeq(mfit3$influence[,9,], dp10(w1)) # no changes at time 11
+
+aeq(mfit3$cumhaz[,,1], aj2(w1)- diag(4))
+aeq(mfit3$cumhaz[,,2] - mfit3$cumhaz[,,1], aj3(w1)- diag(4))
+aeq(mfit3$cumhaz[,,3] - mfit3$cumhaz[,,2], aj4(w1)- diag(4))
+aeq(mfit3$cumhaz[,,4] - mfit3$cumhaz[,,3], aj5(w1)- diag(4))
+aeq(mfit3$cumhaz[,,5] - mfit3$cumhaz[,,4], aj8(w1)- diag(4))
+aeq(mfit3$cumhaz[,,6] - mfit3$cumhaz[,,5], aj9(w1)- diag(4))

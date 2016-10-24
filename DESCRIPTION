@@ -18,6 +18,6 @@ Description: Contains the core survival analysis routines, including
 	     Kaplan-Meier and Aalen-Johansen (multi-state) curves, Cox models,
 	     and parametric accelerated failure time models.
 License: LGPL (>=2)
-Source: https://github.com/therneau/survival
+URL: https://github.com/therneau/survival
 
 

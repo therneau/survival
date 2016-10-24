@@ -21,6 +21,12 @@ survreg <- function(formula, data, weights, subset, na.action,
     weights <- model.extract(m, 'weights')
     Y <- model.extract(m, "response")
     if (!inherits(Y, "Surv")) stop("Response must be a survival object")
+    type <- attr(Y, "type")
+    if (type== 'counting') 
+        stop ("start-stop type Surv objects are not supported")
+    if (type=="mright" || type=="mcounting") 
+        stop("multi-state survival is not supported")
+   
 
     strats <- attr(Terms, "specials")$strata
     cluster<- attr(Terms, "specials")$cluster
@@ -77,9 +83,6 @@ survreg <- function(formula, data, weights, subset, na.action,
 
     offset<- model.offset(m) # R returns NULL if no offset, Splus a zero
     if (length(offset)==0 || all(offset==0)) offset <- rep(0.,n)
-
-    type <- attr(Y, "type")
-    if (type== 'counting') stop ("Invalid survival type")
     
     # The user can either give a distribution name, in which the distribution
     #   is found in the object survreg.distributions, or include a list object

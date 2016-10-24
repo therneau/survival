@@ -90,30 +90,79 @@ In this case the first level of \code{status} is used to code censoring.
 Here is a simple competing risks example where the three endpoints are
 labeled as a, b and c.
 <<simple1>>=
-crdata <- data.frame(time=1:10,
-                     endpoint=factor(c(1,1,2,0,1,1,3,0,2,3),
+set.seed(1952)
+crdata <- data.frame(time=1:11, 
+                     endpoint=factor(c(1,1,2,0,1,1,3,0,2,3,0),
                                      labels=c("censor", "a", "b", "c")))
 tfit  <- survfit(Surv(time, endpoint) ~ 1, data=crdata)
+dim(tfit)
 summary(tfit)
 @
 The resulting object \code{tfit} contains an estimate of $P$(state),
 the probability of being in each state,
-a matrix with one row for each observed time and one column for
-each of the four states a--c and "no event as of yet"; we will often
+a matrix with one row for each time and one column for
+each of the four states a--c and the "no event as of yet" state; we will often
 refer to the latter as the entry state.
-Each row of the \code{tfit$pstate} matrix sums to 1.
+Each row of the \code{tfit\$pstate} matrix sums to 1.
 The plot of the fit will have 3 curves, by default the curve for an
 unnamed state is not displayed.
 (Since they sum to 1 one of the 4 curves is redundant, and the entry state
-is normally the least interesting one.)
+is normally the least interesting of the set.)
 <<fig=TRUE>>=
 plot(tfit, col=1:3, lwd=2)
 @ 
 
+The resulting \code{survfms} object appears as a matrix and can be
+subscripted as such, with a column for each state and rows for each
+group that was created by the variables on the right hand side of the formula.
+This makes it simple to display a subset of the curves using plot
+or lines commands.
+The unnamed state in the above fit, for instance, can be displayed with
+\code{plot(tfit[,4])}.
+
+The curves are computed using the Aalen-Johansen estimator.  
+Both the Kaplan-Meier estimate and the 
+cumulative incidence esitmate (for competing risks) are a special case of
+the AJ estimate. 
+It is more general that that, however; a given subject can have multiple 
+transitions from state to state, including transitions to a state was 
+visited earlier. 
+In this latter case the data structure is similar to that for time varying
+covariates in a Cox model: the time variable will be intervals $(t_1, t_2]$
+which are open on the left and closed on the right, and the status variable
+contains the state that was entered at time $t_2$, and a subject will have
+multiple lines of data.
+There are a few restrictions.
+\begin{itemize} 
+  \item An identifier variable is required which indicates which rows of the
+    data frame belong to each subject.  If the \code{id} argument is missing
+    the code assumes that each row of data is a separate subject, which leads
+    to a nonsense estimate when there are actually multiple rows for each. 
+  \item Subjects do not have to enter at time 0 or all at the same time,
+    but each must traverse a connected segment of time.  Disjoint intervals
+    such as the pair $(0,5]$, $(8, 10]$ are illegal.
+   \item A subject cannot change groups.  Any covariates on the right hand
+     side of the formula must remain constant within subject.  (This 
+     function is not
+     a way to creat supposed 'time-dependent' survival curves.)
+   \item Subjects may have case weights, and these weights may change over
+     time for a subject.
+\end{itemize}
+
+By default every subject is assumed to start in an unnamed common entry state.
+The \code{istate} argument can instead be used to designate an entry state 
+for each subject, and is the name of a variable in the data set.
+The distribution of states at the first event time is 
+treated as the initial distribution of states;
+like ordinary survival an observation which is censored before the 
+first event time has no impact and could be removed without changing the
+estimates.
+
+The extended example below is intended to give more information about the
 
 \section{Data set}
-The \code{flt3} data set contains simulated data which closely mimics
-that from a trial in subjects with FLT3 mutated acute myeloid
+The \code{myeloid} data set contains simulated data which mimics
+that from a trial in subjects with  acute myeloid
 leukemia.
 In this randomized comparison of two conditioning regimens the
 canonical path for a subject is initial therapy $\rightarrow$
@@ -122,7 +171,7 @@ hematologic stem cell transplant (HSCT) $\rightarrow$
 sustained remission, followed by relapse or death.
 
 <<overall>>=
-flt3[1:5,]
+myeloid[1:5,]
 @ 
 The data set contains the follow-up time and status at last follow-up 
 for each subject, along with the time to bone marrow transplant
@@ -130,7 +179,7 @@ for each subject, along with the time to bone marrow transplant
 complete response (crtime) or relapse after CR (rltime).
 Subject 1 did not receive a transplant as shown by the NA value,
 with similar missing values for CR and relapse.
-Potential covariates are treatment, sex, and the mutation type;
+Potential covariates are treatment, sex and the mutation type;
 this introduction will use only the treatment variable.
 
 \begin{figure}
@@ -146,7 +195,7 @@ understand the difference.  Here is the code to generate the
 simple survival curves:
 
 <<sfit0, echo=TRUE, fig=TRUE, include=FALSE>>=
-sfit0 <- survfit(Surv(futime, death) ~ trt, flt3)
+sfit0 <- survfit(Surv(futime, death) ~ trt, myeloid)
 plot(sfit0, xscale=365.25, xaxs='r', col=1:2, lwd=2,
      xlab="Years post enrollment", ylab="Survival")
 legend(20, .4, c("Arm A", "Arm B"),
@@ -166,7 +215,7 @@ At the same time we will convert from days to months.  This is the
 natural time scale for our plots, and forestalls adding the
 \code{xscale} argument to every plot call.
 <<data1>>=
-data1 <- flt3
+data1 <- myeloid
 data1$crstat <- factor(with(data1, ifelse(is.na(crtime), death, 2)),
                         labels=c("censor", "death", "CR"))
 data1$crtime <- with(data1, ifelse(crstat=="CR", crtime, futime))
@@ -209,16 +258,15 @@ additional CR events.
 The code to draw figure \ref{curve1} is below.  It can be separated into
 5 parts:
 \begin{enumerate}
-  \item Fits for the 3 endpoints are simple, and found in the first 3 lines.
+  \item Fits for the 3 endpoints are simple and found in the first 3 lines.
     The \code{crstat} and \code{txstat} variables are factors, which causes
     a multi-state curve to be generated.
   \item The \code{layout} and \code{par} commands are used to create a
     multi-part plot with curves on the left and state space diagrams on 
-    the right.  See the source code for this vignette for the \code{crisk}
-    function. (It is present, but not echoed in the latex file.)
+    the right, and to reduce the amount of white space between them.
   \item Draw a subset of the curves via subscripting. A multi-state
     survfit object appears as a matrix of curves, with one row for each
-    group (treatment) and one column for each state.  The ``CR'' state is
+    group (treatment) and one column for each state.  The CR state is
     the second column in \code{sfit2}, for instance.  
     The CR fit was drawn first simply because it has the greatest y-axis
     range, then the other curves added using the lines command.
@@ -290,7 +338,9 @@ transplant outcome by more than 10\%.
 We are left with an unreliable estimate of an uninteresting quantity.
 Mislabeling any true state as censoring is always a mistake, one that 
 will not be repeated here.
-Here is the code for figure \ref{badfit}.
+Here is the code for figure \ref{badfit}.  The use of at logical (true/false)
+as the status variable in the \code{Surv} call leads to ordinary survival
+calculations.
 <<badfit, fig=TRUE, include=FALSE>>=
 badfit <- survfit(Surv(txtime, txstat=="transplant") ~ trt, data1)
 
@@ -324,7 +374,7 @@ from the programs; subjects are not allowed to do instantaneous transitions.
 For each such observation a decision needs to be made, preferably
 based on a rational medical/biological argument rather
 than statistical or programming convenience.
-It turns out that we do have one such case in the flt data:
+It turns out that we do have one such case in the myeloid data:
 one subject who was declared to be
 a CR on the day of their transplant.
 Since complete response will occur before its clinical detection I decided to
@@ -347,10 +397,10 @@ in much the same way that one would insert new folders into the proper position
 in a file drawer.  Each addition will split a subject's time interval as 
 necessary.
 <<<data2, echo=TRUE>>=
-temp <- flt3
+temp <- myeloid
 id <- which(temp$crtime == temp$txtime) # the one special person
 temp$crtime[id] <- temp$crtime[id] -1   # move his/her CR back  by 1 day
-data2 <- tmerge(flt3[, c('id','sex', 'trt', 'group')], temp,
+data2 <- tmerge(myeloid[, c('id', 'trt')], temp,
                  id=id, death=event(futime, death),
                         transplant = event(txtime),
                         response   = event(crtime),
@@ -363,7 +413,7 @@ data2$event <- with(data2, factor(death + 2*response + 3*transplant +
                                 4*relapse, 0:4,
                                 labels=c("censor", "death", "CR", 
                                          "transplant", "relapse")))
-data2[1:10,c(1:6, 11:13)]
+data2[1:10,c(1:4, 9:11)]
 @ 
 
 The tmerge call starts by adding death/censoring time, 
@@ -399,7 +449,7 @@ In the final result there are \Sexpr{ctab[1]} subjects with only a single
 row of data, \Sexpr{ctab[2]} with 2 rows, etc.
 The table of \code{id} by \code{event} contains only 0 and 1 as values,
 i.e., no one has two events of the same type, which is correct for this
-data set.  Overall \Sexpr{etab['CR']} of the \Sexpr{nrow(flt3)} subjects
+data set.  Overall \Sexpr{etab['CR']} of the \Sexpr{nrow(myeloid)} subjects
 experience a CR at some point in the study.
 
 \begin{figure}
@@ -453,7 +503,7 @@ time by state matrix of results; subject is the third dimension of
 the array.
 Specifically it is the set of infinitesimal jackknife (IJ) values.
 The pointwise variance for $P_k(t)$ = probability of state $k$ at
-time $t$ is $\sum_i J_{ik}^2(t)$ where $J_{ik}(t)$ is the IJ inflence
+time $t$ is $\sum_i J_{ik}^2(t)$ where $J_{ik}(t)$ is the inflence
 of subject $i$ on $P_k(t)$.
 The IJ values allow us to calculate the variance/covariance matrix 
 for derived values such as the mean time in state.
@@ -481,10 +531,10 @@ The less important answer is to test whether the apparent gain is sufficiently
 rare from a mathematical point of view, i.e., ``statistical'' significance.
 The standard errors of the two values are each 1.12, and since they are based
 on disjoint subjects the values are independent, leading to a standard error
-for the difference of $\sqrt(1.12^2 + 1.12^2) = 1.6$.
+for the difference of $\sqrt{1.12^2 + 1.12^2} = 1.6$.
 The times in the CR state for arms A and B
-differ by over 3 standard errors, which is highly statistically
-significant as well.
+differ by over 3 standard errors, which is statistically
+significant.
 
 \begin{figure}
   \myfig{txsurv}
@@ -503,8 +553,9 @@ In summary
   \end{itemize}
 
 CR $\rightarrow$ transplant is the target treatment path for a
-patient; why does figure \ref{curve1} show no change in the number transplanted?
-Figure \ref{txsurv} shows the transplants, broken down by whether this
+patient; given the improvements listed above
+why does figure \ref{curve1} show no change in the number transplanted?
+Figure \ref{txsurv} shows the transplants broken down by whether this
 happened before or after complete response.
 Most of the non-CR transplants happen by 10 months.
 One possible explanation is that once it is apparent to the
@@ -546,8 +597,7 @@ par(oldpar)
 
 \begin{figure}
   \myfig{sfit4}
-  \caption{The full multi-state curves for the two treatment arms,
-    solid line = arm A and dashed = arm B.}
+  \caption{The full multi-state curves for the two treatment arms.}
   \label{sfit4}
 \end{figure}
 
@@ -577,11 +627,11 @@ The default plot behavior is to omit the curves for any unnamed states.)
 
 
 <<sfit4, fig=TRUE, include=FALSE>>=
-sfit4 <- survfit(Surv(tstart, tstop, event) ~ 1, data2, id=id)
+sfit4 <- survfit(Surv(tstart, tstop, event) ~ trt, data2, id=id)
 sfit4$transitions
 layout(matrix(1:2,1,2), widths=2:1)
 oldpar <- par(mar=c(5.1, 4.1, 1,.1))
-plot(sfit4, col=1:4, lwd=2, xmax=48, xaxt='n',
+plot(sfit4, col=rep(1:4,2), lwd=2, xmax=48, xaxt='n',
      xlab="Months", ylab="Current state")
 axis(1, xtime, xtime)
 text(c(40, 40, 40, 40), c(.54, .19, .30, .06),

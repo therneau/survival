@@ -127,7 +127,7 @@ predict.survreg <-
 	#   now add quantiles and then invert
 	qq <- dd$quantile(p, object$parm)
 	if (length(qq)==1 || length(pred)==1) {
-	    pred <- pred + qq*scale
+	    pred <- drop(pred) + qq*scale
 	    if (se.fit && fixedscale) {
 		var <- ((x %*% vv) * x) %*% rep(1., ncol(x))
 		se <- rep(sqrt(drop(var)), length(qq))

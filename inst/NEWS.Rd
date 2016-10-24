@@ -2,6 +2,9 @@
 \title{NEWS file for the survival package}
 \section{Changes in version 2.39-6}{
   \itemize{
+    \item Small update to avoid the new warnings for multiplication of a
+    vector * (1 by 1 matrix).  (dbfeta residuals, single covariate).
+    
     \item Add a more thorough test case for multi-state survival:
     not all subjects start in the same state, delayed entry, and
     case weights that change within a subject.  This uncovered some

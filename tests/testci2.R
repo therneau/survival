@@ -76,23 +76,23 @@ all.equal(truth, fit$prev[,1:4])
 # It was a big surprise, but the epsilon where a finite difference approx to
 #  the derivative is most accurate is around 1e-7 = approx sqrt(precision).
 # Smaller eps makes the all.equal test worse.
-dfbeta <- 0*fit$influence # same dimension
+# There is a now a formal test in mstate.R, not approximate.
+dfbeta <- 0*fit$influence[,-1,] #  lose the first row
 eps <- sqrt(.Machine$double.eps)     
 for (i in 1:6) {
     twt <- tdata$wt
     twt[tdata$id ==i] <- twt[tdata$id==i] + eps
     tfit <- survfit(Surv(time1, time2, stat2) ~ cluster(id), tdata,
                     weight=twt)
-    dfbeta[,,i] <- (tfit$prev - fit$prev)/eps  #finite difference approx
+    dfbeta[i,,] <- (tfit$prev - fit$prev)/eps  #finite difference approx
 }
-all.equal(dfbeta, fit$influence, tolerance= eps*10)
+all.equal(dfbeta, fit$influence[,-1,], tolerance= eps*10)
 twt <- tdata$wt[match(1:6, tdata$id)]  # six unique weights
 temp <- dfbeta
-for (i in 1:6) temp[,,i] <- temp[,,i]* twt[i]
-std2 <- sqrt(apply(temp^2, 1:2, sum))
+for (i in 1:6) temp[i,,] <- temp[i,,]* twt[i]
+std2 <- sqrt(apply(temp^2, 2:3, sum))
 
-all.equal(fit$std, sqrt(apply(temp^2, 1:2, sum)), tolerance=eps,
-          check.attributes=FALSE)
+all.equal(fit$std, std2, tolerance=eps, check.attributes=FALSE)
 
 if (FALSE) {
     # a plot of the data that helped during creation of the example
