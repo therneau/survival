@@ -78,15 +78,16 @@ state5 <- function(what, ...) {
 
 \section{Multi-state curves}
 Consider the simple \code{survfit} call
-<<echo=TRUE, eval=FALSE>>
+<<echo=TRUE, eval=FALSE>>=
 curves <- survfit(Surv(time, status) ~ group, data=mydata)
 @
 In the classic case \code{status} is either a logical or 0/1 numeric variable
-that represents either censoring (0 or false) or an event (1 or true),
+that represents censoring (0 or false) or an event (1 or true),
 and the result is a survival curve for each group.
 If \code{status} is a factor, however, the result is a multi-state
 estimate.
-In this case the first level of \code{status} is used to code censoring.
+In this case the first level of \code{status} is used to code censoring while
+the remaining ones are possible states.
 Here is a simple competing risks example where the three endpoints are
 labeled as a, b and c.
 <<simple1>>=
@@ -99,35 +100,35 @@ dim(tfit)
 summary(tfit)
 @
 The resulting object \code{tfit} contains an estimate of $P$(state),
-the probability of being in each state,
-a matrix with one row for each time and one column for
+the probability of being in each state.
+$P$ is a matrix with one row for each time and one column for
 each of the four states a--c and the "no event as of yet" state; we will often
 refer to the latter as the entry state.
-Each row of the \code{tfit\$pstate} matrix sums to 1.
+By definition each row of $P$ sums to 1.
 The plot of the fit will have 3 curves, by default the curve for an
 unnamed state is not displayed.
 (Since they sum to 1 one of the 4 curves is redundant, and the entry state
 is normally the least interesting of the set.)
 <<fig=TRUE>>=
-plot(tfit, col=1:3, lwd=2)
+plot(tfit, col=1:3, lwd=2, ylim="Probability in state")
 @ 
 
 The resulting \code{survfms} object appears as a matrix and can be
 subscripted as such, with a column for each state and rows for each
-group that was created by the variables on the right hand side of the formula.
+group that was created by any variables on the right hand side of the formula.
 This makes it simple to display a subset of the curves using plot
 or lines commands.
 The unnamed state in the above fit, for instance, can be displayed with
 \code{plot(tfit[,4])}.
 
 The curves are computed using the Aalen-Johansen estimator.  
-Both the Kaplan-Meier estimate and the 
-cumulative incidence esitmate (for competing risks) are a special case of
+The Kaplan-Meier estimate and the 
+cumulative incidence esitmate (for competing risks) are each a special case of
 the AJ estimate. 
 It is more general that that, however; a given subject can have multiple 
-transitions from state to state, including transitions to a state was 
+transitions from state to state, including transitions to a state that was 
 visited earlier. 
-In this latter case the data structure is similar to that for time varying
+In this case the dataset structure is similar to that for time varying
 covariates in a Cox model: the time variable will be intervals $(t_1, t_2]$
 which are open on the left and closed on the right, and the status variable
 contains the state that was entered at time $t_2$, and a subject will have
@@ -144,27 +145,28 @@ There are a few restrictions.
    \item A subject cannot change groups.  Any covariates on the right hand
      side of the formula must remain constant within subject.  (This 
      function is not
-     a way to creat supposed 'time-dependent' survival curves.)
+     a way to creat supposed `time-dependent' survival curves.)
    \item Subjects may have case weights, and these weights may change over
      time for a subject.
 \end{itemize}
 
 By default every subject is assumed to start in an unnamed common entry state.
 The \code{istate} argument can instead be used to designate an entry state 
-for each subject, and is the name of a variable in the data set.
+for each subject; like variables in the formula it is searched for in the
+\code{data} argument.
 The distribution of states at the first event time is 
 treated as the initial distribution of states;
 like ordinary survival an observation which is censored before the 
-first event time has no impact and could be removed without changing the
-estimates.
+first event time has no impact on the results.
 
 The extended example below is intended to give more information about the
+routines.
 
 \section{Data set}
 The \code{myeloid} data set contains simulated data which mimics
 that from a trial in subjects with  acute myeloid
 leukemia.
-In this randomized comparison of two conditioning regimens the
+In this comparison of two conditioning regimens the
 canonical path for a subject is initial therapy $\rightarrow$
 complete response (CR) $\rightarrow$
 hematologic stem cell transplant (HSCT) $\rightarrow$
@@ -173,14 +175,13 @@ sustained remission, followed by relapse or death.
 <<overall>>=
 myeloid[1:5,]
 @ 
+The first few rows of data are shown above.
 The data set contains the follow-up time and status at last follow-up 
-for each subject, along with the time to bone marrow transplant
+for each subject, along with the time to transplant
 (txtime),
 complete response (crtime) or relapse after CR (rltime).
-Subject 1 did not receive a transplant as shown by the NA value,
-with similar missing values for CR and relapse.
-Potential covariates are treatment, sex and the mutation type;
-this introduction will use only the treatment variable.
+Subject 1 did not receive a transplant, as shown by the NA value,
+and subject 2 did not achieve CR.
 
 \begin{figure}
   \myfig{sfit0}
@@ -189,9 +190,9 @@ this introduction will use only the treatment variable.
 \end{figure}
 
 Overall survival curves for the data are shown in figure \ref{sfit0}.
-The difference between the standard (A) and augmented (B) treatment arms
-is substantial.  A primary goal of this analysis is to better 
-understand the difference.  Here is the code to generate the 
+The difference between the treatment arms A and B
+is substantial.  A goal of this analysis is to better 
+understand this difference.  Here is the code to generate the 
 simple survival curves:
 
 <<sfit0, echo=TRUE, fig=TRUE, include=FALSE>>=
@@ -243,7 +244,7 @@ figure \ref{curve1}.
 The plot overlays three separate \code{survfit} calls: standard surivival
 until death, complete response with death as a competing risk, and
 transplant with death as a competing risk.
-For each fit we have a shown one selected state: the fraction
+For each fit we have shown one selected state: the fraction
 who have died, fraction ever in CR, and fraction ever to recieve transplant,
 respectively.
 Most of the CR events happen before 2 months (the green
@@ -272,7 +273,7 @@ The code to draw figure \ref{curve1} is below.  It can be separated into
     range, then the other curves added using the lines command.
   \item Decoration of the plots. This includes the line types, colors,
     legend, choice of x-axis labels, etc.
-  \item Add the state space diagram.  The functions for this are
+  \item Add the state space diagrams.  The functions for this are
     described in the last section of the vignette.
 \end{enumerate}
 
@@ -309,10 +310,10 @@ par(oldpar)
 The association between a particular curve and its corresponding state space
 diagram is critical.  As we will see below, many different models are
 possible and it is easy to get confused.  
-Attachment of a diagram directly to each curve (as is done in this tutorial)
+Attachment of a diagram directly to each curve, as was done above,
 will not necessarily be day-to-day practice, but the state space should
 always be foremost.  If nothing else,  draw it on a scrap of paper and tape it 
-to the side of the terminal when creating the data set and plots.
+to the side of the terminal when creating a data set and plots.
 
 \begin{figure}
   \myfig{badfit}
@@ -323,22 +324,23 @@ to the side of the terminal when creating the data set and plots.
  
 Figure \ref{badfit} shows the transplant curves overlaid with the naive KM that
 censors subjects at death.  There is no difference in the initial portion as
-no deaths have yet intervened, but the final values overstate the 
+no deaths have yet intervened, but the final portion overstates the 
 transplant outcome by more than 10\%. 
 \begin{enumerate}
   \item The key problem with the naive estimate is that subjects who die can 
-    never have a transplant.  The result is an estimate of ``fraction who would
+    never have a transplant.  The result of censoring them 
+    is an estimate of ``fraction who would
     be transplanted, if death before transplant were abolished''.  This is not
     a real world quantity.
   \item In order to estimate this fictional quantity one needs to assume that
     death is uninformative with respect to future disease progression.  The
     early deaths in months 0--2, before transplant begins, are however a very
-    different class of patient.
+    different class of patient.  Non-informative censoring is untenable.
 \end{enumerate}
 We are left with an unreliable estimate of an uninteresting quantity.
 Mislabeling any true state as censoring is always a mistake, one that 
 will not be repeated here.
-Here is the code for figure \ref{badfit}.  The use of at logical (true/false)
+Here is the code for figure \ref{badfit}.  The use of a logical (true/false)
 as the status variable in the \code{Surv} call leads to ordinary survival
 calculations.
 <<badfit, fig=TRUE, include=FALSE>>=
@@ -363,16 +365,16 @@ par(oldpar)
 The multi-state models are based on a second data set which looks very
 much like the (start, stop] data sets that are used for
 time dependent covariates.
-Consider the first subject who experienced CR on day 44, relapse
-on day 113 and death on day 235.  In the expanded data set this subject
-will have 3 lines, one for each of the intervals (0,44], (44, 113] and
-(113, 235].  The first interval ends with a CR and the second with relapse.
+Consider subject 5 who experienced CR on day 56, relapse
+on day 112 and death on day 200.  In the expanded data set this subject
+will have 3 lines, one for each of the intervals (0,56], (56, 112] and
+(112, 200].  The first interval ends with CR and the second with relapse.
 
 What if someone has two endpoints on the same day?
 Creation of a zero length interval will lead to a justifiable complaint 
 from the programs; subjects are not allowed to do instantaneous transitions.
 For each such observation a decision needs to be made, preferably
-based on a rational medical/biological argument rather
+based on rational scientific argument rather
 than statistical or programming convenience.
 It turns out that we do have one such case in the myeloid data:
 one subject who was declared to be
@@ -380,7 +382,7 @@ a CR on the day of their transplant.
 Since complete response will occur before its clinical detection I decided to
 make the tied CR one day earlier.
 This issue didn't come up in creating \code{data1} only because it dealt
-with the pairs CR:death and transplant:death, and neither of these had a tie.
+with the pairs CR:death and transplant:death, and neither of these has a tie.
 
 We create the data set using the \code{tmerge} function in R, code is shown
 below.
@@ -399,7 +401,7 @@ necessary.
 <<<data2, echo=TRUE>>=
 temp <- myeloid
 id <- which(temp$crtime == temp$txtime) # the one special person
-temp$crtime[id] <- temp$crtime[id] -1   # move his/her CR back  by 1 day
+temp$crtime[id] <- temp$crtime[id] -1   # move their CR back by 1 day
 data2 <- tmerge(myeloid[, c('id', 'trt')], temp,
                  id=id, death=event(futime, death),
                         transplant = event(txtime),
@@ -423,17 +425,18 @@ and thus by definition occurs at the trailing end of their interval.
 Then transplant is added which has 365 ``within'' and 1 ``trailing'': there
 is one subject whose transplant date is also their last follow-up date.
 Response and relapse times all fall within a prior interval.
-Looking at the first 4 subjects, the fourth follows the canonical
+Looking above at the first 4 subjects in \code{data2}, 
+the fourth follows the canonical
 path of CR followed by transplant.  
 Subject 1 relapses after CR, without transplant, and subject 2 has transplant
 without a CR.
 A critical step in any multi-state model is to print out some portion of the
 created data set(s) and \emph{read} it!  This data set is key to all the
 analysis which follows.
-This step has been abbreviated for the vignette; a display of only the
+This step has been abbreviated for the vignette; inspection of only the
 first 4 subjects is a very small sample. 
 
-Rescale the data set from days to months and look at two more summaries.
+Rescale the data set from days to months and look at three more summaries.
 <<data2b>>=
 for (i in c("tstart", "tstop"))
     data2[[i]] <- data2[[i]] *12/365.25  #scale to months

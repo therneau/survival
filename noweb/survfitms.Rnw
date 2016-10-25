@@ -561,7 +561,7 @@ survmean2 <- function(x, scale, rmean) {
         if (!is.null(x$influence)) stdtime <- meantime
         for (i in 1:ngrp) {
             if (is.matrix(x$pstate))
-                temp <- rbind(p0[i,], x$pstateigrp==i,, drop=FALSE])
+                temp <- rbind(p0[i,], x$pstate[igrp==i,, drop=FALSE])
             else temp <- matrix(c(p0[i], x$pstate[igrp==i]), ncol=1)
 
             if (is.null(x$start.time)) tt <- c(0, x$time[igrp==i])
