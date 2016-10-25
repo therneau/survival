@@ -2,7 +2,7 @@
 \newcommand{\Twid}{\mbox{\(\tt\sim\)}}
 The competing risks routine is very general, allowing subjects
 to enter or exit states multiple times.
-For this reason I first used the label \emph{current prevalence} estimate, 
+Early on I used the label \emph{current prevalence} estimate, 
 since it estimates what fraction of the subjects are in any
 given state across time.  
 However the word ``prevalence'' is likely to generate confusion whenever
@@ -23,7 +23,7 @@ case weight for a censored subject evenly to all the others in the
 same state at the time of censoring.  
 
 The literature refers to these as ``cumulative incidence'' curves,
-which is confusing since prevalence is not the integral of incidence,
+which is confusing since P(state) is not the integral of incidence,
 but the routine name survfitCI endures.
 The cannonical call is
 \begin{verbatim}
@@ -151,7 +151,7 @@ The status vector will have values of 0 for censored.
 }
 @         
         
-In the multi-state case we can calculate the current prevalence
+In the multi-state case we can calculate the current P(state)
 vector $p(t)$ using the product-limit form
 \begin{align*}
     p(t) &= p(0)\prod_{s<=t} [I + dA(s)] \\
@@ -316,7 +316,7 @@ grabit <- function(clist, element) {
     }
 }
 if (length(curves) ==1) {
-    keep <- c("n", "time", "n.risk", "n.event", "n.censor", "prev",
+    keep <- c("n", "time", "n.risk", "n.event", "n.censor", "pstate",
               "p0", "cumhaz", "influence")
     if (se.fit) keep <- c(keep, "std.err", "sp0")
     kfit <- (curves[[1]])[match(keep, names(curves[[1]]), nomatch=0)]
@@ -328,7 +328,7 @@ else {
                  n.risk=  grabit(curves, "n.risk"),
                  n.event= grabit(curves, "n.event"),
                  n.censor=grabit(curves, "n.censor"),
-                 prev   = grabit(curves, "prev"),
+                 pstate = grabit(curves, "pstate"),
                  p0     = grabit(curves, "p0"),
                  transitions = transitions,
                  strata= unlist(lapply(curves, function(x) length(x$time))))
@@ -361,29 +361,28 @@ than $P$, with standard error of ${rm se}(P)/(1-P)$.
 if (se.fit) {
     std.err <- kfit$std.err
     zval <- qnorm(1- (1-conf.int)/2, 0,1)
-    surv <- 1-kfit$prev
 
     if (conf.type=='plain') {
         temp <- zval* kfit$std.err
-        kfit <- c(kfit, list(lower =pmax(kfit$prev-temp, 0), 
-                             upper=pmin(kfit$prev+temp, 1),
+        kfit <- c(kfit, list(lower =pmax(kfit$pstate-temp, 0), 
+                             upper=pmin(kfit$pstate+temp, 1),
                          conf.type='plain', conf.int=conf.int))
         }
 
     if (conf.type=='log') {
         #avoid some "log(0)" messages
-        xx <- ifelse(kfit$prev==1, 1, 1- kfit$prev)  
+        xx <- ifelse(kfit$pstate==1, 1, 1- kfit$pstate)  
 
-        temp1 <- ifelse(kfit$prev==1, NA, exp(log(xx) + zval* kfit$std.err/xx))
-        temp2 <- ifelse(kfit$prev==1, NA, exp(log(xx) - zval* kfit$std.err/xx))
+        temp1 <- ifelse(kfit$pstate==1, NA, exp(log(xx) + zval* kfit$std.err/xx))
+        temp2 <- ifelse(kfit$pstate==1, NA, exp(log(xx) - zval* kfit$std.err/xx))
         kfit <- c(kfit, list(lower=pmax(1-temp1,0), upper= 1- temp2,
                          conf.type='log', conf.int=conf.int))
         }
 
     if (conf.type=='log-log') {
-        who <- (kfit$prev==0 | kfit$prev==1) #special cases
-        temp3 <- ifelse(surv==0, NA, 1)
-        xx <- ifelse(who, .1,kfit$prev)  #avoid some "log(0)" messages
+        who <- (kfit$pstate==0 | kfit$pstate==1) #special cases
+        temp3 <- ifelse(kfit$pstate==1, NA, 1)
+        xx <- ifelse(who, .1,kfit$pstate)  #avoid some "log(0)" messages
         temp1 <- exp(-exp(log(-log(xx)) + zval*kfit$std.err/(xx*log(xx))))
         temp1 <- ifelse(who, temp3, temp1)
         temp2 <- exp(-exp(log(-log(xx)) - zval*kfit$std.err/(xx*log(xx))))
@@ -473,13 +472,13 @@ docurve2 <- function(entry, etime, status, istate, wt, states, id,
     if (se.fit) 
         out <- list(n=length(etime), time= timeset, p0 = p0,
                     sp0= sqrt(colSums(i0^2)),
-             prev = fit$p, std.err=fit$std,
+             pstate = fit$p, std.err=fit$std,
              n.risk = fit$nrisk,
              n.event= fit$nevent,
              n.censor=fit$ncensor,
              cumhaz=array(fit$cumhaz, dim=c(nstate, nstate, length(timeset))))
     else out <- list(n=length(etime), time= timeset, p0=p0,
-             prev = fit$p,
+             pstate = fit$p,
              n.risk = fit$nrisk, 
              n.event = fit$nevent, 
              n.censor= fit$ncensor, 

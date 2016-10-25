@@ -66,18 +66,18 @@ survfit.matrix <- function(formula, p0, method=c("discrete", "matexp"), ...) {
         jumps <- matrix(unlist(lapply(cumhaz, function(x) diff(c(0, x)))),
                         ncol= sum(nonzero))
         Tmat <- diag(nstate)
-        prev  <- matrix(0., nrow= 1+length(utime), ncol=nstate)
-        prev[1,] <- p0
+        pstate  <- matrix(0., nrow= 1+length(utime), ncol=nstate)
+        pstate[1,] <- p0
         for (i in 1:length(utime)) {
             Tmat[nonzero] <- jumps[i,]
             if (method == "matrix") {
                 temp <- pmin(1, rowSums(Tmat) - diag(Tmat)) # failsafe
                 diag(Tmat) <- 1 - temp  #rows sum to 1
-                prev[i+1,] <- prev[i,] %*% Tmat
+                pstate[i+1,] <- pstate[i,] %*% Tmat
             }
             else {
                 diag(Tmat) <- diag(Tmat) - rowSums(Tmat) #rows sum to 0
-                prev[i+1,] <- as.vector(prev[i,] %*% expm(Tmat))
+                pstate[i+1,] <- as.vector(pstate[i,] %*% expm(Tmat))
             }
         }
 
@@ -96,7 +96,7 @@ survfit.matrix <- function(formula, p0, method=c("discrete", "matexp"), ...) {
             n.event[, to[i]] <- n.event[,to[i]] + z[[i]]$n.event[index]
         }
         # All the curves should have the same n
-        list(n = z[[1]]$n, time = utime, prev= prev[-1,], 
+        list(n = z[[1]]$n, time = utime, pstate= pstate[-1,], 
              n.risk= n.risk, n.event=n.event)
     }
         
@@ -120,7 +120,7 @@ survfit.matrix <- function(formula, p0, method=c("discrete", "matexp"), ...) {
     fit <- list()
     fit$n <- tlist[[1]]$n
     fit$time <- unlist(lapply(tlist, function(x) x$time))
-    fit$prev <- do.call("rbind", lapply(tlist, function(x) x$prev))
+    fit$pstate <- do.call("rbind", lapply(tlist, function(x) x$pstate))
     fit$n.risk <- do.call("rbind", lapply(tlist, function(x) x$n.risk))
     fit$n.event<- do.call("rbind", lapply(tlist, function(x) x$n.event))
     ntemp <- unlist(lapply(tlist, function(x) length(x$time)))

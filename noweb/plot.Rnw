@@ -93,7 +93,7 @@ Block of code to transform components of a [[survfitms]] object
 so that the standard plotting methods work.
 <<plot-transform-ms>>=
 if (inherits(x, "survfitms")) {
-    x$surv <- 1- x$prev
+    x$surv <- 1- x$pstate
     if (is.matrix(x$surv)) {
         dimnames(x$surv) <- list(NULL, x$states)
         if (ncol(x$surv) > 1 && any(x$states == '')) {

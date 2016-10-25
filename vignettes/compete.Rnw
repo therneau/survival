@@ -760,7 +760,7 @@ somewhat more complex syntax.
  
 <<year20>>=
 # Print out a M/F results at 20 years
-temp <- summary(csurv, time=20*12)$prev
+temp <- summary(csurv, time=20*12)$pstate
 cbind(newdata, PCM= round(100*temp[,2], 1))
 @ 
 The above table shows that females are modeled to 

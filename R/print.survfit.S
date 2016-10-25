@@ -3,21 +3,6 @@ print.survfit <- function(x, scale=1,
                           print.rmean = getOption('survfit.print.rmean'),
                           rmean = getOption('survfit.rmean'), ...) {
 
-    if (inherits(x, "survfitms")) {
-        # The curve 1-prev = chance you are NOT in state __ does not make
-        #  much sense for a multi-state model.  But -- the median and n are
-        #  the same, so we were lazy and didn't write a new routine.
-        # The formulas for mean time don't work, however.
-        #  
-        x$surv <- 1- x$prev
-        if (is.matrix(x$surv)) dimnames(x$surv) <- list(NULL, x$states)
-        if (!is.null(x$lower)) {
-            x$lower <- 1- x$lower
-            x$upper <- 1- x$upper
-        }
-        rmean <- "none"
-    }
-
     if (!is.null(cl<- x$call)) {
 	cat("Call: ")
 	dput(cl)

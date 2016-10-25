@@ -33,7 +33,7 @@ all.equal(mfit$n.risk, matrix(c(0,1,1,2,2,1,0,0,
                                 0,0,1,1,1,1,2,1,
                                 0,0,0,0,0,1,0,0,
                                 4,4,3,2,1,1,0,0), ncol=4))
-all.equal(mfit$prev,  matrix(c(8,  8, 14, 14, 7, 0,  9.5, 9.5, 
+all.equal(mfit$pstate,  matrix(c(8,  8, 14, 14, 7, 0,  9.5, 9.5, 
                                 0,  6,  6, 12, 12,19,9.5, 9.5, 
                                 0,  0,  0,  0, 7, 13, 13, 13,
                                24, 18, 12,  6, 6, 0, 0,  0)/32, ncol=4))
@@ -114,8 +114,8 @@ aj10 <- function(w)rbind(c(1, 0, 0, 0),
 #9            1  45          1->b, 3->c & exit
 #10       1      45          1->a
 
-# The prevalence is a product of matrices
-doprev <- function(w) {
+# P is a product of matrices
+dopstate <- function(w) {
     p1 <- p0(w)
     p2 <- p1 %*% aj2(w)
     p3 <- p2 %*% aj3(w)
@@ -131,11 +131,11 @@ doprev <- function(w) {
 w1 <- rep(1, 10)
 mtest2 <- tfun(w1)
 mfit2 <- survfit(Surv(t1, t2, st) ~ 1, tdata, id=id, istate=i0) # ordered
-aeq(mfit2$prev, doprev(w1))
+aeq(mfit2$pstate, dopstate(w1))
 aeq(mfit2$p0, p0(w1))
 
 mfit2b <- survfit(Surv(t1, t2, st) ~ 1, mtest2, id=id, istate=i0)#scrambled
-aeq(mfit2b$prev, doprev(w1))
+aeq(mfit2b$pstate, dopstate(w1))
 aeq(mfit2b$p0, p0(w1))
 
 mfit2b$call <- mfit2$call <- NULL
@@ -146,7 +146,7 @@ mtest3 <- tfun(1:10)
 mfit3  <- survfit(Surv(t1, t2, st) ~ 1, mtest3, id=id, istate=i0,
                   weights=wt, influence=TRUE)
 aeq(mfit3$p0, p0(1:10))
-aeq(mfit3$prev, doprev(1:10))
+aeq(mfit3$pstate, dopstate(1:10))
     
 
 # The derivative of a matrix product AB is (dA)B + A(dB) where dA is the
@@ -187,7 +187,7 @@ dp4 <- function(w) {
     part1 <- dp3(w) %*% h4
 
     # subjects 1 and 3 in state 4, obs 1 and 5, 1 moves to a
-    mult <- doprev(w)[2,4]/ (w[1] + w[5])   # p_4(time 4-0) / wt
+    mult <- dopstate(w)[2,4]/ (w[1] + w[5])   # p_4(time 4-0) / wt
     part2 <- rbind((c(1,0,0,0)- h4[4,]) * mult,
                    0,
                    (c(0,0,0,1)- h4[4,]) * mult,
@@ -200,7 +200,7 @@ dp5 <- function(w) {
     part1 <- dp4(w) %*% h5
 
     # subjects 124 in state 1, obs 2,4,7, 2 goes to 2
-    mult <- doprev(w)[3,1]/ (denom <- w[2] + w[4] + w[7]) 
+    mult <- dopstate(w)[3,1]/ (denom <- w[2] + w[4] + w[7]) 
     part2 <- rbind((c(1,0,0,0)- h5[1,]) * mult,
                    (c(0,1,0,0)- h5[1,]) * mult,
                    0,
@@ -213,7 +213,7 @@ dp8 <- function(w) {
     part1 <- dp5(w) %*% h8
 
     # subjects 14 in state 1, obs 2 &7, 4 goes to c
-    mult <- doprev(w)[4, 1]/ (w[2] + w[7]) 
+    mult <- dopstate(w)[4, 1]/ (w[2] + w[7]) 
     part2 <- rbind((c(1,0,0,0)- h8[1,]) * mult,
                    0,
                    0,

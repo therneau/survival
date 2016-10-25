@@ -21,12 +21,12 @@ or integer indices.
 <<dim.survfitms>>=
 dim.survfitms <- function(x) {
     if (is.null(x$strata)) {
-        if (is.matrix(x$prev)) c(1L, ncol(x$prev))
+        if (is.matrix(x$pstate)) c(1L, ncol(x$pstate))
         else 1L
     }
     else {
         nr <- length(x$strata)
-        if (is.matrix(x$prev)) c(nr, ncol(x$prev))
+        if (is.matrix(x$pstate)) c(nr, ncol(x$pstate))
         else nr
     }
 }
@@ -46,8 +46,8 @@ dim.survfitms <- function(x) {
     if (missing(..2)) j<- NULL  else j <- ..2  # cols
     n <- length(x$time)
 
-    if (is.null(x$strata) && is.matrix(x$prev)) {
-        # No strata, but a matrix of prevalence values
+    if (is.null(x$strata) && is.matrix(x$pstate)) {
+        # No strata, but a matrix of P(state) values
         #  In this case, allow them to use a single i subscript as well
         if (is.null(j) && !is.null(i)) {
             j <- i
@@ -92,7 +92,7 @@ dim.survfitms <- function(x) {
  
     # all the elements that can have "nstate" elements or columns
     #  The n.event variable can have fewer
-    temp <- c("n.risk", "n.event", "n.censor", "prev", 
+    temp <- c("n.risk", "n.event", "n.censor", "pstate", 
               "cumhaz", "std.err", "lower", "upper")
     sfun <- function(z) {
         if (is.null(j)) {
@@ -236,7 +236,7 @@ The simple case of no times argument.
 <<survfitms-simple>>=
 if (!censored) {
     index <- which(rowSums(as.matrix(fit$n.event)) >0)
-    for (i in c("time","n.risk", "n.event", "surv", "prev", "std.err", 
+    for (i in c("time","n.risk", "n.event", "surv", "pstate", "std.err", 
                         "upper", "lower", "cumhaz")) {
         if (!is.null(fit[[i]])) {  # not all components in all objects
             temp <- fit[[i]]
@@ -329,7 +329,7 @@ findrow <- function(fit, times, extend, init=1) {
     # The pmax() above encodes the assumption that n.risk for any
     #  times before the first observation = n.risk at the first obs
     fit$time <- ptimes
-    for (i in c("surv", "prev", "upper", "lower")) {
+    for (i in c("surv", "pstate", "upper", "lower")) {
         if (!is.null(fit[[i]])) fit[[i]] <- ssub(fit[[i]], index1, init)
     }
     for (i in c("std.err", "cumhaz")) {
@@ -368,7 +368,7 @@ unlistsurv <- function(x, name) {
 # unlist all the components built by a set of calls to findrow
 #  and remake the strata
 unpacksurv <- function(fit, ltemp) {
-    keep <- c("time", "surv", "prev", "upper", "lower", "std.err",
+    keep <- c("time", "surv", "pstate", "upper", "lower", "std.err",
               "cumhaz", "n.risk", "n.event", "n.censor", "n.enter")
     for (i in keep) 
         if (!is.null(fit[[i]])) fit[[i]] <- unlistsurv(ltemp, i)
@@ -378,7 +378,7 @@ unpacksurv <- function(fit, ltemp) {
 @ 
 
 Repeat the code for survfitms objects.  The only real difference is
-the preservation of \code{prev} and \code{cumhaz} instead of \code{surv},
+the preservation of \code{pstate} and \code{cumhaz} instead of \code{surv},
 use of survmean2, and use of p0 for initial states.
 
 <<survfitms-summary>>=
@@ -560,9 +560,9 @@ survmean2 <- function(x, scale, rmean) {
         p0 <- matrix(x$p0, nrow=ngrp)  #in case there is only one row
         if (!is.null(x$influence)) stdtime <- meantime
         for (i in 1:ngrp) {
-            if (is.matrix(x$prev))
-                temp <- rbind(p0[i,], x$prev[igrp==i,, drop=FALSE])
-            else temp <- matrix(c(p0[i], x$prev[igrp==i]), ncol=1)
+            if (is.matrix(x$pstate))
+                temp <- rbind(p0[i,], x$pstateigrp==i,, drop=FALSE])
+            else temp <- matrix(c(p0[i], x$pstate[igrp==i]), ncol=1)
 
             if (is.null(x$start.time)) tt <- c(0, x$time[igrp==i])
             else tt <- c(x$start.time, x$time[igrp==i])
@@ -602,11 +602,11 @@ survmean2 <- function(x, scale, rmean) {
 @ 
 
 The influence array has subject for the first element, the other two
-mimic the is of the same shape as the \code{prev}, but with
+mimic the is of the same shape as the \code{pstate}, but with
 one copy per subject.  For the variance we do exactly the same
 calculation as the mean, once per subject, and add up the squares of
 the result.  
-As with \code{prev} and \code{p0} a major nuisance for all this is
+As with \code{pstate} and \code{p0} a major nuisance for all this is
 the fact that the results at time 0 are in a separate object.
 This is a consequence of how survfit objects were set up 20+ years ago,
 namely that the starting point (time=0, surv=1) was not stored in the object.
