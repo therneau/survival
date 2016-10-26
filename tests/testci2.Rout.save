@@ -1,7 +1,7 @@
 
-R Under development (unstable) (2016-10-22 r71574) -- "Unsuffered Consequences"
-Copyright (C) 2016 The R Foundation for Statistical Computing
-Platform: i686-pc-linux-gnu (32-bit)
+R version 3.2.3 (2015-12-10) -- "Wooden Christmas-Tree"
+Copyright (C) 2015 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -70,7 +70,7 @@ Type 'q()' to quit R.
 > #    c     0   0     0    0     0                      1    23/4 23/4
 > #    d     0   0     0    0     0                                      23/4 31/4
 > 
-> # fit$prev for time i and state j = total weight at that time/state in the
+> # fit$pstate for time i and state j = total weight at that time/state in the
 > #  above table (original weight + redistrib), divided by 10.
 > 
 > # time            5  6   10    15    18    20     25    30    34    40    50
@@ -87,7 +87,7 @@ Type 'q()' to quit R.
 > 
 > #dimnames(truth) <- list(c(5, 6, 10, 15, 18, 20, 25, 30, 34, 40, 50),
 > #                        c('a', 'b', 'c', 'd')
-> all.equal(truth, fit$prev[,1:4])
+> all.equal(truth, fit$pstate[,1:4])
 [1] TRUE
 > 
 > # Test the dfbetas
@@ -102,7 +102,7 @@ Type 'q()' to quit R.
 +     twt[tdata$id ==i] <- twt[tdata$id==i] + eps
 +     tfit <- survfit(Surv(time1, time2, stat2) ~ cluster(id), tdata,
 +                     weight=twt)
-+     dfbeta[i,,] <- (tfit$prev - fit$prev)/eps  #finite difference approx
++     dfbeta[i,,] <- (tfit$pstate - fit$pstate)/eps  #finite difference approx
 + }
 > all.equal(dfbeta, fit$influence[,-1,], tolerance= eps*10)
 [1] TRUE
@@ -141,4 +141,4 @@ Type 'q()' to quit R.
 > 
 > proc.time()
    user  system elapsed 
-  1.260   0.072   1.326 
+  1.271   0.066   1.344 
