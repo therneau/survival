@@ -691,7 +691,7 @@ else {
             else     fit$strata <- strata.keep
         }
     }
-    if (y)     fit$y <- Y
+    if (y)  fit$y <- Y
 }
 @ 
 If any of the weights were not 1, save the results.

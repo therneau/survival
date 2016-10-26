@@ -1,4 +1,4 @@
-@
+
 \section{Cox models}
 \subsection{Predicted survival}
 The [[survfit]] method for a Cox model produces individual survival
@@ -155,10 +155,16 @@ when someone changes the data set under our feet.  For instance
 <<survfit.coxph-setup>>=
 if (is.null(mf)) y <- object[['y']]
 else {
-    y <- model.response(mf)
+    y <- normalizetime(model.response(mf)) #this was done to the saved Y
     y2 <- object[['y']]
-    if (!is.null(y2) && any(as.matrix(y2) != as.matrix(y)))
-        stop("Could not reconstruct the y vector")
+    # Avoid issues with roundoff.  The data set may have been saved and
+    #  then read back in, for instance
+    if (!is.null(y2)) {
+        if (ncol(y2) != ncol(y) || length(y2) != length(y) ||
+            !(isTRUE(all.equal(y[,1], y2[,1]))) ||
+            !(isTRUE(all.equal(y[,2], y2[,2]))) ||
+            (ncol(y)==3 && any(y[,3] != y2[,3])))
+            stop("Could not reconstruct the y vector")
     }
 
 if (is.null(object[['x']])) x <- model.matrix.coxph(object, data=mf)
