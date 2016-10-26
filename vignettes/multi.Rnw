@@ -110,7 +110,7 @@ unnamed state is not displayed.
 (Since they sum to 1 one of the 4 curves is redundant, and the entry state
 is normally the least interesting of the set.)
 <<fig=TRUE>>=
-plot(tfit, col=1:3, lwd=2, ylim="Probability in state")
+plot(tfit, col=1:3, lwd=2, ylab="Probability in state")
 @ 
 
 The resulting \code{survfms} object appears as a matrix and can be
@@ -419,10 +419,10 @@ data2[1:10,c(1:4, 9:11)]
 @ 
 
 The tmerge call starts by adding death/censoring time, 
-which appears in the ``trailing'' column of
+which appears in the `trailing' column of
 the tcount table since it defines the right endpoint for each subject,
 and thus by definition occurs at the trailing end of their interval.
-Then transplant is added which has 365 ``within'' and 1 ``trailing'': there
+Then transplant is added which has 365 within and 1 trailing: there
 is one subject whose transplant date is also their last follow-up date.
 Response and relapse times all fall within a prior interval.
 Looking above at the first 4 subjects in \code{data2}, 
@@ -431,8 +431,8 @@ path of CR followed by transplant.
 Subject 1 relapses after CR, without transplant, and subject 2 has transplant
 without a CR.
 A critical step in any multi-state model is to print out some portion of the
-created data set(s) and \emph{read} it!  This data set is key to all the
-analysis which follows.
+created data set and \emph{read} it.  This data set is key, and any errors will
+invalidate all the analysis which follows.
 This step has been abbreviated for the vignette; inspection of only the
 first 4 subjects is a very small sample. 
 
@@ -502,18 +502,11 @@ The \code{survfit} call above included the \code{influence=TRUE}
 argument, which causes the influence array to be calculated and
 returned.  
 It contains, for each subject, that subject's influence on the
-time by state matrix of results; subject is the third dimension of
-the array.
-Specifically it is the set of infinitesimal jackknife (IJ) values.
-The pointwise variance for $P_k(t)$ = probability of state $k$ at
-time $t$ is $\sum_i J_{ik}^2(t)$ where $J_{ik}(t)$ is the inflence
-of subject $i$ on $P_k(t)$.
-The IJ values allow us to calculate the variance/covariance matrix 
-for derived values such as the mean time in state.
+time by state matrix of results and allows for calcuation of the
+standard error of the restricted mean.  We will return to this
+in a later section.
 <<cr2b>>=
-dim(crsurv$influence)          
 print(crsurv, rmean=48, digits=2)
-print(sfit1,  rmean=48, digits=2)
 @ 
 <<cr2c, echo=FALSE>>=
 temp <- summary(crsurv, rmean=48)
@@ -521,23 +514,23 @@ temp <- summary(crsurv, rmean=48)
 
 The restricted mean time in the CR state is extended by 
 \Sexpr{round(temp$table[4,3], 1)} - \Sexpr{round(temp$table[3,3], 1)} =
-4.9 months.  
+2.2 months.  
 A question which immediately gets asked is whether this difference
 is ``significant'', to which there are two answers. 
-The first and more important is to ask whether 4.9 months is an important gain
+The first and more important is to ask whether 2.2 months is an important gain
 from either a clinical or patient perspective. 
-The overall restricted mean survival for the study is about 30 of the first
-48 months post entry;
-on this backdrop an extra 5 of those 30 months in a complete response is
-likely a substantial advantage from a patient's point of view.
+The overall restricted mean survival for the study is approximately
+30 of the first 48 months post entry (use print(sfit1, rmean=48));
+on this backdrop an extra 2 of those 30 months in a complete response may
+only be a small advantage from a patient's point of view.
 The less important answer is to test whether the apparent gain is sufficiently
 rare from a mathematical point of view, i.e., ``statistical'' significance.
-The standard errors of the two values are each 1.12, and since they are based
+The standard errors of the two values are
+\Sexpr{round(temp$table[3,4],1)} and \Sexpr{round(temp$table[4,4],1)},
+and since they are based
 on disjoint subjects the values are independent, leading to a standard error
-for the difference of $\sqrt{1.12^2 + 1.12^2} = 1.6$.
-The times in the CR state for arms A and B
-differ by over 3 standard errors, which is statistically
-significant.
+for the difference of $\sqrt{1.1^2 + 1.2^2} = 1.6$.
+The difference is suggestive but not statistically significant.
 
 \begin{figure}
   \myfig{txsurv}
@@ -548,11 +541,10 @@ significant.
 
 In summary
   \begin{itemize}
-    \item Arm B adds late complete responses (about 7\%); there are 
-      235/357 in arm B vs. 267/360 in arm B.
-    \item The difference in 4 year survival is also about 7\%.
-    \item There is approximately 5 months longer average duration of CR (of 48).
-    \item Of the 13 late responses (after transplant), 9/13 are in arm B.
+    \item Arm B adds late complete responses (about 4\%); there are 
+      212/310 in arm B vs. 244/338 in arm B.
+    \item The difference in 4 year survival is about 6\%.
+    \item There is approximately 2 months longer average duration of CR (of 48).
   \end{itemize}
 
 CR $\rightarrow$ transplant is the target treatment path for a
@@ -586,7 +578,7 @@ event2 <- factor(event2, 1:6, c(levels(data2$event), "tx after CR"))
 txsurv <- survfit(Surv(tstart, tstop, event2) ~ trt, data2, id=id,
                   subset=(priortx ==0))
 
-layout(matrix(c(1,1,1,2,2,0),3,3), widths=2:1)
+layout(matrix(c(1,1,1,2,2,0),3,2), widths=2:1)
 oldpar <- par(mar=c(5.1, 4.1, 1,.1))
 plot(txsurv[,c(3,5)], col=1:2, lty=c(1,1,2,2), lwd=2, xmax=48,
      xaxt='n', xlab="Months", ylab="Transplanted")
@@ -637,7 +629,7 @@ oldpar <- par(mar=c(5.1, 4.1, 1,.1))
 plot(sfit4, col=rep(1:4,2), lwd=2, xmax=48, xaxt='n',
      xlab="Months", ylab="Current state")
 axis(1, xtime, xtime)
-text(c(40, 40, 40, 40), c(.54, .19, .30, .06),
+text(c(40, 40, 40, 40), c(.58, .19, .30, .06),
      c("Death", "CR", "Transplant", "Recurrence"), col=1:4)
 
 par(mar=c(5.1, .1, 1, .1))
@@ -652,6 +644,66 @@ subjects who die without experiencing any of the other intermediate points,
 \Sexpr{sfit4$transitions[3,2]} who go from transplant to CR, etc. %$
 No one was observed to go from relapse to CR in the data set, this
 serves as a data check since it should not be possible per the data entry plan.
+
+\section{Influence matrix}
+
+For one of the curves above we returned the influence array.
+For each value in the matrix $P$ = probability in state and each subject
+$i$ in the data set, this contains the effect of that subject on each
+value in $P$.  Formally,
+\begin{equation*}
+  I_{ij}(t) = \left . \frac{\partial p_j(t)}{\partial w_i} \right|_w
+\end{equation*}
+where $I_{ij}(t)$ is the influence of subject $i$ on $p_j(t)$, and
+$p_j(t)$ is the estimated probability for state $j$ at time $t$.
+This is known as the infinitesimal jackknife (among other labels).
+<<reprise>>=
+crsurv <- survfit(Surv(tstart, tstop, crstat) ~ trt,
+                  data= data2, id=id, influence=TRUE)
+curveA <- crsurv[1,]
+dim(curveA$pstate)  # P matrix
+dim(curveA$influence)
+table(data1$trt)
+curveA$p0
+@
+
+For treatment arm A there are \Sexpr{table(data1$trt)[1]} subjects and
+\Sexpr{dim(curve$pstate)[1]} time points in the CR curve.
+The influence array has subject as the first dimension, and for each
+subject it has an image of the $P$ matrix containing that subject's
+influence on each value in $P$, i.e.,
+\code{curveA$inflence[1,,]} is the influence of subject 1 on
+\code{curveA$pstate}.
+The influence has one extra row, however; the first row is the influence
+of the subject in $p_0$, the initial state probabilities.
+For this data set everyone starts in the entry state, $p_0$
+will always be (0, 0, 0, 1), and so this first influence row will be zero
+for each subject; this does not hold if not all subjects start in the same
+state.
+
+As an exercise we will calculate the mean time in state out to 48 weeks.
+This is the area under the individual curves from time 0 to 48.  Since
+the curves are step functions this is simple sum of rectangles, treating
+any intervals after 48 months as having 0 width.
+<<meantime>>=
+t48 <- pmin(48, curveA$time)   
+delta <- diff(c(0, t48, 48))  # width of intervals
+rfun <- function(pmat, delta) colSums(pmat * delta)  #area under the curve
+rmean <- rfun(rbind(curveA$p0, curveA$pstate), delta)
+
+# Apply the same calculation to each subject's influence slice
+inf <- apply(curveA$influence, 1, rfun, delta=delta)
+# inf is now a 5 state by 310 subject matrix, containing the IJ estimates
+#  on the AUC or mean time.  The sum of squares is a variance.
+se.rmean <- sqrt(rowSums(inf^2))
+@ 
+
+In general, let $U_i$ be the influence of subject $i$.
+For some function $f(P)$ of the prevalence matrix, the influence of subject
+$i$ will be $\delta_i = f(P + U_i) - f(P)$ and the infinitesimal jackknife
+estimate of variance will be $\sum_i \delta^2$.
+For the simple case of adding up rectangles $f(P +U_i) - f(P) = f(U_i)$ leading
+to particularly simple code, but this will not always be the case.  
 
 \section{State space figures}
 The state space figures in this document were drawn with a simple
@@ -685,7 +737,8 @@ crisk <- function(what, horizontal = TRUE, ...) {
 }
 @ 
 
-This draw a variation is the illness-death model, which has an initial state,  
+This next function draws a variation is the illness-death model,
+which has an initial state,  
 an absorbing state (normally death), and an optional intermediate state.
 <<state3>>=
 state3 <- function(what, horizontal=TRUE, ...) {
