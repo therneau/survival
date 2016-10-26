@@ -230,8 +230,9 @@ for (i in c("futime", "crtime", "txtime", "rltime"))
 
 \begin{figure}
   \myfig{curve1}
-  \caption{Overall survival curves: time to death, to transplant, and to CR.
-    Each shows the estimated fraction of subjects who had ever reached the
+  \caption{Overall survival curves: time to death, to transplant (Tx), 
+    and to complete response (CR).
+    Each shows the estimated fraction of subjects who have ever reached the
     given state.  The vertical line at 2 months is for reference.
     The curves were limited to the first 48 months to more clearly show 
     early events. The right hand panel shows the state-space model for each
@@ -302,7 +303,7 @@ abline(v=2, lty=2, col=3)
 # add the state space diagrams
 par(mar=c(4,.1,1,1))
 crisk(c("Entry","Death", "CR"), alty=3)
-crisk(c("Entry","Death", "BMT"), alty=2)
+crisk(c("Entry","Death", "Tx"), alty=2)
 crisk(c("Entry","Death"))
 par(oldpar)
 @ 
@@ -329,7 +330,7 @@ transplant outcome by more than 10\%.
 \begin{enumerate}
   \item The key problem with the naive estimate is that subjects who die can 
     never have a transplant.  The result of censoring them 
-    is an estimate of ``fraction who would
+    is an estimate of the ``fraction who would
     be transplanted, if death before transplant were abolished''.  This is not
     a real world quantity.
   \item In order to estimate this fictional quantity one needs to assume that
@@ -415,14 +416,14 @@ data2$event <- with(data2, factor(death + 2*response + 3*transplant +
                                 4*relapse, 0:4,
                                 labels=c("censor", "death", "CR", 
                                          "transplant", "relapse")))
-data2[1:10,c(1:4, 9:11)]
+data2[1:10,c(1:4, 11, 9, 10)]
 @ 
 
 The tmerge call starts by adding death/censoring time, 
 which appears in the `trailing' column of
 the tcount table since it defines the right endpoint for each subject,
 and thus by definition occurs at the trailing end of their interval.
-Then transplant is added which has 365 within and 1 trailing: there
+Then transplant is added which has 363 within and 1 trailing: there
 is one subject whose transplant date is also their last follow-up date.
 Response and relapse times all fall within a prior interval.
 Looking above at the first 4 subjects in \code{data2}, 
@@ -509,28 +510,30 @@ in a later section.
 print(crsurv, rmean=48, digits=2)
 @ 
 <<cr2c, echo=FALSE>>=
-temp <- summary(crsurv, rmean=48)
+temp <- summary(crsurv, rmean=48)$table
+delta <- round(temp[4,3] - temp[3,3], 2)
 @ 
 
+@ 
 The restricted mean time in the CR state is extended by 
-\Sexpr{round(temp$table[4,3], 1)} - \Sexpr{round(temp$table[3,3], 1)} =
-2.2 months.  
+\Sexpr{round(temp[4,3], 1)} - \Sexpr{round(temp[3,3], 1)} =
+\Sexpr{delta} months.  
 A question which immediately gets asked is whether this difference
 is ``significant'', to which there are two answers. 
-The first and more important is to ask whether 2.2 months is an important gain
+The first and more important is to ask whether 5 months is an important gain
 from either a clinical or patient perspective. 
 The overall restricted mean survival for the study is approximately
 30 of the first 48 months post entry (use print(sfit1, rmean=48));
-on this backdrop an extra 2 of those 30 months in a complete response may
-only be a small advantage from a patient's point of view.
+on this backdrop an extra 5 months in CR might or might not be an
+meaningful advantage from a patient's point of view.
 The less important answer is to test whether the apparent gain is sufficiently
 rare from a mathematical point of view, i.e., ``statistical'' significance.
 The standard errors of the two values are
-\Sexpr{round(temp$table[3,4],1)} and \Sexpr{round(temp$table[4,4],1)},
+\Sexpr{round(temp[3,4],1)} and \Sexpr{round(temp[4,4],1)},
 and since they are based
 on disjoint subjects the values are independent, leading to a standard error
 for the difference of $\sqrt{1.1^2 + 1.2^2} = 1.6$.
-The difference is suggestive but not statistically significant.
+The difference is over 3 standard errors.
 
 \begin{figure}
   \myfig{txsurv}
@@ -626,10 +629,10 @@ sfit4 <- survfit(Surv(tstart, tstop, event) ~ trt, data2, id=id)
 sfit4$transitions
 layout(matrix(1:2,1,2), widths=2:1)
 oldpar <- par(mar=c(5.1, 4.1, 1,.1))
-plot(sfit4, col=rep(1:4,2), lwd=2, xmax=48, xaxt='n',
+plot(sfit4, col=rep(1:4,each=2), lwd=2, lty=1:2, xmax=48, xaxt='n',
      xlab="Months", ylab="Current state")
 axis(1, xtime, xtime)
-text(c(40, 40, 40, 40), c(.58, .19, .30, .06),
+text(c(40, 40, 40, 40), c(.51, .13, .32, .01),
      c("Death", "CR", "Transplant", "Recurrence"), col=1:4)
 
 par(mar=c(5.1, .1, 1, .1))
@@ -660,26 +663,25 @@ This is known as the infinitesimal jackknife (among other labels).
 <<reprise>>=
 crsurv <- survfit(Surv(tstart, tstop, crstat) ~ trt,
                   data= data2, id=id, influence=TRUE)
-curveA <- crsurv[1,]
-dim(curveA$pstate)  # P matrix
-dim(curveA$influence)
+curveA <- crsurv[1,]  # select treatment A
+dim(curveA$pstate)    # P matrix for treatement A
+dim(curveA$influence) # influence matrix for treatment A
 table(data1$trt)
-curveA$p0
+curveA$p0             # state distribution at time 0
 @
 
 For treatment arm A there are \Sexpr{table(data1$trt)[1]} subjects and
-\Sexpr{dim(curve$pstate)[1]} time points in the CR curve.
+\Sexpr{dim(curveA$pstate)[1]} time points in the $P$ matrix.
 The influence array has subject as the first dimension, and for each
 subject it has an image of the $P$ matrix containing that subject's
 influence on each value in $P$, i.e.,
-\code{curveA$inflence[1,,]} is the influence of subject 1 on
-\code{curveA$pstate}.
-The influence has one extra row, however; the first row is the influence
-of the subject in $p_0$, the initial state probabilities.
+\code{influence[1,,]} is the influence of subject 1 on $P$.
+The influence has one extra row, however; the first row for each
+subjects is the influence
+of that subject on $p_0$, the initial state probabilities.
 For this data set everyone starts in the entry state, $p_0$
-will always be (0, 0, 0, 1), and so this first influence row will be zero
-for each subject; this does not hold if not all subjects start in the same
-state.
+will always be (0, 0, 0, 1), and so this first influence row will be zero;
+this does not hold if not all subjects start in the same state.
 
 As an exercise we will calculate the mean time in state out to 48 weeks.
 This is the area under the individual curves from time 0 to 48.  Since
@@ -690,12 +692,14 @@ t48 <- pmin(48, curveA$time)
 delta <- diff(c(0, t48, 48))  # width of intervals
 rfun <- function(pmat, delta) colSums(pmat * delta)  #area under the curve
 rmean <- rfun(rbind(curveA$p0, curveA$pstate), delta)
+round(rmean, 2)
 
 # Apply the same calculation to each subject's influence slice
 inf <- apply(curveA$influence, 1, rfun, delta=delta)
 # inf is now a 5 state by 310 subject matrix, containing the IJ estimates
 #  on the AUC or mean time.  The sum of squares is a variance.
 se.rmean <- sqrt(rowSums(inf^2))
+round(se.rmean, 2)
 @ 
 
 In general, let $U_i$ be the influence of subject $i$.
@@ -737,8 +741,8 @@ crisk <- function(what, horizontal = TRUE, ...) {
 }
 @ 
 
-This next function draws a variation is the illness-death model,
-which has an initial state,  
+This next function draws a variation of the illness-death model.
+It has an initial state,  
 an absorbing state (normally death), and an optional intermediate state.
 <<state3>>=
 state3 <- function(what, horizontal=TRUE, ...) {
@@ -763,15 +767,15 @@ state5 <- function(what, ...) {
 }
 @ 
 
-For figure \ref{txsurv} I want a third column with a single
-state, but don't want that state centered vertically.
+For figure \ref{txsurv} I want a third row with a single
+state, but don't want that state centered.
 For this I need to create my own (x,y) coordinate list as
 the layout parameter.  Coordinates must be between 0 and 1.
 <<state4>>=
 state4 <- function() {
     sname <- c("Entry", "CR", "Transplant", "Transplant")
-    layout <- cbind(c(1/2, 3/4, 1/4, 3/4),
-                    c(5/6, 1/2, 1/2, 1/6))
+    layout <- cbind(x =c(1/2, 3/4, 1/4, 3/4),
+                    y =c(5/6, 1/2, 1/2, 1/6))
     connect <- matrix(0,4,4, dimnames=list(sname, sname))
     connect[1, 2:3] <- 1
     connect[2,4] <- 1
@@ -779,9 +783,15 @@ state4 <- function() {
 }
 @
 
+The statefig function was written to do ``good enough'' state space figures
+quickly and easily, in the hope that users will find it simple enough that
+diagrams are drawn early and often.
+Other packages such as diagram, DiagrammeR, or dagR are far more flexible
+and can create more nuanced and well decorated results.
+
 \section{Conclusion}
 With a data set such as this we can fit many different multi-state models.
-A primary point of this vignette is to show that these fits are easy
+These fits are easy
 to do, and can give substantial further
 insight into a data set.
 \end{document}

@@ -129,32 +129,36 @@ It turned out that this is more subtle than I thought.
 The solution below uses two helper functions \code{statefigx} and
 \code{statefigy}.
 The first accepts $C$, $r$, the range of $\phi$ values, and a target
-$y$ value.  It returns the angle, within the range, such that the
-endpoint of the arc has horizontal coordinate $x$, or NA if none such
-exists.  The input angles $a_1$ and $a_2$ lie between $-\pi$ and
-$2\pi$. This is done to make sure we have an acute rather than obtuse
+$y$ value.  It returns the angles, within the range, such that the
+endpoint of the arc has horizontal coordinate $x$, or an empty
+vector if none such exists.  For an arc there are sometimes two
+solutions.
+The input angles $a_1$ and $a_2$ are prescaled so that $a_2 > a_1$.
+This is done to make sure we have an acute rather than obtuse
 angle, e.g., if $a_1=3$ and $a_2=-3$ (170 and -170 degrees) we don't want
-an angle of 0 to lie within, so $a_2$ is changed to $2\pi -3$ or 190 degrees.
+an angle of 0 pass the ``lies within the interval'' test,
+so $a_2$ is changed to $2\pi + a_2$ or 190 degrees.
+The angle $a_1$ is between $-\pi$ and $\pi$.
 <<statefig-fun>>=
 statefigx <- function(x, C, r, a1, a2) {
     amax <- max(a1, a2)
     amin <- min(a1, a2)
     temp <-(x - C[1])/r
-    if (abs(temp) >1) return(NA)  # no intersection of the arc and x
+    if (abs(temp) >1) return(NULL)  # no intersection of the arc and x
     phi <- acos(temp)  # this will be from 0 to pi
-    if (phi < amax && phi > amin) return(phi)
-    if (-phi < amax && -phi > amin) return(-phi)
-    return(NA)
+    # Add reflection about the X axis, in both forms
+    phi <- c(phi, -phi, 2*pi - phi) 
+    phi[phi<amax & phi > amin]
 }
 statefigy <-  function(y, C, r, a1, a2) {
     amax <- max(a1, a2)
     amin <- min(a1, a2)
     temp <-(y - C[2])/r
-    if (abs(temp) >1) return(NA)  # no intersection of the arc and y
+    if (abs(temp) >1) return(NULL)  # no intersection of the arc and y
     phi <- asin(temp)  # will be from -pi/2 to pi/2
-    if (phi < amax && phi > amin) return(phi)
-    if ((pi-phi) < amax && (pi-phi) > amin) return(pi-phi)
-    NA
+    phi <- c(phi, sign(phi)*pi -phi)  # reflect about the vertical
+    phi <- c(phi, phi + 2*pi)
+    phi[phi<amax & phi > amin]
 }
 @ 
 

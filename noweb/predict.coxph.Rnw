@@ -301,7 +301,7 @@ if (missing(newdata)) #se.fit must be true
 else {
     pred <- se <- double(nrow(mf2))
     newx <- newx - rep(object$means, each=nrow(newx))
-    newrisk <- c(exp(newx %*% object$coef))
+    newrisk <- c(exp(newx %*% object$coef) + newoffset)
     }
 
 survtype<- ifelse(object$method=='efron', 3,2)
