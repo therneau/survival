@@ -1,9 +1,17 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
-\section{Changes in version 2.39-6}{
+\section{Changes in version 2.40-1}{
   \itemize{
-    \item Small update to avoid the new warnings for multiplication of a
-    vector * (1 by 1 matrix).  (dbfeta residuals, single covariate).
+    \item For multi-state survival with a big data set and the
+    influence=TRUE option, the resulting object could be so long that it
+    overflowed an integer counter in the C code.  Add a check in the R
+    code  and a caution in the help file.
+  }
+}
+\section{Changes in version 2.40-0}{
+  \itemize{
+    \item Code changes to void the new warnings for multiplication of a
+    vector * (1 by 1 matrix). 
     
     \item Add a more thorough test case for multi-state survival:
     not all subjects start in the same state, delayed entry, and

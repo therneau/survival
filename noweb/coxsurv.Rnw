@@ -166,7 +166,7 @@ else {
             (ncol(y)==3 && any(y[,3] != y2[,3])))
             stop("Could not reconstruct the y vector")
     }
-
+}
 if (is.null(object[['x']])) x <- model.matrix.coxph(object, data=mf)
 else x <- object[['x']]
 

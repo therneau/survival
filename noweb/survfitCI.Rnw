@@ -188,7 +188,7 @@ Since $p(t) = p(t-)H(t)$, the $i$th row of U satisfies
          &= U_i(t-) H(t) +  p(t-) \frac{\partial H(t}{\partial w_i} 
            \label{ci}
 \end{align}  
-The first term of \mathref{ci} collapses to ordinary matrix multiplication. 
+The first term of \ref{ci} collapses to ordinary matrix multiplication. 
 The second term does not: each at risk subject has a unique matrix derivative
 $\partial H$; $n$ vectors of length $p$ arrange into a matrix but $n$
 $p$ by $p$ matrices are not so neat.
@@ -199,14 +199,14 @@ However, note that
 \item Each subject who is at risk will be in one (and only one) of the
   states at the event time, their weight only appears in that row of $H$.
   Thus for each at risk subject $\partial H$ has only one non-zero row.
-\end{itemize}
+\end{enumerate}
 Say that the subject enters the given event time in state $j$ and ends it
 in state $k$.
 (For most $k=j$: if there are 100 at risk at time $t$ and 1 changes state,
 the other 99 stay put.)
 Let $n_j(t)= \sum_i Y_{ij}(t)w_i$ be the weighted number of subjects
 in state $j$, these are the contributers to row $j$ of $H$.
-Using equation \mathref{H}, the derivative of row $j$
+Using equation \ref{H}, the derivative of row $j$
 with respect to the subject is $(1_k - H_j)/n_j$
 where $1_k$ is a vector with 1 in position $k$.
 The product of $p(t)$ with this matrix is the vector
@@ -435,8 +435,14 @@ docurve2 <- function(entry, etime, status, istate, wt, states, id,
     uid <- sort(unique(id))
     index <- match(id, uid)
     first <- match(uid, id)  # first row for each subject
-    cstate <- istate[first]  
+    cstate <- istate[first]
 
+    # The influence matrix can be huge, make sure we have enough memory
+    if (influence) {
+        needed <- nstate * (1.0 + length(timeset)) * length(first)
+        if (needed > .Machine$integer.max)
+            stop("length of the influence matrix is > the maximum integer")
+    }
     storage.mode(wt) <- "double" # just in case someone had integer weights
     # Compute p0
     if (all(status==0))  t0 <- max(etime)  #failsafe
@@ -459,6 +465,7 @@ docurve2 <- function(entry, etime, status, istate, wt, states, id,
     storage.mode(cstate) <- "integer"
     storage.mode(status) <- "integer"
     # C code has 0 based subscripts
+    if (influence) se.fit <- TRUE   # se.fit is free in this case
     fit <- .Call(Csurvfitci, c(entry, etime), 
                  order(entry) - 1L,
                  order(etime) - 1L,

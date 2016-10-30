@@ -5,10 +5,10 @@
   Compute a Survival Curve for Censored Data 
 }
 \description{
-Computes an estimate of a survival curve for censored data 
-using either the Kaplan-Meier or the Fleming-Harrington method. 
-For competing risks data it computes the
-cumulative incidence curve. 
+  Computes an estimate of a survival curve for censored data.
+  More multi-state data the Andersen-Johansen estimate is use, for
+  ordinary survival either the Kaplan-Meier or Fleming-Harrington
+  estimate is produced.
 }
 \usage{
 \method{survfit}{formula}(formula, data, weights, subset, na.action,  
@@ -121,6 +121,10 @@ cumulative incidence curve.
 	with respect to the case weights of each subject i:
 	\eqn{\partial p/\partial w_i}{dp/dw[i]},
 	evaluated at the vector of weights \eqn{w=1}.
+	The array will have dimensions (number of subjects, 1+ number of
+	unique times, number of states); be forewarned that this can be huge.
+	If the total number of elements is larger then the maximum
+	integer the underlying C program can not create it.
       }
     }
   }

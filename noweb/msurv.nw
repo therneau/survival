@@ -162,21 +162,22 @@ for (i=0; i<nperson; i++) {
 
 Copy over the initial influence data, which was computed in R.
 <<survfitci-declare>>=
-if (sefit > 0) {
+if (sefit ==1) {
     dptr = i0;
-    if (sefit >1) {
-        for (j=0; j<nstate; j++) {
-            for (i=0; i<nperson; i++) {
-                umat[i][j] = *dptr;
-                *usave++ = *dptr++;   /* save in the output */
-	    }
-	}
-    } else {
-	for (j=0; j<nstate; j++) {
-            for (i=0; i<nperson; i++) umat[i][j] = *dptr++;
-	}
+    for (j=0; j<nstate; j++) {
+        for (i=0; i<nperson; i++) umat[i][j] = *dptr++;
     }
-}
+ }
+ else if (sefit>1) {
+     /* copy influence, and save it */
+     dptr = i0;
+     for (j=0; j<nstate; j++) {
+	 for (i=0; i<nperson; i++) {
+	     umat[i][j] = *dptr;
+	     *usave++ = *dptr++;   /* save in the output */
+	 }
+     }
+} 
 @ 
 
 The primary loop of the program walks along the [[sort2]]
@@ -317,7 +318,7 @@ $n_m$ the sum of weights for all subjects at risk in state $m$.
 Then
 \begin{equation*}
   U_{ij}(t) = \sum_k \left[ U_{ik}(t-)H_{kj}\right] + p_m(t-)(I_{n=j} - H_{mj})/ n_m
-\end{equation}
+\end{equation*}
 \begin{enumerate}
   \item The first term above is simple matrix multiplication.
   \item The second adds a vector with mean zero.
