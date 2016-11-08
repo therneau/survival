@@ -6,6 +6,7 @@ normalizetime <- function(x, replace=TRUE,
                           tolerance = sqrt(.Machine$double.eps)) {
     if (is.Surv(x)) y <- sort(unique(c(x[, -ncol(x)])))
     else y <- sort(unique(x))
+    y <- y[is.finite(y)]  #someone may hand us an INF
 
     dy <- diff(y)
     tied <- ((dy <=tolerance) |( (dy/ mean(abs(y)) <=tolerance)))

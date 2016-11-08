@@ -6,6 +6,7 @@ residuals.coxph <-
     type <- match.arg(type)
     otype <- type
     if (type=='dfbeta' || type=='dfbetas') {
+        otype <- type   # used for error messge
 	type <- 'score'
 	if (missing(weighted))
             weighted <- TRUE  # different default for this case
@@ -23,7 +24,7 @@ residuals.coxph <-
     strat <- object$strata
     method <- object$method
     if (method=='exact' && (type=='score' || type=='schoenfeld'))
-	stop(paste(type, 'residuals are not available for the exact method'))
+	stop(paste(otype, 'residuals are not available for the exact method'))
 
     if (type == 'martingale' || type == 'partial')
         rr <- object$residuals

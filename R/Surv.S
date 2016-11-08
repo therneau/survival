@@ -7,6 +7,8 @@ Surv <- function(time, time2, event,
 		       origin=0) {
 
     if (missing(time)) stop ("Must have a time argument")
+    if (class(time) =="difftime") time <- as.numeric(time)
+    if (class(time2)=="difftime") time2 <-as.numeric(time2)
     if (!is.numeric(time)) stop ("Time variable is not numeric")
     nn <- length(time)
 
