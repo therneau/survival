@@ -84,7 +84,7 @@ is.Surv(x)
      they match \code{time}, \code{time2} and \code{event}.
      \item If the event variable is a factor then type \code{mstate} is
      assumed.  Otherwise type \code{right} if there is no \code{time2}
-     argumement, and type \code{counting} if there is.
+     argument, and type \code{counting} if there is.
    }
    As a consequence the \code{type} argument will normally be omitted.
 

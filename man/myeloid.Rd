@@ -3,7 +3,7 @@
 \docType{data}
 \title{Acute myeloid leukemia}
 \description{
-  This simulated data set is based on a trial in acute myleoid
+  This simulated data set is based on a trial in acute myeloid
   leukemia.
 }
 \format{

@@ -33,8 +33,8 @@ clogit(formula, data, weights, subset, na.action,
 }
 \author{Thomas Lumley}
 \details{
-  It turns out that the logliklihood for a conditional logistic
-  regresson model = loglik from a Cox model with a particular data
+  It turns out that the loglikelihood for a conditional logistic
+  regression model = loglik from a Cox model with a particular data
   structure.  Proving this is a nice homework exercise for a PhD
   statistics class; not too hard, but the fact that it is true is
   surprising.
@@ -54,9 +54,9 @@ clogit(formula, data, weights, subset, na.action,
   however.  If a particular strata had say 10 events out of 20 subjects
   we have to add up a denominator that involves all possible ways of
   choosing 10 out of 20, which is 20!/(10! 10!) = 184756 terms. Gail et
-  al describe a fast recursion method which partly ameleorates 
+  al describe a fast recursion method which partly ameliorates
   this; it was incorporated into version 2.36-11 of the survival
-  package.  The compuation remains infeasable for very large groups of
+  package.  The computation remains infeasible for very large groups of
   ties, say 100 ties out of 500 subjects, and may even lead to integer
   overflow for the subscripts -- in this latter case the routine will
   refuse to undertake the task.  The Efron approximation is normally a
@@ -66,7 +66,7 @@ clogit(formula, data, weights, subset, na.action,
   is applied data with 1 case + k controls per set, in
   which case all of the approximations for ties lead to exactly the
   same result.  
-  The 'appoximate' option maps to the
+  The 'approximate' option maps to the
   Breslow approximation for the Cox model, for historical reasons.
 
   Case weights are not allowed when the exact option is used, as the

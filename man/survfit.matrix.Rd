@@ -28,7 +28,7 @@
   When using predicted survival curves from a Cox model, it is possible
   to get predicted hazards that are greater than 1.  For this reason it is
   safer to use exp(-hazard) rather than (1-hazard) as the multiplier for
-  the probability.  This is also the statndard approach for ordinarly
+  the probability.  This is also the standard approach for ordinarly
   survival curves from a Cox model.  If the \code{method} argument is
   not supplied and the input values are derived from a Cox model, this
   is used as the default.

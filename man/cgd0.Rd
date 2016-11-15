@@ -12,7 +12,7 @@
 \usage{cgd0}
 \format{
   \describe{
-   \item{id}{subject identifiction number}
+   \item{id}{subject identification number}
    \item{center}{enrolling center }
    \item{random}{date of randomization }
    \item{treatment}{placebo or gamma interferon }

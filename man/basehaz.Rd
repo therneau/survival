@@ -26,7 +26,7 @@ basehaz(fit, centered=TRUE)
   predictions at the "mean" are meaningless since they do not correspond
   to any possible subject; correct results require use of the
   \code{newdata} argument of survfit.  Results for all covariates =0 are
-  normally only of use as a building block for further calcuations.
+  normally only of use as a building block for further calculations.
 }
 \value{
   a data frame with variable names of \code{hazard}, \code{time} and

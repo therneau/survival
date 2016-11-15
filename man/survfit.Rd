@@ -28,7 +28,7 @@ survfit(formula, ...)
   stratum in the Cox model fit and one column for each specified
   covariate set.
   Curves from a multi-state model have one row for each stratum and
-  a column for each state, the strata corrspond to predictors on the
+  a column for each state, the strata correspond to predictors on the
   right hand side of the equation.  The default printing and plotting
   order for curves is by column, as with other matrices.
 

@@ -22,7 +22,7 @@ Reconstruct the model matrix for a cox model.
 \details{
   When there is a \code{data} argument this function differs from most
   of the other \code{model.matrix} methods in that the response variable
-  for the original formual is \emph{not} required to be in the data.
+  for the original formula is \emph{not} required to be in the data.
 
   If the data frame contains a \code{terms} attribute then it is
   assumed to be the result of a call to \code{model.frame}, otherwise

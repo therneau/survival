@@ -46,7 +46,7 @@ mgus1
 important part of the immune defense. At any given time there are
 estimated to be about \eqn{10^6} different immunoglobulins in the circulation
 at any one time.  When a patient has a plasma cell malignancy the
-distribuion will become dominated by a single isotype, the product of
+distribution will become dominated by a single isotype, the product of
 the malignant clone, visible as a spike on a serum protein
 electrophoresis. Monoclonal gammapothy of undertermined significance
 (MGUS) is the presence of such a spike, but in a patient with no

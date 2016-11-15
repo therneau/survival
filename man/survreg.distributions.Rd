@@ -48,7 +48,7 @@ are parametrised in the same way as the distributions already present in
 
 When the logarithm of survival time has one of the first three distributions
 we obtain respectively \code{weibull}, \code{lognormal}, and
-\code{loglogistic}. The location-scale parameterizaion of a Weibull
+\code{loglogistic}. The location-scale parameterization of a Weibull
 distribution found in \code{survreg} is not the same as the parameterization
 of \code{\link{rweibull}}.
 
@@ -59,7 +59,7 @@ distributions with fixed \code{scale} of 1 and 0.5 respectively, and
 
 For speed parts of the three most commonly used distributions
 are hardcoded in C; for this reason the elements of \code{survreg.distributions}
-with names of "Extreme value", "Logisitic" and "Gaussian" should not be
+with names of "Extreme value", "Logistic" and "Gaussian" should not be
 modified.  (The order of these in the list is not important, recognition
 is by name.)
 As an alternative to modifying \code{survreg.distributions}

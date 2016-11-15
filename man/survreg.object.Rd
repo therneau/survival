@@ -29,7 +29,7 @@ The following components must be included in a legitimate \code{survreg} object.
   }
   \item{icoef}{
     coefficients of the baseline model, which will contain the intercept
-    and log(scale), or mulitple scale factors for a stratified model.
+    and log(scale), or multiple scale factors for a stratified model.
   }
   \item{var}{
     the variance-covariance matrix for the parameters, including the log(scale)

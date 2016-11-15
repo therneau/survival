@@ -41,7 +41,7 @@ frailty.t(x, sparse = (nclass > 5), theta, df, eps = 1e-05, tdf = 5,
     than this value, then a sparse matrix approximation is used.
     The correct cutoff is still a matter of exploration: if the number of
     levels is very large (thousands) then the non-sparse calculation may not be
-    feasable in terms of both memory and compute time.  
+    feasible in terms of both memory and compute time.
     Likewise, the accuracy of the sparse approximation appears to be related to
     the maximum proportion of subjects in any one class, being best when no
     one class has a large membership.
@@ -76,11 +76,11 @@ frailty.t(x, sparse = (nclass > 5), theta, df, eps = 1e-05, tdf = 5,
     the degrees of freedom for the t-distribution.
   }
   \item{eps}{
-    convergence critera for the iteration on theta.
+    convergence criteria for the iteration on theta.
   }
 }
 \value{
-this function is used in the model statment of either
+this function is used in the model statement of either
 \code{coxph} or \code{survreg}.
 It's results are used internally.
 }

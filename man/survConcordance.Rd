@@ -57,7 +57,7 @@ We do not know whether the first survival time is greater than or less than
 the second.
 Among observations that are comparable, pairs may also be tied on
 survival time (but only if both are uncensored) or on the predictor.
-The final concondance is (agree + tied/2)/(agree + disagree + tied).
+The final concordance is (agree + tied/2)/(agree + disagree + tied).
 
 There is, unfortunately, one aspect of the formula above that is unclear.
 Should the count of ties include observations that are tied on survival time y,
