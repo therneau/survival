@@ -340,7 +340,7 @@ else {
                           ncol=nst, byrow=TRUE)
     }
     kfit$cumhaz <- array(unlist(lapply(curves, function(x) x$cumhaz)),
-                           dim=c(nstate, nstate, length(kfit$time)))
+                           dim=c(nst, nst, length(kfit$time)))
     if (influence) kfit$influence <- lapply(curves, function(x) x$influence)
 }                         
 kfit$transitions <- transitions

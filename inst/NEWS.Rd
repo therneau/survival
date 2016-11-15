@@ -1,5 +1,13 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 2.40-2}{
+  \itemize{
+    \item For a multi-state curve, the cumhaz component accidentally had
+    the final state removed.
+    \item Add a short vignette describing the issue with round off error
+    and tied survival times.
+}}
+
 \section{Changes in version 2.40-1}{
   \itemize{
     \item For multi-state survival with a big data set and the
