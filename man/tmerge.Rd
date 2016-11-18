@@ -42,7 +42,7 @@ tmerge(data1, data2,  id,\dots, tstart, tstop, options)
    \item{newname = tdc(y, x)}{ A new time dependent covariate
      variable will created. 
    The argument \code{y} is assumed to be on the
-   scale of the start and end time, and each instance decribes the
+   scale of the start and end time, and each instance describes the
    occurent of a "condition" at that time.
    The second argument \code{x} is optional. In the  case where
    \code{x} is missing the count variable starts at 0 for each subject

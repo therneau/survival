@@ -78,10 +78,10 @@ Weibull using a standard parameterization in terms of
 \eqn{a} and \eqn{p},
 the survreg location corresponds to \eqn{-\log(a)}{-log(a)} and the scale
 to \eqn{1/p} 
-(Kalbfleish and Prentice, section 2.2.2).
+(Kalbfleisch and Prentice, section 2.2.2).
 }
 \section{References}{
-Kalbfleish, J. D. and Prentice, R. L. (1970). 
+Kalbfleisch, J. D. and Prentice, R. L. (1970).
 \emph{The Statistical Analysis of Failure Time Data}
 Wiley, New York. 
 }

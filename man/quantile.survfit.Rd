@@ -15,7 +15,7 @@
   \item{x}{a result of the survfit function}
   \item{probs}{numeric vector of probabilities with values in [0,1]}
   \item{conf.int}{should lower and upper confidence limits be returned?}
-  \item{tolerance}{tolerance for checking that the suvival curve exactly
+  \item{tolerance}{tolerance for checking that the survival curve exactly
     equals one of the quantiles}
   \item{...}{optional arguments for other methods}
 }
@@ -40,9 +40,9 @@
   If the survival curves have no confidence bands, confidence limits for
   the quantiles are not available.
 
-  When a horizontal seqment of the survival curve exactly matches one of
+  When a horizontal segment of the survival curve exactly matches one of
   the requested quantiles the returned value will be the midpoint of the
-  horizontal seqment; this agrees with the usual definition of a median
+  horizontal segment; this agrees with the usual definition of a median
   for uncensored data.  Since the survival curve is computed as a series
   of products, however, there may be round off error.
   Assume for instance a sample of size 20 with no tied times and no

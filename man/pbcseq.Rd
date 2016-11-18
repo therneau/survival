@@ -9,10 +9,10 @@ An analysis based on the data can be found in Murtagh, et. al.
   
 The primary PBC data set contains only baseline measurements 
 of the laboratory 
-paramters.  This data set contains multiple laboratory results, but
+parameters.  This data set contains multiple laboratory results, but
 only on the 312 randomized patients.  Some baseline data values in this file
 differ from the original PBC file, for instance, the data errors in
-prothrombin time and age which were discovered after the orignal analysis
+prothrombin time and age which were discovered after the original analysis
 (see Fleming and Harrington, figure 4.6.7).
    
 One "feature" of the data deserves special comment.  The last

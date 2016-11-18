@@ -66,7 +66,7 @@ tolerance for detection of singularity in the QR decomposition
 minimum number of observations for an estimate; defaults to 3 times the
 number of covariates.
 This essentially truncates the computations near the tail of the data
-set, when n is small and the calcualtions can become numerically
+set, when n is small and the calculations can become numerically
 unstable.
 }
 \item{dfbeta}{
@@ -124,7 +124,7 @@ The Aalen model assumes that the cumulative hazard H(t) for a subject
 can be expressed as a(t) + X B(t), where a(t) is a time-dependent intercept
 term, X is the vector of covariates for the subject (possibly time-dependent),
 and B(t) is a time-dependent matrix of coefficients.
-The estimates are inheritly non-parametric; a fit of the model will normally
+The estimates are inherently non-parametric; a fit of the model will normally
 be followed by one or more plots of the estimates.
 
 The estimates may become unstable near the tail of a data set, since the

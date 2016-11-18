@@ -186,7 +186,7 @@ In practice the number of ties is usually small, in which case all the
 methods are statistically indistinguishable.
 
 Using the "exact partial likelihood" approach the Cox partial likelihood
-is equivalent to that for matched logisitic regression.  (The
+is equivalent to that for matched logistic regression.  (The
 \code{clogit} function uses the \code{coxph} code to do the fit.)
 It is technically appropriate when the time scale is discrete and has
 only a few unique values, and some packages refer to this as the
@@ -197,7 +197,7 @@ The calculation of the exact partial likelihood is numerically intense.
 Say for instance 15 of 180 subjects at risk had an event on day 7; then
 the code needs to compute sums over all 180-choose-15 > 10^43 different
 possible subsets of size 15.  There is an efficient recursive algorithm
-for this task, but even with this the compuatation can be insufferably
+for this task, but even with this the computation can be insufferably
 long.  With (start, stop) data it is much worse since the recursion
 needs to start anew for each unique start time.
 }

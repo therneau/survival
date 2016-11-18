@@ -10,7 +10,7 @@
   for all ages of 100 or greater.
 }
 \details{ This data is often used as a "standardized" population for
-  epidemiolgy studies.}
+  epidemiology studies.}
 
 \source{
 NP2008_D1:  Projected Population by Single Year of Age, Sex, Race, and Hispanic 

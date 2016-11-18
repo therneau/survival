@@ -57,7 +57,7 @@ hypothetical person from the parent population, matched on the
 characteristics of the parent population.
 The number at risk printed here is the number of those hypothetical
 subject who are still part of the calculation.
-In particuarl, for the Ederer method all hypotheticals are retained for
+In particular, for the Ederer method all hypotheticals are retained for
 all time, so \code{n.risk} will be a constant.
 }
 \seealso{

@@ -30,7 +30,7 @@
     vector of mark parameters, which will be used to label the curves. 
     The \code{lines} help file contains examples of the possible marks. 
     The vector is reused cyclically if it is shorter than the number of
-    curves.  If it is present this imples \code{mark.time = TRUE}.
+    curves.  If it is present this implies \code{mark.time = TRUE}.
   }
   \item{col}{
     a vector of integers specifying colors for each curve. 

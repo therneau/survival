@@ -5,7 +5,7 @@
 \description{
   These are the the functions called by coxph that do the actual
   computation.
-  In certain situations, e.g. a simulation, it may be advantagous to
+  In certain situations, e.g. a simulation, it may be advantageous to
   call these directly rather than the usual \code{coxph} call using
   a model formula.
 }

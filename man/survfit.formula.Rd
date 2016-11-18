@@ -192,7 +192,7 @@ Fleming, T. H. and Harrington, D. P. (1984).  Nonparametric estimation of the
 survival distribution in censored data.  \emph{Comm. in Statistics}  
 \bold{13}, 2469-86. 
 
-Kablfleisch, J. D. and Prentice, R. L. (1980).  
+Kalbfleisch, J. D. and Prentice, R. L. (1980).
 \emph{The Statistical Analysis of Failure Time Data.}
 New York:Wiley. 
 

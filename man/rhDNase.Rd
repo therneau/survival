@@ -9,7 +9,7 @@
 \format{
   A data frame with 767 observations on the following 8 variables.
   \describe{
-    \item{\code{id}}{subeject id}
+    \item{\code{id}}{subject id}
     \item{\code{inst}}{enrolling institution}
     \item{\code{trt}}{treatment arm: 0=placebo, 1= rhDNase}
     \item{\code{entry.dt}}{date of entry into the study}

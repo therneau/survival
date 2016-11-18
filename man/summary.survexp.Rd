@@ -25,7 +25,7 @@
   \item{\dots}{For future methods}
 }
 \details{
-  A primary use of this function is to retreive survival at fixed time
+  A primary use of this function is to retrieve survival at fixed time
   points, which will be properly interpolated by the function.
 }
 \value{
