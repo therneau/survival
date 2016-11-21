@@ -53,7 +53,7 @@ survfitTurnbull(x, y, casewt,
                        conf.lower=c('usual', 'peto', 'modified'),
                        start.time)
 }
-\details{The arguments to these routines are not guarranteed to stay the
+\details{The arguments to these routines are not guaranteed to stay the
 same from release to release -- call them at your own risk!}
 \keyword{survival}
 \keyword{internal}

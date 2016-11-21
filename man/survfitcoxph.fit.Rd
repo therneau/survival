@@ -35,7 +35,7 @@ vartype, varmat, id, y2, strata2, unlist=TRUE)
   }
   \item{se.fit}{if \code{TRUE} the standard errors of the curve(s) are returned
   }
-  \item{survtype}{1=Kalbfleish-Prentice, 2=Nelson-Aalen, 3=Efron.  It is
+  \item{survtype}{1=Kalbfleisch-Prentice, 2=Nelson-Aalen, 3=Efron.  It is
     usual to match this to the approximation for ties used in the
     \code{coxph} model: KP for `exact', N-A for `breslow' and Efron for `efron'.
   }

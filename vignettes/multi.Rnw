@@ -123,7 +123,7 @@ The unnamed state in the above fit, for instance, can be displayed with
 
 The curves are computed using the Aalen-Johansen estimator.  
 The Kaplan-Meier estimate and the 
-cumulative incidence esitmate (for competing risks) are each a special case of
+cumulative incidence estimate (for competing risks) are each a special case of
 the AJ estimate. 
 It is more general that that, however; a given subject can have multiple 
 transitions from state to state, including transitions to a state that was 
@@ -242,11 +242,11 @@ for (i in c("futime", "crtime", "txtime", "rltime"))
 
 This data set is the basis for our first set of curves, which are shown in
 figure \ref{curve1}.
-The plot overlays three separate \code{survfit} calls: standard surivival
+The plot overlays three separate \code{survfit} calls: standard survival
 until death, complete response with death as a competing risk, and
 transplant with death as a competing risk.
 For each fit we have shown one selected state: the fraction
-who have died, fraction ever in CR, and fraction ever to recieve transplant,
+who have died, fraction ever in CR, and fraction ever to receive transplant,
 respectively.
 Most of the CR events happen before 2 months (the green
 vertical line) and nearly all the additional CRs
@@ -459,7 +459,7 @@ experience a CR at some point in the study.
 \begin{figure}
   \myfig{cr2}
   \caption{Models for `ever in CR' and `currently in CR';
-    the only difference is an addional transition.
+    the only difference is an additional transition.
     Both models ignore transplant.}
   \label{cr2}
 \end{figure}
@@ -503,7 +503,7 @@ The \code{survfit} call above included the \code{influence=TRUE}
 argument, which causes the influence array to be calculated and
 returned.  
 It contains, for each subject, that subject's influence on the
-time by state matrix of results and allows for calcuation of the
+time by state matrix of results and allows for calculation of the
 standard error of the restricted mean.  We will return to this
 in a later section.
 <<cr2b>>=
@@ -538,7 +538,7 @@ The difference is over 3 standard errors.
 \begin{figure}
   \myfig{txsurv}
   \caption{Transplant status of the subjects, broken down by whether it
-    occured before or after CR.}
+    occurred before or after CR.}
   \label{txsurv}
 \end{figure}
 
@@ -561,7 +561,7 @@ patient/physician pair that CR is not going to occur, they proceed forward with
 other treatment options.  
 The extra CR events on arm B, which occur between 2 and 8 months, lead to 
 a consequent increase in transplant as well, but at a later time of 12--24 
-months: for a subject in CR we can perhaps afford to defer the tranplant date.
+months: for a subject in CR we can perhaps afford to defer the transplant date.
 
 Computation is again based on a manipulation of the event variable: in this
 case dividing the transplant state into two sub-states based on the presence

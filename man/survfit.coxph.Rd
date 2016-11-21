@@ -104,7 +104,7 @@ details. Methods defined for survfit objects are
 }
 \details{
     Serious thought has been given to removing the default value for
-    \code{newdata}, which is to use a single "psuedo" subject with
+    \code{newdata}, which is to use a single "pseudo" subject with
     covariate values equal to the means of the data set, since
     the resulting curve(s) almost never make sense.
     It remains due to an unwarranted attachment to the option shown by
@@ -155,7 +155,7 @@ the Aalen estimate to the exponential of Nelson's
 cumulative hazard estimate, and the Efron estimate to the
 Fleming-Harrington estimate of survival.
 The variances of the curves from a Cox model are larger than these
-non-parametrec estimates, however, due
+non-parametric estimates, however, due
 to the variance of the coefficients.
 
 See \code{\link{survfit}} for more details about the counts (number of

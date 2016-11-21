@@ -65,7 +65,7 @@ frailty.t(x, sparse = (nclass > 5), theta, df, eps = 1e-05, tdf = 5,
     The \code{df} selects the variance such that the
     degrees of freedom for the random effect matches a user specified value.
     The \code{aic} method seeks to 
-    maximize Akiake's information criteria 
+    maximize Akaike's information criteria 
     2*(partial likelihood - df).
     The \code{em} and \code{reml}
     methods are specific to Cox models with gamma and gaussian random effects,

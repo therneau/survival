@@ -28,7 +28,7 @@ mgus1
     alb:\tab albumin level at MGUS diagnosis \cr
     creat:\tab creatinine at MGUS diagnosis \cr
     hgb:\tab hemoglobin at MGUS diagnosis \cr
-    mspike:\tab size of the monoclonal protien spike at diagnosis \cr
+    mspike:\tab size of the monoclonal protein spike at diagnosis \cr
     }
 
    mgus1: The same data set in start,stop format. Contains the id, age, sex, and
