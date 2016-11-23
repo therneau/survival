@@ -8,7 +8,7 @@ PARTS = main.Rnw \
 	predict.coxph.Rnw \
 	concordance.Rnw \
 	survexp.Rnw \
-	pyears.Rnw \
+	pyears.Rnw pyears2.Rnw \
 	residuals.survreg.Rnw \
 	survfit.Rnw \
 	survfitCI.Rnw \
@@ -28,6 +28,7 @@ SFUN =  agreg.fit.R \
 	plot.survfit.R \
 	predict.coxph.R \
 	pyears.R \
+	print.pyears.R \
 	residuals.survreg.R\
 	statefig.R \
 	survConcordance.R \

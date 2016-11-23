@@ -17,8 +17,7 @@ The arguments for pyears are
   \item[scale] Scale the resulting output times, e.g., 365.25 to turn days into
     years.
   \item[expect] Should the output table include the expected number of 
-    events, or the
-    expected number of person-years of observation?
+    events, or the expected number of person-years of observation?
   \item[model, x, y] as usual
   \item[data.frame] if true the result is returned as a data frame, if false
     as a set of tables.

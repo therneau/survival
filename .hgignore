@@ -21,6 +21,7 @@ R/model.matrix.coxph.R
 R/plot.survfit.R
 R/predict.coxph.R
 R/pyears.R
+R/print.pyears.R
 R/residuals.survreg.R
 R/statefig.R
 R/survConcordance.*
