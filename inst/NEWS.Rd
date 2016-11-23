@@ -2,6 +2,8 @@
 \title{NEWS file for the survival package}
 \section{Changes in version 2.40-2}{
   \itemize{
+    \item Fix multiple spelling errors in the Rd files; contributed by
+    Luca Braglia.
     \item For a multi-state curve, the cumhaz component accidentally had
     the final state removed.
     \item Add a short vignette describing the issue with round off error
