@@ -1,0 +1,282 @@
+\subsection{Print and summary}
+The print function for pyear gives a very abbreviates
+printout: just a few lines.
+The summary function formats the output using the rules for pandoc
+tables.  This makes it play nicely in the Rstudio environment.
+
+<<print.pyears>>=
+print.pyears <- function(x, ...) {
+    if (!is.null(cl<- x$call)) {
+        cat("Call:\n")
+        dput(cl)
+        cat("\n")
+        }
+
+    if (is.null(x$data)) {
+        if (!is.null(x$event))
+            cat("Total number of events:", format(sum(x$event)), "\n")
+        cat (   "Total number of person-years tabulated:", 
+             format(sum(x$pyears)),
+             "\nTotal number of person-years off table:",
+             format(x$offtable), "\n")
+        }
+    else {
+        if (!is.null(x$event))
+            cat("Total number of events:", format(sum(x$data$event)), "\n")
+        cat (   "Total number of person-years tabulated:", 
+             format(sum(x$data$pyears)),
+             "\nTotal number of person-years off table:",
+             format(x$offtable), "")
+        }
+    if (!is.null(x$summary)) {
+        cat("Matches to the chosen rate table:\n  ", 
+            x$summary)
+        }
+    cat("Observations in the data set:", x$observations, "\n")
+    if (!is.null(x$na.action))
+      cat("  (", naprint(x$na.action), ")\n", sep='')
+    cat("\n")
+    invisible(x)
+}
+@ 
+
+Pandoc has 4 types of tables: with and without vertical bars * single or 
+multiple rows per cell. 
+If the pyears object has only a single dimension then our output will
+be a simple table with a row or column for each of the output
+types (see the vertical argument).
+The result will be a simple table or a ``pipe'' table depending on the
+vline argument.
+For two or more dimensions the output follows the usual R strategy for printing
+an array, but with each ``cell'' containing all of the summaries for that
+combination of predictors, thus giving  
+either a ``multiline'' or ``grid'' table.
+The default values of no vertical lines makes the tables
+appropriate for non-pandoc output such as a terminal session.
+
+<<print.pyears>>=
+summary.pyears <- function(object, header=TRUE, call=header,
+                           n= TRUE, event=TRUE, pyears=TRUE,
+                           expected = TRUE, rate = FALSE, rr = expected,
+                           ci.r = FALSE, ci.rr = FALSE, 
+                           legend=TRUE, vline = FALSE, vertical = TRUE,
+                           caption="", conf.level=0.95, 
+                           digits = .Options$digits, scale= 1, ...) {
+    # Usual checks
+    if (!inherits(object, "pyears")) 
+        stop("input must be a pyears object")
+    temp <- c(is.logical(header), is.logical(call), is.logical(n),
+              is.logical(event) , is.logical(pyears), is.logical(expected),
+              is.logical(rate), is.logical(ci.r), is.logical(rr),
+              is.logical(ci.rr), is.logical(vline), is.logical(vertical),
+              is.logical(legend))
+    tname <- c("header", "call", "n", "event", "pyears", "expected",
+                   "rate", "ci.r", "rr", "ci.rr", "vline", "vertical", "legend")
+    if (any(!temp) || length(temp) != 13 || any(is.na(temp))) {
+        stop("the ", paste(tname[!temp], collapse=", "), 
+             "argument(s) must be single logical values")
+    }
+    if (!is.numeric(conf.level) || conf.level <=0 || conf.level >=1 |
+        length(conf.level) > 1 || is.na(conf.level) > 1)
+        stop("conf.level must be a single numeric between 0 and 1")
+    if (is.na(scale) || !is.numeric(scale) || length(scale) !=1 || scale <=0)
+        stop("scale must be a value > 0")
+    
+    if (is.null(object$expected)) {
+        expected <- FALSE
+        rr <- FALSE
+        ci.rr <- FALSE
+    }
+    if (is.null(object$event)) {
+        event <- FALSE
+        rate <- FALSE
+        ci.r <- FALSE
+    }
+        
+    # print out the front matter
+    if (call && !is.null(object$call)) {
+        cat("Call: ") 
+        dput(object$call) 
+        cat("\n")
+    }
+    if (header) {
+        cat("number of observations =", object$observations)
+        if (length(object$omit))
+            cat("  (", naprint(object$omit), ")\n", sep="")
+        else cat("\n")
+        if (object$offtable > 0)
+            cat(" Total time lost (off table)", format(object$offtable), "\n")
+        cat("\n")
+    }
+    
+    if (!is.null(object$data)) NextMethod(object$data)
+
+    dd <- dim(object$n)
+    <<pyears-list>>
+    if (length(dd) ==1) {
+        <<pyears-table1>>  
+    } else {
+        <<pyears-table2>>
+    }
+}
+
+<<pyears-charfun>>
+@ 
+
+<<pyears-list>>=
+# Put the elements to be printed onto a list
+pname <- (tname[3:6])[c(n, event, pyears, expected)]
+plist <- object[pname]
+if (rate) {
+    pname <- c(pname, "rate")
+    plist$r <- object$event/(scale* object$pyears)
+}
+if (ci.r) {
+    pname <- c(pname, "ci.r")
+    plist$ci.r <- cipoisson(object$event, object$pyears, p=conf.level)/scale
+}
+if (rr) {
+    pname <- c(pname, "rr")
+    plist$rr <- object$event/object$expected
+}
+if (ci.rr) {
+    pname <- c(pname, "ci.rr")
+    plist$ci.rr <-  cipoisson(object$event, object$expected, p=conf.level)
+}
+
+rname <- c(n = "N", event="Events",
+           pyears= "Time", expected= "Expected events",
+           rate = "Event rate", ci.r = "CI (rate)",
+           rr= "Obs/Exp",   ci.rr= "CI (O/E)")
+rname <- rname[pname]           
+@ 
+
+If there is only one dimension to the table we can forgo the top legend
+and use the object names as one of the margins.
+If \code{vertical=TRUE} the output types are vertical, otherwise they
+are horizontal.  Format each element of the output separately.
+
+
+<<pyears-table1>>=
+vname <- attr(terms(object), "term.labels")   # should be length one
+cname <- names(object$n)  #category names
+
+if (vertical) {
+    # The person-years objects list across the top, categories up and down
+    # This makes columns line up in a standard "R" way
+    # The first column label is the variable name, content is the categories
+    plist <- lapply(plist, pformat, digits=digits) # make it character
+    pcol  <- sapply(plist, function(x) nchar(x[1])) #width of each one
+    colwidth <- pmax(pcol, nchar(rname)) +2
+    for (i in 1:length(plist)) 
+        plist[[i]] <- strpad(plist[[i]], colwidth[i])
+
+    colwidth <- c(max(nchar(vname), nchar(cname)) +2, colwidth)
+    leftcol <- list(strpad(cname, colwidth[1]))
+    header  <- strpad(c(vname, rname), colwidth)
+}
+else {
+    # in this case each column will have different types of objects in it
+    #  alignment is the nuisance
+    newmat <- pybox(plist, length(object$n), digits=digits)
+    colwidth <- pmax(nchar(cname), apply(nchar(newmat), 1, max)) +2
+    # turn the list sideways
+    plist <- split(newmat, row(newmat))
+    for (i in 1:length(plist))
+        plist[[i]] <- strpad(plist[[i]], colwidth[i])
+
+    colwidth <- c(max(nchar(vname), nchar(rname)) +2, colwidth)
+    leftcol <- list(strpad(rname, colwidth[1]))
+    header  <- strpad(c(vname, cname), colwidth)
+ }
+
+# Now print it
+if (vline) { # use a pipe table
+    cat(paste(header, collapse = "|"), "\n")
+    cat(paste(strpad("-", colwidth, "-"), collapse="|"), "\n")
+
+    temp <- do.call("paste", c(leftcol, plist, list(sep ="|")))
+    cat(temp, sep= '\n')
+}                      
+else {
+    cat(paste(header, collapse = " "), "\n")
+    cat(paste(strpad("-", colwidth, "-"), collapse=" "), "\n")
+    temp <- do.call("paste", c(leftcol, plist, list(sep =" ")))
+    cat(temp, sep='\n')
+}
+@
+ 
+When there are more than one category in the pyears object then
+we use a special print form.  Each 'cell' of the printed table has
+all of the values in it.
+
+<<pyears-table2>>=
+@ 
+
+
+Here are some character manipulation functions.  The stringi package has
+more elegant versions of these, but we don't need the speed. 
+No one is going to print out thousands of lines.
+
+<<pyears-charfun>>=
+strpad <- function(x, width, pad=' ') {
+    # x = the string(s) to be padded out
+    # width = width of desired string. 
+    nc <- nchar(x)
+    added <- width - nc
+
+    left  <- pmax(0, floor(added/2))       # can't add negative space
+    right <- pmax(0, width - (nc + left))  # right will be >= left
+
+    if (all(right <=0)) {
+        if (length(x) >= length(width)) x  # nothing needs to be done
+        else rep(x, length=length(width))
+    }
+    else {
+        # Each pad could be a different length.
+        # Make a long string from which we can take a portion
+        longpad <- paste(rep(pad, max(right)), collapse='') 
+        paste0(substring(longpad, 1, left), x, substring(longpad,1, right))
+    }
+}
+
+pformat <- function(x, digits) {
+    # This is only called for single index tables, in vertical mode
+    # Any matrix will be a confidence interval
+    if (is.matrix(x)) 
+        paste(format(x[,1], digits=digits), "-", format(x[,2], digits=digits))
+    else format(x, digits=digits)
+}
+@ 
+
+Create formatted boxes.  We want all the decimal points to line up,
+so first call format on all the singletons (n, pyears, etc.)
+This will leave a matrix with one column for each group.
+If there are confidence intervals, format their values and then paste
+together the left-right ends.
+Last, reformat it as an array whose last dimension is the components.
+
+<<pyears-charfun>>=
+pybox <- function(plist, dim, digits) {
+    ci <- (substring(names(plist), 1,3) == "ci.")  # the CI components
+    nc <- prod(dim)
+    final <- matrix("", nrow=nc, ncol=length(ci))
+    
+    if (any(!ci)) { # this would be rare, to ask for only confidence intervals
+        if (any(sapply(plist[!ci], length) != nc))
+            stop("programming length error, notify package author")
+        final[,!ci] <- format(unlist(plist[!ci]), digits=digits)
+    }
+    
+    if (any(ci)) {
+        if (any(sapply(plist[ci], length) != nc*2))
+            stop("programming length error, notify package author")
+            
+        temp <- array(format(unlist(plist[ci]), digits=digits),
+                      dim=c(nc, 2, sum(ci)))
+        final[,ci] <- paste(temp[,1,], temp[,2,], sep='-')
+    }
+    array(final, dim=c(dim, length(ci)))
+}
+    
+@ 
