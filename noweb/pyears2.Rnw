@@ -149,6 +149,7 @@ rname <- c(n = "N", event="Events",
            rate = "Event rate", ci.r = "CI (rate)",
            rr= "Obs/Exp",   ci.rr= "CI (O/E)")
 rname <- rname[pname]           
+vname <- attr(terms(object), "term.labels")  
 @ 
 
 If there is only one dimension to the table we can forgo the top legend
@@ -158,7 +159,6 @@ are horizontal.  Format each element of the output separately.
 
 
 <<pyears-table1>>=
-vname <- attr(terms(object), "term.labels")   # should be length one
 cname <- names(object$n)  #category names
 
 if (vertical) {
@@ -207,15 +207,35 @@ else {
 @
  
 When there are more than one category in the pyears object then
-we use a special print form.  Each 'cell' of the printed table has
+we use a special layout.  Each 'cell' of the printed table has
 all of the values in it.
 
 <<pyears-table2>>=
+tname <- vname[1:2]  #names for the row and col
+rowname  <- dimnames(object$n)[[1]]
+colname  <- dimnames(object$n)[[2]]
+if (length(dd) > 2) 
+    newmat <- pybox(plist, c(dd[1],dd[2], prod(dd[-(1:2)])), digits=digits)
+else  newmat <- pybox(plist, dd, digits=digits)
+
+if (length(dd) > 2) {
+    newmat <- pybox(plist, c(dd[1],dd[2], prod(dd[-(1:2)])), digits=digits)
+    outer.label <- do.call("expand.grid", dimnames(object$n)[-(1:2)])
+    temp <-cname[-(1:2)]
+    for (i in 1:nrow(outer.label)) {
+        paste(":", paste(temp, outer.label[i,], sep="=")) # A table caption
+        pyshow(newmat[,,i,], tname, rowname, colname, vline)
+    }
+}
+else {
+    newmat <- pybox(plist, dd, digits=digits)
+    pyshow(newmat, tname, rowname, colname, vline)
+}
 @ 
 
 
-Here are some character manipulation functions.  The stringi package has
-more elegant versions of these, but we don't need the speed. 
+Here are some character manipulation functions.  The stringi package has 
+more elegant versions of the pad function, but we don't need the speed. 
 No one is going to print out thousands of lines.
 
 <<pyears-charfun>>=
@@ -257,9 +277,9 @@ together the left-right ends.
 Last, reformat it as an array whose last dimension is the components.
 
 <<pyears-charfun>>=
-pybox <- function(plist, dim, digits) {
+pybox <- function(plist, dd, digits) {
     ci <- (substring(names(plist), 1,3) == "ci.")  # the CI components
-    nc <- prod(dim)
+    nc <- prod(dd)
     final <- matrix("", nrow=nc, ncol=length(ci))
     
     if (any(!ci)) { # this would be rare, to ask for only confidence intervals
@@ -276,7 +296,55 @@ pybox <- function(plist, dim, digits) {
                       dim=c(nc, 2, sum(ci)))
         final[,ci] <- paste(temp[,1,], temp[,2,], sep='-')
     }
-    array(final, dim=c(dim, length(ci)))
+    array(final, dim=c(dd, length(ci)))
 }
-    
+@
+
+This function prints out a box table.  Each cell contains the full set of
+statistics that were requested.  Most of the work is the creation of
+the appropriate spacing and special characters to create a valid
+pandoc table.
+<<pyears-charfun>>=
+pyshow <- function(dmat, labels, rowname, colname, vline) {
+    # Every column is the same width, except the first
+    colwidth <- c(max(nchar(rowname), nchar(labels[1])),
+                  rep(max(nchar(dmat[1,1,])), length(colname)))
+    ncol <- length(colwidth)
+
+    dd <- dim(dmat)  # vector of length 3, third dim is the statistics
+    rline <- ceiling(dd[3]/2)  #which line to put the row label on.
+    if (vline) { # use a grid table
+        cat("+", paste(strpad('-', colwidth, pad='-'), collapse='+'), "+\n")
+        temp <- rep(' ', ncol); temp[2] <- labels[2]
+        cat("|", paste(strpad(temp, colwidth), collapse="|"), "|\n")
+        cat("|", paste(strpad(c(labels[1], colname), colwidth), collapse="|"),
+            "|\n")
+        cat("+", paste(strpad('=', colwidth, pad='-'), collapse="+"), "+\n")
+        for (i in 1:dd[1]) {
+            for (j in 1:dd[3]) { #one printout line per stat
+                if (j==rline) temp <- c(rowname[i], dmat[i,,j])
+                else temp <- c("", dmat[i,,j])
+                cat("|", paste(strpad(temp, colwidth), collapse='|'), "|\n")
+            }
+            cat("+", paste(strpad('-', colwidth, '-'), collapse='+'), "+\n")
+        }
+    }
+    else { # use a multiline table
+        cat(paste(strpad('-', colwidth, '-'), collapse='-'), "\n")
+        temp <- rep(' ', ncol); temp[2] <- labels[2]
+        cat(paste(strpad(temp, colwidth), collapse=" "), "\n")
+        cat(paste(strpad(c(labels[1], colname), colwidth), collapse=" "),
+            "\n")
+        cat(paste(strpad('-', colwidth, pad='-'), collapse=" "), "\n")
+        for (i in 1:dd[1]) {
+            for (j in 1:dd[3]) { #one printout line per stat
+                if (j==rline) temp <- c(rowname[i], dmat[i,,j])
+                else temp <- c("", dmat[i,,j])
+                cat(paste(strpad(temp, colwidth), collapse=' '), "\n")
+            }
+            if (i< dd[1]) cat(" \n") #blank line
+        }
+        cat(paste(strpad('-', colwidth, '-'), collapse='-'), "\n")
+    }
+}
 @ 
