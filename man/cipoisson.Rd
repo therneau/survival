@@ -1,8 +1,9 @@
 \name{cipoisson}
 \alias{cipoisson}
 \title{Confidence limits for the Poisson}
+\description{Confidence interval calculation for Poisson rates.}
 \usage{
-cipoisson(k, time = 1, p = 0.95, method = c("likelihood", "anscombe"))
+cipoisson(k, time = 1, p = 0.95, method = c("exact", "anscombe"))
 }
 \arguments{
 \item{k}{Number of successes}
@@ -25,7 +26,13 @@ cipoisson(k, time = 1, p = 0.95, method = c("likelihood", "anscombe"))
 The likelihood method is based on equation 10.10 of Feller, which relates
 poisson probabilities to tail area of the gamma distribution.
 The Anscombe approximation is based on the fact that sqrt(k + 3/8) is
-has a nearly constant variance of 1/4, along with a continuity correction.
+has a nearly constant variance of 1/4, along with a continuity
+correction.
+
+There are many other proposed intervals: Patil and Kulkarni list and
+evaluate 19 different suggestions from the literature!.  The exact
+intervals can be overly broad for very small values of \code{k}, many of
+the other approaches try to shrink the lengths, with varying success.
 }
 \examples{
 cipoisson(4) # 95\\\% confidence limit 
@@ -38,11 +45,15 @@ ppois(4, 10.24153)     #chance of seeing 4 or fewer events with large rate
 
 }
 \references{
+F.J. Anscombe (1949). Transformations of Poisson, binomial and
+negative-binomial data. Biometrika, 35:246-254.
+
 W.F. Feller (1950). An Introduction to Probability Theory and its
 Applications, Volume 1, Chapter 6, Wiley.
 
-F.J. Anscombe (1949). Transformations of Poisson, binomial and
-negative-binomial data. Biometrika, vol 35, p246-254.
+V. V. Patil and H.F. Kulkarni (2012).  Comparison of confidence
+intervals for the poisson mean: some new aspects.
+Revstat 10:211-227.
 }
 \seealso{
 \code{\link[stats]{ppois}}, \code{\link[stats]{qpois}}

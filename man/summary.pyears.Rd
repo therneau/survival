@@ -6,14 +6,13 @@
 \usage{
 \method{summary}{pyears}(object, header = TRUE, call = header, n = TRUE,
 event = TRUE, pyears = TRUE, expected = TRUE, rate = FALSE, rr =expected,
-ci.r = FALSE, ci.rr = FALSE, legend = TRUE, vline = FALSE,
-vertical= TRUE, naprint="", conf.level = 0.95, digits = .Options$digits,
+ci.r = FALSE, ci.rr = FALSE, totals=FALSE, legend = TRUE, vline = FALSE,
+vertical= TRUE, nastring=".", conf.level = 0.95, digits = .Options$digits,
 scale = 1, ...)
 }
 
 \arguments{
-  \item{x}{a pyears object}
-  \item{summary}{a pyears object}
+  \item{object}{a pyears object}
   \item{header}{print out a header giving the total number of
     observations, events, person-years, and total time (if any)
     omitted from the table}
@@ -22,7 +21,7 @@ scale = 1, ...)
     elements be printed in the table?}
   \item{rate, ci.r}{logical arguments: should the incidence rate and/or
     its confidence interval be given in the table?}
-  \item{rr, ci.r}{logical arguments: should the hazard ratio and/or
+  \item{rr, ci.rr}{logical arguments: should the hazard ratio and/or
     its confidence interval be given in the table?}
   \item{totals}{should row and column totals be added?}
   \item{legend}{should a legend be included in the printout?}
@@ -30,7 +29,7 @@ scale = 1, ...)
   \item{vertical}{when there is only a single predictor, should the
     table be printed with the predictor on the left (vertical=TRUE) or
     across the top (vertical=FALSE)?}
-  \item{naprint}{what to use for missing values in the table.  Some of
+  \item{nastring}{what to use for missing values in the table.  Some of
   these are structural, e.g., risk ratios for a cell with no follow-up time.}
   \item{conf.level}{confidence level for any confidence intervals}
   \item{digits}{number of digits for the printout}
@@ -38,7 +37,7 @@ scale = 1, ...)
   \item{scale}{a scaling factor for printed rates}
   \item{\dots}{optional arguments which will be passed to the
     \code{format} function}
-  }
+  
 }
 
 \details{
@@ -66,6 +65,6 @@ scale = 1, ...)
 }
 \value{a copy of the object}
 \author{Terry Therneau and Elizabeth Atkinson}
-\seealso{\code{\link{cipoisson}}, \code{\link{\pyears}}, \code{\link{format}}}
+\seealso{\code{\link{cipoisson}}, \code{\link{pyears}}, \code{\link{format}}}
 \keyword{ survival }
 

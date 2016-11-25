@@ -64,7 +64,7 @@ The first few lines are standard.  Keep a copy of the call, then manufacture
 a call to [[model.frame]] that contains only the arguments relevant to that
 function.
 <<survexp-setup>>=
-call <- match.call()
+Call <- match.call()
 m <- match.call(expand.dots=FALSE)
     
 # keep the first element (the call), and the following selected arguments
@@ -397,11 +397,11 @@ else {
 newtime <- newtime/scale
 if (is.matrix(surv)) {
     dimnames(surv) <- list(NULL, levels(X))
-    out <- list(call=call, surv= drop(surv), n.risk=drop(n.risk),
+    out <- list(call=Call, surv= drop(surv), n.risk=drop(n.risk),
 		    time=newtime)
     }
 else {
-     out <- list(call=call, surv=c(surv), n.risk=c(n.risk),
+     out <- list(call=Call, surv=c(surv), n.risk=c(n.risk),
 		   time=newtime)
      }
 @ 

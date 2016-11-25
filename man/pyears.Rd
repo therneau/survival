@@ -104,6 +104,7 @@ if
 there is a mismatch of units between two variables, nearly all the person 
 years may be off table. 
 }
+\item{tcut}{whether the call included any time-dependent cutpoints.}
 \item{summary}{
 a summary of the rate-table matching. This is also useful as an error 
 check. 

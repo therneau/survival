@@ -7,7 +7,7 @@ Typically it would only be used in a call to \code{coxph}.
 }
 \usage{
 coxph.control(eps = 1e-09, toler.chol = .Machine$double.eps^0.75,
-iter.max = 20, toler.inf = sqrt(eps), outer.max = 10)
+iter.max = 20, toler.inf = sqrt(eps), outer.max = 10, timefix=TRUE)
 }
 \arguments{
   \item{eps}{Iteration continues until the relative change in the log partial
@@ -21,6 +21,9 @@ infinite coefficient value.}
   \item{outer.max}{For a penalized coxph model, e.g. with pspline terms, there
 is an outer loop of iteration to determine the penalty parameters; maximum
 number of iterations for this outer loop.}
+\item{timefix}{Resolve any near ties in the time variables.  (Floating
+point representation
+  error can cause actual tied times to appear distinct.)}
 }
 
 \value{

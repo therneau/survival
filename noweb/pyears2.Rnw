@@ -133,7 +133,10 @@ summary.pyears <- function(object, header=TRUE, call=header,
     
     # Add in totals if requested
     if (totals) {
-        object$n <- pytot(object$n, na=TRUE)
+        # if the pyear object was based on any time dependent cuts, then
+        #  the "n" component cannot be totaled up.
+        tcut <- if (is.null(object$tcut)) TRUE else object$tcut
+        object$n <- pytot(object$n, na=tcut)
         object$pyears <- pytot(object$pyears)
         if (event) object$event <- pytot(object$event)
         if (expected) object$expected <- pytot(object$expected)
@@ -342,7 +345,8 @@ pybox <- function(plist, dd, digits, nastring, ...) {
         if (any(sapply(plist[real], length) != nc))
             stop("programming length error, notify package author")
         temp <- unlist(plist[real])
-        final[,real] <- ifelse(is.na(temp), nastring, format(temp, digits,...))
+        final[,real] <- ifelse(is.na(temp), nastring, 
+                               format(temp, digits=digits, ...))
     }
     
     if (any(ci)) {
@@ -440,9 +444,9 @@ pytot <- function(x, na=FALSE) {
         index <- 1:length(dd)
         if (na) sum1 <- sum2 <- NA
         else {
-            sum1 <- apply(x, indx[-1], sum)    # row sums
-            sum2 <- apply(x, indx[-2], sum)    # col sums
-            sum3 <- apply(x, indx[-(1:2)], sum) # total sums
+            sum1 <- apply(x, index[-1], sum)    # row sums
+            sum2 <- apply(x, index[-2], sum)    # col sums
+            sum3 <- apply(x, index[-(1:2)], sum) # total sums
             }
         
         # create a new matrix and then fill it in

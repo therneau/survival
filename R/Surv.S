@@ -8,7 +8,7 @@ Surv <- function(time, time2, event,
 
     if (missing(time)) stop ("Must have a time argument")
     if (class(time) =="difftime") time <- as.numeric(time)
-    if (class(time2)=="difftime") time2 <-as.numeric(time2)
+    if (!missing(time2) && class(time2)=="difftime") time2 <-as.numeric(time2)
     if (!is.numeric(time)) stop ("Time variable is not numeric")
     nn <- length(time)
 
@@ -273,3 +273,4 @@ as.matrix.Surv <- function(x, ...) {
     }
 length.Surv <- function(x) nrow(x)
 format.Surv <- function(x, ...) format(as.character.Surv(x), ...)
+as.data.frame.Surv <- as.data.frame.model.matrix
