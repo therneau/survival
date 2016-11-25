@@ -28,10 +28,9 @@ print.summary.coxph <-
 
     if(!is.null(x$coefficients)) {
         cat("\n")
-        if (is.R()) printCoefmat(x$coefficients, digits=digits,
+        printCoefmat(x$coefficients, digits=digits,
                                  signif.stars=signif.stars, ...)
-        else print(x$coefficients)
-        }
+    }
     if(!is.null(x$conf.int)) {
         cat("\n")
         print(x$conf.int)

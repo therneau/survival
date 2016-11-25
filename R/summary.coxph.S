@@ -71,7 +71,6 @@ summary.coxph <- function(object,  conf.int = 0.95, scale = 1, ...) {
     }
         
 
-    if (is.R()) class(rval)    <-"summary.coxph"
-    else        oldClass(rval) <- "summary.coxph"
+    class(rval)    <-"summary.coxph"
     rval
     }

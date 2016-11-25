@@ -64,7 +64,6 @@ summary.survreg<- function(object, correlation = FALSE,...)
 		   n=n, chi=2*diff(object$loglik)), 
 	           robust=!is.null(object$naive.var))
 
-    if (is.R()) class(x) <- 'summary.survreg'
-    else        oldClass(x) <- 'summary.survreg'
+    class(x) <- 'summary.survreg'
     x
     }

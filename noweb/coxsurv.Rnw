@@ -658,7 +658,6 @@ result$call <- Call
 # The "type" component is in the middle -- match history
 indx <- match('surv', names(result))
 result <- c(result[1:indx], type=attr(y, 'type'), result[-(1:indx)])
-if (is.R()) class(result) <- c('survfit.cox', 'survfit')
-else        oldClass(result) <- 'survfit.cox'
+class(result) <- c('survfit.cox', 'survfit')
 result
 @ 

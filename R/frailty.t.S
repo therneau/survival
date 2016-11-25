@@ -7,14 +7,12 @@ frailty.t <- function(x, sparse=(nclass>5), theta, df, eps= 1e-5,  tdf=5,
     nclass <- length(unique(x[!is.na(x)]))
     if (sparse){
 	x <-as.numeric(factor(x))
-	if (is.R()) class(x) <- "coxph.penalty"
-	else        oldClass(x) <- "coxph.penalty"
-        }
+	class(x) <- "coxph.penalty"
+    }
     else{
 	x <- factor(x)
-	if (is.R()) class(x) <- c("coxph.penalty",class(x))
-	else        oldClass(x) <- "coxph.penalty"
-	attr(x,'contrasts') <- contr.treatment(nclass, contrasts=FALSE)
+	class(x) <- c("coxph.penalty",class(x))
+        attr(x,'contrasts') <- contr.treatment(nclass, contrasts=FALSE)
         }
 
     if (tdf <=2) stop("Cannot have df <3 for the t-frailty")
@@ -78,7 +76,7 @@ frailty.t <- function(x, sparse=(nclass>5), theta, df, eps= 1e-5,  tdf=5,
     #   point in time.  Not an issue for pfun, which does not get saved.
     # The reason for using the survival namespace instead of globalenv() is 
     # that we call coxph.wtest, which may not be visible outside the name space
-    if (is.R()) environment(printfun) <- asNamespace('survival')
+    environment(printfun) <- asNamespace('survival')
 
     if (method=='fixed') {
 	temp <- list(pfun=pfun, pparm=tdf,

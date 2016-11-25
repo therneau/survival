@@ -63,8 +63,7 @@ survreg.fit<- function(x, y, weights, offset, init, controlvals, dist,
         # create an isolated sandbox (frame or environment) in which
 	#  we can do the evaluation without endangering local objects
 	#  but still with knowlege of sd, parms, and n2
-        if (is.R()) rho <- new.env() #inherits necessary objects
-	# SPlus else        rho <- new.frame(list(sd=sd, parms=parms, n2=n2))
+        rho <- new.env() #inherits necessary objects
         }
     else {
 	f.expr <- 1  #dummy values for the .Call

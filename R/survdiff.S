@@ -10,9 +10,8 @@ survdiff <- function(formula, data, subset, na.action, rho=0) {
 	     else              terms(formula, 'strata', data=data)
     m$formula <- Terms
     m[[1L]] <- quote(stats::model.frame)
-    if (is.R()) m <- eval(m, parent.frame())
-    else        m <- eval(m, sys.parent())
-
+    m <- eval(m, parent.frame())
+    
     y <- model.extract(m, "response")
     if (!inherits(y, "Surv")) stop("Response must be a survival object")
     if (attr(y, 'type') != 'right') stop("Right censored data only")
@@ -85,7 +84,6 @@ survdiff <- function(formula, data, subset, na.action, rho=0) {
     if (length(na.action)) rval$na.action <- na.action
     rval$call <- call
 
-    if (is.R()) class(rval) <- 'survdiff'
-    else        oldClass(rval) <- 'survdiff'
+    class(rval) <- 'survdiff'
     rval
     }

@@ -355,15 +355,14 @@ attributes(survexp.us) <- list(
         x <- c(format(round(min(R[,1]) /365.25, 1)),
                format(round(max(R[,1]) /365.25, 1)),
                sum(R[,2]==1), sum(R[,2]==2))
-        if (is.R()) x2<- as.Date(c(min(R[,3]), max(R[,3])), 
+        x2<- as.Date(c(min(R[,3]), max(R[,3])), 
                                 origin='1960/01/01')
-        else x2 <- timeDate(julian=c(min(R[,3]), max(R[,3])))
         paste("  age ranges from", x[1], "to", x[2], "years\n",
               " male:", x[3], " female:", x[4], "\n",
               " date of entry from", x2[1], "to", x2[2], "\n")
         })
     
-oldClass(survexp.us) <- 'ratetable'
+class(survexp.us) <- 'ratetable'
 @ 
 
 \subsection{US race table}

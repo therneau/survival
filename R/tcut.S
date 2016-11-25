@@ -29,8 +29,7 @@ tcut <-  function (x, breaks, labels, scale=1){
 	}
 
     temp <- structure(x*scale, cutpoints=breaks*scale, labels=labels)
-    if (is.R()) class(temp) <- 'tcut'
-    else        oldClass(temp) <- 'tcut'
+    class(temp) <- 'tcut'
     temp
     }
 
@@ -38,8 +37,7 @@ tcut <-  function (x, breaks, labels, scale=1){
     atts <- attributes(x)
     x <- unclass(x)[..1]
     attributes(x) <- atts
-    if (is.R()) class(x) <- 'tcut'
-    else        oldClass(x) <- 'tcut'
+    class(x) <- 'tcut'
     x
     }
 

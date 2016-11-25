@@ -7,7 +7,8 @@
 \method{summary}{pyears}(object, header = TRUE, call = header, n = TRUE,
 event = TRUE, pyears = TRUE, expected = TRUE, rate = FALSE, rr =expected,
 ci.r = FALSE, ci.rr = FALSE, legend = TRUE, vline = FALSE,
-vertical= TRUE, conf.level = 0.95, digits = .Options$digits, scale = 1, ...)
+vertical= TRUE, naprint="", conf.level = 0.95, digits = .Options$digits,
+scale = 1, ...)
 }
 
 \arguments{
@@ -23,15 +24,21 @@ vertical= TRUE, conf.level = 0.95, digits = .Options$digits, scale = 1, ...)
     its confidence interval be given in the table?}
   \item{rr, ci.r}{logical arguments: should the hazard ratio and/or
     its confidence interval be given in the table?}
+  \item{totals}{should row and column totals be added?}
   \item{legend}{should a legend be included in the printout?}
   \item{vline}{should vertical lines be included in the printed tables?}
   \item{vertical}{when there is only a single predictor, should the
     table be printed with the predictor on the left (vertical=TRUE) or
     across the top (vertical=FALSE)?}
+  \item{naprint}{what to use for missing values in the table.  Some of
+  these are structural, e.g., risk ratios for a cell with no follow-up time.}
   \item{conf.level}{confidence level for any confidence intervals}
   \item{digits}{number of digits for the printout}
+
   \item{scale}{a scaling factor for printed rates}
-  \item{\dots}{other arguments}
+  \item{\dots}{optional arguments which will be passed to the
+    \code{format} function}
+  }
 }
 
 \details{
@@ -51,9 +58,14 @@ vertical= TRUE, conf.level = 0.95, digits = .Options$digits, scale = 1, ...)
   contains the statistics of interest as multiple rows within the cell.
   If there are more than two predictors then multiple tables are
   produced, in the same order as the standard R printout for an array.
+
+  The "N" entry of a pyears object is the number of observations which
+  contributed to a particular cell.  When the original call includes
+  \code{tcut} objects then a single observation may contribute to
+  multiple cells.
 }
 \value{a copy of the object}
 \author{Terry Therneau and Elizabeth Atkinson}
-\seealso{\code{\link{cipoisson}}, \code{\link{\pyears}}}
+\seealso{\code{\link{cipoisson}}, \code{\link{\pyears}}, \code{\link{format}}}
 \keyword{ survival }
 

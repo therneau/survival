@@ -64,8 +64,7 @@ if (length(rate) >0 || !missing(rmap) || !missing(ratetable)) {
     }
 else has.ratetable <- FALSE
 
-if (is.R())  m <- eval(m, parent.frame())
-else         m <- eval(m, sys.parent())
+m <- eval(m, parent.frame())
 
 Y <- model.extract(m, 'response')
 if (is.null(Y)) stop ("Follow-up time must appear in the formula")
@@ -308,6 +307,7 @@ else {   #no expected
 
 Create the output object.
 <<pyears-finish>>=
+has.tcut <- any(sapply(mf, function(x) inherits(x, 'tcut')))
 if (data.frame) {
     # Create a data frame as the output, rather than a set of
     #  rate tables
@@ -332,14 +332,15 @@ if (data.frame) {
     if (docount) df$event <- temp$pcount[keep]
 
     out <- list(call=call,
-                data= df, offtable=temp$offtable/scale)  
+                data= df, offtable=temp$offtable/scale,
+                tcut=has.tcut)
     if (has.ratetable && !is.null(rtemp$summ))
         out$summary <- rtemp$summ
     }
 
 else if (prod(odims) ==1) {  #don't make it an array
     out <- list(call=call, pyears=temp$pyears/scale, n=temp$pn,
-    	    offtable=temp$offtable/scale)
+    	    offtable=temp$offtable/scale, tcut = has.tcut)
     if (has.ratetable) {
         out$expected <- temp$pexpect
         if (expect=='pyears') out$expected <- out$expected/scale
@@ -351,7 +352,7 @@ else {
     out <- list(call = call,
     	pyears= array(temp$pyears/scale, dim=odims, dimnames=outdname),
     	n     = array(temp$pn,     dim=odims, dimnames=outdname),
-    	offtable = temp$offtable/scale)
+    	offtable = temp$offtable/scale, tcut=has.tcut)
     if (has.ratetable) {
         out$expected <- array(temp$pexpect, dim=odims, dimnames=outdname)
         if (expect=='pyears') out$expected <- out$expected/scale
@@ -369,6 +370,6 @@ else {
     if (x) out$x <- X
     if (y) out$y <- Y
     }
-oldClass(out) <- 'pyears'
+class(out) <- 'pyears'
 out
 @ 

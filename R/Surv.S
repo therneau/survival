@@ -251,9 +251,8 @@ as.character.Surv <- function(x, ...) {
         x
     }
     else { # return  a matrix or vector
-	if (is.R()) class(x) <- 'matrix'
-        else oldClass(x) <- NULL
-	NextMethod("[")
+	class(x) <- 'matrix'
+       	NextMethod("[")
     }
 }
 
@@ -273,3 +272,4 @@ as.matrix.Surv <- function(x, ...) {
     y
     }
 length.Surv <- function(x) nrow(x)
+format.Surv <- function(x, ...) format(as.character.Surv(x), ...)

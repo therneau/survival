@@ -9,9 +9,8 @@ frailty.gamma <- function(x, sparse=(nclass >5), theta, df, eps= 1e-5,
 	x <- factor(x)
 	attr(x,'contrasts') <- contr.treatment(nclass, contrasts=FALSE)
                 }
-    if (is.R()) class(x) <- c("coxph.penalty",class(x))
-    else        oldClass(x) <- "coxph.penalty"
-
+    class(x) <- c("coxph.penalty",class(x))
+   
     # Check for consistency of the arguments
     if (missing(method)) {
 	if (!missing(theta)) {

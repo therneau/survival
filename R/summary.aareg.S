@@ -95,8 +95,7 @@ summary.aareg <- function(object, maxtime, test=c('aalen', 'nrisk'), scale=1,...
 		 n = c(object$n[1], length(unique(times)), object$n[3]))
 
     
-    if (is.R()) class(temp) <- 'summary.aareg'
-    else      oldClass(temp) <- 'summary.aareg'
+    class(temp) <- 'summary.aareg'
     temp
     }
 

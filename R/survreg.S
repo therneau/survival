@@ -1,5 +1,3 @@
-if (!is.R()) setOldClass(c('survreg.penal', 'survreg'))
-
 survreg <- function(formula, data, weights, subset, na.action,
 	dist='weibull', init=NULL,  scale=0, control, parms=NULL, 
 	model=FALSE, x=FALSE, y=TRUE, robust=FALSE, score=FALSE,  ...) {
@@ -14,8 +12,7 @@ survreg <- function(formula, data, weights, subset, na.action,
     special <- c("strata", "cluster")
     temp$formula <- if(missing(data)) terms(formula, special)
                     else              terms(formula, special, data=data)
-    if (is.R()) m <- eval(temp, parent.frame())
-    else        m <- eval(temp, sys.parent())
+    m <- eval(temp, parent.frame())
 
     Terms <- attr(m, 'terms')
     weights <- model.extract(m, 'weights')
@@ -55,29 +52,14 @@ survreg <- function(formula, data, weights, subset, na.action,
     if (length(dropx)) {
         newTerms <- Terms[-dropx]
         # R (version 2.7.1) adds intercept=T anytime you drop something
-        if (is.R()) attr(newTerms, 'intercept') <- attr(Terms, 'intercept')
+        attr(newTerms, 'intercept') <- attr(Terms, 'intercept')
         }
     else               newTerms <- Terms
     X <- model.matrix(newTerms, m)
-    if (is.R()) {
-	 assign <- lapply(attrassign(X, newTerms)[-1], function(x) x-1)
-         xlevels <- .getXlevels(newTerms, m)
-         contr.save <- attr(X, 'contrasts')
-         }
-    else {
-        assign <- lapply(attr(X, 'assign')[-1], function(x) x -1)
-        xvars <- as.character(attr(newTerms, 'variables'))
-        xvars <- xvars[-attr(newTerms, 'response')]
-        if (length(xvars) >0) {
-                xlevels <- lapply(m[xvars], levels)
-                xlevels <- xlevels[!unlist(lapply(xlevels, is.null))]
-                if(length(xlevels) == 0)
-                        xlevels <- NULL
-                }
-        else xlevels <- NULL
-        contr.save <- attr(X, 'contrasts')
-        }
-
+    assign <- lapply(attrassign(X, newTerms)[-1], function(x) x-1)
+    xlevels <- .getXlevels(newTerms, m)
+    contr.save <- attr(X, 'contrasts')
+    
     n <- nrow(X)
     nvar <- ncol(X)
 
@@ -189,8 +171,7 @@ survreg <- function(formula, data, weights, subset, na.action,
 	if (any(ord>1)) stop ('Penalty terms cannot be in an interaction')
 
         
-        if (is.R()) assign <- attrassign(X, newTerms)
-        else        assign <- attr( X, 'assign')   
+        assign <- attrassign(X, newTerms)
         pcols <- assign[match(names(pterms[pterms]), names(assign))] 
 
         fit <- survpenal.fit(X, Y, weights, offset, init=init,
@@ -251,13 +232,7 @@ survreg <- function(formula, data, weights, subset, na.action,
     na.action <- attr(m, "na.action")
     if (length(na.action)) fit$na.action <- na.action
 
-    if (is.R()) {
-        if (any(pterms)) class(fit) <- c('survreg.penal', 'survreg')
-        else	         class(fit) <- 'survreg'
-        }
-    else {
-        if (any(pterms)) oldClass(fit) <- 'survreg.penal'
-        else	     oldClass(fit) <- 'survreg'
-        }
+    if (any(pterms)) class(fit) <- c('survreg.penal', 'survreg')
+    else	         class(fit) <- 'survreg'
     fit
     }

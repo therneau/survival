@@ -2,6 +2,8 @@
 \title{NEWS file for the survival package}
 \section{Changes in version 2.40-2}{
   \itemize{
+    \item Remove many "is.R" and "oldClass" calls (vestiges of Splus).
+    \item The summary.pyears routine now prints pandoc style tables.
     \item Fix multiple spelling errors in the Rd files; contributed by
     Luca Braglia.
     \item For a multi-state curve, the cumhaz component accidentally had

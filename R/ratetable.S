@@ -1,4 +1,3 @@
-# $Id: ratetable.S 11389 2010-02-08 22:53:51Z therneau $
 #
 # This source file has two distinct parts in it.  The first is the
 #  ratetable(), which is used inside pyears and survexp only to allow
@@ -55,8 +54,7 @@ ratetable <- function(...) {
 	}
     attr(x, "isDate") <- isDate
     attr(x, "levlist")   <- levlist
-    if (is.R()) class(x) <- 'ratetable2'
-    else        oldClass(x)  <- "ratetable2"
+    class(x) <- 'ratetable2'
     x
     }
 
@@ -75,8 +73,7 @@ is.na.ratetable2 <- function(x) {
     y <- x[rows,,drop=FALSE]
     attr(y,'isDate') <- aa$isDate
     attr(y,'levlist')   <- aa$levlist
-    if (is.R()) class(y) <- 'ratetable2'
-    else        oldClass(y) <- 'ratetable2'
+    class(y) <- 'ratetable2'
     y
     }
 
@@ -110,9 +107,8 @@ is.na.ratetable2 <- function(x) {
 				   factor = aa$factor[!dropped],
 				   cutpoints =aa$cutpoints[!dropped],
                                    type = aa$type[!dropped])
-	    if (is.R()) class(y) <- 'ratetable'
-	    else        oldClass(y) <- 'ratetable'
-	    y
+	    class(y) <- 'ratetable'
+            y
 	    }
 	}
     else {

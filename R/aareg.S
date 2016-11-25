@@ -359,8 +359,7 @@ aareg <- function(formula, data, weights, subset, na.action,
 	if (y) ans$y <- Y
 	}
 
-    if (is.R()) class(ans) <- 'aareg'
-    else oldClass(ans) <- 'aareg'
+    class(ans) <- 'aareg'
     ans
     }
 

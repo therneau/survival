@@ -141,23 +141,15 @@ pspline <- function(x, df=4, theta, nterm=2.5*df, degree=3, eps=0.1,
 	list(coef=cmat, history=paste("Theta=", format(theta)))
 	}
 
-    if (is.R()) {
-	# The printfun needs to remember the spline's knots,
-	#  but I don't need (or want) to carry around the entire upteen 
-	#  variables defined here as an environment
-	# So fill in defaults for the cbase argument, and
-        #  force the function's environment to simplicity (amnesia)
-        temp <- formals(printfun)
-        temp$cbase <- knots[2:nvar] + (Boundary.knots[1] -knots[1]) 
-	formals(printfun) <- temp
-        environment(printfun) <- .GlobalEnv
-	}
-    else {
-	# Somewhat simpler in Splus, but because it depends on the 
-	#  undocumented manner in which functions are stored, it might
-	#  stop working one day
-	printfun[[6]] <- knots[2:nvar] + (Boundary.knots[1] - knots[1])
-	}
+    # The printfun needs to remember the spline's knots,
+    #  but I don't need (or want) to carry around the entire upteen 
+    #  variables defined here as an environment
+    # So fill in defaults for the cbase argument, and
+    #  force the function's environment to simplicity (amnesia)
+    temp <- formals(printfun)
+    temp$cbase <- knots[2:nvar] + (Boundary.knots[1] -knots[1]) 
+    formals(printfun) <- temp
+    environment(printfun) <- .GlobalEnv
 	
     if (method=='fixed') {
 	temp <- list(pfun=pfun,
