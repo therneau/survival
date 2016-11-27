@@ -12,13 +12,14 @@ to make a proportional hazards assumption.
 There is one added complication:
 when estimating the first model, one wants to use the data set that
 would have occured if the subjects being followed for state 1 had
-not had an artificial censoring, that is, had been clinically followed
-as though they were still in the denominator of subjects who are at
-risk of transition to state 1.
+not had an artificial censoring, that is, had continued to be followed
+for event 1 even after event 2 occured.
 Sometimes this can be filled in directly, e.g., if we knew the enrollment
 dates for each subject along with the date that follow-up for the
 study was terminated, and there was no lost to follow-up (only administrative
 censoring.)
+Another example is the mgus2 data set, where follow-up for death continued
+after the occurence of plasma cell malignancy.
 In practice what is done is to estimate the overall censoring distribution and
 give subjects artificial follow-up.
 
@@ -143,7 +144,7 @@ find2 <- function(x, vec, left.open=FALSE, ...) {
     if (!left.open) findInterval(x, vec, ...)
     else {
         # the left.open arg is a recent addition to findInterval, and I want
-        #  this to work in 3.2.0 (institutional installs).  In another cycle or
+        #  this to work in 3.2.0 (my employer's default).  In another cycle or
         #  so we can drop this workaround and call findInterval directly
         #
         length(vec) - findInterval(-x, rev(-vec), ...)
@@ -222,7 +223,6 @@ We can slide $H$ one point to the left and merge them at the jump points.
 
 <<finegray-build>>=
 status <- Y[, 3]
-maxtime <- max(Y[,2])
 
 # Do computations separately for each stratum
 stratfun <- function(i) {
@@ -230,8 +230,10 @@ stratfun <- function(i) {
     times <- sort(unique(Y[keep & status == enum, 2])) #unique event times 
     if (length(times)==0) return(NULL)  #no events in this stratum
     tdata <- mf[keep, -1, drop=FALSE]
+    maxtime <- max(Y[keep, 2])
 
     if (dim(Gsurv)==1) {
+        # the phrase Gsurv[1] gives a warning when there is only one curve
         # keep only the event times, and convert back to the original time units
         if (delay) {
             dtime <- rev(-Hsurv$time[Hsurv$n.event > 0])
@@ -279,7 +281,8 @@ stratfun <- function(i) {
     split <- .Call("finegray", Y[keep,1], Y[keep,2], ct2, cp2, expand, 
                    c(TRUE, ckeep)) 
     tdata <- tdata[split$row,,drop=FALSE]
-    tstat <- ifelse(status[split$row]== enum, 1, 0)
+    tstat <- ifelse((status[keep])[split$row]== enum, 1, 0)
+
 
     tdata[[oname[1]]] <- split$start
     tdata[[oname[2]]] <- split$end

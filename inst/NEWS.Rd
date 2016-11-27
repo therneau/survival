@@ -2,12 +2,16 @@
 \title{NEWS file for the survival package}
 \section{Changes in version 2.40-2}{
   \itemize{
+    \item Fix an error in the finegray routine: with strata() the
+    resulting data sets could have incorrect status values.  Pointed out
+    by Mark Donoghoe.  Added a strata test to tests/finegray.R.  
     \item Remove many "is.R" and "oldClass" calls (vestiges of Splus).
     \item The summary.pyears routine now prints pandoc style tables.
     \item Fix multiple spelling errors in the Rd files; contributed by
     Luca Braglia.
     \item For a multi-state curve, the cumhaz component accidentally had
-    the final state removed.
+    the final state removed.  All values were correct, simply an
+    overzealous trimming of the final result.
     \item Add a short vignette describing the issue with round off error
     and tied survival times.
 }}
@@ -17,7 +21,7 @@
     \item For multi-state survival with a big data set and the
     influence=TRUE option, the resulting object could be so long that it
     overflowed an integer counter in the C code.  Add a check in the R
-    code  and a caution in the help file.
+    code and a caution in the help file.
   }
 }
 \section{Changes in version 2.40-0}{
