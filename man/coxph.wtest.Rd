@@ -11,7 +11,7 @@ coxph.wtest(var, b, toler.chol = 1e-09)
 \arguments{
   \item{var}{variance matrix}
   \item{b}{vector}
-  \item{toler.chol}{tolerance for the internal choelsky decomposition}
+  \item{toler.chol}{tolerance for the internal cholesky decomposition}
 }
 \details{
   Compute b' V-inverse b.  Equivalent to sum(b * solve(V,b)), except for

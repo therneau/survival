@@ -1,8 +1,8 @@
 \name{coxph.control}
 \alias{coxph.control}
-\title{Ancillary arguments for controling coxph fits}
+\title{Ancillary arguments for controlling coxph fits}
 \description{
-This is used to set various numeric parameters controling a Cox model fit.
+This is used to set various numeric parameters controlling a Cox model fit.
 Typically it would only be used in a call to \code{coxph}.
 }
 \usage{
@@ -13,7 +13,7 @@ iter.max = 20, toler.inf = sqrt(eps), outer.max = 10, timefix=TRUE)
   \item{eps}{Iteration continues until the relative change in the log partial
 likelihood is less than eps.  Must be positive.}
   \item{toler.chol}{Tolerance for detection of singularity during a Cholesky
-decomposion of the variance matrix, i.e., for detecting a redundant predictor
+decomposition of the variance matrix, i.e., for detecting a redundant predictor
 variable.}
   \item{iter.max}{Maximum number of iterations to attempt for convergence.}
   \item{toler.inf}{Tolerance criteria for the warning message about a possible

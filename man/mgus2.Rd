@@ -18,9 +18,9 @@
     \item{\code{mspike}}{size of the monoclonal serum splike}
     \item{\code{ptime}}{time until progression to a plasma cell
       malignancy (PCM) or last contact, in months}
-    \item{\code{pstat}}{occurence of PCM: 0=no, 1=yes }
+    \item{\code{pstat}}{occurrence of PCM: 0=no, 1=yes }
     \item{\code{futime}}{time until death or last contact, in months}
-    \item{\code{death}}{occurence of death: 0=no, 1=yes}
+    \item{\code{death}}{occurrence of death: 0=no, 1=yes}
   }
 }
 \details{

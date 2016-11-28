@@ -425,7 +425,7 @@ that need to be dealt with when setting up an analysis data set.
 
   \item The treatment coefficients in table 6.1 of the 
     definitive analysis found in
-    Kalbfliesch and Prentice \cite{Kalbfleisch02}
+    Kalbfleisch and Prentice \cite{Kalbfleisch02}
     will only be obtained if covariates are defined
     in precisely the same way, since their models include interactions.
     (Table 5.2 in the original edition of the book).
@@ -692,14 +692,14 @@ The action of the \code{cumevent} operator is different than \code{cumtdc}
 in several ways.  Say that we have a subject with outcomes of one
 type at times 5, 10, and 15 and another type at times 6 and 15, with a
 follow-up interval of 0 to 20. 
-For illustration I'll call the first event 'athsma' and the second 'IBD' 
+For illustration I'll call the first event 'asthma' and the second 'IBD' 
 (a disease
 flare in inflammatory bowel disease).  A resulting data set would have the
 following form:
 \begin{center}
   \begin{tabular}{rcccc}
     &\multicolumn{2}{c}{cumtdc} & \multicolumn{2}{c}{cumevent} \\
-interval  & athsma & IBD & athsma & IBD \\ \hline
+interval  & asthma & IBD & asthma & IBD \\ \hline
 (0, 5] & 0 &0 & 1 & 0 \\
 (5, 6] & 1 &0 & 0 & 1 \\
 (6, 10]& 1 &1 & 2 & 0 \\

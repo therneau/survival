@@ -186,7 +186,7 @@ subject.  This is essentially the same algorithm as the robust variance for
 a Cox model.
 For simple two state alive -> dead model, the IJ estimate of variance 
 is identical to the traditional Greenwood estimate for the variance of the
-surivival curve $S$. 
+survival curve $S$. 
 (This was a surprise when we first observed it; proving the equivalence
 was not straightforward.)
 
@@ -404,7 +404,7 @@ legend(0, .25, c("Males, PCM, incorrect curve", "Males, PCM, competing risk"),
 @ 
 
 There are two problems with the \code{pcmbad} fit.  
-The first is that it attempts to estimate the expected occurence of
+The first is that it attempts to estimate the expected occurrence of
 plasma cell malignancy (PCM)
 if all other causes of death were to be disallowed.
 In this hypothetical world it is indeed true that many more subjects would

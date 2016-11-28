@@ -29,7 +29,7 @@ data frame in which to interpret the variables named in the
 \code{subset}, and \code{weights} arguments.
 This may also be a single number to handle
 some speci al cases -- see below for details. If
-\code{data} is missi ng, the variables in the
+\code{data} is missing, the variables in the
 model formula should be in the search path.
 }
 \item{weights}{
@@ -46,7 +46,7 @@ exclude particular observations from the model, use the
 expression specifying which subset of observations should be used in
 the fit. Th is can be a logical vector (which is replicated to have
 length equal to the numb er of observations), a numeric vector
-indicating the observation numbers to be i ncluded, or a character
+indicating the observation numbers to be included, or a character
 vector of the observation names that should be included.  All
 observations are included by default.
 }

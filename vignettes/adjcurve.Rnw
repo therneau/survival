@@ -976,7 +976,7 @@ for a different slope for the two sexes, but is still linear in age.
 In this particular data set an external check on the fit is also
 available via the Minnesota death rate tables, which are included
 with the survival package as \texttt{survexp.mn}.  This is an
-array that contains daily death rates by age, sex, and calender year.
+array that contains daily death rates by age, sex, and calendar year.
 <<flc6b, fig=TRUE, include=FALSE>>=
 par(mfrow=c(1,2))
 cfit4b <- coxph(Surv(futime, death) ~ age*sex + strata(group),

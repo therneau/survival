@@ -378,7 +378,7 @@ differs from the Breslow only at day 6, where two
 deaths occur.
 A useful way to view the approximation is to recast the problem as
 a lottery model.  On day 1 there were 6 subjects in the lottery and
-1 ticket was drawn, at which time the winner became inelegible for further
+1 ticket was drawn, at which time the winner became ineligible for further
 drawings and withdrew.
 On day 6 there were 4 subjects in the drawing (at risk) 
 and two tickets (deaths) were drawn.
@@ -388,7 +388,7 @@ both, that is, died twice.  This is of clearly impossible.
 The Efron approximation treats the two drawings on day 6 as sequential.
 All four living subjects are at risk for the first of them, then the
 winner is withdrawn.
-Three subjects are elibible for the second drawing,
+Three subjects are eligible for the second drawing,
 either subjects 3, 5, and 6 or subjects 2, 5, and 6, but we
 do not know which.  
 In some sense then, subjects 3 and 4 each have ``.5 probability" of 
@@ -439,10 +439,10 @@ the total number of tickets is $(r+5)/2$
 and the consequent increment in the cumulative hazard is $2/(r+5)$.
 This $\beta=0$ this calculation is equivalent to the Fleming-Harrington \cite{Fleming84}
 estimate of cumulative hazard.
-Subjects 3 and 4 recieve 1/2 of this second increment to $E$ and subjects
+Subjects 3 and 4 receive 1/2 of this second increment to $E$ and subjects
 5 and 6 the full increment.
 Efron \cite{Efron77} did not discuss residuals so did not investigate this
-aspect of the approximation, we neverthess sometime refer to 
+aspect of the approximation, we nevertheless sometime refer to 
 this using combinations of
 Fleming, Harrington, Efron in the same way as the Nelson-Aalen-Breslow
 estimate.  The martingale residuals are
@@ -486,8 +486,8 @@ formula \eqref{mart}, which was derived from the Breslow approximation.
 It is clear that some packages
 do exactly this, however, which can be verified using formulas from above.
 (Statistical forensics is another use for our results.)
-What are the conseqences of this? 
-On a formal level the resulting ``martingal residuals'' no longer have
+What are the consequences of this? 
+On a formal level the resulting ``martingale residuals'' no longer have
 an expected value of 0 and thus are not martingales,
 so one loses theoretical backing for derived plots or statistics.
 The score, Schoenfeld, dfbeta and scaled Schoenfeld residuals are based on

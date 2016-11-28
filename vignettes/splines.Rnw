@@ -115,7 +115,7 @@ termplot(fit, se=TRUE, term=2, col.term=1, col.se=1,
 Low hemoglobin or anemia is a recognized marker of frailty in older
 age, so the rise in risk for low levels is not surprising.
 The rise on the right hand portion of the curve is less 
-believeable --- the normal range of HGB is 12-15.5 for women and
+believable --- the normal range of HGB is 12-15.5 for women and
 13.5 to 17.5 for men, why would we expect a rise there?
 A monotone fit that forces the curve to be horizontal from 14 
 onward fits well within the confidence bands, so we might want
@@ -256,7 +256,7 @@ predict is invariant to this.
 The issues as compared to using \code{termplot} are
 \begin{enumerate}
   \item We need to provide our own set of predictor values for the plot,
-    whereas \code{termplot} would automatcially use the set of unique
+    whereas \code{termplot} would automatically use the set of unique
     age and sex values.  
   \item Keeping track of the indexing.  The predict function produces
     two vectors each of length \code{nrow(pdata)} with a predicted
