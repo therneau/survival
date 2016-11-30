@@ -46,12 +46,14 @@ survSplit <- function(formula, data, subset, na.action=na.pass,
     mf <- eval.parent(temp)      
 
     Y <- model.response(mf)
+    states <- attr(Y, "states")
     if (!is.Surv(Y)) stop ("the model must have a Surv object as the response")
     if (!(attr(Y, "type") %in% c("right", "mright", "counting", "mcounting")))
         stop(paste("not valid for", attr(Y, "type"), "censored survival data"))
     nY <- ncol(Y)
     if (nY ==2) Y <- cbind(zero, Y)
-    if (any(Y[,1] >= Y[,2]))    stop("start time must be < stop time")
+    temp <- (Y[,1] >= Y[,2])
+    if (any(temp & !is.na(temp))) stop("start time must be < stop time")
         
     if (!is.numeric(cut) || any(!is.finite(cut)))
         stop("cut must be a vector of finite numbers")
@@ -75,8 +77,8 @@ survSplit <- function(formula, data, subset, na.action=na.pass,
 
     status <- Y[index$row, 3]
     status[index$censor] <- 0
-    if (!is.null(attr(Y, "states")))  
-        status <- factor(status, labels=c("censor", attr(Y, "states")))
+    if (!is.null(states))  
+        status <- factor(status, labels=c("censor", states))
 
     # Did the user hand me a Surv call with multiple variables, or a
     #  premade Surv object?

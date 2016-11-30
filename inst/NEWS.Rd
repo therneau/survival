@@ -5,6 +5,7 @@
     \item Fix an error in the finegray routine: with strata() the
     resulting data sets could have incorrect status values.  Pointed out
     by Mark Donoghoe.  Added a strata test to tests/finegray.R.  
+
     \item Remove many "is.R" and "oldClass" calls (vestiges of Splus).
     \item The summary.pyears routine now prints pandoc style tables.
     \item Fix multiple spelling errors in the Rd files; contributed by
@@ -12,8 +13,12 @@
     \item For a multi-state curve, the cumhaz component accidentally had
     the final state removed.  All values were correct, simply an
     overzealous trimming of the final result.
+
     \item Add a short vignette describing the issue with round off error
     and tied survival times.
+
+    \item Errors in survSplit: a factor status was not propogated, and a
+    missing time gave a spurious error message.
 }}
 
 \section{Changes in version 2.40-1}{
