@@ -138,7 +138,7 @@ All subjects start in the alive state and thus $p(0) = (1,0)$ and
 the transition matrix is 
 \begin{equation*}
   T(s) = \left( \begin{array}{cc} 
-    \frac{n(s)- d(s)}{n(s)}  & \frac{n(s)}{d(s)} \\\\ 0 & 1 \end{array}
+    \frac{n(s)- d(s)}{n(s)}  & \frac{d(s)}{n(s)} \\\\ 0 & 1 \end{array}
   \right)
 \end{equation*}
 The second row corresponds to the fact that death is an absorbing state.
@@ -154,7 +154,7 @@ has reprised the KM.
 In the competing risks case $p(t)$ 
 has an alternate form known as the \emph{cumulative incidence} (CI) function
 \begin{equation}
-  CI_k(t) = \int_0^t \lambda_k(u) S(u-) du \label{cuminc}
+  CI_k(t) = \int_0^t \lambda_k(u) S(u) du \label{cuminc}
 \end{equation}
 where $\lambda_k$ is the incidence function for outcome $k$, and $S$ is the
 overall survival curve for ``time to any endpoint''.  
@@ -184,7 +184,7 @@ $D$ is first collapsed to have one row per subject, the new row for subject
 $i$ is the sum of the rows for the observations that represented the 
 subject.  This is essentially the same algorithm as the robust variance for
 a Cox model.
-For simple two state alive -> dead model, the IJ estimate of variance 
+For simple two state alive -> dead model, the AJ estimate of variance 
 is identical to the traditional Greenwood estimate for the variance of the
 survival curve $S$. 
 (This was a surprise when we first observed it; proving the equivalence
@@ -205,7 +205,7 @@ from this point forward.
 
 In the simple two state model Pr(alive) is the 
 usual KM survival estimate, and we have 
-$p_1(t) = 1- p2(t)$, Pr(alive) = 1 - Pr(dead).  
+$p_1(t) = 1- p_2(t)$, Pr(alive) = 1 - Pr(dead).  
 Plots for the 2 state case sometimes choose to show Pr(alive)
 and sometimes Pr(dead). Which one is used often depends on a historical
 whim of the disease specialty; 
