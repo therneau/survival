@@ -26,7 +26,7 @@ print.pyears <- function(x, ...) {
         cat (   "Total number of person-years tabulated:", 
              format(sum(x$data$pyears)),
              "\nTotal number of person-years off table:",
-             format(x$offtable), "")
+             format(x$offtable), "\n")
         }
     if (!is.null(x$summary)) {
         cat("Matches to the chosen rate table:\n  ", 
@@ -61,7 +61,7 @@ summary.pyears <- function(object, header=TRUE, call=header,
                            ci.r = FALSE, ci.rr = FALSE, totals=FALSE,
                            legend=TRUE, vline = FALSE, vertical = TRUE,
                            nastring=".", conf.level=0.95, 
-                           digits = .Options$digits, scale= 1, ...) {
+                           scale= 1, ...) {
     # Usual checks
     if (!inherits(object, "pyears")) 
         stop("input must be a pyears object")
@@ -89,7 +89,8 @@ summary.pyears <- function(object, header=TRUE, call=header,
         # Extra work: restore the tables which had been unpacked into a df
         #  All of the categories are factors in this case
         tdata <- object$data[vname]  # the conditioning variables
-        dname <- lapply(tdata, function(x) levels(x)) # dimnames
+        dname <- lapply(tdata, function(x) {
+            if (is.factor(x)) levels(x) else sort(unique(x))}) # dimnames
         dd  <-   sapply(dname, length)                # dim of arrays
         index <- tapply(tdata[,1], tdata) 
         restore <- c('n', 'event', 'pyears', 'expected') #do these, if present
@@ -97,7 +98,7 @@ summary.pyears <- function(object, header=TRUE, call=header,
         new   <- lapply(object$data[restore],
                         function(x) {
                             temp <- array(0L, dim=dd, dimnames=dname)
-                            temp[index] <- as.integer(x)
+                            temp[index] <- x
                             temp} )
         object <- c(object, new)
     }
@@ -146,10 +147,13 @@ summary.pyears <- function(object, header=TRUE, call=header,
     vname <- attr(terms(object), "term.labels")  #variable names
     <<pyears-list>>
     if (length(dd) ==1) {
+        # 1 dimensional table
         <<pyears-table1>>  
     } else {
+        # more than 1 dimension
         <<pyears-table2>>
     }
+    invisible(object)
 }
 
 <<pyears-charfun>>
@@ -197,7 +201,7 @@ if (vertical) {
     # The person-years objects list across the top, categories up and down
     # This makes columns line up in a standard "R" way
     # The first column label is the variable name, content is the categories
-    plist <- lapply(plist, pformat, digits=digits, nastring, ...) # make it character
+    plist <- lapply(plist, pformat, nastring, ...) # make it character
     pcol  <- sapply(plist, function(x) nchar(x[1])) #width of each one
     colwidth <- pmax(pcol, nchar(rname)) +2
     for (i in 1:length(plist)) 
@@ -210,7 +214,7 @@ if (vertical) {
 else {
     # in this case each column will have different types of objects in it
     #  alignment is the nuisance
-    newmat <- pybox(plist, length(plist[[1]]), digits=digits, nastring,...)
+    newmat <- pybox(plist, length(plist[[1]]), nastring, ...)
     colwidth <- pmax(nchar(cname), apply(nchar(newmat), 1, max)) +2
     # turn the list sideways
     plist <- split(newmat, row(newmat))
@@ -260,12 +264,12 @@ tname <- vname[1:2]  #names for the row and col
 rowname  <- dimnames(object$n)[[1]]
 colname  <- dimnames(object$n)[[2]]
 if (length(dd) > 2) 
-    newmat <- pybox(plist, c(dd[1],dd[2], prod(dd[-(1:2)])), digits=digits, 
+    newmat <- pybox(plist, c(dd[1],dd[2], prod(dd[-(1:2)])), 
                     nastring, ...)
-else  newmat <- pybox(plist, dd, digits=digits, nastring, ...)
+else  newmat <- pybox(plist, dd,  nastring, ...)
 
 if (length(dd) > 2) {
-    newmat <- pybox(plist, c(dd[1],dd[2], prod(dd[-(1:2)])), digits=digits,
+    newmat <- pybox(plist, c(dd[1],dd[2], prod(dd[-(1:2)])), 
                     nastring, ...)
     outer.label <- do.call("expand.grid", dimnames(object$n)[-(1:2)])
     temp <-cname[-(1:2)]
@@ -275,7 +279,7 @@ if (length(dd) > 2) {
     }
 }
 else {
-    newmat <- pybox(plist, dd, digits=digits, nastring, ...)
+    newmat <- pybox(plist, dd,  nastring, ...)
     pyshow(newmat, tname, rowname, colname, vline)
 }
 @ 
@@ -307,15 +311,15 @@ strpad <- function(x, width, pad=' ') {
     }
 }
 
-pformat <- function(x, digits, nastring, ...) {
+pformat <- function(x, nastring, ...) {
     # This is only called for single index tables, in vertical mode
     # Any matrix will be a confidence interval
     if (is.matrix(x)) 
-        ret <- paste(ifelse(is.na(x), nastring,
-                            format(x[,1], digits=digits, ...)), "-", 
-                     ifelse(is.na(x), nastring, 
-                            format(x[,2], digits=digits, ...)))
-    else ret <- ifelse(is.na(x), nastring, format(x, digits=digits, ...))
+        ret <- paste(ifelse(is.na(x[,1]), nastring,
+                            format(x[,1],  ...)), "-", 
+                     ifelse(is.na(x[,2]), nastring, 
+                            format(x[,2],  ...)))
+    else ret <- ifelse(is.na(x), nastring, format(x,  ...))
 }
 @ 
 
@@ -327,7 +331,7 @@ The intermediag form \code{final} is a matrix with one column per statistic.
 At the end, reformat it as an array whose last dimension is the components.
 
 <<pyears-charfun>>=
-pybox <- function(plist, dd, digits, nastring, ...) {
+pybox <- function(plist, dd, nastring, ...) {
     ci <- (substring(names(plist), 1,3) == "ci.")  # the CI components
     int <- sapply(plist, function(x) all(x == floor(x) | is.na(x)))
     int <- (!ci & int)
@@ -339,14 +343,14 @@ pybox <- function(plist, dd, digits, nastring, ...) {
         if (any(sapply(plist[int], length) != nc))
             stop("programming length error, notify package author")
         temp <- unlist(plist[int])
-        final[,int] <- ifelse(is.na(temp), nastring, format(temp, ...))
+        final[,int] <- ifelse(is.na(temp), nastring, format(temp))
     }
     if (any(real)) { # floating point
         if (any(sapply(plist[real], length) != nc))
             stop("programming length error, notify package author")
         temp <- unlist(plist[real])
         final[,real] <- ifelse(is.na(temp), nastring, 
-                               format(temp, digits=digits, ...))
+                               format(temp,  ...))
     }
     
     if (any(ci)) {
@@ -354,7 +358,7 @@ pybox <- function(plist, dd, digits, nastring, ...) {
             stop("programming length error, notify package author")
         temp <- unlist(plist[ci])    
         temp <- array(ifelse(is.na(temp), nastring,
-                             format(temp, digits=digits, ...)),
+                             format(temp,  ...)),
                       dim=c(nc, 2, sum(ci)))
         final[,ci] <- paste(temp[,1,], temp[,2,], sep='-')
     }

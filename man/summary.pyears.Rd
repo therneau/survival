@@ -7,7 +7,7 @@
 \method{summary}{pyears}(object, header = TRUE, call = header, n = TRUE,
 event = TRUE, pyears = TRUE, expected = TRUE, rate = FALSE, rr =expected,
 ci.r = FALSE, ci.rr = FALSE, totals=FALSE, legend = TRUE, vline = FALSE,
-vertical= TRUE, nastring=".", conf.level = 0.95, digits = .Options$digits,
+vertical= TRUE, nastring=".", conf.level = 0.95,
 scale = 1, ...)
 }
 
@@ -32,11 +32,9 @@ scale = 1, ...)
   \item{nastring}{what to use for missing values in the table.  Some of
   these are structural, e.g., risk ratios for a cell with no follow-up time.}
   \item{conf.level}{confidence level for any confidence intervals}
-  \item{digits}{number of digits for the printout}
-
   \item{scale}{a scaling factor for printed rates}
   \item{\dots}{optional arguments which will be passed to the
-    \code{format} function}
+    \code{format} function; common choices would be digits=2 or nsmall=1.}
   
 }
 

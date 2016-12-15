@@ -94,7 +94,7 @@ survfitCI <- function(X, Y, weights, id, istate,
         else {
             if (!is.numeric(istate) || any(istate != floor(istate)) || 
                 any(istate < 1))
-                stop("istate should be a vector of integers or a factor")
+                stop("istate should be a vector of positive integers or a factor")
             if (max(istate) > nstate) 
                 state.names <- c(state.names, (1+nstate):max(istate))
         }
