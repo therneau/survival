@@ -239,6 +239,7 @@ else {
         else strata <- strata(mf[, stangle$vars], shortlabel=TRUE)
     }
 }
+if (!missing(start.time)) strata <- strata[keep]
 @
 In two places below we need to know if there are strata by covariate
 interactions, which requires looking at attributes of the terms
