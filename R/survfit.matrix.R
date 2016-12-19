@@ -11,14 +11,6 @@ survfit.matrix <- function(formula, p0, method=c("discrete", "matexp"), ...) {
             stop("input must be a square matrix survival curves")
     nstate <- nrow(curves)
 
-    if (missing(p0)) p0 <- c(1, rep(0, nstate-1))
-    else {
-        if (sum(p0) !=1 || any(p0 <0) || length(p0) != nstate)
-            stop("invalid p0 vector")
-        if (length(p0) != nstate) 
-            stop("input matrix and p0 have different dimensions")
-    }
-
     states <- names(p0)
     if (is.null(states)) {
         dname <- dimnames(curves)
@@ -33,12 +25,13 @@ survfit.matrix <- function(formula, p0, method=c("discrete", "matexp"), ...) {
             stop("input must be a square matrix survival curves")
     if (sum(nonzero) < 2)
         stop("input must have at least 2 transitions")
-    
+ 
     classes <- lapply(curves, class)
     # Make sure we were sent the right things.  If any of the curves inherit
     #  from "survfitms", they are the result of a prior AJ computation;
     #  such recursion does not lead to valid estimates.
     dd <- dim(curves[[1]])
+    ncurve <- prod(dd)
     for (i in 1:length(classes)) {
         if (length(classes[[i]]) != length(classes[[1]]) ||
             any(classes[[i]] != classes[[1]]))
@@ -57,7 +50,14 @@ survfit.matrix <- function(formula, p0, method=c("discrete", "matexp"), ...) {
     }
     else method <- match.arg(method)
     
-    docurve <- function(z, nonzero, nstate) {
+    if (missing(p0)) p0 <- c(1, rep(0, nstate-1))
+    if (!is.matrix(p0)) p0 <- matrix(rep(p0, ncurve), byrow=TRUE)
+    else if (nrow(p0) != ncurve) stop("wrong number of rows for p0")
+    if (ncol(p0) != nstate) stop("incorrect number of states in p0")
+    if (any( rowSums(p0) !=1) || any(p0<0))
+        stop("invalid elements in p0")
+
+    docurve <- function(z, nonzero, nstate, p0) {
         # z is a list of survival curves
         utime <- lapply(z, function(x) x$time[x$n.event>0])
         utime <- sort(unique(unlist(utime)))  # set of unique times
@@ -93,7 +93,7 @@ survfit.matrix <- function(formula, p0, method=c("discrete", "matexp"), ...) {
         for (i in 1:length(z)) {
             index <- findInterval(utime, z[[i]]$time)
             n.risk[,from[i]] <- c(0, z[[i]]$n.risk)[index +1]
-            n.event[, to[i]] <- n.event[,to[i]] + z[[i]]$n.event[index]
+            n.event[, to[i]] <- n.event[,to[i]] + c(0, z[[i]]$n.event)[index+1]
         }
         # All the curves should have the same n
         list(n = z[[1]]$n, time = utime, pstate= pstate[-1,], 
@@ -107,13 +107,22 @@ survfit.matrix <- function(formula, p0, method=c("discrete", "matexp"), ...) {
     #  end to recognize the rows of the newdata frame that gave rise to it.
     #
     nstrat <- length(curves[[1]]$strata)
-    tlist <- vector("list", prod(dd))  # dd will always be of length 2
+    tlist <- vector("list", prod(dd))  
     k <- 1
-    for (j in 1:dd[2]) {
-        for (i in 1:dd[1]) {
-            tlist[[k]] <- docurve(lapply(curves, function(x) x[i,j]),
-                                      nonzero, nstate)
-            k <- k+1
+    if (length(dd) ==1) {
+        tname <- paste0("new", 1:dd[1])
+        for (j in 1:dd[1]) {
+            tlist[[j]] <- docurve(lapply(curves, function(x) x[j]),
+                                  nonzero, nstate, p0[j,])
+        }
+    } else {
+        tname <-  paste0("new", 1:dd[2])
+        for (j in 1:dd[2]) {
+            for (i in 1:dd[1]) {
+                tlist[[k]] <- docurve(lapply(curves, function(x) x[i,j]),
+                                      nonzero, nstate, p0[k,])
+                k <- k+1
+            }
         }
     }
         
@@ -124,9 +133,9 @@ survfit.matrix <- function(formula, p0, method=c("discrete", "matexp"), ...) {
     fit$n.risk <- do.call("rbind", lapply(tlist, function(x) x$n.risk))
     fit$n.event<- do.call("rbind", lapply(tlist, function(x) x$n.event))
     ntemp <- unlist(lapply(tlist, function(x) length(x$time)))
-    tname <-  paste0("new", 1:dd[2])
-    if (nstrat > 0) 
-        names(ntemp) <- as.vector(outer(names(strata), tname,
+
+    if (nstrat > 0 && length(dd)==2) 
+        names(ntemp) <- as.vector(outer(names(curves[[1]]$strata), tname,
                                         paste, sep=", "))
     else names(ntemp) <- tname
     fit$strata <- ntemp
