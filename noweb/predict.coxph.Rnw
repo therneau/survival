@@ -12,6 +12,7 @@ The arguments are
       \item lp = the linear predictor for each observation
       \item risk = the risk score $exp(lp)$ for each observation
       \item expected = the expected number of events
+      \item survival = predicted survival = exp(-expected)
       \item terms = a matrix with one row per subject and one column for
 	each term in the model.
     \end{itemize}
@@ -46,13 +47,13 @@ We will need the following components:
 
 <<predict.coxph>>=
 predict.coxph <- function(object, newdata, 
-		       type=c("lp", "risk", "expected", "terms"),
+		       type=c("lp", "risk", "expected", "terms", "survival"),
 		       se.fit=FALSE, na.action=na.pass,
 		       terms=names(object$assign), collapse, 
                        reference=c("strata", "sample"), ...) {
     <<pcoxph-init>>
     <<pcoxph-getdata>>
-    if (type=="expected") {
+    if (type=="expected" || type== "surv") {
         <<pcoxph-expected>>
         }
     else {
@@ -70,12 +71,19 @@ The [[Terms2]] object is a model statement without the strata or cluster terms,
 appropriate for recreating the matrix of covariates $X$.
 For type=expected the response variable needs to be kept, if not we remove
 it as well since the user's newdata might not contain one.    %'
+The type= survival is treated the same as type expected.
 <<pcoxph-init>>=
 if (!inherits(object, 'coxph'))
     stop("Primary argument much be a coxph object")
 
 Call <- match.call()
 type <-match.arg(type)
+if (type=="survival") {
+    survival <- TRUE
+    type == "expected"  #this is to stop lots of "or" statements
+}
+else survival <- FALSE
+
 n <- object$n
 Terms <-  object$terms
 
@@ -145,7 +153,7 @@ and the second that there is nothing to remove from the terms structure.
 
 <<pcoxph-getdata>>=
 have.mf <- FALSE
-if (type == 'expected') {
+if (type == "expected") {
     y <- object[['y']]
     if (is.null(y)) {  # very rare case
         mf <- stats::model.frame(object)
@@ -271,6 +279,10 @@ if (missing(newdata))
 if (!missing(newdata) || se.fit) {
     <<pcoxph-expected2>>
     }
+if (survival) { #it actually was type= survival, do one more step
+    if (se.fit) se <- se * exp(-pred)
+    pred <- exp(-pred)  # probablility of being in state 0
+}
 @ 
 
 The more general case makes use of the [agsurv] routine to calculate

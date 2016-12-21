@@ -10,7 +10,7 @@
 }
 \usage{
 \method{predict}{coxph}(object, newdata,
-type=c("lp", "risk", "expected", "terms"),
+type=c("lp", "risk", "expected", "terms", "survival"),
 se.fit=FALSE, na.action=na.pass, terms=names(object$assign), collapse,
 reference=c("strata", "sample"),  ...)
 }
@@ -32,7 +32,9 @@ the type of predicted value.
 Choices are the linear predictor (\code{"lp"}), the risk score exp(lp)
 (\code{"risk"}), 
 the expected number of events given the covariates and follow-up time 
-(\code{"expected"}), and the terms of the linear predictor (\code{"terms"}). 
+(\code{"expected"}), and the terms of the linear predictor
+(\code{"terms"}).
+The survival probability for a subject is equal to exp(-expected).
 }
 \item{se.fit}{
 if TRUE, pointwise standard errors are produced for the predictions. 
