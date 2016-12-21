@@ -51,7 +51,7 @@ survfit.matrix <- function(formula, p0, method=c("discrete", "matexp"), ...) {
     else method <- match.arg(method)
     
     if (missing(p0)) p0 <- c(1, rep(0, nstate-1))
-    if (!is.matrix(p0)) p0 <- matrix(rep(p0, ncurve), byrow=TRUE)
+    if (!is.matrix(p0)) p0 <- matrix(rep(p0, ncurve), ncol=nstate, byrow=TRUE)
     else if (nrow(p0) != ncurve) stop("wrong number of rows for p0")
     if (ncol(p0) != nstate) stop("incorrect number of states in p0")
     if (any( rowSums(p0) !=1) || any(p0<0))

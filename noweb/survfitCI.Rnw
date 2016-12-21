@@ -49,7 +49,7 @@ survfitCI <- function(X, Y, weights, id, istate,
                       conf.int= .95,
                       conf.type=c('log',  'log-log',  'plain', 'none'),
                       conf.lower=c('usual', 'peto', 'modified'),
-                      influence = FALSE){
+                      influence = FALSE, start.time){
 
     method <- match.arg(type)
 #    error <- match.arg(error)
@@ -69,7 +69,21 @@ survfitCI <- function(X, Y, weights, id, istate,
     if (type !='mright' && type!='mcounting')
          stop(paste("multi-state computation doesn't support \"", type,
                           "\" survival data", sep=''))
-
+    
+    # If there is a start.time directive, start by removing those observations
+    if (!missing(start.time)) {
+        if (!is.numeric(start.time) || length(start.time) !=1
+            || !is.finite(start.time))
+            stop("start.time must be a single numeric value")
+        toss <- which(Y[,ncol(Y)] <= start.time)
+        if (length(toss)) {
+            n <- nrow(Y)
+            Y <- Y[-toss,,drop=FALSE]
+            X <- X[-toss]
+            weights <- weights[-toss]
+            if (length(id) ==n) id <- id[-toss]
+            if (!missing(istate) && length(istate)==n) istate <- istate[-toss]
+            }
     n <- nrow(Y)
     status <- Y[,ncol(Y)]
     ncurve <- length(levels(X))
@@ -342,6 +356,7 @@ else {
     kfit$cumhaz <- array(unlist(lapply(curves, function(x) x$cumhaz)),
                            dim=c(nst, nst, length(kfit$time)))
     if (influence) kfit$influence <- lapply(curves, function(x) x$influence)
+    if (!missing(start.time)) kfit$start.time <- start.time
 }                         
 kfit$transitions <- transitions
 @ 

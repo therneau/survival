@@ -1,5 +1,16 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 2.40-3}{
+  \itemize{
+    \item Item expose the aeqSurv routine, which is used rectify tied
+     time issues.
+     \item The survfit routines now save the start.time option (if used) in
+     the output object.  This is then used as a default starting point for
+     the x-axis in any plots.
+     \item Allow survfit.matrix to use different p0 values for different
+     curves.
+ }}
+ 
 \section{Changes in version 2.40-2}{
   \itemize{
     \item Fix an error in the finegray routine: with strata() the

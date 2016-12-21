@@ -14,7 +14,7 @@ importFrom(graphics, plot, points, lines, axis, box, matlines, matplot,
 importFrom(Matrix, expm)
 importFrom(methods, as)
 importFrom(utils, getS3method, type.convert, methods)
-export(Surv, aareg, agreg.fit,
+export(Surv, aeqSurv, aareg, agreg.fit,
        agexact.fit, attrassign, 
        basehaz, cch, clogit, cipoisson, cluster, cox.zph, 
        coxph, coxph.control, coxph.detail, coxph.fit,

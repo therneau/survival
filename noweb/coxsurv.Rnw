@@ -163,7 +163,7 @@ else {
         if (ncol(y2) != ncol(y) || length(y2) != length(y))
             stop("Could not reconstruct the y vector")
         if (FALSE) {
-            # removed in 2.40-1.  With the addition of normalizetime
+            # removed in 2.40-1.  With the addition of aeqSurv
             #  other packages were being flagged due to tiny discrpancies
             if (ncol(y2) != ncol(y) || length(y2) != length(y) ||
                 !(isTRUE(all.equal(y[,1], y2[,1]))) ||
@@ -654,6 +654,7 @@ if (se.fit) {
 	}
     }
 
+if (!missing(start.time)) result$start.time <- start.time
 result$call <- Call
 
 # The "type" component is in the middle -- match history

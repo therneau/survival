@@ -1,4 +1,6 @@
 \subsection{Kaplan-Meier}
+Note -- this chunk is in development.  We still use ../R/survfitKM.S
+
 This routine has been rewritten more times than any other in the package,
 as we trade off simplicty of the code with execution speed.  
 This version does all of the oranizational work in S and calls a C
