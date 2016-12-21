@@ -21,7 +21,7 @@ aeqSurv(x, tolerance = sqrt(.Machine$double.eps))
   deal with the issue of ties that get incorrectly broken due to
   floating point imprecision.  See the short vignette on this issue
   for a simple example.  Use the \code{timefix} argument of
-  \code{survfit} or \code{\coxph.control} to control the option
+  \code{survfit} or \code{coxph.control} to control the option
   if desired.
 
   The rule for `equality' is identical to that used by the
