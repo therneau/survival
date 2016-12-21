@@ -9,6 +9,7 @@
      the x-axis in any plots.
      \item Allow survfit.matrix to use different p0 values for different
      curves.
+     \item Add type="survival" to predict.coxph
  }}
  
 \section{Changes in version 2.40-2}{

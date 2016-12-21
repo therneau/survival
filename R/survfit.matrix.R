@@ -43,6 +43,15 @@ survfit.matrix <- function(formula, p0, method=c("discrete", "matexp"), ...) {
     if (any(sapply(curves, function(x) inherits(x, "survfitms"))))
         stop("multi-state curves are not a valid input")
     type <- classes[[1]][1]  # 'survfit' or 'survfit.cox'
+    temp <- sapply(curves, function(x) x$start.time)
+    tlen <- sapply(temp, length)
+    if (any(tlen >0)) {  # at least one curve with start.time
+        if (any(tlen != 1) ||
+            any(temp != temp[1]))
+            stop("all curves must have a consistent start.time value")
+        start.time <- temp[1]
+    } else start.time <- NULL
+        
 
     if (missing(method)) {
         if (type=='survfit.cox') method <- "matexp"
@@ -140,10 +149,10 @@ survfit.matrix <- function(formula, p0, method=c("discrete", "matexp"), ...) {
     else names(ntemp) <- tname
     fit$strata <- ntemp
     ns <- length(fit$strata)
-    if (ns > 1) fit$p0 <- matrix(rep(p0, each=ns), nrow=ns)
-    else fit$p0 <- p0
+    fit$p0 <- p0
     fit$states <- states
     fit$n <- curves[[1]]$n
+    if (!is.null(start.time)) fit$start.time <- start.time
     fit$call <- Call
     class(fit) <- c("survfitms", "survfit")
     fit
