@@ -84,6 +84,7 @@ survfitCI <- function(X, Y, weights, id, istate,
             if (length(id) ==n) id <- id[-toss]
             if (!missing(istate) && length(istate)==n) istate <- istate[-toss]
             }
+    }
     n <- nrow(Y)
     status <- Y[,ncol(Y)]
     ncurve <- length(levels(X))
