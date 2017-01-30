@@ -106,6 +106,8 @@ survSplit <- function(formula, data, subset, na.action=na.pass,
                 end <- as.character(temp$time2)
             if (missing(event) && !is.null(temp$event) && is.name(temp$event))
                 event <- as.character(temp$event)
+            if (missing(start) && !is.null(temp$time) && is.name(temp$time))
+                start <- as.character(temp$time)
         }
 
         newdata[[start]] <- index$start
