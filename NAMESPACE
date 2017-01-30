@@ -5,7 +5,7 @@ importFrom(stats, anova, approx, as.formula, coef, coefficients,
            logLik, makepredictcall, median, model.extract,
            model.frame, model.matrix, model.offset, model.response,
            model.weights, na.fail, na.pass, napredict, naprint, naresid,
-           pchisq, pnorm, printCoefmat, predict, qnorm, quantile,
+           pchisq, pnorm, printCoefmat, predict, qnorm, quantile, qgamma,
            resid, residuals, runif, stat.anova, terms, var, vcov,
            .checkMFClasses, .getXlevels)
 importFrom(graphics, plot, points, lines, axis, box, matlines, matplot, 

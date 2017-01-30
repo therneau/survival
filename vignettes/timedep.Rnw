@@ -1052,6 +1052,22 @@ it contains an element for each subject at risk at each event time.
 If there are multiple tt() terms in the formula, then the tt argument
 should be a list of functions with the requisite number of elements.
 
+An alternate way to fit the above model is to create the expanded data
+set directly and then do an ordinary \code{coxph} call on the expanded
+data. The disadvantage of this is the very large data set, of course, but
+an advantage is that further processing of the model is available, such as
+residuals or survival curves.  
+A reasonable strategy is to use \code{tt()} expressions for initial analysis
+and then expanded data sets to follow up on selected models.
+<<expand>>=
+dtimes <- sort(unique(with(pbc, time[status==2])))
+tdata <- survSplit(Surv(time, status==2) ~., pbc, cut=dtimes)
+tdata$c.age <- tdata$age + tdata$time/365.25 -50  #current age, centered at 50
+pfit3 <- coxph(Surv(tstart, time, event) ~ log(bili) + ascites + c.age +
+    I(c.age^2) + I(c.age^3), data=tdata)
+rbind(coef(pfit2), coef(pfit3))
+@ 
+
 There are other interesting uses for the time-transform capability.
 One example is O'Brien's logit-rank test procedure \cite{obrien78}.
 He proposed replacing the covariate at each event time with a logit
@@ -1103,8 +1119,7 @@ the mean and variance matrices, reducing the compute time to $O((n+d) p^2)$.
 When a tt term appears updating is not possible; for even moderate size
 data sets the impact of $nd$ versus $n+d$ can be surprising.
 
-
-The time-transform is a new addition and still has some rough edges.
+The time-transform is a newer addition and still has some rough edges.
 At this moment the $x=TRUE$ argument is needed to get proper residuals and
 predicted values, and termplot is unable to properly reconstruct the
 data to plot a fit.

@@ -26,7 +26,7 @@ give subjects artificial follow-up.
 The function below creates a data set that can then be used with coxph.
 <<finegray>>= 
 finegray <- function(formula, data, subset, na.action= na.pass,
-                     etype, prefix="fg", count="", id) {
+                     etype, prefix="fg", count="", id, timefix=TRUE) {
     Call <- match.call()
     indx <- match(c("formula", "data", "subset", "id"),
               names(Call), nomatch=0) 
@@ -50,6 +50,7 @@ finegray <- function(formula, data, subset, na.action= na.pass,
 	stop("Fine-Gray model requires a multi-state survival")
     nY <- ncol(Y)
     states <- attr(Y, "states")
+    if (timefix) Y <- aeqSurv(Y)
 
     strats <- attr(Terms, "specials")$strata
     if (length(strats)) {

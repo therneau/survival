@@ -12,7 +12,7 @@
 }
 \usage{
 \method{survfit}{formula}(formula, data, weights, subset, na.action,  
-        etype, id, istate, ...)
+        etype, id, istate, timefix=TRUE, ...)
 }
 \arguments{
   \item{formula}{
@@ -50,7 +50,10 @@
     lines of data.
   }
   \item{istate}{for multi-state models, identifies the initial state of
-  each subject} 
+    each subject}
+  \item{timefix}{process times through the \code{aeqSurv} function to
+  eliminate potential roundoff issues.}
+
 
   \item{\dots}{
     The following additional arguments are passed to internal functions

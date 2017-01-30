@@ -8,7 +8,7 @@
 }
 \usage{
 finegray(formula, data, subset, na.action= na.pass, etype,
-    prefix="fg", count, id)
+    prefix="fg", count, id, timefix=TRUE)
 }
 \arguments{
   \item{formula}{a standard model formula, with survival on the left and
@@ -46,6 +46,8 @@ finegray(formula, data, subset, na.action= na.pass, etype,
 
 \item{id}{optional, the variable name in the data set which identifies
   subjects.}
+\item{timefix}{process times through the \code{aeqSurv} function to
+  eliminate potential roundoff issues.}
 }
 
 \details{
@@ -80,7 +82,7 @@ finegray(formula, data, subset, na.action= na.pass, etype,
 
 }
 \author{Terry Therneau}
-\seealso{\code{\link{coxph}}}
+\seealso{\code{\link{coxph}}, \code{\link{aeqSurv}}}
 
 \examples{
 # Treat time to death and plasma cell malignancy as competing risks

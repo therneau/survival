@@ -19,7 +19,7 @@ aeqSurv(x, tolerance = sqrt(.Machine$double.eps))
 \details{
   This routine is called by both \code{survfit} and \code{coxph} to
   deal with the issue of ties that get incorrectly broken due to
-  floating point imprecision.  See the short vignette on this issue
+  floating point imprecision.  See the short vignette on tied times
   for a simple example.  Use the \code{timefix} argument of
   \code{survfit} or \code{coxph.control} to control the option
   if desired.

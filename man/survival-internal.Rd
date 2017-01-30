@@ -37,7 +37,7 @@ survfitCI(X, Y, weights,  id, istate,
                        conf.int= .95,
                        conf.type=c('log',  'log-log',  'plain', 'none'),
                        conf.lower=c('usual', 'peto', 'modified'),
-                       influence=FALSE)
+                       influence=FALSE, start.time)
 survfitKM(x, y, casewt=rep(1,length(x)),
                        type=c('kaplan-meier', 'fleming-harrington', 'fh2'),
                        error=c('greenwood', "tsiatis"), se.fit=TRUE,
