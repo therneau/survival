@@ -61,6 +61,13 @@ scale = 1, ...)
   \code{tcut} objects then a single observation may contribute to
   multiple cells.
 }
+\section{Notes}{
+  The pandoc system has four table types: with or without vertical bars,
+  and with single or multiple rows of data in each cell.
+  This routine produces all 4 styles depending on options, but currently
+  not all of them are recognized by the Rstudio-pandoc pipeline.
+  (And we don't yet see why.)
+  }
 \value{a copy of the object}
 \author{Terry Therneau and Elizabeth Atkinson}
 \seealso{\code{\link{cipoisson}}, \code{\link{pyears}}, \code{\link{format}}}

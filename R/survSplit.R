@@ -70,7 +70,7 @@ survSplit <- function(formula, data, subset, na.action=na.pass,
     }
 
     storage.mode(Y) <- "double"
-    index <- .Call("survsplit", Y[,1], Y[,2], as.double(cut))
+    index <- .Call(Csurvsplit, Y[,1], Y[,2], as.double(cut))
     newdata <- mf[index$row, -1, drop=FALSE]
     row.names(newdata) <- NULL    # erase R's manufactured row names
     attr(newdata, "terms") <- NULL

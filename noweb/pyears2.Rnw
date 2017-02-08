@@ -1,8 +1,7 @@
 \subsection{Print and summary}
-The print function for pyear gives a very abbreviates
+The print function for pyear gives a very abbreviated
 printout: just a few lines.
-The summary function formats the output using the rules for pandoc
-tables.  This makes it play nicely in the Rstudio environment.
+It works with pyears objects with or without a data component.
 
 <<print.pyears>>=
 print.pyears <- function(x, ...) {
@@ -21,7 +20,7 @@ print.pyears <- function(x, ...) {
              format(x$offtable), "\n")
         }
     else {
-        if (!is.null(x$event))
+        if (!is.null(x$data$event))
             cat("Total number of events:", format(sum(x$data$event)), "\n")
         cat (   "Total number of person-years tabulated:", 
              format(sum(x$data$pyears)),
@@ -40,8 +39,10 @@ print.pyears <- function(x, ...) {
 }
 @ 
 
-Pandoc has 4 types of tables: with and without vertical bars * single or 
-multiple rows per cell. 
+The summary function attempts to create output that looks like a 
+pandoc table, which in turn makes it mesh nicely with Rstudio.
+Pandoc has 4 types of tables: with and without vertical bars and
+with single or multiple rows per cell. 
 If the pyears object has only a single dimension then our output will
 be a simple table with a row or column for each of the output
 types (see the vertical argument).
@@ -272,9 +273,10 @@ if (length(dd) > 2) {
     newmat <- pybox(plist, c(dd[1],dd[2], prod(dd[-(1:2)])), 
                     nastring, ...)
     outer.label <- do.call("expand.grid", dimnames(object$n)[-(1:2)])
-    temp <-cname[-(1:2)]
+    temp <- names(outer.label)
     for (i in 1:nrow(outer.label)) {
-        paste(":", paste(temp, outer.label[i,], sep="=")) # A table caption
+        # first the caption, then data
+        cat(paste(":", paste(temp, outer.label[i,], sep="=")), '\n')
         pyshow(newmat[,,i,], tname, rowname, colname, vline)
     }
 }
@@ -374,7 +376,7 @@ pandoc table.
 pyshow <- function(dmat, labels, rowname, colname, vline) {
     # Every column is the same width, except the first
     colwidth <- c(max(nchar(rowname), nchar(labels[1])),
-                  rep(max(nchar(dmat[1,1,])), length(colname)))
+                  rep(max(nchar(dmat[1,1,]), nchar(colname)), length(colname)))
     colwidth[2] <- max(colwidth[2], nchar(labels[2]))
     ncol <- length(colwidth)
 
@@ -446,7 +448,7 @@ pytot <- function(x, na=FALSE) {
     else {
         # The general case
         index <- 1:length(dd)
-        if (na) sum1 <- sum2 <- NA
+        if (na) sum1 <- sum2 <- sum3 <- NA
         else {
             sum1 <- apply(x, index[-1], sum)    # row sums
             sum2 <- apply(x, index[-2], sum)    # col sums

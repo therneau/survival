@@ -279,7 +279,7 @@ stratfun <- function(i) {
     ckeep <- rep(FALSE, length(ct2))
     ckeep[index] <- TRUE
     expand <- (Y[keep, 3] !=0 & Y[keep,3] != enum & last[keep]) #which rows to expand
-    split <- .Call("finegray", Y[keep,1], Y[keep,2], ct2, cp2, expand, 
+    split <- .Call(Cfinegray, Y[keep,1], Y[keep,2], ct2, cp2, expand, 
                    c(TRUE, ckeep)) 
     tdata <- tdata[split$row,,drop=FALSE]
     tstat <- ifelse((status[keep])[split$row]== enum, 1, 0)

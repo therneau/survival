@@ -506,7 +506,7 @@ else {
     # id can be any data type; feed integers to the C routine
     storage.mode(yinc) <- storage.mode(dstop) <- "double"
     storage.mode(newvar) <- storage.mode(etime) <- "double"
-    newvar <- .Call("tmerge", match(baseid, baseid), dstop, newvar, 
+    newvar <- .Call(Ctmerge, match(baseid, baseid), dstop, newvar, 
                     match(id, baseid)[keep], etime[keep], 
                     yinc[keep], indx[keep])
 }

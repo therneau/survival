@@ -57,10 +57,15 @@ static const R_CallMethodDef Callentries[] = {
 void R_init_survival(DllInfo *dll){
     R_registerRoutines(dll, Centries, Callentries, NULL, NULL);
 
-    /* My take on the documentation is that adding the following line
-       will make symbols available ONLY through the above tables.
-       Anyone who then tried to link to my C code would be SOL.
+    /* The following line makes only those routines defined above
+       available to outside packages, i.e., internal things like
+       dmatrix() are now invisible.
     */
-   /* R_useDynamicSymbols(dll, FALSE);  */
+    R_useDynamicSymbols(dll, FALSE); 
+    /*
+    ** This line makes them only be available via the symbols above
+    **  i.e., .Call("tmerge", ) won't work but .Call(Ctmerge, )  will
+    */
+    R_forceSymbols(dll, TRUE);
 }
     
