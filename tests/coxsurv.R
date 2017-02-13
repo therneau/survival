@@ -61,3 +61,4 @@ surv3 <- survfit(fit1, newdata=data.frame(age=50, ph.ecog=1),
 index <- match(surv3$time, surv1$time)
 rescale <- summary(surv1, time=100)$surv
 all.equal(surv3$surv, surv1$surv[index]/rescale)
+
