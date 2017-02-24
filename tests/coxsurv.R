@@ -48,7 +48,7 @@ all.equal(unclass(surv2[,2])[-length(surv3)], unclass(surv3)[-length(surv3)])
 # Test out offsets, which have recently become popular due to a Langholz paper
 fit1 <- coxph(Surv(time, status) ~ age + ph.ecog, lung)
 fit2 <- coxph(Surv(time, status) ~ age + offset(ph.ecog * fit1$coef[2]), lung)
-
+ 
 surv1 <- survfit(fit1, newdata=data.frame(age=50, ph.ecog=1))
 surv2 <- survfit(fit2, newdata=data.frame(age=50, ph.ecog=1))
 all.equal(surv1$surv, surv2$surv)
