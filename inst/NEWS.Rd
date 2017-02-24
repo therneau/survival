@@ -1,8 +1,16 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
-\section{Changes in version 2.40-3}{
+\section{Changes in version 2.41-0}{
   \itemize{
-    \item Item expose the aeqSurv routine, which is used rectify tied
+    \item Per request if the R-core, add R_useDynamicSymbols(dll,FALSE)
+      to the initialization.  This prevents .Call from accessing the
+      library when its first argument is a character string.  The reason
+      is to stop accidental linking to the routines.
+    \item Fix a bug in tmerge, if data2 was not sorted by time within id
+      then a tdc(time, x) call's outcomte was incorrect.  Add the ability
+      to use a factor as the second variable in a tdc call, and add the
+      tdcstart option.
+    \item Expose the aeqSurv routine, which is used rectify tied
      time issues.
      \item The survfit routines now save the start.time option (if used) in
      the output object.  This is then used as a default starting point for

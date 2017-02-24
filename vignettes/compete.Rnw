@@ -228,7 +228,7 @@ in the diagram) is rarely included in the final plot. Since the curves sum to
 1, the full set is redundant.  Pr(nothing yet) is usually the least 
 interesting of the set and so it is left off to make the plot less busy.
 The remaining curves in the competing risks case rise from 0.
-(This bothers some researchers as it 'just looks wrong' to them.)
+(This bothers some researchers as it `just looks wrong' to them.)
 
 \subsection{Examples}
 
@@ -1055,9 +1055,9 @@ rows are the data set we would use for a time to PCM analysis,
 with a simple 0/1 status variable encoding the PCM outcome.
 The second $n$ rows are the data set we would have used for the 
 `death before PCM' fits, with status encoding the death-before-PCM endpoint.
-A last variable, \code{group},  is 'pcm' for the first $n$ 
+A last variable, \code{group},  is `pcm' for the first $n$ 
 observations and
-'death' for the remainder.  Then fit a model
+`death' for the remainder.  Then fit a model
 <<pcmstack, echo=TRUE>>=
 temp1 <- data.frame(mgus2, time=etime, status=(event=="pcm"), group='pcm')
 temp2 <- data.frame(mgus2, time=etime, status=(event=="death"), group="death")

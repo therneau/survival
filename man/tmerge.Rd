@@ -25,7 +25,7 @@ tmerge(data1, data2,  id,\dots, tstart, tstop, options)
     each subject, only used on an initial call}
   
   \item{options}{a list of options.  Valid ones are idname, tstartname,
-    tstopname, delay and na.rm.  See the explanation below.}
+    tstopname, delay, na.rm, and tdcstart.  See the explanation below.}
 }
 \details{
  The program is often run in multiple passes, the first of which
@@ -46,10 +46,12 @@ tmerge(data1, data2,  id,\dots, tstart, tstop, options)
    occurrent of a "condition" at that time.
    The second argument \code{x} is optional. In the  case where
    \code{x} is missing the count variable starts at 0 for each subject
-   and becomes 1 at the time of the event; if \code{x} is present the
-   count is set to the value of \code{x}.
+   and becomes 1 at the time of the event.
+   If \code{x} is present the value of the time dependent covariate
+   is initialized to the \code{tdcstart} option and is reset to the
+   value of \code{x} at each observation.
    If the option \code{na.rm=TRUE} missing values of \code{x} are
-   first removed.
+   first removed.  
 
  \item{newname = cumtdc(y,x)}{ Similar to tdc, except that the event
    count is accumulated over time for each subject.}
@@ -72,6 +74,8 @@ observation with a value of NA?  The default value leads to
 "last value carried forward" behavior.
 The \code{delay} option causes a time-dependent covariate's new
 value to be delayed, see the vignette for an example.
+
+
 }
 
 \value{a data frame with two extra attributes \code{tname} and
