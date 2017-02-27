@@ -104,9 +104,11 @@ Surv <- function(time, time2, event,
 	    if (!is.numeric(time2)) stop("Time2 must be numeric")
 	    if (length(time2) !=nn) 
 		    stop ("time and time2 are different lengths")
-            time  <- ifelse(time==Inf, NA, time)    #allow Inf for upper/lower
-            time2 <- ifelse(time2== -Inf, NA, time2)  
             backwards <- (!is.na(time) & !is.na(time2) & time > time2)
+            # allow for infinite times (important to do the backwards check
+            #  first)
+            time  <- ifelse(is.finite(time), time, NA)
+            time2 <- ifelse(is.finite(time2), time2, NA)
             unknown <-  (is.na(time) & is.na(time2))
  	    status <- ifelse(is.na(time),  2,
 		      ifelse(is.na(time2), 0,
