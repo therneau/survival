@@ -298,7 +298,7 @@ else {
         risk <- c(exp(x%*% coef + offset - mean(offset)))
         }
    else {
-       keep <- !is.na(match(dimnames(x)[[2]], names(coef)))
+       keep <- !grepl("frailty(", dimnames(x)[[2]], fixed=TRUE)
        x <- x[,keep, drop=F]
 #       varmat <- varmat[keep,keep]  #coxph already has trimmed it
        risk <- exp(object$linear.predictor)
