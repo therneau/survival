@@ -229,6 +229,7 @@ qstat <- function(data) {
     }
 
 {if (exists('bootstrap')) {
+    set.seed(1953)  # a good year :-)
     bfit <- bootstrap(tdata, qstat, B=1000)
     bci <- limits.bca(bfit, probs=c(.025, .975))
     }

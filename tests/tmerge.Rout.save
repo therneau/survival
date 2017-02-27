@@ -1,7 +1,7 @@
 
-R Under development (unstable) (2016-06-16 r70793) -- "Unsuffered Consequences"
-Copyright (C) 2016 The R Foundation for Statistical Computing
-Platform: x86_64-pc-linux-gnu (64-bit)
+R Under development (unstable) (2017-02-21 r72241) -- "Unsuffered Consequences"
+Copyright (C) 2017 The R Foundation for Statistical Computing
+Platform: i686-pc-linux-gnu (32-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -27,7 +27,7 @@ Type 'q()' to quit R.
 [1] TRUE
 > all.equal(test2$death, c(0,0,1,0,1,1,1,0,0,1,1))
 [1] TRUE
-> all.equal(test2$zed, c(NA, 5, 4,NA, 3, NA, NA, NA, 2, 1, NA))
+> all.equal(test2$zed, c(NA, 1, 3,NA, 4, NA, NA, NA, 2, 5, NA))
 [1] TRUE
 > 
 > #add in a cumtdc variable and cumevent variable
@@ -36,7 +36,7 @@ Type 'q()' to quit R.
 +                     x = c(1,5,2,3,7, 4,6,8))
 > test3 <- tmerge(test2, data3, id=idd, x=cumtdc(age, x),
 +                 esum = cumevent(age))
-> all.equal(test3$x, c(NA,1,1,6,NA, 2,2,5,7,4, NA, 6,6,6, NA,8))
+> all.equal(test3$x, c(NA,2,2,5,NA, 1,1,6,4,6, NA, 8,8,8, NA,7))
 [1] TRUE
 > all.equal(test3$esum, c(1,0,2,0,1,0,2,0,0,0,1,0,0,0,1,0)) 
 [1] TRUE
@@ -84,4 +84,4 @@ Type 'q()' to quit R.
 > 
 > proc.time()
    user  system elapsed 
-  1.452   0.048   1.494 
+  1.364   0.072   1.432 

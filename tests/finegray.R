@@ -140,6 +140,7 @@ all.equal(tdata$fgwt,  Gwt*Hwt/(Gwt*Hwt)[index])
 
 #
 # Test data 4: mgus2 data on age scale
+#  The answer is incorrect due to roundoff, but consistent
 #
 start <- mgus2$age  # age in years
 end   <- start + etime/12  #etime in months
@@ -158,7 +159,7 @@ G <- cumprod(1 - Gevent/pmax(1, Grisk))         # pmax to avoid 0/0
 H <- rev(cumprod(rev(1-Hevent/pmax(1,Hrisk))))
 H <- c(H[-1], 1)  #make it right continuous
 
-wdata <- finegray(Surv(start, end, e2) ~ ., id=id, mgus2)
+wdata <- finegray(Surv(start, end, e2) ~ ., id=id, mgus2, timefix=FALSE)
 type2 <- event[wdata$id]==2  # the rows to be expanded
 tdata <- wdata[type2,]
 first <- match(tdata$id, tdata$id)

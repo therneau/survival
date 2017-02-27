@@ -15,7 +15,7 @@ data3 <- data.frame(idd=c(5,5,1,1,6,4,3,2),
                     x = c(1,5,2,3,7, 4,6,8))
 test3 <- tmerge(test2, data3, id=idd, x=cumtdc(age, x),
                 esum = cumevent(age))
-all.equal(test3$x, c(NA,1,1,6,NA, 2,2,5,7,4, NA, 6,6,6, NA,8))
+all.equal(test3$x, c(NA,2,2,5,NA, 1,1,6,4,6, NA, 8,8,8, NA,7))
 all.equal(test3$esum, c(1,0,2,0,1,0,2,0,0,0,1,0,0,0,1,0)) 
 
 
