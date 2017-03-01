@@ -1,7 +1,6 @@
 
-R Under development (unstable) (2013-02-24 r62054) -- "Unsuffered Consequences"
-Copyright (C) 2013 The R Foundation for Statistical Computing
-ISBN 3-900051-07-0
+R Under development (unstable) (2017-02-21 r72241) -- "Unsuffered Consequences"
+Copyright (C) 2017 The R Foundation for Statistical Computing
 Platform: i686-pc-linux-gnu (32-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -19,7 +18,6 @@ Type 'q()' to quit R.
 > options(na.action=na.exclude) # preserve missings
 > options(contrasts=c('contr.treatment', 'contr.poly')) #ensure constrast type
 > library(survival)
-Loading required package: splines
 > 
 > #
 > # Reproduce example 1 in the SAS lifereg documentation
@@ -405,6 +403,7 @@ n= 21
 +     }
 > 
 > {if (exists('bootstrap')) {
++     set.seed(1953)  # a good year :-)
 +     bfit <- bootstrap(tdata, qstat, B=1000)
 +     bci <- limits.bca(bfit, probs=c(.025, .975))
 +     }
@@ -438,4 +437,4 @@ pdf
 > 
 > proc.time()
    user  system elapsed 
-  5.312   0.044   5.358 
+  5.568   0.076   5.644 

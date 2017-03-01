@@ -12,5 +12,5 @@ include.lowest for tcut (first find out what the issue is)
 
 add "fun" to summary.survfit
  
-?Surv claims that -Inf is allowed, but survreg chokes.
+Fixed: ?Surv claims that -Inf is allowed, but survreg chokes.
 
