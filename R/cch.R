@@ -76,16 +76,18 @@ cch <- function(formula, data=sys.parent(), subcoh, id, stratum=NULL, cohort.siz
     fitter <- get(method)
 
     # The artificial offset is 1/2 the minimal distance between events
+    # If there is only one unique event time then any offset is ok
     if (ncol(Y)==3) dtime <- unique(Y[cens==1,2])
-    else dtime <- unique(Y[cens, 1])
-    delta <- min(diff(sort(dtime))) /2
-    
+    else dtime <- unique(Y[cens==1, 1])
+    if (length(dtime) > 1) delta <- min(diff(sort(dtime))) /2 
+    else delta <- 1
+
     if (stratified)        
         out<-fitter(tenter=tenter, texit=texit, cc=cc, id=id, X=X,
                     stratum=as.numeric(stratum), stratum.sizes=cohort.size,
-                    eps=delta)
+                    delta)
     else
-        out<-fitter(tenter=tenter, texit=texit, cc=cc, id=id, X=X, ntot=nn, robust=robust, eps = delta)
+        out<-fitter(tenter=tenter, texit=texit, cc=cc, id=id, X=X, ntot=nn, robust=robust, delta)
     out$method <- method
     names(out$coefficients) <- dimnames(X)[[2]]
     if(!is.null(out$var))
@@ -107,14 +109,14 @@ cch <- function(formula, data=sys.parent(), subcoh, id, stratum=NULL, cohort.siz
 
 ### Subprograms
 
-Prentice <- function(tenter, texit, cc,  id, X, ntot,robust, eps){
+Prentice <- function(tenter, texit, cc,  id, X, ntot,robust, delta){
     cens <- as.numeric(cc>0) # Censorship indicators
     subcoh <- as.numeric(cc<2) # Subcohort indicators
 
     ## Calculate Prentice estimate
     ent2 <- tenter
-    ent2[cc==2] <- texit[cc==2]-eps
-    fit1 <- coxph(Surv(ent2,texit,cens)~X,eps=eps,x=TRUE, timefix=FALSE)
+    ent2[cc==2] <- texit[cc==2]- delta
+    fit1 <- coxph(Surv(ent2,texit,cens)~X, x=TRUE, timefix=FALSE)
 
     ## Calculate Prentice estimate and variance
     nd <- sum(cens) # Number of failures
@@ -129,7 +131,7 @@ Prentice <- function(tenter, texit, cc,  id, X, ntot,robust, eps){
     dum <- c(dum,rep(0,nc))
     gp <- rep(1,nd)
     gp <- c(gp,rep(0,nc))
-    fit <- coxph(Surv(aent,aexit,gp)~aX+offset(dum)+cluster(aid),eps=eps,x=TRUE,
+    fit <- coxph(Surv(aent,aexit,gp)~aX+offset(dum)+cluster(aid), x=TRUE,
                  iter.max=35,init=fit1$coefficients, timefix=FALSE)
     db <- resid(fit,type="dfbeta")
     db <- as.matrix(db)
@@ -142,7 +144,7 @@ Prentice <- function(tenter, texit, cc,  id, X, ntot,robust, eps){
     fit
 }
 
-SelfPrentice <- function(tenter, texit, cc,  id, X, ntot,robust, eps){
+SelfPrentice <- function(tenter, texit, cc,  id, X, ntot,robust, delta){
     cens <- as.numeric(cc>0) # Censorship indicators
     subcoh <- as.numeric(cc<2) # Subcohort indicators
 
@@ -159,7 +161,7 @@ SelfPrentice <- function(tenter, texit, cc,  id, X, ntot,robust, eps){
     dum <- c(dum,rep(0,nc))
     gp <- rep(1,nd)
     gp <- c(gp,rep(0,nc))
-    fit <- coxph(Surv(aent,aexit,gp)~aX+offset(dum)+cluster(aid),eps=eps,
+    fit <- coxph(Surv(aent,aexit,gp)~aX+offset(dum)+cluster(aid),
                  x=TRUE, timefix=FALSE)
     db <- resid(fit,type="dfbeta")
     db <- as.matrix(db)
@@ -170,7 +172,7 @@ SelfPrentice <- function(tenter, texit, cc,  id, X, ntot,robust, eps){
     fit
 }
 
-LinYing <- function(tenter, texit, cc,  id, X, ntot,robust, eps){
+LinYing <- function(tenter, texit, cc,  id, X, ntot,robust, delta){
     cens <- as.numeric(cc>0) # Censorship indicators
     subcoh <- as.numeric(cc<2) # Subcohort indicators
     nd <- sum(cens) # Number of failures
@@ -182,7 +184,7 @@ LinYing <- function(tenter, texit, cc,  id, X, ntot,robust, eps){
     offs[cc>0] <- 1
     loffs <- log(offs)
     fit <- coxph(Surv(tenter, texit, cens)~X+offset(loffs)+cluster(id),
-                 eps=eps,x=TRUE, timefix=FALSE)
+                 x=TRUE, timefix=FALSE)
     db <- resid(fit,type="dfbeta")
     db <- as.matrix(db)
     db0 <- db[cens==0,,drop=FALSE]
@@ -197,7 +199,7 @@ LinYing <- function(tenter, texit, cc,  id, X, ntot,robust, eps){
     fit
 }
 
-I.Borgan <- function(tenter, texit, cc,  id, X, stratum, stratum.sizes, eps){
+I.Borgan <- function(tenter, texit, cc,  id, X, stratum, stratum.sizes, delta){
   nobs <- length(texit)
   idx <- 1:length(nobs)
   jj <- max(stratum)
@@ -228,7 +230,7 @@ I.Borgan <- function(tenter, texit, cc,  id, X, stratum, stratum.sizes, eps){
   gp <- c(gp, rep(0, nc))
   w[gp==1] <- 1
   fit <- coxph(Surv(ent,exit,gp)~X+offset(dum)+cluster(id),
-               weights=w, eps=eps,x=T, iter.max=25, timefix=FALSE)  
+               weights=w, x=T, iter.max=25, timefix=FALSE)  
   score <- resid(fit, type = "score", weighted=F)
   sc <- resid(fit, type="score", collapse=id, weighted=T)
   score <- as.matrix(score)
@@ -259,7 +261,7 @@ I.Borgan <- function(tenter, texit, cc,  id, X, stratum, stratum.sizes, eps){
   fit
 }
 
-II.Borgan <- function(tenter, texit, cc,  id, X, stratum, stratum.sizes, eps){
+II.Borgan <- function(tenter, texit, cc,  id, X, stratum, stratum.sizes, delta){
   jj <- max(stratum)
   nn <- stratum.sizes  ## Cohort stratum sizes
   n <- table(stratum)  ## Sample stratum sizes
@@ -279,7 +281,7 @@ II.Borgan <- function(tenter, texit, cc,  id, X, stratum, stratum.sizes, eps){
   w <- wt[stratum]
   w[cens==1] <- 1
   fit <- coxph(Surv(tenter,texit,cens)~X+cluster(id),
-               weights=w,eps=eps,x=T, iter.max=25, timefix=FALSE)  ## Borgan Estimate II
+               weights=w, x=T, iter.max=25, timefix=FALSE)  ## Borgan Estimate II
   score <- resid(fit, type = "score", weighted=F)
   sc <- resid(fit,type="score", collapse=id, weighted=T)
   score <- as.matrix(score)

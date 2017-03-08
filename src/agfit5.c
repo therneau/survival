@@ -80,7 +80,7 @@
 static double **covar, **cmat, **cmat2;
 static double *a, *oldbeta, *a2;
 static double *offset, *weights;
-static int    *event, *frail;
+static int    *event, *frail = NULL;
 static double *score, *start, *stop;
 static int    *sort1, *sort2;
 static double *tmean;
@@ -678,6 +678,7 @@ void agfit5c(Sint *nvar) {
     Free(upen);
     Free(event);
     Free(a);
+    if (frail != NULL) free(frail);
     if (*nvar > 0) {
 	cmatrix_free(cmat2);
 	cmatrix_free(cmat);

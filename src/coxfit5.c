@@ -82,7 +82,7 @@ static double **covar, **cmat, **cmat2;
 static double *mark, *wtave;
 static double *a, *oldbeta, *a2;
 static double *offset, *weights;
-static int    *status, *frail, *sort;
+static int    *status, *frail=NULL, *sort;
 static double *score, *ttime;  /* Hp-UX really doesn't like "time" as a var */
 static double *tmean;
 static int    ptype, pdiag;
@@ -666,6 +666,7 @@ void coxfit5_c (Sint *nusedx, Sint *nvar, Sint *strata, Sint *methodx,
     Free(upen);
     Free(status);
     Free(a);
+    if (frail != NULL) Free(frail);
     if (*nvar > 0) {
 	cmatrix_free(cmat2);
 	cmatrix_free(cmat);

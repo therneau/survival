@@ -1,5 +1,21 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 2.41-2}{
+  \itemize{
+    \item Fix two memory leaks and an uninitialized array, found by B Ripley. 
+
+    \item With Surv(a,b, type='interval2') and a or b infinite, the
+    infinite values were incorrectly retained rather then being
+    transformed into left or right censoring.  The downstream survfit
+    and/or survreg results could then sometimes be in error.
+
+    \item Update cch to correctly deal with nearly tied times, in line
+     with the many changes in version 2.40.
+
+     \item Update the README.md file, for github users who didn't read
+    noweb/Readme and then get R CMD build errors.
+  }
+}
 \section{Changes in version 2.41-0}{
   \itemize{
     \item Per request if the R-core, add R_useDynamicSymbols(dll,FALSE)
