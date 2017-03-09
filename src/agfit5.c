@@ -678,7 +678,7 @@ void agfit5c(Sint *nvar) {
     Free(upen);
     Free(event);
     Free(a);
-    if (frail != NULL) free(frail);
+    if (frail != NULL) Free(frail);
     if (*nvar > 0) {
 	cmatrix_free(cmat2);
 	cmatrix_free(cmat);
