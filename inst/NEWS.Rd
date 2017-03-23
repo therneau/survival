@@ -1,5 +1,22 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 2.41-3}{
+  \itemize{
+    \item A check for infinite loglik was incorrect in agfit4.c, and could
+    fail to detect the need for step halving.  It required a very
+    unuaual data set to trigger this.
+
+    \item The survfit routine would fail for interval censored data, on
+    a group that had only a single step in the curve.
+
+    \item Minor change to Surv to ensure that its check for difftime
+    objects will not trigger a "length >1 inside an if ()" warning.
+
+    \item The summary.survfit function had n.censor wrong when there
+    were multiple curves and censor=TRUE (spurious NA values).  Add more
+    lines to the test suite.
+}}
+
 \section{Changes in version 2.41-2}{
   \itemize{
     \item Fix two memory leaks and an uninitialized array, found by B Ripley. 

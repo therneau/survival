@@ -26,7 +26,7 @@ if (exists('censorReg')) {
 # Do a contour plot of the donnell data
 #
 npt <- 20
-beta0  <- seq(.4, 3.4, length=npt)
+beta0  <- seq(.4, 3.6, length=npt)
 logsig <- seq(-1.4, 0.41, length=npt)
 donlog <- matrix(0,npt, npt)
 

@@ -62,19 +62,6 @@ survfitTurnbull <- function(x, y, casewt,
         status[who] <- 1
         }
 
-    #
-    # Deal with the issue of "almost tied" times that are equal to
-    #  machine precision
-    # Convert to the levels of a factor.  We come back to times later
-    if (ncol(y)==3) {
-        ftime <- factor(y[,1:2])
-        y <- matrix(as.numeric(ftime), ncol=2)
-    }
-    else {
-        ftime <- factor(y[,1])
-        y <- as.matrix(as.numeric(ftime))
-    }
-
     # the code below actually does the estimate, one curve at a time
     doit <- function(y,status, wt, ...) {
 	n <- length(status)
@@ -196,7 +183,7 @@ survfitTurnbull <- function(x, y, casewt,
                 jump1   <- jsave  # jumps, lagged by 1 iteration
                 }
 
-	    wt2 <- wtmat %*% diag(jumps)
+	    wt2 <- wtmat %*% diag(jumps, length(jumps))
 	    wt2 <- (lwt/(apply(wt2,1,sum))) * wt2 
 	    wt2 <- apply(wt2, 2, sum)
 	    tfit <- survfitKM(tempx, tempy, casewt=c(wt[status<2], wt2), ...)
@@ -239,13 +226,12 @@ survfitTurnbull <- function(x, y, casewt,
     surv   <- vector('list', nstrat)
     n.cens <- vector('list', nstrat)
     n.event<- vector('list', nstrat)
-    fnumeric <- as.numeric(levels(ftime))
-
+ 
     uniquex <- sort(unique(x))
     for (i in 1:nstrat) {
 	who <- (x== uniquex[i])
 	tfit <- doit(y[who,,drop=FALSE], status[who], casewt[who])
-	time[[i]]   <- approx(1:length(fnumeric), fnumeric, tfit$time)$y
+	time[[i]]   <- tfit$time
 	n.risk[[i]] <- tfit$n.risk
 	surv[[i]]   <- tfit$surv
 	n.cens[[i]] <- tfit$n.cens

@@ -112,3 +112,32 @@ temp <- c(0, 0,sum(f1$n.censor[f1$time <= 200]),
                sum(f1$n.censor[f1$time <= 400]),
                sum(f1$n.censor[f1$time <= 600]))
 all.equal(s1$n.censor, diff(temp))
+
+#
+# A check on the censor option
+#
+s1 <- summary(fit[1])
+s2 <- summary(fit[2])
+s3 <- summary(fit)
+tfun('n')
+tfun("time")
+tfun("n.risk")
+tfun("n.event")
+tfun("n.censor")
+tfun("surv")
+tfun("std.err")
+tfun("lower")
+tfun("upper")
+
+s1 <- summary(mfit[1])
+s2 <- summary(mfit[2])
+s3 <- summary(mfit)
+tfun('n')
+tfun("time")
+tfun("n.risk")
+tfun("n.event")
+tfun("n.censor")
+tfun("surv")
+tfun("std.err")
+tfun("lower")
+tfun("upper")

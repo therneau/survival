@@ -86,7 +86,7 @@ agreg.fit <- function(x, y, strata, offset, init, control,
 	}
 
     # the returned value of agfit$coef starts as a copy of init, so make sure
-    #  is is a vector and not a matrix; as.double does so.
+    #  is is a vector and not a matrix; as.double suffices.
     # Solidify the storage mode of other arguments
     storage.mode(y) <- storage.mode(x) <- "double"
     storage.mode(offset) <- storage.mode(weights) <- "double"
@@ -120,16 +120,19 @@ The algorithm for determining this is unreliable, unfortunately.
 Sometimes coefficients are marked as infinite when the solution is not tending
 to infinity (usually associated with a very skewed covariate), and sometimes
 one that is tending to infinity is not marked.  Que sera sera.
+Don't complain if the user asked for only one iteration; they will already
+know that it has not converged.
 <<agreg-fixup>>=
 var <- matrix(agfit$imat,nvar,nvar)
 coef <- agfit$coef
-if (any(!is.finite(coef)) || any(!is.finite(var)))
-    stop("routine failed due to numeric overflow.  This should never happen.  Please contact the author.")
 if (agfit$flag[1] < nvar) which.sing <- diag(var)==0
 else which.sing <- rep(FALSE,nvar)
 
-infs <- abs(agfit$u %*% var)
 if (maxiter >1) {
+    infs <- abs(agfit$u %*% var)
+    if (any(!is.finite(coef)) || any(!is.finite(var)))
+        stop("routine failed due to numeric overflow.",
+             "This should never happen.  Please contact the author.")   
     if (agfit$iter > maxiter)
         warning("Ran out of iterations and did not converge")
     else {
@@ -861,7 +864,7 @@ for (*iter=1; *iter<= maxiter; (*iter)++) {
         /* on iteration 1 the cholesky has already been done */
         rank2 = cholesky2(imat, nvar, tol_chol);
         /* Are we done? */
-	fail = isnan(loglik[1]) + isinf(loglik[1]) + (rank-rank2);
+	fail = isnan(newlk) + isinf(newlk) + abs(rank-rank2);
         if (fail ==0 && halving ==0 &&
 	    fabs(1-(loglik[1]/newlk)) <= eps) break;
     }
