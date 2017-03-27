@@ -68,7 +68,7 @@ void R_init_survival(DllInfo *dll){
     **  i.e., .Call("tmerge", ) won't work but .Call(Ctmerge, )  will
     ** This feature was added in version 2.16
     */
-if defined(R_VERSION) && R_VERSION >= R_Version(2, 16, 0)
+#if defined(R_VERSION) && R_VERSION >= R_Version(2, 16, 0)
     R_forceSymbols(dll, TRUE);
 #endif
 }
