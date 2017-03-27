@@ -13,8 +13,12 @@
     objects will not trigger a "length >1 inside an if ()" warning.
 
     \item The summary.survfit function had n.censor wrong when there
-    were multiple curves and censor=TRUE (spurious NA values).  Add more
+    were multiple curves and censor=TRUE (spurious NA values).  Added more
     lines to the test suite.
+
+    \item Pointed out by Mikko Korpela: the dynamic symbols check added
+    in 2.41-0 requires R version 2.16 or later.  Add an ifdef to init.c
+    that checks the version of R, mimicing a similar line in the MASS library.
 }}
 
 \section{Changes in version 2.41-2}{
