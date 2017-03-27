@@ -6,6 +6,7 @@
 */
 #include "survS.h"
 #include "R_ext/Rdynload.h"
+#include <Rversion.h>
 #include "survproto.h"
 
 static const R_CMethodDef Centries[] = {
@@ -66,6 +67,8 @@ void R_init_survival(DllInfo *dll){
     ** This line makes them only be available via the symbols above
     **  i.e., .Call("tmerge", ) won't work but .Call(Ctmerge, )  will
     */
+#if defined(R_VERSION) && R_VERSION >= R_Version(3, 0, 0)
     R_forceSymbols(dll, TRUE);
+#endif
 }
     
