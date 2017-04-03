@@ -22,3 +22,8 @@ temp2 <- Surv(c(1,10,10,30,30), c(9, NA, 5, 20,40), c(1, 0, 2,3,3),
               type='interval')
 aeq(temp1, temp2)
 aeq(temp1, c(1,10,10,30,30, 1,1,1,1, 40, 1,0,2,NA,3))
+
+# Use of inf
+temp1 <- Surv(c(1,10,NA, 30, 30), c(1,NA,10,30, 40), type='interval2')
+temp2 <- Surv(c(1,10,-Inf, 30, 30), c(1,Inf,10,30, 40), type='interval2')
+aeq(temp1, temp2)

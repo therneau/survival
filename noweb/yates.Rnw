@@ -1,0 +1,270 @@
+\section{Linear models and contrasts}
+The constrast functions can be used with any model that returns the necessary
+portions, e.g., lm, coxph, or glm.
+They were written because I became embroiled in the ``type III'' controversy,
+and made it a goal to figure out what exactly it is that SAS does. 
+If I had known that that quest would take multiple years would 
+perhaps have never started.
+
+First is cmatrix routine.  This is called by users to create a contrast
+matrix for a model, users can also construct their own contrast matrices.
+The routine requires a fit and a term; the default contrast will be for
+the entire term.
+
+Suppose that our model was \code{coxph(Surv(time, status) ~ age*sex + ph.ecog)}.
+Someone might want the matrix for the age, sex, age*sex (2 df),
+age:sex or ph.ecog term.
+The first task is to parse the user's formula and match it to the terms
+structure found in the data: we should be a proper subset of it.
+  
+<<cmatrix>>=
+cmatrix <- function(model, formula, type=c("full", "linear", "linear2") {
+    # If any of the parts I need are missing, then likely the first are
+    #  is not a model
+    if (missing(model)) stop("a model argument is required")
+    Terms <- try(terms(model), silent=TRUE)
+    if (class(Terms) =="try-error")
+        stop("the model does not have a terms structure")
+    else Terms <- delete.response(Terms)   # y is not needed
+    Tatt <- attributes(Terms)
+    
+    if (missing(formula) || ! is.formula(formula))
+        stop("a formula argument is required")
+    fterm <- delete.response(terms(formula))
+    fatt <- attributes(fterm)
+    indx <- match(fatt$term.labels, Tatt$term.labels)
+    if (any(is.na(indx))) {
+        temp <- fatt$term.labels[is.na(indx)]
+        stop("formula component not found ", temp)
+        }
+    
+    # match these up with the columns via the assign attribute
+    assign <- model$assign
+    if (missing(assign)) stop("the model is missing an assign component")
+    if (is.list(assign)) {
+        # old style assign as used in Splus, and still used in coxph
+        assign <- rep(1:length(assign), sapply(assign, length))
+    }
+    ncoef <- length(assign)
+    whichcol <- which(assign %in% indx)
+    # any coefficients that are NA are ignored
+    whichcol <- whichcol[!is.na(coef(fit))]
+    ntest <- length(whichcol)
+    
+    # Now build the matrix
+    <<cmatrix-build>>
+    # return the result
+    cmat
+@ 
+
+Building the contrast matrix is very easy for type=full; it is simply
+a test of ``are all these coefficients zero''.
+The ``linear'' is of interest for terms that have more than one
+column; the two most common cases are a factor variable or a spline.
+The ``linear2'' form returns a pair of tests, one for the linear and one
+for the nonlinear part.  For non-linear functions such as splines we need
+some notion of the range of the data, since we want to be linear over the
+entire range.  
+If the test is for only a single column then all tests are the same.
+
+<<cmatrix-build>>=
+test <- match.arg(test)
+if (test== "full") {
+    cmat <- matrix(0., nrow= ntest, ncol=ncoef)
+    for (i in 1:ntest) cmat[i, whichcol[i]] <- 1
+    return(cmat)
+}
+
+# All of the other transformations require a single term, no interactions
+tlab <- fatt$term.labels
+if (length(tlab) > 1)
+    stop(test, " tests must be for a single term")
+    
+# is it a factor?
+isfac <- (exists(model$xlevels) && !is.na(match(tlab, names(model$xlevels))))
+if (test == "pairwise") {
+    if (!isfac) stop("pairwise tests are only valid for categorical predictors")
+    if (is.null(model$contrasts)) stop("model has no contrasts component")
+    
+# The test is a simple linear one, in the order of the factor
+        cmat <- matrix(0., nrow=1, ncol=coef)
+        cmat[whichcol] <- 1:whichcol
+        if (test == "linear2") {
+            cmat <- list(linear=cmat)
+            
+
+
+@ 
+
+
+
+
+First are two helper routines, followed by simple contrasts.
+Formulas are from chapter 5 of Searle.  The sums of squares only makes
+sense within a linear model.
+<<yates>>=
+gsolve <- function(mat, y, eps=sqrt(.Machine$double.eps)) {
+    # solve using a generalized inverse
+    # this is very similar to the ginv function of MASS
+    temp <- svd(mat, nv=0)
+    dd <- ifelse(temp$d > temp$d[1]*eps, 1/temp$d, 0)
+    dpos <- (dd >0)
+    # all the parentheses save a tiny bit of time if y is a vector
+    drop(temp$u[,dpos] %*%(dd[dpos] * (t(temp$u[,dpos, drop=FALSE]) %*% y)))
+}
+
+qform <- function(var, beta) # quadratic form b' (V-inverse) b
+        sum(beta * gsolve(var, beta))
+
+cfun <- function(cmat, fit) {
+    varmat <- vcov(fit)
+    if (class(fit) == "lm") sigma2 <- summary(fit)$sigma^2
+    else sigma2 <- 1   # for the Cox model case
+
+    beta <- coef(fit)
+    if (!is.matrix(cmat)) cmat <- matrix(cmat, nrow=1)
+    if (ncol(cmat) != length(beta)) stop("wrong dimension for contrast")
+
+    estimate <- drop(cmat %*% beta)  #vector of contrasts
+    ss <- qform(cmat %*% varmat %*% t(cmat), estimate) *sigma2
+    list(estimate=estimate, ss=ss, var=drop(cmat %*% varmat %*% t(cmat)))
+}
+@ 
+
+Here is the primary pair of functions.  The contrast function is simply
+a way to call the yates function with population=``none''.  In that case
+the method argument has no effect.
+The population can be one of the keywords below, or it can be a data set.
+
+<<yates>>=
+contrast <- function(object, test, population="none", ...)
+    yates(object, test, population, ...)
+
+yates <- function(object, test, population=c("none", "data", "uniform", "sas"),
+                  method=c("direct", "glm", "nstt"), ...) {
+    Terms <- delete.response(terms(object))
+    beta <-  coef(object)
+    vmat <-  vcov(object)
+    assign <- object$assign
+    term.label <- attr(Terms, "term.labels")
+
+    # a function that allows them to refer to terms by name or by number
+    matchterm <- function(x) {
+        nlab <- length(term.label)
+        index <- pmatch(x, c(term.label, 1:nlab), nomatch=0) 
+        index <- ifelse(index > nlab, index-nlab, index)
+        c("", term.label)[1+index]
+    }
+
+    # pick up any labels on the contrast argument
+    if (!missing(contrast)) {
+        if (!is.list(contrast)) contrast <- list(contrast)
+        cname <- matchterm(names(contrast))
+    }
+    else cname <- NULL
+
+    if (missing(term)) {
+        if (length(cname) ==0) term <- unique(assign)
+    }
+    else { # terms were specified
+        if (is.formula(term)) {
+            temp <- delete.response(terms(term))
+            term <- temp$term.labels
+        }
+        if (!is.numeric(term)  && !is.character(term)) 
+            stop("invalid 'term' argument")   
+
+        tname <- matchterm(term)
+        if (any(tname=="")) 
+            stop(paste("term", 
+                       paste(term.labels[tname==""], collaspe=" "),
+                           "not found in the model"))
+    
+        if (length(cname)) cname <- match.arg(cname, tname)
+    }
+        else stop("invalid 'term' argument")
+    }
+    term <- unique(term) #in case of duplicates in the user argument
+    
+@ 
+Here is first function for simple contrasts.
+We first make sure that the object is a model fit and that various helper
+function return the bits we need.
+
+<<yates>>=
+contrast <- function(object, test, ...) 
+    Terms <- delete.response(terms(object))
+    beta <-  coef(object)
+    vmat <-  vcov(object)
+    assign <- object$assign
+    term.label <- attr(Terms, "term.labels")
+
+    # a function that allows them to refer to terms by name or by number
+    matchterm <- function(x) {
+        nlab <- length(term.label)
+        index <- pmatch(x, c(term.label, 1:nlab), nomatch=0) 
+        index <- ifelse(index > nlab, index-nlab, index)
+        c("", term.label)[1+index]
+    }
+
+    # pick up any labels on the contrast argument
+    if (!missing(contrast)) {
+        if (!is.list(contrast)) contrast <- list(contrast)
+        cname <- matchterm(names(contrast))
+    }
+    else cname <- NULL
+
+    if (missing(term)) {
+        if (length(cname) ==0) term <- unique(assign)
+    }
+    else { # terms were specified
+        if (is.formula(term)) {
+            temp <- delete.response(terms(term))
+            term <- temp$term.labels
+        }
+        if (!is.numeric(term)  && !is.character(term)) 
+            stop("invalid 'term' argument")   
+
+        tname <- matchterm(term)
+        if (any(tname=="")) 
+            stop(paste("term", 
+                       paste(term.labels[tname==""], collaspe=" "),
+                           "not found in the model"))
+    
+        if (length(cname)) cname <- match.arg(cname, tname)
+    }
+        else stop("invalid 'term' argument")
+    }
+    term <- unique(term) #in case of duplicates in the user argument
+    term
+    if (!missing(contrast) && !missing(population))
+        stop("only one of 'contrast' or 'population' can be specified")
+
+    <<yates-contrast>>
+    <<yates-population>>
+    
+   class(rval) <- "yates"
+   rval
+}
+@ 
+
+If a contast argument was specified if should be a vector, matrix, or list.
+If more than 1 term is requested it must be a list, each element of which
+is a vector or matrix.  Check all elements for being the right length.
+It is possible to simply name the contrasts and skip the term argument.
+
+<<yates-contrast>>=
+if (!missing(contrast)) {
+    if (length(term) ==1 && !is.list(contrast)) contrast <- list(contrast)
+
+    # match each contrast to the right term
+    cname <- names(contrast)
+    
+
+    if (is.null(cname)) cname <- term.labels[term]
+    
+    else {
+        if (an
+@ 
+
+The yates function is 
