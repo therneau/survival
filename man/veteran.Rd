@@ -14,7 +14,7 @@
     karno:\tab Karnofsky performance score (100=good)\cr
     diagtime:\tab months from diagnosis to randomisation\cr
     age:\tab in years\cr
-    prior:\tab prior therapy 0=no, 1=yes\cr
+    prior:\tab prior therapy 0=no, 10=yes\cr
   }
 }
 \source{

@@ -4,10 +4,11 @@
   \itemize{
     \item A check for infinite loglik was incorrect in agfit4.c, and could
     fail to detect the need for step halving.  It required a very
-    unuaual data set to trigger this.
+    unusual data set to trigger this.
 
     \item The survfit routine would fail for interval censored data, on
-    a group that had only a single step in the curve.
+    a group that had only a single step in the curve.  (Needed to add
+    drop=FALSE to a matrix subscript.)
 
     \item Minor change to Surv to ensure that its check for difftime
     objects will not trigger a "length >1 inside an if ()" warning.

@@ -1,6 +1,6 @@
 
-R version 3.0.1 (2013-05-16) -- "Good Sport"
-Copyright (C) 2013 The R Foundation for Statistical Computing
+R Under development (unstable) (2017-03-17 r72360) -- "Unsuffered Consequences"
+Copyright (C) 2017 The R Foundation for Statistical Computing
 Platform: i686-pc-linux-gnu (32-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -17,7 +17,6 @@ Type 'q()' to quit R.
 
 > #
 > library(survival)
-Loading required package: splines
 > 
 > # Some simple tests of the Surv function
 > #  The first two are motivated by a bug, pointed out by Kevin Buhr,
@@ -58,6 +57,12 @@ In Surv(c(1, 10, 10, 30, 30), c(9, NA, 5, 20, 40), c(1, 0, 2, 3,  :
 > aeq(temp1, c(1,10,10,30,30, 1,1,1,1, 40, 1,0,2,NA,3))
 [1] TRUE
 > 
+> # Use of inf
+> temp1 <- Surv(c(1,10,NA, 30, 30), c(1,NA,10,30, 40), type='interval2')
+> temp2 <- Surv(c(1,10,-Inf, 30, 30), c(1,Inf,10,30, 40), type='interval2')
+> aeq(temp1, temp2)
+[1] TRUE
+> 
 > proc.time()
    user  system elapsed 
-  0.292   0.052   0.336 
+  1.388   0.060   1.448 

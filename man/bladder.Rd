@@ -28,9 +28,13 @@ Bladder2 uses the same subset of subjects as bladder, but formatted in the
 (start, stop] or Anderson-Gill style.  
 Note that in transforming from the WLW to the AG style data set there
 is a quite common programming mistake that leads to extra follow-up time
-for 12 subjects: all those with follow-up beyond their 4th recurrence).
-Over this extended time these subjects are by definition not at risk for
-another event in the WLW data set.
+for 12 subjects: all those with follow-up beyond their 4th recurrence.
+This "follow-up" is a side effect of throwing away all events after the
+fourth while retaining the last follow-up time variable from the
+original data.  The bladder2 data set found here does not make this
+mistake, but some analyses in the literature have done so; it results
+in the addition of a small amount of immortal time bias and 
+shrinks the fitted coefficients towards zero.
 }
 \format{
   bladder1
