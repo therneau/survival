@@ -199,15 +199,7 @@ gsolve <- function(mat, y, eps=sqrt(.Machine$double.eps)) {
 qform <- function(var, beta) # quadratic form b' (V-inverse) b
         sum(beta * gsolve(var, beta))
 
-cfun <- function(cmat, fit) {
-    varmat <- vcov(fit)
-    if (class(fit) == "lm") sigma2 <- summary(fit)$sigma^2
-    else sigma2 <- 1   # for the Cox model case
-
-    beta <- coef(fit)
-    if (!is.matrix(cmat)) cmat <- matrix(cmat, nrow=1)
-    if (ncol(cmat) != length(beta)) stop("wrong dimension for contrast")
-
+cfun <- function(cmat, beta, varmat, sigma2) {
     estimate <- drop(cmat %*% beta)  #vector of contrasts
     ss <- qform(cmat %*% varmat %*% t(cmat), estimate) *sigma2
     list(estimate=estimate, ss=ss, var=drop(cmat %*% varmat %*% t(cmat)))
@@ -218,7 +210,8 @@ Now for the primary function.
 
 <<yates>>=
 yates <- function(fit, test, population=c("none", "data", "factorial", "sas"),
-                  method=c("direct", "sgtt", "nstt"), ...) {
+                  method=c("direct", "sgtt", "nstt"), 
+                  ss, ...) {
     if (missing(fit)) stop("a fit argument is required")
     Terms <- try(terms(fit), silent=TRUE)
     if (inherits(Terms, "try-error"))
@@ -231,9 +224,23 @@ yates <- function(fit, test, population=c("none", "data", "factorial", "sas"),
     if (population =="none" && method != "direct")
         warning(method, " method only applies to population estimates")
     beta <-  coef(fit)
+    nabeta <- is.na(beta)  # undetermined coefficients
     vmat <-  vcov(fit)
     assign <- fit$assign
     term.label <- attr(Terms, "term.labels")
+    
+    # grab the dispersion
+    if (missing(ss)) do.ss <- FALSE
+    else do.ss <- ss
+    if (class(fit)[1] =="lm") {
+        if (missing(ss)) do.ss <- TRUE
+        sigma <- summary(fit)$sigma
+        }
+    else if(class(fit)[1]=="glm") {
+        sigma <- summary(fit)$dispersion
+        if (is.null(sigma)) sigma <- 1
+        }
+    else sigma <- 1
 
     # define the cm function before we touch the test argument
     cm <- function(...) cmatrix(fit, ...)
@@ -244,10 +251,26 @@ yates <- function(fit, test, population=c("none", "data", "factorial", "sas"),
     #   columns
     ncoef <- length(beta)
     legal <- function(x) (is.matrix(x) && ncol(x)==ncoef)
+    # this error needs to be more informative
     if (!all(sapply(test, function(x) legal(x) || all(sapply(x, legal)))))
         stop("the test argument is invalid")
 
-
+    if (population=="none") {
+        tfun <- function(x, beta=beta, varmat=vmat, sigma2= sigma^2)
+            cfun(x, beta, varmat, sigma2)
+        tests <- lapply(test, function(x) {
+                        if (is.list(x)) lapply(x, tfun) else tfun(x)
+        })
+        # cast this into a matrix form
+        rget <- function(x, what) {
+            if (is.list(x)) lapply(x, rget, what)
+            else x[[what]]
+        }
+        rmat <- cbind(unlist(rget(tests, "estimate")),
+                      unlist(rget(tests, "var"))
+                      unlist(rget(tests, "ss")))
+        
+        
     
 
 
