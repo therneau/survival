@@ -257,7 +257,7 @@ fit  <- survfit(Surv(time, time, status, type='interval') ~1,
 #
 # Time to progression/death for patients with monoclonal gammopathy
 #  Competing risk curves (cumulative incidence)
-fitKM <- survfit(Surv(stop, event=='progression') ~1, data=mgus1,
+fitKM <- survfit(Surv(stop, event=='pcm') ~1, data=mgus1,
                     subset=(start==0))
 
 fitCI <- survfit(Surv(stop, status*as.numeric(event), type="mstate") ~1,

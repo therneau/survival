@@ -217,8 +217,9 @@ Therneau, T., Grambsch, P., Modeling Survival Data: Extending the Cox Model.
 Springer-Verlag, 2000.
 }
 \seealso{
+\code{\link{coxph.object}},
 \code{\link{cluster}},  \code{\link{strata}},  \code{\link{Surv}},
-\code{\link{survfit}}, \code{\link{pspline}}, \code{\link{frailty}},
+\code{\link{survfit}}, \code{\link{pspline}}, 
 \code{\link{ridge}}.   
 }
 \examples{

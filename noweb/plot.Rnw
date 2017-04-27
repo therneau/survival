@@ -440,7 +440,7 @@ c1 <- 1  # keeps track of the curve number
 c2 <- 1  # keeps track of the lty, col, etc
 xend <- yend <- double(ncurve)
 if (length(conf.offset) ==1) 
-    temp.offset <- (1:ncurve - (ncurve-1)/2)* conf.offset* diff(par("usr")[1:2])
+    temp.offset <- (1:ncurve - (ncurve+1)/2)* conf.offset* diff(par("usr")[1:2])
 else temp.offset <- rep(conf.offset, length=ncurve) *  diff(par("usr")[1:2])
 temp.cap    <-  conf.cap    * diff(par("usr")[1:2])
 
