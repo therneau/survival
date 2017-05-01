@@ -546,6 +546,10 @@ if (length(dropterms)) {
 }
 else X <- model.matrix(Terms, mf, contrasts=contrast.arg)
 
+# infinite covariates are not screened out by the na.omit routines
+if (!all(is.finite(X)))
+    stop("data contains an infinite predictor")
+
 # drop the intercept after the fact, and also drop strata if necessary
 Xatt <- attributes(X) 
 xdrop <- Xatt$assign %in% adrop  #columns to drop (always the intercept)

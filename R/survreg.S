@@ -60,6 +60,9 @@ survreg <- function(formula, data, weights, subset, na.action,
     xlevels <- .getXlevels(newTerms, m)
     contr.save <- attr(X, 'contrasts')
     
+    if (!all(is.finite(X)))
+        stop("data contains an infinite predictor")
+        
     n <- nrow(X)
     nvar <- ncol(X)
 

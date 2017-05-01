@@ -1,5 +1,16 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 2.41-4}{
+  \itemize{
+    \item The coxph routine did not check for infinite predictors (these
+    are not screened out by na.action), and these could cause the
+    iteration to fail.  Added a check and stop() statement.  The example
+    was provided by Glenn Tisdale.
+
+    \item When conf.times was used in plot.survfit, the bars were not
+    perfectly centered on the target values
+}}
+
 \section{Changes in version 2.41-3}{
   \itemize{
     \item A check for infinite loglik was incorrect in agfit4.c, and could
