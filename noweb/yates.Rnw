@@ -18,7 +18,7 @@ age:sex or ph.ecog term.
 The first task is to parse the user's formula and match it to the terms
 structure found in the data: we should be a proper subset of it.
   
-<<cmatrix>>=
+<<yates>>=
 cmatrix <- function(fit, term, 
                     type=c("full", "linear", "linear2", "pairwise")){
     # If any of the parts I need are missing, then likely the first are
@@ -44,7 +44,7 @@ cmatrix <- function(fit, term,
     else if (is.numeric(term)) {
         if (all(term == floor(term) & term >0 & term < length(Tatt$term.labels)))
             term <- formula(paste("~", 
-                                  paste(collapse(Tatt$term.labels[term], collapse='+'))))
+                                  paste(Tatt$term.labels[term], collapse='+')))
         else stop("a numeric term must be an integer between 1 and max terms in the fit")
         }
     else if (!inherits(term, "formula"))
@@ -210,7 +210,7 @@ Now for the primary function.
 
 <<yates>>=
 yates <- function(fit, test, population=c("none", "data", "factorial", "sas"),
-                  method=c("direct", "sgtt", "nstt"), 
+                  method=c("direct", "stt", "nstt"), 
                   ss, ...) {
     if (missing(fit)) stop("a fit argument is required")
     Terms <- try(terms(fit), silent=TRUE)
@@ -219,10 +219,16 @@ yates <- function(fit, test, population=c("none", "data", "factorial", "sas"),
     else Terms <- delete.response(Terms)   # y is not needed
     Tatt <- attributes(Terms)
     
-    population <- match.arg(population)
-    method <- match.arg(method)
+    if (is.character(population)) population <- match.arg(population)
+    else {
+        if (!inherits(population, "data.frame"))
+            stop("the population argument must be a data frame or character")
+        data <- population   # the user gave us a data frame
+        population = "user"
+        }
+ 
     if (population =="none" && method != "direct")
-        warning(method, " method only applies to population estimates")
+        stop(method, " method only applies to population estimates")
     beta <-  coef(fit)
     nabeta <- is.na(beta)  # undetermined coefficients
     vmat <-  vcov(fit)
@@ -246,7 +252,7 @@ yates <- function(fit, test, population=c("none", "data", "factorial", "sas"),
     cm <- function(...) cmatrix(fit, ...)
     if (!is.list(test)) test <- list(test)
     
-    # check that it is test is legal.  It can be a list whose components can
+    # check that test is legal.  It can be a list whose components can
     #   be lists.  But at the end we have matrices with the right number of
     #   columns
     ncoef <- length(beta)
@@ -267,15 +273,20 @@ yates <- function(fit, test, population=c("none", "data", "factorial", "sas"),
             else x[[what]]
         }
         rmat <- cbind(unlist(rget(tests, "estimate")),
-                      unlist(rget(tests, "var"))
+                      unlist(rget(tests, "var")),
                       unlist(rget(tests, "ss")))
-        
-        
-    
-
-
-
+    }
+    else {
+        <<yates-data>>
+        <<yates-pop>>
+    }
+    rmat #initial testing 
 } 
 @ 
 
+For a population estimate the first task is to build the data set.
+<<yates-data>>=
+@ 
 
+<<yates-pop>>=
+@ 
