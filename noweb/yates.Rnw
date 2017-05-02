@@ -166,19 +166,16 @@ else if (type=="linear" || type== "linear2") {
             yy <- 1:length(xx)
             tcall[[2]] <- xx
             tfit <- lm(yy ~ eval(tcall))
-            cmat[1, whichcol] <- coef(tfit)[-1]
+            cmat <- cmat[1, whichcol] <- coef(tfit)[-1]
         } 
         else stop("don't know how to do a linear contrast for this term")
     }
-    if (type=="linear") cmat[1,, drop=FALSE]
+    if (type=="linear") cmat <- cmat[1,, drop=FALSE]
     else {
         stop("not done")
     }
 }
 else if (type != "full") stop("unrecognized type")
-
-class(cmat) <- "cmatrix"
-cmat
 @ 
 
 
@@ -248,40 +245,43 @@ yates <- function(fit, test, population=c("none", "data", "factorial", "sas"),
         }
     else sigma <- 1
 
-    # define the cm function before we touch the test argument
-    cm <- function(...) cmatrix(fit, ...)
-    if (!is.list(test)) test <- list(test)
-    
-    # check that test is legal.  It can be a list whose components can
-    #   be lists.  But at the end we have matrices with the right number of
-    #   columns
+    ff <- parent.frame()
+    tempenv <- new.env(parent=ff)
+    assign("cm", function(...) cmatrix(fit, ...), env=tempenv)
+    test <- eval(substitute(test), tempenv)
+
+    # check that test is legal.  It can be a single matrix or a tree of
+    #  matrices, but all have to be the right size.
     ncoef <- length(beta)
-    legal <- function(x) (is.matrix(x) && ncol(x)==ncoef)
-    # this error needs to be more informative
-    if (!all(sapply(test, function(x) legal(x) || all(sapply(x, legal)))))
-        stop("the test argument is invalid")
+    legal <- function(x, lname="") {
+        if (is.matrix(x) && ncol(x)==ncoef) TRUE
+        else if (is.list(x)) {
+            n <- length(x)
+            tname <- names(x)
+            tname <- ifelse(tname=="", tname, 1:n)
+            if (lname!= "") tname <- paste(lname, tname, sep=', ')
+            for (i in 1:n) legal(x[[i]], tname[i])
+            }
+        else stop("invalid test element", lname)
+    }       
+    legal(test)
 
     if (population=="none") {
-        tfun <- function(x, beta=beta, varmat=vmat, sigma2= sigma^2)
-            cfun(x, beta, varmat, sigma2)
-        tests <- lapply(test, function(x) {
-                        if (is.list(x)) lapply(x, tfun) else tfun(x)
-        })
-        # cast this into a matrix form
-        rget <- function(x, what) {
-            if (is.list(x)) lapply(x, rget, what)
-            else x[[what]]
-        }
-        rmat <- cbind(unlist(rget(tests, "estimate")),
-                      unlist(rget(tests, "var")),
-                      unlist(rget(tests, "ss")))
-    }
-    else {
+        <<yates-none>>
+    } else  {
         <<yates-data>>
         <<yates-pop>>
-    }
-    rmat #initial testing 
+    }       
+    result #initial testing 
 } 
+@
+
+Start with the easiest case which are non-population contrasts.
+
+<<yates-none>>=
+tfun <- function(x) 
+    if (is.matrix(x)) cfun(x, beta, vmat, sigma^2) else lapply(x, tfun)
+result <- tfun(test)
 @ 
 
 For a population estimate the first task is to build the data set.
