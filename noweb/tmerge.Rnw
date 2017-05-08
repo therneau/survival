@@ -247,9 +247,14 @@ if (firstcall) {
     # at this point newdata and data2 are in the same order, same # rows
     if (any(is.na(tstop))) 
         stop("missing time value, when that variable defines the span")
-    if (missing(tstart)) tstart <- rep(0, length(id))
+    if (missing(tstart)) {
+        indx <- which(tstop <=0)
+        if (length(indx) >0) stop("found an ending time of ", tstop[indx[1]],
+                                  ", the default starting time of 0 is invalid")
+        tstart <- rep(0, length(tstop))
+    }
     if (any(tstart >= tstop)) 
-        stop("tstart must be > tstop")
+        stop("tstart must be < tstop")
     newdata[[topt$tstartname]] <- tstart
     newdata[[topt$tstopname]] <- tstop
     if (any(duplicated(id))) {

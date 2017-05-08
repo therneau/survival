@@ -42,7 +42,7 @@ The fit routine is called by the coxph function with arguments
 
 <<agreg.fit>>=
 agreg.fit <- function(x, y, strata, offset, init, control,
-			weights, method, rownames)
+			weights, method, rownames, resid=TRUE, concordance=TRUE)
     {
     n <- nrow(y)
     nvar <- ncol(x)
@@ -104,6 +104,7 @@ agreg.fit <- function(x, y, strata, offset, init, control,
 
     <<agreg-fixup>>
     <<agreg-finish>>
+    rval        
 }  
 @
 
@@ -150,18 +151,20 @@ The last of the code is very standard.  Compute residuals and package
 up the results.
 <<agreg-finish>>=
 lp  <- as.vector(x %*% coef + offset - sum(coef * colMeans(x)))
-score <- as.double(exp(lp))
-resid <- .Call(Cagmart3,
-               y, score, weights,
-               newstrat,
-               cbind(sort.end, sort.start),
-               as.integer(method=='efron'))
-names(resid) <- rownames
+if (resid) {
+    score <- as.double(exp(lp))
+    residuals <- .Call(Cagmart3,
+                   y, score, weights,
+                   newstrat,
+                   cbind(sort.end, sort.start),
+                   as.integer(method=='efron'))
+    names(residuals) <- rownames
+}
 if (nullmodel) {
-    list(loglik=agfit$loglik[2],
+    rval <- list(loglik=agfit$loglik[2],
          linear.predictors = offset,
-         residuals = resid,
          method= c("coxph.null", 'coxph') )
+    if (resid) rval$residuals <- residuals
 }
 else {
     names(coef) <- dimnames(x)[[2]]
@@ -169,19 +172,20 @@ else {
     flag <- agfit$flag
     names(flag) <- c("rank", "rescale", "step halving")
     
-    concordance <- survConcordance.fit(y, lp, strata, weights) 
-    list(coefficients  = coef,
-         var    = var,
-         loglik = agfit$loglik,
-         score  = agfit$sctest,
-         iter   = agfit$iter,
-         linear.predictors = as.vector(lp),
-         residuals = resid,
-         means = colMeans(x),
-         concordance = concordance,
-         first = agfit$u,
-         info = flag,
-         method= 'coxph')
+    rval <- list(coefficients  = coef,
+                 var    = var,
+                 loglik = agfit$loglik,
+                 score  = agfit$sctest,
+                 iter   = agfit$iter,
+                 linear.predictors = as.vector(lp),
+                 means = colMeans(x),
+                 concordance = concordance,
+                 first = agfit$u,
+                 info = flag,
+                 method= 'coxph')
+    if (resid) rval$residuals <- residuals
+    if (concordance)
+        rval$concordance <- survConcordance.fit(y, lp, strata, weights) 
 }
 @
 

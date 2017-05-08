@@ -1,6 +1,6 @@
 summary.coxph <- function(object,  conf.int = 0.95, scale = 1, ...) {
     cox<-object
-    beta <- cox$coefficients
+    beta <- cox$coefficients * scale
     if (is.null(cox$coefficients)) {   # Null model
 	return(object)  #The summary method is the same as print in this case
 	}
@@ -8,7 +8,7 @@ summary.coxph <- function(object,  conf.int = 0.95, scale = 1, ...) {
     beta2 <- beta[nabeta]
     if(is.null(beta) | is.null(cox$var))
          stop("Input is not valid")
-    se <- sqrt(diag(cox$var))
+    se <- sqrt(diag(cox$var)) * scale
     if (!is.null(cox$naive.var)) nse <- sqrt(diag(cox$naive.var))
 
     rval<-list(call=cox$call,fail=cox$fail, na.action=cox$na.action,
@@ -31,8 +31,6 @@ summary.coxph <- function(object,  conf.int = 0.95, scale = 1, ...) {
      
     if (conf.int) {
         z <- qnorm((1 + conf.int)/2, 0, 1)
-        beta <- beta * scale
-        se <- se * scale
         tmp <- cbind(exp(beta), exp(-beta), exp(beta - z * se),
             exp(beta + z * se))
         dimnames(tmp) <- list(names(beta), c("exp(coef)", "exp(-coef)",

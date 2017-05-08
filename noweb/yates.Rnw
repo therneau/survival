@@ -1,6 +1,9 @@
 \section{Linear models and contrasts}
-The primary contrast function is \code{yates}, one reason for this name is that
-the word ``contrast'' is already overused in the S/R lexicon.
+The primary contrast function is \code{yates}.  One reason for this name is that
+the word ``contrast'' is already overused in the S/R lexicon,
+but the primary reason is that the function does both simple and population
+contrasts and the Yates weighted means analysis is one of the earliest tests
+of that type.
 Both it and \code{cmatrix} can be used with any model that returns the necessary
 portions, e.g., lm, coxph, or glm.
 They were written because I became embroiled in the ``type III'' controversy,
@@ -187,19 +190,25 @@ gsolve <- function(mat, y, eps=sqrt(.Machine$double.eps)) {
     # solve using a generalized inverse
     # this is very similar to the ginv function of MASS
     temp <- svd(mat, nv=0)
-    dd <- ifelse(temp$d > temp$d[1]*eps, 1/temp$d, 0)
-    dpos <- (dd >0)
+    dpos <- (temp$d > max(temp$d[1]*eps, 0))
+    dd <- ifelse(dpos, 1/temp$d, 0)
     # all the parentheses save a tiny bit of time if y is a vector
-    drop(temp$u[,dpos] %*%(dd[dpos] * (t(temp$u[,dpos, drop=FALSE]) %*% y)))
+    if (all(dpos)) x <- drop(temp$u %*% (dd*(t(temp$u) %*% y)))
+    else if (!any(dpos)) x <- drop(temp$y %*% (0*y)) # extremely rare
+    else x <-drop(temp$u[,dpos] %*%(dd[dpos] * (t(temp$u[,dpos, drop=FALSE]) %*% y)))
+    attr(x, "df") <- sum(dpos)
+    x
 }
 
-qform <- function(var, beta) # quadratic form b' (V-inverse) b
-        sum(beta * gsolve(var, beta))
+qform <- function(var, beta) { # quadratic form b' (V-inverse) b
+    temp <- gsolve(var, beta)
+    list(test= sum(beta * temp), df=attr(temp, "df"))
 
 cfun <- function(cmat, beta, varmat, sigma2) {
     estimate <- drop(cmat %*% beta)  #vector of contrasts
     ss <- qform(cmat %*% varmat %*% t(cmat), estimate) *sigma2
-    list(estimate=estimate, ss=ss, var=drop(cmat %*% varmat %*% t(cmat)))
+    evar <- drop(cmat %*% varmat %*% t(cmat) #variance of the estimate
+    list(estimate=estimate, ss=ss, var=evar)
 }
 @ 
 

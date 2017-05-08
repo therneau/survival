@@ -9,6 +9,17 @@
 
     \item When conf.times was used in plot.survfit, the bars were not
     perfectly centered on the target values
+
+    \item Add the residual and concordance argument to coxph.fit and
+    agreg.fit, at the request of S Venkat.  These speed up the function
+    when a calling routine only need the partial likelihood.
+
+    \item Fix error in survfit: if timefix=FALSE was specified we forgot
+    to set a key variable and the routine fails.  Pointed out by Sarah
+    Streett. 8/5/2017.
+
+    \item Change the scale argument of summary.coxph so that it affects
+    the coefficient and se(coef), not just the confidence interval.
 }}
 
 \section{Changes in version 2.41-3}{

@@ -67,6 +67,12 @@ tmerge(data1, data2,  id,\dots, tstart, tstop, options)
 The function adds three new variables to the output data set: 
 \code{tstart}, \code{tstop}, and \code{id}.  The \code{options} argument
 can be used to change these names.
+If \code{data1} contains the \code{tstart} variable then that is used as
+the starting point for the created time intervals, otherwise the initial
+interval for each id will begin at 0 by default.
+This will lead to an invalid interval and subsequent error if say a
+death time were <= 0.
+
 The \code{na.rm} option affects creation of time-dependent covariates.
 Should a data row in \code{data2} that has a missing value for the
 variable be ignored (na.rm=FALSE, default) or should it generate an
@@ -74,8 +80,6 @@ observation with a value of NA?  The default value leads to
 "last value carried forward" behavior.
 The \code{delay} option causes a time-dependent covariate's new
 value to be delayed, see the vignette for an example.
-
-
 }
 
 \value{a data frame with two extra attributes \code{tname} and

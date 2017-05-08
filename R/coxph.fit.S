@@ -1,6 +1,6 @@
 coxph.fit <- function(x, y, strata, offset, init, control,
-			weights, method, rownames)
-    {
+			weights, method, rownames, resid=TRUE, concordance=TRUE)
+{
     n <-  nrow(y)
     if (is.matrix(x)) nvar <- ncol(x)
     else {
@@ -65,8 +65,9 @@ coxph.fit <- function(x, y, strata, offset, init, control,
                      as.integer(1))  # internally rescale
 
     if (nullmodel) {
-	score <- exp(offset[sorted])
-	coxres <- .C(Ccoxmart, as.integer(n),
+        if (resid) {
+            score <- exp(offset[sorted])
+            coxres <- .C(Ccoxmart, as.integer(n),
 				as.integer(method=='efron'),
 				stime,
 				sstat,
@@ -74,15 +75,19 @@ coxph.fit <- function(x, y, strata, offset, init, control,
 				as.double(score),
 				as.double(weights),
 				resid=double(n))
-	resid <- double(n)
-	resid[sorted] <- coxres$resid
-	names(resid) <- rownames
+            resid <- double(n)
+            resid[sorted] <- coxres$resid
+            names(resid) <- rownames
 
-	list( loglik = coxfit$loglik[1],
-	      linear.predictors = offset,
-	      residuals = resid,
-	      method= c('coxph.null', 'coxph') )
-	}
+            list( loglik = coxfit$loglik[1],
+                 linear.predictors = offset,
+                 residuals = resid,
+                 method= c('coxph.null', 'coxph') )
+        }
+	else list(loglik = coxfit$loglik[1],
+                 linear.predictors = offset,
+                 method= c('coxph.null', 'coxph') )
+    }
     else {
 	var <- matrix(coxfit$imat,nvar,nvar)
 	coef <- coxfit$coef
@@ -105,8 +110,18 @@ coxph.fit <- function(x, y, strata, offset, init, control,
 
 	names(coef) <- dimnames(x)[[2]]
 	lp <- c(x %*% coef) + offset - sum(coef*coxfit$means)
-	score <- exp(lp[sorted])
-	coxres <- .C(Ccoxmart, as.integer(n),
+        if (maxiter > 0) coef[which.sing] <- NA  #leave it be if iter=0 is set
+        rval <- list(coefficients  = coef,
+		    var    = var,
+		    loglik = coxfit$loglik,
+		    score  = coxfit$sctest,
+		    iter   = coxfit$iter,
+		    linear.predictors = as.vector(lp),
+		    means = coxfit$means,
+ 		    method='coxph')
+	if (resid) {
+            score <- exp(lp[sorted])
+            coxres <- .C(Ccoxmart, as.integer(n),
 				as.integer(method=='efron'),
 				stime,
 				sstat,
@@ -114,22 +129,18 @@ coxph.fit <- function(x, y, strata, offset, init, control,
 				as.double(score),
 				as.double(weights),
 				resid=double(n))
-	resid <- double(n)
-	resid[sorted] <- coxres$resid
-	names(resid) <- rownames
-	if (maxiter > 0) coef[which.sing] <- NA  #leave it be if iter=0 is set
+            resid <- double(n)
+            resid[sorted] <- coxres$resid
+            names(resid) <- rownames
+            rval$residuals <- resid
+        }
 
-        concordance <- survConcordance.fit(Surv(stime, sstat), lp[sorted],
-                                           strata, weights) 
-	list(coefficients  = coef,
-		    var    = var,
-		    loglik = coxfit$loglik,
-		    score  = coxfit$sctest,
-		    iter   = coxfit$iter,
-		    linear.predictors = as.vector(lp),
-		    residuals = resid,
-		    means = coxfit$means,
-                    concordance=concordance,
-		    method='coxph')
-	}
+        if (concordance) {
+            rval$concordance <-survConcordance.fit(Surv(stime, sstat),
+                                                   lp[sorted], strata, weights)
+        }
+        rval
     }
+}          
+
+

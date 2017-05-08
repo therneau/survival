@@ -10,8 +10,10 @@
   a model formula.
 }
 \usage{
-agreg.fit(x, y, strata, offset, init, control, weights, method, rownames)
-coxph.fit(x, y, strata, offset, init, control, weights, method, rownames)
+agreg.fit(x, y, strata, offset, init, control, weights, method,
+rownames, resid=TRUE, concordance=TRUE)
+coxph.fit(x, y, strata, offset, init, control, weights, method,
+rownames, resid=TRUE, concordance=TRUE)
 }
 \arguments{
   \item{x}{Matix of predictors.  This should \emph{not} include an
@@ -28,11 +30,17 @@ coxph.fit(x, y, strata, offset, init, control, weights, method, rownames)
   \item{method}{method for hanling ties, one of "breslow" or "efron"}
   \item{rownames}{this is only needed for a NULL model, in which case it
     contains the rownames (if any) of the original data.}
+  \item{resid}{compute and return residuals.}
+  \item{concordance}{compute and return the concordance.}
 }
 \details{
 This routine does no checking that arguments are the proper length or
 type.
 Only use it if you know what you are doing!
+
+The \code{resid} and \code{concordance} arguments will save some compute
+time for calling routines that only need the likelihood,
+the generation of a permutation distribution for instance.
 }
 \value{
   a list containing results of the fit}

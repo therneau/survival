@@ -19,7 +19,8 @@ Produces a summary of a fitted coxph model
   }
   \item{scale}{
     vector of scale factors for the coefficients, defaults to 1. 
-    The confidence limits are for the risk change associated with one scale unit. 
+    The printed coefficients, se, and confidence intervals will be
+    associated with one scale unit. 
   }
   \item{\dots}{for future methods}
 }

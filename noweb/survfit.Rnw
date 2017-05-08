@@ -242,7 +242,7 @@ survfit.formula <- function(formula, data, weights, subset,
     # Deal with the near-ties problem
     if (!is.logical(timefix) || length(timefix) > 1)
         stop("invalid value for timefix option")
-    if (timefix) newY <- aeqSurv(Y)
+    if (timefix) newY <- aeqSurv(Y) else newY <- Y
     
     # Call the appropriate helper function
     if (attr(Y, 'type') == 'left' || attr(Y, 'type') == 'interval')
