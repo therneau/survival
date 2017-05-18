@@ -78,6 +78,7 @@ survfitCI <- function(X, Y, weights, id, istate,
         toss <- which(Y[,ncol(Y)-1] <= start.time)
         if (length(toss)) {
             n <- nrow(Y)
+            if (length(toss)==n) stop("start.time has removed all observations")
             Y <- Y[-toss,,drop=FALSE]
             X <- X[-toss]
             weights <- weights[-toss]
