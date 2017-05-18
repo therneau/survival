@@ -75,7 +75,7 @@ survfitCI <- function(X, Y, weights, id, istate,
         if (!is.numeric(start.time) || length(start.time) !=1
             || !is.finite(start.time))
             stop("start.time must be a single numeric value")
-        toss <- which(Y[,ncol(Y)] <= start.time)
+        toss <- which(Y[,ncol(Y)-1] <= start.time)
         if (length(toss)) {
             n <- nrow(Y)
             Y <- Y[-toss,,drop=FALSE]
