@@ -276,3 +276,22 @@ as.matrix.Surv <- function(x, ...) {
 length.Surv <- function(x) nrow(x)
 format.Surv <- function(x, ...) format(as.character.Surv(x), ...)
 as.data.frame.Surv <- as.data.frame.model.matrix
+
+# tail.default gets confused by length(x) for a Surv object.  We need to
+#  use nrow as "n", but non-matrix subscript at the end to preserve it as a
+#  Surv object.  Thus this is a mix of tail.default and tail.matrix
+tail.Surv <- function(x, n=6L, ...) {
+    stopifnot(length(n) == 1L)
+    nrx <- nrow(x)
+    n <- if (n < 0L) 
+        max(nrx + n, 0L)
+    else min(n, nrx)
+    sel <- as.integer(seq.int(to = nrx, length.out = n))
+    x[sel]
+}
+
+# The above led to a search for other matrix-like methods
+anyDuplicated.Surv <- function(x, ...) anyDuplicated(as.matrix(x), ...)
+duplicated.Surv    <- function(x, ...) duplicated(as.matrix(x), ...)
+unique.Surv  <- function(x, ...)
+    x[!duplicated(as.matrix(x), ...)]

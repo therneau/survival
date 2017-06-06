@@ -12,14 +12,20 @@
 
     \item Add the residual and concordance argument to coxph.fit and
     agreg.fit, at the request of S Venkat.  These speed up the function
-    when a calling routine only need the partial likelihood.
+    when a calling routine only needs the partial likelihood.
 
     \item Fix error in survfit: if timefix=FALSE was specified we forgot
     to set a key variable and the routine fails.  Pointed out by Sarah
-    Streett. 8/5/2017.
+    Streett. 8Apr2017.
 
     \item Change the scale argument of summary.coxph so that it affects
     the coefficient and se(coef), not just the confidence interval.
+
+    \item Fix an error in survfitCI when using the start.time argument, and
+    add a test case for it.
+
+    \item Add tail.Surv method per a request from Michael Lawrence.
+    Also add duplicated, anyDuplicated, and unique methods.
 }}
 
 \section{Changes in version 2.41-3}{
