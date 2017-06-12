@@ -71,8 +71,9 @@ The median and its confidence interval are defined by drawing a horizontal
 line at 0.5 on the plot of the survival curve and its confidence bands. 
 The intersection of the line with the lower CI band defines the lower limit 
 for the median's interval, and similarly for the upper band.  If any of the 
-intersections is not a point, then we use the smallest point of intersection, 
+intersections is not a point the we use the center of the intersection interval, 
 e.g., if the survival curve were exactly equal to 0.5 over an interval.
+When data is uncensored this agrees with the usual definition of a median.
 }
 \section{References}{
 Miller, Rupert G., Jr. (1981).  

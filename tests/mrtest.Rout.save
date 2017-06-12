@@ -1,7 +1,7 @@
 
-R version 2.7.1 (2008-06-23)
-Copyright (C) 2008 The R Foundation for Statistical Computing
-ISBN 3-900051-07-0
+R Under development (unstable) (2017-05-02 r72647) -- "Unsuffered Consequences"
+Copyright (C) 2017 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -18,18 +18,11 @@ Type 'q()' to quit R.
 > options(na.action=na.exclude) # preserve missings
 > options(contrasts=c('contr.treatment', 'contr.poly')) #ensure constrast type
 > library(survival)
-Loading required package: splines
 > 
-> {if (is.R()) mdy.date <- function(m, d, y) {
+> mdy.Date <- function(m, d, y) {
 +     y <- ifelse(y<100, y+1900, y)
 +     as.Date(paste(m,d,y, sep='/'), "%m/%d/%Y")
 +     }
-+ else mdy.date <- function(m,d,y) {
-+     y <- ifelse(y<100, y+1900, y)
-+     timeDate(paste(y, m, d, sep='/'), in.format="%Y/%m/%d")
-+     }
-+  }
-> 
 > #
 > # A test of the match.ratetable function, specifically the
 > #  change to allow partial matching of strings 
@@ -37,7 +30,7 @@ Loading required package: splines
 > #
 > aeq <- function(x,y, ...) all.equal(as.vector(x), as.vector(y), ...)
 > 
-> temp1 <- data.frame(year=mdy.date(2,2,1960:1964),
+> temp1 <- data.frame(year=mdy.Date(2,2,1960:1964),
 +                     age =   10000 + 1:5,
 +                     sex = c('M', 'fema', 'f', 'ma', 'F'))
 > 
@@ -46,3 +39,6 @@ Loading required package: splines
 > aeq(temp3$R[,2], c(1,2,2,1,2))
 [1] TRUE
 > 
+> proc.time()
+   user  system elapsed 
+  0.892   0.036   0.928 

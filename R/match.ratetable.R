@@ -9,31 +9,23 @@
 match.ratetable <- function(R, ratetable) {
     if (!is.ratetable(ratetable)) stop("Invalid rate table")
     dimid <- attr(ratetable, 'dimid')
-
-    if (is.matrix(R)) {  # older style call
+    if (is.null(dimid)) dimid <- names(dimnames(ratetable))
+    rate.date <- sapply(attr(ratetable, "cutpoints"),
+                        function(x) inherits(x, "Date"))
+    
+    if (is.matrix(R)) {  # the result of ratetable() in a formula
         nd <- ncol(R)
         attR <- attributes(R)
         attributes(R) <- attR['dim']     #other attrs get in the way later
         Rnames <- attR$dimnames[[2]]
         isDate <- attR[["isDate"]]
         levlist <- attR[['levlist']]
-        }
-    else {  # newer style is a dataframe
-        nd <- length(R)
+    }
+    else {  # the result of using an rmap argument
         Rnames <- names(R)
-        isDate <- rep(FALSE, nd)
-        levlist<- lapply(R, levels)
-        for (i in 1:nd) {
-            temp <- ratetableDate(R[[i]])
-            if (!is.null(temp)) {
-                isDate[i] <- TRUE
-                R[[i]] <- temp
-                }
-            }
-        }
-        
+    }
+    
     ord <- match(dimid, Rnames)
-
     # This should not arise
     if (any(is.na(ord)))
        stop(paste("Argument '", dimid[is.na(ord)],
@@ -42,10 +34,13 @@ match.ratetable <- function(R, ratetable) {
     #  I demand an exact match
     if (any(duplicated(ord)))
         stop("A ratetable argument appears twice in the data")
-    
     R <- R[,ord,drop=FALSE]  #put cols in same order as the ratetable
-    isDate <- isDate[ord]
-    levlist <- levlist[ord]
+
+    if (is.matrix(R)) {
+        isDate <- isDate[ord]
+        levlist <- levlist[ord]
+    }
+    else levlist<- lapply(R, levels)
 
     dtemp <-dimnames(ratetable)
     rtype  <- attr(ratetable, 'type') # 1= class, 2=cont, 3=date, 4=US yr
@@ -55,16 +50,40 @@ match.ratetable <- function(R, ratetable) {
         rtype <- 1*(temp==1) + 3*(temp==0) + 4*(temp >1)  
         }
 
+    if (!is.matrix(R)) {
+        # Find out which colums are dates.  If this is a ratetable that uses
+        #  type=date but a numeric cutpoint (older), then also convert any
+        #  dates to a 1960 baseline
+        datecut <- sapply(attr(ratetable, "cutpoints"),
+                          function(x) inherits(x, "Date"))
+        if (any(datecut)) isDate <- sapply(R, function(x) inherits(x, "Date"))
+        else {
+            isDate <- logical(ncol(R))
+            for (i in 1:ncol(R)) {
+                temp <- ratetableDate(R[[i]])
+                if (!is.null(temp)) {
+                    isDate[i] <- TRUE
+                    R[[i]] <- temp
+                }
+            }
+        }
+    }
+
     # Now, go through the dimensions of the ratetable 1 by 1, and
     #  verify that the user's variable is compatable
     #  with the rate table's dimensions
     #
     if (any(rtype<3 & isDate)) {
-        indx <- which(rtype<1 & isDate)
+        indx <- which(rtype<3 & isDate)
         stop(paste("Data has a date type variable, but the reference",
                    "ratetable is not a date for variable", dimid[indx]))
         }
-    for (i in (1:nd)) {
+    if (any(rtype>2 & !isDate)) {
+        indx <- which(rtype>2 & !isDate)
+        stop(paste("the reference ratetable expects a date for variable",
+                    dimid[indx]))
+        }
+    for (i in (1:ncol(R))) {
 	if (length(levlist[[i]]) >0) {  #factor or character variable
 	    if (rtype[i]!=1) stop(paste("In ratetable(),", dimid[i],
 				     "must be a continuous variable"))

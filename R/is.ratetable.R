@@ -1,11 +1,14 @@
 is.ratetable <- function(x, verbose=FALSE) {
-    dlist <- c("dim", "dimnames", "dimid", "cutpoints")
+    att <- attributes(x)
+    dlist <- c("dim", "dimnames", "cutpoints")
     if (!verbose) {
 	if (!inherits(x, 'ratetable')) return(FALSE)
-	att <- attributes(x)
 	if (any(is.na(match(dlist, names(att))))) return(FALSE)
+        if (is.null(att$dimid)) att$dimid <- names(att$dimnames)
 	nd <- length(att$dim)
 	if (length(x) != prod(att$dim)) return(FALSE)
+        if (any(att$dimid == "")) return(FALSE)
+        
 	if (!(is.list(att$dimnames) && is.list(att$cutpoints)))
 		 return(FALSE)
 	if (length(att$dimnames)!=nd ||
@@ -16,6 +19,9 @@ is.ratetable <- function(x, verbose=FALSE) {
             if (any(is.na(fac))) return(FALSE)
             if (any(fac <0)) return(FALSE)
             if (length(att$factor)!=nd ) return(FALSE)
+            # if any dates use Date cutpoints, all need to
+            isDate <- sapply(att$cutpoints, function(x) inherits(x, "Date"))
+            if (any(isDate) && any((att$type >2) != isDate)) return(FALSE)
             }
         else if (!is.null(att$type)) {
             if (any(is.na(match(att$type, 1:4)))) return(FALSE)
@@ -39,13 +45,13 @@ is.ratetable <- function(x, verbose=FALSE) {
     # verbose return messages, useful for debugging
     msg <- NULL
     if (!inherits(x, 'ratetable')) msg <- c(msg, "wrong class")
-    att <- attributes(x)
 
     temp <- is.na(match(dlist, names(att)))
     if (any(temp)) 
         msg <- c(msg, paste("missing attribute:", dlist[temp]))
+    if (is.null(att$dimid)) att$dimid <- names(att$dimnames)
 
-    # This next error is unlikely, since S itself squawks when you
+    # This next error is unlikely, since R itself squawks when you
     #   try to set a wrong dimension.  Ditto with dimnames issues.
     nd <- length(att$dim)
     if (length(x) != prod(att$dim)) 
@@ -59,7 +65,9 @@ is.ratetable <- function(x, verbose=FALSE) {
     if (length(att$dimnames)!=nd)
         msg <- c(msg, 'wrong length for dimnames')
     if (length(att$dimid)!=nd)
-        msg <- c(msg, 'wrong length for dimid')
+        msg <- c(msg, "wrong length for dimid, or dimnames do not have names")
+    if (any(att$dimid==""))
+        msg <- c(msg, "one of the dimnames identifiers is blank")
 
     if (length(att$cutpoints)!=nd) 
         msg <- c(msg, 'wrong length for cutpoints')
@@ -78,6 +86,10 @@ is.ratetable <- function(x, verbose=FALSE) {
         type <- att$type
         if (length(type)!=nd)
             msg <- c(msg, 'wrong length for type attribute')
+        # if any dates use Date cutpoints, all need to
+        isDate <- sapply(att$cutpoints, function(x) inherits(x, "Date"))
+        if (any(isDate) && any((att$type >2) != isDate))
+            msg <- c(msg, "all dates must have cutpoints of type Date, or none")
         }
     else msg <- c(msg, "missing the 'type' attribute")
 

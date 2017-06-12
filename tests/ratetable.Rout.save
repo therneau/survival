@@ -1,7 +1,7 @@
 
-R version 2.11.1 (2010-05-31)
-Copyright (C) 2010 The R Foundation for Statistical Computing
-ISBN 3-900051-07-0
+R Under development (unstable) (2017-05-02 r72647) -- "Unsuffered Consequences"
+Copyright (C) 2017 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -18,21 +18,14 @@ Type 'q()' to quit R.
 > options(na.action=na.exclude) # preserve missings
 > options(contrasts=c('contr.treatment', 'contr.poly')) #ensure constrast type
 > library(survival)
-Loading required package: splines
 > 
 > #
 > # Generate each of the messages from is.ratetable
 > #
-> {if (is.R()) mdy.date <- function(m, d, y) {
+> mdy.date <- function(m, d, y) {
 +     y <- ifelse(y<100, y+1900, y)
 +     as.Date(paste(m,d,y, sep='/'), "%m/%d/%Y")
 +     }
-+ else mdy.date <- function(m,d,y) {
-+     y <- ifelse(y<100, y+1900, y)
-+     timeDate(paste(y, m, d, sep='/'), in.format="%Y/%m/%d")
-+     }
-+  }
-> 
 > temp <- runif(21*2*4)
 > 
 > # Good
@@ -67,8 +60,8 @@ Loading required package: splines
 +     cutpoints=list(c(75:95), NULL, mdy.date(1,1,2000) +c(4:1)*366.25),
 +     class='ratetable')
 > is.ratetable(temp, verbose=T)
-[1] "missing attribute: dimid"           "wrong length for dimid"            
-[3] "unsorted cutpoints for dimension 3"
+[1] "wrong length for dimid, or dimnames do not have names"
+[2] "unsorted cutpoints for dimension 3"                   
 > 
 > # wrong length for dimid and type, illegal type
 > attributes(temp) <- list(dim=c(21,2,4),
@@ -79,86 +72,71 @@ Loading required package: splines
 +     cutpoints=list(c(75:95), NULL, mdy.date(1,1,2000) +c(0:3)*366.25),
 +     class='ratetable')
 > is.ratetable(temp, verbose=T)
-[1] "wrong length for dimid"              
-[2] "type attribute must be 1, 2, 3, or 4"
-[3] "wrong length for type attribute"     
+[1] "wrong length for dimid, or dimnames do not have names"
+[2] "type attribute must be 1, 2, 3, or 4"                 
+[3] "wrong length for type attribute"                      
 > 
 > 
 > # Print and summary
-> print(survexp.us[1:30,,c('1953', '1985')] )
+> print(survexp.us[1:20,,c('1953', '1985')] )
 Rate table with dimension(s): age sex year 
-, , 1953
+, , year = 1953
 
-                male       female
-0-1d    1.157372e-02 8.844000e-03
-1-7d    1.446302e-03 1.027012e-03
-7-28d   1.379175e-04 1.106070e-04
-28-365d 2.814865e-05 2.346732e-05
-1       6.169963e-06 5.423669e-06
-2       3.860391e-06 3.161334e-06
-3       2.909162e-06 2.424089e-06
-4       2.448747e-06 1.950051e-06
-5       2.210350e-06 1.692520e-06
-6       1.988411e-06 1.481583e-06
-7       1.813065e-06 1.298053e-06
-8       1.684303e-06 1.169315e-06
-9       1.593900e-06 1.087146e-06
-10      1.569249e-06 1.051541e-06
-11      1.626780e-06 1.043325e-06
-12      1.771975e-06 1.089887e-06
-13      2.062389e-06 1.199447e-06
-14      2.462443e-06 1.347361e-06
-15      2.944779e-06 1.550072e-06
-16      3.410754e-06 1.752797e-06
-17      3.819231e-06 1.928140e-06
-18      4.164702e-06 2.056914e-06
-19      4.504735e-06 2.169256e-06
-20      4.822866e-06 2.289823e-06
-21      5.086174e-06 2.410395e-06
-22      5.278187e-06 2.511789e-06
-23      5.335795e-06 2.613186e-06
-24      5.286423e-06 2.714587e-06
-25      5.198648e-06 2.815992e-06
-26      5.130079e-06 2.917400e-06
+    sex
+age          male       female
+  0  8.936600e-05 6.911204e-05
+  1  6.169963e-06 5.423669e-06
+  2  3.860391e-06 3.161334e-06
+  3  2.909162e-06 2.424089e-06
+  4  2.448747e-06 1.950051e-06
+  5  2.210350e-06 1.692520e-06
+  6  1.988411e-06 1.481583e-06
+  7  1.813065e-06 1.298053e-06
+  8  1.684303e-06 1.169315e-06
+  9  1.593900e-06 1.087146e-06
+  10 1.569249e-06 1.051541e-06
+  11 1.626780e-06 1.043325e-06
+  12 1.771975e-06 1.089887e-06
+  13 2.062389e-06 1.199447e-06
+  14 2.462443e-06 1.347361e-06
+  15 2.944779e-06 1.550072e-06
+  16 3.410754e-06 1.752797e-06
+  17 3.819231e-06 1.928140e-06
+  18 4.164702e-06 2.056914e-06
+  19 4.504735e-06 2.169256e-06
 
-, , 1985
+, , year = 1985
 
-                male       female
-0-1d    4.429985e-03 3.701977e-03
-1-7d    3.595869e-04 2.735770e-04
-7-28d   6.385309e-05 5.193376e-05
-28-365d 1.277308e-05 9.947467e-06
-1       2.451492e-06 2.108968e-06
-2       1.739100e-06 1.341882e-06
-3       1.369277e-06 1.013196e-06
-4       1.122754e-06 7.940941e-07
-5       9.995021e-07 7.530142e-07
-6       9.173378e-07 6.571643e-07
-7       8.488687e-07 5.887021e-07
-8       7.530153e-07 5.339338e-07
-9       6.297793e-07 4.791661e-07
-10      5.202416e-07 4.517830e-07
-11      5.202416e-07 4.517830e-07
-12      7.530134e-07 5.202412e-07
-13      1.232311e-06 6.571636e-07
-14      1.862374e-06 8.351727e-07
-15      2.533686e-06 1.026887e-06
-16      3.150341e-06 1.204921e-06
-17      3.657474e-06 1.341877e-06
-18      4.041315e-06 1.424054e-06
-19      4.315527e-06 1.465144e-06
-20      4.603481e-06 1.506233e-06
-21      4.864041e-06 1.561021e-06
-22      5.069759e-06 1.615810e-06
-23      5.138331e-06 1.643205e-06
-24      5.152035e-06 1.670600e-06
-25      5.110881e-06 1.697995e-06
-26      5.097158e-06 1.725391e-06
+    sex
+age          male       female
+  0  3.350073e-05 2.680036e-05
+  1  2.451492e-06 2.108968e-06
+  2  1.739100e-06 1.341882e-06
+  3  1.369277e-06 1.013196e-06
+  4  1.122754e-06 7.940941e-07
+  5  9.995021e-07 7.530142e-07
+  6  9.173378e-07 6.571643e-07
+  7  8.488687e-07 5.887021e-07
+  8  7.530153e-07 5.339338e-07
+  9  6.297793e-07 4.791661e-07
+  10 5.202416e-07 4.517830e-07
+  11 5.202416e-07 4.517830e-07
+  12 7.530134e-07 5.202412e-07
+  13 1.232311e-06 6.571636e-07
+  14 1.862374e-06 8.351727e-07
+  15 2.533686e-06 1.026887e-06
+  16 3.150341e-06 1.204921e-06
+  17 3.657474e-06 1.341877e-06
+  18 4.041315e-06 1.424054e-06
+  19 4.315527e-06 1.465144e-06
 
 > summary(survexp.usr)
  Rate table with 4 dimensions:
-	age ranges from 0 to 39812.25; with 113 categories
+	age ranges from 0 to 39812.25; with 110 categories
 	sex has levels of: male female
 	race has levels of: white black
-	year ranges from 1940-01-01 to 2004-01-01; with 65 categories
+	year ranges from 1940-01-01 to 2012-01-01; with 73 categories
 > 
+> proc.time()
+   user  system elapsed 
+  0.904   0.020   0.923 

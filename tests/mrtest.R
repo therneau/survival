@@ -2,16 +2,10 @@ options(na.action=na.exclude) # preserve missings
 options(contrasts=c('contr.treatment', 'contr.poly')) #ensure constrast type
 library(survival)
 
-{if (is.R()) mdy.date <- function(m, d, y) {
+mdy.Date <- function(m, d, y) {
     y <- ifelse(y<100, y+1900, y)
     as.Date(paste(m,d,y, sep='/'), "%m/%d/%Y")
     }
-else mdy.date <- function(m,d,y) {
-    y <- ifelse(y<100, y+1900, y)
-    timeDate(paste(y, m, d, sep='/'), in.format="%Y/%m/%d")
-    }
- }
-
 #
 # A test of the match.ratetable function, specifically the
 #  change to allow partial matching of strings 
@@ -19,7 +13,7 @@ else mdy.date <- function(m,d,y) {
 #
 aeq <- function(x,y, ...) all.equal(as.vector(x), as.vector(y), ...)
 
-temp1 <- data.frame(year=mdy.date(2,2,1960:1964),
+temp1 <- data.frame(year=mdy.Date(2,2,1960:1964),
                     age =   10000 + 1:5,
                     sex = c('M', 'fema', 'f', 'ma', 'F'))
 

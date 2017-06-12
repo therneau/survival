@@ -33,47 +33,29 @@ survexp.fit <- function(group, x, y, times, death, ratetable) {
     if (any(us.special)) {  #special handling for US pop tables
 	if (sum(us.special) >1)
 	    stop("Two columns marked for special handling as a US rate table")
-	# Now, the 'entry' date on a US rate table is the number of days 
-        #  since 1/1/1960, and the user data has been aligned to the
-        #  same system by match.ratetable and marked as "year".
-        # US rate tables are odd: the entry for age (year=1970, age=55)
-        #  contains the daily rate for anyone who turns 55 in that year,
-        #  from their birthday forward for 365 days.  So if your birthday
-        #  is on Oct 2, the 1970 table applies from 2Oct 1970 to 1Oct 1971.
-        # The underlying C code wants to make the 1970 rate table apply
-        #  from 1Jan 1970 to 31Dec 1970.  The easiest way to finess this is
-        #  to fudge everyone's enter-the-study date.  If you were born
-        #  in March but entered in April, make it look like you entered in
-        #  Febuary; that way you get the first 11 months at the entry 
-        #  year's rates, etc.  This is the same as being born on Jan 1.
-        # The birth date is entry date - age in days (based on 1/1/1960).
-        #
-        cols <- match(c("age", "year"), atts$dimid)
+        # Someone born in June of 1945, say, gets the 1945 US rate until their
+        #  next birthday.  But the underlying logic of the code would change
+        #  them to the 1946 rate on 1/1/1946, which is the cutpoint in the
+        #  rate table.  We fudge by faking their birthdate back to January 1.
+        # The cutpoint for year can be simple numeric (older) or a Date object,
+        #  and the older style ones use days since 1/1/1960.  (Date objects in
+        #  R didn't exist when rate tables were conceived.)  So watch out for
+        #  that as well.
+        if (is.null(atts$dimid)) dimid <- names(atts$dimnames)
+        else dimid <- atts$dimid
+        cols <- match(c("age", "year"), dimid)
         if (any(is.na(cols))) 
             stop("Ratetable does not have expected shape")
-        if (exists("as.Date")) {  # true for modern version of R
-            bdate <- as.Date('1960/1/1') + (x[,cols[2]] - x[,cols[1]])
-            byear <- format(bdate, "%Y") # year of birth
-            offset <- as.numeric(bdate - 
-                                 as.Date(paste(byear, '01/01', sep='/')))
-            }
-        # The lines below were commented out to stop spurious warning
-        #   messages from "CMD check".  They are very unlikely to ever
-        #   be needed, so no big loss.
-        #else if (exists('month.day.year')) { # Splus, usually
-        #    bdate <- x[,cols[2]] - x[,cols[1]]
-        #    byear <- month.day.year(bdate)$year
-        #    offset <- bdate - julian(1,1,byear)
-        #    }
-        #else if (exists('date.mdy')) { # the TMT date class is available
-        #    bdate <- as.date(x[,cols[2]] - x[,cols[1]])
-        #    byear <- date.mdy(bdate)$year
-        #    offset <- bdate - mdy.date(1,1,byear)
-        #    }
-        else stop("Can't find an appropriate date class\n") 
+
+        if (inherits(atts$cutpoints[[which(us.special)]], "Date"))
+            origin <- "1970/01/01"  else origin <- "1960/01/01"
+        bdate <- as.Date(origin) + (x[,cols[2]] - x[,cols[1]])
+        byear <- format(bdate, "%Y")
+        offset <- bdate - as.Date(paste(byear, "01/01", sep='/'), 
+                                      origin=origin)
         x[,cols[2]] <- x[,cols[2]] - offset
 
-	# Doctor up "cutpoints" - only needed for old style rate tables
+	# Doctor up "cutpoints" - only needed for (very) old style rate tables
         #  for which the C code does interpolation on the fly
         if (any(rfac >1)) {
             temp <-  which(us.special)

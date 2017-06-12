@@ -1,5 +1,16 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 2.41-5}{
+  \itemize{
+    \item Update the survexp.us and survexp.usr rate tables.  They now
+    contain years 1940 to 2012.  They however lost the breakdown of the
+    first year of life into smaller intervals as the recent US census data
+    lacks that information.  Update the code for ratetables: a cutpoint
+    attribute vector can be of class Date, and names(dimnames) can
+    supplant the dimid attribute.  (Only creators of rate tables are impacted
+    by these last two.)
+}}
+
 \section{Changes in version 2.41-4}{
   \itemize{
     \item The coxph routine did not check for infinite predictors (these
@@ -47,7 +58,7 @@
 
     \item Pointed out by Mikko Korpela: the dynamic symbols check added
     in 2.41-0 requires R version 2.16 or later.  Add an ifdef to init.c
-    that checks the version of R, mimicing a similar line in the MASS library.
+    that checks the version of R, mimicking a similar line in the MASS library.
 }}
 
 \section{Changes in version 2.41-2}{
