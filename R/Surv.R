@@ -77,7 +77,7 @@ Surv <- function(time, time2, event,
 	    time[temp] <- NA
 	    warning("Stop time must be > start time, NA created")
 	    }
-        if (mtype=="mstate" || (is.factor(event) && length(levels(event))>2)) {
+        if (mtype=="mstate" || is.factor(event)) {
             mstat <- as.factor(event)
             status <- as.numeric(mstat) -1
             type <- "mcounting"
