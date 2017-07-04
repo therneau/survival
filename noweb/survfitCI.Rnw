@@ -191,22 +191,23 @@ vector of length 2 with state 1 = alive and state 2 = dead.
 The variance is based on per-subject influence.  Since $p(t)$ is a vector
 the influence can be written as a matrix with one row per subject and
 one column per state.
-$$ U_{ij}(t) \equiv \frac{partial p_j(t)}{\partial w_i}. $$
+$$ U_{ij}(t) \equiv \frac{\partial p_j(t)}{\partial w_i}. $$
 This can be calculate using a recursive formula.
 First, the derivative of a matrix product $AB$ is $d(A)B + Ad(B)$ where
 $d(A)$ is the elementwise derivative of $A$ and similarly for $B$.
 (Write out each element of the matrix product.)
 Since $p(t) = p(t-)H(t)$, the $i$th row of U satisfies
 \begin{align}
-  U_i(t) &= \frac{partial p(t)}{\partial w_i} \nonumber \\
+  U_i(t) &= \frac{\partial p(t)}{\partial w_i} \nonumber \\
          &= \frac{\partial p(t-)}{\partial w_i} H(t) + 
-           p(t-) \frac{\partial H(t}{\partial w_i} \nonumber \\
-         &= U_i(t-) H(t) +  p(t-) \frac{\partial H(t}{\partial w_i} 
+           p(t-) \frac{\partial H(t)}{\partial w_i} \nonumber \\
+         &= U_i(t-) H(t) +  p(t-) \frac{\partial H(t)}{\partial w_i} 
            \label{ci}
 \end{align}  
 The first term of \ref{ci} collapses to ordinary matrix multiplication. 
 The second term does not: each at risk subject has a unique matrix derivative
-$\partial H$; $n$ vectors of length $p$ arrange into a matrix but $n$
+$\partial H$; $n$ vectors of length $p$ can be arranged into a matrix, making
+the code simple, but $n$
 $p$ by $p$ matrices are not so neat.
 However, note that
 \begin{enumerate}
@@ -218,8 +219,8 @@ However, note that
 \end{enumerate}
 Say that the subject enters the given event time in state $j$ and ends it
 in state $k$.
-(For most $k=j$: if there are 100 at risk at time $t$ and 1 changes state,
-the other 99 stay put.)
+(For most subjects at most time poinnts $k=j$: if there are 100 at risk at 
+time $t$ and 1 changes state, the other 99 stay put.)
 Let $n_j(t)= \sum_i Y_{ij}(t)w_i$ be the weighted number of subjects
 in state $j$, these are the contributers to row $j$ of $H$.
 Using equation \ref{H}, the derivative of row $j$
@@ -254,7 +255,7 @@ cstate and U objects have only one row per subject;
 any given subject is only in one state at a time.
 This leads to indices of [[atrisk]] for the set of rows in the risk set but
 [[aindx]] for the subjects in the risk set, [[death]] for the rows that have
-an event as some given time and [[dindx]] for the corresponding subjects.
+an event this time and [[dindx]] for the corresponding subjects.
 
 The setup for (start, stop] data is a bit more work.  
 We want to ensure that a given subject remains in the same group,
