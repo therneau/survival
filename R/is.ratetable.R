@@ -20,8 +20,10 @@ is.ratetable <- function(x, verbose=FALSE) {
             if (any(fac <0)) return(FALSE)
             if (length(att$factor)!=nd ) return(FALSE)
             # if any dates use Date cutpoints, all need to
+            #  don't give a code error if cutpoints is the wrong length
             isDate <- sapply(att$cutpoints, function(x) inherits(x, "Date"))
-            if (any(isDate) && any((att$type >2) != isDate)) return(FALSE)
+            if (length(att$cutpoints) == length(att$type) &&
+                any(isDate) && any(att$type >2 & !isDate)) return(FALSE)
             }
         else if (!is.null(att$type)) {
             if (any(is.na(match(att$type, 1:4)))) return(FALSE)
@@ -88,8 +90,9 @@ is.ratetable <- function(x, verbose=FALSE) {
             msg <- c(msg, 'wrong length for type attribute')
         # if any dates use Date cutpoints, all need to
         isDate <- sapply(att$cutpoints, function(x) inherits(x, "Date"))
-        if (any(isDate) && any((att$type >2) != isDate))
-            msg <- c(msg, "all dates must have cutpoints of type Date, or none")
+        if (length(att$type) == length(att$cutpoints) &&
+            any(isDate) && any(att$type >2 & !isDate))
+            msg <- c(msg, "all or none of the dates must have cutpoints of type Date")
         }
     else msg <- c(msg, "missing the 'type' attribute")
 
@@ -106,8 +109,8 @@ is.ratetable <- function(x, verbose=FALSE) {
                 }
 
 	if (type[i]==1 && !is.null(att$cutpoints[[i]]))  
-		msg <- c(msg, paste('type[', i, 
-                                    '] is 1; cutpoint should be null'))
+		msg <- c(msg, paste0('attribute type[', i, 
+                                    '] is continuous; cutpoint should be null'))
         # This message only applies to old style rate table
 	if (!is.null(att$fac) && type[i]==4 && i<nd) 
 		msg <- c(msg, 'only the last dimension can be interpolated')
