@@ -1,12 +1,28 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 2.42-0}{
+  \itemize{
+    \item Fix a bug in the agfit4.c routine, based on data sets from Igo
+    Sousa Ferreira and Marloes Derks.  This was introduced in 2.39-1 and
+    leads to incorrect solutions for selected data sets. In detail:
+    In a start stop data set with strata assume two adjacent event times
+    in one stratum of d1 and d2, say, and a set of k censored intervals
+    (a,b) also in that stratum such that a>=d1 and b<d2. (Such intervals are
+    at risk for none of the events).  If k >= the number of intervals
+    that overlap both d1 and d2, and in the prior stratum the smallest
+    time was an event, then the contributions to the loglik, first and
+    second derivative at d1 would be incorrect.  I expect such data sets
+    are extremely rare.  However, the survSplit routine and mstate
+    packages can generate data sets with a lot of intervals.  
+  }
+}
 \section{Changes in version 2.41-5}{
   \itemize{
     \item Update the survexp.us and survexp.usr rate tables.  They now
     contain years 1940 to 2012.  They however lost the breakdown of the
     first year of life into smaller intervals as the recent US census data
     lacks that information.  Update the code for ratetables: a cutpoint
-    attribute vector can be of class Date, and names(dimnames) can
+    attribute vector can now be of class Date, and names(dimnames) can
     supplant the dimid attribute.  (Only creators of rate tables are impacted
     by these last two.)
 }}
@@ -128,7 +144,7 @@
 }
 \section{Changes in version 2.40-0}{
   \itemize{
-    \item Code changes to void the new warnings for multiplication of a
+    \item Code changes to avoid the new warnings for multiplication of a
     vector * (1 by 1 matrix). 
     
     \item Add a more thorough test case for multi-state survival:

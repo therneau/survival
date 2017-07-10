@@ -42,8 +42,8 @@ The first task is to parse the user's formula and match it to the terms
 structure found in the data: we should be a proper subset of it.
   
 <<yates>>=
-cmatrix <- function(fit, term, 
-                    type=c("full", "linear", "linear2", "pairwise")){
+cmatrix <- function(fit, term, levels, 
+                    type=c("full", "each", "linear", "linear2", "pairwise")){
     # If any of the parts I need are missing, then likely the first are
     #  is not a model fit
     if (missing(fit)) stop("a fit argument is required")

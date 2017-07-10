@@ -14,4 +14,6 @@ not how to use the survival functions for data analysis.  For those who
 maintain the code it will be a big help, for everyone else I'd expect
 it to be boring.  To create code.pdf type  "make doc".
 
+Any .Rnw files that are not yet included in the Makefile are works in progress.
+
 	Terry Therneau
