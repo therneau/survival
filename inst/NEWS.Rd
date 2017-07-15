@@ -20,6 +20,9 @@
 
     \item Change the scale argument of summary.coxph so that it affects
     the coefficient and se(coef), not just the confidence interval.
+
+    \item Change all instances of "1-pchisq(...)" to instead use the
+    lower.tail=FALSE argument.
 }}
 
 \section{Changes in version 2.41-3}{
@@ -111,7 +114,7 @@
 }
 \section{Changes in version 2.40-0}{
   \itemize{
-    \item Code changes to void the new warnings for multiplication of a
+    \item Code changes to avoid the new warnings for multiplication of a
     vector * (1 by 1 matrix). 
     
     \item Add a more thorough test case for multi-state survival:

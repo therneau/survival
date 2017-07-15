@@ -101,7 +101,7 @@ anova.coxph <- function (object, ...,  test = 'Chisq') {
              table <- table[1, , drop = FALSE]
 
     if (length(test) >0 && test[1]=='Chisq') {
-        table[['Pr(>|Chi|)']] <- 1- pchisq(table$Chisq, table$Df)
+        table[['Pr(>|Chi|)']] <- pchisq(table$Chisq, table$Df, lower.tail=FALSE)
         }
   
     temp <- attr(terms(object), "term.labels")

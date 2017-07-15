@@ -47,12 +47,12 @@ cox.zph <- function(fit, transform='km', global=TRUE) {
     test <- xx %*% r2        # time weighted col sums
     corel <- c(cor(xx, r2))
     z <- c(test^2 /(diag(fit$var)*ndead* sum(xx^2)))
-    Z.ph <- cbind(corel, z, 1- pchisq(z,1))
+    Z.ph <- cbind(corel, z, pchisq(z,1, lower.tail=FALSE))
 
     if (global && nvar>1) {
 	test <- c(xx %*% sresid)
 	z    <- c(test %*% fit$var %*% test) * ndead / sum(xx^2)
-	Z.ph <- rbind(Z.ph, c(NA, z, 1-pchisq(z, ncol(sresid))))
+	Z.ph <- rbind(Z.ph, c(NA, z, pchisq(z, ncol(sresid), lower.tail=FALSE)))
 	dimnames(Z.ph) <- list(c(varnames, "GLOBAL"), c("rho", "chisq", "p"))
 	}
     else dimnames(Z.ph) <- list(varnames, c("rho", "chisq", "p"))

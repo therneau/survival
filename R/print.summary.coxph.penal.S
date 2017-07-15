@@ -53,18 +53,18 @@ print.summary.coxph.penal <-
             " (se =", format(round(x$concordance[2], 3)),")\n")
     }
     cat("Likelihood ratio test= ", format(round(logtest, 2)), "  on ",
-	df, " df,", "   p=", format(1 - pchisq(logtest, df)),
+	df, " df,", "   p=", format(pchisq(logtest, df, lower.tail=FALSE)),
 	"\n", sep = "")
     if (!is.null(x$wald.test))
         cat("Wald test            = ", format(round(x$wald.test, 2)), 
 	    "  on ", df, " df,   p=",
-	    format(1 - pchisq(x$wald.test, df)), sep = "")
+	    format(pchisq(x$wald.test, df, lower.tail=FALSE)), sep = "")
     if (!is.null(x$score))
         cat("\nScore (logrank) test = ", format(round(sctest, 2)), "  on ", df,
-            " df,", "   p=", format(1 - pchisq(sctest, df)), sep ="") 
+            " df,", "   p=", format(pchisq(sctest, df, lower.tail=FALSE)), sep ="") 
     if (is.null(x$rscore)) cat("\n")
     else cat(",   Robust = ", format(round(x$rscore, 2)), 
-	   "  p=", format(1 - pchisq(x$rscore, df)), "\n", sep="")   
+	   "  p=", format(pchisq(x$rscore, df, lower.tail=FALSE)), "\n", sep="")   
 
     invisible()
     }

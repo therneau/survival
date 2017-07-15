@@ -35,7 +35,7 @@ print.survreg <- function(x, ...)
     if (df > 0)
 	    cat("\n\tChisq=", format(round(chi,2)), "on", round(df,1),
 		"degrees of freedom, p=", 
-		format(signif(1-pchisq(chi, df),2)), "\n")
+		format(signif(pchisq(chi, df, lower.tail=FALSE),2)), "\n")
     else cat("\n")
 
     omit <- x$na.action

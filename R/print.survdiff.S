@@ -18,7 +18,8 @@ print.survdiff <- function(x, digits = max(options()$digits - 4, 3), ...) {
 
     if (length(x$n)==1)  {
 	z <- sign(x$exp - x$obs) * sqrt(x$chisq)
-	temp <- c(x$obs, x$exp, z, signif(1-pchisq(x$chisq, 1),digits))
+	temp <- c(x$obs, x$exp, z, signif(pchisq(x$chisq, 1, lower.tail=FALSE),
+                                          digits))
 	names(temp) <- c("Observed", "Expected", "Z", "p")
 	print(temp)
 	}
@@ -39,7 +40,8 @@ print.survdiff <- function(x, digits = max(options()$digits - 4, 3), ...) {
 	print(temp)
 	cat("\n Chisq=", format(round(x$chisq,1)),
 		 " on", df, "degrees of freedom, p=",
-		 format(signif(1-pchisq(x$chisq, df),digits)), "\n")
+		 format(signif(pchisq(x$chisq, df, lower.tail=FALSE),digits)),
+            "\n")
        }
     invisible(x)
     }

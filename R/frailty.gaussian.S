@@ -59,7 +59,7 @@ frailty.gaussian <- function(x, sparse=(nclass >5), theta, df,
 	if (is.matrix(var)) test <- coxph.wtest(var, coef)$test
 	else 		    test <- sum(coef^2/var)
 	df2 <- max(df, .5)      # Stop silly p-values
-	list(coef=c(NA, NA, NA, test, df, 1-pchisq(test, df2)),
+	list(coef=c(NA, NA, NA, test, df, pchisq(test, df2, lower.tail=FALSE)),
 		 history=paste("Variance of random effect=", format(theta)))
 	}
     # The final coxph object will contain a copy of printfun.  Stop it from

@@ -17,13 +17,13 @@ summary.coxph <- function(object,  conf.int = 0.95, scale = 1, ...) {
 
     if (is.null(cox$naive.var)) {
         tmp <- cbind(beta, exp(beta), se, beta/se,
-                     1 - pchisq((beta/ se)^2, 1))
+                     pchisq((beta/ se)^2, 1, lower.tail=FALSE))
         dimnames(tmp) <- list(names(beta), c("coef", "exp(coef)",
                                              "se(coef)", "z", "Pr(>|z|)"))
         }
     else {
         tmp <- cbind(beta, exp(beta), nse, se, beta/se,
-                     1 - pchisq((beta/ se)^2, 1))
+                     pchisq((beta/ se)^2, 1, lower.tail=FALSE))
         dimnames(tmp) <- list(names(beta), c("coef", "exp(coef)",
                                "se(coef)", "robust se", "z", "Pr(>|z|)"))
         }
@@ -43,19 +43,20 @@ summary.coxph <- function(object,  conf.int = 0.95, scale = 1, ...) {
     logtest <- -2 * (cox$loglik[1] - cox$loglik[2])
     rval$logtest <- c(test=logtest,
                       df=df,
-                      pvalue=1 - pchisq(logtest, df))
+                      pvalue= pchisq(logtest, df, lower.tail=FALSE))
     rval$sctest <- c(test=cox$score,
                      df=df,
-                     pvalue=1 - pchisq(cox$score, df))
+                     pvalue= pchisq(cox$score, df, lower.tail=FALSE))
     rval$rsq<-c(rsq=1-exp(-logtest/cox$n),
                  maxrsq=1-exp(2*cox$loglik[1]/cox$n))
     rval$waldtest<-c(test=as.vector(round(cox$wald.test, 2)),
                       df=df,
-                      pvalue=1 - pchisq(as.vector(cox$wald.test), df))
+                      pvalue= pchisq(as.vector(cox$wald.test), df, 
+                                     lower.tail=FALSE))
     if (!is.null(cox$rscore))
          rval$robscore<-c(test=cox$rscore,
                           df=df,
-                          pvalue=1 - pchisq(cox$rscore, df))
+                          pvalue= pchisq(cox$rscore, df, lower.tail=FALSE))
     rval$used.robust<-!is.null(cox$naive.var)
 
     if (!is.null(cox$concordance)) {
