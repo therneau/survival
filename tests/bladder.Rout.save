@@ -1,7 +1,7 @@
 
-R Under development (unstable) (2016-01-29 r70039) -- "Unsuffered Consequences"
-Copyright (C) 2016 The R Foundation for Statistical Computing
-Platform: i686-pc-linux-gnu (32-bit)
+R Under development (unstable) (2017-05-02 r72647) -- "Unsuffered Consequences"
+Copyright (C) 2017 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -16,7 +16,8 @@ Type 'demo()' for some demos, 'help()' for on-line help, or
 Type 'q()' to quit R.
 
 > options(na.action=na.exclude) # preserve missings
-> options(contrasts=c('contr.treatment', 'contr.poly')) #ensure constrast type
+> options(contrasts=c('contr.treatment', 'contr.poly'),
++                      show.signif.stars=FALSE) #ensure constrast type
 > library(survival)
 > 
 > #
@@ -69,12 +70,10 @@ coxph(formula = Surv(start, stop, event) ~ rx + size + number +
 
   n= 178, number of events= 112 
 
-           coef exp(coef) se(coef) robust se      z Pr(>|z|)   
-rx     -0.45979   0.63142  0.19996   0.25801 -1.782  0.07474 . 
-size   -0.04256   0.95833  0.06903   0.07555 -0.563  0.57317   
-number  0.17164   1.18726  0.04733   0.06131  2.799  0.00512 **
----
-Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+           coef exp(coef) se(coef) robust se      z Pr(>|z|)
+rx     -0.45979   0.63142  0.19996   0.25801 -1.782  0.07474
+size   -0.04256   0.95833  0.06903   0.07555 -0.563  0.57317
+number  0.17164   1.18726  0.04733   0.06131  2.799  0.00512
 
        exp(coef) exp(-coef) lower .95 upper .95
 rx        0.6314     1.5837    0.3808     1.047
@@ -152,4 +151,4 @@ n= 27, number of events= 22
 > 
 > proc.time()
    user  system elapsed 
-  0.200   0.028   0.225 
+  0.904   0.024   0.926 

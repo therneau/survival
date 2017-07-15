@@ -944,7 +944,7 @@ for the covariate \code{time}; no differently than if we had
 constructed the variable outside of a \code{coxph} call.
 This variable most definitely breaks the rule about not looking into the
 future, and one would quickly find the circularity: large values of 
-\code{time} predict long survival,  because long survival leads to 
+\code{time} appear to predict long survival because long survival leads to 
 large values for \code{time}.
 
 A true time-dependent covariate can be constructed using the 
@@ -980,6 +980,48 @@ The error is less likely there because phreg's model statement has no
 equivalent to the \code{I()} function, i.e., you cannot simply write
 ``log(time)'' on the right hand side.
 
+The use of programming statements to create a yes/no variable deserves
+extra comment because of a common error.
+Assume one has a data set with two time variables: the time from enrollment
+to last follow up and the time to diabetes, say, and we want to use the
+presence of diabetes as time dependent covariate.
+Here is a small made up example.
+<<ties1>>=
+data1 <- read.table(col.names=c("id", "diabetes", "lfu", "status"),
+                          header=FALSE, text="
+1   5 30  1
+2  10 15  1
+3  NA 60  0
+4  NA 80  1
+5  10 80  0
+6  NA 90  1
+7  30 95  1
+")
+
+data1$d2 <- pmin(data1$diabetes, 300, na.rm=TRUE) #replace NA with 300
+fit1 <- coxph(Surv(lfu, status) ~ tt(d2), data=data1,
+              tt = function(d2, t, ...) ifelse(t > d2, 1, 0))
+fit2 <- coxph(Surv(lfu, status) ~ tt(d2), data=data1,
+              tt = function(d2, t, ...) ifelse(t < d2, 0, 1))
+c(coef(fit1), coef(fit2))
+@
+
+One might have expected fit1 and fit2 to give the same coefficient but 
+they are completely different. 
+The issue is subject 7 whose time to diabetes falls exactly at one of the
+event times.  In fit1 their diabetes covariate effectively changes just 
+after the event at time 30,
+in fit2 it is 1 at time 30.  The second is incorrect.  
+When a data set is expanded into a start, stop format the issue of ties
+is dealt with correctly and automatically.
+<<ties2>>=
+@ 
+data2 <- tmerge(data1, data1, id=id, dstat=event(lfu, status),
+                diab = tdc(diabetes))
+subset(data2, id %in% c(1,7), c(id, tstart:diab))               
+fit3 <- coxph(Surv(tstart, tstop, dstat) ~ diab, data2)
+c(coef(fit1), coef(fit2), coef(fit3))
+@ 
 
 
 \section{Predictable time-dependent covariates}

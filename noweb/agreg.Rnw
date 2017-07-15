@@ -400,37 +400,49 @@ We do a first pass to mark them in the
 \code{keep} will be 1= true, but survSplit can create observations that 
 are not used.
 
+The algorithm is to go from largest to smallest and keep running track of the
+number of deaths.  Whenever we strike a right endpoint it gets the current
+number of deaths just before this time point.  
+If that endpoint is a death then a. first update all the
+left endpoints that are >=dtime and add the current number of deaths
+from them and b. update the number of deaths.  
+1 added.  At each new strata zero the accumulator.
 <<agfit4-toss>>=
+/* keep[] will have number of event times for which this subject is at risk */
 indx1 =0;
-person =0;
-for (k=0; k<nused; k++) keep[k] =1;
-for (istrat=0; istrat<nstrat; istrat++) {
-   while(person < strata[istrat]) {
-       /* find the next death */
-       for (k=person; k< strata[istrat]; k++) {
-	   p = sort2[k];
-	   if (event[p] ==1) {
-	       dtime = tstop[p];
-	       break;
-	   }
-       }
-       if (k== strata[istrat]) {
-	   /* no more deaths in this strata */
-	   person = k;
-	   indx1 =k;  /* we can move on */
-       }
-
-       for (; indx1 < strata[istrat]; indx1++) {
-	   p1 = sort1[indx1];
-	   if (start[p1] < dtime) break;
-	   keep[p1]--;
-       }
-       for (; person < strata[istrat]; person++) {
-	   p = sort2[person];
-	   if (tstop[p] < dtime) break;
-	   if (keep[p] ==1) keep[p] =2;
-       }
-   }
+deaths =0;
+istrat =0;
+for (person=0; person < nused;) {
+    if (person == strata[istrat]) {  /* first subject in a new stratum */
+        /* finish the work for the prior stratum */
+        for (; indx1<person; indx1++) {
+            p1 = sort1[indx1];
+            keep[p1] += deaths;
+        }
+        deaths=0;
+        istrat++;
+    }
+    p = sort2[person];
+    keep[p] = - deaths;
+    if (event[p]) {
+        dtime = tstop[p];
+        for(person =person+1; person < strata[istrat]; person++) {
+            /* walk forward over any tied times */
+            p = sort2[person];
+            if (tstop[p] != dtime) break;
+            keep[p] = -deaths;
+            }
+        for (; indx1<person; indx1++) {
+            p1 = sort1[indx1];
+            if (start[p1] < dtime) break;
+            keep[p1] += deaths;
+        }
+        deaths++;
+    } else person++;
+}
+for (; indx1<nused; indx1++) {  /* finish up the last strata */
+    p1 = sort1[indx1];
+    keep[p1] += deaths;
 }
 @ 
 

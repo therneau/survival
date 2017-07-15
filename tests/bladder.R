@@ -1,5 +1,6 @@
 options(na.action=na.exclude) # preserve missings
-options(contrasts=c('contr.treatment', 'contr.poly')) #ensure constrast type
+options(contrasts=c('contr.treatment', 'contr.poly'),
+                     show.signif.stars=FALSE) #ensure constrast type
 library(survival)
 
 #

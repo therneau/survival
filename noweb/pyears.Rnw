@@ -223,39 +223,30 @@ if (has.ratetable) {  #include expected
         us.special <- (atts$type==4)
         }
     if (any(us.special)) {  #special handling for US pop tables
-        # Now, the 'entry' date on a US rate table is the number of days 
-        #  since 1/1/1960, and the user data has been aligned to the
-        #  same system by match.ratetable and marked as "year".
-        # The birth date is entry date - age in days (based on 1/1/1960).
-        # I don't much care which date functions I use to do the arithmetic
-        #  below.  Unfortunately R and Splus don't share one.  My "date"
-        #  class is simple, but is also one of the earlier date class
-        #  attempts, has less features than others, and will one day fade
-        #  away; so I don't want to depend on it alone.
-        #
-        cols <- match(c("age", "year"), atts$dimid)
-  	    if (any(is.na(cols))) 
-             stop("Ratetable does not have expected shape")
-        if (exists("as.Date")) {  # true for modern version of R
-            bdate <- as.Date('1960/1/1') + (R[,cols[2]] - R[,cols[1]])
-            byear <- format(bdate, "%Y")
-            offset <- bdate - as.Date(paste(byear, "01/01", sep='/'), 
-                                      origin="1960/01/01")
-            }
-        #else if (exists('month.day.year')) { # Splus, usually
-        #    bdate <- R[,cols[2]] - R[,cols[1]]
-        #    byear <- month.day.year(bdate)$year
-        #    offset <- bdate - julian(1,1,byear)
-        #    }
-        #else if (exists('date.mdy')) { # Therneau's date class is available
-        #    bdate <- as.date(R[,cols[2]] - R[,cols[1]])
-        #    byear <- date.mdy(bdate)$year
-        #    offset <- bdate - mdy.date(1,1,byear)
-        #    }
-        else stop("Can't find an appropriate date class\n") 
+        if (sum(us.special) > 1) stop("more than one type=4 in a rate table")
+        # Someone born in June of 1945, say, gets the 1945 US rate until their
+        #  next birthday.  But the underlying logic of the code would change
+        #  them to the 1946 rate on 1/1/1946, which is the cutpoint in the
+        #  rate table.  We fudge by faking their birthdate back to January 1.
+        # The cutpoint for year can be simple numeric (older) or a Date object,
+        #  and the older style ones use days since 1/1/1960.  (Date objects in
+        #  R didn't exist when rate tables were conceived.)  So watch out for
+        #  that as well.
+        if (is.null(atts$dimid)) dimid <- names(atts$dimnames)
+        else dimid <- atts$dimid
+        cols <- match(c("age", "year"), dimid)
+        if (any(is.na(cols))) 
+            stop("Ratetable does not have expected shape")
+
+        if (inherits(atts$cutpoints[[which(us.special)]], "Date"))
+            origin <- "1970/01/01"  else origin <- "1960/01/01"
+        bdate <- as.Date(origin) + (R[,cols[2]] - R[,cols[1]])
+        byear <- format(bdate, "%Y")
+        offset <- bdate - as.Date(paste(byear, "01/01", sep='/'), 
+                                      origin=origin)
         R[,cols[2]] <- R[,cols[2]] - offset
 
-        # Doctor up "cutpoints" - only needed for old style rate tables
+        # Doctor up "cutpoints" - only needed for (very) old style rate tables
         #  for which the C code does interpolation on the fly
         if (any(rfac >1)) {
             temp <-  which(us.special)

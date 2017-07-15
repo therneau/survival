@@ -1,20 +1,40 @@
 \section{Linear models and contrasts}
-The primary contrast function is \code{yates}.  One reason for this name is that
-the word ``contrast'' is already overused in the S/R lexicon,
-but the primary reason is that the function does both simple and population
-contrasts and the Yates weighted means analysis is one of the earliest tests
-of that type.
-Both it and \code{cmatrix} can be used with any model that returns the necessary
+The primary contrast function is \code{yates}.  
+This function does both simple and population contrasts; the name is a nod
+to the ``Yates weighted means'' method, the first population contrast that
+I know of.  
+A second reason for the name is that
+the word ``contrast'' is already overused in the S/R lexicon.
+Both \code{yates}  and \code{cmatrix} can be used with any model that returns 
+the necessary
 portions, e.g., lm, coxph, or glm.
 They were written because I became embroiled in the ``type III'' controversy,
 and made it a goal to figure out what exactly it is that SAS does. 
 If I had known that that quest would take multiple years would 
 perhaps have never started.
 
+Population contrasts can result in some head scratching.
+It is easy to create the predicted value for any hypothethical
+subject from a model.  
+A population prediction holds some data values constant and lets the
+others range over a population, giving a mean predicted value or
+population average.  
+Population predictions for two treatments are the familiar g-estimates
+of causal models. 
+We can take sums of differences of these predictions as well, e.g. to
+ask if they are significantly different.
+What can't be done is to work backwards from one of these contrasts to the
+populations, at least for continuous variables.
+If someone asks for an x contrast of 15-5 is this a sum of two population
+estimates at 15 and -5, or a difference?  
+It's always hard to guess the mind of a user.
+
 First is cmatrix routine.  This is called by users to create a contrast
 matrix for a model, users can also construct their own contrast matrices.
-The routine requires a fit and a term; the default contrast will be for
-the entire term.
+The routine requires a fit and a term; the default test will be for
+the entire term.  The result will be a matrix or list that has a label
+attribute containing the name of the term; this is used in printouts in the
+obvious way.
 Suppose that our model was \code{coxph(Surv(time, status) ~ age*sex + ph.ecog)}.
 Someone might want the matrix for the age, sex, age*sex (2 df),
 age:sex or ph.ecog term.
@@ -22,8 +42,8 @@ The first task is to parse the user's formula and match it to the terms
 structure found in the data: we should be a proper subset of it.
   
 <<yates>>=
-cmatrix <- function(fit, term, 
-                    type=c("full", "linear", "linear2", "pairwise")){
+cmatrix <- function(fit, term, levels, 
+                    type=c("full", "each", "linear", "linear2", "pairwise")){
     # If any of the parts I need are missing, then likely the first are
     #  is not a model fit
     if (missing(fit)) stop("a fit argument is required")
@@ -80,10 +100,12 @@ cmatrix <- function(fit, term,
     whichcol <- which(assign %in% indx & !is.na(coef(fit)))
     ntest <- length(whichcol)
     if (ntest ==0) stop("no non-missing coefficients in the estimate")
+    termname <- fatt$term.labels[indx]  # to label the output
     
     # Now build the matrix
     <<cmatrix-build>>
     # return the result
+    attr(cmat, "label") <- termname
     cmat
 }
 @ 
@@ -145,6 +167,8 @@ if (type == "pairwise") {
         }
     }
     names(cmat) <- cname
+    # Add the overall test
+    attr(cmat, "global") <- TRUE
 }
 @ 
     
@@ -203,12 +227,14 @@ gsolve <- function(mat, y, eps=sqrt(.Machine$double.eps)) {
 qform <- function(var, beta) { # quadratic form b' (V-inverse) b
     temp <- gsolve(var, beta)
     list(test= sum(beta * temp), df=attr(temp, "df"))
-
+}
 cfun <- function(cmat, beta, varmat, sigma2) {
     estimate <- drop(cmat %*% beta)  #vector of contrasts
-    ss <- qform(cmat %*% varmat %*% t(cmat), estimate) *sigma2
-    evar <- drop(cmat %*% varmat %*% t(cmat) #variance of the estimate
-    list(estimate=estimate, ss=ss, var=evar)
+    ss <- qform(cmat %*% varmat %*% t(cmat), estimate)
+    evar <- drop(cmat %*% varmat %*% t(cmat)) #variance of the estimate
+    rval <- list(estimate=estimate, var=evar, test=ss$test, df=ss$df)
+    if (!is.null(sigma2)) rval$ss <- ss$test*sigma2
+    rval
 }
 @ 
 
@@ -225,12 +251,18 @@ yates <- function(fit, test, population=c("none", "data", "factorial", "sas"),
     else Terms <- delete.response(Terms)   # y is not needed
     Tatt <- attributes(Terms)
     
-    if (is.character(population)) population <- match.arg(population)
+    if (is.character(population)) {
+        population <- match.arg(population)
+        if (population != "none") mf <- stats::model.frame(fit)
+    }
     else {
         if (!inherits(population, "data.frame"))
             stop("the population argument must be a data frame or character")
-        data <- population   # the user gave us a data frame
-        population = "user"
+        # treat it like the newdata argument of a predict call.
+        mf <- stats::model.frame(Terms, population, xlev=fit$xlevels)
+        if (!is.null(cl <- attr(Terms, "dataClasses")))
+            .checkMFClasses(cl, mf)
+        population <- "user"
         }
  
     if (population =="none" && method != "direct")
@@ -250,46 +282,88 @@ yates <- function(fit, test, population=c("none", "data", "factorial", "sas"),
         }
     else if(class(fit)[1]=="glm") {
         sigma <- summary(fit)$dispersion
-        if (is.null(sigma)) sigma <- 1
+#        if (is.null(sigma)) sigma <- 1
         }
-    else sigma <- 1
+    else sigma <- NULL
 
     ff <- parent.frame()
     tempenv <- new.env(parent=ff)
     assign("cm", function(...) cmatrix(fit, ...), env=tempenv)
     test <- eval(substitute(test), tempenv)
 
-    # check that test is legal.  It can be a single matrix or a tree of
-    #  matrices, but all have to be the right size.
+    # check that the test argument is legal.  
+    # It can be a single matrix or a list, each element of a list can be
+    #  a matrix or list.  All matrices have to be the right size.
     ncoef <- length(beta)
     legal <- function(x, lname="") {
         if (is.matrix(x) && ncol(x)==ncoef) TRUE
         else if (is.list(x)) {
-            n <- length(x)
             tname <- names(x)
-            tname <- ifelse(tname=="", tname, 1:n)
+            tname <- ifelse(tname=="", tname, 1:length(x))
             if (lname!= "") tname <- paste(lname, tname, sep=', ')
-            for (i in 1:n) legal(x[[i]], tname[i])
-            }
+            for (i in 1:length(x)) legal(x[[i]], tname[i])
+        }
         else stop("invalid test element", lname)
     }       
-    legal(test)
+    legal(test, attr(test, "label"))
 
-    if (population=="none") {
-        <<yates-none>>
-    } else  {
-        <<yates-data>>
-        <<yates-pop>>
-    }       
-    result #initial testing 
+    if (population=="none" || method=="nstt") { 
+        # no population was given
+        tfun <- function(x) {
+            if (!is.null(attr(x, "global")) && attr(x, "global")) {
+                # Do a global test on all children
+                tmat <- do.call(rbind, x)
+                c(cfun(tmat, beta, vmat, sigma^2), lapply(x, tfun))
+            }
+            else if (is.matrix(x)) cfun(x, beta, vmat, sigma^2)
+            else lapply(x, tfun)
+        }
+    } else  if (method=="sgtt") {
+        <<yates-sgtt>>
+    }
+    else {
+        # This is essentially the same approach as non-pop, but with
+        #  an extra step to fill in the data set
+        tfun <- function(x) {
+            if (!is.null(attr(x, "global")) && attr(x, "global")) {
+                # Do a global test on all children
+                tmat <- yatespop(do.call(rbind, x), assign, mf) 
+                c(cfun(tmat, beta, vmat, sigma^2), lapply(x, tfun))
+            }
+            else if (is.matrix(x)) {
+                tmat <- yatespop(x, assign, mf)
+                cfun(yatespop(x), beta, vmat, sigma^2)
+            else lapply(x, tfun)
+        }
+  }
+    }
+    class(result) <- "yates"
+    attr(result, "label") <- attr(test, "label")
+    result #initial testing, just return the result
 } 
 @
 
-Start with the easiest case which are non-population contrasts.
+The population routine.  This was hard to create because I got confused.
+There are 3 types of terms in the model: those that are part of the
+contrast itself, those that interact with the contrast terms, and all
+the others.  Group 1 is trivial: leave it alone.
+Group 3 is easy: simply replace those coolmns of test with the matching
+column mean of the X matrix.  
+For group 2, we need to completely rebuild each row of the contrast
+of the 
+For each row of the X matrix, separately
+\begin{enumerate}
+  \item 
 
 <<yates-none>>=
-tfun <- function(x) 
-    if (is.matrix(x)) cfun(x, beta, vmat, sigma^2) else lapply(x, tfun)
+tfun <- function(x) {
+    if (!is.null(attr(x, "global")) && attr(x, "global")) {
+        # Do a global test on all children
+        tmat <- do.call(rbind, x)
+        c(cfun(tmat, beta, vmat, sigma^2), lapply(x, tfun))
+    }
+    else cfun(x, beta, vmat, sigma^2)
+}
 result <- tfun(test)
 @ 
 
@@ -298,4 +372,52 @@ For a population estimate the first task is to build the data set.
 @ 
 
 <<yates-pop>>=
+@ 
+
+This function is used by the print routine, but it is worthwhile to
+expose it.  Some user's might want to print things on their own.
+
+<<yates>>=
+as.matrix.yates <- function(x, indent=4) {
+    # Create the labels column
+    space <- paste(rep(" ", indent), collapse="")
+    namefun <- function(zed, indent) {
+        if (is.list(zed)){
+            sublist <- sapply(zed, is.list)
+            if (any(sublist)) {
+                i2 <- paste0(space, indent)
+                n2 <- names(zed)[sublist]
+                temp <- lapply(zed[sublist], namefun, indent=i2)
+                for (i in 1:length(temp)) 
+                    temp[[i]] <- paste0(i2, c(n2[i], temp[[i]]))
+                c(paste0(indent, attr(zed, "label")),
+                  unlist(temp, use.names=FALSE))
+            }
+            else NULL
+        }
+        else  NULL
+    }
+    tname <- namefun(x, "")
+
+    # unlist a particular element of the array
+    grabit <- function(x, what) {
+        sublist <- sapply(x, is.list)
+        temp <- if (what %in% names(x) && length(x[[what]])==1) x[[what]] 
+                else NA
+        if (any(sublist)) c(temp, unlist(lapply(x[sublist], grabit, what=what)))
+        else temp
+    }
+ 
+    temp <- cbind(grabit(x, "estimate"),
+                  sqrt(grabit(x, "var")),
+                  grabit(x, "test"),
+                  grabit(x, "df"),
+                  grabit(x, "ss"))
+    dimnames(temp) <- list(tname, c("estimate", "std", "test", "df", "SS"))
+    if (all(is.na(temp[,5]))) temp <- temp[, -5]
+    temp
+}
+
+print.yates <- function(x, ...) 
+    print(as.matrix(x), na.print="")
 @ 
