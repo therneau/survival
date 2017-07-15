@@ -1,6 +1,9 @@
 #
-# survexp/pyears ratetables keep all dates as number of days since 1/1/1960
-#   convert other types of objects to this form
+# Support for older style ratetables: if the type attribute for the dimension
+#  is 3 or 4 (a date) and the associated cutpoint is a vector of integers,
+#  then the date has a baseline of 1/1/1960.  (Ratetables predate the
+#  Date class).
+# The newer and simpler form uses a Date vector for the cutpoints.
 #
 ratetableDate <- function(x) {
     UseMethod("ratetableDate", x)

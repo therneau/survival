@@ -1,5 +1,35 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 2.42-0}{
+  \itemize{
+    \item Fix a bug in the agfit4.c routine, based on data sets from Igo
+    Sousa Ferreira and Marloes Derks.  This was introduced in 2.39-1 and
+    leads to incorrect solutions for selected data sets. In detail:
+    In a start stop data set with strata assume two adjacent event times
+    in one stratum of d1 and d2, say, and a set of k censored intervals
+    (a,b) also in that stratum such that a>=d1 and b<d2. (Such intervals are
+    at risk for none of the events).  If k >= the number of intervals
+    that overlap both d1 and d2, and in the prior stratum the smallest
+    time was an event, then the contributions to the loglik, first and
+    second derivative at d1 would be incorrect.  I expect such data sets
+    are extremely rare.  However, the survSplit routine and mstate
+    packages can generate data sets with a lot of intervals.  
+  }
+}
+\section{Changes in version 2.41-5}{
+  \itemize{
+    \item Update the survexp.us and survexp.usr rate tables.  They now
+    contain years 1940 to 2012.  They however lost the breakdown of the
+    first year of life into smaller intervals as the recent US census data
+    lacks that information.  Update the code for ratetables: a cutpoint
+    attribute vector can now be of class Date, and names(dimnames) can
+    supplant the dimid attribute.  (Only creators of rate tables are impacted
+    by these last two.)
+
+    \item Change all instances of "1-pchisq(...)" to instead use the
+    lower.tail=FALSE argument.
+}}
+
 \section{Changes in version 2.41-4}{
   \itemize{
     \item The coxph routine did not check for infinite predictors (these
@@ -12,17 +42,20 @@
 
     \item Add the residual and concordance argument to coxph.fit and
     agreg.fit, at the request of S Venkat.  These speed up the function
-    when a calling routine only need the partial likelihood.
+    when a calling routine only needs the partial likelihood.
 
     \item Fix error in survfit: if timefix=FALSE was specified we forgot
     to set a key variable and the routine fails.  Pointed out by Sarah
-    Streett. 8/5/2017.
+    Streett. 8Apr2017.
 
     \item Change the scale argument of summary.coxph so that it affects
     the coefficient and se(coef), not just the confidence interval.
 
-    \item Change all instances of "1-pchisq(...)" to instead use the
-    lower.tail=FALSE argument.
+    \item Fix an error in survfitCI when using the start.time argument, and
+    add a test case for it.
+
+    \item Add tail.Surv method per a request from Michael Lawrence.
+    Also add duplicated, anyDuplicated, and unique methods.
 }}
 
 \section{Changes in version 2.41-3}{
@@ -44,7 +77,7 @@
 
     \item Pointed out by Mikko Korpela: the dynamic symbols check added
     in 2.41-0 requires R version 2.16 or later.  Add an ifdef to init.c
-    that checks the version of R, mimicing a similar line in the MASS library.
+    that checks the version of R, mimicking a similar line in the MASS library.
 }}
 
 \section{Changes in version 2.41-2}{
