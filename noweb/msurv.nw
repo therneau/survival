@@ -312,7 +312,7 @@ The influence for a subject is the derivative of the current
 estimates wrt the case weight of that subject.  Siince $p$ is a
 vector the influence $U$ is easily represented as a matrix with one row
 per subject and one column per state. 
-Refer to equation \eqref{ci1} for the derivation.
+Refer to equation \eqref{ci} for the derivation.
 
 Let $m$ and $n$ be the old and new states for subject $i$, and
 $n_m$ the sum of weights for all subjects at risk in state $m$.

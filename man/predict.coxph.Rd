@@ -87,6 +87,11 @@ the sample as the reference.
 Predictions of type "expected" incorporate the baseline hazard and are
 thus absolute instead of relative; the
 \code{reference} option has no effect on these.
+These values depend on the follow-up time for the future subjects as
+well as covariates so the \code{newdata} argument needs to include both
+the right and \emph{left} hand side variables from the formula.
+(The status variable will not be used, but is required since the
+underlying code needs to reconstruct the entire formula.)
 
 Models that contain a \code{frailty} term are a special case: due
 to the technical difficulty, when there is a \code{newdata} argument the

@@ -2,7 +2,7 @@
 \title{NEWS file for the survival package}
 \section{Changes in version 2.42-0}{
   \itemize{
-    \item Fix a bug in the agfit4.c routine, based on data sets from Igo
+    \item Fix a bug in the agfit4.c routine, based on data sets from Ivo
     Sousa Ferreira and Marloes Derks.  This was introduced in 2.39-1 and
     leads to incorrect solutions for selected data sets. In detail:
     In a start stop data set with strata assume two adjacent event times

@@ -162,6 +162,8 @@ if (type == "expected") {
         }
     }
 
+# This will be needed if there are strata, and is cheap to compute
+strat.term <- untangle.specials(Terms, "strata")
 if (se.fit || type=='terms' || (!missing(newdata) && type=="expected") ||
     (has.strata && (reference=="strata") || type=="expected")) {
     use.x <- TRUE
@@ -175,9 +177,8 @@ if (se.fit || type=='terms' || (!missing(newdata) && type=="expected") ||
         if (has.strata) {
             if (!is.null(object$strata)) oldstrat <- object$strata
             else {
-                stemp <- untangle.specials(Terms, 'strata')
-                if (length(stemp$vars)==1) oldstrat <- mf[[stemp$vars]]
-                else oldstrat <- strata(mf[,stemp$vars], shortlabel=TRUE)
+                if (length(strat.term$vars)==1) oldstrat <- mf[[strat.term$vars]]
+                else oldstrat <- strata(mf[,strat.term$vars], shortlabel=TRUE)
               }
         }
         else oldstrat <- rep(0L, n)
@@ -229,7 +230,7 @@ if (!missing(newdata)) {
     
     if (!is.null(attr(Terms, "specials")$strata) && !has.strata) {
        temp.lev <- object$xlevels
-       temp.lev[[stemp$vars]] <- NULL
+       temp.lev[[strat.term$vars]] <- NULL
        tcall$xlev <- temp.lev
     }
     else tcall$xlev <- object$xlevels
@@ -239,13 +240,13 @@ if (!missing(newdata)) {
     n2 <- nrow(mf2)
     
     if (has.strata) {
-        if (length(stemp$vars)==1) newstrat <- mf2[[stemp$vars]]
-        else newstrat <- strata(mf2[,stemp$vars], shortlabel=TRUE)
+        if (length(strat.term$vars)==1) newstrat <- mf2[[strat.term$vars]]
+        else newstrat <- strata(mf2[,strat.term$vars], shortlabel=TRUE)
         if (any(is.na(match(newstrat, oldstrat)))) 
             stop("New data has a strata not found in the original model")
         else newstrat <- factor(newstrat, levels=levels(oldstrat)) #give it all
-        if (length(stemp$terms))
-            newx <- model.matrix(Terms2[-stemp$terms], mf2,
+        if (length(strat.term$terms))
+            newx <- model.matrix(Terms2[-strat.term$terms], mf2,
                          contr=object$contrasts)[,-1,drop=FALSE]
         else newx <- model.matrix(Terms2, mf2,
                          contr=object$contrasts)[,-1,drop=FALSE]

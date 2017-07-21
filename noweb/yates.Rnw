@@ -28,9 +28,13 @@ populations, at least for continuous variables.
 If someone asks for an x contrast of 15-5 is this a sum of two population
 estimates at 15 and -5, or a difference?  
 It's always hard to guess the mind of a user.
+Therefore what is needed is a fitted model, the term (covariate) of interest,
+levels of that covariate, a desired comparison, and a population.
 
 First is cmatrix routine.  This is called by users to create a contrast
 matrix for a model, users can also construct their own contrast matrices.
+The result has two parts: the definition of a set of predicted values and
+a set of contrasts between those values.  
 The routine requires a fit and a term; the default test will be for
 the entire term.  The result will be a matrix or list that has a label
 attribute containing the name of the term; this is used in printouts in the
@@ -43,9 +47,8 @@ structure found in the data: we should be a proper subset of it.
   
 <<yates>>=
 cmatrix <- function(fit, term, levels, 
-                    type=c("full", "each", "linear", "linear2", "pairwise")){
-    # If any of the parts I need are missing, then likely the first are
-    #  is not a model fit
+                    type=c("full", "linear", "pairwise")){
+    # Make sure that "fit" is present and isn't missing any parts.
     if (missing(fit)) stop("a fit argument is required")
     Terms <- try(terms(fit), silent=TRUE)
 
@@ -100,13 +103,89 @@ cmatrix <- function(fit, term, levels,
     whichcol <- which(assign %in% indx & !is.na(coef(fit)))
     ntest <- length(whichcol)
     if (ntest ==0) stop("no non-missing coefficients in the estimate")
-    termname <- fatt$term.labels[indx]  # to label the output
+    termname <- Tatt$term.labels[indx]  # to label the output
     
-    # Now build the matrix
+    # What kind of term is being tested.  It can be categorical, continuous,
+    #  an interaction of only categorical terms, interaction of only continuous
+    #  terms, or a mixed interaction.
+    parts <- row.names(Tatt$factors)[Tatt$factors[,indx] !=0]
+    types <- Tatt$dataClasses[parts]
+    iscat <- as.integer(types=="factor" | types=="character")
+    if (length(parts)==1) termtype <-iscat
+    else  termtype <- 2 + any(iscat) + all(iscat)
+
+    # Get the inner part of each name, e.g, ns(age, df=3) turns into "age".
+    #  The line below is killing a fly with a triphammer, but we only run
+    #  it once.  
+    pname <- parts
+    for (i in 1:length(pname)) pname[i] <- all.vars(parse(text=pname[i]))[1]
+
+    # Were levels specified?  If so we either simply accept them (continuous),
+    #  or double check them (categorical)
+    if (missing(levels)) {
+        levels <- vector("list", length(parts))
+         if (any(iscat==1)) {
+            temp <- fit$xlevels[parts]
+            if (is.null(temp) || any(sapply(temp, is.null)))
+                stop("xlevels not found for all variables:", parts)
+            levels[which(iscat==1)] <- temp
+        }
+     }
+    else {
+        if (is.data.frame(levels)) {
+            temp <- match(names(levels), parts)
+            if (any(is.na(temp)))
+                stop("not found in levels data frame:", parts)
+            else levels <- levels[temp]  # reorder it
+            if (any(duplicated(levels))) stop("levels data frame has duplicates")
+        }
+        else if (is.list(levels)) {
+            if (length(levels) != length(parts))
+                stop("levels list should have", length(parts), "components")
+            if (!is.null(names(levels))) {
+                temp <- match(names(levels), parts)
+                if (any(is.null(temp)))
+                    stop("names of levels does not match the terms")
+                else levels <- levels[temp]  #reorder them
+            }
+            if (any(sapply(levels, function(x) any(duplicated(x)))))
+                stop("one or more elements of the levels list has duplicates")
+        }
+        else if (is.matrix(levels)) {
+            if (ncol(levels) != length(parts))
+                stop("levels matrix has the wrong number of columns")
+            if (!is.null(dimnames(levels)[[2]])) {
+                temp <- match(dimnames(levels)[[2]], parts)
+                if (any(is.na(temp)))
+                    stop("matrix column names do no match the terms")
+            } else dimnames(levels)[[2]] <- parts
+            if (any(duplicated(levels)))
+                stop("levels matrix has duplicated rows")
+            levels <- data.frame(levels)
+         }
+        else if (length(parts) > 1)
+            stop("levels should be a data frame or matrix")
+        else levels <- list(unique(levels))
+    }
+    names(levels) <- pname
+
+    # check that any categorical levels are legal
+    for (i in which(iscat==1)) {
+        xlev <- fit$xlevels[[parts[i]]]
+        if (is.null(xlev))
+            stop("xlevels attribute not found for", parts[i])
+        temp <- match(levels[[parts[i]]], xlev)
+        if (any(is.na(temp)))
+            stop("invalid level for term", parts[i])
+    }
+    
+    rval <- list(levels=levels, termname=termname)
+    # Now add the contrast matrix between the levels, if needed
     <<cmatrix-build>>
-    # return the result
-    attr(cmat, "label") <- termname
-    cmat
+
+    rval <- list(levels=levels, termname=termname, cmat=cmat)
+    class(rval) <- "cmatrix"
+    rval
 }
 @ 
 
@@ -116,93 +195,70 @@ The \code{pairwise} option creates a set of contrast matrices for all pairs
 of a factor.
 The  \code{linear} option is of interest for terms that have more than one
 column; the two most common cases are a factor variable or a spline.
-The \code{linear2} form returns a pair of tests, one for the linear and one
+It forms a pair of tests, one for the linear and one
 for the nonlinear part.  For non-linear functions such as splines we need
 some notion of the range of the data, since we want to be linear over the
 entire range.  
 
 <<cmatrix-build>>=
 type <- match.arg(type)
-cmat <- matrix(0., nrow= ntest, ncol=ncoef)
-for (i in 1:ntest) cmat[i, whichcol[i]] <- 1
-dimnames(cmat)[[2]] <- names(coef(fit))
-
-# All of the other transformations require a single term, no interactions
-tlab <- fatt$term.labels
-if (type != "full" && length(tlab) > 1)
-    stop(test, " tests must be for a single term")
-# is it a factor?
-isfac <- (!is.null(fit$xlevels) && !is.na(match(tlab, names(fit$xlevels))))
-@ 
- 
-R models do extra processing for factors and intercepts.  Consider a
-model \code{x1 + x2 -1} as the right hand side
-where x1 and x2 are factors.  
-The first term ends up as 3 columns and the second as 2. 
-We have to apply the intercept issue to only first terms.
-
-<<cmatrix-build>>=
-if (type == "pairwise") {
-    if (!isfac) stop("pairwise tests are only valid for categorical predictors")
-    if (is.null(fit$contrasts)) stop("fit has no contrasts component")
-
-    i <- match(tlab, names(fit$xlevels))
-    if (i ==1 && attr(Terms, "intercept")==0) 
-         temp <- get(fit$contrasts[[tlab]])(fit$xlevels[[tlab]], contrast=FALSE)
-    else temp <- get(fit$contrasts[[tlab]])(fit$xlevels[[tlab]])
-    
-    nlev <- nrow(temp)   # number of levels of the factor
-    ncon <- (nlev * (nlev-1))/2 #number of contrasts
-    cmat <- vector("list", ncon)
-    cname <- character(ncon)
-    lname <- fit$xlevels[[tlab]]
-    tmat <- matrix(0, 1, ncoef, dimnames=list(NULL, names(coef(fit))))
-    k <- 1
-    for (i in 1:(nlev-1)) {
-        for (j in (i+1):nlev) {
-            cname[k] <- paste(lname[i], lname[j], sep=" vs ")
-            cmat[[k]] <- tmat
-            cmat[[k]][whichcol] <- temp[i,] - temp[j,]
-            k <- k+1
+if (type=="full") cmat <- diag(ntest)
+else {
+    if (length(parts) > 1)
+        stop(test, " tests must be for a single term")
+    if (type=="pairwise") {
+        tindex <- match(levels[[1]], levels[[1]])  #convert to integer
+        nlev <- length(tindex)  # this is the number of groups being compared
+        if (nlev < 2) stop("pairwise tests need at least 2 levels")
+        npair <- nlev*(nlev-1)/2
+        if (npair==1) cmat <- matrix(c(1, -1), nrow=1)
+        else {
+            cmat <- vector("list", npair)
+            k <- 1
+            for (i in 1:(nlev-1)) {
+                temp <- double(nlev)
+                temp[tindex[i]] <- 1
+                for (j in (i+1):nlev) {
+                    temp[tindex[j]] <- -1
+                    cmat[[k]] <- matrix(temp, nrow=1)
+                    temp[tindex[j]] <- 0
+                    k <- k+1
+                }
+            }
         }
     }
-    names(cmat) <- cname
-    # Add the overall test
-    attr(cmat, "global") <- TRUE
+    else if (type=="linear") {
+        <<cmatrix-linear>>
+    }
+    else stop("unknown type")
 }
 @ 
     
 The linear transform works for factors and splines.  It would in theory
 work for polynomial terms as well, but I don't know a good way to pick
-a range.  For splines, a function that is linear on the midpoints of the
-knots will give a linear fit.
+a range.  For splines, a prediction that is linear on the knots is linear
+globally.
 
-<<cmatrix-build>>=
-else if (type=="linear" || type== "linear2") {
-    if (isfac) cmat[1, whichcol] <- 1:length(whichcol)
-    else {
-        # Look up  the call
-        tindx <- match(tlab, Tatt$term.labels)
-        tcall <- Tatt$predvars[[tindx + 1]]  # skip the 'call' 
-        if (tcall[[1]] == "pspline") cmat[1, whichcol] <- 1:length(whichcol)
-        else if (tcall[[1]] %in% c("poly", "ns")) cmat[1, whichcol[1]] <- 1
-        else if (tcall[[1]] %in% c("ns", "bs") && any(names(tcall) == "knots")) {
-            # it is a spline
-            knots <- sort(c(tcall[["knots"]], tcall[["Boundary.knots"]]))
-            xx <- sort(c(knots, knots[-length(knots)] + diff(knots)/2))
-            yy <- 1:length(xx)
-            tcall[[2]] <- xx
-            tfit <- lm(yy ~ eval(tcall))
-            cmat <- cmat[1, whichcol] <- coef(tfit)[-1]
-        } 
-        else stop("don't know how to do a linear contrast for this term")
+<<cmatrix-linear>>=
+cmat <- vector("list", 2)
+cmat[[1]] <- matrix(1:ntest, 1, ntest)
+cmat[[2]] <- diag(ntest)
+attr(cmat, "nested") <- TRUE
+browser()
+if (is.null(levels[[1]])) {
+    # a continuous variable, and the user didn't give levels for the test
+    #  look up the call and use the knots
+    tcall <- Tatt$predvars[[indx + 1]]  # skip the 'call' 
+    if (tcall[[1]] == as.name("pspline")) {
+        bb <- tcall[["Boundary.knots"]]
+        levels[[1]] <- seq(bb[1], bb[2], length=ntest)
     }
-    if (type=="linear") cmat <- cmat[1,, drop=FALSE]
-    else {
-        stop("not done")
+    else if (tcall[[1]] %in% c("ns", "bs")) {
+        bb <- c(tcall[["Boundary.knots"]], tcall[["knots"]])
+        levels[[1]] <- sort(bb)
     }
+    else stop("don't know how to do a linear contrast for this term")
 }
-else if (type != "full") stop("unrecognized type")
 @ 
 
 
@@ -242,7 +298,7 @@ Now for the primary function.
 
 <<yates>>=
 yates <- function(fit, test, population=c("none", "data", "factorial", "sas"),
-                  method=c("direct", "stt", "nstt"), 
+                  method=c("direct", "stt"), 
                   ss, ...) {
     if (missing(fit)) stop("a fit argument is required")
     Terms <- try(terms(fit), silent=TRUE)
@@ -286,74 +342,60 @@ yates <- function(fit, test, population=c("none", "data", "factorial", "sas"),
         }
     else sigma <- NULL
 
+    # A bit of trickery to allow users to type "cm" instead of "cmatrix"
     ff <- parent.frame()
     tempenv <- new.env(parent=ff)
     assign("cm", function(...) cmatrix(fit, ...), env=tempenv)
     test <- eval(substitute(test), tempenv)
 
-    # check that the test argument is legal.  
-    # It can be a single matrix or a list, each element of a list can be
-    #  a matrix or list.  All matrices have to be the right size.
-    ncoef <- length(beta)
-    legal <- function(x, lname="") {
-        if (is.matrix(x) && ncol(x)==ncoef) TRUE
-        else if (is.list(x)) {
-            tname <- names(x)
-            tname <- ifelse(tname=="", tname, 1:length(x))
-            if (lname!= "") tname <- paste(lname, tname, sep=', ')
-            for (i in 1:length(x)) legal(x[[i]], tname[i])
-        }
-        else stop("invalid test element", lname)
-    }       
-    legal(test, attr(test, "label"))
+    # check that the test argument is legal: each element should have
+    #  class "cmatrix"
+    # it can be a list or nested list of such elements, with optional names
+    legal <- function(x) {
+        if (inherits(x, "cmatrix")) TRUE
+        else if (is.list(x)) all(sapply(x, legal))
+        else FALSE
+    }
+    if (!legal(test))
+        stop("the test argument should contain elements of class cmatrix")
 
-    if (population=="none" || method=="nstt") { 
-        # no population was given
-        tfun <- function(x) {
-            if (!is.null(attr(x, "global")) && attr(x, "global")) {
-                # Do a global test on all children
-                tmat <- do.call(rbind, x)
-                c(cfun(tmat, beta, vmat, sigma^2), lapply(x, tfun))
-            }
-            else if (is.matrix(x)) cfun(x, beta, vmat, sigma^2)
-            else lapply(x, tfun)
-        }
-    } else  if (method=="sgtt") {
-        <<yates-sgtt>>
+    # process the tests
+    dummy <- function(x) {
+        if (inherits(x, "cmatrix")) dotest(x, method, population)
+        else lapply(x, dummy)
     }
-    else {
-        # This is essentially the same approach as non-pop, but with
-        #  an extra step to fill in the data set
-        tfun <- function(x) {
-            if (!is.null(attr(x, "global")) && attr(x, "global")) {
-                # Do a global test on all children
-                tmat <- yatespop(do.call(rbind, x), assign, mf) 
-                c(cfun(tmat, beta, vmat, sigma^2), lapply(x, tfun))
-            }
-            else if (is.matrix(x)) {
-                tmat <- yatespop(x, assign, mf)
-                cfun(yatespop(x), beta, vmat, sigma^2)
-            else lapply(x, tfun)
+
+    dotest <- function(x, method, population) {
+        if (population=="none") {
+            <<yates-build-none>>
+            cfun(Cmat, beta, vmat, sigma^2)
+        } else {
+            <<yates-build-pop>>
+            cfun(Cmat, beta, vmat, sigma^2)
         }
-  }
     }
+    result <- dummy(test)
     class(result) <- "yates"
-    attr(result, "label") <- attr(test, "label")
-    result #initial testing, just return the result
-} 
+    result
+}
 @
 
-The population routine.  This was hard to create because I got confused.
-There are 3 types of terms in the model: those that are part of the
-contrast itself, those that interact with the contrast terms, and all
-the others.  Group 1 is trivial: leave it alone.
-Group 3 is easy: simply replace those coolmns of test with the matching
-column mean of the X matrix.  
-For group 2, we need to completely rebuild each row of the contrast
-of the 
-For each row of the X matrix, separately
-\begin{enumerate}
-  \item 
+The \code{cmatrix} object contains two peices of information: which predicted
+values we are going to start with, and then the contrast(s) that we are going
+to apply to those predicted values.
+The first task is to fill in the appropriate columns of an $X$ matrix
+with those values.
+<<yates-build-none>>=
+# x will be a cmatrix object
+      
+@ 
+
+
+First is the case of population=``none'', which consists of filling in a zero
+for all other coefficients of the $C$ matrix.  This may or may not be a sensible
+thing to do.
+
+
 
 <<yates-none>>=
 tfun <- function(x) {
@@ -374,6 +416,8 @@ For a population estimate the first task is to build the data set.
 <<yates-pop>>=
 @ 
 
+<<yates-sgtt>>=
+@ 
 This function is used by the print routine, but it is worthwhile to
 expose it.  Some user's might want to print things on their own.
 
