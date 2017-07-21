@@ -63,15 +63,15 @@ print.coxph.penal <-  function(x, terms=FALSE, maxlabel=25,
 	    pname1 <- c(pname1, names(pterms)[i])
 	    temp <- coxph.wtest(x$var[kk,kk], coef[kk])$test
 	    print1 <- rbind(print1, c(NA, NA, NA,
-				      temp, x$df[i], 1-pchisq(temp, 1)))
+		    temp, x$df[i], pchisq(temp, 1, lower.tail=FALSE)))
 	    }
 	else {
 	    pname1 <- c(pname1, names(coef)[kk])
 	    tempe<- (diag(x$var))[kk]
 	    temp <- coef[kk]^2/ tempe
 	    print1 <- rbind(print1, cbind(coef[kk], sqrt(tempe),
-				      sqrt((diag(x$var2))[kk]), 
-				      temp, 1, 1-pchisq(temp, 1)))
+				  sqrt((diag(x$var2))[kk]), 
+				  temp, 1, pchisq(temp, 1, lower.tail=FALSE)))
 	    }
 	}
 
@@ -108,7 +108,7 @@ print.coxph.penal <-  function(x, terms=FALSE, maxlabel=25,
 #    cat("Cox PL (initial,final) = ", format(round(x$loglik,2)),
 #	"  Penalty = ", format(x$penalty), "\n")
     cat("Likelihood ratio test=", format(round(logtest, 2)), "  on ",
-	df, " df,", " p=", format(1 - pchisq(logtest, df)),  sep="")
+	df, " df,", " p=", format(pchisq(logtest, df, lower.tail=FALSE)),sep="")
     omit <- x$na.action
     if (length(omit))
 	cat("\n  n=", x$n, " (", naprint(omit), ")\n", sep="")

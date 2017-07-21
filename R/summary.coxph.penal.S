@@ -57,7 +57,7 @@ summary.coxph.penal <-  function(object, conf.int = 0.95, scale=1,
 	    pname1 <- c(pname1, names(pterms)[i])
 	    temp <- coxph.wtest(object$var[kk,kk], beta[kk])$test
 	    print1 <- rbind(print1, c(NA, NA, NA,
-				      temp, object$df[i], 1-pchisq(temp, 1)))
+		       temp, object$df[i], pchisq(temp, 1, lower.tail=FALSE)))
 	    }
 	else {
 	    pname1 <- c(pname1, names(beta)[kk])
@@ -65,7 +65,7 @@ summary.coxph.penal <-  function(object, conf.int = 0.95, scale=1,
 	    temp <- beta[kk]^2/ tempe
 	    print1 <- rbind(print1, cbind(beta[kk], sqrt(tempe),
 				      sqrt((diag(object$var2))[kk]), 
-				      temp, 1, 1-pchisq(temp, 1)))
+				   temp, 1, pchisq(temp, 1, lower.tail=FALSE)))
 	    }
 	}
 

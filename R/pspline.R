@@ -131,9 +131,9 @@ pspline <- function(x, df=4, theta, nterm=2.5*df, degree=3, eps=0.1,
 	# the "max(.5, df-1)" below stops silly (small) p-values for a
 	#  chisq of 0 on 0 df, when using AIC gives theta near 1
 	cmat <- rbind(c(linear, sqrt(lvar1), sqrt(lvar2), 
-			test2, 1, 1-pchisq(test2, 1)),
+			test2, 1, pchisq(test2, 1, lower.tail=FALSE)),
 		      c(NA, NA, NA, test1-test2, df-1, 
-			1-pchisq(test1-test2, max(.5,df-1))))
+			pchisq(test1-test2, max(.5,df-1), lower.tail=FALSE)))
 	dimnames(cmat) <- list(c("linear", "nonlin"), NULL)
 	nn <- nrow(history$thetas)
 	if (length(nn)) theta <- history$thetas[nn,1]

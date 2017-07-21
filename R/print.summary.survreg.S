@@ -1,6 +1,5 @@
-# $Id: print.summary.survreg.S 11166 2008-11-24 22:10:34Z therneau $
 print.summary.survreg <- function(x, digits = max(options()$digits - 4, 3),
-				  ...) {
+				  signif.stars=FALSE, ...) {
     correl <- x$correlation
 
     if(is.null(digits))
@@ -8,7 +7,8 @@ print.summary.survreg <- function(x, digits = max(options()$digits - 4, 3),
     cat("\nCall:\n")
     dput(x$call)
 
-    print(x$table, digits = digits)
+    printCoefmat(x$table, digits = digits, signif.stars=signif.stars,
+                 P.values=TRUE, has.Pvalue=TRUE)
     if (nrow(x$var)==length(x$coefficients)) 
 	    cat("\nScale fixed at",format(x$scale, digits=digits),"\n") 
     else if (length(x$scale)==1) 
@@ -25,7 +25,7 @@ print.summary.survreg <- function(x, digits = max(options()$digits - 4, 3),
     if (df > 0)
 	    cat("\n\tChisq=", format(round(x$chi,2)), "on", round(df,1),
 		"degrees of freedom, p=", 
-		format(signif(1-pchisq(x$chi, df),2)), "\n")
+		format(signif(pchisq(x$chi, df),2, lower.tail=FALSE)), "\n")
     else cat("\n")
     if (x$robust) cat("(Loglikelihood assumes independent observations)\n")
     cat("Number of Newton-Raphson Iterations:", format(trunc(x$iter)),

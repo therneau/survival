@@ -25,6 +25,9 @@
     attribute vector can now be of class Date, and names(dimnames) can
     supplant the dimid attribute.  (Only creators of rate tables are impacted
     by these last two.)
+
+    \item Change all instances of "1-pchisq(...)" to instead use the
+    lower.tail=FALSE argument.
 }}
 
 \section{Changes in version 2.41-4}{

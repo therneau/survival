@@ -23,7 +23,7 @@ print.aareg <- function(x, maxtime, test=c('aalen', 'nrisk'), scale=1, ...) {
     chi <- summ$chisq
     df <- nrow(summ$table) -1
     cat("\nChisq=", format(round(chi,2)), " on ", df, " df, p=",
-	            signif(1- pchisq(chi,df),2), 
+	            signif(pchisq(chi,df),2, lower.tail=FALSE), 
 	            "; test weights=", x$test, "\n", sep="")
     invisible(x)
     }
