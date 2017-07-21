@@ -93,14 +93,14 @@ cmatrix <- function(fit, term, levels,
    }
     
     # match these up with the columns via the assign attribute
-    assign <- fit$assign
-    if (missing(assign)) stop("the fit is missing an assign component")
-    if (is.list(assign)) {
+    xassign <- fit$assign
+    if (missing(xassign)) stop("the fit is missing an assign component")
+    if (is.list(xassign)) {
         # old style assign as used in Splus, and still used in coxph
-        assign <- rep(1:length(assign), sapply(assign, length))
+        xassign <- rep(1:length(xassign), sapply(xassign, length))
     }
-    ncoef <- length(assign)
-    whichcol <- which(assign %in% indx & !is.na(coef(fit)))
+    ncoef <- length(xassign)
+    whichcol <- which(xassign %in% indx & !is.na(coef(fit)))
     ntest <- length(whichcol)
     if (ntest ==0) stop("no non-missing coefficients in the estimate")
     termname <- Tatt$term.labels[indx]  # to label the output
@@ -114,11 +114,6 @@ cmatrix <- function(fit, term, levels,
     if (length(parts)==1) termtype <-iscat
     else  termtype <- 2 + any(iscat) + all(iscat)
 
-    # Get the inner part of each name, e.g, ns(age, df=3) turns into "age".
-    #  The line below is killing a fly with a triphammer, but we only run
-    #  it once.  
-    pname <- parts
-    for (i in 1:length(pname)) pname[i] <- all.vars(parse(text=pname[i]))[1]
 
     # Were levels specified?  If so we either simply accept them (continuous),
     #  or double check them (categorical)
@@ -167,7 +162,7 @@ cmatrix <- function(fit, term, levels,
             stop("levels should be a data frame or matrix")
         else levels <- list(unique(levels))
     }
-    names(levels) <- pname
+    names(levels) <- parts
 
     # check that any categorical levels are legal
     for (i in which(iscat==1)) {
@@ -183,7 +178,7 @@ cmatrix <- function(fit, term, levels,
     # Now add the contrast matrix between the levels, if needed
     <<cmatrix-build>>
 
-    rval <- list(levels=levels, termname=termname, cmat=cmat)
+    rval <- list(levels=levels, termname=termname, cmat=cmat, iscat=iscat)
     class(rval) <- "cmatrix"
     rval
 }
@@ -244,7 +239,6 @@ cmat <- vector("list", 2)
 cmat[[1]] <- matrix(1:ntest, 1, ntest)
 cmat[[2]] <- diag(ntest)
 attr(cmat, "nested") <- TRUE
-browser()
 if (is.null(levels[[1]])) {
     # a continuous variable, and the user didn't give levels for the test
     #  look up the call and use the knots
@@ -306,6 +300,7 @@ yates <- function(fit, test, population=c("none", "data", "factorial", "sas"),
         stop("the fit does not have a terms structure")
     else Terms <- delete.response(Terms)   # y is not needed
     Tatt <- attributes(Terms)
+    xassign <- fit$assign
     
     if (is.character(population)) {
         population <- match.arg(population)
@@ -326,7 +321,6 @@ yates <- function(fit, test, population=c("none", "data", "factorial", "sas"),
     beta <-  coef(fit)
     nabeta <- is.na(beta)  # undetermined coefficients
     vmat <-  vcov(fit)
-    assign <- fit$assign
     term.label <- attr(Terms, "term.labels")
     
     # grab the dispersion
@@ -358,14 +352,15 @@ yates <- function(fit, test, population=c("none", "data", "factorial", "sas"),
     }
     if (!legal(test))
         stop("the test argument should contain elements of class cmatrix")
-
+    xassign <- attr(fit, "assign")
+    
     # process the tests
     dummy <- function(x) {
         if (inherits(x, "cmatrix")) dotest(x, method, population)
         else lapply(x, dummy)
     }
 
-    dotest <- function(x, method, population) {
+    dotest <- function(cm, method, population) {
         if (population=="none") {
             <<yates-build-none>>
             cfun(Cmat, beta, vmat, sigma^2)
@@ -383,20 +378,81 @@ yates <- function(fit, test, population=c("none", "data", "factorial", "sas"),
 The \code{cmatrix} object contains two peices of information: which predicted
 values we are going to start with, and then the contrast(s) that we are going
 to apply to those predicted values.
-The first task is to fill in the appropriate columns of an $X$ matrix
-with those values.
+For population=none, we build the neccesary $X$ matrix directly. Each element
+of \code{cm\$levels} is transformed into the coding of the original
+$X$ matrix.  For each element:
+\begin{enumerate}
+  \item if it is NULL, then this was a continuous variable for which no levels
+    were given.  Any non-zero dummy value for those columns of $X$ will
+    suffice, so we just set it (or them) to 1.
+  \item if the variable is categorical then the corresponding element of
+    the \code{fit\$contrast} is used to create the coding.  
+  \item for a continuous variable use the predvars attribute of the terms
+    structure; if that is missing reconstruct a call from
+    the formula itself.
+\end{enumerate}
+    
+  
 <<yates-build-none>>=
-# x will be a cmatrix object
-      
+# cm will be a cmatrix object
+index <- match(cm$termname, Tatt$term.labels)
+iname <- 
+ncoef <- length(xassign)
+whichcol <- which(xassign %in% index)  #columns to fill in
+clevel <- cm$levels
+nullcm <- sapply(clevel, is.null)
+if (all(nullcm)) {
+    Xmat <- matrix(0., nrow=length(whichcol), ncol=ncoef)
+    Xmat[,whichcol] <- diag(length(whichcol))
+}
+else if (any(nullcm))                            
+    stop("can't handle this type of mixed term, yet")
+else {
+    # Get the inner part of each name, e.g, ns(age, df=3) turns into "age".
+    #  The line below is killing a fly with a triphammer, but we only run
+    #  it once.  
+    pname <- names(clevel)
+    for (i in 1:length(pname)) pname[i] <- all.vars(parse(text=pname[i]))[1]
+    
+    if (!is.data.frame(clevel)) clevel <- do.call("expand.grid", clevel)
+    Xmat <- matrix(0., nrow=nrow(clevel), ncol=ncoef)
+    for (i in 1:ncol(clevel)) {
+        cname <- names(clevel)[i]
+        ccol <- which(xassign== index[i])
+        if (cm$iscat[i]) {
+            if (length(ccol) < length(fit$xlevels[[cname]])) 
+                temp <- get(fit$contrasts[[cname]])(length(ccol))
+            else temp <- get(fit$contrasts[[cname]])(length(ccol),
+                                                     contrasts=FALSE)
+            Xmat[,ccol] <- temp[match(clevel[[i]], fit$xlevels[[cname]]),]
+        }
+        else { # continuous
+            j <- match(cname, row.names(Tattr$factors))
+            pcall <- Tattr$predictCall[[j+1]] #skip the "list" element
+            if (is.call(pcall)) {
+                temp <- list(clevel[[i]])
+                names(temp) <- pname[i]
+                Xmat[,ccol] <- eval(pcall, temp)
+            }
+            else if (is.name(temp)) {
+                if (length(ccol) !=1) stop("logic error")
+                Xmat[,ccol] <- clevel[[i]]
+            }
+            else stop("logic error 2")  #should be impossible
+        }
+    }
+}
+@ 
+
+Now go through the contrast matrices 1 by 1 and evaluate them.
+<<yates-build-none>>=
+if (is.list(cm$cmatrix)) 
+    sapply(cm$cmatrix, function(z) cfun(z %*% Xmat, beta, vmat, sigma^2))
+else cfun(cm$cmatrix %*% Xmat, beta, vmat, sigma^2)
 @ 
 
 
-First is the case of population=``none'', which consists of filling in a zero
-for all other coefficients of the $C$ matrix.  This may or may not be a sensible
-thing to do.
-
-
-
+Population estimates are definitely more work.
 <<yates-none>>=
 tfun <- function(x) {
     if (!is.null(attr(x, "global")) && attr(x, "global")) {
