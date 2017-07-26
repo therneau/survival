@@ -141,6 +141,10 @@ int    **imatrix(int *array, int nrow, int ncol);
 SEXP finegray(SEXP tstart2, SEXP tstop2,   SEXP ctime2,   SEXP cprob2, 
 	      SEXP extend2, SEXP keep2);
 
+SEXP gchol(SEXP matrix2, SEXP toler2);
+SEXP gchol_solve(SEXP x2, SEXP y2, SEXP flag2);
+SEXP gchol_inv(SEXP matrix, SEXP flag2);
+
 void init_doloop(int min, int max);
 int doloop      (int nloops, int *index);
 

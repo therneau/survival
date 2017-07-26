@@ -79,13 +79,18 @@ cmatrix <- function(fit, term, levels,
     fatt <- attributes(fterm)
     indx <- match(fatt$term.labels, Tatt$term.labels)
     if (any(is.na(indx))) {
-        # allow partial matching.  If the fit had factor(x) but we have "x",
-        #  pretend we said "factor(x)".  Fail for ns(x) + log(x) though.
+        # allow partial matching.  If the fit had factor(x) but user said "x",
+        #  pretend they said "factor(x)".  Fail for ns(x) + log(x) though.
+        # but match the first for factor(x) + factor(x):z
         temp <- fatt$term.labels
+        temp2 <- Tatt$term.labels
+        temp2[grepl(":", temp2)] <- ""
         for (i in 1:length(temp)) {
             j <- grep(temp[i], Tatt$term.labels)
+            k <- grep(temp[i], temp2)
             if (length(j)==1) temp[i] <- Tatt$term.labels[j]
-            else stop("test term not found in the fit")
+            else if (length(k)==1) temp[i] <- Tatt$term.labels[k]
+            else stop("term '", temp[i], "' not found in the fit")
             }
         fterm <- terms(formula( paste("~", paste(temp, collapse="+"))))
         fatt <- attributes(fterm)
@@ -118,15 +123,12 @@ cmatrix <- function(fit, term, levels,
     # Were levels specified?  If so we either simply accept them (continuous),
     #  or double check them (categorical)
     if (missing(levels)) {
-        levels <- vector("list", length(parts))
-         if (any(iscat==1)) {
-            temp <- fit$xlevels[parts]
-            if (is.null(temp) || any(sapply(temp, is.null)))
-                stop("xlevels not found for all variables:", parts)
-            levels[which(iscat==1)] <- temp
-        }
-     }
-    else {
+        levels <- fit$xlevels[parts]
+        if (is.null(levels) || any(sapply(levels, is.null)))
+            stop("xlevels not found for all variables:", parts)
+        levels <- do.call("expand.grid", levels)
+    }
+    else {  #user supplied
         if (is.data.frame(levels)) {
             temp <- match(names(levels), parts)
             if (any(is.na(temp)))
@@ -145,6 +147,7 @@ cmatrix <- function(fit, term, levels,
             }
             if (any(sapply(levels, function(x) any(duplicated(x)))))
                 stop("one or more elements of the levels list has duplicates")
+            levels <- do.call("expand.grid", levels)
         }
         else if (is.matrix(levels)) {
             if (ncol(levels) != length(parts))
@@ -160,9 +163,9 @@ cmatrix <- function(fit, term, levels,
          }
         else if (length(parts) > 1)
             stop("levels should be a data frame or matrix")
-        else levels <- list(unique(levels))
+        else levels <- data.frame(x=unique(levels))
     }
-    names(levels) <- parts
+    names(levels) <- parts 
 
     # check that any categorical levels are legal
     for (i in which(iscat==1)) {
@@ -301,18 +304,16 @@ yates <- function(fit, test, population=c("none", "data", "factorial", "sas"),
     else Terms <- delete.response(Terms)   # y is not needed
     Tatt <- attributes(Terms)
     xassign <- fit$assign
+    nterm <- length(Tatt$term.names)
+    if (is.null(fit$contrasts)) iscat <- rep(FALSE, nterm)
+    else iscat <- sapply(fit$contrasts, 
+                         function(x) x %in% c("character", "factor"))
     
-    if (is.character(population)) {
-        population <- match.arg(population)
-        if (population != "none") mf <- stats::model.frame(fit)
-    }
+    if (is.character(population))  population <- match.arg(population)
     else {
         if (!inherits(population, "data.frame"))
             stop("the population argument must be a data frame or character")
-        # treat it like the newdata argument of a predict call.
-        mf <- stats::model.frame(Terms, population, xlev=fit$xlevels)
-        if (!is.null(cl <- attr(Terms, "dataClasses")))
-            .checkMFClasses(cl, mf)
+        pdata <- population
         population <- "user"
         }
  
@@ -321,7 +322,6 @@ yates <- function(fit, test, population=c("none", "data", "factorial", "sas"),
     beta <-  coef(fit)
     nabeta <- is.na(beta)  # undetermined coefficients
     vmat <-  vcov(fit)
-    term.label <- attr(Terms, "term.labels")
     
     # grab the dispersion
     if (missing(ss)) do.ss <- FALSE
@@ -353,7 +353,7 @@ yates <- function(fit, test, population=c("none", "data", "factorial", "sas"),
     if (!legal(test))
         stop("the test argument should contain elements of class cmatrix")
     xassign <- attr(fit, "assign")
-    
+browser()    
     # process the tests
     dummy <- function(x) {
         if (inherits(x, "cmatrix")) dotest(x, method, population)
@@ -361,6 +361,8 @@ yates <- function(fit, test, population=c("none", "data", "factorial", "sas"),
     }
 
     dotest <- function(cm, method, population) {
+        if (is.na(match(cm$termname, colnames(Tatt$factors))))
+            stop("term '", cm$tername, "' not found in the model")
         if (population=="none") {
             <<yates-build-none>>
             cfun(Cmat, beta, vmat, sigma^2)
@@ -376,8 +378,8 @@ yates <- function(fit, test, population=c("none", "data", "factorial", "sas"),
 @
 
 The \code{cmatrix} object contains two peices of information: which predicted
-values we are going to start with, and then the contrast(s) that we are going
-to apply to those predicted values.
+values we are going to start with, and then the contrast(s) that will be
+applied to those predicted values.
 For population=none, we build the neccesary $X$ matrix directly. Each element
 of \code{cm\$levels} is transformed into the coding of the original
 $X$ matrix.  For each element:
@@ -447,35 +449,90 @@ else {
 Now go through the contrast matrices 1 by 1 and evaluate them.
 <<yates-build-none>>=
 if (is.list(cm$cmatrix)) 
-    sapply(cm$cmatrix, function(z) cfun(z %*% Xmat, beta, vmat, sigma^2))
-else cfun(cm$cmatrix %*% Xmat, beta, vmat, sigma^2)
+    r1 <- sapply(cm$cmatrix, function(z) cfun(z, beta, vmat, sigma^2))
+else r1 <- cfun(cm$cmatrix, beta, vmat, sigma^2)
 @ 
 
 
-Population estimates are definitely more work.
-<<yates-none>>=
-tfun <- function(x) {
-    if (!is.null(attr(x, "global")) && attr(x, "global")) {
-        # Do a global test on all children
-        tmat <- do.call(rbind, x)
-        c(cfun(tmat, beta, vmat, sigma^2), lapply(x, tfun))
-    }
-    else cfun(x, beta, vmat, sigma^2)
+Population estimates are more work since they involve manipulation
+of the model frame.  We essentially break it into two parts: the term
+that was asked for, and all the others.
+From all the others build a population model frame: that has 4 cases to
+consider for the 4 population type.
+Model frames are perilous objects: you can't just cut and paste one, as it
+has to exactly match the formula that generated it in certain ways.  
+It is far better to start with data.  
+But we don't have the data.  
+One can often recreate the data from the model frame, but not always:
+if the user has \code{ns(age, 4)} the mf contains the result of the
+computation and there is no simple inverse function.  
+We handle the inverse for just a few: \code{I()} and \code{factor()},
+as that just entails a change of the name.  
+For the variable of interest things are ok: for that we have the levels.
+
+<<yates-build-pop>>=
+# x1 = my shorthand for the term of interest, x2 = the rest
+tfac   <- Tatt$factors[, cm$termname]
+x1name <- names(tfac)[tfac> 0]  # names for the second data set
+x2name <- names(tfac)[tfac==0]  # names for the second data set
+
+if (is.null(cm$level) || any(is.na(match(x1name, names(cm$level)))))
+    stop("levels are needed for a population contrast")
+
+data1 <- cm$level
+# for the left part, we have data, not functions, so just remove any
+#  function names.  Assume that the very first arg is the variable name
+inner <- function(x) {
+    for (i in 1:length(x)) 
+        x[i] <- all.vars(parse(text=x[i]))[1]
+    x
 }
-result <- tfun(test)
+names(data1) <- inner(names(data1))
+
+fixname <- function(x) { #remove calls to I() and factor()
+    x <- sub("(factor\\()([^\\)]*)(\\))", "\\2", x)
+    x <- sub("(I\\()([^\\)]*)(\\))", "\\2", x)
+    x
+}
+
+if (population != "user") { # construct data2
+    mf <- model.frame(fit)
+    data2 <- mf[x2name]
+    names(data2) <- fixname(names(data2))
+    complex <- fgrepl('(', names(data2)) 
+    if (any(complex)) {  # terms that are functions
+        # fill in a dummy value
+        names(data2) <- inner(names(data2))
+        for (i in complex) data2[[i]] <- 1:nrow(data2)
+    }
+    if (population == "factorial") {
+        if (!all(iscat[tfac==0])) 
+            stop("all population variables must be categorical")
+        data2 <- do.call("expand.grid", lapply(data2, unique))
+    }        
+    else if (population == "SAS" && method != "SGTT") {
+        # expand the data set, but who would want to do this?
+        stop("cannot yet have population=SAS and not use the SGTT")
+    }
+}
+
+# Now create the estimate matrix one row at at time, and create the
+#  APV (average predicted value) estimates and their std
+emat <- matrix(0., nrow(data1), length(fit$coef))
+apv  <- matrix(0., nrow(data1), ncol=2)    
+for (i in 1:nrow(data1)) {
+    tdata <- cbind(data1[i,], data2)
+    newmf <- model.frame(Terms, tdata, xlev= fit$xlevels)
+    if (any(complex)) { # fix it
+        stop("not yet done")
+    }
+    newx  <- model.matrix(Terms, tdata, xlev=fit$xlevels,
+                          contrasts.arg = fit$contrasts)
+    emat[i,] <- colMeans(newx)
+}    
 @ 
 
-For a population estimate the first task is to build the data set.
-<<yates-data>>=
-@ 
 
-<<yates-pop>>=
-@ 
-
-<<yates-sgtt>>=
-@ 
-This function is used by the print routine, but it is worthwhile to
-expose it.  Some user's might want to print things on their own.
 
 <<yates>>=
 as.matrix.yates <- function(x, indent=4) {
