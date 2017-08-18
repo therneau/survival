@@ -200,6 +200,11 @@ possible subsets of size 15.  There is an efficient recursive algorithm
 for this task, but even with this the computation can be insufferably
 long.  With (start, stop) data it is much worse since the recursion
 needs to start anew for each unique start time.
+
+A second issue is that of artificial ties due to floating-point
+imprecision. See the vignette on this topic for a full explanation or
+the \code{timfix} option in \code{coxph.control}.  This option may need
+to reset for simulated data.
 }
 \section{Penalized regression}{
   \code{coxph} can now maximise a penalised partial likelihood with
@@ -217,7 +222,7 @@ Therneau, T., Grambsch, P., Modeling Survival Data: Extending the Cox Model.
 Springer-Verlag, 2000.
 }
 \seealso{
-\code{\link{coxph.object}},
+\code{\link{coxph.object}}, \link{coxph.control}},
 \code{\link{cluster}},  \code{\link{strata}},  \code{\link{Surv}},
 \code{\link{survfit}}, \code{\link{pspline}}, 
 \code{\link{ridge}}.   

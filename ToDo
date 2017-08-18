@@ -14,3 +14,4 @@ add "fun" to summary.survfit
  
 Fixed: ?Surv claims that -Inf is allowed, but survreg chokes.
 
+timefix for survdiff
