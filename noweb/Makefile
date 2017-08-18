@@ -17,7 +17,7 @@ PARTS = main.Rnw \
 	plot.Rnw \
 	statefig.Rnw\
 	tmerge.Rnw\
-	yates.Rnw  yate2.Rnw\
+	yates.Rnw  yates2.Rnw\
 	tail
 #	coxdetail.nw
 
