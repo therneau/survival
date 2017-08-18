@@ -87,7 +87,7 @@ yates <- function(fit, test, population=c("none", "data", "factorial", "sas"),
         if (is.na(match(cm$termname, colnames(Tatt$factors))))
             stop("term '", cm$tername, "' not found in the model")
         if (method == "sgtt"){
-            << yates-build-sgtt>>
+            <<yates-build-sgtt>>
         }
         else {
             if (population == "none") {
@@ -238,6 +238,8 @@ if (is.call(Tatt$variables[[i+1]])) {
 }
 @ 
 
+<<fillin-x1>>=
+@ 
 <<yates-build-none>>=
 #  The population="none" case. cm will be a cmatrix object
 index <- match(cm$termname, Tatt$term.labels)
@@ -386,7 +388,12 @@ for (i in 1:nrow(data1)) {
 }    
 @ 
 
-
+<<yates-build-sgtt>>=
+@ 
+<<yates-build-apv1>>=
+@
+<<yates-build-apv2>>=
+@ 
 
 <<yates>>=
 as.matrix.yates <- function(x, indent=4) {
