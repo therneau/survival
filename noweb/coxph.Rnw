@@ -638,7 +638,8 @@ else {
     fit$assign <- assign
     class(fit) <- fit$method	
 
-    if (robust) {
+    # don't compute a robust variance if there are no coefficients
+    if (robust && !is.null(fit$coefficients) && !all(is.na(fit$coefficients))) {
         fit$naive.var <- fit$var
         fit$method    <- method
         # a little sneaky here: by calling resid before adding the
@@ -655,12 +656,12 @@ else {
     	else fit2$linear.predictors <- c(X %*% init)
     	temp0 <- residuals.coxph(fit2, type='score', collapse=cluster,
     				 weighted=TRUE)
-    }
+        }
         else {
-    	temp <- residuals.coxph(fit2, type='dfbeta', weighted=TRUE)
-    	fit2$linear.predictors <- 0*fit$linear.predictors
-    	temp0 <- residuals.coxph(fit2, type='score', weighted=TRUE)
-    }
+            temp <- residuals.coxph(fit2, type='dfbeta', weighted=TRUE)
+            fit2$linear.predictors <- 0*fit$linear.predictors
+            temp0 <- residuals.coxph(fit2, type='score', weighted=TRUE)
+        }
         fit$var <- t(temp) %*% temp
         u <- apply(as.matrix(temp0), 2, sum)
         fit$rscore <- coxph.wtest(t(temp0)%*%temp0, u, control$toler.chol)$test
