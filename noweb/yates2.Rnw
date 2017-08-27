@@ -90,10 +90,6 @@ yates <- function(fit, test, population=c("data", "factorial", "none", "sas"),
             stop("term '", cm$tername, "' not found in the model")
         if (method == "sgtt"){
             <<yates-build-sgtt>>
-        }
-        else if (population == "none") {
-            <<yates-build-apv1>>
-        }
         else {
             <<yates-build-apv2>>
         }
@@ -220,6 +216,76 @@ if (is.call(Tatt$variables[[i+1]])) {
 @ 
 
 <<fillin-x1>>=
+<<<<<<< working copy
+=======
+@ 
+<<yates-build-none>>=
+#  The population="none" case. cm will be a cmatrix object
+index <- match(cm$termname, Tatt$term.labels)
+whichcol <- which(xassign %in% index)  #columns to fill in
+ncol <- length(whichcol)
+if (is.null(cm$levels)) {
+    # population = none is the one case where we allow values for 
+    #  x1 to be unspecified.  
+    apv <- matrix(0., nrow=ncol, ncol=nvar)
+    apv[,whichcol] <- diag(ncol)
+}
+else {
+    apv <- matrix(0., nrow=nrow(cm$levels), ncol=nvar)
+    
+    
+ncoef <- length(xassign)
+whichcol <- which(xassign %in% index)  #columns to fill in
+clevel <- cm$levels
+nullcm <- sapply(clevel, is.null)
+if (all(nullcm)) {
+    Xmat <- matrix(0., nrow=length(whichcol), ncol=ncoef)
+    Xmat[,whichcol] <- diag(length(whichcol))
+}
+else if (any(nullcm))                            
+    stop("can't handle this type of mixed term, yet")
+else {
+    # Get the inner part of each name, e.g, ns(age, df=3) turns into "age".
+    #  The line below is killing a fly with a triphammer, but we only run
+    #  it once.  
+    pname <- names(clevel)
+    for (i in 1:length(pname)) pname[i] <- all.vars(parse(text=pname[i]))[1]
+    
+    if (!is.data.frame(clevel)) clevel <- do.call("expand.grid", clevel)
+    Xmat <- matrix(0., nrow=nrow(clevel), ncol=ncoef)
+    for (i in 1:ncol(clevel)) {
+        cname <- names(clevel)[i]
+        ccol <- which(xassign== index[i])
+        if (cm$iscat[i]) {
+            if (length(ccol) < length(fit$xlevels[[cname]])) 
+                temp <- get(fit$contrasts[[cname]])(length(ccol))
+            else temp <- get(fit$contrasts[[cname]])(length(ccol),
+                                                     contrasts=FALSE)
+            Xmat[,ccol] <- temp[match(clevel[[i]], fit$xlevels[[cname]]),]
+        }
+        else { # continuous
+            j <- match(cname, row.names(Tattr$factors))
+            pcall <- Tattr$predictCall[[j+1]] #skip the "list" element
+            if (is.call(pcall)) {
+                temp <- list(clevel[[i]])
+                names(temp) <- pname[i]
+                Xmat[,ccol] <- eval(pcall, temp)
+            }
+            else if (is.name(temp)) {
+                if (length(ccol) !=1) stop("logic error")
+                Xmat[,ccol] <- clevel[[i]]
+            }
+            else stop("logic error 2")  #should be impossible
+        }
+    }
+}
+@ 
+
+Now go through the contrast matrices 1 by 1 and evaluate them.
+<<yates-build-none>>=
+if (is.list(cm$cmatrix)) 
+    r1 <- sapply(cm$cmatrix, function(z) cfun(z, beta, vmat, sigma^2))
+else r1 <- cfun(cm$cmatrix, beta, vmat, sigma^2)
 @ 
 
 <<yates-build-apv1>>=
@@ -229,4 +295,5 @@ if (is.call(Tatt$variables[[i+1]])) {
 
 <<yates-build-sgtt>>=
 @ 
+
 
