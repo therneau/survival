@@ -45,7 +45,8 @@ age:sex or ph.ecog term.
 The first task is to parse the user's formula and match it to the terms
 structure found in the data: we should be a proper subset of it.
   
-<<yates>>=
+<<cmatrix>>=
+# Helper routines for the yates function
 cmatrix <- function(fit, term, levels, 
                     type=c("full", "linear", "pairwise")){
     # Make sure that "fit" is present and isn't missing any parts.
@@ -119,10 +120,16 @@ cmatrix <- function(fit, term, levels,
     if (length(parts)==1) termtype <-iscat
     else  termtype <- 2 + any(iscat) + all(iscat)
 
-
     # Were levels specified?  If so we either simply accept them (continuous),
-    #  or double check them (categorical)
-    if (missing(levels)) levels <- NULL
+    #  or double check them (categorical).  If not, then for categorical
+    #  variables we assume all possible levels.
+    if (missing(levels)) {
+        if (any(iscat(parts))) {
+            temp <- parts[iscat(parts)]
+            levels <- do.call("expand.grid", fit$xlevels[temp])
+        }
+        else levels <- NULL 
+    }
     else {  #user supplied
         if (is.data.frame(levels)) {
             temp <- match(names(levels), parts)
@@ -195,7 +202,16 @@ entire range.
 
 <<cmatrix-build>>=
 type <- match.arg(type)
-if (type=="full") cmat <- diag(ntest)
+if (type=="full") {
+    if (is.null(levels)) cmat <- matrix(1,1,1)
+    else {
+        cmat <- diag(nrow(levels))  # Unable to login?
+Please enter the email address you registered with and we'll send your password to you.
+Email Address
+all contrasts with row 1
+        cmat[,1] <- -1
+        cmat <- cmat[-1]
+        }
 else {
     if (length(parts) > 1)
         stop(test, " tests must be for a single term")
@@ -257,7 +273,7 @@ if (is.null(levels[[1]])) {
 Here are some helper routines.
 Formulas are from chapter 5 of Searle.  The sums of squares only makes
 sense within a linear model.
-<<yates>>=
+<<cmatrix>>=
 gsolve <- function(mat, y, eps=sqrt(.Machine$double.eps)) {
     # solve using a generalized inverse
     # this is very similar to the ginv function of MASS
@@ -286,3 +302,47 @@ cfun <- function(cmat, beta, varmat, sigma2) {
 }
 @ 
 
+<<cmatrix>>=
+as.matrix.yates <- function(x, indent=4) {
+    # Create the labels column
+    space <- paste(rep(" ", indent), collapse="")
+    namefun <- function(zed, indent) {
+        if (is.list(zed)){
+            sublist <- sapply(zed, is.list)
+            if (any(sublist)) {
+                i2 <- paste0(space, indent)
+                n2 <- names(zed)[sublist]
+                temp <- lapply(zed[sublist], namefun, indent=i2)
+                for (i in 1:length(temp)) 
+                    temp[[i]] <- paste0(i2, c(n2[i], temp[[i]]))
+                c(paste0(indent, attr(zed, "label")),
+                  unlist(temp, use.names=FALSE))
+            }
+            else NULL
+        }
+        else  NULL
+    }
+    tname <- namefun(x, "")
+
+    # unlist a particular element of the array
+    grabit <- function(x, what) {
+        sublist <- sapply(x, is.list)
+        temp <- if (what %in% names(x) && length(x[[what]])==1) x[[what]] 
+                else NA
+        if (any(sublist)) c(temp, unlist(lapply(x[sublist], grabit, what=what)))
+        else temp
+    }
+ 
+    temp <- cbind(grabit(x, "estimate"),
+                  sqrt(grabit(x, "var")),
+                  grabit(x, "test"),
+                  grabit(x, "df"),
+                  grabit(x, "ss"))
+    dimnames(temp) <- list(tname, c("estimate", "std", "test", "df", "SS"))
+    if (all(is.na(temp[,5]))) temp <- temp[, -5]
+    temp
+}
+
+print.yates <- function(x, ...) 
+    print(as.matrix(x), na.print="")
+@ 
