@@ -1,0 +1,163 @@
+\documentclass{article}[11pt]
+\usepackage{Sweave}
+\usepackage{amsmath}
+\addtolength{\textwidth}{1in}
+\addtolength{\oddsidemargin}{-.5in}
+\setlength{\evensidemargin}{\oddsidemargin}
+%\VignetteIndexEntry{Population contrasts}
+
+\SweaveOpts{prefix.string=tests,width=6,height=4, keep.source=TRUE, fig=FALSE}
+% Ross Ihaka suggestions
+\DefineVerbatimEnvironment{Sinput}{Verbatim} {xleftmargin=2em}
+\DefineVerbatimEnvironment{Soutput}{Verbatim}{xleftmargin=2em}
+\DefineVerbatimEnvironment{Scode}{Verbatim}{xleftmargin=2em}
+\fvset{listparameters={\setlength{\topsep}{0pt}}}
+\renewenvironment{Schunk}{\vspace{\topsep}}{\vspace{\topsep}}
+
+\SweaveOpts{width=6,height=4}
+\setkeys{Gin}{width=\textwidth}
+
+<<echo=FALSE>>=
+options(continue="  ", width=60)
+options(SweaveHooks=list(fig=function() par(mar=c(4.1, 4.1, .3, 1.1))))
+pdf.options(pointsize=8) #text in graph about the same as regular text
+options(contrasts=c("contr.treatment", "contr.poly")) #reset default
+@ 
+
+\title{Population contrasts}
+\author{Terry M Therneau \\ \emph{Mayo Clinic}}
+\newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\myfig}[1]{\includegraphics[height=!, width=\textwidth]
+                        {tests-#1.pdf}}
+
+\newcommand{\ybar}{\overline{y}}
+
+\begin{document}
+  \maketitle
+  \tableofcontents
+
+\section{Introduction}
+The question of how best to summarize the effect of some particular
+covariate, within a model that contains multiple others, is an old one.
+It becomes particularly acute in the presence of interactions:
+consider the hypothetical data shown in the figure below
+comparing treatments A and B with age and sex as a confounders.
+What value should be used to summarize the treatment effect?
+One sensible approach is to select a fixed \emph{population} for the
+age/sex distribution, and then compute the
+average  effect over that population.
+
+<<fig1, fig=TRUE>>=
+plot(c(50,85), c(2,4.5), type='n', xlab="Age", ylab="Effect")
+abline(.645, .042, lty=1, col=1)
+abline(.9, .027, lty=1, col=2)
+abline(.35, .045, lty=2, col=1)
+abline(1.1, .026, lty=2, col=2)
+legend(50, 4.2, c("Treatment A, female", "Treatment B, female", 
+                  "Treatment A,  male", "Treatment B, male"),
+       col=c(1,2,1,2), lty=c(1,1,2,2), bty='n')
+@ 
+
+More formally, assume we have some fitted model. Split the model 
+predictors into two groups: $U$ and $V$, where $U$ is the covariate of 
+interest (treatment in the example above) and $V$ is everything else.
+Then a marginal estimate for treatment A is
+\begin{equation*}
+   m_A = E_F \,\hat y(u=A, V)
+\end{equation*}
+where $F$ is some population distribution for the covariates $V$.
+Important follow-up questions are what population, what statistic,
+the computational algorithm, and statistical properties of the resulting
+estimate. 
+
+Four common populations are
+\begin{itemize}
+  \item Empirical: the data set itself.  For the simple example above this
+    would be the set of all $n$ age/sex pairs in the data set, 
+    irrespective of treatment.
+  \item Yates: this is only applicable if the adjusting variables $V$
+    are all categorical, and consists of all unique combinations of $V$.
+    That is, the data set one would envision for a balanced factorial 
+    experiment.
+  \item External: an external reference such as the age/sex distribution 
+    of the US census.
+  \item SAS: a factorial (Yates) distribution for the categorical predictors 
+    and the data distribution for the others. 
+\end{itemize}
+
+The \code{yates} function is designed to compute such population averages
+from a fitted model, along with desired contrasts on the resultant 
+estimates, e.g., that the population average effect for treatment 1 and
+treatment 2 are equal. 
+It has been tested with the results of lm, glm, and coxph fits, and should
+work with any R model that includes a standard set of objects in the result
+(\code{terms}, \code{contrasts}, \code{xlevels}, \code{assign}, and \code{call}).
+
+As the reader might already guess from the labels used just above, the
+concept of population averages is a common one in statistics.
+(Taking an average is, after all, nearly the first thing a statistician
+will do.)
+Yates' weighted means analysis, the g-estimates of causal models,
+direct adjusted survival curves, and least squares means (SAS glm
+procedure) are a small sample.  
+The function's name is a nod to the oldest of these.
+
+\section{Simple examples}
+The \code{solder} data set, used in the introduction to Statistical Models
+in S \ref{Chambers93} provides a simple starting example.
+In 1988 an experiment was designed and implemented at one of AT&T's
+factories to investigate alternatives in the "wave soldering" procedure
+for mounting electronic componentes to printed circuit boards.
+The experiment varied a number of factors relevant to the process.
+The response, measured by eye, is the number of visible solder skips.
+
+<<solder1, fig=TRUE>>=
+summary(solder)
+length(unique(solder$PadType))
+# reproduce their figure 1.1
+temp <- lapply(1:5, function(x) tapply(solder$skips, solder[[x]], mean))
+plot(c(0,6), range(unlist(temp)), type='n', xaxt='n',
+     xlab="Factors", ylab ="mean number of skips")
+
+axis(1, 1:5, names(solder)[1:5])
+for (i in 1:5) {
+    y <- temp[[i]]
+    x <- rep(i, length(y))
+    text(x-.1, y, names(y), adj=1)
+    segments(i, min(y), i, max(y))
+    segments(x-.05, y, x+.05, y)
+}
+@ 
+A perfectly balanced experiment would have 3*2*10*3 = 180 observations for
+each Mask, corresponding to all combinations of opening, solder thickness,
+pad type and panel.  
+The A3 mask has extra replicates of the Large/Thick, Large/Thin, and Small/Thick
+conditions, and A6 has only the Medium/Thick, Medium/Thin, and Small/Thin
+conditions.
+Essentially, one extra run of 180 was done with a mixture of masks.
+Chambers and Hastie focus on the balanced subset so their figure and results
+are slightly different.
+
+Do a simple fit and then obtain the Yates predictions.
+<<solder2>>=
+fit1 <- lm(skips ~ Opening + Solder + Mask + PadType + Panel,
+           data=solder)
+y1 <- yates(fit1, "Opening", population="factorial")
+y2 <- yates(fit1, "Opening")
+
+fit2 <- lm(skips ~ Opening + Solder * Mask + PadType + I(Panel),
+           data=solder)
+y3 <- yates(fit2, "Mask")
+@ 
+
+
+
+\subsection{Population}
+The \code{population} parameter parameter of the call can be either a data set
+or one of `data', `none', `factorial' or `sas'.  
+If it is a data set then the 
+A second question is the definition of $\hat y$.  For a linear model this will
+normally be the linear predictor $X \hat \beta$, but for a Cox model we might
+consider the linear predictor, the hazard, hazard ratio, or a predicted
+survival curve $S$.  
+

@@ -1,22 +1,23 @@
 /*
 ** General cholesky decompostion
 */
-#include "SurvS.h"
+#include "survS.h"
 #include "survproto.h"
 
 SEXP gchol(SEXP matrix2, SEXP toler2) {
     int i,j;
     int n;
     double **mat;
+    double *toler;
     SEXP gc;   /* the returned matrix */
     
     PROTECT(gc = duplicate(matrix2));
     n = nrows(gc);
     mat = dmatrix(REAL(gc), n, n);
-
+    toler = REAL(toler2);
+    
     i = cholesky5(mat, n, *toler);
-    *toler = i;
-
+ 
     /* zero out the upper triangle */
     for (i=0; i<n; i++) {
 	for (j= i+1; j<n; j++) mat[i][j] =0;
@@ -52,7 +53,7 @@ SEXP gchol_inv(SEXP matrix, SEXP flag2) {
 
     n = nrows(matrix);
     flag = asInteger(flag2);
-    PROTECT(new = duplcate(matrix));
+    PROTECT(new = duplicate(matrix));
     mat = dmatrix(REAL(new), n, n);
 
     chinv5(mat, n, flag);
@@ -80,6 +81,6 @@ SEXP gchol_inv(SEXP matrix, SEXP flag2) {
 	}
     
     UNPROTECT(1);
-    return(new)
+    return(new);
     }
    
