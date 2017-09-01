@@ -66,8 +66,11 @@ void chinv2  (double **matrix, int n);
 int cholesky2(double **matrix, int n, double toler);
 void chsolve2(double **matrix, int n, double *y);
 void chinv3(double **matrix , int n, int m, double *fdiag);
+void chinv5(double **matrix , int n, int flag);
 int cholesky3(double **matrix, int n, int m, double *diag, double toler);
+int cholesky5(double **matrix, int n, double toler);
 void chsolve3(double **matrix, int n, int m, double *diag, double *y);
+void chsolve5(double **matrix, int n, double *y, int flag);	
 
 SEXP concordance1(SEXP y, SEXP wt2,  SEXP indx2, SEXP ntree2);
  

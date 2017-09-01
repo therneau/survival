@@ -21,7 +21,6 @@
 **
 **   Terry Therneau
 */
-#include "bdsmatrix.h"
 #include <math.h>
 int cholesky5(double **matrix, int n, double toler)
     {

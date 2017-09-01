@@ -21,7 +21,7 @@ others range over a population, giving a mean predicted value or
 population average.  
 Population predictions for two treatments are the familiar g-estimates
 of causal models. 
-We can take sums of differences of these predictions as well, e.g. to
+We can take sums or differences of these predictions as well, e.g. to
 ask if they are significantly different.
 What can't be done is to work backwards from one of these contrasts to the
 populations, at least for continuous variables.
@@ -45,10 +45,9 @@ age:sex or ph.ecog term.
 The first task is to parse the user's formula and match it to the terms
 structure found in the data: we should be a proper subset of it.
   
-<<cmatrix>>=
-# Helper routines for the yates function
+<<yates>>=
 cmatrix <- function(fit, term, levels, 
-                    type=c("full", "linear", "pairwise")){
+                    test =c("default", "linear", "pairwise")){
     # Make sure that "fit" is present and isn't missing any parts.
     if (missing(fit)) stop("a fit argument is required")
     Terms <- try(terms(fit), silent=TRUE)
@@ -57,7 +56,8 @@ cmatrix <- function(fit, term, levels,
         stop("the fit does not have a terms structure")
     else Terms <- delete.response(Terms)   # y is not needed
     Tatt <- attributes(Terms)
-    
+    test <- match.arg(test)
+
     # a function that allows them to refer to terms by name or by number
     matchterm <- function(x) {
         nlab <- length(term.label)
@@ -120,16 +120,14 @@ cmatrix <- function(fit, term, levels,
     if (length(parts)==1) termtype <-iscat
     else  termtype <- 2 + any(iscat) + all(iscat)
 
+
     # Were levels specified?  If so we either simply accept them (continuous),
-    #  or double check them (categorical).  If not, then for categorical
-    #  variables we assume all possible levels.
+    #  or double check them (categorical)
     if (missing(levels)) {
-        if (any(iscat(parts))) {
-            temp <- parts[iscat(parts)]
-            levels <- do.call("expand.grid", fit$xlevels[temp])
+        temp <- fit$xlevels[parts]
+        if (is.null(temp)) levels <- NULL
+        else  levels <- do.call(expand.grid, temp)
         }
-        else levels <- NULL 
-    }
     else {  #user supplied
         if (is.data.frame(levels)) {
             temp <- match(names(levels), parts)
@@ -181,18 +179,67 @@ cmatrix <- function(fit, term, levels,
     
     rval <- list(levels=levels, termname=termname)
     # Now add the contrast matrix between the levels, if needed
-    <<cmatrix-build>>
-
+    if (test=="default") {
+        <<cmatrix-build-default>>
+    }
+    else if (test=="pairwise") {
+        <<cmatrix-build-pairwise>>
+    }
+    else {
+        <<cmatrix-build-linear>>
+    }
     rval <- list(levels=levels, termname=termname, cmat=cmat, iscat=iscat)
     class(rval) <- "cmatrix"
     rval
 }
 @ 
 
-Building the contrast matrix is very easy for type=full; it is simply
-a test of ``are all these coefficients zero''.
+The default contrast matrix is a simple test of equality it there is only
+one term.  
+If the term is the interaction of multiple categorical variables
+then we do an anova type decomposition.
+In other cases we currently fail.
+<<cmatrix-build-default>>=
+if (length(parts) ==1) {
+    cmat <- diag(nrow(levels))
+    cmat[, nrow(cmat)] <- -1   # all equal to the last
+    cmat[-nrow(cmat),]
+}
+else if (termtype== 4) { # anova type
+    stop("not yet done 1")
+}
+else stop("not yet done 2")
+@ 
+
 The \code{pairwise} option creates a set of contrast matrices for all pairs
 of a factor.
+
+<<cmatrix-build-pairwise>>=
+if (length(parts) > 1) stop("pairwise tests must be for a single term")
+tindex <- match(levels[[1]], levels[[1]])  #convert to integer
+nlev <- length(tindex)  # this is the number of groups being compared
+if (nlev < 2) stop("pairwise tests need at least 2 levels")
+npair <- nlev*(nlev-1)/2
+if (npair==1) cmat <- matrix(c(1, -1), nrow=1)
+else {
+    cmat <- vector("list", npair)
+    k <- 1
+    cname <- rep("", npair)
+    for (i in 1:(nlev-1)) {
+        temp <- double(nlev)
+        temp[tindex[i]] <- 1
+        for (j in (i+1):nlev) {
+            temp[tindex[j]] <- -1
+            cmat[[k]] <- matrix(temp, nrow=1)
+            temp[tindex[j]] <- 0
+            cname[k] <- paste(i, "vs", j)
+            k <- k+1
+        }
+    }
+    names(cmat) <- cname
+}
+@ 
+
 The  \code{linear} option is of interest for terms that have more than one
 column; the two most common cases are a factor variable or a spline.
 It forms a pair of tests, one for the linear and one
@@ -200,55 +247,7 @@ for the nonlinear part.  For non-linear functions such as splines we need
 some notion of the range of the data, since we want to be linear over the
 entire range.  
 
-<<cmatrix-build>>=
-type <- match.arg(type)
-if (type=="full") {
-    if (is.null(levels)) cmat <- matrix(1,1,1)
-    else {
-        cmat <- diag(nrow(levels))  # Unable to login?
-Please enter the email address you registered with and we'll send your password to you.
-Email Address
-all contrasts with row 1
-        cmat[,1] <- -1
-        cmat <- cmat[-1]
-        }
-else {
-    if (length(parts) > 1)
-        stop(test, " tests must be for a single term")
-    if (type=="pairwise") {
-        tindex <- match(levels[[1]], levels[[1]])  #convert to integer
-        nlev <- length(tindex)  # this is the number of groups being compared
-        if (nlev < 2) stop("pairwise tests need at least 2 levels")
-        npair <- nlev*(nlev-1)/2
-        if (npair==1) cmat <- matrix(c(1, -1), nrow=1)
-        else {
-            cmat <- vector("list", npair)
-            k <- 1
-            for (i in 1:(nlev-1)) {
-                temp <- double(nlev)
-                temp[tindex[i]] <- 1
-                for (j in (i+1):nlev) {
-                    temp[tindex[j]] <- -1
-                    cmat[[k]] <- matrix(temp, nrow=1)
-                    temp[tindex[j]] <- 0
-                    k <- k+1
-                }
-            }
-        }
-    }
-    else if (type=="linear") {
-        <<cmatrix-linear>>
-    }
-    else stop("unknown type")
-}
-@ 
-    
-The linear transform works for factors and splines.  It would in theory
-work for polynomial terms as well, but I don't know a good way to pick
-a range.  For splines, a prediction that is linear on the knots is linear
-globally.
-
-<<cmatrix-linear>>=
+<<cmatrix-build-linear>>=
 cmat <- vector("list", 2)
 cmat[[1]] <- matrix(1:ntest, 1, ntest)
 cmat[[2]] <- diag(ntest)
@@ -273,7 +272,7 @@ if (is.null(levels[[1]])) {
 Here are some helper routines.
 Formulas are from chapter 5 of Searle.  The sums of squares only makes
 sense within a linear model.
-<<cmatrix>>=
+<<yates>>=
 gsolve <- function(mat, y, eps=sqrt(.Machine$double.eps)) {
     # solve using a generalized inverse
     # this is very similar to the ginv function of MASS
@@ -302,47 +301,3 @@ cfun <- function(cmat, beta, varmat, sigma2) {
 }
 @ 
 
-<<cmatrix>>=
-as.matrix.yates <- function(x, indent=4) {
-    # Create the labels column
-    space <- paste(rep(" ", indent), collapse="")
-    namefun <- function(zed, indent) {
-        if (is.list(zed)){
-            sublist <- sapply(zed, is.list)
-            if (any(sublist)) {
-                i2 <- paste0(space, indent)
-                n2 <- names(zed)[sublist]
-                temp <- lapply(zed[sublist], namefun, indent=i2)
-                for (i in 1:length(temp)) 
-                    temp[[i]] <- paste0(i2, c(n2[i], temp[[i]]))
-                c(paste0(indent, attr(zed, "label")),
-                  unlist(temp, use.names=FALSE))
-            }
-            else NULL
-        }
-        else  NULL
-    }
-    tname <- namefun(x, "")
-
-    # unlist a particular element of the array
-    grabit <- function(x, what) {
-        sublist <- sapply(x, is.list)
-        temp <- if (what %in% names(x) && length(x[[what]])==1) x[[what]] 
-                else NA
-        if (any(sublist)) c(temp, unlist(lapply(x[sublist], grabit, what=what)))
-        else temp
-    }
- 
-    temp <- cbind(grabit(x, "estimate"),
-                  sqrt(grabit(x, "var")),
-                  grabit(x, "test"),
-                  grabit(x, "df"),
-                  grabit(x, "ss"))
-    dimnames(temp) <- list(tname, c("estimate", "std", "test", "df", "SS"))
-    if (all(is.na(temp[,5]))) temp <- temp[, -5]
-    temp
-}
-
-print.yates <- function(x, ...) 
-    print(as.matrix(x), na.print="")
-@ 
