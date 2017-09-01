@@ -88,6 +88,7 @@ yates <- function(fit, test, population=c("data", "none", "factorial", "sas"),
 
     if (population=="data") {
         # in this case we use the same population again and again
+        # otherwise it depends on which variables
         pdata <- fit$model
         if (is.null(pdata)) pdata <- model.frame(fit)
     }
@@ -98,29 +99,37 @@ yates <- function(fit, test, population=c("data", "none", "factorial", "sas"),
                 stop("term '", contr$tername, "' not found in the model")
  
             if (population == "none") {
-                <<yates-build-apv1>>
+                <<yates-build-none>>
             }
             else {
-                # create the reference population
-                <<yates-build-pop>> 
-                if (method == "sgtt"){
-                    <<yates-build-sgtt>>
-                }
-                else {
-                    <<yates-build-apv2>>
-                } 
+                <<yates-build-pop>>
+                <<yates-xmat>>
+                Cmat <- t(sapply(xmatlist, colMeans))
             }
-            # first get the estimates
-            etemp <- cfun(Cmat, beta, vmat, sigma^2)
-            estimate <- cbind(x1data, estimate=etemp$estimate,
+
+            # Get the MPV estimates
+            etemp <- estfun(Cmat, beta, vmat)
+            estimate <- cbind(x1data, mpv=etemp$estimate,
                               std = sqrt(diag(etemp$var)))
             # Now do the tests, one by one
-            if (is.list(contr$cmat)) 
-                tests <- t(sapply(contr$cmat, function(x)
-                    unlist(cfun(x %*% Cmat, beta, vmat, sigma^2)[3:5])))
-            else tests <- 
-                     unlist(cfun(contr$cmat %*% Cmat, beta, vmat, sigma^2)[3:5])
-            list(estimate=estimate, tests=tests)
+            if (method=="sgtt") {
+                if (is.list(contr$cmat))
+                    stop("sgtt method can only be used for global tests")
+                <<yates-sgtt>>
+            }
+            else {
+                if (is.list(contr$cmat)) 
+                    test <- t(sapply(contr$cmat, function(x)
+                        testfun(x %*% Cmat, beta, vmat, sigma^2)))
+                else {
+                    test <- testfun(contr$cmat %*% Cmat, beta, vmat, sigma^2)
+                    test <- matrix(test, nrow=1, 
+                                   dimnames=list("global", names(test)))
+                }
+            }
+            list(estimate=estimate, test=test, mvar=etemp$var, 
+                 xmatlist=xmatlist)
+            #list(estimate=estimate, test=test, mvar=etemp$var)
         }
     }
     else {
@@ -143,17 +152,17 @@ The program has to
   \item Create the population data set for the other terms, those that we
     are averaging over. What I call x2 in the vignette.
   \item Fill in the values of interest, ``x1''.
-  \item Combine each row of x1 with x2 to get an average predicted value (APV)
+  \item Combine each row of x1 with x2 to get an mean predicted value (MPV)
     for that x1 row.  This is a vector of length coef(fit).
-  \item Perform the requested contrasts on the APV values.
+  \item Perform the requested contrasts on the MPV values.
 \end{enumerate}
 If \code{test} is a list with multiple contrast matrices we simply iterate
 over them, doing the entire task separately for each one.
 
-For each contrast the first step is to create APV matrix.
+For each contrast the first step is to create MPV matrix.
 For the SGTT algorithm this is accomplished by a manipulation of the
 original $X$ matrix.  Otherwise
-each row of APV is, formally, the column sums of a new model.matrix call that
+each row of MPV is, formally, the column sums of a new model.matrix call that
 had the selected values for x1 + the population for x2.  
 This is a fairly straightforward task using the original data set:
 build the data, then call model.matrix using the formula and that data.
@@ -191,7 +200,38 @@ else if (population=="factorial") {
         stop("terms with variables not found in data: ", termname[i])
     }
 } else if (population=="sas") {
-    stop("sas population not yet finished")
+    if (all(iscat(x2indx))) {
+        # we can reprise the factorial case
+        x2name <- names(x2indx)[x2indx]
+        pdata <- do.call("expand.grid", fit$xlevels[x2name])
+    }
+    else if (!any(iscat(x2indx))) {
+        # we can reprise the data case
+        pdata <- fit$model
+        if (is.null(pdata)) pdata <- model.frame(fit)
+    }
+    else { # drat, we need both
+        # grab pdata, then pull it apart
+        pdata <- fit$model
+        if (is.null(pdata)) pdata <- model.frame(fit)
+        n1 <- nrow(pdata)  
+        x2name <- names(x2indx)[x2indx]
+        n2 <- sapply(fit$xlevels[x2name], length)
+        gcd <- function(a, b) {
+            cat("ab=", a, b, "\n")
+            x <- as.integer(max(a,b))
+            y <- as.integer(min(a,b))
+            if (y==0) x
+            else abs(gcd(y, x- y*floor(x/y)))
+         }
+        lcm <- function(a, b) round(a*b)/gcd(a, b)
+        n <- lcm(n1, prod(n2))
+        pdata <- pdata[rep(1:n1, length=n)]
+        for (i in seq(along=x2name)) {
+            j <- rep(rep(n2[i], each=i), length=n)
+            pdata[x2name[i]] <- (fit$xlevels[x2name[i]])[j]
+        }
+    }
 }
 
 @ 
@@ -232,12 +272,6 @@ if (is.null(attr(pdata, "terms"))) {
                                       contrast.arg= fit$contrasts)
     }
 }
-@ 
-
-For the linear model case each of the X matrices can be collapsed
-<<yates-build-apv2>>=
-<<yates-xmat>>
-Cmat <- t(sapply(xmatlist, colMeans))
 @ 
 
 <<yates-build-none>>=
@@ -309,6 +343,8 @@ if (is.list(contr$cmatrix))
 else r1 <- cfun(contr$cmatrix, beta, vmat, sigma^2)
 @ 
 
+<<yates-sgtt>>=
+@ 
 <<yates-nonlinear>>=
 @ 
 
@@ -396,3 +432,44 @@ for (i in 1:nrow(data1)) {
 @
 
 
+The print routine places the population predicted values (PPV) alongside the
+tests on those values.  Defaults are copied from printCoefmat.
+
+<<yates>>=
+print.yates <- function(x, digits = max(3, getOption("digits") -2),
+                        dig.tst = max(1, min(5, digits-1)),
+                        eps=1e-8, ...) {
+    temp1 <- x$estimate
+    temp1$mpv <- format(temp1$mpv, digits=digits)
+    temp1$std <- format(temp1$std, digits=digits)
+
+    # the spaces help separate the two parts of the printout
+    temp2 <- cbind(test= paste("    ", rownames(x$test)), 
+                   data.frame(x$test), stringsAsFactors=FALSE)
+    row.names(temp2) <- NULL
+    temp2$Pr <- format.pval(pchisq(temp2$chisq, temp2$df, lower.tail=FALSE),
+                            eps=eps)
+    temp2$chisq <- format(temp2$chisq, digits= dig.tst)
+    temp2$df <- format(temp2$df)
+    if (!is.null(temp2$ss)) temp2$ss <- format(temp2$ss, digits=digits)
+    
+    if (nrow(temp1) > nrow(temp2)) {
+        dummy <- temp2[1,]
+        dummy[1,] <- ""
+        temp2 <- rbind(temp2, dummy[rep(1, nrow(temp1)-nrow(temp2)),])
+        }
+    if (nrow(temp2) > nrow(temp1)) {
+        # get rid of any factors before padding
+        for (i in which(sapply(temp1, is.factor))) 
+            temp1[[i]] <- as.character(temp1[[i]])
+        
+        dummy <- temp1[1,]
+        dummy[1,] <- ""
+        temp1 <- rbind(temp1, dummy[rep(1, nrow(temp2)- nrow(temp1)),])
+        }
+    print(cbind(temp1, temp2), row.names=FALSE)
+    invisible(x)
+}
+@ 
+
+  

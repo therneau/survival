@@ -46,8 +46,9 @@ The first task is to parse the user's formula and match it to the terms
 structure found in the data: we should be a proper subset of it.
   
 <<yates>>=
-cmatrix <- function(fit, term, levels, 
-                    test =c("default", "linear", "pairwise")){
+cmatrix <- function(fit, term, 
+                    test =c("default", "linear", "pairwise"),
+                    levels) {
     # Make sure that "fit" is present and isn't missing any parts.
     if (missing(fit)) stop("a fit argument is required")
     Terms <- try(terms(fit), silent=TRUE)
@@ -126,7 +127,7 @@ cmatrix <- function(fit, term, levels,
     if (missing(levels)) {
         temp <- fit$xlevels[parts]
         if (is.null(temp)) levels <- NULL
-        else  levels <- do.call(expand.grid, temp)
+        else  levels <- do.call(expand.grid, c(temp, stringsAsFactors=FALSE))
         }
     else {  #user supplied
         if (is.data.frame(levels)) {
@@ -203,7 +204,7 @@ In other cases we currently fail.
 if (length(parts) ==1) {
     cmat <- diag(nrow(levels))
     cmat[, nrow(cmat)] <- -1   # all equal to the last
-    cmat[-nrow(cmat),]
+    cmat <- cmat[-nrow(cmat),]
 }
 else if (termtype== 4) { # anova type
     stop("not yet done 1")
@@ -222,7 +223,7 @@ if (nlev < 2) stop("pairwise tests need at least 2 levels")
 npair <- nlev*(nlev-1)/2
 if (npair==1) cmat <- matrix(c(1, -1), nrow=1)
 else {
-    cmat <- vector("list", npair)
+    cmat <- vector("list", npair +1)
     k <- 1
     cname <- rep("", npair)
     for (i in 1:(nlev-1)) {
@@ -236,7 +237,11 @@ else {
             k <- k+1
         }
     }
-    names(cmat) <- cname
+    # global test
+    temp <- diag(nlev)
+    temp[,nlev] <- -1
+    cmat[[k]] <- temp[-nlev,]
+    names(cmat) <- c(cname, "global")
 }
 @ 
 
@@ -291,13 +296,49 @@ qform <- function(var, beta) { # quadratic form b' (V-inverse) b
     temp <- gsolve(var, beta)
     list(test= sum(beta * temp), df=attr(temp, "df"))
 }
-cfun <- function(cmat, beta, varmat, sigma2) {
-    estimate <- drop(cmat %*% beta)  #vector of contrasts
-    ss <- qform(cmat %*% varmat %*% t(cmat), estimate)
-    evar <- drop(cmat %*% varmat %*% t(cmat)) #variance of the estimate
-    rval <- list(estimate=estimate, var=evar, test=ss$test, df=ss$df)
-    if (!is.null(sigma2)) rval$ss <- ss$test*sigma2
+@ 
+
+The next functions do the work.  Some bookkeeping is needed for 
+a missing value in beta: for the purposes of prediction we treat
+0*NA as zero --- the fact that a coef is missing does not matter if you don't
+use it. 
+If there are missing coefs then the variance matrix will not have those columns.
+
+<<yates>>=
+estfun <- function(cmat, beta, varmat) {
+    nabeta <- is.na(beta)
+    if (any(nabeta)) {
+        k <- which(!nabeta)  #columns to keep
+        # does this row of cmat involve an NA?
+        hasna <- ifelse(apply(cmat[,nabeta, drop=FALSE] !=0, 1, any), NA, 0)
+
+        estimate <- drop(cmat[,k] %*% beta[k])  # vector of predictions
+        evar <- drop(cmat[,k] %*% varmat %*% t(cmat[,k, drop=FALSE]))
+        list(estimate = estimate + hasna,
+             var = evar + outer(hasna, hasna))
+    }
+    else {
+        list(estimate = drop(cmat %*% beta),
+             var = drop(cmat %*% varmat %*% t(cmat)))
+    }
+}
+             
+testfun <- function(cmat, beta, varmat, sigma2) {
+    nabeta <- is.na(beta)
+    if (any(nabeta)) {
+        k <- which(!nabeta)  #columns to keep
+        hasna <- apply(cmat[,nabeta, drop=FALSE] !=0, 1, any)
+        estimate <- drop(cmat[,k] %*% beta[k])  # vector of predictions
+        temp <- qform(cmat[,k] %*% varmat %*% t(cmat[,k,drop=FALSE]), estimate)
+        if (any(hasna)) rval <- c(chisq=NA, df=temp$df)
+        else rval <- c(chisq=temp$test, df=temp$df)
+    }
+    else {
+       estimate <- drop(cmat %*% beta)
+       temp <- qform(cmat %*% varmat %*% t(cmat), estimate)
+       rval <- c(chisq=temp$test, df=temp$df)
+       }
+    if (!is.null(sigma2)) rval <- c(rval, ss= unname(rval[1]) * sigma2)
     rval
 }
 @ 
-

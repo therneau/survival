@@ -103,6 +103,7 @@ procedure) are a small sample.
 The function's name is a nod to the oldest of these.
 
 \section{Simple examples}
+\subsection{Linear model}
 The \code{solder} data set, used in the introduction to Statistical Models
 in S \ref{Chambers93} provides a simple starting example.
 In 1988 an experiment was designed and implemented at one of AT&T's
@@ -143,45 +144,87 @@ Do a simple fit and then obtain the Yates predictions.
 fit1 <- lm(skips ~ Opening + Solder + Mask + PadType + Panel,
            data=solder)
 y1 <- yates(fit1, "Opening", population = "factorial")
-y2 <- yates(fit1, "Opening", population = "data")  #default population
-
 y1
-y2
 @ 
-The estimates under a factorial population (\code{y1}) is the Yates' weighted
+The printout has two parts: the left hand colums are mean predicted
+values, the right hand are tests on those predicted values.  The default is
+a global test that they are all equal.
+(``Population predicted value'' would be a better label but the abbreviation
+PPV would be confused with the positive predicted value.)
+The estimates under a factorial population (\code{y1}) are the Yates' weighted
 means \cite{Yates} and the corresponding test is the Yates' sum of
 squares for that term.  These would be labeled as a 
 ``least squares mean'' and ``type III SS'', respectively,
 by the SAS glm procedure.  
 More on this topic appears in the section on the SGTT algorithm.
 
-A test for the Mask effect gives the same result for the two populations.
-This is because the other variables form a balanced set, so the `empirical'
-(equivalent to 'data') and 'Yates' (equivalent to 'factorial') populations
-are identical.  
+Repeat this using the default population, which is the set of all 900
+combinations for solder, mask, pad type and panel found in the data.
+The pairwise option gives tests on all pairs of openings, for details
+on this and other arguments see the \code{cmatrix} function;
+``cm'' is a shorthand allowed within the \code{yates} argument list.
+<<solder2b>>=
+y2 <- yates(fit1, cm("Opening", test="pairwise"), population = "data") 
+y2
 
-<<solder3>>=
-y3 <- yates(fit1, "Mask", population="empirical")
-y4 <- yates(fit1, "Mask", population="Yates")
-all.equal(y3, y4)
+temp <- rbind(diff(y1$estimate$mpv), diff(y2$estimate$mpv))
+dimnames(temp) <- list(c("factorial", "emprical"), c("2 vs 1", "3 vs 2"))
+round(temp,5)
 @ 
+
+Although the MPV values shift with the new population, the difference
+between any two pairs and the global test are unchanged.
+This is because we have fit a model with no interactions.
+In figure 1 this is a model with parallel prediction lines; shifting left or
+right may change an average but has no effect on the difference.
+For a model with no iteractions the test statistics created by the
+\code{yates} function will be no different than simple tests on the model
+coefficients.
 
 More interesting are models with an interaction.
-<<solder4>>=
-fit2 <-  lm(skips ~ Opening + Solder * Mask + PadType + Panel,
-           data=solder)
-y5 <- yates(fit2, cm("Mask", test="pairwise"))
+We'll drop the A6 group to leave an ``expanded'' experiment, an overall
+balanced design that has some extra observations in some of the cells.
 
+<<solder3>>=
+solder2 <- droplevels(subset(solder, Mask != "A6"))
+fit2a <- lm(skips ~ Mask + Opening + Solder, solder2)
+fit2b <- lm(skips ~ Mask * Opening * Solder, solder2)
+anova(fit2a, fit2b
 
+yates(fit2a, "Mask", population="Yates")
+yates(fit2b, "Mask", population="yates")
 @ 
+
+The added interactions significantly improve the model fit.
+Interestingly, in this case they hardly change the population averages,
+the A3 group shifts slightly;
+the major change is a reduction in standar error.
+
+
+\subsection{Missing cells}
+Models that involve factors and interactions can have an issue with
+missing cells as shown by the example below.
+<<solder4>>=
+fit3 <- lm(skips ~ Opening * Mask + Solder + PadType + Panel, solder)
+yates(fit3, cm("Mask", test="pairwise"))
+@ 
+The set of population predictions includes Opening*Mask combinations of
+Large/A6.  There are no observations in the data with this combination and
+hence relevant coefficient(s) in \code{fit2} are NA.
+Formally, those predictions are \emph{not estimable}, and as a consequence
+neither are any population averages that include them, nor any tests that involve
+those averages.
+
+\subsection{Cox models}
 
 
 \subsection{Population}
 The \code{population} parameter parameter of the call can be either a data set
-or one of `data', `none', `factorial' or `sas'.  
-If it is a data set then the 
-A second question is the definition of $\hat y$.  For a linear model this will
-normally be the linear predictor $X \hat \beta$, but for a Cox model we might
-consider the linear predictor, the hazard, hazard ratio, or a predicted
-survival curve $S$.  
+or one of `data', `factorial', `sas', or `none'. 
+Alternate labels of `empirical' and `Yates' are allowed for the `data' and
+`factorial' options, respectively.
+If \code{population} is a data set then it must contain all variables found
+in the set of adjusters $V$.  
+Using the original data set is equivalent to `data'.
+
 

@@ -23,7 +23,6 @@ PARTS = main.Rnw \
 
 SFUN =  agreg.fit.R \
 	agsurv.R \
-	cmatrix.R \
 	coxph.R \
 	finegray.R \
 	model.matrix.coxph.R \
