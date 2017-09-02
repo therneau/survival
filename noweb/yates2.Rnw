@@ -1,5 +1,19 @@
 Now for the primary function.
 The user may have a list of tests, or a single term.
+The first part of the function does the usual of grabbing arguments
+and then checking them.
+The fit object has to have the standard stuff: terms, assign, xlevels
+and contrasts. 
+Attributes of the terms are used often enough that we copy them
+to \code{Tatt} to save typing.
+We will almost certainly need the model frame and/or model matrix as
+well.
+
+In the discussion below I use x1 to refer to the covariates/terms that are
+the target, e.g. \code{test='Mask'} to get the mean population values for
+each level of the Mask variable in the solder data set, and x2 to refer to
+all the other terms in the model, the ones that we average over.  
+These are also referred to as U and V in the vignette.
 
 <<yates>>=
 yates <- function(fit, test, population=c("data", "none", "factorial", "sas"),
@@ -57,27 +71,29 @@ yates <- function(fit, test, population=c("data", "none", "factorial", "sas"),
 #        if (is.null(sigma)) sigma <- 1
         }
     else sigma <- NULL
-
-    # A bit of trickery to allow users to type "cm" instead of "cmatrix"
-    ff <- parent.frame()
-    tempenv <- new.env(parent=ff)
-    assign("cm", function(...) cmatrix(fit, ...), env=tempenv)
-    test <- eval(substitute(test), tempenv)
-    if (is.character(test) || inherits(test, "formula"))
-        test <- cmatrix(fit, test)
-
-    # check that the test argument is legal: each element should have
-    #  class "cmatrix"
-    # it can be a list or nested list of such elements, with optional names
-    legal <- function(x) {
-        if (inherits(x, "cmatrix")) TRUE
-        else if (is.list(x)) all(sapply(x, legal))
-        else FALSE
-    }
-    if (!legal(test))
-        stop("the test argument should contain elements of class cmatrix")
-    xassign <- attr(fit, "assign")
     
+    # process the test argument and check its legality
+    <<yates-tests>>    
+ 
+    # set up for checking estimability, if necessary
+    <<yates-estim-setup
+    
+    # we will need the original model frame
+    mframe <- fit$model
+    if (is.null(mframe)) mframe <- model.frame(fit)
+  
+    # define the functions that actually do the work
+    if (population=="none") {
+        <<yates-nopop>>
+    }
+    else if (type=="linear") {
+        <<yates-linear>>
+    }
+    else {
+        stop("nonlinear portion yet to be writen")
+        <<yates-nonlinear>>
+    }
+ 
     # process the tests
     #  if the argument is a list of tests, the dummy function simply iterates
     #  over the list, or sublists of list elements, etc.
@@ -85,115 +101,149 @@ yates <- function(fit, test, population=c("data", "none", "factorial", "sas"),
         if (inherits(x, "cmatrix")) dotest(x, method, population)
         else lapply(x, dummy)
     }
-
-    if (population=="data") {
-        # in this case we use the same population again and again
-        # otherwise it depends on which variables
-        pdata <- fit$model
-        if (is.null(pdata)) pdata <- model.frame(fit)
-    }
-
-    if (type=="linear") {
-        dotest <- function(contr, method, population, type) {
-            if (is.na(match(contr$termname, colnames(Tatt$factors))))
-                stop("term '", contr$tername, "' not found in the model")
- 
-            if (population == "none") {
-                <<yates-build-none>>
-            }
-            else {
-                <<yates-build-pop>>
-                <<yates-xmat>>
-                Cmat <- t(sapply(xmatlist, colMeans))
-            }
-
-            # Get the MPV estimates
-            etemp <- estfun(Cmat, beta, vmat)
-            estimate <- cbind(x1data, mpv=etemp$estimate,
-                              std = sqrt(diag(etemp$var)))
-            # Now do the tests, one by one
-            if (method=="sgtt") {
-                if (is.list(contr$cmat))
-                    stop("sgtt method can only be used for global tests")
-                <<yates-sgtt>>
-            }
-            else {
-                if (is.list(contr$cmat)) 
-                    test <- t(sapply(contr$cmat, function(x)
-                        testfun(x %*% Cmat, beta, vmat, sigma^2)))
-                else {
-                    test <- testfun(contr$cmat %*% Cmat, beta, vmat, sigma^2)
-                    test <- matrix(test, nrow=1, 
-                                   dimnames=list("global", names(test)))
-                }
-            }
-            list(estimate=estimate, test=test, mvar=etemp$var, 
-                 xmatlist=xmatlist)
-            #list(estimate=estimate, test=test, mvar=etemp$var)
-        }
-    }
-    else {
-        stop("nonlinear portion yet to be writen")
-        <<yates-nonlinear>>
-    }
- 
     result <- dummy(test)
     class(result) <- "yates"
     result
 }
 @
 
-The \code{cmatrix} object contains three peices of information: the term of
-the model that will be tested, a set of data values used to populate that
-term and give a set of targets,  and the contrast(s) that will be
-applied to those predicted values.  
-The program has to
-\begin{enumerate}
-  \item Create the population data set for the other terms, those that we
-    are averaging over. What I call x2 in the vignette.
-  \item Fill in the values of interest, ``x1''.
-  \item Combine each row of x1 with x2 to get an mean predicted value (MPV)
-    for that x1 row.  This is a vector of length coef(fit).
-  \item Perform the requested contrasts on the MPV values.
-\end{enumerate}
-If \code{test} is a list with multiple contrast matrices we simply iterate
-over them, doing the entire task separately for each one.
+The first task of setting things up is farmed out to the \code{cmatrix}
+routine.  
+The original thought for yates was that the test argument would be a
+list of tests, and you would bundle all the work for a model together into
+one amalgamated call.  
+As testing of the routine has proceeded this looks less and less like a
+needed feature, but the code remains, in which case yates will produce
+a list (which print.yates can't currently handle). 
+To make it easier for users, we set up a local environment so that they
+can use \code{cm(test, ...)} within the yates call, 
+as a shorthand for \code{cmatrix(fit, test, ...)}
 
-For each contrast the first step is to create MPV matrix.
-For the SGTT algorithm this is accomplished by a manipulation of the
-original $X$ matrix.  Otherwise
-each row of MPV is, formally, the column sums of a new model.matrix call that
-had the selected values for x1 + the population for x2.  
-This is a fairly straightforward task using the original data set:
-build the data, then call model.matrix using the formula and that data.
-For population=data or SAS we will have the original model.frame instead,
-which is a bit trickier.
-Model frames have to match their attached terms object exactly wrt variable
-names and position.  We need to modify the x1 variables in place, rather
-carefully, while leaving x2 variables alone.  
-Now if none of the variables are transformed (ptrans=FALSE) we don't have
-to worry about this: the model frame and the data frame have the exact same
-column names and same data; we can treat the model frame as though it were
-a data frame. 
-When we do have to transform, we will have raw data values for x1. 
-If there are functions in the predvars attribute wrt the x1 variables, 
-then we need to call them.
+<<yates-test>>=
+ff <- parent.frame()
+tempenv <- new.env(parent=ff)
+assign("cm", function(...) cmatrix(fit, ...), env=tempenv)
+test <- eval(substitute(test), tempenv)
+if (is.character(test) || inherits(test, "formula"))
+    test <- cmatrix(fit, test)
+@ 
+
+Now check that the resulting test argument is legal.
+<<cmatrix-test>>=
+# each element of test should have class "cmatrix".  It can be
+#  a singleton, a list, or a nested list of such elements
+legal <- function(x) {
+    if (inherits(x, "cmatrix")) TRUE
+    else if (is.list(x)) all(sapply(x, legal))
+    else FALSE
+}
+if (!legal(test))
+    stop("the test argument should contain elements of class cmatrix")
+@ 
+
+Models with factor variables may often lead to population predictions that
+involve non-estimable functions, particularly if there are interactions
+or the user specifies a factorial population.  
+If there are any missing coefficients we have to do formal checking for
+this: any given row of the new $X$ matrix, for prediction, must be in the
+row space of the original $X$ matrix. 
+If this is true then a regression of a new row on the old $X$ will have 
+residuals of zero.
+It is not possible to derive this from the pattern of NA coefficients alone.
+Set up a function that returns a true/false vector of whether each row of
+a matrix is estimable.  This test isn't relevant if population=none.
+
+<<yates-estim-setup>>=
+Xold <- model.matrix(fit)
+if (!any(is.na(beta)) || population == "none") 
+    estimcheck <- function(x) rep(TRUE, nrow(x))  # all predictions estimable
+else {
+    X.qr <- qr(t(Xold))   # QR decomposition of the row space
+    estimcheck <- function(x, eps= sqrt(.Machine$double.eps)) {
+        temp <- qr.resid(X.qr, t(x))
+        apply(abs(temp), 1, function(x) all(x < eps))
+    }
+@ 
+
+When the prediction target is $X\beta$ there is a four step
+process: build the reference population, create the list of X matrices
+(one prediction matrix for each for x1 value), 
+column means of each X form each row of the
+contrast matrix Cmat, and then use Cmat to get the mpv values and
+tests of the mpv values.
+
+<<yates-linear>>=
+dotest <- function(contr, method, population, type) {
+    if (is.na(match(contr$termname, colnames(Tatt$factors))))
+        stop("term '", contr$termname, "' not found in the model")
+    
+    <<yates-build-pop>>
+    <<yates-xmat>>
+    Cmat <- t(sapply(xmatlist, colMeans))
+    
+    # Get the MPV estimates
+    etemp <- estfun(Cmat, beta, vmat)
+    estimate <- cbind(x1data, mpv=etemp$estimate,
+                      std = sqrt(diag(etemp$var)))
+ 
+    # Now do the tests, one by one
+    if (method=="sgtt") {
+        if (is.list(contr$cmat))
+            stop("sgtt method can only be used for global tests")
+        <<yates-sgtt>>
+    }
+    else {
+        if (is.list(contr$cmat)) 
+            test <- t(sapply(contr$cmat, function(x)
+                testfun(x %*% Cmat, beta, vmat, sigma^2)))
+        else {
+            test <- testfun(contr$cmat %*% Cmat, beta, vmat, sigma^2)
+            test <- matrix(test, nrow=1, 
+                           dimnames=list("global", names(test)))
+        }
+    }
+    #list(estimate=estimate, test=test, mvar=etemp$var, 
+    #     xmatlist=xmatlist)   # temporary debug line
+    list(estimate=estimate, test=test, mvar=etemp$var)
+}
+@ 
+
+Build the population data set.  This has two slightly different paths,
+creation of a raw data set or of a model frame.
+When population=data we create a model frame since that is what is readily
+available, either already present as the \code{model} argument of the 
+fit object, or via a call to model.frame(fit).  It could actually be
+quite hard to recreate the raw data, for a spline term for instance.
+For population=user we will have raw data, obviously.  The task in that
+case is to verify that the data has all the needed variables.
+For population = factorial we build our own raw data set out of 
+fit$xlevels.
+
+The problem with all this is names.  Suppose the original model was
+\code{coxph(Surv(time, status) ~ ns(age,4) + factor(ph.ecog), lung)}.
+In the data set the variable name is ph.ecog, in the model frame,
+the xlevels list, and terms structure it is factor(ph.ecog). 
+The data frame has individual columns for the four variables, the model frame
+is a list with 3 elements, one of which is named ``ns(age, 4)'': notice the
+extra space before the 4 compared to what was typed.
+
+The all.vars function translates back for the vnames vector, but the logic
+is imperfect for a model with \code{ns(age, df=zed)} where 'zed' was some
+global variable.  The code below will expect to find zed in the the
+user's data frame.  Such a case may never arise (we hope).
 
 <<yates-build-pop>>=
-vnames <- lapply(Tatt$variables, all.vars)[-1]  # first element will be "list"
+vnames <- lapply(Tatt$variables, all.vars)[-1]  # first element was "list"
 x1indx <- (Tatt$factors[,contr$termname] >0)      # which variables(s) in x1
 x2indx <- !x1indx
-if (population=="data") {  #easy case
-    pdata <- fit$model
-    if (is.null(pdata)) pdata <- model.frame(fit)
-}
+if (population=="data") pdata <- mframe  #easy case
 else if (population=="factorial") {
     if (any(!iscat[x2indx]))
         stop("population=factorial only applies if all the adjusting terms are categorical")
     x2name <- names(x2indx)[x2indx]
     pdata <- do.call("expand.grid", fit$xlevels[x2name])
 } else if (population=="user") {
-    hit <- sapply(vnames, function(x) x %in% names(pdata))
+    hit <- sapply(vnames, function(x) all(x %in% names(pdata)))
     # any right-hand side which is found, leave it alone, not found=error
     if (any(!hit[x2index])) {
         i <- (which(x2index))[!hit[x2indx]]
