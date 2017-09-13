@@ -8,6 +8,10 @@ and proceeds from there.
 The aeqSurv function is used to adjucate near ties in the time
 variable, numerical precision issues that occur when users base
 caculations on days/365.25 instead of days.
+
+A cluster term in the model is an exception.  The variable mentioned is
+never part of the formal model, and so it is not kept as part of the saved
+terms structure.
 <<coxph>>=
 #tt <- function(x) x
 coxph <- function(formula, data, weights, subset, na.action,
@@ -66,13 +70,12 @@ coxph <- function(formula, data, weights, subset, na.action,
         ord <- attr(Terms, 'order')[tempc$terms]
         if (any(ord>1)) stop ("Cluster can not be used in an interaction")
         cluster <- strata(mf[,tempc$vars], shortlabel=TRUE)  #allow multiples
-        dropterms <- tempc$terms  #we won't want this in the X matrix
+        Terms <- Terms[-tempc$terms]  # toss it away
         # Save away xlevels after removing cluster (we don't want to save upteen
         #  levels of that variable, which we will never need).
         xlevels <- .getXlevels(Terms[-tempc$terms], mf)
     }
     else {
-        dropterms <- NULL
         if (missing(robust)) robust <- FALSE
         xlevels <- .getXlevels(Terms, mf)
     }
@@ -509,12 +512,10 @@ The final $X$ matrix has no intercept, and a proper assign attribute of
 (1,3,3) since trt is the third variable in the original formula.
 
 
-The dropterms variable contains terms to drop before creation of the X matrix.
-It was initialized far above in the code when we dealt
-with cluster terms.
 <<coxph-make-X>>=
 attr(Terms, "intercept") <- 1
 adrop <- 0  #levels of "assign" to be dropped; 0= intercept
+dropterms <- NULL
 stemp <- untangle.specials(Terms, 'strata', 1)
 if (length(stemp$vars) > 0) {  #if there is a strata statement
     hasinteractions <- FALSE
@@ -525,8 +526,7 @@ if (length(stemp$vars) > 0) {  #if there is a strata statement
         if (any(attr(Terms, 'order')[attr(Terms, "factors")[i,] >0] >1))
             hasinteractions <- TRUE  
         }
-    if (!hasinteractions) 
-        dropterms <- c(dropterms, stemp$terms)
+    if (!hasinteractions) dropterms <- stemp$terms 
     else adrop <- c(0, match(stemp$var, colnames(attr(Terms, 'factors'))))
 }
 

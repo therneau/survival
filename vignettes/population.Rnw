@@ -149,9 +149,10 @@ y1
 The printout has two parts: the left hand colums are mean predicted
 values, the right hand are tests on those predicted values.  The default is
 a global test that they are all equal.
-(``Population predicted value'' would be a better label but the abbreviation
+(``Population predicted value'' could be an alternate label but the abbreviation
 PPV would be confused with the positive predicted value.)
-The estimates under a factorial population (\code{y1}) are the Yates' weighted
+The estimates under a factorial population, \code{y1} above,
+are the Yates' weighted
 means \cite{Yates} and the corresponding test is the Yates' sum of
 squares for that term.  These would be labeled as a 
 ``least squares mean'' and ``type III SS'', respectively,
@@ -162,7 +163,7 @@ Repeat this using the default population, which is the set of all 900
 combinations for solder, mask, pad type and panel found in the data.
 The pairwise option gives tests on all pairs of openings, for details
 on this and other arguments see the \code{cmatrix} function;
-``cm'' is a shorthand allowed within the \code{yates} argument list.
+``cm'' is a shorthand for cmatrix allowed within the \code{yates} argument list.
 <<solder2b>>=
 y2 <- yates(fit1, cm("Opening", test="pairwise"), population = "data") 
 y2
@@ -172,53 +173,66 @@ dimnames(temp) <- list(c("factorial", "emprical"), c("2 vs 1", "3 vs 2"))
 round(temp,5)
 @ 
 
-Although the MPV values shift with the new population, the difference
-between any two pairs and the global test are unchanged.
+Although the MPV values shift with the new population the global test is
+unchanged, as is the difference in MPV between any two pairs.
 This is because we have fit a model with no interactions.
-In figure 1 this is a model with parallel prediction lines; shifting left or
-right may change an average but has no effect on the difference.
-For a model with no iteractions the test statistics created by the
-\code{yates} function will be no different than simple tests on the model
-coefficients.
-
-More interesting are models with an interaction.
-We'll drop the A6 group to leave an ``expanded'' experiment, an overall
-balanced design that has some extra observations in some of the cells.
-
-<<solder3>>=
-solder2 <- droplevels(subset(solder, Mask != "A6"))
-fit2a <- lm(skips ~ Mask + Opening + Solder, solder2)
-fit2b <- lm(skips ~ Mask * Opening * Solder, solder2)
-anova(fit2a, fit2b
-
-yates(fit2a, "Mask", population="Yates")
-yates(fit2b, "Mask", population="yates")
-@ 
-
-The added interactions significantly improve the model fit.
-Interestingly, in this case they hardly change the population averages,
-the A3 group shifts slightly;
-the major change is a reduction in standar error.
+Referring to figure 1 this is a model where all of the predictions are
+parallel lines; shifting the population left or
+right will change an average but has no effect on the difference between two
+lines.
+For a linear model with no iteractions the test statistics created by the
+\code{yates} function are thus not that interesting, since they will be no 
+different than simple tests on the model coefficients.
 
 
 \subsection{Missing cells}
 Models that involve factors and interactions can have an issue with
 missing cells as shown by the example below.
-<<solder4>>=
+<<solder3>>=
 fit3 <- lm(skips ~ Opening * Mask + Solder + PadType + Panel, solder)
 yates(fit3, cm("Mask", test="pairwise"))
 @ 
-The set of population predictions includes Opening*Mask combinations of
-Large/A6.  There are no observations in the data with this combination and
-hence relevant coefficient(s) in \code{fit2} are NA.
-Formally, those predictions are \emph{not estimable}, and as a consequence
-neither are any population averages that include them, nor any tests that involve
-those averages.
+The population predictions for each Mask include all combinations of
+Opening, Solder, PadType, and Panel that are found in the data.
+In the above call the empirical population was used, and the
+underlying algorithm amounts to
+\begin{enumerate}
+  \item Make a copy of the data set (900 obs), and set Mask to A1.5 in
+    all observations
+  \item Get the 900 resultant predicted values from the model, and take their
+    average
+  \item Repeat 1 and 2 for each mask type.
+\end{itemize}
+However, there were no observations in the data set with Mask = A6 and 
+opening = Large, and hence relevant coefficients in \code{fit2} are NA.
+Formally, any predictions an A6/Large combination are \emph{not estimable}, 
+and as a consequence
+neither are any population averages that include them, 
+nor any tests that involve those population averages.
+
+If you do the above steps 'by hand' R gives a value for all 900 predictions,
+but these are unreliable. 
+The presence of a missing value in \code{coef(fit3)} shows that some preditions
+will not be estimable, but it is not possible to determine \emph{which}
+ones from the
+coefficients alone; hence the warning message from \code{predict}.
+A formal definition of estimability is that prediction can be written as a 
+linear combination of the rows of $X$, the design matrix for the fit.
+The \code{yates} function performs necessary calculations to verify formal
+estimability of each predicted value.
+
+<<estimable>>=
+table(is.na(coef(fit3)))
+test <- solder
+test$Mask <- "A1.5"
+pp <- predict(fit3, newdata=test)
+table(is.na(pp))
+@ 
 
 \subsection{Cox models}
 
 
-\subsection{Population}
+\section{Population}
 The \code{population} parameter parameter of the call can be either a data set
 or one of `data', `factorial', `sas', or `none'. 
 Alternate labels of `empirical' and `Yates' are allowed for the `data' and
@@ -227,4 +241,103 @@ If \code{population} is a data set then it must contain all variables found
 in the set of adjusters $V$.  
 Using the original data set is equivalent to `data'.
 
+The 'right' data set to use is entirely a function of what question you
+want to answer.
+Consider the simple example of figure 1.  
+If, for instance, one were contemplating effective drugs for a nursing home
+population, then a population of ages shifted towards the right hand side of 
+the x-axis would be the obvious target, and one would most likely use an
+external reference to define the population.  
+No population is incorrect in the sense that each addresses a well defined
+question; but is is a question that anyone would ask?
+The factorial population in particular has been overused.
+
+\section{SAS glim type III (SGTT) algorithm}
+``Type 3'' tests have been a statistical bugaboo for decades.  
+A major problem is that almost no one knows exactly what they are.  The
+generalized linear models (GLM) procedure uses a hybrid algorithm.
+For least squares means:
+\begin{itemize}
+  \item Define a mixture population: factorial for categorical variables;
+    those that appear in a class statement, and the data distribution for
+    all others.
+  \item Assume a data set which had 2 categorical variables x1 and x2 with 3 and 4 
+    levels, respectively, 4 other continuous variables, and 47 observations.
+    The population data set has 3 * 4 * 47 = 564 observations.
+  \item The three least squares means for variable x1 can be obtained by
+    taking a copy of the population data set, set x1 to its first level in
+    all 564 rows, and compute the mean predicted value, and likewise for the
+    second and third levels of x1.  
+    This is the same estimate as the \code{yates} function.  
+  \item There many ways to shorten and/or speed up this calculation of course,
+    but that is not material.
+\end{itemize}
+
+The type III SS is \emph{not} a direct test of equality of these mpv values,
+and is in fact defined even when some or all of them are not estimable.
+\begin{enumerate}
+  \item Create a full (overdetermined) design matrix $X$ from left to right:
+    the intercept, then main effects, then two variable interactions
+    (if any), three variable, etc.  
+    \begin{itemize}
+      \item A categorical variable with $k$ levels is
+        represented by $k$ 0/1 dummy variables 
+        which represent the the first, second, etc. levels of the variable.
+      \item Likewise the interaction between two categorical variables 
+        that have $k$
+        and $l$ levels will be represented by $kl$ 0/1 columns, and etc. 
+      \item R's \code{model.matrix} function returns far fewer columns, since
+        it tries to prospectively remove those that will be redundant.
+        Having all the columns is critical to step 3, however.
+  \item Create the $p$ by $p$ dependency matrix $D$ from the $n$ by $p$
+    matrix $X$, from left to right. 
+    \begin{itemize}
+      \item If column $k$ of $X$ can be written as a linear combination of
+        prior columns, then $D_{1k}$ to $D_{k-1,k}$ contains that combination,
+        and $D_{j,k}=0$ for $j \ge k$.
+      \item Otherwise set $D_{kk}=1$ and $D_{jk}=0$ for $j ne k$.
+      \item Note that if the $i$th column of $X$ is linearly dependent on 
+        prior columns, then the $i$th row of $D$ will be zero.
+    \end{itemize}
+  \item Partially orthagonalize $D'$ from right to left
+    \begin{itemize}
+      \item For any column of $D'$ that corresponds to an interaction of one
+        or more categorical predictors (but only categorical), make any
+        columns of $D'$ that correspond to a contained term orthagonal to it.
+      \item If x1 and x2 were categorical, for instance, and the model contains
+        the x1*x2 interaction, then any columns of $D'$ corresponding to
+        x1 only or x2 only will be made orthagonal to the x1*x2 columns of $D'$.
+      \item An x1*x2*x3 term, however, where x3 is continuous, would not 
+        participate in this process.  
+    \end{itemize}
+  \item The resulting rows of $D$ form the type III contrasts, i.e.,
+    tests of $D \beta =0$ for the corresponding rows of $D$.
+\end{enumerate}
+
+If all covariates are categorical and all of the mpv values are estimable 
+then the above algorithm will agree with the Yates tests.
+This is easy to verify numerically for any given example,
+but much more challenging to prove as a general case.  
+If not all the mpv values are estimable a Yates SS is not defined and
+the SGTT is something quite different.
+However, because it is based on subspace and orthagonality arguments, the
+SS is unaffected by the choice of the reference level for a class
+variable or by the order in which the terms are added to the $X$ matrix.
+
+Another way to derive the Yates estimates is based on
+the well known fact that in a balanced factorial design the sums of squares
+for main effects and interactions are all orthagonal.  Starting with any
+$X$ matrix for the fit, e.g., the full $X$ given above or the R version
+under any of the constrast options, first reduce it to a balanced subset
+\code{Z =unique(X)} and then find contrast matrices C1, C2, etc. that
+are orgthagonal with respect to $(Z'Z)^{-1}$,
+the variance matrix of the coefficients.  
+The SGTT appears to be based on this idea.
+
+Note that the SGTT algorithm is the SAS \emph{glm} type 3 procedure. 
+Several other SAS procedures also create output labeled as ``type 3'' which
+is not necessarily the same. 
+The phreg procedure uses the NSTT computation for instance, and we have found
+others that are not invariant to the choice of the reference level for a 
+factor.
 

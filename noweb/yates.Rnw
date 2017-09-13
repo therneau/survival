@@ -241,7 +241,7 @@ else {
     temp <- diag(nlev)
     temp[,nlev] <- -1
     cmat[[k]] <- temp[-nlev,]
-    names(cmat) <- c(cname, "global")
+    names(cmat) <- c(cname, termname)
 }
 @ 
 
@@ -299,23 +299,21 @@ qform <- function(var, beta) { # quadratic form b' (V-inverse) b
 @ 
 
 The next functions do the work.  Some bookkeeping is needed for 
-a missing value in beta: for the purposes of prediction we treat
-0*NA as zero --- the fact that a coef is missing does not matter if you don't
-use it. 
-If there are missing coefs then the variance matrix will not have those columns.
+a missing value in beta: we leave that coefficient out of the linear
+predictor.
+If there are missing coefs then the variance matrix will not have those 
+columns in any case.
+The nafun function asks if a linear combination is NA.  It treats
+0*NA as 0.
 
 <<yates>>=
 estfun <- function(cmat, beta, varmat) {
     nabeta <- is.na(beta)
     if (any(nabeta)) {
         k <- which(!nabeta)  #columns to keep
-        # does this row of cmat involve an NA?
-        hasna <- ifelse(apply(cmat[,nabeta, drop=FALSE] !=0, 1, any), NA, 0)
-
         estimate <- drop(cmat[,k] %*% beta[k])  # vector of predictions
         evar <- drop(cmat[,k] %*% varmat %*% t(cmat[,k, drop=FALSE]))
-        list(estimate = estimate + hasna,
-             var = evar + outer(hasna, hasna))
+        list(estimate = estimate, var=evar)
     }
     else {
         list(estimate = drop(cmat %*% beta),
@@ -327,11 +325,9 @@ testfun <- function(cmat, beta, varmat, sigma2) {
     nabeta <- is.na(beta)
     if (any(nabeta)) {
         k <- which(!nabeta)  #columns to keep
-        hasna <- apply(cmat[,nabeta, drop=FALSE] !=0, 1, any)
         estimate <- drop(cmat[,k] %*% beta[k])  # vector of predictions
         temp <- qform(cmat[,k] %*% varmat %*% t(cmat[,k,drop=FALSE]), estimate)
-        if (any(hasna)) rval <- c(chisq=NA, df=temp$df)
-        else rval <- c(chisq=temp$test, df=temp$df)
+        rval <- c(chisq=temp$test, df=temp$df)
     }
     else {
        estimate <- drop(cmat %*% beta)
@@ -341,4 +337,9 @@ testfun <- function(cmat, beta, varmat, sigma2) {
     if (!is.null(sigma2)) rval <- c(rval, ss= unname(rval[1]) * sigma2)
     rval
 }
+
+nafun <- function(cmat, est) {
+    used <- apply(cmat, 2, function(x) any(x != 0))
+    any(used & is.na(est))
+    }
 @ 
