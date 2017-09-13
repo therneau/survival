@@ -82,7 +82,7 @@ survSplit <- function(formula, data, subset, na.action=na.pass,
 
     # Did the user hand me a Surv call with multiple variables, or a
     #  premade Surv object?
-    if (class(formula[[2]]) == "call" && formula[[2]][[1]]== as.name("Surv")){
+    if (inherits(formula[[2]], "call") && formula[[2]][[1]]== as.name("Surv")){
         # it was a call, figure out the names
         # The user might have used something like Surv(status=abc, time=fred),
         #  so use match.call to find "abc" and "fred".  But give up if there
