@@ -3,7 +3,7 @@
 #
 logLik.coxph <- function(object, ...) {
     out <- object$loglik[2]
-    if (!is.null(object$df)) attr(out, "df") <- object$df[2]
+    if (!is.null(object$df)) attr(out, "df") <- sum(object$df)
     else  attr(out, 'df') <- sum(!is.na(coefficients(object)))
     attr(out, "nobs") <- object$nevent
     class(out) <- 'logLik'
