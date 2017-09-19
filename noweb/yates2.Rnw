@@ -158,7 +158,8 @@ Xold <- model.matrix(fit)
 if (!any(is.na(beta)) || population == "none") 
     estimcheck <- NULL
 else {
-    X.qr <- qr(t(Xold))   # QR decomposition of the row space
+    if (inherits(fit, "coxph")) X.qr <- qr(rbind(1, t(Xold)))
+    else  X.qr <- qr(t(Xold))   # QR decomposition of the row space
     estimcheck <- function(x, eps= sqrt(.Machine$double.eps)) {
         temp <- qr.resid(X.qr, t(x))
         apply(abs(temp), 1, function(x) all(x < eps))
@@ -187,9 +188,9 @@ dotest <- function(contr, method, population, type) {
     if (inherits(fit, "coxph")) Cmat <- Cmat[,-1, drop=FALSE]
     
     # Get the MPV estimates
-    etemp <- estfun(Cmat, beta2, vmat)
+    etemp <- estfun(Cmat, beta, vmat)
     estimate <- cbind(x1data, mpv= ifelse(Cest, etemp$estimate, NA),
-                      std = ifesle(Cest, sqrt(diag(etemp$var)), NA))
+                      std = ifelse(Cest, sqrt(diag(etemp$var)), NA))
     
     # Now do tests on the MPV estimates, one by one
     if (method=="sgtt") {
@@ -198,11 +199,11 @@ dotest <- function(contr, method, population, type) {
     else {
         if (is.list(contr$cmat)) {
             test <- t(sapply(contr$cmat, function(x)
-                testfun(x %*% Cmat, beta2, vmat, sigma^2)))
+                testfun(x %*% Cmat, beta, vmat, sigma^2)))
             natest <- sapply(contr$cmat, nafun, estimate$mpv)
         }
         else {
-            test <- testfun(contr$cmat %*% Cmat, beta2, vmat, sigma^2)
+            test <- testfun(contr$cmat %*% Cmat, beta, vmat, sigma^2)
             test <- matrix(test, nrow=1, 
                            dimnames=list(contr$termname, names(test)))
             natest <- nafun(contr$cmat, estimate$mpv)

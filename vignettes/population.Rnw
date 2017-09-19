@@ -47,6 +47,7 @@ One sensible approach is to select a fixed \emph{population} for the
 age/sex distribution, and then compute the
 average  effect over that population.
 
+\begin{figure}
 <<fig1, fig=TRUE>>=
 plot(c(50,85), c(2,4.5), type='n', xlab="Age", ylab="Effect")
 abline(.645, .042, lty=1, col=1)
@@ -57,6 +58,9 @@ legend(50, 4.2, c("Treatment A, female", "Treatment B, female",
                   "Treatment A,  male", "Treatment B, male"),
        col=c(1,2,1,2), lty=c(1,1,2,2), bty='n')
 @ 
+ \caption{Treatment effects for a hypothetical study.}
+ \label{fig1}
+\end{figure}
 
 More formally, assume we have some fitted model. Split the model 
 predictors into two groups: $U$ and $V$, where $U$ is the covariate of 
@@ -80,7 +84,7 @@ Four common populations are
     That is, the data set one would envision for a balanced factorial 
     experiment.
   \item External: an external reference such as the age/sex distribution 
-    of the US census.
+    of the US census.  This is common in epidemiolgy.
   \item SAS: a factorial (Yates) distribution for the categorical predictors 
     and the data distribution for the others. 
 \end{itemize}
@@ -90,21 +94,22 @@ from a fitted model, along with desired contrasts on the resultant
 estimates, e.g., that the population average effect for treatment 1 and
 treatment 2 are equal. 
 It has been tested with the results of lm, glm, and coxph fits, and should
-work with any R model that includes a standard set of objects in the result
+work with any R model that includes a standard set of objects in the result:
 (\code{terms}, \code{contrasts}, \code{xlevels}, \code{assign}, and \code{call}).
 
 As the reader might already guess from the labels used just above, the
 concept of population averages is a common one in statistics.
-(Taking an average is, after all, nearly the first thing a statistician
-will do.)
+Taking an average is, after all, nearly the first thing a statistician
+will do.
 Yates' weighted means analysis, the g-estimates of causal models,
 direct adjusted survival curves, and least squares means (SAS glm
 procedure) are a small sample.  
-The function's name is a nod to the oldest of these.
+This function's name is a nod to the oldest of these.
 
 \section{Simple examples}
 \subsection{Linear model}
-The \code{solder} data set, used in the introduction to Statistical Models
+The \code{solder} data set, used in the introduction of the
+book Statistical Models
 in S \ref{Chambers93} provides a simple starting example.
 In 1988 an experiment was designed and implemented at one of AT&T's
 factories to investigate alternatives in the "wave soldering" procedure
@@ -136,8 +141,8 @@ The A3 mask has extra replicates of the Large/Thick, Large/Thin, and Small/Thick
 conditions, and A6 has only the Medium/Thick, Medium/Thin, and Small/Thin
 conditions.
 Essentially, one extra run of 180 was done with a mixture of masks.
-Chambers and Hastie focus on the balanced subset so their figure and results
-are slightly different.
+Chambers and Hastie focus on the balanced subset that excludes this last
+run, so their figure and results are slightly different.
 
 Do a simple fit and then obtain the Yates predictions.
 <<solder2>>=
@@ -147,8 +152,8 @@ y1 <- yates(fit1, "Opening", population = "factorial")
 y1
 @ 
 The printout has two parts: the left hand colums are mean predicted
-values, the right hand are tests on those predicted values.  The default is
-a global test that they are all equal.
+values, the right hand are tests on those predicted values.  
+The default is a single global test that they are all equal.
 (``Population predicted value'' could be an alternate label but the abbreviation
 PPV would be confused with the positive predicted value.)
 The estimates under a factorial population, \code{y1} above,
@@ -157,7 +162,7 @@ means \cite{Yates} and the corresponding test is the Yates' sum of
 squares for that term.  These would be labeled as a 
 ``least squares mean'' and ``type III SS'', respectively,
 by the SAS glm procedure.  
-More on this topic appears in the section on the SGTT algorithm.
+More on this last appears in the section on the SGTT algorithm.
 
 Repeat this using the default population, which is the set of all 900
 combinations for solder, mask, pad type and panel found in the data.
@@ -178,12 +183,19 @@ unchanged, as is the difference in MPV between any two pairs.
 This is because we have fit a model with no interactions.
 Referring to figure 1 this is a model where all of the predictions are
 parallel lines; shifting the population left or
-right will change an average but has no effect on the difference between two
+right will change each average but has no effect on the difference between two
 lines.
 For a linear model with no iteractions the test statistics created by the
-\code{yates} function are thus not that interesting, since they will be no 
+\code{yates} function are thus not very interesting, since they will be no 
 different than simple tests on the model coefficients.
 
+Here are results from a more interesting fit that includes interactions.
+<<solder3>>=
+fit2 <- lm(skips ~ Opening + Mask*PadType + Panel, solder)
+yates(fit2, "Mask")
+@ 
+Because of the near perfect balance some of the mean have not moved at
+all, however.
 
 \subsection{Missing cells}
 Models that involve factors and interactions can have an issue with
@@ -205,7 +217,7 @@ underlying algorithm amounts to
 \end{itemize}
 However, there were no observations in the data set with Mask = A6 and 
 opening = Large, and hence relevant coefficients in \code{fit2} are NA.
-Formally, any predictions an A6/Large combination are \emph{not estimable}, 
+Formally, any predictions for an A6/Large combination are \emph{not estimable}, 
 and as a consequence
 neither are any population averages that include them, 
 nor any tests that involve those population averages.
@@ -230,6 +242,8 @@ table(is.na(pp))
 @ 
 
 \subsection{Cox models}
+For a Cox model an immediate question is what to predict.
+
 
 
 \section{Population}

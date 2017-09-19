@@ -7,13 +7,16 @@
     leads to incorrect solutions for selected data sets. In detail:
     In a start stop data set with strata assume two adjacent event times
     in one stratum of d1 and d2, say, and a set of k censored intervals
-    (a,b) also in that stratum such that a>=d1 and b<d2. (Such intervals are
-    at risk for none of the events).  If k >= the number of intervals
+    (a,b) also in that stratum such that a>=d1 and b<d2.  (Such intervals are
+    never at risk for an event and could be elminated from the data set
+    without loss.) If k >= the number of intervals that overlap both d1
+    and d2, and in the prior stratum the smallest time was an event,
+    some variables that track who is in the risk set got out of sync,
     that overlap both d1 and d2, and in the prior stratum the smallest
-    time was an event, then the contributions to the loglik, first and
-    second derivative at d1 would be incorrect.  I expect such data sets
-    are extremely rare.  However, the survSplit routine and mstate
-    packages can generate data sets with a lot of intervals.  
+    and contributions to the loglik, first and second derivative at d1
+    would be incorrect.  I expect such data sets are extremely rare.
+    However, the survSplit routine and mstate packages can generate data
+    sets with a LOT of intervals.  (The data set in question came from mstate.)
   }
 }
 \section{Changes in version 2.41-5}{
