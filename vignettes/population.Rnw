@@ -275,22 +275,24 @@ For least squares means:
   \item Define a mixture population: factorial for categorical variables;
     those that appear in a class statement, and the data distribution for
     all others.
-  \item Assume a data set which had 2 categorical variables x1 and x2 with 3 and 4 
-    levels, respectively, 4 other continuous variables, and 47 observations.
-    The population data set has 3 * 4 * 47 = 564 observations.
+  \item Assume a data set which had 2 categorical variables x1 and 
+    x2 with 3 and 4 levels, respectively
+    4 other continuous variables, and 47 observations.
+    The population data set has (3 * 4) * 47 = 564 observations.
   \item The three least squares means for variable x1 can be obtained by
     taking a copy of the population data set, set x1 to its first level in
-    all 564 rows, and compute the mean predicted value, and likewise for the
+    all 564 rows, then compute the mean predicted value, and likewise for the
     second and third levels of x1.  
     This is the same estimate as the \code{yates} function.  
   \item There many ways to shorten and/or speed up this calculation of course,
-    but that is not material.
+    but that is not material to the discussion.
 \end{itemize}
 
 The type III SS is \emph{not} a direct test of equality of these mpv values,
 and is in fact defined even when some or all of them are not estimable.
+The exact algorithm is described indirectly in SASxxx
 \begin{enumerate}
-  \item Create a full (overdetermined) design matrix $X$ from left to right:
+  \item Create design matrix $X$ of the form used by glm from left to right:
     the intercept, then main effects, then two variable interactions
     (if any), three variable, etc.  
     \begin{itemize}
@@ -302,7 +304,7 @@ and is in fact defined even when some or all of them are not estimable.
         and $l$ levels will be represented by $kl$ 0/1 columns, and etc. 
       \item R's \code{model.matrix} function returns far fewer columns, since
         it tries to prospectively remove those that will be redundant.
-        Having all the columns is critical to step 3, however.
+        Having all the columns is critical to steps 2 and 3, however.
   \item Create the $p$ by $p$ dependency matrix $D$ from the $n$ by $p$
     matrix $X$, from left to right. 
     \begin{itemize}
@@ -313,7 +315,7 @@ and is in fact defined even when some or all of them are not estimable.
       \item Note that if the $i$th column of $X$ is linearly dependent on 
         prior columns, then the $i$th row of $D$ will be zero.
     \end{itemize}
-  \item Partially orthagonalize $D'$ from right to left
+  \item Partially orthagonalize the transpose of $D$ from right to left
     \begin{itemize}
       \item For any column of $D'$ that corresponds to an interaction of one
         or more categorical predictors (but only categorical), make any
@@ -321,7 +323,7 @@ and is in fact defined even when some or all of them are not estimable.
       \item If x1 and x2 were categorical, for instance, and the model contains
         the x1*x2 interaction, then any columns of $D'$ corresponding to
         x1 only or x2 only will be made orthagonal to the x1*x2 columns of $D'$.
-      \item An x1*x2*x3 term, however, where x3 is continuous, would not 
+      \item An x1*x2*x3 term where x3 is continuous would not 
         participate in this process.  
     \end{itemize}
   \item The resulting rows of $D$ form the type III contrasts, i.e.,
@@ -331,22 +333,30 @@ and is in fact defined even when some or all of them are not estimable.
 If all covariates are categorical and all of the mpv values are estimable 
 then the above algorithm will agree with the Yates tests.
 This is easy to verify numerically for any given example,
-but much more challenging to prove as a general case.  
+but much more challenging to prove as a general case 
+(shorthand for ``I can't seem to'').
 If not all the mpv values are estimable a Yates SS is not defined and
 the SGTT is something quite different.
-However, because it is based on subspace and orthagonality arguments, the
-SS is unaffected by the choice of the reference level for a class
-variable or by the order in which the terms are added to the $X$ matrix.
 
 Another way to derive the Yates estimates is based on
 the well known fact that in a balanced factorial design the sums of squares
-for main effects and interactions are all orthagonal.  Starting with any
+for main effects and interactions are all orthagonal;
+and two contrast matrices B and C correspoding to the effects will
+satisfy $C(X'X)^{-1}D' =0$.
+For an unbalanced design make the contrasts orthagonal to the variance
+matrix of a balanced one.
+Starting with any
 $X$ matrix for the fit, e.g., the full $X$ given above or the R version
 under any of the constrast options, first reduce it to a balanced subset
-\code{Z =unique(X)} and then find contrast matrices C1, C2, etc. that
-are orgthagonal with respect to $(Z'Z)^{-1}$,
-the variance matrix of the coefficients.  
-The SGTT appears to be based on this idea.
+\code{Z =unique(X)} and then find contrast matrices B, C, etc. that
+are orgthagonal with respect to $(Z'Z)^{-1}$. 
+For a design with no missing cells this leads to the Yates sum of squares.
+If there are missing cells the $Z$ matrix does not correspond to a balanced
+design and the connection to a population average is lost.
+However, it leads to a simpler R algorithm that agrees with SAS type III for
+a set of test cases. 
+If the data contains continuous variables then $Z'Z$ uses only the categorical
+variable columns of $X$.
 
 Note that the SGTT algorithm is the SAS \emph{glm} type 3 procedure. 
 Several other SAS procedures also create output labeled as ``type 3'' which
