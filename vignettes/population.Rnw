@@ -111,7 +111,7 @@ This function's name is a nod to the oldest of these.
 The \code{solder} data set, used in the introduction of the
 book Statistical Models
 in S \ref{Chambers93} provides a simple starting example.
-In 1988 an experiment was designed and implemented at one of AT&T's
+In 1988 an experiment was designed and implemented at one of AT\&T's
 factories to investigate alternatives in the "wave soldering" procedure
 for mounting electronic componentes to printed circuit boards.
 The experiment varied a number of factors relevant to the process.
@@ -214,10 +214,10 @@ underlying algorithm amounts to
   \item Get the 900 resultant predicted values from the model, and take their
     average
   \item Repeat 1 and 2 for each mask type.
-\end{itemize}
+\end{enumerate}
 However, there were no observations in the data set with Mask = A6 and 
 opening = Large, and hence relevant coefficients in \code{fit2} are NA.
-Formally, any predictions for an A6/Large combination are \emph{not estimable}, 
+Formally, predictions for the A6/Large combination are \emph{not estimable}, 
 and as a consequence
 neither are any population averages that include them, 
 nor any tests that involve those population averages.
@@ -364,4 +364,4 @@ is not necessarily the same.
 The phreg procedure uses the NSTT computation for instance, and we have found
 others that are not invariant to the choice of the reference level for a 
 factor.
-
+\end{document}

@@ -6,12 +6,12 @@ The key argument \code{layout}, the first, is a vector of numbers.
 The value (1,3,4,2) for instance has a single state, then a column with 3
 states, then a column with 4, then a column with 2. 
 If \code{layout} is instead a 1 column matrix then do the same from top
-down.
+down.  If it is a 2 column matrix then they provided their own spacing.
 
 <<statefig>>= 
 statefig <- function(layout, connect, margin=.03, box=TRUE,
                      cex=1, col=1, lwd=1, lty=1, bcol= col,
-                     acol=col, alwd = lwd, alty= lty) {
+                     acol=col, alwd = lwd, alty= lty, offset=0) {
     # set up an empty canvas
     frame();  # new environment
     par(usr=c(0,1,0,1))
@@ -26,6 +26,19 @@ statefig <- function(layout, connect, margin=.03, box=TRUE,
         stop("connect must have the state names as dimnames")
     else statenames <- dd[[2]]
 
+    # expand out all of the graphical parameters.  This lets users
+    #  use a vector of colors, line types, etc
+    narrow <- sum(connect!=0) 
+    acol <- rep(acol, length=narrow)
+    alwd <- rep(alwd, length=narrow)
+    alty <- rep(alty, length=narrow)
+
+    bcol <- rep(bcol, length=nstate)
+    lty  <- rep(lty, length=nstate)
+    lwd  <- rep(lwd, length=nstate)
+    
+    col <- rep(col, length=nstate)  # text colors
+ 
     <<statefig-layout>>
     <<statefig-text>>
     <<statefig-arrows>>
@@ -35,7 +48,7 @@ statefig <- function(layout, connect, margin=.03, box=TRUE,
 @
 
 The drawing region is always (0,1) by (0,1).
-A user can put enter their own matrix of coordinates.
+A user can enter their own matrix of coordinates.
 Otherwise the free space is divided with one portion
 on each end and 2 portions between boxes.  If there were 3 columns for
 instance they will have x coordinates of 1/6, 1/6 + 1/3, 1/6 + 2/3.  Ditto
@@ -85,14 +98,13 @@ dx <- margin * temp[2]/mean(temp)  # extra to add in the x dimension
 dy <- margin * temp[1]/mean(temp)  # extra to add in y
 
 if (box) {
-    drawbox <- function(x, y, dx, dy, col) {
+    drawbox <- function(x, y, dx, dy, lwd, lty, col) {
         lines(x+ c(-dx, dx, dx, -dx, -dx),
               y+ c(-dy, -dy, dy, dy, -dy), lwd=lwd, lty=lty, col=col)
     }
-    bcol <- rep(bcol, length=nstate)
     for (i in 1:nstate) 
         drawbox(cbox[i,1], cbox[i,2], textwd[i]/2 + dx, textht[i]/2 + dy,
-                col=bcol[i])
+                col=bcol[i], lwd=lwd[i], lty=lty[i])
     dx <- 2*dx; dy <- 2*dy   # move arrows out from the box
     }
 @ 
@@ -234,13 +246,33 @@ doline <- function(x1, x2, d, delta1, delta2, lwd, lty, col) {
                lwd=lwd, lty=lty, col=col)
     }
 }
+@ 
+The last arrow bit is the offset.  If offset >0 and there is a bidirectional
+arrow between two boxes, and the arc for both of them is identical,
+then move each arrow just a bit, orthagonal to a segment connecting the middle
+of the two boxes.
+If the line goes from (x1, y1) to (x2, y2), then the normal to the line at
+(x1, x2) is (y2-y1, x1-x2), normalized to length 1.  
+
+<<statefig-arrows>>=
+k <- 1
 for (i in 1:nstate) {
     for (j in 1:nstate) {
         if (i != j && connect[i,j] !=0) {
-            doline(cbox[i,], cbox[j,], connect[i,j]-1,
-                   delta1 = c(textwd[i]/2 + dx, textht[i]/2 + dy),
-                   delta2 = c(textwd[j]/2 + dx, textht[j]/2 + dy),
-                   lty=alty[1], lwd=alwd[1], col=acol[1])
+            if (connect[i,j] == 2-connect[j,i] && offset>0) {
+                #add an offset
+                toff <- c(cbox[j,2] - cbox[i,2], cbox[i,1] - cbox[j,1])
+                toff <- offset *toff/sqrt(sum(toff^2))
+                doline(cbox[i,]+toff, cbox[j,]+toff, connect[i,j]-1,
+                       delta1 = c(textwd[i]/2 + dx, textht[i]/2 + dy),
+                       delta2 = c(textwd[j]/2 + dx, textht[j]/2 + dy),
+                       lty=alty[k], lwd=alwd[k], col=acol[k])
+                }
+            else doline(cbox[i,], cbox[j,], connect[i,j]-1,
+                        delta1 = c(textwd[i]/2 + dx, textht[i]/2 + dy),
+                        delta2 = c(textwd[j]/2 + dx, textht[j]/2 + dy),
+                        lty=alty[k], lwd=alwd[k], col=acol[k])
+            k <- k +1
         }
     }
 }

@@ -1,4 +1,3 @@
-# $Id: print.aareg.S 11250 2009-03-19 13:44:59Z tlumley $
 print.aareg <- function(x, maxtime, test=c('aalen', 'nrisk'), scale=1, ...) {
     if (!inherits(x, 'aareg')) stop ("Must be an addreg object")
     if (!is.null(cl<- x$call)) {
@@ -23,7 +22,7 @@ print.aareg <- function(x, maxtime, test=c('aalen', 'nrisk'), scale=1, ...) {
     chi <- summ$chisq
     df <- nrow(summ$table) -1
     cat("\nChisq=", format(round(chi,2)), " on ", df, " df, p=",
-	            signif(pchisq(chi,df),2, lower.tail=FALSE), 
+	            signif(pchisq(chi,df, lower.tail=FALSE),2), 
 	            "; test weights=", x$test, "\n", sep="")
     invisible(x)
     }

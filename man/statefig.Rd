@@ -9,7 +9,7 @@
 }
 \usage{
 statefig(layout, connect, margin = 0.03, box = TRUE, cex = 1, col = 1,
-  lwd=1, lty=1, bcol=col, acol=col, alwd=lwd, alty=lty)
+  lwd=1, lty=1, bcol=col, acol=col, alwd=lwd, alty=lty, offset=0)
 }
 \arguments{
   \item{layout}{describes the layout of the boxes on the page.  See the
@@ -31,10 +31,19 @@ statefig(layout, connect, margin = 0.03, box = TRUE, cex = 1, col = 1,
 }
 \item{bcol}{color for the box, if it differs from that used for the
   text.}
-\item{acol, alwd, alty}{color, line type and line width for the arrows.
-  Only the first element is used.}
+\item{acol, alwd, alty}{color, line type and line width for the arrows.}
+
+\item{offset}{used to slight offset the arrows between two boxes x and y
+  if there is a transition in both directions.  The default of 0
+  leads to a double headed arrow in this case -- to arrows are drawn but
+  they coincide.}
 }
 \details{
+  The arguments for color, line type and line width can all be vectors,
+  in which case they are recycled as needed.  Boxes and text are drawn
+  in the order of the rownames of \code{connect}, and arrows are drawn
+  in the usual R matrix order. 
+  
   The \code{layout} argument is normally a vector of integers, e.g., the
   vector (1, 3, 2) describes a layout with 3 columns.  The first has a
   single state, the second column has 3 states and the third has 2.

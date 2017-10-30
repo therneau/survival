@@ -52,7 +52,7 @@ frailty.gamma <- function(x, sparse=(nclass >5), theta, df, eps= 1e-5,
 	if (is.matrix(var)) test <- coxph.wtest(var, coef)$test
 	else 		    test <- sum(coef^2/var)
 	df2 <- max(df, .5)      # Stop silly p-values
-	list(coef=c(NA, NA, NA, test, df, chisq(test, df2, lower.tail=FALSE)),
+	list(coef=c(NA, NA, NA, test, df, pchisq(test, df2, lower.tail=FALSE)),
 		 history=paste("Variance of random effect=", format(theta),
 	                       "  I-likelihood =", 
 		         format(round(clog,1), digits=10)))
