@@ -104,7 +104,7 @@ print.summary.aareg <- function(x, ...) {
     chi <- x$chisq
     df  <- length(x$test.statistic) -1
     cat("\nChisq=", format(round(chi,2)), " on ", df, " df, p=",
-	            signif(pchisq(chi, df),2, lower.tail=FALSE), 
+	            format.pval(pchisq(chi, df, lower.tail=FALSE)),
 	            "; test weights=", x$test, "\n", sep='')
     invisible(x$table)
     }

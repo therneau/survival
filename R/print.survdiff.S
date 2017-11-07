@@ -40,7 +40,7 @@ print.survdiff <- function(x, digits = max(options()$digits - 4, 3), ...) {
 	print(temp)
 	cat("\n Chisq=", format(round(x$chisq,1)),
 		 " on", df, "degrees of freedom, p=",
-		 format(signif(pchisq(x$chisq, df, lower.tail=FALSE),digits)),
+		 format.pval(pchisq(x$chisq, df, lower.tail=FALSE)),
             "\n")
        }
     invisible(x)

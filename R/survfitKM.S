@@ -3,7 +3,8 @@ survfitKM <- function(x, y, casewt=rep(1,length(x)),
 		       type=c('kaplan-meier', 'fleming-harrington', 'fh2'),
 		       error=c('greenwood', "tsiatis"), se.fit=TRUE,
 		       conf.int= .95,
-		       conf.type=c('log', 'log-log',  'plain', 'none', 'logit'),
+		       conf.type=c('log', 'log-log',  'plain', 'none', 
+                                   'logit', 'arcsin'),
 		       conf.lower=c('usual', 'peto', 'modified'),
 		       start.time, new.time) {
     type <- match.arg(type)
@@ -192,10 +193,10 @@ survfitKM <- function(x, y, casewt=rep(1,length(x)),
         
         if (conf.type != "none") {
             ci <- survfit_confint(temp$surv, std.err, logse=TRUE,
-                                  conf.tpe, conf.int, std.low)
+                                  conf.type, conf.int, std.low)
             temp <- c(temp, list(lower=ci$lower, upper=ci$upper, 
                                  conf.type=conf.type, conf.int=conf.int))
         }   
-
-    temp
     }
+    temp
+}

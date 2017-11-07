@@ -52,7 +52,7 @@ yates <- function(fit, test, population=c("data", "none", "factorial", "sas"),
         population <- "user"
         }
  
-    if (method=="sgtt" && (population !=SAS || type != "linear"))
+    if (method=="sgtt" && (population !="SAS" || type != "linear"))
         stop("sgtt method only applies if population = SAS and type = linear")
 
     beta <-  coef(fit)
@@ -122,7 +122,7 @@ as a shorthand for \code{cmatrix(fit, test, ...)}
 <<yates-test>>=
 ff <- parent.frame()
 tempenv <- new.env(parent=ff)
-assign("cm", function(...) cmatrix(fit, ...), env=tempenv)
+assign("cm", function(...) cmatrix(fit, ...), envir=tempenv)
 test <- eval(substitute(test), tempenv)
 if (is.character(test) || inherits(test, "formula"))
     test <- cmatrix(fit, test)
@@ -275,8 +275,8 @@ else if (population=="factorial") {
 } else if (population=="user") {
     hit <- sapply(vnames, function(x) all(x %in% names(pdata)))
     # any right-hand side which is found, leave it alone, not found=error
-    if (any(!hit[x2index])) {
-        i <- (which(x2index))[!hit[x2indx]]
+    if (any(!hit[x2indx])) {
+        i <- (which(x2indx))[!hit[x2indx]]
         stop("terms with variables not found in data: ", termname[i])
     }
 } else if (population=="sas") {

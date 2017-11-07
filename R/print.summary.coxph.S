@@ -46,17 +46,17 @@ print.summary.coxph <-
             ")\n" )
 
     cat("Likelihood ratio test= ", format(round(x$logtest["test"], 2)), "  on ",
-	x$logtest["df"], " df,", "   p=", format(x$logtest["pvalue"]),
+	x$logtest["df"], " df,", "   p=", format.pval(x$logtest["pvalue"]),
         "\n", sep = "")
     cat("Wald test            = ", format(round(x$waldtest["test"], 2)), "  on ",
-	x$waldtest["df"], " df,", "   p=", format(x$waldtest["pvalue"]),
+	x$waldtest["df"], " df,", "   p=", format.pval(x$waldtest["pvalue"]),
 	"\n", sep = "")
     cat("Score (logrank) test = ", format(round(x$sctest["test"], 2)), "  on ",
-        x$sctest["df"]," df,", "   p=", format(x$sctest["pvalue"]), sep ="")
+        x$sctest["df"]," df,", "   p=", format.pval(x$sctest["pvalue"]), sep ="")
     if (is.null(x$robscore))
         cat("\n\n")
     else cat(",   Robust = ", format(round(x$robscore["test"], 2)), 
-             "  p=", format(x$robscore["pvalue"]), "\n\n", sep="")   
+             "  p=", format.pval(x$robscore["pvalue"]), "\n\n", sep="")   
 
     if (x$used.robust)
 	cat("  (Note: the likelihood ratio and score tests",

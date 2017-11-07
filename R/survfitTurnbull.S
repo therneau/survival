@@ -5,7 +5,8 @@ survfitTurnbull <- function(x, y, casewt,
                        type=c('kaplan-meier', 'fleming-harrington', 'fh2'),
                        error=c('greenwood', "tsiatis"), se.fit=TRUE,
                        conf.int= .95,
-                       conf.type=c('log',  'log-log',  'plain', 'none'),
+                       conf.type=c('log',  'log-log',  'plain', 'none',
+                                   'logit', 'arcsin'),
                        conf.lower=c('usual', 'peto', 'modified'),
 		       start.time) {
 			     

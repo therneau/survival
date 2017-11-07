@@ -108,7 +108,8 @@ print.coxph.penal <-  function(x, terms=FALSE, maxlabel=25,
 #    cat("Cox PL (initial,final) = ", format(round(x$loglik,2)),
 #	"  Penalty = ", format(x$penalty), "\n")
     cat("Likelihood ratio test=", format(round(logtest, 2)), "  on ",
-	df, " df,", " p=", format(pchisq(logtest, df, lower.tail=FALSE)),sep="")
+	df, " df,", " p=", format.pval(pchisq(logtest, df, lower.tail=FALSE)),
+        sep="")
     omit <- x$na.action
     if (length(omit))
 	cat("\n  n=", x$n, " (", naprint(omit), ")\n", sep="")

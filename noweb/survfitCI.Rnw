@@ -47,7 +47,8 @@ survfitCI <- function(X, Y, weights, id, istate,
                       type=c('kaplan-meier', 'fleming-harrington', 'fh2'),
                       se.fit=TRUE,
                       conf.int= .95,
-                      conf.type=c('log',  'log-log',  'plain', 'none', 'logit'),
+                      conf.type=c('log',  'log-log',  'plain', 'none', 
+                                  'logit', "arcsin"),
                       conf.lower=c('usual', 'peto', 'modified'),
                       influence = FALSE, start.time){
 

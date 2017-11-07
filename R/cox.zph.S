@@ -1,4 +1,3 @@
-# $Id: cox.zph.S 11218 2009-02-09 12:09:29Z therneau $
 #  Test proportional hazards
 #
 cox.zph <- function(fit, transform='km', global=TRUE) {
@@ -75,3 +74,6 @@ cox.zph <- function(fit, transform='km', global=TRUE) {
     attributes(z) <- attributes(x)
     z
     }
+
+print.cox.zph <- function(x, digits = max(options()$digits - 4, 3),...)
+    invisible(print(x$table, digits=digits))

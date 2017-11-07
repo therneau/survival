@@ -111,7 +111,8 @@ print.survreg.penal <-  function(x, terms=FALSE, maxlabel=25,
 #    cat("Loglik (initial,final) = ", format(round(x$loglik,2)),
 #	"  Penalty = ", format(x$penalty), "\n")
     cat("Likelihood ratio test=", format(round(logtest, 2)), "  on ",
-	round(df,1), " df,", " p=", format(pchisq(logtest, df, lower.tail=FALSE)),  sep="")
+	round(df,1), " df,", " p=", 
+        format.pval(pchisq(logtest, df, lower.tail=FALSE)),  sep="")
 
     n <- length(x$linear.predictors)
     omit <- x$na.action

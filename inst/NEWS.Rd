@@ -12,11 +12,14 @@
     without loss.) If k >= the number of intervals that overlap both d1
     and d2, and in the prior stratum the smallest time was an event,
     some variables that track who is in the risk set got out of sync,
-    that overlap both d1 and d2, and in the prior stratum the smallest
     and contributions to the loglik, first and second derivative at d1
     would be incorrect.  I expect such data sets are extremely rare.
     However, the survSplit routine and mstate packages can generate data
-    sets with a LOT of intervals.  (The data set in question came from mstate.)
+    sets with a LOT of intervals.  (The data set in question came from
+    mstate.)
+
+    \item Use format.pval() and printCoefmat to print many more of the
+    p-values.  This aligns the format with that of base R. 
   }
 }
 \section{Changes in version 2.41-5}{

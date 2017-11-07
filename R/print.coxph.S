@@ -40,7 +40,7 @@ print.coxph <-
     else  df <- round(sum(x$df),2)
     cat("\n")
     cat("Likelihood ratio test=", format(round(logtest, 2)), "  on ",
-	df, " df,", " p=", format(pchisq(logtest, df, lower.tail=TRUE)), 
+	df, " df,", " p=", format.pval(pchisq(logtest, df, lower.tail=FALSE)), 
         "\n",  sep="")
     omit <- x$na.action
     cat("n=", x$n)

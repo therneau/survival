@@ -287,7 +287,7 @@ have one copy.
 If $p$ is the survival probability and $s(p)$ its standard error,
 we can do confidence intervals on the simple scale of
 $ p \pm 1.96 s(p)$, but that does not have very good properties.
-Instead use a transformation $y = f(p)$ for which the standar error is
+Instead use a transformation $y = f(p)$ for which the standard error is
 $s(p) f'(p)$, leading to the confidence interval
 \begin{equation*}
  f^{-1}\left(f(p) +- 1.96 s(p)f'(p) \right)
@@ -298,12 +298,20 @@ Here are the supported transformations.
     &f& f' & f^{-1} \\ \hline
 log & $\log(p)$ & $1/p$ & $ \exp(y)$ \\
 log-log & $\log(-\log(p))$ & $1/\left[ p \log(p) \right]$ &
-   \exp(-\exp(y)) $  \\
-logit & $\log(p/1-p)$ & $1/p + 1/(1-p)$ & $1- 1/\left[1+ \exp(y)\right]$ \\
+   $\exp(-\exp(y)) $  \\
+logit & $\log(p/1-p)$ & $1/[p (1-p)]$ & $1- 1/\left[1+ \exp(y)\right]$ \\
+arcsin & $\asin(\sqrt{p})$ & $1/(2 \sqrt{p(1-p)})$ &$\sin^2(y)$ \\
+
 \end{tabular} \end{center}
+Plain intervals can give limits outside of (0,1), we truncate them when this
+happens.  The log intervals can give an upper limit greater than 1, but the
+lower limit is always valid, and the log-log and logit.  The arcsin require
+truncation in the middle of the formula.
+In all cases we return NA as the CI for survival=0: it makes the graphs look
+better.
 
 Some of the underlying routines compute the standard error of $p$ and some
-the standard error of $\log(p)$.  The selow argument is used for the 
+the standard error of $\log(p)$.  The \code{selow} argument is used for the 
 modified lower limits of Dory and Korn.
 
 <<survfit>>=
@@ -312,40 +320,40 @@ survfit_confint <- function(p, se, logse=TRUE, conf.type, conf.int,
     zval <- qnorm(1- (1-conf.int)/2, 0,1)
     if (missing(selow)) scale <- 1.0
     else scale <- selow/se
+    if (!logse) se <- se/p   # se of log(survival) = log(p)
 
     if (conf.type=='plain') {
-        if (logse) se2 <- se* p * zval
-        else se2 <- se * zval
+        se2 <- se* p * zval  # matches equation 4.3.1 in Klein & Moeschberger
         list(lower= pmax(p -se2*scale, 0), upper = pmin(p + se2, 1))
     }
     else if (conf.type=='log') {
         #avoid some "log(0)" messages
-        xx <- ifelse(p==0, 1, p)  
-        if (logse) se2 <- zval* se * pval
-        else       se2 <- zval* se * pval / xx
-        temp1 <- ifelse(p==0, NA, exp(log(xx) - se2*scale))
-        temp2 <- ifelse(p==0, NA, exp(log(xx) + se2))
-        list(lower=pmax(temp1,0), upper= pmin(temp2, 1))
+        xx <- ifelse(p==0, NA, p)  
+        se2 <- zval* se 
+        temp1 <- exp(log(xx) - se2*scale)
+        temp2 <- exp(log(xx) + se2)
+        list(lower= temp1, upper= pmin(temp2, 1))
     }
     else if (conf.type=='log-log') {
-        avoid <- (p==0 | p==1)
-        xx <- ifelse(avoid, NA, p)
-        if (logse) se2 <- zval * se/log(xx)
-        else       se2 <- zval * s2/(xx * log(xx))
+        xx <- ifelse(p==0 | p==1, NA, p)
+        se2 <- zval * se/log(xx)
         temp1 <- exp(-exp(log(-log(xx)) + se2*scale))
         temp2 <- exp(-exp(log(-log(xx)) - se2))
-        list(lower = pmax(1-temp1, 0), upper = pmin(1-temp2, 1))
+        list(lower = temp1 , upper = temp2)
     }
     else if (conf.type=='logit') {
-        avoid <- (p==0 | p==1) #special cases
-        xx <- ifelse(avoid, NA, p)  # avoid log(0) messages
-        if (logse) se2 <- zval * se *(1 + p/(1-p))
-        else se2 <- zval * se * (1/p + 1/(1-p))
+        xx <- ifelse(p==0, NA, p)  # avoid log(0) messages
+        se2 <- zval * se *(1 + xx/(1-xx))
  
         temp1 <- 1- 1/(1+exp(log(p/(1-p)) - se2*scale))
         temp2 <- 1- 1/(1+exp(log(p/(1-p)) + se2))
-        temp1 <- ifelse(who, temp3, temp1)
-        list(lower = pmax(temp1, 0), upper = pmin(temp2, 1)) 
+        list(lower = temp1, upper=temp2)
+    }
+    else if (conf.type=="arcsin") {
+        xx <- ifelse(p==0, NA, p)
+        se2 <- .5 *zval*se * sqrt(xx/(1-xx))
+        list(lower= (sin(pmax(0, asin(sqrt(xx)) - se2*scale)))^2,
+             upper= (sin(pmin(pi/2, asin(sqrt(xx)) + se2)))^2)
     }
     else stop("invalid conf.int type")
 }
