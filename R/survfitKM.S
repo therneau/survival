@@ -3,7 +3,7 @@ survfitKM <- function(x, y, casewt=rep(1,length(x)),
 		       type=c('kaplan-meier', 'fleming-harrington', 'fh2'),
 		       error=c('greenwood', "tsiatis"), se.fit=TRUE,
 		       conf.int= .95,
-		       conf.type=c('log',  'log-log',  'plain', 'none'),
+		       conf.type=c('log', 'log-log',  'plain', 'none', 'logit'),
 		       conf.lower=c('usual', 'peto', 'modified'),
 		       start.time, new.time) {
     type <- match.arg(type)
@@ -189,37 +189,13 @@ survfitKM <- function(x, y, casewt=rep(1,length(x)),
 			  'usual' = std.err,
 			  'peto' = sqrt((1-temp$surv)/ temp$n.risk),
 			  'modified' = std.err * sqrt(n.lag/temp$n.risk))
-	zval <- qnorm(1- (1-conf.int)/2, 0,1)
-
-	if (conf.type=='plain') {
-	    temp1 <- temp$surv + zval* std.err * temp$surv
-	    temp2 <- temp$surv - zval* std.low * temp$surv
-	    temp <- c(temp, list(upper=pmin(temp1,1), lower=pmax(temp2,0),
-				 conf.type='plain', conf.int=conf.int))
-	    }
-
-	if (conf.type=='log') {
-	    #avoid some "log(0)" messages
-	    xx <- ifelse(temp$surv==0,1,temp$surv)  
-
-	    temp1 <- ifelse(temp$surv==0, NA, exp(log(xx) + zval* std.err))
-	    temp2 <- ifelse(temp$surv==0, NA, exp(log(xx) - zval* std.low))
-	    temp <- c(temp, list(upper=pmin(temp1,1), lower=temp2,
-				 conf.type='log', conf.int=conf.int))
-	    }
-
-	if (conf.type=='log-log') {
-	    who <- (temp$surv==0 | temp$surv==1) #special cases
-	    temp3 <- ifelse(temp$surv==0, NA, 1)
-	    xx <- ifelse(who, .1,temp$surv)  #avoid some "log(0)" messages
-	    temp1 <- exp(-exp(log(-log(xx)) + zval*std.err/log(xx)))
-	    temp1 <- ifelse(who, temp3, temp1)
-	    temp2 <- exp(-exp(log(-log(xx)) - zval*std.low/log(xx)))
-	    temp2 <- ifelse(who, temp3, temp2)
-	    temp <- c(temp, list(upper=temp1, lower=temp2,
-				 conf.type='log-log', conf.int=conf.int))
-	    }
-        }
+        
+        if (conf.type != "none") {
+            ci <- survfit_confint(temp$surv, std.err, logse=TRUE,
+                                  conf.tpe, conf.int, std.low)
+            temp <- c(temp, list(lower=ci$lower, upper=ci$upper, 
+                                 conf.type=conf.type, conf.int=conf.int))
+        }   
 
     temp
     }

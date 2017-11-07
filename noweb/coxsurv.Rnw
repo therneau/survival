@@ -36,7 +36,7 @@ help pages.
 survfit.coxph <-
   function(formula, newdata, se.fit=TRUE, conf.int=.95, individual=FALSE,
             type, vartype,
-            conf.type=c("log", "log-log", "plain", "none"),
+            conf.type=c("log", "log-log", "plain", "none", "logit"),
             censor=TRUE, id, start.time,
             na.action=na.pass, ...) {
 
@@ -626,39 +626,16 @@ if (!censor) {
     result <- lapply(result, kfun, keep)
     }
 
-if (se.fit) {
-    zval <- qnorm(1- (1-conf.int)/2, 0,1)
-    if (conf.type=='plain') {
-	temp1 <- result$surv + zval* result$std.err * result$surv
-	temp2 <- result$surv - zval* result$std.err * result$surv
-	result <- c(result, list(upper=pmin(temp1,1), lower=pmax(temp2,0),
-			conf.type='plain', conf.int=conf.int))
-	}
-    if (conf.type=='log') {
-	xx <- ifelse(result$surv==0,1,result$surv)  #avoid some "log(0)" messages
-	temp1 <- ifelse(result$surv==0, 0*result$std.err, 
-                        exp(log(xx) + zval* result$std.err))
-	temp2 <- ifelse(result$surv==0, 0*result$std.err, 
-                        exp(log(xx) - zval* result$std.err))
-	result <- c(result, list(upper=pmin(temp1,1), lower=temp2,
-			conf.type='log', conf.int=conf.int))
-	}
-    if (conf.type=='log-log') {
-	who <- (result$surv==0 | result$surv==1) #special cases
-	xx <- ifelse(who, .1,result$surv)  #avoid some "log(0)" messages
-	temp1 <- exp(-exp(log(-log(xx)) + zval*result$std.err/log(xx)))
-	temp1 <- ifelse(who, result$surv + 0*result$std.err, temp1)
-	temp2 <- exp(-exp(log(-log(xx)) - zval*result$std.err/log(xx)))
-	temp2 <- ifelse(who, result$surv + 0*result$std.err, temp2)
-	result <- c(result, list(upper=temp1, lower=temp2,
-			conf.type='log-log', conf.int=conf.int))
-	}
-    }
-
+if (se.fit && conf.type != "none") {
+    ci <- survfit_confint(result$surv, result$std.err, logse=TRUE,
+                          conf.type, conf.int)
+    result <- c(result, list(lower=ci$lower, upper=ci$upper, 
+                             conf.type=conf.type, conf.int=conf.int))
+}
 if (!missing(start.time)) result$start.time <- start.time
 result$call <- Call
 
-# The "type" component is in the middle -- match history
+# Rearrange to match the historical order of the structure
 indx <- match('surv', names(result))
 result <- c(result[1:indx], type=attr(y, 'type'), result[-(1:indx)])
 class(result) <- c('survfit.cox', 'survfit')

@@ -47,7 +47,7 @@ survfitCI <- function(X, Y, weights, id, istate,
                       type=c('kaplan-meier', 'fleming-harrington', 'fh2'),
                       se.fit=TRUE,
                       conf.int= .95,
-                      conf.type=c('log',  'log-log',  'plain', 'none'),
+                      conf.type=c('log',  'log-log',  'plain', 'none', 'logit'),
                       conf.lower=c('usual', 'peto', 'modified'),
                       influence = FALSE, start.time){
 
@@ -364,51 +364,17 @@ else {
 kfit$transitions <- transitions
 @ 
 
-Add the confidence bands.  The idea is modeled on survfitKM but with
-the important differences that we are dealing with $P$ instead of $S$,
-and the ``modified lower limit'' logic does not apply.
-We make the assumption that $\log(1-P)$ will have better CI behavior
-than $P$, with standard error of ${rm se}(P)/(1-P)$.
 
 <<survfitCI-finish>>=
 #       
 # Last bit: add in the confidence bands:
-#   modeled on survfit.km, though for P instead of S
-#   
-#
-if (se.fit) {
-    std.err <- kfit$std.err
-    zval <- qnorm(1- (1-conf.int)/2, 0,1)
-
-    if (conf.type=='plain') {
-        temp <- zval* kfit$std.err
-        kfit <- c(kfit, list(lower =pmax(kfit$pstate-temp, 0), 
-                             upper=pmin(kfit$pstate+temp, 1),
-                         conf.type='plain', conf.int=conf.int))
-        }
-
-    if (conf.type=='log') {
-        #avoid some "log(0)" messages
-        xx <- ifelse(kfit$pstate==1, 1, 1- kfit$pstate)  
-
-        temp1 <- ifelse(kfit$pstate==1, NA, exp(log(xx) + zval* kfit$std.err/xx))
-        temp2 <- ifelse(kfit$pstate==1, NA, exp(log(xx) - zval* kfit$std.err/xx))
-        kfit <- c(kfit, list(lower=pmax(1-temp1,0), upper= 1- temp2,
-                         conf.type='log', conf.int=conf.int))
-        }
-
-    if (conf.type=='log-log') {
-        who <- (kfit$pstate==0 | kfit$pstate==1) #special cases
-        temp3 <- ifelse(kfit$pstate==1, NA, 1)
-        xx <- ifelse(who, .1,kfit$pstate)  #avoid some "log(0)" messages
-        temp1 <- exp(-exp(log(-log(xx)) + zval*kfit$std.err/(xx*log(xx))))
-        temp1 <- ifelse(who, temp3, temp1)
-        temp2 <- exp(-exp(log(-log(xx)) - zval*kfit$std.err/(xx*log(xx))))
-        temp2 <- ifelse(who, temp3, temp2)
-        kfit <- c(kfit, list(lower=1-temp1, upper=1-temp2,
-                         conf.type='log-log', conf.int=conf.int))
-        }
-    }
+#  
+if (se.fit && conf.type != "none") {
+    ci <- survfit_confint(kfit$pstate, kfit$std.err, logse=FALSE, 
+                          conf.type, conf.int)
+    kfit <- c(kfit, lower=ci$lower, upper=ci$upper,
+              conf.type=conf.type, conf.int=conf.int)
+}
 
 kfit$states <- state.names
 kfit$type   <- attr(Y, "type")

@@ -11,7 +11,6 @@ survreg.distributions
 }
 
 \format{
- 
   There are two basic formats, the first defines a distribution de novo,
 the second defines a new distribution in terms of an old one.
   \tabular{ll}{
@@ -20,8 +19,8 @@ the second defines a new distribution in terms of an old one.
     init(x,weights,...):\tab Function returning an initial\cr
     \tab estimate of the mean and variance \cr
     \tab (used for initial values in the iteration)\cr
-    density(x,parms):\tab Function returning a matrix with columns \eqn{F},\cr
-    \tab \eqn{1-F},\eqn{f},\eqn{f'/f},\eqn{f''/f}\cr
+    density(x,parms):\tab Function returning a matrix with columns \eqn{F},
+    \eqn{1-F}, \eqn{f}, \eqn{f'/f}, and \eqn{f''/f}\cr
     quantile(p,parms):\tab Quantile function\cr
     scale:\tab Optional fixed value for the scale parameter\cr
     parms:\tab Vector of default values and names for any additional parameters\cr

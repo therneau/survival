@@ -256,8 +256,8 @@ If the line goes from (x1, y1) to (x2, y2), then the normal to the line at
 
 <<statefig-arrows>>=
 k <- 1
-for (i in 1:nstate) {
-    for (j in 1:nstate) {
+for (j in 1:nstate) {
+    for (i in 1:nstate) {
         if (i != j && connect[i,j] !=0) {
             if (connect[i,j] == 2-connect[j,i] && offset>0) {
                 #add an offset

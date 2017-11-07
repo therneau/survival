@@ -16,7 +16,7 @@ survfitKM <- function(x, y, casewt=rep(1,length(x)),
 		       error=c('greenwood', "aalen", "robust", "tsiatis"), 
                        se.fit=TRUE,
 		       conf.int= .95,
-		       conf.type=c('log',  'log-log',  'plain', 'none'),
+		       conf.type=c('log',  'log-log',  'plain', 'none','logit'),
 		       conf.lower=c('usual', 'peto', 'modified'),
 		       start.time, new.time) {
     type <- match.arg(type)
