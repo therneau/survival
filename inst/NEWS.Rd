@@ -19,7 +19,9 @@
     mstate.)
 
     \item Use format.pval() and printCoefmat to print many more of the
-    p-values.  This aligns the format with that of base R. 
+    p-values.  This aligns the format with that of base R.
+
+    \item Update the vcov function to accept 
   }
 }
 \section{Changes in version 2.41-5}{

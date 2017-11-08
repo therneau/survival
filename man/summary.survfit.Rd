@@ -9,7 +9,7 @@
 }
 
 \usage{
-  \method{summary}{survfit}(object, times=, censored=FALSE, scale=1,
+  \method{summary}{survfit}(object, times, censored=FALSE, scale=1,
   extend=FALSE, rmean=getOption('survfit.rmean'), ...)
   }
 \arguments{

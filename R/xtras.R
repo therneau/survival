@@ -10,8 +10,13 @@ vcov.coxph <- function (object, complete=TRUE, ...) {
     else vmat
 }
 
-vcov.survreg<-function (object, complete=TRUE, ...)
-    object$var
+vcov.survreg<-function (object, complete=TRUE, ...) {
+    if (!complete) {
+        keep <- !is.na(coef(object))
+        object$var[keep, keep]
+    }
+    else object$var
+    }
 
 # The extractAIC methods for coxph and survreg objects are defined
 #  in the stats package.  Don't reprise them here.
