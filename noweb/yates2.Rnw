@@ -18,7 +18,7 @@ These are also referred to as U and V in the vignette.
 <<yates>>=
 yates <- function(fit, test, population=c("data", "none", "factorial", "sas"),
                   type="linear", method=c("direct", "sgtt"), 
-                  ss, ...) {
+                  dispersion, ...) {
     if (missing(fit)) stop("a fit argument is required")
     Terms <- try(terms(fit), silent=TRUE)
     if (inherits(Terms, "try-error"))
@@ -57,13 +57,13 @@ yates <- function(fit, test, population=c("data", "none", "factorial", "sas"),
 
     beta <-  coef(fit)
     nabeta <- is.na(beta)  # undetermined coefficients
-    vmat <-  vcov(fit)
+    vmat <-  vcov(fit, complete=FALSE)
     
     # grab the dispersion
-    if (missing(ss)) do.ss <- FALSE
-    else do.ss <- ss
+    if (missing(dispersion)) do.ss <- FALSE
+    else do.ss <- dispersion
     if (class(fit)[1] =="lm") {
-        if (missing(ss)) do.ss <- TRUE
+        if (missing(dispersion)) do.ss <- TRUE
         sigma <- summary(fit)$sigma
         }
     else if(class(fit)[1]=="glm") {
@@ -119,13 +119,25 @@ To make it easier for users, we set up a local environment so that they
 can use \code{cm(test, ...)} within the yates call, 
 as a shorthand for \code{cmatrix(fit, test, ...)}
 
-<<yates-test>>=
+<<yates-setup-test>>=
+# a bit of trickery to allow user to type "cm()" instead of cmatrix
 ff <- parent.frame()
 tempenv <- new.env(parent=ff)
 assign("cm", function(...) cmatrix(fit, ...), envir=tempenv)
 test <- eval(substitute(test), tempenv)
 if (is.character(test) || inherits(test, "formula"))
     test <- cmatrix(fit, test)
+
+# check that the test argument is legal: each element should have
+#  class "cmatrix"
+# it can be a list or nested list of such elements, with optional names
+legal <- function(x) {
+    if (inherits(x, "cmatrix")) TRUE
+    else if (is.list(x)) all(sapply(x, legal))
+    else FALSE
+}
+if (!legal(test))
+    stop("the test argument should contain elements of class cmatrix")
 @ 
 
 Now check that the resulting test argument is legal.
@@ -454,27 +466,6 @@ else r1 <- cfun(contr$cmatrix, beta, vmat, sigma^2)
 <<yates-nopop>>=
 @ 
 
-# initial processing for the test argument
-<<yates-setup-test>>=
-# a bit of trickery to allow user to type "cm()" instead of cmatrix
-ff <- parent.frame()
-tempenv <- new.env(parent=ff)
-assign("cm", function(...) cmatrix(fit, ...), env=tempenv)
-test <- eval(substitute(test), tempenv)
-if (is.character(test) || inherits(test, "formula"))
-    test <- cmatrix(fit, test)
-
-# check that the test argument is legal: each element should have
-#  class "cmatrix"
-# it can be a list or nested list of such elements, with optional names
-legal <- function(x) {
-    if (inherits(x, "cmatrix")) TRUE
-    else if (is.list(x)) all(sapply(x, legal))
-    else FALSE
-}
-if (!legal(test))
-    stop("the test argument should contain elements of class cmatrix")
-@ 
 
 Population estimates are more work since they involve manipulation
 of the model frame.  We essentially break it into two parts: the term

@@ -59,14 +59,6 @@ cmatrix <- function(fit, term,
     Tatt <- attributes(Terms)
     test <- match.arg(test)
 
-    # a function that allows them to refer to terms by name or by number
-    matchterm <- function(x) {
-        nlab <- length(term.label)
-        index <- pmatch(x, c(term.label, 1:nlab), nomatch=0) 
-        index <- ifelse(index > nlab, index-nlab, index)
-        c("", term.label)[1+index]
-    }
-
     if (missing(term)) stop("a term argument is required")
     if (is.character(term)) term <- formula(paste("~", term))
     else if (is.numeric(term)) {

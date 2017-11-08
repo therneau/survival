@@ -22,6 +22,7 @@ options(continue="  ", width=60)
 options(SweaveHooks=list(fig=function() par(mar=c(4.1, 4.1, .3, 1.1))))
 pdf.options(pointsize=8) #text in graph about the same as regular text
 options(contrasts=c("contr.treatment", "contr.poly")) #reset default
+library(survival)
 @ 
 
 \title{Population contrasts}
@@ -200,7 +201,7 @@ all, however.
 \subsection{Missing cells}
 Models that involve factors and interactions can have an issue with
 missing cells as shown by the example below.
-<<solder3>>=
+<<solder4>>=
 fit3 <- lm(skips ~ Opening * Mask + Solder + PadType + Panel, solder)
 yates(fit3, cm("Mask", test="pairwise"))
 @ 
@@ -221,27 +222,27 @@ Formally, predictions for the A6/Large combination are \emph{not estimable},
 and as a consequence
 neither are any population averages that include those predicted values, 
 nor any tests that involve those population averages.
+This lack of estimability is entirely due to the inclusion of a mask by opening
+interaction term in the model, which states that each Mask/opening combination
+has a unique effect, which in turn implies that we need that estimate to do
+prediction from the model.
 
 If you do the above steps 'by hand' R gives a value for all 900 predictions,
-but these are unreliable. 
+along with a warning message that the results may not be reliable. In this
+particular case all the A6/Large predictions are deficient; they have in
+effect assumed a value of 0 for the missing coefficient.
 The presence of a missing value in \code{coef(fit3)} shows that some preditions
 will not be estimable, but it is not possible to determine \emph{which}
-ones from the coefficients alone,
-and the standard R \code{predict} prints a warning message that the results
-are unreliable.
-A formal definition of estimability is that given prediction can be written 
-as a 
-linear combination of the rows of $X$, the design matrix for the fit.
+ones are estimable from the coefficients alone. 
+For this data set the A6:Small coefficient is NA, because the mask='Small'
+coefficients are ordered last in the X matrix and that is when the
+singularity is noticed.
+A formal definition of estimability for a given prediction is that it 
+can be written 
+as a linear combination of the rows of $X$, the design matrix for the fit.
 The \code{yates} function performs necessary calculations to verify formal
-estimability of each predicted value.
-
-<<estimable>>=
-table(is.na(coef(fit3)))
-test <- solder
-test$Mask <- "A1.5"
-pp <- predict(fit3, newdata=test)
-table(is.na(pp))
-@ 
+estimability of each predicted value and thus is able to correctly identify the 
+deficiency.
 
 \subsection{Cox models}
 For a Cox model an immediate question is what to predict.
@@ -312,6 +313,7 @@ The exact algorithm is described indirectly in SASxxx
       \item R's \code{model.matrix} function returns far fewer columns, since
         it tries to prospectively remove those that will be redundant.
         Having all these columns is critical to steps 2 and 3, however.
+    \end{itemize}
   \item Create the $p$ by $p$ dependency matrix $D$ from the $n$ by $p$
     matrix $X$, from left to right. 
     \begin{itemize}
@@ -352,8 +354,18 @@ any two contrast matrices $B$ and $C$ correspoding to different effects will
 satisfy $B(X'X)^{-}C' =0$.
 For an unbalanced data set, create contrasts that are orthagonal with 
 respect to the variance matrix of the balanced design.
-Starting with any
-$X$ matrix for the fit, e.g., the full $X$ given above or the R version
+Assume for the moment that all predictors are categorical.
+\begin{enumerate}
+  \item Let $X$ be the design matrix for the full study.  Reduce this to 
+    a balanced subset using only the unique rows \code{Z =unique(X)}.
+  \item Find contrast matrices $B$, $C$, \ldots for the effects that are
+    orthagonal with respect to $(Z'Z)^{-}$.  For instance start with naive
+    contrast matrices for each effect which utilizes the colums for that
+    effect, and then make each orthagonal to all those terms which contain it.
+  \item Form sums of squares for each contrast using the original variance,
+    e.g. $B (X'X)^{-} B'$.
+\end{enumerate}
+
 under any of the constrast options, first reduce it to a balanced subset
 \code{Z =unique(X)} and then find contrast matrices B, C, etc. that
 are orgthagonal with respect to $(Z'Z)^{-1}$. 

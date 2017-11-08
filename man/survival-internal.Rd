@@ -13,7 +13,6 @@
 \alias{survpenal.fit}
 \alias{survdiff.fit}
 \alias{[.coxph.penalty}
-\alias{[.coxph.penalty}
 \title{Internal survival functions}
 \description{Internal survival functions}
 \usage{
@@ -26,7 +25,7 @@ match.ratetable(R, ratetable)
 \method{as.matrix}{ratetable}(x, ...)
 \method{is.na}{ratetable2}(x)
 \method{is.na}{coxph.penalty}(x)
-\method{"]"}{coxph.penalty{x, ..., drop=FALSE}
+\method{"]"}{coxph.penalty}(x, ..., drop=FALSE)
 coxpenal.df(hmat, hinv, fdiag, assign.list, ptype, nvar, pen1,
     pen2, sparse)
 coxpenal.fit(x, y, strata, offset, init, control, weights, method,
