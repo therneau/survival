@@ -60,6 +60,7 @@ The missing values are thus potentially informative.
   Springer-Verlag, New York, 2000.
   ISBN: 0-387-98784-3.
 }
+\seealso{\code{\link{pbc}}}
 \examples{
 # Create the start-stop-event triplet needed for coxph
 first <- with(pbcseq, c(TRUE, diff(id) !=0)) #first id for each subject

@@ -51,4 +51,5 @@ this version has fewer missing values.
   Springer-Verlag, New York.
   ISBN: 0-387-98784-3.
 }
+\seealso{\code{\link{pbcseq}}}
 \keyword{datasets}

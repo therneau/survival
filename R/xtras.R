@@ -1,20 +1,25 @@
-vcov.coxph<-function (object, ...) {
-        rval<-object$var
-        dimnames(rval)<-list(names(coef(object)),names(coef(object)))
-        rval
-    }
+vcov.coxph <- function (object, complete=TRUE, ...) {
+    # conform to the standard vcov results
+    vmat <- object$var
+    vname <- names(object$coefficients)
+    dimnames(vmat) <- list(vname, vname)
+    if (!complete) {
+        keep <- !is.na(coef(object))
+        vmat[keep, keep]
+        }
+    else vmat
+}
 
-vcov.survreg<-function (object, ...) {
-        object$var
-    }
+vcov.survreg<-function (object, complete=TRUE, ...)
+    object$var
 
 # The extractAIC methods for coxph and survreg objects are defined
 #  in the stats package.  Don't reprise them here.
 extractAIC.coxph.penal<- function(fit,scale,k=2,...){
-        edf<-sum(fit$df)
-        loglik <- fit$loglik[length(fit$loglik)]
-        c(edf, -2 * loglik + k * edf)
-    }
+    edf<-sum(fit$df)
+    loglik <- fit$loglik[length(fit$loglik)]
+    c(edf, -2 * loglik + k * edf)
+}
 
 
 labels.survreg <- function(object, ...) attr(object,"term.labels")
