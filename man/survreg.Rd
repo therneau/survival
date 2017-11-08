@@ -6,7 +6,6 @@
 \alias{print.summary.survreg}
 \alias{survReg}
 \alias{anova.survreg}
-\alias{vcov.survreg}
 \alias{anova.survreglist}
 \title{
   Regression for a Parametric Survival Model 

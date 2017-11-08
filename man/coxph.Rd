@@ -1,10 +1,8 @@
 \name{coxph}
 \alias{coxph}
-\alias{vcov.coxph}
 \alias{print.coxph.null}
 \alias{print.coxph.penal}
 \alias{coxph.penalty}
-\alias{[.coxph.penalty}
 \alias{coxph.getdata}
 \alias{summary.coxph.penal}
 \title{
@@ -194,7 +192,7 @@ only a few unique values, and some packages refer to this as the
 Prentice which is not implemented here.
 
 The calculation of the exact partial likelihood is numerically intense.
-Say for instance 15 of 180 subjects at risk had an event on day 7; then
+Say for instance 180 subjects at risk on day 7 of which 15 had an event; then
 the code needs to compute sums over all 180-choose-15 > 10^43 different
 possible subsets of size 15.  There is an efficient recursive algorithm
 for this task, but even with this the computation can be insufferably
@@ -203,8 +201,8 @@ needs to start anew for each unique start time.
 
 A second issue is that of artificial ties due to floating-point
 imprecision. See the vignette on this topic for a full explanation or
-the \code{timfix} option in \code{coxph.control}.  This option may need
-to reset for simulated data.
+the \code{timefix} option in \code{coxph.control}.  This option may need
+to be reset for simulated data.
 }
 \section{Penalized regression}{
   \code{coxph} can now maximise a penalised partial likelihood with

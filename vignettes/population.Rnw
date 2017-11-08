@@ -34,7 +34,7 @@ options(contrasts=c("contr.treatment", "contr.poly")) #reset default
 
 \begin{document}
   \maketitle
-  \tableofcontents
+\  \tableofcontents
 
 \section{Introduction}
 The question of how best to summarize the effect of some particular
