@@ -16,7 +16,7 @@ all the other terms in the model, the ones that we average over.
 These are also referred to as U and V in the vignette.
 
 <<yates>>=
-yates <- function(fit, test, population=c("data", "none", "factorial", "sas"),
+yates <- function(fit, term, population=c("data", "none", "factorial", "sas"),
                   type="linear", method=c("direct", "sgtt"), 
                   dispersion, ...) {
     if (missing(fit)) stop("a fit argument is required")
@@ -52,8 +52,8 @@ yates <- function(fit, test, population=c("data", "none", "factorial", "sas"),
         population <- "user"
         }
  
-    if (method=="sgtt" && (population !="SAS" || type != "linear"))
-        stop("sgtt method only applies if population = SAS and type = linear")
+    if (method=="sgtt" && (population !="sas" || type != "linear"))
+        stop("sgtt method only applies if population = sas and type = linear")
 
     beta <-  coef(fit)
     nabeta <- is.na(beta)  # undetermined coefficients
@@ -72,8 +72,8 @@ yates <- function(fit, test, population=c("data", "none", "factorial", "sas"),
         }
     else sigma <- NULL
     
-    # process the test argument and check its legality
-    <<yates-setup-test>>    
+    # process the term argument and check its legality
+    <<yates-setup-term>>    
  
     # set up for checking estimability, if necessary
     <<yates-estim-setup>>
@@ -94,14 +94,14 @@ yates <- function(fit, test, population=c("data", "none", "factorial", "sas"),
         <<yates-nonlinear>>
     }
  
-    # process the tests
-    #  if the argument is a list of tests, the dummy function simply iterates
+    # process the terms
+    #  if the argument is a list of terms, the dummy function simply iterates
     #  over the list, or sublists of list elements, etc.
     dummy <- function(x) {
-        if (inherits(x, "cmatrix")) dotest(x, method, population)
+        if (inherits(x, "cmatrix")) doterm(x, method, population)
         else lapply(x, dummy)
     }
-    result <- dummy(test)
+    result <- dummy(term)
     class(result) <- "yates"
     result
 }
@@ -109,26 +109,26 @@ yates <- function(fit, test, population=c("data", "none", "factorial", "sas"),
 
 The first task of setting things up is farmed out to the \code{cmatrix}
 routine.  
-The original thought for yates was that the test argument would be a
-list of tests, and you would bundle all the work for a model together into
+The original thought for yates was that the term argument would be a
+list of terms, and you would bundle all the work for a model together into
 one amalgamated call.  
 As testing of the routine has proceeded this looks less and less like a
 needed feature, but the code remains, in which case yates will produce
 a list (which print.yates can't currently handle). 
 To make it easier for users, we set up a local environment so that they
-can use \code{cm(test, ...)} within the yates call, 
-as a shorthand for \code{cmatrix(fit, test, ...)}
+can use \code{cm(term, ...)} within the yates call, 
+as a shorthand for \code{cmatrix(fit, term, ...)}
 
-<<yates-setup-test>>=
+<<yates-setup-term>>=
 # a bit of trickery to allow user to type "cm()" instead of cmatrix
 ff <- parent.frame()
 tempenv <- new.env(parent=ff)
 assign("cm", function(...) cmatrix(fit, ...), envir=tempenv)
-test <- eval(substitute(test), tempenv)
-if (is.character(test) || inherits(test, "formula"))
-    test <- cmatrix(fit, test)
+term <- eval(substitute(term), tempenv)
+if (is.character(term) || inherits(term, "formula"))
+    term <- cmatrix(fit, term)
 
-# check that the test argument is legal: each element should have
+# check that the term argument is legal: each element should have
 #  class "cmatrix"
 # it can be a list or nested list of such elements, with optional names
 legal <- function(x) {
@@ -136,21 +136,21 @@ legal <- function(x) {
     else if (is.list(x)) all(sapply(x, legal))
     else FALSE
 }
-if (!legal(test))
-    stop("the test argument should contain elements of class cmatrix")
+if (!legal(term))
+    stop("the term argument should contain elements of class cmatrix")
 @ 
 
-Now check that the resulting test argument is legal.
-<<cmatrix-test>>=
-# each element of test should have class "cmatrix".  It can be
+Now check that the resulting term argument is legal.
+<<cmatrix-term>>=
+# each element of term should have class "cmatrix".  It can be
 #  a singleton, a list, or a nested list of such elements
 legal <- function(x) {
     if (inherits(x, "cmatrix")) TRUE
     else if (is.list(x)) all(sapply(x, legal))
     else FALSE
 }
-if (!legal(test))
-    stop("the test argument should contain elements of class cmatrix")
+if (!legal(term))
+    stop("the term argument should contain elements of class cmatrix")
 @ 
 
 Models with factor variables may often lead to population predictions that
@@ -187,7 +187,7 @@ contrast matrix Cmat, and then use Cmat to get the mpv values and
 tests of the mpv values.
 
 <<yates-linear>>=
-dotest <- function(contr, method, population, type) {
+doterm <- function(contr, method, population, type) {
     if (is.na(match(contr$termname, colnames(Tatt$factors))))
         stop("term '", contr$termname, "' not found in the model")
     
@@ -292,12 +292,15 @@ else if (population=="factorial") {
         stop("terms with variables not found in data: ", termname[i])
     }
 } else if (population=="sas") {
-    if (all(iscat(x2indx))) n1 <- 1 else n1 <- nrow(mframe)
-    if (any(iscat(x2indx))) {
+    # we need the population for the MPV values
+    pdata <- mframe
+    if (all(iscat[x2indx])) n1 <- 1 else n1 <- nrow(mframe)
+    if (any(iscat[x2indx])) {
         x2name <- names(x2indx)[x2indx]
         n2 <- sapply(fit$xlevels[x2name], length)
         n <- n1*prod(n2)
-        pdata <- pdata[rep(1:n1, length=n)]  # the data part is done
+        pdata <- pdata[rep(1:n1, length=n),]  # the continous variables are done
+        browser()
         for (i in seq(along=x2name)) {
             j <- rep(rep(1:n2[i], each=n1), length=n)
             pdata[x2name[i]] <- (fit$xlevels[[x2name[i]]])[j]
@@ -457,9 +460,7 @@ if (is.list(contr$cmatrix))
     r1 <- sapply(contr$cmatrix, function(z) cfun(z, beta, vmat, sigma^2))
 else r1 <- cfun(contr$cmatrix, beta, vmat, sigma^2)
 @ 
-
-<<yates-sgtt>>=
-@ 
+ 
 <<yates-nonlinear>>=
 @ 
 
@@ -467,88 +468,17 @@ else r1 <- cfun(contr$cmatrix, beta, vmat, sigma^2)
 @ 
 
 
-Population estimates are more work since they involve manipulation
-of the model frame.  We essentially break it into two parts: the term
-that was asked for, and all the others.
-From all the others build a population model frame: that has 4 cases to
-consider for the 4 population type.
-Model frames are perilous objects: you can't just cut and paste one, as it
-has to exactly match the formula that generated it in certain ways.  
-It is far better to start with data.  
-But we don't have the data.  
-One can often recreate the data from the model frame, but not always:
-if the user has \code{ns(age, 4)} the mf contains the result of the
-computation and there is no simple inverse function.  
-We handle the inverse for just a few: \code{I()} and \code{factor()},
-as that just entails a change of the name.  
-For the variable of interest things are ok: for that we have the levels.
-
-<<yates-build-pop-old>>=
-# x1 = my shorthand for the term of interest, x2 = the rest
-tfac   <- Tatt$factors[, cm$termname]
-x1name <- names(tfac)[tfac> 0]  # names for the second data set
-x2name <- names(tfac)[tfac==0]  # names for the second data set
-
-if (is.null(cm$level) || any(is.na(match(x1name, names(cm$level)))))
-    stop("levels are needed for a population contrast")
-
-data1 <- cm$level
-# for the left part, we have data, not functions, so just remove any
-#  function names.  Assume that the very first arg is the variable name
-inner <- function(x) {
-    for (i in 1:length(x)) 
-        x[i] <- all.vars(parse(text=x[i]))[1]
-    x
-}
-names(data1) <- inner(names(data1))
-
-fixname <- function(x) { #remove calls to I() and factor()
-    x <- sub("(factor\\()([^\\)]*)(\\))", "\\2", x)
-    x <- sub("(I\\()([^\\)]*)(\\))", "\\2", x)
-    x
-}
-
-if (population != "user") { # construct data2
-    mf <- model.frame(fit)
-    data2 <- mf[x2name]
-    names(data2) <- fixname(names(data2))
-    complex <- fgrepl('(', names(data2)) 
-    if (any(complex)) {  # terms that are functions
-        # fill in a dummy value
-        names(data2) <- inner(names(data2))
-        for (i in complex) data2[[i]] <- 1:nrow(data2)
-    }
-    if (population == "factorial") {
-        if (!all(iscat[tfac==0])) 
-            stop("all population variables must be categorical")
-        data2 <- do.call("expand.grid", lapply(data2, unique))
-    }        
-    else if (population == "SAS" && method != "SGTT") {
-        # expand the data set, but who would want to do this?
-        stop("cannot yet have population=SAS and not use the SGTT")
-    }
-}
-
-# Now create the estimate matrix one row at at time, and create the
-#  APV (average predicted value) estimates and their std
-emat <- matrix(0., nrow(data1), length(fit$coef))
-apv  <- matrix(0., nrow(data1), ncol=2)    
-for (i in 1:nrow(data1)) {
-    tdata <- cbind(data1[i,], data2)
-    newmf <- model.frame(Terms, tdata, xlev= fit$xlevels)
-    if (any(complex)) { # fix it
-        stop("not yet done")
-    }
-    newx  <- model.matrix(Terms, tdata, xlev=fit$xlevels,
-                          contrasts.arg = fit$contrasts)
-    emat[i,] <- colMeans(newx)
-}    
+The decompostion based algorithm for SAS type 3.
+The algorithm will ignore the set of contrasts cmat, since this algorithm
+creates a global test for all the terms at once.
+First make a Z matrix, which is the X matrix using only the unique
+categorical variable rows, then create a generalized cholesky
+decomposition of Z.
+<<yates-sgtt>>=
+whichrows <- !duplicated(mframe[names(iscat[iscat])])
+Z <- model.matrix(Terms, mframe[whichrows,])
+browser()
 @ 
-
-<<yates-build-sgtt>>=
-@ 
-<<yates-build-apv1>>=
-@
 
 
 The print routine places the population predicted values (PPV) alongside the
@@ -591,4 +521,3 @@ print.yates <- function(x, digits = max(3, getOption("digits") -2),
 }
 @ 
 
-  
