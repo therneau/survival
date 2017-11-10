@@ -295,12 +295,12 @@ $s(p) f'(p)$, leading to the confidence interval
 Here are the supported transformations.
 \begin{center}
   \begin{tabular}{rccc} 
-    &f& f' & f^{-1} \\ \hline
+    &$f$& $f'$ & $f^{-1}$ \\ \hline
 log & $\log(p)$ & $1/p$ & $ \exp(y)$ \\
 log-log & $\log(-\log(p))$ & $1/\left[ p \log(p) \right]$ &
    $\exp(-\exp(y)) $  \\
 logit & $\log(p/1-p)$ & $1/[p (1-p)]$ & $1- 1/\left[1+ \exp(y)\right]$ \\
-arcsin & $\asin(\sqrt{p})$ & $1/(2 \sqrt{p(1-p)})$ &$\sin^2(y)$ \\
+arcsin & $\arcsin(\sqrt{p})$ & $1/(2 \sqrt{p(1-p)})$ &$\sin^2(y)$ \\
 
 \end{tabular} \end{center}
 Plain intervals can give limits outside of (0,1), we truncate them when this

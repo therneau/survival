@@ -51,13 +51,17 @@ yates <- function(fit, term, population=c("data", "none", "factorial", "sas"),
         pdata <- population
         population <- "user"
         }
- 
+    
     if (method=="sgtt" && (population !="sas" || type != "linear"))
         stop("sgtt method only applies if population = sas and type = linear")
 
-    beta <-  coef(fit)
+    beta <-  coef(fit, complete=TRUE)
     nabeta <- is.na(beta)  # undetermined coefficients
     vmat <-  vcov(fit, complete=FALSE)
+    if (nrow(vmat) > sum(!nabeta)) {
+        # a vcov method that does not obey the complete argument
+        vmat <- vmat[!nabeta, !nabeta]
+    }
     
     # grab the dispersion
     if (missing(dispersion)) do.ss <- FALSE
@@ -237,7 +241,7 @@ quite hard to recreate the raw data, e.g. for a spline term.
 For population=user we will have raw data, obviously.  The task in that
 case is to verify that the data has all the needed variables.
 For population = factorial we build our own data set out of 
-fit$xlevels.
+\code{fit\$xlevels}.
 
 For population=sas we need a mixture: categoricals are factorial and others
 are data.  Say there were categoricals with 3 and 5 levels, so the factorial
@@ -250,7 +254,7 @@ effort since pop=sas is really here to prove that we know what SAS glm actually
 does.
 
 An issue  with data vs model is names.  Suppose the original model was
-\code{coxph(Surv(time, status) ~ ns(age,4) + factor(ph.ecog), lung)}.
+\code{coxph(Surv(time, status) \textasciitilde ns(age,4) + factor(ph.ecog), lung)}.
 In the data set the variable name is ph.ecog, in the model frame,
 the xlevels list, and terms structure it is factor(ph.ecog). 
 The data frame has individual columns for the four variables, the model frame
@@ -300,7 +304,6 @@ else if (population=="factorial") {
         n2 <- sapply(fit$xlevels[x2name], length)
         n <- n1*prod(n2)
         pdata <- pdata[rep(1:n1, length=n),]  # the continous variables are done
-        browser()
         for (i in seq(along=x2name)) {
             j <- rep(rep(1:n2[i], each=n1), length=n)
             pdata[x2name[i]] <- (fit$xlevels[[x2name[i]]])[j]
@@ -321,7 +324,7 @@ when pasting into a model frame we need to get it right.
 
 If the user added their own levels and pdata is a modelframe, then 
 transform the x1 values to their final form and paste them on.
-If data=user and x1 was generated from fit$xlevels, then we might have
+If data=user and x1 was generated from \code{fit\$xlevels}, then we might have
 an x1 of ``factor(ph.ecog)'', and have to untransform it.  That is the
 hardest case.
 The last step in each is to replace an non-estimable row by NA, which will
@@ -467,17 +470,111 @@ else r1 <- cfun(contr$cmatrix, beta, vmat, sigma^2)
 <<yates-nopop>>=
 @ 
 
-
-The decompostion based algorithm for SAS type 3.
+The decompostion based algorithm for SAS type 3 tests.
 The algorithm will ignore the set of contrasts cmat, since this algorithm
-creates a global test for all the terms at once.
-First make a Z matrix, which is the X matrix using only the unique
-categorical variable rows, then create a generalized cholesky
-decomposition of Z.
+creates a global tests for all the terms at once.
+First make a $Z$ matrix, which is the $X$ matrix using only the unique
+categorical variable rows.
+Our goal is to find an upper triangular matric $C$ such that 
+$C (Z'Z)^-C'$ has zeros in any block corresponding two factor terms, one of
+which contains the other.
+If $Z$ is full rank we are in the Yate's situation and the cholesky 
+decomposition of $Z'Z$ is a solution.
+If it is not full rank we need to mimic SAS and make sure that 
+these ``one term contains another'' are
+the \emph{only} blocks that we make orthagonal.
+Treat $Z'Z$ as a block matrix
+\begin{equation*}
+  \left( \begin{array}{cccc} 
+    B_{11} & B_{12} & \ldots & B_{1k} \\
+    B_{21} & B_{22} & \ldots & B_{2k} \\
+    \vdots& \vdots& \ddots & \vdots \\
+     B_{k1} & B_{k2} & \ldots & B_{kk}  \end{array} \right )
+\end{equation*}
+with each term in the model as a block, and assume that blocks $i$ and $j$
+need to be orthagonal. 
+The number of terms $k$ is the number of columns in the \code{factors}
+component of the terms object for the model.
+(Well almost:  if there is an intercept colum it does not appear in the
+\code{factors} matrix.)
+A contrast matrix $C$ that fullfills our requirements will have
+\begin{align*}
+  C_{i.} (Z'Z)^- C'_{j.} & = 0 \\
+\end{align*}
+for the required pairs of blocks $i$ and $j$,
+where $(Z'Z)^-$ is a generalized inverse.
+The standard order of terms in the $X$ matrix means that any term $j$
+that contains term $i$ will be further to the right in the matrix.
+One solution is to set
+\begin{align*}
+  C_{ii} &= I \\
+  C_{jj} &= I \\
+  C_{ij} &= -(Z'Z)^-_{ij} \left[(Z'Z)^-{jj} \right]^{-1}, \, j>i
+\end{align*}
+$C$ starts as an identity matrix and we fill in selected off diagonal
+blocks.
+
+Using the formula for the inverse of a symmetric partitioned matrix
+\begin{equation*}
+  \left( \begin{array}{cc} Q & R \\ R' & S \end{array} \right)^{-1} =
+  \left( \begin{array}{cc} \bigcirc & -Q^{-1}R (S - R'Q^{-1}R)^{-1} \\
+                           \bigcirc &  (S - R'Q^{-1}R)^{-1} \end{array} \right)
+\end{equation*}
+this gives 
+\begin{equation}
+  C_{ij} = B_{ii}^{-1} B_{ij} \label{inverse}
+\end{equation}
+
+Continuous variables are not orthagonalized in the SAS type III approach,
+nor any interaction that contains a continuous variable as one of its parts.
+To find the nested terms first note which rows of \code{factors} refer
+to categorical variables (the \code{iscat} variable);
+columns of \code{factors} that are non-zero only
+in categorical rows are the ``categorical'' columns.
+A term represented by one column in \code{factors} ``contains'' the term 
+represented in some other column iff it's non-zero elements are a superset.
+
+The entire process below is simpler if we work only with the non-missing
+coefficients.  If all of the models obeyed the \code{complete} argument
+of the coef() and vcov() methods that would suffice, but they often don't 
+so we first have to check.
 <<yates-sgtt>>=
-whichrows <- !duplicated(mframe[names(iscat[iscat])])
+# create Z
+whichrows <- !duplicated(mframe[names(iscat)[iscat]])
 Z <- model.matrix(Terms, mframe[whichrows,])
-browser()
+
+beta2 <- beta[!nabeta]
+Z <- Z[,!nabeta]
+ztz <- t(Z) %*% Z
+assign2 <- xassign[!nabeta]
+
+# Create the contrast matrix
+Cmat <- diag(ncol(Z))
+if (any(iscat)) { # some nut will call this on a model with no factors
+    # which terms are factors?
+    fterm <- apply(Tatt$factors[!iscat,, drop=FALSE], 2, function(x)!any(x>0))
+    for (iterm in which(fterm)) {
+        for (j in (iterm:length(fterm))) { # all terms to the right
+            # the term includes iterm if it has non-zeros wherever iterm does
+            irow <- which(Tatt$factors[,iterm] > 0)
+            if (j> iterm && fterm[j] && all(Tatt$factors[irow, j] >0)) {
+                i1 <- which(assign2 == iterm)  # colums for the first term
+                i2 <- which(assign2 == j)      # and for the second
+                Cmat[i1, i2] <- solve(ztz[i1, i1], ztz[i1, i2])
+            }
+        }
+    }
+}               
+
+if (max(xassign) >1) { # more than 1 term in the model
+    test <- t(sapply(1:max(assign2), function(i)
+                     testfun(Cmat[assign2==i,], beta2, vmat, sigma^2)))
+    rownames(test) <- colnames(Tatt$factors)
+}  else {
+    test <- testfun(Cmat[assign2==1,], beta2, vmat, sigma^2)
+    test <- matrix(test, nrow=1, 
+                   dimnames=list(colnames(Tatt$factors), names(test)))
+}
 @ 
 
 
