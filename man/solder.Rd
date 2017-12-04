@@ -25,19 +25,22 @@ The response, measured by eye, is the number of visible solder skips.
 }
 \details{
 This data set is used as a detailed example in chapter 1 of Chambers and
-Hastie, though they largely focus on a balanced subset of the data.
-The data set was included in Splus.
-In the survival package the data is used as part of the tests for the
-\code{yates} command.
+Hastie.
+Observations 1-360 and 541-900 form a balanced design of 3*2*10*3= 180
+observations for four of the pad types (A1.5, A3, B3, B6),
+while rows 361-540 match 3 of the 6 Solder*Opening combinations with
+pad type A6 and the other 3 with pad type A3.
 }
 \references{
 J Chambers and T Hastie, Statistical models in S.  Chapman and Hall, 1993.
 }
 \examples{
 data(solder)
-# The balanced subset contains the first 180 of each mask, and deletes
-#  mask A6. 
+# The balanced subset used by Chambers and Hastie
+#   contains the first 180 of each mask and deletes mask A6. 
 index <- 1 + (1:nrow(solder)) - match(solder$Mask, solder$Mask)
 solder.balance <- droplevels(subset(solder, Mask != "A6" & index <= 180))
 }
 \keyword{datasets}
+\references{J Chambers and T Hastie, Statistical Models in S, CRC Press,
+  1991.}

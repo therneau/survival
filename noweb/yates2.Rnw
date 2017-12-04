@@ -25,14 +25,21 @@ yates <- function(fit, term, population=c("data", "none", "factorial", "sas"),
         stop("the fit does not have a terms structure")
     else Terms <- delete.response(Terms)   # y is not needed
     Tatt <- attributes(Terms)
-    xassign <- fit$assign
+    # a flaw in delete.response: it doesn't subset dataClasses
+    Tatt$dataClasses <- Tatt$dataClasses[row.names(Tatt$factors)]
+    
+    Xold <- model.matrix(fit)
+    if (is.null(fit$assign)) { # glm models don't save assign
+        xassign <- attr(Xold, "assign")
+        fit$assign <- xassign  # the cmatrix routine needs this
+    }
+    else xassign <- fit$assign 
+
     nvar <- length(xassign)
     nterm <- length(Tatt$term.names)
     termname <- rownames(Tatt$factors)
-
-    # a flaw in delete.response: it doesn't subset dataClasses
-    temp<- Tatt$dataClasses[row.names(Tatt$factors)]
-    iscat <- sapply(temp, function(x) x %in% c("character", "factor"))
+    iscat <- sapply(Tatt$dataClasses, 
+                    function(x) x %in% c("character", "factor"))
     
     if (missing(method)) method <- "direct"
     method <- match.arg(casefold(method), c("direct", "sgtt")) #allow SGTT
@@ -90,11 +97,12 @@ yates <- function(fit, term, population=c("data", "none", "factorial", "sas"),
     if (population=="none") {
         <<yates-nopop>>
     }
-    else if (type=="linear") {
-        <<yates-linear>>
+    else if (type=="linear" || (type=="link" && inherits(fit, "glm")) ||
+                               (type=="lp"   && inherits(fit, "coxph")) ||
+             (inherits(fit, "survreg") && type %in% c("link", "lp"))) {
+         <<yates-linear>>
     }
     else {
-        stop("nonlinear portion yet to be writen")
         <<yates-nonlinear>>
     }
  
@@ -144,19 +152,6 @@ if (!legal(term))
     stop("the term argument should contain elements of class cmatrix")
 @ 
 
-Now check that the resulting term argument is legal.
-<<cmatrix-term>>=
-# each element of term should have class "cmatrix".  It can be
-#  a singleton, a list, or a nested list of such elements
-legal <- function(x) {
-    if (inherits(x, "cmatrix")) TRUE
-    else if (is.list(x)) all(sapply(x, legal))
-    else FALSE
-}
-if (!legal(term))
-    stop("the term argument should contain elements of class cmatrix")
-@ 
-
 Models with factor variables may often lead to population predictions that
 involve non-estimable functions, particularly if there are interactions
 or the user specifies a factorial population.  
@@ -170,7 +165,6 @@ Set up a function that returns a true/false vector of whether each row of
 a matrix is estimable.  This test isn't relevant if population=none.
 
 <<yates-estim-setup>>=
-Xold <- model.matrix(fit)
 if (!any(is.na(beta)) || population == "none") 
     estimcheck <- NULL
 else {
@@ -360,7 +354,7 @@ if (is.null(attr(pdata, "terms"))) {
                     warning("unrecognized levels for ", i)
             }
             else if (!inherits(x1data[[i]], Tatt$dataClasses[i]))
-                stop("class mismatch in predictor", i)
+                stop("class mismatch in predictor ", i)
         }
         for (i in 1:nrow(x1data)) {
             j <- rep(i, nrow(pdata))
@@ -481,7 +475,7 @@ which contains the other.
 If $Z$ is full rank we are in the Yate's situation and the cholesky 
 decomposition of $Z'Z$ is a solution.
 If it is not full rank we need to mimic SAS and make sure that 
-these ``one term contains another'' are
+these ``one term contains another'' blocks are
 the \emph{only} blocks that we make orthagonal.
 Treat $Z'Z$ as a block matrix
 \begin{equation*}
@@ -568,10 +562,10 @@ if (any(iscat)) { # some nut will call this on a model with no factors
 
 if (max(xassign) >1) { # more than 1 term in the model
     test <- t(sapply(1:max(assign2), function(i)
-                     testfun(Cmat[assign2==i,], beta2, vmat, sigma^2)))
+                   testfun(Cmat[assign2==i,,drop=FALSE], beta2, vmat, sigma^2)))
     rownames(test) <- colnames(Tatt$factors)
 }  else {
-    test <- testfun(Cmat[assign2==1,], beta2, vmat, sigma^2)
+    test <- testfun(Cmat[assign2==1,, drop=FALSE], beta2, vmat, sigma^2)
     test <- matrix(test, nrow=1, 
                    dimnames=list(colnames(Tatt$factors), names(test)))
 }

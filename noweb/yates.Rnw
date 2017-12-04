@@ -57,6 +57,8 @@ cmatrix <- function(fit, term,
         stop("the fit does not have a terms structure")
     else Terms <- delete.response(Terms)   # y is not needed
     Tatt <- attributes(Terms)
+    # a flaw in delete.response: it doesn't subset dataClasses
+    Tatt$dataClasses <- Tatt$dataClasses[row.names(Tatt$factors)]
     test <- match.arg(test)
 
     if (missing(term)) stop("a term argument is required")
@@ -117,9 +119,10 @@ cmatrix <- function(fit, term,
     # Were levels specified?  If so we either simply accept them (continuous),
     #  or double check them (categorical)
     if (missing(levels)) {
-        temp <- fit$xlevels[parts]
-        if (is.null(temp)) levels <- NULL
-        else  levels <- do.call(expand.grid, c(temp, stringsAsFactors=FALSE))
+        temp <- fit$xlevels[match(parts, names(fit$xlevels), nomatch=0)]
+        if (length(temp) ==0) 
+            stop("continuous variables require the levels argument")
+        levels <- do.call(expand.grid, c(temp, stringsAsFactors=FALSE))
         }
     else {  #user supplied
         if (is.data.frame(levels)) {
@@ -196,7 +199,7 @@ In other cases we currently fail.
 if (length(parts) ==1) {
     cmat <- diag(nrow(levels))
     cmat[, nrow(cmat)] <- -1   # all equal to the last
-    cmat <- cmat[-nrow(cmat),]
+    cmat <- cmat[-nrow(cmat),, drop=FALSE]
 }
 else if (termtype== 4) { # anova type
     stop("not yet done 1")
