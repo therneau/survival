@@ -364,30 +364,73 @@ observed.
 
 
 \section{SAS glim type III (SGTT) algorithm}
-``Type 3'' tests have been a statistical bugaboo for decades.  
-A major problem is that almost no one knows exactly what they are.  The
-generalized linear models (GLM) procedure uses a hybrid algorithm.
-For least squares means:
+A major problem with SAS type III computations is that almost no one knows what
+is being computed.  The documentation is sparse for the GLM procedure and
+nearly non-existent for others.
+``Least squares means'' (LSM) roughly correspond to MPV values, but are defined
+only for categorical predictors.
 \begin{itemize}
   \item Define a mixture population: factorial for categorical variables, i.e.,
     those that appear in a class statement, and the data distribution for
-    all others.
-  \item Assume a data set which had 2 categorical variables x1 and 
-    x2 with 3 and 4 levels, respectively
-    4 other continuous variables, and 47 observations.
-    The population data set has (3 * 4) * 47 = 564 observations.
-  \item The three least squares means for variable x1 can be obtained by
-    taking a copy of the population data set, set x1 to its first level in
-    all 564 rows, then compute the mean predicted value, and likewise for the
-    second and third levels of x1.  
-    This is the same estimate as the \code{yates} function.  
+    all others.   For instance if the data set had $n$ rows, some continuous
+    predictors, and two categorical adjusters with 3 and 4 levels, respectively,
+    then the population data set would have $12 n$ rows.
+  \item Compute MPV values.
+  \item If the MPV involves non-estimable terms the result will be missing,
+    just as with the \code{yates} function.
   \item There many ways to shorten and/or speed up this calculation of course,
     but that is not material to this discussion.
 \end{itemize}
 
-The type III SS is \emph{not} a direct test of equality of these mpv values,
+The type III SS is \emph{not} a direct test of equality of these MPV values,
 and is in fact defined even when some or all of them are not estimable.
-The exact algorithm is described indirectly in SASxxx
+The root algorithm is based on the fact that in a balanced factorial
+model (all predictors categorical, all combinations appear the same number
+of times) the SS for all the effects are orthagonal.  
+In the model \code{y ~ x1 + x2 + x1:x2} for instance the sequential SS for x1, 
+from an R \code{anova} command,
+will be the same whether x1 preceeds x2 or follows after it in the
+formula.  
+Let $V = (X'X)^-$ be the variance-covariance of the coefficients and let
+$C$ and $D$ be contrast matrices for two of the 3 terms above.
+Orthagonality implies that $CVD' =0$ = the covariance
+between the two effect effects.
+
+This leads to the following algorithm for computing Yates contrasts in an
+unbalanced design. 
+\begin{itemize}
+  \item Let $Z$ be the design matrix for a balanced subset of the the data; 
+    i.e., the factorial population of the \code{yates} command.
+    One simple way to construct $Z$, if there are no missing cells, is the set
+    of unique rows of $X$.  
+  \item Choose contrasts that are orthagonal with respect to $(Z'Z)^-$.
+  \item Assume an $X$ matrix in the standard column order of intercept, then
+    main effects, then 2 way interactions, etc.  One way to create the
+    contrasts is
+    \begin{enumerate}
+      \item Since the columns of $X$ that correspond to any partitular term are
+        adjacent, we can think of $U = (Z'Z)^-$ as a partitioned matrix where
+        $U_{kk}$ is the block corresponding to the $k$th term.
+      \item Start with $C$ as a diagonal matrix, then for any two terms $j<k$ 
+         where $j$ is contained in $k$  set $C_{jk}$ = U_{jk}U_{kk}^{-1}$.  The term
+         \code{x1} is for instance contained in \code{x1:x2}.
+      \item This results in an upper triangular matrix $C$ whose $k$th set
+        of rows is a Yates contrast matrix for term $k$ and which satisfies
+        the orthagonality condition.  
+    \end{enumerate}
+\end{itemize}
+This is the algorithm used by the \code{yates} function for the SGTT
+calculation. 
+If there are both continuous and categorical variables in the $X$ matrix
+then step 2 above is only applied if both $j$ and $k$ are categorical, and
+the unique rows operation applies only to the categorical predictors.
+(The continuous portion of $Z'Z$ need not even be computed since it is never
+used.)
+The interaction of a continous and a cateogorical covariate is considered 
+to be continous for this purpose.
+        
+The SAS glm procedure uses a differnt algorithm, which is desribed indirectly
+in SASxxx.
 \begin{enumerate}
   \item Create design matrix $X$ of the form used by the GLM procedure,
     containing from left to right
@@ -396,7 +439,7 @@ The exact algorithm is described indirectly in SASxxx
     effects variables are in the order of the model statement.
     \begin{itemize}
       \item A categorical variable with $k$ levels is
-        represented by $k$ 0/1 dummy variables 
+        represented by $k$ 0/1 dummy variables, 
         which represent the first, second, etc. levels of the variable.
       \item The interaction between two categorical variables 
         that have $k$
@@ -413,9 +456,9 @@ The exact algorithm is described indirectly in SASxxx
         prior columns, then $D_{1k}$ to $D_{k-1,k}$ contains that combination,
         and $D_{j,k}=0$ for $j \ge k$.
       \item Otherwise set $D_{kk}=1$ and $D_{jk}=0$ for $j ne k$.
-      \item Note that if the $i$th column of $X$ is linearly dependent on 
+      \item Note that $D$ is upper triangular, and also that if the 
+        $i$th column of $X$ is linearly dependent on 
         prior columns, then the $i$th row of $D$ will be zero.
-      \item In R \code{D = coef(lm(X ~ X -1))}
     \end{itemize}
   \item Partially orthagonalize the transpose of $D$ from right to left
     \begin{itemize}
@@ -431,13 +474,26 @@ The exact algorithm is described indirectly in SASxxx
     tests of $D \beta =0$ for the corresponding rows of $D$.
 \end{enumerate}
 
+An advantage of the first algorithm is that it works for any coding of the 
+categorical variables; one can even have different codings in the same
+model, say with x1 using contr.treatment and x2 contr.helmert, and changing
+the coding will not change the result. The SAS glm algorithm on the other
+hand appears to be totally dependent on using this exact coding of the
+$X$ matrix.  One can change the order of the columns within a term,
+i.e. change which level is the reference, without effecting the final result
+however.
+Neither approach produces the MPV values themselves, only a global contrast 
+matrix for testing that they all are equal.
+Proving that algorithm 1 gives the same result as the straightforward 
+MPV approach is challenging but doable, as is a proof that algorithms 1 and 2
+give the same result.
+
 If all covariates are categorical and all of the mpv values are estimable 
-then the above algorithm will agree with the Yates tests.
-This is easy to verify numerically for any given example,
-but much more challenging to prove this equivalence as a general case 
-(shorthand for ``this author can't seem to do it'').
-If not all the mpv values are estimable a Yates SS is not defined and
+then the above will agree with the Yates tests.
+If not all the MPV values are estimable a Yates SS is not defined and
 the SGTT is something quite different.
+The ``keep unique rows'' step generates a $Z$ matrix that does not
+correspond to a population, nor do the resulting tests.
 
 Another way to derive the Yates estimates is based on
 the well known fact that in a balanced factorial design the sums of squares
