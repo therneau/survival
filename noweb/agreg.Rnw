@@ -289,11 +289,11 @@ SEXP agfit4(SEXP surv2,      SEXP covar2,    SEXP strata2,
     **  Set up the ragged arrays
     **  covar2 might not need to be duplicated, even though
     **  we are going to modify it, due to the way this routine was
-    **  was called.  In this case NAMED(covar2) will =0
+    **  was called.  But check
     */
     PROTECT(imat2 = allocVector(REALSXP, nvar*nvar));
     nprotect =1;
-    if (NAMED(covar2)>0) {
+    if (MAYBE_REFERENCED(covar2)) {
 	PROTECT(covar2 = duplicate(covar2)); 
 	nprotect++;
 	}

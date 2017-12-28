@@ -87,15 +87,15 @@ dim.survfit <- function(x) {
         stop("survfit object does not have 2 dimensions")
     
     if (is.null(x$strata)) {
+        if (is.null(j) && !is.null(i)) j <- i #special case noted above
         if (is.matrix(x$surv)) {
-            if (is.null(j) && !is.null(i)) j <- i #special case noted above
             x$surv <- x$surv[,j,drop=drop]
             if (!is.null(x$std.err)) x$std.err <- x$std.err[,j,drop=drop]
             if (!is.null(x$upper)) x$upper <- x$upper[,j,drop=drop]
             if (!is.null(x$lower)) x$lower <- x$lower[,j,drop=drop]
             if (!is.null(x$cumhaz)) x$cumhaz <- x$cumhaz[,j,drop=drop]
         }
-        else warning("survfit object has only a single survival curve")
+        else if (j>1) stop("subscript out of bounds") # x[1] is always legal
     }
     else {
         if (is.null(i)) keep <- seq(along.with=x$time)

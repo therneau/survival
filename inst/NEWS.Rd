@@ -18,10 +18,17 @@
     sets with a LOT of intervals.  (The data set in question came from
     mstate.)
 
-    \item Use format.pval() and printCoefmat to print many more of the
-    p-values.  This aligns the format with that of base R.
+    \item Use format.pval() and printCoefmat in more of the print
+    functions.  This aligns the format with that of base R.
 
-    \item Update the vcov function to accept 
+    \item Update the vcov function to accept the new complete= argument.
+    \item Update statefig to accept vectors of colors.
+
+    \item The [.survfit routine would complain on the use of fit[1]
+    when fit contained a single curve.  This is now legal.
+    \item Change NAMED() to MAYBE_REFERENCED() at the suggestion of R
+core
+
   }
 }
 \section{Changes in version 2.41-5}{

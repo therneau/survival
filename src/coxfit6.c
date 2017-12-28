@@ -112,10 +112,10 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
     **  Set up the ragged arrays and scratch space
     **  Normally covar2 does not need to be duplicated, even though
     **  we are going to modify it, due to the way this routine was
-    **  was called.  In this case NAMED(covar2) will =0
+    **  was called.  But check.
     */
     nprotect =0;
-    if (NAMED(covar2)>0) {
+    if (MAYBE_REFERENCED(covar2)) {
 	PROTECT(covar2 = duplicate(covar2)); 
 	nprotect++;
 	}

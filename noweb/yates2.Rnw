@@ -465,14 +465,14 @@ else r1 <- cfun(contr$cmatrix, beta, vmat, sigma^2)
 @ 
 
 The decompostion based algorithm for SAS type 3 tests.
-The algorithm will ignore the set of contrasts cmat, since this algorithm
-creates a global tests for all the terms at once.
+The algorithm will ignore the set of contrasts cmat; the algorithm can only
+do a global test.
 First make a $Z$ matrix, which is the $X$ matrix using only the unique
 categorical variable rows.
 Our goal is to find an upper triangular matric $C$ such that 
 $C (Z'Z)^-C'$ has zeros in any block corresponding two factor terms, one of
 which contains the other.
-If $Z$ is full rank we are in the Yate's situation and the cholesky 
+If $Z$ is full rank we are in the Yates' situation and the cholesky 
 decomposition of $Z'Z$ is a solution.
 If it is not full rank we need to mimic SAS and make sure that 
 these ``one term contains another'' blocks are
@@ -499,25 +499,29 @@ for the required pairs of blocks $i$ and $j$,
 where $(Z'Z)^-$ is a generalized inverse.
 The standard order of terms in the $X$ matrix means that any term $j$
 that contains term $i$ will be further to the right in the matrix.
-One solution is to set
+One solution is to start with $C$ as an identity matrix and then
+fill in the relevant blocks above the diagonal.
 \begin{align*}
-  C_{ii} &= I \\
-  C_{jj} &= I \\
-  C_{ij} &= -(Z'Z)^-_{ij} \left[(Z'Z)^-{jj} \right]^{-1}, \, j>i
+  V &= (Z'Z)^- \\
+  C_{ij} &= -V_{ij} V_{jj}^{-1}, \, j>i
 \end{align*}
-$C$ starts as an identity matrix and we fill in selected off diagonal
-blocks.
+
 
 Using the formula for the inverse of a symmetric partitioned matrix
-\begin{equation*}
-  \left( \begin{array}{cc} Q & R \\ R' & S \end{array} \right)^{-1} =
-  \left( \begin{array}{cc} \bigcirc & -Q^{-1}R (S - R'Q^{-1}R)^{-1} \\
-                           \bigcirc &  (S - R'Q^{-1}R)^{-1} \end{array} \right)
-\end{equation*}
+\begin{equation}
+  \left( \begin{array}{cc} E & F \\ G & H \end{array} \right)^{-1} =
+  \left( \begin{array}{cc} (E- FH^{-1}G)^{-1} & -E^{-1}F (H - GE^{-1}F)^{-1} \\
+                           -H^{-1}G(E- FH^{-1}G)^{-1} &  (H - GE^{-1}F)^{-1} 
+  \end{array} \right) \label{partition}
+\end{equation}
 this gives 
 \begin{equation}
   C_{ij} = B_{ii}^{-1} B_{ij} \label{inverse}
 \end{equation}
+Well, not quite.  The right formula is
+\code{solve(B[-j,-j], B[-j, j])[i,]}: when dividing the matrix into
+$k$ pieces one has to use all but the column of interest in formula
+\eqref{partition}.
 
 Continuous variables are not orthagonalized in the SAS type III approach,
 nor any interaction that contains a continuous variable as one of its parts.
@@ -535,31 +539,35 @@ so we first have to check.
 <<yates-sgtt>>=
 # create Z
 whichrows <- !duplicated(mframe[names(iscat)[iscat]])
-Z <- model.matrix(Terms, mframe[whichrows,])
-
+Z <- Xold[whichrows,]
 beta2 <- beta[!nabeta]
 Z <- Z[,!nabeta]
 ztz <- t(Z) %*% Z
+#zvar <- solve(ztz)
 assign2 <- xassign[!nabeta]
 
 # Create the contrast matrix
 Cmat <- diag(ncol(Z))
-if (any(iscat)) { # some nut will call this on a model with no factors
-    # which terms are factors?
-    fterm <- apply(Tatt$factors[!iscat,, drop=FALSE], 2, function(x)!any(x>0))
-    for (iterm in which(fterm)) {
-        for (j in (iterm:length(fterm))) { # all terms to the right
-            # the term includes iterm if it has non-zeros wherever iterm does
-            irow <- which(Tatt$factors[,iterm] > 0)
-            if (j> iterm && fterm[j] && all(Tatt$factors[irow, j] >0)) {
-                i1 <- which(assign2 == iterm)  # colums for the first term
-                i2 <- which(assign2 == j)      # and for the second
-                Cmat[i1, i2] <- solve(ztz[i1, i1], ztz[i1, i2])
-            }
+# which terms are factors?
+fterm <- apply(Tatt$factors[!iscat,, drop=FALSE], 2, function(x)!any(x>0))
+for (iterm in which(fterm)) {  # might be none
+    for (j in (iterm:length(fterm))) { # all terms to the right
+        # the term includes iterm if it has non-zeros wherever iterm does
+        irow <- which(Tatt$factors[,iterm] > 0)
+        if (j> iterm && fterm[j] && all(Tatt$factors[irow, j] >0)) {
+            i1 <- which(assign2 == iterm)  # colums for the first term
+            i2 <- which(assign2 == j)      # and for the second
+            Cmat[i1, i2] <- solve(ztz[-i2, -i2], ztz[-i2,i2])[i1,]  
+            # Cmat[i1, i2] <- -t(solve(zvar[i2, i2], zvar[i2, i1]))
         }
     }
-}               
+}   
+@ 
 
+Should we print only the term of interest, or all of them?
+At this point ``all'' is a touch easier.
+Fix it later.
+<<yates-sgtt>>=
 if (max(xassign) >1) { # more than 1 term in the model
     test <- t(sapply(1:max(assign2), function(i)
                    testfun(Cmat[assign2==i,,drop=FALSE], beta2, vmat, sigma^2)))

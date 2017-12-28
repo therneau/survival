@@ -65,6 +65,12 @@ statefig(layout, connect, margin = 0.03, box = TRUE, cex = 1, col = 1,
   of d=0 gives a straight line, d=1 a right hand half circle centered
   on the midpoint and d= -1 a left hand half circle.  
   The \code{connect} matrix contains values of d+1 with -1 < d < 1.
+
+  The connecting arrow are drawn from (center of box 1 + offset) to
+  (center of box 2 + offset), where the the amount of offset (white
+  space) is determined by the \code{box} and \code{margin} parameters.
+  If a pair of states are too close together this can result in an
+  arrow that points the wrong way.  
 }
 \value{a matrix containing the centers of the boxes, with the invisible
   attribute set.}
@@ -77,7 +83,10 @@ statefig(layout, connect, margin = 0.03, box = TRUE, cex = 1, col = 1,
   which can draw more complex and well decorated figures, e.g., many
   different shapes, shading, 
   multiple types of connecting lines, etc., but at the
-  price of greater complexity.  
+  price of greater complexity.
+
+  Because curved lines are drawn as a set of short line segments, line
+  types have almost no effect for that case.
 }
 
 \examples{
