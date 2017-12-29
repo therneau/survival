@@ -26,6 +26,9 @@ extractAIC.coxph.penal<- function(fit,scale,k=2,...){
     c(edf, -2 * loglik + k * edf)
 }
 
+extractAIC.coxph.null <- function(fit, scale, k=2, ...) {
+    c(0, -2*fit$loglik[1])
+}
 
 labels.survreg <- function(object, ...) attr(object,"term.labels")
 

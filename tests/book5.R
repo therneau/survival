@@ -18,12 +18,11 @@ aeq <- function(x,y) all.equal(as.vector(x), as.vector(y))
 testw1 <- data.frame(time=  c(1,1,2,2,2,2,3,4,5),
 		    status= c(1,0,1,1,1,0,0,1,0),
 		    x=      c(2,0,1,1,0,1,0,1,0),
-		    wt =    c(1,2,3,4,3,2,1,2,1))
-xx <- testw1$wt
-testw2 <- data.frame(time=   rep(c(1,1,2,2,2,2,3,4,5), xx),
-		     status= rep(c(1,0,1,1,1,0,0,1,0), xx),
-		     x=      rep(c(2,0,1,1,0,1,0,1,0), xx),
-		     id=     rep(1:9, xx))
+		    wt =    c(1,2,3,4,3,2,1,2,1),
+                    id =    1:9)
+# Expanded data set
+testw2 <- testw1[rep(1:9, testw1$wt), -4]
+row.names(testw2) <- NULL
 indx <- match(1:9, testw2$id)
 
 # Breslow estimate

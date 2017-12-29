@@ -21,15 +21,27 @@ infinite coefficient value.}
   \item{outer.max}{For a penalized coxph model, e.g. with pspline terms, there
 is an outer loop of iteration to determine the penalty parameters; maximum
 number of iterations for this outer loop.}
-\item{timefix}{Resolve any near ties in the time variables.  (Floating
-point representation
-  error can cause actual tied times to appear distinct.)}
+\item{timefix}{Resolve any near ties in the time variables.}
 }
 
 \value{
   a list containing the values of each of the above constants
 }
-\author{Terry Therneau }
+\details{See the vignette "Roundoff error and tied times" for a more
+  detailed explanation of the \code{timefix} option.  In short, when
+  time intervals are created via subtraction then two time intervals that are
+  actually identical can appear to be different due to floating point
+  round off error, which in turn can make \code{coxph} and
+  \code{survfit} results dependent
+  on things such as the order in which operations were done or the
+  particular computer that they were run on.
+  Such cases are unfortunatedly not rare in practice.
+  The \code{timefix=TRUE} option adds
+  logic similar to \code{all.equal} to ensure reliable results.
+  In analysis of simulated data sets, however, where often by defintion there
+  can be no duplicates, the option will often need to be set to 
+  \code{FALSE} to avoid spurious merging of close numeric values.
+}  
 \seealso{\code{\link{coxph}}
   }
 \keyword{survival}
