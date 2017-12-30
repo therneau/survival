@@ -47,7 +47,7 @@ structure found in the data: we should be a proper subset of it.
   
 <<yates>>=
 cmatrix <- function(fit, term, 
-                    test =c("default", "linear", "pairwise"),
+                    test =c("global", "trend", "pairwise"),
                     levels) {
     # Make sure that "fit" is present and isn't missing any parts.
     if (missing(fit)) stop("a fit argument is required")
@@ -175,7 +175,7 @@ cmatrix <- function(fit, term,
     
     rval <- list(levels=levels, termname=termname)
     # Now add the contrast matrix between the levels, if needed
-    if (test=="default") {
+    if (test=="global") {
         <<cmatrix-build-default>>
     }
     else if (test=="pairwise") {
