@@ -48,7 +48,7 @@ structure found in the data: we should be a proper subset of it.
 <<yates>>=
 cmatrix <- function(fit, term, 
                     test =c("global", "trend", "pairwise"),
-                    levels) {
+                    levels, assign) {
     # Make sure that "fit" is present and isn't missing any parts.
     if (missing(fit)) stop("a fit argument is required")
     Terms <- try(terms(fit), silent=TRUE)
@@ -94,14 +94,14 @@ cmatrix <- function(fit, term,
    }
     
     # match these up with the columns via the assign attribute
-    xassign <- fit$assign
-    if (missing(xassign)) stop("the fit is missing an assign component")
-    if (is.list(xassign)) {
+    if (missing(assign)) assign <- fit$assign
+    if (missing(assign)) stop("the fit is missing an assign component")
+    if (is.list(assign)) {
         # old style assign as used in Splus, and still used in coxph
-        xassign <- rep(1:length(xassign), sapply(xassign, length))
+        assign <- rep(1:length(assign), sapply(assign, length))
     }
-    ncoef <- length(xassign)
-    whichcol <- which(xassign %in% indx & !is.na(coef(fit)))
+    ncoef <- length(assign)
+    whichcol <- which(assign %in% indx & !is.na(coef(fit)))
     ntest <- length(whichcol)
     if (ntest ==0) stop("no non-missing coefficients in the estimate")
     termname <- Tatt$term.labels[indx]  # to label the output

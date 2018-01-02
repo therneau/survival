@@ -39,87 +39,99 @@ library(splines)
 \  \tableofcontents
 
 \section{Introduction}
-The question of how best to summarize the effect of some particular
-covariate, within a model that contains multiple others, is an old one.
-It becomes particularly acute in the presence of interactions:
-consider the hypothetical data shown in figure \ref{fig1}
-comparing treatments A and B with age and sex as a confounders.
-What is the best single number summary of the difference between 
+Statistician and their clients have always been fond of finding a single
+number summary of an effect in data (and perhaps too much so).
+Consider the hypothetical data shown in figure \ref{fig1}
+comparing treatments A and B with age as a confounder.
+What is a useful single number summary of the difference between 
 treatment arms A and B?
-One sensible approach is to select a fixed \emph{population} for the
-age/sex distribution, and then compute the
+One approach is to select a fixed \emph{population} for the
+age distribution, and then compute the
 mean effect over that population.
 
 \begin{figure}
-<<fig1, fig=TRUE>>=
+<<fig1, echo=FALSE, fig=TRUE>>=
 plot(c(50,85), c(2,4.5), type='n', xlab="Age", ylab="Effect")
-abline(.645, .042, lty=1, col=1)
-abline(.9, .027, lty=1, col=2)
-abline(.35, .045, lty=2, col=1)
-abline(1.1, .026, lty=2, col=2)
-legend(50, 4.2, c("Treatment A, female", "Treatment B, female", 
-                  "Treatment A,  male", "Treatment B, male"),
-       col=c(1,2,1,2), lty=c(1,1,2,2), bty='n')
+#abline(.645, .042, lty=1, col=1, lwd=2)
+#abline(.9, .027, lty=1, col=2, lwd=2)
+abline(.35, .045, lty=1, col=1, lwd=2)
+abline(1.1, .026, lty=1, col=2, lwd=2)
+legend(50, 4.2, c("Treatment A", "Treatment B"), 
+        col=c(1,2), lty=1, lwd=2, cex=1.3, bty='n')
 @ 
  \caption{Treatment effects for a hypothetical study.}
  \label{fig1}
 \end{figure}
 
-More formally, assume we have some fitted model. Split the model 
+More formally, assume we have a fitted model. Split the model 
 predictors into two groups $U$ and $V$, where $U$ is the covariate of 
 interest (treatment in the example above) and $V$ is everything else.
 Then a marginal estimate for treatment A is
 \begin{equation*}
    m_A = E_F \,\hat y(A, V)
 \end{equation*}
-where $F$ is some population distribution for the covariates $V$.
+where $F$ is some chosen population distribution for the covariates $V$.
 Important follow-up questions are what population, what statistic,
 the computational algorithm, and statistical properties of the resulting
-estimate. 
+estimate.
+Neither the statistic nor population questions should be taken lightly
+and need to be closely linked to the scientific question.  
+If for instance the model of figure 1 were used to inform a nursing home
+formulary then the distribution $F$ might be shifted toward the right.
 
 Four common populations are
 \begin{itemize}
   \item Empirical: the data set itself.  For the simple example above this
-    would be the set of all $n$ age/sex pairs in the data set, 
+    would be the distribution of all $n$ ages in the data set, 
     irrespective of treatment.
-  \item Yates: this is only applicable if the adjusting variables $V$
+  \item Factorial or Yates: this is only applicable if the adjusting 
+    variables $V$
     are all categorical, and consists of all unique combinations of $V$.
     That is, the data set one would envision for a balanced factorial 
     experiment.
   \item External: an external reference such as the age/sex distribution 
     of the US census.  This is common in epidemiolgy.
-  \item SAS: a factorial (Yates) distribution for the categorical predictors 
+  \item SAS type 3: a factorial distribution for the categorical predictors 
     and the data distribution for the others. 
 \end{itemize}
 
 The \code{yates} function is designed to compute such population averages
 from a fitted model, along with desired contrasts on the resultant 
-estimates, e.g., that the population average effect for treatment A and
+estimates, e.g., whethter the population average effects for treatment A and
 treatment B are equal. 
-The function has been tested with the results of lm, glm, and coxph fits, 
-and should
-work with any R model that includes a standard set of objects in the result:
-(\code{terms}, \code{contrasts}, \code{xlevels}, \code{assign}, and \code{call}).
+The function has been tested with the results of lm, glm, and coxph fits,
+and can easily be extended to any R model that includes a standard set of
+objects in the result:
+(\code{terms}, \code{contrasts}, \code{xlevels}, and \code{assign}.
 
-As the reader might already guess from the labels used just above, the
-concept of population averages is a common one in statistics.
+The routine's name is a nod to the 1936 paper by Yates \ref{Yatesxx} 
+which contains an early explicit use of the notion.  In dealing with
+unbalanced factorial data he states that ``ababc'',
+which is the mean predicted value of model predictions for a balanced 
+population.
+He then develops
+formulas for calculation of these quantities and tests of their
+equality that were practical for manual calculations of the time.
+This
+concept of population averages is actually a common one in statistics.
 Taking an average is, after all, nearly the first thing a statistician
 will do.
 Yates' weighted means analysis, the g-estimates of causal models,
-direct adjusted survival curves, and least squares means (SAS glm
-procedure) are a small sample.  
-This function's name is a nod to the oldest of these.
+direct adjusted survival curves, and least squares means are but a 
+small sample.  
 
-\section{Data}
-\subsection{Solder}
-The \code{solder} data set, used in the introduction of the
-book Statistical Models
-in S \ref{Chambers93} provides a simple starting example.
+
+\section{Solder Example}
+\subsection{Data}
 In 1988 an experiment was designed and implemented at one of AT\&T's
 factories to investigate alternatives in the "wave soldering" procedure
 for mounting electronic componentes to printed circuit boards.
 The experiment varied a number of factors relevant to the process.
 The response, measured by eye, is the number of visible solder skips.
+The \code{solder} data set is used in the introduction of the
+book Statistical Models
+in S \ref{Chambers93}; it is also included in the survival package to
+illustrate the \code{yates} function for \code{lm} and \code{glm} models.
 
 <<solder1, fig=TRUE>>=
 summary(solder)
@@ -141,106 +153,36 @@ for (i in 1:5) {
 A perfectly balanced experiment would have 3*2*10*3 = 180 observations for
 each Mask, corresponding to all combinations of opening, solder thickness,
 pad type and panel.  
-The A3 mask has extra replicates of the Large/Thick, Large/Thin, and Small/Thick
-conditions, and A6 has only the Medium/Thick, Medium/Thin, and Small/Thin
-conditions.
+The A3 mask has extra replicates for a subset of the opening*thickness
+combinations, however, while mask A6 is lacks observations for these sets.
 Essentially, one extra run of 180 was done with a mixture of masks.
-Chambers and Hastie focus on the balanced subset that excludes this last
-run, so their figure and results are slightly different.
 
-\subsection{Free Light Chain}
-The \code{flchain} data frame contains the results of a small number
-of laboratory tests done on a large fraction of the 1995
-population of Olmsted County, Minnesota aged 50 or older
-\cite{Kyle06, Dispenzieri12}.
-The R data set contains a 50\% random sample of this larger study
-and is included as a part of the survival package.
-The primary purpose of the study was to measure the amount of
-plasma immunoglobulins and its components.  
-Intact immunoglobulins are composed of a heavy chain and light chain
-portion.  In normal subjects there is overproduction of the light chain 
-component by the immune cells leading to a small amount of 
-\emph{free light chain}  in the circulation.
-Excessive amounts of free light chain (FLC) are thought to be a marker of
-disregulation in the immune system.
-Free light chains have two major forms denoted as kappa and lambda,
-we will use the sum of the two.
-
-An important medical question is whether high levels of FLC have an
-impact on survival, which will be explored using a Cox model.  
-To explore linear models we will compare FLC values between males
-and females.
-A confounding factor is that free light chain values rise with age, in
-part because it is eliminated by the kidneys and renal function
-declines with age.
-The age distribution of males and females differs, so we
-will need to adjust our simple comparison between the sexes
-for age effects.
-The impact of age on mortality is of course even greater
-and so correction for the age imbalance is is critical when exploring
-the impact of FLC on survival.
-
-Figure \ref{fig:data} shows the trend in free light chain values
-as a function of age.
-For illustration of linear models using factors, we have also
-created a categorical age value using deciles of age.
-The table of counts shows that the sex distribution becomes increasingly
-unbalanced at the older ages, from about 1/2 females in the youngest
-group to a 4:1 ratio in the oldest.
-<<data, fig=TRUE, include=FALSE>>=
-age2 <- cut(flchain$age, c(49, 59, 69, 79, 89, 120),                   
-            labels=c("50-59", "60-69", "70-79", "80-89", "90+"))
-counts <- with(flchain, table(sex, age2))
-counts
-#
-flchain$flc <- flchain$kappa + flchain$lambda                    
-male <- (flchain$sex=='M')
-mlow <- with(flchain[male,],  smooth.spline(age, flc))
-flow <- with(flchain[!male,], smooth.spline(age, flc))
-plot(flow, type='l', ylim=range(flow$y, mlow$y),
-     xlab="Age", ylab="FLC")
-lines(mlow, col=2)
-cellmean <- with(flchain, tapply(flc, list(sex, age2), mean, na.rm=T))
-matpoints(c(55,65,75, 85, 95), t(cellmean), pch='fm', col=1:2)
-
-round(cellmean, 2)
-@
-Notice that the male/female difference in FLC varies with age, 
-\Sexpr{round(cellmean[1,1],1)} versus \Sexpr{round(cellmean[2,1],1)}
-at age 50--59 and \Sexpr{round(cellmean[1,5],1)} versus
- \Sexpr{round(cellmean[2,5],1)} at age 90.
-The data does not fit a simple additive model; there are ``interactions''
-to use statistical parlance.
-Men and women simply do not age in quite the same way.
-
-\section{Linear model examples}
+\subsection{linear model}
+A subset of the solder data that excludes mask A6 is exactly the type
+of data set considered in Yates' paper: a balanced design whose data set
+is not quite balanced.
 Start with a simple fit and then obtain the Yates predictions.
 <<solder2>>=
 fit1 <- lm(skips ~ Opening + Solder + Mask + PadType + Panel,
-           data=solder)
+           data=solder, subset= (Mask != 'A6'))
 y1 <- yates(fit1, ~Opening, population = "factorial")
 y1
 @ 
-The printout has two parts: the left hand colums are mean predicted
-values, the right hand are tests on those predicted values.  
+The printout has two parts: the left hand colums are mean population predicted
+values (mppv), the right hand are tests on those predicted values.  
 The default is a single global test that they are all equal.
-(``Population predicted value'' could be an alternate label but the abbreviation
-PPV would be confused with the positive predicted value.)
-The estimates under a factorial population, \code{y1} above,
-are the Yates' weighted
+Under a factorial population these are the Yates' weighted
 means \cite{Yates} and the corresponding test is the Yates' sum of
-squares for that term.  These would be labeled as a 
+squares for that term.  These would be labeled as
 ``least squares means'' and ``type III SS'', respectively,
 by the glm procedure of SAS. 
 More on this correspondence appears in the section on the SGTT algorithm.
 
-Repeat this using the default population, which is the set of all 900
-combinations for solder, mask, pad type and panel found in the data.
-The pairwise option gives tests on all pairs of openings, for details
-on this and other arguments see the \code{cmatrix} function;
-``cm'' is a shorthand for cmatrix allowed within the \code{yates} argument list.
+Repeat this using the default population, which is the set of all 810
+combinations for solder, mask, pad type and panel found in the (non A6) data.
+The pairwise option requests tests on all pairs of openings.
 <<solder2b>>=
-y2 <- yates(fit1, cm("Opening", test="pairwise"), population = "data") 
+y2 <- yates(fit1, "Opening", population = "data", test="pairwise") 
 y2
 
 temp <- rbind(diff(y1$estimate$mpv), diff(y2$estimate$mpv))
@@ -249,11 +191,11 @@ round(temp,5)
 @ 
 
 Although the MPV values shift with the new population the global test is
-unchanged, as is the difference in MPV between any two pairs.
+unchanged, nor is the difference in MMPV between any two pairs.
 This is because we have fit a model with no interactions.
 Referring to figure 1 this is a model where all of the predictions are
 parallel lines; shifting the population left or
-right will change each average but has no effect on the difference between two
+right will change the MPPV  but has no effect on the difference between two
 lines.
 For a linear model with no iteractions the test statistics created by the
 \code{yates} function are thus not very interesting, since they will be no 
@@ -261,17 +203,18 @@ different than simple comparisons of the model coefficients.
 
 Here are results from a more interesting fit that includes interactions.
 <<solder3>>=
-fit2 <- lm(skips ~ Opening + Mask*PadType + Panel, solder)
+fit2 <- lm(skips ~ Opening + Mask*PadType + Panel, solder,
+           subset= (Mask != "A6"))
 yates(fit2, ~Opening, population="factorial")
 @ 
-Because of the near perfect balance the means change only a small amount.
+This data set is close to balanced and the means change only a small amount.
 
 \subsection{Missing cells}
 Models that involve factors and interactions can have an issue with
 missing cells as shown by the example below.
 <<solder4>>=
 fit3 <- lm(skips ~ Opening * Mask + Solder + PadType + Panel, solder)
-yates(fit3, cm(~Mask, test="pairwise"))
+yates(fit3, ~Mask, test="pairwise")
 @ 
 The population predictions for each Mask include all combinations of
 Opening, Solder, PadType, and Panel that are found in the data.
@@ -293,20 +236,18 @@ nor any tests that involve those population averages.
 This lack of estimability is entirely due to the inclusion of a mask by opening
 interaction term in the model, which states that each Mask/Opening combination
 has a unique effect, which in turn implies that we need an estimate for all
-Mask/Opening pairs to compute a population prediction.
+Mask*Opening pairs to compute a population prediction.
 
-If you do the above steps 'by hand' R gives a value for all 900 predictions,
+If you do the above steps 'by hand' the R \code{predict} function will
+return a value for all 900 predictions
 along with a warning message that the results may not be reliable,
-and they are not.
-In this
-particular case all the A6/Large predictions are deficient; they have in
-effect assumed a value of 0 for the missing coefficient.
-The presence of a missing value in \code{coef(fit3)} shows that some preditions
+and the warning is correct.
+The result of \code{coef(fit2)} reveals an NA coefficient.
+The presence of a missing value shows that some preditions
 will not be estimable, but it is not possible to determine \emph{which}
-ones are estimable from the coefficients alone. 
-For this data set the A6:Small coefficient is NA, because the mask='Small'
-coefficients are ordered last in the X matrix and that is when the
-singularity is noticed.
+ones are estimable from the coefficients alone.
+The predict function knows that some predictions will be wrong but not
+which ones.
 A formal definition of estimability for a given prediction is that it 
 can be written 
 as a linear combination of the rows of $X$, the design matrix for the fit.
@@ -314,29 +255,235 @@ The \code{yates} function performs the necessary calculations to verify formal
 estimability of each predicted value and thus is able to correctly identify the 
 deficiency.
 
-\subsection{Continuous variables}
-Since the free light chain data set is a population sample there are far fewer
-males than females at the oldest ages.  
-The \code{yates} function can compute population averages over the sex
-distribution for selected ages as shown below.
-<<cont1>>=
-flcfit <- lm(flc ~ age * sex, flchain)
-yf1 <- yates(flcfit, cm(~age, levels=c(60, 70, 80, 90)))
-@ 
-This gives the results for a synthetic population that consists of
-\code{table(flchain$sex)/nrow(flchain)} = 55\% females at all ages.
-Setting \code{population='factorial'} will give one that has equal numbers
-of males and females.
-
 \section{Generalized linear models}
-In a glm model we need to consider more carefully \emph{what} to target
-as the population average.
+\label{sect:glm}
+Since the solder response is a count of the number of skips a Poisson
+model is the more natural approach than lm().
+In a glm model we need to consider more carefully both the population
+and \emph{what} statistic should be averaged, however.
+
 <<glm>>=
-gfit1 <- glm(skips ~ Opening + Mask*PadType + Panel, data=solder,
+gfit1 <- glm(skips ~ Opening + Mask +PadType + Solder, data=solder,
              family=poisson)
-yates(gfit1, ~ Mask, type="linear")    # identical to type="link"
-yates(gfit1, ~ Mask, type="response")
+gfit2 <- glm(skips ~ Opening + Mask +PadType + Solder, data=solder,
+             family=poisson)
+yates(gfit2, ~ Mask, predict = "link") 
+yates(gfit2, ~ Mask, predict = "response")  
 @ 
+
+Predicted values for the average number of skips are similar to the
+results that were obtained from the linear model; they parallel 
+\code{type='response'} in \code{predict.glm}.
+Prediction of type 'link' correspond to the linear predictor $X\beta$,
+averaged over the population.
+Though perfectly legal (you can take the mean of anything you want)
+these MMPV values are more difficult to interpret.  
+Since exp(mean(log(x)) defines the geometric mean of $x$, and log() is the
+default link function for poisson regression, one can view the 
+exponentiated MMPV values as a geometric mean of predicted values over
+the population.
+Given the skewness of the observed skip counts an argument can clearly
+be made for using the geometric mean, and its variance can be approximated
+using the usual delta method.  Tests between Masks would remain unchanged.
+
+<<glm2>>=
+# post-process the link
+ytemp <- yates(gfit2, ~ Mask, predict="link")
+ytemp$estimate$mmpv <- exp(ytemp$estimate$mmpv)
+ytemp$estimate$std <- ytemp$estimate$std * ytemp$estimate$mpv
+ytemp
+@ 
+
+For nonlinear predictors such as the response, the population matters even
+for an additive model.  The two below have different between MPPV differences
+and different tests.
+
+<<glm3>>=
+yates(gfit1, ~ Opening, test="pairwise", predict = "link")
+yates(gfit1, ~ Opening, test="pairwise", predict = "response")
+@ 
+
+
+\section{Free Light Chain}
+The \code{flchain} data frame contains the results of a small number
+of laboratory tests done on a large fraction of the 1995
+population of Olmsted County, Minnesota aged 50 or older
+\cite{Kyle06, Dispenzieri12}.
+The R data set contains a 50\% random sample of this larger study
+and is included as a part of the survival package.
+The primary purpose of the study was to measure the amount of
+plasma immunoglobulins and its components.  
+Intact immunoglobulins are composed of a heavy chain and light chain
+portion.  In normal subjects there is overproduction of the light chain 
+component by the immune cells leading to a small amount of 
+\emph{free light chain}  in the circulation.
+Excessive amounts of free light chain (FLC) are thought to be a marker of
+disregulation in the immune system.
+An important medical question is whether high levels of FLC have an
+impact on survival, which will be explored using a Cox model.  
+Free light chains have two major forms denoted as kappa and lambda,
+we will use the sum of the two.
+
+A confounding factor is that free light chain values rise with age, in
+part because it is eliminated by the kidneys and renal function
+declines with age.
+The age distribution of males and females differs, so we
+will need to adjust our simple comparison between the sexes
+for age effects.
+The impact of age on mortality is of course even greater
+and so correction for the age imbalance is is critical when exploring
+the impact of FLC on survival.
+
+Figure \ref{fig:data} shows the trend in free light chain values
+as a function of age.
+For illustration of linear models using factors, we have also
+created a categorical age value using deciles of age.
+The table of counts shows that the sex distribution becomes increasingly
+unbalanced at the older ages, from about 1/2 females in the youngest
+group to a 4:1 ratio in the oldest.
+<<counts>>=
+flchain$flc <- flchain$kappa + flchain$lambda                    
+age2 <- cut(flchain$age, c(49, 59, 69, 79, 89, 120),                   
+            labels=c("50-59", "60-69", "70-79", "80-89", "90+"))
+fgroup <- cut(flchain$flc, quantile(flchain$flc, c(0, .5, .75, .9, 1)),
+              include.lowest=TRUE, labels=c("<50", "50-75", "75-90", ">90"))
+
+counts <- with(flchain, table(sex, age2))
+counts
+@ 
+\begin{figure}
+<<data, fig=TRUE, include=FALSE, echo=FALSE>>=
+male <- (flchain$sex=='M')
+mlow <- with(flchain[male,],  smooth.spline(age, flc))
+flow <- with(flchain[!male,], smooth.spline(age, flc))
+plot(flow, type='l', ylim=range(flow$y, mlow$y),
+     xlab="Age", ylab="FLC")
+lines(mlow, col=2)
+@
+\caption{Free light chain values as a function of age.}
+\label{fig:data}
+
+Notice that the male/female difference in FLC varies with age, 
+\Sexpr{round(cellmean[1,1],1)} versus \Sexpr{round(cellmean[2,1],1)}
+at age 50--59 and \Sexpr{round(cellmean[1,5],1)} versus
+ \Sexpr{round(cellmean[2,5],1)} at age 90.
+The data does not fit a simple additive model; there are ``interactions''
+to use statistical parlance.
+Men and women simply do not age in quite the same way.
+
+\subsection{Linear models}
+Compare the mean FLC for males to females, with and without adjusting for
+age.
+<<flc1>>=
+library(splines)
+flc1 <- lm(flc ~ sex, flchain)
+flc2a <- lm(flc ~ sex + ns(age, 3), flchain)
+flc2b <- lm(flc ~ sex + age2, flchain)
+flc3a <- lm(flc ~ sex * ns(age, 3), flchain)
+flc3b <- lm(flc ~ sex * age2, flchain)
+# predict near to the mean age
+tdata <- data.frame(sex=c("F", "M"), age=65, age2="60-69")
+temp <- rbind("unadjusted" = predict(flc1, tdata),
+              "additive, continuous age" = predict(flc2a, tdata),
+              "additive, discrete age"   = predict(flc2b, tdata),
+              "interaction, cont age"    = predict(flc3a, tdata),
+              "interaction, discrete"    = predict(flc3b, tdata))
+colnames(temp) <- c("Female", "Male")
+round(temp,2)
+@ 
+
+The between gender difference is underestimated without adjustment for
+age.  The females are overrepresented at the high ages, which inflates
+their naive average.  Continous and categorical age adjustment is similar in
+this particular data set.  
+Now look at population adjustment.
+
+<<flc2>>=
+yates(flc3a, ~sex)  # population = data is the default
+yates(flc3b, ~sex) 
+yates(flc3b, ~sex, population="factorial")
+@ 
+
+The population average values for the empirical distribution are just a
+bit higher then the prediction at the mean due to the upward curvature
+of the age vs FLC curve. 
+The average for a factorial population, however, jumps up much more.
+This is because it is the average for an unusual population which has
+as many 90+ year old subjects as 50--59 year old; i.e., 
+it is the correct answer to a rather odd question.
+
+We can also look at the age effect after adjusting for sex.  For the
+continuous model the age values of interest for the MPPV need to be added using
+the \code{levels} argument.
+
+<<flc3>>=
+#yates(flc3a, ~ age, levels=c(65, 75, 85))  # currently fails
+yates(flc3b, ~age)
+@ 
+
+\section{Cox Models}
+Finally we come to Cox models which are, after all, the point of this
+vignette.
+Here the question of what to predict is more serious.
+Start by looking at three simple models.
+
+<<cox1>>=
+options(show.signif.stars=FALSE)  # show statistical intelligence
+coxfit1 <- coxph(Surv(futime, death) ~ sex, flchain)
+coxfit2 <- coxph(Surv(futime, death) ~ sex + age, flchain)
+coxfit3 <- coxph(Surv(futime, death) ~ sex * age, flchain)
+anova(coxfit1, coxfit2, coxfit3)
+#
+exp(c(coef(coxfit1), coef(coxfit2)[1]))  # sex without and with age
+@ 
+
+The model with an age*sex interaction does not fit substantially better
+than the additive model.  
+This is not a surprise as the US and Minnesota death rate curves for males and
+females are nearly parallel after age 50.  
+The sex coefficients for models 1 and 2 differ substantially.  
+Males in this data set have almost 1.5 the death rate of females at any
+given age, but when age is ignored the fact that females dominate the
+oldest ages almost completely cancels this out.
+Adjustment for both age and sex is critical for understanding the potential
+effect of FLC on survival.
+
+Dispenzieri \cite{Dispenzierixx} looked at the impact of FLC by dividing the
+sample into those above and below the 90th percentile of FLC;
+for illustration we will use 4 groups defined above of the lowest 50\%,
+50 to 75th percentile, 75 to 90th and above 90.
+
+<<coxfit2>>=
+coxfit4 <- coxph(Surv(futime, death) ~ fgroup*age + sex, flchain)
+yates(coxfit4, ~ fgroup, predict="linear")
+yates(coxfit4, ~ fgroup, predict="risk")
+@ 
+We see that after adjustment for age and sex, the FLC is a strong
+predictor of survival.
+Since the Cox model is a model of relative risk any constant term is
+arbitrary: one could add 100 to all of the log rates (type 'linear' above)
+and have as valid an answer.  To keep the coefficients on a sensible scale
+the \code{yates} function centers the mean linear predictor for the 
+underlying model at zero.  
+This does not precisely center the risks at 1 due to
+Jensen's inequality, but suffices to keep the values in a sensible range. 
+ 
+A similar argument to that found in section \ref{sect:glm} about the arithmetic
+versus geometric mean can be made here, but a more fundamental issue is that
+the overall hazard function for a population is not the average of the
+hazards for each of its members, and in fact will change over time as the
+higher risk members of the population die.  
+Though computable there is no natural feel for what either the mean risk
+or mean log risk actually are.
+
+Survival curves however to average; the survival curve of a population is the
+average of the individual survival curves of its members.
+Functions of the survival curve such as the median survival = time until the
+curve reaches .5 or the mean survival = area under the curve will then
+also be well defined quanties.
+
+
+
 \section{Population}
 The \code{population} parameter parameter of the call can be either a data set
 or one of `data', `factorial', `sas', or `none'. 
@@ -360,7 +507,6 @@ The factorial population in particular has been overused.
 In figure 1 it corresponds to a population with the same number
 of 100 year olds as 50 year olds: a population distribution that will never be
 observed.
-
 
 \section{SAS glim type III (SGTT) algorithm}
 A major problem with SAS type III computations is that almost no one knows what

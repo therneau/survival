@@ -51,8 +51,13 @@ programming environments.
 The source code files look remakably like Sweave, and the .Rnw mode of
 emacs works perfectly for them.  This is not too surprising since Sweave
 was also based on noweb.  Sweave is not sufficient to process the files,
-however, since it has a different intention.   The noweb.R file contains
-functions that can tangle the code (extract a given R function), but the
-creation of the pdf still requires the noweb exectuable itself.  I am
-working towards correcting that.
+however, since it has a different intention: it is designed to 
+\emph{execute} the code and make the results into a report, while noweb
+is designed to \emph{explain} the code.  We do this using the \code{noweb}
+library in R, which contains the \code{noweave} and \code{notangle} functions. 
+(It would in theory be fairly simple to extend \code{knitr} to do this task,
+which is a topic for further exploration one day.  A downside to noweb is
+that like Sweave it depends on latex, which has an admittedly steep learning
+curve, and markdown is thus attractive.)
+
 

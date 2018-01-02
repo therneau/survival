@@ -17,9 +17,8 @@ These are also referred to as U and V in the vignette.
 
 <<yates>>=
 yates <- function(fit, term, population=c("data", "none", "factorial", "sas"),
-                  levels, test=c("global", "trend", "pairwise"),
-                  type="linear", method=c("direct", "sgtt"), 
-                  dispersion, ...) {
+                  levels, test =c("global", "trend", "pairwise"),
+                  predict, method=c("direct", "sgtt"), nsim=1000, ...) {
     Call <- match.call()
     if (missing(fit)) stop("a fit argument is required")
     Terms <- try(terms(fit), silent=TRUE)
@@ -30,7 +29,15 @@ yates <- function(fit, term, population=c("data", "none", "factorial", "sas"),
     # a flaw in delete.response: it doesn't subset dataClasses
     Tatt$dataClasses <- Tatt$dataClasses[row.names(Tatt$factors)]
     
-    # we will need the original model frame ans X matrix
+    if (missing(predict)) mfun <- yates_setup(fit)
+    else if (is.character(predict)) mfun <- yates_setup(fit, predict)
+    else {
+        # verify the predict is legal
+        stop("function prediction is still in progress")
+    }
+    if (is.null(mfun)) predict <- "linear"
+
+   # we will need the original model frame ans X matrix
     mframe <- fit$model
     if (is.null(mframe)) mframe <- model.frame(fit)
     Xold <- model.matrix(fit)
@@ -63,8 +70,8 @@ yates <- function(fit, term, population=c("data", "none", "factorial", "sas"),
         }
     test <- match.arg(test)
     
-    if (method=="sgtt" && (population !="sas" || type != "linear"))
-        stop("sgtt method only applies if population = sas and type = linear")
+    if (method=="sgtt" && (population !="sas" || predict != "linear"))
+        stop("sgtt method only applies if population = sas and predict = linear")
 
     beta <-  coef(fit, complete=TRUE)
     nabeta <- is.na(beta)  # undetermined coefficients
@@ -75,23 +82,14 @@ yates <- function(fit, term, population=c("data", "none", "factorial", "sas"),
     }
     
     # grab the dispersion, needed for the writing an SS in linear models
-    if (missing(dispersion)) do.ss <- FALSE
-    else do.ss <- dispersion
-    if (class(fit)[1] =="lm") {
-        if (missing(dispersion)) do.ss <- TRUE
-        sigma <- summary(fit)$sigma
-        }
-    else if(class(fit)[1]=="glm") {
-        sigma <- summary(fit)$dispersion
-#        if (is.null(sigma)) sigma <- 1
-        }
-    else sigma <- NULL
+    if (class(fit)[1] =="lm") sigma <- summary(fit)$sigma
+    else sigma <- NULL   # don't compute an SS column
     
     # process the term argument and check its legality
     if (missing(levels)) 
-        contr <- cmatrix(fit, term, test)
-    else contr <- cmatrix(fit, term, test, levels)
-    x1data <- as.data.frame(contr$levels)  # labels for the MPV values
+        contr <- cmatrix(fit, term, test, assign= xassign)
+    else contr <- cmatrix(fit, term, test, assign= xassign, levels = levels)
+    x1data <- as.data.frame(contr$levels)  # labels for the MPPV values
     
     # Make the list of X matrices that drive everything: xmatlist
     #  (Over 1/2 the work of the whole routine)
@@ -102,14 +100,20 @@ yates <- function(fit, term, population=c("data", "none", "factorial", "sas"),
     # check rows of xmat for estimability
     <<yates-estim-setup>>
     
+    # Remove missing coefficients and columns
+    if (any(nabeta)) {
+        xmatlist <- lapply(xmatlist, function(x) x[,!nabeta, drop=FALSE])
+        beta <- beta[!nabeta]
+    }
+    
     # Now use xmatlist to compute the results
-    if (type != "linear") 
-        mfun <- yates_model_setup(fit, type)
-    if (type == "linear" || is.null(mfun)) {
+    if (predict == "linear" || is.null(mfun)) {
         # population averages of the simple linear predictor
         <<yates-linear>>
     }
-    else stop("nonlinear portion still in development")
+    else {
+        <<yates-nonlinear>>
+    }
     class(result) <- "yates"
     result
 }
@@ -144,8 +148,8 @@ When the prediction target is $X\beta$ there is a four step
 process: build the reference population, create the list of X matrices
 (one prediction matrix for each for x1 value), 
 column means of each X form each row of the
-contrast matrix Cmat, and then use Cmat to get the mpv values and
-tests of the mpv values.
+contrast matrix Cmat, and then use Cmat to get the mppv values and
+tests of the mppv values.
 
 <<yates-linear>>=
 if (is.na(match(contr$termname, colnames(Tatt$factors))))
@@ -156,17 +160,21 @@ Cmat <- t(sapply(xmatlist, colMeans))
 # coxph model: the X matrix is built as though an intercept were there (the
 #  baseline hazard plays that role), but then drop it from the coefficients
 #  before computing estimates and tests.
-if (inherits(fit, "coxph")) Cmat <- Cmat[,-1, drop=FALSE]
+if (inherits(fit, "coxph")) {
+    Cmat <- Cmat[,-1, drop=FALSE]
+    offset <- -sum(fit$means * fit$coef)  # recenter the predictions too
+    }
+else offset <- 0
     
-# Get the MPV estimates, but only for estimable ones
-estimate <- cbind(x1data, mpv=NA, std=NA)
+# Get the MPPV estimates, but only for estimable ones
+estimate <- cbind(x1data, mppv=NA, std=NA)
 if (any(estimable)) {
     etemp <- estfun(Cmat[estimable,,drop=FALSE], beta, vmat)
-    estimate$mpv[estimable] <- etemp$estimate
+    estimate$mppv[estimable] <- etemp$estimate + offset
     estimate$std[estimable] <- sqrt(diag(etemp$var))
 }
     
-# Now do tests on the MPV estimates, one by one
+# Now do tests on the MPPV estimates, one by one
 if (method=="sgtt") {
         <<yates-sgtt>>
 }
@@ -174,13 +182,13 @@ else {
     if (is.list(contr$cmat)) {
         test <- t(sapply(contr$cmat, function(x)
                          testfun(x %*% Cmat, beta, vmat, sigma^2)))
-        natest <- sapply(contr$cmat, nafun, estimate$mpv)
+        natest <- sapply(contr$cmat, nafun, estimate$mppv)
     }
     else {
         test <- testfun(contr$cmat %*% Cmat, beta, vmat, sigma^2)
         test <- matrix(test, nrow=1, 
                        dimnames=list(contr$termname, names(test)))
-        natest <- nafun(contr$cmat, estimate$mpv)
+        natest <- nafun(contr$cmat, estimate$mppv)
     }
     if (any(natest)) test[natest,] <- NA
     if (any(estimable))
@@ -188,6 +196,95 @@ else {
     else  result <- list(estimate=estimate, test=test, mvar=NA)
 }
 @ 
+
+In the non-linear case the mfun object is either a single function
+or a list containing two functions \code{predict} and \code{summary}.
+The predict function is handed a single vector $\eta = X\beta$
+values.  The result of predict can be a vector or a matrix.
+For coxph models we add on an ``intercept coef'' that will center the
+predictions.
+
+<<yates-nonlinear>>=
+xall <- do.call(rbind, xmatlist)
+if (inherits(fit, "coxph")) {
+    xall <- xall[,-1, drop=FALSE]  # remove the intercept
+    eta <- xall %*% beta -sum(fit$means*fit$coef)
+}
+else eta <- xall %*% beta
+n1 <- nrow(xmatlist[[1]])  # all of them are the same size
+index <- rep(1:length(xmatlist), each = n1)
+if (is.function(mfun)) predfun <- mfun
+else {  # double check the object
+    if (!is.list(mfun) || 
+        any(is.na(match(c("predict", "summary"), names(mfun)))) ||
+        !is.function(mfun$predic) || !is.function(mfun$summary))
+        stop("the prediction should be a function, or a list with two functions")
+    predfun <- mfun$predict
+    sumfun  <- mfun$summary
+}
+mppv <- predfun(eta)
+n2 <- length(eta)
+if (!(is.numeric(mppv)) || !(length(mppv)==n2 || nrow(mppv)==n2))
+    stop("prediction function should return a vector or matrix")
+mppv <- rowsum(mppv, index, reorder=FALSE)/n1
+mppv[!estimable,] <- NA
+
+# get a sample of coefficients, in order to create a variance
+# this is lifted from the mvtnorm code (can't include a non-recommended
+# package in the dependencies)
+tol <- sqrt(.Machine$double.eps)
+if (!isSymmetric(vmat, tol=tol, check.attributes=FALSE))
+    stop("variance matrix of the coefficients is not symmetric")
+ev <- eigen(vmat, symmetric=TRUE)
+if (!all(ev$values >= -tol* abs(ev$values[1])))
+    warning("variance matrix is numerically not positive definite")
+Rmat <- t(ev$vectors %*% (t(ev$vectors) * sqrt(ev$values)))
+bmat <- matrix(rnorm(nsim*ncol(vmat)), nrow=nsim) %*% Rmat
+bmat <- bmat + rep(beta, each=nsim)  # add the mean
+
+# Now use this matrix of noisy coefficients to get a set of predictions
+# and use those to create a variance matrix
+# Since if Cox we need to recenter each run
+sims <- array(0., dim=c(nsim, nrow(mppv), ncol(mppv)))
+if (inherits(fit, 'coxph')) offset <- bmat %*% fit$means
+else offset <- rep(0., nsim)
+   
+for (i in 1:nsim)
+    sims[i,,] <- rowsum(predfun(xall %*% bmat[i,] - offset[i]), index, 
+                        reorder=FALSE)/n1
+mvar <- var(sims[,,1])  # this will be used for the tests
+estimate <- cbind(x1data, mppv=unname(mppv[,1]), std= sqrt(diag(mvar)))
+
+# Now do the tests, on the first column of mppv only
+if (is.list(contr$cmat)) {
+    test <- t(sapply(contr$cmat, function(x)
+        testfun(x, mppv[,1], mvar[estimable, estimable], NULL)))
+    natest <- sapply(contr$cmat, nafun, mppv[,1])
+}
+else {
+    test <- testfun(contr$cmat, mppv[,1], mvar[estimable, estimable], NULL)
+    test <- matrix(test, nrow=1, 
+                   dimnames=list(contr$termname, names(test)))
+    natest <- nafun(contr$cmat, mppv[,1])
+}
+if (any(natest)) test[natest,] <- NA
+if (any(estimable))
+    result <- list(estimate=estimate,test=test, mvar=mvar)
+else  result <- list(estimate=estimate, test=test, mvar=NA)
+
+# If there were multiple columns from predfun, compute the matrix of
+#  variances
+if (ncol(mppv) > 1 && any(estimable)) {
+    mvar2 <- matrix(NA, nrow=n1, ncol=ncol(mppv))
+    for (i in (1:n1)[estimable]) 
+        mvar2[i,] <- apply(sims[,index==i,], 2, var)
+    result$mvar2 <- mvar2
+}
+
+# Call the summary function, if present
+if (is.list(mfun)) result$summary <- sumfun(mppv, mvar2)   
+@ 
+
 
 Build the population data set. 
 If the user provided a data set as the population then the task is
@@ -578,7 +675,7 @@ print.yates <- function(x, digits = max(3, getOption("digits") -2),
                         dig.tst = max(1, min(5, digits-1)),
                         eps=1e-8, ...) {
     temp1 <- x$estimate
-    temp1$mpv <- format(temp1$mpv, digits=digits)
+    temp1$mppv <- format(temp1$mppv, digits=digits)
     temp1$std <- format(temp1$std, digits=digits)
 
     # the spaces help separate the two parts of the printout
@@ -612,17 +709,41 @@ print.yates <- function(x, digits = max(3, getOption("digits") -2),
 
 
 Routines to allow yates to interact with other models.
+Each is called with the fitted model and the type of prediction.
+It should return NULL if the 
 
 <<yates>>=
-yates_model_setup <- function(fit, ...)
-    UseMethod("yates_model_setup", fit)
+yates_setup <- function(fit, ...)
+    UseMethod("yates_setup", fit)
 
-yates_model_setup.glm <- function(fit, type, ...) {
-    if (type == "link") NULL # same as linear
-    else if (type == "response") family(fit)$linkinv
+yates_setup.default <- function(fit, type, ...) {
+    if (!missing(type) && !(type %in% c("linear", "link")))
+        warning("no yates_setup method exists for a model of class ",
+                class(fit)[1], " and estimate type ", type,
+                ", linear predictor estimate used by default")
+    NULL
+}
+
+yates_setup.glm <- function(fit, type = c("link", "response", "terms", 
+                                          "linear"), ...) {
+    type <- match.arg(type)
+    if (type == "link" || type== "linear") NULL # same as linear
+    else if (type == "response") {
+        finv <- family(fit)$linkinv
+        function(x) finv(x)
+    }
     else if (type == "terms")
         stop("type terms not yet supported")
 }
 
-        
+yates_setup.coxph <- function(fit, type= c("lp", "risk", "expected",
+                                     "terms", "survival", "linear"), ...) {
+    type <- match.arg(type)
+    if (type=="lp" || type == "linear") NULL  
+    else if (type=="risk") function(x) exp(x)
+     else if (type == "survival")
+        stop("survival curves not yet supported")
+    else stop("type expected not yet supported")
+}
+    
 @ 
