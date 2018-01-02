@@ -12,7 +12,7 @@ Authors@R: c(person(c("Terry", "M"), "Therneau",
                     email="therneau.terry@mayo.edu",
 	            role=c("aut", "cre")),
                person("Thomas", "Lumley", role=c("ctb", "trl"),
-	       comment="original S->R port and maintainer until 2009"))
+	       comment="original S->R port and R maintainer until 2009"))
 Description: Contains the core survival analysis routines, including
 	     definition of Surv objects, 
 	     Kaplan-Meier and Aalen-Johansen (multi-state) curves, Cox models,

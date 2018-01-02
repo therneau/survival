@@ -18,7 +18,8 @@ These are also referred to as U and V in the vignette.
 <<yates>>=
 yates <- function(fit, term, population=c("data", "none", "factorial", "sas"),
                   levels, test =c("global", "trend", "pairwise"),
-                  predict, method=c("direct", "sgtt"), nsim=1000, ...) {
+                  predict, options, nsim=1000,
+                  method=c("direct", "sgtt"), ...) {
     Call <- match.call()
     if (missing(fit)) stop("a fit argument is required")
     Terms <- try(terms(fit), silent=TRUE)
@@ -29,11 +30,15 @@ yates <- function(fit, term, population=c("data", "none", "factorial", "sas"),
     # a flaw in delete.response: it doesn't subset dataClasses
     Tatt$dataClasses <- Tatt$dataClasses[row.names(Tatt$factors)]
     
-    if (missing(predict)) mfun <- yates_setup(fit)
-    else if (is.character(predict)) mfun <- yates_setup(fit, predict)
-    else {
-        # verify the predict is legal
-        stop("function prediction is still in progress")
+    if (is.list(predict) || is.function(predict)) { 
+        # someone supplied their own
+        stop("user written prediction function are not yet supported")
+    }
+    else {  # call the method
+        indx <- match(c("fit", "predict", "options"), names(Call), nomatch=0)
+        temp <- Call[c(1, indx)]
+        temp[[1]] <- quote(yates_setup)
+        mfun <- eval(temp, parent.frame())
     }
     if (is.null(mfun)) predict <- "linear"
 
@@ -95,7 +100,8 @@ yates <- function(fit, term, population=c("data", "none", "factorial", "sas"),
     #  (Over 1/2 the work of the whole routine)
     if (population == "none") xmatlist <- yates_none()
     else if (population == "user") xmatlist <- yates_xmat_user()
-    else xmatlist <- yates_xmat(Terms, Tatt, contr, population, mframe, fit)
+    else xmatlist <- yates_xmat(Terms, Tatt, contr, population, mframe, fit,
+                                iscat)
 
     # check rows of xmat for estimability
     <<yates-estim-setup>>
@@ -114,6 +120,7 @@ yates <- function(fit, term, population=c("data", "none", "factorial", "sas"),
     else {
         <<yates-nonlinear>>
     }
+    result$call <- Call
     class(result) <- "yates"
     result
 }
@@ -191,10 +198,10 @@ else {
         natest <- nafun(contr$cmat, estimate$mppv)
     }
     if (any(natest)) test[natest,] <- NA
-    if (any(estimable))
-        result <- list(estimate=estimate, test=test, mvar=etemp$var)
-    else  result <- list(estimate=estimate, test=test, mvar=NA)
 }
+if (any(estimable))
+    result <- list(estimate=estimate, test=test, mvar=etemp$var)
+else  result <- list(estimate=estimate, test=test, mvar=NA)
 @ 
 
 In the non-linear case the mfun object is either a single function
@@ -326,17 +333,18 @@ is a list with 3 elements, one of which is named ``ns(age, 4)'': notice the
 extra space before the 4 compared to what was typed.
 
 <<yates>>=
-yates_xmat <- function(Terms, Tatt, contr, population, mframe, fit) {
+yates_xmat <- function(Terms, Tatt, contr, population, mframe, fit, iscat) {
     vnames <- lapply(Tatt$variables, all.vars)[-1]  # first element was "list"
-    x1indx <- (Tatt$factors[,contr$termname] >0)      # which variables(s) in x1
-    x2indx <- !x1indx
+    # which variables(s) are in x1 (variables of interest)
+    x1indx <- apply(Tatt$factors[,contr$termname,drop=FALSE] >0, 1, any)  
+    x2indx <- !x1indx  # adjusters
     if (population=="data") pdata <- mframe  #easy case
     else if (population=="factorial") 
         pdata <- yates_factorial_pop(mframe, Terms, x2indx, fit$xlevels)
     else if (population=="sas") {
-        if (all(iscat(x2indx))) 
+        if (all(iscat[x2indx])) 
             pdata <- yates_factorial_pop(mframe, Terms, x2indx, fit$xlevels)
-        else if (!any(iscat(x2indx))) pdata <- mframe # no categoricals
+        else if (!any(iscat[x2indx])) pdata <- mframe # no categoricals
         else { # mixed population
             pdata <- yates_factorial_pop(mframe, Terms, x2indx, fit$xlevels)
             n2 <- nrow(pdata)
@@ -450,10 +458,13 @@ if (is.null(attr(pdata, "terms"))) {
     }
 } else {
     # pdata is a model frame, convert x1data
-    # if the name agrees but not the class, do a simple conversion
-    # if names don't agree, call model.frame
+    # if the name and the class agree we go forward simply
     index <- match(names(x1data), names(pdata), nomatch=0)
-    if (all(index >0)) { # names agree
+        
+    if (all(index >0) && 
+        identical(lapply(x1data, class), lapply(pdata, class)[index]) &
+        identical(sapply(x1data, ncol) , sapply(pdata, ncol)[index]))
+            { # everything agrees
         for (i in 1:nrow(x1data)) {
             j <- rep(i, nrow(pdata))
             tdata <- pdata
@@ -462,15 +473,14 @@ if (is.null(attr(pdata, "terms"))) {
                                            contrasts.arg= fit$contrasts)
         }
     }
-    else if (any(index > 0)) {
-        # some names match and some don't
-        stop("impossible match in yates, contact author")
-    }
     else {
         # create a subset of the terms structure, for x1 only
+        #  for instance the user had age=c(75, 75, 85) and the term was ns(age)
+        # then call model.frame to fix it up
         x1term <- Terms[which(x1indx)]
         x1name <- names(x1indx)[x1indx]
         attr(x1term, "dataClasses") <- Tatt$dataClasses[x1name] # R bug
+#        names(x1data) <- vnames[x1indx]
         x1frame <- model.frame(x1term, x1data, xlev=fit$xlevels[x1name])
         for (i in 1:nrow(x1data)) {
             j <- rep(i, nrow(pdata))
@@ -651,18 +661,18 @@ for (iterm in which(fterm)) {  # might be none
 }   
 @ 
 
-Should we print only the term of interest, or all of them?
-At this point ``all'' is a touch easier.
-Fix it later.
+Although the SGTT does test for all terms, we only want to print out the
+ones that were asked for.
 <<yates-sgtt>>=
-if (max(xassign) >1) { # more than 1 term in the model
-    test <- t(sapply(1:max(assign2), function(i)
+keep <- match(contr$termname, colnames(Tatt$factors))
+if (length(keep) > 1) { # more than 1 term in the model
+    test <- t(sapply(keep, function(i)
                    testfun(Cmat[assign2==i,,drop=FALSE], beta2, vmat, sigma^2)))
-    rownames(test) <- colnames(Tatt$factors)
+    rownames(test) <- contr$termname
 }  else {
-    test <- testfun(Cmat[assign2==1,, drop=FALSE], beta2, vmat, sigma^2)
+    test <- testfun(Cmat[assign2==keep,, drop=FALSE], beta2, vmat, sigma^2)
     test <- matrix(test, nrow=1, 
-                   dimnames=list(colnames(Tatt$factors), names(test)))
+                   dimnames=list(contr$termname, names(test)))
 }
 @ 
 
@@ -724,9 +734,9 @@ yates_setup.default <- function(fit, type, ...) {
     NULL
 }
 
-yates_setup.glm <- function(fit, type = c("link", "response", "terms", 
+yates_setup.glm <- function(fit, predict = c("link", "response", "terms", 
                                           "linear"), ...) {
-    type <- match.arg(type)
+    type <- match.arg(predict)
     if (type == "link" || type== "linear") NULL # same as linear
     else if (type == "response") {
         finv <- family(fit)$linkinv
@@ -736,14 +746,41 @@ yates_setup.glm <- function(fit, type = c("link", "response", "terms",
         stop("type terms not yet supported")
 }
 
-yates_setup.coxph <- function(fit, type= c("lp", "risk", "expected",
-                                     "terms", "survival", "linear"), ...) {
-    type <- match.arg(type)
+yates_setup.coxph <- function(fit, predict = c("lp", "risk", "expected",
+                                     "terms", "survival", "linear"), 
+                              options, ...) {
+    type <- match.arg(predict)
     if (type=="lp" || type == "linear") NULL  
     else if (type=="risk") function(x) exp(x)
-     else if (type == "survival")
-        stop("survival curves not yet supported")
-    else stop("type expected not yet supported")
+    else if (type == "survival") {
+         baseline <- survfit(fit, censor=FALSE)
+         if (!is.null(baseline$strata)) 
+             stop("stratified models not yet supported")
+         cumhaz <- c(0, baseline$cumhaz)
+         tt <- c(diff(c(0, baseline$time)), 0)
+         
+         predict <- function(x) {
+             c2 <- outer(exp(drop(x)), cumhaz)  # matrix of values
+             surv <- exp(-c2)
+             meansurv <- apply(rep(tt, each=nrow(c2)) * surv, 1, sum)
+             cbind(meansurv, surv)
+         }
+         summary <- function(surv, var) {
+             bsurv <- t(surv[,-1])
+             std <- sqrt(var[,-1])
+             chaz <- -log(bsurv)
+             zstat <- -qnorm((1-baseline$conf.int)/2)
+             baseline$conf.lower <- exp(-(chaz + zstat*std))
+             baseline$conf.upper <- exp(-(chaz - zstat*std))
+             colnames(bsurv) <- row.names(surv)
+             baseline$survival <- bsurv
+             baseline$std.err  <- std/bsurv
+             baselinecumhaz <- chas
+             baseline
+         }
+         list(predict=predict, summary=summary)
+     }
+    else stop("type expected is not supported")
 }
     
 @ 

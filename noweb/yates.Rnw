@@ -73,6 +73,7 @@ cmatrix <- function(fit, term,
         stop("the term must be a formula, character string, or integer")
     fterm <- delete.response(terms(term))
     fatt <- attributes(fterm)
+    user.name <- fatt$term.labels  # what the user called it
     indx <- match(fatt$term.labels, Tatt$term.labels)
     if (any(is.na(indx))) {
         # allow partial matching.  If the fit had factor(x) but user said "x",
@@ -160,7 +161,7 @@ cmatrix <- function(fit, term,
         else if (length(parts) > 1)
             stop("levels should be a data frame or matrix")
         else levels <- data.frame(x=unique(levels))
-        names(levels) <- parts 
+        names(levels) <- user.name
     }
 
     # check that any categorical levels are legal
@@ -196,7 +197,8 @@ If the term is the interaction of multiple categorical variables
 then we do an anova type decomposition.
 In other cases we currently fail.
 <<cmatrix-build-default>>=
-if (length(parts) ==1) {
+if (TRUE) {
+#if (length(parts) ==1) {
     cmat <- diag(nrow(levels))
     cmat[, nrow(cmat)] <- -1   # all equal to the last
     cmat <- cmat[-nrow(cmat),, drop=FALSE]
