@@ -368,6 +368,7 @@ created a categorical age value using deciles of age.
 \begin{figure}
 <<data, fig=TRUE, echo=FALSE>>=
 male <- (flchain$sex=='M')
+flchain$flc <- flchain$kappa + flchain$lambda
 mlow <- with(flchain[male,],  smooth.spline(age, flc))
 flow <- with(flchain[!male,], smooth.spline(age, flc))
 plot(flow, type='l', ylim=range(flow$y, mlow$y),
@@ -510,13 +511,46 @@ higher risk members of the population die.
 Though computable there is no natural feel for what either a mean r
 hazard ratio or a mean log hazard ratio actually represent.
 
-Survival curves however do make a proper average; 
+Survival curves however do lead to a proper average: 
 the survival curve of a population is the
 mean of the individual survival curves of its member.
 Functions computed from the survival curve such as a mean or median time
 until event will also be proper and interpretable.
+Here is the overall survival for the group.  
+The longest death time is  at
+\Sexpr{round(with(flchain, max(futime[death==1])/365.25),1)} years, we
+will use a restricted mean survival at a threshold of 13 years.
 <<surv>>=
-ysurv <- yates(coxfit4, ~fgroup, predict="survival")
+# longest time to death
+round(max(flchain$futime[flchain$death==1]) / 365.25, 1)
+#compute naive survival curve
+flkm <- survfit(Surv(futime, death) ~ fgroup, data=flchain)
+print(flkm, rmean= 13*365.25)
+@ 
+
+The default survival prediction takes longer recommended for a CRAN
+vignette: there are \Sexpr{nrow(flchain)} subjects in the study
+4 flc groups, which leads to just over 30 thousand predicted survival curves
+when using the default \code{population='data'}.  To compute the variance
+this is repeated \code{nsim} times.  We cut the latter back to 50
+for feasability in this particular case.
+
+<<surv2>>=
+ysurv <- yates(coxfit4, ~fgroup, predict="survival", nsim=50,
+               options=list(rmean=365.25*13))
+ysurv
+@ 
+The spread in restricted mean values is considerably less in the marginal
+ (MPPV) survival curves from the yates function.
+The \code{ysurv} object can also contain an optional summary component, which
+in this case is the set of 4 MPPV survival curves.
+Plot these along with the unadjusted curves, with solid lines for the
+MPPV estimates and dashed for the unadjusted curves.
+
+<<surv3>>=
+plot(flkm, xscale=365.25, fun="event", col=1:4, lty=2, lwd=2,
+     xlab="Years", ylab="Death")
+lines(ysurv$summary, fun="event", col=1:4, lty=1, lwd=2)
 @ 
 
 

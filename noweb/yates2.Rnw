@@ -18,7 +18,7 @@ These are also referred to as U and V in the vignette.
 <<yates>>=
 yates <- function(fit, term, population=c("data", "none", "factorial", "sas"),
                   levels, test =c("global", "trend", "pairwise"),
-                  predict, options, nsim=1000,
+                  predict="linear", options, nsim=1000,
                   method=c("direct", "sgtt"), ...) {
     Call <- match.call()
     if (missing(fit)) stop("a fit argument is required")
@@ -280,16 +280,17 @@ if (any(estimable))
 else  result <- list(estimate=estimate, test=test, mvar=NA)
 
 # If there were multiple columns from predfun, compute the matrix of
-#  variances
-if (ncol(mppv) > 1 && any(estimable)) {
-    mvar2 <- matrix(NA, nrow=n1, ncol=ncol(mppv))
-    for (i in (1:n1)[estimable]) 
-        mvar2[i,] <- apply(sims[,index==i,], 2, var)
-    result$mvar2 <- mvar2
+#  results and variances 
+if (ncol(mppv) > 1 && any(estimable)){
+    mppv <-  apply(sims, 2:3, mean)
+    mvar2 <- apply(sims, 2:3, var)
+    # Call the summary function, if present
+    if (is.list(mfun)) result$summary <- sumfun(mppv, mvar2)
+    else {
+        result$mppv <- mppv
+        result$mvar2 <- mvar2
+    }
 }
-
-# Call the summary function, if present
-if (is.list(mfun)) result$summary <- sumfun(mppv, mvar2)   
 @ 
 
 
@@ -753,32 +754,33 @@ yates_setup.coxph <- function(fit, predict = c("lp", "risk", "expected",
     if (type=="lp" || type == "linear") NULL  
     else if (type=="risk") function(x) exp(x)
     else if (type == "survival") {
-         baseline <- survfit(fit, censor=FALSE)
-         if (!is.null(baseline$strata)) 
-             stop("stratified models not yet supported")
-         cumhaz <- c(0, baseline$cumhaz)
-         tt <- c(diff(c(0, baseline$time)), 0)
+        baseline <- survfit(fit, censor=FALSE)
+        if (!is.null(options$rmean)) rmean <- options$rmean
+        else rmean <- max(baseline$time)  # max death time
+        if (!is.null(baseline$strata)) 
+            stop("stratified models not yet supported")
+        cumhaz <- c(0, baseline$cumhaz)
+        tt <- c(diff(c(0, pmin(rmean, baseline$time))), 0)
          
-         predict <- function(x) {
-             c2 <- outer(exp(drop(x)), cumhaz)  # matrix of values
-             surv <- exp(-c2)
-             meansurv <- apply(rep(tt, each=nrow(c2)) * surv, 1, sum)
-             cbind(meansurv, surv)
-         }
-         summary <- function(surv, var) {
-             bsurv <- t(surv[,-1])
-             std <- sqrt(var[,-1])
-             chaz <- -log(bsurv)
-             zstat <- -qnorm((1-baseline$conf.int)/2)
-             baseline$conf.lower <- exp(-(chaz + zstat*std))
-             baseline$conf.upper <- exp(-(chaz - zstat*std))
-             colnames(bsurv) <- row.names(surv)
-             baseline$survival <- bsurv
-             baseline$std.err  <- std/bsurv
-             baselinecumhaz <- chas
-             baseline
-         }
-         list(predict=predict, summary=summary)
+        predict <- function(x) {
+            c2 <- outer(exp(drop(x)), cumhaz)  # matrix of values
+            surv <- exp(-c2)
+            meansurv <- apply(rep(tt, each=nrow(c2)) * surv, 1, sum)
+            cbind(meansurv, surv)
+        }
+        summary <- function(surv, var) {
+            bsurv <- t(surv[,-1])
+            std <- t(sqrt(var[,-1]))
+            chaz <- -log(bsurv)
+            zstat <- -qnorm((1-baseline$conf.int)/2)
+            baseline$lower <- exp(-(chaz + zstat*std))
+            baseline$upper <- exp(-(chaz - zstat*std))
+            baseline$surv <- bsurv
+            baseline$std.err  <- std/bsurv
+            baselinecumhaz <- chaz
+            baseline
+        }
+        list(predict=predict, summary=summary)
      }
     else stop("type expected is not supported")
 }
