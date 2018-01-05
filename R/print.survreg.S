@@ -1,4 +1,3 @@
-# $Id: print.survreg.S 11166 2008-11-24 22:10:34Z therneau $
 print.survreg <- function(x, ...)
 {
     if(!is.null(cl <- x$call)) {
@@ -26,7 +25,7 @@ print.survreg <- function(x, ...)
 	print(x$scale, ...)
 	}
 
-
+    pdig <- max(1, getOption("digits")-4)  # default it too high IMO
     nobs <- length(x$linear)
     chi <- 2*diff(x$loglik)
     df  <- sum(x$df) - x$idf   # The sum is for penalized models
@@ -35,7 +34,8 @@ print.survreg <- function(x, ...)
     if (df > 0)
 	    cat("\n\tChisq=", format(round(chi,2)), "on", round(df,1),
 		"degrees of freedom, p=", 
-		format.pval(pchisq(chi, df, lower.tail=FALSE)), "\n")
+		format.pval(pchisq(chi, df, lower.tail=FALSE), digits=pdig), 
+                "\n")
     else cat("\n")
 
     omit <- x$na.action

@@ -52,20 +52,24 @@ print.summary.coxph.penal <-
         cat("Concordance=", format(round(x$concordance[1],3)),
             " (se =", format(round(x$concordance[2], 3)),")\n")
     }
+    pdig <- max(1, getOption("digits")-4)  # default it too high IMO    
     cat("Likelihood ratio test= ", format(round(logtest, 2)), "  on ",
-	df, " df,", "   p=", format.pval(pchisq(logtest, df, lower.tail=FALSE)),
+	df, " df,", "   p=", 
+        format.pval(pchisq(logtest, df, lower.tail=FALSE), digits=pdig),
 	"\n", sep = "")
     if (!is.null(x$wald.test))
         cat("Wald test            = ", format(round(x$wald.test, 2)), 
 	    "  on ", df, " df,   p=",
-	    format.pval(pchisq(x$wald.test, df, lower.tail=FALSE)), sep = "")
+	    format.pval(pchisq(x$wald.test, df, lower.tail=FALSE), digits=pdig),
+            sep = "")
     if (!is.null(x$score))
         cat("\nScore (logrank) test = ", format(round(sctest, 2)), "  on ", df,
             " df,", "   p=", 
-            format.pval(pchisq(sctest, df, lower.tail=FALSE)), sep ="") 
+            format.pval(pchisq(sctest, df, lower.tail=FALSE), digits=pdig), 
+            sep ="") 
     if (is.null(x$rscore)) cat("\n")
-    else cat(",   Robust = ", format(round(x$rscore, 2)), 
-	   "  p=", format.pval(pchisq(x$rscore, df, lower.tail=FALSE)), 
+    else cat(",   Robust = ", format(round(x$rscore, 2)), "  p=", 
+             format.pval(pchisq(x$rscore, df, lower.tail=FALSE), digits=pdig), 
              "\n", sep="")   
 
     invisible()

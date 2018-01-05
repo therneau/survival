@@ -1,5 +1,5 @@
 
-R Under development (unstable) (2017-05-02 r72647) -- "Unsuffered Consequences"
+R version 3.4.1 (2017-06-30) -- "Single Candle"
 Copyright (C) 2017 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
@@ -44,7 +44,7 @@ number:strata(enum)enum=2 -0.0984    0.9063   0.1193    0.1144 -0.86 0.3895
 number:strata(enum)enum=3 -0.0662    0.9360   0.1298    0.1167 -0.57 0.5708
 number:strata(enum)enum=4  0.0928    1.0972   0.1466    0.1175  0.79 0.4298
 
-Likelihood ratio test=29.4  on 12 df, p=0.00344
+Likelihood ratio test=29.39  on 12 df, p=0.003
 n= 340, number of events= 112 
 > 
 > # Check the rx coefs versus Wei, et al, JASA 1989
@@ -82,9 +82,9 @@ number    1.1873     0.8423    1.0528     1.339
 
 Concordance= 0.634  (se = 0.03 )
 Rsquare= 0.09   (max possible= 0.994 )
-Likelihood ratio test= 16.77  on 3 df,   p=0.000787
-Wald test            = 11.76  on 3 df,   p=0.008256
-Score (logrank) test = 18.57  on 3 df,   p=0.0003355,   Robust = 11.44  p=0.009588
+Likelihood ratio test= 16.77  on 3 df,   p=8e-04
+Wald test            = 11.76  on 3 df,   p=0.008
+Score (logrank) test = 18.57  on 3 df,   p=3e-04,   Robust = 11.44  p=0.01
 
   (Note: the likelihood ratio and score tests assume independence of
      observations within a cluster, the Wald and robust score tests do not).
@@ -109,7 +109,7 @@ rx     -0.5176    0.5959   0.3158 -1.64 0.1012
 size    0.0679    1.0702   0.1012  0.67 0.5025
 number  0.2360    1.2662   0.0761  3.10 0.0019
 
-Likelihood ratio test=9.66  on 3 df, p=0.0216
+Likelihood ratio test=9.66  on 3 df, p=0.02
 n= 85, number of events= 47 
 > fit2pa
 Call:
@@ -121,7 +121,7 @@ rx     -0.42421   0.65428  0.40220 -1.05 0.29
 size   -0.12503   0.88247  0.11709 -1.07 0.29
 number  0.00199   1.00199  0.09376  0.02 0.98
 
-Likelihood ratio test=2.02  on 3 df, p=0.569
+Likelihood ratio test=2.02  on 3 df, p=0.6
 n= 46, number of events= 29 
 > fit2pb
 Call:
@@ -133,7 +133,7 @@ rx     -0.25911   0.77174  0.40511 -0.64 0.52
 size   -0.11636   0.89015  0.11924 -0.98 0.33
 number -0.00571   0.99431  0.09667 -0.06 0.95
 
-Likelihood ratio test=1.27  on 3 df, p=0.735
+Likelihood ratio test=1.27  on 3 df, p=0.7
 n= 46, number of events= 29 
 > fit3pa
 Call:
@@ -145,10 +145,10 @@ rx     -0.8985    0.4072   0.5535 -1.62 0.10
 size    0.0850    1.0887   0.2086  0.41 0.68
 number -0.0172    0.9830   0.1280 -0.13 0.89
 
-Likelihood ratio test=4.16  on 3 df, p=0.245
+Likelihood ratio test=4.16  on 3 df, p=0.2
 n= 27, number of events= 22 
 > rm(rx, cmat, wfit, fita, fit1p, fit2pa, fit2pb, fit3pa)
 > 
 > proc.time()
    user  system elapsed 
-  0.904   0.024   0.926 
+  1.749   0.107   2.042 

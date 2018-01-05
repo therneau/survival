@@ -1,7 +1,7 @@
 
-R Under development (unstable) (2016-01-29 r70039) -- "Unsuffered Consequences"
-Copyright (C) 2016 The R Foundation for Statistical Computing
-Platform: i686-pc-linux-gnu (32-bit)
+R version 3.4.1 (2017-06-30) -- "Single Candle"
+Copyright (C) 2017 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -64,7 +64,7 @@ coxph(formula = Surv(futime, fustat) ~ age)
       coef exp(coef) se(coef)    z      p
 age 0.1616    1.1754   0.0497 3.25 0.0012
 
-Likelihood ratio test=14.3  on 1 df, p=0.000156
+Likelihood ratio test=14.29  on 1 df, p=2e-04
 n= 26, number of events= 12 
 > coxph(Surv(futime, fustat)~ resid.ds)
 Call:
@@ -73,7 +73,7 @@ coxph(formula = Surv(futime, fustat) ~ resid.ds)
           coef exp(coef) se(coef)   z     p
 resid.ds 1.209     3.351    0.672 1.8 0.072
 
-Likelihood ratio test=3.76  on 1 df, p=0.0525
+Likelihood ratio test=3.76  on 1 df, p=0.05
 n= 26, number of events= 12 
 > coxph(Surv(futime, fustat)~ rx)
 Call:
@@ -82,7 +82,7 @@ coxph(formula = Surv(futime, fustat) ~ rx)
      coef exp(coef) se(coef)     z    p
 rx -0.596     0.551    0.587 -1.02 0.31
 
-Likelihood ratio test=1.05  on 1 df, p=0.305
+Likelihood ratio test=1.05  on 1 df, p=0.3
 n= 26, number of events= 12 
 > coxph(Surv(futime, fustat)~ ecog.ps)
 Call:
@@ -91,7 +91,7 @@ coxph(formula = Surv(futime, fustat) ~ ecog.ps)
          coef exp(coef) se(coef)    z   p
 ecog.ps 0.398     1.489    0.586 0.68 0.5
 
-Likelihood ratio test=0.47  on 1 df, p=0.494
+Likelihood ratio test=0.47  on 1 df, p=0.5
 n= 26, number of events= 12 
 > 
 > coxph(Surv(futime, fustat)~ resid.ds + rx + ecog.ps)
@@ -103,7 +103,7 @@ resid.ds  1.347     3.844    0.680  1.98 0.048
 rx       -0.749     0.473    0.595 -1.26 0.208
 ecog.ps   0.453     1.573    0.590  0.77 0.443
 
-Likelihood ratio test=6.03  on 3 df, p=0.11
+Likelihood ratio test=6.03  on 3 df, p=0.1
 n= 26, number of events= 12 
 > coxph(Surv(futime, fustat)~ age + rx + ecog.ps)
 Call:
@@ -114,7 +114,7 @@ age      0.1470    1.1583   0.0463  3.17 0.0015
 rx      -0.8146    0.4428   0.6342 -1.28 0.1990
 ecog.ps  0.1032    1.1087   0.6064  0.17 0.8649
 
-Likelihood ratio test=15.9  on 3 df, p=0.00118
+Likelihood ratio test=15.92  on 3 df, p=0.001
 n= 26, number of events= 12 
 > coxph(Surv(futime, fustat)~ age + resid.ds + ecog.ps)
 Call:
@@ -125,7 +125,7 @@ age      0.142     1.153    0.052 2.74 0.0061
 resid.ds 0.663     1.940    0.750 0.88 0.3773
 ecog.ps  0.166     1.181    0.615 0.27 0.7867
 
-Likelihood ratio test=15.1  on 3 df, p=0.00173
+Likelihood ratio test=15.1  on 3 df, p=0.002
 n= 26, number of events= 12 
 > coxph(Surv(futime, fustat)~ age + resid.ds + rx)
 Call:
@@ -136,7 +136,7 @@ age       0.1285    1.1372   0.0473  2.72 0.0066
 resid.ds  0.6964    2.0065   0.7585  0.92 0.3586
 rx       -0.8489    0.4279   0.6392 -1.33 0.1842
 
-Likelihood ratio test=16.8  on 3 df, p=0.000789
+Likelihood ratio test=16.77  on 3 df, p=8e-04
 n= 26, number of events= 12 
 > 
 > # Residuals
@@ -225,9 +225,9 @@ ecog.ps    0.9078     1.1015    0.2641     3.120
 
 Concordance= 0.819  (se = 0.134 )
 Rsquare= 0.387   (max possible= 0.874 )
-Likelihood ratio test= 12.71  on 2 df,   p=0.001736
-Wald test            = 8.43  on 2 df,   p=0.01476
-Score (logrank) test = 12.24  on 2 df,   p=0.002195
+Likelihood ratio test= 12.71  on 2 df,   p=0.002
+Wald test            = 8.43  on 2 df,   p=0.01
+Score (logrank) test = 12.24  on 2 df,   p=0.002
 
 > summary(survfit(fit))
 Call: survfit(formula = fit)
@@ -314,4 +314,4 @@ Call: survfit(formula = fit, newdata = list(age = c(30, 70), ecog.ps = c(2,
 > 
 > proc.time()
    user  system elapsed 
-  0.280   0.012   0.284 
+  1.835   0.188   2.381 

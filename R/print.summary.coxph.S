@@ -45,18 +45,23 @@ print.summary.coxph <-
             "  (max possible=", format(round(x$rsq["maxrsq"],3)),
             ")\n" )
 
+    pdig <- max(1, getOption("digits")-4)  # default it too high IMO
     cat("Likelihood ratio test= ", format(round(x$logtest["test"], 2)), "  on ",
-	x$logtest["df"], " df,", "   p=", format.pval(x$logtest["pvalue"]),
+	x$logtest["df"], " df,", "   p=", 
+        format.pval(x$logtest["pvalue"], digits=pdig),
         "\n", sep = "")
     cat("Wald test            = ", format(round(x$waldtest["test"], 2)), "  on ",
-	x$waldtest["df"], " df,", "   p=", format.pval(x$waldtest["pvalue"]),
+	x$waldtest["df"], " df,", "   p=", 
+        format.pval(x$waldtest["pvalue"], digits=pdig),
 	"\n", sep = "")
     cat("Score (logrank) test = ", format(round(x$sctest["test"], 2)), "  on ",
-        x$sctest["df"]," df,", "   p=", format.pval(x$sctest["pvalue"]), sep ="")
+        x$sctest["df"]," df,", "   p=", 
+        format.pval(x$sctest["pvalue"], digits=pdig), sep ="")
     if (is.null(x$robscore))
         cat("\n\n")
     else cat(",   Robust = ", format(round(x$robscore["test"], 2)), 
-             "  p=", format.pval(x$robscore["pvalue"]), "\n\n", sep="")   
+             "  p=", 
+             format.pval(x$robscore["pvalue"], digits=pdig), "\n\n", sep="")   
 
     if (x$used.robust)
 	cat("  (Note: the likelihood ratio and score tests",

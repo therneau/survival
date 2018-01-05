@@ -188,8 +188,7 @@ valve$time2[indx-1] <- valve$time2[indx-1] - .1
 
 kfit <- survfit(Surv(time1, time2, status) ~1, valve, type='fh2')
 
-plot(kfit, fun='cumhaz', ylab="Sample Mean Cumulative Failures", xlab='Time',
-     ylim=range(-log(kfit$lower)))
+plot(kfit, fun='cumhaz', ylab="Sample Mean Cumulative Failures", xlab='Time')
 title("Valve replacement data")
 
 # The summary.survfit function doesn't have an option for printing out

@@ -4,7 +4,8 @@
   \itemize{
     \item Fix a bug in the agfit4.c routine, based on data sets from Ivo
     Sousa Ferreira and Marloes Derks.  This was introduced in 2.39-1 and
-    leads to incorrect solutions for selected data sets. In detail:
+    leads to incorrect solutions for selected data sets.  Such data sets
+    are a rare edge case, however.  In detail:
     In a start stop data set with strata assume two adjacent event times
     in one stratum of d1 and d2, say, and a set of k censored intervals
     (a,b) also in that stratum such that a>=d1 and b<d2.  (Such intervals are
@@ -15,8 +16,8 @@
     and contributions to the loglik, first and second derivative at d1
     would be incorrect.  I expect such data sets are extremely rare.
     However, the survSplit routine and mstate packages can generate data
-    sets with a LOT of intervals.  (The data set in question came from
-    mstate.)
+    sets with a LOT of the unneeded intervals.  (The data set in
+    question came from mstate.)
 
     \item Use format.pval() and printCoefmat in more of the print
     functions.  This aligns the format with that of base R.
@@ -27,8 +28,10 @@
     \item The [.survfit routine would complain on the use of fit[1]
     when fit contained a single curve.  This is now legal.
     \item Change NAMED() to MAYBE_REFERENCED() at the suggestion of R
-core
+    core
 
+    \item Add the yates() routine for population prediction
+    and accompanying vignette.
   }
 }
 \section{Changes in version 2.41-5}{

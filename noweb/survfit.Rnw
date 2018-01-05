@@ -319,7 +319,7 @@ survfit_confint <- function(p, se, logse=TRUE, conf.type, conf.int,
                             selow) {
     zval <- qnorm(1- (1-conf.int)/2, 0,1)
     if (missing(selow)) scale <- 1.0
-    else scale <- selow/se
+    else scale <- ifelse(selow==0, 1.0, selow/se)  # avoid 0/0 at the origin
     if (!logse) se <- se/p   # se of log(survival) = log(p)
 
     if (conf.type=='plain') {
@@ -337,8 +337,8 @@ survfit_confint <- function(p, se, logse=TRUE, conf.type, conf.int,
     else if (conf.type=='log-log') {
         xx <- ifelse(p==0 | p==1, NA, p)
         se2 <- zval * se/log(xx)
-        temp1 <- exp(-exp(log(-log(xx)) + se2*scale))
-        temp2 <- exp(-exp(log(-log(xx)) - se2))
+        temp1 <- exp(-exp(log(-log(xx)) - se2*scale))
+        temp2 <- exp(-exp(log(-log(xx)) + se2))
         list(lower = temp1 , upper = temp2)
     }
     else if (conf.type=='logit') {

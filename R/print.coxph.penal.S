@@ -107,8 +107,10 @@ print.coxph.penal <-  function(x, terms=FALSE, maxlabel=25,
     cat("Degrees of freedom for terms=", format(round(x$df,1)), "\n")
 #    cat("Cox PL (initial,final) = ", format(round(x$loglik,2)),
 #	"  Penalty = ", format(x$penalty), "\n")
+    pdig <- max(1, getOption("digits")-4)  # default it too high IMO
     cat("Likelihood ratio test=", format(round(logtest, 2)), "  on ",
-	df, " df,", " p=", format.pval(pchisq(logtest, df, lower.tail=FALSE)),
+	df, " df,", " p=", 
+        format.pval(pchisq(logtest, df, lower.tail=FALSE), digits=pdig),
         sep="")
     omit <- x$na.action
     if (length(omit))

@@ -1,7 +1,7 @@
 
-R Under development (unstable) (2015-06-04 r68474) -- "Unsuffered Consequences"
-Copyright (C) 2015 The R Foundation for Statistical Computing
-Platform: i686-pc-linux-gnu (32-bit)
+R version 3.4.1 (2017-06-30) -- "Single Candle"
+Copyright (C) 2017 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -48,7 +48,7 @@ pspline(age, 3), nonlin                             2.07924 2.08 0.37143
 Iterations: 4 outer, 12 Newton-Raphson
      Theta= 0.861 
 Degrees of freedom for terms= 1.0 3.1 
-Likelihood ratio test=21.9  on 4.08 df, p=0.000227
+Likelihood ratio test=21.9  on 4.08 df, p=2e-04
   n=227 (1 observation deleted due to missingness)
 > fit2
 Call:
@@ -63,7 +63,7 @@ pspline(age, 4), nonlin                             2.95816 3.08 0.41197
 Iterations: 4 outer, 11 Newton-Raphson
      Theta= 0.797 
 Degrees of freedom for terms= 1.0 4.1 
-Likelihood ratio test=22.7  on 5.07 df, p=0.000412
+Likelihood ratio test=22.7  on 5.07 df, p=4e-04
   n=227 (1 observation deleted due to missingness)
 > fit3
 Call:
@@ -78,7 +78,7 @@ pspline(age, 8), nonlin                             6.93188 6.99    0.43
 Iterations: 5 outer, 15 Newton-Raphson
      Theta= 0.691 
 Degrees of freedom for terms= 1 8 
-Likelihood ratio test=27.6  on 8.97 df, p=0.00108
+Likelihood ratio test=27.6  on 8.97 df, p=0.001
   n=227 (1 observation deleted due to missingness)
 > fit4
 Call:
@@ -93,7 +93,7 @@ pspline(wt.loss, 3), nonl                             2.44612 2.09  0.31
 Iterations: 3 outer, 10 Newton-Raphson
      Theta= 0.776 
 Degrees of freedom for terms= 1.0 3.1 
-Likelihood ratio test=21.1  on 4.06 df, p=0.000326
+Likelihood ratio test=21.1  on 4.06 df, p=3e-04
   n=213 (15 observations deleted due to missingness)
 > fit5
 Call:
@@ -111,11 +111,11 @@ Iterations: 4 outer, 12 Newton-Raphson
      Theta= 0.85 
      Theta= 0.779 
 Degrees of freedom for terms= 1.0 3.1 3.0 
-Likelihood ratio test=25.2  on 7.06 df, p=0.000726
+Likelihood ratio test=25.2  on 7.06 df, p=7e-04
   n=213 (15 observations deleted due to missingness)
 > 
 > rm(fit1, fit2, fit3, fit4, fit5)
 > 
 > proc.time()
    user  system elapsed 
-  0.276   0.024   0.294 
+  2.021   0.163   2.474 

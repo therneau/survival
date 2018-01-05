@@ -12,8 +12,8 @@ hazards model.
         se.fit=TRUE, conf.int=.95,
         individual=FALSE, 
         type,vartype,
-        conf.type=c("log","log-log","plain","none", "logit"), censor=TRUE, id,
-        start.time,
+        conf.type=c("log","log-log","plain","none", "logit", "arcsin"),
+        censor=TRUE, id, start.time,
         na.action=na.pass, ...)
 }
 \arguments{

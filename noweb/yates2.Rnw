@@ -16,10 +16,10 @@ all the other terms in the model, the ones that we average over.
 These are also referred to as U and V in the vignette.
 
 <<yates>>=
-yates <- function(fit, term, population=c("data", "none", "factorial", "sas"),
+yates <- function(fit, term, population=c("data", "factorial", "sas"),
                   levels, test =c("global", "trend", "pairwise"),
                   predict="linear", options, nsim=1000,
-                  method=c("direct", "sgtt"), ...) {
+                  method=c("direct", "sgtt")) {
     Call <- match.call()
     if (missing(fit)) stop("a fit argument is required")
     Terms <- try(terms(fit), silent=TRUE)
@@ -62,7 +62,7 @@ yates <- function(fit, term, population=c("data", "none", "factorial", "sas"),
 
     if (is.character(population)) {
         population <- match.arg(tolower(population[1]),
-                                c("data", "none", "factorial", "sas",
+                                c("data", "factorial", "sas",
                                   "empirical", "yates"))
         if (population=="empirical") population <- "data"
         if (population=="yates") population <- "factorial"
@@ -70,8 +70,6 @@ yates <- function(fit, term, population=c("data", "none", "factorial", "sas"),
     else {
         if (!inherits(population, "data.frame"))
             stop("the population argument must be a data frame or character")
-        pdata <- population
-        population <- "user"
         }
     test <- match.arg(test)
     
@@ -98,15 +96,13 @@ yates <- function(fit, term, population=c("data", "none", "factorial", "sas"),
     
     # Make the list of X matrices that drive everything: xmatlist
     #  (Over 1/2 the work of the whole routine)
-    if (population == "none") xmatlist <- yates_none()
-    else if (population == "user") xmatlist <- yates_xmat_user()
-    else xmatlist <- yates_xmat(Terms, Tatt, contr, population, mframe, fit,
+    xmatlist <- yates_xmat(Terms, Tatt, contr, population, mframe, fit,
                                 iscat)
 
     # check rows of xmat for estimability
     <<yates-estim-setup>>
     
-    # Remove missing coefficients and columns
+    # Remove missing coefficients and columns.  It makes later code easier.
     if (any(nabeta)) {
         xmatlist <- lapply(xmatlist, function(x) x[,!nabeta, drop=FALSE])
         beta <- beta[!nabeta]
@@ -169,7 +165,7 @@ Cmat <- t(sapply(xmatlist, colMeans))
 #  before computing estimates and tests.
 if (inherits(fit, "coxph")) {
     Cmat <- Cmat[,-1, drop=FALSE]
-    offset <- -sum(fit$means * fit$coef)  # recenter the predictions too
+    offset <- -sum(fit$means[!nabeta] * beta)  # recenter the predictions too
     }
 else offset <- 0
     
@@ -200,7 +196,7 @@ else {
     if (any(natest)) test[natest,] <- NA
 }
 if (any(estimable))
-    result <- list(estimate=estimate, test=test, mvar=etemp$var)
+    result <- list(estimate=estimate, test=test, mvar=etemp$var, cmat=Cmat)
 else  result <- list(estimate=estimate, test=test, mvar=NA)
 @ 
 
@@ -215,7 +211,7 @@ predictions.
 xall <- do.call(rbind, xmatlist)
 if (inherits(fit, "coxph")) {
     xall <- xall[,-1, drop=FALSE]  # remove the intercept
-    eta <- xall %*% beta -sum(fit$means*fit$coef)
+    eta <- xall %*% beta -sum(fit$means[!nabeta]* beta)
 }
 else eta <- xall %*% beta
 n1 <- nrow(xmatlist[[1]])  # all of them are the same size
@@ -253,7 +249,7 @@ bmat <- bmat + rep(beta, each=nsim)  # add the mean
 # and use those to create a variance matrix
 # Since if Cox we need to recenter each run
 sims <- array(0., dim=c(nsim, nrow(mppv), ncol(mppv)))
-if (inherits(fit, 'coxph')) offset <- bmat %*% fit$means
+if (inherits(fit, 'coxph')) offset <- bmat %*% fit$means[!nabeta]
 else offset <- rep(0., nsim)
    
 for (i in 1:nsim)
@@ -334,12 +330,13 @@ is a list with 3 elements, one of which is named ``ns(age, 4)'': notice the
 extra space before the 4 compared to what was typed.
 
 <<yates>>=
-yates_xmat <- function(Terms, Tatt, contr, population, mframe, fit, iscat) {
-    vnames <- lapply(Tatt$variables, all.vars)[-1]  # first element was "list"
+yates_xmat <- function(Terms, Tatt, contr, population, mframe, fit, 
+                       iscat) {
     # which variables(s) are in x1 (variables of interest)
     x1indx <- apply(Tatt$factors[,contr$termname,drop=FALSE] >0, 1, any)  
     x2indx <- !x1indx  # adjusters
-    if (population=="data") pdata <- mframe  #easy case
+    if (inherits(population, "data.frame")) pdata <- population  #user data
+    else if (population=="data") pdata <- mframe  #easy case
     else if (population=="factorial") 
         pdata <- yates_factorial_pop(mframe, Terms, x2indx, fit$xlevels)
     else if (population=="sas") {
@@ -362,9 +359,7 @@ yates_xmat <- function(Terms, Tatt, contr, population, mframe, fit, iscat) {
             }
         }
     }
-    else if (population=="user") {
-        # nothing needs to be done
-    }
+    else stop("unknown population")  # this should have been caught earlier
 
     # Now create the x1 data set, the unique rows we want to test
     <<yates-x1mat>>
@@ -450,7 +445,8 @@ for (i in 1:ncol(x1data)) {
 xmatlist <- vector("list", nrow(x1data))
 if (is.null(attr(pdata, "terms"))) {
     np <- nrow(pdata)
-    pdata <- pdata[[x2name]]  # data set order does not matter
+    k <- match(x1name, names(pdata), nomatch=0)
+    if (any(k>0)) pdata <- pdata[which(k <=0)]
     for (i in 1:nrow(x1data)) {
         j <- rep(i, np)
         tdata <- cbind(pdata, x1data[j,,drop=FALSE]) # new data set
@@ -481,7 +477,6 @@ if (is.null(attr(pdata, "terms"))) {
         x1term <- Terms[which(x1indx)]
         x1name <- names(x1indx)[x1indx]
         attr(x1term, "dataClasses") <- Tatt$dataClasses[x1name] # R bug
-#        names(x1data) <- vnames[x1indx]
         x1frame <- model.frame(x1term, x1data, xlev=fit$xlevels[x1name])
         for (i in 1:nrow(x1data)) {
             j <- rep(i, nrow(pdata))
@@ -494,74 +489,6 @@ if (is.null(attr(pdata, "terms"))) {
 }      
 @ 
 
-<<yates>>=
-yates_none <- function(Terms, Tatt, contr, xassign) {
-    #  The population="none" case. contr will be a cmatrix object
-    index <- match(contr$termname, Tatt$term.labels)
-    whichcol <- which(xassign %in% index)  #columns to fill in
-    ncol <- length(whichcol)
-    if (is.null(contr$levels)) {
-        # population = none is the one case where we allow values for 
-        #  x1 to be unspecified.  
-        apv <- matrix(0., nrow=ncol, ncol=nvar)
-        apv[,whichcol] <- diag(ncol)
-    }
-    else {
-        apv <- matrix(0., nrow=nrow(contr$levels), ncol=nvar)
-    }    
-
-    ncoef <- length(xassign)
-    whichcol <- which(xassign %in% index)  #columns to fill in
-    clevel <- contr$levels
-    nullcontr <- sapply(clevel, is.null)
-    if (all(nullcontr)) {
-        Xmat <- matrix(0., nrow=length(whichcol), ncol=ncoef)
-        Xmat[,whichcol] <- diag(length(whichcol))
-    }
-    else if (any(nullcontr))                            
-        stop("can't handle this type of mixed term, yet")
-    else {
-        # Get the inner part of each name, e.g, ns(age, df=3) turns into "age".
-        #  The line below is killing a fly with a triphammer, but we only run
-        #  it once.  
-        pname <- names(clevel)
-        for (i in 1:length(pname)) pname[i] <- all.vars(parse(text=pname[i]))[1]
-
-        if (!is.data.frame(clevel)) clevel <- do.call("expand.grid", clevel)
-        Xmat <- matrix(0., nrow=nrow(clevel), ncol=ncoef)
-        for (i in 1:ncol(clevel)) {
-            cname <- names(clevel)[i]
-            ccol <- which(xassign== index[i])
-            if (contr$iscat[i]) {
-                if (length(ccol) < length(fit$xlevels[[cname]])) 
-                    temp <- get(fit$contrasts[[cname]])(length(ccol))
-                else temp <- get(fit$contrasts[[cname]])(length(ccol),
-                                                         contrasts=FALSE)
-                Xmat[,ccol] <- temp[match(clevel[[i]], fit$xlevels[[cname]]),]
-            }
-            else { # continuous
-                j <- match(cname, row.names(Tattr$factors))
-                pcall <- Tattr$predictCall[[j+1]] #skip the "list" element
-                if (is.call(pcall)) {
-                    temp <- list(clevel[[i]])
-                    names(temp) <- pname[i]
-                    Xmat[,ccol] <- eval(pcall, temp)
-                }
-                else if (is.name(temp)) {
-                    if (length(ccol) !=1) stop("logic error")
-                    Xmat[,ccol] <- clevel[[i]]
-                }
-                else stop("logic error 2")  #should be impossible
-            }
-        }
-    }
-    # Now go through the contrast matrices 1 by 1 and evaluate them.
-    if (is.list(contr$cmatrix)) 
-        r1 <- sapply(contr$cmatrix, function(z) cfun(z, beta, vmat, sigma^2))
-    else r1 <- cfun(contr$cmatrix, beta, vmat, sigma^2)
-}
-@ 
- 
 The decompostion based algorithm for SAS type 3 tests.
 The algorithm will ignore the set of contrasts cmat; the algorithm can only
 do a global test.
@@ -631,21 +558,18 @@ A term represented by one column in \code{factors} ``contains'' the term
 represented in some other column iff it's non-zero elements are a superset.
 
 The entire process below is simpler if we work only with the non-missing
-coefficients.  If all of the models obeyed the \code{complete} argument
-of the coef() and vcov() methods that would suffice, but they often don't 
-so we first have to check.
+coefficients; but this has already been done for us.
 <<yates-sgtt>>=
 # create Z
 whichrows <- !duplicated(mframe[names(iscat)[iscat]])
-Z <- Xold[whichrows,]
-beta2 <- beta[!nabeta]
-Z <- Z[,!nabeta]
+Z <- Xold[whichrows, !nabeta]  
 ztz <- t(Z) %*% Z
-#zvar <- solve(ztz)
+zvar <- solve(ztz)
 assign2 <- xassign[!nabeta]
 
 # Create the contrast matrix
 Cmat <- diag(ncol(Z))
+Cmat2 <- Cmat
 # which terms are factors?
 fterm <- apply(Tatt$factors[!iscat,, drop=FALSE], 2, function(x)!any(x>0))
 for (iterm in which(fterm)) {  # might be none
@@ -656,10 +580,11 @@ for (iterm in which(fterm)) {  # might be none
             i1 <- which(assign2 == iterm)  # colums for the first term
             i2 <- which(assign2 == j)      # and for the second
             Cmat[i1, i2] <- solve(ztz[-i2, -i2], ztz[-i2,i2])[i1,]  
-            # Cmat[i1, i2] <- -t(solve(zvar[i2, i2], zvar[i2, i1]))
+            Cmat2[i1, i2] <- -t(solve(zvar[i2, i2], zvar[i2, i1]))
         }
     }
-}   
+} 
+browser()
 @ 
 
 Although the SGTT does test for all terms, we only want to print out the
@@ -668,10 +593,10 @@ ones that were asked for.
 keep <- match(contr$termname, colnames(Tatt$factors))
 if (length(keep) > 1) { # more than 1 term in the model
     test <- t(sapply(keep, function(i)
-                   testfun(Cmat[assign2==i,,drop=FALSE], beta2, vmat, sigma^2)))
+                   testfun(Cmat[assign2==i,,drop=FALSE], beta, vmat, sigma^2)))
     rownames(test) <- contr$termname
 }  else {
-    test <- testfun(Cmat[assign2==keep,, drop=FALSE], beta2, vmat, sigma^2)
+    test <- testfun(Cmat[assign2==keep,, drop=FALSE], beta, vmat, sigma^2)
     test <- matrix(test, nrow=1, 
                    dimnames=list(contr$termname, names(test)))
 }
@@ -693,8 +618,9 @@ print.yates <- function(x, digits = max(3, getOption("digits") -2),
     temp2 <- cbind(test= paste("    ", rownames(x$test)), 
                    data.frame(x$test), stringsAsFactors=FALSE)
     row.names(temp2) <- NULL
+
     temp2$Pr <- format.pval(pchisq(temp2$chisq, temp2$df, lower.tail=FALSE),
-                            eps=eps)
+                            eps=eps, digits=dig.tst)
     temp2$chisq <- format(temp2$chisq, digits= dig.tst)
     temp2$df <- format(temp2$df)
     if (!is.null(temp2$ss)) temp2$ss <- format(temp2$ss, digits=digits)

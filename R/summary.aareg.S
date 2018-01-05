@@ -103,8 +103,9 @@ print.summary.aareg <- function(x, ...) {
     print(signif(x$table,3))
     chi <- x$chisq
     df  <- length(x$test.statistic) -1
+    pdig <- max(1, getOption("digits")-4)  # default it too high IMO
     cat("\nChisq=", format(round(chi,2)), " on ", df, " df, p=",
-	            format.pval(pchisq(chi, df, lower.tail=FALSE)),
+	            format.pval(pchisq(chi, df, lower.tail=FALSE), digits=pdig),
 	            "; test weights=", x$test, "\n", sep='')
     invisible(x$table)
     }

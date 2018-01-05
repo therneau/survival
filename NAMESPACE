@@ -2,11 +2,11 @@ useDynLib(survival, .registration = TRUE)
 importFrom(splines, spline.des, ns)
 importFrom(stats, anova, approx, as.formula, coef, coefficients,
            contr.treatment, cor, delete.response, extractAIC, formula, 
-           logLik, makepredictcall, median, model.extract,
+           family, logLik, makepredictcall, median, model.extract,
            model.frame, model.matrix, model.offset, model.response,
            model.weights, na.fail, na.pass, napredict, naprint, naresid,
            pchisq, pnorm, printCoefmat, predict, qnorm, quantile, qgamma,
-           resid, residuals, runif, stat.anova, terms, var, vcov,
+           resid, residuals, rnorm, runif, stat.anova, terms, var, vcov,
            .checkMFClasses, .getXlevels)
 importFrom(graphics, plot, points, lines, axis, box, matlines, matplot, 
            matpoints, par, segments,
@@ -16,11 +16,11 @@ importFrom(methods, as)
 importFrom(utils, getS3method, type.convert, methods)
 export(Surv, aeqSurv, aareg, agreg.fit,
        agexact.fit, attrassign, 
-       basehaz, cch, clogit, cipoisson, cluster, cmatrix,
+       basehaz, cch, clogit, cipoisson, cluster,
        coxph, cox.zph, coxph.control, coxph.detail, coxph.fit,
        coxph.wtest, finegray, format.Surv, 
        frailty,  frailty.gamma, 
-       frailty.gaussian, frailty.t, gchol2, is.Surv, 
+       frailty.gaussian, frailty.t, is.Surv, 
        is.na.Surv, is.ratetable, 
        labels.survreg, match.ratetable, neardate,
        psurvreg, qsurvreg, dsurvreg,
@@ -33,7 +33,7 @@ export(Surv, aeqSurv, aareg, agreg.fit,
        survpenal.fit, survConcordance.fit,
        survreg, survreg.control, survreg.fit,
        survreg.distributions, survregDtest, tcut,
-       tmerge, untangle.specials, yates)
+       tmerge, untangle.specials, yates, yates_setup)
 S3method('[', aareg)
 S3method('[', Surv)
 S3method('[', cox.zph)
@@ -141,3 +141,6 @@ S3method(survfit, Surv)
 S3method(vcov, cch)
 S3method(vcov, coxph)
 S3method(vcov, survreg)
+S3method(yates_setup, default)
+S3method(yates_setup, glm)
+S3method(yates_setup, coxph)

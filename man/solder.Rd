@@ -42,5 +42,3 @@ index <- 1 + (1:nrow(solder)) - match(solder$Mask, solder$Mask)
 solder.balance <- droplevels(subset(solder, Mask != "A6" & index <= 180))
 }
 \keyword{datasets}
-\references{J Chambers and T Hastie, Statistical Models in S, CRC Press,
-  1991.}

@@ -1,7 +1,7 @@
 
-R Under development (unstable) (2016-01-29 r70039) -- "Unsuffered Consequences"
-Copyright (C) 2016 The R Foundation for Statistical Computing
-Platform: i686-pc-linux-gnu (32-bit)
+R version 3.4.1 (2017-06-30) -- "Single Candle"
+Copyright (C) 2017 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -66,9 +66,9 @@ surgery:transplant     0.748     1.3369    0.1692     3.306
 
 Concordance= 0.595  (se = 0.037 )
 Rsquare= 0.071   (max possible= 0.97 )
-Likelihood ratio test= 12.45  on 5 df,   p=0.02915
-Wald test            = 11.62  on 5 df,   p=0.04031
-Score (logrank) test = 12.02  on 5 df,   p=0.03457
+Likelihood ratio test= 12.45  on 5 df,   p=0.03
+Wald test            = 11.62  on 5 df,   p=0.04
+Score (logrank) test = 12.02  on 5 df,   p=0.03
 
 > sfit.2
 Call:
@@ -80,7 +80,7 @@ year            -0.265     0.767    0.105 -2.52 0.012
 transplant      -0.287     0.750    0.514 -0.56 0.576
 year:transplant  0.137     1.147    0.141  0.97 0.331
 
-Likelihood ratio test=8.61  on 3 df, p=0.0349
+Likelihood ratio test=8.61  on 3 df, p=0.03
 n= 170, number of events= 75 
 > summary(sfit.3)
 Call:
@@ -107,9 +107,9 @@ year:transplant    1.2242     0.8169    0.9259    1.6185
 
 Concordance= 0.63  (se = 0.037 )
 Rsquare= 0.084   (max possible= 0.97 )
-Likelihood ratio test= 14.85  on 5 df,   p=0.01102
-Wald test            = 13.77  on 5 df,   p=0.01716
-Score (logrank) test = 14.06  on 5 df,   p=0.01525
+Likelihood ratio test= 14.85  on 5 df,   p=0.01
+Wald test            = 13.77  on 5 df,   p=0.02
+Score (logrank) test = 14.06  on 5 df,   p=0.02
 
 > sfit.4
 Call:
@@ -123,7 +123,7 @@ transplant         -0.297     0.743    0.505 -0.59 0.557
 year:transplant     0.165     1.180    0.142  1.17 0.243
 surgery:transplant -0.550     0.577    0.776 -0.71 0.479
 
-Likelihood ratio test=12.4  on 5 df, p=0.0302
+Likelihood ratio test=12.36  on 5 df, p=0.03
 n= 170, number of events= 75 
 > sfit.5
 Call:
@@ -138,7 +138,7 @@ year               -0.1363    0.8726   0.0710 -1.92 0.055
 age:transplant      0.0269    1.0273   0.0271  0.99 0.321
 surgery:transplant -0.2966    0.7434   0.7580 -0.39 0.696
 
-Likelihood ratio test=16.2  on 6 df, p=0.0127
+Likelihood ratio test=16.2  on 6 df, p=0.01
 n= 170, number of events= 75 
 > sfit.6
 Call:
@@ -152,7 +152,7 @@ surgery        -0.6211    0.5373   0.3679 -1.69 0.091
 year           -0.1361    0.8728   0.0709 -1.92 0.055
 age:transplant  0.0270    1.0274   0.0271  1.00 0.319
 
-Likelihood ratio test=16.1  on 5 df, p=0.00669
+Likelihood ratio test=16.06  on 5 df, p=0.007
 n= 170, number of events= 75 
 > 
 > # Survival curve for an "average" subject,
@@ -283,4 +283,4 @@ Call: survfit(formula = sfit.1, newdata = data, individual = T)
 > 
 > proc.time()
    user  system elapsed 
-  0.344   0.040   0.379 
+  2.052   0.129   2.450 

@@ -1,7 +1,7 @@
 
-R Under development (unstable) (2015-06-04 r68474) -- "Unsuffered Consequences"
-Copyright (C) 2015 The R Foundation for Statistical Computing
-Platform: i686-pc-linux-gnu (32-bit)
+R version 3.4.1 (2017-06-30) -- "Single Candle"
+Copyright (C) 2017 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -49,7 +49,7 @@ frailty(litter)                        16.888 13.8 0.253
 Iterations: 6 outer, 25 Newton-Raphson
      Variance of random effect= 0.474   I-likelihood = -181.1 
 Degrees of freedom for terms=  1.0 13.9 
-Likelihood ratio test=36.3  on 14.8 df, p=0.00144  n= 150 
+Likelihood ratio test=36.3  on 14.8 df, p=0.001  n= 150 
 > 
 > rfit$iter
 [1]  6 25
@@ -104,8 +104,8 @@ frailty(litter)                      18 14.6 0.24
 Iterations: 6 outer, 22 Newton-Raphson
      Variance of random effect= 0.504   I-likelihood = -184.8 
 Degrees of freedom for terms= 14.6 
-Likelihood ratio test=30  on 14.6 df, p=0.0101  n= 150 
+Likelihood ratio test=30  on 14.6 df, p=0.01  n= 150 
 > 
 > proc.time()
    user  system elapsed 
-  0.216   0.028   0.237 
+  1.731   0.084   2.010 

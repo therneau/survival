@@ -1,7 +1,7 @@
 
-R Under development (unstable) (2016-01-29 r70039) -- "Unsuffered Consequences"
-Copyright (C) 2016 The R Foundation for Statistical Computing
-Platform: i686-pc-linux-gnu (32-bit)
+R version 3.4.1 (2017-06-30) -- "Single Candle"
+Copyright (C) 2017 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -153,9 +153,9 @@ x     2.393     0.4179    0.5921     9.672
 
 Concordance= 0.638  (se = 0.159 )
 Rsquare= 0.177   (max possible= 0.999 )
-Likelihood ratio test= 1.75  on 1 df,   p=0.1858
-Wald test            = 1.5  on 1 df,   p=0.2207
-Score (logrank) test = 1.58  on 1 df,   p=0.2094
+Likelihood ratio test= 1.75  on 1 df,   p=0.2
+Wald test            = 1.5  on 1 df,   p=0.2
+Score (logrank) test = 1.58  on 1 df,   p=0.2
 
 > resid(fit0, type='score')
           1           2           3           4           5           6 
@@ -188,4 +188,4 @@ Score (logrank) test = 1.58  on 1 df,   p=0.2094
 > 
 > proc.time()
    user  system elapsed 
-  0.220   0.020   0.233 
+  1.982   0.120   2.355 

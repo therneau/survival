@@ -1,7 +1,7 @@
 
-R Under development (unstable) (2016-01-29 r70039) -- "Unsuffered Consequences"
-Copyright (C) 2016 The R Foundation for Statistical Computing
-Platform: i686-pc-linux-gnu (32-bit)
+R version 3.4.1 (2017-06-30) -- "Single Candle"
+Copyright (C) 2017 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -71,7 +71,7 @@ frailty(id)                                2.71e-05  0   0.933
 Iterations: 6 outer, 35 Newton-Raphson
      Variance of random effect= 5e-07   I-likelihood = -179.1 
 Degrees of freedom for terms= 1 1 3 0 
-Likelihood ratio test=17.6  on 5 df, p=0.00342  n= 76 
+Likelihood ratio test=17.6  on 5 df, p=0.003  n= 76 
 > kfit1
 Call:
 coxph(formula = Surv(time, status) ~ age + sex + disease + frailty(id, 
@@ -88,7 +88,7 @@ frailty(id, theta = 1)                            28.50571 18.8 0.06909
 Iterations: 1 outer, 14 Newton-Raphson
      Variance of random effect= 1   I-likelihood = -182.5 
 Degrees of freedom for terms=  0.2  0.5  1.1 18.8 
-Likelihood ratio test=63.8  on 20.6 df, p=2.53e-06  n= 76 
+Likelihood ratio test=63.8  on 20.6 df, p=3e-06  n= 76 
 > kfit0
 Call:
 coxph(formula = Surv(time, status) ~ age + sex + disease, data = kidney)
@@ -100,7 +100,7 @@ diseaseGN   0.08796   1.09194  0.40637  0.22   0.829
 diseaseAN   0.35079   1.42020  0.39972  0.88   0.380
 diseasePKD -1.43111   0.23904  0.63111 -2.27   0.023
 
-Likelihood ratio test=17.6  on 5 df, p=0.00342
+Likelihood ratio test=17.65  on 5 df, p=0.003
 n= 76, number of events= 58 
 > temp
 Call:
@@ -118,7 +118,7 @@ frailty(id, theta = 1, sp                            26.23016 18.7 0.11573
 Iterations: 1 outer, 5 Newton-Raphson
      Variance of random effect= 1   I-likelihood = -182.5 
 Degrees of freedom for terms=  0.4  0.5  1.4 18.7 
-Likelihood ratio test=63.8  on 21 df, p=3.27e-06  n= 76 
+Likelihood ratio test=63.8  on 21 df, p=3e-06  n= 76 
 > 
 > #
 > # Now fit the data using REML
@@ -143,7 +143,7 @@ frailty(id, dist = "gauss                            17.89195 12.1 0.12376
 Iterations: 7 outer, 42 Newton-Raphson
      Variance of random effect= 0.493 
 Degrees of freedom for terms=  0.5  0.6  1.7 12.1 
-Likelihood ratio test=47.5  on 14.9 df, p=2.82e-05  n= 76 
+Likelihood ratio test=47.5  on 14.9 df, p=3e-05  n= 76 
 > summary(kfitm2)
 Call:
 coxph(formula = Surv(time, status) ~ age + sex + disease + frailty(id, 
@@ -208,7 +208,7 @@ Iterations: 6 outer, 21 Newton-Raphson
      Variance of random effect= 0.5090956 
 Degrees of freedom for terms=  0.5  0.6  1.7 12.3 
 Concordance= 0.796  (se = 0.046 )
-Likelihood ratio test= 117.9  on 15.14 df,   p=0
+Likelihood ratio test= 117.9  on 15.14 df,   p=<2e-16
 
 > #
 > # Fit the kidney data using AIC
@@ -229,7 +229,7 @@ frailty(id, method = "aic                            13.55258 7.81 0.08692
 Iterations: 9 outer, 63 Newton-Raphson
      Variance of random effect= 0.203   I-likelihood = -182.1 
 Degrees of freedom for terms= 0.7 0.7 7.8 
-Likelihood ratio test=33.3  on 9.21 df, p=0.000137  n= 76 
+Likelihood ratio test=33.3  on 9.21 df, p=1e-04  n= 76 
 > 
 > coxph(Surv(time, status) ~ age + sex + frailty(id, dist='t'), kidney)
 Call:
@@ -244,7 +244,7 @@ frailty(id, dist = "t")                            20.33462 13.9 0.11752
 Iterations: 8 outer, 58 Newton-Raphson
      Variance of random effect= 0.825 
 Degrees of freedom for terms=  0.5  0.6 13.9 
-Likelihood ratio test=48.6  on 15.1 df, p=2.18e-05  n= 76 
+Likelihood ratio test=48.6  on 15.1 df, p=2e-05  n= 76 
 > coxph(Surv(time, status) ~ age + sex + frailty(id, dist='gauss', method='aic',
 + 					       caic=T), kidney)
 Call:
@@ -259,7 +259,7 @@ frailty(id, dist = "gauss                            12.35238 6.76 0.0800
 Iterations: 7 outer, 41 Newton-Raphson
      Variance of random effect= 0.185 
 Degrees of freedom for terms= 0.8 0.7 6.8 
-Likelihood ratio test=28.4  on 8.22 df, p=0.000476  n= 76 
+Likelihood ratio test=28.4  on 8.22 df, p=5e-04  n= 76 
 > 
 > 
 > # uncorrected aic
@@ -277,7 +277,7 @@ frailty(id, method = "aic                            37.45897 19.7 0.00918
 Iterations: 8 outer, 87 Newton-Raphson
      Variance of random effect= 0.886   I-likelihood = -182.8 
 Degrees of freedom for terms=  0.3  0.5 19.7 
-Likelihood ratio test=61.2  on 20.5 df, p=6.25e-06  n= 76 
+Likelihood ratio test=61.2  on 20.5 df, p=6e-06  n= 76 
 Warning message:
 In coxpenal.fit(X, Y, strats, offset, init = init, control, weights = weights,  :
   Inner loop failed to coverge for iterations 4
@@ -295,8 +295,8 @@ frailty(id, dist = "t", c                            20.33462 13.9 0.11752
 Iterations: 8 outer, 58 Newton-Raphson
      Variance of random effect= 0.825 
 Degrees of freedom for terms=  0.5  0.6 13.9 
-Likelihood ratio test=48.6  on 15.1 df, p=2.18e-05  n= 76 
+Likelihood ratio test=48.6  on 15.1 df, p=2e-05  n= 76 
 > 
 > proc.time()
    user  system elapsed 
-  0.376   0.028   0.399 
+  2.008   0.087   2.318 

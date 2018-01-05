@@ -22,7 +22,7 @@ options(continue="  ", width=70)
 options(SweaveHooks=list(fig=function() par(mar=c(4.1, 4.1, .3, 1.1))))
 pdf.options(pointsize=8) #text in graph about the same as regular text
 options(contrasts=c("contr.treatment", "contr.poly")) #reset default
-#library(survival)
+library(survival)
 library(splines)
 @ 
 
@@ -122,6 +122,7 @@ Yates then develops
 formulas for calculation of these quantities and tests of their
 equality that are practical for the manual methods of the time;
 these have now been been supplanted by direct matrix computations.
+
 This
 concept of population averages is actually a common one in statistics.
 Taking an average is, after all, nearly the first thing a statistician
@@ -236,6 +237,7 @@ missing cells as shown by the example below.
 fit3 <- lm(skips ~ Opening * Mask + Solder + PadType + Panel, solder)
 yates(fit3, ~Mask, test="pairwise")
 @ 
+
 The population predictions for each Mask include all combinations of
 Opening, Solder, PadType, and Panel that are found in the data.
 In the above call the empirical population was used, and the
@@ -528,29 +530,45 @@ flkm <- survfit(Surv(futime, death) ~ fgroup, data=flchain)
 print(flkm, rmean= 13*365.25)
 @ 
 
-The default survival prediction takes longer recommended for a CRAN
-vignette: there are \Sexpr{nrow(flchain)} subjects in the study
+Straightforward survival prediction takes longer than recommended for a CRAN
+vignette: there are \Sexpr{nrow(flchain)} subjects in the study and
 4 flc groups, which leads to just over 30 thousand predicted survival curves
-when using the default \code{population='data'}.  To compute the variance
-this is repeated \code{nsim} times.  We cut the latter back to 50
-for feasability in this particular case.
-
+when using the default \code{population='data'}, and each curve
+has over 2000 time points (the number of unique death times).
+To compute a variance
+this is then repeated the default \code{nsim = 1000} times.  
+We can use this as an opportunity to demonstrate a user supplied population,
+however, which is any data set containing a populatoin of 
+values for the control variables.
+We'll use every 20th observation in the flchain data as the population
+and also reduce the number of simulations to limit the run time.
 <<surv2>>=
+popdata <- flchain[seq(1, nrow(flchain), by=20), c("age", "sex")]
 ysurv <- yates(coxfit4, ~fgroup, predict="survival", nsim=50,
+               population = popdata, 
                options=list(rmean=365.25*13))
 ysurv
+
+# display side by side
+temp <- rbind("simple KM" = summary(flkm, rmean=13*365.25)$table[, "*rmean"],
+              "population adjusted" = ysurv$estimate$mppv)
+round(temp/365.25, 2)
+
 @ 
 The spread in restricted mean values is considerably less in the marginal
- (MPPV) survival curves from the yates function.
+ (MPPV) survival curves from the yates function,
+with the biggest change for those above the 90th percentile of FLC.
 The \code{ysurv} object can also contain an optional summary component, which
 in this case is the set of 4 MPPV survival curves.
 Plot these along with the unadjusted curves, with solid lines for the
 MPPV estimates and dashed for the unadjusted curves.
-
+This shows the difference between adjusted and unadjusted even more clearly.
+(But is not a 1 number summary with a simple p value ;-).
 <<surv3>>=
-plot(flkm, xscale=365.25, fun="event", col=1:4, lty=2, lwd=2,
+plot(flkm, xscale=365.25, fun="event", col=1:4, lty=2,
      xlab="Years", ylab="Death")
 lines(ysurv$summary, fun="event", col=1:4, lty=1, lwd=2)
+legend(0, .65, levels(fgroup), lty=1, lwd=2, col=1:4, bty='n')
 @ 
 
 
@@ -652,7 +670,7 @@ unbalanced design.
     \end{enumerate}
 \end{itemize}
 The above is the algorithm used by the \code{yates} function for the SGTT
-calculation.  
+calculation.
 If there are both continuous and categorical variables in the $X$ matrix
 then step 2 above is only applied if both $j$ and $k$ are categorical, and
 the unique rows operation applies only to the categorical predictors.
@@ -693,7 +711,7 @@ in \ref{Sas2013}.
     \begin{itemize}
       \item For any column of $D'$ that corresponds to a categorical term,
         and is contained in some categorical term further to the right in
-        the matrix, make this column orthagonal to those.
+        the matrix, make this column orthagonal to those containing terms.
       \item The term x1 is contained in x1*x2 for instance.
     \end{itemize}
   \item The resulting rows of $D$ form the type III contrasts, i.e.,
@@ -711,7 +729,7 @@ Neither approach produces the MPPV values themselves, only a global contrast
 $C$ for the test $C\beta =0$.
 Proving that algorithm 1 gives the same result as the straightforward 
 MPPV approach is challenging but doable, as is a proof that algorithms 1 and 2
-give the same result.
+give the same result for the SAS glm coding of X.
 
 If all covariates are categorical and all of the MPPV values are estimable 
 then both algorithms will agree with the Yates tests.
@@ -722,7 +740,7 @@ rows for treatment A + all combinations of the other factors, rows
 for treatment B + all combinations of the others, etc.
 If not all the MPV values are estimable then the Yates SS is not defined, 
 the keep-unique-rows operation does not produce a population matrix, and
-the SGTT is something quite different. 
+the SGTT is something quite different.
 The tests are still orthagonal, but orthagonal to what?
 
 For continuous variables SAS computes type 2 tests and labels them as 
@@ -751,13 +769,14 @@ which I call the NSTT.
 \begin{enumerate}
   \item Build an $X$ matrix from left to right in the 
    standard order of intercept, then main effects, then 2 way interactions, etc.
-  \item Again from left to right, remove any columns of $X$ that are redundant,
+  \item From left to right, remove any columns of $X$ that are redundant,
     i.e., can be written as a linear combination of prior columns.
     They will not be used again.
   \item Fit the model using the revised $X$ matrix.
-  \item For any given term $k$ do a second fit the removes those columns
-    of $X$ corresponding to term $k$, but retaining all others, including those
-    labeled as a higher order ``interaction'' involving said term.
+  \item For any given term $k$ do simple test that the \emph{remaining}
+    coefficients corresponding to term $k$ are zero.  
+    In a model \code{y ~ a * b} the test for \code{b} will not involve any
+    coefficient labeled as part of the \code{a:b} interaction.
 \end{enumerate}
 
 Here is an example using the solder data:
@@ -791,8 +810,6 @@ version using Opening=L as reference has a much smaller NSTT.
 In fact, re-running a particular analysis with different reference levels for
 one or more more of the adjusting variables is a quick way to diagnose
 probable use of the NSTT algorithm by a program.  
-The \code{yates} function with \code{population='none'} also reduces to the
-NSTT.
 
 The biggest problem with the NSTT is that it sometimes gives 
 the correct answer.
@@ -804,8 +821,9 @@ that most of us have not seen since graduate school:
   \sum_j \beta_j  & = 0 \\
   \sum_{ij} \gamma_{ij} &=0
 \end{align*}
-then the `reference cell' for Solder will be the sum of Opening effects,
-and the NSTT will correspond to an MPV using the factorial population.
+then the `reference cell' for Opening is the mean Opening effect,
+and the NSTT for Solder will correspond to an MPV using the factorial 
+population.
 
 <<nstt3>>=
 options(contrasts = c("contr.sum", "contr.poly"))
@@ -831,22 +849,24 @@ very useful statistical concept.
 One simple advantage of the approach is that because predicted values do not
 depend on how a model is parameterized, the results are naturally invariant
 to how categorical variables are represented.
-But like many good ideas in statistics it can not be applied properly without
+But like many good ideas in statistics proper application of the idea requires
 some thought. 
-Sometimes the answer is not completely clear;
-the choice of which predicted value should be used for the summary of a
+In terms of what to predict, for linear models the simple linear predictor
+$X\beta$ is the obvious choice, but for others is more nuanced.
+The choice of which predicted value should be used for the summary of a
 Cox model is for instance an area that requires further research.
 
 In terms of the population choice, it should match the research question
 at hand.
 The factorial population in particular has been overused.
 This population is entirely appropriate for the use cases
-describe in Yates \cite{Yates34} or Goodnight \cite{Goodnight78} that 
-relate to designed experiments, but in observational or clinical data
+described in Yates \cite{Yates34} or Goodnight \cite{Goodnight78} that 
+relate to designed experiments 
+such as the solder data, but in observational or clinical data
 it will too often be the answer to a question that nobody asked.
-Say that the pathology variable in a study had proportions of 
-10, 20, 30 and 40\% for stages A--D, and that these proportions also hold
-in the disease population at large.  Of what interest is the
-result for a popluation that was 25\% class A, a population that no
-one will ever see?
+In the FLC data set for instance, what is the use of a factorial prediction
+that has equal numbers of subjects at each age?
+This is a quantity that no one will ever observe, and its continued use
+begins to resemble
+medieval debates of angels dancing on the head of a pin.
 \end{document}

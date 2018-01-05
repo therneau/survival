@@ -32,6 +32,7 @@ print.coxph <-
 	    "se(coef)", "robust se", "z", "p"))
 	}
 
+    pdig <- max(1, getOption("digits")-4)  # default it too high IMO
     printCoefmat(tmp, P.values=TRUE, has.Pvalue=TRUE,
                  signif.stars = signif.stars, ...)
 
@@ -40,7 +41,8 @@ print.coxph <-
     else  df <- round(sum(x$df),2)
     cat("\n")
     cat("Likelihood ratio test=", format(round(logtest, 2)), "  on ",
-	df, " df,", " p=", format.pval(pchisq(logtest, df, lower.tail=FALSE)), 
+	df, " df,", " p=", 
+        format.pval(pchisq(logtest, df, lower.tail=FALSE), digits=pdig), 
         "\n",  sep="")
     omit <- x$na.action
     cat("n=", x$n)

@@ -1,7 +1,7 @@
 
-R Under development (unstable) (2016-01-29 r70039) -- "Unsuffered Consequences"
-Copyright (C) 2016 The R Foundation for Statistical Computing
-Platform: i686-pc-linux-gnu (32-bit)
+R version 3.4.1 (2017-06-30) -- "Single Candle"
+Copyright (C) 2017 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -91,9 +91,9 @@ x     2.362     0.4233    0.5839     9.556
 
 Concordance= 0.638  (se = 0.159 )
 Rsquare= 0.171   (max possible= 0.999 )
-Likelihood ratio test= 1.69  on 1 df,   p=0.1932
-Wald test            = 1.45  on 1 df,   p=0.2281
-Score (logrank) test = 1.52  on 1 df,   p=0.217
+Likelihood ratio test= 1.69  on 1 df,   p=0.2
+Wald test            = 1.45  on 1 df,   p=0.2
+Score (logrank) test = 1.52  on 1 df,   p=0.2
 
 > aeq(resid(fit0), testw1$status - texp(0))
 [1] TRUE
@@ -149,7 +149,7 @@ coxph(formula = Surv(time, status) ~ x, data = testw1, weights = wt,
    coef exp(coef) se(coef)    z    p
 x 0.873     2.393    0.713 1.22 0.22
 
-Likelihood ratio test=1.75  on 1 df, p=0.186
+Likelihood ratio test=1.75  on 1 df, p=0.2
 n= 9, number of events= 5 
 > resid(fit, type='mart')
           1           2           3           4           5           6 
@@ -203,9 +203,9 @@ x     2.362     0.4233    0.5839     9.556
 
 Concordance= 0.638  (se = 0.159 )
 Rsquare= 0.114   (max possible= 0.991 )
-Likelihood ratio test= 1.69  on 1 df,   p=0.1932
-Wald test            = 1.45  on 1 df,   p=0.2281
-Score (logrank) test = 1.52  on 1 df,   p=0.217
+Likelihood ratio test= 1.69  on 1 df,   p=0.2
+Wald test            = 1.45  on 1 df,   p=0.2
+Score (logrank) test = 1.52  on 1 df,   p=0.2
 
 > resid(fit0, type='mart', collapse=testw3$id)
           1           2           3           4           5           6 
@@ -256,7 +256,7 @@ coxph(formula = Surv(begin, time, status) ~ x, data = testw3,
    coef exp(coef) se(coef)    z    p
 x 0.873     2.393    0.713 1.22 0.22
 
-Likelihood ratio test=1.75  on 1 df, p=0.186
+Likelihood ratio test=1.75  on 1 df, p=0.2
 n= 14, number of events= 5 
 > resid(fit, type='mart', collapse=testw3$id)
           1           2           3           4           5           6 
@@ -424,4 +424,4 @@ TRUE
 > 
 > proc.time()
    user  system elapsed 
-  0.268   0.032   0.296 
+  2.137   0.106   2.817 

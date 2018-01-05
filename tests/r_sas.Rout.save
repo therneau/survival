@@ -1,7 +1,7 @@
 
-R Under development (unstable) (2017-02-21 r72241) -- "Unsuffered Consequences"
+R version 3.4.1 (2017-06-30) -- "Single Candle"
 Copyright (C) 2017 The R Foundation for Statistical Computing
-Platform: i686-pc-linux-gnu (32-bit)
+Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -32,10 +32,10 @@ Type 'q()' to quit R.
 Call:
 survreg(formula = Surv(time, status) ~ I(1000/(273.2 + temp)), 
     data = motor, subset = (temp > 150), dist = "lognormal")
-                         Value Std. Error     z        p
-(Intercept)            -10.471      2.772 -3.78 1.58e-04
-I(1000/(273.2 + temp))   8.322      1.284  6.48 9.13e-11
-Log(scale)              -0.504      0.183 -2.75 5.96e-03
+                         Value Std. Error     z       p
+(Intercept)            -10.471      2.772 -3.78 0.00016
+I(1000/(273.2 + temp))   8.322      1.284  6.48 9.1e-11
+Log(scale)              -0.504      0.183 -2.75 0.00596
 
 Scale= 0.604 
 
@@ -198,9 +198,9 @@ Weibull shape 1.36299929 0.37861      0.79077       2.34933
 Call:
 survreg(formula = Surv(time1, time2, type = "interval2") ~ 1, 
     data = cracks, weights = n, dist = "weibull")
-             Value Std. Error     z        p
-(Intercept)  4.272     0.0744 57.43 0.00e+00
-Log(scale)  -0.396     0.0987 -4.01 6.06e-05
+              Value Std. Error     z       p
+(Intercept)  4.2724     0.0744 57.43 < 2e-16
+Log(scale)  -0.3957     0.0987 -4.01 6.1e-05
 
 Scale= 0.673 
 
@@ -298,8 +298,7 @@ Read 267 items
 > 
 > kfit <- survfit(Surv(time1, time2, status) ~1, valve, type='fh2')
 > 
-> plot(kfit, fun='cumhaz', ylab="Sample Mean Cumulative Failures", xlab='Time',
-+      ylim=range(-log(kfit$lower)))
+> plot(kfit, fun='cumhaz', ylab="Sample Mean Cumulative Failures", xlab='Time')
 > title("Valve replacement data")
 > 
 > # The summary.survfit function doesn't have an option for printing out
@@ -380,9 +379,9 @@ Read 267 items
 Call:
 survreg(formula = Surv(time1, time2, type = "interval2") ~ 1, 
     data = turbine, weights = n, subset = (n > 0), dist = "lognormal")
-             Value Std. Error     z       p
-(Intercept)  3.700     0.0708 52.23 0.00000
-Log(scale)  -0.329     0.1232 -2.67 0.00763
+              Value Std. Error     z      p
+(Intercept)  3.6999     0.0708 52.23 <2e-16
+Log(scale)  -0.3287     0.1232 -2.67 0.0076
 
 Scale= 0.72 
 
@@ -437,4 +436,4 @@ pdf
 > 
 > proc.time()
    user  system elapsed 
-  5.568   0.076   5.644 
+  7.414   0.113   7.843 

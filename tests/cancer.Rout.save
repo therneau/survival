@@ -1,7 +1,7 @@
 
-R Under development (unstable) (2016-03-23 r70368) -- "Unsuffered Consequences"
-Copyright (C) 2016 The R Foundation for Statistical Computing
-Platform: i686-pc-linux-gnu (32-bit)
+R version 3.4.1 (2017-06-30) -- "Single Candle"
+Copyright (C) 2017 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -129,7 +129,7 @@ inst=26  6  1.627074  3.542694 1.035821659 1.286365543
 inst=32  7  1.792468  2.679904 0.293869782 0.343966668
 inst=33  2  0.929177  0.416202 0.632249272 0.676682390
 
- Chisq= 15.1  on 17 degrees of freedom, p= 0.590384 
+ Chisq= 15.1  on 17 degrees of freedom, p= 0.5904 
 > 
 > temp <- coxph(Surv(time, status) ~ ph.ecog + ph.karno + pat.karno + wt.loss 
 + 	      + sex + age + meal.cal + strata(inst), lung)
@@ -163,8 +163,8 @@ meal.cal     0.9998     1.0002    0.9992    1.0004
 
 Concordance= 0.696  (se = 0.115 )
 Rsquare= 0.167   (max possible= 0.912 )
-Likelihood ratio test= 30.6  on 7 df,   p=7.377e-05
-Wald test            = 28.15  on 7 df,   p=0.0002066
+Likelihood ratio test= 30.6  on 7 df,   p=7e-05
+Wald test            = 28.15  on 7 df,   p=2e-04
 Score (logrank) test = 30.72  on 7 df,   p=7e-05
 
 > cox.zph(temp)
@@ -204,7 +204,7 @@ sex       -0.661253  0.516204  0.233998 -2.83 0.0047
 age        0.005092  1.005105  0.013729  0.37 0.7107
 meal.cal  -0.000240  0.999760  0.000302 -0.79 0.4270
 
-Likelihood ratio test=30.6  on 7 df, p=7.38e-05
+Likelihood ratio test=30.6  on 7 df, p=7e-05
 n= 167, number of events= 120 
    (61 observations deleted due to missingness)
 > 
@@ -219,4 +219,4 @@ n= 167, number of events= 120
 > 
 > proc.time()
    user  system elapsed 
-  1.816   0.088   1.902 
+  1.864   0.087   2.154 
