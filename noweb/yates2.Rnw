@@ -193,11 +193,14 @@ else {
                        dimnames=list(contr$termname, names(test)))
         natest <- nafun(contr$cmat, estimate$mppv)
     }
-    if (any(natest)) test[natest,] <- NA
+#    if (any(natest)) test[natest,] <- NA
 }
-if (any(estimable))
+if (any(estimable)){
+#    Cmat[!estimable,] <- NA
     result <- list(estimate=estimate, test=test, mvar=etemp$var, cmat=Cmat)
+    }
 else  result <- list(estimate=estimate, test=test, mvar=NA)
+if (method=="sgtt") result$SAS <- Smat
 @ 
 
 In the non-linear case the mfun object is either a single function
@@ -568,8 +571,8 @@ zvar <- solve(ztz)
 assign2 <- xassign[!nabeta]
 
 # Create the contrast matrix
-Cmat <- diag(ncol(Z))
-Cmat2 <- Cmat
+Smat <- diag(ncol(Z))
+Smat2 <- Smat
 # which terms are factors?
 fterm <- apply(Tatt$factors[!iscat,, drop=FALSE], 2, function(x)!any(x>0))
 for (iterm in which(fterm)) {  # might be none
@@ -579,12 +582,11 @@ for (iterm in which(fterm)) {  # might be none
         if (j> iterm && fterm[j] && all(Tatt$factors[irow, j] >0)) {
             i1 <- which(assign2 == iterm)  # colums for the first term
             i2 <- which(assign2 == j)      # and for the second
-            Cmat[i1, i2] <- solve(ztz[-i2, -i2], ztz[-i2,i2])[i1,]  
-            Cmat2[i1, i2] <- -t(solve(zvar[i2, i2], zvar[i2, i1]))
+            Smat[i1, i2] <- solve(ztz[-i2, -i2], ztz[-i2,i2])[i1,]  
+            Smat2[i1, i2] <- -t(solve(zvar[i2, i2], zvar[i2, i1]))
         }
     }
 } 
-browser()
 @ 
 
 Although the SGTT does test for all terms, we only want to print out the
@@ -593,13 +595,16 @@ ones that were asked for.
 keep <- match(contr$termname, colnames(Tatt$factors))
 if (length(keep) > 1) { # more than 1 term in the model
     test <- t(sapply(keep, function(i)
-                   testfun(Cmat[assign2==i,,drop=FALSE], beta, vmat, sigma^2)))
+                   testfun(Smat[assign2==i,,drop=FALSE], beta, vmat, sigma^2)))
     rownames(test) <- contr$termname
 }  else {
-    test <- testfun(Cmat[assign2==keep,, drop=FALSE], beta, vmat, sigma^2)
+    test <- testfun(Smat[assign2==keep,, drop=FALSE], beta, vmat, sigma^2)
     test <- matrix(test, nrow=1, 
                    dimnames=list(contr$termname, names(test)))
 }
+
+# We send Smat back to the user, so label it witht the SAS style 
+dimnames(Smat) <- list(paste0("L", 1:nrow(Smat)), names(beta))
 @ 
 
 
