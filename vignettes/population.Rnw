@@ -619,21 +619,22 @@ just as with the \code{yates} function.
 The Yates sums of squares associated with tests for equality of the MPPV
 values has many computational variants.
 One very interesting form is based on the fact that in a balanced factorial
-linear model (all predictors categorical, 
-all combinations appear the same number
-of times) the tests for all the effects are orthagonal.  
+linear model the tests for all the effects are orthagonal;
+a dataset and model where all predictors are categorical and all 
+combinations appear the same number of times.
 In the model \code{lm(y ~ x1 + x2 + x1:x2)} for instance the sequential 
 SS for x1, as obtained from an R \code{anova} command,
 will be the same whether x1 preceeds or follows after x2 in the
-formula.  
-Let $V = (X'X)^-$ be the variance-covariance of the coefficients and let
-$C$ and $D$ be contrast matrices for any two of the 3 terms above, i.e., 
-that matrix such that a test for $C\beta=0$ is equivalent the the SS for x1.
-Orthagonality implies that the covariance between the two effects
-is zero, i.e. $CVD' =0$.
+formula. 
+Assume that $C$, $D$ and $E$ are the the relevant contrast matrices
+for the three effect, i.e., such that the test for $C\beta=0$ corresponds
+to a test for x1, $D$ for x2, and $E$ for x1:x2.
+Then orthagonality implies that the correlation between effects is zero,
+i.e, $CVD' =0$, $CVE'=0$ and $DVE' =0$ where $V= \sigma^2(X'X)^-$ is the
+variance-covariance of the coefficients.
 
-Some statisticians see this orthagonality and an interesting aside and
-others (not this author) view it as a central aspect of the estimation,
+Some statisticians see this orthagonality of the tests an interesting aside 
+while others view it as a central aspect of the estimation,
 one which should be emulated in other models whenever possible.
 The SAS type 3 computation is based on this orthagonality principle, namely
 choose contrasts that are orthagonal with respect to the $(X'X)$ matrix of
@@ -646,38 +647,44 @@ In one of the early SAS technical report Goodnight writes
   reason to alter the hypothesis \cite{Goodnight78}. 
 \end{quote}
 
-This leads to the following algorithm for computing Yates contrasts in an
+This leads to the following simple algorithm for computing Yates contrasts in an
 unbalanced design.
-\begin{itemize}
+\begin{enumerate}
   \item Let $Z$ be the design matrix for a balanced subset of the the data; 
     i.e., the factorial population of the \code{yates} command.
-    One simple way to construct $Z$, if there are no missing cells, is the set
+    One simple way to construct $Z$, if there are no missing cells, as the set
     of unique rows of $X$.  
   \item Choose contrasts that are orthagonal with respect to $(Z'Z)^-$.
-  \item Assume an $X$ matrix in the standard column order of intercept, then
-    main effects, then 2 way interactions, etc.  One way to create orthagonal
-    contrasts is
-    \begin{enumerate}
-      \item Since the columns of $X$ that correspond to any partitular term are
-        adjacent, we can think of $U = (Z'Z)^-$ as a partitioned matrix where
-        $U_{kk}$ is the block corresponding to the $k$th term.
-      \item Start with $C$ the identity matrix, then for any two terms $j<k$ 
-         where $j$ is contained in $k$  set $C_{jk} = U_{jk}U_{kk}^{-1}$.  
-         The term \code{x1} is for instance contained in \code{x1:x2}.
-      \item This results in an upper triangular matrix $C$ whose $k$th set
-        of rows is a Yates contrast matrix for term $k$ and which satisfies
-        the orthagonality condition.  
+    \begin{itemize}
+      \item One set comes from the generalized Cholesky decomposition
+        $LDL' = Z'Z$ where $L$ is lower triangular with diagonal elements of 1,
+        $D$ is diagonal, and $D_{ii}=0$ if the $i$th column of $Z$ is a linear
+        combination of prior columns and positive otherwise.  Use $L'$ as the
+        contrast matrix.
+      \item $L'(Z'Z)^-L = D^-$, a diagonal matrix, so $L$ clearly fulfills the
+        orthagonality requirement.  
+      \item It is also the case that off diagonal elements of $L$ will be 0
+        unless sharing a common term, e.g., $L_{ij}=0$ if row $i$ is associated
+        with $x_1$ and row $j$ with $x_2$, but not if row $j$ were associated
+        with the $x_1:x_2$ interaction.
     \end{enumerate}
 \end{itemize}
-The above is the algorithm used by the \code{yates} function for the SGTT
-calculation.
 If there are both continuous and categorical variables in the $X$ matrix
-then step 2 above is only applied if both $j$ and $k$ are categorical, and
-the unique rows operation applies only to the categorical predictors.
+then step 1 above assigns uniqueness based only on categorical columns.
 (The continuous portion of $Z'Z$ need not even be computed since it is never
 used.)
 The interaction of a continous and a cateogorical covariate is considered 
 to be in the set of continous variables.
+
+What if not all of the population values are estimable, such as the A6/Large
+combination in the solder data?  
+Then the ``keep unique rows'' step of the above does not lead to the balanced
+population $Z$. 
+The SGTT algorithm tries to find a contrast matrix $C$ that looks like $L'$:
+a diagonal of 1, zeros off the diagonal for any pairs of terms where one is
+not contained in the other, orthagonal to $(Z'Z)^-$. 
+Any columns of $C$ corresponding the missing coefficients in the fit will be
+set to zero.
  
 The SAS glm procedure uses a differnt algorithm, which is desribed indirectly
 in \ref{Sas2013}.

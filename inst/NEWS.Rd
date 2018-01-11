@@ -30,10 +30,13 @@
     \item Change NAMED() to MAYBE_REFERENCED() at the suggestion of R
     core
 
-    \item Add the yates() routine for population prediction
+    \item Add the yates() routine for population prediction,
     and accompanying vignette.
+    \item Update the survival rate tables (survexp.mn, survexp.us,
+    survexp.usr), to add data for more calendar years.
   }
 }
+
 \section{Changes in version 2.41-5}{
   \itemize{
     \item Update the survexp.us and survexp.usr rate tables.  They now

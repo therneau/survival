@@ -12,7 +12,7 @@ for (i in 1:3) {
     tdata$Opening <- temp[i]
     tpred[,i] <- predict(fit1, newdata=tdata)
  }
-all.equal(y1$estimate$mpv, colMeans(tpred))
+all.equal(y1$estimate$mppv, colMeans(tpred))
 
 # This fit is deficient: there are no Opening=L and Mask=A6 obs
 # The MPV for Mask=A6 and Opening L will therefore be NA, as well
@@ -37,7 +37,7 @@ for (i in seq(along=temp)) {
     suppressWarnings(tpreda[,i] <- predict(fit2, newdata=tdata))
  }
 tpreda[,"A6"] <- NA  # the A6 estimate is deficient
-aeq(y2a$estimate$mpv, colMeans(tpreda))
+aeq(y2a$estimate$mppv, colMeans(tpreda))
 
 tdata <- do.call(expand.grid, fit2$xlevels[1:3])
 temp <- levels(solder$Opening)
@@ -48,10 +48,10 @@ for (i in seq(along=temp)) {
     suppressWarnings(tpredb[,i] <- predict(fit2, newdata=tdata))
  }
 tpredb[,"L"] <- NA  
-aeq(y2b$estimate$mpv, colMeans(tpredb))
+aeq(y2b$estimate$mppv, colMeans(tpredb))
 
 # Solder should be all NA
-all(is.na(y2c$estimate$mpv))
+all(is.na(y2c$estimate$mppv))
 
 # Tests for Solder are defined for a non-factorial population, however.
 # the [] below retains the factor structure of the variable, where the
@@ -65,7 +65,7 @@ for (i in seq(along=temp)) {
     tdata$Solder[] <- temp[i]
     suppressWarnings(tpredd[,i] <- predict(fit2, newdata=tdata))
 }
-aeq(y2d$estimate$mpv, colMeans(tpredd))
+aeq(y2d$estimate$mppv, colMeans(tpredd))
 
 #
 # Verify that the result is unchanged by how dummies are coded
@@ -73,7 +73,8 @@ aeq(y2d$estimate$mpv, colMeans(tpredd))
 fit3 <- lm(skips ~ C(Opening, contr.helmert)*Mask + C(Solder, contr.SAS),
            data=solder)
 y3a <- yates(fit3, ~Mask, population='yates')
-all.equal(y3a, y2a)
+equal <- c("estimate", "test", "mvar")
+all.equal(y3a[equal], y2a[equal])
 
 tdata <- do.call(expand.grid, fit2$xlevels[1:3]) # use orignal variable names
 temp <- levels(solder$Mask)
@@ -102,6 +103,7 @@ fit4 <-  lm(skips ~ Opening*Mask + Solder, data=sdata)
 y4a <- yates(fit4, ~ Mask, population= "yates")
 y4b <- yates(fit4, ~ Opening, population= "yates")
 y4d <- yates(fit4, ~ Solder)
-all.equal(y2a, y4a)
-all.equal(y2b, y4b)
-all.equal(y2d, y4d)
+equal <- c("estimate", "tests", "mvar", "cmat")
+all.equal(y2a[equal], y4a[equal])  # the "call" component differs
+all.equal(y2b[equal], y4b[equal])
+all.equal(y2d[equal], y4d[equal])

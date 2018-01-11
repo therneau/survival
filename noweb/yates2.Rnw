@@ -98,17 +98,12 @@ yates <- function(fit, term, population=c("data", "factorial", "sas"),
     #  (Over 1/2 the work of the whole routine)
     xmatlist <- yates_xmat(Terms, Tatt, contr, population, mframe, fit,
                                 iscat)
-
+ 
     # check rows of xmat for estimability
     <<yates-estim-setup>>
     
-    # Remove missing coefficients and columns.  It makes later code easier.
-    if (any(nabeta)) {
-        xmatlist <- lapply(xmatlist, function(x) x[,!nabeta, drop=FALSE])
-        beta <- beta[!nabeta]
-    }
-    
-    # Now use xmatlist to compute the results
+    # Drop missing coefficients, and use xmatlist to compute the results
+    beta <- beta[!nabeta]
     if (predict == "linear" || is.null(mfun)) {
         # population averages of the simple linear predictor
         <<yates-linear>>
@@ -158,7 +153,7 @@ tests of the mppv values.
 if (is.na(match(contr$termname, colnames(Tatt$factors))))
     stop("term '", contr$termname, "' not found in the model")
 
-Cmat <- t(sapply(xmatlist, colMeans))
+Cmat <- t(sapply(xmatlist, colMeans))[,!nabeta]
           
 # coxph model: the X matrix is built as though an intercept were there (the
 #  baseline hazard plays that role), but then drop it from the coefficients
@@ -193,7 +188,7 @@ else {
                        dimnames=list(contr$termname, names(test)))
         natest <- nafun(contr$cmat, estimate$mppv)
     }
-#    if (any(natest)) test[natest,] <- NA
+    if (any(natest)) test[natest,] <- NA
 }
 if (any(estimable)){
 #    Cmat[!estimable,] <- NA
@@ -493,63 +488,31 @@ if (is.null(attr(pdata, "terms"))) {
 @ 
 
 The decompostion based algorithm for SAS type 3 tests.
-The algorithm will ignore the set of contrasts cmat; the algorithm can only
+Ignore the set of contrasts cmat since the algorithm can only
 do a global test.
-First make a $Z$ matrix, which is the $X$ matrix using only the unique
-categorical variable rows.
+First make the global $Z'Z$ matrix for the balanced population,
+but using only the categorical variables.
 Our goal is to find an upper triangular matric $C$ such that 
+diag(C) is 1, if coeffiient $j$ is missing then the $j$th column of $C$ is zero,
+and 
 $C (Z'Z)^-C'$ has zeros in any block corresponding two factor terms, one of
 which contains the other.
-If $Z$ is full rank we are in the Yates' situation and the cholesky 
-decomposition of $Z'Z$ is a solution.
-If it is not full rank we need to mimic SAS and make sure that 
-these ``one term contains another'' blocks are
-the \emph{only} blocks that we make orthagonal.
-Treat $Z'Z$ as a block matrix
-\begin{equation*}
-  \left( \begin{array}{cccc} 
-    B_{11} & B_{12} & \ldots & B_{1k} \\
-    B_{21} & B_{22} & \ldots & B_{2k} \\
-    \vdots& \vdots& \ddots & \vdots \\
-     B_{k1} & B_{k2} & \ldots & B_{kk}  \end{array} \right )
-\end{equation*}
-with each term in the model as a block, and assume that blocks $i$ and $j$
-need to be orthagonal. 
-The number of terms $k$ is the number of columns in the \code{factors}
-component of the terms object for the model.
-(Well almost:  if there is an intercept colum it does not appear in the
-\code{factors} matrix.)
-A contrast matrix $C$ that fullfills our requirements will have
-\begin{align*}
-  C_{i.} (Z'Z)^- C'_{j.} & = 0 \\
-\end{align*}
-for the required pairs of blocks $i$ and $j$,
-where $(Z'Z)^-$ is a generalized inverse.
-The standard order of terms in the $X$ matrix means that any term $j$
-that contains term $i$ will be further to the right in the matrix.
-One solution is to start with $C$ as an identity matrix and then
-fill in the relevant blocks above the diagonal.
-\begin{align*}
-  V &= (Z'Z)^- \\
-  C_{ij} &= -V_{ij} V_{jj}^{-1}, \, j>i
-\end{align*}
+Now $Z$ is always full rank so inverse is available. 
+If $X$ is full rank (no missing coefficients) then we can form the 
+Cholesky decomposition $LDL' = (X'X)$, and use $L'$ as the contrast matrix.
 
-
-Using the formula for the inverse of a symmetric partitioned matrix
-\begin{equation}
-  \left( \begin{array}{cc} E & F \\ G & H \end{array} \right)^{-1} =
-  \left( \begin{array}{cc} (E- FH^{-1}G)^{-1} & -E^{-1}F (H - GE^{-1}F)^{-1} \\
-                           -H^{-1}G(E- FH^{-1}G)^{-1} &  (H - GE^{-1}F)^{-1} 
-  \end{array} \right) \label{partition}
-\end{equation}
-this gives 
-\begin{equation}
-  C_{ij} = B_{ii}^{-1} B_{ij} \label{inverse}
-\end{equation}
-Well, not quite.  The right formula is
-\code{solve(B[-j,-j], B[-j, j])[i,]}: when dividing the matrix into
-$k$ pieces one has to use all but the column of interest in formula
-\eqref{partition}.
+If there are missing coeffiicients the steps are 
+\begin{itemize}
+  \item form $(Z'Z)^{-1}$
+  \item remove rows and columns that correspond to missing coefficients
+    to get $V$
+  \item let $C$ be the identity matrix
+  \item For any term that is contained in another term set 
+    $C_{ij} = -V_{ii}V_{ij}$.  To mimic SAS these are the \emph{only}
+    blocks that are made orthagonal to $V$.
+\end{itemize}
+This part of the code should be called rarely, so who cares if we
+are inefficient.
 
 Continuous variables are not orthagonalized in the SAS type III approach,
 nor any interaction that contains a continuous variable as one of its parts.
@@ -560,21 +523,19 @@ in categorical rows are the ``categorical'' columns.
 A term represented by one column in \code{factors} ``contains'' the term 
 represented in some other column iff it's non-zero elements are a superset.
 
-The entire process below is simpler if we work only with the non-missing
-coefficients; but this has already been done for us.
 <<yates-sgtt>>=
 # create Z
-whichrows <- !duplicated(mframe[names(iscat)[iscat]])
-Z <- Xold[whichrows, !nabeta]  
-ztz <- t(Z) %*% Z
-zvar <- solve(ztz)
-assign2 <- xassign[!nabeta]
-
-# Create the contrast matrix
-Smat <- diag(ncol(Z))
-Smat2 <- Smat
+Z <- sapply(xmatlist, crossprod)
+Z <- matrix(rowSums(Z), nvar)
+# restrict to categorical, before calling solve
 # which terms are factors?
 fterm <- apply(Tatt$factors[!iscat,, drop=FALSE], 2, function(x)!any(x>0))
+keep <- xassign %in% c(0, which(fterm))
+V <- solve(Z[keep, keep])
+
+assign2 <- xassign[keep]
+# Create the contrast matrix
+Smat <- diag(nvar)
 for (iterm in which(fterm)) {  # might be none
     for (j in (iterm:length(fterm))) { # all terms to the right
         # the term includes iterm if it has non-zeros wherever iterm does
@@ -582,11 +543,13 @@ for (iterm in which(fterm)) {  # might be none
         if (j> iterm && fterm[j] && all(Tatt$factors[irow, j] >0)) {
             i1 <- which(assign2 == iterm)  # colums for the first term
             i2 <- which(assign2 == j)      # and for the second
-            Smat[i1, i2] <- solve(ztz[-i2, -i2], ztz[-i2,i2])[i1,]  
-            Smat2[i1, i2] <- -t(solve(zvar[i2, i2], zvar[i2, i1]))
+            Smat[xassign==iterm, xassign==j] <- -t(solve(V[i2, i2], V[i2, i1]))
         }
     }
-} 
+}
+
+# Now, only at the end, toss the missing coefs
+Smat <- Smat[, !nabeta]
 @ 
 
 Although the SGTT does test for all terms, we only want to print out the
@@ -595,10 +558,10 @@ ones that were asked for.
 keep <- match(contr$termname, colnames(Tatt$factors))
 if (length(keep) > 1) { # more than 1 term in the model
     test <- t(sapply(keep, function(i)
-                   testfun(Smat[assign2==i,,drop=FALSE], beta, vmat, sigma^2)))
+                   testfun(Smat[xassign==i,,drop=FALSE], beta, vmat, sigma^2)))
     rownames(test) <- contr$termname
 }  else {
-    test <- testfun(Smat[assign2==keep,, drop=FALSE], beta, vmat, sigma^2)
+    test <- testfun(Smat[xassign==keep,, drop=FALSE], beta, vmat, sigma^2)
     test <- matrix(test, nrow=1, 
                    dimnames=list(contr$termname, names(test)))
 }
