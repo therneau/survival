@@ -18,7 +18,7 @@ These are also referred to as U and V in the vignette.
 <<yates>>=
 yates <- function(fit, term, population=c("data", "factorial", "sas"),
                   levels, test =c("global", "trend", "pairwise"),
-                  predict="linear", options, nsim=1000,
+                  predict="linear", options, nsim=200,
                   method=c("direct", "sgtt")) {
     Call <- match.call()
     if (missing(fit)) stop("a fit argument is required")
@@ -206,7 +206,7 @@ For coxph models we add on an ``intercept coef'' that will center the
 predictions.
 
 <<yates-nonlinear>>=
-xall <- do.call(rbind, xmatlist)
+xall <- do.call(rbind, xmatlist)[,!nabeta, drop=FALSE]
 if (inherits(fit, "coxph")) {
     xall <- xall[,-1, drop=FALSE]  # remove the intercept
     eta <- xall %*% beta -sum(fit$means[!nabeta]* beta)
@@ -649,7 +649,7 @@ yates_setup.coxph <- function(fit, predict = c("lp", "risk", "expected",
     else if (type=="risk") function(x) exp(x)
     else if (type == "survival") {
         baseline <- survfit(fit, censor=FALSE)
-        if (!is.null(options$rmean)) rmean <- options$rmean
+        if (missing(options) || is.null(options$rmean)) rmean <- options$rmean
         else rmean <- max(baseline$time)  # max death time
         if (!is.null(baseline$strata)) 
             stop("stratified models not yet supported")

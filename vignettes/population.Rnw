@@ -22,7 +22,7 @@ options(continue="  ", width=70)
 options(SweaveHooks=list(fig=function() par(mar=c(4.1, 4.1, .3, 1.1))))
 pdf.options(pointsize=8) #text in graph about the same as regular text
 options(contrasts=c("contr.treatment", "contr.poly")) #reset default
-library(survival)
+#library(survival)
 library(splines)
 @ 
 
@@ -564,7 +564,7 @@ Plot these along with the unadjusted curves, with solid lines for the
 MPPV estimates and dashed for the unadjusted curves.
 This shows the difference between adjusted and unadjusted even more clearly.
 (But is not a 1 number summary with a simple p value ;-).
-<<surv3>>=
+<<surv3, fig=TRUE>>=
 plot(flkm, xscale=365.25, fun="event", col=1:4, lty=2,
      xlab="Years", ylab="Death")
 lines(ysurv$summary, fun="event", col=1:4, lty=1, lwd=2)
@@ -686,10 +686,10 @@ not contained in the other, orthagonal to $(Z'Z)^-$.
 Any columns of $C$ corresponding the missing coefficients in the fit will be
 set to zero.
  
-The SAS glm procedure uses a differnt algorithm, which is desribed indirectly
+The SAS glm procedure uses a different algorithm, which is desribed indirectly
 in \ref{Sas2013}.
 \begin{enumerate}
-  \item Create design matrix $X$ of the form used by the GLM procedure,
+  \item Create a design matrix $X$ of the form used by the GLM procedure,
     containing from left to right
     the intercept, then main effects, then two variable interactions
     (if any), three variable interactions, etc.  Within each level
@@ -703,8 +703,8 @@ in \ref{Sas2013}.
         and $m$ levels will be represented by $km$ 0/1 columns, and 
         likewise for higher level interactions.
     \end{itemize}
-  \item Create the $p$ by $p$ dependency matrix $D$ from the $n$ by $p$
-    matrix $X$, from left to right. 
+  \item Create the $p$ by $p$ dependency matrix $D=(X'X)^-(X'X)$ from the 
+    $n$ by $p$ matrix $X$, from left to right.  It has a special form:
     \begin{itemize}
       \item If column $k$ of $X$ can be written as a linear combination of
         prior columns, then $D_{1k}$ to $D_{k-1,k}$ contains that combination,
@@ -714,15 +714,17 @@ in \ref{Sas2013}.
         $i$th column of $X$ is linearly dependent on 
         prior columns, then the $i$th row of $D$ will be zero.
     \end{itemize}
-  \item Partially orthagonalize the transpose of $D$:
+  \item Let $C=D$, then partially orthagonalize the rows of $C$.
     \begin{itemize}
-      \item For any column of $D'$ that corresponds to a categorical term,
+      \item For any row of $C$ that corresponds to a categorical term,
         and is contained in some categorical term further to the right in
-        the matrix, make this column orthagonal to those containing terms.
+        the matrix, make this row orthagonal to any rows of 
+        those containing terms.
       \item The term x1 is contained in x1*x2 for instance.
     \end{itemize}
-  \item The resulting rows of $D$ form the type III contrasts, i.e.,
-    tests of $D \beta =0$ for the corresponding rows of $D$.
+  \item The resulting rows of $C$ form the type III contrasts, i.e.,
+    tests of $C_{j.} \beta =0$ where $j$ is the set of rows for a particular 
+    term in the model.
 \end{enumerate}
 
 An advantage of the first algorithm is that it works for any coding of the 
@@ -731,12 +733,11 @@ model, say with x1 using contr.treatment and x2 contr.helmert.  Changing
 the coding will not change the final result. 
 The SAS glm algorithm on the other
 hand appears to be totally dependent on using this exact form of the
-$X$ matrix before proceeding to steps 2 and 3.
+$X$ matrix before proceeding to steps 2 and 3;
+the model matrices produced by \code{model.matrix} in R have far fewer
+columns and simply don't work.
 Neither approach produces the MPPV values themselves, only a global contrast 
 $C$ for the test $C\beta =0$.
-Proving that algorithm 1 gives the same result as the straightforward 
-MPPV approach is challenging but doable, as is a proof that algorithms 1 and 2
-give the same result for the SAS glm coding of X.
 
 If all covariates are categorical and all of the MPPV values are estimable 
 then both algorithms will agree with the Yates tests.
@@ -746,8 +747,10 @@ e.g., if \code{treatment} were the variable of interest $Z$ will contain
 rows for treatment A + all combinations of the other factors, rows
 for treatment B + all combinations of the others, etc.
 If not all the MPV values are estimable then the Yates SS is not defined, 
-the keep-unique-rows operation does not produce a population matrix, and
-the SGTT is something quite different.
+the keep-unique-rows operation does not produce a population matrix, algorithms
+1 and 2 do not always agree, and the result from either of them is something
+quite different.
+
 The tests are still orthagonal, but orthagonal to what?
 
 For continuous variables SAS computes type 2 tests and labels them as 
