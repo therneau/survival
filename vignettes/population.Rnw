@@ -667,8 +667,9 @@ unbalanced design.
         unless sharing a common term, e.g., $L_{ij}=0$ if row $i$ is associated
         with $x_1$ and row $j$ with $x_2$, but not if row $j$ were associated
         with the $x_1:x_2$ interaction.
-    \end{enumerate}
-\end{itemize}
+    \end{itemize}
+\end{enumerate}
+
 If there are both continuous and categorical variables in the $X$ matrix
 then step 1 above assigns uniqueness based only on categorical columns.
 (The continuous portion of $Z'Z$ need not even be computed since it is never
