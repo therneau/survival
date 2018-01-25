@@ -521,7 +521,7 @@ else {
     }      
     else {
         # deal with a factor or character
-        if (!(is.factor(yinc) || is.factor(yinc)))
+        if (!(is.factor(yinc) || is.character(yinc)))
             stop("the second argument of tdc must be numeric, character, or factor")
         newlev <- unique(c(levels(as.factor(yinc)), levels(as.factor(newvar))))
         y2 <- factor(yinc, levels=newlev)
