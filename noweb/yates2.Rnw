@@ -649,7 +649,7 @@ yates_setup.coxph <- function(fit, predict = c("lp", "risk", "expected",
     else if (type=="risk") function(x) exp(x)
     else if (type == "survival") {
         baseline <- survfit(fit, censor=FALSE)
-        if (missing(options) || is.null(options$rmean)) rmean <- options$rmean
+        if (!missing(options) && !is.null(options$rmean)) rmean <- options$rmean
         else rmean <- max(baseline$time)  # max death time
         if (!is.null(baseline$strata)) 
             stop("stratified models not yet supported")
