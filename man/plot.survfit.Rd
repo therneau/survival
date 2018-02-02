@@ -5,10 +5,10 @@
 }
 \usage{
 \method{plot}{survfit}(x, conf.int=, mark.time=FALSE, 
- mark=3, col=1, lty=1, lwd=1, cex=1, log=FALSE, xscale=1, yscale=1,  
+ pch=3, col=1, lty=1, lwd=1, cex=1, log=FALSE, xscale=1, yscale=1,  
  firstx=0, firsty=1, xmax, ymin=0, fun, 
  xlab="", ylab="", xaxs="S",  conf.times, conf.cap=.005,
- conf.offset=.012, \dots)
+ conf.offset=.012, mark, \dots)
 }
 \arguments{
   \item{x}{
@@ -22,13 +22,15 @@
   \item{mark.time}{
     controls the labeling of the curves.  If set to \code{FALSE}, no
     labeling is done. 
-    If \code{TRUE}, then curves are marked at each censoring time which
-    is not also a death time.  If \code{mark.time} is a 
-    numeric vector, then curves are marked at the specified time points. 
+    If \code{TRUE}, then curves are marked at each censoring time.
+    If \code{mark} is a
+    numeric vector then curves are marked at the specified time points. 
   }
-  \item{mark}{
-    vector of mark parameters, which will be used to label the curves. 
-    The \code{lines} help file contains examples of the possible marks. 
+  \item{pch}{
+    vector of characters which will be used to label the curves. 
+    The \code{points} help file contains examples of the possible marks.
+    A single string such as "abcd" is treated as a vector
+    \code{c("a", "b", "c", "d")}.
     The vector is reused cyclically if it is shorter than the number of
     curves.  If it is present this implies \code{mark.time = TRUE}.
   }
@@ -122,7 +124,7 @@
     region. If this is a single number then each curve's bars are offset
     by this amount from the prior curve's bars, if it is a vector the values are
     used directly.}
-
+  \item{mark}{a historical alias for \code{pch}}
   \item{\dots}{for future methods}
 }
 \value{

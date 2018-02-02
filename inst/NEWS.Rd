@@ -34,6 +34,11 @@
     and accompanying vignette.
     \item Update the survival rate tables (survexp.mn, survexp.us,
     survexp.usr), to add data for more calendar years.
+
+    \item Bow to user pressure: marks now appear on survival curves for
+    censoring times that are tied with an event time, plotted at the
+    midpoint of the vertical step.  Also, replace the outdated
+    \code{mark} option with \code{pch}.
   }
 }
 
