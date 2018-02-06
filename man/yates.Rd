@@ -7,7 +7,7 @@
 \usage{
 yates(fit, term, population = c("data", "factorial", "sas"),
 levels, test = c("global", "trend", "pairwise"), predict = "linear",
-options, nsim = 1000, method = c("direct", "sgtt"))
+options, nsim = 200, method = c("direct", "sgtt"))
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{

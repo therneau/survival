@@ -79,7 +79,7 @@ It is my hope that the formal test cases will
 be a resource for developers on multiple platforms.
 Portions of this work were included as an appendix in 
 the textbook of Therneau and Grambsch
-\cite{Therneau2000} precisely for this reason.
+\cite{Therneau00} precisely for this reason.
 
 \section{Basic formulas}
 All these examples have a single covariate.
@@ -437,8 +437,8 @@ $1/(r+3)$ to their expected value.
 For the second event at time 6 subjects 3 and 4 have a weight of 1/2,
 the total number of tickets is $(r+5)/2$
 and the consequent increment in the cumulative hazard is $2/(r+5)$.
-This $\beta=0$ this calculation is equivalent to the Fleming-Harrington \cite{Fleming84}
-estimate of cumulative hazard.
+This $\beta=0$ this calculation is equivalent to the Fleming-Harrington 
+\cite{Fleming84} estimate of cumulative hazard.
 Subjects 3 and 4 receive 1/2 of this second increment to $E$ and subjects
 5 and 6 the full increment.
 Efron \cite{Efron77} did not discuss residuals so did not investigate this
@@ -1127,4 +1127,6 @@ below.  We have $r\equiv e^\pi/3$, $V$=
 %\multicolumn{2}{c}{$\Lambda$} & \multicolumn{3}{c}{Variance} \\ \hline
 %e/(r^2+ 11r+7) &  0.03272832 & e^2/(r^2+ 11r+7)^2 & 
 
+\bibliographystyle{plain}
+\bibliography{refer}
 \end{document}

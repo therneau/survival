@@ -48,6 +48,8 @@ lines.survfit <- function(x, type='s',
     <<plot-transform-ms>>
     if (missing(firsty) && !is.null(x$p0)) firsty <- 1-x$p0
     <<plot-common-args>>
+    if (missing(pch) && !missing(mark)) pch <- mark
+    if (length(pch)==1 && is.character(pch)) pch <- strsplit(pch, "")[[1]]
     <<plot-firstx>>
     <<plot-functions>>
     <<plot-draw>>
@@ -217,7 +219,7 @@ numeric values; mark has since disappeared from the manual page for
 \code{par}.  We honor it for backwards compatability.
 To be consistent with matplot and others, we allow pch to be a character
 string or a vector of characters.
-<<plot-common-args>>=
+<<plot-plot-setup1>>=
 if (missing(pch) && !missing(mark)) pch <- mark
 if (length(pch)==1 && is.character(pch)) pch <- strsplit(pch, "")[[1]]
 @ 
