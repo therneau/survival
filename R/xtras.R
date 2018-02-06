@@ -48,7 +48,7 @@ terms.inner <- function(x) {
         if (length(x) ==3) c(terms.inner(x[[2]]), terms.inner(x[[3]]))
         else terms.inner(x[[2]])
     }
-    else if (class(x)== "call" && 
+    else if (inherits(x, "call") && 
              (x[[1]] != as.name("$") && x[[1]] != as.name("["))) {
         if (x[[1]] == '+' || x[[1]]== '*' || x[[1]] == '-') {
             # terms in a model equation, unary minus only has one argument
