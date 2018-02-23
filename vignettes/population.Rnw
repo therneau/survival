@@ -39,8 +39,8 @@ library(splines)
 \  \tableofcontents
 
 \section{Introduction}
-Statistician and their clients have always been fond of finding a single
-number summary of an effect in data (perhaps too much so in fact).
+Statisticians and their clients have always been fond of finding a single
+number summarizing an effect in data (perhaps too much so in fact).
 Consider the hypothetical data shown in figure \ref{fig1}
 comparing treatments A and B with age as a confounder.
 What is a useful single number summary of the difference between 
@@ -63,44 +63,43 @@ legend(50, 4.2, c("Treatment A", "Treatment B"),
  \label{fig1}
 \end{figure}
 
-More formally, assume we have a fitted model. Split the model 
-predictors into two groups $U$ and $V$, where $U$ is the covariate of 
-interest (treatment in the example above) and $V$ is everything else.
-Then a marginal estimate for treatment A is
+More formally, assume we have a fitted model.
+We want to compute the conditional expectation
 \begin{equation*}
-   m_A = E_F \,\hat y(U=A, V)
+   m_A = E_F\left( \hat y | trt=A \right)
 \end{equation*}
-where $F$ is some chosen population distribution for the covariates $V$.
-Important follow-up questions are what population should be used, 
+where $F$ is some chosen population for the covariates other than treatment.
+Important follow-up questions are: what population should be used, 
 what statistic should be averaged,
-the computational algorithm, and statistical properties of the resulting
+the compuational algorithm, and statistical properties of the resulting
 estimate.
 Neither the statistic nor population questions should be taken lightly
 and need to be closely linked to the scientific question.  
-If for instance the model of figure 1 were used to inform a nursing home
-formulary then the distribution $F$ might be focused on higher ages.
+If, for instance, the model of figure 1 were used to inform a nursing home
+formulary, then the distribution $F$ might be focused on higher ages.
 
 Four common populations are
+
 \begin{itemize}
-  \item Empirical: the data set itself.  For the simple example above this
+  \item Empirical: The data set itself.  For the simple example above, this
     would be the distribution of all $n$ ages in the data set, 
     irrespective of treatment.
-  \item Factorial or Yates: this is only applicable if the adjusting 
-    variables $V$
-    are all categorical, and consists of all unique combinations of $V$.
+  \item Factorial or Yates: This is only applicable if the adjusting 
+    variables
+    are all categorical, and consists of all unique combinations of them.
     That is, the data set one would envision for a balanced factorial 
     experiment.
-  \item External: an external reference such as the age/sex distribution 
-    of the US census.  This is common in epidemiolgy.
-  \item SAS type 3: a factorial distribution for the categorical predictors 
+  \item External: An external reference such as the age/sex distribution 
+    of the US census.  This is common in epidemiology.
+  \item SAS type 3: A factorial distribution for the categorical predictors 
     and the data distribution for the others. 
 \end{itemize}
 
 The \code{yates} function is designed to compute such population averages
 from a fitted model, along with desired contrasts on the resultant 
-estimates, e.g., whethter the population average effects for treatment A and
+estimates, e.g., whether the population average effects for treatment A and
 treatment B are equal. 
-The function has been tested with the results of lm, glm, and coxph fits,
+The function has been tested with the results of \code{lm}, \code{glm}, and \code{coxph} fits,
 and can easily be extended to any R model that includes a standard set of
 objects in the result, i.e., 
 \code{terms}, \code{contrasts}, \code{xlevels}, and \code{assign}.
@@ -119,9 +118,12 @@ A*B combination, thus his estimate for each level of A is the
 mean predicted value over B, i.e., the mean prediction for A over
 a factorial population for B.
 Yates then develops
-formulas for calculation of these quantities and tests of their
+formulas for calculating these quantities and testing their
 equality that are practical for the manual methods of the time;
-these have now been been supplanted by direct matrix computations.
+these are now easily accomplished directly using matrix computations.
+(It is interesting that Yates' paper focuses far more on estimands than
+tests, while later references to his work focus almost exclusively
+on the latter, e.g., the ``Yates sum of squares''.)
 
 This
 concept of population averages is actually a common one in statistics.
@@ -136,7 +138,7 @@ small sample of the idea's continual rediscovery.
 \subsection{Data}
 In 1988 an experiment was designed and implemented at one of AT\&T's
 factories to investigate alternatives in the wave soldering procedure
-for mounting electronic componentes to printed circuit boards.
+for mounting electronic components to printed circuit boards.
 The experiment varied a number of factors relevant to the process.
 The response, measured by eye, is the number of visible solder skips.
 The data set was used in the
@@ -149,11 +151,11 @@ length(unique(solder$PadType))
 @ 
 
 A perfectly balanced experiment would have 3*2*10*3 = 180 observations for
-each Mask, corresponding to all combinations of opening, solder thickness,
-pad type and panel.  
-The A3 mask has extra replicates for a subset of the opening*thickness
-combinations, however, while mask A6 is lacks observations for these sets.
-Essentially, one extra run of 180 was done with a mixture of masks.
+each Mask, corresponding to all combinations of Opening, Solder Thickness,
+PadType and Panel.  
+The A3 Mask has extra replicates for a subset of the Opening*Thickness
+combinations, however, while Mask A6 lacks observations for these sets.
+Essentially, one extra run of 180 was done with a mixture of Masks.
 Figure \ref{fig:solder} gives an overview of univariate results for
 each factor.
 
@@ -161,7 +163,7 @@ each factor.
 <<solder1b, fig=TRUE, echo=FALSE>>=
 # reproduce their figure 1.1
 temp <- lapply(1:5, function(x) tapply(solder$skips, solder[[x]], mean))
-plot(c(0,6), range(unlist(temp)), type='n', xaxt='n',
+plot(c(0.5, 5.5), range(unlist(temp)), type='n', xaxt='n',
      xlab="Factors", ylab ="mean number of skips")
 
 axis(1, 1:5, names(solder)[1:5])
@@ -178,19 +180,23 @@ for (i in 1:5) {
 \end{figure}
 
 \subsection{Linear model}
-A subset of the solder data that excludes mask A6 is exactly the type
+A subset of the solder data that excludes Mask A6 is exactly the type
 of data set considered in Yates' paper: a factorial design whose data set
-is not quite balanced.
+is not quite balanced. 
 Start with a simple fit and then obtain the Yates predictions.
+
 <<solder2>>=
+with(solder[solder$Mask!='A6',], ftable(Opening, Solder, PadType))
+
 fit1 <- lm(skips ~ Opening + Solder + Mask + PadType + Panel,
            data=solder, subset= (Mask != 'A6'))
 y1 <- yates(fit1, ~Opening, population = "factorial")
-y1
+print(y1, digits=2)  # (less digits, for vignette page width)
 @ 
-The printout has two parts: the left hand colums are mean Population Predicted
-Values (mppv), the right hand are tests on those predicted values.  
-The default is a single global test that they are all equal.
+
+The printout has two parts: the left hand columns are Mean Population Predicted
+Values (MPPV) and the right hand columns are tests on those predicted values.  
+The default is a single global test that these MPPV are all equal.
 Under a factorial population these are the Yates' weighted
 means \cite{Yates} and the corresponding test is the Yates' sum of
 squares for that term.  These would be labeled as
@@ -199,19 +205,19 @@ by the glm procedure of SAS.
 More on this correspondence appears in the section on the SGTT algorithm.
 
 Repeat this using the default population, which is the set of all 810
-combinations for solder, mask, pad type and panel found in the non-A6 data.
+combinations for Solder, Mask, PadType and Panel found in the non-A6 data.
 The pairwise option requests tests on all pairs of openings.
 <<solder2b>>=
 y2 <- yates(fit1, "Opening", population = "data", test="pairwise") 
-y2
+print(y2, digits=2)
 #
 # compare the two results
 temp <- rbind(diff(y1$estimate$mppv), diff(y2$estimate$mppv))
-dimnames(temp) <- list(c("factorial", "emprical"), c("2 vs 1", "3 vs 2"))
+dimnames(temp) <- list(c("factorial", "empirical"), c("2 vs 1", "3 vs 2"))
 round(temp,5)
 @ 
 
-Although the values shift with the new population the difference in
+Although the MPPV values shift with the new population, the difference in
 MPPV values between any two pairs is unchanged.
 This is because we have fit a model with no interactions.
 Referring to figure 1 this is a model where all of the predictions are
@@ -223,49 +229,59 @@ For a linear model with no iteractions the test statistics created by the
 different than simple comparisons of the model coefficients.
 
 Here are results from a more interesting fit that includes interactions.
+
 <<solder3>>=
 fit2 <- lm(skips ~ Opening + Mask*PadType + Panel, solder,
            subset= (Mask != "A6"))
-yates(fit2, ~Opening, population="factorial")
+temp <- yates(fit2, ~Opening, population="factorial")
+print(temp, digits=2)
 @ 
-This data set is close to balanced and the means change only a small amount.
+This solder data set is close to being balanced,
+and the means change only a small amount.
+(One hallmark of a completely balanced experiment is that any 
+MPPV values are unaffected by the addition of interaction terms.)
 
 \subsection{Missing cells}
 Models that involve factors and interactions can have an issue with
-missing cells as shown by the example below.
+missing cells as shown by the example below using the full 
+version of the solder data.
 <<solder4>>=
 fit3 <- lm(skips ~ Opening * Mask + Solder + PadType + Panel, solder)
-yates(fit3, ~Mask, test="pairwise")
+temp <- yates(fit3, ~Mask, test="pairwise")
+print(temp, digits=2)
 @ 
 
 The population predictions for each Mask include all combinations of
 Opening, Solder, PadType, and Panel that are found in the data.
-In the above call the empirical population was used, and the
-underlying algorithm amounts to
+The call implicity uses the default value of \code{population='data'},
+which is the option that users will almost always select, as nearly
+balanced experiments like the solder data are rare.
+The underlying algorithm amounts to:
 \begin{enumerate}
-  \item Make a copy of the data set (900 obs), and set Mask to A1.5 in
+  \item Make a copy of the data set (900 obs), and set Mask to A1.5 for
     all observations
   \item Get the 900 resulting predicted values from the model, and take their
     average
   \item Repeat 1 and 2 for each mask type.
 \end{enumerate}
-However, there were no observations in the data set with Mask = A6 and 
-Opening = Large.
+
+There is a problem, however, it that there were no observations in the data 
+set with Mask = A6 and Opening = Large.
 Formally, predictions for the A6/Large combination are \emph{not estimable}, 
 and as a consequence
 neither are any population averages that include those predicted values, 
 nor any tests that involve those population averages.
-This lack of estimability is entirely due to the inclusion of a mask by opening
+This lack of estimability is entirely due to the inclusion of a Mask by Opening
 interaction term in the model, which states that each Mask/Opening combination
 has a unique effect, which in turn implies that we need an estimate for all
 Mask*Opening pairs to compute a population prediction.
 
-If you do the above steps `by hand' using the R \code{predict} function 
+If you do the above steps `by hand' using the R \code{predict} function, 
 it will return a value for all 900 observations
 along with a warning message that the results may not be reliable,
 and the warning is correct in this case.
 The result of \code{coef(fit2)} reveals that the fit generated an NA 
-coefficient.
+for the coefficient.
 The presence of a missing value shows that some preditions
 will not be estimable, but it is not possible to determine \emph{which}
 ones are estimable from the coefficients alone.
@@ -280,35 +296,34 @@ deficient terms.
 
 \section{Generalized linear models}
 \label{sect:glm}
-Since the solder response is a count of the number of skips a Poisson
-model is the more natural approach as opposed to linear regression.
+Since the solder response is a count of the number of skips, Poisson
+regression is the more natural modeling approach than linear regression.
 In a glm model we need to consider more carefully both the population
-and the statistic should be averaged.
+and the statistic to be averaged.
 
 <<glm>>=
-gfit2 <- glm(skips ~ Opening * Mask +PadType + Solder, data=solder,
+gfit2 <- glm(skips ~ Opening * Mask + PadType + Solder, data=solder,
              family=poisson)
 yates(gfit2, ~ Mask, predict = "link") 
 yates(gfit2, ~ Mask, predict = "response")  
 @ 
 
-Predicted values for the average number of skips are similar to the
-results that were obtained from the linear model; they parallel 
-\code{type='response'} in \code{predict.glm}.
+Mean predicted values for the number of skips using
+\code{type='response'} in \code{predict.glm} are similar to estimates when the linear regression model was used.
 Prediction of type 'link' yields a population average of the
 linear predictor $X\beta$.
 Though perfectly legal (you can take the mean of anything you want)
 these MPPV values can more difficult to interpret.
-The default link function for poisson regression is log(), so this
+The default link function for poisson regression is log(), so the MPPV 
 is a mean of the log predicted value.
 Since exp(mean(log(x)) defines the geometric mean of $x$, 
-one can view exponentiated for the link as 
+one can view the exponentiated version of the link estimate as 
 a geometric mean of predicted values over the population.
-Given the skewness of the observed skip counts an argument can
+Given the skewness of the observed skip counts, an argument can
 be made for using the geometric mean. 
 It's value and variance variance can be approximated
 using the usual delta method per the code below.
-Tests the difference between Masks would remain unchanged.
+Tests of the difference between Masks would remain unchanged.
 
 <<glm2>>=
 # post-process the link
@@ -320,20 +335,20 @@ ytemp
 
 For nonlinear predictors such as the response, the population choice
 matters even for an additive model.  The two results
-below have different between MPPV differences
-and different tests.
+below have different estimates for the "between MPPV differences"
+and tests. 
 
 <<glm3>>=
 gfit1 <- glm(skips ~ Opening + Mask +PadType + Solder, data=solder,
              family=poisson)
-yates(gfit1, ~ Opening, test="pairwise", predict = "response")
+yates(gfit1, ~ Opening, test="pairwise", predict = "response", population='data')
 yates(gfit1, ~ Opening, test="pairwise", predict = "response", 
       population="yates")
 @ 
 
 
 \section{Free Light Chain}
-In 2012 Dispenzieri and colleages  examined the
+In 2012, Dispenzieri and colleages  examined the
 distribution and consequences of a the free light chain value,
 a laboratory test, on a large fraction of the 1995
 population of Olmsted County, Minnesota aged 50 or older
@@ -350,16 +365,16 @@ Excessive amounts of free light chain (FLC) are thought to be a marker of
 disregulation in the immune system.
 An important medical question is whether high levels of FLC have an
 impact on survival, which will be explored using a Cox model.  
-Free light chains have two major forms denoted as kappa and lambda,
+Free light chains have two major forms denoted as kappa and lambda;
 we will use the sum of the two.
 
 A confounding factor is that free light chain values rise with age, in
 part because it is eliminated by the kidneys and renal function
 declines with age.
 The age distribution of males and females differs, so we
-will will to adjust any comparisons for both age and sex.
+will adjust any comparisons for both age and sex.
 The impact of age on mortality is dominatingly large
-and so correction for the age imbalance is is critical when exploring
+and so correction for the age imbalance is critical when exploring
 the impact of FLC on survival.
 
 Figure \ref{fig:data} shows the trend in free light chain values
@@ -429,8 +444,8 @@ round(temp,2)
 @ 
 
 The between gender difference is underestimated without adjustment for
-age.  The females are overrepresented at the high ages, which inflates
-their naive average.  Continous and categorical age adjustment is similar in
+age.  The females are over-represented at the high ages, which inflates
+their naive average.  Continuous and categorical age adjustment is similar in
 this particular data set.  
 Now look at population adjustment.
 
@@ -454,7 +469,7 @@ the \code{levels} argument.
 With a factor the routine can guess that you want all the levels.
 <<flc3>>=
 yates(flc3a, ~ age, levels=c(65, 75, 85))  
-yates(flc3b, ~age2)
+yates(flc3b, ~ age2)
 @ 
 
 \section{Cox Models}
@@ -487,21 +502,21 @@ effect of FLC on survival.
 Dispenzieri \cite{Dispenzierixx} looked at the impact of FLC by dividing the
 sample into those above and below the 90th percentile of FLC;
 for illustration we will use 4 groups consisting of the lowest 50\%,
-50 to 75th percentile, 75 to 90th and above 90.
+50 to 75th percentile, 75 to 90th and above 90th.
 
 <<coxfit2>>=
 coxfit4 <- coxph(Surv(futime, death) ~ fgroup*age + sex, flchain)
 yates(coxfit4, ~ fgroup, predict="linear")
 yates(coxfit4, ~ fgroup, predict="risk")
 @ 
-We see that after adjustment for age and sex FLC is a strong
+We see that after adjustment for age and sex, FLC is a strong
 predictor of survival.
 Since the Cox model is a model of relative risk any constant term is
 arbitrary: one could add 100 to all of the log rates (type `linear' above)
-and have as valid an answer.  To keep the coefficients on a sensible scale
+and have as valid an answer.  To keep the coefficients on a sensible scale,
 the \code{yates} function centers the mean linear predictor original data
 at zero.  This centers the linear predictor at 0 but 
-does not precisely center the risks at exp(0) =1 due to
+does not precisely center the risks at exp(0) = 1 due to
 Jensen's inequality, but suffices to keep the values in a sensible range
 for display.
  
@@ -513,7 +528,7 @@ higher risk members of the population die.
 Though computable there is no natural feel for what either a mean r
 hazard ratio or a mean log hazard ratio actually represent.
 
-Survival curves however do lead to a proper average: 
+Survival curves, however, do lead to a proper average: 
 the survival curve of a population is the
 mean of the individual survival curves of its member.
 Functions computed from the survival curve such as a mean or median time
@@ -532,13 +547,13 @@ print(flkm, rmean= 13*365.25)
 
 Straightforward survival prediction takes longer than recommended for a CRAN
 vignette: there are \Sexpr{nrow(flchain)} subjects in the study and
-4 flc groups, which leads to just over 30 thousand predicted survival curves
+4 FLC groups, which leads to just over 30 thousand predicted survival curves
 when using the default \code{population='data'}, and each curve
 has over 2000 time points (the number of unique death times).
 To compute a variance
 this is then repeated the default \code{nsim = 1000} times.  
 We can use this as an opportunity to demonstrate a user supplied population,
-however, which is any data set containing a populatoin of 
+however, which is any data set containing a population of 
 values for the control variables.
 We'll use every 20th observation in the flchain data as the population
 and also reduce the number of simulations to limit the run time.
@@ -581,7 +596,7 @@ of the data, call the model.matrix routine to compute an $X$ matrix, compute
 the prediction for all rows, and take the mean prediction.
 
 When the prediction is the simple linear predictor $X\beta$ we take advantage
-of the fact that ${rm mean}(X \beta) = [\mbox{column means}(X)] \beta = c\beta$.
+of the fact that $\mbox{rm mean}(X \beta) = [\mbox{column means}(X)] \beta = c\beta$.
 If $C$ is the matrix of said column means, one row for each of the groups
 of interest, the $C\beta$ is the vector of MPPV values and $CVC'$ is the
 variance covariance matrix of those values, where $V$ is the variance matrix
@@ -598,9 +613,9 @@ variance matrix for the MPPV values is then computed.
 Earlier in this document reference was made to the SAS ``type 3'' estimates,
 and we now delve into that topic.
 It is placed at the end because it is in many ways a side issue with
-respect to population averages 
+respect to population averages. 
 However,  whatever ones opinion on the wisdom
-or folly of the SAS estimator one cannot ignore its ubiquity, and showing how
+or folly of the SAS estimator, one cannot ignore its ubiquity, and showing how
 it fits into this framework is an important part of the picture.
 
 \subsection{SGTT}
@@ -622,7 +637,7 @@ One very interesting form is based on the fact that in a balanced factorial
 linear model the tests for all the effects are orthagonal;
 a dataset and model where all predictors are categorical and all 
 combinations appear the same number of times.
-In the model \code{lm(y ~ x1 + x2 + x1:x2)} for instance the sequential 
+In the model \code{lm(y ~ x1 + x2 + x1:x2)}, for instance, the sequential 
 SS for x1, as obtained from an R \code{anova} command,
 will be the same whether x1 preceeds or follows after x2 in the
 formula. 
@@ -674,8 +689,8 @@ If there are both continuous and categorical variables in the $X$ matrix
 then step 1 above assigns uniqueness based only on categorical columns.
 (The continuous portion of $Z'Z$ need not even be computed since it is never
 used.)
-The interaction of a continous and a cateogorical covariate is considered 
-to be in the set of continous variables.
+The interaction of a continuous and a categorical covariate is considered 
+to be in the set of continuous variables.
 
 What if not all of the population values are estimable, such as the A6/Large
 combination in the solder data?  
@@ -687,7 +702,7 @@ not contained in the other, orthagonal to $(Z'Z)^-$.
 Any columns of $C$ corresponding the missing coefficients in the fit will be
 set to zero.
  
-The SAS glm procedure uses a different algorithm, which is desribed indirectly
+The SAS glm procedure uses a different algorithm, which is described indirectly
 in \ref{Sas2013}.
 \begin{enumerate}
   \item Create a design matrix $X$ of the form used by the GLM procedure,
@@ -715,11 +730,11 @@ in \ref{Sas2013}.
         $i$th column of $X$ is linearly dependent on 
         prior columns, then the $i$th row of $D$ will be zero.
     \end{itemize}
-  \item Let $C=D$, then partially orthagonalize the rows of $C$.
+  \item Let $C=D$, then partially orthogonalize the rows of $C$.
     \begin{itemize}
       \item For any row of $C$ that corresponds to a categorical term,
         and is contained in some categorical term further to the right in
-        the matrix, make this row orthagonal to any rows of 
+        the matrix, make this row orthogonal to any rows of 
         those containing terms.
       \item The term x1 is contained in x1*x2 for instance.
     \end{itemize}
@@ -752,7 +767,7 @@ the keep-unique-rows operation does not produce a population matrix, algorithms
 1 and 2 do not always agree, and the result from either of them is something
 quite different.
 
-The tests are still orthagonal, but orthagonal to what?
+The tests are still orthogonal, but orthogonal to what?
 
 For continuous variables SAS computes type 2 tests and labels them as 
 type 3.
@@ -763,7 +778,7 @@ them.
 Note that the SGTT algorithm is the SAS \emph{glm} type 3 procedure. 
 Several other SAS procedures also create output labeled as ``type 3'' which
 is not necessarily the same. 
-The SAS phreg procedure appears to use the NSTT computation for instance,
+The SAS phreg procedure appears to use the NSTT computation, for instance,
 and we have found
 others that are not invariant to the choice of the reference level for a 
 factor.
@@ -771,9 +786,9 @@ factor.
 \subsection{NSTT}
 A major problem with SAS type III computations is that almost no one knows
 exactly what is being computed.  
-The documentation is deficient for the GLM procedure ---
+The documentation is deficient for the glm procedure ---
 \cite{SAS2013} describes the
-algorithm but not what that algorithm computes --- and is larglely non-existent 
+algorithm but not what that algorithm computes --- and is largely non-existent 
 for others.
 This has led to propogation of a false ``type 3'' algorithm in multiple packages
 which I call the NSTT.
@@ -798,7 +813,7 @@ drop1(nfit1, ~Solder)
 @ 
 
 This shows a type III sum of squares of 389.88.
-However if choose a different coding the SS increases over 25 fold:
+However, if a different coding is used then the SS increases over 25 fold:
 
 <<nstt2>>=
 options(contrasts = c("contr.SAS", "contr.poly"))
@@ -815,7 +830,7 @@ For a simple 2 way interaction like the above, it turns out that the
 NSTT actually tests the effect of Solder within the reference cell
 for Opening, it is not a global test at all. 
 Looking at the simple cell means it is no surprise that the \code{contr.SAS}
-fit, which uses Opening=S as the reference will yeild a large NSTT
+fit, which uses Opening=S as the reference will yield a large NSTT
 SS for its comparison of 17.4 and 5.5, while the \code{contr.treatment}
 version using Opening=L as reference has a much smaller NSTT.
 In fact, re-running a particular analysis with different reference levels for
@@ -860,12 +875,12 @@ very useful statistical concept.
 One simple advantage of the approach is that because predicted values do not
 depend on how a model is parameterized, the results are naturally invariant
 to how categorical variables are represented.
-But like many good ideas in statistics proper application of the idea requires
+But like many good ideas in statistics, proper application of the idea requires
 some thought. 
 In terms of what to predict, for linear models the simple linear predictor
 $X\beta$ is the obvious choice, but for others is more nuanced.
 The choice of which predicted value should be used for the summary of a
-Cox model is for instance an area that requires further research.
+Cox model is, for instance ,an area that requires further research.
 
 In terms of the population choice, it should match the research question
 at hand.

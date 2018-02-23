@@ -1,5 +1,16 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 2.42-1}{
+  \itemize{
+    \item Add xtfrm method for Surv objects.
+    \item Fix error in logLik.coxph.null (incorrect class)
+    \item Fix error in pyears, would fail for a model with no
+    predictors and dataframe=TRUE.
+    \item tmerge would fail if and id was missing, give a message
+    instead
+}}
+
+    
 \section{Changes in version 2.42-0}{
   \itemize{
     \item Fix a bug in the agfit4.c routine, based on data sets from Ivo

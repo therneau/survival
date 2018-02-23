@@ -265,6 +265,17 @@ is.na.Surv <- function(x) {
 Math.Surv <- function(...)  stop("Invalid operation on a survival time")
 Ops.Surv  <- function(...)  stop("Invalid operation on a survival time")
 Summary.Surv<-function(...) stop("Invalid operation on a survival time")
+
+# The Ops.Surv method could in theory define == and >, to allow sorting
+#  but I've left them out since it is the xtfrm method that explicitly
+#  is used for this.  For (start, stop) data we order by event within
+#  ending time.  Start time is included as a last index, but it is not
+#  clear that we need to do so.
+xtfrm.Surv <- function(x) {
+    if (ncol(x)==2) order(x[,1], x[,2])  # events after censor
+    else order(x[,2], x[,3], x[,1])      # order by ending time
+}
+
 is.Surv <- function(x) inherits(x, 'Surv')
 as.matrix.Surv <- function(x, ...) {
     y <- unclass(x)

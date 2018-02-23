@@ -127,6 +127,7 @@ if (missing(data1) || missing(data2))
     stop("two data sets are required")
 id <- eval(Call[["id"]], data2, enclos=emptyenv()) #don't find it elsewhere
 if (is.null(id)) stop("id variable not found in data2")
+if (any(is.na(id))) stop("id variable cannot have missing values")
 
 if (firstcall) {
     if (!missing(tstop)) {
@@ -472,20 +473,22 @@ each affects only one interval.
 Counts are more work and for this we use a C routine. 
 <<tmerge-addin2>>=
 # add it in
+# newvar <- newdata[[argname[ii]]]  # does it exists
 if (argclass[ii] %in% c("cumtdc", "cumevent")) {
     if (!is.numeric(yinc)) stop("invalid increment for cumtdc or cumevent")
     yinc <- unlist(tapply(yinc, match(id, baseid), cumsum))
     }
 
-newvar <- newdata[[argname[ii]]]  #does the variable exist? 
 if (argclass[ii] %in% c("event", "cumevent")) {
-    if (is.null(newvar)) {
-        if (is.factor(yinc)) 
+    #if (is.null(newvar)) {
+        if (is.numeric(yinc)) newvar <- rep(0L, nrow(newdata))
+        else if (is.factor(yinc)) 
             newvar <- factor(rep(levels(yinc)[1], nrow(newdata)),
                              levels(yinc))
+        else if (is.character(yinc)) newvar <- rep('', nrow(newdata))
         else if (is.numeric(yinc)) newvar <- rep(0L, nrow(newdata))
         else stop("invalid value for a status variable")
-    }
+    #}
     keep <- (subtype==1 | subtype==3) # all other events are thrown away
     newvar[indx2[keep]] <- yinc[keep]
     
@@ -503,10 +506,10 @@ else {
     
     # we want to pass the right kind of NA to the C code
     if (is.na(topt$tdcstart)) topt$tdcstart <- as.numeric(topt$tdcstart)
-    if (is.null(newvar)) {  # not overwriting a prior value
+    #if (is.null(newvar)) {  # not overwriting a prior value
         if (is.null(argi$value)) newvar <- rep(0.0, nrow(newdata))
         else newvar <- rep(topt$tdcstart, nrow(newdata))
-        }
+   #     }
 
     if (is.numeric(yinc)) {
         # this is the usual case

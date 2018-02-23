@@ -307,21 +307,28 @@ has.tcut <- any(sapply(m, function(x) inherits(x, 'tcut')))
 if (data.frame) {
     # Create a data frame as the output, rather than a set of
     #  rate tables
-    keep <- (temp$pyears >0)  # what rows to keep in the output
-    names(outdname) <- ovars
-    if (length(outdname) ==1) {
-        # if there is only one variable, the call to "do.call" loses
-        #  the variable name, since expand.grid returns a factor
-        df <- data.frame((outdname[[1]])[keep], 
-                         pyears= temp$pyears[keep]/scale,
-                         n = temp$pn[keep])
-        names(df) <- c(names(outdname), 'pyears', 'n')
-        }
+    if (length(ovars ==0)) {  # no variables on the right hand side
+        keep <- TRUE
+        df <- data.frame(pyears= temp$pyears/scale,
+                         n = temp$n)
+    }
     else {
-        df <- cbind(do.call("expand.grid", outdname)[keep,],
-                         pyears= temp$pyears[keep]/scale,
-                         n = temp$pn[keep])
+        keep <- (temp$pyears >0)  # what rows to keep in the output
+        names(outdname) <- ovars
+        if (length(outdname) ==1) {
+            # if there is only one variable, the call to "do.call" loses
+            #  the variable name, since expand.grid returns a factor
+            df <- data.frame((outdname[[1]])[keep], 
+                             pyears= temp$pyears[keep]/scale,
+                             n = temp$pn[keep])
+            names(df) <- c(names(outdname), 'pyears', 'n')
         }
+        else {
+            df <- cbind(do.call("expand.grid", outdname)[keep,],
+                        pyears= temp$pyears[keep]/scale,
+                        n = temp$pn[keep])
+        }
+    }
     row.names(df) <- 1:nrow(df)
     if (has.ratetable) df$expected <- temp$pexpect[keep]
     if (expect=='pyears') df$expected <- df$expected/scale
@@ -332,7 +339,7 @@ if (data.frame) {
                 tcut=has.tcut)
     if (has.ratetable && !is.null(rtemp$summ))
         out$summary <- rtemp$summ
-    }
+}
 
 else if (prod(odims) ==1) {  #don't make it an array
     out <- list(call=Call, pyears=temp$pyears/scale, n=temp$pn,
@@ -341,9 +348,9 @@ else if (prod(odims) ==1) {  #don't make it an array
         out$expected <- temp$pexpect
         if (expect=='pyears') out$expected <- out$expected/scale
         if (!is.null(rtemp$summ)) out$summary <- rtemp$summ
-        }
-    if (docount) out$event <- temp$pcount
     }
+    if (docount) out$event <- temp$pcount
+}
 else {
     out <- list(call = Call,
     	pyears= array(temp$pyears/scale, dim=odims, dimnames=outdname),
@@ -353,10 +360,10 @@ else {
         out$expected <- array(temp$pexpect, dim=odims, dimnames=outdname)
         if (expect=='pyears') out$expected <- out$expected/scale
         if (!is.null(rtemp$summ)) out$summary <- rtemp$summ
-        }
+    }
     if (docount)
     	out$event <- array(temp$pcount, dim=odims, dimnames=outdname)
-    }
+}
 out$observations <- nrow(m)
 out$terms <- Terms
 na.action <- attr(m, "na.action")
@@ -365,7 +372,7 @@ if (model) out$model <- m
 else {
     if (x) out$x <- X
     if (y) out$y <- Y
-    }
+}
 class(out) <- 'pyears'
 out
 @ 

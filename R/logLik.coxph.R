@@ -15,7 +15,7 @@ logLik.coxph.null <- function(object, ...) {
     out <- object$loglik[1]
     attr(out, "df") <- 0
     attr(out, "nobs") <- object$nevent
-    class(out) <- "loglik"
+    class(out) <- "logLik"
     out
 }
     
