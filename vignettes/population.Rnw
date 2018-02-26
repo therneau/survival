@@ -253,9 +253,8 @@ print(temp, digits=2)
 
 The population predictions for each Mask include all combinations of
 Opening, Solder, PadType, and Panel that are found in the data.
-The call implicity uses the default value of \code{population='data'},
-which is the option that users will almost always select, as nearly
-balanced experiments like the solder data are rare.
+The above call implicity uses the default value of \code{population='data'},
+which is the option that users will normally select.
 The underlying algorithm amounts to:
 \begin{enumerate}
   \item Make a copy of the data set (900 obs), and set Mask to A1.5 for
@@ -265,7 +264,7 @@ The underlying algorithm amounts to:
   \item Repeat 1 and 2 for each mask type.
 \end{enumerate}
 
-There is a problem, however, it that there were no observations in the data 
+However, there were no observations in the data 
 set with Mask = A6 and Opening = Large.
 Formally, predictions for the A6/Large combination are \emph{not estimable}, 
 and as a consequence
@@ -297,41 +296,63 @@ deficient terms.
 \section{Generalized linear models}
 \label{sect:glm}
 Since the solder response is a count of the number of skips, Poisson
-regression is the more natural modeling approach than linear regression.
+regression is a more natural modeling approach than linear regression.
 In a glm model we need to consider more carefully both the population
 and the statistic to be averaged.
 
 <<glm>>=
 gfit2 <- glm(skips ~ Opening * Mask + PadType + Solder, data=solder,
              family=poisson)
-yates(gfit2, ~ Mask, predict = "link") 
-yates(gfit2, ~ Mask, predict = "response")  
+y1 <- yates(gfit2, ~ Mask, predict = "link") 
+print(y1, digits =2)
+print( yates(gfit2, ~ Mask, predict = "response"), digits=2) 
 @ 
 
 Mean predicted values for the number of skips using
-\code{type='response'} in \code{predict.glm} are similar to estimates when the linear regression model was used.
+\code{type='response'} in \code{predict.glm} are similar to estimates when 
+the linear regression model was used.
 Prediction of type 'link' yields a population average of the
 linear predictor $X\beta$.
-Though perfectly legal (you can take the mean of anything you want)
-these MPPV values can more difficult to interpret.
-The default link function for poisson regression is log(), so the MPPV 
-is a mean of the log predicted value.
-Since exp(mean(log(x)) defines the geometric mean of $x$, 
+Though perfectly legal (you can, after all, take the mean of anything you want)
+the linear predictor MPPV values can more difficult to interpret.
+Since the default link function for poisson regression is log(), 
+the MPPV of the linear predictor equals the mean of the 
+log(predicted values).
+Since $\exp({\rm mean}(\log(x)))$ defines the geometric mean of a random
+variable $x$, 
 one can view the exponentiated version of the link estimate as 
 a geometric mean of predicted values over the population.
-Given the skewness of the observed skip counts, an argument can
-be made for using the geometric mean. 
-It's value and variance variance can be approximated
-using the usual delta method per the code below.
-Tests of the difference between Masks would remain unchanged.
-
+Given the skewness of poisson counts this may actually be an advantageous
+summary.
+As an aside,
+we can use a Taylor series approximation of the linear predictor calculation
+to approximate the response result.
+The result is an underestimate, as expected, since $E(e^X) > e*{E(x)}$.
 <<glm2>>=
 # post-process the link
-ytemp <- yates(gfit2, ~ Mask, predict="link")
-ytemp$estimate$mppv <- exp(ytemp$estimate$mppv)
+round(exp(y1$estimate$mppv),3)
+round(exp(y1$estimate$mppv)* y1$estimate$std, 3)
+
 ytemp$estimate$std <- ytemp$estimate$std * ytemp$estimate$mppv
 ytemp
 @ 
+
+Arguments for other links are much less clear, however: the authors have
+for instance 
+never been able to come to a working understanding of what 
+an ``average log odds''
+would represent, i.e., the link from logistic regression.
+One computational advantage of the linear predictor lies in creating the
+variance.
+Since \code{mean(Z \%*\% b) = colMeans(Z) \%*\%b} the computation can be
+done in 3 steps: first create $Z$ with one row for each observation in the
+population, obtain the vector of column means $d= 1'Z/m$, and then the MPPV
+estimate is $d'\hat\beta$ and its variance is $d'Vd$ where $V$ is the
+variance matrix of $\hat\beta$.
+For other MPPV quantities the routine samples \code{nsim} vectors
+from $\b \sim N(\hat\beta, V)$, then computes MPPV estimates separately for
+each vector $b$ and forms an empirical variance of the MPPV estimates
+from the results.
 
 For nonlinear predictors such as the response, the population choice
 matters even for an additive model.  The two results
@@ -341,15 +362,19 @@ and tests.
 <<glm3>>=
 gfit1 <- glm(skips ~ Opening + Mask +PadType + Solder, data=solder,
              family=poisson)
-yates(gfit1, ~ Opening, test="pairwise", predict = "response", population='data')
+yates(gfit1, ~ Opening, test="pairwise", predict = "response", 
+      population='data')
 yates(gfit1, ~ Opening, test="pairwise", predict = "response", 
       population="yates")
 @ 
 
 
 \section{Free Light Chain}
+As an example for the more usual case, a data set which does \emph{not} arise
+from a balanced factorial experiment, we will look at the free light chain 
+data set.
 In 2012, Dispenzieri and colleages  examined the
-distribution and consequences of a the free light chain value,
+distribution and consequences of the free light chain value,
 a laboratory test, on a large fraction of the 1995
 population of Olmsted County, Minnesota aged 50 or older
 \cite{Kyle06, Dispenzieri12}.
@@ -445,7 +470,7 @@ round(temp,2)
 
 The between gender difference is underestimated without adjustment for
 age.  The females are over-represented at the high ages, which inflates
-their naive average.  Continuous and categorical age adjustment is similar in
+the average.  Continuous and categorical age adjustment is similar in
 this particular data set.  
 Now look at population adjustment.
 
@@ -455,26 +480,31 @@ yates(flc3b, ~sex)
 yates(flc3b, ~sex, population="factorial")
 @ 
 
-The population average values for the empirical distribution are just a
+The population average values are just a
 bit higher then the prediction at the mean due to the upward curvature
 of the age vs FLC curve. 
 The average for a factorial population jumps up even more.
 This is because it is the average for an unusual population which has
 as many 90+ year old subjects as 50--59 year old; i.e., 
-it is the correct answer to a rather odd question.
+it is the correct answer to a rather odd question: this is a
+population that no one will ever encounter.
 
 We can also look at the age effect after adjusting for sex.  For the
-continuous model the age values of interest for the MPPV need to be added using
-the \code{levels} argument.
-With a factor the routine can guess that you want all the levels.
+continuous model the age values for the MPPV need to be added using
+the \code{levels} argument; otherwise the routine will not know which
+ages are ``of interest'' to the reader.
+(With a factor the routine will assume that you want all the levels,
+but a subset can be chosen using the \code{levels} argument.)
 <<flc3>>=
 yates(flc3a, ~ age, levels=c(65, 75, 85))  
 yates(flc3b, ~ age2)
 @ 
+Not surprisingly the predicton at age 65 for a continuous model is quite close
+to that for the 60--70 age group from a dicrete model.
 
 \section{Cox Models}
 Finally we come to Cox models which are, after all, the point of this
-vignette.
+vignette, and the question that prompted creation of the \code{yates} function.
 Here the question of what to predict is more serious.
 To get a feel for the data look at three simple models.
 
@@ -490,19 +520,21 @@ exp(c(coef(coxfit1), coef(coxfit2)[1]))  # sex estimate without and with age
 
 The model with an age*sex interaction does not fit substantially better
 than the additive model.  
-This is not a surprise as the US and Minnesota death rate curves for males and
-females are nearly parallel after age 50.  
+This is actually not a surprise as both the US and Minnesota death rate 
+curves for males and females are nearly parallel after age 50. 
+(See the \code{survexp.us} data set, for instance.)
 The sex coefficients for models 1 and 2 differ substantially.  
 Males in this data set have almost 1.5 the death rate of females at any
 given age, but when age is ignored the fact that females dominate the
-oldest ages almost completely cancels this out.
+oldest ages almost completely cancels this out and males appear to have the
+same `overall' rate.
 Adjustment for both age and sex is critical for understanding the potential
 effect of FLC on survival.
 
-Dispenzieri \cite{Dispenzierixx} looked at the impact of FLC by dividing the
+Dispenzieri \cite{Dispenzieri2012} looked at the impact of FLC by dividing the
 sample into those above and below the 90th percentile of FLC;
 for illustration we will use 4 groups consisting of the lowest 50\%,
-50 to 75th percentile, 75 to 90th and above 90th.
+50 to 75th percentile, 75 to 90th and above the 90th.
 
 <<coxfit2>>=
 coxfit4 <- coxph(Surv(futime, death) ~ fgroup*age + sex, flchain)
@@ -514,29 +546,31 @@ predictor of survival.
 Since the Cox model is a model of relative risk any constant term is
 arbitrary: one could add 100 to all of the log rates (type `linear' above)
 and have as valid an answer.  To keep the coefficients on a sensible scale,
-the \code{yates} function centers the mean linear predictor original data
+the \code{yates} function centers the mean linear predictor of the original data
 at zero.  This centers the linear predictor at 0 but 
 does not precisely center the risks at exp(0) = 1 due to
-Jensen's inequality, but suffices to keep the values in a sensible range
+Jensen's inequality, but suffices to keep values in a sensible range
 for display.
  
 A similar argument to that found in section \ref{sect:glm} about the arithmetic
 versus geometric mean can be made here, but a more fundamental issue is that
 the overall hazard function for a population is not the average of the
-hazards for each of its members, and in fact will change over time as the
+hazards for each of its members, and in fact will change over time as
 higher risk members of the population die.  
-Though computable there is no natural feel for what either a mean r
-hazard ratio or a mean log hazard ratio actually represent.
+Though computable, the mean hazard ratio only applies to the study at time 0,
+before selective death begins to change the structure of the remaining
+population, and likewise for a mean log hazard ratio.
+A MPPV based on these estimates is thus hard to interpret.
 
 Survival curves, however, do lead to a proper average: 
 the survival curve of a population is the
-mean of the individual survival curves of its member.
+mean of the individual survival curves of its members.
 Functions computed from the survival curve such as a mean or median time
-until event will also be proper and interpretable.
-Here is the overall survival for the group.  
-The longest death time is  at
-\Sexpr{round(with(flchain, max(futime[death==1])/365.25),1)} years, we
-will use a restricted mean survival at a threshold of 13 years.
+until event will also be proper and interpretable.  
+The longest death time is for the FLC data set is at
+\Sexpr{round(with(flchain, max(futime[death==1])/365.25),1)} years; as
+one number summary of each MPPV curve we 
+will use a restricted mean survival with a threshold of 13 years.
 <<surv>>=
 # longest time to death
 round(max(flchain$futime[flchain$death==1]) / 365.25, 1)
@@ -551,9 +585,9 @@ vignette: there are \Sexpr{nrow(flchain)} subjects in the study and
 when using the default \code{population='data'}, and each curve
 has over 2000 time points (the number of unique death times).
 To compute a variance
-this is then repeated the default \code{nsim = 1000} times.  
+this is then repeated the default \code{nsim = 200} times.  
 We can use this as an opportunity to demonstrate a user supplied population,
-however, which is any data set containing a population of 
+i.e., a data set containing a population of 
 values for the control variables.
 We'll use every 20th observation in the flchain data as the population
 and also reduce the number of simulations to limit the run time.
@@ -570,15 +604,17 @@ temp <- rbind("simple KM" = summary(flkm, rmean=13*365.25)$table[, "*rmean"],
 round(temp/365.25, 2)
 
 @ 
-The spread in restricted mean values is considerably less in the marginal
- (MPPV) survival curves from the yates function,
+The spread in restricted mean values between the different FLC groups 
+is considerably less in the marginal
+(MPPV) survival curves than in the unadjusted Kaplan-Meier,
 with the biggest change for those above the 90th percentile of FLC.
-The \code{ysurv} object can also contain an optional summary component, which
+The \code{ysurv} object also contains an optional summary component, which
 in this case is the set of 4 MPPV survival curves.
 Plot these along with the unadjusted curves, with solid lines for the
 MPPV estimates and dashed for the unadjusted curves.
 This shows the difference between adjusted and unadjusted even more clearly.
-(But is not a 1 number summary with a simple p value ;-).
+(But it is not a 1 number summary with a simple p value, and so spurned by
+journals ;-).
 <<surv3, fig=TRUE>>=
 plot(flkm, xscale=365.25, fun="event", col=1:4, lty=2,
      xlab="Years", ylab="Death")
@@ -591,12 +627,14 @@ legend(0, .65, levels(fgroup), lty=1, lwd=2, col=1:4, bty='n')
 The underlying code uses a simple brute force algorithm.  It first builds a
 population data set for the control variables that includes a placeholder
 for the variable of interest.
-Then for each level of variable(s) of interest: place that value in all rows
+Then once for each level of variable(s) of interest: place that value in
+all rows
 of the data, call the model.matrix routine to compute an $X$ matrix, compute
 the prediction for all rows, and take the mean prediction.
 
 When the prediction is the simple linear predictor $X\beta$ we take advantage
-of the fact that $\mbox{rm mean}(X \beta) = [\mbox{column means}(X)] \beta = c\beta$.
+of the fact that 
+$\mbox{\rm mean}(X \beta) = [\mbox{\rm column means}(X)] \beta = c\beta$.
 If $C$ is the matrix of said column means, one row for each of the groups
 of interest, the $C\beta$ is the vector of MPPV values and $CVC'$ is the
 variance covariance matrix of those values, where $V$ is the variance matrix
@@ -604,15 +642,17 @@ of $\hat \beta$.
 The lion's share of the work is building the individual $X$ matrices and that
 is unchanged.
 
-For other than the linear case the variance is obtained by a short simulation.
-Assuming that $\beta \sim N(\hat\beta, V)$, \code{nsim} independent $\hat \beta$
-vectors are created, the MPPV values are computed for each, and an empirical
+For other than the linear case the variance is obtained by a direct
+computation.
+Assume that $\hat\beta ~ sim N(\beta, V)$, and draw 
+\code{nsim} independent samples $b$ from $N(\hat\beta, V)$.
+The MPPV values are computed for each, and an empirical
 variance matrix for the MPPV values is then computed.
 
 \section{SAS glim type III (SGTT) algorithm}
 Earlier in this document reference was made to the SAS ``type 3'' estimates,
 and we now delve into that topic.
-It is placed at the end because it is in many ways a side issue with
+It is placed at the end because it is a side issue with
 respect to population averages. 
 However,  whatever ones opinion on the wisdom
 or folly of the SAS estimator, one cannot ignore its ubiquity, and showing how
@@ -634,15 +674,13 @@ just as with the \code{yates} function.
 The Yates sums of squares associated with tests for equality of the MPPV
 values has many computational variants.
 One very interesting form is based on the fact that in a balanced factorial
-linear model the tests for all the effects are orthagonal;
-a dataset and model where all predictors are categorical and all 
-combinations appear the same number of times.
-In the model \code{lm(y ~ x1 + x2 + x1:x2)}, for instance, the sequential 
+linear model the tests for all the effects are orthagonal.
+In a model \code{lm(y ~ x1 + x2 + x1:x2)}, for instance, the sequential 
 SS for x1, as obtained from an R \code{anova} command,
 will be the same whether x1 preceeds or follows after x2 in the
 formula. 
 Assume that $C$, $D$ and $E$ are the the relevant contrast matrices
-for the three effect, i.e., such that the test for $C\beta=0$ corresponds
+for the three effects, i.e., such that the test for $C\beta=0$ corresponds
 to a test for x1, $D$ for x2, and $E$ for x1:x2.
 Then orthagonality implies that the correlation between effects is zero,
 i.e, $CVD' =0$, $CVE'=0$ and $DVE' =0$ where $V= \sigma^2(X'X)^-$ is the
@@ -668,15 +706,13 @@ unbalanced design.
   \item Let $Z$ be the design matrix for a balanced subset of the the data; 
     i.e., the factorial population of the \code{yates} command.
     One simple way to construct $Z$, if there are no missing cells, as the set
-    of unique rows of $X$.  
+    of unique rows of $X$.  $Z$ will be full rank in this case. 
   \item Choose contrasts that are orthagonal with respect to $(Z'Z)^-$.
     \begin{itemize}
-      \item One set comes from the generalized Cholesky decomposition
-        $LDL' = Z'Z$ where $L$ is lower triangular with diagonal elements of 1,
-        $D$ is diagonal, and $D_{ii}=0$ if the $i$th column of $Z$ is a linear
-        combination of prior columns and positive otherwise.  Use $L'$ as the
-        contrast matrix.
-      \item $L'(Z'Z)^-L = D^-$, a diagonal matrix, so $L$ clearly fulfills the
+      \item One such set comes from the Cholesky decomposition
+        $LL' = Z'Z$ where $L$ is lower triangular;
+         use $L'$ as thecontrast matrix.
+      \item $L'(Z'Z)^-L = I$, the identity matrix, so $L$ clearly fulfills the
         orthagonality requirement.  
       \item It is also the case that off diagonal elements of $L$ will be 0
         unless sharing a common term, e.g., $L_{ij}=0$ if row $i$ is associated
@@ -694,8 +730,7 @@ to be in the set of continuous variables.
 
 What if not all of the population values are estimable, such as the A6/Large
 combination in the solder data?  
-Then the ``keep unique rows'' step of the above does not lead to the balanced
-population $Z$. 
+The SGTT algorithm still finds a matrix like $L$: upper triangular
 The SGTT algorithm tries to find a contrast matrix $C$ that looks like $L'$:
 a diagonal of 1, zeros off the diagonal for any pairs of terms where one is
 not contained in the other, orthagonal to $(Z'Z)^-$. 

@@ -9,6 +9,7 @@
 \newcommand{\myfig}[1]{\resizebox{\textwidth}{!}
                         {\includegraphics{figures/#1.pdf}}}
 \newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\xbar}{\overline{x}}
 
 \noweboptions{breakcode}
 \title{Survival Package Functions}
