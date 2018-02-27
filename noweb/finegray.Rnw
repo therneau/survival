@@ -86,7 +86,7 @@ finegray <- function(formula, data, subset, na.action= na.pass,
             sorty <- Y[index,]
             first <- which(!duplicated(id[index]))
             last  <- c(first[-1] -1, length(id))
-            if (any(sorty[-last, 3]) != 0)
+            if (any(sorty[-last, 3] != 0))
                 stop("a subject has a transition before their last time point")
             delta <- c(sorty[-1,1], 0) - sorty[,2]
             if (any(delta[-last] !=0)) 
