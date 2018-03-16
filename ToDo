@@ -15,3 +15,7 @@ add "fun" to summary.survfit
 Fixed: ?Surv claims that -Inf is allowed, but survreg chokes.
 
 timefix for survdiff
+
+confint method for coxph objects
+
+deal with variables that have spaces, e.g.,  Surv(time, status) ~ `bad name`

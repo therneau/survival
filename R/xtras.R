@@ -16,7 +16,7 @@ vcov.survreg<-function (object, complete=TRUE, ...) {
         object$var[keep, keep]
     }
     else object$var
-    }
+}
 
 # The extractAIC methods for coxph and survreg objects are defined
 #  in the stats package.  Don't reprise them here.
@@ -62,9 +62,5 @@ terms.inner <- function(x) {
     else(deparse(x))
 }
 
-confint.coxph <- function(object, parm, level =0.95,
-                          method=c("loglik", "wald")) {
-    method <- match.arg(method)
-    if (!inherits(object, "coxph")) stop("requires a coxph object")
 
     
