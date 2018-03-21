@@ -307,7 +307,7 @@ has.tcut <- any(sapply(m, function(x) inherits(x, 'tcut')))
 if (data.frame) {
     # Create a data frame as the output, rather than a set of
     #  rate tables
-    if (length(ovars ==0)) {  # no variables on the right hand side
+    if (length(ovars) ==0) {  # no variables on the right hand side
         keep <- TRUE
         df <- data.frame(pyears= temp$pyears/scale,
                          n = temp$n)

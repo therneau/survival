@@ -332,9 +332,6 @@ The result is an underestimate, as expected, since $E(e^X) > e*{E(x)}$.
 # post-process the link
 round(exp(y1$estimate$mppv),3)
 round(exp(y1$estimate$mppv)* y1$estimate$std, 3)
-
-ytemp$estimate$std <- ytemp$estimate$std * ytemp$estimate$mppv
-ytemp
 @ 
 
 Arguments for other links are much less clear, however: the authors have
@@ -350,7 +347,7 @@ population, obtain the vector of column means $d= 1'Z/m$, and then the MPPV
 estimate is $d'\hat\beta$ and its variance is $d'Vd$ where $V$ is the
 variance matrix of $\hat\beta$.
 For other MPPV quantities the routine samples \code{nsim} vectors
-from $\b \sim N(\hat\beta, V)$, then computes MPPV estimates separately for
+from $b \sim N(\hat\beta, V)$, then computes MPPV estimates separately for
 each vector $b$ and forms an empirical variance of the MPPV estimates
 from the results.
 

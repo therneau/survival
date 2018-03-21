@@ -37,7 +37,7 @@ First, compute the baseline survival curves for each strata.  If the strata
 was a factor we want to leave it in the same order, otherwise sort it.
 This fitting routine was set out as a separate function for the sake of the rms
 package.  They want to utilize the computation, but have a diffferent 
-recreation process for the x and y data.
+process to create the x and y data.
 <<survfitcoxph.fit>>=
 survfitcoxph.fit <- function(y, x, wt, x2, risk, newrisk, strata, se.fit,
                               survtype, vartype, varmat, id, y2, strata2,
