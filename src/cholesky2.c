@@ -34,6 +34,8 @@ int cholesky2(double **matrix, int n, double toler)
 	if (matrix[i][i] > eps)  eps = matrix[i][i];
 	for (j=(i+1); j<n; j++)  matrix[j][i] = matrix[i][j];
 	}
+    if (eps==0) return(0);  /* no positive diagonals!  This will happen if
+			      every colum of X is a constant*/
     eps *= toler;
 
     rank =0;
