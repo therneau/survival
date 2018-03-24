@@ -473,7 +473,7 @@ each affects only one interval.
 Counts are more work and for this we use a C routine. 
 <<tmerge-addin2>>=
 # add it in
-# newvar <- newdata[[argname[ii]]]  # does it exists
+newvar <- newdata[[argname[ii]]]  # prior value (for sequential tmerge calls)
 if (argclass[ii] %in% c("cumtdc", "cumevent")) {
     if (!is.numeric(yinc)) stop("invalid increment for cumtdc or cumevent")
     yinc <- unlist(tapply(yinc, match(id, baseid), cumsum))
@@ -506,10 +506,10 @@ else {
     
     # we want to pass the right kind of NA to the C code
     if (is.na(topt$tdcstart)) topt$tdcstart <- as.numeric(topt$tdcstart)
-    #if (is.null(newvar)) {  # not overwriting a prior value
+    if (is.null(newvar)) {  # not overwriting a prior value
         if (is.null(argi$value)) newvar <- rep(0.0, nrow(newdata))
         else newvar <- rep(topt$tdcstart, nrow(newdata))
-   #     }
+    }
 
     if (is.numeric(yinc)) {
         # this is the usual case
