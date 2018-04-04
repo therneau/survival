@@ -151,6 +151,7 @@ The last of the code is very standard.  Compute residuals and package
 up the results.
 <<agreg-finish>>=
 lp  <- as.vector(x %*% coef + offset - sum(coef * colMeans(x)))
+
 if (resid) {
     score <- as.double(exp(lp))
     residuals <- .Call(Cagmart3,
@@ -160,6 +161,11 @@ if (resid) {
                    as.integer(method=='efron'))
     names(residuals) <- rownames
 }
+
+# The if-then-else below is a real pain in the butt, but the tccox
+#  package's test suite assumes that the ORDER of elements in a coxph
+#  object will never change.
+#
 if (nullmodel) {
     rval <- list(loglik=agfit$loglik[2],
          linear.predictors = offset,
@@ -172,20 +178,44 @@ else {
     flag <- agfit$flag
     names(flag) <- c("rank", "rescale", "step halving")
     
-    rval <- list(coefficients  = coef,
-                 var    = var,
-                 loglik = agfit$loglik,
-                 score  = agfit$sctest,
-                 iter   = agfit$iter,
-                 linear.predictors = as.vector(lp),
-                 means = colMeans(x),
-                 concordance = concordance,
-                 first = agfit$u,
-                 info = flag,
-                 method= 'coxph')
-    if (resid) rval$residuals <- residuals
-    if (concordance)
-        rval$concordance <- survConcordance.fit(y, lp, strata, weights) 
+    if (resid) {
+        rval <- list(coefficients  = coef,
+                     var    = var,
+                     loglik = agfit$loglik,
+                     score  = agfit$sctest,
+                     iter   = agfit$iter,
+                     linear.predictors = as.vector(lp),
+                     residuals = residuals, 
+                     means = colMeans(x),
+                     first = agfit$u,
+                     info = flag,
+                     method= 'coxph')
+    } else {
+         rval <- list(coefficients  = coef,
+                     var    = var,
+                     loglik = agfit$loglik,
+                     score  = agfit$sctest,
+                     iter   = agfit$iter,
+                     linear.predictors = as.vector(lp),
+                     means = colMeans(x),
+                     first = agfit$u,
+                     info = flag,
+                     method= 'coxph')
+    }
+       
+    if (concordance) {
+        rval <- c(rval, list(
+                  concordance = survConcordance.fit(y, lp, strata, weights),
+                  first = agfit$u,
+                  info = flag,
+                  method= 'coxph'))
+    } else {
+        rval <- c(rval, 
+                  list( first = agfit$u,
+                       info = flag,
+                       method= 'coxph'))
+    }
+    rval
 }
 @
 

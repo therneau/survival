@@ -8,6 +8,13 @@
     predictors and dataframe=TRUE.
     \item tmerge would fail if and id was missing, give a message
     instead
+    \item Clean up date checks in match.ratetable, i.e., that the column
+    of a data frame is a date if and only if the matching ratetable
+    dimension is a date.
+    \item Restore the order of the elements of coxph objects; as some
+    other packages depend on both the names and the order.  It had been
+    modified when the residual argument was added to coxph.fit.
+    
 }}
 
     

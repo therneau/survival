@@ -1,6 +1,7 @@
 
 agexact.fit <- function(x, y, strata, offset, init, control,
-			  weights, method, rownames)
+			  weights, method, rownames,
+                         resid=TRUE, concordance=FALSE)
     {
     if (!is.matrix(x)) stop("Invalid formula for cox fitting function")
     if (!is.null(weights) && any(weights!=1))
@@ -11,23 +12,23 @@ agexact.fit <- function(x, y, strata, offset, init, control,
 	start <- y[,1]
 	stopp <- y[,2]
 	event <- y[,3]
-	}
+    }
     else {
 	start <- rep(0,n)
 	stopp <- y[,1]
 	event <- y[,2]
-	}
+    }
 
     # Sort the data (or rather, get a list of sorted indices)
     if (length(strata)==0) {
 	sorted <- order(stopp, -event)
 	newstrat <- as.integer(rep(0,n))
-	}
+    }
     else {
 	sorted <- order(strata, stopp, -event)
 	strata <- (as.numeric(strata))[sorted]
 	newstrat <- as.integer(c(1*(diff(strata)!=0), 1))
-	}
+    }
     if (is.null(offset)) offset <- rep(0,n)
 
     sstart <- as.double(start[sorted])
@@ -37,11 +38,11 @@ agexact.fit <- function(x, y, strata, offset, init, control,
     if (is.null(nvar)) {
 	# A special case: Null model.  Not worth coding up
 	stop("Cannot handle a null model + exact calculation (yet)")
-	}
+    }
 
     if (!is.null(init)) {
 	if (length(init) != nvar) stop("Wrong length for inital values")
-	}
+    }
     else init <- rep(0,nvar)
 
     agfit <- .C(Cagexact, iter= as.integer(control$iter.max),
@@ -78,13 +79,16 @@ agexact.fit <- function(x, y, strata, offset, init, control,
 		warning(paste("Loglik converged before variable ",
 			  paste((1:nvar)[infs],collapse=","),
 			  "; beta may be infinite. "))
-		}
-	}
+            }
+    }
 
     names(coef) <- dimnames(x)[[2]]
     lp  <- x %*% coef + offset - sum(coef *agfit$means)
     score <- as.double(exp(lp[sorted]))
-    agres <- .C(Cagmart,
+    coef[which.sing] <- NA
+
+    if (resid) {
+        agres <- .C(Cagmart,
 		   as.integer(n),
 		   as.integer(0),
 		   sstart, sstop,
@@ -94,18 +98,34 @@ agexact.fit <- function(x, y, strata, offset, init, control,
 		   newstrat,
 		   resid=double(n))
 
-    resid <- double(n)
-    resid[sorted] <- agres$resid
-    names(resid) <- rownames
-    coef[which.sing] <- NA
+        resid <- double(n)
+        resid[sorted] <- agres$resid
+        names(resid) <- rownames
+ 
+        rval <- list(coefficients  = coef,
+                     var    = var,
+                     loglik = agfit$loglik,
+                     score  = agfit$sctest,
+                     iter   = agfit$iter,
+                     linear.predictors = lp,
+                     residuals = resid,
+                     means = agfit$means,
+                     method= 'coxph')
+    } else {
+        rval <- list(coefficients  = coef,
+                     var    = var,
+                     loglik = agfit$loglik,
+                     score  = agfit$sctest,
+                     iter   = agfit$iter,
+                     linear.predictors = lp,
+                     means = agfit$means,
+                     method= 'coxph')
+    }       
 
-    list(coefficients  = coef,
-		var    = var,
-		loglik = agfit$loglik,
-		score  = agfit$sctest,
-		iter   = agfit$iter,
-		linear.predictors = lp,
-		residuals = resid,
-		means = agfit$means,
-		method= 'coxph')
+    if (concordance) {
+        rval$concordance <-survConcordance.fit(Surv(start, stopp, event),
+                                             lp[sorted], strata, weights)
     }
+    
+    rval
+}

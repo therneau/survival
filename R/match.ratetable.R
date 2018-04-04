@@ -49,7 +49,7 @@ match.ratetable <- function(R, ratetable) {
         # Find out which colums are dates.  If this is a ratetable that uses
         #  type=date but a numeric cutpoint (older), then also convert any
         #  dates to a 1960 baseline
-        if (any(datecut)) isDate <- sapply(R, function(x) datecheck)
+        if (any(datecut)) isDate <- sapply(R, datecheck)
         else {
             isDate <- logical(ncol(R))
             for (i in 1:ncol(R)) {
@@ -72,12 +72,12 @@ match.ratetable <- function(R, ratetable) {
     #  verify that the user's variable is compatable
     #  with the rate table's dimensions
     #
-    if (any(rtype<3 & isDate)) {
+    if (any((rtype<3) & isDate)) {
         indx <- which(rtype<3 & isDate)
         stop(paste("Data has a date type variable, but the reference",
                    "ratetable is not a date variable", dimid[indx]))
         }
-    if (any(rtype>2 & !isDate)) {
+    if (any((rtype>2) & !isDate)) {
         indx <- which(rtype>2 & !isDate)
         stop(paste("the reference ratetable expects a date for variable",
                     dimid[indx]))

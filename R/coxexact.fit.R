@@ -2,7 +2,8 @@
 #  "exact".  The most common use for this option is matched
 #   case-control data.
 coxexact.fit <- function(x, y, strata, offset, init, control,
-			  weights, method, rownames)
+			  weights, method, rownames,
+                         resid=TRUE, concordance=FALSE)
     {
     if (!is.matrix(x)) stop("Invalid formula for cox fitting function")
     if (!is.null(weights) && any(weights!=1))
@@ -110,30 +111,48 @@ coxexact.fit <- function(x, y, strata, offset, init, control,
     lp  <- newx %*% coef + offset 
     score <- as.double(exp(lp))
 
-    # Compute the residuals
-    cxres <- .C(Ccoxmart2,
-		   as.integer(n),
-		   as.double(y[,1]),
-		   as.integer(y[,2]),
-                   newstrat,
-                   score,
-                   rep(1.0, n),  #weights
-                   resid=double(n))
-    resid <- double(n)
-    resid[sorted] <- cxres$resid
-    names(resid) <- rownames
-    coef[which.sing] <- NA
-    lp.unsort <- double(n)
-    lp.unsort[sorted] <- lp
+    if (resid) {
+        # Compute the residuals
+        cxres <- .C(Ccoxmart2,
+                    as.integer(n),
+                    as.double(y[,1]),
+                    as.integer(y[,2]),
+                    newstrat,
+                    score,
+                    rep(1.0, n),  #weights
+                    resid=double(n))
+        resid <- double(n)
+        resid[sorted] <- cxres$resid
+        names(resid) <- rownames
+        coef[which.sing] <- NA
+        lp.unsort <- double(n)
+        lp.unsort[sorted] <- lp
 
-    scmat <- diag(1/rescale, nvar,nvar)
-    list(coefficients  = coef/rescale,
-		var    = scmat %*% var %*% scmat,
-		loglik = loglik,
-		score  = sctest,
-		iter   = iter,
-		linear.predictors = lp.unsort,
-		residuals = resid,
-		means = means,
-		method= 'coxph')
+        scmat <- diag(1/rescale, nvar,nvar)
+        rval <-  list(coefficients  = coef/rescale,
+                      var    = scmat %*% var %*% scmat,
+                      loglik = loglik,
+                      score  = sctest,
+                      iter   = iter,
+                      linear.predictors = lp.unsort,
+                      residuals = resid,
+                      means = means,
+                      method= 'coxph')
+    } else {
+        rval <-  list(coefficients  = coef/rescale,
+                      var    = scmat %*% var %*% scmat,
+                      loglik = loglik,
+                      score  = sctest,
+                      iter   = iter,
+                      linear.predictors = lp.unsort,
+                      means = means,
+                      method= 'coxph')
     }
+
+    if (concordance) {
+        rval$concordance <-survConcordance.fit(Surv(y[,1], y[,2]),
+                                             lp, strata)
+    }
+    
+    rval
+}

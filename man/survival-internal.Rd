@@ -31,7 +31,7 @@ coxpenal.fit(x, y, strata, offset, init, control, weights, method,
     rownames, pcols, pattr, assign)
 coxph.wtest(var, b, toler.chol = 1e-09)
 agexact.fit(x, y, strata, offset, init, control, weights, method,
-    rownames) 
+    rownames, resid=TRUE, concordance=FALSE) 
 survfitCI(X, Y, weights,  id, istate,
                        type=c('kaplan-meier', 'fleming-harrington', 'fh2'),
                        se.fit=TRUE,

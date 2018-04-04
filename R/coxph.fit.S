@@ -132,7 +132,10 @@ coxph.fit <- function(x, y, strata, offset, init, control,
             resid <- double(n)
             resid[sorted] <- coxres$resid
             names(resid) <- rownames
-            rval$residuals <- resid
+            # rval$residuals <- resid  # not good enough
+            # some other code expects the ORDER of components in a coxph
+            # object will never change: residuals right before means
+            rval <- c(rval[1:6], list(residuals=resid), rval[7:8])
         }
 
         if (concordance) {
