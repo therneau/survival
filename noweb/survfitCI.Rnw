@@ -373,8 +373,7 @@ kfit$transitions <- transitions
 if (se.fit && conf.type != "none") {
     ci <- survfit_confint(kfit$pstate, kfit$std.err, logse=FALSE, 
                           conf.type, conf.int)
-    kfit <- c(kfit, lower=ci$lower, upper=ci$upper,
-              conf.type=conf.type, conf.int=conf.int)
+    kfit <- c(kfit, ci, conf.type=conf.type, conf.int=conf.int)
 }
 
 kfit$states <- state.names

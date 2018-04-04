@@ -3,17 +3,17 @@ vcov.coxph <- function (object, complete=TRUE, ...) {
     vmat <- object$var
     vname <- names(object$coefficients)
     dimnames(vmat) <- list(vname, vname)
-    if (!complete) {
+    if (!complete && any(is.na(coef(object)))) {
         keep <- !is.na(coef(object))
-        vmat[keep, keep]
+        vmat[keep, keep, drop=FALSE]
         }
     else vmat
 }
 
 vcov.survreg<-function (object, complete=TRUE, ...) {
-    if (!complete) {
+    if (!complete && any(is.na(coef(object)))) {
         keep <- !is.na(coef(object))
-        object$var[keep, keep]
+        object$var[keep, keep, drop=FALSE]
     }
     else object$var
 }

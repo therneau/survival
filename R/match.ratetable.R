@@ -7,11 +7,13 @@
 # The categoricals are turned into integer subscripts
 #
 match.ratetable <- function(R, ratetable) {
+    datecheck <- function(x) 
+        inherits(x, "Date") | inherits(x, "date")  # include chron?
+
     if (!is.ratetable(ratetable)) stop("Invalid rate table")
     dimid <- attr(ratetable, 'dimid')
     if (is.null(dimid)) dimid <- names(dimnames(ratetable))
-    rate.date <- sapply(attr(ratetable, "cutpoints"),
-                        function(x) inherits(x, "Date"))
+    datecut <- sapply(attr(ratetable, "cutpoints"), datecheck)
     
     if (is.matrix(R)) {  # the result of ratetable() in a formula
         nd <- ncol(R)
@@ -43,20 +45,11 @@ match.ratetable <- function(R, ratetable) {
     else levlist<- lapply(R, levels)
 
     dtemp <-dimnames(ratetable)
-    rtype  <- attr(ratetable, 'type') # 1= class, 2=cont, 3=date, 4=US yr
-    if (is.null(rtype)) { #old style ratetable, be backwards compatable
-        temp <- attr(ratetable, 'factor')
-        # we map 'old continuous' to 'new date'; since it might be a date
-        rtype <- 1*(temp==1) + 3*(temp==0) + 4*(temp >1)  
-        }
-
     if (!is.matrix(R)) {
         # Find out which colums are dates.  If this is a ratetable that uses
         #  type=date but a numeric cutpoint (older), then also convert any
         #  dates to a 1960 baseline
-        datecut <- sapply(attr(ratetable, "cutpoints"),
-                          function(x) inherits(x, "Date"))
-        if (any(datecut)) isDate <- sapply(R, function(x) inherits(x, "Date"))
+        if (any(datecut)) isDate <- sapply(R, function(x) datecheck)
         else {
             isDate <- logical(ncol(R))
             for (i in 1:ncol(R)) {
@@ -69,6 +62,12 @@ match.ratetable <- function(R, ratetable) {
         }
     }
 
+    rtype  <- attr(ratetable, 'type') # 1= class, 2=cont, 3=date, 4=US yr
+    if (is.null(rtype)) { #old style ratetable, be backwards compatable
+        temp <- attr(ratetable, 'factor')
+        rtype <- 1*(temp==1) + ifelse(datecut, 3,2)*(temp==0) + 4*(temp >1)
+    }
+
     # Now, go through the dimensions of the ratetable 1 by 1, and
     #  verify that the user's variable is compatable
     #  with the rate table's dimensions
@@ -76,7 +75,7 @@ match.ratetable <- function(R, ratetable) {
     if (any(rtype<3 & isDate)) {
         indx <- which(rtype<3 & isDate)
         stop(paste("Data has a date type variable, but the reference",
-                   "ratetable is not a date for variable", dimid[indx]))
+                   "ratetable is not a date variable", dimid[indx]))
         }
     if (any(rtype>2 & !isDate)) {
         indx <- which(rtype>2 & !isDate)
