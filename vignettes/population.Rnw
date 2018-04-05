@@ -726,7 +726,7 @@ Then \begin{enumerate}
     along with the fact that $L'(X'X)^-L$ is diagonal.
   \item For an unbalanced factorial design without missing cells, 
     let $LDL'= Z'Z$, where $Z$ is the matrix for a full factorial design.
-    That is, an $L$ such that for any two terms $j \n k$ 
+    That is, an $L$ such that for any two terms $j \ne k$ 
     the $jk$ off diagonal block of $L'(Z'Z)^-L$ is zero. 
     This $L$ gives the Yates contrasts.
 \end{enumerate}
