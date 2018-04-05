@@ -639,6 +639,9 @@ Then once for each level of variable(s) of interest: place that value in
 all rows
 of the data, compute the model's prediction
 for all rows, and take the mean prediction.
+Since predicted values are
+independent of how the variables in a model are coded, 
+the result is also independent of coding.  
 
 When the prediction is the simple linear predictor $X\beta$ we take advantage
 of the fact that 
@@ -666,7 +669,6 @@ However,  whatever ones opinion on the wisdom
 or folly of the SAS estimator, one cannot ignore its ubiquity, and showing how
 it fits into this framework is an important part of the picture.
 
-\subsection{SGTT}
 The SAS GLM procedure prints out two statistics that are relevant to the
 discussion: least squares means (LSM) and type 3 tests.
 The LSM values are identical to the \code{yates} MPPV estimates, computed
@@ -681,7 +683,7 @@ just as with the \code{yates} function.
 
 The Yates sums of squares associated with tests for equality of the MPPV
 values has many computational variants.
-One very interesting form is based on the fact that in a balanced factorial
+One approach is based on the fact that in a balanced factorial
 linear model the tests for all the effects are orthagonal.
 In a model \code{lm(y ~ x1 + x2 + x1:x2)}, for instance, the sequential 
 SS for x1, as obtained from an R \code{anova} command,
@@ -707,42 +709,38 @@ In one of the early SAS technical report Goodnight writes
   but for which observations were lost due to external forces, there is no
   reason to alter the hypothesis \cite{Goodnight78}. 
 \end{quote}
+This is essentially the same rationale as Yates \cite{Yatesxx}.
 
-Now insert a short mathematical interlude. 
+A short mathematical interlude is needed at this point. 
 Let $LDL' = X'X$ be the generalized Cholesky decomposition of the $X'X$
 matrix, where $L$ is lower triangular with all diagonal elements equal to 1,
 and $D$ is diagonal with $D_{ii}=0$ if column $i$ if column $i$ of $X'X$ can
 be written as a linear combination of the other columns and is positive
 otherwise. A generalized inverse of $D$ has $D^-_{ii}=0$ if $D_{ii}=0$ and
 $1/D_{ii}$ otherwise and $L$ is full rank.
-Further, let $(k)$ refer to those rows/colums of $X'X$ that correspond to
-a particular effect in the model.  
-In a standard R linear model \code{y \textasciitilde a*b} where \code{a}
-and \code{b} were factors with 2 and 3 levels, respectively,
-$(k)=\{1\}$ for the intercept, and $\{2\}$, $\{3,4\}$ and $\{7,8\}$ for the
-\code{a}, \code{b} and interaction terms, respectively.
 Then \begin{enumerate}
   \item The sums of squares for the components the test $L'\beta=0$, i.e.,
     the components associated with rows for term 1, term 2, etc., give the
-    type I sums of squares for the model, i.e., equivalent to the 
+    type I sums of squares for the model; these SS are equivalent to the 
     R \code{anova} command.  This can be proven using Cochran's theorem
     along with the fact that $L'(X'X)^-L$ is diagonal.
   \item For an unbalanced factorial design without missing cells, 
-    let $LDL'= Z'Z$, where $Z$ is
-    a balanced subset of the data.
+    let $LDL'= Z'Z$, where $Z$ is the matrix for a full factorial design.
     That is, an $L$ such that for any two terms $j \n k$ 
     the $jk$ off diagonal block of $L'(Z'Z)^-L$ is zero. 
     This $L$ gives the Yates contrasts.
 \end{enumerate}
 
-This drives the SAS algorithm: find an upper triangular contrast matrix $C$ 
-with a diagonal of 1 such that $C(Z'Z)^-C'$ has off diagonal blocks of zero.
-There are many such matrices all of which give the same SS if $Z'Z$ is full
-rank.
+This characterizerion drives the SAS algorithm: 
+find an upper triangular contrast matrix $C$ 
+with a diagonal of 1 such that $C(Z'Z)^-C'$ has off diagonal blocks of zero;
+then use relevent rows of $C\beta$ as the tests with $C(X'X)^-C'$ as the 
+variance matrix.
+There are many such matrices, including the Cholesky decomposition,
+all of which give the same SS if $X$ is full rank.
 The kicker is that SAS GLM will produce a ``type III'' SS for terms that
-are \emph{not} estimable, i.e., the case of missing cells, where $Z'Z$ 
-is not full rank.  To reproduce their result one has to reproduce exactly
-their $C$ matrix.
+are \emph{not} estimable, i.e., the case of missing cells. 
+To reproduce their result one has to reproduce exactly their $C$ matrix.
 Here is the SAS GLM algorithm.
 \begin{enumerate}
   \item Create a design matrix $X$ of the form used by the GLM procedure,
@@ -760,27 +758,24 @@ Here is the SAS GLM algorithm.
             likewise for higher level interactions.
         \end{itemize}
       \item Create the $p$ by $p$ dependency matrix $C=(X'X)^-(X'X)$ from the 
-        $n$ by $p$ matrix $X$, from left to right.  It has a special form:
+        $n$ by $p$ matrix $X$.
         \begin{itemize}
-        \item If column $k$ of $X$ can be written as a linear combination of
-          prior columns, then $C_{1k}$ to $C_{k-1,k}$ contains that combination,
-          and $C_{j,k}=0$ for $j \ge k$.
-        \item Otherwise set $C_{kk}=1$ and $C_{jk}=0$ for $j ne k$.
-        \item $C$ is upper triangular.  If the 
-          $i$th column of $X$ is linearly dependent on 
-          prior columns, then the $i$th row of $D$ will be zero.
+          \item Sample R code is \code{C = coef(lm(X ~ I(X) -1))}
+         \item $C$ is upper triangular.  If the 
+           $i$th column of $X$ is linearly dependent on 
+           prior columns, then the $i$th row of $C$ will be zero.
         \end{itemize}
       \item Partially orthogonalize the rows of $C$.
         \begin{itemize}
           \item For any row of $C_i$ that corresponds to a categorical term,
             and is contained in some categorical term $j$ further to the 
-            right in the matrix, make this row orthogonal to any rows of 
-            those containing terms.
+            right in the matrix, make this row orthogonal to any rows  
+            corresponding to the containing terms.
           \item The term x1 is contained in x1*x2 for instance.
-          \item That is, premultiply $C_{ij}$ by $I- C_{jj}(C_{jj}C_{jj}')^-C_{jj}',
-            where $i$ is the set of rows in question and $j$ rows corresponding
-            to the including term.
-         \end{itemize}
+          \item If \code{i} and \code{j} are vectors of rows, replace 
+            \code{C[i,]} with the transpose of residuals from a regression
+            of \code{t(C[i,])} on \code{t(C[j,]) -1}.
+          \end{itemize}
 \end{enumerate}
  
 \begin{enumerate}
