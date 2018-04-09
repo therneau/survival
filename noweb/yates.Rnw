@@ -309,12 +309,12 @@ estfun <- function(cmat, beta, varmat) {
     if (any(nabeta)) {
         k <- which(!nabeta)  #columns to keep
         estimate <- drop(cmat[,k] %*% beta[k])  # vector of predictions
-        evar <- drop(cmat[,k] %*% varmat %*% t(cmat[,k, drop=FALSE]))
+        evar <- cmat[,k] %*% varmat %*% t(cmat[,k, drop=FALSE])
         list(estimate = estimate, var=evar)
     }
     else {
         list(estimate = drop(cmat %*% beta),
-             var = drop(cmat %*% varmat %*% t(cmat)))
+             var = cmat %*% varmat %*% t(cmat))
     }
 }
              

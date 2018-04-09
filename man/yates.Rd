@@ -1,7 +1,7 @@
 \name{yates}
 \alias{yates}
 \title{Population prediction}
-\description{Compute the mean predicted value from a model fit, for
+\description{Compute population marginal means (PMM) from a model fit, for
   a chosen population and statistic.
 }
 \usage{

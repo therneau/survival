@@ -92,7 +92,7 @@ yates <- function(fit, term, population=c("data", "factorial", "sas"),
     if (missing(levels)) 
         contr <- cmatrix(fit, term, test, assign= xassign)
     else contr <- cmatrix(fit, term, test, assign= xassign, levels = levels)
-    x1data <- as.data.frame(contr$levels)  # labels for the MPPV values
+    x1data <- as.data.frame(contr$levels)  # labels for the PMM values
     
     # Make the list of X matrices that drive everything: xmatlist
     #  (Over 1/2 the work of the whole routine)
@@ -146,8 +146,8 @@ When the prediction target is $X\beta$ there is a four step
 process: build the reference population, create the list of X matrices
 (one prediction matrix for each for x1 value), 
 column means of each X form each row of the
-contrast matrix Cmat, and then use Cmat to get the mppv values and
-tests of the mppv values.
+contrast matrix Cmat, and then use Cmat to get the pmm values and
+tests of the pmm values.
 
 <<yates-linear>>=
 if (is.na(match(contr$termname, colnames(Tatt$factors))))
@@ -164,15 +164,15 @@ if (inherits(fit, "coxph")) {
     }
 else offset <- 0
     
-# Get the MPPV estimates, but only for estimable ones
-estimate <- cbind(x1data, mppv=NA, std=NA)
+# Get the PMM estimates, but only for estimable ones
+estimate <- cbind(x1data, PMM=NA, std=NA)
 if (any(estimable)) {
     etemp <- estfun(Cmat[estimable,,drop=FALSE], beta, vmat)
-    estimate$mppv[estimable] <- etemp$estimate + offset
+    estimate$PMM[estimable] <- etemp$estimate + offset
     estimate$std[estimable] <- sqrt(diag(etemp$var))
 }
     
-# Now do tests on the MPPV estimates, one by one
+# Now do tests on the PMM estimates, one by one
 if (method=="sgtt") {
         <<yates-sgtt>>
 }
@@ -180,13 +180,13 @@ else {
     if (is.list(contr$cmat)) {
         test <- t(sapply(contr$cmat, function(x)
                          testfun(x %*% Cmat, beta, vmat, sigma^2)))
-        natest <- sapply(contr$cmat, nafun, estimate$mppv)
+        natest <- sapply(contr$cmat, nafun, estimate$PMM)
     }
     else {
         test <- testfun(contr$cmat %*% Cmat, beta, vmat, sigma^2)
         test <- matrix(test, nrow=1, 
                        dimnames=list(contr$termname, names(test)))
-        natest <- nafun(contr$cmat, estimate$mppv)
+        natest <- nafun(contr$cmat, estimate$PMM)
     }
     if (any(natest)) test[natest,] <- NA
 }
@@ -223,12 +223,12 @@ else {  # double check the object
     predfun <- mfun$predict
     sumfun  <- mfun$summary
 }
-mppv <- predfun(eta)
+pmm <- predfun(eta)
 n2 <- length(eta)
-if (!(is.numeric(mppv)) || !(length(mppv)==n2 || nrow(mppv)==n2))
+if (!(is.numeric(pmm)) || !(length(pmm)==n2 || nrow(pmm)==n2))
     stop("prediction function should return a vector or matrix")
-mppv <- rowsum(mppv, index, reorder=FALSE)/n1
-mppv[!estimable,] <- NA
+pmm <- rowsum(pmm, index, reorder=FALSE)/n1
+pmm[!estimable,] <- NA
 
 # get a sample of coefficients, in order to create a variance
 # this is lifted from the mvtnorm code (can't include a non-recommended
@@ -246,7 +246,7 @@ bmat <- bmat + rep(beta, each=nsim)  # add the mean
 # Now use this matrix of noisy coefficients to get a set of predictions
 # and use those to create a variance matrix
 # Since if Cox we need to recenter each run
-sims <- array(0., dim=c(nsim, nrow(mppv), ncol(mppv)))
+sims <- array(0., dim=c(nsim, nrow(pmm), ncol(pmm)))
 if (inherits(fit, 'coxph')) offset <- bmat %*% fit$means[!nabeta]
 else offset <- rep(0., nsim)
    
@@ -254,19 +254,19 @@ for (i in 1:nsim)
     sims[i,,] <- rowsum(predfun(xall %*% bmat[i,] - offset[i]), index, 
                         reorder=FALSE)/n1
 mvar <- var(sims[,,1])  # this will be used for the tests
-estimate <- cbind(x1data, mppv=unname(mppv[,1]), std= sqrt(diag(mvar)))
+estimate <- cbind(x1data, PMM=unname(pmm[,1]), std= sqrt(diag(mvar)))
 
-# Now do the tests, on the first column of mppv only
+# Now do the tests, on the first column of pmm only
 if (is.list(contr$cmat)) {
     test <- t(sapply(contr$cmat, function(x)
-        testfun(x, mppv[,1], mvar[estimable, estimable], NULL)))
-    natest <- sapply(contr$cmat, nafun, mppv[,1])
+        testfun(x, pmm[,1], mvar[estimable, estimable], NULL)))
+    natest <- sapply(contr$cmat, nafun, pmm[,1])
 }
 else {
-    test <- testfun(contr$cmat, mppv[,1], mvar[estimable, estimable], NULL)
+    test <- testfun(contr$cmat, pmm[,1], mvar[estimable, estimable], NULL)
     test <- matrix(test, nrow=1, 
                    dimnames=list(contr$termname, names(test)))
-    natest <- nafun(contr$cmat, mppv[,1])
+    natest <- nafun(contr$cmat, pmm[,1])
 }
 if (any(natest)) test[natest,] <- NA
 if (any(estimable))
@@ -275,13 +275,13 @@ else  result <- list(estimate=estimate, test=test, mvar=NA)
 
 # If there were multiple columns from predfun, compute the matrix of
 #  results and variances 
-if (ncol(mppv) > 1 && any(estimable)){
-    mppv <-  apply(sims, 2:3, mean)
+if (ncol(pmm) > 1 && any(estimable)){
+    pmm <-  apply(sims, 2:3, mean)
     mvar2 <- apply(sims, 2:3, var)
     # Call the summary function, if present
-    if (is.list(mfun)) result$summary <- sumfun(mppv, mvar2)
+    if (is.list(mfun)) result$summary <- sumfun(pmm, mvar2)
     else {
-        result$mppv <- mppv
+        result$PMM <- pmm
         result$mvar2 <- mvar2
     }
 }
@@ -349,7 +349,7 @@ yates_xmat <- function(Terms, Tatt, contr, population, mframe, fit,
             row.names(pdata) <- 1:nrow(pdata)
             # fill in the continuous
             k <- rep(1:nrow(mframe), n2)
-            for (i in which((!iscat) & x2indx)) {
+            for (i in which(x2indx & !iscat)) {
                 j <- names(x1indx)[i]
                 if (is.matrix(mframe[[j]])) 
                     pdata[[j]] <- mframe[[j]][k,, drop=FALSE]
@@ -493,63 +493,33 @@ Ignore the set of contrasts cmat since the algorithm can only
 do a global test.
 We mostly mimic the SAS GLM algorithm.
 
-Let $C$ be our final upper triangular contrast matrix,
-$Z$ the design matrix from the
-balanced design, and $i$ and $j$ each be vectors, the rows corresponding to
-two categorical terms with the first term nested in the second.
-Because of how terms are ordered in $X$, $i < j$.
-We want the two terms to be orthagonal.  Let $V = (Z'Z)^{-1}$ be the variance
-matrix for the balanced design, which will always be full rank.
-$Z$ ignores any continuous variables.
-Orthagonal means that the block diagonal matrix
-\begin{equation*}
-  H =\left( \begin{array} C_{ii} & C_{ij} \\ 0 & C_{jj} \end{array} \right) 
-     \left( \begin{array} V_{ii} & V_{ij} \\ V_{ij}' & V_{jj} \end{array} \right) 
-     \left( \begin{array} C_{ii}' & 0 \\ C{ij' & C_{jj}' \end{array} \right) 
-\end{equation*}
-has zeros in the off diagonal blocks. 
-That is, the covariance of $C_{i}\beta$ and $C_j\beta$ is zero: they are
-independent contrasts.
-Multiplying this out
-\begin{equation*}
-  \left(C_{ii}V_{ij} + C_{ij}V_{jj}\right) C_{jj} = 0
-\end{equation*}
+For the generalized Cholesky decomposition $LDL' = X'X$, where $L$ is
+lower triangular with $L_{ii}=1$ and $D$ is diagonal, the set of contrasts
+$L'\beta$ gives the type I sequential sums of squares, partitioning the
+rows of $L$ into those for term 1, term 2, etc.
+If $X$ is the design matrix for a balanced factorial design then it is
+also true that $L_{ij}=0$ unless term $j$ includes term $i$, e.g., x1:x2
+includes x1. These blocks of zeros mean that changing the order of the terms
+in the model simply rearranges $L$, and individual tests are unchanged.
 
-
-\begin{itemize}
-  \item Let $C = (X'X)^-X'X$, the dependency matrix.  These are the coefficients
-    of a regression of X on itself.  $C$ will be upper triangular.
-  \item Let $Z'Z$ be the matrix for a balanced population, categorical variables
-    only.
-  \item If term $i$ is nested in term $j$, and both are categorical, then
-    replace $C_{ij}'$ ($i$ and $j$ are vectors) with the residuals from a
-    regression of $C_{ij}'$ on $C_{j}'$.
-  \item $C$ is the contrast matrix for each categorical term.
-\end{itemize}
-
-First make the global $Z'Z$ matrix for the balanced population,
-but using only the categorical variables.
-Our goal is to find an upper triangular matric $C$ such that 
-diag(C) is 1, if coefficient $j$ is missing then the $j$th column of $C$ is zero,
-and 
-$C (Z'Z)^-C'$ has zeros in any block corresponding two factor terms, one of
-which contains the other.
-Now $Z$ is always full rank so inverse is available. 
-If $X$ is full rank (no missing coefficients) then we can form the 
-Cholesky decomposition $LDL' = (X'X)$, and use $L'$ as the contrast matrix.
-
-If there are missing coeffiicients the steps are 
-\begin{itemize}
-  \item form $(Z'Z)^{-1}$
-  \item remove rows and columns that correspond to missing coefficients
-    to get $V$
-  \item let $C$ be the identity matrix
-  \item For any term that is contained in another term set 
-    $C_{ij} = -V_{ii}V_{ij}$.  To mimic SAS these are the \emph{only}
-    blocks that are made orthagonal to $V$.
-\end{itemize}
-This part of the code should be called rarely, so who cares if we
-are inefficient.
+This is precisely the definition of a type III contrast in SAS.
+With a bit of reading between the lines the ``four types of estimable
+functions'' document suggests the following algorithm:
+\begin{enumerate}
+  \item Start with an $X$ matrix in standard order of intercept, main effects,
+   first order interactions, etc.  Code any categorical variable with $k$ levels
+   as $k$ 0/1 columns.  An interaction of two categoricals with $k$ and $l$
+   levels will have $kl$ columns, etc.
+ \item Create the dependency matrix $D = (X'X)^-(X'X)$.  If column $i$ of $X$
+   can be written as a linear combination of prior columns, then column $i$ of
+   $D$ contains that combination.  Other columns of $D$ match the identity
+   matrix.
+ \item Intitialize $L = D$.
+ \item For any row $i$ and $j$ such that $i$ is contained in $j$, make $L_i$
+   orthagonal to $L_j$.
+\end{enumerate}
+The algorithm appears to work in almost all cases, an exception is when the
+type 3 test has fewer degrees of freedom that we would expect.
 
 Continuous variables are not orthagonalized in the SAS type III approach,
 nor any interaction that contains a continuous variable as one of its parts.
@@ -560,33 +530,73 @@ in categorical rows are the ``categorical'' columns.
 A term represented by one column in \code{factors} ``contains'' the term 
 represented in some other column iff it's non-zero elements are a superset.
 
+We have to build a new X matrix that is the expanded SAS coding, and are only
+able to do that for models that have an intercept, and use contr.treatement
+or contr.SAS coding. 
 <<yates-sgtt>>=
-# create Z
-Z <- sapply(xmatlist, crossprod)
-Z <- matrix(rowSums(Z), nvar)
-# restrict to categorical, before calling solve
-# which terms are factors?
-fterm <- apply(Tatt$factors[!iscat,, drop=FALSE], 2, function(x)!any(x>0))
-keep <- xassign %in% c(0, which(fterm))
-V <- solve(Z[keep, keep])
-
-assign2 <- xassign[keep]
-# Create the contrast matrix
-Smat <- diag(nvar)
-for (iterm in which(fterm)) {  # might be none
-    for (j in (iterm:length(fterm))) { # all terms to the right
-        # the term includes iterm if it has non-zeros wherever iterm does
-        irow <- which(Tatt$factors[,iterm] > 0)
-        if (j> iterm && fterm[j] && all(Tatt$factors[irow, j] >0)) {
-            i1 <- which(assign2 == iterm)  # colums for the first term
-            i2 <- which(assign2 == j)      # and for the second
-            Smat[xassign==iterm, xassign==j] <- -t(solve(V[i2, i2], V[i2, i1]))
+# It would be simplest to have the contrasts.arg to be a list of function names.
+# However, model.matrix plays games with the calling sequence, and any function
+#  defined at this level will not be seen.  Instead create a list of contrast
+#  matrices.
+temp <- sapply(fit$contrasts, function(x) (is.character(x) &&
+                           x %in% c("contr.SAS", "contr.treatment")))
+if (!all(temp)) 
+        stop("yates sgtt method can only handle contr.SAS or contr.treatment")
+temp <- vector("list", length(fit$xlevels))
+names(temp) <- names(fit$xlevels)
+for (i in 1:length(fit$xlevels)) {
+    cmat <- diag(length(fit$xlevels[[i]]))
+    dimnames(cmat) <- list(fit$xlevels[[i]], fit$xlevels[[i]])
+    if (i>1 || Tatt$intercept==1) {
+        if (fit$contrasts[[i]] == "contr.treatment")
+            cmat <- cmat[, c(2:ncol(cmat), 1)]
+    }
+    temp[[i]] <- cmat
+}
+sasX <- model.matrix(formula(fit),  data=mframe, xlev=fit$xlevels,
+                      contrasts.arg=temp)
+sas.assign <- attr(sasX, "assign")
+    
+# create the dependency matrix D.  The lm routine is unhappy if it thinks
+#  the right hand and left hand sides are the same, fool it with I().
+# We do this using the entire X matrix even though only categoricals will
+#  eventually be used; if a continuous variable made it NA we need to know.
+D <- coef(lm(sasX ~ I(sasX) -1))
+dimnames(D)[[1]] <- dimnames(D)[[2]] #get rid if the I() names
+zero <- is.na(D[,1])  # zero rows, we'll get rid of these later
+D <- ifelse(is.na(D), 0, D) 
+    
+# make each row orthagonal to rows for other terms that contain it
+#  Containing blocks, if any, will always be below
+# this is easiest to do with the transposed matrix
+# Only do this if both row i and j are for a categorical variable
+if (!all(iscat)) {
+    # iscat marks variables in the model frame as categorical
+    # tcat marks terms as categorical.  For x1 + x2 + x1:x2 iscat has
+    # 2 entries and tcat has 3.
+    tcat <- (colSums(Tatt$factors[!iscat,,drop=FALSE]) == 0)
+}
+else tcat <- rep(TRUE, max(sas.assign)) # all vars are categorical
+   
+B <- t(D)
+dimnames(B)[[2]] <- paste0("L", 1:ncol(B))  # for the user
+if (ncol(Tatt$factors) > 1) {
+    share <- t(Tatt$factors) %*% Tatt$factors
+    nc <- ncol(share)
+    for (i in which(tcat[-nc])) {
+        j <- which(share[i,] > 0 & tcat)
+        k <- j[j>i]  # terms that I need to regress out
+        if (length(k)) {
+            indx1 <- which(sas.assign ==i)
+            indx2 <- which(sas.assign %in% k)
+            B[,indx1] <- resid(lm(B[,indx1] ~ B[,indx2]))
         }
     }
 }
 
-# Now, only at the end, toss the missing coefs
-Smat <- Smat[, !nabeta]
+# Cut B back down to the non-missing coefs of the original fit
+Smat <- t(B)[!zero, !zero]
+Sassign <- xassign[!nabeta]
 @ 
 
 Although the SGTT does test for all terms, we only want to print out the
@@ -595,16 +605,13 @@ ones that were asked for.
 keep <- match(contr$termname, colnames(Tatt$factors))
 if (length(keep) > 1) { # more than 1 term in the model
     test <- t(sapply(keep, function(i)
-                   testfun(Smat[xassign==i,,drop=FALSE], beta, vmat, sigma^2)))
+                   testfun(Smat[Sassign==i,,drop=FALSE], beta, vmat, sigma^2)))
     rownames(test) <- contr$termname
 }  else {
-    test <- testfun(Smat[xassign==keep,, drop=FALSE], beta, vmat, sigma^2)
+    test <- testfun(Smat[Sassign==keep,, drop=FALSE], beta, vmat, sigma^2)
     test <- matrix(test, nrow=1, 
                    dimnames=list(contr$termname, names(test)))
 }
-
-# We send Smat back to the user, so label it witht the SAS style 
-dimnames(Smat) <- list(paste0("L", 1:nrow(Smat)), names(beta))
 @ 
 
 
@@ -616,7 +623,7 @@ print.yates <- function(x, digits = max(3, getOption("digits") -2),
                         dig.tst = max(1, min(5, digits-1)),
                         eps=1e-8, ...) {
     temp1 <- x$estimate
-    temp1$mppv <- format(temp1$mppv, digits=digits)
+    temp1$PMM <- format(temp1$PMM, digits=digits)
     temp1$std <- format(temp1$std, digits=digits)
 
     # the spaces help separate the two parts of the printout
