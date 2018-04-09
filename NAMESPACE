@@ -2,7 +2,7 @@ useDynLib(survival, .registration = TRUE)
 importFrom(splines, spline.des, ns)
 importFrom(stats, anova, approx, as.formula, coef, coefficients,
            contr.treatment, cor, delete.response, extractAIC, formula, 
-           family, logLik, makepredictcall, median, model.extract,
+           family, lm, logLik, makepredictcall, median, model.extract,
            model.frame, model.matrix, model.offset, model.response,
            model.weights, na.fail, na.pass, napredict, naprint, naresid,
            pchisq, pnorm, printCoefmat, predict, qnorm, quantile, qgamma,

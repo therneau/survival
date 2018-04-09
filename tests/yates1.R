@@ -12,7 +12,7 @@ for (i in 1:3) {
     tdata$Opening <- temp[i]
     tpred[,i] <- predict(fit1, newdata=tdata)
  }
-all.equal(y1$estimate$mppv, colMeans(tpred))
+all.equal(y1$estimate[,"PMM"], colMeans(tpred))
 
 # This fit is deficient: there are no Opening=L and Mask=A6 obs
 # The MPV for Mask=A6 and Opening L will therefore be NA, as well
@@ -37,7 +37,7 @@ for (i in seq(along=temp)) {
     suppressWarnings(tpreda[,i] <- predict(fit2, newdata=tdata))
  }
 tpreda[,"A6"] <- NA  # the A6 estimate is deficient
-aeq(y2a$estimate$mppv, colMeans(tpreda))
+aeq(y2a$estimate[,"PMM"], colMeans(tpreda))
 
 tdata <- do.call(expand.grid, fit2$xlevels[1:3])
 temp <- levels(solder$Opening)
@@ -48,10 +48,10 @@ for (i in seq(along=temp)) {
     suppressWarnings(tpredb[,i] <- predict(fit2, newdata=tdata))
  }
 tpredb[,"L"] <- NA  
-aeq(y2b$estimate$mppv, colMeans(tpredb))
+aeq(y2b$estimate[,"PMM"], colMeans(tpredb))
 
 # Solder should be all NA
-all(is.na(y2c$estimate$mppv))
+all(is.na(y2c$estimate[,"PMM"]))
 
 # Tests for Solder are defined for a non-factorial population, however.
 # the [] below retains the factor structure of the variable, where the
@@ -65,7 +65,7 @@ for (i in seq(along=temp)) {
     tdata$Solder[] <- temp[i]
     suppressWarnings(tpredd[,i] <- predict(fit2, newdata=tdata))
 }
-aeq(y2d$estimate$mppv, colMeans(tpredd))
+aeq(y2d$estimate$PMM, colMeans(tpredd))
 
 #
 # Verify that the result is unchanged by how dummies are coded
