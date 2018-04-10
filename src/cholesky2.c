@@ -1,4 +1,4 @@
-/* $Id: cholesky2.c 11357 2009-09-04 15:22:46Z therneau $
+/*
 **
 ** subroutine to do Cholesky decompostion on a matrix: C = FDF'
 **   where F is lower triangular with 1's on the diagonal, and D is diagonal
@@ -16,10 +16,11 @@
 **     if it not SPD or NND
 **
 **  If a column is deemed to be redundant, then that diagonal is set to zero.
+**  An nan or infinite diagonal is considered 0.
 **
 **   Terry Therneau
 */
-
+#include <math.h>
 int cholesky2(double **matrix, int n, double toler)
     {
     double temp;
@@ -41,7 +42,7 @@ int cholesky2(double **matrix, int n, double toler)
     rank =0;
     for (i=0; i<n; i++) {
 	pivot = matrix[i][i];
-	if (pivot < eps) {
+	if (isnan(pivot) || 0!= isinf(pivot) || pivot < eps) {
 	    matrix[i][i] =0;
 	    if (pivot < -8*eps) nonneg= -1;
 	    }

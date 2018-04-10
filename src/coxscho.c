@@ -1,4 +1,4 @@
-/* $Id: coxscho.c 11376 2009-12-14 22:53:57Z therneau $
+/*
 ** Return the Schoenfeld residuals.
 **
 **  the input parameters are

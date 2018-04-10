@@ -1,4 +1,3 @@
-/*  $Id: agscore.c 11166 2008-11-24 22:10:34Z therneau $ */
 /*
 ** Do the score residuals
 **

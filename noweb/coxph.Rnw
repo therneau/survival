@@ -73,7 +73,7 @@ coxph <- function(formula, data, weights, subset, na.action,
         Terms <- Terms[-tempc$terms]  # toss it away
         # Save away xlevels after removing cluster (we don't want to save upteen
         #  levels of that variable, which we will never need).
-        xlevels <- .getXlevels(Terms[-tempc$terms], mf)
+        xlevels <- .getXlevels(Terms, mf)
     }
     else {
         if (missing(robust)) robust <- FALSE

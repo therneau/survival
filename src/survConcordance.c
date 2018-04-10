@@ -1,6 +1,4 @@
 /*
-**    $Id: survConcordance.c 11166 2008-11-24 22:10:34Z therneau $
-**
 **  For each observation, we want to know, for the subset of observations
 **     with longer survival (and only those)
 **          number with smaller, bigger, and tied x values

@@ -1,4 +1,4 @@
-/* $Id: coxph_wtest.c 11166 2008-11-24 22:10:34Z therneau $ 
+/*
 ** C wrapper for the Cholesky-based Wald test routine
 */
 #include "survS.h"

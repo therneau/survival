@@ -1,4 +1,3 @@
-/* $Id: chinv3.c 11166 2008-11-24 22:10:34Z therneau $ */
 /*
 ** matrix inversion, given the cholesky decomposition
 ** This is a specialized form for the frailty problem.  The matric C in this

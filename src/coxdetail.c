@@ -1,4 +1,4 @@
-/*  $Id: coxdetail.c 11357 2009-09-04 15:22:46Z therneau $
+/* 
 **
 ** Return all of the internal peices of a Cox model
 **

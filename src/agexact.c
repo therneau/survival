@@ -1,4 +1,3 @@
-/* $Id: agexact.c 11166 2008-11-24 22:10:34Z therneau $ */
 /*
 ** Anderson-Gill formulation of the cox Model
 **   Do an exact calculation of the partial likelihood. (CPU city!)

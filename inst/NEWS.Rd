@@ -14,7 +14,9 @@
     \item Restore the order of the elements of coxph objects; as some
     other packages depend on both the names and the order.  It had been
     modified when the residual argument was added to coxph.fit.
-    
+    \item Add a more rigorous check for overflow in the coxph iteration:
+    M Tsagris supplied an edge case example where the information matrix
+    fails one iteration before anything else.  
 }}
 
     

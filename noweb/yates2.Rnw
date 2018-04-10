@@ -165,10 +165,10 @@ if (inherits(fit, "coxph")) {
 else offset <- 0
     
 # Get the PMM estimates, but only for estimable ones
-estimate <- cbind(x1data, PMM=NA, std=NA)
+estimate <- cbind(x1data, pmm=NA, std=NA)
 if (any(estimable)) {
     etemp <- estfun(Cmat[estimable,,drop=FALSE], beta, vmat)
-    estimate$PMM[estimable] <- etemp$estimate + offset
+    estimate$pmm[estimable] <- etemp$estimate + offset
     estimate$std[estimable] <- sqrt(diag(etemp$var))
 }
     
@@ -180,13 +180,13 @@ else {
     if (is.list(contr$cmat)) {
         test <- t(sapply(contr$cmat, function(x)
                          testfun(x %*% Cmat, beta, vmat, sigma^2)))
-        natest <- sapply(contr$cmat, nafun, estimate$PMM)
+        natest <- sapply(contr$cmat, nafun, estimate$pmm)
     }
     else {
         test <- testfun(contr$cmat %*% Cmat, beta, vmat, sigma^2)
         test <- matrix(test, nrow=1, 
                        dimnames=list(contr$termname, names(test)))
-        natest <- nafun(contr$cmat, estimate$PMM)
+        natest <- nafun(contr$cmat, estimate$pmm)
     }
     if (any(natest)) test[natest,] <- NA
 }
@@ -254,7 +254,7 @@ for (i in 1:nsim)
     sims[i,,] <- rowsum(predfun(xall %*% bmat[i,] - offset[i]), index, 
                         reorder=FALSE)/n1
 mvar <- var(sims[,,1])  # this will be used for the tests
-estimate <- cbind(x1data, PMM=unname(pmm[,1]), std= sqrt(diag(mvar)))
+estimate <- cbind(x1data, pmm=unname(pmm[,1]), std= sqrt(diag(mvar)))
 
 # Now do the tests, on the first column of pmm only
 if (is.list(contr$cmat)) {
@@ -281,7 +281,7 @@ if (ncol(pmm) > 1 && any(estimable)){
     # Call the summary function, if present
     if (is.list(mfun)) result$summary <- sumfun(pmm, mvar2)
     else {
-        result$PMM <- pmm
+        result$pmm <- pmm
         result$mvar2 <- mvar2
     }
 }
@@ -623,7 +623,7 @@ print.yates <- function(x, digits = max(3, getOption("digits") -2),
                         dig.tst = max(1, min(5, digits-1)),
                         eps=1e-8, ...) {
     temp1 <- x$estimate
-    temp1$PMM <- format(temp1$PMM, digits=digits)
+    temp1$pmm <- format(temp1$pmm, digits=digits)
     temp1$std <- format(temp1$std, digits=digits)
 
     # the spaces help separate the two parts of the printout

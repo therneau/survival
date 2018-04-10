@@ -1,4 +1,4 @@
-/* $Id: doloop.c 11357 2009-09-04 15:22:46Z therneau $
+/*
 **
 ** Program to mimic a set of nested do loops
 **
@@ -44,7 +44,7 @@ void init_doloop(int min, int max) {
     }
 
 int doloop (int nloops, int *index) {
-    register int i;
+    int i;
 
     if (firsttime ==1) {
 	for (i=0; i<nloops; i++)  index[i] =minval+i;

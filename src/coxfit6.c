@@ -435,63 +435,60 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
 	}   /* end  of accumulation loop  */
 
 	/* am I done?
-	**   update the betas and test for convergence
+	**   test for convergence and then update beta
 	*/
 	*flag = cholesky2(imat, nvar, toler);
 
-	if (fabs(1-(loglik[1]/newlk))<= eps && halving==0) { /* all done */
-	    loglik[1] = newlk;
-	    chinv2(imat, nvar);     /* invert the information matrix */
-	    for (i=0; i<nvar; i++) {
-		beta[i] = newbeta[i]*scale[i];
-		u[i] /= scale[i];
-		imat[i][i] *= scale[i]*scale[i];
-		for (j=0; j<i; j++) {
-		    imat[j][i] *= scale[i]*scale[j];
-		    imat[i][j] = imat[j][i];
-		    }
-	    }
-	    goto finish;
-	}
-	/*
-	** a non-finite loglik is very rare: a step so bad that we get
-	** an overflow of the exp function.
-	**  When this happens back up one iteration and quit
-	*/
-	if (isnan(newlk) || 0!=isinf(newlk)) {
-	    for (i=0; i<nvar; i++) newbeta[i]= beta[i];
-	    /* we want to recompute imat, as it is likely NaN or Inf as well 
-	    **  The "fabs()" check further above will test true on the next
-	    **  iteration, but just in case this was the last force one more
+	k =0;
+	for (i=0; i<nvar; i++) {
+	    for (j=0; j<nvar; j++) {
+		if (isnan(imat[i][j]) || 0 != isinf(imat[i][j])) k =1;
+	    }	
+	}	
+
+	if (k==1 || isnan(newlk) || 0!=isinf(newlk)) {
+	    /*
+	    ** a non-finite loglik is very rare: a step so bad that we get
+	    ** an overflow of the exp function.
+	    **  When this happens back up one iteration and quit
 	    */
-	    maxiter++;
-	    continue;
+	    for (i=0; i<nvar; i++) newbeta[i]= beta[i];
+	    maxiter = *iter + 1;  
+	    }
+   
+	else {
+	    if (fabs(1-(loglik[1]/newlk))<= eps && halving==0) { /* all done */
+		loglik[1] = newlk;
+		chinv2(imat, nvar);     /* invert the information matrix */
+
+		for (i=0; i<nvar; i++) {
+		    beta[i] = newbeta[i]*scale[i];
+		    u[i] /= scale[i];
+		    imat[i][i] *= scale[i]*scale[i];
+		    for (j=0; j<i; j++) {
+			imat[j][i] *= scale[i]*scale[j];
+			imat[i][j] = imat[j][i];
+		    }
+		}
+		goto finish;
 	    }
 
-	if (*iter== maxiter) break;  /*skip the step halving calc*/
-	if (newlk < loglik[1])   {    
-	    /*it is not converging ! */
-	    halving =1;
-	    for (i=0; i<nvar; i++) 
-		newbeta[i] = (newbeta[i] + beta[i]) /2; /*half of old increment */
-	}
-	else {
-	    halving=0;
-	    loglik[1] = newlk;
-	    chsolve2(imat,nvar,u);
-	    j=0;
-	    for (i=0; i<nvar; i++) {
+	    if (*iter < maxiter) {
+		if (newlk < loglik[1])   {    
+		    /*it is not converging ! */
+		    halving =1;
+		    for (i=0; i<nvar; i++) 
+			newbeta[i] = (newbeta[i] + beta[i]) /2; /*half of old increment */
+		}
+		else {
+		    halving=0;
+		    loglik[1] = newlk;
+		    chsolve2(imat,nvar,u);
+		    for (i=0; i<nvar; i++) {
 			beta[i] = newbeta[i];
-		newbeta[i] = newbeta[i] +  u[i];
-		/*
-		** This code was a mistake.  If X is collinear we can easlily
-		**  create a beta which is large while eta is restrained
-		
-		if (newbeta[i] > maxbeta[i]) {
-		    newbeta[i] = maxbeta[i];
+			newbeta[i] = newbeta[i] +  u[i];
 		    }
-		else if (newbeta[i] < -maxbeta[i]) newbeta[i] = -maxbeta[i];
-	        */
+		}
 	    }
 	}
     }  /* return for another iteration */

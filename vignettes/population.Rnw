@@ -71,9 +71,9 @@ We want to compute the conditional expectation
 where $F$ is some chosen population for the covariates other than treatment.
 Important follow-up questions are: what population should be used, 
 what statistic should be averaged,
-what compuational algorithm should be used,
+what computational algorithm should be used,
 and what are the statistical properties of the resulting
-estimate.
+estimate?
 Neither the statistic nor population questions should be taken lightly,
 and both need to be closely linked to the scientific question.  
 If, for instance, the model of figure 1 were used to inform a nursing home
@@ -107,7 +107,7 @@ and can easily be extended to any R model that includes a standard set of
 objects in the result, i.e., 
 \code{terms}, \code{contrasts}, \code{xlevels}, and \code{assign}.
 
-The routine's name is a nod to the 1934 paper by Yates \ref{Yate34} 
+The routine's name is a nod to the 1934 paper by Yates \cite{Yates34} 
 \emph{The analysis of multiple classifications with unequal numbers in
   different classes}.
 In dealing with an unbalanced 2-way layout he states that 
@@ -136,7 +136,7 @@ will do.
 Yates' weighted means analysis, the g-estimates of causal models,
 direct adjusted survival curves, and least squares means are but a 
 small sample of the idea's continual rediscovery. 
-Searle et. al. \cite{Searle} use the term population marginal mean (PMM),
+Searle et. al. \cite{Searle80} use the term population marginal mean (PMM),
 which we will adopt as the acronym,
 though they deal only with linear models, assume a factorial population,
 and spend most of their energy writing out explicit formulas for particular
@@ -151,7 +151,7 @@ for mounting electronic components to printed circuit boards.
 The experiment varied a number of factors relevant to the process.
 The response, measured by eye, is the number of visible solder skips.
 The data set was used in the
-book Statistical Models in S \ref{Chambers93} and is included in the
+book Statistical Models in S \cite{Chambers93} and is included in the
 \code{survival} package.
 
 <<solder1a>>=
@@ -207,7 +207,7 @@ The printout has two parts: the left hand columns are population marginal mean
 (PMM) values and the right hand columns are tests on those predicted values.  
 The default is a single global test that these PMM are all equal.
 Under a factorial population these are the Yates' weighted
-means \cite{Yates} and the corresponding test is the Yates' sum of
+means \cite{Yates34} and the corresponding test is the Yates' sum of
 squares for that term.  These would be labeled as
 ``least squares means'' and ``type III SS'', respectively,
 by the glm procedure of SAS. 
@@ -220,7 +220,7 @@ y2 <- yates(fit1, "Opening", population = "data", test="pairwise")
 print(y2, digits=2)
 #
 # compare the two results
-temp <- rbind(diff(y1$estimate[,"PMM"]), diff(y2$estimate[,"PMM"]))
+temp <- rbind(diff(y1$estimate[,"pmm"]), diff(y2$estimate[,"pmm"]))
 dimnames(temp) <- list(c("factorial", "empirical"), c("2 vs 1", "3 vs 2"))
 round(temp,5)
 @ 
@@ -536,10 +536,10 @@ same `overall' mortality.
 Adjustment for both age and sex is critical to understanding the potential
 effect of FLC on survival.
 
-Dispenzieri \cite{Dispenzieri2012} looked at the impact of FLC by dividing the
+Dispenzieri \cite{Dispenzieri12} looked at the impact of FLC by dividing the
 sample into those above and below the 90th percentile of FLC;
 for illustration we will use 4 groups consisting of the lowest 50\%,
-50 to 75th percentile, 75 to 90th percentil and above the 90th percentile.
+50 to 75th percentile, 75 to 90th percentile and above the 90th percentile.
 
 <<coxfit2>>=
 coxfit4 <- coxph(Surv(futime, death) ~ fgroup*age + sex, flchain)
@@ -606,7 +606,7 @@ ysurv
 
 # display side by side
 temp <- rbind("simple KM" = summary(flkm, rmean=13*365.25)$table[, "*rmean"],
-              "population adjusted" = ysurv$estimate[,"PMM"])
+              "population adjusted" = ysurv$estimate[,"pmm"])
 round(temp/365.25, 2)
 
 @ 
@@ -711,14 +711,14 @@ This is similar to the original rationale as Yates \cite{Yate34}.
 Type I and II never coincide for continuous variables and so none of this
 argument applies to them.
 
-The $L'$ matrix for the sequential sums of squares is orthagonal with respect
+The $L'$ matrix for the sequential sums of squares is orthogonal with respect
 to $(X'X)^-$, the variance matrix of $\hat\beta$, i.e., $L'_i (X'X)^-L_j=0$
 for any terms $i$ and $j$ with $i \ne j$. 
 One way to construct the Yates' SS, i.e., the global test that the PMM values
 for all levels of a particular factor are equal, is to find an $L'$
 matrix that is upper triangular, maximal rank, has zeros off the diagonal for
-unrelated terms, and is orthagonal to $(Z'Z)^-$, where $Z$ is the design matrix
-for an orthagonal subset. 
+unrelated terms, and is orthogonal to $(Z'Z)^-$, where $Z$ is the design matrix
+for an orthogonal subset. 
 If there are no missing cells in the design, i.e., no combinations of factors
 which is present in the model statement but not in the data, then 
 \code{Z = unique(X)} is a direct way to create the subset, with $L$ the
@@ -729,7 +729,7 @@ definition is found in \cite{Goodnight78}:
 ``A set of $L$s, one for each effect in the model, is type III if each $L$
 is a maximum rank hypothesis involving only the parameters of the effect
 in question and parameters of effects that contain it; and each $L$ is 
-orthagonal to all $L$s of effects that contain the effect in question.''
+orthogonal to all $L$s of effects that contain the effect in question.''
 The outline of an algorithm to create such an $L$ for design that
 may or may not have missing cells is found in the examples of a second
 SAS technical report \cite{SAS2013}.  This is used by the \code{yates} function.
@@ -758,9 +758,9 @@ SAS technical report \cite{SAS2013}.  This is used by the \code{yates} function.
   \item Intialize $L' = D$, and then partially orthogonalize $L$.
      \begin{itemize}
        \item If terms $i$ and $j$, $i<j$, are such that term $j$ includes
-         term $i$, then make $L_i$ orthagonal to $L_j$.  That is, replace
+         term $i$, then make $L_i$ orthogonal to $L_j$.  That is, replace
          $L_i$ with the residuals from a regression of $L_i$ on $L_j$.
-         (Orthagonalize rows of $L'$ = columns of $L$.)
+         (Orthogonalize rows of $L'$ = columns of $L$.)
        \item Continuous variables or interactions involving a continuous
          variable are ignored in this step.
      \end{itemize}
@@ -794,7 +794,7 @@ If there are missing cells, however, one or more of the PMM values will not
 be estimable and there is no global population based test.
 A set of valid type III estimators can still be constructed, 
 which have an upper triangular matrix form, with appropriate blocks of zeros and
-a particular orthagonality. 
+a particular orthogonality. 
 It is however no longer clear what connection, if any, that these tests have 
 to a factorial population.
 The upper triangular part assures that the set of tests ``covers the space''
@@ -958,11 +958,11 @@ This will give the Yates estimate.
 \subsection{Type 3}
 Based on the $L$ matrix argument above, one natural defintion of 
 type III contrasts would be an upper triangular matrix, with appropriate
-zeros, whose terms were orthagonal with respect to $(Z'Z)^-$, 
+zeros, whose terms were orthogonal with respect to $(Z'Z)^-$, 
 the design matrix for a balanced data set.  
 The SAS algorithm creates contrasts in an expanded basis, 
 and these contrasts are instead made
-orthagonal with respect to the identity matrix $I$. 
+orthogonal with respect to the identity matrix $I$. 
 Why does this work? 
 Multiple example cases have shown that in data with no missing cells the 
 resulting sum of squares agrees with the Yates' SS, but a formal proof of
