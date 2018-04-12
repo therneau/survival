@@ -39,7 +39,7 @@ int cholesky5(double **matrix, int n, double toler)
     rank =0;
     for (i=0; i<n; i++) {
 	pivot = matrix[i][i];
-	if (fabs(pivot) < eps) {
+	if (isfinite(pivot)== 0 || fabs(pivot) < eps) {
 	    for (j=i; j<n; j++) matrix[j][i] =0;  /* zero the column */
 	    }
 	else  {

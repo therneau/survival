@@ -318,7 +318,7 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
     for (i=0; i<nvar; i++) {
 	newbeta[i] = beta[i] + a[i];
     }
-    if (maxiter==0 || isnan(loglik[0]) || 0 != isinf(loglik[0])) {
+    if (maxiter==0 || isfinite(loglik[0])==0) {
 	chinv2(imat,nvar);
 	for (i=0; i<nvar; i++) {
 	    beta[i] *= scale[i];  /*return to original scale */
@@ -442,11 +442,11 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
 	k =0;
 	for (i=0; i<nvar; i++) {
 	    for (j=0; j<nvar; j++) {
-		if (isnan(imat[i][j]) || 0 != isinf(imat[i][j])) k =1;
+		if (isfinite(imat[i][j]) ==0) k =1;
 	    }	
 	}	
 
-	if (k==1 || isnan(newlk) || 0!=isinf(newlk)) {
+	if (k==1 || isfinite(newlk)==0) {
 	    /*
 	    ** a non-finite loglik is very rare: a step so bad that we get
 	    ** an overflow of the exp function.

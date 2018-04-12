@@ -691,7 +691,8 @@ as one proceeds from the leftmost column.
     The interaction \code{x1:x2} contains \code{x1} for instance. 
 \end{itemize}
 
-This last leads to one of the most well known identities in ANOVA: for a 
+The blocks of zeros implied by the last of these leads to one of the most 
+well known identities in ANOVA: for a 
 balanced factorial design, the type I SS for a term does not depend on its order
 in the model.  (Swapping the order of two main effects, for instance, simply
 swaps those rows and columns of $L$.)
@@ -707,9 +708,11 @@ Goodnight writes
   but for which observations were lost due to external forces, there is no
   reason to alter the hypothesis \cite{Goodnight78}. 
 \end{quote}
-This is similar to the original rationale as Yates \cite{Yate34}.
+This is actually quite different than the rationale found in Yates \cite{Yate34}:
+Yates focused on an estimate of interest (a marginal mean) for which he derived
+a test statistic, while the above is focused on the test statistic itself.
 Type I and II never coincide for continuous variables and so none of this
-argument applies to them.
+argument applies to them, however.
 
 The $L'$ matrix for the sequential sums of squares is orthogonal with respect
 to $(X'X)^-$, the variance matrix of $\hat\beta$, i.e., $L'_i (X'X)^-L_j=0$
@@ -719,9 +722,9 @@ for all levels of a particular factor are equal, is to find an $L'$
 matrix that is upper triangular, maximal rank, has zeros off the diagonal for
 unrelated terms, and is orthogonal to $(Z'Z)^-$, where $Z$ is the design matrix
 for an orthogonal subset. 
-If there are no missing cells in the design, i.e., no combinations of factors
+If there are no missing cells in the design, i.e., no combination of factors
 which is present in the model statement but not in the data, then 
-\code{Z = unique(X)} is a direct way to create the subset, with $L$ the
+\code{Z = unique(X)} is a direct way to create a balanced subset, with $L$ the
 Cholesky decomposition of $Z'Z$.
 
 The SAS type III definition simply carries this idea forward.  The formal 
@@ -731,12 +734,13 @@ is a maximum rank hypothesis involving only the parameters of the effect
 in question and parameters of effects that contain it; and each $L$ is 
 orthogonal to all $L$s of effects that contain the effect in question.''
 The outline of an algorithm to create such an $L$ for design that
-may or may not have missing cells is found in the examples of a second
-SAS technical report \cite{SAS2013}.  This is used by the \code{yates} function.
+may or may not have missing cells can be inferred from the examples of a second
+SAS technical report \cite{SAS2013}.  
+This is the algorithm used by the \code{yates} function.
 \begin{enumerate}
   \item Create a design matrix $X$ in standard form, i.e., intercept, then
     main effects, then first order interaction, etc., from left to right,
-    with categorical variables coded in the same was as the SAS GLM procedure.
+    with categorical variables coded in the same way as the SAS GLM procedure.
     \begin{itemize}
        \item A categorical variable with $k$ levels is
          represented by $k$ 0/1 dummy variables, 
@@ -751,7 +755,7 @@ SAS technical report \cite{SAS2013}.  This is used by the \code{yates} function.
      \begin{itemize}
         \item $D$ will be upper triangular. If row $i$ of $X$ can be written
          as a linear combination of prior rows, the $i$th column of $D$
-         will contain those coefficients, otherwise it will be a copy of
+         will contain those coefficients, otherwise the column will be a copy of
          the identity.
        \item Sample R code is \code{D = coef(lm(X \textasciitilde I(X) -1))}
     \end{itemize}

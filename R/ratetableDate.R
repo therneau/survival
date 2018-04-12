@@ -13,14 +13,17 @@ ratetableDate <- function(x) {
 ratetableDate.Date <- function(x) 
     as.numeric(x - as.Date("1960/01/01"))
 
-ratetableDate.POSIXt <- function(x)
+ratetableDate.POSIXct <- function(x)
+    as.numeric(as.Date(x) - as.Date("1960/01/01"))
+
+ratetableDate.POSIXlt <- function(x)
     as.numeric(as.Date(x) - as.Date("1960/01/01"))
 
 # Normally Splus
 #ratetableDate.timeDate <- function(x)
 #    as.numeric(x - timeDate('1/1/1960'))
 
-# Therneau's old "date" class (will someday wither away)
+# Therneau's old "date" class (will someday wither away?)
 ratetableDate.date <- function(x)  as.numeric(x)
 
 # David James's old "chron" class (will someday wither away)

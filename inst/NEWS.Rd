@@ -1,14 +1,24 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 2.42-3}{
+  \itemize{
+    \item Remove the coxph warning "X matrix deemed to be singular".
+    The coefficients are NA, just as before, we simply say less.
+
+    \item Fix minor bug in coxph: a covariate that was a constant would
+    have its coefficent reported as 0 rather than NA, iff it was the
+    only variable in the model, e.g., coxph(Surv(1:10) ~ rep(4,10)).
+}}
+
 \section{Changes in version 2.42-1}{
   \itemize{
     \item Add xtfrm method for Surv objects.
     \item Fix error in logLik.coxph.null (incorrect class)
     \item Fix error in pyears, would fail for a model with no
     predictors and dataframe=TRUE.
-    \item tmerge would fail if and id was missing, give a message
+    \item tmerge would fail if an id was missing, give a message
     instead
-    \item Clean up date checks in match.ratetable, i.e., that the column
+    \item Stronger date checks in survexp, i.e., that the column
     of a data frame is a date if and only if the matching ratetable
     dimension is a date.
     \item Restore the order of the elements of coxph objects; as some

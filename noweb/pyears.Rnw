@@ -1,8 +1,8 @@
 \section{Person years}
 The person years routine and the expected survival code are the
 two parts of the survival package that make use of external
-rate tables, of which the United States mortality tables [[survexp.us]]
-and [[survexp.usr]] are examples contained in the package.
+rate tables, of which the United States mortality tables \code{survexp.us}
+and \code{survexp.usr} are examples contained in the package.
 The arguments for pyears are
 \begin{description}
   \item[formula] The model formula. The right hand side consists of grouping

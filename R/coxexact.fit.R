@@ -80,7 +80,8 @@ coxexact.fit <- function(x, y, strata, offset, init, control,
         return( list(loglik = cfit$loglik[1],
                      linear.predictors = offset,
                      residuals = resid,
-                     method= c("coxph.null", "coxph")))
+                     method = method,
+                     class = c("coxph.null", "coxph")))
     }
 
     loglik <- cfit$loglik[1:2]  #these are packed into one vector
@@ -137,7 +138,8 @@ coxexact.fit <- function(x, y, strata, offset, init, control,
                       linear.predictors = lp.unsort,
                       residuals = resid,
                       means = means,
-                      method= 'coxph')
+                      method = method,
+                      class = 'coxph')
     } else {
         rval <-  list(coefficients  = coef/rescale,
                       var    = scmat %*% var %*% scmat,
@@ -146,7 +148,8 @@ coxexact.fit <- function(x, y, strata, offset, init, control,
                       iter   = iter,
                       linear.predictors = lp.unsort,
                       means = means,
-                      method= 'coxph')
+                      method = method,
+                      class = 'coxph')
     }
 
     if (concordance) {

@@ -82,11 +82,13 @@ coxph.fit <- function(x, y, strata, offset, init, control,
             list( loglik = coxfit$loglik[1],
                  linear.predictors = offset,
                  residuals = resid,
-                 method= c('coxph.null', 'coxph') )
+                 method = method,
+                 class = c('coxph.null', 'coxph') )
         }
 	else list(loglik = coxfit$loglik[1],
                  linear.predictors = offset,
-                 method= c('coxph.null', 'coxph') )
+                 method = method,
+                 class = c('coxph.null', 'coxph') )
     }
     else {
 	var <- matrix(coxfit$imat,nvar,nvar)
@@ -118,7 +120,8 @@ coxph.fit <- function(x, y, strata, offset, init, control,
 		    iter   = coxfit$iter,
 		    linear.predictors = as.vector(lp),
 		    means = coxfit$means,
- 		    method='coxph')
+                    method = method,
+ 		    class ='coxph')
 	if (resid) {
             score <- exp(lp[sorted])
             coxres <- .C(Ccoxmart, as.integer(n),
@@ -135,7 +138,7 @@ coxph.fit <- function(x, y, strata, offset, init, control,
             # rval$residuals <- resid  # not good enough
             # some other code expects the ORDER of components in a coxph
             # object will never change: residuals right before means
-            rval <- c(rval[1:6], list(residuals=resid), rval[7:8])
+            rval <- c(rval[1:6], list(residuals=resid), rval[-(1:6)])
         }
 
         if (concordance) {

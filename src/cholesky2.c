@@ -35,14 +35,13 @@ int cholesky2(double **matrix, int n, double toler)
 	if (matrix[i][i] > eps)  eps = matrix[i][i];
 	for (j=(i+1); j<n; j++)  matrix[j][i] = matrix[i][j];
 	}
-    if (eps==0) return(0);  /* no positive diagonals!  This will happen if
-			      every colum of X is a constant*/
-    eps *= toler;
+    if (eps==0) eps = toler; /* no positive diagonals! */
+    else eps *= toler;
 
     rank =0;
     for (i=0; i<n; i++) {
 	pivot = matrix[i][i];
-	if (isnan(pivot) || 0!= isinf(pivot) || pivot < eps) {
+	if (isfinite(pivot)==0 || pivot < eps) {
 	    matrix[i][i] =0;
 	    if (pivot < -8*eps) nonneg= -1;
 	    }

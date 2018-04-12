@@ -42,13 +42,15 @@ int cholesky3(double **matrix, int n, int m, double *diag, double toler)
     eps =0;
     for (i=0; i<m; i++) if (diag[i] <eps) eps = diag[i];
     for (i=0; i<n2; i++) if (matrix[i][i+m] > eps)  eps = matrix[i][i+m];
-    eps *= toler;
-
+     
+    if (eps==0) eps= toler;  /* no positive diagonals! */
+    else eps *= toler;
+ 
     rank =0;
     /* pivot out the diagonal elements */
     for (i=0; i<m; i++) {
 	pivot = diag[i];
-        if (pivot < eps) {
+        if (isfinite(pivot)==0 || pivot < eps) {
             for (j=0; j<n2; j++) matrix[j][i] =0;
             if (pivot < -8*eps) nonneg= -1;
             }
@@ -66,7 +68,7 @@ int cholesky3(double **matrix, int n, int m, double *diag, double toler)
     /* Now the rest of the matrix */
     for (i=0; i<n2; i++) {
 	pivot = matrix[i][i+m];
-	if (pivot < eps) {
+	if (isfinite(pivot)==0 || pivot < eps) {
 	    for (j=i; j<n2; j++) matrix[j][i+m] =0;  /* zero the column */
             if (pivot < -8*eps) nonneg= -1;
 	    }

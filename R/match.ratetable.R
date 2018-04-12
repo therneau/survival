@@ -49,15 +49,12 @@ match.ratetable <- function(R, ratetable) {
         # Find out which colums are dates.  If this is a ratetable that uses
         #  type=date but a numeric cutpoint (older), then also convert any
         #  dates to a 1960 baseline
-        if (any(datecut)) isDate <- sapply(R, datecheck)
-        else {
-            isDate <- logical(ncol(R))
-            for (i in 1:ncol(R)) {
-                temp <- ratetableDate(R[[i]])
-                if (!is.null(temp)) {
-                    isDate[i] <- TRUE
-                    R[[i]] <- temp
-                }
+        isDate <- logical(ncol(R))
+        for (i in 1:ncol(R)) {
+            temp <- ratetableDate(R[[i]])
+            if (!is.null(temp)) {
+                isDate[i] <- TRUE
+                R[[i]] <- temp
             }
         }
     }

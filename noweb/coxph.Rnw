@@ -629,19 +629,19 @@ else {
        vars <- (1:length(fit$coefficients))[is.na(fit$coefficients)]
        msg <-paste("X matrix deemed to be singular; variable",
     		   paste(vars, collapse=" "))
-       if (singular.ok) warning(msg)
-       else             stop(msg)
+       if (!singular.ok) stop(msg)
+       # else warning(msg)  # stop being chatty
     }
     fit$n <- data.n
     fit$nevent <- sum(Y[,ncol(Y)])
     fit$terms <- Terms
     fit$assign <- assign
-    class(fit) <- fit$method	
+    class(fit) <- fit$class
+    fit$class <- NULL
 
     # don't compute a robust variance if there are no coefficients
     if (robust && !is.null(fit$coefficients) && !all(is.na(fit$coefficients))) {
         fit$naive.var <- fit$var
-        fit$method    <- method
         # a little sneaky here: by calling resid before adding the
         #   na.action method, I avoid having missings re-inserted
         # I also make sure that it doesn't have to reconstruct X and Y
@@ -713,7 +713,6 @@ if (length(xlevels) >0) fit$xlevels <- xlevels
 fit$contrasts <- contr.save
 if (any(offset !=0)) fit$offset <- offset
 fit$call <- Call
-fit$method <- method
 fit
 @ 
 

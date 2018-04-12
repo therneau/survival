@@ -169,7 +169,8 @@ if (resid) {
 if (nullmodel) {
     rval <- list(loglik=agfit$loglik[2],
          linear.predictors = offset,
-         method= c("coxph.null", 'coxph') )
+         method= method,
+         class = c("coxph.null", 'coxph') )
     if (resid) rval$residuals <- residuals
 }
 else {
@@ -189,7 +190,8 @@ else {
                      means = colMeans(x),
                      first = agfit$u,
                      info = flag,
-                     method= 'coxph')
+                     method= method,
+                     class = "coxph")
     } else {
          rval <- list(coefficients  = coef,
                      var    = var,
@@ -200,21 +202,13 @@ else {
                      means = colMeans(x),
                      first = agfit$u,
                      info = flag,
-                     method= 'coxph')
+                     method = method,
+                     class = "coxph")
     }
        
     if (concordance) {
-        rval <- c(rval, list(
-                  concordance = survConcordance.fit(y, lp, strata, weights),
-                  first = agfit$u,
-                  info = flag,
-                  method= 'coxph'))
-    } else {
-        rval <- c(rval, 
-                  list( first = agfit$u,
-                       info = flag,
-                       method= 'coxph'))
-    }
+        rval$concordance <- survConcordance.fit(y, lp, strata, weights)
+     } 
     rval
 }
 @
