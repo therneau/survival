@@ -1,8 +1,7 @@
 
-R version 2.15.2 (2012-10-26) -- "Trick or Treat"
-Copyright (C) 2012 The R Foundation for Statistical Computing
-ISBN 3-900051-07-0
-Platform: i686-pc-linux-gnu (32-bit)
+R Under development (unstable) (2018-04-09 r74565) -- "Unsuffered Consequences"
+Copyright (C) 2018 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -20,7 +19,6 @@ Type 'q()' to quit R.
 > # New tests 4/2010 to validate strata by covariate interactions
 > #
 > library(survival)
-Loading required package: splines
 > options(na.action=na.exclude) # preserve missings
 > options(contrasts=c('contr.treatment', 'contr.poly')) #ensure constrast type
 > aeq <- function(x,y) all.equal(as.vector(x), as.vector(y))
@@ -32,13 +30,7 @@ Loading required package: splines
 > #  are ph.ecog=3 subjects in only 1 of the strata. 
 > # Does not affect the test 
 > fit1 <- coxph(Surv(time, status) ~ age + sex:strata(ph.ecog), lung)
-Warning message:
-In coxph(Surv(time, status) ~ age + sex:strata(ph.ecog), lung) :
-  X matrix deemed to be singular; variable 5
 > fit2 <- coxph(Surv(time, status) ~ age + sex:strata(ph.ecog), tdata)
-Warning message:
-In coxph(Surv(time, status) ~ age + sex:strata(ph.ecog), tdata) :
-  X matrix deemed to be singular; variable 5
 > 
 > aeq(fit1$coef, fit2$coef)
 [1] TRUE
@@ -49,4 +41,4 @@ In coxph(Surv(time, status) ~ age + sex:strata(ph.ecog), tdata) :
 > 
 > proc.time()
    user  system elapsed 
-  0.200   0.028   0.224 
+  0.692   0.036   0.727 

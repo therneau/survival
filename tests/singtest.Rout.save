@@ -1,8 +1,7 @@
 
-R version 2.15.2 (2012-10-26) -- "Trick or Treat"
-Copyright (C) 2012 The R Foundation for Statistical Computing
-ISBN 3-900051-07-0
-Platform: i686-pc-linux-gnu (32-bit)
+R Under development (unstable) (2018-04-09 r74565) -- "Unsuffered Consequences"
+Copyright (C) 2018 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -19,7 +18,6 @@ Type 'q()' to quit R.
 > options(na.action=na.exclude) # preserve missings
 > options(contrasts=c('contr.treatment', 'contr.poly')) #ensure constrast type
 > library(survival)
-Loading required package: splines
 > 
 > #
 > # A simple test of an overdetermined system
@@ -39,9 +37,6 @@ Loading required package: splines
 > 
 > # Will create a warning about a singular X matrix
 > fit1 <- coxph(Surv(start, stop, status) ~ x * factor(epoch), stest)
-Warning message:
-In coxph(Surv(start, stop, status) ~ x * factor(epoch), stest) :
-  X matrix deemed to be singular; variable 2 3 4
 > fit1$coef    # elements 2:4 should be NA
                x   factor(epoch)2   factor(epoch)3   factor(epoch)4 
        0.1041579               NA               NA               NA 
@@ -52,4 +47,4 @@ x:factor(epoch)2 x:factor(epoch)3 x:factor(epoch)4
 > 
 > proc.time()
    user  system elapsed 
-  0.168   0.032   0.193 
+  0.668   0.040   0.704 
