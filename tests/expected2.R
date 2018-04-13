@@ -25,6 +25,7 @@ Datedate <- function(x) {
     class(y) <- "date"
     y
 }
+as.data.frame.date <- as.data.frame.vector # needed to make the functions work
 
 n <- nrow(lung)
 tdata <- data.frame(age=lung$age + (1:n)/365.25,

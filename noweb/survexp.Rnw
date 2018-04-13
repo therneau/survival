@@ -149,7 +149,7 @@ else if (!missing(rmap)) {
     if (!is.call(rcall) || rcall[[1]] != as.name('list'))
         stop ("Invalid rcall argument")
     }
-else rcall <- NULL   # A ratetable, but not rcall argument
+else rcall <- NULL   # A ratetable, but no rcall argument
 
 # Check that there are no illegal names in rcall, then expand it
 #  to include all the names in the ratetable

@@ -24,7 +24,7 @@ export(Surv, aeqSurv, aareg, agreg.fit,
        is.na.Surv, is.ratetable, 
        labels.survreg, match.ratetable, neardate,
        psurvreg, qsurvreg, dsurvreg,
-       pspline, pyears, ratetable, ratetableDate, 
+       pspline, pyears, ratetableDate, 
        ridge, rsurvreg, statefig, strata, survConcordance,
        survSplit, survdiff, survexp,  survfit,
        survfit.formula,
@@ -39,7 +39,6 @@ S3method('[', Surv)
 S3method('[', cox.zph)
 S3method('[', coxph.penalty)
 S3method('[', ratetable)
-S3method('[', ratetable2)
 S3method('[', survfit)
 S3method('[', survfitms)
 S3method('[', tcut)
