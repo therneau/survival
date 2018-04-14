@@ -1,5 +1,5 @@
 
-R Under development (unstable) (2018-01-04 r74052) -- "Unsuffered Consequences"
+R Under development (unstable) (2018-04-09 r74565) -- "Unsuffered Consequences"
 Copyright (C) 2018 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
@@ -48,8 +48,9 @@ Type 'q()' to quit R.
 +     cutpoints=list(c(75:95), NULL, mdy.date(1,1,2000) +c(0:4)*366.25),
 +     class='ratetable')
 > is.ratetable(temp, verbose=T)
-[1] "attribute type[1] is continuous; cutpoint should be null"
-[2] "wrong length for cutpoints 3"                            
+[1] "type[3] is numeric or factor but the cutpoint is a date" 
+[2] "attribute type[1] is continuous; cutpoint should be null"
+[3] "wrong length for cutpoints 3"                            
 >  
 >                     
 > # missing dimid attribute + unsorted cutpoint
@@ -139,4 +140,4 @@ age          male       female
 > 
 > proc.time()
    user  system elapsed 
-  0.820   0.048   0.867 
+  0.704   0.012   0.714 

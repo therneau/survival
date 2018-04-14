@@ -103,7 +103,7 @@ aeq(exp1$surv, exp(-cumsum(exp1c$expected)))
 # Just a little harder: 
 #   Born 3/1/25 and entered the study on 6/10/55.  The code creates shifted
 #   dates to align with US rate tables - entry is 59 days earlier (days from
-#   1/1/25 to 3/1/25).
+#   1/1/1925 to 3/1/1925).
 #
 temp1 <- mdy.Date(3,1,25)
 temp2 <- mdy.Date(6,10,55)

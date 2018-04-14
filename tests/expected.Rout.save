@@ -1,6 +1,6 @@
 
-R Under development (unstable) (2017-05-02 r72647) -- "Unsuffered Consequences"
-Copyright (C) 2017 The R Foundation for Statistical Computing
+R Under development (unstable) (2018-04-09 r74565) -- "Unsuffered Consequences"
+Copyright (C) 2018 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -125,7 +125,7 @@ Type 'q()' to quit R.
 > # Just a little harder: 
 > #   Born 3/1/25 and entered the study on 6/10/55.  The code creates shifted
 > #   dates to align with US rate tables - entry is 59 days earlier (days from
-> #   1/1/25 to 3/1/25).
+> #   1/1/1925 to 3/1/1925).
 > #
 > temp1 <- mdy.Date(3,1,25)
 > temp2 <- mdy.Date(6,10,55)
@@ -328,4 +328,4 @@ Type 'q()' to quit R.
 > 
 > proc.time()
    user  system elapsed 
-  1.264   0.040   1.301 
+  0.884   0.036   0.918 

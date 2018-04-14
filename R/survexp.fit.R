@@ -8,7 +8,7 @@
 #  times = the time points at which survival is desired
 #  death = T if we want the conditional estimate
 survexp.fit <- function(group, x, y, times, death, ratetable) {
-   if (!is.matrix(x)) stop("x must be a matrix")
+    if (!is.matrix(x)) stop("x must be a matrix")
     if (ncol(x) != length(dim(ratetable)))
 	stop("x matrix does not match the rate table")
     atts <- attributes(ratetable)
@@ -19,8 +19,11 @@ survexp.fit <- function(group, x, y, times, death, ratetable) {
     ntime <- length(times)
     if (!is.logical(death)) stop("Invalid value for death indicator")
 
-    cuts <- atts$cutpoints
-
+    datecheck <- function(x) 
+        inherits(x, c("Date", "POSIXt", "date", "chron"))
+    cuts <- lapply(attr(ratetable, "cutpoints"), function(x)
+        if (!is.null(x) & datecheck(x)) ratetableDate(x) else x)
+              
     if (is.null(atts$type)) {
         # old style rate table
         rfac <- atts$factor
@@ -31,30 +34,26 @@ survexp.fit <- function(group, x, y, times, death, ratetable) {
         us.special <- (atts$type==4)
         }
     if (any(us.special)) {  #special handling for US pop tables
-	if (sum(us.special) >1)
-	    stop("Two columns marked for special handling as a US rate table")
         # Someone born in June of 1945, say, gets the 1945 US rate until their
         #  next birthday.  But the underlying logic of the code would change
-        #  them to the 1946 rate on 1/1/1946, which is the cutpoint in the
-        #  rate table.  We fudge by faking their birthdate back to January 1.
-        # The cutpoint for year can be simple numeric (older) or a Date object,
-        #  and the older style ones use days since 1/1/1960.  (Date objects in
-        #  R didn't exist when rate tables were conceived.)  So watch out for
-        #  that as well.
+        #  them to a new rate on both calendar year and birthdays.
+        #  We fudge by moving their enrollment date back to their birthday.
+        #
+        # The cutpoint for year has been converted to days since 1/1/1960 by
+        #  the ratetableDate function.  (Date objects in R didn't exist when 
+        #  rate tables were conceived.) 
         if (is.null(atts$dimid)) dimid <- names(atts$dimnames)
         else dimid <- atts$dimid
         cols <- match(c("age", "year"), dimid)
         if (any(is.na(cols))) 
-            stop("Ratetable does not have expected shape")
+            stop("ratetable does not have expected shape")
 
-        if (inherits(atts$cutpoints[[which(us.special)]], "Date"))
-            origin <- "1970/01/01"  else origin <- "1960/01/01"
-        bdate <- as.Date(origin) + (x[,cols[2]] - x[,cols[1]])
+        # The format command works for Dates, use it to get an offset
+        bdate <- as.Date("1960-01-01") + (x[,cols[2]] - x[,cols[1]])
         byear <- format(bdate, "%Y")
-        offset <- bdate - as.Date(paste(byear, "01/01", sep='/'), 
-                                      origin=origin)
+        offset <- as.numeric(bdate - as.Date(paste0(byear, "-01-01")))
         x[,cols[2]] <- x[,cols[2]] - offset
-
+       
 	# Doctor up "cutpoints" - only needed for (very) old style rate tables
         #  for which the C code does interpolation on the fly
         if (any(rfac >1)) {

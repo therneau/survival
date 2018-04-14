@@ -1,35 +1,48 @@
 is.ratetable <- function(x, verbose=FALSE) {
+    datecheck <- function(x) 
+        inherits(x, c("Date", "POSIXt", "date", "chron"))
     att <- attributes(x)
     dlist <- c("dim", "dimnames", "cutpoints")
+    isDate <- sapply(att$cutpoints, datecheck)
+    dimid <- names(att$dimnames)
+    if (is.null(dimid)) dimid <- att$dimid
+
     if (!verbose) {
 	if (!inherits(x, 'ratetable')) return(FALSE)
 	if (any(is.na(match(dlist, names(att))))) return(FALSE)
         if (is.null(att$dimid)) att$dimid <- names(att$dimnames)
 	nd <- length(att$dim)
 	if (length(x) != prod(att$dim)) return(FALSE)
-        if (any(att$dimid == "")) return(FALSE)
+        if (is.null(dimid)) return(FALSE)
+        if (any(is.na(dimid) || dimid == "")) return(FALSE)
         
 	if (!(is.list(att$dimnames) && is.list(att$cutpoints)))
 		 return(FALSE)
 	if (length(att$dimnames)!=nd ||
 			 length(att$cutpoints)!=nd) return(FALSE)
         # One of 'factor' (old style table) or 'type' (new style) should exist
-        if (!is.null(att$factor)) {
+        if (!is.null(att$type)) {
+            if (length(att$type) != nd) return(FALSE)
+            if (any(is.na(match(att$type, 1:4)))) return(FALSE)
+            if (sum(att$type==4) > 1) return(FALSE)
+            if (any((att$type >2) != isDate)) return(FALSE)
+            fac <- ifelse(att$type==1, 1, 0)  # is a 'factor'
+        }
+       else if (!is.null(att$factor)) {
             fac <- as.numeric(att$factor)
             if (any(is.na(fac))) return(FALSE)
             if (any(fac <0)) return(FALSE)
             if (length(att$factor)!=nd ) return(FALSE)
-            # if any dates use Date cutpoints, all need to
-            #  don't give a code error if cutpoints is the wrong length
-            isDate <- sapply(att$cutpoints, function(x) inherits(x, "Date"))
-            if (length(att$cutpoints) == length(att$type) &&
-                any(isDate) && any(att$type >2 & !isDate)) return(FALSE)
-            }
+            if (sum(fac>1) >1) return(FALSE)  # more than 1 col marked as US year
+            if (any(fac==0 & isDate)) return(FALSE)
+        }
         else if (!is.null(att$type)) {
+            if (length(att$type) != nd) return(FALSE)
             if (any(is.na(match(att$type, 1:4)))) return(FALSE)
-            fac <- 1*(att$type==1)
-            if (length(fac) != nd) return(FALSE)
-            }
+            if (sum(att$type==4) > 1) return(FALSE)
+            if (any((att$type >2) != isDate)) return(FALSE)
+            fac <- ifelse(att$type==1, 1, 0)  # is a 'factor'
+        }
         else return(FALSE)
 
         if (length(att$dimid) != nd) return(FALSE)
@@ -74,27 +87,35 @@ is.ratetable <- function(x, verbose=FALSE) {
     if (length(att$cutpoints)!=nd) 
         msg <- c(msg, 'wrong length for cutpoints')
 
-    if (!is.null(att$factor)) {
-        fac <- as.numeric(att$factor)
-        if (any(is.na(fac))) msg <- c(msg, "illegal 'factor' level of NA")
-        if (any(fac <0)) msg <- c(msg, "illegal 'factor' attribute of <0")
-        if (length(att$factor)!=nd)
-            msg <- c(msg, 'wrong length for factor')
-        type <- 1*(fac==1) + 2*(fac==0) + 4*(fac>1)
-        }
-    else if (!is.null(att$type)) {
+    if (!is.null(att$type)) {
         if (any(is.na(match(att$type, 1:4))))
             msg <- c(msg, 'type attribute must be 1, 2, 3, or 4')
         type <- att$type
         if (length(type)!=nd)
             msg <- c(msg, 'wrong length for type attribute')
-        # if any dates use Date cutpoints, all need to
-        isDate <- sapply(att$cutpoints, function(x) inherits(x, "Date"))
-        if (length(att$type) == length(att$cutpoints) &&
-            any(isDate) && any(att$type >2 & !isDate))
-            msg <- c(msg, "all or none of the dates must have cutpoints of type Date")
+        else {
+            indx <- which(type > 2 & ! isDate)
+            if (length(indx) > 0)
+                msg <- c(msg, paste0("type[", indx, 
+                   "] is 3 or 4 but the cutpoint is not one of the date types"))
+            indx <- which(type <3 & isDate)
+            if (length(indx)>0) msg <- c(msg, paste0("type[", indx, 
+                            "] is numeric or factor but the cutpoint is a date"))
         }
-    else msg <- c(msg, "missing the 'type' attribute")
+        if (sum(type==4) >1)
+            msg <- c(msg, "two dimenesions idenitied as US ratetable years") 
+    }
+    else if (!is.null(att$factor)) {
+        fac <- as.numeric(att$factor)
+        if (any(is.na(fac))) msg <- c(msg, "illegal 'factor' attribute of NA")
+        if (any(fac <0)) msg <- c(msg, "illegal 'factor' attribute of <0")
+        if (length(att$factor)!=nd)
+            msg <- c(msg, 'wrong length for factor')
+        type <- 1*(fac==1) + 2*(fac==0) + 4*(fac>1)
+        if (sum(fac>1) >1)
+            msg <- c(msg, "two dimenesions idenitied as US ratetable years") 
+    }
+   else msg <- c(msg, "missing the 'type' attribute")
 
     for (i in 1:nd) {
 	n <- att$dim[i]

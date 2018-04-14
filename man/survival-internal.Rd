@@ -4,7 +4,6 @@
 \alias{as.matrix.ratetable}
 \alias{coxpenal.df}
 \alias{coxpenal.fit}
-\alias{is.na.ratetable2}
 \alias{is.na.coxph.penalty}
 \alias{match.ratetable}
 \alias{survfitCI}
@@ -23,7 +22,6 @@ survpenal.fit(x, y, weights, offset, init, controlvals, dist, scale = 0,
 survdiff.fit(y, x, strat, rho = 0)
 match.ratetable(R, ratetable)
 \method{as.matrix}{ratetable}(x, ...)
-\method{is.na}{ratetable2}(x)
 \method{is.na}{coxph.penalty}(x)
 coxpenal.df(hmat, hinv, fdiag, assign.list, ptype, nvar, pen1,
     pen2, sparse)

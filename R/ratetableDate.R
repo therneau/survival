@@ -13,10 +13,8 @@ ratetableDate <- function(x) {
 ratetableDate.Date <- function(x) 
     as.numeric(x - as.Date("1960/01/01"))
 
-ratetableDate.POSIXct <- function(x)
-    as.numeric(as.Date(x) - as.Date("1960/01/01"))
-
-ratetableDate.POSIXlt <- function(x)
+# POSIXt includes both POSIXlt and POSIXct
+ratetableDate.POSIXt <- function(x)
     as.numeric(as.Date(x) - as.Date("1960/01/01"))
 
 # Normally Splus
@@ -36,6 +34,6 @@ ratetableDate.chron <- function(x) {
 }
 ratetableDate.dates <- ratetableDate.chron
 
-# the routines that call this are responsible for a useful error message
-ratetableDate.default <- function(x) NULL 
+# leave other data types alone
+ratetableDate.default <- function(x) x 
 

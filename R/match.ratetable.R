@@ -8,11 +8,11 @@
 #
 match.ratetable <- function(R, ratetable) {
     datecheck <- function(x) 
-        inherits(x, c("Date", "POSIXt", "date", "chron")
+        inherits(x, c("Date", "POSIXt", "date", "chron"))
 
     if (!is.ratetable(ratetable)) stop("Invalid rate table")
     dimid <- names(dimnames(ratetable))
-    if (is.null(dimid)) attr(ratetable, 'dimid')  # older ratetable
+    if (is.null(dimid)) dimid <- attr(ratetable, 'dimid')  # older ratetable
     datecut <- sapply(attr(ratetable, "cutpoints"), datecheck)
 
     rtype  <- attr(ratetable, 'type') # 1= class, 2=cont, 3=date, 4=US yr
@@ -23,11 +23,19 @@ match.ratetable <- function(R, ratetable) {
     # is.ratetable has ensured that rtype agrees with datecut
 
     if (is.matrix(R)) {  
-        # not possible any more, but just in case
-        stop("internal error in match.ratetable, contact author")
+        # depricated: use of the ratetable function
+        attR <- attributes(R)
+        attributes(R) <- attR['dim']     #other attrs get in the way later
+        Rnames <- attR$dimnames[[2]]
+        isDate <- attR[["isDate"]]
+        levlist <- attR[['levlist']]
     }
-
-    Rnames <- names(R)
+    else {  # newer style is a dataframe
+        Rnames <- names(R)
+        levlist<- lapply(R, levels)
+        isDate <- sapply(R, datecheck)
+    }
+   
     ord <- match(dimid, Rnames)
     # This should have already been checked in pyears or survexp
     if (any(is.na(ord)))
@@ -38,9 +46,9 @@ match.ratetable <- function(R, ratetable) {
     if (any(duplicated(ord)))
         stop("A ratetable argument appears twice in the data")
     R <- R[,ord,drop=FALSE]  #put cols in same order as the ratetable
-    levlist<- lapply(R, levels)
-    isDate <- sapply(R, datecheck)
-
+    levlist<- levlist[ord]
+    isDate <- isDate[ord]
+ 
     # Now, go through the dimensions of the ratetable 1 by 1, and
     #  verify that the user's variable is compatable
     #  with the rate table's dimensions
@@ -49,7 +57,8 @@ match.ratetable <- function(R, ratetable) {
     if (any((rtype<3) & isDate)) {
         indx <- which(rtype<3 & isDate)
         stop(paste("Data has a date type variable, but the reference",
-                   "ratetable is not a date variable", dimid[indx]))
+                   "ratetable is not a date variable:", 
+                   paste(dimid[indx], collapse=" ")))
         }
     if (any((rtype>2) & !isDate)) {
         indx <- which(rtype>2 & !isDate)
@@ -57,6 +66,8 @@ match.ratetable <- function(R, ratetable) {
                     dimid[indx]))
         }
     for (i in (1:ncol(R))) {
+        if (rtype[i] > 2) R[,i] <- ratetableDate(R[,i])
+
 	if (length(levlist[[i]]) >0) {  #factor or character variable
 	    if (rtype[i]!=1) stop(paste("for this ratetable,", dimid[i],
 				     "must be a continuous variable"))
