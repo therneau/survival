@@ -11,14 +11,14 @@ ratetableDate <- function(x) {
 
 # This function places a fake "rtabledate" class on the object, for recognition
 rtfun <- function(x) {
-    y <- as.integer(x)
+    y <- as.vector(x)  # as.integer makes sense, but Dates are double
     class(y) <- "rtabledate"
     y
 }
     
 # Normally used in R
 ratetableDate.Date <- function(x) 
-    rfun(x - as.Date("1960/01/01"))
+    rtfun(x - as.Date("1960/01/01"))
 
 # POSIXt includes both POSIXlt and POSIXct
 ratetableDate.POSIXt <- function(x)
