@@ -9,20 +9,27 @@ ratetableDate <- function(x) {
     UseMethod("ratetableDate", x)
     }
 
+# This function places a fake "rtabledate" class on the object, for recognition
+rtfun <- function(x) {
+    y <- as.integer(x)
+    class(y) <- "rtabledate"
+    y
+}
+    
 # Normally used in R
 ratetableDate.Date <- function(x) 
-    as.numeric(x - as.Date("1960/01/01"))
+    rfun(x - as.Date("1960/01/01"))
 
 # POSIXt includes both POSIXlt and POSIXct
 ratetableDate.POSIXt <- function(x)
-    as.numeric(as.Date(x) - as.Date("1960/01/01"))
+    rtfun(as.Date(x) - as.Date("1960/01/01"))
 
 # Normally Splus
 #ratetableDate.timeDate <- function(x)
-#    as.numeric(x - timeDate('1/1/1960'))
+#    rtfun(x - timeDate('1/1/1960'))
 
 # Therneau's old "date" class (will someday wither away?)
-ratetableDate.date <- function(x)  as.numeric(x)
+ratetableDate.date <- function(x)  rtfun(x)
 
 # David James's old "chron" class (will someday wither away)
 # Support it without using the chron library, which may not be loaded.
@@ -30,7 +37,7 @@ ratetableDate.chron <- function(x) {
     origin <- attr(x, "origin")
     x<- as.numeric(x) + as.Date(paste(origin["year"], origin["month"],
                                           origin["day"], sep='/'))
-    ratetableDate(x)
+    rtfun(x)
 }
 ratetableDate.dates <- ratetableDate.chron
 

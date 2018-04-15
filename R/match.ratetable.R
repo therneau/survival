@@ -8,7 +8,7 @@
 #
 match.ratetable <- function(R, ratetable) {
     datecheck <- function(x) 
-        inherits(x, c("Date", "POSIXt", "date", "chron"))
+        inherits(x, c("Date", "POSIXt", "date", "chron", "rtabledate"))
 
     if (!is.ratetable(ratetable)) stop("Invalid rate table")
     dimid <- names(dimnames(ratetable))
@@ -94,7 +94,8 @@ match.ratetable <- function(R, ratetable) {
     R <- as.matrix(R)
 
     summ <- attr(ratetable, 'summary')
+    cutpoints <- lapply(attr(ratetable, 'cutpoints'), ratetableDate)
     if (is.null(summ))
-	 list(R= R)
-    else list(R= R, summ=summ(R))
+	 list(R= R, cutpoints = cutpoints)
+    else list(R= R, cutpoints = cutpoints, summ=summ(R))
     }
