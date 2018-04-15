@@ -34,14 +34,7 @@ is.ratetable <- function(x, verbose=FALSE) {
             if (any(fac <0)) return(FALSE)
             if (length(att$factor)!=nd ) return(FALSE)
             if (sum(fac>1) >1) return(FALSE)  # more than 1 col marked as US year
-            if (any(fac==0 & isDate)) return(FALSE)
-        }
-        else if (!is.null(att$type)) {
-            if (length(att$type) != nd) return(FALSE)
-            if (any(is.na(match(att$type, 1:4)))) return(FALSE)
-            if (sum(att$type==4) > 1) return(FALSE)
-            if (any((att$type >2) != isDate)) return(FALSE)
-            fac <- ifelse(att$type==1, 1, 0)  # is a 'factor'
+            if (any(fac==1 & isDate)) return(FALSE)
         }
         else return(FALSE)
 

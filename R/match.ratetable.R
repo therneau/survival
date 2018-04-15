@@ -62,8 +62,9 @@ match.ratetable <- function(R, ratetable) {
         }
     if (any((rtype>2) & !isDate)) {
         indx <- which(rtype>2 & !isDate)
-        stop(paste("the reference ratetable expects a date for variable",
-                    dimid[indx]))
+#  currently relsurv fails with this check
+#        stop(paste("the reference ratetable expects a date for variable",
+#                    dimid[indx]))
         }
     for (i in (1:ncol(R))) {
         if (rtype[i] > 2) R[,i] <- ratetableDate(R[,i])
