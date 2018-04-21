@@ -1,10 +1,10 @@
 \name{mgus2}
 \alias{mgus2}
 \docType{data}
-\title{Monoclonal gammapothy data}
+\title{Monoclonal gammopathy data}
 
 \description{Natural history of 1341 sequential patients with monoclonal
-  gammapothy of undetermined significance (MGUS).
+  gammopathy of undetermined significance (MGUS).
 }
 \usage{data("mgus2")}
 \format{

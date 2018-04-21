@@ -2,7 +2,7 @@
 \docType{data}
 \alias{cgd}
 \alias{cgd.raw}
-\title{Chronic Granulotomous Disease data}
+\title{Chronic Granulotamous Disease data}
 
 \description{Data are from a placebo controlled trial of gamma
   interferon in chronic granulotomous disease (CGD).

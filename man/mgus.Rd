@@ -2,9 +2,9 @@
 \alias{mgus}
 \alias{mgus1}
 \docType{data}
-\title{Monoclonal gammapothy data}
+\title{Monoclonal gammopathy data}
 \description{
-Natural history of 241 subjects with monoclonal gammapothy of
+Natural history of 241 subjects with monoclonal gammopathy of
 undetermined significance (MGUS).
 }
 \usage{
@@ -48,7 +48,7 @@ estimated to be about \eqn{10^6} different immunoglobulins in the circulation
 at any one time.  When a patient has a plasma cell malignancy the
 distribution will become dominated by a single isotype, the product of
 the malignant clone, visible as a spike on a serum protein
-electrophoresis. Monoclonal gammapothy of undertermined significance
+electrophoresis. Monoclonal gammopathy of undertermined significance
 (MGUS) is the presence of such a spike, but in a patient with no
 evidence of overt malignancy.  This data set of 241 sequential subjects
 at Mayo Clinic was the groundbreaking study defining the natural history
