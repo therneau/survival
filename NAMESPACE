@@ -147,3 +147,7 @@ S3method(yates_setup, glm)
 S3method(yates_setup, coxph)
 S3method('[', ratetable2)
 S3method(is.na,ratetable2)
+
+if(getRversion() >= "3.6.0")
+    S3method(xtfrm, Surv)
+

@@ -23,3 +23,30 @@ mydata <- tmerge(mydata, tests, id=idd, fgrp= tdc(date, ff),
 
 all.equal(mydata$fgrp, 
           factor(c(3,3,2,2,1,2,3,2,1,3,2), labels=c("d", "e", "new")))
+
+
+# Multiple chained calls.  
+newcgd <- tmerge(data1=cgd0[, 1:13], data2=cgd0, id=id, tstop=futime)
+newcgd <- tmerge(newcgd, cgd0, id=id, infect = event(etime1)) 
+newcgd <- tmerge(newcgd, cgd0, id=id, infect = event(etime2)) 
+newcgd <- tmerge(newcgd, cgd0, id=id, infect = event(etime3)) 
+newcgd <- tmerge(newcgd, cgd0, id=id, infect = event(etime4)) 
+newcgd <- tmerge(newcgd, cgd0, id=id, infect = event(etime5)) 
+newcgd <- tmerge(newcgd, cgd0, id=id, infect = event(etime6)) 
+newcgd <- tmerge(newcgd, cgd0, id=id, infect = event(etime7)) 
+newcgd <- tmerge(newcgd, newcgd, id, enum=cumtdc(tstart))
+all.equal(dim(newcgd), c(203,17))
+all.equal(as.vector(table(newcgd$infect)), c(127, 76))
+
+tcount <- attr(newcgd, "tcount")
+all(tcount[,1:3] ==0)  # no early, late, or gap
+
+# table with number of subjects who have etime1 < futime (row 1)
+#  and  etime1==futime (row 2)
+# the table command ignores the missings
+temp <- subset(cgd0, select=etime1:etime7)
+counts <- sapply(temp, function(x) 
+    as.vector(table(factor(x>= cgd0$futime, c(FALSE, TRUE)))))
+
+all(tcount[1:7, c("within", "trailing")] == t(counts))
+

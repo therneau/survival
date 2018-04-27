@@ -1,5 +1,13 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 2.42-4}{
+  \itemize{
+    \item Undo a bug that was introduced in tmerge in 2.42-3; an essential
+    line got commented out with the result that if sequential tmerge calls
+    modify the same variable only the final change was retained.  Add a
+    case to the test suite to prevent this in the future.
+}}
+
 \section{Changes in version 2.42-3}{
   \itemize{
     \item Remove the coxph warning "X matrix deemed to be singular".
