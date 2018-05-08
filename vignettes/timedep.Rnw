@@ -920,9 +920,6 @@ average score for the lower half of the subjects and that for the upper half,
 respectively, and are plotted over the top of the Kaplan-Meier
 curves for those below and above the median.
 
-This is a good point to insert a caution about time-dependent covariates and
-survival curves.
-
 
 \subsection{Continuous time-dependent coefficients}
 If $\beta(t)$ is assumed to have a simple functional form we can 
@@ -984,8 +981,8 @@ This same coding dichotomy exists in SAS phreg, by the way.  Adding
 the time-fixed (incorrect) variable,
 while a programming statement within phreg that 
 uses \code{time} as a variable will generate time-dependent objects.
-The error is less likely there because phreg's model statement has no
-equivalent to the \code{I()} function, i.e., you cannot simply write
+The error is less likely there because phreg's model statement is less
+flexible than R, i.e., you cannot simply write
 ``log(time)'' on the right hand side.
 
 The use of programming statements to create a yes/no variable deserves
@@ -1023,7 +1020,6 @@ in fit2 it changes before the event.  The second is incorrect.
 Stated in the gambling context, all bets must be placed
 \emph{before} the roulette ball lands.
 
-
 When a data set is expanded into a start, stop format using the
 \code{tmerge} function ties are dealt with correctly.
 <<ties2>>=
@@ -1056,7 +1052,7 @@ However, if the effect of age on risk is \emph{non-linear}, this
 cancellation does not occur.
 
 Since age changes continuously, we would in theory need a very large
-data set to completely capture the effect, an interval
+data set to completely capture the effect, one interval
 per day to match the usual resolution for death times.
 In practice this level of resolution is not necessary; though we all
 grow older, risk does not increase so rapidly that we need to know

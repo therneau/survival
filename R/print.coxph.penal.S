@@ -113,8 +113,10 @@ print.coxph.penal <-  function(x, terms=FALSE, maxlabel=25,
         format.pval(pchisq(logtest, df, lower.tail=FALSE), digits=pdig),
         sep="")
     omit <- x$na.action
+    cat("n=", x$n)
+    if (!is.null(x$nevent)) cat(", number of events=", x$nevent, "\n")
+    else cat("\n")
     if (length(omit))
-	cat("\n  n=", x$n, " (", naprint(omit), ")\n", sep="")
-    else cat("  n=", x$n, "\n")
-    invisible()
+	cat("\   (", naprint(omit), ")\n", sep="")
+    invisible(x)
     }
