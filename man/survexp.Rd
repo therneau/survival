@@ -170,7 +170,7 @@ Background mortality in clinical survival studies.
 }
 \seealso{
   \code{\link{survfit}}, \code{\link{pyears}},  \code{\link{survexp.us}},
-  \code{\link{survexp.fit}}.   
+  \code{\link{ratetable}, \code{\link{survexp.fit}}.   
 }
 \examples{
 # 
