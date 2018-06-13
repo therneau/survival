@@ -25,17 +25,20 @@ same state at the time of censoring.
 The literature refers to these as ``cumulative incidence'' curves,
 which is confusing since P(state) is not the integral of incidence,
 but the routine name survfitCI endures.
-The cannonical call is
+The cannonical call is one of
 \begin{verbatim}
-  fit <- survfit(Surv(time, status, type='mstate') ~ sex, data=mine)
+  fit <- survfit(Surv(time, status) ~ sex, data=mine)
+  fit <- survfit(Surv(time1, time2, status) ~ sex, data=mine)
+
 \end{verbatim}
- Optionally, there can be an id statement
+where \code{status} is a factor variable.
+Optionally, there can be an id statement
 or cluster term to indicate a data set with multiple transitions per subject.
-A multi-state survival fit has a status variable with multiple levels,
+For multi-state survival the status variable has multiple levels,
 the first of which by default is censoring, and others indicating
 the type of transition that occured.
 The result will be a matrix of survival curves, one for each event type.
-In no initial state is specified then subjects are assumed
+If no initial state is specified then subjects are assumed
 to start in a "null" state, which gets listed last and by default will
 not be printed or plotted.  (But it is present, with a name of `');
   
@@ -123,12 +126,10 @@ survfitCI <- function(X, Y, weights, id, istate,
     if (length(istate) !=n) stop ("wrong length for istate")
 
     # The states of the status variable are the first columns in the output
+    #  any extra initial states are later in the list
     states <- unique(c(1:nstate, istate))
 @
  
-To make it easier to keep track of things in the computational kernel that does
-all the real work, we ensure that any ending states (ones you can reach)
-are 1, 2, 3 \ldots.
 The status vector will have values of 0 for censored.
 <<survfitCI>>=
     curves <- vector("list", ncurve)
@@ -259,11 +260,8 @@ This leads to indices of [[atrisk]] for the set of rows in the risk set but
 an event this time and [[dindx]] for the corresponding subjects.
 
 The setup for (start, stop] data is a bit more work.  
-We want to ensure that a given subject remains in the same group,
-that they have a continuous period of observation, and that they don't
-transfer from a state to itself.
-The last is not strictly an error, so only warn; it is usually not what was
-intended.
+We want to ensure that a given subject remains in the same group and that
+they have a continuous period of observation.
 
 <<survfitCI-idcheck>>=
 if (missing(id) || is.null(id))
@@ -284,32 +282,56 @@ if (any(same & Y[indx1,2] != Y[indx2,1])) {
 }
 if (any(Y[,1] == Y[,2])) 
     stop("cannot have start time == stop time")
-
-if (any(same & (Y[indx1,3] == Y[indx2,3]) & (Y[indx1,3] !=0))) {
-    who <-  min(which(same & (Y[indx1,3] == Y[indx2,3]) & (Y[indx1,3] !=0)))
-    warning("subject changes to the same state, id ", id[indx1[who]])
-}
-
-# Make the table of transitions
-nst <- length(state.names)
-first <- indx[!duplicated(id[indx])]
-transitions <- table(factor(istate[first], 1:nst), 
-                     factor(Y[first,3], 1:nstate))
-if (any(same))
-    transitions <- transitions + table(factor(Y[indx1[same],3], 1:nst),
-                                       factor(Y[indx2[same],3], 1:nstate))
-dimnames(transitions) = list(from=state.names, to=state.names[1:nstate])
 @ 
 
-<<survfitCI-startstop>>=
+If the input data was the result of a tmerge call, say, it might have a
+lot of extra 'censored' rows.  For instance a subject whose state pattern
+is (0, 5, 1), (5,10, 2), i.e., a transition to state 1 at day 5 and state 2
+on day 10 might input as (0,2,0), (2,5,1), (5,6,0), (6,8,0), (8,10,2)
+instead.  
+These extra censors mess up the transitions table, and they also cause an
+unnecessary row of output on days 2, 6, and 8.  
+Remove these before going further.  
+But before that up the istate variable: we only want to pay attention to
+the value at the very first observation for a subject and will replicate
+that to all others.
+
+<<survfitCI-idcheck>>=
 # We only want to pay attention to the istate variable for the very first
 #  observation of any given subject, but the program logic does better with
 #  a full one.  So construct one that will do this
-indx <- order(Y[,2])
+indx <- order(id, Y[,2])
 uid <- unique(id)
 temp <- (istate[indx])[match(uid, id[indx])]  #first istate for each subject
 istate <- temp[match(id, uid)]  #replicate it to full length
 
+# extra censors
+last <- !duplicated(id[indx], fromLast=TRUE)
+extra <- (Y[indx,3]==0 & !last)
+if (any(extra)) {
+    extra <- which(extra)
+    Y <- cbind(Y[-(1+e2),1], Y[-e2,2])
+    status <- status[-e2]
+    X <- X[-e2]
+    id <- id[-e2]
+    istate <- istate[-e2]
+    weights <- weights[-e2]
+    indx <- order(id, Y[,2])
+}
+    
+# Make the table of transitions
+nst <- length(state.names)
+first <- (!duplicated(id[indx]))
+last  <- (!duplicated(id[indx], fromLast=TRUE))
+transitions <- table(factor(istate[first], 1:nst), 
+                     factor(status[first], 1:nstate))
+if (any(!last))
+    transitions <- transitions + table(factor(status[indx[!last]], 1:nst),
+                                       factor(status[indx[!first]], 1:nstate))
+dimnames(transitions) = list(from=state.names, to=state.names[1:nstate])
+@ 
+
+<<survfitCI-startstop>>=
 # Now to work
 for (i in levels(X)) {
     indx <- which(X==i)

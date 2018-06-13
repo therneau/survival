@@ -73,7 +73,7 @@ Description of the rate tables used by expected survival routines.
     \item{dimid}{optional attribute containing the names of the
       dimnames. If the dimnames list itself has names, this attribute will
       be ignored.}
-}
+}}
 \seealso{\code{\link{survexp}}, \code{\link{pyears}},
   \code{\link{survexp.us}}}
 \keyword{survival}

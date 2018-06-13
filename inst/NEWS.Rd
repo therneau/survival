@@ -5,7 +5,15 @@
     \item Undo a bug that was introduced in tmerge in 2.42-3; an essential
     line got commented out with the result that if sequential tmerge calls
     modify the same variable only the final change was retained.  Add a
-    case to the test suite to prevent this in the future.
+    check to the test suite to prevent this in the future.
+
+    \item Improve multi-state survfit when the input data has extra
+    censored rows, e.g., the result of survSplit where a subject's
+    (time1, time2, status) set was (0,2,1), (2,5,0), (5,8,2) for a
+    subject who transitions to state 1 at time 2 and state 2 at time 8.
+    Formerly the transitions table in the output would be incorrect for
+    this case, and the life table would get an extra "censoring" line at
+    time 5.  The estimated P(state) was correct, however.
 }}
 
 \section{Changes in version 2.42-3}{

@@ -41,7 +41,9 @@
    The \code{survexp.us} rate table contains daily hazard rates, the age
    cutpoints are in days, and the calendar year cutpoints are a Date.
 }
-\seealso{\code{\link{ratetable}}, \code{\link{survexp}}, \code{\link{pyears}}
+\seealso{\code{\link{ratetable}}, \code{\link{survexp}},
+  \code{\link{pyears}}
+  }
 \examples{
 survexp.uswhite <- survexp.usr[,,"white",]
 }
