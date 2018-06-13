@@ -1,27 +1,26 @@
 \subsection{Concordance}
- The concordance statistic is gaining popularity as a measure of goodness-of-fit
+ The concordance statistic is the most a measure of goodness-of-fit
 in survival models.  
-In general let $y$ and $\hat y$ be observed and predicted data values.
-A pair of observations $i$, $j$ is considered condordant if either
-$y_i > y_j, \hat y_i > \hat y_j$ or $y_i < y_j, \hat y_i < \hat y_j$.
-For a Cox model remember that the predicted survival $hat y$ is longer if
+In general let $y_i$ and $x_i$ be observed and predicted data values.
+A pair of obervations $i$, $j$ is considered condordant if either
+$y_i > y_j, x_i > x_j$ or $y_i < y_j, x_i < x_j$.
+For a Cox model remember that the predicted survival $\hat y$ is longer if
 the risk score $X\beta$ is lower.
 The concordance $C$ is the fraction of concordant pairs.
 
-One wrinkle is what to do with ties in either $y$ or $\hat y$.  Such pairs
+One wrinkle is what to do with ties in either $y$ or $x$.  Such pairs
 can be ignored in the count (treated as incomparable), treated as discordant,
 or given a score of 1/2.
 \begin{itemize}
   \item Kendall's $\tau$-a scores ties as 0.
   \item Kendall's $\tau$-b and the Goodman-Kruskal $\gamma$ ignore ties in 
-    either $y$ or $\hat y$.
-  \item Somers' $d$ treats ties in $y$ as incomparable, pairs that are not
-    ties in $y$ but are tied in $\hat y$ score as 1/2.
+    either $y$ or $x$.
+  \item Somers' $d$ treats ties in $y$ as incomparable, pairs that are tied
+    in $x$ (but not $y$) score as 1/2.  The AUC from logistic regression is
+    equal to Somers' $d$.
 \end{itemize}
 All three of the above range from -1 to 1, while $C$ ranges from 0 to 1;
-$C = (\tau +1)/2$.  
-For logistic regression $C$ is computed using the Somers' choices, this leads
-to the AUC, and this will be the default for the concordance measure.
+$C = (d +1)/2$.  
 For survival data any pairs which cannot be ranked with certainty are
 considered incomparable.
 For instance $s_i$ is censored at time 10 and $s_j$ is an event (or censor) 
@@ -37,18 +36,239 @@ The default concordance is
 based on the AUC definition, but all 4 values are reported back so that a user
 can recreate the others if desired.
 
-The primary compuational questions is how to do this efficiently, i.e., better
-that the naive $O(n^2)$ algorithm that loops across all $n(n-1)/2$ 
+Here is the main routine.
+<<concordance>>=
+concordance <- function(x, ...) 
+    UseMethod("concordance")
+
+concordance.formula <- function(formula, data,
+                                weights, subset, na.action,
+                                ymin=NULL, ymax=NULL, 
+                                timewt=c("S", "n", "S/G", "n/G", "n/G2"),
+                                influence=FALSE) {
+    Call <- match.call()  # save a copy of of the call, as documentation
+    timewt <- match.arg(timewt)
+    
+    index <- match(c("formula", "data", "weights", "subset", "na.action", "id"),
+                   names(Call), nomatch=0)
+    temp <- Call[c(1, index)]
+    temp[[1L]] <-  quote(stats::model.frame)
+    special <- c("strata", "cluster")
+    temp$formula <- if(missing(data)) terms(formula, special)
+                    else              terms(formula, special, data=data)
+    mf <- eval(temp, parent.frame())  # model frame
+    if (nrow(mf) ==0) stop("No (non-missing) observations")
+    Terms <- terms(mf)
+
+    Y <- model.extract(mf, "response")
+    if (!inherits(Y, "Surv")) {
+        if (is.numeric(Y) && is.vector(Y))  Y <- Surv(Y)
+        else stop("left hand side of the formula  must be a numeric vector or a surival")
+    }
+    n <- nrow(Y)
+
+    wt <- model.extract(m, 'weights')
+    offset<- attr(Terms, "offset")
+    if (length(offset)>0) stop("Offset terms not allowed")
+
+    stemp <- untangle.specials(Terms, 'strata')
+    if (length(stemp$vars)) {
+	if (length(stemp$vars)==1) strat <- m[[stemp$vars]]
+	else strat <- strata(m[,stemp$vars], shortlabel=TRUE)
+        Terms <- Terms[-stemp$terms]
+    }
+    else strat <- NULL
+    
+    cluster<- attr(Terms, "specials")$cluster
+    if (length(cluster)) {
+        tempc <- untangle.specials(Terms, 'cluster', 1:10)
+        ord <- attr(Terms, 'order')[tempc$terms]
+        if (any(ord>1)) stop ("Cluster can not be used in an interaction")
+        cluster <- strata(mf[,tempc$vars], shortlabel=TRUE)  #allow multiples
+        Terms <- Terms[-tempc$terms]  # toss it away
+    }
+                                            
+                                            
+    x <- model.matrix(Terms, m)[,-1, drop=FALSE]  #remove the intercept
+    if (ncol(x) > 1) stop("Only one predictor variable allowed")
+
+    if (!is.null(ymin) & (length(ymin)> 1 || !is.numeric(ymin)))
+        stop("ymin must be a single number")
+    if (!is.null(ymax) & (length(ymax)> 1 || !is.numeric(ymax)))
+        stop("ymax must be a single number")
+    
+    count <- concordance.fit(Y, x, strat, wt, ymin, ymax, timewt, influence)
+    if (is.null(strat)) {
+        concordance <- (count[1] + count[3]/2)/sum(count[1:3])
+        std.err <- count[5]/(2* sum(count[1:3]))
+        }
+    else {
+        temp <- colSums(count)
+        concordance <- (temp[1] + temp[3]/2)/ sum(temp[1:3])
+        std.err <- temp[5]/(2*sum(temp[1:3]))
+        }
+
+    fit <- list(concordance= concordance, stats=count, n=n, 
+                std.err=std.err, call=Call)
+    na.action <- attr(m, "na.action")
+    if (length(na.action)) fit$na.action <- na.action
+
+    class(fit) <- 'concordance'
+    fit
+}
+
+print.concordance <- function(x, ...) {
+    if(!is.null(cl <- x$call)) {
+        cat("Call:\n")
+        dput(cl)
+        cat("\n")
+        }
+    omit <- x$na.action
+    if(length(omit))
+        cat("  n=", x$n, " (", naprint(omit), ")\n", sep = "")
+    else cat("  n=", x$n, "\n")
+    cat("Concordance= ", format(x$concordance), " se= ", format(x$std.err),
+        '\n', sep='')
+    print(x$stats)
+
+    invisible(x)
+    }
+@ 
+
+The concordance.fit function is broken out separately, since it is called
+by the \code{coxph} routine.
+If $y$ is not a survival quantity, then all of the options for the
+\code{timewt} parameter lead to the same result, so use the simplest option.
+
+<<concordancefit>>=
+concordance.fit <- function(y, x, strata, weight, ymin, ymax, timewt,
+                            influence) {
+    # The coxph program may occassionally fail, and this will kill the C
+    #  routine below
+    if (any(is.na(x)) || any(is.na(y))) return(NULL)
+
+    # these should only occur if something outside survival calls this routine
+    n <- length(y)
+    if (length(x) != n) stop("x and y are not the same length")
+    if (missing(strata) || is.null(strata)) strata <- rep(0L, n)
+    else if (length(strata) != n)
+        stop("y and strata are not the same length")
+    if (length(weight) != n) stop("y and weight are not the same length")
+
+    # sort y and x, and get the weights
+    if (!is.Surv(y)) {
+        if (any(diff(order(strata, y)) < 1)) {
+            ord <- order(strata, y)  # y within strata
+            y <- y[ord]
+            x <- x[ord]
+            wt <- wt[ord]
+            strata <- strata[ord]
+            sfit <- survfitKM(strata, Surv(y), wt, se.fit=FALSE) 
+            timewt <- "S"
+        }
+    }
+    else {
+        sfit <- survfitKM(strata, y, wt, se.fit=FALSE)
+        if (timewt %in% c("S/G", "n/G", "n/G2")) {
+            y2 <-y
+            y2[,ncol(y)] <- 1- y[,ncol(y)]
+            gfit <- survfitKM(strata, y2, wt, se.fit=FALSE)
+        }
+        if (attr(stime, "type") %in% c("counting", "mcounting")) {
+            sort.stop <- order(strata, -stime[,2], stime[,3])
+            sort.start <- order(strata, -stime[,1])
+        } else {
+            ord <- order(strata, y[,1], -y[,2])  # death before censoring
+            y <- y[ord,]
+            x <- x[ord]
+            wt <- wt[ord]
+            strata <- strata[ord]
+        }
+    }
+     
+    # weights involve S(t) and G(t-), so we need to interpolate G per
+    #  stratum
+    nstrat <- max(stratum)
+    if (timewt %in% c("S/G", "n/G", "n/G2")) {
+        gwt <- unlist(lapply(1:nstrat, function(i) {
+            stemp <- sfit[i]
+            gtemp <- gfit[i]
+            etime <- stemp$time[stemp$nevent>0]
+            e2 <- etime - min(diff(etime))/2
+            summary(gfit[i], times=e2, extend=TRUE)$surv
+        }))
+    }
+    etime <- sfit$time[sfit$nevent>0]
+    swt <- sfit$surv[sfit$nevent>0]
+    nwt <- (sfit$nrisk- sfit$nevent)[sfit$nevent>0]
+    twt <- switch(timewt) {
+        "S" = swt
+        "S/G" = swt/gwt,
+        "n" = nwt,
+        "n/G"= nwt/gwt,
+        "n/G2" = nwt/gwt^2
+    }
+    
+    # match each score to the unique set (to deal with ties)
+    uindex <- lapply(1:nstrat, function(i) {
+        temp <- x[strata==i]
+        match(temp, sort(unique(temp)))})
+    nindx <- sapply(uindex, max)   # number of unique values
+
+    # create the indexing vectors
+    <<btree>>
+    temp <- btree(max(nindx))
+    parent <- as.integer(temp/2L)  # node number of parent
+    rchild <- as.integer(temp %%2) # is this node the right child? 
+                  
+    parent <- unlist(lapply(unidex, function(i) parent[i]))
+    rchild <- unlist(lapply(unidex, function(i) rchild[i]))             
+  
+    if (ncol(y) ==3) 
+        counts <- .Call(Cconcordance3, stime, x, wts,
+                        parent, child)
+    else counts <- .Call(Ccondordanc4, stime, x, wts, sort.start, sort.stop,
+                         parent, child)
+    counts
+}
+@ 
+
+The C code looks a lot like a Cox model: walk forward through time, keep
+track of the risk sets, and add something to the totals at each death.
+What needs to be summed is the rank of the event subject's $x$ value, as
+compared to the value for all others at risk at this time point.
+For notational simplicity let $Y_j(t_i)$ be an indicator that subject $j$
+is at risk at event time $t_i$, and $Y^*_j(t_i)$ the more restrictive one that
+subject $j$ is both at risk and not a tied event time.
+The values we want at time $t_i$ are
+\begin{align}
+  n_i &=  \sum_j w_j Y^*_j(t_i) \nonumber
+  C_i &= (v_i/n_i) \delta_i w_i \sum_j w_j Y^*_j(t_i) \left[I(x_i < x_j) 
+    \label{C} \\
+  D_i &= (v_i/n_i) \delta_i w_i \sum_j w_j Y^*_j(t_i) \left[I(x_i > x_j) 
+     \label{D} \\
+  T_i &= (v_i/n_i) \delta_i w_i \sum_j w_j Y^*_j(t_i) \left[I(x_i = x_j) 
+     \label{T}  \\
+  m_i &= \delta_i \sum_j w_j (Y_j - Y^*_j) \nonumber
+\end{align*} 
+
+In the above $n$ is the number of comparable values at event time $t_i$ and
+$m$ is the number of exact ties, $(v_i/n_i)$ is treated as a fixed 
+time-dependent weight (with no censoring it is a constant).
+$C$, $D$, and $T$ are the number of concordant, discordant, and tied
+pairs, respectively.
+
+The primary compuational question is how to do this efficiently, i.e., better
+than a naive algorithm that loops across all $n(n-1)/2$ 
 possible pairs.
 There are two key ideas.
 \begin{enumerate}
 \item Rearrange the counting so that we do it by death times.
   For each death we count the number of other subjects in the risk set whose
   score is higher, lower, or tied and add it into the totals.
-This also neatly solves the question of time-dependent covariates.
-\item To count the number higher and lower we need to rank the subjects
-  in the risk set by their scores $r_i$.  This can be done in $O(\log n)$
-  time if the data is kept in a binary tree.
+This neatly solves the question of time-dependent covariates.
+\item Counting the number with higher, lower, and tied $x$ can be don in 
+   $O(\log_2 n)$ time if the $x$ data is kept in a binary tree.
 \end{enumerate}
 
 \begin{figure}
@@ -62,125 +282,108 @@ Figure  \ref{treefig} shows a balanced binary tree containing
 have a smaller value than the parent, the right child and all its
 descendents have a larger value.
 Each node in figure \ref{treefig} is also annotated with the total weight
-of observations in that node and the weight for all its children 
+of observations in that node and the weight for all its left and right children 
 (not shown on graph).  
 Assume that the tree shown represents all of the subjects still alive at the
 time a particular subject ``Smith'' expires, and that Smith has the risk score
-2.1.  The concordant pairs are all of those with a risk score greater than
-2.1, which can be found by traversing the tree from the top down,
-adding the (parent - child) value each time we branch left (5-3 at the 2.6
-node),
-with a last addition of the right hand child when we 
-find the node with Smith's value (1).      %'
-There are 3 concordant and 12-3=9 discordant pairs.
+of 19 in the tree.
+The concordant pairs are those with a risk score $>19$, i.e., both $\hat y$
+and $y$ are larger, discordant are $<19$, and we have no ties.
+The totals can be found by
+\begin{enumerate}
+  \item Initialize the counts for discordant, concordant and tied to the
+    values from the left children, right children, and ties at this node,
+    respectively, which will be $(C,D,T) = (1,1,0)$.
+  \item Walk up the tree, and at each step add the (parent + left child) or
+    (parent + right child) to either D or C, depending on what part of the
+    tree has not yet been totaled.  
+    At the next node (8) $D= D+4$, and at the top node $C=C + 6$.
+\end{itemize}
+
+There are 5 concordant and 7 discordant pairs.
 This takes a little less than $\log_2(n)$ steps on average, as compared to an
 average of $n/2$ for the naive method.  The difference can matter when $n$ is
 large since this traversal must be done for each event.
-(In the code below we start at Smith's node and walk up.)             %'
 
 The classic way to store trees is as a linked list.  There are several 
 algorithms for adding and subtracting nodes from a tree while maintaining
 the balance (red-black trees, AA trees, etc) but we take a different 
 approach.  Since we need to deal with case weights in the model and we
 know all the risk score at the outset, the full set of risk scores is
-organised into a tree at the beginning and node counts are changed to zero
-as observations are removed.  
+organised into a tree at the beginning, updating the sums of weights at
+each node as observations are added or removed from the risk set.
 
-If we index the nodes of the tree as 1 for the top, 2--3 for the next 
+If we internally index the nodes of the tree as 1 for the top, 
+2--3 for the next 
 horizontal row, 4--7 for the next, \ldots then the parent-child 
 traversal becomes particularly easy.
 The parent of node $i$ is $i/2$ (integer arithmetic) and the children of
-node $i$ are $2i$ and $2i +1$.  In C code the indices start at 0 and the
-children are $2i+1$ and $2i+2$ and the parent is $(i-1)/2$.  The following
-bit of code returns the indices of a sorted list when placed into such a
-tree.  
-The basic idea is that the rows of the tree start at indices 1, 2, 4, \ldots.
-For the above tree, the last row will contains the 1st, 3rd, \ldots, 11th
-smallest ranks.  The next row above contains every other value of the
-ranks \emph{not yet assigned}, and etc to the top of the tree.  There is
-some care to make sure the result is an integer.
+node $i$ are $2i$ and $2i +1$.  In C code the indices start at 0 of course.
+The following bit of code arranges data into such a tree.
 <<btree>>=
-btree <- function(n) {
-    ranks <- rep(0L, n)  #will be overwritten
-    yet.to.do <- 1:n
-    depth <- floor(logb(n,2))
-    start <- as.integer(2^depth)
-    lastrow.length <- 1+n-start
-    indx <- seq(1L, by=2L, length= lastrow.length)
-    ranks[yet.to.do[indx]] <- start + 0:(length(indx)-1L)
-    yet.to.do <- yet.to.do[-indx]
-
-    while (start >1) {
-        start <- as.integer(start/2)
-        indx <- seq(1L, by=2L, length=start)
-        ranks[yet.to.do[indx]] <- start + 0:(start-1L)
-        yet.to.do <- yet.to.do[-indx]
+btree <- function(n, id=1L) {
+    if (n==1) id
+    else if (n==2) c(2L*id, id)
+    else if (n==3) c(2L*id, id, 1L*id + 2L)
+    else {
+        split <- ceiling(n/2)
+        c(btree(split-1, 2L*id), id, btree(n-split, 1L + 2L*id))
     }
-    ranks
 }
 @ 
-Referring again to figure \ref{treefig}, [[btree(13)]] yields the vector
-[[8  4  9  2 10  5 11  1 12  6 13  3  7]] meaning that the smallest element
-will be in position 8 of the tree, the next smallest in position 4, etc.
 
-Here is a shorter recursive version.
-It knows the form of trees with 1, 2, or 3 nodes; and builds the
-others from them.  
-The maximum depth of recursion is $\log_2(n) -1$.
-It is more clever but a bit slower.  (Not that it matters as both
-take less than 5 seconds for a million elements.)
-<<btree2>>=
-btree <- function(n) {
-   tfun <- function(n, id, power) {
-       if (n==1) id
-       else if (n==2) c(2L *id, id)
-       else if (n==3) c(2L*id, id, 2L*id +1L)
-       else {
-           nleft <- if (n== power*2) power  else min(power-1, n-power/2)
-           c(tfun(nleft, 2L *id, power/2), id,
-             tfun(n-(nleft+1), 2L*id +1L, power/2))
-           }
-       }
-   tfun(n, 1L, 2^(floor(logb(n-1,2))))
-   }
-@ 
+Referring again to figure \ref{treefig}, \code{btree(13)} yields the vector
+\code{ 8 4 2 10 5 7 1 12 6 3 14 7 9}
+meaning that the smallest element
+will be in position 8 of the tree, the next smallest in position 2, etc.
+This function does not fill the bottom row of the tree from left to 
+right, which is okay;
+what is important in the algorithm is that the parent of each node has an
+index which is $\le n$.
 
 The next question is how to compute a variance for the result.
 One approach is to compute an infinitesimal jackknife (IJ) estimate,
 for which we need derivatives with respect to the weights.
-For each event the two numbers of interest are the 
-numerator $C-D$ and the denominator $C+D + T$,
-which can be written directly in terms of the weights.
-
-\begin{align*}
-  C -D  &= \sum_i w_i \delta_i \sum_{t_j > t_i} w_j \rm{sign}(r_i - r_j) \\
-  C +D+T &= \sum_i w_i \delta_i \sum_{t_j > t_i} w_j 
- \end{align*}
-
-The first derivatives of these quantities with respect to an arbitrary subject
-$k$ are
+Looking back at equation \eqref{C} we have
 \begin{align}
-  \frac{\partial C-D}{\partial w_k} &= 
-         \sum_{t_j > t_k} w_j \delta_k \rm{sign}(r_k - r_j) -
-          \sum_{t_j < t_k} w_j \delta_j \rm{sign}(r_k - r_j) \label{derivC} \\
-  \frac{\partial C+D+T}{\partial w_k} &= \sum_{t_j > t_k} w_j \delta_k +
-                                \sum_{t_j < t_k} w_j \delta_j  \label{derivT}\\
-\end{align}
-We need to keep two vectors of derivatives each of length $n$, the number
-of observations.  The parent routine in R will worry about data sets with
-multiple rows per subject, for which the person has to be added back 
-together.
+  C  &= \sum_i (v_i/m_i) w_i \delta_i \sum_j Y^*__j(t_i) w_j I(x_i < x_j) 
+  \nonumber\\
+ \frac{\partial C}{\partial w_k} &= 
+    (v_k/m_k)\delta_k \sum_j Y^*_{j}(t_k) I(x_k < x_j) +
+    \sum_i (v_i/m_i) w_i Y^*_k(t_i) I(x_i < x_k) \label{partialC}
+\end{align*}
+The first term of this is a sum over all subjects who were at risk when subject
+$k$ had an event, if any, and the second over all other subjects' events for
+which subject $k$ was at risk, in both cases not counting a pair of tied death 
+times as comparable to each other.
 
-I had originally avoided this approach because it appears to be an $O(nd)$
-computation, adding a bit to each at-risk subject each time there is an
+I had originally avoided the IJ approach because it appears to be an $O(nd)$
+summation, adding a bit to each at-risk subject each time there is an
 event.  A key insight due to David Watson is that we can avoid this.
-Within the tree we keep the sum of weights for each node and its left and right
-children, along with a parallel triple that totals only the deaths.   
-The tree is updated as each subject is added or deleted, containing
-the current cumulative totals.  We only need to update derivative values for
-each subject when the subject enters and when they leave.
-(For ordinary Cox models everyone enters at 0, or rather leaves at zero since
-our code will go from longest to shortest time.)
+Within the tree we keep the sum of weights for each node and for 
+its left and right children, along with a parallel triple that totals only 
+the deaths.
+The basic algorithm is to move through an outer and inner loop.  The
+outer loop moves across unique death times, the inner for all obs that
+share a time.  Move from largest
+to smallest time.
+\begin{enumerate}
+  \item Move to a new event time
+    \item For all data rows which leave the risk set at this time, 
+      add the current deaths triple to their IJ estimate (only applicable
+      to start, stop data).
+    \item For all subjects with an endpoint at this time
+    \begin{enumerate}
+      \item Add -1 times the deaths triple to the subject's IJ estimate
+      \item If not an event, add the subject to the first total in the tree
+      \item If an event, add the first triple to their IJ estimate, and also
+        increment the global totals for $C$, $D$, and $T$.
+    \end{enumerate}
+  \item Go through the deaths at this event time again,
+     adding their totals to both the overall and death triples in the tree
+  \item At the end of each stratum, add the current deaths triple to all
+    subjects still in the stratum.
+\end{enumerate}
 
 A second variance estimate is based on the Cox model.  
 The insight used here is to consider a Cox model with time dependent
@@ -573,87 +776,6 @@ for (i=0; i<n; ) {
 
 One last wrinkle is tied risk scores: they are all set to point to
 the same node of the tree.
-Here is the main routine.
-<<concordance>>=
-concordance <- function(x, ...) 
-    UseMethod("concordance")
-
-concordance.formula <- function(formula, data,
-                            weights, subset, na.action,
-                            ties="ih", timewt=c("n", "S", "S/G") {
-    Call <- match.call()  # save a copy of of the call, as documentation
-    timewt <- match.arg(timewt)
-
-    index <- match(c("formula", "data", "weights", "subset", "na.action", "id"),
-                   names(Call), nomatch=0)
-    temp <- Call[c(1, index)]
-    temp[[1L]] <-  quote(stats::model.frame)
-    special <- c("strata", "cluster")
-    temp$formula <- if(missing(data)) terms(formula, special
-                    else              terms(formula, special, data=data)
-    mf <- eval(temp, parent.frame())  # model frame
-    if (nrow(mf) ==0) stop("No (non-missing) observations")
-    Terms <- terms(mf)
-
-    Y <- model.extract(mf, "response")
-    if (!inherits(Y, "Surv")) {
-        if (is.numeric(Y) && is.vector(Y))  Y <- Surv(Y)
-        else stop("left hand side of the formula  must be a numeric vector or a surival")
-    }
-    n <- nrow(Y)
-
-    wt <- model.extract(m, 'weights')
-    offset<- attr(Terms, "offset")
-    if (length(offset)>0) stop("Offset terms not allowed")
-
-    stemp <- untangle.specials(Terms, 'strata')
-    if (length(stemp$vars)) {
-	if (length(stemp$vars)==1) strat <- m[[stemp$vars]]
-	else strat <- strata(m[,stemp$vars], shortlabel=TRUE)
-        Terms <- Terms[-stemp$terms]
-    }
-    else strat <- NULL
-    
-    x <- model.matrix(Terms, m)[,-1, drop=FALSE]  #remove the intercept
-    if (ncol(x) > 1) stop("Only one predictor variable allowed")
-
-    count <- survConcordance.fit(Y, x, strat, wt)
-    if (is.null(strat)) {
-        concordance <- (count[1] + count[3]/2)/sum(count[1:3])
-        std.err <- count[5]/(2* sum(count[1:3]))
-        }
-    else {
-        temp <- colSums(count)
-        concordance <- (temp[1] + temp[3]/2)/ sum(temp[1:3])
-        std.err <- temp[5]/(2*sum(temp[1:3]))
-        }
-
-    fit <- list(concordance= concordance, stats=count, n=n, 
-                std.err=std.err, call=Call)
-    na.action <- attr(m, "na.action")
-    if (length(na.action)) fit$na.action <- na.action
-
-    oldClass(fit) <- 'survConcordance'
-    fit
-}
-
-print.survConcordance <- function(x, ...) {
-    if(!is.null(cl <- x$call)) {
-        cat("Call:\n")
-        dput(cl)
-        cat("\n")
-        }
-    omit <- x$na.action
-    if(length(omit))
-        cat("  n=", x$n, " (", naprint(omit), ")\n", sep = "")
-    else cat("  n=", x$n, "\n")
-    cat("Concordance= ", format(x$concordance), " se= ", format(x$std.err),
-        '\n', sep='')
-    print(x$stats)
-
-    invisible(x)
-    }
-@ 
 
 This part of the compuation is a separate function, since it is
 also called by the coxph routines. 
