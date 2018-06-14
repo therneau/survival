@@ -1,23 +1,23 @@
 \subsection{Concordance}
- The concordance statistic is the most popular measure of goodness-of-fit
+ The concordance statistic is gaining popularity as a measure of goodness-of-fit
 in survival models.  Consider all pairs of subjects with
 $(r_i, r_j)$ as the two risk scores for each pair and $(s_i, s_j)$ the
 corresponding survival times.  The c-statistic is defined by dividing these
 sets into four groups.
 \begin{itemize}
   \item Concordant pairs: for a Cox model this will be pairs where a shorter
-    survival is paired with a larger risk score, e.g. $r_i>r_j$ and $s_i < s_j$.
-    For all other models conconrance is $r_i>r_j$ and $y_i > y>j$.
-  \item Discordant pairs: the lower risk score has a shorter survival.
-  \item Tied pairs: there are two common choices
+    survival is paired with a larger risk score, e.g. $r_i>r_j$ and $s_i < s_j$
+  \item Discordant pairs: the lower risk score has a shorter survival
+  \item Tied pairs: there are three common choices
     \begin{itemize}
-      \item Kendall's $\tau$-b: any pair where 
-        $r_i=r_j$ or $s_i = s_j$ is considered tied.
-      \item Somers' $d$: pairs with $r_i=r_j$ are tied; 
+      \item Kendall's tau: any pair where $r_i=r_j$ or $s_i = s_j$ is considered
+        tied.
+      \item AUC: pairs with $r_i=r_j$ are tied; 
 	those with $s_i=s_j$ are considered
         incomparable.  This is the definition of the AUC in logisitic 
         regression,
         and has become the most common choice for Cox models as well.
+      \item Somer's D: All ties are treated as incomparable.
     \end{itemize}
   \item Incomparable pairs: For survival this always includes pairs where the
     survival times cannot be ranked with certainty.  
@@ -45,10 +45,10 @@ that the naive $O(n^2)$ algorithm that loops across all $n(n-1)/2$
 possible pairs.
 There are two key ideas.
 \begin{enumerate}
-\item Sort the data by the response $y$ or survival times.  It then 
-  suffices to compare each observation only to those that are larger.
-  For survival data is all the subjects in the risk set of each event.
-  This also neatly solves the question of time-dependent covariates.
+\item Rearrange the counting so that we do it by death times.
+  For each death we count the number of other subjects in the risk set whose
+  score is higher, lower, or tied and add it into the totals.
+This also neatly solves the question of time-dependent covariates.
 \item To count the number higher and lower we need to rank the subjects
   in the risk set by their scores $r_i$.  This can be done in $O(\log n)$
   time if the data is kept in a binary tree.
@@ -65,21 +65,21 @@ Figure  \ref{treefig} shows a balanced binary tree containing
 have a smaller value than the parent, the right child and all its
 descendents have a larger value.
 Each node in figure \ref{treefig} is also annotated with the total weight
-of observations in that node and the weight for all its left and right children 
+of observations in that node and the weight for all its children 
 (not shown on graph).  
 Assume that the tree shown represents all of the subjects still alive at the
 time a particular subject ``Smith'' expires, and that Smith has the risk score
 2.1.  The concordant pairs are all of those with a risk score greater than
-2.1, which can be found by 
-\begin{enumerate}
-  \item intialize the total with the number of right hand children of Smith.
-  \item proceed up the tree to the root, and add the (parent-child) total 
-    each time that the movement is to the right.
-\end{itemize}
+2.1, which can be found by traversing the tree from the top down,
+adding the (parent - child) value each time we branch left (5-3 at the 2.6
+node),
+with a last addition of the right hand child when we 
+find the node with Smith's value (1).      %'
 There are 3 concordant and 12-3=9 discordant pairs.
 This takes a little less than $\log_2(n)$ steps on average, as compared to an
 average of $n/2$ for the naive method.  The difference can matter when $n$ is
 large since this traversal must be done for each event.
+(In the code below we start at Smith's node and walk up.)             %'
 
 The classic way to store trees is as a linked list.  There are several 
 algorithms for adding and subtracting nodes from a tree while maintaining
@@ -103,23 +103,50 @@ smallest ranks.  The next row above contains every other value of the
 ranks \emph{not yet assigned}, and etc to the top of the tree.  There is
 some care to make sure the result is an integer.
 <<btree>>=
-b2 <- function(n, id=1L) {
-    if (n==1) id
-    else if (n==2) c(2L*id, id)
-    else if (n==3) c(2L*id, id, 2L*id + 1L)
-    else {
-        split <- ceiling(n/2)
-        c(b2(split-1, 2L*id), id, b2(n-split, 1L + 2L*id))
+btree <- function(n) {
+    ranks <- rep(0L, n)  #will be overwritten
+    yet.to.do <- 1:n
+    depth <- floor(logb(n,2))
+    start <- as.integer(2^depth)
+    lastrow.length <- 1+n-start
+    indx <- seq(1L, by=2L, length= lastrow.length)
+    ranks[yet.to.do[indx]] <- start + 0:(length(indx)-1L)
+    yet.to.do <- yet.to.do[-indx]
+
+    while (start >1) {
+        start <- as.integer(start/2)
+        indx <- seq(1L, by=2L, length=start)
+        ranks[yet.to.do[indx]] <- start + 0:(start-1L)
+        yet.to.do <- yet.to.do[-indx]
     }
+    ranks
 }
-
 @ 
-Referring again to figure \ref{treefig}, \code{btree(13)} yields the vector
-\code{8  4  2 10  5 11  1 12  6  3 14 7 15} meaning that the smallest element
+Referring again to figure \ref{treefig}, [[btree(13)]] yields the vector
+[[8  4  9  2 10  5 11  1 12  6 13  3  7]] meaning that the smallest element
 will be in position 8 of the tree, the next smallest in position 4, etc.
-The code fills in the bottom row somewhat differently than figure, but 
-that does not matter in the final code.
 
+Here is a shorter recursive version.
+It knows the form of trees with 1, 2, or 3 nodes; and builds the
+others from them.  
+The maximum depth of recursion is $\log_2(n) -1$.
+It is more clever but a bit slower.  (Not that it matters as both
+take less than 5 seconds for a million elements.)
+<<btree2>>=
+btree <- function(n) {
+   tfun <- function(n, id, power) {
+       if (n==1) id
+       else if (n==2) c(2L *id, id)
+       else if (n==3) c(2L*id, id, 2L*id +1L)
+       else {
+           nleft <- if (n== power*2) power  else min(power-1, n-power/2)
+           c(tfun(nleft, 2L *id, power/2), id,
+             tfun(n-(nleft+1), 2L*id +1L, power/2))
+           }
+       }
+   tfun(n, 1L, 2^(floor(logb(n-1,2))))
+   }
+@ 
 
 <<<<<<< local
 A second question is how to compute the variance of the result.  

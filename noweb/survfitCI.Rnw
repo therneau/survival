@@ -309,7 +309,7 @@ istate <- temp[match(id, uid)]  #replicate it to full length
 last <- !duplicated(id[indx], fromLast=TRUE)
 extra <- (Y[indx,3]==0 & !last)
 if (any(extra)) {
-    extra <- which(extra)
+    e2 <- indx[extra]
     Y <- cbind(Y[-(1+e2),1], Y[-e2,2])
     status <- status[-e2]
     X <- X[-e2]
@@ -323,8 +323,8 @@ if (any(extra)) {
 nst <- length(state.names)
 first <- (!duplicated(id[indx]))
 last  <- (!duplicated(id[indx], fromLast=TRUE))
-transitions <- table(factor(istate[first], 1:nst), 
-                     factor(status[first], 1:nstate))
+transitions <- table(factor(istate[indx[first]], 1:nst), 
+                     factor(status[indx[first]], 1:nstate))
 if (any(!last))
     transitions <- transitions + table(factor(status[indx[!last]], 1:nst),
                                        factor(status[indx[!first]], 1:nstate))

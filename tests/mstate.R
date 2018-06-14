@@ -140,6 +140,7 @@ aeq(mfit2b$p0, p0(w1))
 
 mfit2b$call <- mfit2$call <- NULL
 all.equal(mfit2b, mfit2) 
+aeq(mfit2$transitions, c(0,1,0,2,2,0,0,0, 1,1,0,1, 0,0,0,0))
 
 # Now the harder one, where subjects change weights
 mtest3 <- tfun(1:10)  

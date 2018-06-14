@@ -1,6 +1,6 @@
 
-R version 3.4.1 (2017-06-30) -- "Single Candle"
-Copyright (C) 2017 The R Foundation for Statistical Computing
+R Under development (unstable) (2018-05-10 r74706) -- "Unsuffered Consequences"
+Copyright (C) 2018 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -263,7 +263,8 @@ frailty(id, dist = "gauss                            26.54461 14.7 0.0294
 Iterations: 6 outer, 39 Newton-Raphson
      Variance of random effect= 0.569 
 Degrees of freedom for terms=  0.5  0.5 14.7 
-Likelihood ratio test=47.5  on 15.7 df, p=5e-05  n= 76 
+Likelihood ratio test=47.5  on 15.7 df, p=5e-05
+n= 76, number of events= 58 
 > kfitx
 Call:
 coxph(formula = Surv(time, status) ~ age + sex + offset(temp), 
@@ -354,10 +355,11 @@ frailty(id, dist = "gauss                      23 13.8 0.057
 Iterations: 7 outer, 39 Newton-Raphson
      Variance of random effect= 0.458 
 Degrees of freedom for terms= 13.8 
-Likelihood ratio test=33.4  on 13.8 df, p=0.002  n= 76 
+Likelihood ratio test=33.4  on 13.8 df, p=0.002
+n= 76, number of events= 58 
 > 
 > 
 > 
 > proc.time()
    user  system elapsed 
-  1.976   0.112   2.308 
+  0.856   0.016   0.871 

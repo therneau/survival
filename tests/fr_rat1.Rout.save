@@ -1,6 +1,6 @@
 
-R version 3.4.1 (2017-06-30) -- "Single Candle"
-Copyright (C) 2017 The R Foundation for Statistical Computing
+R Under development (unstable) (2018-05-10 r74706) -- "Unsuffered Consequences"
+Copyright (C) 2018 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -49,7 +49,8 @@ frailty(litter)                        16.888 13.8 0.253
 Iterations: 6 outer, 25 Newton-Raphson
      Variance of random effect= 0.474   I-likelihood = -181.1 
 Degrees of freedom for terms=  1.0 13.9 
-Likelihood ratio test=36.3  on 14.8 df, p=0.001  n= 150 
+Likelihood ratio test=36.3  on 14.8 df, p=0.001
+n= 150, number of events= 40 
 > 
 > rfit$iter
 [1]  6 25
@@ -90,7 +91,8 @@ frailty(litter, theta = 1                        27.245 22.7 0.2324
 Iterations: 1 outer, 6 Newton-Raphson
      Variance of random effect= 1   I-likelihood = -181.5 
 Degrees of freedom for terms=  1.0 22.7 
-Likelihood ratio test=50.7  on 23.7 df, p=0.001  n= 150 
+Likelihood ratio test=50.7  on 23.7 df, p=0.001
+n= 150, number of events= 40 
 > 
 > rfit2 <- coxph(Surv(time,status) ~ frailty(litter), rats, subset=(sex=='f'))
 > rfit2
@@ -104,8 +106,9 @@ frailty(litter)                      18 14.6 0.24
 Iterations: 6 outer, 22 Newton-Raphson
      Variance of random effect= 0.504   I-likelihood = -184.8 
 Degrees of freedom for terms= 14.6 
-Likelihood ratio test=30  on 14.6 df, p=0.01  n= 150 
+Likelihood ratio test=30  on 14.6 df, p=0.01
+n= 150, number of events= 40 
 > 
 > proc.time()
    user  system elapsed 
-  1.731   0.084   2.010 
+  0.820   0.024   0.843 

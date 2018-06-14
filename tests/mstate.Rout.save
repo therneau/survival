@@ -1,6 +1,6 @@
 
-R version 3.2.3 (2015-12-10) -- "Wooden Christmas-Tree"
-Copyright (C) 2015 The R Foundation for Statistical Computing
+R Under development (unstable) (2018-05-10 r74706) -- "Unsuffered Consequences"
+Copyright (C) 2018 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -166,6 +166,8 @@ Type 'q()' to quit R.
 > mfit2b$call <- mfit2$call <- NULL
 > all.equal(mfit2b, mfit2) 
 [1] TRUE
+> aeq(mfit2$transitions, c(0,1,0,2,2,0,0,0, 1,1,0,1, 0,0,0,0))
+[1] TRUE
 > 
 > # Now the harder one, where subjects change weights
 > mtest3 <- tfun(1:10)  
@@ -287,4 +289,4 @@ Type 'q()' to quit R.
 > 
 > proc.time()
    user  system elapsed 
-  1.269   0.067   1.343 
+  0.876   0.036   0.909 
