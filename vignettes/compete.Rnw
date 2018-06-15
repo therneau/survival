@@ -627,10 +627,10 @@ hazards for the two rates, no shared coefficients, and three covariates.
 options(show.signif.stars = FALSE)  # display intelligence
 cfit2 <- coxph(Surv(etime, event=="death") ~ age + sex + mspike, mgus2)
 summary(cfit2, scale=c(10, 1, 1))   # scale age in decades 
-
 @ 
 The effect of age and sex on non-PCM mortality is profound, which is not
-a surprise given the median starting age of \Sexpr{median(mgus2$age)}. Risk rises \Sexpr{round(exp(10*coef(cfit2)[1]),1)} fold per decade of age and
+a surprise given the median starting age of \Sexpr{median(mgus2$age)}. 
+Risk rises \Sexpr{round(exp(10*coef(cfit2)[1]),1)} fold per decade of age and
 the death rate for males is \Sexpr{round(exp(coef(cfit2)[2]),1)} times as great
 as that for females.  
 The size of the serum monoclonal spike has almost no impact on non-PCM 
@@ -892,7 +892,7 @@ $T^*= I(\mbox{event type}=k)T + I(\mbox{event type}\ne k)\infty$.
 Fine and Gray refer to $F_k$ as a subdistribution function.
 In analogy to the survival probability in the two state model define
 \begin{equation}
-  \gamma_k(t) = - d \log[1-F_k(t)]/dt \label{FG}I 
+  \gamma_k(t) = - d \log[1-F_k(t)]/dt \label{FG} 
 \end{equation}
 and assume that $\gamma_k(t;x) = \gamma_{k0}(t) \exp(X\beta)$.
 In a 2 state alive $\longrightarrow$ death model, $\gamma$ becomes the
@@ -907,7 +907,8 @@ is a constant,
 independent of other variables.  
 Both model's assumptions are wonderfully simplifying with respect to 
 understanding
-a covariate, since we can think about each one separately from the others.
+a covariate, since we can think about each covariate separately from 
+all the others.
 This is, of course, under the assumption that the model is correct:
 additivity across covariates, linearity, and proportional hazards 
 all hold.
@@ -1087,13 +1088,20 @@ of proper confidence intervals for the state probabilities $p(t)$.
 (Since all of the steps used the same transition matrix template, the
 necessary computations are scripted and reliable.)
 
+A current restriction in R is that packages on the \emph{recommended} list
+(of which survival is one) should not depend on any packages outside that
+list.  
+This precludes adding an mstate example to this vignette, even though it is
+a natural fit.
+
 \subsection{The \code{msm} package}
 There are two broad classes of multi-state data:
 \begin{itemize}
   \item Panel data arises when subjects have regular visits, with the
     current state assessed at each visit.  We don't know when the transitions
     between states occur, or if other states may have been visited in the
-    interim --- only the subject's state at specific times.  
+    interim --- only the subject's state at specific times. This is also
+    known as interval censored data.  
   \item Survival data arises when we observe the transition times;
     death, for example.
 \end{itemize}
