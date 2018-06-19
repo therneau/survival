@@ -82,6 +82,7 @@ The \code{delay} option causes a time-dependent covariate's new
 value to be delayed, see the vignette for an example.
 }
 
+
 \value{a data frame with two extra attributes \code{tname} and
   \code{tcount}.
   The first contains the names of the key variables; it's persistence
@@ -109,8 +110,11 @@ value to be delayed, see the vignette for an example.
   The last case is where the main data set has touching
   intervals for a subject, e.g. (17, 28] and (28,35] and a new occurrence
   lands at the join.  Events will go to the earlier interval and counts
-  to the latter one.  A last column shows the number of additions where
+  to the latter one.  A last column shows the number of additions
   where the id and time point were identical.
+  When this occurs, the \code{tdc} and \code{event} operators will use
+  the final value in the data (last edit wins), but ignoring missing,
+  while \code{cumtdc} and \code{cumevent} operators add up the values.
 
   These extra attributes are ephemeral and will be discarded
   if the dataframe is modified in any way.  This is intentional.

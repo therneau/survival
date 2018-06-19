@@ -14,6 +14,10 @@
     Formerly the transitions table in the output would be incorrect for
     this case, and the life table would get an extra "censoring" line at
     time 5.  The estimated P(state) was correct, however.
+
+    \item Fix an edge case in tmerge, when using cumevent and the input
+    data has 'censored' row.  Add a test for this, and for another edge
+    case of repeated updates at the same time point.
 }}
 
 \section{Changes in version 2.42-3}{

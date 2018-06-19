@@ -1,6 +1,6 @@
 
-R Under development (unstable) (2017-06-20 r72822) -- "Unsuffered Consequences"
-Copyright (C) 2017 The R Foundation for Statistical Computing
+R Under development (unstable) (2018-05-10 r74706) -- "Unsuffered Consequences"
+Copyright (C) 2018 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -73,7 +73,6 @@ Type 'q()' to quit R.
 > all(tcount[1:7, c("within", "trailing")] == t(counts))
 [1] TRUE
 > 
-> 
 > proc.time()
    user  system elapsed 
-  3.092   0.104   3.194 
+  0.812   0.032   0.843 

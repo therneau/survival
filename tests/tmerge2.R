@@ -49,4 +49,3 @@ counts <- sapply(temp, function(x)
     as.vector(table(factor(x>= cgd0$futime, c(FALSE, TRUE)))))
 
 all(tcount[1:7, c("within", "trailing")] == t(counts))
-
