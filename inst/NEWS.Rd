@@ -18,7 +18,9 @@
     \item Fix an edge case in tmerge, when using cumevent and the input
     data has 'censored' row.  Add a test for this, and for another edge
     case of repeated updates at the same time point.
-}}
+
+    \item Add head.Surv and tail.Surv methods.
+  }}
 
 \section{Changes in version 2.42-3}{
   \itemize{

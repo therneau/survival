@@ -15,9 +15,9 @@ The response, measured by eye, is the number of visible solder skips.
   \describe{
     \item{\code{Opening}}{the amount of clearance around the mounting
       pad (3 levels)}
-    \item{\code{Solder}}{the amount of solder (2 levels)}
+    \item{\code{Solder}}{the amount of solder (Thick or Thin)}
     \item{\code{Mask}}{type and thickness of the material used for the
-      solder mask (5 levels)}
+      solder mask (A1.5, A3, A6, B3, B6)}
     \item{\code{PadType}}{the geometry and size of the mounting pad (10 levels)}
     \item{\code{Panel}}{each board was divided into 3 panels}
     \item{\code{skips}}{the number of skips}

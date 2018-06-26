@@ -62,5 +62,13 @@ terms.inner <- function(x) {
     else(deparse(x))
 }
 
+head.Surv <- function(x, n=6L, ...)
+    if (nrow(x) <=n) x else x[1:6]
 
+tail.Surv <- function(x, n=6L, ...) {
+    nr <- nrow(x)
+    if (nr <=n) x else x[seq(length=n, to=nr)]
+}      
+
+   
     
