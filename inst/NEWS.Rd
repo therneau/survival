@@ -19,7 +19,11 @@
     data has 'censored' row.  Add a test for this, and for another edge
     case of repeated updates at the same time point.
 
-    \item Add head.Surv and tail.Surv methods.
+    \item xtfrm.Surv was incorrect: it returned a general order(x) for
+    survival objects, it should be order(order(x)). 
+    
+    \item Add more Surv methods: head, tail, rep, rbind, c, rev, t,
+  mean, plot, ... Anything that made sense or should generate an error.
   }}
 
 \section{Changes in version 2.42-3}{
