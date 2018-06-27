@@ -192,18 +192,18 @@ as.character.Surv <- function(x, ...) {
            "right"={
                temp <- x[,2]
                temp <- ifelse(is.na(temp), "?", ifelse(temp==0, "+"," "))
-               paste(format(x[,1]), temp, sep='')
+               paste0(format(x[,1]), temp)
            },
            "counting"= {
                temp <- x[,3]
                temp <- ifelse(is.na(temp), "?", ifelse(temp==0, "+",""))
-               paste('(', format(x[,1]), ',', format(x[,2]), temp,
-                     ']', sep='')
+               paste0('(', format(x[,1]), ',', format(x[,2]), temp,
+                     ']')
            },
            "left" ={
                temp <- x[,2]
-               temp <- ifelse(is.na(temp), "?", ifelse(temp==0, "<"," "))
-               paste(temp, format(x[,1]), sep='')
+               temp <- ifelse(is.na(temp), "?", ifelse(temp==0, "-"," "))
+               paste0(format(x[,1]), temp)
            },
            "interval"= {
                stat <- x[,3]
@@ -211,20 +211,20 @@ as.character.Surv <- function(x, ...) {
                temp2 <- ifelse(stat==3,
 			 paste("[", format(x[,1]), ", ",format(x[,2]), sep=''),
 			 format(x[,1]))
-               ifelse(is.na(stat), "NA", paste(temp2, temp, sep=''))
+               ifelse(is.na(stat), "NA", paste0(temp2, temp))
            },
            "mright" = {  #multi-state
                temp <- x[,2]
                end <- c("+", paste(":", attr(x, "states"), sep='')) #endpoint
                temp <- ifelse(is.na(temp), "?", end[temp+1])
-               paste(format(x[,1]), temp, sep='')
+               paste0(format(x[,1]), temp)
            },
            "mcounting"= {
                temp <- x[,3]
                end <- c("+", paste(":", attr(x, "states"), sep='')) #endpoint
                temp <- ifelse(is.na(temp), "?", end[temp+1])
-               paste('(', format(x[,1]), ',', format(x[,2]), temp,
-                     ']', sep='')
+               paste0('(', format(x[,1]), ',', format(x[,2]), temp,
+                     ']')
            })
 }
 
@@ -277,10 +277,11 @@ xtfrm.Surv <- function(x) {
         index <- order(temp, match(x[,3], c(2,1,3,0)))
         }
     else if (attr(x, 'type')== "left") index <- order(x[,1], x[,2])
-    else if (ncol(x)==2) index <- order(x[,1], x[,3]==0, x[,3]) # censor last
+    else if (ncol(x)==2) index <- order(x[,1], x[,2]==0, x[,2]) # censor last
     else index <- order(x[,2], x[,3]==0, x[,3], x[,1]) # ending time, stat, start
     temp <- integer(length(x))
     temp[index] <- seq.int(length(x))
+    temp[is.na(x)] <- NA
     temp
 }
 

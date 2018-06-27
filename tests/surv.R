@@ -27,3 +27,19 @@ aeq(temp1, c(1,10,10,30,30, 1,1,1,1, 40, 1,0,2,NA,3))
 temp1 <- Surv(c(1,10,NA, 30, 30), c(1,NA,10,30, 40), type='interval2')
 temp2 <- Surv(c(1,10,-Inf, 30, 30), c(1,Inf,10,30, 40), type='interval2')
 aeq(temp1, temp2)
+
+# Verify sorting and order routines
+x1 <- Surv(c(4, 6, 3, 2, 1, NA, 2), c(1,0, NA, 0,1,1,1))
+all.equal(order(x1), c(5,7, 4, 1, 2, 3, 6))
+all.equal(order(x1, decreasing=TRUE), c(2,1,4,7,5, 3, 6))
+all.equal(sort(x1), x1[c(5,7,4,1,2)])
+
+x2 <- Surv(c(4, 6, 3, 2, 1, NA, 2), c(1,0, NA, 0,1,1,1), type='left')
+all.equal(order(x2), c(5,4, 7, 1, 2, 3, 6))
+
+x3 <- Surv(c(1,5,NA,7, 9), c(6, 6, 4, NA, 9), type="interval2")
+all.equal(sort(x3), x3[c(1,3,2,4,5)])
+
+x4 <- Surv(c(1,5,6,5,2, 4), c(3, 7, 7, 6, 3, NA), factor(c(1, 2, 0, 1, 1, 0)))
+all.equal(sort(x4), x4[c(1, 5, 4, 2,3)])
+all.equal(sort(x4, na.last=FALSE), x4[c(6,1,5,4,2,3)])
