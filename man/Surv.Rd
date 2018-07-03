@@ -1,16 +1,7 @@
 \name{Surv}
 \alias{Surv}
 \alias{is.Surv}
-\alias{print.Surv}
-\alias{Math.Surv}
-\alias{Summary.Surv}
 \alias{[.Surv}
-\alias{format.Surv}
-\alias{as.data.frame.Surv}
-\alias{as.character.Surv}
-\alias{as.matrix.Surv}
-\alias{is.na.Surv}
-\alias{Ops.Surv}
 \title{
   Create a Survival Object 
 }
@@ -34,6 +25,8 @@ is.Surv(x)
     \code{TRUE}/\code{FALSE} (\code{TRUE} = death) or 1/2 (2=death). For
     interval censored data, the status indicator is 0=right censored,
     1=event at \code{time}, 2=left censored, 3=interval censored.
+    For multiple enpoint data the event variable will be a factor,
+    whose first level is treated as censoring.
     Although unusual, the event indicator can be omitted, in which case
     all subjects are assumed to have an event.
   }
@@ -90,7 +83,8 @@ is.Surv(x)
 
    When the survival type is "mstate" then the status variable will be
    treated as a factor.  The first level of the factor is taken to
-   represent censoring and remaining ones a transition to the given state.
+   represent censoring and remaining ones a transition to the given
+   state.  (If the status variable is a factor then \code{mstate} is assumed.)
    
     Interval censored data can be represented in two ways.  For the first
    use \code{type = "interval"} and the codes shown above.  In that usage the
@@ -118,10 +112,8 @@ guess wrong.
 In any questionable case it is safer to use logical coding,
 e.g., \code{Surv(time, status==3)} would indicate that a \code{3} is
 the code for an event.
-
-For multi-state survival (type= "mstate") the status variable can have
-multiple levels.  The first of these will stand for censoring, and the
-others for various event types, e.g., causes of death.  
+For multi-state survival the status variable will be a factor, whose
+first level is assumed to correspond to censoring.
 
 Surv objects can be subscripted either as a vector, e.g.
 \code{x[1:3]} using a single subscript,

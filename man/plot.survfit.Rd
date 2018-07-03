@@ -92,12 +92,16 @@
     For example \code{fun=log} is an alternative way to draw a log-survival curve 
     (but with the axis labeled with log(S) values), 
     and \code{fun=sqrt} would generate a curve on square root scale. 
-    Four often used transformations can be specified with a character 
-    argument instead: \code{"log"} is the same as using the \code{log=T} option, 
-    \code{"event"} plots cumulative events (f(y) = 1-y),  
+    Five often used transformations can be specified with a character 
+    argument instead: \code{"S"} gives the usual survival curve,
+    \code{"log"} is the same as using the \code{log=T} option, 
+    \code{"event"} or \code{"F"} plots the empirical CDF \eqn{F(t)= 1-S(t)}
+    (f(y) = 1-y),  
     \code{"cumhaz"} plots the cumulative hazard function (f(y) = -log(y)), and 
     \code{"cloglog"} creates a complimentary log-log survival plot (f(y) = 
-    log(-log(y)) along with log scale for the x-axis).  
+    log(-log(y)) along with log scale for the x-axis).
+    The terms \code{"identity"} and \code{"surv"} are
+    allowed as synonyms for \code{type="S"}.
   }
   \item{xlab}{
     label given to the x-axis. 

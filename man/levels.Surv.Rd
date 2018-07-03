@@ -1,13 +1,13 @@
 \name{levels.Surv}
 \alias{levels.Surv}
-\title{Return the states of a multi-state Surv object}
+\title{Return the states of a multi-state Surv object
 }
 \description{
   For a multi-state \code{Surv} object, this will return the names
   of the states.  
 }
 \usage{
-\method{level}{Surv}(x)
+\method{levels}{Surv}(x)
 }
 \arguments{
   \item{x}{a \code{Surv} object}
@@ -15,6 +15,7 @@
 \value{
   for a multi-state \code{Surv} object, the vector of state names
   (excluding censoring); or NULL for an ordinary \code{Surv} object
+}
 \examples{
 y1 <- Surv(c(1,5, 9, 17,21, 30),
            factor(c(0, 1, 2,1,0,2), 0:2, c("censored", "progression", "death")))

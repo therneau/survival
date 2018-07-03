@@ -1,5 +1,16 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 2.42-5}{
+  \itemize{
+    \item Add a plot.Surv method per the suggestion of Goran Brostram.
+    Improve the cbind.Surv and rbind.Surv methods to handle mixed
+    argument lists (when there are some Surv arguments and some not). 
+
+    \item Add a Survmethods.Rd page documenting the added methods.
+
+    \item Add "F" and "S" to the list of fun= arguments to plot.survfit,
+    they are aliases for "event" and "identity", respectively.
+}}
 \section{Changes in version 2.42-4}{
   \itemize{
     \item Undo a bug that was introduced in tmerge in 2.42-3; an essential

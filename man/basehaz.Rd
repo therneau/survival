@@ -14,10 +14,10 @@ basehaz(fit, centered=TRUE)
     prediction for all covariates equal to zero.}
 }
 \details{
-  This function is simply an alias for \code{survfit}, which is the
-  actual function that does all the computations.  See the manual page
-  for that function for the preferred use.  This function survives only
-  for backwards support of prior usage.
+  This function is simply an alias for \code{survfit}, which does the
+  actual work and has a richer set of options.  
+  The alias exists only because some users look for predicted survival
+  estimates under this name.
 
   The function returns a data frame containing the \code{time},
   \code{cumhaz} and optionally the strata (if the fitted Cox model used

@@ -191,7 +191,7 @@ if (!missing(xmax) && any(x$time>xmax)) {
 
 if (!missing(fun)) {
     if (is.character(fun)) {
-        tfun <- switch(fun,
+        tfun <- switch(to.lower(fun),
     		   'log' = function(x) x,
     		   'event'=function(x) 1-x,
     		   'cumhaz'=function(x) -log(x),
@@ -199,6 +199,9 @@ if (!missing(fun)) {
     		   'pct' = function(x) x*100,
     		   'logpct'= function(x) 100*x,  #special case further below
                    'identity'= function(x) x,
+                   'f' = function(x) 1-x,
+                   's' = function(x) x,
+                   'surv' = function(x) x,
     		   stop("Unrecognized function argument")
     		   )
     }

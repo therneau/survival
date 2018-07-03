@@ -1,0 +1,47 @@
+The data set was sent by Mika Nurmikolu.
+It is fairly small, 484 observations and 69 events, with only 1 tied event time.
+The key issue is a covariate which is almost all zero.
+
+```{r}
+ndata <- read.csv("ndata.csv")
+with(ndata, table(status=status, snp=snp))
+subset(ndata, snp==1)
+
+coxph(Surv(time1, time2, status) ~ snp, ndata, iter=1)
+```
+
+At the first iteration the coefficient is 46.7 and the LPL is NaN.  What drives
+this example?
+The first death in the data set is at time 60, so the first observation with
+snp=1 doesn't even count.
+The only window of time that matters is (254,298] where the data has variation
+in the covariate.  
+
+```{r}
+fit0 <- coxph(Surv(time1, time2, status) ~snp, ndata, iter=0)
+dt0  <- coxph.detail(fit0)
+index <- which(dt0$time > 254 & dt0$time <= 298)
+index
+dt0$score[index]
+range(dt0$score[-index])
+range(dt0$imat[-index])
+dt0$time[index]
+beta1 <- sum(dt0$score)/sum(dt0$imat)
+```
+
+The relevant computation only involves 4 time points.
+Why does the loglik blow up?
+
+The loglik calculation is
+```{r}
+n <- dt0$nrisk[index]
+denom <- (n-1) + exp(beta1)
+numer <- c(0,0,0, beta1)
+numer - log(denom)
+```
+The four loglik terms from the last line above are all reasonable.
+The issue comes up for the next event at time 302, and exp(beta1) is
+subtracted from the denominator. 
+The new value should be 187, but becomes less than zero.
+
+
