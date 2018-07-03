@@ -308,7 +308,7 @@ length.Surv <- function(x) nrow(x)
 names.Surv <- function(x) rownames(x)
 
 format.Surv <- function(x, ...) format(as.character.Surv(x), ...)
-as.data.frame.Surv <- as.data.frame.model.matrix
+as.data.frame.Surv <- function(x, ...) as.data.frame.model.matrix(x, ...)
 
 # all sorts of methods for Surv, caused by searching for every case of
 #  UseMethod in the standard libraries

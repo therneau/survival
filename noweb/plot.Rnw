@@ -191,7 +191,7 @@ if (!missing(xmax) && any(x$time>xmax)) {
 
 if (!missing(fun)) {
     if (is.character(fun)) {
-        tfun <- switch(to.lower(fun),
+        tfun <- switch(tolower(fun),
     		   'log' = function(x) x,
     		   'event'=function(x) 1-x,
     		   'cumhaz'=function(x) -log(x),

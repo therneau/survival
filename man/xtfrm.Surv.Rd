@@ -1,6 +1,7 @@
 \name{xtfrm.Surv}
 \alias{xtfrm.Surv}
 \alias{sort.Surv}
+\alias{order.Surv}
 \title{Sorting order for Surv objects}
 \description{
   Sort survival objects into a partial order, which is the same one
