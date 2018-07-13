@@ -1,5 +1,15 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 2.42-6}{
+  \itemize{
+    \item Remove the cbind.Surv and rbind.Surv methods. 
+    The problem is when one is called with mixed arguments, e.g.
+    cbind(Surv(1:4), data.frame(x=6:9, z=c('a', 'b', 'a', 'a'))
+    In the above cbind.Surv is never called, but the \emph{presence}
+    of a cbind.Surv method messes up the default behavior, see the
+    Dispatch section of help('cbind').
+}}
+
 \section{Changes in version 2.42-5}{
   \itemize{
     \item Add a plot.Surv method per the suggestion of Goran Brostram.

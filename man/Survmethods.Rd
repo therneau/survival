@@ -20,7 +20,6 @@
 \alias{names<-.Surv}
 \alias{quantile.Surv}
 \alias{plot.Surv}
-\alias{rbind.Surv}
 \alias{rep.Surv}
 \alias{rep.int.Surv}
 \alias{rep_len.Surv}
@@ -49,7 +48,6 @@
     \method{names}{Surv}(x) <- value
     \method{quantile}{Surv}(x, probs, na.rm=FALSE, ...)
     \method{plot}{Surv}(x, ...)
-    \method{rbind}{Surv}(...)
     \method{rep}{Surv}(x, ...)
     \method{rep.int}{Surv}(x, ...)
     \method{rep_len}{Surv}(x, ...)
@@ -105,16 +103,7 @@
      first construct a survival curve using \code{survfit}, then apply
      the appropriate method to that curve.
 
-     \item If all of the arguments to \code{rbind} are survival objects
-     they are concatonated, the result will be a \code{Surv} object.
-     For calls with a mixed argument list only some of whose elements
-     are \code{Surv} objects, the \code{Surv} objects are first
-     transformed using \code{as.matrix} and then \code{rbind} is called
-     on the updated argument list, the result will not be a \code{Surv} object.
-     For the \code{cbind} method survival objects are always treated as
-     a matrix.
-
-     \item The concatonation method \code{c()} is asymmetric, its first
+    \item The concatonation method \code{c()} is asymmetric, its first
      argument determines the exection path.  For instance
      \code{c(Surv(1:4), Surv(5:6))} will concatonate the two objects,
      \code{c(Surv(1:4), 5:6)} will give an error, and

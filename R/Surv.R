@@ -372,16 +372,26 @@ c.Surv <- function(...) {
     new
     }
 
-rbind.Surv <- function(...) {
-    dotlist <- list(...)
-    if (all(sapply(dotlist, is.Surv))) do.call("c.Surv", dotlist)
-    else do.call("rbind", lapply(dotlist, function(x)
-        if (is.Surv(x)) as.matrix(x) else x))
-    }
 
-cbind.Surv <- function(...) 
-    do.call("cbind", lapply(list(...), 
-                        function(x) if (is.Surv(x)) as.matrix(x) else x))
+# The cbind/rbind methods cause more trouble than they solve
+# The problem is when one is called with mixed arguments, e.g.
+#      cbind(Surv(1:4), data.frame(x=6:9, z=c('a', 'b', 'a', 'a'))
+# In the above cbind.Surv is never called, but the \emph{presence}
+#    of a cbind.Surv method messes up the default behavior, see the
+#    'Dispatch' section of help('cbind').  The result becomes a matrix of
+#    lists rather than a dataframe.
+#
+#rbind.Surv <- function(...) {
+#    dotlist <- list(...)
+#    if (all(sapply(dotlist, is.Surv))) do.call("c.Surv", dotlist)
+#    else do.call("rbind", lapply(dotlist, function(x)
+#        if (is.Surv(x)) as.matrix(x) else x))
+#    }
+#
+#cbind.Surv <- function(...) 
+#    do.call("cbind", lapply(list(...), 
+#                        function(x) if (is.Surv(x)) as.matrix(x) else x))
+#}
 
 rep.Surv <- function(x, ...) {
     index <- rep(1:nrow(x), ...)
