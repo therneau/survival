@@ -1,4 +1,4 @@
-\subsection{Concordance}
+\section{Concordance}
  The concordance statistic is the most a measure of goodness-of-fit
 in survival models.  
 In general let $y_i$ and $x_i$ be observed and predicted data values.
@@ -242,15 +242,15 @@ is at risk at event time $t_i$, and $Y^*_j(t_i)$ the more restrictive one that
 subject $j$ is both at risk and not a tied event time.
 The values we want at time $t_i$ are
 \begin{align}
-  n_i &=  \sum_j w_j Y^*_j(t_i) \nonumber
-  C_i &= (v_i/n_i) \delta_i w_i \sum_j w_j Y^*_j(t_i) \left[I(x_i < x_j) 
+  n_i &=  \sum_j w_j Y^*_j(t_i) \nonumber \\
+  C_i &= (v_i/n_i) \delta_i w_i \sum_j w_j Y^*_j(t_i) \left[I(x_i < x_j) \right]
     \label{C} \\
-  D_i &= (v_i/n_i) \delta_i w_i \sum_j w_j Y^*_j(t_i) \left[I(x_i > x_j) 
+  D_i &= (v_i/n_i) \delta_i w_i \sum_j w_j Y^*_j(t_i) \left[I(x_i > x_j)\right] 
      \label{D} \\
-  T_i &= (v_i/n_i) \delta_i w_i \sum_j w_j Y^*_j(t_i) \left[I(x_i = x_j) 
+  T_i &= (v_i/n_i) \delta_i w_i \sum_j w_j Y^*_j(t_i) \left[I(x_i = x_j) \right]
      \label{T}  \\
   m_i &= \delta_i \sum_j w_j (Y_j - Y^*_j) \nonumber
-\end{align*} 
+\end{align} 
 
 In the above $n$ is the number of comparable values at event time $t_i$ and
 $m$ is the number of exact ties, $(v_i/n_i)$ is treated as a fixed 
@@ -267,7 +267,7 @@ There are two key ideas.
   For each death we count the number of other subjects in the risk set whose
   score is higher, lower, or tied and add it into the totals.
 This neatly solves the question of time-dependent covariates.
-\item Counting the number with higher, lower, and tied $x$ can be don in 
+\item Counting the number with higher, lower, and tied $x$ can be done in 
    $O(\log_2 n)$ time if the $x$ data is kept in a binary tree.
 \end{enumerate}
 
@@ -298,7 +298,7 @@ The totals can be found by
     (parent + right child) to either D or C, depending on what part of the
     tree has not yet been totaled.  
     At the next node (8) $D= D+4$, and at the top node $C=C + 6$.
-\end{itemize}
+\end{enumerate}
 
 There are 5 concordant and 7 discordant pairs.
 This takes a little less than $\log_2(n)$ steps on average, as compared to an
@@ -346,12 +346,12 @@ One approach is to compute an infinitesimal jackknife (IJ) estimate,
 for which we need derivatives with respect to the weights.
 Looking back at equation \eqref{C} we have
 \begin{align}
-  C  &= \sum_i (v_i/m_i) w_i \delta_i \sum_j Y^*__j(t_i) w_j I(x_i < x_j) 
+  C  &= \sum_i (v_i/m_i) w_i \delta_i \sum_j Y^*_j(t_i) w_j I(x_i < x_j) 
   \nonumber\\
  \frac{\partial C}{\partial w_k} &= 
     (v_k/m_k)\delta_k \sum_j Y^*_{j}(t_k) I(x_k < x_j) +
     \sum_i (v_i/m_i) w_i Y^*_k(t_i) I(x_i < x_k) \label{partialC}
-\end{align*}
+\end{align}
 The first term of this is a sum over all subjects who were at risk when subject
 $k$ had an event, if any, and the second over all other subjects' events for
 which subject $k$ was at risk, in both cases not counting a pair of tied death 
