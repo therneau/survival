@@ -1,5 +1,5 @@
 print.coxph <-
- function(x, digits=max(3L, getOption("digits") - 3L), signif.stars=FALSE, ...)
+ function(x, digits=max(1L, getOption("digits") - 3L), signif.stars=FALSE, ...)
     {
     if (!is.null(cl<- x$call)) {
 	cat("Call:\n")
@@ -32,8 +32,7 @@ print.coxph <-
 	    "se(coef)", "robust se", "z", "p"))
 	}
 
-    pdig <- max(1, getOption("digits")-4)  # default it too high IMO
-    printCoefmat(tmp, P.values=TRUE, has.Pvalue=TRUE,
+    printCoefmat(tmp, digits=digits, P.values=TRUE, has.Pvalue=TRUE,
                  signif.stars = signif.stars, ...)
 
     logtest <- -2 * (x$loglik[1] - x$loglik[2])
@@ -42,7 +41,7 @@ print.coxph <-
     cat("\n")
     cat("Likelihood ratio test=", format(round(logtest, 2)), "  on ",
 	df, " df,", " p=", 
-        format.pval(pchisq(logtest, df, lower.tail=FALSE), digits=pdig), 
+        format.pval(pchisq(logtest, df, lower.tail=FALSE), digits=digits), 
         "\n",  sep="")
     omit <- x$na.action
     cat("n=", x$n)

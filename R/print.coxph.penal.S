@@ -88,7 +88,7 @@ print.coxph.penal <-  function(x, terms=FALSE, maxlabel=25,
     dimnames(print1) <-  list(substring(pname1,1, maxlabel), 
                               c("coef","se(coef)", "se2", "Chisq","DF","p"))
     printCoefmat(print1, signif.stars=FALSE, P.values=TRUE, has.Pvalue=TRUE,
-                 na.print="")
+                 digits = digits, na.print="")
 	
     #
     # Write out the remaider of the info
