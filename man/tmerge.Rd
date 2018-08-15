@@ -13,7 +13,7 @@ tmerge(data1, data2,  id,\dots, tstart, tstop, options)
 \arguments{
   \item{data1}{the primary data set, to which new variables and/or
     observation will be added}
-  \item{data2}{second data set in which the other arguments
+  \item{data2}{second data set in which all the other arguments
     will be found}
   \item{id}{subject identifier}
 
@@ -33,7 +33,7 @@ tmerge(data1, data2,  id,\dots, tstart, tstop, options)
  variables to that structure.  For a more complete explanation of how this
  routine works refer to the vignette on time-dependent variables.
 
- There are 4 types of optional arguments: a time dependent covariate
+ There are 4 types of operational arguments: a time dependent covariate
  (tdc), cumulative count (cumtdc), event (event) or cumulative event
  (cumevent).
  Time dependent covariates change their values before an event,
@@ -43,7 +43,7 @@ tmerge(data1, data2,  id,\dots, tstart, tstop, options)
      variable will created. 
    The argument \code{y} is assumed to be on the
    scale of the start and end time, and each instance describes the
-   occurrent of a "condition" at that time.
+   occurrece of a "condition" at that time.
    The second argument \code{x} is optional. In the  case where
    \code{x} is missing the count variable starts at 0 for each subject
    and becomes 1 at the time of the event.
@@ -51,7 +51,7 @@ tmerge(data1, data2,  id,\dots, tstart, tstop, options)
    is initialized to the \code{tdcstart} option and is reset to the
    value of \code{x} at each observation.
    If the option \code{na.rm=TRUE} missing values of \code{x} are
-   first removed.  
+   first removed, i.e., the update will not create missing values.  
 
  \item{newname = cumtdc(y,x)}{ Similar to tdc, except that the event
    count is accumulated over time for each subject.}
@@ -117,7 +117,8 @@ value to be delayed, see the vignette for an example.
   while \code{cumtdc} and \code{cumevent} operators add up the values.
 
   These extra attributes are ephemeral and will be discarded
-  if the dataframe is modified in any way.  This is intentional.
+  if the dataframe is modified.  This is intentional, since they will
+  become invalid if for instance a subset were selected. 
 }
 \author{Terry Therneau}
 \seealso{\code{\link{neardate}}}
