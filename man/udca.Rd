@@ -37,7 +37,7 @@
   The \code{udca2} data set treats all of the endpoints as parallel
   events and has a stratum for each.
 }
-}
+
 \references{
 T. M. Therneau and P. M. Grambsch, Modeling survival data: extending the Cox
 model.  Springer, 2000.
