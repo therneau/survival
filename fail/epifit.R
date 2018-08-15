@@ -1,4 +1,5 @@
 # An example from the epifit package that blew up coxph
+# The issue was a counter that got out of sync, now fixed
 
 id <- 1:8
 group <- c(0, 0, 0, 0, 1, 1, 1, 1)

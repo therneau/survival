@@ -1,4 +1,4 @@
-\section{Exact partial likelihood}
+\subsection{Exact partial likelihood}
 Let $r_i = \exp(X_i\beta)$ be the risk score for observation $i$.
 For one of the time points assume that there that there are $d$ 
 tied deaths among $n$ subjects at risk.  

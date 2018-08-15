@@ -1,5 +1,4 @@
 
-\section{Cox models}
 \subsection{Predicted survival}
 The [[survfit]] method for a Cox model produces individual survival
 curves.  As might be expected these have much in common with

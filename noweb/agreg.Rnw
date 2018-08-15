@@ -1,4 +1,4 @@
-\subsection{Anderson-Gill fits}
+\subsection{Andersen-Gill fits}
 When the survival data set has (start, stop] data a couple of computational
 issues are added.  
 A primary one is how to do this compuation efficiently.
@@ -591,7 +591,7 @@ batches:
 \begin{enumerate}
   \item Find the time of the next death.  Whenever crossing a stratum
     boundary, zero cetain intermediate sums.
-  \item Remove all observations in the stratum with time1 > dtime.
+  \item Remove all observations in the stratum with time1 $>$ dtime.
     When survSplit was used to create a data set, this will often remove all.
     If so we can rezero temporaries and regain precision.
   \item Add new observations to the risk set and to the death counts.

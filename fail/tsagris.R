@@ -31,5 +31,5 @@ cfit2 <- coxph(Surv(days, status) ~ x[,c(7,ivar)], subset=(-toss)) #not okay
 # Digging in, at iteration 9 the liner predictor has a range of -342 to 465
 # The coefficients at iteration 10 leads to multiple NA elements in
 #  the information matrix, but do not quite force the loglik to NA.
-# The code now gives up if there is an either the loglik OR any elements of
+# The code now gives up if either the loglik OR any elements of
 #  imat are non-finite.
