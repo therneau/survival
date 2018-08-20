@@ -19,3 +19,23 @@ timefix for survdiff
 confint method for coxph objects
 
 deal with variables that have spaces, e.g.,  Surv(time, status) ~ `bad name`
+
+---
+Cook and Lawless, Multistate models for life history data, page 104, just above 
+section 3.5.2.  State that  
+  $\hat \theta - \hat\theta_{(i)} \approx V U_i$
+where $V$ is the Cox model variance.
+This is my formula for the dfbeta residuals.  Thay also state that
+ $LD_i = 2(loglik(\theta) - loglik(\theta_{(i)}) = U'_i V U_i $
+
+This appears to be Han Van H's likelihood displacement residual and would lead
+to the cross-validated log-likelhood?   They are talking about parametric
+models though.
+
+--
+
+
+
+tmerge doesn't like Date objects for the timeline.
+
+ 
