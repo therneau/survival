@@ -1,5 +1,11 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 2.42-7}{
+  \itemize{
+    \item Add arguments to survfit: survfit.matrix did not have
+    start.time, and survfitCI did not have p0.  Now both of them have both.
+}}
+
 \section{Changes in version 2.42-6}{
   \itemize{
     \item Remove the cbind.Surv and rbind.Surv methods. 

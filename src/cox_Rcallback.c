@@ -1,9 +1,8 @@
 /*
-**  SCCS  @(#)cox_Rcallback.c	1.1 06/06/97
 ** callback routines for the coxph frailty interface
 *** This is completely  rewritten for R (TSL April 99)
 */
-#include "S.h"
+#include "survS.h"
 #include "Rinternals.h"
 
 /*

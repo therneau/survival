@@ -16,14 +16,20 @@ mydata <- tmerge(mydata, tests, id=idd, ondrug=tdc(date, onoff))
 all.equal(mydata$ondrug, c(NA, NA,1, 1,0,1, NA, 1,0, NA, 1))
 
 
-# Check out addition of a factor
+# Check out addition of a factor, and of a logical
 tests$ff <- factor(tests$onoff, 0:1, letters[4:5])
+tests$logic <- as.logical(tests$onoff)
+
 mydata <- tmerge(mydata, tests, id=idd, fgrp= tdc(date, ff),
                  options=list(tdcstart="new"))
-
 all.equal(mydata$fgrp, 
           factor(c(3,3,2,2,1,2,3,2,1,3,2), labels=c("d", "e", "new")))
 
+mydat2  <-  tmerge(mydata, tests, id=idd, 
+                 logic1 = tdc(date, logic), logic2= event(date, logic))
+all.equal(mydat2$logic1, c(FALSE, TRUE, NA)[as.numeric(mydat2$fgrp)])
+all.equal(mydat2$logic2, c(FALSE, TRUE, FALSE, FALSE, TRUE, FALSE, TRUE,
+                           FALSE, FALSE, TRUE, FALSE))
 
 # Multiple chained calls.  
 newcgd <- tmerge(data1=cgd0[, 1:13], data2=cgd0, id=id, tstop=futime)

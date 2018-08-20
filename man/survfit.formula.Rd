@@ -129,6 +129,19 @@
 	If the total number of elements is larger then the maximum
 	integer the underlying C program can not create it.
       }
+
+      \item{istate}{this applies only to multi-state curves.  An
+	optional variable that gives the starting state for each
+	subject.  If missing then all subjects are assumed to start in
+	an single un-named state.  When a subject has multiple rows only
+	the value from their first (minimal time) row is used.}
+
+      \item{p0}{this applies only to multi-state curves. 
+	An optional vector giving the initial probability across
+	the states. If this is missing, then p0 is estimated using the
+	frequency of the starting states of all observations at risk
+	at \code{start.time}, or if that is not specified, at
+	the time of the first event.
     }
   }
 }
