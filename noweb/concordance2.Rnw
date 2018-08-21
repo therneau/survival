@@ -1,12 +1,13 @@
 \section{Concordance}
- The concordance statistic is the most a measure of goodness-of-fit
+ The concordance statistic is the most used measure of goodness-of-fit
 in survival models.  
 In general let $y_i$ and $x_i$ be observed and predicted data values.
 A pair of obervations $i$, $j$ is considered condordant if either
 $y_i > y_j, x_i > x_j$ or $y_i < y_j, x_i < x_j$.
 For a Cox model remember that the predicted survival $\hat y$ is longer if
-the risk score $X\beta$ is lower.
-The concordance $C$ is the fraction of concordant pairs.
+the risk score $X\beta$ is lower, so we have to flip the definition and
+count ``discordant'' pairs.
+The concordance is the fraction of concordant pairs.
 
 One wrinkle is what to do with ties in either $y$ or $x$.  Such pairs
 can be ignored in the count (treated as incomparable), treated as discordant,
@@ -19,8 +20,8 @@ or given a score of 1/2.
     in $x$ (but not $y$) score as 1/2.  The AUC from logistic regression is
     equal to Somers' $d$.
 \end{itemize}
-All three of the above range from -1 to 1, while $C$ ranges from 0 to 1;
-$C = (d +1)/2$.  
+All three of the above range from -1 to 1, the concordance is
+$(\tau +1)/2$.  
 For survival data any pairs which cannot be ranked with certainty are
 considered incomparable.
 For instance $s_i$ is censored at time 10 and $s_j$ is an event (or censor) 
@@ -32,6 +33,7 @@ since the Cox model only compares within strata.
 
 The program creates 4 variables, which are the number of concordant pairs, 
 discordant, tied on time, and tied on $x$ but not on time.  
+
 The default concordance is 
 based on the AUC definition, but all 4 values are reported back so that a user
 can recreate the others if desired.
@@ -45,7 +47,7 @@ concordance.formula <- function(formula, data,
                                 weights, subset, na.action,
                                 ymin=NULL, ymax=NULL, 
                                 timewt=c("S", "n", "S/G", "n/G", "n/G2"),
-                                influence=FALSE) {
+                                influence=FALSE, id, reverse) {
     Call <- match.call()  # save a copy of of the call, as documentation
     timewt <- match.arg(timewt)
     
@@ -67,11 +69,11 @@ concordance.formula <- function(formula, data,
     }
     n <- nrow(Y)
 
-    wt <- model.extract(m, 'weights')
+    wt <- model.extract(m, "weights")
     offset<- attr(Terms, "offset")
     if (length(offset)>0) stop("Offset terms not allowed")
 
-    stemp <- untangle.specials(Terms, 'strata')
+    stemp <- untangle.specials(Terms, "strata")
     if (length(stemp$vars)) {
 	if (length(stemp$vars)==1) strat <- m[[stemp$vars]]
 	else strat <- strata(m[,stemp$vars], shortlabel=TRUE)
@@ -79,15 +81,18 @@ concordance.formula <- function(formula, data,
     }
     else strat <- NULL
     
+    id <- model.extract(mf, "id")
     cluster<- attr(Terms, "specials")$cluster
     if (length(cluster)) {
+        if (length(id)) 
+            stop("cannot have both a cluster() term and an 'id' argument")
         tempc <- untangle.specials(Terms, 'cluster', 1:10)
         ord <- attr(Terms, 'order')[tempc$terms]
         if (any(ord>1)) stop ("Cluster can not be used in an interaction")
         cluster <- strata(mf[,tempc$vars], shortlabel=TRUE)  #allow multiples
         Terms <- Terms[-tempc$terms]  # toss it away
     }
-                                            
+    else if (length(id)) cluster <- id
                                             
     x <- model.matrix(Terms, m)[,-1, drop=FALSE]  #remove the intercept
     if (ncol(x) > 1) stop("Only one predictor variable allowed")
@@ -97,19 +102,16 @@ concordance.formula <- function(formula, data,
     if (!is.null(ymax) & (length(ymax)> 1 || !is.numeric(ymax)))
         stop("ymax must be a single number")
     
-    count <- concordance.fit(Y, x, strat, wt, ymin, ymax, timewt, influence)
-    if (is.null(strat)) {
-        concordance <- (count[1] + count[3]/2)/sum(count[1:3])
-        std.err <- count[5]/(2* sum(count[1:3]))
-        }
-    else {
-        temp <- colSums(count)
-        concordance <- (temp[1] + temp[3]/2)/ sum(temp[1:3])
-        std.err <- temp[5]/(2*sum(temp[1:3]))
-        }
+    cfit <- concordance.fit(Y, x, strat, wt, ymin, ymax, timewt, influence,
+                             cluster)
+    
+    concordance <- (cfit$tau +1)/2
+    if (missing(reverse)) reverse <- (concordance < .5)
+    if (!is.logical(reverse)) 
+        stop ("the reverse argument must be TRUE/FALSE")
+    if (reverse) concordance <- 1- concordance
 
-    fit <- list(concordance= concordance, stats=count, n=n, 
-                std.err=std.err, call=Call)
+    fit <- c(concordance= concordance, cfit, call=Call)
     na.action <- attr(m, "na.action")
     if (length(na.action)) fit$na.action <- na.action
 
@@ -138,7 +140,8 @@ print.concordance <- function(x, ...) {
 The concordance.fit function is broken out separately, since it is called
 by the \code{coxph} routine.
 If $y$ is not a survival quantity, then all of the options for the
-\code{timewt} parameter lead to the same result, so use the simplest option.
+\code{timewt} parameter lead to the same result, so use the simplest one to
+compute in that case.
 
 <<concordancefit>>=
 concordance.fit <- function(y, x, strata, weight, ymin, ymax, timewt,
@@ -168,10 +171,18 @@ concordance.fit <- function(y, x, strata, weight, ymin, ymax, timewt,
         }
     }
     else {
+        type <- attr(stime, "type")
+        if (type %in% c("left", "interval"))
+            stop("left or interval censored data is not supported")
+        if (type %in% c("mright", "mcounting"))
+            stop("multiple state survival is not supported")
         sfit <- survfitKM(strata, y, wt, se.fit=FALSE)
         if (timewt %in% c("S/G", "n/G", "n/G2")) {
+            if (type != "right")
+                stop("weights involving 1/G are only valid for right censored data")
+            
             y2 <-y
-            y2[,ncol(y)] <- 1- y[,ncol(y)]
+            y2[,2)] <- 1- y[,2]
             gfit <- survfitKM(strata, y2, wt, se.fit=FALSE)
         }
         if (attr(stime, "type") %in% c("counting", "mcounting")) {
@@ -213,7 +224,7 @@ concordance.fit <- function(y, x, strata, weight, ymin, ymax, timewt,
     uindex <- lapply(1:nstrat, function(i) {
         temp <- x[strata==i]
         match(temp, sort(unique(temp)))})
-    nindx <- sapply(uindex, max)   # number of unique values
+    nindx <- sapply(uindex, max)   # number of unique time values in each strata
 
     # create the indexing vectors
     <<btree>>
@@ -225,9 +236,9 @@ concordance.fit <- function(y, x, strata, weight, ymin, ymax, timewt,
     rchild <- unlist(lapply(unidex, function(i) rchild[i]))             
   
     if (ncol(y) ==3) 
-        counts <- .Call(Cconcordance3, stime, x, wts,
+        counts <- .Call(Cconcordance1, stime, x, wts,
                         parent, child)
-    else counts <- .Call(Ccondordanc4, stime, x, wts, sort.start, sort.stop,
+    else counts <- .Call(Ccondordance2, stime, x, wts, sort.start, sort.stop,
                          parent, child)
     counts
 }
