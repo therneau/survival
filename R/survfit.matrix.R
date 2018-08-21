@@ -1,7 +1,8 @@
 # Create the Aalen-Johansen estimate by joining a set of 
 #  survival curves.  Actually the cumulative hazard estimates are used.
 #
-survfit.matrix <- function(formula, p0, method=c("discrete", "matexp"), ...) {
+survfit.matrix <- function(formula, p0, method=c("discrete", "matexp"), 
+                           start.time, ...) {
     Call <- match.call()
     curves <- formula
     if (!is.matrix(curves)) 
@@ -43,14 +44,17 @@ survfit.matrix <- function(formula, p0, method=c("discrete", "matexp"), ...) {
     if (any(sapply(curves, function(x) inherits(x, "survfitms"))))
         stop("multi-state curves are not a valid input")
     type <- classes[[1]][1]  # 'survfit' or 'survfit.cox'
+
     temp <- sapply(curves, function(x) x$start.time)
     tlen <- sapply(temp, length)
     if (any(tlen >0)) {  # at least one curve with start.time
         if (any(tlen != 1) ||
             any(temp != temp[1]))
             stop("all curves must have a consistent start.time value")
+        if (!missing(start.time) && temp[1] > start.time) 
+            warning("curves have a larger start.time than the parameter, start.time parameter value was ignored")
         start.time <- temp[1]
-    } else start.time <- NULL
+    } 
         
 
     if (missing(method)) {
@@ -75,19 +79,33 @@ survfit.matrix <- function(formula, p0, method=c("discrete", "matexp"), ...) {
         jumps <- matrix(unlist(lapply(cumhaz, function(x) diff(c(0, x)))),
                         ncol= sum(nonzero))
         Tmat <- diag(nstate)
-        pstate  <- matrix(0., nrow= 1+length(utime), ncol=nstate)
-        pstate[1,] <- p0
-        for (i in 1:length(utime)) {
+        
+        # deal with the start time argument
+        if (is.null(start.time)) stime <- min(c(0, utime))
+        else stime <- start.time
+        toss <- (utime < stime) 
+        if (any(toss)) {
+            utime <- utime[!toss]
+            jumps <- jumps[!toss,]
+            } 
+        if (utime[1] > stime) {
+            utime <- c(stime, utime)
+            i2 <- 2
+        }  else i2 <- 1
+        pstate  <- matrix(0., nrow= length(utime), ncol=nstate)
+        pstate[1,] <- ptemp <- p0
+        for (i in i2:length(utime)) {
             Tmat[nonzero] <- jumps[i,]
             if (method == "matrix") {
                 temp <- pmin(1, rowSums(Tmat) - diag(Tmat)) # failsafe
                 diag(Tmat) <- 1 - temp  #rows sum to 1
-                pstate[i+1,] <- pstate[i,] %*% Tmat
+                ptemp <- ptemp %*% Tmat
             }
             else {
                 diag(Tmat) <- diag(Tmat) - rowSums(Tmat) #rows sum to 0
-                pstate[i+1,] <- as.vector(pstate[i,] %*% expm(Tmat))
+                ptemp <- as.vector(ptemp %*% expm(Tmat))
             }
+            pstate[i,] <- ptemp
         }
 
         # Fill in the n.risk and n.event matrices
