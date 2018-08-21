@@ -38,3 +38,16 @@ all.equal(b3$x1, c(NA, 1, 0, NA, NA, 2,2, 4,4,4))
 all.equal(b3$x2, c(NA, 1, 0, NA, NA, 2,2, 9,9,9))
 all.equal(b3$x3, c(1,0,0,0,2,0,4,0,0,0))
 all.equal(b3$x4, c(1,0,0,0,2,0,9,0,0,0))
+
+# Multiple overlapping time windows in the first step.
+#  Should generate an error message
+test <- tryCatch(
+            {tmerge(pbcseq[, c("id", "trt", "age", "sex")], pbcseq, id,
+               death = event(futime, status==2))},
+            error= function(cond) {
+                if (grepl("duplicate identifiers", cond)) 
+                    cat("successful tmerge error test\n")
+            }
+)
+
+ 
