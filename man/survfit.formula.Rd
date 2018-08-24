@@ -141,7 +141,7 @@
 	the states. If this is missing, then p0 is estimated using the
 	frequency of the starting states of all observations at risk
 	at \code{start.time}, or if that is not specified, at
-	the time of the first event.
+	the time of the first event.}
     }
   }
 }

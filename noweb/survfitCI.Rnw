@@ -132,8 +132,7 @@ survfitCI <- function(X, Y, weights, id, istate,
         if (length(p0) != length(state.names)) stop("wrong length for p0")
         if (!is.numeric(p0) || abs(1-sum(p0)) > sqrt(.Machine$double.eps))
             stop("p0 must be a numeric vector that adds to 1")
-        p0parm <- TRUE
-    } else p0parm <- FALSE
+    } else p0 <- NULL
 @
  
 The status vector will have values of 0 for censored.
@@ -163,7 +162,7 @@ The status vector will have values of 0 for censored.
             indx <- which(X==i)
             curves[[i]] <- docurve2(entry[indx], Y[indx,1], status[indx], 
                                     istate[indx], weights[indx], states, 
-                                    id[indx], se.fit, influence)
+                                    id[indx], se.fit, influence, p0)
          }
     }
     else {
@@ -344,7 +343,8 @@ for (i in levels(X)) {
 #    temp <- docurve1(Y[indx,1], Y[indx,2], status[indx], 
 #                          istate[indx], weights[indx], states, id[indx])
     curves[[i]] <- docurve2(Y[indx,1], Y[indx,2], status[indx], istate[indx],
-                          weights[indx], states, id[indx], se.fit, influence)
+                          weights[indx], states, id[indx], se.fit, 
+                          influence, p0)
 }
 @ 
             
@@ -441,7 +441,7 @@ and subjects are dribbling in, then the best point to start a plot
 is open to debate.  Que sera sera.
 <<survfitCI-compute>>=
 docurve2 <- function(entry, etime, status, istate, wt, states, id, 
-                     se.fit, influence=FALSE) {
+                     se.fit, influence=FALSE, p0) {
     timeset <- sort(unique(etime))
     nstate <- length(states)
     uid <- sort(unique(id))
@@ -458,7 +458,7 @@ docurve2 <- function(entry, etime, status, istate, wt, states, id,
     storage.mode(wt) <- "double" # just in case someone had integer weights
 
     # Compute p0 (unless given by the user)
-    if (!p0parm) {
+    if (is.null(p0)) {
         if (all(status==0))  t0 <- max(etime)  #failsafe
         else t0 <- min(etime[status!=0])  # first transition event
         at.zero <- (entry < t0 & etime >= t0) 

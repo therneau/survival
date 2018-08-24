@@ -1,5 +1,5 @@
 
-R Under development (unstable) (2018-05-10 r74706) -- "Unsuffered Consequences"
+R Under development (unstable) (2018-07-26 r75007) -- "Unsuffered Consequences"
 Copyright (C) 2018 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
@@ -34,15 +34,23 @@ Type 'q()' to quit R.
 [1] TRUE
 > 
 > 
-> # Check out addition of a factor
+> # Check out addition of a factor, and of a logical
 > tests$ff <- factor(tests$onoff, 0:1, letters[4:5])
+> tests$logic <- as.logical(tests$onoff)
+> 
 > mydata <- tmerge(mydata, tests, id=idd, fgrp= tdc(date, ff),
 +                  options=list(tdcstart="new"))
-> 
 > all.equal(mydata$fgrp, 
 +           factor(c(3,3,2,2,1,2,3,2,1,3,2), labels=c("d", "e", "new")))
 [1] TRUE
 > 
+> mydat2  <-  tmerge(mydata, tests, id=idd, 
++                  logic1 = tdc(date, logic), logic2= event(date, logic))
+> all.equal(mydat2$logic1, c(FALSE, TRUE, NA)[as.numeric(mydat2$fgrp)])
+[1] TRUE
+> all.equal(mydat2$logic2, c(FALSE, TRUE, FALSE, FALSE, TRUE, FALSE, TRUE,
++                            FALSE, FALSE, TRUE, FALSE))
+[1] TRUE
 > 
 > # Multiple chained calls.  
 > newcgd <- tmerge(data1=cgd0[, 1:13], data2=cgd0, id=id, tstop=futime)
@@ -75,4 +83,4 @@ Type 'q()' to quit R.
 > 
 > proc.time()
    user  system elapsed 
-  0.812   0.032   0.843 
+  1.005   0.035   1.034 

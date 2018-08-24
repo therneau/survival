@@ -1,5 +1,5 @@
 
-R Under development (unstable) (2018-05-10 r74706) -- "Unsuffered Consequences"
+R Under development (unstable) (2018-07-26 r75007) -- "Unsuffered Consequences"
 Copyright (C) 2018 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
@@ -61,6 +61,20 @@ Type 'q()' to quit R.
 > all.equal(b3$x4, c(1,0,0,0,2,0,9,0,0,0))
 [1] TRUE
 > 
+> # Multiple overlapping time windows in the first step.
+> #  Should generate an error message
+> test <- tryCatch(
++             {tmerge(pbcseq[, c("id", "trt", "age", "sex")], pbcseq, id,
++                death = event(futime, status==2))},
++             error= function(cond) {
++                 if (grepl("duplicate identifiers", cond)) 
++                     cat("successful tmerge error test\n")
++             }
++ )
+successful tmerge error test
+> 
+>  
+> 
 > proc.time()
    user  system elapsed 
-  0.772   0.052   0.823 
+  0.918   0.071   0.983 

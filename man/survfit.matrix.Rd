@@ -8,14 +8,15 @@
   individual hazard estimates.  Each row of P will sum to 1.
 }
 \usage{
-\method{survfit}{matrix}(formula, p0, method = c("discrete", "matexp"), ...)
+\method{survfit}{matrix}(formula, p0, method = c("discrete", "matexp"),
+        start.time, ...)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{formula}{a matrix of lists, each element of which is either NULL or
     a survival curve object. 
 }
-\item{p0}{the initial state vector.  The names of this vector are used
+  \item{p0}{the initial state vector.  The names of this vector are used
   as the names of the states in the output object.  If there are
   multiple curves then \code{p0} can be a matrix with one row per curve.
 }
@@ -23,7 +24,9 @@
     use a product of discrete hazards, or a product of matrix exponentials.
     See details below.
   }
-  \item{...}{further arguments for other methods}
+  \item{start.time}{optional; start the calculations at a given starting
+    point}
+  \item{...}{further arguments used by other survfit methods}
 }
 \details{
   On input the matrix should contain a set of predicted curves for each
