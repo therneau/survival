@@ -6,7 +6,7 @@ A pair of obervations $i$, $j$ is considered condordant if either
 $y_i > y_j, x_i > x_j$ or $y_i < y_j, x_i < x_j$.
 For a Cox model remember that the predicted survival $\hat y$ is longer if
 the risk score $X\beta$ is lower, so we have to flip the definition and
-count ``discordant'' pairs.
+count ``discordant'' pairs at the end of the routine.
 The concordance is the fraction of concordant pairs.
 
 One wrinkle is what to do with ties in either $y$ or $x$.  Such pairs
@@ -21,7 +21,7 @@ or given a score of 1/2.
     equal to Somers' $d$.
 \end{itemize}
 All three of the above range from -1 to 1, the concordance is
-$(\tau +1)/2$.  
+$(d +1)/2$.  
 For survival data any pairs which cannot be ranked with certainty are
 considered incomparable.
 For instance $s_i$ is censored at time 10 and $s_j$ is an event (or censor) 
@@ -44,14 +44,15 @@ concordance <- function(x, ...)
     UseMethod("concordance")
 
 concordance.formula <- function(formula, data,
-                                weights, subset, na.action,
+                                weights, subset, na.action, group,
                                 ymin=NULL, ymax=NULL, 
                                 timewt=c("S", "n", "S/G", "n/G", "n/G2"),
                                 influence=FALSE, id, reverse) {
     Call <- match.call()  # save a copy of of the call, as documentation
     timewt <- match.arg(timewt)
     
-    index <- match(c("formula", "data", "weights", "subset", "na.action", "id"),
+    index <- match(c("formula", "data", "weights", "subset", "na.action", 
+                     "group"),
                    names(Call), nomatch=0)
     temp <- Call[c(1, index)]
     temp[[1L]] <-  quote(stats::model.frame)
@@ -62,14 +63,14 @@ concordance.formula <- function(formula, data,
     if (nrow(mf) ==0) stop("No (non-missing) observations")
     Terms <- terms(mf)
 
-    Y <- model.extract(mf, "response")
+    Y <- model.response(mf)
     if (!inherits(Y, "Surv")) {
         if (is.numeric(Y) && is.vector(Y))  Y <- Surv(Y)
         else stop("left hand side of the formula  must be a numeric vector or a surival")
     }
     n <- nrow(Y)
 
-    wt <- model.extract(m, "weights")
+    wt <- model.weights(mf)
     offset<- attr(Terms, "offset")
     if (length(offset)>0) stop("Offset terms not allowed")
 
@@ -359,41 +360,43 @@ Looking back at equation \eqref{C} we have
 \begin{align}
   C  &= \sum_i (v_i/m_i) w_i \delta_i \sum_j Y^*_j(t_i) w_j I(x_i < x_j) 
   \nonumber\\
- \frac{\partial C}{\partial w_k} &= 
-    (v_k/m_k)\delta_k \sum_j Y^*_{j}(t_k) I(x_k < x_j) +
-    \sum_i (v_i/m_i) w_i Y^*_k(t_i) I(x_i < x_k) \label{partialC}
+% \frac{\partial C}{\partial w_k} &= 
+%    (v_k/m_k)\delta_k \sum_j Y^*_{j}(t_k) I(x_k < x_j) +
+%    \sum_i (v_i/m_i) w_i Y^*_k(t_i) I(x_i < x_k) \label{partialC}
 \end{align}
-The first term of this is a sum over all subjects who were at risk when subject
-$k$ had an event, if any, and the second over all other subjects' events for
-which subject $k$ was at risk, in both cases not counting a pair of tied death 
-times as comparable to each other.
+A given subject's weight appears twice, once when they are an
+event ($w_i \delta_i)$, and the second time as part of the risk set for other's
+events.  
+The solution is to keep two trees.  
+Tree 1 contains all of the subjects at risk, and we traverse it to obtain the 
+updates to the concordance.  
+The second tree holds only the deaths.  It it updated at each death,
+with subtotals of concordant, discordant, and tied.  
+Just before a given subject enters the risk set add -1 times the current sums
+of concordant, discordant, tied, and total to their counter, and then just
+before they leave add the new totals.  
+Deaths cause a separate influence addition when they occur.
 
-I had originally avoided the IJ approach because it appears to be an $O(nd)$
-summation, adding a bit to each at-risk subject each time there is an
-event.  A key insight due to David Watson is that we can avoid this.
-Within the tree we keep the sum of weights for each node and for 
-its left and right children, along with a parallel triple that totals only 
-the deaths.
 The basic algorithm is to move through an outer and inner loop.  The
 outer loop moves across unique death times, the inner for all obs that
-share a time.  Move from largest
-to smallest time.
+share a time.  Move from largest to smallest time.
 \begin{enumerate}
   \item Move to a new event time
-    \item For all data rows which leave the risk set at this time, 
-      add the current deaths triple to their IJ estimate (only applicable
-      to start, stop data).
-    \item For all subjects with an endpoint at this time
-    \begin{enumerate}
-      \item Add -1 times the deaths triple to the subject's IJ estimate
-      \item If not an event, add the subject to the first total in the tree
-      \item If an event, add the first triple to their IJ estimate, and also
-        increment the global totals for $C$, $D$, and $T$.
-    \end{enumerate}
-  \item Go through the deaths at this event time again,
-     adding their totals to both the overall and death triples in the tree
-  \item At the end of each stratum, add the current deaths triple to all
-    subjects still in the stratum.
+  \item For any new entries, subtract intialize the current grand totals from
+    their IJ counts in tree 2.  
+    For a grouped jackknife several subjects may share the same indices.
+  \item Add those subjects into the main tree.
+  \item For all subjects with an an event at this time, make a first pass
+    \begin{itemize}
+      \item update the values in tree 2 and also update the concordance.
+      \item Keep track of the tied time count as well.  Since the predictor
+        value plays no role for these we don't need a tree, just a count.  It
+        will rezero at the next unique event time.
+    \end{itemize}
+  \item Remove any observations from the main tree that leave at this event 
+    time, updating their IJ counts using tree 2.
+  \item At the end of each stratum, remove all remaining subjects from the
+    tree, while updating IJ counts.
 \end{enumerate}
 
 A second variance estimate is based on the Cox model.  
@@ -548,7 +551,7 @@ The key part of our computation is to update the vectors of weights.
 We don't actually pass the risk score values $r$ into the routine,   %'
 it is enough for each observation to point to the appropriate tree
 node.
-The tree contains the  for everyone whose survival is larger
+The tree contains the weights for everyone whose survival is larger
 than the time currently under review, so starts with all weights
 equal to zero.  
 For any pair of observations $i,j$ we need to add [[wt[i]*wt[j]]]
