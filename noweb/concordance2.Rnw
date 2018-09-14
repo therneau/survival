@@ -6,7 +6,7 @@ A pair of obervations $i$, $j$ is considered condordant if either
 $y_i > y_j, x_i > x_j$ or $y_i < y_j, x_i < x_j$.
 For a Cox model remember that the predicted survival $\hat y$ is longer if
 the risk score $X\beta$ is lower, so we have to flip the definition and
-count ``discordant'' pairs.
+count ``discordant'' pairs at the end of the routine.
 The concordance is the fraction of concordant pairs.
 
 One wrinkle is what to do with ties in either $y$ or $x$.  Such pairs
@@ -21,7 +21,7 @@ or given a score of 1/2.
     equal to Somers' $d$.
 \end{itemize}
 All three of the above range from -1 to 1, the concordance is
-$(\tau +1)/2$.  
+$(d +1)/2$.  
 For survival data any pairs which cannot be ranked with certainty are
 considered incomparable.
 For instance $s_i$ is censored at time 10 and $s_j$ is an event (or censor) 
@@ -44,14 +44,15 @@ concordance <- function(x, ...)
     UseMethod("concordance")
 
 concordance.formula <- function(formula, data,
-                                weights, subset, na.action,
+                                weights, subset, na.action, group,
                                 ymin=NULL, ymax=NULL, 
                                 timewt=c("S", "n", "S/G", "n/G", "n/G2"),
                                 influence=FALSE, id, reverse) {
     Call <- match.call()  # save a copy of of the call, as documentation
     timewt <- match.arg(timewt)
     
-    index <- match(c("formula", "data", "weights", "subset", "na.action", "id"),
+    index <- match(c("formula", "data", "weights", "subset", "na.action", 
+                     "group"),
                    names(Call), nomatch=0)
     temp <- Call[c(1, index)]
     temp[[1L]] <-  quote(stats::model.frame)
@@ -62,14 +63,14 @@ concordance.formula <- function(formula, data,
     if (nrow(mf) ==0) stop("No (non-missing) observations")
     Terms <- terms(mf)
 
-    Y <- model.extract(mf, "response")
+    Y <- model.response(mf)
     if (!inherits(Y, "Surv")) {
         if (is.numeric(Y) && is.vector(Y))  Y <- Surv(Y)
         else stop("left hand side of the formula  must be a numeric vector or a surival")
     }
     n <- nrow(Y)
 
-    wt <- model.extract(m, "weights")
+    wt <- model.weights(mf)
     offset<- attr(Terms, "offset")
     if (length(offset)>0) stop("Offset terms not allowed")
 
@@ -359,21 +360,26 @@ Looking back at equation \eqref{C} we have
 \begin{align}
   C  &= \sum_i (v_i/m_i) w_i \delta_i \sum_j Y^*_j(t_i) w_j I(x_i < x_j) 
   \nonumber\\
- \frac{\partial C}{\partial w_k} &= 
-    (v_k/m_k)\delta_k \sum_j Y^*_{j}(t_k) I(x_k < x_j) +
-    \sum_i (v_i/m_i) w_i Y^*_k(t_i) I(x_i < x_k) \label{partialC}
+% \frac{\partial C}{\partial w_k} &= 
+%    (v_k/m_k)\delta_k \sum_j Y^*_{j}(t_k) I(x_k < x_j) +
+%    \sum_i (v_i/m_i) w_i Y^*_k(t_i) I(x_i < x_k) \label{partialC}
 \end{align}
-The first term of this is a sum over all subjects who were at risk when subject
-$k$ had an event, if any, and the second over all other subjects' events for
-which subject $k$ was at risk, in both cases not counting a pair of tied death 
-times as comparable to each other.
+A given subject's weight appears in two places, once when they are an
+event ($w_i \delta_i)$, and the second as part of the risk set for other's
+events.  
+The solution is to keep two trees.  One contains all of the subjects at risk
+and provides the multiplier for the first type.
+The second tree holds only the deaths.  It it updated at each death,
+with subtotals of concordant, discordant, and tied.  
+Just before a given subject enters the risk set add -1 times the current sums
+of concordant, discordant, tied, and total to their counter, and then just
+before they leave add the new totals.  
+Deaths cause a separate addition when they occur.
 
-I had originally avoided the IJ approach because it appears to be an $O(nd)$
-summation, adding a bit to each at-risk subject each time there is an
-event.  A key insight due to David Watson is that we can avoid this.
-Within the tree we keep the sum of weights for each node and for 
-its left and right children, along with a parallel triple that totals only 
-the deaths.
+Keeping tied survival times and tied predictors as separate totals is a bit
+of a PITA.  We can keep a separate total for current ties easily enough. 
+But at the end of the tie we need to reset that entire tree to zero, which
+is one of the O(n) steps we are trying to avoid.
 The basic algorithm is to move through an outer and inner loop.  The
 outer loop moves across unique death times, the inner for all obs that
 share a time.  Move from largest
@@ -548,7 +554,7 @@ The key part of our computation is to update the vectors of weights.
 We don't actually pass the risk score values $r$ into the routine,   %'
 it is enough for each observation to point to the appropriate tree
 node.
-The tree contains the  for everyone whose survival is larger
+The tree contains the weights for everyone whose survival is larger
 than the time currently under review, so starts with all weights
 equal to zero.  
 For any pair of observations $i,j$ we need to add [[wt[i]*wt[j]]]
