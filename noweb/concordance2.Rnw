@@ -29,6 +29,7 @@ at time 20.  Subject $i$ may or may not survive longer than subject $j$.
 Note that if $s_i$ is censored at time
 10 and $s_j$ is an event at time 10 then $s_i > s_j$.  
 Observations that are in different strata are also incomparable, 
+
 since the Cox model only compares within strata.
 
 The program creates 4 variables, which are the number of concordant pairs, 
