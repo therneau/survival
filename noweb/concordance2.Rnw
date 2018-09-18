@@ -4,10 +4,10 @@ in survival models.
 In general let $y_i$ and $x_i$ be observed and predicted data values.
 A pair of obervations $i$, $j$ is considered condordant if either
 $y_i > y_j, x_i > x_j$ or $y_i < y_j, x_i < x_j$.
+The concordance is the fraction of concordant pairs.
 For a Cox model remember that the predicted survival $\hat y$ is longer if
 the risk score $X\beta$ is lower, so we have to flip the definition and
-count ``discordant'' pairs at the end of the routine.
-The concordance is the fraction of concordant pairs.
+count ``discordant'' pairs, this is done at the end of the routine.
 
 One wrinkle is what to do with ties in either $y$ or $x$.  Such pairs
 can be ignored in the count (treated as incomparable), treated as discordant,
@@ -24,17 +24,15 @@ All three of the above range from -1 to 1, the concordance is
 $(d +1)/2$.  
 For survival data any pairs which cannot be ranked with certainty are
 considered incomparable.
-For instance $s_i$ is censored at time 10 and $s_j$ is an event (or censor) 
+For instance $y_i$ is censored at time 10 and $y_j$ is an event (or censor) 
 at time 20.  Subject $i$ may or may not survive longer than subject $j$.  
-Note that if $s_i$ is censored at time
-10 and $s_j$ is an event at time 10 then $s_i > s_j$.  
+Note that if $y_i$ is censored at time
+10 and $y_j$ is an event at time 10 then $y_i > y_j$.  
 Observations that are in different strata are also incomparable, 
-
 since the Cox model only compares within strata.
 
 The program creates 4 variables, which are the number of concordant pairs, 
 discordant, tied on time, and tied on $x$ but not on time.  
-
 The default concordance is 
 based on the AUC definition, but all 4 values are reported back so that a user
 can recreate the others if desired.
@@ -48,7 +46,7 @@ concordance.formula <- function(formula, data,
                                 weights, subset, na.action, group,
                                 ymin=NULL, ymax=NULL, 
                                 timewt=c("S", "n", "S/G", "n/G", "n/G2"),
-                                influence=FALSE, id, reverse) {
+                                influence=0, reverse) {
     Call <- match.call()  # save a copy of of the call, as documentation
     timewt <- match.arg(timewt)
     
@@ -83,18 +81,17 @@ concordance.formula <- function(formula, data,
     }
     else strat <- NULL
     
-    id <- model.extract(mf, "id")
+    group <- model.extract(mf, "(group)")
     cluster<- attr(Terms, "specials")$cluster
     if (length(cluster)) {
-        if (length(id)) 
-            stop("cannot have both a cluster() term and an 'id' argument")
         tempc <- untangle.specials(Terms, 'cluster', 1:10)
         ord <- attr(Terms, 'order')[tempc$terms]
         if (any(ord>1)) stop ("Cluster can not be used in an interaction")
         cluster <- strata(mf[,tempc$vars], shortlabel=TRUE)  #allow multiples
         Terms <- Terms[-tempc$terms]  # toss it away
     }
-    else if (length(id)) cluster <- id
+    else if (length(group)==0) group <- rep.int(1,n)
+    if (length(group)) cluster <- group
                                             
     x <- model.matrix(Terms, m)[,-1, drop=FALSE]  #remove the intercept
     if (ncol(x) > 1) stop("Only one predictor variable allowed")
@@ -147,102 +144,104 @@ compute in that case.
 
 <<concordancefit>>=
 concordance.fit <- function(y, x, strata, weight, ymin, ymax, timewt,
-                            influence) {
+                            influence, group) {
     # The coxph program may occassionally fail, and this will kill the C
-    #  routine below
+    #  routine below.  So check for it.
     if (any(is.na(x)) || any(is.na(y))) return(NULL)
 
     # these should only occur if something outside survival calls this routine
     n <- length(y)
     if (length(x) != n) stop("x and y are not the same length")
-    if (missing(strata) || is.null(strata)) strata <- rep(0L, n)
-    else if (length(strata) != n)
+    if (!missing(strata) && length(strata) != n)
         stop("y and strata are not the same length")
-    if (length(weight) != n) stop("y and weight are not the same length")
-
-    # sort y and x, and get the weights
+    if (missing(weight)) weight <- rep(1, n)
+    else if (length(weight) != n) stop("y and weight are not the same length")
     if (!is.Surv(y)) {
-        if (any(diff(order(strata, y)) < 1)) {
-            ord <- order(strata, y)  # y within strata
-            y <- y[ord]
-            x <- x[ord]
-            wt <- wt[ord]
-            strata <- strata[ord]
-            sfit <- survfitKM(strata, Surv(y), wt, se.fit=FALSE) 
-            timewt <- "S"
-        }
+        y <- Surv(y)
+        timewt <- 'n'
     }
-    else {
-        type <- attr(stime, "type")
-        if (type %in% c("left", "interval"))
-            stop("left or interval censored data is not supported")
-        if (type %in% c("mright", "mcounting"))
-            stop("multiple state survival is not supported")
-        sfit <- survfitKM(strata, y, wt, se.fit=FALSE)
-        if (timewt %in% c("S/G", "n/G", "n/G2")) {
-            if (type != "right")
-                stop("weights involving 1/G are only valid for right censored data")
-            
-            y2 <-y
-            y2[,2)] <- 1- y[,2]
-            gfit <- survfitKM(strata, y2, wt, se.fit=FALSE)
-        }
-        if (attr(stime, "type") %in% c("counting", "mcounting")) {
-            sort.stop <- order(strata, -stime[,2], stime[,3])
-            sort.start <- order(strata, -stime[,1])
+
+    type <- attr(y, "type")
+    if (type %in% c("left", "interval"))
+        stop("left or interval censored data is not supported")
+    if (type %in% c("mright", "mcounting"))
+        stop("multiple state survival is not supported")
+   
+    # This routine is called once per stratum
+    docount <- function(stime, risk, wts, grp, timewt= 'n') {
+        n <- length(risk)
+        # this next line is mostly invoked in stratified logistic, where
+        #  only 1 event per stratum occurs.  All time weightings are the same
+        if (sum(stime[,ncol(stime)]) <2) timewt <- 'n'
+        
+        # order the data
+        if (ncol(stime)==2) {
+            ord <- order(-y[,2], y[,1])  # reverse time, censors before deaths
+            stime <- stime[ord,]
+            risk  <- risk[ord]
+            wts   <- wts[ord]
         } else {
-            ord <- order(strata, y[,1], -y[,2])  # death before censoring
-            y <- y[ord,]
-            x <- x[ord]
-            wt <- wt[ord]
-            strata <- strata[ord]
+            sort.stop <- order(-stime[,2], stime[,3])
+            sort.start <- order(-stime[,1])
         }
-    }
-     
-    # weights involve S(t) and G(t-), so we need to interpolate G per
-    #  stratum
-    nstrat <- max(stratum)
-    if (timewt %in% c("S/G", "n/G", "n/G2")) {
-        gwt <- unlist(lapply(1:nstrat, function(i) {
-            stemp <- sfit[i]
-            gtemp <- gfit[i]
-            etime <- stemp$time[stemp$nevent>0]
-            e2 <- etime - min(diff(etime))/2
-            summary(gfit[i], times=e2, extend=TRUE)$surv
-        }))
-    }
-    etime <- sfit$time[sfit$nevent>0]
-    swt <- sfit$surv[sfit$nevent>0]
-    nwt <- (sfit$nrisk- sfit$nevent)[sfit$nevent>0]
-    twt <- switch(timewt) {
-        "S" = swt
-        "S/G" = swt/gwt,
-        "n" = nwt,
-        "n/G"= nwt/gwt,
-        "n/G2" = nwt/gwt^2
+
+        sfit <- survfitKM(rep(1L, n), stime, se.fit=FALSE)
+        etime <- sfit$time[sfit$nevent > 0]
+        esurv <- c(1, sfit$surv)[which(sfit$nevent > 0)]
+        
+        if (timewt %in% c("S/G", "n/G", "n/G2")) {
+            temp <- stime
+            temp[,ncol(temp)] <- 1- temp[,ncol(temp)] # switch event/censor
+            gfit <- survfitKM(rep(1L, n), temp, se.fit=FALSE)
+            gsurv <- summary(gfit, times= etime + min(diff(etime))/2,
+                             extend=TRUE)
+        }
+
+        twt <- switch(timewt) {
+            "S" = esurv,
+            "S/G" = esurv/gsurv,
+            "n" =  sfit$nrisk[sfit$nevent>0],
+            "n/G"= sfit$nrisk[sfit$nevent>0]/gsurv,
+            "n/G2" =  sfit$nrisk[sfit$nevent>0]/gsurv^2
+        }
+    
+        # match each prediction score to the unique set of scores
+        # (to deal with ties)
+        utemp <- match(risk, sort(unique(risk)))
+        bindex <- btree(max(utemp))[utemp]
+        grp <- match(group, sort(unique(group))
+        if (ncol(y) ==2) 
+            .Call(Cconcordance3, stime, bindex, wts,
+                            influence, grp)
+        else .Call(Ccondordance4, stime, bindex, wts, sort.start, 
+                             sort.stop, influence, grp)
     }
     
-    # match each score to the unique set (to deal with ties)
-    uindex <- lapply(1:nstrat, function(i) {
-        temp <- x[strata==i]
-        match(temp, sort(unique(temp)))})
-    nindx <- sapply(uindex, max)   # number of unique time values in each strata
-
-    # create the indexing vectors
-    <<btree>>
-    temp <- btree(max(nindx))
-    parent <- as.integer(temp/2L)  # node number of parent
-    rchild <- as.integer(temp %%2) # is this node the right child? 
-                  
-    parent <- unlist(lapply(unidex, function(i) parent[i]))
-    rchild <- unlist(lapply(unidex, function(i) rchild[i]))             
-  
-    if (ncol(y) ==3) 
-        counts <- .Call(Cconcordance1, stime, x, wts,
-                        parent, child)
-    else counts <- .Call(Ccondordance2, stime, x, wts, sort.start, sort.stop,
-                         parent, child)
-    counts
+    if (missing(strata) || length(strata)==0 || all(strata==strata[1])) {
+        fit <- docount(y, x, weight, grp)
+        names(fit$count) <- c("concordant", "discordant", "tied.x", "tied.y",
+                          "var", "avar")
+    }
+    else { 
+        strata <- as.factor(strata)
+        ustrat <- levels(strata)[table(strata) >0]  #some strata may have 0 obs
+        count <- matrix(0., nrow=length(ustrat), ncol=6)
+        dimnames(count) <- list(ustrat, c("concordant", "discordant", "tied.x", 
+                                          "tied.y", "var", "avar")
+        if (influence==1) itemp  <- double(length(x))
+        else if (influence==2) itemp <- matrix(0., length(x), 4)
+            
+        for (i in 1:length(ustrat)) {
+            keep <- which(strata == ustrat[i])
+            tfit <- docount(y[keep,,drop=F], x[keep], weight[keep], grp[keep])
+            count[i,] <- tfit$count
+            if (influence==1) itemp[keep] <- tfit$influence
+            else if (influence==2) itemp[keep,] <- tfit$influence
+        }
+        if (influence==0) fit <- list(count=count)
+        else fit <- list(count=count, influence=influence)
+    }
+        fit
 }
 @ 
 
@@ -334,25 +333,30 @@ The parent of node $i$ is $i/2$ (integer arithmetic) and the children of
 node $i$ are $2i$ and $2i +1$.  In C code the indices start at 0 of course.
 The following bit of code arranges data into such a tree.
 <<btree>>=
-btree <- function(n, id=1L) {
-    if (n==1) id
-    else if (n==2) c(2L*id, id)
-    else if (n==3) c(2L*id, id, 1L*id + 2L)
-    else {
-        split <- ceiling(n/2)
-        c(btree(split-1, 2L*id), id, btree(n-split, 1L + 2L*id))
-    }
+btree <- function(n) {
+   tfun <- function(n, id, power) {
+       if (n==1L) id
+       else if (n==2L) c(2L *id + 1L, id)
+       else if (n==3L) c(2L*id + 1L, id, 2L*id +2L)
+       else {
+           nleft <- if (n== power*2L) power  else min(power-1L, n-power%/%2L)
+           c(tfun(nleft, 2L *id + 1L, power%/%2), id,
+             tfun(n-(nleft+1L), 2L*id +2L, power%/%2))
+       }
+   }
+   tfun(as.integer(n), 0L, as.integer(2^(floor(logb(n-1,2)))))
 }
 @ 
 
 Referring again to figure \ref{treefig}, \code{btree(13)} yields the vector
-\code{ 8 4 2 10 5 7 1 12 6 3 14 7 9}
+\code{7  3  8  1  9  4 10  0 11  5 12  2  6}
 meaning that the smallest element
-will be in position 8 of the tree, the next smallest in position 2, etc.
-This function does not fill the bottom row of the tree from left to 
-right, which is okay;
-what is important in the algorithm is that the parent of each node has an
-index which is $\le n$.
+will be in position 8 of the tree, the next smallest in position 2, etc,
+using indexing that starts at 0 since the results will be passed to a C
+routine.
+The routine above takes care to do all arithmetic as integer.  
+This actually made almost no difference in the compute time, but was an
+interesting exercise to find that out.
 
 The next question is how to compute a variance for the result.
 One approach is to compute an infinitesimal jackknife (IJ) estimate,
@@ -512,42 +516,89 @@ Input variables are
 
 <<concordance1>>=
 #include "survS.h"
-SEXP concordance1(SEXP y, SEXP wt2,  SEXP indx2, SEXP ntree2) {
+SEXP concordance3(SEXP y, SEXP x2, SEXP wt2, SEXP influence2, SEXP group2) {
     int i, j, k, index;
-    int child, parent;
-    int n, ntree;
+    int lchild, rchild, parent;
+    int n, ngrp, ntree;
     double *time, *status;
+    /* first are the count, sum of weights, count for node and all children,
+    **  and sum for all
+    ** second are 4 matrices which apply only to the deaths, and have the
+    **  same info, but with one row for each of concordant, discordant, and tied
+    **  on x.
+    */
+    double *ncount, *nwt, *tcount, *twt;
+    double *dncount, *dnwt, *dtcount, *dtwt;  /* deaths: node count etc */
     double *twt, *nwt, *count;
     double vss, myrank, wsum1, wsum2, wsum3; /*sum of wts below, tied, above*/
     double lmean, umean, oldmean, newmean;
         
     double ndeath;   /* weighted number of deaths at this point */
     
-    SEXP count2;
+    SEXP rlist, count2, imat2;
+    double *count, *imat[6];
     double *wt;
-    int    *indx;
+    int    *x;
+    int    *group;
+    static const char *outnames[]={"count", "influence", ""};
     
     n = nrows(y);
-    ntree = asInteger(ntree2);
+    x = INTEGER(x2);
     wt = REAL(wt2);
-    indx = INTEGER(indx2);
+    ngrp = length(group2)
+    group = INTEGER(group2);
+    influence = asInteger(influence2);
     
+    /* if there are tied predictors, the total size of the tree will be < n */
+    ntree =0;
+    for (i=0; i<n; i++) 
+	if (x[i] >= ntree) ntree = x[i] +1;
+        
     time = REAL(y);
     status = time + n;
-    PROTECT(count2 = allocVector(REALSXP, 5));
-    count = REAL(count2);  /* count5 contains the information matrix */
-    twt = (double *) R_alloc(2*ntree, sizeof(double));
-    nwt = twt + ntree;
-    for (i=0; i< 2*ntree; i++) twt[i] =0.0;
-    for (i=0; i<5; i++) count[i]=0.0;
+    PROTECT(count2 = allocVector(REALSXP, 6));
+    count = REAL(count2);  /* counts 5-6 contains the variances */
+    ncount = (double *) R_alloc(8*ntree, sizeof(double));
+    nwt = ncount + ntree;
+    tcount = nwt + ntree;
+    twt = tcount + ntree;
+    dncount = twt + ntree;
+    dnwt = dncount + ntree;
+    dtcount = dnwt + ntree;
+    dtwt = dtcount + ntree;
+    
+    for (i=0; i< 8*ntree; i++) ncount[i] =0.0;
+    for (i=0; i<6; i++) count[i]=0.0;
     vss=0;
 
-    <<concordance1-work>>
+    PROTECT(rlist = mkNamed(VECSXP, outnames));
+    count2 = SET_VECTOR_ELT(rlist, 0, allocVector(REALSXP, 6));
+    count = REAL(count2);  /* counts 5-6 contains the variances */
+
+    /* assign the influence matrix, and maybe return it */
+    if (influence == 2) {
+	/* return the whole thing */
+	imat2 = SET_VECTOR_ELT(rlist, 1, allocMatrix(REALSXP, ngroup, 4));
+	for (i=0; i<4; i++) imat[i] = imat2 + i*ngroup;
+    }
+    else { 
+	imat[0] = allocVector(REALSXP, ngroup, 4);  /* imat is internal only*/
+	for (i=1; i<3; i++) imat[i] = imat[0] + i*ngroup;
+	
+	if (influence==1) {
+	    /* return one value per group */
+	    imat2 = SET_VECTOR_ELT(rlist, 1, allocVector(REALSXP, ngroup));
+	    imatx = REAL(imat2);
+	}
+    }
+
+    <<concordance3-work>>
         
     UNPROTECT(1);
-    return(count2);
+    return(rlist);
 }
 @ 
+
 The key part of our computation is to update the vectors of weights.
 We don't actually pass the risk score values $r$ into the routine,   %'
 it is enough for each observation to point to the appropriate tree
@@ -564,9 +615,9 @@ Starting at the largest time (which is sorted last), walk through the tree.
     \begin{enumerate}
       \item Add [[wt[i] * wt[j]]] to the tied-on-time total, 
 	for all pairs $i,j$ of tied times.
-      \item The addition to tied-on-r will be the weight of this 
+      \item The addition to tied-on-x will be the weight of this 
         observation times
-        the sum of weights for all others with the same risk score and a
+        the sum of weights for all others with the same risk score (x) and a
         a greater time, i.e., the weight found at [[indx[i]]] in the tree.
       \item Similarly for those with smaller or larger risk scores.  First add
         in the children of this node.  The left child will be smaller risk 
@@ -574,7 +625,7 @@ Starting at the largest time (which is sorted last), walk through the tree.
         the right child discordant.
         Then walk up the tree to the root. 
         At each step up we add in data for the 'not me' branch.
-        If we were the right branch (even number node) of a parent
+        If we were the right branch (odd number node) of a parent
         then when moving up we add in the left branch counts, and vice-versa. 
     \end{enumerate}
     \item Now add this set of subject weights into the tree. The weight for
@@ -816,7 +867,7 @@ survConcordance.fit <- function(y, x, strata, weight) {
             ord <- order(stime[,1], -stime[,2])
             ux <- sort(unique(risk))
             n2 <- length(ux)
-            index <- btree(n2)[match(risk[ord], ux)] - 1L
+            index <- btree(n2)[match(risk[ord], ux)]
              .Call(Cconcordance1, stime[ord,], 
                    as.double(wts[ord]), 
                    as.integer(index), 
