@@ -211,10 +211,9 @@ concordance.fit <- function(y, x, strata, weight, ymin, ymax, timewt,
         bindex <- btree(max(utemp))[utemp]
         grp <- match(group, sort(unique(group))
         if (ncol(y) ==2) 
-            .Call(Cconcordance3, stime, bindex, wts,
-                            influence, grp)
+            .Call(Cconcordance3, stime, bindex, wts, grp)
         else .Call(Ccondordance4, stime, bindex, wts, sort.start, 
-                             sort.stop, influence, grp)
+                             sort.stop, grp)
     }
     
     if (missing(strata) || length(strata)==0 || all(strata==strata[1])) {
@@ -294,12 +293,12 @@ Figure  \ref{treefig} shows a balanced binary tree containing
 have a smaller value than the parent, the right child and all its
 descendents have a larger value.
 Each node in figure \ref{treefig} is also annotated with the total weight
-of observations in that node and the weight for all its left and right children 
+of observations in that node and the weight for itself plus all its children 
 (not shown on graph).  
 Assume that the tree shown represents all of the subjects still alive at the
 time a particular subject ``Smith'' expires, and that Smith has the risk score
 of 19 in the tree.
-The concordant pairs are those with a risk score $>19$, i.e., both $\hat y$
+The concordant pairs are those with a risk score $>19$, i.e., both $\hat y=x$
 and $y$ are larger, discordant are $<19$, and we have no ties.
 The totals can be found by
 \begin{enumerate}
@@ -355,7 +354,7 @@ will be in position 8 of the tree, the next smallest in position 2, etc,
 using indexing that starts at 0 since the results will be passed to a C
 routine.
 The routine above takes care to do all arithmetic as integer.  
-This actually made almost no difference in the compute time, but was an
+This actually made almost no difference in the compute time, but it was an
 interesting exercise to find that out.
 
 The next question is how to compute a variance for the result.
@@ -369,133 +368,69 @@ Looking back at equation \eqref{C} we have
 %    (v_k/m_k)\delta_k \sum_j Y^*_{j}(t_k) I(x_k < x_j) +
 %    \sum_i (v_i/m_i) w_i Y^*_k(t_i) I(x_i < x_k) \label{partialC}
 \end{align}
-A given subject's weight appears twice, once when they are an
-event ($w_i \delta_i)$, and the second time as part of the risk set for other's
-events.  
+A given subject's weight appears multiple times, once when they are an
+event ($w_i \delta_i)$, and then as part of the risk set for other's
+events.  I avoided this for some time because it looked like an $O(nd)$
+process to separately update each subject's influence for each risk set
+they inhabit, but David Watson pointed out a path forward.
 The solution is to keep two trees.  
-Tree 1 contains all of the subjects at risk, and we traverse it to obtain the 
-updates to the concordance.  
-The second tree holds only the deaths.  It it updated at each death,
-with subtotals of concordant, discordant, and tied.  
-Just before a given subject enters the risk set add -1 times the current sums
-of concordant, discordant, tied, and total to their counter, and then just
-before they leave add the new totals.  
-Deaths cause a separate influence addition when they occur.
+Tree 1 contains all of the subjects at risk.  We traverse it when each subject
+is added in, updating the tree, 
+and traverse it again at each death, pulling off values to update our sums. 
+The second tree holds only the deaths and is updated at each death;
+it is read out twice per subject,
+once just before they enter the risk set and once when they leave.
 
 The basic algorithm is to move through an outer and inner loop.  The
-outer loop moves across unique death times, the inner for all obs that
-share a time.  Move from largest to smallest time.
-\begin{enumerate}
-  \item Move to a new event time
-  \item For any new entries, subtract intialize the current grand totals from
-    their IJ counts in tree 2.  
-    For a grouped jackknife several subjects may share the same indices.
-  \item Add those subjects into the main tree.
-  \item For all subjects with an an event at this time, make a first pass
-    \begin{itemize}
-      \item update the values in tree 2 and also update the concordance.
-      \item Keep track of the tied time count as well.  Since the predictor
-        value plays no role for these we don't need a tree, just a count.  It
-        will rezero at the next unique event time.
-    \end{itemize}
-  \item Remove any observations from the main tree that leave at this event 
-    time, updating their IJ counts using tree 2.
-  \item At the end of each stratum, remove all remaining subjects from the
-    tree, while updating IJ counts.
-\end{enumerate}
+outer loop moves across unique times, the inner for all obs that
+share a death time.  We progress from largest to smallest time.
 
-A second variance estimate is based on the Cox model.  
-The insight used here is to consider a Cox model with time dependent
-covariates, where the covariate $x$ at each death time has been
-transformed into ${\rm rank}(x)$. 
-It is easy to show that the Cox score statistic contribution at each death
-is $(D-C)/2$ where $C$ and $D$ are the number of concordant
-and discordant pairs contributed at that death time (for a Cox fit using the
-Breslow approximation).
-The contribution to the variance of the score statistic is 
-$V(t) =\sum (r_i - \overline{r})^2 /n$, the $r_i$ being the ranks at
-that time point and $n$ the number at risk.  
-How can we update this sum using an update formula?  
-First remember the identity
-\begin{equation*} \sum w_i(x_i - \overline{x})^2 = \sum w_i(x_i-c)^2 - 
-    \sum w_i(c - \overline{x})^2
-\end{equation*}
-true for any set of values $x$ and centering constant $c$.
-For weighted data define the rank of an observation with risk score $r_k$
-as
-\begin{equation*}
-  {\rm rank} = \sum_{r_i<r_k} w_i + (1/2)\sum_{r_i=r_k} w_i
-\end{equation*}
-These correspond to the midpoints of the rise on an empirical CDF, and
-for unweighted data without ties gives ranks of .5, 1.5, \ldots, $n-.5$.
-   
-Assume we have just added obs $k$ to the tree.
-Since the mean rank = $\mu_g = \sum(w_i)/2$ the grand mean increases by
-    $w_k/2$.
-We can divide the subjects currently in the tree into 3 groups.
-\begin{enumerate}
-  \item Those with risk score lower than the new addition.  Their rank will
-    not change.
-  \item Those tied with the new addition.  Their rank will increase by
-    $w_k/2$.
-  \item Those above the new addition.  Their rank increases by $w_k$.
-\end{enumerate}
-
-
-Let $\mu_\ell$ be the mean rank for all observations currently in the
-tree of rank lower than $r_k$, the item we are about to add,
-$\mu_u$ be the mean for all those above in rank (after the addition), 
-$\mu_g$ the grand mean, and $\mu_n$ the new grand mean after adding
-in subject $k$.
-We have 
-\begin{align*}
-  \mu_\ell &= \sum_{r_i<r_k} w_i/2 \\
-  \mu_u & =  \sum_{r_i<=r_k} w_i + \sum_{r_i \ge r_k} w_i/2
-\end{align*}  
-
-For items of lower rank than $r_k$, none of their ranks will change
-with the addition of this new observation.  This leads to the 
-update formula on the third line below.  (I'm using $i<k$ as shorthand  %'
-for $r_i < r_k$ below)
+A second viewpoint treats the data as a Cox model.
+Create zero-centered scores for all subjects in the risk set:
 \begin{align}
-   \sum_{i<k} w_i(r_i - \mu_g)^2 &= \sum_{i<k} w_i(r_i - \mu_\ell)^2 +
-      (\sum_{i<k} w_i)(\mu_\ell - \mu_g)^2 \nonumber \\
-   \sum_{i<k} w_i(r_i - \mu_n)^2 &= \sum_{i<k} w_i(r_i - \mu_\ell)^2 +
-      (\sum_{i<k} w_i)(\mu_\ell - \mu_n)^2 \nonumber \\
-   \sum_{i<k} w_i(r_i - \mu_n)^2 -   \sum_{i<k} w_i(r_i - \mu_g)^2 &=
-    (\sum_{i<k} w_i) [(\mu_\ell - \mu_n)^2 - (\mu_\ell - \mu_g)^2] 
-              \nonumber \\
-   &=  (\sum_{i<k} w_i)(\mu_n+ \mu_g - 2\mu_{\ell})(\mu_n - \mu_g) 
-                    \label{lower1} \\
-   &=  (\sum_{i<k} w_i)(\mu_n+ \mu_g - 2\mu_{\ell}) w_k/2 \label{lower}
+  z_i(t) &= \sum_{j \in R(t)} w_j \sign(x_i - x_j) \nonumber
+  D-C = \sum_i \delta_i z_i(t_i)              \label{zcord}
 \end{align}
+At any event time $\sum w_i z_i =0$.  
+Equation \eqref{zcord} is the score equation
+for a Cox model with time-dependent covariate $z$.
+When two subjects have an event at the same time, this formulation treats
+each of them as being in the other's risk set whereas the concordance
+treats them as incomparable --- how can they be the same?
+The trick is that $D-C$ does not change: the tied pairs add equally to the
+two terms. 
+Under the null hypothesis that the risk score is not related to outcome,
+each term in \eqref{zcord} is a random selection from the $z$ scores in
+the risk set, and the variance of the addition is the variance of $z$,
+the sum of these over deaths is the Cox model information matrix. 
+use the inverse of the information matrix for said Cox model as a variance.
+The mean of $z$ is always zero, so we need to keep track of 
+$\sum w_i z^2$. 
 
-For items of larger rank than $r_k$, all of the ranks increase by $w_k$
-when we add the new item and $\mu_u$ increases by $w_k$, 
-thus the sum of squares within the group
-is unchanged.  The same derivation as above gives an update of
-\begin{align}
-  \sum_{i>k} w_i(r_i - \mu_n)^2 -   \sum_{i>k} w_i(r_i - \mu_g)^2 &=
-    (\sum_{i>k} w_i) [(\mu_u -\mu_n)^2 - ((\mu_u-w_k) - \mu_g)^2] \nonumber \\
-  &= (\sum_{i>k} w_i) (\mu_n + z - 2\mu_u)(\mu_n -z) \label{upper1} \\
-  &= (\sum_{i>k} w_i) (\mu_n+z - 2\mu_u) (-w_k/2) \label{upper}\\
-  z&\equiv \mu_g+ w_k \nonumber
-\end{align}
-
-For items of tied rank, their rank increases by the same amount as the
-overall mean, and so their contribution to the total SS is unchanged.
-The final part of the update step is to add in the SS contributed by
-the new observation.
-
-An observation is removed from the tree whenver the current time becomes
-less than the (start, stop] interval of the datum.
-The ranks for observations of lower risk are unchanged by the removal
-so equation \eqref{lower1} applies just as before, but with the new mean
-smaller than the old so the last term in equation \eqref{lower} changes
-sign.
-For the observations of higher risk both the mean and the ranks change
-by $w_k$ and equation \eqref{upper1} holds but with $z=\mu_0- w_k$.
-
+How can we do this efficiently?  First note that $z_i$ can be written
+as sum(weights for smaller x) - sum(weights for larger x), and in fact the
+weighted mean for any slice of $x$ values $a < x < b$ is exactly the
+same: sum(weights for x values below the range) - sum(weights above the range).
+The second trick is to use an ANOVA decomposition of the variance of $z$ into
+within-slice and between-slice sums of squares, where the 3 slices are the
+weights at a given $x$ value (node of the tree), below that, and above.
+Assume that a new observation $k$ has just been added to the tree.  
+This will add $w_k$ to all the $z$ values above, and to the weighted mean of
+all those above, $-w_k$ to the values and means below, and 0 to the values and
+means of any tied observations.  Thus none of the current `within'
+SS change.  
+Let $s_a$, $s_b$ and $s_0$ be the current sum of weights above, below, and
+at the node of the tree.  The mean for the above group was $(s_b + s_0) with
+between SS contribution of $s_a (s_b + s_0)^2$.
+Adding $w_k$ to the above mean the change in between SS is
+$s_a (2w_k (s_b + s_0) + w_k^2)$, while for the below group the change
+is $s_b(-2w_k(s_a + s_0) + w_k^2)$, and there is no change for the middle
+group.
+Last we add $z_k^2 = (s_b- s_a)^2$ to the sum for the new observation.
+Putting all this together the change is
+$$
+  (s_a + s_b) w_k^2 + 2 (s_a-s_b) s_0 w_k + (s_b - s_a)^2
+$$
 
 We can now define the C-routine that does the bulk of the work.
 First we give the outline shell of the code and then discuss the
@@ -504,22 +439,32 @@ will be called once per stratum.
 Input variables are
 \begin{description}
   \item[n] the number of observations
-  \item[y] matrix containing the time and status, data is sorted by ascending 
-    time, with deaths preceding censorings.
-  \item[indx] the tree node at which this observation's risk score resides  %'
+  \item[y] matrix containing the time and status, data is sorted by descending 
+    time, with censorings precedint deaths.
+  \item[x] the tree node at which this observation's risk score resides  %'
   \item[wt] case weight for the observation
-  \item[sum] scratch space, weights for each node of the tree: 
-    3 values are for the node, all left children, and all right children
-  \item[count] the returned counts of concordant, discordant, tied on x, 
-    tied on time, and the variance
+  \item[group] which IJ group each observation will be counted into
 \end{description}
+The routine will return list with three components:
+\begin{itemize}
+  \item count, a vector containing the weighted number of concordant, 
+    discordant, tied on $x$ but not $y$, and tied on y pairs.  
+    The weight for a pair is $w_iw_j$.
+  \item resid, a three column matrix with one row per event, containing the 
+    score residual at that event, its variance, and the sum of weights.
+    The score residual is
+    a rescaled $z_i$ so as to lie between 0 and 1: $(1+ z/\sum(w))/2$.
+    The concordance is then a weighted sum of the residuals.
+  \item influence, a matrix with one row per observation and 4 columns, giving
+    that observation's first derivative with respect to the count vector.
+\end{itemize}    
 
 <<concordance1>>=
 #include "survS.h"
-SEXP concordance3(SEXP y, SEXP x2, SEXP wt2, SEXP influence2, SEXP group2) {
+SEXP concordance3(SEXP y, SEXP x2, SEXP wt2, SEXP group2) {
     int i, j, k, index;
     int lchild, rchild, parent;
-    int n, ngrp, ntree;
+    int n, ngrp, ntree, nevent;
     double *time, *status;
     /* first are the count, sum of weights, count for node and all children,
     **  and sum for all
@@ -534,13 +479,14 @@ SEXP concordance3(SEXP y, SEXP x2, SEXP wt2, SEXP influence2, SEXP group2) {
     double lmean, umean, oldmean, newmean;
         
     double ndeath;   /* weighted number of deaths at this point */
-    
-    SEXP rlist, count2, imat2;
-    double *count, *imat[6];
+    double wtemp[3]; /* used when walking up a tree */
+
+    SEXP rlist, count2, imat2, resid2;
+    double *count, *imat[6], *resid;
     double *wt;
     int    *x;
     int    *group;
-    static const char *outnames[]={"count", "influence", ""};
+    static const char *outnames[]={"count", "resid", "influence", ""};
     
     n = nrows(y);
     x = INTEGER(x2);
@@ -548,14 +494,16 @@ SEXP concordance3(SEXP y, SEXP x2, SEXP wt2, SEXP influence2, SEXP group2) {
     ngrp = length(group2)
     group = INTEGER(group2);
     influence = asInteger(influence2);
-    
-    /* if there are tied predictors, the total size of the tree will be < n */
-    ntree =0;
-    for (i=0; i<n; i++) 
-	if (x[i] >= ntree) ntree = x[i] +1;
-        
     time = REAL(y);
     status = time + n;
+   
+    /* if there are tied predictors, the total size of the tree will be < n */
+    ntree =0; nevent =0;
+    for (i=0; i<n; i++) {
+	if (x[i] >= ntree) ntree = x[i] +1;
+        nevent += status[i];
+    }
+        
     PROTECT(count2 = allocVector(REALSXP, 6));
     count = REAL(count2);  /* counts 5-6 contains the variances */
     ncount = (double *) R_alloc(8*ntree, sizeof(double));
@@ -570,27 +518,14 @@ SEXP concordance3(SEXP y, SEXP x2, SEXP wt2, SEXP influence2, SEXP group2) {
     for (i=0; i< 8*ntree; i++) ncount[i] =0.0;
     for (i=0; i<6; i++) count[i]=0.0;
     vss=0;
-
+    
     PROTECT(rlist = mkNamed(VECSXP, outnames));
     count2 = SET_VECTOR_ELT(rlist, 0, allocVector(REALSXP, 6));
     count = REAL(count2);  /* counts 5-6 contains the variances */
-
-    /* assign the influence matrix, and maybe return it */
-    if (influence == 2) {
-	/* return the whole thing */
-	imat2 = SET_VECTOR_ELT(rlist, 1, allocMatrix(REALSXP, ngroup, 4));
-	for (i=0; i<4; i++) imat[i] = imat2 + i*ngroup;
-    }
-    else { 
-	imat[0] = allocVector(REALSXP, ngroup, 4);  /* imat is internal only*/
-	for (i=1; i<3; i++) imat[i] = imat[0] + i*ngroup;
-	
-	if (influence==1) {
-	    /* return one value per group */
-	    imat2 = SET_VECTOR_ELT(rlist, 1, allocVector(REALSXP, ngroup));
-	    imatx = REAL(imat2);
-	}
-    }
+    resid2 = SET_VECTOR_ELT(rlist, 1, allocVector(REALSXP, nevent));
+    resid = REAL(resid2);
+    imat2 = SET_VECTOR_ELT(rlist, 2, allocMatrix(REALSXP, ngroup, 4));
+    for (i=0; i<4; i++) imat[i] = imat2 + i*ngroup;
 
     <<concordance3-work>>
         
@@ -610,85 +545,125 @@ For any pair of observations $i,j$ we need to add [[wt[i]*wt[j]]]
 to the appropriate count.
 Starting at the largest time (which is sorted last), walk through the tree.
 \begin{itemize}
-  \item If it is a death time, we need to process all the deaths tied at
-    this time.
-    \begin{enumerate}
-      \item Add [[wt[i] * wt[j]]] to the tied-on-time total, 
-	for all pairs $i,j$ of tied times.
-      \item The addition to tied-on-x will be the weight of this 
-        observation times
-        the sum of weights for all others with the same risk score (x) and a
-        a greater time, i.e., the weight found at [[indx[i]]] in the tree.
-      \item Similarly for those with smaller or larger risk scores.  First add
-        in the children of this node.  The left child will be smaller risk 
-        scores (and longer times) adding to the concordant pairs, 
-        the right child discordant.
-        Then walk up the tree to the root. 
-        At each step up we add in data for the 'not me' branch.
-        If we were the right branch (odd number node) of a parent
-        then when moving up we add in the left branch counts, and vice-versa. 
-    \end{enumerate}
-    \item Now add this set of subject weights into the tree. The weight for
-      a node is [[nwt]] and for the node and all its children is [[twt]].
+  \item For either a death or censoring time, first add -1 times the current
+    death information into the influence matrix.  
+  \item If it is a censored subject, add them into the total tree.
+    If it is a death time, we need to make 3 passes over the set of
+    deaths tied at this time.
+    \begin{itemize}
+      \item Pass 1. Compare each new obs to the current tree, and update
+        the concordance counts.
+        \begin{enumerate}
+          \item The addition to tied-on-x will be the weight for this 
+            observation, times
+            the sum of weights for all others with the same risk score (x) and a
+            a greater time, i.e., the weight found at \code{x[i]} in the tree.
+          \item Walk the tree to count concordant and discordant. 
+            First add in the children of this node.  The left child will be 
+            smaller risk scores and longer times, adding to the discordant
+            pairs, the right child adds to concordant.
+            Then walk up the tree to the root. 
+            At each step up we add in data for new node plus the 'not me' branch.
+            If we were the right branch (odd number node) of a parent
+            then the parent + parent's left child will add to the
+            discordant, and to concordant if we are a left branch.
+        \end{enumerate}
+      \item Pass 2: Add each of the tied subjects' weights into both the total
+        tree and the death tree.  Also update $\sum z^2$.
+      \item Pass 3: Now that the tree includes all the risk set, fill in rows
+        of the residuals matrix.
+    \end{itemize}
 \end{itemize}
-<<concordance1-work>>=
-for (i=n-1; i>=0; ) {
-    ndeath =0;
-    if (status[i]==1) { /* process all tied deaths at this point */
-        for (j=i; j>=0 && status[j]==1 && time[j]==time[i]; j--) {
-            ndeath += wt[j];
-            index = indx[j];
-            for (k=i; k>j; k--) count[3] += wt[j]*wt[k]; /* tied on time */
-            count[2] += wt[j] * nwt[index];              /* tied on x */
-	    child = (2*index) +1;  /* left child */
-	    if (child < ntree)
-		count[0] += wt[j] * twt[child];  /*left children */
-	    child++;
-	    if (child < ntree)
-                count[1] += wt[j] * twt[child]; /*right children */
-	    
-            while (index >0) {  /* walk up the tree  */
-		parent = (index-1)/2;
-		if (index & 1)   /* I am the left child */
-		    count[1] += wt[j] * (twt[parent] - twt[index]);
-		else count[0] += wt[j] * (twt[parent] - twt[index]);
-		index = parent;
-		}
-	    }
-	}                    
-    else j = i-1;
-    
-    /* Add the weights for these obs into the tree and update variance*/
-    for (; i>j; i--) {
-        wsum1=0; 
-        oldmean = twt[0]/2;
-	index = indx[i];
-	nwt[index] += wt[i];
-        twt[index] += wt[i];
-        wsum2 = nwt[index];
-        child = 2*index +1;  /* left child */
-        if (child < ntree) wsum1 += twt[child];
+When all the subjects have been added to the tree, then add the death tree
+data for each subject to the influence matrix.  
 
-	while (index >0) {
-	    parent = (index-1)/2;
-            twt[parent] += wt[i];
-            if (!(index&1)) /* I am a right child */
-                wsum1 += (twt[parent] - twt[index]);
-            index=parent;
-            }
-        wsum3 = twt[0] - (wsum1 + wsum2); /* sum of weights above */
-        lmean = wsum1/2;
-        umean = wsum1 + wsum2 + wsum3/2;  /* new upper mean */
-        newmean = twt[0]/2;
-        myrank = wsum1 + wsum2/2;
-        vss += wsum1*(newmean+ oldmean - 2*lmean) * (newmean - oldmean);
-        vss += wsum3*(newmean+ oldmean+ wt[i]- 2*umean) *(oldmean-newmean);
-        vss += wt[i]* (myrank -newmean)*(myrank -newmean);
-	}
-    count[4] += ndeath * vss/twt[0];
+<<concordance3-work>>=
+z2 =0;
+for (i=0; i<n;) {
+    /* Initialize the influence */
+    walkup(dnwt, dtwt, x[j], wtemp, ntree);
+    for (j=0; j<3; j++) imat[j][group[i]] -= wtemp[j];
+
+    if (status[i]==0) { /* censored, simply add them into the tree */
+       addin(nwt, twt, x[i], wt[i]);
+       i++
     }
+    else { /* process all tied deaths at this point */
+	ndeath=0; temp =0; dwt=0;
+        /* update the counts */
+        for (j=i; j<n && time[j]==time[i]; j++) {
+           temp += wt[j] * dwt;	    
+           ndeath++; dwt += wt[j];   /* count of deaths and sum of wts */
+	   walkup(nwt, twt, x[j], wtemp, ntree);
+	   for (k=0; k<3; k++) count[k] += wt[k]* wtemp[k];
+	}
+
+	if (ndeath>1) {
+	    /* Add tied time information into the counts and influence */
+	    count[4] += temp;
+	    for (j=i; j< i+ndeath; j++) imat[4][group[j]] += dwt - wt[j];
+	}
+	 
+	/* Add deaths into the tree and update z2*/
+	for (j=i; j< ndeath+i; j++) {
+            walkup(nwt, twt, x[j], wtemp, ntree);
+            z2 += (wtemp[1] + wtemp[2])*w[j]*w[j] + 
+                  (wtemp[1] - wtemp[2])*wtemp[3] * w[j] +
+                  (wtemp[2]- wtemp[1]) *(wtemp[2]- wtemp[1]);
+	    addin(nwt, twt, x[j], wt[j]);
+	    addin(dnwt, dtwt, x[j], wt[j]);
+        }
+        
+        /* fill in the residuals matrix */
+        for(j=0; j<ndeath; j++) {
+            walkup(nwt, twt, x[i], wtemp, ntree);
+            resid[1][dcount] = (wtemp[1] + wtemp[3]/2)/nwt[0];
+            resid[2][dcount] = z2/(4 * nwt[0]*nwt[0]);
+            resid[3][dcount] = nwt[0];
+            dcount++;
+	    i++;
+	}
+     }
+
+/* Now finish off the influence for each observation */
+for (i=0; i<n; i++) {
+    walkup(dnwt, dtwt, x[i], wtemp);
+    for (k=0; k<3; k++) influence[k, i] += wtemp[k] - wt[i];
+}
 @ 
 
+<<walkup>>=
+void walkup(nwt, twt, index, sums, ntree) {
+    double *nwt, *twt, sums[3];
+    int i, j, k, index, parent;
+
+    for (i=0; i<3; i++) sums[i] = 0.0;
+    sums[2] = nwt[index];   /* tied on x */
+    
+    j = 2*index +2;  /* right child */
+    if (j < tmax) sum[0] += twt[j];
+    if (j <=tmax) sums[1]+= twt[j-1]; /*left child */
+
+    while(index > 0) {
+        parent <- (index-1)/2;
+        if (index%2 == 1) sums[0] += twt[parent] - twt[index]; /* left child */
+	else sums[1] += twt[parent] - twt[index]; /* I am a right child */
+	index = parent;
+    }
+}
+
+void addin(nwt, twt, index, wt) {
+    integer index;
+    double *nwt, *twt, wt;
+
+    while (index > 0) {
+	nwt[index] += wt;
+	twt[index] += wt;
+	index = (index-1)/2;
+    }
+}
+
+@ 
 The code for [start, stop) data is quite similar.  
 As in the agreg routines there are two sort indices, the first indexes
 the data by stop time, longest to earliest, and the second by start time. 
