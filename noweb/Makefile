@@ -7,6 +7,7 @@ PARTS = main.Rnw \
 	finegray.Rnw \
 	predict.coxph.Rnw \
 	concordance.Rnw \
+        concordance2.Rnw \
 	survexp.Rnw \
 	pyears.Rnw pyears2.Rnw \
 	residuals.survreg.Rnw \
@@ -23,6 +24,7 @@ PARTS = main.Rnw \
 
 SFUN =  agreg.fit.R \
 	agsurv.R \
+        concordance.R \
 	coxph.R \
 	finegray.R \
 	model.matrix.coxph.R \
@@ -43,8 +45,9 @@ SFUN =  agreg.fit.R \
 	tmerge.R \
 	yates.R
 
-CFUN =  agsurv4.c agsurv5.c concordance1.c coxcount1.c \
-	agfit4.c \
+CFUN =  agfit4.c \
+        agsurv4.c agsurv5.c \
+        concordance1.c concordance3.c coxcount1.c \
         coxexact.c \
 	survfitci.c 
 #	coxdetail2.c

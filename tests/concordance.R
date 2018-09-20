@@ -22,8 +22,24 @@ grank2 <- function(x, time, grp, wt) {  #for case weights
     z
 }
 
-
-tdata <- aml[aml$x=='Maintained',]
+# Concordance by hand
+allpair <- function(x, time, status, wt, all=FALSE) {
+    if (missing(wt)) wt <- rep(1, length(x))
+    count <- sapply(which(status==1), function(i) {
+        atrisk <- (time > time[i]) | (time==time[i] & status==0)
+        temp <- tapply(wt[atrisk], factor(sign(x[i] -x[atrisk]), c(1, -1, 0)),
+                       sum)
+        wt[i]* ifelse(is.na(temp), 0, temp)
+    })
+    rownames(count) <- c("concordant", "discordant", "tied.x")
+    if (all) {
+        colnames(count) <- time[status==1]
+        t(count)
+    }
+    else rowSums(count)
+}
+                    
+tdata <- aml[aml$x=='Maintained', c("time", "status")]
 tdata$y <- c(1,6,2,7,3,7,3,8,4,4,5)
 tdata$wt <- c(1,2,3,2,1,2,3,4,3,2,1)
 fit <- survConcordance(Surv(time, status) ~y, tdata)
