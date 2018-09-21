@@ -7,6 +7,7 @@ todo
 noweb/all*
 src/coxcount1.c
 src/concordance1.c
+src/concordance3.c
 src/coxexact.c
 src/agfit4.c
 src/agsurv[45].c
@@ -15,6 +16,7 @@ src/symbols.rds
 src/survfitci.c
 R/agreg.fit.R
 R/agsurv.R
+R/concordance.R
 R/coxph.R
 R/finegray.R
 R/model.matrix.coxph.R

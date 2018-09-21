@@ -33,9 +33,9 @@ since the Cox model only compares within strata.
 
 The program creates 4 variables, which are the number of concordant pairs, 
 discordant, tied on time, and tied on $x$ but not on time.  
-The default concordance is 
-based on the AUC definition, but all 4 values are reported back so that a user
-can recreate the others if desired.
+The default concordance is based on the Somers'/AUC definition,
+but all 4 values are reported back so that a user
+can recreate Kendall's or Goodmans values if desired.
 
 Here is the main routine.
 <<concordance>>=
@@ -153,10 +153,10 @@ print.concordance <- function(x, ...) {
 @ 
 
 The concordance.fit function is broken out separately, since it is called
-by the \code{coxph} routine.
+by the \code{coxph} routine.  This also allows other packages to build on
+it.
 If $y$ is not a survival quantity, then all of the options for the
-\code{timewt} parameter lead to the same result, so use the simplest one to
-compute in that case.
+\code{timewt} parameter lead to the same result.
 
 <<concordancefit>>=
 concordance.fit <- function(y, x, strata, weight, ymin, ymax, timewt,
@@ -185,11 +185,38 @@ concordance.fit <- function(y, x, strata, weight, ymin, ymax, timewt,
         stop("multiple state survival is not supported")
    
     # This routine is called once per stratum
-    docount <- function(stime, risk, wts, grp, timewt= 'n') {
+    docount <- function(stime, risk, wts, group, timeopt= 'n') {
         n <- length(risk)
         # this next line is mostly invoked in stratified logistic, where
         #  only 1 event per stratum occurs.  All time weightings are the same
         if (sum(stime[,ncol(stime)]) <2) timewt <- 'n'
+        
+        sfit <- survfit(stime~1, weight=wts, se.fit=FALSE)
+        etime <- sfit$time[sfit$n.event > 0]
+        esurv <- sfit$surv[sfit$n.event > 0]
+        
+        if (timeopt %in% c("S/G", "n/G", "n/G2")) {
+            temp <- stime
+            temp[,ncol(temp)] <- 1- temp[,ncol(temp)] # switch event/censor
+            gfit <- survfit(temp~1, weight=wts, se.fit=FALSE)
+            # gfit is not a survfit object
+            gsurv <- approx(c(0, gfit$time), c(1, gfit$surv), etime,
+                            method="constant", f=0, rule=2)$y
+        }
+
+        timewt <- switch(timeopt,
+            "S" = sum(wts)*esurv,
+            "S/G" = sum(wts)* esurv/gsurv,
+            "n" =   (sfit$n.risk- sfit$n.event)[sfit$n.event>0],
+            "n/G" = (sfit$n.risk -sfit$n.event)[sfit$n.event>0]/gsurv,
+            "n/G2"= (sfit$n.risk -sfit$n.event)[sfit$n.event>0]/gsurv^2)
+            
+        # match each prediction score to the unique set of scores
+        # (to deal with ties)
+        utemp <- match(risk, sort(unique(risk)))
+        bindex <- btree(max(utemp))[utemp]
+        if (is.factor(group)) gtemp <- group[1:n, drop=TRUE]
+        else gtemp <- as.factor(group)
         
         # order the data
         if (ncol(stime)==2) {
@@ -201,62 +228,35 @@ concordance.fit <- function(y, x, strata, weight, ymin, ymax, timewt,
             sort.stop <- order(-stime[,2], stime[,3])
             sort.start <- order(-stime[,1])
         }
-
-        gtemp <- factor(rep(1L, n))
-        sfit <- survfitKM(gtemp, stime, se.fit=FALSE)
-        etime <- sfit$time[sfit$nevent > 0]
-        esurv <- c(1, sfit$surv)[which(sfit$nevent > 0)]
-        
-        if (timewt %in% c("S/G", "n/G", "n/G2")) {
-            temp <- stime
-            temp[,ncol(temp)] <- 1- temp[,ncol(temp)] # switch event/censor
-            gfit <- survfitKM(gtemp, temp, se.fit=FALSE)
-            gsurv <- summary(gfit, times= etime + min(diff(etime))/2,
-                             extend=TRUE)
-        }
-
-        twt <- switch(timewt,
-            "S" = esurv,
-            "S/G" = esurv/gsurv,
-            "n" =  sfit$nrisk[sfit$nevent>0],
-            "n/G"= sfit$nrisk[sfit$nevent>0]/gsurv,
-            "n/G2" =  sfit$nrisk[sfit$nevent>0]/gsurv^2)
             
-        # match each prediction score to the unique set of scores
-        # (to deal with ties)
-        utemp <- match(risk, sort(unique(risk)))
-        bindex <- btree(max(utemp))[utemp]
-        grp <- match(group, sort(unique(group))) -1L
         storage.mode(stime) <- "double"  # just in case y is integer
-        if (ncol(y) ==2) {
-            .Call(Cconcordance3, stime, bindex, wts, grp)
-        }
-        else .Call(Ccondordance4, stime, bindex, wts, sort.start, 
-                             sort.stop, grp)
+        if (ncol(y) ==2) 
+            fit <- .Call(Cconcordance3, stime, bindex, wts, timewt, 
+                         as.integer(gtemp))
+        else fit <- .Call(Ccondordance4, stime, bindex, wts, timewt, 
+                          sort.start, sort.stop, as.integer(gtemp))
+        browser()
+        dimnames(fit$resid) <- list(etime, 
+                                    c("rank", "npair", "wt", "var"))
+        fit
     }
     
     if (missing(strata) || length(strata)==0 || all(strata==strata[1])) {
-        fit <- docount(y, x, weight, grp)
+        fit <- docount(y, x, weight, group)
         names(fit$count) <- c("concordant", "discordant", "tied.x", "tied.y")
     }
     else { 
         strata <- as.factor(strata)
         ustrat <- levels(strata)[table(strata) >0]  #some strata may have 0 obs
-        count <- matrix(0., nrow=length(ustrat), ncol=6)
+        tfit <- lapply(ustrat, function(i) {
+            keep <- which(strata== i)
+            docount(y[keep,,drop=F], x[keep], weight[keep], group[keep])
+        })
+        
+        count <- t(sapply(tfit, function(x) x$count))
         dimnames(count) <- list(ustrat, c("concordant", "discordant", "tied.x", 
                                           "tied.y"))
-        if (influence==1) itemp  <- double(length(x))
-        else if (influence==2) itemp <- matrix(0., length(x), 4)
-            
-        for (i in 1:length(ustrat)) {
-            keep <- which(strata == ustrat[i])
-            tfit <- docount(y[keep,,drop=F], x[keep], weight[keep], grp[keep])
-            count[i,] <- tfit$count
-            if (influence==1) itemp[keep] <- tfit$influence
-            else if (influence==2) itemp[keep,] <- tfit$influence
-        }
-        if (influence==0) fit <- list(count=count)
-        else fit <- list(count=count, influence=influence)
+        browser()
     }
     fit
 }
@@ -271,21 +271,20 @@ is at risk at event time $t_i$, and $Y^*_j(t_i)$ the more restrictive one that
 subject $j$ is both at risk and not a tied event time.
 The values we want at time $t_i$ are
 \begin{align}
-  n_i &=  \sum_j w_j Y^*_j(t_i) \nonumber \\
-  C_i &= (v_i/n_i) \delta_i w_i \sum_j w_j Y^*_j(t_i) \left[I(x_i < x_j) \right]
+  C_i &= v_i \delta_i w_i \sum_j w_j Y^*_j(t_i) \left[I(x_i < x_j) \right]
     \label{C} \\
-  D_i &= (v_i/n_i) \delta_i w_i \sum_j w_j Y^*_j(t_i) \left[I(x_i > x_j)\right] 
+  D_i &= v_i \delta_i w_i \sum_j w_j Y^*_j(t_i) \left[I(x_i > x_j)\right] 
      \label{D} \\
-  T_i &= (v_i/n_i) \delta_i w_i \sum_j w_j Y^*_j(t_i) \left[I(x_i = x_j) \right]
+  T_i &= v_i \delta_i w_i \sum_j w_j Y^*_j(t_i) \left[I(x_i = x_j) \right]
      \label{T}  \\
-  m_i &= \delta_i \sum_j w_j (Y_j - Y^*_j) \nonumber
 \end{align} 
 
-In the above $n$ is the number of comparable values at event time $t_i$ and
-$m$ is the number of exact ties, $(v_i/n_i)$ is treated as a fixed 
-time-dependent weight (with no censoring it is a constant).
+In the above $v$ is an optional time weight, which we will discuss later.
+The normal concordance definition has $v=1$.
 $C$, $D$, and $T$ are the number of concordant, discordant, and tied
-pairs, respectively.
+pairs, respectively,
+and $m= C+D+T$ will be the total number of concordant pairs.
+Somers' $d$ is $(C-D)/m$ and the concordance is $(d+1)/2 = (C + T/2)/m$.
 
 The primary compuational question is how to do this efficiently, i.e., better
 than a naive algorithm that loops across all $n(n-1)/2$ 
@@ -295,7 +294,7 @@ There are two key ideas.
 \item Rearrange the counting so that we do it by death times.
   For each death we count the number of other subjects in the risk set whose
   score is higher, lower, or tied and add it into the totals.
-This neatly solves the question of time-dependent covariates.
+  This neatly solves the question of time-dependent covariates.
 \item Counting the number with higher, lower, and tied $x$ can be done in 
    $O(\log_2 n)$ time if the $x$ data is kept in a binary tree.
 \end{enumerate}
@@ -369,9 +368,9 @@ Referring again to figure \ref{treefig}, \code{btree(13)} yields the vector
 \code{7  3  8  1  9  4 10  0 11  5 12  2  6}
 meaning that the smallest element
 will be in position 8 of the tree, the next smallest in position 2, etc,
-using indexing that starts at 0 since the results will be passed to a C
+and using indexing that starts at 0 since the results will be passed to a C
 routine.
-The routine above takes care to do all arithmetic as integer.  
+The code just above takes care to do all arithmetic as integer.  
 This actually made almost no difference in the compute time, but it was an
 interesting exercise to find that out.
 
@@ -380,7 +379,7 @@ One approach is to compute an infinitesimal jackknife (IJ) estimate,
 for which we need derivatives with respect to the weights.
 Looking back at equation \eqref{C} we have
 \begin{align}
-  C  &= \sum_i (v_i/m_i) w_i \delta_i \sum_j Y^*_j(t_i) w_j I(x_i < x_j) 
+  C  &= \sum_i  w_i \delta_i \sum_j Y^*_j(t_i) w_j I(x_i < x_j) 
   \nonumber\\
 % \frac{\partial C}{\partial w_k} &= 
 %    (v_k/m_k)\delta_k \sum_j Y^*_{j}(t_k) I(x_k < x_j) +
@@ -415,23 +414,25 @@ for a Cox model with time-dependent covariate $z$.
 When two subjects have an event at the same time, this formulation treats
 each of them as being in the other's risk set whereas the concordance
 treats them as incomparable --- how can they be the same?
-The trick is that $D-C$ does not change: the tied pairs add equally to the
-two terms. 
+The trick is that $D-C$ does not change: the tied pairs add equally to
+$D$ and $C$.
 Under the null hypothesis that the risk score is not related to outcome,
 each term in \eqref{zcord} is a random selection from the $z$ scores in
 the risk set, and the variance of the addition is the variance of $z$,
-the sum of these over deaths is the Cox model information matrix. 
-use the inverse of the information matrix for said Cox model as a variance.
+the sum of these over deaths is the Cox model information matrix,
+which is also the variance of the score statistic.
 The mean of $z$ is always zero, so we need to keep track of 
 $\sum w_i z^2$. 
 
 How can we do this efficiently?  First note that $z_i$ can be written
 as sum(weights for smaller x) - sum(weights for larger x), and in fact the
-weighted mean for any slice of $x$ values $a < x < b$ is exactly the
-same: sum(weights for x values below the range) - sum(weights above the range).
+weighted mean for any slice of $x$, $a < x < b$, is exactly the
+same: mean = sum(weights for x values below the range) - 
+ sum(weights above the range).
 The second trick is to use an ANOVA decomposition of the variance of $z$ into
 within-slice and between-slice sums of squares, where the 3 slices are the
-weights at a given $x$ value (node of the tree), below that, and above.
+$z$ scores at a given $x$ value (node of the tree), weights for score below that
+cutpoint, and above.
 Assume that a new observation $k$ has just been added to the tree.  
 This will add $w_k$ to all the $z$ values above, and to the weighted mean of
 all those above, $-w_k$ to the values and means below, and 0 to the values and
@@ -440,9 +441,13 @@ SS change.
 Let $s_a$, $s_b$ and $s_0$ be the current sum of weights above, below, and
 at the node of the tree.  The mean for the above group was $(s_b + s_0)$ with
 between SS contribution of $s_a (s_b + s_0)^2$.  The below mean was 
-$-(s_a + s0)$  with between SS contribution of $s_b(s_a + s_0)^2$.
-Adding $w_k$ to the above mean the change in between SS is
-$s_a (2w_k (s_b + s_0) + w_k^2)$, while for the below group the change
+$-(s_a + s_0)$  with between SS contribution of $s_b(s_a + s_0)^2$.
+The change to the between SS from adding the new subject is
+$$
+s_a\left( (s_b+s_0 + w_k)^2 - (s_b + s_0)^2 \right) =
+s_a (2w_k (s_b + s_0) + w_k^2)
+$$
+while the change in between SS for the below group 
 is $s_b(2w_k(s_a + s_0) + w_k^2)$, and there is no change for the 
 prior observations in the middle group.
 Last we add $w_kz_k^2 = w_k(s_b- s_a)^2$ to the sum for the new observation.
@@ -482,7 +487,7 @@ The routine will return list with three components:
 #include "survS.h"
 <<walkup>>
     
-SEXP concordance3(SEXP y, SEXP x2, SEXP wt2, SEXP group2) {
+SEXP concordance3(SEXP y, SEXP x2, SEXP wt2, SEXP timewt2, SEXP group2) {
     int i, j, k;
     int n, ngroup, ntree, nevent;
     int dcount;   /*events seen so far, index into resid matrix */
@@ -498,17 +503,18 @@ SEXP concordance3(SEXP y, SEXP x2, SEXP wt2, SEXP group2) {
     int ndeath;   /* total number of deaths at this point */    
     double dwt;   /* weighted number of deaths at this point */
     double wsum[3]; /* the sum of weights that are > current, <, or equal  */
-    double temp;
+    double temp, vtemp, ztemp;
 
     SEXP rlist, count2, imat2, resid2;
-    double *count, *imat[4], *resid[3];
-    double *wt;
+    double *count, *imat[4], *resid[4];
+    double *wt, *timewt;
     int    *x, *group;
     static const char *outnames[]={"count", "resid", "influence", ""};
     
     n = nrows(y);
     x = INTEGER(x2);
     wt = REAL(wt2);
+    timewt = REAL(timewt2);
     group = INTEGER(group2);
     time = REAL(y);
     status = time + n;
@@ -533,8 +539,8 @@ SEXP concordance3(SEXP y, SEXP x2, SEXP wt2, SEXP group2) {
     count2 = SET_VECTOR_ELT(rlist, 0, allocVector(REALSXP, 4));
     count = REAL(count2); 
     for (i=0; i<4; i++) count[i]=0.0;
-    resid2 = SET_VECTOR_ELT(rlist, 1, allocMatrix(REALSXP, nevent, 3));
-    for (i=0; i<3; i++) resid[i] = REAL(resid2) + i*nevent;
+    resid2 = SET_VECTOR_ELT(rlist, 1, allocMatrix(REALSXP, nevent, 4));
+    for (i=0; i<4; i++) resid[i] = REAL(resid2) + i*nevent;
     imat2 = SET_VECTOR_ELT(rlist, 2, allocMatrix(REALSXP, ngroup, 4));
     for (i=0; i<4; i++) {
         imat[i] = REAL(imat2) + i*ngroup;
@@ -607,44 +613,44 @@ for (i=0; i<n;) {
         i++;
     }
     else { /* process all tied deaths at this point */
-	ndeath=0; temp =0; dwt=0;
-        /* update the counts */
+	ndeath=0; dwt=0; vtemp=0; ztemp = z2;
+        /* update the counts and residuals */
         for (j=i; j<n && time[j]==time[i]; j++) {
-           temp += wt[j] * dwt;	    
+           count[3] += wt[j] * dwt;	    
            ndeath++; dwt += wt[j];   /* count of deaths and sum of wts */
-	   walkup(nwt, twt, x[j], wsum, ntree);
-	   for (k=0; k<3; k++) count[k] += wt[j]* wsum[k];
+
+           walkup(nwt, twt, x[j], wsum, ntree);
+	   nevent--;  /* backwards on the survival curve */
+           temp = timewt[nevent]/twt[0]; /* adjusted time weight */
+           printf("j=%d, event=%d, timewt=%f, npair=%d\n");
+	   for (k=0; k<3; k++) count[k] += wt[j]* wsum[k] * temp;
+
+           /* residuals */
+	   vtemp =  wt[j]*(wsum[0]*(wt[j] + 2*(wsum[1] + wsum[2])) +
+			 wsum[1]*(wt[j] + 2*(wsum[0] + wsum[2])) +
+			 (wsum[0]-wsum[1])*(wsum[0]-wsum[1]));
+	   z2 += vtemp;
+           temp = twt[0] + wt[j];
+	   resid[0][nevent] = (wsum[0] - wsum[1])/twt[0]; /* -1 to 1 */
+	   resid[3][nevent] = (ztemp + vtemp)/(temp*temp*temp);
+	   resid[1][nevent] = twt[0];
+	   resid[2][nevent] = wt[j];
 	}
 
 	if (ndeath>1) {
-	    /* Add tied time information into the counts and influence */
-	    count[3] += temp;
+	    /* Add tied time information into the influence */
 	    for (j=i; j< i+ndeath; j++) imat[3][group[j]] += dwt - wt[j];
 	}
 	 
-	/* Add deaths into the tree and update z2*/
-	for (j=i; j< ndeath+i; j++) {
-            walkup(nwt, twt, x[j], wsum, ntree);
-	    z2 += wt[j]*(wsum[0]*(wt[j] + 2*(wsum[1] + wsum[2])) +
-			 wsum[1]*(wt[j] + 2*(wsum[0] + wsum[2])) +
-			 (wsum[0]-wsum[1])*(wsum[0]-wsum[1]));
-	    addin(nwt, twt, x[j], wt[j]);
-	    addin(dnwt, dtwt, x[j], wt[j]);
-        }
-        
-        /* fill in the residuals matrix */
-        for(j=0; j<ndeath; j++) {
-            walkup(nwt, twt, x[i], wsum, ntree);
-            temp = (wsum[0] - wsum[1])/twt[0];  /* -1 to 1 */
-            nevent--;                                                 
-            resid[0][nevent] = (temp+1)/2;         /* 0 to 1 */
-            resid[1][nevent] = z2/(4 * twt[0]*twt[0] * twt[0]);
-            resid[2][nevent] = twt[0];
-            dcount++;
+	/* Add deaths into the tree */
+	for (j=0; j< ndeath; j++) {
+	    addin(nwt, twt, x[i], wt[i]);
+	    addin(dnwt, dtwt, x[i], wt[i]);
 	    i++;
-	}
+        }
     }
 }
+
 /* Now finish off the influence for each observation */
 for (i=0; i<n; i++) {
     walkup(dnwt, dtwt, x[i], wsum, ntree);

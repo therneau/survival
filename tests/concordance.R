@@ -39,10 +39,26 @@ allpair <- function(x, time, status, wt, all=FALSE) {
     }
     else rowSums(count)
 }
-                    
+ 
+# leverage by brute force
+leverage <- function(x, time, status, wt) {
+    if (missing(wt)) wt <- rep(1, length(x))
+    n <- length(time)
+    count <- matrix(0, n, n)  # neg will be a discordant count, pos concordant
+    for (i in which(status==1)) {
+        atrisk <- (time > time[i]) | (time==time[i] & status==0)
+        count[i, atrisk] <- (wt * sign(x[i] -x))[atrisk]
+        count[atrisk, i] <- wt[i]*sign(x[i] - x[atrisk])
+    }
+    dimnames(count) <- list(time, time)
+    count
+}
+
+                   
 tdata <- aml[aml$x=='Maintained', c("time", "status")]
 tdata$x <- c(1,6,2,7,3,7,3,8,4,4,5)
 tdata$wt <- c(1,2,3,2,1,2,3,4,3,2,1)
+fit <- concordance(Surv(time, status) ~x, tdata)
 fit <- survConcordance(Surv(time, status) ~x, tdata)
 aeq(fit$stats[1:4], c(14,24,2,0))
 cfit <- coxph(Surv(time, status) ~ tt(x), tdata, tt=grank, method='breslow',
