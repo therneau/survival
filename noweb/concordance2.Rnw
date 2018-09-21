@@ -103,12 +103,11 @@ concordance.formula <- function(formula, data,
     
     cfit <- concordance.fit(Y, x, strat, wt, ymin, ymax, timewt, influence,
                              cluster)
-    browser()
     if (is.matrix(cfit$count))
         count2 <- colSums(cfit$count)
     else count2 <- cfit$count
     concordance <- (count2[1] + count2[3]/2)/sum(count2[1:3])
-    if (missing(reverse)) reverse <- (concordance < .5)
+
     if (!is.logical(reverse)) 
         stop ("the reverse argument must be TRUE/FALSE")
     if (reverse) concordance <- 1- concordance
@@ -498,7 +497,7 @@ SEXP concordance3(SEXP y, SEXP x2, SEXP wt2, SEXP group2) {
         
     int ndeath;   /* total number of deaths at this point */    
     double dwt;   /* weighted number of deaths at this point */
-    double wtemp[3]; /* used when walking up a tree */
+    double wsum[3]; /* the sum of weights that are > current, <, or equal  */
     double temp;
 
     SEXP rlist, count2, imat2, resid2;
@@ -593,17 +592,17 @@ When all the subjects have been added to the tree, then add the death tree
 data for each subject to the influence matrix.  
 
 <<concordance3-work>>=
-z2 =0; dcount=0;
+z2 =0; 
 for (i=0; i<n;) {
     /* Initialize the influence */
-    walkup(dnwt, dtwt, x[i], wtemp, ntree);
-    for (j=0; j<3; j++) imat[j][group[i]] -= wtemp[j];
+    walkup(dnwt, dtwt, x[i], wsum, ntree);
+    for (j=0; j<3; j++) imat[j][group[i]] -= wsum[j];
 
     if (status[i]==0) { /* censored, simply add them into the tree */
-        walkup(nwt, twt, x[j], wtemp, ntree);
-	z2 += wt[i]*(wtemp[0]*(wt[i] + 2*(wtemp[1] + wtemp[2])) +
-		     wtemp[1]*(wt[i] + 2*(wtemp[0] + wtemp[2])) +
-		     (wtemp[0]-wtemp[1])*(wtemp[0]-wtemp[1]));
+        walkup(nwt, twt, x[i], wsum, ntree);
+	z2 += wt[i]*(wsum[0]*(wt[i] + 2*(wsum[1] + wsum[2])) +
+		     wsum[1]*(wt[i] + 2*(wsum[0] + wsum[2])) +
+		     (wsum[0]-wsum[1])*(wsum[0]-wsum[1]));
         addin(nwt, twt, x[i], wt[i]);
         i++;
     }
@@ -613,33 +612,34 @@ for (i=0; i<n;) {
         for (j=i; j<n && time[j]==time[i]; j++) {
            temp += wt[j] * dwt;	    
            ndeath++; dwt += wt[j];   /* count of deaths and sum of wts */
-	   walkup(nwt, twt, x[j], wtemp, ntree);
-	   for (k=0; k<3; k++) count[k] += wt[k]* wtemp[k];
+	   walkup(nwt, twt, x[j], wsum, ntree);
+	   for (k=0; k<3; k++) count[k] += wt[j]* wsum[k];
 	}
 
 	if (ndeath>1) {
 	    /* Add tied time information into the counts and influence */
-	    count[4] += temp;
-	    for (j=i; j< i+ndeath; j++) imat[4][group[j]] += dwt - wt[j];
+	    count[3] += temp;
+	    for (j=i; j< i+ndeath; j++) imat[3][group[j]] += dwt - wt[j];
 	}
 	 
 	/* Add deaths into the tree and update z2*/
 	for (j=i; j< ndeath+i; j++) {
-            walkup(nwt, twt, x[j], wtemp, ntree);
-	    z2 += wt[j]*(wtemp[0]*(wt[j] + 2*(wtemp[1] + wtemp[2])) +
-			 wtemp[1]*(wt[j] + 2*(wtemp[0] + wtemp[2])) +
-			 (wtemp[0]-wtemp[1])*(wtemp[0]-wtemp[1]));
+            walkup(nwt, twt, x[j], wsum, ntree);
+	    z2 += wt[j]*(wsum[0]*(wt[j] + 2*(wsum[1] + wsum[2])) +
+			 wsum[1]*(wt[j] + 2*(wsum[0] + wsum[2])) +
+			 (wsum[0]-wsum[1])*(wsum[0]-wsum[1]));
 	    addin(nwt, twt, x[j], wt[j]);
 	    addin(dnwt, dtwt, x[j], wt[j]);
         }
         
         /* fill in the residuals matrix */
         for(j=0; j<ndeath; j++) {
-            walkup(nwt, twt, x[i], wtemp, ntree);
-            temp = (wtemp[0] - wtemp[1])/twt[0];  /* -1 to 1 */
-            resid[0][dcount] = (temp+1)/2;         /* 0 to 1 */
-            resid[1][dcount] = z2/(4 * twt[0]*twt[0] * twt[0]);
-            resid[2][dcount] = twt[0];
+            walkup(nwt, twt, x[i], wsum, ntree);
+            temp = (wsum[0] - wsum[1])/twt[0];  /* -1 to 1 */
+            nevent--;                                                 
+            resid[0][nevent] = (temp+1)/2;         /* 0 to 1 */
+            resid[1][nevent] = z2/(4 * twt[0]*twt[0] * twt[0]);
+            resid[2][nevent] = twt[0];
             dcount++;
 	    i++;
 	}
@@ -647,8 +647,8 @@ for (i=0; i<n;) {
 }
 /* Now finish off the influence for each observation */
 for (i=0; i<n; i++) {
-    walkup(dnwt, dtwt, x[i], wtemp, ntree);
-    for (k=0; k<3; k++) imat[k][i] += wtemp[k] - wt[i];
+    walkup(dnwt, dtwt, x[i], wsum, ntree);
+    for (k=0; k<3; k++) imat[k][i] += wsum[k] - wt[i];
 }
 @ 
 
