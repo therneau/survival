@@ -8,30 +8,23 @@ options(contrasts=c('contr.treatment', 'contr.poly')) #ensure constrast type
 aeq <- function(x,y, ...) all.equal(as.vector(x), as.vector(y), ...)
 
 grank <- function(x, time, grp, wt) 
-    unlist(tapply(x, grp, rank))
-grank2 <- function(x, time, grp, wt) {  #for case weights
-    if (length(wt)==0) wt <- rep(1, length(x))
-    z <- double(length(x))
-    for (i in unique(grp)) {
-        indx <- which(grp==i)
-        temp <- tapply(wt[indx], x[indx], sum)
-        temp <- temp/2  + c(0, cumsum(temp)[-length(temp)])
-        z[indx] <- temp[match(x[indx], names(temp))]
-    }
-    z
-}
+    2*unlist(tapply(x, grp, rank))
 
 # Concordance by brute force.  O(n^2) algorithm, but ok for n<500 or so
 allpair <- function(time, status, x, wt, all=FALSE) {
+    n <- length(time)
     if (missing(wt)) wt <- rep(1, length(x))
     count <- sapply(which(status==1), function(i) {
         atrisk <- (time > time[i]) | (time==time[i] & status==0)
         temp <- tapply(wt[atrisk], factor(sign(x[i] -x[atrisk]), c(-1, 1, 0)),
                        sum)
-        wt[i]* c(ifelse(is.na(temp), 0, temp),
-                 (sum(wt[time==time[i] & status==1]) - wt[i])/2) 
+        tiedtime <- (time==time[i] & status ==1 & (1:n)>i)
+        ties <- tapply(wt[tiedtime], factor(x[tiedtime]==x[i], 
+                                            c(FALSE, TRUE)),sum)
+        wt[i]* c(ifelse(is.na(temp), 0, temp), ifelse(is.na(ties), 0, ties))
     })
-    rownames(count) <- c("concordant", "discordant", "tied.x", "tied.y")
+    rownames(count) <- c("concordant", "discordant", "tied.x", "tied.y",
+                         "tied.xy")
     if (all) {
         colnames(count) <- time[status==1]
         t(count)
@@ -40,30 +33,22 @@ allpair <- function(time, status, x, wt, all=FALSE) {
 }
 
 # leverage by brute force
-leverage <- function(time, status, x, wt, debug=FALSE) {
+leverage <- function(time, status, x, wt, eps=1e-5) {
     if (missing(wt)) wt <- rep(1, length(x))
     n <- length(time)
-    count <- matrix(0, n, n)  # neg will be a discordant count, pos concordant
-    xtie <- matrix(0, n, n)
-    ytie <- double(n)
-    for (i in which(status==1)) {
-        atrisk <- (time > time[i]) | (time==time[i] & status==0)
-        count[i, atrisk] <- (wt * sign(x- x[i]))[atrisk]
-        count[atrisk, i] <- wt[i]*sign(x[atrisk]- x[i])
-        xtie[i, atrisk] <- (wt * (x ==x[i]))[atrisk]
-        xtie[atrisk, i] <- wt[i] * (x[atrisk]==x[i])
-        j <- which(time== time[i] & status==0)
-        if (length(j) > 1) {
-            ytie[j] <- ytie[j] + wt[i]
-            ytie[i] <- ytie[i] + sum(wt[j]) - wt[i]
-        }
+    influence <- matrix(0, n, 4)
+    t2 <- time + eps*(status==0)
+    for (i in 1:n) {
+        if (status[i] ==0) comparable <- (time<=time[i] & status==1)
+        else comparable <- ifelse(status==0, time >= time[i], time!= time[i])
+        temp <- sign((x[i]-x[comparable])*(t2[i] - t2[comparable]))
+        influence[i,1:3] <-tapply(wt[comparable],factor(temp, c(1,-1,0)), sum)
+        if (status[i]==1) 
+            influence[i,4] <- sum(wt[time==time[i] & status==1]) - wt[i]
     }
-    dimnames(count) <- list(as.character(Surv(time, status)), time)
-    inf <- cbind(concordant= apply(wt*count, 1, function(x) sum(x[x>0])),
-                 discordant= apply(wt*count, 1, function(x) -sum(x[x<0])),
-                 tied.x = rowSums(xtie), tied.y = ytie)
-    if (debug) list(influence=inf, count=count, xtie=xtie) 
-    else inf
+    dimnames(influence) <- list(as.character(Surv(time, status)), 
+                                c("concord", "discord", "tie.x", "tie.y"))
+    ifelse(is.na(influence), 0, influence)
 }
 
 # PH variance by brute force
@@ -77,18 +62,7 @@ phvar <- function(time, status, x, wt) {
     })
     rowSums(z2 * rep(wt[status==1], each=2))  # Cox score stat, var of score
 }
- phvar2 <- function(time, status, x, wt) {
-    if (missing(wt)) wt <- rep(1, length(x))
-    zmat <- wt* outer(x, x, function(x, y) sign(x-y))
-    z2 <- sapply(which(status==1), function(i) {
-            atrisk <- (time >= time[i])
-            zscore <- colSums(zmat[atrisk,, drop=FALSE])
-            c(zscore[i], sum((wt*zscore)[atrisk]^2)/sum(wt[atrisk]))
-    })
-    z2 * rep(wt[status==1], each=2)  # Cox score stat, var of score
-}
-                     
-
+                      
 tdata <- aml[aml$x=='Maintained', c("time", "status")]
 tdata$x <- c(1,6,2,7,3,7,3,8,4,4,5)
 tdata$wt <- c(1,2,3,2,1,2,3,4,3,2,1)
@@ -96,28 +70,26 @@ tdata$wt <- c(1,2,3,2,1,2,3,4,3,2,1)
 fit <- concordance(Surv(time, status) ~x, tdata, influence=2)
 aeq(fit$count, with(tdata, allpair(time, status, x)))
 aeq(fit$influence, with(tdata, leverage(time, status, x)))
+npair <- sum(fit$count[1:3])
+aeq(c(fit$count[1]-fit$count[2], 4*npair^2*fit$var[2]), 
+    with(tdata, phvar(time, status, x)))
 
+# verify tha the phvar function is correct by fitting a time-dependent
+#  Cox model
 cfit <- coxph(Surv(time, status) ~ tt(x), tdata, tt=grank, method='breslow',
               iter=0, x=T)
-c2 <- coxph(Surv(time, status) ~ tt(x), tdata, method='breslow', iter=0,
-            tt=function(x, time, grp, wt) 
-                2*unlist(tapply(x, grp, rank)))
-
-              iter=0, x=T)
-
 cdt <- coxph.detail(cfit)
-aeq(4*sum(cdt$imat),fit$stats[5]^2) 
-aeq(2*sum(cdt$score), diff(fit$stats[2:1]))
-aeq(with(tdata, allpair(x, time, status)), c(24,24,2,0))
-fcheck <- with(tdata, leverage(x, time, status))
+aeq(c(-sum(cdt$score), sum(cdt$imat)),  with(tdata, phvar(time, status, x)))
 
-# Lots of ties
+# Test 2: Lots of ties
 tempy <- Surv(c(1,2,2,2,3,4,4,4,5,2), c(1,0,1,0,1,0,1,1,0,1))
 tempx <- c(5,5,4,4,3,3,7,6,5,4)
-fit2 <- concordance(tempy ~ tempx)
-aeq(fit2$count, allpair(tempx, tempy[,1], tempy[,2]))
-cfit2 <-  coxph(tempy ~ tt(tempx), tt=grank, method='breslow', iter=0)
-aeq(4/cfit2$var, fit2$stats[5]^2)
+fit2 <- concordance(tempy ~ tempx, influence=2)
+aeq(fit2$count, allpair(tempy[,1], tempy[,2], tempx))
+aeq(fit2$influence, leverage(tempy[,1], tempy[,2], tempx))
+npair <- sum(fit$count[1:3])
+aeq(4*npair^2*fit2$var[2], phvar(tempy[,1], tempy[,2], tempx)[2])
+
 
 # Bigger data
 cox3 <- coxph(Surv(time, status) ~ age + sex + ph.ecog, lung)

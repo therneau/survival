@@ -102,7 +102,7 @@ For the above tree, the last row will contains the 1st, 3rd, \ldots, 11th
 smallest ranks.  The next row above contains every other value of the
 ranks \emph{not yet assigned}, and etc to the top of the tree.  There is
 some care to make sure the result is an integer.
-<<btree>>=
+<<btree1>>=
 btree <- function(n) {
     ranks <- rep(0L, n)  #will be overwritten
     yet.to.do <- 1:n
@@ -628,7 +628,7 @@ survConcordance.fit <- function(y, x, strata, weight) {
     # The coxph program may occassionally fail, and this will kill the C
     #  routine below
     if (any(is.na(x)) || any(is.na(y))) return(NULL)   
-    <<btree>>
+    <<btree1>>
         
     docount <- function(stime, risk, wts) {
         if (attr(stime, 'type') == 'right') {
