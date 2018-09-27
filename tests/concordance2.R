@@ -95,6 +95,15 @@ cfit <- coxph(Surv(time, status) ~ tt(x), tdata, tt=grank, method='breslow',
 cdt <- coxph.detail(cfit)
 aeq(c(-sum(cdt$score), sum(cdt$imat)),  with(tdata, phvar(time, status, x)))
 
+# Weighted
+fit <- concordance(Surv(time, status) ~x, tdata, influence=2, weights=wt)
+aeq(fit$count, with(tdata, allpair(time, status, x, wt)))
+aeq(fit$influence, with(tdata, leverage(time, status, x)))
+npair <- sum(fit$count[1:3])
+aeq(c(fit$count[1]-fit$count[2], 4*npair^2*fit$var[2]), 
+    with(tdata, phvar(time, status, x)))
+
+
 # Test 2: Lots of ties
 tempy <- Surv(c(1,2,2,2,3,4,4,4,5,2), c(1,0,1,0,1,0,1,1,0,1))
 tempx <- c(5,5,4,4,3,3,7,6,5,4)

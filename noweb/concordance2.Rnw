@@ -224,6 +224,7 @@ concordance.fit <- function(y, x, strata, weight, ymin, ymax, timewt,
         else gtemp <- as.factor(group)
         
         storage.mode(stime) <- "double"  # just in case y is integer
+        storage.mode(wts) <- "double"
         if (ncol(y) ==2)
             fit <- .Call(Cconcordance3, stime, bindex, wts, rev(timewt), 
                          as.integer(gtemp) -1L, residuals)
@@ -237,8 +238,12 @@ concordance.fit <- function(y, x, strata, weight, ymin, ymax, timewt,
         fit$influence[,4] <- fit$influence[,4] - fit$influence[,5]
         dimnames(fit$influence) <- list(levels(gtemp),
                    c("concordant", "discordant", "tied.x", "tied.y", "tied.xy"))
-        if (residuals) dimnames(fit$resid) <- list(rep(sfit$time, sfit$n.event),
+        if (residuals) {
+            if (ncol(y)==2) dtime <- stime[stime[,2]==1, 1]
+            else dtime <- stime[stime[,3]==1, 2]
+            dimnames(fit$resid) <- list(sort(dtime),
                                     c("rank", "npair", "wt", "var"))
+        }
         fit
     }
     
@@ -707,7 +712,13 @@ for (i=0; i<n;) {
     }
     else { /* process all tied deaths at this point */
 	ndeath=0; dwt=0; 
-        adjtimewt = timewt[utime++] / twt[0];
+        if (twt[0]==0) { /* no one to compare them to */
+	    addin(nwt, twt, x[i], wt[i]);
+	    i++;
+	    utime++;
+	    continue;
+	}
+	else adjtimewt = timewt[utime++] / twt[0];
 
         /* pass 1 */
 	for (j=i; j<n && time[j]==time[i]; j++) {
@@ -748,6 +759,7 @@ for (i=0; i<n;) {
 	    imat[2][group[j]] -= wsum[2];  /* tied.x */
 	    imat[3][group[j]] += (dwt- wt[j])* adjtimewt;
             imat[4][group[j]] += (wsum[2] - wt[j] * adjtimewt); 
+            count[4] += wt[j] * (wsum[2] - wt[j] * adjtimewt) /2;
 
 	    /* increment Cox var and add obs into the tree */
             walkup(nwt, twt, x[j], wsum, ntree);
