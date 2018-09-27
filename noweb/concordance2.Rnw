@@ -229,30 +229,34 @@ concordance.fit <- function(y, x, strata, weight, ymin, ymax, timewt,
                          as.integer(gtemp) -1L, residuals)
         else fit <- .Call(Cconcordance4, stime, bindex, wts, rev(timewt), 
                           sort.start, sort.stop, as.integer(gtemp) -1L, residuals)
-
-        if (residuals) dimnames(fit$resid) <- list(rep(sfit$time, sfit$n.event),
-                                    c("rank", "npair", "wt", "var"))
+        # The C routine gives back an influence matrix which has columns for
+        #  concordant, discordant, tied on x but not y, tied on y, and tied on
+        #  both x and y.  Subtract col 5 from col 4 to get tied on y but not x.
+        # The influence matrix counts each pair twice, so the totals are 1/2 the
+        #  column sums.
+        fit$influence[,4] <- fit$influence[,4] - fit$influence[,5]
         dimnames(fit$influence) <- list(levels(gtemp),
                    c("concordant", "discordant", "tied.x", "tied.y", "tied.xy"))
-       fit
+        if (residuals) dimnames(fit$resid) <- list(rep(sfit$time, sfit$n.event),
+                                    c("rank", "npair", "wt", "var"))
+        fit
     }
     
-    if (missing(strata) || length(strata)==0 || all(strata==strata[1])) {
-        fit <- docount(y, x, weight, group)
-        npair <- sum(fit$count[1:3])
-        d <- (fit$count[1] - fit$count[2])/npair  # Somers' d 
-        dfbeta <- (fit$influence[,1]- fit$influence[,2])/npair -
-            (d/npair)*rowSums(fit$influence[,1:3])
- 
-        rval <- list(concordance= (d+1)/2, count=fit$count[1:5], n=n,
-                     var = c(IJ= sum(dfbeta^2)/4, 
-                             PH= fit$count[5]/(4*npair^2)), resid=fit$resid)
-        names(rval$count) <- c("concordant", "discordant", "tied.x", "tied.y",
-                               "tied.xy")
-        if (influence==1) rval$dfbeta <- dfbeta
-        else if (influence==2) rval$influence <- fit$influence
+    dfun <- function(count, imat, v1, v2) {
+        # Compute a statistic and its variance
+        denom <- sum(count*v2)
+        statistic <-  sum(count*v1)/denom
+        dfbeta <- (imat %*% v1)/denom - (imat %*% v2)*statistic/denom
+        list(x=c(value=statistic, variance= sum(dfbeta^2)), dfbeta=dfbeta)
     }
-    else { 
+        
+    if (missing(strata) || length(strata)==0 || all(strata==strata[1])) {
+        is.strata <-FALSE
+        fit <- docount(y, x, weight, group)
+        imat <- fit$influence
+        if (residuals) resid <- fit$resid
+    } else {
+        is.strata <- TRUE
         strata <- as.factor(strata)
         ustrat <- levels(strata)[table(strata) >0]  #some strata may have 0 obs
         tfit <- lapply(ustrat, function(i) {
@@ -260,36 +264,36 @@ concordance.fit <- function(y, x, strata, weight, ymin, ymax, timewt,
             docount(y[keep,,drop=F], x[keep], weight[keep], group[keep])
         })
         
-        count <- t(sapply(tfit, function(x) x$count))
-        dimnames(count) <- list(ustrat, c("concordant", "discordant", "tied.x", 
-                                          "tied.y", "std(c-d"))
-        influence <- do.call("rbind", lapply(tfit, function(x) x$influence))
-        influence <- cbind(influence, strata=rep(ustrat,
-                                    sapply(tfit, function(x) nrow(x$influence))))
-
-        npair <- sum(fit$count[,1:3])
-        d <- sum(fit$count[,1] - fit$count[,2])/npair  # Somers' d 
-        dfbeta <- (fit$influence[,1]- fit$influence[,2])/npair -
-            (d/npair)*rowSums(fit$influence[,1:3])
+        imat <- do.call("rbind", lapply(tfit, function(x) x$influence))
+        if (residuals)
+            resid <- do.call("rbind", lapply(tfit, function(x) x$resid))
+    }
+    
+    count <- colSums(imat)/2
+    npair <- sum(count[1:3])
+    somer <- (count[1] - count[2])/npair
+    dfbeta <- (imat[,1]- imat[,2])/npair -
+            (somer/npair)*rowSums(imat[,1:3])
+    var.somer <- sum(dfbeta^2)
+    rval <- list(concordance = (somer+1)/2, count=count, n=n,
+                 var = c(IJ= var.somer/4, PH= fit$count[6]/(4*npair^2)))
  
-        rval <- list(concordance= (d+1)/2, count=fit$count[,1:4], n=n, 
-                     var = c(IJ= sum(dfbeta^2)/4, 
-                             PH= fit$count[5]/(4*npair^2)))
-
-        if (influence > 1) {
+    if (influence > 1) {
+        if (is.strata) {
             # reorder the influence to be data set order
+            # it is currently data set order, within strata
             unsort <- integer(nrow(influence))
             unsort[order(as.numeric(strata))] <- 1:nrow(influence)
             if (influence==1) rval$dfbeta <- dfbeta[unsort]
-            else rval$dfbeta <- influence[unsort,]
-        }
-        if (residuals) {
-            resid <- do.call("rbind", lapply(tfit, function(x) x$resid))
-            resid <- cbind(resid, strata= rep(ustrat, 
-                                       sapply(tfit, function(x) nrow(x$resid))))
-            rval$residuals <- resid
+            else rval$influence <- imat[unsort,]
+        } 
+        else {
+            if (influence ==1) rval$dfbeta= dfbeta
+            else rval$influence <- imat
         }
     }
+    
+    if (residuals) rval$residuals <- resid
     rval
 }
 @ 
@@ -568,7 +572,7 @@ The routine will return list with three components:
     double temp, adjtimewt;  /* the second accounts for npair and timewt*/
 
     SEXP rlist, count2, imat2, resid2;
-    double *count, *imat[4], *resid[4];
+    double *count, *imat[5], *resid[4];
     double *wt, *timewt;
     int    *x, *group;
     int doresid;
@@ -669,7 +673,7 @@ Starting at the largest time (which is sorted last), walk through the tree.
       death tree's data for to the influence matrix.  
 \end{itemize}
 
-Part of the nuisance above is that for tied.y and tied.xy counts 
+Part of the nuisance above is that for tied.xy counts 
 I need to compare a
 readout (walkup routine) of the
 death tree before adding a batch of events, to the same readout just after
@@ -678,6 +682,9 @@ readouts: the total tree before any additions, the death tree after the
 addition of the tied events, and the death tree at the very end.
 Increments to the Cox variance occur just before each addition to the total 
 tree, and are saved out after each batch of events.
+It is easy to keep a count of tied.y = tied on y, whether x is tied or not,
+but (tied on y, not on x) is harder.  We fix this up at the end in the
+R code.
 
 <<concordance3-work>>=
 z2 =0; utime=0;
@@ -705,13 +712,13 @@ for (i=0; i<n;) {
         /* pass 1 */
 	for (j=i; j<n && time[j]==time[i]; j++) {
 	    ndeath++; 
-	    imat[4][group[j]] -= dtwt[x[j]];  /* tied on x, prior to additions*/
+	    imat[4][group[j]] -= dnwt[x[j]];  /* tied on x, prior to additions*/
 	}
 
         /* pass 2 */   
         for (j=i; j< (i+ndeath); j++) {
-	    count[3] += wt[j] * dwt;  /* update total tied on y */	    
-	    dwt += wt[j];   /* count of deaths and sum of wts */
+	    count[3] += wt[j] * dwt;  /* update total tied on y */
+            dwt += wt[j];   /* count of deaths and sum of wts */
 
 	    /* Count concordant, discordant, etc. */
 	    walkup(nwt, twt, x[j], wsum, ntree);
@@ -727,7 +734,7 @@ for (i=0; i<n;) {
 	    if (doresid) {
 		nevent--;
 		resid[0][nevent] = (wsum[0] - wsum[1])/twt[0]; /* -1 to 1 */
-		resid[1][nevent] = twt[0];
+		resid[1][nevent] = twt[0] * adjtimewt;
 		resid[2][nevent] = wt[j];
 	    }
 	}
@@ -739,26 +746,24 @@ for (i=0; i<n;) {
 	    imat[0][group[j]] -= wsum[1];
 	    imat[1][group[j]] -= wsum[0];
 	    imat[2][group[j]] -= wsum[2];  /* tied.x */
-            temp = imat[4][group[j]] + wsum[2] - wt[j]; /*tied on xy with j*/
-            imat[4][group[j]] += (wsum[2] - wt[j]); 
-	    imat[3][group[j]] += dwt- (temp - wt[j]); /* tied on y, not on x*/
-	    count[3] -= temp*wt[j]; 
-	    count[4] += temp*wt[j];
+	    imat[3][group[j]] += (dwt- wt[j])* adjtimewt;
+            imat[4][group[j]] += (wsum[2] - wt[j] * adjtimewt); 
 
 	    /* increment Cox var and add obs into the tree */
+            walkup(nwt, twt, x[j], wsum, ntree);
 	    z2 += wt[j]*(wsum[0]*(wt[j] + 2*(wsum[1] + wsum[2])) +
 			 wsum[1]*(wt[j] + 2*(wsum[0] + wsum[2])) +
 			 (wsum[0]-wsum[1])*(wsum[0]-wsum[1]));
 
 	    addin(nwt, twt, x[j], wt[j]); 
 	}
-        count[5] += dwt * z2/twt[0];  /* weighted variance in risk set*/
+        count[5] += dwt * adjtimewt* z2/twt[0]; /* weighted var in risk set*/
 	i += ndeath;
 
 	if (doresid) { /*Add the last part of the residuals */
 	    temp = twt[0]*twt[0]*twt[0];
 	    for (j=0; j<ndeath; j++)
-		resid[3][nevent-j] = z2/temp;
+		resid[3][nevent+j] = z2/temp;
 	}
     }
 }

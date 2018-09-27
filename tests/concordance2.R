@@ -35,19 +35,33 @@ allpair <- function(time, status, x, wt, all=FALSE) {
 # leverage by brute force
 leverage <- function(time, status, x, wt, eps=1e-5) {
     if (missing(wt)) wt <- rep(1, length(x))
+    toss <- is.na(time + status + x +wt)
+    if (any(toss)) {
+        time <- time[!toss]
+        status <- status[!toss]
+        x <- x[!toss]
+        wt <- wt[!toss]
+    }
     n <- length(time)
-    influence <- matrix(0, n, 4)
+    influence <- matrix(0, n, 5)
     t2 <- time + eps*(status==0)
     for (i in 1:n) {
         if (status[i] ==0) comparable <- (time<=time[i] & status==1)
-        else comparable <- ifelse(status==0, time >= time[i], time!= time[i])
+        else comparable <- ifelse(status==0, time >= time[i], time!=time[i])
         temp <- sign((x[i]-x[comparable])*(t2[i] - t2[comparable]))
         influence[i,1:3] <-tapply(wt[comparable],factor(temp, c(1,-1,0)), sum)
-        if (status[i]==1) 
-            influence[i,4] <- sum(wt[time==time[i] & status==1]) - wt[i]
+        if (status[i]==1) {
+            tied <- (time==time[i] & status==1 & (1:n)!= i)
+            if (any(tied)) {
+                itemp<- tapply(wt[tied], factor(x[tied]==x[i], 
+                                                c(FALSE, TRUE)), sum)
+                influence[i,4:5] <- itemp
+            }
+        }
     }
     dimnames(influence) <- list(as.character(Surv(time, status)), 
-                                c("concord", "discord", "tie.x", "tie.y"))
+                                c("concord", "discord", "tie.x", "tie.y",
+                                  "tie.xy"))
     ifelse(is.na(influence), 0, influence)
 }
 
@@ -87,20 +101,15 @@ tempx <- c(5,5,4,4,3,3,7,6,5,4)
 fit2 <- concordance(tempy ~ tempx, influence=2)
 aeq(fit2$count, allpair(tempy[,1], tempy[,2], tempx))
 aeq(fit2$influence, leverage(tempy[,1], tempy[,2], tempx))
-npair <- sum(fit$count[1:3])
+npair <- sum(fit2$count[1:3])
 aeq(4*npair^2*fit2$var[2], phvar(tempy[,1], tempy[,2], tempx)[2])
-
 
 # Bigger data
 cox3 <- coxph(Surv(time, status) ~ age + sex + ph.ecog, lung)
-fit3 <- concordance(Surv(time, status) ~ predict(cox3), lung)
-
-aeq(fit3$count, allpair(lung$age, lung$time, lung$status-1))
-cfit3 <- coxph(Surv(time, status) ~ tt(age), lung, 
-               iter=0, method='breslow', tt=grank, x=T)
-cdt <- coxph.detail(cfit3)
-aeq(4*sum(cdt$imat),fit3$stats[5]^2) 
-aeq(2*sum(cdt$score), diff(fit3$stats[2:1]))
+fit3 <- concordance(Surv(time, status) ~ predict(cox3), lung, influence=2)
+tdata <- na.omit(lung[,c('time', 'status', 'age', 'sex', 'ph.ecog')])
+aeq(fit3$count, allpair(lung$time, lung$status-1,predict(cox3)))
+aeq(fit3$influence, leverage(lung$time, lung$status-1,predict(cox3)))
 
 
 # More ties
