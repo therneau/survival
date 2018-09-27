@@ -88,7 +88,7 @@ npair <- sum(fit$count[1:3])
 aeq(c(fit$count[1]-fit$count[2], 4*npair^2*fit$var[2]), 
     with(tdata, phvar(time, status, x)))
 
-# verify tha the phvar function is correct by fitting a time-dependent
+# verify that the phvar function is correct by fitting a time-dependent
 #  Cox model
 cfit <- coxph(Surv(time, status) ~ tt(x), tdata, tt=grank, method='breslow',
               iter=0, x=T)
