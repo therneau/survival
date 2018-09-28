@@ -7,8 +7,19 @@ options(contrasts=c('contr.treatment', 'contr.poly')) #ensure constrast type
 #
 aeq <- function(x,y, ...) all.equal(as.vector(x), as.vector(y), ...)
 
-grank <- function(x, time, grp, wt) 
-    2*unlist(tapply(x, grp, rank))
+grank <- function(x, time, grp, wt) {
+    if (missing(wt) || length(wt)==0) 2*unlist(tapply(x, grp, rank))
+    else {
+        z <- double(length(x))
+        for (i in unique(grp)) {
+            indx <- which(grp==i)
+            temp <- tapply(wt[indx], x[indx], sum)
+            temp <- temp/2  + c(0, cumsum(temp)[-length(temp)])
+            z[indx] <- temp[match(x[indx], names(temp))]
+        }
+        z
+    }
+}
 
 # Concordance by brute force.  O(n^2) algorithm, but ok for n<500 or so
 allpair <- function(time, status, x, wt, all=FALSE) {
@@ -72,7 +83,7 @@ phvar <- function(time, status, x, wt) {
     z2 <- sapply(which(status==1), function(i) {
             atrisk <- (time >= time[i])
             zscore <- colSums(zmat[atrisk,, drop=FALSE])
-            c(zscore[i], sum((wt*zscore)[atrisk]^2)/sum(wt[atrisk]))
+            c(zscore[i], sum((wt*zscore^2)[atrisk])/sum(wt[atrisk]))
     })
     rowSums(z2 * rep(wt[status==1], each=2))  # Cox score stat, var of score
 }
@@ -88,20 +99,20 @@ npair <- sum(fit$count[1:3])
 aeq(c(fit$count[1]-fit$count[2], 4*npair^2*fit$var[2]), 
     with(tdata, phvar(time, status, x)))
 
-# verify tha the phvar function is correct by fitting a time-dependent
+# verify that the phvar function is correct by fitting a time-dependent
 #  Cox model
 cfit <- coxph(Surv(time, status) ~ tt(x), tdata, tt=grank, method='breslow',
-              iter=0, x=T)
+              iter=0, x=T, weights=wt)
 cdt <- coxph.detail(cfit)
-aeq(c(-sum(cdt$score), sum(cdt$imat)),  with(tdata, phvar(time, status, x)))
+aeq(c(-sum(cdt$score), sum(cdt$imat)),  with(tdata, phvar(time, status, x, wt)))
 
 # Weighted
 fit <- concordance(Surv(time, status) ~x, tdata, influence=2, weights=wt)
 aeq(fit$count, with(tdata, allpair(time, status, x, wt)))
-aeq(fit$influence, with(tdata, leverage(time, status, x)))
+aeq(fit$influence, with(tdata, leverage(time, status, x, wt)))
 npair <- sum(fit$count[1:3])
 aeq(c(fit$count[1]-fit$count[2], 4*npair^2*fit$var[2]), 
-    with(tdata, phvar(time, status, x)))
+    with(tdata, phvar(time, status, x, wt)))
 
 
 # Test 2: Lots of ties
