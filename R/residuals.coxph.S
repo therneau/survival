@@ -13,7 +13,7 @@ residuals.coxph <-
 	}
     if (type=='scaledsch') type<-'schoenfeld'
 
-    n <- length(object$residuals)
+    n <- as.double(length(object$residuals))
     rr <- object$residuals
     y <- object$y
     x <- object[['x']]  # avoid matching object$xlevels
