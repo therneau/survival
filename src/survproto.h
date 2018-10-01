@@ -76,6 +76,10 @@ SEXP concordance1(SEXP y, SEXP wt2,  SEXP indx2, SEXP ntree2);
  
 SEXP concordance2(SEXP y,     SEXP wt2,  SEXP indx2, SEXP ntree2,
                   SEXP sortstop, SEXP sortstart) ;
+SEXP concordance3(SEXP y,        SEXP x2, SEXP wt2, SEXP timewt2, 
+                  SEXP sortstop, SEXP doresid2);
+SEXP concordance4(SEXP y, SEXP x2, SEXP wt2, SEXP timewt2, 
+                  SEXP sortstart, SEXP sortstop, SEXP doresid2); 
 
 void cox_callback(int which, double *coef, double *first, double *second,
 		  double *penalty, int *flag, int p, SEXP fexpr, SEXP rho);

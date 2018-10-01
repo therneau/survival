@@ -45,8 +45,8 @@ concordance <- function(x, ...)
 concordance.formula <- function(formula, data,
                                 weights, subset, na.action, group,
                                 ymin=NULL, ymax=NULL, 
-                                timewt=c("S", "n", "S/G", "n/G", "n/G2"),
-                                influence=0, residuals=TRUE, reverse=FALSE,
+                                timewt=c("n", "S", "S/G", "n/G", "n/G2"),
+                                influence=0, residuals=FALSE, reverse=FALSE,
                                 timefix=TRUE) {
     Call <- match.call()  # save a copy of of the call, as documentation
     timewt <- match.arg(timewt)
@@ -66,7 +66,7 @@ concordance.formula <- function(formula, data,
     Y <- model.response(mf)
     if (!inherits(Y, "Surv")) {
         if (is.numeric(Y) && is.vector(Y))  Y <- Surv(Y)
-        else stop("left hand side of the formula  must be a numeric vector or a surival")
+        else stop("left hand side of the formula  must be a numeric vector or a survival object")
     }
     n <- nrow(Y)
     if (timefix) Y <- aeqSurv(Y)
@@ -113,6 +113,7 @@ concordance.formula <- function(formula, data,
             fit$influence <- fit$influence[,c(2,1,3,4,5)]
         if (is.matrix(fit$count)) fit$count <- fit$count[, c(2,1,3,4,5)]
         else fit$count <- fit$count[c(2,1,3,4,5)]
+        if (residuals) fit$residuals$rank <- -fit$residuals$rank
     }
 
     na.action <- attr(mf, "na.action")
@@ -136,7 +137,8 @@ print.concordance <- function(x, ...) {
     cat("Concordance= ", format(x$concordance), " se= ", format(sqrt(x$var[1])),
         '\n', sep='')
 
-    if (!is.matrix(x$count) || nrow(fit$count < 11)) print(x$count)
+    if (!is.matrix(x$count) || nrow(fit$count < 11)) 
+        print(round(x$count,2))
     invisible(x)
     }
 
@@ -178,7 +180,7 @@ concordance.fit <- function(y, x, strata, weight, ymin, ymax, timewt,
         stop("multiple state survival is not supported")
    
     # This routine is called once per stratum
-    docount <- function(y, risk, wts, group, timeopt= 'n') {
+    docount <- function(y, risk, wts, timeopt= 'n') {
         n <- length(risk)
         # this next line is mostly invoked in stratified logistic, where
         #  only 1 event per stratum occurs.  All time weightings are the same
@@ -199,11 +201,13 @@ concordance.fit <- function(y, x, strata, weight, ymin, ymax, timewt,
 
         npair <- (sfit$n.risk- sfit$n.event)[sfit$n.event>0]
         timewt <- switch(timeopt,
-            "S" =  sum(wt)*esurv/npair,
+            "S" =  sum(wts)*esurv/npair,
             "S/G" = sum(wts)* esurv/ (gsurv* npair),
             "n" =   rep(1.0, length(npair)),
             "n/G" = 1/gsurv,
             "n/G2"= 1/gsurv^2)
+        if (!is.null(ymin)) timewt[etime < ymin] <- 0
+        if (!is.null(ymax)) timewt[etime > ymax] <- 0
 
         # order the data: reverse time, censors before deaths
         if (ncol(y)==2) { 
@@ -235,20 +239,13 @@ concordance.fit <- function(y, x, strata, weight, ymin, ymax, timewt,
         if (residuals) {
             if (ncol(y)==2) dtime <- y[y[,2]==1, 1]
             else dtime <- y[y[,3]==1, 2]
-            dimnames(fit$resid) <- list(sort(dtime),
-                                    c("rank", "npair", "wt", "var"))
+            temp <- data.frame(time= sort(dtime), fit$resid)
+            names(temp) <- c("time", "rank", "timewt", "casewt", "variance")
+            fit$resid <- temp
         }
         fit
     }
     
-    dfun <- function(count, imat, v1, v2) {
-        # Compute a statistic and its variance
-        denom <- sum(count*v2)
-        statistic <-  sum(count*v1)/denom
-        dfbeta <- (imat %*% v1)/denom - (imat %*% v2)*statistic/denom
-        list(x=c(value=statistic, variance= sum(dfbeta^2)), dfbeta=dfbeta)
-    }
-        
     if (missing(strata) || length(strata)==0 || all(strata==strata[1])) {
         is.strata <-FALSE
         fit <- docount(y, x, weight, timewt)

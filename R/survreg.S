@@ -91,6 +91,7 @@ survreg <- function(formula, data, weights, subset, na.action,
     #   said transform.
     #  
     logcorrect <- 0   #correction to the loglik due to transformations
+    Ysave <- Y  # for use in the y component
     if (!is.null(dlist$trans)) {
 	tranfun <- dlist$trans
 	exactsurv <- Y[,ncol(Y)] ==1
@@ -218,7 +219,7 @@ survreg <- function(formula, data, weights, subset, na.action,
     fit$dist <- dist
     if (model) fit$model <- m
     if (x)     fit$x <- X
-    if (y)     fit$y <- Y
+    if (y)     fit$y <- Ysave
     if (length(parms)) fit$parms <- parms
 
     # Do this before attaching the na.action, so that residuals() won't
