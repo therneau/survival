@@ -8,17 +8,25 @@ options(contrasts=c('contr.treatment', 'contr.poly')) #ensure constrast type
 aeq <- function(x,y, ...) all.equal(as.vector(x), as.vector(y), ...)
 
 grank <- function(x, time, grp, wt) {
-    if (missing(wt) || length(wt)==0) 2*unlist(tapply(x, grp, rank))
-    else {
-        z <- double(length(x))
-        for (i in unique(grp)) {
-            indx <- which(grp==i)
-            temp <- tapply(wt[indx], x[indx], sum)
-            temp <- temp/2  + c(0, cumsum(temp)[-length(temp)])
-            z[indx] <- temp[match(x[indx], names(temp))]
-        }
-        z
-    }
+    if (all(wt==1)) unlist(tapply(x, grp, rank))
+    else unlist(tapply(1:length(x), grp, function(i) {
+        xx <- x[i]  # x and wts for this subset of the data
+        ww <- wt[i]
+        temp <- outer(xx, xx, function(a, b) sign(b-a))
+        colSums(ww*temp)/2
+    }))
+}
+
+# a Cox model using iter=0, ties='breslow' and the above function has a score 
+#  statistic which is U=(C-D)/2 and score test U^2/H, where H is the Cox model 
+#  information matrix, with fit$var=1/H.  The concordance is U+ 1/2. 
+# Pull out the Somers' d and its variance
+phget <- function(fit) {
+    c(d =  2*sqrt(fit$score/fit$var), v= 4/fit$var)
+}
+fscale <- function(fit) {
+    npair <- sum(fit$count[1:3])
+    c(d = abs(fit$count[1]-fit$count[2]), v=4*fit$var[2]*npair^2)
 }
 
 # Concordance by brute force.  O(n^2) algorithm, but ok for n<500 or so
@@ -76,18 +84,6 @@ leverage <- function(time, status, x, wt, eps=1e-5) {
     ifelse(is.na(influence), 0, influence)
 }
 
-# PH variance by brute force
-phvar <- function(time, status, x, wt) {
-    if (missing(wt)) wt <- rep(1, length(x))
-    zmat <- wt* outer(x, x, function(x, y) sign(x-y))
-    z2 <- sapply(which(status==1), function(i) {
-            atrisk <- (time >= time[i])
-            zscore <- colSums(zmat[atrisk,, drop=FALSE])
-            c(zscore[i], sum((wt*zscore^2)[atrisk])/sum(wt[atrisk]))
-    })
-    rowSums(z2 * rep(wt[status==1], each=2))  # Cox score stat, var of score
-}
-                      
 tdata <- aml[aml$x=='Maintained', c("time", "status")]
 tdata$x <- c(1,6,2,7,3,7,3,8,4,4,5)
 tdata$wt <- c(1,2,3,2,1,2,3,4,3,2,1)
@@ -95,25 +91,10 @@ tdata$wt <- c(1,2,3,2,1,2,3,4,3,2,1)
 fit <- concordance(Surv(time, status) ~x, tdata, influence=2)
 aeq(fit$count, with(tdata, allpair(time, status, x)))
 aeq(fit$influence, with(tdata, leverage(time, status, x)))
-npair <- sum(fit$count[1:3])
-aeq(c(fit$count[1]-fit$count[2], 4*npair^2*fit$var[2]), 
-    with(tdata, phvar(time, status, x)))
 
-# verify that the phvar function is correct by fitting a time-dependent
-#  Cox model
 cfit <- coxph(Surv(time, status) ~ tt(x), tdata, tt=grank, method='breslow',
-              iter=0, x=T, weights=wt)
-cdt <- coxph.detail(cfit)
-aeq(c(-sum(cdt$score), sum(cdt$imat)),  with(tdata, phvar(time, status, x, wt)))
-
-# Weighted
-fit <- concordance(Surv(time, status) ~x, tdata, influence=2, weights=wt)
-aeq(fit$count, with(tdata, allpair(time, status, x, wt)))
-aeq(fit$influence, with(tdata, leverage(time, status, x, wt)))
-npair <- sum(fit$count[1:3])
-aeq(c(fit$count[1]-fit$count[2], 4*npair^2*fit$var[2]), 
-    with(tdata, phvar(time, status, x, wt)))
-
+              iter=0, x=T)
+aeq(phget(cfit), fscale(fit))  # agree with Cox model
 
 # Test 2: Lots of ties
 tempy <- Surv(c(1,2,2,2,3,4,4,4,5,2), c(1,0,1,0,1,0,1,1,0,1))
@@ -121,45 +102,46 @@ tempx <- c(5,5,4,4,3,3,7,6,5,4)
 fit2 <- concordance(tempy ~ tempx, influence=2)
 aeq(fit2$count, allpair(tempy[,1], tempy[,2], tempx))
 aeq(fit2$influence, leverage(tempy[,1], tempy[,2], tempx))
-npair <- sum(fit2$count[1:3])
-aeq(4*npair^2*fit2$var[2], phvar(tempy[,1], tempy[,2], tempx)[2])
+cfit2 <- coxph(tempy ~ tt(tempx), tt=grank, ties="breslow", iter=0)
+aeq(phget(cfit2), fscale(fit2))  # agree with Cox model
 
 # Bigger data
 cox3 <- coxph(Surv(time, status) ~ age + sex + ph.ecog, lung)
 fit3 <- concordance(Surv(time, status) ~ predict(cox3), lung, influence=2)
-tdata <- na.omit(lung[,c('time', 'status', 'age', 'sex', 'ph.ecog')])
 aeq(fit3$count, allpair(lung$time, lung$status-1,predict(cox3)))
 aeq(fit3$influence, leverage(lung$time, lung$status-1,predict(cox3)))
-
+cfit3 <- coxph(Surv(time, status) ~ tt(predict(cox3)), tt=grank,
+               ties="breslow", iter=0, data=lung)
+aeq(phget(cfit3), fscale(fit3))  # agree with Cox model
 
 # More ties
-fit4 <- concordance(Surv(time, status) ~ ph.ecog, lung, reverse=TRUE)
-aeq(fit4$count, allpair(lung$ph.ecog, lung$time, lung$status-1))
-aeq(fit4$count, c(8392, 4258, 7137, 28))
+fit4  <- concordance(Surv(time, status) ~ ph.ecog, lung, influence=2)
+fit4b <- concordance(Surv(time, status) ~ ph.ecog, lung, reverse=TRUE)
+aeq(fit4$count, allpair(lung$time, lung$status-1, lung$ph.ecog))
+aeq(fit4b$count, c(8392, 4258, 7137, 21, 7))
 cfit4 <- coxph(Surv(time, status) ~ tt(ph.ecog), lung, 
                iter=0, method='breslow', tt=grank)
-aeq(4/cfit4$var, fit4$stats[5]^2)
+aeq(phget(cfit4), fscale(fit4))  # agree with Cox model
 
 # Case weights
-fit5 <- concordance(Surv(time, status) ~ x, tdata, weight=wt)
+fit5 <- concordance(Surv(time, status) ~ x, tdata, weight=wt, influence=2)
 fit6 <- concordance(Surv(time, status) ~x, tdata[rep(1:11,tdata$wt),])
-aeq(fit5$count, with(tdata, allpair(x, time, status, wt)))
-aeq(fit5$count, c(91, 70, 7, 0))  # checked by hand
-aeq(fit5$count[1:3], fit6$count[1:3])  #spurious "tied on time" values, ignore
-aeq(fit5$std, fit6$std)
-cfit5 <- coxph(Surv(time, status) ~ tt(y), tdata, weight=wt, 
-               iter=0, method='breslow', tt=grank2)
-cfit6 <- coxph(Surv(time, status) ~ tt(y), tdata[rep(1:11,tdata$wt),], 
+aeq(fit5$count, with(tdata, allpair(time, status, x, wt)))
+aeq(fit5$count, c(91, 70, 7, 0, 0))  # checked by hand
+aeq(fit5$count[1:3], fit6$count[1:3])  #spurious "tied.xy" values, ignore
+aeq(fit5$var[2], fit6$var[2])
+aeq(fit5$influence, with(tdata, leverage(time, status, x, wt)))
+cfit5 <- coxph(Surv(time, status) ~ tt(x), tdata, weight=wt, 
                iter=0, method='breslow', tt=grank)
-aeq(4/cfit6$var, fit6$stats[5]^2)
-aeq(cfit5$var, cfit6$var)
+aeq(phget(cfit5), fscale(fit5))  # agree with Cox model
 
 # Start, stop simplest cases
-fit7 <- concordance(Surv(rep(0,11), time, status) ~ y, tdata)
-aeq(fit7$stats, fit$stats)
-aeq(fit7$std.err, fit$std.err)
-fit7 <- concordance(Surv(rep(0,11), time, status) ~ y, tdata, weight=wt)
-aeq(fit5$stats, fit7$stats)
+fit6 <- concordance(Surv(rep(0,11), time, status) ~ x, tdata)
+aeq(fit6$count, fit$count)
+aeq(fit6$var, fit$var)
+fit7 <- concordance(Surv(rep(0,11), time, status) ~ x, tdata, weight=wt)
+aeq(fit7$count, fit5$count)
+aeq(fit7$var, fit5$var)
 
 # Multiple intervals for some, but same risk sets as tdata
 tdata2 <- data.frame(time1=c(0,3, 5,  6,7,   0,  4,17,  7,  0,16,  2,  0, 
@@ -168,14 +150,16 @@ tdata2 <- data.frame(time1=c(0,3, 5,  6,7,   0,  4,17,  7,  0,16,  2,  0,
                              9,48, 60),
                      status=c(0,1, 1, 0,0,  1,  0,1, 0, 0,1, 1, 0, 0,1, 0),
                      x = c(1,1, 6, 2,2, 7, 3,3, 7, 3,3, 8, 4, 4,4, 5),
-                     wt= c(1,1, 2, 3,3, 2, 1,1, 2, 3,3, 4, 3, 2,2, 1))
-fit8 <- concordance(Surv(time1, time2, status) ~x, tdata2, weight=wt)
-aeq(fit5$stats, fit8$stats)
-aeq(fit5$std.err, fit8$std.err)
+                     wt= c(1,1, 2, 3,3, 2, 1,1, 2, 3,3, 4, 3, 2,2, 1),
+                     id= c(1,1, 2, 3,3, 4, 5,5, 6, 7,7, 8, 9, 10,10, 11))
+fit8 <- concordance(Surv(time1, time2, status) ~x + cluster(id), tdata2, 
+                    weight=wt, influence=2)
+aeq(fit5$count, fit8$count)
+aeq(fit5$influence, fit8$influence)
+aeq(fit5$var, fit8$var)
 cfit8 <- coxph(Surv(time1, time2, status) ~ tt(x), tdata2, weight=wt, 
-               iter=0, method='breslow', tt=grank2)
-aeq(4/cfit8$var, fit8$stats[5]^2)
-aeq(fit8$stats[5]/(2*sum(fit8$stats[1:3])), fit8$std.err)
+               iter=0, method='breslow', tt=grank)
+aeq(phget(cfit8), fscale(fit8))  # agree with Cox model
 
 # Stratified
 tdata3 <- data.frame(time1=c(tdata2$time1, rep(0, nrow(lung))),
@@ -183,8 +167,9 @@ tdata3 <- data.frame(time1=c(tdata2$time1, rep(0, nrow(lung))),
                      status = c(tdata2$status, lung$status -1),
                      x = c(tdata2$x, lung$ph.ecog),
                      wt= c(tdata2$wt, rep(1, nrow(lung))),
-                     grp=rep(1:2, c(nrow(tdata2), nrow(lung))))
-fit9 <- concordance(Surv(time1, time2, status) ~x + strata(grp),
-                        data=tdata3, weight=wt)
-aeq(fit9$stats[1,], fit5$stats)
-aeq(fit9$stats[2,], fit4$stats)
+                     grp=rep(1:2, c(nrow(tdata2), nrow(lung))),
+                     id = c(tdata2$id, 100+ 1:nrow(lung)))
+fit9 <- concordance(Surv(time1, time2, status) ~x + strata(grp) + cluster(id),
+                        data=tdata3, weight=wt, influence=2)
+aeq(fit9$count, rbind(fit8$count, fit4$count))
+aeq(fit9$influence, rbind(fit5$influence, fit4$influence))
