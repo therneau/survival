@@ -16,7 +16,7 @@ importFrom(methods, as)
 importFrom(utils, getS3method, type.convert, methods, head, tail)
 export(Surv, aeqSurv, aareg, agreg.fit,
        agexact.fit, attrassign, 
-       basehaz, cch, clogit, cipoisson, cluster,
+       basehaz, cch, clogit, cipoisson, cluster, concordance, 
        coxph, cox.zph, coxph.control, coxph.detail, coxph.fit,
        coxph.wtest, finegray, format.Surv, 
        frailty,  frailty.gamma, 
@@ -66,6 +66,10 @@ S3method(attrassign, default)
 S3method(attrassign, lm)
 S3method(barplot, Surv)
 S3method(c, Surv)
+S3method(concordance, formula)
+S3method(concordance, lm)
+S3method(concordance, coxph)
+S3method(concordance, survreg)
 S3method(density, Surv)
 S3method(dim, survfit)
 S3method(dim, survfitms)
@@ -111,6 +115,7 @@ S3method(print, Surv)
 S3method(print, aareg)
 S3method(print, cch)
 S3method(print, clogit)
+S3method(print, concordance)
 S3method(print, cox.zph)
 S3method(print, coxph)
 S3method(print, coxph.null)

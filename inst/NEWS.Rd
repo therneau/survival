@@ -9,6 +9,9 @@
     \item Fix two small errors triggered by the new checks for the use
     of && or || with arguments whose length is >1.  Pointed out by
     Martin Maechler.
+
+    \item Add the concordance function, an upgrade of the older
+    survConcordance function.  The latter will be depricated.
 }}
 
 \section{Changes in version 2.42-6}{

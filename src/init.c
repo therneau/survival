@@ -41,6 +41,8 @@ static const R_CallMethodDef Callentries[] = {
     {"Cagmart3",      (DL_FUNC) &agmart3,      6},
     {"Cconcordance1", (DL_FUNC) &concordance1, 4}, 
     {"Cconcordance2", (DL_FUNC) &concordance2, 6}, 
+    {"Cconcordance3", (DL_FUNC) &concordance3, 6},
+    {"Cconcordance4", (DL_FUNC) &concordance4, 7},
     {"Ccoxcount1",    (DL_FUNC) &coxcount1,    2},
     {"Ccoxcount2",    (DL_FUNC) &coxcount2,    4},
     {"Ccoxexact",     (DL_FUNC) &coxexact,     8},
