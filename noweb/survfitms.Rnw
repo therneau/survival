@@ -218,7 +218,7 @@ summary.survfit <- function(object, times, censored=FALSE,
 
     # finish off the output structure
     fit$table <- table
-    if (length(rmean.endtime)>0  && !is.na(rmean.endtime)) 
+    if (length(rmean.endtime)>0  && !any(is.na(rmean.endtime[1]))) 
             fit$rmean.endtime <- rmean.endtime
 
     # An ordinary survfit object contains std(cum hazard), change scales
@@ -450,7 +450,7 @@ summary.survfitms <- function(object, times, censored=FALSE,
 
     # finish off the output structure
     fit$table <- table
-    if (length(rmean.endtime)>0  && !is.na(rmean.endtime)) 
+    if (length(rmean.endtime)>0  && !any(is.na(rmean.endtime))) 
             fit$rmean.endtime <- rmean.endtime
 
      if (!is.null(fit$strata)) 

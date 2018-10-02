@@ -14,7 +14,7 @@ is.ratetable <- function(x, verbose=FALSE) {
 	nd <- length(att$dim)
 	if (length(x) != prod(att$dim)) return(FALSE)
         if (is.null(dimid)) return(FALSE)
-        if (any(is.na(dimid) || dimid == "")) return(FALSE)
+        if (any(is.na(dimid) | dimid == "")) return(FALSE)
         
 	if (!(is.list(att$dimnames) && is.list(att$cutpoints)))
 		 return(FALSE)

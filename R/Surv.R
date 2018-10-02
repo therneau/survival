@@ -376,7 +376,8 @@ c.Surv <- function(...) {
 # The cbind/rbind methods cause more trouble than they solve
 # The problem is when one is called with mixed arguments, e.g.
 #      cbind(Surv(1:4), data.frame(x=6:9, z=c('a', 'b', 'a', 'a'))
-# In the above cbind.Surv is never called, but the \emph{presence}
+# R will call cbind.Surv for cbind(Surv(1:4), Surv(2:5)), giving a matrix.
+# In the above, however, cbind.Surv is never called, but the \emph{presence}
 #    of a cbind.Surv method messes up the default behavior, see the
 #    'Dispatch' section of help('cbind').  The result becomes a matrix of
 #    lists rather than a dataframe.

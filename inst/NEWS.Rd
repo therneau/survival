@@ -3,7 +3,12 @@
 \section{Changes in version 2.42-7}{
   \itemize{
     \item Add arguments to survfit: survfit.matrix did not have
-    start.time, and survfitCI did not have p0.  Now both of them have both.
+    start.time, and survfitCI did not have p0.  Now both of them have
+    both.
+
+    \item Fix two small errors triggered by the new checks for the use
+    of && or || with arguments whose length is >1.  Pointed out by
+    Martin Maechler.
 }}
 
 \section{Changes in version 2.42-6}{
