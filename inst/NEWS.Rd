@@ -11,10 +11,17 @@
     Martin Maechler.
 
     \item Add the concordance function, an upgrade of the older
-    survConcordance function.  The latter will be depricated.
+    survConcordance function.  The latter will be depricated.  (The draft
+    vignette still needs some polish.)
 
-    \item Fix bug pointed out by CMcCort: tmerge with a character tdc
-    update would fail.  Add a test case.
+    \item Change survreg so that a returned "y" in the object is the
+    original response, not the transformed y used for computation. This
+    was prompted by the concordance.survreg method, but is also more
+    consistent. It forced a change in residuals.survreg and uncovered
+    a long standing bug for any fit that had specified y=FALSE. 
+
+    \item Fix bug pointed out by C McCort: tmerge with "tdc(time, x)"
+    would fail if x is of mode character.  Add this case to the test suite.
 }}
 
 \section{Changes in version 2.42-6}{

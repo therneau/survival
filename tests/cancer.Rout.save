@@ -1,6 +1,6 @@
 
-R version 3.4.1 (2017-06-30) -- "Single Candle"
-Copyright (C) 2017 The R Foundation for Statistical Computing
+R Under development (unstable) (2018-09-18 r75322) -- "Unsuffered Consequences"
+Copyright (C) 2018 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -195,16 +195,16 @@ coxph(formula = Surv(rep(0, length(time)), time, status) ~ ph.ecog +
     ph.karno + pat.karno + wt.loss + sex + age + meal.cal + strata(inst), 
     data = lung)
 
-               coef exp(coef)  se(coef)     z      p
-ph.ecog    0.729999  2.075078  0.268940  2.71 0.0066
-ph.karno   0.013051  1.013137  0.013736  0.95 0.3420
-pat.karno -0.014095  0.986003  0.009368 -1.50 0.1324
-wt.loss   -0.014882  0.985228  0.008481 -1.75 0.0793
-sex       -0.661253  0.516204  0.233998 -2.83 0.0047
-age        0.005092  1.005105  0.013729  0.37 0.7107
-meal.cal  -0.000240  0.999760  0.000302 -0.79 0.4270
+                coef  exp(coef)   se(coef)      z       p
+ph.ecog    0.7299987  2.0750779  0.2689397  2.714 0.00664
+ph.karno   0.0130512  1.0131368  0.0137362  0.950 0.34204
+pat.karno -0.0140955  0.9860034  0.0093680 -1.505 0.13242
+wt.loss   -0.0148821  0.9852281  0.0084811 -1.755 0.07931
+sex       -0.6612534  0.5162039  0.2339979 -2.826 0.00471
+age        0.0050920  1.0051050  0.0137288  0.371 0.71071
+meal.cal  -0.0002398  0.9997602  0.0003019 -0.794 0.42701
 
-Likelihood ratio test=30.6  on 7 df, p=7e-05
+Likelihood ratio test=30.6  on 7 df, p=7.377e-05
 n= 167, number of events= 120 
    (61 observations deleted due to missingness)
 > 
@@ -219,4 +219,4 @@ n= 167, number of events= 120
 > 
 > proc.time()
    user  system elapsed 
-  1.864   0.087   2.154 
+  0.836   0.052   0.883 

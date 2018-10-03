@@ -1,5 +1,5 @@
 
-R Under development (unstable) (2018-05-10 r74706) -- "Unsuffered Consequences"
+R Under development (unstable) (2018-09-18 r75322) -- "Unsuffered Consequences"
 Copyright (C) 2018 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
@@ -95,14 +95,14 @@ n= 76, number of events= 58
 Call:
 coxph(formula = Surv(time, status) ~ age + sex + disease, data = kidney)
 
-               coef exp(coef) se(coef)     z       p
-age         0.00318   1.00319  0.01115  0.29   0.775
-sex        -1.48314   0.22692  0.35823 -4.14 3.5e-05
-diseaseGN   0.08796   1.09194  0.40637  0.22   0.829
-diseaseAN   0.35079   1.42020  0.39972  0.88   0.380
-diseasePKD -1.43111   0.23904  0.63111 -2.27   0.023
+                coef exp(coef)  se(coef)      z        p
+age         0.003181  1.003186  0.011146  0.285   0.7754
+sex        -1.483137  0.226925  0.358230 -4.140 3.47e-05
+diseaseGN   0.087957  1.091941  0.406369  0.216   0.8286
+diseaseAN   0.350794  1.420195  0.399717  0.878   0.3802
+diseasePKD -1.431108  0.239044  0.631109 -2.268   0.0234
 
-Likelihood ratio test=17.65  on 5 df, p=0.003
+Likelihood ratio test=17.65  on 5 df, p=0.003423
 n= 76, number of events= 58 
 > temp
 Call:
@@ -308,4 +308,4 @@ n= 76, number of events= 58
 > 
 > proc.time()
    user  system elapsed 
-  0.876   0.048   0.923 
+  0.906   0.052   0.953 

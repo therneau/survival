@@ -123,12 +123,12 @@ The concordance can also be visualized using its contribution at each
 event time as below.
 <<rplot, fig=TRUE>>=
 par(mfrow=c(1,2))
-c2 <- concordance(fit2, residuals=TRUE)
-plot(rank ~ time , c2$residuals)
-with(c2$residuals, lines(lowess(time, rank), col=2, lwd=2))
+c2 <- concordance(fit2, ranks=TRUE)
+plot(rank ~ time , c2$ranks)
+with(c2$ranks, lines(lowess(time, rank), col=2, lwd=2))
 abline(0,0, lty=2)
 
-plot(variance ~ time, c2$residuals, ylim=c(0, .34))
+plot(variance ~ time, c2$ranks, ylim=c(0, .34))
 abline(h=1/3, col=2)
 @ 
 

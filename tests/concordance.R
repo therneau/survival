@@ -85,18 +85,18 @@ aeq(fit5$stats[1:4], with(tdata, allpair(x, time, status, wt)))
 aeq(fit5$stats[1:4], c(70, 91, 7, 0))  # checked by hand
 aeq(fit5$stats[1:3], fit6$stats[1:3])  #spurious "tied on time" values, ignore
 aeq(fit5$std, fit6$std)
-cfit5 <- coxph(Surv(time, status) ~ tt(y), tdata, weight=wt, 
+cfit5 <- coxph(Surv(time, status) ~ tt(x), tdata, weight=wt, 
                iter=0, method='breslow', tt=grank2)
-cfit6 <- coxph(Surv(time, status) ~ tt(y), tdata[rep(1:11,tdata$wt),], 
+cfit6 <- coxph(Surv(time, status) ~ tt(x), tdata[rep(1:11,tdata$wt),], 
                iter=0, method='breslow', tt=grank)
 aeq(4/cfit6$var, fit6$stats[5]^2)
 aeq(cfit5$var, cfit6$var)
 
 # Start, stop simplest cases
-fit7 <- survConcordance(Surv(rep(0,11), time, status) ~ y, tdata)
+fit7 <- survConcordance(Surv(rep(0,11), time, status) ~ x, tdata)
 aeq(fit7$stats, fit$stats)
 aeq(fit7$std.err, fit$std.err)
-fit7 <- survConcordance(Surv(rep(0,11), time, status) ~ y, tdata, weight=wt)
+fit7 <- survConcordance(Surv(rep(0,11), time, status) ~ x, tdata, weight=wt)
 aeq(fit5$stats, fit7$stats)
 
 # Multiple intervals for some, but same risk sets as tdata

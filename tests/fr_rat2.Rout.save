@@ -1,5 +1,5 @@
 
-R Under development (unstable) (2018-05-10 r74706) -- "Unsuffered Consequences"
+R Under development (unstable) (2018-09-18 r75322) -- "Unsuffered Consequences"
 Copyright (C) 2018 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
@@ -57,10 +57,10 @@ Call:
 coxph(formula = Surv(start, stop, status) ~ rx + cluster(id), 
     data = rat2)
 
-     coef exp(coef) se(coef) robust se     z       p
-rx -0.827     0.438    0.151     0.204 -4.05 5.2e-05
+      coef exp(coef) se(coef) robust se      z        p
+rx -0.8266    0.4375   0.1506    0.2043 -4.046 5.22e-05
 
-Likelihood ratio test=32.86  on 1 df, p=1e-08
+Likelihood ratio test=32.86  on 1 df, p=9.894e-09
 n= 253, number of events= 212 
 > r2fitg
 Call:
@@ -159,4 +159,4 @@ n= 253, number of events= 212
 > 
 > proc.time()
    user  system elapsed 
-  0.864   0.040   0.903 
+  0.870   0.064   0.928 

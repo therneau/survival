@@ -1,6 +1,6 @@
 
-R version 3.4.1 (2017-06-30) -- "Single Candle"
-Copyright (C) 2017 The R Foundation for Statistical Computing
+R Under development (unstable) (2018-09-18 r75322) -- "Unsuffered Consequences"
+Copyright (C) 2018 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -30,21 +30,21 @@ Call:
 coxph(formula = Surv(stop, event) ~ (rx + size + number) * strata(enum) + 
     cluster(id), data = bladder, method = "breslow")
 
-                             coef exp(coef) se(coef) robust se     z      p
-rx                        -0.5176    0.5959   0.3158    0.3075 -1.68 0.0923
-size                       0.0679    1.0702   0.1012    0.0853  0.80 0.4260
-number                     0.2360    1.2662   0.0761    0.0721  3.27 0.0011
-rx:strata(enum)enum=2     -0.1018    0.9032   0.5043    0.3265 -0.31 0.7552
-rx:strata(enum)enum=3     -0.1823    0.8334   0.5579    0.3916 -0.47 0.6417
-rx:strata(enum)enum=4     -0.1332    0.8753   0.6581    0.4968 -0.27 0.7887
-size:strata(enum)enum=2   -0.1440    0.8659   0.1680    0.1119 -1.29 0.1981
-size:strata(enum)enum=3   -0.2792    0.7564   0.2086    0.1511 -1.85 0.0647
-size:strata(enum)enum=4   -0.2711    0.7626   0.2515    0.1856 -1.46 0.1442
-number:strata(enum)enum=2 -0.0984    0.9063   0.1193    0.1144 -0.86 0.3895
-number:strata(enum)enum=3 -0.0662    0.9360   0.1298    0.1167 -0.57 0.5708
-number:strata(enum)enum=4  0.0928    1.0972   0.1466    0.1175  0.79 0.4298
+                              coef exp(coef) se(coef) robust se      z       p
+rx                        -0.51762   0.59594  0.31576   0.30750 -1.683 0.09231
+size                       0.06789   1.07025  0.10125   0.08529  0.796 0.42602
+number                     0.23599   1.26617  0.07608   0.07208  3.274 0.00106
+rx:strata(enum)enum=2     -0.10182   0.90319  0.50427   0.32654 -0.312 0.75518
+rx:strata(enum)enum=3     -0.18226   0.83339  0.55790   0.39162 -0.465 0.64165
+rx:strata(enum)enum=4     -0.13317   0.87531  0.65813   0.49680 -0.268 0.78865
+size:strata(enum)enum=2   -0.14401   0.86588  0.16800   0.11190 -1.287 0.19812
+size:strata(enum)enum=3   -0.27920   0.75639  0.20862   0.15115 -1.847 0.06472
+size:strata(enum)enum=4   -0.27106   0.76257  0.25146   0.18563 -1.460 0.14422
+number:strata(enum)enum=2 -0.09843   0.90625  0.11931   0.11439 -0.861 0.38951
+number:strata(enum)enum=3 -0.06616   0.93598  0.12983   0.11672 -0.567 0.57083
+number:strata(enum)enum=4  0.09280   1.09724  0.14657   0.11754  0.790 0.42982
 
-Likelihood ratio test=29.39  on 12 df, p=0.003
+Likelihood ratio test=29.39  on 12 df, p=0.003443
 n= 340, number of events= 112 
 > 
 > # Check the rx coefs versus Wei, et al, JASA 1989
@@ -104,51 +104,51 @@ Call:
 coxph(formula = Surv(stop, event) ~ rx + size + number, data = bladder2, 
     subset = (enum == 1), method = "breslow")
 
-          coef exp(coef) se(coef)     z      p
-rx     -0.5176    0.5959   0.3158 -1.64 0.1012
-size    0.0679    1.0702   0.1012  0.67 0.5025
-number  0.2360    1.2662   0.0761  3.10 0.0019
+           coef exp(coef) se(coef)      z       p
+rx     -0.51762   0.59594  0.31576 -1.639 0.10115
+size    0.06789   1.07025  0.10125  0.671 0.50253
+number  0.23599   1.26617  0.07608  3.102 0.00192
 
-Likelihood ratio test=9.66  on 3 df, p=0.02
+Likelihood ratio test=9.66  on 3 df, p=0.02164
 n= 85, number of events= 47 
 > fit2pa
 Call:
 coxph(formula = Surv(stop, event) ~ rx + size + number, data = bladder2, 
     subset = (enum == 2), method = "breslow")
 
-           coef exp(coef) se(coef)     z    p
-rx     -0.42421   0.65428  0.40220 -1.05 0.29
-size   -0.12503   0.88247  0.11709 -1.07 0.29
-number  0.00199   1.00199  0.09376  0.02 0.98
+            coef exp(coef)  se(coef)      z     p
+rx     -0.424214  0.654284  0.402200 -1.055 0.292
+size   -0.125033  0.882467  0.117088 -1.068 0.286
+number  0.001987  1.001989  0.093760  0.021 0.983
 
-Likelihood ratio test=2.02  on 3 df, p=0.6
+Likelihood ratio test=2.02  on 3 df, p=0.5688
 n= 46, number of events= 29 
 > fit2pb
 Call:
 coxph(formula = Surv(stop - start, event) ~ rx + size + number, 
     data = bladder2, subset = (enum == 2), method = "breslow")
 
-           coef exp(coef) se(coef)     z    p
-rx     -0.25911   0.77174  0.40511 -0.64 0.52
-size   -0.11636   0.89015  0.11924 -0.98 0.33
-number -0.00571   0.99431  0.09667 -0.06 0.95
+            coef exp(coef)  se(coef)      z     p
+rx     -0.259112  0.771737  0.405110 -0.640 0.522
+size   -0.116363  0.890152  0.119236 -0.976 0.329
+number -0.005709  0.994307  0.096671 -0.059 0.953
 
-Likelihood ratio test=1.27  on 3 df, p=0.7
+Likelihood ratio test=1.27  on 3 df, p=0.7353
 n= 46, number of events= 29 
 > fit3pa
 Call:
 coxph(formula = Surv(stop, event) ~ rx + size + number, data = bladder2, 
     subset = (enum == 3), method = "breslow")
 
-          coef exp(coef) se(coef)     z    p
-rx     -0.8985    0.4072   0.5535 -1.62 0.10
-size    0.0850    1.0887   0.2086  0.41 0.68
-number -0.0172    0.9830   0.1280 -0.13 0.89
+           coef exp(coef) se(coef)      z     p
+rx     -0.89854   0.40716  0.55352 -1.623 0.105
+size    0.08497   1.08869  0.20861  0.407 0.684
+number -0.01716   0.98298  0.12802 -0.134 0.893
 
-Likelihood ratio test=4.16  on 3 df, p=0.2
+Likelihood ratio test=4.16  on 3 df, p=0.2452
 n= 27, number of events= 22 
 > rm(rx, cmat, wfit, fita, fit1p, fit2pa, fit2pb, fit3pa)
 > 
 > proc.time()
    user  system elapsed 
-  1.749   0.107   2.042 
+  0.808   0.053   0.855 

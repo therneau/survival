@@ -1,6 +1,6 @@
 
-R version 3.4.1 (2017-06-30) -- "Single Candle"
-Copyright (C) 2017 The R Foundation for Statistical Computing
+R Under development (unstable) (2018-09-18 r75322) -- "Unsuffered Consequences"
+Copyright (C) 2018 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -71,8 +71,8 @@ Call:
 coxph(formula = Surv(time, status) ~ x, data = testw1, weights = wt, 
     method = "breslow", iter = 0)
 
-   coef exp(coef) se(coef) z p
-x 0.000     1.000    0.586 0 1
+    coef exp(coef) se(coef) z p
+x 0.0000    1.0000   0.5858 0 1
 
 Likelihood ratio test=0  on 1 df, p=1
 n= 9, number of events= 5 
@@ -146,10 +146,10 @@ Call:
 coxph(formula = Surv(time, status) ~ x, data = testw1, weights = wt, 
     method = "efron")
 
-   coef exp(coef) se(coef)    z    p
-x 0.873     2.393    0.713 1.22 0.22
+    coef exp(coef) se(coef)     z     p
+x 0.8726    2.3931   0.7126 1.225 0.221
 
-Likelihood ratio test=1.75  on 1 df, p=0.2
+Likelihood ratio test=1.75  on 1 df, p=0.1858
 n= 9, number of events= 5 
 > resid(fit, type='mart')
           1           2           3           4           5           6 
@@ -183,8 +183,8 @@ Call:
 coxph(formula = Surv(begin, time, status) ~ x, data = testw3, 
     weights = wt, method = "breslow", iter = 0)
 
-   coef exp(coef) se(coef) z p
-x 0.000     1.000    0.586 0 1
+    coef exp(coef) se(coef) z p
+x 0.0000    1.0000   0.5858 0 1
 
 Likelihood ratio test=0  on 1 df, p=1
 n= 14, number of events= 5 
@@ -253,10 +253,10 @@ Call:
 coxph(formula = Surv(begin, time, status) ~ x, data = testw3, 
     weights = wt, method = "efron")
 
-   coef exp(coef) se(coef)    z    p
-x 0.873     2.393    0.713 1.22 0.22
+    coef exp(coef) se(coef)     z     p
+x 0.8726    2.3931   0.7126 1.225 0.221
 
-Likelihood ratio test=1.75  on 1 df, p=0.2
+Likelihood ratio test=1.75  on 1 df, p=0.1858
 n= 14, number of events= 5 
 > resid(fit, type='mart', collapse=testw3$id)
           1           2           3           4           5           6 
@@ -424,4 +424,4 @@ TRUE
 > 
 > proc.time()
    user  system elapsed 
-  2.137   0.106   2.817 
+  0.952   0.053   0.998 

@@ -46,8 +46,8 @@ concordance.formula <- function(formula, data,
                                 weights, subset, na.action, group,
                                 ymin=NULL, ymax=NULL, 
                                 timewt=c("n", "S", "S/G", "n/G", "n/G2"),
-                                influence=0, residuals=FALSE, reverse=FALSE,
-                                timefix=TRUE) {
+                                influence=0, ranks=FALSE, reverse=FALSE,
+                                timefix=TRUE, ...) {
     Call <- match.call()  # save a copy of of the call, as documentation
     timewt <- match.arg(timewt)
     
@@ -64,12 +64,13 @@ concordance.formula <- function(formula, data,
     Terms <- terms(mf)
 
     Y <- model.response(mf)
-    if (!inherits(Y, "Surv")) {
+    if (inherits(Y, "Surv")) {
+        if (timefix) Y <- aeqSurv(Y)
+    } else {
         if (is.numeric(Y) && is.vector(Y))  Y <- Surv(Y)
         else stop("left hand side of the formula  must be a numeric vector or a survival object")
     }
     n <- nrow(Y)
-    if (timefix) Y <- aeqSurv(Y)
     
     wt <- model.weights(mf)
     offset<- attr(Terms, "offset")
@@ -103,7 +104,7 @@ concordance.formula <- function(formula, data,
         stop("ymax must be a single number")
     
     fit <- concordance.fit(Y, x, strat, wt, ymin, ymax, timewt, cluster,
-                           influence, residuals)
+                           influence, ranks)
  
     if (!is.logical(reverse)) 
         stop ("the reverse argument must be TRUE/FALSE")
@@ -113,7 +114,7 @@ concordance.formula <- function(formula, data,
             fit$influence <- fit$influence[,c(2,1,3,4,5)]
         if (is.matrix(fit$count)) fit$count <- fit$count[, c(2,1,3,4,5)]
         else fit$count <- fit$count[c(2,1,3,4,5)]
-        if (residuals) fit$residuals$rank <- -fit$residuals$rank
+        if (ranks) fit$ranks$rank <- -fit$ranks$rank
     }
 
     na.action <- attr(mf, "na.action")
@@ -137,7 +138,7 @@ print.concordance <- function(x, ...) {
     cat("Concordance= ", format(x$concordance), " se= ", format(sqrt(x$var[1])),
         '\n', sep='')
 
-    if (!is.matrix(x$count) || nrow(fit$count < 11)) 
+    if (!is.matrix(x$count) || nrow(x$count < 11)) 
         print(round(x$count,2))
     invisible(x)
     }
@@ -154,8 +155,8 @@ If $y$ is not a survival quantity, then all of the options for the
 \code{timewt} parameter lead to the same result.
 
 <<concordancefit>>=
-concordance.fit <- function(y, x, strata, weight, ymin, ymax, timewt,
-                            group, influence=0, residuals=TRUE) {
+concordance.fit <- function(y, x, strata, weights, ymin, ymax, timewt,
+                            group, influence=0, ranks=FALSE) {
     # The coxph program may occassionally fail, and this will kill the C
     #  routine below.  So check for it.
     if (any(is.na(x)) || any(is.na(y))) return(NULL)
@@ -166,8 +167,8 @@ concordance.fit <- function(y, x, strata, weight, ymin, ymax, timewt,
     if (missing(strata) || length(strata)==0) strata <- rep(1L, n)
     if (length(strata) != n)
         stop("y and strata are not the same length")
-    if (missing(weight) || length(weight)==0) weight <- rep(1.0, n)
-    else if (length(weight) != n) stop("y and weight are not the same length")
+    if (missing(weights) || length(weights)==0) weights <- rep(1.0, n)
+    else if (length(weights) != n) stop("y and weights are not the same length")
     if (!is.Surv(y)) {
         y <- Surv(y)
         timewt <- 'n'
@@ -186,14 +187,14 @@ concordance.fit <- function(y, x, strata, weight, ymin, ymax, timewt,
         #  only 1 event per stratum occurs.  All time weightings are the same
         if (sum(y[,ncol(y)]) <2) timewt <- 'n'
         
-        sfit <- survfit(y~1, weight=wts, se.fit=FALSE)
+        sfit <- survfit(y~1, weights=wts, se.fit=FALSE)
         etime <- sfit$time[sfit$n.event > 0]
         esurv <- sfit$surv[sfit$n.event > 0]
         
         if (timeopt %in% c("S/G", "n/G", "n/G2")) {
             temp <- y
             temp[,ncol(temp)] <- 1- temp[,ncol(temp)] # switch event/censor
-            gfit <- survfit(temp~1, weight=wts, se.fit=FALSE)
+            gfit <- survfit(temp~1, weights=wts, se.fit=FALSE)
             # gfit is not a survfit object
             gsurv <- approx(c(0, gfit$time), c(1, gfit$surv), etime,
                             method="constant", f=0, rule=2)$y
@@ -226,9 +227,9 @@ concordance.fit <- function(y, x, strata, weight, ymin, ymax, timewt,
         storage.mode(wts) <- "double"
         if (ncol(y) ==2)
             fit <- .Call(Cconcordance3, y, bindex, wts, rev(timewt), 
-                         sort.stop, residuals)
+                         sort.stop, ranks)
         else fit <- .Call(Cconcordance4, y, bindex, wts, rev(timewt), 
-                          sort.start, sort.stop, residuals)
+                          sort.start, sort.stop, ranks)
         # The C routine gives back an influence matrix which has columns for
         #  concordant, discordant, tied on x but not y, tied on y, and tied on
         #  both x and y.  Subtract col 5 from col 4 to get tied on y but not x.
@@ -236,7 +237,7 @@ concordance.fit <- function(y, x, strata, weight, ymin, ymax, timewt,
         fit$influence[,4] <- fit$influence[,4] - fit$influence[,5]
         dimnames(fit$influence) <- list(NULL, 
                    c("concordant", "discordant", "tied.x", "tied.y", "tied.xy"))
-        if (residuals) {
+        if (ranks) {
             if (ncol(y)==2) dtime <- y[y[,2]==1, 1]
             else dtime <- y[y[,3]==1, 2]
             temp <- data.frame(time= sort(dtime), fit$resid)
@@ -248,19 +249,19 @@ concordance.fit <- function(y, x, strata, weight, ymin, ymax, timewt,
     
     if (missing(strata) || length(strata)==0 || all(strata==strata[1])) {
         is.strata <-FALSE
-        fit <- docount(y, x, weight, timewt)
+        fit <- docount(y, x, weights, timewt)
         count2 <- fit$count[1:5]
         vcox <- fit$count[6]
         fit$count <- fit$count[1:5]
         imat <- fit$influence
-        if (residuals) resid <- fit$resid
+        if (ranks) resid <- fit$resid
     } else {
         is.strata <- TRUE
         strata <- as.factor(strata)
         ustrat <- levels(strata)[table(strata) >0]  #some strata may have 0 obs
         tfit <- lapply(ustrat, function(i) {
             keep <- which(strata== i)
-            docount(y[keep,,drop=F], x[keep], weight[keep], timewt)
+            docount(y[keep,,drop=F], x[keep], weights[keep], timewt)
         })
         temp <-  t(sapply(tfit, function(x) x$count))
         fit <- list(count = temp[,1:5])
@@ -270,13 +271,13 @@ concordance.fit <- function(y, x, strata, weight, ymin, ymax, timewt,
         # put it back into data order
         index <- match(1:n, (1:n)[order(strata)])
         imat <- imat[index,]
-        if (residuals)
+        if (ranks)
             resid <- do.call("rbind", lapply(tfit, function(x) x$resid))
     }
 
     npair <- sum(count2[1:3])
     somer <- (count2[1] - count2[2])/npair
-    dfbeta <- weight*((imat[,1]- imat[,2])/npair -
+    dfbeta <- weights*((imat[,1]- imat[,2])/npair -
                       (somer/npair)* rowSums(imat[,1:3]))
     if (!missing(group) && length(group)>0) {
         dfbeta <- tapply(dfbeta, group, sum)
@@ -295,7 +296,7 @@ concordance.fit <- function(y, x, strata, weight, ymin, ymax, timewt,
         else rval$influence <- imat
     }
         
-    if (residuals) rval$residuals <- resid
+    if (ranks) rval$ranks <- resid
     rval
 }
 @ 
