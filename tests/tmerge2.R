@@ -16,14 +16,18 @@ mydata <- tmerge(mydata, tests, id=idd, ondrug=tdc(date, onoff))
 all.equal(mydata$ondrug, c(NA, NA,1, 1,0,1, NA, 1,0, NA, 1))
 
 
-# Check out addition of a factor, and of a logical
+# Check out addition of a factor, character, and logical
 tests$ff <- factor(tests$onoff, 0:1, letters[4:5])
+tests$fchar <- as.character(tests$ff)
 tests$logic <- as.logical(tests$onoff)
 
 mydata <- tmerge(mydata, tests, id=idd, fgrp= tdc(date, ff),
+                 chgrp = tdc(date, fchar), 
                  options=list(tdcstart="new"))
 all.equal(mydata$fgrp, 
           factor(c(3,3,2,2,1,2,3,2,1,3,2), labels=c("d", "e", "new")))
+all.equal(mydata$chgrp, 
+          c("d", "e", "new")[c(3,3,2,2,1,2,3,2,1,3,2)])
 
 mydat2  <-  tmerge(mydata, tests, id=idd, 
                  logic1 = tdc(date, logic), logic2= event(date, logic))

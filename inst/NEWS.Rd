@@ -12,6 +12,9 @@
 
     \item Add the concordance function, an upgrade of the older
     survConcordance function.  The latter will be depricated.
+
+    \item Fix bug pointed out by CMcCort: tmerge with a character tdc
+    update would fail.  Add a test case.
 }}
 
 \section{Changes in version 2.42-6}{

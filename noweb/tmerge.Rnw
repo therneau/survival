@@ -563,7 +563,7 @@ else {  # process a tdc or cumtdc variable
         storage.mode(dstop) <- storage.mode(etime) <- "double"
         new <- .Call(Ctmerge, match(baseid, baseid), dstop, as.numeric(newvar), 
                     match(id, baseid)[keep], etime[keep], 
-                    as.numeric(yinc[keep]), indx[keep])
+                    as.numeric(y2[keep]), indx[keep])
 
         if (is.factor(yinc)) newvar <- factor(new, labels=newlev)
         else newvar <- newlev[new]
