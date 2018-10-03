@@ -39,7 +39,7 @@ can recreate Kendall's or Goodmans values if desired.
 
 Here is the main routine.
 <<concordance>>=
-concordance <- function(x, ...) 
+concordance <- function(formula, ...) 
     UseMethod("concordance")
 
 concordance.formula <- function(formula, data,
@@ -1030,28 +1030,28 @@ I don't call \code{concordance.fit} directly so as to inherit more of
 the argument checks.
 
 <<concordance>>=
-concordance.lm <- function(x, ...) {
+concordance.lm <- function(formula, ...) {
     Call <- match.call()
-    if (!is.null(x$y)) Y <- x$y
-    else if (!is.null(x$model)) Y <- model.response(x$model)
-    temp <- concordance(Y ~ x$fitted.values, ...)
+    if (!is.null(formula$y)) Y <- formula$y
+    else if (!is.null(formula$model)) Y <- model.response(formula$model)
+    temp <- concordance(Y ~ formula$fitted.values, ...)
     temp$call <- Call
     temp
 }
-concordance.survreg <- function(x, ...) {
+concordance.survreg <- function(formula, ...) {
     Call <- match.call()
-    if (!is.null(x$y)) Y <- x$y
-    else if (!is.null(x$model)) Y <- model.response(x$model)
-    temp <- concordance(Y ~ x$linear.predictors, ...)
+    if (!is.null(formula$y)) Y <- formula$y
+    else if (!is.null(formula$model)) Y <- model.response(formula$model)
+    temp <- concordance(Y ~ formula$linear.predictors, ...)
     temp$call <- Call
     temp
 }
 
-concordance.coxph <- function(x, reverse=TRUE, ...) {
+concordance.coxph <- function(formula, reverse=TRUE, ...) {
     Call <- match.call()
-    if (!is.null(x$y)) Y <- x$y
-    else if (!is.null(x$model)) Y <- model.response(x$model)
-    temp <- concordance(Y ~ x$linear.predictors, reverse=reverse, ...)
+    if (!is.null(formula$y)) Y <- formula$y
+    else if (!is.null(formula$model)) Y <- model.response(formula$model)
+    temp <- concordance(Y ~ formula$linear.predictors, reverse=reverse, ...)
     temp$call <- Call
     temp
 }
