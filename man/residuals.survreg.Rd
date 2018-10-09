@@ -18,9 +18,7 @@ an object inheriting from class \code{survreg}.
 \item{type}{
 type of residuals, with choices of \code{"response"}, \code{"deviance"},
 \code{"dfbeta"}, \code{"dfbetas"}, \code{"working"}, \code{"ldcase"}, \code{"lsresp"},
-\code{"ldshape"}, and \code{"matrix"}.  See the LaTeX documentation
-(\code{survival/doc/survival.ps.gz}) for more
-detail.
+\code{"ldshape"}, and \code{"matrix"}. 
 }
 \item{rsigma}{
 include the scale parameters in the variance matrix, when doing computations.
@@ -49,21 +47,41 @@ function.  Let \eqn{L} be the log-likelihood, \eqn{p} be the linear predictor \e
 and \eqn{s} be \eqn{\log(\sigma)}.  Then the 6 columns of the matrix are
 \eqn{L}, \eqn{dL/dp},\eqn{\partial^2L/\partial p^2}{ddL/(dp dp)},
 \eqn{dL/ds}, \eqn{\partial^2L/\partial s^2}{ddL/(ds ds)}  and
-\eqn{\partial^2L/\partial p\partial s}{ddL/(dp ds)}.  Diagnostics based on these quantities
-are discussed in an article by Escobar and Meeker.
+\eqn{\partial^2L/\partial p\partial s}{ddL/(dp ds)}.
+Diagnostics based on these quantities
+are discussed in the book and article by Escobar and Meeker.
 The main ones are the likelihood displacement residuals for perturbation
-of a case weight (\code{ldcase}), the response value (\code{ldresp}), and the \code{shape}.
+of a case weight (\code{ldcase}), the response value (\code{ldresp}),
+and the \code{shape}.
+
+For a transformed distribution such as the log-normal or Weibull,
+matrix residuals are based on the log-likelihood of the transformed data
+log(y). 
+For a monotone function f the density of f(X) is the density of X
+divided by the derivative of f (the Jacobian), so subtract log(derivative) from
+each uncensored observation's loglik value in order to match the
+\code{loglik} component of the result.  The other colums of the matrix
+residual are unchanged by the transformation.
 }
 \references{
 Escobar, L. A. and Meeker, W. Q. (1992).
 Assessing influence in regression analysis with censored data.
 \emph{Biometrics}
 \bold{48}, 507-528.
+
+Escobar, L. A. and Meeker, W. Q. (1998).
+Statistical Methods for Reliablilty Data.  Wiley.
 }
+
 \seealso{\code{\link{predict.survreg}}}
 \examples{
-fit <- survreg(Surv(time,status) ~x, aml)
+fit <- survreg(Surv(futime, death) ~ age + sex, mgus2)
+summary(fit)   # age and sex are both important
+
 rr  <- residuals(fit, type='matrix')
+sum(rr[,1]) - with(mgus2, sum(log(futime[death==1]))) # loglik
+
+plot(mgus2$age, rr[,2], col= (1+mgus2$death)) # ldresp
 }
 \keyword{survival}
-% Converted by Sd2Rd version 0.3-2.
+
