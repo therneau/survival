@@ -201,9 +201,10 @@ concordance.fit <- function(y, x, strata, weights, ymin, ymax, timewt,
         }
 
         npair <- (sfit$n.risk- sfit$n.event)[sfit$n.event>0]
+        temp  <- ifelse(esurv==0, 0, esurv/npair)  # avoid 0/0
         timewt <- switch(timeopt,
-            "S" =  sum(wts)*esurv/npair,
-            "S/G" = sum(wts)* esurv/ (gsurv* npair),
+            "S" =  sum(wts)*temp,
+            "S/G" = sum(wts)* temp/ gsurv,
             "n" =   rep(1.0, length(npair)),
             "n/G" = 1/gsurv,
             "n/G2"= 1/gsurv^2)
@@ -289,7 +290,7 @@ concordance.fit <- function(y, x, strata, weights, ymin, ymax, timewt,
     names(rval$count) <- c("concordant", "discordant", "tied.x", "tied.y",
                            "tied.xy")
 
-    if (influence == 1) rval$dfbeta= dfbeta
+    if (influence == 1) rval$dfbeta <- dfbeta/2
     else if (influence ==2) {
         if (!missing(group) && length(group) > 0) 
             rval$influence <- rowsum(imat, group)
