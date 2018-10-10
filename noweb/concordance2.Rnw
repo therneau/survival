@@ -39,10 +39,10 @@ can recreate Kendall's or Goodmans values if desired.
 
 Here is the main routine.
 <<concordance>>=
-concordance <- function(formula, ...) 
+concordance <- function(fit, ...) 
     UseMethod("concordance")
 
-concordance.formula <- function(formula, data,
+concordance.formula <- function(fit, data,
                                 weights, subset, na.action, group,
                                 ymin=NULL, ymax=NULL, 
                                 timewt=c("n", "S", "S/G", "n/G", "n/G2"),
@@ -51,14 +51,14 @@ concordance.formula <- function(formula, data,
     Call <- match.call()  # save a copy of of the call, as documentation
     timewt <- match.arg(timewt)
     
-    index <- match(c("formula", "data", "weights", "subset", "na.action", 
+    index <- match(c("data", "weights", "subset", "na.action", 
                      "group"),
                    names(Call), nomatch=0)
     temp <- Call[c(1, index)]
     temp[[1L]] <-  quote(stats::model.frame)
     special <- c("strata", "cluster")
-    temp$formula <- if(missing(data)) terms(formula, special)
-                    else              terms(formula, special, data=data)
+    temp$formula <- if(missing(data)) terms(fit, special)
+                    else              terms(fit, special, data=data)
     mf <- eval(temp, parent.frame())  # model frame
     if (nrow(mf) ==0) stop("No (non-missing) observations")
     Terms <- terms(mf)
@@ -102,21 +102,11 @@ concordance.formula <- function(formula, data,
         stop("ymin must be a single number")
     if (!is.null(ymax) & (length(ymax)> 1 || !is.numeric(ymax)))
         stop("ymax must be a single number")
-    
-    fit <- concordance.fit(Y, x, strat, wt, ymin, ymax, timewt, cluster,
-                           influence, ranks)
- 
     if (!is.logical(reverse)) 
         stop ("the reverse argument must be TRUE/FALSE")
-    if (reverse) {
-        fit$concordance <- 1- fit$concordance
-        if (is.matrix(fit$influence)) 
-            fit$influence <- fit$influence[,c(2,1,3,4,5)]
-        if (is.matrix(fit$count)) fit$count <- fit$count[, c(2,1,3,4,5)]
-        else fit$count <- fit$count[c(2,1,3,4,5)]
-        if (ranks) fit$ranks$rank <- -fit$ranks$rank
-    }
-
+ 
+    fit <- concordance.fit(Y, x, strat, wt, ymin, ymax, timewt, cluster,
+                           influence, ranks, reverse)
     na.action <- attr(mf, "na.action")
     if (length(na.action)) fit$na.action <- na.action
     fit$call <- Call
@@ -125,7 +115,8 @@ concordance.formula <- function(formula, data,
     fit
 }
 
-print.concordance <- function(x, ...) {
+print.concordance <- function(x, digits= max(1L, getOption("digits") - 3L), 
+                              ...) {
     if(!is.null(cl <- x$call)) {
         cat("Call:\n")
         dput(cl)
@@ -135,8 +126,15 @@ print.concordance <- function(x, ...) {
     if(length(omit))
         cat("n=", x$n, " (", naprint(omit), ")\n", sep = "")
     else cat("n=", x$n, "\n")
-    cat("Concordance= ", format(x$concordance), " se= ", format(sqrt(x$var[1])),
-        '\n', sep='')
+    
+    if (length(x$concordance) > 1) {
+        # result of a call with multiple fits
+        tmat <- cbind(concordance= x$concordance, se=sqrt(diag(x$var)))
+        print(round(tmat, digits=digits), ...)
+        cat("\n")
+    }
+    else cat("Concordance= ", format(x$concordance, digits=digits), " se= ", 
+             format(sqrt(x$var[1]), digits=digits), '\n', sep='')
 
     if (!is.matrix(x$count) || nrow(x$count < 11)) 
         print(round(x$count,2))
@@ -156,7 +154,7 @@ If $y$ is not a survival quantity, then all of the options for the
 
 <<concordancefit>>=
 concordance.fit <- function(y, x, strata, weights, ymin, ymax, timewt,
-                            group, influence=0, ranks=FALSE) {
+                            group, influence=0, ranks=FALSE, reverse=FALSE) {
     # The coxph program may occassionally fail, and this will kill the C
     #  routine below.  So check for it.
     if (any(is.na(x)) || any(is.na(y))) return(NULL)
@@ -287,17 +285,30 @@ concordance.fit <- function(y, x, strata, weights, ymin, ymax, timewt,
     var.somer <- sum(dfbeta^2)
     rval <- list(concordance = (somer+1)/2, count=fit$count, n=n,
                  var = c(IJ= var.somer/4, PH= vcox/(4*npair^2)))
-    names(rval$count) <- c("concordant", "discordant", "tied.x", "tied.y",
+    if (is.matrix(rval$count))
+        colnames(rval$count) <- c("concordant", "discordant", "tied.x", 
+                                   "tied.y", "tied.xy")
+    else names(rval$count) <- c("concordant", "discordant", "tied.x", "tied.y",
                            "tied.xy")
 
-    if (influence == 1) rval$dfbeta <- dfbeta/2
-    else if (influence ==2) {
+    if (influence == 1 || influence==3) rval$dfbeta <- dfbeta/2
+    if (influence >=2) {
         if (!missing(group) && length(group) > 0) 
             rval$influence <- rowsum(imat, group)
         else rval$influence <- imat
     }
         
     if (ranks) rval$ranks <- resid
+    if (reverse) {
+        rval$concordance <- 1- rval$concordance
+        if (!is.null(rval$dfbeta)) rval$dfbeta <- -rval$dfbeta
+        if (!is.null(rval$influence)) 
+            rval$influence <- rval$influence[,c(2,1,3,4,5)]
+        if (is.matrix(rval$count)) rval$count <- rval$count[, c(2,1,3,4,5)]
+        else rval$count <- rval$count[c(2,1,3,4,5)]
+        if (ranks) rval$ranks$rank <- -rval$ranks$rank
+    }
+
     rval
 }
 @ 
@@ -1026,10 +1037,10 @@ for (; i2<n; i2++) {
 }
 @ 
 
-Methods are defined for lm, survfit, and coxph objects.  They are
-nearly identical.
-I don't call \code{concordance.fit} directly so as to inherit more of
-the argument checks.
+Methods are defined for lm, survfit, and coxph objects.  Detection of
+strata, weights, or clustering is the main nuisance, since those are
+not passed back as part of coxph or survreg objects.  Glm and lm objects
+have the model frame by default, but that can be turned off.
 
 <<concordance>>=
 concordance.lm <- function(formula, ...) {
@@ -1049,12 +1060,117 @@ concordance.survreg <- function(formula, ...) {
     temp
 }
 
-concordance.coxph <- function(formula, reverse=TRUE, ...) {
+concordance.coxph <- function(fit, ..., newdata, ymin=NULL, ymax=NULL, 
+                               timewt=c("n", "S", "S/G", "n/G", "n/G2"),
+                               influence=0, ranks=FALSE, reverse=TRUE, group) {
     Call <- match.call()
-    if (!is.null(formula$y)) Y <- formula$y
-    else if (!is.null(formula$model)) Y <- model.response(formula$model)
-    temp <- concordance(Y ~ formula$linear.predictors, reverse=reverse, ...)
-    temp$call <- Call
-    temp
+    if (missing(group)) group <- NULL
+    timewt <- match.arg(timewt)
+
+    # four cases: newdata no/yes * multiple models no/yes
+    fits <- list(fit, ...)
+    nfit <- length(fits)
+    iscox <- sapply(fits, function(x) inherits(x, "coxph"))
+    if (!all(iscox)) stop("all fits must be coxph objects")
+    
+    need.wt <-  any(sapply(fits, function(x) !is.null(x$call$weights)))
+    # This will be called to do the actual fit
+    # In the simple case of a single model, no new data, no strata, cluster, or
+    #  weights, then model.frame won't need to be called.
+    dofit <- function(fit, newdata, inf=1) {
+        Terms <- terms(fit)
+        if (!missing(newdata)) mf <- model.frame(fit, data=newdata)
+        else if (need.wt) mf <- model.frame(fit)
+        else mf <- NULL
+
+        if (need.wt) {
+            n <- nrow(mf)
+            weights <- model.weights(mf)
+        } else weights <- NULL
+
+        specials <- attr(Terms, "specials")
+        if (!is.null(specials$tt)) 
+            stop("cannot yet handle models with tt terms")
+ 
+       if (!is.null(specials$strata)) {
+            if (is.null(mf)) mf <- model.frame(fit)
+            stemp <- untangle.specials(Terms, 'strata', 1)
+            if (length(stemp$vars)==1) strata.keep <- mf[[stemp$vars]]
+            else strata.keep <- strata(mf[,stemp$vars], shortlabel=TRUE)
+        } else strata.keep <- NULL
+ 
+        if (length(group) ==0) {
+            if (!is.null(specials$cluster)) {
+                if (is.null(mf)) mf <- model.frame(fit)
+                tempc <- untangle.specials(Terms, 'cluster', 1:10)
+                ord <- attr(Terms, 'order')[tempc$terms]
+                group <- strata(mf[,tempc$vars], shortlabel=TRUE) 
+            }
+            else if (!is.null(fit$call$id)) {
+                if (is.null(mf)) mf <- model.frame(fit)
+                group <- model.extract(mf, "id")
+            }
+        }
+       
+        if (!is.null(mf)) {
+            Y <- model.response(mf)
+            if (is.null(fit$mf)) fit$mf <- mf  #don't make predict recreate it
+        }
+        else if (!is.null(fit$y)) Y <- fit$y
+        else Y <- model.response(model.frame(fit))
+        X <- predict(fit, type="lp")
+
+        temp <- concordance.fit(Y, X, strata.keep, weights, ymin, ymax, timewt,
+                        group, influence=inf)
+        if (need.wt) temp$weights <- weights
+        temp
+    }
+
+    if (nfit ==1) {
+        if (missing(newdata))  rval <- dofit(fit, inf=influence)
+        else rval <- dofit(fit, newdata, inf=influence)
+    }
+    else {
+        if (influence==2) inf <-3 else inf <- 1
+        if (!missing(newdata)) 
+             flist <- lapply(fits, dofit, newdata, inf=inf)
+        else flist <- lapply(fits, dofit, inf = inf)
+
+        # all models have to use the exact same n, weights, and grouping
+        for (i in 2:nfit) {
+            if (!identical(flist[[1]]$n, flist[[i]]$n))
+                stop("models must have identical sample size")
+            if (!identical(flist[[1]]$weights, flist[[i]]$weights))
+                stop("models must use identical case weights")
+            if (length(flist[[1]]$dfbeta) != length(flist[[i]]$dfbeta))
+                stop("models must have identical clustering")
+        }
+        count = do.call(rbind, lapply(flist, function(x) {
+            if (is.matrix(x$count)) colSums(x$count) else x$count}))
+
+        concordance <- sapply(flist, function(x) x$concordance)
+        dfbeta <- t(sapply(flist, function(x) x$dfbeta))
+            
+        mname <- c(deparse(substitute(fit)), deparse(substitute(...)))
+        names(concordance) <- mname
+        rownames(count) <- mname
+
+        wt <- flist[[1]]$weights
+        if (is.null(wt)) vmat <- tcrossprod(dfbeta)
+        else vmat <- t(wt * dfbeta) %*% dfbeta
+        rval <- list(concordance=concordance, count=count, 
+                     n=flist[[1]]$n, var=vmat)
+
+        if (influence==1) rval$dfbeta <- dfbeta
+        else if (influence ==2) {
+            temp <- unlist(lapply(flist, function(x) x$influence))
+            rval$influence <- array(temp, 
+                                    dim=c(dim(flist[[1]]$influence, nfit)))
+        }
+    }
+    
+    rval$call <- Call
+    class(rval) <- "concordance"
+    rval
 }
 @ 

@@ -1,0 +1,54 @@
+\section{The cox.zph function}
+The simplest test of proportional hazards is to use a time dependent
+coefficient $\beta(t) = a + bt$.
+The $\beta(t) x = ax + b(tx)$, and the extended coefficients $a$ and $b$
+can be obtained from a Cox model with an extra 'fake' covariate $tx$.
+More generally, replace $t$ with some function $g(t)$, which gives rise to
+an entire family of tests.
+An efficient assessment of this extended model can be done using a score
+test.
+\begin{itemize}
+  \item Augment the original variables $x_1, \ldots x_k$ with $k$ new ones
+$tx_1, \ldots, tx_k$
+  \item Compute the first and second derivatives $U$ and $H$ of the Cox model
+at the starting estimate of $(\hat\beta, 0)$; prior covariates at their
+prior values, and the new covariates at 0.  No iteration is done.
+This can be done efficiently with a modified version of the primary C routines
+for coxph.
+  \item By design, the first $k$ elements of $U$ will be zero. Thus the 
+first iteration of the new coefficients, and the score tests for them, are
+particularly easy.  
+\end{itemize}
+
+The original \code{cox.zph} function is based on an approximation to the
+score test.
+The approximation has some well described problems for stratified models,
+the update is to compute the test exactly.  We still use scaled Schoenfeld
+residuals for plotting and for approximate spline fits, though the latter
+now are strata specific.  
+Consider a fitted Cox model with covariates $x_1$ to $x_k$, and then add, 
+one at a time, the time dependent covariate $z = x g(t)$ where $g$ is a
+predefined function. 
+The new score vector $U = (0,\ldots,0, u_z)$ has a single non-zero element.
+The new information matrix $H$ will have a $k$ by $k$ upper block which is
+equal to the old information matrix along with an extra row and column.
+Now $H$ is a sum of variance matrices, one per event time, and at any given
+event time $g(t)$ is a constant.  
+This means that 
+
+$k+1, k+1$ element is 
+\begin{equation*}
+  \sum_{i=1}^n \delta_i v_i(g)
+\end{equation*}
+where $v_i$ is the variance of $z$ over all those at risk at the time of the
+$i$th event.  
+The other elements of the new row/column are the covariance of $z$ with the
+other covariates
+
+
+
+
+
+
+The built in ones are the identity, log, rank,
+and $1- S(t)$.
