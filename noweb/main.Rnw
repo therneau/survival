@@ -10,6 +10,7 @@
                         {\includegraphics{figures/#1.pdf}}}
 \newcommand{\code}[1]{\texttt{#1}}
 \newcommand{\xbar}{\overline{x}}
+\newcommand{\sign}{{\rm sign}}
 
 \noweboptions{breakcode}
 \title{Survival Package Functions}

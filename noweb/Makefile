@@ -7,7 +7,7 @@ PARTS = main.Rnw \
 	finegray.Rnw \
 	predict.coxph.Rnw \
 	concordance.Rnw \
-        concordance2.Rnw \
+        survconcordance.Rnw \
 	survexp.Rnw \
 	pyears.Rnw pyears2.Rnw \
 	residuals.survreg.Rnw \
