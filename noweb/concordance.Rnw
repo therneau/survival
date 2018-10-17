@@ -1,4 +1,5 @@
 \section{Concordance}
+\subsection{Main routine}
  The concordance statistic is the most used measure of goodness-of-fit
 in survival models.  
 In general let $y_i$ and $x_i$ be observed and predicted data values.
@@ -44,12 +45,14 @@ concordance <- function(fit, ...)
 
 concordance.formula <- function(fit, data,
                                 weights, subset, na.action, group,
-                                ymin=NULL, ymax=NULL, 
+                                ymin, ymax, 
                                 timewt=c("n", "S", "S/G", "n/G", "n/G2", "I"),
                                 influence=0, ranks=FALSE, reverse=FALSE,
                                 timefix=TRUE, ...) {
     Call <- match.call()  # save a copy of of the call, as documentation
     timewt <- match.arg(timewt)
+    if (missing(ymin)) ymin <- NULL
+    if (missing(ymax)) ymax <- NULL
     
     index <- match(c("data", "weights", "subset", "na.action", 
                      "group"),
@@ -69,6 +72,7 @@ concordance.formula <- function(fit, data,
     } else {
         if (is.numeric(Y) && is.vector(Y))  Y <- Surv(Y)
         else stop("left hand side of the formula  must be a numeric vector or a survival object")
+        if (timefix) Y <- aeqSurv(Y)
     }
     n <- nrow(Y)
     
@@ -153,11 +157,13 @@ If $y$ is not a survival quantity, then all of the options for the
 \code{timewt} parameter lead to the same result.
 
 <<concordancefit>>=
-concordance.fit <- function(y, x, strata, weights, ymin, ymax, timewt,
+concordance.fit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL, 
+                            timewt=c("n", "S", "S/G", "n/G", "n/G2", "I"),
                             group, influence=0, ranks=FALSE, reverse=FALSE) {
     # The coxph program may occassionally fail, and this will kill the C
     #  routine below.  So check for it.
     if (any(is.na(x)) || any(is.na(y))) return(NULL)
+    timewt <- match.arg(timewt)
 
     # these should only occur if something outside survival calls this routine
     n <- length(y)
@@ -167,10 +173,6 @@ concordance.fit <- function(y, x, strata, weights, ymin, ymax, timewt,
         stop("y and strata are not the same length")
     if (missing(weights) || length(weights)==0) weights <- rep(1.0, n)
     else if (length(weights) != n) stop("y and weights are not the same length")
-    if (!is.Surv(y)) {
-        y <- Surv(y)
-        timewt <- 'n'
-    }
 
     type <- attr(y, "type")
     if (type %in% c("left", "interval"))
@@ -315,6 +317,325 @@ concordance.fit <- function(y, x, strata, weights, ymin, ymax, timewt,
 
     rval
 }
+@ 
+
+\subsection{Methods}
+
+Methods are defined for lm, survfit, and coxph objects.  Detection of
+strata, weights, or clustering is the main nuisance, since those are
+not passed back as part of coxph or survreg objects.  Glm and lm objects
+have the model frame by default, but that can be turned off by a user.
+This routine gets the X, Y, and other portions for a call.
+
+<<concordance>>=
+cord.getdata <- function(fit, newdata=NULL, group=NULL, need.wt, timefix=TRUE) {
+    # For coxph object, don't reconstruct the model frame unless we must.
+    # This will occur if weights, strata, or cluster are needed, or if
+    #  there is a newdata argument.  Of course, if the model frame is 
+    #  already present, then use it!
+    Terms <- terms(fit)
+    specials <- attr(Terms, "specials")
+    if (!is.null(specials$tt)) 
+        stop("cannot yet handle models with tt terms")
+ 
+    if (!is.null(newdata)) {
+        mf <- model.frame(fit, data=newdata)
+        y <- model.response(mf)
+        if (!is.Surv(y)) {
+            if (is.numeric(y) && is.vector(y))  y <- Surv(y)
+            else stop("left hand side of the formula  must be a numeric vector or a survival object")
+        }
+        if (timefix) y <- aeqSurv(y)
+        rval <- list(y= y, x= predict(fit))
+        # the type of prediction does not matter, as long as it is a 
+        #  monotone transform of the linear predictor
+    } 
+    else {
+        mf <- fit$model
+        y <- fit$y
+        if (is.null(y)) {
+            if (is.null(mf)) mf <- model.frame(fit)
+            y <- model.response(mf)
+        }
+        if (!is.Surv(y)) {
+            y <- Surv(y)
+            if (timefix) y <- aeqSurv(y)
+        }  # survival models will have already called timefix
+
+        x <- fit$linear.predictors    # used by most
+        if (is.null(x)) x <- fit$fitted.values # used by lm
+        if (is.null(x)) {fit$na.action <- NULL; x <- predict(fit)}
+        rval <- list(y = y, x= x)
+    }
+        
+    if (need.wt) {
+        if (is.null(mf)) mf <- model.frame(fit)
+        rval$weights <- model.weights(mf)
+    }
+
+    if (!is.null(specials$strata)) {
+        if (is.null(mf)) mf <- model.frame(fit)
+        stemp <- untangle.specials(Terms, 'strata', 1)
+        if (length(stemp$vars)==1) rval$strata <- mf[[stemp$vars]]
+        else rval$strata <- strata(mf[,stemp$vars], shortlabel=TRUE)
+    } 
+ 
+    if (is.null(group)) {
+        if (!is.null(specials$cluster)) {
+            if (is.null(mf)) mf <- model.frame(fit)
+            tempc <- untangle.specials(Terms, 'cluster', 1:10)
+            ord <- attr(Terms, 'order')[tempc$terms]
+            rval$group <- strata(mf[,tempc$vars], shortlabel=TRUE) 
+        }
+        else if (!is.null(fit$call$id)) {
+            if (is.null(mf)) mf <- model.frame(fit)
+            rval$group <- model.extract(mf, "id")
+        }
+    }
+    else rval$group <- group
+    rval
+}
+@ 
+
+The methods themselves, which are near clones of each other.
+There is one portion of these that is not very clear.  
+I use the trick from nearly all calls to model.frame to deal with 
+arguments that might be there or might not, such as newdata.
+Construct a call by hand by first subsetting this call as Call[...],
+then replace the first element with the name of what I really want
+to call -- quote(cord.work) --, add any other args I want, and finally
+execute it with eval().
+The problem is that this doesn't work; the routine can't find cord.work
+since it is not an exported function.  A simple call to cord.work is
+okay, since function calls inherit from the survival namespace, but
+cfun isn't a function call, it is an expression.  
+There are 3 possible solutions
+\begin{itemize}
+  \item bad: change eval(cfun, parent.frame()) to eval(cfun, evironment(coxph)),
+    or any other function from the survival library which has 
+    namespace::survival as its environment.  If the user calls concordance
+    with ymax=zed, say, we might not be able to find 'zed'.  Especially if they
+    had called concordance from within a function.  We need the call chain.
+  \item okay: use cfun[[1]] <- cord.work, which makes a copy of the entire
+    cord.work function and stuffs it in.  The function isn't too long, so this
+    is okay.  If cord.work fails, the label on its error message won't be as
+    nice since it won't have ``cord.work'' in it. 
+  \item speculative: make a function and invoke it.
+    This creates a new function in the survival namespace, but evaluates it
+    in the current context.  Using parent.frame() is important so that I
+    don't accidentally pick up 'nfit' say, if the user had used a variable of
+    that name as one of their arguments. \\
+    temp <- function(){} \\
+    body(temp, environment(coxph)) <- cfun\\
+    rval <- eval(temp(), parent.frame()) 
+\end{itemize}
+
+<<concordance>>=
+concordance.lm <- function(fit, ..., newdata, ymin, ymax, group,
+                           influence=0, ranks=FALSE, timefix=TRUE) {
+    Call <- match.call()
+    fits <- list(fit, ...)
+    nfit <- length(fits)
+    fname <- as.character(Call)  # like deparse(substitute()) but works for ...
+    fname <- fname[1 + 1:nfit]
+    notok <- sapply(fits, function(x) !inherits(x, "lm"))
+    if (any(notok)) {
+        # a common error is to mistype an arg, "ramk=TRUE" for instance,
+        #  and it ends up in the ... list
+        # try for a nice message in this case: the name of the arg if it
+        #  has one other than "fit", fname otherwise
+        indx <- which(notok)
+        id2 <- names(Call)[indx+1]
+        temp <- ifelse(id2 %in% c("","fit"), fname, id2)
+        stop(temp, " argument is not an appropriate fit object")
+    }
+        
+    cargs <- c("ymin", "ymax","influence", "ranks")
+    cfun <- Call[c(1, match(cargs, names(Call), nomatch=0))]
+    cfun[[1]] <- cord.work   # or quote(survival:::cord.work)
+    cfun$fname <- fname
+    
+    if (missing(newdata)) newdata <- NULL
+    if (missing(group)) group <- NULL
+    need.wt <- any(sapply(fits, function(x) !is.null(x$call$weights)))
+    
+    cfun$data <- lapply(fits, cord.getdata, newdata=newdata, group=group,
+                        need.wt=need.wt, timefix=timefix)
+    rval <- eval(cfun, parent.env())
+    rval$call <- Call
+    rval
+}
+
+concordance.survreg <- function(fit, ..., newdata, ymin, ymax, group,
+                                timewt=c("n", "S", "S/G", "n/G", "n/G2"),
+                                influence=0, ranks=FALSE, timefix=TRUE) {
+    Call <- match.call()
+    fits <- list(fit, ...)
+    nfit <- length(fits)
+    fname <- as.character(Call)  # like deparse(substitute()) but works for ...
+    fname <- fname[1 + 1:nfit]
+    notok <- sapply(fits, function(x) !inherits(x, "survreg"))
+    if (any(notok)) {
+        # a common error is to mistype an arg, "ramk=TRUE" for instance,
+        #  and it ends up in the ... list
+        # try for a nice message in this case: the name of the arg if it
+        #  has one other than "fit", fname otherwise
+        indx <- which(notok)
+        id2 <- names(Call)[indx+1]
+        temp <- ifelse(id2 %in% c("","fit"), fname, id2)
+        stop(temp, " argument is not an appropriate fit object")
+    }
+        
+    cargs <- c("ymin", "ymax","influence", "ranks", "timewt")
+    cfun <- Call[c(1, match(cargs, names(Call), nomatch=0))]
+    cfun[[1]] <- cord.work
+    cfun$fname <- fname
+    
+    if (missing(newdata)) newdata <- NULL
+    if (missing(group)) group <- NULL
+    need.wt <- any(sapply(fits, function(x) !is.null(x$call$weights)))
+    
+    cfun$data <- lapply(fits, cord.getdata, newdata=newdata, group=group,
+                        need.wt=need.wt, timefix=timefix)
+    rval <- eval(cfun, parent.env)
+    rval$call <- Call
+    rval
+}
+    
+concordance.coxph <- function(fit, ..., newdata, group, ymin, ymax, 
+                               timewt=c("n", "S", "S/G", "n/G", "n/G2"),
+                               influence=0, ranks=FALSE, timefix=TRUE) {
+    Call <- match.call()
+    fits <- list(fit, ...)
+    nfit <- length(fits)
+    fname <- as.character(Call)  # like deparse(substitute()) but works for ...
+    fname <- fname[1 + 1:nfit]
+    notok <- sapply(fits, function(x) !inherits(x, "coxph"))
+    if (any(notok)) {
+        # a common error is to mistype an arg, "ramk=TRUE" for instance,
+        #  and it ends up in the ... list
+        # try for a nice message in this case: the name of the arg if it
+        #  has one other than "fit", fname otherwise
+        indx <- which(notok)
+        id2 <- names(Call)[indx+1]
+        temp <- ifelse(id2 %in% c("","fit"), fname, id2)
+        stop(temp, " argument is not an appropriate fit object")
+    }
+        
+    # the cargs trick is a nice one, but it only copies over arguments that
+    #  are present.  If 'ranks' was not specified, the default of FALSE is
+    #  not set.  We keep it there to match the documentation.
+    cargs <- c("ymin", "ymax","influence", "ranks", "timewt")
+    cfun <- Call[c(1, match(cargs, names(Call), nomatch=0))]
+    cfun[[1]] <- cord.work   # a copy of the function
+    cfun$fname <- fname
+    cfun$reverse <- TRUE
+
+    if (missing(newdata)) newdata <- NULL
+    if (missing(group)) group <- NULL
+    need.wt <- any(sapply(fits, function(x) !is.null(x$call$weights)))
+    
+    cfun$data <- lapply(fits, cord.getdata, newdata=newdata, group=group,
+                        need.wt=need.wt, timefix=timefix)
+    rval <- eval(cfun, parent.env())
+    rval$call <- Call
+    rval
+}
+@ 
+
+The next routine does all of the actual work for a set of models.
+Note that because of the call-through trick (fargs) exactly and only those
+arguments that are passed in are passed through to concordance.fit.
+Default argument values for that function are found there.  The default
+value for inflence found below is used in this routine, so it is important
+that they match.
+
+<<concordance>>=
+cord.work <- function(data, timewt, ymin, ymax, influence=0, ranks=FALSE, 
+                      reverse, fname) {
+    Call <- match.call()
+    fargs <- c("timewt", "ymin", "ymax", "influence", "ranks", "reverse")
+    fcall <- Call[c(1, match(fargs, names(Call), nomatch=0))]
+    fcall[[1L]] <- as.name("concordance.fit")
+
+    nfit <- length(data)
+    if (nfit==1) {
+        dd <- data[[1]] 
+        fcall$y <- dd$y
+        fcall$x <- dd$x
+        fcall$strata <- dd$strata
+        fcall$weights <- dd$weights
+        rval <- eval(fcall, environment(concordance))
+    }
+    else {
+        # Check that all of the models have the identical Y and weights
+        n <- length(data[[1]]$x)
+        for (i in 2:nfit) {
+            if (length(data[[i]]$x) != n)
+                stop("all models must have the same sample size")
+            
+            if (!identical(data[[1]]$y, data[[i]]$y))
+                stop("all models must have the exact same response vector")
+            
+            if (!identical(data[[1]]$weights, data[[i]]$weights))
+                stop("all models must have the same weight vector")
+        }
+        
+        if (influence==2) fcall$influence <-3 else fcall$influence <- 1
+        flist <- lapply(data, function(d) {
+                         temp <- fcall
+                         temp$y <- d$y
+                         temp$x <- d$x
+                         temp$strata <- d$strata
+                         temp$weights <- d$weights
+                         eval(temp, environment(concordance))
+                     })
+            
+        for (i in 2:nfit) {
+            if (length(flist[[1]]$dfbeta) != length(flist[[i]]$dfbeta))
+                stop("models must have identical clustering")
+        }
+        count = do.call(rbind, lapply(flist, function(x) {
+            if (is.matrix(x$count)) colSums(x$count) else x$count}))
+
+        concordance <- sapply(flist, function(x) x$concordance)
+        dfbeta <- sapply(flist, function(x) x$dfbeta)
+
+        names(concordance) <- fname
+        rownames(count) <- fname
+
+        wt <- data[[1]]$weights
+        if (is.null(wt)) vmat <- crossprod(dfbeta)
+        else vmat <- t(wt * dfbeta) %*% dfbeta
+        rval <- list(concordance=concordance, count=count, 
+                     n=length(flist[[1]]$x), var=vmat,
+                     cvar= sapply(flist, function(x) x$cvar))
+
+        if (influence==1) rval$dfbeta <- dfbeta
+        else if (influence ==2) {
+            temp <- unlist(lapply(flist, function(x) x$influence))
+            rval$influence <- array(temp, 
+                                    dim=c(dim(flist[[1]]$influence, nfit)))
+        }
+        
+        if (ranks) {
+            temp <- lapply(flist, function(x) x$ranks)
+            rdat <- data.frame(fit= rep(fname, sapply(temp, nrow)),
+                               do.call(rbind, temp))
+            row.names(rdat) <- NULL
+            rval$ranks <- rdat
+        }
+     }
+    
+    class(rval) <- "concordance"
+    rval
+}
+@ 
+
+Last, a few miscellaneous methods
+<<concordance>>=
+coef.concordance <- function(object, ...) object$concordance
+vcov.concordance <- function(object, ...) object$var
 @ 
 
 The C routine returns an influence matrix with one row per subject $i$, 
@@ -1041,161 +1362,3 @@ for (; i2<n; i2++) {
 }
 @ 
 
-Methods are defined for lm, survfit, and coxph objects.  Detection of
-strata, weights, or clustering is the main nuisance, since those are
-not passed back as part of coxph or survreg objects.  Glm and lm objects
-have the model frame by default, but that can be turned off.
-
-<<concordance>>=
-concordance.lm <- function(formula, ...) {
-    Call <- match.call()
-    if (!is.null(formula$y)) Y <- formula$y
-    else if (!is.null(formula$model)) Y <- model.response(formula$model)
-    temp <- concordance(Y ~ formula$fitted.values, ...)
-    temp$call <- Call
-    temp
-}
-concordance.survreg <- function(formula, ...) {
-    Call <- match.call()
-    if (!is.null(formula$y)) Y <- formula$y
-    else if (!is.null(formula$model)) Y <- model.response(formula$model)
-    temp <- concordance(Y ~ formula$linear.predictors, ...)
-    temp$call <- Call
-    temp
-}
-
-concordance.coxph <- function(fit, ..., newdata, ymin, ymax, 
-                               timewt=c("n", "S", "S/G", "n/G", "n/G2"),
-                               influence=0, ranks=FALSE, reverse=TRUE, group) {
-    Call <- match.call()
-    if (missing(group)) group <- NULL
-    if (missing(ymin)) ymin <- NULL
-    if (missing(ymax)) ymax <- NULL
-    timewt <- match.arg(timewt)
-    # the below is used for labels or errors
-    temp <- match.call()[-1]
-    mname <- as.character(temp[names(temp) %in% c("fit", "")])
-
-    # four cases: newdata no/yes * multiple models no/yes
-    fits <- list(fit, ...)
-    nfit <- length(fits)
-    iscox <- sapply(fits, function(x) inherits(x, "coxph"))
-    if (!all(iscox)) {
-        stop(mname[!iscox], "is not a coxph object")
-    }
-    
-    need.wt <-  any(sapply(fits, function(x) !is.null(x$call$weights)))
-    # This will be called to do the actual fit
-    # In the simple case of a single model, no new data, no strata, cluster, or
-    #  weights, then model.frame won't need to be called.
-    dofit <- function(fit, newdata, inf=1) {
-        Terms <- terms(fit)
-        if (!missing(newdata)) mf <- model.frame(fit, data=newdata)
-        else if (need.wt) mf <- model.frame(fit)
-        else mf <- NULL
-
-        if (need.wt) {
-            n <- nrow(mf)
-            weights <- model.weights(mf)
-        } else weights <- NULL
-
-        specials <- attr(Terms, "specials")
-        if (!is.null(specials$tt)) 
-            stop("cannot yet handle models with tt terms")
- 
-       if (!is.null(specials$strata)) {
-            if (is.null(mf)) mf <- model.frame(fit)
-            stemp <- untangle.specials(Terms, 'strata', 1)
-            if (length(stemp$vars)==1) strata.keep <- mf[[stemp$vars]]
-            else strata.keep <- strata(mf[,stemp$vars], shortlabel=TRUE)
-        } else strata.keep <- NULL
- 
-        if (length(group) ==0) {
-            if (!is.null(specials$cluster)) {
-                if (is.null(mf)) mf <- model.frame(fit)
-                tempc <- untangle.specials(Terms, 'cluster', 1:10)
-                ord <- attr(Terms, 'order')[tempc$terms]
-                group <- strata(mf[,tempc$vars], shortlabel=TRUE) 
-            }
-            else if (!is.null(fit$call$id)) {
-                if (is.null(mf)) mf <- model.frame(fit)
-                group <- model.extract(mf, "id")
-            }
-        }
-       
-        if (!is.null(mf)) {
-            Y <- model.response(mf)
-            if (is.null(fit$mf)) fit$mf <- mf  #don't make predict recreate it
-        }
-        else if (!is.null(fit$y)) Y <- fit$y
-        else Y <- model.response(model.frame(fit))
-        X <- predict(fit, type="lp")
-
-        temp <- concordance.fit(Y, X, strata.keep, weights, ymin, ymax, timewt,
-                        group, influence=inf, reverse=reverse, ranks=ranks)
-        if (need.wt) temp$weights <- weights
-        temp
-    }
-
-    if (nfit ==1) {
-        if (missing(newdata))  rval <- dofit(fit, inf=influence)
-        else rval <- dofit(fit, newdata, inf=influence)
-    }
-    else {
-        if (influence==2) inf <-3 else inf <- 1
-        if (!missing(newdata)) 
-             flist <- lapply(fits, dofit, newdata, inf=inf)
-        else flist <- lapply(fits, dofit, inf = inf)
-
-        # all models have to use the exact same n, weights, and grouping
-        for (i in 2:nfit) {
-            if (!identical(flist[[1]]$n, flist[[i]]$n))
-                stop("models must have identical sample size")
-            if (!identical(flist[[1]]$weights, flist[[i]]$weights))
-                stop("models must use identical case weights")
-            if (length(flist[[1]]$dfbeta) != length(flist[[i]]$dfbeta))
-                stop("models must have identical clustering")
-        }
-        count = do.call(rbind, lapply(flist, function(x) {
-            if (is.matrix(x$count)) colSums(x$count) else x$count}))
-
-        concordance <- sapply(flist, function(x) x$concordance)
-        dfbeta <- sapply(flist, function(x) x$dfbeta)
-
-        names(concordance) <- mname
-        rownames(count) <- mname
-
-        wt <- flist[[1]]$weights
-        if (is.null(wt)) vmat <- crossprod(dfbeta)
-        else vmat <- t(wt * dfbeta) %*% dfbeta
-        rval <- list(concordance=concordance, count=count, 
-                     n=flist[[1]]$n, var=vmat,
-                     cvar= sapply(flist, function(x) x$cvar))
-
-        if (influence==1) rval$dfbeta <- dfbeta
-        else if (influence ==2) {
-            temp <- unlist(lapply(flist, function(x) x$influence))
-            rval$influence <- array(temp, 
-                                    dim=c(dim(flist[[1]]$influence, nfit)))
-        }
-        
-        if (ranks) {
-            temp <- lapply(flist, function(x) x$ranks)
-            rdat <- data.frame(fit= rep(mname, sapply(temp, nrow)),
-                               do.call(rbind, temp))
-            row.names(rdat) <- NULL
-            rval$ranks <- rdat
-        }
-     }
-    
-    rval$call <- Call
-    class(rval) <- "concordance"
-    rval
-}
-@ 
-
-Last, a few miscellaneous methods
-<<concordance>>=
-coef.concordance <- function(object, ...) object$concordance
-vcov.concordance <- function(object, ...) object$var
-@ 
