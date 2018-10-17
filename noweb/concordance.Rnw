@@ -209,7 +209,7 @@ concordance.fit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL,
                          "n" =   rep(1.0, length(npair)),
                          "n/G" = 1/gsurv,
                          "n/G2"= 1/gsurv^2,
-                         "I"  =  ifrep(1.0, length(esurv))
+                         "I"  =  rep(1.0, length(esurv))
                      )
         if (!is.null(ymin)) timewt[etime < ymin] <- 0
         if (!is.null(ymax)) timewt[etime > ymax] <- 0
@@ -431,7 +431,7 @@ There are 3 possible solutions
 \end{itemize}
 
 <<concordance>>=
-concordance.lm <- function(fit, ..., newdata, ymin, ymax, group,
+concordance.lm <- function(fit, ..., newdata, group, ymin, ymax, 
                            influence=0, ranks=FALSE, timefix=TRUE) {
     Call <- match.call()
     fits <- list(fit, ...)
@@ -461,13 +461,13 @@ concordance.lm <- function(fit, ..., newdata, ymin, ymax, group,
     
     cfun$data <- lapply(fits, cord.getdata, newdata=newdata, group=group,
                         need.wt=need.wt, timefix=timefix)
-    rval <- eval(cfun, parent.env())
+    rval <- eval(cfun, parent.frame())
     rval$call <- Call
     rval
 }
 
-concordance.survreg <- function(fit, ..., newdata, ymin, ymax, group,
-                                timewt=c("n", "S", "S/G", "n/G", "n/G2"),
+concordance.survreg <- function(fit, ..., newdata, group, ymin, ymax,
+                                timewt=c("n", "S", "S/G", "n/G", "n/G2", "I"),
                                 influence=0, ranks=FALSE, timefix=TRUE) {
     Call <- match.call()
     fits <- list(fit, ...)
@@ -497,13 +497,13 @@ concordance.survreg <- function(fit, ..., newdata, ymin, ymax, group,
     
     cfun$data <- lapply(fits, cord.getdata, newdata=newdata, group=group,
                         need.wt=need.wt, timefix=timefix)
-    rval <- eval(cfun, parent.env)
+    rval <- eval(cfun, parent.frame())
     rval$call <- Call
     rval
 }
     
 concordance.coxph <- function(fit, ..., newdata, group, ymin, ymax, 
-                               timewt=c("n", "S", "S/G", "n/G", "n/G2"),
+                               timewt=c("n", "S", "S/G", "n/G", "n/G2", "I"),
                                influence=0, ranks=FALSE, timefix=TRUE) {
     Call <- match.call()
     fits <- list(fit, ...)
@@ -537,7 +537,7 @@ concordance.coxph <- function(fit, ..., newdata, group, ymin, ymax,
     
     cfun$data <- lapply(fits, cord.getdata, newdata=newdata, group=group,
                         need.wt=need.wt, timefix=timefix)
-    rval <- eval(cfun, parent.env())
+    rval <- eval(cfun, parent.frame())
     rval$call <- Call
     rval
 }
@@ -615,7 +615,7 @@ cord.work <- function(data, timewt, ymin, ymax, influence=0, ranks=FALSE,
         else if (influence ==2) {
             temp <- unlist(lapply(flist, function(x) x$influence))
             rval$influence <- array(temp, 
-                                    dim=c(dim(flist[[1]]$influence, nfit)))
+                                    dim=c(dim(flist[[1]]$influence), nfit))
         }
         
         if (ranks) {

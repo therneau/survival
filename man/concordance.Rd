@@ -14,12 +14,16 @@ calculated from the results of this function.
 \usage{
 concordance(fit, \ldots)
 \method{concordance}{formula}(fit, data, weights, subset, na.action,
-  group, ymin, ymax, timewt= c("n", "S", "S/G", "n/G", "n/G2"),
- influence=0, ranks = FALSE, reverse=FALSE, timefix=TRUE, \ldots)
-\method{concordance}{lm}(fit, \ldots)
+  group, ymin, ymax, timewt= c("n", "S", "S/G", "n/G", "n/G2", "I"),
+  influence=0, ranks = FALSE, reverse=FALSE, timefix=TRUE, \ldots)
+\method{concordance}{lm}(fit, \ldots, newdata, group, ymin, ymax,
+  influence=0, ranks=FALSE, timefix=TRUE)
 \method{concordance}{coxph}(fit, \ldots, newdata, group, ymin, ymax,
-  timewt= c("n", "S", "S/G", "n/G", "n/G2"), influence=0, reverse=TRUE)
-\method{concordance}{survreg}(formula, \ldots)
+  timewt= c("n", "S", "S/G", "n/G", "n/G2", "I"), influence=0,
+  ranks=FALSE, timefix=TRUE)
+\method{concordance}{survreg}(fit, \ldots, newdata, group, ymin, ymax,
+  timewt= c("n", "S", "S/G", "n/G", "n/G2", "I"), influence=0,
+  ranks=FALSE, timefix=TRUE)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{

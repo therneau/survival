@@ -318,7 +318,7 @@ There has been a long debate about the "best" weight for survival tests,
 and we can apply some of the same historical arguments
 to the concordance as well.  We will point out four of interest:
 
-\begin {\itemize}
+\begin{itemize}
 \item Peto and Peto \cite{Peto72} point out that 
     $n(t) \approx n(0)S(t-)G(t-)$, where $S$
     is the survival distribution and $G$ the censoring distribution.
