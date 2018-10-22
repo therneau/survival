@@ -26,7 +26,7 @@ phget <- function(fit) {
 }
 fscale <- function(fit) {
     npair <- sum(fit$count[1:3])
-    c(d = abs(fit$count[1]-fit$count[2]), v=4*fit$var[2]*npair^2)
+    c(d = abs(fit$count[1]-fit$count[2]), v=4*fit$cvar*npair^2)
 }
 
 # Concordance by brute force.  O(n^2) algorithm, but ok for n<500 or so

@@ -1,5 +1,12 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 2.43.0}{
+  \itemize{
+    \item Finish test suite and vignette for concordance.
+    \item Run the tests for all packages that depend on survival.
+    Submit to CRAN
+}}
+
 \section{Changes in version 2.42-7}{
   \itemize{
     \item Add arguments to survfit: survfit.matrix did not have
