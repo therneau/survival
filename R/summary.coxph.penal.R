@@ -102,10 +102,11 @@ summary.coxph.penal <-  function(object, conf.int = 0.95, scale=1,
 
     if (!is.null(object$concordance)) {
         # A stratified model has a matrix of values, one row per strata
-        if (is.matrix(object$concordance)) temp <- colSums(object$concordance)
-        else temp <- object$concordance
-        rval$concordance <- c((temp[1] + temp[3]/2)/sum(temp[1:3]), 
-                               temp[5]/(2*sum(temp[1:3])))
+        ctemp <- object$concordance
+        if (is.matrix(ctemp$count)) temp <- colSums(ctemp$count)
+        else temp <- ctemp$count
+        rval$concordance <- c((temp[1] + temp[3]/2)/sum(temp[1:3]),
+                              sqrt(ctemp$var[1]))
         names(rval$concordance) <- c("C", "se(C)")
     }
  

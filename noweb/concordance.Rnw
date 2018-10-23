@@ -40,10 +40,10 @@ can recreate Kendall's or Goodmans values if desired.
 
 Here is the main routine.
 <<concordance>>=
-concordance <- function(fit, ...) 
+concordance <- function(object, ...) 
     UseMethod("concordance")
 
-concordance.formula <- function(fit, data,
+concordance.formula <- function(object, data,
                                 weights, subset, na.action, group,
                                 ymin, ymax, 
                                 timewt=c("n", "S", "S/G", "n/G", "n/G2", "I"),
@@ -60,8 +60,8 @@ concordance.formula <- function(fit, data,
     temp <- Call[c(1, index)]
     temp[[1L]] <-  quote(stats::model.frame)
     special <- c("strata", "cluster")
-    temp$formula <- if(missing(data)) terms(fit, special)
-                    else              terms(fit, special, data=data)
+    temp$formula <- if(missing(data)) terms(object, special)
+                    else              terms(object, special, data=data)
     mf <- eval(temp, parent.frame())  # model frame
     if (nrow(mf) ==0) stop("No (non-missing) observations")
     Terms <- terms(mf)
@@ -325,36 +325,37 @@ Methods are defined for lm, survfit, and coxph objects.  Detection of
 strata, weights, or clustering is the main nuisance, since those are
 not passed back as part of coxph or survreg objects.  Glm and lm objects
 have the model frame by default, but that can be turned off by a user.
-This routine gets the X, Y, and other portions for a call.
+This routine gets the X, Y, and other portions from the result of a
+particular fit object.
 
 <<concordance>>=
-cord.getdata <- function(fit, newdata=NULL, group=NULL, need.wt, timefix=TRUE) {
+cord.getdata <- function(object, newdata=NULL, group=NULL, need.wt, timefix=TRUE) {
     # For coxph object, don't reconstruct the model frame unless we must.
     # This will occur if weights, strata, or cluster are needed, or if
     #  there is a newdata argument.  Of course, if the model frame is 
     #  already present, then use it!
-    Terms <- terms(fit)
+    Terms <- terms(object)
     specials <- attr(Terms, "specials")
     if (!is.null(specials$tt)) 
         stop("cannot yet handle models with tt terms")
  
     if (!is.null(newdata)) {
-        mf <- model.frame(fit, data=newdata)
+        mf <- model.frame(object, data=newdata)
         y <- model.response(mf)
         if (!is.Surv(y)) {
             if (is.numeric(y) && is.vector(y))  y <- Surv(y)
             else stop("left hand side of the formula  must be a numeric vector or a survival object")
         }
         if (timefix) y <- aeqSurv(y)
-        rval <- list(y= y, x= predict(fit))
+        rval <- list(y= y, x= predict(object))
         # the type of prediction does not matter, as long as it is a 
         #  monotone transform of the linear predictor
     } 
     else {
-        mf <- fit$model
-        y <- fit$y
+        mf <- object$model
+        y <- object$y
         if (is.null(y)) {
-            if (is.null(mf)) mf <- model.frame(fit)
+            if (is.null(mf)) mf <- model.frame(object)
             y <- model.response(mf)
         }
         if (!is.Surv(y)) {
@@ -362,19 +363,19 @@ cord.getdata <- function(fit, newdata=NULL, group=NULL, need.wt, timefix=TRUE) {
             if (timefix) y <- aeqSurv(y)
         }  # survival models will have already called timefix
 
-        x <- fit$linear.predictors    # used by most
-        if (is.null(x)) x <- fit$fitted.values # used by lm
-        if (is.null(x)) {fit$na.action <- NULL; x <- predict(fit)}
+        x <- object$linear.predictors    # used by most
+        if (is.null(x)) x <- object$fitted.values # used by lm
+        if (is.null(x)) {object$na.action <- NULL; x <- predict(object)}
         rval <- list(y = y, x= x)
     }
         
     if (need.wt) {
-        if (is.null(mf)) mf <- model.frame(fit)
+        if (is.null(mf)) mf <- model.frame(object)
         rval$weights <- model.weights(mf)
     }
 
     if (!is.null(specials$strata)) {
-        if (is.null(mf)) mf <- model.frame(fit)
+        if (is.null(mf)) mf <- model.frame(object)
         stemp <- untangle.specials(Terms, 'strata', 1)
         if (length(stemp$vars)==1) rval$strata <- mf[[stemp$vars]]
         else rval$strata <- strata(mf[,stemp$vars], shortlabel=TRUE)
@@ -382,13 +383,13 @@ cord.getdata <- function(fit, newdata=NULL, group=NULL, need.wt, timefix=TRUE) {
  
     if (is.null(group)) {
         if (!is.null(specials$cluster)) {
-            if (is.null(mf)) mf <- model.frame(fit)
+            if (is.null(mf)) mf <- model.frame(object)
             tempc <- untangle.specials(Terms, 'cluster', 1:10)
             ord <- attr(Terms, 'order')[tempc$terms]
             rval$group <- strata(mf[,tempc$vars], shortlabel=TRUE) 
         }
-        else if (!is.null(fit$call$id)) {
-            if (is.null(mf)) mf <- model.frame(fit)
+        else if (!is.null(object$call$id)) {
+            if (is.null(mf)) mf <- model.frame(object)
             rval$group <- model.extract(mf, "id")
         }
     }
@@ -431,10 +432,10 @@ There are 3 possible solutions
 \end{itemize}
 
 <<concordance>>=
-concordance.lm <- function(fit, ..., newdata, group, ymin, ymax, 
+concordance.lm <- function(object, ..., newdata, group, ymin, ymax, 
                            influence=0, ranks=FALSE, timefix=TRUE) {
     Call <- match.call()
-    fits <- list(fit, ...)
+    fits <- list(object, ...)
     nfit <- length(fits)
     fname <- as.character(Call)  # like deparse(substitute()) but works for ...
     fname <- fname[1 + 1:nfit]
@@ -443,10 +444,10 @@ concordance.lm <- function(fit, ..., newdata, group, ymin, ymax,
         # a common error is to mistype an arg, "ramk=TRUE" for instance,
         #  and it ends up in the ... list
         # try for a nice message in this case: the name of the arg if it
-        #  has one other than "fit", fname otherwise
+        #  has one other than "object", fname otherwise
         indx <- which(notok)
         id2 <- names(Call)[indx+1]
-        temp <- ifelse(id2 %in% c("","fit"), fname, id2)
+        temp <- ifelse(id2 %in% c("","object"), fname, id2)
         stop(temp, " argument is not an appropriate fit object")
     }
         
@@ -466,11 +467,11 @@ concordance.lm <- function(fit, ..., newdata, group, ymin, ymax,
     rval
 }
 
-concordance.survreg <- function(fit, ..., newdata, group, ymin, ymax,
+concordance.survreg <- function(object, ..., newdata, group, ymin, ymax,
                                 timewt=c("n", "S", "S/G", "n/G", "n/G2", "I"),
                                 influence=0, ranks=FALSE, timefix=TRUE) {
     Call <- match.call()
-    fits <- list(fit, ...)
+    fits <- list(object, ...)
     nfit <- length(fits)
     fname <- as.character(Call)  # like deparse(substitute()) but works for ...
     fname <- fname[1 + 1:nfit]
@@ -479,10 +480,10 @@ concordance.survreg <- function(fit, ..., newdata, group, ymin, ymax,
         # a common error is to mistype an arg, "ramk=TRUE" for instance,
         #  and it ends up in the ... list
         # try for a nice message in this case: the name of the arg if it
-        #  has one other than "fit", fname otherwise
+        #  has one other than "object", fname otherwise
         indx <- which(notok)
         id2 <- names(Call)[indx+1]
-        temp <- ifelse(id2 %in% c("","fit"), fname, id2)
+        temp <- ifelse(id2 %in% c("","object"), fname, id2)
         stop(temp, " argument is not an appropriate fit object")
     }
         
@@ -502,11 +503,11 @@ concordance.survreg <- function(fit, ..., newdata, group, ymin, ymax,
     rval
 }
     
-concordance.coxph <- function(fit, ..., newdata, group, ymin, ymax, 
+concordance.coxph <- function(object, ..., newdata, group, ymin, ymax, 
                                timewt=c("n", "S", "S/G", "n/G", "n/G2", "I"),
                                influence=0, ranks=FALSE, timefix=TRUE) {
     Call <- match.call()
-    fits <- list(fit, ...)
+    fits <- list(object, ...)
     nfit <- length(fits)
     fname <- as.character(Call)  # like deparse(substitute()) but works for ...
     fname <- fname[1 + 1:nfit]
@@ -515,10 +516,10 @@ concordance.coxph <- function(fit, ..., newdata, group, ymin, ymax,
         # a common error is to mistype an arg, "ramk=TRUE" for instance,
         #  and it ends up in the ... list
         # try for a nice message in this case: the name of the arg if it
-        #  has one other than "fit", fname otherwise
+        #  has one other than "object", fname otherwise
         indx <- which(notok)
         id2 <- names(Call)[indx+1]
-        temp <- ifelse(id2 %in% c("","fit"), fname, id2)
+        temp <- ifelse(id2 %in% c("","object"), fname, id2)
         stop(temp, " argument is not an appropriate fit object")
     }
         

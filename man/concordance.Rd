@@ -12,22 +12,22 @@ tau-b, Goodman's gamma, and Somers' d, all of which can also be
 calculated from the results of this function.
 }
 \usage{
-concordance(fit, \ldots)
-\method{concordance}{formula}(fit, data, weights, subset, na.action,
+concordance(object, \ldots)
+\method{concordance}{formula}(object, data, weights, subset, na.action,
   group, ymin, ymax, timewt= c("n", "S", "S/G", "n/G", "n/G2", "I"),
   influence=0, ranks = FALSE, reverse=FALSE, timefix=TRUE, \ldots)
-\method{concordance}{lm}(fit, \ldots, newdata, group, ymin, ymax,
+\method{concordance}{lm}(object, \ldots, newdata, group, ymin, ymax,
   influence=0, ranks=FALSE, timefix=TRUE)
-\method{concordance}{coxph}(fit, \ldots, newdata, group, ymin, ymax,
+\method{concordance}{coxph}(object, \ldots, newdata, group, ymin, ymax,
   timewt= c("n", "S", "S/G", "n/G", "n/G2", "I"), influence=0,
   ranks=FALSE, timefix=TRUE)
-\method{concordance}{survreg}(fit, \ldots, newdata, group, ymin, ymax,
+\method{concordance}{survreg}(object, \ldots, newdata, group, ymin, ymax,
   timewt= c("n", "S", "S/G", "n/G", "n/G2", "I"), influence=0,
   ranks=FALSE, timefix=TRUE)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
-  \item{fit}{a fitted model or a formula.  The formula should be of
+  \item{object}{a fitted model or a formula.  The formula should be of
   the form \code{y ~x}  or \code{y ~ x + strata(z)} with a single
   numeric or survival response and a single predictor.
   Counts of concordant, discordant and tied pairs 
@@ -37,24 +37,24 @@ concordance(fit, \ldots)
  \item{data}{
     a data.frame in which to interpret the variables named in 
     the \code{formula}, or in the \code{subset} and the \code{weights}
-    argument. Only applicable if \code{fit} is a formula.
+    argument. Only applicable if \code{object} is a formula.
   }
   \item{weights}{
     optional vector of case weights.
-    Only applicable if \code{fit} is a formula.
+    Only applicable if \code{object} is a formula.
   }
   \item{subset}{
     expression indicating which subset of the rows of data should be used in 
-    the fit.   Only applicable if \code{fit} is a formula.
+    the fit.   Only applicable if \code{object} is a formula.
   }
   \item{na.action}{
     a missing-data filter function.  This is applied to the model.frame
     after any subset argument has been used.  Default is
-   \code{options()\$na.action}. Only applicable if \code{fit} is a formula.
+   \code{options()\$na.action}. Only applicable if \code{object} is a formula.
   }
 
   \item{\ldots}{multiple fitted models are allowed.  Only applicable if
-    \code{fit} is a model object.}
+    \code{object} is a model object.}
   
   \item{newdata}{optional, a new data frame in which to evaluate (but
     not refit) the models}

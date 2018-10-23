@@ -207,7 +207,8 @@ else {
     }
        
     if (concordance) {
-        rval$concordance <- survConcordance.fit(y, lp, strata, weights)
+        rval$concordance <- concordance.fit(y, lp, strata, weights,
+                                                reverse=TRUE)
      } 
     rval
 }

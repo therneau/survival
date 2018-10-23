@@ -142,8 +142,8 @@ coxph.fit <- function(x, y, strata, offset, init, control,
         }
 
         if (concordance) {
-            rval$concordance <-survConcordance.fit(Surv(stime, sstat),
-                                                   lp[sorted], strata, weights)
+            rval$concordance <- concordance.fit(Surv(stime, sstat),
+                                   lp[sorted], strata, weights, reverse=TRUE)
         }
         rval
     }

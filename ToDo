@@ -32,10 +32,28 @@ This appears to be Han Van H's likelihood displacement residual and would lead
 to the cross-validated log-likelhood?   They are talking about parametric
 models though.
 
---
-
-
+----------------
 
 tmerge doesn't like Date objects for the timeline.
 
- 
+-----------------
+
+Functions that use survConcordance:
+CatPredi: survConcordance.fit
+messina:  survConcordance.fit
+distcomp:  ""
+
+These use survConcordance()$concordance
+palasso
+ePCR
+ncvreg
+MXM
+compound.Cox
+survminer
+
+These include my survproto.h, but don't seem to use concordance1/2
+KMgene, distcomp, seqMeta
+
+survBootOutliers uses cox_object$concordance with C/(C+D), and does not notice
+the issue of strata
+

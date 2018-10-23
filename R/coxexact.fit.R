@@ -153,8 +153,8 @@ coxexact.fit <- function(x, y, strata, offset, init, control,
     }
 
     if (concordance) {
-        rval$concordance <-survConcordance.fit(Surv(y[,1], y[,2]),
-                                             lp, strata)
+        rval$concordance <-concordance.fit(Surv(y[,1], y[,2]),
+                                             lp, strata, reverse=TRUE)
     }
     
     rval

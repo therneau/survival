@@ -1,4 +1,3 @@
-
 agexact.fit <- function(x, y, strata, offset, init, control,
 			  weights, method, rownames,
                          resid=TRUE, concordance=FALSE)
@@ -123,8 +122,8 @@ agexact.fit <- function(x, y, strata, offset, init, control,
     }       
 
     if (concordance) {
-        rval$concordance <-survConcordance.fit(Surv(start, stopp, event),
-                                             lp[sorted], strata, weights)
+        rval$concordance <-concordance.fit(Surv(start, stopp, event),
+                                   lp[sorted], strata, weights, reverse=TRUE)
     }
     
     rval
