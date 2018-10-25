@@ -9,7 +9,7 @@ Tests if there is a difference between two or more survival curves using
 the \eqn{G^\rho}{G-rho} family of tests, or for a single curve against a known alternative.
 }
 \usage{
-survdiff(formula, data, subset, na.action, rho=0)
+survdiff(formula, data, subset, na.action, rho=0, timefix=TRUE)
 }
 \arguments{
 \item{formula}{
@@ -41,7 +41,11 @@ subset argument has been used.  Default is \code{options()$na.action}.
 }
 \item{rho}{
 a scalar parameter that controls the type of test.
-}}
+}
+\item{timefix}{process times through the \code{aeqSurv} function to
+  eliminate potential roundoff issues.}
+
+}
 \value{
 a list with components:
 

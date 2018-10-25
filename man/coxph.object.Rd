@@ -64,13 +64,15 @@ the number of observations used in the fit.
 \item{nevent}{
 the number of events (usually deaths) used in the fit. 
 }
-\item{concordance}{the concordance, as computed by survConcordance.}
+\item{concordance}{a vector of length 6, containing the number of pairs
+  that are concordant, discordant, tied on x, tied on y, and tied on both,
+  followed by the standard error of the concordance statistic.}
 \item{first}{the first derivative vector at the solution.}
 \item{weights}{
 the vector of case weights, if one was used. 
 }
 \item{method}{
-the computation method used. 
+the method used for handling tied survival times.
 }
 \item{na.action}{
 the na.action attribute, if any, that was returned by the \code{na.action} 

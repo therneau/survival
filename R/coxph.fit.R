@@ -1,5 +1,5 @@
 coxph.fit <- function(x, y, strata, offset, init, control,
-			weights, method, rownames, resid=TRUE, concordance=TRUE)
+			weights, method, rownames, resid=TRUE)
 {
     n <-  nrow(y)
     if (is.matrix(x)) nvar <- ncol(x)
@@ -140,13 +140,7 @@ coxph.fit <- function(x, y, strata, offset, init, control,
             # object will never change: residuals right before means
             rval <- c(rval[1:6], list(residuals=resid), rval[-(1:6)])
         }
-
-        if (concordance) {
-            rval$concordance <- concordance.fit(Surv(stime, sstat),
-                                   lp[sorted], strata, weights, reverse=TRUE)
-        }
         rval
     }
 }          
-
 

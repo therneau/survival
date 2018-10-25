@@ -42,7 +42,7 @@ The fit routine is called by the coxph function with arguments
 
 <<agreg.fit>>=
 agreg.fit <- function(x, y, strata, offset, init, control,
-			weights, method, rownames, resid=TRUE, concordance=TRUE)
+			weights, method, rownames, resid=TRUE)
     {
     n <- nrow(y)
     nvar <- ncol(x)
@@ -205,11 +205,6 @@ else {
                      method = method,
                      class = "coxph")
     }
-       
-    if (concordance) {
-        rval$concordance <- concordance.fit(y, lp, strata, weights,
-                                                reverse=TRUE)
-     } 
     rval
 }
 @

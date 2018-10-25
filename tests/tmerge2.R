@@ -59,3 +59,21 @@ counts <- sapply(temp, function(x)
     as.vector(table(factor(x>= cgd0$futime, c(FALSE, TRUE)))))
 
 all(tcount[1:7, c("within", "trailing")] == t(counts))
+
+
+#
+# Merging with a date as the time variable.  In this case tstart/tstop are required
+#  A default start of 0 has no meaning
+#
+base2 <- baseline
+base2$date1 <- as.Date("1953-03-10")   # everyone enrolled that day
+base2$date2 <- as.Date("1953-03-10") + base2$futime
+base2$futime <- NULL
+test2 <- tests
+test2$date <- as.Date("1953-03-10") + test2$date
+
+mydata2 <- tmerge(base2, base2, id=idd, death=event(date2, status), 
+                 tstart = date1, tstop= date2,
+                 options=list(tstartname="date1", tstopname="date2"))
+mydata2 <- tmerge(mydata2, test2, id=idd, ondrug=tdc(date, onoff))
+all.equal(mydata$ondrug, c(NA, NA,1, 1,0,1, NA, 1,0, NA, 1))

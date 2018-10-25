@@ -1,4 +1,4 @@
-survdiff <- function(formula, data, subset, na.action, rho=0) {
+survdiff <- function(formula, data, subset, na.action, rho=0, timefix=TRUE) {
     call <- match.call()
     m <- match.call(expand.dots=FALSE)
     m$rho <- NULL
@@ -18,6 +18,11 @@ survdiff <- function(formula, data, subset, na.action, rho=0) {
     ny <- ncol(y)
     n <- nrow(y)
 
+     # Deal with the near-ties problem
+    if (!is.logical(timefix) || length(timefix) > 1)
+        stop("invalid value for timefix option")
+    if (timefix) y <- aeqSurv(y) 
+ 
     offset<- attr(Terms, "offset")
     if (!is.null(offset)) {
 	#one sample test

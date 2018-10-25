@@ -88,7 +88,7 @@ concordance.formula <- function(object, data,
     }
     else strat <- NULL
     
-    group <- model.extract(mf, "(group)")
+    group <- model.extract(mf, "group")
     cluster<- attr(Terms, "specials")$cluster
     if (length(cluster)) {
         tempc <- untangle.specials(Terms, 'cluster', 1:10)
@@ -298,12 +298,8 @@ concordance.fit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL,
                            "tied.xy")
 
     if (influence == 1 || influence==3) rval$dfbeta <- dfbeta/2
-    if (influence >=2) {
-        if (!missing(group) && length(group) > 0) 
-            rval$influence <- rowsum(imat, group)
-        else rval$influence <- imat
-    }
-        
+    if (influence >=2) rval$influence <- imat
+         
     if (ranks) rval$ranks <- resid
     if (reverse) {
         rval$concordance <- 1- rval$concordance
@@ -557,7 +553,7 @@ cord.work <- function(data, timewt, ymin, ymax, influence=0, ranks=FALSE,
     Call <- match.call()
     fargs <- c("timewt", "ymin", "ymax", "influence", "ranks", "reverse")
     fcall <- Call[c(1, match(fargs, names(Call), nomatch=0))]
-    fcall[[1L]] <- as.name("concordance.fit")
+    fcall[[1L]] <- concordance.fit
 
     nfit <- length(data)
     if (nfit==1) {
@@ -566,7 +562,8 @@ cord.work <- function(data, timewt, ymin, ymax, influence=0, ranks=FALSE,
         fcall$x <- dd$x
         fcall$strata <- dd$strata
         fcall$weights <- dd$weights
-        rval <- eval(fcall, environment(concordance))
+        fcall$group  <- dd$group
+        rval <- eval(fcall, parent.frame())
     }
     else {
         # Check that all of the models have the identical Y and weights
@@ -589,7 +586,8 @@ cord.work <- function(data, timewt, ymin, ymax, influence=0, ranks=FALSE,
                          temp$x <- d$x
                          temp$strata <- d$strata
                          temp$weights <- d$weights
-                         eval(temp, environment(concordance))
+                         temp$group <- d$group
+                         eval(temp, parent.frame())
                      })
             
         for (i in 2:nfit) {

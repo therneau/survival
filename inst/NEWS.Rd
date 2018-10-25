@@ -1,5 +1,15 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 2.43-1}{
+  \itemize{
+    \item Minor change to the concordance method to better accomodate
+    another package
+    \item Change coxph to use concordance() rather than survConcordance
+    \item Add a test to verify that tmerge works with Date objects as
+    the time scale
+    \item Add timefix=TRUE option to survdiff
+}}
+
 \section{Changes in version 2.43.0}{
   \itemize{
     \item Finish test suite and vignette for concordance.

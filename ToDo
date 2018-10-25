@@ -12,11 +12,14 @@ include.lowest for tcut (first find out what the issue is)
 
 add "fun" to summary.survfit
  
-Fixed: ?Surv claims that -Inf is allowed, but survreg chokes.
+?Surv claims that -Inf is allowed, but survreg chokes.
+   Fixed
 
 timefix for survdiff
+   Fixed
 
-confint method for coxph objects
+confint method for coxph objects that uses profile likelihood.  (But will it
+actually matter?)
 
 deal with variables that have spaces, e.g.,  Surv(time, status) ~ `bad name`
 
@@ -35,8 +38,10 @@ models though.
 ----------------
 
 tmerge doesn't like Date objects for the timeline.
+  Fixed.  Added a test case.
 
 -----------------
+Depricate survConcordance.  Issues that may arise:
 
 Functions that use survConcordance:
 CatPredi: survConcordance.fit
@@ -55,5 +60,5 @@ These include my survproto.h, but don't seem to use concordance1/2
 KMgene, distcomp, seqMeta
 
 survBootOutliers uses cox_object$concordance with C/(C+D), and does not notice
-the issue of strata
+the issue of strata.  
 

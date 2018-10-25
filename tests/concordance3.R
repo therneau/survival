@@ -1,4 +1,5 @@
 library(survival)
+options(na.action=na.exclude)
 aeq <- function(x,y,...)  all.equal(as.vector(x), as.vector(y), ...)
 
 #  Make sure strata is retained, and that the overall variance is correct
@@ -45,5 +46,4 @@ gminus <- c(1, gfit$surv)
 all.equal(rd2$timewt, mfit$n* sfit$surv[indx])
 all.equal(rd3$timewt, mfit$n* sfit$surv[indx] /gminus[indx])
 
-# check out case weights and clustering
-# (not done yet)
+

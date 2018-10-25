@@ -25,8 +25,9 @@ phget <- function(fit) {
     c(d =  2*sqrt(fit$score/fit$var), v= 4/fit$var)
 }
 fscale <- function(fit) {
-    npair <- sum(fit$count[1:3])
-    c(d = abs(fit$count[1]-fit$count[2]), v=4*fit$cvar*npair^2)
+    if (is.matrix(fit$count)) temp <- colSums(fit$count) else temp <- fit$count
+    npair <- sum(temp[1:3])
+    c(d = abs(temp[1]-temp[2]), v=4*fit$cvar*npair^2)
 }
 
 # Concordance by brute force.  O(n^2) algorithm, but ok for n<500 or so
@@ -173,3 +174,46 @@ fit9 <- concordance(Surv(time1, time2, status) ~x + strata(grp) + cluster(id),
                         data=tdata3, weight=wt, influence=2)
 aeq(fit9$count, rbind(fit8$count, fit4$count))
 aeq(fit9$influence, rbind(fit5$influence, fit4$influence))
+
+
+# check out case weights, strata, and grouped jackknife;
+#   force several ties in x, y, and xy (and missing values too for good measure).
+tdata <- lung
+tdata$wt <- rep(1:25, length=nrow(tdata))/10
+tdata$group <- rep(31:1, length=nrow(tdata))
+tdata$time <- ceiling(tdata$time/30)  # force ties in y
+tfit <- coxph(Surv(time, status) ~ ph.ecog + pat.karno + strata(inst)
+             + cluster(group), tdata, weight=wt)
+tdata$tpred <- predict(tfit)
+cm4 <- concordance(tfit, influence=1)
+cm5 <- concordance(Surv(time, status) ~ tpred + strata(inst),
+                   data=tdata, weight=wt, group=group, reverse=TRUE, influence=3)
+all.equal(cm4[1:6], cm5[1:6])  # call and na.action won't match
+
+u.inst <- sort(unique(tdata$inst))
+temp <- matrix(0, length(u.inst), 5)
+for (i in 1:length(u.inst)) {
+    temp[i,] <- with(subset(tdata, inst==u.inst[i]),        
+                 allpair(time, status-1, -tpred, wt))
+}
+aeq(temp, cm4$count)
+    
+
+eps <- 1e-6
+keep <- (1:nrow(tdata))[-tfit$na.action]  # the obs that are not tossed
+lmat <- matrix(0., length(keep), 5)
+for (i in 1:length(keep)) {
+    wt2 <- tdata$wt
+    wt2[keep[i]] <- wt2[keep[i]] + eps
+    test <- concordance(Surv(time, status) ~ predict(tfit) + strata(inst),
+                   data=tdata, weight=wt2, group=group, reverse=TRUE)
+    lmat[i,] <- colSums(test$count - cm5$count)/eps
+}
+all.equal(lmat, cm5$influence, tolerance=eps)
+
+# temp lines: what ties do I have
+for (i in 1:nrow(tdata) ) {
+     j <- which(tdata$time==tdata$time[i] & tdata$tpred==tdata$tpred[i] &
+                tdata$status==2 & tdata$status == tdata$status[i])
+     if (length(j) > 1) cat("i= ", i, " j= ", j, "\n")
+}

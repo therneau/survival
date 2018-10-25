@@ -70,14 +70,15 @@ coxph <- function(formula, data, weights, subset, na.action,
         ord <- attr(Terms, 'order')[tempc$terms]
         if (any(ord>1)) stop ("Cluster can not be used in an interaction")
         cluster <- strata(mf[,tempc$vars], shortlabel=TRUE)  #allow multiples
-        Terms <- Terms[-tempc$terms]  # toss it away
+        dropterms <- tempc$terms
         # Save away xlevels after removing cluster (we don't want to save upteen
         #  levels of that variable, which we will never need).
-        xlevels <- .getXlevels(Terms, mf)
+        xlevels <- .getXlevels(Terms[-tempc$terms], mf)
     }
     else {
         if (missing(robust)) robust <- FALSE
         xlevels <- .getXlevels(Terms, mf)
+        dropterms <- NULL
     }
     
     contrast.arg <- NULL  #due to shared code with model.matrix.coxph
@@ -515,7 +516,6 @@ The final $X$ matrix has no intercept, and a proper assign attribute of
 <<coxph-make-X>>=
 attr(Terms, "intercept") <- 1
 adrop <- 0  #levels of "assign" to be dropped; 0= intercept
-dropterms <- NULL
 stemp <- untangle.specials(Terms, 'strata', 1)
 if (length(stemp$vars) > 0) {  #if there is a strata statement
     hasinteractions <- FALSE
@@ -526,7 +526,7 @@ if (length(stemp$vars) > 0) {  #if there is a strata statement
         if (any(attr(Terms, 'order')[attr(Terms, "factors")[i,] >0] >1))
             hasinteractions <- TRUE  
         }
-    if (!hasinteractions) dropterms <- stemp$terms 
+    if (!hasinteractions) dropterms <- c(dropterms, stemp$terms) 
     else adrop <- c(0, match(stemp$var, colnames(attr(Terms, 'factors'))))
 }
 
@@ -666,6 +666,7 @@ else {
         u <- apply(as.matrix(temp0), 2, sum)
         fit$rscore <- coxph.wtest(t(temp0)%*%temp0, u, control$toler.chol)$test
     }
+
     #Wald test
     if (length(fit$coefficients) && is.null(fit$wald.test)) {  
         #not for intercept only models, or if test is already done
@@ -677,14 +678,29 @@ else {
         fit$wald.test <-  coxph.wtest(fit$var[nabeta,nabeta], temp,
     				  control$toler.chol)$test
     }
-    na.action <- attr(mf, "na.action")
+
+    # Concordance.  Done here so that we can use cluster if it is present
+    # The returned value is a subset of the full result, partly because it
+    #  is all we need, but more for backward compatability with survConcordance.fit
+    if (length(cluster))
+        temp <- concordance.fit(Y, fit$linear.predictors, strats, weights,
+                                          group=cluster, reverse=TRUE)
+    else temp <- concordance.fit(Y, fit$linear.predictors, strats, weights,
+                                  reverse=TRUE)
+    if (is.matrix(temp$count))
+         fit$concordance <- c(colSums(temp$count), concordance=temp$concordance,
+                              std=sqrt(temp$var))
+    else fit$concordance <- c(temp$count, concordance=temp$concordance, 
+                              std=sqrt(temp$var))
+ 
+   na.action <- attr(mf, "na.action")
     if (length(na.action)) fit$na.action <- na.action
     if (model) {
         if (length(timetrans)) {
             # Fix up the model frame -- still in the thinking stage
             mf[[".surv."]]   <- Y
             mf[[".strata."]] <- strats
-            stop("Time transform + model frame: code incomplete")
+            stop("'model=TRUE' not supported for models with tt terms")
         }
         fit$model <- mf
     }
@@ -820,3 +836,4 @@ model.frame.coxph <- function(formula, ...) {
     }
 }
 @ 
+
