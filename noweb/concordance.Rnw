@@ -44,7 +44,7 @@ concordance <- function(object, ...)
     UseMethod("concordance")
 
 concordance.formula <- function(object, data,
-                                weights, subset, na.action, group,
+                                weights, subset, na.action, cluster,
                                 ymin, ymax, 
                                 timewt=c("n", "S", "S/G", "n/G", "n/G2", "I"),
                                 influence=0, ranks=FALSE, reverse=FALSE,
@@ -55,7 +55,7 @@ concordance.formula <- function(object, data,
     if (missing(ymax)) ymax <- NULL
     
     index <- match(c("data", "weights", "subset", "na.action", 
-                     "group"),
+                     "cluster"),
                    names(Call), nomatch=0)
     temp <- Call[c(1, index)]
     temp[[1L]] <-  quote(stats::model.frame)
@@ -88,7 +88,8 @@ concordance.formula <- function(object, data,
     }
     else strat <- NULL
     
-    group <- model.extract(mf, "group")
+    # if "cluster" was an argument, use it, otherwise grab it from the model
+    group <- model.extract(mf, "cluster")
     cluster<- attr(Terms, "specials")$cluster
     if (length(cluster)) {
         tempc <- untangle.specials(Terms, 'cluster', 1:10)
@@ -159,7 +160,7 @@ If $y$ is not a survival quantity, then all of the options for the
 <<concordancefit>>=
 concordance.fit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL, 
                             timewt=c("n", "S", "S/G", "n/G", "n/G2", "I"),
-                            group, influence=0, ranks=FALSE, reverse=FALSE) {
+                            cluster, influence=0, ranks=FALSE, reverse=FALSE) {
     # The coxph program may occassionally fail, and this will kill the C
     #  routine below.  So check for it.
     if (any(is.na(x)) || any(is.na(y))) return(NULL)
@@ -192,7 +193,14 @@ concordance.fit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL,
         etime <- sfit$time[sfit$n.event > 0]
         esurv <- sfit$surv[sfit$n.event > 0]
         
-        if (timeopt %in% c("S/G", "n/G", "n/G2")) {
+        if (length(etime)==0) {
+            # the special case of a stratum with no events (it happens)
+            # No need to do any more work
+            return(list(count= rep(0.0, 6), influence=matrix(0.0, n, 5),
+                        resid=NULL))
+        }
+
+       if (timeopt %in% c("S/G", "n/G", "n/G2")) {
             temp <- y
             temp[,ncol(temp)] <- 1- temp[,ncol(temp)] # switch event/censor
             gfit <- survfit(temp~1, weights=wts, se.fit=FALSE)
@@ -217,9 +225,9 @@ concordance.fit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL,
 
         # order the data: reverse time, censors before deaths
         if (ncol(y)==2) { 
-            sort.stop <- order(-y[,1], y[,2]) -1L 
+            sort.stop <- order(-y[,1], y[,2], risk) -1L 
         } else {
-            sort.stop  <- order(-y[,2], y[,3]) -1L   #order by endpoint
+            sort.stop  <- order(-y[,2], y[,3], risk) -1L   #order by endpoint
             sort.start <- order(-y[,1]) -1L       
         }
  
@@ -237,9 +245,7 @@ concordance.fit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL,
                           sort.start, sort.stop, ranks)
         # The C routine gives back an influence matrix which has columns for
         #  concordant, discordant, tied on x but not y, tied on y, and tied on
-        #  both x and y.  Subtract col 5 from col 4 to get tied on y but not x.
-        fit$count[4] <- fit$count[4]- fit$count[5]
-        fit$influence[,4] <- fit$influence[,4] - fit$influence[,5]
+        #  both x and y. 
         dimnames(fit$influence) <- list(NULL, 
                    c("concordant", "discordant", "tied.x", "tied.y", "tied.xy"))
         if (ranks) {
@@ -276,17 +282,20 @@ concordance.fit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL,
         # put it back into data order
         index <- match(1:n, (1:n)[order(strata)])
         imat <- imat[index,]
-        if (ranks)
+        if (ranks) {
+            nr <- lapply(tfit, function(x) nrow(x$resid))
             resid <- do.call("rbind", lapply(tfit, function(x) x$resid))
+            resid$strata <- rep(ustrat, nr)
+        }
     }
 
     npair <- sum(count2[1:3])
     somer <- (count2[1] - count2[2])/npair
     dfbeta <- weights*((imat[,1]- imat[,2])/npair -
                       (somer/npair)* rowSums(imat[,1:3]))
-    if (!missing(group) && length(group)>0) {
-        dfbeta <- tapply(dfbeta, group, sum)
-        dfbeta <- ifelse(is.na(dfbeta),0, dfbeta)  # if group is a factor
+    if (!missing(cluster) && length(cluster)>0) {
+        dfbeta <- tapply(dfbeta, cluster, sum)
+        dfbeta <- ifelse(is.na(dfbeta),0, dfbeta)  # if cluster is a factor
     }
     var.somer <- sum(dfbeta^2)
     rval <- list(concordance = (somer+1)/2, count=fit$count, n=n,
@@ -325,7 +334,7 @@ This routine gets the X, Y, and other portions from the result of a
 particular fit object.
 
 <<concordance>>=
-cord.getdata <- function(object, newdata=NULL, group=NULL, need.wt, timefix=TRUE) {
+cord.getdata <- function(object, newdata=NULL, cluster=NULL, need.wt, timefix=TRUE) {
     # For coxph object, don't reconstruct the model frame unless we must.
     # This will occur if weights, strata, or cluster are needed, or if
     #  there is a newdata argument.  Of course, if the model frame is 
@@ -377,19 +386,19 @@ cord.getdata <- function(object, newdata=NULL, group=NULL, need.wt, timefix=TRUE
         else rval$strata <- strata(mf[,stemp$vars], shortlabel=TRUE)
     } 
  
-    if (is.null(group)) {
+    if (is.null(cluster)) {
         if (!is.null(specials$cluster)) {
             if (is.null(mf)) mf <- model.frame(object)
             tempc <- untangle.specials(Terms, 'cluster', 1:10)
             ord <- attr(Terms, 'order')[tempc$terms]
-            rval$group <- strata(mf[,tempc$vars], shortlabel=TRUE) 
+            rval$cluster <- strata(mf[,tempc$vars], shortlabel=TRUE) 
         }
         else if (!is.null(object$call$id)) {
             if (is.null(mf)) mf <- model.frame(object)
-            rval$group <- model.extract(mf, "id")
+            rval$cluster <- model.extract(mf, "id")
         }
     }
-    else rval$group <- group
+    else rval$cluster <- cluster
     rval
 }
 @ 
@@ -428,7 +437,7 @@ There are 3 possible solutions
 \end{itemize}
 
 <<concordance>>=
-concordance.lm <- function(object, ..., newdata, group, ymin, ymax, 
+concordance.lm <- function(object, ..., newdata, cluster, ymin, ymax, 
                            influence=0, ranks=FALSE, timefix=TRUE) {
     Call <- match.call()
     fits <- list(object, ...)
@@ -453,17 +462,17 @@ concordance.lm <- function(object, ..., newdata, group, ymin, ymax,
     cfun$fname <- fname
     
     if (missing(newdata)) newdata <- NULL
-    if (missing(group)) group <- NULL
+    if (missing(cluster)) cluster <- NULL
     need.wt <- any(sapply(fits, function(x) !is.null(x$call$weights)))
     
-    cfun$data <- lapply(fits, cord.getdata, newdata=newdata, group=group,
+    cfun$data <- lapply(fits, cord.getdata, newdata=newdata, cluster=cluster,
                         need.wt=need.wt, timefix=timefix)
     rval <- eval(cfun, parent.frame())
     rval$call <- Call
     rval
 }
 
-concordance.survreg <- function(object, ..., newdata, group, ymin, ymax,
+concordance.survreg <- function(object, ..., newdata, cluster, ymin, ymax,
                                 timewt=c("n", "S", "S/G", "n/G", "n/G2", "I"),
                                 influence=0, ranks=FALSE, timefix=TRUE) {
     Call <- match.call()
@@ -489,17 +498,17 @@ concordance.survreg <- function(object, ..., newdata, group, ymin, ymax,
     cfun$fname <- fname
     
     if (missing(newdata)) newdata <- NULL
-    if (missing(group)) group <- NULL
+    if (missing(cluster)) cluster <- NULL
     need.wt <- any(sapply(fits, function(x) !is.null(x$call$weights)))
     
-    cfun$data <- lapply(fits, cord.getdata, newdata=newdata, group=group,
+    cfun$data <- lapply(fits, cord.getdata, newdata=newdata, cluster=cluster,
                         need.wt=need.wt, timefix=timefix)
     rval <- eval(cfun, parent.frame())
     rval$call <- Call
     rval
 }
     
-concordance.coxph <- function(object, ..., newdata, group, ymin, ymax, 
+concordance.coxph <- function(object, ..., newdata, cluster, ymin, ymax, 
                                timewt=c("n", "S", "S/G", "n/G", "n/G2", "I"),
                                influence=0, ranks=FALSE, timefix=TRUE) {
     Call <- match.call()
@@ -529,10 +538,10 @@ concordance.coxph <- function(object, ..., newdata, group, ymin, ymax,
     cfun$reverse <- TRUE
 
     if (missing(newdata)) newdata <- NULL
-    if (missing(group)) group <- NULL
+    if (missing(cluster)) cluster <- NULL
     need.wt <- any(sapply(fits, function(x) !is.null(x$call$weights)))
     
-    cfun$data <- lapply(fits, cord.getdata, newdata=newdata, group=group,
+    cfun$data <- lapply(fits, cord.getdata, newdata=newdata, cluster=cluster,
                         need.wt=need.wt, timefix=timefix)
     rval <- eval(cfun, parent.frame())
     rval$call <- Call
@@ -562,7 +571,7 @@ cord.work <- function(data, timewt, ymin, ymax, influence=0, ranks=FALSE,
         fcall$x <- dd$x
         fcall$strata <- dd$strata
         fcall$weights <- dd$weights
-        fcall$group  <- dd$group
+        fcall$cluster  <- dd$cluster
         rval <- eval(fcall, parent.frame())
     }
     else {
@@ -586,7 +595,7 @@ cord.work <- function(data, timewt, ymin, ymax, influence=0, ranks=FALSE,
                          temp$x <- d$x
                          temp$strata <- d$strata
                          temp$weights <- d$weights
-                         temp$group <- d$group
+                         temp$cluster <- d$cluster
                          eval(temp, parent.frame())
                      })
             
@@ -642,7 +651,7 @@ and columns giving the partial with respect to $w_i$ for the number of
 concordant, discordant, tied on $x$ and ties on $y$ pairs.
 Somers' $d$ is $(C-D)/m$ where $m= C + D + T$ is the total number of %'
 comparable pairs, which does not count the tied-on-y column.
-For any given subject or group $k$ (for grouped jackknife) the
+For any given subject or cluster $k$ (for grouped jackknife) the
 IJ estimate of the variance is
 \begin{align*}
   V &\ \sum_k  \left(\frac{\partial d}{\partial w_k}\right)^2 \\
@@ -802,7 +811,7 @@ Dealing with tied deaths is  a bit subtle.
 \end{itemize}
 Thus the inner loop must be repeated at least twice.
 
-A second viewpoint treats the data as a Cox model.
+A second variance computation treats the data as a Cox model.
 Create zero-centered scores for all subjects in the risk set:
 \begin{align}
   z_i(t) &= \sum_{j \in R(t)} w_j \sign(x_i - x_j) \nonumber
@@ -867,7 +876,6 @@ Input variables are
     time, with censorings precedint deaths.
   \item[x] the tree node at which this observation's risk score resides  %'
   \item[wt] case weight for the observation
-  \item[group] which IJ group each observation will be counted into
 \end{description}
 The routine will return list with three components:
 \begin{itemize}
@@ -890,9 +898,10 @@ The routine will return list with three components:
     
     SEXP concordance3(SEXP y, SEXP x2, SEXP wt2, SEXP timewt2, 
                       SEXP sortstop, SEXP doresid2) {
-    int i, j, k, ii, jj;
+    int i, j, k, ii, jj, kk, j2;
     int n, ntree, nevent;
     double *time, *status;
+    int xsave;
 
     /* sum of weights for a node (nwt), sum of weights for the node and
     **  all of its children (twt), then the same again for the subset of
@@ -903,7 +912,7 @@ The routine will return list with three components:
         
     int ndeath;   /* total number of deaths at this point */    
     int utime;    /* number of unique event times seen so far */
-    double dwt;   /* weighted number of deaths at this point */
+    double dwt, dwt2;   /* sum of weights for deaths and deaths tied on x */
     double wsum[3]; /* the sum of weights that are > current, <, or equal  */
     double temp, adjtimewt;  /* the second accounts for npair and timewt*/
 
@@ -983,18 +992,18 @@ Starting at the largest time (which is sorted last), walk through the tree.
   \item If the current observation is a death, care for all deaths tied
     at this time point.  Each pass covers all the deaths.
     \begin{itemize}
-      \item Pass 1: subtract the current death tree counts, tied on x and
-        not tied on x, from the tied.x and tied.xy totals and influence.
-        Count up total number of deaths.
-      \item Pass 2: In any order
+      \item Pass 1: In any order
         \begin{itemize}
-          \item Update the tied.y count
+          \item Add up the total number of deaths
+          \item Update the tied.y count and tied.xy count \\
+            tied.xy subtotals reset each time x changes
           \item Count concordant, discordant, tied.x counts, both total
             and for the observation's influence
           \item Add the subject to the event tree
           \item Compute the first 3 columns of the residuals.
         \end{itemize}
-      \item Pass 3: 
+      \item Finish up the tied.xy influence, for the last unique x in this set.
+      \item Pass 2: 
         \begin{itemize}
           \item Subtract the event tree information from the influence matrix
           \item Add the tied.y part of the influence for each obs
@@ -1007,18 +1016,32 @@ Starting at the largest time (which is sorted last), walk through the tree.
       death tree's data for to the influence matrix.  
 \end{itemize}
 
-Part of the nuisance above is that for tied.xy counts 
-I need to compare a
-readout (walkup routine) of the
-death tree before adding a batch of events, to the same readout just after
-adding all of them; while for concordant, discordant, and tied.x there are three
+For concordant, discordant, and tied.x there are three
 readouts: the total tree before any additions, the death tree after the 
 addition of the tied events, and the death tree at the very end.
 Increments to the Cox variance occur just before each addition to the total 
 tree, and are saved out after each batch of events.
-It is easy to keep a count of tied.y = tied on y, whether x is tied or not,
-but (tied on y, not on x) is harder.  We fix this up at the end in the
-R code.
+
+The above discussion counts up all pairs that are not tied on the response $y$.
+Though not used in the concordance the routine counts up tied.y pairs as well,
+with a separate count for those that are tied on both $x$ and $y$.
+The algorithm for this part is simpler since the data is sorted by $y$.
+Say that there were 5 obs tied at some time point with weights of $w_1$ to
+$w_5$.  
+The total count for ties involves all 5-choose-2 pairs and can be written as
+$$
+ w_1 w_2 + (w_1 + w_2)w_3 + (w_1 + w_2 + w_3)w_4 + (w_1 + w_2 + w_3 + w_4)w_5
+$$
+which immediately suggests a simple summation algorithm as we go through the
+loop.  In the below \code{dwt} contains the running sum 0, $w_1$, $w_1 + w_2$,
+etc and we add \code{w[i]*dwt} to the total just before incrementing the sum.
+The influence for observation 1 is $w_2 + w_3 + w_4 + w_5$, which can be done
+at the end as \code{dwt - wt[i]}.
+The temporary accumulator \count{dwt} is reset to 0 with each new $y$
+value.
+To compute ties on both $x$ and $y$ the data set is sorted by $x$ within $y$,
+and we use the same algorithm, but reset \code{dwt2} to zero  whenever 
+either $x$ or $y$ changes.
 
 <<concordance3-work>>=
 z2 =0; utime=0;
@@ -1042,21 +1065,30 @@ for (i=0; i<n;) {
     }
     else {  /* process all tied deaths at this point */
 	ndeath=0; dwt=0; 
+        dwt2 =0; xsave=x[ii]; j2= i;
         adjtimewt = timewt[utime++];
 
 	/* pass 1 */
 	for (j=i; j<n && time[sort2[j]]==time[ii]; j++) {
 	    jj = sort2[j];
 	    ndeath++; 
-	    imat[4][jj] -= dnwt[x[jj]];  /* tied on x, prior to additions*/
-            count[4] -=  dnwt[x[jj]]/2;
-	}
+	    count[3] += wt[jj] * dwt * adjtimewt;  /* update total tied on y */
+            dwt += wt[jj];   /* sum of wts at this death time */
 
-        /* pass 2 */   
-        for (j=i; j< (i+ndeath); j++) {
-	    jj = sort2[j];
-	    count[3] += wt[jj] * dwt;  /* update total tied on y */
-            dwt += wt[jj];   /* count of deaths and sum of wts */
+	    if (x[jj] != xsave) {  /* restart the tied.xy counts */
+		if (wt[sort2[j2]] < dwt2) { /* more than 1 tied */
+		    for (; j2<j; j2++) {
+			/* update influence for this subgroup of x */
+			kk = sort2[j2];
+			imat[4][kk] += (dwt2- wt[kk]) * adjtimewt;
+			imat[3][kk] -= (dwt2- wt[kk]) * adjtimewt;
+		    }
+		} else j2 = j;
+		dwt2 =0;
+                xsave = x[jj];
+	    }
+	    count[4] += wt[jj] * dwt2 * adjtimewt; /* tied on xy */
+	    dwt2 += wt[jj]; /* sum of tied.xy weights */
 
 	    /* Count concordant, discordant, etc. */
 	    walkup(nwt, twt, x[jj], wsum, ntree);
@@ -1076,8 +1108,17 @@ for (i=0; i<n;) {
 		resid[2][nevent] = wt[jj];
 	    }
 	}
-
-	/* pass 3 */
+	/* finish the tied.xy influence */
+	if (wt[sort2[j2]] < dwt2) { /* more than 1 tied */
+	    for (; j2<j; j2++) {
+		/* update influence for this subgroup of x */
+		kk = sort2[j2];
+		imat[4][kk] += (dwt2- wt[kk]) * adjtimewt;
+		imat[3][kk] -= (dwt2- wt[kk]) * adjtimewt;
+	    }
+	}
+  
+	/* pass 2 */
 	for (j=i; j< (i+ndeath); j++) {
 	    jj = sort2[j];
 	    /* Update influence */
@@ -1086,9 +1127,7 @@ for (i=0; i<n;) {
 	    imat[1][jj] -= wsum[0];
 	    imat[2][jj] -= wsum[2];  /* tied.x */
 	    imat[3][jj] += (dwt- wt[jj])* adjtimewt;
-            imat[4][jj] += (wsum[2] - wt[jj] * adjtimewt); 
-	    count[4] += wt[jj] *(wsum[2] - wt[jj] * adjtimewt) /2;
-
+ 
 	    /* increment Cox var and add obs into the tree */
             walkup(nwt, twt, x[jj], wsum, ntree);
 	    z2 += wt[jj]*(wsum[0]*(wt[jj] + 2*(wsum[1] + wsum[2])) +
@@ -1119,6 +1158,7 @@ for (i=0; i<n; i++) {
     imat[1][ii] += wsum[0];
     imat[2][ii] += wsum[2];
 }
+count[3] -= count[4];   /* the tied.xy were counted twice, once as tied.y */
 @ 
 
 <<walkup>>=
@@ -1158,9 +1198,10 @@ The [[y]] variable now has three columns.
 <<concordance3>>= 
     SEXP concordance4(SEXP y, SEXP x2, SEXP wt2, SEXP timewt2, 
                       SEXP sortstart, SEXP sortstop, SEXP doresid2) {
-    int i, j, k, ii, jj, i2;
+    int i, j, k, ii, jj, kk, i2, j2;
     int n, ntree, nevent;
     double *time1, *time2, *status;
+    int xsave; 
 
     /* sum of weights for a node (nwt), sum of weights for the node and
     **  all of its children (twt), then the same again for the subset of
@@ -1172,6 +1213,7 @@ The [[y]] variable now has three columns.
     int ndeath;   /* total number of deaths at this point */    
     int utime;    /* number of unique event times seen so far */
     double dwt;   /* weighted number of deaths at this point */
+    double dwt2;  /* tied on both x and y */
     double wsum[3]; /* the sum of weights that are > current, <, or equal  */
     double temp, adjtimewt;  /* the second accounts for npair and timewt*/
 
@@ -1282,21 +1324,31 @@ for (i=0; i<n;) {
 	}
 
 	ndeath=0; dwt=0; 
+        dwt2 =0; xsave=x[ii]; j2= i;
         adjtimewt = timewt[utime++];
 
 	/* pass 1 */
 	for (j=i; j<n && (time2[sort2[j]]==time2[ii]); j++) {
 	    jj = sort2[j];
 	    ndeath++; 
-	    imat[4][jj] -= dnwt[x[jj]];  /* tied on x, prior to additions*/
-            count[4] -=  dnwt[x[jj]]/2;
-	}
-
-        /* pass 2 */   
-        for (j=i; j< (i+ndeath); j++) {
 	    jj = sort2[j];
 	    count[3] += wt[jj] * dwt;  /* update total tied on y */
             dwt += wt[jj];   /* count of deaths and sum of wts */
+
+	    if (x[jj] != xsave) {  /* restart the tied.xy counts */
+		if (wt[sort2[j2]] < dwt2) { /* more than 1 tied */
+		    for (; j2<j; j2++) {
+			/* update influence for this subgroup of x */
+			kk = sort2[j2];
+			imat[4][kk] += (dwt2- wt[kk]) * adjtimewt;
+			imat[3][kk] -= (dwt2- wt[kk]) * adjtimewt;
+		    }
+		} else j2 = j;
+		dwt2 =0;
+                xsave = x[jj];
+	    }
+	    count[4] += wt[jj] * dwt2 * adjtimewt; /* tied on xy */
+	    dwt2 += wt[jj]; /* sum of tied.xy weights */
 
 	    /* Count concordant, discordant, etc. */
 	    walkup(nwt, twt, x[jj], wsum, ntree);
@@ -1316,6 +1368,15 @@ for (i=0; i<n;) {
 		resid[2][nevent] = wt[jj];
 	    }
 	}
+	/* finish the tied.xy influence */
+	if (wt[sort2[j2]] < dwt2) { /* more than 1 tied */
+	    for (; j2<j; j2++) {
+		/* update influence for this subgroup of x */
+		kk = sort2[j2];
+		imat[4][kk] += (dwt2- wt[kk]) * adjtimewt;
+		imat[3][kk] -= (dwt2- wt[kk]) * adjtimewt;
+	    }
+	}
 
 	/* pass 3 */
 	for (j=i; j< (i+ndeath); j++) {
@@ -1326,8 +1387,6 @@ for (i=0; i<n;) {
 	    imat[1][jj] -= wsum[0];
 	    imat[2][jj] -= wsum[2];  /* tied.x */
 	    imat[3][jj] += (dwt- wt[jj])* adjtimewt;
-            imat[4][jj] += (wsum[2] - wt[jj] * adjtimewt); 
-	    count[4] += wt[jj] *(wsum[2] - wt[jj] * adjtimewt) /2;
 
 	    /* increment Cox var and add obs into the tree */
             walkup(nwt, twt, x[jj], wsum, ntree);
@@ -1359,5 +1418,6 @@ for (; i2<n; i2++) {
     imat[1][ii] += wsum[0];
     imat[2][ii] += wsum[2];
 }
+count[3] -= count[4]; /* tied.y was double counted a tied.xy */
 @ 
 

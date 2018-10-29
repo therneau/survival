@@ -1,5 +1,5 @@
 
-R Under development (unstable) (2018-09-18 r75322) -- "Unsuffered Consequences"
+R Under development (unstable) (2018-06-26 r74934) -- "Unsuffered Consequences"
 Copyright (C) 2018 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
@@ -80,7 +80,7 @@ rx        0.6314     1.5837    0.3808     1.047
 size      0.9583     1.0435    0.8264     1.111
 number    1.1873     0.8423    1.0528     1.339
 
-Concordance= 0.634  (se = 0.03 )
+Concordance= 0.634  (se = 0.032 )
 Rsquare= 0.09   (max possible= 0.994 )
 Likelihood ratio test= 16.77  on 3 df,   p=8e-04
 Wald test            = 11.76  on 3 df,   p=0.008
@@ -151,4 +151,4 @@ n= 27, number of events= 22
 > 
 > proc.time()
    user  system elapsed 
-  0.808   0.053   0.855 
+  0.964   0.052   1.016 

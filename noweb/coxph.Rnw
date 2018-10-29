@@ -580,7 +580,41 @@ else {
     if (any(temp < .Machine$double.min.exp | temp > .Machine$double.max.exp))
         stop("initial values lead to overflow or underflow of the exp function")
 }
+<<coxph-zeroevent>>
 @
+
+Check for a rare edge case: a data set with no events.  In this case the
+return structure is simple.
+The coefficients will all be NA, since they can't be estimated.
+The variance matrix is all zeros, in line with the usual rule to zero out
+any row and col corresponding to an NA coef.
+The loglik is the sum of zero terms, which we set to zero like the usual
+R result for sum(numeric(0)).  
+An overall idea is to return something that won't blow up later code.
+
+<<coxph-zeroevent>>=
+if (sum(Y[, ncol(Y)]) == 0) {
+    # No events in the data!
+    ncoef <- ncol(X)
+    ctemp <- rep (NA, ncoef)
+    names(ctemp) <- colnames(X)
+    concordance= c(concordant=0, discordant=0, tied.x=0, tied.y=0, tied.xy=0,
+                   concordance=NA, std=NA)
+    rval <- list(coefficients= ctemp,
+                 var = matrix(0.0, ncoef, ncoef),
+                 loglik=c(0,0),
+                 score =0,
+                 iter =0,
+                 linear.predictors = offset,
+                 residuals = rep(0.0, data.n),
+                 means = colMeans(X), method=method,
+                 n = data.n, nevent=0, terms=Terms, assign=assign,
+                 concordance=concordance, 
+                 y = Y, call=Call)
+    class(rval) <- "coxph"
+    return(rval)
+}
+@ 
 
 Check for penalized terms in the model, and set up infrastructure for
 the fitting routines to deal with them.
@@ -684,7 +718,7 @@ else {
     #  is all we need, but more for backward compatability with survConcordance.fit
     if (length(cluster))
         temp <- concordance.fit(Y, fit$linear.predictors, strats, weights,
-                                          group=cluster, reverse=TRUE)
+                                          cluster=cluster, reverse=TRUE)
     else temp <- concordance.fit(Y, fit$linear.predictors, strats, weights,
                                   reverse=TRUE)
     if (is.matrix(temp$count))

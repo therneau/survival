@@ -156,7 +156,8 @@ tdata2 <- data.frame(time1=c(0,3, 5,  6,7,   0,  4,17,  7,  0,16,  2,  0,
 fit8 <- concordance(Surv(time1, time2, status) ~x + cluster(id), tdata2, 
                     weight=wt, influence=2)
 aeq(fit5$count, fit8$count)
-aeq(fit5$influence, fit8$influence)
+# influence has one row per obs, so the next line is false: mismatched lengths
+# aeq(fit5$influence, fit8$influence) 
 aeq(fit5$var, fit8$var)
 cfit8 <- coxph(Surv(time1, time2, status) ~ tt(x), tdata2, weight=wt, 
                iter=0, method='breslow', tt=grank)
@@ -173,21 +174,18 @@ tdata3 <- data.frame(time1=c(tdata2$time1, rep(0, nrow(lung))),
 fit9 <- concordance(Surv(time1, time2, status) ~x + strata(grp) + cluster(id),
                         data=tdata3, weight=wt, influence=2)
 aeq(fit9$count, rbind(fit8$count, fit4$count))
-aeq(fit9$influence, rbind(fit5$influence, fit4$influence))
-
 
 # check out case weights, strata, and grouped jackknife;
-#   force several ties in x, y, and xy (and missing values too for good measure).
-tdata <- lung
+#   force several ties in x, y, and xy (with missing values too for good measure).
+tdata <- subset(lung, select=-c(meal.cal, wt.loss, sex, age))
 tdata$wt <- rep(1:25, length=nrow(tdata))/10
-tdata$group <- rep(31:1, length=nrow(tdata))
 tdata$time <- ceiling(tdata$time/30)  # force ties in y
 tfit <- coxph(Surv(time, status) ~ ph.ecog + pat.karno + strata(inst)
-             + cluster(group), tdata, weight=wt)
+             + cluster(inst), tdata, weight=wt)
 tdata$tpred <- predict(tfit)
-cm4 <- concordance(tfit, influence=1)
+cm4 <- concordance(tfit, influence=3)
 cm5 <- concordance(Surv(time, status) ~ tpred + strata(inst),
-                   data=tdata, weight=wt, group=group, reverse=TRUE, influence=3)
+                   data=tdata, weight=wt, cluster=inst, reverse=TRUE, influence=3)
 all.equal(cm4[1:6], cm5[1:6])  # call and na.action won't match
 
 u.inst <- sort(unique(tdata$inst))
@@ -198,7 +196,6 @@ for (i in 1:length(u.inst)) {
 }
 aeq(temp, cm4$count)
     
-
 eps <- 1e-6
 keep <- (1:nrow(tdata))[-tfit$na.action]  # the obs that are not tossed
 lmat <- matrix(0., length(keep), 5)
@@ -207,13 +204,7 @@ for (i in 1:length(keep)) {
     wt2[keep[i]] <- wt2[keep[i]] + eps
     test <- concordance(Surv(time, status) ~ predict(tfit) + strata(inst),
                    data=tdata, weight=wt2, group=group, reverse=TRUE)
-    lmat[i,] <- colSums(test$count - cm5$count)/eps
+    lmat[i,] <- colSums(test$count - cm4$count)/eps
 }
-all.equal(lmat, cm5$influence, tolerance=eps)
+aeq(lmat, cm4$influence, tolerance=eps)
 
-# temp lines: what ties do I have
-for (i in 1:nrow(tdata) ) {
-     j <- which(tdata$time==tdata$time[i] & tdata$tpred==tdata$tpred[i] &
-                tdata$status==2 & tdata$status == tdata$status[i])
-     if (length(j) > 1) cat("i= ", i, " j= ", j, "\n")
-}

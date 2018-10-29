@@ -1,5 +1,5 @@
 
-R Under development (unstable) (2018-09-18 r75322) -- "Unsuffered Consequences"
+R Under development (unstable) (2018-06-26 r74934) -- "Unsuffered Consequences"
 Copyright (C) 2018 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
@@ -105,7 +105,7 @@ transplant         0.5522     1.8110    0.1908    1.5981
 age:transplant     1.0344     0.9668    0.9792    1.0926
 year:transplant    1.2242     0.8169    0.9259    1.6185
 
-Concordance= 0.63  (se = 0.037 )
+Concordance= 0.63  (se = 0.036 )
 Rsquare= 0.084   (max possible= 0.97 )
 Likelihood ratio test= 14.85  on 5 df,   p=0.01
 Wald test            = 13.77  on 5 df,   p=0.02
@@ -283,4 +283,4 @@ Call: survfit(formula = sfit.1, newdata = data, individual = T)
 > 
 > proc.time()
    user  system elapsed 
-  0.894   0.053   0.941 
+  1.088   0.040   1.127 

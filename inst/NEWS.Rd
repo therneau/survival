@@ -3,11 +3,14 @@
 \section{Changes in version 2.43-1}{
   \itemize{
     \item Minor change to the concordance method to better accomodate
-    another package
-    \item Change coxph to use concordance() rather than survConcordance
+    another package; add one more test case as well.
+    \item Change coxph to use concordance() rather than survConcordance.  
+    Be aware that thhis changes the default variance estimate (to a
+    better estimator however).
     \item Add a test to verify that tmerge works with Date objects as
     the time scale
     \item Add timefix=TRUE option to survdiff
+    \item Add code for an edge case to coxph: a data set with no events.
 }}
 
 \section{Changes in version 2.43.0}{

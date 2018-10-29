@@ -1,5 +1,5 @@
 
-R Under development (unstable) (2018-09-18 r75322) -- "Unsuffered Consequences"
+R Under development (unstable) (2018-06-26 r74934) -- "Unsuffered Consequences"
 Copyright (C) 2018 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
@@ -211,7 +211,7 @@ gauss:38      1.0479     0.9543   0.30685    3.5789
 Iterations: 6 outer, 21 Newton-Raphson
      Variance of random effect= 0.5090956 
 Degrees of freedom for terms=  0.5  0.6  1.7 12.3 
-Concordance= 0.796  (se = 0.046 )
+Concordance= 0.796  (se = 0.796 )
 Likelihood ratio test= 117.9  on 15.14 df,   p=<2e-16
 
 > #
@@ -308,4 +308,4 @@ n= 76, number of events= 58
 > 
 > proc.time()
    user  system elapsed 
-  0.906   0.052   0.953 
+  1.084   0.064   1.145 
