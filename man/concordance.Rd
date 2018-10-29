@@ -14,14 +14,14 @@ calculated from the results of this function.
 \usage{
 concordance(object, \ldots)
 \method{concordance}{formula}(object, data, weights, subset, na.action,
-  group, ymin, ymax, timewt= c("n", "S", "S/G", "n/G", "n/G2", "I"),
+  cluster, ymin, ymax, timewt= c("n", "S", "S/G", "n/G", "n/G2", "I"),
   influence=0, ranks = FALSE, reverse=FALSE, timefix=TRUE, \ldots)
-\method{concordance}{lm}(object, \ldots, newdata, group, ymin, ymax,
+\method{concordance}{lm}(object, \ldots, newdata, cluster, ymin, ymax,
   influence=0, ranks=FALSE, timefix=TRUE)
-\method{concordance}{coxph}(object, \ldots, newdata, group, ymin, ymax,
+\method{concordance}{coxph}(object, \ldots, newdata, cluster, ymin, ymax,
   timewt= c("n", "S", "S/G", "n/G", "n/G2", "I"), influence=0,
   ranks=FALSE, timefix=TRUE)
-\method{concordance}{survreg}(object, \ldots, newdata, group, ymin, ymax,
+\method{concordance}{survreg}(object, \ldots, newdata, cluster, ymin, ymax,
   timewt= c("n", "S", "S/G", "n/G", "n/G2", "I"), influence=0,
   ranks=FALSE, timefix=TRUE)
 }
@@ -59,7 +59,7 @@ concordance(object, \ldots)
   \item{newdata}{optional, a new data frame in which to evaluate (but
     not refit) the models}
   
-  \item{group}{optional grouping vector for calculating the robust
+  \item{cluster}{optional grouping vector for calculating the robust
     variance}
   
   \item{ymin, ymax}{compute the concordance over the restricted range

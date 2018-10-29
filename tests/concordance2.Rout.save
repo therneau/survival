@@ -42,8 +42,9 @@ Type 'q()' to quit R.
 +     c(d =  2*sqrt(fit$score/fit$var), v= 4/fit$var)
 + }
 > fscale <- function(fit) {
-+     npair <- sum(fit$count[1:3])
-+     c(d = abs(fit$count[1]-fit$count[2]), v=4*fit$var[2]*npair^2)
++     if (is.matrix(fit$count)) temp <- colSums(fit$count) else temp <- fit$count
++     npair <- sum(temp[1:3])
++     c(d = abs(temp[1]-temp[2]), v=4*fit$cvar*npair^2)
 + }
 > 
 > # Concordance by brute force.  O(n^2) algorithm, but ok for n<500 or so
@@ -195,8 +196,8 @@ Type 'q()' to quit R.
 +                     weight=wt, influence=2)
 > aeq(fit5$count, fit8$count)
 [1] TRUE
-> aeq(fit5$influence, fit8$influence)
-[1] TRUE
+> # influence has one row per obs, so the next line is false: mismatched lengths
+> # aeq(fit5$influence, fit8$influence) 
 > aeq(fit5$var, fit8$var)
 [1] TRUE
 > cfit8 <- coxph(Surv(time1, time2, status) ~ tt(x), tdata2, weight=wt, 
@@ -216,9 +217,44 @@ Type 'q()' to quit R.
 +                         data=tdata3, weight=wt, influence=2)
 > aeq(fit9$count, rbind(fit8$count, fit4$count))
 [1] TRUE
-> aeq(fit9$influence, rbind(fit5$influence, fit4$influence))
+> 
+> # check out case weights, strata, and grouped jackknife;
+> #   force several ties in x, y, and xy (with missing values too for good measure).
+> tdata <- subset(lung, select=-c(meal.cal, wt.loss, sex, age))
+> tdata$wt <- rep(1:25, length=nrow(tdata))/10
+> tdata$time <- ceiling(tdata$time/30)  # force ties in y
+> tfit <- coxph(Surv(time, status) ~ ph.ecog + pat.karno + strata(inst)
++              + cluster(inst), tdata, weight=wt)
+> tdata$tpred <- predict(tfit)
+> cm4 <- concordance(tfit, influence=3)
+> cm5 <- concordance(Surv(time, status) ~ tpred + strata(inst),
++                    data=tdata, weight=wt, cluster=inst, reverse=TRUE, influence=3)
+> all.equal(cm4[1:6], cm5[1:6])  # call and na.action won't match
 [1] TRUE
+> 
+> u.inst <- sort(unique(tdata$inst))
+> temp <- matrix(0, length(u.inst), 5)
+> for (i in 1:length(u.inst)) {
++     temp[i,] <- with(subset(tdata, inst==u.inst[i]),        
++                  allpair(time, status-1, -tpred, wt))
++ }
+> aeq(temp, cm4$count)
+[1] TRUE
+>     
+> eps <- 1e-6
+> keep <- (1:nrow(tdata))[-tfit$na.action]  # the obs that are not tossed
+> lmat <- matrix(0., length(keep), 5)
+> for (i in 1:length(keep)) {
++     wt2 <- tdata$wt
++     wt2[keep[i]] <- wt2[keep[i]] + eps
++     test <- concordance(Surv(time, status) ~ predict(tfit) + strata(inst),
++                    data=tdata, weight=wt2, group=group, reverse=TRUE)
++     lmat[i,] <- colSums(test$count - cm4$count)/eps
++ }
+> aeq(lmat, cm4$influence, tolerance=eps)
+[1] TRUE
+> 
 > 
 > proc.time()
    user  system elapsed 
-  1.151   0.052   1.198 
+  7.942   0.104   8.040 
