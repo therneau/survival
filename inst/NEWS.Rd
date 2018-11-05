@@ -1,5 +1,14 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 2.43-2}{
+  \itemize{
+    \item In concordance, allow y to be an orderable factor (either
+    is.ordered=TRUE or it has only 2 levels), instead of an error
+    message.  Repair some missing references in the vignette.
+    \item Fix an error check in survSplit, when the response has missing
+    values.  Pointed out by  Daniel Wollschläger
+}}
+
 \section{Changes in version 2.43-1}{
   \itemize{
     \item Minor change to the concordance method to better accomodate

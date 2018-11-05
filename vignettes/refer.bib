@@ -2,8 +2,8 @@
 @string{applstat= {Applied Stat.}}
 @string{bioj = {Biometrical J.}}
 @string{biok = {Biometrika}}
-@string{commstata = {Comm. Stat. Theory Methods}}
 @string{biom = {Biometrics}}
+@string{commstata = {Comm. Stat. Theory Methods}}
 @string{jap = {J. Applied Probability}}
 @string{jasa = {J. Amer. Stat. Assoc.}}
 @string{jrssa= {J. Royal Stat. Soc. A}}
@@ -17,11 +17,18 @@
 @string{statsci = {Stat. Science}}
 
 
+@article{Aalen78,
+    author= {Aalen, O. O.},
+    title= {Nonparametric estimation of partial transition probabilities in multiple decrement models},
+    year= {1978},
+    journal=annals, volume={6}, pages={534--545}
+    }
+
 @article{Aalen88,
     author= {Aalen, O. O.},
     title= {Heterogeneity in survival analysis},
     year= {1988},
-    journal=statmed, volume={7}, pages={1121-1137}
+    journal=statmed, volume={7}, pages={1121--1137}
     }
 
 @article{Aalen89,
@@ -37,6 +44,36 @@
 	    model in survival analysis},
     year= {1993},
     journal=statmed, volume={12}, pages={1569--1588}
+    }
+
+@Manual{AdjCurves,
+    author={Therneau, T. M. and Crowson, C. S. and Atkinson, E. J.},
+    year={2015},
+    title= {Adjusted Survival Curves},
+    url= {https://cran.r-project.org/web/packages/survival/vignettes/adjcurve.pdf}
+    }
+
+@article{Aitkin78,
+    author= {Aitkin,M} ,
+    title= {The analysis of unbalanced cross classifications (with discussion)},
+    year= {1978},
+    journal=jrssa, volume={141}, pages={195--223} 
+    }
+
+@article{Aitkin80,
+    author= {Aitkin,M. and Clayton, D.} ,
+    title= {The fitting of exponential, Weibull and extreme value distributions
+                   to complex censored survival data using GLIM},
+    year= {1980},
+    journal=applstat, volume={29}, pages={156--163} 
+    }
+
+@article{Andersen00,
+    author= {Andersen, P. K. and Esbjerg, S. and S{\o}rensen, T.I.A.} ,
+    title= {Multi-state models for bleeding episodes and morality
+                   in lever cirrhosis},
+    year= {2000},
+    journal=statmed, volume={19}, pages={587--599} 
     }
 
 @article{Andersen82,
@@ -64,12 +101,12 @@
     year= {1993} 
     }
 
-@article{Andersen00,
-    author= {Andersen, P. K. and Esbjerg, S. and S{\o}rensen, T.I.A.} ,
-    title= {Multi-state models for bleeding episodes and morality
-                   in lever cirrhosis},
-    year= {2000},
-    journal=statmed, volume={19}, pages={587--599} 
+@book{Anderson58,
+    author= {V. E Anderson and H. O. Goodman and S. Reed},
+    title= {Variables Related to Human Breast Cancer},
+    year = 1958,
+    publisher={University of Minnesota Press},
+    address={Minneapolis}
     }
 
 @article{Anderson82,
@@ -81,13 +118,28 @@
     pages= {407--416},
     }
 
-@book{Anderson58,
-    author= {V. E Anderson and H. O. Goodman and S. Reed},
-    title= {Variables Related to Human Breast Cancer},
-    year = 1958,
-    publisher={University of Minnesota Press},
-    address={Minneapolis}
+@article{Anderson83,
+    author={Anderson, J. R. and Cain, K. C. and Gelber, R.D.},
+    title={Analysis of survival by tumor response},
+    year= 1983,
+    journal={J Clinical Oncology}, volume=1, pages={710--719}
     }
+
+@article{Antolini05,
+   author={Laura Antolini and Patriza Boracchi and Elia Biganzoli},
+   title={A time-dependent discrimination index for survival data},
+   year=2005,
+   journal=statmed, volume=24, pages={3927--3944}
+   }
+
+@article{Arvesen69,
+  title={Jackknifing {U}-statistics},
+  author={Arvesen, James N},
+  journal={The Annals of Mathematical Statistics},
+  pages={2076--2100},
+  year={1969},
+  publisher={JSTOR}
+}
 
 @article{Barlow88,
     author= { Barlow, W. E. and Prentice, R. L.},
@@ -132,6 +184,13 @@
     institution= {Department of Health Sciences Research, Mayo Clinic}
     }
 
+@article{Bernstein78,
+    author= {Berstein,D. and Lagakos, S. W.} ,
+    title= {Sample size and power determination for stratified clinical trials},
+    year= {1978},
+    journal=jscs, volume={8}, pages={65--73} 
+    }
+
 @article{Berry83,
     author= {Berry, G.},
     year = {1983},
@@ -140,12 +199,37 @@
     pages={173--184}
     }
 
+@article{Beyersmann2012,
+    author= {Beyersmann J and Allignol A. And Schumacher M.},
+    year = {2012},
+    title= {Competing Risks and Multi-state Models with R},
+    publisher={Springer-Verlag},
+    address={New York, NY},
+    }
+
 @book{Bickel77,
     author={Bickel, P. J. and Doksum,K. J. },
     title= { Mathematical Statistics: Basic Ideas and Selected Topics},
     publisher={Holden-Day},
     address={San Francisco},
     year= {1977}
+    }
+
+@article{Bie87,
+    author= {Bie, O. and Borgan, O. and Liestoel, K.},
+    year = {1987},
+    title= {Confidence intervals and confidence bands for the cumulative
+	hazard rate function and their small sample properties},
+    journal= scand, volume={14}, 
+    pages={221--233}
+    }
+
+@book{Billingsley68, 
+    author={Billingsley, P.},
+    title= {Convergence of Probability Measures},
+    publisher={Wiley},
+    address={New York}, 
+    year= {1968} 
     }
 
 @article{Binder92, 
@@ -167,6 +251,14 @@
   annote = {parametric survival models; non PH}
   }
 
+@article{Block85, 
+    author= {Block, H. W. and Borges, W. S. and Savits, T. H.},
+    year= {1985},
+    title= {Age-dependent minimal repair},
+    journal=jap, volume={22}, 
+    pages={370--385}
+    }
+
 @article{Bonsel90, 
     author= {Bonsel, G. J. and Klompmaker, I. J. and {van't Veer}, F. and
 	Habbema, J. D. F. and Slooff, M. J. H.},
@@ -186,6 +278,58 @@
     pages={1749--1778}
     }
 
+@book{Box87,
+    author= {Box, G. E. P. and Draper, N. R.},
+    title = {Empirical Model Building and Response Surfaces}, 
+    year = 1987,
+    publisher= {John Wiley and Sons},
+    address = {New York}
+    }
+
+@book{Breiman84,
+    author= {Breiman, L. and Friedman, J. H. and Olshen, R. A. 
+	       and Stone, C. J.},
+    title= {Classification and Regression Trees},
+    year = 1984,
+    publisher={Wadsworth},
+    address={Belmont, CA}
+    }
+
+article{Breslow72, 
+    author= {Breslow, N. E.},
+    year= {1972},
+    title= {Discussion of {P}rofessor {C}ox's paper},
+    journal=jrssb, volume={34}, 
+    pages={216--217}
+    }
+
+@article{Breslow74,
+    author= {Breslow, N. E.},
+    year= {1974},
+    title= {Covariance analysis of censored survival data},
+    journal=biom, volume={30},
+    pages= {89--99}
+    }
+
+@book{Breslow80, 
+    author={Breslow, N. E. and Day, N. E.},
+    title= {The Analysis of Case-Control Studies},
+	volume={1},
+	series = {Statistical Methods in Cancer Research},
+    publisher={IARC},
+    address={Lyon}, 
+    year= {1980} 
+    }
+
+
+@article{Breslow84,
+    author= {Breslow, N. E. and L. Edler and J. Berger},
+    year= {1984},
+    title= {A two-sample censored-data rank test for acceleration},
+    journal=biom, volume={40}, 
+    pages= {1049--1062}
+    }
+
 @article{Breslow93, 
     author= {Breslow, N. E. and Clayton, D. G.},
     year= {1993},
@@ -194,12 +338,28 @@
     pages={9--25}
     }
 
-@book{Box87,
-    author= {Box, G. E. P. and Draper, N. R.},
-    title = {Empirical Model Building and Response Surfaces}, 
-    year = 1987,
-    publisher= {John Wiley and Sons},
-    address = {New York}
+@book{Broca66,
+    author= {Broca, P. P.},
+    title= {Traites de Tumerus, volumes 1 and 2},
+    year = 1866,
+    publisher={Asselin},
+    address={Paris}
+    }
+
+@article{Bryson81,
+    author= {Bryson, M. C. and Johnson, M. E},
+    year= {1981},
+    title= {The incidence of monotone likelihood in the {C}ox model},
+    journal={Technometrics}, volume={23},
+    pages= {381--383}
+    }
+
+@article{Buyse96, 
+    author= {M. Buyse and P. Piedbois},
+    year= {1996},
+    title= {The relationship between response to treatment and survival time},
+    journal=statmed, volume={15},
+    pages={2797--2812}
     }
 
 @article{Cai95, 
@@ -229,12 +389,20 @@
     address ={Belmont, CA}
     }
 
-@book{Chambers93,
+@book{Chambers91,
     author= {Chambers, J. M. and Hastie, T. J.},
     year= {1993},
     title={Statistical Models in {S}},
     publisher ={Chapman and Hall},
     address ={New York}
+    }
+
+@article{Chang82,
+    author= {Chang, I. M. and Gelman, R. and Pagano, M.},
+    year= {1982},
+    title= {Corrected group prognostic curves and summary statistics},
+    journal={J. Chronic Diseases}, volume={35},
+    pages= {669--674}
     }
 
 @article{Chappell92,
@@ -254,6 +422,18 @@
     pages= {841--850}
     }
 
+@inproceedings{Clarkson89,
+    author= {Clarkson, D. B.},
+    year= {1989},
+    title= {Computing extended maximum likelihood estimates in monotone
+	           likelihood {C}ox proportional-hazards models},
+    booktitle={Computer Science and Statistics: Proceedings of the 21st
+            Symposium on the Interface},
+    publisher={American Statistical Association},
+    address={Alexandria, Virginia},
+    pages={464--469}
+    }
+
 @article{Clegg99,
     author= {Clegg, L. X. and Cai, J. and Sen, P. K.},
     year= {1999},
@@ -263,12 +443,40 @@
     pages= {805--812}
     }
 
+@book{Cochran76,
+    author= {Cochran, W.G.},
+    year= {1976},
+    title={Sampling Techniques, third edition},
+    publisher ={Wiley}, 
+    address ={New York}
+    }
+
+@article{Conroy03,
+    author= {Conroy, RM and Pyorala, K and Fitzgerald, AP and Sans, S 
+       and Menotti, A and De Backer, G and De Bacquer, D and Ducimetiere, P and
+       Jousilahti, P and Keil, U and Njolstad, I and Oganov, RG and
+       Thomsen, T and Tunstall-Pedoe, H and Tverdal, A and Wedel, H and 
+       Whincup, P and Wilhelmsen, L and Graham, IM},
+    title={Estimation of ten-year risk of fatal cardiovascular disease in
+        {E}urope: the {SCORE} project},
+     year=2003,
+     journal={Eur Heart J}, volume=24, pages={987--1003}
+     }
+
 @book{Cook82,
     author= {Cook, R. D. and Weisberg, S.},
     year= {1982},
     title= {Residuals and Influence in Regression},
     publisher={Chapman and Hall},
     address= {London}
+    }
+
+@article{Cooney09,
+    author = {Cooney, MT and  Dudina, AL and Graham, IM},
+    title = {Value and limitations of existing scores for the assessment 
+       of cardiovascular risk: a review for clinicians},
+    year=2009,
+    journal = {J Am Coll Cardol}, volume=54, pages={1209--27}
     }
 
 @article{Cox72,
@@ -287,20 +495,37 @@
     address= {London}
     }
 
-@book{Cochran76,
-    author= {Cochran, W.G.},
-    year= {1976},
-    title={Sampling Techniques, third edition},
-    publisher ={Wiley}, 
-    address ={New York}
-    }
-
 @article{Crowley77,
     author= {Crowley, J. and Hu, M.},
     year= {1977},
     title= {Covariance analysis of heart transplant survival data},
     journal=jasa, volume={72}, 
     pages= {27--36}
+    }
+
+@article{Crowson16,
+    author= {C. S. Crowson and E. J. Atkinson and T. M. Therneau},
+    year= {2016},
+    title= {Assessing calibration of prognostic risk scores},
+    journal={Stat Methods Med Res},volume={25},
+    pages= {1692--1706}
+    }
+
+@article{Cutolo14,
+    author = {Cutolo, M and Kitas, GD and van Riel, PL},
+    title = {Burden of disease in treated rheumatoid arthritis patients:
+      going beyond the joint},
+    journal= {Semin Arthritis Rheum},  volume=43, 
+    year=2014, pages={479--88}
+    }
+
+@article{DAgostino08,
+    author ={D'Agostino, RB, Sr. and Vasan, RS and Pencina, MJ and
+        Wolf, PA and Cobain, M and Massaro, JM and Kannel, WB},
+    title={General cardiovascular risk profile for use in primary care:
+         the {F}ramingham {H}eart {S}tudy},
+    year=2008,
+    journal={Circulation}, volume=117, pages={743--54}
     }
 
 @article{Daniel12,
@@ -310,6 +535,35 @@
     title= {Methods for dealing with time-dependent confounding},
     journal=statmed, volume={32}, 
     pages= {1584--1618}
+    }
+
+@article{DeLong88,
+  title={Comparing the areas under two or more correlated receiver operating 
+       characteristic curves: a nonparametric approach},
+  author={De{L}ong, Elizabeth R and De{L}ong, David M and Clarke-Pearson, Daniel L},
+  journal={Biometrics},
+  volume={44},
+  number={3},
+  pages={837--845},
+  year={1988},
+  publisher={JSTOR}
+}
+
+@article{DeLong94,
+    author= {D. M. DeLong and G. H. Guirguis and Y. C. So},
+    year= {1994},
+    title= {Efficient computation of subset selection probabilities with
+	       application to {C}ox regression},
+    journal=biok, volume={81}, 
+    pages= {607--611}
+    }
+
+@book{Delwiche98,
+    author={Delwiche, L. D. and S. J. Slaughter},
+    title= {The Little {SAS} Book},
+    publisher={SAS Institute},
+    address={Cary, NC}, 
+    year= {1998} 
     }
 
 @article{Dempster77,
@@ -350,6 +604,23 @@
     journal={Mayo Clinic Proc}, volume=87, 
     pages= {512--523}
     }
+
+@article{Ducrocq96,
+    author={V. Ducrocq and G. Casella},
+    title= {A {B}ayesian analysis of mixed survival models},
+    year= {1996},
+    journal={Genet. Sel. Evol.}, volume={28},
+    pages= {505--529}
+    }
+
+@article{Dory87,
+    author = {Dorey, F. J. and Korn, E. L.},
+    year= 1987,
+    title = {Effective sample sizes for confidence intervals for survival 
+        probabilities},
+    journal=statmed, volume=6,
+    pages = {679--87}
+    } \emph{Statistics in Medicine} 
 
 @article{Ederer61,
     author= {Ederer, F. and Axtell, L. M. and Cutler, S. J.},
@@ -399,6 +670,15 @@
     address ={Philadelphia}
     }
 
+@article{Eilers96,  
+    author= {Eilers, P. H. C. and Marx, B. D.},
+    year= {1996},
+    title ={Flexible smoothing with {B}-splines and penalties},
+    journal={Stat. Science}, volume={11}, 
+    pages= {89--121}
+    }
+
+
 @article{Ezekiel24,
     author= {Ezekiel, M.},
     year= {1924},
@@ -434,21 +714,22 @@
     address= {New York}
     }
 
-@article{Eilers96,  
-    author= {Eilers, P. H. C. and Marx, B. D.},
-    year= {1996},
-    title ={Flexible smoothing with {B}-splines and penalties},
-    journal={Stat. Science}, volume={11}, 
-    pages= {89--121}
-    }
+@article{Gail72,
+    author= {Gail, M. H.},
+    year =  {1972}, 
+    title = {Does cardiac transplantation prolong life? A reassessment},
+    journal={Annals Internal Medicine}, volume=76, pages={815-817}
+    } 
+
 
 @article{Gail81,
-    author= {Gail, M. H., Lubin, J. H., and Rubinstein, L. V.},
-    year =  {1981}, 
-    title = {Likelihood Calculations for Matched Case-Control Studies 
-     and Survival Studies with Tied Death Times},
-    journal=biok, volume=68, pages={703--707}
-    } 
+    author= {M. H. Gail and J. H. Lubin and L. V. Rubinstein},
+    year= {1981},
+    title= {Likelihood calculations for matched case-control studies and
+	       survival studies with tied death times},
+    journal=biok, volume={68}, 
+    pages= {703--707}
+    }
 
 @article{Gail86,
     author= {Gail, M. H. and Byar, D. P.},
@@ -459,6 +740,36 @@
     pages= {587--599}
     }
 
+@article{Gehan65,
+  title={A generalized {W}ilcoxon test for comparing arbitrarily singly-censored samples},
+  author={Gehan, Edmund A},
+  journal={Biometrika},
+  volume={52},
+  number={1-2},
+  pages={203--223},
+  year={1965},
+  publisher={Biometrika Trust}
+}
+
+@article{Gerds13,
+  title={Estimating a time-dependent concordance index for survival prediction models with covariate dependent censoring},
+  author={Gerds, Thomas A and Kattan, Michael W and Schumacher, Martin and Yu, Changhong},
+  journal=statmed,
+  volume={32},
+  number={13},
+  pages={2173--2184},
+  year={2013},
+  publisher={Wiley Online Library}
+}
+
+  @Manual{survival-package,
+    title = {A Package for Survival Analysis in S},
+    author = {Terry M Therneau},
+    year = {2015},
+    note = {Version 2.38},
+    url = {http://CRAN.R-project.org/package=survival},
+  }
+
 @article{Gill87,
     author= {Gill, R. and Schumacher, M.},
     year= {1987},  
@@ -467,13 +778,53 @@
     pages= {289--300}
     }
 
-@techreport{Goodnight78,
-    author= {{SAS Institute, Inc.}},
-    year= {1978},
-    title= {Technical Report R-101, Tests of hypotheses in fixed-effects
-              linear models},
-    institution={SAS Institute, Cary NC}
+@book{glim,
+    author= {McCullagh, P. and Nelder, J.A.},
+    year= {1983},
+    title= {Generalized Linear Models},
+    publisher= {Chapman and Hall}
+    }
 
+@book{glim2,
+    author= {McCullagh, P. and Nelder, J.A.},
+    year= {1989},
+    title= {Generalized Linear Models, 2nd ed.},
+    publisher= {Chapman and Hall}
+    }
+
+@article{Goff14,
+    author = {Goff DC, Jr. and Lloyd-Jones DM and Bennett G and Coady S
+        and D'Agostino RB, Sr. and Gibbons R and Greenland P and Lackland DT
+        and Levy D and O'Donnell CJ and Robinson JG and Schwartz JS 
+        and Shero ST and Smith SC, Jr. and Sorlie P and Stone NJ 
+        and Wilson PW},
+    title= {2013 {ACC/AHA} guideline on the assessment of cardiovascular risk:
+          a report of the
+          {A}merican {C}ollege of {C}ardiology/{A}merican {H}eart 
+          {A}ssociation Task Force on Practice Guidelines},
+     journal={J Am Coll Cardiol}, volume=63, pages={2935--59},
+     year=2014
+     }
+
+
+@article{Goodman54,
+  title={Measures of association for cross classifications},
+  author={Goodman, Leo A and Kruskal, William H},
+  journal=jasa,
+  volume={49},
+  number={268},
+  pages={732--764},
+  year={1954},
+  publisher={Taylor \& Francis}
+}
+
+@article{Gooley1999,
+    author={Gooley, T. A. and Leisenring W and Crowley J and Storer B. E.},
+    year={1999},
+    title={Estimation of failure probabilities in the presence of competing risks: 
+           new representations of old estimators},
+    journal=statmed, volume={18},
+    pages={695 -- 706}
     }
 
 @article{Grambsch94,
@@ -492,6 +843,13 @@
                multiplicative intensity models},
     journal={Biometrics}, volume={51}, 
     pages= {1469-1482}
+    }
+
+@book{Graunt62,
+    author = {Graunt, J.},
+    title = {Observations on the {B}ills of {M}ortality},
+    year = 1662,
+    publisher={Royal Society, London}
     }
 
 @article{Gray92,
@@ -520,31 +878,22 @@
     pages={149--192}
     }
 
+@article{Guo92, 
+    author= {G. Guo and G. Rodr\'{\i}guez},
+    year= {1992},
+    title= {Estimating a multivariate proportional hazards model for
+               clustered data using the {EM} algorithm, with an application to
+	       child survival in {G}uatemala},
+    journal=jasa, volume={87}, 
+    pages= {969--976}
+    }
+
 @article{Ha01,
     author={I. L. Ha and Y. Lee and J. Song},
     year={2001},
     title={Heirarchical likelihood approach for frailty models},
     journal=biok,
     pages={233--243}
-    }
-
-@techreport{Hall95,
-    author= {Hall, C. B. and Zeger, S. L. and Bandeen-Roche, K. J.},
-    year= {1995},
-    title= {Adjusted variable plots for {C}ox's proportional  
-		  hazards regression model},
-    institution={The John's Hopkins University, 
-                 School of Hygiene and Public Health,
-                 Department of Biostatistics}
-    }
-
-@incollection{Harrell86,
-    author= {Harrell, F.},
-    year= {1986},  
-    title= {The PHGLM procedure},
-    booktitle= {SAS Supplemental Library User's Guide, Version 5},  
-    address= {Cary, NC},
-    publisher= {SAS Institute Inc}
     }
 
 @article{Hakama77,
@@ -554,6 +903,14 @@
 		  studies with incomplete follow-up information},
     journal={J Chronic Diseases}, volume={30}, 
     pages= {585--597}
+    }
+
+@article{Hakulinen77,
+    author= {Hakulinen, T.},
+    year= {1977},
+    title= {On long term relative survival rates},
+    journal={J Chronic Diseases}, volume={30},
+    pages= {431--443}
     }
 
 @article{Hakulinen82,
@@ -573,13 +930,40 @@
     pages= {197--207}
     }
 
-@article{Hakulinen77,
-    author= {Hakulinen, T.},
-    year= {1977},
-    title= {On long term relative survival rates},
-    journal={J Chronic Diseases}, volume={30},
-    pages= {431--443}
+@techreport{Hall95,
+    author= {Hall, C. B. and Zeger, S. L. and Bandeen-Roche, K. J.},
+    year= {1995},
+    title= {Adjusted variable plots for {C}ox's proportional  
+		  hazards regression model},
+    institution={The John's Hopkins University, 
+                 School of Hygiene and Public Health,
+                 Department of Biostatistics}
     }
+
+@article{Harrell82,
+  title={Evaluating the yield of medical tests},
+  author={Harrell, Frank E and Califf, Robert M and Pryor, David B and Lee, Kerry L and Rosati, Robert A},
+  journal={Journal of the American Medical Association}, volume={247}, number={18}, pages={2543--2546}, year={1982},
+}
+
+@incollection{Harrell86,
+    author= {Harrell, F.},
+    year= {1986},  
+    title= {The PHGLM procedure},
+    booktitle= {SAS Supplemental Library User's Guide, Version 5},  
+    address= {Cary, NC},
+    publisher= {SAS Institute Inc}
+    }
+
+@article{Harrell96,
+  title={Multivariable prognostic models: issues in developing models, evaluating assumptions and adequacy, and measuring and reducing errors},
+  author={Harrell, Frank E and Lee, Kerry L and Mark, Daniel B},
+  journal=statmed,
+  volume={15},
+  pages={361--387},
+  year={1996},
+  publisher={JOHN WILEY \& SONS LTD}
+}
 
 @article{Harrington82,
     author= {Harrington, D. P. and Fleming, T. R.},
@@ -605,6 +989,17 @@
     pages= {379--396}
     }
 
+@article{Heagerty05,
+  title={Survival model predictive accuracy and {ROC} curves},
+  author={Heagerty, Patrick J and Zheng, Yingye},
+  journal={Biometrics},
+  volume={61},
+  number={1},
+  pages={92--105},
+  year={2005},
+  publisher={Wiley Online Library}
+}
+
 @article{Heit99,  
     author= {Heit, J. A. and M. D. Siverstein and D. N. Mohr and 
 	     T. M. Petterson and W. M. O'Fallon and L. J. Melton III},
@@ -614,6 +1009,43 @@
     journal={Arch Internal Med}, volume={159},
     pages= {445--453}
     }
+
+@article{Henderson99,
+    author= {R. Henderson and P. Oman},
+    year= {1999},
+    title= {Effect of frailty on marginal regression estimates in survival
+	       analysis},
+    journal=jrssb, volume={61}, 
+    pages= {367--379}
+    }
+
+@incollection{Hettmansperger98,
+    author= {Hettmansperger, T.},
+    year= {1998},
+    title= {Median},
+	editor={Armitage, P. and Colton, T.},
+    booktitle={Encyclopedia of Biostatics}, 
+	volume={4},
+	publisher= {Wiley},
+    address={New York}, 
+    pages={2525--2526}
+    }
+
+@article{Hilden14,
+    author={Hilden, J. and Gerds, T.A.},
+    year={2014},
+    title={A note on the evaluation of novel biomarkers: do not rely on integrated discrimination improvement and net reclassification index},
+    journal=statmed, volume={33}, pages={3405--3414}
+    }
+
+@inproceedings{Hodges61,
+  title={Comparison of the normal scores and {W}ilcoxon tests},
+  author={Hodges Jr, JL and Lehmann, Erich L},
+  booktitle={Proceedings of the Fourth Berkeley Symposium on Mathematical Statistics and Probability},
+  volume={1},
+  pages={307--317},
+  year={1961}
+}
 
 @techreport{Hodges99,
     author= {J. S. Hodges and D. J. Sargent},
@@ -633,6 +1065,15 @@
     year= {2000}
     }
 
+@article{Hougaard86,
+    author= {Hougaard, P.},
+    year= {1986},
+    title= {Survival models for heterogeneous populations derived from  
+	       stable distributions},
+    journal=biok, volume={73}, 
+    pages= {387--396}
+    }
+
 @inproceedings{Huber67,
     author= {Huber, P. J.},
     year= {1967},
@@ -644,6 +1085,14 @@
     pages= {221--233}
     }
 
+@book{Huber81, 
+    author={Huber, P. J.},
+    title= {Robust Statistics},
+    publisher={Wiley},
+    address={New York}, 
+    year= {1981} 
+    }
+ 
 @article{Huffer91,
     author= {Huffer, F.W. and McKeague, I.W},
     title= {Weigthed least squares estimation for {A}alen's additive
@@ -661,6 +1110,14 @@
     pages= {271--293}
     }
 
+@article{Huster89,
+    author= {W. J. Huster and R. Brookmeyer and S. G. Self},
+    year= {1989},
+    title= {Modelling paired survival data with covariates},
+    journal=biom, volume={45}, 
+    pages= {145--156}
+    }
+
 @article{Islam94,
     author= {Islam, M. A.},
     year= {1994},
@@ -668,6 +1125,15 @@
 	transitions: an application to contraceptive use data},
     journal=jrssa, volume={157},
     pages= {441--455}
+    }
+
+@techreport{Jaeckel72,
+    author= {Jaeckel, L.},
+    year= {1972},
+    title= {The infinitesimal jackknife},
+    institution={Bell Laboratories},
+    type={Memorandum},
+    number={MM 72-1215-11}
     }
 
 @article{Jeon12,
@@ -678,6 +1144,14 @@
     journal=Bioinformatics, volume=13, pages={384--397}
     }
 
+@article{Johansen83, 
+    author= {Johansen, S.},
+    year= {1983},
+    title= {An extension of {C}ox's regression model},
+    journal={Int. Stat. Review}, volume={51}, 
+    pages={165--174}
+    }
+
 @article{Jones90,
 	author={Jones, M. P. and Crowley, J.},
 	title={Asymptotic proporties of a general class of nonparametric
@@ -685,6 +1159,13 @@
 	year={1990},
 	journal=annals, volume={18},pages={1203--1220}
 	}
+
+@book{Kalbfleisch02,
+   author={John D. Kalbfleisch and Ross L. Prentice},
+   title = {The statistical analysis of failure time data, second edition},
+   year= {2002},
+   publisher={Wiley}
+   }
 
 @book{Kalbfleisch80,
     author= {Kalbfleisch, J. D. and Prentice, R. L.},
@@ -694,16 +1175,17 @@
     address ={New York}
     }
 
-@article{Kay83,
-    author= {Korn, Edward L. and Graubard, Barry I. and Midthune, Douglas},
-    year= {1997},
-    title ={Time-to-event analysis if longitudinal follow-up of a survey:
-		  Choice of the time scale},
-    journal={Am J of Epidemiology}, volume={145},
-    pages= {72--80}
+@article{Kavanagh94,
+    author= {Kavanagh, B. F. and  Wallrichs, S. and Dewitz, M. and
+	    Berry, D. and Currier, B. and  Ilstrup, D. and Coventry, M. B.},
+    year= {1994},
+    title ={Charnley low-friction arthroplasty of the hip. {T}wenty-year
+		results with cement},
+    journal={J. Arthroplasty}, volume={9},
+    pages= {229--234}
     }
 
-@article{Klein91,
+@article{Kay83,
     author= {Kay, R.},
     year= {1983},
     title ={The analysis of transition times in a multistate stochastic
@@ -712,13 +1194,57 @@
     pages= {1743--1756}
     }
 
-@article{Korn97, 
+@book{Klein03,
+  title={Survival analysis: techniques for censored and truncated data},
+  author={Klein, John P and Moeschberger, Melvin L},
+  year={2003},
+  publisher={Springer-Verlag},
+  address={New York}
+}
+
+@article{Klein92,
+    author= {Klein, J. P.},
+    year= {1992},
+    title ={Semiparametric estimation of random effects using the
+		  {C}ox model based on the {EM} algorithm},
+    journal=biom, volume={48},
+    pages= {795--806}
+    }
+
+@article{Klein91, 
     author= {Klein, J. P.},
     year= {1991},
     title ={Small sample moments of some estimators of the variance of
 		  the {K}aplan--{Meier} and {N}elson--{A}alen estimators},
     journal=scand, volume={18},
     pages= {333--340}
+    }
+
+@article{Korn90,
+    author = {Korn, E. L. and Simon, R.},
+    year = {1990},
+    title = {Measures of explained variation for survival data},
+    journal=statmed, volume={9},
+    pages = {487-503}
+    }
+
+@article{Korn97,
+    author= {Korn, Edward L. and Graubard, Barry I. and Midthune, Douglas},
+    year= {1997},
+    title ={Time-to-event analysis if longitudinal follow-up of a survey:
+		  Choice of the time scale},
+    journal={Am J of Epidemiology}, volume={145},
+    pages= {72--80}
+    }
+
+@article{Kyle02,
+    year= 2002,
+    author={Kyle, R. and Therneau, T. and Rajkumar S. and Offord, J.
+            and Larson, D. and Plevak, M. and  L. J. Melton (III)},
+    title={A long-term study of prognosis in monoclonal gammopathy of 
+              undetermined significance},
+    journal={New England J Medicine}, vol=346,
+    pages={564--569}
     }
 
 @article{Kyle06,
@@ -729,6 +1255,24 @@
     title={ Prevalence of monoclonal gammopathy of undetermined significance},
     journal={New England J Medicine}, vol=354,
     pages={1362--1369}
+    }
+
+@article{Kyle93,  
+    author= {R. A. Kyle},
+    year= {1993},
+    title= {``{B}enign'' monoclonal gammopathy --- after 20 to 35 years of
+	        follow-up},
+    journal={Mayo Clinic Proceedings}, volume={68}, 
+    pages= {26--36}
+    }
+
+@article{Kyle97,  
+    author= {R. A. Kyle},
+    year= {1997},
+    title= {Moncolonal gammopathy of undetermined significance and solitary
+      plasmacytoma. {I}mplications for progression to overt multiple myeloma},
+    journal={Hematology/Oncology Clinics N. Amer.}, volume={11}, 
+    pages= {71--87}
     }
 
 @article{Lagakos84,
@@ -777,6 +1321,32 @@
     pages= {1447--1456}
     }
 
+@article{Leblanc92,
+    author = {LeBlanc, M. and Crowley, J.},
+    title = {Relative risk trees for censored survival data},
+    journal = {Biometrics},
+    year = {1992}, volume={48},
+    pages = {411-425}
+    }
+
+@article{leCessie91,
+    author={S. le Cessie and J. C. van Houwelingen},
+    year={1991},
+    title={A goodness-of-fit test for binary data based on smoothing residuals},
+    journal={Biometrika}, volume={47},
+    pages={1267--1282}
+    }
+
+@article{Lee83,
+    author= {K. L. Lee and Harrell, Jr., F. E. and H. D. Tolley and 
+	       R. A. Rosati},
+    year= {1983},
+    title= {A comparison of test statistics for assessing the effects of
+	       concomitant variables in survival analysis},
+    journal=biom, volume={39}, 
+    pages= {341--350}
+    }
+
 @incollection{Lee92,
     author= {Lee, E. W. and Wei, L. J. and Amato, D.},
     year= {1992},
@@ -796,18 +1366,15 @@
     journal=jrssb, volume=58, pages={619--678}
     }
 
-@article{Lindor94,
-    author= {Lindor, K. D. and Dickson, E. R. and Baldus, W. P.
-              and Jorgensen, R. A. and Ludwig, J. and Murtaugh, P. A. and
-              Harrison, J. M. and Wiesner, R. H. and Anderson, M. L. and
-              Lange, S. M. and LeSage, G. and Rossi, S. S. and Hofman,
-		  A. F.},
-    year= {1994},
-   title= {Ursodeoxycholic acid in the treatment of primary biliary cirrhosis},
-    journal={Gastroenterology}, volume={106}, 
-    pages= {1284--1290}
-    }
 
+@article{Leening14,
+    author={M. J. Leending and E. W. Steyerberg and B. Van Calster and R. B. D'Agostino, Sr. and M. J. Pencina},
+    year={2014},
+    title={ Net reclassification improvement and integrated discrimination improvement require calibrated models: relevance from a marker and model perspective},
+    journal={statmed}, volume={33},
+    pages={3415--3418}
+    } 
+    
 @article{Liang86,
     author= {Zeger, S. L. and Liang, K. Y.},
     year= {1986},
@@ -833,13 +1400,108 @@
     pages= {1049--1060}
     }
 
-@article{Lin91,
-    author= {Lin, D. Y.},
-    year= {1991},
-    title= {Goodness-of-fit analysis for the {C}ox regression model
-            based on a class of parameter estimators},
-    journal=jasa, volume={86}, 
-    pages= {725--728}
+@booklet{lifeaz70,
+    title ={U.S. Decennial Lifetables 1969--71},
+    year = {1975},
+    howpublished= {DHEW Publication No. HRA 75-1151}, 
+    note={Volume 2, Number 3}
+    }
+
+@booklet{lifefl70,
+    title ={U.S. Decennial Lifetables 1969--71},
+    year = {1975},
+    howpublished= {DHEW Publication No. HRA 75-1151}, 
+    note={Volume 2, Number 10}
+    }
+
+@booklet{lifemn60,
+    title ={Minnesota State Lifetables 1959--61},
+    year = {1965},
+    howpublished= {Public Health Service Publication No. 1252},
+    note={Volume 2, Number 24}
+    }
+
+@booklet{lifemn70,
+    title ={U.S. Decennial Lifetables 1969--71},
+    year = {1975},
+    howpublished= {DHEW Publication No. HRA 75-1151}, 
+    note={Volume 2, Number 24}
+    }
+
+@booklet{lifemn80,
+    title ={U.S. Decennial Lifetables 1979--81},
+    year = {1985},
+    howpublished= {DHEW Publication No. PHS 86-1151-2451}, 
+    note={Volume 2, Number 24}
+    }
+
+@booklet{lifest60,
+     key = {United States Lifetables 1959--61},
+     title = {Life tables for the geographic divisions of the 
+	      {U}nited {S}tates:
+                1959--61},
+     note = {Vol. 1, number 3},
+     howpublished={National Center for Health Statistics, 
+	   Public Health Service, Washington,
+                   U.S. Government Printing Office}, 
+     month=May, year={1965}
+     }
+
+@book{Lifetable,
+    author={National {C}enter for {H}ealth {S}tatistics},
+    year={1965},
+    title={Life tables for the geographic divisions of the {U}nited
+            {S}tates: 1959-1961},
+    volume={1}, number={3},
+    publisher={US Government Printing Office, Washington}
+    }
+
+@booklet{lifeus40,
+    title={United States Life Tables and Actuarial Tables, 1939--41},
+    author={Thomas N. E. Greville},
+    howpublished={Federal Security Agency, United States Public Health
+	Service, National Office of Vital Statistics},
+    note={U.S. Government Printing Office, 1947}
+    }
+
+@booklet{lifeus50,
+    key={United States Lifetables 1950},
+    title={United States Life Tables for 1949--51},
+    howpublished={U.S. Department of Health, Education and Welfare,
+	Public Health Service, National Office of Vital Statistics}
+    }
+
+@booklet{lifeus60,
+    key={United States Lifetables 1960},
+    title ={United States Lifetables 1959--61},
+    year = {1964},
+    howpublished= {Public Health Service Publication No. 1252},
+    note={Volume 1, Number 1}
+    }
+
+@booklet{lifeus60b,
+    key={Vital Statistics},
+    title ={Vital Statistics of the United States, 1960},
+    year = {1963},
+    howpublished= {U.S. Department of Health, Education, and Welfare,
+	Public Health Service, National Center for Vital Statistics},
+    note={Volume 2A, Tabl3 3B}
+    }
+
+@booklet{lifeus70,
+    key={United States Lifetables 1970},
+    title ={U.S. Decennial Lifetables 1969--71},
+    year = {1975},
+    howpublished= {DHEW Publication No. HRA 75-115},
+    note={Volume 1, Number 1}
+    }
+
+@booklet{lifeus80,
+    key={United States Lifetables 1990},
+    title ={U.S. Decennial Lifetables 1979--81},
+    year = {1985},
+    howpublished= {DHEW Publication No. PHS 85-1150-1},
+    note={Volume 1, Number 1}
     }
 
 @article{Lin89,
@@ -848,6 +1510,15 @@
     title= {The robust inference for the {C}ox proportional hazards model},
     journal=jasa, volume={84}, 
     pages= {1074--1078}
+    }
+
+@article{Lin91,
+    author= {Lin, D. Y.},
+    year= {1991},
+    title= {Goodness-of-fit analysis for the {C}ox regression model
+            based on a class of parameter estimators},
+    journal=jasa, volume={86}, 
+    pages= {725--728}
     }
 
 @article{Lin91b,
@@ -882,6 +1553,17 @@
              the marginal approach},
     journal= statmed, volume={13}, 
     pages= {2233--2247}
+    }
+
+@article{Lindor94,
+    author= {K. D. Lindor and E. R. Dickson and W. P. Baldus
+              and R. A. Jorgensen and J. Ludwig and P. A. Murtaugh and
+              J. M. Harrison and R. H. Wiesner and M. L. Anderson and
+              S. M. Lange and G. LeSage and S. S. Rossi and A. F. Hofman},
+    year= {1994},
+   title= {Ursodeoxycholic acid in the treatment of primary biliary cirrhosis},
+    journal={Gastroenterology}, volume={106}, 
+    pages= {1284--1290}
     }
 
 @article{Link84,
@@ -919,12 +1601,85 @@
     pages= {842--846}
     }
 
+@book{Little87, 
+    author={Little, R.J.A. and Rubin, D.B.},
+    title= {Statistical Analysis with Missing Data},
+    publisher={John Wiley \& Sons},
+    address={New York}, 
+    year= {1987} 
+    }
+
+@incollection{Little98,
+    author= {Little, R. J.},
+    year= {1998},
+    title= {Missing Data},
+	editor={Armitage, P. and Colton, T.},
+    booktitle={Encyclopedia of Biostatics}, 
+	volume={4},
+	publisher= {Wiley},
+    pages={2622--2635}
+    }
+
+@article{Loprinzi94,
+    author= {Loprinzi, C. L. and Laurie, J. A. and Wieand, H. S. and
+	    Krook, J. E. and Novotny, P. J. and
+            Kugler, J. W. and Bartel, J. and Law, M. and Bateman, M. and
+            Klatt, N. E. and Dose, A. M. and Etzell, P. S. and
+            Nelimark, R. A. and Mailliard, J. A. and Moertel, C. G.},
+    year= {1994},
+    title= {Prospective evaluation of prognostic variables from 
+               patient-completed questionnaires},
+    journal={J. Clinical Oncol.}, volume={12}, 
+    pages= {601--607}
+    }
+
+@article{Lloyd99,
+    author={Lloyd-Jones, DM and Larson, MG and Beiser, A and Levy, D.},
+    title= {Lifetime risk of developing coronary heart disease},
+    year=1999,
+    journal={Lancet}, volume={353}, pages={89--92}
+    }
+
+@article{Lloyd06,
+    author= {Lloyd-Jones, DM},
+    title ={Short-term versus long-term risk for coronary artery
+         disease: implications for lipid guidelines},
+     year=2006,
+     journal={Curr Opin Lipidol}, volume=17, pages={619-25}
+     }
+
 @article{Lunn95,
     author= {Lunn, M. and McNeil, D.},
      year= {1995},
     title= {Applying {C}ox regression to competing risks},
     journal={Biometrics}, volume={51}, 
     pages= {524--532}
+    }
+
+@report{Macnaughton92,
+    author= {D. B. Macnaughton},
+    year= {1992},
+    title= {Which sum of squares are best in an
+         unbalanced analysis of variance},
+    type={www.matstat.com/ss}
+    }
+
+
+@article{Mahe99,
+    author= {C{\'{e}}dric Mah{\'{e}} and Sylvie Chevret},
+    year= {1999},
+    title= {Estimating regression parameters and degree of dependence for
+	      multivariate failure time data},
+    journal=biom, volume={55}, 
+    pages= {1078--1084}
+    }
+
+@article{Makuch82,
+    author= {Makuch, R. W.},
+    year= {1982},
+    title= {Adjusted survival curve estimation using covariates},
+    journal={J. Chronic Disease}, volume={35}, 
+    pages= {437--443}
     }
 
 @article{Mallows86,
@@ -953,11 +1708,16 @@
     pages= {3863--3868}
     }
 
-@book{glim,
-    author= {McCullagh, P. and Nelder, J.A.},
-    year= {1983},
-    title= {Generalized Linear Models},
-    publisher= {Chapman and Hall}
+@article{Markus89,
+    author= {Markus, B. H. and Dickson, E. R. and Grambsch, P. M. 
+        and Fleming, T. R. 
+	and Mazzaferro, V. and Klintmalm, G. B .G. and Wiesner, R. H. 
+        and VanThiel, D. H. and Starzl, T. E.},
+    year= {1989},
+    title= {Efficiency of liver transplantation in patients with primary 
+		biliary cirrhosis},
+    journal=NEJM, volume={320}, 
+    pages= {1709--1713}
     }
 
 @article{McGilchrist91,
@@ -968,14 +1728,24 @@
     pages= {461--466}
     }
 
-@report{Macnaughton92,
-    author= {D. B. Macnaughton},
-    year= {1992},
-    title= {Which sum of squares are best in an
-         unbalanced analysis of variance},
-    type={www.matstat.com/ss}
+@article{Myasoedova11,
+    author ={Myasoedova, E and Chandran, A and Ilhan, B and Major, BT 
+       and Michet, CJ and Matteson, EL and Crowson, CS},
+    year=2011,
+    title={The role of rheumatoid arthritis (RA) flare and cumulative
+        burden of {RA} severity in the risk of cardiovascular disease},
+    journal={Ann Rheum Dis}, volume=75, pages={560--5}
     }
 
+@article{Myasoedova16,
+    author= {Myasoedova, E and Crowson, CS and Kremers, HM and Roger, VL and
+         Fitz-Gibbon, PD and Therneau, TM and Gabriel, SE},
+    title= {Lipid paradox in rheumatoid arthritis: the impact
+           of serum lipid measures and systemic inflammation on the risk of
+           cardiovascular disease},
+    year=2018,
+    journal= {J Clin Epidemiol}, volume=49, pages={1373--9}
+    }
 
 @article{McGilchrist93,
     author= {McGilchrist, C. A.},
@@ -1001,6 +1771,14 @@
     publisher= {Wiley}, address= {New York}
     }
 
+@article{Miller83,
+    author= {Miller, Jr., R.G.},
+    year= {1983},
+    title= {What price {Kaplan--Meier}?},
+    journal=biom, volume={39}, 
+    pages= {1077--1081}
+    }
+
 @article{Moertel90,
     author= {Moertel, C.G. and Fleming, T.R. and McDonald, J.S. and
              Haller, D.G. and Laurie, J.A. and Goodman, P.J. and
@@ -1009,9 +1787,17 @@
              Mailliard, J.A.},
     year= {1990}, 
     title= {Levamisole and fluorouracil for adjucant therapy of
-            resected colon carcinoma.},
+            resected colon carcinoma},
     journal= NEJM, volume={332}, 
     pages= {352--358}
+    }
+
+@article{Moons15,
+    author={Moons K. G. and Altman D. G. and Reitsma J. B. and Ioannidis J. P. and Macaskill P. and Steyerberg E. W. and Vickers A. J. and Ransohoff D. F. and Collins G. S.},
+    year={2015},
+    title={Transparent Reporting of a multivariable prediction model for Individual Prognosis or Diagnosis (TRIPOD): explanation and elaboration},
+    journal={Ann Intern Med}, volume={162},
+    pages={W1--73}
     }
 
 @article{Moreau85,
@@ -1031,6 +1817,18 @@
      pages= {331--336}
     }
 
+@article{Moss87,
+     author= {Digitalis Subcommittee of the Multicenter Post-Infarction 
+              Research Group and Moss A. J. and Bigger, J. T. Jr and
+              Carleen, E. and Fleiss, J. L. and Odoroff, C. L. and
+              Rolnitzky, L. and Therneau T.},
+     year= {1987},
+     title= {The mortality risk associated with digitalis treatment after
+              myocardial infarction},
+     journal= {Carivascular Drugs Ther}, volume={1}, 
+     pages= {125--132}
+    }
+
 @article{Moss88,
      author= {Moss, A. J. and {the Multicenter Diltiazem Postinfarction Trial Research Group}},
      year= {1988},
@@ -1046,6 +1844,15 @@
     title= {Data Analysis and Regression},
     publisher= {Addison-Wesley},
     address={Reading, MA}
+    }
+
+@article{Murphy81,
+    author= {Murphy, V. K. and Haywood, L. J.},
+    year= {1981},
+    title= {Survival analysis by sex, age group and hemotype in 
+	     sickle cell disease},
+    journal={J. Chronic Diseases}, volume={34}, 
+    pages= {313--319}
     }
 
 @article{Nagelkerke84,
@@ -1065,6 +1872,14 @@
     pages= {48--76}
     }
            
+@article{Nelson69,
+     author= {Nelson, W.},
+     year= {1969},
+     title= {Hazard plotting for incomplete failure data},
+     journal= {J. Quality Technology}, volume={1}, 
+     pages= {27--52}
+     }
+
 @article{Neuberger86,
     author= {Neuberger, J. and Altman, D. G. and Christensen, E. and
 	Tygstrup, N. and Williams, R.},
@@ -1074,6 +1889,13 @@
     journal={Transplantation}, volume={41}, 
     pages= {713--716}
     }
+
+@article{Newson06,
+    author = {Newson, R},
+    title = {Confidence intervals for rank statistics: {So}mers' {D} and extensions},
+    year =  2006,
+    journal={Stata Journal}, volume={6}, number={3}, pages={309--334}
+     }
 
 @article{Nielsen92,
     author= {Nielsen, G. G. and Gill, R. D. and Andersen, P. K. and   
@@ -1094,6 +1916,16 @@
     pages= {1059--1068}
     }
 
+@incollection{Oakes92,
+    author= {Oakes, D.},
+    year= {1992},
+    title ={Frailty models for multiple event times},
+    editor= {Klein, J. P. and Goel, P. K.},
+    booktitle= {Survival Analysis, State of the Art},
+    publisher= {Kluwer}, 
+    address= {Netherlands}
+    }
+
 @article{Oakes93,
     author={Oakes, D. and A.J. Moss and J.T. Fleiss and J.T. Bigger, Jr.
 	    and T.M. Therneau and S.W. Eberly and M.P. McDermott and
@@ -1107,14 +1939,11 @@
     pages = {44-49}
     }
 
-@incollection{Oakes92,
-    author= {Oakes, D.},
-    year= {1992},
-    title ={Frailty models for multiple event times},
-    editor= {Klein, J. P. and Goel, P. K.},
-    booktitle= {Survival Analysis, State of the Art},
-    publisher= {Kluwer}, 
-    address= {Netherlands}
+@article{Obrien78,
+    author= {Peter C O'Brien},
+    title= {A nonparmetric test for association with censored data},
+    year= {1978},
+    journal=biom, volume={34}, number={2}, pages={243--250}
     }
 
 @article{Omori93,
@@ -1132,6 +1961,63 @@
     school={University of Aarhus, Denmark}
     }
 
+@article{Pencina04,
+  title={Overall {C} as a measure of discrimination in survival analysis: model specific population value and confidence interval estimation},
+  author={Pencina, Michael J and D'{A}gostino, Ralph B},
+  journal=statmed,
+  volume={23},
+  number={13},
+  pages={2109--2123},
+  year={2004},
+  publisher={Wiley Online Library}
+}
+
+@article{Pencina08,
+    author= {Pencina, M. J. and R. B. D'Agostino Sr. and R. B. D'Agostino Jr.
+             and R. S Vasan},
+    year= {2008},
+    title= {Evaluating the added predictive ability of a new marker: {F}rom
+         area under the {ROC} curve to reclassification and beyond},
+    journal=statmed, volume={27}, 
+    pages= {157--72}
+    }
+
+
+@article{Pencina11,
+    author= {Pencina, M. J. and E. W. Steyerberg and R. B. D'Agostino Sr.},
+    year= {2011},
+    title= {Extensions of net reclassification improvement calculations to
+           measure usefulness of new biomarkers},
+    journal=statmed, volume={30}, 
+    pages= {11--21}
+    }
+
+@article{Pencina12,
+  title={Quantifying discrimination of {F}ramingham risk functions with different survival {C} statistics},
+  author={Pencina, Michael J and D'Agostino, Ralph B and Song, Linye},
+  journal=statmed,
+  volume={31},
+  number={15},
+  pages={1543--1553},
+  year={2012},
+  publisher={Wiley Online Library}
+}
+
+@article{Peto72,
+    author= {R. Peto and J. Peto},
+    title = {Asymptotically efficient rank invariant test procedures (with
+               discussion)},
+    journal= jrssa, year=1972, volume={135}, number={2}, pages={185--206}
+    }
+
+@article{Peto72b, 
+    author= {Peto, R.},
+    year= {1972},
+    title= {Discussion of {P}rofessor {C}ox's paper},
+    journal=jrssb, volume={34}, 
+    pages={205--207}
+    }
+
 @article{Pettitt90,
 	author={Pettitt, A. N. and Bin Daud, I.},
 	title={Investigating time dependence in {C}ox's proportional 
@@ -1140,6 +2026,41 @@
 	journal=applstat, volume={39},pages={313--329}
 	}
 
+@article{Pocock02,
+    author= {Stuart J. Pocock and Tim C. Clayton and Douglas G. Altman},
+    year= {2002},
+    title= {Survival plot of time-to-event outcomes in clinical trials:
+	     practice and pitfalls},
+    journal={Lancet}, volume={359}, 
+    pages= {1686--1689}
+    }
+
+@article{Prentice78,
+    author= {Prentice, R. L. and Gloeckler, L. A. } ,
+    title= {Regression analysis of grouped survival data with application to breast cancer data},
+    year= {1978},
+    journal=biom, volume={34}, pages={57--67}
+    }
+
+@article{Prentice79,
+  title={A qualitative discrepancy between censored data rank tests},
+  author={Prentice, Ross L and Marek, P},
+  journal={Biometrics},
+  pages={861--867},
+  year={1979},
+  volume={35},
+  number={4},
+  publisher={JSTOR}
+}
+
+@article{Prentice81,
+    author= {Prentice, R. L. and Williams, B. J. and Peterson, A. V.},
+    year= {1981},
+    title= {On the regression analysis of multivariate failure time data},
+    journal={Biometrika}, volume={68}, 
+    pages= {373--379}
+    }
+
 @article{Prentice86,
     author= {Prentice, R. L.},
     year= {1986},
@@ -1147,15 +2068,6 @@
                   and disease prevention trials},
     journal={Biometrika}, volume={73}, 
     pages ={1--11}
-    }
-
-@article{Prentice92,
-    author= {Prentice, R. L. and Cai, J.},
-    year= {1992},
-    title ={Covariance and survivor function estimation using 
-             censored multivariate failure time data},
-    journal={Biometrika}, volume={79}, 
-    pages ={495--512}
     }
 
 @incollection{Prentice91,
@@ -1170,12 +2082,13 @@
     address= {Netherlands}
     }
 
-@article{Prentice81,
-    author= {Prentice, R. L. and Williams, B. J. and Peterson, A. V.},
-    year= {1981},
-    title= {On the regression analysis of multivariate failure time data},
-    journal={Biometrika}, volume={68}, 
-    pages= {373--379}
+@article{Prentice92,
+    author= {Prentice, R. L. and Cai, J.},
+    year= {1992},
+    title ={Covariance and survivor function estimation using 
+             censored multivariate failure time data},
+    journal={Biometrika}, volume={79}, 
+    pages ={495--512}
     }
 
 @book{Press88,
@@ -1186,6 +2099,25 @@
     publisher= {Cambridge University Press},
     address ={Cambridge}
     }
+
+@techreport{Pugh92, 
+    author= {M. Pugh and J. Robbins and S. Lipsitz and D. Harrington},
+    year= {1992},
+    title= {Inference in the {C}ox
+		proportional hazards model with missing covariates}, 
+    institution={Department of Biostatistics, 
+                  Harvard School of Public Health},
+    address={Boston},
+    number={758Z}
+    }
+
+@article{Putter07,
+    author= {Putter H. and Fiocco M. and Geskus R. B.},
+    year= {2007},
+    title= {Tutorial in biostatistics: Competing risk and multi-state models},
+    journal=statmed,
+    volume={26}, pages={2389--2430}
+    }	
 
 @article{Quantin96,
     author= {Quantin, C. and Moreau, T. and Asselaiin B. and Maccario, J.
@@ -1203,6 +2135,16 @@
 	     of regression effect in the proportional hazards model},
     journal={Biometrics}, volume={45}, 
     pages ={135--144}
+    }
+
+@article{Redmond83,
+    author= {C. Redmond and B. Fisher and H. S. Wieand},
+    year= {1983},
+    title= {The methodologic dilemma in retrospectively correlating the 
+            amount of chemotherapy received in adjuvant therapy protocols 
+            with disease free survival: a commentary},
+    journal={Cancer Treatment Reports}, volume={67},
+    pages= {519--526}
     }
 
 @article{Reid85,
@@ -1225,6 +2167,15 @@
     pages= {672--677}
     }
 
+@article{Ripatti00,
+    author= {Ripatti, S. and Palmgren, J.},
+    year= {2000},
+    title= {Estimation of multivariate frailty models using penalized
+		  partial likelihood},
+    journal=biom,
+    volume={56}, pages={1016--1022}
+    }	
+
 @manual{SAS96,
     author={{SAS Institute Inc.}},
     year={1996},
@@ -1235,6 +2186,17 @@
     note={Chapter 8: The PHREG procedure}
     }
  
+@article{Sasieni93,
+  title={Maximum weighted partial likelihood estimators for the {C}ox model},
+  author={Sasieni, Peter},
+  journal=jasa,
+  volume={88},
+  number={421},
+  pages={144--152},
+  year={1993},
+  publisher={Taylor \& Francis}
+}
+
 @article{Sastry97,
 	author= {Sastry, N.},
 	title={A nested frailty model for survival data, with an application to
@@ -1244,10 +2206,56 @@
 	volume={92},
 	pages = {426--435}
 	}
+
+@article{Schechtman91,
+  title={On estimating the asymptotic variance of a function of {U} statistics},
+  author={Schechtman, Edna},
+  journal={The American Statistician},
+  volume={45},
+  number={2},
+  pages={103--106},
+  year={1991},
+  publisher={Taylor \& Francis Group}
+}
+
+@article{Schemper09,
+    author={Schemper, M. and  Wakounig, S. and Heinze, G.},
+    title={The estimation of average hazard ratios by weighted {C}ox regression},
+    year=2009,
+    journal=statmed, volume={28}, number={19}, pages={2473--2489}
+    }
+
+@article{Schemper92,
+  title={Cox analysis of survival data with non-proportional hazard functions},
+  author={Schemper, Michael},
+  journal={The Statistician},
+  volume={41},
+  number={4},
+  pages={455--465},
+  year={1992},
+  publisher={JSTOR}
+}
+
+@article{Schemper96,
+    author= {Schemper, M. and Smith, T. L.},
+    title={A note on quantifying follow-up in studies of failure time},
+    year = 1996,
+    journal = {Controlled Clinical Trials},
+    volumne = 17, pages={343--346}
+    }
+
+@article{Schemper03,
+    author = {Schemper, M.},
+    title = {Predictive accuracy and explained variation},
+    year = 2003,
+    journal=statmed, volume=22,
+    pages = {2299 -- 2308}
+    }
+
 @article{Schoenfeld80,
     author= {Schoenfeld, D.},
     year= {1980},
-    title= {Chi-squared goodness-of-fit tests for the proportional 
+    title= {Chi-squared go1963odness-of-fit tests for the proportional 
              hazards regression model},
     journal={Biometrika}, volume={67}, 
     pages= {145--153}
@@ -1293,6 +2301,17 @@
     journal={Amer. Statistician}, volume=34, pages={216--221}
 }
 
+@booklet{Seer81,
+    key = {Surveillance},
+    title= {Surveillance, Epidemiology, and End Results:
+	   Incidence and Mortality Data, 1973--77},
+    year = {1981},
+    howpublished= {National Cancer Institute Monograph 57,
+	U.S. Department of Health and Human Services, Public Health Service},
+    address= {National Cancer Institute, Bethesda, MD},
+    note = {NIH Publication No. 81-2330},
+    }
+
 @article{Segal93,
     author= {Segal, M.R. and Neuhaus, J. M.},
     year= {1993},
@@ -1310,12 +2329,26 @@
     pages= {345--352}
     }
 
-@book{Senn07,
-    author= {S. Senn},
-    year= {2007},
-    title= {Statistical Issues in Drug Development}, 
-    publisher= {Wiley},
-    address ={New York}
+@article{Self88,
+    author= {Self, S. G. and Prentice, R. L.},
+    year= {1988},
+    title= {Asymptotic distribution theory and efficiency results for
+              case-cohort studies},
+    journal=annals, volume={16},
+    pages= {64--81}
+    }
+
+
+@article{Sellers95,    
+    author= {T. A Sellers and V. E. Anderson and J. D. Potter and
+	     S. A. Bartow and P. L. Chen and L. Everson and R. A. King and
+	     C. C. Kuni and L. H. Kushi and P. G. McGovern and S. S. Rich
+	     and J. F. Whitbeck and G. L. Wiesner},
+    year= {1995},
+    title= {Epidemiologic and genetic follow-up study of 544 Minnesota breast 
+	cancer families: {D}esign and methods},
+    journal={Genetic Epidemiology}, volume={12},
+    pages= {417--429}
     }
 
 @article{Senn00,
@@ -1324,6 +2357,25 @@
    year=2000,
    journal={Drug Information}, volume=34, pages={1535--549}
    }
+
+@book{Senn07,
+    author= {S. Senn},
+    year= {2007},
+    title= {Statistical Issues in Drug Development}, 
+    publisher= {Wiley},
+    address ={New York}
+    }
+
+@article{Silverstein99,
+    author= {M. D. Silverstein and Loftus, Jr., E. V. and
+             W. J. Sandborn and W. J. Tremaine and B. G. Feagan 
+		 and P. J. Nietert and W. S. Harmsen and A. R. Zinsmeister},
+    year= {1999},
+    title= {Clinical course and costs of care for {C}rohn's disease:
+	    {M}arkov model analysis of a population-based cohort},
+    journal={Gastroenterology}, volume={117},
+    pages= {49--57}
+    }
 
 @article{Simon11,
    title= {Regularization Paths for {C}ox’s Proportional
@@ -1341,6 +2393,18 @@
     journal=jrssc, 
     volume={?}
     }
+
+@booklet{smoke90,
+     key={Department of Health}, 
+     title={The Health Benefits of Smoking Cessation}, 
+     year={1990},
+     howpublished ={Department of Health and Human Services. 
+                    Public Health Service,
+                    Centers for Disease Control, 
+                    Center for Chronic Disease Prevention and Health Promotion,
+                    Office on Smoking and Health},
+     note={DHHS Publication No (CDC)90-8416}
+     }
 
 @article{Solomon84,
     author= {Solomon, P. J. } ,
@@ -1371,6 +2435,22 @@
     year= {1981},
     journal={Controlled Clinical Trials}, volume={2}, pages={149--159}
     }
+
+@article{Steyerberg10,
+    author={E. W. Steyerberg and A. J. Vickers and N. R. Cook and T. Gerds and N. Obuchowski and M. J. Pencina and M. W. Kattan},
+    year={2010},
+    title={Assessing the performance of prediction models: a framework for traditional and novel measures},
+    journal={Epidemiology}, volume={21},
+    pages={128--138}
+    }
+
+@article{Steyerberg14,
+    author={E. W. Steyerberg and Y. Vergouwe},
+    year={2014},
+    title={Towards better clinical prediction models: seven steps for development and an ABCD for validation},
+    journal={Eur Heart J.}, volume={35},
+    pages={1925-31}
+}
 
 @inproceedings{Stone85,
     author= {Stone, C. J. and Koo, C. Y.} ,
@@ -1405,12 +2485,51 @@
     journal=biok, volume={73}, pages={363--369}
     }
 
+@article{Suissa08,
+    author= {Suissa, S.},
+    title= {Immortal time bias in pharmacoepidemiology},
+    year= {2008},
+    journal={American J Epidemiology}, volume={167}, pages={492-499}
+    }
+
+@book{Therneau00,
+    author={Therneau, T. M. and Grambsch, P. M.},
+    title= {Modeling Survival Data: Extending the {C}ox Model},
+    publisher={Springer-Verlag},
+    address={New York}, 
+    year= {2000}
+    }
+
+@article{Therneau03,
+    author= {Therneau, T. M. and Grambsch, P. M. and Pankratz, V. S.},
+    year= {2003},    
+    title= {Penalized survival models and frailty},
+    journal={J Computational Graphical Statistics}, volume={12},
+    pages= {156--175}
+    }
+
+@techreport{Therneau15,
+    author= {Therneau, T. M. and Watson, D. A.},
+    year= {2015},    
+    title= {The concordance statistic and the {C}ox model},
+    number={85},
+    institution={Department of Health Science Research, Mayo Clinic}
+    }
+
 @article{Therneau90,
     author= {Therneau, T. M. and Grambsch, P. M. and Fleming, T. R.},
     year= {1990},
     title= {Martingale based residuals for survival models},
     journal={Biometrika}, volume={77}, 
     pages= {147--160}
+    }
+
+@techreport{Therneau94,
+    author= {Therneau, T. M. and Sicks, J. and Bergstralh, E. and Offord, J.},
+    year = {1994},
+    title = {Expected survival based on hazard rates},
+    number = {52},
+    institution= {Department of Health Sciences Research, Mayo Clinic}
     }
 
 @article{Therneau97,
@@ -1427,22 +2546,6 @@
     title= {Computing the {C}ox model for case-cohort designs},
     journal=lifetime, volume={5},
     pages= {99--112}
-    }
-
-@book{Therneau00,
-    author={Therneau, T. M. and Grambsch, P. M.},
-    title= {Modeling Survival Data: Extending the {C}ox Model},
-    publisher={Springer-Verlag},
-    address={New York}, 
-    year= {2000}
-    }
-
-@article{Therneau03,
-    author= {Therneau, T. M. and Grambsch, P. M. and Pankratz, V. S.},
-    year= {2003},
-    title= {Penalized survival models and frailty},
-    journal={J Computational Graphical Statistics}, volume={12},
-    pages= {156--175}
     }
 
 @article{Thomsen91,
@@ -1462,6 +2565,31 @@
     pages= {1528--1530}
     }
 
+@article{Tobin58,
+    author= {Tobin, James},
+    title = {Estimation of relationships for limited dependent variables},
+    year = 1958,
+    journal={Econometrica}, volume=26, pages={24--36}
+    }
+
+@article{Tsiatis81,
+    author= {A. A. Tsiatis},
+    year= {1981},
+    title= {A large sample study of {C}ox's regression model},
+    journal= annals, volume={9},
+    pages= {93--108}
+    }
+
+@article{Turnbull76,
+    author= {Turnbull, B.W.},
+    year= {1976},
+    title= {The empirical distribution function with arbitrarily grouped,
+	censored and truncated data},
+    journal={jrssb}, volume={38}, 
+    pages= {290--295}
+    }
+
+
 @article{Uitti93,
     author= {Uitti, R.J. and Ahlskog, J.E. and Maraganore, D.M.
              and Muenter, M.D. and
@@ -1471,6 +2599,25 @@
 	       Olmsted County Project},
     journal ={Neurology}, volume={43}, 
     pages= {1918--1926}
+    }
+
+@article{Uno11,
+    author={H. Uno and T. Cai and M. J. Pencina and R. B D'Agnostino and L. J. Wei},
+    title={On the {C}-statistics for evaluating overall adequacy of risk 
+        prediction procedures with censored survival data},
+    year=2011,
+    journal=statmed, volume=30, number=10, pages={1105--1117}
+ }
+
+
+@article{VanCalster16,
+    author={B. Van Calster and D. Nieboer and Y. Vergouwe and B. De Cock 
+         and M.J. Pencina and E.W. Steyerberg},
+    year={2016},
+    title={A calibration hierarchy for risk models was defined: from utopia
+           to empirical data},
+    journal={J Clin Epidemiol.}, volume={74},
+    pages={167--176}
     }
 
 @book{Venables97,
@@ -1490,6 +2637,23 @@
     pages= {872--875}
     }
 
+@article{Verweij94,
+    author= {P. J .M. Verweij and Van Houwlingen, H. C.},
+    year= {1994},
+    title= {Penalized likelihood in {C}ox regression},
+    journal= statmed, volume={13},
+    pages= {2427--2436}
+    }
+
+@ARTICLE{Volinsky98bayesianinformation,
+    author = {Chris Volinsky and Adrian E. Raftery},
+    title = {Bayesian Information Criterion for Censored Survival Models},
+    journal = {Biometrics},
+    year = {1998},
+    volume = {56},
+    pages = {256--262}
+}
+
 @article{Wahba83,
     author= {Wahba, G.},
     year= {1983},
@@ -1506,6 +2670,15 @@
                   modeling marginal distributions},
     journal=jasa, volume={84}, 
     pages= {1065--1073}
+    }
+
+@article{Wei90,
+    author= {L. J. Wei and Z. Ying and D. Y. Lin},
+    year= {1990},
+    title= {Linear regression analysis of censored survival data based on
+		 rank tests},
+    journal= biok, volume={77},
+    pages= {845--851}
     }
 
 @article{Wei93,
@@ -1571,31 +2744,6 @@
     pages= {51--66}
     }
 
-@article{Yau97,
-    author= {Yau, K. K .W. and McGilchrist, C. A.},
-    year= {1997},
-    title= {Use of generalised linear mixed models for the analysis  
-	    of clustered survival data},
-    journal= {Biometrical Journal}, volume={39},
-    pages= {3--11}
-    }
-
-@article{Zhen94,
-    author= {Zhen, B. and Murphy, J.R.},
-     year= {1994},
-    title= {Sample size determination for an exponential survival model with
-            an unrestricted covariate},
-    journal=statmed, volume={13},
-    pages= {391--397}
-    }
-
-
-@article{Aitkin78,
-    author= {Aitkin,M} ,
-    title= {The analysis of unbalanced cross classifications (with discussion)},
-    year= {1978},
-    journal=jrssa, volume={141}, pages={195--223} 
-    }
 @article{Yates78,
     author= {F. Yates} ,
     title= {Discussion of "The analysis of unbalanced cross classifications"},
@@ -1603,581 +2751,6 @@
     journal=jrssa, volume={141}, pages={2xx--2xx} 
     }
 
-@article{Aitkin80,
-    author= {Aitkin,M. and Clayton, D.} ,
-    title= {The fitting of exponential, Weibull and extreme value distributions
-                   to complex censored survival data using GLIM},
-    year= {1980},
-    journal=applstat, volume={29}, pages={156--163} 
-    }
-
-@article{Bernstein78,
-    author= {Berstein,D. and Lagakos, S. W.} ,
-    title= {Sample size and power determination for stratified clinical trials},
-    year= {1978},
-    journal=jscs, volume={8}, pages={65--73} 
-    }
-
-@article{Bie87,
-    author= {Bie, O. and Borgan, O. and Liestoel, K.},
-    year = {1987},
-    title= {Confidence intervals and confidence bands for the cumulative
-	hazard rate function and their small sample properties},
-    journal= scand, volume={14}, 
-    pages={221--233}
-    }
-
-@book{Billingsley68, 
-    author={Billingsley, P.},
-    title= {Convergence of Probability Measures},
-    publisher={Wiley},
-    address={New York}, 
-    year= {1968} 
-    }
-
-@article{Block85, 
-    author= {Block, H. W. and Borges, W. S. and Savits, T. H.},
-    year= {1985},
-    title= {Age-dependent minimal repair},
-    journal=jap, volume={22}, 
-    pages={370--385}
-    }
-
-@article{Breslow72, 
-    author= {Breslow, N. E.},
-    year= {1972},
-    title= {Discussion of {P}rofessor {C}ox's paper},
-    journal=jrssb, volume={34}, 
-    pages={216--217}
-    }
-
-@book{Breslow80, 
-    author={Breslow, N. E. and Day, N. E.},
-    title= {The Analysis of Case-Control Studies},
-	volume={1},
-	series = {Statistical Methods in Cancer Research},
-    publisher={IARC},
-    address={Lyon}, 
-    year= {1980} 
-    }
-
-
-@book{glim2,
-    author= {McCullagh, P. and Nelder, J.A.},
-    year= {1989},
-    title= {Generalized Linear Models, 2nd ed.},
-    publisher= {Chapman and Hall}
-    }
-
-@incollection{Hettmansperger98,
-    author= {Hettmansperger, T.},
-    year= {1998},
-    title= {Median},
-	editor={Armitage, P. and Colton, T.},
-    booktitle={Encyclopedia of Biostatics}, 
-	volume={4},
-	publisher= {Wiley},
-    address={New York}, 
-    pages={2525--2526}
-    }
-
-@book{Huber81, 
-    author={Huber, P. J.},
-    title= {Robust Statistics},
-    publisher={Wiley},
-    address={New York}, 
-    year= {1981} 
-    }
- 
-@article{Johansen83, 
-    author= {Johansen, S.},
-    year= {1983},
-    title= {An extension of {C}ox's regression model},
-    journal={Int. Stat. Review}, volume={51}, 
-    pages={165--174}
-    }
-
-@book{Little87, 
-    author={Little, R.J.A. and Rubin, D.B.},
-    title= {Statistical Analysis with Missing Data},
-    publisher={John Wiley \& Sons},
-    address={New York}, 
-    year= {1987} 
-    }
-
-@incollection{Little98,
-    author= {Little, R. J.},
-    year= {1998},
-    title= {Missing Data},
-	editor={Armitage, P. and Colton, T.},
-    booktitle={Encyclopedia of Biostatics}, 
-	volume={4},
-	publisher= {Wiley},
-    pages={2622--2635}
-    }
-
-@article{Nelson69,
-     author= {Nelson, W.},
-     year= {1969},
-     title= {Hazard plotting for incomplete failure data},
-     journal= {J. Quality Technology}, volume={1}, 
-     pages= {27--52}
-     }
-
-@article{Peto72, 
-    author= {Peto, R.},
-    year= {1972},
-    title= {Discussion of {P}rofessor {C}ox's paper},
-    journal=jrssb, volume={34}, 
-    pages={205--207}
-    }
-
-@article{Prentice78,
-    author= {Prentice, R. L. and Gloeckler, L. A. } ,
-    title= {Regression analysis of grouped survival data with application to breast cancer data},
-    year= {1978},
-    journal=biom, volume={34}, pages={57--67}
-    }
-
-@article{Self88,
-    author= {Self, S. G. and Prentice, R. L.},
-    year= {1988},
-    title= {Asymptotic distribution theory and efficiency results for
-              case-cohort studies},
-    journal=annals, volume={16},
-    pages= {64--81}
-    }
-
-
-@techreport{Therneau94,
-    author= {Therneau, T. M. and Sicks, J. and Bergstralh, E. and Offord, J.},
-    year = {1994},
-    title = {Expected survival based on hazard rates},
-    number = {52},
-    institution= {Department of Health Sciences Research, Mayo Clinic}
-    }
-
-@article{Turnbull76,
-    author= {Turnbull, B.W.},
-    year= {1976},
-    title= {The empirical distribution function with arbitrarily grouped,
-	censored and truncated data},
-    journal={jrssb}, volume={38}, 
-    pages= {290--295}
-    }
-
-
-@book{Breiman84,
-    author= {Breiman, L. and Friedman, J. H. and Olshen, R. A. 
-	       and Stone, C. J.},
-    title= {Classification and Regression Trees},
-    year = 1984,
-    publisher={Wadsworth},
-    address={Belmont, CA}
-    }
-
-@article{Breslow84,
-    author= {Breslow, N. E. and L. Edler and J. Berger},
-    year= {1984},
-    title= {A two-sample censored-data rank test for acceleration},
-    journal=biom, volume={40}, 
-    pages= {1049--1062}
-    }
-
-@book{Broca66,
-    author= {Broca, P. P.},
-    title= {Traites de Tumerus, volumes 1 and 2},
-    year = 1866,
-    publisher={Asselin},
-    address={Paris}
-    }
-
-@article{Breslow74,
-    author= {Breslow, N. E.},
-    year= {1974},
-    title= {Covariance analysis of censored survival data},
-    journal=biom, volume={30},
-    pages= {89--99}
-    }
-
-@article{Bryson81,
-    author= {Bryson, M. C. and Johnson, M. E},
-    year= {1981},
-    title= {The incidence of monotone likelihood in the {C}ox model},
-    journal={Technometrics}, volume={23},
-    pages= {381--383}
-    }
-
-@article{Chang82,
-    author= {Chang, I. M. and Gelman, R. and Pagano, M.},
-    year= {1982},
-    title= {Corrected group prognostic curves and summary statistics},
-    journal={J. Chronic Diseases}, volume={35},
-    pages= {669--674}
-    }
-
-@inproceedings{Clarkson89,
-    author= {Clarkson, D. B.},
-    year= {1989},
-    title= {Computing extended maximum likelihood estimates in monotone
-	           likelihood {C}ox proportional-hazards models},
-    booktitle={Computer Science and Statistics: Proceedings of the 21st
-            Symposium on the Interface},
-    publisher={American Statistical Association},
-    address={Alexandria, Virginia},
-    pages={464--469}
-    }
-
-@article{DeLong94,
-    author= {D. M. DeLong and G. H. Guirguis and Y. C. So},
-    year= {1994},
-    title= {Efficient computation of subset selection probabilities with
-	       application to {C}ox regression},
-    journal=biok, volume={81}, 
-    pages= {607--611}
-    }
-
-@book{Delwiche98,
-    author={Delwiche, L. D. and S. J. Slaughter},
-    title= {The Little {SAS} Book},
-    publisher={SAS Institute},
-    address={Cary, NC}, 
-    year= {1998} 
-    }
-
-@article{Ducrocq96,
-    author={V. Ducrocq and G. Casella},
-    title= {A {B}ayesian analysis of mixed survival models},
-    year= {1996},
-    journal={Genet. Sel. Evol.}, volume={28},
-    pages= {505--529}
-    }
-
-@article{Gail81,
-    author= {M. H. Gail and J. H. Lubin and L. V. Rubinstein},
-    year= {1981},
-    title= {Likelihood calculations for matched case-control studies and
-	       survival studies with tied death times},
-    journal=biok, volume={68}, 
-    pages= {703--707}
-    }
-
-@techreport{Sas2013,
-    author= {SAS Institute},
-    title = {The four types of estimable functions},
-    institution={Cary, NC},
-    year={2013},
-    number={SAS/Stat 13.1 User's Guide}
-    }
-
-@article{Guo92, 
-    author= {G. Guo and G. Rodr\'{\i}guez},
-    year= {1992},
-    title= {Estimating a multivariate proportional hazards model for
-               clustered data using the {EM} algorithm, with an application to
-	       child survival in {G}uatemala},
-    journal=jasa, volume={87}, 
-    pages= {969--976}
-    }
-
-@article{Harrell96,
-  title={Multivariable prognostic models: issues in developing models, 
-    evaluating assumptions and adequacy, and measuring and reducing errors},
-  author={Harrell, Frank E and Lee, Kerry L and Mark, Daniel B},
-  journal=statmed,
-  volume={15},
-  pages={361--387},
-  year={1996},
-  publisher={JOHN WILEY \& SONS LTD}
-}
-
-@article{Henderson99,
-    author= {R. Henderson and P. Oman},
-    year= {1999},
-    title= {Effect of frailty on marginal regression estimates in survival
-	       analysis},
-    journal=jrssb, volume={61}, 
-    pages= {367--379}
-    }
-
-@article{Hougaard86,
-    author= {Hougaard, P.},
-    year= {1986},
-    title= {Survival models for heterogeneous populations derived from  
-	       stable distributions},
-    journal=biok, volume={73}, 
-    pages= {387--396}
-    }
-
-@article{Huster89,
-    author= {W. J. Huster and R. Brookmeyer and S. G. Self},
-    year= {1989},
-    title= {Modelling paired survival data with covariates},
-    journal=biom, volume={45}, 
-    pages= {145--156}
-    }
-
-@techreport{Jaeckel72,
-    author= {Jaeckel, L.},
-    year= {1972},
-    title= {The infinitesimal jackknife},
-    institution={Bell Laboratories},
-    type={Memorandum},
-    number={MM 72-1215-11}
-    }
-
-@article{Kavanagh94,
-    author= {Kavanagh, B. F. and  Wallrichs, S. and Dewitz, M. and
-	    Berry, D. and Currier, B. and  Ilstrup, D. and Coventry, M. B.},
-    year= {1994},
-    title ={Charnley low-friction arthroplasty of the hip. {T}wenty-year
-		results with cement},
-    journal={J. Arthroplasty}, volume={9},
-    pages= {229--234}
-    }
-
-@article{Klein92,
-    author= {Klein, J. P.},
-    year= {1992},
-    title ={Semiparametric estimation of random effects using the
-		  {C}ox model based on the {EM} algorithm},
-    journal=biom, volume={48},
-    pages= {795--806}
-    }
-
-@article{Korn90,
-    author= {Edward L. Korn and Richard Simon},
-    title = {Measures of explained variation for survival data},
-    journal = statmed,  year=1990,
-    volume={8}, pages={487--503}
-}
-
-@article{Kyle93,  
-    author= {R. A. Kyle},
-    year= {1993},
-    title= {``{B}enign'' monoclonal gammopathy --- after 20 to 35 years of
-	        follow-up},
-    journal={Mayo Clinic Proceedings}, volume={68}, 
-    pages= {26--36}
-    }
-
-@article{Kyle97,  
-    author= {R. A. Kyle},
-    year= {1997},
-    title= {Moncolonal gammopathy of undetermined significance and solitary
-      plasmacytoma. {I}mplications for progression to overt multiple myeloma},
-    journal={Hematology/Oncology Clinics N. Amer.}, volume={11}, 
-    pages= {71--87}
-    }
-
-@article{Leblanc92,
-    author = {LeBlanc, M. and Crowley, J.},
-    title = {Relative risk trees for censored survival data},
-    journal = {Biometrics},
-    year = {1992}, volume={48},
-    pages = {411-425}
-    }
-
-@article{Lee83,
-    author= {K. L. Lee and Harrell, Jr., F. E. and H. D. Tolley and 
-	       R. A. Rosati},
-    year= {1983},
-    title= {A comparison of test statistics for assessing the effects of
-	       concomitant variables in survival analysis},
-    journal=biom, volume={39}, 
-    pages= {341--350}
-    }
-
-@article{Loprinzi94,
-    author= {Loprinzi, C. L. and Laurie, J. A. and Wieand, H. S. and
-	    Krook, J. E. and Novotny, P. J. and
-            Kugler, J. W. and Bartel, J. and Law, M. and Bateman, M. and
-            Klatt, N. E. and Dose, A. M. and Etzell, P. S. and
-            Nelimark, R. A. and Mailliard, J. A. and Moertel, C. G.},
-    year= {1994},
-    title= {Prospective evaluation of prognostic variables from 
-               patient-completed questionnaires},
-    journal={J. Clinical Oncol.}, volume={12}, 
-    pages= {601--607}
-    }
-
-@article{Mahe99,
-    author= {C{\'{e}}dric Mah{\'{e}} and Sylvie Chevret},
-    year= {1999},
-    title= {Estimating regression parameters and degree of dependence for
-	      multivariate failure time data},
-    journal=biom, volume={55}, 
-    pages= {1078--1084}
-    }
-
-@article{Makuch82,
-    author= {Makuch, R. W.},
-    year= {1982},
-    title= {Adjusted survival curve estimation using covariates},
-    journal={J. Chronic Disease}, volume={35}, 
-    pages= {437--443}
-    }
-
-@article{Markus89,
-    author= {Markus, B. H. and Dickson, E. R. and Grambsch, P. M. 
-        and Fleming, T. R. 
-	and Mazzaferro, V. and Klintmalm, G. B .G. and Wiesner, R. H. 
-        and VanThiel, D. H. and Starzl, T. E.},
-    year= {1989},
-    title= {Efficiency of liver transplantation in patients with primary 
-		biliary cirrhosis},
-    journal=NEJM, volume={320}, 
-    pages= {1709--1713}
-    }
-
-@article{Miller83,
-    author= {Miller, Jr., R.G.},
-    year= {1983},
-    title= {What price {Kaplan--Meier}?},
-    journal=biom, volume={39}, 
-    pages= {1077--1081}
-    }
-
-@article{Murphy81,
-    author= {Murphy, V. K. and Haywood, L. J.},
-    year= {1981},
-    title= {Survival analysis by sex, age group and hemotype in 
-	     sickle cell disease},
-    journal={J. Chronic Diseases}, volume={34}, 
-    pages= {313--319}
-    }
-
-@article{Peto72,
-    author= {R. Peto and J. Peto},
-    title = {Asymptotically efficient rank invariant test procedures (with
-               discussion)},
-    journal= jrssa, year=1972, volume={135}, number={2}, pages={185--206}
-    }
-
-@article{Prentice79,
-  title={A qualitative discrepancy between censored data rank tests},
-  author={Prentice, Ross L and Marek, P},
-  journal={Biometrics},
-  pages={861--867},
-  year={1979},
-  volume={35},
-  number={4}
-}
-
-@techreport{Pugh92, 
-    author= {M. Pugh and J. Robbins and S. Lipsitz and D. Harrington},
-    year= {1992},
-    title= {Inference in the {C}ox
-		proportional hazards model with missing covariates}, 
-    institution={Department of Biostatistics, 
-                  Harvard School of Public Health},
-    address={Boston},
-    number={758Z}
-    }
-
-@article{Ripatti00,
-    author= {Ripatti, S. and Palmgren, J.},
-    year= {2000},
-    title= {Estimation of multivariate frailty models using penalized
-		  partial likelihood},
-    journal=biom,
-    volume={56}, pages={1016--1022}
-    }	
-
-@article{Schemper09,
-    author={Schemper, M. and  Wakounig, S. and Heinze, G.},
-    title={The estimation of average hazard ratios by weighted 
-        {C}ox regression},
-    year=2009,
-    journal=statmed, volume={28}, number={19}, pages={2473--2489}
-    }
-
-@booklet{Seer81,
-    key = {Surveillance},
-    title= {Surveillance, Epidemiology, and End Results:
-	   Incidence and Mortality Data, 1973--77},
-    year = {1981},
-    howpublished= {National Cancer Institute Monograph 57,
-	U.S. Department of Health and Human Services, Public Health Service},
-    address= {National Cancer Institute, Bethesda, MD},
-    note = {NIH Publication No. 81-2330},
-    }
-
-@article{Sellers95,    
-    author= {T. A Sellers and V. E. Anderson and J. D. Potter and
-	     S. A. Bartow and P. L. Chen and L. Everson and R. A. King and
-	     C. C. Kuni and L. H. Kushi and P. G. McGovern and S. S. Rich
-	     and J. F. Whitbeck and G. L. Wiesner},
-    year= {1995},
-    title= {Epidemiologic and genetic follow-up study of 544 Minnesota breast 
-	cancer families: {D}esign and methods},
-    journal={Genetic Epidemiology}, volume={12},
-    pages= {417--429}
-    }
-
-@article{Silverstein99,
-    author= {M. D. Silverstein and Loftus, Jr., E. V. and
-             W. J. Sandborn and W. J. Tremaine and B. G. Feagan 
-		 and P. J. Nietert and W. S. Harmsen and A. R. Zinsmeister},
-    year= {1999},
-    title= {Clinical course and costs of care for {C}rohn's disease:
-	    {M}arkov model analysis of a population-based cohort},
-    journal={Gastroenterology}, volume={117},
-    pages= {49--57}
-    }
-
-@article{Tsiatis81,
-    author= {A. A. Tsiatis},
-    year= {1981},
-    title= {A large sample study of {C}ox's regression model},
-    journal= annals, volume={9},
-    pages= {93--108}
-    }
-
-@article{Uno11,
-    author={H. Uno and T. Cai and M. J. Pencina and R. B D'Agnostino 
-          and L. J. Wei},
-    title={On the {C}-statistics for evaluating overall adequacy of risk 
-        prediction procedures with censored survival data},
-    year=2011,
-    journal=statmed, volume=30, number=10, pages={1105--1117}
- }
-
-@article{Verweij94,
-    author= {P. J .M. Verweij and Van Houwlingen, H. C.},
-    year= {1994},
-    title= {Penalized likelihood in {C}ox regression},
-    journal= statmed, volume={13},
-    pages= {2427--2436}
-    }
-
-@ARTICLE{Volinsky98bayesianinformation,
-    author = {Chris Volinsky and Adrian E. Raftery},
-    title = {Bayesian Information Criterion for Censored Survival Models},
-    journal = {Biometrics},
-    year = {1998},
-    volume = {56},
-    pages = {256--262}
-}
-
-@techreport{Watson15,
-    author = {Terry Therneau and David Watson},
-    title = {The concordance statistic and the {C}ox model},
-    number= 85,
-    type = {Technical Report},
-    institution= {Divison of Biostatistics, Mayo Clinic},
-    year = 2015}
-}
-
-@article{Wei90,
-    author= {L. J. Wei and Z. Ying and D. Y. Lin},
-    year= {1990},
-
-    title= {Linear regression analysis of censored survival data based on
-		 rank tests},
-    journal= biok, volume={77},
-    pages= {845--851}
-    }
 
 @article{Yau97,
     author= {Yau, K. K .W. and McGilchrist, C. A.},
@@ -2197,6 +2770,14 @@
     pages= {1201--1213}
     }
 
+@article{Yoon16,
+    author = {Yoon, SS and Dillon, CF and Illoh, K and Carroll, M},
+    title = {Trends in the Prevalence of Coronary Heart Disease in the 
+     {U.S}.: {N}ational {H}ealth and {N}utrition {E}xamination {S}urvey},
+     year=2016,
+    journal = {Am J Prev Med}, volume=51, pages={437--45}
+    }
+
 @article{Zahl96,
     author= {Zahl, Per-Henrik},
     title= {A linear non-parametric model for the excess intensity},
@@ -2204,122 +2785,11 @@
     journal=scand, volume={23}, pages={353--364} 
     }
 
-@booklet{smoke90,
-     key={Department of Health}, 
-     title={The Health Benefits of Smoking Cessation}, 
-     year={1990},
-     howpublished ={Department of Health and Human Services. 
-                    Public Health Service,
-                    Centers for Disease Control, 
-                    Center for Chronic Disease Prevention and Health Promotion,
-                    Office on Smoking and Health},
-     note={DHHS Publication No (CDC)90-8416}
-     }
-
-@booklet{lifeus40,
-    title={United States Life Tables and Actuarial Tables, 1939--41},
-    author={Thomas N. E. Greville},
-    howpublished={Federal Security Agency, United States Public Health
-	Service, National Office of Vital Statistics},
-    note={U.S. Government Printing Office, 1947}
+@article{Zhen94,
+    author= {Zhen, B. and Murphy, J.R.},
+     year= {1994},
+    title= {Sample size determination for an exponential survival model with
+            an unrestricted covariate},
+    journal=statmed, volume={13},
+    pages= {391--397}
     }
-
-@booklet{lifeus50,
-    key={United States Lifetables 1950},
-    title={United States Life Tables for 1949--51},
-    howpublished={U.S. Department of Health, Education and Welfare,
-	Public Health Service, National Office of Vital Statistics}
-    }
-
-@booklet{lifeus60,
-    key={United States Lifetables 1960},
-    title ={United States Lifetables 1959--61},
-    year = {1964},
-    howpublished= {Public Health Service Publication No. 1252},
-    note={Volume 1, Number 1}
-    }
-
-@booklet{lifeus60b,
-    key={Vital Statistics},
-    title ={Vital Statistics of the United States, 1960},
-    year = {1963},
-    howpublished= {U.S. Department of Health, Education, and Welfare,
-	Public Health Service, National Center for Vital Statistics},
-    note={Volume 2A, Tabl3 3B}
-    }
-
-@booklet{lifeus70,
-    key={United States Lifetables 1970},
-    title ={U.S. Decennial Lifetables 1969--71},
-    year = {1975},
-    howpublished= {DHEW Publication No. HRA 75-115},
-    note={Volume 1, Number 1}
-    }
-
-@booklet{lifeus80,
-    key={United States Lifetables 1990},
-    title ={U.S. Decennial Lifetables 1979--81},
-    year = {1985},
-    howpublished= {DHEW Publication No. PHS 85-1150-1},
-    note={Volume 1, Number 1}
-    }
-
-@booklet{lifest60,
-     key = {United States Lifetables 1959--61},
-     title = {Life tables for the geographic divisions of the 
-	      {U}nited {S}tates:
-                1959--61},
-     note = {Vol. 1, number 3},
-     howpublished={National Center for Health Statistics, 
-	   Public Health Service, Washington,
-                   U.S. Government Printing Office}, 
-     month=May, year={1965}
-     }
-
-@booklet{lifemn60,
-    title ={Minnesota State Lifetables 1959--61},
-    year = {1965},
-    howpublished= {Public Health Service Publication No. 1252},
-    note={Volume 2, Number 24}
-    }
-
-@booklet{lifemn70,
-    title ={U.S. Decennial Lifetables 1969--71},
-    year = {1975},
-    howpublished= {DHEW Publication No. HRA 75-1151}, 
-    note={Volume 2, Number 24}
-    }
-
-@booklet{lifefl70,
-    title ={U.S. Decennial Lifetables 1969--71},
-    year = {1975},
-    howpublished= {DHEW Publication No. HRA 75-1151}, 
-    note={Volume 2, Number 10}
-    }
-
-@booklet{lifeaz70,
-    title ={U.S. Decennial Lifetables 1969--71},
-    year = {1975},
-    howpublished= {DHEW Publication No. HRA 75-1151}, 
-    note={Volume 2, Number 3}
-    }
-
-@booklet{lifemn80,
-    title ={U.S. Decennial Lifetables 1979--81},
-    year = {1985},
-    howpublished= {DHEW Publication No. PHS 86-1151-2451}, 
-    note={Volume 2, Number 24}
-    }
-
-@book{Lifetable,
-    author={National {C}enter for {H}ealth {S}tatistics},
-    year={1965},
-    title={Life tables for the geographic divisions of the {U}nited
-            {S}tates: 1959-1961},
-    volume={1}, number={3},
-    publisher={US Government Printing Office, Washington}
-    }
-
-
-
-
