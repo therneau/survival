@@ -51,13 +51,14 @@ survSplit <- function(formula, data, subset, na.action=na.pass,
     if (!(attr(Y, "type") %in% c("right", "mright", "counting", "mcounting")))
         stop(paste("not valid for", attr(Y, "type"), "censored survival data"))
     nY <- ncol(Y)
+    ymiss <- is.na(Y)  # these pass through unchanged
     if (nY ==2) {
-        if (any(Y[,1] <= zero))
+        if (any(Y[!ymiss,1] <= zero))
             stop("'zero' parameter must be less than any observed times")
         Y <- cbind(zero, Y)
     }
-    temp <- (Y[,1] >= Y[,2])
-    if (any(temp & !is.na(temp))) stop("start time must be < stop time")
+    temp <- (Y[!ymiss,1] >= Y[!ymiss,2])
+    if (any(temp)) stop("start time must be < stop time")
         
     if (!is.numeric(cut) || any(!is.finite(cut)))
         stop("cut must be a vector of finite numbers")

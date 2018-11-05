@@ -47,11 +47,11 @@ survSplit(formula, data, subset, na.action=na.pass,
   between the first and the second, etc.
   For the example above the values would be 2, 3, and 4.
 
-  The routine will normally be called with a formula as the first
+  The routine is called with a formula as the first
   argument. 
   The right hand side of the formula can be used to delimit variables
   that should be retained; normally one will use \code{ ~ .} as a
-  shorthand to retain them all.  When called in this way the routine
+  shorthand to retain them all.  The routine
   will try to retain variable names, e.g. \code{Surv(adam, joe, fred)~.}
   will result in a data set with those same variable names for
   \code{tstart}, \code{end}, and \code{event} options rather than
@@ -59,10 +59,7 @@ survSplit(formula, data, subset, na.action=na.pass,
   used if they are present, of course.
   However, the routine is not sophisticated; it only does this
   substitution for simple names.  A call of \code{Surv(time, stat==2)}
-  for instance will result in use of the 'event' argument for that
-  variable name.
-  The \code{end} and \code{event} arguments are required if there is
-  no formula.
+  for instance will not retain "stat" as the name of the event variable.
 
   Rows of data with a missing time or status are copied across
   unchanged, unless the na.action argument is changed from its default

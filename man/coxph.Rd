@@ -221,7 +221,7 @@ the \code{timefix} option in \code{coxph.control}.
 Users may need to add \code{timefix=FALSE} for simulated data sets.
 }
 \section{Penalized regression}{
-  \code{coxph} can now maximise a penalised partial likelihood with
+  \code{coxph} can maximise a penalised partial likelihood with
 arbitrary user-defined penalty.  Supplied penalty functions include
 ridge regression (\link{ridge}), smoothing splines
 (\link{pspline}), and frailty models (\link{frailty}).

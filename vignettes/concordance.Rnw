@@ -336,7 +336,7 @@ to the concordance as well.  We will point out four of interest:
     model.
     The same argument may apply more strongly for the concordance, since the 
     target is an ``assumption free'' assessment of association.
-\item  Umo et al \cite{Umo09} recommend the use of $n/G^2$ as a weight based
+\item  Uno et al \cite{Uno11} recommend the use of $n/G^2$ as a weight based
     on a consistency argument.  If we assume that the concordance value that
     would be obtained after full followup of all subjects (no censoring) is
     the ``right'' one, and proportional hazards does not hold, then the
@@ -492,7 +492,7 @@ carefully the difference will often be minor.
 We most definitely do not agree that the ``proper'' target for estimation is
 always the $c$ statistic one would obtain with infinite follow-up and no
 censoring, which is the unstated assumption underlying 
-Umo's assertion that the ordinary concordance is
+Uno's assertion that the ordinary concordance is
 biased and must be repaired by use of $n/G^2$.
 Proportional hazards never is true over the long term, simply because it is
 almost impossible to predict events that are a decade or more away and thus
@@ -515,7 +515,7 @@ As a consequence, censoring weights $G$ actually use $G(t-)$ in the
 code: if 10 subjects are censored at day 100, and these are the first
 censorings in the study, then an event on day 100 should not be given a
 larger weight.  
-(Both the Umo and Schemper papers ignore this detail.)
+(Both the Uno and Schemper papers ignore this detail.)
 
 When using weights of $S(t)$ the program actually uses a weight of $nS(t)$ 
 where $n$ is the number of subjects.
