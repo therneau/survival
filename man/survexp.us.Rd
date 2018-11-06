@@ -14,13 +14,13 @@
       total United States population, by age and sex, 1940 to 2012.
     }
     \item{survexp.usr}{
-      United States population, by age, sex and race, 1940 to 2012.
+      United States population, by age, sex and race, 1940 to 2014.
       Race is white, nonwhite, or black.  For 1960 and 1970 the black
       population values were not reported separately, so the nonwhite
       values were used.
     }
     \item{survexp.mn}{
-      total Minnesota population, by age and sex, 1970 to 2004.
+      total Minnesota population, by age and sex, 1970 to 2013.
     }
    }
   

@@ -5,8 +5,15 @@
     \item In concordance, allow y to be an orderable factor (either
     is.ordered=TRUE or it has only 2 levels), instead of an error
     message.  Repair some missing references in the vignette.
+
     \item Fix an error check in survSplit, when the response has missing
-    values.  Pointed out by  Daniel Wollschläger
+    values.  The routine would fail with an error message when there was
+    no error. (Pointed out by  Daniel Wollschläger.)
+
+    \item Fix serious error in the finegray function when called with
+    (start, stop) data, e.g., with time-dependent covariates: the
+    censoring distribution G was incorrect which could lead to weights
+    of NA.  Pointed out by DQ Zheng.
 }}
 
 \section{Changes in version 2.43-1}{
@@ -14,7 +21,7 @@
     \item Minor change to the concordance method to better accomodate
     another package; add one more test case as well.
     \item Change coxph to use concordance() rather than survConcordance.  
-    Be aware that thhis changes the default variance estimate (to a
+    Be aware that this changes the default variance estimate (to a
     better estimator however).
     \item Add a test to verify that tmerge works with Date objects as
     the time scale
