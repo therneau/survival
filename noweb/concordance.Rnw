@@ -163,7 +163,8 @@ If $y$ is not a survival quantity, then all of the options for the
 <<concordancefit>>=
 concordance.fit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL, 
                             timewt=c("n", "S", "S/G", "n/G", "n/G2", "I"),
-                            cluster, influence=0, ranks=FALSE, reverse=FALSE) {
+                            cluster, influence=0, ranks=FALSE, reverse=FALSE,
+                            timefix=TRUE) {
     # The coxph program may occassionally fail, and this will kill the C
     #  routine further below.  So check for it.
     if (any(is.na(x)) || any(is.na(y))) return(NULL)
@@ -1048,7 +1049,7 @@ loop.  In the below \code{dwt} contains the running sum 0, $w_1$, $w_1 + w_2$,
 etc and we add \code{w[i]*dwt} to the total just before incrementing the sum.
 The influence for observation 1 is $w_2 + w_3 + w_4 + w_5$, which can be done
 at the end as \code{dwt - wt[i]}.
-The temporary accumulator \count{dwt} is reset to 0 with each new $y$
+The temporary accumulator \code{dwt} is reset to 0 with each new $y$
 value.
 To compute ties on both $x$ and $y$ the data set is sorted by $x$ within $y$,
 and we use the same algorithm, but reset \code{dwt2} to zero  whenever 

@@ -37,7 +37,7 @@ whose first line is
 The noweb/Makefile may not be appropriate for all systems as I only
 test on linux.  There should also be a configure.win file, but I never use
 MS-Windows so have not the tools to create and test it.  This is an area where
-contributions to make the process more univeral would be welcome.
+contributions to make the process more universal would be welcome.
  2. Before submission to CRAN, I run the make process myself and then
 remove the configure file.  This ensures that the package as downloaded from
 CRAN works on all architectures.

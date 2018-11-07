@@ -22,8 +22,8 @@ multicheck <- function(y, id, istate=NULL, nerror=6) {
     if (any(overlap) & nerror>0) {
         temp <- which(overlap) 
         if (length(temp) > nerror) temp <- temp[1:nerror]
-        stop("observation(s) that overlap in time, id=", (id[index2])[temp],
-             " rows = ", index2[temp])
+        stop("observation(s) that overlap in time, id=", (id[indx2])[temp],
+             " rows = ", indx2[temp])
     }
 
     # check 2: if istate is present, someone can only "jump" states if they
