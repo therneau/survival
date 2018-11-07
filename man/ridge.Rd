@@ -17,7 +17,17 @@ specifies a ridge regression term.  The likelihood is penalised by
 \code{theta}/2 time the sum of squared coefficients. If \code{scale=T}
 the penalty is calculated for coefficients based on rescaling the
 predictors to have unit variance. If \code{df} is specified then \code{theta} is chosen based on an approximate degrees of freedom.
- } 
+} 
+\note{
+  If the expression \code{ridge(x1, x2, x3, ...)} is too many characters
+  long then the
+ internal terms() function will add newlines to the variable name and
+ then the coxph routine simply gets lost.  (Some labels will have the newline
+ and some won't.)
+ One solution is to bundle all of the variables into a single matrix and
+ use that matrix as the argument to \code{ridge} so as to shorten the call,
+ e.g. \code{mdata$many <- as.matrix(mydata[,5:53])}.
+}
 
 \value{
  An object of class \code{coxph.penalty} containing the data and
