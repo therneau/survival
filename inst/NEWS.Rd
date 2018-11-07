@@ -12,8 +12,8 @@
 
     \item Fix serious error in the finegray function when called with
     (start, stop) data, e.g., with time-dependent covariates: the
-    censoring distribution G was incorrect which could lead to weights
-    of NA.  Pointed out by DQ Zheng.
+    censoring distribution G was incorrect which leads to incorrect weights,
+    including NA.  Pointed out by Deqiang Zheng along with an example.
 }}
 
 \section{Changes in version 2.43-1}{
