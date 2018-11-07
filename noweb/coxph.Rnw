@@ -483,42 +483,57 @@ The baseline hazard for a Cox model plays the role of an intercept,
 but does not appear in the $X$ matrix.  
 However, to create the columns of $X$ for factor variables correctly,
 we need to call the model.matrix routine in such a way that it \emph{thinks}
-there is an intercept.
-If there are strata the proper $X$ matrix is constructed as though there
-were one intercept per strata.
-One simple way to handle this is to call model.matrix on the original formula
-and then remove the terms we don't need.  
+there is an intercept, and so we set the intercept attribute to 1 in
+the terms object before calling model.matrix, ignoring any -1 term the
+user may have added. 
+One simple way to handle all this is to call model.matrix on the original 
+formula and then remove the terms we don't need.  
 However, 
 \begin{enumerate}
   \item The cluster() term, if any, could lead to thousands of extraneous
     ``intercept'' columns which are never needed.
   \item Likewise, nested  case-control models can have thousands of strata,
-    again leading many intercepts we never need.
-  \item If there are strata by factor interactions in the model, 
+    again leading many intercepts we never need.  They never have strata by
+    covariate interactions, however.
+  \item If there are strata by covariate interactions in the model, 
     the dummy intercepts-per-strata columns are necessary information for the
     model.matrix routine to correctly compute other columns of $X$.
 \end{enumerate}
-For reasons 1 and 2 above the usual plan is to remove cluster and strata 
+
+On later reflection \code{cluster} should never have been in the model
+statement in the first place, something that became painfully apparent
+with addition of multi-state models.
+In the future we will discourage it.
+For reason 2 above the usual plan is to also remove strata 
 terms from the ``Terms'' object \emph{before} calling model.matrix,
 unless there are strata by covariate interactions in which case we remove
 them after.
-For the first strategy the \code{assign} attribute of the resulting 
-model matrix then needs to be
-fixed up, since we want it to index into the original formula.
-For example imagine the right hand side of \code{age + strata(sex) + trt}
-where trt is a factor with 3 levels.
-The assign attribute from the modified formula will be (0,1,2,2)
-corresponding to the intercept, age, and treatment columns.
-The final $X$ matrix has no intercept, and a proper assign attribute of
-(1,3,3) since trt is the third variable in the original formula.
-
+If anything is pre-dropped, for documenation purposes we want the
+returned assign attribute to match the Terms structure that we will
+hand back.  (Do we ever use it?)
+In particular, the numbers therein correspond to the column names in
+\code{attr(Terms, 'factors')}
+The requires a shift.  The cluster and strata terms are seen as main
+effects, so appear early in that list.
+We have found a case where terms get relabeled:
+<<relabel>>=
+ t1 <- terms( (x1 + x2):x3 + strata(x4))
+ t2 <- t1[-1]
+ colnames(attr(t1, "factors"))
+ colnames(attr(t2, "factors"))
+@ 
+In t1 the strata term appears first, as it is the only thing that looks like
+a main effect, and the column labels are strata(x4), x1:x3, x2:x3.
+In t2 the column labels are x1:x3 and x3:x2 --- note left-right swap of 
+the second.  This means that using match() on the labels is not a reliable
+approach.
+We instead assume that nothing is reordered and do a shift.
 
 <<coxph-make-X>>=
 attr(Terms, "intercept") <- 1
-adrop <- 0  #levels of "assign" to be dropped; 0= intercept
 stemp <- untangle.specials(Terms, 'strata', 1)
+hasinteractions <- FALSE
 if (length(stemp$vars) > 0) {  #if there is a strata statement
-    hasinteractions <- FALSE
     for (i in stemp$vars) {  #multiple strata terms are allowed
         # The factors attr has one row for each variable in the frame, one
         #   col for each term in the model.  Pick rows for each strata
@@ -527,22 +542,17 @@ if (length(stemp$vars) > 0) {  #if there is a strata statement
             hasinteractions <- TRUE  
         }
     if (!hasinteractions) dropterms <- c(dropterms, stemp$terms) 
-    else adrop <- c(0, match(stemp$var, colnames(attr(Terms, 'factors'))))
 }
 
 if (length(dropterms)) {
-    temppred <- attr(terms, "predvars")
     Terms2 <- Terms[ -dropterms]
-    if (!is.null(temppred)) {
-        # subscripting a Terms object currently drops predvars, in error
-        attr(Terms2, "predvars") <- temppred[-(1+dropterms)] # "Call" object
-    }
     X <- model.matrix(Terms2, mf, constrasts=contrast.arg)
     # we want to number the terms wrt the original model matrix
-    # Do not forget the intercept, which will be a zero
-    renumber <- match(colnames(attr(Terms2, "factors")), 
-                      colnames(attr(Terms,  "factors")))
-    attr(X, "assign") <- c(0, renumber)[1+attr(X, "assign")]
+    temp <- attr(X, "assign")
+    shift <- sort(dropterms)
+    temp <- temp + 1*(shift[1] <= temp)
+    if (length(shift)==2) temp + 1*(shift[2] <= temp)
+    attr(X, "assign") <- temp 
 }
 else X <- model.matrix(Terms, mf, contrasts=contrast.arg)
 
@@ -552,11 +562,11 @@ if (!all(is.finite(X)))
 
 # drop the intercept after the fact, and also drop strata if necessary
 Xatt <- attributes(X) 
+if (hasinteractions) adrop <- c(0, untangle.specials(Terms, "strata")$terms)
+else adrop <- 0
 xdrop <- Xatt$assign %in% adrop  #columns to drop (always the intercept)
 X <- X[, !xdrop, drop=FALSE]
 attr(X, "assign") <- Xatt$assign[!xdrop]
-#if (any(adrop>0)) attr(X, "contrasts") <- Xatt$contrasts[-adrop]
-#else attr(X, "contrasts") <- Xatt$contrasts
 attr(X, "contrasts") <- Xatt$contrasts
 @ 
 
