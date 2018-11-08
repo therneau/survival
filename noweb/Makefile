@@ -1,5 +1,5 @@
 PARTS = main.Rnw \
-	coxph.Rnw \
+	coxph2.Rnw \
 	exact.nw \
 	agreg.Rnw \
 	coxsurv.Rnw \
@@ -9,6 +9,7 @@ PARTS = main.Rnw \
 	concordance.Rnw \
         survconcordance.Rnw \
 	survexp.Rnw \
+	parse.Rnw \
 	pyears.Rnw pyears2.Rnw \
 	residuals.survreg.Rnw \
 	survfit.Rnw \
@@ -28,6 +29,7 @@ SFUN =  agreg.fit.R \
 	coxph.R \
 	finegray.R \
 	model.matrix.coxph.R \
+	parsecovar.R \
 	plot.survfit.R \
 	predict.coxph.R \
 	pyears.R \

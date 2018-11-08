@@ -1,7 +1,7 @@
 \section{The cox.zph function}
 The simplest test of proportional hazards is to use a time dependent
 coefficient $\beta(t) = a + bt$.
-The $\beta(t) x = ax + b(tx)$, and the extended coefficients $a$ and $b$
+Then $\beta(t) x = ax + b(tx)$, and the extended coefficients $a$ and $b$
 can be obtained from a Cox model with an extra 'fake' covariate $tx$.
 More generally, replace $t$ with some function $g(t)$, which gives rise to
 an entire family of tests.
@@ -9,7 +9,8 @@ An efficient assessment of this extended model can be done using a score
 test.
 \begin{itemize}
   \item Augment the original variables $x_1, \ldots x_k$ with $k$ new ones
-$tx_1, \ldots, tx_k$
+$g(t)x_1, \ldots, g(t)
+x_k$
   \item Compute the first and second derivatives $U$ and $H$ of the Cox model
 at the starting estimate of $(\hat\beta, 0)$; prior covariates at their
 prior values, and the new covariates at 0.  No iteration is done.
