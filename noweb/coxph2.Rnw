@@ -1,0 +1,936 @@
+\section{Cox Models}
+\subsection{Coxph}
+The [[coxph]] routine is the underlying basis for all the models.
+The source was converted to noweb when adding time-transform terms.
+
+The call starts out with the basic building of a model frame
+and proceeds from there.
+The aeqSurv function is used to adjucate near ties in the time
+variable, numerical precision issues that occur when users base
+caculations on days/365.25 instead of days.
+
+The analysis for multi-state data is a bit more complex.
+\begin{itemize}
+    \item If there is a covariates statement, we preprocess this to find out 
+      any potential extra variables, and create a new formula if necessary.
+      Final processing has to wait until we have Y, however.
+    \item If there is a covariates statement, missing value processing needs
+      to be deferred, since some covariates may apply only to select
+      transitions.
+    \item After the data frame is constructed, the transitions matrix can be
+      used to check that all the state names actually exist, construct the
+      cmap matrix, and do missing value removal.
+\end{itemize}
+ 
+<<coxph>>=
+#tt <- function(x) x
+coxph <- function(formula, data, weights, subset, na.action,
+	init, control, ties= c("efron", "breslow", "exact"),
+	singular.ok =TRUE, robust=FALSE,
+	model=FALSE, x=FALSE, y=TRUE,  tt, method=ties, 
+        covariates, statedata, istate, cluster, id,  ...) {
+
+    ties <- match.arg(ties)
+    Call <- match.call()
+    ## We want to pass any ... args to coxph.control, but not pass things
+    ##  like "dats=mydata" where someone just made a typo.  The use of ...
+    ##  is simply to allow things like "eps=1e6" with easier typing
+    extraArgs <- list(...)
+    if (length(extraArgs)) {
+        controlargs <- names(formals(coxph.control)) #legal arg names
+        indx <- pmatch(names(extraArgs), controlargs, nomatch=0L)
+        if (any(indx==0L))
+            stop(gettextf("Argument %s not matched", 
+                          names(extraArgs)[indx==0L]), domain = NA)
+    }
+    if (missing(control)) control <- coxph.control(...)
+ 
+    # create a call to model.frame() that contains the formula (required)
+    #  and any other of the relevant optional arguments
+    # then evaluate it in the proper frame
+    indx <- match(c("formula", "data", "weights", "subset", "na.action",
+                    "cluster", "id", "istate"),
+                  names(Call), nomatch=0) 
+    if (indx[1] ==0) stop("A formula argument is required")
+    temp <- Call[c(1,indx)]  # only keep the arguments we wanted
+    temp[[1L]] <- quote(stats::model.frame)  # change the function called
+        
+    special <- c("strata", "cluster", "tt")
+
+    dformula <- formula   # the default formula for transitions   
+    if (missing(covariates)) covlist <- NULL
+    else {
+        if (missing(statedata)) covlist <- parsecovar1(covariates)
+        else covlist <- parsecovar1(covariates, statedata)
+        # the term.labels + reformulate + environment trio is used in [.terms;
+        #  if it's good enough for base R it's good enough for me
+        temp <- unlist(lapply(covlist$rhs, function(x) 
+            attr(terms.formula(x$formula), "term.labels")))
+        temp <- c(temp, attr(terms.formula(formula), "term.labels"), temp)
+        newform <- reformulate(temp, formula[[2]])
+        environment(newform) <- environment(formula)
+        formula <- newform
+        temp$na.action <- na.pass
+     }
+
+    special <- c("strata", "cluster", "tt")
+    temp$formula <- if(missing(data)) terms(formula, special)
+                  
+    # Make "tt" visible for coxph formulas, without making it visible elsewhere
+    if (!is.null(attr(temp$formula, "specials")$tt)) {
+        coxenv <- new.env(parent= environment(formula))
+        assign("tt", function(x) x, env=coxenv)
+        environment(temp$formula) <- coxenv
+    }
+
+    mf <- eval(temp, parent.frame())
+    if (nrow(mf) ==0) stop("No (non-missing) observations")
+    Terms <- terms(mf)
+
+    Y <- model.response(mf)
+    if (!inherits(Y, "Surv")) stop("Response must be a survival object")
+    type <- attr(Y, "type")
+    multi <- FALSE
+    if (type=="mright" || type == "mcounting") multi <- TRUE
+    else if (type!='right' && type!='counting')
+	stop(paste("Cox model doesn't support \"", type,
+			  "\" survival data", sep=''))
+
+    # Grab cluster and/or id to check out multi-state data
+    id <- model.extract(mf, "id")
+    cluster <- model.extract(mf, "cluster")
+
+    if(length(attr(Terms, "specials")$cluster)) {
+        if (length(cluster) >0)
+            stop("model has both a cluster option and a cluster term in the formula")
+        tempc <- untangle.specials(Terms, 'cluster', 1:10)
+        ord <- attr(Terms, 'order')[tempc$terms]
+        if (any(ord>1)) stop ("Cluster can not be used in an interaction")
+        cluster <- strata(mf[,tempc$vars], shortlabel=TRUE)  #allow multiples
+        dropterms <- tempc$terms
+        # Save away xlevels after removing cluster (we don't want to save upteen
+        #  levels of that variable, which we will never need).
+        xlevels <- .getXlevels(Terms[-tempc$terms], mf)
+    }
+    else {
+        xlevels <- .getXlevels(Terms, mf)
+        dropterms <- NULL
+    }
+    if (length(cluster)) robust <- TRUE  # use a robust variance later
+    else if (missing(robust)) robust <- FALSE
+    
+    if (multi) {
+        # check for consistency of the states, and create a transition
+        #  matrix
+        if (length(id)==0) 
+            stop("an id statement is required for multi-state models")
+        if (length(cluster)==0) cluster <- id # use this as a default
+
+        istate <- model.extract(mf, "istate")
+        mcheck <- multicheck(Y, id, istate)
+        # error messages here
+    }
+ 
+    #  second check of covariates -- build tmap and take care of missings
+    if (!is.null(covlist)) {
+        if (!multi) stop("covariates statement, but not a multi-state Surv")
+        if (is.null(statedata$state))
+            stop("the statedata data set must contain a state variable")
+        ilev <- if (is.factor(istate)) levels(istate) else unique(istate)
+        if (missing(statedata)) statedata <- NULL
+        covlist2 <- parsecovar2(covlist, statedata, dformula= dformula,
+                                ystate=attr(Y, 'states'), istate=ilev)
+    }
+
+    data.n <- nrow(Y)   #remember this before any time transforms
+    if (control$timefix) Y <- aeqSurv(Y)
+    <<coxph-bothsides>>
+        
+    # The time transform will expand the data frame mf.  To do this
+    #  it needs Y and the strata.  Everything else (cluster, offset, weights)
+    #  should be extracted after the transform
+    #
+    strats <- attr(Terms, "specials")$strata
+    if (length(strats)) {
+	stemp <- untangle.specials(Terms, 'strata', 1)
+	if (length(stemp$vars)==1) strata.keep <- mf[[stemp$vars]]
+	else strata.keep <- strata(mf[,stemp$vars], shortlabel=TRUE)
+	strats <- as.numeric(strata.keep)
+	}
+    
+    timetrans <- attr(Terms, "specials")$tt
+    if (missing(tt)) tt <- NULL
+    if (length(timetrans)) {
+        if (multi) stop("time transforms are not supported for multistate modeling")
+         <<coxph-transform>>
+        }
+
+    
+    contrast.arg <- NULL  #due to shared code with model.matrix.coxph
+    <<coxph-make-X>>
+    <<coxph-setup>>
+    <<coxph-penal>>
+    <<coxph-compute>>
+    <<coxph-finish>>
+    }
+@     
+
+Standard code to grab the data.
+<<coxph-getdata>>=
+
+@ 
+
+An increasingly common error is for users to put the time variable on
+both sides of the formula, in the mistaken idea that this will
+deal with a failure of proportional hazards.
+Add a test for such models, and bail out.
+The \code{variables} attribute of the Terms object is the expression form
+of a list that contains the response variable followed by the predictors.
+Subscripting this, element 1 is the call to ``list'' itself so we always
+retain it.  My \code{terms.inner} function works only with formula
+objects. 
+<<coxph-bothsides>>=
+if (length(attr(Terms, 'variables')) > 2) { # a ~1 formula has length 2
+    ytemp <- terms.inner(formula[1:2])
+    xtemp <- terms.inner(formula[-2])
+    if (any(!is.na(match(xtemp, ytemp))))
+        warning("a variable appears on both the left and right sides of the formula")
+}
+@ 
+
+
+At this point we deal with any time transforms.  
+The model frame is expanded to a ``fake'' data set that has a
+separate stratum for each unique event-time/strata combination,
+and any tt() terms in the formula are processed.  
+The first step is to create the index vector [[tindex]] and
+new strata [[.strata.]].   This last is included in a model.frame call
+(for others to use), internally the code simply replaces the [[strats]]
+variable.
+A (modestly) fast C-routine first counts up and indexes the observations.
+We start out with error checks; since the computation can be slow we want
+to complain early.
+<<coxph-transform>>=
+timetrans <- untangle.specials(Terms, 'tt')
+ntrans <- length(timetrans$terms)
+
+if (is.null(tt)) {
+    tt <- function(x, time, riskset, weights){ #default to O'Brien's logit rank
+        obrien <- function(x) {
+            r <- rank(x)
+            (r-.5)/(.5+length(r)-r)
+        }
+        unlist(tapply(x, riskset, obrien))
+    }
+}
+if (is.function(tt)) tt <- list(tt)  #single function becomes a list
+    
+if (is.list(tt)) {
+    if (any(!sapply(tt, is.function))) 
+        stop("The tt argument must contain function or list of functions")
+    if (length(tt) != ntrans) {
+        if (length(tt) ==1) {
+            temp <- vector("list", ntrans)
+            for (i in 1:ntrans) temp[[i]] <- tt[[1]]
+            tt <- temp
+        }
+        else stop("Wrong length for tt argument")
+    }
+}
+else stop("The tt argument must contain a function or list of functions")
+
+if (ncol(Y)==2) {
+    if (length(strats)==0) {
+	sorted <- order(-Y[,1], Y[,2])
+	newstrat <- rep.int(0L, nrow(Y))
+        newstrat[1] <- 1L
+	}
+    else {
+	sorted <- order(strats, -Y[,1], Y[,2])
+        #newstrat marks the first obs of each strata
+	newstrat <-  as.integer(c(1, 1*(diff(strats[sorted])!=0))) 
+	}
+    if (storage.mode(Y) != "double") storage.mode(Y) <- "double"
+    counts <- .Call(Ccoxcount1, Y[sorted,], 
+                    as.integer(newstrat))
+    tindex <- sorted[counts$index]
+}
+else {
+    if (length(strats)==0) {
+	sort.end  <- order(-Y[,2], Y[,3])
+	sort.start<- order(-Y[,1])
+	newstrat  <- c(1L, rep(0, nrow(Y) -1))
+    }
+    else {
+	sort.end  <- order(strats, -Y[,2], Y[,3])
+	sort.start<- order(strats, -Y[,1])
+	newstrat  <- c(1L, as.integer(diff(strats[sort.end])!=0))
+    }
+    if (storage.mode(Y) != "double") storage.mode(Y) <- "double"
+    counts <- .Call(Ccoxcount2, Y, 
+                    as.integer(sort.start -1L),
+                    as.integer(sort.end -1L), 
+                    as.integer(newstrat))
+    tindex <- counts$index
+}
+@ 
+
+The C routine has returned a list with 4 elements
+\begin{description}
+  \item[nrisk] a vector containing the number at risk at each event time
+  \item[time] the vector of event times
+  \item[status] a vector of status values
+  \item[index] a vector containing the set of subjects at risk for event time
+    1, followed by those at risk at event time 2, those at risk at event time 3,
+    etc.
+\end{description}
+
+The new data frame is then a simple creation.
+The subtle part below is a desire to retain transformation information
+so that a downstream call to \code{termplot} will work.
+The tt function supplied by the user often finishes with a call to 
+\code{pspline} or \code{ns}.  If the returned value of the \code{tt}
+call has a class for which a \code{makepredictcall} method exists then
+we need to do 2 things:
+\begin{enumerate}
+  \item Construct a fake call, e.g., ``pspline(age)'', then feed it and
+    the result of tt as arguments to \code{makepredictcall}
+  \item Replace that componenent in the predvars attribute of the terms.
+\end{enumerate}
+The \code{timetrans\$terms} value is a count of the right hand side of
+the formula.  Some objects in the terms structure are unevaluated calls
+that include y, this adds 2 to the count (the call to ``list'' and
+the response).
+
+<<coxph-transform>>=
+Y <- Surv(rep(counts$time, counts$nrisk), counts$status)
+type <- 'right'  # new Y is right censored, even if the old was (start, stop]
+
+mf <- mf[tindex,]
+strats <- rep(1:length(counts$nrisk), counts$nrisk)
+weights <- model.weights(mf)
+if (!is.null(weights) && any(!is.finite(weights)))
+    stop("weights must be finite")  
+
+tcall <- attr(Terms, 'variables')[timetrans$terms+2]
+pvars <- attr(Terms, 'predvars')
+pmethod <- sub("makepredictcall.", "", as.vector(methods("makepredictcall")))
+for (i in 1:ntrans) {
+    newtt <- (tt[[i]])(mf[[timetrans$var[i]]], Y[,1], strats, weights)
+    mf[[timetrans$var[i]]] <- newtt
+    nclass <- class(newtt)
+    if (any(nclass %in% pmethod)) { # It has a makepredictcall method
+        dummy <- as.call(list(as.name(class(newtt)[1]), tcall[[i]][[2]]))
+        ptemp <- makepredictcall(newtt, dummy)
+        pvars[[timetrans$terms[i]+2]] <- ptemp
+    }
+}
+attr(Terms, "predvars") <- pvars
+@ 
+
+This is the C code for time-transformation.
+For the first case it expects y to contain time and status sorted from
+longest time to shortest, and strata=1 for the first observation of
+each strata.  
+<<coxcount1>>=
+#include "survS.h"
+/*
+** Count up risk sets and identify who is in each
+*/
+SEXP coxcount1(SEXP y2, SEXP strat2) {
+    int ntime, nrow;
+    int i, j, n;
+    int stratastart=0;  /* start row for this strata */
+    int nrisk=0;  /* number at risk (=0 to stop -Wall complaint)*/
+    double *time, *status;
+    int *strata;
+    double dtime;
+    SEXP rlist, rlistnames, rtime, rn, rindex, rstatus;
+    int *rrindex, *rrstatus;
+    
+    n = nrows(y2);
+    time = REAL(y2);
+    status = time +n;
+    strata = INTEGER(strat2);
+    
+    /* 
+    ** First pass: count the total number of death times (risk sets)
+    **  and the total number of rows in the new data set.
+    */
+    ntime=0; nrow=0;
+    for (i=0; i<n; i++) {
+        if (strata[i] ==1) nrisk =0;
+        nrisk++;
+	if (status[i] ==1) {
+	    ntime++;
+	    dtime = time[i];
+	    /* walk across tied times, if any */
+            for (j=i+1; j<n && time[j]==dtime && status[j]==1 && strata[j]==0;
+                 j++) nrisk++;
+            i = j-1;
+	    nrow += nrisk;
+        }
+    }
+    <<coxcount-alloc-memory>>
+    
+    /*
+    ** Pass 2, fill them in
+    */
+    ntime=0; 
+    for (i=0; i<n; i++) {
+	if (strata[i] ==1) stratastart =i;
+	if (status[i]==1) {
+	    dtime = time[i];
+            for (j=stratastart; j<i; j++) *rrstatus++=0; /*non-deaths */
+	    *rrstatus++ =1; /* this death */
+            /* tied deaths */
+	    for(j= i+1; j<n && status[j]==1 && time[j]==dtime  && strata[j]==0;
+		j++) *rrstatus++ =1;
+            i = j-1;
+
+	    REAL(rtime)[ntime] = dtime;
+	    INTEGER(rn)[ntime] = i +1 -stratastart;
+            ntime++;
+	    for (j=stratastart; j<=i; j++) *rrindex++ = j+1;
+            }
+    }
+    <<coxcount-list-return>>
+}
+@ 
+
+The start-stop case is a bit more work.
+The set of subjects still at risk is an arbitrary set so we have to 
+keep an index vector [[atrisk]].
+At each new death time we write out the set of those at risk, with the
+deaths last.
+I toyed with the idea of a binary tree then realized it was not useful:
+at each death we need to list out all the subjects at risk into the index
+vector which is an $O(n)$ process, tree or not.
+<<coxcount1>>=
+#include "survS.h"
+/* count up risk sets and identify who is in each, (start,stop] version */
+SEXP coxcount2(SEXP y2, SEXP isort1, SEXP isort2, SEXP strat2) {
+    int ntime, nrow;
+    int i, j, istart, n;
+    int nrisk=0, *atrisk;
+    double *time1, *time2, *status;
+    int *strata;
+    double dtime;
+    int iptr, jptr;
+
+    SEXP rlist, rlistnames, rtime, rn, rindex, rstatus;
+    int *rrindex, *rrstatus;
+    int *sort1, *sort2;
+    
+    n = nrows(y2);
+    time1 = REAL(y2);
+    time2 =  time1+n;
+    status = time2 +n;
+    strata = INTEGER(strat2);
+    sort1 = INTEGER(isort1);
+    sort2 = INTEGER(isort2);
+    
+    /* 
+    ** First pass: count the total number of death times (risk sets)
+    **  and the total number of rows in the new data set
+    */
+    ntime=0; nrow=0;
+    istart =0;  /* walks along the sort1 vector (start times) */
+        for (i=0; i<n; i++) {
+        iptr = sort2[i];
+        if (strata[i]==1) nrisk=0;
+	nrisk++;
+	if (status[iptr] ==1) {
+	    ntime++;
+	    dtime = time2[iptr];
+            for (; istart <i && time1[sort1[istart]] >= dtime; istart++) 
+                         nrisk--;
+            for(j= i+1; j<n; j++) {
+                jptr = sort2[j];
+                if (status[jptr]==1 && time2[jptr]==dtime && strata[jptr]==0)
+		    nrisk++;
+		else break;
+		}
+	    i= j-1;
+	    nrow += nrisk;
+	    }
+	}
+
+    <<coxcount-alloc-memory>>
+    atrisk = (int *)R_alloc(n, sizeof(int)); /* marks who is at risk */
+    
+    /*
+    ** Pass 2, fill them in
+    */
+    ntime=0; nrisk=0;
+    j=0;  /* pointer to time1 */;
+    istart=0;
+    for (i=0; i<n; ) {
+        iptr = sort2[i];
+        if (strata[i] ==1) {
+            nrisk=0;
+            for (j=0; j<n; j++) atrisk[j] =0;
+	    }
+	nrisk++;
+	if (status[iptr]==1) {
+	    dtime = time2[iptr];
+            for (; istart<i && time1[sort1[istart]] >=dtime; istart++) {
+                atrisk[sort1[istart]]=0;
+                nrisk--;
+		}
+            for (j=1; j<nrisk; j++) *rrstatus++ =0;
+	    for (j=0; j<n; j++) if (atrisk[j]) *rrindex++ = j+1;
+
+	    atrisk[iptr] =1;
+	    *rrstatus++ =1; 
+	    *rrindex++ = iptr +1;
+            for (j=i+1; j<n; j++) {
+		jptr = sort2[j];
+		if (time2[jptr]==dtime && status[jptr]==1 && strata[jptr]==0){
+		    atrisk[jptr] =1;
+		    *rrstatus++ =1;
+		    *rrindex++ = jptr +1;
+		    nrisk++;
+		    }
+		else break;
+		}
+            i = j;
+	    REAL(rtime)[ntime] = dtime;
+	    INTEGER(rn)[ntime] = nrisk;
+            ntime++;
+	}
+        else {
+            atrisk[iptr] =1;
+            i++;
+        }
+    }    
+    <<coxcount-list-return>>
+}
+@ 
+
+<<coxcount-alloc-memory>>=
+/*
+**  Allocate memory
+*/
+PROTECT(rtime = allocVector(REALSXP, ntime));
+PROTECT(rn = allocVector(INTSXP, ntime));
+PROTECT(rindex=allocVector(INTSXP, nrow));
+PROTECT(rstatus=allocVector(INTSXP,nrow));
+rrindex = INTEGER(rindex);
+rrstatus= INTEGER(rstatus);
+@
+
+<<coxcount-list-return>>=
+/* return the list */
+PROTECT(rlist = allocVector(VECSXP, 4));
+SET_VECTOR_ELT(rlist, 0, rn);
+SET_VECTOR_ELT(rlist, 1, rtime);
+SET_VECTOR_ELT(rlist, 2, rindex);
+SET_VECTOR_ELT(rlist, 3, rstatus);
+PROTECT(rlistnames = allocVector(STRSXP, 4));
+SET_STRING_ELT(rlistnames, 0, mkChar("nrisk"));
+SET_STRING_ELT(rlistnames, 1, mkChar("time"));
+SET_STRING_ELT(rlistnames, 2, mkChar("index"));
+SET_STRING_ELT(rlistnames, 3, mkChar("status"));
+setAttrib(rlist, R_NamesSymbol, rlistnames);
+
+unprotect(6);
+return(rlist);
+@ 
+ 
+We now return to the original thread of the program, though perhaps
+with new data, and build the $X$ matrix.
+Creation of the $X$ matrix for a Cox model requires just a bit of
+trickery.  
+The baseline hazard for a Cox model plays the role of an intercept,
+but does not appear in the $X$ matrix.  
+However, to create the columns of $X$ for factor variables correctly,
+we need to call the model.matrix routine in such a way that it \emph{thinks}
+there is an intercept.
+If there are strata the proper $X$ matrix is constructed as though there
+were one intercept per strata.
+One simple way to handle this is to call model.matrix on the original formula
+and then remove the terms we don't need.  
+However, 
+\begin{enumerate}
+  \item The cluster() term, if any, could lead to thousands of extraneous
+    ``intercept'' columns which are never needed.
+  \item Likewise, nested  case-control models can have thousands of strata,
+    again leading many intercepts we never need.
+  \item If there are strata by factor interactions in the model, 
+    the dummy intercepts-per-strata columns are necessary information for the
+    model.matrix routine to correctly compute other columns of $X$.
+\end{enumerate}
+For reasons 1 and 2 above the usual plan is to remove cluster and strata 
+terms from the ``Terms'' object \emph{before} calling model.matrix,
+unless there are strata by covariate interactions in which case we remove
+them after.
+For the first strategy the \code{assign} attribute of the resulting 
+model matrix then needs to be
+fixed up, since we want it to index into the original formula.
+For example imagine the right hand side of \code{age + strata(sex) + trt}
+where trt is a factor with 3 levels.
+The assign attribute from the modified formula will be (0,1,2,2)
+corresponding to the intercept, age, and treatment columns.
+The final $X$ matrix has no intercept, and a proper assign attribute of
+(1,3,3) since trt is the third variable in the original formula.
+
+
+<<coxph-make-X>>=
+attr(Terms, "intercept") <- 1
+adrop <- 0  #levels of "assign" to be dropped; 0= intercept
+stemp <- untangle.specials(Terms, 'strata', 1)
+if (length(stemp$vars) > 0) {  #if there is a strata statement
+    hasinteractions <- FALSE
+    for (i in stemp$vars) {  #multiple strata terms are allowed
+        # The factors attr has one row for each variable in the frame, one
+        #   col for each term in the model.  Pick rows for each strata
+        #   var, and find if it participates in any interactions.
+        if (any(attr(Terms, 'order')[attr(Terms, "factors")[i,] >0] >1))
+            hasinteractions <- TRUE  
+        }
+    if (!hasinteractions) dropterms <- c(dropterms, stemp$terms) 
+    else adrop <- c(0, match(stemp$var, colnames(attr(Terms, 'factors'))))
+}
+
+if (length(dropterms)) {
+    temppred <- attr(terms, "predvars")
+    Terms2 <- Terms[ -dropterms]
+    if (!is.null(temppred)) {
+        # subscripting a Terms object currently drops predvars, in error
+        attr(Terms2, "predvars") <- temppred[-(1+dropterms)] # "Call" object
+    }
+    X <- model.matrix(Terms2, mf, constrasts=contrast.arg)
+    # we want to number the terms wrt the original model matrix
+    # Do not forget the intercept, which will be a zero
+    renumber <- match(colnames(attr(Terms2, "factors")), 
+                      colnames(attr(Terms,  "factors")))
+    attr(X, "assign") <- c(0, renumber)[1+attr(X, "assign")]
+}
+else X <- model.matrix(Terms, mf, contrasts=contrast.arg)
+
+# infinite covariates are not screened out by the na.omit routines
+if (!all(is.finite(X)))
+    stop("data contains an infinite predictor")
+
+# drop the intercept after the fact, and also drop strata if necessary
+Xatt <- attributes(X) 
+xdrop <- Xatt$assign %in% adrop  #columns to drop (always the intercept)
+X <- X[, !xdrop, drop=FALSE]
+attr(X, "assign") <- Xatt$assign[!xdrop]
+#if (any(adrop>0)) attr(X, "contrasts") <- Xatt$contrasts[-adrop]
+#else attr(X, "contrasts") <- Xatt$contrasts
+attr(X, "contrasts") <- Xatt$contrasts
+@ 
+
+Finish the setup.  If someone includes and init statement, make sure
+that it does not lead to instant code failure due to overflow/underflow.
+<<coxph-setup>>=
+offset <- model.offset(mf)
+if (is.null(offset) | all(offset==0)) offset <- rep(0., nrow(mf))
+else if (any(!is.finite(offset))) stop("offsets must be finite")
+    
+weights <- model.weights(mf)
+if (!is.null(weights) && any(!is.finite(weights)))
+    stop("weights must be finite")   
+
+assign <- attrassign(X, Terms)
+contr.save <- attr(X, "contrasts")
+if (missing(init)) init <- NULL
+else {
+    if (length(init) != ncol(X)) stop("wrong length for init argument")
+    temp <- X %*% init - sum(colMeans(X) * init)
+    if (any(temp < .Machine$double.min.exp | temp > .Machine$double.max.exp))
+        stop("initial values lead to overflow or underflow of the exp function")
+}
+<<coxph-zeroevent>>
+@
+
+Check for a rare edge case: a data set with no events.  In this case the
+return structure is simple.
+The coefficients will all be NA, since they can't be estimated.
+The variance matrix is all zeros, in line with the usual rule to zero out
+any row and col corresponding to an NA coef.
+The loglik is the sum of zero terms, which we set to zero like the usual
+R result for sum(numeric(0)).  
+An overall idea is to return something that won't blow up later code.
+
+<<coxph-zeroevent>>=
+if (sum(Y[, ncol(Y)]) == 0) {
+    # No events in the data!
+    ncoef <- ncol(X)
+    ctemp <- rep (NA, ncoef)
+    names(ctemp) <- colnames(X)
+    concordance= c(concordant=0, discordant=0, tied.x=0, tied.y=0, tied.xy=0,
+                   concordance=NA, std=NA)
+    rval <- list(coefficients= ctemp,
+                 var = matrix(0.0, ncoef, ncoef),
+                 loglik=c(0,0),
+                 score =0,
+                 iter =0,
+                 linear.predictors = offset,
+                 residuals = rep(0.0, data.n),
+                 means = colMeans(X), method=method,
+                 n = data.n, nevent=0, terms=Terms, assign=assign,
+                 concordance=concordance, 
+                 y = Y, call=Call)
+    class(rval) <- "coxph"
+    return(rval)
+}
+@ 
+
+Check for penalized terms in the model, and set up infrastructure for
+the fitting routines to deal with them.
+<<coxph-penal>>=
+pterms <- sapply(mf, inherits, 'coxph.penalty')
+if (any(pterms)) {
+    pattr <- lapply(mf[pterms], attributes)
+    pname <- names(pterms)[pterms]
+    # 
+    # Check the order of any penalty terms
+    ord <- attr(Terms, "order")[match(pname, attr(Terms, 'term.labels'))]
+    if (any(ord>1)) stop ('Penalty terms cannot be in an interaction')
+    pcols <- assign[match(pname, names(assign))] 
+    
+    fit <- coxpenal.fit(X, Y, strats, offset, init=init,
+                        control,
+                        weights=weights, method=method,
+                        row.names(mf), pcols, pattr, assign)
+}
+@ 
+
+<<coxph-compute>>=
+else {
+    if( method=="breslow" || method =="efron") {
+        if (type== 'right')  fitter <- get("coxph.fit")
+        else                 fitter <- get("agreg.fit")
+    }
+    else if (method=='exact') {
+        if (type== "right")  fitter <- get("coxexact.fit")
+        else  fitter <- get("agexact.fit")
+    }
+    else stop(paste ("Unknown method", method))
+
+    fit <- fitter(X, Y, strats, offset, init, control, weights=weights,
+                  method=method, row.names(mf))
+}
+@ 
+
+<<coxph-finish>>=
+if (is.character(fit)) {
+    fit <- list(fail=fit)
+    class(fit) <- 'coxph'
+}
+else {
+    if (!is.null(fit$coefficients) && any(is.na(fit$coefficients))) {
+       vars <- (1:length(fit$coefficients))[is.na(fit$coefficients)]
+       msg <-paste("X matrix deemed to be singular; variable",
+    		   paste(vars, collapse=" "))
+       if (!singular.ok) stop(msg)
+       # else warning(msg)  # stop being chatty
+    }
+    fit$n <- data.n
+    fit$nevent <- sum(Y[,ncol(Y)])
+    fit$terms <- Terms
+    fit$assign <- assign
+    class(fit) <- fit$class
+    fit$class <- NULL
+
+    # don't compute a robust variance if there are no coefficients
+    if (robust && !is.null(fit$coefficients) && !all(is.na(fit$coefficients))) {
+        fit$naive.var <- fit$var
+        # a little sneaky here: by calling resid before adding the
+        #   na.action method, I avoid having missings re-inserted
+        # I also make sure that it doesn't have to reconstruct X and Y
+        fit2 <- c(fit, list(x=X, y=Y, weights=weights))
+        if (length(strats)) fit2$strata <- strats
+        if (length(cluster)) {
+    	temp <- residuals.coxph(fit2, type='dfbeta', collapse=cluster,
+    				  weighted=TRUE)
+    	# get score for null model
+    	if (is.null(init))
+    		fit2$linear.predictors <- 0*fit$linear.predictors
+    	else fit2$linear.predictors <- c(X %*% init)
+    	temp0 <- residuals.coxph(fit2, type='score', collapse=cluster,
+    				 weighted=TRUE)
+        }
+        else {
+            temp <- residuals.coxph(fit2, type='dfbeta', weighted=TRUE)
+            fit2$linear.predictors <- 0*fit$linear.predictors
+            temp0 <- residuals.coxph(fit2, type='score', weighted=TRUE)
+        }
+        fit$var <- t(temp) %*% temp
+        u <- apply(as.matrix(temp0), 2, sum)
+        fit$rscore <- coxph.wtest(t(temp0)%*%temp0, u, control$toler.chol)$test
+    }
+
+    #Wald test
+    if (length(fit$coefficients) && is.null(fit$wald.test)) {  
+        #not for intercept only models, or if test is already done
+        nabeta <- !is.na(fit$coefficients)
+        # The init vector might be longer than the betas, for a sparse term
+        if (is.null(init)) temp <- fit$coefficients[nabeta]
+        else temp <- (fit$coefficients - 
+    		  init[1:length(fit$coefficients)])[nabeta]
+        fit$wald.test <-  coxph.wtest(fit$var[nabeta,nabeta], temp,
+    				  control$toler.chol)$test
+    }
+
+    # Concordance.  Done here so that we can use cluster if it is present
+    # The returned value is a subset of the full result, partly because it
+    #  is all we need, but more for backward compatability with survConcordance.fit
+    if (length(cluster))
+        temp <- concordance.fit(Y, fit$linear.predictors, strats, weights,
+                                          cluster=cluster, reverse=TRUE)
+    else temp <- concordance.fit(Y, fit$linear.predictors, strats, weights,
+                                  reverse=TRUE)
+    if (is.matrix(temp$count))
+         fit$concordance <- c(colSums(temp$count), concordance=temp$concordance,
+                              std=sqrt(temp$var))
+    else fit$concordance <- c(temp$count, concordance=temp$concordance, 
+                              std=sqrt(temp$var))
+ 
+   na.action <- attr(mf, "na.action")
+    if (length(na.action)) fit$na.action <- na.action
+    if (model) {
+        if (length(timetrans)) {
+            # Fix up the model frame -- still in the thinking stage
+            mf[[".surv."]]   <- Y
+            mf[[".strata."]] <- strats
+            stop("'model=TRUE' not supported for models with tt terms")
+        }
+        fit$model <- mf
+    }
+    if (x)  {
+        fit$x <- X
+        if (length(strats)) {
+            if (length(timetrans)) fit$strata <- strats
+            else     fit$strata <- strata.keep
+        }
+    }
+    if (y)  fit$y <- Y
+}
+@ 
+If any of the weights were not 1, save the results.
+Add names to the means component, which are occassionally
+useful to survfit.coxph.
+Other objects below are used when we need to recreate a 
+model frame.
+
+<<coxph-finish>>=
+if (!is.null(weights) && any(weights!=1)) fit$weights <- weights
+names(fit$means) <- names(fit$coefficients)
+
+fit$formula <- formula(Terms)
+if (length(xlevels) >0) fit$xlevels <- xlevels
+fit$contrasts <- contr.save
+if (any(offset !=0)) fit$offset <- offset
+fit$call <- Call
+fit
+@ 
+
+The model.matrix and model.frame routines are called after a Cox model to
+reconstruct those portions.  
+Much of their code is shared with the coxph routine.
+
+<<model.matrix.coxph>>=
+# In internal use "data" will often be an already derived model frame.
+#  We detect this via it having a terms attribute.
+model.matrix.coxph <- function(object, data=NULL, 
+                               contrast.arg=object$contrasts, ...) {
+    # 
+    # If the object has an "x" component, return it, unless a new
+    #   data set is given
+    if (is.null(data) && !is.null(object[['x']])) 
+        return(object[['x']]) #don't match "xlevels"
+
+    Terms <- delete.response(object$terms)
+    if (is.null(data)) mf <- stats::model.frame(object)
+    else {
+        if (is.null(attr(data, "terms")))
+            mf <- stats::model.frame(Terms, data, xlev=object$xlevels)
+        else mf <- data  #assume "data" is already a model frame
+    }
+
+    cluster <- attr(Terms, "specials")$cluster
+    if (length(cluster)) {
+        temp <- untangle.specials(Terms, "cluster")
+        dropterms <- temp$terms
+    }
+    else dropterms <- NULL
+    
+    <<coxph-make-X>>
+    X
+}
+@ 
+
+In parallel is the model.frame routine, which reconstructs the model frame.
+This routine currently doesn't do all that we want.  To wit, the following code
+fails:
+\begin{verbatim}
+> tfun <- function(formula, ndata) {
+      fit <- coxph(formula, data=ndata)
+      model.frame(fit)
+      }
+> tfun(Surv(time, status) ~ age, lung)
+Error: ndata not found
+\end{verbatim}
+The genesis of this problem is hard to unearth, but has to do with non standard
+evaluation rules used by model.frame.default.  In essence it pays attention to 
+the environment of the formula, but the enclos argument of eval appears to be
+ignored.  I've not yet found a solution.
+
+<<model.matrix.coxph>>=
+model.frame.coxph <- function(formula, ...) {
+    dots <- list(...)
+    nargs <- dots[match(c("data", "na.action", "subset", "weights"), 
+                        names(dots), 0)] 
+    # If nothing has changed and the coxph object had a model component,
+    #   simply return it.
+    if (length(nargs) ==0  && !is.null(formula$model)) return(formula$model)
+    else {
+        # Rebuild the original call to model.frame
+        Terms <- terms(formula)
+        fcall <- formula$call
+        indx <- match(c("formula", "data", "weights", "subset", "na.action"),
+                  names(fcall), nomatch=0) 
+        if (indx[1] ==0) stop("The coxph call is missing a formula!")
+   
+        temp <- fcall[c(1,indx)]  # only keep the arguments we wanted
+        temp[[1]] <- quote(stats::model.frame)  # change the function called
+        temp$xlev <- formula$xlevels
+        temp$formula <- Terms   #keep the predvars attribute
+        # Now, any arguments that were on this call overtake the ones that
+        #  were in the original call.  
+        if (length(nargs) >0)
+            temp[names(nargs)] <- nargs
+
+        # The documentation for model.frame implies that the environment arg
+        #  to eval will be ignored, but if we omit it there is a problem.
+        if (is.null(environment(formula$terms))) 
+            mf <- eval(temp, parent.frame())
+        else mf <- eval(temp, environment(formula$terms), parent.frame())
+
+	if (!is.null(attr(formula$terms, "dataClasses")))
+	    .checkMFClasses(attr(formula$terms, "dataClasses"), mf)
+       
+       if (!is.null(attr(Terms, "specials")$tt)) {
+          # Do time transform
+	  tt <- eval(formula$call$tt)
+	  Y <- aeqSurv(model.response(mf))
+	  strats <- attr(Terms, "specials")$strata
+	  if (length(strats)) {
+	      stemp <- untangle.specials(Terms, 'strata', 1)
+	      if (length(stemp$vars)==1) strata.keep <- mf[[stemp$vars]]
+	      else strata.keep <- strata(mf[,stemp$vars], shortlabel=TRUE)
+	      strats <- as.numeric(strata.keep)
+          }
+ 	  
+          <<coxph-transform>>
+          mf[[".strata."]] <- strats
+       }
+       mf
+    }
+}
+@ 
+
