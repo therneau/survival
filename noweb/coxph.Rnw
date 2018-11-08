@@ -508,7 +508,7 @@ For reason 2 above the usual plan is to also remove strata
 terms from the ``Terms'' object \emph{before} calling model.matrix,
 unless there are strata by covariate interactions in which case we remove
 them after.
-If anything is pre-dropped, for documenation purposes we want the
+If anything is pre-dropped, for documentation purposes we want the
 returned assign attribute to match the Terms structure that we will
 hand back.  (Do we ever use it?)
 In particular, the numbers therein correspond to the column names in

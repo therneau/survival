@@ -139,17 +139,44 @@ coxph <- function(formula, data, weights, subset, na.action,
         ilev <- if (is.factor(istate)) levels(istate) else unique(istate)
         if (missing(statedata)) statedata <- NULL
         covlist2 <- parsecovar2(covlist, statedata, dformula= dformula,
-                                ystate=attr(Y, 'states'), istate=ilev)
+                                transitions)
+        # figure out missings
+        # first a matrix for each starting state of all the terms used 
+        #  for transitions from that state
+        tmap <- covlist2$tmap
+        mapid <- covlist2$mapid
+        terms.used <- matrix(0L, nrow=nrow(transitions), ncol=nrow(tmap))
+        for (i in 1:nrow(terms.used)) 
+            terms.used[,i] <- any(tmap[,mapid[,1]==i] >0)
+        omit <- logical(n)  # nrow(mf)
+        for (j in seq_len(ncol(mf))) {
+            # which rows of the data use j?
+            data.use <- terms.used[istate, j]
+            x <- is.na(mf[[j]])
+            d <- dim(x)
+            if (is.null(d) || length(d) != 2L)
+                omit <- omit | (x & data.use)
+            else for (ii in 1L:d[2L]) omit <- omit | (xx[,ii] & data.use)
+        }
+        if (any(omit)) {
+            temp <- setNames(seq(omit)[omit], attr(mf, "row.names")[omit])
+            attr(temp, "class") <- "omit"
+            mf <- mf[!omit,]
+            attr(mf, "na.action") <- temp
+        }
     }
 
     data.n <- nrow(Y)   #remember this before any time transforms
     if (control$timefix) Y <- aeqSurv(Y)
     <<coxph-bothsides>>
         
-    # The time transform will expand the data frame mf.  To do this
-    #  it needs Y and the strata.  Everything else (cluster, offset, weights)
-    #  should be extracted after the transform
-    #
+    timetrans <- attr(Terms, "specials")$tt
+    if (missing(tt)) tt <- NULL
+    if (length(timetrans)) {
+        if (multi) stop("tt terms are not supported with multivariate endpoints")
+         <<coxph-transform>>
+        }
+        
     strats <- attr(Terms, "specials")$strata
     if (length(strats)) {
 	stemp <- untangle.specials(Terms, 'strata', 1)
@@ -157,15 +184,7 @@ coxph <- function(formula, data, weights, subset, na.action,
 	else strata.keep <- strata(mf[,stemp$vars], shortlabel=TRUE)
 	strats <- as.numeric(strata.keep)
 	}
-    
-    timetrans <- attr(Terms, "specials")$tt
-    if (missing(tt)) tt <- NULL
-    if (length(timetrans)) {
-        if (multi) stop("time transforms are not supported for multistate modeling")
-         <<coxph-transform>>
-        }
-
-    
+      
     contrast.arg <- NULL  #due to shared code with model.matrix.coxph
     <<coxph-make-X>>
     <<coxph-setup>>
@@ -174,11 +193,6 @@ coxph <- function(formula, data, weights, subset, na.action,
     <<coxph-finish>>
     }
 @     
-
-Standard code to grab the data.
-<<coxph-getdata>>=
-
-@ 
 
 An increasingly common error is for users to put the time variable on
 both sides of the formula, in the mistaken idea that this will
@@ -547,8 +561,6 @@ but does not appear in the $X$ matrix.
 However, to create the columns of $X$ for factor variables correctly,
 we need to call the model.matrix routine in such a way that it \emph{thinks}
 there is an intercept.
-If there are strata the proper $X$ matrix is constructed as though there
-were one intercept per strata.
 One simple way to handle this is to call model.matrix on the original formula
 and then remove the terms we don't need.  
 However, 
