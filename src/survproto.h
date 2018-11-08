@@ -155,6 +155,9 @@ SEXP gchol_inv(SEXP matrix, SEXP flag2);
 void init_doloop(int min, int max);
 int doloop      (int nloops, int *index);
 
+int *norisk(int n, double *time1, double *time2, double *status, 
+	    int *sort1, int *sort2, int *strata);
+
 void pyears1(Sint   *sn,      Sint   *sny,      Sint   *sdoevent, 
 	     double *sy,      double *wt,       
 	     Sint   *sedim,   Sint   *efac, 

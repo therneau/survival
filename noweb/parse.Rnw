@@ -1,0 +1,194 @@
+\subsection{Parsing the covariates list}
+For a multi-state Cox model we allow a list of formulas to be given by
+the covariates option.
+These formulas are not really formulas, instead we abuse the R formula
+notation to get what we want.
+
+The input list needs to be taken apart into its component pieces first,
+before model.frame is called, in order to have a full list of variable
+names that need to be in the model frame.
+After the model frame is constructed we have the necessary data to
+check that state names given in the formulas actually exist in the 
+data and that initial value strings are the right length.
+We can then construct the \code{cmap} matrix.
+
+<<parsecovar>>=
+parsecovar1 <- function(flist, statedata) {
+    if (any(sapply(flist, function(x) !inherits(x, "formula"))))
+        stop("flist must be a list of formulas")
+    if (any(sapply(flist, length) != 3))
+        stop("all formulas must have a left and right side")
+    
+    # split the formulas into a right hand and left hand side
+    lhs <- lapply(flist, function(x) x[-3])
+    rhs <- lapply(flist, function(x) x[-2])
+    
+    <<parse-rightside>>
+    <<parse-leftside>>
+    list(rhs = rhs2, lhs= lterm)
+}
+@ 
+
+First look at the right hand side of each formula.  There are 4
+possble options of common, fixed, clear, and init.  
+The first 3 appear just as words, the last should have a set of
+values attached which become the \code{ival} vector.
+The end result is a list for each formula containing the actual right
+hand side formula along with the options.
+
+<<parse-rightside>>=
+# take apart the right hand side of each formula
+# the function below is applied to each formula in turn.
+rh2 <- lapply(rh2, function(form) {
+    parts <- strsplit(deparse(form, width.cutoff=300, control=NULL), 
+                      '/', fixed=TRUE)[[1]]
+    if (length(parts) ==1)  { # nothing after a /
+        ival <- NULL; common <- FALSE; fixed <- FALSE; clear <- FALSE;
+    }
+    else{
+        # treat the right hand side as though it were a formula
+        optterms <- terms(formula(paste("~", parts[2])))
+        ff <- rownames(attr(optterms, "factors"))
+        index <- match(ff, c("common", "fixed", "init", "clear"))
+        if (any(is.na(index)))
+            stop("option not recognized in a covariates formula: ",
+                 paste(ff[is.na(indx)], collapse=", "))
+        common <- any(index==1)
+        fixed  <- any(index==2)
+        clear  <- any(index==3)
+        if (any(index==3)) {
+            optatt <- attributes(optterms)
+            j <- optatt$variables[1 + which(index==3)]
+            j[[1]] <- as.name("list")
+            ival <- unlist(eval(j, parent.frame()))
+        } else ival <- NULL
+    }
+
+    # and now the terms before the slash, which is the actual formula
+    #  a formula of -1 +1 is recorded as intercept=TRUE, pasting a -1 on
+    #  allows us to tell if a 1 was included.
+    form <- formula(paste("~ -1 +", parts[1]))
+    list(common=common, fixed=fixed, clear=clear, ival=ivar, 
+       formula = form) 
+})
+@ 
+ 
+The left hand side of each formula specifies the set of transitions to which
+the covariates apply, and is more complex.
+Say instance that we had 7 states and the following statedata
+data set.
+\begin{center}
+  \begin{tabular}{cccc}
+    state & A&  N& death \hline \\
+    A-N- &  0&  0 & 0\\
+    A+N- &  1&  0 & 0\\
+    A-N1 &  0&  1 & 0\\
+    A+N1 &  1&  1 & 0\\
+    A-N2 &  0&  2 & 0\\
+    A+N2 &  1&  2 & 0\\
+    Death&  NA & NA& 1 
+\end{tabular}
+\end{center}
+
+  Here are some valid transitions
+\begin{itemize}
+   \item 1:state('A+N+'),   any transition to the A+N+ state
+   \item state('A-N-'):death(0), a transition from A-N-, but not to death
+   \item A(0):A(1), any of the 4 changes that start with A=0 and end with A=1
+   \item N(0):N(1,2) + N(1):N(2), an upward change of N
+   \item 'A-N-':c('A-N+','A+N-'); if there is no variable then the 
+     overall state is assumed
+\end{itemize}
+
+<<parse-leftside>>=
+# deal with the left hand side of the formula
+# the next routine cuts at '+' signs
+pcut <- function(form) {
+    if (length(form)==3 && form[[1]] == '+') 
+        c(pcut(form[[2]]), pcut(form[[3]]))
+    else form
+}
+lcut <- lapply(lhs, function(x) pcut(x[[2]]))
+@ 
+We now have one list per formula, each list is either a single term
+or a list of terms (case 4 above).
+To make evaluation easier, create functions that append their
+name to a list of values.
+I have not yet found a way to do this without eval(parse()), which
+always seems clumsy.
+A use for the labels without an argument will arise later, hence the
+double environments.
+
+<<parse-leftside>>=
+env1 <- new.env(parent= parent.frame(2))
+env2 <- new.env(parent= env1)
+if (is.null(statedata))
+    assign("state", function(...) list(label="state", values=c(...)), env1)
+else {
+    for (i in names(statedata)) {
+        assign(i, i, env2)
+        tfun <- eval(parse(text=paste0("function(...) list('", i, "',...)")))
+        assign(i, tfun, env1)
+    }
+}
+
+lterm <- lapply(lcut, function(x) {
+    lapply(x, function(z) {
+        if (length(z)==1) eval(z, envir=env2)
+        else if (length(z) ==3 && z[[1]]==':')
+            list(eval(z[[2]], envir=env2), eval(z[[3]], envir=env2))
+        else stop("invalid term: ", deparse(z))
+    })
+})
+@ 
+
+
+The second call, which builds tmap, the terms map.
+Arguments are the results from the first pass, the statedata data frame,
+the default formula, list of response states and initial states.
+
+<<parsecovar>>=
+parsecovar2 <- function(covar1, statedata, dformula, ystate, istate) {
+    if (is.null(statedata))
+        statedata <- data.frame(state = unique(ystate, istate))
+    else {
+        if (is.null(statedata$state)) 
+            stop("the statedata data set must contain a variable 'state'")
+        indx1 <- match(istate, statedata$state, nomatch=0)
+        if (any(indx1==0))
+            stop("statedata does not contain initial state(s) ", 
+                 istate[indx1==0])
+        indx2 <- match(ystate, statedata$state, nomatch=0)
+        if (any(indx2==0))
+            stop("statedata does not contain ending state(s) ", ystate[indx2==0])
+    }
+    
+    # Statedata might have rows for states that are not in the data set,
+    #  for instance if the coxph call had used a subset argument
+    # Likewise, the covariates list might have rules for transitions that are
+    #  not present.  Don't worry about it at this stage.
+    
+
+@ 
+
+
+<<parse-tmap>>=
+@ 
+
+<<parse-finish>>=
+@ 
+
+
+
+<<parse-formula-matrix>>=
+ntrans <- sum(transitions[,-1] > 0) # number of transitions
+termname <- row.names(attr(delete.response(Terms), "factors"))
+tform <- matrix(list(), nrow= n, ncol=ntrans)
+for (i in 1:nrow(transitions)) {
+    for (j in 1:(}
+# start by filling tmap in with the default
+    dname <- row.names(attr(delete.response(terms(dform)), "factors"))
+    index <- c(1, 1+ match(dname, tname))
+    tmap[index, ] <- matrix(1:(length(index)*ntrans), ncol=ntrans, byrow=TRUE)
+    nform <- rep(0, ntrans)  # number of modifications so far
+@ 

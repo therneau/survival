@@ -37,7 +37,8 @@ SEXP multicheck(SEXP y2, SEXP id2, SEXP istate2, SEXP sort2) {
 	}	
 	else pstate[ii] = istate[ii];
 	ilag = ii;
-    }	
+    }
+    UNPROTECT(1);
     return(pstate2);
 }	
     

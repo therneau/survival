@@ -7,6 +7,14 @@
 
 multicheck <- function(y, id, istate=NULL, nerror=6) {
     n <- length(id)
+    # Check 0: if y has only 2 colums there isn't much to do
+    if (ncol(y)==2) {
+        if (any(duplicated(id))) 
+            stop("multiple observations per subject requires (start, end) times")
+        istate <- rep(0L, n)
+        return(list(istate=istate, transitions=table(istate, y[,2])))
+    }
+
     # first check: no one is two places at once
     #  sort by stop time within subject, start time as the tie breaker
     index <- order(id, y[,2], y[,1])  # by start time, within stop time
@@ -25,6 +33,11 @@ multicheck <- function(y, id, istate=NULL, nerror=6) {
         stop("observation(s) that overlap in time, id=", (id[indx2])[temp],
              " rows = ", indx2[temp])
     }
+    # If no one has more than one obs our work is done
+    if (all(!oldid)) {
+        istate <- rep(0L, n)
+        return(list(istate=istate, transitions = table(istate, y[,3])))
+    }
 
     # check 2: if istate is present, someone can only "jump" states if they
     #  have a gap.  If status is '2' at time 10 (a change to state 2), then
@@ -33,15 +46,17 @@ multicheck <- function(y, id, istate=NULL, nerror=6) {
     #  retain the prior state.  The C routine returns a "carry forward" state
     #  vector, which starts out as istate for each new subject (or 0 if the
     #  istate vector is NULL) and marches forward.
-    if (missing(istate)) { # construct an istate
-        if (any(gap==1)) warning("data has gaps and istate was not specified")
-        pstate <- .Call(Cmulticheck, y, id, integer(n), index-1L) 
+    id.int <- match(id, unique(id))
+    if (length(istate) ==0) { # construct an istate
+        if (any(oldid & gap==1)) 
+            warning("data has gaps and istate was not specified")
+        pstate <- .Call(Cmulticheck, y, id.int, integer(n), index-1L) 
         istate <- pstate  # this gets returned
         jumps <- NULL
     }
     else {
         if (length(istate) != n) stop("wrong length for istate")
-        pstate <- .Call(Cmulticheck, y, id, istate, index-1L) 
+        pstate <- .Call(Cmulticheck, y, id.int, istate, index-1L) 
         bad <- ((pstate != istate)[-1] & gap==0 & oldid)
         if (any(bad) & nerror>0) {
             temp <- which(bad)
