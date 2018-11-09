@@ -20,6 +20,7 @@ R/concordance.R
 R/coxph.R
 R/finegray.R
 R/model.matrix.coxph.R
+R/parsecovar.R
 R/plot.survfit.R
 R/predict.coxph.R
 R/pyears.R

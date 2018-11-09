@@ -52,8 +52,8 @@ coxph <- function(formula, data, weights, subset, na.action,
                     "cluster", "id", "istate"),
                   names(Call), nomatch=0) 
     if (indx[1] ==0) stop("A formula argument is required")
-    temp <- Call[c(1,indx)]  # only keep the arguments we wanted
-    temp[[1L]] <- quote(stats::model.frame)  # change the function called
+    tform <- Call[c(1,indx)]  # only keep the arguments we wanted
+    tform[[1L]] <- quote(stats::model.frame)  # change the function called
         
     special <- c("strata", "cluster", "tt")
 
@@ -64,27 +64,27 @@ coxph <- function(formula, data, weights, subset, na.action,
         else covlist <- parsecovar1(covariates, statedata)
         # the term.labels + reformulate + environment trio is used in [.terms;
         #  if it's good enough for base R it's good enough for me
-        temp <- unlist(lapply(covlist$rhs, function(x) 
+        tlab <- unlist(lapply(covlist$rhs, function(x) 
             attr(terms.formula(x$formula), "term.labels")))
-        temp <- c(temp, attr(terms.formula(formula), "term.labels"), temp)
-        newform <- reformulate(temp, formula[[2]])
+        tlab <- c(attr(terms.formula(formula), "term.labels"), tlab)
+        newform <- reformulate(tlab, formula[[2]])
         environment(newform) <- environment(formula)
         formula <- newform
-        temp$na.action <- na.pass
+ #       tform$na.action <- na.pass
      }
 
     special <- c("strata", "cluster", "tt")
-    temp$formula <- if(missing(data)) terms(formula, special) else
+    tform$formula <- if(missing(data)) terms(formula, special) else
                                       terms(formula, special, data=data)
                   
     # Make "tt" visible for coxph formulas, without making it visible elsewhere
-    if (!is.null(attr(temp$formula, "specials")$tt)) {
+    if (!is.null(attr(tform$formula, "specials")$tt)) {
         coxenv <- new.env(parent= environment(formula))
         assign("tt", function(x) x, env=coxenv)
-        environment(temp$formula) <- coxenv
+        environment(tform$formula) <- coxenv
     }
 
-    mf <- eval(temp, parent.frame())
+    mf <- eval(tform, parent.frame())
     if (nrow(mf) ==0) stop("No (non-missing) observations")
     Terms <- terms(mf)
 
@@ -156,23 +156,34 @@ coxph <- function(formula, data, weights, subset, na.action,
         else if (is.null(statedata$state))
             stop("the statedata data set must contain a state variable")
         covlist2 <- parsecovar2(covlist, statedata, dformula= dformula,
-                                transitions)
+                                Terms, transitions)
         # figure out missings
         # first a matrix for each starting state of all the terms used 
         #  for transitions from that state
-        tmap <- covlist2$tmap
-        mapid <- covlist2$mapid
+        tmap <- covlist2$tmap[-1,,drop=FALSE]  # ignore the intercept row
+        mapid <- covlist2$mapid[-1,, drop=FALSE]
         terms.used <- matrix(0L, nrow=nrow(transitions), ncol=nrow(tmap))
         for (i in 1:nrow(terms.used)) 
             terms.used[,i] <- any(tmap[,mapid[,1]==i] >0)
-        omit <- logical(n)  # nrow(mf)
-        for (j in seq_len(ncol(mf))) {
+ 
+        mf.map <- match(rownames(attr(delete.response(Terms), 'factors')),
+                        names(mf)) # the col of mf for each term
+        # initialize the missing using all other terms, e.g. response
+        other <- (1:ncol(mf))[-mf.map]  # other model frame columns
+        omit <- apply(is.na(mf[,other]), 1, any)
+        
+        # for each term on the rhs of the formula, who is in an initial
+        #  state s.t. one of the transitions from that state uses term
+        #  j?, gives data.use vector.  If any of them have missing for term j,
+        #  then that subject is out.  The code is essentially na.omit with
+        #  "& data.use" tossed in.  
+        for (j in seq(along = mf.map)) {
             # which rows of the data use j?
-            data.use <- terms.used[istate, j]
-            x <- is.na(mf[[j]])
-            d <- dim(x)
+            data.use <- terms.used[match(istate, states), j]
+            xx <- is.na(mf[[mf.map[j]]])
+            d <- dim(xx)
             if (is.null(d) || length(d) != 2L)
-                omit <- omit | (x & data.use)
+                omit <- omit | (xx & data.use)
             else for (ii in 1L:d[2L]) omit <- omit | (xx[,ii] & data.use)
         }
         if (any(omit)) {
@@ -719,8 +730,10 @@ factors turn into multiple columns for instance.
 Also create the initial values vector.
 
 <<coxph-multi-X>>=
+tmap <- covlist2$tmap
+mapid <- covlist2$mapid
 cmap <- matrix(0L, 1+ncol(X), ncol(tmap)) # first row is strata
-cmap[1,] <- match(tmap[1,], sort(unique(tmap[1,])))
+cmap[1,] <- match(tmap[1,], sort(c(0, unique(tmap[1,])))) -1L
 xcount <- table(attr(X, "assign"))
 mult <- 1+ max(xcount)  #used to keep the coefs in the same oder
 j <- 1
@@ -729,7 +742,7 @@ for (i in 2:nrow(tmap)) {
     cmap[j+k,] <- tmap[i,]*mult + rep(k, ncol(tmap))
     j <- j + max(k)
 }
-cmap[-1,] <- match(cmap[-1,], sort(unique(cmap[-1,])))
+cmap[-1,] <- match(cmap[-1,], sort(c(0L, unique(cmap[-1,])))) -1L
 dimnames(cmap) <- list(c("(Intercept)", colnames(X)), 
                        paste(mapid[,1], mapid[,2], sep=':'))
 
