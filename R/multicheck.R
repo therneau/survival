@@ -7,14 +7,18 @@
 
 multicheck <- function(y, id, istate=NULL, nerror=6) {
     n <- length(id)
+    to.names <- c("censored", attr(y, "states"))
     # Check 0: if y has only 2 colums there isn't much to do
     if (ncol(y)==2) {
         if (any(duplicated(id))) 
             stop("multiple observations per subject requires (start, end) times")
         istate <- rep(0L, n)
-        return(list(istate=istate, transitions=table(istate, y[,2])))
+        transitions <- table(istate, y[,2])
+        dimnames(transitions) <- list(from="", to= to.names)
+        return(list(istate=istate, transitions=transitions,
+                    states=c("", to.names[-1])))
     }
-
+    
     # first check: no one is two places at once
     #  sort by stop time within subject, start time as the tie breaker
     index <- order(id, y[,2], y[,1])  # by start time, within stop time
@@ -22,7 +26,7 @@ multicheck <- function(y, id, istate=NULL, nerror=6) {
     indx2 <- index[-n]
     gap <- sign(y[indx1,1] - y[indx2,2])
     oldid <- duplicated(id[index])[-1]
-
+    
     # gap = 0   (0, 10], (10, 15]
     # gap = 1   (0, 10], (12, 15]  # a hole in the time
     # gap = -1  (0, 10], (9, 15]   # overlapping times
@@ -34,11 +38,15 @@ multicheck <- function(y, id, istate=NULL, nerror=6) {
              " rows = ", indx2[temp])
     }
     # If no one has more than one obs our work is done
+    to.names <- c("", attry(y, "states"))
     if (all(!oldid)) {
         istate <- rep(0L, n)
-        return(list(istate=istate, transitions = table(istate, y[,3])))
+        transitions <- table(istate, y[,2])
+        dimnames(transitions) <- list(from="", to= to.names)
+        return(list(istate=istate, transitions=transitions,
+                    states=c("", to.names[-1])))
     }
-
+        
     # check 2: if istate is present, someone can only "jump" states if they
     #  have a gap.  If status is '2' at time 10 (a change to state 2), then
     #  for a next obs that starts at 10 it must have an istate of 2.  
@@ -51,12 +59,20 @@ multicheck <- function(y, id, istate=NULL, nerror=6) {
         if (any(oldid & gap==1)) 
             warning("data has gaps and istate was not specified")
         pstate <- .Call(Cmulticheck, y, id.int, integer(n), index-1L) 
-        istate <- pstate  # this gets returned
+        istate <- factor(pstate, 0:max(pstate), c("", to.names[-1])) 
+        states <- c("", to.names[-1])
         jumps <- NULL
     }
     else {
         if (length(istate) != n) stop("wrong length for istate")
-        pstate <- .Call(Cmulticheck, y, id.int, istate, index-1L) 
+        istate <- as.factor(istate)
+        pstate <- .Call(Cmulticheck, y, id.int, as.integer(istate), index-1L)
+        # the result is a mixed factor, give it proper levels
+        itemp <- length(levels(istate))
+        ptemp <- ifelse(c(FALSE, oldid), pstate, pstate + itemp)
+        states <- c(levels(istate), to.names[-1])
+        pstate <- factor(pstate, seq_len(itemp + length(to.names) -1), states)
+                                         
         bad <- ((pstate != istate)[-1] & gap==0 & oldid)
         if (any(bad) & nerror>0) {
             temp <- which(bad)
@@ -70,10 +86,10 @@ multicheck <- function(y, id, istate=NULL, nerror=6) {
     }   
                            
     # create the table of transitions
-    keep <- y[,3]>0
-    trtable <- table(istate[keep], y[keep,3], useNA= "ifany")
+    trtable <- table(istate, y[,3], useNA= "ifany")
+    dimnames(trtable) <- list(from = levels(as.factor(istate)), to.names)   
     
-    rval <- list(istate=istate, transitions =trtable)
+    rval <- list(istate=istate, transitions =trtable, states=states)
     if (length(jumps)) rval$jumps <- table(pstate[jumps], istate[jumps])
     if (any(overlap)) rval$overlap <- index[which(overlap)]
     if (any(bad))     rval$badstate <- index[which(bad)]

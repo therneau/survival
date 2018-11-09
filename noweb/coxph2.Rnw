@@ -74,7 +74,8 @@ coxph <- function(formula, data, weights, subset, na.action,
      }
 
     special <- c("strata", "cluster", "tt")
-    temp$formula <- if(missing(data)) terms(formula, special)
+    temp$formula <- if(missing(data)) terms(formula, special) else
+                                      terms(formula, special, data=data)
                   
     # Make "tt" visible for coxph formulas, without making it visible elsewhere
     if (!is.null(attr(temp$formula, "specials")$tt)) {
@@ -129,15 +130,31 @@ coxph <- function(formula, data, weights, subset, na.action,
         istate <- model.extract(mf, "istate")
         mcheck <- multicheck(Y, id, istate)
         # error messages here
+        transitions <- mcheck$transitions
+        istate <- mcheck$istate
+        states <- mcheck$states
     }
  
     #  second check of covariates -- build tmap and take care of missings
-    if (!is.null(covlist)) {
+    if (is.null(covlist)) {
+        if (multi) {
+            # the perhaps not-so-rare case of no covariates statement
+            # tmap is particularly simple: separate coefficients for everything
+            nterm <- length(attr(Terms, "term.labels"))
+            ntran <- sum(transitions[,-1] > 0)
+            tmap <- matrix(seq_len(nterm*ntran), nrow=nterm)
+            tmap <- rbind(1:ntran, tmap)
+            temp <- transitions[,-1, drop=FALSE]
+            dd <- dimnames(temp)
+            mapid <- cbind((match(dd[[1]], states))[row(temp)],
+                           (match(dd[[2]], states))[col(temp)])
+        }
+    } else {
         if (!multi) stop("covariates statement, but not a multi-state Surv")
-        if (is.null(statedata$state))
-            stop("the statedata data set must contain a state variable")
         ilev <- if (is.factor(istate)) levels(istate) else unique(istate)
         if (missing(statedata)) statedata <- NULL
+        else if (is.null(statedata$state))
+            stop("the statedata data set must contain a state variable")
         covlist2 <- parsecovar2(covlist, statedata, dformula= dformula,
                                 transitions)
         # figure out missings
@@ -187,6 +204,9 @@ coxph <- function(formula, data, weights, subset, na.action,
       
     contrast.arg <- NULL  #due to shared code with model.matrix.coxph
     <<coxph-make-X>>
+    if (multi) {
+        <<coxph-multi-X>>
+    }
     <<coxph-setup>>
     <<coxph-penal>>
     <<coxph-compute>>
@@ -635,7 +655,32 @@ attr(X, "assign") <- Xatt$assign[!xdrop]
 attr(X, "contrasts") <- Xatt$contrasts
 @ 
 
-Finish the setup.  If someone includes and init statement, make sure
+For a multi-state model, create the expanded X matrix.  Sometimes it is
+much expanded.  
+The first step is to create the cmap matrix from tmap by expanding terms;
+factors turn into multiple columns for instance.  
+Also create the initial values vector.
+
+<<coxph-multi-X>>=
+cmap <- matrix(0L, 1+ncol(X), ncol(tmap)) # first row is strata
+cmap[1,] <- match(tmap[1,], sort(unique(tmap[1,])))
+xcount <- table(attr(X, "assign"))
+mult <- 1+ max(xcount)  #used to keep the coefs in the same oder
+j <- 1
+for (i in 2:nrow(tmap)) {
+    k <- seq_len(xcount[i-1])
+    cmap[j+k,] <- tmap[i,]*mult + rep(k, ncol(tmap))
+    j <- j + max(k)
+}
+cmap[-1,] <- match(cmap[-1,], sort(unique(cmap[-1,])))
+dimnames(cmap) <- list(c("(Intercept)", colnames(X)), 
+                       paste(mapid[,1], mapid[,2], sep=':'))
+browser()
+@ 
+
+
+
+Finish the setup.  If someone includes an init statement, make sure
 that it does not lead to instant code failure due to overflow/underflow.
 <<coxph-setup>>=
 offset <- model.offset(mf)

@@ -180,9 +180,9 @@ parsecovar2 <- function(covar1, statedata, dformula, Terms, transitions) {
     # fold the 3-dimensional tmap into a matrix with terms as rows
     #  and columns for transtions
     browser()
-    mapid <- cbind(row(transitions), col(transitions))[,c(was.seen)
+    mapid <- cbind(c(row(transitions)), c(col(transitions)))[,c(was.seen)]
     list(tmap = matrix(tmap, dim(tmap)[1])[,was.seen], inits=inits,
-         mapid = rbind(c(0,0), mapid)  # the first row is the intercept term
+         mapid = rbind(c(0,0), mapid))  # the first row is the intercept term
 }
 @ 
 
@@ -213,7 +213,7 @@ like \code{A(1,3)}, or it could be a simple vector resulting from
 \code{c(1,3)}.  In the second case we assume it matches the state variable.
 <<parse-lmatch>>=
 if (is.list(lhs[[1]]) && length(lhs[[1]])==2 && 
-    all(names(lhs[[1]]) == c("sdatacolname", "values")) {
+    all(names(lhs[[1]]) == c("sdatacolname", "values"))) {
         lrow <- match(lhs[[1]]$values, sdata[[lhs[[1]]$sdatacolname]])
         if (any(is.na(lrow))) 
             stop("value not found in statedata: ",
@@ -228,7 +228,7 @@ else {
 state1 <- statedata$state[lrow]
     
 if (is.list(lhs[[2]]) && length(lhs[[2]])==2 && 
-    all(names(lhs[[2]]) == c("sdatacolname", "values")) {
+    all(names(lhs[[2]]) == c("sdatacolname", "values"))) {
         lrow <- match(lhs[[2]]$values, sdata[[lhs[[2]]$sdatacolname]])
         if (any(is.na(lrow))) 
             stop("value not found in statedata: ",
