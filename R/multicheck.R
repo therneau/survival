@@ -12,7 +12,7 @@ multicheck <- function(y, id, istate=NULL, nerror=6) {
     if (ncol(y)==2) {
         if (any(duplicated(id))) 
             stop("multiple observations per subject requires (start, end) times")
-        istate <- rep(0L, n)
+        istate <- factor(rep("", n))
         transitions <- table(istate, y[,2])
         dimnames(transitions) <- list(from="", to= to.names)
         return(list(istate=istate, transitions=transitions,
@@ -40,7 +40,7 @@ multicheck <- function(y, id, istate=NULL, nerror=6) {
     # If no one has more than one obs our work is done
     to.names <- c("", attry(y, "states"))
     if (all(!oldid)) {
-        istate <- rep(0L, n)
+        istate <- factor(rep("", n))
         transitions <- table(istate, y[,2])
         dimnames(transitions) <- list(from="", to= to.names)
         return(list(istate=istate, transitions=transitions,

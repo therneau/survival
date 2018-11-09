@@ -31,8 +31,9 @@ a new factor, whose levels are all possible combinations of the factors
 supplied as arguments. 
 }
 \details{
-The result is identical to the \code{interaction} function, 
-but for the labeling of the factors (\code{strata} is more verbose). 
+When used outside of a \code{coxph} formula the result of the function
+is essentially identical to the \code{interaction} function, 
+though the labels from \code{strata} are often more verbose. 
 }
 \seealso{
 \code{\link{coxph}}, \code{\link{interaction}}
