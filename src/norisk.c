@@ -4,11 +4,16 @@
 ** It improves the accuracy of the accumulation routines if these are left
 **  out.  This routine marks them.
 */
+#include "survS.h"
+#include "survproto.h"
+
 int *norisk(int n, double *time1, double *time2, double *status, 
 	    int *sort1, int *sort2, int *strata) {
     int i, j, istrat, p1, p2;
-    int nevent;
-    double time;
+    int ndeath;
+    double dtime;
+    int *notused;
+
     notused = ALLOC(n, sizeof(int));
 
     /*
@@ -20,7 +25,7 @@ int *norisk(int n, double *time1, double *time2, double *status,
     ** This logic would be simpler if we walked forward in time, but the
     **  caller will have always sorted the data by (strata, reverse time, status)
     */
-    nevent=0;
+    ndeath=0;
     istrat=0;
     j =0;   /* tracks time1 */
     for (i=0; i<n; i++) {
@@ -49,7 +54,7 @@ int *norisk(int n, double *time1, double *time2, double *status,
     }	
 
     for (; j<n; j++) {
-	p1 = sort[j];
+	p1 = sort2[j];
 	
 	if (ndeath > notused[p1]) notused[p1] =1; 
 	else notused[p1] =0;

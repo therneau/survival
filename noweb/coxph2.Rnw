@@ -159,13 +159,6 @@ coxph <- function(formula, data, weights, subset, na.action,
     if (control$timefix) Y <- aeqSurv(Y)
     <<coxph-bothsides>>
         
-    timetrans <- attr(Terms, "specials")$tt
-    if (missing(tt)) tt <- NULL
-    if (length(timetrans)) {
-        if (multi) stop("tt terms are not supported with multivariate endpoints")
-         <<coxph-transform>>
-        }
-        
     strats <- attr(Terms, "specials")$strata
     if (length(strats)) {
 	stemp <- untangle.specials(Terms, 'strata', 1)
@@ -173,7 +166,14 @@ coxph <- function(formula, data, weights, subset, na.action,
 	else strata.keep <- strata(mf[,stemp$vars], shortlabel=TRUE)
 	strats <- as.numeric(strata.keep)
 	}
-      
+
+    timetrans <- attr(Terms, "specials")$tt
+    if (missing(tt)) tt <- NULL
+    if (length(timetrans)) {
+        if (multi) stop("tt terms are not supported with multivariate endpoints")
+         <<coxph-transform>>
+        }
+        
     contrast.arg <- NULL  #due to shared code with model.matrix.coxph
     <<coxph-make-X>>
     <<coxph-setup>>
