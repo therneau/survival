@@ -37,16 +37,26 @@ stacker <- function(cmap, istate, X, Y, strata, states) {
         nc <- cmap[-1,i]              # cols in new matrix
         newX[nr, nc[nc>0]] <- X[subject, nc>0]
         rindex[nr] <- subject
-        newstat[nr] <- ifelse(endpoint[subject] == to.state[i], 1, 0)
+        newstat[nr] <- ifelse(endpoint[subject] == to.state[i], 1L, 0L)
         k <- max(nr)
+    }
+
+    # which transition each row  of newX represents
+    transition <- rep(1:ncol(cmap), (table(istate))[from.state])
+
+    # remove any rows where X is missing
+    #  these arise when a variable is used only for some transitions
+    keep <- !apply(is.na(newX), 1, any)
+    if (!all(keep)) {
+        newX <- newX[keep,, drop=FALSE]
+        rindex <- rindex[keep]
+        newstat <- newstat[keep]
+        transition <- transition[keep]
     }
 
     if (ncol(Y) ==2) newY <- Surv(Y[rindex,1], newstat)
     else newY <- Surv(Y[rindex,1], Y[rindex,2], newstat)
 
-    # which transition each row represents
-    transition <- rep(1:ncol(cmap), (table(istate))[from.state])
-    
     # new strata
     if (is.null(strata)) newstrat <- cmap[1,transition]
     else {

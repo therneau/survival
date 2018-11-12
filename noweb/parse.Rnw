@@ -25,7 +25,7 @@ structure:
 \end{itemize}
 
 <<parsecovar>>=
-parsecovar1 <- function(flist, statedata) {
+parsecovar1 <- function(flist, statedatanames) {
     if (any(sapply(flist, function(x) !inherits(x, "formula"))))
         stop("flist must be a list of formulas")
     if (any(sapply(flist, length) != 3))
@@ -152,13 +152,13 @@ Repeating the list above, this is what we want to end with
 <<parse-leftside>>=
 env1 <- new.env(parent= parent.frame(2))
 env2 <- new.env(parent= env1)
-if (missing(statedata)) {
+if (missing(statedatanames)) {
     assign("state", function(...) list(stateid= "state", 
                                        values=c(...)), env1)
     assign("state", list(stateid="state"))
 }
 else {
-    for (i in names(statedata)) {
+    for (i in statedatanames) {
         assign(i, eval(list(stateid=i)), env2)
         tfun <- eval(parse(text=paste0("function(...) list(stateid='"
                                        , i, "', values=c(...)")))
@@ -186,68 +186,56 @@ the default formula, the terms structure from the full formula,
 and the transitions count.
 
 <<parsecovar>>=
-parsecovar2 <- function(covar1, statedata, dformula, Terms, transitions) {
-    istate <- rownames(transitions)
-    ystate <- colnames(transitions)[-1]
+parsecovar2 <- function(covar1, statedata, dformula, Terms, transitions,states) {
     if (is.null(statedata))
-        statedata <- data.frame(state = unique(c(istate, ystate)))
+        statedata <- data.frame(state = states)
     else {
         if (is.null(statedata$state)) 
             stop("the statedata data set must contain a variable 'state'")
-        indx1 <- match(istate, statedata$state, nomatch=0)
+        indx1 <- match(states, statedata$state, nomatch=0)
         if (any(indx1==0))
-            stop("statedata does not contain initial state(s) ", 
-                 istate[indx1==0])
-        indx2 <- match(ystate, statedata$state, nomatch=0)
-        if (any(indx2==0))
-            stop("statedata does not contain ending state(s) ", ystate[indx2==0])
+            stop("statedata does not contain all the possible states: ", 
+                 states[indx1==0])
+        statedata <- statedata[indx1,]   # put it in order
     }
     
     # Statedata might have rows for states that are not in the data set,
-    #  for instance if the coxph call had used a subset argument
+    #  for instance if the coxph call had used a subset argument.  Any of
+    #  those were eliminated above.
     # Likewise, the covariates list might have rules for transitions that are
     #  not present.  Don't worry about it at this stage.
     allterm <- attr(Terms, 'term.labels')
     nterm <- length(allterm)
 
-    <<parse-tmap>>
+    <<parse-tmap-setup>>
     
-    # fold the 3-dimensional tmap into a matrix with terms as rows
-    #  and columns for transtions
-    # Subscript 1 of the 3-d version is the term number, which is retained.
-    #  subscripts 2 and 3 are in the order of statedata, we want an output
-    #  in the order to transitions, which may not be the same.
-        
-    t2 <- transitions[,-1, drop=FALSE]   # transitions to 'censor' don't count
-    indx1 <- match(istate, statedata$state)
-    indx2 <- match(ystate, statedata$state)
-    indx3 <- cbind(c(row(t2)), c(col(t2)))[, t2>0]
-    tmap2 <- matrix(0L, nrow= 1+nterm, ncol= nrow(indx3))
-    for (i in 1:nrow(indx3)) tmap2[,i] <- tmap[, indx1[indx3[i,1]], 
-                                                 indx2[indx3[i,2]]]
-    dimnames(tmap2) <- list(c("Intercept", allterm),
-                            paste(indx3[1], indx3[,2], sep=':')) 
-    list(tmap = tmap2, inits=inits, mapid= indx3)
+    # if there is no covariates statement, the middle part of the work is skipped
+    if (!is.null(covar1)) {
+        <<parse-tmap>>
+    }
+    <<parse-finish>>
 }
 @ 
 
-Create a map for every transition, even the ones that were not used.
+Create a map for every transition, even the ones that are not used;
+this simply makes the indexing easier.  At the end we will dispose of
+unneeded ones.
 The very first term is the intercept or strata.
-We initialize all the ones that are actually used to the default formula,
-the rest remain as zeros.
-<<parse-tmap>>=
+<<parse-tmap-setup>>=
 # create the map and fill it in with the default formula
-tmap <- array(0L, dim=c(nterm+1, nrow(statedata), nrow(statedata)))
+nstate <- length(states)
+tmap <- array(0L, dim=c(nterm+1, nstate, nstate))
 dterms <- match(attr(terms.formula(dformula), "term.labels"), allterm)
 dterms <- c(1L, 1L + dterms)  # add the intercept
 k <- seq(along=dterms)
-for (i in 1:nrow(statedata)) {
-    for (j in 1:nrow(statedata)) {
+for (i in 1:nstate) {
+    for (j in 1:nstate) {
         tmap[dterms,i,j] <- k
         k <- k + length(k)
     }
 }
 ncoef <- max(tmap)  # number of coefs used so far
+inits <- NULL
 @ 
 
 Now go through the formulas one by one.  The left hand side tells us which
@@ -288,7 +276,6 @@ for (x in lhs) {
 
 The inits need to wait a little longer, until the X matrix is in hand.
 <<parse-tmap>>=
-inits <- NULL  
 for (i in 1:length(covar1$rhs)) {  
     rhs <- covar1$rhs[[i]]
     lhs <- covar1$lhs[[i]]  # the two are the same length
@@ -310,3 +297,58 @@ for (i in 1:length(covar1$rhs)) {
 }    
 @ 
 
+
+Fold the 3-dimensional tmap into a matrix with terms as rows
+and one column for each transition that actually occured.
+ 
+<<parse-finish>>=
+t2 <- transitions[,-1, drop=FALSE]   # transitions to 'censor' don't count
+indx1 <- match(rownames(t2), states)
+indx2 <- match(colnames(t2), states)
+tmap2 <- matrix(0L, nrow= 1+nterm, ncol= sum(t2>0))
+
+trow <- row(t2)[t2>0]
+tcol <- col(t2)[t2>0]
+for (i in 1:length(trow)) tmap2[,i] <- tmap[,indx1[trow[i]], indx2[tcol[i]]]
+
+dimnames(tmap2) <- list(c("Intercept", allterm),
+                            paste(indx1[trow], indx2[tcol], sep=':')) 
+list(tmap = tmap2, inits=inits, mapid= cbind(indx1[trow], indx2[tcol]))
+@
+
+
+Last is a helper routine that converts tmap, which has one row per term,
+into cmap, which has one row per coefficient.  Both have one column per 
+transition.
+It uses the assign attribute of the X matrix along with the column names.
+Be careful to make 0 stay as a 0.
+
+<<parsecovar>>=
+parsecovar3 <- function(tmap, Xcol, Xassign) {
+    # sometime X will have an intercept, sometimes not, tmap and cmap
+    #  always do
+    hasintercept <- (Xassign[1] ==0)
+
+    cmap <- matrix(0L, length(Xcol) + !hasintercept, ncol(tmap))
+    cmap[1,] <- match(tmap[1,], sort(c(0, unique(tmap[1,])))) -1L
+
+    xcount <- table(factor(Xassign, levels=1:max(Xassign)))
+    mult <- 1+ max(xcount)  #used to keep the coefs in the same oder
+
+    j <- 1
+    for (i in 2:nrow(tmap)) {
+        k <- seq_len(xcount[i-1])
+        cmap[j+k,] <- ifelse(tmap[i,]==0, 0, tmap[i,]*mult + rep(k, ncol(tmap)))
+        j <- j + max(k)
+    }
+
+    # renumber coefs as 1, 2, 3, ...
+    cmap[-1,] <- match(cmap[-1,], sort(unique(c(0L, cmap[-1,])))) -1L
+    
+    colnames(cmap) <- colnames(tmap)
+    if (hasintercept) rownames(cmap) <- Xcol
+    else rownames(cmap) <- c("(Intercept)", Xcol)
+
+    cmap
+}
+@ 

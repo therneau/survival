@@ -230,13 +230,13 @@ SEXP agfit4(SEXP surv2,      SEXP covar2,    SEXP strata2,
 	    SEXP sort12,     SEXP sort22,    SEXP method2,
 	    SEXP maxiter2,   SEXP  eps2,     SEXP tolerance2,
 	    SEXP doscale2) { 
-
+                
     int i,j,k, person;
     int indx1, istrat, p, p1;
     int nrisk;
     int nused, nvar;
     int rank, rank2, fail;
-    
+   
     double **covar, **cmat, **imat;  /*ragged array versions*/
     double *a, *oldbeta;
     double *scale;
@@ -303,8 +303,9 @@ SEXP agfit4(SEXP surv2,      SEXP covar2,    SEXP strata2,
     a2= a + nvar;
     scale  = a2 + nvar;
     oldbeta = scale + nvar;
-    keep = (int *) R_alloc(nused, sizeof(int));
-
+    keep = (int *) R_alloc(nused, sizeof(int));            
+    for (i=0; i< nused; i++) keep[i] =0; 
+            
     /*
     **  Set up the ragged arrays
     **  covar2 might not need to be duplicated, even though
@@ -344,7 +345,7 @@ SEXP agfit4(SEXP surv2,      SEXP covar2,    SEXP strata2,
 
     iter2  =  SET_VECTOR_ELT(rlist, 6, allocVector(INTSXP, 1));
     iter = INTEGER(iter2);
-    
+                
     /*
     ** Subtract the mean from each covar, as this makes the variance
     **  computation much more stable.  The mean is taken per stratum,
@@ -388,7 +389,7 @@ SEXP agfit4(SEXP surv2,      SEXP covar2,    SEXP strata2,
 	for (i=0; i<nvar; i++) beta[i] /= scale[i]; /* rescale initial betas */
 	}
     else {for (i=0; i<nvar; i++) scale[i] = 1.0;}
-    <<agfit4-toss>>
+             
     <<agfit4-iter>>
     <<agfit4-finish>>
 }
@@ -406,65 +407,6 @@ We have 6 running totals:
     This allows for easy compuatation of the Efron approximation for ties.
 \end{itemize}
 
-We have to be careful to never subtract out an observation before it
-is added in, as the `number at risk' counter could become zero when it
-really should not be so; certain subtotals would then be inappropriately
-zeroed.  The algorithm moves forward to the next unique ending time,
-removes old observations, and then adds new ones.
-Observations that are not part of any risk set add unnecessary noise since
-they will be added and then subtracted from all the totals, but the
-intermediate values are never used.  If said observation had a large risk
-score this could be exceptionally bad.
-We do a first pass to mark them in the
-\code{keep} vector.  For most sensible input all the elements of 
-\code{keep} will be 1= true, but survSplit can create observations that 
-are not used.
-
-The algorithm is to go from largest to smallest and keep running track of the
-number of deaths.  Whenever we strike a right endpoint it gets the current
-number of deaths just before this time point.  
-If that endpoint is a death then a. first update all the
-left endpoints that are >=dtime and add the current number of deaths
-from them and b. update the number of deaths.  
-1 added.  At each new strata zero the accumulator.
-<<agfit4-toss>>=
-/* keep[] will have number of event times for which this subject is at risk */
-indx1 =0;
-deaths =0;
-istrat =0;
-for (person=0; person < nused;) {
-    if (person == strata[istrat]) {  /* first subject in a new stratum */
-        /* finish the work for the prior stratum */
-        for (; indx1<person; indx1++) {
-            p1 = sort1[indx1];
-            keep[p1] += deaths;
-        }
-        deaths=0;
-        istrat++;
-    }
-    p = sort2[person];
-    keep[p] = - deaths;
-    if (event[p]) {
-        dtime = tstop[p];
-        for(person =person+1; person < strata[istrat]; person++) {
-            /* walk forward over any tied times */
-            p = sort2[person];
-            if (tstop[p] != dtime) break;
-            keep[p] = -deaths;
-            }
-        for (; indx1<person; indx1++) {
-            p1 = sort1[indx1];
-            if (start[p1] < dtime) break;
-            keep[p1] += deaths;
-        }
-        deaths++;
-    } else person++;
-}
-for (; indx1<nused; indx1++) {  /* finish up the last strata */
-    p1 = sort1[indx1];
-    keep[p1] += deaths;
-}
-@ 
 
 At one point I spent a lot of time worrying about $r_i$ values that are too
 large, but it turns out that the overall scale of the weights does not
@@ -474,6 +416,7 @@ What does get the code in trouble is when there are large and small
 weights and we get an update of (large + small) - large.
 For example suppose a data set has a time dependent covariate which grows
 with time and the data has values like below:
+
 \begin{center}
   \begin{tabular}{ccccc}
     time1 & time2 & status & x \\ \hline
@@ -496,6 +439,21 @@ as possible, and defer additions for as long as possible.
 Every time we hit a new (unique) death time, and only then,
 update the totals:  first remove any
 old observations no longer in the risk set and then add any new ones.
+
+One interesting edge case is observations that are not part of any risk
+set.  (A call to survSplit with too fine a partition can create these, or
+using a subset of data that excluded some of the deaths.)  
+Observations that are not part of any risk set add unnecessary noise since
+they will be added and then subtracted from all the totals, but the
+intermediate values are never used.  If said observation had a large risk
+score this could be exceptionally bad.
+These can be detected when catching up the risk set at a new death time:
+\emph{both} the start and stop time of a too-be-added obs will be larger than
+the current death time.  
+Since time intervals are $>0$ this will never happen for a death, since by
+definition their time will match the current dtime.
+Mark those who were valid, so that at a later step we don't take out someone
+who was never put in.
 
 The three primary quantities for the Cox model are the log-likelihood $L$,
 the score vector $U$ and the Hessian matrix $H$.
@@ -674,6 +632,7 @@ while (person < nused) {
 	    risk = exp(eta[p]) * weights[p];
 
 	    if (event[p] ==1 ){
+                keep[p] =1;
                 nrisk++;
                 etasum += eta[p];
 		deaths++;
@@ -687,7 +646,8 @@ while (person < nused) {
                         cmat2[i][j] += risk*covar[i][p]*covar[j][p];
                 }
             }
-	    else if (keep[p] >0) {
+	    else if (start[p] < dtime) {
+                keep[p] =1;
                 nrisk++;
                 etasum += eta[p];
 		denom += risk;
@@ -696,7 +656,7 @@ while (person < nused) {
 		    for (j=0; j<=i; j++)
 			cmat[i][j] += risk*covar[i][p]*covar[j][p];
 		}
-	    }
+	    } 
         }
 	<<breslow-efron>>
         <<fixeta>>

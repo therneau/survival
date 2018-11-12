@@ -7,7 +7,13 @@
 
 multicheck <- function(y, id, istate=NULL, nerror=6) {
     n <- length(id)
-    to.names <- c("censored", attr(y, "states"))
+    # this next line is a debug for me, since multicheck is not visible
+    #  to users
+    if (!is.Surv(y) || is.null(attr(y, "states")) ||
+        any(y[,ncol(y)] > length(attr(y, "states"))))
+        stop("multicheck called with an invalid y argument")
+    to.names <- c("(censored)", attr(y, "states"))
+ 
     # Check 0: if y has only 2 colums there isn't much to do
     if (ncol(y)==2) {
         if (any(duplicated(id))) 
@@ -70,7 +76,7 @@ multicheck <- function(y, id, istate=NULL, nerror=6) {
         # the result is a mixed factor, give it proper levels
         itemp <- length(levels(istate))
         ptemp <- ifelse(c(FALSE, oldid), pstate, pstate + itemp)
-        states <- c(levels(istate), to.names[-1])
+        states <- unique(c(levels(istate), to.names[-1]))
         pstate <- factor(pstate, seq_len(itemp + length(to.names) -1), states)
                                          
         bad <- ((pstate != istate)[-1] & gap==0 & oldid)
