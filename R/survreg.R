@@ -2,7 +2,7 @@ survreg <- function(formula, data, weights, subset, na.action,
 	dist='weibull', init=NULL,  scale=0, control, parms=NULL, 
 	model=FALSE, x=FALSE, y=TRUE, robust=FALSE, score=FALSE,  ...) {
 
-    Call <- match.call()   # save a copy of the call
+    Call <- match.call()    # save a copy of the call
     indx <- match(c("formula", "data", "weights", "subset", "na.action"),
                   names(Call), nomatch=0) 
     if (indx[1] ==0) stop("A formula argument is required")
