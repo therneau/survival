@@ -3,7 +3,7 @@
 \section{Changes in version 2.43-2}{
   \itemize{
     \item In concordance, allow y to be an orderable factor (either
-    is.ordered=TRUE or it has only 2 levels), instead of an error
+    is.ordered=TRUE or it has only 2 levels), instead of giving an error
     message.  Repair some missing references in the vignette.
 
     \item Fix an error check in survSplit, when the response has missing
@@ -14,6 +14,14 @@
     (start, stop) data, e.g., with time-dependent covariates: the
     censoring distribution G was incorrect which leads to incorrect weights,
     including NA.  Pointed out by Deqiang Zheng along with an example.
+    (The use of time-dependent covariates in a FG model has serious -- I
+    think fatal -- statistical issues, however.  The FG approach adds
+    extra 'imputed' follow-up to each subject; but what is the future
+    value of a time-dependent covariate over this new interval?)
+
+    \item Update the finegray function to allow case weights.  If the
+    original data has sampling weights, for instance, this propogates
+    them properly to the created fgwt variable. 
 }}
 
 \section{Changes in version 2.43-1}{

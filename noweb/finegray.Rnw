@@ -25,10 +25,10 @@ give subjects artificial follow-up.
 
 The function below creates a data set that can then be used with coxph.
 <<finegray>>= 
-finegray <- function(formula, data, subset, na.action= na.pass,
+finegray <- function(formula, data, weights, subset, na.action= na.pass,
                      etype, prefix="fg", count="", id, timefix=TRUE) {
     Call <- match.call()
-    indx <- match(c("formula", "data", "subset", "id"),
+    indx <- match(c("formula", "data", "weights", "subset", "id"),
               names(Call), nomatch=0) 
     if (indx[1] ==0) stop("A formula argument is required")
     temp <- Call[c(1,indx)]  # only keep the arguments we wanted
@@ -64,6 +64,8 @@ finegray <- function(formula, data, subset, na.action= na.pass,
     
     id <- model.extract(mf, "id")
     if (!is.null(id)) mf["(id)"] <- NULL  # don't leave it in result
+    user.weights <- model.weights(mf)
+    if (is.null(user.weights)) user.weights <- rep(1.0, nrow(mf))
 
     cluster<- attr(Terms, "specials")$cluster
     if (length(cluster)) {
@@ -293,7 +295,7 @@ stratfun <- function(i) {
     tdata[[oname[1]]] <- split$start
     tdata[[oname[2]]] <- split$end
     tdata[[oname[3]]] <- tstat
-    tdata[[oname[4]]] <- split$wt
+    tdata[[oname[4]]] <- split$wt * user.weights[split$row]
     if (!is.null(count)) tdata[[count]] <- split$add
     tdata
 }
