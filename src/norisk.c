@@ -14,7 +14,7 @@ int *norisk(int n, double *time1, double *time2, double *status,
     double dtime;
     int *notused;
 
-    notused = ALLOC(n, sizeof(int));
+    notused = (int *) ALLOC(n, sizeof(int));
 
     /*
     ** Algorithm: keep a running total of deaths.
