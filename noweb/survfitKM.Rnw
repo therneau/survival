@@ -13,16 +13,16 @@ intensive.
 <<survfitKM>>= 
 survfitKM <- function(x, y, casewt=rep(1,length(x)),
 		       type=c('kaplan-meier', 'fleming-harrington', 'fh2'),
-		       error=c('greenwood', "aalen", "robust", "tsiatis"), 
+		       error=c('greenwood', "aalen", "robust"), 
                        se.fit=TRUE,
 		       conf.int= .95,
 		       conf.type=c('log',  'log-log',  'plain', 'none','logit'),
 		       conf.lower=c('usual', 'peto', 'modified'),
-		       start.time, new.time) {
+		       start.time, new.time, group) {
     type <- match.arg(type)
     method <- match(type, c("kaplan-meier", "fleming-harrington", "fh2"))
 
-    if (missing(error) & any(casewt != floor(casewt)) error <- 'robust'
+    if (missing(error) & any(casewt != floor(casewt))) error <- 'robust'
     else error <- match.arg(error)
     error.int <- match(error, c("greenwood", "aalen", "robust", "tsiatis"))
     if (error.int==4) error.int <- 2  # these are synonyms
@@ -42,22 +42,10 @@ survfitKM <- function(x, y, casewt=rep(1,length(x)),
 	    stop("Can only handle right censored or counting data")
     ny <- ncol(y)       # Will be 2 for right censored, 3 for counting
     xlev <- levels(x)   # Will supply names for the curves
-    x <- as.numeric(x)  # keep only the levels
+    x <- as.integer(x)  # keep only the levels
 
-    #  Allow "new.time" as a synonym for start.time
-    if (missing(start.time) && !missing(new.time)) start.time <- new.time
-    if (!missing(start.time)) { 
-	n.all <- c(table(x))   # remember the original data size
-	# remove any obs whose end time is <= start.time
-	keep <- (y[,ny-1] >= start.time)
-	if (all(keep==FALSE))
-		stop(paste("start.time =", start.time,
-			   "is greater than all time points."))
-	x <- x[keep]
-	y <- y[keep,,drop=FALSE]  #make sure y remains a matrix
-	casewt <- casewt[keep]
-        }
-    
+ 
+    <<survfitKM-sort>>
     n.used <- as.vector(table(x))    # This is for the printout
     nstrat <- length(n.used)         # number of curves
 
@@ -65,51 +53,119 @@ survfitKM <- function(x, y, casewt=rep(1,length(x)),
     <<survfitKM-finish>>
 }
 @ 
-The computation creates a list with one survival curve per element.
-Since the number of curves is usually small the outer "for" loop is
-no particular worry. 
-One of the odder things we do is to use as.numeric(factor(y)) as the
-response variable instead of y itself.
-The problem is that if two times are within machine precision then
-[[unique]], [[factor]], [[table]] and [[==]] can all do different things.
-We have been burned by this in the past.
+
+We want to be efficient for very large data sets, so have gone with
+an indexing approach.  That is, efficient wrt not making new copies
+of the data within R,
+I'm not worrying about cache coherency; people can do their own
+sorting to deal with that issue.
+<<survfitKM-sort>>=
+if (nc==2) sort2 <- order(x, y[,1], y[,2]) 
+else {
+    sort2 <- order(x, y[,2], y[,3])
+    sort1 <- order(x, y[,1], y[,3])
+}
+
+#  Allow "new.time" as a synonym for start.time
+if (missing(start.time) && !missing(new.time)) start.time <- new.time
+if (!missing(start.time)) { 
+    n.all <- c(table(x))   # remember the original data size
+    # remove any obs whose end time is <= start.time
+    keep <- (y[sort2, ny-1] >= start.time)
+    if (!any(keep)) stop(paste("start.time =", start.time,
+                               " is greater than all time points."))
+    if (!all(keep)) {
+        sort2 <- sort2[keep]   # never look at these
+        if (nc==3) sort1 <- sort1[y[sort1, ny-1] >= start.time]
+    }
+}
+@
+
+At each event time we have 
+\begin{itemize}
+  \item n(t) = number at risk = sum of weigths for those at risk
+  \item d(t) = number of events = sum of weights for the deaths
+  \item e(t) = unweighted number of events
+\end{itemize}
+From this we can calculate the Kapan-Meier and Nelson-Aalen estimates.
+When there are no case weights the Fleming-Harrington hazard estimate
+is easy; it is an analog of the Efron approximation in a Cox model.
+Assume that the real data is not tied, but we saw a coarsened version.
+If we see 3 events out of 10 events the NA increment is 3/10 but the
+FH is 1/10 + 1/9 + 1/8, it is what we would have seen with the real data.
+If there are case weights we give each of the 3 terms a 1/3 chance of being
+the first, second, or third event
+\begin{align*}
+  KM(t) &= KM(t-) (1- d(t)/n(t) \\
+  NA(t) &= NA(t-) + d(t)/n(t) \\
+  FH(t) &= FH(t-) + \sum_{i=1}^{e(t)} \frac{(d(t)/e(t)}{n(t)- d(t)(i-1)/e(t)}
+\end{align*}
+
+One problem with survival is near ties in Y: table, unique, and others
+do different things in this case.  Luckily, the parent routine to
+this one has dealt with that by using the \code{aeqSurv} function.
+
+The difficult part of the routine is the robust variance.  
+Define
+\begin{align*}
+u_i(t) &= \frac{\partial KM(t)}{\partial w_k
+       &= \frac{\partial KM(t-)}{\partial w_i} (1- d(t)/n(t)) - 
+           KM(t-) \frac{\partial 1- d(t)/n(t)}{\partial w_i} \nonumber \\
+         &= u_i(t-)(1-d(t)/n(t)) - Y_i(t) \frac{KM(t-)}{n(t)} 
+           \left( dN_i(t) - d(t)/n(t)\right)
+           \label{ukm1}
+\end{align*}  
+where $Y_i(t)$ is 1 if subject $i$ is at risk at time $t$ and $dN_i(t)$ is 1
+if subject $i$ had an event at time $t$.
+For the NA and FH estimates we have sums of very similar terms.
 
 <<survfitKM-compute>>=
-survlist <- vector("list", nstrat)
-xint <- as.numeric(x)
-for (i in 1:nstrat) {
-    who <- which(xint==i)
-    if (ny==2) {
-        ftime <- factor(y[who,1])
-        indx <- order(ftime, -status[who]) #censors after deaths
-        survlist[[i]] <- c(list(time=type.convert(levels(ftime), as.is=TRUE, 
-                                                  dec=getOption("OutDec")),
-                           .Call("survkm1",
-                                 as.integer(ftime[indx]),
-                                 as.integer(y[who[indx],2]),
-                                 as.double(wt[who[indx]]),
-                                 method,
-                                 error,
-                                 length(levels(ftime)))
-    }
+if (nc==3) sfit <- .Call("survkm2", y, x, wt, sort2, method)
+else {  # FALSE for debug mode
+    if (FALSE) sfit <- .Call("survkm1", y, x, wt, sort2, method)
     else {
-        ftime <- factor(y[who, 1:2])
-        # Be careful that no one person has overlapping time intervals
-        if (error==4) {
-            <<survfitKM-checkid>>
+        # R code, for debugging, assumes a single value for x
+        stime <- y[sort2,1]
+        sstat <- y[sort2,2]
+        utime <- unique(stime)
+        ntime <- length(utime)
+        n <- length(stime)
+        n.risk <- n.event <- surv <- cumhaz <- double(ntime)
+        KM <- 1; NA <-0; 
+        U <- matrix(0, n, 3)  # the three robust influence estimates
+        V <- matrix(0, ntime, 3)  # variances
+        for (i in 1:ntime) {
+            j <- match(utime[i], stime)  # first matching time
+            index <- sort2[j:n]
+            n.risk[i] <- sum(wt[index])
+            deaths <- (stime==utime[i] & sstat==1)                 
+            n.event[i] <- sum(wt[deaths])
+            nd <- sum(deaths)
+
+            haz <- n.event[i]/n.risk[i]
+            atrisk <- (stime >= utime[i])
+            dhaz <- (ifelse(deaths,1,0) - ifelse(atrisk, haz, 0))/n.risk[i]
+            U[,1] <- U[,1]*(1-haz) - KM*dhaz
+            V[i,1] <- sum(U[,1]^2)
+            
+            U[,2] <- U[,2] * dhaz
+            V[,2] <- sum(U[,2]^2)
+            # var[,3] not done
+            if (n.event[i] >0 ) {
+                KM <- KM*(1-haz)
+                NA <- NA + haz
+                FH <- FH +(n.event[i]/nd)*sum(1/(n.risk - (1:nd -1)*n.event/nd))
+            }
         }
-        survlist[[i]] <- c(list(time=as.numeric(levels(ftime))),
-                           .Call("survkm2",
-                                 as.integer(ftime),
-                                 as.integer(y[who,3]),
-                                 method,
-                                 error,
-                                 length(levels(ftime)),
-                                 id[who]))
     }
-}     
+}
+browser()        
 @ 
  
+<<survfitKM-finish>>=
+@ 
+
+<<survfitKM-check>>= 
 indx <- order(id, Y[,2])  #ordered event times within subject
 indx1 <- c(NA, indx)  #a pair of lagged indices
 indx2 <- c(indx, NA)
@@ -133,13 +189,13 @@ if (any(same & weights[indx1] != weights[indx2])) {
     who <-  1 + min(which(same & weights[indx1] != weights[indx2]))
     stop("subject changes case weights, id ", (id[indx1])[who])
 }
- 
+@
+
 Now for the real work using C routines. 
 My standard for a variable named ``zed'' is to use zed2 for the S object
 and zed for the data part of the object; the latter is what the C code
 works with.
 <<survfitkm1.c>>=
-/*  -*- c -*-  */
 #include <math.h>
 #include "survS.h
 #include "survproto.h"
