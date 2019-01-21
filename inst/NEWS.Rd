@@ -1,5 +1,12 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 2.43-3}{
+  \itemize{
+    \item Added a hex sticker.  It is found in man/figures.
+    \item Small grammar changes in a help page.
+  }
+}
+
 \section{Changes in version 2.43-2}{
   \itemize{
     \item In concordance, allow y to be an orderable factor (either
