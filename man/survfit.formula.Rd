@@ -6,9 +6,8 @@
 }
 \description{
   Computes an estimate of a survival curve for censored data.
-  More multi-state data the Andersen-Johansen estimate is use, for
-  ordinary survival either the Kaplan-Meier or Fleming-Harrington
-  estimate is produced.
+  For multi-state data the Andersen-Johansen estimate is used, for
+  ordinary survival the Kaplan-Meier estimate is the defaut.
 }
 \usage{
 \method{survfit}{formula}(formula, data, weights, subset, na.action,  
@@ -43,14 +42,15 @@
   }
   \item{etype}{
     a variable giving the type of event.  This has been superseded by
-    multi-state Surv objects; see example below.
+    multi-state Surv objects; see example below, and is depricated.
   }
   \item{id}{
     identifies individual subjects, when a given person can have multiple
     lines of data.
   }
   \item{istate}{for multi-state models, identifies the initial state of
-    each subject}
+    each subject or observation}
+
   \item{timefix}{process times through the \code{aeqSurv} function to
   eliminate potential roundoff issues.}
 
@@ -63,8 +63,9 @@
 	a character string specifying the type of survival curve. 
 	Possible values are \code{"kaplan-meier"}, 
 	\code{"fleming-harrington"} or \code{"fh2"} 
-	if a formula is given.  This is ignored for competing risks or when
-	the Turnbull estimator is used.
+	if a formula is given.  This is ignored for competing risks or
+	for interval censored data, in the latter case a Turnbull
+	estimate is computed.
       }
       \item{error}{
 	a character string specifying the error.  Possible values are 
