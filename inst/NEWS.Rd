@@ -1,9 +1,11 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
-\section{Changes in version 2.43-3}{
+\section{Changes in version 2.43-4}{
   \itemize{
     \item Added a hex sticker.  It is found in man/figures.
     \item Small grammar changes in a help page.
+    \item Fix bug pointed out by A Ruten-Budde.  The coxph routine was
+    not passing the timefix option forward to a subseqent concordance call.
   }
 }
 

@@ -20,10 +20,10 @@ concordance(object, \ldots)
   influence=0, ranks=FALSE, timefix=TRUE)
 \method{concordance}{coxph}(object, \ldots, newdata, cluster, ymin, ymax,
   timewt= c("n", "S", "S/G", "n/G", "n/G2", "I"), influence=0,
-  ranks=FALSE, timefix=TRUE)
+  ranks=FALSE, timefix=FALSE)
 \method{concordance}{survreg}(object, \ldots, newdata, cluster, ymin, ymax,
   timewt= c("n", "S", "S/G", "n/G", "n/G2", "I"), influence=0,
-  ranks=FALSE, timefix=TRUE)
+  ranks=FALSE, timefix=FALSE)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -80,7 +80,9 @@ concordance(object, \ldots)
 
   \item{timefix}{if the response is a Surv object, correct for possible
     rounding error; otherwise this argument has no effect.  See the
-    vignette on tied times for more explanation. 
+    vignette on tied times for more explanation.  For the coxph and
+    survreg methods this issue will have already been addressed in the
+    parent routine, so should not be revisited.
    }
 }
 \details{
