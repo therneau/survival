@@ -609,7 +609,7 @@ if (sum(Y[, ncol(Y)]) == 0) {
     ctemp <- rep (NA, ncoef)
     names(ctemp) <- colnames(X)
     concordance= c(concordant=0, discordant=0, tied.x=0, tied.y=0, tied.xy=0,
-                   concordance=NA, std=NA)
+                   concordance=NA, std=NA, timefix=FALSE)
     rval <- list(coefficients= ctemp,
                  var = matrix(0.0, ncoef, ncoef),
                  loglik=c(0,0),
@@ -728,9 +728,10 @@ else {
     #  is all we need, but more for backward compatability with survConcordance.fit
     if (length(cluster))
         temp <- concordance.fit(Y, fit$linear.predictors, strats, weights,
-                                          cluster=cluster, reverse=TRUE)
+                                          cluster=cluster, reverse=TRUE,
+                                timefix= FALSE)
     else temp <- concordance.fit(Y, fit$linear.predictors, strats, weights,
-                                  reverse=TRUE)
+                                  reverse=TRUE, timefix= FALSE)
     if (is.matrix(temp$count))
          fit$concordance <- c(colSums(temp$count), concordance=temp$concordance,
                               std=sqrt(temp$var))
