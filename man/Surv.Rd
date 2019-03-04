@@ -128,13 +128,29 @@ otherwise the result will be a matrix (or vector), in accordance with
 the default behavior for subscripting matrices. 
 }
 
+
+\note{
+  The use of 1/2 coding for status is an interesting historical
+  artifact.
+  For data contained on punch cards, IBM 360 Fortran treated blank as a zero,
+  which led to a policy within the Mayo Clinic section of Biostatistics to never
+  use "0" as a data value since one could not distinguish it from a
+  missing value.
+  Policy became habit, as is often the case, and the use of 1/2 coding for
+  alive/dead endured long after the demise of the punch cards that had
+  sired the practice.
+  At the time \code{Surv} was written many Mayo data sets still used this
+  convention, e.g., the 1994 \code{lung} data set found in the package.
+}   
+  
 \seealso{
 \code{\link{coxph}},  
 \code{\link{survfit}},  
-\code{\link{survreg}}.   
+\code{\link{survreg}, \code{link{lung}}.   
 }
 \examples{
-with(lung, Surv(time, status))
+with(aml, Surv(time, status))
+survfit(Surv(time, status) ~ ph.ecog, data=lung)
 Surv(heart$start, heart$stop, heart$event) 
 }
 \keyword{survival}
