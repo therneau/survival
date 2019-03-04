@@ -41,9 +41,9 @@ print.summary.coxph <-
         cat("Concordance=", format(round(x$concordance[1],3)),
             " (se =", format(round(x$concordance[2], 3)),")\n")
     }
-    cat("Rsquare=", format(round(x$rsq["rsq"],3)),
-            "  (max possible=", format(round(x$rsq["maxrsq"],3)),
-            ")\n" )
+#    cat("Rsquare=", format(round(x$rsq["rsq"],3)),
+#            "  (max possible=", format(round(x$rsq["maxrsq"],3)),
+#            ")\n" )
 
     pdig <- max(1, getOption("digits")-4)  # default it too high IMO
     cat("Likelihood ratio test= ", format(round(x$logtest["test"], 2)), "  on ",

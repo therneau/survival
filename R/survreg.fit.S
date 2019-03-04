@@ -105,6 +105,18 @@ survreg.fit<- function(x, y, weights, offset, init, controlvals, dist,
 	list(dg = dg, ddg = ddg - dg^2)
 	}
 
+    # Rescale the X matrix, which leads to more stable results
+    rescaled <- FALSE
+    if (all(x[,1]==1)) {   # set to FALSE for debugging
+        okay <- apply(x, 2, function(z) all(z==0 | z==1)) # leave these alone
+        if (!all(okay)) {
+            rescaled <- TRUE
+            center <- ifelse(okay, 0, colMeans(x))
+            stdev  <- ifelse(okay, 1, apply(x, 2, sd))
+            x <- scale(x, center, stdev)
+        }
+    } 
+
     #
     # A good initial value of the scale turns out to be critical for successful
     #   iteration, in a surprisingly large number of data sets.
@@ -219,9 +231,19 @@ survreg.fit<- function(x, y, weights, offset, init, controlvals, dist,
 	names(coef0) <- c("Intercept", rep("Log(scale)", nstrat))
 	loglik <- c(fit0$loglik, fit$loglik)
 	}
-    temp <- list(coefficients   = fit$coef,
+
+    var.new <- matrix(fit$var, nvar2, dimnames=list(cname, cname))
+    coef.new <- fit$coef
+    if (rescaled) {
+        vtemp <- c(1/stderr, rep(1.0, nrow(var.new)- length(stderr)))
+        var.new <- (vtemp *var.new) %*% diag(vtemp)
+        offset <- sum((coef.new *temp)[-1])
+        coef.new <- coef.new * vtemp
+        coef.new[1] <- sum(coef.new[2:nvar]*center[2:nvar])
+    }
+    temp <- list(coefficients   = coef.new,
 		 icoef  = coef0, 
-		 var    = matrix(fit$var, nvar2, dimnames=list(cname, cname)),
+		 var    = var.new,
 		 loglik = loglik, 
 		 iter   = fit$iter,
 		 linear.predictors = c(x %*% fit$coef[1:nvar] + offset),

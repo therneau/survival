@@ -336,6 +336,13 @@ if (data.frame) {
     if (has.ratetable) df$expected <- temp$pexpect[keep]
     if (expect=='pyears') df$expected <- df$expected/scale
     if (docount) df$event <- temp$pcount[keep]
+    
+    # if any of the predictors were factors, make them factors in the output
+    for (i in 1:length(ovars)){
+        temp <- mf[[ovars[i]]]
+        if (is.factor(temp))
+            df[[ovars[i]]] <- factor(df[[ovars[i]]], levels(temp))
+    }
 
     out <- list(call=Call,
                 data= df, offtable=temp$offtable/scale,
