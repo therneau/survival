@@ -47,8 +47,8 @@ summary.coxph <- function(object,  conf.int = 0.95, scale = 1, ...) {
     rval$sctest <- c(test=cox$score,
                      df=df,
                      pvalue= pchisq(cox$score, df, lower.tail=FALSE))
-    rval$rsq<-c(rsq=1-exp(-logtest/cox$n),
-                 maxrsq=1-exp(2*cox$loglik[1]/cox$n))
+#    rval$rsq<-c(rsq=1-exp(-logtest/cox$n),
+#                 maxrsq=1-exp(2*cox$loglik[1]/cox$n))
     rval$waldtest<-c(test=as.vector(round(cox$wald.test, 2)),
                       df=df,
                       pvalue= pchisq(as.vector(cox$wald.test), df, 
