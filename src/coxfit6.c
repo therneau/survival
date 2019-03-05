@@ -457,7 +457,12 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
 	    }
    
 	else {
-	    if (fabs(1-(loglik[1]/newlk))<= eps && halving==0) { /* all done */
+	    /* the first condition below is for the rare special case that the
+	    ** death = max(x value) at every death time, which leads to a loglik
+	    ** of 0, beta=infinite, and eventual zerodivide in /newlk.
+	    */
+	    if (fabs(newlk) <=eps || 
+		(fabs(1-(loglik[1]/newlk))<= eps && halving==0)) { /* all done */
 		loglik[1] = newlk;
 		chinv2(imat, nvar);     /* invert the information matrix */
 

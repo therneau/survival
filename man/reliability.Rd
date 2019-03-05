@@ -5,7 +5,7 @@
 \title{Reliability data sets}
 \description{
   A set of data for simple reliablility analyses, taken from the book by
-Meeker and Escobar.}
+Meeker and Escobar.
 }
 \details{
   Data set \code{capacitor}:
@@ -77,9 +77,8 @@ Meeker and Escobar.}
   Analyses, 1990.
 }
 
-}
 \examples{
 data(capacitor)
-## maybe str(capacitor) ; plot(capacitor) ...
+survreg(Surv(time, status) ~ temperature + voltage, capacitor)
 }
 \keyword{datasets}

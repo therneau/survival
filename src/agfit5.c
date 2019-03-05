@@ -577,7 +577,8 @@ void agfit5b(Sint *maxiter, Sint *nusedx, Sint *nvarx,
 	**   update the betas and test for convergence
 	*/
 	*flag = cholesky3(jmat, nvar2, nf, fdiag, *tolerch);
-	if (fabs(1-(*loglik/newlk))<=*eps && halving==0) { /* all done */
+	if (fabs(newlk) < *eps ||
+	    (fabs(1-(*loglik/newlk))<=*eps && halving==0)) { /* all done */
 	    *loglik = newlk;
 	    for (i=0; i<nvar; i++) {
 		for (j=0; j<nvar2; j++)  imat[i][j] = jmat[i][j];
