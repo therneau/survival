@@ -101,8 +101,9 @@ coxph.fit <- function(x, y, strata, offset, init, control,
 	    if (coxfit$flag == 1000)
 		   warning("Ran out of iterations and did not converge")
 	    else {
-		infs <- ((infs > control$eps) & 
-			 infs > control$toler.inf*abs(coef))
+		infs <- (!is.finite(coxfit$u) ||
+                         ((infs > control$eps) & 
+			 infs > control$toler.inf*abs(coef)))
 		if (any(infs))
 		warning(paste("Loglik converged before variable ",
 			  paste((1:nvar)[infs],collapse=","),
