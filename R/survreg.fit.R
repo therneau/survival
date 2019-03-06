@@ -235,12 +235,13 @@ survreg.fit<- function(x, y, weights, offset, init, controlvals, dist,
     var.new <- matrix(fit$var, nvar2, dimnames=list(cname, cname))
     coef.new <- fit$coef
     if (rescaled) {
-        vtemp <- c(1/stderr, rep(1.0, nrow(var.new)- length(stderr)))
-        var.new <- (vtemp *var.new) %*% diag(vtemp)
-        offset <- sum((coef.new *temp)[-1])
-        coef.new <- coef.new * vtemp
-        coef.new[1] <- sum(coef.new[2:nvar]*center[2:nvar])
+        vtemp <- diag(c(1/stdev, rep(1.0, nrow(var.new)- length(stdev))))
+        vtemp[1, 2:nvar] <- -center[2:nvar]/stdev[2:nvar]
+        coef.new <- drop(vtemp %*%coef.new)
+        var.new <- vtemp%*% var.new %*% t(vtemp)
+        names(coef.new) <- names(fit$coef)
     }
+
     temp <- list(coefficients   = coef.new,
 		 icoef  = coef0, 
 		 var    = var.new,
