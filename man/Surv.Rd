@@ -110,7 +110,7 @@ censored data via the condition
 If 1/2 coding is used and all the subjects are censored, it will 
 guess wrong.
 In any questionable case it is safer to use logical coding,
-e.g., \code{Surv(time, status==3)} would indicate that a \code{3} is
+e.g., \code{Surv(time, status==3)} would indicate that '3' is
 the code for an event.
 For multi-state survival the status variable will be a factor, whose
 first level is assumed to correspond to censoring.
@@ -146,7 +146,7 @@ the default behavior for subscripting matrices.
 \seealso{
 \code{\link{coxph}},  
 \code{\link{survfit}},  
-\code{\link{survreg}, \code{link{lung}}.   
+\code{\link{survreg}}, \code{link{lung}}.   
 }
 \examples{
 with(aml, Surv(time, status))

@@ -1,5 +1,14 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 2.43-5}{
+  \itemize{
+    \item Add several data sets from the reliability literature, which
+    had been used in tests for survreg, to the package data with a help
+    page of 'reliability'.
+    \item Fix error in residuals.survreg, type="matrix", pointed out by
+    Achim Zelies.  Another check has been added to the tests.
+}}
+
 \section{Changes in version 2.43-4}{
   \itemize{
     \item Added a hex sticker.  It is found in man/figures.
