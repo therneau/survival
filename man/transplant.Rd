@@ -38,7 +38,7 @@
     \item{\code{bili}}{serum bilirubin}
     \item{\code{inr}}{International Normalized Ratio, a measure of the
       blood's clotting ability}
-    \item{\code meld}{calculated MELD score}
+    \item{\code{meld}}{calculated MELD score}
     \item{diag}{primary diagnosis: alcoholic liver disease,
       cholestatic liver disease, hepatitis B, hepatitis C, or other}
   }
@@ -78,7 +78,7 @@ plot(pfit[,2], mark.time=FALSE, col=1:4, lwd=2, xmax=735,
        xaxt = 'n')
 temp <- c(0, 6, 12, 18, 24)
 axis(1, temp*30.5, temp)
-legend(450, .35, levels(transplant$abo), lty=1, col=1:4, lwd=2, bty='n')
+legend(450, .35, levels(transplant$abo), lty=1, col=1:4, lwd=2)
 
 # competing risks for type O
 plot(pfit[4,], xscale=30.5, xmax=735, col=1:3, lwd=2)

@@ -32,5 +32,6 @@ An object of class \code{summary.coxph}.
 }
 \examples{
 fit <- coxph(Surv(time, status) ~ age + sex, lung) 
-summary(fit) 
+summary(fit)
+}
 \keyword{survival}
