@@ -6,7 +6,7 @@ This is used to set various numeric parameters controlling a Cox model fit.
 Typically it would only be used in a call to \code{coxph}.
 }
 \usage{
-coxph.control(eps = 1e-08, toler.chol = .Machine$double.eps^0.75,
+coxph.control(eps = 1e-09, toler.chol = .Machine$double.eps^0.75,
 iter.max = 20, toler.inf = sqrt(eps), outer.max = 10, timefix=TRUE)
 }
 \arguments{

@@ -6,25 +6,12 @@
 \description{
   Subjects on a liver transplant waiting list from 1990-1999, and their
   disposition: received a transplant, died while waiting, withdrew from
-  the list, or censored. 
+  the list, or censored.
 }
 \usage{data("transplant")}
 \format{
-  A data frame with 815 observations on the following 6 variables.
-  \describe{
-    \item{\code{age}}{age at addition to the waiting list}
-    \item{\code{sex}}{\code{m} or \code{f}}
-    \item{\code{abo}}{blood type: \code{A}, \code{B}, \code{AB}  or \code{O}}
-    \item{\code{year}}{year in which they entered the waiting list}
-    \item{\code{futime}}{time from entry to final disposition}
-    \item{\code{event}}{final disposition: \code{censored},
-      \code{death},
-      \code{ltx} or \code{withdraw}}
-  }
-}
-\usage{data("transplant2")}
-\format{
-  A data frame with 861 observations on the following 6 variables.
+  A data frame with 815 (transplant) or 861 (transplant2) observations
+  on the following 6 variables.
   \describe{
     \item{\code{age}}{age at addition to the waiting list}
     \item{\code{sex}}{\code{m} or \code{f}}
@@ -66,8 +53,9 @@ directly on each individual patient's risk and need, assessments of which are
 regularly updated while a patient is on the waiting list.
 The overall organ shortage remains acute, however.
 
-The \code{transplant} data set was a version early in the analysis,
-\code{transplant2} was the final data set and matches the paper.
+The \code{transplant} data set was a version used early in the analysis,
+\code{transplant2} has several additions and corrections, and
+was the final data set and matches the paper.
 }
 \examples{
 #since event is a factor, survfit creates competing risk curves

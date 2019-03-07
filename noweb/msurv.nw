@@ -309,7 +309,7 @@ if (wevent > 0) {  /* there was at least one move with weight > 0 */
 The most complicated part of the code is the update of the
 per subject influence matrix $U$.
 The influence for a subject is the derivative of the current
-estimates wrt the case weight of that subject.  Siince $p$ is a
+estimates wrt the case weight of that subject.  Since $p$ is a
 vector the influence $U$ is easily represented as a matrix with one row
 per subject and one column per state. 
 Refer to equation \eqref{ci} for the derivation.

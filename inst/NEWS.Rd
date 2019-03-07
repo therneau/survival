@@ -3,8 +3,8 @@
 \section{Changes in version 2.43-5}{
   \itemize{
     \item Add several data sets from the reliability literature, which
-    had been used in tests for survreg, to the package data with a help
-    page of 'reliability'.
+    had been used in the tests directory, more formally to the package
+    data and add a help page of 'reliability'.
     \item Fix error in residuals.survreg, type="matrix", pointed out by
     Achim Zelies.  Another check has been added to the tests.
 }}
