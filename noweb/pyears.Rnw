@@ -260,7 +260,7 @@ if (has.ratetable) {  #include expected
             }
         }
     docount <- is.Surv(Y)
-    temp <- .C(Cpyears1,
+    clist <- .C(Cpyears1,
     		as.integer(n),
     		as.integer(ncol(Y)),
     		as.integer(is.Surv(Y)),
@@ -286,7 +286,7 @@ if (has.ratetable) {  #include expected
     }
 else {   #no expected
     docount <- as.integer(ncol(Y) >1)
-    temp <- .C(Cpyears2,
+    clist <- .C(Cpyears2,
     		as.integer(n),
     		as.integer(ncol(Y)),
     		as.integer(docount),
@@ -312,30 +312,30 @@ if (data.frame) {
     #  rate tables
     if (length(ovars) ==0) {  # no variables on the right hand side
         keep <- TRUE
-        df <- data.frame(pyears= temp$pyears/scale,
-                         n = temp$n)
+        df <- data.frame(pyears= clist$pyears/scale,
+                         n = clist$pn)
     }
     else {
-        keep <- (temp$pyears >0)  # what rows to keep in the output
+        keep <- (clist$pyears >0)  # what rows to keep in the output
         names(outdname) <- ovars
         if (length(outdname) ==1) {
             # if there is only one variable, the call to "do.call" loses
             #  the variable name, since expand.grid returns a factor
             df <- data.frame((outdname[[1]])[keep], 
-                             pyears= temp$pyears[keep]/scale,
-                             n = temp$pn[keep])
+                             pyears= clist$pyears[keep]/scale,
+                             n = clist$pn[keep])
             names(df) <- c(names(outdname), 'pyears', 'n')
         }
         else {
             df <- cbind(do.call("expand.grid", outdname)[keep,],
-                        pyears= temp$pyears[keep]/scale,
-                        n = temp$pn[keep])
+                        pyears= clist$pyears[keep]/scale,
+                        n = clist$pn[keep])
         }
     }
     row.names(df) <- 1:nrow(df)
-    if (has.ratetable) df$expected <- temp$pexpect[keep]
+    if (has.ratetable) df$expected <- clist$pexpect[keep]
     if (expect=='pyears') df$expected <- df$expected/scale
-    if (docount) df$event <- temp$pcount[keep]
+    if (docount) df$event <- clist$pcount[keep]
     
     # if any of the predictors were factors, make them factors in the output
     for (i in 1:length(ovars)){
@@ -345,34 +345,34 @@ if (data.frame) {
     }
 
     out <- list(call=Call,
-                data= df, offtable=temp$offtable/scale,
+                data= df, offtable=clist$offtable/scale,
                 tcut=has.tcut)
     if (has.ratetable && !is.null(rtemp$summ))
         out$summary <- rtemp$summ
 }
 
 else if (prod(odims) ==1) {  #don't make it an array
-    out <- list(call=Call, pyears=temp$pyears/scale, n=temp$pn,
-    	    offtable=temp$offtable/scale, tcut = has.tcut)
+    out <- list(call=Call, pyears=clist$pyears/scale, n=clist$pn,
+    	    offtable=clist$offtable/scale, tcut = has.tcut)
     if (has.ratetable) {
-        out$expected <- temp$pexpect
+        out$expected <- clist$pexpect
         if (expect=='pyears') out$expected <- out$expected/scale
         if (!is.null(rtemp$summ)) out$summary <- rtemp$summ
     }
-    if (docount) out$event <- temp$pcount
+    if (docount) out$event <- clist$pcount
 }
 else {
     out <- list(call = Call,
-    	pyears= array(temp$pyears/scale, dim=odims, dimnames=outdname),
-    	n     = array(temp$pn,     dim=odims, dimnames=outdname),
-    	offtable = temp$offtable/scale, tcut=has.tcut)
+    	pyears= array(clist$pyears/scale, dim=odims, dimnames=outdname),
+    	n     = array(clist$pn,     dim=odims, dimnames=outdname),
+    	offtable = clist$offtable/scale, tcut=has.tcut)
     if (has.ratetable) {
-        out$expected <- array(temp$pexpect, dim=odims, dimnames=outdname)
+        out$expected <- array(clist$pexpect, dim=odims, dimnames=outdname)
         if (expect=='pyears') out$expected <- out$expected/scale
-        if (!is.null(rtemp$summ)) out$summary <- rtemp$summ
+        if (!is.null(rclist$summ)) out$summary <- rtemp$summ
     }
     if (docount)
-    	out$event <- array(temp$pcount, dim=odims, dimnames=outdname)
+    	out$event <- array(clist$pcount, dim=odims, dimnames=outdname)
 }
 out$observations <- nrow(m)
 out$terms <- Terms
