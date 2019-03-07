@@ -42,7 +42,9 @@ library(splines)
 \section{The concordance statistic}
  Use of the concordance statistic for Cox models was popularized by
 Harrell \cite{Harrell96}, and it is now
-the most used measure of goodness-of-fit in survival models.  
+the most used measure of goodness-of-fit in survival models.
+One advantage of the statistic is that it is well defined not just for
+survival models, but also for logistic and ordinary linear regression.
 In general let $y_i$ and $x_i$ be observed and predicted data values,
 in the most common case $x = \hat\eta$, the linear predictor from a fitted
 model.
@@ -54,14 +56,15 @@ $(y_i > y_j, x_i > x_j)$ or $(y_i < y_j, x_i < x_j)$.
 The concordance is the fraction of concordant pairs.
 For a Cox model remember that the predicted survival $\hat y$ is longer if
 the risk score $X\beta$ is lower, so we have to flip the definitions of
-condordant and discordant.  For now, ignore this detail and use the usual
+concordant and discordant.  For now, ignore this detail and use the usual
 definition for exposition.
 
 One wrinkle is what to do with ties in either $y$ or $x$.  Such pairs
 can be ignored in the count (treated as incomparable), treated as discordant,
 or given a score of 1/2.  
 Let $C, D, T_x, T_y$ and $T_{xy}$ be a count of the pairs that are concordant,
-discordant, and tied on $x$ (but not $y$), tied on $y$ (but not $x$), and
+discordant, and tied on the predictor $x$ (but not $y$), 
+tied on $y$ (but not $x$), and
 tied on both. Then
 \begin{align}
   \tau_a &= \frac{C-D}{C+D + T_x + T_y + T_{xy}} \label{tau.a} \\
@@ -76,8 +79,8 @@ tied on both. Then
   \item The Goodman-Kruskal $\gamma$ statistic \eqref{gamma} ignores ties in 
     either $y$ or $x$.
   \item Somers' $d$ \eqref{somer} treats ties in $y$ as incomparable; pairs that are tied
-    in $x$ (but not $y$) score as 1/2.  The AUC from logistic regression is
-    equal to Somers' $d$.
+    in $x$ (but not $y$) score as 1/2.  The AUC measure commonly used in 
+    logistic regression is equivalent to Somers' $d$.
 \end{itemize}
 All three of the above range from -1 to 1.  The concordance is $(d+1)/2$.
 
@@ -85,7 +88,7 @@ The concordance has a natural interpretation as an experiment: present pairs
 of subjects one at a time to the physician, statistical model, or some other
 oracle, and count the number of correct
 predictions.  Pairs that have the same outcome are not put forward for 
-scoring (that would be unfair);
+scoring (that would be unfair to the contestant);
 and if the oracle cannot decide it makes a random choice.
 This leads to $C + T_x/2$ correct selections out of $C + D + T_x$ choices,
 which is easily seen to be equal to $(d+1)/2$. 
@@ -93,17 +96,17 @@ Kendall's tau-b has a denominator of the same type, but treats $x$ and
 $y$ symmetrically.
 
 This hypothetical experiment gives a baseline insight into the concordance.
-A value of 1/2 corresponds to using a random guess for each subject, and 
-values of $<.55$ are not very impressive.
-The ordering for some pairs of subjects will be obvious, and someone with
+A value of 1/2 corresponds to using a random guess for each subject. 
+Values of $<.55$ are not very impressive, since
+the ordering for some pairs of subjects will be obvious, and someone with
 almost no medical knowledge could do nearly
 that well by marking those pairs and using a coin flip for the rest.
-Values of less than 1/2 are possible - some stock market analysts come to 
+Values of less than 1/2 are possible --- some stock market analysts come to 
 mind.
    
 For survival data any pairs which cannot be ranked with certainty are
 also considered incomparable.
-For instance $y_i$ is censored at time 10 and $y_j$ is an event (or censor) 
+For instance is $y_i$ is censored at time 10 and $y_j$ is an event (or censor) 
 at time 20.  Subject $i$ may or may not survive longer than subject $j$,
 and so it is not possible to tell if the rule has ranked them correctly
 or not. 
@@ -114,7 +117,8 @@ also considered to be incomparable.
 
 \section{Examples}
 
-The \code{concordance} function available in the survival package can be used to estimate concordance with various types of models  
+The \code{concordance} function available in the survival package can be 
+used to estimate concordance for various types of models, 
 including logistic and linear regression.
 
 <<examples1>>=
@@ -127,7 +131,7 @@ fit2 <- lm(karno ~ age + trt, data=veteran)
 concordance(fit2)  # 2*concordance-1 = somers' d
 @
 
-Primarily the focus of this vignette will be on survival data.
+The primary the focus of this vignette will be on survival data.
 
 <<examples2>>=
 # parametric survival regression
@@ -144,7 +148,7 @@ ctest
 
 As shown in the last example, the concordance for multiple fits can
 be obtained from a single call.  The variance-covariance
-matrix for all three concordance values can be obtained using
+matrix for all three concordance values is available using
 \code{vcov(ctest)};
 this is used in an example below to formally test equality of
 two concordance values.
@@ -153,17 +157,17 @@ model can decrease the concordance.
 
 Concordance can be visualized using its contribution at each
 event time as shown below.
-The $y$ value on the graph is a rank of each subject's risk score
-as compared to the risk scores of all those subjects with longer survival,
-$r$ = fraction with lower scores - fraction with higher scores.
-In a highly predictive Cox model the subject with the highest risks will
-die soonest.
+The vertial axis on the graph is the rank of each of the risk score for
+each subject who has an event, among all those with at risk.
+Each rank ranges from 0 to 1, where 1= the subject who died had the
+highest risk score at that time and 0 = lowest.
+In a highly predictive Cox model we expect the subjects with the highest risks 
+to die soonest.
 A log transformation on the x-axis was used to 
 visually spread out the points. 
-Somers' $d$ is the weighted average of these ranks and the 
-concordance is $c= (d+1)/2$. 
+The concordance is a weigthed average of these $y$ values.
 After about 50 days, the baseline data has little predictive ability and 
-the average ranks are close to zero.  
+the average ranks are close to 1/2. 
 The second panel shows two possible weights, based on the number of subjects 
 available at a given time, where $n(t)$, the default choice, is
 the number of comparable pairs at each time point.
@@ -177,9 +181,14 @@ par(mfrow=c(1,2))
 c3 <- concordance(fit3, ranks=TRUE)
 c4 <- concordance(fit3, ranks=TRUE, timewt="S/G")
 
-plot(rank ~ time, data=c3$ranks, log='x')
-with(c3$ranks, lines(lowess(time, rank), col=2, lwd=2))
-abline(0,0, lty=2)
+# For technical reasons the code returns ranks on Somers' d scale, 
+#  from -1 to 1. Transform them to 0-1
+d.to.c <- function(x)  (x+1)/2
+plot(d.to.c(rank) ~ time, data=c3$ranks, log='x',
+     ylab="Rank")
+lfit <- with(c3$ranks, lowess(log(time), d.to.c(rank)))
+lines(exp(lfit$x), lfit$y, col=2, lwd=2)
+abline(.5,0, lty=2)
 
 matplot(c3$ranks$time, cbind(c3$ranks$timewt, c4$ranks$timewt),
         type="l", col=c("black", "red"), lwd=2,
@@ -199,7 +208,7 @@ for a response $y$ and predictor $x$ can be re-written as
 where $C$ and $D$ are the total number of concordance and discordant pairs,
 $n(t)$ is the number of subjects still at risk at time $t$, and
 $r_i(t)$ is the rank of $x_i$ among all those still at risk at time $t$,
-where the rank is defined such that $0 \le r \le 1$.
+where ranks are defined such that $0 \le r \le 1$.
 It turns out that 
 equation \eqref{cscore} is exactly the score statistic for a Cox model
 with a single time-dependent covariate  $n(t) r(t)$.
@@ -248,13 +257,13 @@ plot(variance ~ time, c3$ranks, ylim=c(0, .34), log="x")
 abline(h=1/3, col=2)
 @
 
-This suggests that the most statisticially \emph{efficient} estimate of the
+This suggests that the most \emph{statisticially efficient} estimate of the
 average rank would use weights of 1 rather than $n(t)$ when adding up the
 $r_i$ terms, which leads to something very like an ordinary Cox model or logrank
 test.  However, it is no longer the concordance.
 One aside to remember, however, is the p-value from a Cox model will almost
 always be smaller than that for the concordance statistic for that same
-model, which is one side effect of this contrast in efficiency.
+model, which is one side effect of this difference in efficiency.
 
 \section{Multiple concordances}
 
@@ -262,11 +271,11 @@ One useful property of using a jackknife variance estimate is that the
 variance of the 
 difference in concordance between two separately fitted models is also easily
 obtained.  If $c_a$ and $c_b$ are the two concordance statistics and $U_{ia}$
-and $U_{ib}$ the influence values, the influence vector for $c_a-c_b$ is 
-$U_a - U_b$.  
+and $U_{ib}$ the corresponding influence values, 
+the influence vector for $c_a-c_b$ is $U_a - U_b$.  
 (If subject $i$ increases $c_a$ by .03 and $c_b$ by .01, then he/she
 raises the difference between them by .02.)
-It is not even necessary that the models be nested.
+It is not necessary that the models be nested.
 However, it is crucial that they be computed on the exact same set of
 observations.
 Here is a comparison of concordance values from previous models.
@@ -308,8 +317,9 @@ concordance(fit6b,fit7b)
 
 An interesting consequence of the equivalence between the concordance and
 the Cox model is the question of alternate weightings of the
-risk scores.  Let $0 < r_i(t) < 1$ be the time dependent rank $2 (r_i(t) -1/2)$;
-the values range from
+risk scores.  Let $0 < r_i(t) < 1$ be the time dependent rank 
+then the values of $2 (r_i(t) -1/2)$
+range from
 -1 to 1 and their weighted sum is both the Cox score statistic and the numerator
 of Somers' $d$.
 If the original Cox model has a single 0/1 treatment covariate then $d$
@@ -472,7 +482,7 @@ Further issues to consider:
     of a model should make use of 
     the all available data, ``make the most with what you have'', 
     but on the other hand
-    we would like an estimated concordance to stay stable as a study's
+    we would prefer the estimated concordance to stay stable as a study's
     follow-up matures, which argues for $S/G$ or $n/G^2$ weights.
     If $G(t)$ approaches 0, however, these weights can become unstable and
     so may need to be combined with a time restriction.
