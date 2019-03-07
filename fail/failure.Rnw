@@ -194,4 +194,54 @@ fit1 <- coxph(Surv(start, stop, event) ~ x, test2)
 fit2 <- coxph(Surv(start, stop, event) ~ x, test2b)
 
 @ 
+
+\section{Infinite coefficients}
+For an infinite coefficient, after the first few iterations the coefficient
+grows by an approximate constant at each iteration, while the loglik 
+asymptotes to a constant.
+There is a race condition:
+\begin{enumerate}
+  \item Convergence of the loglik
+  \item Overflow of the exp function
+  \item Singularity in the computed information matrix
+\end{enumerate}
+
+Data sets where one group has no events usually end up at condition 1.
+Ones that do the other are more trouble.
+
+This example comes from the `` '' package (I forget which one).  It's a sneaky
+way to get a variable on both sides, and fails with number 2.
+<<sneaky>>=
+ysurv <- Surv(colon$time, colon$status)
+stest <- coxph(ysurv ~ status, colon)
+@ 
+
+The Rehberg data set manages 2 and 3 at the same iteration, which forced a
+different failure in the code: an NaN in the infinite coefficient check.
+<<rehberg>>=
+rdata <- read.csv('rdata.csv')
+fit <- coxph(Surv(time, status) ~x, rdata)  
+
+options(warn=-1)
+tcoef <- tlog <- timat <- tscore <- double(17)
+for (i in 1:17) {
+    tfit <- coxph(Surv(time, status) ~x, rdata, iter=i)
+    tcoef[i] <- tfit$coef
+    tlog[i] <-  tfit$loglik[2]
+    dt <- coxph.detail(tfit)
+    tscore[i] <- sum(dt$score)
+    timat[i]  <- sum(dt$imat)
+}
+options(warn=0)
+
+#plot(tcoef, tlog, xlab="Coefficient", ylab="Loglik")
+plot(tcoef, -tlog, log='y', xlab="Coefficient", ylab= "-loglik")
+matplot(1:17, cbind(timat, tscore), pch='is', log='y',
+        xlab="Iteration", ylab="Score and Information")
+@ 
+
+At iteration 17 the computations for both the first and second derivative
+fail due to exp() overflow.
+
+
 \end{document}

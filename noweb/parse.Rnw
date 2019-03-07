@@ -64,7 +64,7 @@ rh2 <- lapply(rhs, function(form) {
         index <- match(ff, c("common", "fixed", "init", "clear"))
         if (any(is.na(index)))
             stop("option not recognized in a covariates formula: ",
-                 paste(ff[is.na(indx)], collapse=", "))
+                 paste(ff[is.na(index)], collapse=", "))
         common <- any(index==1)
         fixed  <- any(index==2)
         clear  <- any(index==3)
@@ -91,7 +91,7 @@ Say instance that we had 7 states and the following statedata
 data set.
 \begin{center}
   \begin{tabular}{cccc}
-    state & A&  N& death \hline \\
+    state & A&  N& death \\ \hline 
     A-N- &  0&  0 & 0\\
     A+N- &  1&  0 & 0\\
     A-N1 &  0&  1 & 0\\

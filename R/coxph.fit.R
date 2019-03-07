@@ -91,28 +91,31 @@ coxph.fit <- function(x, y, strata, offset, init, control,
                  class = c('coxph.null', 'coxph') )
     }
     else {
-	var <- matrix(coxfit$imat,nvar,nvar)
 	coef <- coxfit$coef
+	lp <- c(x %*% coef) + offset - sum(coef*coxfit$means)
+	var <- matrix(coxfit$imat,nvar,nvar)
 	if (coxfit$flag < nvar) which.sing <- diag(var)==0
 	else which.sing <- rep(FALSE,nvar)
 
 	infs <- abs(coxfit$u %*% var)
 	if (maxiter >1) {
-	    if (coxfit$flag == 1000)
+	    if (coxfit$flag == 1000) {
 		   warning("Ran out of iterations and did not converge")
+                   if (max(lp) > 500 || any(!is.finite(infs)))
+                       warning("one or more coefficients may be infinite")
+               }
 	    else {
-		infs <- (!is.finite(coxfit$u) ||
+		infs <- (!is.finite(coxfit$u) |
                          ((infs > control$eps) & 
 			 infs > control$toler.inf*abs(coef)))
 		if (any(infs))
 		warning(paste("Loglik converged before variable ",
 			  paste((1:nvar)[infs],collapse=","),
-			  "; beta may be infinite. "))
+			  "; coefficient may be infinite. "))
 		}
 	    }
 
 	names(coef) <- dimnames(x)[[2]]
-	lp <- c(x %*% coef) + offset - sum(coef*coxfit$means)
         if (maxiter > 0) coef[which.sing] <- NA  #leave it be if iter=0 is set
         rval <- list(coefficients  = coef,
 		    var    = var,

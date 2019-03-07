@@ -5,7 +5,13 @@
     \item Added a hex sticker.  It is found in man/figures.
     \item Small grammar changes in a help page.
     \item Fix bug pointed out by A Ruten-Budde.  The coxph routine was
-    not passing the timefix option forward to a subseqent concordance call.
+    not passing the timefix option forward to a subseqent concordance
+    call.
+    \item Fine tune the checks for an infinite coefficient.  A data set
+    from rehbergT managed to have overflows in the first and second
+    derivative at the same iteration, leading to an update of inf * 0.
+    \item Formally add some small reliability data sets to the package, with a
+    help page of 'reliability'.  They had been used in the tests.
   }
 }
 

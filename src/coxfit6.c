@@ -66,6 +66,7 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
     double  temp, temp2;
     int     ndead;  /* number of death obs at a time point */
     double  tdeath=0;  /* ndead= total at a given time point, tdeath= all */
+    int     notfinite;  /* any infinite scores or intermediates */
 
     double  newlk=0;
     double  dtime;
@@ -363,6 +364,7 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
 	    deadwt =0;
 	    ndead =0;
 	    denom2 =0;
+
 	    while(person>=0 && time[person]==dtime) {
 		nrisk++;
 		zbeta = offset[person];
@@ -439,27 +441,31 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
 	*/
 	*flag = cholesky2(imat, nvar, toler);
 
-	k =0;
+	notfinite = 0;
 	for (i=0; i<nvar; i++) {
+	    if (isfinite(u[i]) ==0) notfinite=2;     /* infinite score stat */
 	    for (j=0; j<nvar; j++) {
-		if (isfinite(imat[i][j]) ==0) k =1;
+		if (isfinite(imat[i][j]) ==0) notfinite =3; /*infinite imat */
 	    }	
 	}	
-
-	if (k==1 || isfinite(newlk)==0) {
+	if (isfinite(newlk) ==0) notfinite =4;
+	if (notfinite >0) {
 	    /*
-	    ** a non-finite loglik is very rare: a step so bad that we get
-	    ** an overflow of the exp function.
-	    **  When this happens back up one iteration and quit
+	    **  A non-finite term is very rare: a step so bad that we get
+	    ** an overflow of the exp function.  The most common cause is
+	    ** a data set where the true solution is infinite, but a bad
+	    ** overshoot of the NR step can do it too.
+	    **   When this happens turn on step halving.  For the case of
+	    ** infinite beta this means maxiter steps stuck in the same
+	    ** spot, but so what.
 	    */
-	    for (i=0; i<nvar; i++) newbeta[i]= beta[i];
-	    maxiter = *iter + 1;  
+	    halving =1;
 	    }
    
 	else {
 	    /* the first condition below is for the rare special case that the
 	    ** death = max(x value) at every death time, which leads to a loglik
-	    ** of 0, beta=infinite, and eventual zerodivide in /newlk.
+	    ** of 0
 	    */
 	    if (fabs(newlk) <=eps || 
 		(fabs(1-(loglik[1]/newlk))<= eps && halving==0)) { /* all done */
@@ -479,7 +485,7 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
 	    }
 
 	    if (*iter < maxiter) {
-		if (newlk < loglik[1])   {    
+		if (newlk < loglik[1] || notfinite > 0)   {    
 		    /*it is not converging ! */
 		    halving =1;
 		    for (i=0; i<nvar; i++) 

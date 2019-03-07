@@ -137,8 +137,9 @@ if (maxiter >1) {
     if (agfit$iter > maxiter)
         warning("Ran out of iterations and did not converge")
     else {
-        infs <- ((infs > control$eps) & 
-                 infs > control$toler.inf*abs(coef))
+        infs <- (!is.finite(agfit$u) |
+                 (infs > control$eps & 
+                  infs > control$toler.inf*abs(coef)))
         if (any(infs))
             warning(paste("Loglik converged before variable ",
                           paste((1:nvar)[infs],collapse=","),
