@@ -7,15 +7,14 @@ library(survival)
 #
 
 # this fit doesn't give the same log-lik that they claim
-motor <- read.table('data.motor', col.names=c('temp', 'time', 'status'))
-fit1 <- survreg(Surv(time, status) ~ I(1000/(273.2+temp)), motor,
+fit1 <- survreg(Surv(time, status) ~ I(1000/(273.2+temp)), imotor,
 		subset=(temp>150), dist='lognormal')
 summary(fit1)
 
 # This one, with the loglik on the transformed scale (the inappropriate
 #   scale, Ripley & Venables would argue) does agree.
 # All coefs are of course identical.
-fit2 <- survreg(Surv(log(time), status) ~ I(1000/(273.2+temp)), motor,
+fit2 <- survreg(Surv(log(time), status) ~ I(1000/(273.2+temp)), imotor,
 		subset=(temp>150), dist='gaussian')
 
 
@@ -52,27 +51,27 @@ pdf(file='reliability.pdf')
 #
 # Insulating fluids example
 #
-fluid <- read.table('data.fluid', col.names=c('time', 'voltage'))
 
 # Adding a -1 to the fit just causes the each group to have it's own
 # intercept, rather than a global intercept + constrasts.  The strata
 # statement allows each to have a separate scale
-ffit <- survreg(Surv(time) ~ voltage + strata(voltage) -1, fluid)
+ffit <- survreg(Surv(time) ~ factor(voltage) + strata(voltage) -1, ifluid)
 
 # Get predicted quantiles at each of the voltages
 # By default predict() would give a line of results for each observation,
 #  I only want the unique set of x's, i.e., only 4 cases
-uvolt <- sort(unique(fluid$voltage))      #the unique levels
+uvolt <- sort(unique(ifluid$voltage))      #the unique levels
 plist <- c(1, 2, 5, 1:9 *10, 95, 99)/100
 pred  <- predict(ffit, type='quantile', p=plist,
-                 newdata=data.frame(voltage=factor(uvolt)))
+                 newdata=data.frame(voltage=uvolt))
 tfun <- function(x) log(-log(1-x))
 
 matplot(t(pred), tfun(plist), type='l', log='x', lty=1,
-        col=1:4, yaxt='n')
+        col=1:4, yaxt='n',
+        xlab="Predicted", ylab="Quantile")
 axis(2, tfun(plist), format(100*plist), adj=1)
 
-kfit <- survfit(Surv(time) ~ voltage, fluid, type='fleming') #KM fit
+kfit <- survfit(Surv(time) ~ voltage, ifluid, type='fleming') #KM fit
 for (i in 1:4) {
     temp <- kfit[i]
     points(temp$time, tfun(1-temp$surv), col=i, pch=i)
@@ -109,9 +108,10 @@ rm(temp, uvolt, plist, pred, ffit, kfit)
 
 #####################################################################
 # Turbine cracks data
-cracks <- read.table('data.cracks', col.names=c('time1', 'time2', 'n'))
-cfit <- survreg(Surv(time1, time2, type='interval2') ~1, 
-                dist='weibull', data=cracks, weight=n)
+crack2 <- with(cracks, data.frame(day1=c(NA, days), day2=c(days, NA),
+                                  n=c(fail, 167-sum(fail))))
+cfit <- survreg(Surv(day1, day2, type='interval2') ~1, 
+                dist='weibull', data=crack2, weight=n)
 
 summary(cfit)
 #Their output also has Wiebull scale = exp(cfit$coef), shape = 1/(cfit$scale)
@@ -126,7 +126,7 @@ plot(qsurvreg(plist, cfit$coef, cfit$scale), tfun(plist), log='x',
      xlab="Weibull Plot for Time", ylab="Percent")
 axis(2, tfun(plist), format(100*plist), adj=1)
 
-kfit <- survfit(Surv(time1, time2, type='interval2') ~1, data=cracks,
+kfit <- survfit(Surv(day1, day2, type='interval2') ~1, data=crack2,
                 weight=n, type='fleming')
 # Only plot point where n.event > 0 
 # Why?  I'm trying to match them.  Personally, all should be plotted.
@@ -141,7 +141,7 @@ text(rep(3,6), seq(.5, -1.0, length=6),
 text(rep(9,6), seq(.5, -1.0, length=6), 
          c(format(round(exp(cfit$coef), 2)),
            format(round(1/cfit$scale, 2)),
-           format(tapply(cracks$n, cfit$y[,3], sum)), "ML"), adj=1)
+           format(tapply(crack2$n, cfit$y[,3], sum)), "ML"), adj=1)
 
 # Now a portion of his percentiles table
 #  I don't get the same SE as SAS, I haven't checked out why.  The
@@ -156,9 +156,9 @@ print(mat)
 #
 # The cracks data has a particularly easy estimate, so use
 # it to double check code
-time <- c(cracks$time2[1], (cracks$time1 + cracks$time2)[2:8]/2, 
-          cracks$time1[9])
-cdf  <- cumsum(cracks$n)/sum(cracks$n)
+time <- c(crack2$day2[1], (crack2$day1 + crack2$day2)[2:8]/2, 
+          crack2$day1[9])
+cdf  <- cumsum(crack2$n)/sum(crack2$n)
 all.equal(kfit$time, time)
 all.equal(kfit$surv, 1-cdf[c(1:8,8)]) 
 rm(time, cdf, kfit)

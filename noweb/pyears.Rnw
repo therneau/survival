@@ -339,7 +339,7 @@ if (data.frame) {
     
     # if any of the predictors were factors, make them factors in the output
     for (i in 1:length(ovars)){
-        temp <- mf[[ovars[i]]]
+        temp <- m[[ovars[i]]]
         if (is.factor(temp))
             df[[ovars[i]]] <- factor(df[[ovars[i]]], levels(temp))
     }

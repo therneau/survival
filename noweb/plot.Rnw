@@ -14,7 +14,7 @@ plot.survfit<- function(x, conf.int,  mark.time=FALSE,
 			xscale=1, yscale=1, 
 			firstx=0, firsty=1,
 			xmax, ymin=0,
-			fun, xlab="", ylab="", xaxs='S', 
+			fun, xlab="", ylab="", xaxs='r', 
                         conf.times, conf.cap=.005, conf.offset=.012, 
                         mark, ...) {
 

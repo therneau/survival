@@ -1,5 +1,5 @@
 PARTS = main.Rnw \
-	coxph2.Rnw \
+	coxph.Rnw \
 	exact.nw \
 	agreg.Rnw \
 	coxsurv.Rnw \
@@ -14,6 +14,7 @@ PARTS = main.Rnw \
 	residuals.survreg.Rnw \
 	survfit.Rnw \
 	survfitCI.Rnw \
+	survfitKM.Rnw \
 	msurv.nw \
 	survfitms.Rnw \
 	plot.Rnw \
@@ -41,6 +42,7 @@ SFUN =  agreg.fit.R \
 	survexp.R \
 	survfit.R \
 	survfitCI.R \
+	survfitKM.R \
 	survfit.coxph.R \
 	survfitcoxph.fit.R \
 	survfitms.R\
@@ -51,7 +53,8 @@ CFUN =  agfit4.c \
         agsurv4.c agsurv5.c \
         concordance1.c concordance3.c coxcount1.c \
         coxexact.c \
-	survfitci.c 
+	survfitci.c \
+	survfitkm.c \
 #	coxdetail2.c
 
 RDIR = ../R

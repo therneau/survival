@@ -221,8 +221,8 @@ summary.survfit <- function(object, times, censored=FALSE,
     if (length(rmean.endtime)>0  && !any(is.na(rmean.endtime[1]))) 
             fit$rmean.endtime <- rmean.endtime
 
-    # An ordinary survfit object contains std(cum hazard), change scales
-    if (!is.null(fit$std.err)) fit$std.err <- fit$std.err * fit$surv 
+    # A survfit object may contain std(log S) or std(S), summary always std(S)
+    if (!is.null(fit$std.err)& fit$logse) fit$std.err <- fit$std.err * fit$surv 
  
     # Expand the strata
     if (!is.null(fit$strata)) 
@@ -282,13 +282,6 @@ ssub <- function(x, indx, init=0) {  #select an object and index
     }
     else NULL
 }
-
-# The left.open argument was added to findInterval in R 3.3, but
-#  our local servers are version 3.2.x.  Work around it.
-find2 <- function(x, vec, left.open=FALSE, ...) {
-    if (!left.open) findInterval(x, vec, ...)
-    else length(vec) - findInterval(-x, rev(-vec), ...)
-}
 @ 
 
 This function does the real work, for any single curve.
@@ -325,8 +318,8 @@ findrow <- function(fit, times, extend, init=1) {
     }
     ntime <- length(fit$time)
     
-    index1 <- find2(ptimes, fit$time) 
-    index2 <- 1 + find2(ptimes, fit$time, left.open=TRUE)
+    index1 <- findInterval(ptimes, fit$time) 
+    index2 <- 1 + findInterval(ptimes, fit$time, left.open=TRUE)
     # The pmax() above encodes the assumption that n.risk for any
     #  times before the first observation = n.risk at the first obs
     fit$time <- ptimes
@@ -453,8 +446,12 @@ summary.survfitms <- function(object, times, censored=FALSE,
     if (length(rmean.endtime)>0  && !any(is.na(rmean.endtime))) 
             fit$rmean.endtime <- rmean.endtime
 
-     if (!is.null(fit$strata)) 
+    if (!is.null(fit$strata)) 
         fit$strata <- factor(rep(names(fit$strata), fit$strata))
+
+    # A survfit object may contain std(log S) or std(S), summary always std(S)
+    if (!is.null(fit$std.err)& fit$logse) fit$std.err <- fit$std.err * fit$surv 
+
     class(fit) <- "summary.survfitms"
     fit
 }

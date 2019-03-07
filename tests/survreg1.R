@@ -31,10 +31,19 @@ aeq(resid(fit1, type='ldresp'),   resid(fit4, type='ldresp'))
 aeq(resid(fit1, type='ldshape'),  resid(fit4, type='ldshape'))
 aeq(resid(fit1, type='matrix'),   resid(fit4, type='matrix'))
 
-# Test suggested by A
+# Test suggested by Achim Zieleis: residuals should give a score vector
+r1 <-residuals(fit1, type='matrix')
+score <- c(as.vector(r1[,c("dg")]) %*% model.matrix(fit1),
+           "log(scale)" = sum(r1[,"ds"]))
+all(abs(score) < 1e-6)
 
-
-
+# repeat this with Gaussian (no transform = different code path)
+tfit <-  survreg(Surv(durable, durable>0, type='left') ~age + quant,
+                data=tobin, dist='gaussian')
+r2 <- residuals(tfit, type='matrix')
+score <- c(as.vector(r2[, "dg"]) %*% model.matrix(tfit),
+             "log(scale)" = sum(r2[,"ds"]))
+all(score < 1e-6)
 
 #
 # Some tests of the quantile residuals

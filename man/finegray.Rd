@@ -7,7 +7,7 @@
   data set.
 }
 \usage{
-finegray(formula, data, subset, na.action= na.pass, etype,
+finegray(formula, data, weights, subset, na.action= na.pass, etype,
     prefix="fg", count, id, timefix=TRUE)
 }
 \arguments{
@@ -18,6 +18,7 @@ finegray(formula, data, subset, na.action= na.pass, etype,
   coercible by as.data.frame to a data frame) containing the variables
   in the model.
 }
+  \item{weights}{optional vector of observation weights}
   \item{subset}{
     an optional vector specifying a subset of observations to be used in
     the fitting process.
