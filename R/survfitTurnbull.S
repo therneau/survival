@@ -1,7 +1,7 @@
 # Compute the K-M for left/right/interval censored data via Turnbull's
 #      slow EM calculation
 # x is a factor giving the groups, y is a survival object
-survfitTurnbull <- function(x, y, casewt,
+survfitTurnbull <- function(x, y, weights,
                        type=c('kaplan-meier', 'fleming-harrington', 'fh2'),
                        error=c('greenwood', "tsiatis"), se.fit=TRUE,
                        conf.int= .95,
@@ -42,7 +42,7 @@ survfitTurnbull <- function(x, y, casewt,
 			   "is greater than all time points."))
 	x <- x[keep]
 	y <- y[keep,,drop=FALSE]  #make sure y remains a matrix
-	casewt <- casewt[keep]
+	weights <- weights[keep]
         }
     n.used <- as.vector(table(x))    # This is for the printout
     nstrat <- length(n.used)
@@ -187,7 +187,7 @@ survfitTurnbull <- function(x, y, casewt,
 	    wt2 <- wtmat %*% diag(jumps, length(jumps))
 	    wt2 <- (lwt/(apply(wt2,1,sum))) * wt2 
 	    wt2 <- apply(wt2, 2, sum)
-	    tfit <- survfitKM(tempx, tempy, casewt=c(wt[status<2], wt2), ...)
+	    tfit <- survfitKM(tempx, tempy, weights=c(wt[status<2], wt2), ...)
 
 	    if (FALSE) {
                 # these lines are in for debugging: change the above to 
@@ -231,7 +231,7 @@ survfitTurnbull <- function(x, y, casewt,
     uniquex <- sort(unique(x))
     for (i in 1:nstrat) {
 	who <- (x== uniquex[i])
-	tfit <- doit(y[who,,drop=FALSE], status[who], casewt[who])
+	tfit <- doit(y[who,,drop=FALSE], status[who], weights[who])
 	time[[i]]   <- tfit$time
 	n.risk[[i]] <- tfit$n.risk
 	surv[[i]]   <- tfit$surv

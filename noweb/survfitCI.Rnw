@@ -46,8 +46,8 @@ The first part of the code is standard, parsing out options and
 checking the data.
 <<survfitCI>>= 
 <<survfitCI-compute>>
-survfitCI <- function(X, Y, weights, id, istate, 
-                      type=c('kaplan-meier', 'fleming-harrington', 'fh2'),
+survfitCI <- function(X, Y, weights, id, istate, cluster, 
+                      type=1,
                       se.fit=TRUE,
                       conf.int= .95,
                       conf.type=c('log',  'log-log',  'plain', 'none', 
@@ -55,10 +55,18 @@ survfitCI <- function(X, Y, weights, id, istate,
                       conf.lower=c('usual', 'peto', 'modified'),
                       influence = FALSE, start.time, p0){
 
-    method <- match.arg(type)
-#    error <- match.arg(error)
-#    if (error != "inf")
-#        warning("Only the infinetesimal jackknife error is supported for CI curves")
+    if (is.character(type)) {
+        # older style argument is allowed
+        temp <- charmatch(type, c("kaplan-meier", "fleming-harrington", "fh2"))
+        if (is.na(temp)) stop("invalid value for 'type'")
+        type <- c(1,3,4)[temp]
+    }
+    else if (!is.numeric(type) || type != floor(type) || type < 1 || type >4)
+        stop("type argument should be an integer from 1 to 4")
+
+    method <- as.integer(type)
+    stype <- ifelse (type < 3, 1, 2) # survival type 1=direct, 2= exp(chaz)  
+ 
     conf.type <- match.arg(conf.type)
     conf.lower<- match.arg(conf.lower)
     if (is.logical(conf.int)) {
@@ -66,6 +74,49 @@ survfitCI <- function(X, Y, weights, id, istate,
         #  it's illegal per documentation, but be kind
         if (!conf.int) conf.type <- "none"
         conf.int <- .95
+    }
+
+    # The user can call with cluster, id, both, or neither
+    # If only id, treat it as the cluster too
+    has.cluster <-  !(missing(cluster) || length(cluster)==0) 
+    has.id <-       !(missing(id) || length(id)==0)
+    if (has.id) id <- as.factor(id)
+    if (has.cluster) {
+        if (is.factor(cluster)) {
+            clname <- levels(cluster)
+            cluster <- as.integer(cluster)
+        } else {
+            clname  <- sort(unique(cluster))
+            cluster <- match(cluster, clname)
+        }
+        ncluster <- length(clname)
+    } else {
+        if (has.id) {
+            # treat the id as both identifier and clustering
+            clname <- levels(id)
+            cluster <- as.integer(id)
+            ncluster <- length(clname)
+        }
+        else {
+            ncluster <- 0  # has neither
+            clname <- NULL
+        }
+    }
+ 
+    if (is.logical(influence)) {
+        # TRUE/FALSE is treated as all or nothing
+        if (!influence) influence <- 0L
+        else influence <- 3L
+    }
+    else if (!is.numeric(influence))
+        stop("influence argument must be numeric or logical")
+    if (!(influence %in% 0:3)) stop("influence argument must be 0, 1, 2, or 3")
+    else influence <- as.integer(influence)
+ 
+    if (!se.fit) {
+        # if the user asked for no standard error, skip any robust computation
+        ncluster <- 0L
+        influence <- 0L
     }
 
     type <- attr(Y, "type")

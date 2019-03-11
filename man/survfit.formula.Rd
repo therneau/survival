@@ -5,13 +5,14 @@
   Compute a Survival Curve for Censored Data 
 }
 \description{
-  Computes an estimate of a survival curve for censored data.
-  For multi-state data the Andersen-Johansen estimate is used, for
-  ordinary survival the Kaplan-Meier estimate is the defaut.
+  Computes an estimate of a survival curve for censored data using
+  the Aalen-Johansen estimator.  For ordinary (single event) survival
+  this reduces to the Kaplan-Meier estimate.
 }
 \usage{
 \method{survfit}{formula}(formula, data, weights, subset, na.action,  
-        etype, id, istate, timefix=TRUE, ...)
+        type=1, id, cluster, istate, timefix=TRUE,
+        etype, error,  ...)
 }
 \arguments{
   \item{formula}{
@@ -40,40 +41,32 @@
     \code{subset} argument has been used. 
     Default is \code{options()$na.action}. 
   }
-  \item{etype}{
-    a variable giving the type of event.  This has been superseded by
-    multi-state Surv objects; see example below, and is depricated.
-  }
+  \item{type}{the type of estimates to produce; see details below}
+
   \item{id}{
-    identifies individual subjects, when a given person can have multiple
-    lines of data.
+    identifies individual subjects, used when a given person can have multiple
+    lines of data or to signal a robust error estimate
   }
+  \item{cluster}{optional clustering for the robust error}
+
   \item{istate}{for multi-state models, identifies the initial state of
     each subject or observation}
 
   \item{timefix}{process times through the \code{aeqSurv} function to
   eliminate potential roundoff issues.}
 
-
+  \item{etype}{
+    a variable giving the type of event.  This has been superseded by
+    multi-state Surv objects and is depricated; see example below.
+  }
+  \item{error}{this argument is no longer used}
   \item{\dots}{
     The following additional arguments are passed to internal functions
     called by \code{survfit}.
     \describe{
-      \item{type}{
-	a character string specifying the type of survival curve. 
-	Possible values are \code{"kaplan-meier"}, 
-	\code{"fleming-harrington"} or \code{"fh2"} 
-	if a formula is given.  This is ignored for competing risks or
-	for interval censored data, in the latter case a Turnbull
-	estimate is computed.
-      }
-      \item{error}{
-	a character string specifying the error.  Possible values are 
-	\code{"greenwood"} for the Greenwood formula or 
-	\code{"tsiatis"} or \code{"aalen"} for the Tsiatis/Aalen formula, 
-	or \code{"robust"} for a robust variance.  The last of these
-	is assumed if non-integer case weights are provided.	
-      }
+      \item{se.fit}{logical value, default is TRUE.  If FALSE then
+	standard error computations are omitted.
+	}
       \item{conf.type}{
 	One of \code{"none"}, \code{"plain"}, \code{"log"} (the default),
 	\code{"log-log"} or \code{"logit"}.  Only
@@ -124,18 +117,8 @@
 	These contain the values of the derivative of each value
 	with respect to the case weights of each subject i:
 	\eqn{\partial p/\partial w_i}{dp/dw[i]},
-	evaluated at the vector of weights \eqn{w=1}.
-	The array will have dimensions (number of subjects, 1+ number of
-	unique times, number of states); be forewarned that this can be huge.
-	If the total number of elements is larger then the maximum
-	integer the underlying C program can not create it.
+	evaluated at the vector of weights.
       }
-
-      \item{istate}{this applies only to multi-state curves.  An
-	optional variable that gives the starting state for each
-	subject.  If missing then all subjects are assumed to start in
-	an single un-named state.  When a subject has multiple rows only
-	the value from their first (minimal time) row is used.}
 
       \item{p0}{this applies only to multi-state curves. 
 	An optional vector giving the initial probability across
@@ -154,52 +137,49 @@ details. Methods defined for survfit objects are
 \code{lines}, and \code{points}. 
 }
 \details{
-The estimates used are the Kalbfleisch-Prentice 
-(Kalbfleisch and Prentice, 1980, p.86) and the Tsiatis/Link/Breslow, 
-which reduce to the Kaplan-Meier and Fleming-Harrington estimates, 
-respectively, when the weights are unity.  
+  If there is a \code{data} argument, then variables in the \code{formula},
+  code{weights}, \code{subset}, \code{id}, \code{cluster} and
+  \code{istate} arguments will be searched for in that data set.
 
-The Greenwood formula for the variance is a sum of terms 
-d/(n*(n-m)), where d is the number of deaths at a given time point, n 
-is the sum of weights for all individuals still at risk at that time, and 
-m is the sum of weights for the deaths at that time.  The 
-justification is based on a binomial argument when weights are all 
-equal to one; extension to the weighted case is ad hoc.  Tsiatis 
-(1981) proposes a sum of terms d/(n*n), based on a counting process 
-argument which includes the weighted case. 
-
-The two variants of the F-H estimate have to do with how ties are handled.
-If there were 3 deaths out of 10 at risk, then the first
-increments the hazard by 3/10 and the second
-by 1/10 + 1/9 + 1/8.
-For the first method S(t) = exp(H), where H is 
-the Nelson-Aalen cumulative hazard estimate,
-whereas the \code{fh2} method will 
-give results S(t) results closer to the Kaplan-Meier. 
-
-When the data set includes left censored or interval censored data (or both),
-then the EM approach of Turnbull is used to compute the overall curve.
-When the baseline method is the Kaplan-Meier, this is known to converge to
-the maximum likelihood estimate.
-
-The cumulative incidence curve is an alternative to the Kaplan-Meier
-for competing risks data.
-For instance, in patients with MGUS, conversion to an overt plasma
-cell malignancy occurs at a nearly constant rate among those still alive.    
-A Kaplan-Meier estimate, treating death due to other causes as censored,
-gives a 20 year cumulate rate of 33\% for the 241 early patients of Kyle.  
-This estimates the incidence of conversion if all other causes of death were
-removed, which is an unrealistic assumption given the mean starting age
-of 63 and a median follow up of over 21 years.
+  The routine returns both an estimated probability in state and an
+  estimated cumulative hazard estimate.
+  The cumulative hazard estimate is the Nelson-Aalen (NA) estimate or the
+  Fleming-Harrington (FH) estimate, and the probability in state will be
+  either the Aalen-Johansen (AJ) estimate or the exponential of the
+  cumulative hazard.
+  For \code{type=1} gives the AJ + NA, \code{type=2} the AJ + FH,
+  \code{type=3} exp(NA) + NA and \code{type=4} exp(FH) + FH.
+  For single state data the AJ estimate reduces to the Kaplan-Meier and
+  the probability in state to the survival curve; 
+  for competing risks data the AJ reduces to the cumulative incidence (CI)
+  estimator.
   
-The CI estimate, on the other hand, estimates the total number of
-conversions that will actually occur.  Because the population is older,
-this is much smaller than the KM, 22\% at 20 years for Kyle's data.
-If there were no censoring, then CI(t) could very simply be computed as
-total number
-of patients with progression by time t divided by the sample size n.
+  For backward compatability the \code{type} argument can also be a
+  character string of "kaplan-meier", "fleming-harrington" or "fh2",
+  which map to type = 1,3, and 4, respectively.  Any unique abbreviation
+  of the string is also allowed.
 
-}
+  If a \code{id} or \code{cluster} argument is present, or for multi-state
+  curves, then the standard
+  errors of the results will be based on an infinitesimal jackknife (IJ)
+  estimate, otherwise the standard model based estimate will be used.
+  With the IJ estimate, the leverage values themselves can be returned
+  as arrays with dimensions: number of subjects, number of unique times,
+  and for a multi-state model, the number of unique states.
+  Be forwarned that these arrays can be huge.  If there is a
+  \code{cluster} argument this first dimension will be the number of
+  clusters and the variance will be a grouped IJ estimate; this can be
+  an important tool for reducing the size.
+  A numeric value for the \code{influence} argument allows finer
+  control: 0= return neither (same as FALSE), 1= return the influence
+  array for probability in state, 2= return the influence array for the
+  cumulative hazard, 3= both (same as TRUE).
+
+  When the data set includes left censored or interval censored data (or both),
+  then the EM approach of Turnbull is used to compute the overall curve.
+  Currently this algorithm is very slow, only a survival curve is
+  produced, and it does not support the IJ variance.
+  }
 \section{References}{
 Dorey, F. J. and Korn, E. L. (1987).  Effective sample sizes for confidence 
 intervals for survival probabilities.  \emph{Statistics in Medicine} 
@@ -271,19 +251,22 @@ fit  <- survfit(Surv(time, time, status, type='interval') ~1,
 #
 # Time to progression/death for patients with monoclonal gammopathy
 #  Competing risk curves (cumulative incidence)
+#
 fitKM <- survfit(Surv(stop, event=='pcm') ~1, data=mgus1,
                     subset=(start==0))
 
-fitCI <- survfit(Surv(stop, status*as.numeric(event), type="mstate") ~1,
+fitCI <- survfit(Surv(stop, event) ~1,
                     data=mgus1, subset=(start==0))
-
-# CI curves are always plotted from 0 upwards, rather than 1 down
+\dontrun{
+# CI curves show the probability in state
 plot(fitCI, xscale=365.25, xmax=7300, mark.time=FALSE,
-            col=2:3, xlab="Years post diagnosis of MGUS")
+            col=2:3, xlab="Years post diagnosis of MGUS",
+            ylab="P(state)")
 lines(fitKM, fun='event', xmax=7300, mark.time=FALSE,
             conf.int=FALSE)
-text(10, .4, "Competing risk: death", col=3)
-text(16, .15,"Competing risk: progression", col=2)
-text(15, .30,"KM:prog")
+text(3652, .4, "Competing risk: death", col=3)
+text(5840, .15,"Competing risk: progression", col=2)
+text(5480, .30,"KM:prog")
+}
 }
 \keyword{survival}

@@ -10,31 +10,25 @@ prompted a movement of more of the code into C since that calculation
 is computationally intensive.
 
 <<survfitKM>>= 
-survfitKM <- function(x, y, weights=rep(1.0,length(x)),
-                      stype=c("kaplan-meier", "KM", "exp", "Aalen-Johansen", 
-                              "AJ"),
-                      ctype=c("nelson-aalen", "NA", "fleming-harrington",
-                              "efron"),
+survfitKM <- function(x, y, weights=rep(1.0,length(x)), type=1,
                       se.fit=TRUE,
                       conf.int= .95,
                       conf.type=c('log',  'log-log',  'plain', 'none', 
                                   'logit', "arcsin"),
                       conf.lower=c('usual', 'peto', 'modified'),
-                      start.time=0, new.time, id, cluster, influence=0L,
-                      type=c('kaplan-meier', 'fleming-harrington', 'fh2')) {
-    stype <- match.arg(stype)
-    ctype <- match.arg(ctype)
-    if (!missing(type)) {
-        warning("the 'type' argument is depricated")
-        type <- match.arg(type)
-        if (type=="kaplan-meier") {stype <- type; ctype <- "nelson-aalen"}
-        else if (type =="fleming") {stype <- "exp";  ctype <- "nelson-aalen"}
-        else  {stype <- "exp";  ctype <- "efron"}
+                      start.time, new.time, id, cluster, influence=FALSE) {
+ 
+    if (is.character(type)) {
+        # older style argument is allowed
+        temp <- charmatch(type, c("kaplan-meier", "fleming-harrington", "fh2"))
+        if (is.na(temp)) stop("invalid value for 'type'")
+        type <- c(1,3,4)[temp]
     }
-    stype <- ifelse (stype=="exp", 2L, 1L)
-    ctype <- ifelse (ctype=="nelson-aalen" || ctype=="NA", 1L, 2L)
-    #method <- match(type, c("kaplan-meier", "fleming-harrington", "fh2"))
-
+    else if (!is.numeric(type) || type != floor(type) || type < 1 || type >4)
+        stop("type argument should be an integer from 1 to 4")
+    else type <- as.integer(type)
+    stype <- ifelse (type < 3, 1, 2) # survival type 1=direct, 2= exp(chaz)  
+ 
     conf.type <- match.arg(conf.type)
     conf.lower<- match.arg(conf.lower)
     if (is.logical(conf.int)) {
@@ -101,7 +95,8 @@ survfitKM <- function(x, y, weights=rep(1.0,length(x)),
     #  This is an old argument that should be depricated
     if (missing(start.time)) {
         if (!missing(new.time)) start.time <- new.time
-        else if (ny==3 && any(y[,2] <0)) start.time <- min(y[,2])
+        else if (any(y[,ny-1] <0)) start.time <- min(y[,ny-1])
+        # the line above sets a plotting range, it doesn't exclued anyone
     }
 
     <<survfitKM-compute>>
@@ -192,7 +187,7 @@ if (length(xlev) ==1) {# only one group
         sort2 <- order(y[,2])
         sort1 <- order(y[,1])
     }
-    toss <- (y[sort2, 2] < start.time)
+    toss <- (y[sort2, ny-1] < start.time)
     if (any(toss)) {
         # Some obs were removed by the start.time argument
         sort2 <- sort2[!toss]
@@ -203,9 +198,9 @@ if (length(xlev) ==1) {# only one group
     }  
     n.used <- length(sort2)
     if (ncluster > 0)
-        cfit <- .Call(Csurvfitkm, y, weights, sort1-1L, sort2-1L, stype, ctype, 
+        cfit <- .Call(Csurvfitkm, y, weights, sort1-1L, sort2-1L, type, 
                                cluster-1L, ncluster, position, influence)
-    else cfit <- .Call(Csurvfitkm, y, weights, sort1-1L, sort2-1L, stype, ctype,
+    else cfit <- .Call(Csurvfitkm, y, weights, sort1-1L, sort2-1L, type,
                               0L, 0L, position, influence)
 } else {
     # multiple groups
@@ -242,10 +237,10 @@ if (length(xlev) ==1) {# only one group
         
         if (ncluster > 0) 
             cfit[[i]] <- .Call(Csurvfitkm, ytemp, weights[keep], sort1 -1L, 
-                           sort2 -1L, stype, ctype,
+                           sort2 -1L, type,
                            c2 -1L, length(c.unique), position, influence)
         else cfit[[i]] <- .Call(Csurvfitkm, ytemp, weights[keep], sort1 -1L, 
-                           sort2 -1L, stype, ctype,
+                           sort2 -1L, type,
                            0L, 0L, position, influence)
     }
 }
@@ -394,11 +389,11 @@ works with.
 #include "survproto.h"
 
 SEXP survfitkm(SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22, 
-               SEXP stype2, SEXP ctype2, SEXP id2, SEXP nid2,   SEXP position2,
+               SEXP type2, SEXP id2, SEXP nid2,   SEXP position2,
                SEXP influence2) {
               
     int i, i2, j, j2, k, person;
-    int nused, nid, stype, ctype, influence;
+    int nused, nid, type, influence;
     int ny, ntime;
     double *tstart, *stime, *status, *wt;
     double v1, v2, dtemp, haz;
@@ -432,8 +427,7 @@ SEXP survfitkm(SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22,
     sort2 = INTEGER(sort22);
     nused = LENGTH(sort22);
                    
-    stype = asInteger(stype2);
-    ctype = asInteger(ctype2);               
+    type = asInteger(type2);
     nid = asInteger(nid2);
     if (LENGTH(position2) > 0) {
         hasid =1;
@@ -467,14 +461,15 @@ SEXP survfitkm(SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22,
 
 I don't want to rewrite this routine again, so make the C code return
 most everything that I think I will ever want. 
-For stype=1 compute the KM, for ctype=1 compute the Nelson-Aalen and for 
-ctype=2 the Efron variant of the NA.
+For type=1,2 compute the KM, otherwise use exp(chaz).
+For type=1,3 compute the Nelson-Aalen and for 
+2,4  the Efron variant of the NA as the cumulative hazard.
 Without robust variance, do the simple Greenwood and NA variances.
 Robust variances take more time since they are by their nature $O(gm)$ where
 $g$ is the number of groups and $m$ the number of unique times.
-If stype=2 we only compute the
+If type= 3,4 we only compute the
 robust verion of the cumulative hazard variance; 
-the influence matrix for the survival for stype=2 is
+the influence matrix for the survival in this case is
 $\exp(H(t)) D(t)$ where $H$ is the cumulative hazard and $D$
 is the influence matrix for $H$.
 This can be done in the R code.   
@@ -501,7 +496,7 @@ for.
   
     if (nid >0 ) { /* robust variance */
 	gcount = (int *) R_alloc(nid, sizeof(int));
-	if (stype ==1) {  /* working vectors for the influence */
+	if (type <3) {  /* working vectors for the influence */
             gwt  = (double *) R_alloc(3*nid, sizeof(double)); 
             inf1 = gwt + nid;
 	    inf2 = inf1 + nid; 
@@ -523,7 +518,7 @@ for.
         }
 
         /* these are not accumulated, so do not need to be zeroed */
-        if (stype ==1) {
+        if (type <3) {
             if (influence==1 || influence ==3) 
                 imat1 = REAL(SET_VECTOR_ELT(rlist, 4,
                                      allocMatrix(REALSXP, nid, ntime)));
@@ -629,14 +624,14 @@ of the hazard.
 \end{equation*}
 
 The third pass goes from smallest time to largest. 99 times out of 100 the
-user will choose stype=1 and ctype=1, so we try to avoid testing those
+user will choose type=1, so we try to avoid testing those
 expression n times.
 <<survfitkm-pass3>>=
 R_CheckUserInterrupt();  /*check for control-C */
 nelson =0.0; km=1.0; 
 v1=0; v2=0;
 if (nid==0) {  /* simple variance */
-   if (ctype==1) {
+   if (type==1 || type==3) {  /* Nelson-Aalen hazard */
 	for (i=0; i<ntime; i++) {
 	    if (n[1][i] >0) {  /* at least one event */
 		nelson += n[4][i]/n[3][i];
@@ -647,7 +642,7 @@ if (nid==0) {  /* simple variance */
 	    std[0][i] = sqrt(v2);
 	    std[1][i] = sqrt(v2);
 	    }
-    } else {
+   } else {              /* Fleming hazard */
 	for (i=0; i<ntime; i++) {
             for (j=0; j<n[1][i]; j++) {
                 dtemp = n[3][i] - j*n[4][i]/n[1][i];
@@ -661,7 +656,7 @@ if (nid==0) {  /* simple variance */
 	}
     }
 
-    if (stype==1) {
+    if (type < 3) {  /* KM survival */
 	for (i=0; i<ntime; i++) {
 	    if (n[1][i] >0) {  /* at least one event */
 		km *= (n[3][i]-n[4][i])/n[3][i];
@@ -670,7 +665,7 @@ if (nid==0) {  /* simple variance */
 	    kvec[i] = km;
 	    std[0][i] = sqrt(v1);
 	}
-    } else {
+    } else {  /* exp survival */
 	for (i=0; i< ntime; i++) {
             kvec[i] = exp(-nvec[i]);
             std[0][i] = std[1][i];
@@ -807,7 +802,7 @@ if (ny==3) {
     }
 }
     
-if (stype==1 && ctype==1) {
+if (type==1) {
     person =0; 
     for (i=0; i< ntime; i++) {
         if (ny==3) {
@@ -864,7 +859,7 @@ if (stype==1 && ctype==1) {
             for (k=0; k<nid; k++) *imat2++ = inf2[k];
     }
 }
-else if (stype==2 && ctype ==2) {  /* KM survival, Fleming-Harrington hazard */
+else if (type==2) {  /* KM survival, Fleming-Harrington hazard */
     person =0; 
     for (i=0; i< ntime; i++) {
         if (ny==3) {
@@ -940,7 +935,7 @@ else if (stype==2 && ctype ==2) {  /* KM survival, Fleming-Harrington hazard */
     }
 }
 
-else if (stype==2 && ctype==1) {  /* exp() survival, NA hazard */
+else if (type==3) {  /* exp() survival, NA hazard */
     person =0; 
     for (i=0; i< ntime; i++) {
         if (ny==3) {

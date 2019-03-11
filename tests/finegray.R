@@ -121,10 +121,10 @@ for (i in 1:ntime)
     H[i] <- prod((1- Hevent/pmax(1, Hrisk))[-(i:1)])
 H2 <- rev(cumprod(rev(1 - Hevent/pmax(1, Hrisk))))  #alternate form
 H3 <- survfit(Surv(-time2, -time1, rep(1,14)) ~1, fdata) # alternate 3
-all.equal(tt, -rev(H3$time))
 # c(0,H) = H(t-), H2 = H(t-) already due to the time reversal
+i2 <- sort(match(unique(fdata$time1), tt))  #time points in H3
 all.equal(c(0, H), c(H2, 1))  
-all.equal(H2, rev(H3$surv))
+all.equal(H2[i2], rev(H3$surv))
 
 fg <- finegray(Surv(time1, time2, factor(status, 0:2)) ~ x, id=id, fdata)
 stat2 <- !is.na(match(fg$id, fdata$id[fdata$status==2]))  #expanded ids

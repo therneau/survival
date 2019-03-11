@@ -1,6 +1,7 @@
 library(survival)
 options(na.action=na.exclude) # preserve missings
 options(contrasts=c('contr.treatment', 'contr.poly')) #ensure constrast type
+aeq <- function(x,y) all.equal(as.vector(x), as.vector(y))
 
 #
 # Tests from the appendix of Therneau and Grambsch
@@ -10,6 +11,25 @@ options(contrasts=c('contr.treatment', 'contr.poly')) #ensure constrast type
 test1 <- data.frame(time=  c(9, 3,1,1,6,6,8),
                     status=c(1,NA,1,0,1,1,0),
                     x=     c(0, 2,1,1,1,0,0))
+
+# Nelson-Aalen influence
+s1 <- survfit(Surv(time, status) ~1, test1, id=1:7, influence=TRUE)
+inf1 <- matrix(c(10, rep(-2,5), 10, -2, 7,7, -11, -11)/72,
+               ncol=2)
+indx <- order(test1$time[!is.na(test1$status)])
+aeq(s1$influence.chaz[indx,], inf1[,c(1,2,2,2)])
+
+# KM influence
+inf2 <- matrix(c(-20, rep(4,5), -10, 2, -13, -13, 17, 17,
+                 rep(0,6))/144, ncol=3)
+aeq(s1$influence.surv[indx,], inf2[, c(1,2,2,3)])
+
+# Fleming-Harrington influence
+s2 <- survfit(Surv(time, status) ~ 1, test1, id=1:7, type=2, influence=2)
+inf3 <- matrix(c( rep(c(5, -1), c(1, 5))/36, c(5,-1)/36, 
+                 c(21,21,-29, -29)/144), ncol=2)
+aeq(s2$influence.chaz[indx,], inf3[,c(1,2,2,2)])
+
 
 # Breslow estimate
 byhand1 <- function(beta, newx=0) {
@@ -49,7 +69,6 @@ byhand1 <- function(beta, newx=0) {
     }
 
 
-aeq <- function(x,y) all.equal(as.vector(x), as.vector(y))
 
 fit0 <-coxph(Surv(time, status) ~x, test1, iter=0, method='breslow')
 truth0 <- byhand1(0,0)

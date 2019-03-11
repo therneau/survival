@@ -1,6 +1,6 @@
 
-R Under development (unstable) (2018-06-26 r74934) -- "Unsuffered Consequences"
-Copyright (C) 2018 The R Foundation for Statistical Computing
+R Under development (unstable) (2019-01-23 r76006) -- "Unsuffered Consequences"
+Copyright (C) 2019 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -224,7 +224,6 @@ age        1.1486     0.8706    1.0454     1.262
 ecog.ps    0.9078     1.1015    0.2641     3.120
 
 Concordance= 0.819  (se = 0.058 )
-Rsquare= 0.387   (max possible= 0.874 )
 Likelihood ratio test= 12.71  on 2 df,   p=0.002
 Wald test            = 8.43  on 2 df,   p=0.01
 Score (logrank) test = 12.24  on 2 df,   p=0.002
@@ -314,4 +313,4 @@ Call: survfit(formula = fit, newdata = list(age = c(30, 70), ecog.ps = c(2,
 > 
 > proc.time()
    user  system elapsed 
-  1.020   0.040   1.058 
+  0.824   0.020   0.844 

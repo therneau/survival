@@ -12,7 +12,7 @@ generated with \code{plot.survfit}.
 \usage{
 \method{lines}{survfit}(x, type="s", pch=3, col=1, lty=1,
         lwd=1, cex=1, mark.time=FALSE, 
-	xscale=1,  firstx=0, firsty=1, xmax, fun, conf.int=FALSE,
+	xscale=1, xmax, fun, conf.int=FALSE,
         conf.times, conf.cap=.005, conf.offset=.012, mark, ...)
 \method{lines}{survexp}(x, type="l", ...)
 \method{points}{survfit}(x, xscale, xmax, fun, censor=FALSE, col=1, pch,
@@ -56,10 +56,6 @@ the specified time points.
 \item{xscale}{
   this parameter is no longer necessary and is ignored.  See the
   note in \code{\link{plot.survfit}}.
-}
-\item{firstx, firsty}{
-the starting point for the survival curves.  If either of these is set to 
-\code{NA} or < blank > the plot will start at the first time point of the curve. 
 }
 \item{xmax}{
 the maximum horizontal plot coordinate.     

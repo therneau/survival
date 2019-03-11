@@ -6,7 +6,7 @@
 \usage{
 \method{plot}{survfit}(x, conf.int=, mark.time=FALSE, 
  pch=3, col=1, lty=1, lwd=1, cex=1, log=FALSE, xscale=1, yscale=1,  
- firstx=0, firsty=1, xmax, ymin=0, fun, 
+ xmax, ymin=0, fun, 
  xlab="", ylab="", xaxs="r",  conf.times, conf.cap=.005,
  conf.offset=.012, mark, \dots)
 }
@@ -65,15 +65,6 @@
   \item{xscale}{
     a numeric value used like \code{yscale} for labels on the x axis.  
     A value of 365.25 will give labels in years instead of the original days.  
-  }
-  \item{firstx, firsty}{
-    the starting point for the survival curves.  If either of these is set to 
-    \code{NA} the plot will start at the first time point of the curve. 
-    By default, the plot program obeys tradition by having the plot start at
-    (0,0).
-
-    If \code{start.time} argument is used in \code{survfit}, \code{firstx}
-    is set to that value.
   }
   \item{xmax}{
     the maximum horizontal plot coordinate.  This can be used to shrink

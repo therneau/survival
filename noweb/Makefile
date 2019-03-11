@@ -7,7 +7,6 @@ PARTS = main.Rnw \
 	finegray.Rnw \
 	predict.coxph.Rnw \
 	concordance.Rnw \
-        survconcordance.Rnw \
 	survexp.Rnw \
 	parse.Rnw \
 	pyears.Rnw pyears2.Rnw \
@@ -17,10 +16,11 @@ PARTS = main.Rnw \
 	survfitKM.Rnw \
 	msurv.nw \
 	survfitms.Rnw \
-	plot.Rnw \
+	plot2.Rnw \
 	statefig.Rnw\
 	tmerge.Rnw\
 	yates.Rnw  yates2.Rnw\
+        survConcordance.Rnw \
 	tail
 #	coxdetail.nw
 
@@ -47,6 +47,8 @@ SFUN =  agreg.fit.R \
 	survfitcoxph.fit.R \
 	survfitms.R\
 	tmerge.R \
+	survConcordance.R \
+	survConcordance.fit.R \
 	yates.R
 
 CFUN =  agfit4.c \

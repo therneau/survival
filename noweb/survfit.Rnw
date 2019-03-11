@@ -94,6 +94,7 @@ dim.survfit <- function(x) {
             if (!is.null(x$upper)) x$upper <- x$upper[,j,drop=drop]
             if (!is.null(x$lower)) x$lower <- x$lower[,j,drop=drop]
             if (!is.null(x$cumhaz)) x$cumhaz <- x$cumhaz[,j,drop=drop]
+            if (!is.null(x$std.chaz)) x$std.chaz <- x$std.chaz[,j,drop=drop]
         }
         else if (j>1) stop("subscript out of bounds") # x[1] is always legal
     }
@@ -132,6 +133,7 @@ dim.survfit <- function(x) {
                 if (!is.null(x$upper)) x$upper <-x$upper[keep,,drop=drop]
                 if (!is.null(x$lower)) x$lower <-x$lower[keep,,drop=drop]
                 if (!is.null(x$cumhaz)) x$cumhaz <-x$cumhaz[keep,,drop=drop]
+                if (!is.null(x$std.chaz)) x$std.chaz <-x$std.chaz[keep,,drop=drop]
             }
             else {
                 x$surv <- x$surv[keep,j, drop=drop]
@@ -140,6 +142,7 @@ dim.survfit <- function(x) {
                 if (!is.null(x$upper)) x$upper <- x$upper[keep,j, drop=drop]
                 if (!is.null(x$lower)) x$lower <- x$lower[keep,j, drop=drop]
                 if (!is.null(x$cumhaz)) x$cumhaz <- x$cumhaz[keep,j, drop=drop]
+                if (!is.null(x$std.chaz)) x$std.chaz <- x$std.chaz[keep,j, drop=drop]
                 }
         }
         else {
@@ -148,6 +151,7 @@ dim.survfit <- function(x) {
             if (!is.null(x$upper)) x$upper <- x$upper[keep]
             if (!is.null(x$lower)) x$lower <- x$lower[keep]
             if (!is.null(x$cumhaz)) x$cumhaz <- x$cumhaz[keep]
+            if (!is.null(x$std.chaz)) x$std.chaz <- x$std.chaz[keep]
         }
     }
     x
@@ -166,8 +170,8 @@ an error message if it is accidentally there.
 
 <<survfit-formula>>=
 survfit.formula <- function(formula, data, weights, subset, 
-			    na.action, etype, id, cluster, istate, 
-                            timefix=TRUE, ...) {
+			    na.action, type=1, id, cluster, istate, 
+                            timefix=TRUE, etype, error,...) {
 
     Call <- match.call()
     Call[[1]] <- as.name('survfit')  #make nicer printout for the user
@@ -255,9 +259,10 @@ survfit.formula <- function(formula, data, weights, subset,
     if (attr(Y, 'type') == 'left' || attr(Y, 'type') == 'interval')
         temp <-  survfitTurnbull(X, newY, casewt, ...)
     else if (attr(Y, 'type') == "right" || attr(Y, 'type')== "counting")
-        temp <- survfitKM(X, newY, casewt, id=id, cluster=cluster, ...)
+        temp <- survfitKM(X, newY, casewt, type=type, id=id, cluster=cluster, ...)
     else if (attr(Y, 'type') == "mright" || attr(Y, "type")== "mcounting")
-        temp <- survfitCI(X, newY, weights=casewt, id=id,  istate=istate, ...)
+        temp <- survfitCI(X, newY, weights=casewt, type=type, id=id, 
+                          cluster=cluster,  istate=istate, ...)
     else {
         # This should never happen
         stop("unrecognized survival type")
@@ -319,19 +324,21 @@ better.
 
 Some of the underlying routines compute the standard error of $p$ and some
 the standard error of $\log(p)$.  The \code{selow} argument is used for the 
-modified lower limits of Dory and Korn.
+modified lower limits of Dory and Korn.  When this is used for cumulative
+hazards the ulimit arg will be FALSE: no upper limit of 1.
 
 <<survfit>>=
 survfit_confint <- function(p, se, logse=TRUE, conf.type, conf.int,
-                            selow) {
+                            selow, ulimit=TRUE) {
     zval <- qnorm(1- (1-conf.int)/2, 0,1)
     if (missing(selow)) scale <- 1.0
     else scale <- ifelse(selow==0, 1.0, selow/se)  # avoid 0/0 at the origin
-    if (!logse) se <- se/p   # se of log(survival) = log(p)
+    if (!logse) se <- ifelse(se==0, 0, se/p)   # se of log(survival) = log(p)
 
     if (conf.type=='plain') {
         se2 <- se* p * zval  # matches equation 4.3.1 in Klein & Moeschberger
-        list(lower= pmax(p -se2*scale, 0), upper = pmin(p + se2, 1))
+        if (ulimit) list(lower= pmax(p -se2*scale, 0), upper = pmin(p + se2, 1))
+        else  list(lower= pmax(p -se2*scale, 0), upper = p + se2)
     }
     else if (conf.type=='log') {
         #avoid some "log(0)" messages
@@ -339,7 +346,8 @@ survfit_confint <- function(p, se, logse=TRUE, conf.type, conf.int,
         se2 <- zval* se 
         temp1 <- exp(log(xx) - se2*scale)
         temp2 <- exp(log(xx) + se2)
-        list(lower= temp1, upper= pmin(temp2, 1))
+        if (ulimit) list(lower= temp1, upper= pmin(temp2, 1))
+        else  list(lower= temp1, upper= temp2)
     }
     else if (conf.type=='log-log') {
         xx <- ifelse(p==0 | p==1, NA, p)

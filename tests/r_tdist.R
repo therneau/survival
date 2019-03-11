@@ -5,20 +5,17 @@ library(survival)
 #
 # Test out the t-distribution
 #
-
-capacitor <- read.table('data.capacitor', row.names=1,
-			col.names=c('', 'days', 'event', 'voltage'))
 # First, a t-dist with 500 df should be nearly identical to the Gaussian
 
-fitig <- survreg(Surv(days, event)~voltage, 
+fitig <- survreg(Surv(time, status)~voltage, 
         dist = "gaussian", data = capacitor)
-fit1 <- survreg(Surv(days, event) ~ voltage,
+fit1 <- survreg(Surv(time, status) ~ voltage,
 		 dist='t', parms=500, capacitor)
 fitig
 summary(fit1, corr=F)
 
 # A more realistic fit
-fit2 <- survreg(Surv(days, event) ~ voltage,
+fit2 <- survreg(Surv(time, status) ~ voltage,
 		 dist='t', parms=5, capacitor)
 print(fit2)
 

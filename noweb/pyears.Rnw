@@ -369,7 +369,7 @@ else {
     if (has.ratetable) {
         out$expected <- array(clist$pexpect, dim=odims, dimnames=outdname)
         if (expect=='pyears') out$expected <- out$expected/scale
-        if (!is.null(rclist$summ)) out$summary <- rtemp$summ
+        if (!is.null(clist$summ)) out$summary <- rtemp$summ
     }
     if (docount)
     	out$event <- array(clist$pcount, dim=odims, dimnames=outdname)

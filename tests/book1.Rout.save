@@ -1,7 +1,7 @@
 
-R Under development (unstable) (2014-05-11 r65563) -- "Unsuffered Consequences"
-Copyright (C) 2014 The R Foundation for Statistical Computing
-Platform: i686-pc-linux-gnu (32-bit)
+R Under development (unstable) (2019-01-23 r76006) -- "Unsuffered Consequences"
+Copyright (C) 2019 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -16,9 +16,9 @@ Type 'demo()' for some demos, 'help()' for on-line help, or
 Type 'q()' to quit R.
 
 > library(survival)
-Loading required package: splines
 > options(na.action=na.exclude) # preserve missings
 > options(contrasts=c('contr.treatment', 'contr.poly')) #ensure constrast type
+> aeq <- function(x,y) all.equal(as.vector(x), as.vector(y))
 > 
 > #
 > # Tests from the appendix of Therneau and Grambsch
@@ -28,6 +28,28 @@ Loading required package: splines
 > test1 <- data.frame(time=  c(9, 3,1,1,6,6,8),
 +                     status=c(1,NA,1,0,1,1,0),
 +                     x=     c(0, 2,1,1,1,0,0))
+> 
+> # Nelson-Aalen influence
+> s1 <- survfit(Surv(time, status) ~1, test1, id=1:7, influence=TRUE)
+> inf1 <- matrix(c(10, rep(-2,5), 10, -2, 7,7, -11, -11)/72,
++                ncol=2)
+> indx <- order(test1$time[!is.na(test1$status)])
+> aeq(s1$influence.chaz[indx,], inf1[,c(1,2,2,2)])
+[1] TRUE
+> 
+> # KM influence
+> inf2 <- matrix(c(-20, rep(4,5), -10, 2, -13, -13, 17, 17,
++                  rep(0,6))/144, ncol=3)
+> aeq(s1$influence.surv[indx,], inf2[, c(1,2,2,3)])
+[1] TRUE
+> 
+> # Fleming-Harrington influence
+> s2 <- survfit(Surv(time, status) ~ 1, test1, id=1:7, type=2, influence=2)
+> inf3 <- matrix(c( rep(c(5, -1), c(1, 5))/36, c(5,-1)/36, 
++                  c(21,21,-29, -29)/144), ncol=2)
+> aeq(s2$influence.chaz[indx,], inf3[,c(1,2,2,2)])
+[1] TRUE
+> 
 > 
 > # Breslow estimate
 > byhand1 <- function(beta, newx=0) {
@@ -67,7 +89,6 @@ Loading required package: splines
 +     }
 > 
 > 
-> aeq <- function(x,y) all.equal(as.vector(x), as.vector(y))
 > 
 > fit0 <-coxph(Surv(time, status) ~x, test1, iter=0, method='breslow')
 > truth0 <- byhand1(0,0)
@@ -225,4 +246,4 @@ Call: survfit(formula = fit, newdata = list(x = 2))
 > 
 > proc.time()
    user  system elapsed 
-  0.240   0.028   0.265 
+  0.820   0.056   0.885 

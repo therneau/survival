@@ -1,6 +1,6 @@
 
-R Under development (unstable) (2018-06-26 r74934) -- "Unsuffered Consequences"
-Copyright (C) 2018 The R Foundation for Statistical Computing
+R Under development (unstable) (2019-01-23 r76006) -- "Unsuffered Consequences"
+Copyright (C) 2019 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -163,7 +163,6 @@ x 0.8596    2.3621   0.7131 1.205    0.228
 x     2.362     0.4233    0.5839     9.556
 
 Concordance= 0.638  (se = 0.161 )
-Rsquare= 0.171   (max possible= 0.999 )
 Likelihood ratio test= 1.69  on 1 df,   p=0.2
 Wald test            = 1.45  on 1 df,   p=0.2
 Score (logrank) test = 1.52  on 1 df,   p=0.2
@@ -204,4 +203,4 @@ Score (logrank) test = 1.52  on 1 df,   p=0.2
 > 
 > proc.time()
    user  system elapsed 
-  1.036   0.052   1.085 
+  0.860   0.040   0.902 

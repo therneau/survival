@@ -1,7 +1,7 @@
 
-R Under development (unstable) (2017-02-21 r72241) -- "Unsuffered Consequences"
-Copyright (C) 2017 The R Foundation for Statistical Computing
-Platform: i686-pc-linux-gnu (32-bit)
+R Under development (unstable) (2019-01-23 r76006) -- "Unsuffered Consequences"
+Copyright (C) 2019 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -150,12 +150,11 @@ Type 'q()' to quit R.
 +     H[i] <- prod((1- Hevent/pmax(1, Hrisk))[-(i:1)])
 > H2 <- rev(cumprod(rev(1 - Hevent/pmax(1, Hrisk))))  #alternate form
 > H3 <- survfit(Surv(-time2, -time1, rep(1,14)) ~1, fdata) # alternate 3
-> all.equal(tt, -rev(H3$time))
-[1] TRUE
 > # c(0,H) = H(t-), H2 = H(t-) already due to the time reversal
+> i2 <- sort(match(unique(fdata$time1), tt))  #time points in H3
 > all.equal(c(0, H), c(H2, 1))  
 [1] TRUE
-> all.equal(H2, rev(H3$surv))
+> all.equal(H2[i2], rev(H3$surv))
 [1] TRUE
 > 
 > fg <- finegray(Surv(time1, time2, factor(status, 0:2)) ~ x, id=id, fdata)
@@ -208,4 +207,4 @@ Type 'q()' to quit R.
 > 
 > proc.time()
    user  system elapsed 
-  2.176   0.052   2.226 
+  0.956   0.040   1.007 

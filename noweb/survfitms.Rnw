@@ -93,7 +93,7 @@ dim.survfitms <- function(x) {
     # all the elements that can have "nstate" elements or columns
     #  The n.event variable can have fewer
     temp <- c("n.risk", "n.event", "n.censor", "pstate", 
-              "cumhaz", "std.err", "lower", "upper")
+              "cumhaz", "std.err", "lower", "upper", "std.chaz")
     sfun <- function(z) {
         if (is.null(j)) {
             if (is.array(z)) {

@@ -1,12 +1,21 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
-\section{Changes in version 2.43-5}{
+\section{Changes in version 2.44-0}{
   \itemize{
     \item Add several data sets from the reliability literature, which
     had been used in the tests directory, more formally to the package
     data and add a help page of 'reliability'.
     \item Fix error in residuals.survreg, type="matrix", pointed out by
     Achim Zelies.  Another check has been added to the tests.
+    \item The survfit routine now returns the cumulative hazard along
+    with its standard error, and allows for robust variance.
+    \item For (start, stop) data, the survfit result only includes
+    unique stop times.
+    \item Update plot.survfit to plot the cumulative hazard when
+    fun='cumhaz', rather than log(surv).
+    \item The Nagelkirke R^2 has been removed from summary.coxph.
+    The shortcomings of this measure are well known, concordance is a
+    better measure.
 }}
 
 \section{Changes in version 2.43-4}{

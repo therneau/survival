@@ -1,0 +1,80 @@
+\documentclass{report}[11pt]
+\usepackage{Sweave}
+\usepackage{amsmath}
+\addtolength{\textwidth}{1in}
+\addtolength{\oddsidemargin}{-.5in}
+\setlength{\evensidemargin}{\oddsidemargin}
+%\VignetteIndexEntry{The survival package}
+
+\SweaveOpts{keep.source=TRUE, fig=FALSE}
+% Ross Ihaka suggestions
+\DefineVerbatimEnvironment{Sinput}{Verbatim} {xleftmargin=2em}
+\DefineVerbatimEnvironment{Soutput}{Verbatim}{xleftmargin=2em}
+\DefineVerbatimEnvironment{Scode}{Verbatim}{xleftmargin=2em}
+\fvset{listparameters={\setlength{\topsep}{0pt}}}
+\renewenvironment{Schunk}{\vspace{\topsep}}{\vspace{\topsep}}
+
+% I had been putting figures in the figures/ directory, but the standard
+%  R build script does not copy it and then R CMD check fails
+\SweaveOpts{prefix.string=compete,width=6,height=4}
+\newcommand{\myfig}[1]{\includegraphics[height=!, width=\textwidth]
+                        {compete-#1.pdf}}
+\newcommand{\code}[1]{\texttt{#1}}
+\setkeys{Gin}{width=\textwidth}
+<<echo=FALSE>>=
+options(continue="  ", width=60)
+options(SweaveHooks=list(fig=function() par(mar=c(4.1, 4.1, .3, 1.1))))
+pdf.options(pointsize=10) #text in graph about the same as regular text
+options(contrasts=c("contr.treatment", "contr.poly")) #ensure default
+require("survival")
+@
+
+\title{The survival package}
+\author{Terry Therneau}
+
+\begin{document}
+\maketitle
+
+\chapter{Introduction}
+This vignette is an introduction to version 3.x of the survival package. 
+We can think of versions 1.x as the S-Plus era, and 2.1 -- 2.43 as maturation of
+the package in R.
+Version 3 had 4 major goals.
+\begin{itemize} 
+  \item Make mulit-state curves and models as easy to use as an ordinary
+    Kaplan-Meier and Cox model.
+  \item Deeper support for absolute risk models.
+  \item More consitent support of robust variance estimates
+  \item Clean up some naming inconsistencies that have arisen over time.
+\end{itemize}
+With over 600 dependent packages in 2019, not counting Bioconductor, two other
+guiding lights for are the package are that ``it can't do everything'' (so don't
+try) and ``don't mess it up''.  
+This meant preserving the current argument names as much as possible.
+Appendix \ref{sect:changes} summarizes changes that were made which are not
+backwards compatable.
+
+The two other major changes are to collapse the many vignettes into this single
+book like one, and the creation of an actual book.  This latter recognizes that
+the package needs more than a vignette.  With its appearance this vignette can
+be more brief, essentially leaving out a lot of the theory.
+
+Version 3 will not appear all at once, however; it will take some time to get all
+of the documentation sorted out in the way that we like.
+
+
+\appendix
+\chapter{Changes from version 2.44 to 3.0}
+Not all of these may be done by 3.0.
+\begin{enumerate}
+  \item Common arguments for survfit and coxph of istate, id, cluster, 
+    and influence.  (Survreg as well?)
+  \item Survival curves now include the initial time point in the matrices,
+    rather than as separate things.
+  \item Multi-state survival models using the coxph command.
+  \item Aalen-Johansen estimates from the coxph model.
+\end{enumerate}
+
+\end{document}
+
+

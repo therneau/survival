@@ -166,27 +166,22 @@ rm(time, cdf, kfit)
 
 #######################################################
 #
-# Valve data
+# Replacement of valve seats in dielsel engines
 #   The input data has id, time, and an indicator of whether there was an
-#   event at that time: -1=no, 1=yes.  No one has an event at their last time.
-#  Convert the data to (start, stop] form
+#   event at that time: 0=no, 1=yes.  No one has an event at their last time.
 #  The input data has two engines with dual failures: 328 loses 2 valves at 
 #    time 653, and number 402 loses 2 at time 139.  For each, fudge the first
-#    time to be .1 days earlier.
+#    time to be .1 days earlier. 
 #
-temp <- matrix(scan('data.valve'), byrow=T, ncol=3)
-
-n <- nrow(temp)
-valve <- data.frame(id=temp[,1], 
-                    time1 = c(0, ifelse(diff(temp[,1])==0, temp[-n,2],0)),
-                    time2 = temp[,2],
-                    status= as.numeric(temp[,3]==1))
-
-indx <- (1:nrow(valve))[valve$time1==valve$time2]
-valve$time1[indx]   <- valve$time1[indx] - .1
-valve$time2[indx-1] <- valve$time2[indx-1] - .1
-
-kfit <- survfit(Surv(time1, time2, status) ~1, valve, type='fh2')
+ties <- which(diff(valveSeat$time)==0 & diff(valveSeat$id)==0)
+temp <- valveSeat$time
+temp[ties] <- temp[ties] - .1
+n <- length(temp)
+first <- !duplicated(valveSeat$id)
+vtemp <- with(valveSeat, data.frame(id =id, 
+                                    time1= ifelse(first, 0, c(0, temp[-n])),
+                                    time2= temp, status=status))
+kfit <- survfit(Surv(time1, time2, status) ~1, vtemp, id=id)
 
 plot(kfit, fun='cumhaz', ylab="Sample Mean Cumulative Failures", xlab='Time')
 title("Valve replacement data")
