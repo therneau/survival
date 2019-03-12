@@ -19,20 +19,18 @@ fit2 <- survreg(Surv(time, status) ~ voltage,
 		 dist='t', parms=5, capacitor)
 print(fit2)
 
-xx <- seq(1,125, by=10)
-resid(fit2, type='response')[xx]
-resid(fit2, type='deviance')[xx]
-resid(fit2, type='working') [xx]
-resid(fit2, type='dfbeta')[xx,]
-resid(fit2, type='dfbetas')[xx,]
-resid(fit2, type='ldresp')[xx]
-resid(fit2, type='ldshape')[xx]
-resid(fit2, type='ldcase')[xx]
-resid(fit2, type='matrix')[xx,]
 
-predict(fit2, type='response')[xx]
-predict(fit2, type='link')[xx]
-predict(fit2, type='terms')[xx,]
-predict(fit2, type='quantile')[xx]
+resid(fit2, type='response')
+resid(fit2, type='deviance')
+resid(fit2, type='working') 
+resid(fit2, type='dfbeta')
+resid(fit2, type='dfbetas')
+resid(fit2, type='ldresp')
+resid(fit2, type='ldshape')
+resid(fit2, type='ldcase')
+resid(fit2, type='matrix')
 
-rm(fitig, fit1, fit2, xx)
+predict(fit2, type='link')
+predict(fit2, type='terms')
+predict(fit2, type='quantile')
+

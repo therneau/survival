@@ -41,7 +41,7 @@ survfit23 <- function(x) {
         if (is.matrix(x)) {
             # indx is the new rows that are equal to the old ones
             indx <- seq(1, n.add + nrow(x))[ -i2]
-            newx <- matrix(x[1], nrow(i) + n.add, ncol(x))
+            newx <- matrix(x[1], nrow(x) + n.add, ncol(x))
             newx[indx,] <- x
             newx[i2,] <- z
         } else { 

@@ -166,7 +166,7 @@ rm(time, cdf, kfit)
 
 #######################################################
 #
-# Replacement of valve seats in dielsel engines
+# Replacement of valve seats in diesel engines
 #   The input data has id, time, and an indicator of whether there was an
 #   event at that time: 0=no, 1=yes.  No one has an event at their last time.
 #  The input data has two engines with dual failures: 328 loses 2 valves at 
@@ -181,7 +181,7 @@ first <- !duplicated(valveSeat$id)
 vtemp <- with(valveSeat, data.frame(id =id, 
                                     time1= ifelse(first, 0, c(0, temp[-n])),
                                     time2= temp, status=status))
-kfit <- survfit(Surv(time1, time2, status) ~1, vtemp, id=id)
+kfit <- survfit(Surv(time1, time2, status) ~1, vtemp, id=id, type=4)
 
 plot(kfit, fun='cumhaz', ylab="Sample Mean Cumulative Failures", xlab='Time')
 title("Valve replacement data")
@@ -200,7 +200,7 @@ print(temp, digits=2)
 # Note that I have the same estimates but different SE's.  We are using a
 #  different estimator. It's a statistical argument as to which is
 #  better (one could defend both sides): do you favor JASA or Technometrics?
-rm(temp, kfit, indx, xx)
+rm(temp, kfit, xx)
                     
 ######################################################
 # Turbine data, lognormal fit

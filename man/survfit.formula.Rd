@@ -47,8 +47,18 @@
     identifies individual subjects, used when a given person can have multiple
     lines of data or to signal a robust error estimate
   }
+<<<<<<< working copy
+  \item{id}{
+    identifies individual subjects, when a given person can have multiple
+    lines of data.
+  }
+  \item{cluster}{used to group observations for the infinitesmal
+    jackknife variance estimate, defaults to the value of id}
+  
+=======
   \item{cluster}{optional clustering for the robust error}
 
+>>>>>>> destination
   \item{istate}{for multi-state models, identifies the initial state of
     each subject or observation}
 
