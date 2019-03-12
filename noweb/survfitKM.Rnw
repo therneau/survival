@@ -95,7 +95,7 @@ survfitKM <- function(x, y, weights=rep(1.0,length(x)), type=1,
     #  This is an old argument that should be depricated
     if (missing(start.time)) {
         if (!missing(new.time)) start.time <- new.time
-        else if (any(y[,ny-1] <0)) start.time <- min(y[,ny-1])
+        else start.time <- min(c(0, y[,ny-1]))
         # the line above sets a plotting range, it doesn't exclued anyone
     }
 

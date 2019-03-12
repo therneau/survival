@@ -16,7 +16,7 @@ PARTS = main.Rnw \
 	survfitKM.Rnw \
 	msurv.nw \
 	survfitms.Rnw \
-	plot2.Rnw \
+	plot.Rnw \
 	statefig.Rnw\
 	tmerge.Rnw\
 	yates.Rnw  yates2.Rnw\
