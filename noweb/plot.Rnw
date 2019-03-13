@@ -227,14 +227,7 @@ if (missing(pch) && !missing(mark)) pch <- mark
 if (length(pch)==1 && is.character(pch)) pch <- strsplit(pch, "")[[1]]
 @ 
 
-If a log axis is specified for y, then turn any 0 values into NA.
-This doesn't change the plot, but it does stop a warning message.
-
 <<plot-firstx>>=
-#if (xlog) stime <- ifelse(stime >0, stime, NA)
-#if (ylog) ssurv <- ifelse(ssurv >0, ssurv, NA)
-
-
 if (is.logical(conf.int)) plot.surv <- TRUE
 else {
     temp <- match.arg(conf.int, c("both", "only", "none"))
@@ -335,7 +328,10 @@ if (ylog) {
         }
     }
 }
-else tempy <- range(ssurv, finite=TRUE, na.rm=TRUE)
+else {
+    tempy <- range(c(ymin, ssurv), finite=TRUE, na.rm=TRUE)
+}
+
     
 #
 # Draw the basic box

@@ -37,26 +37,40 @@ require("survival")
 
 \chapter{Introduction}
 This vignette is an introduction to version 3.x of the survival package. 
-We can think of versions 1.x as the S-Plus era, and 2.1 -- 2.43 as maturation of
+I think of versions 1.x as the S-Plus era and 2.1 -- 2.44 as maturation of
 the package in R.
 Version 3 had 4 major goals.
 \begin{itemize} 
   \item Make mulit-state curves and models as easy to use as an ordinary
     Kaplan-Meier and Cox model.
   \item Deeper support for absolute risk models.
-  \item More consitent support of robust variance estimates
-  \item Clean up some naming inconsistencies that have arisen over time.
+  \item More consitent support of robust variance estimates.
+  \item Clean up various naming inconsistencies that have arisen over time.
 \end{itemize}
-With over 600 dependent packages in 2019, not counting Bioconductor, two other
-guiding lights for are the package are that ``it can't do everything'' (so don't
-try) and ``don't mess it up''.  
+
+With over 600 dependent packages in 2019, not counting Bioconductor, other
+guiding lights of the change are
+\begin{itemize}
+  \item We can't do everything (so don't try).
+  \item Allow other packages to build on this one.  That means clear 
+    documentation of all of the objects that are produced, the use of simple
+    objects (no S4 classes) that are easy to manipulate, and setting up many 
+    of the routines as a pair.  For example \code{concordance} and 
+    \code{concordance.fit}; the former is the user front end and the latter does 
+    the actual work.  Other package authors might want to access the lower level
+    interface.  
+  \item Don't bugger it up!
+\end{itemize}
+
 This meant preserving the current argument names as much as possible.
 Appendix \ref{sect:changes} summarizes changes that were made which are not
 backwards compatable.
 
 The two other major changes are to collapse the many vignettes into this single
-book like one, and the creation of an actual book.  This latter recognizes that
-the package needs more than a vignette.  With its appearance this vignette can
+large one, and the parallel creation of an actual book.  
+This latter recognizes that
+the package needs more than a vignette.  
+With the book's appearance this vignette can
 be more brief, essentially leaving out a lot of the theory.
 
 Version 3 will not appear all at once, however; it will take some time to get all
@@ -65,15 +79,54 @@ of the documentation sorted out in the way that we like.
 
 \appendix
 \chapter{Changes from version 2.44 to 3.0}
-Not all of these may be done by 3.0.
-\begin{enumerate}
-  \item Common arguments for survfit and coxph of istate, id, cluster, 
-    and influence.  (Survreg as well?)
-  \item Survival curves now include the initial time point in the matrices,
-    rather than as separate things.
-  \item Multi-state survival models using the coxph command.
-  \item Aalen-Johansen estimates from the coxph model.
-\end{enumerate}
+Not all of these may be completed by 3.0, but this is the roadmap.
+
+\section{Survfit}
+  The survfit object is changing.   The primary change has to do with the 
+starting time.  When the package was first written in the late 1980s I made
+the decision to \emph{not} include the initial point of the survival curve
+(time=0, S=1) as a part of the \code{time} and \code{survival} parts of the
+object; they get tacked on by the plot function.
+With the addition of delayed start (\code{start.time} option) and then
+more importantly multi-state models, the starting point is not always a
+simple (0,1) pair, which led to the addition of new components to the
+objects to hold the additional information, and increasing if-then-else logic
+in the downstream routines that process the curves.  In v3 the first point
+is now bundled in as part of the time, surv, pstate, std.err, and etc 
+components. 
+
+Two functions survfit23 and survfit32 convert
+between the old ``version 2'' and new ``version 3'' forms.  
+This has allowed us make the change incrementally.
+
+Other changes are    
+\begin{itemize}
+  \item Common arguments of id, cluster, and influence
+  \item The routines now produce both the estimated survival and the
+    estimated cumulative hazard, along with their errors 
+  \item Some code paths produced std(S) and some std(log(S)), the object now
+    contains a \code{log.se} flag telling which.  (Before, downstream routines
+    just ``had to know'').
+  \item an explicit ``v3'' flag in the object
+\end{itemize}
+
+\section{Coxph}
+ The multi-state objects include a \code{states} vector, which is a simple
+list of the state names.
+The \code{cmap} component is an integer matrix  with one row for each term in the
+model and one column for each transition. 
+Each element indexes a position in the coefficient vector and variance matrix.
+\begin{itemize}
+  \item Column labels are of the form 1:2, which denotes a transition from
+    \code{state[1]} to \code{state[2]}.
+  \item If a particluar term in the data, ``age'' say, was not part of the model
+    for a particular transition then a 0 will appear in that position 
+    of \code{cmap}.
+  \item If two transitions share a common coefficient, both those element of
+    \code{cmap} will point to the same location.
+  \item The first row of \code{cmap}, labeled ``stratum'', is numbered separately
+    and partitions the transtions into disjoint strata.
+\end{itemize}
 
 \end{document}
 

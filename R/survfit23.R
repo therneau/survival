@@ -54,17 +54,19 @@ survfit23 <- function(x) {
     }
     
     # I want the result to be a list in the same order
-    newname <- names(x)[!(names(x) %in% c("start.time", "p0"))]
+    newname <- names(x)[!(names(x) %in% c("start.time", "p0", "sp0"))]
     new <- vector("list", length(newname))
     names(new) <- newname
 
     add1 <- c("surv", "lower","upper")
-    add0 <- c("n.event", "n.censor", "n.add", "std.err", "cumhaz", "std.chaz")
+    add0 <- c("n.event", "n.censor", "n.add", "cumhaz", "std.chaz")
+    if (is.null(x$sp0)) sp0 <- 0 else sp0 <- x$sp0
     for (i in names(new)) {
         if (i=="time") new[[i]] <- addto(x[[i]], insert, start.time)
         else if (i=="n.risk") new[[i]] <- addto(x[[i]], insert, x$n.risk[1])
         else if (i=="pstate") new[[i]] <- addto(x[[i]], insert, x$p0)
         else if (i=="strata") new[[i]] <- newstrat
+        else if (i=="std.err") new[[i]] <- addto(x[[i]], insert, sp0)
         else if (i %in% add0) new[[i]] <- addto(x[[i]], insert, 0L)
         else if (i %in% add1) new[[i]] <- addto(x[[i]], insert, 1L)
         else new[[i]] <- x[[i]]

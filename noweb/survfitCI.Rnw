@@ -435,6 +435,7 @@ else {
         kfit$std.err <- grabit(curves, "std.err")
         kfit$sp0<- matrix(grabit(curves, "sp0"),
                           ncol=nst, byrow=TRUE)
+        kfit$logse <- TRUE
     }
     kfit$cumhaz <- array(unlist(lapply(curves, function(x) x$cumhaz)),
                            dim=c(nst, nst, length(kfit$time)))

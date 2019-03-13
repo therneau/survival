@@ -61,7 +61,7 @@ summary(fit1)
 #
 predict(fit1, data.frame(temp=130), type='uquantile', p=c(.5, .1), se=T)
 
-fit2 <- survreg(Surv(time, status) ~ temp, data=motor, scale=fit1$scale)
+fit2 <- survreg(Surv(time, status) ~ temp, data=imotor, scale=fit1$scale)
 predict(fit2, data.frame(temp=130), type='uquantile', p=c(.5, .1), se=T)
 
 fit3 <- fit2

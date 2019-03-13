@@ -1,6 +1,6 @@
 
-R version 3.4.1 (2017-06-30) -- "Single Candle"
-Copyright (C) 2017 The R Foundation for Statistical Computing
+R Under development (unstable) (2019-01-23 r76006) -- "Unsuffered Consequences"
+Copyright (C) 2019 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -116,7 +116,7 @@ n= 26
         22         23         24         25         26 
  0.6125492 -2.4504208 -0.7080652 -0.3642424  0.7317955 
 > resid(fit1, type='dfbeta')
-   (Intercept)           age      ecog.ps   Log(scale)
+          [,1]          [,2]         [,3]         [,4]
 1   0.43370970 -1.087867e-02  0.126322520  0.048379059
 2   0.14426449 -5.144770e-03  0.088768478 -0.033939677
 3   0.25768057 -3.066698e-03 -0.066578834  0.021817646
@@ -347,4 +347,4 @@ $se.fit
 > 
 > proc.time()
    user  system elapsed 
-  1.808   0.126   2.131 
+  0.816   0.036   0.851 

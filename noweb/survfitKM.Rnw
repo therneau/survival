@@ -156,12 +156,12 @@ for memory.
 
 If ny==3 and has.id is true, then do some extra setup work, which is to
 create a position vector of 1=first obs for the subject, 2 = last, 3=both,
-0= other.
+0= other, for each set of back to back times.
 This is used to prevent counting a subject with data of (0,10], (10,15] in
 both the censored at 10 and entered at 10 totals.
 We assume the data has been vetted to prevent overlapping intervals, so that
 it suffices to sort by ending time. If a subject has holes in their timeline
-they can be ``censored'' more than once.
+they will have more than one first and last indicator.
 
 <<survfitKM-compute>>=
 if (ny==3 & has.id) {
@@ -284,6 +284,7 @@ if (ny ==3) {
 else rval$type <- "right"
 
 if (se.fit) {
+    browser()
     rval$logse = !(ncluster>0 & stype==1) # se(log S) or se(S)
     if (conf.lower == "modified") {
         nstrat = length(n.used)
@@ -406,7 +407,7 @@ SEXP survfitkm(SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22,
     int *gcount;
     int n1, n2, n3, n4;
     int *position, hasid;
-    double wt1, wt2, wt3, wt4, wt2b;
+    double wt1, wt2, wt3, wt4;
 		      
     /* output variables */
     double  *n[8],  *dtime,
@@ -548,15 +549,18 @@ j= nused -1;
 for (k=ntime-1; k>=0; k--) {
     i2 = sort2[person];
     dtime[k] = stime[i2];  /* current time point */
-    n2=0; n3=0; wt2=0; wt3=0; wt2b=0;
+    n2=0; n3=0; wt2=0; wt3=0; 
     while(person>=0 && stime[i2]==dtime[k]) {
-        n1++;
-        wt1 += wt[i2];
+        n1++;             /* number at risk */
+        wt1 += wt[i2];    /* weighted number at risk */
         if (status[i2] ==1) {
-	    n2++;
+	    n2++;            /* events */
 	    wt2 += wt[i2];
-            if (hasid==1 && (position[i2]&2)) wt2b += wt[i2];
         } else if (hasid==0 || (position[i2]& 2)) {
+            /* if there are no repeated obs for a subject (hasid=0)
+            **  or this is the last of a string (a,b](b,c](c,d].. for
+            **  a subject (position[i2]=2 or 3), then it is a 'real' censor
+            */
 	    n3++;
 	    wt3 += wt[i2];
         }
@@ -571,6 +575,9 @@ for (k=ntime-1; k>=0; k--) {
 	    n1--;
 	    wt1 -= wt[j2];
 	    if (hasid==0 || (position[j2] & 1)) {
+                /* if there are no repeated id (hasid=0) or this is the
+                ** first of a string of (a,b](b,c](c,d] for a subject, then
+                ** this is a 'real' entry */
                 n4++;
                 wt4 += wt[j2];
             }
@@ -584,7 +591,7 @@ for (k=ntime-1; k>=0; k--) {
     }
 
     n[0][k] = n1;  n[1][k]=n2;  n[2][k]=n3;
-    n[3][k] = wt1; n[4][k]=wt2; n[5][k]=wt3; n[6][k]= wt2b;
+    n[3][k] = wt1; n[4][k]=wt2; n[5][k]=wt3; 
 }
 
 if (ny ==3) {   /* fill in number entered for the initial interval */
@@ -596,8 +603,8 @@ if (ny ==3) {   /* fill in number entered for the initial interval */
             wt4 += wt[j2];
         }
     }
-    n[7][0] = n4;    
-    n[8][0] = wt4;
+    n[6][0] = n4;    
+    n[7][0] = wt4;
 }
 @ 
 
@@ -957,7 +964,7 @@ else if (type==3) {  /* exp() survival, NA hazard */
                 /* catch the endpoints up to this event time */
                 i2 = sort2[person];
                 if (status[i2]==1) {
-                     inf2[id[i2]] += 1/n[3][i];
+                     inf2[id[i2]] += wt[i2]/n[3][i];
                 }
                 gcount[id[i2]] --;
                 if (gcount[id[i2]] ==0) gwt[id[i2]] = 0.0;
