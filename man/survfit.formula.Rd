@@ -44,11 +44,6 @@
   \item{type}{the type of estimates to produce; see details below}
 
   \item{id}{
-    identifies individual subjects, used when a given person can have multiple
-    lines of data or to signal a robust error estimate
-  }
-
-  \item{id}{
     identifies individual subjects, when a given person can have multiple
     lines of data.
   }

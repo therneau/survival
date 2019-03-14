@@ -19,7 +19,7 @@ fit2 <- survreg(Surv(time, status) ~ voltage,
 		 dist='t', parms=5, capacitor)
 print(fit2)
 
-
+if (FALSE) {
 resid(fit2, type='response')
 resid(fit2, type='deviance')
 resid(fit2, type='working') 
@@ -33,4 +33,4 @@ resid(fit2, type='matrix')
 predict(fit2, type='link')
 predict(fit2, type='terms')
 predict(fit2, type='quantile')
-
+}

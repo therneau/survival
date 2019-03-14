@@ -418,6 +418,7 @@ if (length(curves) ==1) {
     if (se.fit) keep <- c(keep, "std.err", "sp0")
     kfit <- (curves[[1]])[match(keep, names(curves[[1]]), nomatch=0)]
     names(kfit$p0) <- state.names
+    if (se.fit) kfit$logse <- FALSE
 }
 else {    
     kfit <- list(n =      as.vector(table(X)),  #give it labels
@@ -435,7 +436,7 @@ else {
         kfit$std.err <- grabit(curves, "std.err")
         kfit$sp0<- matrix(grabit(curves, "sp0"),
                           ncol=nst, byrow=TRUE)
-        kfit$logse <- TRUE
+        kfit$logse <- FALSE
     }
     kfit$cumhaz <- array(unlist(lapply(curves, function(x) x$cumhaz)),
                            dim=c(nst, nst, length(kfit$time)))

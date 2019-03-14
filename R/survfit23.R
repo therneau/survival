@@ -11,7 +11,7 @@
 #
 survfit23 <- function(x) {
     if (!inherits(x, "survfit")) stop("function requires a survfit object")
-    if (!is.null(x$version3) && x$version3) return(x)  # already in 3.x format
+    if (inherits(x, "survfit3")) return(x)  # already in 3.x format
     if (is.null(x$start.time)) start.time <- 0 else start.time <- x$start.time
 
     if (is.null(x$strata)) insert <- 1   # where to add the zero
@@ -22,8 +22,7 @@ survfit23 <- function(x) {
     if (length(insert)==0) {  # nothing much to do
         drop <- c("start.time", "p0")
         newx <- unclass(x)[is.na(match(names(x), drop))]
-        newx$version3 <- TRUE
-        class(newx) <- class(x)
+        class(newx) <- c("survfit3", class(x))
         return(newx)
     }
     if (!is.null(x$strata)) {
@@ -72,8 +71,7 @@ survfit23 <- function(x) {
         else new[[i]] <- x[[i]]
     }
 
-    new$version3 <- TRUE
-    class(new) <- class(x)
+    class(new) <- c("survfit3", class(x))
     new
 }
             

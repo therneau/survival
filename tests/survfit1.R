@@ -7,7 +7,7 @@
 #  estimate of cumulative hazard,  KM or exp(cumhaz) estimate of survival,
 #  regular or robust variance.  This tries to exercise them all.
 
-library(survival3)
+library(survival)
 aeq <- function(x, y, ...) all.equal(as.vector(x), as.vector(y), ...)
 
 set.seed(1953)  # used only to reorder the data

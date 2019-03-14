@@ -92,7 +92,7 @@ dim.survfitms <- function(x) {
  
     # all the elements that can have "nstate" elements or columns
     #  The n.event variable can have fewer
-    temp <- c("n.risk", "n.event", "n.censor", "pstate", 
+    temp <- c("n.risk", "n.event", "n.censor", "pstate",
               "cumhaz", "std.err", "lower", "upper", "std.chaz")
     sfun <- function(z) {
         if (is.null(j)) {
@@ -117,10 +117,19 @@ dim.survfitms <- function(x) {
     x$transitions <- NULL  # this is incorrect after subscripting
 
     if (is.matrix(x$p0)) {
-        if (is.null(j)) x$p0<- x$p0[i,]
-        else x$p0 <- x$p0[i,j]  
+        if (is.null(j)) {
+            x$p0<- x$p0[i,]
+            if (!is.null(x$sp0)) x$sp0 <- x$sp0[i,]
+        }
+        else {
+            x$p0 <- x$p0[i,j]  
+            if (!is.null(x$sp0)) x$sp0 <- x$sp0[i,j]
+        }
+   }
+    else if (!is.null(j)) {
+        x$p0 <- x$p0[j]
+        if (!is.null(x$sp0)) x$sp0 <- x$sp0[j]
     }
-    else if (!is.null(j)) x$p0 <- x$p0[j]
     if (!is.null(x$influence)) {
         if (length(i) >1) x$influence <- x$influence[i]
         else if (is.list(x$influence)) x$influence <- x$influence[[i]]
@@ -222,7 +231,7 @@ summary.survfit <- function(object, times, censored=FALSE,
             fit$rmean.endtime <- rmean.endtime
 
     # A survfit object may contain std(log S) or std(S), summary always std(S)
-    if (!is.null(fit$std.err)& fit$logse) fit$std.err <- fit$std.err * fit$surv 
+    if (!is.null(fit$std.err) && fit$logse) fit$std.err <- fit$std.err * fit$surv 
  
     # Expand the strata
     if (!is.null(fit$strata)) 
@@ -450,7 +459,7 @@ summary.survfitms <- function(object, times, censored=FALSE,
         fit$strata <- factor(rep(names(fit$strata), fit$strata))
 
     # A survfit object may contain std(log S) or std(S), summary always std(S)
-    if (!is.null(fit$std.err)& fit$logse) fit$std.err <- fit$std.err * fit$surv 
+    if (!is.null(fit$std.err) && fit$logse) fit$std.err <- fit$std.err * fit$surv 
 
     class(fit) <- "summary.survfitms"
     fit
