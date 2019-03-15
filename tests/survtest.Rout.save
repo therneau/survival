@@ -1,7 +1,7 @@
 
-R version 2.11.1 (2010-05-31)
-Copyright (C) 2010 The R Foundation for Statistical Computing
-ISBN 3-900051-07-0
+R Under development (unstable) (2019-01-23 r76006) -- "Unsuffered Consequences"
+Copyright (C) 2019 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -18,7 +18,6 @@ Type 'q()' to quit R.
 > options(na.action=na.exclude) # preserve missings
 > options(contrasts=c('contr.treatment', 'contr.poly')) #ensure constrast type
 > library(survival)
-Loading required package: splines
 > 
 > #
 > # Simple test of (start, stop] Kaplan-Meier curves, using the test2 data
@@ -66,11 +65,11 @@ Loading required package: splines
 > fit3 <- survfit(Surv(start, stop, event) ~1, test2) #Kaplan-Meier
 > aeq(fit3$n, 10)
 [1] TRUE
-> aeq(fit3$time, c(1:9,14,17))
+> aeq(fit3$time, unique(test2$stop))
 [1] TRUE
-> aeq(fit3$n.risk, c(0,2,3,3,4,5,4,4,5,2,1))
+> aeq(fit3$n.risk, c(2,3,5,4,4,5,2,1))
 [1] TRUE
-> aeq(fit3$n.event,c(0,1,1,0,0,1,1,1,2,0,0))
+> aeq(fit3$n.event,c(1,1,1,1,1,2,0,0))
 [1] TRUE
 > aeq(fit3$surv[fit3$n.event>0], c(.5, 1/3, 4/15, 1/5, 3/20, 9/100))
 [1] TRUE
@@ -92,8 +91,14 @@ Loading required package: splines
 > 
 > fit <- survfit(Surv(start, stop, event) ~1, test2)
 > temp <- summary(fit, times=c(.5, 1.5, 2.5, 3, 6.5, 14.5, 16.5))
-> aeq(temp$surv, c(1, fit$surv[c(1,2,3,6, 10,10)]))
-[1] TRUE
-> aeq(temp$n.risk, c(0, 2, 3, 3, 4, 1,1))
+> aeq(temp$surv, c(1, 1, fit$surv[c(1,2,3,6,6)]))
 [1] TRUE
 > 
+> # This next fails.  With start-stop data the number at risk at intermediate
+> #  endpoints is not known precisely, since the underlying routine does not report
+> #  time points at which only an addition occured. 
+> # aeq(temp$n.risk, c(0, 2, 3, 3, 4, 1,1))
+> 
+> proc.time()
+   user  system elapsed 
+  0.784   0.040   0.823 

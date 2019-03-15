@@ -314,8 +314,9 @@ if (se.fit) {
 }
 
 # Add the influence, if requested by the user
+#  remember, if type= 3 or 4, the survival influence has to be constructed.
 if (influence > 0) {
-    if (type==1 | type==3) {
+    if (type==1 | type==2) {
         if (influence==1 || influence ==3) {
             if (length(xlev)==1) {
                 rval$influence.surv <- cfit$influence1

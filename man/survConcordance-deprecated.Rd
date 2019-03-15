@@ -77,19 +77,6 @@ in the tied survival time category).
 The algorithm is based on a balanced binary tree, which allows the computation
 to be done in O(n log n) time.
 }
-\seealso{
-summary.coxph
+\seealso{\code{\link{concordance}}
 }
-\examples{
-survConcordance(Surv(time, status) ~age, data=lung)
-
-options(na.action=na.exclude)
-fit <- coxph(Surv(time, status) ~ ph.ecog + age + sex, lung)
-survConcordance(Surv(time, status) ~predict(fit), lung)
-\dontrun{
-  n=227 (1 observations deleted due to missing values)
-Concordance= 0.6371102 , Gamma= 0.2759638 
-concordant discordant  tied risk  tied time 
-     12544       7117        126         28 
-}}
 \keyword{survival}

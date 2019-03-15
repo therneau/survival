@@ -82,7 +82,7 @@ eps <- sqrt(.Machine$double.eps)
 for (i in 1:6) {
     twt <- tdata$wt
     twt[tdata$id ==i] <- twt[tdata$id==i] + eps
-    tfit <- survfit(Surv(time1, time2, stat2) ~ cluster(id), tdata,
+    tfit <- survfit(Surv(time1, time2, stat2) ~ 1, id=id, tdata,
                     weight=twt)
     dfbeta[i,,] <- (tfit$pstate - fit$pstate)/eps  #finite difference approx
 }
