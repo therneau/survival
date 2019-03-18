@@ -3,7 +3,8 @@
 \newcommand{\code}[1]{\texttt{#1}}
 \begin{document}
 
-\section{Overflow example}
+\section{Overflow examples}
+\subsection{Skewed covariate}
 <<readin>>=
 adata <- read.csv('overflow.csv')
 dim(adata)
@@ -16,33 +17,40 @@ This data set has 240 thousand lines and 145 thousand events, but only
 48 unique event times.  This makes it possible to debug issues with the
 code in a simple fashion.  The time variable has been changed to 1, 2,
 \ldots to make things even simpler.  There are a \emph{lot} of tied events.
+The plot shows the partial likelihood as points, and the Newton-Raphson
+quadratic approximation at $\beta=0$ as a line.
 
 <<skew>>=
 with(adata, quantile(v2, 0:10/10))
 with(adata, quantile(v2, 990:1000/1000))
+fit0 <- coxph(Surv(start, end, status) ~ v2, data=adata, iter=0)
+dt0 <- coxph.detail(fit0)
 
 b <- seq(0, .007, length=15)
-logb <- double(15)
-for (i in 1:15) 
-    logb[i] <- coxph(Surv(start, end, status) ~ v2, data=adata, iter=0,
+logb <- matrix(0, 15, 2)
+for (i in 1:15) {
+    logb[i,1] <- coxph(Surv(start, end, status) ~ v2, data=adata, iter=0,
                      init=b[i])$loglik[1]
-plot(b, logb/1e5)
+    logb[i,2] <- fit0$loglik[1] + b[i]*sum(dt0$score) - b[i]^2*sum(dt0$imat)/2
+}
+matplot(b, logb/1e5, type='n', xlab='beta', ylab="Loglik/1e5")
+lines(b, logb[,2]/1e5, lty=2)
+points(b, logb[,1]/1e5)
 @ 
+
 The first problem with the data set is variable \code{v2} which is terribly
 skewed.  
 The second is that the log-likelihood is asymmetric around the maximum of
 about .004.  
 
 <<initial>>=
-fit0 <- coxph(Surv(start, end, status) ~ v2, data=adata, iter=0)
-dt0 <- coxph.detail(fit0)
 beta1 <- sum(dt0$score)/ sum(dt0$imat)
 beta1
 @ 
 
 The very first iteration of the program takes far too large
-a step; the initial value for $\hat beta$ is approximately 25 times
-too large.
+a step; the initial value for $\hat beta$ is approximately 30 times
+too large.  
 The effect of this on our calculations is catastrophic: here are the
 quantiles of the risk weights $\exp(X \beta)$.
 
@@ -114,6 +122,58 @@ The utility of the fit remains dubious, however; the final model is driven
 by a miniscule fraction of the subjects (16 out of 240 thousand) who have risks
 of 100 fold.
 
+\subsection{Offset}
+A nastier problem is found as a test case in the model4you package.  It is
+an artificial data set shown below.
+<<m4>>=
+set.seed(1212)
+n <- 90
+d1 <- data.frame(y = abs(rnorm(n) +5) + .5, x= 1:n -10,
+                    trt= rep(1:3, each=n/3))
+mfit0 <- coxph(Surv(y) ~ trt + offset(x), data=d1, iter=0)
+dtm <- coxph.detail(mfit0)
+mcoef <- sum(dtm$score)/sum(dtm$imat)
+mcoef
+
+beta <- seq(-40, 5, by=1)
+loglik <- double(length(beta))
+for (i in 1:length(beta)) {
+    tfit <- coxph(Surv(y) ~ trt + offset(x), iter=0, init=beta[i], d1)
+    loglik[i] <- tfit$loglik[1]
+}
+plot(beta, loglik)
+
+mfit30 <- coxph(Surv(y) ~ trt + offset(x), data=d1, init=-30)
+mfit30
+@ 
+
+In this case the starting point of 0 is over 170 standard errors from the
+solution, due to the bizarre offset.
+The partial likelihood has so little curvature at 0 that the first first
+estimate of $\beta$ is so large that the risk scores $\exp(X\beta)$ contain
+infinite values, and the routine fails at the first iteration.
+Step halving would eventially get to a decent answer, in about 40 steps, but
+the routine packs it in after 20.  
+
+\subsection{Trust region}
+A trust region approach asks the question: over what region is the Newton-Raphson
+step reliable?  It then takes the maximum step within the reliable region.
+Reliable is normally defined as $r$ =(actual improvement)/(predicted improvement)
+$> .25$.  
+If $r < .25$ then the trust region is made smaller, if $r > .5$ it is made
+bigger.
+Because of the equivalence of penalties and limits, a Levenberg-Marquardt
+step of $d = -(H + \lambda I)^{-1} U$ is the maximum of the quadratic NR
+update under a
+constraint that $\sum d^2 \le c$ for some constant $c$, $\lambda$ playing the
+role of a Lagrange multiplier.
+When there is a single covariate this is no different than step halving, with
+$\lambda =  kH$ and $k$ of $1,3, 5, 7, \ldots$.  
+But it does give a rationale for tuning the amount of shrinkage.
+
+So one simple way to calibrate a trust region approach is to calibrate $\lambda$.
+
+
 \section{Corrleation example}
 This example was pointed out by Brian Borstrom and uses the mort data
 set from the eha package.
@@ -175,7 +235,7 @@ the routine to fail.
 
 <<sliding>>=
 fit0 <- coxph(Surv(time, status) ~ ph.ecog + age, lung) 
-sdata <- survSplit(lung, seq(5, 1000, by=50), end="time", event="status")
+sdata <- survSplit(Surv(time, status) ~., lung, cut=seq(5, 1000, by=50))
 sfit0 <- coxph(Surv(tstart, time, status) ~ ph.ecog + age, sdata)
 all.equal(fit0$coef, sfit0$coef)
 
@@ -183,17 +243,6 @@ sdata$fakeph <- sdata$ph.ecog + sdata$tstart
 sfit <- coxph(Surv(tstart, time, status) ~ fakeph + age, sdata)
 @ 
 
-<<dummy>>=
-# start simple
-test2 <- data.frame(start=c(1, 2, 5, 2, 1, 7, 3, 4, 8, 8),
-                    stop =c(2, 3, 6, 7, 8, 9, 9, 9,14,17),
-                    event=c(1, 1, 1, 1, 1, 1, 1, 0, 0, 0),
-                    x    =c(1, 0, 0, 1, 0, 1, 1, 1, 0, 0) )
-test2b <- survSplit(test2, c(6,9), end='stop', event='event', start='start')
-fit1 <- coxph(Surv(start, stop, event) ~ x, test2)
-fit2 <- coxph(Surv(start, stop, event) ~ x, test2b)
-
-@ 
 
 \section{Infinite coefficients}
 For an infinite coefficient, after the first few iterations the coefficient
@@ -209,11 +258,11 @@ There is a race condition:
 Data sets where one group has no events usually end up at condition 1.
 Ones that do the other are more trouble.
 
-This example comes from the `` '' package (I forget which one).  It's a sneaky
+This example comes from the moonBook package.  It's a sneaky
 way to get a variable on both sides, and fails with number 2.
 <<sneaky>>=
 ysurv <- Surv(colon$time, colon$status)
-stest <- coxph(ysurv ~ status, colon)
+stest <- coxph(ysurv ~ time, colon)
 @ 
 
 The Rehberg data set manages 2 and 3 at the same iteration, which forced a
@@ -242,6 +291,5 @@ matplot(1:17, cbind(timat, tscore), pch='is', log='y',
 
 At iteration 17 the computations for both the first and second derivative
 fail due to exp() overflow.
-
 
 \end{document}

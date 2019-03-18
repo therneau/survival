@@ -71,6 +71,11 @@ survfit23 <- function(x) {
         else new[[i]] <- x[[i]]
     }
 
+    if (is.null(new$logse)) {
+        # reprise the logic of the older code
+        if (inherits(x, "survfitms")) x$logse <- FALSE
+        else x$logse <- TRUE
+    }
     class(new) <- c("survfit3", class(x))
     new
 }
