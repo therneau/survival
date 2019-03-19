@@ -26,9 +26,9 @@ with(adata, quantile(v2, 990:1000/1000))
 fit0 <- coxph(Surv(start, end, status) ~ v2, data=adata, iter=0)
 dt0 <- coxph.detail(fit0)
 
-b <- seq(0, .007, length=15)
-logb <- matrix(0, 15, 2)
-for (i in 1:15) {
+b <- seq(0, .006, length=13)
+logb <- matrix(0, 13, 2)
+for (i in 1:13) {
     logb[i,1] <- coxph(Surv(start, end, status) ~ v2, data=adata, iter=0,
                      init=b[i])$loglik[1]
     logb[i,2] <- fit0$loglik[1] + b[i]*sum(dt0$score) - b[i]^2*sum(dt0$imat)/2
@@ -36,6 +36,7 @@ for (i in 1:15) {
 matplot(b, logb/1e5, type='n', xlab='beta', ylab="Loglik/1e5")
 lines(b, logb[,2]/1e5, lty=2)
 points(b, logb[,1]/1e5)
+abline(h=fit0$loglik[1]/1e5, lty=3)
 @ 
 
 The first problem with the data set is variable \code{v2} which is terribly
@@ -160,8 +161,8 @@ A trust region approach asks the question: over what region is the Newton-Raphso
 step reliable?  It then takes the maximum step within the reliable region.
 Reliable is normally defined as $r$ =(actual improvement)/(predicted improvement)
 $> .25$.  
-If $r < .25$ then the trust region is made smaller, if $r > .5$ it is made
-bigger.
+If $r < .25$ then the trust region is made smaller, if $r > .75$ or .5 
+it is made bigger.
 Because of the equivalence of penalties and limits, a Levenberg-Marquardt
 step of $d = -(H + \lambda I)^{-1} U$ is the maximum of the quadratic NR
 update under a
@@ -171,7 +172,86 @@ When there is a single covariate this is no different than step halving, with
 $\lambda =  kH$ and $k$ of $1,3, 5, 7, \ldots$.  
 But it does give a rationale for tuning the amount of shrinkage.
 
-So one simple way to calibrate a trust region approach is to calibrate $\lambda$.
+Let's look at the overflow data in terms of trust regions.
+From the first figure, we see that a trust region of about .0045 would be
+acceptable.  The gain at that step is 1/2 of what is predicted.
+When the iteration goes wrong, we need some way to create an initial region
+size. 
+One way to do this is to search for a $\lambda$ that satisfies the goals.
+We expect the information
+matrix at time zero to be approximately equal to the number of death $d$ times
+the variance of $x$.  
+The coxph routine scales the data, so if we start with $\lambda=d$ the first
+constraint will be close to step halving.
+Assume an increase/decrease of $\lambda$ by a factor of 2, which is fairly
+usual.  It takes 2 doublings of this initial guess to get an answer in the
+range where the ratio is $>.25$, i.e., the quadratic is acceptable.  
+
+We will create a variable v2b= v2/1000, so that coefficients
+are on a more natural scale.
+<<try1>>=
+adata$v2b <- adata$v2/1000
+lambda <- sum(adata$status) * var(adata$v2b) * 2^(0:5)
+beta <- logdiff <- lhat <- double(6)
+
+fit1 <- coxph(Surv(start, end, status) ~ v2b, iter=0, adata)
+dt1 <- coxph.detail(fit1)
+first <- sum(dt1$score)
+second <- sum(dt1$imat) # second derivative
+for (i in 1:6) {
+    beta[i] <- first/(second + lambda[i])
+    lhat[i] <-  beta[i]*first - 0.5* beta[i]^2/ second
+    tfit <- coxph(Surv(start, end, status) ~ v2b, iter=0, init=beta[i], adata)
+    logdiff[i] <- tfit$loglik[1] - fit0$loglik[1]
+}
+data.frame(doubling=0:5, lambda=lambda, beta=beta, lhat=lhat,
+           ratio = logdiff/lhat)
+@ 
+
+Look at the data in the region of this new solution.
+<<try2>>=
+fit2 <- coxph(Surv(start, end, status) ~ v2b, iter=0, init=beta[3], adata)
+dt2  <- coxph.detail(fit2)
+first2 <- sum(dt2$score)
+second2 <- sum(dt2$imat) # second derivative
+
+b2 <- seq(3, 5, length=21)
+l2 <- matrix(0, 21, 2)
+for (i in 1:21) {
+    tfit <-  coxph(Surv(start, end, status) ~ v2b, iter=0, init=b2[i], adata)
+    l2[i,1] <- tfit$loglik[1]- fit2$loglik[1]
+    l2[i,2] <- first2*(b2[i] - coef(fit2)) - (b2[i]-coef(fit2))^2*second2/2
+}
+matplot(b2, l2)
+plabline(v=coef(fit2))
+@ 
+
+For the first iteration we found that the second order Taylor is a good
+approximation in a region of  
+$\sum_j d_j^2 < 17.6$, where $d$ is the iteration step.
+$\Delta = 17.6$ is our trust region, the Levenberg-Marquardt step found both
+a region and a solution on the boundary.
+Further iterations want to find updates that maximize the quadratic NR, subject
+to $\sum d^2 \le \Delta$.  The algorithm has 3 steps.
+\begin{enumerate}
+  \item First find the unconstrained maximum.  If it is within the trust region
+    then accept it.
+  \item If not, find the solution on the boundary. 
+  \item Check the ratio for this solution, and adjust the size of the trust
+    region accordingly.  Repeat 2-3 until a step has been found that increases
+    the logliklihood.  
+\end{enumerate}
+
+The figure below shows the size of the constrained step as a function of
+lambda, for both the first and second iteration.
+This is one problem with the Levenberg-Marquardt algorithm: the relationship
+between $\lambda$ and the size of the trust region changes under our feet.
+<<lfig>>=
+# look at lambda and d^2 in the neighborhood of the second iterate
+d2 <- first2/(second2 + lambda)
+matplot(lambda, cbind(beta^2, d2^2), log='xy',
+        xlab="lambda", ylab="d^2")
+@ 
 
 
 \section{Corrleation example}
