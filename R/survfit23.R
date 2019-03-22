@@ -76,6 +76,14 @@ survfit23 <- function(x) {
         if (inherits(x, "survfitms")) x$logse <- FALSE
         else x$logse <- TRUE
     }
+    
+    if (is.null(x$cumhaz)) {  # fill it in!
+        new$cumhaz <- -log(new$surv)
+        if (!is.null(x$std.err)) {
+            if (x$logse) new$std.chaz <- new$std.err
+            else         new$std.chaz <- new$std.err/new$surv
+        }
+    }
     class(new) <- c("survfit3", class(x))
     new
 }
