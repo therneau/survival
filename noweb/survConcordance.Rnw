@@ -1,5 +1,5 @@
 \subsection{Concordance}
-This is the code for the depricated function survConcordance.  It will be removed
+This is the code for the deprecated function survConcordance.  It will be removed
 in due course.
 
  The concordance statistic is gaining popularity as a measure of goodness-of-fit
@@ -628,7 +628,7 @@ tiny number due to round off error.  Since this can cause a warning message
 from the sqrt function we check and correct this.
 <<survConcordance.fit>>=
 survConcordance.fit <- function(y, x, strata, weight) { 
-    .Deprecated("concordance.fit")
+    #    .Deprecated("concordance.fit")
     # The coxph program may occassionally fail, and this will kill the C
     #  routine below
     if (any(is.na(x)) || any(is.na(y))) return(NULL)   

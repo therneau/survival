@@ -639,7 +639,7 @@ v1=0; v2=0;
 if (nid==0) {  /* simple variance */
    if (type==1 || type==3) {  /* Nelson-Aalen hazard */
 	for (i=0; i<ntime; i++) {
-	    if (n[1][i] >0) {  /* at least one event */
+	    if (n[1][i]>0 && n[4][i]>0) {  /* at least one event with wt>0*/
 		nelson += n[4][i]/n[3][i];
 		v2 += n[4][i]/(n[3][i]*n[3][i]);
 		}
@@ -664,7 +664,7 @@ if (nid==0) {  /* simple variance */
 
     if (type < 3) {  /* KM survival */
 	for (i=0; i<ntime; i++) {
-	    if (n[1][i] >0) {  /* at least one event */
+	    if (n[1][i]>0 && n[4][i]>0) {  /* at least one event */
 		km *= (n[3][i]-n[4][i])/n[3][i];
 		v1 += n[4][i]/(n[3][i] * (n[3][i] - n[4][i])); /* Greenwood */
 		}
@@ -821,7 +821,7 @@ if (type==1) {
             }
         }
  
-        if (n[1][i] > 0) { /* need to update the sums */
+        if (n[1][i] > 0 && n[4][i]>0) { /* need to update the sums */
             haz = n[4][i]/n[3][i];
             for (k=0; k< nid; k++) {
                 inf1[k] = inf1[k] *(1.0 -haz) + gwt[k]*km*haz/n[3][i];
@@ -878,7 +878,7 @@ else if (type==2) {  /* KM survival, Fleming-Harrington hazard */
             }
         }
  
-        if (n[1][i] > 0) { /* need to update the sums */
+        if (n[1][i] > 0 && n[4][i] >0) { /* need to update the sums */
             dtemp =0;  /* the working denominator */
             dtemp2=0;  /* sum of squares */
             dtemp3=0;
@@ -954,7 +954,7 @@ else if (type==3) {  /* exp() survival, NA hazard */
             }
         }
          
-        if (n[1][i] > 0) { /* need to update the sums */
+        if (n[1][i] > 0 && n[4][i]>0) { /* need to update the sums */
             haz = n[4][i]/n[3][i];
             for (k=0; k< nid; k++) {
                 inf2[k] -= gwt[k] * haz/n[3][i];
@@ -1005,7 +1005,7 @@ else if (type==3) {  /* exp() survival, NA hazard */
                 j2 = sort1[j];
             }
         }
-        if (n[1][i] > 0) { /* need to update the sums */
+        if (n[1][i] > 0 && n[4][i] >0) { /* need to update the sums */
     	    dtemp =0;  /* the working denominator */
             dtemp2=0;  /* sum of squares */
             dtemp3=0;

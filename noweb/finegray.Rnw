@@ -69,15 +69,11 @@ finegray <- function(formula, data, weights, subset, na.action= na.pass,
 
     cluster<- attr(Terms, "specials")$cluster
     if (length(cluster)) {
-        if (!is.null(id)) stop("an id argument and a cluster() term are redundant")
-        tempc <- untangle.specials(Terms, 'cluster', 1)
-        id <- strata(mf[,tempc$vars], shortlabel=TRUE)  #allow multiples
-        mf[tempc$vars] <- NULL
+        stop("a cluster() term is not valid")
     }
     
-    # If there is start-stop data, then there needs to be a cluster()
-    #  argument or an id argument, and we check that this is indeed
-    #  a competing risks form of data.
+    # If there is start-stop data, then there needs to be an id
+    #  also check that this is indeed a competing risks form of data.
     # Mark the first and last obs of each subject, as we need it later.
     #  Observations may not be in time order within a subject
     delay <- FALSE  # is there delayed entry?

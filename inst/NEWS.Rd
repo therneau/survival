@@ -12,10 +12,12 @@
     \item For (start, stop) data, the survfit result only includes
     unique stop times.
     \item Update plot.survfit to plot the cumulative hazard when
-    fun='cumhaz', rather than log(surv).
+    fun='cumhaz', rather than plotting log(surv).
     \item The Nagelkirke R^2 has been removed from summary.coxph.
     The shortcomings of this measure are well known, concordance is a
     better measure.
+    \item A cluster() term is not allowed in the finegray function; now
+    give an explicit error message.
 }}
 
 \section{Changes in version 2.43-4}{
