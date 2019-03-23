@@ -17,7 +17,15 @@
     The shortcomings of this measure are well known, concordance is a
     better measure.
     \item A cluster() term is not allowed in the finegray function; now
-    give an explicit error message.
+    give an explicit error message to that effect.
+
+    \item Track down a failure that occured with some infinite
+    coefficient data sets.  When iterations ran out, the routine now
+    returns the last successful iterate rather than the last attempt.
+    If the loglik maximizes at infinity, the routine now returns the
+    last step at which the partial likelihood, first and second
+    derivatives were all finite.  This stops some downstream
+    "non-finite" messages.
 }}
 
 \section{Changes in version 2.43-4}{

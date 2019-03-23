@@ -31,7 +31,7 @@
 **                      (returned as a vector)
 **       loglik(2)    :loglik at beta=initial values, at beta=final
 **       sctest       :the score test at beta=initial
-**       flag         :success flag  1000  did not converge
+*       flag         :success flag  1000  did not converge
 **                                   1 to nvar: rank of the solution
 **       iter         :actual number of iterations used
 **
@@ -51,43 +51,39 @@
 #include "survS.h"
 #include "survproto.h"
 
+/* 
+** these arrays are shared with the subroutine at the bottom,
+**  but remain unknown outside this source file
+*/
+
+static double *a, *a2, **cmat2;
+static double *time, *weights, *offset;
+static int *status, *strata;
+static double *u; 
+static double **covar, **cmat, **imat;  /*ragged arrays */
+
+static double coxfit6_iter(int nvar, int nused, int method, double *beta);
+
 SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2, 
 	     SEXP covar2,    SEXP offset2, SEXP weights2,
 	     SEXP strata2,   SEXP method2, SEXP eps2, 
 	     SEXP toler2,    SEXP ibeta,    SEXP doscale2) {
-    int i,j,k, person;
-    
-    double **covar, **cmat, **imat;  /*ragged arrays */
-    double  wtave;
-    double *a, *newbeta;
-    double *a2, **cmat2;
-    double *scale;
-    double  denom=0, zbeta, risk;
-    double  temp, temp2;
-    int     ndead;  /* number of death obs at a time point */
-    double  tdeath=0;  /* ndead= total at a given time point, tdeath= all */
-    int     notfinite;  /* any infinite scores or intermediates */
 
-    double  newlk=0;
-    double  dtime;
-    double  deadwt;  /*sum of case weights for the deaths*/
-    double  denom2;  /* sum of weighted risk scores for the deaths*/
-    int     halving;    /*are we doing step halving at the moment? */
-    int     nrisk;   /* number of subjects in the current risk set */
+    int i,j, person;
+    double temp, temp2;
+    double *newbeta, *scale;
+    double halving =0, newlk;
+    int notfinite;
 
     /* copies of scalar input arguments */
     int     nused, nvar, maxiter;
     int     method;
     double  eps, toler;
     int doscale;
-
-    /* vector inputs */
-    double *time, *weights, *offset;
-    int *status, *strata;
-    
+   
     /* returned objects */
     SEXP imat2, means2, beta2, u2, loglik2;
-    double *beta, *u, *loglik, *means;
+    double *beta, *loglik, *means;
     SEXP sctest2, flag2, iter2;
     double *sctest;
     int *flag, *iter;
@@ -155,10 +151,9 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
     ** Subtract the mean from each covar, as this makes the regression
     **  much more stable.
     */
-    tdeath=0; temp2=0;
+    temp2=0;
     for (i=0; i<nused; i++) {
 	temp2 += weights[i];
-	tdeath += weights[i] * status[i];
     }	
     for (i=0; i<nvar; i++) {
 	temp=0;
@@ -194,6 +189,167 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
     *iter =0; 
     strata[nused-1] =1;
     loglik[1] =0;
+    loglik[0] = coxfit6_iter(nvar, nused, method, beta);
+
+    /* am I done?
+    **   update the betas and test for convergence
+    */
+    for (i=0; i<nvar; i++) /*use 'a' as a temp to save u0, for the score test*/
+	a[i] = u[i];
+
+    *flag= cholesky2(imat, nvar, toler);
+    chsolve2(imat,nvar,a);        /* a replaced by  a *inverse(i) */
+
+    temp=0;
+    for (i=0; i<nvar; i++)
+	temp +=  u[i]*a[i];
+    *sctest = temp;  /* score test */
+
+    /*
+    **  Never, never complain about convergence on the first step.  That way,
+    **  if someone HAS to they can force one iter at a time.
+    ** A non-finite loglik comes from exp overflow and requires almost
+    **  malicious initial values.
+    */
+    if (maxiter==0 || isfinite(loglik[0])==0) {
+	chinv2(imat,nvar);
+	for (i=0; i<nvar; i++) {
+	    beta[i] *= scale[i];  /*return to original scale */
+	    u[i] /= scale[i];
+	    imat[i][i] *= scale[i]*scale[i];
+	    for (j=0; j<i; j++) {
+		imat[j][i] *= scale[i]*scale[j];
+		imat[i][j] = imat[j][i];
+	    }
+	}
+	goto finish;
+    }
+
+    /*
+    ** here is the main loop
+    */
+    loglik[1] = loglik[0];   /* loglik[1] contains the best so far */
+    for (i=0; i<nvar; i++) {
+	newbeta[i] = beta[i] + a[i];
+    }
+
+    halving = 0;       /* =1 when in the midst of "step halving" */
+    for (*iter=1; *iter<= maxiter; (*iter)++) {
+	R_CheckUserInterrupt();  
+	newlk = coxfit6_iter(nvar, nused, method, newbeta);
+
+	/* am I done?
+	**   test for convergence and then update beta
+	*/
+	*flag = cholesky2(imat, nvar, toler);
+
+	notfinite = 0;
+	for (i=0; i<nvar; i++) {
+	    if (isfinite(u[i]) ==0) notfinite=2;     /* infinite score stat */
+	    for (j=0; j<nvar; j++) {
+		if (isfinite(imat[i][j]) ==0) notfinite =3; /*infinite imat */
+	    }	
+	}	
+	if (isfinite(newlk) ==0) notfinite =4;
+	
+	if (notfinite==0 &&(fabs(1-(loglik[1]/newlk))<= eps)) { 
+	    /* all done */
+	    loglik[1] = newlk;
+	    chinv2(imat, nvar);     /* invert the information matrix */
+
+	    for (i=0; i<nvar; i++) {
+		beta[i] = newbeta[i]*scale[i];
+		u[i] /= scale[i];
+		imat[i][i] *= scale[i]*scale[i];
+		for (j=0; j<i; j++) {
+		    imat[j][i] *= scale[i]*scale[j];
+		    imat[i][j] = imat[j][i];
+		}
+	    }
+	    if (halving) *flag= -2;
+	    goto finish;
+	}
+
+	if (notfinite >0 || newlk < loglik[1])   {    
+	    /*it is not converging ! */
+	    halving++;  /* get more agressive when it doesn't work */
+	    for (i=0; i<nvar; i++) 
+		newbeta[i] = (newbeta[i] + halving*beta[i])/(halving + 1.0);
+		    
+	    }
+	else {
+	    halving=0;
+	    loglik[1] = newlk;
+	    chsolve2(imat,nvar,u);
+	    for (i=0; i<nvar; i++) {
+		beta[i] = newbeta[i];
+		newbeta[i] = newbeta[i] +  u[i];
+	    }	
+	}
+    }  /* return for another iteration */
+
+    /*
+    ** We end up here only if we ran out of iterations 
+    **  recompute the last good version of imat and u
+    */
+    loglik[1] = coxfit6_iter(nvar, nused, method, beta);
+    chinv2(imat, nvar);
+    for (i=0; i<nvar; i++) {
+	beta[i] = beta[i]*scale[i];
+	u[i] /= scale[i];
+	imat[i][i] *= scale[i]*scale[i];
+	for (j=0; j<i; j++) {
+	    imat[j][i] *= scale[i]*scale[j];
+	    imat[i][j] = imat[j][i];
+	}
+    }
+   *flag = 1000;
+
+
+finish:
+    /*
+    ** create the output list
+    */
+    PROTECT(rlist= allocVector(VECSXP, 8));
+    SET_VECTOR_ELT(rlist, 0, beta2);
+    SET_VECTOR_ELT(rlist, 1, means2);
+    SET_VECTOR_ELT(rlist, 2, u2);
+    SET_VECTOR_ELT(rlist, 3, imat2);
+    SET_VECTOR_ELT(rlist, 4, loglik2);
+    SET_VECTOR_ELT(rlist, 5, sctest2);
+    SET_VECTOR_ELT(rlist, 6, iter2);
+    SET_VECTOR_ELT(rlist, 7, flag2);
+    
+
+    /* add names to the objects */
+    PROTECT(rlistnames = allocVector(STRSXP, 8));
+    SET_STRING_ELT(rlistnames, 0, mkChar("coef"));
+    SET_STRING_ELT(rlistnames, 1, mkChar("means"));
+    SET_STRING_ELT(rlistnames, 2, mkChar("u"));
+    SET_STRING_ELT(rlistnames, 3, mkChar("imat"));
+    SET_STRING_ELT(rlistnames, 4, mkChar("loglik"));
+    SET_STRING_ELT(rlistnames, 5, mkChar("sctest"));
+    SET_STRING_ELT(rlistnames, 6, mkChar("iter"));
+    SET_STRING_ELT(rlistnames, 7, mkChar("flag"));
+    setAttrib(rlist, R_NamesSymbol, rlistnames);
+
+    unprotect(nprotect+2);
+    return(rlist);
+}
+
+static double coxfit6_iter(int nvar, int nused,  int method, double *beta) {
+    int i, j, k, person;
+    double  loglik =0;
+    double  wtave;
+    double  denom=0, zbeta, risk;
+    double  temp2;
+    int     ndead;  /* number of death obs at a time point */
+
+    double  dtime;
+    double  deadwt;  /*sum of case weights for the deaths*/
+    double  denom2;  /* sum of weighted risk scores for the deaths*/
+    int     nrisk;   /* number of subjects in the current risk set */
+   
     for (i=0; i<nvar; i++) {
 	u[i] =0;
 	a2[i] =0;
@@ -237,7 +393,7 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
 		ndead++;
 		deadwt += weights[person];
 		denom2 += risk;
-		loglik[1] += weights[person]*zbeta;
+		loglik += weights[person]*zbeta;
 
 		for (i=0; i<nvar; i++) {
 		    u[i] += weights[person]*covar[i][person];
@@ -253,7 +409,7 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
 	if (ndead >0) {  /* we need to add to the main terms */
 	    if (method==0) { /* Breslow */
 		denom += denom2;
-		loglik[1] -= deadwt* log(denom);
+		loglik -= deadwt* log(denom);
 	   
 		for (i=0; i<nvar; i++) {
 		    a[i] += a2[i];
@@ -276,7 +432,7 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
 		wtave = deadwt/ndead;
 		for (k=0; k<ndead; k++) {
 		    denom += denom2/ndead;
-		    loglik[1] -= wtave* log(denom);
+		    loglik -= wtave* log(denom);
 		    for (i=0; i<nvar; i++) {
 			a[i] += a2[i]/ndead;
 			temp2 = a[i]/denom;
@@ -294,260 +450,6 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
 	    }
 	}
     }   /* end  of accumulation loop */
-    loglik[0] = loglik[1]; /* save the loglik for iter 0 */
-
-    /* am I done?
-    **   update the betas and test for convergence
-    */
-    for (i=0; i<nvar; i++) /*use 'a' as a temp to save u0, for the score test*/
-	a[i] = u[i];
-
-    *flag= cholesky2(imat, nvar, toler);
-    chsolve2(imat,nvar,a);        /* a replaced by  a *inverse(i) */
-
-    temp=0;
-    for (i=0; i<nvar; i++)
-	temp +=  u[i]*a[i];
-    *sctest = temp;  /* score test */
-
-    /*
-    **  Never, never complain about convergence on the first step.  That way,
-    **  if someone HAS to they can force one iter at a time.
-    ** A non-finite loglik comes from exp overflow and requires almost
-    **  malicious initial values.
-    */
-    for (i=0; i<nvar; i++) {
-	newbeta[i] = beta[i] + a[i];
-    }
-    if (maxiter==0 || isfinite(loglik[0])==0) {
-	chinv2(imat,nvar);
-	for (i=0; i<nvar; i++) {
-	    beta[i] *= scale[i];  /*return to original scale */
-	    u[i] /= scale[i];
-	    imat[i][i] *= scale[i]*scale[i];
-	    for (j=0; j<i; j++) {
-		imat[j][i] *= scale[i]*scale[j];
-		imat[i][j] = imat[j][i];
-	    }
-	}
-	goto finish;
-    }
-
-    /*
-    ** here is the main loop
-    */
-    halving =0 ;             /* =1 when in the midst of "step halving" */
-    for (*iter=1; *iter<= maxiter; (*iter)++) {
-	R_CheckUserInterrupt();  
-	newlk =0;
-	for (i=0; i<nvar; i++) {
-	    u[i] =0;
-	    for (j=0; j<nvar; j++)
-		imat[i][j] =0;
-	    }
-
-	/*
-	** The data is sorted from smallest time to largest
-	** Start at the largest time, accumulating the risk set 1 by 1
-	*/
-	for (person=nused-1; person>=0; ) {
-	    if (strata[person] == 1) { /* rezero temps for each strata */
-		denom = 0;
-		nrisk =0;
-		for (i=0; i<nvar; i++) {
-		    a[i] = 0;
-		    for (j=0; j<nvar; j++) cmat[i][j] = 0;
-		    }
-		}
-
-	    dtime = time[person];
-	    deadwt =0;
-	    ndead =0;
-	    denom2 =0;
-
-	    while(person>=0 && time[person]==dtime) {
-		nrisk++;
-		zbeta = offset[person];
-		for (i=0; i<nvar; i++)
-		    zbeta += newbeta[i]*covar[i][person];
-		risk = exp(zbeta) * weights[person];
-
-		if (status[person] ==0) {
-		    denom += risk;
-
-		    for (i=0; i<nvar; i++) {
-			a[i] += risk*covar[i][person];
-			for (j=0; j<=i; j++)
-			    cmat[i][j] += risk* covar[i][person]* covar[j][person];		
-		    }
-		} else {	
-		    ndead++;
-		    denom2 += risk;		    
-		    deadwt += weights[person];
-		    newlk += weights[person] *zbeta;
-		    for (i=0; i<nvar; i++) {
-			u[i] += weights[person] *covar[i][person];
-			a2[i] +=  risk*covar[i][person];
-			for (j=0; j<=i; j++)
-			    cmat2[i][j] += risk*covar[i][person]*covar[j][person];	
-			}   
-		    }
-		person--;
-		if (person>0 && strata[person]==1) break; /*tied times don't cross strata*/
-	    }		
-
-	    if (ndead >0) {  /* add up terms*/
-		if (method==0) { /* Breslow */
-		    denom += denom2;
-		    newlk -= deadwt* log(denom);
-		    for (i=0; i<nvar; i++) {
-			a[i] += a2[i];
-			temp2= a[i]/ denom;  /* mean */
-			u[i] -= deadwt* temp2;
-			for (j=0; j<=i; j++) {
-			    cmat[i][j] += cmat2[i][j];
-			    imat[j][i] +=  (deadwt/denom)*
-				(cmat[i][j] - temp2*a[j]);
-			}
-		    }
-		}
-		else  { /* Efron */	
-		    wtave= deadwt/ ndead;
-		    for (k=0; k<ndead; k++) {
-			denom += denom2/ndead;
-			newlk -= wtave* log(denom);
-			for (i=0; i<nvar; i++) {
-			    a[i] += a2[i]/ndead;
-			    temp2 = a[i]/denom;
-			    u[i] -= wtave*temp2;
-			    for (j=0; j<=i; j++) {
-				cmat[i][j] += cmat2[i][j]/ndead;
-				imat[j][i] +=  (wtave/denom)*
-				    (cmat[i][j] - temp2*a[j]);
-			    }
-			}
-		    }
-		}
-		denom2=0;
-		for (i=0; i<nvar; i++) { /*in anticipation */
-		    a2[i] =0;
-		    for (j=0; j<nvar; j++) cmat2[i][j] =0;
-		}
-	    }	
-	}   /* end  of accumulation loop  */
-
-	/* am I done?
-	**   test for convergence and then update beta
-	*/
-	*flag = cholesky2(imat, nvar, toler);
-
-	notfinite = 0;
-	for (i=0; i<nvar; i++) {
-	    if (isfinite(u[i]) ==0) notfinite=2;     /* infinite score stat */
-	    for (j=0; j<nvar; j++) {
-		if (isfinite(imat[i][j]) ==0) notfinite =3; /*infinite imat */
-	    }	
-	}	
-	if (isfinite(newlk) ==0) notfinite =4;
-	if (notfinite >0) {
-	    /*
-	    **  A non-finite term is very rare: a step so bad that we get
-	    ** an overflow of the exp function.  The most common cause is
-	    ** a data set where the true solution is infinite, but a bad
-	    ** overshoot of the NR step can do it too.
-	    **   When this happens turn on step halving.  For the case of
-	    ** infinite beta this means maxiter steps stuck in the same
-	    ** spot, but so what.
-	    */
-	    halving =1;
-	    }
-   
-	else {
-	    /* the first condition below is for the rare special case that the
-	    ** death = max(x value) at every death time, which leads to a loglik
-	    ** of 0
-	    */
-	    if (fabs(newlk) <=eps || 
-		(fabs(1-(loglik[1]/newlk))<= eps && halving==0)) { /* all done */
-		loglik[1] = newlk;
-		chinv2(imat, nvar);     /* invert the information matrix */
-
-		for (i=0; i<nvar; i++) {
-		    beta[i] = newbeta[i]*scale[i];
-		    u[i] /= scale[i];
-		    imat[i][i] *= scale[i]*scale[i];
-		    for (j=0; j<i; j++) {
-			imat[j][i] *= scale[i]*scale[j];
-			imat[i][j] = imat[j][i];
-		    }
-		}
-		goto finish;
-	    }
-
-	    if (*iter < maxiter) {
-		if (newlk < loglik[1] || notfinite > 0)   {    
-		    /*it is not converging ! */
-		    halving =1;
-		    for (i=0; i<nvar; i++) 
-			newbeta[i] = (newbeta[i] + beta[i]) /2; /*half of old increment */
-		}
-		else {
-		    halving=0;
-		    loglik[1] = newlk;
-		    chsolve2(imat,nvar,u);
-		    for (i=0; i<nvar; i++) {
-			beta[i] = newbeta[i];
-			newbeta[i] = newbeta[i] +  u[i];
-		    }
-		}
-	    }
-	}
-    }  /* return for another iteration */
-
-    /*
-    ** We end up here only if we ran out of iterations 
-    */
-    loglik[1] = newlk;
-    chinv2(imat, nvar);
-    for (i=0; i<nvar; i++) {
-	beta[i] = newbeta[i]*scale[i];
-	u[i] /= scale[i];
-	imat[i][i] *= scale[i]*scale[i];
-	for (j=0; j<i; j++) {
-	    imat[j][i] *= scale[i]*scale[j];
-	    imat[i][j] = imat[j][i];
-	}
-    }
-   *flag = 1000;
-
-
-finish:
-    /*
-    ** create the output list
-    */
-    PROTECT(rlist= allocVector(VECSXP, 8));
-    SET_VECTOR_ELT(rlist, 0, beta2);
-    SET_VECTOR_ELT(rlist, 1, means2);
-    SET_VECTOR_ELT(rlist, 2, u2);
-    SET_VECTOR_ELT(rlist, 3, imat2);
-    SET_VECTOR_ELT(rlist, 4, loglik2);
-    SET_VECTOR_ELT(rlist, 5, sctest2);
-    SET_VECTOR_ELT(rlist, 6, iter2);
-    SET_VECTOR_ELT(rlist, 7, flag2);
     
-
-    /* add names to the objects */
-    PROTECT(rlistnames = allocVector(STRSXP, 8));
-    SET_STRING_ELT(rlistnames, 0, mkChar("coef"));
-    SET_STRING_ELT(rlistnames, 1, mkChar("means"));
-    SET_STRING_ELT(rlistnames, 2, mkChar("u"));
-    SET_STRING_ELT(rlistnames, 3, mkChar("imat"));
-    SET_STRING_ELT(rlistnames, 4, mkChar("loglik"));
-    SET_STRING_ELT(rlistnames, 5, mkChar("sctest"));
-    SET_STRING_ELT(rlistnames, 6, mkChar("iter"));
-    SET_STRING_ELT(rlistnames, 7, mkChar("flag"));
-    setAttrib(rlist, R_NamesSymbol, rlistnames);
-
-    unprotect(nprotect+2);
-    return(rlist);
-    }
+    return(loglik);
+}	

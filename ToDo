@@ -1,11 +1,12 @@
-model.matrix for tt() terms
+Update iteration for penalized models wrt the changes in version 2.44.
 
 look at printCoefmat
 
 pyears with an I() term on the right hand side, "tform" is wrong.
 
-update penalized models
-terms for cox.zph, it also needs to ignore NA coefficients.
+update penalized models terms for cox.zph, it also needs to ignore 
+NA coefficients.
+
 add design of the survival library document to vignettes
 
 include.lowest for tcut (first find out what the issue is)

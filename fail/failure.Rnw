@@ -153,8 +153,19 @@ solution, due to the bizarre offset.
 The partial likelihood has so little curvature at 0 that the first first
 estimate of $\beta$ is so large that the risk scores $\exp(X\beta)$ contain
 infinite values, and the routine fails at the first iteration.
-Step halving would eventially get to a decent answer, in about 40 steps, but
-the routine packs it in after 20.  
+The step halving approach eventually wins, but it takes forever.
+At iteration 46 the routine finally finds a point close enough that the
+Newton-Raphson method works.
+<<half>>=
+test <- matrix(0, 50, 2)
+for (i in 1:50) {
+    tfit <- coxph(Surv(y) ~ trt + offset(x), data=d1, iter=i)
+    test[i,] <- c(tfit$loglik[2], tfit$coef)
+}
+indx <- which(!duplicated(test[,1]))
+plot(indx, test[indx,2], xlab="Iteration", ylab="Coefficient")
+
+@ 
 
 \subsection{Trust region}
 A trust region approach asks the question: over what region is the Newton-Raphson

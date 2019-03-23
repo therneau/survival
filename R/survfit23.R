@@ -77,7 +77,7 @@ survfit23 <- function(x) {
         else x$logse <- TRUE
     }
     
-    if (is.null(x$cumhaz)) {  # fill it in!
+    if (is.null(x$cumhaz) && class(x)== "survfit") {  # fill it in!
         new$cumhaz <- -log(new$surv)
         if (!is.null(x$std.err)) {
             if (x$logse) new$std.chaz <- new$std.err

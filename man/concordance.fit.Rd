@@ -27,4 +27,4 @@ concordance.fit(y, x, strata, weights, ymin = NULL, ymax = NULL,
 \value{a list containing the results}
 \author{ Terry Therneau}
 \seealso{ \code{\link{concordance}}}
-keyword{ survival }
+\keyword{ survival }

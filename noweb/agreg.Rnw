@@ -30,7 +30,7 @@ The fit routine is called by the coxph function with arguments
 \begin{description}
   \item[x] matrix of covariates
   \item[y] three column matrix containing the start time, stop time, and event
-    for each observation
+   for each observation
   \item[strata] for stratified fits, the strata of each subject
   \item[offset] the offset, usually a vector of zeros
   \item[init] initial estimate for the coefficients
@@ -136,15 +136,13 @@ if (maxiter >1) {
              "This should never happen.  Please contact the author.")   
     if (agfit$iter > maxiter)
         warning("Ran out of iterations and did not converge")
-    else {
-        infs <- (!is.finite(agfit$u) |
-                 (infs > control$eps & 
-                  infs > control$toler.inf*abs(coef)))
-        if (any(infs))
-            warning(paste("Loglik converged before variable ",
-                          paste((1:nvar)[infs],collapse=","),
-				      "; beta may be infinite. "))
-    }
+
+    infs <- (!is.finite(agfit$u) |
+             infs > control$toler.inf*(1+ abs(coef)))
+    if (any(infs))
+        warning(paste("Loglik converged before variable ",
+                      paste((1:nvar)[infs],collapse=","),
+                      "; beta may be infinite. "))
 }
 @ 
 
@@ -247,7 +245,7 @@ SEXP agfit4(SEXP surv2,      SEXP covar2,    SEXP strata2,
     double  dtime;
     double  temp, temp2;
     double  newlk =0;
-    int     halving;    /*are we doing step halving at the moment? */
+    int  halving;    /*are we doing step halving at the moment? */
     double  tol_chol, eps;
     double  meanwt;
     int deaths;
@@ -352,7 +350,6 @@ SEXP agfit4(SEXP surv2,      SEXP covar2,    SEXP strata2,
     **  computation much more stable.  The mean is taken per stratum,
     **  the scaling is overall.
     */
-    if (nvar==1) doscale =0;  /* scaling has no impact, so skip it */
     for (i=0; i<nvar; i++) {
         person=0;
         for (istrat=0; istrat<nstrat; istrat++) {
@@ -754,7 +751,7 @@ respect to the exp function.
 Since replacing eta with (eta -c) for any c does not change the likelihood,
 do it.  Unfortunately, we can't do this once and for all: this is a step that 
 will occur at least twice per iteration for those rare cases, e.g., eta is
-too small at early times and too large at late ones.
+too small at early time points and too large at late ones.
 I've seen this issue in about 1 data set per decade, by the way.
 <<fixeta>>=
 /* 
@@ -793,16 +790,18 @@ second derviative for that value of beta.
 /* First iteration, which has different ending criteria */
 <<agfit4-addup>>
 loglik[0] = newlk;   /* save the loglik for iteration zero  */
-loglik[1] = newlk;
-
+loglik[1] = newlk;   /* best so far */
 /* Calculate the score test */
 for (i=0; i<nvar; i++) /*use 'a' as a temp to save u0, for the score test*/
     a[i] = u[i];
 rank = cholesky2(imat, nvar, tol_chol);
 chsolve2(imat,nvar,a);        /* a replaced by  a *inverse(i) */
 *sctest=0;
-for (i=0; i<nvar; i++)
+for (i=0; i<nvar; i++) {
     *sctest +=  u[i]*a[i];
+    oldbeta[i] = beta[i];
+    beta[i] = beta[i] + a[i];
+}
 
 @ 
 The Cox model calculation rarely gets into numerical difficulty, and when it
@@ -854,40 +853,46 @@ eyelash (so what's the point of an update).
 <<agfit4-iter>>=
 /* main loop */
 halving =0 ;             /* =1 when in the midst of "step halving" */
-fail =0;                 /* iteration 1 is never marked as a failure */
 for (*iter=1; *iter<= maxiter; (*iter)++) {
     R_CheckUserInterrupt();  /* be polite -- did the user hit cntrl-C? */
+    <<agfit4-addup>>
+
     if (*iter >1) {
+        fail =0;
+        for (i=0; i<nvar; i++) 
+            if (isfinite(imat[i][i]) ==0) fail++;
         /* on iteration 1 the cholesky has already been done */
         rank2 = cholesky2(imat, nvar, tol_chol);
-        /* Are we done? */
-	fail = isnan(newlk) + isinf(newlk) + abs(rank-rank2);
-        if (fail ==0 && halving ==0 &&
-	    fabs(1-(loglik[1]/newlk)) <= eps) break;
-    }
-    
-    /* Update coefficients */
-    if (fail >0 || newlk < loglik[1]) { /*never true on iteration 1 */
+        fail = fail + isnan(newlk) + isinf(newlk) + abs(rank-rank2);
+    } 
+    else fail = isnan(newlk) + isinf(newlk); 
+
+    if (maxiter >1 && (fail >0 || newlk < loglik[1])) {
         /* 
 	** The routine has not made progress past the last good value.
 	*/
-	halving =1; flag[2]++;
+	halving++; flag[2]++;
 	for (i=0; i<nvar; i++)
-	    beta[i] = (oldbeta[i] + beta[i]) /2; /*half of old increment */
+	    beta[i] = (oldbeta[i]*halving + beta[i]) /(halving +1.0);
     }
-    else {
-	 halving=0;
-	 loglik[1] = newlk;
-	 chsolve2(imat,nvar,u);
 
-	 for (i=0; i<nvar; i++) {
-	     oldbeta[i] = beta[i];
-	     beta[i] = beta[i] +  u[i];
-	 }
+    else { 
+        if (*iter >1) {
+            /* on iteration 1 the cholesky has already been done */
+            rank2 = cholesky2(imat, nvar, tol_chol);
+            }
+        halving=0;
+        /* are we done? */
+        if (fail ==0 && halving ==0 &&
+                fabs(1-(loglik[1]/newlk)) <= eps) break;
+       
+        loglik[1] = newlk;   /* best so far */  
+        chsolve2(imat,nvar,u);
+        for (i=0; i<nvar; i++) {
+            oldbeta[i] = beta[i];
+            beta[i] = beta[i] +  u[i];
+        }
     }
-    
-    <<agfit4-addup>>
-   
 } /*return for another iteration */
 @ 
 
@@ -897,10 +902,20 @@ If the routine did not converge (iter== maxiter), then the cholesky
 routine will not have been called.
 
 <<agfit4-finish>>=
-(*iter)--;  /* the loop index is always 1 beyond where it finished */
+if (*iter > maxiter && maxiter > 1) {
+    /* 
+    ** Once more unto the breach, dear friends, once more; ..
+    ** We need to use beta and imat at the last good value, not the last 
+    **  attempted value. We've tossed that old value away, so recompute it.
+    ** This will happen very rarely that we run out of iterations.
+    */
+    for (i=0; i<nvar; i++) beta[i] = oldbeta[i];
+    <<agfit4-addup>>
+    rank = cholesky2(imat, nvar, tol_chol);
+}
+
 flag[0] = rank; 
 loglik[1] = newlk;
-if (*iter == maxiter) cholesky2(imat, nvar, tol_chol);
 chinv2(imat, nvar);
 for (i=0; i<nvar; i++) {
     beta[i] *= scale[i];  /* return to original scale */
