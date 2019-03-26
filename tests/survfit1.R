@@ -125,8 +125,8 @@ for (i in 1:12) {
 aeq(imat1, true1b$influence[,1,], tol= sqrt(eps))
 aeq(imat2, true1b$influence[,2,], tol= sqrt(eps))
 
-# Repeat using the NA hazard and exp(NA) for survival
-fit1 <- survfit(Surv(time, status) ~ x, adata, type=3)
+# Repeat using the Nelson-Aalen hazard and exp(NA) for survival
+fit1 <- survfit(Surv(time, status) ~ x, adata, stype=2)
 aeq(fit1$surv, exp(-c(true1a$estimate[,2], true1b$estimate[,2])))
 aeq(fit1$cumhaz, c(true1a$estimate[,2], true1b$estimate[,2]))
 aeq(fit1$std.err, c(true1a$std[,4], true1b$std[,4]))
@@ -134,7 +134,7 @@ aeq(fit1$std.chaz, c(true1a$std[,4], true1b$std[,4]))
 aeq(fit1$n.risk, c(true1a$n.risk, true1b$n.risk))
 
 # Nelson-Aalen + exp() surv, along with IJ variance
-fit2 <- survfit(Surv(time, status) ~ x, data=adata, id=id, type=3,
+fit2 <- survfit(Surv(time, status) ~ x, data=adata, id=id, stype=2,
                 influence=3)
 aeq(fit2$surv, exp(-c(true1a$estimate[,2], true1b$estimate[,2])))
 aeq(fit2$cumhaz, c(true1a$estimate[,2], true1b$estimate[,2]))
@@ -168,13 +168,13 @@ aeq(fit3$n.event, c(true2a$n.event, true2b$n.event))
 
 # Different survival, same hazard
 fit3b <- survfit(Surv(time, status) ~ x, data=adata, id=id, weights=wt,
-                 influence=2, type=3) 
+                 influence=2, stype=2) 
 temp <- c("n", "time", "cumhaz", "std.chaz", "influence.chaz", "n.risk",
           "n.event")
 aeq(unclass(fit3b)[temp], unclass(fit3)[temp])  # unclass avoids [.survfit
 aeq(fit3b$surv, exp(-c(true2a$estimate[,2], true2b$estimate[,2])))
 aeq(fit3b$std.err, fit3b$std.chaz)
-aeq(fit3b$logse, TRUE)
+aeq(fit3b$logse, FALSE)
 aeq(fit3b$n.risk, c(true2a$n.risk, true2b$n.risk))
 aeq(fit3b$n.event, c(true2a$n.event, true2b$n.event))
 
@@ -200,14 +200,13 @@ aeq(c(colSums(fit4$influence.chaz[[1]]^2), colSums(fit4$influence.chaz[[2]]^2)),
 
 # The Fleming-Harrington is a more complex formula.  Start with weights of
 #   1.
-fit5 <- survfit(Surv(time, status) ~x, adata, type=2)
+fit5 <- survfit(Surv(time, status) ~x, adata, ctype=2)
 nrisk <- c(11,10,8,7, 5,4,2, 12, 11, 10, 9, 8, 6:1)
 chaz <- c(cumsum(1/nrisk[1:7])[c(1:4,4, 5,6,6,7,7)], 
           cumsum(1/nrisk[8:18])[c(2,4,5,5,6:11)])
 aeq(fit5$cumhaz, chaz)
 aeq(fit5$std.chaz, sqrt(c(cumsum(1/nrisk[1:7]^2)[c(1:4,4, 5,6,6,7,7)], 
                           cumsum(1/nrisk[8:18]^2)[c(2,4,5,5,6:11)])))
-aeq(fit5$surv, fit1$surv)
 
 # We can compute the FH using a fake data set where each tie is spread out
 #  over a set of fake times.
@@ -254,7 +253,7 @@ fh <- function(time, status, weights, id) {
 true6a <- with(subset(adata, x=="Maintained"), fh(time, status, wt, id))
 true6b <- with(subset(adata, x!="Maintained"), fh(time, status, wt, id))
 
-fit6 <- survfit(Surv(time, status) ~ x, weight=wt, data=adata, type=4)
+fit6 <- survfit(Surv(time, status) ~ x, weight=wt, data=adata, stype=2, ctype=2)
 aeq(fit6$cumhaz, c(true6a$estimate[,2], true6b$estimate[,2]))
 aeq(fit6$surv, exp(-c(true6a$estimate[,2], true6b$estimate[,2])))
 aeq(fit6$std.chaz, c(true6a$std[,4], true6b$std[,4]))
@@ -262,7 +261,7 @@ aeq(fit6$n.risk, c(true6a$n.risk, true6b$n.risk))
 aeq(fit6$n.event, c(true6a$n.event, true6b$n.event))
 
 # Robust variance
-fit7 <- survfit(Surv(time, status) ~ x, weight=wt, data=adata, type=4, 
+fit7 <- survfit(Surv(time, status) ~ x, weight=wt, data=adata, stype=2,ctype=2, 
                 id=id, influence=2)
 aeq(fit7$cumhaz, c(true6a$estimate[,2], true6b$estimate[,2]))
 aeq(fit7$surv, exp(-c(true6a$estimate[,2], true6b$estimate[,2])))
@@ -277,11 +276,11 @@ tdata <- subset(adata, x != "Maintained")
 tdata <- tdata[order(tdata$id),]
 eps <- 1e-8
 imat <- matrix(0., 12, 10)
-t1 <- survfit(Surv(time, status) ~x, data=tdata, type=2, weights=wt) 
+t1 <- survfit(Surv(time, status) ~x, data=tdata, ctype=2, weights=wt) 
 for (i in 1:12) {
     wtemp <- tdata$wt
     wtemp[i] <- wtemp[i] + eps
-    tfit <-survfit(Surv(time, status) ~x, data=tdata, type=2, 
+    tfit <-survfit(Surv(time, status) ~x, data=tdata, ctype=2, 
               weights=wtemp)
     imat[i,] <- tdata$wt[i] * (tfit$cumhaz - t1$cumhaz)/eps
 }

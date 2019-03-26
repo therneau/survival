@@ -28,6 +28,7 @@ int *norisk(int n, double *time1, double *time2, double *status,
     ndeath=0;
     istrat=0;
     j =0;   /* tracks time1 */
+    p1 = sort1[0];
     for (i=0; i<n; i++) {
 	p2 = sort2[i];
 	dtime = time2[p2];   

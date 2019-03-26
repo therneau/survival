@@ -31,21 +31,22 @@ coxph.wtest(var, b, toler.chol = 1e-09)
 agexact.fit(x, y, strata, offset, init, control, weights, method,
     rownames, resid=TRUE) 
 survfitCI(X, Y, weights,  id, istate, cluster,
-                       type=1,
+                       stype=1, ctype=1, 
                        se.fit=TRUE,
                        conf.int= .95,
                        conf.type=c('log',  'log-log',  'plain', 'none',
                                    'logit', 'arcsin'),
                        conf.lower=c('usual', 'peto', 'modified'),
-                       influence=FALSE, start.time, p0)
+                       influence=FALSE, start.time, p0, type)
 survfitKM(x, y, weights=rep(1,length(x)),
-                       type=1,
+                       stype=1, ctype=1, 
                        se.fit=TRUE,
                        conf.int= .95,
                        conf.type=c('log',  'log-log',  'plain', 'none',
                                    'logit', 'arcsin'),
                        conf.lower=c('usual', 'peto', 'modified'),
-                       start.time, new.time, id, cluster, influence=FALSE) 
+                       start.time, new.time, id, cluster,
+                       influence=FALSE, type) 
 survfitTurnbull(x, y, weights,
                        type=c('kaplan-meier', 'fleming-harrington', 'fh2'),
                        error=c('greenwood', "tsiatis"), se.fit=TRUE,

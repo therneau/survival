@@ -11,7 +11,7 @@
 }
 \usage{
 \method{survfit}{formula}(formula, data, weights, subset, na.action,  
-        type=1, id, cluster, istate, timefix=TRUE,
+        stype=1, ctype=1, id, cluster, istate, timefix=TRUE,
         etype, error,  ...)
 }
 \arguments{
@@ -41,7 +41,11 @@
     \code{subset} argument has been used. 
     Default is \code{options()$na.action}. 
   }
-  \item{type}{the type of estimates to produce; see details below}
+  \item{stype}{the method to be used estimation of the survival curve:
+    1 = direct,  2 = exp(cumulative hazard). }
+  \item{ctype}{the method to be used for estimation of the cumulative
+    hazard: 1 = Nelson-Aalen formula, 2 = Fleming-Harrington correction
+    for tied events.}
 
   \item{id}{
     identifies individual subjects, when a given person can have multiple
@@ -127,6 +131,12 @@
 	frequency of the starting states of all observations at risk
 	at \code{start.time}, or if that is not specified, at
 	the time of the first event.}
+      \item{type}{an older argument that combined \code{stype} and
+	\code{ctype}, now depricated.  Legal values were "kaplan-meier"
+	which is equivalent to \code{stype=1, ctype=1}, "fleming-harrington"
+	which is equivalent to \code{stype=2, ctype=1}, and "fh2" which
+	is equivalent to \code{stype=2, ctype=2.}
+      }
     }
   }
 }
@@ -145,20 +155,21 @@ details. Methods defined for survfit objects are
   The routine returns both an estimated probability in state and an
   estimated cumulative hazard estimate.
   The cumulative hazard estimate is the Nelson-Aalen (NA) estimate or the
-  Fleming-Harrington (FH) estimate, and the probability in state will be
-  either the Aalen-Johansen (AJ) estimate or the exponential of the
-  cumulative hazard.
-  For \code{type=1} gives the AJ + NA, \code{type=2} the AJ + FH,
-  \code{type=3} exp(NA) + NA and \code{type=4} exp(FH) + FH.
+  Fleming-Harrington (FH) estimate, the latter includes a correct for
+  tied event times.  The estimated probability in state can estimated
+  either using the exponential of the cumulative hazard, or as a direct
+  estimate using the Aalen-Johansen approach.
   For single state data the AJ estimate reduces to the Kaplan-Meier and
   the probability in state to the survival curve; 
   for competing risks data the AJ reduces to the cumulative incidence (CI)
   estimator.
+  For backward compatability the \code{type} argument can be used instead.
   
-  For backward compatability the \code{type} argument can also be a
-  character string of "kaplan-meier", "fleming-harrington" or "fh2",
-  which map to type = 1,3, and 4, respectively.  Any unique abbreviation
-  of the string is also allowed.
+
+  When the data set includes left censored or interval censored data (or both),
+  then the EM approach of Turnbull is used to compute the overall curve.
+  Currently this algorithm is very slow, only a survival curve is
+  produced, and it does not support a robust variance.
 
   If a \code{id} or \code{cluster} argument is present, or for multi-state
   curves, then the standard
@@ -175,11 +186,6 @@ details. Methods defined for survfit objects are
   control: 0= return neither (same as FALSE), 1= return the influence
   array for probability in state, 2= return the influence array for the
   cumulative hazard, 3= both (same as TRUE).
-
-  When the data set includes left censored or interval censored data (or both),
-  then the EM approach of Turnbull is used to compute the overall curve.
-  Currently this algorithm is very slow, only a survival curve is
-  produced, and it does not support the IJ variance.
   }
 \section{References}{
 Dorey, F. J. and Korn, E. L. (1987).  Effective sample sizes for confidence 

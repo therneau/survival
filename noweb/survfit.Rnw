@@ -170,7 +170,8 @@ an error message if it is accidentally there.
 
 <<survfit-formula>>=
 survfit.formula <- function(formula, data, weights, subset, 
-			    na.action, type=1, id, cluster, istate, 
+			    na.action, stype=1, ctype=1, 
+                            id, cluster, istate, 
                             timefix=TRUE, etype, error,...) {
 
     Call <- match.call()
@@ -259,9 +260,11 @@ survfit.formula <- function(formula, data, weights, subset,
     if (attr(Y, 'type') == 'left' || attr(Y, 'type') == 'interval')
         temp <-  survfitTurnbull(X, newY, casewt, ...)
     else if (attr(Y, 'type') == "right" || attr(Y, 'type')== "counting")
-        temp <- survfitKM(X, newY, casewt, type=type, id=id, cluster=cluster, ...)
+        temp <- survfitKM(X, newY, casewt, stype=stype, ctype=ctype, id=id, 
+                          cluster=cluster, ...)
     else if (attr(Y, 'type') == "mright" || attr(Y, "type")== "mcounting")
-        temp <- survfitCI(X, newY, weights=casewt, type=type, id=id, 
+        temp <- survfitCI(X, newY, weights=casewt, stype=stype, ctype=ctype, 
+                          id=id, 
                           cluster=cluster,  istate=istate, ...)
     else {
         # This should never happen

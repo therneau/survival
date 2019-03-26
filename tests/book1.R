@@ -25,7 +25,7 @@ inf2 <- matrix(c(-20, rep(4,5), -10, 2, -13, -13, 17, 17,
 aeq(s1$influence.surv[indx,], inf2[, c(1,2,2,3)])
 
 # Fleming-Harrington influence
-s2 <- survfit(Surv(time, status) ~ 1, test1, id=1:7, type=2, influence=2)
+s2 <- survfit(Surv(time, status) ~ 1, test1, id=1:7, ctype=2, influence=2)
 inf3 <- matrix(c( rep(c(5, -1), c(1, 5))/36, c(5,-1)/36, 
                  c(21,21,-29, -29)/144), ncol=2)
 aeq(s2$influence.chaz[indx,], inf3[,c(1,2,2,2)])

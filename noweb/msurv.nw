@@ -124,7 +124,13 @@ if (sefit >0) {
     vmat= dmatrix(REAL(setemp), ntime, nstate);
 }
 if (sefit >1) {
-    setemp = SET_VECTOR_ELT(rlist, 6, allocVector(REALSXP, n*nstate*(ntime+1)));
+    /* the max space is larger for a matrix than a vector 
+    **  This is pure sneakiness: if I allocate a vector then n*nstate*(ntime+1)
+    **  may overflow, as it is an integer argument.  Using the rows and cols of
+    **  a matrix neither overflows.  But once allocated, I can treat setemp
+    **  like a vector since usave is a pointer to double, which is bigger than
+    **  integer and won't overflow. */
+    setemp = SET_VECTOR_ELT(rlist, 6, allocMatrix(REALSXP, n*nstate, ntime+1));
     usave = REAL(setemp);
 }
 
