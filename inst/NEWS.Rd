@@ -3,7 +3,7 @@
 \section{Changes in version 2.44-0}{
   \itemize{
     \item Add several data sets from the reliability literature, which
-    had been used in the tests directory, more formally to the package
+    had been used in the tests directory, to the package's
     data and add a help page of 'reliability'.
     \item Fix error in residuals.survreg, type="matrix", pointed out by
     Achim Zelies.  Another check has been added to the tests.
@@ -20,12 +20,15 @@
     give an explicit error message to that effect.
 
     \item Track down a failure that occured with some infinite
-    coefficient data sets.  When iterations ran out, the routine now
-    returns the last successful iterate rather than the last attempt.
-    If the loglik maximizes at infinity, the routine now returns the
+    coefficient data sets.  When iterations run out, the routine now
+    returns the last successful iterate rather than the last attempt, e.g.,
+    if the loglik maximizes at infinity the routine now returns the
     last step at which the partial likelihood, first and second
     derivatives were all finite.  This stops some downstream
     "non-finite" messages.
+
+    \item Add concordancefit function to help pages and exports, so
+    other packages can more easily invoke it.  
 }}
 
 \section{Changes in version 2.43-4}{

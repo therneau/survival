@@ -113,7 +113,7 @@ concordance.formula <- function(object, data,
     if (!is.logical(reverse)) 
         stop ("the reverse argument must be TRUE/FALSE")
  
-    fit <- concordance.fit(Y, x, strat, wt, ymin, ymax, timewt, cluster,
+    fit <- concordancefit(Y, x, strat, wt, ymin, ymax, timewt, cluster,
                            influence, ranks, reverse)
     na.action <- attr(mf, "na.action")
     if (length(na.action)) fit$na.action <- na.action
@@ -154,14 +154,14 @@ print.concordance <- function(x, digits= max(1L, getOption("digits") - 3L),
 <<btree>>
 @ 
 
-The concordance.fit function is broken out separately, since it is called
+The concordancefit function is broken out separately, since it is called
 by all of the methods.  It is also called directly by the the \code{coxph} 
 routine. 
 If $y$ is not a survival quantity, then all of the options for the
 \code{timewt} parameter lead to the same result.
 
 <<concordancefit>>=
-concordance.fit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL, 
+concordancefit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL, 
                             timewt=c("n", "S", "S/G", "n/G", "n/G2", "I"),
                             cluster, influence=0, ranks=FALSE, reverse=FALSE,
                             timefix=TRUE) {
@@ -563,7 +563,7 @@ concordance.coxph <- function(object, ..., newdata, cluster, ymin, ymax,
 
 The next routine does all of the actual work for a set of models.
 Note that because of the call-through trick (fargs) exactly and only those
-arguments that are passed in are passed through to concordance.fit.
+arguments that are passed in are passed through to concordancefit.
 Default argument values for that function are found there.  The default
 value for inflence found below is used in this routine, so it is important
 that they match.
@@ -574,7 +574,7 @@ cord.work <- function(data, timewt, ymin, ymax, influence=0, ranks=FALSE,
     Call <- match.call()
     fargs <- c("timewt", "ymin", "ymax", "influence", "ranks", "reverse")
     fcall <- Call[c(1, match(fargs, names(Call), nomatch=0))]
-    fcall[[1L]] <- concordance.fit
+    fcall[[1L]] <- concordancefit
 
     nfit <- length(data)
     if (nfit==1) {

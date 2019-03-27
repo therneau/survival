@@ -795,15 +795,10 @@ loglik[1] = newlk;   /* best so far */
 for (i=0; i<nvar; i++) /*use 'a' as a temp to save u0, for the score test*/
     a[i] = u[i];
 rank = cholesky2(imat, nvar, tol_chol);
-chsolve2(imat,nvar,a);        /* a replaced by  a *inverse(i) */
+chsolve2(imat,nvar,u);        /* u replaced by  u *inverse(i) */
 *sctest=0;
-for (i=0; i<nvar; i++) *sctest +=  u[i]*a[i];
-
-if (*iter>0) {
-    for (i=0; i<nvar; i++) {
-        oldbeta[i] = beta[i];
-        beta[i] = beta[i] + a[i];
-    }
+for (i=0; i<nvar; i++) {
+    *sctest +=  u[i]*a[i];
 }
 
 @ 
@@ -851,51 +846,60 @@ If a user has specified
 for instance only 1 or 2 iterations the answers can be seriously
 out of joint.
 If iteration has gone to completion they will differ by only a gnat's
-eyelash (so what's the point of an update).
+eyelash, so what's the utility of the ``free'' update?
 
+If iter=0 the loop below will never execute.  The pattern is to
+1. ask: did the last update work? and update beta-hat accordingly, then
+2.  compute the statistics on this new beta-hat
 <<agfit4-iter>>=
 /* main loop */
 halving =0 ;             /* =1 when in the midst of "step halving" */
 for (*iter=1; *iter<= maxiter; (*iter)++) {
     R_CheckUserInterrupt();  /* be polite -- did the user hit cntrl-C? */
-    <<agfit4-addup>>
 
-    if (*iter >1) {
+    if (*iter ==1) {
+        fail = isnan(newlk) + isinf(newlk);
+        /* it almost takes malice to give a starting estimate with infinite
+        **  loglik.  But if so, just give up now */
+        if (fail>0) goto done;
+
+        for (i=0; i<nvar; i++) {
+            oldbeta[i] = beta[i];
+            beta[i] = beta[i] + u[i];
+        }
+    }
+    else {
         fail =0;
         for (i=0; i<nvar; i++) 
             if (isfinite(imat[i][i]) ==0) fail++;
-        /* on iteration 1 the cholesky has already been done */
         rank2 = cholesky2(imat, nvar, tol_chol);
         fail = fail + isnan(newlk) + isinf(newlk) + abs(rank-rank2);
-    } 
-    else fail = isnan(newlk) + isinf(newlk); 
+ 
+        if (fail >0 || newlk < loglik[1]) {
+            /* 
+	    ** The routine has not made progress past the last good value.
+            */
+            halving++; flag[2]++;
+            for (i=0; i<nvar; i++)
+                beta[i] = (oldbeta[i]*halving + beta[i]) /(halving +1.0);
+        }
 
-    if (maxiter >1 && (fail >0 || newlk < loglik[1])) {
-        /* 
-	** The routine has not made progress past the last good value.
-	*/
-	halving++; flag[2]++;
-	for (i=0; i<nvar; i++)
-	    beta[i] = (oldbeta[i]*halving + beta[i]) /(halving +1.0);
-    }
+        else { 
+            halving=0;
+            /* are we done? */
+            if (fail ==0 && halving ==0 &&
+                fabs(1-(loglik[1]/newlk)) <= eps) goto done;
 
-    else { 
-        if (*iter >1) {
-            /* on iteration 1 the cholesky has already been done */
-            rank2 = cholesky2(imat, nvar, tol_chol);
+            loglik[1] = newlk;   /* best so far */  
+            chsolve2(imat,nvar,u);
+            for (i=0; i<nvar; i++) {
+                oldbeta[i] = beta[i];
+                beta[i] = beta[i] +  u[i];
             }
-        halving=0;
-        /* are we done? */
-        if (fail ==0 && halving ==0 &&
-                fabs(1-(loglik[1]/newlk)) <= eps) break;
-       
-        loglik[1] = newlk;   /* best so far */  
-        chsolve2(imat,nvar,u);
-        for (i=0; i<nvar; i++) {
-            oldbeta[i] = beta[i];
-            beta[i] = beta[i] +  u[i];
         }
     }
+    
+    <<agfit4-addup>>
 } /*return for another iteration */
 @ 
 
@@ -905,21 +909,24 @@ If the routine did not converge (iter== maxiter), then the cholesky
 routine will not have been called.
 
 <<agfit4-finish>>=
-if (*iter > maxiter && maxiter > 1) {
+/* fell out the bottom of the loop */
+if (maxiter>1 && newlk > loglik[1]) {
     /* 
-    ** Once more unto the breach, dear friends, once more; ..
+    ** "Once more unto the breach, dear friends, once more; ..."
     ** We need to use beta and imat at the last good value, not the last 
-    **  attempted value. We've tossed that old value away, so recompute it.
+    **  attempted value. We have tossed the old imat away, so recompute it.
     ** This will happen very rarely that we run out of iterations.
+    ** If maxiter=1, we return 1 iteration whether it worked or not. 
     */
     for (i=0; i<nvar; i++) beta[i] = oldbeta[i];
     <<agfit4-addup>>
     rank = cholesky2(imat, nvar, tol_chol);
 }
 
-flag[0] = rank; 
+done:flag[0] = rank; 
 loglik[1] = newlk;
 chinv2(imat, nvar);
+(*iter)--;  /* the loop always indexes one more than we actually did */
 for (i=0; i<nvar; i++) {
     beta[i] *= scale[i];  /* return to original scale */
     u[i] /= scale[i];

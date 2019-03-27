@@ -44,7 +44,7 @@ Type 'q()' to quit R.
 [1] TRUE
 > 
 > # Fleming-Harrington influence
-> s2 <- survfit(Surv(time, status) ~ 1, test1, id=1:7, type=2, influence=2)
+> s2 <- survfit(Surv(time, status) ~ 1, test1, id=1:7, ctype=2, influence=2)
 > inf3 <- matrix(c( rep(c(5, -1), c(1, 5))/36, c(5,-1)/36, 
 +                  c(21,21,-29, -29)/144), ncol=2)
 > aeq(s2$influence.chaz[indx,], inf3[,c(1,2,2,2)])
@@ -246,4 +246,4 @@ Call: survfit(formula = fit, newdata = list(x = 2))
 > 
 > proc.time()
    user  system elapsed 
-  0.820   0.056   0.885 
+  0.824   0.052   0.877 

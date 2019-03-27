@@ -17,7 +17,7 @@ importFrom(methods, as)
 importFrom(utils, getS3method, type.convert, methods, head, tail)
 export(Surv, aeqSurv, aareg, agreg.fit,
        agexact.fit, attrassign, 
-       basehaz, cch, clogit, cipoisson, cluster, concordance, concordance.fit, 
+       basehaz, cch, clogit, cipoisson, cluster, concordance, concordancefit, 
        coxph, cox.zph, coxph.control, coxph.detail, coxph.fit,
        coxph.wtest, finegray, format.Surv, 
        frailty,  frailty.gamma, 

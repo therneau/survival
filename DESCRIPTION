@@ -3,7 +3,7 @@ Maintainer: Terry M Therneau <therneau.terry@mayo.edu>
 Priority: recommended
 Package: survival
 Version: 2.44-0
-Date: 2018-11-13
+Date: 2019-03-27
 Depends: R (>= 2.13.0)
 Imports: graphics, Matrix, methods, splines, stats, utils
 LazyData: Yes

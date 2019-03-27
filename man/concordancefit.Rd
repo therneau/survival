@@ -1,5 +1,5 @@
-\name{concordance.fit}
-\alias{concordance.fit}
+\name{concordancefit}
+\alias{concordancefit}
 \title{Compute the concordance}
 \description{
 This is the working routine behind the \code{concordance} function.  It
@@ -9,7 +9,7 @@ correct length and type, and missing values are not allowed: the calling
 routine is responsible for these things.
 }
 \usage{
-concordance.fit(y, x, strata, weights, ymin = NULL, ymax = NULL,
+concordancefit(y, x, strata, weights, ymin = NULL, ymax = NULL,
  timewt = c("n", "S", "S/G", "n/G", "n/G2", "I"), cluster, influence =0,
  ranks = FALSE, reverse = FALSE, timefix = TRUE)
 }

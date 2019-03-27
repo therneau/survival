@@ -188,8 +188,8 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
     */
     *iter =0; 
     strata[nused-1] =1;
-    loglik[1] =0;
     loglik[0] = coxfit6_iter(nvar, nused, method, beta);
+    loglik[1] = loglik[0];
 
     /* am I done?
     **   update the betas and test for convergence
@@ -290,9 +290,11 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
 
     /*
     ** We end up here only if we ran out of iterations 
-    **  recompute the last good version of imat and u
+    **  recompute the last good version of imat and u,
+    ** If maxiter =0 or 1, though, leave well enough alone.
     */
-    loglik[1] = coxfit6_iter(nvar, nused, method, beta);
+    if (maxiter > 1) 
+	loglik[1] = coxfit6_iter(nvar, nused, method, beta);
     chinv2(imat, nvar);
     for (i=0; i<nvar; i++) {
 	beta[i] = beta[i]*scale[i];
@@ -302,10 +304,9 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
 	    imat[j][i] *= scale[i]*scale[j];
 	    imat[i][j] = imat[j][i];
 	}
-    }
-   *flag = 1000;
-
-
+    }	
+    *flag = 1000;
+	
 finish:
     /*
     ** create the output list

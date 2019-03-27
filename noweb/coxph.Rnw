@@ -730,10 +730,10 @@ else {
     # The returned value is a subset of the full result, partly because it
     #  is all we need, but more for backward compatability with survConcordance.fit
     if (length(cluster))
-        temp <- concordance.fit(Y, fit$linear.predictors, strats, weights,
+        temp <- concordancefit(Y, fit$linear.predictors, strats, weights,
                                           cluster=cluster, reverse=TRUE,
                                 timefix= FALSE)
-    else temp <- concordance.fit(Y, fit$linear.predictors, strats, weights,
+    else temp <- concordancefit(Y, fit$linear.predictors, strats, weights,
                                   reverse=TRUE, timefix= FALSE)
     if (is.matrix(temp$count))
          fit$concordance <- c(colSums(temp$count), concordance=temp$concordance,
