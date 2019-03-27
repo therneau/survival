@@ -403,22 +403,22 @@ SEXP survfitkm(SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22,
     int i, i2, j, j2, k, person;
     int nused, nid, type, influence;
     int ny, ntime;
-    double *tstart, *stime, *status, *wt;
+    double *tstart=0, *stime, *status, *wt;
     double v1, v2, dtemp, haz;
     double temp, dtemp2, dtemp3, frac, btemp;
-    int *sort1, *sort2, *id;
+    int *sort1=0, *sort2, *id=0;
     static const char *outnames[]={"time", "n", "estimate", "std.err",
 				     "influence1", "influence2", ""};
     SEXP rlist;
-    double *gwt, *inf1, *inf2;
-    int *gcount;
+    double *gwt=0, *inf1=0, *inf2=0;  /* =0 to silence -Wall */
+    int *gcount=0;
     int n1, n2, n3, n4;
-    int *position, hasid;
+    int *position=0, hasid;
     double wt1, wt2, wt3, wt4;
 		      
     /* output variables */
     double  *n[8],  *dtime,
-	    *kvec, *nvec, *std[2], *imat1, *imat2;
+	    *kvec, *nvec, *std[2], *imat1=0, *imat2=0; /* =0 to silence -Wall*/
     double km, nelson;  /* current estimates */
 
     /* map the input data */

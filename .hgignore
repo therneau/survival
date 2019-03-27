@@ -15,6 +15,7 @@ src/msurv.c
 src/symbols.rds
 src/survfitci.c
 src/survfitkm.c
+src/Makevars
 R/agreg.fit.R
 R/agsurv.R
 R/concordance.R
