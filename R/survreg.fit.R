@@ -105,9 +105,12 @@ survreg.fit<- function(x, y, weights, offset, init, controlvals, dist,
 	list(dg = dg, ddg = ddg - dg^2)
 	}
 
-    # Rescale the X matrix, which leads to more stable results
+    # Rescale the X matrix, which leads to more stable results, but only
+    #  if the first column is an intercept.
+    #  If someone provided initial values, assume they know what they
+    #  are doing.
     rescaled <- FALSE
-    if (all(x[,1]==1)) {   # set to FALSE for debugging
+    if (is.null(init) && all(x[,1]==1) && ncol(x)>1 && is.null(init)) {  
         okay <- apply(x, 2, function(z) all(z==0 | z==1)) # leave these alone
         if (!all(okay)) {
             rescaled <- TRUE

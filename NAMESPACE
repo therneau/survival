@@ -25,7 +25,7 @@ export(Surv, aeqSurv, aareg, agreg.fit,
        is.na.Surv, is.ratetable, 
        labels.survreg, match.ratetable, neardate,
        psurvreg, qsurvreg, dsurvreg,
-       pspline, pyears, ratetableDate, 
+       pspline, pyears, ratetableDate, ratetable,
        ridge, rsurvreg, statefig, strata, 
        survSplit, survdiff, survexp,  survfit,
        survfit.formula,
@@ -36,7 +36,6 @@ export(Surv, aeqSurv, aareg, agreg.fit,
        survreg.distributions, survregDtest, tcut,
        tmerge, untangle.specials, yates, yates_setup,
        survConcordance, survConcordance.fit)
-export(Surv, ratetable)
 S3method('[', aareg)
 S3method('[', Surv)
 S3method('[', cox.zph)
@@ -56,14 +55,12 @@ S3method(anova, coxphlist)
 S3method(anova, survreg)
 S3method(anova, survreglist)
 S3method(as.character, Surv)
-S3method(as.character, Surv)
 S3method(as.data.frame, Surv)
 S3method(as.integer, Surv)
 S3method(as.logical, Surv)
 S3method(as.matrix, ratetable)
 S3method(as.matrix, Surv)
 S3method(as.numeric, Surv)
-S3method(c, Surv)
 S3method(attrassign, default)
 S3method(attrassign, lm)
 S3method(barplot, Surv)
