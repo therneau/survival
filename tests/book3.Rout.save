@@ -1,7 +1,7 @@
 
-R Under development (unstable) (2016-03-23 r70368) -- "Unsuffered Consequences"
-Copyright (C) 2016 The R Foundation for Statistical Computing
-Platform: i686-pc-linux-gnu (32-bit)
+R Under development (unstable) (2019-03-27 r76274) -- "Unsuffered Consequences"
+Copyright (C) 2019 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -100,6 +100,8 @@ Type 'q()' to quit R.
 > aeq(sfit$std.err^2, truth0$var)
 [1] TRUE
 > aeq(sfit$surv, truth0$surv)
+[1] TRUE
+> aeq(fit0$score, truth0$u^2/truth0$imat)
 [1] TRUE
 > 
 > beta1 <- truth0$u/truth0$imat
@@ -299,4 +301,4 @@ Call: survfit(formula = fit, newdata = list(x = 2))
 > 
 > proc.time()
    user  system elapsed 
-  0.364   0.028   0.392 
+  0.829   0.064   0.887 

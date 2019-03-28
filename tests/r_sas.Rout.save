@@ -1,6 +1,6 @@
 
-R version 3.4.1 (2017-06-30) -- "Single Candle"
-Copyright (C) 2017 The R Foundation for Statistical Computing
+R Under development (unstable) (2019-03-27 r76274) -- "Unsuffered Consequences"
+Copyright (C) 2019 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -24,14 +24,13 @@ Type 'q()' to quit R.
 > #
 > 
 > # this fit doesn't give the same log-lik that they claim
-> motor <- read.table('data.motor', col.names=c('temp', 'time', 'status'))
-> fit1 <- survreg(Surv(time, status) ~ I(1000/(273.2+temp)), motor,
+> fit1 <- survreg(Surv(time, status) ~ I(1000/(273.2+temp)), imotor,
 + 		subset=(temp>150), dist='lognormal')
 > summary(fit1)
 
 Call:
 survreg(formula = Surv(time, status) ~ I(1000/(273.2 + temp)), 
-    data = motor, subset = (temp > 150), dist = "lognormal")
+    data = imotor, subset = (temp > 150), dist = "lognormal")
                          Value Std. Error     z       p
 (Intercept)            -10.471      2.772 -3.78 0.00016
 I(1000/(273.2 + temp))   8.322      1.284  6.48 9.1e-11
@@ -49,7 +48,7 @@ n= 30
 > # This one, with the loglik on the transformed scale (the inappropriate
 > #   scale, Ripley & Venables would argue) does agree.
 > # All coefs are of course identical.
-> fit2 <- survreg(Surv(log(time), status) ~ I(1000/(273.2+temp)), motor,
+> fit2 <- survreg(Surv(log(time), status) ~ I(1000/(273.2+temp)), imotor,
 + 		subset=(temp>150), dist='gaussian')
 > 
 > 
@@ -100,27 +99,27 @@ p=.3 56592.20 26036.917 10.943626     0.4600796 26611.422 120349.71
 > #
 > # Insulating fluids example
 > #
-> fluid <- read.table('data.fluid', col.names=c('time', 'voltage'))
 > 
 > # Adding a -1 to the fit just causes the each group to have it's own
 > # intercept, rather than a global intercept + constrasts.  The strata
 > # statement allows each to have a separate scale
-> ffit <- survreg(Surv(time) ~ voltage + strata(voltage) -1, fluid)
+> ffit <- survreg(Surv(time) ~ factor(voltage) + strata(voltage) -1, ifluid)
 > 
 > # Get predicted quantiles at each of the voltages
 > # By default predict() would give a line of results for each observation,
 > #  I only want the unique set of x's, i.e., only 4 cases
-> uvolt <- sort(unique(fluid$voltage))      #the unique levels
+> uvolt <- sort(unique(ifluid$voltage))      #the unique levels
 > plist <- c(1, 2, 5, 1:9 *10, 95, 99)/100
 > pred  <- predict(ffit, type='quantile', p=plist,
-+                  newdata=data.frame(voltage=factor(uvolt)))
++                  newdata=data.frame(voltage=uvolt))
 > tfun <- function(x) log(-log(1-x))
 > 
 > matplot(t(pred), tfun(plist), type='l', log='x', lty=1,
-+         col=1:4, yaxt='n')
++         col=1:4, yaxt='n',
++         xlab="Predicted", ylab="Quantile")
 > axis(2, tfun(plist), format(100*plist), adj=1)
 > 
-> kfit <- survfit(Surv(time) ~ voltage, fluid, type='fleming') #KM fit
+> kfit <- survfit(Surv(time) ~ voltage, ifluid, type='fleming') #KM fit
 > for (i in 1:4) {
 +     temp <- kfit[i]
 +     points(temp$time, tfun(1-temp$surv), col=i, pch=i)
@@ -152,7 +151,7 @@ p=.3 56592.20 26036.917 10.943626     0.4600796 26611.422 120349.71
 +                                 "Weibull shape"),
 +                        c("Estimate", "SE", "lower 95% CI", "uppper 95% CI"))
 > print(aperm(temp, c(2,3,1)), digits=5)
-, , 26kV
+, , 26
 
                Estimate         SE lower 95% CI uppper 95% CI
 EV Location     6.86249    1.10404      4.69857        9.0264
@@ -160,7 +159,7 @@ EV Scale        1.83423    0.96114      0.65677        5.1227
 Weibull scale 955.74665 1055.18620    109.78973     8320.0103
 Weibull shape   0.54519    0.28568      0.19521        1.5226
 
-, , 30kV
+, , 30
 
               Estimate       SE lower 95% CI uppper 95% CI
 EV Location    4.35133  0.30151      3.76037        4.9423
@@ -168,7 +167,7 @@ EV Scale       0.94446  0.22544      0.59156        1.5079
 Weibull scale 77.58159 23.39176     42.96420      140.0911
 Weibull shape  1.05881  0.25274      0.66318        1.6904
 
-, , 34kV
+, , 34
 
               Estimate      SE lower 95% CI uppper 95% CI
 EV Location    2.50326 0.31476      1.88632        3.1202
@@ -176,7 +175,7 @@ EV Scale       1.29732 0.22895      0.91796        1.8334
 Weibull scale 12.22222 3.84707      6.59509       22.6506
 Weibull shape  0.77082 0.13603      0.54542        1.0894
 
-, , 38kV
+, , 38
 
                 Estimate      SE lower 95% CI uppper 95% CI
 EV Location   0.00092629 0.27318     -0.53450       0.53635
@@ -189,23 +188,24 @@ Weibull shape 1.36299929 0.37861      0.79077       2.34933
 > 
 > #####################################################################
 > # Turbine cracks data
-> cracks <- read.table('data.cracks', col.names=c('time1', 'time2', 'n'))
-> cfit <- survreg(Surv(time1, time2, type='interval2') ~1, 
-+                 dist='weibull', data=cracks, weight=n)
+> crack2 <- with(cracks, data.frame(day1=c(NA, days), day2=c(days, NA),
++                                   n=c(fail, 167-sum(fail))))
+> cfit <- survreg(Surv(day1, day2, type='interval2') ~1, 
++                 dist='weibull', data=crack2, weight=n)
 > 
 > summary(cfit)
 
 Call:
-survreg(formula = Surv(time1, time2, type = "interval2") ~ 1, 
-    data = cracks, weights = n, dist = "weibull")
-              Value Std. Error     z       p
-(Intercept)  4.2724     0.0744 57.43 < 2e-16
-Log(scale)  -0.3957     0.0987 -4.01 6.1e-05
+survreg(formula = Surv(day1, day2, type = "interval2") ~ 1, data = crack2, 
+    weights = n, dist = "weibull")
+              Value Std. Error      z       p
+(Intercept)  7.6880     0.0744 103.30 < 2e-16
+Log(scale)  -0.3953     0.0987  -4.01 6.2e-05
 
-Scale= 0.673 
+Scale= 0.674 
 
 Weibull distribution
-Loglik(model)= -309.7   Loglik(intercept only)= -309.7
+Loglik(model)= -309.6   Loglik(intercept only)= -309.6
 Number of Newton-Raphson Iterations: 5 
 n= 9 
 
@@ -221,7 +221,7 @@ n= 9
 +      xlab="Weibull Plot for Time", ylab="Percent")
 > axis(2, tfun(plist), format(100*plist), adj=1)
 > 
-> kfit <- survfit(Surv(time1, time2, type='interval2') ~1, data=cracks,
+> kfit <- survfit(Surv(day1, day2, type='interval2') ~1, data=crack2,
 +                 weight=n, type='fleming')
 > # Only plot point where n.event > 0 
 > # Why?  I'm trying to match them.  Personally, all should be plotted.
@@ -236,7 +236,7 @@ n= 9
 > text(rep(9,6), seq(.5, -1.0, length=6), 
 +          c(format(round(exp(cfit$coef), 2)),
 +            format(round(1/cfit$scale, 2)),
-+            format(tapply(cracks$n, cfit$y[,3], sum)), "ML"), adj=1)
++            format(tapply(crack2$n, cfit$y[,3], sum)), "ML"), adj=1)
 > 
 > # Now a portion of his percentiles table
 > #  I don't get the same SE as SAS, I haven't checked out why.  The
@@ -247,25 +247,25 @@ n= 9
 +              temp$fit[1,] -1.96*tempse, temp$fit[1,] + 1.96*tempse)
 > dimnames(mat) <- list(plist*100, c("Estimate", "SE", "Lower .95", "Upper .95"))
 > print(mat)
-    Estimate       SE Lower .95  Upper .95
-1   3.239372 0.965006  1.347960   5.130784
-2   5.183283 1.121677  2.984796   7.381770
-5   9.705766 1.337420  7.084422  12.327109
-10 15.757758 1.491460 12.834497  18.681020
-20 26.115947 1.622573 22.935705  29.296190
-30 35.812585 1.704575 32.471618  39.153553
-40 45.610018 1.809448 42.063500  49.156536
-50 56.014351 1.973350 52.146585  59.882116
-60 67.592818 2.214072 63.253237  71.932400
-70 81.233457 2.543490 76.248217  86.218697
-80 98.764571 2.991889 92.900469 104.628673
+     Estimate        SE  Lower .95 Upper .95
+1    98.47183  5.321676   88.04134  108.9023
+2   157.59360  6.186246  145.46856  169.7186
+5   295.17088  7.377034  280.71189  309.6299
+10  479.31737  8.227489  463.19149  495.4432
+20  794.55351  8.951640  777.00829  812.0987
+30 1089.70373  9.404613 1071.27068 1108.1368
+40 1387.95516  9.983696 1368.38712 1407.5232
+50 1704.71015 10.888487 1683.36872 1726.0516
+60 2057.23906 12.217230 2033.29329 2081.1848
+70 2472.58593 14.035515 2445.07632 2500.0955
+80 3006.43572 16.510569 2974.07501 3038.7964
 > 
 > #
 > # The cracks data has a particularly easy estimate, so use
 > # it to double check code
-> time <- c(cracks$time2[1], (cracks$time1 + cracks$time2)[2:8]/2, 
-+           cracks$time1[9])
-> cdf  <- cumsum(cracks$n)/sum(cracks$n)
+> time <- c(crack2$day2[1], (crack2$day1 + crack2$day2)[2:8]/2, 
++           crack2$day1[9])
+> cdf  <- cumsum(crack2$n)/sum(crack2$n)
 > all.equal(kfit$time, time)
 [1] TRUE
 > all.equal(kfit$surv, 1-cdf[c(1:8,8)]) 
@@ -275,28 +275,22 @@ n= 9
 > 
 > #######################################################
 > #
-> # Valve data
+> # Replacement of valve seats in diesel engines
 > #   The input data has id, time, and an indicator of whether there was an
-> #   event at that time: -1=no, 1=yes.  No one has an event at their last time.
-> #  Convert the data to (start, stop] form
+> #   event at that time: 0=no, 1=yes.  No one has an event at their last time.
 > #  The input data has two engines with dual failures: 328 loses 2 valves at 
 > #    time 653, and number 402 loses 2 at time 139.  For each, fudge the first
-> #    time to be .1 days earlier.
+> #    time to be .1 days earlier. 
 > #
-> temp <- matrix(scan('data.valve'), byrow=T, ncol=3)
-Read 267 items
-> 
-> n <- nrow(temp)
-> valve <- data.frame(id=temp[,1], 
-+                     time1 = c(0, ifelse(diff(temp[,1])==0, temp[-n,2],0)),
-+                     time2 = temp[,2],
-+                     status= as.numeric(temp[,3]==1))
-> 
-> indx <- (1:nrow(valve))[valve$time1==valve$time2]
-> valve$time1[indx]   <- valve$time1[indx] - .1
-> valve$time2[indx-1] <- valve$time2[indx-1] - .1
-> 
-> kfit <- survfit(Surv(time1, time2, status) ~1, valve, type='fh2')
+> ties <- which(diff(valveSeat$time)==0 & diff(valveSeat$id)==0)
+> temp <- valveSeat$time
+> temp[ties] <- temp[ties] - .1
+> n <- length(temp)
+> first <- !duplicated(valveSeat$id)
+> vtemp <- with(valveSeat, data.frame(id =id, 
++                                     time1= ifelse(first, 0, c(0, temp[-n])),
++                                     time2= temp, status=status))
+> kfit <- survfit(Surv(time1, time2, status) ~1, vtemp, id=id)
 > 
 > plot(kfit, fun='cumhaz', ylab="Sample Mean Cumulative Failures", xlab='Time')
 > title("Valve replacement data")
@@ -312,59 +306,59 @@ Read 267 items
 +                          "lower 95%", "upper 95%"))
 > print(temp, digits=2)
  time n.risk n.event Cum haz std.err lower 95% upper 95%
-   61     41       1   0.024   0.025   0.00000     0.073
-   76     41       1   0.049   0.035   0.00000     0.117
-   84     41       1   0.073   0.043   0.00000     0.157
-   87     41       1   0.098   0.049   0.00077     0.194
-   92     41       1   0.122   0.055   0.01373     0.230
-   98     41       1   0.146   0.060   0.02779     0.265
-  120     41       1   0.171   0.065   0.04268     0.299
-  139     41       1   0.195   0.070   0.05823     0.332
-  139     41       1   0.220   0.074   0.07432     0.365
-  165     41       1   0.244   0.078   0.09085     0.397
-  166     41       1   0.268   0.082   0.10778     0.429
-  202     41       1   0.293   0.086   0.12503     0.460
-  206     41       1   0.317   0.089   0.14257     0.492
-  249     41       1   0.341   0.092   0.16038     0.523
-  254     41       1   0.366   0.096   0.17841     0.553
-  258     41       1   0.390   0.099   0.19665     0.584
-  265     41       1   0.415   0.102   0.21508     0.614
-  276     41       1   0.439   0.105   0.23369     0.644
-  298     41       1   0.463   0.108   0.25245     0.674
-  323     41       1   0.488   0.110   0.27136     0.704
-  326     41       1   0.512   0.113   0.29041     0.734
-  328     41       1   0.537   0.116   0.30958     0.764
-  344     41       1   0.561   0.118   0.32887     0.793
-  348     41       1   0.585   0.121   0.34827     0.822
-  349     41       1   0.610   0.123   0.36777     0.852
-  367     41       1   0.634   0.126   0.38736     0.881
-  377     41       1   0.659   0.128   0.40705     0.910
-  404     40       1   0.684   0.131   0.42720     0.940
-  408     40       1   0.709   0.133   0.44745     0.970
-  410     40       1   0.734   0.136   0.46777     0.999
-  449     40       1   0.759   0.138   0.48818     1.029
-  479     40       1   0.784   0.140   0.50866     1.058
-  497     40       1   0.809   0.143   0.52922     1.088
-  538     40       1   0.834   0.145   0.54985     1.117
-  539     40       1   0.859   0.147   0.57054     1.147
-  561     40       1   0.884   0.149   0.59129     1.176
-  563     40       1   0.909   0.151   0.61211     1.205
-  570     40       1   0.934   0.153   0.63299     1.234
-  573     40       1   0.959   0.155   0.65392     1.263
-  581     38       1   0.985   0.158   0.67578     1.294
-  586     34       1   1.014   0.160   0.69970     1.329
-  604     22       1   1.060   0.167   0.73221     1.387
-  621     17       1   1.119   0.178   0.77014     1.467
-  635     16       1   1.181   0.189   0.81038     1.552
-  640     16       1   1.244   0.200   0.85188     1.635
-  646     13       1   1.320   0.215   0.89854     1.742
-  653      9       1   1.432   0.245   0.95056     1.913
-  653      9       1   1.543   0.272   1.00909     2.076
+   61     41       1   0.025   0.025    0.0000     0.073
+   76     41       1   0.049   0.034    0.0000     0.117
+   84     41       1   0.074   0.042    0.0000     0.156
+   87     41       1   0.099   0.047    0.0057     0.192
+   92     41       1   0.123   0.052    0.0208     0.226
+   98     41       1   0.148   0.057    0.0373     0.259
+  120     41       1   0.173   0.060    0.0548     0.291
+  139     41       1   0.198   0.063    0.0732     0.322
+  139     41       1   0.222   0.075    0.0750     0.369
+  165     41       1   0.247   0.077    0.0954     0.398
+  166     41       1   0.272   0.079    0.1163     0.427
+  202     41       1   0.296   0.081    0.1376     0.455
+  206     41       1   0.321   0.090    0.1452     0.497
+  249     41       1   0.346   0.091    0.1675     0.524
+  254     41       1   0.370   0.092    0.1903     0.551
+  258     41       1   0.395   0.093    0.2133     0.577
+  265     41       1   0.420   0.093    0.2368     0.603
+  276     41       1   0.444   0.100    0.2479     0.641
+  298     41       1   0.469   0.112    0.2490     0.689
+  323     41       1   0.494   0.112    0.2734     0.714
+  326     41       1   0.519   0.112    0.2981     0.739
+  328     41       1   0.543   0.118    0.3124     0.774
+  344     41       1   0.568   0.118    0.3376     0.798
+  348     41       1   0.593   0.127    0.3430     0.842
+  349     41       1   0.617   0.127    0.3686     0.866
+  367     41       1   0.642   0.126    0.3945     0.890
+  377     41       1   0.667   0.135    0.4018     0.932
+  404     40       1   0.692   0.139    0.4189     0.965
+  408     40       1   0.717   0.143    0.4365     0.998
+  410     40       1   0.743   0.143    0.4631     1.022
+  449     40       1   0.768   0.146    0.4813     1.055
+  479     40       1   0.793   0.150    0.4998     1.087
+  497     40       1   0.819   0.153    0.5187     1.118
+  538     40       1   0.844   0.156    0.5380     1.150
+  539     40       1   0.869   0.159    0.5576     1.181
+  561     40       1   0.895   0.166    0.5696     1.220
+  563     40       1   0.920   0.168    0.5898     1.250
+  570     40       1   0.945   0.175    0.6029     1.287
+  573     40       1   0.971   0.173    0.6310     1.310
+  581     38       1   0.997   0.176    0.6532     1.341
+  586     34       1   1.027   0.178    0.6777     1.376
+  604     22       1   1.074   0.190    0.7009     1.446
+  621     17       1   1.134   0.214    0.7144     1.554
+  635     16       1   1.199   0.214    0.7795     1.618
+  640     16       1   1.263   0.235    0.8033     1.723
+  646     13       1   1.343   0.238    0.8775     1.809
+  653      9       1   1.461   0.266    0.9394     1.983
+  653      9       1   1.579   0.336    0.9201     2.238
 > 
 > # Note that I have the same estimates but different SE's.  We are using a
 > #  different estimator. It's a statistical argument as to which is
 > #  better (one could defend both sides): do you favor JASA or Technometrics?
-> rm(temp, kfit, indx, xx)
+> rm(temp, kfit, xx)
 >                     
 > ######################################################
 > # Turbine data, lognormal fit
@@ -436,4 +430,4 @@ pdf
 > 
 > proc.time()
    user  system elapsed 
-  7.414   0.113   7.843 
+  2.414   0.067   2.476 

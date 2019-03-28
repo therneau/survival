@@ -77,6 +77,7 @@ aeq(truth0$score, resid(fit0, 'score'))
 sfit <- survfit(fit0, list(x=0), censor=FALSE)
 aeq(sfit$std.err^2, truth0$var)
 aeq(sfit$surv, truth0$surv)
+aeq(fit0$score, truth0$u^2/truth0$imat)
 
 beta1 <- truth0$u/truth0$imat
 fit1 <- coxph(Surv(start, stop, event) ~x, test2, iter=1, ties="breslow")
