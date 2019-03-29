@@ -152,7 +152,7 @@ survfitCI <- function(X, Y, weights, id, istate, cluster,
     nstate <- length(state.names) 
     if (missing(istate) || is.null(istate)) {
         istate <- rep(nstate+ 1L, n)
-        state.names <- c(state.names, "")
+        state.names <- c(state.names, "( )")
     } else {
         if (is.factor(istate) || is.character(istate)) {
             # Match levels with the survival variable

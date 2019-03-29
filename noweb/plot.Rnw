@@ -17,14 +17,14 @@ plot.survfit<- function(x, conf.int,  mark.time=FALSE,
 			xmax, ymin=0,
 			fun, xlab="", ylab="", xaxs='r', 
                         conf.times, conf.cap=.005, conf.offset=.012, 
-                        mark, ...) {
+                        mark, noplot="( )", ...) {
 
     dotnames <- names(list(...))
     if (any(dotnames=='type'))
         stop("The graphical argument 'type' is not allowed")
     if (missing(mark.time) & !missing(mark)) mark.time <- TRUE
 
-    x <- survfit23(x)
+    x <- survfit23(x)   # convert to version 3, if it wasn't already
     <<plot-plot-setup1>>
     <<plot-common-args>>
     <<plot-firstx>>
@@ -116,10 +116,7 @@ if (!missing(fun) && is.character(fun) && fun=="cumhaz") {
         }
         else supper <- NULL
     }
-}
-else {
-    if (!is.null(x$pstate)) ssurv <- as.matrix(x$pstate)
-    else ssurv <- as.matrix(x$surv)
+}else {
     if( !is.null(x$upper)) {
         supper <- as.matrix(x$upper)
         slower <- as.matrix(x$lower)
@@ -128,7 +125,21 @@ else {
         conf.int <- FALSE
         supper <- NULL  #marker for later code
     }
+
+    if (!is.null(x$pstate)) {
+        ssurv <- as.matrix(x$pstate)
+        if (ncol(ssurv)>1 && any(x$states== noplot)) {
+            keep <- (x$states != noplot)
+            ssurv <- ssurv[,keep, drop=FALSE]
+            if (conf.int) {
+                supper <- supper[,keep, drop=FALSE]
+                supper[,keep, drop=FALSE]
+            }
+        }
+    }
+    else ssurv <- as.matrix(x$surv)
 }
+
 # set up strata
 if (is.null(x$strata)) {
     nstrat <- 1
