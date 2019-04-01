@@ -215,7 +215,7 @@ if (length(id)==0)
     stop("an id statement is required for multi-state models")
 
 istate <- model.extract(mf, "istate")
-mcheck <- multicheck(Y, id, istate)
+mcheck <- multicheck2(Y, id, istate)
 # error messages here
 transitions <- mcheck$transitions
 istate <- mcheck$istate
