@@ -1,5 +1,12 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 2.44-1}{
+  \itemize{
+    \item Fix error in survreg when the init argument was used.
+    \item B. Ripley found/fixed an incorrect size in survfitkm.c, that
+    could lead to memory overwrite and a hard crash.  Now fixed here, but
+    labeled as 2.44-1.1 on CRAN.
+}}
 \section{Changes in version 2.44-0}{
   \itemize{
     \item Add several data sets from the reliability literature, which

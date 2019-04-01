@@ -417,7 +417,7 @@ SEXP survfitkm(SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22,
     double wt1, wt2, wt3, wt4;
 		      
     /* output variables */
-    double  *n[8],  *dtime,
+    double  *n[10],  *dtime,
 	    *kvec, *nvec, *std[2], *imat1=0, *imat2=0; /* =0 to silence -Wall*/
     double km, nelson;  /* current estimates */
 
