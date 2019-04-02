@@ -17,7 +17,7 @@ plot.survfit<- function(x, conf.int,  mark.time=FALSE,
 			xmax, ymin=0,
 			fun, xlab="", ylab="", xaxs='r', 
                         conf.times, conf.cap=.005, conf.offset=.012, 
-                        mark, noplot="( )", ...) {
+                        mark, noplot="()", ...) {
 
     dotnames <- names(list(...))
     if (any(dotnames=='type'))

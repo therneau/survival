@@ -21,24 +21,26 @@ multicheck(formula, data, id, istate, ...)
 \details{
   This routine will examine a multi-state data set for consistency of
   the data.  The basic rules are that if a subject is at risk they have
-  to be somewhere, but can not be two places at once.
-  
-  It detects several conditions.
+  to be somewhere, can not be two states at once, and should make
+  sensible transitions from state to state.  It reports the number of
+  instances of the following conditions:
   \describe{
     \item{overlap}{two observations for the same subject that overlap in
-      time, e.g. intervals of (0, 100) and (90, 120).  A subject cannot
-      be two places at once.
-      If \code{y} is simple (time, status) survival, observation
+      time, e.g. intervals of (0, 100) and (90, 120).  
+      If \code{y} is simple (time, status) survival observation
       intervals implicitly start at 0, so any duplicate identifiers will
-      generate and overlap.}
-    \item{gap}{one or more gaps in a subject's timeline, with no \code{istate}
-      variable to resolve issues.  (Where were they?)}
-    \item{teleport}{a subject who transitioned to one state on a
-      particular day, based on the \code{y} variable, but appears in a
-      different state, on the same day, based in \code{istate}.}
-    \item{jump}{a subject with holes in their follow-up.}
-    }
-    The total number of occurences is present in the \code{flags}
+      generate an overlap.}
+    \item{jump}{a hole in a subject's timeline, where they are in one
+      state at the end of the prior interval, but a new state in the
+      subsequent interval.}
+   \item{gap}{one or more gaps in a subject's timeline; they are presumably
+      in the same state at their return as when they left.}
+    \item{teleport}{two adjacent intervals for a subject, with the
+      first interval ending in one state and the subsequent interval
+      starting in another.  They have instantaneously changed states
+      with experiencing a transition.}
+     }
+  The total number of occurences of each is present in the \code{flags}
   vector. Optional components give the location and identifiers of the
   flagged observations.
 }
@@ -47,11 +49,10 @@ multicheck(formula, data, id, istate, ...)
   \item{transitions}{a matrix giving the count of transitions from one
     state to another}
   \item{istate}{a revised initial state vector}
-  \item{states}{vector of state names}
   \item{flags}{a vector giving the counts of errors}
   \item{overlap}{a list with the row number and id of overlaps}
   \item{gaps}{a list with the row number and id of gaps}
-  \item{inconsistent}{a list with the row number and id of inconsistent
+  \item{teleport}{a list with the row number and id of inconsistent
     rows}
   \item{jumps}{a list with the row number and id of jumps}
 }
