@@ -26,6 +26,7 @@ multicheck <- function(formula, data, id, istate, ...) {
     fit$cstate <- NULL
     na.action <- attr(mf, "na.action")
     if (!is.null(na.action)) {
+        fit$na.action <- na.action
         # make any numbering match the input data, not the retained data
         lost <- unclass(na.action)  # the observations that were removed
         dummy <- seq.int(1, n+ length(lost))[-lost]
@@ -37,6 +38,8 @@ multicheck <- function(formula, data, id, istate, ...) {
             }
         }
     }
+    fit$call <- Call
+    class(fit) <- "multicheck"
     fit
 }
 
@@ -173,7 +176,7 @@ multicheck2 <- function(y, id, istate=NULL, dummy="()") {
 
     # we return the current state that was handed to us, and let the routine
     #  complain
-    rval <- list(cstate=cstate, transitions =transitions, states=states, 
+    rval <- list(cstate=cstate2, transitions =transitions, states=states, 
                  flag =flag)
     if (length(overlap)) rval$overlap <- overlap
     if (length(tgap))     rval$gap <- tgap

@@ -311,6 +311,7 @@ Remove these before going further.
 
 <<survfitCI-extracens>>=
 # extra censors
+indx <- order(Y[,2])   # in stop order
 last <- !duplicated(id[indx], fromLast=TRUE)
 extra <- (Y[indx,3]==0 & !last)
 if (any(extra)) {
