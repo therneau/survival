@@ -17,8 +17,8 @@ stacker <- function(cmap, istate, X, Y, strata, states) {
     check <- match(from.state, istate, nomatch=0)
     if (any(check==0)){
         # I think that this is impossible
-        browser()
         warning("extra column in cmap")  # debugging line
+        browser()
         cmap <- cmap[,check>0]
         from.state <- from.state[check>0]
         to.state <- to.state[check>0]
@@ -32,10 +32,9 @@ stacker <- function(cmap, istate, X, Y, strata, states) {
     ustrata <- unique(cmap[1,])
     nstrat <- length(ustrata)
     n.perstrat <- integer(nstrat)
-    icount <- table(istate)
     for (i in 1:nstrat) {
         itemp <- unique(from.state[cmap[1,] == ustrata[i]])
-        n.perstrat[i] <- sum(icount[itemp])
+        n.perstrat[i] <- sum(istate %in% itemp)
     }
     
     # The constructed X matrix has a block or rows for each ustrata level

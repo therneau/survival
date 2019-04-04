@@ -23,7 +23,7 @@ multicheck <- function(formula, data, id, istate, ...) {
     if (!is.null(istate) && length(istate) !=n) stop("wrong length for istate")
 
     fit <- multicheck2(Y, id, istate)
-    fit$cstate <- NULL
+    fit$istate <- NULL   # used by coxph, but not part of user printout
     na.action <- attr(mf, "na.action")
     if (!is.null(na.action)) {
         fit$na.action <- na.action
@@ -49,6 +49,7 @@ multicheck <- function(formula, data, id, istate, ...) {
 #  id = subject identifier
 #  istate = starting state for each row, this can be missing.
 # The routine creates a proper current-state vector accounting for censoring
+#  (which should be called cstate for 'current state', but istate is retained)
 #  If a subject started in state A for instance, and had observations
 #  of (0, 10, B), (10, 15, censor), (15, 20, C) the current state is
 #  (A, B, B).  It checks that against the input 'istate' if it is present
@@ -75,11 +76,15 @@ multicheck2 <- function(y, id, istate=NULL, dummy="()") {
         inull <- FALSE
     }
 
-    # normalize the state names
-    states <- unique(c(attr(y, "states"), levels(cstate)))
+    # The vector of all state names is put in a nice printing order:
+    #   initial states that are not destination states, then
+    #   the destination states.  This keeps destinations in the order the
+    #   user chose, while still putting initial states first.
+    index <- match(levels(cstate), attr(y, "states"), nomatch=0)
+    states <- c(levels(cstate)[index==0], attr(y, "states"))
     cstate2 <- factor(cstate, states)
-    # we keep a form with all the levels for returning to the parent
-    #  one without this to make a smaller transitions table
+    # we keep a form with all the levels for returning to the parent (cstate2)
+    #  one without this (cstate) to make a smaller transitions table
 
     # initialize counts
     flag <- c(overlap=0, gap=0, teleport=0, jump=0)
@@ -100,7 +105,7 @@ multicheck2 <- function(y, id, istate=NULL, dummy="()") {
     # If no one has more than one obs our work is done: overlap and gap are
     #  impossible
     if (all(!oldid)) {
-        return(list(cstate=cstate2, transitions=transitions,
+        return(list(istate=cstate2, transitions=transitions,
                     states=states, flag=flag))
     }
 
@@ -109,7 +114,7 @@ multicheck2 <- function(y, id, istate=NULL, dummy="()") {
         flag["overlap"] <- sum(duplicated(id))
         overlap <- list(row= which(duplicated(id)), 
                         id=unique(id[duplicated(id)]))
-        rval <- list(cstate=cstate2, transitions=transitions,
+        rval <- list(istate=cstate2, transitions=transitions,
                     states=states, flag=flag, overlap= overlap)
         return(rval)
     }
@@ -176,7 +181,7 @@ multicheck2 <- function(y, id, istate=NULL, dummy="()") {
 
     # we return the current state that was handed to us, and let the routine
     #  complain
-    rval <- list(cstate=cstate2, transitions =transitions, states=states, 
+    rval <- list(istate=cstate2, transitions =transitions, states=states, 
                  flag =flag)
     if (length(overlap)) rval$overlap <- overlap
     if (length(tgap))     rval$gap <- tgap

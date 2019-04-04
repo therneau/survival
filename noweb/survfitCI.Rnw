@@ -162,7 +162,7 @@ survfitCI <- function(X, Y, weights, id, istate, cluster,
         mcheck <- multicheck2(Y, id)  
     else mcheck <- multicheck(Y, id, istate)
     states <- mcheck$states
-    istate <- mcheck$cstate
+    istate <- mcheck$istate
     nstate <- length(states) 
 
     if (mcheck$flag["overlap"] > 0)

@@ -43,9 +43,15 @@ print.coxph <-
                  signif.stars = signif.stars, ...)
             cat("\n")
         }
-        stemp <- x$states
-        names(stemp) <- 1:length(stemp)
-        print(stemp)
+
+        cat(" States: ", paste(paste(seq(along=x$states), x$states, sep='= '), 
+                               collapse=", "), '\n')
+        # cat(" States: ", paste(x$states, collapse=", "), '\n')
+        if (FALSE) { # alternate forms, still deciding which I like
+            stemp <- x$states
+            names(stemp) <- 1:length(stemp)
+            print(stemp, quote=FALSE)
+        }
     }
     else printCoefmat(tmp, digits=digits, P.values=TRUE, has.Pvalue=TRUE,
                  signif.stars = signif.stars, ...)

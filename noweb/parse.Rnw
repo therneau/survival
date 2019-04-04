@@ -302,7 +302,9 @@ Fold the 3-dimensional tmap into a matrix with terms as rows
 and one column for each transition that actually occured.
  
 <<parse-finish>>=
-t2 <- transitions[,-1, drop=FALSE]   # transitions to 'censor' don't count
+i <- match("(censored)", colnames(transitions), nomatch=0)
+if (i==0) t2 <- transitions
+else t2 <- transitions[,-i, drop=FALSE]   # transitions to 'censor' don't count
 indx1 <- match(rownames(t2), states)
 indx2 <- match(colnames(t2), states)
 tmap2 <- matrix(0L, nrow= 1+nterm, ncol= sum(t2>0))
