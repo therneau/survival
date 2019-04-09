@@ -318,7 +318,7 @@ cfit <- coxph(Surv(tstop, event) ~ I(age/10) + sex + mspike, id = id, mdata,
 print(cfit, digits=1)  # narrow the printout a bit
 @ 
 The effect of age and sex on non-PCM mortality is profound, which is not
-a surprise given the median starting age of \Sexpr{median(mgus2$age)}. 
+a surprise given the median starting age of \Sexpr{median(mgus2$age)}. %$
 Death rates rise \Sexpr{round(exp(10*coef(cfit)[4]),1)} fold per decade 
 of age and
 the death rate for males is \Sexpr{round(exp(coef(cfit)[5]),1)} times as great

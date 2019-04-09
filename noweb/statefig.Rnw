@@ -262,22 +262,28 @@ doline <- function(x1, x2, d, delta1, delta2, lwd, lty, col) {
     }
 }
 @ 
-The last arrow bit is the offset.  If offset >0 and there is a bidirectional
+The last arrow bit is the offset.  If offset $\ne 0$ and there is a 
+bidirectional
 arrow between two boxes, and the arc for both of them is identical,
 then move each arrow just a bit, orthagonal to a segment connecting the middle
 of the two boxes.
 If the line goes from (x1, y1) to (x2, y2), then the normal to the line at
-(x1, x2) is (y2-y1, x1-x2), normalized to length 1.  
+(x1, x2) is (y2-y1, x1-x2), normalized to length 1. 
+The -1 below (\code{-offset}) makes the shift obey a left-hand rule: looking
+down a line segement towards the arrow head, we shift to the left.
+This makes two horizontal arrows stack in the normal typographical order
+for chemical reactions, the right facing one above the left facing.
+A user can use a negative value for offset to reverse this if they wish.
 
 <<statefig-arrows>>=
 k <- 1
 for (j in 1:nstate) {
     for (i in 1:nstate) {
         if (i != j && connect[i,j] !=0) {
-            if (connect[i,j] == 2-connect[j,i] && offset>0) {
+            if (connect[i,j] == 2-connect[j,i] && offset!=0) {
                 #add an offset
                 toff <- c(cbox[j,2] - cbox[i,2], cbox[i,1] - cbox[j,1])
-                toff <- offset *toff/sqrt(sum(toff^2))
+                toff <- -offset *toff/sqrt(sum(toff^2))
                 doline(cbox[i,]+toff, cbox[j,]+toff, connect[i,j]-1,
                        delta1 = c(textwd[i]/2 + dx, textht[i]/2 + dy),
                        delta2 = c(textwd[j]/2 + dx, textht[j]/2 + dy),

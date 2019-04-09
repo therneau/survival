@@ -12,8 +12,8 @@ PARTS = main.Rnw \
 	pyears.Rnw pyears2.Rnw \
 	residuals.survreg.Rnw \
 	survfit.Rnw \
-	survfitCI.Rnw \
 	survfitKM.Rnw \
+	survfitCIold.Rnw \
 	msurv.nw \
 	survfitms.Rnw \
 	plot.Rnw \
