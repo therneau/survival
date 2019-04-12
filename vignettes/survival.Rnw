@@ -303,7 +303,7 @@ statefig(1:2, tmat)
 
 temp <- with(mgus2, ifelse(pstat==0, NA,
                            ifelse(ptime==futime, ptime-1, ptime)))
-mdata <- tmerge(mgus2[,1:6], mgus2, id=id, event= event(futime, 2*death),
+mdata <- tmerge(mgus2[,1:7], mgus2, id=id, event= event(futime, 2*death),
                 event= event(temp))
 mdata <- tmerge(mdata, mdata, id=id, enum = cumtdc(tstart)) # add row num
 mdata$event <- factor(mdata$event, 0:2, c("censor", "PCM", "Death"))
@@ -349,7 +349,7 @@ round(100* pfit1$event/pfit1$pyears, 1)  # PCM rate per year
 
 sfit1 <- survfit(Surv(tstop, event) ~ sex, mdata)
 temp <- summary(sfit1, rmean="common")  #print the mean survival time
-round(temp$table[,1:6], 1)
+round(temp$table[1:2,3], 1)
 @ 
 
 \appendix
