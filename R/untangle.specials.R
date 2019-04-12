@@ -1,4 +1,3 @@
-# $Id: untangle.specials.S 11166 2008-11-24 22:10:34Z therneau $
 #
 # This function takes a terms object, and extracts some aspects
 #  of it into a "nice" list.  It is simple an operation that
@@ -13,6 +12,6 @@ untangle.specials <- function(tt, special, order=1) {
     facs <- attr(tt, 'factors')
     fname <- dimnames(facs)
     ff <- apply(facs[spc,,drop=FALSE], 2, sum)
-    list(vars= (fname[[1]])[spc],
+    list(vars= (fname[[1]])[spc], tvar = spc - attr(tt, "response"),
 	     terms= seq(ff)[ff & match(attr(tt, 'order'), order, nomatch=0)])
     }

@@ -46,6 +46,7 @@ aareg <- function(formula, data, weights, subset, na.action,
     cluster<- attr(Terms, "specials")$cluster
     dropx <- NULL
     if (length(cluster)) {
+        dropx <- cluster
 	dfbeta <- TRUE
 	tempc <- untangle.specials(Terms, 'cluster', 1:10)
 	ord <- attr(Terms, 'order')[tempc$terms]
@@ -53,7 +54,6 @@ aareg <- function(formula, data, weights, subset, na.action,
 	cluster <- strata(m[,tempc$vars], shortlabel=TRUE)  #allow multiples
 	cluster <- as.numeric(cluster) #labels don't matter, and processing
 	                               # is a bit faster without them
-	dropx <- tempc$terms
 	}
     else cluster <- 1:nrow(m)
 

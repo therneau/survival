@@ -42,7 +42,7 @@ survobrien <- function(formula, data, subset,
     if (length(cluster$terms) > 0) {
         if (length(cluster$terms) >1) stop ("Can have only 1 cluster term")
         idvar <- m[[cluster$vars]]
-        Terms2 <- Terms[-cluster$terms]
+        Terms2 <- Terms[-cluster$tvar]
     }
     else {
         idvar <- 1:n
