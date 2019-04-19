@@ -10,10 +10,8 @@ hazards model.
 \usage{
 \method{survfit}{coxph}(formula, newdata, 
         se.fit=TRUE, conf.int=.95,
-        individual=FALSE, 
-        type,vartype,
         conf.type=c("log","log-log","plain","none", "logit", "arcsin"),
-        censor=TRUE, id, start.time,
+        censor=TRUE, newid, start.time, cluster, influence=FALSE,
         na.action=na.pass, ...)
 }
 \arguments{
@@ -30,16 +28,6 @@ hazards model.
     Default is the mean of the covariates used in the 
     \code{coxph} fit. 
   }
-  \item{individual}{
-    This argument has been superseded by the \code{id} argument and is
-    present only for backwards compatability.
-    A logical value indicating whether each row of \code{newdata} represents
-    a distinct individual (FALSE, the default), 
-    or if each row of the data frame represents different 
-    time epochs for only one individual (TRUE).  
-    In the former case the result will have one curve for each row in
-    \code{newdata}, in the latter only a single curve will be produced.
-  }
   \item{conf.int}{
     the level for a two-sided confidence interval on the survival curve(s). 
     Default is 0.95. 
@@ -47,20 +35,6 @@ hazards model.
   \item{se.fit}{
     a logical value indicating whether standard errors should be 
     computed.  Default is \code{TRUE}. 
-  }
-  \item{type,vartype}{
-    a character string specifying the type of survival curve. 
-    Possible values are  \code{"aalen"}, \code{"efron"}, or
-    \code{"kalbfleisch-prentice"} 
-    (only the first two characters are necessary). 
-    The default is to match the computation used in the Cox model.
-    The Nelson-Aalen-Breslow estimate for \code{ties='breslow'}, the Efron
-    estimate for \code{ties='efron'} and the Kalbfleisch-Prentice
-    estimate for a discrete time model \code{ties='exact'}.
-    Variance estimates are the Aalen-Link-Tsiatis, Efron, and
-    Greenwood.
-    The default will be the Efron
-    estimate for \code{ties='efron'} and the Aalen estimate otherwise.    
   }
  
   \item{conf.type}{
@@ -77,12 +51,13 @@ hazards model.
   }
   \item{censor}{if FALSE time points at which there are no events (only
     censoring) are not included in the result.}
-  \item{id}{optional variable name of subject identifiers.  If this is
-    present, then each group of rows with the same subject id represents
+  \item{newid}{optional variable name of subject identifiers.  If this is
+    present, it will be search for in the \code{newdata} data frame.
+    Each group of rows in \code{newdata} with the same subject id represents
     the covariate path through time of a single subject, and the result
     will contain one curve per subject.  If the \code{coxph} fit had
     strata then that must also be specified in \code{newdata}.
-    If missing, then each
+    If \code{newid} is not present, then each
     individual row of \code{newdata} is presumed to represent a distinct
     subject and there will be \code{nrow(newdata)} times the number of
     strata curves in the result (one for each strata/subject combination).
@@ -91,7 +66,10 @@ hazards model.
   \item{start.time}{optional starting time, a single numeric value.
     If present the returned curve contains survival after
     \code{start.time} conditional on surviving to \code{start.time}.
-    }
+  }
+  \item{cluster}{optional vector to use for a grouped jackknife
+    variance}
+  \item{influence}{option to return the influence values}
   \item{na.action}{the na.action to be used on the newdata argument}
   
    \item{\dots}{for future methods}
@@ -104,16 +82,28 @@ details. Methods defined for survfit objects are
 \code{lines}, and \code{points}. 
 }
 \details{
-    Serious thought has been given to removing the default value for
-    \code{newdata}, which is to use a single "pseudo" subject with
-    covariate values equal to the means of the data set, since
-    the resulting curve(s) almost never make sense.
-    It remains due to an unwarranted attachment to the option shown by
+  This routine produces survival curves based on a \code{coxph}
+  model fit.  The \code{ctype} option found in
+  \code{survfit.formula} is not present, it instead follows from the
+  choice of the \code{ties} option in the \code{coxph} call.  Likewise
+  the choice between a model based and robust variance estimate for the
+  curve will mirror the choice made in the \code{coxph} call.
+  The \code{cluster} and \code{influence} options are only relevant for
+  the robust variance.  A \code{id} statment in the original call causes
+  subjects that have multiple lines in the original data to be correctly
+  identified.  (This calculation needs both the original data and the
+  new data.)
+
+  If the \code{newdata} argument is missing, then a curve is produced
+  for a single "pseudo" subject with
+  covariate values equal to the means of the data set.
+  The resulting curve(s) almost never make sense, but 
+  The default remains due to an unwarranted attachment to the option shown by
     some users and by other packages.  Two particularly egregious examples
     are factor variables and interactions.  Suppose one were studying
     interspecies transmission of a virus, and the data set has a factor
     variable with levels ("pig", "chicken") and about equal numbers of
-    observations for each.  The ``mean'' covariate level will be 1/2 --
+    observations for each.  The ``mean'' covariate level will be 0.5 --
     is this a flying pig?  As to interactions assume data with sex coded as 0/1,
     ages ranging from 50 to 80, and a model with age*sex.  The ``mean''
     value for the age:sex interaction term will be about 30, a value
@@ -130,7 +120,7 @@ strata), along with an \code{id} variable
 The time interval must have the same (start, stop, status)
 variables as the original model: although the status variable is not
 used and thus can be set to a dummy value of 0 or 1, it is necessary for
-the variables to be recognized as a \code{Surv} object.
+the response to be recognized as a \code{Surv} object.
 Last, although predictions with a time-dependent covariate path can be
 useful, it is very easy to create a prediction that is senseless.  Users
 are encouraged to seek out a text that discusses the issue in detail.
@@ -150,23 +140,8 @@ routine does not allow it to be omitted (predictions become too confusing).
 strata(sex) + age:sex; the sex variable is needed for the second term
 of the model.)
 
-When all the coefficients are zero,
-the Kalbfleisch-Prentice estimator reduces to the Kaplan-Meier,
-the Aalen estimate to the exponential of Nelson's
-cumulative hazard estimate, and the Efron estimate to the
-Fleming-Harrington estimate of survival.
-The variances of the curves from a Cox model are larger than these
-non-parametric estimates, however, due
-to the variance of the coefficients.
-
 See \code{\link{survfit}} for more details about the counts (number of
 events, number at risk, etc.)
-
-The censor argument was fixed at FALSE in earlier versions of the code
-and not made  available to the user.
-The default argument is sensible in most instances --- and causes the
-familiar + sign to appear on plots --- it is not sensible for time
-dependent covariates since it may lead to a large number of spurious marks.
 }
 
 \section{Notes}{
@@ -206,50 +181,5 @@ model for survival data. \emph{Annals of Statistics}
 \code{\link{coxph}},  
 \code{\link{Surv}},  
 \code{\link{strata}}.   
-}
-\examples{
-#fit a Kaplan-Meier and plot it 
-fit <- survfit(Surv(time, status) ~ x, data = aml) 
-plot(fit, lty = 2:3) 
-legend(100, .8, c("Maintained", "Nonmaintained"), lty = 2:3) 
-
-#fit a Cox proportional hazards model and plot the  
-#predicted survival for a 60 year old 
-fit <- coxph(Surv(futime, fustat) ~ age, data = ovarian) 
-plot(survfit(fit, newdata=data.frame(age=60)),
-     xscale=365.25, xlab = "Years", ylab="Survival") 
-
-# Here is the data set from Turnbull
-#  There are no interval censored subjects, only left-censored (status=3),
-#  right-censored (status 0) and observed events (status 1)
-#
-#                             Time
-#                         1    2   3   4
-# Type of observation
-#           death        12    6   2   3
-#          losses         3    2   0   3
-#      late entry         2    4   2   5
-#
-tdata <- data.frame(time  =c(1,1,1,2,2,2,3,3,3,4,4,4),
-                    status=rep(c(1,0,2),4),
-                    n     =c(12,3,2,6,2,4,2,0,2,3,3,5))
-fit  <- survfit(Surv(time, time, status, type='interval') ~1, 
-              data=tdata, weight=n)
-
-#
-# Time to progression/death for patients with monoclonal gammopathy
-#  Competing risk curves (cumulative incidence)
-fit1 <- survfit(Surv(stop, event=='pcm') ~1, data=mgus1,
-                    subset=(start==0))
-fit2 <- survfit(Surv(stop, status) ~1, data=mgus1,
-                    subset=(start==0), etype=event) #competing risks
-# CI curves are always plotted from 0 upwards, rather than 1 down
-plot(fit2, fun='event', xscale=365.25, xmax=7300, mark.time=FALSE,
-            col=2:3, xlab="Years post diagnosis of MGUS")
-lines(fit1, fun='event', xscale=365.25, xmax=7300, mark.time=FALSE,
-            conf.int=FALSE)
-text(10, .4, "Competing Risk: death", col=3)
-text(16, .15,"Competing Risk: progression", col=2)
-text(15, .30,"KM:prog")
 }
 \keyword{survival}

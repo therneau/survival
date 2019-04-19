@@ -13,14 +13,13 @@ PARTS = main.Rnw \
 	residuals.survreg.Rnw \
 	survfit.Rnw \
 	survfitKM.Rnw \
-	survfitCIold.Rnw \
+	survfitCI.Rnw \
 	msurv.nw \
 	survfitms.Rnw \
 	plot.Rnw \
 	statefig.Rnw\
 	tmerge.Rnw\
 	yates.Rnw  yates2.Rnw\
-        survConcordance.Rnw \
 	tail
 #	coxdetail.nw
 

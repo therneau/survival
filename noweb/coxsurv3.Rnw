@@ -1,0 +1,51 @@
+\subsubsection{Multi-state models}
+Survival curves after a multi-state Cox model are more challenging,
+particularly the variance.
+Computations are separate for each strata, and each strata will 
+have a different number of time points in the result.
+Thus we can't preallocate a matrix.  Instead we generate an empty list,  %'
+one per strata, and then populate it with the survival curves.
+At the end we unlist the individual components one by one.
+This is memory efficient, the number
+of curves is usually small enough that the "for" loop is no great
+cost, and it's easier to see what's going on than C code.               
+
+<<survfitcoxph.fit2>>=
+survfitcoxph.fit2 <- function (y, x, wt, x2, risk, newrisk, strata, cmap,
+                               se.fit, stype, ctype, varmat, states) {
+
+    if (is.factor(strata)) ustrata <- levels(strata)
+    else                   ustrata <- sort(unique(strata))
+    nstrata <- length(ustrata)
+    survlist <- vector('list', nstrata)
+    names(survlist) <- ustrata
+
+    for (i in 1:nstrata) {
+        indx <- which(strata== ustrata[i])
+        survlist[[i]] <- agsurv2(y[indx,,drop=F], x[indx,,drop=F], 
+                                 wt[indx], risk[indx],
+                                 stype, ctype, cmap, states)
+        }
+                
+ @
+
+
+Here is the actual work.
+If $d$ is the number of unique event times and $s$ the number of
+states, the cumulative hazard will be an array of dimension $(s,s,d+1)$
+and the probability in state a matrix with $d+1$ rows and $s$ columns.
+The first row of the hazard is 0 and the first of the survival is
+the initial state.
+
+<<survfitcoxph-agsurv2>>=
+agsurv2 <- function(y, x, wt, risk, stype, ctype, cmap, states) {
+    nstate <- length(object$states)
+    from <- as.integer(sub(":.*$", "", colnames(cmap)))
+    to   <- as.integer(sub("^.*:", "", colnames(cmap)))
+    
+    isort <- order(y[,2], y[,3])
+    
+   status <- y[,3]
+    nd <- sum(status > 0)  #
+ 
+@ 

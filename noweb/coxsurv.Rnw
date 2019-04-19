@@ -1,6 +1,6 @@
 
 \subsection{Predicted survival}
-The [[survfit]] method for a Cox model produces individual survival
+The \code{survfit} method for a Cox model produces individual survival
 curves.  As might be expected these have much in common with
 ordinary survival curves, and share many of the same methods.
 The primary differences are first that a predicted curve always refers
@@ -33,10 +33,10 @@ help pages.
 
 <<survfit.coxph>>=
 survfit.coxph <-
-  function(formula, newdata, se.fit=TRUE, conf.int=.95, individual=FALSE,
+  function(formula, newdata, se.fit=TRUE, conf.int=.95,
             type, vartype,
             conf.type=c("log", "log-log", "plain", "none", "logit", "arcsin"),
-            censor=TRUE, id, start.time,
+            censor=TRUE, newid, start.time,
             na.action=na.pass, ...) {
 
     Call <- match.call()
@@ -47,28 +47,28 @@ survfit.coxph <-
     <<survfit.coxph-finish>>
     }
 @ 
-The third line [[as.name('survfit')]] causes the printout to say
+The third line \code{as.name('survfit')} causes the printout to say
 `survfit' instead of `survfit.coxph'.                              %'
 
 The setup for the routine is fairly pedestrian.
-If the newdata argument is missing we use [[object$means]] as the
+If the newdata argument is missing we use \code{object$means} as the
 default value.  This choice has lots of statistical shortcomings,
 particularly in a stratified model, but is common in other
 packages and a historic option here.
 If the type or vartype are missing we use the appropriate one
 for the method in the Cox model.
-That is, the [[coxph]] computation used for [[method=``exact'']] is
+That is, the \code{coxph} computation used for \code{method=``exact''} is
 the same approximation used in the Kalbfleish-Prentice estimate,
 that for the Breslow method matches the Aalen survival estimate, and
 the Efron approximation the Efron survival estimate.
-The other two rows of labels in [[temp1]] are historical; 
+The other two rows of labels in \code{temp1} are historical; 
 we include them for backwards
 compatability but they don't appear in the documentation.          %'
 
 One particular special case (that gave me fits for a while) is when there
-are non-heirarchical models, for example [[~ age + age:sex]].  
+are non-heirarchical models, for example \code{~ age + age:sex}.  
 The fit of such a model will \emph{not} be the same using the variable
-[[age2 <- age-50]]; I originally thought it was a flaw induced by my 
+\code{age2 <- age-50}; I originally thought it was a flaw induced by my 
 subtraction.  
 The routine simply cannot give a sensible curve for a model like this.
 The issue continued to surprise me each time I rediscovered it,
@@ -121,19 +121,20 @@ if (any(tfac >1))
 @ 
 
 I need to retrieve a copy of the original data. 
-We always need the $X$ matrix and $y$, both of which may be found in 
+We always need the $X$ matrix and $y$, both of which might be found in 
 the data object.
-If the original call included either strata, offset, or weights, 
-or if either $x$
-or $y$ are missing from the [[coxph]] object, 
+If the fit was a multistate model,
+the original call included either strata, offset, weights, or id, 
+or if either $x$ or $y$ are missing from the \code{coxph} object, 
 then the model frame will need to be reconstructed.
-We have to use [[object['x']]] instead of \texttt{object\$x} since
+We have to use \code{object['x'}] instead of \texttt{object\$x} since
 the latter will
-pick off the [[xlevels]] component if the [[x]] component is missing (which
+pick off the \code{xlevels} component if the \code{x} component is missing (which
 is the default).
 <<survfit.coxph-setup>>=
-if (is.null(object$y) || is.null(object[['x']]) ||
-    !is.null(object$call$weights) || 
+coxms <- inherits(object, "coxphms")
+if (coxms || is.null(object$y) || is.null(object[['x']]) ||
+    !is.null(object$call$weights) || !is.null(object$call$id) ||
     (has.strata && is.null(object$strata)) ||
     !is.null(attr(object$terms, 'offset'))) {
     
@@ -142,8 +143,8 @@ if (is.null(object$y) || is.null(object[['x']]) ||
 else mf <- NULL  #useful for if statements later
 @ 
 
-If a model frame was created, then it is trivial to grab [[y]]
-from the new frame and compare it to [[object$y]] from the
+If a model frame was created, then it is trivial to grab \code{y}
+from the new frame and compare it to \code{object$y} from the
 original one.  This is to avoid nonsense results that arise
 when someone changes the data set under our feet.  For instance
 <<dummy>>=
@@ -175,12 +176,7 @@ else {
 }
 if (is.null(object[['x']])) x <- model.matrix.coxph(object, data=mf)
 else x <- object[['x']]
-
-missid <- missing(id) # I need this later, and setting id below makes
-                      # "missing(id)" always false
-if (!missid) individual <- TRUE
-else if (missid && individual) id <- rep(0,nrow(y))  #dummy value
-else id <- NULL
+@ 
 
 if (!missing(start.time)) {
     if (!is.numeric(start.time) || length(start.time) > 1)
@@ -256,7 +252,7 @@ if (has.strata) {
 }
 @ 
 
-If a variable is deemed redundant the [[coxph]] routine will have set its
+If a variable is deemed redundant the \code{coxph} routine will have set its
 coefficient to NA as a marker. 
 We want to ignore that coefficient: treating it as a zero has the 
 desired effect.
@@ -305,20 +301,20 @@ else {
        }
     }
 @ 
-The [[risk]] vector and [[x]] matrix come from the original data, and are
+The \code{risk} vector and \code{x} matrix come from the original data, and are
 the raw data for the survival curve and its variance.  
 We also need the risk score $\exp(X\beta)$ for the target subject(s).
 \begin{itemize}
   \item For predictions with time-dependent covariates the user will have 
-    either included an [[id]] statement (newer style) or specified the
-    [[individual=TRUE]] option.  If the latter, then [[newdata]] is
+    either included an \code{id} statement (newer style) or specified the
+    \code{individual=TRUE} option.  If the latter, then \code{newdata} is
     presumed to contain only a single indivual represented by multiple
-    rows.  If the former then the [[id]] variable marks separate individuals.
+    rows.  If the former then the \code{id} variable marks separate individuals.
     In either case we need to retrieve
     the covariates, strata, and repsonse from the new data set.
   \item For ordinary predictions only the covariates are needed.
   \item If newdata is not present we assume that this is the ordinary case, and
-    use the value of [[object$means]] as the default covariate set.  This is
+    use the value of \code{object$means} as the default covariate set.  This is
     not ideal statistically since many users view this as an
     ``average'' survival curve, which it is not.
 \end{itemize}
@@ -330,21 +326,23 @@ new data will often have only one of the original levels represented.)
 Also, we want to correctly handle data-dependent nonlinear terms such as
 ns and pspline.
 However, the simple call found in predict.lm, say,
-[[model.frame(Terms, data=newdata, ..]] isn't used here
+\code{model.frame(Terms, data=newdata, ..} isn't used here
 for a few reasons. 
 The first is a decision on our part that the user should not have
-to include unused terms in the model.
-The second is that if there are strata, the user may or may not
+to include unused terms in the newdata: sometimes we don't need the
+response and sometimes we do.  
+Second, if there are strata, the user may or may not
 have included strata variables in their data set and we need to
 act accordingly.
-The third is that we might have an [[id]] statement in this
+The third is that we might have an \code{id} statement in this
 call, which is another variable to be fetched.
-Last, there is no ability to use sparse frailties and newdata together;
+At one time we dealt with cluster() terms in the formula, but the coxph
+routine has already removed those for us.
+Finally, note that there is no ability to use sparse frailties and newdata together;
 it is a hard case and so rare as to not be worth it.
 
 First, remove unnecessary terms from the orginal model formula. 
-Any [[cluster]] terms can be deleted,
-If [[individual]] is false then the repsonse variable can go.
+If \code{individual} is false then the repsonse variable can go.
 
 The dataClasses and predvars attributes, if present, have elements
 in the same order as the first dimension of the ``factors'' attribute
@@ -357,23 +355,6 @@ term in the formula, so y ~ age + ns(height) would lead to a predvars
 of length 4, element 1 is the call itself, 2 would be y, etc.
 The dataClasses object is a simple list.
 <<survfit.coxph-setup>>= 
-subterms <- function(tt, i) {
-    dataClasses <- attr(tt, "dataClasses")
-    predvars <- attr(tt, "predvars")
-    oldnames <-  dimnames(attr(tt, 'factors'))[[1]]
-    tt <- tt[i]
-    index <- match(dimnames(attr(tt, 'factors'))[[1]], oldnames)
-    if (length(index) >0) {
-        if (!is.null(predvars)) 
-            attr(tt, "predvars") <- predvars[c(1, index+1)]
-        if (!is.null(dataClasses))
-            attr(tt, "dataClasses") <- dataClasses[index]
-        }
-    tt
-}
-temp <- untangle.specials(Terms, 'cluster')
-if (length(temp$terms)) 
-    Terms <- subterms(Terms, -temp$terms)
 
 if (missing(newdata)) {
     mf2 <- as.list(object$means)   #create a dummy newdata
@@ -390,6 +371,7 @@ else {
     <<survfit.coxph-newdata2>>
     }
 @ 
+
 For backwards compatability, I allow someone to give an ordinary vector
 instead of a data frame (when only one curve is required).  In this case
 I also need to verify that the elements have a name. 
@@ -405,23 +387,9 @@ if (is.vector(newdata, "numeric")) {
     newdata <- data.frame(as.list(newdata))
 }
 @ 
+
 Finally get my new model frame mf2.
-There are two cases.  
-If the call does not has an ``id'' argument then we use the
-semantics of top-level functions like coxph: get a copy of the
-call, keep what we need, change the called function's name to
-``model.fram'' and evalutate it.
-then we 
-If all is particularly simple we can use a simple call.
-Otherwise get an abbreviated form of the original call that has only the
-calling function, na.action, and id.  The calling function is always
-element 1, the others are found by name.
-Now manipulate it: add the formula, data and xlev components 
-(the last might be NULL),
-and then change the name of the call.
-If the original call was [[survfit(fit1, newdata=mydat, conf.int=.9)]]
-the result is [[model.frame(data= copy of newdat, formula=Terms2, xlev=myxlev)]].
-If there is no id argument we use a simple call, except that we allow the
+We allow the
 user to leave out any strata() variables if they so desire,
 \emph{if} there are no strata by covariate interactions.
 
@@ -448,54 +416,36 @@ I even watch out for the case of either "strata" or "list" is the name of
 the stratification variable, which causes my fake strata function to 
 return a function when said variable is not in newdata.
 <<survfit.coxph-newdata2>>= 
-if (missid) {
-    if (has.strata && !strata.interaction) {
-        found.strata <- TRUE
-        tempenv <- new.env(, parent=emptyenv())
-        assign("strata", function(..., na.group, shortlabel, sep)
-                       list(...), envir=tempenv)
-        assign("list", list, envir=tempenv)
-        for (svar in stangle$vars) {
-            temp <- try(eval(parse(text=svar), newdata, tempenv),
-                                silent=TRUE)
-            if (!is.list(temp) || 
-                any(unlist(lapply(temp, class))== "function"))
-                found.strata <- FALSE
-        }
-
-        if (found.strata) mf2 <- stats::model.frame(Terms2, data=newdata, 
-                               na.action=na.action, xlev=object$xlevels)
-        else {
-            Terms2 <- subterms(Terms2, -attr(Terms2, 'specials')$strata)
-            if (!is.null(object$xlevels)) { 
-                myxlev <- object$xlevels[match(attr(Terms2, "term.labels"),
-                                   names(object$xlevels), nomatch=0)]
-                if (length(myxlev)==0) myxlev <- NULL
-            }
-            else myxlev <- NULL
-            mf2 <- stats::model.frame(Terms2, data=newdata, na.action=na.action, 
-                               xlev=myxlev)
-            }
-        }
-    else {
-        mf2 <- stats::model.frame(Terms2, data=newdata, na.action=na.action, 
-                            xlev=object$xlevels)
-        found.strata <- has.strata  #would have failed otherwise
-        }
+if (has.strata && !strata.interaction) {
+    found.strata <- TRUE
+    tempenv <- new.env(, parent=emptyenv())
+    assign("strata", function(..., na.group, shortlabel, sep)
+        list(...), envir=tempenv)
+    assign("list", list, envir=tempenv)
+    for (svar in stangle$vars) {
+        temp <- try(eval(parse(text=svar), newdata, tempenv),
+                    silent=TRUE)
+        if (!is.list(temp) || 
+            any(unlist(lapply(temp, class))== "function"))
+            found.strata <- FALSE
     }
-else {
-    tcall <- Call[c(1, match(c('id', "na.action"), 
-                             names(Call), nomatch=0))]
-    tcall$data <- newdata
-    tcall$formula <- Terms2
-    tcall$xlev <- object$xlevels
-    tcall[[1L]] <- quote(stats::model.frame)
-    mf2 <- eval(tcall)
-    found.strata <- has.strata # would have failed otherwise
+    
+    if (!found.strata) {
+        ss <- untangle.specials(Terms2, "strata")
+        Terms2 <- Terms2[-ss$terms]
+    }
 }
-@     
 
-Now, finally, extract the [[x2]] matrix from the just-created frame.
+tcall <- Call[c(1, match(c('id', "na.action"), 
+                             names(Call), nomatch=0))]
+tcall$data <- newdata
+tcall$formula <- Terms2
+tcall$xlev <- object$xlevels
+tcall[[1L]] <- quote(stats::model.frame)
+mf2 <- eval(tcall)
+@    
+
+Now, finally, extract the \code{x2} matrix from the just-created frame.
 <<survfit.coxph-result>>=
 if (has.strata && found.strata) { #pull them off
     temp <- untangle.specials(Terms2, 'strata')
@@ -513,10 +463,10 @@ if (individual) {
     if (missing(newdata)) 
         stop("The newdata argument must be present when individual=TRUE")
     if (!missid) {  #grab the id variable
-        id <- model.extract(mf2, "id")
-        if (is.null(id)) stop("id=NULL is an invalid argument")
+        newid <- model.extract(mf2, "id")
+        if (is.null(newid)) stop("id=NULL is an invalid argument")
         }
-    else id <- rep(1, nrow(mf2))
+    else newid <- rep(1, nrow(mf2))
     
     x2 <- model.matrix(Terms2, mf2)[,-1, drop=FALSE]  #no intercept
     if (length(x2)==0) stop("Individual survival but no variables")
@@ -603,7 +553,7 @@ result <- new
 @ 
 
 Finally, the last (somewhat boring) part of the code.  
-First, if given the argument [[censor=FALSE]] we need to
+First, if given the argument \code{censor=FALSE} we need to
 remove all the time points from the output at which there
 was only censoring activity.  This action is mostly for
 backwards compatability with older releases that never

@@ -47,7 +47,30 @@ coxph <- function(formula, data, weights, subset, na.action,
             stop(gettextf("Argument %s not matched", 
                           names(extraArgs)[indx==0L]), domain = NA)
     }
-    if (missing(control)) control <- coxph.control(...)    
+    if (missing(control)) control <- coxph.control(...) 
+
+    # Move any cluster() term out of the formula, and make it an id
+    #  option instead.  This makes everything easier.
+    if (missing(formula)) stop("a formula argument is required")
+    
+    if (is.list(formula))
+        Terms <- if (missing(data)) terms(formula[[1]], specials="cluster") else
+                 terms(formula[[1]], specials="cluster")
+    else Terms <- if (missing(data)) terms(formula, specials="cluster") else
+                 terms(formula, specials="cluster")
+
+    tt <- attr(Terms, 'specials')$cluster
+    if (length(tt) > 1) stop("a formula cannot have multiple cluster terms")
+    if (length(tt) > 0) { # there is one
+        if (!is.null(Call$cluster))
+            stop("cannot have both cluster() in a formula and the cluster option")
+        Call$cluster <- attr(Terms, "variables")[[1+tt]][[2]]
+        newform <- formula(Terms[attr(Terms, "response")-tt])
+        if (is.list(formula)) formula[[1]] <- newform
+        else formula <- newform
+        Call$formula <- formula
+    }
+    
     # create a call to model.frame() that contains the formula (required)
     #  and any other of the relevant optional arguments
     #  but don't evaluate it just yet
@@ -57,7 +80,7 @@ coxph <- function(formula, data, weights, subset, na.action,
     if (indx[1] ==0) stop("A formula argument is required")
     tform <- Call[c(1,indx)]  # only keep the arguments we wanted
     tform[[1L]] <- quote(stats::model.frame)  # change the function called
-        
+
     # if the formula is a list, do the first level of processing on it.
     if (is.list(formula)) {
         <<coxph-multiform1>>
@@ -69,7 +92,7 @@ coxph <- function(formula, data, weights, subset, na.action,
     }
 
     # add specials to the formula
-    special <- c("strata", "cluster", "tt")
+    special <- c("strata", "tt")
     tform$formula <- if(missing(data)) terms(formula, special) else
                                       terms(formula, special, data=data)
 
@@ -98,6 +121,7 @@ coxph <- function(formula, data, weights, subset, na.action,
     if (!multi && multiform)
         stop("formula is a list but the response is not multi-state")
 
+browser()
     # Grab the id variable to check out multi-state data
     id <- model.extract(mf, "id")
     if (multi) {
@@ -126,34 +150,20 @@ coxph <- function(formula, data, weights, subset, na.action,
         if (multi) stop("the tt() transform is not implemented for multi-state models")
          <<coxph-transform>>
         }
+   
+    xlevels <- .getXlevels(Terms, mf)
 
     # grab the cluster, if present.  Using cluster() in a formula is not
     #  encouraged
     cluster <- model.extract(mf, "cluster")
-    if(length(attr(Terms, "specials")$cluster)) {
-        if (length(cluster) >0)
-            stop("model has both a cluster option and a cluster term in the formula")
-        robust <- TRUE  #flag to later compute a robust variance
-        tempc <- untangle.specials(Terms, 'cluster', 1:10)
-        ord <- attr(Terms, 'order')[tempc$terms]
-        if (any(ord>1)) stop ("Cluster can not be used in an interaction")
-        cluster <- strata(mf[,tempc$vars], shortlabel=TRUE)  #allow multiples
-        dropterms <- tempc$terms
-        # Save away xlevels after removing cluster (we don't want to save upteen
-        #  levels of that variable, which we will never need).
-        xlevels <- .getXlevels(Terms[-tempc$terms], mf)
-    }
-    else {
-        xlevels <- .getXlevels(Terms, mf)
-        dropterms <- NULL
-    
-        if (missing(robust)) {
-            if (is.null(id)) robust <- FALSE
-            else {
-                robust <- TRUE
-                cluster <- id
-            }
-        }
+    id <- model.extract(mf, "id")
+    if (!is.null(id) && is.null(cluster) && (missing(robust) || robust)) 
+        cluster <- id
+
+    if (missing(robust)) robust <- !is.null(cluster)
+    else if (robust && is.null(cluster)) {
+        if (ny==2) cluster <- seq.int(1, nrow(mf))
+        else stop("one of cluster or id is needed")
     }
     
     contrast.arg <- NULL  #due to shared code with model.matrix.coxph
@@ -217,6 +227,9 @@ if (length(id)==0)
 istate <- model.extract(mf, "istate")
 mcheck <- multicheck2(Y, id, istate)
 # error messages here
+if (mcheck$flag["overlap"] > 0)
+    stop("data set has overlapping intervals for one or more subjects")
+
 transitions <- mcheck$transitions
 istate <- mcheck$istate
 states <- mcheck$states
@@ -301,32 +314,6 @@ strats <- xstack$strata
 if (length(offset)) offset <- offset[xstack$rindex]
 if (length(weights)) weights <- weights[xstack$rindex]
 if (length(cluster)) cluster <- cluster[xstack$rindex]
-@ 
-
-Standard code to grab the data.
-<<coxph-getdata>>=
-# create a call to model.frame() that contains the formula (required)
-#  and any other of the relevant optional arguments
-# then evaluate it in the proper frame
-indx <- match(c("formula", "data", "weights", "subset", "na.action"),
-              names(Call), nomatch=0) 
-if (indx[1] ==0) stop("A formula argument is required")
-temp <- Call[c(1,indx)]  # only keep the arguments we wanted
-temp[[1L]] <- quote(stats::model.frame)  # change the function called
-
-special <- c("strata", "cluster", "tt")
-temp$formula <- if(missing(data)) terms(formula, special)
-                else              terms(formula, special, data=data)
-# Make "tt" visible for coxph formulas, without making it visible elsewhere
-if (!is.null(attr(temp$formula, "specials")$tt)) {
-    coxenv <- new.env(parent= environment(formula))
-    assign("tt", function(x) x, env=coxenv)
-    environment(temp$formula) <- coxenv
-}
-
-mf <- eval(temp, parent.frame())
-if (nrow(mf) ==0) stop("No (non-missing) observations")
-Terms <- terms(mf)
 @ 
 
 An increasingly common error is for users to put the time variable on
