@@ -15,15 +15,15 @@ calculated from the results of this function.
 concordance(object, \ldots)
 \method{concordance}{formula}(object, data, weights, subset, na.action,
   cluster, ymin, ymax, timewt= c("n", "S", "S/G", "n/G", "n/G2", "I"),
-  influence=0, ranks = FALSE, reverse=FALSE, timefix=TRUE, \ldots)
+  influence=0, ranks = FALSE, reverse=FALSE, timefix=TRUE, keepstrata=10, \ldots)
 \method{concordance}{lm}(object, \ldots, newdata, cluster, ymin, ymax,
-  influence=0, ranks=FALSE, timefix=TRUE)
+  influence=0, ranks=FALSE, timefix=TRUE, keepstrata=10)
 \method{concordance}{coxph}(object, \ldots, newdata, cluster, ymin, ymax,
   timewt= c("n", "S", "S/G", "n/G", "n/G2", "I"), influence=0,
-  ranks=FALSE, timefix=FALSE)
+  ranks=FALSE, timefix=FALSE, keepstrata=10)
 \method{concordance}{survreg}(object, \ldots, newdata, cluster, ymin, ymax,
   timewt= c("n", "S", "S/G", "n/G", "n/G2", "I"), influence=0,
-  ranks=FALSE, timefix=FALSE)
+  ranks=FALSE, timefix=FALSE, keepstrata=10)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -83,7 +83,11 @@ concordance(object, \ldots)
     vignette on tied times for more explanation.  For the coxph and
     survreg methods this issue will have already been addressed in the
     parent routine, so should not be revisited.
-   }
+  }
+  \item{keepstrata}{either TRUE, FALSE, or an integer value.
+    Computations are always done within stratum, then added. If the
+    total number of strata greater than \code{keepstrata}, or
+    \code{keepstrata=FALSE}, those subtotals are not kept in the output.
 }
 \details{
   At each event time, compute the rank of the subject who had the
@@ -97,6 +101,12 @@ concordance(object, \ldots)
   under the receiver operating curve (AUC) for a binary response,
   Harrell's c-statistic when the response is a survival time,
   and (d+1)/2 when y is continuous, where d is Somers' d.
+
+  When the number of strata is very large, such as in a conditional
+  logistic regression for instance (\code{clogit} function), a much
+  faster computation is available when the individual strata results
+  are not retained.  In the more general case the \code{keepstrata = 10}
+  default simply keeps the printout managable.
 }
 \value{
 
