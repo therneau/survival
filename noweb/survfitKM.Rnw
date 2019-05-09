@@ -97,7 +97,6 @@ survfitKM <- function(x, y, weights=rep(1.0,length(x)),
 
     if (missing(start.time)) start.time <- min(c(0, y[,ny-1]))
     # the line above sets a plotting range, it doesn't exclued anyone
-    }
 
     <<survfitKM-compute>>
     <<survfitKM-finish>>

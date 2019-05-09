@@ -51,7 +51,7 @@ The third line \code{as.name('survfit')} causes the printout to say
 `survfit' instead of `survfit.coxph'.                              %'
 
 The setup for the routine is fairly pedestrian.
-If the newdata argument is missing we use \code{object$means} as the
+If the newdata argument is missing we use \code{object\$means} as the
 default value.  This choice has lots of statistical shortcomings,
 particularly in a stratified model, but is common in other
 packages and a historic option here.
@@ -144,7 +144,7 @@ else mf <- NULL  #useful for if statements later
 @ 
 
 If a model frame was created, then it is trivial to grab \code{y}
-from the new frame and compare it to \code{object$y} from the
+from the new frame and compare it to \code{object\$y} from the
 original one.  This is to avoid nonsense results that arise
 when someone changes the data set under our feet.  For instance
 <<dummy>>=
@@ -176,7 +176,6 @@ else {
 }
 if (is.null(object[['x']])) x <- model.matrix.coxph(object, data=mf)
 else x <- object[['x']]
-@ 
 
 if (!missing(start.time)) {
     if (!is.numeric(start.time) || length(start.time) > 1)
@@ -314,7 +313,7 @@ We also need the risk score $\exp(X\beta)$ for the target subject(s).
     the covariates, strata, and repsonse from the new data set.
   \item For ordinary predictions only the covariates are needed.
   \item If newdata is not present we assume that this is the ordinary case, and
-    use the value of \code{object$means} as the default covariate set.  This is
+    use the value of \code{object\$means} as the default covariate set.  This is
     not ideal statistically since many users view this as an
     ``average'' survival curve, which it is not.
 \end{itemize}

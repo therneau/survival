@@ -1,5 +1,11 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 3.0-1}{
+  \itemize{
+    \item Major revision of the survfit routines, see the survival3 vignette.
+    \item Allow multi-state coxph models
+    \item Rename .S files as .R
+}}
 \section{Changes in version 2.44-1}{
   \itemize{
     \item Fix error in survreg when the init argument was used.

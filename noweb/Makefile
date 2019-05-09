@@ -36,8 +36,6 @@ SFUN =  agreg.fit.R \
 	print.pyears.R \
 	residuals.survreg.R\
 	statefig.R \
-	survConcordance.R \
-	survConcordance.fit.R \
 	survexp.R \
 	survfit.R \
 	survfitCI.R \
@@ -46,13 +44,11 @@ SFUN =  agreg.fit.R \
 	survfitcoxph.fit.R \
 	survfitms.R\
 	tmerge.R \
-	survConcordance.R \
-	survConcordance.fit.R \
 	yates.R
 
 CFUN =  agfit4.c \
         agsurv4.c agsurv5.c \
-        concordance1.c concordance3.c coxcount1.c \
+        concordance3.c coxcount1.c \
         coxexact.c \
 	survfitci.c \
 	survfitkm.c \

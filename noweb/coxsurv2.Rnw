@@ -32,87 +32,87 @@ survfitcoxph.fit <- function(y, x, wt, x2, risk, newrisk, strata, se.fit,
     names(survlist) <- ustrata
 
     
-if (ny==3 & has.id) {
-    id <- as.integer(id)
-    index <- order(id, y[,2])
-    firstid <- !duplicated(id[index])
-    lastid  <- !duplicated(id[index], fromLast=TRUE)
-    position <- ifelse(firstid, 1L, 0L)+ ifelse(lastid, 2L, 0L)
-    # the next obs is the same id, but there is a time gap
-    gap <- (diff(id[index])==0 & y[index[-length(index)],2] != y[index[-1],1])
-    position[gap] <- position[gap] + 2L  
-    position[which(gap)+1L] <- position[which(gap) +1L] +1L
-    position[index] <- position   # return it to data order
-} 
-else position <- integer(0)
+    if (ny==3 & has.id) {
+        id <- as.integer(id)
+        index <- order(id, y[,2])
+        firstid <- !duplicated(id[index])
+        lastid  <- !duplicated(id[index], fromLast=TRUE)
+        position <- ifelse(firstid, 1L, 0L)+ ifelse(lastid, 2L, 0L)
+        # the next obs is the same id, but there is a time gap
+        gap <- (diff(id[index])==0 & y[index[-length(index)],2] != y[index[-1],1])
+        position[gap] <- position[gap] + 2L  
+        position[which(gap)+1L] <- position[which(gap) +1L] +1L
+        position[index] <- position   # return it to data order
+    } 
+    else position <- integer(0)
 
-if (length(xlev) ==1) {# only one group
-    if (ny==2) {
-        sort1 <- NULL
-        sort2 <- order(y[,1]) 
-    }
-    else {
-        sort2 <- order(y[,2])
-        sort1 <- order(y[,1])
-    }
-    toss <- (y[sort2, ny-1] < start.time)
-    if (any(toss)) {
-        # Some obs were removed by the start.time argument
-        sort2 <- sort2[!toss]
-        if (ny ==3) {
-            index <- match(which(toss), sort1)
-            sort1 <- sort1[-index]
-        }
-    }  
-    n.used <- length(sort2)
-    if (ncluster > 0)
-        cfit <- .Call(Csurvfitkm, y, weights, sort1-1L, sort2-1L, type, 
-                               cluster-1L, ncluster, position, influence)
-    else cfit <- .Call(Csurvfitkm, y, weights, sort1-1L, sort2-1L, type,
-                              0L, 0L, position, influence)
-} else {
-    # multiple groups
-    ngroup <- length(xlev)
-    cfit <- vector("list", ngroup)
-    n.used <- integer(ngroup)
-    if (influence) clusterid <- cfit # empty list of group id values
-    for (i in 1:ngroup) {
-        keep <- which(x==i & y[,ny-1] >= start.time)
-        if (length(keep) ==0) next;  # rare case where all are < start.time
-        ytemp <- y[keep,]
-        n.used[i] <- nrow(ytemp)
+    if (length(xlev) ==1) {# only one group
         if (ny==2) {
             sort1 <- NULL
-            sort2 <- order(ytemp[,1]) 
+            sort2 <- order(y[,1]) 
         }
         else {
-            sort2 <- order(ytemp[,2])
-            sort1 <- order(ytemp[,1])
+            sort2 <- order(y[,2])
+            sort1 <- order(y[,1])
         }
- 
-        # Cluster is a nuisance: every curve might have a different set
-        #  We need to relabel them from 1 to "number of unique clusters in this
-        #  curve for the C routine
-        if (ncluster > 0) {
-            c2 <- cluster[keep]
-            c.unique <- sort(unique(c2))
-            nc <- length(c.unique)
-            c2 <- match(c2, c.unique)  # renumber them
-            if (influence >0) {
-                clusterid[[i]] <-c.unique
+        toss <- (y[sort2, ny-1] < start.time)
+        if (any(toss)) {
+            # Some obs were removed by the start.time argument
+            sort2 <- sort2[!toss]
+            if (ny ==3) {
+                index <- match(which(toss), sort1)
+                sort1 <- sort1[-index]
             }
-        }
-        
-        if (ncluster > 0) 
-            cfit[[i]] <- .Call(Csurvfitkm, ytemp, weights[keep], sort1 -1L, 
-                           sort2 -1L, type,
-                           c2 -1L, length(c.unique), position, influence)
-        else cfit[[i]] <- .Call(Csurvfitkm, ytemp, weights[keep], sort1 -1L, 
-                           sort2 -1L, type,
+        }  
+        n.used <- length(sort2)
+        if (ncluster > 0)
+            cfit <- .Call(Csurvfitkm, y, weights, sort1-1L, sort2-1L, type, 
+                          cluster-1L, ncluster, position, influence)
+        else cfit <- .Call(Csurvfitkm, y, weights, sort1-1L, sort2-1L, type,
                            0L, 0L, position, influence)
+    } else {
+        # multiple groups
+        ngroup <- length(xlev)
+        cfit <- vector("list", ngroup)
+        n.used <- integer(ngroup)
+        if (influence) clusterid <- cfit # empty list of group id values
+        for (i in 1:ngroup) {
+            keep <- which(x==i & y[,ny-1] >= start.time)
+            if (length(keep) ==0) next;  # rare case where all are < start.time
+            ytemp <- y[keep,]
+            n.used[i] <- nrow(ytemp)
+            if (ny==2) {
+                sort1 <- NULL
+                sort2 <- order(ytemp[,1]) 
+            }
+            else {
+                sort2 <- order(ytemp[,2])
+                sort1 <- order(ytemp[,1])
+            }
+        
+            # Cluster is a nuisance: every curve might have a different set
+            #  We need to relabel them from 1 to "number of unique clusters in
+            #  this curve for the C routine
+            if (ncluster > 0) {
+                c2 <- cluster[keep]
+                c.unique <- sort(unique(c2))
+                nc <- length(c.unique)
+                c2 <- match(c2, c.unique)  # renumber them
+                if (influence >0) {
+                    clusterid[[i]] <-c.unique
+                }
+            }
+        
+            if (ncluster > 0) 
+                cfit[[i]] <- .Call(Csurvfitkm, ytemp, weights[keep], sort1 -1L, 
+                                   sort2 -1L, type, c2 -1L,
+                                   length(c.unique), position, influence)
+            else cfit[[i]] <- .Call(Csurvfitkm, ytemp, weights[keep], 
+                                    sort1 -1L, sort2 -1L, type,
+                                    0L, 0L, position, influence)
+        }
     }
-}
-@
+
     for (i in 1:nstrata) {
         indx <- which(strata== ustrata[i])
 
