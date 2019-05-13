@@ -69,7 +69,7 @@ coxph.detail <-  function(object, riskmat=FALSE) {
 	                  rmat = rmat,
 	                  nrisk2 = double(ndeath),
 			  double(nvar*(3 + 2*nvar)))
-     keep <- 1:ff$ndeath
+    keep <- 1:ff$ndeath
     vname<- dimnames(x)[[2]]
     time <- y[ff$index[keep],2]
     names(time) <- NULL
@@ -78,7 +78,7 @@ coxph.detail <-  function(object, riskmat=FALSE) {
     var <- array(ff$i, c(nvar, nvar, ndeath))[,,keep]
     if (riskmat) {
 	rmat <- matrix(0, n, ff$ndeath)
-	rmat[ord,] <- ff$rmat[1:(n*ff$ndeath)]  # in the order of orig data
+	rmat[,] <- ff$rmat[1:(n*ff$ndeath)]  #in time order
 	dimnames(rmat) <- list(NULL, time)
 	}
 

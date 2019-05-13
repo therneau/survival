@@ -1,13 +1,28 @@
-\subsubsection{Single state models}
 %
 % Second part of coxsurv.Rnw, broken in two to make it easier for me
 %   to work with emacs.
-Now, we're ready to do the main compuation.   
-This part of the routine has had 3 major versions: the
-initial code in C, a second version in R, and finally this version in
-C again.  The last was due to the addition of robust variance, which
-is computationally intensive.
-The resulting C code is quite close to that for survfitKM
+Now, we're ready to do the main compuation.                             %'
+Before this revision (the one documented here using noweb)
+there were three C routines used in calculating survival after a Cox model
+\begin{enumerate}
+  \item agsurv1 creates a single curve, but for the most general case of a
+    \emph{covariate path}.  It is used for time dependent covariates.
+  \item agsurv2 creates a set of curves.  These curves are for a fixed
+    covariate set, although (start, stop] data is supported. If there were
+    3 strata in the fit and 4 covariate sets are given, the result will be
+    12 curves.  
+  \item agsurv3 is used to create population survival curves.  The result is
+    average survival curve (for 3 different definitions of 'average').  If 
+    there were 3 strata and 100 subjects, the first curve returned would be
+    the average for those 100 individual curves in strata 1, the second for
+    strata 2, and the third for strata 3.
+\end{enumerate}
+
+In June 2010 the first two were re-written in (mostly) R, in the process of
+adding functionality and repairing some flaws in the computation of a 
+weighted variance.
+In effect, the changes are similar to the rewrite of the survfitKM function
+a few years before. (2019: The survfitkm function has now moved back to C.) 
 
 Computations are separate for each strata, and each strata will 
 have a different number of time points in the result.
@@ -17,13 +32,19 @@ At the end we unlist the individual components one by one.
 This is memory efficient, the number
 of curves is usually small enough that the "for" loop is no great
 cost, and it's easier to see what's going on than C code.  
+The computational exception is a model with thousands of strata, e.g., a matched
+logistic, but in that case survival curves are useless.  
+(That won't stop some u           
 
-The setup and work is very much a reprise of survfitKM.             
-
+First, compute the baseline survival curves for each strata.  If the strata
+was a factor produced output curves in that order, otherwise in sorted order.
+This fitting routine was set out as a separate function for the sake of the rms
+package.  They want to utilize the computation, but have a diffferent 
+process to create the x and y data.
 <<survfitcoxph.fit>>=
 survfitcoxph.fit <- function(y, x, wt, x2, risk, newrisk, strata, se.fit,
-                              survtype, vartype, varmat, id, newid, 
-                              y2, strata2,
+                              stype, ctype, varmat, oldid, cluster,
+                              id, y2, strata2,
                               unlist=TRUE) {
     if (is.factor(strata)) ustrata <- levels(strata)
     else                   ustrata <- sort(unique(strata))
@@ -31,91 +52,8 @@ survfitcoxph.fit <- function(y, x, wt, x2, risk, newrisk, strata, se.fit,
     survlist <- vector('list', nstrata)
     names(survlist) <- ustrata
 
-    
-    if (ny==3 & has.id) {
-        id <- as.integer(id)
-        index <- order(id, y[,2])
-        firstid <- !duplicated(id[index])
-        lastid  <- !duplicated(id[index], fromLast=TRUE)
-        position <- ifelse(firstid, 1L, 0L)+ ifelse(lastid, 2L, 0L)
-        # the next obs is the same id, but there is a time gap
-        gap <- (diff(id[index])==0 & y[index[-length(index)],2] != y[index[-1],1])
-        position[gap] <- position[gap] + 2L  
-        position[which(gap)+1L] <- position[which(gap) +1L] +1L
-        position[index] <- position   # return it to data order
-    } 
-    else position <- integer(0)
-
-    if (length(xlev) ==1) {# only one group
-        if (ny==2) {
-            sort1 <- NULL
-            sort2 <- order(y[,1]) 
-        }
-        else {
-            sort2 <- order(y[,2])
-            sort1 <- order(y[,1])
-        }
-        toss <- (y[sort2, ny-1] < start.time)
-        if (any(toss)) {
-            # Some obs were removed by the start.time argument
-            sort2 <- sort2[!toss]
-            if (ny ==3) {
-                index <- match(which(toss), sort1)
-                sort1 <- sort1[-index]
-            }
-        }  
-        n.used <- length(sort2)
-        if (ncluster > 0)
-            cfit <- .Call(Csurvfitkm, y, weights, sort1-1L, sort2-1L, type, 
-                          cluster-1L, ncluster, position, influence)
-        else cfit <- .Call(Csurvfitkm, y, weights, sort1-1L, sort2-1L, type,
-                           0L, 0L, position, influence)
-    } else {
-        # multiple groups
-        ngroup <- length(xlev)
-        cfit <- vector("list", ngroup)
-        n.used <- integer(ngroup)
-        if (influence) clusterid <- cfit # empty list of group id values
-        for (i in 1:ngroup) {
-            keep <- which(x==i & y[,ny-1] >= start.time)
-            if (length(keep) ==0) next;  # rare case where all are < start.time
-            ytemp <- y[keep,]
-            n.used[i] <- nrow(ytemp)
-            if (ny==2) {
-                sort1 <- NULL
-                sort2 <- order(ytemp[,1]) 
-            }
-            else {
-                sort2 <- order(ytemp[,2])
-                sort1 <- order(ytemp[,1])
-            }
-        
-            # Cluster is a nuisance: every curve might have a different set
-            #  We need to relabel them from 1 to "number of unique clusters in
-            #  this curve for the C routine
-            if (ncluster > 0) {
-                c2 <- cluster[keep]
-                c.unique <- sort(unique(c2))
-                nc <- length(c.unique)
-                c2 <- match(c2, c.unique)  # renumber them
-                if (influence >0) {
-                    clusterid[[i]] <-c.unique
-                }
-            }
-        
-            if (ncluster > 0) 
-                cfit[[i]] <- .Call(Csurvfitkm, ytemp, weights[keep], sort1 -1L, 
-                                   sort2 -1L, type, c2 -1L,
-                                   length(c.unique), position, influence)
-            else cfit[[i]] <- .Call(Csurvfitkm, ytemp, weights[keep], 
-                                    sort1 -1L, sort2 -1L, type,
-                                    0L, 0L, position, influence)
-        }
-    }
-
     for (i in 1:nstrata) {
         indx <- which(strata== ustrata[i])
-
         survlist[[i]] <- agsurv(y[indx,,drop=F], x[indx,,drop=F], 
                                 wt[indx], risk[indx],
                                 survtype, vartype)
@@ -178,7 +116,7 @@ survfitcoxph.fit <- function(y, x, wt, x2, risk, newrisk, strata, se.fit,
 @ 
 
 In an ordinary survival curve object with multiple strata, as produced by
-\code{survfitKM}, the time, survival and etc components are each a
+[[survfitKM]], the time, survival and etc components are each a
 single vector that contains the results for strata 1, followed by
 strata 2, \ldots.  The strata compontent is a vector of integers, one
 per strata, that gives the number of elements belonging to each stratum.
@@ -186,11 +124,11 @@ The reason is that each strata will have a different number of observations,
 so that a matrix form was not viable, and the underlying C routines were
 not capable of handling lists (the code predates the .Call function by 
 a decade).  
-The underlying computation of \code{survfitcoxph.fit} naturally creates the list
-form, we unlist it to \code{survfit} form as our last action unless the 
+The underlying computation of [[survfitcoxph.fit]] naturally creates the list
+form, we unlist it to [[survfit]] form as our last action unless the 
 caller requests otherwise.
 
-For \code{individual=FALSE} we have a second dimension, namely each of the
+For [[individual=FALSE]] we have a second dimension, namely each of the
 target covariate sets (if there are multiples).  Each of these generates
 a unique set of survival and variance(survival) values, but all of the 
 same size since each uses all the strata.  The final output structure in
@@ -203,7 +141,7 @@ If $\Lambda_0$ is the baseline cumulative hazard from the
 above calculation, then $r_i \Lambda_0$ is the cumulative
 hazard for the $i$th new risk score $r_i$.
 The variance has two parts, the first of which is $r_i^2 H_1$ where
-$H_1$ is returned from the \code{agsurv} routine, and the second is
+$H_1$ is returned from the [[agsurv]] routine, and the second is
 \begin{align*}
   H_2(t) =& d'(t) V d(t) \\                                        %'
   d(t) = \int_0^t [z- \overline x(s)] d\Lambda(s)
@@ -249,31 +187,31 @@ expand <- function(fit, x2, varmat, se.fit) {
     fit
     }
 @
-In the lines just above: I have a matrix \code{dt} with one row per death
+In the lines just above: I have a matrix [[dt]] with one row per death
 time and one column per variable.  For each row $d_i$ separately we
 want the quadratic form $d_i V d_i'$.  The first matrix product can     %'
 be done for all rows at once: found in the inner parenthesis.
 Ordinary (not matrix) multiplication followed by rowsums does the rest
 in one fell swoop.
     
-Now, if \code{id} is missing we can simply apply the \code{expand} function
+Now, if [[id]] is missing we can simply apply the [[expand]] function
 to each strata.
-For the case with \code{id} not missing, we create a single survival
+For the case with [[id]] not missing, we create a single survival
 curve for each unique id (subject). 
 A subject will spend blocks of time with different covariate sets,
 sometimes even jumping between strata.  Retrieve each one and save it into
 a list, and then sew them together end to end.
-The \code{n} component is the number of observations in the strata --- but this
+The [[n]] component is the number of observations in the strata --- but this
 subject might visit several.  We report the first one they were in for
 printout.
-The \code{time} component will be cumulative on this subject's scale.     %'
+The [[time]] component will be cumulative on this subject's scale.     %'
 Counting this is a bit trickier than I first thought.  Say that the
 subject's first interval goes from 1 to 10, with observed time points in
 that interval at 2, 5, and 7, and a second interval from 12 to 20  with
 observed time points in the data of 15 and 18.  On the subject's time
 scale things happen at days 1, 4, 6, 12 and 15.  The deltas saved below
 are 2-1, 5-2, 7-5, 3+ 14-12, 17-14.  Note the 3+ part, kept 
-in the \code{timeforward} variable.
+in the [[timeforward]] variable.
 Why all this ``adding up'' nuisance?  If the subject spent time in two
 strata, the second one might be on an internal time scale of `time since
 entering the strata'.  The two intervals in newdata could be 0--10 followed
@@ -281,7 +219,7 @@ by 0--20.  Time for the subject can't go backwards though: the change    %`
 between internal/external time scales is a bit like following someone who 
 was stepping back and forth over the international date line.
 
-In the code the \code{indx} variable points to the set of times that the
+In the code the [[indx]] variable points to the set of times that the
 subject was present, for this row of the new data.  Note the $>$ on 
 one end and $\le$ on the other.  If someone's interval 1 was 0--10 and
 interval 2 was 10--20, and there happened to be a jump in the baseline
@@ -362,21 +300,21 @@ else {
     }
 @ 
 
-Next is the code for the \code{agsurv} function, which actually does the work.
+Next is the code for the [[agsurv]] function, which actually does the work.
 The estimates of survival are the Kalbfleisch-Prentice (KP), Breslow, and
 Efron.  Each has an increment at each unique death time.
 First a bit of notation:
 $Y_i(t)$ is 1 if bservation $i$ is ``at risk'' at time $t$ and 0 otherwise.
-For a simple surivival (\code{ncol(y)==2}) a subject is at risk until the
-time of censoring or death (first column of \code{y}).
-For (start, stop] data (\code{ncol(y)==3}) a subject becomes a
+For a simple surivival ([[ncol(y)==2]]) a subject is at risk until the
+time of censoring or death (first column of [[y]]).
+For (start, stop] data ([[ncol(y)==3]]) a subject becomes a
 part of the risk set at start+0 and stays through stop.  
 $dN_i(t)$ will be 1 if subject $i$ had an event at time $t$.
 The risk score for each subject is $r_i = \exp(X_i \beta)$. 
 
 The Breslow increment at time $t$ is $\sum w_i dN_i(t) / \sum  w_i r_i Y_i(t)$,
 the number of events at time $t$ over the number at risk at time $t$.
-The final survival is \code{exp(-cumsum(increment))}.
+The final survival is [[exp(-cumsum(increment))]].
 
 The Kalbfleish-Prentice increment is a multiplicative term $z$
 which is the solution to the equation
@@ -409,7 +347,7 @@ at the longest followup time and summing towards the shortest.
 There are two algorithms for (start, stop] data. 
 \begin{itemize}
   \item Do a separate sum at each death time.  The problem is for very large
-    data sets.  For each death time the selection \code{who <- (start<t & stop>=t)}
+    data sets.  For each death time the selection [[who <- (start<t & stop>=t)]]
     is $O(n)$ and can take more time then all the remaining calculations 
     together.
   \item Use the difference of two cumulative sums, one ordered by start time
@@ -419,13 +357,13 @@ There are two algorithms for (start, stop] data.
     This issue is mostly precluded by subtracting means first.
 \end{itemize}
 We compute the extended number still at risk --- all whose stop time
-is $\ge$ each unique death time --- in the vector \code{xin}.  From
+is $\ge$ each unique death time --- in the vector [[xin]].  From
 this we have to subtract all those who haven't actually entered yet       %'
-found in \code{xout}.  Remember that (3,20] enters at time 3+.
+found in [[xout]].  Remember that (3,20] enters at time 3+.
 The total at risk at any time is the difference between them.  
 Output is only for the
 stop times; a call to approx is used to reconcile the two time sets.
-The \code{irisk} vector is for the printout, it is a sum of weighted counts
+The [[irisk]] vector is for the printout, it is a sum of weighted counts
 rather than weighted risk scores.
 <<agsurv>>=
 agsurv <- function(y, x, wt, risk, survtype, vartype) {
@@ -571,22 +509,22 @@ On output the values are
   \item d=0: the outputs are unchanged (they initialize at 0)
   \item d=1
     \begin{description}
-      \item[sum1]  \code{1/x1}
-      \item[sum2]  \code{1/x1^2}
-      \item[xbar]  \code{xsum/x1^2}
+      \item[sum1]  [[1/x1]]
+      \item[sum2]  [[1/x1^2]]
+      \item[xbar]  [[xsum/x1^2]]
     \end{description}
     \item d=2
       \begin{description}
-        \item[sum1] (1/2) \code{( 1/x1 + 1/(x1 - x2/2))}
+        \item[sum1] (1/2) [[( 1/x1 + 1/(x1 - x2/2))]]
         \item[sum2] (1/2) (  same terms, squared)
-        \item[xbar] (1/2) \code{(xsum/x1^2 + (xsum - 1/2 x3)/(x1- x2/2)^2)}
+        \item[xbar] (1/2) [[(xsum/x1^2 + (xsum - 1/2 x3)/(x1- x2/2)^2)]]
     \end{description}
     \item d=3
       \begin{description}
-        \item[sum1] (1/3) \code{(1/x1 + 1/(x1 - x2/3 + 1/(x1 - 2*x2/3))}
+        \item[sum1] (1/3) [[(1/x1 + 1/(x1 - x2/3 + 1/(x1 - 2*x2/3))]]
         \item[sum2] (1/3) (  same terms, squared)
-        \item[xbar] (1/3) \code{(xsum/x1^2 + (xsum - 1/3 xsum2)/(x1- x2/3)^2 + }\\
-          \code{(xsum - 2/3 xsum2)/(x1- 2/3 x3)^2)}
+        \item[xbar] (1/3) [[(xsum/x1^2 + (xsum - 1/3 xsum2)/(x1- x2/3)^2 + ]]\\
+          [[(xsum - 2/3 xsum2)/(x1- 2/3 x3)^2)]]
       \end{description}
     \item etc
 \end{itemize}

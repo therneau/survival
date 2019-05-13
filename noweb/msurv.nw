@@ -257,8 +257,8 @@ So the $jk$ element is the (weighted) fraction who change from state $j$
 to state $k$, and the $jj$ element the fraction who stay put.
 Each row of $H$ by definition sums to 1.  
 If no one is in the state then the $jj$ element is set to 1.
-A second version which we call H2 has 1 subtracted from each diagonal and so
-that the row sums are 0, we go back and
+A second version which we call H2 has 1 subtracted from each diagonal giving
+row sums are 0, we go back and
 forth depending on which is needed at the moment.
 If there are no events at this time point $P$ and $U$ do not update.
 <<survfitci-compute-matrices>>=

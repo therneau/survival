@@ -25,8 +25,7 @@ survfitcoxph.fit2 <- function (y, x, wt, x2, risk, newrisk, strata, cmap,
         survlist[[i]] <- agsurv2(y[indx,,drop=F], x[indx,,drop=F], 
                                  wt[indx], risk[indx],
                                  stype, ctype, cmap, states)
-        }
-                
+        }               
  @
 
 

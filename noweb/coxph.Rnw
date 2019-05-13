@@ -30,9 +30,9 @@ The analysis for multi-state data is a bit more complex.
 #tt <- function(x) x
 coxph <- function(formula, data, weights, subset, na.action,
 	init, control, ties= c("efron", "breslow", "exact"),
-	singular.ok =TRUE, robust=FALSE,
+	singular.ok =TRUE,  robust,
 	model=FALSE, x=FALSE, y=TRUE,  tt, method=ties, 
-        id, cluster, istate, statedata, ...) {
+        id, cluster, istate, statedata,...) {
 
     ties <- match.arg(ties)
     Call <- match.call()
@@ -121,7 +121,6 @@ coxph <- function(formula, data, weights, subset, na.action,
     if (!multi && multiform)
         stop("formula is a list but the response is not multi-state")
 
-browser()
     # Grab the id variable to check out multi-state data
     id <- model.extract(mf, "id")
     if (multi) {
@@ -733,6 +732,7 @@ We instead assume that nothing is reordered and do a shift.
 attr(Terms, "intercept") <- 1
 stemp <- untangle.specials(Terms, 'strata', 1)
 hasinteractions <- FALSE
+dropterms <- NULL
 if (length(stemp$vars) > 0) {  #if there is a strata statement
     for (i in stemp$vars) {  #multiple strata terms are allowed
         # The factors attr has one row for each variable in the frame, one
@@ -741,7 +741,7 @@ if (length(stemp$vars) > 0) {  #if there is a strata statement
         if (any(attr(Terms, 'order')[attr(Terms, "factors")[i,] >0] >1))
             hasinteractions <- TRUE  
         }
-    if (!hasinteractions) dropterms <- c(dropterms, stemp$terms) 
+    if (!hasinteractions) dropterms <- stemp$terms 
 }
 
 if (length(dropterms)) {
@@ -1039,7 +1039,8 @@ ignored.  I've not yet found a solution.
 <<model.matrix.coxph>>=
 model.frame.coxph <- function(formula, ...) {
     dots <- list(...)
-    nargs <- dots[match(c("data", "na.action", "subset", "weights"), 
+    nargs <- dots[match(c("data", "na.action", "subset", "weights",
+                          "id", "cluster", "istate"), 
                         names(dots), 0)] 
     # If nothing has changed and the coxph object had a model component,
     #   simply return it.
@@ -1048,7 +1049,8 @@ model.frame.coxph <- function(formula, ...) {
         # Rebuild the original call to model.frame
         Terms <- terms(formula)
         fcall <- formula$call
-        indx <- match(c("formula", "data", "weights", "subset", "na.action"),
+        indx <- match(c("formula", "data", "weights", "subset", "na.action",
+                        "cluster", "id", "istate"),
                   names(fcall), nomatch=0) 
         if (indx[1] ==0) stop("The coxph call is missing a formula!")
    

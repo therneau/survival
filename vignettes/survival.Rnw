@@ -245,9 +245,9 @@ A simple example of competing risks is the MGUS data set, a state
 space diagrem for the model is shown below with plasma cell malignancy (PCM)
 and death as the endpoints.
 The \code{mgus2} data set has separate variables for time to progression
-and time to death.  Because a few subjects had progression detected
-at autopsy, we first need to resolve the ties and then create the multi-state
-data set.
+and time to death.  
+Nine subjects had progression detected at autopsy, for those we move the
+progression time 1 month earlier to avoid ties.
 
 <<mstate>>=
 states <- c("MGUS", "PCM", "Death")
@@ -255,6 +255,7 @@ tmat <- matrix(c(0,0,0, 1,0,0, 1,0,0), 3,3,
                dimnames=list(states, states))
 statefig(1:2, tmat)
 
+# modified progression time, = -1 month if tied with death
 temp <- with(mgus2, ifelse(pstat==0, NA,
                            ifelse(ptime==futime, ptime-1, ptime)))
 mdata <- tmerge(mgus2[,1:7], mgus2, id=id, event= event(futime, 2*death),

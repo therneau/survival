@@ -87,7 +87,8 @@ concordance(object, \ldots)
   \item{keepstrata}{either TRUE, FALSE, or an integer value.
     Computations are always done within stratum, then added. If the
     total number of strata greater than \code{keepstrata}, or
-    \code{keepstrata=FALSE}, those subtotals are not kept in the output.}
+    \code{keepstrata=FALSE}, those subtotals are not kept in the output.
+    }
 }
 \details{
   At each event time, compute the rank of the subject who had the

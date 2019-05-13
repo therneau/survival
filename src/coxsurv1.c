@@ -4,15 +4,17 @@
 ** This is modification of the survfitkm.c routine, reference it's
 **  documentation for much of the flow of the code.  There are three small
 **  additions: the denominator terms add up w_i r_i instead of w_i,
-**  for the Efron approx we need the sum of wr for the deaths (and sum w),
-**  and we return xbar(t), needed by the parent routine.
+**  for the Efron approx we need the sum of w_i r_i for the deaths (and sum w),
+**  and we return cumsum(xbar(t) dLambda(t)) and cumsum(dLambda(t)), which are 
+**  needed by the parent routine.  (The pair are a matrix with one more
+**  column for the intercept.)
 */
 
 #include <math.h>
 #include "survS.h"
 #include "survproto.h"
 
-SEXP survfitkm(SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22, 
+SEXP coxsurv1(SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22, 
                SEXP type2, SEXP id2, SEXP nid2,   SEXP position2,
                SEXP influence2,  SEXP xmat2, SEXP risk2) {
               
@@ -35,11 +37,15 @@ SEXP survfitkm(SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22,
     int n1, n2, n3, n4;
     int *position=0, hasid;
     double wt1, wt2, wt3, wt4;
+
+
                       
     /* output variables */
     double  *n[10],  *dtime,
             *kvec, *nvec, *std[2], *imat1=0, *imat2=0; /* =0 to silence -Wall*/
-    double  *xbar;
+    double  *xsum,      /* a weighted sum, for computing xbar */
+	    *xdlam,     /* running sum of (1, xbar) dLambda(t) */
+	    *xdlam2;    /* pointer to the return matrix */
     double km, nelson;  /* current estimates */
 
     /* map the input data */
@@ -106,12 +112,10 @@ SEXP survfitkm(SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22,
     std[0] = REAL(SET_VECTOR_ELT(rlist, 3, allocMatrix(REALSXP, ntime,2)));
     std[1] = std[0] + ntime;
 
-    xbar = REAL(SET_VECTOR_ELT(rlist, 6, allocMatrix(REALSXP, ntime, nvar))); 
-  
     if (nid >0 ) { /* robust variance */
-        gcount = (int *) R_alloc(nid, sizeof(int));
+        gcount = (int *) ALLOC(nid, sizeof(int));
         if (type <3) {  /* working vectors for the influence */
-            gwt  = (double *) R_alloc(3*nid, sizeof(double)); 
+            gwt  = (double *) ALLOC(3*nid, sizeof(double)); 
             inf1 = gwt + nid;
             inf2 = inf1 + nid; 
             for (i=0; i< nid; i++) {
@@ -122,7 +126,7 @@ SEXP survfitkm(SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22,
             }
         }
         else {
-            gwt = (double *) R_alloc(2*nid, sizeof(double));
+            gwt = (double *) ALLOC(2*nid, sizeof(double));
             inf2 = gwt + nid;
             for (i=0; i< nid; i++) {
                 gwt[i] =0.0;
@@ -145,9 +149,10 @@ SEXP survfitkm(SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22,
                                allocMatrix(REALSXP, nid, ntime))); 
     }
 
-    xsum = R_ALLOC(nvar + ntime);    /* scratch memory for xbar and n4b*/
-    n4b = xsum + nvar;
-    for (i=0; i<nvar; i++) xsum[i] =0;
+    xsum = (double *)ALLOC(1 + 2*nvar + ntime, sizeof(double)); /* scratch */
+    xdlam = xsum + nvar;
+    n4b = xdlam + nvar +1;
+    for (i=0; i<= 2*nvar; i++) xsum[i] =0;
 
     R_CheckUserInterrupt();  /*check for control-C */
     person = nused-1;
@@ -172,7 +177,7 @@ SEXP survfitkm(SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22,
                 n3++;
                 wt3 += wt[i2];
             }
-	    for (kk=0; kk<nvar; kk++) xsum[kk] += wt[i2]* xmat[kk, i2];
+	    for (kk=0; kk<nvar; kk++) xsum[kk] += wt[i2]* xmat[kk][i2];
 
             person--;
             i2 = sort2[person];
@@ -194,7 +199,7 @@ SEXP survfitkm(SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22,
 		if (wt1==0) {
 		    for (kk=0; kk<nvar; kk++) xsum[kk] =0;
 		} else {
-		    for (kk=0; kk<nvar; kk++) xsum[kk] -= wt[j2] * xmat[kk, j2];
+		    for (kk=0; kk<nvar; kk++) xsum[kk] -= wt[j2] * xmat[kk][j2];
 		}	
 
                 j--;
@@ -209,7 +214,13 @@ SEXP survfitkm(SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22,
         n[0][k] = n1;  n[1][k]=n2;  n[2][k]=n3;
         n[3][k] = wt1; n[4][k]=wt2; n[5][k]=wt3;
 	n4b[k] = wt2b;
-	for (kk=0; kk<nvar; kk++) *xbar++ = xsum[kk]/wt1;
+        
+	for (kk=0; kk<nvar; kk++) {
+	    xdlam[kk] += (wt2/wt1) * (xsum[kk]/wt1);
+	    *xdlam2++ = (xsum[kk]/wt1)*(wt2/wt1);
+	}
+	xdlam[nvar] += (wt2/wt1);  /* the 'intercept' dN */
+	*xdlam2++ = xdlam[nvar];
     }
 
     if (ny ==3) {   /* fill in number entered for the initial interval */
@@ -235,12 +246,12 @@ SEXP survfitkm(SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22,
                 if (n[1][i]>0 && n[4][i]>0) {  /* at least one event with wt>0*/
                     nelson += n[4][i]/n[3][i];
                     v2 += n[4][i]/(n[3][i]*n[3][i]);
-                    }
+		}
 
                 nvec[i] = nelson;
                 std[0][i] = sqrt(v2);
                 std[1][i] = sqrt(v2);
-                }
+	    }	
        } else {              /* Fleming hazard */
             for (i=0; i<ntime; i++) {
                 for (j=0; j<n[1][i]; j++) {
@@ -252,7 +263,7 @@ SEXP survfitkm(SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22,
                 nvec[i] = nelson;
                 std[0][i] = sqrt(v2);
                 std[1][i] = sqrt(v2);
-            }
+            }	
         }
 
         if (type < 3) {  /* KM survival -- this formula is unsure */
@@ -304,7 +315,7 @@ SEXP survfitkm(SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22,
                         inf1[k] = inf1[k] *(1.0 -haz) + gwt[k]*km*haz/n[3][i];
                         inf2[k] -= gwt[k] * haz/n[3][i];
                     }
-                    for (; person<nused && stime[sort2[person]]==dtime[i]; person++) { 
+                    for (; person<nused && stime[sort2[person]]==dtime[i]; person++) { 	
                         /* catch the endpoints up to this event time */
                         i2 = sort2[person];
                         if (status[i2]==1) {
@@ -322,7 +333,7 @@ SEXP survfitkm(SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22,
                     for (k=0; k<nid; k++) {
                         v1 += inf1[k]*inf1[k];
                         v2 += inf2[k]*inf2[k];
-                    }
+                    }	
                 } else {  /* only need to udpate weights */
                     for (; person<nused && stime[sort2[person]]==dtime[i]; person++) { 
                         i2 = sort2[person];
@@ -542,3 +553,4 @@ SEXP survfitkm(SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22,
     UNPROTECT(1);
     return(rlist);
 }
+    

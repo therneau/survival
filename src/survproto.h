@@ -142,6 +142,11 @@ void coxscore(Sint   *nx,      Sint   *nvarx,    double *y,
 	      double *scratch);
 
 double coxsafe(double x);
+
+SEXP coxsurv1(SEXP y2,    SEXP weight2, SEXP sort12, SEXP sort22, 
+              SEXP type2, SEXP id2,     SEXP nid2,   SEXP position2,
+              SEXP influence2,  SEXP xmat2, SEXP risk2);
+
 double **dmatrix(double *array, int nrow, int ncol);
 int    **imatrix(int *array, int nrow, int ncol);
 
