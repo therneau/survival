@@ -9,9 +9,9 @@ hazards model.
 }
 \usage{
 \method{survfit}{coxph}(formula, newdata, 
-        se.fit=TRUE, conf.int=.95,
+        se.fit=TRUE, conf.int=.95, individual=FALSE, stype=2, ctype,
         conf.type=c("log","log-log","plain","none", "logit", "arcsin"),
-        censor=TRUE, newid, start.time, cluster, influence=FALSE,
+        censor=TRUE, start.time, id, influence=FALSE,
         na.action=na.pass, ...)
 }
 \arguments{
@@ -28,15 +28,21 @@ hazards model.
     Default is the mean of the covariates used in the 
     \code{coxph} fit. 
   }
-  \item{conf.int}{
-    the level for a two-sided confidence interval on the survival curve(s). 
-    Default is 0.95. 
-  }
   \item{se.fit}{
     a logical value indicating whether standard errors should be 
     computed.  Default is \code{TRUE}. 
   }
- 
+
+  \item{conf.int}{
+    the level for a two-sided confidence interval on the survival curve(s). 
+    Default is 0.95. 
+  }
+  \item{individual}{depricated argument, replaced by the general
+    \code{id}}
+  \item{stype}{computation of the survival curve, 1=direct, 2=
+    exponenial of the cumulative hazard.}
+  \item{ctype}{whether the cumulative hazard computation should have a
+    correction for ties, 1=no, 2=yes.}
   \item{conf.type}{
     One of \code{"none"}, \code{"plain"}, \code{"log"} (the default),
     \code{"log-log"} or \code{"logit"}.  Only
@@ -51,7 +57,7 @@ hazards model.
   }
   \item{censor}{if FALSE time points at which there are no events (only
     censoring) are not included in the result.}
-  \item{newid}{optional variable name of subject identifiers.  If this is
+  \item{id}{optional variable name of subject identifiers.  If this is
     present, it will be search for in the \code{newdata} data frame.
     Each group of rows in \code{newdata} with the same subject id represents
     the covariate path through time of a single subject, and the result
@@ -59,16 +65,12 @@ hazards model.
     strata then that must also be specified in \code{newdata}.
     If \code{newid} is not present, then each
     individual row of \code{newdata} is presumed to represent a distinct
-    subject and there will be \code{nrow(newdata)} times the number of
-    strata curves in the result (one for each strata/subject combination).
-    result.}
+    subject.}
 
   \item{start.time}{optional starting time, a single numeric value.
     If present the returned curve contains survival after
     \code{start.time} conditional on surviving to \code{start.time}.
   }
-  \item{cluster}{optional vector to use for a grouped jackknife
-    variance}
   \item{influence}{option to return the influence values}
   \item{na.action}{the na.action to be used on the newdata argument}
   

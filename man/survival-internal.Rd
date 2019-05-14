@@ -45,7 +45,7 @@ survfitKM(x, y, weights=rep(1,length(x)),
                        conf.type=c('log',  'log-log',  'plain', 'none',
                                    'logit', 'arcsin'),
                        conf.lower=c('usual', 'peto', 'modified'),
-                       start.time, new.time, id, cluster,
+                       start.time, id, cluster,
                        influence=FALSE, type) 
 survfitTurnbull(x, y, weights,
                        type=c('kaplan-meier', 'fleming-harrington', 'fh2'),

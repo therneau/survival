@@ -48,7 +48,7 @@ concordance.formula <- function(object, data,
                                 ymin, ymax, 
                                 timewt=c("n", "S", "S/G", "n/G", "n/G2", "I"),
                                 influence=0, ranks=FALSE, reverse=FALSE,
-                                timefix=TRUE, keepstrata=20, ...) {
+                                timefix=TRUE, keepstrata=10, ...) {
     Call <- match.call()  # save a copy of of the call, as documentation
     timewt <- match.arg(timewt)
     if (missing(ymin)) ymin <- NULL

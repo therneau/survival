@@ -156,7 +156,7 @@ We have to repeat some lines from coxph, but to do that we need some
 further material.
 <<survfit.coxph-setup>>=
 Terms <- object$terms
-n <- cfit$n
+n <- object$n[1]
 if (!has.strata) strata <- rep(0L, n)
 else strata <- object$strata
 
@@ -236,7 +236,7 @@ if (!is.null(mf)){
             if (ncol(y2) != ncol(Y) || length(y2) != length(Y) ||
                 !(isTRUE(all.equal(Y[,1], y2[,1]))) ||
                 !(isTRUE(all.equal(Y[,2], y2[,2]))) ||
-                (ncol(y)==3 && any(Y[,3] != y2[,3])))
+                (ncol(Y)==3 && any(Y[,3] != y2[,3])))
                 stop("Could not reconstruct the y vector")
         }
     }
@@ -271,7 +271,7 @@ if (type != 'right' && type != 'counting')
 missid <- missing(id) # I need this later, and setting id below makes
                       # "missing(id)" always false
 if (!missid) individual <- TRUE
-else if (missid && individual) id <- rep(0,nrow(y))  #dummy value
+else if (missid && individual) id <- rep(0,nrow(Y))  #dummy value
 else id <- NULL
 
 if (!missid & !missing(individual))
@@ -342,7 +342,7 @@ else {
     beta <- ifelse(is.na(object$coefficients), 0, object$coefficients)
     xcenter <- sum(object$means * beta)  
     if (!is.null(object$frail)) {
-       keep <- !grepl("frailty(", dimnames(x)[[2]], fixed=TRUE)
+       keep <- !grepl("frailty(", dimnames(X)[[2]], fixed=TRUE)
        X <- X[,keep, drop=F]
     }
         
@@ -533,7 +533,11 @@ if (individual) {
 
     newrisk <- exp(c(x2 %*% beta) + offset2 - (mean(offset) + xcenter))
 browser()
-    result <- survfitcoxph.fit(Y, X, weights, x2, risk, newrisk, strata,
+    if (coxms) 
+        result <- survfitcoxph.fit2(Y, X, weights, x2, risk, newrisk, strata,
+                                se.fit, stype, ctype, varmat, oldid, cluster,
+                                id, y2, strata2)
+    else result <- survfitcoxph.fit(Y, X, weights, x2, risk, newrisk, strata,
                                 se.fit, stype, ctype, varmat, oldid, cluster,
                                 id, y2, strata2)
    }

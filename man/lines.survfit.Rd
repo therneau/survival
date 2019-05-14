@@ -13,10 +13,10 @@ generated with \code{plot.survfit}.
 \method{lines}{survfit}(x, type="s", pch=3, col=1, lty=1,
         lwd=1, cex=1, mark.time=FALSE, 
 	xscale=1, xmax, fun, conf.int=FALSE,
-        conf.times, conf.cap=.005, conf.offset=.012, mark, ...)
+        conf.times, conf.cap=.005, conf.offset=.012, mark, noplot="()", ...)
 \method{lines}{survexp}(x, type="l", ...)
 \method{points}{survfit}(x, xscale, xmax, fun, censor=FALSE, col=1, pch,
-...)
+noplot, ...)
 }
 
 \arguments{
@@ -91,6 +91,8 @@ This can be useful for fine control over the colors or line types of a plot.
     region. If this is a single number then each curve's bars are offset
     by this amount from the prior curve's bars, if it is a vector the values are
     used directly.}
+  \item{noplot}{for multi-state models, curves with this label will not
+  be plotted.  The default corresponds to an unspecified state.}
 }
 \value{
 a list with components \code{x} and \code{y}, containing the coordinates of the 

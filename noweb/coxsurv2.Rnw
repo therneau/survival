@@ -51,7 +51,9 @@ survfitcoxph.fit <- function(y, x, wt, x2, risk, newrisk, strata, se.fit,
     nstrata <- length(ustrata)
     survlist <- vector('list', nstrata)
     names(survlist) <- ustrata
-
+    survtype <- if (stype==1) else ctype
+    vartype <- 1
+        
     for (i in 1:nstrata) {
         indx <- which(strata== ustrata[i])
         survlist[[i]] <- agsurv(y[indx,,drop=F], x[indx,,drop=F], 

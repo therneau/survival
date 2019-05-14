@@ -19,7 +19,8 @@ coxph(formula, data=, weights, subset,
       na.action, init, control, 
       ties=c("efron","breslow","exact"), 
       singular.ok=TRUE, robust=FALSE, 
-      model=FALSE, x=FALSE, y=TRUE, tt, method, ...)
+      model=FALSE, x=FALSE, y=TRUE, tt, method=ties,
+      id, cluster, istate, statedata, ...)
 }
 \arguments{
   \item{formula}{
@@ -81,6 +82,17 @@ coxph(formula, data=, weights, subset,
     robust variance -- but the second
     is more flexible).
   }
+
+  \item{id}{optional variable name that identifies subjects.  Only
+    necessary when a subject can have multiple rows in the data, and
+    there is more than one event type.  This variable will normally be
+    found in \code{data}.}
+  \item{cluster}{optional variable which clusters the observations, for
+    the purposes of a robust variance.  If present, it implies
+    \code{robust}.
+    This variable will normally be found in \code{data}.}
+  \item{istate}{optional variable giving the intial state for each
+    subject. This variable will normally be found in \code{data}.}
   \item{model}{
     logical value: if \code{TRUE}, the model frame is returned in component
     \code{model}. 

@@ -64,8 +64,10 @@ coxph <- function(formula, data, weights, subset, na.action,
     if (length(tt) > 0) { # there is one
         if (!is.null(Call$cluster))
             stop("cannot have both cluster() in a formula and the cluster option")
+        # subscripting of formulas is broken at least through R 3.5, if the
+        #  formula contains an offset.
         Call$cluster <- attr(Terms, "variables")[[1+tt]][[2]]
-        newform <- formula(Terms[attr(Terms, "response")-tt])
+        newform <- formula(Terms[attr(Terms, "response")[-tt])
         if (is.list(formula)) formula[[1]] <- newform
         else formula <- newform
         Call$formula <- formula
@@ -808,8 +810,7 @@ An overall idea is to return something that won't blow up later code.
 <<coxph-zeroevent>>=
 if (sum(Y[, ncol(Y)]) == 0) {
     # No events in the data!
-    ncoef <- ncol(X)
-    ctemp <- rep (NA, ncoef)
+    ncoef <    ctemp <- rep (NA, ncoef)
     names(ctemp) <- colnames(X)
     concordance= c(concordant=0, discordant=0, tied.x=0, tied.y=0, tied.xy=0,
                    concordance=NA, std=NA, timefix=FALSE)
