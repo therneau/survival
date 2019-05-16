@@ -13,9 +13,12 @@ vcov.coxph <- function (object, complete=TRUE, ...) {
 vcov.survreg<-function (object, complete=TRUE, ...) {
     if (!complete && any(is.na(coef(object)))) {
         keep <- !is.na(coef(object))
-        object$var[keep, keep, drop=FALSE]
+        vv <- object$var[keep, keep, drop=FALSE]
     }
-    else object$var
+    else vv <- object$var
+    vname <- names(coef(object))   # add dimnames
+    dimnames(vv) <- list(vname, vname)
+    vv
 }
 
 # The extractAIC methods for coxph and survreg objects are defined
