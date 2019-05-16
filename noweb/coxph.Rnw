@@ -53,24 +53,48 @@ coxph <- function(formula, data, weights, subset, na.action,
     #  option instead.  This makes everything easier.
     if (missing(formula)) stop("a formula argument is required")
     
+    ss <- c("cluster", "offset")
     if (is.list(formula))
-        Terms <- if (missing(data)) terms(formula[[1]], specials="cluster") else
-                 terms(formula[[1]], specials="cluster")
-    else Terms <- if (missing(data)) terms(formula, specials="cluster") else
-                 terms(formula, specials="cluster")
+        Terms <- if (missing(data)) terms(formula[[1]], specials=ss) else
+                 terms(formula[[1]], specials=ss, data=data)
+    else Terms <- if (missing(data)) terms(formula, specials=ss) else
+                 terms(formula, specials=ss, data=data)
 
-    tt <- attr(Terms, 'specials')$cluster
-    if (length(tt) > 1) stop("a formula cannot have multiple cluster terms")
-    if (length(tt) > 0) { # there is one
+    tcl <- attr(Terms, 'specials')$cluster
+    if (length(tcl) > 1) stop("a formula cannot have multiple cluster terms")
+    if (length(tcl) > 0) { # there is one
         if (!is.null(Call$cluster))
-            stop("cannot have both cluster() in a formula and the cluster option")
+            stop("cannot have both cluster() in the formula and the cluster option")
         # subscripting of formulas is broken at least through R 3.5, if the
-        #  formula contains an offset.
-        Call$cluster <- attr(Terms, "variables")[[1+tt]][[2]]
-        newform <- formula(Terms[attr(Terms, "response")[-tt])
-        if (is.list(formula)) formula[[1]] <- newform
-        else formula <- newform
+        #  formula contains an offset.  Adding offset to the "specials" above
+        #  is just a sneaky way to find out if one is present, then call
+        #  reformulate ourselves.  tt is a correct index into the row labels
+        #  of the factors attribute, tt+1 to the variables attribute (which is
+        #  a list, so you have to skip the "list" call).  The term.labels attr
+        #  contains neither the response nor the offset, but does contain the
+        #  interactions, which we need.  
+        factors <- attr(Terms, 'factors')
+        if (any(factors[tcl,] >1)) stop("cluster() cannot be in an interaction")
+        if (attr(Terms, "response") ==0)
+            stop("formula must have a Surv response")
+        # reformulate with the response option puts ` ` around Surv, which messes
+        #  up evaluation, hence the fancy dance to replace a piece rather
+        #  than recreate
+        temp <- attr(Terms, "term.labels")
+        oo <- attr(Terms, 'specials')$offset
+        if (!is.null(oo)) {
+            # add the offset to the set of labels
+            ooterm <- rownames(factors)[oo]
+            if (oo < tcl) temp <- c(ooterm, temp)
+            else temp <- c(temp, ooterm)
+        }
+        Call$cluster <- attr(Terms, "variables")[[1+tcl]][[2]]
+        if (is.list(formula)) 
+             formula[[1]][[3]] <- reformulate(temp[1-tcl])[[2]]
+        else formula[[3]]      <- reformulate(temp[1-tcl])[[2]]
+
         Call$formula <- formula
+        
     }
     
     # create a call to model.frame() that contains the formula (required)
@@ -154,8 +178,8 @@ coxph <- function(formula, data, weights, subset, na.action,
    
     xlevels <- .getXlevels(Terms, mf)
 
-    # grab the cluster, if present.  Using cluster() in a formula is not
-    #  encouraged
+    # grab the cluster, if present.  Using cluster() in a formula is no
+    #  longer encouraged
     cluster <- model.extract(mf, "cluster")
     id <- model.extract(mf, "id")
     if (!is.null(id) && is.null(cluster) && (missing(robust) || robust)) 
@@ -163,7 +187,7 @@ coxph <- function(formula, data, weights, subset, na.action,
 
     if (missing(robust)) robust <- !is.null(cluster)
     else if (robust && is.null(cluster)) {
-        if (ny==2) cluster <- seq.int(1, nrow(mf))
+        if (ncol(Y) ==2) cluster <- seq.int(1, nrow(mf))
         else stop("one of cluster or id is needed")
     }
     

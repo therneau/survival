@@ -67,7 +67,8 @@ Mayo Clinic data courtesy of Dr. Robert Kyle.
 }
 \examples{
 # Create the competing risk curves for time to first of death or PCM
-sfit <- survfit(Surv(start, stop, event) ~ sex, mgus1, subset=(enum==1))
+sfit <- survfit(Surv(start, stop, event) ~ sex, mgus1, id=id,
+                subset=(enum==1))
 print(sfit)  # the order of printout is the order in which they plot
 
 plot(sfit, xscale=365.25, lty=c(2,1,2,1), col=c(1,1,2,2),

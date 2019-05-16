@@ -10,8 +10,8 @@ A direct interface to the `computational engine' of survfit.coxph
   to unexpected errors if that data is wrong.
 }
 \usage{
-survfitcoxph.fit(y, x, wt, x2, risk, newrisk, strata, se.fit, survtype,
-vartype, varmat, id, y2, strata2, unlist=TRUE)
+survfitcoxph.fit(y, x, wt, x2, risk, newrisk, strata, se.fit, stype,
+ctype, varmat, oldid, cluster, id, y2, strata2, unlist=TRUE)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -35,14 +35,17 @@ vartype, varmat, id, y2, strata2, unlist=TRUE)
   }
   \item{se.fit}{if \code{TRUE} the standard errors of the curve(s) are returned
   }
-  \item{survtype}{1=Kalbfleisch-Prentice, 2=Nelson-Aalen, 3=Efron.  It is
-    usual to match this to the approximation for ties used in the
-    \code{coxph} model: KP for `exact', N-A for `breslow' and Efron for `efron'.
-  }
-  \item{vartype}{1=Greenwood, 2=Aalen, 3=Efron
-  }
+  \item{stype}{survival curve computation: 1=direct, 2=exp(-cumulative
+    hazard)}
+  \item{ctype}{cumulative hazard computation: 1=Breslow, 2=Efron}
+
   \item{varmat}{the variance matrix of the coefficients
   }
+  \item{oldid}{id vector for the original data (if there are multiple
+    rows of data per subject)}
+  
+  \item{cluster}{grouping of observations for a robust variance, missing
+    for an asymptotic variance estimate}
   \item{id}{optional; if present and not NULL this should be
     a vector of identifiers of length \code{nrow(x2)}.
     A mon-null value signifies that \code{x2} contains time dependent

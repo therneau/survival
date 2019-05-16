@@ -10,9 +10,9 @@
   matched control subjects were followed forward for metabolic
   conditions, cardiac endpoints, and death.
 }
-\usage{data("nafld1")
-       data("nafld2")
-       data("nafld3")}
+\usage{nafld1
+       nafld2
+       nafld3}
 \format{
   \code{nafld1} is a data frame with 17549 observations on the following 12 variables.
   \describe{

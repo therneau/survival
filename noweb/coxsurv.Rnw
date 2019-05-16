@@ -551,7 +551,7 @@ else {
     if (missing(newdata)) {
         if (has.strata && strata.interaction)
             stop ("Models with strata by covariate interaction terms require newdata")
-        x2 <- matrix(object$means, nrow=1, ncol=ncol(x))
+        x2 <- matrix(object$means, nrow=1, ncol=ncol(X))
         offset2 <- 0
     }
     else {
@@ -639,7 +639,7 @@ result$call <- Call
 
 # Rearrange to match the historical order of the structure
 indx <- match('surv', names(result))
-result <- c(result[1:indx], type=attr(y, 'type'), result[-(1:indx)])
+result <- c(result[1:indx], type=attr(Y, 'type'), result[-(1:indx)])
 class(result) <- c('survfit.cox', 'survfit')
 result
 @ 

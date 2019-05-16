@@ -1,6 +1,29 @@
 \subsubsection{Multi-state models}
 Survival curves after a multi-state Cox model are more challenging,
 particularly the variance.
+The computation below has 3 steps
+\begin{enumerate}
+  \item Create the hazard matrices H.  For sanity, there will be one
+matrix for each event time, and at each of these there is an nstate by
+nstate matrix. The hazard matrices are for a risk score of 0.
+The matrices are a long string: death times for the first stratum, for
+the second, etc.  (There may be only one stratum).
+  \item For each output curve desired, walk through and create it.
+  \item Deal with robust variance
+\end{enumerate}  
+
+Keep in mind that ``stratum'' here means strata statements in the
+underlying Cox model, e.g., by male and female.  
+The artificial strata partitions that were used to model multiple transitions
+play a different role: in step 2 above a given subject might have different
+risk scores for different transitions.  Each off diagonal element of H might
+have a different multiplier to create the desired curve.  If there are
+time-dependent covariates that multiplier will change over time. 
+
+A nuisance for both steps 1 and 2 is that different transitions will have 
+different event times, while covariate changes are different as well.  
+So a first step will be to create transition functions.   
+
 Computations are separate for each strata, and each strata will 
 have a different number of time points in the result.
 Thus we can't preallocate a matrix.  Instead we generate an empty list,  %'

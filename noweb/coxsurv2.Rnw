@@ -51,8 +51,8 @@ survfitcoxph.fit <- function(y, x, wt, x2, risk, newrisk, strata, se.fit,
     nstrata <- length(ustrata)
     survlist <- vector('list', nstrata)
     names(survlist) <- ustrata
-    survtype <- if (stype==1) else ctype
-    vartype <- 1
+    survtype <- if (stype==1) 1 else ctype+1
+    vartype <- survtype
         
     for (i in 1:nstrata) {
         indx <- which(strata== ustrata[i])

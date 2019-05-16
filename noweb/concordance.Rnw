@@ -431,9 +431,9 @@ cord.getdata <- function(object, newdata=NULL, cluster=NULL, need.wt, timefix=TR
             ord <- attr(Terms, 'order')[tempc$terms]
             rval$cluster <- strata(mf[,tempc$vars], shortlabel=TRUE) 
         }
-        else if (!is.null(object$call$id)) {
+        else if (!is.null(object$call$cluster)) {
             if (is.null(mf)) mf <- model.frame(object)
-            rval$cluster <- model.extract(mf, "id")
+            rval$cluster <- model.extract(mf, "cluster")
         }
     }
     else rval$cluster <- cluster
@@ -495,7 +495,7 @@ concordance.lm <- function(object, ..., newdata, cluster, ymin, ymax,
         stop(temp, " argument is not an appropriate fit object")
     }
         
-    cargs <- c("ymin", "ymax","influence", "ranks")
+    cargs <- c("ymin", "ymax","influence", "ranks", "keepstrata")
     cfun <- Call[c(1, match(cargs, names(Call), nomatch=0))]
     cfun[[1]] <- cord.work   # or quote(survival:::cord.work)
     cfun$fname <- fname
@@ -505,7 +505,7 @@ concordance.lm <- function(object, ..., newdata, cluster, ymin, ymax,
     need.wt <- any(sapply(fits, function(x) !is.null(x$call$weights)))
     
     cfun$data <- lapply(fits, cord.getdata, newdata=newdata, cluster=cluster,
-                        need.wt=need.wt, timefix=timefix, keepstrata=keepstrata)
+                        need.wt=need.wt, timefix=timefix)
     rval <- eval(cfun, parent.frame())
     rval$call <- Call
     rval
@@ -532,7 +532,7 @@ concordance.survreg <- function(object, ..., newdata, cluster, ymin, ymax,
         stop(temp, " argument is not an appropriate fit object")
     }
         
-    cargs <- c("ymin", "ymax","influence", "ranks", "timewt")
+    cargs <- c("ymin", "ymax","influence", "ranks", "timewt", "keepstrata")
     cfun <- Call[c(1, match(cargs, names(Call), nomatch=0))]
     cfun[[1]] <- cord.work
     cfun$fname <- fname
@@ -542,7 +542,7 @@ concordance.survreg <- function(object, ..., newdata, cluster, ymin, ymax,
     need.wt <- any(sapply(fits, function(x) !is.null(x$call$weights)))
     
     cfun$data <- lapply(fits, cord.getdata, newdata=newdata, cluster=cluster,
-                        need.wt=need.wt, timefix=timefix, keepstrata=keepstrata)
+                        need.wt=need.wt, timefix=timefix)
     rval <- eval(cfun, parent.frame())
     rval$call <- Call
     rval
@@ -571,8 +571,8 @@ concordance.coxph <- function(object, ..., newdata, cluster, ymin, ymax,
         
     # the cargs trick is a nice one, but it only copies over arguments that
     #  are present.  If 'ranks' was not specified, the default of FALSE is
-    #  not set.  We keep it there to match the documentation.
-    cargs <- c("ymin", "ymax","influence", "ranks", "timewt")
+    #  not set.  We keep it in the arg list only to match the documentation.
+    cargs <- c("ymin", "ymax","influence", "ranks", "timewt", "keepstrata")
     cfun <- Call[c(1, match(cargs, names(Call), nomatch=0))]
     cfun[[1]] <- cord.work   # a copy of the function
     cfun$fname <- fname
@@ -583,7 +583,7 @@ concordance.coxph <- function(object, ..., newdata, cluster, ymin, ymax,
     need.wt <- any(sapply(fits, function(x) !is.null(x$call$weights)))
     
     cfun$data <- lapply(fits, cord.getdata, newdata=newdata, cluster=cluster,
-                        need.wt=need.wt, timefix=timefix, keepstrata=keepstrata)
+                        need.wt=need.wt, timefix=timefix)
     rval <- eval(cfun, parent.frame())
     rval$call <- Call
     rval

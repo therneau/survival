@@ -30,7 +30,7 @@ for (i in 1:nrow(rat2)) {
 rat2$start <- temp1
 rat2$stop  <- temp2
 
-r2fit0 <- coxph(Surv(start, stop, status) ~ rx + cluster(id), rat2)
+r2fit0 <- coxph(Surv(start, stop, status) ~ rx, cluster=id, rat2)
 
 r2fitg <-  coxph(Surv(start, stop, status) ~ rx + frailty(id), rat2)
 r2fitm <-  coxph(Surv(start, stop, status) ~ rx + frailty.gaussian(id), rat2)

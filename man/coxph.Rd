@@ -18,7 +18,7 @@ of Andersen and Gill.
 coxph(formula, data=, weights, subset, 
       na.action, init, control, 
       ties=c("efron","breslow","exact"), 
-      singular.ok=TRUE, robust=FALSE, 
+      singular.ok=TRUE, robust, 
       model=FALSE, x=FALSE, y=TRUE, tt, method=ties,
       id, cluster, istate, statedata, ...)
 }
@@ -93,6 +93,7 @@ coxph(formula, data=, weights, subset,
     This variable will normally be found in \code{data}.}
   \item{istate}{optional variable giving the intial state for each
     subject. This variable will normally be found in \code{data}.}
+  \item{statedata}{optional data set used to describe multistate models.}
   \item{model}{
     logical value: if \code{TRUE}, the model frame is returned in component
     \code{model}. 

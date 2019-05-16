@@ -1,5 +1,5 @@
 
-R Under development (unstable) (2019-01-23 r76006) -- "Unsuffered Consequences"
+R Under development (unstable) (2019-05-15 r76504) -- "Unsuffered Consequences"
 Copyright (C) 2019 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
@@ -23,12 +23,12 @@ Type 'q()' to quit R.
 > #
 > # Fit the models found in Wei et. al.
 > #
-> wfit <- coxph(Surv(stop, event) ~ (rx + size + number)* strata(enum) +
-+ 		 cluster(id), bladder, method='breslow')
+> wfit <- coxph(Surv(stop, event) ~ (rx + size + number)* strata(enum),
++ 		 cluster=id, bladder, ties='breslow')
 > wfit
 Call:
-coxph(formula = Surv(stop, event) ~ (rx + size + number) * strata(enum) + 
-    cluster(id), data = bladder, method = "breslow")
+coxph(formula = Surv(stop, event) ~ (rx + size + number) * strata(enum), 
+    data = bladder, ties = "breslow", cluster = id)
 
                               coef exp(coef) se(coef) robust se      z       p
 rx                        -0.51762   0.59594  0.31576   0.30750 -1.683 0.09231
@@ -61,12 +61,12 @@ n= 340, number of events= 112
 [4,] 0.04377770 0.11604200 0.15908650 0.2398112
 > 
 > # Anderson-Gill fit
-> fita <- coxph(Surv(start, stop, event) ~ rx + size + number + cluster(id),
-+ 		  bladder2,  method='breslow')
+> fita <- coxph(Surv(start, stop, event) ~ rx + size + number, cluster=id,
++ 		  bladder2,  ties='breslow')
 > summary(fita)
 Call:
-coxph(formula = Surv(start, stop, event) ~ rx + size + number + 
-    cluster(id), data = bladder2, method = "breslow")
+coxph(formula = Surv(start, stop, event) ~ rx + size + number, 
+    data = bladder2, ties = "breslow", cluster = id)
 
   n= 178, number of events= 112 
 
@@ -90,18 +90,18 @@ Score (logrank) test = 18.57  on 3 df,   p=3e-04,   Robust = 11.44  p=0.01
 > 
 > # Prentice fits.  Their model 1 a and b are the same
 > fit1p  <- coxph(Surv(stop, event) ~ rx + size + number, bladder2,
-+ 		subset=(enum==1), method='breslow')
++ 		subset=(enum==1), ties='breslow')
 > fit2pa <- coxph(Surv(stop, event) ~ rx + size + number, bladder2,
-+ 		subset=(enum==2), method='breslow')
++ 		subset=(enum==2), ties='breslow')
 > fit2pb <- coxph(Surv(stop-start,  event) ~ rx + size + number, bladder2,
-+ 		   subset=(enum==2), method='breslow')
++ 		   subset=(enum==2), ties='breslow')
 > fit3pa <- coxph(Surv(stop, event) ~ rx + size + number, bladder2,
-+ 		subset=(enum==3), method='breslow')
++ 		subset=(enum==3), ties='breslow')
 >  #and etc.
 > fit1p
 Call:
 coxph(formula = Surv(stop, event) ~ rx + size + number, data = bladder2, 
-    subset = (enum == 1), method = "breslow")
+    subset = (enum == 1), ties = "breslow")
 
            coef exp(coef) se(coef)      z       p
 rx     -0.51762   0.59594  0.31576 -1.639 0.10115
@@ -113,7 +113,7 @@ n= 85, number of events= 47
 > fit2pa
 Call:
 coxph(formula = Surv(stop, event) ~ rx + size + number, data = bladder2, 
-    subset = (enum == 2), method = "breslow")
+    subset = (enum == 2), ties = "breslow")
 
             coef exp(coef)  se(coef)      z     p
 rx     -0.424214  0.654284  0.402200 -1.055 0.292
@@ -125,7 +125,7 @@ n= 46, number of events= 29
 > fit2pb
 Call:
 coxph(formula = Surv(stop - start, event) ~ rx + size + number, 
-    data = bladder2, subset = (enum == 2), method = "breslow")
+    data = bladder2, subset = (enum == 2), ties = "breslow")
 
             coef exp(coef)  se(coef)      z     p
 rx     -0.259112  0.771737  0.405110 -0.640 0.522
@@ -137,7 +137,7 @@ n= 46, number of events= 29
 > fit3pa
 Call:
 coxph(formula = Surv(stop, event) ~ rx + size + number, data = bladder2, 
-    subset = (enum == 3), method = "breslow")
+    subset = (enum == 3), ties = "breslow")
 
            coef exp(coef) se(coef)      z     p
 rx     -0.89854   0.40716  0.55352 -1.623 0.105
@@ -150,4 +150,4 @@ n= 27, number of events= 22
 > 
 > proc.time()
    user  system elapsed 
-  0.752   0.048   0.810 
+  0.772   0.040   0.816 

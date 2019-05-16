@@ -225,9 +225,9 @@ testx <- data.frame(time=  c(4,4,4,1,1,2,2,3),
 		    wt=    c(1,1,1,1,1,1,1,1),
                     id=    1:8)
  
-fit1 <- coxph(Surv(time, status) ~x + cluster(id), test1, method='breslow',
+fit1 <- coxph(Surv(time, status) ~x, cluster=id, test1, method='breslow',
               weights=wt)
-fit2 <- coxph(Surv(time, status) ~x + cluster(id), testx, method='breslow')
+fit2 <- coxph(Surv(time, status) ~x, cluster=id, testx, method='breslow')
 
 db1 <- resid(fit1, 'dfbeta', weighted=F)
 db1 <- db1[-2]         #toss the missing

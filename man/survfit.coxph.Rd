@@ -12,7 +12,7 @@ hazards model.
         se.fit=TRUE, conf.int=.95, individual=FALSE, stype=2, ctype,
         conf.type=c("log","log-log","plain","none", "logit", "arcsin"),
         censor=TRUE, start.time, id, influence=FALSE,
-        na.action=na.pass, ...)
+        na.action=na.pass, type, ...)
 }
 \arguments{
   \item{formula}{
@@ -73,7 +73,8 @@ hazards model.
   }
   \item{influence}{option to return the influence values}
   \item{na.action}{the na.action to be used on the newdata argument}
-  
+  \item{type}{older argument that encompassed \code{stype} and
+    \code{ctype}, now depricated}
    \item{\dots}{for future methods}
 }
 \value{
