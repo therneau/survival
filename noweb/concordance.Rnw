@@ -193,9 +193,6 @@ concordancefit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL,
     if (type %in% c("mright", "mcounting"))
         stop("multiple state survival is not supported")
 
-    # A trick: if A and B are in different strata, we get the same concordance
-    #  if we put them in 1 stratum, and make their times not overlap.  This
-    #  works if timewt is 'n' or 'I'.
     nstrat <- length(unique(strata))
     if (!is.logical(keepstrata)) {
         if (!is.numeric(keepstrata))
@@ -203,16 +200,19 @@ concordancefit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL,
         else keepstrata <- (nstrat <= keepstrata)
     }
 
-    if (timewt %in% c("n", "I") && nstrat > 1 && !keepstrata) {
-        # mess up the times
+    if (timewt %in% c("n", "I") && nstrat > 10 && !keepstrata) {
+        # Special trickery for matched case-control data, where the
+        #  number of strata is huge, n per strata is small, and compute
+        #  time becomes excessive.  Make the data all one strata, but over
+        #  disjoint time intervals
         stemp <- as.numeric(as.factor(strata)) -1
         if (ncol(y) ==3) {
-            delta <- max(y[,2]) - min(y[,1])
+            delta <- 2+ max(y[,2]) - min(y[,1])
             y[,1] <- y[,1] + stemp*delta
             y[,2] <- y[,2] + stemp*delta
         }
         else {
-            delta <- max(y[,2]) +2
+            delta <- max(y[,1]) +2
             m1 <- rep(-1L, nrow(y))
             y <- Surv(m1 + stemp*delta, y[,1] + stemp*delta, y[,2])
         }
@@ -336,6 +336,7 @@ concordancefit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL,
         dfbeta <- ifelse(is.na(dfbeta),0, dfbeta)  # if cluster is a factor
     }
     var.somer <- sum(dfbeta^2)
+    if (!keepstrata && is.matrix(fit$count)) fit$count <- colSums(fit$count)
     rval <- list(concordance = (somer+1)/2, count=fit$count, n=n,
                  var = var.somer/4, cvar=vcox/(4*npair^2))
     if (is.matrix(rval$count))

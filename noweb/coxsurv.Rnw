@@ -161,8 +161,8 @@ if (!has.strata) strata <- rep(0L, n)
 else strata <- object$strata
 
 if (is.null(mf)) {
-    weights <- rep(1., nrow(mf))
-    offset <- rep(0., nrow(mf)) 
+    weights <- rep(1., n)
+    offset <- rep(0., n) 
     X <- object[['x']]
     Y <- object[['y']]
 }
@@ -183,7 +183,6 @@ else {
             if (length(stangle$vars) ==1) strata <- mf[[stangle$vars]]
             else strata <- strata(mf[, stangle$vars], shortlabel=TRUE)
         }
-        strata <- as.numeric(strata)
     }
 
     if (coxms) {
@@ -270,12 +269,12 @@ if (type != 'right' && type != 'counting')
  
 missid <- missing(id) # I need this later, and setting id below makes
                       # "missing(id)" always false
+if (!missid & !missing(individual))
+    warning("the `id' option supersedes `individual'")
+
 if (!missid) individual <- TRUE
 else if (missid && individual) id <- rep(0,nrow(Y))  #dummy value
 else id <- NULL
-
-if (!missid & !missing(individual))
-    warning ("the `id' option supersedes `individual'")
 
 if (individual & missing(newdata)) {
     stop("the id and/or individual options only make sense with new data")
@@ -462,9 +461,12 @@ nothing except "list" and a fake definition of "strata", and newdata.
 Variables that are part of the global environment won't be found.
 I even watch out for the case of either "strata" or "list" is the name of
 the stratification variable, which causes my fake strata function to 
-return a function when said variable is not in newdata.
+return a function when said variable is not in newdata. The
+variable found.strata is true if ALL the strata are found, set it to
+false if any are missing.
+
 <<survfit.coxph-newdata2>>= 
-if (has.strata && !strata.interaction) {
+if (has.strata) {
     found.strata <- TRUE
     tempenv <- new.env(, parent=emptyenv())
     assign("strata", function(..., na.group, shortlabel, sep)
@@ -488,7 +490,8 @@ tcall <- Call[c(1, match(c('id', "na.action"),
                              names(Call), nomatch=0))]
 tcall$data <- newdata
 tcall$formula <- Terms2
-tcall$xlev <- object$xlevels
+tcall$xlev <- object$xlevels[match(attr(Terms2,'term.labels'),
+                                   names(tcall$xlev), nomatch=0)]
 tcall[[1L]] <- quote(stats::model.frame)
 mf2 <- eval(tcall)
 @    
@@ -532,7 +535,7 @@ if (individual) {
     y2 <- y2[,1:2, drop=F]  #throw away status, it's never used
 
     newrisk <- exp(c(x2 %*% beta) + offset2 - (mean(offset) + xcenter))
-browser()
+
     if (coxms) 
         result <- survfitcoxph.fit2(Y, X, weights, x2, risk, newrisk, strata,
                                 se.fit, stype, ctype, varmat, oldid, cluster,

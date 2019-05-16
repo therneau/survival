@@ -34,7 +34,7 @@ print.coxph <-
     
     if (inherits(x, "coxphms")) {
         # print it group by group
-        tmap <- x$cmap[-1,]  # ignore the intercept (strata)
+        tmap <- x$cmap[-1,,drop=FALSE]  # ignore the intercept (strata)
         cname <- colnames(tmap)
         for (i in 1:length(cname)) {
             tmp2 <- tmp[tmap[,i],, drop=FALSE]

@@ -11,8 +11,10 @@ multicheck <- function(formula, data, id, istate, ...) {
     Y <- model.response(mf)
     if (!inherits(Y, "Surv")) stop("response must be a survival object")
     type <- attr(Y, "type")
-    if (!(type %in% c("mright", "mcounting")))
-        stop("response must be a multi-state survival object")
+    if (type=="right") Y <- Surv(Y[,1], factor(Y[,2]))  # pretend its multi
+    else if (type=="counting")  Y <- Surv(Y[,1], Y[,2], factor(Y[,3]))
+    else if (!(type %in% c("mright", "mcounting")))
+        stop("response must be right censored")
     n <- nrow(Y)
     
     id <- model.extract(mf, "id")
@@ -23,7 +25,7 @@ multicheck <- function(formula, data, id, istate, ...) {
     if (!is.null(istate) && length(istate) !=n) stop("wrong length for istate")
 
     fit <- multicheck2(Y, id, istate)
-    fit$istate <- NULL   # used by coxph, but not part of user printout
+#    fit$istate <- NULL   # used by coxph, but not part of user printout
     na.action <- attr(mf, "na.action")
     if (!is.null(na.action)) {
         fit$na.action <- na.action
@@ -38,6 +40,8 @@ multicheck <- function(formula, data, id, istate, ...) {
             }
         }
     }
+    fit$Y <- Y      # used by the summary function
+    fit$id <- id    #   ""  ""
     fit$call <- Call
     class(fit) <- "multicheck"
     fit
@@ -89,6 +93,16 @@ multicheck2 <- function(y, id, istate=NULL, dummy="()") {
     # initialize counts
     flag <- c(overlap=0, gap=0, teleport=0, jump=0)
 
+    # Calculate the counts per id for each state, e.g., 10 subjects had
+    #  3 visits to state 2, etc.  (Renamed without a dot from EJ code; some
+    #  users really don't like dots in names).
+    tab1 <- table(id, y[,ncol(y)], useNA="ifany")  #treat missing as a state
+    tab1.levels <- sort(unique(tab1))  #unique counts
+    statecount <- apply(tab1, 2, function(x) table(factor(x, tab1.levels)))
+    dimnames(statecount) = list("count"= rownames(statecount),
+                                "state"= c("(censored)", colnames(tab1)[-1]))
+    statecount <- statecount[, c(2:ncol(statecount), 1)] 
+    
     # first check: no one is two places at once
     #  sort by stop time within subject, start time as the tie breaker
     index <- order(id, y[,ny-1], y[,1])  # by start time, within stop time
@@ -105,8 +119,8 @@ multicheck2 <- function(y, id, istate=NULL, dummy="()") {
     # If no one has more than one obs our work is done: overlap and gap are
     #  impossible
     if (all(!oldid)) {
-        return(list(istate=cstate2, transitions=transitions,
-                    states=states, flag=flag))
+        return(list(states=states, transitions=transitions,
+                    statecount=statecount, flag=flag, istate=cstate2))
     }
 
     # Check 0: if y has only 2 colums there isn't much to do
@@ -114,8 +128,9 @@ multicheck2 <- function(y, id, istate=NULL, dummy="()") {
         flag["overlap"] <- sum(duplicated(id))
         overlap <- list(row= which(duplicated(id)), 
                         id=unique(id[duplicated(id)]))
-        rval <- list(istate=cstate2, transitions=transitions,
-                    states=states, flag=flag, overlap= overlap)
+        rval <- list(states=states, transitions=transitions,
+                     statecount=statecount, flag=flag, istate=cstate2,
+                     overlap= overlap)
         return(rval)
     }
         
@@ -181,8 +196,8 @@ multicheck2 <- function(y, id, istate=NULL, dummy="()") {
 
     # we return the current state that was handed to us, and let the routine
     #  complain
-    rval <- list(istate=cstate2, transitions =transitions, states=states, 
-                 flag =flag)
+    rval <- list(states=states, transitions =transitions, statecount=statecount,
+                 flag = flag, istate=cstate2)
     if (length(overlap)) rval$overlap <- overlap
     if (length(tgap))     rval$gap <- tgap
     if (any(bad))     rval$teleport <- teleport

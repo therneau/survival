@@ -26,7 +26,7 @@ options(continue="  ", width=60)
 options(SweaveHooks=list(fig=function() par(mar=c(4.1, 4.1, .3, 1.1))))
 pdf.options(pointsize=10) #text in graph about the same as regular text
 options(contrasts=c("contr.treatment", "contr.poly")) #ensure default
-require("survival")
+library("survival")
 @
 
 \title{The survival package}
@@ -126,7 +126,7 @@ time'', which in turn leads to two of the primary challenges.
     the report finally published the treatment in question might be 8
     years old and considered to be out of date.  This leads to a tension
     between early reporting and long term outcomes.
-\end{itemize}
+\end{enumerate}
 
 <<states, echo=FALSE, figure=TRUE>>=
 par(mfrow=c(1,2))

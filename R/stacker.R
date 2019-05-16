@@ -85,7 +85,7 @@ stacker <- function(cmap, istate, X, Y, strata, states) {
 
     # give variable names to the new data
     vname <- rep("", ncol(X))
-    ctemp <- cmap[-1,]
+    ctemp <- cmap[-1,,drop=FALSE]
     vname[ctemp[ctemp>0]] <- colnames(X)[row(ctemp)[ctemp>0]]
     colnames(newX) <- vname
 

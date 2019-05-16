@@ -640,7 +640,7 @@ state5()
 par(oldpar)
 @ 
 
-The transitions table above shows \Sexpr{sfit4$transitions[5,1]} %$ 
+The transitions table above shows \Sexpr{sfit4$transitions[1,2]} %$ 
 direct transitions from entry to death, i.e., 
 subjects who die without experiencing any of the other intermediate points,
 \Sexpr{sfit4$transitions[2,3]} who go from CR to transplant (as expected),

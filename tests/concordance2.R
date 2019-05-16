@@ -211,3 +211,6 @@ for (i in 1:length(keep)) {
 }
 aeq(lmat, cm4$influence, tolerance=eps)
 
+# Check that keepstrata gives the correct sum
+cm4b <- concordance(tfit, keepstrata=FALSE)
+aeq(cm4b$count, colSums(cm4$count))

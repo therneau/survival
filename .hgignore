@@ -55,5 +55,6 @@ vignette2/.*.pdf
 vignette2/figures
 vignette2/.*.tex
 vignette2/.*.log
+vignette2/beyersmann/
 tests/plot1.pdf
 temp

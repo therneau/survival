@@ -1,6 +1,6 @@
 
-R Under development (unstable) (2019-01-23 r76006) -- "Unsuffered Consequences"
-Copyright (C) 2019 The R Foundation for Statistical Computing
+R version 3.4.2 (2017-09-28) -- "Short Summer"
+Copyright (C) 2017 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -103,6 +103,10 @@ Type 'q()' to quit R.
 > aeq(truth0$score, resid(fit0, 'score')[c(3:7,1)])
 [1] TRUE
 > sfit <- survfit(fit0, list(x=0))
+> aeq(sfit$cumhaz, cumsum(truth0$haz))
+[1] TRUE
+> aeq(sfit$surv, exp(-cumsum(truth0$haz)))
+[1] TRUE
 > aeq(sfit$std.err^2, c(7/180, 2/9, 2/9, 11/9))
 [1] TRUE
 > aeq(resid(fit0, 'score'), c(5/24, NA, 5/12, -1/12, 7/24, -1/24, 5/24))
@@ -148,7 +152,6 @@ In fitter(X, Y, strats, offset, init, control, weights = weights,  :
 [1] TRUE
 > aeq(-log(sfit$surv), (cumsum(truth$haz)))
 [1] TRUE
-> 
 > 
 > # 
 > # Done with the formal test, now print out lots of bits
@@ -246,4 +249,4 @@ Call: survfit(formula = fit, newdata = list(x = 2))
 > 
 > proc.time()
    user  system elapsed 
-  0.824   0.052   0.877 
+  1.904   0.254   2.235 

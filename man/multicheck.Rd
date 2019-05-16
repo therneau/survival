@@ -28,11 +28,11 @@ multicheck(formula, data, id, istate, ...)
     \item{overlap}{two observations for the same subject that overlap in
       time, e.g. intervals of (0, 100) and (90, 120).  
       If \code{y} is simple (time, status) survival observation
-      intervals implicitly start at 0, so any duplicate identifiers will
-      generate an overlap.}
+      intervals implicitly start at 0, so in that case any duplicate
+      identifiers will generate an overlap.}
     \item{jump}{a hole in a subject's timeline, where they are in one
       state at the end of the prior interval, but a new state in the
-      subsequent interval.}
+      at the start subsequent interval.}
    \item{gap}{one or more gaps in a subject's timeline; they are presumably
       in the same state at their return as when they left.}
     \item{teleport}{two adjacent intervals for a subject, with the
@@ -46,17 +46,23 @@ multicheck(formula, data, id, istate, ...)
 }
 \value{
   a list with components
+  \item{states}{the vector of possible states}
   \item{transitions}{a matrix giving the count of transitions from one
     state to another}
+  \item{statecount}{table of the number of visits per state, e.g., 18
+    subjects had 2 visits to the "infection" state}
+  \item{flags}{a vector giving the counts of each check}
   \item{istate}{a revised initial state vector}
-  \item{flags}{a vector giving the counts of errors}
-  \item{overlap}{a list with the row number and id of overlaps}
-  \item{gaps}{a list with the row number and id of gaps}
+  \item{overlap}{a list with the row number and id of overlaps (not
+    present if there are no overlaps)}
+  \item{gaps}{a list with the row number and id of gaps (not present if
+    there are no gaps)}
   \item{teleport}{a list with the row number and id of inconsistent
-    rows}
-  \item{jumps}{a list with the row number and id of jumps}
+    rows (not present if there are none)}
+  \item{jumps}{a list with the row number and id of jumps (not present
+    if there are no jumps}
 }
-\author{Terry Therneau}
+\author{Terry Therneau and Beth Atkinson}
 
 \keyword{ survival }
 
