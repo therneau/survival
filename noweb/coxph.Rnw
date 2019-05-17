@@ -197,6 +197,18 @@ coxph <- function(formula, data, weights, subset, na.action,
     if (multi) {
         <<coxph-multi-X>>
     }
+    
+    # init is checked after the final X matrix has been made
+    if (missing(init)) init <- NULL
+    else {
+        if (length(init) != ncol(X)) stop("wrong length for init argument")
+        temp <- X %*% init - sum(colMeans(X) * init) + offset
+        # it's okay to have a few underflows, but if all of them are too
+        #   small we get all zeros
+        if (any(exp(temp) > .Machine$double.xmax) || all(exp(temp)==0))
+        stop("initial values lead to overflow or underflow of the exp function")
+    }
+    
     <<coxph-penal>>
     <<coxph-compute>>
     <<coxph-finish>>
@@ -810,15 +822,6 @@ if (!is.null(weights) && any(!is.finite(weights)))
 
 assign <- attrassign(X, Terms)
 contr.save <- attr(X, "contrasts")
-if (missing(init)) init <- NULL
-else {
-    if (length(init) != ncol(X)) stop("wrong length for init argument")
-    temp <- X %*% init - sum(colMeans(X) * init) + offset
-    # it's okay to have a few underflows, but if all of them are too
-    #   small we get all zeros
-    if (any(exp(temp) > .Machine$double.xmax) || all(exp(temp)==0))
-        stop("initial values lead to overflow or underflow of the exp function")
-}
 <<coxph-zeroevent>>
 @
 
