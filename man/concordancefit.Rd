@@ -11,7 +11,7 @@ routine is responsible for these things.
 \usage{
 concordancefit(y, x, strata, weights, ymin = NULL, ymax = NULL,
  timewt = c("n", "S", "S/G", "n/G", "n/G2", "I"), cluster, influence =0,
- ranks = FALSE, reverse = FALSE, timefix = TRUE)
+ ranks = FALSE, reverse = FALSE, timefix = TRUE, keepstrata=10)
 }
 \arguments{
   \item{y}{the response.  It can be numeric, factor, or a Surv object}
@@ -23,6 +23,11 @@ concordancefit(y, x, strata, weights, ymin = NULL, ymax = NULL,
   \item{timewt}{the time weighting to be used}
   \item{cluster, influence,ranks, reverse, timefix}{see the help for the
     \code{concordance} function}
+  \item{keepstrata}{either TRUE, FALSE, or an integer value.
+    Computations are always done within stratum, then added. If the
+    total number of strata greater than \code{keepstrata}, or
+    \code{keepstrata=FALSE}, those subtotals are not kept in the output.
+    }
 }
 \value{a list containing the results}
 \author{ Terry Therneau}

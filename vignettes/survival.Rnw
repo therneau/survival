@@ -26,7 +26,7 @@ options(continue="  ", width=60)
 options(SweaveHooks=list(fig=function() par(mar=c(4.1, 4.1, .3, 1.1))))
 pdf.options(pointsize=10) #text in graph about the same as regular text
 options(contrasts=c("contr.treatment", "contr.poly")) #ensure default
-require("survival")
+library("survival")
 @
 
 \title{The survival package}
@@ -36,6 +36,7 @@ require("survival")
 \maketitle
 
 \chapter{Introduction}
+\section{History}
 Work on the survival package began in 1985 in connection with the analysis
 of medical research data, without any realization at the time that the
 work would become a package.
@@ -59,19 +60,19 @@ This also highlights one of the deficiencies of the package: if a particular
 analysis question has not yet arisen in one of my studies then the survival 
 package will also have nothing to say on the topic. 
 Luckily there are many other R packages that build on or extend
-the survival package, and anyone working in the field, the author included, will
-use more packages than this one.
-
-I certainly never foresaw that the library would become as popular as it has.
+the survival package, and anyone working in the field (the author included) 
+should expect to use more packages than just this one.
+The author certainly never foresaw that the library would become as popular 
+as it has.
 
 This vignette is an introduction to version 3.x of the survival package. 
-I think of versions 1.x as the S-Plus era and 2.1 -- 2.44 as maturation of
+We can think of versions 1.x as the S-Plus era and 2.1 -- 2.44 as maturation of
 the package in R.
 Version 3 had 4 major goals.
 \begin{itemize} 
-  \item Make mulit-state curves and models as easy to use as an ordinary
+  \item Make multi-state curves and models as easy to use as an ordinary
     Kaplan-Meier and Cox model.
-  \item Deeper support for absolute risk models.
+  \item Deeper support for absolute risk estimates.
   \item More consitent support of robust variance estimates.
   \item Clean up various naming inconsistencies that have arisen over time.
 \end{itemize}
@@ -82,11 +83,11 @@ guiding lights of the change are
   \item We can't do everything (so don't try).
   \item Allow other packages to build on this one.  That means clear 
     documentation of all of the objects that are produced, the use of simple
-    objects (no S4 classes) that are easy to manipulate, and setting up many 
+    S3 objects that are easy to manipulate, and setting up many 
     of the routines as a pair.  For example \code{concordance} and 
-    \code{concordance.fit}; the former is the user front end and the latter does 
+    \code{concordancefit}; the former is the user front end and the latter does 
     the actual work.  Other package authors might want to access the lower level
-    interface.  
+    interface, accepting the penalty of fewer error checks. 
   \item Don't bugger it up!
 \end{itemize}
 
@@ -94,15 +95,221 @@ This meant preserving the current argument names as much as possible.
 Appendix \ref{sect:changes} summarizes changes that were made which are not
 backwards compatable.
 
-The two other major changes are to collapse the many vignettes into this single
+The two other major changes are to collapse many of vignettes into this single
 large one, and the parallel creation of an actual book.  
-This latter recognizes that
-the package needs more than a vignette.  
-With the book's appearance this vignette can
+We've recognized that the package needs more than a vignette.  
+With the book's appearance this vignette can also
 be more brief, essentially leaving out a lot of the theory.
 
-Version 3 will not appear all at once, however; it will take some time to get all
-of the documentation sorted out in the way that we like.
+Version 3 will not appear all at once, however; it will take some time to get 
+all of the documentation sorted out in the way that we like.
+
+\section{Survival data}
+The survival package is concerned with time-to-event analysis.
+Such outcomes arise very often in the analysis of medical data:
+time from chemotherapy to tumor recurrence, the durability of a joint
+replacement, recurrent lung infections in subjects with cystic fibrosis,
+the appearance of hypertension, hyperlipidemia and other comorbidities 
+of age, and of course death itself, from which the overall label of
+``survival'' analysis derives.  
+A key principle of all such studies is that ``it takes time to observe
+time'', which in turn leads to two of the primary challenges.
+\begin{enumerate}
+  \item Incomplete information.  At the time of an analysis, not everyone
+    will have yet had the event.  This is a form of partial information
+    known as \emph{censoring}: if a particular subject was enrolled in a
+    study 2 years ago, and has not yet had an event at the time of
+    analysis, we only know that their time to event is $>2$ years.
+  \item Dated results.  In order to report 5 year survival, say, from a 
+    treatment, patients need to be enrolled and then followed for 5+ years.
+    By the time recruitment and follow-up is finished, analysis done, 
+    the report finally published the treatment in question might be 8
+    years old and considered to be out of date.  This leads to a tension
+    between early reporting and long term outcomes.
+\end{enumerate}
+
+<<states, echo=FALSE, figure=TRUE>>=
+par(mfrow=c(1,2))
+s1 <- c("Alive", "Dead")
+smat1 <- matrix(c(0,0,1,0), 2,2, dimnames=list(s1, s1))
+statefig(c(1,1), smat1)
+
+s2 <- c("Entry", "Malignancy", "Death")
+smat2 <- matrix(c(0,0,0,1,0,0,1,0,0), 3, 3, dimnames=list(s2,s2))
+statefig(c(1,2), smat2)
+par(mfrow=c(1,1))
+@   
+  
+From a mathematical point of view survival data is often represented as
+a pair $(t_i, \delta_i)$ where $t$ is the time until endpoint or last
+follow-up, and $\delta$ is a 0/1 variable with 0= ``subject was censored at
+$t$'' and 1 =``subject had an event at $t$'',
+or in R code as \code{Surv(time, status)}.  
+The status variable can be logical, e.g., \code{vtype=='death'} where 
+\code{vtype} is the variable ``visit type''.  
+An alternate view is to think of time to event data as a multi-state process
+as is shown in the above figure. 
+The left panel is simple survival with two states of alive and dead,
+and the right shows a simple competing risks setup.
+In this approach interest normally centers on the rates of transitions
+(arrows) from state to state (box to box).
+For simple survival the two viewpoints are equivalent, and we will move
+freely between them, i.e., use whichever viewpoint is handy at the moment,
+either ``time to event'' or ``rate of events''.  
+When there more than one arrow the rate approach is often particularly useful.
+
+
+
+
+
+\chapter{Survival curves}
+\section{Introduction}
+\begin{figure}
+
+<<sfig1, fig=TRUE, echo=FALSE>>=
+oldpar <- par(mar=c(.1, .1, .1, .1), mfrow=c(2,2))
+cmat1 <- matrix(c(0,0,1,0), nrow=2, 
+                dimnames=list(c("Alive", "Dead"), c("Alive", "Dead")))
+statefig(c(1,1), cmat1, cex=1.5)
+
+states <- c("A", "D1", "D2", "D3")
+cmat2 <- matrix(0, 4,4, dimnames=list(states, states))
+cmat2[1, -1] <- 1
+statefig(c(1,3), cmat2, cex=1.5)
+
+state3 <- c("Health", "Illness", "Death")
+cmat3 <- matrix(0, 3, 3, dimnames = list(state3, state3))
+cmat3[1,2] <- cmat3[2,1] <- cmat3[-3, 3] <- 1
+statefig(c(1,2), cmat3, offset=.03, cex=1.5)
+
+state4 <- c("0", "1", "2", "...")
+cmat4 <- matrix(0, 4,4, dimnames= list(state4, state4))
+cmat4[1,2] <- cmat4[2,3] <- cmat4[3,4] <- 1
+statefig(c(1,1,1,1), cmat4, bcol=c(1,1,1,0), cex=c(1.5, 1.5, 1.5, 3))
+par(oldpar)
+@
+ \caption{Four multi-state models.  The upper left panel depicts simple 
+   survival, the upper right is an example of competing risks, 
+ the lower left panel is a multi-state
+ illness-death model, and the lower right panel depicts sequential events.}
+ \label{mfig1}
+\end{figure}
+
+A multi-state model is used to model a process where subjects transition 
+from one state to the next. 
+For instance, a standard survival curve can be thought of as a simple 
+multi-state model with two states (alive and dead) and one transition 
+between those two states.  A diagram illustrating this process is shown in 
+the top left corner of figure \ref{mfig1}. 
+In these types of diagrams, each box is a state and each arrow is 
+a possible transition. 
+The top right diagram depicts a classic competing risk analysis, where
+all subjects start on the left and each subject can make a single transition
+to one of 3 terminal states.
+The bottom left diagram shows a common multi-state situation known as
+the illness-death model with recovery.
+Finally, the lower right diagram represents sequential events, such as repeated
+infections in the CGD study. In that case one subject had 8
+events so there are 9 states corresponding to entry into the study 
+(0 infections) and the first, second, \ldots, eighth events.
+
+The \code{survfit} function handles all these cases, producing an estimate
+of the \emph{probability in state} vector $p(t)$ via the Aalen-Johansen
+estimator.
+For a $k$ state model $p(t)$ is a vector of length $k$ which estimates the
+probability that a subject is in each of the $k$ states, returned as a
+component
+matrix \code{pstate} with $k$ columns and one row for each unique event or 
+censoring time in the data set.
+Because everyone has to be somewhere, the rows of \code{pstate} sum to 1.
+
+For the simple 2-state model in the upper left of figure \ref{mfig1} the 
+Aalen-Johansen estimate reduces to the Kaplan-Meier, and the first column
+of \code{pstate} is equal to the survival curve.  In this case that single
+column is sufficient and is returned as the component \code{surv}.
+For the competing risks model in the upper right the Aalen-Johansen is
+equivalent to an estimator known as the ``cumulative incidence'', but we
+will still refer to it as probability in state for consistency with other
+models.
+
+\section{Two state models}
+\section{Competing risks}
+\section{General models}
+
+\chapter{The proportional hazard (Cox) model}
+
+\chapter{Multi-event proportional hazards models}
+\section{Single event type}
+\section{Competing risks}
+A simple example of competing risks is the MGUS data set, a state
+space diagrem for the model is shown below with plasma cell malignancy (PCM)
+and death as the endpoints.
+The \code{mgus2} data set has separate variables for time to progression
+and time to death.  
+Nine subjects had progression detected at autopsy, for those we move the
+progression time 1 month earlier to avoid ties.
+
+<<mstate>>=
+states <- c("MGUS", "PCM", "Death")
+tmat <- matrix(c(0,0,0, 1,0,0, 1,0,0), 3,3, 
+               dimnames=list(states, states))
+statefig(1:2, tmat)
+
+# modified progression time, = -1 month if tied with death
+temp <- with(mgus2, ifelse(pstat==0, NA,
+                           ifelse(ptime==futime, ptime-1, ptime)))
+mdata <- tmerge(mgus2[,1:7], mgus2, id=id, event= event(futime, 2*death),
+                event= event(temp))
+mdata <- tmerge(mdata, mdata, id=id, enum = cumtdc(tstart)) # add row num
+mdata$event <- factor(mdata$event, 0:2, c("censor", "PCM", "Death"))
+@ 
+
+The competing risks data consists of only the first event for each subject,
+so we subset the data when fitting the model.
+
+<<cfit1>>=
+cfit <- coxph(Surv(tstop, event) ~ I(age/10) + sex + mspike, id = id, mdata,
+              subset=(enum==1))
+print(cfit, digits=1)  # narrow the printout a bit
+@ 
+The effect of age and sex on non-PCM mortality is profound, which is not
+a surprise given the median starting age of \Sexpr{median(mgus2$age)}. %$
+Death rates rise \Sexpr{round(exp(10*coef(cfit)[4]),1)} fold per decade 
+of age and
+the death rate for males is \Sexpr{round(exp(coef(cfit)[5]),1)} times as great
+as that for females.  
+The size of the serum monoclonal spike has almost no impact on non-PCM 
+mortality.
+A 1 unit increase changes mortality by only 2\%.
+
+The mspike size has a major impact on progression, however; each 1 gram
+change increases risk by \Sexpr{round(exp(coef(cfit)[3]) ,1)} fold.
+The interquartile range of \code{mspike} is 0.9 grams so this risk increase
+is clinically important.
+The effect of age on the progression rate is much less pronounced,
+with a coefficient only 1/4 that for mortality, while the effect of sex
+on progression is completely negligible.
+
+The effect of sex on the \emph{lifetime} probability of PCM is not zero,
+however.  Because of a longer lifetime, a female with MGUS will on average
+spend more total years at risk for malignancy than the average male, and so 
+will accumulate a larger lifetime risk of PCM.  
+The average rate of progression is about 1\% per year, as shown below,
+while the mean post diagnosis lifetime is 19 months longer for 
+females. 
+The overall effect is a 1.6\% increase in lifetime risk.
+<<mpyears>>=
+pfit1 <- pyears(Surv(ptime, pstat) ~ sex, mgus2, scale=12)
+round(100* pfit1$event/pfit1$pyears, 1)  # PCM rate per year
+
+sfit1 <- survfit(Surv(tstop, event) ~ sex, mdata)
+temp <- summary(sfit1, rmean="common")  #print the mean survival time
+round(temp$table[1:2,3], 1)
+@ 
+
+\appendix
+\chapter{Changes from version 2.44 to 3.0}
+Not all of these may be completed by 3.0, but this is the roadmap.
 
 \section{Changes in version 3}
 Version 3.0 of the package was released in conjunction with a book.  Writing
@@ -123,7 +330,6 @@ Two choices that appear are
     make a correction for the ties.  The simpler method is known variously
     as the Nelson, Aalen, Breslow, and Tsiatis estimate, along with hypenenated
     forms combining 2 or 3 of them.
-    The same basic formula has been re-created in many contexts.
     One of the simpler corrections for ties is known as the Fleming-Harrington
     approximation when used with raw data, and the Efron when used 
     in a Cox model.
@@ -147,7 +353,7 @@ while \code{survfit.coxph} used ``breslow'' and ``efron'' for the same two
 combinations.
 The updated routines now have separate \code{stype} and \code{ctype}
 arguments.  For the first 1= direct and 2=exponent of the cumulative hazard
-and for the second 1=simple and 2= corrected. 
+and for the second 1=simple and 2= corrected for ties. 
 
 The Cox model is a special case in two ways: 
 1. the the way in which ties are treated
@@ -187,7 +393,7 @@ case an \code{id} statement is not needed, and in fact you will get the
 same estimates and standard errors with or without it. 
 (There will be a change in the counts of subjects who leave or enter an
 interval, since an observation pair (0, 10), (10, 20) for the same subject
-will not count as an exit (censor) at 10 plus another entry at 10.)
+will not count as an exit (censor) at 10 along with an entry at 10.)
 If (b) is true then the robust variance is called for, one will want to 
 have either a \code{cluster} argument or the \code{robust=TRUE} argument.
 In the coxph routine a \code{cluster(group)} term in the model statement
@@ -204,15 +410,11 @@ the \code{id} statement is not necessary nor (I think) is a robust variance.
 When there is an \code{id} statement but no \code{cluster} or \code{robust}
 directive, then the programs will use (b) as a litmus test to decide
 between model based or robust variance, if possible.
-(There are edge cases where only one of the two has been implemented).
+(There are edge cases where only one of the two variance estimates has 
+been implemented, however).
 If there is a \code{cluster} argument then \code{robust=TRUE} is assumed.
 If only a \code{robust=TRUE} argument is given
 then the code treats each line of data as independent.
-
-
-\appendix
-\chapter{Changes from version 2.44 to 3.0}
-Not all of these may be completed by 3.0, but this is the roadmap.
 
 \section{Survfit}
   The survfit object is changing.   The primary change has to do with the 

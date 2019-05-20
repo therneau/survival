@@ -1,0 +1,107 @@
+\subsubsection{Multi-state models}
+Survival curves after a multi-state Cox model are more challenging,
+particularly the variance.
+
+The first step in the computation is to compute the hazard functions for
+each of the transtions.  Each of these hazards a completely independent
+computation: nothing is shared.  
+A subject sitting in some state A, at risk for transition to B and C, might
+have different covariates and/or coefficients, and thus different risk scores
+for the two transitions. 
+Because of this, there is no difference, for the first part of the code, between
+computing single endpoint or multiple endpoint curves, their variance, or their
+influence functions. 
+
+The second step of creating p(state) curves uses all of the state1:state2
+hazard functions at once, however.  For this reason we use a different 
+hazard routine, which returns those hazard functions at a common set of
+time points.
+ 
+<<survfitcoxph.fit>>=
+survfitcoxph.fit2 <- function (ctype, stype, se.fit, 
+                               varmat, cluster, cmap, tmat, states,
+                               y, x, weights, risk, position, strata, id,
+                               transition, y2, x2, strata2, newid) {
+    # args are the options (ctype, stype, se.fit), args info from the prior fit
+    # (varmat, ..., tmat), original data (Y, ..., transition), and data for the
+    # new subjects
+
+    # first make the expansion map.  
+    #  cmap[1,] will contain integers 1, 2,... which match the values in
+    # the transtion vector, which in turn is the set of hazard functions that
+    # come back from the .Call
+    #  The H matrices we will need are nstate by nstate, at each time, with
+    # elements that are non-zero only for observed transtions.  Some elements
+    # may be the same: cmat[1,] can have repeats.
+    nstate <- length(states)
+    H    <- matrix(0, nstate, nstate)
+    from <- row(tmat)[tmat>0]  # tmat contains fit$transitions matrix
+    from <- match(rownames(tmat), states)[from]  # actual row of H
+    to   <- col(tmat)[tmat>0]
+    to   <- match(rownames(tmat), states)[to]    # actual col of H
+    hfill <- cbind(from, to)
+
+    # setup to call the C routine
+    storage.mode(position) <- "integer"  # failsafe
+    storage.mode(weights) <- "double"
+    if (is.null(strata) || all(strata==strata[1])) {
+        sort1 <- order(transition, y[,1]) -1L
+        sort2 <- order(transition, y[,2]) -1L
+        event <- y[,3] > 0
+        udeath <- sort(unique(y[event,2]))  #unique death times
+        ctemp <- .Call("coxsurv2", udeath, y, weights, sort1, sort2, position, 
+                        transition, x, risk)
+        fit <- makesurv(ctemp)
+    }
+    else {
+        storage.mode(strata) <- "integer"    #failsafe
+        sort1 <- order(strata, transition, y[,1]) -1L
+        sort2 <- order(strata, transition, y[,2]) -1L
+ 
+        ustrat <- unique(strata)
+ browser()
+        sfun <- function(i) {
+            keep <- (strata==i)
+            makesurv(.Call("coxsurv2", y, weights, sort1[keep], sort2[keep], 
+                           position, transition, x, risk))
+        }
+        fit <- lapply(unique(strata), sfun)
+
+        browser()
+    }
+    
+    # Do the hard work
+    makesurv <- function(x) {
+        # Breslow estimate
+        hazard <- (ctemp$count[,4]/ctemp$count[,3])[,cmap[1,]]
+        surv <- matrix(0, 1+nrow(hazard), nstate)
+        surv[1,1] <- 1
+        for (i in 1:nrow(hazard)) {
+            H[hfill] <- hazard[i,]
+            diag(H) <- diag(H) - rowSums(H)
+            S[,i+1] <- S[,i] %*% H
+        }
+    }
+}
+@
+
+
+Here is the actual work.
+If $d$ is the number of unique event times and $s$ the number of
+states, the cumulative hazard will be an array of dimension $(s,s,d+1)$
+and the probability in state a matrix with $d+1$ rows and $s$ columns.
+The first row of the hazard is 0 and the first of the survival is
+the initial state.
+
+<<survfitcoxph-agsurv2>>=
+agsurv2 <- function(y, x, wt, risk, stype, ctype, cmap, states) {
+    nstate <- length(object$states)
+    from <- as.integer(sub(":.*$", "", colnames(cmap)))
+    to   <- as.integer(sub("^.*:", "", colnames(cmap)))
+    
+    isort <- order(y[,2], y[,3])
+    
+   status <- y[,3]
+    nd <- sum(status > 0)  #
+ 
+@ 

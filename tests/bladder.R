@@ -6,8 +6,8 @@ library(survival)
 #
 # Fit the models found in Wei et. al.
 #
-wfit <- coxph(Surv(stop, event) ~ (rx + size + number)* strata(enum) +
-		 cluster(id), bladder, method='breslow')
+wfit <- coxph(Surv(stop, event) ~ (rx + size + number)* strata(enum),
+		 cluster=id, bladder, ties='breslow')
 wfit
 
 # Check the rx coefs versus Wei, et al, JASA 1989
@@ -17,19 +17,19 @@ wfit$coef[rx] %*% cmat                   # the coefs in their paper (table 5)
 t(cmat) %*% wfit$var[rx,rx] %*% cmat  # var matrix (eqn 3.2)
 
 # Anderson-Gill fit
-fita <- coxph(Surv(start, stop, event) ~ rx + size + number + cluster(id),
-		  bladder2,  method='breslow')
+fita <- coxph(Surv(start, stop, event) ~ rx + size + number, cluster=id,
+		  bladder2,  ties='breslow')
 summary(fita)
 
 # Prentice fits.  Their model 1 a and b are the same
 fit1p  <- coxph(Surv(stop, event) ~ rx + size + number, bladder2,
-		subset=(enum==1), method='breslow')
+		subset=(enum==1), ties='breslow')
 fit2pa <- coxph(Surv(stop, event) ~ rx + size + number, bladder2,
-		subset=(enum==2), method='breslow')
+		subset=(enum==2), ties='breslow')
 fit2pb <- coxph(Surv(stop-start,  event) ~ rx + size + number, bladder2,
-		   subset=(enum==2), method='breslow')
+		   subset=(enum==2), ties='breslow')
 fit3pa <- coxph(Surv(stop, event) ~ rx + size + number, bladder2,
-		subset=(enum==3), method='breslow')
+		subset=(enum==3), ties='breslow')
  #and etc.
 fit1p
 fit2pa

@@ -36,7 +36,10 @@ statefig(layout, connect, margin = 0.03, box = TRUE, cex = 1, col = 1,
 \item{offset}{used to slight offset the arrows between two boxes x and y
   if there is a transition in both directions.  The default of 0
   leads to a double headed arrow in this case -- to arrows are drawn but
-  they coincide.}
+  they coincide.  A positive value causes each arrow to shift to the
+  left, from the view of someone standing at the foot of a arrow and
+  looking towards the arrowhead, a negative offset shifts to the right.
+  A value of 1 corresponds to the size of the plotting region.}
 }
 \details{
   The arguments for color, line type and line width can all be vectors,

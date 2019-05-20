@@ -42,7 +42,7 @@ yates <- function(fit, term, population=c("data", "factorial", "sas"),
     }
     if (is.null(mfun)) predict <- "linear"
 
-   # we will need the original model frame ans X matrix
+   # we will need the original model frame and X matrix
     mframe <- fit$model
     if (is.null(mframe)) mframe <- model.frame(fit)
     Xold <- model.matrix(fit)
@@ -200,8 +200,9 @@ if (method=="sgtt") result$SAS <- Smat
 
 In the non-linear case the mfun object is either a single function
 or a list containing two functions \code{predict} and \code{summary}.
-The predict function is handed a single vector $\eta = X\beta$
-values.  The result of predict can be a vector or a matrix.
+The predict function is handed a vector $\eta = X\beta$ along with 
+the $X$ matrix, though most methods don't use $X$.
+The result of predict can be a vector or a matrix.
 For coxph models we add on an ``intercept coef'' that will center the
 predictions.
 
@@ -223,7 +224,7 @@ else {  # double check the object
     predfun <- mfun$predict
     sumfun  <- mfun$summary
 }
-pmm <- predfun(eta)
+pmm <- predfun(eta, xall)
 n2 <- length(eta)
 if (!(is.numeric(pmm)) || !(length(pmm)==n2 || nrow(pmm)==n2))
     stop("prediction function should return a vector or matrix")
@@ -420,7 +421,7 @@ model.matrix:
 
 If pdata already is a model frame we want to leave it as one, so as to
 avoid recreating the raw data.
-The x1data comes from the user though, so we need to do that portion of
+If x1data comes from the user though, so we need to do that portion of
 model.frame processing ourselves, in order to get it into the right
 form.  Always turn characters into factors, since individual elements
 of \code{xmatlist} will have only a subset of the x1 variables.
@@ -445,7 +446,7 @@ xmatlist <- vector("list", nrow(x1data))
 if (is.null(attr(pdata, "terms"))) {
     np <- nrow(pdata)
     k <- match(x1name, names(pdata), nomatch=0)
-    if (any(k>0)) pdata <- pdata[which(k <=0)]
+    if (any(k>0)) pdata <- pdata[, -k, drop=FALSE]  # toss out yates var
     for (i in 1:nrow(x1data)) {
         j <- rep(i, np)
         tdata <- cbind(pdata, x1data[j,,drop=FALSE]) # new data set
@@ -659,7 +660,10 @@ print.yates <- function(x, digits = max(3, getOption("digits") -2),
 
 Routines to allow yates to interact with other models.
 Each is called with the fitted model and the type of prediction.
-It should return NULL if the 
+It should return NULL when the type is a linear predictor, since the
+parent routine has a very efficient approach in that case.
+Otherwise it returns a function that will be applied to each value
+$\eta$, from each row of a prediction matrix.
 
 <<yates>>=
 yates_setup <- function(fit, ...)
@@ -679,19 +683,27 @@ yates_setup.glm <- function(fit, predict = c("link", "response", "terms",
     if (type == "link" || type== "linear") NULL # same as linear
     else if (type == "response") {
         finv <- family(fit)$linkinv
-        function(x) finv(x)
+        function(eta, X) finv(eta)
     }
     else if (type == "terms")
         stop("type terms not yet supported")
 }
+@ 
 
+For the coxph routine, we are making use of the R environment by first
+defining the baseline hazard and then defining the predict and summary
+functions.  This means that those functions have access to the baseline.
+
+<<yates>>=
 yates_setup.coxph <- function(fit, predict = c("lp", "risk", "expected",
                                      "terms", "survival", "linear"), 
                               options, ...) {
     type <- match.arg(predict)
     if (type=="lp" || type == "linear") NULL  
-    else if (type=="risk") function(x) exp(x)
+    else if (type=="risk") function(eta, X) exp(eta)
     else if (type == "survival") {
+        # If there are strata we need to do extra work: 
+     #   browser()
         baseline <- survfit(fit, censor=FALSE)
         if (missing(options) || is.null(options$rmean)) 
             rmean <- max(baseline$time)  # max death time
@@ -702,8 +714,8 @@ yates_setup.coxph <- function(fit, predict = c("lp", "risk", "expected",
         cumhaz <- c(0, baseline$cumhaz)
         tt <- c(diff(c(0, pmin(rmean, baseline$time))), 0)
          
-        predict <- function(x) {
-            c2 <- outer(exp(drop(x)), cumhaz)  # matrix of values
+        predict <- function(eta, ...) {
+            c2 <- outer(exp(drop(eta)), cumhaz)  # matrix of values
             surv <- exp(-c2)
             meansurv <- apply(rep(tt, each=nrow(c2)) * surv, 1, sum)
             cbind(meansurv, surv)

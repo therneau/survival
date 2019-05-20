@@ -31,8 +31,29 @@ print.coxph <-
 	dimnames(tmp) <- list(names(coef), c("coef", "exp(coef)",
 	    "se(coef)", "robust se", "z", "p"))
 	}
+    
+    if (inherits(x, "coxphms")) {
+        # print it group by group
+        tmap <- x$cmap[-1,,drop=FALSE]  # ignore the intercept (strata)
+        cname <- colnames(tmap)
+        for (i in 1:length(cname)) {
+            tmp2 <- tmp[tmap[,i],, drop=FALSE]
+            names(dimnames(tmp2)) <- c(cname[i], "")
+            printCoefmat(tmp2, digits=digits, P.values=TRUE, has.Pvalue=TRUE,
+                 signif.stars = signif.stars, ...)
+            cat("\n")
+        }
 
-    printCoefmat(tmp, digits=digits, P.values=TRUE, has.Pvalue=TRUE,
+        cat(" States: ", paste(paste(seq(along=x$states), x$states, sep='= '), 
+                               collapse=", "), '\n')
+        # cat(" States: ", paste(x$states, collapse=", "), '\n')
+        if (FALSE) { # alternate forms, still deciding which I like
+            stemp <- x$states
+            names(stemp) <- 1:length(stemp)
+            print(stemp, quote=FALSE)
+        }
+    }
+    else printCoefmat(tmp, digits=digits, P.values=TRUE, has.Pvalue=TRUE,
                  signif.stars = signif.stars, ...)
 
     logtest <- -2 * (x$loglik[1] - x$loglik[2])

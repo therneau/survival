@@ -142,6 +142,10 @@ void coxscore(Sint   *nx,      Sint   *nvarx,    double *y,
 	      double *scratch);
 
 double coxsafe(double x);
+
+SEXP coxsurv1(SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22, 
+              SEXP position2,   SEXP strata2, SEXP xmat2, SEXP risk2);
+
 double **dmatrix(double *array, int nrow, int ncol);
 int    **imatrix(int *array, int nrow, int ncol);
 
@@ -154,6 +158,8 @@ SEXP gchol_inv(SEXP matrix, SEXP flag2);
 
 void init_doloop(int min, int max);
 int doloop      (int nloops, int *index);
+
+SEXP multicheck(SEXP y2, SEXP id2, SEXP istate2, SEXP sort2);
 
 int *norisk(int n, double *time1, double *time2, double *status, 
 	    int *sort1, int *sort2, int *strata);
@@ -235,5 +241,5 @@ void survpenal(int whichcase, int nfrail,    int  nvar2,    double **hmat,
 
 SEXP survsplit(SEXP tstart2,  SEXP tstop2,  SEXP cut2);
 
-SEXP tmerge (SEXP id2,  SEXP time1x, SEXP time2x, SEXP newx2,
+SEXP tmerge (SEXP id2,  SEXP time2x, SEXP newx2,
 	     SEXP nid2, SEXP ntime2, SEXP x2,  SEXP indx2); 

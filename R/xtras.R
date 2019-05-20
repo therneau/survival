@@ -13,9 +13,12 @@ vcov.coxph <- function (object, complete=TRUE, ...) {
 vcov.survreg<-function (object, complete=TRUE, ...) {
     if (!complete && any(is.na(coef(object)))) {
         keep <- !is.na(coef(object))
-        object$var[keep, keep, drop=FALSE]
+        vv <- object$var[keep, keep, drop=FALSE]
     }
-    else object$var
+    else vv <- object$var
+    vname <- names(coef(object))   # add dimnames
+    dimnames(vv) <- list(vname, vname)
+    vv
 }
 
 # The extractAIC methods for coxph and survreg objects are defined
@@ -62,4 +65,26 @@ terms.inner <- function(x) {
     else(deparse(x))
 }
    
-    
+# If a subject had (start, stop) observations of (1,2) (2,10) (10,15) (20,25),
+#  say, code often wants to distiguish intervals that are "real" censoring
+#  from a simple split due to a time dependent covariate.
+# This routine returns 1*(first in a sequence) + 2*(last in a sequence),
+#  which for the above is 1,0,2,3.  This assumes no overlapping intervals
+
+survflag <- function(y, id) {
+    if (!inherits(y, "Surv")) stop("y must be a Surv object")
+    if (nrow(y) != length(id)) stop("length mismatch")
+    if (ncol(y) != 3) stop("y needs to be of (tstart, tstop) form")
+  
+    n <- nrow(y)
+    indx <- order(id, y[,2])  # sort the data by time within id
+    y2 <- y[indx,]
+    id2 <- id[indx]
+
+    newid <- (id2[-n] != id2[-1])
+    gap <-  (y2[-n,2] < y2[-1,1]) 
+   
+    flag <- 1L*c(TRUE, newid | gap) + 2L*c(newid | gap, TRUE)
+    flag[indx] <- flag   # return it to data order
+    flag
+}

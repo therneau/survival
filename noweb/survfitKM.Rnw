@@ -17,7 +17,7 @@ survfitKM <- function(x, y, weights=rep(1.0,length(x)),
                       conf.type=c('log',  'log-log',  'plain', 'none', 
                                   'logit', "arcsin"),
                       conf.lower=c('usual', 'peto', 'modified'),
-                      start.time, new.time, id, cluster, influence=FALSE,
+                      start.time, id, cluster, influence=FALSE,
                       type) {
     
     if (!missing(type)) {
@@ -95,13 +95,8 @@ survfitKM <- function(x, y, weights=rep(1.0,length(x)),
     xlev <- levels(x)   # Will supply names for the curves
     x <- as.integer(x)  # keep the integer index
 
-    #  Allow "new.time" as a synonym for start.time
-    #  This is an old argument that should be depricated
-    if (missing(start.time)) {
-        if (!missing(new.time)) start.time <- new.time
-        else start.time <- min(c(0, y[,ny-1]))
-        # the line above sets a plotting range, it doesn't exclued anyone
-    }
+    if (missing(start.time)) start.time <- min(c(0, y[,ny-1]))
+    # the line above sets a plotting range, it doesn't exclued anyone
 
     <<survfitKM-compute>>
     <<survfitKM-finish>>
@@ -168,18 +163,7 @@ it suffices to sort by ending time. If a subject has holes in their timeline
 they will have more than one first and last indicator.
 
 <<survfitKM-compute>>=
-if (ny==3 & has.id) {
-    id <- as.integer(id)
-    index <- order(id, y[,2])
-    firstid <- !duplicated(id[index])
-    lastid  <- !duplicated(id[index], fromLast=TRUE)
-    position <- ifelse(firstid, 1L, 0L)+ ifelse(lastid, 2L, 0L)
-    # the next obs is the same id, but there is a time gap
-    gap <- (diff(id[index])==0 & y[index[-length(index)],2] != y[index[-1],1])
-    position[gap] <- position[gap] + 2L  
-    position[which(gap)+1L] <- position[which(gap) +1L] +1L
-    position[index] <- position   # return it to data order
-} 
+if (ny==3 & has.id) position <- survflag(y, id)
 else position <- integer(0)
 
 if (length(xlev) ==1) {# only one group
@@ -770,7 +754,7 @@ For the Kaplan-Meier we have
            &= U_k(t-) [1- h(t)] - 
                KM(t-)\frac{\partial h(t)}{\partial w_k} \label{Ukm}
 \end{align}
-The $V$ matrix is again a weighted sum.  The first term of \label{Ukm} does
+The $V$ matrix is again a weighted sum.  The first term of \eqref{Ukm} does
 not change, it multiplies the current value times $1-h$.  
 The second term involves the same summation as the cumulative hazard.
 

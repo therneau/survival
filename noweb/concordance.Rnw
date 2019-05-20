@@ -48,7 +48,7 @@ concordance.formula <- function(object, data,
                                 ymin, ymax, 
                                 timewt=c("n", "S", "S/G", "n/G", "n/G2", "I"),
                                 influence=0, ranks=FALSE, reverse=FALSE,
-                                timefix=TRUE, keepstrata=20, ...) {
+                                timefix=TRUE, keepstrata=10, ...) {
     Call <- match.call()  # save a copy of of the call, as documentation
     timewt <- match.arg(timewt)
     if (missing(ymin)) ymin <- NULL
@@ -193,9 +193,6 @@ concordancefit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL,
     if (type %in% c("mright", "mcounting"))
         stop("multiple state survival is not supported")
 
-    # A trick: if A and B are in different strata, we get the same concordance
-    #  if we put them in 1 stratum, and make their times not overlap.  This
-    #  works if timewt is 'n' or 'I'.
     nstrat <- length(unique(strata))
     if (!is.logical(keepstrata)) {
         if (!is.numeric(keepstrata))
@@ -203,16 +200,19 @@ concordancefit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL,
         else keepstrata <- (nstrat <= keepstrata)
     }
 
-    if (timewt %in% c("n", "I") && nstrat > 1 && !keepstrata) {
-        # mess up the times
+    if (timewt %in% c("n", "I") && nstrat > 10 && !keepstrata) {
+        # Special trickery for matched case-control data, where the
+        #  number of strata is huge, n per strata is small, and compute
+        #  time becomes excessive.  Make the data all one strata, but over
+        #  disjoint time intervals
         stemp <- as.numeric(as.factor(strata)) -1
         if (ncol(y) ==3) {
-            delta <- max(y[,2]) - min(y[,1])
+            delta <- 2+ max(y[,2]) - min(y[,1])
             y[,1] <- y[,1] + stemp*delta
             y[,2] <- y[,2] + stemp*delta
         }
         else {
-            delta <- max(y[,2]) +2
+            delta <- max(y[,1]) +2
             m1 <- rep(-1L, nrow(y))
             y <- Surv(m1 + stemp*delta, y[,1] + stemp*delta, y[,2])
         }
@@ -336,6 +336,7 @@ concordancefit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL,
         dfbeta <- ifelse(is.na(dfbeta),0, dfbeta)  # if cluster is a factor
     }
     var.somer <- sum(dfbeta^2)
+    if (!keepstrata && is.matrix(fit$count)) fit$count <- colSums(fit$count)
     rval <- list(concordance = (somer+1)/2, count=fit$count, n=n,
                  var = var.somer/4, cvar=vcox/(4*npair^2))
     if (is.matrix(rval$count))
@@ -349,12 +350,21 @@ concordancefit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL,
          
     if (ranks) rval$ranks <- resid
     if (reverse) {
+        # flip concordant/discordant values but not the labels
         rval$concordance <- 1- rval$concordance
         if (!is.null(rval$dfbeta)) rval$dfbeta <- -rval$dfbeta
-        if (!is.null(rval$influence)) 
+        if (!is.null(rval$influence)) {
             rval$influence <- rval$influence[,c(2,1,3,4,5)]
-        if (is.matrix(rval$count)) rval$count <- rval$count[, c(2,1,3,4,5)]
-        else rval$count <- rval$count[c(2,1,3,4,5)]
+            colnames(rval$influence) <- colnames(rval$influence)[c(2,1,3,4,5)]
+        }
+        if (is.matrix(rval$count)) {
+            rval$count <- rval$count[, c(2,1,3,4,5)]
+            colnames(rval$count) <- colnames(rval$count)[c(2,1,3,4,5)]
+        }
+        else {
+            rval$count <- rval$count[c(2,1,3,4,5)]
+            names(rval$count) <- names(rval$count)[c(2,1,3,4,5)]
+        }
         if (ranks) rval$ranks$rank <- -rval$ranks$rank
     }
 
@@ -431,9 +441,9 @@ cord.getdata <- function(object, newdata=NULL, cluster=NULL, need.wt, timefix=TR
             ord <- attr(Terms, 'order')[tempc$terms]
             rval$cluster <- strata(mf[,tempc$vars], shortlabel=TRUE) 
         }
-        else if (!is.null(object$call$id)) {
+        else if (!is.null(object$call$cluster)) {
             if (is.null(mf)) mf <- model.frame(object)
-            rval$cluster <- model.extract(mf, "id")
+            rval$cluster <- model.extract(mf, "cluster")
         }
     }
     else rval$cluster <- cluster
@@ -495,7 +505,7 @@ concordance.lm <- function(object, ..., newdata, cluster, ymin, ymax,
         stop(temp, " argument is not an appropriate fit object")
     }
         
-    cargs <- c("ymin", "ymax","influence", "ranks")
+    cargs <- c("ymin", "ymax","influence", "ranks", "keepstrata")
     cfun <- Call[c(1, match(cargs, names(Call), nomatch=0))]
     cfun[[1]] <- cord.work   # or quote(survival:::cord.work)
     cfun$fname <- fname
@@ -532,7 +542,7 @@ concordance.survreg <- function(object, ..., newdata, cluster, ymin, ymax,
         stop(temp, " argument is not an appropriate fit object")
     }
         
-    cargs <- c("ymin", "ymax","influence", "ranks", "timewt")
+    cargs <- c("ymin", "ymax","influence", "ranks", "timewt", "keepstrata")
     cfun <- Call[c(1, match(cargs, names(Call), nomatch=0))]
     cfun[[1]] <- cord.work
     cfun$fname <- fname
@@ -571,8 +581,8 @@ concordance.coxph <- function(object, ..., newdata, cluster, ymin, ymax,
         
     # the cargs trick is a nice one, but it only copies over arguments that
     #  are present.  If 'ranks' was not specified, the default of FALSE is
-    #  not set.  We keep it there to match the documentation.
-    cargs <- c("ymin", "ymax","influence", "ranks", "timewt")
+    #  not set.  We keep it in the arg list only to match the documentation.
+    cargs <- c("ymin", "ymax","influence", "ranks", "timewt", "keepstrata")
     cfun <- Call[c(1, match(cargs, names(Call), nomatch=0))]
     cfun[[1]] <- cord.work   # a copy of the function
     cfun$fname <- fname

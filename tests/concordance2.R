@@ -93,7 +93,7 @@ fit <- concordance(Surv(time, status) ~x, tdata, influence=2)
 aeq(fit$count, with(tdata, allpair(time, status, x)))
 aeq(fit$influence, with(tdata, leverage(time, status, x)))
 
-cfit <- coxph(Surv(time, status) ~ tt(x), tdata, tt=grank, method='breslow',
+cfit <- coxph(Surv(time, status) ~ tt(x), tdata, tt=grank, ties='breslow',
               iter=0, x=T)
 aeq(phget(cfit), fscale(fit))  # agree with Cox model
 
@@ -153,7 +153,7 @@ tdata2 <- data.frame(time1=c(0,3, 5,  6,7,   0,  4,17,  7,  0,16,  2,  0,
                      x = c(1,1, 6, 2,2, 7, 3,3, 7, 3,3, 8, 4, 4,4, 5),
                      wt= c(1,1, 2, 3,3, 2, 1,1, 2, 3,3, 4, 3, 2,2, 1),
                      id= c(1,1, 2, 3,3, 4, 5,5, 6, 7,7, 8, 9, 10,10, 11))
-fit8 <- concordance(Surv(time1, time2, status) ~x + cluster(id), tdata2, 
+fit8 <- concordance(Surv(time1, time2, status) ~x, cluster=id, tdata2, 
                     weight=wt, influence=2)
 aeq(fit5$count, fit8$count)
 # influence has one row per obs, so the next line is false: mismatched lengths
@@ -171,7 +171,7 @@ tdata3 <- data.frame(time1=c(tdata2$time1, rep(0, nrow(lung))),
                      wt= c(tdata2$wt, rep(1, nrow(lung))),
                      grp=rep(1:2, c(nrow(tdata2), nrow(lung))),
                      id = c(tdata2$id, 100+ 1:nrow(lung)))
-fit9 <- concordance(Surv(time1, time2, status) ~x + strata(grp) + cluster(id),
+fit9 <- concordance(Surv(time1, time2, status) ~x + strata(grp), cluster=id,
                         data=tdata3, weight=wt, influence=2)
 aeq(fit9$count, rbind(fit8$count, fit4$count))
 
@@ -181,11 +181,12 @@ tdata <- subset(lung, select=-c(meal.cal, wt.loss, sex, age))
 tdata$wt <- rep(1:25, length=nrow(tdata))/10
 tdata$time <- ceiling(tdata$time/30)  # force ties in y
 tfit <- coxph(Surv(time, status) ~ ph.ecog + pat.karno + strata(inst)
-             + cluster(inst), tdata, weight=wt)
+              + cluster(inst), tdata, weight=wt)
 tdata$tpred <- predict(tfit)
-cm4 <- concordance(tfit, influence=3)
-cm5 <- concordance(Surv(time, status) ~ tpred + strata(inst),
-                   data=tdata, weight=wt, cluster=inst, reverse=TRUE, influence=3)
+cm4 <- concordance(tfit, influence=3, keepstrata=TRUE)
+cm5 <- concordance(Surv(time, status) ~ tpred + strata(inst) + cluster(inst),
+                   data=tdata, weight=wt, reverse=TRUE, influence=3,
+                   keepstrata=TRUE)
 all.equal(cm4[1:6], cm5[1:6])  # call and na.action won't match
 
 u.inst <- sort(unique(tdata$inst))
@@ -202,9 +203,14 @@ lmat <- matrix(0., length(keep), 5)
 for (i in 1:length(keep)) {
     wt2 <- tdata$wt
     wt2[keep[i]] <- wt2[keep[i]] + eps
+
     test <- concordance(Surv(time, status) ~ predict(tfit) + strata(inst),
-                   data=tdata, weight=wt2, group=group, reverse=TRUE)
+                   data=tdata, weight=wt2, group=group, reverse=TRUE,
+                   keepstrata=TRUE)
     lmat[i,] <- colSums(test$count - cm4$count)/eps
 }
 aeq(lmat, cm4$influence, tolerance=eps)
 
+# Check that keepstrata gives the correct sum
+cm4b <- concordance(tfit, keepstrata=FALSE)
+aeq(cm4b$count, colSums(cm4$count))

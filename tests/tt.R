@@ -1,4 +1,5 @@
 library(survival)
+aeq <- function(x, y) all.equal(as.vector(x), as.vector(y))
 
 # A contrived example for the tt function
 #
@@ -26,23 +27,52 @@ mkdata <- function(n, beta) {
         futime[dead] <- dtime[i]
         status[dead] <- 1
     }
-    data.frame(futime=futime, status=status, age=age, x=x, risk=risk)
+    data.frame(futime=round(futime,1), status=status, age=age, x=x, risk=risk,
+               casewt = sample(1:5, n, replace=TRUE),
+               grp = sample(1:15, n, replace=TRUE))
 }
-tdata <- mkdata(500, c(log(1.5), 2/30))
 
-fit1 <- coxph(Surv(futime, status) ~ x + pspline(age), tdata)
-fit2 <- coxph(Surv(futime, status) ~ x + tt(age), tdata,
+set.seed(1953)  # a good year
+# The functional form won't be well estimated with n=100, but a large
+#  n makes the test slow, and as a validity test n=100 and n=1000 are equally
+#  good.
+tdata <- mkdata(100, c(log(1.5), 2/30))   # data set has many ties
+
+dtime <- sort(unique(tdata$futime[tdata$status==1]))
+data2 <- survSplit(Surv(futime, status) ~., tdata, cut=dtime)
+
+fit1 <- coxph(Surv(futime, status)~ x + tt(age), tdata,
               tt= function(x, t, ...) pspline(x+t))
 
-dfit <- coxph(Surv(futime, status) ~ x + tt(age), tdata,
-              tt= function(x, t, ...) x+t, iter=0, x=T)
+data2$c.age <- data2$age + data2$futime  # current age
+fit2 <- coxph(Surv(tstart, futime, status) ~ x + pspline(c.age), data2)
+aeq(coef(fit1), coef(fit2))
+aeq(vcov(fit1), vcov(fit2))
 
 #
 # Check that cluster, weight, and offset were correctly expanded
 #
-tdata <- data.frame(tdata, grp=sample(1:100, 500, replace=TRUE),
-                    casewt = sample(1:5, 500, replace=TRUE),
-                    zz = rnorm(500))
-dfit2 <- coxph(Surv(futime, status) ~ x + tt(age) + offset(zz) + cluster(grp),
-               weight=casewt, data=tdata,
-               tt= function(x, t, ...) x+t)
+fit3a <- coxph(Surv(futime, status)~ x + tt(age), tdata,
+              tt= function(x, t, ...) pspline(x+t), weights=casewt)
+fit3b <-  coxph(Surv(tstart, futime, status) ~ x + pspline(c.age), data2,
+                weights=casewt)
+aeq(coef(fit3a), coef(fit3b))
+aeq(vcov(fit3a), vcov(fit3b))
+
+fit4a <- coxph(Surv(futime, status)~ x + tt(age), tdata,
+              tt= function(x, t, ...) pspline(x+t), cluster=grp)
+fit4b <-  coxph(Surv(tstart, futime, status) ~ x + pspline(c.age), data2,
+                cluster=grp)
+fit4c <- coxph(Surv(tstart, futime, status) ~ x + pspline(c.age) + cluster(grp),
+               data2)
+aeq(coef(fit4a), coef(fit4b))
+aeq(vcov(fit4a), vcov(fit4b))
+aeq(coef(fit4a), coef(fit4c))
+aeq(vcov(fit4a), vcov(fit4c))
+
+fit5a <- coxph(Surv(futime, status)~ x + tt(age) + offset(grp/10), tdata,
+              tt= function(x, t, ...) pspline(x+t),)
+fit5b <-  coxph(Surv(tstart, futime, status) ~ x + pspline(c.age)+ offset(grp/10)
+                , data=data2)
+aeq(coef(fit5a), coef(fit5b))
+aeq(vcov(fit5a), vcov(fit5b))

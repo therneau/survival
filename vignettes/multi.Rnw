@@ -285,7 +285,7 @@ sfit3 <- survfit(Surv(txtime, txstat) ~ trt, data1)
 
 layout(matrix(c(1,1,1,2,3,4), 3,2), widths=2:1)
 oldpar <- par(mar=c(5.1, 4.1, 1.1, .1))
-plot(sfit2[,2], mark.time=FALSE, xmax=48,
+plot(sfit2[,2], mark.time=FALSE,  xmax=48,
          lty=3, lwd=2, col=1:2, xaxt='n',
      xlab="Months post enrollment", ylab="Events")
 lines(sfit1, mark.time=FALSE, xmax=48, fun='event', col=1:2, lwd=2)
@@ -352,7 +352,7 @@ oldpar <- par(mar=c(5.1, 4.1, 1.1, .1))
 plot(badfit, fun="event", xmax=48, xaxt='n', col=1:2, lty=2, lwd=2,
      xlab="Months from enrollment", ylab="P(state)")
 axis(1, xtime, xtime)
-lines(sfit3[,2], fun='event',  xmax=48, col=1:2, lwd=2)
+lines(sfit3[,2], xmax=48, col=1:2, lwd=2)
 legend(24, .3, c("Arm A", "Arm B"), lty=1, lwd=2,
        col=1:2, bty='n', cex=1.2)
 
@@ -640,7 +640,7 @@ state5()
 par(oldpar)
 @ 
 
-The transitions table above shows \Sexpr{sfit4$transitions[5,1]} %$ 
+The transitions table above shows \Sexpr{sfit4$transitions[1,2]} %$ 
 direct transitions from entry to death, i.e., 
 subjects who die without experiencing any of the other intermediate points,
 \Sexpr{sfit4$transitions[2,3]} who go from CR to transplant (as expected),

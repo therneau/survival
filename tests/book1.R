@@ -78,6 +78,8 @@ aeq(truth0$mart, fit0$resid[c(2:6,1)])
 aeq(truth0$scho, resid(fit0, 'schoen'))
 aeq(truth0$score, resid(fit0, 'score')[c(3:7,1)])
 sfit <- survfit(fit0, list(x=0))
+aeq(sfit$cumhaz, cumsum(truth0$haz))
+aeq(sfit$surv, exp(-cumsum(truth0$haz)))
 aeq(sfit$std.err^2, c(7/180, 2/9, 2/9, 11/9))
 aeq(resid(fit0, 'score'), c(5/24, NA, 5/12, -1/12, 7/24, -1/24, 5/24))
 
@@ -105,7 +107,6 @@ aeq(-log(sfit$surv), (cumsum(truth$haz))[c(1,2,4)])
 sfit <- survfit(fit, list(x=0), censor=TRUE)
 aeq(sfit$std.err^2, truth$var) 
 aeq(-log(sfit$surv), (cumsum(truth$haz)))
-
 
 # 
 # Done with the formal test, now print out lots of bits

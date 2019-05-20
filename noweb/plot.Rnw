@@ -17,14 +17,14 @@ plot.survfit<- function(x, conf.int,  mark.time=FALSE,
 			xmax, ymin=0,
 			fun, xlab="", ylab="", xaxs='r', 
                         conf.times, conf.cap=.005, conf.offset=.012, 
-                        mark, ...) {
+                        mark, noplot="()", ...) {
 
     dotnames <- names(list(...))
     if (any(dotnames=='type'))
         stop("The graphical argument 'type' is not allowed")
     if (missing(mark.time) & !missing(mark)) mark.time <- TRUE
 
-    x <- survfit23(x)
+    x <- survfit23(x)   # convert to version 3, if it wasn't already
     <<plot-plot-setup1>>
     <<plot-common-args>>
     <<plot-firstx>>
@@ -41,7 +41,8 @@ lines.survfit <- function(x, type='s',
                           mark.time=FALSE, xscale=1, 
 			  xmax,
                           fun,  conf.int=FALSE,  
-                          conf.times, conf.cap=.005, conf.offset=.012, mark, ...) {
+                          conf.times, conf.cap=.005, conf.offset=.012, mark, 
+                          noplot="()", ...) {
     x <- survfit23(x)
     xlog <- par("xlog")
     if (missing(mark.time) & !missing(mark)) mark.time <- TRUE
@@ -55,7 +56,7 @@ lines.survfit <- function(x, type='s',
 }
 
 points.survfit <- function(x, xscale, xmax, fun, censor=FALSE,
-                           col=1, pch, ...) {
+                           col=1, pch, noplot="()", ...) {
     # this function is used rarely
     conf.int <- FALSE  # never draw these with 'points'
 
@@ -104,22 +105,20 @@ else {
 }
 
 stime <- x$time
+if (inherits(x, "survfitms")) fun <- "identity"
 if (!missing(fun) && is.character(fun) && fun=="cumhaz") {
     if (!is.null(x$cumhaz)) {
         ssurv <- as.matrix(x$cumhaz)
         fun <- "identity"
         if (conf.int) {
             temp <- survfit_confint(ssurv, x$std.chaz, logse=FALSE,
-                                  conf.type='plain', conf.int=.95, ulimit=FALSE)
+                                conf.type='plain', conf.int=.95, ulimit=FALSE)
             supper <- as.matrix(temp$upper)
             slower <- as.matrix(temp$lower)
         }
         else supper <- NULL
     }
-}
-else {
-    if (!is.null(x$pstate)) ssurv <- as.matrix(x$pstate)
-    else ssurv <- as.matrix(x$surv)
+}else {
     if( !is.null(x$upper)) {
         supper <- as.matrix(x$upper)
         slower <- as.matrix(x$lower)
@@ -128,7 +127,21 @@ else {
         conf.int <- FALSE
         supper <- NULL  #marker for later code
     }
+
+    if (!is.null(x$pstate)) {
+        ssurv <- as.matrix(x$pstate)
+        if (ncol(ssurv)>1 && any(x$states== noplot)) {
+            keep <- (x$states != noplot)
+            ssurv <- ssurv[,keep, drop=FALSE]
+            if (conf.int) {
+                supper <- supper[,keep, drop=FALSE]
+                supper[,keep, drop=FALSE]
+            }
+        }
+    }
+    else ssurv <- as.matrix(x$surv)
 }
+
 # set up strata
 if (is.null(x$strata)) {
     nstrat <- 1

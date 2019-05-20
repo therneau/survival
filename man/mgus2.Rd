@@ -4,15 +4,17 @@
 \title{Monoclonal gammopathy data}
 
 \description{Natural history of 1341 sequential patients with monoclonal
-  gammopathy of undetermined significance (MGUS).
+  gammopathy of undetermined significance (MGUS).  This is a superset of
+  the \code{mgus} data, at a later point in the accrual process
 }
-\usage{data("mgus2")}
+\usage{mgus2}
 \format{
   A data frame with 1384 observations on the following 10 variables.
   \describe{
     \item{\code{id}}{subject identifier}
     \item{\code{age}}{age at diagnosis, in years}
     \item{\code{sex}}{a factor with levels \code{F} \code{M}}
+    \item{\code{dxyr}}{year of diagnosis}
     \item{\code{hgb}}{hemoglobin}
     \item{\code{creat}}{creatinine}
     \item{\code{mspike}}{size of the monoclonal serum splike}
@@ -24,8 +26,8 @@
   }
 }
 \details{
-  This is a larger follow-on study of the condition also found in data
-  set \code{mgus}.
+  This is an extension of the study found in the \code{mgus} data set,
+  containing enrollment through 1994 and follow-up through 1999.
 }
 \source{Mayo Clinic data courtesy of Dr. Robert Kyle.  All patient
   identifiers have been removed, age rounded to the nearest year, and

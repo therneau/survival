@@ -50,8 +50,8 @@ Call <- match.call()
 indx <- match(c("formula", "data", "weights", "subset", "na.action"),
                   names(Call), nomatch=0) 
 if (indx[1] ==0) stop("A formula argument is required")
-m <- Call[c(1,indx)]  # only keep the arguments we wanted
-m[[1L]] <- quote(stats::model.frame)  # change the function called
+temp <- Call[c(1,indx)]  # only keep the arguments we wanted
+temp[[1L]] <- quote(stats::model.frame)  # change the function called
 
 Terms <- if(missing(data)) terms(formula, 'ratetable')
          else              terms(formula, 'ratetable',data=data)
@@ -69,9 +69,9 @@ if (length(rate) >0 || !missing(rmap) || !missing(ratetable)) {
     }
 else has.ratetable <- FALSE
 
-m <- eval(m, parent.frame())
+mf <- eval(temp, parent.frame())
 
-Y <- model.extract(m, 'response')
+Y <- model.extract(mf, 'response')
 if (is.null(Y)) stop ("Follow-up time must appear in the formula")
 if (!is.Surv(Y)){
     if (any(Y <0)) stop ("Negative follow up time")
@@ -95,7 +95,7 @@ else {
 n <- nrow(Y)
 if (is.null(n) || n==0) stop("Data set has 0 observations")
 
-weights <- model.extract(m, 'weights')
+weights <- model.extract(mf, 'weights')
 if (is.null(weights)) weights <- rep(1.0, n)
 @ 
 
@@ -110,7 +110,7 @@ repeat the steps found there (remove cluster statements, etc).
 <<pyears-setup>>=
 # rdata contains the variables matching the ratetable
 if (has.ratetable) {
-    rdata <- data.frame(eval(rcall, m), stringsAsFactors=TRUE)  
+    rdata <- data.frame(eval(rcall, mf), stringsAsFactors=TRUE)  
     if (is.ratetable(ratetable)) {
         israte <- TRUE
         rtemp <- match.ratetable(rdata, ratetable)
@@ -125,7 +125,7 @@ if (has.ratetable) {
         if (length(strats))
             stop("pyears cannot handle stratified Cox models")
 
-        if (any(names(m[,rate]) !=  attr(ratetable$terms, 'term.labels')))
+        if (any(names(mf[,rate]) !=  attr(ratetable$terms, 'term.labels')))
              stop("Unable to match new data to old formula")
         R <- model.matrix.coxph(ratetable, data=rdata)
         }
@@ -154,7 +154,7 @@ else {
     outdname <- vector("list", odim)
     names(outdname) <- attr(Terms, 'term.labels')
     for (i in 1:odim) {
-        temp <- m[[ovars[i]]]
+        temp <- mf[[ovars[i]]]
         if (inherits(temp, 'tcut')) {
             X[,i] <- temp
             temp2 <- attr(temp, 'cutpoints')
@@ -260,7 +260,7 @@ if (has.ratetable) {  #include expected
             }
         }
     docount <- is.Surv(Y)
-    clist <- .C(Cpyears1,
+    temp <- .C(Cpyears1,
     		as.integer(n),
     		as.integer(ncol(Y)),
     		as.integer(is.Surv(Y)),
@@ -286,7 +286,7 @@ if (has.ratetable) {  #include expected
     }
 else {   #no expected
     docount <- as.integer(ncol(Y) >1)
-    clist <- .C(Cpyears2,
+    temp <- .C(Cpyears2,
     		as.integer(n),
     		as.integer(ncol(Y)),
     		as.integer(docount),
@@ -306,79 +306,72 @@ else {   #no expected
 
 Create the output object.
 <<pyears-finish>>=
-has.tcut <- any(sapply(m, function(x) inherits(x, 'tcut')))
+has.tcut <- any(sapply(mf, function(x) inherits(x, 'tcut')))
 if (data.frame) {
     # Create a data frame as the output, rather than a set of
     #  rate tables
     if (length(ovars) ==0) {  # no variables on the right hand side
         keep <- TRUE
-        df <- data.frame(pyears= clist$pyears/scale,
-                         n = clist$pn)
+        df <- data.frame(pyears= temp$pyears/scale,
+                         n = temp$n)
     }
     else {
-        keep <- (clist$pyears >0)  # what rows to keep in the output
-        names(outdname) <- ovars
-        if (length(outdname) ==1) {
-            # if there is only one variable, the call to "do.call" loses
-            #  the variable name, since expand.grid returns a factor
-            df <- data.frame((outdname[[1]])[keep], 
-                             pyears= clist$pyears[keep]/scale,
-                             n = clist$pn[keep])
-            names(df) <- c(names(outdname), 'pyears', 'n')
-        }
-        else {
-            df <- cbind(do.call("expand.grid", outdname)[keep,],
-                        pyears= clist$pyears[keep]/scale,
-                        n = clist$pn[keep])
-        }
+        keep <- (temp$pyears >0)  # what rows to keep in the output
+        # grap prototype rows from the model frame, this preserves class
+        tdata <- lapply(1:length(ovars), function(i) {
+            indx <- match(outdname[[i]], mf[[ovars[i]]])
+            mf[[ovars[i]]][indx]
+        })
+        df <- do.call("expand.grid", tdata)[keep,,drop=FALSE]
+        names(df) <- ovars
+        df$pyears <- temp$pyears[keep]/scale
+        df$n <- temp$pn[keep]
     }
-    row.names(df) <- 1:nrow(df)
-    if (has.ratetable) df$expected <- clist$pexpect[keep]
+    row.names(df) <- NULL   # toss useless 'creation history'
+    if (has.ratetable) df$expected <- temp$pexpect[keep]
     if (expect=='pyears') df$expected <- df$expected/scale
-    if (docount) df$event <- clist$pcount[keep]
-    
+    if (docount) df$event <- temp$pcount[keep]
     # if any of the predictors were factors, make them factors in the output
     for (i in 1:length(ovars)){
-        temp <- m[[ovars[i]]]
-        if (is.factor(temp))
-            df[[ovars[i]]] <- factor(df[[ovars[i]]], levels(temp))
+        if (is.factor( mf[[ovars[i]]]))
+            df[[ovars[i]]] <- factor(df[[ovars[i]]], levels( mf[[ovars[i]]]))
     }
 
     out <- list(call=Call,
-                data= df, offtable=clist$offtable/scale,
+                data= df, offtable=temp$offtable/scale,
                 tcut=has.tcut)
     if (has.ratetable && !is.null(rtemp$summ))
         out$summary <- rtemp$summ
 }
 
 else if (prod(odims) ==1) {  #don't make it an array
-    out <- list(call=Call, pyears=clist$pyears/scale, n=clist$pn,
-    	    offtable=clist$offtable/scale, tcut = has.tcut)
+    out <- list(call=Call, pyears=temp$pyears/scale, n=temp$pn,
+    	    offtable=temp$offtable/scale, tcut = has.tcut)
     if (has.ratetable) {
-        out$expected <- clist$pexpect
+        out$expected <- temp$pexpect
         if (expect=='pyears') out$expected <- out$expected/scale
         if (!is.null(rtemp$summ)) out$summary <- rtemp$summ
     }
-    if (docount) out$event <- clist$pcount
+    if (docount) out$event <- temp$pcount
 }
 else {
     out <- list(call = Call,
-    	pyears= array(clist$pyears/scale, dim=odims, dimnames=outdname),
-    	n     = array(clist$pn,     dim=odims, dimnames=outdname),
-    	offtable = clist$offtable/scale, tcut=has.tcut)
+    	pyears= array(temp$pyears/scale, dim=odims, dimnames=outdname),
+    	n     = array(temp$pn,     dim=odims, dimnames=outdname),
+    	offtable = temp$offtable/scale, tcut=has.tcut)
     if (has.ratetable) {
-        out$expected <- array(clist$pexpect, dim=odims, dimnames=outdname)
+        out$expected <- array(temp$pexpect, dim=odims, dimnames=outdname)
         if (expect=='pyears') out$expected <- out$expected/scale
-        if (!is.null(clist$summ)) out$summary <- rtemp$summ
+        if (!is.null(rtemp$summ)) out$summary <- rtemp$summ
     }
     if (docount)
-    	out$event <- array(clist$pcount, dim=odims, dimnames=outdname)
+    	out$event <- array(temp$pcount, dim=odims, dimnames=outdname)
 }
-out$observations <- nrow(m)
+out$observations <- nrow(mf)
 out$terms <- Terms
-na.action <- attr(m, "na.action")
+na.action <- attr(mf, "na.action")
 if (length(na.action))  out$na.action <- na.action
-if (model) out$model <- m
+if (model) out$model <- mf
 else {
     if (x) out$x <- X
     if (y) out$y <- Y

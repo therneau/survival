@@ -8,7 +8,7 @@
  pch=3, col=1, lty=1, lwd=1, cex=1, log=FALSE, xscale=1, yscale=1,  
  xmax, ymin=0, fun, 
  xlab="", ylab="", xaxs="r",  conf.times, conf.cap=.005,
- conf.offset=.012, mark, \dots)
+ conf.offset=.012, mark, noplot="()", \dots)
 }
 \arguments{
   \item{x}{
@@ -88,7 +88,7 @@
     \code{"log"} is the same as using the \code{log=T} option, 
     \code{"event"} or \code{"F"} plots the empirical CDF \eqn{F(t)= 1-S(t)}
     (f(y) = 1-y),  
-    \code{"cumhaz"} plots the cumulative hazard function (f(y) = -log(y)), and 
+    \code{"cumhaz"} plots the cumulative hazard function (see details), and 
     \code{"cloglog"} creates a complimentary log-log survival plot (f(y) = 
     log(-log(y)) along with log scale for the x-axis).
     The terms \code{"identity"} and \code{"surv"} are
@@ -122,6 +122,8 @@
     by this amount from the prior curve's bars, if it is a vector the values are
     used directly.}
   \item{mark}{a historical alias for \code{pch}}
+  \item{noplot}{for multi-state models, curves with this label will not
+  be plotted.  The default corresponds to an unspecified state.}
   \item{\dots}{for future methods}
 }
 \value{
@@ -140,12 +142,18 @@ Curves are plotted in the same order as they are listed by \code{print}
 This will be the order in which \code{col}, \code{lty}, etc are used.
 }
 \details{
+  If the object contains a cumulative hazard curve, then
+  \code{fun='cumhaz'} will plot that curve, otherwise it will plot
+  -log(S) as an approximation.  Theoretically, S =
+  \eqn{log(-\Lambda)}{log(-H)} where S is the survival and
+  \eqn{\Lambda}{H} is the cumulative hazard.  The same relationship
+  holds for estimates of S and \eqn{\Lambda}{H} only in special cases,
+  but the approximation is often close.
+
   When the \code{survfit} function creates a multi-state survival curve
   the resulting object also has class `survfitms'.
-  Competing risk curves are a common case.  The only difference in
-  the plots is that multi-state defaults to a curve that goes from lower
-  left to upper right (starting at 0), where survival curves by default
-  start at 1 and go down.  All other options are identical.
+  Competing risk curves are a common case.
+  In this situation the \code{fun} argument is ignored.
 
   When the \code{conf.times} argument is used, the confidence bars are
   offset by \code{conf.offset} units to avoid overlap.

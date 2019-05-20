@@ -1,4 +1,3 @@
-# $Id$
 #
 # Test out if a distribution object found in survreg is legal.  Mostly called
 #  by the survreg routine, but a user might use it when developing a new
