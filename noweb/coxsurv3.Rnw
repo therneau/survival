@@ -1,55 +1,89 @@
 \subsubsection{Multi-state models}
 Survival curves after a multi-state Cox model are more challenging,
 particularly the variance.
-The computation below has 3 steps
-\begin{enumerate}
-  \item Create the hazard matrices H.  For sanity, there will be one
-matrix for each event time, and at each of these there is an nstate by
-nstate matrix. The hazard matrices are for a risk score of 0.
-The matrices are a long string: death times for the first stratum, for
-the second, etc.  (There may be only one stratum).
-  \item For each output curve desired, walk through and create it.
-  \item Deal with robust variance
-\end{enumerate}  
 
-Keep in mind that ``stratum'' here means strata statements in the
-underlying Cox model, e.g., by male and female.  
-The artificial strata partitions that were used to model multiple transitions
-play a different role: in step 2 above a given subject might have different
-risk scores for different transitions.  Each off diagonal element of H might
-have a different multiplier to create the desired curve.  If there are
-time-dependent covariates that multiplier will change over time. 
+The first step in the computation is to compute the hazard functions for
+each of the transtions.  Each of these hazards a completely independent
+computation: nothing is shared.  
+A subject sitting in some state A, at risk for transition to B and C, might
+have different covariates and/or coefficients, and thus different risk scores
+for the two transitions. 
+Because of this, there is no difference, for the first part of the code, between
+computing single endpoint or multiple endpoint curves, their variance, or their
+influence functions. 
 
-A nuisance for both steps 1 and 2 is that different transitions will have 
-different event times, while covariate changes are different as well.  
-So a first step will be to create transition functions.   
+The second step of creating p(state) curves uses all of the state1:state2
+hazard functions at once, however.  For this reason we use a different 
+hazard routine, which returns those hazard functions at a common set of
+time points.
+ 
+<<survfitcoxph.fit>>=
+survfitcoxph.fit2 <- function (ctype, stype, se.fit, 
+                               varmat, cluster, cmap, tmat, states,
+                               y, x, weights, risk, position, strata, id,
+                               transition, y2, x2, strata2, newid) {
+    # args are the options (ctype, stype, se.fit), args info from the prior fit
+    # (varmat, ..., tmat), original data (Y, ..., transition), and data for the
+    # new subjects
 
-Computations are separate for each strata, and each strata will 
-have a different number of time points in the result.
-Thus we can't preallocate a matrix.  Instead we generate an empty list,  %'
-one per strata, and then populate it with the survival curves.
-At the end we unlist the individual components one by one.
-This is memory efficient, the number
-of curves is usually small enough that the "for" loop is no great
-cost, and it's easier to see what's going on than C code.               
+    # first make the expansion map.  
+    #  cmap[1,] will contain integers 1, 2,... which match the values in
+    # the transtion vector, which in turn is the set of hazard functions that
+    # come back from the .Call
+    #  The H matrices we will need are nstate by nstate, at each time, with
+    # elements that are non-zero only for observed transtions.  Some elements
+    # may be the same: cmat[1,] can have repeats.
+    nstate <- length(states)
+    H    <- matrix(0, nstate, nstate)
+    from <- row(tmat)[tmat>0]  # tmat contains fit$transitions matrix
+    from <- match(rownames(tmat), states)[from]  # actual row of H
+    to   <- col(tmat)[tmat>0]
+    to   <- match(rownames(tmat), states)[to]    # actual col of H
+    hfill <- cbind(from, to)
 
-<<survfitcoxph.fit2>>=
-survfitcoxph.fit2 <- function (y, x, wt, x2, risk, newrisk, strata, cmap,
-                               se.fit, stype, ctype, varmat, states) {
+    # setup to call the C routine
+    storage.mode(position) <- "integer"  # failsafe
+    storage.mode(weights) <- "double"
+    if (is.null(strata) || all(strata==strata[1])) {
+        sort1 <- order(transition, y[,1]) -1L
+        sort2 <- order(transition, y[,2]) -1L
+        event <- y[,3] > 0
+        udeath <- sort(unique(y[event,2]))  #unique death times
+        ctemp <- .Call("coxsurv2", udeath, y, weights, sort1, sort2, position, 
+                        transition, x, risk)
+        fit <- makesurv(ctemp)
+    }
+    else {
+        storage.mode(strata) <- "integer"    #failsafe
+        sort1 <- order(strata, transition, y[,1]) -1L
+        sort2 <- order(strata, transition, y[,2]) -1L
+ 
+        ustrat <- unqiue(strata)
+ browser()
+        sfun(i) <- function(i) {
+            keep <- (strata==i)
+            makesurv(.Call("coxsurv2", y, weights, sort1[keep], sort2[keep], 
+                           position, transition, x, risk))
+        }
+        fit <- lapply(unique(strata), sfun)
 
-    if (is.factor(strata)) ustrata <- levels(strata)
-    else                   ustrata <- sort(unique(strata))
-    nstrata <- length(ustrata)
-    survlist <- vector('list', nstrata)
-    names(survlist) <- ustrata
-
-    for (i in 1:nstrata) {
-        indx <- which(strata== ustrata[i])
-        survlist[[i]] <- agsurv2(y[indx,,drop=F], x[indx,,drop=F], 
-                                 wt[indx], risk[indx],
-                                 stype, ctype, cmap, states)
-        }               
- @
+        browser()
+    }
+    
+    # Do the hard work
+    makesurv <- function(x) {
+        # Breslow estimate
+        hazard <- (ctemp$count[,4]/ctemp$count[,3])[,cmap[1,]]
+        surv <- matrix(0, 1+nrow(hazard), nstate)
+        surv[1,1] <- 1
+        for (i in 1:nrow(hazard)) {
+            H[hfill] <- hazard[i,]
+            diag(H) <- diag(H) - rowSums(H)
+            S[,i+1] <- S[,i] %*% H
+        }
+        list(n=,,,)
+}
+@
 
 
 Here is the actual work.

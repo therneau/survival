@@ -230,7 +230,7 @@ dterms <- c(1L, 1L + dterms)  # add the intercept
 k <- seq(along=dterms)
 for (i in 1:nstate) {
     for (j in 1:nstate) {
-        tmap[dterms,i,j] <- k
+        tmap[dterms,j,i] <- k    # fill in in column major order
         k <- k + length(k)
     }
 }

@@ -4,6 +4,7 @@ PARTS = main.Rnw \
 	agreg.Rnw \
 	coxsurv.Rnw \
 	coxsurv2.Rnw \
+	coxsurv3.Rnw \
 	finegray.Rnw \
 	predict.coxph.Rnw \
 	concordance.Rnw \

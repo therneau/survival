@@ -163,18 +163,7 @@ it suffices to sort by ending time. If a subject has holes in their timeline
 they will have more than one first and last indicator.
 
 <<survfitKM-compute>>=
-if (ny==3 & has.id) {
-    id <- as.integer(id)
-    index <- order(id, y[,2])
-    firstid <- !duplicated(id[index])
-    lastid  <- !duplicated(id[index], fromLast=TRUE)
-    position <- ifelse(firstid, 1L, 0L)+ ifelse(lastid, 2L, 0L)
-    # the next obs is the same id, but there is a time gap
-    gap <- (diff(id[index])==0 & y[index[-length(index)],2] != y[index[-1],1])
-    position[gap] <- position[gap] + 2L  
-    position[which(gap)+1L] <- position[which(gap) +1L] +1L
-    position[index] <- position   # return it to data order
-} 
+if (ny==3 & has.id) position <- survflag(y, id)
 else position <- integer(0)
 
 if (length(xlev) ==1) {# only one group

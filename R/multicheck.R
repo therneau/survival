@@ -20,7 +20,7 @@ multicheck <- function(formula, data, id, istate, ...) {
     id <- model.extract(mf, "id")
     if (is.null(id)) stop("an id argument is required")
     else if (length(id) !=n) stop("wrong length for id")
-    
+     
     istate <- model.extract(mf, "istate")
     if (!is.null(istate) && length(istate) !=n) stop("wrong length for istate")
 
@@ -41,7 +41,7 @@ multicheck <- function(formula, data, id, istate, ...) {
         }
     }
     fit$Y <- Y      # used by the summary function
-    fit$id <- id    #   ""  ""
+    fit$id <- unname(id)    #   ""  ""
     fit$call <- Call
     class(fit) <- "multicheck"
     fit

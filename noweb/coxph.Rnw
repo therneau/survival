@@ -168,7 +168,8 @@ coxph <- function(formula, data, weights, subset, na.action,
 	else strata.keep <- strata(mf[,stemp$vars], shortlabel=TRUE)
 	strats <- as.numeric(strata.keep)
     }
-    
+    else strats <- rep(1L, data.n)
+
     timetrans <- attr(Terms, "specials")$tt
     if (missing(tt)) tt <- NULL
     if (length(timetrans)) {

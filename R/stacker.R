@@ -77,10 +77,12 @@ stacker <- function(cmap, istate, X, Y, strata, states) {
     # new strata, add on any implicit strata in the data.
     if (is.null(strata)) newstrat <- ustrata[transition]
     else {
-        # if the old strata is 1, 2, 3 the new ones will be 11-13 for transition
-        #  1, 21-23 for transition 2, etc.
-        temp <-10^ ceiling(log(max(strata), 10))
-        newstrat <- strata[rindex] + ustrata[transition]*temp
+        # if the old strata is 1, 2, 3 and states are 1-5, the new ones will 
+        #  11-15 for strata 1, 21-25 for strata 2, etc.
+        # (this is always called with 1,2,3... for the strata)
+        # there are usually <10 transitions, so this makes simple labels
+        temp <-10^ ceiling(log(length(ustrata), 10))
+        newstrat <- ustrata[transition] + strata[rindex]*temp
     } 
 
     # give variable names to the new data
@@ -89,5 +91,6 @@ stacker <- function(cmap, istate, X, Y, strata, states) {
     vname[ctemp[ctemp>0]] <- colnames(X)[row(ctemp)[ctemp>0]]
     colnames(newX) <- vname
 
-    list(X=newX, Y=newY, strata=newstrat, transition=transition, rindex=rindex)
+    list(X=newX, Y=newY, strata=as.integer(newstrat), 
+         transition= as.integer(transition), rindex=rindex)
 }

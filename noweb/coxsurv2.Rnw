@@ -118,7 +118,7 @@ survfitcoxph.fit <- function(y, x, wt, x2, risk, newrisk, strata, se.fit,
 @ 
 
 In an ordinary survival curve object with multiple strata, as produced by
-[[survfitKM]], the time, survival and etc components are each a
+\code{survfitKM}, the time, survival and etc components are each a
 single vector that contains the results for strata 1, followed by
 strata 2, \ldots.  The strata compontent is a vector of integers, one
 per strata, that gives the number of elements belonging to each stratum.
@@ -126,11 +126,11 @@ The reason is that each strata will have a different number of observations,
 so that a matrix form was not viable, and the underlying C routines were
 not capable of handling lists (the code predates the .Call function by 
 a decade).  
-The underlying computation of [[survfitcoxph.fit]] naturally creates the list
-form, we unlist it to [[survfit]] form as our last action unless the 
+The underlying computation of \code{survfitcoxph.fit} naturally creates the list
+form, we unlist it to \code{survfit} form as our last action unless the 
 caller requests otherwise.
 
-For [[individual=FALSE]] we have a second dimension, namely each of the
+For \code{individual=FALSE} we have a second dimension, namely each of the
 target covariate sets (if there are multiples).  Each of these generates
 a unique set of survival and variance(survival) values, but all of the 
 same size since each uses all the strata.  The final output structure in
@@ -143,7 +143,7 @@ If $\Lambda_0$ is the baseline cumulative hazard from the
 above calculation, then $r_i \Lambda_0$ is the cumulative
 hazard for the $i$th new risk score $r_i$.
 The variance has two parts, the first of which is $r_i^2 H_1$ where
-$H_1$ is returned from the [[agsurv]] routine, and the second is
+$H_1$ is returned from the \code{agsurv} routine, and the second is
 \begin{align*}
   H_2(t) =& d'(t) V d(t) \\                                        %'
   d(t) = \int_0^t [z- \overline x(s)] d\Lambda(s)
@@ -189,31 +189,31 @@ expand <- function(fit, x2, varmat, se.fit) {
     fit
     }
 @
-In the lines just above: I have a matrix [[dt]] with one row per death
+In the lines just above: I have a matrix \code{dt} with one row per death
 time and one column per variable.  For each row $d_i$ separately we
 want the quadratic form $d_i V d_i'$.  The first matrix product can     %'
 be done for all rows at once: found in the inner parenthesis.
 Ordinary (not matrix) multiplication followed by rowsums does the rest
 in one fell swoop.
     
-Now, if [[id]] is missing we can simply apply the [[expand]] function
+Now, if \code{id} is missing we can simply apply the \code{expand} function
 to each strata.
-For the case with [[id]] not missing, we create a single survival
+For the case with \code{id} not missing, we create a single survival
 curve for each unique id (subject). 
 A subject will spend blocks of time with different covariate sets,
 sometimes even jumping between strata.  Retrieve each one and save it into
 a list, and then sew them together end to end.
-The [[n]] component is the number of observations in the strata --- but this
+The \code{n} component is the number of observations in the strata --- but this
 subject might visit several.  We report the first one they were in for
 printout.
-The [[time]] component will be cumulative on this subject's scale.     %'
+The \code{time} component will be cumulative on this subject's scale.     %'
 Counting this is a bit trickier than I first thought.  Say that the
 subject's first interval goes from 1 to 10, with observed time points in
 that interval at 2, 5, and 7, and a second interval from 12 to 20  with
 observed time points in the data of 15 and 18.  On the subject's time
 scale things happen at days 1, 4, 6, 12 and 15.  The deltas saved below
 are 2-1, 5-2, 7-5, 3+ 14-12, 17-14.  Note the 3+ part, kept 
-in the [[timeforward]] variable.
+in the \code{timeforward} variable.
 Why all this ``adding up'' nuisance?  If the subject spent time in two
 strata, the second one might be on an internal time scale of `time since
 entering the strata'.  The two intervals in newdata could be 0--10 followed
@@ -221,7 +221,7 @@ by 0--20.  Time for the subject can't go backwards though: the change    %`
 between internal/external time scales is a bit like following someone who 
 was stepping back and forth over the international date line.
 
-In the code the [[indx]] variable points to the set of times that the
+In the code the \code{indx} variable points to the set of times that the
 subject was present, for this row of the new data.  Note the $>$ on 
 one end and $\le$ on the other.  If someone's interval 1 was 0--10 and
 interval 2 was 10--20, and there happened to be a jump in the baseline
@@ -302,21 +302,21 @@ else {
     }
 @ 
 
-Next is the code for the [[agsurv]] function, which actually does the work.
+Next is the code for the \code{agsurv} function, which actually does the work.
 The estimates of survival are the Kalbfleisch-Prentice (KP), Breslow, and
 Efron.  Each has an increment at each unique death time.
 First a bit of notation:
 $Y_i(t)$ is 1 if bservation $i$ is ``at risk'' at time $t$ and 0 otherwise.
-For a simple surivival ([[ncol(y)==2]]) a subject is at risk until the
-time of censoring or death (first column of [[y]]).
-For (start, stop] data ([[ncol(y)==3]]) a subject becomes a
+For a simple surivival (\code{ncol(y)==2}) a subject is at risk until the
+time of censoring or death (first column of \code{y}).
+For (start, stop] data (\code{ncol(y)==3}) a subject becomes a
 part of the risk set at start+0 and stays through stop.  
 $dN_i(t)$ will be 1 if subject $i$ had an event at time $t$.
 The risk score for each subject is $r_i = \exp(X_i \beta)$. 
 
 The Breslow increment at time $t$ is $\sum w_i dN_i(t) / \sum  w_i r_i Y_i(t)$,
 the number of events at time $t$ over the number at risk at time $t$.
-The final survival is [[exp(-cumsum(increment))]].
+The final survival is \code{exp(-cumsum(increment))}.
 
 The Kalbfleish-Prentice increment is a multiplicative term $z$
 which is the solution to the equation
@@ -349,7 +349,7 @@ at the longest followup time and summing towards the shortest.
 There are two algorithms for (start, stop] data. 
 \begin{itemize}
   \item Do a separate sum at each death time.  The problem is for very large
-    data sets.  For each death time the selection [[who <- (start<t & stop>=t)]]
+    data sets.  For each death time the selection \code{who <- (start<t & stop>=t)}
     is $O(n)$ and can take more time then all the remaining calculations 
     together.
   \item Use the difference of two cumulative sums, one ordered by start time
@@ -359,13 +359,13 @@ There are two algorithms for (start, stop] data.
     This issue is mostly precluded by subtracting means first.
 \end{itemize}
 We compute the extended number still at risk --- all whose stop time
-is $\ge$ each unique death time --- in the vector [[xin]].  From
+is $\ge$ each unique death time --- in the vector \code{xin}.  From
 this we have to subtract all those who haven't actually entered yet       %'
-found in [[xout]].  Remember that (3,20] enters at time 3+.
+found in \code{xout}.  Remember that (3,20] enters at time 3+.
 The total at risk at any time is the difference between them.  
 Output is only for the
 stop times; a call to approx is used to reconcile the two time sets.
-The [[irisk]] vector is for the printout, it is a sum of weighted counts
+The \code{irisk} vector is for the printout, it is a sum of weighted counts
 rather than weighted risk scores.
 <<agsurv>>=
 agsurv <- function(y, x, wt, risk, survtype, vartype) {

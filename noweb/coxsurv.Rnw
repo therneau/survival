@@ -157,8 +157,8 @@ further material.
 <<survfit.coxph-setup>>=
 Terms <- object$terms
 n <- object$n[1]
-if (!has.strata) strata <- rep(0L, n)
-else strata <- object$strata
+if (!has.strata) strats <- NULL
+else strats <- as.integer(object$strata)
 
 if (is.null(mf)) {
     weights <- rep(1., n)
@@ -179,9 +179,10 @@ else {
 
     stangle <- untangle.specials(Terms, 'strata') # used multiple times
     if (has.strata) {
-        if (is.null(strata)){
+        if (is.null(strats)){
             if (length(stangle$vars) ==1) strata <- mf[[stangle$vars]]
             else strata <- strata(mf[, stangle$vars], shortlabel=TRUE)
+            strats <- as.integer(as.factor(strata))  # the 1, 2, ... form
         }
     }
 
@@ -193,20 +194,24 @@ else {
         mcheck <- multicheck2(Y, oldid, istate)
         transitions <- mcheck$transitions
         istate <- mcheck$istate
-        if (object$states != mcheck$states)
+        if (!identical(object$states, mcheck$states))
             stop("failed to rebuild the data set")
 
         cluster <- model.extract(mf, "cluster")
-        xstack <- stacker(object$cmap, as.integer(istate), X, Y, strata,
+        xstack <- stacker(object$cmap, as.integer(istate), X, Y, strats,
                           states= object$states)
+        position <- survflag(Y, oldid)[xstack$rindex]
         X <- xstack$X
         Y <- xstack$Y
-        strata <- xstack$strata
+        strats <- strats[xstack$rindex]
+        transition <- xstack$transition
         if (length(offset)) offset <- offset[xstack$rindex]
         if (length(weights)) weights <- weights[xstack$rindex]
         if (length(cluster)) cluster <- cluster[xstack$rindex]
         oldid <- oldid[xstack$rindex]
         if (robust & length(cluster)==0) cluster <- oldid
+    } else {
+        position <- transition <- NULL
     }
 }
 @ 
@@ -257,8 +262,10 @@ if (!missing(start.time)) {
     Y <- Y[keep,,drop=FALSE]
     X <- X[keep,,drop=FALSE]
     offset <- offset[keep]
-    strata <- strata[keep]
+    strats <- strats[keep]
     if (length(id) >0 ) id <- id[keep]
+    if (length(position)) position <- position[keep]
+    if (length(transition)) transition <- transition[keep]
     n <- nrow(Y)
 }
 
@@ -537,10 +544,11 @@ if (individual) {
     newrisk <- exp(c(x2 %*% beta) + offset2 - (mean(offset) + xcenter))
 
     if (coxms) 
-        result <- survfitcoxph.fit2(Y, X, weights, x2, risk, newrisk, strata,
-                                se.fit, stype, ctype, varmat, oldid, cluster,
-                                id, y2, strata2)
-    else result <- survfitcoxph.fit(Y, X, weights, x2, risk, newrisk, strata,
+        result <- survfitcoxph.fit2(ctype, stype, se.fit, varmat, cluster,
+                                    object$cmap, object$transitions, object$states,
+                                    Y, X, weights, risk, position, strats, oldid,
+                                    transition, y2, x2, strata2, id)
+    else result <- survfitcoxph.fit(Y, X, weights, x2, risk, newrisk, strats,
                                 se.fit, stype, ctype, varmat, oldid, cluster,
                                 id, y2, strata2)
    }
@@ -562,10 +570,16 @@ else {
        if (length(offset2) >0) offset2 <- offset2 - mean(offset)
        else offset2 <- 0
        x2 <- model.matrix(Terms2, mf2)[,-1, drop=FALSE]  #no intercept
-   }
+    }
 
     newrisk <- exp(c(x2 %*% beta) + offset2 - xcenter)
-    result <- survfitcoxph.fit(Y, X, weights, x2, risk, newrisk, strata,
+
+    if (coxms)
+        result <- survfitcoxph.fit2(ctype, stype, se.fit, varmat, cluster,
+                                    object$cmap, object$transitions, object$states,
+                                    Y, X, weights, risk, position, strats, oldid,
+                                    transition, y2, x2, strata2, id)
+     else result <- survfitcoxph.fit(Y, X, weights, x2, risk, newrisk, strats,
                                 se.fit, stype, ctype, varmat, oldid, cluster)
     if (has.strata && found.strata) {
         if (is.matrix(result$surv)) {
