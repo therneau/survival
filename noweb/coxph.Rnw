@@ -166,9 +166,8 @@ coxph <- function(formula, data, weights, subset, na.action,
 	stemp <- untangle.specials(Terms, 'strata', 1)
 	if (length(stemp$vars)==1) strata.keep <- mf[[stemp$vars]]
 	else strata.keep <- strata(mf[,stemp$vars], shortlabel=TRUE)
-	strats <- as.numeric(strata.keep)
-    }
-    else strats <- rep(1L, data.n)
+	istrat <- as.integer(strata.keep)
+    } else istrat <- NULL
 
     timetrans <- attr(Terms, "specials")$tt
     if (missing(tt)) tt <- NULL
@@ -344,11 +343,11 @@ would only be distinguished by perhaps having different covariates.
 
 <<coxph-multi-X>>=
 cmap <- parsecovar3(tmap, colnames(X), attr(X, "assign"))
-xstack <- stacker(cmap, as.integer(istate), X, Y, strata=strats,
+xstack <- stacker(cmap, as.integer(istate), X, Y, strata=istrat,
                   states=states)
 X <- xstack$X
 Y <- xstack$Y
-strats <- xstack$strata
+istrat <- xstack$strata
 if (length(offset)) offset <- offset[xstack$rindex]
 if (length(weights)) weights <- weights[xstack$rindex]
 if (length(cluster)) cluster <- cluster[xstack$rindex]
@@ -380,7 +379,7 @@ separate stratum for each unique event-time/strata combination,
 and any tt() terms in the formula are processed.  
 The first step is to create the index vector [[tindex]] and
 new strata [[.strata.]].   This last is included in a model.frame call
-(for others to use), internally the code simply replaces the [[strats]]
+(for others to use), internally the code simply replaces the \code{istrat}
 variable.
 A (modestly) fast C-routine first counts up and indexes the observations.
 We start out with error checks; since the computation can be slow we want
@@ -421,9 +420,9 @@ if (ncol(Y)==2) {
         newstrat[1] <- 1L
 	}
     else {
-	sorted <- order(strats, -Y[,1], Y[,2])
+	sorted <- order(istrat, -Y[,1], Y[,2])
         #newstrat marks the first obs of each strata
-	newstrat <-  as.integer(c(1, 1*(diff(strats[sorted])!=0))) 
+	newstrat <-  as.integer(c(1, 1*(diff(istrat[sorted])!=0))) 
 	}
     if (storage.mode(Y) != "double") storage.mode(Y) <- "double"
     counts <- .Call(Ccoxcount1, Y[sorted,], 
@@ -437,9 +436,9 @@ else {
 	newstrat  <- c(1L, rep(0, nrow(Y) -1))
     }
     else {
-	sort.end  <- order(strats, -Y[,2], Y[,3])
-	sort.start<- order(strats, -Y[,1])
-	newstrat  <- c(1L, as.integer(diff(strats[sort.end])!=0))
+	sort.end  <- order(istrat, -Y[,2], Y[,3])
+	sort.start<- order(istrat, -Y[,1])
+	newstrat  <- c(1L, as.integer(diff(istrat[sort.end])!=0))
     }
     if (storage.mode(Y) != "double") storage.mode(Y) <- "double"
     counts <- .Call(Ccoxcount2, Y, 
@@ -482,7 +481,7 @@ Y <- Surv(rep(counts$time, counts$nrisk), counts$status)
 type <- 'right'  # new Y is right censored, even if the old was (start, stop]
 
 mf <- mf[tindex,]
-strats <- rep(1:length(counts$nrisk), counts$nrisk)
+istrat <- rep(1:length(counts$nrisk), counts$nrisk)
 weights <- model.weights(mf)
 if (!is.null(weights) && any(!is.finite(weights)))
     stop("weights must be finite")  
@@ -491,7 +490,7 @@ tcall <- attr(Terms, 'variables')[timetrans$terms+2]
 pvars <- attr(Terms, 'predvars')
 pmethod <- sub("makepredictcall.", "", as.vector(methods("makepredictcall")))
 for (i in 1:ntrans) {
-    newtt <- (tt[[i]])(mf[[timetrans$var[i]]], Y[,1], strats, weights)
+    newtt <- (tt[[i]])(mf[[timetrans$var[i]]], Y[,1], istrat, weights)
     mf[[timetrans$var[i]]] <- newtt
     nclass <- class(newtt)
     if (any(nclass %in% pmethod)) { # It has a makepredictcall method
@@ -871,7 +870,7 @@ if (any(pterms)) {
     if (any(ord>1)) stop ('Penalty terms cannot be in an interaction')
     pcols <- assign[match(pname, names(assign))] 
     
-    fit <- coxpenal.fit(X, Y, strats, offset, init=init,
+    fit <- coxpenal.fit(X, Y, istrat, offset, init=init,
                         control,
                         weights=weights, method=method,
                         row.names(mf), pcols, pattr, assign)
@@ -890,7 +889,7 @@ else {
     }
     else stop(paste ("Unknown method", method))
 
-    fit <- fitter(X, Y, strats, offset, init, control, weights=weights,
+    fit <- fitter(X, Y, istrat, offset, init, control, weights=weights,
                   method=method, row.names(mf))
 }
 @ 
@@ -922,7 +921,7 @@ else {
         #   na.action method, I avoid having missings re-inserted
         # I also make sure that it doesn't have to reconstruct X and Y
         fit2 <- c(fit, list(x=X, y=Y, weights=weights))
-        if (length(strats)) fit2$strata <- strats
+        if (length(istrat)) fit2$strata <- istrat
         if (length(cluster)) {
     	temp <- residuals.coxph(fit2, type='dfbeta', collapse=cluster,
     				  weighted=TRUE)
@@ -959,10 +958,10 @@ else {
     # The returned value is a subset of the full result, partly because it
     #  is all we need, but more for backward compatability with survConcordance.fit
     if (length(cluster))
-        temp <- concordancefit(Y, fit$linear.predictors, strats, weights,
+        temp <- concordancefit(Y, fit$linear.predictors, istrat, weights,
                                           cluster=cluster, reverse=TRUE,
                                 timefix= FALSE)
-    else temp <- concordancefit(Y, fit$linear.predictors, strats, weights,
+    else temp <- concordancefit(Y, fit$linear.predictors, istrat, weights,
                                   reverse=TRUE, timefix= FALSE)
     if (is.matrix(temp$count))
          fit$concordance <- c(colSums(temp$count), concordance=temp$concordance,
@@ -981,7 +980,7 @@ else {
     if (x)  {
         fit$x <- X
         if (length(strats)) {
-            if (length(timetrans)) fit$strata <- strats
+            if (length(timetrans)) fit$strata <- istrat
             else     fit$strata <- strata.keep
         }
     }
@@ -1110,7 +1109,7 @@ model.frame.coxph <- function(formula, ...) {
 	      stemp <- untangle.specials(Terms, 'strata', 1)
 	      if (length(stemp$vars)==1) strata.keep <- mf[[stemp$vars]]
 	      else strata.keep <- strata(mf[,stemp$vars], shortlabel=TRUE)
-	      strats <- as.numeric(strata.keep)
+	      istrat <- as.numeric(strata.keep)
           }
  	  
           <<coxph-transform>>

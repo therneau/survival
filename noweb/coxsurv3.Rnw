@@ -58,9 +58,9 @@ survfitcoxph.fit2 <- function (ctype, stype, se.fit,
         sort1 <- order(strata, transition, y[,1]) -1L
         sort2 <- order(strata, transition, y[,2]) -1L
  
-        ustrat <- unqiue(strata)
+        ustrat <- unique(strata)
  browser()
-        sfun(i) <- function(i) {
+        sfun <- function(i) {
             keep <- (strata==i)
             makesurv(.Call("coxsurv2", y, weights, sort1[keep], sort2[keep], 
                            position, transition, x, risk))
@@ -81,7 +81,7 @@ survfitcoxph.fit2 <- function (ctype, stype, se.fit,
             diag(H) <- diag(H) - rowSums(H)
             S[,i+1] <- S[,i] %*% H
         }
-        list(n=,,,)
+    }
 }
 @
 

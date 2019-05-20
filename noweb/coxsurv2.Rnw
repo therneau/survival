@@ -46,6 +46,8 @@ survfitcoxph.fit <- function(y, x, wt, x2, risk, newrisk, strata, se.fit,
                               stype, ctype, varmat, oldid, cluster,
                               id, y2, strata2,
                               unlist=TRUE) {
+    if (missing(strata) || length(strata)==0) strata <- rep(1L, nrow(y))
+
     if (is.factor(strata)) ustrata <- levels(strata)
     else                   ustrata <- sort(unique(strata))
     nstrata <- length(ustrata)
@@ -349,14 +351,14 @@ at the longest followup time and summing towards the shortest.
 There are two algorithms for (start, stop] data. 
 \begin{itemize}
   \item Do a separate sum at each death time.  The problem is for very large
-    data sets.  For each death time the selection \code{who <- (start<t & stop>=t)}
+    data sets.  For each death time the selection \code{(start<t \& stop>=t)}
     is $O(n)$ and can take more time then all the remaining calculations 
     together.
   \item Use the difference of two cumulative sums, one ordered by start time
     and one ordered by stop time. This is $O(2n)$ for the intial sums.  The
-    problem here is potential round off error if the sums get large, which
-    can happen if the time scale were very, very finely divided.
-    This issue is mostly precluded by subtracting means first.
+    problem here is potential round off error if the sums get large.
+    This issue is mostly precluded by subtracting means first, and avoiding
+    intervals that don't overlap an event time.
 \end{itemize}
 We compute the extended number still at risk --- all whose stop time
 is $\ge$ each unique death time --- in the vector \code{xin}.  From

@@ -350,12 +350,21 @@ concordancefit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL,
          
     if (ranks) rval$ranks <- resid
     if (reverse) {
+        # flip concordant/discordant values but not the labels
         rval$concordance <- 1- rval$concordance
         if (!is.null(rval$dfbeta)) rval$dfbeta <- -rval$dfbeta
-        if (!is.null(rval$influence)) 
+        if (!is.null(rval$influence)) {
             rval$influence <- rval$influence[,c(2,1,3,4,5)]
-        if (is.matrix(rval$count)) rval$count <- rval$count[, c(2,1,3,4,5)]
-        else rval$count <- rval$count[c(2,1,3,4,5)]
+            colnames(rval$influence) <- colnames(rval$influence)[c(2,1,3,4,5)]
+        }
+        if (is.matrix(rval$count)) {
+            rval$count <- rval$count[, c(2,1,3,4,5)]
+            colnames(rval$count) <- colnames(rval$count)[c(2,1,3,4,5)]
+        }
+        else {
+            rval$count <- rval$count[c(2,1,3,4,5)]
+            names(rval$count) <- names(rval$count)[c(2,1,3,4,5)]
+        }
         if (ranks) rval$ranks$rank <- -rval$ranks$rank
     }
 

@@ -85,6 +85,7 @@ coxph routine treats this last term as though it had a * in it, i.e.,
 fits a stratified model.
 
 <<survfit.coxph-setup>>=
+Terms  <- terms(object)
 robust <- !is.null(object$naive.var)   # did the coxph model use robust var?
 
 if (!is.null(attr(object$terms, "specials")$tt))
@@ -113,10 +114,11 @@ else if (!(ctype %in% 1:2)) stop ("ctype must be 1 or 2")
 if (!se.fit) conf.type <- "none"
 else conf.type <- match.arg(conf.type)
 
-tfac <- attr(terms(object), 'factors')
-temp <- attr(terms(object), 'specials')$strata 
+tfac <- attr(Terms, 'factors')
+temp <- attr(Terms, 'specials')$strata 
 has.strata <- !is.null(temp)
 if (has.strata) {
+    stangle = untangle.specials(Terms, "strata")  #used multiple times, later
     # Toss out strata terms in tfac before doing the test 1 line below, as
     #  strata end up in the model with age:strat(grp) terms or *strata() terms
     #  (There might be more than one strata term)
@@ -157,8 +159,8 @@ further material.
 <<survfit.coxph-setup>>=
 Terms <- object$terms
 n <- object$n[1]
-if (!has.strata) strats <- NULL
-else strats <- as.integer(object$strata)
+if (!has.strata) strata <- rep(0L, n)
+else strata <- object$strata
 
 if (is.null(mf)) {
     weights <- rep(1., n)
@@ -177,12 +179,11 @@ else {
     if (nrow(Y) != object$n[1]) 
         stop("Failed to reconstruct the original data set")
 
-    stangle <- untangle.specials(Terms, 'strata') # used multiple times
     if (has.strata) {
-        if (is.null(strats)){
+        if (length(strata)==0) {
             if (length(stangle$vars) ==1) strata <- mf[[stangle$vars]]
             else strata <- strata(mf[, stangle$vars], shortlabel=TRUE)
-            strats <- as.integer(as.factor(strata))  # the 1, 2, ... form
+            istrat <- as.integer(as.factor(strata))  # the 1, 2, ... form
         }
     }
 
@@ -198,12 +199,13 @@ else {
             stop("failed to rebuild the data set")
 
         cluster <- model.extract(mf, "cluster")
-        xstack <- stacker(object$cmap, as.integer(istate), X, Y, strats,
+        xstack <- stacker(object$cmap, as.integer(istate), X, Y,
+                          as.integer(strata),
                           states= object$states)
         position <- survflag(Y, oldid)[xstack$rindex]
         X <- xstack$X
         Y <- xstack$Y
-        strats <- strats[xstack$rindex]
+        strata <- strata[xstack$rindex]
         transition <- xstack$transition
         if (length(offset)) offset <- offset[xstack$rindex]
         if (length(weights)) weights <- weights[xstack$rindex]
@@ -246,30 +248,6 @@ if (!is.null(mf)){
     }
 }
 
-if (!missing(start.time)) {
-    if (!is.numeric(start.time) || length(start.time) > 1)
-        stop("start.time must be a single numeric value")
-    # Start the curves after start.time
-    # To do so, remove any rows of the data with an endpoint before that
-    #  time.
-    if (ncol(Y)==3) {
-        keep <- Y[,2] > start.time
-        Y[keep,1] <- pmax(Y[keep,1], start.time)
-    }
-    else keep <- Y[,1] > start.time
-    if (!any(Y[keep, ncol(Y)]==1)) 
-        stop("start.time argument has removed all endpoints")
-    Y <- Y[keep,,drop=FALSE]
-    X <- X[keep,,drop=FALSE]
-    offset <- offset[keep]
-    strats <- strats[keep]
-    if (length(id) >0 ) id <- id[keep]
-    if (length(position)) position <- position[keep]
-    if (length(transition)) transition <- transition[keep]
-    n <- nrow(Y)
-}
-
-
 type <- attr(Y, 'type')
 if (type != 'right' && type != 'counting') 
     stop("Cannot handle \"", type, "\" type survival data")
@@ -287,6 +265,29 @@ if (individual & missing(newdata)) {
     stop("the id and/or individual options only make sense with new data")
 }
 if (type!= 'counting') individual <- FALSE
+
+if (!missing(start.time)) {
+    if (!is.numeric(start.time) || length(start.time) > 1)
+        stop("start.time must be a single numeric value")
+    # Start the curves after start.time
+    # To do so, remove any rows of the data with an endpoint before that
+    #  time.
+    if (ncol(Y)==3) {
+        keep <- Y[,2] > start.time
+        Y[keep,1] <- pmax(Y[keep,1], start.time)
+    }
+    else keep <- Y[,1] > start.time
+    if (!any(Y[keep, ncol(Y)]==1)) 
+        stop("start.time argument has removed all endpoints")
+    Y <- Y[keep,,drop=FALSE]
+    X <- X[keep,,drop=FALSE]
+    offset <- offset[keep]
+    strata <- strata[keep]
+    if (length(id) >0 ) id <- id[keep]
+    if (length(position)) position <- position[keep]
+    if (length(transition)) transition <- transition[keep]
+    n <- nrow(Y)
+}
 @
 
 In the above code we see id twice. The first, kept as \code{oldid} is the
@@ -522,10 +523,10 @@ if (individual) {
     if (missing(newdata)) 
         stop("The newdata argument must be present when individual=TRUE")
     if (!missid) {  #grab the id variable
-        newid <- model.extract(mf2, "id")
-        if (is.null(newid)) stop("id=NULL is an invalid argument")
+        id2 <- model.extract(mf2, "id")
+        if (is.null(id2)) stop("id=NULL is an invalid argument")
         }
-    else newid <- rep(1, nrow(mf2))
+    else id2 <- rep(1, nrow(mf2))
     
     x2 <- model.matrix(Terms2, mf2)[,-1, drop=FALSE]  #no intercept
     if (length(x2)==0) stop("Individual survival but no variables")
@@ -546,11 +547,11 @@ if (individual) {
     if (coxms) 
         result <- survfitcoxph.fit2(ctype, stype, se.fit, varmat, cluster,
                                     object$cmap, object$transitions, object$states,
-                                    Y, X, weights, risk, position, strats, oldid,
-                                    transition, y2, x2, strata2, id)
-    else result <- survfitcoxph.fit(Y, X, weights, x2, risk, newrisk, strats,
+                                    Y, X, weights, risk, position, strata, oldid,
+                                    transition, y2, x2, strata2, id2)
+    else result <- survfitcoxph.fit(Y, X, weights, x2, risk, newrisk, strata,
                                 se.fit, stype, ctype, varmat, oldid, cluster,
-                                id, y2, strata2)
+                                id2, y2, strata2)
    }
 @ 
 
@@ -577,9 +578,9 @@ else {
     if (coxms)
         result <- survfitcoxph.fit2(ctype, stype, se.fit, varmat, cluster,
                                     object$cmap, object$transitions, object$states,
-                                    Y, X, weights, risk, position, strats, oldid,
-                                    transition, y2, x2, strata2, id)
-     else result <- survfitcoxph.fit(Y, X, weights, x2, risk, newrisk, strats,
+                                    Y, X, weights, risk, position, strata, oldid,
+                                    transition, y2, x2, strata2, id2)
+     else result <- survfitcoxph.fit(Y, X, weights, x2, risk, newrisk, strata,
                                 se.fit, stype, ctype, varmat, oldid, cluster)
     if (has.strata && found.strata) {
         if (is.matrix(result$surv)) {
