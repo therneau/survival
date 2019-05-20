@@ -48,7 +48,7 @@ concordance.formula <- function(object, data,
                                 ymin, ymax, 
                                 timewt=c("n", "S", "S/G", "n/G", "n/G2", "I"),
                                 influence=0, ranks=FALSE, reverse=FALSE,
-                                timefix=TRUE, ...) {
+                                timefix=TRUE, keepstrata=20, ...) {
     Call <- match.call()  # save a copy of of the call, as documentation
     timewt <- match.arg(timewt)
     if (missing(ymin)) ymin <- NULL
@@ -114,7 +114,7 @@ concordance.formula <- function(object, data,
         stop ("the reverse argument must be TRUE/FALSE")
  
     fit <- concordancefit(Y, x, strat, wt, ymin, ymax, timewt, cluster,
-                           influence, ranks, reverse)
+                           influence, ranks, reverse, keepstrata=keepstrata)
     na.action <- attr(mf, "na.action")
     if (length(na.action)) fit$na.action <- na.action
     fit$call <- Call
@@ -164,7 +164,7 @@ If $y$ is not a survival quantity, then all of the options for the
 concordancefit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL, 
                             timewt=c("n", "S", "S/G", "n/G", "n/G2", "I"),
                             cluster, influence=0, ranks=FALSE, reverse=FALSE,
-                            timefix=TRUE) {
+                            timefix=TRUE, keepstrata=10) {
     # The coxph program may occassionally fail, and this will kill the C
     #  routine further below.  So check for it.
     if (any(is.na(x)) || any(is.na(y))) return(NULL)
@@ -172,12 +172,12 @@ concordancefit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL,
 
     # these should only occur if something other package calls this routine
     if (!is.Surv(y)) {
-        if (is.factor(Y) && (is.ordered(Y) || length(levels(Y))==2))
-            Y <- Surv(as.numeric(Y))
-        else if (is.numeric(Y) && is.vector(Y))  Y <- Surv(Y)
+        if (is.factor(y) && (is.ordered(y) || length(levels(y))==2))
+            y <- Surv(as.numeric(y))
+        else if (is.numeric(y) && is.vector(y))  y <- Surv(y)
         else stop("left hand side of the formula must be a numeric vector,
  survival object, or an orderable factor")
-        if (timefix) Y <- aeqSurv(Y)
+        if (timefix) y <- aeqSurv(y)
     }
     n <- length(y)
     if (length(x) != n) stop("x and y are not the same length")
@@ -192,7 +192,34 @@ concordancefit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL,
         stop("left or interval censored data is not supported")
     if (type %in% c("mright", "mcounting"))
         stop("multiple state survival is not supported")
-   
+
+    # A trick: if A and B are in different strata, we get the same concordance
+    #  if we put them in 1 stratum, and make their times not overlap.  This
+    #  works if timewt is 'n' or 'I'.
+    nstrat <- length(unique(strata))
+    if (!is.logical(keepstrata)) {
+        if (!is.numeric(keepstrata))
+            stop("keepstrat argument must be logical or numeric")
+        else keepstrata <- (nstrat <= keepstrata)
+    }
+
+    if (timewt %in% c("n", "I") && nstrat > 1 && !keepstrata) {
+        # mess up the times
+        stemp <- as.numeric(as.factor(strata)) -1
+        if (ncol(y) ==3) {
+            delta <- max(y[,2]) - min(y[,1])
+            y[,1] <- y[,1] + stemp*delta
+            y[,2] <- y[,2] + stemp*delta
+        }
+        else {
+            delta <- max(y[,2]) +2
+            m1 <- rep(-1L, nrow(y))
+            y <- Surv(m1 + stemp*delta, y[,1] + stemp*delta, y[,2])
+        }
+        strata <- rep(1L, n)
+        nstrat <- 1
+    }
+
     # This routine is called once per stratum
     docount <- function(y, risk, wts, timeopt= 'n') {
         n <- length(risk)
@@ -270,8 +297,7 @@ concordancefit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL,
         fit
     }
     
-    if (missing(strata) || length(strata)==0 || all(strata==strata[1])) {
-        is.strata <-FALSE
+    if (nstrat < 2) {
         fit <- docount(y, x, weights, timewt)
         count2 <- fit$count[1:5]
         vcox <- fit$count[6]
@@ -279,7 +305,6 @@ concordancefit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL,
         imat <- fit$influence
         if (ranks) resid <- fit$resid
     } else {
-        is.strata <- TRUE
         strata <- as.factor(strata)
         ustrat <- levels(strata)[table(strata) >0]  #some strata may have 0 obs
         tfit <- lapply(ustrat, function(i) {
@@ -289,6 +314,7 @@ concordancefit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL,
         temp <-  t(sapply(tfit, function(x) x$count))
         fit <- list(count = temp[,1:5])
         count2 <- colSums(fit$count)
+        if (!keepstrata) fit$count <- count2
         vcox <- sum(temp[,6])
         imat <- do.call("rbind", lapply(tfit, function(x) x$influence))
         # put it back into data order
@@ -450,7 +476,8 @@ There are 3 possible solutions
 
 <<concordance>>=
 concordance.lm <- function(object, ..., newdata, cluster, ymin, ymax, 
-                           influence=0, ranks=FALSE, timefix=TRUE) {
+                           influence=0, ranks=FALSE, timefix=TRUE,
+                           keepstrata=10) {
     Call <- match.call()
     fits <- list(object, ...)
     nfit <- length(fits)
@@ -478,7 +505,7 @@ concordance.lm <- function(object, ..., newdata, cluster, ymin, ymax,
     need.wt <- any(sapply(fits, function(x) !is.null(x$call$weights)))
     
     cfun$data <- lapply(fits, cord.getdata, newdata=newdata, cluster=cluster,
-                        need.wt=need.wt, timefix=timefix)
+                        need.wt=need.wt, timefix=timefix, keepstrata=keepstrata)
     rval <- eval(cfun, parent.frame())
     rval$call <- Call
     rval
@@ -486,7 +513,8 @@ concordance.lm <- function(object, ..., newdata, cluster, ymin, ymax,
 
 concordance.survreg <- function(object, ..., newdata, cluster, ymin, ymax,
                                 timewt=c("n", "S", "S/G", "n/G", "n/G2", "I"),
-                                influence=0, ranks=FALSE, timefix=FALSE) {
+                                influence=0, ranks=FALSE, timefix=FALSE,
+                                keepstrata=10) {
     Call <- match.call()
     fits <- list(object, ...)
     nfit <- length(fits)
@@ -514,7 +542,7 @@ concordance.survreg <- function(object, ..., newdata, cluster, ymin, ymax,
     need.wt <- any(sapply(fits, function(x) !is.null(x$call$weights)))
     
     cfun$data <- lapply(fits, cord.getdata, newdata=newdata, cluster=cluster,
-                        need.wt=need.wt, timefix=timefix)
+                        need.wt=need.wt, timefix=timefix, keepstrata=keepstrata)
     rval <- eval(cfun, parent.frame())
     rval$call <- Call
     rval
@@ -522,7 +550,8 @@ concordance.survreg <- function(object, ..., newdata, cluster, ymin, ymax,
     
 concordance.coxph <- function(object, ..., newdata, cluster, ymin, ymax, 
                                timewt=c("n", "S", "S/G", "n/G", "n/G2", "I"),
-                               influence=0, ranks=FALSE, timefix=FALSE) {
+                               influence=0, ranks=FALSE, timefix=FALSE,
+                               keepstrata=10) {
     Call <- match.call()
     fits <- list(object, ...)
     nfit <- length(fits)
@@ -554,7 +583,7 @@ concordance.coxph <- function(object, ..., newdata, cluster, ymin, ymax,
     need.wt <- any(sapply(fits, function(x) !is.null(x$call$weights)))
     
     cfun$data <- lapply(fits, cord.getdata, newdata=newdata, cluster=cluster,
-                        need.wt=need.wt, timefix=timefix)
+                        need.wt=need.wt, timefix=timefix, keepstrata=keepstrata)
     rval <- eval(cfun, parent.frame())
     rval$call <- Call
     rval
@@ -570,9 +599,10 @@ that they match.
 
 <<concordance>>=
 cord.work <- function(data, timewt, ymin, ymax, influence=0, ranks=FALSE, 
-                      reverse, fname) {
+                      reverse, fname, keepstrata) {
     Call <- match.call()
-    fargs <- c("timewt", "ymin", "ymax", "influence", "ranks", "reverse")
+    fargs <- c("timewt", "ymin", "ymax", "influence", "ranks", "reverse",
+               "keepstrata")
     fcall <- Call[c(1, match(fargs, names(Call), nomatch=0))]
     fcall[[1L]] <- concordancefit
 
