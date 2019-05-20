@@ -2,27 +2,8 @@
 % Second part of coxsurv.Rnw, broken in two to make it easier for me
 %   to work with emacs.
 Now, we're ready to do the main compuation.                             %'
-Before this revision (the one documented here using noweb)
-there were three C routines used in calculating survival after a Cox model
-\begin{enumerate}
-  \item agsurv1 creates a single curve, but for the most general case of a
-    \emph{covariate path}.  It is used for time dependent covariates.
-  \item agsurv2 creates a set of curves.  These curves are for a fixed
-    covariate set, although (start, stop] data is supported. If there were
-    3 strata in the fit and 4 covariate sets are given, the result will be
-    12 curves.  
-  \item agsurv3 is used to create population survival curves.  The result is
-    average survival curve (for 3 different definitions of 'average').  If 
-    there were 3 strata and 100 subjects, the first curve returned would be
-    the average for those 100 individual curves in strata 1, the second for
-    strata 2, and the third for strata 3.
-\end{enumerate}
-
-In June 2010 the first two were re-written in (mostly) R, in the process of
-adding functionality and repairing some flaws in the computation of a 
-weighted variance.
-In effect, the changes are similar to the rewrite of the survfitKM function
-a few years before. (2019: The survfitkm function has now moved back to C.) 
+The code has gone through multiple iteration as options and complexit
+increased.
 
 Computations are separate for each strata, and each strata will 
 have a different number of time points in the result.
@@ -34,19 +15,19 @@ of curves is usually small enough that the "for" loop is no great
 cost, and it's easier to see what's going on than C code.  
 The computational exception is a model with thousands of strata, e.g., a matched
 logistic, but in that case survival curves are useless.  
-(That won't stop some u           
+(That won't stop some users from trying it though.)           
 
 First, compute the baseline survival curves for each strata.  If the strata
-was a factor produced output curves in that order, otherwise in sorted order.
+was a factor produce output curves in that order, otherwise in sorted order.
 This fitting routine was set out as a separate function for the sake of the rms
 package.  They want to utilize the computation, but have a diffferent 
-process to create the x and y data.
-<<survfitcoxph.fit>>=
-survfitcoxph.fit <- function(y, x, wt, x2, risk, newrisk, strata, se.fit,
-                              stype, ctype, varmat, oldid, cluster,
-                              id, y2, strata2,
-                              unlist=TRUE) {
-    if (missing(strata) || length(strata)==0) strata <- rep(1L, nrow(y))
+process to create the x and y data. 
+<<coxsurvfit>>=
+coxsurv.fit1 <- function(ctype, stype, se.fit, varmat, cluster, 
+                         y, x, wt, risk, position, strata, oldid,
+                         transition, y2, x2, risk2, strata2, id2, unlist=TRUE) {
+
+    if (length(strata)==0) strata <- rep(0L, nrow(y))
 
     if (is.factor(strata)) ustrata <- levels(strata)
     else                   ustrata <- sort(unique(strata))
@@ -87,7 +68,7 @@ survfitcoxph.fit <- function(y, x, wt, x2, risk, newrisk, strata, se.fit,
                         strata = sapply(result, function(x) length(x$time)))
             names(temp$strata) <- names(result)
             
-            if ((missing(id) || is.null(id)) && nrow(x2)>1) {
+            if ((missing(id2) || is.null(id2)) && nrow(x2)>1) {
                  temp$surv <- t(matrix(unlist(lapply(result, 
                                    function(x) t(x$surv)), use.names=FALSE),
                                        nrow= nrow(x2)))
@@ -165,28 +146,28 @@ expand <- function(fit, x2, varmat, se.fit) {
     else surv <- exp(-fit$cumhaz)
 
     if (is.matrix(x2) && nrow(x2) >1) {  #more than 1 row in newdata
-        fit$surv <- outer(surv, newrisk, '^')
+        fit$surv <- outer(surv, risk2, '^')
         dimnames(fit$surv) <- list(NULL, row.names(x2))
         if (se.fit) {
             varh <- matrix(0., nrow=length(fit$varhaz), ncol=nrow(x2))
             for (i in 1:nrow(x2)) {
                 dt <- outer(fit$cumhaz, x2[i,], '*') - fit$xbar
                 varh[,i] <- (cumsum(fit$varhaz) + rowSums((dt %*% varmat)* dt))*
-                    newrisk[i]^2
+                    risk2[i]^2
                 }
             fit$std.err <- sqrt(varh)
             }
-        fit$cumhaz <- outer(fit$cumhaz, newrisk, '*')
+        fit$cumhaz <- outer(fit$cumhaz, risk2, '*')
         }
     else {
-        fit$surv <- surv^newrisk
+        fit$surv <- surv^risk2
         if (se.fit) {
             dt <-  outer(fit$cumhaz, c(x2)) - fit$xbar
             varh <- (cumsum(fit$varhaz) + rowSums((dt %*% varmat)* dt)) * 
-                newrisk^2
+                risk2^2
             fit$std.err <- sqrt(varh)
             }
-        fit$cumhaz <- fit$cumhaz * newrisk
+        fit$cumhaz <- fit$cumhaz * risk2
         }
     fit
     }
@@ -198,9 +179,9 @@ be done for all rows at once: found in the inner parenthesis.
 Ordinary (not matrix) multiplication followed by rowsums does the rest
 in one fell swoop.
     
-Now, if \code{id} is missing we can simply apply the \code{expand} function
+Now, if \code{id2} is missing we can simply apply the \code{expand} function
 to each strata.
-For the case with \code{id} not missing, we create a single survival
+For the case with \code{id2} not missing, we create a single survival
 curve for each unique id (subject). 
 A subject will spend blocks of time with different covariate sets,
 sometimes even jumping between strata.  Retrieve each one and save it into
@@ -230,10 +211,10 @@ interval 2 was 10--20, and there happened to be a jump in the baseline
 survival curve at exactly time 10 (someone else died), 
 that jump is counted only in the first interval.
 <<survfit.coxph-compute>>=
-if (missing(id) || is.null(id)) 
+if (missing(id2) || is.null(id2)) 
     result <- lapply(survlist, expand, x2, varmat, se.fit)
 else {
-    onecurve <- function(slist, x2, y2, strata2,  newrisk, se.fit) {
+    onecurve <- function(slist, x2, y2, strata2,  risk2, se.fit) {
         ntarget <- nrow(x2)  #number of different time intervals
         surv <- vector('list', ntarget)
         n.event <- n.risk <- n.censor <- varh1 <- varh2 <-  time <- surv
@@ -253,15 +234,15 @@ else {
                 time[[i]][1] <- time[[i]][1] + timeforward
                 timeforward <- y2[i,2] - max(slist$time[indx])
             
-                hazard[[i]] <- slist$hazard[indx]*newrisk[i]
-                if (survtype==1) surv[[i]] <- slist$surv[indx]^newrisk[i]
+                hazard[[i]] <- slist$hazard[indx]*risk2[i]
+                if (survtype==1) surv[[i]] <- slist$surv[indx]^risk2[i]
                 
                 n.event[[i]] <- slist$n.event[indx]
                 n.risk[[i]]  <- slist$n.risk[indx]
                 n.censor[[i]]<- slist$n.censor[indx]
                 dt <-  outer(slist$cumhaz[indx], x2[i,]) - slist$xbar[indx,,drop=F]
-                varh1[[i]] <- slist$varhaz[indx] *newrisk[i]^2
-                varh2[[i]] <- rowSums((dt %*% varmat)* dt) * newrisk[i]^2
+                varh1[[i]] <- slist$varhaz[indx] *risk2[i]^2
+                varh2[[i]] <- rowSums((dt %*% varmat)* dt) * risk2[i]^2
                 }
             }
 
@@ -287,17 +268,17 @@ else {
                    cumhaz= cumhaz)
         }
 
-    if (all(id ==id[1])) {
-        result <- list(onecurve(survlist, x2, y2, strata2, newrisk, se.fit))
+    if (all(id2 ==id2[1])) {
+        result <- list(onecurve(survlist, x2, y2, strata2, risk2, se.fit))
         }
     else {
-        uid <- unique(id)
+        uid <- unique(id2)
         result <- vector('list', length=length(uid))
         for (i in 1:length(uid)) {
-            indx <- which(id==uid[i])
+            indx <- which(id2==uid[i])
             result[[i]] <- onecurve(survlist, x2[indx,,drop=FALSE], 
                                      y2[indx,,drop=FALSE], 
-                                     strata2[indx],  newrisk[indx], se.fit)
+                                     strata2[indx],  risk2[indx], se.fit)
             }
         names(result) <- uid
         }

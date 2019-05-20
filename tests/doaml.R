@@ -60,5 +60,3 @@ x1
 x2 <- coxph(Surv(rep(0,23),time, status) ~x, aml, method='efron')
 aeq(x1$coef, x2$coef)
 
-
-rm(x1, x2, atime, denom, deaths, chaz,cvar, tfit, sfit, temp, temp2, fit)

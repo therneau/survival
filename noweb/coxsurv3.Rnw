@@ -17,11 +17,11 @@ hazard functions at once, however.  For this reason we use a different
 hazard routine, which returns those hazard functions at a common set of
 time points.
  
-<<survfitcoxph.fit>>=
-survfitcoxph.fit2 <- function (ctype, stype, se.fit, 
-                               varmat, cluster, cmap, tmat, states,
-                               y, x, weights, risk, position, strata, id,
-                               transition, y2, x2, strata2, newid) {
+<<coxsurvfit>>=
+coxsurv.fit2 <- function (ctype, stype, se.fit, 
+                          varmat, cluster, cmap, tmat, states,
+                          y, x, weights, risk, position, strata, id,
+                          transition, y2, x2, risk2, strata2, id2) {
     # args are the options (ctype, stype, se.fit), args info from the prior fit
     # (varmat, ..., tmat), original data (Y, ..., transition), and data for the
     # new subjects
@@ -34,29 +34,31 @@ survfitcoxph.fit2 <- function (ctype, stype, se.fit,
     # elements that are non-zero only for observed transtions.  Some elements
     # may be the same: cmat[1,] can have repeats.
     nstate <- length(states)
-    H    <- matrix(0, nstate, nstate)
+    tmat <- tmat[,is.na(match(colnames(tmat), "(censored)"))]
     from <- row(tmat)[tmat>0]  # tmat contains fit$transitions matrix
     from <- match(rownames(tmat), states)[from]  # actual row of H
     to   <- col(tmat)[tmat>0]
-    to   <- match(rownames(tmat), states)[to]    # actual col of H
+    to   <- match(colnames(tmat), states)[to]    # actual col of H
     hfill <- cbind(from, to)
+browser()
 
     # setup to call the C routine
     storage.mode(position) <- "integer"  # failsafe
     storage.mode(weights) <- "double"
-    if (is.null(strata) || all(strata==strata[1])) {
+    istrat <- as.integer(strata)
+    if (is.null(strata) || all(istrat==istrat[1])) {
         sort1 <- order(transition, y[,1]) -1L
         sort2 <- order(transition, y[,2]) -1L
         event <- y[,3] > 0
         udeath <- sort(unique(y[event,2]))  #unique death times
         ctemp <- .Call("coxsurv2", udeath, y, weights, sort1, sort2, position, 
                         transition, x, risk)
-        fit <- makesurv(ctemp)
+
+        fit <- makesurv(ctemp, nstate, cmap, hfill)
     }
     else {
-        storage.mode(strata) <- "integer"    #failsafe
-        sort1 <- order(strata, transition, y[,1]) -1L
-        sort2 <- order(strata, transition, y[,2]) -1L
+        sort1 <- order(istrat, transition, y[,1]) -1L
+        sort2 <- order(istrat, transition, y[,2]) -1L
  
         ustrat <- unique(strata)
  browser()
@@ -70,21 +72,25 @@ survfitcoxph.fit2 <- function (ctype, stype, se.fit,
         browser()
     }
     
-    # Do the hard work
-    makesurv <- function(x) {
-        # Breslow estimate
-        hazard <- (ctemp$count[,4]/ctemp$count[,3])[,cmap[1,]]
-        surv <- matrix(0, 1+nrow(hazard), nstate)
-        surv[1,1] <- 1
-        for (i in 1:nrow(hazard)) {
-            H[hfill] <- hazard[i,]
-            diag(H) <- diag(H) - rowSums(H)
-            S[,i+1] <- S[,i] %*% H
-        }
+}
+
+# Do the hard work
+makesurv <- function(x, nstate, cmap, hfill) {
+    # Breslow estimate
+    browser()
+    hazard <- matrix(ifelse(x$count[,4]==0, 0, x$count[,4]/x$count[,3]), 
+                     ncol=x$nstrat)
+    hazard <- hazard[,cmap[1,]]
+    surv <- matrix(0, 1+nrow(hazard), nstate)
+    H <- matrix(0, nstate, nstate)
+    surv[1,1] <- 1
+    for (i in 1:nrow(hazard)) {
+        H[hfill] <- hazard[i,]
+        diag(H) <- diag(H) - rowSums(H)
+        surv[i+1,] <- surv[i,] %*% expm(H)
     }
 }
 @
-
 
 Here is the actual work.
 If $d$ is the number of unique event times and $s$ the number of

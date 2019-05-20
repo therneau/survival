@@ -28,6 +28,7 @@ SFUN =  agreg.fit.R \
 	agsurv.R \
         concordance.R \
 	coxph.R \
+	coxsurvfit \
 	finegray.R \
 	model.matrix.coxph.R \
 	parsecovar.R \
@@ -42,7 +43,6 @@ SFUN =  agreg.fit.R \
 	survfitCI.R \
 	survfitKM.R \
 	survfit.coxph.R \
-	survfitcoxph.fit.R \
 	survfitms.R\
 	tmerge.R \
 	yates.R
@@ -109,3 +109,7 @@ clean:
 
 noweb.sty:
 	echo 'library(noweb); data(noweb); cat(noweb.sty, sep="\n", file="noweb.sty")' |  R  --slave
+
+
+../R/coxsurvfit.R: code.nw
+

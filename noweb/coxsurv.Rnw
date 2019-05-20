@@ -12,15 +12,15 @@ The second is that the computations are somewhat more difficult.
 
 The input arguments are
 \begin{description}
-  \item[formula] a fitted object of class 'coxph'.  The argument name of 
-    'formula' is historic, from when the survfit function was not a generic
+  \item[formula] a fitted object of class `coxph'.  The argument name of 
+    `formula' is historic, from when the survfit function was not a generic
     and only did Kaplan-Meier type curves.
   \item[newdata] contains the data values for which curves should be
     produced, one per row
   \item[se.fit] TRUE/FALSE, should standard errors be computed.
   \item[individual] a particular option for time-dependent covariates
-  \item[type] computation type for the survival curve, now replaced by stype and ctype
-  \item[vartype] computation type for the variance
+  \item[stype] survival type for the formula 1=direct 2= exp
+  \item[ctype] cumulative hazard, 1=Nelson-Aalen, 2= corrected for ties
   \item[censor] if FALSE, remove any times that have no events from the
     output.  This is for 
     backwards compatability with older versions of the code.
@@ -47,7 +47,9 @@ survfit.coxph <-
     Call <- match.call()
     Call[[1]] <- as.name("survfit")  #nicer output for the user
     object <- formula     #'formula' because it has to match survfit
-    <<survfit.coxph-setup>>
+    <<survfit.coxph-setup1>>
+    <<survfit.coxph-setup2>>
+    <<survfit.coxph-setup3>>
     <<survfit.coxph-result>>
     <<survfit.coxph-finish>>
     }
@@ -55,20 +57,23 @@ survfit.coxph <-
 The third line \code{as.name('survfit')} causes the printout to say
 `survfit' instead of `survfit.coxph'.                              %'
 
-The setup for the routine is fairly pedestrian.
+The setup for the has three main phases, first of course to sort out the
+options the user has given us, second to rebuild the
+data frame, X matrix, etc from the original Cox model, and third to 
+create variables from the new data set.
+In the code below x2, y2, strata2, id2, etc. are variables from the
+new data, X, Y, strata etc from the old.  One exception to the pattern
+is id= argument, oldid = id from original data, id2 = id from new.
+
 If the newdata argument is missing we use \code{object\$means} as the
 default value.  This choice has lots of statistical shortcomings,
 particularly in a stratified model, but is common in other
 packages and a historic option here.
-If the type or vartype are missing we use the appropriate one
-for the method in the Cox model.
-That is, the \code{coxph} computation used for \code{method=``exact''} is
-the same approximation used in the Kalbfleish-Prentice estimate,
-that for the Breslow method matches the Aalen survival estimate, and
-the Efron approximation the Efron survival estimate.
-The other two rows of labels in \code{temp1} are historical; 
-we include them for backwards
-compatability but they don't appear in the documentation.          %'
+If stype is missing we use the standard approach of exp(cumulative hazard),
+and ctype is pulled from the Cox model.
+That is, the \code{coxph} computation used for \code{ties='breslow'} is
+the same as the Nelson-Aalen hazard estimate, and
+the Efron approximation the tie-corrected hazard.
 
 One particular special case (that gave me fits for a while) is when there
 are non-heirarchical models, for example \code{~ age + age:sex}.  
@@ -84,12 +89,12 @@ A model with \code{age + age:strata(sex)} will be ok, because the
 coxph routine treats this last term as though it had a * in it, i.e.,
 fits a stratified model.
 
-<<survfit.coxph-setup>>=
+<<survfit.coxph-setup1>>=
 Terms  <- terms(object)
 robust <- !is.null(object$naive.var)   # did the coxph model use robust var?
 
 if (!is.null(attr(object$terms, "specials")$tt))
-    stop("The survfit function can not yet process coxph models with a tt term")
+    stop("The survfit function can not process coxph models with a tt term")
 
 if (!missing(type)) {  # old style argument
     if (!missing(stype) || !missing(ctype))
@@ -126,7 +131,41 @@ if (has.strata) {
 }
 if (any(tfac >1))
     stop("not able to create a curve for models that contain an interaction without the lower order effect")
+
+Terms <- object$terms
+n <- object$n[1]
+if (!has.strata) strata <- rep(0L, n)
+else strata <- object$strata
+
+missid <- missing(id) # I need this later, and setting id below makes
+                      # "missing(id)" always false
+if (!missid & !missing(individual))
+    warning("the `id' option supersedes `individual'")
+
+if (!missid) individual <- TRUE
+else if (missid && individual) id <- rep(0,n)  #dummy value
+else id <- NULL
+
+if (individual & missing(newdata)) {
+    stop("the id and/or individual options only make sense with new data")
+}
 @ 
+
+In two places below we need to know if there are strata by covariate
+interactions, which requires looking at attributes of the terms
+object.
+The factors attribute will have a row for the strata variable, or
+maybe more than one (multiple strata terms are legal).  If it has
+a 1 in a column that corresponds to something of order 2 or
+greater, that is a strata by covariate interaction.
+<<survfit.coxph-setup1>>=
+if (has.strata) {
+    temp <- attr(Terms, "specials")$strata
+    factors <- attr(Terms, "factors")[temp,]
+    strata.interaction <- any(t(factors)*attr(Terms, "order") >1)
+}
+@ 
+
 
 I need to retrieve a copy of the original data. 
 We always need the $X$ matrix and $y$, both of which might be found in 
@@ -137,9 +176,9 @@ or if either $x$ or $y$ are missing from the \code{coxph} object,
 then the model frame will need to be reconstructed.
 We have to use \code{object['x'}] instead of \texttt{object\$x} since
 the latter will
-pick off the \code{xlevels} component if the \code{x} component is missing (which
-is the default).
-<<survfit.coxph-setup>>=
+pick off the \code{xlevels} component if the \code{x} component is missing 
+(which is the default).
+<<survfit.coxph-setup1>>=
 coxms <- inherits(object, "coxphms")
 if (coxms || is.null(object$y) || is.null(object[['x']]) ||
     !is.null(object$call$weights) || !is.null(object$call$id) ||
@@ -156,12 +195,8 @@ the X matrix off the model frame, for multistate some more work
 needs to be done.  
 We have to repeat some lines from coxph, but to do that we need some
 further material.
-<<survfit.coxph-setup>>=
-Terms <- object$terms
-n <- object$n[1]
-if (!has.strata) strata <- rep(0L, n)
-else strata <- object$strata
-
+<<survfit.coxph-setup2>>=
+position <- transition <- NULL
 if (is.null(mf)) {
     weights <- rep(1., n)
     offset <- rep(0., n) 
@@ -176,9 +211,9 @@ else {
     X <- model.matrix.coxph(object, data=mf)
     Y <- model.response(mf)
     oldid <- model.extract(mf, "id")
+    if (length(oldid)) position <- survflag(Y, oldid)
     if (nrow(Y) != object$n[1]) 
         stop("Failed to reconstruct the original data set")
-
     if (has.strata) {
         if (length(strata)==0) {
             if (length(stangle$vars) ==1) strata <- mf[[stangle$vars]]
@@ -202,7 +237,7 @@ else {
         xstack <- stacker(object$cmap, as.integer(istate), X, Y,
                           as.integer(strata),
                           states= object$states)
-        position <- survflag(Y, oldid)[xstack$rindex]
+        position <- position[xstack$rindex]   # id was required by coxph
         X <- xstack$X
         Y <- xstack$Y
         strata <- strata[xstack$rindex]
@@ -212,8 +247,6 @@ else {
         if (length(cluster)) cluster <- cluster[xstack$rindex]
         oldid <- oldid[xstack$rindex]
         if (robust & length(cluster)==0) cluster <- oldid
-    } else {
-        position <- transition <- NULL
     }
 }
 @ 
@@ -221,50 +254,22 @@ else {
 If a model frame was created, then it is trivial to grab \code{y}
 from the new frame and compare it to \code{object\$y} from the
 original one.  This is to avoid nonsense results that arise
-when someone changes the data set under our feet.  For instance
-<<dummy>>=
-  fit <- coxph(Surv(time,status) ~ age, data=lung)
-  lung <- lung[1:100,]
-  survfit(fit)
-@
-
-<<survfit.coxph-setup>>=
+when someone changes the data set under our feet. 
+We can only check the size: with the addition of aeqSurv other packages
+were being flagged for tiny discrepancies
+<<survfit.coxph-setup2>>=
 if (!is.null(mf)){
     y2 <- object[['y']]
-    # Avoid issues with roundoff.  The data set may have been saved and
-    #  then read back in, for instance
     if (!is.null(y2)) {
         if (ncol(y2) != ncol(Y) || length(y2) != length(Y))
             stop("Could not reconstruct the y vector")
-        if (FALSE) {
-            # removed in 2.40-1.  With the addition of aeqSurv
-            #  other packages were being flagged due to tiny discrpancies
-            if (ncol(y2) != ncol(Y) || length(y2) != length(Y) ||
-                !(isTRUE(all.equal(Y[,1], y2[,1]))) ||
-                !(isTRUE(all.equal(Y[,2], y2[,2]))) ||
-                (ncol(Y)==3 && any(Y[,3] != y2[,3])))
-                stop("Could not reconstruct the y vector")
-        }
     }
 }
 
 type <- attr(Y, 'type')
-if (type != 'right' && type != 'counting') 
+if (!type %in% c("right", "counting", "mright", "mcounting"))
     stop("Cannot handle \"", type, "\" type survival data")
- 
-missid <- missing(id) # I need this later, and setting id below makes
-                      # "missing(id)" always false
-if (!missid & !missing(individual))
-    warning("the `id' option supersedes `individual'")
-
-if (!missid) individual <- TRUE
-else if (missid && individual) id <- rep(0,nrow(Y))  #dummy value
-else id <- NULL
-
-if (individual & missing(newdata)) {
-    stop("the id and/or individual options only make sense with new data")
-}
-if (type!= 'counting') individual <- FALSE
+if (type=="right" || type== "mright") individual <- FALSE
 
 if (!missing(start.time)) {
     if (!is.numeric(start.time) || length(start.time) > 1)
@@ -297,21 +302,6 @@ The second is the user variable of this call, and is used to define multiple
 rows for a new subject.  The latter usage should be rare but we need to
 allow for it.
 
-In two places below we need to know if there are strata by covariate
-interactions, which requires looking at attributes of the terms
-object.
-The factors attribute will have a row for the strata variable, or
-maybe more than one (multiple strata terms are legal).  If it has
-a 1 in a column that corresponds to something of order 2 or
-greater, that is a strata by covariate interaction.
-<<survfit.coxph-setup>>=
-if (has.strata) {
-    temp <- attr(Terms, "specials")$strata
-    factors <- attr(Terms, "factors")[temp,]
-    strata.interaction <- any(t(factors)*attr(Terms, "order") >1)
-}
-@ 
-
 If a variable is deemed redundant the \code{coxph} routine will have set its
 coefficient to NA as a marker. 
 We want to ignore that coefficient: treating it as a zero has the 
@@ -335,13 +325,14 @@ as the same values are subtracted from the old and new $X$ data.
 The mean is used because it is handy, we just need to get $X\beta$ in the
 neighborhood of zero.
 
-<<survfit.coxph-setup>>=
-if (is.null(X) || ncol(X)==0) { # a model with ~1 on the right hand side
-    # Give it a dummy x so the rest of the code goes through
+<<survfit.coxph-setup2>>=
+if (length(object$means) ==0) { # a model with only an offset term
+    # Give it a dummy X so the rest of the code goes through
     #  (This case is really rare)
-    X <- matrix(0., nrow=n)
+    X <- matrix(0., nrow=n, ncol=1)
+    xcenter <- 0
     coef <- 0.0
-    varmat <- matrix(0.0,1,1)
+    varmat <- matrix(0.0, 1, 1)
     risk <- rep(exp(offset- mean(offset)), length=n)
 }
 else {
@@ -356,6 +347,7 @@ else {
     risk <- c(exp(X%*% beta + offset - (xcenter + mean(offset))))
 }
 @ 
+
 The \code{risk} vector and \code{x} matrix come from the original data, and are
 the raw data for the survival curve and its variance.  
 We also need the risk score $\exp(X\beta)$ for the target subject(s).
@@ -409,8 +401,8 @@ The predvars component is a call objects with one element for each
 term in the formula, so y ~ age + ns(height) would lead to a predvars
 of length 4, element 1 is the call itself, 2 would be y, etc.
 The dataClasses object is a simple list.
-<<survfit.coxph-setup>>= 
 
+<<survfit.coxph-setup3>>= 
 if (missing(newdata)) {
     mf2 <- as.list(object$means)   #create a dummy newdata
     names(mf2) <- names(object$coefficients)
@@ -505,7 +497,7 @@ mf2 <- eval(tcall)
 @    
 
 Now, finally, extract the \code{x2} matrix from the just-created frame.
-<<survfit.coxph-result>>=
+<<survfit.coxph-setup3>>=
 if (has.strata && found.strata) { #pull them off
     temp <- untangle.specials(Terms2, 'strata')
     strata2 <- strata(mf2[temp$vars], shortlabel=TRUE)
@@ -542,46 +534,45 @@ if (individual) {
         stop("Individual=TRUE is only valid for counting process data")
     y2 <- y2[,1:2, drop=F]  #throw away status, it's never used
 
-    newrisk <- exp(c(x2 %*% beta) + offset2 - (mean(offset) + xcenter))
-
-    if (coxms) 
-        result <- survfitcoxph.fit2(ctype, stype, se.fit, varmat, cluster,
-                                    object$cmap, object$transitions, object$states,
-                                    Y, X, weights, risk, position, strata, oldid,
-                                    transition, y2, x2, strata2, id2)
-    else result <- survfitcoxph.fit(Y, X, weights, x2, risk, newrisk, strata,
-                                se.fit, stype, ctype, varmat, oldid, cluster,
-                                id2, y2, strata2)
-   }
+    risk2 <- exp(c(x2 %*% beta) + offset2 - (mean(offset) + xcenter))
+}
+else if (missing(newdata)) {
+    if (has.strata && strata.interaction)
+        stop ("Models with strata by covariate interaction terms require newdata")
+    if (length(object$means)) {
+        x2 <- matrix(object$means, nrow=1, ncol=ncol(X))
+        risk2 <- (c(x2 %*% beta) - xcenter)
+    }
+    else {risk2 <-1;  x2 <- 0}   # a model with only an offset
+} else {
+    offset2 <- model.offset(mf2)
+    if (length(offset2) >0) offset2 <- offset2 - mean(offset)
+    else offset2 <- 0
+    x2 <- model.matrix(Terms2, mf2)[,-1, drop=FALSE]  #no intercept
+    risk2 <- exp(c(x2 %*% beta) + offset2 - xcenter)
+}
 @ 
 
-If there is no newdata argument, the
-centering means that we need to predict for x2= \code{object\$means}.
-This is the second the most common call to the routine.
 <<survfit.coxph-result>>=
+if (individual) {
+    if (coxms) 
+        result <- coxsurv.fit2(ctype, stype, se.fit, varmat, cluster,
+                               object$cmap, object$transitions, object$states,
+                               Y, X, weights, risk, position, strata, oldid,
+                               transition, y2, x2, risk2, strata2, id2)
+    else result <- coxsurv.fit1(ctype, stype, se.fit, varmat, cluster, 
+                               Y, X, weights, risk, position, strata, oldid,
+                               transition, y2, x2, risk2, strata2, id2)
+}
 else {
-    if (missing(newdata)) {
-        if (has.strata && strata.interaction)
-            stop ("Models with strata by covariate interaction terms require newdata")
-        x2 <- matrix(object$means, nrow=1, ncol=ncol(X))
-        offset2 <- 0
-    }
-    else {
-       offset2 <- model.offset(mf2)
-       if (length(offset2) >0) offset2 <- offset2 - mean(offset)
-       else offset2 <- 0
-       x2 <- model.matrix(Terms2, mf2)[,-1, drop=FALSE]  #no intercept
-    }
-
-    newrisk <- exp(c(x2 %*% beta) + offset2 - xcenter)
-
-    if (coxms)
-        result <- survfitcoxph.fit2(ctype, stype, se.fit, varmat, cluster,
-                                    object$cmap, object$transitions, object$states,
-                                    Y, X, weights, risk, position, strata, oldid,
-                                    transition, y2, x2, strata2, id2)
-     else result <- survfitcoxph.fit(Y, X, weights, x2, risk, newrisk, strata,
-                                se.fit, stype, ctype, varmat, oldid, cluster)
+    if (coxms) 
+        result <- coxsurv.fit2(ctype, stype, se.fit, varmat, cluster,
+                               object$cmap, object$transitions, object$states,
+                               Y, X, weights, risk, position, strata, oldid,
+                               transition, y2, x2, risk2)
+    else result <- coxsurv.fit1(ctype, stype, se.fit, varmat, cluster, 
+                               Y, X, weights, risk, position, strata, oldid,
+                               transition, y2, x2, risk2)
     if (has.strata && found.strata) {
         if (is.matrix(result$surv)) {
             <<newstrata-fixup>>

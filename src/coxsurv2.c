@@ -179,8 +179,8 @@ SEXP coxsurv2(SEXP otime2, SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22,
 		person--;
 		i2 = sort2[person];
 	    }
-	    printf("A ii=%d, jj=%d, person=%d, n0=%3.1f, n3=%3.1f, n8=%3.1f\n", 
-		   ii, jj,  person, n[0], n[3], n[8]);
+	    /*printf("A ii=%d, jj=%d, person=%d, n0=%3.1f, n3=%3.1f, n8=%3.1f\n", 
+		   ii, jj,  person, n[0], n[3], n[8]);*/
 
 	    /* Step 3 */
 	    j2 = sort1[person2];
@@ -205,12 +205,12 @@ SEXP coxsurv2(SEXP otime2, SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22,
 		    n[10]++;
 		    n[11]+= wt[j2];
 		}
-		printf("person2=%d, j2=%d, position=%d, n10=%3.1f\n",
-		       person2, j2, position[j2], n[10]);
+		/*printf("person2=%d, j2=%d, position=%d, n10=%3.1f\n",
+		       person2, j2, position[j2], n[10]); */
 		person2--;
 		j2 = sort2[person2];
 	    }
-	    printf(" B person=%d, n0=%3.1f, n10=%3.1f\n", person, n[0], n[10]);
+	    /*printf(" B person=%d, n0=%3.1f, n10=%3.1f\n", person, n[0], n[10]);*/
 
 	    /* save the results */
 	    if (jj< (ntime-1)) {

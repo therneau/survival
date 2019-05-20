@@ -20,6 +20,7 @@ R/agreg.fit.R
 R/agsurv.R
 R/concordance.R
 R/coxph.R
+R/coxsurvfit.R
 R/finegray.R
 R/model.matrix.coxph.R
 R/parsecovar.R
@@ -34,7 +35,6 @@ R/survexp.R
 R/survfitCI.R
 R/survfitKM.R
 R/survfit.coxph.R
-R/survfitcoxph.*R
 R/survfit.R
 R/survfitms.R
 R/tmerge.R
