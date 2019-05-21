@@ -160,7 +160,7 @@ survfitCI <- function(X, Y, weights, id, istate, cluster,
 
     if (missing(istate) || is.null(istate))
         mcheck <- multicheck2(Y, id)  
-    else mcheck <- multicheck(Y, id, istate)
+    else mcheck <- multicheck2(Y, id, istate)
     states <- mcheck$states
     istate <- mcheck$istate
     nstate <- length(states) 
