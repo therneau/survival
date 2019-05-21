@@ -35,6 +35,7 @@ R/survexp.R
 R/survfitCI.R
 R/survfitKM.R
 R/survfit.coxph.R
+R/survfit.coxphms.R
 R/survfit.R
 R/survfitms.R
 R/tmerge.R

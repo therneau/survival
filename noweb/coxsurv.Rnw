@@ -47,10 +47,11 @@ survfit.coxph <-
       Call <- match.call()
       Call[[1]] <- as.name("survfit")  #nicer output for the user
       object <- formula     #'formula' because it has to match survfit
-      if (inherits(formula, "coxphms")) sd.fit <- FALSE   #still to do
 
       <<survfit.coxph-setup1>>
       <<survfit.coxph-setup2>>
+      <<survfit.coxph-setup2b>>
+      <<survfit.coxph-setup2c>>
       <<survfit.coxph-setup3>>
       <<survfit.coxph-result>>
       <<survfit.coxph-finish>>
@@ -224,39 +225,6 @@ else {
         }
     }
 
-    if (coxms) {
-        # Rebuild istate using the mcheck routine
-        istate <- model.extract(mf, "istate")
-        mcheck <- multicheck2(Y, oldid, istate)
-        transitions <- mcheck$transitions
-        istate <- mcheck$istate
-        if (!identical(object$states, mcheck$states))
-            stop("failed to rebuild the data set")
-   
-        # Let the survfitCI routine do the work of creating the
-        #  overall counts (n.risk, etc).  The rest of this code then
-        #  replaces the surv and hazard components.
-        cifit <- survfitCI(X, Y, weights, oldid, istate, stype=stype,
-                           ctype=ctype, se.fit=FALSE, start.time=start.time)
-
-        # For computing the  actual estimates it is easier to work with an
-        #  expanded data set.
-        # Replicate actions found in the coxph-multi-X chunk,
-        cluster <- model.extract(mf, "cluster")
-        xstack <- stacker(object$cmap, as.integer(istate), X, Y,
-                          as.integer(strata),
-                          states= object$states)
-        position <- position[xstack$rindex]   # id was required by coxph
-        X <- xstack$X
-        Y <- xstack$Y
-        strata <- strata[xstack$rindex]
-        transition <- xstack$transition
-        if (length(offset)) offset <- offset[xstack$rindex]
-        if (length(weights)) weights <- weights[xstack$rindex]
-        if (length(cluster)) cluster <- cluster[xstack$rindex]
-        oldid <- oldid[xstack$rindex]
-        if (robust & length(cluster)==0) cluster <- oldid
-    }
 }
 @ 
 
@@ -266,7 +234,7 @@ original one.  This is to avoid nonsense results that arise
 when someone changes the data set under our feet. 
 We can only check the size: with the addition of aeqSurv other packages
 were being flagged for tiny discrepancies
-<<survfit.coxph-setup2>>=
+<<survfit.coxph-setup2b>>=
 if (!is.null(mf)){
     y2 <- object[['y']]
     if (!is.null(y2)) {
@@ -334,7 +302,7 @@ as the same values are subtracted from the old and new $X$ data.
 The mean is used because it is handy, we just need to get $X\beta$ in the
 neighborhood of zero.
 
-<<survfit.coxph-setup2>>=
+<<survfit.coxph-setup2c>>=
 if (length(object$means) ==0) { # a model with only an offset term
     # Give it a dummy X so the rest of the code goes through
     #  (This case is really rare)
@@ -564,24 +532,14 @@ else if (missing(newdata)) {
 
 <<survfit.coxph-result>>=
 if (individual) {
-    if (coxms) 
-        result <- coxsurv.fit2(ctype, stype, se.fit, varmat, cluster,
-                               object$cmap, object$transitions, object$states,
-                               Y, X, weights, risk, position, strata, oldid,
-                               transition, y2, x2, risk2, strata2, id2)
-    else result <- coxsurv.fit1(ctype, stype, se.fit, varmat, cluster, 
-                               Y, X, weights, risk, position, strata, oldid,
-                               transition, y2, x2, risk2, strata2, id2)
+    result <- coxsurv.fit(ctype, stype, se.fit, varmat, cluster, 
+                           Y, X, weights, risk, position, strata, oldid,
+                           transition, y2, x2, risk2, strata2, id2)
 }
 else {
-    if (coxms) 
-        result <- coxsurv.fit2(ctype, stype, se.fit, varmat, cluster,
-                               object$cmap, object$transitions, object$states,
-                               Y, X, weights, risk, position, strata, oldid,
-                               transition, y2, x2, risk2)
-    else result <- coxsurv.fit1(ctype, stype, se.fit, varmat, cluster, 
-                               Y, X, weights, risk, position, strata, oldid,
-                               transition, y2, x2, risk2)
+    result <- coxsurv.fit(ctype, stype, se.fit, varmat, cluster, 
+                           Y, X, weights, risk, position, strata, oldid,
+                           transition, y2, x2, risk2)
     if (has.strata && found.strata) {
         if (is.matrix(result$surv)) {
             <<newstrata-fixup>>
@@ -658,6 +616,6 @@ result$call <- Call
 # Rearrange to match the historical order of the structure
 indx <- match('surv', names(result))
 result <- c(result[1:indx], type=attr(Y, 'type'), result[-(1:indx)])
-class(result) <- c('survfit.cox', 'survfit')
+class(result) <- c('survfitcox', 'survfit')
 result
 @ 

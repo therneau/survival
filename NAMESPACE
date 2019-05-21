@@ -1,5 +1,6 @@
 useDynLib(survival, .registration = TRUE)
 importFrom(splines, spline.des, ns)
+importFrom(Matrix, expm)
 importFrom(stats, anova, approx, as.formula, coef, coefficients,
            contr.treatment, cor, density, delete.response, extractAIC, formula, 
            family, lm, logLik, makepredictcall, median, model.extract,

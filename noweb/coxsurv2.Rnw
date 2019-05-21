@@ -23,7 +23,7 @@ This fitting routine was set out as a separate function for the sake of the rms
 package.  They want to utilize the computation, but have a diffferent 
 process to create the x and y data. 
 <<coxsurvfit>>=
-coxsurv.fit1 <- function(ctype, stype, se.fit, varmat, cluster, 
+coxsurv.fit <- function(ctype, stype, se.fit, varmat, cluster, 
                          y, x, wt, risk, position, strata, oldid,
                          transition, y2, x2, risk2, strata2, id2, unlist=TRUE) {
 

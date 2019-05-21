@@ -1,12 +1,12 @@
 /*
 ** Survival curves for a Cox model.  This routine counts up all
 **  the totals that we need (more than we need, actually).  The number at risk
-**  is a PITA in R code.  Much of the rest of the computation can be done in R,
+**  is a PITA in R code.  All of the rest of the computation can be done in R,
 **  however.
 **
 **  otime:  vector of output times.  All the strata will get reports at these
-**            time points.  (Normally this is called for all of the states at
-**            once, each state being a stratum.)
+**            time points.  (Normally this fcn is called for all of the states
+**            at once, each state being a stratum.)
 **  y   :    survival response
 **  weight:  observation weight
 **  sort1, sort2: sort indices for the start and stop time
@@ -24,9 +24,9 @@
 **  For the weighted counts, number at risk != entries - exits.  Someone with 
 **    a sequence of (1,2)(2,5)(5,6) will have 1 entry and 1 exit, but they might
 **    have 3 changes of risk score due to time-dependent covariates.
-**  So n0-3 has to count all the changes, while n8-n11 (used only for
-**   printout) only keep track of the first entry and final exit, and 3-7
-**   are events at a given timepoint.
+**  n0-3 has to count all the changes, while n8-n9 (only used in printout
+**    keep track of the final exit, and 3-7 and 10-11 refer only to a given
+**    timepoint.
 **
 **  Let w1=1, w2= wt, w3= wt*risk.  The counts are
 **   0-2: number at risk, w1, w2, w3,
@@ -34,7 +34,6 @@
 **   6-7: censored endpoints: w1,w2
 **   8-9: censor: w1, w2
 **  10-11: Efron sums 1 and 2
-**  12-13: entry: w1, w2
 */
 
 #include <math.h>
@@ -54,13 +53,14 @@ SEXP coxsurv2(SEXP otime2, SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22,
     double **xmat, *risk;  /* X matrix and risk score */
     int nvar;              /* number of covariates */
     double  *xsum1,  /* a weighted sum, for computing xbar */
-	    *xsum2;
+	    *xsum2, *etemp;
+	    
     int *atrisk;
 
     static const char *outnames[]={"nstrat", "count", 
 				   "xbar", "xsum2", ""};
     SEXP rlist;
-    double n[14];
+    double n[12];
     int *position;
 
     /* output variables */
@@ -97,8 +97,9 @@ SEXP coxsurv2(SEXP otime2, SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22,
     }  
  
     /* Allocate memory for the working matrices. */
-    xsum1 = (double *) ALLOC(2*nvar, sizeof(double));
+    xsum1 = (double *) ALLOC(3*nvar, sizeof(double));
     xsum2 = xsum1 + nvar;
+    etemp = xsum2 + nvar;
     atrisk = (int *) ALLOC(nused, sizeof(int));
     for (i=0; i<nused; i++) atrisk[i] =0;
     
@@ -109,7 +110,7 @@ SEXP coxsurv2(SEXP otime2, SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22,
     irow = ntime*nstrat;
     rstrat = REAL(SET_VECTOR_ELT(rlist, 0, allocVector(REALSXP, 1)));
     rn = dmatrix(REAL(SET_VECTOR_ELT(rlist, 1, 
-			    allocMatrix(REALSXP, irow, 14))), irow, 14);
+			    allocMatrix(REALSXP, irow, 12))), irow, 12);
     rx1 = dmatrix(REAL(SET_VECTOR_ELT(rlist, 2, 
 			      allocMatrix(REALSXP, irow, nvar))), irow, nvar);
     rx2 = dmatrix(REAL(SET_VECTOR_ELT(rlist, 3, 
@@ -130,16 +131,10 @@ SEXP coxsurv2(SEXP otime2, SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22,
     **   observation with repect to n3- n7.
     **
     **  3. While tstart > otime, remove any obs currently at risk from n0-n2.
-    **     It that was their first entry, add them to an entry count for the
-    **     prior otime (n11-12).
-    **
-    ** At the end of a strata add any remaining subject to n10-11, which 
-    **   works on a lag
     */
     rstrat[0] = nstrat;
     person = nused-1; person2= nused-1;   /* person2 tracks start times */    
     irow = (ntime*nstrat); 
-    n[12]=0; n[13]=0;
     for (ii =0; ii<nstrat; ii++) {
 	istrat= strata[sort2[person]];  /* current stratum */
 	for (k=0; k<3; k++) n[k] =0;
@@ -147,7 +142,7 @@ SEXP coxsurv2(SEXP otime2, SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22,
 
 	for (jj=ntime-1; jj>=0; jj--) { /* one by one through the times */
 	    dtime = otime[jj];
-	    for (k=3; k<11; k++) n[k]=0;  /* counts are only for this interval*/
+	    for (k=3; k<12; k++) n[k]=0;  /* counts are only for this interval*/
 
 	    /* Step 1 */
 	    i2 = sort2[person];
@@ -159,7 +154,7 @@ SEXP coxsurv2(SEXP otime2, SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22,
 		    n[1] += wt[i2];
 		    n[2] += wt[i2] * risk[i2];
 		    for (k=0; k<nvar; k++) 
-			xsum1[k] += wt[i2]*risk[i2]*xmat[k][person];
+			xsum1[k] += wt[i2]*risk[i2]*xmat[k][i2];
 		}
 
 		if (position[i2]>1) {
@@ -173,6 +168,8 @@ SEXP coxsurv2(SEXP otime2, SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22,
 		    n[3]++;
 		    n[4] += wt[i2];
 		    n[5] += wt[i2]* risk[i2];
+		    for (k=0; i<nvar; k++)
+			xsum2[k] += wt[i2]*risk[i2]*xmat[k][i2];
 		    if (position[i2] >1) {
 			n[6]++;
 			n[7] += wt[i2];
@@ -199,13 +196,6 @@ SEXP coxsurv2(SEXP otime2, SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22,
 			    xsum1[k] -=xmat[k][j2] * wt[j2]* risk[j2];
 		    }
 		}
-
-		/* additions that are "in the gap" between two otimes */
-		if (position[j2] ==1 || position[j2]==3) { /* count as a entry */
-		    n[12]++;
-		    n[13]+= wt[j2];
-		}
-
 		person2--;
 		j2 = sort2[person2];
 	    }
@@ -216,43 +206,34 @@ SEXP coxsurv2(SEXP otime2, SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22,
 		n[11] = n[2]*n[2];
 	    }		
 	    else {
-		meanwt = n[5]/n[3];   /* average weight of the deaths */
+		meanwt = n[5]/(n[3]*n[3]);  /* average weight of deaths /n */
 		for (k=0; k<n[3]; k++) {
 		    n[10] += n[2] - k*meanwt;
-		    n[12] += (n[2] -k*meanwt)*(n[2] - k*meanwt);
+		    n[11] += (n[2] -k*meanwt)*(n[2] - k*meanwt);
 		}
 		n[10] /= n[3];
 		n[11] /= n[3];
 	    }		
 
 	    /* save the results */
-	    if (jj< (ntime-1)) {
-		/* save the entries as part of the later otime */
-		rn[12][irow] = n[12];
-		rn[13][irow] = n[13];
-		n[12]=0;
-		n[13]=0;
-	    }   
-
 	    irow--;
-	    for (k=0; k<10; k++) rn[k][irow] = n[k];
+	    for (k=0; k<12; k++) rn[k][irow] = n[k];
 	    for (k=0; k<nvar; k++) {
-		if (n[0]==0) rx1[k][irow]=0;
+		if (n[0]==0) rx1[k][irow]=  0;
 		else         rx1[k][irow] = xsum1[k]/n[3];
 		rx2[k][irow] = xsum2[k];
 	    }
         } /* end of time points */
 
- 	while(person2>=0 && strata[person2]==istrat) {
-	    /* censors after the last time are listed at the last time */
-	    n[12]++;
-	    n[13]+= wt[j2];
+	/* walk past any data after the last selected time point */
+	while(person>=0 && strata[i2]==istrat) {
+	    person--;
+	    i2 = sort2[person];
+	}
+	while(person2 >=0 && strata[j2]==istrat) {
 	    person2--;
-	    j2 = sort2[j2];
-	    rn[12][irow] = n[12];
-	    rn[13][irow] = n[13];
+	    j2 = sort1[person2];
 	}	
-	
     }
     UNPROTECT(1);
     return(rlist);

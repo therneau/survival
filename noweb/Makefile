@@ -43,6 +43,7 @@ SFUN =  agreg.fit.R \
 	survfitCI.R \
 	survfitKM.R \
 	survfit.coxph.R \
+	survfit.coxphms.R \
 	survfitms.R\
 	tmerge.R \
 	yates.R

@@ -81,7 +81,7 @@ fit1 <- survfit(Surv(t1, t2, state) ~1, mtest, id=id)
 mfit <- coxph(Surv(t1, t2, state) ~x, iter=0, mtest, id=id,
               init=rep(log(2), 6))
     
-mhaz <- survfit(mfit, newdata=list(x=0))
+msurv <- survfit(mfit, newdata=list(x=0))
 
 if (FALSE) {
     # this graph is very useful
