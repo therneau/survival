@@ -1,3 +1,4 @@
+library(survival)
 aeq <- function(x, y) all.equal(as.vector(x), as.vector(y))
 # 
 # Compute the hazard functions for a multi-state Cox model

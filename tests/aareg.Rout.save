@@ -1,6 +1,6 @@
 
-R version 3.4.1 (2017-06-30) -- "Single Candle"
-Copyright (C) 2017 The R Foundation for Statistical Computing
+R Under development (unstable) (2019-05-16 r76518) -- "Unsuffered Consequences"
+Copyright (C) 2019 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -116,8 +116,6 @@ Type 'q()' to quit R.
 > aeq(mine, afit$coef[1:9, -1])
 [1] TRUE
 > 
-> rm(tfit, afit, mine, dt1, cfit, sch1)
-> 
 > #
 > # Check out the dfbeta matrix from aareg
 > #   Note that it is kept internally in time order, not data set order
@@ -169,8 +167,6 @@ i= 54 coef= TRUE twt= TRUE dfbeta= TRUE
 i= 101 coef= TRUE twt= TRUE dfbeta= TRUE 
 i= 135 coef= TRUE twt= TRUE dfbeta= TRUE 
 > 	  
-> rm(afit, cfit, cdt, lwho, lmx, lmy, fit, rr, zz, df)
-> 
 > 
 > # Repeat it with case weights
 > ww <- rep(1:5, length=nrow(lung))/ 3.0
@@ -204,9 +200,6 @@ i= 54 coef= TRUE twt= TRUE dfbeta= TRUE
 i= 101 coef= TRUE twt= TRUE dfbeta= TRUE 
 i= 135 coef= TRUE twt= TRUE dfbeta= TRUE 
 > 	  
-> rm(afit, cfit, cdt, who, x, y, fit, rr, zz, df)
-> rm(ord, acoef)
->     
 > #
 > # Check that the test statistic computed within aareg and
 > #  the one recomputed within summary.aareg are the same.
@@ -379,4 +372,4 @@ attr(,"class")
 > 
 > proc.time()
    user  system elapsed 
-  2.993   0.199   3.637 
+  0.949   0.056   0.998 

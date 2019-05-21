@@ -93,6 +93,8 @@ coxph routine treats this last term as though it had a * in it, i.e.,
 fits a stratified model.
 
 <<survfit.coxph-setup1>>=
+if (length(object$coefficients) ==0 || all(is.na(object$coefficients)))
+    stop("survfit does not work with coxph models that have no covariates")
 Terms  <- terms(object)
 robust <- !is.null(object$naive.var)   # did the coxph model use robust var?
 
@@ -199,7 +201,7 @@ needs to be done.
 We have to repeat some lines from coxph, but to do that we need some
 further material.
 <<survfit.coxph-setup2>>=
-position <- transition <- NULL
+position <- NULL
 if (is.null(mf)) {
     weights <- rep(1., n)
     offset <- rep(0., n) 
@@ -267,7 +269,6 @@ if (!missing(start.time)) {
     strata <- strata[keep]
     if (length(id) >0 ) id <- id[keep]
     if (length(position)) position <- position[keep]
-    if (length(transition)) transition <- transition[keep]
     n <- nrow(Y)
 }
 @
@@ -468,7 +469,7 @@ tcall <- Call[c(1, match(c('id', "na.action"),
 tcall$data <- newdata
 tcall$formula <- Terms2
 tcall$xlev <- object$xlevels[match(attr(Terms2,'term.labels'),
-                                   names(tcall$xlev), nomatch=0)]
+                                   names(object$xlevels), nomatch=0)]
 tcall[[1L]] <- quote(stats::model.frame)
 mf2 <- eval(tcall)
 @    
@@ -516,11 +517,8 @@ if (individual) {
 else if (missing(newdata)) {
     if (has.strata && strata.interaction)
         stop ("Models with strata by covariate interaction terms require newdata")
-    if (length(object$means)) {
         x2 <- matrix(object$means, nrow=1, ncol=ncol(X))
-        risk2 <- (c(x2 %*% beta) - xcenter)
-    }
-    else {risk2 <-1;  x2 <- 0}   # a model with only an offset
+        risk2 <- exp(c(x2 %*% beta) - xcenter)
 } else {
     offset2 <- model.offset(mf2)
     if (length(offset2) >0) offset2 <- offset2 - mean(offset)
@@ -534,12 +532,12 @@ else if (missing(newdata)) {
 if (individual) {
     result <- coxsurv.fit(ctype, stype, se.fit, varmat, cluster, 
                            Y, X, weights, risk, position, strata, oldid,
-                           transition, y2, x2, risk2, strata2, id2)
+                           y2, x2, risk2, strata2, id2)
 }
 else {
     result <- coxsurv.fit(ctype, stype, se.fit, varmat, cluster, 
                            Y, X, weights, risk, position, strata, oldid,
-                           transition, y2, x2, risk2)
+                           y2, x2, risk2)
     if (has.strata && found.strata) {
         if (is.matrix(result$surv)) {
             <<newstrata-fixup>>

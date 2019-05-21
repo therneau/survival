@@ -65,12 +65,13 @@ a call to [[model.frame]] that contains only the arguments relevant to that
 function.
 <<survexp-setup>>=
 Call <- match.call()
-m <- match.call(expand.dots=FALSE)
     
 # keep the first element (the call), and the following selected arguments
-m <- m[c(1, match(c('formula', 'data', 'weights', 'subset', 'na.action'),
-                  names(m), nomatch=0))]
-m[[1L]] <- quote(stats::model.frame)
+indx <- match(c('formula', 'data', 'weights', 'subset', 'na.action'),
+                  names(Call), nomatch=0)
+if (indx[1] ==0) stop("A formula argument is required")
+tform <- Call[c(1,indx)]  # only keep the arguments we wanted
+tform[[1L]] <- quote(stats::model.frame)  # change the function called
     
 Terms <- if(missing(data)) terms(formula, 'ratetable')
          else              terms(formula, 'ratetable',data=data)
@@ -132,7 +133,7 @@ if(length(rate) > 1)
         stop("Can have only 1 ratetable() call in a formula")
 <<survexp-setup-rmap>>
 
-m <- eval(m, parent.frame())
+mf <- eval(tform, parent.frame())
 @ 
 <<survexp-setup-rmap>>=
 if(length(rate) == 1) {
@@ -157,7 +158,7 @@ if (is.ratetable(ratetable))   {
     varlist <- names(dimnames(ratetable))
     if (is.null(varlist)) varlist <- attr(ratetable, "dimid") # older style
 }
-else if(inherits(ratetable, "coxph")) {
+else if(inherits(ratetable, "coxph") && !inherits(ratetable, "coxphms")) {
     ## Remove "log" and such things, to get just the list of
     #   variable names
     varlist <- all.vars(delete.response(ratetable$terms))
@@ -193,9 +194,9 @@ extra paste call to re-collapse it into one.
 # Create a temporary formula, used only in the call to model.frame
 newvar <- all.vars(rcall)
 if (length(newvar) > 0) {
-    tform <- paste(paste(deparse(Terms), collapse=""),  
+    temp <- paste(paste(deparse(Terms), collapse=""),  
                    paste(newvar, collapse='+'), sep='+')
-    m$formula <- as.formula(tform, environment(Terms))
+    tform$formula <- as.formula(temp, environment(Terms))
     }
 @
 
@@ -203,12 +204,12 @@ If the user data has 0 rows, e.g. from a mistaken [[subset]] statement
 that eliminated all subjects, we need to stop early.  Otherwise the
 .C code fails in a nasty way. 
 <<survexp-setup>>= 
-n <- nrow(m)
+n <- nrow(mf)
 if (n==0) stop("Data set has 0 rows")
 if (!missing(se.fit) && se.fit)
     warning("se.fit value ignored")
 
-weights <- model.extract(m, 'weights')
+weights <- model.extract(mf, 'weights')
 if (length(weights) ==0) weights <- rep(1.0, n)
 if (class(ratetable)=='ratetable' && any(weights !=1))
     warning("weights ignored")
@@ -231,7 +232,7 @@ given we will subset down to only those values at the end.
 For a population rate table and the Ederer method the times argument is
 required.
 <<survexp-setup>>=
-Y <- model.extract(m, 'response')
+Y <- model.extract(mf, 'response')
 no.Y <- is.null(Y)
 if (no.Y) {
     if (missing(times)) {
@@ -287,7 +288,7 @@ the Ederer method.
 <<survexp-compute>>=
 ovars <- attr(Terms, 'term.labels')
 # rdata contains the variables matching the ratetable
-rdata <- data.frame(eval(rcall, m), stringsAsFactors=TRUE)  
+rdata <- data.frame(eval(rcall, mf), stringsAsFactors=TRUE)  
 if (is.ratetable(ratetable)) {
     israte <- TRUE
     if (no.Y) {
@@ -327,7 +328,7 @@ if (substring(method, 1, 10) == "individual") { #individual survival
     if (method == "individual.s") xx <- temp$surv
     else xx <- -log(temp$surv)
     names(xx) <- row.names(m)
-    na.action <- attr(m, "na.action")
+    na.action <- attr(mf, "na.action")
     if (length(na.action)) return(naresid(na.action, xx))
     else return(xx)
     }
@@ -346,12 +347,12 @@ if (length(ovars)==0)  X <- rep(1,n)  #no categories
 else {
     odim <- length(ovars)
     for (i in 1:odim) {
-	temp <- m[[ovars[i]]]
+	temp <- mf[[ovars[i]]]
 	ctemp <- class(temp)
 	if (!is.null(ctemp) && ctemp=='tcut')
 	    stop("Can't use tcut variables in expected survival")
 	}
-    X <- strata(m[ovars])
+    X <- strata(mf[ovars])
     }
 
 #do the work

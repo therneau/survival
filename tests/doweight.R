@@ -31,9 +31,9 @@ indx <- match(1:9, testw2$id)
 
 fit0 <- coxph(Surv(time, status) ~x, testw1, weights=wt,
 		    method='breslow', iter=0)
-fit0b <- coxph(Surv(time, status) ~x, testw2, method='breslow', iter=0)
-fit  <- coxph(Surv(time, status) ~x, testw1, weights=wt, method='breslow')
-fitb <- coxph(Surv(time, status) ~x, testw2, method='breslow')
+fit0b <- coxph(Surv(time, status) ~x, testw2, ties='breslow', iter=0)
+fit  <- coxph(Surv(time, status) ~x, testw1, weights=wt, ties='breslow')
+fitb <- coxph(Surv(time, status) ~x, testw2, ties='breslow')
 
 texp <- function(beta) {  # expected, Breslow estimate
     r <- exp(beta)
@@ -73,7 +73,7 @@ rr1 <- resid(fit, type='score')
 rr2 <- resid(fit, type='score', weighted=T)
 aeq(rr2/rr1, testw1$wt)
 
-fit  <- coxph(Surv(time, status) ~x, testw1, weights=wt, method='efron')
+fit  <- coxph(Surv(time, status) ~x, testw1, weights=wt, ties='efron')
 fit
 resid(fit, type='mart')
 resid(fit, type='score')
@@ -90,8 +90,8 @@ testw3 <- data.frame(id  =  c( 1, 1, 2, 3, 3, 3, 4, 5, 5, 6, 7, 8, 8, 9),
 		    wt =    c( 1, 1, 2, 3, 3, 3, 4, 3, 3, 2, 1, 2, 2, 1))
 
 fit0 <- coxph(Surv(begin,time, status) ~x, testw3, weights=wt,
-		    method='breslow', iter=0)
-fit  <- coxph(Surv(begin,time, status) ~x, testw3, weights=wt, method='breslow')
+		    ties='breslow', iter=0)
+fit  <- coxph(Surv(begin,time, status) ~x, testw3, weights=wt, ties='breslow')
 fit0
 summary(fit)
 resid(fit0, type='mart', collapse=testw3$id)
@@ -106,7 +106,7 @@ resid(fit0, 'mart', collapse=testw3$id)
 resid(coxph(Surv(begin, time, status) ~1, testw3, weights=wt)
 		      , collapse=testw3$id)  #Null model
 
-fit  <- coxph(Surv(begin,time, status) ~x, testw3, weights=wt, method='efron')
+fit  <- coxph(Surv(begin,time, status) ~x, testw3, weights=wt, ties='efron')
 fit
 resid(fit, type='mart', collapse=testw3$id)
 resid(fit, type='score', collapse=testw3$id)
@@ -130,9 +130,9 @@ fit3 <- coxph(Surv(futime, fustat) ~ age + ecog.ps, ovarian, weights=wtemp,
 #
 # Effect of case weights on expected survival curves post Cox model
 #
-fit0  <- coxph(Surv(time, status) ~x, testw1, weights=wt, method='breslow',
+fit0  <- coxph(Surv(time, status) ~x, testw1, weights=wt, ties='breslow',
 	       iter=0)
-fit0b <- coxph(Surv(time, status) ~x, testw2, method='breslow', iter=0)
+fit0b <- coxph(Surv(time, status) ~x, testw2, ties='breslow', iter=0)
 
 surv1 <- survfit(fit0, newdata=list(x=0))
 surv2 <- survfit(fit0b, newdata=list(x=0))
@@ -225,9 +225,9 @@ testx <- data.frame(time=  c(4,4,4,1,1,2,2,3),
 		    wt=    c(1,1,1,1,1,1,1,1),
                     id=    1:8)
  
-fit1 <- coxph(Surv(time, status) ~x, cluster=id, test1, method='breslow',
+fit1 <- coxph(Surv(time, status) ~x, cluster=id, test1, ties='breslow',
               weights=wt)
-fit2 <- coxph(Surv(time, status) ~x, cluster=id, testx, method='breslow')
+fit2 <- coxph(Surv(time, status) ~x, cluster=id, testx, ties='breslow')
 
 db1 <- resid(fit1, 'dfbeta', weighted=F)
 db1 <- db1[-2]         #toss the missing

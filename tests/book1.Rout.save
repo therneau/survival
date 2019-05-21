@@ -1,6 +1,6 @@
 
-R version 3.4.2 (2017-09-28) -- "Short Summer"
-Copyright (C) 2017 The R Foundation for Statistical Computing
+R Under development (unstable) (2019-05-16 r76518) -- "Unsuffered Consequences"
+Copyright (C) 2019 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -119,7 +119,7 @@ Type 'q()' to quit R.
 > # This next gives an ignorable warning message
 > fit2 <- coxph(Surv(time, status) ~x, test1, method='breslow', iter=2)
 Warning message:
-In fitter(X, Y, strats, offset, init, control, weights = weights,  :
+In fitter(X, Y, istrat, offset, init, control, weights = weights,  :
   Ran out of iterations and did not converge
 > aeq(round(fit2$coef, 6), 1.472724)
 [1] TRUE
@@ -249,4 +249,4 @@ Call: survfit(formula = fit, newdata = list(x = 2))
 > 
 > proc.time()
    user  system elapsed 
-  1.904   0.254   2.235 
+  0.784   0.056   0.834 

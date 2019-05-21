@@ -48,6 +48,7 @@ static const R_CallMethodDef Callentries[] = {
     {"Ccoxexact",     (DL_FUNC) &coxexact,     8},
     {"Ccoxfit6",      (DL_FUNC) &coxfit6,     12},
     {"Ccoxsurv1",     (DL_FUNC) &coxsurv1,    11},
+    {"Ccoxsurv2",     (DL_FUNC) &coxsurv2,     9},
     {"Cfinegray",     (DL_FUNC) &finegray,     6},
     {"Cgchol",        (DL_FUNC) &gchol,        2},
     {"Cgchol_solve",  (DL_FUNC) &gchol_solve,  3},

@@ -23,7 +23,6 @@ function(formula, newdata, se.fit=TRUE, conf.int=.95, individual=FALSE,
     <<survfit.coxphms-result>>
 
     cifit$call <- Call
-    browser()
     class(cifit) <- c("survfitcox", "survfitms", "survfit")
     cifit
 }
@@ -113,8 +112,8 @@ if (individual) {
         new.p <- do.call(rbind, lapply(result, function(x) x$pstate))
         new.c <- do.call(rbind, lapply(result, function(x) x$cumhaz))
         if (nrow(new.p) != nrow(cifit$pstate)) stop("miscount 4")
-        cifit$pstate <- newp
-        cifit$cumhaz <- newc
+        cifit$pstate <- new.p
+        cifit$cumhaz <- new.c
     }
 }
 
@@ -173,7 +172,7 @@ multihaz <- function(y, x, position, weight, risk, transition, ctype, stype,
     ntime <- length(utime)
 
     # this returns all of the counts we might desire.
-    fit <- .Call("coxsurv2", utime, y, weight, sort1, sort2, position, 
+    fit <- .Call("Ccoxsurv2", utime, y, weight, sort1, sort2, position, 
                         transition, x, risk)
     cn <- fit$count  # 1-3 = at risk, 4-6 = events, 7-8 = censored events
                      # 9-10 = censored, 11-12 = Efron, 13-15 = entry
@@ -212,11 +211,11 @@ multihaz <- function(y, x, position, weight, risk, transition, ctype, stype,
             H[hfill] <- hazard[j,] * risk2[i]
             if (stype==1) {
                 diag(H) <- pmin(0, 1 + diag(H)- rowSums(H))
-                S[j,] <- drop(S[j-1,] %*% H)  # dgeMatrix  goofs it up
+                S[j,] <- drop(S[j-1,] %*% H)  
             }
             else {
                 diag(H) <- diag(H) - rowSums(H)
-                S[j,] <- drop(S[j-1,] %*% expm(H))
+                S[j,] <- as.vector(S[j-1,] %*% expm(H))  # dgeMatrix issue
             }
         }
 

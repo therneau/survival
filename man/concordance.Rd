@@ -141,7 +141,7 @@ concordance(object, \ldots)
 \seealso{\code{\link{coxph}}}
 \examples{
 fit1 <- coxph(Surv(ptime, pstat) ~ age + sex + mspike, mgus2)
-concordance(fit1, timewt="n")  # 
+concordance(fit1, timewt="n") 
 
 # logistic regression
 fit2 <- glm(pstat ~ age + sex + mspike, binomial, data= mgus2)

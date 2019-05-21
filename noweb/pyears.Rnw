@@ -50,8 +50,8 @@ Call <- match.call()
 indx <- match(c("formula", "data", "weights", "subset", "na.action"),
                   names(Call), nomatch=0) 
 if (indx[1] ==0) stop("A formula argument is required")
-temp <- Call[c(1,indx)]  # only keep the arguments we wanted
-temp[[1L]] <- quote(stats::model.frame)  # change the function called
+tform <- Call[c(1,indx)]  # only keep the arguments we wanted
+tform[[1L]] <- quote(stats::model.frame)  # change the function called
 
 Terms <- if(missing(data)) terms(formula, 'ratetable')
          else              terms(formula, 'ratetable',data=data)
@@ -69,7 +69,7 @@ if (length(rate) >0 || !missing(rmap) || !missing(ratetable)) {
     }
 else has.ratetable <- FALSE
 
-mf <- eval(temp, parent.frame())
+mf <- eval(tform, parent.frame())
 
 Y <- model.extract(mf, 'response')
 if (is.null(Y)) stop ("Follow-up time must appear in the formula")
@@ -116,7 +116,7 @@ if (has.ratetable) {
         rtemp <- match.ratetable(rdata, ratetable)
         R <- rtemp$R
         }
-    else if (inherits(ratetable, 'coxph')) {
+    else if (inherits(ratetable, 'coxph') && !inherits(ratetable, "coxphms")) {
         israte <- FALSE
         Terms <- ratetable$terms
         if (!is.null(attr(Terms, 'offset')))

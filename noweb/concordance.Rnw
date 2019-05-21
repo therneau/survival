@@ -515,7 +515,7 @@ concordance.lm <- function(object, ..., newdata, cluster, ymin, ymax,
     need.wt <- any(sapply(fits, function(x) !is.null(x$call$weights)))
     
     cfun$data <- lapply(fits, cord.getdata, newdata=newdata, cluster=cluster,
-                        need.wt=need.wt, timefix=timefix, keepstrata=keepstrata)
+                        need.wt=need.wt, timefix=timefix)
     rval <- eval(cfun, parent.frame())
     rval$call <- Call
     rval
@@ -552,7 +552,7 @@ concordance.survreg <- function(object, ..., newdata, cluster, ymin, ymax,
     need.wt <- any(sapply(fits, function(x) !is.null(x$call$weights)))
     
     cfun$data <- lapply(fits, cord.getdata, newdata=newdata, cluster=cluster,
-                        need.wt=need.wt, timefix=timefix, keepstrata=keepstrata)
+                        need.wt=need.wt, timefix=timefix)
     rval <- eval(cfun, parent.frame())
     rval$call <- Call
     rval
@@ -593,7 +593,7 @@ concordance.coxph <- function(object, ..., newdata, cluster, ymin, ymax,
     need.wt <- any(sapply(fits, function(x) !is.null(x$call$weights)))
     
     cfun$data <- lapply(fits, cord.getdata, newdata=newdata, cluster=cluster,
-                        need.wt=need.wt, timefix=timefix, keepstrata=keepstrata)
+                        need.wt=need.wt, timefix=timefix)
     rval <- eval(cfun, parent.frame())
     rval$call <- Call
     rval

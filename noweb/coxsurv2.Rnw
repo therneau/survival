@@ -25,7 +25,7 @@ process to create the x and y data.
 <<coxsurvfit>>=
 coxsurv.fit <- function(ctype, stype, se.fit, varmat, cluster, 
                          y, x, wt, risk, position, strata, oldid,
-                         transition, y2, x2, risk2, strata2, id2, unlist=TRUE) {
+                         y2, x2, risk2, strata2, id2, unlist=TRUE) {
 
     if (length(strata)==0) strata <- rep(0L, nrow(y))
 
@@ -43,6 +43,7 @@ coxsurv.fit <- function(ctype, stype, se.fit, varmat, cluster,
                                 wt[indx], risk[indx],
                                 survtype, vartype)
         }
+    <<survfit.coxph-compute>>
 
     if (unlist) {
         if (length(result)==1) { # the no strata case
@@ -60,8 +61,6 @@ coxsurv.fit <- function(ctype, stype, se.fit, varmat, cluster,
         names(result) <- ustrata
         result
     }
-
-    <<survfit.coxph-expand>>
 }    
 @ 
 
@@ -143,7 +142,7 @@ Essentially the variance in $\hat \beta$ has a larger influence
 when prediction is far from the mean.
 The function below takes the basic curve from the list and multiplies
 it out to matrix form.
-<<survfit.coxph-expand>>=
+<<survfit.coxph-compute>>=
 expand <- function(fit, x2, varmat, se.fit) {
     if (survtype==1) 
         surv <- cumprod(fit$surv)
@@ -214,7 +213,7 @@ one end and $\le$ on the other.  If someone's interval 1 was 0--10 and
 interval 2 was 10--20, and there happened to be a jump in the baseline
 survival curve at exactly time 10 (someone else died), 
 that jump is counted only in the first interval.
-<<survfit.coxph-expand>>=
+<<survfit.coxph-compute>>=
 if (missing(id2) || is.null(id2)) 
     result <- lapply(survlist, expand, x2, varmat, se.fit)
 else {
