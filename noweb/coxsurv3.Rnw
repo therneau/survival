@@ -26,7 +26,15 @@ coxsurv.fit2 <- function (ctype, stype, se.fit,
     # (varmat, ..., tmat), original data (Y, ..., transition), and data for the
     # new subjects
 
-    # first make the expansion map.  
+    if (length(strata)==0) strata <- rep(0L, nrow(y))
+
+    if (is.factor(strata)) ustrata <- levels(strata)
+    else                   ustrata <- sort(unique(strata))
+    nstrata <- length(ustrata)
+    survlist <- vector('list', nstrata)
+    names(survlist) <- ustrata
+
+    # make the expansion map.  
     #  cmap[1,] will contain integers 1, 2,... which match the values in
     # the transtion vector, which in turn is the set of hazard functions that
     # come back from the .Call
@@ -40,74 +48,82 @@ coxsurv.fit2 <- function (ctype, stype, se.fit,
     to   <- col(tmat)[tmat>0]
     to   <- match(colnames(tmat), states)[to]    # actual col of H
     hfill <- cbind(from, to)
-browser()
 
-    # setup to call the C routine
     storage.mode(position) <- "integer"  # failsafe
     storage.mode(weights) <- "double"
-    istrat <- as.integer(strata)
-    if (is.null(strata) || all(istrat==istrat[1])) {
-        sort1 <- order(transition, y[,1]) -1L
-        sort2 <- order(transition, y[,2]) -1L
-        event <- y[,3] > 0
-        udeath <- sort(unique(y[event,2]))  #unique death times
-        ctemp <- .Call("coxsurv2", udeath, y, weights, sort1, sort2, position, 
-                        transition, x, risk)
-
-        fit <- makesurv(ctemp, nstate, cmap, hfill)
-    }
-    else {
-        sort1 <- order(istrat, transition, y[,1]) -1L
-        sort2 <- order(istrat, transition, y[,2]) -1L
  
-        ustrat <- unique(strata)
- browser()
-        sfun <- function(i) {
-            keep <- (strata==i)
-            makesurv(.Call("coxsurv2", y, weights, sort1[keep], sort2[keep], 
-                           position, transition, x, risk))
-        }
-        fit <- lapply(unique(strata), sfun)
-
-        browser()
+    for (i in 1:nstrata) {
+        indx <- which(strata== ustrata[i])
+        survlist[[i]] <- multihaz(y[indx,,drop=F], x[indx,,drop=F],
+                                  position[indx], weights[indx], risk[indx],
+                                  transition[indx], ctype, stype, hfill,
+                                  x2, risk2, varmat, nstate, se.fit)
     }
-    
+    survlist
 }
 
-# Do the hard work
-makesurv <- function(x, nstate, cmap, hfill) {
-    # Breslow estimate
-    browser()
-    hazard <- matrix(ifelse(x$count[,4]==0, 0, x$count[,4]/x$count[,3]), 
-                     ncol=x$nstrat)
-    hazard <- hazard[,cmap[1,]]
-    surv <- matrix(0, 1+nrow(hazard), nstate)
+# Compute the hazard  and survival functions 
+multihaz <- function(y, x, position, weight, risk, transition, ctype, stype, 
+                     hfill, x2, risk2, vmat, nstate, se.fit) {
+    sort1 <- order(transition, y[,1]) -1L
+    sort2 <- order(transition, y[,2]) -1L
+    event <- y[,3] > 0
+    utime <- c(0, sort(unique(y[event,2])))  #unique times, start and death
+    ntime <- length(utime)
+
+    # this returns all of the counts we might desire.
+    fit <- .Call("coxsurv2", utime, y, weight, sort1, sort2, position, 
+                        transition, x, risk)
+    cn <- fit$count  # 1-3 = at risk, 4-6 = events, 7-8 = censored events
+                     # 9-10 = censored, 11-12 = Efron, 13-15 = entry
+    denom1 <- ifelse(cn[,4]==0, 1, ifelse(ctype==1, cn[,3], cn[,11]))
+    denom2 <- ifelse(cn[,4]==0, 1, ifelse(ctype==1, cn[,3]^2, cn[,12]))
+
+    hazard <- matrix(cn[,5] / denom1, ncol = fit$nstrat)
+    varhaz <- matrix(cn[,5] / denom2, ncol = fit$nstrat)
+
+    # Expand the result, one "hazard set" for each row of x2
+    nx2 <- nrow(x2)
+    jj <- 1:nrow(hazard)
+    h2 <- matrix(0, nrow(hazard)*nx2, ncol(hazard))
+    if (se.fit) v2 <- h2
+    S <- matrix(0, nrow(hazard), nstate)
+    S2 <- matrix(0, nrow(j2), nstate)
+ 
     H <- matrix(0, nstate, nstate)
-    surv[1,1] <- 1
-    for (i in 1:nrow(hazard)) {
-        H[hfill] <- hazard[i,]
-        diag(H) <- diag(H) - rowSums(H)
-        surv[i+1,] <- surv[i,] %*% expm(H)
+    p0 <- matrix(cn[,3], nrow=time)
+    p0 <- p0/sum(p0)
+
+    for (i in 1:nx2) {
+        h2[jj,] <- apply(hazard * risk2[i], 2, cumsum)
+        if (se.fit) {
+            d1 <- fit$xbar - rep(x[i,], each=nrow(fit$xbar))
+            d2 <- apply(d1*hazard, 2, cumsum)
+            d3 <- rowSums((d2%*% vmat) * d2)
+            v2[jj,] <- (apply(varhaz[jj,],2, cumsum) + d3) * (risk2[i])^2
+        }
+
+        S[1,] <- p0
+        for (j in 2:ntime) {
+            H[hfill] <- hazard * risk2[i]
+            if (stype==1) {
+                diag(H) <- pmin(0, 1 + diag(H)- rowSums(H))
+                S[i,] <- S[i-1,] %*% H
+            }
+            else {
+                diag(H) <- diag(H) - rowSums(H)
+                S[i,] <- S[i-1,] %*% expm(H)
+            }
+        }
+        S2[jj,] <- S
+        jj <- jj+ nrow(hazard)
     }
+
+    rval <- list(time=rep(utime, nx2), xgrp=rep(1:nx2, each=nrow(hazard)),
+                 pstate=S2, cumhaz=h2)
+    if (se.fit) rval$varhaz <- v2
+    rval
 }
 @
 
-Here is the actual work.
-If $d$ is the number of unique event times and $s$ the number of
-states, the cumulative hazard will be an array of dimension $(s,s,d+1)$
-and the probability in state a matrix with $d+1$ rows and $s$ columns.
-The first row of the hazard is 0 and the first of the survival is
-the initial state.
 
-<<survfitcoxph-agsurv2>>=
-agsurv2 <- function(y, x, wt, risk, stype, ctype, cmap, states) {
-    nstate <- length(object$states)
-    from <- as.integer(sub(":.*$", "", colnames(cmap)))
-    to   <- as.integer(sub("^.*:", "", colnames(cmap)))
-    
-    isort <- order(y[,2], y[,3])
-    
-   status <- y[,3]
-    nd <- sum(status > 0)  #
- 
-@ 

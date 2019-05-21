@@ -44,8 +44,6 @@ coxsurv.fit1 <- function(ctype, stype, se.fit, varmat, cluster,
                                 survtype, vartype)
         }
 
-    <<survfit.coxph-compute>>
-
     if (unlist) {
         if (length(result)==1) { # the no strata case
             if (se.fit)
@@ -55,49 +53,16 @@ coxsurv.fit1 <- function(ctype, stype, se.fit, varmat, cluster,
                           "surv", "cumhaz")]
         }
         else {
-            temp <-list(n   =    unlist(lapply(result, function(x) x$n),
-                                        use.names=FALSE),
-                        time=    unlist(lapply(result, function(x) x$time),
-                                        use.names=FALSE),
-                        n.risk=  unlist(lapply(result, function(x) x$n.risk),
-                                        use.names=FALSE),
-                        n.event= unlist(lapply(result, function(x) x$n.event),
-                                        use.names=FALSE),
-                        n.censor=unlist(lapply(result, function(x) x$n.censor),
-                                        use.names=FALSE),
-                        strata = sapply(result, function(x) length(x$time)))
-            names(temp$strata) <- names(result)
-            
-            if ((missing(id2) || is.null(id2)) && nrow(x2)>1) {
-                 temp$surv <- t(matrix(unlist(lapply(result, 
-                                   function(x) t(x$surv)), use.names=FALSE),
-                                       nrow= nrow(x2)))
-                 dimnames(temp$surv) <- list(NULL, row.names(x2))
-                 temp$cumhaz <- t(matrix(unlist(lapply(result, 
-                                   function(x) t(x$cumhaz)), use.names=FALSE),
-                                       nrow= nrow(x2)))
-                 if (se.fit) 
-                     temp$std.err <- t(matrix(unlist(lapply(result,
-                                    function(x) t(x$std.err)), use.names=FALSE),
-                                             nrow= nrow(x2)))
-                 }
-            else {             
-                temp$surv <- unlist(lapply(result, function(x) x$surv),
-                                    use.names=FALSE)
-                temp$cumhaz <- unlist(lapply(result, function(x) x$cumhaz),
-                                    use.names=FALSE)
-                if (se.fit) 
-                    temp$std.err <- unlist(lapply(result, 
-                                   function(x) x$std.err), use.names=FALSE)
-                }
-            temp
-            }
-        }
+            <<survfit.coxph-unlist>>
+        } 
+    }
     else {
         names(result) <- ustrata
         result
-        }
-    }    
+    }
+
+    <<survfit.coxph-expand>>
+}    
 @ 
 
 In an ordinary survival curve object with multiple strata, as produced by
@@ -112,6 +77,45 @@ a decade).
 The underlying computation of \code{survfitcoxph.fit} naturally creates the list
 form, we unlist it to \code{survfit} form as our last action unless the 
 caller requests otherwise.
+
+<<survfit.coxph-unlist>>=
+temp <-list(n   =    unlist(lapply(result, function(x) x$n),
+                            use.names=FALSE),
+            time=    unlist(lapply(result, function(x) x$time),
+                            use.names=FALSE),
+            n.risk=  unlist(lapply(result, function(x) x$n.risk),
+                            use.names=FALSE),
+            n.event= unlist(lapply(result, function(x) x$n.event),
+                            use.names=FALSE),
+            n.censor=unlist(lapply(result, function(x) x$n.censor),
+                            use.names=FALSE),
+            strata = sapply(result, function(x) length(x$time)))
+names(temp$strata) <- names(result)
+
+if ((missing(id2) || is.null(id2)) && nrow(x2)>1) {
+     temp$surv <- t(matrix(unlist(lapply(result, 
+                       function(x) t(x$surv)), use.names=FALSE),
+                           nrow= nrow(x2)))
+     dimnames(temp$surv) <- list(NULL, row.names(x2))
+     temp$cumhaz <- t(matrix(unlist(lapply(result, 
+                       function(x) t(x$cumhaz)), use.names=FALSE),
+                           nrow= nrow(x2)))
+     if (se.fit) 
+         temp$std.err <- t(matrix(unlist(lapply(result,
+                        function(x) t(x$std.err)), use.names=FALSE),
+                                 nrow= nrow(x2)))
+     }
+else {             
+    temp$surv <- unlist(lapply(result, function(x) x$surv),
+                        use.names=FALSE)
+    temp$cumhaz <- unlist(lapply(result, function(x) x$cumhaz),
+                        use.names=FALSE)
+    if (se.fit) 
+        temp$std.err <- unlist(lapply(result, 
+                       function(x) x$std.err), use.names=FALSE)
+    }
+temp
+@ 
 
 For \code{individual=FALSE} we have a second dimension, namely each of the
 target covariate sets (if there are multiples).  Each of these generates
@@ -139,7 +143,7 @@ Essentially the variance in $\hat \beta$ has a larger influence
 when prediction is far from the mean.
 The function below takes the basic curve from the list and multiplies
 it out to matrix form.
-<<survfit.coxph-compute>>=
+<<survfit.coxph-expand>>=
 expand <- function(fit, x2, varmat, se.fit) {
     if (survtype==1) 
         surv <- cumprod(fit$surv)
@@ -210,7 +214,7 @@ one end and $\le$ on the other.  If someone's interval 1 was 0--10 and
 interval 2 was 10--20, and there happened to be a jump in the baseline
 survival curve at exactly time 10 (someone else died), 
 that jump is counted only in the first interval.
-<<survfit.coxph-compute>>=
+<<survfit.coxph-expand>>=
 if (missing(id2) || is.null(id2)) 
     result <- lapply(survlist, expand, x2, varmat, se.fit)
 else {
@@ -228,7 +232,7 @@ else {
                 timeforward <- timeforward + y2[i,2] - y2[i,1]
                 # No deaths or censors in user interval.  Possible
                 # user error, but not uncommon at the tail of the curve.
-                }
+            }
             else {
                 time[[i]] <- diff(c(y2[i,1], slist$time[indx])) #time increments
                 time[[i]][1] <- time[[i]][1] + timeforward
@@ -243,8 +247,8 @@ else {
                 dt <-  outer(slist$cumhaz[indx], x2[i,]) - slist$xbar[indx,,drop=F]
                 varh1[[i]] <- slist$varhaz[indx] *risk2[i]^2
                 varh2[[i]] <- rowSums((dt %*% varmat)* dt) * risk2[i]^2
-                }
             }
+        }
 
         cumhaz <- cumsum(unlist(hazard))
         if (survtype==1) surv <- cumprod(unlist(surv))  #increments (K-M)
@@ -266,11 +270,11 @@ else {
                    n.censor= unlist(n.censor),
                    surv = surv,
                    cumhaz= cumhaz)
-        }
+    }
 
     if (all(id2 ==id2[1])) {
         result <- list(onecurve(survlist, x2, y2, strata2, risk2, se.fit))
-        }
+    }
     else {
         uid <- unique(id2)
         result <- vector('list', length=length(uid))
@@ -279,10 +283,10 @@ else {
             result[[i]] <- onecurve(survlist, x2[indx,,drop=FALSE], 
                                      y2[indx,,drop=FALSE], 
                                      strata2[indx],  risk2[indx], se.fit)
-            }
-        names(result) <- uid
         }
+        names(result) <- uid
     }
+}
 @ 
 
 Next is the code for the \code{agsurv} function, which actually does the work.
@@ -398,7 +402,7 @@ efficiently compute the partial sums.
              as.integer(ntime),
              as.double(nrisk),
              inc = double(ntime))
-        }
+    }
 
     if (survtype==3 || vartype==3) {  # Efron approx
         xsum2 <- rowsum((wrisk*death) *x, dtime)
@@ -414,7 +418,7 @@ efficiently compute the partial sums.
                     sum1 = double(length(nevent)),
                     sum2 = double(length(nevent)),
                     xbar = matrix(0., length(nevent), nvar))
-        }
+    }
     haz <- switch(survtype,
 		     nevent/nrisk,
 		     nevent/nrisk,
@@ -435,7 +439,7 @@ efficiently compute the partial sums.
                    xbar=apply(matrix(xbar, ncol=nvar),2, cumsum))
     if (survtype==1) result$surv <- km$inc
     result
-    }
+}
 @ 
 
 The arguments to this function are the number of unique times n, which is

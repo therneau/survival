@@ -44,15 +44,17 @@ survfit.coxph <-
             censor=TRUE, start.time, id, influence=FALSE,
             na.action=na.pass, type, ...) {
 
-    Call <- match.call()
-    Call[[1]] <- as.name("survfit")  #nicer output for the user
-    object <- formula     #'formula' because it has to match survfit
-    <<survfit.coxph-setup1>>
-    <<survfit.coxph-setup2>>
-    <<survfit.coxph-setup3>>
-    <<survfit.coxph-result>>
-    <<survfit.coxph-finish>>
-    }
+      Call <- match.call()
+      Call[[1]] <- as.name("survfit")  #nicer output for the user
+      object <- formula     #'formula' because it has to match survfit
+      if (inherits(formula, "coxphms")) sd.fit <- FALSE   #still to do
+
+      <<survfit.coxph-setup1>>
+      <<survfit.coxph-setup2>>
+      <<survfit.coxph-setup3>>
+      <<survfit.coxph-result>>
+      <<survfit.coxph-finish>>
+      }
 @ 
 The third line \code{as.name('survfit')} causes the printout to say
 `survfit' instead of `survfit.coxph'.                              %'
@@ -223,16 +225,23 @@ else {
     }
 
     if (coxms) {
-        # replicate actions found in the coxph-multi-X chunk,
-        #  along with recreation of stacker() inputs
-        # rebuild istate using the mcheck routine
+        # Rebuild istate using the mcheck routine
         istate <- model.extract(mf, "istate")
         mcheck <- multicheck2(Y, oldid, istate)
         transitions <- mcheck$transitions
         istate <- mcheck$istate
         if (!identical(object$states, mcheck$states))
             stop("failed to rebuild the data set")
+   
+        # Let the survfitCI routine do the work of creating the
+        #  overall counts (n.risk, etc).  The rest of this code then
+        #  replaces the surv and hazard components.
+        cifit <- survfitCI(X, Y, weights, oldid, istate, stype=stype,
+                           ctype=ctype, se.fit=FALSE, start.time=start.time)
 
+        # For computing the  actual estimates it is easier to work with an
+        #  expanded data set.
+        # Replicate actions found in the coxph-multi-X chunk,
         cluster <- model.extract(mf, "cluster")
         xstack <- stacker(object$cmap, as.integer(istate), X, Y,
                           as.integer(strata),

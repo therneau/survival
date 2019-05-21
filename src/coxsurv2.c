@@ -29,11 +29,12 @@
 **   are events at a given timepoint.
 **
 **  Let w1=1, w2= wt, w3= wt*risk.  The counts are
-**   0-2: number at risk, w1, w2, w3
-**   3-4: events: w1, w2
-**   5-7: censored endpoints: w1, w2, w3
+**   0-2: number at risk, w1, w2, w3,
+**   3-5: events: w1, w2, w3
+**   6-7: censored endpoints: w1,w2
 **   8-9: censor: w1, w2
-**  10-11: entry: w1, w2
+**  10-11: Efron sums 1 and 2
+**  12-13: entry: w1, w2
 */
 
 #include <math.h>
@@ -48,7 +49,7 @@ SEXP coxsurv2(SEXP otime2, SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22,
     int nused, nstrat, ntime, irow, ii, jj;
     double *tstart=0, *tstop, *status, *wt, *otime;
     int *strata;
-    double dtime;
+    double dtime, meanwt;
     int *sort1=0, *sort2;
     double **xmat, *risk;  /* X matrix and risk score */
     int nvar;              /* number of covariates */
@@ -59,7 +60,7 @@ SEXP coxsurv2(SEXP otime2, SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22,
     static const char *outnames[]={"nstrat", "count", 
 				   "xbar", "xsum2", ""};
     SEXP rlist;
-    double n[12];
+    double n[14];
     int *position;
 
     /* output variables */
@@ -108,7 +109,7 @@ SEXP coxsurv2(SEXP otime2, SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22,
     irow = ntime*nstrat;
     rstrat = REAL(SET_VECTOR_ELT(rlist, 0, allocVector(REALSXP, 1)));
     rn = dmatrix(REAL(SET_VECTOR_ELT(rlist, 1, 
-			    allocMatrix(REALSXP, irow, 12))), irow, 12);
+			    allocMatrix(REALSXP, irow, 14))), irow, 14);
     rx1 = dmatrix(REAL(SET_VECTOR_ELT(rlist, 2, 
 			      allocMatrix(REALSXP, irow, nvar))), irow, nvar);
     rx2 = dmatrix(REAL(SET_VECTOR_ELT(rlist, 3, 
@@ -130,14 +131,15 @@ SEXP coxsurv2(SEXP otime2, SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22,
     **
     **  3. While tstart > otime, remove any obs currently at risk from n0-n2.
     **     It that was their first entry, add them to an entry count for the
-    **     prior otime (n9, n10).
+    **     prior otime (n11-12).
     **
     ** At the end of a strata add any remaining subject to n10-11, which 
     **   works on a lag
     */
     rstrat[0] = nstrat;
-    person = nused-1; person2= nused-1;   /* person2 tracks start times */
-    irow = (ntime*nstrat); n[11]=0; n[10]=0;
+    person = nused-1; person2= nused-1;   /* person2 tracks start times */    
+    irow = (ntime*nstrat); 
+    n[12]=0; n[13]=0;
     for (ii =0; ii<nstrat; ii++) {
 	istrat= strata[sort2[person]];  /* current stratum */
 	for (k=0; k<3; k++) n[k] =0;
@@ -145,7 +147,7 @@ SEXP coxsurv2(SEXP otime2, SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22,
 
 	for (jj=ntime-1; jj>=0; jj--) { /* one by one through the times */
 	    dtime = otime[jj];
-	    for (k=3; k<10; k++) n[k]=0;  /* counts are only for this interval*/
+	    for (k=3; k<11; k++) n[k]=0;  /* counts are only for this interval*/
 
 	    /* Step 1 */
 	    i2 = sort2[person];
@@ -170,17 +172,15 @@ SEXP coxsurv2(SEXP otime2, SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22,
 		    /* step 2 */
 		    n[3]++;
 		    n[4] += wt[i2];
+		    n[5] += wt[i2]* risk[i2];
 		    if (position[i2] >1) {
-			n[5]++;
-			n[6] += wt[i2];
-			n[7] += wt[i2]*risk[i2];
+			n[6]++;
+			n[7] += wt[i2];
 		    }
 		}
 		person--;
 		i2 = sort2[person];
 	    }
-	    /*printf("A ii=%d, jj=%d, person=%d, n0=%3.1f, n3=%3.1f, n8=%3.1f\n", 
-		   ii, jj,  person, n[0], n[3], n[8]);*/
 
 	    /* Step 3 */
 	    j2 = sort1[person2];
@@ -202,23 +202,36 @@ SEXP coxsurv2(SEXP otime2, SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22,
 
 		/* additions that are "in the gap" between two otimes */
 		if (position[j2] ==1 || position[j2]==3) { /* count as a entry */
-		    n[10]++;
-		    n[11]+= wt[j2];
+		    n[12]++;
+		    n[13]+= wt[j2];
 		}
-		/*printf("person2=%d, j2=%d, position=%d, n10=%3.1f\n",
-		       person2, j2, position[j2], n[10]); */
+
 		person2--;
 		j2 = sort2[person2];
 	    }
-	    /*printf(" B person=%d, n0=%3.1f, n10=%3.1f\n", person, n[0], n[10]);*/
+
+	    /* Compute the Efron number at risk */
+	    if (n[3] <=1) {
+		n[10]= n[2];
+		n[11] = n[2]*n[2];
+	    }		
+	    else {
+		meanwt = n[5]/n[3];   /* average weight of the deaths */
+		for (k=0; k<n[3]; k++) {
+		    n[10] += n[2] - k*meanwt;
+		    n[12] += (n[2] -k*meanwt)*(n[2] - k*meanwt);
+		}
+		n[10] /= n[3];
+		n[11] /= n[3];
+	    }		
 
 	    /* save the results */
 	    if (jj< (ntime-1)) {
 		/* save the entries as part of the later otime */
-		rn[10][irow] = n[10];
-		rn[11][irow] = n[11];
-		n[10]=0;
-		n[11]=0;
+		rn[12][irow] = n[12];
+		rn[13][irow] = n[13];
+		n[12]=0;
+		n[13]=0;
 	    }   
 
 	    irow--;
@@ -232,12 +245,12 @@ SEXP coxsurv2(SEXP otime2, SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22,
 
  	while(person2>=0 && strata[person2]==istrat) {
 	    /* censors after the last time are listed at the last time */
-	    n[10]++;
-	    n[11]+= wt[j2];
+	    n[12]++;
+	    n[13]+= wt[j2];
 	    person2--;
 	    j2 = sort2[j2];
-	    rn[10][irow] = n[10];
-	    rn[11][irow] = n[11];
+	    rn[12][irow] = n[12];
+	    rn[13][irow] = n[13];
 	}	
 	
     }
