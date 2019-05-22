@@ -93,8 +93,6 @@ coxph routine treats this last term as though it had a * in it, i.e.,
 fits a stratified model.
 
 <<survfit.coxph-setup1>>=
-if (length(object$coefficients) ==0 || all(is.na(object$coefficients)))
-    stop("survfit does not work with coxph models that have no covariates")
 Terms  <- terms(object)
 robust <- !is.null(object$naive.var)   # did the coxph model use robust var?
 
@@ -517,8 +515,14 @@ if (individual) {
 else if (missing(newdata)) {
     if (has.strata && strata.interaction)
         stop ("Models with strata by covariate interaction terms require newdata")
+    if (length(object$means)) {
         x2 <- matrix(object$means, nrow=1, ncol=ncol(X))
         risk2 <- exp(c(x2 %*% beta) - xcenter)
+    } else {
+        # model with only an offset: rare case 
+        x2 <- matrix(0.0, nrow=1, ncol=1)   # make a dummy x2
+        risk2 <- 1
+    }
 } else {
     offset2 <- model.offset(mf2)
     if (length(offset2) >0) offset2 <- offset2 - mean(offset)

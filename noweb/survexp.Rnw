@@ -306,7 +306,7 @@ else if (inherits(ratetable, 'coxph')) {
 #    if (length(strats))
 #        stop("survexp cannot handle stratified Cox models")
 #
-    if (any(names(m[,rate]) !=  attr(ratetable$terms, 'term.labels')))
+    if (any(names(mf[,rate]) !=  attr(ratetable$terms, 'term.labels')))
          stop("Unable to match new data to old formula")
     }
 else stop("Invalid ratetable")
@@ -327,7 +327,7 @@ if (substring(method, 1, 10) == "individual") { #individual survival
     }
     if (method == "individual.s") xx <- temp$surv
     else xx <- -log(temp$surv)
-    names(xx) <- row.names(m)
+    names(xx) <- row.names(mf)
     na.action <- attr(mf, "na.action")
     if (length(na.action)) return(naresid(na.action, xx))
     else return(xx)
@@ -416,7 +416,7 @@ a reason they every would.)  Copy across summary information from the
 rate table computation if present, and add the method and class to the
 output.
 <<survexp-finish>>=
-if (model) out$model <- m
+if (model) out$model <- mf
 else {
     if (x) out$x <- X
     if (y) out$y <- Y
