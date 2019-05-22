@@ -9,6 +9,16 @@ mtest <- data.frame(id= c(1, 1, 1,  2,  3,  4, 4, 4,  5, 5),
                     st= c(1, 2,  1, 2,  3,  1, 3, 0,  2,  0))
 
 mtest$state <- factor(mtest$st, 0:3, c("censor", "a", "b", "c"))
+
+if (FALSE) {
+    # this graph is very useful when debugging
+    temp <- multicheck(Surv(t1, t2, state) ~1, mtest, id=id)
+    plot(c(0,11), c(1,5.1), type='n', xlab="Time", ylab= "Subject")
+    with(mtest, segments(t1+.1, id, t2, id, col=as.numeric(temp$istate)))
+    event <- subset(mtest, state!='censor')
+    text(event$t2, event$id+.2, as.character(event$state))
+}
+
 mtest <- mtest[c(1,3,2,4,5,7,6,10, 9, 8),]  #not in time order
 
 mfit <- survfit(Surv(t1, t2, state) ~ 1, mtest, id=id)
@@ -29,18 +39,19 @@ mfit <- survfit(Surv(t1, t2, state) ~ 1, mtest, id=id)
 # 10+            1   5                19/64 19/64 13/32  1->a
 
 # In mfit, the "entry" state is last in the matrices
+swap <- c(4,1,2,3)  # at one time it was last
 all.equal(mfit$n.risk, matrix(c(0,1,1,2,2,1,0,0,
                                 0,0,1,1,1,1,2,1,
                                 0,0,0,0,0,1,0,0,
-                                4,4,3,2,1,1,0,0), ncol=4))
+                                4,4,3,2,1,1,0,0), ncol=4)[,swap])
 all.equal(mfit$pstate,  matrix(c(8,  8, 14, 14, 7, 0,  9.5, 9.5, 
                                 0,  6,  6, 12, 12,19,9.5, 9.5, 
                                 0,  0,  0,  0, 7, 13, 13, 13,
-                               24, 18, 12,  6, 6, 0, 0,  0)/32, ncol=4))
+                               24, 18, 12,  6, 6, 0, 0,  0)/32, ncol=4)[,swap])
 all.equal(mfit$n.event, matrix(c(1,0,1,0,0,0,1,0,
                                  0,1,0,1,0,1,0,0,
                                  0,0,0,0,1,1,0,0,
-                                 0,0,0,0,0,0,0,0), ncol=4))
+                                 0,0,0,0,0,0,0,0), ncol=4)[,swap])
 all.equal(mfit$time, c(2, 3, 4, 5, 8, 9, 10, 11))
 
 
@@ -56,8 +67,10 @@ tdata <- data.frame(id= c(1, 1, 1,  2,  3,  4, 4, 4,  5,  5),
                     st= c(1, 2,  1, 2,  3,  1, 3, 0,  3,  0),
                     i0= c(4, 4,  4, 1,  4,  4, 4, 1,  2,  2))
 
-tdata$st <- factor(tdata$st, c(0:4),
-                    labels=c("censor", "1", "2", "3", "entry"))
+tdata$st <- factor(tdata$st, c(0:3),
+                    labels=c("censor", "1", "2", "3"))
+tdata$i0 <- factor(tdata$i0, 1:4,
+                    labels=c("1", "2", "3", "entry"))
 
 tfun <- function(wt, data=tdata) {
     reorder <- c(10, 9, 1, 2, 5, 4, 3, 7, 8, 6)
@@ -131,12 +144,12 @@ dopstate <- function(w) {
 w1 <- rep(1, 10)
 mtest2 <- tfun(w1)
 mfit2 <- survfit(Surv(t1, t2, st) ~ 1, tdata, id=id, istate=i0) # ordered
-aeq(mfit2$pstate, dopstate(w1))
-aeq(mfit2$p0, p0(w1))
+aeq(mfit2$pstate, dopstate(w1)[,swap])
+aeq(mfit2$p0, p0(w1)[swap])
 
 mfit2b <- survfit(Surv(t1, t2, st) ~ 1, mtest2, id=id, istate=i0)#scrambled
-aeq(mfit2b$pstate, dopstate(w1))
-aeq(mfit2b$p0, p0(w1))
+aeq(mfit2b$pstate, dopstate(w1)[,swap])
+aeq(mfit2b$p0, p0(w1)[swap])
 
 mfit2b$call <- mfit2$call <- NULL
 all.equal(mfit2b, mfit2) 
@@ -146,8 +159,8 @@ aeq(mfit2$transitions, c(0,1,0,2,2,0,0,0, 1,1,0,1, 0,0,0,0))
 mtest3 <- tfun(1:10)  
 mfit3  <- survfit(Surv(t1, t2, st) ~ 1, mtest3, id=id, istate=i0,
                   weights=wt, influence=TRUE)
-aeq(mfit3$p0, p0(1:10))
-aeq(mfit3$pstate, dopstate(1:10))
+aeq(mfit3$p0, p0(1:10)[swap])
+aeq(mfit3$pstate, dopstate(1:10)[,swap])
     
 
 # The derivative of a matrix product AB is (dA)B + A(dB) where dA is the
@@ -226,7 +239,7 @@ dp9 <- function(w) dp8(w) %*% aj9(w)
 dp10<- function(w) dp9(w) %*% aj10(w)
 
 w1 <- 1:10
-aeq(mfit3$influence[,1,], dp0(w1))
+aeq(mfit3$influence[,1,], dp0(w1)[,swap])
 aeq(mfit3$influence[,2,], dp2(w1))
 aeq(mfit3$influence[,3,], dp3(w1))
 aeq(mfit3$influence[,4,], dp4(w1))

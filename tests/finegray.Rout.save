@@ -1,5 +1,5 @@
 
-R Under development (unstable) (2019-01-23 r76006) -- "Unsuffered Consequences"
+R Under development (unstable) (2019-05-15 r76504) -- "Unsuffered Consequences"
 Copyright (C) 2019 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
@@ -56,15 +56,17 @@ Type 'q()' to quit R.
 > #  compare at the event times
 > sfit <- survfit(Surv(time, status) ~1, fdata)
 > sfit1<- survfit(Surv(fgstart, fgstop, fgstatus) ~1, test1, weight=fgwt)
-> i1 <- sfit$n.event[,1] > 0
+> sfita<- sfit[,"type1"]
+> i1 <- sfita$n.event > 0
 > i2 <- sfit1$n.event > 0
-> all.equal(sfit$pstate[i1, 1], 1- sfit1$surv[i2])
+> all.equal(sfita$pstate[i1], 1- sfit1$surv[i2])
 [1] TRUE
 > 
+> sfitb <- sfit[,"type2"]
 > sfit2 <- survfit(Surv(fgstart, fgstop, fgstatus) ~1, test2, weight=fgwt)
-> i1 <- sfit$n.event[,2] > 0
+> i1 <- sfitb$n.event > 0
 > i2 <- sfit2$n.event > 0
-> all.equal(sfit$pstate[i1, 2], 1- sfit2$surv[i2])
+> all.equal(sfitb$pstate[i1], 1- sfit2$surv[i2])
 [1] TRUE
 > 
 > # Test strata.  Make a single data set that has fdata for the first 19
@@ -207,4 +209,4 @@ Type 'q()' to quit R.
 > 
 > proc.time()
    user  system elapsed 
-  0.956   0.040   1.007 
+  0.956   0.016   0.978 

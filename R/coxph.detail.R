@@ -98,7 +98,10 @@ coxph.detail <-  function(object, riskmat=FALSE) {
 	 nrisk = ff$y[keep,2], hazard= ff$y[keep,3], score= score,  imat=var,
 	 varhaz=ff$weights[keep], y=y, x=x)
     if (length(strats)) temp$strata <- table((strat[ord])[ff$index[keep]])
-    if (riskmat) temp$riskmat <- rmat
+    if (riskmat) {
+        temp$riskmat <- rmat
+        temp$sortorder <- ord
+    }
     if (!all(weights==1)) {
 	temp$weights <- weights
 	temp$nevent.wt <- ff$event2[keep]

@@ -1,6 +1,6 @@
 
-R Under development (unstable) (2018-09-18 r75322) -- "Unsuffered Consequences"
-Copyright (C) 2018 The R Foundation for Statistical Computing
+R Under development (unstable) (2019-05-15 r76504) -- "Unsuffered Consequences"
+Copyright (C) 2019 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -47,15 +47,15 @@ Type 'q()' to quit R.
 > rat2$start <- temp1
 > rat2$stop  <- temp2
 > 
-> r2fit0 <- coxph(Surv(start, stop, status) ~ rx + cluster(id), rat2)
+> r2fit0 <- coxph(Surv(start, stop, status) ~ rx, cluster=id, rat2)
 > 
 > r2fitg <-  coxph(Surv(start, stop, status) ~ rx + frailty(id), rat2)
 > r2fitm <-  coxph(Surv(start, stop, status) ~ rx + frailty.gaussian(id), rat2)
 > 
 > r2fit0
 Call:
-coxph(formula = Surv(start, stop, status) ~ rx + cluster(id), 
-    data = rat2)
+coxph(formula = Surv(start, stop, status) ~ rx, data = rat2, 
+    cluster = id)
 
       coef exp(coef) se(coef) robust se      z        p
 rx -0.8266    0.4375   0.1506    0.2043 -4.046 5.22e-05
@@ -159,4 +159,4 @@ n= 253, number of events= 212
 > 
 > proc.time()
    user  system elapsed 
-  0.870   0.064   0.928 
+  0.836   0.052   0.895 

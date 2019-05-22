@@ -49,7 +49,9 @@ all.equal(fit$resid, fit3$resid)
 fit4 <-  coxph(Surv(tstart, tstop, status) ~ sex + treat + pspline(age),
                cgd, ties='breslow')
 dt <- coxph.detail(fit4, riskmat=TRUE)
-rscore <- exp(fit4$linear)
+# the results of coxph.detail are in time order, censors before deaths
+timeord <- dt$sortorder
+rscore <- exp(fit4$linear)[timeord]
 exp4 <- (rscore *dt$riskmat) %*% dt$hazard
-r4 <- cgd$status - exp4
-aeq(r4, fit4$resid)
+r4 <- cgd$status[timeord] - exp4
+aeq(r4, fit4$resid[timeord])

@@ -1,5 +1,5 @@
 
-R Under development (unstable) (2019-01-23 r76006) -- "Unsuffered Consequences"
+R Under development (unstable) (2019-05-15 r76504) -- "Unsuffered Consequences"
 Copyright (C) 2019 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
@@ -30,7 +30,7 @@ Type 'q()' to quit R.
 > #  on different machines
 > fit3 <- coxph(Surv(futime, fustat) ~ x1 + x2, test3, iter=25)
 Warning message:
-In fitter(X, Y, strats, offset, init, control, weights = weights,  :
+In fitter(X, Y, istrat, offset, init, control, weights = weights,  :
   Loglik converged before variable  1,2 ; coefficient may be infinite. 
 > 
 > all(fit3$coef < -22)
@@ -59,4 +59,4 @@ In fitter(X, Y, strats, offset, init, control, weights = weights,  :
 > 
 > proc.time()
    user  system elapsed 
-  0.756   0.044   0.801 
+  0.772   0.024   0.798 

@@ -164,6 +164,9 @@ survfitCI <- function(X, Y, weights, id, istate, cluster,
     states <- mcheck$states
     istate <- mcheck$istate
     nstate <- length(states) 
+    smap <- c(0, match(attr(Y, "states"), states))
+    Y[,ncol(Y)] <- smap[Y[,ncol(Y)] +1]      # new states may be a superset
+    status <- Y[,ncol(Y)]
 
     if (mcheck$flag["overlap"] > 0)
         stop("a subject has overlapping time intervals")
@@ -305,18 +308,21 @@ lot of extra 'censored' rows.  For instance a subject whose state pattern
 is (0, 5, 1), (5,10, 2), i.e., a transition to state 1 at day 5 and state 2
 on day 10 might input as (0,2,0), (2,5,1), (5,6,0), (6,8,0), (8,10,2)
 instead.  
-These extra censors mess up the transitions table, and they also cause an
+These extra censors cause an
 unnecessary row of output on days 2, 6, and 8.  
 Remove these before going further.  
 
 <<survfitCI-extracens>>=
 # extra censors
-indx <- order(Y[,2])   # in stop order
-last <- !duplicated(id[indx], fromLast=TRUE)
-extra <- (Y[indx,3]==0 & !last)
+indx <- order(id, Y[,2])   # in stop order
+extra <- (survflag(Y[indx,], id[indx]) ==0 & (Y[indx,3] ==0))
+# If a subject had obs of (a, b)(b,c)(c,d), and c was a censoring
+#  time, that is an "extra" censoring/entry at c that we don't want
+#  to count.  Deal with it by changing that subject
+#  to (a,b)(b,d).  Won't change S(t), only the n.censored/n.enter count.
 if (any(extra)) {
     e2 <- indx[extra]
-    Y <- cbind(Y[-(1+e2),1], Y[-e2,2])
+    Y <- cbind(Y[-(1+e2),1], Y[-e2,-1])
     status <- status[-e2]
     X <- X[-e2]
     id <- id[-e2]
@@ -441,12 +447,12 @@ docurve2 <- function(entry, etime, status, istate, wt, states, id,
     nstate <- length(states)
     uid <- sort(unique(id))
     index <- match(id, uid)
-    first <- match(uid, id)  # first row for each subject
-    cstate <- istate[first]
+    temp <- (cbind(id, istate))[order(etime),]
+    cstate <- temp[match(uid, temp[,1]), 2]  # initial state for each
 
     # The influence matrix can be huge, make sure we have enough memory
     if (influence) {
-        needed <- max(nstate * length(first), 1 + length(timeset))
+        needed <- max(nstate * length(uid), 1 + length(timeset))
         if (needed > .Machine$integer.max)
             stop("number of rows for the influence matrix is > the maximum integer")
     }

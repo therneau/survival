@@ -1,6 +1,6 @@
 
-R version 3.2.3 (2015-12-10) -- "Wooden Christmas-Tree"
-Copyright (C) 2015 The R Foundation for Statistical Computing
+R Under development (unstable) (2019-05-15 r76504) -- "Unsuffered Consequences"
+Copyright (C) 2019 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -23,6 +23,7 @@ Type 'q()' to quit R.
 > #
 > # Test out the survfit.ci function, which does competing risk
 > #   estimates
+> # Replaced by ordinary calls to survfit, with status a factor
 > #
 > # First trivial test
 > tdata <- data.frame(time=c(1,2,2,3,3,3,5,6),
@@ -59,23 +60,23 @@ Type 'q()' to quit R.
 +     list(P=rbind(p1, p2, p3, p3, p6), u2=u2, u3=u3, u6=u6, V=V)
 + }
 > bfit <- byhand()
-> aeq(fit$pstate, bfit$P[,c(2,3,1)])
+> aeq(fit$pstate, bfit$P)
 [1] TRUE
-> aeq(fit$n.risk[,3], c(8,7,5,2,1))
+> aeq(fit$n.risk[,1], c(8,7,5,2,1))
 [1] TRUE
-> aeq(fit$n.event[,1:2], c(0,1,0,0,0, 0,0 ,2,0,1))
+> aeq(fit$n.event[,2:3], c(0,1,0,0,0, 0,0 ,2,0,1))
 [1] TRUE
-> aeq(fit$std^2, bfit$V[,c(2,3,1)])
+> aeq(fit$std^2, bfit$V)
 [1] TRUE
 > 
 > # Times purposely has values that are before the start, exact, intermediate
 > #  and after the end of the observed times
 > sfit <- summary(fit, times=c(0, 1, 3.5, 6, 7), extend=TRUE)
-> aeq(sfit$pstate, rbind(c(0,0,1), bfit$P[c(1,3,5,5), c(2,3,1)]))
+> aeq(sfit$pstate, rbind(c(1,0,0), bfit$P[c(1,3,5,5),]))
 [1] TRUE
-> aeq(sfit$n.risk[,3], c(8,8, 2, 1, 0))
+> aeq(sfit$n.risk[,1], c(8,8, 2, 1, 0))
 [1] TRUE
-> aeq(sfit$n.event,  matrix(c(0,0,1,0,0, 0,0,2,1,0, 0,0,0,0,0), ncol=3))
+> aeq(sfit$n.event,  matrix(c(0,0,0,0,0, 0,0,1,0,0, 0,0,2,1,0), ncol=3))
 [1] TRUE
 > 
 > #
@@ -97,7 +98,7 @@ Type 'q()' to quit R.
 > fit4 <- survfit(Surv(stop, status*(event=='death')) ~1, tdata,
 +                 type='fleming')
 > 
-> aeq(fit1$n.risk[,3], fit2$n.risk)
+> aeq(fit1$n.risk[,1], fit2$n.risk)
 [1] TRUE
 > aeq(rowSums(fit1$n.event), fit2$n.event)
 [1] TRUE
@@ -109,7 +110,7 @@ Type 'q()' to quit R.
 > tsurv <- c(1, fit2$surv[-length(fit2$surv)])  #lagged survival
 > ci1 <- cumsum(haz1 *tsurv)
 > ci2 <- cumsum(haz2 *tsurv)
-> aeq(cbind(ci1, ci2), fit1$pstate[,1:2])
+> aeq(cbind(ci1, ci2), fit1$pstate[,2:3])
 [1] TRUE
 > 
 > #
@@ -150,10 +151,10 @@ Type 'q()' to quit R.
 > # the bottoms of the steps.
 > temp1 <- tapply(gray1[[1]]$est, gray1[[1]]$time, max)[-1]  #toss time 0
 > indx1 <- match(names(temp1), fit2$time)
-> aeq(temp1, fit2$pstate[indx1,1])
+> aeq(temp1, fit2$pstate[indx1,2])
 [1] TRUE
 >     
 > 
 > proc.time()
    user  system elapsed 
-  1.317   0.065   1.391 
+  0.788   0.060   0.849 

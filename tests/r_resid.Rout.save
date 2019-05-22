@@ -1,5 +1,5 @@
 
-R Under development (unstable) (2019-01-23 r76006) -- "Unsuffered Consequences"
+R Under development (unstable) (2019-05-15 r76504) -- "Unsuffered Consequences"
 Copyright (C) 2019 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
@@ -253,14 +253,12 @@ n= 26
 > #
 > # Some tests of the quantile residuals
 > #
-> motor <- read.table('data.motor', col.names=c('temp', 'time', 'status'))
-> 
 > # These should agree exactly with Ripley and Venables' book
-> fit1 <- survreg(Surv(time, status) ~ temp, data=motor)
+> fit1 <- survreg(Surv(time, status) ~ temp, data=imotor)
 > summary(fit1)
 
 Call:
-survreg(formula = Surv(time, status) ~ temp, data = motor)
+survreg(formula = Surv(time, status) ~ temp, data = imotor)
                Value Std. Error     z       p
 (Intercept) 16.31852    0.62296  26.2 < 2e-16
 temp        -0.04531    0.00319 -14.2 < 2e-16
@@ -290,7 +288,7 @@ $se.fit
 [1] 0.2135247 0.2202088
 
 > 
-> fit2 <- survreg(Surv(time, status) ~ temp, data=motor, scale=fit1$scale)
+> fit2 <- survreg(Surv(time, status) ~ temp, data=imotor, scale=fit1$scale)
 > predict(fit2, data.frame(temp=130), type='uquantile', p=c(.5, .1), se=T)
 $fit
 [1] 10.306068  9.676248
@@ -347,4 +345,4 @@ $se.fit
 > 
 > proc.time()
    user  system elapsed 
-  0.816   0.036   0.851 
+  0.796   0.044   0.845 

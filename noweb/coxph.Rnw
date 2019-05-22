@@ -1115,7 +1115,7 @@ model.frame.coxph <- function(formula, ...) {
           }
  	  
           <<coxph-transform>>
-          mf[[".strata."]] <- strats
+          mf[[".strata."]] <- istrat
        }
        mf
     }
