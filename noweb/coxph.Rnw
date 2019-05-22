@@ -197,7 +197,13 @@ coxph <- function(formula, data, weights, subset, na.action,
     if (multi) {
         <<coxph-multi-X>>
     }
-    
+ 
+    # infinite covariates are not screened out by the na.omit routines
+    #  But this needs to be done after the multi-X part
+    if (!all(is.finite(X)))
+        stop("data contains an infinite predictor")
+
+   
     # init is checked after the final X matrix has been made
     if (missing(init)) init <- NULL
     else {
@@ -250,7 +256,7 @@ tlab <- unlist(lapply(covlist$rhs, function(x)
     attr(terms.formula(x$formula), "term.labels")))
 tlab <- c(attr(terms.formula(dformula), "term.labels"), tlab)
 newform <- reformulate(tlab, dformula[[2]])
-environment(newform) <- environment(formula)
+environment(newform) <- environment(dformula)
 formula <- newform
 tform$na.action <- na.pass  # defer any missing value work to later
 @
@@ -793,10 +799,6 @@ if (length(dropterms)) {
     attr(X, "assign") <- temp 
 }
 else X <- model.matrix(Terms, mf, contrasts=contrast.arg)
-
-# infinite covariates are not screened out by the na.omit routines
-if (!all(is.finite(X)))
-    stop("data contains an infinite predictor")
 
 # drop the intercept after the fact, and also drop strata if necessary
 Xatt <- attributes(X) 
