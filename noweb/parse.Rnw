@@ -248,16 +248,26 @@ state1 <- state2 <- NULL
 for (x in lhs) {
     # x is one term
     if (is.null(x$left)) stop("term found without a :", x)
-    
     # left of the colon
     if (!is.list(x$left) && length(x$left) ==1 && x$left==1) 
         temp1 <- 1:nrow(statedata)
     else if (is.list(x$left) && names(x$left)[1] == "stateid"){
         if (is.null(x$left$value)) 
             stop("state variable with no list of values: ",x$left$stateid)
-        else temp1 <- which(statedata[[x$left$stateid]] %in% x$left$value)
+        else {
+            if (any(k= is.na(match(x$left$statedid), names(statedata))))
+                stop(x$left$stateid[k], ": state variable not found")
+            zz <- statedata[[x$left$stateid]]
+            if (any(k= is.na(match(x$left$value, zz))))
+                stop(x$left$value[k], ": state value not found")
+            temp1 <- which(zz %in% x$left$value)
+        }
     }
-    else temp1 <- which(statedata$state %in% x$left)
+    else {
+        k <- match(x$left, statedata$state)
+        if (any(is.na(k))) stop(x$left[k], ": state not found")
+        temp1 <- which(statedata$state %in% x$left)
+    }
     
     # right of colon
     if (!is.list(x$right) && length(x$right) ==1 && x$right ==1) 
@@ -265,9 +275,21 @@ for (x in lhs) {
     else if (is.list(x$right) && names(x$right)[1] == "stateid") {
         if (is.null(x$right$value))
             stop("state variable with no list of values: ",x$right$stateid)
-        else temp2 <- which(statedata[[x$right$stateid]] %in% x$right$value)
+        else {
+            if (any(k= is.na(match(x$right$statedid), names(statedata))))
+                stop(x$right$stateid[k], ": state variable not found")
+            zz <- statedata[[x$left$stateid]]
+            if (any(k= is.na(match(x$right$value, zz))))
+                stop(x$right$value[k], ": state value not found")
+            temp2 <- which(zz %in% x$left$value)
+        }
     }
-    else temp2 <- which(statedata$state %in% x$right)
+    else {
+        k <- match(x$right, statedata$state)
+        if (any(is.na(k))) stop(x$right[k], ": state not found")
+        temp2 <- which(statedata$state %in% x$right)
+    }
+
 
     state1 <- c(state1, rep(temp1, length(temp2)))
     state2 <- c(state2, rep(temp2, each=length(temp1)))
@@ -322,7 +344,7 @@ trow <- row(t2)[t2>0]
 tcol <- col(t2)[t2>0]
 for (i in 1:nrow(tmap2)) {
     for (j in 1:ncol(tmap2))
-        tmap2[i,j] <- tmap[i, indx1[trow[j]], indx1[tcol[j]]]
+        tmap2[i,j] <- tmap[i, indx1[trow[j]], indx2[tcol[j]]]
 }
 
 # relabel as 1-k
@@ -330,7 +352,7 @@ tmap2[1,] <- match(tmap2[1,], unique(c(0L, tmap2[1,]))) -1L
 if (nrow(tmap2) > 1)
     tmap2[-1,] <- match(tmap2[-1,], unique(c(0L, tmap2[-1,]))) -1L
   
-dimnames(tmap2) <- list(c("Intercept", allterm),
+dimnames(tmap2) <- list(c("(Baseline)", allterm),
                             paste(indx1[trow], indx2[tcol], sep=':')) 
 list(tmap = tmap2, inits=inits, mapid= cbind(indx1[trow], indx2[tcol]))
 @
@@ -368,7 +390,7 @@ parsecovar3 <- function(tmap, Xcol, Xassign) {
     
     colnames(cmap) <- colnames(tmap)
     if (hasintercept) rownames(cmap) <- Xcol
-    else rownames(cmap) <- c("(Intercept)", Xcol)
+    else rownames(cmap) <- c("(Baseline)", Xcol)
 
     cmap
 }

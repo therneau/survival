@@ -8,11 +8,11 @@ print.multicheck <- function(x, ...){
     if(!is.null(x$na.action)){
         cat(length(x$na.action), "observations with missing values:","\n")
     }
-    cat(sum(x$states.cnt[,1]),"subjects available for analysis","\n")
+    cat(sum(x$statecount[,1]),"subjects available for analysis","\n")
     
     ## how many of each state does each id have?
     cat("Number of subjects with 1, 2, ... copies of each state:\n")
-    print(x$states.cnt[-1,-ncol(x$states.cnt),drop=FALSE])
+    print(x$statecount[-1,-ncol(x$statecount),drop=FALSE])
     cat("\n")
     
     ## change between states

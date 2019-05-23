@@ -333,6 +333,7 @@ mf <- mf[!omit,, drop=FALSE]
 attr(mf, "na.action") <- temp
 Y <- Y[!omit]
 id <- id[!omit]
+if (length(istate)) istate <- istate[!omit]  # istate can be NULL
 @ 
 
 For a multi-state model, create the expanded X matrix.  Sometimes it is
