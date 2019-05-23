@@ -161,7 +161,7 @@ else {
     for (i in statedatanames) {
         assign(i, eval(list(stateid=i)), env2)
         tfun <- eval(parse(text=paste0("function(...) list(stateid='"
-                                       , i, "', values=c(...)")))
+                                       , i, "', values=c(...))")))
         assign(i, tfun, env1)
     }
 }
@@ -202,14 +202,14 @@ parsecovar2 <- function(covar1, statedata, dformula, Terms, transitions,states) 
     # Statedata might have rows for states that are not in the data set,
     #  for instance if the coxph call had used a subset argument.  Any of
     #  those were eliminated above.
-    # Likewise, the covariates list might have rules for transitions that are
+    # Likewise, the formula list might have rules for transitions that are
     #  not present.  Don't worry about it at this stage.
     allterm <- attr(Terms, 'term.labels')
     nterm <- length(allterm)
 
     <<parse-tmap-setup>>
     
-    # if there is no covariates statement, the middle part of the work is skipped
+    # if there is no formula extension, the middle part of the work is skipped
     if (!is.null(covar1)) {
         <<parse-tmap>>
     }
@@ -250,7 +250,7 @@ for (x in lhs) {
     if (is.null(x$left)) stop("term found without a :", x)
     
     # left of the colon
-    if (!is.list(x$left) && length(x$left) ==1 & x$left==1) 
+    if (!is.list(x$left) && length(x$left) ==1 && x$left==1) 
         temp1 <- 1:nrow(statedata)
     else if (is.list(x$left) && names(x$left)[1] == "stateid"){
         if (is.null(x$left$value)) 
@@ -285,14 +285,23 @@ for (i in 1:length(covar1$rhs)) {
     if (attr(rterm, "intercept")==1) rindex <- c(1L, rindex)
     
     <<parse-lmatch>>
-    if (rhs$clear) tmap[-1, state1, state2] <- 0
+    npair <- length(state1)
+    if (rhs$clear) {
+        for(k in 1:npair) tmap[-1, state1[k], state2[k]] <- 0
+    }
     if (length(rhs$ival)) 
         inits <- c(inits, list(term=rindex, state1=state1, 
                                state2= state2, init= rhs$ival))
-    if (rhs$common) j <- ncoef + seq_len(length(rindex))
-    else j <- ncoef + seq_len(length(rindex)*length(state1))
-
-    tmap[rindex, state1, state2] <- j
+    j <- ncoef + seq_len(length(rindex))
+    if (rhs$common) {
+        for(k in 1:npair) tmap[rindex, state1[k], state2[k]] <-j
+    }
+    else {
+        for(k in 1:npair){
+            tmap[rindex, state1[k], state2[k]] <-j
+            j <- j + length(rindex)
+        }  
+    }       
     ncoef <- max(j)
 }    
 @ 
@@ -311,8 +320,16 @@ tmap2 <- matrix(0L, nrow= 1+nterm, ncol= sum(t2>0))
 
 trow <- row(t2)[t2>0]
 tcol <- col(t2)[t2>0]
-for (i in 1:length(trow)) tmap2[,i] <- tmap[,indx1[trow[i]], indx2[tcol[i]]]
+for (i in 1:nrow(tmap2)) {
+    for (j in 1:ncol(tmap2))
+        tmap2[i,j] <- tmap[i, indx1[trow[j]], indx1[tcol[j]]]
+}
 
+# relabel as 1-k
+tmap2[1,] <- match(tmap2[1,], unique(c(0L, tmap2[1,]))) -1L
+if (nrow(tmap2) > 1)
+    tmap2[-1,] <- match(tmap2[-1,], unique(c(0L, tmap2[-1,]))) -1L
+  
 dimnames(tmap2) <- list(c("Intercept", allterm),
                             paste(indx1[trow], indx2[tcol], sep=':')) 
 list(tmap = tmap2, inits=inits, mapid= cbind(indx1[trow], indx2[tcol]))
@@ -332,16 +349,18 @@ parsecovar3 <- function(tmap, Xcol, Xassign) {
     hasintercept <- (Xassign[1] ==0)
 
     cmap <- matrix(0L, length(Xcol) + !hasintercept, ncol(tmap))
-    cmap[1,] <- match(tmap[1,], sort(c(0, unique(tmap[1,])))) -1L
+    cmap[1,] <- tmap[1,]
 
     xcount <- table(factor(Xassign, levels=1:max(Xassign)))
     mult <- 1+ max(xcount)  #used to keep the coefs in the same oder
 
-    j <- 1
+    ii <- 1
     for (i in 2:nrow(tmap)) {
         k <- seq_len(xcount[i-1])
-        cmap[j+k,] <- ifelse(tmap[i,]==0, 0, tmap[i,]*mult + rep(k, ncol(tmap)))
-        j <- j + max(k)
+        for (j in 1:ncol(tmap))
+            cmap[ii+k, j] <- if(tmap[i,j]==0) 0 else tmap[i,j]*mult +k
+
+        ii <- ii + max(k)
     }
 
     # renumber coefs as 1, 2, 3, ...

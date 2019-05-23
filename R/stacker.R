@@ -39,7 +39,7 @@ stacker <- function(cmap, istate, X, Y, strata, states) {
     
     # The constructed X matrix has a block or rows for each ustrata level
     n2 <- sum(n.perstrat)  # number of rows in new data
-    newX <- matrix(0L, nrow=n2, ncol=max(cmap))
+    newX <- matrix(0L, nrow=n2, ncol=max(cmap[-1,]))
     k <- 0
     rindex <- integer(n2)   # original row for each new row of data
     newstat <- integer(n2)  # new status
@@ -86,7 +86,7 @@ stacker <- function(cmap, istate, X, Y, strata, states) {
     } 
 
     # give variable names to the new data
-    vname <- rep("", ncol(X))
+    vname <- rep("", ncol(newX))
     ctemp <- cmap[-1,,drop=FALSE]
     vname[ctemp[ctemp>0]] <- colnames(X)[row(ctemp)[ctemp>0]]
     colnames(newX) <- vname

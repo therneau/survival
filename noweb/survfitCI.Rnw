@@ -447,8 +447,11 @@ docurve2 <- function(entry, etime, status, istate, wt, states, id,
     nstate <- length(states)
     uid <- sort(unique(id))
     index <- match(id, uid)
-    temp <- (cbind(id, istate))[order(etime),]
-    cstate <- temp[match(uid, temp[,1]), 2]  # initial state for each
+    # Either/both of id and cstate might be factors.  Data may not be in
+    #  order.  Get the initial state for each subject
+    temp1 <- order(id, entry)
+    temp2 <- match(uid, id[temp1])
+    cstate <- (as.numeric(istate)[temp1])[temp2]  # initial state for each
 
     # The influence matrix can be huge, make sure we have enough memory
     if (influence) {
