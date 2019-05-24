@@ -53,6 +53,9 @@ survfit.coxph <-
       <<survfit.coxph-setup2b>>
       <<survfit.coxph-setup2c>>
       <<survfit.coxph-setup3>>
+      if (length(object$means)) 
+          risk2 <- exp(c(x2 %*% beta) + offset2 - xcenter)
+      else risk2 <- exp(offset2 - xcenter)
       <<survfit.coxph-result>>
       <<survfit.coxph-finish>>
       }
@@ -202,7 +205,7 @@ further material.
 position <- NULL
 if (is.null(mf)) {
     weights <- rep(1., n)
-    offset <- rep(0., n) 
+    offset <- rep(0., n)
     X <- object[['x']]
     Y <- object[['y']]
 }
@@ -306,7 +309,7 @@ if (length(object$means) ==0) { # a model with only an offset term
     # Give it a dummy X so the rest of the code goes through
     #  (This case is really rare)
     X <- matrix(0., nrow=n, ncol=1)
-    xcenter <- 0
+    xcenter <- mean(offset)
     coef <- 0.0
     varmat <- matrix(0.0, 1, 1)
     risk <- rep(exp(offset- mean(offset)), length=n)
@@ -314,13 +317,13 @@ if (length(object$means) ==0) { # a model with only an offset term
 else {
     varmat <- object$var
     beta <- ifelse(is.na(object$coefficients), 0, object$coefficients)
-    xcenter <- sum(object$means * beta)  
+    xcenter <- sum(object$means * beta)+ mean(offset)
     if (!is.null(object$frail)) {
        keep <- !grepl("frailty(", dimnames(X)[[2]], fixed=TRUE)
        X <- X[,keep, drop=F]
     }
         
-    risk <- c(exp(X%*% beta + offset - (xcenter + mean(offset))))
+    risk <- c(exp(X%*% beta + offset - xcenter))
 }
 @ 
 
@@ -500,35 +503,30 @@ if (individual) {
     if (length(x2)==0) stop("Individual survival but no variables")
 
     offset2 <- model.offset(mf2)
-    if (length(offset2) >0) offset2 <- offset2 - mean(offset)
-    else offset2 <- 0
-		
+    if (length(offset2) ==0) offset2 <- 0
+ 		
     y2 <- model.extract(mf2, 'response')
     if (attr(y2,'type') != type)
         stop("Survival type of newdata does not match the fitted model")
     if (attr(y2, "type") != "counting")
         stop("Individual=TRUE is only valid for counting process data")
     y2 <- y2[,1:2, drop=F]  #throw away status, it's never used
-
-    risk2 <- exp(c(x2 %*% beta) + offset2 - (mean(offset) + xcenter))
 }
 else if (missing(newdata)) {
     if (has.strata && strata.interaction)
         stop ("Models with strata by covariate interaction terms require newdata")
+    offset2 <- 0
     if (length(object$means)) {
         x2 <- matrix(object$means, nrow=1, ncol=ncol(X))
-        risk2 <- exp(c(x2 %*% beta) - xcenter)
     } else {
-        # model with only an offset: rare case 
+        # model with only an offset and no new data: very rare case 
         x2 <- matrix(0.0, nrow=1, ncol=1)   # make a dummy x2
-        risk2 <- 1
     }
 } else {
     offset2 <- model.offset(mf2)
     if (length(offset2) >0) offset2 <- offset2 - mean(offset)
     else offset2 <- 0
     x2 <- model.matrix(Terms2, mf2)[,-1, drop=FALSE]  #no intercept
-    risk2 <- exp(c(x2 %*% beta) + offset2 - xcenter)
 }
 @ 
 

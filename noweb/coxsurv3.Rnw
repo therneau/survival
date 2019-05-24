@@ -20,6 +20,7 @@ function(formula, newdata, se.fit=TRUE, conf.int=.95, individual=FALSE,
     <<survfit.coxphms-setupa>>
     <<survfit.coxph-setup2c>>
     <<survfit.coxph-setup3>>
+    <<survfit.coxphms-setup3b>>
     <<survfit.coxphms-result>>
 
     cifit$call <- Call
@@ -70,6 +71,23 @@ oldid <- oldid[xstack$rindex]
 if (robust & length(cluster)==0) cluster <- oldid
 @ 
 
+The coxph-setup3 chunk, shared with single state Cox models, has created
+an x2 matrix.  We need to expand this so as to get one matrix for each
+transition; the reason is that different transitions will often have
+different covariates and different coefficients, and thus different
+risk scores. 
+We create an array whose first two dimensions are those of x2, and third
+is the number of transtions, which is the number of columns of cmap.
+The risk scores become a matrix.  
+
+<<coxphms-setup3b>>=
+x3 <- array(0., dim=c(nrow(x2), max(cmap[-1,]), ncol(cmap)))
+for (i in 1:ncol(cmap)) 
+    x3[, cmap[-1,i], i] <- x2[, cmap[-1,i]>0]
+risk3 <- matrix(x3, ncol=ncol(cmap)) %*% object$coef
+risk3 <- matrix(exp(risk3), nrow=nrow(x2))
+@ 
+
 The first step in the computation is to compute the hazard functions for
 each of the transtions.  Each of these hazards a completely independent
 computation: nothing is shared.  
@@ -81,7 +99,7 @@ computing single endpoint or multiple endpoint curves, their variance, or their
 influence functions. 
 
 The second step of creating p(state) curves uses all of the state1:state2
-hazard functions at once, however.  For this reason we use a different 
+hazard functions at once, however.  For this reason we use a particular
 hazard routine, which returns those hazard functions at a common set of
 time points.
  
@@ -91,13 +109,13 @@ if (individual) {
     result <- coxsurv.fit2(ctype, stype, se.fit, varmat, cluster,
                            object$cmap, object$transitions, object$states,
                            Y, X, weights, risk, position, strata, oldid,
-                           transition, y2, x2, risk2, strata2, id2)
+                           transition, y2, x3, risk3, strata2, id2)
                           
 } else {
     result <- coxsurv.fit2(ctype, stype, se.fit, varmat, cluster,
                            object$cmap, object$transitions, object$states,
                            Y, X, weights, risk, position, strata, oldid,
-                           transition, y2, x2, risk2, p0=cifit$p0)
+                           transition, y2, x3, risk3, p0=cifit$p0)
 
     if (is.null(cifit$strata)) {
         if (length(result)!=1)  stop("miscounted result 1")
@@ -157,7 +175,7 @@ coxsurv.fit2 <- function (ctype, stype, se.fit,
         survlist[[i]] <- multihaz(y[indx,,drop=F], x[indx,,drop=F],
                                   position[indx], weights[indx], risk[indx],
                                   transition[indx], ctype, stype, hfill,
-                                  x2, risk2, varmat, nstate, se.fit, p0)
+                                  x3, risk3, varmat, nstate, se.fit, p0)
     }
     survlist
 }
@@ -197,7 +215,7 @@ multihaz <- function(y, x, position, weight, risk, transition, ctype, stype,
  
     H <- matrix(0, nstate, nstate)
     for (i in 1:nx2) {
-        h2[jj,] <- apply(hazard * risk2[i], 2, cumsum)
+        h2[jj,] <- apply(hazard %*% diag(risk2[i,]), 2, cumsum)
         if (se.fit) {
             d1 <- fit$xbar - rep(x[i,], each=nrow(fit$xbar))
             d2 <- apply(d1*hazard, 2, cumsum)
@@ -208,7 +226,7 @@ multihaz <- function(y, x, position, weight, risk, transition, ctype, stype,
         S[1,] <- p0
         for (j in 2:ntime) {
             H[,] <- 0.0
-            H[hfill] <- hazard[j,] * risk2[i]
+            H[hfill] <- hazard[j,] *risk2[i,]
             if (stype==1) {
                 diag(H) <- pmin(0, 1 + diag(H)- rowSums(H))
                 S[j,] <- drop(S[j-1,] %*% H)  
