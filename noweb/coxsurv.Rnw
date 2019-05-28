@@ -217,7 +217,8 @@ else {
     X <- model.matrix.coxph(object, data=mf)
     Y <- model.response(mf)
     oldid <- model.extract(mf, "id")
-    if (length(oldid)) position <- survflag(Y, oldid)
+    if (length(oldid) && ncol(Y)==3) position <- survflag(Y, oldid)
+    else position <- NULL
     if (nrow(Y) != object$n[1]) 
         stop("Failed to reconstruct the original data set")
     if (has.strata) {
@@ -238,6 +239,8 @@ when someone changes the data set under our feet.
 We can only check the size: with the addition of aeqSurv other packages
 were being flagged for tiny discrepancies
 <<survfit.coxph-setup2b>>=
+if (FALSE) {
+ #this was broken by multi-state models
 if (!is.null(mf)){
     y2 <- object[['y']]
     if (!is.null(y2)) {
@@ -245,7 +248,7 @@ if (!is.null(mf)){
             stop("Could not reconstruct the y vector")
     }
 }
-
+}
 type <- attr(Y, 'type')
 if (!type %in% c("right", "counting", "mright", "mcounting"))
     stop("Cannot handle \"", type, "\" type survival data")

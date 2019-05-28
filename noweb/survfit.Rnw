@@ -60,7 +60,8 @@ single subscript to be used and map it appropriately.
 
 <<survfit-subscript>>=
 dim.survfit <- function(x) {
-    if (is.null(x$strata)) {
+    if (!is.null(x$dim)) x$dim    # a survfit version 3 object
+    else if (is.null(x$strata)) {
         if (is.matrix(x$surv)) c(1L, ncol(x$surv))
         else 1L
     }
@@ -71,7 +72,7 @@ dim.survfit <- function(x) {
     }
 }
 
-"[.survfit" <- function(x, ..., drop=TRUE) {
+"[.survfit" <- function(x, i, j, k, drop=TRUE) {
     nmatch <- function(indx, target) { 
         # This function lets R worry about character, negative, or logical subscripts
         #  It always returns a set of positive integer indices
@@ -79,7 +80,18 @@ dim.survfit <- function(x) {
         names(temp) <- target
         temp[indx]
     }
+    
+    if (missing(..1)) i<- NULL  else i <- ..1
+    if (missing(..2)) j<- NULL  else j <- ..2
+    if (missing(..3)) k<- NULL  else k <- ..3
 
+    dd <- x$dim
+    if (is.null(dd)) {
+        # we will have either 1 or 2 dimensions
+        if (is.matrix(
+        if (length(dd) <3 && !is.null(k))  stop("incorrect number of subscripts")
+            if (!(is.null(k) && is.null(j)
+        
     if (missing(..1)) i<- NULL  else i <- ..1
     if (missing(..2)) j<- NULL  else j <- ..2
     if (is.null(i) && is.null(j)) return (x) #no subscripts present!

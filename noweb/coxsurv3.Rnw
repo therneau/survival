@@ -49,6 +49,7 @@ if (!identical(object$states, mcheck$states))
 # Let the survfitCI routine do the work of creating the
 #  overall counts (n.risk, etc).  The rest of this code then
 #  replaces the surv and hazard components.
+if (missing(start.time)) start.time <- min(Y[,2], 0)
 cifit <- survfitCI(as.factor(strata), Y, weights, oldid, istate, stype=stype,
                    ctype=ctype, se.fit=FALSE, start.time=start.time)
 
@@ -107,23 +108,26 @@ time points.
 <<survfit.coxphms-result>>=
 if (individual) {
     stop("time dependent survival curves not yet supported for multistate")
-    result <- coxsurv.fit2(ctype, stype, se.fit, varmat, cluster,
+    result <- coxsurv.fit2(ctype, stype, se.fit, varmat, cluster, start.time,
                            object$cmap, object$transitions, object$states,
                            Y, X, weights, risk, position, strata, oldid,
                            transition, y2, x3, risk3, strata2, id2)
                           
 } else {
-    result <- coxsurv.fit2(ctype, stype, se.fit, varmat, cluster,
+    cifit <- surv23(cifit)   # make sure we are version 3
+    result <- coxsurv.fit2(ctype, stype, se.fit, varmat, cluster, start.time,
                            object$cmap, object$transitions, object$states,
                            Y, X, weights, risk, position, strata, oldid,
                            transition, y2, x3, risk3, p0=cifit$p0)
 
     if (is.null(cifit$strata)) {
-        if (length(result)!=1)  stop("miscounted result 1")
         temp <- result[[1]]
-        if (any(dim(temp$pstate) != dim(cifit$pstate))) stop("miscount 2")
+        if (ncol(temp$pstate) != ncol(cifit$pstate) ||
+            (nrow(temp$pstate) != (nrow(x2)*nrow(cifit$pstate))))
+            stop("miscount 2")
         cifit$pstate <- temp$pstate
         cifit$cumhaz <- temp$cumhaz
+        cifit$dim <- c(1, nrow(x2), ncol(temp$pstate))
     }
     else {
         nx <- length(cifit$strata)  # Each 'x' will be a stratum
@@ -133,12 +137,13 @@ if (individual) {
         if (nrow(new.p) != nrow(cifit$pstate)) stop("miscount 4")
         cifit$pstate <- new.p
         cifit$cumhaz <- new.c
+        cifit$dim <- c(nx, nrow(x2), ncol(temp$pstate))
     }
 }
 
 <<survfit.coxphms>>=
-coxsurv.fit2 <- function (ctype, stype, se.fit, 
-                          varmat, cluster, cmap, tmat, states,
+coxsurv.fit2 <- function (ctype, stype, se.fit, varmat, cluster, 
+                          start.time, cmap, tmat, states,
                           y, x, weights, risk, position, strata, id,
                           transition, y2, x2, risk2, strata2, id2, p0) {
     # args are the options (ctype, stype, se.fit), args info from the prior fit
@@ -176,18 +181,19 @@ coxsurv.fit2 <- function (ctype, stype, se.fit,
         survlist[[i]] <- multihaz(y[indx,,drop=F], x[indx,,drop=F],
                                   position[indx], weights[indx], risk[indx],
                                   transition[indx], ctype, stype, hfill,
-                                  x2, risk2, varmat, nstate, se.fit, p0)
+                                  x2, risk2, varmat, nstate, se.fit, p0, 
+                                  start.time)
     }
     survlist
 }
 
 # Compute the hazard  and survival functions 
 multihaz <- function(y, x, position, weight, risk, transition, ctype, stype, 
-                     hfill, x2, risk2, vmat, nstate, se.fit, p0) {
+                     hfill, x2, risk2, vmat, nstate, se.fit, p0, start.time) {
     sort1 <- order(transition, y[,1]) -1L
     sort2 <- order(transition, y[,2]) -1L
-    event <- y[,3] > 0
-    utime <- c(0, sort(unique(y[event,2])))  #unique times, start and death
+    utime <- c(start.time, sort(unique(y[,2])))  #unique times
+    utime <- utime[utime >= start.time]
     ntime <- length(utime)
 
     # this returns all of the counts we might desire.
@@ -242,7 +248,7 @@ multihaz <- function(y, x, position, weight, risk, transition, ctype, stype,
         jj <- jj+ nrow(hazard)
     }
 
-    rval <- list(time=rep(utime, nx2), xgrp=rep(1:nx2, each=nrow(hazard)),
+    rval <- list(time=utime, xgrp=rep(1:nx2, each=nrow(hazard)),
                  pstate=S2, cumhaz=h2)
     if (se.fit) rval$varhaz <- v2
     rval

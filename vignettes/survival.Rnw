@@ -269,7 +269,7 @@ so we subset the data when fitting the model.
 
 <<cfit1>>=
 mdata1 <- subset(mdata, enum==1)
-cfit <- coxph(Surv(tstop, event) ~ I(age/10) + sex + mspike, 
+cfit <- coxph(Surv(tstart, tstop, event) ~ I(age/10) + sex + mspike, 
               id = id, mdata1)
 print(cfit, digits=1)  # narrow the printout a bit
 dummy <- expand.grid(age=c(60, 80), sex=c("M","F"), mspike=1)
