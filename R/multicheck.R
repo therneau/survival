@@ -94,14 +94,16 @@ multicheck2 <- function(y, id, istate=NULL, dummy="()") {
     flag <- c(overlap=0, gap=0, teleport=0, jump=0)
 
     # Calculate the counts per id for each state, e.g., 10 subjects had
-    #  3 visits to state 2, etc.  (Renamed without a dot from EJ code; some
-    #  users really don't like dots in names).
-    tab1 <- table(id, y[,ncol(y)], useNA="ifany")  #treat missing as a state
-    tab1.levels <- sort(unique(tab1))  #unique counts
-    statecount <- apply(tab1, 2, function(x) table(factor(x, tab1.levels)))
-    dimnames(statecount) = list("count"= rownames(statecount),
-                                "state"= c("(censored)", colnames(tab1)[-1]))
-    statecount <- statecount[, c(2:ncol(statecount), 1)] 
+    #  3 visits to state 2, etc.  
+    # Don't count "censored" as an endpoint, nor any missings.  But we can't
+    #  just omit censored rows, or those with 0 transitions don't get counted!
+    #  Instead remove the 'censored' column after making tab1
+    tab1 <- table(id, factor(y[,ncol(y)], 0:length(attr(y, 'states'))))[,-1, drop=FALSE]
+    tab1 <- cbind(tab1, rowSums(tab1))
+    tab1.levels <- sort(unique(c(tab1)))  #unique counts
+    events <- apply(tab1, 2, function(x) table(factor(x, tab1.levels)))
+    dimnames(events) = list("count"= tab1.levels,
+                                "state"= c(attr(y, "states"), "(any)"))
     
     # first check: no one is two places at once
     #  sort by stop time within subject, start time as the tie breaker
@@ -129,7 +131,7 @@ multicheck2 <- function(y, id, istate=NULL, dummy="()") {
         overlap <- list(row= which(duplicated(id)), 
                         id=unique(id[duplicated(id)]))
         rval <- list(states=states, transitions=transitions,
-                     statecount=statecount, flag=flag, istate=cstate2,
+                     events= t(events), flag=flag, istate=cstate2,
                      overlap= overlap)
         return(rval)
     }
@@ -196,7 +198,7 @@ multicheck2 <- function(y, id, istate=NULL, dummy="()") {
 
     # we return the current state that was handed to us, and let the routine
     #  complain
-    rval <- list(states=states, transitions =transitions, statecount=statecount,
+    rval <- list(states=states, transitions =transitions, events = t(events),
                  flag = flag, istate=cstate2)
     if (length(overlap)) rval$overlap <- overlap
     if (length(tgap))     rval$gap <- tgap

@@ -41,6 +41,7 @@ so both now use the \code{aeqSurv} routine to first preprocess
 the time data.  It uses the same rules as \code{all.equal} to
 adjudicate ties and near ties.
 
+
 <<survfit>>=
 survfit <- function(formula, ...) {
     UseMethod("survfit", formula)
@@ -51,53 +52,100 @@ survfit <- function(formula, ...) {
 <<survfit-Surv>>    
 @ 
 
-The result of a survival curve can have a [[surv]] component that is a
-vector or a matrix, and an optional strata component.
-A dual subscript to a survfit object always associates the first subscript
-with the strata and the second with the matrix.
-When a survfit object has only one or the other of the two, we allow a
-single subscript to be used and map it appropriately.
+The result of a survival curve will have a \code{surv} or \code{pstate}
+component that is a vector or a matrix, and an optional strata component.
+From a user's point of view this is an object with [strata, newdata, state]
+as dimensions, where only 1, 2 or all three of these may appear.
+The newdata portion appears for survival curves from a Cox model, when curves
+for multiple covariate patterns were requested;
+the state portion only from a multi-state model; or both for a multi-state
+Cox model. 
+The actual \code{surv} object contains the time points for the first stratum,
+the second, third, etc stacked one above the other.  
+As with R matrices, if only 1 subscript is given for an array or matrix of
+curves, we treat the collection of curves as a vector of curves.
+
+In a multi-state object, cumulative hazard functions have a different last
+dimension; any use of the state subscript will cause them to be dropped.
 
 <<survfit-subscript>>=
 dim.survfit <- function(x) {
-    if (!is.null(x$dim)) x$dim    # a survfit version 3 object
-    else if (is.null(x$strata)) {
-        if (is.matrix(x$surv)) c(1L, ncol(x$surv))
-        else 1L
-    }
-    else {
-        nr <- length(x$strata)
-        if (is.matrix(x$surv)) c(nr, ncol(x$surv))
-        else nr
-    }
+    d1name <- "strata"
+    d2name <- "data"
+    d3name <- "states"
+    if (is.null(x$strata))  {d1 <- d1name <- NULL} else d1 <- length(x$strata)
+    if (is.null(x$newdata)) {d2 <- d2name <- NULL} else d2 <- nrow(x$newdata)
+    if (is.null(x$states))  {d3 <- d3name <- NULL} else d3 <- length(x$states)
+    
+    dd <- c(d1, d2, d3)
+    names(dd) <- c(d1name, d2name, d3name)
+    dd
 }
 
-"[.survfit" <- function(x, i, j, k, drop=TRUE) {
+# there is a separate function for survfitms objects
+"[.survfit" <- function(x, ... , drop=TRUE) {
     nmatch <- function(indx, target) { 
-        # This function lets R worry about character, negative, or logical subscripts
+        # This function lets R worry about character, negative, or 
+        #  logical subscripts.
         #  It always returns a set of positive integer indices
         temp <- 1:length(target)
         names(temp) <- target
         temp[indx]
     }
     
-    if (missing(..1)) i<- NULL  else i <- ..1
-    if (missing(..2)) j<- NULL  else j <- ..2
-    if (missing(..3)) k<- NULL  else k <- ..3
+    if (!inherits(x, "survfit")) stop("[.survfit called on non-survfit object")
+    ndots <- ...length()   # number of subscripts that we have
+    dd <- dim(x)
+    dtype <- match(names(dd), c("strata", "data", "states"))
 
-    dd <- x$dim
-    if (is.null(dd)) {
-        # we will have either 1 or 2 dimensions
-        if (is.matrix(
-        if (length(dd) <3 && !is.null(k))  stop("incorrect number of subscripts")
-            if (!(is.null(k) && is.null(j)
-        
-    if (missing(..1)) i<- NULL  else i <- ..1
-    if (missing(..2)) j<- NULL  else j <- ..2
-    if (is.null(i) && is.null(j)) return (x) #no subscripts present!
-    if (!is.matrix(x$surv) && !is.null(j))
-        stop("survfit object does not have 2 dimensions")
+    if (ndots >0) i <- ..1 else i <- NULL
+    if (ndots> 1) j <- ..2 else j <- NULL
     
+    if (ndots > 2) 
+        stop("too many subscripts for survfit object")
+    if (length(dtype) > 2) stop("invalid survfit object")  # should never happen
+    if (is.null(i) && is.null(j)) {
+        # called with no subscripts given -- return x untouched
+        return(x)
+    }
+
+    if (ndots== 1 && length(dtype) > 1) {
+        # one subscript given for a two dimensional object
+        #  first check that the subscript is legal
+        index <- 1:prod(dd)
+        itemp <- matrix(1:index, nrow=dd[1])
+        keep <- itemp[i]   # illegal subscripts will generate an error
+        if (length(keep) == length(index) && all(keep==index)) return(x)
+
+        ii <- row(itemp)[keep]
+        jj <- col(itemp)[keep]
+        # at this point we have a matrix subscript of (ii, jj)
+        # turn it into a long integer subscript
+        indx1 <- split(1:sum(x$strata), 
+                       rep(1:length(x$strata), x$strata))
+        indx1 <- ulist(indx1[ii])   # rows of the surv object
+        indx2 <- rep(jj, x$strata[ii])
+        
+        # return with each curve as a separate strata
+        x$n <- x$n[ii]
+        x$time   <- x$time[indx1]
+        x$n.risk <- x$n.risk[indx1]
+        x$n.event<- x$n.event[indx1]
+        x$n.censor<- x$n.censor[indx1]
+        if (!is.null(x$n.enter)) x$n.enter <- x$n.enter[indx1]
+        k <- cbind(indx1, indx2)
+        x$surv <- x$surv[k]
+        if (!is.null(x$std.err)) x$std.err <- x$std.err[k]
+        if (!is.null(x$upper)) x$upper <- x$upper[k]
+        if (!is.null(x$lower)) x$lower <- x$lower[k]
+        if (!is.null(x$cumhaz)) x$cumhaz <- x$cumhaz[k]
+        if (!is.null(x$std.chaz)) x$std.chaz <- x$std.chaz[k]
+        temp <- x$strata[ii]
+        names(temp) <- 1:length(ii)
+        x$strata <- temp
+        return(x)
+    }
+
     if (is.null(x$strata)) {
         if (is.null(j) && !is.null(i)) j <- i #special case noted above
         if (is.matrix(x$surv)) {

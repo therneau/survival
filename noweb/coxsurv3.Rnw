@@ -24,7 +24,7 @@ function(formula, newdata, se.fit=TRUE, conf.int=.95, individual=FALSE,
     <<survfit.coxphms-result>>
 
     cifit$call <- Call
-    class(cifit) <- c("survfitcox", "survfitms", "survfit")
+    class(cifit) <- c("survfitms", "survfit")
     cifit
 }
 @ 
@@ -72,8 +72,9 @@ oldid <- oldid[xstack$rindex]
 if (robust & length(cluster)==0) cluster <- oldid
 @ 
 
-The coxph-setup3 chunk, shared with single state Cox models, has created
-an x2 matrix.  We need to expand this so as to get one matrix for each
+The survfit.coxph-setup3 chunk, shared with single state Cox models, has created
+an mf3 model frame and an x2 matrix.  We need to expand the latter so as to get 
+one matrix for each
 transition; the reason is that different transitions will often have
 different covariates and different coefficients, and thus different
 risk scores. 
@@ -114,11 +115,18 @@ if (individual) {
                            transition, y2, x3, risk3, strata2, id2)
                           
 } else {
-    cifit <- surv23(cifit)   # make sure we are version 3
+    class(cifit) <- c("survfitms", "survfit")  # so the next line works
+    cifit <- survfit23(cifit)   # make sure we are version 3
+    if (is.null(cifit$strata)) p0 <- cifit$pstate[1,, drop=FALSE]
+    else {
+        last <- cumsum(cifit$strata)  # last obs of each strata
+        first<- 1 + c(0, last[-length(last)])
+        p0 <- cifit$pstate[first,, drop=FALSE]
+    }
     result <- coxsurv.fit2(ctype, stype, se.fit, varmat, cluster, start.time,
                            object$cmap, object$transitions, object$states,
                            Y, X, weights, risk, position, strata, oldid,
-                           transition, y2, x3, risk3, p0=cifit$p0)
+                           transition, y2, x3, risk3, p0=p0)
 
     if (is.null(cifit$strata)) {
         temp <- result[[1]]
@@ -139,6 +147,7 @@ if (individual) {
         cifit$cumhaz <- new.c
         cifit$dim <- c(nx, nrow(x2), ncol(temp$pstate))
     }
+    cifit$newdata <- mf2
 }
 
 <<survfit.coxphms>>=
@@ -181,7 +190,7 @@ coxsurv.fit2 <- function (ctype, stype, se.fit, varmat, cluster,
         survlist[[i]] <- multihaz(y[indx,,drop=F], x[indx,,drop=F],
                                   position[indx], weights[indx], risk[indx],
                                   transition[indx], ctype, stype, hfill,
-                                  x2, risk2, varmat, nstate, se.fit, p0, 
+                                  x2, risk2, varmat, nstate, se.fit, p0[i,], 
                                   start.time)
     }
     survlist

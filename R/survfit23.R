@@ -11,7 +11,7 @@
 #
 survfit23 <- function(x) {
     if (!inherits(x, "survfit")) stop("function requires a survfit object")
-    if (inherits(x, "survfit3")) return(x)  # already in 3.x format
+    if (!is.null(x$version) && x$version==3) return(x)  # already in 3.x format
     if (is.null(x$start.time)) start.time <- 0 else start.time <- x$start.time
 
     if (is.null(x$strata)) insert <- 1   # where to add the zero
@@ -62,7 +62,8 @@ survfit23 <- function(x) {
     if (is.null(x$sp0)) sp0 <- 0 else sp0 <- x$sp0
     for (i in names(new)) {
         if (i=="time") new[[i]] <- addto(x[[i]], insert, start.time)
-        else if (i=="n.risk") new[[i]] <- addto(x[[i]], insert, x$n.risk[1])
+        else if (i=="n.risk") new[[i]] <- addto(x[[i]], insert, 
+                                                x$n.risk[insert,])
         else if (i=="pstate") new[[i]] <- addto(x[[i]], insert, x$p0)
         else if (i=="strata") new[[i]] <- newstrat
         else if (i=="std.err") new[[i]] <- addto(x[[i]], insert, sp0)
@@ -84,9 +85,55 @@ survfit23 <- function(x) {
             else         new$std.chaz <- new$std.err/new$surv
         }
     }
-    class(new) <- c("survfit3", class(x))
+    new$version <- 3
     new
 }
             
-        
+survfit32 <- function(x) {
+    if (!inherits(x, "survfit")) stop("function requires a survfit object")
+    if (is.null(x$version) || x$version<3) return(x)  # already in proper form
+    
+    if (missing(x$strata)) first <- 1
+    else {
+        last <- cumsum(x$strata)
+        first <- 1+ c(0, last[-length(last)])
+    }
+
+    x$start.time <- x$time[1]
+    x$time <- x$time[-first]
+
+    if (inherits(x, "survfitms")) {
+        if (is.matrix(x$pstate)) {
+            x$p0 <- x$pstate[first,]
+            x$pstate <- x$pstate[-first,,drop=FALSE]
+            if (!is.null(x$std.err)) {
+                x$sp0 <- x$std.err[first,]
+                x$std.err <- x$std.err[-first,, drop=FALSE]
+            }
+        }else {
+            x$p0 <- x$pstate[first]
+            x$pstate <- x$pstate[-first]
+            if (!is.null(x$std.err)) {
+                x$sp0 <- x$std.err[first]
+                x$std.err <- x$std.err[-first]
+            }
+        }   
+    } else {
+        if (is.matrix(x$surv)) {
+            x$surv <- x$surv[-first,,drop=FALSE]
+            if (!is.null(x$std.err)) {
+                x$std.err <- x$std.err[-first,, drop=FALSE]
+            }
+        }else {
+            x$surv <- x$surv[-first]
+            if (!is.null(x$std.err)) {
+                x$std.err <- x$std.err[-first]
+            }
+        }   
+    } 
+
+    x$version <- 2
+    x
+}
+
     

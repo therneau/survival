@@ -14,10 +14,11 @@ plot.survfit<- function(x, conf.int,  mark.time=FALSE,
 			pch=3,  col=1,lty=1, lwd=1, 
                         cex=1, log=FALSE,
 			xscale=1, yscale=1, 
-			xmax, ymin=0,
+			xlim, ylim, 
 			fun, xlab="", ylab="", xaxs='r', 
                         conf.times, conf.cap=.005, conf.offset=.012, 
-                        mark, noplot="()", ...) {
+                        mark, noplot="()", 
+                        firstx, xmax, firsty, ymin, ...) {
 
     dotnames <- names(list(...))
     if (any(dotnames=='type'))
@@ -201,7 +202,6 @@ if (!missing(xmax) && any(x$time>xmax)) {
         slower <- slower[keepy,,drop=FALSE]
     }
 }
-#stime <- stime/xscale  #scaling is deferred until xmax processing is done
 
 if (!missing(fun)) {
     if (is.character(fun)) {
@@ -235,9 +235,17 @@ numeric values; mark has since disappeared from the manual page for
 \code{par}.  We honor it for backwards compatability.
 To be consistent with matplot and others, we allow pch to be a character
 string or a vector of characters.
+The firstx, xmax, firsty, and ymin arguments are all depricated, and
+now appear in xlim and ylim (which should have been the design from the start).
+
 <<plot-plot-setup1>>=
 if (missing(pch) && !missing(mark)) pch <- mark
 if (length(pch)==1 && is.character(pch)) pch <- strsplit(pch, "")[[1]]
+if (missing(xlim)) {
+    if (missing(firstx)) xmin <- min(time) else xmin <- firstx
+    if (missing(xmax))   xmax <- max(time)
+    xlim <- c(xmin, xmax)
+}
 @ 
 
 <<plot-firstx>>=

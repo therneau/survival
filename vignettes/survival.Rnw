@@ -268,12 +268,11 @@ The competing risks data consists of only the first event for each subject,
 so we subset the data when fitting the model.
 
 <<cfit1>>=
-mdata1 <- subset(mdata, enum==1)
 cfit <- coxph(Surv(tstart, tstop, event) ~ I(age/10) + sex + mspike, 
-              id = id, mdata1)
+              id = id, mdata, subset=(tstart==0))
 print(cfit, digits=1)  # narrow the printout a bit
 dummy <- expand.grid(age=c(60, 80), sex=c("M","F"), mspike=1)
-#csurv <- survfit(cfit, newdata=dummy)
+csurv <- survfit(cfit, newdata=dummy)
 #csurv <- survfit(cfit, newdata=expand.grid(age=60, sex="F", mspike=1))
 
 @ 

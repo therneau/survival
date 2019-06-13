@@ -8,19 +8,18 @@ print.multicheck <- function(x, ...){
     if(!is.null(x$na.action)){
         cat(length(x$na.action), "observations with missing values:","\n")
     }
-    cat(sum(x$statecount[,1]),"subjects available for analysis","\n")
-    
-    ## how many of each state does each id have?
-    cat("Number of subjects with 1, 2, ... copies of each state:\n")
-    print(x$statecount[-1,-ncol(x$statecount),drop=FALSE])
-    cat("\n")
+    cat(sum(x$events[1,]),"subjects available for analysis","\n")
     
     ## change between states
     if(nrow(x$transitions)>1){
-        cat("# subjects moving between states:\n")
+        cat("Transitions table:\n")
         print(x$transitions)
         cat('\n')
     }
+    ## how many of each state does each id have?
+    cat("Number of subjects with 0, 1, ... transitions to each state:\n")
+    print(x$events)
+    cat("\n")
     
     if(x$flag["overlap"]>0) {
         cat("Overlap check: ", 
@@ -65,9 +64,15 @@ summary.multicheck <- function(object, max.show=5, ...){
     }
     cat(sum(object$statecount[,1]),"subjects available for analysis","\n")
     
+    ## change between states
+    if(nrow(object$transitions)>1){
+        cat("Transitions table:\n")
+        print(object$transitions)
+        cat('\n')
+    }
     ## how many of each state does each id have?
     cat("Number of subjects with 1, 2, ... copies of each state:\n")
-    print(object$statecount[-1,-ncol(object$statecount),drop=FALSE])
+    print(object$events)
     cat("\n")
     
     ## change between states
