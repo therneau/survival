@@ -2,6 +2,7 @@
 ** Cox regression fit, replacement for coxfit2 in order
 **   to be more frugal about memory: specificly that we 
 **   don't make copies of the input data.
+** 6/2019 : change variable name "time" to "xtime", Sun OS reserves 'time'
 **
 **  the input parameters are
 **
@@ -57,7 +58,7 @@
 */
 
 static double *a, *a2, **cmat2;
-static double *time, *weights, *offset;
+static double *xtime, *weights, *offset;
 static int *status, *strata;
 static double *u; 
 static double **covar, **cmat, **imat;  /*ragged arrays */
@@ -99,7 +100,7 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
     toler = asReal(toler2);  /* tolerance for cholesky */
     doscale = asInteger(doscale2);
 
-    time = REAL(time2);
+    xtime = REAL(time2);
     weights = REAL(weights2);
     offset= REAL(offset2);
     status = INTEGER(status2);
@@ -370,11 +371,11 @@ static double coxfit6_iter(int nvar, int nused,  int method, double *beta) {
 		}
 	    }
 
-	dtime = time[person];
+	dtime = xtime[person];
 	ndead =0; /*number of deaths at this time point */
 	deadwt =0;  /* sum of weights for the deaths */
 	denom2=0;  /* sum of weighted risks for the deaths */
-	while(person >=0 &&time[person]==dtime) {
+	while(person >=0 && xtime[person]==dtime) {
 	    /* walk through the this set of tied times */
 	    nrisk++;
 	    zbeta = offset[person];    /* form the term beta*z (vector mult) */
