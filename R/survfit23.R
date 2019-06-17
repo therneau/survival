@@ -62,8 +62,11 @@ survfit23 <- function(x) {
     if (is.null(x$sp0)) sp0 <- 0 else sp0 <- x$sp0
     for (i in names(new)) {
         if (i=="time") new[[i]] <- addto(x[[i]], insert, start.time)
-        else if (i=="n.risk") new[[i]] <- addto(x[[i]], insert, 
-                                                x$n.risk[insert,])
+        else if (i=="n.risk") {
+            if (is.matrix(x$n.risk))
+                new[[i]] <- addto(x[[i]], insert, x$n.risk[insert,])
+            else new[[i]] <- addto(x[[i]], insert, x$n.risk[insert])
+        }
         else if (i=="pstate") new[[i]] <- addto(x[[i]], insert, x$p0)
         else if (i=="strata") new[[i]] <- newstrat
         else if (i=="std.err") new[[i]] <- addto(x[[i]], insert, sp0)
@@ -86,6 +89,7 @@ survfit23 <- function(x) {
         }
     }
     new$version <- 3
+    class(new) <- class(x)
     new
 }
             

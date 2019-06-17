@@ -56,27 +56,36 @@ The result of a survival curve will have a \code{surv} or \code{pstate}
 component that is a vector or a matrix, and an optional strata component.
 From a user's point of view this is an object with [strata, newdata, state]
 as dimensions, where only 1, 2 or all three of these may appear.
+The first is always present, and is essentially the number of distinct
+curves created by the right-hand side of the equation (or by the strata in
+a coxph model).
 The newdata portion appears for survival curves from a Cox model, when curves
 for multiple covariate patterns were requested;
 the state portion only from a multi-state model; or both for a multi-state
 Cox model. 
-The actual \code{surv} object contains the time points for the first stratum,
+The \code{surv} component contains the time points for the first stratum,
 the second, third, etc stacked one above the other.  
 As with R matrices, if only 1 subscript is given for an array or matrix of
 curves, we treat the collection of curves as a vector of curves.
-
-In a multi-state object, cumulative hazard functions have a different last
-dimension; any use of the state subscript will cause them to be dropped.
+We need to make sure that the new object has the same order of elements as
+the old -- users count on this.
 
 <<survfit-subscript>>=
 dim.survfit <- function(x) {
     d1name <- "strata"
     d2name <- "data"
     d3name <- "states"
-    if (is.null(x$strata))  {d1 <- d1name <- NULL} else d1 <- length(x$strata)
+    if (is.null(x$strata))  d1<- 1  else d1 <- length(x$strata)
     if (is.null(x$newdata)) {d2 <- d2name <- NULL} else d2 <- nrow(x$newdata)
     if (is.null(x$states))  {d3 <- d3name <- NULL} else d3 <- length(x$states)
     
+    if (inherits(x, "survfitcox") && is.null(d2) && is.null(d3) &&
+        is.matrix(x$surv)) {
+        # older style survfit.coxph object, before I added newdata to the output
+        d2name <- "data"
+        d2 <- ncol(x$surv)
+    }
+
     dd <- c(d1, d2, d3)
     names(dd) <- c(d1name, d2name, d3name)
     dd
@@ -98,123 +107,103 @@ dim.survfit <- function(x) {
     dd <- dim(x)
     dtype <- match(names(dd), c("strata", "data", "states"))
 
-    if (ndots >0) i <- ..1 else i <- NULL
-    if (ndots> 1) j <- ..2 else j <- NULL
+    if (ndots >0 && !missing(..1)) i <- ..1 else i <- NULL
+    if (ndots> 1 && !missing(..2)) j <- ..2 else j <- NULL
     
-    if (ndots > 2) 
-        stop("too many subscripts for survfit object")
+    if (ndots > length(dd)) 
+        stop("incorrect number of dimensions")
     if (length(dtype) > 2) stop("invalid survfit object")  # should never happen
     if (is.null(i) && is.null(j)) {
         # called with no subscripts given -- return x untouched
         return(x)
     }
+    
+    # We need to make a new one
+    newx <- vector("list", length(x))
+    names(newx) <- names(x)
+    for (k in c("logse", "version", "conf.int", "conf.type", "type", "call"))
+        if (!is.null(x[[k]])) newx[[k]] <- x[[k]]
+    class(newx) <- class(x)
 
-    if (ndots== 1 && length(dtype) > 1) {
+    if (ndots== 1 && length(dd)==2) {
         # one subscript given for a two dimensional object
-        #  first check that the subscript is legal
-        index <- 1:prod(dd)
-        itemp <- matrix(1:index, nrow=dd[1])
-        keep <- itemp[i]   # illegal subscripts will generate an error
-        if (length(keep) == length(index) && all(keep==index)) return(x)
+        # If one of the dimensions is 1, it is easier for me to fill in i and j
+        if (dd[1]==1) {j <- i; i<- 1}
+        else if (dd[2]==1) j <- 1
+        else {
+            #  the user has a mix of rows/cols
+            index <- 1:prod(dd)
+            itemp <- matrix(1:index, nrow=dd[1])
+            keep <- itemp[i]   # illegal subscripts will generate an error
+            if (length(keep) == length(index) && all(keep==index)) return(x)
 
-        ii <- row(itemp)[keep]
-        jj <- col(itemp)[keep]
-        # at this point we have a matrix subscript of (ii, jj)
-        # turn it into a long integer subscript
-        indx1 <- split(1:sum(x$strata), 
-                       rep(1:length(x$strata), x$strata))
-        indx1 <- ulist(indx1[ii])   # rows of the surv object
-        indx2 <- rep(jj, x$strata[ii])
+            ii <- row(itemp)[keep]
+            jj <- col(itemp)[keep]
+            # at this point we have a matrix subscript of (ii, jj)
+            # expand into a long pair of rows and cols
+            temp <- split(seq(along=x$time), 
+                          rep(1:length(x$strata), x$strata))
+            indx1 <- unlist(temp[ii])   # rows of the surv object
+            indx2 <- rep(jj, x$strata[ii])
         
-        # return with each curve as a separate strata
-        x$n <- x$n[ii]
-        x$time   <- x$time[indx1]
-        x$n.risk <- x$n.risk[indx1]
-        x$n.event<- x$n.event[indx1]
-        x$n.censor<- x$n.censor[indx1]
-        if (!is.null(x$n.enter)) x$n.enter <- x$n.enter[indx1]
-        k <- cbind(indx1, indx2)
-        x$surv <- x$surv[k]
-        if (!is.null(x$std.err)) x$std.err <- x$std.err[k]
-        if (!is.null(x$upper)) x$upper <- x$upper[k]
-        if (!is.null(x$lower)) x$lower <- x$lower[k]
-        if (!is.null(x$cumhaz)) x$cumhaz <- x$cumhaz[k]
-        if (!is.null(x$std.chaz)) x$std.chaz <- x$std.chaz[k]
-        temp <- x$strata[ii]
-        names(temp) <- 1:length(ii)
-        x$strata <- temp
-        return(x)
+            # return with each curve as a separate strata
+            newx$n <- x$n[ii]
+            for (k in c("time", "n.risk", "n.event", "n.censor", "n.enter"))
+                if (!is.null(x[[k]])) newx[[k]] <- (x[[k]])[indx1]
+            k <- cbind(indx1, indx2)
+            for (j in c("surv", "std.err", "upper", "lower", "cumhaz",
+                        "std.chaz", "influence.surv", "influence.chaz"))
+                if (!is.null(x[[j]])) newx[[j]] <- (x[[j]])[k]
+            temp <- x$strata[ii]
+            names(temp) <- 1:length(ii)
+            newx$strata <- temp
+            return(newx)
+        }
     }
-
+       
+    # irow will be the rows that need to be taken
+    #  j the columns (of present)
     if (is.null(x$strata)) {
-        if (is.null(j) && !is.null(i)) j <- i #special case noted above
-        if (is.matrix(x$surv)) {
-            x$surv <- x$surv[,j,drop=drop]
-            if (!is.null(x$std.err)) x$std.err <- x$std.err[,j,drop=drop]
-            if (!is.null(x$upper)) x$upper <- x$upper[,j,drop=drop]
-            if (!is.null(x$lower)) x$lower <- x$lower[,j,drop=drop]
-            if (!is.null(x$cumhaz)) x$cumhaz <- x$cumhaz[,j,drop=drop]
-            if (!is.null(x$std.chaz)) x$std.chaz <- x$std.chaz[,j,drop=drop]
-        }
-        else if (j>1) stop("subscript out of bounds") # x[1] is always legal
+           if (is.null(i) || all(i==1)) irow <- seq(along=x$time)
+           else stop("subscript out of bounds")
+       }
+    else {           
+        indx <- nmatch(i, names(x$strata)) #strata to keep
+        if (any(is.na(indx))) 
+            stop(paste("strata", 
+                       paste(i[is.na(indx)], collapse=' '),
+                       'not matched'))
+        # Now, indx may not be in order: some can use curve[3:2] to reorder
+        #  The list/unlist construct will reorder the data
+        temp <- split(seq(along=x$time), 
+                      rep(1:length(x$strata), x$strata))
+        irow <- unlist(temp[indx])
+        
+        if (length(indx) <=1 && drop) newx$strata <- NULL
+        else               newx$strata  <- x$strata[i]
     }
-    else {
-        if (is.null(i)) keep <- seq(along.with=x$time)
-        else {
-            indx <- nmatch(i, names(x$strata)) #strata to keep
-            if (any(is.na(indx))) 
-                stop(paste("strata", 
-                               paste(i[is.na(indx)], collapse=' '),
-                               'not matched'))
- 
-            # Now, indx may not be in order: some can use curve[3:2] to reorder
-            #  The list/unlist construct will reorder the data
-            temp <- rep(1:length(x$strata), x$strata)
-            keep <- unlist(lapply(indx, function(x) which(temp==x)))
 
-            if (length(indx) <=1 && drop) x$strata <- NULL
-            else               x$strata  <- x$strata[i]
-
-            x$n       <- x$n[indx]
-            x$time    <- x$time[keep]
-            x$n.risk  <- x$n.risk[keep]
-            x$n.event <- x$n.event[keep]
-            x$n.censor<- x$n.censor[keep]
-            if (!is.null(x$n.enter)) x$n.enter <- x$n.enter[keep]
-        }
-        if (is.matrix(x$surv)) {
-            # If the curve has been selected by strata and keep has only
-            #  one row, we don't want to lose the second subscript too
-            if (!is.null(i) && (is.null(j) ||length(j) >1)) drop <- FALSE
-            if (is.null(j)) {
-                x$surv <- x$surv[keep,,drop=drop]
-                if (!is.null(x$std.err)) 
-                        x$std.err <- x$std.err[keep,,drop=drop]
-                if (!is.null(x$upper)) x$upper <-x$upper[keep,,drop=drop]
-                if (!is.null(x$lower)) x$lower <-x$lower[keep,,drop=drop]
-                if (!is.null(x$cumhaz)) x$cumhaz <-x$cumhaz[keep,,drop=drop]
-                if (!is.null(x$std.chaz)) x$std.chaz <-x$std.chaz[keep,,drop=drop]
-            }
-            else {
-                x$surv <- x$surv[keep,j, drop=drop]
-                if (!is.null(x$std.err)) 
-                    x$std.err <- x$std.err[keep,j, drop=drop]
-                if (!is.null(x$upper)) x$upper <- x$upper[keep,j, drop=drop]
-                if (!is.null(x$lower)) x$lower <- x$lower[keep,j, drop=drop]
-                if (!is.null(x$cumhaz)) x$cumhaz <- x$cumhaz[keep,j, drop=drop]
-                if (!is.null(x$std.chaz)) x$std.chaz <- x$std.chaz[keep,j, drop=drop]
-                }
-        }
-        else {
-            x$surv <- x$surv[keep]
-            if (!is.null(x$std.err)) x$std.err <- x$std.err[keep]
-            if (!is.null(x$upper)) x$upper <- x$upper[keep]
-            if (!is.null(x$lower)) x$lower <- x$lower[keep]
-            if (!is.null(x$cumhaz)) x$cumhaz <- x$cumhaz[keep]
-            if (!is.null(x$std.chaz)) x$std.chaz <- x$std.chaz[keep]
-        }
+    if (length(dd)==1) {  # no j dimension
+        newx$n       <- x$n[indx]
+        for (k in c("time", "n.risk", "n.event", "n.censor", "n.enter",
+               "surv", "std.err", "cumhaz", "std.chaz", "upper", "lower",
+               "influence.surv", "influence.chaz"))
+            if (!is.null(x[[k]])) newx[[k]] <- (x[[k]])[irow]
     }
-    x
+       
+    else { # 2 dimensional object
+        if (is.null(j)) j <- seq.int(ncol(x$surv))
+        # If the curve has been selected by strata and keep has only
+        #  one row, we don't want to lose the second subscript too
+        if (length(irow)==1)  drop <- FALSE
+
+        for (k in c("time", "n.risk", "n.event", "n.censor", "n.enter"))
+                 if (!is.null(x[[k]])) newx[[k]] <- (x[[k]])[irow]
+        for (k in c("surv", "std.err", "cumhaz", "std.chaz", "upper", "lower",
+               "influence.surv", "influence.chaz"))
+            if (!is.null(x[[k]])) newx[[k]] <- (x[[k]])[irow, j, drop=drop]
+    }
+    newx
 }
 @ 
 

@@ -60,7 +60,7 @@ multicheck <- function(formula, data, id, istate, ...) {
 #  to generate checks.
 # Multiple other checks as well
 #  
-multicheck2 <- function(y, id, istate=NULL, dummy="()") {
+multicheck2 <- function(y, id, istate=NULL, dummy="(0)") {
     n <- length(id)
     ny <- ncol(y)
     # this next line is a debug for my code, since multicheck2 is not visible
@@ -122,7 +122,7 @@ multicheck2 <- function(y, id, istate=NULL, dummy="()") {
     #  impossible
     if (all(!oldid)) {
         return(list(states=states, transitions=transitions,
-                    statecount=statecount, flag=flag, istate=cstate2))
+                    events = t(events), flag=flag, istate=cstate2))
     }
 
     # Check 0: if y has only 2 colums there isn't much to do

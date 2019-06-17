@@ -3,19 +3,16 @@ The \code{survfitms} class differs from a \code{survfit}, but many of the
 same methods nearly apply.
 <<survfitms>>=
 # Methods for survfitms objects
-<<dim.survfitms>>
 <<survfitms-summary>>
 <<survfitms-subscript>>
 @ 
 
 The subscript method is a near copy of that for survfit
-objects, but with a slightly different set of components. 
+objects, but with a slightly different set of components.
 The object could have strata and will almost always have multiple
-columns.  If there is only one subscript it is preferentially
-associated with the strata, if there is no strata argument \code{i}
-will associate with the columns.
-If there are two subscripts the first goes with the strata.
-The little \code{nmatch} function allow the user to use either names
+columns. Following convention, if there is only one subscript we treat
+the object as though it were a vector.
+The \code{nmatch} function allow the user to use either names
 or integer indices.
 
 <<survfitms-subscript>>=
@@ -24,246 +21,172 @@ or integer indices.
         # This function lets R worry about character, negative, 
         # or logical subscripts
         #  It always returns a set of positive integer indices
-        temp <- 1:
+        temp <- seq(along=target)
         names(temp) <- target
-        temp[indx]
+        temp[i]
     }
-        
+    x <- survfit23(x)   # otherwise influence and pstate don't align
     ndots <- ...length()   # number of subscripts that we have
     dd <- dim(x)
     dtype <- match(names(dd), c("strata", "data", "states"))
-    target <- list(if (any(dtype==1)) names(x$strata) else NULL,
-                   if (any(dtype==2)) seq(along=dd[dtype==2]) else NULL,
-                   if (any(dtype==3)) x$states else NULL)
-
+    if (is.null(x$states)) stop("survfitms object has no states component")
     if (ndots==0) return(x)  # no subscript given
-    if (ndots >0) i <- ..1 else i <- NULL
-    if (ndots> 1) j <- ..2 else j <- NULL
-    if (ndots> 2) k <- ..3 else k <- NULL
+    if (ndots >0 && !missing(..1)) i <- ..1 else i <- NULL
+    if (ndots> 1 && !missing(..2)) j <- ..2 else j <- NULL
+    if (ndots> 2 && !missing(..3)) k <- ..3 else k <- NULL
     if (ndots >3) stop("too many subscripts for survfit object")
+    if (is.null(i) & is.null(j) & is.null(k)) return(x)
 
-    # Remap subscripts so that ii points to the strata, NULL if there are
-    #  no strata in the object, and jj points to the columns
-    # A survfitms object can be missing strata, or have only 1 stratum (if
-    #  it was previously subscripted), and it can have no data dimension
-    #  or a data dimension of 1.  When a dimension is 1 we allow the user
-    #  to pretend it isn't present, i.e. a dim of (3,1,4) can be treated as
-    #  (3,4).  (The default drop=FALSE keeps names present for labeling.)
-    # An exception is that if x has multiple dimensions that are > 1, and only
-    #  one subscript is given, then the standard R rule for a matrix/array
-    #  is used, namely to treat x as a vector.
-    # And ... from a user's point of view the data and state dimensions are
+    # We need to make a new one
+    newx <- vector("list", length(x))
+    names(newx) <- names(x)
+    for (k in c("logse", "version", "conf.int", "conf.type", "type", "call"))
+        if (!is.null(x[[k]])) newx[[k]] <- x[[k]]
+    class(newx) <- class(x)
+
+    # From a user's point of view the data and state dimensions are
     #  separate, but in the object these two are combined and appear as the
     #  columns of pstate.
     #
-    dd2 <- which(dd>1)
     if (ndots==1 && length(dd2) > 1) {
         # the 'treat it as a vector' case
-        if (dtype[1] ==1) { # the object has strata
-            nstrat <- length(x$strata)
-            itemp <- matrix(1:prod(dd), nrow=nstrat)
-            ii <- row(itemp)[i]
-            jj <- col(itemp)[i]
-            
-            itemp2 <- split(1:sum(x$strata), rep(1:length(x$strata), x$strata))
-            i2 <- unlist(itemp2[ii])  # rows of the pstate matrix
-            j2 <- rep(jj, x$strata[i])# cols of the pstate matrix
-            indx <- cbind(i2, j2)  # index for pstate and etc
+        # if only one dimension is >1, it is easier to expand out i,j,k
+        if (length(dd[dd>1]) ==1) {
+            if (dd[1] > 1) {j <-NULL; k <- NULL};
+            if (dd[3] > 1 || dtype[2]==3) {k <- i;  i <-NULL; j<- NULL}
+            else { j<- i; i<-NULL; k<-NULL }
+        }
+        else {
+            if (!is.numeric(i))
+                stop("single subscript must be numeric")
+            # when subscripting a mix, these don't endure
+            newx$cumhaz <- newx$std.chaz <- newx$influence.c <- NULL
+            newx$transitions <- newx$states <- newx$newdata <- NULL
 
-            # The n.risk, n.event, .. matrices dont have a newdata dimension.
-            if (dtype[2]==3) indx2 <- indx
-            else if (length(dtype==2)) indx2 <- ii
-            else {  # all three indices
-                itemp <- matrix(1:(dd[1]*dd[3]), nrow=dd[1])
-                j3 <- rep(col(itemp)[i], x$strata[i])
-                indx2 <- cbind(i2, j3)
-            }
-  
-            x$cumhaz <- x$std.chas <- x$influence.chaz <- NULL  # remove
-            x$states <- x$newdata <- x$transitions <- NULL      # remove
-            x$n    <-  x$n[ii]
-            x$time <-  x$time[i2]
-            x$n.risk <- x$n.risk[indx2]
-            x$n.event<- x$n.event[indx2]
-            x$n.censor <- x$n.censor[indx2]
-            x$pstate  <-  x$pstate[indx]
-            if (!is.null(x$p0)) x$p0 <- x$p0[cbind(ii,jj)]
-            x$strata <- x$strata[ii]
-            names(x$strata) <- seq.along(ii)
-            if (!is.null(x$std.err)) x$std.err <- x$std.err[indx]
-            if (!is.null(x$sp0))     x$sp0 <- x$sp0[cbind(ii,jj)]
-            if (!is.null(x$lower))   x$lower <- x$lower[indx]
-            if (!is.null(x$upper))   x$upper <- x$upper[indx]
-            return(x)
-        } else {
-            # strange request, mix of states and x values
+            # what strata and columns do I need?
             itemp <- matrix(1:prod(dd), nrow=dd[1])
-            jj <- itemp[i]   # these columns
-            j3 <- (col(itemp))[i]
-            x$cumhaz <- x$std.chas <- x$influence.chaz <- NULL  # remove
-            x$states <- x$newdata <- x$transitions <- NULL      # remove
-            x$n.risk <- x$n.risk[,j3, drop=TRUE]
-            x$n.event<- x$n.risk[,j3, drop=TRUE]
-            x$n.censor<-x$n.censor[,j3,drop=TRUE]
-            x$pstate <- x$pstate[,jj, drop=TRUE]
-            if (!is.null(x$p0)) x$p0 <- x$p0[,j3]
-            if (!is.null(x$std.err)) x$std.err <- x$std.err[,jj]
-            if (!is.null(x$sp0))     x$sp0 <- x$sp0[,j3]
-            if (!is.null(x$lower))   x$lower <- x$lower[,jj]
-            if (!is.null(x$upper))   x$upper <- x$upper[,jj]
-            return(x)
+            jj <- (cols(itemp))[i]    # columns
+            ii <- (rows(itemp))[i]    # this is now the strata id
+            
+            if (dd[1]==1) irow <- rep(seq(along= x$time), length(ii))
+            else {
+                itemp2 <- split(1:sum(x$strata), rep(1:length(x$strata), x$strata))
+                irow <- unlist(itemp2[ii])  # rows of the pstate object
+            }
+            inum <- x$strata[ii]        # number of rows in each ii
+            indx <- cbind(irow, rep(jj,ii))      # matrix index for pstate
+           
+            # The n.risk, n.event, .. matrices dont have a newdata dimension.
+            if (dtype[2]==3 || dd[2]==1) kk <- jj
+            else {  # all three indices
+                itemp <- matrix(1:(dd[2]*dd[3]), nrow=dd[2])
+                kk <- (col(itemp))[jj]    # the state of each selected one
+                indx2 <- cbind(irow, rep(k, irow))  
+            }
+            newx$n <- x$n[ii]
+            newx$time <- x$time[irow]
+            for (z in c("n.risk", "n.event", "n.censor", "n.enter"))
+                if (!is.null(x[[z]])) newx[[z]] <- (x[[z]])[indx2]
+            for (z in c("pstate", "std.err", "upper", "lower", "influence.p"))
+                if (!is.null(x[[z]])) newx[[z]] <- (x[[z]])[indx]
+  
+            newx$strata <- x$strata[ii]
+            names(newx$strata) <- seq.along(ii)
+
+            return(newx)
         }
     }
     
-    if (ndots < length(dd)) {
-        # if any of the dimensions are of length 1, let the user ignore them
-        if (ndots != length(dd[dd>1])) stop("incorrect number of dimensions")
+    # not a single subscript, i.e., the usual case
+    if (ndots != length(dd)) stop("incorrect number of dimensions")
+    if (is.null(i)) i <- seq.int(dd[1])
+    else i <- nmatch(i, names(x$strata))
+    if (dd[1] ==1) irow <- rep(seq(along=x$time), length(i))
+    else {
+        itemp <- split(1:sum(x$strata), rep(1:length(x$strata), x$strata))
+        irow <- unlist(itemp[i])  # rows of the pstate object
+    }
+    newx$n <- x$n[i]
+    newx$time <- x$time[irow]
+    for (z in c("n.censor", "n.enter"))
+        if (!is.null(x[[z]])) newx[[z]] <- (x[[z]])[irow, drop=FALSE]
+    
+    # two cases: with newx or without newx  (pstate is always present)
+    nstate <- length(x$states)
+    if (length(dd) ==2) {  # j points at states
+        if (is.null(j)) j <- seq.int(nstate)
+        else j <- nmatch(j, x$states)
+         
+        if (length(i) ==1 && drop) newx$strata <- NULL
+        else newx$strata <- x$strata[i]
+
+        # in the rare case of a single strata with 1 obs, don't drop dims
+        if (length(irow)==1 && length(j) > 1) drop2 <- FALSE 
+        else drop2 <- drop
+
+        for (z in c("n.risk", "n.event"))
+            if (!is.null(x[[z]])) newx[[z]] <- (x[[z]])[irow,j, drop=drop2]
+        for (z in c("pstate", "std.err", 
+                    "upper", "lower", "influence.p"))
+            if (!is.null(x[[z]])) newx[[z]] <- (x[[z]])[irow,j, drop=drop2]
+  
+        if (length(j)== nstate && all(j == seq.int(nstate))) {
+            # user kept all the states
+            newx$states <- x$states
+            for (z in c("cumhaz", "std.chaz", "influence.c"))
+                 if (!is.null(x[[z]])) newx[[z]] <- (x[[z]])[irow,, drop=drop2]
+        }
         else {
-            temp <- c(NA,NA, NA)
-            dt <- dtype[dd>1]
-            temp[dt[1]] <- nmatch(i, target[[dt[1]]])
-            if (ndots==2) temp[dt[2]] <- nmatch(j, target[[dt[2]]])
-        }
-    } else {
-        temp <- c(NA, NA, NA)
-        temp[dtype[1]] <- nmatch(i, target[[dtype[1]]])
-        if (ndots==2) temp[dtype[2]] <- nmatch(j, target[[dtype[2]]])
-        if (ndots==3) temp[dtype[3]] <- nmatch(k. target[[dtype[3]]])
-    }
-    i <- temp[1]
-    j <- temp[2]
-    k <- temp[3]
-
-    # at this point i will index strata, j the data, k the states; each is NA
-    #  if that index isn't used or if the user indicated it without a value
-    # ii will be our index for the time vector, and first dim of nevent, pstate,
-    #  .. anything that depends on time
-    # jj will be our index for the second dimension of pstate, and other objects
-    #    that have (data * state) columns
-    # kk will be our index for the second dimension of n, n.event, and other
-    #    objects whose second dim is the number of states
-    if (is.null(i)) ii <- seq(along= x$time) 
-    else {
-        itemp <- split(seq.int(prod(dd)), rep(1:length(x$strata), x$strata))
-        ii <- unlist(itemp[i])
-    }
-
-    d2 <- c(1L, 1L, 1L)   # a version with all three dimensions
-    d2[dtype] <- dd
-    itemp <- matrix(seq.int(d2[2] * d2[3]), nrow=d2[2])
-    ktemp <- ifelse(is.na(k), d2[3], k)
-    jtemp <- ifelse(is.na(j), d2[2], j)
-    if (is.null(j) && is.null(k)) jj <- seq.int(ncol(x$pstate))
-    else jj <- c(itemp[jtemp, ktemp])
-
-    if (is.null(k)) kk <- seq(along=states)
-    else kk <- k
-
-    # if (and only if) there is no subscripting of the states, then the
-    #  transition matrix and the cumulative hazard can be retained
-    ckeep <- (length(kk) == length(states) && all(kk = seq(along=states)))
-    if (ckeep) {
-        if (!is.null(x$cumhaz))
-
-    if (is.matrix(x$pstate)) { # this should be true 99.9% of the time
-        
-        
-        
-    if (is.null(x$strata) && is.matrix(x$pstate)) {
-        # No strata, but a matrix of P(state) values
-        #  In this case, allow them to use a single i subscript as well
-        if (is.null(j) && !is.null(i)) {
-            j <- i
-            i <- NULL
+            newx$cumhaz <- newx$std.chaz <- newx$influence.c <- NULL
+            if (length(j)==1 & drop) {
+                newx$states <- NULL
+                temp <- class(newx)
+                class(newx) <- temp[temp!="survfitms"]
+            }
+            else newx$states <- x$states[j]
         }
     }
+    else {  # j points at newdata, k points at states
+        if (is.null(j)) j <- seq.int(dd[2])
+        else j <- nmatch(j, seq.int(dd[2]))
 
-    # 'i' is the subscript from the user's point of view, 'i2' is the
-    #  subscript from the program's view, i.e, the row indices to keep
-    if (is.null(i)) {
-        i2 <- 1:n
-        if (is.null(x$strata)) i <- 1
-        else i <- seq(along=x$strata)
-    }
-    else {
-        if (is.null(x$strata) && (length(i) > 1 || i != 1))
-            stop("subscript out of bounds")
-        indx <- nmatch(i, names(x$strata)) #strata to keep
-        if (any(is.na(indx))) 
-            stop(paste("strata", 
-                       paste(i[is.na(indx)], collapse=' '),
-                       'not matched'))
-        # Now, i may not be in order: a user has curve[3:2] to reorder 
-        #  a plot.  Hence the "unlist(lapply(" construct which will reorder
-        #  the data in the curves
-        temp <- rep(1:length(x$strata), x$strata)
-        i2 <- unlist(lapply(i, function(x) which(temp==x)))
+        if (is.null(k)) k <- seq.int(nstate)
+        else k <- nmatch(k, x$states)
 
-        if (length(i) <=1 && drop) x$strata <- NULL
-        else               x$strata  <- x$strata[indx]
-     }
+        jj <- c(matrix(seq.int(dd[2]*dd[3]), nrow=dd[2])[j,k]) # cols of pstate
+        if (length(irow)==1) {
+            if (length(jj) > 1) drop2 <- FALSE else drop2<- drop
+            if (length(k) > 1)  drop3 <- FALSE else drop3 <- drop
+        } 
+        else drop2 <- drop3 <- drop
 
-    if (!is.null(j)) {
-        indx <- nmatch(j, x$states)
-        if (any(is.na(indx)))
-            stop("subscript out of bounds", j[is.na(indx)])
-        else j <- as.vector(indx)
-    }
+        for (z in c("n.risk", "n.event"))
+            if (!is.null(x[[z]])) newx[[z]] <- (x[[z]])[irow, k, drop=drop3]
+        for (z in c("pstate", "std.err", 
+                    "upper", "lower", "influence.p"))
+            if (!is.null(x[[z]])) newx[[z]] <- (x[[z]])[irow,jj, drop=drop2]
+  
+        if (length(k)== nstate && all(k == seq.int(nstate))) {
+            # user kept all the states
+            newx$states <- x$states
+            for (z in c("cumhaz", "std.chaz", "influence.c"))
+                 if (!is.null(x[[z]])) 
+                     newx[[z]] <- (x[[z]])[irow,jj, drop=drop2]
+        }
+        else {
+            newx$cumhaz <- newx$std.chaz <- newx$influence.c <- NULL
+            x$transitions <- NULL
+            if (length(k)==1 && drop) {
+                newx$states <- NULL
+                temp <- class(newx)
+                class(newx) <- temp[temp != "survfitms"]
+            } else newx$states <- x$states[k]
+        }
 
-    # if only one state is kept, still retain the data as a matrix
-    if (length(i2) ==1 && !is.null(j) && missing(drop)) drop <- FALSE
+        if (length(j)==1 && drop) x$newdata <- NULL
  
-    # all the elements that can have "nstate" elements or columns
-    #  The n.event variable can have fewer
-    temp <- c("n.risk", "n.event", "n.censor", "pstate",
-              "cumhaz", "std.err", "lower", "upper", "std.chaz")
-    sfun <- function(z) {
-        if (is.null(j)) {
-            if (is.array(z)) {
-                if (length(dim(z)) > 2) z[,,i2, drop=drop]  
-                else z[i2,,drop=drop]
-            }
-            else z[i2]
-        }
-        else {
-            if (is.array(z)) {
-                if (length(dim(z)) > 2) z[j,j,i2, drop=drop]  
-                else z[i2,j, drop=drop]
-            }
-            else z[i2]
-        }
     }
-    for (k in temp) x[[k]] <- sfun(x[[k]])
-    if (!is.null(j)) x$states <- x$states[j]
-    x$n <- x$n[i]
-    x$time <- x$time[i2]
-    x$transitions <- NULL  # this is incorrect after subscripting
-
-    if (is.matrix(x$p0)) {
-        if (is.null(j)) {
-            x$p0<- x$p0[i,]
-            if (!is.null(x$sp0)) x$sp0 <- x$sp0[i,]
-        }
-        else {
-            x$p0 <- x$p0[i,j]  
-            if (!is.null(x$sp0)) x$sp0 <- x$sp0[i,j]
-        }
-   }
-    else if (!is.null(j)) {
-        x$p0 <- x$p0[j]
-        if (!is.null(x$sp0)) x$sp0 <- x$sp0[j]
-    }
-    if (!is.null(x$influence)) {
-        if (length(i) >1) x$influence <- x$influence[i]
-        else if (is.list(x$influence)) x$influence <- x$influence[[i]]
-    
-        if (!is.null(j)) {
-            if (is.list(x$influence)) 
-                x$influence <- lapply(x$influence, function(x) x[,j,])
-            else x$influence <- x$influence[,j,]
-        }
-    }
-    x
+    newx
 }
 @ 
 

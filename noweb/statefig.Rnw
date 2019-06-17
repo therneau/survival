@@ -42,6 +42,8 @@ statefig <- function(layout, connect, margin=.03, box=TRUE,
     <<statefig-layout>>
     <<statefig-text>>
     <<statefig-arrows>>
+    
+    dimnames(cbox) <- list(statenames, c("x", "y"))
     invisible(cbox)
 }
 <<statefig-fun>>

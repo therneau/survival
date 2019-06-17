@@ -116,7 +116,7 @@ setemp = SET_VECTOR_ELT(rlist, 2, allocVector(INTSXP, ntime));
 ncensor = INTEGER(setemp);  /* total at each time */
 setemp  = SET_VECTOR_ELT(rlist, 3, allocMatrix(REALSXP, ntime, nstate));
 pmat =   dmatrix(REAL(setemp), ntime, nstate);
-setemp = SET_VECTOR_ELT(rlist, 4, allocVector(REALSXP, nstate*nstate*ntime));
+setemp = SET_VECTOR_ELT(rlist, 4, allocMatrix(REALSXP, nstate*nstate, ntime));
 cumhaz = REAL(setemp);
 
 if (sefit >0) {
