@@ -372,7 +372,7 @@ names(ckeep) <- outer(1:nstate, 1:nstate, paste, sep='.')[ckeep]
 
 if (length(curves) ==1) {
     keep <- c("n", "time", "n.risk", "n.event", "n.censor", "pstate",
-              "p0", "cumhaz", "influence")
+              "p0", "cumhaz", "influence.p")
     if (se.fit) keep <- c(keep, "std.err", "sp0")
     kfit <- (curves[[1]])[match(keep, names(curves[[1]]), nomatch=0)]
     names(kfit$p0) <- states
@@ -404,7 +404,7 @@ else {
         t(x$cumhaz[ckeep,])))
     colnames(kfit$cumhaz) <- names(ckeep)
  
-    if (influence) kfit$influence <- lapply(curves, function(x) x$influence)
+    if (influence) kfit$influence.p <- lapply(curves, function(x) x$influence.p)
     if (!missing(start.time)) kfit$start.time <- start.time
 }                         
 kfit$transitions <- mcheck$transitions

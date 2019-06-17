@@ -88,3 +88,4 @@ survflag <- function(y, id) {
     flag[indx] <- flag   # return it to data order
     flag
 }
+

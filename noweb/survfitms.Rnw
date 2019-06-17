@@ -87,7 +87,7 @@ or integer indices.
             newx$time <- x$time[irow]
             for (z in c("n.risk", "n.event", "n.censor", "n.enter"))
                 if (!is.null(x[[z]])) newx[[z]] <- (x[[z]])[indx2]
-            for (z in c("pstate", "std.err", "upper", "lower", "influence.p"))
+            for (z in c("pstate", "std.err", "upper", "lower"))
                 if (!is.null(x[[z]])) newx[[z]] <- (x[[z]])[indx]
   
             newx$strata <- x$strata[ii]
@@ -113,7 +113,7 @@ or integer indices.
     
     # two cases: with newx or without newx  (pstate is always present)
     nstate <- length(x$states)
-    if (length(dd) ==2) {  # j points at states
+    if (length(dd) ==2) {  # j indexes the states
         if (is.null(j)) j <- seq.int(nstate)
         else j <- nmatch(j, x$states)
          
@@ -126,15 +126,30 @@ or integer indices.
 
         for (z in c("n.risk", "n.event"))
             if (!is.null(x[[z]])) newx[[z]] <- (x[[z]])[irow,j, drop=drop2]
-        for (z in c("pstate", "std.err", 
-                    "upper", "lower", "influence.p"))
+        for (z in c("pstate", "std.err", "upper", "lower"))
             if (!is.null(x[[z]])) newx[[z]] <- (x[[z]])[irow,j, drop=drop2]
-  
+        if (!is.null(x$influence.p)) {
+            if (is.list(x$influence.p)) {
+                if (length(i)==1) newx$influence.p <- x$influence.p[[i]]
+                else newx$influence.p <- lapply(x$influence.p[i],
+                                     function(x) x[,,j, drop= drop])
+                }
+            else newx$influence.p <- x$influence.p[,,j, drop=drop]
+        }
+
         if (length(j)== nstate && all(j == seq.int(nstate))) {
             # user kept all the states
             newx$states <- x$states
-            for (z in c("cumhaz", "std.chaz", "influence.c"))
+            for (z in c("cumhaz", "std.chaz"))
                  if (!is.null(x[[z]])) newx[[z]] <- (x[[z]])[irow,, drop=drop2]
+            if (!is.null(x$influence.c)) {
+                if (is.list(x$influence.c)) {
+                    newx$influence.c <- x$influence.c[i]
+                    if (length(i)==1 && drop) 
+                        newx$influence.c <- x$influence.c[[i]]
+                }
+                else newx$influence.c <- x$influence.c
+            }
         }
         else {
             newx$cumhaz <- newx$std.chaz <- newx$influence.c <- NULL
@@ -162,17 +177,34 @@ or integer indices.
 
         for (z in c("n.risk", "n.event"))
             if (!is.null(x[[z]])) newx[[z]] <- (x[[z]])[irow, k, drop=drop3]
-        for (z in c("pstate", "std.err", 
-                    "upper", "lower", "influence.p"))
+        for (z in c("pstate", "std.err", "upper", "lower"))
             if (!is.null(x[[z]])) newx[[z]] <- (x[[z]])[irow,jj, drop=drop2]
   
-        if (length(k)== nstate && all(k == seq.int(nstate))) {
+        if (!is.null(x$influence.p)) {
+            if (is.list(x$influence.p)) {
+                if (length(i)==1) 
+                    newx$influence.p <- (x$influence.p[[i]])[,,jj, drop=drop]
+                else newx$influence.p <- lapply(x$influence.p[i],
+                                     function(x) x[,,jj, drop= drop])
+                }
+            else newx$influence.p <- x$influence.p[,,jj, drop=drop]
+        }
+
+    if (length(k)== nstate && all(k == seq.int(nstate))) {
             # user kept all the states
             newx$states <- x$states
-            for (z in c("cumhaz", "std.chaz", "influence.c"))
+            for (z in c("cumhaz", "std.chaz"))
                  if (!is.null(x[[z]])) 
                      newx[[z]] <- (x[[z]])[irow,jj, drop=drop2]
-        }
+             if (!is.null(x$influence.c)) {
+                if (is.list(x$influence.c)) {
+                    newx$influence.c <- x$influence.c[i]
+                    if (length(i)==1 && drop) 
+                        newx$influence.c <- x$influence.c[[i]]
+                }
+                else newx$influence.c <- x$influence.c
+            }
+       }
         else {
             newx$cumhaz <- newx$std.chaz <- newx$influence.c <- NULL
             x$transitions <- NULL

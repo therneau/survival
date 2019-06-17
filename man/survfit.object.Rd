@@ -121,11 +121,11 @@ Survfit objects can be subscripted.
 This is often used to plot a subset of the curves, for instance.
 From the user's point of view the \code{survfit} object appears to be
 a vector, matrix, or array of curves, indexed by the strata or group,
-the covariate values used for prediction (curves from a \code{coxph}
-model, and the states.  (Internally the structure is more compact.)
+the covariate values used for prediction (for curves from a Cox
+model), and the states.  
 }
 
-\section{Details}
+\section{Details}{
 The \code{survfit} object has evolved over time: when first created
 there was no thought of multi-state models for instance.  This evolution
 has almost entirely been accomplished by the addition of new elements.
