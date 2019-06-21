@@ -268,7 +268,7 @@ if (length(id)==0)
     stop("an id statement is required for multi-state models")
 
 istate <- model.extract(mf, "istate")
-mcheck <- multicheck2(Y, id, istate)
+mcheck <- survcheck2(Y, id, istate)
 # error messages here
 if (mcheck$flag["overlap"] > 0)
     stop("data set has overlapping intervals for one or more subjects")

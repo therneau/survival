@@ -40,7 +40,7 @@ expanded data set that coxph used for a multi-state fit.
 <<survfit.coxphms-setupa>>=
 # Rebuild istate using the mcheck routine
 istate <- model.extract(mf, "istate")
-mcheck <- multicheck2(Y, oldid, istate)
+mcheck <- survcheck2(Y, oldid, istate)
 transitions <- mcheck$transitions
 istate <- mcheck$istate
 if (!identical(object$states, mcheck$states))

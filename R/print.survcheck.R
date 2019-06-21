@@ -1,4 +1,4 @@
-print.multicheck <- function(x, ...){
+print.survcheck <- function(x, ...){
     if (!is.null(cl <- x$call)) {
         cat("Call:\n")
         dput(cl)
@@ -52,7 +52,7 @@ print.multicheck <- function(x, ...){
 }
 
 
-summary.multicheck <- function(object, max.show=5, ...){
+summary.survcheck <- function(object, max.show=5, ...){
     if (!is.null(cl <- object$call)) {
         cat("Call:\n")
         dput(cl)

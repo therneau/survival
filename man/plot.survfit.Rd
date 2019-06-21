@@ -8,7 +8,7 @@
  pch=3, col=1, lty=1, lwd=1, cex=1, log=FALSE, xscale=1, yscale=1,  
  xmax, ymin=0, fun, 
  xlab="", ylab="", xaxs="r",  conf.times, conf.cap=.005,
- conf.offset=.012, mark, noplot="()", \dots)
+ conf.offset=.012, mark, noplot="(s0)", \dots)
 }
 \arguments{
   \item{x}{
@@ -123,7 +123,7 @@
     used directly.}
   \item{mark}{a historical alias for \code{pch}}
   \item{noplot}{for multi-state models, curves with this label will not
-  be plotted.  The default corresponds to an unspecified state.}
+  be plotted.  (Also see the \code{istate0} argument in \code{survcheck}.}
   \item{\dots}{for future methods}
 }
 \value{

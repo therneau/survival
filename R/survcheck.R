@@ -1,4 +1,4 @@
-multicheck <- function(formula, data, id, istate, ...) {
+survcheck <- function(formula, data, id, istate, istate0="(s0)", ...) {
     Call <- match.call()
     indx <- match(c("formula", "data", "id", "istate"),
                   names(Call), nomatch=0) 
@@ -24,7 +24,7 @@ multicheck <- function(formula, data, id, istate, ...) {
     istate <- model.extract(mf, "istate")
     if (!is.null(istate) && length(istate) !=n) stop("wrong length for istate")
 
-    fit <- multicheck2(Y, id, istate)
+    fit <- survcheck2(Y, id, istate, istate0)
 #    fit$istate <- NULL   # used by coxph, but not part of user printout
     na.action <- attr(mf, "na.action")
     if (!is.null(na.action)) {
@@ -43,7 +43,7 @@ multicheck <- function(formula, data, id, istate, ...) {
     fit$Y <- Y      # used by the summary function
     fit$id <- unname(id)    #   ""  ""
     fit$call <- Call
-    class(fit) <- "multicheck"
+    class(fit) <- "survcheck"
     fit
 }
 
@@ -60,19 +60,19 @@ multicheck <- function(formula, data, id, istate, ...) {
 #  to generate checks.
 # Multiple other checks as well
 #  
-multicheck2 <- function(y, id, istate=NULL, dummy="(0)") {
+survcheck2 <- function(y, id, istate=NULL, istate0="(0)") {
     n <- length(id)
     ny <- ncol(y)
-    # this next line is a debug for my code, since multicheck2 is not visible
+    # this next line is a debug for my code, since survcheck2 is not visible
     #  to users
     if (!is.Surv(y) || is.null(attr(y, "states")) ||
         any(y[,ncol(y)] > length(attr(y, "states"))))
-        stop("multicheck2 called with an invalid y argument")
+        stop("survcheck2 called with an invalid y argument")
     to.names <- c(attr(y, "states"), "(censored)")
  
     if (length(istate)==0) {
         inull<- TRUE
-        cstate <- factor(rep(dummy, n))
+        cstate <- factor(rep(istate0, n))
     }
     else {
         if (length(istate) !=n) stop ("wrong length for istate")

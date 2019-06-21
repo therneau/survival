@@ -23,12 +23,12 @@ export(Surv, aeqSurv, aareg, agreg.fit,
        coxph.wtest, finegray, format.Surv, 
        frailty,  frailty.gamma, 
        frailty.gaussian, frailty.t, is.Surv, 
-       is.na.Surv, is.ratetable, multicheck,
+       is.na.Surv, is.ratetable,
        labels.survreg, match.ratetable, neardate,
        psurvreg, qsurvreg, dsurvreg,
        pspline, pyears, ratetableDate, ratetable,
        ridge, rsurvreg, statefig, strata, 
-       survSplit, survdiff, survexp,  survfit,
+       survSplit, survcheck, survdiff, survexp,  survfit,
        survfit.formula,
        coxsurv.fit, survfitKM, survfitCI,
        survobrien,  
@@ -121,7 +121,6 @@ S3method(print, cox.zph)
 S3method(print, coxph)
 S3method(print, coxph.null)
 S3method(print, coxph.penal)
-S3method(print, multicheck)
 S3method(print, pyears)
 S3method(print, ratetable)
 S3method(print, summary.cch)
@@ -132,6 +131,7 @@ S3method(print, summary.survfit)
 S3method(print, summary.survfitms)
 S3method(print, summary.survreg)
 S3method(print, survdiff)
+S3method(print, survcheck)
 S3method(print, survexp)
 S3method(print, survfit)
 S3method(print, survfitms)

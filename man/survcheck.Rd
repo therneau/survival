@@ -1,11 +1,11 @@
-\name{multicheck}
-\alias{multicheck}
+\name{survcheck}
+\alias{survcheck}
 \title{Checks of a survival data set}
 \description{
 Perform a set of consistency checks on survival data
 }
 \usage{
-multicheck(formula, data, id, istate, ...)
+survcheck(formula, data, id, istate, istate0="(s0)", ...)
 }
 \arguments{
   \item{formula}{a model formula with a \code{Surv} object as the
@@ -15,7 +15,9 @@ multicheck(formula, data, id, istate, ...)
   \item{id}{an identifier that labels unique subjects}
   \item{istate}{an optional vector giving the initial state for each
     observation, i.e., the state at the start of each interval}
-  \item{\ldots}{other arguments, which are ignored (but don't give an
+  \item{istate0}{default label for the initial state when \code{istate}
+    is missing}
+  \item{\ldots}{other arguments, which are ignored (but won't give an
     error if someone added \code{weights} for instance)}
 }
 \details{
