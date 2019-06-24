@@ -20,7 +20,7 @@ options, nsim = 200, method = c("direct", "sgtt"))
   \item{population}{the population to be used for the adjusting
     variables.  User can supply their own data frame or select one
     of the built in choices.
-    The argument also allows "emprical" and "yates" as aliases for
+    The argument also allows "empirical" and "yates" as aliases for
     data and factorial, respectively, and ignores case.
 }
   \item{levels}{optional, what values for \code{term} should be used.
