@@ -6,9 +6,12 @@
 \usage{
 \method{plot}{survfit}(x, conf.int=, mark.time=FALSE, 
  pch=3, col=1, lty=1, lwd=1, cex=1, log=FALSE, xscale=1, yscale=1,  
- xmax, ymin=0, fun, 
+ xlim, ylim, xmax, fun, 
  xlab="", ylab="", xaxs="r",  conf.times, conf.cap=.005,
- conf.offset=.012, mark, noplot="(s0)", \dots)
+ conf.offset=.012,
+ conf.type = c("log", "log-log", "plain", "logit", "arcsin"),
+ mark, noplot="(s0)", cumhaz=FALSE,
+ firstx, ymin, \dots)
 }
 \arguments{
   \item{x}{
@@ -54,6 +57,10 @@
     Alternately, one of the standard character strings "x", "y", or "xy"
     can be given to specific logarithmic horizontal and/or vertical axes.
   }
+  \item{xscale}{
+    a numeric value used like \code{yscale} for labels on the x axis.  
+    A value of 365.25 will give labels in years instead of the original days.  
+  }
   \item{yscale}{
     a numeric value used to multiply the labels on the y axis. 
     A value of 100, for instance, would be used to give a percent scale. 
@@ -62,21 +69,13 @@
     "\code{lines(surv.exp(...))}", say,  
     will perform as it did without the \code{yscale} argument. 
   }
-  \item{xscale}{
-    a numeric value used like \code{yscale} for labels on the x axis.  
-    A value of 365.25 will give labels in years instead of the original days.  
+  \item{xlim,ylim}{optional limits for the plotting region.
   }
   \item{xmax}{
     the maximum horizontal plot coordinate.  This can be used to shrink
     the range of a plot.  It shortens the curve before plotting it, so
     that unlike using the \code{xlim} graphical parameter, warning
     messages about out of bounds points are not generated.
-  }
-  \item{ymin}{
-    lower boundary for y values.  Survival curves are most often drawn in the 
-    range of 0-1, even if none of the curves approach zero. 
-    The parameter is ignored if the \code{fun} argument is present,
-    or if it has been set to \code{NA}. 
   }
   \item{fun}{
     an arbitrary function defining a transformation of the survival curve. 
@@ -121,10 +120,30 @@
     region. If this is a single number then each curve's bars are offset
     by this amount from the prior curve's bars, if it is a vector the values are
     used directly.}
+     \item{conf.type}{
+	One of \code{"none"}, \code{"plain"}, \code{"log"} (the default),
+	\code{"log-log"} or \code{"logit"}.  Only
+	enough of the string to uniquely identify it is necessary.
+	The first option causes confidence intervals not to be
+	generated.  The second causes the standard intervals
+	\code{curve +- k *se(curve)}, where k is determined from
+	\code{conf.int}.  The log option calculates intervals based on the
+	cumulative hazard or log(survival). The log-log option bases the
+	intervals on the log hazard or log(-log(survival)), and the
+	logit option on log(survival/(1-survival)). 
+      }
   \item{mark}{a historical alias for \code{pch}}
   \item{noplot}{for multi-state models, curves with this label will not
-  be plotted.  (Also see the \code{istate0} argument in \code{survcheck}.}
-  \item{\dots}{for future methods}
+    be plotted.  (Also see the \code{istate0} argument in
+    \code{survcheck}.)}
+  \item{cumhaz}{plot the cumulative hazard rather than the probability
+    in state or survival}
+  \item{ymin}{ this will normally be given as part of the \code{ylim}
+    argument}
+  \item{firstx}{this will normally be given as part of the \code{xlim}
+    argument.}
+  \item{\dots}{other arguments that will be passed forward to the
+    underlying plot method, such as xlab or ylab.}
 }
 \value{
 a list with components \code{x} and \code{y}, containing the coordinates of the last point 

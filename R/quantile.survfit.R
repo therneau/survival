@@ -114,7 +114,7 @@ quantile.survfit <- function(x, probs=c(.25, .5, .75), conf.int=TRUE,
             if (conf.int) {
                 qupper <- qlower <- qmat
                 for (strat in 1:nstrat) {
-                    z <- x[strat,]
+                    z <- x[strat, ]
                     for (i in 1:ncol(z$surv)) {
                         temp <- doquant(probs, z$time, z$surv[,i], 
                                         z$upper[,i], z$lower[,i], xmin,tolerance)
@@ -127,7 +127,7 @@ quantile.survfit <- function(x, probs=c(.25, .5, .75), conf.int=TRUE,
             }
             else {
                 for (strat in 1:nstrat) {
-                    z <- x[strat]
+                    z <- x[strat, ]
                     for (i in 1:ncol(z$surv)) 
                         qmat[strat,i,] <- doquant(probs, z$time, z$surv[,i],
                                                   firstx=xmin, tol=tolerance)

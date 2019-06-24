@@ -25,7 +25,7 @@ structure:
 \end{itemize}
 
 <<parsecovar>>=
-parsecovar1 <- function(flist, statedatanames) {
+parsecovar1 <- function(flist, statedata) {
     if (any(sapply(flist, function(x) !inherits(x, "formula"))))
         stop("flist must be a list of formulas")
     if (any(sapply(flist, length) != 3))
@@ -152,13 +152,13 @@ Repeating the list above, this is what we want to end with
 <<parse-leftside>>=
 env1 <- new.env(parent= parent.frame(2))
 env2 <- new.env(parent= env1)
-if (missing(statedatanames)) {
+if (missing(statedata)) {
     assign("state", function(...) list(stateid= "state", 
                                        values=c(...)), env1)
     assign("state", list(stateid="state"))
 }
 else {
-    for (i in statedatanames) {
+    for (i in statedata) {
         assign(i, eval(list(stateid=i)), env2)
         tfun <- eval(parse(text=paste0("function(...) list(stateid='"
                                        , i, "', values=c(...))")))
@@ -255,7 +255,7 @@ for (x in lhs) {
         if (is.null(x$left$value)) 
             stop("state variable with no list of values: ",x$left$stateid)
         else {
-            if (any(k= is.na(match(x$left$statedid), names(statedata))))
+            if (any(k= is.na(match(x$left$stateid, names(statedata)))))
                 stop(x$left$stateid[k], ": state variable not found")
             zz <- statedata[[x$left$stateid]]
             if (any(k= is.na(match(x$left$value, zz))))
@@ -276,7 +276,7 @@ for (x in lhs) {
         if (is.null(x$right$value))
             stop("state variable with no list of values: ",x$right$stateid)
         else {
-            if (any(k= is.na(match(x$right$statedid), names(statedata))))
+            if (any(k= is.na(match(x$right$stateid, names(statedata)))))
                 stop(x$right$stateid[k], ": state variable not found")
             zz <- statedata[[x$left$stateid]]
             if (any(k= is.na(match(x$right$value, zz))))

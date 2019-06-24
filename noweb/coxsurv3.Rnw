@@ -83,7 +83,7 @@ is the number of transtions, which is the number of columns of cmap.
 The risk scores become a matrix.  
 
 <<survfit.coxphms-setup3b>>=
-cmap <- object$cmap[-1,]
+cmap <- object$cmap[-1,,drop=FALSE]
 x3 <- array(0., dim=c(nrow(x2), max(cmap), ncol(cmap)))
 for (i in 1:ncol(cmap)) 
     x3[, cmap[,i], i] <- x2[, cmap[,i]>0]

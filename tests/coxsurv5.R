@@ -22,7 +22,7 @@ coxhaz <- function(y, id, risk, wt) {
   
     # get the current state, and the list of transtions
     #  transitions to censor don't count
-    mcheck <- multicheck(y~1, id= id)
+    mcheck <- survcheck(y~1, id= id)
     istate <- mcheck$istate
     temp <- attr(y, 'states')[y[event,3]]
     tmat <- table(y[event,2], from=istate[event], to=temp)
@@ -86,7 +86,7 @@ msurv <- survfit(mfit, newdata=list(x=0))
 
 if (FALSE) {
     # this graph is very useful
-    temp <- multicheck(Surv(t1, t2, state) ~1, mtest, id=id)
+    temp <- survcheck(Surv(t1, t2, state) ~1, mtest, id=id)
     plot(c(0,11), c(1,5.1), type='n', xlab="Time", ylab= "Subject")
     with(mtest, segments(t1+.1, id, t2, id, col=as.numeric(temp$istate)))
     event <- subset(mtest, state!='censor')

@@ -10,7 +10,7 @@ importFrom(stats, anova, approx, as.formula, coef, coefficients,
            reformulate, setNames, terms.formula,
            resid, residuals, rnorm, runif, stat.anova, terms, var, vcov,
            .checkMFClasses, .getXlevels)
-importFrom(graphics, arrows, axis, barplot, box, matlines, matplot,
+importFrom(graphics, arrows, axis, barplot, box, clip, matlines, matplot,
            hist, frame, identify, image, par, plot, points, lines, 
            segments, strheight, strwidth, text)
 importFrom(Matrix, expm)

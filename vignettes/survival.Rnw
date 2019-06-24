@@ -90,11 +90,11 @@ which places that release somewhere in 1989.
 The library was eventually incorportated directly in S-Plus, and from there it
 became a standard part of R.
 
-Looking back, I think that 
+I suspect that 
 one of the primary reasons for the package's success is that all of the
 functions have been written to solve real analysis questions that arose from
 real data sets; theoretical issues were explored when necessary but they 
-never played a leading role.  
+have never played a leading role.  
 As a statistician in a major medical center, the central focus of my department
 is to advance medicine; statistics is a tool to that end.
 This also highlights one of the deficiencies of the package: if a particular
@@ -102,7 +102,7 @@ analysis question has not yet arisen in one of my studies then the survival
 package will also have nothing to say on the topic. 
 Luckily there are many other R packages that build on or extend
 the survival package, and anyone working in the field (the author included) 
-should expect to use more packages than just this one.
+can expect to use more packages than just this one.
 The author certainly never foresaw that the library would become as popular 
 as it has.
 
@@ -114,7 +114,7 @@ Version 3 had 4 major goals.
   \item Make multi-state curves and models as easy to use as an ordinary
     Kaplan-Meier and Cox model.
   \item Deeper support for absolute risk estimates.
-  \item More consitent support of robust variance estimates.
+  \item Consistent use of robust variance estimates.
   \item Clean up various naming inconsistencies that have arisen over time.
 \end{itemize}
 
@@ -123,13 +123,13 @@ guiding lights of the change are
 \begin{itemize}
   \item We can't do everything (so don't try).
   \item Allow other packages to build on this one.  That means clear 
-    documentation of all of the objects that are produced, the use of simple
+    documentation of all of the results that are produced, the use of simple
     S3 objects that are easy to manipulate, and setting up many 
     of the routines as a pair.  For example \code{concordance} and 
     \code{concordancefit}; the former is the user front end and the latter does 
     the actual work.  Other package authors might want to access the lower level
-    interface, accepting the penalty of fewer error checks. 
-  \item Don't bugger it up!
+    interface, while accepting the penalty of fewer error checks. 
+  \item Don't mess it up!
 \end{itemize}
 
 This meant preserving the current argument names as much as possible.
@@ -215,16 +215,19 @@ freely between them, i.e., use whichever viewpoint is handy at the moment,
 either ``time to event'' or ``rate of events''.  
 When there more than one transition the rate approach is particularly useful.
 
-The figure also displays a 2 by 2 division of survival data sets:
-one event type (top row) versus multiple types of events 
-(bottom row), and  one endpoint per subject (left column) versus multiple
-events per subject (right column).  
+The figure also displays a 2 by 2 division of survival data sets, one that
+will be used to organize many subsections of this document.
+A: one event type (top row) versus multiple types of events 
+(bottom row), and  B: one endpoint per subject (left column) versus multiple
+events per subject (right column). 
+The upper left is simple or ``classic'' survival while the lower right is
+the most complex.
 
 \chapter{Survival and cumulative hazard curves}
 \section{Simple curves}
 \index{function!survfit}%
 \index{survival curves!one event}
-The most common simple depiction of survival is the Kaplan-Meier curve,
+The most common depiction of survival data is the Kaplan-Meier curve,
 which is created with the \code{survfit} function.
 The left-hand side of the formula will be a Surv object and the right hand
 side contains one or more categorical variables that will divide the 
@@ -286,8 +289,7 @@ of the estimated survival must be decreasing due to a smaller sample size,
 but the formal standard error will not change until the next death.
 This option widens the confidence interval between death times, proportional
 to the number at risk, giving a visual clue of the decrease in $n$.
-There is a small (and decreasing) population of users who like the option,
-most users will ignore it.
+There is only a small (and decreasing) population of users who make use of this.
 
 \index{function!plot.survfit}
 The most common use of survival curves is to plot them, as shown below.
@@ -298,13 +300,14 @@ legend(730, .8, c("Female", "Male"), col=1:2, lwd=2, bty='n')
 @ 
 
 Curves will appear in the plot in the same order as they are listed by 
-\code{print}, which in turn gives reveals the association of each subject
-with the color or linetype used for each. 
+\code{print}; this is a quick way to remind ourselves of which subset maps
+to each color or linetype in the graph.
 Curves can also be labeled using the \code{pch} option to place marks on 
 the curves.
 The location of the marks is controlled by the \code{mark.time} option
 which has a default value of FALSE (no marks).  A vector of numeric values
-specifies the location of the marks, optionally a value of TRUE will cause a 
+specifies the location of the marks, optionally a value of 
+\code{mark.time=TRUE} will cause a 
 mark to appear at each censoring time; this can result in far too many marks
 if $n$ is large, however.
 By default confidence intervals are included on the plot of there is a single
@@ -393,7 +396,7 @@ studies; in reliability analysis it is also known as the
 \emph{mean cumulative function}.  
 The estimate is also important in multi-state models.
 
-\section{Multi-state models}
+\section{Competing risks}
 In the classic case \code{status} is either a logical or 0/1 numeric variable
 that represents censoring (0 or false) or an event (1 or true),
 and the result is a survival curve for each group.
@@ -401,6 +404,8 @@ If \code{status} is a factor, however, the result is a multi-state
 estimate.
 In this case the first level of \code{status} is used to code censoring while
 the remaining ones are possible states.
+For competing risks data each subject has a most one transition, but there
+are multiple transition types.
 
 \subsection{Simple example}
 Here is a simple competing risks example where the three endpoints are
@@ -443,7 +448,7 @@ This is an important concept, and so we work it out below.
 1. The starting point is the column vector
       $p(0) = (1, 0, 0, 0)$, everyone starts in the first state.
     
-2. At time 1 form the 4 by 4 transtion matrix $T_1$
+2. At time 1, the first event time, form the 4 by 4 transtion matrix $T_1$
 \begin{align*}
  T(1)  &= \left( \begin{array}{cccc}
              10/11 & 1/11 & 0/11 & 0/11 \\
@@ -455,10 +460,11 @@ This is an important concept, and so we work it out below.
 
 The first row of $T(1)$ desribes the disposition of everyone who is 
 in state 1 and under observation at time 1: 10/11 stay in state 1 and 
-1 transtions to state a.  
-There is no one in the other 3 states, for rows use a default
-``stay in the same state'' row.
-(Since no one ever leaves states a--c, the bottom three rows of $T$ will 
+1 subject transtions to state a.  
+There is no one in the other 3 states, so rows 2--4 are technically
+undefined; use a default ``stay in the same state'' row which has 1 on
+the diagonal.
+(Since no one ever leaves states a, b, or c, the bottom three rows of $T$ will 
 continue to have this form.)
 
 3. At time 2 the first row will be (9/10, 0, 1/10, 0), and
@@ -478,14 +484,60 @@ The AJ is more general, however; a given subject can have multiple
 transitions from state to state, including transitions to a state that was 
 visited earlier.
 
+
+\subsection{Monoclonal gammopathy}
+
+The \code{mgus2} data set contains information of 1384 subjects who were
+who were found to have a particular pattern on a laboratory test
+(monoclongal gammopathy of undertermined significance or MGUS).
+The genesis of the study was a suspicion that such a result might indicate a
+predisposition to plasma cell malignancies such a multiple myeloma;
+subjects were followed forward to assess whether an excess did occur.
+The mean age at diagnosis is 63 years, so death from other causes will be
+an important competing risk.
+Here are a few observations of the data set, one of which experienced
+progression to a plasma cell malignancy.
+<<mgus1>>=
+mgus2[55:59, -(4:7)]
+@ 
+
+To generate competing risk curves create a new (etime, event) pair.
+
+<<mgus2, fig=TRUE>>=
+event <- with(mgus2, ifelse(pstat==1, 1, 2*death))
+event <- factor(event, 0:2, c("censored", "progression", "death"))
+etime <- with(mgus2, ifelse(pstat==1, ptime, futime))
+crfit <- survfit(Surv(etime, event) ~ sex, mgus2)
+crfit
+
+plot(crfit, col=1:2, lty=c(3,3,2,2,1,1), noplot="", xscale=12,
+     xlab="Years post diagnsis", ylab="P(state)")
+legend(240, .65, c("Female, death", "Male, death", "malignancy", "(s0)"),
+       lty=c(1,1,2,3), col=c(1,2,1,1), bty='n')
+@ 
+
+There are 3 curves for females, one for each of the three states, and
+3 for males. 
+The three curves sum to 1 at any given time (everyone has to be somewhere),
+and the default action for \code{plot.survfit} is to leave out the
+``still in original state'' curve (s0) since it is usually the least
+interesting, but in this case we have shown all 3.
+We will return to this example when exploring models.
+
+\section{Multi-state data}
+The most general multi-state data will have multiple outcomes and
+multiple endponts per subject.
+In this case we will need to use (time1, time2) form for each subject.
 The dataset structure is similar to that for time varying
 covariates in a Cox model: the time variable will be intervals $(t_1, t_2]$
-which are open on the left and closed on the right, the status variable
-contains the state that was entered at time $t_2$, and a subject will have
-multiple lines of data.
+which are open on the left and closed on the right,
+and a given subject will have multiple lines of data.
+But instead of covariates changing from line to line, in this
+case the status variable changes; it
+contains the state that was entered at time $t_2$.
 There are a few restrictions.
 \begin{itemize} 
-  \item An identifier variable is required which indicates which rows of the
+  \item An identifier variable is needed to indicate which rows of the
     data frame belong to each subject.  If the \code{id} argument is missing
     the code assumes that each row of data is a separate subject, which leads
     to a nonsense estimate when there are actually multiple rows for anyone. 
@@ -500,18 +552,20 @@ There are a few restrictions.
      time for a subject.
 \end{itemize}
 
-By default
-every subject is assumed to start in a common entry state which is given
-the name ``(0)''.  The parenthesis are an echo of ``(Intercept)'' in a
-linear model and show a label that was not provided by the data.
-The \code{istate} argument can instead be used to designate the subject's state 
+The \code{istate} argument can be used to designate a subject's state 
 at the start of each $t_1, t_2$ time interval.
 Like variables in the formula it is searched for in the
 \code{data} argument.
-The distribution of states at the first event time is 
+If it is not present
+every subject is assumed to start in a common entry state which is given
+the name ``(s0)''.  The parenthesis are an echo of ``(Intercept)'' in a
+linear model and show a label that was provided by the program rather than
+the data.
+The distribution of states just prior to the first event time is 
 treated as the initial distribution of states.
 In common with ordinary survival any observation which is censored before the 
 first event time has no impact on the results.
+
 
 \subsection{Myeloid data}
 The \code{myeloid} data set contains data from a clinical trial
@@ -611,7 +665,7 @@ For investigating the data we would like to add a set of alternate endpoints.
   \item The competing risk of CR and death, ignoring other states.  This
     is used to estimate the fraction who ever acheive a complete response.
   \item The competing risk of SCT and death, ignoring other states.
-  \item A set of state labels that distinguished death after SCT from death 
+  \item An endpoint that distinguished death after SCT from death 
     before SCT.
 \end{enumerate}
 Each of these can be accomplised by adding further outcome variables to 
@@ -629,6 +683,11 @@ temp3     <- with(mdata, c(0,0,1,0,2)[event] + priortx)
 mdata$tx2 <- factor(temp3, 0:3,
                     c("censor", "SCT", "death w/o SCT", "death after SCT"))
 @ 
+
+Notice the use of the \code{priorcr} variable in defining \code{crstat}.
+This outcome variable treats complete response as a terminal state,
+which in turn means that no further transtiontions are allowed after
+reaching CR.  
 
 \begin{figure}
   \myfig{curve1}
@@ -708,7 +767,7 @@ lines(sfit3[,"SCT"], xlim=mlim, col=1:2,
           lty=2, lwd=2)
 
 xtime <- c(0, 6, 12, 24, 36, 48)
-axis(1, xtime, xtime) #marks every year rather than 10 months
+axis(1, xtime, xtime) #axis marks every year rather than 10 months
 temp <- outer(c("A", "B"), c("CR", "transplant", "death"),  paste)
 temp[7] <- ""
 legend(25, .3, temp[c(1,2,7,3,4,7,5,6,7)], lty=c(3,3,3, 2,2,2 ,1,1,1),
@@ -777,19 +836,354 @@ par(mar=c(4,.1,1,1))
 crisk(c("Entry", "transplant"), alty=2, cex=1.2)
 crisk(c("Entry","transplant", "Death"), cex=1.2)
 par(oldpar)
+layout(1)
 @ 
 
+\begin{figure}
+  \myfig{cr2}
+  \caption{Models for `ever in CR' and `currently in CR';
+    the only difference is an additional transition.
+    Both models ignore transplant.}
+  \label{cr2}
+\end{figure}
+
+Complete response is a goal of the initial therapy; figure \ref{cr2}
+looks more closely at this.
+As was noted before arm B has an increased number of late responses.
+The duration of response is also increased: 
+the solid curves show the number of subjects still in response, and
+we see that they spread farther apart than the dotted ``ever in response''
+curves. 
+The figure shows only the first eight months in order to better visualize
+the details, but continuing the curves out to 48 months reveals a similar
+pattern.
+Here is the code to create the figure.
+
+<<cr2, fig=TRUE, include=FALSE>>=
+cr2 <- mdata$event
+cr2[cr2=="SCT"] <- "none" # ignore transplants
+crsurv <- survfit(Surv(tstart, tstop, cr2) ~ trt,
+                  data= mdata, id=id, influence=TRUE)
+
+layout(matrix(c(1,1,2,3), 2,2), widths=2:1)
+oldpar <- par(mar=c(5.1, 4.1, 1.1, .1))
+plot(sfit2[,2], lty=3, lwd=2, col=1:2, xmax=12, 
+     xlab="Months", ylab="CR")
+lines(crsurv[,2], lty=1, lwd=2, col=1:2)
+par(mar=c(4, .1, 1, 1))
+crisk( c("Entry","CR", "Death"), alty=3)
+state3(c("Entry", "CR", "Death/Relapse"))
+
+par(oldpar)
+layout(1)
+@ 
+
+The above code created yet another event
+variable so as to ignore transitions to the transplant state.
+They become a non-event, in the same way that extra lines with
+a status of zero are used to create time-dependent covariates for
+a Cox model fit.
+
+The \code{survfit} call above included the \code{influence=TRUE}
+argument, which causes the influence array to be calculated and
+returned.  
+It contains, for each subject, that subject's influence on the
+time by state matrix of results and allows for calculation of the
+standard error of the restricted mean.  We will return to this
+in a later section.
+<<cr2b>>=
+print(crsurv, rmean=48, digits=2)
+@ 
+<<cr2c, echo=FALSE>>=
+temp <- summary(crsurv, rmean=48)$table
+delta <- round(temp[4,3] - temp[3,3], 2)
+@ 
+
+@ 
+The restricted mean time in the CR state is extended by 
+\Sexpr{round(temp[4,3], 1)} - \Sexpr{round(temp[3,3], 1)} =
+\Sexpr{delta} months.  
+A question which immediately gets asked is whether this difference
+is ``significant'', to which there are two answers. 
+The first and more important is to ask whether 5 months is an important gain
+from either a clinical or patient perspective. 
+The overall restricted mean survival for the study is approximately
+30 of the first 48 months post entry (use print(sfit1, rmean=48));
+on this backdrop an extra 5 months in CR might or might not be an
+meaningful advantage from a patient's point of view.
+The less important answer is to test whether the apparent gain is sufficiently
+rare from a mathematical point of view, i.e., ``statistical'' significance.
+The standard errors of the two values are
+\Sexpr{round(temp[3,4],1)} and \Sexpr{round(temp[4,4],1)},
+and since they are based
+on disjoint subjects the values are independent, leading to a standard error
+for the difference of $\sqrt{1.1^2 + 1.2^2} = 1.6$.
+The 5 month difference is over 3 standard errors.
+
+\begin{figure}
+  \myfig{txsurv}
+  \caption{Transplant status of the subjects, broken down by whether it
+    occurred before or after CR.}
+  \label{txsurv}
+\end{figure}
+
+In summary
+  \begin{itemize}
+    \item Arm B adds late complete responses (about 4\%); there are 
+      212/310 in arm B vs. 244/338 in arm B.
+    \item The difference in 4 year survival is about 6\%.
+    \item There is approximately 2 months longer average duration of CR (of 48).
+  \end{itemize}
+
+CR $\rightarrow$ transplant is the target treatment path for a
+patient; given the improvements listed above
+why does figure \ref{curve1} show no change in the number transplanted?
+Figure \ref{txsurv} shows the transplants broken down by whether this
+happened before or after complete response.
+Most of the non-CR transplants happen by 10 months.
+One possible explanation is that once it is apparent to the
+patient/physician pair that CR is not going to occur, they proceed forward with
+other treatment options.  
+The extra CR events on arm B, which occur between 2 and 8 months, lead to 
+a consequent increase in transplant as well, but at a later time of 12--24 
+months: for a subject in CR we can perhaps afford to defer the transplant date.
+
+Computation is again based on a manipulation of the event variable: in this
+case dividing the transplant state into two sub-states based on the presence
+of a prior CR.  The code makes use of the time-dependent covariate 
+\code{priorcr}.
+(Because of scheduling constraints within a hospital it is unlikely that
+a CR that is within a few days prior to transplant could have effected the
+decision to schedule a transplant, however.  An alternate breakdown that
+might be useful would be ``transplant without CR or within 7 days after CR''
+versus those that are more than a week later. 
+There are many sensible questions that can be asked.)
+
+<<txsurv, fig=TRUE, include=FALSE>>=
+event2 <- with(mdata, ifelse(event=="transplant" & priorcr==1, 6,
+               as.numeric(event)))
+event2 <- factor(event2, 1:6, c(levels(mdata$event), "tx after CR"))
+txsurv <- survfit(Surv(tstart, tstop, event2) ~ trt, mdata, id=id,
+                  subset=(priortx ==0))
+
+layout(matrix(c(1,1,1,2,2,0),3,2), widths=2:1)
+oldpar <- par(mar=c(5.1, 4.1, 1,.1))
+plot(txsurv[,c(3,5)], col=1:2, lty=c(1,1,2,2), lwd=2, xmax=48,
+     xaxt='n', xlab="Months", ylab="Transplanted")
+axis(1, xtime, xtime)
+legend(15, .13, c("A, transplant without CR", "B, transplant without CR",
+                 "A, transplant after CR", "B, transplant after CR"),
+       col=1:2, lty=c(1,1,2,2), lwd=2, bty='n')
+state4()  # add the state figure
+par(oldpar)
+@ 
+
+\begin{figure}
+  \myfig{sfit4}
+  \caption{The full multi-state curves for the two treatment arms.}
+  \label{sfit4}
+\end{figure}
+
+Figure \ref{sfit4} shows the full set of state occupancy probabilities for the
+cohort over the first 4 years.  At each point in time the curves
+estimate the fraction of subjects currently in that state.
+ The total who are in the transplant state peaks at
+about 9 months and then decreases as subjects relapse or die; 
+the curve rises
+whenever someone receives a transplant and goes down whenever someone
+leaves the state.
+At 36 months treatment arm B (dashed) has a lower fraction who have died,
+the survivors are about evenly split between those who have received a
+transplant and those whose last state is a complete response
+(only a few of the latter are post transplant). 
+The fraction currently in relapse -- a transient state -- is about 5\% for
+each arm.
+The figure omits the curve for ``still in the entry state''.
+The reason is that 
+at any point in time the sum of the 5 possible states is 1 ---
+everyone has to be somewhere.  Thus one of the curves
+is redundant, and the fraction still in the entry state is the least 
+interesting of them.
+(A multi-state \code{survfit} call that does not include the \code{istate}
+argument will assume that everyone starts in an unnamed entry state.
+The default plot behavior is to omit the curves for any unnamed states.)
 
 
+<<sfit4, fig=TRUE, include=FALSE>>=
+sfit4 <- survfit(Surv(tstart, tstop, event) ~ trt, mdata, id=id)
+sfit4$transitions
+layout(matrix(1:2,1,2), widths=2:1)
+oldpar <- par(mar=c(5.1, 4.1, 1,.1))
+plot(sfit4, col=rep(1:4,each=2), lwd=2, lty=1:2, xmax=48, xaxt='n',
+     xlab="Months", ylab="Current state")
+axis(1, xtime, xtime)
+text(c(40, 40, 40, 40), c(.51, .13, .32, .01),
+     c("Death", "CR", "Transplant", "Recurrence"), col=c(4,1,2,3))
 
+par(mar=c(5.1, .1, 1, .1))
+state5()
+par(oldpar)
+@ 
 
+The transitions table above shows \Sexpr{sfit4$transitions[1,4]} %$ 
+direct transitions from entry to death, i.e., 
+subjects who die without experiencing any of the other intermediate points,
+\Sexpr{sfit4$transitions[2,3]} who go from CR to transplant (as expected),
+\Sexpr{sfit4$transitions[3,2]} who go from transplant to CR, etc. %$
+No one was observed to go from relapse to CR in the data set, this
+serves as a data check since it should not be possible per the data entry plan.
 
+\section{Influence matrix}
 
-\section{MGUS}
+For one of the curves above we returned the influence array.
+For each value in the matrix $P$ = probability in state and each subject
+$i$ in the data set, this contains the effect of that subject on each
+value in $P$.  Formally,
+\begin{equation*}
+  D_{ij}(t) = \left . \frac{\partial p_j(t)}{\partial w_i} \right|_w
+\end{equation*}
+where $D_{ij}(t)$ is the influence of subject $i$ on $p_j(t)$, and
+$p_j(t)$ is the estimated probability for state $j$ at time $t$.
+This is known as the infinitesimal jackknife (among other labels).
+<<reprise>>=
+crsurv <- survfit(Surv(tstart, tstop, cr2) ~ trt,
+                  data= mdata, id=id, influence=TRUE)
+curveA <- crsurv[1,]  # select treatment A
 
+dim(curveA)    # P matrix for treatement A
+curveA$states
+dim(curveA$pstate)  # 426 time points, 5 states
+dim(curveA$influence) # influence matrix for treatment A
+table(myeloid$trt)
+@
 
+For treatment arm A there are \Sexpr{table(data1$trt)[1]} subjects and
+\Sexpr{dim(curveA$pstate)[1]} time points in the $P$ matrix.
+The influence array has subject as the first dimension, and for each
+subject it has an image of the $P$ matrix containing that subject's
+influence on each value in $P$, i.e.,
+\code{influence[1, ,]} is the influence of subject 1 on $P$.
+For this data set everyone starts in the entry state, so $p(0)$ = the
+first row of \code{pstate} will be (1, 0, 0, 0, 0) and the influence of
+each subject on this row is 0;
+this does not hold if not all subjects start in the same state.
 
+As an exercise we will calculate the mean time in state out to 48 weeks.
+This is the area under the individual curves from time 0 to 48.  Since
+the curves are step functions this is simple sum of rectangles, treating
+any intervals after 48 months as having 0 width.
+<<meantime>>=
+t48 <- pmin(48, curveA$time)   
+delta <- diff(c(t48, 48))  # width of intervals
+rfun <- function(pmat, delta) colSums(pmat * delta)  #area under the curve
+rmean <- rfun(curveA$pstate, delta)
 
+# Apply the same calculation to each subject's influence slice
+inf <- apply(curveA$influence, 1, rfun, delta=delta)
+# inf is now a 5 state by 310 subject matrix, containing the IJ estimates
+#  on the AUC or mean time.  The sum of squares is a variance.
+se.rmean <- sqrt(rowSums(inf^2))
+round(rbind(rmean, se.rmean), 2)
+
+print(curveA, rmean=48, digits=2)
+@ 
+
+The last lines verify that this is exacly the cacluation done by the
+\code{print.survfitms} function; the results can also be found in
+the \code{table} component returned by \code{summary.survfitms}.
+
+In general, let $U_i$ be the influence of subject $i$.
+For some function $f(P)$ of the probability in state matrix \code{pstate}, 
+the influence of subject
+$i$ will be $\delta_i = f(P + U_i) - f(P)$ and the infinitesimal jackknife
+estimate of variance will be $\sum_i \delta^2$.
+For the simple case of adding up rectangles $f(P +U_i) - f(P) = f(U_i)$ leading
+to particularly simple code, but this will not always be the case.  
+
+\section{State space figures}
+The state space figures in the above example were drawn with a simple
+utility function \code{statefig}.  It has two primary arguments along with
+standard graphical options of color, line type, etc.
+\begin{enumerate}
+  \item A layout vector or matrix.  A vector with values of (1, 3, 1)
+    for instance will allocate one state, then a column with 3 states, then
+    one more state, proceeding from left to right.  A matrix with a single
+    row will do the same, whereas a matrix with one column will proceed
+    from top to bottom.
+  \item A $k$ by $k$ connection matrix $C$ where $k$ is the number of states.
+    If $C_{ij} \ne 0$ then an arrow is drawn from state $i$ to state $j$.
+    The row or column names of the matrix are used to label the states.
+    The lines connecting the states can be straight or curved, see the
+    help file for an example.
+\end{enumerate}
+ 
+The first few state space diagrams were competing risk models, which use
+the following helper function.  It accepts a vector of state names,
+where the first name is the starting state and the remainder are the
+possible outcomes.
+<<crisk>>=
+crisk <- function(what, horizontal = TRUE, ...) {
+    nstate <- length(what)
+    connect <- matrix(0, nstate, nstate,
+                      dimnames=list(what, what))
+    connect[1,-1] <- 1  # an arrow from state 1 to each of the others
+    if (horizontal) statefig(c(1, nstate-1),  connect, ...)
+    else statefig(matrix(c(1, nstate-1), ncol=1), connect, ...)
+}
+@ 
+
+This next function draws a variation of the illness-death model.
+It has an initial state,  
+an absorbing state (normally death), and an optional intermediate state.
+<<state3>>=
+state3 <- function(what, horizontal=TRUE, ...) {
+    if (length(what) != 3) stop("Should be 3 states")
+    connect <- matrix(c(0,0,0, 1,0,0, 1,1,0), 3,3,
+                      dimnames=list(what, what))
+    if (horizontal) statefig(1:2, connect, ...)
+    else statefig(matrix(1:2, ncol=1), connect, ...)
+}
+@ 
+
+The most complex of the state space figures has all 5 states.
+<<state5>>=
+state5 <- function(what, ...) {
+    sname <- c("Entry", "CR", "Tx", "Rel", "Death")
+    connect <- matrix(0, 5, 5, dimnames=list(sname, sname))
+    connect[1, -1] <- c(1,1,1, 1.4)
+    connect[2, 3:5] <- c(1, 1.4, 1)
+    connect[3, c(2,4,5)] <- 1
+    connect[4, c(3,5)]  <- 1
+    statefig(matrix(c(1,3,1)), connect, cex=.8, ...)
+}
+@ 
+
+For figure \ref{txsurv} I want a third row with a single
+state, but don't want that state centered.
+For this I need to create my own (x,y) coordinate list as
+the layout parameter.  Coordinates must be between 0 and 1.
+<<state4>>=
+state4 <- function() {
+    sname <- c("Entry", "CR", "Transplant", "Transplant")
+    layout <- cbind(x =c(1/2, 3/4, 1/4, 3/4),
+                    y =c(5/6, 1/2, 1/2, 1/6))
+    connect <- matrix(0,4,4, dimnames=list(sname, sname))
+    connect[1, 2:3] <- 1
+    connect[2,4] <- 1
+    statefig(layout, connect)
+}
+@
+
+The statefig function was written to do ``good enough'' state space figures
+quickly and easily, in the hope that users will find it simple enough that
+diagrams are drawn early and often.
+Other packages such as diagram, DiagrammeR, or dagR are far more flexible
+and can create more nuanced and well decorated results.
+
+\chapter{Cox models}
+
+\section{Competing risks}
+\subsection{MGUS}
 As an simple multi-state example consider the monoclonal gammopathy data
  set \code{mgus2},
 which contains the time to a plasma cell malignancy (PCM), usually
@@ -797,6 +1191,7 @@ multiple myleoma,  and the
 time to death for 1384 subjects found to have a condition known as
 monoclonal gammopathy of undetermined significance (MGUS), based on
 a particular test.  
+This data set has already appeared in \ref{mgusplot}.
 The time values in the data set are from detection of the condition.
 Here are a subset of the observations:
 
@@ -846,9 +1241,9 @@ issues: there are 9 subjects whose time to progression is identical to
 the death time.
 It turns out that these are subjects whose disease was discovered at
 autopsy.
-The survival code does not allow for time intervals of length zero (one
-cannot spend 0 days in the malignancy state), so an exception needs to
-be made.  Clearly, these autopsied subjects will have had their 
+The survival code does not allow for time intervals of length zero, 
+so a modification needs to be made to the data.
+Clearly, these autopsied subjects will have had their 
 malignancy for some period of time before death, below we arbitrarily
 move the PCM date 1 month back.
 
@@ -874,99 +1269,6 @@ the study definition can only occur once, or from Death to some other state.
 The table of per subject counts shows 103 subjects who make 2 transitions,
 but no one who has multiple PCM or death events.
 We are now ready to compute an estimate.
-
-The \code{survfit} function computes and Aalen-Johansen estimate of
-the probability in state vector $p(t)$.
-The resulting vector has 3 elements in this case,
-$p_1(t) = $Pr(in the Entry state at time $t$), 
-$p_2(t) = $Pr(in the Malignancy state at time $t$) and
-$p_3(t) = $Pr(in the death state at time $t$).
-The result is saved as an $m$ by 3 matrix, where $m$ is the number of unique
-event and censoring times.
-
-The Aalen-Johansen estimate is a simple matrix product
-\begin{align*}
-  p(t) = p(0) \prod_{s \le t} T(s)  \label {aj1}\\
-  T(s) = \left( \begin{array}{ccc}
-      \box & \lambda_{12}(s) & \lambda_{13}(s) \\
-      \lambda_{21}(s) & \box & \lambda_{23}(s)  \\
-      \lambda_{31}(s) & \lambda_{32}(s) & \box \end{array} \right) 
-  \label{aj2}
-\end{align}
-The transition rates $\lambda_{jk}(s)$ in the matrix are simply the fraction of 
-subjects who were observed to make a transtion from state $j$ to state $k$ at
-time $s$, among all those who were at risk for such a transition,
-i.e. all those in state $j$ just before time $s$.
-There is a matrix for each time an event occurs, and
-each row of the matrix is constrained to sum to 1: everyone has to go somewhere
-(or stay home). 
-We left the diagonal blank in \eqref{aj2} since it can be filled in last. 
-It is a fairly simple exercise to verify that the Aalen-Johansen estimate
-reduces to the Kaplan-Meier estimate for the two state alive-dead model,
-or more technically that $p_1(t) = S(t)$ = probability of being in the alive
-state at time $t$ and $p_2(t) = 1-S(t)$ = probability of being in the dead
-state at time $t$.
-One can also verify that for competing risks data it gives the same estimate
-as the well known (but horribly named) \emph{cumulative incidence}
-estimator.    
-
-For the 3 state MGUS model $\lambda_{32}=0$ and $\lambda_{31}=0$: there are no
-transtions from death; $\lambda_{21}=0$ as well.
-Since the data set does not contain a ``current state'' variable, only the
-transitions, everyone is assumed to start in a common unnamed state ``()''
-with $p(0) = (1,0,0)$ to reflect this.
-Here is a fit and plot of the competing risks subset of our figure, i.e.,
-ignoring the transitions from malignancy to death.
-
-<<survfit-mgus3>>=
-mfit <- survfit(Surv(tstart, tstop, event) ~ sex, id = id,
-                data=mdata, subset= (tstart==0))
-mfit
-plot(mfit, col=1:2, lty=c(1,1,2,2), lwd=2, xlim=c(0,400),
-     xlab="Months from MGUS diagnosis", ylab= "P(state)")
-legend(10, .85, c("Male, death w/o PCM", "Female, death w/o PCM"), lty=2, 
-       lwd=2, col=2:1, bty='n')
-legend(200, .3, c("Female, PCM", "Male, PCM"), lty=1, lwd=2,
-       col=1:2, bty='n')
-@  
-
-The default printout now included the restricted mean (RMST) rather
-than a median.  
-The reason is that for a general multi-state model the $p(t)$ = probability
-in state curves can both rise and fall, so the median of a curve is not
-well defined.   The RMST however corresponds to the mean time spent in the
-state, and has a direct interpretation in all cases, even when subjects
-might enter and leave the state multiple times.
-
-
-
-\chapter{The proportional hazard (Cox) model}
-
-\chapter{Multi-event proportional hazards models}
-\section{Single event type}
-\section{Competing risks}
-A simple example of competing risks is the MGUS data set, a state
-space diagrem for the model is shown below with plasma cell malignancy (PCM)
-and death as the endpoints.
-The \code{mgus2} data set has separate variables for time to progression
-and time to death.  
-Nine subjects had progression detected at autopsy, for those we move the
-progression time 1 month earlier to avoid ties.
-
-<<mstate>>=
-states <- c("MGUS", "PCM", "Death")
-tmat <- matrix(c(0,0,0, 1,0,0, 1,0,0), 3,3, 
-               dimnames=list(states, states))
-statefig(1:2, tmat)
-
-# modified progression time, = -1 month if tied with death
-temp <- with(mgus2, ifelse(pstat==0, NA,
-                           ifelse(ptime==futime, ptime-1, ptime)))
-mdata <- tmerge(mgus2[,1:7], mgus2, id=id, event= event(futime, 2*death),
-                event= event(temp))
-mdata <- tmerge(mdata, mdata, id=id, enum = cumtdc(tstart)) # add row num
-mdata$event <- factor(mdata$event, 0:2, c("censor", "PCM", "Death"))
-@ 
 
 The competing risks data consists of only the first event for each subject,
 so we subset the data when fitting the model.
@@ -1150,7 +1452,10 @@ Other changes are
   \item Some code paths produced std(S) and some std(log(S)), the object now
     contains a \code{log.se} flag telling which.  (Before, downstream routines
     just ``had to know'').
-  \item an explicit ``v3'' flag in the object
+  \item an explicit ``version'' flag in the object
+  \item using a single subscript on a survfit object now behaves like the
+    use of a single subscript on an array or matrix, in that the result has
+    only one dimension.
 \end{itemize}
 
 \section{Coxph}

@@ -48,7 +48,7 @@ or integer indices.
     #  separate, but in the object these two are combined and appear as the
     #  columns of pstate.
     #
-    if (ndots==1 && length(dd2) > 1) {
+    if (ndots==1 && length(dd) > 1) {
         # the 'treat it as a vector' case
         # if only one dimension is >1, it is easier to expand out i,j,k
         if (length(dd[dd>1]) ==1) {
@@ -60,13 +60,13 @@ or integer indices.
             if (!is.numeric(i))
                 stop("single subscript must be numeric")
             # when subscripting a mix, these don't endure
-            newx$cumhaz <- newx$std.chaz <- newx$influence.c <- NULL
+            newx$cumhaz <- newx$std.chaz <- newx$influence.chaz <- NULL
             newx$transitions <- newx$states <- newx$newdata <- NULL
 
             # what strata and columns do I need?
             itemp <- matrix(1:prod(dd), nrow=dd[1])
-            jj <- (cols(itemp))[i]    # columns
-            ii <- (rows(itemp))[i]    # this is now the strata id
+            jj <- (col(itemp))[i]    # columns
+            ii <- (row(itemp))[i]    # this is now the strata id
             
             if (dd[1]==1) irow <- rep(seq(along= x$time), length(ii))
             else {
@@ -91,7 +91,7 @@ or integer indices.
                 if (!is.null(x[[z]])) newx[[z]] <- (x[[z]])[indx]
   
             newx$strata <- x$strata[ii]
-            names(newx$strata) <- seq.along(ii)
+            names(newx$strata) <- seq(along=ii)
 
             return(newx)
         }
@@ -128,13 +128,13 @@ or integer indices.
             if (!is.null(x[[z]])) newx[[z]] <- (x[[z]])[irow,j, drop=drop2]
         for (z in c("pstate", "std.err", "upper", "lower"))
             if (!is.null(x[[z]])) newx[[z]] <- (x[[z]])[irow,j, drop=drop2]
-        if (!is.null(x$influence.p)) {
-            if (is.list(x$influence.p)) {
-                if (length(i)==1) newx$influence.p <- x$influence.p[[i]]
-                else newx$influence.p <- lapply(x$influence.p[i],
+        if (!is.null(x$influence.pstate)) {
+            if (is.list(x$influence.pstate)) {
+                if (length(i)==1) newx$influence.pstate <- x$influence.pstate[[i]]
+                else newx$influence.pstate <- lapply(x$influence.pstate[i],
                                      function(x) x[,,j, drop= drop])
                 }
-            else newx$influence.p <- x$influence.p[,,j, drop=drop]
+            else newx$influence.pstate <- x$influence.pstate[,,j, drop=drop]
         }
 
         if (length(j)== nstate && all(j == seq.int(nstate))) {
@@ -142,17 +142,17 @@ or integer indices.
             newx$states <- x$states
             for (z in c("cumhaz", "std.chaz"))
                  if (!is.null(x[[z]])) newx[[z]] <- (x[[z]])[irow,, drop=drop2]
-            if (!is.null(x$influence.c)) {
-                if (is.list(x$influence.c)) {
-                    newx$influence.c <- x$influence.c[i]
+            if (!is.null(x$influence.chaz)) {
+                if (is.list(x$influence.chaz)) {
+                    newx$influence.chaz <- x$influence.chaz[i]
                     if (length(i)==1 && drop) 
-                        newx$influence.c <- x$influence.c[[i]]
+                        newx$influence.chaz <- x$influence.chaz[[i]]
                 }
-                else newx$influence.c <- x$influence.c
+                else newx$influence.chaz <- x$influence.chaz
             }
         }
         else {
-            newx$cumhaz <- newx$std.chaz <- newx$influence.c <- NULL
+            newx$cumhaz <- newx$std.chaz <- newx$influence.chaz <- NULL
             if (length(j)==1 & drop) {
                 newx$states <- NULL
                 temp <- class(newx)
@@ -180,14 +180,14 @@ or integer indices.
         for (z in c("pstate", "std.err", "upper", "lower"))
             if (!is.null(x[[z]])) newx[[z]] <- (x[[z]])[irow,jj, drop=drop2]
   
-        if (!is.null(x$influence.p)) {
-            if (is.list(x$influence.p)) {
+        if (!is.null(x$influence.pstate)) {
+            if (is.list(x$influence.pstate)) {
                 if (length(i)==1) 
-                    newx$influence.p <- (x$influence.p[[i]])[,,jj, drop=drop]
-                else newx$influence.p <- lapply(x$influence.p[i],
+                    newx$influence.pstate <- (x$influence.pstate[[i]])[,,jj, drop=drop]
+                else newx$influence.pstate <- lapply(x$influence.pstate[i],
                                      function(x) x[,,jj, drop= drop])
                 }
-            else newx$influence.p <- x$influence.p[,,jj, drop=drop]
+            else newx$influence.pstate <- x$influence.pstate[,,jj, drop=drop]
         }
 
     if (length(k)== nstate && all(k == seq.int(nstate))) {
@@ -196,17 +196,17 @@ or integer indices.
             for (z in c("cumhaz", "std.chaz"))
                  if (!is.null(x[[z]])) 
                      newx[[z]] <- (x[[z]])[irow,jj, drop=drop2]
-             if (!is.null(x$influence.c)) {
-                if (is.list(x$influence.c)) {
-                    newx$influence.c <- x$influence.c[i]
+             if (!is.null(x$influence.chaz)) {
+                if (is.list(x$influence.chaz)) {
+                    newx$influence.chaz <- x$influence.chaz[i]
                     if (length(i)==1 && drop) 
-                        newx$influence.c <- x$influence.c[[i]]
+                        newx$influence.chaz <- x$influence.chaz[[i]]
                 }
-                else newx$influence.c <- x$influence.c
+                else newx$influence.chaz <- x$influence.chaz
             }
        }
         else {
-            newx$cumhaz <- newx$std.chaz <- newx$influence.c <- NULL
+            newx$cumhaz <- newx$std.chaz <- newx$influence.chaz <- NULL
             x$transitions <- NULL
             if (length(k)==1 && drop) {
                 newx$states <- NULL

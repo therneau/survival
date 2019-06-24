@@ -124,7 +124,7 @@ dim.survfit <- function(x) {
     for (k in c("logse", "version", "conf.int", "conf.type", "type", "call"))
         if (!is.null(x[[k]])) newx[[k]] <- x[[k]]
     class(newx) <- class(x)
-
+    
     if (ndots== 1 && length(dd)==2) {
         # one subscript given for a two dimensional object
         # If one of the dimensions is 1, it is easier for me to fill in i and j
@@ -133,7 +133,7 @@ dim.survfit <- function(x) {
         else {
             #  the user has a mix of rows/cols
             index <- 1:prod(dd)
-            itemp <- matrix(1:index, nrow=dd[1])
+            itemp <- matrix(index, nrow=dd[1])
             keep <- itemp[i]   # illegal subscripts will generate an error
             if (length(keep) == length(index) && all(keep==index)) return(x)
 
@@ -160,15 +160,16 @@ dim.survfit <- function(x) {
             return(newx)
         }
     }
-       
+    
     # irow will be the rows that need to be taken
     #  j the columns (of present)
     if (is.null(x$strata)) {
            if (is.null(i) || all(i==1)) irow <- seq(along=x$time)
            else stop("subscript out of bounds")
-       }
-    else {           
-        indx <- nmatch(i, names(x$strata)) #strata to keep
+    }
+    else { 
+        if (is.null(i)) indx <- seq(along= x$strata)
+        else indx <- nmatch(i, names(x$strata)) #strata to keep
         if (any(is.na(indx))) 
             stop(paste("strata", 
                        paste(i[is.na(indx)], collapse=' '),
@@ -183,8 +184,11 @@ dim.survfit <- function(x) {
         else               newx$strata  <- x$strata[i]
     }
 
+    newx$n <- x$n[indx]
+    if (length(indx) ==1 & drop) x$strata <- NULL
+    else    newx$strata <- x$strata[indx]
+
     if (length(dd)==1) {  # no j dimension
-        newx$n       <- x$n[indx]
         for (k in c("time", "n.risk", "n.event", "n.censor", "n.enter",
                "surv", "std.err", "cumhaz", "std.chaz", "upper", "lower",
                "influence.surv", "influence.chaz"))

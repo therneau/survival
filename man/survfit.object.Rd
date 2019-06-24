@@ -1,4 +1,5 @@
 \name{survfit.object}
+\alias{survfit.object}
 \alias{survfitms.object}
 \title{
   Survival Curve Object 

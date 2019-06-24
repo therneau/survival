@@ -17,16 +17,16 @@ plot.survfit<- function(x, conf.int,  mark.time=FALSE,
 			pch=3,  col=1,lty=1, lwd=1, 
                         cex=1, log=FALSE,
 			xscale=1, yscale=1, 
-			xlim, ylim, 
+			xlim, ylim, xmax, 
 			fun, xlab="", ylab="", xaxs='r', 
                         conf.times, conf.cap=.005, conf.offset=.012, 
                         conf.type=c('log',  'log-log',  'plain', 
                                   'logit', "arcsin"),
                         mark, noplot="(s0)", cumhaz=FALSE,
-                        firstx, xmax, ymin, ...) {
+                        firstx, ymin, ...) {
 
     dotnames <- names(list(...))
-    if (any(dotnames=='type'))
+    if (any(dotnames =='type'))
         stop("The graphical argument 'type' is not allowed")
     x <- survfit23(x)   # convert to version 3, if it wasn't already
 
@@ -43,6 +43,7 @@ plot.survfit<- function(x, conf.int,  mark.time=FALSE,
         xx <- par("usr")
         clip(xx[1], xx[2], xx[3], xx[4])  # undo the clipping
     }
+    invisible(lastx)
 }
 
 lines.survfit <- function(x, type='s', 
@@ -60,15 +61,16 @@ lines.survfit <- function(x, type='s',
     <<plot-transform>>
     <<plot-setup-marks>>
 
-    do.clip <- options("survival")
+    do.clip <- options("survival")$survival
     if (!is.null(xx <- do.clip$plotclip)) clip(xx[1], xx[2], xx[3], xx[4])
 
     <<plot-functions>>
     <<plot-draw>>
-    if (!is.null(xx <- do.clip$plotrestore)) clip(xx[1], xx[2], xx[3], xx[4])
+    if (!is.null(xx <- do.clip$plotreset)) clip(xx[1], xx[2], xx[3], xx[4])
+    invisible(lastx)
 }
 
-points.survfit <- function(x, xscale, xmax, fun, censor=FALSE,
+points.survfit <- function(x, fun, censor=FALSE,
                            col=1, pch, noplot="()", cumhaz=FALSE, ...) {
 
     conf.int <- FALSE  # never draw these with 'points'
@@ -76,7 +78,7 @@ points.survfit <- function(x, xscale, xmax, fun, censor=FALSE,
 
     <<plot-data>>
     <<plot-transform>>
-    do.clip <- options("survival")
+    do.clip <- options("survival")$survival
     if (!is.null(xx <- do.clip$plotclip)) clip(xx[1], xx[2], xx[3], xx[4])
 
     if (ncurve==1 || (length(col)==1 && missing(pch))) {
@@ -104,7 +106,7 @@ points.survfit <- function(x, xscale, xmax, fun, censor=FALSE,
             }
         }
     }
-    if (!is.null(xx <- do.clip$plotrestore)) clip(xx[1], xx[2], xx[3], xx[4])
+    if (!is.null(xx <- do.clip$plotreset)) clip(xx[1], xx[2], xx[3], xx[4])
 }
 @ 
 
@@ -209,7 +211,7 @@ else {
         } 
         else {
             ssurv <- as.matrix(-log(x$surv))
-            if (!is.null(xstd.err)) {
+            if (!is.null(x$std.err)) {
                 if (x$logse) std <- as.matrix(x$std.err)
                 else std <- as.matrix(x$std.err/x$surv)
             }
@@ -557,7 +559,7 @@ for (j in 1:ncol(ssurv)) {
 
     }
 }
-invisible(list(x=xend, y=yend))
+lastx <- list(x=xend, y=yend)
 @
 
 

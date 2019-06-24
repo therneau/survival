@@ -23,6 +23,7 @@ vignettes/.*.aux
 vignettes/.*.log
 vignettes/.*.tex
 vignettes/.*.pdf
+vignettes/old
 noweb/noweb.sty
 fail
 Readme.md

@@ -311,8 +311,8 @@ if (influence > 0) {
     if (type==1 | type==2) {
         if (influence==1 || influence ==3) {
             if (length(xlev)==1) {
-                rval$influence.s <- cfit$influence1
-                row.names(rval$influence.s) <- clname
+                rval$influence.surv <- cfit$influence1
+                row.names(rval$influence.surv) <- clname
             } 
             else {
                 temp <- vector("list", ngroup)
@@ -320,13 +320,13 @@ if (influence > 0) {
                     temp[[i]] <- cfit[[i]]$influence1
                     row.names(temp[[i]]) <- clname[clusterid[[i]]]
                 }
-                rval$influence.s <- temp
+                rval$influence.surv <- temp
             }
         }
         if (influence==2 || influence==3) {
             if (length(xlev)==1) {
-                rval$influence.c <- cfit$influence2
-                row.names(rval$influence.c) <- clname
+                rval$influence.chaz <- cfit$influence2
+                row.names(rval$influence.chaz) <- clname
             }
             else {
                 temp <- vector("list", ngroup)
@@ -334,7 +334,7 @@ if (influence > 0) {
                     temp[[i]] <- cfit[[i]]$influence2
                     row.names(temp[[i]]) <- clname[clusterid[[i]]]
                 }
-                rval$influence.c <- temp
+                rval$influence.chaz <- temp
             }
         }
     }
@@ -352,17 +352,17 @@ if (influence > 0) {
         }
         
         if (influence==2 || influence ==3)
-            rval$influence.c <- temp
+            rval$influence.chaz <- temp
       
         if (influence==1 || influence==3) {
             # if an obs moves the cumulative hazard up, then it moves S down
             if (length(xlev) ==1) 
-                rval$influence.s <- -temp * rep(rval$surv, each=nrow(temp))
+                rval$influence.surv <- -temp * rep(rval$surv, each=nrow(temp))
             else {
                 for (i in 1:ngroup)
                     temp[[i]] <- -temp[[i]] * rep(cfit[[i]]$estimate[,1],
                                                  each=nrow(temp[[i]]))
-                rval$influence.s <- temp
+                rval$influence.surv <- temp
             }
         }
     }

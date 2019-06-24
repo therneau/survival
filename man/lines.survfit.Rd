@@ -12,11 +12,12 @@ generated with \code{plot.survfit}.
 \usage{
 \method{lines}{survfit}(x, type="s", pch=3, col=1, lty=1,
         lwd=1, cex=1, mark.time=FALSE, 
-	xscale=1, xmax, fun, conf.int=FALSE,
-        conf.times, conf.cap=.005, conf.offset=.012, mark, noplot="()", ...)
+        fun, conf.int=FALSE,
+        conf.times, conf.cap=.005, conf.offset=.012, mark, noplot="()",
+        cumhaz= FALSE,  ...)
 \method{lines}{survexp}(x, type="l", ...)
-\method{points}{survfit}(x, xscale, xmax, fun, censor=FALSE, col=1, pch,
-noplot, ...)
+\method{points}{survfit}(x, fun, censor=FALSE, col=1, pch,
+noplot, cumhaz=FALSE, ...)
 }
 
 \arguments{
@@ -53,16 +54,6 @@ If \code{TRUE}, then curves are marked at each censoring time.
 If \code{mark.time} is a numeric vector, then curves are marked at  
 the specified time points. 
 }
-\item{xscale}{
-  this parameter is no longer necessary and is ignored.  See the
-  note in \code{\link{plot.survfit}}.
-}
-\item{xmax}{
-the maximum horizontal plot coordinate.     
-This shortens the curve before plotting it, so unlike using the 
-\code{xlim} graphical parameter, warning messages about out of bounds points are 
-not generated. 
-}
 \item{fun}{
 an arbitrary function defining a transformation of the survival curve. 
 For example \code{fun=log} is an alternative way to draw a log-survival curve 
@@ -92,7 +83,9 @@ This can be useful for fine control over the colors or line types of a plot.
     by this amount from the prior curve's bars, if it is a vector the values are
     used directly.}
   \item{noplot}{for multi-state models, curves with this label will not
-  be plotted.  The default corresponds to an unspecified state.}
+    be plotted.  The default corresponds to an unspecified state.}
+  \item{cumhaz}{plot the cumulative hazard, rather than the survival or
+    probability in state.}
 }
 \value{
 a list with components \code{x} and \code{y}, containing the coordinates of the 
