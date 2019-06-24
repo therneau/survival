@@ -246,7 +246,7 @@ summary.survfit <- function(object, times, censored=FALSE,
 			    scale=1, extend=FALSE, 
                             rmean=getOption('survfit.rmean'),
                             ...) {
-    fit <- object  #make a local copy
+    fit <- survfit23(object)  #make a local copy, and ensure version 3
     if (!inherits(fit, 'survfit'))
 	    stop("summary.survfit can only be used for survfit objects")
     if (is.null(fit$logse)) fit$logse <- TRUE   #older style
@@ -257,10 +257,10 @@ summary.survfit <- function(object, times, censored=FALSE,
     if (is.numeric(rmean)) {
         if (is.null(object$start.time)) {
             if (rmean < min(object$time)) 
-                stop("Truncation point for the mean is < smallest survival")
+                stop("Truncation point for the mean time in state is < smallest survival")
         }
         else if (rmean < object$start.time)
-            stop("Truncation point for the mean is < smallest survival")
+            stop("Truncation point for the mean time in state is < smallest survival")
     }
     else {
         rmean <- match.arg(rmean, c('none', 'common', 'individual'))
@@ -462,14 +462,14 @@ unpacksurv <- function(fit, ltemp) {
 
 Repeat the code for survfitms objects.  The only real difference is
 the preservation of \code{pstate} and \code{cumhaz} instead of \code{surv},
-use of survmean2, and use of p0 for initial states.
+and the use of survmean2.
 
 <<survfitms-summary>>=
 summary.survfitms <- function(object, times, censored=FALSE, 
 			    scale=1, extend=FALSE, 
                             rmean= getOption("survfit.rmean"),
                             ...) {
-    fit <- object
+    fit <- survfit23(object)
     if (!inherits(fit, 'survfitms'))
 	    stop("summary.survfitms can only be used for survfitms objects")
     if (is.null(fit$logse)) fit$logse <- FALSE  # older style
@@ -571,6 +571,7 @@ print.survfitms <- function(x, scale=1,
     omit <- x$na.action
     if (length(omit)) cat("  ", naprint(omit), "\n")
 
+    x <- survfit23(x)
     if (is.null(rmean)) rmean <- "common"
     if (is.numeric(rmean)) {
         if (is.null(x$start.time)) {
@@ -607,7 +608,7 @@ print.survfitms <- function(x, scale=1,
 This part of the computation is set out separately since it is called
 by both print and summary.
 <<survmean2>>=
-survmean2 <- function(x, scale, rmean) {
+survmean2 <- function(x, scale=1, rmean) {
     nstate <- length(x$states)  #there will always be at least 1 state
     ngrp   <- max(1, length(x$strata))
     if (ngrp >1)  {
@@ -646,16 +647,14 @@ survmean2 <- function(x, scale, rmean) {
         else maxtime <- tapply(x$time, igrp, max)
     
         meantime <- matrix(0., ngrp, nstate)
-        p0 <- matrix(x$p0, nrow=ngrp)  #in case there is only one row
         if (!is.null(x$influence)) stdtime <- meantime
         for (i in 1:ngrp) {
             if (is.matrix(x$pstate))
-                temp <- rbind(p0[i,], x$pstate[igrp==i,, drop=FALSE])
-            else temp <- matrix(c(p0[i], x$pstate[igrp==i]), ncol=1)
+                temp <- x$pstate[igrp==i,, drop=FALSE]
+            else temp <- matrix(x$pstate[igrp==i], ncol=1)
 
-            if (is.null(x$start.time)) tt <- c(0, x$time[igrp==i])
-            else tt <- c(x$start.time, x$time[igrp==i])
-
+            tt <- x$time[igrp==i]
+ 
             # Now cut it off at maxtime
             delta <- diff(c(tt[tt<maxtime[i]], maxtime[i]))
             if (length(delta) > nrow(temp)) delta <- delta[1:nrow(temp)]
@@ -688,20 +687,4 @@ survmean2 <- function(x, scale, rmean) {
     if (rmean=='none') list(matrix=outmat)
     else list(matrix=outmat, end.time=maxtime/scale)
 }
-@ 
-
-The influence array has subject for the first element, the other two
-mimic the is of the same shape as the \code{pstate}, but with
-one copy per subject.  For the variance we do exactly the same
-calculation as the mean, once per subject, and add up the squares of
-the result.  
-As with \code{pstate} and \code{p0} a major nuisance for all this is
-the fact that the results at time 0 are in a separate object.
-This is a consequence of how survfit objects were set up 20+ years ago,
-namely that the starting point (time=0, surv=1) was not stored in the object.
-With (start, stop] data we want to save a starting time = min of the 
-start values, and with multi-state the starting estimate is a vector.
-It would be so much easier if I had kept it the other way -- but with 400
-dependent packages change is very hard.  
-<<msvar>>=
 @ 

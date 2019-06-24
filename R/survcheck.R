@@ -60,7 +60,7 @@ survcheck <- function(formula, data, id, istate, istate0="(s0)", ...) {
 #  to generate checks.
 # Multiple other checks as well
 #  
-survcheck2 <- function(y, id, istate=NULL, istate0="(0)") {
+survcheck2 <- function(y, id, istate=NULL, istate0="(s0)") {
     n <- length(id)
     ny <- ncol(y)
     # this next line is a debug for my code, since survcheck2 is not visible

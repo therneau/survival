@@ -156,6 +156,7 @@ statefigx <- function(x, C, r, a1, a2) {
     temp <-(x - C[1])/r
     if (abs(temp) >1) return(NULL)  # no intersection of the arc and x
     phi <- acos(temp)  # this will be from 0 to pi
+    pi <- 3.1415926545898   # in case someone has a variable "pi" 
     if (x > C[1]) phi <-  c(phi, pi - phi)
     else          phi <- -c(phi, pi - phi)
     # Add reflection about the X axis, in both forms
@@ -165,6 +166,7 @@ statefigx <- function(x, C, r, a1, a2) {
     phi[phi<amax & phi > amin]
 }
 statefigy <-  function(y, C, r, a1, a2) {
+    pi <- 3.1415926545898   # in case someone has a variable named "pi" 
     amax <- max(a1, a2)
     amin <- min(a1, a2)
     temp <-(y - C[2])/r

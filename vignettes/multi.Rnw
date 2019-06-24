@@ -285,11 +285,11 @@ sfit3 <- survfit(Surv(txtime, txstat) ~ trt, data1)
 
 layout(matrix(c(1,1,1,2,3,4), 3,2), widths=2:1)
 oldpar <- par(mar=c(5.1, 4.1, 1.1, .1))
-plot(sfit2[,2], mark.time=FALSE,  xmax=48,
+plot(sfit2[,"CR"],  xmax=48,
          lty=3, lwd=2, col=1:2, xaxt='n',
      xlab="Months post enrollment", ylab="Events")
-lines(sfit1, mark.time=FALSE, xmax=48, fun='event', col=1:2, lwd=2)
-lines(sfit3[,2], mark.time=FALSE, xmax=48, col=1:2, 
+lines(sfit1, xmax=48, fun='event', col=1:2, lwd=2)
+lines(sfit3[,"transplant"], xmax=48, col=1:2, 
           lty=2, lwd=2)
 
 xtime <- c(0, 6, 12, 24, 36, 48)
@@ -306,6 +306,7 @@ crisk(c("Entry","Death", "CR"), alty=3)
 crisk(c("Entry","Death", "Tx"), alty=2)
 crisk(c("Entry","Death"))
 par(oldpar)
+layout(1)
 @ 
 
 The association between a particular curve and its corresponding state space
@@ -350,7 +351,7 @@ badfit <- survfit(Surv(txtime, txstat=="transplant") ~ trt, data1)
 layout(matrix(c(1,1,1,2,3,4), 3,2), widths=2:1)
 oldpar <- par(mar=c(5.1, 4.1, 1.1, .1))
 plot(badfit, fun="event", xmax=48, xaxt='n', col=1:2, lty=2, lwd=2,
-     xlab="Months from enrollment", ylab="P(state)")
+     xlab="Months from enrollment", ylab="Probability in state")
 axis(1, xtime, xtime)
 lines(sfit3[,2], xmax=48, col=1:2, lwd=2)
 legend(24, .3, c("Arm A", "Arm B"), lty=1, lwd=2,
@@ -655,19 +656,21 @@ For each value in the matrix $P$ = probability in state and each subject
 $i$ in the data set, this contains the effect of that subject on each
 value in $P$.  Formally,
 \begin{equation*}
-  I_{ij}(t) = \left . \frac{\partial p_j(t)}{\partial w_i} \right|_w
+  D_{ij}(t) = \left . \frac{\partial p_j(t)}{\partial w_i} \right|_w
 \end{equation*}
-where $I_{ij}(t)$ is the influence of subject $i$ on $p_j(t)$, and
+where $D_{ij}(t)$ is the influence of subject $i$ on $p_j(t)$, and
 $p_j(t)$ is the estimated probability for state $j$ at time $t$.
 This is known as the infinitesimal jackknife (among other labels).
 <<reprise>>=
 crsurv <- survfit(Surv(tstart, tstop, crstat) ~ trt,
                   data= data2, id=id, influence=TRUE)
 curveA <- crsurv[1,]  # select treatment A
-dim(curveA$pstate)    # P matrix for treatement A
+
+dim(curveA)    # P matrix for treatement A
+curveA$states
+dim(curveA$pstate)  # 426 time points, 5 states
 dim(curveA$influence) # influence matrix for treatment A
 table(data1$trt)
-curveA$p0             # state distribution at time 0
 @
 
 For treatment arm A there are \Sexpr{table(data1$trt)[1]} subjects and
@@ -676,11 +679,10 @@ The influence array has subject as the first dimension, and for each
 subject it has an image of the $P$ matrix containing that subject's
 influence on each value in $P$, i.e.,
 \code{influence[1, ,]} is the influence of subject 1 on $P$.
-The influence has one extra row, however; the first row for each
-subject is the influence
-of that subject on $p_0$, the initial state probabilities.
-For this data set everyone starts in the entry state, $p_0$
-will always be (0, 0, 0, 1), and so this first influence row will be zero;
+For this data set everyone starts in the entry state, so $p(0)$ = the
+first row of \code{pstate} will be (1, 0, 0, 0, 0) and the influence of
+each subject on this row is 0;
+
 this does not hold if not all subjects start in the same state.
 
 As an exercise we will calculate the mean time in state out to 48 weeks.
@@ -689,18 +691,23 @@ the curves are step functions this is simple sum of rectangles, treating
 any intervals after 48 months as having 0 width.
 <<meantime>>=
 t48 <- pmin(48, curveA$time)   
-delta <- diff(c(0, t48, 48))  # width of intervals
+delta <- diff(c(t48, 48))  # width of intervals
 rfun <- function(pmat, delta) colSums(pmat * delta)  #area under the curve
-rmean <- rfun(rbind(curveA$p0, curveA$pstate), delta)
-round(rmean, 2)
+rmean <- rfun(curveA$pstate, delta)
 
 # Apply the same calculation to each subject's influence slice
 inf <- apply(curveA$influence, 1, rfun, delta=delta)
 # inf is now a 5 state by 310 subject matrix, containing the IJ estimates
 #  on the AUC or mean time.  The sum of squares is a variance.
 se.rmean <- sqrt(rowSums(inf^2))
-round(se.rmean, 2)
+round(rbind(rmean, se.rmean), 2)
+
+print(curveA, rmean=48, digits=2)
 @ 
+
+The last lines verify that this is exacly the cacluation done by the
+\code{print.survfitms} function; the results can also be found in
+the \code{table} component returned by \code{summary.survfitms}.
 
 In general, let $U_i$ be the influence of subject $i$.
 For some function $f(P)$ of the prevalence matrix, the influence of subject

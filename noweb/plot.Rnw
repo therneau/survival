@@ -9,6 +9,9 @@ had to store those values anyway, sticking them into appended objects.
 The version3 survfit object puts the intial time back where it belongs, and
 makes this routine easier to write.
 
+The plot, lines, and points routines use several common code blocks in order to 
+maintain consistency.
+
 <<plot.survfit>>=
 plot.survfit<- function(x, conf.int,  mark.time=FALSE,
 			pch=3,  col=1,lty=1, lwd=1, 
@@ -19,54 +22,63 @@ plot.survfit<- function(x, conf.int,  mark.time=FALSE,
                         conf.times, conf.cap=.005, conf.offset=.012, 
                         conf.type=c('log',  'log-log',  'plain', 
                                   'logit', "arcsin"),
-                        mark, noplot="(0)", cumhaz=FALSE,
+                        mark, noplot="(s0)", cumhaz=FALSE,
                         firstx, xmax, ymin, ...) {
 
     dotnames <- names(list(...))
     if (any(dotnames=='type'))
         stop("The graphical argument 'type' is not allowed")
-    if (missing(mark.time) & !missing(mark)) mark.time <- TRUE
-
     x <- survfit23(x)   # convert to version 3, if it wasn't already
-    <<plot-plot-setup1>>
-    <<plot-common-args>>
-    <<plot-xfix>>
-    <<plot-firstx>>
-    <<plot-plot-setup2>> 
+
+    <<plot-log>>
+    <<plot-data>>
+    <<plot-confint>>
+    <<plot-transform>>
+    <<plot-setup-marks>>
+    <<plot-makebox>> 
     <<plot-functions>>
-    plot.surv <- TRUE
     type <- 's'
-    <<plot-draw>>    
+    <<plot-draw>> 
+    if (resetclip) {
+        xx <- par("usr")
+        clip(xx[1], xx[2], xx[3], xx[4])  # undo the clipping
+    }
 }
 
 lines.survfit <- function(x, type='s', 
                           pch=3, col=1, lty=1, lwd=1,
                           cex=1,
-                          mark.time=FALSE, xscale=1, 
-			  xmax,
+                          mark.time=FALSE, 
                           fun,  conf.int=FALSE,  
                           conf.times, conf.cap=.005, conf.offset=.012, mark, 
                           noplot="()", cumhaz=FALSE, ...) {
     x <- survfit23(x)
+
     xlog <- par("xlog")
-    if (missing(mark.time) & !missing(mark)) mark.time <- TRUE
- 
-    <<plot-common-args>>
-    if (missing(pch) && !missing(mark)) pch <- mark
-    if (length(pch)==1 && is.character(pch)) pch <- strsplit(pch, "")[[1]]
-    <<plot-firstx>>
+    <<plot-data>>
+    <<plot-confint>>
+    <<plot-transform>>
+    <<plot-setup-marks>>
+
+    do.clip <- options("survival")
+    if (!is.null(xx <- do.clip$plotclip)) clip(xx[1], xx[2], xx[3], xx[4])
+
     <<plot-functions>>
     <<plot-draw>>
+    if (!is.null(xx <- do.clip$plotrestore)) clip(xx[1], xx[2], xx[3], xx[4])
 }
 
 points.survfit <- function(x, xscale, xmax, fun, censor=FALSE,
                            col=1, pch, noplot="()", cumhaz=FALSE, ...) {
-    # this function is used rarely
-    conf.int <- FALSE  # never draw these with 'points'
 
+    conf.int <- FALSE  # never draw these with 'points'
     x <- survfit23(x)
-    <<plot-common-args>>
-    <<plot-xfix>>
+
+    <<plot-data>>
+    <<plot-transform>>
+    do.clip <- options("survival")
+    if (!is.null(xx <- do.clip$plotclip)) clip(xx[1], xx[2], xx[3], xx[4])
+
     if (ncurve==1 || (length(col)==1 && missing(pch))) {
         if (censor) points(stime, ssurv, ...)
         else points(stime[x$n.event>0], ssurv[x$n.event>0], ...)
@@ -92,22 +104,48 @@ points.survfit <- function(x, xscale, xmax, fun, censor=FALSE,
             }
         }
     }
+    if (!is.null(xx <- do.clip$plotrestore)) clip(xx[1], xx[2], xx[3], xx[4])
 }
 @ 
 
-<<plot-common-args>>=
+<<plot-log>>=
+# decide on logarithmic axes, yes or no
+if (is.logical(log)) {
+    ylog <- log
+    xlog <- FALSE
+    if (ylog) logax <- 'y'
+    else      logax <- ""
+}
+else {
+    ylog <- (log=='y' || log=='xy')
+    xlog <- (log=='x' || log=='xy')
+    logax  <- log
+}
+
+if (!missing(fun)) {
+    if (is.character(fun)) {
+        if (fun=='log'|| fun=='logpct') ylog <- TRUE
+        if (fun=='cloglog') {
+            xlog <- TRUE
+            if (ylog) logax <- 'xy'
+            else logax <- 'x'
+        }
+    }
+}
+@ 
+ 
+<<plot-data>>=
 # The default for plot and lines is to add confidence limits
 #  if there is only one curve
 if (missing(conf.int) && missing(conf.times))  
-    conf.int <- (is.null(x$strata) && !is.matrix(x$surv) 
-        && !is.matrix(x$pstate))  # a NULL is FALSE 
+    conf.int <- (!is.null(x$std.err) && prod(dim(x) ==1))
 
 if (missing(conf.times)) conf.times <- NULL   
 else {
     if (!is.numeric(conf.times)) stop('conf.times must be numeric')
     if (missing(conf.int)) conf.int <- TRUE
 }
-if (!conf.int) supper <- NULL
+if (!conf.int) supper <- slower <- NULL
 
 if (!missing(conf.int)) {
     if (is.numeric(conf.int)) {
@@ -119,17 +157,30 @@ if (!missing(conf.int)) {
     else conf.level = 0.95
 }
 
+# Organize data into stime, ssurv, supper, slower
 stime <- x$time
 std   <- NULL
 yzero <- FALSE   # a marker that we have an "ordinary survival curve" with min 0
+
 if (cumhaz) {  # plot the cumulative hazard instead
-    if (is.null(x$cumhaz)) stop("survfit object does not contain a cumulative hazard")
+    if (is.null(x$cumhaz)) 
+        stop("survfit object does not contain a cumulative hazard")
     if (is.numeric(cumhaz)) {
-        nhazard <- sum(x$transitions > 0)  # number of transitions
+        if (inherits(x, "survfitms"))
+            nhazard <- sum(x$transitions > 0)  # number of transitions
+        else if (is.matrix(x$cumhaz)) nhazard <- ncol(x$cumhaz)
+        else nhazard <- 1
+
         if (cumhaz != floor(cumhaz)) stop("cumhaz argument is not integer")
         if (any(cumhaz < 1 | cumhaz > nhazard)) stop("subscript out of range")
-        ssurv <- x$cumhaz[,cumhaz, drop=FALSE]
-        if (!is.null(x$std.chaz)) std <- x$std.chaz[,cumhaz, drop=FALSE]
+        if (!is.matrix(x$cumhaz)) {
+            ssurv <- as.matrix(x$cumhaz)
+            if (!is.null(x$std.chaz)) std <- as.matrix(x$std.chaz)
+        }
+        else {
+            ssurv <- x$cumhaz[,cumhaz, drop=FALSE]
+            if (!is.null(x$std.chaz)) std <- x$std.chaz[,cumhaz, drop=FALSE]
+        }
     }
     else if (is.logical(cumhaz)) {
         ssurv <- as.matrix(x$cumhaz)
@@ -139,7 +190,7 @@ if (cumhaz) {  # plot the cumulative hazard instead
 }
 else if (inherits(x, "survfitms")) {
     i <- (x$states != noplot)
-    if (!any(i))  i <- seq(along=x$states)  # don't throw away everything
+    if (!any(i))  i <- seq(along=x$states)  # if all states==noplot, keep all
     ssurv <- (as.matrix(x$pstate))[,i, drop=FALSE]
     if (!is.null(x$std.err))  std <-   (as.matrix(x$std.err))[,i, drop=FALSE]
 }
@@ -181,7 +232,15 @@ ncurve <- nstrat * ncol(ssurv)
 If confidence limits are to be plotted, and they were not part of the
 data that is passed in, create them.  Confidence limits for the 
 cumulative hazard must always be created, and don't use transforms.
-<<plot-common-args>>=
+<<plot-confint>>=
+if (is.logical(conf.int)) plot.surv <- TRUE
+else {
+    temp <- match.arg(conf.int, c("both", "only", "none"))
+    if (is.na(temp)) stop("invalid value for conf.int")
+    if (temp=="none") conf.int <- FALSE  else conf.int <- TRUE
+    if (temp=="only") plot.surv <- FALSE  else plot.surv <- TRUE
+}
+
 if (conf.int) {
     if (is.null(std)) stop("object does not have standard errors, CI not possible")
     if (cumhaz) {
@@ -206,76 +265,7 @@ if (conf.int) {
 }
 @ 
 
-The xlim argument can be used to prune back the curve to a
-subset.  To make for a prettier plot, we prune the data ourselves before
-calling the plot function, that way lines don't touch the borders.
-A special case is when we are drawing lines and a curve got
-pruned so severely that only a horizontal segment from the curve start
-remains. 
-
-<<plot-xfix>>= 
-if (!missing(firstx) && !missing(xlim))
-    stop("cannot have both xlim and firstx arguments")
-if (!missing(xmax)) {
-    if (!missing(xlim)) stop("cannot have both xlim and xmax arguments")
-    xlim <- c(x$time[1], xmax)
-} else if (missing(xlim))  xlim <- range(x$time)
-if (!missing(firstx)) xlim[1] <- firstx
-
-if (!missing(xlim) || !missing(xmax) && any(x$time < xlim[1] | x$time>xlim[2])){
-    if (all(x$time < xlim[1])) stop("all time points are < xlim[1]")
-    if (all(x$time > xlim[2])) stop("all time points are > xlim[2]")
-
-    # prune back the survival curves
-    #  We want a horizontal line to continue to the x limits, which is done
-    #  by modifying x, and repeating y
-    xlfun <- function(time, indx, xmin, xmax) {
-        yindx <- xindx <- indx
-        n <- length(indx)
-        # lower limit
-        if (any(time < xmin)) {
-            k1 <- max(which(time < xmin))
-            xindx <- xindx[k1:n]
-            yindx <- yindx[k1:n]
-        } else k1 <- NULL
-        
-        # upper limit
-        if (any(time > xmax)) {
-            k2 <- min(which(time > xmax))
-            xindx <- xindx[1:k2]
-            yindx <- yindx[1:k2]
-            if (k2 > 1) yindx[k2]<- yindx[k2-1]
-        }
-        else k2 <- NULL
-        list(xindex = xindx, yindex=yindx, k1=indx[k1], k2=indx[k2])
-    }
-    
-    temp <- vector("list", nstrat)
-    for (i in 1:nstrat) 
-        temp[[i]] <- xlfun(x$time[stemp==i], which(stemp==i), xlim[1], xlim[2])
-    k1 <- unlist(lapply(temp, function(x) x$k1))
-    if (length(k1)) x$time[k1] <- xlim[1]
-    k2 <- unlist(lapply(temp, function(x) x$k2))
-    if (length(k2)) x$time[k2] <- xlim[2]
-    if (length(k1) || length(k2)) {  # some points were removed
-        keepx <- unlist(lapply(temp, function(x) x$xindex))
-        keepy <- unlist(lapply(temp, function(x) x$yindex))
-        stime <- stime[keepx]
-        stemp <- stemp[keepx]
-        x$n.event <- x$n.event[keepx]
-        if (!is.null(x$n.censor)) x$n.censor <- x$n.censor[keepx]
-        ssurv <- ssurv[keepy,,drop=FALSE]
-        if (!is.null(std)) std <- std[keepy,,drop=FALSE]
-        if (!is.null(supper)) {
-            supper <- supper[keepy,,drop=FALSE]
-            slower <- slower[keepy,,drop=FALSE]
-        }
-    }
-}
-@ 
-
-
-<<plot-common-args>>=
+<<plot-transform>>=
 if (!inherits(x, "survfitms") && !cumhaz & !missing(fun)) {
     yzero <- FALSE
     if (is.character(fun)) {
@@ -304,32 +294,18 @@ if (!inherits(x, "survfitms") && !cumhaz & !missing(fun)) {
     }
 }
 @ 
-
+ 
 The \code{mark} argument is a holdover from S, when pch could not have
 numeric values; mark has since disappeared from the manual page for
 \code{par}.  We honor it for backwards compatability.
 To be consistent with matplot and others, we allow pch to be a character
 string or a vector of characters.
-The firstx, xmax, firsty, and ymin arguments are all depricated, and
-now appear in xlim and ylim (which should have been the design from the start).
-
-<<plot-plot-setup1>>=
-if (missing(pch) && !missing(mark)) pch <- mark
-if (length(pch)==1 && is.character(pch)) pch <- strsplit(pch, "")[[1]]
-@ 
-
-<<plot-firstx>>=
-if (is.logical(conf.int)) plot.surv <- TRUE
-else {
-    temp <- match.arg(conf.int, c("both", "only", "none"))
-    if (is.na(temp)) stop("invalid value for conf.int")
-    if (temp=="none") conf.int <- FALSE  else conf.int <- TRUE
-    if (temp=="only") plot.surv <- FALSE  else plot.surv <- TRUE
-}
-<<plot-setup-marks>>
-@
 
 <<plot-setup-marks>>=
+if (missing(mark.time) & !missing(mark)) mark.time <- TRUE
+if (missing(pch) && !missing(mark)) pch <- mark
+if (length(pch)==1 && is.character(pch)) pch <- strsplit(pch, "")[[1]]
+
 # Marks are not placed on confidence bands
 pch  <- rep(pch, length.out=ncurve)
 mcol <- rep(col, length.out=ncurve)
@@ -364,77 +340,64 @@ else {
 }
 @ 
 
-Here is the rest of the setup for the plot routine, mostly having to do with
-setting up axes.  The [[xlog]] and [[ylog]] variables are internal reminders
-of the choice, and [[logax]] is what will be passed to the plot function
-<<plot-plot-setup1>>= 
-if (is.logical(log)) {
-    ylog <- log
-    xlog <- FALSE
-    if (ylog) logax <- 'y'
-    else      logax <- ""
-}
-else {
-    ylog <- (log=='y' || log=='xy')
-    xlog <- (log=='x' || log=='xy')
-    logax  <- log
-}
 
-if (!missing(fun)) {
-    if (is.character(fun)) {
-        if (fun=='log'|| fun=='logpct') ylog <- TRUE
-        if (fun=='cloglog') {
-            xlog <- TRUE
-            if (ylog) logax <- 'xy'
-            else logax <- 'x'
-        }
-    }
-}
-@ 
+Create the frame for the plot. 
+We draw an empty figure, letting R figure out the limits.
 
-<<plot-plot-setup2>>=
-# Do axis range computations
-if (xaxs=='S') {
-    #special x- axis style for survival curves
-    xaxs <- 'i'  #what S thinks
-    tempx <- max(stime) * 1.04
+<<plot-makebox>>=
+# check consistency
+if (!missing(xlim)) {
+    if (!missing(xmax)) stop("cannot have both xlim and xmax arguments")
+    if (!missing(firstx)) stop("cannot have both xlim and firstx arguments")
 }
-else tempx <- max(stime)
-tempx <- c(min(stime), tempx)
-
 if (!missing(ylim)) {
-    tempy <- ylim
     if (!missing(ymin)) stop("cannot have both ylim and ymin arguments")
 }
-else {
-    if (ylog) {
-        tempy <-  range(ssurv[is.finite(ssurv)& ssurv>0])
-        if (tempy[2]==1) tempy[2] <- .99   # makes for a prettier axis
-        if (any(ssurv==0)) {
+
+# Do axis range computations
+
+temp <- range(stime[is.finite(stime)], na.rm=TRUE)
+if (xaxs=='S') {
+    #special x- axis style for survival curves
+    if (xlog) tempx <- c(min(temp[temp>0]), max(temp)+ diff(temp)*1.04)
+    else tempx <- c(min(temp), max(temp)) * 1.04
+}
+else if (xlog) tempx <- range(temp[temp > 0])
+else tempx <- range(temp)
+    
+if (ylog) {
+    if (!is.null(supper))
+        tempy <- range(c(slower[is.finite(slower) & slower>0], 
+                         supper[is.finite(supper)]))
+    else tempy <-  range(ssurv[is.finite(ssurv)& ssurv>0])
+    if (tempy[2]==1) tempy[2] <- .99   # makes for a prettier axis
+    if (any(c(ssurv, slower) ==0)) {
             tempy[1] <- tempy[1]*.8
             ssurv[ssurv==0] <- tempy[1]
-            if (!is.null(supper)) {
-                supper[supper==0] <- tempy[1]
-                slower[slower==0] <- tempy[1]
-            }
-        }
-    }
-    else {
-        if (!is.null(supper)) 
-            tempy <- range(c(supper, slower), finite=TRUE, na.rm=TRUE)
-        else tempy <- range(ssurv, finite=TRUE, na.rm= TRUE)
-        if (!missing(ymin)) tempy <- range(c(ymin, tempy))
-        else if (yzero) tempy <- range(c(0, tempy))
+            if (!is.null(slower))  slower[slower==0] <- tempy[1]
     }
 }
-    
+else {
+    if (!is.null(supper)) 
+            tempy <- range(c(supper, slower), finite=TRUE, na.rm=TRUE)
+    else tempy <- range(ssurv, finite=TRUE, na.rm= TRUE)
+    if (yzero) tempy <- range(c(0, tempy))
+}
+
+# Set limits
+if (!missing(xlim)) tempx <- xlim
+if (!missing(xmax)) tempx[2] <- xmax
+if (!missing(firstx)) tempx[1] <- firstx
+if (!missing(ylim)) tempy <- ylim
+if (!missing(ymin)) tempy[1] <- ymin
+
 #
 # Draw the basic box
 #
+temp <- if (xaxs=='S') 'i' else xaxs
 plot(range(tempx, finite=TRUE, na.rm=TRUE)/xscale, 
      range(tempy, finite=TRUE, na.rm=TRUE)*yscale, 
-     type='n', log=logax, xlab=xlab, ylab=ylab, xaxs=xaxs,...)
-
+     type='n', log=logax, xlab=xlab, ylab=ylab, xaxs=temp,...)
 if(yscale != 1) {
     if (ylog) par(usr =par("usr") -c(0, 0, log10(yscale), log10(yscale))) 
     else par(usr =par("usr")/c(1, 1, yscale, yscale))   
@@ -448,11 +411,21 @@ The use of [[par(usr)]] just above is a bit sneaky.  I want the
 lines and points routines to be able to add to the plot, \emph{without}
 passing them a global parameter that determines the y-scale or forcing
 the user to repeat it.
-The xscale argument was added before yscale, and before I saw this
-trick.  
-By then there were hundreds of lines of code that have an xscale
-argument to lines() so the other change was to ignore the argument in the
-lines function.
+
+Use clipping to get a nice limit to the plot, without having any of the lines
+touch the edge.
+<<plot-makebox>>=
+if (xaxs=='i') resetclip <- FALSE
+else resetclip <- !(missing(xlim) & missing(ylim) & 
+                    missing(xmax) & missing(firstx)& missing(ymin))
+
+if (resetclip) {
+  # yes, do it
+  if (xaxs=='S') tempx <- c(tempx[1], temp[1])
+  clip(tempx[1], tempx[2], tempy[1], tempy[2])
+  options(survival = list(plotclip=c(tempx, tempy), plotreset=par('usr')))
+}
+@ 
 
 The next functions do the actual drawing.
 <<plot-functions>>=

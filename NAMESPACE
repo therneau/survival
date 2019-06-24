@@ -37,6 +37,7 @@ export(Surv, aeqSurv, aareg, agreg.fit,
        survreg.distributions, survregDtest, tcut,
        tmerge, untangle.specials, yates, yates_setup,
        survConcordance, survConcordance.fit)
+export(survfit23, survfit32)
 S3method('[', aareg)
 S3method('[', Surv)
 S3method('[', cox.zph)
@@ -158,7 +159,6 @@ S3method(summary, aareg)
 S3method(summary, cch)
 S3method(summary, coxph)
 S3method(summary, coxph.penal)
-S3method(summary, multicheck)
 S3method(summary, ratetable)
 S3method(summary, pyears)
 S3method(summary, survexp)
