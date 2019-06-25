@@ -1,4 +1,5 @@
-survcheck <- function(formula, data, id, istate, istate0="(s0)", ...) {
+survcheck <- function(formula, data, id, istate, istate0="(s0)", 
+                      timefix=TRUE, ...) {
     Call <- match.call()
     indx <- match(c("formula", "data", "id", "istate"),
                   names(Call), nomatch=0) 
@@ -16,6 +17,9 @@ survcheck <- function(formula, data, id, istate, istate0="(s0)", ...) {
     else if (!(type %in% c("mright", "mcounting")))
         stop("response must be right censored")
     n <- nrow(Y)
+    if (!is.logical(timefix) || length(timefix) > 1)
+        stop("invalid value for timefix option")
+    if (timefix) Y <- aeqSurv(Y)
     
     id <- model.extract(mf, "id")
     if (is.null(id)) stop("an id argument is required")
@@ -63,7 +67,7 @@ survcheck <- function(formula, data, id, istate, istate0="(s0)", ...) {
 survcheck2 <- function(y, id, istate=NULL, istate0="(s0)") {
     n <- length(id)
     ny <- ncol(y)
-    # this next line is a debug for my code, since survcheck2 is not visible
+    # the next few line are a debug for my code, since survcheck2 is not visible
     #  to users
     if (!is.Surv(y) || is.null(attr(y, "states")) ||
         any(y[,ncol(y)] > length(attr(y, "states"))))
@@ -90,9 +94,6 @@ survcheck2 <- function(y, id, istate=NULL, istate0="(s0)") {
     # we keep a form with all the levels for returning to the parent (cstate2)
     #  one without this (cstate) to make a smaller transitions table
 
-    # initialize counts
-    flag <- c(overlap=0, gap=0, teleport=0, jump=0)
-
     # Calculate the counts per id for each state, e.g., 10 subjects had
     #  3 visits to state 2, etc.  
     # Don't count "censored" as an endpoint, nor any missings.  But we can't
@@ -105,109 +106,63 @@ survcheck2 <- function(y, id, istate=NULL, istate0="(s0)") {
     dimnames(events) = list("count"= tab1.levels,
                                 "state"= c(attr(y, "states"), "(any)"))
     
-    # first check: no one is two places at once
-    #  sort by stop time within subject, start time as the tie breaker
-    index <- order(id, y[,ny-1], y[,1])  # by start time, within stop time
-    indx1 <- index[-1]
-    indx2 <- index[-n]
-    oldid <- duplicated(id[index])
 
+    # check for errors
+    sindx <- match(attr(y, "states"), states)
+    if (ncol(y)==2) y <- cbind(0,y) # make it 3 cols for the C routine
+    stat2 <- ifelse(y[,3]==0, 0L, 
+                    sindx[pmax(1, y[,3])])  # map the status
+    index <- order(id, y[,ny-1], y[,1])  # by start time, within stop time
+    id2 <- match(id, id)  # we need unique integers, but don't need 1, 2,...
+    check <- .Call(Cmulticheck, y, stat2, id2, as.integer(cstate2), index-1L)
+    if (inull) {
+        # if there was no istate entered in, use the constructed one from
+        # the check routine
+        cstate2 <-factor(check$cstate, seq(along=states), states)
+    }       
+
+    # create the transtions table
     # if someone has an intermediate visit, i.e., (0,10, 0)(10,20,1), don't
     #  report the false 'censoring' in the transitions table
     yfac <- factor(y[,ny], c(seq(along=attr(y, "states")), 0), to.names)
     keep <- (y[index,ny]!=0 | !duplicated(id[index], fromLast=TRUE))
+    keep[index] <- keep  # put it back into data order
     transitions <- table(from=cstate2[keep,drop=TRUE], 
                          to= yfac[keep, drop=TRUE], 
                          useNA="ifany")
 
-    # If no one has more than one obs our work is done: overlap and gap are
-    #  impossible
-    if (all(!oldid)) {
-        return(list(states=states, transitions=transitions,
-                    events = t(events), flag=flag, istate=cstate2))
-    }
+    # now continue with error checks.  
+    mismatch <- (as.numeric(cstate2) != check$cstate)
 
-    # Check 0: if y has only 2 colums there isn't much to do
-    if (ncol(y)==2) {
-        flag["overlap"] <- sum(duplicated(id))
-        overlap <- list(row= which(duplicated(id)), 
-                        id=unique(id[duplicated(id)]))
-        rval <- list(states=states, transitions=transitions,
-                     events= t(events), flag=flag, istate=cstate2,
-                     overlap= overlap)
-        return(rval)
-    }
-        
     # gap = 0   (0, 10], (10, 15]
     # gap = 1   (0, 10], (12, 15]  # a hole in the time
     # gap = -1  (0, 10], (9, 15]   # overlapping times
-    gap <- sign(y[indx1,1] - y[indx2,2])
-    overlap <- which(c(FALSE, gap <0) & oldid)
-    if (length(overlap)) {
-        flag["overlap"] <- length(overlap)
-        overlap <- list(id= unique((id[indx2])[overlap]),
-                        row = indx2[overlap])
-    } 
+    flag <- c(overlap= sum(check$gap < 0), 
+              gap =    sum(check$gap > 0 & !mismatch),
+              jump =   sum(check$gap > 0 & mismatch),
+              teleport = sum(check$gap==0 & mismatch & check$dupid==1))
 
-    # check 2: if istate is present, someone can only "jump" states if they
-    #  have a gap.  If status is '2' at time 10 (a change to state 2), then
-    #  for a next obs that starts at 10 it must have an istate of 2.  
-    # If an obs has status=0 that means "nothing happened" and we
-    #  retain the prior state.  The C routine returns a "carry forward" state
-    #  vector, which starts out as istate for each new subject (or 0 if the
-    #  istate vector is NULL) and marches forward.
-    # Jumps and gaps are mutually exclusive.  gap = a hole without an istate
-    #  jump = a gap where they come back in another state
-    id.int <- match(id, unique(id))  # for the C routine
-    y3 <- factor(yfac, states)
-    jump <- tgap <- bad <- NULL
-    if (inull) { # construct an istate
-        gap <- which(oldid & c(FALSE, gap==1))
-        if (length(gap)) {
-            # data has gap but no istate  
-            flag["gap"] <- length(gap) 
-            tgap <- list(id= unique((id[indx2])[gap]),
-                         row = indx2[gap])
-        }
-        pstate <- .Call(Cmulticheck, as.integer(y[,ny]), id.int, 
-                        integer(n), index-1L) 
-        pstate <- factor(pstate, seq(along=states)-1, states) 
-        # line above: pstate will be 0 for an entry, non-zero for carried
-        #  forward state, and states will be (s0) followed by attr(y, states)
-        # since no istate was passed in, make transitions using our
-        #  constructed state
-        transitions <- table(from=pstate[keep,drop=TRUE], to= yfac[keep], 
-                             useNA="ifany")
-   }
-    else {
-        # for this call we want to map y[,ny] to the states, but 0 for censored
-        y3 <- ifelse(y[,ny]==0, 0L, match(to.names[pmax(1, y[,ny])], states))
-        pstate <- .Call(Cmulticheck, y3, id.int, as.integer(cstate2), index-1L)
-        pstate <- factor(pstate, seq(along=states), states)
-                                           
-        bad <- ((pstate != cstate2) & oldid & c(FALSE, gap==0))
-        if (any(bad)) {
-            temp <- which(bad)
-            flag["teleport"] <- length(temp)
-            teleport <- list(id= unique((id[index])[temp]), row= index[temp])
-        }
-        # jump are unobserved transitions.  A subject changed to state 1 at 
-        #  time 10, next obs is at time 20 in state 2 for instance.  
-        jump <- which((pstate != cstate2) & oldid & c(FALSE, gap==1))
-        if (length(jump)) {
-            flag["jump"] <- length(jump)
-            jump <- list(id = unique((id[index])[jump]), row= index[jump])
-        }       
-    }   
-
-    # we return the current state that was handed to us, and let the routine
-    #  complain
-    rval <- list(states=states, transitions =transitions, events = t(events),
-                 flag = flag, istate=pstate)
-    if (length(overlap)) rval$overlap <- overlap
-    if (length(tgap))     rval$gap <- tgap
-    if (any(bad))     rval$teleport <- teleport
-    if (length(jump)) rval$jump <- jump
+    rval <- list(states=states, transitions=transitions,
+                 events= t(events), flag=flag, 
+                 istate= factor(check$cstate, seq(along=states), states))
+ 
+    # add error details, if necessary
+    if (flag["overlap"] > 0) {
+        j <- which(check$gap < 0)
+        rval$overlap <- list(row=j, id= unique(id[j]))
+    }       
+    if (flag["gap"] > 0) {
+        j <- which(check$gap > 0 & !mismatch)
+        rval$gap <- list(row=j, id= unique(id[j]))
+    }
+    if (flag["jump"] > 0) {
+        j <- which(check$gap > 0 & mismatch)
+        rval$jump <- list(row=j, id= unique(id[j]))
+    }
+    if (flag["teleport"] > 0) {
+        j <- (check$gap==0 & mismatch)
+        rval$teleport <- list(row=j, id= unique(id[j]))
+    }
 
     rval
 }

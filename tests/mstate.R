@@ -38,7 +38,7 @@ mfit <- survfit(Surv(t1, t2, state) ~ 1, mtest, id=id)
 #9+                  15            0     0  19/32 13/32  1->b, 3->c & exit
 # 10+            1   5                19/64 19/64 13/32  1->a
 
-# In mfit, the "entry" state is last in the matrices
+# In mfit, the "entry" state is first in the matrices
 swap <- c(4,1,2,3)  # at one time it was last
 all.equal(mfit$n.risk, matrix(c(0,1,1,2,2,1,0,0,
                                 0,0,1,1,1,1,2,1,

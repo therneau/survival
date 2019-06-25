@@ -30,6 +30,11 @@ aeq(fit2$transition, rbind(c(3,0,0,0), c(0,2,1,0), c(0,0,0,1)))
 all(fit2$gap$id == c("B", "C"))
 aeq(fit2$gap$row, c(6,8))
 
+# scramble
+reord <- c(9,2,1,4,3,5,6,8,7) 
+tfit <- survcheck(Surv(t1, t2, status) ~ 1, data2[reord,], id=id)
+all.equal(fit2[1:4], tfit[1:4])   
+
 # let a missing value in
 fit2b <- survcheck(Surv(t1, t2, status) ~ x, data2, id=id)
 aeq(fit2b$flag , c(1,1,0,0))
