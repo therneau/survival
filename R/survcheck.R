@@ -115,8 +115,10 @@ survcheck2 <- function(y, id, istate=NULL, istate0="(s0)") {
     # if someone has an intermediate visit, i.e., (0,10, 0)(10,20,1), don't
     #  report the false 'censoring' in the transitions table
     yfac <- factor(y[,ny], c(seq(along=attr(y, "states")), 0), to.names)
-    keep <- (y[,ny]!=0 | !duplicated(id[index], fromLast=TRUE))
-    transitions <- table(from=cstate[keep], to= yfac[keep], useNA="ifany")
+    keep <- (y[index,ny]!=0 | !duplicated(id[index], fromLast=TRUE))
+    transitions <- table(from=cstate2[keep,drop=TRUE], 
+                         to= yfac[keep, drop=TRUE], 
+                         useNA="ifany")
 
     # If no one has more than one obs our work is done: overlap and gap are
     #  impossible
@@ -156,7 +158,8 @@ survcheck2 <- function(y, id, istate=NULL, istate0="(s0)") {
     #  istate vector is NULL) and marches forward.
     # Jumps and gaps are mutually exclusive.  gap = a hole without an istate
     #  jump = a gap where they come back in another state
-    id.int <- match(id, unique(id))
+    id.int <- match(id, unique(id))  # for the C routine
+    y3 <- factor(yfac, states)
     jump <- tgap <- bad <- NULL
     if (inull) { # construct an istate
         gap <- which(oldid & c(FALSE, gap==1))
@@ -166,20 +169,21 @@ survcheck2 <- function(y, id, istate=NULL, istate0="(s0)") {
             tgap <- list(id= unique((id[indx2])[gap]),
                          row = indx2[gap])
         }
-        pstate <- .Call(Cmulticheck, y, id.int, integer(n), index-1L) 
-        cstate2 <- factor(pstate, seq(along=states)-1, states) 
-        transitions <- table(from=cstate2[keep,drop=TRUE], to= yfac[keep], 
+        pstate <- .Call(Cmulticheck, as.integer(y[,ny]), id.int, 
+                        integer(n), index-1L) 
+        pstate <- factor(pstate, seq(along=states)-1, states) 
+        # line above: pstate will be 0 for an entry, non-zero for carried
+        #  forward state, and states will be (s0) followed by attr(y, states)
+        # since no istate was passed in, make transitions using our
+        #  constructed state
+        transitions <- table(from=pstate[keep,drop=TRUE], to= yfac[keep], 
                              useNA="ifany")
    }
     else {
-        ptemp <- .Call(Cmulticheck, y, id.int, -as.integer(cstate), index-1L)
-        # the result is a mixed bag, using 1,2,.., length(y$state) for the
-        #  responses and -1, -2, etc for starting states.
-        #  subsequent ones.  Normalize it.
-        temp1 <- match(to.names[pmax(1, ptemp)], states)
-        temp2 <- match(levels(cstate)[pmax(1, -ptemp)], states)
-        pstate<- factor(ifelse(ptemp>0 , temp1, temp2), 
-                        seq(along=states), states)
+        # for this call we want to map y[,ny] to the states, but 0 for censored
+        y3 <- ifelse(y[,ny]==0, 0L, match(to.names[pmax(1, y[,ny])], states))
+        pstate <- .Call(Cmulticheck, y3, id.int, as.integer(cstate2), index-1L)
+        pstate <- factor(pstate, seq(along=states), states)
                                            
         bad <- ((pstate != cstate2) & oldid & c(FALSE, gap==0))
         if (any(bad)) {
@@ -199,7 +203,7 @@ survcheck2 <- function(y, id, istate=NULL, istate0="(s0)") {
     # we return the current state that was handed to us, and let the routine
     #  complain
     rval <- list(states=states, transitions =transitions, events = t(events),
-                 flag = flag, istate=cstate2)
+                 flag = flag, istate=pstate)
     if (length(overlap)) rval$overlap <- overlap
     if (length(tgap))     rval$gap <- tgap
     if (any(bad))     rval$teleport <- teleport

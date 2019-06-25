@@ -2,7 +2,7 @@
 % Second part of coxsurv.Rnw, broken in two to make it easier for me
 %   to work with emacs.
 Now, we're ready to do the main compuation.                             %'
-The code has gone through multiple iteration as options and complexit
+The code has gone through multiple iteration as options and complexity
 increased.
 
 Computations are separate for each strata, and each strata will 

@@ -166,6 +166,7 @@ dim.survfit <- function(x) {
     if (is.null(x$strata)) {
            if (is.null(i) || all(i==1)) irow <- seq(along=x$time)
            else stop("subscript out of bounds")
+           newx$n <- x$n
     }
     else { 
         if (is.null(i)) indx <- seq(along= x$strata)
@@ -182,11 +183,11 @@ dim.survfit <- function(x) {
         
         if (length(indx) <=1 && drop) newx$strata <- NULL
         else               newx$strata  <- x$strata[i]
-    }
 
-    newx$n <- x$n[indx]
-    if (length(indx) ==1 & drop) x$strata <- NULL
-    else    newx$strata <- x$strata[indx]
+        newx$n <- x$n[indx]
+        if (length(indx) ==1 & drop) x$strata <- NULL
+        else    newx$strata <- x$strata[indx]
+    }
 
     if (length(dd)==1) {  # no j dimension
         for (k in c("time", "n.risk", "n.event", "n.censor", "n.enter",

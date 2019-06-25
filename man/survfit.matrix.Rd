@@ -6,6 +6,8 @@
   This allows one to create the Aalen-Johansen estimate of P, a matrix
   with one column per state and one row per time, starting with the
   individual hazard estimates.  Each row of P will sum to 1.
+  Note that this routine has been superseded by the use of multi-state
+  Cox models, and will eventually be removed.
 }
 \usage{
 \method{survfit}{matrix}(formula, p0, method = c("discrete", "matexp"),

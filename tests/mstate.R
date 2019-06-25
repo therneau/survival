@@ -12,7 +12,7 @@ mtest$state <- factor(mtest$st, 0:3, c("censor", "a", "b", "c"))
 
 if (FALSE) {
     # this graph is very useful when debugging
-    temp <- multicheck(Surv(t1, t2, state) ~1, mtest, id=id)
+    temp <- survcheck(Surv(t1, t2, state) ~1, mtest, id=id)
     plot(c(0,11), c(1,5.1), type='n', xlab="Time", ylab= "Subject")
     with(mtest, segments(t1+.1, id, t2, id, col=as.numeric(temp$istate)))
     event <- subset(mtest, state!='censor')
@@ -58,7 +58,6 @@ all.equal(mfit$time, c(2, 3, 4, 5, 8, 9, 10, 11))
 # Somewhat more complex.
 #  Scramble the input data
 #  Not everyone starts at the same time or in the same state
-#  Two "istates" that vary, only the first should be noticed.
 #  Case weights
 #
 tdata <- data.frame(id= c(1, 1, 1,  2,  3,  4, 4, 4,  5,  5),
@@ -153,7 +152,7 @@ aeq(mfit2b$p0, p0(w1)[swap])
 
 mfit2b$call <- mfit2$call <- NULL
 all.equal(mfit2b, mfit2) 
-aeq(mfit2$transitions, c(0,1,0,2,2,0,0,0, 1,1,0,1, 0,0,0,0))
+aeq(mfit2$transitions, c(3,0,0,0, 1,1,0,0, 2,0,1,0, 0,1,1,0))
 
 # Now the harder one, where subjects change weights
 mtest3 <- tfun(1:10)  

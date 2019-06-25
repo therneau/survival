@@ -237,10 +237,12 @@ from the new frame and compare it to \code{object\$y} from the
 original one.  This is to avoid nonsense results that arise
 when someone changes the data set under our feet. 
 We can only check the size: with the addition of aeqSurv other packages
-were being flagged for tiny discrepancies
+were being flagged for tiny discrepancies.
+Later note: this check does not work for multi-state models, and we don't
+\emph{have} to have it.  Removed by using if (FALSE) so as to preserve
+the code for future consideration.
 <<survfit.coxph-setup2b>>=
 if (FALSE) {
- #this was broken by multi-state models
 if (!is.null(mf)){
     y2 <- object[['y']]
     if (!is.null(y2)) {
