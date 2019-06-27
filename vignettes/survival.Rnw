@@ -231,7 +231,7 @@ The most common depiction of survival data is the Kaplan-Meier curve,
 which is created with the \code{survfit} function.
 The left-hand side of the formula will be a Surv object and the right hand
 side contains one or more categorical variables that will divide the 
-observations into groups.  For a single curve use \code{\textascitilde 1}
+observations into groups.  For a single curve use \code{\textasciitilde 1}
 as the right hand side.
 
 <<survfit1>>=
@@ -363,7 +363,7 @@ it aslo will be covered in more detail in a later section.
 (The output will be also be less cryptic for later cases, where the states 
 have been labeled.) 
 In the above data the engines could only participate in 2 kinds of transitions:
-from an unnamed initial state to a repair, (0) $\rightarrow 1, or from one
+from an unnamed initial state to a repair, (s0) $\rightarrow$ 1, or from one
 repair to another one, 1 $\rightarrow$ 1, or reach end of follow-up.
 The second table printed by \code{survcheck} tells us the 17 engines had 0
 transitions to state 1, i.e., no valve repairs before the end of observation
