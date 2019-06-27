@@ -53,9 +53,12 @@ survfit.coxph <-
       <<survfit.coxph-setup2b>>
       <<survfit.coxph-setup2c>>
       <<survfit.coxph-setup3>>
-      if (length(object$means)) 
-          risk2 <- exp(c(x2 %*% beta) + offset2 - xcenter)
-      else risk2 <- exp(offset2 - xcenter)
+      if (missing(newdata)) risk2 <- 1
+      else {
+          if (length(object$means)) 
+              risk2 <- exp(c(x2 %*% beta) + offset2 - xcenter)
+          else risk2 <- exp(offset2 - xcenter)
+      }
       <<survfit.coxph-result>>
       <<survfit.coxph-finish>>
       }
@@ -313,6 +316,7 @@ neighborhood of zero.
 if (length(object$means) ==0) { # a model with only an offset term
     # Give it a dummy X so the rest of the code goes through
     #  (This case is really rare)
+    # se.fit <- FALSE
     X <- matrix(0., nrow=n, ncol=1)
     xcenter <- mean(offset)
     coef <- 0.0
@@ -388,9 +392,17 @@ The dataClasses object is a simple list.
 
 <<survfit.coxph-setup3>>= 
 if (missing(newdata)) {
-    mf2 <- as.list(object$means)   #create a dummy newdata
-    names(mf2) <- names(object$coefficients)
-    mf2 <- as.data.frame(mf2)
+    if (length(object$means)) {
+        mf2 <- as.list(object$means)   #create a dummy newdata
+        names(mf2) <- names(object$coefficients)
+        mf2 <- as.data.frame(mf2)
+        x2 <- matrix(object$means, 1)
+    }
+    else { # nothing but an offset
+        mf2 <- data.frame(X=0)
+        x2 <- 0
+    }
+    offset2 <- 0
     found.strata <- FALSE  
 }
 else {
@@ -529,7 +541,7 @@ else if (missing(newdata)) {
     }
 } else {
     offset2 <- model.offset(mf2)
-    if (length(offset2) >0) offset2 <- offset2 - mean(offset)
+    if (length(offset2) >0) offset2 <- offset2 
     else offset2 <- 0
     x2 <- model.matrix(Terms2, mf2)[,-1, drop=FALSE]  #no intercept
 }

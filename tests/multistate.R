@@ -76,8 +76,5 @@ data3 <- data2
 data3$mspike[data3$etype==2] <- 0
 fit3a <-  coxph(Surv(etime, status) ~ strata(etype)/(age + sex + mspike), data3)
 aeq(fit3$loglik, fit3a$loglik)
-aeq(fit3$coef, fit3a$coef[c(1,3,2,4,5)])
+aeq(fit3$coef, fit3a$coef[c(1,3,5,2,4)])
 
-# Force a common baseline hazard (this doesn't work yet)
-fit4 <- coxph(list(Surv(etime, event) ~ age + sex,
-                   1:1 ~ 1/common), data1, id=id)

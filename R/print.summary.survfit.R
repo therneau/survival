@@ -25,6 +25,7 @@ print.summary.survfit <- function(x,
 
     if (is.matrix(x$surv)) ncurve <- ncol(x$surv)
     else	           ncurve <- 1
+
     if (ncurve==1) {                 #only 1 curve
 	cnames <- c(cnames, "survival")
 	if (!is.null(x$std.err)) {

@@ -84,12 +84,13 @@ survcheck2 <- function(y, id, istate=NULL, istate0="(s0)") {
         inull <- FALSE
     }
 
+    ystate <- attr(y, "states")
     # The vector of all state names is put in a nice printing order:
     #   initial states that are not destination states, then
     #   the destination states.  This keeps destinations in the order the
     #   user chose, while still putting initial states first.
-    index <- match(levels(cstate), attr(y, "states"), nomatch=0)
-    states <- c(levels(cstate)[index==0], attr(y, "states"))
+    index <- match(levels(cstate), ystate, nomatch=0)
+    states <- c(levels(cstate)[index==0], ystate)
     cstate2 <- factor(cstate, states)
     # we keep a form with all the levels for returning to the parent (cstate2)
     #  one without this (cstate) to make a smaller transitions table
@@ -99,16 +100,15 @@ survcheck2 <- function(y, id, istate=NULL, istate0="(s0)") {
     # Don't count "censored" as an endpoint, nor any missings.  But we can't
     #  just omit censored rows, or those with 0 transitions don't get counted!
     #  Instead remove the 'censored' column after making tab1
-    tab1 <- table(id, factor(y[,ncol(y)], 0:length(attr(y, 'states'))))[,-1, drop=FALSE]
+    tab1 <- table(id, factor(y[,ncol(y)], 0:length(ystate)))[,-1, drop=FALSE]
     tab1 <- cbind(tab1, rowSums(tab1))
     tab1.levels <- sort(unique(c(tab1)))  #unique counts
     events <- apply(tab1, 2, function(x) table(factor(x, tab1.levels)))
     dimnames(events) = list("count"= tab1.levels,
-                                "state"= c(attr(y, "states"), "(any)"))
+                                "state"= c(ystate, "(any)"))
     
-
     # check for errors
-    sindx <- match(attr(y, "states"), states)
+    sindx <- match(ystate, states)
     if (ncol(y)==2) y <- cbind(0,y) # make it 3 cols for the C routine
     stat2 <- ifelse(y[,3]==0, 0L, 
                     sindx[pmax(1, y[,3])])  # map the status
@@ -124,11 +124,11 @@ survcheck2 <- function(y, id, istate=NULL, istate0="(s0)") {
     # create the transtions table
     # if someone has an intermediate visit, i.e., (0,10, 0)(10,20,1), don't
     #  report the false 'censoring' in the transitions table
-    yfac <- factor(y[,ny], c(seq(along=attr(y, "states")), 0), to.names)
-    keep <- (y[index,ny]!=0 | !duplicated(id[index], fromLast=TRUE))
+    yfac <- factor(y[,3], c(seq(along=ystate), 0), to.names)
+    keep <- (y[index,3]!=0 | !duplicated(id[index], fromLast=TRUE))
     keep[index] <- keep  # put it back into data order
-    transitions <- table(from=cstate2[keep,drop=TRUE], 
-                         to= yfac[keep, drop=TRUE], 
+    transitions <- table(from=cstate2[keep], 
+                         to= yfac[keep], 
                          useNA="ifany")
 
     # now continue with error checks.  

@@ -1,7 +1,7 @@
 
-R version 2.11.1 (2010-05-31)
-Copyright (C) 2010 The R Foundation for Statistical Computing
-ISBN 3-900051-07-0
+R Under development (unstable) (2019-05-15 r76504) -- "Unsuffered Consequences"
+Copyright (C) 2019 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -16,7 +16,6 @@ Type 'demo()' for some demos, 'help()' for on-line help, or
 Type 'q()' to quit R.
 
 > library(survival)
-Loading required package: splines
 > #
 > # The constuction of a survival curve with sparse frailties
 > #
@@ -37,8 +36,11 @@ Loading required package: splines
 > all.equal(fit1$coef, fit2$coef)
 [1] TRUE
 > sfit2 <- survfit(fit2, newdata=list(age=fit1$means, offvar=0))
-> all.equal(sfit1$surv, sfit2$surv)
+> all.equal(sfit1$surv, sfit2$surv, tol=1e-7)
 [1] TRUE
 > all.equal(sfit1$var, sfit2$var)
 [1] TRUE
 > 
+> proc.time()
+   user  system elapsed 
+  0.768   0.040   0.807 

@@ -316,12 +316,12 @@ curve, and omitted if there is more than one curve.
 The result of a \code{survfit} call can be subscripted.  This is useful
 when one wants to plot only a subset of the curves.
 \index{survfit!subscript}
-<<survfit3>>=
+<<survfit3, fig=TRUE>>=
 fit2 <- survfit(Surv(time, status) ~  sex + ph.ecog, data=lung)
 fit2
 plot(fit2[1:3], lty=1:3, lwd=2, xscale=365.25,
        xlab="Years after enrollment", ylab="Survival")
-legend(550, .8, paste("Peformance Score", 0:2, sep=' ='), 
+legend(550, .8, paste("Performance Score", 0:2, sep=' ='), 
        lty=1:3, lwd=2, bty='n')
 text(400, .95, "Males", cex=2)
 @ 
@@ -1057,7 +1057,7 @@ dim(curveA$influence) # influence matrix for treatment A
 table(myeloid$trt)
 @
 
-For treatment arm A there are \Sexpr{table(data1$trt)[1]} subjects and
+For treatment arm A there are \Sexpr{table(myeloid$trt)[1]} subjects and
 \Sexpr{dim(curveA$pstate)[1]} time points in the $P$ matrix.
 The influence array has subject as the first dimension, and for each
 subject it has an image of the $P$ matrix containing that subject's

@@ -278,10 +278,10 @@ for (x in lhs) {
         else {
             if (any(k= is.na(match(x$right$stateid, names(statedata)))))
                 stop(x$right$stateid[k], ": state variable not found")
-            zz <- statedata[[x$left$stateid]]
+            zz <- statedata[[x$right$stateid]]
             if (any(k= is.na(match(x$right$value, zz))))
                 stop(x$right$value[k], ": state value not found")
-            temp2 <- which(zz %in% x$left$value)
+            temp2 <- which(zz %in% x$right$value)
         }
     }
     else {

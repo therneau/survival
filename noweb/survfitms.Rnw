@@ -359,14 +359,14 @@ if (!censored) {
 
 To deal with selected times we first define a subscripting function.
 For indices of 0, which are requested times that are before the first event,
-it fills in an initial value. 
+it fills in the initial value. 
 
 <<survfitms-times>>=
-ssub <- function(x, indx, init=0) {  #select an object and index
+ssub<- function(x, indx) {  #select an object and index
     if (!is.null(x) && length(indx)>0) {
         # the as.vector() is a way to keep R from adding "init" as a row name
-        if (is.matrix(x)) rbind(as.vector(init), x)[indx+1,,drop=FALSE]
-        else c(init, x)[indx+1]
+        if (is.matrix(x)) x[pmax(1,indx),,drop=FALSE]
+        else x[pmax(1, indx)]
     }
     else NULL
 }
@@ -394,7 +394,7 @@ are computed using indx1.
 A report at time 30 is made only if extend=TRUE, in which case we need
 to compute a tail value for n.risk.
 <<survfitms-times>>=
-findrow <- function(fit, times, extend, init=1) {
+findrow <- function(fit, times, extend) {
     # First, toss any printing times that are outside our range
     if (is.null(fit$start.time)) mintime <- min(fit$time, 0)
     else                         mintime <- fit$start.time
@@ -412,10 +412,10 @@ findrow <- function(fit, times, extend, init=1) {
     #  times before the first observation = n.risk at the first obs
     fit$time <- ptimes
     for (i in c("surv", "pstate", "upper", "lower")) {
-        if (!is.null(fit[[i]])) fit[[i]] <- ssub(fit[[i]], index1, init)
+        if (!is.null(fit[[i]])) fit[[i]] <- ssub(fit[[i]], index1)
     }
     for (i in c("std.err", "cumhaz")) {
-        if (!is.null(fit[[i]])) fit[[i]] <- ssub(fit[[i]], index1, 0)
+        if (!is.null(fit[[i]])) fit[[i]] <- ssub(fit[[i]], index1)
     }
     
     if (is.matrix(fit$n.risk)) {
@@ -522,11 +522,11 @@ summary.survfitms <- function(object, times, censored=FALSE,
     else {
         <<survfitms-times>>
         times <- sort(times)
-        if (is.null(fit$strata)) fit <- findrow(fit, times, extend, fit$p0)
+        if (is.null(fit$strata)) fit <- findrow(fit, times, extend)
         else {
             ltemp <- vector("list", nstrat)
             for (i in 1:nstrat) 
-                ltemp[[i]] <- findrow(fit[i], times, extend, fit$p0[i,])
+                ltemp[[i]] <- findrow(fit[i,], times, extend)
             fit <- unpacksurv(fit, ltemp)
         }
     }

@@ -21,9 +21,10 @@ survfit23 <- function(x) {
     insert <- insert[!same]
     if (length(insert)==0) {  # nothing much to do
         drop <- c("start.time", "p0")
-        newx <- unclass(x)[is.na(match(names(x), drop))]
-        class(newx) <- c("survfit3", class(x))
-        return(newx)
+        new <- unclass(x)[is.na(match(names(x), drop))]
+        new$version <- 3
+        class(new) <- class(x)
+        return(new)
     }
     if (!is.null(x$strata)) {
         newstrat <- x$strata
@@ -59,7 +60,17 @@ survfit23 <- function(x) {
 
     add1 <- c("surv", "lower","upper")
     add0 <- c("n.event", "n.censor", "n.add", "cumhaz", "std.chaz")
+
     if (is.null(x$sp0)) sp0 <- 0 else sp0 <- x$sp0
+    if (!is.null(x$p0)) {
+      if (any(same)) {# we have to subscript p0 and sp0
+            # if p0 isn't a matrix, we can't end up here BTW
+            p00 <- x$p0[!same,]
+            if (!is.null(x$sp0)) sp0 <- x$sp0[!same,]
+      }
+      else p00 <- x$p0
+    }
+
     for (i in names(new)) {
         if (i=="time") new[[i]] <- addto(x[[i]], insert, start.time)
         else if (i=="n.risk") {
@@ -67,7 +78,7 @@ survfit23 <- function(x) {
                 new[[i]] <- addto(x[[i]], insert, x$n.risk[insert,])
             else new[[i]] <- addto(x[[i]], insert, x$n.risk[insert])
         }
-        else if (i=="pstate") new[[i]] <- addto(x[[i]], insert, x$p0)
+        else if (i=="pstate") new[[i]] <- addto(x[[i]], insert, p00)
         else if (i=="strata") new[[i]] <- newstrat
         else if (i=="std.err") new[[i]] <- addto(x[[i]], insert, sp0)
         else if (i %in% add0) new[[i]] <- addto(x[[i]], insert, 0L)

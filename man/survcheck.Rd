@@ -5,7 +5,7 @@
 Perform a set of consistency checks on survival data
 }
 \usage{
-survcheck(formula, data, id, istate, istate0="(s0)", ...)
+survcheck(formula, data, id, istate, istate0="(s0)", timefix=TRUE,...)
 }
 \arguments{
   \item{formula}{a model formula with a \code{Surv} object as the
@@ -17,6 +17,8 @@ survcheck(formula, data, id, istate, istate0="(s0)", ...)
     observation, i.e., the state at the start of each interval}
   \item{istate0}{default label for the initial state when \code{istate}
     is missing}
+  \item{timefix}{process times through the \code{aeqSurv} function to
+  eliminate potential roundoff issues.}
   \item{\ldots}{other arguments, which are ignored (but won't give an
     error if someone added \code{weights} for instance)}
 }

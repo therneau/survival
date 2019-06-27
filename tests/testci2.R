@@ -70,7 +70,7 @@ truth <- truth[c(1:6, 6:11),]/10  #the explicit censor at 22
 
 #dimnames(truth) <- list(c(5, 6, 10, 15, 18, 20, 25, 30, 34, 40, 50),
 #                        c('a', 'b', 'c', 'd')
-all.equal(truth, fit$pstate[,1:4])
+all.equal(truth, fit$pstate[,2:5])
 
 # Test the dfbetas
 # It was a big surprise, but the epsilon where a finite difference approx to

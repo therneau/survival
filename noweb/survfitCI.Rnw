@@ -161,6 +161,7 @@ survfitCI <- function(X, Y, weights, id, istate, cluster,
     if (missing(istate) || is.null(istate))
         mcheck <- survcheck2(Y, id)  
     else mcheck <- survcheck2(Y, id, istate)
+    if (any(mcheck$flag > 0)) stop("one or more flags are >0 in survcheck")
     states <- mcheck$states
     istate <- mcheck$istate
     nstate <- length(states) 
@@ -372,7 +373,7 @@ names(ckeep) <- outer(1:nstate, 1:nstate, paste, sep='.')[ckeep]
 
 if (length(curves) ==1) {
     keep <- c("n", "time", "n.risk", "n.event", "n.censor", "pstate",
-              "p0", "cumhaz", "influence.p")
+              "p0", "cumhaz", "influence.pstate")
     if (se.fit) keep <- c(keep, "std.err", "sp0")
     kfit <- (curves[[1]])[match(keep, names(curves[[1]]), nomatch=0)]
     names(kfit$p0) <- states
@@ -404,7 +405,8 @@ else {
         t(x$cumhaz[ckeep,])))
     colnames(kfit$cumhaz) <- names(ckeep)
  
-    if (influence) kfit$influence.p <- lapply(curves, function(x) x$influence.p)
+    if (influence) kfit$influence.pstate <- 
+        lapply(curves, function(x) x$influence.pstate)
     if (!missing(start.time)) kfit$start.time <- start.time
 }                         
 kfit$transitions <- mcheck$transitions
@@ -495,7 +497,7 @@ docurve2 <- function(entry, etime, status, istate, wt, states, id,
     if (all(p0 <1)) {  #actually have to compute it
         who <- index[at.zero]  # this will have no duplicates
         for (j in 1:nstate) 
-            i0[who,j] <- (ifelse(istate[at.zero]==j, 1, 0) - p0[j])/wtsum
+            i0[who,j] <- (ifelse(istate[at.zero]==states[j], 1, 0) - p0[j])/wtsum
     }
      
     storage.mode(cstate) <- "integer"
@@ -532,7 +534,7 @@ docurve2 <- function(entry, etime, status, istate, wt, states, id,
         temp <-  array(fit$influence, 
                        dim=c(length(uid), nstate, 1+ length(timeset)),
                        dimnames=list(uid, NULL, NULL))
-        out$influence.p <- aperm(temp, c(1,3,2))
+        out$influence.pstate <- aperm(temp, c(1,3,2))
     }
     out
 }

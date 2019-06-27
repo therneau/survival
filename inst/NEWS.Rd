@@ -7,6 +7,10 @@
     \item Rename remaining .S files as .R
     \item vcov of a survreg object now contains dimnames (important for the
     stats::confint function)
+    \item Subscripting survfit object removes the na.action.  This is a
+    loss in the sense that the printout no longer tells us that
+    observations were removed, but the information about which and how
+    many would be wrong.
 }}
 \section{Changes in version 2.44-1}{
   \itemize{

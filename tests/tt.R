@@ -29,6 +29,7 @@ mkdata <- function(n, beta) {
     }
     data.frame(futime=round(futime,1), status=status, age=age, x=x, risk=risk,
                casewt = sample(1:5, n, replace=TRUE),
+
                grp = sample(1:15, n, replace=TRUE))
 }
 

@@ -1,7 +1,7 @@
 
-R version 3.3.2 (2016-10-31) -- "Sincere Pumpkin Patch"
-Copyright (C) 2016 The R Foundation for Statistical Computing
-Platform: x86_64-apple-darwin13.4.0 (64-bit)
+R Under development (unstable) (2019-05-15 r76504) -- "Unsuffered Consequences"
+Copyright (C) 2019 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -59,7 +59,7 @@ Type 'q()' to quit R.
 [1] TRUE
 > aeq(surv2$surv[zed, ], surv2[1,1:3]$surv)
 [1] TRUE
-> aeq(surv2$surv[zed],   (surv2[1]$surv)[,1])
+> aeq(surv2$surv[zed], (surv2[1])$surv)
 [1] TRUE
 > aeq(surv2$surv[zed, ], surv2[1, ]$surv)
 [1] TRUE
@@ -71,11 +71,10 @@ Type 'q()' to quit R.
 [1] TRUE
 > 
 > 
-> 
 > # Test out offsets, which have recently become popular due to a Langholz paper
 > fit1 <- coxph(Surv(time, status) ~ age + ph.ecog, lung)
 > fit2 <- coxph(Surv(time, status) ~ age + offset(ph.ecog * fit1$coef[2]), lung)
-> 
+>  
 > surv1 <- survfit(fit1, newdata=data.frame(age=50, ph.ecog=1))
 > surv2 <- survfit(fit2, newdata=data.frame(age=50, ph.ecog=1))
 > all.equal(surv1$surv, surv2$surv)
@@ -94,4 +93,4 @@ Type 'q()' to quit R.
 > 
 > proc.time()
    user  system elapsed 
-  0.769   0.054   0.843 
+  0.808   0.060   0.868 
