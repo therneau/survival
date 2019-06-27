@@ -103,7 +103,10 @@ dim.survfit <- function(x) {
     }
     
     if (!inherits(x, "survfit")) stop("[.survfit called on non-survfit object")
-    ndots <- ...length()   # number of subscripts that we have
+    # ndots <- ...length()      # the simplest, but not avail in R 3.4
+    # ndots <- length(list(...))# fails if any are missing, e.g. fit[,2]
+    ndots <- if (missing(drop)) nargs()-1 else nargs()-2  # a workaround
+
     dd <- dim(x)
     dtype <- match(names(dd), c("strata", "data", "states"))
 
