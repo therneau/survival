@@ -10,7 +10,9 @@
     \item Subscripting survfit object removes the na.action.  This is a
     loss in the sense that the printout no longer tells us that
     observations were removed, but the information about which and how
-    many would be wrong.
+    many were removed was incorrect after the selection.
+    \item The survexp function, applied to a coxph model with strata,
+    would sometimes produce extraneous y=0 values at the start of a curve.
 }}
 \section{Changes in version 2.44-1}{
   \itemize{

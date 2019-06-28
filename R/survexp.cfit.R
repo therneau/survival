@@ -52,6 +52,7 @@ survexp.cfit <- function(group, ndata, y, method, coxfit, weights) {
     #  of subjects in survexp whose individual members come from different
     #  strata in sfit.  The result curves could have any of the times
     #  that appear in any stratum.  So we create a regular matrix of survivals.
+
     if (is.null(sfit$strata)) ssurv <- sfit$surv
     else {
         ssurv <- matrix(0., nrow=ntime, ncol=n)
@@ -59,7 +60,7 @@ survexp.cfit <- function(group, ndata, y, method, coxfit, weights) {
         for (i in 1:n) {
             itemp <- which(indx==i)
             ssurv[,i] <- approx(sfit$time[itemp], sfit$surv[itemp], newtime,
-                                 yleft=0, method="constant",
+                                 yleft=1, method="constant",
                                  f=0, rule=2)$y
         }
     }
