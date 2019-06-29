@@ -106,7 +106,7 @@ age on mortality.
 
 \section{Monotone splines}
 Consider the following model using the \code{mgus2} data set.
-<<hgb>>=
+<<hgb, fig=TRUE>>=
 fit <- coxph(Surv(futime, death) ~ age + pspline(hgb, 4), mgus2)
 fit
 termplot(fit, se=TRUE, term=2, col.term=1, col.se=1,
@@ -132,7 +132,7 @@ of freedom.  We fix it at a single value for the rest of
 this example to better isolate the effects of degrees of freedom
 and of constraints.
 
-<<df>>=
+<<df, fig=TRUE>>=
 termplot(fit, se=TRUE, col.term=1, col.se=1, term=2,
          xlab="Hemoglobin level", ylim=c(-.4, 1.3))
 df <- c(3, 2.5, 2)
@@ -155,7 +155,7 @@ We can then use a pool adjacent violators algorithm to sequentially
 force equality for those coefficients which go the wrong way.
 Look at the coefficients for the fit with 2.5 degrees of freedom.
 
-<<fit2.5>>=
+<<fit2a, fig=TRUE>>=
 fit2a <- coxph(Surv(futime, death) ~ age + pspline(hgb, 2.5, nterm=8), mgus2)
 coef(fit2a)
 plot(1:10, coef(fit2a)[-1])
@@ -164,7 +164,7 @@ plot(1:10, coef(fit2a)[-1])
 Now force the last 3 to be equal, then the last 4,
 and see how this changes the fit.
 
-<<fit2b>>=
+<<fit2b, fig=TRUE>>=
 temp <- c(1:7, 8,8,8)
 fit2b <- coxph(Surv(futime, death) ~ age + 
                pspline(hgb, 2.5, nterm=8, combine=temp), 
@@ -237,7 +237,7 @@ Nevertheless we would like to plot the two estimated curves for
 The \code{termplot} routine is not able to deal with models that
 have an interaction and will bow out with a warning message;
 we use explicit prediction instead, which is nearly as easy.
-<<nfit2>>=
+<<nfit2, fig=TRUE>>=
 pdata <- expand.grid(age= 50:99, sex=c("F", "M"))
 pdata[1:5,]
 

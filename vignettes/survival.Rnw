@@ -820,6 +820,7 @@ Here is the code for figure \ref{badfit}.  The use of a logical (true/false)
 as the status variable in the \code{Surv} call leads to ordinary survival
 calculations.
 <<badfit, fig=TRUE, include=FALSE>>=
+xxxcx
 badfit <- survfit(Surv(tstart, tstop, event=="SCT") ~ trt, 
                        id=id, mdata, subset=(priortx==0))
 

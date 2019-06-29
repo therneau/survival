@@ -46,7 +46,7 @@ SEXP coxsurv2(SEXP otime2, SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22,
               SEXP position2,  SEXP trans2, SEXP xmat2, SEXP risk2) {
               
     int i, i2, j2, k, person, person2, itrans;
-    int nused, nstrat, ntime, irow, ii, jj;
+    int nused, ntrans, ntime, irow, ii, jj;
     double *tstart=0, *tstop, *status, *wt, *otime;
     int *trans;
     double dtime, meanwt;
@@ -54,7 +54,7 @@ SEXP coxsurv2(SEXP otime2, SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22,
     double **xmat, *risk;  /* X matrix and risk score */
     int nvar;              /* number of covariates */
     double  *xsum1,  /* a weighted sum, for computing xbar */
-	    *xsum2, *etemp;
+	    *xsum2;
 	    
     int *atrisk;
 
@@ -98,9 +98,8 @@ SEXP coxsurv2(SEXP otime2, SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22,
     }  
  
     /* Allocate memory for the working matrices. */
-    xsum1 = (double *) ALLOC(3*nvar, sizeof(double));
+    xsum1 = (double *) ALLOC(2*nvar, sizeof(double));
     xsum2 = xsum1 + nvar;
-    etemp = xsum2 + nvar;
     atrisk = (int *) ALLOC(nused, sizeof(int));
     for (i=0; i<nused; i++) atrisk[i] =0;
     
@@ -163,7 +162,7 @@ SEXP coxsurv2(SEXP otime2, SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22,
 		    if (position[i2]>1 && status[i2]==0) {
 			/* count them as a 'censor' */
 			n[8]++;
-			n[9]+= wt[j2];
+			n[9]+= wt[i2];
 		    }
 		}
 
@@ -231,10 +230,12 @@ SEXP coxsurv2(SEXP otime2, SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22,
         } /* end of time points */
 
 	/* walk past any data after the last selected time point */
+	i2 = sort2[person];
 	while(person>=0 && trans[i2]==itrans) {
 	    person--;
 	    i2 = sort2[person];
 	}
+	j2 = sort1[person2];
 	while(person2 >=0 && trans[j2]==itrans) {
 	    person2--;
 	    j2 = sort1[person2];

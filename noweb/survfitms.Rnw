@@ -398,10 +398,15 @@ A report at time 30 is made only if extend=TRUE, in which case we need
 to compute a tail value for n.risk.
 <<survfitms-times>>=
 findrow <- function(fit, times, extend) {
-    # First, toss any printing times that are outside our range
-    if (is.null(fit$start.time)) mintime <- min(fit$time, 0)
-    else                         mintime <- fit$start.time
-    ptimes <- times[times >= mintime]
+    if (FALSE) {
+        # First, toss any printing times that are outside our range
+        #  Later removed: 
+        # an example from R Geskus with negative times showed that
+        #  this is a bad idea -- he asked for those times
+        if (is.null(fit$start.time)) mintime <- min(fit$time, 0)
+        else                         mintime <- fit$start.time
+        ptimes <- times[times >= mintime]
+    }  else ptimes <- times[is.finite(times)]      
 
     if (!extend) {
         maxtime <- max(fit$time)
