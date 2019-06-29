@@ -3,6 +3,8 @@
 \usepackage{amsmath}
 \title{Multi-state models as a data exploration tool}
 \author{Terry Therneau}
+\VignetteIndexEntry{Multi-state survival curves}
+
 \begin{document}
 \maketitle
 

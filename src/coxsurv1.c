@@ -77,7 +77,8 @@ SEXP coxsurv1(SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22,
     xmat = dmatrix(REAL(xmat2), nrows(xmat2), nvar);
 
     /* pass 1, get the number of unique event times, needed to alloc memory
-    **  data is sorted by reverse time within strata
+    **  data is sorted by time within strata. The same time in 2 strata
+    **  counts as 2 separate times.
     */
     ntime =1; dtime=stime[sort2[0]]; istrat= strata[sort2[0]];
     for (i=1; i<nused; i++) {
@@ -87,6 +88,7 @@ SEXP coxsurv1(SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22,
 	    istrat = strata[i2];
 	}	
 	else if (stime[i2] != dtime) ntime++;
+	dtime = stime[i2];
     }  
 
     /* Allocate memory for the working matrices. */
@@ -94,8 +96,7 @@ SEXP coxsurv1(SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22,
     xsum2 = xsum1 + nvar;
    
     /* Allocate memory for returned objects.  Essentially ntime copies of each
-       of the above.  
-       If ny=2 then the 'additions' of n1 are all zero, so no need to save them
+       of n, xsum1, xsum2.
     */
     PROTECT(rlist = mkNamed(VECSXP, outnames));
     rtime  = REAL(SET_VECTOR_ELT(rlist, 0, allocVector(REALSXP, ntime)));
@@ -116,14 +117,14 @@ SEXP coxsurv1(SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22,
 	i2 = sort2[person];
 	if (person==0 || strata[i2] != istrat) {
 	    if (person>0) {
-		/* catch up on the entries */
+		/* catch up on entries at the end of a stratum */
 		j2 = sort2[person2];
 		for (; tstart[j2] >= dtime && strata[j2]==istrat; person2++) {
 		    n[10]++;
 		    n[11] += wt[j2];
 		    j2 = sort1[person2];
 		}
-printf("itime=%d, n= %4.2f %4.2f\n", itime, n[10], n[11]);
+/* printf("itime=%d, n= %4.2f %4.2f\n", itime, n[10], n[11]); */
 		rn[10][itime+1] = n[10];
 		rn[11][itime+1] = n[11];
 	    }
