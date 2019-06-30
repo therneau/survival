@@ -10,7 +10,7 @@ prompted a movement of more of the code into C since that calculation
 is computationally intensive.
 
 <<survfitKM>>= 
-survfitKM <- function(x, y, weights=rep(1.0,length(x)), 
+survfitKM <- unction(x, y, weights=rep(1.0,length(x)), 
                       stype=1, ctype=1,
                       se.fit=TRUE,
                       conf.int= .95,
@@ -384,7 +384,7 @@ SEXP survfitkm(SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22,
                SEXP type2, SEXP id2, SEXP nid2,   SEXP position2,
                SEXP influence2) {
               
-    int i, i2, j, j2, k, person;
+    int i, i1, i2, j, k, person1, person2;
     int nused, nid, type, influence;
     int ny, ntime;
     double *tstart=0, *stime, *status, *wt;
@@ -439,15 +439,17 @@ SEXP survfitkm(SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22,
     else id = INTEGER(id2);
 
     /* pass 1, get the number of unique times, needed for memory allocation 
-      number of xval groups (unique id values) has been supplied 
-      data is sorted by time
+      Number of xval groups (unique id values) has been supplied 
+      Data is sorted by time
     */
     ntime =1; 
-    j2 = sort2[0];
+    temp = stime[sort2[0]];
     for (i=1; i<nused; i++) {
 	i2 = sort2[i];
-        if (stime[i2] != stime[j2]) ntime++;
-	j2 = i2;
+        if (stime[i2] != temp) {
+            ntime++;
+            temp = stime[i2];
+        }
     }	
 @ 
 
@@ -534,14 +536,19 @@ for.
 Pass 2 goes from the last time to the first and fills in the \code{n} matrix.
 <<survfitkm-pass2>>=
 R_CheckUserInterrupt();  /*check for control-C */
-person = nused-1;
+/*
+** person1, person2 track through sort1 and sort2, respectively
+**  likewise with i1 and i2
+*/
+person1 = nused-1;  person2 = nused-1;
 n1=0; wt1=0;
-j= nused -1;
 for (k=ntime-1; k>=0; k--) {
-    i2 = sort2[person];
     dtime[k] = stime[i2];  /* current time point */
     n2=0; n3=0; wt2=0; wt3=0; 
-    while(person>=0 && stime[i2]==dtime[k]) {
+    for (; person2 >=0; person2--) {
+        i2= sort2[person2];
+        if (stime[i2] != dtime[k]) break;
+
         n1++;             /* number at risk */
         wt1 += wt[i2];    /* weighted number at risk */
         if (status[i2] ==1) {
@@ -555,25 +562,22 @@ for (k=ntime-1; k>=0; k--) {
 	    n3++;
 	    wt3 += wt[i2];
         }
-        person--;
-        i2 = sort2[person];
     }
     
     if (ny==3) { /* remove any with start time >=dtime*/
 	n4 =0; wt4 =0;
-	j2 = sort1[j];
-	while (j >=0 && tstart[j2] >= dtime[k]) {
+        for (; person1 >=0; person1--) {
+            i1 = sort1[person1];
+            if (tstart[i2] < dtime[k]) break;
 	    n1--;
-	    wt1 -= wt[j2];
-	    if (hasid==0 || (position[j2] & 1)) {
+	    wt1 -= wt[i1];
+	    if (hasid==0 || (position[i1] & 1)) {
                 /* if there are no repeated id (hasid=0) or this is the
                 ** first of a string of (a,b](b,c](c,d] for a subject, then
                 ** this is a 'real' entry */
                 n4++;
-                wt4 += wt[j2];
+                wt4 += wt[i1];
             }
-	    j--;
-	    j2 = sort1[j];
 	}
         if (n4>0) {
            n[6][k+1] = n4;
@@ -587,11 +591,11 @@ for (k=ntime-1; k>=0; k--) {
 
 if (ny ==3) {   /* fill in number entered for the initial interval */
     n4=0; wt4=0;
-    for (; j>=0; j--) {
-        j2 = sort1[j];
-        if (hasid==0 || (position[j2] & 1)) {
+    for (; person1>=0; person1--) {
+        i1 = sort1[person1];
+        if (hasid==0 || (position[i1] & 1)) {
             n4++;
-            wt4 += wt[j2];
+            wt4 += wt[i1];
         }
     }
     n[6][0] = n4;    
@@ -682,7 +686,7 @@ $J_i(t) = S_i(t) - S_{-i}(t)$ be the change in the
 survival curve from adding subject $i$ back in.
 Then the jackknife estimate of variance is 
 $$
-    V_J(t) = \sum \left( J_i(t) - \overline J(t) \right)^2
+    \sigma^2_J(t) = \sum \left( J_i(t) - \overline J(t) \right)^2
 $$
 The IJ estimate instead uses the linear approximation to the
 jackknife, since it is normally less work to compute the derivative than a
@@ -690,7 +694,7 @@ whole new estimate.
 Notice that if all the weights were doubled the expression below will stay
 the same since the derivative will drop by 1/2.
 \begin{align*}
-  V_{IJ}(t) & = \sum_i w_i \frac{\partial S(t)}{\partial w_i} \\
+  \sigma^2_{IJ}(t_k) & = \sum_i U_{ik}^2 \\
   U_{ik}  & =  \frac{\partial S(t_k)}{\partial w_i}
 \end{align*}
 
@@ -700,16 +704,19 @@ Since the number of unique event times tends to grow with $n$, this
 matrix very rapidly becomes too large to manage. 
 Instead use a grouped jackknife with $g$ groups, 
 $g$ will often be on the order of 20--50.
-The 0/1 design matrix $B$ has $n$ rows and $g$ columns, one column per group.
+The 0/1 design matrix $B$ has $n$ rows and $g$ columns, one column per group,
+marking which subject is in each group.
 The grouped jackknife can be written as 
 \begin{align*}
   U'WBB'W U &= V'V
 \end{align*}
 Our goal is to accumulate and use $V$ instead of $U$. 
-The working vectors \code{inf1} and \code{inf2} are the current column of $V$
-over time. The \code{imat} array has returned values, if desired.
+The working vectors \code{inf1} and \code{inf2} contain the current 
+estimate for the survival S and cumulative hazard H, at a given time.
+They are saved into the \code{imat} array for users, if desired.
 
-First work this out for the cumulative hazard, which is simpler.
+First work this out for the cumulative hazard, which is simpler, and a single
+subject $k$.
 \begin{align}
     H(t) &= \sum_{s\le t} \frac{\sum w_i dN_i(s)}{\sum w_i Y_i(s)} \nonumber\\
          &= \sum _{s\le t} h(s) \nonumber \\
@@ -721,16 +728,18 @@ First work this out for the cumulative hazard, which is simpler.
 using the counting process notation of $N(t)$ for events and $Y(t)$ for at risk.
 The weighted sum of the first derivatives is zero, so we don't need a mean
 when computing the variance estimate.  (This is true for all IJ estimators.)
-The $V$ matrix involves the weighted sum of this over groups,
+$V$ involves the weighted sum of this over groups,
 for the increment to each row of $V$ the rightmost term of \eqref{Una} is
-replaced by the weighted sum over each group, which can be kept as a running
-update.
+replaced by the weighted sum over each group.  Since $h$ is the same for
+every subject at risk, we only need accumulate the sum of
+subjects in and sum of events in each group.  The first can be kept as
+a running sum with $O(n)$ effort.  
 
 When using the FH2 estimate tied deaths are different.  Say that subject $i$ 
 dies at some time $t$ where there are 2 other tied deaths.
 Let $w_i$ for $i=1,2,3$ be the weight of those who die and $s$ the sum of 
 weights for all the others.
-Then contribution to the cumulative hazard and derivative at this time point is
+The contribution to the cumulative hazard and derivative at this time point is
 \begin{align*}
    h &= \frac{w_1+w_2+w_3}{3} \frac{1}{s+w_1+w_2+w_3} + 
          \frac{w_1+w_2+w_3}{3} \frac{1}{s+ 2(w_1+w_2+w_3)/3} +
@@ -789,10 +798,11 @@ in the O(gd) step, then correct it when doing the O(d) update.
 
 <<survfitkm-influence>>=
 v1=0; v2 =0; km=1; nelson =0;
-person=0; 
+person2=0; 
 if (ny==3) {
-    j=0;  j2= sort1[0]; /* j tracks sort2 */
+    person1 =0;
 } else {
+    /* at the start, everyone is at risk */
     for (i=0; i< nused; i++) {
         i2 = id[i];
         gcount[i2]++;
@@ -801,15 +811,15 @@ if (ny==3) {
 }
     
 if (type==1) {
-    person =0; 
     for (i=0; i< ntime; i++) {
         if (ny==3) {
             /* add in new subjects */
-            while(j<nused && tstart[j2] < dtime[i]) {
-                gcount[id[j2]]++;
-                gwt[id[j2]] += wt[j2];
-                j++;
-                j2 = sort1[j];
+            for (; person1 < nused; person1++) {
+                /* add in those whose start time is < dtime */
+                i1 = sort1[person1];
+                if (tstart[i1] >= dtime[i]) break;  
+                gcount[id[i1]]++;
+                gwt[id[i1]] += wt[i1];
             }
         }
  
@@ -819,9 +829,9 @@ if (type==1) {
                 inf1[k] = inf1[k] *(1.0 -haz) + gwt[k]*km*haz/n[3][i];
                 inf2[k] -= gwt[k] * haz/n[3][i];
             }
-            for (; person<nused && stime[sort2[person]]==dtime[i]; person++) { 
-                /* catch the endpoints up to this event time */
-                i2 = sort2[person];
+            for (; person2<nused; person2++) { 
+                i2 = sort2[person2];
+                if (stime[i2] > dtime[i]) break;   /* those at this time */
                 if (status[i2]==1) {
                     inf1[id[i2]] -= km* wt[i2]/n[3][i];
                     inf2[id[i2]] += wt[i2]/n[3][i];
@@ -839,8 +849,9 @@ if (type==1) {
                 v2 += inf2[k]*inf2[k];
             }
         } else {  /* only need to udpate weights */
-            for (; person<nused && stime[sort2[person]]==dtime[i]; person++) { 
-                i2 = sort2[person];
+            for (; person2<nused; person2++) { 
+                i2 = sort2[person2];
+                if (stime[i2] > dtime[i]) break;
                 gcount[id[i2]] --;
                 if (gcount[id[i2]] ==0) gwt[id[i2]] = 0.0;
                 else gwt[id[i2]] -= wt[i2];
@@ -858,15 +869,14 @@ if (type==1) {
     }
 }
 else if (type==2) {  /* KM survival, Fleming-Harrington hazard */
-    person =0; 
     for (i=0; i< ntime; i++) {
         if (ny==3) {
             /* add in new subjects */
-            while(j<nused && tstart[j2] < dtime[i]) {
-                gcount[id[j2]]++;
-                gwt[id[j2]] += wt[j2];
-                j++;
-                j2 = sort1[j];
+            for (; person1<nused; person1++) {
+                i2 = sort1[person1];
+                if (tstart[i1] >= dtime[i]) break;
+                gcount[id[i1]]++;
+                gwt[id[i1]] += wt[i1];
             }
         }
  
@@ -895,9 +905,10 @@ else if (type==2) {  /* KM survival, Fleming-Harrington hazard */
                 inf1[k] = inf1[k] *(1.0 -haz) + gwt[k]*km*haz/n[3][i];
                 if (gcount[k]>0) inf2[k] -= gwt[k] * dtemp3;
             }
-            for (; person<nused && stime[sort2[person]]==dtime[i]; person++) { 
+            for (; person2<nused; person2++) {                
                 /* catch the endpoints up to this event time */
-                i2 = sort2[person];
+                i2 = sort2[person2];
+                if (stime[i2] > dtime[i]) break;
                 if (status[i2]==1) {
                     inf1[id[i2]] -= km* wt[i2]/n[3][i];
                     inf2[id[i2]] += wt[i2] *(dtemp + dtemp3 - dtemp2);
@@ -914,8 +925,9 @@ else if (type==2) {  /* KM survival, Fleming-Harrington hazard */
                 v2 += inf2[k]*inf2[k];
             }
         } else {  /* only need to udpate weights */
-            for (; person<nused && stime[sort2[person]]==dtime[i]; person++) { 
-                i2 = sort2[person];
+            for (; person2<nused; person2++) { 
+                i2 = sort2[person2];
+                if (stime[i2] > dtime[i]) break;
                 gcount[id[i2]] --;
                 if (gcount[id[i2]] ==0) gwt[id[i2]] = 0.0;
                 else gwt[id[i2]] -= wt[i2];
@@ -934,15 +946,15 @@ else if (type==2) {  /* KM survival, Fleming-Harrington hazard */
 }
 
 else if (type==3) {  /* exp() survival, NA hazard */
-    person =0; 
     for (i=0; i< ntime; i++) {
         if (ny==3) {
             /* add in new subjects */
-            while(j<nused && tstart[j2] < dtime[i]) {
-                gcount[id[j2]]++;
-                gwt[id[j2]] += wt[j2];
-                j++;
-                j2 = sort1[j];
+            for (; person1 < nused; person1++) {
+                i1 = sort1[person1];
+                if (tstart[i1] >= dtime[i]) break;
+
+                gcount[id[i1]]++;
+                gwt[id[i1]] += wt[i1];
             }
         }
          
@@ -951,9 +963,10 @@ else if (type==3) {  /* exp() survival, NA hazard */
             for (k=0; k< nid; k++) {
                 inf2[k] -= gwt[k] * haz/n[3][i];
             }
-            for (; person<nused && stime[sort2[person]]==dtime[i]; person++) { 
+            for (; person2<nused; person2++) { 
                 /* catch the endpoints up to this event time */
-                i2 = sort2[person];
+                i2 = sort2[person2];
+                if (stime[i2] > dtime[i]) break;
                 if (status[i2]==1) {
                      inf2[id[i2]] += wt[i2]/n[3][i];
                 }
@@ -968,8 +981,9 @@ else if (type==3) {  /* exp() survival, NA hazard */
                 v2 += inf2[k]*inf2[k];
             }
         } else {  /* only need to udpate weights */
-            for (; person<nused && stime[sort2[person]]==dtime[i]; person++) { 
-                i2 = sort2[person];
+            for (; person2<nused; person2++) { 
+                i2 = sort2[person2];
+                if (sort2[i2] > dtime[i]) break;
                 gcount[id[i2]] --;
                 if (gcount[id[i2]] ==0) gwt[id[i2]] = 0.0;
                 else gwt[id[i2]] -= wt[i2];
@@ -986,15 +1000,14 @@ else if (type==3) {  /* exp() survival, NA hazard */
     }
 
 } else {  /* exp() survival,  Fleming-Harrington hazard */
-    person =0; 
     for (i=0; i< ntime; i++) {
         if (ny==3) {
             /* add in new subjects */
-            while(j<nused && tstart[j2] < dtime[i]) {
-                gcount[id[j2]]++;
-                gwt[id[j2]] += wt[j2];
-                j++;
-                j2 = sort1[j];
+            for (; person1 < nused; person1++) {
+                i1 = sort1[person1];
+                if (tstart[i1] >= dtime[i]) break;
+                gcount[id[i1]]++;
+                gwt[id[i1]] += wt[i1];
             }
         }
         if (n[1][i] > 0 && n[4][i] >0) { /* need to update the sums */
@@ -1020,9 +1033,9 @@ else if (type==3) {  /* exp() survival, NA hazard */
             for (k=0; k< nid; k++) {
                 if (gcount[k]>0) inf2[k] -= gwt[k] * dtemp3;
             }
-            for (; person<nused && stime[sort2[person]]==dtime[i]; person++) { 
-                /* catch the endpoints up to this event time */
-                i2 = sort2[person];
+            for (; person2<nused; person2++) { 
+                 i2 = sort2[person2];
+                if (stime[i2] > dtime[i]) break;
                 if (status[i2]==1) {
                     inf2[id[i2]] += wt[i2] *(dtemp + dtemp3 - dtemp2);
                 }
@@ -1035,8 +1048,9 @@ else if (type==3) {  /* exp() survival, NA hazard */
             for (k=0; k<nid; k++) v2 += inf2[k]*inf2[k];
         }
         else { /* only need to update weights */
-            for (; person<nused && stime[sort2[person]]==dtime[i]; person++) { 
-                i2 = sort2[person];
+            for (; person2<nused; person2++) { 
+                i2 = sort2[person2];
+                if (stime[i2] > dtime[i]) break;
                 gcount[id[i2]] --;
                 if (gcount[id[i2]] ==0) gwt[id[i2]] = 0.0;
                 else gwt[id[i2]] -= wt[i2];

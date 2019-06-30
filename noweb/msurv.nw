@@ -187,26 +187,26 @@ if (sefit ==1) {
 } 
 @ 
 
-The primary loop of the program walks along the [[sort2]]
+The primary loop of the program walks along the \code{sort2}
 vector, with one pass through the interior of the for loop for each unique
 event time.  
 Observations are at risk in the interval (entry, event]: note
-the round and square brackets, so a row must satisfy [[entry < ctime <= event]]
-to be at risk, 
-where [[ctime]] is the unique event time of current interest.
+the round and square brackets, so a row must satisfy 
+\code{entry < ctime <= event} to be at risk, 
+where \code{ctime} is the unique event time of current interest.
 The basic loop is to add new subjects to the risk set, compute,
 save results, then remove expired ones from the risk set.
-The [[ns]] and [[ws]] vectors keep track of the number of subjects
+The \code{ns} and \code{ws} vectors keep track of the number of subjects
 currently in each state and the weighted number currently in each
 state.  
 There are four indexing patterns in play which may be confusing.
 \begin{itemize}
-  \item The output matrices, which index by unique event time [[itime]]
+  \item The output matrices, indexed by unique event time \code{itime}
     and state.
-  \item The [[n]] observations (variables entry, event, sort1, sort2, status,
+  \item The \code{n} observations (variables entry, event, sort1, sort2, status,
     wt, id)
-  \item The [[nperson]] individual subjects (variables cstate, atrisk)
-  \item The [[nstate]] states (variables hmat, p)
+  \item The \code{nperson} individual subjects (variables cstate, atrisk)
+  \item The \code{[nstate} states (variables hmat, p)
 \end{itemize}
 
 <<survfitci-compute>>=
