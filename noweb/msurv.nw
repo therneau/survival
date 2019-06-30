@@ -79,7 +79,7 @@ SEXP rlist;         /* the returned list and variable names of same */
 const char *rnames[]= {"nrisk","nevent","ncensor", "p", 
 		       "cumhaz", "std", "influence.pstate", ""};
 SEXP setemp;
-double **pmat, **vmat, *cumhaz, *usave=0; /* =0 to silence -Wall warning */
+double **pmat, **vmat=0, *cumhaz, *usave=0; /* =0 to silence -Wall warning */
 int  *ncensor, **nrisk, **nevent;
 @ 
 

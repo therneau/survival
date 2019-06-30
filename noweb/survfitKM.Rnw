@@ -10,7 +10,7 @@ prompted a movement of more of the code into C since that calculation
 is computationally intensive.
 
 <<survfitKM>>= 
-survfitKM <- unction(x, y, weights=rep(1.0,length(x)), 
+survfitKM <- function(x, y, weights=rep(1.0,length(x)), 
                       stype=1, ctype=1,
                       se.fit=TRUE,
                       conf.int= .95,
@@ -543,7 +543,7 @@ R_CheckUserInterrupt();  /*check for control-C */
 person1 = nused-1;  person2 = nused-1;
 n1=0; wt1=0;
 for (k=ntime-1; k>=0; k--) {
-    dtime[k] = stime[i2];  /* current time point */
+    dtime[k] = stime[sort2[person2]];  /* current time point */
     n2=0; n3=0; wt2=0; wt3=0; 
     for (; person2 >=0; person2--) {
         i2= sort2[person2];
@@ -568,7 +568,7 @@ for (k=ntime-1; k>=0; k--) {
 	n4 =0; wt4 =0;
         for (; person1 >=0; person1--) {
             i1 = sort1[person1];
-            if (tstart[i2] < dtime[k]) break;
+            if (tstart[i1] < dtime[k]) break;
 	    n1--;
 	    wt1 -= wt[i1];
 	    if (hasid==0 || (position[i1] & 1)) {
@@ -873,7 +873,7 @@ else if (type==2) {  /* KM survival, Fleming-Harrington hazard */
         if (ny==3) {
             /* add in new subjects */
             for (; person1<nused; person1++) {
-                i2 = sort1[person1];
+                i1 = sort1[person1];
                 if (tstart[i1] >= dtime[i]) break;
                 gcount[id[i1]]++;
                 gwt[id[i1]] += wt[i1];

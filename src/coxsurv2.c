@@ -220,7 +220,7 @@ SEXP coxsurv2(SEXP otime2, SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22,
 
 	    /* save the results */
 	    irow--;
-	    if (irow <0) printf("irow error in coxsurv2\n");
+	    if (irow <0) Rprintf("irow error in coxsurv2.  This should never happen: please contact package author\n");
 	    for (k=0; k<12; k++) rn[k][irow] = n[k];
 	    for (k=0; k<nvar; k++) {
 		if (n[0]==0) rx1[k][irow]=  0;
