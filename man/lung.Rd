@@ -19,7 +19,10 @@ cancer
     status:\tab censoring status 1=censored, 2=dead\cr
     age:\tab Age in years\cr
     sex:\tab  Male=1 Female=2\cr
-    ph.ecog:\tab ECOG performance score (0=good 5=dead)\cr
+    ph.ecog:\tab ECOG performance score as rated by the physician.
+    0=asymptomatic, 1= symptomatic but completely ambulatory, 2= in bed
+    <50\% of the day, 3= in bed > 50\% of the day but not bedbound, 4 =
+    bedbound\cr
     ph.karno:\tab Karnofsky performance score (bad=0-good=100) rated by physician\cr
     pat.karno:\tab Karnofsky performance score as rated by patient\cr
     meal.cal:\tab Calories consumed at meals\cr

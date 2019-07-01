@@ -49,14 +49,15 @@ tdata <- aml[aml$x=='Maintained', c("time", "status")]
 tdata$x <- c(1,6,2,7,3,7,3,8,4,4,5)
 tdata$wt <- c(1,2,3,2,1,2,3,4,3,2,1)
 fit <- concordance(Surv(time, status) ~x, tdata)
-aeq(fit$count[1:4], c(14,24,2,0))
+
+aeq(fit$count[1:4], c(24,14,2,0))
 cfit <- coxph(Surv(time, status) ~ tt(x), tdata, tt=grank, method='breslow',
               iter=0, x=T)
 cdt <- coxph.detail(cfit)
 aeq(sum(cdt$imat), cfun(fit))
 aeq(sum(2*cdt$score), diff(fit$count[1:2]))
 aeq(with(tdata, allpair(x, time, status)), c(14,24,2,0))
-
+c
 # Lots of ties
 tempy <- Surv(c(1,2,2,2,3,4,4,4,5,2), c(1,0,1,0,1,0,1,1,0,1))
 tempx <- c(5,5,4,4,3,3,7,6,5,4)

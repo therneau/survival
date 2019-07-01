@@ -163,42 +163,57 @@ if (!missing(conf.int)) {
 stime <- x$time
 std   <- NULL
 yzero <- FALSE   # a marker that we have an "ordinary survival curve" with min 0
+smat <- function(x) {
+    # the rest of the routine is simpler if everything is a matrix
+    dd <- dim(x)
+    if (is.null(dd)) as.matrix(x)
+    else if (length(dd) ==2) x
+    else matrix(x, nrow=dd[1])
+}
 
 if (cumhaz) {  # plot the cumulative hazard instead
     if (is.null(x$cumhaz)) 
         stop("survfit object does not contain a cumulative hazard")
+
     if (is.numeric(cumhaz)) {
-        if (inherits(x, "survfitms"))
-            nhazard <- sum(x$transitions > 0)  # number of transitions
-        else if (is.matrix(x$cumhaz)) nhazard <- ncol(x$cumhaz)
-        else nhazard <- 1
+        dd <- dim(x$cumhaz)
+        if (is.null(dd)) nhazard <- 1
+        else nhazard <- prod(dd[-1])
 
         if (cumhaz != floor(cumhaz)) stop("cumhaz argument is not integer")
         if (any(cumhaz < 1 | cumhaz > nhazard)) stop("subscript out of range")
-        if (!is.matrix(x$cumhaz)) {
-            ssurv <- as.matrix(x$cumhaz)
-            if (!is.null(x$std.chaz)) std <- as.matrix(x$std.chaz)
-        }
-        else {
-            ssurv <- x$cumhaz[,cumhaz, drop=FALSE]
-            if (!is.null(x$std.chaz)) std <- x$std.chaz[,cumhaz, drop=FALSE]
-        }
+        ssurv <- smat(x$cumhaz)[,cumhaz, drop=FALSE]
+        if (!is.null(x$std.chaz)) std <- smat(x$std.chaz)[,cumhaz, drop=FALSE]
     }
     else if (is.logical(cumhaz)) {
-        ssurv <- as.matrix(x$cumhaz)
-        if (!is.null(x$std.chaz)) std <-   as.matrix(x$std.chaz)
+        ssurv <- smat(x$cumhaz)
+        if (!is.null(x$std.chaz)) std <- smat(x$std.chaz)
     }
     else stop("invalid cumhaz argument")
 }
 else if (inherits(x, "survfitms")) {
     i <- (x$states != noplot)
-    if (!any(i))  i <- seq(along=x$states)  # if all states==noplot, keep all
-    ssurv <- (as.matrix(x$pstate))[,i, drop=FALSE]
-    if (!is.null(x$std.err))  std <-   (as.matrix(x$std.err))[,i, drop=FALSE]
+    if (all(i)) {
+        ssurv <- smat(x$pstate)
+        if (!is.null(x$std.err)) std <- smat(x$std.err)
+    }
+    else {
+        i <- which(i)  # the states to keep
+        # we have to be careful about subscripting
+        if (dim(x$pstate) ==3) {
+            ssurv <- x$pstate[,,i, drop=FALSE]
+            if (!is.null(x$std.err))
+                std <- x$std.err[,,i, drop=FALSE]
+        }
+        else {
+            ssurv <- x$pstate[,i, drop=FALSE]
+            if (!is.null(x$std.err)) std <- x$std.err[,i, drop=FALSE]
+        }
+    }
 }
 else {
     yzero <- TRUE
-    ssurv <- as.matrix(x$surv)
+    ssurv <- as.matrix(x$surv)   # x$surv will have one column
     if (!is.null(x$std.err)) std <- as.matrix(x$std.err)
     # The fun argument only applies to single state survfit objects
     #  First deal with the special case of fun='cumhaz', which is here for
@@ -358,39 +373,47 @@ if (!missing(ylim)) {
 
 # Do axis range computations
 
-temp <- range(stime[is.finite(stime)], na.rm=TRUE)
-if (xaxs=='S') {
-    #special x- axis style for survival curves
-    if (xlog) tempx <- c(min(temp[temp>0]), max(temp)+ diff(temp)*1.04)
-    else tempx <- c(min(temp), max(temp)) * 1.04
+if (!missing(xlim)) {
+    tempx <- xlim
+    if (xaxs == 'S') tempx[2] <- tempx[2] + diff(tempx)*1.04
 }
-else if (xlog) tempx <- range(temp[temp > 0])
-else tempx <- range(temp)
+else {
+    temp <-  stime[is.finite(stime)]
+    if (!missing(xmax)) temp <- temp[temp <= xmax]
     
-if (ylog) {
-    if (!is.null(supper))
-        tempy <- range(c(slower[is.finite(slower) & slower>0], 
-                         supper[is.finite(supper)]))
-    else tempy <-  range(ssurv[is.finite(ssurv)& ssurv>0])
-    if (tempy[2]==1) tempy[2] <- .99   # makes for a prettier axis
-    if (any(c(ssurv, slower) ==0)) {
+    if (xaxs=='S') {
+        #special x- axis style for survival curves
+        if (xlog) tempx <- c(min(temp[temp>0]), max(temp)+ diff(temp)*1.04)
+        else tempx <- c(min(temp), max(temp)) * 1.04
+    }
+    else if (xlog) tempx <- range(temp[temp > 0])
+    else tempx <- range(temp)
+}  
+
+if (!missing(ylim)) tempy <- ylim
+else {
+    skeep <- is.finite(stime) & stime >= tempx[1] & stime <= tempx[2]
+
+    if (ylog) {
+        if (!is.null(supper))
+            tempy <- range(c(slower[is.finite(slower) & slower>0 & skeep], 
+                             supper[is.finite(supper) & skeep]))
+        else tempy <-  range(ssurv[is.finite(ssurv)& ssurv>0 & skeep])
+        if (tempy[2]==1) tempy[2] <- .99   # makes for a prettier axis
+        if (any(c(ssurv, slower)[skeep] ==0)) {
             tempy[1] <- tempy[1]*.8
             ssurv[ssurv==0] <- tempy[1]
             if (!is.null(slower))  slower[slower==0] <- tempy[1]
+        }
+    }
+    else {
+        if (!is.null(supper)) 
+            tempy <- range(c(supper[skeep], slower[skeep]), finite=TRUE, na.rm=TRUE)
+        else tempy <- range(ssurv[skeep], finite=TRUE, na.rm= TRUE)
+        if (yzero) tempy <- range(c(0, tempy))
     }
 }
-else {
-    if (!is.null(supper)) 
-            tempy <- range(c(supper, slower), finite=TRUE, na.rm=TRUE)
-    else tempy <- range(ssurv, finite=TRUE, na.rm= TRUE)
-    if (yzero) tempy <- range(c(0, tempy))
-}
 
-# Set limits
-if (!missing(xlim)) tempx <- xlim
-if (!missing(xmax)) tempx[2] <- xmax
-if (!missing(firstx)) tempx[1] <- firstx
-if (!missing(ylim)) tempy <- ylim
 if (!missing(ymin)) tempy[1] <- ymin
 
 #

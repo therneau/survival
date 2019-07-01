@@ -1,5 +1,5 @@
 
-R Under development (unstable) (2019-01-23 r76006) -- "Unsuffered Consequences"
+R Under development (unstable) (2019-06-28 r76752) -- "Unsuffered Consequences"
 Copyright (C) 2019 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
@@ -29,6 +29,7 @@ Type 'q()' to quit R.
 Call: survfit(formula = Surv(futime, fustat) ~ 1)
 
  time n.risk n.event survival std.err lower 95% CI upper 95% CI
+    0     26       0    1.000  0.0000        1.000        1.000
    59     26       1    0.962  0.0377        0.890        1.000
   115     25       1    0.923  0.0523        0.826        1.000
   156     24       1    0.885  0.0627        0.770        1.000
@@ -313,4 +314,4 @@ Call: survfit(formula = fit, newdata = list(age = c(30, 70), ecog.ps = c(2,
 > 
 > proc.time()
    user  system elapsed 
-  0.824   0.020   0.844 
+  0.808   0.064   0.875 

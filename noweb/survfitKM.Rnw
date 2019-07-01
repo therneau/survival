@@ -974,7 +974,7 @@ else if (type==3) {  /* exp() survival, NA hazard */
                 if (gcount[id[i2]] ==0) gwt[id[i2]] = 0.0;
                 else gwt[id[i2]] -= wt[i2];
             }
-           nelson += haz;
+            nelson += haz;
            
             v2=0;
             for (k=0; k<nid; k++) {
@@ -983,7 +983,7 @@ else if (type==3) {  /* exp() survival, NA hazard */
         } else {  /* only need to udpate weights */
             for (; person2<nused; person2++) { 
                 i2 = sort2[person2];
-                if (sort2[i2] > dtime[i]) break;
+                if (stime[i2] > dtime[i]) break;
                 gcount[id[i2]] --;
                 if (gcount[id[i2]] ==0) gwt[id[i2]] = 0.0;
                 else gwt[id[i2]] -= wt[i2];

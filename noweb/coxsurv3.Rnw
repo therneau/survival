@@ -73,22 +73,12 @@ if (robust & length(cluster)==0) cluster <- oldid
 @ 
 
 The survfit.coxph-setup3 chunk, shared with single state Cox models, has created
-an mf3 model frame and an x2 matrix.  We need to expand the latter so as to get 
-one matrix for each
-transition; the reason is that different transitions will often have
-different covariates and different coefficients, and thus different
-risk scores. 
-We create an array whose first two dimensions are those of x2, and third
-is the number of transtions, which is the number of columns of cmap.
-The risk scores become a matrix.  
+an mf3 model frame and an x2 matrix. 
+Create a matrix of risk scores, number of subjects by number of transitions.
+The reason is that different transitions often have different coefficients.
 
 <<survfit.coxphms-setup3b>>=
-cmap <- object$cmap[-1,,drop=FALSE]
-x3 <- array(0., dim=c(nrow(x2), max(cmap), ncol(cmap)))
-for (i in 1:ncol(cmap)) 
-    x3[, cmap[,i], i] <- x2[, cmap[,i]>0]
-risk3 <- matrix(x3, ncol= max(cmap)) %*% object$coef
-risk3 <- matrix(exp(risk3), nrow=nrow(x2))
+risk2 <- exp(x2 %*% coef(object, type="matrix") - xcenter)
 @ 
 
 The first step in the computation is to compute the hazard functions for
@@ -112,7 +102,7 @@ if (individual) {
     result <- coxsurv.fit2(ctype, stype, se.fit, varmat, cluster, start.time,
                            object$cmap, object$transitions, object$states,
                            Y, X, weights, risk, position, strata, oldid,
-                           transition, y2, x3, risk3, strata2, id2)
+                           transition, y2, x2, risk2, strata2, id2)
                           
 } else {
     class(cifit) <- c("survfitms", "survfit")  # so the next line works
@@ -126,26 +116,24 @@ if (individual) {
     result <- coxsurv.fit2(ctype, stype, se.fit, varmat, cluster, start.time,
                            object$cmap, object$transitions, object$states,
                            Y, X, weights, risk, position, strata, oldid,
-                           transition, y2, x3, risk3, p0=p0)
+                           transition, y2, x2, risk2, p0=p0)
 
     if (is.null(cifit$strata)) {
         temp <- result[[1]]
-        if (ncol(temp$pstate) != ncol(cifit$pstate) ||
-            (nrow(temp$pstate) != (nrow(x2)*nrow(cifit$pstate))))
-            stop("miscount 2")
+#        if (ncol(temp$pstate) != ncol(cifit$pstate) ||
+#            (nrow(temp$pstate) != (nrow(x2)*nrow(cifit$pstate))))
+#            stop("miscount 2")
         cifit$pstate <- temp$pstate
         cifit$cumhaz <- temp$cumhaz
-        cifit$dim <- c(1, nrow(x2), ncol(temp$pstate))
     }
     else {
         nx <- length(cifit$strata)  # Each 'x' will be a stratum
         if (length(result) != nx) stop("miscount 3")
         new.p <- do.call(rbind, lapply(result, function(x) x$pstate))
         new.c <- do.call(rbind, lapply(result, function(x) x$cumhaz))
-        if (nrow(new.p) != nrow(cifit$pstate)) stop("miscount 4")
+#        if (nrow(new.p) != nrow(cifit$pstate)) stop("miscount 4")
         cifit$pstate <- new.p
         cifit$cumhaz <- new.c
-        cifit$dim <- c(nx, nrow(x2), ncol(temp$pstate))
     }
     cifit$newdata <- mf2
 }
@@ -223,15 +211,14 @@ multihaz <- function(y, x, position, weight, risk, transition, ctype, stype,
 
     # Expand the result, one "hazard set" for each row of x2
     nx2 <- nrow(x2)
-    jj <- 1:nrow(hazard)
-    h2 <- matrix(0, nrow(hazard)*nx2, ncol(hazard))
+    h2 <- array(0, dim=c(nrow(hazard), nx2, ncol(hazard)))
     if (se.fit) v2 <- h2
     S <- matrix(0, nrow(hazard), nstate)
-    S2 <- matrix(0, nrow(h2), nstate)
+    S2 <- array(0, dim=c(nrow(hazard), nx2, nstate))
  
     H <- matrix(0, nstate, nstate)
     for (i in 1:nx2) {
-        h2[jj,] <- apply(hazard %*% diag(risk2[i,]), 2, cumsum)
+        h2[,i,] <- apply(hazard %*% diag(risk2[i,]), 2, cumsum)
         if (se.fit) {
             d1 <- fit$xbar - rep(x[i,], each=nrow(fit$xbar))
             d2 <- apply(d1*hazard, 2, cumsum)
@@ -253,8 +240,7 @@ multihaz <- function(y, x, position, weight, risk, transition, ctype, stype,
             }
         }
 
-        S2[jj,] <- S
-        jj <- jj+ nrow(hazard)
+        S2[,i,] <- S
     }
 
     rval <- list(time=utime, xgrp=rep(1:nx2, each=nrow(hazard)),

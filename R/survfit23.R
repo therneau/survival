@@ -108,7 +108,7 @@ survfit32 <- function(x) {
     if (!inherits(x, "survfit")) stop("function requires a survfit object")
     if (is.null(x$version) || x$version<3) return(x)  # already in proper form
     
-    if (missing(x$strata)) first <- 1
+    if (is.null(x$strata)) first <- 1
     else {
         last <- cumsum(x$strata)
         first <- 1+ c(0, last[-length(last)])

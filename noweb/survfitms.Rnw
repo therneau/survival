@@ -43,9 +43,16 @@ or integer indices.
     # We need to make a new one
     newx <- vector("list", length(x))
     names(newx) <- names(x)
-    for (k in c("logse", "version", "conf.int", "conf.type", "type", "call"))
-        if (!is.null(x[[k]])) newx[[k]] <- x[[k]]
+    for (kk in c("logse", "version", "conf.int", "conf.type", "type", "call"))
+        if (!is.null(x[[kk]])) newx[[kk]] <- x[[kk]]
     class(newx) <- class(x)
+
+    # If the first dimension is 1 (there are no strata), we let the
+    #  use ignore that dimension
+    if (is.null(x$strata) && (ndots+1) == length(dd)) {
+        k <- j; j<- i; i <- NULL
+        ndots <- ndots +1
+    }
 
     # From a user's point of view the data and state dimensions are
     #  separate, but in the object these two are combined and appear as the
@@ -102,6 +109,7 @@ or integer indices.
     
     # not a single subscript, i.e., the usual case
     if (ndots != length(dd)) stop("incorrect number of dimensions")
+
     if (is.null(i)) i <- seq.int(dd[1])
     else i <- nmatch(i, names(x$strata))
     if (dd[1] ==1) irow <- rep(seq(along=x$time), length(i))
@@ -111,6 +119,7 @@ or integer indices.
     }
     newx$n <- x$n[i]
     newx$time <- x$time[irow]
+    # The n.censor and n.enter values do not repeat with multiple X values
     for (z in c("n.censor", "n.enter"))
         if (!is.null(x[[z]])) newx[[z]] <- (x[[z]])[irow, drop=FALSE]
     
@@ -171,54 +180,52 @@ or integer indices.
         if (is.null(k)) k <- seq.int(nstate)
         else k <- nmatch(k, x$states)
 
-        jj <- c(matrix(seq.int(dd[2]*dd[3]), nrow=dd[2])[j,k]) # cols of pstate
         if (length(irow)==1) {
-            if (length(jj) > 1) drop2 <- FALSE else drop2<- drop
-            if (length(k) > 1)  drop3 <- FALSE else drop3 <- drop
+            if (length(j) > 1) drop2 <- FALSE else drop2<- drop
+            if (length(k) > 1) drop3 <- FALSE else drop3 <- drop
         } 
         else drop2 <- drop3 <- drop
 
         for (z in c("n.risk", "n.event"))
             if (!is.null(x[[z]])) newx[[z]] <- (x[[z]])[irow, k, drop=drop3]
         for (z in c("pstate", "std.err", "upper", "lower"))
-            if (!is.null(x[[z]])) newx[[z]] <- (x[[z]])[irow,jj, drop=drop2]
+            if (!is.null(x[[z]])) newx[[z]] <- (x[[z]])[irow,j,k, drop=drop2]
   
         if (!is.null(x$influence.pstate)) {
             if (is.list(x$influence.pstate)) {
                 if (length(i)==1) 
-                    newx$influence.pstate <- (x$influence.pstate[[i]])[,,jj, drop=drop]
+                    newx$influence.pstate <- (x$influence.pstate[[i]])[,,j,k, drop=drop]
                 else newx$influence.pstate <- lapply(x$influence.pstate[i],
-                                     function(x) x[,,jj, drop= drop])
+                                     function(x) x[,,j,k, drop= drop])
                 }
-            else newx$influence.pstate <- x$influence.pstate[,,jj, drop=drop]
+            else newx$influence.pstate <- x$influence.pstate[,,j,k, drop=drop]
         }
 
-    if (length(k)== nstate && all(k == seq.int(nstate))) {
+        if (length(k)== nstate && all(k == seq.int(nstate))) {
             # user kept all the states
             newx$states <- x$states
             for (z in c("cumhaz", "std.chaz"))
                  if (!is.null(x[[z]])) 
-                     newx[[z]] <- (x[[z]])[irow,jj, drop=drop2]
-             if (!is.null(x$influence.chaz)) {
+                     newx[[z]] <- (x[[z]])[irow,j,, drop=drop2]
+            if (!is.null(x$influence.chaz)) {
                 if (is.list(x$influence.chaz)) {
-                    newx$influence.chaz <- x$influence.chaz[i]
+                    newx$influence.chaz <- (x$influence.chaz[i])[,j,]
                     if (length(i)==1 && drop) 
                         newx$influence.chaz <- x$influence.chaz[[i]]
                 }
-                else newx$influence.chaz <- x$influence.chaz
+                else newx$influence.chaz <- x$influence.chaz[,j,]
             }
-       }
+        }
         else {
+            # never drop the states component.  Otherwise downstream code
+            #  will start looking for x$surv instead of x$pstate
+            newx$states <- x$states[k]
             newx$cumhaz <- newx$std.chaz <- newx$influence.chaz <- NULL
             x$transitions <- NULL
-            if (length(k)==1 && drop) {
-                newx$states <- NULL
-                temp <- class(newx)
-                class(newx) <- temp[temp != "survfitms"]
-            } else newx$states <- x$states[k]
-        }
+         }
 
-        if (length(j)==1 && drop) x$newdata <- NULL
+        if (length(j)==1 && drop) newx$newdata <- NULL
+        else newx$newdata <- x$newdata[j,]  #newdata is a data frame
  
     }
     newx

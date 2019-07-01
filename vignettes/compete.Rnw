@@ -714,7 +714,7 @@ for females, and an age effect on lifetime risk that is far from proportional.
 Very few subjects acquire PCM more than 15 years after a MGUS diagnosis at
 age 80 for the obvious reason: very few of them will still 
 be alive.
-
+0
 Creating the `list' form matrix above is quite easy, in particular we do
 not need to fill in elements on the diagonal, nor those for which no 
 transitions occur, e.g., from death back to the entry state. 

@@ -246,7 +246,7 @@ number of observations, number of events, median survival, and
 optionally the restricted mean survival time (RMST) in each of
 the groups.  In the above case we used the value at 2.5 years = 913 days
 as the upper threshold for the RMST, the value of 453 for females 
-in an expected survival for 453 or the next 913 days after enrollment
+represents an average survival for 453 or the next 913 days after enrollment
 in the study.
 The summary function gives a more complete description of the curve,
 in this case we chose to show the values every 6 months for the first two years.
@@ -523,6 +523,57 @@ and the default action for \code{plot.survfit} is to leave out the
 ``still in original state'' curve (s0) since it is usually the least
 interesting, but in this case we have shown all 3.
 We will return to this example when exploring models.
+
+A common mistake with competing risks is to use the Kaplan-Meier
+separately on each
+event type while treating other event types as censored.
+The next plot is an example of this for the PCM endpoint.
+<<mgus3, fig=TRUE>>=
+pcmbad <- survfit(Surv(etime, pstat) ~ sex, data=mgus2)
+plot(pcmbad[2], mark.time=FALSE, lwd=2, fun="event", conf.int=FALSE, xscale=12,
+     xlab="Years post diagnosis", ylab="Fraction with PCM")
+lines(mfit2[2,1], lty=2, lwd=2, mark.time=FALSE, conf.int=FALSE)
+legend(0, .25, c("Males, PCM, incorrect curve", "Males, PCM, competing risk"),
+       col=1, lwd=2, lty=c(1,2), bty='n')
+@ 
+
+There are two problems with the \code{pcmbad} fit.  
+The first is that it attempts to estimate the expected occurrence of
+plasma cell malignancy (PCM)
+if all other causes of death were to be disallowed.
+In this hypothetical world it is indeed true that many more subjects would
+progress to PCM (the incorrect curve is higher), but it is also 
+not a world that any of us will ever inhabit.
+This author views the result in much the same light as discussions of
+survival after the zombie apocalypse.
+The second problem is that the computation for this
+hypothetical case is only correct if all of the competing endpoints
+are independent, a situation which is almost never true.
+We thus have an unreliable estimate of an uninteresting quantity.
+The competing risks curve, on the other hand,
+estimates the fraction of MGUS subjects who \emph{will experience} 
+PCM, a quantity sometimes known as the lifetime risk,
+and one which is actually observable.
+
+The last example chose to plot only a subset of the curves, something that is
+often desirable in competing risks problems to avoid a
+``tangle of yarn'' plot that simply has too many elements.
+This is done by subscripting the \code{survfit} object.
+For subscripting, multi-state curves behave as a matrix
+with the outcomes as the second subscript. 
+The columns are in order of the levels of \code{event},
+i.e., as displayed by our earlier call to \code{table(event)}.   
+The first subscript indexes the groups formed by the right hand side of
+the model formula, and will be in the same order as simple survival curves.
+Thus \code{mfit2[2,1]} corresponds to males (2) and the PCM endpoint (1).
+Curves are listed and plotted in the usual matrix order of R.
+
+One surprising aspect of multi-state data is that hazards can be estimated
+independently, while probabilities can not.
+If you look at the cumulative hazard estimate from the \code{pcmbad}
+fit above using for instance \code{plot(pcmbac, cumhaz=TRUE)} you will
+find that it is identical to the estimate from the joint fit.
+This is an important issue in Cox models.  
 
 \section{Multi-state data}
 The most general multi-state data will have multiple outcomes and
@@ -1177,12 +1228,200 @@ state4 <- function() {
 The statefig function was written to do ``good enough'' state space figures
 quickly and easily, in the hope that users will find it simple enough that
 diagrams are drawn early and often.
-Other packages such as diagram, DiagrammeR, or dagR are far more flexible
+Packages designed for directed acylic graphs (DAG) such as diagram, DiagrammeR,
+ or dagR are far more flexible
 and can create more nuanced and well decorated results.
 
-\chapter{Cox models}
+\subsection{Further notes}
+The Aalen-Johansen method used by \code{survfit} does not account for 
+interval censoring, also known as panel data, 
+where a subject's current state is recorded at some fixed time such as a
+medical center visit but the actual times of transitions are unknown.
+Such data requires further assumptions about the transition process in
+order to model the outcomes and has a more complex likelihood. 
+The \code{msm} package, for instance, deals with data of this type.
+If subjects reliably come in at regular intervals then the 
+difference between the two results can be small, e.g., the 
+\code{msm} routine estimates time until progression \emph{occurred}
+whereas \code{survfit} estimates time until progression was \emph{observed}.
+
+\begin{itemize}
+  \item When using multi-state data to create Aalen-Johansen estimates, 
+    individuals
+    are not allowed to have gaps in the middle of their time line.
+    An example of this would be a data set with 
+    (0, 30, pcm] and (50,70, death] as the two observations
+    for a subject where the time from 30-70 is not accounted for.
+  \item Subjects must stay in the same group over their entire observation
+    time, i.e., variables on the right hand side of the equation cannot be
+    time-dependent. 
+  \item A transition to the same state is allowed, e.g., observations of
+    (0,50, 1], (50, 75, 3], (75, 89, 4], (89, 93, 4] and (93, 100, 4] 
+    for a subject who goes
+    from entry to state 1, then to state 3, and finally to state 4.
+    However, a warning message is issued for the data set in this case, since
+    stuttering may instead be the result of a coding mistake.
+    The same result is obtained if 
+    the last three observations were collapsed to a single row of 
+    (75, 100, 4].
+\end{itemize}
+
+%--------------------------------------------------------
+
+\Chapter{A menagerie of models}
+For modeling survival data the package includes several choices, which can 
+be broken up into \emph{hazard} and \emph{direct} models for the data.
+Let $x_1, x_2, \ldots$ be a set of covariates or predictors.
+
+Direct models model the survival time directly as
+\begin{equation*}
+  E(t) = f(\beta_0 + \beta_1 x_1 + \beta_2 x_2 + \ldots)
+\end{equation*}
+for some link function $f$.
+These models are fit using the \code{survreg} function, which will be covered
+in chapter \ref{chap:aft}.
+
+Hazard models attempt to summarized the rate or hazard of transition between
+states and include 3 models.
+
+Exponential (or poisson) models
+\begin{equation*}
+ \lambda(t) = \exp(\beta_0 + \beta_1 x_1 + \beta_2 x_2 + \ldots) 
+\end{equation}
+These can be fit using the \code{glm} command in base R, after proper data
+set up.  
+For example, here is a simple fit to the aml data set.
+<<lungglim>>=
+gfit <- glm(status ~ x + offset(log(time)), family=poisson, data=aml)
+summary(gfit)
+@ 
+ 
+The subjects who did not recieve maintainance therapy have a 2.5 fold
+higher death rate.
+In this model the response is the number of events for a subject, so it can
+be applied to multiple outcome data as well.
+The \code{offset} term is based on the fact that for a poisson response
+E(number of events) = rate * time = exp(log(rate) + log(time)).
+We are using $\beta x$ to model the log rate and so log(time) appears in the
+model as an \emph{offset}, a covariate with known coefficient of 1.
+
+The proportional hazards or Cox model allows an semi-parametric intercept
+\begin{align*}
+  \lambda(t) &= \exp(\beta_0(t) + \beta_1 x_1 + \beta_2 x_2 + \ldots) \\
+             &= \lambda_0(t) \exp(\beta_1 x_1 + \beta_2 x_2 + \ldots)
+\end{align*}
+where $\lamba_0$ is referred to as the baseline hazard.
+The literature, by the way, is about evenly split between using
+$\lambda$, $h$ and $\alpha$ as the symbol.
+This model will be covered in chapter \ref{chap:PH}.
+
+The Aalen additive regresson model is 
+\begin{align*}
+   \lambda(t) = \beta_0(t) + \beta_1(t) x_1 + \beta_2(t) x_2 + \ldots
+\end{align*}
+The model is more complex than the Cox model --- all of the coefficients
+are time dependent --- but it also has important advantages.
+These models can be fit using the \code{aareg} function in the survival
+package.
+The \code{timereg} package has superseded the \code{aareg} function in every
+way, however, and users of the Aalen model should direct their 
+attention there.  
+
+% -----------------------------------------
+
+\chapter{Cox proportional hazard model}
+
+The Cox model is the single most popular model for time to event data.
+Part of this is certainly historical.  It has been said that the
+correlation coefficient rose to prominence because R. A. Fisher worked out
+the statistical theory at about the same time that desk calculators could
+first handle a running sum $\sum x_i y_i$; it was both a simple statistic
+and the most complex thing one could do.
+The Cox model's relationship to 1970's computing power was much the same. 
+
+The fact that it continues to be used is partially due to inertia, but 
+only partly.  There are, I think, three keys to a successful statistical
+model, and the proportional hazards model seems to strike the right balance
+between them.  A good model
+\begin{enumerate}
+  \item provides a simplified summary of the effects
+  \item executes reliably without ``hand holding''
+  \item is a \emph{good enough} summary of the biology
+\end{enumerate}
+
+The first of these usually boils down to using a linear predictor 
+$\beta_1 x_1 + \beta_2 x_2 + \ldots$ for the covariates, since it allows us
+to say that ``the effect of treatment is a \underline{\phantom{abc}}'' 
+(or age, sex, blood pressure, \ldots), i.e., to make simple statements about
+any given covariate of interest.  
+The second is practical --- programs that sometimes fail, or that require 
+starting estimates or per dataset tuning do not get used in day to day work.
+The last is that the results need to be correct to act as a basis for 
+action.  This is well captured by three quotations
+\begin{quotation}
+ A model is a lie that helps us see the truth''.\\  H. Skipper in The Emporer
+of all Maladies.
+
+  All models are approximations. Assumptions, whether implied or clearly 
+stated, are never exactly true. All models are wrong, but some models are 
+useful. So the question you need to ask is not ``Is the model true?" (it never 
+is) but ``Is the model good enough for this particular application?''\\
+G.E.P Box, Statistical Control By Monitoring and Adjustment, 2009.
+
+Ce qui est simple est toujours faux. Ce qui ne l’est pas est inutilisable.
+(What is simple is always wrong. What is not is unusable.)\\
+Paul Valéry, 1949
+
+\end{quotation}
+
+We will show the model in four situations
+\begin{centering}
+ \begin{tabular}{ccc}
+ & One outcome per subject & Multiple outcomes per subject \\
+One type of outcome & 1 & 2 \\
+Multiple types of outcome & 3 & 4
+\end{tabular}
+\end{centering}
+Type 1 is simple or classic survival, 2 is repeated events per subject,
+3 is exemplified by competing risks, and 4 is the most general.
+
+\section{Single Event}
+An example of the classic Cox model can be illustrated using the
+lung cancer data set.
+This involves subjects with advanced lung cancer, recruited in a set
+of multi-institutional trials.
+
+<<lung1>>=
+fit1 <- coxph(Surv(time, status) ~ age + sex + ph.ecog, data=lung)
+print(fit1, digits=2)   # fewer digits to fit on the page
+@ 
+
+The Eastern Cooperative Oncology Group's performance status is a measure
+of subject's functional ability ranging from 0= asymptomatic to 4=bedbound,
+and is the most powerful predictor of outcome for these patients.
+
+The simplifiying aspects of the Cox model that make is so useful are
+exactly those that should be verified, namely proportional hazards,
+additivity, linearity, and lack of any high leverage points.
+The first can be checked with the \code{cox.zph} function.
+
+<<lung2, fig=TRUE>>=
+zp1 <- cox.zph(fit1)
+zp1
+plot(zp1[2], resid=FALSE)
+abline(coef(fit1)[2] ,0, lty=3)
+@ 
+None of the test statistics for PH are remarkable.  
+
+\section{Repeating Events}
+
+% -------------------------------------
 
 \section{Competing risks}
+Our third category is models where there is more than one event type, but
+each subject can have only one transition.
+This is the setup of competing risks.
+
 \subsection{MGUS}
 As an simple multi-state example consider the monoclonal gammopathy data
  set \code{mgus2},
@@ -1193,7 +1432,8 @@ monoclonal gammopathy of undetermined significance (MGUS), based on
 a particular test.  
 This data set has already appeared in \ref{mgusplot}.
 The time values in the data set are from detection of the condition.
-Here are a subset of the observations:
+Here are a subset of the observations along with a simple state figure
+for the data.
 
 <<survfit-mgus1, fig=TRUE>>=
 mgus2[56:59,]
@@ -1204,8 +1444,6 @@ smat <- matrix(c(0,0,0, 1,0,0, 1,1,0), 3, 3,
 statefig(c(1,2), smat)
 @ 
 
-The \code{statefig} function can be used to draw a simple ``box and arrow''
-diagram for the multistate model.
 In this data set 
 subject 56 was diagnosed with a PCM 29 months after detection of MGUS and
 died at 44 months. 
@@ -1214,25 +1452,13 @@ The other three listed individuals died without a plasma cell malignancy
 and traverse one of the arrows;
 103 subjects (not shown) are censored before experiencing either event
 and spend their entire tenure in the leftmost state.
+The competing risks model will ignore the transition from malignacy to death:
+the two ending states are ``malignancy before death'' and ``death without
+malignancy''.  
 
 The \code{statefig} function is designed to create simple state diagrams,
 with an emphasis on ease rather than elegance. 
-\index{function!statefig}
-The authors find such diagrams invaluable when working though an analysis
-and want to encourage users to draw them, hence a focus on simplicity. 
-The basic arguments were the vector 1:2, which stats that the drawing should
-put one state in the first column and the next two in a second column,
-and a matrix of connections \code{smat},
-\code{smat[i,j] =1} if there are transitions from state $i$ to state $j$
-and 0 otherwise.  The dimnames of the matrix are used for the box labels.
-Calls can be a little bit more complex, but not much: there are options to
-set colors for the text, boxes, and lines, line widths, and line types.
-The first argument to the function can instead be a two column matrix 
-containing the horizontal and vertical coordinates for the center of each
-box, for those who desire finer control.
-The routine returns a two column matrix containing the coordinates of the
-center of each box, which could be used to guide further annotation
-if desired. 
+See more information in section \ref{sect:statefig}.
  
 To compute the multi-state survival, we first create a data set with
 (begin, end) time intervals using \code{tmerge}.
@@ -1272,15 +1498,16 @@ We are now ready to compute an estimate.
 
 The competing risks data consists of only the first event for each subject,
 so we subset the data when fitting the model.
-
+It is good practice to summarize covariates before a fit.
 <<cfit1>>=
-cfit <- coxph(Surv(tstart, tstop, event) ~ I(age/10) + sex + mspike, 
-              id = id, mdata, subset=(tstart==0))
-print(cfit, digits=1)  # narrow the printout a bit
-dummy <- expand.grid(age=c(60, 80), sex=c("M","F"), mspike=1)
-csurv <- survfit(cfit, newdata=dummy)
-#csurv <- survfit(cfit, newdata=expand.grid(age=60, sex="F", mspike=1))
+crdata <- subset(mdata, tstart==0)
+quantile(crdata$age, na.rm=TRUE)
+table(crdata$sex)
+quantile(crdata$mspike, na.rm=TRUE)
 
+cfit <- coxph(Surv(tstart, tstop, event) ~ I(age/10) + sex + mspike, 
+              id = id, crdata)
+print(cfit, digits=1)  # narrow the printout a bit
 @ 
 The effect of age and sex on non-PCM mortality is profound, which is not
 a surprise given the median starting age of \Sexpr{median(mgus2$age)}. %$
@@ -1300,22 +1527,72 @@ The effect of age on the progression rate is much less pronounced,
 with a coefficient only 1/4 that for mortality, while the effect of sex
 on progression is completely negligible.
 
-The effect of sex on the \emph{lifetime} probability of PCM is not zero,
-however.  Because of a longer lifetime, a female with MGUS will on average
-spend more total years at risk for malignancy than the average male, and so 
-will accumulate a larger lifetime risk of PCM.  
-The average rate of progression is about 1\% per year, as shown below,
-while the mean post diagnosis lifetime is 19 months longer for 
-females. 
-The overall effect is a 1.6\% increase in lifetime risk.
-<<mpyears>>=
-pfit1 <- pyears(Surv(ptime, pstat) ~ sex, mgus2, scale=12)
-round(100* pfit1$event/pfit1$pyears, 1)  # PCM rate per year
-
-sfit1 <- survfit(Surv(tstop, event) ~ sex, mdata)
-temp <- summary(sfit1, rmean="common")  #print the mean survival time
-round(temp$table[1:2,3], 1)
+Estimates of the probability in state can be simply computed using 
+\code{survfit}.
+As with any model, estimates are always for a particular set of
+covariates.  We will use 4 hypothetical subjects, male and female
+with ages of 60 and 80.
+<<PCMcurve, fig=TRUE>>=
+dummy <- expand.grid(sex=c("F", "M"), age=c(60, 80), mspike=1.2)
+csurv  <- survfit(cfit, newdata=dummy)
+plot(csurv[,2], xmax=20*12, xscale=12,
+     xlab="Years after MGUS diagnosis", ylab="Pr(has entered PCM state)",
+     col=1:2, lty=c(1,1,2,2), lwd=2)
+legend(100, .04, outer(c("female,", "male,  "), 
+                     c("diagnosis at age 60", "diagnosis at age 80"), 
+                      paste),
+       col=1:2, lty=c(1,1,2,2), bty='n', lwd=2)
 @ 
+
+Although sex has no effect on the \emph{rate} of plasma cell malignancy,
+its effect on the \emph{lifetime probability} of PCM is not zero,
+however.  
+As shown by the simple Poisson model below, the rate of PCM is about 1\%
+per year.  Other work reveals that said rate is almost constant over
+follow-up time (not shown). 
+Because women in the study have an average lifetime that is 2 years
+longer than men, their lifetime risk of PCM is higher as well.
+Very few subjects acquire PCM more than 15 years after a MGUS diagnosis at
+age 80 for the obvious reason tha very few of them will still 
+be alive.
+
+<<mrate>>=
+mpfit <- glm(pstat ~ sex -1 + offset(log(ptime)), data=mgus2, poisson)
+exp(coef(mpfit)) * 12   # rate per year
+@ 
+
+A single outcome fit using only time to progression is instructive:
+we obtain exactly the same coefficients but different absolute risks.
+This is a basic property of multi-state models: hazards can be explored
+separately for each transition, but absolute risk must be computed globally.
+(The estimated cumulative hazards from the two models are also identical).
+The incorrect curve is a vain attempt to estimate the progression rate which 
+would occur if death could be abolished.  It not surprisingly ends up as about
+1\% per year.  
+
+<<msingle, fig=TRUE>>=
+sfit <- coxph(Surv(tstop, event=="PCM") ~ I(age/10) + sex + mspike, crdata)
+rbind(single = coef(sfit),
+      multi  = coef(cfit)[1:3])
+par(mfrow=c(1,2))
+ssurv <- survfit(sfit, newdata=dummy)
+plot(ssurv[3:4], col=1:2, lty=2, xscale=12, xmax=12*20, lwd=2, fun="event",
+     xlab="Years from diagnosis", ylab= "Pr(has entered PCM state)")
+lines(csurv[3:4, 2], col=1:2, lty=1, lwd=2)
+legend(20, .22, outer(c("80 year old male,", "80 year old female,"),
+                      c("incorrect", "correct"), paste),
+                  col=1:2, lty=c(2,2,1,1), lwd=2, bty='n')
+@ 
+
+
+\section{Multiple event types per subject}
+
+\chapter{Accelerated Failure Time models}
+
+
+
+
+
 
 \appendix
 \chapter{Changes from version 2.44 to 3.0}
