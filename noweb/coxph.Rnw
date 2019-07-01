@@ -982,10 +982,8 @@ else {
     }
     if (x)  {
         fit$x <- X
-        if (length(strats)) {
-            if (length(timetrans)) fit$strata <- istrat
-            else     fit$strata <- strata.keep
-        }
+        if (length(timetrans)) fit$strata <- istrat
+        else if (length(strats)) fit$strata <- strata.keep
     }
     if (y)  fit$y <- Y
 }

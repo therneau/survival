@@ -486,7 +486,7 @@ visited earlier.
 
 
 \subsection{Monoclonal gammopathy}
-
+\label{mgusplot}
 The \code{mgus2} data set contains information of 1384 subjects who were
 who were found to have a particular pattern on a laboratory test
 (monoclongal gammopathy of undertermined significance or MGUS).
@@ -532,7 +532,7 @@ The next plot is an example of this for the PCM endpoint.
 pcmbad <- survfit(Surv(etime, pstat) ~ sex, data=mgus2)
 plot(pcmbad[2], mark.time=FALSE, lwd=2, fun="event", conf.int=FALSE, xscale=12,
      xlab="Years post diagnosis", ylab="Fraction with PCM")
-lines(mfit2[2,1], lty=2, lwd=2, mark.time=FALSE, conf.int=FALSE)
+lines(crfit[2,1], lty=2, lwd=2, mark.time=FALSE, conf.int=FALSE)
 legend(0, .25, c("Males, PCM, incorrect curve", "Males, PCM, competing risk"),
        col=1, lwd=2, lty=c(1,2), bty='n')
 @ 
@@ -1152,6 +1152,7 @@ For the simple case of adding up rectangles $f(P +U_i) - f(P) = f(U_i)$ leading
 to particularly simple code, but this will not always be the case.  
 
 \section{State space figures}
+label{sect:statefig}
 The state space figures in the above example were drawn with a simple
 utility function \code{statefig}.  It has two primary arguments along with
 standard graphical options of color, line type, etc.
@@ -1268,7 +1269,7 @@ whereas \code{survfit} estimates time until progression was \emph{observed}.
 
 %--------------------------------------------------------
 
-\Chapter{A menagerie of models}
+\chapter{A menagerie of models}
 For modeling survival data the package includes several choices, which can 
 be broken up into \emph{hazard} and \emph{direct} models for the data.
 Let $x_1, x_2, \ldots$ be a set of covariates or predictors.
@@ -1287,7 +1288,7 @@ states and include 3 models.
 Exponential (or poisson) models
 \begin{equation*}
  \lambda(t) = \exp(\beta_0 + \beta_1 x_1 + \beta_2 x_2 + \ldots) 
-\end{equation}
+\end{equation*}
 These can be fit using the \code{glm} command in base R, after proper data
 set up.  
 For example, here is a simple fit to the aml data set.
@@ -1310,7 +1311,7 @@ The proportional hazards or Cox model allows an semi-parametric intercept
   \lambda(t) &= \exp(\beta_0(t) + \beta_1 x_1 + \beta_2 x_2 + \ldots) \\
              &= \lambda_0(t) \exp(\beta_1 x_1 + \beta_2 x_2 + \ldots)
 \end{align*}
-where $\lamba_0$ is referred to as the baseline hazard.
+where $\lambda_0$ is referred to as the baseline hazard.
 The literature, by the way, is about evenly split between using
 $\lambda$, $h$ and $\alpha$ as the symbol.
 This model will be covered in chapter \ref{chap:PH}.
@@ -1330,7 +1331,7 @@ attention there.
 % -----------------------------------------
 
 \chapter{Cox proportional hazard model}
-
+\label{chap:PH}
 The Cox model is the single most popular model for time to event data.
 Part of this is certainly historical.  It has been said that the
 correlation coefficient rose to prominence because R. A. Fisher worked out
@@ -1368,9 +1369,9 @@ useful. So the question you need to ask is not ``Is the model true?" (it never
 is) but ``Is the model good enough for this particular application?''\\
 G.E.P Box, Statistical Control By Monitoring and Adjustment, 2009.
 
-Ce qui est simple est toujours faux. Ce qui ne l’est pas est inutilisable.
+Ce qui est simple est toujours faux. Ce qui ne l'est pas est inutilisable.
 (What is simple is always wrong. What is not is unusable.)\\
-Paul Valéry, 1949
+Paul Val\'{e}ry, 1949
 
 \end{quotation}
 
@@ -1588,7 +1589,7 @@ legend(20, .22, outer(c("80 year old male,", "80 year old female,"),
 \section{Multiple event types per subject}
 
 \chapter{Accelerated Failure Time models}
-
+\label{chap:aft}
 
 
 
@@ -1599,6 +1600,7 @@ legend(20, .22, outer(c("80 year old male,", "80 year old female,"),
 Not all of these may be completed by 3.0, but this is the roadmap.
 
 \section{Changes in version 3}
+\label{sect:changes}
 Version 3.0 of the package was released in conjunction with a book.  Writing
 the book, and in particular the examples, revealed some shortcomings in 
 the design.

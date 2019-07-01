@@ -1,7 +1,7 @@
 
-R version 2.11.0 (2010-04-22)
-Copyright (C) 2010 The R Foundation for Statistical Computing
-ISBN 3-900051-07-0
+R Under development (unstable) (2019-06-28 r76752) -- "Unsuffered Consequences"
+Copyright (C) 2019 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -18,7 +18,6 @@ Type 'q()' to quit R.
 > # A short test on coxph.detail, to ensure that the computed hazard is
 > #  equal to the theoretical value
 > library(survival)
-Loading required package: splines
 > aeq <- function(a,b) all.equal(as.vector(a), as.vector(b))
 > 
 > # taken from book4.R
@@ -87,3 +86,6 @@ Loading required package: splines
 [1] TRUE
 >                   
 > 
+> proc.time()
+   user  system elapsed 
+  1.633   0.128   1.747 

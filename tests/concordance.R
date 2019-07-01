@@ -57,7 +57,7 @@ cdt <- coxph.detail(cfit)
 aeq(sum(cdt$imat), cfun(fit))
 aeq(sum(2*cdt$score), diff(fit$count[1:2]))
 aeq(with(tdata, allpair(x, time, status)), c(14,24,2,0))
-c
+
 # Lots of ties
 tempy <- Surv(c(1,2,2,2,3,4,4,4,5,2), c(1,0,1,0,1,0,1,1,0,1))
 tempx <- c(5,5,4,4,3,3,7,6,5,4)

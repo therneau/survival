@@ -1,5 +1,5 @@
 
-R Under development (unstable) (2019-01-23 r76006) -- "Unsuffered Consequences"
+R Under development (unstable) (2019-06-28 r76752) -- "Unsuffered Consequences"
 Copyright (C) 2019 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
@@ -66,8 +66,9 @@ Type 'q()' to quit R.
 > tdata$x <- c(1,6,2,7,3,7,3,8,4,4,5)
 > tdata$wt <- c(1,2,3,2,1,2,3,4,3,2,1)
 > fit <- concordance(Surv(time, status) ~x, tdata)
-> aeq(fit$count[1:4], c(14,24,2,0))
-[1] "Mean relative difference: 0.5263158"
+> 
+> aeq(fit$count[1:4], c(24,14,2,0))
+[1] TRUE
 > cfit <- coxph(Surv(time, status) ~ tt(x), tdata, tt=grank, method='breslow',
 +               iter=0, x=T)
 > cdt <- coxph.detail(cfit)
@@ -178,4 +179,4 @@ Type 'q()' to quit R.
 > 
 > proc.time()
    user  system elapsed 
-  1.248   0.056   1.305 
+  2.219   0.219   2.423 

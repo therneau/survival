@@ -221,14 +221,14 @@ concordancefit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL,
     }
 
     # This routine is called once per stratum
-    docount <- function(y, risk, wts, timeopt= 'n') {
+    docount <- function(y, risk, wts, timeopt= 'n', timefix) {
         n <- length(risk)
         # this next line is mostly invoked in stratified logistic, where
         #  only 1 event per stratum occurs.  All time weightings are the same
         # don't waste time even if the user asked for something different
         if (sum(y[,ncol(y)]) <2) timeopt <- 'n'
         
-        sfit <- survfit(y~1, weights=wts, se.fit=FALSE)
+        sfit <- survfit(y~1, weights=wts, se.fit=FALSE, timefix=timefix)
         etime <- sfit$time[sfit$n.event > 0]
         esurv <- sfit$surv[sfit$n.event > 0]
         
@@ -242,7 +242,7 @@ concordancefit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL,
        if (timeopt %in% c("S/G", "n/G", "n/G2")) {
             temp <- y
             temp[,ncol(temp)] <- 1- temp[,ncol(temp)] # switch event/censor
-            gfit <- survfit(temp~1, weights=wts, se.fit=FALSE)
+            gfit <- survfit(temp~1, weights=wts, se.fit=FALSE, timefix=timefix)
             # G has the exact same time values as S
             gsurv <- c(1, gfit$surv)  # We want G(t-)
             gsurv <- gsurv[which(sfit$n.event > 0)]
@@ -298,7 +298,7 @@ concordancefit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL,
     }
     
     if (nstrat < 2) {
-        fit <- docount(y, x, weights, timewt)
+        fit <- docount(y, x, weights, timewt, timefix=timefix)
         count2 <- fit$count[1:5]
         vcox <- fit$count[6]
         fit$count <- fit$count[1:5]
@@ -309,7 +309,8 @@ concordancefit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL,
         ustrat <- levels(strata)[table(strata) >0]  #some strata may have 0 obs
         tfit <- lapply(ustrat, function(i) {
             keep <- which(strata== i)
-            docount(y[keep,,drop=F], x[keep], weights[keep], timewt)
+            docount(y[keep,,drop=F], x[keep], weights[keep], timewt,
+                    timefix=timefix)
         })
         temp <-  t(sapply(tfit, function(x) x$count))
         fit <- list(count = temp[,1:5])

@@ -193,14 +193,15 @@ if (cumhaz) {  # plot the cumulative hazard instead
 }
 else if (inherits(x, "survfitms")) {
     i <- (x$states != noplot)
-    if (all(i)) {
+    if (all(i) || !any(i)) {
+        # the !any is a failsafe, in case none are kept then ignore noplot
         ssurv <- smat(x$pstate)
         if (!is.null(x$std.err)) std <- smat(x$std.err)
     }
     else {
         i <- which(i)  # the states to keep
         # we have to be careful about subscripting
-        if (dim(x$pstate) ==3) {
+        if (length(dim(x$pstate)) ==3) {
             ssurv <- x$pstate[,,i, drop=FALSE]
             if (!is.null(x$std.err))
                 std <- x$std.err[,,i, drop=FALSE]

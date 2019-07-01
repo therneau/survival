@@ -1,4 +1,4 @@
-coxph.detail <-  function(object, riskmat=FALSE) {
+coxph.detail <-  function(object, riskmat=FALSE, timefix=TRUE) {
     method <- object$method
     if (method!='breslow' && method!='efron')
 	stop(paste("Detailed output is not available for the", method,
@@ -22,6 +22,7 @@ coxph.detail <-  function(object, riskmat=FALSE) {
             if (length(stemp$vars)==1) strat <- mf[[stemp$vars]]
             else strat  <- strata(mf[,stemp$vars], shortlabel=TRUE)
             }
+        if (timefix) y <- aeqSurv(y)
 	}
 
     nvar <- ncol(x)
