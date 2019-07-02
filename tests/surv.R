@@ -29,6 +29,8 @@ temp2 <- Surv(c(1,10,-Inf, 30, 30), c(1,Inf,10,30, 40), type='interval2')
 aeq(temp1, temp2)
 
 # Verify sorting and order routines
+#  These fail in 3.4, succeed in 3.5 due to a system change in how
+#  xtfrm.Surv is used.  
 x1 <- Surv(c(4, 6, 3, 2, 1, NA, 2), c(1,0, NA, 0,1,1,1))
 all.equal(order(x1), c(5,7, 4, 1, 2, 3, 6))
 all.equal(order(x1, decreasing=TRUE), c(2,1,4,7,5, 3, 6))

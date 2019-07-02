@@ -53,7 +53,7 @@ static const R_CallMethodDef Callentries[] = {
     {"Cgchol",        (DL_FUNC) &gchol,        2},
     {"Cgchol_solve",  (DL_FUNC) &gchol_solve,  3},
     {"Cgchol_inv",    (DL_FUNC) &gchol_inv,    2},
-    {"Cmulticheck",   (DL_FUNC) &multicheck,   4},
+    {"Cmulticheck",   (DL_FUNC) &multicheck,   5},
     {"Cpyears3b",     (DL_FUNC) &pyears3b,    10},
     {"Csurvfitci",    (DL_FUNC) &survfitci,   11},
     {"Csurvfitkm",    (DL_FUNC) &survfitkm,    9},

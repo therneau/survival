@@ -223,7 +223,7 @@ multihaz <- function(y, x, position, weight, risk, transition, ctype, stype,
             d1 <- fit$xbar - rep(x[i,], each=nrow(fit$xbar))
             d2 <- apply(d1*hazard, 2, cumsum)
             d3 <- rowSums((d2%*% vmat) * d2)
-            v2[jj,] <- (apply(varhaz[jj,],2, cumsum) + d3) * (risk2[i])^2
+#            v2[jj,] <- (apply(varhaz[jj,],2, cumsum) + d3) * (risk2[i])^2
         }
 
         S[1,] <- p0
