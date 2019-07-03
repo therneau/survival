@@ -61,7 +61,7 @@ lines.survfit <- function(x, type='s',
     <<plot-transform>>
     <<plot-setup-marks>>
 
-    do.clip <- options("survival")$survival
+    do.clip <- options("plot.survfit")
     if (!is.null(xx <- do.clip$plotclip)) clip(xx[1], xx[2], xx[3], xx[4])
 
     <<plot-functions>>
@@ -78,7 +78,7 @@ points.survfit <- function(x, fun, censor=FALSE,
 
     <<plot-data>>
     <<plot-transform>>
-    do.clip <- options("survival")$survival
+    do.clip <- options("plot.survfit")
     if (!is.null(xx <- do.clip$plotclip)) clip(xx[1], xx[2], xx[3], xx[4])
 
     if (ncurve==1 || (length(col)==1 && missing(pch))) {
@@ -449,8 +449,9 @@ if (resetclip) {
   # yes, do it
   if (xaxs=='S') tempx <- c(tempx[1], temp[1])
   clip(tempx[1], tempx[2], tempy[1], tempy[2])
-  options(survival = list(plotclip=c(tempx, tempy), plotreset=par('usr')))
+  options(plot.survfit = list(plotclip=c(tempx, tempy), plotreset=par('usr')))
 }
+else options(plot.survfit = NULL)  #remove any notes from a prior plot
 @ 
 
 The next functions do the actual drawing.
