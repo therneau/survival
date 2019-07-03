@@ -6,8 +6,8 @@
 survfitcoxph.fit <- function(y, x, wt, x2, risk, newrisk, strata, se.fit,
                               survtype, vartype, varmat, id, y2, strata2,
                               unlist=TRUE) {
-    .Depricated("coxsurv.fit", "survival")
-
+    # soon, but not at first issue
+    # .Deprecated("coxsurv.fit", "survival")
     Call <- match.call()
     
     if (missing(survtype)) {
@@ -21,7 +21,7 @@ survfitcoxph.fit <- function(y, x, wt, x2, risk, newrisk, strata, se.fit,
     indx <- match(c("y", "x", "wt", "x2", "y2", "risk", "strata", "strata2",
                     "se.fit", "varmat"), names(Call), nomatch=0)
     temp <-Call[c(1, "indx")]
-    temp[[1]] <- as.name(survival:::coxsurv.fit)
+    temp[[1]] <- as.name(survival::coxsurv.fit)
 
     temp$ctype <- ctype
     temp$stype <- stype

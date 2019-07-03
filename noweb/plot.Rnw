@@ -51,8 +51,10 @@ lines.survfit <- function(x, type='s',
                           cex=1,
                           mark.time=FALSE, 
                           fun,  conf.int=FALSE,  
-                          conf.times, conf.cap=.005, conf.offset=.012, mark, 
-                          noplot="()", cumhaz=FALSE, ...) {
+                          conf.times, conf.cap=.005, conf.offset=.012,
+                          conf.type=c('log',  'log-log',  'plain', 
+                                  'logit', "arcsin"),
+                          mark, noplot="()", cumhaz=FALSE, ...) {
     x <- survfit23(x)
 
     xlog <- par("xlog")
@@ -147,7 +149,6 @@ else {
     if (!is.numeric(conf.times)) stop('conf.times must be numeric')
     if (missing(conf.int)) conf.int <- TRUE
 }
-if (!conf.int) supper <- slower <- NULL
 
 if (!missing(conf.int)) {
     if (is.numeric(conf.int)) {
@@ -251,6 +252,8 @@ If confidence limits are to be plotted, and they were not part of the
 data that is passed in, create them.  Confidence limits for the 
 cumulative hazard must always be created, and don't use transforms.
 <<plot-confint>>=
+conf.type <- match.arg(conf.type)
+if (conf.type=="none") conf.int <- FALSE
 if (is.logical(conf.int)) plot.surv <- TRUE
 else {
     temp <- match.arg(conf.int, c("both", "only", "none"))
@@ -280,7 +283,7 @@ if (conf.int) {
         supper <- as.matrix(x$upper)
         slower <- as.matrix(x$lower)
     }
-}
+} else supper <- slower <- NULL
 @ 
 
 <<plot-transform>>=
@@ -374,7 +377,7 @@ if (!missing(ylim)) {
 
 # Do axis range computations
 
-if (!missing(xlim)) {
+if (!missing(xlim) && !is.null(xlim)) {
     tempx <- xlim
     if (xaxs == 'S') tempx[2] <- tempx[2] + diff(tempx)*1.04
 }
@@ -391,7 +394,7 @@ else {
     else tempx <- range(temp)
 }  
 
-if (!missing(ylim)) tempy <- ylim
+if (!missing(ylim) && !is.null(ylim)) tempy <- ylim
 else {
     skeep <- is.finite(stime) & stime >= tempx[1] & stime <= tempx[2]
 

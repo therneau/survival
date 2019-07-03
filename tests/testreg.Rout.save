@@ -1,6 +1,6 @@
 
-R version 3.4.1 (2017-06-30) -- "Single Candle"
-Copyright (C) 2017 The R Foundation for Statistical Computing
+R Under development (unstable) (2019-07-02 r76765) -- "Unsuffered Consequences"
+Copyright (C) 2019 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -19,7 +19,7 @@ Type 'q()' to quit R.
 > library(survival)
 > 
 > #
-> # Run a test that can be verified using other packages (we used SAS)
+> # Run a test that can be verified using other packages
 > #
 > test1 <- data.frame(time=  c(9, 3,1,1,6,6,8),
 +                     status=c(1,NA,1,0,1,1,0),
@@ -297,6 +297,37 @@ n= 26
 > all.equal(dsurvreg(x, 2, 3), lambda*rho*(lambda*x)^(rho-1)*exp(-temp))
 [1] TRUE
 > 
+> 
+> # verify labeling in the vcov function, with 0, 1, or 2 scale factors
+> fit0 <- survreg(Surv(time, status) ~ age + ph.ecog, lung, dist='exponential')
+> vcov(fit0)
+             (Intercept)           age      ph.ecog
+(Intercept)  0.330860114 -0.0051541551  0.001441498
+age         -0.005154155  0.0000854214 -0.000240252
+ph.ecog      0.001441498 -0.0002402520  0.013051391
+> fit1 <- survreg(Surv(time, status) ~ age + ph.ecog, lung, dist='weibull')
+> vcov(fit1)
+              (Intercept)           age       ph.ecog    log(scale)
+(Intercept)  0.1837842638 -2.858745e-03  0.0003634856  2.800938e-03
+age         -0.0028587447  4.731485e-05 -0.0001279049 -3.517281e-05
+ph.ecog      0.0003634856 -1.279049e-04  0.0073616277 -7.091072e-04
+log(scale)   0.0028009379 -3.517281e-05 -0.0007091072  3.837229e-03
+> 
+> fit2 <- survreg(Surv(time, status) ~ age + ph.ecog + strata(sex), lung)
+> vcov(fit2)
+                   (Intercept)           age       ph.ecog log(scale[sex=1])
+(Intercept)        0.179740626 -2.845266e-03  0.0016839233     -1.147693e-03
+age               -0.002845266  4.803051e-05 -0.0001515280      4.208343e-05
+ph.ecog            0.001683923 -1.515280e-04  0.0074813166     -6.291573e-04
+log(scale[sex=1]) -0.001147693  4.208343e-05 -0.0006291573      6.272257e-03
+log(scale[sex=2])  0.009087054 -1.600040e-04 -0.0008306451     -4.558932e-04
+                  log(scale[sex=2])
+(Intercept)            0.0090870545
+age                   -0.0001600040
+ph.ecog               -0.0008306451
+log(scale[sex=1])     -0.0004558932
+log(scale[sex=2])      0.0113833096
+> 
 > proc.time()
    user  system elapsed 
-  1.809   0.106   2.089 
+  0.729   0.068   0.790 

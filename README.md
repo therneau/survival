@@ -1,6 +1,12 @@
 # survival
 ![Survival package for R](man/figures/logo.png)
 
+Survival version 3.0-x is the first release of version 3 of my package;
+3.1-0 will be pushed to CRAN, targeted for 8/2019.
+See the survival.Rnw vignette for more details of the changes, which I am
+excited about. The delay for CRAN is that I expect some imperfection, though I
+hope for none.  Please test and give me comments.
+ 
 This is the source code for the "survival" package in R.  It gets posted to the
 comprehensive R archive (CRAN) at intervals, each such posting preceded a
 throrough test. (I run the test suite for all 500+ packages that depend on

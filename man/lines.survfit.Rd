@@ -13,7 +13,9 @@ generated with \code{plot.survfit}.
 \method{lines}{survfit}(x, type="s", pch=3, col=1, lty=1,
         lwd=1, cex=1, mark.time=FALSE, 
         fun, conf.int=FALSE,
-        conf.times, conf.cap=.005, conf.offset=.012, mark, noplot="()",
+        conf.times, conf.cap=.005, conf.offset=.012,
+        conf.type = c("log", "log-log", "plain", "logit", "arcsin"),
+        mark, noplot="()",
         cumhaz= FALSE,  ...)
 \method{lines}{survexp}(x, type="l", ...)
 \method{points}{survfit}(x, fun, censor=FALSE, col=1, pch,
@@ -82,6 +84,18 @@ This can be useful for fine control over the colors or line types of a plot.
     region. If this is a single number then each curve's bars are offset
     by this amount from the prior curve's bars, if it is a vector the values are
     used directly.}
+  \item{conf.type}{
+	One of \code{"plain"}, \code{"log"} (the default),
+	\code{"log-log"} or \code{"logit"}.  Only
+	enough of the string to uniquely identify it is necessary.
+	The first option causes confidence intervals not to be
+	generated.  The second causes the standard intervals
+	\code{curve +- k *se(curve)}, where k is determined from
+	\code{conf.int}.  The log option calculates intervals based on the
+	cumulative hazard or log(survival). The log-log option bases the
+	intervals on the log hazard or log(-log(survival)), and the
+	logit option on log(survival/(1-survival)). 
+      }
   \item{noplot}{for multi-state models, curves with this label will not
     be plotted.  The default corresponds to an unspecified state.}
   \item{cumhaz}{plot the cumulative hazard, rather than the survival or

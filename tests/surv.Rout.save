@@ -1,6 +1,6 @@
 
-R Under development (unstable) (2018-06-20 r74924) -- "Unsuffered Consequences"
-Copyright (C) 2018 The R Foundation for Statistical Computing
+R Under development (unstable) (2019-07-02 r76765) -- "Unsuffered Consequences"
+Copyright (C) 2019 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -64,6 +64,8 @@ In Surv(c(1, 10, 10, 30, 30), c(9, NA, 5, 20, 40), c(1, 0, 2, 3,  :
 [1] TRUE
 > 
 > # Verify sorting and order routines
+> #  These fail in 3.4, succeed in 3.5 due to a system change in how
+> #  xtfrm.Surv is used.  
 > x1 <- Surv(c(4, 6, 3, 2, 1, NA, 2), c(1,0, NA, 0,1,1,1))
 > all.equal(order(x1), c(5,7, 4, 1, 2, 3, 6))
 [1] TRUE
@@ -88,4 +90,4 @@ In Surv(c(1, 10, 10, 30, 30), c(9, NA, 5, 20, 40), c(1, 0, 2, 3,  :
 > 
 > proc.time()
    user  system elapsed 
-  0.800   0.028   0.825 
+  0.738   0.033   0.764 

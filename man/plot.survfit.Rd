@@ -121,7 +121,7 @@
     by this amount from the prior curve's bars, if it is a vector the values are
     used directly.}
      \item{conf.type}{
-	One of \code{"none"}, \code{"plain"}, \code{"log"} (the default),
+	One of \code{"plain"}, \code{"log"} (the default),
 	\code{"log-log"} or \code{"logit"}.  Only
 	enough of the string to uniquely identify it is necessary.
 	The first option causes confidence intervals not to be

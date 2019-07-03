@@ -1,8 +1,8 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
-\section{Changes in version 3.0-1}{
+\section{Changes in version 3.0}{
   \itemize{
-    \item Major revision of the survfit routines, see the survival3 vignette.
+    \item Major revision of the survfit routines, see the survival vignette.
     \item Allow multi-state coxph models.
     \item Rename remaining .S files as .R
     \item vcov of a survreg object now contains dimnames (important for the
@@ -12,7 +12,9 @@
     observations were removed, but the information about which and how
     many were removed was incorrect after the selection.
     \item The survexp function, applied to a coxph model with strata,
-    would sometimes produce extraneous y=0 values at the start of a curve.
+    would sometimes produce extraneous y=0 values at the start of a
+    curve.
+    \item Multiple small bug fixes.
 }}
 \section{Changes in version 2.44-1}{
   \itemize{
