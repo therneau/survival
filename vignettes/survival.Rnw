@@ -532,7 +532,7 @@ The next plot is an example of this for the PCM endpoint.
 pcmbad <- survfit(Surv(etime, pstat) ~ sex, data=mgus2)
 plot(pcmbad[2], mark.time=FALSE, lwd=2, fun="event", conf.int=FALSE, xscale=12,
      xlab="Years post diagnosis", ylab="Fraction with PCM")
-lines(crfit[2,1], lty=2, lwd=2, mark.time=FALSE, conf.int=FALSE)
+lines(crfit[2,"progression"], lty=2, lwd=2, mark.time=FALSE, conf.int=FALSE)
 legend(0, .25, c("Males, PCM, incorrect curve", "Males, PCM, competing risk"),
        col=1, lwd=2, lty=c(1,2), bty='n')
 @ 
