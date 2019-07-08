@@ -10,8 +10,8 @@
 **  y   :    survival response
 **  weight:  observation weight
 **  sort1, sort2: sort indices for the start and stop time
-**  position: in a string of obs (1,2) (2,3) (3,4) (5,8) for a given subject,
-**             'position' would be 1,    0,    2,    3
+**  sindex: in a sequence of obs (1,2) (2,3) (3,4) (5,8) for a given subject,
+**             'sindex' would be 1,    0,    2,    3
 **             1= start of a sequence, 2= end of sequence, 3= both
 **  trans:   the data set is stacked: all the data for transition 1, then 
 **            transition 2, etc for a multi-state model
@@ -43,9 +43,9 @@
 #include <stdio.h>
 
 SEXP coxsurv2(SEXP otime2, SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22, 
-              SEXP position2,  SEXP trans2, SEXP xmat2, SEXP risk2) {
+              SEXP sindex2,  SEXP trans2, SEXP xmat2, SEXP risk2) {
               
-    int i, i2, j2, k, person, person2, itrans;
+    int i, i1, i2, k, person1, person2, itrans;
     int nused, ntrans, ntime, irow, ii, jj;
     double *tstart=0, *tstop, *status, *wt, *otime;
     int *trans;
@@ -62,7 +62,7 @@ SEXP coxsurv2(SEXP otime2, SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22,
 				   "xbar", "xsum2", ""};
     SEXP rlist;
     double n[12];
-    int *position;
+    int *sindex;
 
     /* output variables */
     double  **rn, *rstrat;
@@ -79,7 +79,7 @@ SEXP coxsurv2(SEXP otime2, SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22,
     sort1 = INTEGER(sort12);
     sort2 = INTEGER(sort22);
     trans= INTEGER(trans2);
-    position = INTEGER(position2);
+    sindex = INTEGER(sindex2);
     risk = REAL(risk2);
     nvar = ncols(xmat2);
     xmat = dmatrix(REAL(xmat2), nrows(xmat2), nvar);
@@ -87,7 +87,7 @@ SEXP coxsurv2(SEXP otime2, SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22,
     /* pass 1, count the number of transitions, needed to alloc memory
     **  data is sorted by time within trans
     */
-    itrans= trans[sort2[0]];
+    itrans= trans[0];
     ntrans=1;
     for (i=1; i<nused; i++) {
 	i2 = sort2[i];
@@ -132,12 +132,15 @@ SEXP coxsurv2(SEXP otime2, SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22,
     **   observation with repect to n3- n7.
     **
     **  3. While tstart > otime, remove any obs currently at risk from n0-n2.
+    **
+    ** In the code position1, position2 are current indices into the sort1
+    **   and sort2 vectors, and i1/i2 are the current values of those vectors.
     */
     rstrat[0] = ntrans;   /* single element, number of transitions found */
-    person = nused-1; person2= nused-1;   /* person2 tracks start times */    
+    person1 = nused-1; person2= nused-1;   /* person1 tracks start times */    
     irow = (ntime*ntrans);                /* row of output objects */
     for (ii =0; ii<ntrans; ii++) {
-	itrans= trans[sort2[person]];  /* current transition */
+	itrans= trans[sort2[person2]];  /* current transition */
 	for (k=0; k<3; k++) n[k] =0;
 	for (k=0; k<nvar; k++) {xsum1[k] =0; xsum2[k] =0; }
 
@@ -146,8 +149,9 @@ SEXP coxsurv2(SEXP otime2, SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22,
 	    for (k=3; k<12; k++) n[k]=0;  /* counts are only for this interval*/
 
 	    /* Step 1 */
-	    i2 = sort2[person];
-	    while(tstop[i2] >= dtime && person>=0 && trans[person]==itrans) {
+	    for(; person2 >=0 && trans[person2]==itrans; person2--) {
+		i2 = sort2[person2];
+		if (tstop[i2] <dtime) break;
 		if (tstart[i2] < dtime) {
 		    /* add them to the risk set */
 		    /* if otime were (10, 20) an interval (14,15) will never
@@ -159,7 +163,7 @@ SEXP coxsurv2(SEXP otime2, SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22,
 		    for (k=0; k<nvar; k++) 
 			xsum1[k] += wt[i2]*risk[i2]*xmat[k][i2];
 
-		    if (position[i2]>1 && status[i2]==0) {
+		    if (sindex[i2]>1 && status[i2]==0) {
 			/* count them as a 'censor' */
 			n[8]++;
 			n[9]+= wt[i2];
@@ -173,19 +177,18 @@ SEXP coxsurv2(SEXP otime2, SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22,
 		    n[5] += wt[i2]* risk[i2];
 		    for (k=0; i<nvar; k++)
 			xsum2[k] += wt[i2]*risk[i2]*xmat[k][i2];
-		    if (position[i2] >1) {
+		    if (sindex[i2] >1) {
 			n[6]++;
 			n[7] += wt[i2];
 		    }
 		}
-		person--;
-		i2 = sort2[person];
 	    }
 
 	    /* Step 3 */
-	    j2 = sort1[person2];
-	    while(tstart[j2] >= dtime && person2 >=0 && trans[person2]==itrans){
-		if (atrisk[j2]) {  /* remove them from risk set */
+	    for (; person1 >=0 && trans[person1]==itrans; person1--) {
+		i1 = sort1[person1];
+		if (tstart[i1] < dtime) break;
+		if (atrisk[i1]) {  /* remove them from risk set */
 		    n[0]--; 
 		    if (n[0] ==0) {
 			n[1] =0;
@@ -193,14 +196,12 @@ SEXP coxsurv2(SEXP otime2, SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22,
 			for (k=0; k<nvar; k++) xsum1[k] =0;
 		    }
 		    else {
-			n[1] -= wt[j2];
-			n[2] -= wt[j2]*risk[j2];
+			n[1] -= wt[i1];
+			n[2] -= wt[i1]*risk[i1];
 			for (k=0; k<nvar; k++) 
-			    xsum1[k] -= xmat[k][j2] * wt[j2]* risk[j2];
+			    xsum1[k] -= xmat[k][i1] * wt[i1]* risk[i1];
 		    }
 		}
-		person2--;
-		j2 = sort2[person2];
 	    }
 
 	    /* Compute the Efron number at risk */
@@ -230,16 +231,8 @@ SEXP coxsurv2(SEXP otime2, SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22,
         } /* end of time points */
 
 	/* walk past any data after the last selected time point */
-	i2 = sort2[person];
-	while(person>=0 && trans[i2]==itrans) {
-	    person--;
-	    i2 = sort2[person];
-	}
-	j2 = sort1[person2];
-	while(person2 >=0 && trans[j2]==itrans) {
-	    person2--;
-	    j2 = sort1[person2];
-	}	
+	while(trans[person2]==itrans) person2--;
+	while(trans[person1]==itrans) person1--;
     }
     UNPROTECT(1);
     return(rlist);

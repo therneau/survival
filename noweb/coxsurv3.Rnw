@@ -50,8 +50,20 @@ if (!identical(object$states, mcheck$states))
 #  overall counts (n.risk, etc).  The rest of this code then
 #  replaces the surv and hazard components.
 if (missing(start.time)) start.time <- min(Y[,2], 0)
-cifit <- survfitCI(as.factor(strata), Y, weights, oldid, istate, stype=stype,
-                   ctype=ctype, se.fit=FALSE, start.time=start.time)
+# If the data has absorbing states (ones with no transitions out), then
+#  remove those rows first since they won't be in the final output.
+t2 <- transitions[, is.na(match(colnames(transitions), "(censored)"))]
+absorb <- row.names(t2)[rowSums(t2)==0]
+if (length(absorb)) droprow <- istate %in% absorb  else droprow <- FALSE
+if (any(droprow)) {
+    j <- which(!droprow)
+    cifit <- survfitCI(as.factor(strata[j]), Y[j,], weights[j], oldid[j], 
+                       istate[j], stype=stype,
+                       ctype=ctype, se.fit=FALSE, start.time=start.time)
+    }
+else cifit <- survfitCI(as.factor(strata), Y, weights, oldid, istate, 
+                        stype=stype, ctype=ctype, se.fit=FALSE, 
+                        start.time=start.time)
 
 # For computing the  actual estimates it is easier to work with an
 #  expanded data set.
@@ -113,28 +125,11 @@ if (individual) {
         first<- 1 + c(0, last[-length(last)])
         p0 <- cifit$pstate[first,, drop=FALSE]
     }
-    result <- coxsurv.fit2(ctype, stype, se.fit, varmat, cluster, start.time,
+    cifit <- coxsurv.fit2(ctype, stype, se.fit, varmat, cluster, start.time,
                            object$cmap, object$transitions, object$states,
                            Y, X, weights, risk, position, strata, oldid,
-                           transition, y2, x2, risk2, p0=p0)
+                           transition, y2, x2, risk2, cifit=cifit)
 
-    if (is.null(cifit$strata)) {
-        temp <- result[[1]]
-#        if (ncol(temp$pstate) != ncol(cifit$pstate) ||
-#            (nrow(temp$pstate) != (nrow(x2)*nrow(cifit$pstate))))
-#            stop("miscount 2")
-        cifit$pstate <- temp$pstate
-        cifit$cumhaz <- temp$cumhaz
-    }
-    else {
-        nx <- length(cifit$strata)  # Each 'x' will be a stratum
-        if (length(result) != nx) stop("miscount 3")
-        new.p <- do.call(rbind, lapply(result, function(x) x$pstate))
-        new.c <- do.call(rbind, lapply(result, function(x) x$cumhaz))
-#        if (nrow(new.p) != nrow(cifit$pstate)) stop("miscount 4")
-        cifit$pstate <- new.p
-        cifit$cumhaz <- new.c
-    }
     cifit$newdata <- mf2
 }
 
@@ -142,7 +137,7 @@ if (individual) {
 coxsurv.fit2 <- function (ctype, stype, se.fit, varmat, cluster, 
                           start.time, cmap, tmat, states,
                           y, x, weights, risk, position, strata, id,
-                          transition, y2, x2, risk2, strata2, id2, p0) {
+                          transition, y2, x2, risk2, strata2, id2, cifit) {
     # args are the options (ctype, stype, se.fit), args info from the prior fit
     # (varmat, ..., tmat), original data (Y, ..., transition), and data for the
     # new subjects
@@ -152,8 +147,6 @@ coxsurv.fit2 <- function (ctype, stype, se.fit, varmat, cluster,
     if (is.factor(strata)) ustrata <- levels(strata)
     else                   ustrata <- sort(unique(strata))
     nstrata <- length(ustrata)
-    survlist <- vector('list', nstrata)
-    names(survlist) <- ustrata
 
     # make the expansion map.  
     #  cmap[1,] will contain integers 1, 2,... which match the values in
@@ -173,24 +166,39 @@ coxsurv.fit2 <- function (ctype, stype, se.fit, varmat, cluster,
     storage.mode(position) <- "integer"  # failsafe
     storage.mode(weights) <- "double"
  
-    for (i in 1:nstrata) {
-        indx <- which(strata== ustrata[i])
-        survlist[[i]] <- multihaz(y[indx,,drop=F], x[indx,,drop=F],
+    if (nstrata==1) {
+        temp <- multihaz(y, x, position, weights, risk, transition,
+                                  ctype, stype, hfill,
+                                  x2, risk2, varmat, nstate, se.fit, 
+                                  cifit$pstate[1,], cifit$time)
+        cifit$pstate <- temp$pstate
+        cifit$cumhaz <- temp$cumhaz
+    } 
+    else {
+        itemp <- rep(1:nstrata, cifit$strata)
+        timelist <- split(cifit$time, itemp)
+        firstrow <- match(1:nstrata, itemp)
+        ustrata <- names(cifit$strata)
+        survlist <- vector("list", nstrata)
+        for (i in 1:nstrata) {
+            indx <- which(strata== ustrata[i])  # divides the data
+            survlist[[i]] <- multihaz(y[indx,,drop=F], x[indx,,drop=F],
                                   position[indx], weights[indx], risk[indx],
                                   transition[indx], ctype, stype, hfill,
-                                  x2, risk2, varmat, nstate, se.fit, p0[i,], 
-                                  start.time)
+                                  x2, risk2, varmat, nstate, se.fit, 
+                                  cifit$pstate[firstrow[i],], timelist[[i]])
+                                  
+            }
+        cifit$pstate <- do.call(rbind, lapply(survlist, function(x) x$pstate))
+        cifit$cumhaz <- do.call(rbind, lapply(survlist, function(x) x$cumhaz))
     }
-    survlist
+    cifit
 }
-
 # Compute the hazard  and survival functions 
 multihaz <- function(y, x, position, weight, risk, transition, ctype, stype, 
-                     hfill, x2, risk2, vmat, nstate, se.fit, p0, start.time) {
+                     hfill, x2, risk2, vmat, nstate, se.fit, p0, utime) {
     sort1 <- order(transition, y[,1]) -1L
     sort2 <- order(transition, y[,2]) -1L
-    utime <- c(start.time, sort(unique(y[,2])))  #unique times
-    utime <- utime[utime >= start.time]
     ntime <- length(utime)
 
     # this returns all of the counts we might desire.

@@ -115,3 +115,19 @@ if (FALSE) {
     text(event$t2, event$id+.2, as.character(event$state))
 }
          
+
+# slight change, add a few censored subjects
+#  all the events happen on even numbered days
+test2 <- data.frame(id= c(1, 1, 1,  2,  3,  4, 4, 4,  5, 5,
+                          6, 7, 8,  9),
+                    t1= c(0, 8, 18,  0,  4,  0, 4, 16,  2, 6,
+                          0, 0, 7,  8),
+                    t2= c(8, 18, 20, 10,  18,  4, 16, 18,  6, 22,
+                          5, 10,  10, 15),
+                    state= c(1, 2,  1, 2,  3,  1, 3, 0,  2,  0,0,0,0,0),
+                    x = c(0, 0,  0, 1,  1,  0, 0, 0,  2,  2, 1, 1, 2, 0))
+test2$state <- factor(test2$state, 0:3, c("censor", "a", "b", "c"))
+
+cox2 <- coxph(Surv(t1,t2, state) ~ x, id=id, test2, 
+                     init=log(1:6), iter=0)
+csurv2 <- survfit(cox2, newdata=data.frame(x=0:1))

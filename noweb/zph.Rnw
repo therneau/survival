@@ -21,35 +21,31 @@ first iteration of the new coefficients, and the score tests for them, are
 particularly easy.  
 \end{itemize}
 
-The original \code{cox.zph} function is based on an approximation to the
-score test.
-The approximation has some well described problems for stratified models,
-the update is to compute the test exactly.  We still use scaled Schoenfeld
-residuals for plotting and for approximate spline fits, though the latter
-now are strata specific.  
-Consider a fitted Cox model with covariates $x_1$ to $x_k$, and then add, 
-one at a time, the time dependent covariate $z = x g(t)$ where $g$ is a
-predefined function. 
-The new score vector $U = (0,\ldots,0, u_z)$ has a single non-zero element.
-The new information matrix $H$ will have a $k$ by $k$ upper block which is
-equal to the old information matrix along with an extra row and column.
-Now $H$ is a sum of variance matrices, one per event time, and at any given
-event time $g(t)$ is a constant.  
-This means that 
+The information or Hessian matrix for a Cox model is 
+$$ \sum_{j \in deaths} V(t_j)  = \sum_jV_j
+where $V_j$ is the variance matrix of the weighted covariate values, over
+all subjects at risk at time $t_j$.
+Then the expanded information matrix for the score test is
+\begin{align}
+  H &= \left(\begin{array}cc  H_1 & H_2 \\ H_2' & H_3 \end{array} \right) \\
+  H_1 &= \sum V(t_j) \\
+  H_2 &= \sum V(t_j) g(t_j) \\
+  H_3 &= \sum V(t_j) g^2(t_j)
+\end{align*}
+The inverse of the matrix will be more numerically stable if $g(t)$ is centered
+at zero, and this does not change the test statistic.
 
-$k+1, k+1$ element is 
-\begin{equation*}
-  \sum_{i=1}^n \delta_i v_i(g)
-\end{equation*}
-where $v_i$ is the variance of $z$ over all those at risk at the time of the
-$i$th event.  
-The other elements of the new row/column are the covariance of $z$ with the
-other covariates
+The original cox.zph test used an approximation to $H$ based on the assumption
+that all of the individual terms $V(t_j)$ are the same size.
+In that case the $H_2$ term factors as $\sum V(t_j) \sum g(t_j) and likewise
+for $H_3$.  This makes the test particularly easy to compute.
+This assumption of identical components can fail badly for models with a
+covariate by strata interaction, and for some models with covariate
+dependent censoring.
 
-
-
-
-
-
-The built in ones are the identity, log, rank,
-and $1- S(t)$.
+The newer version of the routine has two separate tracks: for the formal test
+we now compute the correct information matrix.  This is done with C code that
+is a simple variation on iteration 1 for a coxph model.
+The second track are the residuals used for plotting and for a smooth curve
+overlaid on those plots. These use scaled Schoenfeld residuals, though they
+now depend on a per-stratum information matrix for scaling.
