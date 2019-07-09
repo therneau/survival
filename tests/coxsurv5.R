@@ -1,4 +1,4 @@
-library(survival)
+#library(survival)
 aeq <- function(x, y) all.equal(as.vector(x), as.vector(y))
 # 
 # Compute the hazard functions for a multi-state Cox model
@@ -128,6 +128,47 @@ test2 <- data.frame(id= c(1, 1, 1,  2,  3,  4, 4, 4,  5, 5,
                     x = c(0, 0,  0, 1,  1,  0, 0, 0,  2,  2, 1, 1, 2, 0))
 test2$state <- factor(test2$state, 0:3, c("censor", "a", "b", "c"))
 
-cox2 <- coxph(Surv(t1,t2, state) ~ x, id=id, test2, 
+if (FALSE) {
+    # this graph is very useful
+    temp <- survcheck(Surv(t1, t2, state) ~1, test2, id=id)
+    plot(c(0,22), c(1,9.1), type='n', xlab="Time", ylab= "Subject")
+    with(test2, segments(t1+.1, id, t2, id, col=as.numeric(temp$istate)))
+    event <- subset(test2, state!='censor')
+    text(event$t2, event$id+.2, as.character(event$state))
+}
+
+# s0 to a, cumhaz of 1/6 (t=4) + 1/5 (t=8)
+#  b to a, cumhaz of 1/2 at 20
+# s0 to b, cumhaz of 1/5 at 6, +1/5 at 10
+#  a to b, cumhaz of 1/1 at 18
+# s0 to c, cumhaz of 1/1 at 18
+#  a to c, cumhaz of 1/2 at 16
+time2 <-     c(0, 4,5,6,8,10,15,16,18,20, 22)
+chaz2 <- matrix(0, nrow=11, ncol=6,
+            dimnames=list(time2, c("1:2", "1:3", "1:3", "2:3", "1:4", "2:4")))
+chaz2['4',1] <- 1/6; chaz2['8',1] <- 1/5
+chaz2['20',2] <- 1/2
+chaz2['6', 3] <- 1/5; chaz2['10', 3] <- 1/5
+chaz2['18',4:5] <- 1
+chaz2['16', 6] <- 1/2
+chaz2 <- apply(chaz2, 2, cumsum)
+ 
+
+cox3 <- coxph(Surv(t1, t2, state) ~x, id=id, test2, iter=0)  # no weights
+csurv3 <- survfit(cox3, newdata=data.frame(x=0:1))
+aeq(csurv3$time, time2)
+aeq(csurv3$cumhaz[,1,], chaz2)
+aeq(csurv3$cumhaz[,2,], chaz2)
+check3 <- with(test2, coxhaz(Surv(t1, t2, state), id=id))
+indx3 <- match(check3$timeaeq(check4$cumhaz, csurv4$cumhaz[indx3,1,])
+, csurv3$time)
+aeq(check3$cumhaz, chaz2[indx3,])  # a check on the coxhaz function above
+
+cox4 <- coxph(Surv(t1,t2, state) ~ x, id=id, test2, 
                      init=log(1:6), iter=0)
-csurv2 <- survfit(cox2, newdata=data.frame(x=0:1))
+csurv4 <- survfit(cox4, newdata=data.frame(x=0:1))
+mrisk4 <- exp(outer(test2$x, log(1:6), '*'))  # hazards for each transition
+check4 <- with(test2, coxhaz(Surv(t1, t2, state), id=id, risk=mrisk4))
+aeq(check4$cumhaz, csurv4$cumhaz[indx3,1,])
+aeq(csurv4$cumhaz[,2,], csurv4$cumhaz[,1,] %*% diag(1:6))
+

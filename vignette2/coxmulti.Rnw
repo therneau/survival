@@ -1,0 +1,435 @@
+\documentclass{article}[11pt]
+\addtolength{\textwidth}{1in}
+\addtolength{\oddsidemargin}{-.5in}
+\setlength{\evensidemargin}{\oddsidemargin}
+%\VignetteIndexEntry{Multi-state Cox models}
+
+<<echo=FALSE>>=
+# Some output options for knitr that I favor
+opts_chunk$set(comment=NA, tidy=FALSE, highlight=FALSE, echo=TRUE,
+               fig.with=7, fig.height=5.5, fig.path="figures/",
+               out.width="\\textwidth", out.height="!", device="pdf",
+               cache=FALSE, background="#FFFFFF",
+               warning=FALSE, error=FALSE)
+options(continue="  ", width=60)
+pdf.options(pointsize=10) #text in graph about the same as regular text
+require(survival, quietly=TRUE)
+require(knitr, quietly=TRUE)
+table2 <- function(...) table(..., useNA='ifany')
+@
+
+\title{Extending the coxph function to multi-state models}
+\author{Terry Therneau}
+\newcommand{\code}[1]{\texttt{#1}}
+
+\begin{document}
+\maketitle
+
+\section{Simple approach}
+I would like to promote greater use of multi-state models, but
+to do so we need to make them easy.
+The class that I taught at the 2018 ISCB meetings made it clear to
+me that the current ``assemble by hand'' approach that I have been
+using is not easy to explain, and thus is not going to be easy for
+others.
+This note are some musings on a possible way forward.
+
+My first thought was to make use of the \code{strata} statement in the
+code.  However, on further examiniation
+\begin{itemize}
+  \item The underlying code needs to know what are the starting and ending
+    states for each transition, or rather, which variables denote those
+    states.  It is tempting to use the strata statement for this
+    task, but doing so conflicts directly with using it for, say, a center
+    effect.
+  \item A second case is where two transitions are assumed
+    to have the same baseline hazard.  (Rare, but it will occur).  This
+    causes the strata statement to be overloaded, since we need to
+    \emph{identify} the transition pairs, but also \emph{specify} unique
+    hazards.
+\end{itemize}
+
+Solution 2 is to add a \code{state} argument.  If the argument is missing
+then we take the same approach as the survfit function, which is to 
+assume that each observation is from an unnamed state.  This makes
+the competing risks problem very simple.  
+The first 3 lines below construct the CR time and status variables exactly
+as in the examples for \code{survfit}.
+
+<<cm1, echo=TRUE, eval=FALSE>>=
+etime <- with(mgus2, ifelse(pstat==1, ptime, futime))
+event <- with(mgus2, ifelse(pstat==1, 1, 2*death))
+event <- factor(event, 0:2, c("censor", "PCM", "death"))
+
+cfit <- coxph(Surv(etime, event) ~ (age + sex)*strata(event), mgus2)
+@ 
+
+Well, actually not so simple.
+For multi-state models an arrow goes from a subject's current state to each
+of the \emph{potential} transitions for that subject.  
+In the above code, how do we tell the program to stratifiy on the
+potential transition rather than on the observed outcome?  
+One idea is to make the program smarter: if the status variable appears
+on the RHS it is treated as potential states, and other variables are
+treated as observed data. 
+But this quickly runs into problems, revealed when I tried to code the more
+complex NAFLD example found further below.
+A second approach is the one adopted by the mstate package,
+which is to first build a stacked data set which has a separate block of
+rows for each transition, a 0/1 status variable showing that particular
+transition, and identifiers \code{from} and \code{to} for each block.
+
+<<stack1>>=
+simple <- function(data, time, status, from, to)  
+    cbind(data, time=time, status= as.numeric(status), from=from, to=to)
+mstack <- rbind(simple(mgus2[,1:6], time=mgus2$ptime, status = mgus2$pstat, 
+                       from="", to="PCM"),
+                simple(mgus2[,1:6], time=mgus2$futime, status=mgus2$death,
+                       from="", to="death"))
+
+cfit1 <- coxph(Surv(time, status) ~ (age + sex + mspike)*strata(to), 
+               data= mstack)
+cfit2 <- coxph(Surv(time, status) ~ strata(to)/(age + sex + mspike), 
+               data= mstack)
+cfit2
+@ 
+
+The syntax of \code{a/b} is a shorthand for \code{a + a:b}, and leads to
+nicer coefficients, i.e, the effect of age within the death and PCM 
+endpoints rather than an overall effect and an interaction.
+We see that male sex has a major effect on death rates but no effect on
+PCM, and vice-versa for the size of the serum monoclonal spike.
+
+\section{NAFLD example}
+\begin{figure}
+<<nfig1, echo=FALSE>>=
+states <- c("No comorbidity", "1 comorbidity", "2 comorbidities", 
+            "3 comorbitities", "Death")
+cmat <- matrix(0, 5,5)
+cmat[,5] <- 1
+cmat[1,2] <- cmat[2,3] <- cmat[3,4] <- 1
+cmat[1,3] <- cmat[2,4] <- 1.6
+cmat[1,4] <- 1.6
+dimnames(cmat) <- list(states, states)
+statefig(cbind(4,1), cmat)
+@   
+\caption{Schema of the multi-state model.}
+\label{statefig}
+\end{figure}
+
+Try a more complex design based on the NAFLD data set.
+There are 5 states, based on the number of metabolic comorbidities:
+0MC, 1MC, 2MC, 3MC and of course death.  
+The state space is shown in figure \ref{statefig}.
+There are now 4 transitions to death, the 3 obvious increases of 0MC:1MC,
+1MC:2MC and 2MC:3MC, plus skips from 0MC to 2MC, 0 to 3, and 1 to 3.
+In theory the latter three had to have passed through intermediate states, but
+we didn't observe the subjects frequently enough to see them.
+A simple look at the data shows that there are only a handful of 0:3
+transitions observed. 
+The table below shows current state (cstate) versus the endpoint.
+Because of time-dependent covariates there are a lot of intervals that
+do not end with a transition ('none').  
+<<nadata>>=
+<<data1, echo=FALSE>>=
+load("nafld.rda")
+data1 <- tmerge(nafld1[,1:8], nafld1, id=id, death = event(futime, status)) 
+data1 <- tmerge(data1, subset(nafld3, event=="nafld"), id, 
+                nafld= tdc(days))
+data1 <- tmerge(data1, subset(nafld3, event=="diabetes"), id,
+                diab= tdc(days), e1= event(days))
+data1 <- tmerge(data1, subset(nafld3, event=="htn"), id, 
+                htn= tdc(days), e2= event(days))
+data1 <- tmerge(data1, subset(nafld3, event=="dyslipidemia"), id, 
+                dyslip = tdc(days), e3= event(days))
+data1$age1 <- with(data1, age + tstart/365.25)
+data1$age2 <- with(data1, age + tstop/365.25) 
+
+data1$cstate <- with(data1, diab + htn + dyslip)  # current state
+# verify the e1, e2, e3 only happen once per person (we count on this)
+check <- with(data1, pmax(tapply(e1, id, sum), tapply(e2, id, sum),
+                          tapply(e3, id, sum)))
+if (any(check >1)) cat("Duplicates exist!\n")
+
+tcount <- with(data1, e1 + e2 + e3)
+temp2 <- with(data1, ifelse(death, 4, 
+              ifelse(tcount ==0, 0, cstate + tcount)))
+data1$endpoint <- factor(temp2, 0:4, 
+         c("none", "1mc", "2mc", "3mc", "death"))
+data1$cstate <- factor(data1$cstate, 0:3,
+                c("0mc", "1mc", "2mc", "3mc"))       
+with(data1, table(cstate, endpoint))
+@ 
+
+An assumption that the hazards for comorbidity changes are identical
+is not tenable, especially if the model is fit on an age scale.  
+The rate of 2:3 transitions
+will peak at a later age than 0:1 changes, for instance, and skips like 0:3 have
+a low incidence.  However, we would like to fit a model where
+the relative effect of NAFLD on these transtions was identical,
+if nothing else as smaller model to compare to one where the NAFLD
+effect differs.  
+Assume as well that we want to assess the effect of the number of
+complications on the death rate, via a single baseline hazard for
+death along with the number of conditions as a factor variable.
+How do we set this up?
+
+Let $n_0, n_1, n_2, n_3$ be the number of subjects ever observed to be in
+the 0--3 comorbid state.
+The first of these have 4 possible transtions (to death, 1, 2, or 3
+comorbid conditions), the second 3, etc.  
+The full stacked data set will have 10 blocks and $4n_0+ 3n_1 + 2n_2 + n_3$
+observations.
+
+<<stack>>=
+stacker <- function(s1, s2) {
+    temp <- subset(data1, cstate==s1)
+    data.frame(from=s1, to= s2, 
+               status = 1*(temp$endpoint == s2),
+               temp)
+}
+
+statetable <- with(data1, table(cstate, endpoint))
+possible <- statetable[,-1] > 0
+
+temp <- vector("list", sum(possible))
+k <- 1
+rname <- rownames(possible)
+cname <- colnames(possible)
+for (i in 1:nrow(possible)) {
+    for (j in 1:ncol(possible)) {
+        if (possible[i,j]) {
+            temp[[k]] <- stacker(rname[i], cname[j])
+            k <- k+1
+        }
+    }
+}
+stacked <- do.call("rbind", temp)
+with(stacked, table(from, to))
+@
+
+The individual models for death and MC transition have simpler
+coefficients than an overall model,
+this author needed them in order to be clear about what the
+overall coefficients meant, and that they are correct.
+<<cm2>>=
+fit2a <- coxph(Surv(age1, age2, status) ~ cstate + nafld + male,
+               data=stacked, subset=(to=='death'))  # death model
+fit2a
+fit2b <- coxph(Surv(age1, age2, status) ~ cstate + nafld + male +
+                   strata(from, to) + cluster(id), 
+               data=stacked, subset=(to != 'death')) # MC model
+fit2b
+fit2c <- coxph(Surv(age1, age2, status) ~ nafld + male +
+                   strata(from, to) + cluster(id), 
+               data=stacked, subset=(to != 'death')) # MC model
+
+ftemp <- with(stacked, ifelse(to=="death", "any", from)) #dummy 'from'
+fit2 <- coxph(Surv(age1, age2, status) ~ strata(ftemp, to) + cstate +
+                  I(ftemp=='any')*(nafld + male) + cluster(id), 
+              data= stacked)
+fit2
+@ 
+
+In fit2b the cstate variables are NA because there is no variation within
+a stratum; there is no within stratum information about the effect
+of the number of comorbidities.  This verified for me that the cstate
+variable can be added simply to the \code{fit2} model;
+only the \code{from='any'} stratum contributes to the coefficient and we
+don't need to add further conditions within the model formula.
+
+Notes:
+\begin{itemize}
+  \item In fit2b the cstate variables are NA because there is no variation
+    within a stratum, this there is no within stratum information about the
+    effect of the number of comorbidities.  This verified for me that the cstate
+    variable can be added simply to the \code{fit2} model; only the
+    \code{from='any'} stratum contributes to the coefficient and we don't need
+    to add further conditions within the model formula.
+
+  \item It is important that any given subject not be doubly at risk in
+    any given stratum.  That is, two copies at risk at the same time.
+    We can create tools for this in the raw data set (\code{data1}), which
+    would be something run after a tmerge.  The survfit routine has this
+    check built in already, and flags things like intervals of (0, 10), (9,20).
+
+  \item It took me a while to realize that I could lump all of the ``to death''
+    strata together via \code{ftemp}, with no need to create a new stacked
+    data set that had that particular stratum built in from the start.
+    In this data set all of the subjects in the
+    last column of \code{statetable} are distinct, something that in
+    hindsight will always be true for death, or any absorbing state.
+
+  \item I am now mostly convinced that we can get any model we need out
+    of the single stacked data set, when using exactly the correct
+    strata and dummy variables.  But the fact that it took me 2 days
+    of false starts before a realization of the above code make me 
+    less sanguine that simplicity has been achieved.  Yes, the final 
+    code is simple, and we can further automate the stacker routine.
+    
+  \item It will require several more examples to make me actually
+    \emph{believe} that a stacked data set is sufficient.
+    
+  \item A robust variance is needed when any single subject can contribute
+    multipe events to a particular coefficient.  
+    Whether it is needed when there are multiple events which affect 
+    disjoint coefficients is not yet clear to me.  ``Better safe than
+    sorry'' is my current view.
+\end{itemize}
+
+A check for PH shows that it is not a very good assumption for the death
+rates.  Since the dummy variables are a comparison of 1, 2 or 3 metabolic
+comorbidities with 0 MC, it is not a big surprise that the PH tests
+become more extreme with increasing MC.  
+The actual shape of the 3MC coefficient is a bit of a surprise.
+<<ph>>=
+z1 <- cox.zph(fit2a, transform="identity")
+z1
+plot(z1[3], resid=FALSE)
+
+z2 <- cox.zph(fit2c, transform="identity")
+z2
+@ 
+
+Let us fit a more realistic model, but a constraint that the NAFLD and
+male effects for the 0-1, 0-2, and 0-3 MC transtions are identical.
+This is mostly in response to the very small numbers of the last of
+these.  Make the same constraint for 1-2 and 1-3 MC transtitions, but 
+allow all of the baseline hazards to differ.
+
+<<cm3>>=
+dth <- 1*(stacked$to == "death")
+fit3 <- coxph(Surv(age1, age2, status) ~ strata(from, to) + 
+                  from:(nafld + male) + dth:from:(nafld + male),
+              data=stacked)
+fit3
+@ 
+
+The coefficients for this fit are complicated. 
+The first three say that the effect of NAFLD on progression from 0MC to 1MC is
+stronger than the effect for 1:2 and 2:3, though the second two do not differ
+by very much.  The effect of male gender on the three transitions is more
+consistent. 
+The NAFLD coefficients for death involve sums of coefficients (1+9), (2+10),
+(3+11) and (4 +12).  Because the only transition available for the 3mc state
+is death, the pair of these are redundant.
+The NAFLD effects on death are .63, .53, .55, and .06; with a marked drop for
+the last of these.
+
+\section{Curves}
+Creation of cumulative hazard curves for these models is fairly straightforward,
+mathematically at least, and the Aalen-Johansen curves can be derived from the
+hazards.
+To get a correct variance we need to use a unified fit of all the coefficients,
+such as fit2 or fit3 above.
+Because they are robust to a lack of PH, absolute risk estimates are very
+attractive.
+
+How do we make this easy though? 
+\begin{itemize}
+  \item The msm and mstate packages both make use of a transition matrix,
+    created by the user, which lists the possible transtions.  I am not
+    convinced that this is worthwhile other than as an error check.  It is
+    easy for the code itself to figure out what transitions occur, i.e., the
+    way that survfit does.  Coxph would also have a \code{transitions} matrix
+    in the output.
+  \item The survfit.coxph routine currently has two execution paths.  If one
+    provides only covariate values, it fills in the strata information for you
+    and produces curves for all strata at once.  If the user provides strata
+    values, then it creates the requested subset of curves.  
+    If there are time-dependent
+    covariates the routine currently demands option 2, but that is an
+    implementation issue (not enough time to do everything).  The first path
+    makes more sense for Aalen-Johansen curves, I think, since all of the
+    arrows are going to be needed. 
+  \item Even if two arrows share a baseline hazard, the underlying
+    code will need to generate both of them anyway.  
+    Any other form of bookkeeping is going to be miserable for the underlying
+    C code.  (Current opinion).
+\end{itemize}
+
+One approach is to require a \code{state} variable as one of the coxph
+arguments; like \code{id} it is treated as part of the formula and data set.
+The variable is required to be a factor with an overlapping set of levels
+with the status variable of the \code{Surv} call.  
+To make the competing risks case easy, if the argument is missing 
+then the starting state for
+everyone observation is the unnamed state ``''. 
+I will want to add code to the routine (and to survfit) to ensure that the
+starting state is consistent, e.g., if the first obs for subject Smith ends in
+a transition to state 'A', the next observation will show Smith to be in state
+`A'.
+
+This change to survfit would allow for someone with a hole in their
+follow-up.  Now if someone has follow-up cease while in state A and then
+later returns to the study in state B, the AJ estimate is ignoring information:
+we know that at least 1 transtition happened during the gap.  
+Que sera sera.
+
+To cumulative hazard matrix will have rows for event times and a column for
+each stratum.  To create the AJ curve the routine needs to map each arrow
+in the state space figure to exactly one of those strata. 
+In the models above this is fairly easy to do. 
+
+\section{Plan 2}
+
+One never knows what a user will do.  If all of the observations with a
+particular (from, to) pair do not map to the same strata, then an AJ
+fit is much more challenging.  I mean this in both the math and the
+practical sense: if some subject has a time dependent strata, then exactly
+what is a proper survival curve for them?  
+One approach will be to have the routine stop at that point and say ``sorry''.
+Another is to prevent it from happening in the first place.
+
+For method 2, we use the normal data set (no stacking).  In this data set a
+subject is a linear sequence of times, i.e., our \code{data1} above.
+A second data states data set contains one row for each state.  It must contain
+a common variable with the main data, but may have as many other variables
+as desired.  I have worked this out partly in the hmm package.  
+
+For our two NAFLD models, this is what I envision for code.
+<<states, eval=FALSE>>=
+statedata <- data.frame(cstate=factor(1:5, labels=c(paste0(0:3, "mc"), "death")),
+                        count= c(0:3, NA),
+                        death=c(0,0,0,0,1))
+fit2 <- coxph(Surv(age1, age2, event) ~ cstate, data= data1,
+              vars = list(1/count(1:3) ~ 1,
+                          1/count(1:3) ~ nafld + male/ common,
+                          1/death(1) ~ 1 + cstate + nafld + male /common))
+
+fit3 <- coxph(Surv(age1, age2, event) ~ cstate, data = data1,
+              var = list(1/1 ~ 1 + nafld + male))
+@ 
+
+We read the first model as 1) any transition that ends with mc in 1:3 has its
+own baseline (intercept), 2) any transition that ends with mc in 1:3 has a 
+common nafld and male coefficient, and 3) all transitions to death have a 
+common baseline, age, male, and cstate coefficients.  Since the cstate levels
+line up with the starting states, these are essentially a separate term for
+each.  The second model has separate baseline, nafld, and male coefficients 
+for each transition.  
+
+The result of such a model will have a matrix \emph{cmap} with one row for
+each transition, one column for each term in the model, and integer
+elements. Values of 0 mean that a particular term is not used for that
+transition, other values point to elements in the coefficient vector.  
+The \code{coefficient} vector contains unique coefficients, and \code{var}
+the variance matrix of those coefficients.  
+The print routine can print out a vector or matrix of coefficients; the matrix
+form may have some zeros and/or ties.
+
+Downsides to this approach:
+\begin{itemize}
+  \item I am limited to what will fit into a ``fake'' model formula. Some
+    syntax choices are not available.  For instance we can't replace '1' with
+    '*' as our marker for ``any state''.
+  \item What to do with residuals and cox.zph?  Should these return matrices
+    with one row (column?) per transition?
+\end{itemize}
+
+The upside is that AJ curves will be computable, as there is a clear
+coefficient/baseline set for each of the transitions.  Marginal estimates are
+a little clearer to me as well.
+\end{document}
+
+    

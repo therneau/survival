@@ -1608,6 +1608,242 @@ legend(20, .22, outer(c("80 year old male,", "80 year old female,"),
 \chapter{Accelerated Failure Time models}
 \label{chap:aft}
 
+\chapter{Tied event times}
+\label{chap:tied}
+\section{Cox model estimates}
+The theory for the Cox model has always been worked out for the case of
+continuous time, which implies that there will be no tied event or censoring
+times in the data set.
+With respect to censoring times, all of the survival library commands treat
+censoring as occuring ``just after'' the recorded time point.
+The rationale is that if a subject was last observed alive on day 231, say, 
+then their death time, whatever it is, must be strictly greater than 231.  
+For formally, a subject who was censored at time $t$ is considered to have
+been at risk for any events that occured at time $t$.
+
+The issue with tied event times is more complex, and the software supports 
+three different algorithms for dealing with this.
+The Cox partial likelihood is a sum of terms, one for each event time, each
+of which compares the subject who had the event to the set of subjects who 
+``could have had the event": the \emph{risk set}.
+The overall view is essentially a lottery model: at each event time there
+was a drawing to select one subject for the event,
+the risk score for each subject $\exp(X_i\beta)$ tells how many ``tickets'' 
+each subject had in the drawing.
+The software implements three different algorithms for dealing with tie
+event times.
+
+The Breslow approximation (\code{ties='breslow'}) in essence ignores the ties.
+If two subjects A and B died on day 100, say, 
+the partial likelihood will have separate terms for the two deaths.
+Subject A will be at risk for the death that happened to B, and B will be at 
+risk for the death that happened to A.
+In life this is not technically possible of course: whoever died first will
+not be at risk for the second death.
+
+The Efron approximation can be motivated by the idea of \emph{coarsening}:
+time is on a continuous scale but we only observe a less precise version of
+it.  For example consider the acute myelogenous leukemia data set that is
+part of the package, which was a clinical trial to test if extendend
+chemotherapy (``Maintained'') was superior to standard.
+The time to failure was recorded in months, and in the non-maintained arm
+there are two pairs of failures, at 5 and at 8 months.
+It might be reasonable to assume that if the data had been recored in days
+these ties might not have occured.
+<<>>=
+with(subset(aml, x="Nonmaintained"), Surv(time, status))
+@ 
+
+Let the risk scores $\exp(X\beta)$ for the 12 subjects be $r_1$--$r_{12}$,
+and assume that the two failures actually at month 5 are not tied on a finer
+time scale. 
+For the first event, whichever it is, the risk set with be all subjects 1--12
+and the denominator of the partial likelihood term is $\sum r_i$.
+For the second event, the denominator is either
+$r_1 + r_3 + \ldots r_{12}$ or $r_2 + r_3 + \ldots r_{12}$;
+the Efron approximation is to use the average of the two as the denominator
+term.
+In the software this is easily done by using temporary case weights:
+if there were $k$ tied events then one of the denomiators gives each of those
+$k$ subjects a weight of 1, then next gives each a weight of $(k-1)/k$, then
+next a weight of $(k-2)/k$, etc.  
+The Efron approximation imposes a tiny bit more bookkeeping, but
+the the computational burden is no different that for case weights; 
+i.e., it effectively takes no more computational time than the Breslow
+approximation.
+
+The third possiblility is the exact partial likelihood due to Cox, which treats
+the underlying time scale as discrete rather than continuous.
+When taking this view the denominator of the partial likelihood term is
+again an average, but over a much larger subset.
+If there are $k$ events and $n$ subjects at risk, the EPL sum is over all
+$k$ choose $n$ possible choices.  
+In the AML example above, the event at time 5 will be a sum over 12(11)/2= 33
+terms.  If the number of ties is large this quickly grows unreasonable:
+for 20 ties out of 1000 the sum has over 39 billion terms.
+A clever algorithm by Gail makes this sum barely possible, but it does not
+extend to the case of (tstart, tstop) style data.
+
+An important aside is that the log-likelihood for matched logistic
+regression is identical to the Cox partial likelihood for a particular
+data set, when the EPL is used.
+Namely, set time=1 (or any other constant), status = 0 for controls and 1 for 
+cases, and fit a coxph model with each matched set as a separate stratum.
+In most instances a matched set will consist of a single case along with one
+or more controls, however, which is the case where the Breslow, Efron, and EPL
+are identical.  (The EPL will still take slightly longer to run due to 
+setting up the
+necessary structure for all those sums.)
+
+But how important are the ties, actually?
+Below we show a small computation in which a larger data set is successively
+coarsened and compare the results.
+The colon cancer data set has 929 subjects with stage B/C colon cancer
+who were randomized to three treatment arms and then followed for 5
+years; the time to death or progression is in days.
+In the example below we successively coarsen the time scale to be
+monthly, bimonthly, \ldots, bi-annual; the last of which generates an
+extreme number of ties. 
+What we see is that
+\begin{itemize}
+  \item The Efron approximation is quite good at dealing with the
+    coarsened data, producing nearly the same coefficient as the
+    original data even when the coarsening is extreme.
+  \item The Breslow approximation is biased somewhat towards 0,
+    the exact paritial likelihood somewhat away from 0.
+  \item The differences are very small. Which monthly coarsening,
+    which is itself fairly large, the 3 estimates differ by about .01
+    while the standard error of the original coefficient is 0.96;
+    i.e. a shift that is statistically immaterial.
+\end{itemize}
+    
+<<coarsen>>=
+tdata <- subset(colon, etype==1)   # progression or death
+cmat <- matrix(0, 7, 6)
+for( i in 1:7) {
+    if (i==1) scale <-1 else scale <- (i-1)*365/12
+    temp <- floor(tdata$time/scale)
+    tfit <-  coxph(Surv(temp, status) ~ node4 + extent, tdata)
+    tfit2 <- coxph(Surv(temp, status) ~ node4 + extent, tdata,
+                   ties='breslow')
+    tfit3 <- coxph(Surv(temp, status) ~ node4 + extent, tdata,
+                   ties='exact')
+    cmat[i,] <- c(coef(tfit2), coef(tfit), coef(tfit3))
+}
+matplot(1:7, cmat[,c(1,3,5)], xaxt='n', pch='bec',
+        xlab="Time divisor", ylab="Coefficient for node4")
+axis(1, 1:7, c(1, floor(1:6 *365/12)))
+@ 
+
+Early on in the package the decision was made to make the Efron approximation
+the default. 
+The reasoning was simply that is \emph{is} more accurate, even if only a little,
+and the author's early background in numerical analysis argued strongly to
+always use the best.
+The second reason is that the computational cost is low. 
+If you see a 1 Euro coin on the sidewalk would you pick it up -- even though
+it not make any real change in your income?
+One downside is that no other package did this, leading to a very common
+complaint/question that R ``gives different results''.
+A second is that it leads to more downstream work as discussed in 
+following sections.
+
+\section{Cumulative hazard and survival}
+The coarsening argument can also be applied to the cumulative hazard
+$\Lambda(t)$.
+Say that there were 3 deaths with 10 subjects at risk.
+The increment to the Nelson-Aalen cumulative hazard estimate would
+then be 3/10.
+If the data had been observed in continuous time, however, there would have
+been 3 increments of 1/10 + 1/9 + 1/8.
+This estimate was explored by Fleming and Harrington \cite{Flemingxxx}.
+In the \code{survfit} function the \code{ctype} option selects for
+1=Nelson-Aalen and 2= Fleming-Harrington.
+
+The Kaplan-Meier estimate is not subject to the coarsening phenominon.
+In our example, the observed data will lead to a multipilicative increment
+of 7/10 and the continuous data to one of (9/10)(8/9)(7/8), which are the 
+same.
+An alternate estimate of the survival is $S(t) = \exp(-\Lamda(t))$.
+Basing this on the FH estimate of hazard will more closely track the KM 
+when there are tied event times.
+The direct (KM) vs. exponential estimates of survival are obtained with
+the \code{ctype=1} and \code{ctype=2} arguments; however, the
+exponential estimate is quite uncommon outside of the Cox model.
+
+\section{Predicted cumulative hazard and surival from a Cox model}
+
+Predictions from a coxph model must always be for \emph{someone}, i.e.,
+some particular set of covariate values.
+Let $r_i = \exp(X_i\hat\beta -c)$ be the recentered risk scores for each
+subject $i$, where the recentering constant $c = X_n\hat\beta$,
+$X_n$ being the covariates of the ``new'' subject for which prediction
+is desired.  
+(We don't want to create a prediction for a baseline subject with
+X=0, what textbooks often call a ``baseline hazard'', since if 0 is too
+far from the center of the data the exp function can easily overflow.)
+The estimated cumulative hazard at any event time is then
+\begin{equation}
+  \Lhat(t) = \int_0^t \frac{\sum_i dN_i(t)}{\sum_i Y_i(t) r_i \lab{haz:breslow}
+\end{equation}
+Equation \eqref{haz:breslow} is known as the Breslow estimate;
+if $\hat\beta=0$ then $r_i=1$ and it becomes equal to
+the Nelson-Aalen estimator.
+
+If the Efron estimate is used for ties, then the software uses an Efron
+estimate of the cumulative hazard; which reduces to the Fleming-Harrington
+if $\hat\beta =0$.  
+Using the hazard estimate that matches the parial likelihood estimate causes
+an important property of the vector of martingale residuals $m$ to hold, 
+namely that $mX$ is equal to the first derivative of the partial likelihood.
+residuals hold for both
+
+The Cox model is a case where the default estimate of survival is based on
+the exponent of the cumulative hazard, rather than a 'direct' one such as
+the Kaplan-Meier.  There are three reasons for this.
+\begin{enumerate}
+  \item The most obvious 'direct' estimate is to use 
+    $(\sum dN_i(t) -\sum Y_i(t)r_i)/ (\sum Y_i(t)r_i)$ as a multiplicative
+    update at each event time $t$.  This expression in not guarranteed to
+    be between 0 and 1, however, particular for new subjects who are near
+    or past the boundaries of the original data set.  This leads to using
+    some sort of ad hoc correction to avoid failure.
+  \item The direct estimate of Kalbfleisch and Prentice avoids this, but it
+    does not extend to delayed entry, multi-state models or other extensions
+    of the basic model.
+  \item The KP estimate reqires iteration so the code is more complex.
+\end{enumerate}
+
+\section{Multi-state models}
+Multi-state hazards models have a very interesting (and useful)
+property,
+which is that hazards can be estimated singly (without reference to any
+other transition) but probability-in-state estimators must be computed 
+globally.
+Thus, one can estimate non-parametric cumulative hazard estimates 
+(Nelson-Aalen), the hazard ratios for any given transtions (Cox model)
+or the predicted cumulative hazard function based on a per transition
+Cox model without incurring any issues with respect to competing risks.
+(If there is informative censoring the overall and individual estimates
+still agree, but they will both be wrong.
+An example of informative censoring would be subjects who are removed from
+the data because of an impending event, e.g., censoring subjects who enter
+hospice care would underestimate death rates.)
+
+Now say that we had a simple competing risks problem, 10 subjects are
+alive and in the initial state on day 100, at which time two of them
+transition to
+two different endpoints.  
+A coarsening argument would say that on the underlying continuous time
+scale these two subjects would not be tied, and then would use  9.5 
+as the denominator for
+each of the two cumulative hazard increments.
+Such an estimate would however then be at variance with the two indiviually 
+computed hazards.
+The survival package takes a moderated view and will apply the coarsening
+argument separately to each hazard, i.e., it chose to retain the separation
+policy.
+
 
 
 
