@@ -1,12 +1,14 @@
 \subsection{Parsing the covariates list}
-For a multi-state Cox model we allow a list of formulas to be given by
-the covariates option.
-These formulas are not really formulas, instead we abuse the R formula
-notation to get what we want.
+For a multi-state Cox model we allow a list of formulas to take the place
+of the \code{formula} argument.
+The first element of the list is the default formula, later elements
+are of the form \code{transitions ~ formula/options}, where the left hand side
+denotes one or more transitions, and the right hand side is used to augment
+the basic formula wrt those transitions.
 
-The input list needs to be taken apart into its component pieces first,
-before model.frame is called, in order to have a full list of variable
-names that need to be in the model frame.
+Step 1 is to accumulate all the terms that appear on the right hand side(s)
+into a single ``pseudo formula'' that is used to drive the model.frame
+process.  
 After the model frame is constructed we have the necessary data to
 check that state names given in the formulas actually exist in the 
 data and that initial value strings are the right length.
@@ -16,7 +18,7 @@ structure:
 \begin{itemize}
   \item a list with one element per formula in the covariates list
   \item each element is a list, with one element per term: multiple
-    a:b terms are allowed separated by + signs
+    a:b terms are allowed separated by + signs on the left hand side of the ~
   \item each of these level 3 elements is a list with two elements
     ``left'' and ``right'', for the two sides of the : operator
   \item left and right will be one or two element lists containing the
@@ -27,7 +29,7 @@ structure:
 <<parsecovar>>=
 parsecovar1 <- function(flist, statedata) {
     if (any(sapply(flist, function(x) !inherits(x, "formula"))))
-        stop("flist must be a list of formulas")
+        stop("an element of the formula list is not a formula")
     if (any(sapply(flist, length) != 3))
         stop("all formulas must have a left and right side")
     
