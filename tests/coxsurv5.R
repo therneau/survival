@@ -171,4 +171,3 @@ mrisk4 <- exp(outer(test2$x, log(1:6), '*'))  # hazards for each transition
 check4 <- with(test2, coxhaz(Surv(t1, t2, state), id=id, risk=mrisk4))
 aeq(check4$cumhaz, csurv4$cumhaz[indx3,1,])
 aeq(csurv4$cumhaz[,2,], csurv4$cumhaz[,1,] %*% diag(1:6))
-

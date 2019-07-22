@@ -190,7 +190,7 @@ and the transitions count.
 <<parsecovar>>=
 parsecovar2 <- function(covar1, statedata, dformula, Terms, transitions,states) {
     if (is.null(statedata))
-        statedata <- data.frame(state = states)
+        statedata <- data.frame(state = states, stringsAsFactors=FALSE)
     else {
         if (is.null(statedata$state)) 
             stop("the statedata data set must contain a variable 'state'")

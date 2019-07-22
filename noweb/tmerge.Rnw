@@ -298,7 +298,7 @@ for (ii in seq(along.with=args)) {
         stop("argument ", argname[ii], " is not the same length as id")
    if (!is.null(argi$value)) {
        if (length(argi$value) != length(saveid))
-            stop("argument", argname[ii], "is not the same length as id")
+            stop("argument ", argname[ii], " is not the same length as id")
         if (topt$na.rm) keep <- !(is.na(etime) | is.na(argi$value))
         else keep <- !is.na(etime)
         if (!all(keep)) {

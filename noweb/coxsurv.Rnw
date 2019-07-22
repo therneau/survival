@@ -426,7 +426,7 @@ if (is.vector(newdata, "numeric")) {
     if (is.null(names(newdata))) {
         stop("Newdata argument must be a data frame")
     }
-    newdata <- data.frame(as.list(newdata))
+    newdata <- data.frame(as.list(newdata), stringsAsFactors=FALSE)
 }
 @ 
 

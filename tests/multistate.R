@@ -17,8 +17,6 @@ data2$time <- rep(data1$etime, 2)
 data2$status <- 1* c(data1$event=="PCM", data1$event=="death")
 data2$type   <- rep(c(2:3), each=nrow(mgus2))
 
-
-
 fit1 <- coxph(Surv(etime, event) ~ age + sex + mspike, data1, id=id, x=TRUE,
               robust=FALSE)
 fit1a <- coxph(Surv(etime, event=="PCM") ~ age + sex + mspike, data1)

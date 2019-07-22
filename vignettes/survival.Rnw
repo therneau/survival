@@ -530,8 +530,6 @@ and the default action for \code{plot.survfit} is to leave out the
 interesting, but in this case we have shown all 3.
 We will return to this example when exploring models.
 
-
-
 A common mistake with competing risks is to use the Kaplan-Meier
 separately on each
 event type while treating other event types as censored.
@@ -552,7 +550,7 @@ if all other causes of death were to be disallowed.
 In this hypothetical world it is indeed true that many more subjects would
 progress to PCM (the incorrect curve is higher), but it is also 
 not a world that any of us will ever inhabit.
-This author views the result in much the same light as discussions of
+This author views the result in much the same light as  a discussion of
 survival after the zombie apocalypse.
 The second problem is that the computation for this
 hypothetical case is only correct if all of the competing endpoints
@@ -563,7 +561,7 @@ estimates the fraction of MGUS subjects who \emph{will experience}
 PCM, a quantity sometimes known as the lifetime risk,
 and one which is actually observable.
 
-The last example chooses to plot only a subset of the curves, something that is
+The last example chose to plot only a subset of the curves, something that is
 often desirable in competing risks problems to avoid a
 ``tangle of yarn'' plot that simply has too many elements.
 This is done by subscripting the \code{survfit} object.
@@ -583,11 +581,11 @@ crfit$states
 @
 
 One surprising aspect of multi-state data is that hazards can be estimated
-independently, while probabilities cannot.
+independently although probabilities cannot.
 If you look at the cumulative hazard estimate from the \code{pcmbad}
 fit above using, for instance, \code{plot(pcmbac, cumhaz=TRUE)} you will
 find that it is identical to the estimate from the joint fit.
-This is an important issue in Cox models.  
+This will arise again with Cox models.  
 
 \section{Multi-state data}
 The most general multi-state data will have multiple outcomes and
@@ -1299,7 +1297,7 @@ for some link function $f$.
 These models are fit using the \code{survreg} function, which will be covered
 in chapter \ref{chap:aft}.
 
-Hazard models attempt to summarized the rate or hazard of transition between
+Hazard models model the rate or hazard of transition between
 states and include 3 models.
 
 Exponential (or Poisson) models
@@ -1316,9 +1314,10 @@ summary(gfit)
  
 The subjects who did not receive maintenance therapy have a 2.5 fold
 higher death rate.
-In this model the response is the number of events for a subject, so it can
+In this model the response is the number of events for a subject, so the
+model can
 be applied to multiple outcome data as well.
-The \code{offset} term is based on the fact that for a poisson response
+The \code{offset} term is based on the fact that for a Poisson response
 E(number of events) = rate * time = exp(log(rate) + log(time)).
 We are using $\beta x$ to model the log rate and so log(time) appears in the
 model as an \emph{offset}, a covariate with known coefficient of 1.
@@ -1329,9 +1328,11 @@ The proportional hazards or Cox model allows an semi-parametric intercept
              &= \lambda_0(t) \exp(\beta_1 x_1 + \beta_2 x_2 + \ldots)
 \end{align*}
 where $\lambda_0$ is referred to as the baseline hazard.
-The literature, by the way, is about evenly split between using
-$\lambda$, $h$ and $\alpha$ as the symbol.
-This model will be covered in chapter \ref{chap:PH}.
+The literature is about evenly split between using
+$\lambda$, $h$ and $\alpha$ as the symbol for the baseline hazard;
+we will use $\lambda$ but there is no compelling argument for one versus
+another.
+The Cox model will be covered in chapter \ref{chap:PH}.
 
 The Aalen additive regression model is 
 \begin{align*}
@@ -1341,9 +1342,51 @@ The model is more complex than the Cox model --- all of the coefficients
 are time dependent --- but it also has important advantages.
 These models can be fit using the \code{aareg} function in the survival
 package.
-The \code{timereg} package has superseded the \code{aareg} function in every
+The \code{timereg} package has surpassed the \code{aareg} function in every
 way, however, and users of the Aalen model should direct their 
 attention there.  
+
+There are, I think, three keys to a successful statistical
+model, and each of the above attempts to strike a balance
+between them.  A good model
+\begin{enumerate}
+  \item provides a simplified summary of the effects
+  \item executes reliably
+  \item is a \emph{good enough} summary of the biology
+\end{enumerate}
+
+For all of the above, the first of these is addressed by using 
+a linear predictor $\beta_1 x_1 + \beta_2 x_2 + \ldots$ for the covariates.
+This allows us make statements about the covariate effects singly, e.g.
+``the effect of treatment is a \underline{\phantom{abc}}'', ignoring the
+others.
+The second criterion is practical --- programs that sometimes fail, 
+or that require 
+starting estimates or per dataset tuning do not get used in day to day work.
+The last criterion is that the model needs to capture the true biology
+sufficiently well that the result can act as a basis for 
+action.   
+The joint action of the first and third are well captured by three quotations:
+
+\begin{quotation}
+Ce qui est simple est toujours faux. Ce qui ne l'est pas est inutilisable.
+(What is simple is always wrong. What is not is unusable.)\\
+Paul Val\'{e}ry, 1949
+
+All models are approximations. Assumptions, whether implied or clearly 
+stated, are never exactly true. All models are wrong, but some models are 
+useful. So the question you need to ask is not ``Is the model true?" (it never 
+is) but ``Is the model good enough for this particular application?''\\
+G.E.P Box, Statistical Control By Monitoring and Adjustment, 2009.
+
+
+A model is a lie that helps us see the truth.\\  H. Skipper in The Emperor
+of all Maladies, 2011.
+\end{quotation}
+
+Box's statement is often compressed down to the third of its 4 sentences, but
+is best viewed in full.  
+
 
 % -----------------------------------------
 
@@ -1356,41 +1399,8 @@ the statistical theory at about the same time that desk calculators could
 first handle a running sum $\sum x_i y_i$; it was both a simple statistic
 and the most complex thing one could do.
 The Cox model's relationship to 1970's computing power was much the same. 
-
-The fact that it continues to be used is partially due to inertia, but 
-only partly.  There are, I think, three keys to a successful statistical
-model, and the proportional hazards model seems to strike the right balance
-between them.  A good model
-\begin{enumerate}
-  \item provides a simplified summary of the effects
-  \item executes reliably without ``hand holding''
-  \item is a \emph{good enough} summary of the biology
-\end{enumerate}
-
-The first of these usually boils down to using a linear predictor 
-$\beta_1 x_1 + \beta_2 x_2 + \ldots$ for the covariates, since it allows us
-to say that ``the effect of treatment is a \underline{\phantom{abc}}'' 
-(or age, sex, blood pressure, \ldots), i.e., to make simple statements about
-any given covariate of interest.  
-The second is practical --- programs that sometimes fail, or that require 
-starting estimates or per dataset tuning do not get used in day to day work.
-The last is that the results need to be correct to act as a basis for 
-action.  This is well captured by three quotations:
-\begin{quotation}
- A model is a lie that helps us see the truth''.\\  H. Skipper in The Emperor
-of all Maladies.
-
-  All models are approximations. Assumptions, whether implied or clearly 
-stated, are never exactly true. All models are wrong, but some models are 
-useful. So the question you need to ask is not ``Is the model true?" (it never 
-is) but ``Is the model good enough for this particular application?''\\
-G.E.P Box, Statistical Control By Monitoring and Adjustment, 2009.
-
-Ce qui est simple est toujours faux. Ce qui ne l'est pas est inutilisable.
-(What is simple is always wrong. What is not is unusable.)\\
-Paul Val\'{e}ry, 1949
-
-\end{quotation}
+The fact that it continues to be used is due, however, to the fact that the
+model often provides a very good summary.
 
 We will show the model in four situations
 \begin{centering}
@@ -1400,7 +1410,7 @@ One type of outcome & 1 & 2 \\
 Multiple types of outcome & 3 & 4
 \end{tabular}
 \end{centering}
-Type 1 is simple or classic survival, 2 is repeated events per subject,
+Type 1 is simple or `classic' survival, 2 is repeated events per subject,
 3 is exemplified by competing risks, and 4 is the most general.
 
 \section{Single Event}
@@ -1429,11 +1439,85 @@ zp1
 plot(zp1[2], resid=FALSE)
 abline(coef(fit1)[2] ,0, lty=3)
 @ 
-None of the test statistics for PH are remarkable.  
+
+None of the test statistics for PH are remarkable. 
+A simple check for linearity of age is to replace the term with a smoothing
+spline. 
+<<lung3>>=
+fit2 <- coxph(Surv(time, status) ~ pspline(age) + sex + ph.ecog, lung)
+print(fit2, digits=2)
+@ 
+
+ECOG performance score only has 4 levels, one of which occurs for only one 
+subject.  A linearity check for this variable is most effectively done
+by using a factor.  The resulting coefficients of 0, .4, .9 for the three
+categories are again reasonably close to linear.
+<<lung3>>=
+table(lung$ph.ecog)
+fit3 <- coxph(Surv(time, status) ~ age + sex + factor(pmin(ph.ecog,2)),
+              data=lung)
+print(fit3, digits=2)
+@ 
 
 \section{Repeating Events}
+Children with chronic granulotomous disease (CGD) are subject to repeated 
+infections due to a compromised immune system.  
+The \code{cgd0} data set contains results of a clinical trial of gamma
+interferon as a treatment, the data set \code{cdg} contains the data
+reformatted into a (tstart, tstop, status) form:
+each child can have multiple rows which describe an interval of time,
+and status=1 if that interval ends with an infection and 0 otherwise.
+A model with a single baseline hazard, known as the Andersen-Gill model,
+can be fit very simply.
+The study recruited subjects from four types of institutions, and there is
+an a priori belief that the four classes might recruit a different type
+of subject.  Adding the hospital category as a strata allows each group
+to have a different shape of baseline hazard.
+<<cgd1>>=
+cfit1 <- coxph(Surv(tstart, tstop, status) ~ treat + inherit + steroids +
+                   age + strata(hos.cat), data=cgd)
+print(cfit1, digits=2)
+@ 
+ 
+Predicted survival and/or cumulative hazard curves can then be obtained from
+the fitted model.  
+Prediction requires the user to specifiy \emph{who} to predict; in this case
+we will use 4 hypothetical subjects on control/interferon treatment, with and
+without prior steroids.  The other two covariates are set to age 12 
+(the median age in the study) and X-linked disease.  This creates a data
+frame with 4 rows.
 
-% -------------------------------------
+<<cgd2, fig=TRUE>>=
+dummy <- expand.grid(age=12, inherit='X-linked', 
+                     treat=levels(cgd$treat), steroids=0:1)
+dummy
+csurv <- survfit(cfit1, newdata=dummy)
+dim(csurv)
+
+plot(csurv[1,], fun="event", col=1:2, lty=c(1,1,2,2), 
+     xlab="Days on study", ylab="Pr( any infection )")
+@ 
+
+If the strata variable is included in the \code{newdata} dataframe 
+curves will be produced for the selected strata, otherwise the default
+is to produce separate curves for each stratum.  
+The resulting object was subscripted in order to make a plot with fewer
+curves. 
+We see that the sterod subjects have a higher risk, and that treatment is
+effective.
+
+Perhaps more interesting in this situation is the expected number of
+infections, rather than the probability of having at least 1.
+The former is estimated by the cumulative hazard, which is also returned
+by the \code{survfit} routine.
+
+<<cfit3, plot=TRUE>>=
+plot(csurv[1,], cumhaz=TRUE, col=1:2, lty=c(1,1,2,2), lwd=2,
+     xlab="Days on study", ylab="E( number of infections )")
+legend(20, 5, c("Steroid subject, control", "Steroid subject, gamma interferon",
+                "non-steroid, control", "non-steroid, gamma interferon"),
+       lty=c(2,2,1,1), col=c(1,2,1,2), lwd=2, bty='n')
+@  
 
 \section{Competing risks}
 Our third category is models where there is more than one event type, but
@@ -1489,7 +1573,7 @@ The survival code does not allow for time intervals of length zero,
 so a modification needs to be made to the data.
 Clearly, these autopsied subjects will have had their 
 malignancy for some period of time before death, below we arbitrarily
-move the PCM date 1 month back.
+move the PCM date back by one month.
 
 <<survfit-mgus2>>=
 # modified progression time, = -1 month if tied with death
@@ -1514,9 +1598,9 @@ The table of per subject counts shows 103 subjects who make 2 transitions,
 but no one who has multiple PCM or death events.
 We are now ready to compute an estimate.
 
-The competing risks data consists of only the first event for each subject,
-so we subset the data when fitting the model.
-It is good practice to summarize covariates before a fit.
+A competing risks analysis will only consider the first event for each
+subject, so we first subset the data.
+Second, it is good practice to summarize covariates before a fit.
 <<cfit1>>=
 crdata <- subset(mdata, tstart==0)
 quantile(crdata$age, na.rm=TRUE)
@@ -1695,7 +1779,7 @@ are identical.  (The EPL will still take slightly longer to run due to
 setting up the
 necessary structure for all those sums.)
 
-But how important are the ties, actually?
+How important are the ties, actually?
 Below we show a small computation in which a larger data set is successively
 coarsened and compare the results.
 The colon cancer data set has 929 subjects with stage B/C colon cancer
@@ -1703,7 +1787,7 @@ who were randomized to three treatment arms and then followed for 5
 years; the time to death or progression is in days.
 In the example below we successively coarsen the time scale to be
 monthly, bimonthly, \ldots, bi-annual; the last of which generates an
-extreme number of ties. 
+very large number of ties. 
 What we see is that
 \begin{itemize}
   \item The Efron approximation is quite good at dealing with the
@@ -1711,7 +1795,7 @@ What we see is that
     original data even when the coarsening is extreme.
   \item The Breslow approximation is biased somewhat towards 0,
     the exact paritial likelihood somewhat away from 0.
-  \item The differences are very small. Which monthly coarsening,
+  \item The differences are very small. With monthly coarsening,
     which is itself fairly large, the 3 estimates differ by about .01
     while the standard error of the original coefficient is 0.96;
     i.e. a shift that is statistically immaterial.
@@ -1739,13 +1823,13 @@ Early on in the package the decision was made to make the Efron approximation
 the default. 
 The reasoning was simply that is \emph{is} more accurate, even if only a little,
 and the author's early background in numerical analysis argued strongly to
-always use the best.
+always use the best approximation available.
 The second reason is that the computational cost is low. 
-If you see a 1 Euro coin on the sidewalk would you pick it up -- even though
-it not make any real change in your income?
+Most of us would pick up a 1 Euro coin on the sidewalk, even though
+it will not make any real change in our income.
 One downside is that no other package did this, leading to a very common
 complaint/question that R ``gives different results''.
-A second is that it leads to more downstream work as discussed in 
+A second is that it leads to further downstream programming as discussed in 
 following sections.
 
 \section{Cumulative hazard and survival}
@@ -1821,7 +1905,7 @@ which is that hazards can be estimated singly (without reference to any
 other transition) but probability-in-state estimators must be computed 
 globally.
 Thus, one can estimate non-parametric cumulative hazard estimates 
-(Nelson-Aalen), the hazard ratios for any given transtions (Cox model)
+(Nelson-Aalen), the hazard ratios for any given transtion (Cox model)
 or the predicted cumulative hazard function based on a per transition
 Cox model without incurring any issues with respect to competing risks.
 (If there is informative censoring the overall and individual estimates
@@ -1839,13 +1923,10 @@ scale these two subjects would not be tied, and then would use  9.5
 as the denominator for
 each of the two cumulative hazard increments.
 Such an estimate would however then be at variance with the two indiviually 
-computed hazards.
+computed hazards: global coarsening removes the separability.
 The survival package takes a moderated view and will apply the coarsening
 argument separately to each hazard, i.e., it chose to retain the separation
 policy.
-
-
-
 
 
 \appendix

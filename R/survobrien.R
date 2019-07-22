@@ -76,7 +76,8 @@ survobrien <- function(formula, data, subset,
             indx <- lapply(etime, function(x) which(y[,1]<x & y[,2] >= x))
         }
         else {
-            temp <- unique(data.frame(y[,2], strata.keep)[y[,3]==1,])
+            temp <- unique(data.frame(y[,2], strata.keep,
+                                      stringsAsFactors=FALSE)[y[,3]==1,])
             etime <- temp[,1]
             indx <- lapply(1:nrow(temp), function(x)
                           which(y[,1] < temp[x,1] & y[,2]>= temp[x,1] &
@@ -91,7 +92,8 @@ survobrien <- function(formula, data, subset,
             indx <- lapply(etime, function(x) which(y[,1] >=x))
         }
         else {
-            temp <- unique(data.frame(y[,1], strata.keep)[y[,2]==1,])
+            temp <- unique(data.frame(y[,1], strata.keep, 
+                                      stringsAsFactors=FALSE)[y[,2]==1,])
             etime <- temp[,1]
             indx <- lapply(1:nrow(temp), function(x)
                           which(y[,2] >= temp[x,1] & strata.keep == temp[x,2]))

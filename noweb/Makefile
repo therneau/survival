@@ -21,6 +21,7 @@ PARTS = main.Rnw \
 	statefig.Rnw\
 	tmerge.Rnw\
 	yates.Rnw  yates2.Rnw\
+	zph.Rnw \
 	tail
 #	coxdetail.nw
 
@@ -46,7 +47,8 @@ SFUN =  agreg.fit.R \
 	survfit.coxphms.R \
 	survfitms.R\
 	tmerge.R \
-	yates.R
+	yates.R \
+	cox.zph.R
 
 CFUN =  agfit4.c \
         agsurv4.c agsurv5.c \

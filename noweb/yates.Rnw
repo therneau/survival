@@ -156,11 +156,11 @@ cmatrix <- function(fit, term,
             } else dimnames(levels)[[2]] <- parts
             if (any(duplicated(levels)))
                 stop("levels matrix has duplicated rows")
-            levels <- data.frame(levels)
+            levels <- data.frame(levels, stringsAsFactors=FALSE)
          }
         else if (length(parts) > 1)
             stop("levels should be a data frame or matrix")
-        else levels <- data.frame(x=unique(levels))
+        else levels <- data.frame(x=unique(levels), stringsAsFactors=FALSE)
         names(levels) <- user.name
     }
 

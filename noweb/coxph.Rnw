@@ -1003,6 +1003,7 @@ if (multi) {
     fit$states <- states
     fit$cmap <- cmap
     fit$resid <- rowsum(fit$resid, xstack$rindex)
+    if (x) fit$strata <- istrat  # save the expanded strata
     class(fit) <- c("coxphms", class(fit))
 }
  

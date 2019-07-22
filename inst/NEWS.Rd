@@ -1,5 +1,10 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 3.0-9}{
+  \itemize{
+    \item Make sure all calls to data.frame explicitly select a value
+    for the stringsAsFactors option.
+}}     
 \section{Changes in version 3.0}{
   \itemize{
     \item Major revision of the survfit routines, see the survival vignette.
@@ -10,7 +15,7 @@
     \item Subscripting survfit object removes the na.action.  This is a
     loss in the sense that the printout no longer tells us that
     observations were removed, but the information about which and how
-    many were removed was incorrect after the selection.
+    many rows were removed was incorrect after the selection.
     \item The survexp function, applied to a coxph model with strata,
     would sometimes produce extraneous y=0 values at the start of a
     curve.
