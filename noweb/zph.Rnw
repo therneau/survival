@@ -54,19 +54,17 @@ cox.zph <- function(fit, transform='km', terms=TRUE, single=TRUE, global=TRUE) {
     if (inherits(fit, 'coxph.null'))
 	stop("The are no score residuals for a Null model")
 
-    cget <- coxph.getdata(fit, y=TRUE, x=TRUE, stratax=TRUE, offset=TRUE)
+    cget <- coxph.getdata(fit, y=TRUE, x=TRUE, stratax=TRUE, weights=TRUE)
     y <- cget$y
     ny <- ncol(y)
     if (length(cget$strata)) istrat <- cget$strata
     else istrat <- rep(1L, nrow(y))
 
-    times <- y[ny-2, y[,ny>0]]
     sresid <- resid(fit, 'schoenfeld')
     varnames <- names(fit$coefficients)
     nvar <- length(varnames)
     ndead<- length(sresid)/nvar
   
-    browser()
     #if (nvar==1) times <- as.numeric(names(sresid))
     #else         times <- as.numeric(dimnames(sresid)[[1]])
 
@@ -83,23 +81,23 @@ avoiding edge cases.
 
 <<zph-transform>>=
 if (is.character(transform)) {
-	tname <- transform
-	ttimes <- switch(transform,
-			   'identity'= times,
-			   'rank'    = rank(times),
-			   'log'     = log(times),
-			   'km' = {
-                               temp <- survfitKM(factor(rep(1L, nrow(y))),
-                                                 y, se.fit=FALSE)
-                               # A nuisance to do left cont KM
-                               t1 <- temp$surv[temp$n.event>0]
-                               t2 <- temp$n.event[temp$n.event>0]
-                               km <- rep(c(1,t1), c(t2,0))
-                               if (is.null(attr(sresid, 'strata')))
-                                   1-km
-                               else (1- km[sort.list(sort.list(times))])
-                           },
-                         stop("Unrecognized transform"))
+    tname <- transform
+    ttimes <- switch(transform,
+                     'identity'= 
+                     'rank'    = rank(times),
+                     'log'     = log(times),
+                     'km' = {
+                         temp <- survfitKM(factor(rep(1L, nrow(y))),
+                                           y, se.fit=FALSE)
+                         # A nuisance to do left cont KM
+                         t1 <- temp$surv[temp$n.event>0]
+                         t2 <- temp$n.event[temp$n.event>0]
+                         km <- rep(c(1,t1), c(t2,0))
+                         if (is.null(attr(sresid, 'strata')))
+                             1-km
+                         else (1- km[sort.list(sort.list(times))])
+                     },
+                     stop("Unrecognized transform"))
 	}
     else {
 	tname <- deparse(substitute(transform))
@@ -107,11 +105,11 @@ if (is.character(transform)) {
 	ttimes <- transform(times)
 	}
     gtime <- ttimes - mean(ttimes) 
-
+browser()
     # Now get the scores and variance matrix
     if (ny==2) {
         ord <- order(istrat, y[,1])
-        scores <- .Call(Czph1, xx, y, cget$x, fit$linear.predictor,
+        scores <- .Call(Czph1, gtime, y, cget$x, fit$linear.predictor,
                         cget$weights, istrat, fit$method, ord-1L)
     }
     else {
@@ -119,6 +117,7 @@ if (is.character(transform)) {
         scores <- .Call(Czph2, xx, y, cget$x, fit$linear.predictor,
                         cget$wegints, istrata, fit$method, ord)
     }
+browser()
 @
 
 The result has a score vector of length $2p$ where $p$ is the number of

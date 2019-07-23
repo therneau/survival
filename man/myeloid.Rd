@@ -11,6 +11,7 @@
   \describe{
     \item{\code{id}}{subject identifier, 1-646}
     \item{\code{trt}}{treatment arm A or B}
+    \item{\code{sex}}{f=female, m=male}
     \item{\code{futime}}{time to death or last follow-up}
     \item{\code{death}}{1 if \code{futime} is a death, 0 for censoring}
     \item{\code{txtime}}{time to hematropetic stem cell transplant}
@@ -29,3 +30,8 @@ coxph(Surv(futime, death) ~ trt, data=myeloid)
 # See the mstate vignette for a more complete analysis
 }
 \keyword{datasets}
+\references{
+  Le-Rademacher JG, Peterson RA, Therneau TM, Sanford BL, Stone RM,
+  Mandrekar SJ.  Application of multi-state models in cancer clinical trials. 
+  Clin Trials. 2018 Oct; 15 (5):489-498
+  }

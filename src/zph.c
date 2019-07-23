@@ -11,38 +11,44 @@
 #include "survS.h"
 #include "survproto.h"
 
-SEXP zph1(SEXP gt2,    SEXP time2, SEXP status2, 
+SEXP zph1(SEXP gt2,    SEXP y2, 
 	  SEXP covar2, SEXP eta2,  SEXP weights2,
 	  SEXP strata2,SEXP method2, SEXP sort2) {
 
-    int i,j, person, ip;
+    int i,j, k, person, ip;
+    int cstrat;   /* current stratum*/
     double temp, temp2;
     double *dtemp;
+    double *a, *a2, **cmat, **cmat2;
+    double nrisk, denom, dtime, ndead, deadwt, denom2;
+    double wtave, risk;
 
     /* scalar input arguments */
-    int     nused, nvar, maxiter;
+    int     nused, nvar;
     int     method, ntime;
 
     /* input vectors */
-    double *xtime, *gt, *eta, *weights;
-    int    *status, *strata, *sort;
-   
+    double *xtime, *gt, *eta, *weights, *status;
+    int    *strata, *sort;
+    double **covar, **imat;
+
     /* returned objects */
     SEXP rlist;
-    static const char[] *rnames={"u", "imat", ""};
+    double *u;
+    static const char *rnames[]={"u", "imat", ""};
 
     /* get local copies of input args */
-    nused = LENGTH(offset2);
+    nused = nrows(y2);
     nvar  = ncols(covar2);
     method = asInteger(method2);
     ntime = LENGTH(gt2);
 
-    xtime = REAL(time2);
+    xtime =   REAL(y2);
+    status =  xtime + nused;
     weights = REAL(weights2);
-    status = INTEGER(status2);
     strata = INTEGER(strata2);
     gt =     REAL(gt2);
-    risk=    REAL(risk2);
+    eta =    REAL(eta2);
     sort=    INTEGER(sort2);
 
     /*
@@ -51,12 +57,12 @@ SEXP zph1(SEXP gt2,    SEXP time2, SEXP status2,
     PROTECT(rlist = mkNamed(VECSXP, rnames));
     covar= dmatrix(REAL(covar2), nused, nvar);
     u = REAL(SET_VECTOR_ELT(rlist, 0, allocVector(REALSXP, 2*nvar)));
-    dtemp = REAL(SET_VECTOR_ELT(rlist, 1, allocMatrix(REALXSP, 2*nvar, 2*nvar)));
+    dtemp = REAL(SET_VECTOR_ELT(rlist, 1, allocMatrix(REALSXP, 2*nvar, 2*nvar)));
     imat = dmatrix(dtemp, 2*nvar, 2*nvar);
     a = (double *) R_alloc(2*nvar*nvar + 2*nvar, sizeof(double));
     a2 = a + nvar;
-    cmat = dmatrix(scale + nvar,   nvar, nvar);
-    cmat2= dmatrix(scale + nvar +nvar*nvar, nvar, nvar);
+    cmat = dmatrix(a2+ nvar,   nvar, nvar);
+    cmat2= dmatrix(a2+ nvar +nvar*nvar, nvar, nvar);
 
 
     /*
@@ -107,11 +113,10 @@ SEXP zph1(SEXP gt2,    SEXP time2, SEXP status2,
 	    }	
 	    else {
 		ntime--;
-		if (ntime <0) Rerror("ntime error in zph.c");
+		if (ntime <0) error("ntime error in zph.c");
 		ndead++;
 		deadwt += weights[person];
 		denom2 += risk;
-		loglik += weights[person]*zbeta;
 
 		for (i=0; i<nvar; i++) {
 		    u[i] += weights[person]*covar[i][person];
@@ -126,12 +131,12 @@ SEXP zph1(SEXP gt2,    SEXP time2, SEXP status2,
 	if (ndead >0) {  /* we need to add to the main terms */
 	    if (method==0) { /* Breslow */
 		denom += denom2;
-		loglik -= deadwt* log(denom);
 	   
 		for (i=0; i<nvar; i++) {
 		    a[i] += a2[i];
 		    temp2= a[i]/ denom;  /* mean */
 		    u[i] -=  deadwt* temp2;
+		    u[i+nvar] -= gt[ntime]* deadwt* temp2;
 		    for (j=0; j<=i; j++) {
 			cmat[i][j] += cmat2[i][j];
 			temp = deadwt*(cmat[i][j] - temp2*a[j])/denom;
@@ -152,11 +157,11 @@ SEXP zph1(SEXP gt2,    SEXP time2, SEXP status2,
 		wtave = deadwt/ndead;
 		for (k=0; k<ndead; k++) {
 		    denom += denom2/ndead;
-		    loglik -= wtave* log(denom);
 		    for (i=0; i<nvar; i++) {
 			a[i] += a2[i]/ndead;
 			temp2 = a[i]/denom;
 			u[i] -= wtave *temp2;
+			u[i+nvar] -= gt[ntime]* wtave *temp2;
 			for (j=0; j<=i; j++) {
 			    cmat[i][j] += cmat2[i][j]/ndead;
 			    temp =  wtave*(cmat[i][j] - temp2*a[j])/denom;

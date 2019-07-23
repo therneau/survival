@@ -21,6 +21,7 @@ R/agsurv.R
 R/concordance.R
 R/coxph.R
 R/coxsurvfit.R
+R/cox.zph.R
 R/finegray.R
 R/model.matrix.coxph.R
 R/parsecovar.R

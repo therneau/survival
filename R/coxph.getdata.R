@@ -6,9 +6,14 @@
 # The "stratax" name is to avoid conflicts with the strata() function, but
 #   still allow users to type "strata" as an arg.
 #
-coxph.getdata <- function(fit, y=TRUE, x=TRUE, stratax=TRUE, offset=FALSE) {
+coxph.getdata <- function(fit, y=TRUE, x=TRUE, stratax=TRUE, 
+                          weights=TRUE, offset=FALSE) {
     ty <- fit[['y']]  #avoid grabbing this by accident due to partial matching
     tx <- fit[['x']]  #  for x, fit$x will get fit$xlevels --> not good
+
+    if (is.null(fit$call$weights)) twt <- rep(1.0, fit2$n)
+    else twt<- fit[["weights"]]
+
     strat <- fit$strata
     Terms <- fit$terms
     if (is.null(attr(Terms, 'offset'))) offset <- FALSE
@@ -18,14 +23,15 @@ coxph.getdata <- function(fit, y=TRUE, x=TRUE, stratax=TRUE, offset=FALSE) {
     strats <- attr(Terms, "specials")$strata
     if (length(strats)==0) stratax <- FALSE
 
-    if ( (y && is.null(ty)) || (x && is.null(tx)) ||
-	     (stratax && is.null(strat)) || offset) {
+    if ( (y && is.null(ty)) || (x && is.null(tx)) || 
+         (weights && is.null(twt)) ||
+	     (stratax && is.null(strat)) || offset || weights) {
 	# get the model frame
 	mf <- stats::model.frame(fit)
 
 	# Pull things out
-	if (y && is.null(ty)) ty <- model.extract(mf, 'response')
-
+	if (y && is.null(ty)) ty <- model.extract(mf, "response")
+        if (is.null(twt))     twt<- model.extract(mf, "weights")
 	if (offset) toff <- model.extract(mf, 'offset')
 
 	# strata was saved in the fit if and only if x was
