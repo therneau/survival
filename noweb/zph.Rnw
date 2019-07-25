@@ -26,7 +26,7 @@ where $V_j$ is the variance matrix of the weighted covariate values, over
 all subjects at risk at time $t_j$.
 Then the expanded information matrix for the score test is
 \begin{align*}
-  H &= \left(\begin{array}cc  H_1 & H_2 \\ H_2' & H_3 \end{array} \right) \\
+  H &= \left(\begin{array}{cc}  H_1 & H_2 \\ H_2' & H_3 \end{array} \right) \\
   H_1 &= \sum V(t_j) \\
   H_2 &= \sum V(t_j) g(t_j) \\
   H_3 &= \sum V(t_j) g^2(t_j)
@@ -48,8 +48,8 @@ The newer version of the routine has two separate tracks: for the formal test
 and another for the residuals.
 
 <<cox.zph>>=
-cox.zph <- function(fit, transform='km', terms=TRUE, single=TRUE, global=TRUE) {
-    call <- match.call()
+cox.zph <- function(fit, transform='km', singledf =TRUE, global=TRUE) {
+    Call <- match.call()
     if (!inherits(fit, 'coxph')) stop ("Argument must be the result of coxph")
     if (inherits(fit, 'coxph.null'))
 	stop("The are no score residuals for a Null model")
@@ -57,6 +57,7 @@ cox.zph <- function(fit, transform='km', terms=TRUE, single=TRUE, global=TRUE) {
     cget <- coxph.getdata(fit, y=TRUE, x=TRUE, stratax=TRUE, weights=TRUE)
     y <- cget$y
     ny <- ncol(y)
+    event <- y[,ny]
     if (length(cget$strata)) istrat <- cget$strata
     else istrat <- rep(1L, nrow(y))
 
@@ -71,7 +72,16 @@ cox.zph <- function(fit, transform='km', terms=TRUE, single=TRUE, global=TRUE) {
     <<zph-transform>>
     <<zph-terms>>
 
-    return(rlist)
+    rval$call <- Call
+    rval$transform <- transform
+    class(rval) <- "cox.zph"
+    return(rval)
+}
+
+print.cox.zph <- function(x, digits = max(options()$digits - 4, 3),
+                          signif.stars=FALSE, ...)  {
+    invisible(printCoefmat(x$table, digits=digits, signif.stars=signif.stars, 
+                           P.values=TRUE, has.Pvalue=TRUE, ...))
 }
 @ 
 
@@ -80,22 +90,19 @@ The default is to use the KM, only because that seems to be best at
 avoiding edge cases.
 
 <<zph-transform>>=
+times <- y[,ny-1]
 if (is.character(transform)) {
     tname <- transform
     ttimes <- switch(transform,
-                     'identity'= 
+                     'identity'= times,
                      'rank'    = rank(times),
                      'log'     = log(times),
                      'km' = {
                          temp <- survfitKM(factor(rep(1L, nrow(y))),
                                            y, se.fit=FALSE)
                          # A nuisance to do left cont KM
-                         t1 <- temp$surv[temp$n.event>0]
-                         t2 <- temp$n.event[temp$n.event>0]
-                         km <- rep(c(1,t1), c(t2,0))
-                         if (is.null(attr(sresid, 'strata')))
-                             1-km
-                         else (1- km[sort.list(sort.list(times))])
+                         indx <- findInterval(times, temp$time, left.open=TRUE)
+                         1.0 - c(1, temp$surv)[indx+1]
                      },
                      stop("Unrecognized transform"))
 	}
@@ -104,20 +111,21 @@ if (is.character(transform)) {
         if (length(tname) >1) tname <- 'user'
 	ttimes <- transform(times)
 	}
-    gtime <- ttimes - mean(ttimes) 
-browser()
-    # Now get the scores and variance matrix
+    gtime <- ttimes - mean(ttimes[event]) 
+
+    # Now get the U, information, and residuals
     if (ny==2) {
         ord <- order(istrat, y[,1])
-        scores <- .Call(Czph1, gtime, y, cget$x, fit$linear.predictor,
-                        cget$weights, istrat, fit$method, ord-1L)
+        resid <- .Call(Czph1, gtime, y, cget$x, fit$linear.predictors,
+                        cget$weights, istrat, fit$method=="efron", ord-1L)
     }
     else {
-        ord <- order(istrat, y[,2])
-        scores <- .Call(Czph2, xx, y, cget$x, fit$linear.predictor,
-                        cget$wegints, istrata, fit$method, ord)
+        ord1 <- order(israt, y[,1])
+        ord2 <- order(istrat, y[,2])
+        resid <- .Call(Czph2, gtime, y, cget$x, fit$linear.predictors,
+                        cget$weights, istrata, fit$method=="efron", 
+                        ord1, ord2)
     }
-browser()
 @
 
 The result has a score vector of length $2p$ where $p$ is the number of
@@ -125,31 +133,48 @@ variables and an information matrix that is $2p$ by $2p$.
 This is done with C code that
 is a simple variation on iteration 1 for a coxph model.
 
-If \code{terms=TRUE}, the default, then do tests on each term separately.
-If \code{single} is TRUE then treat each of them as a single degree of
+If \code{singledf} is TRUE then treat each term as a single degree of
 freedom test, otherwise as a multi-degree of freedom.
-If all the variables are continuous this is all a moot point.
+If all the variables are univariate this is a moot point.
+Some of the survival routines return Splus style assign components,
+for future proofing allow both styles.
 
 <<zph-terms>>=
 asgn <- fit$assign
-nterm <- length(asgn)   # asgn will be 1, 2,2,2, 3, etc
-test <- rho <- double(nterm)
-df   <- rep(1L, nterm)
-for (ii in unique(asgn)) {
-    jj <- which(asgn==ii) + ncoef
-    contr <- rep(0, 2*ncoef)
-    if (length(jj) ==1) contr[jj] <- score$score[jj]
-    else if (single) contr[jj] <- score$score[jj]
-    else {
-        df[ii] <- length(jj)
-        contr <- matrix(0, ncol=length(jj), nrow=2*ncoef)
-        for (k in 1:length(jj)) contr[jj[k], k] <- score$score[jj[k]] 
+if (is.list(asgn)) {
+    termname <- names(asgn)
+    nterm <- length(asgn)   # asgn will be 1, 2,2,2, 3, etc
+} else stop ("unexpected assign component")
+test <- rho <- double(nterm+1)
+df   <- rep(1L, nterm+1)
+u0 <- rep(0, nvar)
+if (is.null(fit$naive.var)) vv <- fit$naive.var
+else vv <- fit$var
+
+for (ii in 1:nterm) {
+    jj <- asgn[[ii]]
+    kk <- c(1:nvar, jj+nvar)
+    imat <- resid$imat[kk, kk]
+    u <- c(u0, resid$u[jj+nvar])
+    if (singledf && length(jj) >1) {
+        vv <- solve(imat)[-(1:nvar), -(1:nvar)]
+        t1 <- sum(fit$coef[jj] * resid$u[jj+nvar])
+        test[ii] <- t1^2 * (fit$coef[jj] %*% vv %*% fit$coef[jj])
+        df[ii] <- 1
     }
-    if (df[ii]==1) test[ii] <- score[jj]^2/score$imat[jj,jj]
-    test[ii] <- c(solve(score$imat[jj,jj], score) %*% score)
+    else {
+        test[ii] <- drop(solve(imat,u) %*% u)
+        df[ii] <- length(jj)
+    }
 }
 
-rval <- list(test=test, df=df)
+#Global test
+test[nterm+1] <- solve(resid$imat, resid$u) %*% resid$u
+df[nterm+1]   <- nvar
+
+tbl <- cbind(test, df, pchisq(test, df, lower.tail=FALSE))
+dimnames(tbl) <- list(c(termname, "GLOBAL"), c("chisq", "df", "p"))
+rval <- list(table=tbl, x=sort(gtime[event]))
 @ 
 
 

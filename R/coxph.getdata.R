@@ -11,28 +11,49 @@ coxph.getdata <- function(fit, y=TRUE, x=TRUE, stratax=TRUE,
     ty <- fit[['y']]  #avoid grabbing this by accident due to partial matching
     tx <- fit[['x']]  #  for x, fit$x will get fit$xlevels --> not good
 
-    if (is.null(fit$call$weights)) twt <- rep(1.0, fit2$n)
-    else twt<- fit[["weights"]]
+    # if x or y is present, use it to set n
+    if (!is.null(ty)) n <- nrow(ty)
+    else if (!is.null(tx)) n <- nrow(tx)
+    else n <- NULL
 
-    strat <- fit$strata
     Terms <- fit$terms
-    if (is.null(attr(Terms, 'offset'))) offset <- FALSE
-    if (offset) x<- TRUE  # can't grab offset without x
     if (!inherits(Terms, 'terms'))
 	    stop("invalid terms component of fit")
+
+    # Avoid calling model.frame unless we have to: fill in weights and/or
+    #  offset when they were not present
+    if (!is.null(n)) {
+        if (is.null(fit$call$weights)) twt <- rep(1,n)
+        if (is.null(attr(terms(fit), "offset"))) toff <- rep(0, n)
+    }
+    else {
+        toff <- NULL
+        twt<- fit[["weights"]]
+    }
+
     strats <- attr(Terms, "specials")$strata
     if (length(strats)==0) stratax <- FALSE
+    strat <- fit$strata
 
-    if ( (y && is.null(ty)) || (x && is.null(tx)) || 
-         (weights && is.null(twt)) ||
-	     (stratax && is.null(strat)) || offset || weights) {
+    if ((y && is.null(ty)) || (x && is.null(tx)) || 
+        (weights && is.null(twt)) ||
+	(stratax && is.null(strat)) || (offset && is.null(toff))) {
 	# get the model frame
 	mf <- stats::model.frame(fit)
-
+        n <- nrow(mf)
+        
 	# Pull things out
+        if (is.null(twt) && weight) {
+            twt <- model.extract(mf, "weights")
+            if (is.null(twt)) twt <- rep(1.0, n)
+        }
+            
+	if (offset && is.null(toff)) {
+            toff <- model.extract(mf, 'offset')
+            if (is.null(toff)) toff <- rep(0.0, n)
+        }
+
 	if (y && is.null(ty)) ty <- model.extract(mf, "response")
-        if (is.null(twt))     twt<- model.extract(mf, "weights")
-	if (offset) toff <- model.extract(mf, 'offset')
 
 	# strata was saved in the fit if and only if x was
 	if ((x || stratax) && is.null(tx)) {
@@ -56,29 +77,30 @@ coxph.getdata <- function(fit, y=TRUE, x=TRUE, stratax=TRUE,
             ty <- xstack$Y
             strat <- xstack$strata
             stratax <- TRUE
-            if (offset) toff <- offset[xstack$rindex]
+            if (offset) toff <- toff[xstack$rindex]
+            if (weight) twt  <- twt[xstack$rindex]
 
             # And last, toss missing values, which had been deferred
             ismiss <- is.nan(ty) | apply(is.na(tx), 1, any)
-            if (offset) {
-                ismiss <- ismiss | is.nan(offset)
-                offset <- offset[imiss]
-            }       
-	    if (any(ismiss)) {
+            if (offset) ismiss <- ismiss | is.nan(toff)
+            if (weight) ismiss <- ismiss | is.nan(twt)
+
+            if (any(ismiss)) {
+                if (offset) toff <- toff[!ismiss]
+                if (weight) twt  <- twt[!ismiss]
+            
                 if (y) ty<- ty[!ismiss]
-                tx <- tx[!ismiss,,drop=FALSE]
-                strat <- strat[!ismiss]
+                if (x) tx <- tx[!ismiss,,drop=FALSE]
+                if (stratax) strat <- strat[!ismiss]
             }       
 	}
     }
-    else if (offset)
-       toff <- fit$linear.predictors -(c(tx %*% fit$coef) - 
-                                        sum(fit$means*fit$coef))
 
     temp <- list()
     if (y) temp$y <- ty
     if (x) temp$x <- tx
     if (stratax)  temp$strata <- strat
     if (offset)  temp$offset <- toff
+    if (weights) temp$weights <- twt
     temp
     }
