@@ -134,15 +134,16 @@ if (maxiter >1) {
     if (any(!is.finite(coef)) || any(!is.finite(var)))
         stop("routine failed due to numeric overflow.",
              "This should never happen.  Please contact the author.")   
-    if (agfit$iter > maxiter)
+    if (agfit$iter >= maxiter)
         warning("Ran out of iterations and did not converge")
-
-    infs <- (!is.finite(agfit$u) |
-             infs > control$toler.inf*(1+ abs(coef)))
-    if (any(infs))
-        warning(paste("Loglik converged before variable ",
-                      paste((1:nvar)[infs],collapse=","),
-                      "; beta may be infinite. "))
+    else {
+        infs <- (!is.finite(agfit$u) |
+                 infs > control$toler.inf*(1+ abs(coef)))
+        if (any(infs))
+            warning(paste("Loglik converged before variable ",
+                          paste((1:nvar)[infs],collapse=","),
+                          "; beta may be infinite. "))
+    }
 }
 @ 
 
@@ -875,7 +876,9 @@ for (*iter=1; *iter<= maxiter; (*iter)++) {
         rank2 = cholesky2(imat, nvar, tol_chol);
         fail = fail + isnan(newlk) + isinf(newlk) + abs(rank-rank2);
  
-        if (fail >0 || newlk < loglik[1]) {
+        if (fail ==0 && halving ==0 &&
+            fabs(1-(loglik[1]/newlk)) <= eps) goto done;
+        else if (fail >0 || newlk < loglik[1]) {
             /* 
 	    ** The routine has not made progress past the last good value.
             */
@@ -883,13 +886,8 @@ for (*iter=1; *iter<= maxiter; (*iter)++) {
             for (i=0; i<nvar; i++)
                 beta[i] = (oldbeta[i]*halving + beta[i]) /(halving +1.0);
         }
-
         else { 
             halving=0;
-            /* are we done? */
-            if (fail ==0 && halving ==0 &&
-                fabs(1-(loglik[1]/newlk)) <= eps) goto done;
-
             loglik[1] = newlk;   /* best so far */  
             chsolve2(imat,nvar,u);
             for (i=0; i<nvar; i++) {
@@ -910,18 +908,21 @@ routine will not have been called.
 
 <<agfit4-finish>>=
 /* fell out the bottom of the loop */
-if (maxiter>1 && newlk > loglik[1]) {
+if (maxiter>1 && ((newlk -loglik[1])/ loglik[1]) < -eps) {
     /* 
     ** "Once more unto the breach, dear friends, once more; ..."
+    ** The last iteration above was worse than one of the earlier ones, by
+    **  more than roundoff error.  
     ** We need to use beta and imat at the last good value, not the last 
     **  attempted value. We have tossed the old imat away, so recompute it.
-    ** This will happen very rarely that we run out of iterations.
+    ** It will happen very rarely that we run out of iterations, and even
+    **  less often that the Newton-Raphson is getting worse.
     ** If maxiter=1, we return 1 iteration whether it worked or not. 
     */
     for (i=0; i<nvar; i++) beta[i] = oldbeta[i];
     <<agfit4-addup>>
-    rank = cholesky2(imat, nvar, tol_chol);
-}
+    }
+if (*iter>0) rank = cholesky2(imat, nvar, tol_chol);
 
 done:flag[0] = rank; 
 loglik[1] = newlk;

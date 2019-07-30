@@ -363,11 +363,11 @@ SEXP zph2(SEXP gt2,    SEXP y2,
     **   stratum.  If a covariate is constant within the stratum then the 
     **   effective n is 0, otherwise the number of events in the stratum
     */
-    k = sort[0];   /* index subject for current strata */
+    k = sort2[0];   /* index subject for current strata */
     cstrat = strata[k];
     ndead =0;
     for (i=0; i<nused; i++) {
-	person = sort[i];
+	person = sort2[i];
 	if (strata[person] != cstrat) { 
 	    /* new stratum */
 	    for (j=0; j<nvar; j++) used[j][cstrat-1] *= ndead;
