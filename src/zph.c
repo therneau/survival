@@ -359,8 +359,30 @@ SEXP zph2(SEXP gt2,    SEXP y2,
 	}
 
     /*
+    **	Count the effective number of events for each covariate in each
+    **   stratum.  If a covariate is constant within the stratum then the 
+    **   effective n is 0, otherwise the number of events in the stratum
+    */
+    k = sort[0];   /* index subject for current strata */
+    cstrat = strata[k];
+    ndead =0;
+    for (i=0; i<nused; i++) {
+	person = sort[i];
+	if (strata[person] != cstrat) { 
+	    /* new stratum */
+	    for (j=0; j<nvar; j++) used[j][cstrat-1] *= ndead;
+	    k=person;
+	    ndead =0;
+	    cstrat = strata[person];
+	}
+	ndead += status[person];
+	for (j=0; j<nvar; j++) 
+	    if (covar[j][person] != covar[j][k]) used[j][cstrat-1] =1;
+    }	
+    for (j=0; j<nvar; j++) used[j][cstrat-1] *= ndead;
+
+    /*
     **	Recenter the X matrix to make the variance computation more stable
-    **  Also note which variables are used in which strata
     */
     for (i=0; i<nvar; i++) {
 	tmean =0;

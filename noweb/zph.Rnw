@@ -136,8 +136,7 @@ is a simple variation on iteration 1 for a coxph model.
 If \code{singledf} is TRUE then treat each term as a single degree of
 freedom test, otherwise as a multi-degree of freedom.
 If all the variables are univariate this is a moot point.
-Some of the survival routines return Splus style assign components,
-for future proofing allow both styles.
+The survival routines return Splus style assign components.
 
 <<zph-terms>>=
 asgn <- fit$assign
@@ -145,11 +144,9 @@ if (is.list(asgn)) {
     termname <- names(asgn)
     nterm <- length(asgn)   # asgn will be 1, 2,2,2, 3, etc
 } else stop ("unexpected assign component")
-test <- rho <- double(nterm+1)
+test <- double(nterm+1)
 df   <- rep(1L, nterm+1)
 u0 <- rep(0, nvar)
-if (is.null(fit$naive.var)) vv <- fit$naive.var
-else vv <- fit$var
 
 for (ii in 1:nterm) {
     jj <- asgn[[ii]]
@@ -177,4 +174,53 @@ dimnames(tbl) <- list(c(termname, "GLOBAL"), c("chisq", "df", "p"))
 rval <- list(table=tbl, x=sort(gtime[event]))
 @ 
 
+The matrix of scaled Schoenfeld residuals is created one stratum at a
+time. 
+The ideal for the residual $r(t_i)$, contributed by an event for subject
+$i$ at time $t_i$ is to use $r_iV^{-1}(t_i)$, the inverse of the  variance 
+matrix of $X$ at that time and for the relevant stratum.
+What is returned as \code{resid\$imat} is $\sum_i V(t_i)$.
+One option would have been to return all the individual $\hat V_i$ matrices,
+but that falls over when the number at risk is too small and it cannot
+be inverted.
+Option 2 would be to use a per stratum averge of the $V_i$, but that falls
+flat for models with a large number of strata, a nested case-control model
+for instance. 
+We take a different average that may not be the best, but seems to be
+good enough and doesn't seem to fail.
+\begin{enumerate}
+  \item The \code{resid\$used} matrix contains the number of deaths for
+    each strata (row) the contributed to the sum for each variable (column).
+    The value is either 0 or the number of events in the stratum, zero for those
+    variables that are constant within the stratum.  From this we can get the
+    number of events that contributed to each element of the \code{imat} total.
+    Dividing by this gives a per-element average \code{vmean}.  
+  \item For a given stratum, some of the covariates may have been unused.  For
+    any of those set the scaled Schoenfeld residual to NA, and use the other
+    rows/columns of the \code{vmean} matrix to scale the rest.
+\end{enumerate}
+Now if some variable $x_1$ has a large variance at some time points and a
+small variance at others, or a large variance in one stratum and a small
+variance in another, the above smoothing won't catch that subtlety.
+However we expect such an issue to be rare. 
+The common problem of time*covariate interactions is the target of the
+above manipulations.
 
+<<zph-schoen>>=
+# Make the weight matrix
+wtmat <- matrix(0, nvar, nvar)
+for (i in 1:nrow(resid$used))
+    wtmat <- wtmat + outer(resid$used[i,], pmin(resid$used[i,], 1), '*')
+vmean <- resid$imat/wtmat
+
+sresid <- resid$schoen
+sgrp <- rep(1:nrow(resid$used), each= apply(resid$used, 1, max))
+for (i in 1:nrow(resid$used)) {
+    k <- (resid$used[i,] > 0)
+    j <- which(sgrp==i)
+    sresid[j, k] <- solve(vmean[k, k], sresid[j, k])
+    sresid[j, !k] <- NA
+} 
+rval$y <- sresid
+rval$var <- solve(vmean)  
+@ 
