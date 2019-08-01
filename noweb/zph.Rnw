@@ -57,7 +57,7 @@ cox.zph <- function(fit, transform='km', singledf =TRUE, global=TRUE) {
     cget <- coxph.getdata(fit, y=TRUE, x=TRUE, stratax=TRUE, weights=TRUE)
     y <- cget$y
     ny <- ncol(y)
-    event <- y[,ny]
+    event <- (y[,ny] ==1)
     if (length(cget$strata)) istrat <- cget$strata
     else istrat <- rep(1L, nrow(y))
 
@@ -71,6 +71,7 @@ cox.zph <- function(fit, transform='km', singledf =TRUE, global=TRUE) {
 
     <<zph-transform>>
     <<zph-terms>>
+    <<zph-schoen>>
 
     rval$call <- Call
     rval$transform <- transform
@@ -120,10 +121,10 @@ if (is.character(transform)) {
                         cget$weights, istrat, fit$method=="efron", ord-1L)
     }
     else {
-        ord1 <- order(israt, y[,1])
+        ord1 <- order(istrat, y[,1])
         ord2 <- order(istrat, y[,2])
         resid <- .Call(Czph2, gtime, y, cget$x, fit$linear.predictors,
-                        cget$weights, istrata, fit$method=="efron", 
+                        cget$weights, istrat, fit$method=="efron", 
                         ord1, ord2)
     }
 @
@@ -171,7 +172,7 @@ df[nterm+1]   <- nvar
 
 tbl <- cbind(test, df, pchisq(test, df, lower.tail=FALSE))
 dimnames(tbl) <- list(c(termname, "GLOBAL"), c("chisq", "df", "p"))
-rval <- list(table=tbl, x=sort(gtime[event]))
+rval <- list(table=tbl, x=sort(gtime[event]), time=sort(y[event, ny-1]))
 @ 
 
 The matrix of scaled Schoenfeld residuals is created one stratum at a
@@ -211,16 +212,28 @@ above manipulations.
 wtmat <- matrix(0, nvar, nvar)
 for (i in 1:nrow(resid$used))
     wtmat <- wtmat + outer(resid$used[i,], pmin(resid$used[i,], 1), '*')
-vmean <- resid$imat/wtmat
+vmean <- resid$imat[1:nvar, 1:nvar]/wtmat
 
 sresid <- resid$schoen
-sgrp <- rep(1:nrow(resid$used), each= apply(resid$used, 1, max))
+sgrp <- rep(1:nrow(resid$used), apply(resid$used, 1, max))
 for (i in 1:nrow(resid$used)) {
     k <- (resid$used[i,] > 0)
     j <- which(sgrp==i)
-    sresid[j, k] <- solve(vmean[k, k], sresid[j, k])
+    sresid[j, k] <- t(solve(vmean[k, k], t(sresid[j, k])))
     sresid[j, !k] <- NA
 } 
 rval$y <- sresid
 rval$var <- solve(vmean)  
 @ 
+
+<<cox.zph>>=
+"[.cox.zph" <- function(x, ..., drop=FALSE) {
+    i <- ..1
+    z<- list(table=x$table[i,,drop=FALSE], x=x$x, time= x$time, 
+                y = x$y[,i,drop=FALSE],
+		var=x$var[i,i, drop=FALSE], call=x$call,
+		transform=x$transform)
+    attributes(z) <- attributes(x)
+    z
+    }
+@

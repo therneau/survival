@@ -24,7 +24,7 @@ SEXP zph1(SEXP gt2,    SEXP y2,
 	  SEXP covar2, SEXP eta2,  SEXP weights2,
 	  SEXP strata2,SEXP method2, SEXP sort2) {
 
-    int i,j, k, person, ip;
+    int i,j, k, kk, person, ip;
     int cstrat;   /* current stratum*/
     double temp, temp2, tmean;
     double *dtemp, timewt;
@@ -95,6 +95,60 @@ SEXP zph1(SEXP gt2,    SEXP y2,
     cmat = dmatrix(a2+ nvar,   nvar, nvar);
     cmat2= dmatrix(a2+ nvar +nvar*nvar, nvar, nvar);
 
+    /* count the number of events, per covariate per strata 
+    ** if a covariate is constant in the stratum it gets a 0, otherwise
+    **  the number of events in the stratum.  The algorithm is fairly
+    **  simple but the code is ugly.  Count the number of deaths, then at
+    **  the end of each stratum set used[][] to the number of events or
+    **  to zero for each covariate.  
+    */
+    k = 0;  /* first obs of the stratum */
+    ndead=0;
+    cstrat = strata[sort[0]];
+    for (i=0; i<nused; i++) {
+	person= sort[i];
+	if (cstrat == strata[person]) ndead += status[person];
+	else { /* end of a stratum */
+	    for (j=0; j<nvar; j++) {
+		used[j][cstrat-1] =0;   /* start pessimistic */
+		for (kk =k; kk<i; kk++) {
+		    person = sort[kk];
+		    if (covar[j][person] != covar[j][sort[k]]) {
+			used[j][cstrat-1] = ndead;
+			break;
+		    }
+		}
+	    }
+	    ndead=0;
+	    k = i;
+	    cstrat = strata[sort[i]];
+	}
+    }
+    /* Deal with the last strata */
+    for (j=0; j<nvar; j++) {
+	used[j][cstrat-1] =0;   /* start pessimistic */
+	for (kk =k; kk<i; kk++) {
+	    person = sort[kk];
+	    if (covar[j][person] != covar[j][sort[k]]) {
+		used[j][cstrat-1] = ndead;
+		break;
+	    }
+	}
+    }
+ 	
+    /*
+    **	Recenter the X matrix to make the variance computation more stable
+    */
+    for (i=0; i<nvar; i++) {
+	tmean =0;
+	for (j=0; j<nused; j++) {
+	    tmean += covar[i][j];
+	}
+	tmean /= nused;
+	for (j=0; j<nused; j++) covar[i][j] -= tmean;
+    }	
+
+
     /* zero variables */
     for (i=0; i<2*nvar; i++) {
 	u[i] =0;
@@ -107,22 +161,7 @@ SEXP zph1(SEXP gt2,    SEXP y2,
 	    cmat[i][j] =0;
 	    cmat2[i][j] =0;
 	}
-	for (j=0; j<nstrat; j++) used[i][j] =0;
-	}
-
-    /*
-    **	Recenter the X matrix to make the variance computation more stable
-    **  Also note which variables are used in which strata
-    */
-    for (i=0; i<nvar; i++) {
-	tmean =0;
-	for (j=0; j<nused; j++) {
-	    if (covar[i][j] !=0) used[i][strata[j]-1] =1;
-	    tmean += covar[i][j];
-	}
-	tmean /= nused;
-	for (j=0; j<nused; j++) covar[i][j] -= tmean;
-    }	
+    }
 
     /*
     ** Compute first and second derivatives

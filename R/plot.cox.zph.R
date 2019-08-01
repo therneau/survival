@@ -1,4 +1,3 @@
-# $Id: plot.cox.zph.S 11275 2009-04-06 16:18:00Z therneau $
 plot.cox.zph <- function(x, resid=TRUE, se=TRUE, df=4, nsmo=40, 
                          var, xlab="Time", ylab="", lty=1:2, col=1, lwd=1,
                          ...) {
@@ -40,7 +39,7 @@ plot.cox.zph <- function(x, resid=TRUE, se=TRUE, df=4, nsmo=40,
 	pred.x <- exp(pred.x)
 	}
     else if (x$transform != 'identity') {
-	xtime <- as.numeric(dimnames(yy)[[1]])
+	xtime <- x$time
         indx <- !duplicated(xx)  #avoid a warning message in R
 	apr1  <- approx(xx[indx], xtime[indx], 
                         seq(min(xx), max(xx), length=17)[2*(1:8)])

@@ -360,6 +360,28 @@ if (length(weights)) weights <- weights[xstack$rindex]
 if (length(cluster)) cluster <- cluster[xstack$rindex]
 @ 
 
+The next step for multi X is to remake the assign attribute. 
+It is a list with one element per term, and needs to be expanded in the
+same way as \code{tmap}, which has one row per term (+ an intercept row).
+For \code{predict, type='terms') to work, no label can be repeated in the
+final assign object. 
+If a variable `fred' were common across all the states we would want to
+use that as the label, but if it appears twice, as separate terms for
+two different transitions, then we label it as fredx:y where x:y is the
+transition.
+<<coxph-multi-X>>=
+t2 <- tmap[-1,,drop=FALSE]   # remove the intercept row
+r2 <- row(t2)[!duplicated(as.vector(t2))]
+c2 <- col(t2)[!duplicated(as.vector(t2))]
+a2 <- lapply(seq(along=r2), function(i) {cmap[1+assign[[r2[i]]], c2[i]]})
+# which elements are unique?  
+tab <- table(r2)
+count <- tab[r2]
+names(a2) <- ifelse(count==1, row.names(t2)[r2],
+                    paste0(row.names(t2)[r2], colnames(cmap)[c2]))
+assign <- a2
+@ 
+
 An increasingly common error is for users to put the time variable on
 both sides of the formula, in the mistaken idea that this will
 deal with a failure of proportional hazards.
@@ -483,7 +505,7 @@ the formula.  Some objects in the terms structure are unevaluated calls
 that include y, this adds 2 to the count (the call to ``list'' and
 the response).
 
-<<coxph-transform>>=
+ <<coxph-transform>>=
 Y <- Surv(rep(counts$time, counts$nrisk), counts$status)
 type <- 'right'  # new Y is right censored, even if the old was (start, stop]
 
@@ -1086,12 +1108,19 @@ model.frame.coxph <- function(formula, ...) {
    
         temp <- fcall[c(1,indx)]  # only keep the arguments we wanted
         temp[[1]] <- quote(stats::model.frame)  # change the function called
-        temp$xlev <- formula$xlevels
+        #temp$xlev <- formula$xlevels  # this will turn strings to factors
         temp$formula <- Terms   #keep the predvars attribute
         # Now, any arguments that were on this call overtake the ones that
         #  were in the original call.  
         if (length(nargs) >0)
             temp[names(nargs)] <- nargs
+
+        # Make "tt" visible for coxph formulas, 
+        if (!is.null(attr(temp$formula, "specials")$tt)) {
+            coxenv <- new.env(parent= environment(temp$formula))
+            assign("tt", function(x) x, env=coxenv)
+            environment(temp$formula) <- coxenv
+        }
 
         # The documentation for model.frame implies that the environment arg
         #  to eval will be ignored, but if we omit it there is a problem.
@@ -1102,22 +1131,23 @@ model.frame.coxph <- function(formula, ...) {
 	if (!is.null(attr(formula$terms, "dataClasses")))
 	    .checkMFClasses(attr(formula$terms, "dataClasses"), mf)
        
-       if (!is.null(attr(Terms, "specials")$tt)) {
-          # Do time transform
-	  tt <- eval(formula$call$tt)
-	  Y <- aeqSurv(model.response(mf))
-	  strats <- attr(Terms, "specials")$strata
-	  if (length(strats)) {
-	      stemp <- untangle.specials(Terms, 'strata', 1)
-	      if (length(stemp$vars)==1) strata.keep <- mf[[stemp$vars]]
-	      else strata.keep <- strata(mf[,stemp$vars], shortlabel=TRUE)
-	      istrat <- as.numeric(strata.keep)
-          }
- 	  
-          <<coxph-transform>>
-          mf[[".strata."]] <- istrat
-       }
-       mf
+        if (is.null(attr(Terms, "specials")$tt)) return(mf)
+        else {
+            # Do time transform
+            tt <- eval(formula$call$tt)
+            Y <- aeqSurv(model.response(mf))
+            strats <- attr(Terms, "specials")$strata
+            if (length(strats)) {
+                stemp <- untangle.specials(Terms, 'strata', 1)
+                if (length(stemp$vars)==1) strata.keep <- mf[[stemp$vars]]
+                else strata.keep <- strata(mf[,stemp$vars], shortlabel=TRUE)
+                istrat <- as.numeric(strata.keep)
+            }
+  	  
+            <<coxph-transform>>
+            mf[[".strata."]] <- istrat
+            return(mf)
+        }
     }
 }
 @ 
