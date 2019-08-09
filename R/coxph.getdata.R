@@ -99,7 +99,7 @@ coxph.getdata <- function(fit, y=TRUE, x=TRUE, stratax=TRUE,
     temp <- list()
     if (y) temp$y <- ty
     if (x) temp$x <- tx
-    if (stratax)  temp$strata <- strat
+    if (stratax)  temp$strata <- as.numeric(strat)
     if (offset)  temp$offset <- toff
     if (weights) temp$weights <- twt
     temp

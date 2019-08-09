@@ -3,7 +3,7 @@ plot.cox.zph <- function(x, resid=TRUE, se=TRUE, df=4, nsmo=40,
                          ...) {
     xx <- x$x
     yy <- x$y
-    d <- nrow(yy)
+#    d <- nrow(yy)
     df <- max(df)     #error proofing
     nvar <- ncol(yy)
     pred.x <- seq(from=min(xx), to=max(xx), length=nsmo)
@@ -18,7 +18,8 @@ plot.cox.zph <- function(x, resid=TRUE, se=TRUE, df=4, nsmo=40,
     if (se) {
 	bk <- backsolve(qmat$qr[1:df, 1:df], diag(df))
 	xtx <- bk %*% t(bk)
-	seval <- d*((pmat%*% xtx) *pmat) %*% rep(1, df)
+#	seval <- d*((pmat%*% xtx) *pmat) %*% rep(1, df)
+	seval <- ((pmat%*% xtx) *pmat) %*% rep(1, df)
 	}
 
     if (missing(ylab)) ylab <- paste("Beta(t) for", dimnames(yy)[[2]])

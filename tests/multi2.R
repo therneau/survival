@@ -91,12 +91,14 @@ aeq(temp[sindx3, 5:6], residuals(fit23, type='schoenfeld'))
 
 #The scaled Schoenfeld don't agree, due to the use of a robust
 #  variance in fit, regular variance in fit12, fit13 and fit23
+#Along with being scaled by different event counts
+xfit <- fit
+xfit$var <- xfit$naive.var
 if (FALSE) {
-    temp <- residuals(fit, type="scaledsch")
-    all(temp[sindx1, 3:6] ==0)
-    all(temp[sindx2, c(1,2,5,6)] ==0)
-    all(temp[sindx3, 1:4]==0)
-    aeq(temp[sindx1, 1:2], residuals(fit12, type='scaledsch'))
+    xfit <- fit
+    xfit$var <- xfit$naive.var  # fixes the first issue
+    temp <- residuals(xfit, type="scaledsch")
+    aeq(d1* temp[sindx1, 1:2], residuals(fit12, type='scaledsch'))
     aeq(temp[sindx2, 3:4], residuals(fit13, type='scaledsch'))
     aeq(temp[sindx3, 5:6], residuals(fit23, type='scaledsch'))
 }
@@ -117,15 +119,15 @@ aeq(predict(fit, type="expected"), c(predict(fit12, type="expected"),
                                      predict(fit13, type="expected"),
                                      predict(fit23, type="expected")))
 
-# predict(type='terms') is a matrix is centering changes as well
+# predict(type='terms') is a matrix, centering changes as well
 temp <- predict(fit, type='terms')
 if (FALSE) {
-all(temp[indx1, 3:6] ==0)
-all(temp[indx2, c(1,2,5,6)] ==0)
-all(temp[indx3, 1:4]==0)
-aeq(temp[indx1, 1:2], predict(fit12, type='terms'))
-aeq(temp[indx2, 3:4], predict(fit13, type='terms'))
-aeq(temp[indx3, 5:6], predict(fit23, type='terms'))
+    all(temp[indx1, 3:6] ==0)
+    all(temp[indx2, c(1,2,5,6)] ==0)
+    all(temp[indx3, 1:4]==0)
+    aeq(temp[indx1, 1:2], predict(fit12, type='terms'))
+    aeq(temp[indx2, 3:4], predict(fit13, type='terms'))
+    aeq(temp[indx3, 5:6], predict(fit23, type='terms'))
 }
 
 ###### check cox.zph fit - transform = 'km'

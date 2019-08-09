@@ -62,12 +62,13 @@ SEXP zph1(SEXP gt2,    SEXP y2,
 
     /* 
     ** count up the number of events and the number of strata
+    **  strata are numbered from 0
     */
     nevent =0;
-    nstrat =0;
+    nstrat =1;
     for (i=0; i< nused; i++) {
 	nevent += status[i];
-	if (strata[i] > nstrat) nstrat= strata[i];
+	if (strata[i] >= nstrat) nstrat= strata[i]+1;
     }
 
     /*
@@ -110,11 +111,11 @@ SEXP zph1(SEXP gt2,    SEXP y2,
 	if (cstrat == strata[person]) ndead += status[person];
 	else { /* end of a stratum */
 	    for (j=0; j<nvar; j++) {
-		used[j][cstrat-1] =0;   /* start pessimistic */
+		used[j][cstrat] =0;   /* start pessimistic */
 		for (kk =k; kk<i; kk++) {
 		    person = sort[kk];
 		    if (covar[j][person] != covar[j][sort[k]]) {
-			used[j][cstrat-1] = ndead;
+			used[j][cstrat] = ndead;
 			break;
 		    }
 		}
@@ -126,11 +127,11 @@ SEXP zph1(SEXP gt2,    SEXP y2,
     }
     /* Deal with the last strata */
     for (j=0; j<nvar; j++) {
-	used[j][cstrat-1] =0;   /* start pessimistic */
+	used[j][cstrat] =0;   /* start pessimistic */
 	for (kk =k; kk<i; kk++) {
 	    person = sort[kk];
 	    if (covar[j][person] != covar[j][sort[k]]) {
-		used[j][cstrat-1] = ndead;
+		used[j][cstrat] = ndead;
 		break;
 	    }
 	}
@@ -306,7 +307,7 @@ SEXP zph2(SEXP gt2,    SEXP y2,
 	  SEXP covar2, SEXP eta2,  SEXP weights2,
 	  SEXP strata2,SEXP method2, SEXP sort12, SEXP sort22) {
 
-    int i,j, k, person, p, p1;
+    int i,j, k, kk, person, p, p1;
     int cstrat;   /* current stratum*/
     int indx1, nrisk;
     double temp, temp2, tmean, etasum;
@@ -350,10 +351,10 @@ SEXP zph2(SEXP gt2,    SEXP y2,
     ** count up the number of events and the number of strata
     */
     nevent =0;
-    nstrat =0;
+    nstrat =1;
     for (i=0; i< nused; i++) {
 	nevent += status[i];
-	if (strata[i] > nstrat) nstrat= strata[i];
+	if (strata[i] >= nstrat) nstrat= strata[i] + 1;
     }
 
     /*
@@ -402,23 +403,47 @@ SEXP zph2(SEXP gt2,    SEXP y2,
     **   stratum.  If a covariate is constant within the stratum then the 
     **   effective n is 0, otherwise the number of events in the stratum
     */
-    k = sort2[0];   /* index subject for current strata */
-    cstrat = strata[k];
-    ndead =0;
+    /* count the number of events, per covariate per strata 
+    ** if a covariate is constant in the stratum it gets a 0, otherwise
+    **  the number of events in the stratum.  The algorithm is fairly
+    **  simple but the code is ugly.  Count the number of deaths, then at
+    **  the end of each stratum set used[][] to the number of events or
+    **  to zero for each covariate.  
+    */
+    k = 0;  /* first obs of the stratum */
+    ndead=0;
+    cstrat = strata[sort2[0]];
     for (i=0; i<nused; i++) {
-	person = sort2[i];
-	if (strata[person] != cstrat) { 
-	    /* new stratum */
-	    for (j=0; j<nvar; j++) used[j][cstrat-1] *= ndead;
-	    k=person;
-	    ndead =0;
-	    cstrat = strata[person];
+	person= sort2[i];
+	if (cstrat == strata[person]) ndead += status[person];
+	else { /* end of a stratum */
+	    for (j=0; j<nvar; j++) {
+		used[j][cstrat] =0;   /* start pessimistic */
+		for (kk =k; kk<i; kk++) {
+		    person = sort2[kk];
+		    if (covar[j][person] != covar[j][sort2[k]]) {
+			used[j][cstrat] = ndead;
+			break;
+		    }
+		}
+	    }
+	    ndead=0;
+	    k = i;
+	    cstrat = strata[sort2[i]];
 	}
-	ndead += status[person];
-	for (j=0; j<nvar; j++) 
-	    if (covar[j][person] != covar[j][k]) used[j][cstrat-1] =1;
-    }	
-    for (j=0; j<nvar; j++) used[j][cstrat-1] *= ndead;
+    }
+
+    /* Deal with the last strata */
+    for (j=0; j<nvar; j++) {
+	used[j][cstrat] =0;   /* start pessimistic */
+	for (kk =k; kk<i; kk++) {
+	    person = sort2[kk];
+	    if (covar[j][person] != covar[j][sort2[k]]) {
+		used[j][cstrat] = ndead;
+		break;
+	    }
+	}
+    }
 
     /*
     **	Recenter the X matrix to make the variance computation more stable

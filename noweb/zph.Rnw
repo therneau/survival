@@ -58,8 +58,8 @@ cox.zph <- function(fit, transform='km', singledf =TRUE, global=TRUE) {
     y <- cget$y
     ny <- ncol(y)
     event <- (y[,ny] ==1)
-    if (length(cget$strata)) istrat <- cget$strata
-    else istrat <- rep(1L, nrow(y))
+    if (length(cget$strata)) istrat <- cget$strata - 1L  # number from 0, for C
+    else istrat <- rep(0L, nrow(y))
 
     sresid <- resid(fit, 'schoenfeld')
     varnames <- names(fit$coefficients)
@@ -116,13 +116,13 @@ if (is.character(transform)) {
 
     # Now get the U, information, and residuals
     if (ny==2) {
-        ord <- order(istrat, y[,1])
+        ord <- order(istrat, y[,1]) -1L
         resid <- .Call(Czph1, gtime, y, cget$x, fit$linear.predictors,
-                        cget$weights, istrat, fit$method=="efron", ord-1L)
+                        cget$weights, istrat, fit$method=="efron", ord)
     }
     else {
-        ord1 <- order(istrat, y[,1])
-        ord2 <- order(istrat, y[,2])
+        ord1 <- order(-istrat, -y[,1]) -1L   # reverse time for zph2
+        ord2 <- order(-istrat, -y[,2]) -1L
         resid <- .Call(Czph2, gtime, y, cget$x, fit$linear.predictors,
                         cget$weights, istrat, fit$method=="efron", 
                         ord1, ord2)
@@ -145,6 +145,15 @@ if (is.list(asgn)) {
     termname <- names(asgn)
     nterm <- length(asgn)   # asgn will be 1, 2,2,2, 3, etc
 } else stop ("unexpected assign component")
+if (any(is.na(fit$coefficients))) {
+    # fix up assign so as to ignore missing coefs, this should be rare
+    mcoef <- which(is.na(fit$coefficients))
+    asgn <- lapply(asgn, function(i) i[!(i %in% mcoef)])
+    asgn <- asgn[sapply(asgn, length)>0]  # drop any that were lost
+    termname <- names(asgn)
+    nterm <- length(asgn)   # asgn will be 1, 2,2,2, 3, etc
+}
+                   
 test <- double(nterm+1)
 df   <- rep(1L, nterm+1)
 u0 <- rep(0, nvar)
@@ -215,9 +224,30 @@ for (i in 1:nrow(resid$used))
 vmean <- resid$imat[1:nvar, 1:nvar]/wtmat
 
 sresid <- resid$schoen
+if (singledf && any(sapply(asgn, length) > 1)) { # collase multi-column terms
+    temp <- matrix(0, ncol(sresid), nterm)
+    used <- matrix(0, nrow(resid$used), nterm)
+    for (i in 1:nterm) {
+        j <- asgn[[i]]
+        temp[j, i] <- 1
+        for (k in 1:nrow(used)) 
+            used[k,i] <- max(resid$used[k, j])
+    }     
+    sresid <- sresid %*% temp
+    vmean <- t(temp) %*% vmean %*% temp
+    colnames(sresid) <- names(asgn)
+}
+else {
+    keep <- !is.na(fit$coefficients)
+    used <- resid$used[,keep, drop=FALSE]
+    colnames(sresid) <- names(fit$coefficients)[keep]
+    vmean <- vmean[keep, keep]
+}
+
+# for each stratum, rescale the observations in that stratum
 sgrp <- rep(1:nrow(resid$used), apply(resid$used, 1, max))
-for (i in 1:nrow(resid$used)) {
-    k <- (resid$used[i,] > 0)
+for (i in 1:nrow(used)) {
+    k <- (used[i,] > 0)
     j <- which(sgrp==i)
     sresid[j, k] <- t(solve(vmean[k, k], t(sresid[j, k])))
     sresid[j, !k] <- NA
