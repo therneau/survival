@@ -378,7 +378,7 @@ a2 <- lapply(seq(along=r2), function(i) {cmap[1+assign[[r2[i]]], c2[i]]})
 tab <- table(r2)
 count <- tab[r2]
 names(a2) <- ifelse(count==1, row.names(t2)[r2],
-                    paste(row.names(t2)[r2], colnames(cmap)[c2]), sep="_")
+                    paste(row.names(t2)[r2], colnames(cmap)[c2], sep="_"))
 assign <- a2
 @ 
 

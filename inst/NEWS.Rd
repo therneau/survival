@@ -4,6 +4,7 @@
   \itemize{
     \item Make sure all calls to data.frame explicitly select a value
     for the stringsAsFactors option.
+    \item Updates to cox.zph for the singledf option
 }}     
 \section{Changes in version 3.0}{
   \itemize{
