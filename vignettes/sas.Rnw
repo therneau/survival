@@ -1,0 +1,308 @@
+\documentclass{article}[11pt]
+\usepackage{Sweave}
+\usepackage{amsmath}
+\addtolength{\textwidth}{1in}
+\addtolength{\oddsidemargin}{-.5in}
+\setlength{\evensidemargin}{\oddsidemargin}
+%\VignetteIndexEntry{SAS comparisons}
+
+\SweaveOpts{keep.source=TRUE, fig=FALSE}
+% Ross Ihaka suggestions
+\DefineVerbatimEnvironment{Sinput}{Verbatim} {xleftmargin=2em}
+\DefineVerbatimEnvironment{Soutput}{Verbatim}{xleftmargin=2em}
+\DefineVerbatimEnvironment{Scode}{Verbatim}{xleftmargin=2em}
+\fvset{listparameters={\setlength{\topsep}{0pt}}}
+\renewenvironment{Schunk}{\vspace{\topsep}}{\vspace{\topsep}}
+
+% I had been putting figures in the figures/ directory, but the standard
+%  R build script does not copy it and then R CMD check fails
+\SweaveOpts{prefix.string=compete,width=6,height=4}
+\newcommand{\myfig}[1]{\includegraphics[height=!, width=\textwidth]
+                        {sas-#1.pdf}}
+\setkeys{Gin}{width=\textwidth}
+<<echo=FALSE>>=
+options(continue="  ", width=60)
+options(SweaveHooks=list(fig=function() par(mar=c(4.1, 4.1, .3, 1.1))))
+pdf.options(pointsize=10) #text in graph about the same as regular text
+options(contrasts=c("contr.treatment", "contr.poly")) #ensure default
+
+#require("survival")
+#library(survival)
+library(survival)
+@ 
+
+\title{SAS comparisons}
+\author{Terry Therneau}
+\newcommand{\code}[1]{\texttt{#1}}
+\begin{document}
+\maketitle
+
+\begin{quote}
+``I found a bug in your software; it gives a different answer than SAS.''
+Message from a user.
+\end{quote}
+
+One of the perils of writing and maintaining a basic statistics package is
+the inevitable comparisons to SAS.
+This note talks about a few of these. 
+It's primary message is that for most issues here is a good reason that the
+survival package does not give the same answer: 
+the differences are not an oversight.  
+ 
+None of the material in this vignette is terribly important, and in fact for
+many of cases the change will be numerically small --- of the $n-1$ vs $n$ 
+variety  --- and can be ignored for practical purposes.
+I'm hoping that it diverts at least some of the comments like the above.
+(By the way, in that particular case the real problem was the the
+\emph{data sets} used for the SAS and R calls were slightly different.)
+
+\section{Convergence}
+It should go without saying that \code{coxph} and SAS \code{phreg} will not
+give \emph{exactly} the same answers.
+They are both doing finite precision floating point arithmetic, a world
+in which $(1.1 + 1.3) - 1.4 \ne 1.1 + (1.3 - 1.4)$.
+See the R FAQ, item 7.31 for a longer discussion and explanation of this.
+
+In any case, it is a certainty that even if the two routines are evaluating
+the same formulas, and both are using Newton-Raphson iteration
+to arrive at a solution, there will be points at which certain arithmetic
+was done in a different order.
+Add onto this slightly different methods for matrix inversion, prescaling
+of the data or not, and particularly different thresholds for our
+convergence criteria, and yes, the answers will certainly differ in the
+final digits.  Neither is wrong. 
+
+\section{Efron approximation}
+The mathematics for a Cox model are all worked out for continuous time
+values, but in real data there will be ties, i.e., two or more events on
+the same day.  
+There are several approximations that are used to adapt the method
+for tied times: the Breslow, Efron, and Prentice approximations, or the
+exact partial likelihood option found in Cox's original paper.
+SAS defaults to the Breslow approximation and R to the Efron approximation.
+
+There was a lot of interest and activity in this area in the early years
+after the introduction of the Cox model, 
+but the consensus has now settled down to a few simple points.
+\begin{itemize}
+  \item The Breslow approximation is both easy to program and computationally
+    efficient.  The Efron approximation is nearly as fast, and somewhat
+    more accurate.
+ \item The exact partial likelihood is computationally intensive: if there
+   are $d$ events at one time point out of $n$ subjects at risk, the
+   likelihod is a sum of all $n \choose d$ possible subsets.
+   When $d$ is between 2 and 10 this is manageable, particularly if an efficient
+   enumeration due to Gail \cite{Gailxx} is used, but beyond that point the
+   computation can quickly become untenable.
+   Prentice's marginal likelihood requires a numerical integration; it's 
+   computation time is intermediate between the Efron and exact methods.
+ \item At any time point where there are no ties, all four approximations
+   are identical.
+\end{itemize}
+
+The primary point that has come to be appreciated is that if the number of
+ties is small to moderate, as it is in most data sets, then the
+\emph{numerical} difference between the methods will be small. 
+Consider for instance the example below using recurrence time for the 
+colon cancer data set, and
+then a second version with time rounded to the nearest month.
+In the original data over 3/4 of the event times are unique and the largest
+number of ties are 5 events on the same day, which happened twice.
+The coefficients under the three approximations hardly differ:
+standard errors of each coefficient are around 0.1 while the differences in
+estimates do not appear until the third decimal point.
+That is, a less that .1 standard error difference, which is essenially
+identical from a statistical point of view.
+ 
+<<ctest1>>=
+rdata <- subset(colon, etype==1)
+table(table(colon$time[colon$status==1]))
+lfit1 <- coxph(Surv(time, status) ~ rx + adhere + node4, rdata, ties='breslow')
+lfit2 <- coxph(Surv(time, status) ~ rx + adhere + node4, rdata, ties='efron')
+lfit3 <- coxph(Surv(time, status) ~ rx + adhere + node4, rdata, ties='exact')
+rbind(breslow= coef(lfit1), efron=coef(lfit2), exact=coef(lfit3))
+@ 
+
+Using coarsened follow-up data there are only 19 unique event times,
+few singletons, and some time points with 20+ events.
+But even in this
+extreme case coefficients only disagree in the second digit.
+
+<<ctest2>>= 
+months <- floor(rdata$time/30.5)
+table(table(months[rdata$status==1]))
+mfit1 <- coxph(Surv(months, status) ~ rx + adhere + node4, rdata, ties='breslow')
+mfit2 <- coxph(Surv(months, status) ~ rx + adhere + node4, rdata, ties='efron')
+mfit3 <- coxph(Surv(months, status) ~ rx + adhere + node4, rdata, ties='exact')
+rbind(breslow2= coef(mfit1), efron2=coef(mfit2), exact2=coef(mfit3))
+@
+ 
+Looking more carefully, the Efron approximation has been affected the least by
+the coarsening, and is normally closer to the exact computation.
+The survival package chose the Efron as the default from a basic
+``why not the best'' logic.
+After all, if one had two approximations to the exp function with similar
+compute cost, any sensible code for fundamental libraries would use the
+better one.  
+However, in a statistical analysis context and given the usual size of
+standard errors, a Breslow default will cause no real harm.
+
+However, once having chosen the Efron default it is important to carry
+through.  It turns out to have implications for how residuals and baseline
+hazard functions are computed as well, which in turn affects robust variance
+estimates.
+Details of this can be found in the validation vignette. 
+This is one area where the phreg procedure is not quite correct, and its
+results do not agree with the validation suite.
+For all the examples that we have investigated in detail, however, the
+practical implications of the inaccuracy have been small.
+
+
+\section{Type 3 tests}
+``Type III'' tests and sums of squares can be traced back to a 1934 paper
+by F. Yates.
+For a
+linear model fit with unbalanced data he proposed using a population estimate,
+where the ``population'' was an ideal experiment, e.g., a completely balanced
+factorial study.  One can create his proposed estimates by a simple 3 step
+process.
+\begin{enumerate}
+   \item Fit a linear model to the data using ordinary least squares.
+   \item For each treatment arm, create the set of predicted values for that
+     treatment and all combinations of the other factors.
+   \item The average of these values is the overall effect.
+\end{enumerate}
+For instance, if there were 2 other factors in an agricultural experiment 
+that had
+2 and 4 levels, respectively (fertilizer and plot, say), 
+then the ``reference population'' will have 8 possible values,
+and the last step
+will be an average over those 8 values to give the
+estimated  marginal effect for treatment A,
+another average of 8 values for treatment B, etc.
+SAS calls these averages \emph{least squares means}.
+
+The next logical step, of course, is to compute a standard error for each
+of these estimates along with an overall test of equality.
+In a modern computing environment a simple algorithm for the above is to 
+simply write down all of the relevent predicted values as a matrix $Z$.
+The average predicted value is then $c\hat\beta$ where $c= 1'Z/8$, the
+column means of $Z$. The variance of the average predicton is 
+$c'Vc$ where $V$ is the variance of $\hat\beta$ and a test for equality of
+the treatments will be based on a matrix $C$ whose rows
+are the $c$ vector for each treatment.
+
+This brute force approach is simple today, but was not feasable in the computing
+environment of Yates's day, which led to a small industry of shortcut methods
+for producing a ``Yates' sum of squares''.
+The SAS GLM algorithm is based on a particular one of these:
+\begin{itemize}
+  \item Form an $Z'Z$ matrix from a
+    \emph{balanced subset} of the observations in the data set,
+  \item create orthagonal contrast vectors based on that matrix, 
+  \item apply those contrasts to the original data to get 
+    sums-of-squares for each term.
+\end{itemize}
+
+Here is an example of Yates' tests using a subset of the \code{solder} data set,
+based on the SAS algorithm.
+<<solder>>=
+ctest <- function(contr, fit) {
+    estimate <- drop(contr %*% coef(fit))
+    var.estimate <- contr %*% vcov(fit) %*% t(contr)
+    test <-  solve(var.estimate, estimate)%*% estimate
+    list(estimate= estimate, variance= var.estimate, chisq = drop(test))
+}
+
+test <- subset(solder, Mask != "A6")
+table(test$Opening, test$Mask)   # the data is unbalanced
+fit <- lm(skips ~ Opening*Mask, data=test, x=TRUE)  # ordinary linear model
+z.balance <- unique(fit$x)    # 12 unique combinations of Opening and Mask
+contr <- chol(crossprod(z.balance))   # cholesky decomposition of Z'Z
+Opening.contr <- contr[2:3,]          # rows corresponding to Opening
+ctest(Opening.contr, fit)$chisq       # compute the test
+ctest(contr[5:8,], fit)$chisq         # the test for Mask
+ctest(contr[9:12,], fit)$chisq        # the test for Mask:Opening
+@ 
+
+If $L'L = Z'Z$ is the Cholesky decompostion of $Z'Z$, then $L(Z'Z)^{-1}L'=I$,
+i.e., the Cholesky decomposition was simply a convenient way to create a
+set of contrasts that are orthagonal with respect to $(Z'Z)^{-1}$.
+Any full rank contrast matrix $C$ such that $T= C(Z'Z)^-C'$ is block 
+diagonal will give the same sums of squares,
+i.e., if $T_{ij}=0$ whenever rows $i$ and $j$ correspond to different terms.
+The SAS technical report given as a reference for type 3 tests \cite{SAStech}
+is a simply complex algorithm for creating such an orthagonal decomposition;
+it unfortunately depends on having the original $X$ matrix in exactly the
+internal form used by the SAS glm procedure.
+(The report is also remarkably opaque about exactly \emph{what} the algorithm
+is computing.)
+If the linear model has both continuous and categorical predictors, then 
+the \code{z.balance} line above needs to be modified to first omit any columns
+of X corresponding to continuous variables or interactions with continuous
+variables (but retain the intercept):
+SAS ``type 3'' tests for continuous variables have no connection to Yates' 
+method or population averages.
+
+The bugaboo comes when the resulting $Z'Z$ matrix is singular.
+For example, if we use the entire solder data set, there are 0 observations
+in the (Mask=A6, Opening=S) cell, the coefficient vector from the \code{lm}
+fit will have an NA in that position, and an attempted Cholesky decomposition
+of $Z'Z$ will give an error message. 
+In this case a Yates' population average for mask A6 is undefined, since
+one of the predicted values in the average depends on the NA coefficient;
+and SAS GLM for instance will report a missing for that element of
+the least squares means.
+The Yates' sum of squares for comparing the 5 mask types is also undefined;
+nevertheless SAS GLM reports a type 3 sums of squares for the Mask effect!  
+What is happening is that SAS GLM is essentially creating contrasts that are
+orthagonal to a generalized inverse.
+The problem is that the resulting contrasts are not unique --- they depend
+on exactly which generalized inverse is used --- nor do they result in the
+same test statistic for the effect.
+There are an infinite number of generalized inverses for such a problem,
+the documentation in
+\cite{SAStech} does not give enough detail to exactly replicate the
+GLM algorithm, and exact mimicry is the only way to exactly reproduce GLM
+type 3 values for an incomplete design. 
+
+An alternate ``type 3'' algorithm found outside of SAS is the following.
+\begin{enumerate}
+  \item Create a design matrix $X$ for the regression in standard order,
+    i.e., from left to right are the intercept, columns for main effects, then
+    2-way interactions, then 3-way interactions, etc.
+  \item Proceding from left to right, eliminate any columns which can be
+    expressed as a linear combination of prior columns.
+  \item Define the RSS for any term as the difference between a fit using
+    the full $X$ matrix, and a fit eliminating those (remaining)
+    columns that correspond to the term.
+\end{enumerate}
+If the columns of $X$ for the categorical variables in the model are coded 
+using the summation constraint, and the Yates' SS is well
+defined (no missing cells),
+then, rather remarkably, this seemingly half-baked approach will re-create 
+the Yates sum-of-squares for each term.
+If any other method is used to generate the 0/1 columns for a categorical
+variable then the results will be incorrect, often by an order of magnitude.
+I refer to this as the not-safe type three (NSTT) algorithm. 
+The \code{car} package in R uses this approach, for instance; the packages'
+documentation clearly states that the \code{contr.sum} option is necessary.
+
+This flawed algorithm is, I believe, the source of a common critique that
+type 3 tests not marginal, i.e., that they are a test for main effects
+in the presence of interactions and are thus invalid.  
+This has muddied the waters terribly, and is in addition to the harm 
+caused by misapplication of the algorithm: sum constraints are not the
+default in most packages and I daresay that many or most computations have
+been wrong.  (How many people read the directions?)
+
+This is precisely the algorithm used by the SAS phreg procedure, though
+without any warning about how to choose the coding for categoricals.
+Within the survival package, the \code{yates} function can be used to obtain
+more general population averages; a subset of which correspond to Yates' tests.
+The survival package does not try to reproduce NSTT values.
+
+\end{document}
+
+
+

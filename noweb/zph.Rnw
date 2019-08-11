@@ -74,7 +74,7 @@ cox.zph <- function(fit, transform='km', singledf =TRUE, global=TRUE) {
     <<zph-schoen>>
 
     rval$call <- Call
-    rval$transform <- transform
+    rval$transform <- tname
     class(rval) <- "cox.zph"
     return(rval)
 }
@@ -247,10 +247,11 @@ else {
 # for each stratum, rescale the observations in that stratum
 sgrp <- rep(1:nrow(resid$used), apply(resid$used, 1, max))
 for (i in 1:nrow(used)) {
-    k <- (used[i,] > 0)
+    k <- which(used[i,] > 0)
     j <- which(sgrp==i)
-    sresid[j, k] <- t(solve(vmean[k, k], t(sresid[j, k])))
-    sresid[j, !k] <- NA
+    if (length(k) ==1) sresid[j,k] <- sresid[j,k]/vmean[k,k]
+    else sresid[j, k] <- t(solve(vmean[k, k], t(sresid[j, k])))
+    sresid[j, -k] <- NA
 } 
 rval$y <- sresid
 rval$var <- solve(vmean)  

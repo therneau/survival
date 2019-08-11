@@ -62,7 +62,7 @@ survSplit <- function(formula, data, subset, na.action=na.pass,
         
     if (!is.numeric(cut) || any(!is.finite(cut)))
         stop("cut must be a vector of finite numbers")
-    cut <- sort(cut)
+    cut <- unique(sort(cut))
     ntimes <- length(cut)
     n <- nrow(data)
 

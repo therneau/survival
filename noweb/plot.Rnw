@@ -203,9 +203,9 @@ else if (inherits(x, "survfitms")) {
         i <- which(i)  # the states to keep
         # we have to be careful about subscripting
         if (length(dim(x$pstate)) ==3) {
-            ssurv <- x$pstate[,,i, drop=FALSE]
+            ssurv <- smat(x$pstate[,,i, drop=FALSE])
             if (!is.null(x$std.err))
-                std <- x$std.err[,,i, drop=FALSE]
+                std <- smat(x$std.err[,,i, drop=FALSE])
         }
         else {
             ssurv <- x$pstate[,i, drop=FALSE]
@@ -535,6 +535,7 @@ for (j in 1:ncol(ssurv)) {
         else censor <- ifelse(x$n.censor[who]==0, 0, 1 + (x$n.event[who] > 0))
         xx <- stime[who]
         yy <- ssurv[who,j]
+
         if (plot.surv) {
             if (type=='s')
                 lines(dostep(xx, yy), lty=lty[c2], col=col[c2], lwd=lwd[c2]) 

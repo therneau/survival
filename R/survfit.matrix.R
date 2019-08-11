@@ -142,6 +142,7 @@ survfit.matrix <- function(formula, p0, method=c("discrete", "matexp"),
     nstrat <- length(curves[[1]]$strata)
     tlist <- vector("list", prod(dd))  
     k <- 1
+browser()
     if (length(dd) ==1) {
         tname <- paste0("new", 1:dd[1])
         for (j in 1:dd[1]) {

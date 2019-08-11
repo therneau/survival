@@ -78,7 +78,8 @@ or integer indices.
             jj <- (col(itemp))[i]    # columns
             ii <- (row(itemp))[i]    # this is now the strata id
             
-            if (dd[1]==1) irow <- rep(seq(along= x$time), length(ii))
+            if (dtype[1]!=1 || dd[1]==1) # no strata or only 1
+                irow <- rep(seq(along= x$time), length(ii))
             else {
                 itemp2 <- split(1:sum(x$strata), rep(1:length(x$strata), x$strata))
                 irow <- unlist(itemp2[ii])  # rows of the pstate object
@@ -87,9 +88,9 @@ or integer indices.
             indx <- cbind(irow, rep(jj,ii))      # matrix index for pstate
            
             # The n.risk, n.event, .. matrices dont have a newdata dimension.
-            if (dtype[2]==3 || dd[2]==1) kk <- jj
-            else {  # all three indices
-                itemp <- matrix(1:(dd[2]*dd[3]), nrow=dd[2])
+            if (all(dtype!=2) || dd["data"]==1) kk <- jj
+            else {  # both data and states
+                itemp <- matrix(1:(dd["data"]*dd["states"]), nrow=dd[2])
                 kk <- (col(itemp))[jj]    # the state of each selected one
                 indx2 <- cbind(irow, rep(k, irow))  
             }
@@ -112,7 +113,8 @@ or integer indices.
 
     if (is.null(i)) i <- seq.int(dd[1])
     else i <- nmatch(i, names(x$strata))
-    if (dd[1] ==1) irow <- rep(seq(along=x$time), length(i))
+    if (dtype[1]!=1 || dd[1]==1) # no strata or only 1
+        irow <- rep(seq(along= x$time), length(i))
     else {
         itemp <- split(1:sum(x$strata), rep(1:length(x$strata), x$strata))
         irow <- unlist(itemp[i])  # rows of the pstate object
@@ -125,7 +127,7 @@ or integer indices.
     
     # two cases: with newx or without newx  (pstate is always present)
     nstate <- length(x$states)
-    if (length(dd) ==2) {  # j indexes the states
+    if (all(dtype !=2)) {  # j indexes the states
         if (is.null(j)) j <- seq.int(nstate)
         else j <- nmatch(j, x$states)
          
