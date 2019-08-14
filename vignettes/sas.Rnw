@@ -26,8 +26,6 @@ options(SweaveHooks=list(fig=function() par(mar=c(4.1, 4.1, .3, 1.1))))
 pdf.options(pointsize=10) #text in graph about the same as regular text
 options(contrasts=c("contr.treatment", "contr.poly")) #ensure default
 
-#require("survival")
-#library(survival)
 library(survival)
 @ 
 
@@ -38,16 +36,16 @@ library(survival)
 \maketitle
 
 \begin{quote}
-``I found a bug in your software; it gives a different answer than SAS.''
+``I found a bug in your software; it gives a different answer than SAS.''\\
 Message from a user.
 \end{quote}
 
-One of the perils of writing and maintaining a basic statistics package is
+One of the perils of writing and maintaining a basic package like
+\code{survival} is
 the inevitable comparisons to SAS.
 This note talks about a few of these. 
-It's primary message is that for most issues here is a good reason that the
-survival package does not give the same answer: 
-the differences are not an oversight.  
+It's primary message is that for most issues here is a good reason for the
+differences: they are not an oversight.
  
 None of the material in this vignette is terribly important, and in fact for
 many of cases the change will be numerically small --- of the $n-1$ vs $n$ 
@@ -59,25 +57,26 @@ I'm hoping that it diverts at least some of the comments like the above.
 \section{Convergence}
 It should go without saying that \code{coxph} and SAS \code{phreg} will not
 give \emph{exactly} the same answers.
-They are both doing finite precision floating point arithmetic, a world
+They are both working with finite precision floating point arithmetic, a world
 in which $(1.1 + 1.3) - 1.4 \ne 1.1 + (1.3 - 1.4)$.
 See the R FAQ, item 7.31 for a longer discussion and explanation of this.
 
 In any case, it is a certainty that even if the two routines are evaluating
 the same formulas, and both are using Newton-Raphson iteration
 to arrive at a solution, there will be points at which certain arithmetic
-was done in a different order.
+operations were done in a different order.
 Add onto this slightly different methods for matrix inversion, prescaling
-of the data or not, and particularly different thresholds for our
-convergence criteria, and yes, the answers will certainly differ in the
-final digits.  Neither is wrong. 
+of the data or not, and different thresholds for our
+convergence criteria, then yes, the answers will certainly differ in the
+final digits.  Neither is wrong in this case. 
 
 \section{Efron approximation}
 The mathematics for a Cox model are all worked out for continuous time
 values, but in real data there will be ties, i.e., two or more events on
 the same day.  
 There are several approximations that are used to adapt the method
-for tied times: the Breslow, Efron, and Prentice approximations, or the
+for tied times: the Breslow and Efron approximations, Prentice's marginal
+likelihood, or the
 exact partial likelihood option found in Cox's original paper.
 SAS defaults to the Breslow approximation and R to the Efron approximation.
 
@@ -86,126 +85,492 @@ after the introduction of the Cox model,
 but the consensus has now settled down to a few simple points.
 \begin{itemize}
   \item The Breslow approximation is both easy to program and computationally
-    efficient.  The Efron approximation is nearly as fast, and somewhat
+    efficient. The Efron approximation is nearly as fast, and somewhat
     more accurate.
  \item The exact partial likelihood is computationally intensive: if there
    are $d$ events at one time point out of $n$ subjects at risk, the
-   likelihod is a sum of all $n \choose d$ possible subsets.
+   likelihood is a sum of all $n \choose d$ possible subsets.
    When $d$ is between 2 and 10 this is manageable, particularly if an efficient
-   enumeration due to Gail \cite{Gailxx} is used, but beyond that point the
+   enumeration due to Gail \cite{Gail81} is used, but beyond that point the
    computation can quickly become untenable.
    Prentice's marginal likelihood requires a numerical integration; it's 
    computation time is intermediate between the Efron and exact methods.
  \item At any time point where there are no ties, all four approximations
-   are identical.
+   produce identical increments to the partial likelihood.
+ \item If the number of
+   ties is small to moderate, as it is in most data sets, then the
+   \emph{numerical} difference between the methods will be negligible.
 \end{itemize}
 
-The primary point that has come to be appreciated is that if the number of
-ties is small to moderate, as it is in most data sets, then the
-\emph{numerical} difference between the methods will be small. 
+A primary point that has come to be appreciated is the fourth of these,
+and most people have now simply (and sensibly) stopped worrying about it.
 Consider for instance the example below using recurrence time for the 
-colon cancer data set, and
-then a second version with time rounded to the nearest month.
-In the original data over 3/4 of the event times are unique and the largest
-number of ties are 5 events on the same day, which happened twice.
-The coefficients under the three approximations hardly differ:
-standard errors of each coefficient are around 0.1 while the differences in
+colon cancer data set, and then a second version of the data
+where time is rounded to the nearest month.
+In the original data most of the event times are unique; the largest
+count of ties is 5 events on the same day, which happened twice.
+The coefficients under the three approximations hardly differ for this
+data set:
+standard errors of each coefficient are about 0.1 (not shown)
+while the differences in
 estimates do not appear until the third decimal point.
-That is, a less that .1 standard error difference, which is essenially
-identical from a statistical point of view.
+That is, there is less than .01 standard error of difference, 
+which is essentially identical from a statistical point of view.
  
 <<ctest1>>=
 rdata <- subset(colon, etype==1)
 table(table(colon$time[colon$status==1]))
-lfit1 <- coxph(Surv(time, status) ~ rx + adhere + node4, rdata, ties='breslow')
-lfit2 <- coxph(Surv(time, status) ~ rx + adhere + node4, rdata, ties='efron')
-lfit3 <- coxph(Surv(time, status) ~ rx + adhere + node4, rdata, ties='exact')
+lfit1 <- coxph(Surv(time, status) ~ rx + adhere + node4, rdata, 
+               ties='breslow')
+lfit2 <- coxph(Surv(time, status) ~ rx + adhere + node4, rdata, 
+               ties='efron')
+lfit3 <- coxph(Surv(time, status) ~ rx + adhere + node4, rdata, 
+               ties='exact')
 rbind(breslow= coef(lfit1), efron=coef(lfit2), exact=coef(lfit3))
 @ 
 
-Using coarsened follow-up data there are only 19 unique event times,
-few singletons, and some time points with 20+ events.
-But even in this
-extreme case coefficients only disagree in the second digit.
+Using the coarsened time scale there are only 67 unique event times
+for the 468 events which occur,
+leading to some time points with over 20 events.
+But even in then coefficients only disagree in the second digit.
 
 <<ctest2>>= 
 months <- floor(rdata$time/30.5)
 table(table(months[rdata$status==1]))
-mfit1 <- coxph(Surv(months, status) ~ rx + adhere + node4, rdata, ties='breslow')
-mfit2 <- coxph(Surv(months, status) ~ rx + adhere + node4, rdata, ties='efron')
-mfit3 <- coxph(Surv(months, status) ~ rx + adhere + node4, rdata, ties='exact')
+mfit1 <- coxph(Surv(months, status) ~ rx + adhere + node4, rdata, 
+               ties='breslow')
+mfit2 <- coxph(Surv(months, status) ~ rx + adhere + node4, rdata, 
+               ties='efron')
+mfit3 <- coxph(Surv(months, status) ~ rx + adhere + node4, rdata, 
+               ties='exact')
 rbind(breslow2= coef(mfit1), efron2=coef(mfit2), exact2=coef(mfit3))
 @
  
 Looking more carefully, the Efron approximation has been affected the least by
-the coarsening, and is normally closer to the exact computation.
+the coarsening; it is also (less importantly) closer to the exact 
+computation result.
 The survival package chose the Efron as the default from a basic
 ``why not the best'' logic.
-After all, if one had two approximations to the exp function with similar
-compute cost, any sensible code for fundamental libraries would use the
-better one.  
+After all, if one had two approximations to the cosine function with similar
+compute cost, but one of them behaved better in certain edge cases,
+any sensible code for fundamental libraries would use the
+more stable one.  
 However, in a statistical analysis context and given the usual size of
 standard errors, a Breslow default will cause no real harm.
+The Breslow approximation is the default in many statistical packages for
+simple historical reasons: since it is the simplest to program it was often
+the first method to be implemented.
 
-However, once having chosen the Efron default it is important to carry
-through.  It turns out to have implications for how residuals and baseline
-hazard functions are computed as well, which in turn affects robust variance
-estimates.
+Once having chosen the Efron default it is important to carry
+through.  The approximation turns out to have implications for how residuals 
+and baseline hazard functions are computed, 
+which in turn affects robust variance estimates.
 Details of this can be found in the validation vignette. 
 This is one area where the phreg procedure is not quite correct, and its
 results do not agree with the validation suite.
 For all the examples that we have investigated in detail, however, the
 practical implications of the inaccuracy have been small.
+The largest practical issue vis-a-vis SAS/R is
+users who don't read the documentation, and then get worried when
+numbers don't exactly agree, since one run used Efron and the other Breslow.
 
+\section{Efficiency of the Cox model}
+ \subsection{Counting process data}
+The solution to the Cox estimating equations is found using Newton-Raphson
+iteration, which requires the computation of first and second derivatives
+with respect to to each coefficient.
+The basic quantities for these are a weighted mean and variance of $X$,
+at each event time, taken over the set of subjects who are at risk at
+that event time, using $\exp(X\beta)$ as the weights. 
+Let $p$ be the number of covariates, $d$ the number of unique event times
+and $n$ the number of observations.
+A simple computation of the $d$ variance matrices will be of order
+$O(ndp^2)$.  For the rest of this section I will drop the $p$ portion and
+refer to this naive method as $O(nd)$.
+
+For ordinary \code{Surv(time, status)} survival data, 
+SAS phreg, R coxph, and every
+other code that I am aware of reduces this to an $O(n)$ computation 
+via a simple strategy:
+process the data from largest to smallest survival time.  That way all of the
+sums needed for all of the risk sets occur naturally as we proceed; 
+and one pass through the data will suffice to compute them.  
+This makes the code quite efficient.
+If there are strata in the model, means and variances of $X$ are taken
+\emph{within} strata; this adds no extra work since we need only zero the
+relevant running sums at the start of each stratum.
+The computation starts by sorting the data, but sorting is a basic operation
+that all packages do efficiently.
+
+When the data is in counting process form, i.e., \
+code{Surv(time1, time2, status)},
+the computation is more challenging.
+As a way of investigating this we will use a large simulation data set.
+It is intended to mimic to some degree the Nurses Health Study, since analysis
+of that data set raised a question about the relative speed of coxph and phreg.
+The code for the data set is below; most readers can skip 
+directly to the printout at the end.
+
+<<nhs1>>=
+# Simulate a study with long follow-up
+# Base it roughly on the NHS, with follow-up every 2 years
+#
+set.seed(1960)
+n <- 121700    # number of nurses who enrolled
+#n <-  12170      # test run, with smaller data
+iage <- sample(30:55, n, replace=TRUE)  # age 30 to 55 at enrollment
+
+# a random survival time for each subject.  Use Minnesota rates since
+#  both nurses and Minnesotans are healthier than the US as a whole
+sy <- survexp.mn[1:110, 'female', "1985"]*365.25  # yearly hazard rate
+dtime <- double(n)
+for (i in 30:55) {
+    j <- which(iage == i)
+    chaz <- rexp(length(j))  # chaz for each subject is exp(1)
+    dtime[j] <- approx(cumsum(sy[i:109]), i:109, chaz, rule=2)$y
+}
+    
+# change to days
+iage <- floor(iage*365.25)
+dtime <- ceiling(dtime*365.25)  # make sure of at least 1 day of survival
+
+# up to 15 bi-annual follow-ups for each subject
+#  covariates are rounded to fewer digits to make nicer printout
+times <- matrix(sample(700:770, n*15, replace=TRUE), ncol=n)
+age <- apply(rbind(iage, times), 2, cumsum)
+temp <- data.frame(id=rep(1:n, each=16),
+                   age = c(age),     # age at visit
+                   x1 = round(runif(n* 16, 100, 200)),
+                   x2 = round(rgamma(n* 16, 1,2), 2),
+                   x3 = rbinom(n* 16, 1, .5),
+                   x4 = rbinom(n* 16, 1, .2))
+
+dummy <- data.frame(id=1:n, height= round(runif(n, 60, 90)), dtime=dtime)
+nhs <- tmerge(dummy[,1:2], dummy, id=id,  death=event(dtime),
+               options= list(tstartname="age1", tstopname="age2"))
+nhs <- tmerge(nhs, temp, id=id, 
+               x1=tdc(age, x1), x2=tdc(age, x2), x3=tdc(age, x3),
+               x4 = tdc(age, x4))
+latedeath <- with(nhs, death==1 & (age2-age1) > 800)
+nhs <- subset(nhs, age1>0 & !latedeath)
+
+# Look at statistics for the first 1/3, 2/3, and 3/3 of the subjects
+nsubject <- max(nhs$id)
+stats <- matrix(0, 5, 3)
+
+for (i in 1:3) {
+    temp <- subset(nhs, id <= (nsubject* i/3))
+    stats[1,i] <- nrow(temp)
+  
+    km <- survfit(Surv(age1, age2, death) ~ 1, temp)
+    stats[2,i] <- sum(km$n.event)
+    stats[3,i] <- sum(km$n.event>0)
+    stats[4,i] <- mean(km$n.risk[km$n.event >0])
+
+    time1 <- system.time(coxph(Surv(age1, age2, death) ~ x1+ x2 + x3 + x4,
+                         ties="breslow", temp))
+    stats[5,i] <- sum(time1[-3])   # ignore elapsed
+}
+
+dimnames(stats) <- list(c("number of observations", "number of events",
+                          "unique event times", "mean number at risk",
+                          "cpu time"),
+                        c("first 1/3", "2/3", "all"))
+
+round(stats)
+round(stats[5,,drop=FALSE],1)
+@ 
+
+The resulting data set has 1.7 million records for 122 thousand subjects,
+reflecting the long bi-annual follow up for the NHS.  
+Subjects have a new observation at each visit, giving the new values of their
+covariates, and their last visit will end in a censoring or death.
+Since we are only interested in compute time issues the covariates were
+created as simple random numbers without any structure, thus none of the
+variables are expected to be ``statistically significant''.
+
+The approach used by coxph is to use a running sum for (time1, time2) data,
+just as it does for simple survival, but in this case
+subjects will be added \emph{and} subtracted from the totals.  
+Again working backwards in time, an
+observation of (100, 200, 1) would be added to the totals when 
+the code's internal time
+value crosses 200, and then removed when the time crosses 100.  
+This requires some care in the internal routines to avoid catastrophic
+cancellation; e.g., in finite precision arithmetic (1e18 + 123) - (1e18) =0 so
+a large outlier that is added and then later removed can be deadly.
+The basic algorithm has a run time of $O(2np^2)$.
+Looking at the data above, we see that the execution time is almost
+linear in $n$, the number of observations.
+(The ideal, but unobtainable algorithm would be linear in the number
+of unique death times $d$ = the number of terms in the partial likelihood
+sum, with no time at all devoted to bookkeeping. $d$ grows somewhat
+slower than $n$ due to ties.)
+
+Running the same data set using SAS phreg, the execution times were 
+10, 34, and 84 seconds for 1/10, 2/10, and 3/10 of the subjects,
+a quadratic growth rate.
+The phreg algorithm appears to use the simpler approach, which is to calculate
+the variance anew at each death time.
+In this case the dominating term in the compute time will be $O(md)$ where
+$m$ is the average number of subjects within each risk set.  Both $m$ and
+$d$ are growing linearly so the time increase is quadratic.
+
+The NHS example started with a complaint that R was several fold \emph{slower}
+than SAS on the actual NHS data set, which puzzled me.
+In what situation could this happen?
+One way is to create a version of the data where $n$ grows, but $m$ and $d$
+do not.
+This can be done by \emph{dicing} the nhs data set, i.e., cut each observation 
+into multiple small pieces.  
+(In the same sense as dicing vegetables in the kitchen.)
+The very first observation of the simulation data set, for instance, is a
+censored time span from age 40 to age 42.06 = 14610 to 15361 days of age.
+What if we were to replace this observation by a whole set of rows
+with (age1, age2, death) values of (14610, 14611, 0), (14611, 14612, 0),
+(14612, 14613, 0), \ldots (15360, 15361, 0).
+Since NHS subjects are contacted every two years, this will increase
+the data set size by approximately 730 fold,
+leading to a consequence increase in the compute time for \code{coxph}.
+
+This kind of expansion is sometimes done to create dummy covariates x*log(t)
+as a step towards testing proportional hazards. 
+The PH test does not require expansion for every single day, however, only for
+the set of unique death times,
+i.e., we can use the set of death times as the cut points when creating a 
+data set.
+(Any intervals that don't overlap a death time turn out to play no role in
+the Cox partial likelihood.)
+In the survival package an expanded data set is never needed for this
+particular purpose, since the \code{cox.zph} function directly computes the
+relevant score test.  
+The \code{cox.zph} code does not require data expansion as an
+intermediate step and so is much more efficient, computationally.
+
+Further conversation with the NHS study clarified that they were using
+diced data, but had also coarsened the time scale to use time in months. 
+Per the prior section on the Efron estimate, for a data set on this time 
+scale months vs. days will hardly move the final Cox model estimates, and
+this leads to a much smaller intermediate data set.
+Let's create an expanded data set using these parameters.  Since subjects
+come in about every 2 years using months will expand the data set by 
+approximately
+24 fold. To keep this vignette from taking too long to run we'll only use
+the first 1/5 of the data set.
+
+<<nhs2>>=
+temp <-  subset(nhs, id < max(nhs$id)/5)    # first 1/5 of the subjects
+temp$month1 <- floor(temp$age1* 12/365.25)
+temp$month2 <- floor(temp$age2* 12/365.25)
+temp <- subset(temp, month1 < month2)  # remove any accidental ties
+dtime <- sort(unique(temp$month2[temp$death == 1]))
+nhs2 <- survSplit(Surv(month1, month2, death) ~., data=temp, cut=dtime)
+nrow(nhs2)/nrow(temp)
+
+nrow(nhs2)  # 7.5 million rows
+
+stat2 <- matrix(0, 6, 3)
+options(warn=-1)  # the second fit will give spurious warnings
+maxid <- max(nhs2$id)
+for (i in 1:3) {
+    temp <- subset(nhs2, id <= (maxid*i/3))  # 1/3, 2/3, 3/3
+    km <- survfit(Surv(month1, month2, death) ~ 1, data=temp)
+    time1 <- system.time(coxph(Surv(month1, month2, death) ~ x1 + x2 + x3 + x4,
+                               ties = "breslow", data=temp),
+                         gcFirst= TRUE)
+    time2 <- system.time(coxph(Surv(month2, death) ~ x1 + x2 + x3 + x4 + 
+                                   strata(month2), ties="breslow", data=temp),
+                         gcFirst= TRUE)
+    stat2[1, i] <- nrow(temp)
+    stat2[2, i] <- sum(temp$death)
+    stat2[3, i] <- length(unique(temp$age2[temp$death==1]))
+    stat2[4, i] <- mean(km$n.risk[km$n.event > 0])
+    stat2[5, i] <- sum(time1[-3])
+    stat2[6, i] <- sum(time2[-3])
+}
+options(warn=0)  #restore warnings                       
+dimnames(stat2) <- list(c("observations", "death", "unique deaths",
+                          "mean risk set", 
+                          "coxph time 1", "coxph time 2"),
+                        c("first 1/3", "2/3", "all"))
+
+round(stat2)
+@
+
+As expected the new data set is about (24/5) fold larger than the 
+undiced data.
+The coxph compute time is linear in the number of rows, as before, and continues
+the series of values found in the first test.
+The row count grows faster than the number of subjects, since the number of 
+cut points per subject grows as well,
+though that will eventually slow (there are only so many possible death times).
+The two fits in the loop, one using (age1, age2) and the other stratified on
+the age at death, give exactly the same likelihood since they have 
+exactly the same risk sets at each event time.
+The expected compute time for the second will grow at the rate of $dm$.
+However, the
+construction of the data ensures that each row of data is in exactly one
+stratum, i.e., that $E(m) = n/d$, so this approach has exactly the same
+growth rate as the counting process data.
+
+As a footnote, since the second fit has only one death time in each stratum,
+we could use a dummy variable as ``time'' in the \code{coxph} call
+without changing the outcome, e.g., set the variable uniformly to a value of
+1.  Matched case-control logistic regression via the \code{clogit} command uses
+exactly this same trick, i.e., build the risk sets for each event directly, make
+each risk set a unique stratum, and use a dummy time value.
+
+There are 636 unique \code{month2} values, of which only 49 had no event times.
+The above code can be made a slightly faster by eliminating these observations
+from the data before calling \code{coxph}, but the effect is small since
+it does not take much time for the code to pass over a stratum with
+no events. 
+
+For SAS however, the two constructions do differ in compute time.  The
+second form, like R, will have $O(md) = O(n)$ behavior since both SAS and R are
+using an ``ordinary'' Cox model, while the counting process form appears to
+be $O(nd)$ in phreg.  
+In this data set, phreg using the first 1/3 of the subjects took 
+109 seconds using 
+the counting process form (I didn't run 2/3 and 3/3 fractions), while the
+diced data set took 7.7, 12.3, and 18.4 seconds for 1/3, 2/3, and 3/3 of the 
+data.
+Because SAS jobs at our institution have to be run on a separate server
+due to licensing issues I can't directly compare the full SAS and R run
+times of 18 and 35 seconds; the important take home point is that both 
+have linear growth, which directly results in comparable run times.
+
+The main take home message for R is ``don't dice your data set!''
+Though that step is essential to achieve good performance in SAS,
+what makes things faster for one statistical package does not necessarily
+work for another.
+This is especially true for something like the NHS simulation, where per
+subject covariate updates occur at a low frequency.  
+The 1.7 million row / 122 thousand subject counting process data set took
+7.5 seconds, while the diced version extrapolates to 35 *5 seconds = 23 times
+as long.  The increase would be even larger if we 
+had cut the data at every death day rather than using months.
+
+\subsection{Data set sizes}
+The 'xz' compression option of the \code{save} command 
+is particularly successful for data sets like
+the NHS simulation that contain a lot of whole numbers,
+an rda file containing nhs and nhs2 consumed just under 10 MB of disk space,
+while the size using default \code{save} options was 38 MB.
+The save operation itself takes longer using xz compression, 
+but reloading the save data sets requires similar time.
+The SAS data set for nhs used 103 MB and that for nhs2 529 MB using default
+options, more knowledgeable SAS coders perhaps could to do better.
+
+\subsection{The FAST option}
+Our 2019 version of phreg now has a \emph{FAST} option.  
+The phreg manual is quite vague about the actual approach:
+``FAST
+uses an alternative algorithm to speed up the fitting of the Cox regression for 
+a large data set that has the counting process style of input. 
+Simonsen (2014) has demonstrated the efficiency of this algorithm when the 
+data set contains a large number of observations and many distinct event times. 
+The algorithm requires only one pass through the data to compute the Breslow 
+or Efron partial log-likelihood function and the corresponding gradient 
+and Hessian. 
+PROC PHREG ignores the FAST option if you specify a TIES= option value other
+ than BRESLOW or EFRON, 
+or if you specify programming statements for time-varying covariates. You might 
+not see much improvement in the optimization time if your data set has only a 
+moderate number of observations.''
+
+The reference that they give is ``Simonsen, J. (2014). Statens Serum Institut, 
+Copenhagen. Unpublished SAS macro'', which is not very helpful.
+However, someone else pointed me to a web reference which contains a macro
+that is the purported prototype for the phreg option;
+it can be found using a web search for the article title 
+``A method for speeding up PROC PHREG when doing a Cox regression''.
+
+A closer look at the macro brought on a strong case of deja vu.  Early in the
+author's computing career an analysis data set would sometimes be too
+big to fit into memory, and a common work around for a binary outcome was to
+\begin{enumerate}
+  \item  Reduce any predictors to categorical variables of 2--4 levels.
+  \item  Create a new data set with one row for each unique combination of
+    $y$ and the (new) predictors, giving each a case weight equal to the number
+    of observations in the original data set that fell into that bin.
+  \item  Analyze the new data set, using these case weights.
+\end{enumerate}
+Reductions in the data set size of 20-100 fold were not uncommon.
+
+Say that there are $k$ unique combinations of the categorized covariates.
+For a Cox model, the intermediate data set will have 2k observations at each
+unique event time, one set containing the count of events at that time and one
+the count of those who were at risk but did not have an event at said time.
+Then fit an ordinary Cox model to this data set, stratified by event time.
+The compute time will be $O(kd)$, where $k$ is potentially much smaller than
+$O(md)$ for the original data.  Observations with a weight of 0, if any, 
+can of course be eliminated from the data set before the fit.
+Now, creating the collapsed data set is itself a task that potentially
+requires $O(nd)$ time,
+since for each event time the tally needs to check all $n$ observations to
+see if their (time1, time2) interval includes the given event.
+However, this is essentially an indexing problem and can be done quickly using
+hashing methods.
+
+As someone who often preaches against categorization of predictors, the
+author does not find this approach attractive.
 
 \section{Type 3 tests}
 ``Type III'' tests and sums of squares can be traced back to a 1934 paper
 by F. Yates.
 For a
 linear model fit with unbalanced data he proposed using a population estimate,
-where the ``population'' was an ideal experiment, e.g., a completely balanced
+where the ``population'' is an ideal experiment, e.g., a completely balanced
 factorial study.  One can create his proposed estimates by a simple 3 step
 process.
 \begin{enumerate}
-   \item Fit a linear model to the data using ordinary least squares.
+   \item Fit a linear model to the data at hand using ordinary least squares.
    \item For each treatment arm, create the set of predicted values for that
      treatment and all combinations of the other factors.
-   \item The average of these values is the overall effect.
+   \item The average of these values is the estimated overall effect for
+     the treatment.
 \end{enumerate}
-For instance, if there were 2 other factors in an agricultural experiment 
-that had
-2 and 4 levels, respectively (fertilizer and plot, say), 
-then the ``reference population'' will have 8 possible values,
-and the last step
+For instance, if there were 2 other factors X1 and X2 in an agricultural 
+experiment, where X1 and X2 had 2 and 4 levels, respectively,
+(fertilizer and plot, say), 
+then the ``reference population'' will consist of 8 predictions for
+treatment A, 8 predictions for treatment B, etc.
+The last step of the algorithm 
 will be an average over those 8 values to give the
 estimated  marginal effect for treatment A,
 another average of 8 values for treatment B, etc.
+The estimates are a prediction of what the model results \emph{would have been}
+had the original data been balanced.
 SAS calls these averages \emph{least squares means}.
+Modern causal modelers would call this a g-estimation method.
 
 The next logical step, of course, is to compute a standard error for each
 of these estimates along with an overall test of equality.
 In a modern computing environment a simple algorithm for the above is to 
-simply write down all of the relevent predicted values as a matrix $Z$.
+simply write down all of the relevant predicted values as a matrix $Z$.
 The average predicted value is then $c\hat\beta$ where $c= 1'Z/8$, the
-column means of $Z$. The variance of the average predicton is 
+column means of $Z$. The variance of the average prediction is 
 $c'Vc$ where $V$ is the variance of $\hat\beta$ and a test for equality of
 the treatments will be based on a matrix $C$ whose rows
 are the $c$ vector for each treatment.
 
-This brute force approach is simple today, but was not feasable in the computing
-environment of Yates's day, which led to a small industry of shortcut methods
+This brute force approach is simple today, but was not feasible in the computing
+environment of Yates' day, which led to a small industry of shortcut methods
 for producing a ``Yates' sum of squares''.
 The SAS GLM algorithm is based on a particular one of these:
 \begin{itemize}
-  \item Form an $Z'Z$ matrix from a
+  \item Form a $Z'Z$ matrix from a
     \emph{balanced subset} of the observations in the data set,
-  \item create orthagonal contrast vectors based on that matrix, 
+  \item create as set of contrasts that are orthogonal to $(Z'Z)^{-1}
   \item apply those contrasts to the original data to get 
     sums-of-squares for each term.
 \end{itemize}
 
 Here is an example of Yates' tests using a subset of the \code{solder} data set,
-based on the SAS algorithm.
+based on the SAS algorithm.  The \code{ctest} function contains standard
+linear models manipulations.
+
 <<solder>>=
 ctest <- function(contr, fit) {
     estimate <- drop(contr %*% coef(fit))
@@ -225,18 +590,21 @@ ctest(contr[5:8,], fit)$chisq         # the test for Mask
 ctest(contr[9:12,], fit)$chisq        # the test for Mask:Opening
 @ 
 
-If $L'L = Z'Z$ is the Cholesky decompostion of $Z'Z$, then $L(Z'Z)^{-1}L'=I$,
+If $L'L = Z'Z$ is the Cholesky decomposition of $Z'Z$, then $L(Z'Z)^{-1}L'=I$,
 i.e., the Cholesky decomposition was simply a convenient way to create a
-set of contrasts that are orthagonal with respect to $(Z'Z)^{-1}$.
+set of contrasts that are orthogonal with respect to $(Z'Z)^{-1}$.
 Any full rank contrast matrix $C$ such that $T= C(Z'Z)^-C'$ is block 
-diagonal will give the same sums of squares,
-i.e., if $T_{ij}=0$ whenever rows $i$ and $j$ correspond to different terms.
+diagonal will give the same sums of squares, i.e., one where
+$T_{ij}=0$ whenever rows $i$ and $j$ correspond to different terms.
 The SAS technical report given as a reference for type 3 tests \cite{SAStech}
-is a simply complex algorithm for creating such an orthagonal decomposition;
-it unfortunately depends on having the original $X$ matrix in exactly the
-internal form used by the SAS glm procedure.
+is a simply complex algorithm for creating such an orthogonal decomposition;
+it unfortunately depends on using an $X$ matrix in exactly the same
+internal form as that used by the SAS glm procedure.
 (The report is also remarkably opaque about exactly \emph{what} the algorithm
-is computing.)
+is computing.)  
+Like the Cholesky approach, the GLM algorithm results are invariant to how
+categorical factors are represented: first level as reference, last level
+as reference, Helmert coding, etc.
 If the linear model has both continuous and categorical predictors, then 
 the \code{z.balance} line above needs to be modified to first omit any columns
 of X corresponding to continuous variables or interactions with continuous
@@ -249,29 +617,29 @@ For example, if we use the entire solder data set, there are 0 observations
 in the (Mask=A6, Opening=S) cell, the coefficient vector from the \code{lm}
 fit will have an NA in that position, and an attempted Cholesky decomposition
 of $Z'Z$ will give an error message. 
-In this case a Yates' population average for mask A6 is undefined, since
+In this case a Yates' population average for mask A6 is also undefined, since
 one of the predicted values in the average depends on the NA coefficient;
 and SAS GLM for instance will report a missing for that element of
 the least squares means.
 The Yates' sum of squares for comparing the 5 mask types is also undefined;
 nevertheless SAS GLM reports a type 3 sums of squares for the Mask effect!  
 What is happening is that SAS GLM is essentially creating contrasts that are
-orthagonal to a generalized inverse.
+orthogonal to a generalized inverse.
 The problem is that the resulting contrasts are not unique --- they depend
-on exactly which generalized inverse is used --- nor do they result in the
-same test statistic for the effect.
+on exactly which generalized inverse is used --- and different g-inverse
+matrices lead to different test statistic values.
 There are an infinite number of generalized inverses for such a problem,
 the documentation in
 \cite{SAStech} does not give enough detail to exactly replicate the
-GLM algorithm, and exact mimicry is the only way to exactly reproduce GLM
-type 3 values for an incomplete design. 
+GLM algorithm for this case, and exact mimicry is the only way to exactly 
+reproduce GLM type 3 values for an incomplete design. 
 
 An alternate ``type 3'' algorithm found outside of SAS is the following.
 \begin{enumerate}
   \item Create a design matrix $X$ for the regression in standard order,
     i.e., from left to right are the intercept, columns for main effects, then
     2-way interactions, then 3-way interactions, etc.
-  \item Proceding from left to right, eliminate any columns which can be
+  \item Proceeding from left to right, eliminate any columns which can be
     expressed as a linear combination of prior columns.
   \item Define the RSS for any term as the difference between a fit using
     the full $X$ matrix, and a fit eliminating those (remaining)
@@ -283,7 +651,7 @@ defined (no missing cells),
 then, rather remarkably, this seemingly half-baked approach will re-create 
 the Yates sum-of-squares for each term.
 If any other method is used to generate the 0/1 columns for a categorical
-variable then the results will be incorrect, often by an order of magnitude.
+variable then the results will change, often by an order of magnitude.
 I refer to this as the not-safe type three (NSTT) algorithm. 
 The \code{car} package in R uses this approach, for instance; the packages'
 documentation clearly states that the \code{contr.sum} option is necessary.
@@ -291,17 +659,20 @@ documentation clearly states that the \code{contr.sum} option is necessary.
 This flawed algorithm is, I believe, the source of a common critique that
 type 3 tests not marginal, i.e., that they are a test for main effects
 in the presence of interactions and are thus invalid.  
-This has muddied the waters terribly, and is in addition to the harm 
+This has muddied the discussion
+ terribly, and is in addition to the harm 
 caused by misapplication of the algorithm: sum constraints are not the
 default in most packages and I daresay that many or most computations have
 been wrong.  (How many people read the directions?)
 
-This is precisely the algorithm used by the SAS phreg procedure, though
+The NSTT is precisely the algorithm used by the SAS phreg procedure, though
 without any warning about how to choose the coding for categoricals.
 Within the survival package, the \code{yates} function can be used to obtain
 more general population averages; a subset of which correspond to Yates' tests.
 The survival package does not try to reproduce NSTT values.
 
+\bibliographystyle{plain}
+\bibliograpy{refer}
 \end{document}
 
 
