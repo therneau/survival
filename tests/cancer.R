@@ -1,7 +1,7 @@
+library(survival)
 
 options(na.action=na.exclude) # preserve missings
 options(contrasts=c('contr.treatment', 'contr.poly')) #ensure constrast type
-#library(survival)
 aeq <- function(x, y, ...) all.equal(as.vector(x), as.vector(y), ...)
 
 #
@@ -46,7 +46,7 @@ for (i in 1:ncoef) {
     } 
 aeq(check, zp1$table[1:ncoef,1]) # skip the 'global' test
 
-zp2 <- cox.zph(cfit2)
+zp2 <- cox.zph(cfit2, transform="log")
 all.equal(zp2$table, zp1$table)
 
 #
@@ -56,28 +56,3 @@ fit1 <- coxph(Surv(time, status) ~ . - meal.cal - wt.loss - inst, lung)
 fit2 <- update(fit1, .~. - ph.karno)
 fit3 <- coxph(Surv(time, status) ~ age + sex + ph.ecog + pat.karno, lung)
 all.equal(fit2, fit3)
-
-
-cfit3 <-coxph(Surv(time, status) ~ ph.ecog + ph.karno + pat.karno + wt.loss 
-	      + sex + age, lung) 
-cfit4 <-coxph(Surv(tstart, time, status) ~ ph.ecog + ph.karno + pat.karno + 
-                  wt.loss + sex + age, lung2)
-
-zp3 <- cox.zph(cfit3)
-zp4 <- cox.zph(cfit4)
-
-# try aml
-afit1 <- coxph(Surv(time, status) ~ x, aml)
-dtime <- sort(unique(aml$time[aml$status==1]))
-aml2 <- survSplit(Surv(time, status) ~., aml, cut=dtime)
-afit2 <- coxph(Surv(tstart, time, status) ~x, aml2)
-
-zp1 <- cox.zph(afit1, transform='log')
-zp2 <- cox.zph(afit2, transform='log')
-
-dt1 <- coxph.detail(afit1)
-
-
-afit3 <- coxph(Surv(tstart, time, status) ~x, aml2, iter=0)
-zp3 <- cox.zph(afit3)
-dt3 <- coxph.detail(afit3)

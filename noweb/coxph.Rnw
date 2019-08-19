@@ -1118,7 +1118,7 @@ model.frame.coxph <- function(formula, ...) {
         # Make "tt" visible for coxph formulas, 
         if (!is.null(attr(temp$formula, "specials")$tt)) {
             coxenv <- new.env(parent= environment(temp$formula))
-            assign("tt", function(x) x, env=coxenv)
+            assign("tt", function(x) x, envir=coxenv)
             environment(temp$formula) <- coxenv
         }
 

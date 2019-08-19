@@ -1,5 +1,5 @@
 
-R Under development (unstable) (2019-05-15 r76504) -- "Unsuffered Consequences"
+R Under development (unstable) (2019-06-28 r76752) -- "Unsuffered Consequences"
 Copyright (C) 2019 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
@@ -15,9 +15,11 @@ Type 'demo()' for some demos, 'help()' for on-line help, or
 'help.start()' for an HTML browser interface to help.
 Type 'q()' to quit R.
 
+> library(survival)
+> 
 > options(na.action=na.exclude) # preserve missings
 > options(contrasts=c('contr.treatment', 'contr.poly')) #ensure constrast type
-> library(survival)
+> aeq <- function(x, y, ...) all.equal(as.vector(x), as.vector(y), ...)
 > 
 > #
 > # Test out all of the routines on a more complex data set
@@ -130,81 +132,40 @@ inst=33  2  0.929177  0.416202 0.632249272 0.676682390
 
  Chisq= 15.1  on 17 degrees of freedom, p= 0.5904 
 > 
-> temp <- coxph(Surv(time, status) ~ ph.ecog + ph.karno + pat.karno + wt.loss 
-+ 	      + sex + age + meal.cal + strata(inst), lung)
-> summary(temp)
-Call:
-coxph(formula = Surv(time, status) ~ ph.ecog + ph.karno + pat.karno + 
-    wt.loss + sex + age + meal.cal + strata(inst), data = lung)
-
-  n= 167, number of events= 120 
-   (61 observations deleted due to missingness)
-
-                coef  exp(coef)   se(coef)      z Pr(>|z|)   
-ph.ecog    0.7299987  2.0750779  0.2689397  2.714  0.00664 **
-ph.karno   0.0130512  1.0131368  0.0137362  0.950  0.34204   
-pat.karno -0.0140955  0.9860034  0.0093680 -1.505  0.13242   
-wt.loss   -0.0148821  0.9852281  0.0084811 -1.755  0.07931 . 
-sex       -0.6612534  0.5162039  0.2339979 -2.826  0.00471 **
-age        0.0050920  1.0051050  0.0137288  0.371  0.71071   
-meal.cal  -0.0002398  0.9997602  0.0003019 -0.794  0.42701   
----
-Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-
-          exp(coef) exp(-coef) lower .95 upper .95
-ph.ecog      2.0751     0.4819    1.2249    3.5153
-ph.karno     1.0131     0.9870    0.9862    1.0408
-pat.karno    0.9860     1.0142    0.9681    1.0043
-wt.loss      0.9852     1.0150    0.9690    1.0017
-sex          0.5162     1.9372    0.3263    0.8166
-age          1.0051     0.9949    0.9784    1.0325
-meal.cal     0.9998     1.0002    0.9992    1.0004
-
-Concordance= 0.696  (se = 0.041 )
-Likelihood ratio test= 30.6  on 7 df,   p=7e-05
-Wald test            = 28.15  on 7 df,   p=2e-04
-Score (logrank) test = 30.72  on 7 df,   p=7e-05
-
-> cox.zph(temp)
-              rho  chisq      p
-ph.ecog    0.0276 0.1078 0.7427
-ph.karno   0.1331 2.0018 0.1571
-pat.karno  0.0250 0.0841 0.7718
-wt.loss   -0.0386 0.2122 0.6451
-sex        0.0399 0.1800 0.6713
-age        0.0639 0.5600 0.4543
-meal.cal   0.1611 3.6945 0.0546
-GLOBAL         NA 9.0115 0.2518
-> cox.zph(temp, transform='identity')
-              rho   chisq     p
-ph.ecog    0.0221  0.0688 0.793
-ph.karno   0.1217  1.6743 0.196
-pat.karno  0.0302  0.1227 0.726
-wt.loss   -0.0516  0.3790 0.538
-sex        0.0449  0.2280 0.633
-age        0.0719  0.7085 0.400
-meal.cal   0.1808  4.6537 0.031
-GLOBAL         NA 10.0537 0.186
+> # verify that the zph routine does the actual score test
+> dtime <- lung$time[lung$status==2]
+> lung2 <- survSplit(Surv(time, status) ~ ., lung, cut=dtime)
 > 
-> coxph(Surv(rep(0,length(time)), time, status) ~ ph.ecog + ph.karno + pat.karno
-+ 		+ wt.loss + sex + age + meal.cal + strata(inst), lung)
-Call:
-coxph(formula = Surv(rep(0, length(time)), time, status) ~ ph.ecog + 
-    ph.karno + pat.karno + wt.loss + sex + age + meal.cal + strata(inst), 
-    data = lung)
-
-                coef  exp(coef)   se(coef)      z       p
-ph.ecog    0.7299987  2.0750779  0.2689397  2.714 0.00664
-ph.karno   0.0130512  1.0131368  0.0137362  0.950 0.34204
-pat.karno -0.0140955  0.9860034  0.0093680 -1.505 0.13242
-wt.loss   -0.0148821  0.9852281  0.0084811 -1.755 0.07931
-sex       -0.6612534  0.5162039  0.2339979 -2.826 0.00471
-age        0.0050920  1.0051050  0.0137288  0.371 0.71071
-meal.cal  -0.0002398  0.9997602  0.0003019 -0.794 0.42701
-
-Likelihood ratio test=30.6  on 7 df, p=7.377e-05
-n= 167, number of events= 120 
-   (61 observations deleted due to missingness)
+> cfit1 <-coxph(Surv(time, status) ~ ph.ecog + ph.karno + pat.karno + wt.loss 
++ 	      + sex + age + strata(inst), lung) 
+> cfit2 <-coxph(Surv(tstart, time, status) ~ ph.ecog + ph.karno + pat.karno + 
++                   wt.loss + sex + age + strata(inst), lung2) 
+> all.equal(cfit1$loglik, cfit2$loglik)
+[1] TRUE
+> all.equal(coef(cfit1), coef(cfit2))
+[1] TRUE
+> 
+> # the above verifies that the data set is correct
+> # now compute score tests one variable at a time
+> zp1 <- cox.zph(cfit1, transform="log")
+> 
+> ncoef <- length(coef(cfit2))
+> check <- double(ncoef)
+> cname <- names(coef(cfit2))
+> for (i in 1:ncoef) {
++     temp <- log(lung2$time) * lung2[[cname[i]]]
++     # score test for this new variable
++     tfit <- coxph(Surv(tstart, time, status) ~ ph.ecog + ph.karno + pat.karno + 
++                   wt.loss + sex + age + strata(inst) +
++                   temp, lung2, init=c(cfit2$coef, 0), iter=0)
++     check[i] <- tfit$score
++     } 
+> aeq(check, zp1$table[1:ncoef,1]) # skip the 'global' test
+[1] TRUE
+> 
+> zp2 <- cox.zph(cfit2, transform="log")
+> all.equal(zp2$table, zp1$table)
+[1] TRUE
 > 
 > #
 > # Tests of using "."
@@ -217,4 +178,4 @@ n= 167, number of events= 120
 > 
 > proc.time()
    user  system elapsed 
-  0.796   0.048   0.850 
+  1.352   0.028   1.381 
