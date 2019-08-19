@@ -125,7 +125,7 @@ coxph <- function(formula, data, weights, subset, na.action,
     # Make "tt" visible for coxph formulas, without making it visible elsewhere
     if (!is.null(attr(tform$formula, "specials")$tt)) {
         coxenv <- new.env(parent= environment(formula))
-        assign("tt", function(x) x, env=coxenv)
+        assign("tt", function(x) x, envir=coxenv)
         environment(tform$formula) <- coxenv
     }
 
@@ -363,11 +363,11 @@ if (length(cluster)) cluster <- cluster[xstack$rindex]
 The next step for multi X is to remake the assign attribute. 
 It is a list with one element per term, and needs to be expanded in the
 same way as \code{tmap}, which has one row per term (+ an intercept row).
-For \code{predict, type='terms') to work, no label can be repeated in the
+For \code{predict, type='terms'} to work, no label can be repeated in the
 final assign object. 
 If a variable `fred' were common across all the states we would want to
 use that as the label, but if it appears twice, as separate terms for
-two different transitions, then we label it as fredx:y where x:y is the
+two different transitions, then we label it as fred\_x:y where x:y is the
 transition.
 <<coxph-multi-X>>=
 t2 <- tmap[-1,,drop=FALSE]   # remove the intercept row
@@ -505,7 +505,7 @@ the formula.  Some objects in the terms structure are unevaluated calls
 that include y, this adds 2 to the count (the call to ``list'' and
 the response).
 
- <<coxph-transform>>=
+<<coxph-transform>>=
 Y <- Surv(rep(counts$time, counts$nrisk), counts$status)
 type <- 'right'  # new Y is right censored, even if the old was (start, stop]
 

@@ -58,17 +58,13 @@ cox.zph <- function(fit, transform='km', singledf =TRUE, global=TRUE) {
     y <- cget$y
     ny <- ncol(y)
     event <- (y[,ny] ==1)
-    if (length(cget$strata)) istrat <- cget$strata - 1L  # number from 0, for C
+    if (length(cget$strata)) 
+        istrat <- as.integer(cget$strata) - 1L # number from 0 for C
     else istrat <- rep(0L, nrow(y))
 
-    sresid <- resid(fit, 'schoenfeld')
     varnames <- names(fit$coefficients)
     nvar <- length(varnames)
-    ndead<- length(sresid)/nvar
-  
-    #if (nvar==1) times <- as.numeric(names(sresid))
-    #else         times <- as.numeric(dimnames(sresid)[[1]])
-
+   
     <<zph-transform>>
     <<zph-terms>>
     <<zph-schoen>>
@@ -221,7 +217,7 @@ above manipulations.
 wtmat <- matrix(0, nvar, nvar)
 for (i in 1:nrow(resid$used))
     wtmat <- wtmat + outer(resid$used[i,], pmin(resid$used[i,], 1), '*')
-vmean <- resid$imat[1:nvar, 1:nvar]/wtmat
+vmean <- resid$imat[1:nvar, 1:nvar, drop=FALSE]/wtmat
 
 sresid <- resid$schoen
 if (singledf && any(sapply(asgn, length) > 1)) { # collase multi-column terms
@@ -241,17 +237,19 @@ else {
     keep <- !is.na(fit$coefficients)
     used <- resid$used[,keep, drop=FALSE]
     colnames(sresid) <- names(fit$coefficients)[keep]
-    vmean <- vmean[keep, keep]
+    vmean <- vmean[keep, keep, drop=FALSE]
 }
 
-# for each stratum, rescale the observations in that stratum
+# for each stratum, rescale the Schoenfeld residuals in that stratum
 sgrp <- rep(1:nrow(resid$used), apply(resid$used, 1, max))
 for (i in 1:nrow(used)) {
     k <- which(used[i,] > 0)
-    j <- which(sgrp==i)
-    if (length(k) ==1) sresid[j,k] <- sresid[j,k]/vmean[k,k]
-    else sresid[j, k] <- t(solve(vmean[k, k], t(sresid[j, k])))
-    sresid[j, -k] <- NA
+    if (length(k) >0)  { # there might be no deaths in the stratum
+        j <- which(sgrp==i)
+        if (length(k) ==1) sresid[j,k] <- sresid[j,k]/vmean[k,k]
+        else sresid[j, k] <- t(solve(vmean[k, k], t(sresid[j, k, drop=FALSE])))
+        sresid[j, -k] <- NA
+    }
 } 
 rval$y <- sresid
 rval$var <- solve(vmean)  

@@ -75,7 +75,7 @@ dim.survfit <- function(x) {
     d1name <- "strata"
     d2name <- "data"
     d3name <- "states"
-    if (is.null(x$strata))  {d1<- d1name <- NULL}  else d1 <- length(x$strata)
+    if (is.null(x$strata))  d1 <- 1  else d1 <- length(x$strata)
     if (is.null(x$newdata)) {d2 <- d2name <- NULL} else d2 <- nrow(x$newdata)
     if (is.null(x$states))  {d3 <- d3name <- NULL} else d3 <- length(x$states)
     
@@ -121,7 +121,15 @@ dim.survfit <- function(x) {
         return(x)
     }
     
-    # We need to make a new one
+    # Code below is easier if "i" is always the strata
+    if (dtype[1] !=1) {
+        dtype <- c(1, dtype)
+        j <- i; i <- NULL
+        dd <- c(1, dd)
+        ndots <- ndots +1
+    }       
+
+   # We need to make a new one
     newx <- vector("list", length(x))
     names(newx) <- names(x)
     for (k in c("logse", "version", "conf.int", "conf.type", "type", "call"))

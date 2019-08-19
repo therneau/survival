@@ -1735,7 +1735,7 @@ there are two pairs of failures, at 5 and at 8 months.
 It might be reasonable to assume that if the data had been recored in days
 these ties might not have occured.
 <<>>=
-with(subset(aml, x="Nonmaintained"), Surv(time, status))
+with(subset(aml, x=="Nonmaintained"), Surv(time, status))
 @ 
 
 Let the risk scores $\exp(X\beta)$ for the 12 subjects be $r_1$--$r_{12}$,

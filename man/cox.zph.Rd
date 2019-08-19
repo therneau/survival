@@ -10,7 +10,7 @@ Test the proportional hazards assumption for a Cox regression model fit
 (\code{coxph}). 
 }
 \usage{
-cox.zph(fit, transform="km", global=TRUE)
+cox.zph(fit, transform="km", singledf=TRUE, global=TRUE)
 }
 \arguments{
   \item{fit}{
@@ -22,6 +22,8 @@ cox.zph(fit, transform="km", global=TRUE)
     Possible values are \code{"km"}, \code{"rank"}, \code{"identity"} or  a 
     function of one argument. 
   }
+  \item{singledf}{use a single degree of freedom test for terms that
+    have multiple coefficients}
   \item{global}{
     should a global chi-square test be done, in addition to the 
     per-variable tests. 

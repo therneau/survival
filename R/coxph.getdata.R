@@ -22,6 +22,7 @@ coxph.getdata <- function(fit, y=TRUE, x=TRUE, stratax=TRUE,
 
     # Avoid calling model.frame unless we have to: fill in weights and/or
     #  offset when they were not present
+    twt <- NULL
     if (!is.null(n)) {
         if (is.null(fit$call$weights)) twt <- rep(1,n)
         if (is.null(attr(terms(fit), "offset"))) toff <- rep(0, n)
@@ -43,7 +44,7 @@ coxph.getdata <- function(fit, y=TRUE, x=TRUE, stratax=TRUE,
         n <- nrow(mf)
         
 	# Pull things out
-        if (is.null(twt) && weight) {
+        if (is.null(twt) && weights) {
             twt <- model.extract(mf, "weights")
             if (is.null(twt)) twt <- rep(1.0, n)
         }
@@ -78,16 +79,16 @@ coxph.getdata <- function(fit, y=TRUE, x=TRUE, stratax=TRUE,
             strat <- xstack$strata
             stratax <- TRUE
             if (offset) toff <- toff[xstack$rindex]
-            if (weight) twt  <- twt[xstack$rindex]
+            if (weights) twt  <- twt[xstack$rindex]
 
             # And last, toss missing values, which had been deferred
             ismiss <- is.nan(ty) | apply(is.na(tx), 1, any)
             if (offset) ismiss <- ismiss | is.nan(toff)
-            if (weight) ismiss <- ismiss | is.nan(twt)
+            if (weights) ismiss <- ismiss | is.nan(twt)
 
             if (any(ismiss)) {
                 if (offset) toff <- toff[!ismiss]
-                if (weight) twt  <- twt[!ismiss]
+                if (weights) twt  <- twt[!ismiss]
             
                 if (y) ty<- ty[!ismiss]
                 if (x) tx <- tx[!ismiss,,drop=FALSE]
@@ -99,7 +100,7 @@ coxph.getdata <- function(fit, y=TRUE, x=TRUE, stratax=TRUE,
     temp <- list()
     if (y) temp$y <- ty
     if (x) temp$x <- tx
-    if (stratax)  temp$strata <- as.numeric(strat)
+    if (stratax)  temp$strata <- strat
     if (offset)  temp$offset <- toff
     if (weights) temp$weights <- twt
     temp

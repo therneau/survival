@@ -562,7 +562,7 @@ The SAS GLM algorithm is based on a particular one of these:
 \begin{itemize}
   \item Form a $Z'Z$ matrix from a
     \emph{balanced subset} of the observations in the data set,
-  \item create as set of contrasts that are orthogonal to $(Z'Z)^{-1}
+  \item create as set of contrasts that are orthogonal to $(Z'Z)^{-1}$
   \item apply those contrasts to the original data to get 
     sums-of-squares for each term.
 \end{itemize}
@@ -672,7 +672,7 @@ more general population averages; a subset of which correspond to Yates' tests.
 The survival package does not try to reproduce NSTT values.
 
 \bibliographystyle{plain}
-\bibliograpy{refer}
+\bibliography{refer}
 \end{document}
 
 

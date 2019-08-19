@@ -1,4 +1,4 @@
-#library(survival)
+library(survival)
 aeq <- function(x, y) all.equal(as.vector(x), as.vector(y))
 # 
 # Compute the hazard functions for a multi-state Cox model
@@ -160,8 +160,7 @@ aeq(csurv3$time, time2)
 aeq(csurv3$cumhaz[,1,], chaz2)
 aeq(csurv3$cumhaz[,2,], chaz2)
 check3 <- with(test2, coxhaz(Surv(t1, t2, state), id=id))
-indx3 <- match(check3$timeaeq(check4$cumhaz, csurv4$cumhaz[indx3,1,])
-, csurv3$time)
+indx3 <- match(check3$time, csurv3$time)
 aeq(check3$cumhaz, chaz2[indx3,])  # a check on the coxhaz function above
 
 cox4 <- coxph(Surv(t1,t2, state) ~ x, id=id, test2, 

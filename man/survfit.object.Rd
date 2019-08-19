@@ -121,9 +121,12 @@ The following components must be included in a legitimate
 Survfit objects can be subscripted. 
 This is often used to plot a subset of the curves, for instance.
 From the user's point of view the \code{survfit} object appears to be
-a vector, matrix, or array of curves, indexed by the strata or group,
-the covariate values used for prediction (for curves from a Cox
-model), and the states.  
+a vector, matrix, or array of curves.
+The first dimension is always the underlying number of curves or
+``strata'';
+for multi-state models the state is always the last dimension.
+Predicted curves from a Cox model can have a second dimension
+which is the number of different covariate prediction vectors.
 }
 
 \section{Details}{
@@ -137,18 +140,19 @@ The first corrects what was, in retrospect, a design flaw; which is that
 the \code{time} and \code{surv} components do not contain the starting
 point of the curve, which was known to be x=0, y=1.  With
 the later additions of multi-state curves and delayed entry, however,
-this assumption is false, leading to the addition of
+this (0,1) assumption will be false, leading to the addition of
 \code{start.time}, \code{p0}, and \code{sp0} component to hold the
 actual first x value, y values, and standard devaiation of y,
 respectively.  Addition of the cumulative hazard and influence matrices
 threatened to further increase the proliferation with 4 more "first row"
 components.
-In version 3.x of the package this was rectified, addition of a
+In version 3.0 of the package this was rectified, addition of a
 \code{version=3} component to the object signals that the \code{time}
 vector starts with the first point, and the extra components are not
 present.
 Two helper routines \code{survfit23} and \code{survfit32} will convert
-from the pre-v3 form to v3, and back the other way.
+from the pre-v3 form to v3, and back the other way;
+they do nothing if the object is already in the desired form.
 
 The other change in v3 is the addition of a \code{survfitconf} routine
 which will compute confidence intervals for a \code{survfit} object.

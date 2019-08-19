@@ -397,6 +397,7 @@ SEXP zph2(SEXP gt2,    SEXP y2,
 	}	
 	for (j=0; j<nstrat; j++) used[i][j] =0;
 	}
+    for (i=0; i<nused; i++) keep[i] =0;
 
     /*
     **	Count the effective number of events for each covariate in each

@@ -40,24 +40,14 @@ or integer indices.
     if (ndots >3) stop("too many subscripts for survfit object")
     if (is.null(i) & is.null(j) & is.null(k)) return(x)
 
-    # We need to make a new one
+    # Make a new object
     newx <- vector("list", length(x))
     names(newx) <- names(x)
     for (kk in c("logse", "version", "conf.int", "conf.type", "type", "call"))
         if (!is.null(x[[kk]])) newx[[kk]] <- x[[kk]]
     class(newx) <- class(x)
 
-    # If the first dimension is 1 (there are no strata), we let the
-    #  use ignore that dimension
-    if (is.null(x$strata) && (ndots+1) == length(dd)) {
-        k <- j; j<- i; i <- NULL
-        ndots <- ndots +1
-    }
 
-    # From a user's point of view the data and state dimensions are
-    #  separate, but in the object these two are combined and appear as the
-    #  columns of pstate.
-    #
     if (ndots==1 && length(dd) > 1) {
         # the 'treat it as a vector' case
         # if only one dimension is >1, it is easier to expand out i,j,k
@@ -113,7 +103,7 @@ or integer indices.
 
     if (is.null(i)) i <- seq.int(dd[1])
     else i <- nmatch(i, names(x$strata))
-    if (dtype[1]!=1 || dd[1]==1) # no strata or only 1
+    if (dd[1]==1) # no strata or only 1
         irow <- rep(seq(along= x$time), length(i))
     else {
         itemp <- split(1:sum(x$strata), rep(1:length(x$strata), x$strata))
@@ -127,7 +117,7 @@ or integer indices.
     
     # two cases: with newx or without newx  (pstate is always present)
     nstate <- length(x$states)
-    if (all(dtype !=2)) {  # j indexes the states
+    if (dtype[2] !=2) {  # j indexes the states
         if (is.null(j)) j <- seq.int(nstate)
         else j <- nmatch(j, x$states)
          
@@ -227,7 +217,7 @@ or integer indices.
          }
 
         if (length(j)==1 && drop) newx$newdata <- NULL
-        else newx$newdata <- x$newdata[j,]  #newdata is a data frame
+        else newx$newdata <- x$newdata[j,,drop=FALSE]  #newdata is a data frame
  
     }
     newx
