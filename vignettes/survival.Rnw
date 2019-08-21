@@ -22,6 +22,8 @@
                         {compete-#1.pdf}}
 
 \newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\Lhat}{\hat\Lambda}
+
 \setkeys{Gin}{width=\textwidth}
 <<echo=FALSE>>=
 options(continue="  ", width=60)
@@ -1167,7 +1169,7 @@ For the simple case of adding up rectangles $f(P +U_i) - f(P) = f(U_i)$ leading
 to particularly simple code, but this will not always be the case.  
 
 \section{State space figures}
-label{sect:statefig}
+\label{sect:statefig}
 The state space figures in the above example were drawn with a simple
 utility function \code{statefig}.  It has two primary arguments along with
 standard graphical options of color, line type, etc.
@@ -1511,7 +1513,7 @@ infections, rather than the probability of having at least 1.
 The former is estimated by the cumulative hazard, which is also returned
 by the \code{survfit} routine.
 
-<<cfit3, plot=TRUE>>=
+<<cfit3, fig=TRUE>>=
 plot(csurv[1,], cumhaz=TRUE, col=1:2, lty=c(1,1,2,2), lwd=2,
      xlab="Days on study", ylab="E( number of infections )")
 legend(20, 5, c("Steroid subject, control", "Steroid subject, gamma interferon",
@@ -1637,7 +1639,7 @@ with ages of 60 and 80.
 <<PCMcurve, fig=TRUE>>=
 dummy <- expand.grid(sex=c("F", "M"), age=c(60, 80), mspike=1.2)
 csurv  <- survfit(cfit, newdata=dummy)
-plot(csurv[,2], xmax=20*12, xscale=12,
+plot(csurv[,,2], xmax=20*12, xscale=12,
      xlab="Years after MGUS diagnosis", ylab="Pr(has entered PCM state)",
      col=1:2, lty=c(1,1,2,2), lwd=2)
 legend(100, .04, outer(c("female,", "male,  "), 
@@ -1801,7 +1803,7 @@ What we see is that
     i.e. a shift that is statistically immaterial.
 \end{itemize}
     
-<<coarsen>>=
+<<coarsen,fig=TRUE>>=
 tdata <- subset(colon, etype==1)   # progression or death
 cmat <- matrix(0, 7, 6)
 for( i in 1:7) {
@@ -1840,7 +1842,7 @@ The increment to the Nelson-Aalen cumulative hazard estimate would
 then be 3/10.
 If the data had been observed in continuous time, however, there would have
 been 3 increments of 1/10 + 1/9 + 1/8.
-This estimate was explored by Fleming and Harrington \cite{Flemingxxx}.
+This estimate was explored by Fleming and Harrington \cite{Fleming84}.
 In the \code{survfit} function the \code{ctype} option selects for
 1=Nelson-Aalen and 2= Fleming-Harrington.
 
@@ -1848,7 +1850,7 @@ The Kaplan-Meier estimate is not subject to the coarsening phenominon.
 In our example, the observed data will lead to a multipilicative increment
 of 7/10 and the continuous data to one of (9/10)(8/9)(7/8), which are the 
 same.
-An alternate estimate of the survival is $S(t) = \exp(-\Lamda(t))$.
+An alternate estimate of the survival is $S(t) = \exp(-\Lambda(t))$.
 Basing this on the FH estimate of hazard will more closely track the KM 
 when there are tied event times.
 The direct (KM) vs. exponential estimates of survival are obtained with
@@ -1868,7 +1870,8 @@ X=0, what textbooks often call a ``baseline hazard'', since if 0 is too
 far from the center of the data the exp function can easily overflow.)
 The estimated cumulative hazard at any event time is then
 \begin{equation}
-  \Lhat(t) = \int_0^t \frac{\sum_i dN_i(t)}{\sum_i Y_i(t) r_i \lab{haz:breslow}
+  \Lhat(t) = \int_0^t \frac{\sum_i dN_i(t)}{\sum_i Y_i(t) r_i} 
+  \label{haz:breslow}
 \end{equation}
 Equation \eqref{haz:breslow} is known as the Breslow estimate;
 if $\hat\beta=0$ then $r_i=1$ and it becomes equal to
@@ -2088,6 +2091,9 @@ Each element indexes a position in the coefficient vector and variance matrix.
   \item The first row of \code{cmap}, labeled ``stratum'', is numbered separately
     and partitions the transitions into disjoint strata.
 \end{itemize}
+
+\bibliographystyle{plain}
+\bibliography{refer}
 
 \end{document}
 

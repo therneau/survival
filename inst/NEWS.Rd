@@ -5,6 +5,8 @@
     \item Make sure all calls to data.frame explicitly select a value
     for the stringsAsFactors option.
     \item Updates to cox.zph for the singledf option
+    \item Add formal test of the cox.zph statistics
+    \item Add the sas vignette.
 }}     
 \section{Changes in version 3.0}{
   \itemize{

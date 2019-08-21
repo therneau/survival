@@ -99,7 +99,14 @@ or integer indices.
     }
     
     # not a single subscript, i.e., the usual case
-    if (ndots != length(dd)) stop("incorrect number of dimensions")
+    if (dd[1]==1 && (ndots+1 == length(dd)) && is.null(x$strata)) {
+        # if there is only one curve, no 'strata', then we allow users
+        #  to ignore the first dimension
+        k <- j; j <- i; i <- 1
+        ndots <- ndots +1
+    }
+    else 
+        if (ndots != length(dd)) stop("incorrect number of dimensions")
 
     if (is.null(i)) i <- seq.int(dd[1])
     else i <- nmatch(i, names(x$strata))
