@@ -771,7 +771,7 @@ An alternate ``type 3'' algorithm found outside of SAS is the following.
 If the columns of $X$ for the categorical variables in the model are coded 
 using the summation constraint, and the Yates' SS is well
 defined (no missing cells),
-then, rather remarkably, this seemingly half-baked approach will re-create 
+then, rather remarkably, half-baked approach will re-create 
 the Yates sum-of-squares for each term.
 If any other method is used to generate the 0/1 columns for a categorical
 variable the results are meaningless, and in fact will often change 
@@ -790,27 +790,40 @@ a reminder here is the two way form where $\epsilon$ is the residual error.
      0 &= \sum_j \beta_j
      0 &= \sum_i \gamma_{ij} &= \sum_j \gamma_{ij}
 \end{align*}
+Assume a simple 2 factor model y = trt + x2 + interaction, where treatment
+has two levels A/B and x2 has $k$ levels.
+case one can quickly verify that the the NSTT test for treatment is actually a
+comparison of A vs. B in the \emph{reference} level for x2, ignoring all
+others, leading to $k$ different results as we rotate the choice of
+reference.  This is very different than the type 3 narrative of being a
+global test.
+When sum constraints are used the `reference' for x2 will be an average and
+the NSTT matches the Yates' estimate.
+We suspect that the same general pattern extends to more complex models.
 
-The flawed NSTT algorithm is, I believe, the source of a common critique that
+
+The flawed NSTT algorithm is, I believe, a primary source of a common 
+critique that
 type 3 tests not marginal, i.e., that they are a test for main effects
 in the presence of interactions and are thus invalid.  
 This has muddied the discussion of population contrasts
  terribly, and is in addition to the harm 
 caused by misapplication of the algorithm: sum constraints are not the
 default in most packages and I daresay that many or even most computations have
-been wrong.  (How many people read the directions?)
+been wrong.  (How many people read directions?)
 
 \subsection*{Type 3 and phreg}
 The NSTT is precisely the algorithm used by the SAS phreg procedure, though
-without any warning about how to choose the coding for categoricals.
+without any warning about how to choose the coding for categorical predictors.
 This can be verified for the test example above by creating the
 appropriate \code{coxph} fits and performing Wald tests.
-For example, the first two fits below code reproduce the phreg results
-that use 'A' and 'D' as the reference levels.
-The \code{yates} function produces Yates' population contrast;
+For example, the first two fits below code reproduce phreg results
+that used 'A' and 'D' as the reference levels.
+The \code{yates} function in the survival package produces Yates' 
+population contrast;
 it's result is identical whether fit1 or fit2 is used as the input.
 The final phreg fit that used a sum constraint,
-referred to as ``effects'' coding in SAS, agrees with the Yates' result.
+referred to as ``effects'' coding in SAS, agreed with the Yates' result.
 
 <<sasr>>=
 contr.x1 <- matrix(0, nrow=2, ncol=11)

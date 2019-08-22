@@ -6,7 +6,7 @@
 **      surv    start, stop, event matrix of survival data
 **      score   the vector of subject scores, i.e., exp(beta*z)
 **      weight  case weights
-**      strata   sizes of the strata
+**      strata  integer vector of strata identifiers
 **      sort     sort order for the obs: col1 = stop times, 2 = start times
 **         time within strata for both
 **      method  will be ==1 for the Efron method
@@ -21,12 +21,12 @@ SEXP agmart3(SEXP nused2,  SEXP surv2,  SEXP score2, SEXP weight2,
 	     SEXP strata2, SEXP sort12, SEXP sort22, SEXP method2) {
 
     int i, k;
-    int p, p1, istrat, indx2;
+    int p2, p1, istrat;
     double deaths, denom, e_denom;
     double hazard, e_hazard, cumhaz;
     double temp, dtime;
     double wtsum;
-    int nr, person, nused;
+    int nr, person1, person2, nused;
  
     /* pointers to the input data */
     double *start, *stop, *event;
@@ -56,12 +56,14 @@ SEXP agmart3(SEXP nused2,  SEXP surv2,  SEXP score2, SEXP weight2,
     for (k=0; k<nr; k++) resid[k] =0;
 
     /*
-    **  'person' walks through the the data from 1 to nused,
-    **     sort1[0] points to the largest stop time, sort1[1] the next, ...
+    **  person1, p1, sort1 refer to start times, and person2, p2, sort2
+    **    to the ending times for each subject.
+    **  'person2' walks through the the data from 1 to nused,
+    **     sort2[0] points to the largest stop time, sort2[1] the next, ...
     **  'time' is a scratch variable holding the time of current interest
-    **  'indx2' walks through the start times.  It will be smaller than 
-    **    'person': if person=27 that means that 27 subjects have stop >=time,
-    **    and are thus potential members of the risk set.  If 'indx2' =9,
+    **  'person1' walks through the start times.  It will be smaller than 
+    **    'person2': if person2=27 that means that 27 subjects have stop >=time,
+    **    and are thus potential members of the risk set.  If 'person1' =9,
     **    that means that 9 subjects have start >=time and thus are NOT part
     **    of the risk set.  (stop > start for each subject guarrantees that
     **    the 9 are a subset of the 27). 
@@ -70,61 +72,55 @@ SEXP agmart3(SEXP nused2,  SEXP surv2,  SEXP score2, SEXP weight2,
     **    be large.
     **  Algorithm: 
     **    look ahead to find the next death time 'dtime'
-    **    finish the calc for anyone no longer at risk at that time, then remove
+    **    remove anyone no longer at risk from the sums, finish calculating resid
     **    add anyone newly at risk to the sums
     **    update the cumulative hazard
     **    everything resets at the end of a stratum.
     **  The sort order is from large time to small, so we encounter a subject's
     **    ending time first, then their start time.
     **  The martingale residual for a subject is 
-    **     status - (cumhaz at end of their interval - cumhaz at start)*score
+    **     status - (cumhaz at tstop - cumhaz at tstart+0)*score
     **  If there is an observation that is never in a risk set, i.e., the
     **   (time1, time2) pair overlaps no events, the parent routine will have
     **   sorted them to the end, set nused < nr, and their initial residual
     **   of zero never is updated.
     */
-    indx2 =0;
+    person1 =0;
     denom =0;
     cumhaz =0;
-    istrat = strata[sort1[person]];
-    for (person=0; person <nused; ) {
+    istrat = strata[sort1[0]];
+    for (person2=0; person2 <nused; ) {
 	/* find the next event time */
-	for (k=person; k<nused; k++) {
-	    p = sort2[k];
-	    if (strata[p] != istrat) {
+	for (k=person2; k<nused; k++) {
+	    p2 = sort2[k];
+	    if (strata[p2] != istrat) {
 		/* start of a new stratum */
-		for (; indx2< nused; indx2++) {
-		    p1 = sort1[indx2];
+		for (; person1< nused; person1++) {
+		    p1 = sort1[person1];
 		    if (strata[p1] != istrat) break;
 		    resid[p1] -= cumhaz * score[p1];
 		}
 		cumhaz =0;
 		denom = 0;
-		istrat= strata[p];
+		istrat= strata[p1];
 	    }
-	    if (event[p] >0) break;
+	    if (event[p2] >0) {
+		dtime = stop[p2];
+		break;
+	    }
 	}
-
-	if (k==nused) {
-	    /* no event found, all done */
-	    for (; indx2< nused; indx2++) {
-		p1 = sort1[person];
-		resid[p1] -= cumhaz * score[p1];
-	    }
-	    person = nused;
-	    break;
-	}	
-	else dtime = stop[p];
+	if (k==nused) break;
 
 	/* 
 	** Remove those subjects whose start time is to the right
 	**  from the risk set, and finish computation of their residual
 	*/
-	for (;  indx2 <nused; indx2++) {
-	    p1 = sort1[indx2];
-	    if (start[p1] <= dtime || strata[p1] != istrat) break;
-	    denom -= score[p] * weight[p1];
-	    resid[p] -= cumhaz * score[p1];
+	for (;  person1 <nused; person1++) {
+	    p1 = sort1[person1];
+	    if (start[p1] < dtime || strata[p1] != istrat) break;
+
+	    denom -= score[p1] * weight[p1];
+	    resid[p1] -= cumhaz * score[p1];
 	}
 	
 	/*
@@ -132,16 +128,17 @@ SEXP agmart3(SEXP nused2,  SEXP surv2,  SEXP score2, SEXP weight2,
         */
 	deaths =0;
 	e_denom =0;
-	for (k=person; k< nused; k++) {
-	    p = sort2[k];
-	    if (stop[p] < dtime || strata[p] != istrat) break;
+	wtsum =0;
+	for (k=person2; k< nused; k++) {
+	    p2 = sort2[k];
+	    if (stop[p2] < dtime || strata[p2] != istrat) break;
 
-	    denom += score[p] * weight[p];
-	    resid[p] = cumhaz * score[p];
-	    if (event[p] ==1) {
+	    denom += score[p2] * weight[p2];
+	    resid[p2] = cumhaz * score[p2];
+	    if (event[p2] ==1) {
 		deaths ++;
-		e_denom += score[p] * weight[p];
-		wtsum += weight[p];
+		e_denom += score[p2] * weight[p2];
+		wtsum += weight[p2];
 	    }
 	}		    
 	
@@ -169,10 +166,16 @@ SEXP agmart3(SEXP nused2,  SEXP surv2,  SEXP score2, SEXP weight2,
 	** Update the hazard for deaths
         */
 	temp = hazard - e_hazard;  /* will be 0 for Breslow */
-	for (; person <k; person++) {
-	    p = sort2[person];
-	    if (event[p] >0) resid[p] += 1 + temp*score[p];
+	for (; person2 <k; person2++) {
+	    p2 = sort2[person2];
+	    if (event[p2] >0) resid[p2] += 1 + temp*score[p2];
 	}
+    }
+
+    /* finish up the last few */
+    for (; person1< nused; person1++) {
+	p1 = sort1[person1];
+	resid[p1] -= cumhaz * score[p1];
     }
 
     UNPROTECT(1);
