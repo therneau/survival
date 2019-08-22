@@ -409,7 +409,7 @@ static double coxfit6_iter(int nvar, int nused,  int method, double *beta) {
 	    }
 
 	if (ndead >0) {  /* we need to add to the main terms */
-	    if (method==0) { /* Breslow */
+	    if (method==0 || ndead==1) { /* Breslow */
 		denom += denom2;
 		loglik -= deadwt* log(denom);
 	   

@@ -2,7 +2,8 @@
 ** Prototypes of all the survival functions
 **  Including this in each routine helps prevent mismatched argument errors
 */
-SEXP agfit4(SEXP surv2,      SEXP covar2,    SEXP strata2,
+SEXP agfit4(SEXP n2,
+	    SEXP surv2,      SEXP covar2,    SEXP strata2,
             SEXP weights2,   SEXP offset2,   SEXP ibeta2,
             SEXP sort12,     SEXP sort22,    SEXP method2,
             SEXP maxiter2,   SEXP  eps2,     SEXP tolerance2,
@@ -27,8 +28,8 @@ void agfit5b( Sint *maxiter,   Sint *nusedx,    Sint *nvarx,
 
 void agfit5c();
 
-SEXP agmart3(SEXP surv2, SEXP score2, SEXP weight2, SEXP strata2,
-	     SEXP sort2, SEXP method2);
+SEXP agmart3(SEXP nused2,  SEXP surv2,  SEXP score2, SEXP weight2, 
+	     SEXP strata2, SEXP sort12, SEXP sort22, SEXP method2);
 
 void agexact(Sint *maxiter,  Sint *nusedx,   Sint *nvarx,   double *start, 
 	     double *stop,   Sint *event,    double *covar2,double *offset, 

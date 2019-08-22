@@ -143,6 +143,7 @@ coxph <- function(formula, data, weights, subset, na.action,
     else if (type!='right' && type!='counting')
 	stop(paste("Cox model doesn't support \"", type,
 			  "\" survival data", sep=''))
+    data.n <- nrow(Y)   #remember this before any time transforms
 
     if (!multi && multiform)
         stop("formula is a list but the response is not multi-state")
@@ -153,7 +154,6 @@ coxph <- function(formula, data, weights, subset, na.action,
         <<coxph-multiform2>>
     }
 
-    data.n <- nrow(Y)   #remember this before any time transforms
     if (control$timefix) Y <- aeqSurv(Y)
     <<coxph-bothsides>>
         
@@ -220,6 +220,7 @@ coxph <- function(formula, data, weights, subset, na.action,
     <<coxph-finish>>
     }
 @     
+
 
 Multi-state models have a multi-state response, optionally they have a
 formula that is a list.

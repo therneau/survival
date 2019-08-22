@@ -23,9 +23,7 @@ backwards through time, adding and subtracting subject from the sum as
 we go.
 The code below creates two sort indices, one orders the data by reverse stop
 time and the other by reverse start time, each within strata.
-For the first events are sorted before censors for a computational reason
-detailed later.
-
+ 
 The fit routine is called by the coxph function with arguments
 \begin{description}
   \item[x] matrix of covariates
@@ -40,31 +38,53 @@ The fit routine is called by the coxph function with arguments
   \item[rownames] used to label the residuals
 \end{description}
 
+If the data set has any observations whose (start, stop] interval does not
+overlap any death times, those rows of data play no role in the computation,
+and we push them to the end of the sort order and report a smaller $n$ to
+the C routine.
+The reason for this has less to do with efficiency than with safety: one user,
+for example, created a data set with a time*covariate interaction, to be
+used for testing proportional hazards with an \code{x:ns(time, df=4)} term.
+They had cut the data up by day using survSplit, there was a long
+no-event stretch of time before the last censor, and this generated some large
+outliers in the extrapolated spline --- large enough to force an exp() overflow.
+
 <<agreg.fit>>=
 agreg.fit <- function(x, y, strata, offset, init, control,
 			weights, method, rownames, resid=TRUE)
     {
-    n <- nrow(y)
     nvar <- ncol(x)
     event <- y[,3]
     if (all(event==0)) stop("Can't fit a Cox model with 0 failures")
 
+    if (missing(offset) || is.null(offset)) offset <- rep(0.0, nrow(y))
+    if (missing(weights)|| is.null(weights))weights<- rep(1.0, nrow(y))
+    else if (any(weights<=0)) stop("Invalid weights, must be >0")
+    else weights <- as.vector(weights)
+
+    # Find rows to be ignored
+    event <- y[,3] > 0
+    dtime <- sort(unique(y[event, 2]))
+    indx1 <- findInterval(y[,1], dtime, left.open=TRUE)
+    indx2 <- findInterval(y[,2], dtime) 
+    indx3 <- findInterval(y[,2], dtime, left.open=TRUE)
+    # indx2 != indx3 for any obs that ends on a death time, they are by
+    #  definition good
+    # indx1 != indx2 for any obs that spans an event time
+    ignore <- (indx2 == indx3 & indx1 == indx2)
+    nused  <- sum(!ignore)
+
     # Sort the data (or rather, get a list of sorted indices)
     #  For both stop and start times, the indices go from last to first
     if (length(strata)==0) {
-	sort.end  <- order(-y[,2]) -1L #indices start at 0 for C code
-	sort.start<- order(-y[,1]) -1L
-	newstrat  <- n
+	sort.end  <- order(ignore, -y[,2]) -1L #indices start at 0 for C code
+	sort.start<- order(ignore, -y[,1]) -1L
+	strata <- rep(0L, nrow(y))
 	}
     else {
-	sort.end  <- order(strata, -y[,2]) -1L
-	sort.start<- order(strata, -y[,1]) -1L
-	newstrat  <- cumsum(table(strata))
+	sort.end  <- order(ignore, strata, -y[,2]) -1L
+	sort.start<- order(ignore, strata, -y[,1]) -1L
 	}
-    if (missing(offset) || is.null(offset)) offset <- rep(0.0, n)
-    if (missing(weights)|| is.null(weights))weights<- rep(1.0, n)
-    else if (any(weights<=0)) stop("Invalid weights, must be >0")
-    else weights <- as.vector(weights)
 
     if (is.null(nvar) || nvar==0) {
 	# A special case: Null model.  Just return obvious stuff
@@ -90,9 +110,8 @@ agreg.fit <- function(x, y, strata, offset, init, control,
     # Solidify the storage mode of other arguments
     storage.mode(y) <- storage.mode(x) <- "double"
     storage.mode(offset) <- storage.mode(weights) <- "double"
-    storage.mode(newstrat) <- "integer"
-    agfit <- .Call(Cagfit4, 
-                   y, x, newstrat, weights, 
+    agfit <- .Call(Cagfit4, nused, 
+                   y, x, strata, weights, 
                    offset,
                    as.double(init), 
                    sort.start, sort.end, 
@@ -100,7 +119,7 @@ agreg.fit <- function(x, y, strata, offset, init, control,
                    as.integer(maxiter), 
                    as.double(control$eps),
                    as.double(control$toler.chol),
-                   as.integer(1)) # internally rescale
+                   as.integer(0)) # internally rescale
 
     <<agreg-fixup>>
     <<agreg-finish>>
@@ -124,17 +143,17 @@ one that is tending to infinity is not marked.  Que sera sera.
 Don't complain if the user asked for only one iteration; they will already
 know that it has not converged.
 <<agreg-fixup>>=
-var <- matrix(agfit$imat,nvar,nvar)
+vmat <- agfit$imat
 coef <- agfit$coef
-if (agfit$flag[1] < nvar) which.sing <- diag(var)==0
+if (agfit$flag[1] < nvar) which.sing <- diag(vmat)==0
 else which.sing <- rep(FALSE,nvar)
 
 if (maxiter >1) {
-    infs <- abs(agfit$u %*% var)
-    if (any(!is.finite(coef)) || any(!is.finite(var)))
+    infs <- abs(agfit$u %*% vmat)
+    if (any(!is.finite(coef)) || any(!is.finite(vmat)))
         stop("routine failed due to numeric overflow.",
              "This should never happen.  Please contact the author.")   
-    if (agfit$iter >= maxiter)
+    if (agfit$flag[4] > 0)
         warning("Ran out of iterations and did not converge")
     else {
         infs <- (!is.finite(agfit$u) |
@@ -149,15 +168,17 @@ if (maxiter >1) {
 
 The last of the code is very standard.  Compute residuals and package
 up the results.
+One design decision is that we return all $n$ residuals and predicted
+values, even though the model fit ignored useless observations.
+(All those obs have a residual of 0).
 <<agreg-finish>>=
 lp  <- as.vector(x %*% coef + offset - sum(coef * colMeans(x)))
-
 if (resid) {
     score <- as.double(exp(lp))
-    residuals <- .Call(Cagmart3,
+    residuals <- .Call(Cagmart3, nused,
                    y, score, weights,
-                   newstrat,
-                   cbind(sort.end, sort.start),
+                   strata,
+                   sort.start, sort.end,
                    as.integer(method=='efron'))
     names(residuals) <- rownames
 }
@@ -177,11 +198,11 @@ else {
     names(coef) <- dimnames(x)[[2]]
     if (maxiter > 0) coef[which.sing] <- NA  # always leave iter=0 alone
     flag <- agfit$flag
-    names(flag) <- c("rank", "rescale", "step halving")
+    names(flag) <- c("rank", "rescale", "step halving", "convergence")
     
     if (resid) {
         rval <- list(coefficients  = coef,
-                     var    = var,
+                     var    = vmat,
                      loglik = agfit$loglik,
                      score  = agfit$sctest,
                      iter   = agfit$iter,
@@ -194,7 +215,7 @@ else {
                      class = "coxph")
     } else {
          rval <- list(coefficients  = coef,
-                     var    = var,
+                     var    = vmat,
                      loglik = agfit$loglik,
                      score  = agfit$sctest,
                      iter   = agfit$iter,
@@ -225,7 +246,7 @@ and makes for more readable code.
 #include "survS.h" 
 #include "survproto.h"
 
-SEXP agfit4(SEXP surv2,      SEXP covar2,    SEXP strata2,
+SEXP agfit4(SEXP nused2, SEXP surv2,      SEXP covar2,    SEXP strata2,
 	    SEXP weights2,   SEXP offset2,   SEXP ibeta2,
 	    SEXP sort12,     SEXP sort22,    SEXP method2,
 	    SEXP maxiter2,   SEXP  eps2,     SEXP tolerance2,
@@ -233,7 +254,7 @@ SEXP agfit4(SEXP surv2,      SEXP covar2,    SEXP strata2,
                 
     int i,j,k, person;
     int indx1, istrat, p, p1;
-    int nrisk;
+    int nrisk, nr;
     int nused, nvar;
     int rank, rank2, fail;
    
@@ -251,13 +272,12 @@ SEXP agfit4(SEXP surv2,      SEXP covar2,    SEXP strata2,
     double  meanwt;
     int deaths;
     double denom2, etasum;
-    int *keep;               /* marker for useless obs */
-
+ 
     /* inputs */
     double *start, *tstop, *event;
     double *weights, *offset;
     int *sort1, *sort2, maxiter;
-    int *strata, nstrat;
+    int *strata;
     double method;  /* saving this as double forces some double arithmetic */
     int doscale;
 
@@ -273,19 +293,19 @@ SEXP agfit4(SEXP surv2,      SEXP covar2,    SEXP strata2,
     int nprotect;  /* number of protect calls I have issued */
 
     /* get sizes and constants */
-    nused = nrows(covar2);
+    nused = asInteger(nused2);
     nvar  = ncols(covar2);
+    nr    = nrows(covar2);  /*nr = number of rows, nused = how many we use */
     method= asInteger(method2);
     eps   = asReal(eps2);
     tol_chol = asReal(tolerance2);
     maxiter = asInteger(maxiter2);
     doscale = asInteger(doscale2);
-    nstrat = LENGTH(strata2);
   
     /* input arguments */
     start = REAL(surv2);
-    tstop  = start + nused;
-    event = tstop + nused;
+    tstop  = start + nr;
+    event = tstop + nr;
     weights = REAL(weights2);
     offset = REAL(offset2);
     sort1  = INTEGER(sort12);
@@ -296,15 +316,13 @@ SEXP agfit4(SEXP surv2,      SEXP covar2,    SEXP strata2,
     ** scratch space
     **  nvar: a, a2, oldbeta, scale
     **  nvar*nvar: cmat, cmat2
-    **  nused:  eta, keep
+    **  nr:  eta
     */
-    eta = (double *) R_alloc(nused + 4*nvar + 2*nvar*nvar, sizeof(double));
-    a = eta + nused;
+    eta = (double *) R_alloc(nr + 4*nvar + 2*nvar*nvar, sizeof(double));
+    a = eta + nr;
     a2= a + nvar;
     scale  = a2 + nvar;
     oldbeta = scale + nvar;
-    keep = (int *) R_alloc(nused, sizeof(int));            
-    for (i=0; i< nused; i++) keep[i] =0; 
             
     /*
     **  Set up the ragged arrays
@@ -312,13 +330,13 @@ SEXP agfit4(SEXP surv2,      SEXP covar2,    SEXP strata2,
     **  we are going to modify it, due to the way this routine was
     **  was called.  But check
     */
-    PROTECT(imat2 = allocVector(REALSXP, nvar*nvar));
+    PROTECT(imat2 = allocMatrix(REALSXP, nvar, nvar));
     nprotect =1;
     if (MAYBE_REFERENCED(covar2)) {
 	PROTECT(covar2 = duplicate(covar2)); 
 	nprotect++;
 	}
-    covar= dmatrix(REAL(covar2), nused, nvar);
+    covar= dmatrix(REAL(covar2), nr, nvar);
     imat = dmatrix(REAL(imat2),  nvar, nvar);
     cmat = dmatrix(oldbeta+ nvar,   nvar, nvar);
     cmat2= dmatrix(oldbeta+ nvar + nvar*nvar, nvar, nvar);
@@ -339,9 +357,9 @@ SEXP agfit4(SEXP surv2,      SEXP covar2,    SEXP strata2,
 
     sctest2 = SET_VECTOR_ELT(rlist, 4, allocVector(REALSXP, 1));
     sctest =  REAL(sctest2);
-    flag2  =  SET_VECTOR_ELT(rlist, 5, allocVector(INTSXP, 3));
+    flag2  =  SET_VECTOR_ELT(rlist, 5, allocVector(INTSXP, 4));
     flag   =  INTEGER(flag2);
-    for (i=0; i<3; i++) flag[i]=0;
+    for (i=0; i<4; i++) flag[i]=0;
 
     iter2  =  SET_VECTOR_ELT(rlist, 6, allocVector(INTSXP, 1));
     iter = INTEGER(iter2);
@@ -352,34 +370,38 @@ SEXP agfit4(SEXP surv2,      SEXP covar2,    SEXP strata2,
     **  the scaling is overall.
     */
     for (i=0; i<nvar; i++) {
-        person=0;
-        for (istrat=0; istrat<nstrat; istrat++) {
-            temp=0;
-            temp2 =0;
-            for (k=person; k<strata[istrat]; k++) {
-                j = sort2[k];
-                temp += weights[j] * covar[i][j];
-                temp2 += weights[j];
+        istrat = strata[sort2[0]];  /* the current stratum */
+        k = 0;                      /* first obs of current one */
+        temp =0;  temp2=0;
+        for (person=0; person< nused; person++) {
+            p = sort2[person];
+            if (strata[p] == istrat) {
+                temp += weights[p] * covar[i][p];
+                temp2 += weights[p];
             }
-            temp /= temp2;   /* mean for this covariate, this strata */
-	    for (; person< strata[istrat]; person++) {
-                j = sort2[person];
-                covar[i][j] -=temp;
-	    }
-	}
+            else {  /* new stratum */
+                temp /= temp2;  /* mean for this covariate, this strata */
+                for (; k< person; k++) covar[i][sort2[k]] -=temp;
+                temp =0;  temp2=0;
+                istrat = strata[p];
+            }
+        temp /= temp2;  /* mean for last stratum */
+        for (; k< nused; k++) covar[i][sort2[k]] -=temp;
+        }
         if (doscale ==1) { /* also scale the regression */
 	    /* this cannot be done per stratum */
 	    temp =0;
 	    temp2 =0;
 	    for (person=0; person<nused; person++) {
-		temp += weights[person] * fabs(covar[i][person]);
-		temp2 += weights[person];
+                p = sort2[person];
+		temp += weights[p] * fabs(covar[i][p]);
+		temp2 += weights[p];
 		}
 	    if (temp >0) temp = temp2/temp;  /* 1/scale */
 	    else temp = 1.0;  /* rare case of a constant covariate */
             scale[i] = temp;
 	    for (person=0; person<nused; person++) {
-		covar[i][person] *= temp;
+		covar[i][sort2[person]] *= temp;
 	    }
 	}
     }
@@ -446,13 +468,8 @@ Observations that are not part of any risk set add unnecessary noise since
 they will be added and then subtracted from all the totals, but the
 intermediate values are never used.  If said observation had a large risk
 score this could be exceptionally bad.
-These can be detected when catching up the risk set at a new death time:
-\emph{both} the start and stop time of a too-be-added obs will be larger than
-the current death time.  
-Since time intervals are $>0$ this will never happen for a death, since by
-definition their time will match the current dtime.
-Mark those who were valid, so that at a later step we don't take out someone
-who was never put in.
+The parent routine has already dealt with such observations: their indices never 
+appear in the sort1 or sort2 vector.
 
 The three primary quantities for the Cox model are the log-likelihood $L$,
 the score vector $U$ and the Hessian matrix $H$.
@@ -553,14 +570,15 @@ batches:
 
 <<agfit4-addup>>=
 for (person=0; person<nused; person++) {
+    p = sort2[person];
     zbeta = 0;      /* form the term beta*z   (vector mult) */
     for (i=0; i<nvar; i++)
-        zbeta += beta[i]*covar[i][person];
-    eta[person] = zbeta + offset[person];
+        zbeta += beta[i]*covar[i][p];
+    eta[p] = zbeta + offset[p];
 }
 
 /*
-**  'person' walks through the the data from 1 to n,
+**  'person' walks through the the data from 1 to nused,
 **     sort1[0] points to the largest stop time, sort1[1] the next, ...
 **  'dtime' is a scratch variable holding the time of current interest
 **  'indx1' walks through the start times.  
@@ -572,7 +590,6 @@ for (i=0; i<nvar; i++) {
 }
 person =0;
 indx1 =0;
-istrat =0;
 
 /* this next set is rezeroed at the start of each stratum */
 denom=0;
@@ -584,12 +601,14 @@ for (i=0; i<nvar; i++) {
 }
 /* end of the per-stratum set */
 
+istrat = strata[sort2[0]];  /* initial stratum */
 while (person < nused) {
     /* find the next death time */
     for (k=person; k< nused; k++) {
-	if (k == strata[istrat]) {
+        p = sort2[k];
+	if (strata[p] != istrat) {
 	    /* hit a new stratum; reset temporary sums */
-            istrat++;
+            istrat= strata[p];
 	    denom = 0;
 	    nrisk = 0;
 	    etasum =0;
@@ -600,7 +619,7 @@ while (person < nused) {
             person =k;  /* skip to end of stratum */
             indx1  =k; 
 	}
-	p = sort2[k];
+
 	if (event[p] == 1) {
 	    dtime = tstop[p];
 	    break;
@@ -625,13 +644,12 @@ while (person < nused) {
 	    }
 	}
 	
-	for (; person<strata[istrat]; person++) {
+	for (; person <nused; person++) {
 	    p = sort2[person];
-	    if (tstop[p] < dtime) break; /* no more to add */
+	    if (strata[p] != istrat ||tstop[p] < dtime) break;/*no more to add*/
 	    risk = exp(eta[p]) * weights[p];
 
 	    if (event[p] ==1 ){
-                keep[p] =1;
                 nrisk++;
                 etasum += eta[p];
 		deaths++;
@@ -646,7 +664,6 @@ while (person < nused) {
                 }
             }
 	    else if (start[p] < dtime) {
-                keep[p] =1;
                 nrisk++;
                 etasum += eta[p];
 		denom += risk;
@@ -715,10 +732,9 @@ Code to process the removals:
 ** If everyone is removed reset the totals to zero.  (This happens when
 ** the survSplit function is used, so it is worth checking).
 */
-for (; indx1<strata[istrat]; indx1++) {
+for (; indx1<nused; indx1++) {
     p1 = sort1[indx1];
-    if (start[p1] < dtime) break;
-    if (keep[p1] == 0) continue;  /* skip any never-at-risk rows */
+    if (start[p1] < dtime || strata[p1] != istrat) break;
     nrisk--;
     if (nrisk ==0) {
 	etasum =0;
@@ -783,32 +799,16 @@ if (fabs(etasum/nrisk) > 200) {
 @         
 
 Now, I'm finally to the actual iteration steps.
-We first update beta, and then calculate the log-likelihood, first and
-second derviative for that value of beta.
-
-
-<<agfit4-iter>>=
-/* First iteration, which has different ending criteria */
-<<agfit4-addup>>
-loglik[0] = newlk;   /* save the loglik for iteration zero  */
-loglik[1] = newlk;   /* best so far */
-/* Calculate the score test */
-for (i=0; i<nvar; i++) /*use 'a' as a temp to save u0, for the score test*/
-    a[i] = u[i];
-rank = cholesky2(imat, nvar, tol_chol);
-chsolve2(imat,nvar,u);        /* u replaced by  u *inverse(i) */
-*sctest=0;
-for (i=0; i<nvar; i++) {
-    *sctest +=  u[i]*a[i];
-}
-
-@ 
 The Cox model calculation rarely gets into numerical difficulty, and when it
 does step halving has always been sufficient.
 Let $\beta^{(0)}$, $\beta^{(1)}$, etc be the iteration steps in the search 
 for the maximum likelihood solution $\hat \beta$.
 The flow of the algorithm is 
 \begin{enumerate} 
+  \item Iteration 0 is the loglik and etc for the intial estimates.
+     At the end of that iteration, calculate a score test.  If the user
+     asked for 0 iterations, then don't do any singularity or infinity checks,
+     just give them the results.
   \item For the $k$th iteration, start with the new trial estimate
     $\beta^{(k)}$.  This new estimate is [[beta]] in the code and the
     most recent successful estimate is [[oldbeta]].
@@ -849,27 +849,39 @@ out of joint.
 If iteration has gone to completion they will differ by only a gnat's
 eyelash, so what's the utility of the ``free'' update?
 
-If iter=0 the loop below will never execute.  The pattern is to
-1. ask: did the last update work? and update beta-hat accordingly, then
-2.  compute the statistics on this new beta-hat
 <<agfit4-iter>>=
 /* main loop */
 halving =0 ;             /* =1 when in the midst of "step halving" */
-for (*iter=1; *iter<= maxiter; (*iter)++) {
+fail =0;
+for (*iter=0; *iter<= maxiter; (*iter)++) {
     R_CheckUserInterrupt();  /* be polite -- did the user hit cntrl-C? */
+    <<agfit4-addup>>
 
-    if (*iter ==1) {
-        fail = isnan(newlk) + isinf(newlk);
-        /* it almost takes malice to give a starting estimate with infinite
-        **  loglik.  But if so, just give up now */
-        if (fail>0) goto done;
-
+    if (*iter==0) {
+        loglik[0] = newlk;
+        loglik[1] = newlk;
+        /* compute the score test, but don't corrupt u */
+        for (i=0; i<nvar; i++) a[i] = u[i];
+        rank = cholesky2(imat, nvar, tol_chol);
+        chsolve2(imat,nvar,a);        /* a replaced by  u *inverse(i) */
+        *sctest=0;
         for (i=0; i<nvar; i++) {
-            oldbeta[i] = beta[i];
-            beta[i] = beta[i] + u[i];
+           *sctest +=  u[i]*a[i];
         }
+        if (maxiter==0) break;
+	for (i=0; i<nvar; i++) {
+  	    oldbeta[i] = beta[i];
+	    beta[i] += a[i];
+	}	
     }
-    else {
+    else { 
+        if (*iter ==1) {
+            fail = isnan(newlk) + isinf(newlk);
+            /* it almost takes malice to give a starting estimate with infinite
+            **  loglik.  But if so, just give up now */
+             if (fail>0) break;
+        }
+
         fail =0;
         for (i=0; i<nvar; i++) 
             if (isfinite(imat[i][i]) ==0) fail++;
@@ -877,8 +889,29 @@ for (*iter=1; *iter<= maxiter; (*iter)++) {
         fail = fail + isnan(newlk) + isinf(newlk) + abs(rank-rank2);
  
         if (fail ==0 && halving ==0 &&
-            fabs(1-(loglik[1]/newlk)) <= eps) goto done;
-        else if (fail >0 || newlk < loglik[1]) {
+            fabs(1-(loglik[1]/newlk)) <= eps) break;  /* success! */
+
+        if (*iter == maxiter) { /* failed to converge */
+           flag[3] = 1;  
+           if (maxiter>1 && ((newlk -loglik[1])/ loglik[1]) < -eps) {
+               /* 
+               ** "Once more unto the breach, dear friends, once more; ..."
+               **The last iteration above was worse than one of the earlier ones,
+               **  by more than roundoff error.  
+               ** We need to use beta and imat at the last good value, not the
+               **  last attempted value. We have tossed the old imat away, so 
+               **  recompute it.
+               ** It will happen very rarely that we run out of iterations, and
+               **  even less often that the Newton-Raphson is getting worse.
+               */
+               for (i=0; i<nvar; i++) beta[i] = oldbeta[i];
+               <<agfit4-addup>>
+               rank2 = cholesky2(imat, nvar, tol_chol);
+               }
+           break;
+        }
+        
+        if (fail >0 || newlk < loglik[1]) {
             /* 
 	    ** The routine has not made progress past the last good value.
             */
@@ -896,8 +929,6 @@ for (*iter=1; *iter<= maxiter; (*iter)++) {
             }
         }
     }
-    
-    <<agfit4-addup>>
 } /*return for another iteration */
 @ 
 
@@ -907,27 +938,10 @@ If the routine did not converge (iter== maxiter), then the cholesky
 routine will not have been called.
 
 <<agfit4-finish>>=
-/* fell out the bottom of the loop */
-if (maxiter>1 && ((newlk -loglik[1])/ loglik[1]) < -eps) {
-    /* 
-    ** "Once more unto the breach, dear friends, once more; ..."
-    ** The last iteration above was worse than one of the earlier ones, by
-    **  more than roundoff error.  
-    ** We need to use beta and imat at the last good value, not the last 
-    **  attempted value. We have tossed the old imat away, so recompute it.
-    ** It will happen very rarely that we run out of iterations, and even
-    **  less often that the Newton-Raphson is getting worse.
-    ** If maxiter=1, we return 1 iteration whether it worked or not. 
-    */
-    for (i=0; i<nvar; i++) beta[i] = oldbeta[i];
-    <<agfit4-addup>>
-    }
-if (*iter>0) rank = cholesky2(imat, nvar, tol_chol);
 
-done:flag[0] = rank; 
+flag[0] = rank; 
 loglik[1] = newlk;
 chinv2(imat, nvar);
-(*iter)--;  /* the loop always indexes one more than we actually did */
 for (i=0; i<nvar; i++) {
     beta[i] *= scale[i];  /* return to original scale */
     u[i] /= scale[i];

@@ -123,6 +123,51 @@ The utility of the fit remains dubious, however; the final model is driven
 by a miniscule fraction of the subjects (16 out of 240 thousand) who have risks
 of 100 fold.
 
+\subsection{Skewed data 2}
+This example was sent by a user and is more subtle.  Start by making a
+particular data set from the veteran's data.
+<<skew2>>=
+d1 <- subset(veteran, status==1 & time < 900)
+d1$status <- ifelse(d1$time < 49, 1, 0)
+fit1 <- coxph(Surv(time, status) ~ trt + prior + karno, d1)
+
+dtime <- sort(unique(d1$time[d1$status==1]))
+
+d2 <- survSplit(Surv(time, status) ~ ., d1, cut= dtime)
+d3 <- survSplit(Surv(time, status) ~ ., d1, cut= 1:max(d1$time))
+@ 
+
+Now we want to fit a model that looks at the possible time dependence
+of the Karnofsky score coefficient.
+I happen to kwow that for that purpose, we only need to cut the data at
+the death times, hence my data set d2.
+The user cut at a lot more times, his data set is d3.  
+Mathematically, the extra cuts make no difference since the death times and
+risk sets all stay the same.
+However, the first model below succeeded while the second failed.
+
+<<skew2b>>=
+qq <- quantile(dtime, c(.25, .5, .75))
+
+fit2 <- coxph(Surv(tstart, time, status) ~ trt + prior + karno +
+              karno:ns(time, knots=qq, df=4), data=d2)
+
+fit3 <- coxph(Surv(tstart, time, status) ~ trt + prior + karno +
+              karno:ns(time, knots=qq, df=4), data=d3)
+@ 
+
+The issue is subtle and took me some time to figure out.  The event times
+range from 1 to 48 months, but data d3 has a maximum \code{time} value of
+587. The natural spline's coefficients are completely determined by the
+1--48 data window, the predicted values beyond that are based on a cubic
+extrapolation, and some of them ended up as huge numbers.  
+Even though those values are not in any risk set so are never used, the
+entire ``avoid infinite predictors'' logic kicked in and the iteration went
+to pot.
+
+This led to a change in the coxph function.  It now eliminates non-productive
+observations first, before any compuation.
+
 \subsection{Offset}
 A nastier problem is found as a test case in the model4you package.  It is
 an artificial data set shown below.
