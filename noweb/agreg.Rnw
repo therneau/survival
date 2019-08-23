@@ -62,11 +62,19 @@ agreg.fit <- function(x, y, strata, offset, init, control,
     else if (any(weights<=0)) stop("Invalid weights, must be >0")
     else weights <- as.vector(weights)
 
-    # Find rows to be ignored
+    # Find rows to be ignored.  We have to match within strata: a
+    #  value that spans a death in another stratum, but not it its
+    #  own, should be removed.  Hence the per stratum delta
+    if (length(strata) ==0) {y1 <- y[,1]; y2 <- y[,2]}
+    else  {
+        delta  <-  strata* (1+ max(y[,2]) - min(y[,1]))
+        y1 <- y[,1] + delta
+        y2 <- y[,2] + delta
+    }
     event <- y[,3] > 0
-    dtime <- sort(unique(y[event, 2]))
-    indx1 <- findInterval(y[,1], dtime)
-    indx2 <- findInterval(y[,2], dtime) 
+    dtime <- sort(unique(y2[event]))
+    indx1 <- findInterval(y1, dtime)
+    indx2 <- findInterval(y2, dtime) 
     # indx1 != indx2 for any obs that spans an event time
     ignore <- (indx1 == indx2)
     nused  <- sum(!ignore)
@@ -88,7 +96,7 @@ agreg.fit <- function(x, y, strata, offset, init, control,
         #  To keep the C code to a small set, we call the usual routines, but
 	#  with a dummy X matrix and 0 iterations
 	nvar <- 1
-	x <- matrix(as.double(1:n), ncol=1)  #keep the .C call happy
+	x <- matrix(as.double(1:nused), ncol=1)  #keep the .C call happy
 	maxiter <- 0
 	nullmodel <- TRUE
         if (length(init) !=0) stop("Wrong length for inital values")
@@ -383,7 +391,7 @@ SEXP agfit4(SEXP nused2, SEXP surv2,      SEXP covar2,    SEXP strata2,
                 istrat = strata[p];
             }
         temp /= temp2;  /* mean for last stratum */
-        for (; k< nused; k++) covar[i][sort2[k]] -=temp;
+        for (; k< nused; k++) covar[i][sort2[k]] -= temp;
         }
         if (doscale ==1) { /* also scale the regression */
 	    /* this cannot be done per stratum */
@@ -650,7 +658,7 @@ while (person < nused) {
             nrisk++;
             etasum += eta[p];
             deaths++;
-            denom2 += risk*event[p];
+            denom2 += risk;
             meanwt += weights[p];
             newlk += weights[p]* eta[p];
             for (i=0; i<nvar; i++) {
@@ -660,7 +668,7 @@ while (person < nused) {
                     cmat2[i][j] += risk*covar[i][p]*covar[j][p];
             }
         }
-        else if (start[p] < dtime) {
+        else {
             nrisk++;
             etasum += eta[p];
             denom += risk;
