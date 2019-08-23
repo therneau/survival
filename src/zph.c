@@ -27,9 +27,9 @@ SEXP zph1(SEXP gt2,    SEXP y2,
     int i,j, k, kk, person, ip;
     int cstrat;   /* current stratum*/
     double temp, temp2, tmean;
-    double *dtemp, timewt;
+    double *dtemp, timewt=1;
     double *a, *a2, **cmat, **cmat2;
-    double denom, dtime, ndead, denom2;
+    double denom=0, dtime, ndead, denom2;
     double risk, deadwt, wtave;
 
     /* scalar input arguments and counts*/

@@ -1109,7 +1109,7 @@ model.frame.coxph <- function(formula, ...) {
    
         temp <- fcall[c(1,indx)]  # only keep the arguments we wanted
         temp[[1]] <- quote(stats::model.frame)  # change the function called
-        #temp$xlev <- formula$xlevels  # this will turn strings to factors
+        temp$xlev <- formula$xlevels  # this will turn strings to factors
         temp$formula <- Terms   #keep the predvars attribute
         # Now, any arguments that were on this call overtake the ones that
         #  were in the original call.  

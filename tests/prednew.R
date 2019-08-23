@@ -2,7 +2,7 @@
 # Make sure that the newdata argument works for various
 #   predictions
 # We purposely use a subset of the lung data that has only some
-#   of the levels of the ph.ecog
+#   of the levels of ph.ecog
 library(survival)
 options(na.action=na.exclude, contrasts=c('contr.treatment', 'contr.poly'))
 aeq <- function(x,y) all.equal(as.vector(x), as.vector(y))

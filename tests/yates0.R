@@ -4,7 +4,8 @@
 options(contrasts=c("contr.treatment", "contr.poly")) # clean slate
 
 tdata <- data.frame(y=1:10, x1=letters[c(1,2,3,1,2,3,1,2,3,1)],
-                            x2=LETTERS[c(1,2,3,4,1,2,3,4,1,2)])
+                            x2=LETTERS[c(1,2,3,4,1,2,3,4,1,2)],
+                    stringsAsFactors=TRUE)
 tdata$x3 <- as.character(tdata$x1)
 
 fit1 <- lm(y ~ x1 + x2, tdata, x=TRUE)
@@ -35,7 +36,6 @@ x5 <- model.matrix(terms(fit2), tdata, xlev=list(x3=letters[3:1]))
 all.equal(fit2$x, x3)
 all.equal(x3, x4)
 all.equal(x3, x5)  # FALSE
-
 
 
 # Lesson 3: contrasts.arg is relevant, even when the model frame

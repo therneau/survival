@@ -1,6 +1,6 @@
 
-R Under development (unstable) (2018-05-10 r74706) -- "Unsuffered Consequences"
-Copyright (C) 2018 The R Foundation for Statistical Computing
+R Under development (unstable) (2019-08-23 r77061) -- "Unsuffered Consequences"
+Copyright (C) 2019 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -21,7 +21,8 @@ Type 'q()' to quit R.
 > options(contrasts=c("contr.treatment", "contr.poly")) # clean slate
 > 
 > tdata <- data.frame(y=1:10, x1=letters[c(1,2,3,1,2,3,1,2,3,1)],
-+                             x2=LETTERS[c(1,2,3,4,1,2,3,4,1,2)])
++                             x2=LETTERS[c(1,2,3,4,1,2,3,4,1,2)],
++                     stringsAsFactors=TRUE)
 > tdata$x3 <- as.character(tdata$x1)
 > 
 > fit1 <- lm(y ~ x1 + x2, tdata, x=TRUE)
@@ -66,7 +67,6 @@ $class
 [2] "Mean relative difference: 2.333333"                                    
 > 
 > 
-> 
 > # Lesson 3: contrasts.arg is relevant, even when the model frame
 > #  has a saved contrast
 > ctemp <- list(x1="contr.SAS", x2= contr.helmert(LETTERS[1:4]))
@@ -99,4 +99,4 @@ D 0 0 0
 > 
 > proc.time()
    user  system elapsed 
-  0.112   0.008   0.117 
+  0.117   0.012   0.122 

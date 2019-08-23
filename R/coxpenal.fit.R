@@ -461,13 +461,13 @@ coxpenal.fit <- function(x, y, strata, offset, init, control,
     # release the memory
     if (andersen) {
         .C(Cagfit5c, as.integer(nvar)) #release the memory
-        # the agmar3 routine uses slightly different arguments
+        # the agmart3 routine uses slightly different arguments
         # strata are marked by a vector 1,1,1,...1,2,2,2  etc.
-        tstrat <- rep(seq.int(along.with =newstrat), newstrat)
-        resid <- .Call(Cagmart3, length(tstrat),
+        if (length(strata) < nrow(y)) strata <- rep(1L, nrow(y))
+        resid <- .Call(Cagmart3, nrow(y),
                         y, exp(lp), 
                         weights, 
-                        tstrat,
+                        as.integer(strata),
                         sorted[,2], sorted[,1],
                         as.integer(method=='efron'))
     }

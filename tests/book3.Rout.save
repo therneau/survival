@@ -1,5 +1,5 @@
 
-R Under development (unstable) (2019-03-27 r76274) -- "Unsuffered Consequences"
+R Under development (unstable) (2019-07-02 r76765) -- "Unsuffered Consequences"
 Copyright (C) 2019 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
@@ -27,7 +27,6 @@ Type 'q()' to quit R.
 +                     stop =c(2, 3, 6, 7, 8, 9, 9, 9,14,17),
 +                     event=c(1, 1, 1, 1, 1, 1, 1, 0, 0, 0),
 +                     x    =c(1, 0, 0, 1, 0, 1, 1, 1, 0, 0) )
-> fit0 <-coxph(Surv(start, stop, event) ~x, test2, iter=0, method='breslow')
 > 
 > byhand <- function(beta, newx=0) {
 +     r <- exp(beta)
@@ -301,4 +300,4 @@ Call: survfit(formula = fit, newdata = list(x = 2))
 > 
 > proc.time()
    user  system elapsed 
-  0.829   0.064   0.887 
+  0.849   0.056   0.898 
