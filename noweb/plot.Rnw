@@ -276,8 +276,8 @@ if (conf.int) {
             conf.type <- x$conf.type
         temp <- survfit_confint(ssurv, x$std, logse= x$logse,
                                 conf.type, conf.level, ulimit=FALSE)
-        supper <- as.matrix(temp$supper)
-        slower <- as.matrix(temp$slower)
+        supper <- as.matrix(temp$upper)
+        slower <- as.matrix(temp$lower)
     }
     else {
         supper <- as.matrix(x$upper)

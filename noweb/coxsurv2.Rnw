@@ -27,7 +27,7 @@ coxsurv.fit <- function(ctype, stype, se.fit, varmat, cluster,
                          y, x, wt, risk, position, strata, oldid,
                          y2, x2, risk2, strata2, id2, unlist=TRUE) {
 
-    if (length(strata)==0) strata <- rep(0L, nrow(y))
+    if (missing(strata) || length(strata)==0) strata <- rep(0L, nrow(y))
 
     if (is.factor(strata)) ustrata <- levels(strata)
     else                   ustrata <- sort(unique(strata))

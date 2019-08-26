@@ -67,6 +67,8 @@ agreg.fit <- function(x, y, strata, offset, init, control,
     #  own, should be removed.  Hence the per stratum delta
     if (length(strata) ==0) {y1 <- y[,1]; y2 <- y[,2]}
     else  {
+        if (is.numeric(strata)) strata <- as.integer(strata)
+        else strata <- as.integer(as.factor(strata))
         delta  <-  strata* (1+ max(y[,2]) - min(y[,1]))
         y1 <- y[,1] + delta
         y2 <- y[,2] + delta

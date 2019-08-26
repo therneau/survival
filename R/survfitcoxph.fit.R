@@ -20,8 +20,8 @@ survfitcoxph.fit <- function(y, x, wt, x2, risk, newrisk, strata, se.fit,
 
     indx <- match(c("y", "x", "wt", "x2", "y2", "risk", "strata", "strata2",
                     "se.fit", "varmat"), names(Call), nomatch=0)
-    temp <-Call[c(1, "indx")]
-    temp[[1]] <- as.name(survival::coxsurv.fit)
+    temp <-Call[c(1, indx)]
+    temp[[1]] <- quote(survival::coxsurv.fit)
 
     temp$ctype <- ctype
     temp$stype <- stype

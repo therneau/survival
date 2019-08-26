@@ -18,9 +18,9 @@ vcov.survreg<-function (object, complete=TRUE, ...) {
     else vv <- object$var
     vname <- names(coef(object))   # add dimnames
     extra <- ncol(vv) - length(vname)
-    if (extra ==1) vname <- c(vname, "log(scale)")
+    if (extra ==1) vname <- c(vname, "Log(scale)")
     else if(extra >1) 
-        vname <- c(vname, paste("log(scale[", names(object$scale), "])", sep=''))
+        vname <- c(vname, paste("Log(scale[", names(object$scale), "])", sep=''))
     dimnames(vv) <- list(vname, vname)
     vv
 }

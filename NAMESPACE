@@ -3,12 +3,12 @@ importFrom(splines, spline.des, ns)
 importFrom(Matrix, expm)
 importFrom(stats, anova, approx, as.formula, coef, coefficients,
            contr.treatment, cor, density, delete.response, extractAIC, formula, 
-           family, lm, logLik, makepredictcall, median, model.extract,
+           family, fitted, lm, logLik, makepredictcall, median, model.extract,
            model.frame, model.matrix, model.offset, model.response,
-           model.weights, na.fail, na.pass, napredict, naprint, naresid,
+           model.weights, na.fail, na.pass, napredict, naprint, naresid, nobs,
            pchisq, pnorm, printCoefmat, predict, qnorm, quantile, qgamma,
            reformulate, setNames, terms.formula,
-           resid, residuals, rnorm, runif, stat.anova, terms, var, vcov,
+           resid, residuals, rnorm, runif, stat.anova, terms, weights, var, vcov,
            .checkMFClasses, .getXlevels)
 importFrom(graphics, arrows, axis, barplot, box, clip, matlines, matplot,
            hist, frame, identify, image, par, plot, points, lines, 
