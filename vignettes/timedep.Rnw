@@ -91,7 +91,7 @@ and that this interval did not end in a death.
 The underlying code treats intervals as open on the left and closed on the
 right, e.g. the creatinine on exactly day 90 is 0.9. 
 One way to think of this is that all changes for a given day (covariates or
-status) are recorded at the end of the day.
+status) are recorded at the start of the next interval.
 
 
 The key rule for time dependent covariates in a Cox model is simple
@@ -157,7 +157,7 @@ re-discovered.
 A slightly subtler form of the error is discussed in Redmond et al
 \cite{Redmond83}.  The exploration was motivated by a flawed analysis presented
 in Bonadonna et. al \cite{Bref} which looked at the effect of total dose.
-breast cancer chemotherapy patients were
+Breast cancer chemotherapy patients were
 divided into three groups based on whether the patient eventually
 received $>85$\%, 65--85\% or $<65$\% of the dose planned at the start of
 their treatment. 
@@ -167,6 +167,7 @@ by definition get a lower dose.
 A proportional hazards model using total dose received shows a very strong
 effect for dose, so much so that it could encourage a treating physician to
 defer necessary dose reductions in response to treatment toxicity.
+This false result actively harmed patients.
 
 Redmond looked at a variant of this: create a variable $p$ for each subject
 which
@@ -859,7 +860,7 @@ The first subject died at 72 days, his data is unchanged.
 The second and third subjects contribute time to each of the three
 intervals.
 <<split2>>=
-vfit2 <- coxph(Surv(tstart, time, status) ~ trt + prior + 
+vfit2 <- coxph(Surv(tstart, time, status) ~ trt + prior +
                   karno:strata(tgroup), data=vet2)
 vfit2
 cox.zph(vfit2)
