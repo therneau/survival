@@ -216,7 +216,7 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
 	chinv2(imat,nvar);
 	for (i=0; i<nvar; i++) {
 	    beta[i] *= scale[i];  /*return to original scale */
-	    u[i] *= scale[i];
+	    u[i] /= scale[i];
 	    imat[i][i] *= scale[i]*scale[i];
 	    for (j=0; j<i; j++) {
 		imat[j][i] *= scale[i]*scale[j];
@@ -260,7 +260,7 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
 
 	    for (i=0; i<nvar; i++) {
 		beta[i] = newbeta[i]*scale[i];
-		u[i] *= scale[i];
+		u[i] /= scale[i];
 		imat[i][i] *= scale[i]*scale[i];
 		for (j=0; j<i; j++) {
 		    imat[j][i] *= scale[i]*scale[j];
@@ -299,7 +299,7 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
     chinv2(imat, nvar);
     for (i=0; i<nvar; i++) {
 	beta[i] = beta[i]*scale[i];
-	u[i] *= scale[i];
+	u[i] /= scale[i];
 	imat[i][i] *= scale[i]*scale[i];
 	for (j=0; j<i; j++) {
 	    imat[j][i] *= scale[i]*scale[j];

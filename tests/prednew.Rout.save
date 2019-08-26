@@ -1,8 +1,7 @@
 
-R Under development (unstable) (2013-02-24 r62054) -- "Unsuffered Consequences"
-Copyright (C) 2013 The R Foundation for Statistical Computing
-ISBN 3-900051-07-0
-Platform: i686-pc-linux-gnu (32-bit)
+R Under development (unstable) (2019-06-28 r76752) -- "Unsuffered Consequences"
+Copyright (C) 2019 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -20,9 +19,8 @@ Type 'q()' to quit R.
 > # Make sure that the newdata argument works for various
 > #   predictions
 > # We purposely use a subset of the lung data that has only some
-> #   of the levels of the ph.ecog
+> #   of the levels of ph.ecog
 > library(survival)
-Loading required package: splines
 > options(na.action=na.exclude, contrasts=c('contr.treatment', 'contr.poly'))
 > aeq <- function(x,y) all.equal(as.vector(x), as.vector(y))
 > 
@@ -115,4 +113,4 @@ Loading required package: splines
 > 
 > proc.time()
    user  system elapsed 
-  0.380   0.016   0.394 
+  0.848   0.048   0.895 

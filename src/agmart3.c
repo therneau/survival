@@ -29,7 +29,7 @@ SEXP agmart3(SEXP nused2,  SEXP surv2,  SEXP score2, SEXP weight2,
     int nr, person1, person2, nused;
  
     /* pointers to the input data */
-    double *start, *stop, *event;
+    double *tstart, *tstop, *event;
     double *weight, *score;
     int    *sort1, *sort2, *strata;
 
@@ -42,9 +42,9 @@ SEXP agmart3(SEXP nused2,  SEXP surv2,  SEXP score2, SEXP weight2,
     nused = asInteger(nused2);
     nr = nrows(surv2);
     method = asInteger(method2);
-    start = REAL(surv2);
-    stop  = start +nr;
-    event = stop +nr;
+    tstart = REAL(surv2);
+    tstop  = tstart +nr;
+    event = tstop +nr;
     weight= REAL(weight2);
     score = REAL(score2);
     sort1 = INTEGER(sort12);
@@ -105,7 +105,7 @@ SEXP agmart3(SEXP nused2,  SEXP surv2,  SEXP score2, SEXP weight2,
 		istrat= strata[p1];
 	    }
 	    if (event[p2] >0) {
-		dtime = stop[p2];
+		dtime = tstop[p2];
 		break;
 	    }
 	}
@@ -117,7 +117,7 @@ SEXP agmart3(SEXP nused2,  SEXP surv2,  SEXP score2, SEXP weight2,
 	*/
 	for (;  person1 <nused; person1++) {
 	    p1 = sort1[person1];
-	    if (start[p1] < dtime || strata[p1] != istrat) break;
+	    if (tstart[p1] < dtime || strata[p1] != istrat) break;
 
 	    denom -= score[p1] * weight[p1];
 	    resid[p1] -= cumhaz * score[p1];
@@ -131,7 +131,7 @@ SEXP agmart3(SEXP nused2,  SEXP surv2,  SEXP score2, SEXP weight2,
 	wtsum =0;
 	for (k=person2; k< nused; k++) {
 	    p2 = sort2[k];
-	    if (stop[p2] < dtime || strata[p2] != istrat) break;
+	    if (tstop[p2] < dtime || strata[p2] != istrat) break;
 
 	    denom += score[p2] * weight[p2];
 	    resid[p2] = cumhaz * score[p2];
