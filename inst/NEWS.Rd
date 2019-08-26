@@ -1,12 +1,13 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
-\section{Changes in version 3.0-9}{
+\section{Changes in version 3.0-10}{
   \itemize{
     \item Make sure all calls to data.frame explicitly select a value
     for the stringsAsFactors option.
     \item Updates to cox.zph for the singledf option
     \item Add formal test of the cox.zph statistics
-    \item Add the sas vignette.
+    \item Add the sas vignette to the vignettes2 directory (it takes too
+    long to run).
 }}     
 \section{Changes in version 3.0}{
   \itemize{

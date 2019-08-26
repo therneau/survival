@@ -261,7 +261,7 @@ SEXP agfit4(SEXP nused2, SEXP surv2,      SEXP covar2,    SEXP strata2,
     int indx1, istrat, p, p1;
     int nrisk, nr;
     int nused, nvar;
-    int rank, rank2, fail;
+    int rank=0, rank2, fail;  /* =0 to keep -Wall happy */
    
     double **covar, **cmat, **imat;  /*ragged array versions*/
     double *a, *oldbeta;

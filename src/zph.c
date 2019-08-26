@@ -311,7 +311,7 @@ SEXP zph2(SEXP gt2,    SEXP y2,
     int cstrat;   /* current stratum*/
     int indx1, nrisk;
     double temp, temp2, tmean, etasum;
-    double *dtemp, timewt;
+    double *dtemp, timewt=1;
     double *a, *a2, **cmat, **cmat2;
     int *keep;
     double denom, dtime, ndead, denom2;

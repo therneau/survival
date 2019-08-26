@@ -1,5 +1,5 @@
 
-R Under development (unstable) (2019-05-15 r76504) -- "Unsuffered Consequences"
+R Under development (unstable) (2019-08-23 r77061) -- "Unsuffered Consequences"
 Copyright (C) 2019 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
@@ -56,10 +56,8 @@ Type 'q()' to quit R.
 [1] TRUE
 > 
 > #
-> # Test of residuals, in response to a reported bug.  The routines for
-> #  m-resids of penalized models were separate from other m-resid calcs;
-> #  refactored to change that.
-> #  These are three progam paths that should all lead to the same C routine
+> # Test of residuals, in response to a reported bug.  
+> # These are three progam paths that should all lead to the same C routine
 > fit <- coxph(Surv(tstart, tstop, status) ~ sex + treat + pspline(age), cgd)
 > fit2 <- coxph(Surv(tstart, tstop, status) ~ fit$linear, cgd, iter=0, init=1)
 > fit3 <- coxph(Surv(tstart, tstop, status) ~ offset(fit$linear), cgd)
@@ -84,4 +82,4 @@ Type 'q()' to quit R.
 > 
 > proc.time()
    user  system elapsed 
-  0.832   0.036   0.867 
+  0.761   0.071   0.826 

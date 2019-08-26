@@ -12,6 +12,12 @@
 **      method  will be ==1 for the Efron method
 ** Output
 **      martingale residual
+** 
+** If an observation is never at risk, e.g. (50, 72] and there are no events
+**   in that window, then ensure that we never add/subtract that obs from
+**   any totals.  Sometimes users "dice" a data set into a lot of small
+**   intervals, and this step helps preserve numeric accuracy.  Such obs
+**   have a residual of zero.
 */
 #include <math.h>
 #include "survS.h"
@@ -21,7 +27,7 @@ SEXP agmart3(SEXP nused2,  SEXP surv2,  SEXP score2, SEXP weight2,
 	     SEXP strata2, SEXP sort12, SEXP sort22, SEXP method2) {
 
     int i, k;
-    int p2, p1, istrat;
+    int p1, p2, istrat;
     double deaths, denom, e_denom;
     double hazard, e_hazard, cumhaz;
     double temp, dtime;
@@ -34,6 +40,7 @@ SEXP agmart3(SEXP nused2,  SEXP surv2,  SEXP score2, SEXP weight2,
     int    *sort1, *sort2, *strata;
 
     int method;  /* integer version of input */
+    int *atrisk; /* 1= ever at risk */
 
     /* output */
     SEXP resid2;
@@ -53,8 +60,11 @@ SEXP agmart3(SEXP nused2,  SEXP surv2,  SEXP score2, SEXP weight2,
 
     PROTECT(resid2 = allocVector(REALSXP, nr));
     resid = REAL(resid2);
-    for (k=0; k<nr; k++) resid[k] =0;
-
+    atrisk = (int *) ALLOC(nr, sizeof(int));
+    for (k=0; k<nr; k++) {
+	resid[k] =0;
+	atrisk[k] =0;
+    }	
     /*
     **  person1, p1, sort1 refer to start times, and person2, p2, sort2
     **    to the ending times for each subject.
@@ -118,9 +128,10 @@ SEXP agmart3(SEXP nused2,  SEXP surv2,  SEXP score2, SEXP weight2,
 	for (;  person1 <nused; person1++) {
 	    p1 = sort1[person1];
 	    if (tstart[p1] < dtime || strata[p1] != istrat) break;
-
-	    denom -= score[p1] * weight[p1];
-	    resid[p1] -= cumhaz * score[p1];
+	    if (atrisk[p1] == 1) {
+		denom -= score[p1] * weight[p1];
+		resid[p1] -= cumhaz * score[p1];
+            }
 	}
 	
 	/*
@@ -133,12 +144,18 @@ SEXP agmart3(SEXP nused2,  SEXP surv2,  SEXP score2, SEXP weight2,
 	    p2 = sort2[k];
 	    if (tstop[p2] < dtime || strata[p2] != istrat) break;
 
-	    denom += score[p2] * weight[p2];
-	    resid[p2] = cumhaz * score[p2];
-	    if (event[p2] ==1) {
+	    if (event[p2] ==1) {  /* stop[p2] will be = to dtime */
+		atrisk[p2] =1;
+		resid[p2] = 1.0 + cumhaz * score[p2];
 		deaths ++;
+		denom += score[p2] * weight[p2];
 		e_denom += score[p2] * weight[p2];
 		wtsum += weight[p2];
+	    }
+	    else if (tstart[p2] < dtime) { /* start > stop > dtime possible */
+		denom += score[p2] * weight[p2];
+		atrisk[p2] =1;
+		resid[p2] = cumhaz * score[p2];
 	    }
 	}		    
 	
@@ -148,7 +165,7 @@ SEXP agmart3(SEXP nused2,  SEXP surv2,  SEXP score2, SEXP weight2,
 	*/
 	if (method==0 || deaths==1) { /* Breslow */
 	    hazard = wtsum/denom;
-	    e_hazard = hazard;
+	    person2 = k;
 	}
 	else { /* Efron */
 	    hazard =0;
@@ -159,23 +176,21 @@ SEXP agmart3(SEXP nused2,  SEXP surv2,  SEXP score2, SEXP weight2,
 		hazard += wtsum/(denom - temp*e_denom);
 		e_hazard += wtsum * (1-temp)/(denom - temp*e_denom);
 	    }
+
+	    /* deaths don't get the full hazard increment */
+	    temp = hazard - e_hazard;  /* would be 0 for Breslow */
+	    for (; person2 <k; person2++) {
+		p2 = sort2[person2];
+		if (event[p2] >0) resid[p2] += temp*score[p2];
+	    }
 	}
 	cumhaz += hazard;
-
-	/*
-	** Update the hazard for deaths
-        */
-	temp = hazard - e_hazard;  /* will be 0 for Breslow */
-	for (; person2 <k; person2++) {
-	    p2 = sort2[person2];
-	    if (event[p2] >0) resid[p2] += 1 + temp*score[p2];
-	}
     }
 
     /* finish up the last few */
     for (; person1< nused; person1++) {
 	p1 = sort1[person1];
-	resid[p1] -= cumhaz * score[p1];
+	if (atrisk[p1]==1) resid[p1] -= cumhaz * score[p1];
     }
 
     UNPROTECT(1);

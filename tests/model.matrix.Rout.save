@@ -1,7 +1,7 @@
 
-R Under development (unstable) (2014-09-01 r66509) -- "Unsuffered Consequences"
-Copyright (C) 2014 The R Foundation for Statistical Computing
-Platform: i686-pc-linux-gnu (32-bit)
+R Under development (unstable) (2019-08-23 r77061) -- "Unsuffered Consequences"
+Copyright (C) 2019 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -25,7 +25,8 @@ Type 'q()' to quit R.
 > test1 <- data.frame(time=  c(9, 3,1,1,6,6,8),
 +                     status=c(1,NA,1,0,1,1,0),
 +                     x=     c(0, 2,1,1,1,0,0),
-+                     z= factor(c('a', 'a', 'b', 'b', 'c', 'c', 'a')))
++                     z= factor(c('a', 'a', 'b', 'b', 'c', 'c', 'a')),
++                     stringsAsFactors=FALSE)
 > 
 > fit1 <- coxph(Surv(time, status) ~ z, test1, iter=1)
 > fit2 <- coxph(Surv(time, status) ~z, test1, x=T, iter=1)
@@ -36,7 +37,8 @@ Type 'q()' to quit R.
 > test2 <- data.frame(time=  c(9, 3,1,1,6,6,8),
 +                     status=c(1,NA,1,0,1,1,0),
 +                     x=     c(0, 2,1,1,1,0,0),
-+                     z= factor(c('a', 'a', 'a', 'a', 'c', 'c', 'a')))
++                     z= factor(c('a', 'a', 'a', 'a', 'c', 'c', 'a')),
++                     stringsAsFactors=FALSE)
 > 
 > ftest <- model.frame(fit1, data=test2)
 > all.equal(levels(ftest$z), levels(test1$z))
@@ -87,4 +89,4 @@ Type 'q()' to quit R.
 > 
 > proc.time()
    user  system elapsed 
-  0.196   0.028   0.220 
+  0.746   0.041   0.781 

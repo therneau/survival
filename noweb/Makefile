@@ -70,7 +70,6 @@ doc: code.pdf
 code.pdf: code.tex noweb.sty
 	pdflatex code.tex
 	pdflatex code.tex
-	cp code.pdf ../inst/doc/sourcecode.pdf
 
 code.nw: $(PARTS)
 	cat $(PARTS) > code.nw

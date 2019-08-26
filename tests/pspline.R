@@ -33,10 +33,8 @@ m2 <- model.frame(spfit3, data=lung[keep,])
 all.equal(m2, spfit3$model[keep,], check.attributes=FALSE)
 
 #
-# Test of residuals, in response to a reported bug.  The routines for
-#  m-resids of penalized models were separate from other m-resid calcs;
-#  refactored to change that.
-#  These are three progam paths that should all lead to the same C routine
+# Test of residuals, in response to a reported bug.  
+# These are three progam paths that should all lead to the same C routine
 fit <- coxph(Surv(tstart, tstop, status) ~ sex + treat + pspline(age), cgd)
 fit2 <- coxph(Surv(tstart, tstop, status) ~ fit$linear, cgd, iter=0, init=1)
 fit3 <- coxph(Surv(tstart, tstop, status) ~ offset(fit$linear), cgd)
