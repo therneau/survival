@@ -274,7 +274,7 @@ if (conf.int) {
     else if (is.null(x$upper)) {
         if (missing(conf.type) && !is.null(x$conf.type))
             conf.type <- x$conf.type
-        temp <- survfit_confint(ssurv, x$std, logse= x$logse,
+        temp <- survfit_confint(ssurv, x$std.err, logse= x$logse,
                                 conf.type, conf.level, ulimit=FALSE)
         supper <- as.matrix(temp$upper)
         slower <- as.matrix(temp$lower)

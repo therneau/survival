@@ -343,7 +343,7 @@ survfit.formula <- function(formula, data, weights, subset,
 	    temp$na.action <- attr(mf, 'na.action')
 
     temp$call <- Call
-    temp
+    survfit23(temp)
     }
 @ 
 
