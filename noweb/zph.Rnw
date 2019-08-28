@@ -239,6 +239,7 @@ else {
     colnames(sresid) <- names(fit$coefficients)[keep]
     vmean <- vmean[keep, keep, drop=FALSE]
 }
+rownames(sresid) <- signif(times, 4)
 
 # for each stratum, rescale the Schoenfeld residuals in that stratum
 sgrp <- rep(1:nrow(resid$used), apply(resid$used, 1, max))

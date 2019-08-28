@@ -49,8 +49,10 @@ coxph <- function(formula, data, weights, subset, na.action,
     }
     if (missing(control)) control <- coxph.control(...) 
 
-    # Move any cluster() term out of the formula, and make it an id
-    #  option instead.  This makes everything easier.
+    # Move any cluster() term out of the formula, and make it an argument
+    #  instead.  This makes everything easier.  But, I can only do that with
+    #  a local copy, doing otherwise messes up future use of update() on
+    #  the model object for a user stuck in "+ cluster()" mode.
     if (missing(formula)) stop("a formula argument is required")
     
     ss <- c("cluster", "offset")
@@ -62,6 +64,7 @@ coxph <- function(formula, data, weights, subset, na.action,
 
     tcl <- attr(Terms, 'specials')$cluster
     if (length(tcl) > 1) stop("a formula cannot have multiple cluster terms")
+    mycall <- Call
     if (length(tcl) > 0) { # there is one
         if (!is.null(Call$cluster))
             stop("cannot have both cluster() in the formula and the cluster option")
@@ -88,12 +91,12 @@ coxph <- function(formula, data, weights, subset, na.action,
             if (oo < tcl) temp <- c(ooterm, temp)
             else temp <- c(temp, ooterm)
         }
-        Call$cluster <- attr(Terms, "variables")[[1+tcl]][[2]]
+        mycall$cluster <- attr(Terms, "variables")[[1+tcl]][[2]]
         if (is.list(formula)) 
              formula[[1]][[3]] <- reformulate(temp[1-tcl])[[2]]
         else formula[[3]]      <- reformulate(temp[1-tcl])[[2]]
 
-        Call$formula <- formula
+        mycall$formula <- formula
         
     }
     
@@ -102,9 +105,9 @@ coxph <- function(formula, data, weights, subset, na.action,
     #  but don't evaluate it just yet
     indx <- match(c("formula", "data", "weights", "subset", "na.action",
                     "cluster", "id", "istate"),
-                  names(Call), nomatch=0) 
+                  names(mycall), nomatch=0) 
     if (indx[1] ==0) stop("A formula argument is required")
-    tform <- Call[c(1,indx)]  # only keep the arguments we wanted
+    tform <- mycall[c(1,indx)]  # only keep the arguments we wanted
     tform[[1L]] <- quote(stats::model.frame)  # change the function called
 
     # if the formula is a list, do the first level of processing on it.
