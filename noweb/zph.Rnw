@@ -69,8 +69,8 @@ cox.zph <- function(fit, transform='km', singledf =TRUE, global=TRUE) {
     <<zph-terms>>
     <<zph-schoen>>
 
-    rval$call <- Call
     rval$transform <- tname
+    rval$call <- Call
     class(rval) <- "cox.zph"
     return(rval)
 }
@@ -118,10 +118,10 @@ if (is.character(transform)) {
     }
     else {
         ord1 <- order(-istrat, -y[,1]) -1L   # reverse time for zph2
-        ord2 <- order(-istrat, -y[,2]) -1L
+        ord  <- order(-istrat, -y[,2]) -1L
         resid <- .Call(Czph2, gtime, y, cget$x, fit$linear.predictors,
                         cget$weights, istrat, fit$method=="efron", 
-                        ord1, ord2)
+                        ord1, ord)
     }
 @
 
@@ -177,7 +177,12 @@ df[nterm+1]   <- nvar
 
 tbl <- cbind(test, df, pchisq(test, df, lower.tail=FALSE))
 dimnames(tbl) <- list(c(termname, "GLOBAL"), c("chisq", "df", "p"))
-rval <- list(table=tbl, x=sort(gtime[event]), time=sort(y[event, ny-1]))
+
+# The x, y, residuals part of the result is sorted by event time
+indx <- order(y[,ny-1])
+indx <- indx[event[indx]==1]
+rval <- list(table=tbl, x=unname(gtime[indx]), time=unname(y[indx, ny-1]))
+if (length(cget$strata)) rval$strata <- cget$strata[indx]
 @ 
 
 The matrix of scaled Schoenfeld residuals is created one stratum at a
@@ -196,7 +201,7 @@ We take a different average that may not be the best, but seems to be
 good enough and doesn't seem to fail.
 \begin{enumerate}
   \item The \code{resid\$used} matrix contains the number of deaths for
-    each strata (row) the contributed to the sum for each variable (column).
+    each strata (row) that contributed to the sum for each variable (column).
     The value is either 0 or the number of events in the stratum, zero for those
     variables that are constant within the stratum.  From this we can get the
     number of events that contributed to each element of the \code{imat} total.
@@ -209,17 +214,21 @@ Now if some variable $x_1$ has a large variance at some time points and a
 small variance at others, or a large variance in one stratum and a small
 variance in another, the above smoothing won't catch that subtlety.
 However we expect such an issue to be rare. 
-The common problem of time*covariate interactions is the target of the
+The common problem of strata*covariate interactions is the target of the
 above manipulations.
 
 <<zph-schoen>>=
 # Make the weight matrix
 wtmat <- matrix(0, nvar, nvar)
 for (i in 1:nrow(resid$used))
-    wtmat <- wtmat + outer(resid$used[i,], pmin(resid$used[i,], 1), '*')
+    wtmat <- wtmat + outer(resid$used[i,], resid$used[i,], pmin)
 vmean <- resid$imat[1:nvar, 1:nvar, drop=FALSE]/wtmat
 
 sresid <- resid$schoen
+if (any(istrat!=1)) {
+    # sresid will be sorted by time within strata, sort it instead by time
+    sresid <- sresid[order(y[event, ny-1]),]
+}
 if (singledf && any(sapply(asgn, length) > 1)) { # collase multi-column terms
     temp <- matrix(0, ncol(sresid), nterm)
     used <- matrix(0, nrow(resid$used), nterm)
@@ -239,7 +248,7 @@ else {
     colnames(sresid) <- names(fit$coefficients)[keep]
     vmean <- vmean[keep, keep, drop=FALSE]
 }
-rownames(sresid) <- signif(times, 4)
+rownames(sresid) <- signif(rval$time, 4)
 
 # for each stratum, rescale the Schoenfeld residuals in that stratum
 sgrp <- rep(1:nrow(resid$used), apply(resid$used, 1, max))

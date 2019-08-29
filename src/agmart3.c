@@ -112,7 +112,7 @@ SEXP agmart3(SEXP nused2,  SEXP surv2,  SEXP score2, SEXP weight2,
 		}
 		cumhaz =0;
 		denom = 0;
-		istrat= strata[p1];
+		istrat= strata[p2];
 	    }
 	    if (event[p2] >0) {
 		dtime = tstop[p2];

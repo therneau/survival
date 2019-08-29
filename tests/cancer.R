@@ -30,9 +30,13 @@ all.equal(cfit1$loglik, cfit2$loglik)
 all.equal(coef(cfit1), coef(cfit2))
 
 # the above verifies that the data set is correct
-# now compute score tests one variable at a time
 zp1 <- cox.zph(cfit1, transform="log")
+zp2 <- cox.zph(cfit2, transform="log")
+# everything should match but the call
+icall <- match("Call", names(zp1))
+all.equal(unclass(zp2)[-icall], unclass(zp1)[-icall])
 
+# now compute score tests one variable at a time
 ncoef <- length(coef(cfit2))
 check <- double(ncoef)
 cname <- names(coef(cfit2))
@@ -45,9 +49,6 @@ for (i in 1:ncoef) {
     check[i] <- tfit$score
     } 
 aeq(check, zp1$table[1:ncoef,1]) # skip the 'global' test
-
-zp2 <- cox.zph(cfit2, transform="log")
-all.equal(zp2$table, zp1$table)
 
 #
 # Tests of using "."
