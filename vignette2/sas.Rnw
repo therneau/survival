@@ -218,11 +218,13 @@ directly to the printout at the end.
 set.seed(1960)
 n <- 121700    # number of nurses who enrolled
 #n <-  12170      # test run, with smaller data
-iage <- sample(30:55, n, replace=TRUE)  # age 30 to 55 at enrollment
+temp <- floor(c(30*365.25, 55*365.25))     
+age <- sample(temp[1]:temp[2], n, replace=TRUE) # age in days, at enrollment
+iage <- floor(age/365.25)               # birthday age
 
-# a random survival time for each subject.  Use Minnesota rates since
-#  both nurses and Minnesotans are healthier than the US as a whole
-sy <- survexp.mn[1:110, 'female', "1985"]*365.25  # yearly hazard rate
+# a random survival time for each subject.  Minnesota death rates*.8
+#  give approx the same number of deaths as the NHS (personal communication).
+sy <- survexp.mn[1:110, 'female', "1985"]*365.25 *.8 # yearly hazard rate
 dtime <- double(n)
 for (i in 30:55) {
     j <- which(iage == i)
@@ -231,28 +233,29 @@ for (i in 30:55) {
 }
     
 # change to days
-iage <- floor(iage*365.25)
-dtime <- ceiling(dtime*365.25)  # make sure of at least 1 day of survival
+dtime <- pmax(30, ceiling(dtime*365.25))  # at least 1 month of survival
 
-# up to 15 bi-annual follow-ups for each subject
+# up to 16 bi-annual follow-ups for each subject + enrollment visit
 #  covariates are rounded to fewer digits to make nicer printout
-times <- matrix(sample(700:770, n*15, replace=TRUE), ncol=n)
-age <- apply(rbind(iage, times), 2, cumsum)
-temp <- data.frame(id=rep(1:n, each=16),
-                   age = c(age),     # age at visit
-                   x1 = round(runif(n* 16, 100, 200)),
-                   x2 = round(rgamma(n* 16, 1,2), 2),
-                   x3 = rbinom(n* 16, 1, .5),
-                   x4 = rbinom(n* 16, 1, .2))
+times <- matrix(sample(700:770, n*16, replace=TRUE), ncol=n)
+vage <- apply(rbind(age, times), 2, cumsum)
+temp <- data.frame(id=rep(1:n, each=17),
+                   vage = c(vage),     # age at visit
+                   x1 = round(runif(n* 17, 100, 200)),
+                   x2 = round(rgamma(n* 17, 1,2), 2))
 
-dummy <- data.frame(id=1:n, height= round(runif(n, 60, 90)), dtime=dtime)
-nhs <- tmerge(dummy[,1:2], dummy, id=id,  death=event(dtime),
+dummy <- data.frame(id=1:n, dtime=dtime, agem = floor(age*12/365.25))
+nhs <- tmerge(dummy, dummy, id=id,  death=event(dtime),
                options= list(tstartname="age1", tstopname="age2"))
-nhs <- tmerge(nhs, temp, id=id, 
-               x1=tdc(age, x1), x2=tdc(age, x2), x3=tdc(age, x3),
-               x4 = tdc(age, x4))
+nhs <- tmerge(nhs, temp, id=id, qnum= cumtdc(vage), 
+               x1=tdc(vage, x1), x2=tdc(vage, x2))
 latedeath <- with(nhs, death==1 & (age2-age1) > 800)
 nhs <- subset(nhs, age1>0 & !latedeath)
+
+# Add a lot of binomial variables.  Adding this at the end in this
+#  way allows me to write + xb in the model rather than +xb.1 + xb.2 + ...xb.40
+#  That is, same model, less typing.
+nhs$xb <- matrix(rbinom(nrow(nhs)*40, 1, .4), ncol=40)
 
 # Look at statistics for the first 1/3, 2/3, and 3/3 of the subjects
 nsubject <- max(nhs$id)
@@ -267,7 +270,7 @@ for (i in 1:3) {
     stats[3,i] <- sum(km$n.event>0)
     stats[4,i] <- mean(km$n.risk[km$n.event >0])
 
-    time1 <- system.time(coxph(Surv(age1, age2, death) ~ x1+ x2 + x3 + x4,
+    time1 <- system.time(coxph(Surv(age1, age2, death) ~ x1+ x2 + xb,
                          ties="breslow", temp))
     stats[5,i] <- sum(time1[-3])   # ignore elapsed time
 }
@@ -278,10 +281,9 @@ dimnames(stats) <- list(c("number of observations", "number of events",
                         c("first 1/3", "2/3", "all"))
 
 round(stats)
-round(stats[5,,drop=FALSE],1)
 @ 
 
-The resulting data set has 1.7 million records for 122 thousand subjects,
+The resulting data set has 1.8 million records for 122 thousand subjects,
 reflecting the long bi-annual follow up for the NHS.  
 Subjects have a new observation at each visit, giving the new values of their
 covariates, and their last visit will end in a censoring or death.
@@ -301,22 +303,50 @@ cancellation; e.g., in finite precision arithmetic (1e18 + 123) - (1e18) =0 so
 a large outlier that is added and then later removed can be deadly.
 (Mitigation for this is discussed in the noweb source code.)
 The basic algorithm has a run time of $O(2n)$.
-Looking at the data above, we see that the execution time is almost
-linear in $n$, the number of observations.
+Looking at the results above, we see that the execution time is almost
+perfectly linear in $n$, the number of observations.
 The ideal, but unobtainable algorithm would be linear in the number
 of unique death times $d$ = the number of terms in the partial likelihood
-sum, with no time at all devoted to bookkeeping; $d$ grows somewhat
+sum, with no time at all devoted to bookkeeping; $d$ grows
 slower than $n$ due to ties.
 
 Running the same data set using SAS phreg, the execution times were 
-11, 86, and 268 seconds for 1/10, 3/10, and 5/10 of the subjects,
-a quadratic growth rate.
+85, 303, and 867 seconds for 1/9, 2/9, and 3/9 of the subjects,
+a quadratic growth rate.  (We used ties='breslow' in R to match the 
+phreg default.)
 The phreg algorithm appears to use the simpler approach, which is to calculate
 the variance anew at each death time.
 In this case the dominating term in the compute time will be $O(nd)$,
 and $d$ grows with $n$.  
 
-The NHS example started with a complaint that R was several fold \emph{slower}
+The average number at risk, at each death, in the full Cox model was over
+60 thousand.  
+This is statistical overkill: 10-20 conrols per case will work just as well.
+One simple way to thin this down is to match subjects into sets based on
+their age at first response, in months; the variable \code{agem} in our
+data set above.  This gives groups of size 350--450.  What does it do to
+the compute time?
+
+<<strata>>=
+system.time(assign("fit1", coxph(Surv(age1, age2, death) ~ x1 + x2 + xb,
+                                 ties='breslow', data=nhs)))
+
+system.time(assign("fit2", coxph(Surv(age1, age2, death) ~ x1 + x2 + xb +
+                                 strata(agem), ties='breslow', data=nhs)))
+@ 
+
+Reducing the average number at risk by 150 fold has reduced the compute time
+by about 25\%; the overall size of the data set has not changed and size
+dominates the \code{coxph} compute time.
+The effect of stratification on phreg, however, was profound: the run
+times for 1/3, 2/3, and 3/3 of the data were now 7, 18, and 33 seconds;
+still quadratic but with a 120 fold decrease.
+(Note that because of licensing restrictions SAS jobs were run on a 
+dedicated server, so times will not be exactly comparable.  Based on the
+hardware at the time we expect no more than a 2x distortion.)
+
+
+The NHS example started with a complaint that R was 8 fold \emph{slower}
 than SAS on the actual NHS data set, which puzzled me.
 In what situation could this happen?
 One way is to create a version of the data where $n$ grows, but $m$ and $d$
@@ -331,7 +361,7 @@ with (age1, age2, death) values of (14610, 14611, 0), (14611, 14612, 0),
 (14612, 14613, 0), \ldots (15360, 15361, 0).
 Since NHS subjects are contacted every two years, this will increase
 the data set size by approximately 730 fold,
-leading to a consequence increase in the compute time for \code{coxph}.
+leading to a consequence 700 fold increase in the compute time for \code{coxph}.
 
 This kind of expansion is sometimes done to create dummy covariates x*log(t)
 as a step towards testing proportional hazards. 
@@ -345,15 +375,47 @@ In the survival package an expanded data set is never needed for this
 particular purpose, since the \code{cox.zph} function directly computes the
 relevant score test in $O(n)$ time, without data expansion.
 
+Another use of such data sets is when a user desires to control the risk
+sets exactly. An example is nested case-control sampling, where at each 
+death time a subsample of the subjects who were at risk at that time is
+selected.  
+Say there were 52 events and 10 controls were selected for each.
+A special data set is constructed which has 52*11 observations: the first
+event + the 10 controls for it, then the second event + its 10 controls, etc.
+The data set will contain a \code{group} variable that divides these into
+52 groups and a status variable of 1=event/ 0=control.
+A standard Cox model program can be used to fit this.
+A \code{time} value, which used by the \code{coxph} routine to determine risk
+sets, is not needed since the risk sets are already set, and one can use
+the call
+\begin{verbatim}
+   fit <- coxph(Surv(dummy, status) ~ strata(group) + x1 + x2 + ...)
+\end{verbatim}
+where \code{dummy} is a dummy variable set to a constant value (often 1.0).
+
 Further conversation with the NHS study personnel clarified that they were 
-indeed using
-an expanded data set, but had also coarsened the time scale to use time 
+indeed using this approach, but had also coarsened the time scale to use time 
 in months. 
-Per the prior section on the Efron estimate, for a data set on this time 
-scale the use of months vs. days will hardly change the final Cox model 
-estimates, but it does lead 
-to a much smaller intermediate data set.
-Let's create an expanded data set using these parameters.  Since subjects
+Per the prior section on the Efron estimate, for a data set with 10+ years
+of follow-up
+the use of months vs. days will hardly change the final Cox model estimates.
+If we make the further decision to use those with the same enrollment 
+age as the ``selected subset'', no new data set
+needs to be created at all.
+
+<<matched>>=
+dummy <- rep(1, nrow(nhs))
+dmonth <- floor(nhs$age2 * 12/365.25)   # endpoint in months
+system.time(assign("mfit", coxph(Surv(dummy, death) ~ x1 + x2 + xb +
+                                     strata(dmonth, agem), nhs)))
+@ 
+
+The months with no deaths at all add nothing to the loglikihood and could
+be removed from the data set, but there are very few of them.
+Create an expanded data set using these parameters:
+time scale in months, separate strata based on age at enrollment,
+and expanded data within strata based on death month.
+Since subjects
 come in about every 2 years using months will expand the data set by 
 approximately
 24 fold. To keep the vignette from taking too long to run we'll only use

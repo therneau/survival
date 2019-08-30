@@ -378,7 +378,7 @@ if (length(curves) ==1) {
     kfit <- (curves[[1]])[match(keep, names(curves[[1]]), nomatch=0)]
     names(kfit$p0) <- states
     if (se.fit) kfit$logse <- FALSE
-    kfit$cumhaz <- t(kfit$cumhaz[ckeep,])
+    kfit$cumhaz <- t(kfit$cumhaz[ckeep,,drop=FALSE])
     colnames(kfit$cumhaz) <- names(ckeep)
 }
 else {    
@@ -399,10 +399,10 @@ else {
         kfit$logse <- FALSE
     }
 
-    # rearrange the cumulative hazard to be in time order, which columns
+    # rearrange the cumulative hazard to be in time order, with columns
     #  for each transition
     kfit$cumhaz <- do.call(rbind, lapply(curves, function(x)
-        t(x$cumhaz[ckeep,])))
+        t(x$cumhaz[ckeep,,drop=FALSE])))
     colnames(kfit$cumhaz) <- names(ckeep)
  
     if (influence) kfit$influence.pstate <- 
