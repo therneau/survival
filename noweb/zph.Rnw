@@ -48,10 +48,12 @@ The newer version of the routine has two separate tracks: for the formal test
 and another for the residuals.
 
 <<cox.zph>>=
-cox.zph <- function(fit, transform='km', singledf =TRUE, global=TRUE) {
+cox.zph <- function(fit, transform='km', terms=TRUE, singledf =FALSE, 
+                    global=TRUE) {
     Call <- match.call()
-    if (!inherits(fit, 'coxph')) stop ("Argument must be the result of coxph")
-    if (inherits(fit, 'coxph.null'))
+    if (!inherits(fit, "coxph") && !inherits(fit, "coxme")) 
+        stop ("Argument must be the result of Cox model fit")
+    if (inherits(fit, "coxph.null"))
 	stop("The are no score residuals for a Null model")
 
     cget <- coxph.getdata(fit, y=TRUE, x=TRUE, stratax=TRUE, weights=TRUE)
@@ -64,7 +66,11 @@ cox.zph <- function(fit, transform='km', singledf =TRUE, global=TRUE) {
 
     varnames <- names(fit$coefficients)
     nvar <- length(varnames)
-   
+    # if terms==FALSE the singledf argument is moot, but FALSE leads to a
+    #  simpler path through the code
+    if (!terms) singledf <- FALSE 
+    
+    <<zph-setup>>
     <<zph-transform>>
     <<zph-terms>>
     <<zph-schoen>>
@@ -113,13 +119,13 @@ if (is.character(transform)) {
     # Now get the U, information, and residuals
     if (ny==2) {
         ord <- order(istrat, y[,1]) -1L
-        resid <- .Call(Czph1, gtime, y, cget$x, fit$linear.predictors,
+        resid <- .Call(Czph1, gtime, y, cget$x, eta,
                         cget$weights, istrat, fit$method=="efron", ord)
     }
     else {
         ord1 <- order(-istrat, -y[,1]) -1L   # reverse time for zph2
         ord  <- order(-istrat, -y[,2]) -1L
-        resid <- .Call(Czph2, gtime, y, cget$x, fit$linear.predictors,
+        resid <- .Call(Czph2, gtime, y, cget$x, eta,
                         cget$weights, istrat, fit$method=="efron", 
                         ord1, ord)
     }
@@ -132,15 +138,53 @@ is a simple variation on iteration 1 for a coxph model.
 
 If \code{singledf} is TRUE then treat each term as a single degree of
 freedom test, otherwise as a multi-degree of freedom.
+If terms=FALSE test each covariate individually.
 If all the variables are univariate this is a moot point.
-The survival routines return Splus style assign components.
+The survival routines return Splus style assign components, that is a list
+with one element per term, each element an integer vector of coefficient
+indices.
 
-<<zph-terms>>=
-asgn <- fit$assign
-if (is.list(asgn)) {
-    termname <- names(asgn)
-    nterm <- length(asgn)   # asgn will be 1, 2,2,2, 3, etc
-} else stop ("unexpected assign component")
+The asgn vector is our main workhorse: loop over asgn to process term by
+term.
+\begin{itemize}
+  \item if term=FALSE, set make a new asgn with one coef per term
+  \item if a coefficient is NA, remove it from the relevant asgn vector
+  \item frailties and penalized coxme coefficients are ignored: remove
+    their element from the asgn list
+\end{itemize} 
+   
+For random effects models, including both frailty and coxme results, the
+random effect is included in the linear.predictors component of the 
+fit.  This allows us to do score tests for the other terms while effectively
+holding the random effect fixed.
+
+<<zph-setup>>=
+eta <- fit$linear.predictors
+if (!terms) {
+    # create a fake asgn that has one value per coefficient
+    asgn <- as.list(1:nvar)
+    names(asgn) <- names(fit$coefficients)
+}
+else if (inherits(fit, "coxme")) {
+    asgn <- attrassign(cget$x, terms(fit))
+    # allow for a spelling inconsistency in coxme, later fixed
+    if (is.null(fit$linear.predictors)) 
+        eta <- fit$linear.predictor
+}
+else   asgn <- fit$assign
+    
+if (!is.list(asgn)) stop ("unexpected assign component")
+
+frail <- grepl("frailty(", names(asgn), fixed=TRUE)
+if (any(frail)) {
+    dcol <- unlist(asgn[frail])    # remove these columns from X
+    cget$x <- cget$x[, -dcol, drop=FALSE]
+    asgn <- asgn[!frail]
+}
+asgn <- asgn[!grepl("frailty(", names(asgn), fixed=TRUE)] # remove frailty
+nterm <- length(asgn)
+termname <- names(asgn)
+
 if (any(is.na(fit$coefficients))) {
     # fix up assign so as to ignore missing coefs, this should be rare
     mcoef <- which(is.na(fit$coefficients))
@@ -149,15 +193,36 @@ if (any(is.na(fit$coefficients))) {
     termname <- names(asgn)
     nterm <- length(asgn)   # asgn will be 1, 2,2,2, 3, etc
 }
-                   
+@ 
+
+The zph1 and zph2 functions do not consider penalties, so we need to add
+those back in after the call. 
+Nothing needs to be done wrt the first derivative: we already ignore the
+first ncoef elements of the returned first derivative (u) vector, which would
+have had a penalty.  The second portion of u is for beta=0, and all of the
+penalties that currently are implemented have first derivative 0 at 0.
+For the second derivative, the current penalties (frailty, rigde, pspline) have
+a second derivative penalty that is independent of beta-hat.  
+The coxph result contains the numeric value of the penalty at the solution,
+and we use a score test that would penalize the new time*pspline() term in
+the same way as the pspline term was penalized.  
+
+<<zph-terms>>=                   
 test <- double(nterm+1)
 df   <- rep(1L, nterm+1)
 u0 <- rep(0, nvar)
+if (!is.null(fit$coxlist2)) { # there are penalized terms
+    pmat <- matrix(0., 2*nvar, 2*nvar) # second derivative penalty
+    pmat[1:nvar, 1:nvar] <- fit$coxlist2$second
+    pmat[1:nvar + nvar, 1:nvar + nvar] <- fit$coxlist2$second
+    imatr <- resid$imat + pmat
+}
+else imatr <- resid$imat
 
 for (ii in 1:nterm) {
     jj <- asgn[[ii]]
     kk <- c(1:nvar, jj+nvar)
-    imat <- resid$imat[kk, kk]
+    imat <- imatr[kk, kk]
     u <- c(u0, resid$u[jj+nvar])
     if (singledf && length(jj) >1) {
         vv <- solve(imat)[-(1:nvar), -(1:nvar)]
@@ -172,11 +237,18 @@ for (ii in 1:nterm) {
 }
 
 #Global test
-test[nterm+1] <- solve(resid$imat, resid$u) %*% resid$u
-df[nterm+1]   <- nvar
+if (global) {
+    u <- c(u0, resid$u[-(1:nvar)])
+    test[nterm+1] <- solve(imatr, u) %*% u
+    df[nterm+1]   <- nvar
 
-tbl <- cbind(test, df, pchisq(test, df, lower.tail=FALSE))
-dimnames(tbl) <- list(c(termname, "GLOBAL"), c("chisq", "df", "p"))
+    tbl <- cbind(test, df, pchisq(test, df, lower.tail=FALSE))
+    dimnames(tbl) <- list(c(termname, "GLOBAL"), c("chisq", "df", "p"))
+}
+else {
+    tbl <- cbind(test, df, pchisq(test, df, lower.tail=FALSE))[1:nterm,]
+    dimnames(tbl) <- list(termname, c("chisq", "df", "p"))
+}
 
 # The x, y, residuals part of the result is sorted by event time
 indx <- order(y[,ny-1])
@@ -218,40 +290,44 @@ The common problem of strata*covariate interactions is the target of the
 above manipulations.
 
 <<zph-schoen>>=
+# Watch out for a particular edge case: there is a factor, and one of the
+#   strata happens to not use one of its levels.  The element of resid$used will
+#   be zero, but it really should not.
+used <-resid$used
+for (i in asgn) {
+    if (length(i) > 1 && any(used[,i] ==0)) 
+        used[,i] <- apply(used[,i,drop=FALSE], 1, max)
+}
+    
 # Make the weight matrix
 wtmat <- matrix(0, nvar, nvar)
-for (i in 1:nrow(resid$used))
-    wtmat <- wtmat + outer(resid$used[i,], resid$used[i,], pmin)
-vmean <- resid$imat[1:nvar, 1:nvar, drop=FALSE]/wtmat
+for (i in 1:nrow(used))
+    wtmat <- wtmat + outer(used[i,], used[i,], pmin)
+vmean <- imatr[1:nvar, 1:nvar, drop=FALSE]/wtmat
 
 sresid <- resid$schoen
-if (any(istrat!=1)) {
+if (any(istrat != istrat[1])) { # more than one stratum
     # sresid will be sorted by time within strata, sort it instead by time
     sresid <- sresid[order(y[event, ny-1]),]
 }
-if (singledf && any(sapply(asgn, length) > 1)) { # collase multi-column terms
+if (terms && any(sapply(asgn, length) > 1)) { # collase multi-column terms
     temp <- matrix(0, ncol(sresid), nterm)
-    used <- matrix(0, nrow(resid$used), nterm)
     for (i in 1:nterm) {
         j <- asgn[[i]]
-        temp[j, i] <- 1
-        for (k in 1:nrow(used)) 
-            used[k,i] <- max(resid$used[k, j])
-    }     
+        if (length(j) ==1) temp[j, i] <- 1
+        else temp[j, i] <- fit$coefficients[j]
+    }
+
     sresid <- sresid %*% temp
     vmean <- t(temp) %*% vmean %*% temp
     colnames(sresid) <- names(asgn)
+    used <- used[, sapply(asgn, function(x) x[1]), drop=FALSE]
 }
-else {
-    keep <- !is.na(fit$coefficients)
-    used <- resid$used[,keep, drop=FALSE]
-    colnames(sresid) <- names(fit$coefficients)[keep]
-    vmean <- vmean[keep, keep, drop=FALSE]
-}
+
 rownames(sresid) <- signif(rval$time, 4)
 
 # for each stratum, rescale the Schoenfeld residuals in that stratum
-sgrp <- rep(1:nrow(resid$used), apply(resid$used, 1, max))
+sgrp <- rep(1:nrow(used), apply(used, 1, max))
 for (i in 1:nrow(used)) {
     k <- which(used[i,] > 0)
     if (length(k) >0)  { # there might be no deaths in the stratum
@@ -261,6 +337,15 @@ for (i in 1:nrow(used)) {
         sresid[j, -k] <- NA
     }
 } 
+
+# Add in beta-hat.  For a term with multiple columns we are testing zph for
+#  the linear predictor X\beta, which always has a coefficient of 1
+for (i in 1:nterm) {
+    j <- asgn[[i]]
+    if (length(j) ==1) sresid[,i] <- sresid[,i] + fit$coefficients[j]
+    else sresid[,i] <- sresid[,i] +1
+}
+
 rval$y <- sresid
 rval$var <- solve(vmean)  
 @ 
@@ -274,5 +359,5 @@ rval$var <- solve(vmean)
 		transform=x$transform)
     attributes(z) <- attributes(x)
     z
-    }
+}
 @

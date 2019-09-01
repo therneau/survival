@@ -74,9 +74,10 @@ state5 <- function(what, ...) {
 
 \title{The survival package}
 \author{Terry Therneau}
-
 \begin{document}
 \maketitle
+\clearpage
+\tableofcontents
 
 \chapter{Introduction}
 \section{History}
@@ -1691,6 +1692,179 @@ legend(20, .22, outer(c("80 year old male,", "80 year old female,"),
 
 \section{Multiple event types per subject}
 
+\section{Testing proportional hazards}
+The usual Cox model with $p$ covariates has the form
+\begin{align*}
+  \lambda(t) &= \lambda_0(t) e^{beta_1 x_1 + \beta_2 x_2 + \ldots + \beta_p x_p} \\
+             &= e^{\beta_0(t) + beta_1 x_1 + \beta_2 x_2 + \ldots + \beta_p x_p}
+\end{align*}
+A key simplifying assumption of the model is that all of the coefficients
+except $\beta_0$ (the baseline hazard) are constant over time,
+which is referred to as the \emph{proportional hazards} assumption.
+Numerous approaches to verifying or testing this assumption have been
+proposed, of which the three most enduring have been the addition of
+an additional constructed covariate, score tests, and tests based on
+cumulative martingale sums.  Each of these is normally applied to one
+covariate at a time.
+
+\subsection{Constructed variables}
+For the constructed variable approach, assume that the true form of the
+model for variable $x_1$ is $\beta_1(t) x_1$, with the coefficient having
+the simple linear form $\beta_1(t) = a + bt$.
+Then 
+\begin{align}
+  \beta_1(t)x_1 &=  ax_1 + b(x_1t) \nonumber \\
+               & = ax_1 + b z  \label{ph1}
+\end{align}
+that is, we can create a special time-dependent covariate $z = x_1t$, add
+add it to the data set, and then use an ordinary \code{coxph} fit.
+
+Consider the veterans lung cancer data set, which has often been used to
+illustrate non-proportional hazards.
+Adding this special covariate is not quite as simple as writing
+<<echo=TRUE, eval=FALSE>>=
+fit2 <- coxph(Surv(time, status) ~ trt + trt*time + celltype + karno,
+                data = veteran)
+@ 
+The problem is that \code{time} is trying to play two roles in the above 
+equation,
+the \emph{final} follow-up time for each subject and the
+\emph{continuous} time scale $t$ of equation \eqref{ph1}.
+The solution to to create the special variable explicitly
+before calling the regression function.
+Since the Cox model adds a term to the likelihood at each unique death
+time, it is sufficient to create a data set with the same granularity.
+
+<<zphcheck1>>=
+dtime <- unique(veteran$time[veteran$status==1]) # unique times
+newdata <- survSplit(Surv(time, status) ~ trt + celltype + karno,
+                     data=veteran, cut=dtime)
+nrow(veteran)
+nrow(newdata)
+fit0 <- coxph(Surv(time, status) ~ trt + celltype + karno, veteran)
+fit1 <- coxph(Surv(tstart, time, status) ~ trt + celltype + karno, 
+              data=newdata)
+fit2 <- coxph(Surv(tstart, time, status) ~ trt + celltype + karno +
+              time:karno, newdata)
+fit2
+
+fit2b <- coxph(Surv(tstart, time, status) ~ trt + celltype + karno +
+              rank(time):karno, newdata)
+@ 
+
+The fits give a warning message about the use of the \code{time} variable
+on both sides of the equation 
+(two most common cases where time appears on both sides are the naive model
+shown further above and frank typing mistakes).
+In this particular case we can ignore the warning since the data set was 
+carefully constructed for this special purpose, but it should never be treated
+casually.
+
+Alternatively, \code{coxph} has built-in functionality that will build
+the expanded data set for us, behind the scenes, and then use that 
+expanded data for the fit.
+Here is eqivalent code to test the Karnofsky variable:
+<<zph2>>=
+fit2 <- coxph(Surv(tstart, time, status) ~ trt + celltype + karno +
+              tt(karno), data =newdata,
+              tt = function(x, t,...) x*t)
+@ 
+ 
+There are 4 issues with the constructed variable approach.
+\begin{enumerate}
+  \item The choice $\beta(t) \approx a + bt$ was arbitrary.  Perhaps the true
+    form is $a + b\log(t)$ (fit2b above), or some other function.
+  \item The intermediate data set can become huge. 
+    It will be of order $O(nd)$ where $d$ is the number of unique
+    event times, and $d$ grows along with $n$.
+  \item The coefficients for a factor variable such as celltype can be
+    confusing, since the results depend on how the 0/1 indicators
+    for the variable are chosen.
+  \item Outliers in time are an issue. 
+    The veteran cancer data set, for instance, contains 
+    a time of 999 days (a particularly
+    suspicious value in any data set).
+    The Cox model itself depends only on the rank order of the event times,
+    so such outliers are not an issue for the base model,
+    but as a covariate these values can have undue influence.
+    The time-dependent coeffient for Karnofsky has $p<.01$ in fit2b
+    above, which uses rank(time),
+    a change that is largely due to dampening the leverage of outliers.
+\end{enumerate}
+
+\subsection{Score tests}
+The \code{cox.zph} function checks proportional hazards for a fitted Cox model
+directly, and tries to address the four issues discussed above.
+\begin{itemize}
+  \item It is easy to specify alternate time transforms such as x*log(t).  
+    More importantly, the code produces both a diagnostic plot that suggests
+    the shape of any non-proportionality, along with a test of the chosen
+    time-transform.
+  \item The test statistic is based on a score test, which does not require
+    creating the expanded data set.
+  \item Multi-covariate terms such as a factor or splines are by default treated
+    as a single effect.
+  \item The default time transform is designed to minimize outliers in time.
+\end{itemize}
+
+Shown below are results for the veterans data using \code{fit0} from above.
+The score statistic for the simple term x*time (\code{zp1}) closely matches the
+Wald test for the full time dependent fit found in \code{fit2} above,
+which is what we would expect; score, Wald and likelihood ratio tests usually
+agree quite closely for Cox models.
+
+<<zph2, fig=TRUE>>=
+zp0 <- cox.zph(fit0, transform='identity')
+zp0
+zp1 <- cox.zph(fit0, transform='log')
+zp1
+oldpar <- par(mfrow=c(2,2))
+for (i in 1:3) {plot(zp1[i]); abline(0,0, lty=3)}
+plot(zp0[3])
+par(oldpar)
+@ 
+
+A test for zero slope, from a least squares regression using data in the 
+matching plot approximates the score test.
+(In versions of the package prior to survival3.0, the approximate test was
+used for the formal printout and test as well.)
+If proporitional hazard holds we would expect the fitted line to be
+horizontal, i.e., $\beta(t)$ is constant.
+Rather than show a fitted line the plot add a general smooth curve, which
+can help reveal the \emph{form} of non-proportional hazards, if it exists. 
+The first three panels of the plot show curves for the three covariates on
+a log(time) scale.
+Since \code{celltype} is a factor, the plot shows the time dependent effect
+of the portion of the linear predictor associated with cell type; 
+if proportional hazards is true wrt that term a fitted line should be
+horizontal with a coefficient of 1.
+The effect of Karnofsky score appears become essentially 0 after
+approximately 6 months; for this cohort of subjects with advanced lung cancer,
+a 6 month old assessment is no longer relevant.
+The corresponding plot in the lower right panel, however, shows that the outlier
+time of 999 days has an undue influence on any such regression. 
+A test of proportional hazards on that scale must also be treated with
+caution.
+The plot using log scale lacks these outliers and is more interpretable.
+
+The default time transform is based on a Kaplan-Meier transform, i.e., that
+monotone transform of the time axis that will cause the KM plot to be a 
+straight line.
+This is a good default for the score tests, since it essentially 
+guarrantees that there wil be no outliers in the constructed $x g(time)$, 
+while dealing with censoring in a defensible way. 
+The code has opted for a safe default. 
+It is not as easily interpreted as other scales for the plots, however.
+
+The \code{cox.zph} function does not attempt a score test for random effects 
+(frailty) terms, 
+in fact is not clear what the computation for such a test should be.
+The function will check other covariates in a model that
+contains a random effect, however; 
+the estimated random effect per subject is essentially treated as a fixed 
+offset.
+
+
 \chapter{Accelerated Failure Time models}
 \label{chap:aft}
 
@@ -2086,7 +2260,7 @@ Each element indexes a position in the coefficient vector and variance matrix.
   \item If a particular term in the data, ``age'' say, was not part of the model
     for a particular transition then a 0 will appear in that position 
     of \code{cmap}.
-  \item If two transitions share a common coefficient, both those element of
+z  \item If two transitions share a common coefficient, both those element of
     \code{cmap} will point to the same location.
   \item The first row of \code{cmap}, labeled ``stratum'', is numbered separately
     and partitions the transitions into disjoint strata.

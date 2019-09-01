@@ -368,7 +368,10 @@ We draw an empty figure, letting R figure out the limits.
 <<plot-makebox>>=
 # check consistency
 if (!missing(xlim)) {
-    if (!missing(xmax)) stop("cannot have both xlim and xmax arguments")
+    if (!missing(xmax)) {
+        xmax <- xlim[2]
+        warning("both xlim and xmax specified, xmax ignored")
+    }
     if (!missing(firstx)) stop("cannot have both xlim and firstx arguments")
 }
 if (!missing(ylim)) {
