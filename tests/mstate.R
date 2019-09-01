@@ -40,6 +40,7 @@ mfit <- survfit(Surv(t1, t2, state) ~ 1, mtest, id=id)
 
 # In mfit, the "entry" state is first in the matrices, when this function was
 #  first created it was the last.
+mfit <- survfit32(mfit)  # updated object, but I don't want to rewrite this
 swap <- c(4,1,2,3)  # at one time it was last
 all.equal(mfit$n.risk, matrix(c(0,1,1,2,2,1,0,0,
                                 0,0,1,1,1,1,2,1,
@@ -144,10 +145,12 @@ dopstate <- function(w) {
 w1 <- rep(1,10)
 mtest2 <- tfun(tdata)  # scrambled order
 mfit2 <- survfit(Surv(t1, t2, st) ~ 1, tdata, id=id, istate=i0) # ordered
+mfit2 <- survfit32(mfit2)
 aeq(mfit2$pstate, dopstate(w1)[,swap])
 aeq(mfit2$p0, p0(w1)[swap])
 
 mfit2b <- survfit(Surv(t1, t2, st) ~ 1, mtest2, id=id, istate=i0)#scrambled
+mfit2b <- survfit32(mfit2b)
 aeq(mfit2b$pstate, dopstate(w1)[,swap])
 aeq(mfit2b$p0, p0(w1)[swap])
 
@@ -158,6 +161,7 @@ aeq(mfit2$transitions, c(2,0,1,0, 0,2,0,0, 1,1,1,0, 0,0,0,2))
 # Now the harder one, where subjects change weights
 mfit3  <- survfit(Surv(t1, t2, st) ~ 1, tdata, id=id, istate=i0,
                   weights=wt, influence=TRUE)
+mfit3 <- survfit32(mfit3)
 aeq(mfit3$p0, p0(1:10)[swap])
 aeq(mfit3$pstate, dopstate(1:10)[,swap])
     

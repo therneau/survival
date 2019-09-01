@@ -115,7 +115,9 @@ survfit32 <- function(x) {
     }
 
     x$start.time <- x$time[1]
-    x$time <- x$time[-first]
+    for (i in c("time", "n.risk", "n.event", "n.censor")
+         x[[i]] <- x[[i]][-1]
+         
 
     if (inherits(x, "survfitms")) {
         if (is.matrix(x$pstate)) {

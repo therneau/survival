@@ -633,5 +633,5 @@ result$call <- Call
 indx <- match('surv', names(result))
 result <- c(result[1:indx], type=attr(Y, 'type'), result[-(1:indx)])
 class(result) <- c('survfitcox', 'survfit')
-result
+survfit23(result)
 @ 

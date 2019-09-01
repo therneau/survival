@@ -10,7 +10,7 @@ Test the proportional hazards assumption for a Cox regression model fit
 (\code{coxph}). 
 }
 \usage{
-cox.zph(fit, transform="km", singledf=TRUE, global=TRUE)
+cox.zph(fit, transform="km", terms=TRUE, singledf=FALSE, global=TRUE)
 }
 \arguments{
   \item{fit}{
@@ -22,11 +22,17 @@ cox.zph(fit, transform="km", singledf=TRUE, global=TRUE)
     Possible values are \code{"km"}, \code{"rank"}, \code{"identity"} or  a 
     function of one argument. 
   }
+  \item{terms}{if TRUE, do a test for each term in the model rather than
+    for each separate covariate.  For a factor variable with k levels,
+    for instance, this would lead to a k-1 degree of freedom test.  The
+    plot for such variables will be a single curve evaluating the linear
+    predictor over time.}
   \item{singledf}{use a single degree of freedom test for terms that
-    have multiple coefficients}
+    have multiple coefficients, i.e., the test that corresponds most
+    closely to the plot.}
   \item{global}{
     should a global chi-square test be done, in addition to the 
-    per-variable tests. 
+    per-variable or per-term tests tests. 
   }
 }
 \value{
@@ -44,14 +50,18 @@ entered into the matrix as a placeholder.
 \item{x}{
 the transformed time axis. 
 }
+\item{time}{the untransformed time values}
 \item{y}{
 the matrix of scaled Schoenfeld residuals.  There will be one column per 
-variable and one row per event.  The row labels contain the original event 
-times (for the identity transform, these will be the same as \code{x}).
+term or per variable (depending on the \code{terms} option above),
+and one row per event.  The row labels are a rounded form of the
+original times.
 }
 \item{call}{
 the calling sequence for the routine. 
+}}
 
+\details{
 The computations require the original \code{x} matrix of the Cox model fit. 
 Thus it saves time if the \code{x=TRUE} option is used in \code{coxph}. 
 This function would usually be followed by both a plot and a print of 
@@ -60,8 +70,10 @@ result.
 The plot gives an estimate of the time-dependent coefficient \code{beta(t)}. 
 If the proportional hazards assumption is true, \code{beta(t)} will be a 
 horizontal 
-line.  The printout gives a test for \code{slope=0}. 
-}
+line.  The printout shows the score test for \code{slope=0}. 
+
+Random effects terms such a \code{frailty} or random effects in a
+\code{coxme} model are not checked for proportional hazards.
 }
 \references{
 P. Grambsch and T. Therneau (1994), 
