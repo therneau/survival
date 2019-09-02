@@ -237,7 +237,7 @@ an error message if it is accidentally there.
 survfit.formula <- function(formula, data, weights, subset, 
 			    na.action, stype=1, ctype=1, 
                             id, cluster, istate, 
-                            timefix=TRUE, etype, error,...) {
+                            timefix=TRUE, etype, error, ...) {
 
     Call <- match.call()
     Call[[1]] <- as.name('survfit')  #make nicer printout for the user
@@ -343,7 +343,7 @@ survfit.formula <- function(formula, data, weights, subset,
 	    temp$na.action <- attr(mf, 'na.action')
 
     temp$call <- Call
-    survfit23(temp)
+    temp
     }
 @ 
 

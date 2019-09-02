@@ -626,12 +626,10 @@ if (se.fit && conf.type != "none") {
     result <- c(result, list(lower=ci$lower, upper=ci$upper, 
                              conf.type=conf.type, conf.int=conf.int))
 }
-if (!missing(start.time)) result$start.time <- start.time
-result$call <- Call
 
-# Rearrange to match the historical order of the structure
-indx <- match('surv', names(result))
-result <- c(result[1:indx], type=attr(Y, 'type'), result[-(1:indx)])
+if (!missing(start.time)) result$start.time <- start.time
+
+result$call <- Call
 class(result) <- c('survfitcox', 'survfit')
-survfit23(result)
+result
 @ 

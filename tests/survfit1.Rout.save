@@ -1,5 +1,5 @@
 
-R Under development (unstable) (2019-06-28 r76752) -- "Unsuffered Consequences"
+R Under development (unstable) (2019-01-23 r76006) -- "Unsuffered Consequences"
 Copyright (C) 2019 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
@@ -51,7 +51,7 @@ Type 'q()' to quit R.
 +         
 +     U <- matrix(0, nid, 2)  # the two robust influence estimates
 +     V <- matrix(0, ntime, 4)  # variances
-+     usave <- array(0., dim=c(nid, 2, ntime+1))
++     usave <- array(0., dim=c(nid, 2, ntime))
 +     estimate <- matrix(0, ntime, 2)
 + 
 +     for (i in 1:ntime) {
@@ -67,7 +67,7 @@ Type 'q()' to quit R.
 +             
 +         U[,2] <- U[,2] + tapply(dhaz* weights, id, sum) #result in 'id' order
 +         V[i,2] <- sum(U[,2]^2)
-+         usave[,,i+1] <- U
++         usave[,,i] <- U
 + 
 +         if (n.event[i] >0 ) {
 +             KM <- KM*(1-haz)
@@ -80,10 +80,9 @@ Type 'q()' to quit R.
 +         V[i,4] <- hvar
 +         estimate[i,] <- c(KM, nelson)
 +         }
-+     dimnames(usave) <- list(uid, c("KM", "chaz"), c(0, utime))
-+     list(time=c(0, utime), n.risk= c(n.risk[1], n.risk), 
-+          n.event= c(0, n.event), estimate= rbind(c(1,0), estimate),
-+          std = rbind(0, sqrt(V)), influence= usave)
++     dimnames(usave) <- list(uid, c("KM", "chaz"), utime)
++     list(time=utime, n.risk=n.risk, n.event=n.event, estimate=estimate,
++          std = sqrt(V), influence=usave)
 + }
 > 
 > # the byhand function can only handle one group at a time
@@ -94,11 +93,11 @@ Type 'q()' to quit R.
 > #  variance of zero.  These next few lines verify the byhand() function
 > aeq(true1a$std[,1], true1a$estimate[,1]*true1a$std[,3])
 [1] TRUE
-> aeq(true1b$std[1:10,1], true1b$estimate[1:10,1]*true1b$std[1:10,3])
+> aeq(true1b$std[1:9,1], true1b$estimate[1:9,1]*true1b$std[1:9,3])
 [1] TRUE
-> aeq(true1b$std[11,1], 0)   # variance of zero for jackknife
+> aeq(true1b$std[10,1], 0)   # variance of zero for jackknife
 [1] TRUE
-> !is.finite(true1b$std[11,3])   # Inf for Greenwood
+> !is.finite(true1b$std[10,3])   # Inf for Greenwood
 [1] TRUE
 > temp <- with(subset(adata, x=="Maintained"), byhand(time, status, id=id,
 +                                                     weights=rep(3,11)))
@@ -154,7 +153,7 @@ Type 'q()' to quit R.
 > tdata <- subset(adata, x != "Maintained")
 > tdata <- tdata[order(tdata$id),]   # easier to compare if it's in order
 > eps <- 1e-8
-> imat1 <- imat2 <-  matrix(0., 12, 11)
+> imat1 <- imat2 <-  matrix(0., 12, 10)
 > t1 <- survfit(Surv(time, status) ~x, data=tdata) 
 > for (i in 1:12) {
 +     wtemp <- rep(1.0, 12)
@@ -281,12 +280,12 @@ Type 'q()' to quit R.
 > #   1.
 > fit5 <- survfit(Surv(time, status) ~x, adata, ctype=2)
 > nrisk <- c(11,10,8,7, 5,4,2, 12, 11, 10, 9, 8, 6:1)
-> chaz <- c(0, cumsum(1/nrisk[1:7])[c(1:4,4, 5,6,6,7,7)], 
-+           0, cumsum(1/nrisk[8:18])[c(2,4,5,5,6:11)])
+> chaz <- c(cumsum(1/nrisk[1:7])[c(1:4,4, 5,6,6,7,7)], 
++           cumsum(1/nrisk[8:18])[c(2,4,5,5,6:11)])
 > aeq(fit5$cumhaz, chaz)
 [1] TRUE
-> aeq(fit5$std.chaz, sqrt(c(0, cumsum(1/nrisk[1:7]^2)[c(1:4,4, 5,6,6,7,7)], 
-+                           0, cumsum(1/nrisk[8:18]^2)[c(2,4,5,5,6:11)])))
+> aeq(fit5$std.chaz, sqrt(c(cumsum(1/nrisk[1:7]^2)[c(1:4,4, 5,6,6,7,7)], 
++                           cumsum(1/nrisk[8:18]^2)[c(2,4,5,5,6:11)])))
 [1] TRUE
 > 
 > # We can compute the FH using a fake data set where each tie is spread out
@@ -321,11 +320,11 @@ Type 'q()' to quit R.
 +                    id = c(id[notie], temp$id),
 +                    weights = c(weights[notie], temp$weight)
 +                    )
-+     keep <- match(c(0, utime), bfit$time)  # the real time points
++     keep <- match(utime, bfit$time)  # the real time points
 + 
-+     list(time=c(0, bfit$time[keep]), 
-+          n.risk=bfit$n.risk[keep - pmax(0, c(0, counts[,2]-1))],
-+          n.event = bfit$n.event[keep]* c(1, counts[,2]),  
++     list(time=bfit$time[keep], 
++          n.risk=bfit$n.risk[keep - pmax(0, counts[,2]-1)],
++          n.event = bfit$n.event[keep]* counts[,2],  
 +          estimate=bfit$estimate[keep,],
 +          std = bfit$std[keep,], influence=bfit$influence[,,keep])
 + }
@@ -368,7 +367,7 @@ Type 'q()' to quit R.
 > tdata <- subset(adata, x != "Maintained")
 > tdata <- tdata[order(tdata$id),]
 > eps <- 1e-8
-> imat <- matrix(0., 12, 11)
+> imat <- matrix(0., 12, 10)
 > t1 <- survfit(Surv(time, status) ~x, data=tdata, ctype=2, weights=wt) 
 > for (i in 1:12) {
 +     wtemp <- tdata$wt
@@ -384,4 +383,4 @@ Type 'q()' to quit R.
 > 
 > proc.time()
    user  system elapsed 
-  0.984   0.028   1.014 
+  0.916   0.036   0.952 

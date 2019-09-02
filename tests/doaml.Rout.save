@@ -1,5 +1,5 @@
 
-R Under development (unstable) (2019-06-28 r76752) -- "Unsuffered Consequences"
+R Under development (unstable) (2019-05-15 r76504) -- "Unsuffered Consequences"
 Copyright (C) 2019 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
@@ -136,7 +136,7 @@ aml$x=Nonmaintained 12       11     7.31      1.86       3.4
 > denom <- denom[match(unique(atime), atime)]
 > deaths <- tapply(aml$status, aml$time, sum)
 > chaz <- cumsum(deaths/denom)
-> all.equal(sfit$surv[-1], as.vector(exp(-chaz[deaths>0])))
+> all.equal(sfit$surv, as.vector(exp(-chaz[deaths>0])))
 [1] TRUE
 > 
 > # And the Efron result
@@ -178,4 +178,4 @@ n= 23, number of events= 18
 > 
 > proc.time()
    user  system elapsed 
-  0.868   0.032   0.900 
+  0.820   0.028   0.848 

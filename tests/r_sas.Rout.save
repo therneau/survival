@@ -1,5 +1,5 @@
 
-R Under development (unstable) (2019-06-28 r76752) -- "Unsuffered Consequences"
+R Under development (unstable) (2019-03-27 r76274) -- "Unsuffered Consequences"
 Copyright (C) 2019 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
@@ -263,12 +263,12 @@ n= 9
 > #
 > # The cracks data has a particularly easy estimate, so use
 > # it to double check code
-> time <- c(0, crack2$day2[1], (crack2$day1 + crack2$day2)[2:8]/2, 
+> time <- c(crack2$day2[1], (crack2$day1 + crack2$day2)[2:8]/2, 
 +           crack2$day1[9])
-> cdf  <- c(0, cumsum(crack2$n)/sum(crack2$n))
+> cdf  <- cumsum(crack2$n)/sum(crack2$n)
 > all.equal(kfit$time, time)
 [1] TRUE
-> all.equal(kfit$surv, 1-cdf[c(1:9,9)]) 
+> all.equal(kfit$surv, 1-cdf[c(1:8,8)]) 
 [1] TRUE
 > rm(time, cdf, kfit)
 > 
@@ -430,4 +430,4 @@ pdf
 > 
 > proc.time()
    user  system elapsed 
-  2.832   0.064   2.899 
+  2.414   0.067   2.476 

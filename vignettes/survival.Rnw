@@ -2217,36 +2217,33 @@ If only a \code{robust=TRUE} argument is given
 then the code treats each line of data as independent.
 
 \section{Survfit}
-  The survfit object is changing.   The primary change has to do with the 
-starting time.  When the package was first written in the late 1980s I made
-the decision to \emph{not} include the initial point of the survival curve
-(time=0, S=1) as a part of the \code{time} and \code{survival} parts of the
-object; they could get tacked on by the plot function.
-With the addition of delayed start (\code{start.time} option) and then
-more importantly multi-state models, the starting point is not always a
-simple (0,1) pair, which led to the addition of new components to the
-objects to hold the additional information, and increasing if-then-else logic
-in the downstream routines that process the curves.  In v3 the first point
-is now bundled in as part of the time, surv, pstate, std.err, and etc. 
-components. 
+  There has been a serious effort to harmonize the various survfit methods.
+Not all paths had the same options or produced the same outputs.
 
-Two functions survfit23 and survfit32 convert
-between the version 2 \code{survfit} object  and new \code{survfit3} forms.  
-This has allowed us make any changes incrementally.
-
-Other changes are:    
 \begin{itemize}
-  \item Common arguments of id, cluster, and influence
+  \item Common arguments of id, cluster, influence, stype and ctype.
+    \begin{itemize} 
+      \item If stype=1 then the survival curve S(t) is produced directly,
+        if stype=2 it is created as the exp(-H) where H is the cumulative hazard.
+      \item If ctype=1 the Nelson-Aalen formula is used, and for ctype=2 there
+        is a correction for ties.
+      \item The usual curve for a Cox model using the Efron approximate is
+        (2,2), for instance, which the ordinary KM is (1, 1).
+    \end{itemize}
   \item The routines now produce both the estimated survival and the
     estimated cumulative hazard, along with their errors 
-  \item Some code paths produced std(S) and some std(log(S)), the object now
+  \item Some code paths produce std(S) and some std(log(S)), the object now
     contains a \code{log.se} flag telling which.  (Before, downstream routines
     just ``had to know'').
-  \item an explicit ``version'' flag in the object
   \item using a single subscript on a survfit object now behaves like the
     use of a single subscript on an array or matrix, in that the result has
     only one dimension.
 \end{itemize}
+
+A function \code{survfit23} is used by the print and plot methods to ``align''
+all of the elements of the curves to a common starting x and y value, 
+usually 0 for x=time and 1 for y= survival. This also improves consistency.
+
 
 \section{Coxph}
  The multi-state objects include a \code{states} vector, which is a simple

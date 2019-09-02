@@ -143,8 +143,8 @@ if (FALSE) {
 #  a to b, cumhaz of 1/1 at 18
 # s0 to c, cumhaz of 1/1 at 18
 #  a to c, cumhaz of 1/2 at 16
-time2 <-     c(0, 4,5,6,8,10,15,16,18,20, 22)
-chaz2 <- matrix(0, nrow=11, ncol=6,
+time2 <-     c(4,5,6,8,10,15,16,18,20, 22)
+chaz2 <- matrix(0, nrow=10, ncol=6,
             dimnames=list(time2, c("1:2", "1:3", "1:3", "2:3", "1:4", "2:4")))
 chaz2['4',1] <- 1/6; chaz2['8',1] <- 1/5
 chaz2['20',2] <- 1/2

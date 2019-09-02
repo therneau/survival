@@ -1,5 +1,5 @@
 
-R Under development (unstable) (2019-06-28 r76752) -- "Unsuffered Consequences"
+R Under development (unstable) (2019-07-02 r76765) -- "Unsuffered Consequences"
 Copyright (C) 2019 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
@@ -75,9 +75,9 @@ Type 'q()' to quit R.
 +     surv <- exp(-cumsum(hazard) * exp(beta*newx))
 +     varhaz <- (var.g + var.d^2/imat)* exp(2*beta*newx)
 + 
-+     list(loglik=loglik, u=u, imat=imat, xbar=xbar, haz= c(0,hazard),
++     list(loglik=loglik, u=u, imat=imat, xbar=xbar, haz=hazard,
 + 	     mart=mart,  score=score, rmat=resid,
-+ 		scho=scho, surv=c(1,surv), var=c(0,varhaz))
++ 		scho=scho, surv=surv, var=varhaz)
 +     }
 > 
 > 
@@ -300,4 +300,4 @@ Call: survfit(formula = fit, newdata = list(x = 2))
 > 
 > proc.time()
    user  system elapsed 
-  0.904   0.088   0.992 
+  0.849   0.056   0.898 

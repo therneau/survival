@@ -14,7 +14,7 @@ lambda <- function(beta, x=0, method='efron') {
     lambda <- c(1/(r+1), 1/(r+2), 1/(3*r +2), 1/(3*r+1),
                 1/(3*r+1), 1/(3*r+2) + 1/(2*r +2))
     if (method == 'breslow') lambda[9] <- 2/(3*r +2)
-    list(time=c(0,2,3,6,7,8,9), lambda=c(0,lambda))
+    list(time=c(2,3,6,7,8,9), lambda=lambda)
     }
 
 fit <- coxph(Surv(start, stop, event) ~x, test2)
@@ -86,12 +86,13 @@ data5 <- data.frame(start=c(0,5,9,11,
                     subject=c(1,1,1,1, 2,2,2))
 surv5 <- survfit(fit2, newdata=data5, censor=FALSE, id=subject)
 
-aeq(surv5[1]$time[-1], c(2,3,5,6,7,8))  #surv1 has 2, 3, 6, 7, 8, 9
+aeq(surv5[1]$time, c(2,3,5,6,7,8))  #surv1 has 2, 3, 6, 7, 8, 9
 aeq(surv5[1]$surv, surv3[1]$surv ^ exp(fit2$coef))
 
-tlam <- c(true1$lambda[2:3]* exp(fit2$coef * data5$x[5]),
-          true1$lambda[4:6]* exp(fit2$coef * data5$x[6]),      
-          true2$lambda[4:5]* exp(fit2$coef * data5$x[7]))
-aeq(-log(surv5[2]$surv)[-1], cumsum(tlam))
+tlam <- c(true1$lambda[1:2]* exp(fit2$coef * data5$x[5]),
+          true1$lambda[3:5]* exp(fit2$coef * data5$x[6]),      
+          true2$lambda[3:4]* exp(fit2$coef * data5$x[7]))
+aeq(-log(surv5[2]$surv), cumsum(tlam))
 
-                         
+                          
+                          

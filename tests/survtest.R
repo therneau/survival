@@ -23,7 +23,6 @@ fit2 <- survfit(Surv(start, stop, event) ~x, test2, start.time=3,
 cfit1<- survfit(coxph(Surv(start, stop, event)~1, test2))
 cfit2<- survfit(coxph(Surv(start, stop, event) ~ strata(x), test2, subset=-1))
 
-cfit1 <- survfit32(cfit1)  # drop time 0
 deaths <- (fit1$n.event + fit1$n.censor)>0
 aeq(fit1$time[deaths], cfit1$time)
 aeq(fit1$n.risk[deaths], cfit1$n.risk)
@@ -31,7 +30,6 @@ aeq(fit1$n.event[deaths], cfit1$n.event)
 aeq(fit1$surv[deaths], cfit1$surv)
 aeq(fit1$std.err[deaths], cfit1$std.err)
 
-cfit2 <- survfit32(cfit2)
 deaths <- (fit2$n.event + fit2$n.censor)>0
 aeq(fit2$time[deaths], cfit2$time)
 aeq(fit2$n.risk[deaths], cfit2$n.risk)
@@ -39,7 +37,6 @@ aeq(fit2$n.event[deaths], cfit2$n.event)
 aeq(fit2$surv[deaths], cfit2$surv)
 
 fit3 <- survfit(Surv(start, stop, event) ~1, test2) #Kaplan-Meier
-fit3 <- survfit32(fit3)
 aeq(fit3$n, 10)
 aeq(fit3$time, unique(test2$stop))
 aeq(fit3$n.risk, c(2,3,5,4,4,5,2,1))
@@ -52,14 +49,14 @@ fit <- survfit(Surv(time, status) ~1, test1)
 temp <- summary(fit, time=c(.5,1, 1.5, 6, 7.5, 8, 8.9, 9, 10), extend=TRUE)
 
 aeq(temp$n.risk, c(6,6,4,4,2,2,1,1,0))
-aeq(temp$surv, fit$surv[c(1,2,2,3,3,4,4,5,5)])
+aeq(temp$surv, c(1, fit$surv[c(1,1,2,2,3,3,4,4)]))
 aeq(temp$n.event, c(0,1,0,2,0,0,0,1,0))
-aeq(temp$std.err, (fit$surv*fit$std.err)[c(1,2,2,3,3,4,4,5,5)])
+aeq(temp$std.err, c(0, (fit$surv*fit$std.err)[c(1,1,2,2,3,3,4,4)]))
 
 
 fit <- survfit(Surv(start, stop, event) ~1, test2)
 temp <- summary(fit, times=c(.5, 1.5, 2.5, 3, 6.5, 14.5, 16.5))
-aeq(temp$surv, c(1, fit$surv[c(1,2,3,4, 7,7)]))
+aeq(temp$surv, c(1, 1, fit$surv[c(1,2,3,6,6)]))
 
 # This next fails.  With start-stop data the number at risk at intermediate
 #  endpoints is not known precisely, since the underlying routine does not report

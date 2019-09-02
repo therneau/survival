@@ -56,7 +56,7 @@ byhand <- function(beta, newx=0) {
     # We need to add the ties back up (they are symmetric)
     scho[6:7] <- rep(mean(scho[6:7]), 2)
 
-    list(loglik=loglik, u=u, imat=imat, xbar=xbar, haz=c(0, hazard),
+    list(loglik=loglik, u=u, imat=imat, xbar=xbar, haz=hazard,
 	     mart=mart,  score=score, rmat=resid,
 		scho=scho)
     }

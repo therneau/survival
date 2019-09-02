@@ -308,7 +308,7 @@ vmean <- imatr[1:nvar, 1:nvar, drop=FALSE]/wtmat
 sresid <- resid$schoen
 if (any(istrat != istrat[1])) { # more than one stratum
     # sresid will be sorted by time within strata, sort it instead by time
-    sresid <- sresid[order(y[event, ny-1]),]
+    sresid <- sresid[order(y[event, ny-1]),,drop=FALSE]
 }
 if (terms && any(sapply(asgn, length) > 1)) { # collase multi-column terms
     temp <- matrix(0, ncol(sresid), nterm)

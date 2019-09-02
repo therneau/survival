@@ -41,8 +41,7 @@ aeq(surv2$surv[zed, ], surv2[1, ]$surv)
 # And the depreciated form - call with a named vector as 'newdata'
 #  the resulting $call component  won't match so delete it before comparing
 surv3 <- survfit(fit, c(age=40, sex=2, meal.cal=1000))
-cindex <- match("call", names(surv3))
-all.equal(unclass(surv2[,2])[-cindex], unclass(surv3)[-cindex])
+all.equal(unclass(surv2[,2])[-length(surv3)], unclass(surv3)[-length(surv3)])
 
 
 # Test out offsets, which have recently become popular due to a Langholz paper
@@ -58,7 +57,7 @@ all.equal(surv1$surv, surv2$surv)
 #
 surv3 <- survfit(fit1, newdata=data.frame(age=50, ph.ecog=1),
                  start.time=100)
-index <- match(surv3$time[-1], surv1$time)
+index <- match(surv3$time, surv1$time)
 rescale <- summary(surv1, time=100)$surv
-all.equal(surv3$surv[-1], surv1$surv[index]/rescale)
+all.equal(surv3$surv, surv1$surv[index]/rescale)
 

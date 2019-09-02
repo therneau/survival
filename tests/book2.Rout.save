@@ -1,7 +1,7 @@
 
-R Under development (unstable) (2019-06-28 r76752) -- "Unsuffered Consequences"
-Copyright (C) 2019 The R Foundation for Statistical Computing
-Platform: x86_64-pc-linux-gnu (64-bit)
+R Under development (unstable) (2016-01-29 r70039) -- "Unsuffered Consequences"
+Copyright (C) 2016 The R Foundation for Statistical Computing
+Platform: i686-pc-linux-gnu (32-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -69,9 +69,9 @@ Type 'q()' to quit R.
 + 
 +     varhaz <- (varhaz.g + varhaz.d^2/ imat) * exp(2*beta*newx)
 + 
-+     list(loglik=loglik, u=u, imat=imat, xbar=xbar, haz= c(0,haz),
-+          mart=mart,  score=score, var.g=c(0, varhaz.g), var.d= c(0, varhaz.d),
-+          scho=scho, surv=c(1,surv), var=c(0, varhaz[c(1,3,4)]))
++     list(loglik=loglik, u=u, imat=imat, xbar=xbar, haz=haz,
++ 	     mart=mart,  score=score, var.g=varhaz.g, var.d=varhaz.d,
++ 		scho=scho, surv=surv, var=varhaz[c(1,3,4)])
 +     }
 > 
 > 
@@ -223,4 +223,4 @@ Call: survfit(formula = fit, newdata = list(x = 2))
 > 
 > proc.time()
    user  system elapsed 
-  0.896   0.048   0.944 
+  0.232   0.012   0.238 

@@ -29,7 +29,7 @@ export(Surv, aeqSurv, aareg, agreg.fit,
        pspline, pyears, ratetableDate, ratetable,
        ridge, rsurvreg, statefig, strata, 
        survSplit, survcheck, survdiff, survexp,  survfit,
-       survfit23, survfit32, survfit.formula,
+       survfit23, survfit.formula,
        coxsurv.fit, survfitKM, survfitCI,
        survobrien,  
        survpenal.fit, 
@@ -37,7 +37,6 @@ export(Surv, aeqSurv, aareg, agreg.fit,
        survreg.distributions, survregDtest, tcut,
        tmerge, untangle.specials, yates, yates_setup,
        survConcordance, survConcordance.fit, survfitcoxph.fit)
-export(survfit23, survfit32)
 S3method('[', aareg)
 S3method('[', Surv)
 S3method('[', cox.zph)

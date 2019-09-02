@@ -28,7 +28,7 @@ plot.survfit<- function(x, conf.int,  mark.time=FALSE,
     dotnames <- names(list(...))
     if (any(dotnames =='type'))
         stop("The graphical argument 'type' is not allowed")
-    x <- survfit23(x)   # convert to version 3, if it wasn't already
+    x <- survfit23(x,0)   # align data at 0 for plotting
 
     <<plot-log>>
     <<plot-data>>
@@ -368,10 +368,7 @@ We draw an empty figure, letting R figure out the limits.
 <<plot-makebox>>=
 # check consistency
 if (!missing(xlim)) {
-    if (!missing(xmax)) {
-        xmax <- xlim[2]
-        warning("both xlim and xmax specified, xmax ignored")
-    }
+    if (!missing(xmax)) stop("cannot have both xlim and xmax arguments")
     if (!missing(firstx)) stop("cannot have both xlim and firstx arguments")
 }
 if (!missing(ylim)) {

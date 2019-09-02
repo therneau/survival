@@ -330,4 +330,4 @@ Log(scale[sex=2])      0.0113833096
 > 
 > proc.time()
    user  system elapsed 
-  0.828   0.036   0.871 
+  0.804   0.044   0.853 

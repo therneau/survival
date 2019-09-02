@@ -60,10 +60,10 @@ byhand <- function(beta, newx=0) {
     var.d <- cumsum((xbar-newx)*hazard)
 
     sxbar <- c(xbar[1], mean(xbar[2:4]), xbar[5])  #xbar for Schoen
-    list(loglik=loglik, imat=imat, hazard= c(0, hazard), xbar=xbar,
+    list(loglik=loglik, imat=imat, hazard=hazard, xbar=xbar,
          mart=status-expected, expected=expected,
          score=rowSums(resid), schoen=c(2,1,1,0,1) - sxbar[c(1,2,2,2,3)],
-         varhaz=c(0, ((var.g + var.d^2/imat)* exp(2*beta*newx))[c(1,4,5)]))
+         varhaz=((var.g + var.d^2/imat)* exp(2*beta*newx))[c(1,4,5)])
     }
 
 # Verify
@@ -82,7 +82,7 @@ aeq(truth0$scho, resid(fit0, 'schoen'))
 aeq(truth0$score, resid(fit0, 'score')) 
 sfit <- survfit(fit0, list(x=pi), censor=FALSE)
 aeq(sfit$std.err^2, truth0$var)  
-aeq(-log(sfit$surv), cumsum(truth0$hazard)[c(1,2,5,6)]) 
+aeq(-log(sfit$surv), cumsum(truth0$hazard)[c(1,4,5)]) 
 
 truth <- byhand(fit$coef, .3)
 aeq(truth$loglik, fit$loglik[2])
@@ -93,7 +93,7 @@ aeq(truth$score, resid(fit, 'score'))
 
 sfit <- survfit(fit, list(x=.3), censor=FALSE)
 aeq(sfit$std.err^2, truth$var)  
-aeq(-log(sfit$surv), (cumsum(truth$hazard)* exp(fit$coef*.3))[c(1,2,5,6)]) 
+aeq(-log(sfit$surv), (cumsum(truth$hazard)* exp(fit$coef*.3))[c(1,4,5)]) 
 
 
 fit0

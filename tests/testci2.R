@@ -70,15 +70,14 @@ truth <- truth[c(1:6, 6:11),]/10  #the explicit censor at 22
 
 #dimnames(truth) <- list(c(5, 6, 10, 15, 18, 20, 25, 30, 34, 40, 50),
 #                        c('a', 'b', 'c', 'd')
-fit0 <- survfit32(fit)  # drop time 0
-all.equal(truth, fit0$pstate[,2:5])
+all.equal(truth, fit$pstate[,2:5])
 
 # Test the dfbetas
 # It was a big surprise, but the epsilon where a finite difference approx to
 #  the derivative is most accurate is around 1e-7 = approx sqrt(precision).
 # Smaller eps makes the approximate derivative worse.
 # There is a now a formal test in mstate.R, not approximate.
-dfbeta <- 0*fit$influence[] 
+dfbeta <- 0*fit$influence[,-1,] #  lose the first row
 eps <- sqrt(.Machine$double.eps)     
 for (i in 1:6) {
     twt <- tdata$wt
@@ -87,7 +86,7 @@ for (i in 1:6) {
                     weight=twt)
     dfbeta[i,,] <- (tfit$pstate - fit$pstate)/eps  #finite difference approx
 }
-all.equal(dfbeta, fit$influence, tolerance= eps*10)
+all.equal(dfbeta, fit$influence[,-1,], tolerance= eps*10)
 twt <- tdata$wt[match(1:6, tdata$id)]  # six unique weights
 temp <- dfbeta
 for (i in 1:6) temp[i,,] <- temp[i,,]* twt[i]

@@ -1,31 +1,33 @@
+# This is a utility function, used by printing and plotting.
+#    It's job is to add a "time 0" to the survival curve, and at the same time
+# to fill in values for the responses at that time.  For ordinary survival
+# the standard response is surv=1, cumulative hazard =0, and standard errors
+# of 0.  For a multi-state curve the values of p0 and sd0 are used to fill
+# in these values.  
+#   The influence matrix, if present, is also filled out to have a 0's for the
+# time, or for a multi-state object, use the influence matrix as provided.
 #
-# After 20 years of use, some deficiencies in the layout of survfit objects
-#  have become obvious, in particular that the starting point of time=0 
-#  survival =1 is not included in the curves.  This has led to extra arguments
-#  like start.time and p0. Hindsight is 20/20, as they say, and I can now see
-#  that leaving that out was a mistake.
-# This routine converts to a newer design called version 3 which inserts those
-#  time points. It makes downstream processing of the object easier, and is used
-#  by the plot functions, for instance.
-# Whether survival version 3 will use this form natively is still not decided.
+# The name comes from survival version 2.x to 3.0 conversion, when the complex
+#  logic found in summary and plot was "pulled out" into this routine.
 #
-survfit23 <- function(x) {
+# It is legal for start.time to be a vector, so that multiple curves start in
+#  different places.  I don't yet have a use for that, but had considered one.
+# If the object x contains a start.time, that trumps the defaults.
+#
+survfit23 <- function(x, start.time =0) {
     if (!inherits(x, "survfit")) stop("function requires a survfit object")
-    if (!is.null(x$version) && x$version==3) return(x)  # already in 3.x format
-    if (is.null(x$start.time)) start.time <- 0 else start.time <- x$start.time
+    if (inherits (x, "survfit23")) return(x)
+
+    if (!is.null(x$start.time)) start.time <- x$start.time
+    else start.time <- min(start.time, x$time)
 
     if (is.null(x$strata)) insert <- 1   # where to add the zero
     else insert <- unname(1 + cumsum(c(0, x$strata[-length(x$strata)])))
-    
+
     same <- x$time[insert] == start.time  # no row need to be inserted here
     insert <- insert[!same]
-    if (length(insert)==0) {  # nothing much to do
-        drop <- c("start.time", "p0")
-        new <- unclass(x)[is.na(match(names(x), drop))]
-        new$version <- 3
-        class(new) <- class(x)
-        return(new)
-    }
+    if (length(insert)==0) return(x)   # nothing  to do
+
     if (!is.null(x$strata)) {
         newstrat <- x$strata
         newstrat[!same] <- newstrat[!same] +1
@@ -42,8 +44,18 @@ survfit23 <- function(x) {
             # indx is the new rows that are equal to the old ones
             indx <- seq(1, n.add + nrow(x))[ -i2]
             newx <- matrix(x[1], nrow(x) + n.add, ncol(x))
+            if (length(colnames(x)) >0) colnames(newx) <- colnames(x)
             newx[indx,] <- x
             newx[i2,] <- z
+        } else if (is.array(x)) {
+            # pstate is sometimes an array
+            dd <- dim(x)
+            indx <- seq(1, n.add + dd[1])[ -i2]
+            newx <- matrix(x[1], dd[1] + n.add, dd[2]*dd[3])
+            newx[indx,] <- c(x)
+            newx[i2,] <- z
+            dim(newx) <- c(dd[1]+n.add, dd[2], dd[3])
+            dimnames(newx) <- list(NULL, NULL, dimnames(x)[[3]])
         }
         else{ 
            indx <- seq(1, n.add + length(x))[ -i2]
@@ -62,14 +74,19 @@ survfit23 <- function(x) {
     add1 <- c("surv", "lower","upper")
     add0 <- c("n.event", "n.censor", "n.add", "cumhaz", "std.chaz")
 
-   if (is.null(x$sp0)) sp0 <- 0 else sp0 <- x$sp0
     if (!is.null(x$p0)) {
-      if (any(same)) {# we have to subscript p0 and sp0
+        if (is.null(x$sp0)) sp0 <- 0 else sp0 <- x$sp0
+        if (any(same)) {# we have to subscript p0 and sp0
             # if p0 isn't a matrix, we can't end up here BTW
             p00 <- x$p0[!same,]
             if (!is.null(x$sp0)) sp0 <- x$sp0[!same,]
-      }
-      else p00 <- x$p0
+        }
+        else p00 <- x$p0
+    }
+    else { # this call is simply adding a time 0 to the front
+        p00 <- x$pstate[insert,]
+        if (!is.null(x$xtd.err)) sp0 <- x$std.err[insert,]
+        else sp0 <- 0
     }
 
     for (i in names(new)) {
@@ -113,63 +130,6 @@ survfit23 <- function(x) {
             else         new$std.chaz <- new$std.err/new$surv
         }
     }
-    new$version <- 3
-    class(new) <- class(x)
+    class(new) <- c("survfit23", class(x))
     new
 }
-            
-survfit32 <- function(x) {
-    if (!inherits(x, "survfit")) stop("function requires a survfit object")
-    if (is.null(x$version) || x$version<3) return(x)  # already in proper form
-    
-    if (is.null(x$strata)) first <- 1
-    else {
-        last <- cumsum(x$strata)
-        first <- 1+ c(0, last[-length(last)])
-        x$strata <- x$strata -1L
-    }
-
-    x$start.time <- x$time[1]
-    for (i in c("time", "n.risk", "n.event", "n.censor", "cumhaz",
-                "std.chaz", "lower", "upper")){
-        if (!is.null(x[[i]])) {
-            if (is.matrix(x[[i]])) x[[i]] <- x[[i]][-first,,drop=FALSE]
-            else x[[i]] <- x[[i]][-first]
-        }
-    }       
-
-    if (inherits(x, "survfitms")) {
-        if (is.matrix(x$pstate)) {
-            x$p0 <- x$pstate[first,]
-            x$pstate <- x$pstate[-first,,drop=FALSE]
-            if (!is.null(x$std.err)) {
-                x$sp0 <- x$std.err[first,]
-                x$std.err <- x$std.err[-first,, drop=FALSE]
-            }
-        }else {
-            x$p0 <- x$pstate[first]
-            x$pstate <- x$pstate[-first]
-            if (!is.null(x$std.err)) {
-                x$sp0 <- x$std.err[first]
-                x$std.err <- x$std.err[-first]
-            }
-        }   
-    } else {
-        if (is.matrix(x$surv)) {
-            x$surv <- x$surv[-first,,drop=FALSE]
-            if (!is.null(x$std.err)) {
-                x$std.err <- x$std.err[-first,, drop=FALSE]
-            }
-        }else {
-            x$surv <- x$surv[-first]
-            if (!is.null(x$std.err)) {
-                x$std.err <- x$std.err[-first]
-            }
-        }   
-    } 
-
-    x$version <- 2
-    x
-}
-
-    

@@ -410,6 +410,7 @@ else {
     if (!missing(start.time)) kfit$start.time <- start.time
 }                         
 kfit$transitions <- mcheck$transitions
+
 @ 
 
 

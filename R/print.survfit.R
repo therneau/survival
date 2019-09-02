@@ -14,7 +14,7 @@ print.survfit <- function(x, scale=1,
     savedig <- options(digits=digits)
     on.exit(options(savedig))
 
-    x <- survfit32(x)
+ #   x <- survfit32(x)
     # The print.rmean option is depreciated, with the more general
     #   rmean option taking its place.  But if someone specifically
     #   uses print.rmean in the call, or has it as an option without

@@ -117,8 +117,6 @@ if (individual) {
                            transition, y2, x2, risk2, strata2, id2)
                           
 } else {
-    class(cifit) <- c("survfitms", "survfit")  # so the next line works
-    cifit <- survfit23(cifit)   # make sure we are version 3
     if (is.null(cifit$strata)) p0 <- cifit$pstate[1,, drop=FALSE]
     else {
         last <- cumsum(cifit$strata)  # last obs of each strata

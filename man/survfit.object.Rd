@@ -133,36 +133,22 @@ which is the number of different covariate prediction vectors.
 The \code{survfit} object has evolved over time: when first created
 there was no thought of multi-state models for instance.  This evolution
 has almost entirely been accomplished by the addition of new elements.
-Two execptions to this arose in the transition to the 3.x versions of
-the package.
-
-The first corrects what was, in retrospect, a design flaw; which is that
-the \code{time} and \code{surv} components do not contain the starting
-point of the curve, which was known to be x=0, y=1.  With
-the later additions of multi-state curves and delayed entry, however,
-this (0,1) assumption will be false, leading to the addition of
-\code{start.time}, \code{p0}, and \code{sp0} component to hold the
-actual first x value, y values, and standard devaiation of y,
-respectively.  Addition of the cumulative hazard and influence matrices
-threatened to further increase the proliferation with 4 more "first row"
-components.
-In version 3.0 of the package this was rectified, addition of a
-\code{version=3} component to the object signals that the \code{time}
-vector starts with the first point, and the extra components are not
-present.
-Two helper routines \code{survfit23} and \code{survfit32} will convert
-from the pre-v3 form to v3, and back the other way;
-they do nothing if the object is already in the desired form.
-
-The other change in v3 is the addition of a \code{survfitconf} routine
+One change in survival version 3 is the addition of a \code{survfitconf} routine
 which will compute confidence intervals for a \code{survfit} object.
 This allows the computation of CI intervals to be deferred until later,
 if desired, rather than making them a permanent part of the object.
+Later iterations of the base routines may omit the confidence intervals.
+
+The survfit object starts at the first observation time, but survival
+curves are normally plotted from time 0.
+A helper routine \code{survfit23} is used to add this first time point
+and align the data.
 }
 \seealso{
 \code{\link{plot.survfit}},  
 \code{\link{summary.survfit}},
 \code{\link{print.survfit}},
-\code{\link{survfit}}.   
+\code{\link{survfit}},
+\code{\link{survfit23}}
 }
 \keyword{survival}
