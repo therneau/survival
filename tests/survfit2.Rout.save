@@ -1,5 +1,5 @@
 
-R Under development (unstable) (2019-01-23 r76006) -- "Unsuffered Consequences"
+R Under development (unstable) (2019-06-28 r76752) -- "Unsuffered Consequences"
 Copyright (C) 2019 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
@@ -25,11 +25,11 @@ Type 'q()' to quit R.
 > fit1 <- survfit(Surv(time, status) ~1, tdata, conf.lower='modified')
 > fit2 <- survfit(Surv(time, status) ~1, tdata)
 > 
-> stdlow <- fit2$std.err * sqrt(c(1, 10/9, 1, 8/7, 1, 6/5, 6/4, 6/3, 1, 2/1))
+> stdlow <- fit2$std.err * sqrt(c(1,1, 10/9, 1, 8/7, 1, 6/5, 6/4, 6/3, 1, 2/1))
 > lower <- exp(log(fit2$surv) - qnorm(.975)*stdlow)
 > all.equal(fit1$lower, lower, check.attributes=FALSE)
 [1] TRUE
 > 
 > proc.time()
    user  system elapsed 
-  0.748   0.036   0.786 
+  0.792   0.032   0.824 

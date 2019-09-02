@@ -156,11 +156,11 @@ print(mat)
 #
 # The cracks data has a particularly easy estimate, so use
 # it to double check code
-time <- c(crack2$day2[1], (crack2$day1 + crack2$day2)[2:8]/2, 
+time <- c(0, crack2$day2[1], (crack2$day1 + crack2$day2)[2:8]/2, 
           crack2$day1[9])
-cdf  <- cumsum(crack2$n)/sum(crack2$n)
+cdf  <- c(0, cumsum(crack2$n)/sum(crack2$n))
 all.equal(kfit$time, time)
-all.equal(kfit$surv, 1-cdf[c(1:8,8)]) 
+all.equal(kfit$surv, 1-cdf[c(1:9,9)]) 
 rm(time, cdf, kfit)
 
 

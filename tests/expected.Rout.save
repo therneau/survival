@@ -1,6 +1,6 @@
 
-R Under development (unstable) (2018-04-09 r74565) -- "Unsuffered Consequences"
-Copyright (C) 2018 The R Foundation for Statistical Computing
+R Under development (unstable) (2019-06-28 r76752) -- "Unsuffered Consequences"
+Copyright (C) 2019 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -277,7 +277,7 @@ Type 'q()' to quit R.
 > 
 > chaz <- chaz[-1]                  #drop time 0
 > d2 <- exp(outer(-chaz, risk))
-> all.equal(as.vector(direct), as.vector(d2))   #this tests survfit
+> all.equal(as.vector(direct[-1,]), as.vector(d2))   #this tests survfit
 [1] TRUE
 > 
 > all.equal(as.vector(efit$surv), as.vector(apply(direct,1,mean)))  #direct
@@ -286,7 +286,7 @@ Type 'q()' to quit R.
 > # Check out the "times" arg of survexp
 > efit2 <- survexp( ~ ratetable(x=x), dummy, ratetable=fit, se=F,
 +                   times=c(.5, 2, 3.5,6))
-> aeq(efit2$surv, c(1, efit$surv[c(2,2,3)]))
+> aeq(efit2$surv, c(1, efit$surv[c(3,3,4)]))
 [1] TRUE
 > 
 > #
@@ -308,7 +308,7 @@ Type 'q()' to quit R.
 +     surv <- surv * exp(-haz[i]*risk)
 +     }
 > 
-> all.equal(as.vector(efit$surv), as.vector(cumprod(hak1)))
+> all.equal(as.vector(efit$surv)[-1], as.vector(cumprod(hak1)))
 [1] TRUE
 > 
 > #
@@ -323,9 +323,9 @@ Type 'q()' to quit R.
 +     cond <- c(cond,  exp(-sum(haz[i]*risk*wt)/sum(wt)))
 +     }
 > 
-> all.equal(as.vector(efit$surv), as.vector(cumprod(cond)))
+> all.equal(as.vector(efit$surv)[-1], as.vector(cumprod(cond)))
 [1] TRUE
 > 
 > proc.time()
    user  system elapsed 
-  0.884   0.036   0.918 
+  1.004   0.052   1.058 

@@ -239,14 +239,14 @@ direct <- survfit(fit, newdata=dummy, censor=FALSE)$surv
 
 chaz <- chaz[-1]                  #drop time 0
 d2 <- exp(outer(-chaz, risk))
-all.equal(as.vector(direct), as.vector(d2))   #this tests survfit
+all.equal(as.vector(direct[-1,]), as.vector(d2))   #this tests survfit
 
 all.equal(as.vector(efit$surv), as.vector(apply(direct,1,mean)))  #direct
 
 # Check out the "times" arg of survexp
 efit2 <- survexp( ~ ratetable(x=x), dummy, ratetable=fit, se=F,
                   times=c(.5, 2, 3.5,6))
-aeq(efit2$surv, c(1, efit$surv[c(2,2,3)]))
+aeq(efit2$surv, c(1, efit$surv[c(3,3,4)]))
 
 #
 # Now test out the Hakulinen method (Bonsel's method)
@@ -267,7 +267,7 @@ for (i in 1:3) {
     surv <- surv * exp(-haz[i]*risk)
     }
 
-all.equal(as.vector(efit$surv), as.vector(cumprod(hak1)))
+all.equal(as.vector(efit$surv)[-1], as.vector(cumprod(hak1)))
 
 #
 #  Now do the conditional estimate
@@ -281,4 +281,4 @@ for (i in 1:3) {
     cond <- c(cond,  exp(-sum(haz[i]*risk*wt)/sum(wt)))
     }
 
-all.equal(as.vector(efit$surv), as.vector(cumprod(cond)))
+all.equal(as.vector(efit$surv)[-1], as.vector(cumprod(cond)))

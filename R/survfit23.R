@@ -37,14 +37,15 @@ survfit23 <- function(x) {
         # i = where to add, z = what to add
         n.add <- length(i)
         i2 <- i + 1:n.add -1
-
+        
         if (is.matrix(x)) {
             # indx is the new rows that are equal to the old ones
             indx <- seq(1, n.add + nrow(x))[ -i2]
             newx <- matrix(x[1], nrow(x) + n.add, ncol(x))
             newx[indx,] <- x
             newx[i2,] <- z
-        } else { 
+        }
+        else{ 
            indx <- seq(1, n.add + length(x))[ -i2]
            newx <- rep(x[1], length(x) + n.add)
            newx[indx] <- x
@@ -61,7 +62,7 @@ survfit23 <- function(x) {
     add1 <- c("surv", "lower","upper")
     add0 <- c("n.event", "n.censor", "n.add", "cumhaz", "std.chaz")
 
-    if (is.null(x$sp0)) sp0 <- 0 else sp0 <- x$sp0
+   if (is.null(x$sp0)) sp0 <- 0 else sp0 <- x$sp0
     if (!is.null(x$p0)) {
       if (any(same)) {# we have to subscript p0 and sp0
             # if p0 isn't a matrix, we can't end up here BTW
@@ -85,7 +86,20 @@ survfit23 <- function(x) {
         else if (i %in% add1) new[[i]] <- addto(x[[i]], insert, 1L)
         else new[[i]] <- x[[i]]
     }
-
+    
+    if (!inherits(x, "survfitms")) {
+        addcol <- function(x) cbind(0, x)
+        # we need to fix up influence objects, which have subjects as the
+        #  rows and time as the columns.  If there are multiple curves it
+        #  will be a list with one element per curve
+        for (i in c("influence.surv", "influence.chaz")) {
+            if (!is.null(x[[i]])) {
+                if (is.list(x[[i]])) new[[i]] <- lapply(x[[i]], addcol)
+                else new[[i]] <- addcol(x[[i]])
+            }
+        }
+    }
+                     
     if (is.null(new$logse)) {
         # reprise the logic of the older code
         if (inherits(x, "survfitms")) x$logse <- FALSE
@@ -112,12 +126,17 @@ survfit32 <- function(x) {
     else {
         last <- cumsum(x$strata)
         first <- 1+ c(0, last[-length(last)])
+        x$strata <- x$strata -1L
     }
 
     x$start.time <- x$time[1]
-    for (i in c("time", "n.risk", "n.event", "n.censor")
-         x[[i]] <- x[[i]][-1]
-         
+    for (i in c("time", "n.risk", "n.event", "n.censor", "cumhaz",
+                "std.chaz", "lower", "upper")){
+        if (!is.null(x[[i]])) {
+            if (is.matrix(x[[i]])) x[[i]] <- x[[i]][-first,,drop=FALSE]
+            else x[[i]] <- x[[i]][-first]
+        }
+    }       
 
     if (inherits(x, "survfitms")) {
         if (is.matrix(x$pstate)) {

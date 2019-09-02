@@ -1,5 +1,5 @@
 
-R Under development (unstable) (2019-01-23 r76006) -- "Unsuffered Consequences"
+R Under development (unstable) (2019-06-28 r76752) -- "Unsuffered Consequences"
 Copyright (C) 2019 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
@@ -77,10 +77,10 @@ Type 'q()' to quit R.
 +     var.d <- cumsum((xbar-newx)*hazard)
 + 
 +     sxbar <- c(xbar[1], mean(xbar[2:4]), xbar[5])  #xbar for Schoen
-+     list(loglik=loglik, imat=imat, hazard=hazard, xbar=xbar,
++     list(loglik=loglik, imat=imat, hazard= c(0, hazard), xbar=xbar,
 +          mart=status-expected, expected=expected,
 +          score=rowSums(resid), schoen=c(2,1,1,0,1) - sxbar[c(1,2,2,2,3)],
-+          varhaz=((var.g + var.d^2/imat)* exp(2*beta*newx))[c(1,4,5)])
++          varhaz=c(0, ((var.g + var.d^2/imat)* exp(2*beta*newx))[c(1,4,5)]))
 +     }
 > 
 > # Verify
@@ -88,7 +88,7 @@ Type 'q()' to quit R.
 > aeq(temp$xbar, c(13/19, 11/16, 26/38, 19/28, 2/3))
 [1] TRUE
 > aeq(temp$hazard, c(1/19, 5/24, 5/19, 5/14, 2/3))
-[1] TRUE
+[1] "Numeric: lengths (6, 5) differ"
 > 
 > fit0 <- coxph(Surv(time, status) ~x, testw1, weights=wt, iter=0)
 > fit  <- coxph(Surv(time, status) ~x, testw1, weights=wt)
@@ -107,7 +107,7 @@ Type 'q()' to quit R.
 > sfit <- survfit(fit0, list(x=pi), censor=FALSE)
 > aeq(sfit$std.err^2, truth0$var)  
 [1] TRUE
-> aeq(-log(sfit$surv), cumsum(truth0$hazard)[c(1,4,5)]) 
+> aeq(-log(sfit$surv), cumsum(truth0$hazard)[c(1,2,5,6)]) 
 [1] TRUE
 > 
 > truth <- byhand(fit$coef, .3)
@@ -125,7 +125,7 @@ Type 'q()' to quit R.
 > sfit <- survfit(fit, list(x=.3), censor=FALSE)
 > aeq(sfit$std.err^2, truth$var)  
 [1] TRUE
-> aeq(-log(sfit$surv), (cumsum(truth$hazard)* exp(fit$coef*.3))[c(1,4,5)]) 
+> aeq(-log(sfit$surv), (cumsum(truth$hazard)* exp(fit$coef*.3))[c(1,2,5,6)]) 
 [1] TRUE
 > 
 > 
@@ -187,4 +187,4 @@ Score (logrank) test = 1.58  on 1 df,   p=0.2
 > 
 > proc.time()
    user  system elapsed 
-  0.832   0.032   0.875 
+  0.856   0.060   0.916 

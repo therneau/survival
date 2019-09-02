@@ -34,7 +34,7 @@ byhand <- function(time, status, weights, id) {
         
     U <- matrix(0, nid, 2)  # the two robust influence estimates
     V <- matrix(0, ntime, 4)  # variances
-    usave <- array(0., dim=c(nid, 2, ntime))
+    usave <- array(0., dim=c(nid, 2, ntime+1))
     estimate <- matrix(0, ntime, 2)
 
     for (i in 1:ntime) {
@@ -50,7 +50,7 @@ byhand <- function(time, status, weights, id) {
             
         U[,2] <- U[,2] + tapply(dhaz* weights, id, sum) #result in 'id' order
         V[i,2] <- sum(U[,2]^2)
-        usave[,,i] <- U
+        usave[,,i+1] <- U
 
         if (n.event[i] >0 ) {
             KM <- KM*(1-haz)
@@ -63,9 +63,10 @@ byhand <- function(time, status, weights, id) {
         V[i,4] <- hvar
         estimate[i,] <- c(KM, nelson)
         }
-    dimnames(usave) <- list(uid, c("KM", "chaz"), utime)
-    list(time=utime, n.risk=n.risk, n.event=n.event, estimate=estimate,
-         std = sqrt(V), influence=usave)
+    dimnames(usave) <- list(uid, c("KM", "chaz"), c(0, utime))
+    list(time=c(0, utime), n.risk= c(n.risk[1], n.risk), 
+         n.event= c(0, n.event), estimate= rbind(c(1,0), estimate),
+         std = rbind(0, sqrt(V)), influence= usave)
 }
 
 # the byhand function can only handle one group at a time
@@ -75,9 +76,9 @@ true1b <- with(subset(adata, x!="Maintained"), byhand(time, status, id=id))
 # The Greenwood and IJ estimates agree, except for a last point with
 #  variance of zero.  These next few lines verify the byhand() function
 aeq(true1a$std[,1], true1a$estimate[,1]*true1a$std[,3])
-aeq(true1b$std[1:9,1], true1b$estimate[1:9,1]*true1b$std[1:9,3])
-aeq(true1b$std[10,1], 0)   # variance of zero for jackknife
-!is.finite(true1b$std[10,3])   # Inf for Greenwood
+aeq(true1b$std[1:10,1], true1b$estimate[1:10,1]*true1b$std[1:10,3])
+aeq(true1b$std[11,1], 0)   # variance of zero for jackknife
+!is.finite(true1b$std[11,3])   # Inf for Greenwood
 temp <- with(subset(adata, x=="Maintained"), byhand(time, status, id=id,
                                                     weights=rep(3,11)))
 aeq(temp$std[,1:2], true1a$std[,1:2])  # IJ estimates should be invariant
@@ -113,7 +114,7 @@ aeq(fit3$influence.chaz[[2]], true1b$influence[,2,])
 tdata <- subset(adata, x != "Maintained")
 tdata <- tdata[order(tdata$id),]   # easier to compare if it's in order
 eps <- 1e-8
-imat1 <- imat2 <-  matrix(0., 12, 10)
+imat1 <- imat2 <-  matrix(0., 12, 11)
 t1 <- survfit(Surv(time, status) ~x, data=tdata) 
 for (i in 1:12) {
     wtemp <- rep(1.0, 12)
@@ -202,11 +203,11 @@ aeq(c(colSums(fit4$influence.chaz[[1]]^2), colSums(fit4$influence.chaz[[2]]^2)),
 #   1.
 fit5 <- survfit(Surv(time, status) ~x, adata, ctype=2)
 nrisk <- c(11,10,8,7, 5,4,2, 12, 11, 10, 9, 8, 6:1)
-chaz <- c(cumsum(1/nrisk[1:7])[c(1:4,4, 5,6,6,7,7)], 
-          cumsum(1/nrisk[8:18])[c(2,4,5,5,6:11)])
+chaz <- c(0, cumsum(1/nrisk[1:7])[c(1:4,4, 5,6,6,7,7)], 
+          0, cumsum(1/nrisk[8:18])[c(2,4,5,5,6:11)])
 aeq(fit5$cumhaz, chaz)
-aeq(fit5$std.chaz, sqrt(c(cumsum(1/nrisk[1:7]^2)[c(1:4,4, 5,6,6,7,7)], 
-                          cumsum(1/nrisk[8:18]^2)[c(2,4,5,5,6:11)])))
+aeq(fit5$std.chaz, sqrt(c(0, cumsum(1/nrisk[1:7]^2)[c(1:4,4, 5,6,6,7,7)], 
+                          0, cumsum(1/nrisk[8:18]^2)[c(2,4,5,5,6:11)])))
 
 # We can compute the FH using a fake data set where each tie is spread out
 #  over a set of fake times.
@@ -240,11 +241,11 @@ fh <- function(time, status, weights, id) {
                    id = c(id[notie], temp$id),
                    weights = c(weights[notie], temp$weight)
                    )
-    keep <- match(utime, bfit$time)  # the real time points
+    keep <- match(c(0, utime), bfit$time)  # the real time points
 
-    list(time=bfit$time[keep], 
-         n.risk=bfit$n.risk[keep - pmax(0, counts[,2]-1)],
-         n.event = bfit$n.event[keep]* counts[,2],  
+    list(time=c(0, bfit$time[keep]), 
+         n.risk=bfit$n.risk[keep - pmax(0, c(0, counts[,2]-1))],
+         n.event = bfit$n.event[keep]* c(1, counts[,2]),  
          estimate=bfit$estimate[keep,],
          std = bfit$std[keep,], influence=bfit$influence[,,keep])
 }
@@ -275,7 +276,7 @@ aeq(fit7$influence.chaz[[2]], true6b$influence[,2,])
 tdata <- subset(adata, x != "Maintained")
 tdata <- tdata[order(tdata$id),]
 eps <- 1e-8
-imat <- matrix(0., 12, 10)
+imat <- matrix(0., 12, 11)
 t1 <- survfit(Surv(time, status) ~x, data=tdata, ctype=2, weights=wt) 
 for (i in 1:12) {
     wtemp <- tdata$wt

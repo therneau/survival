@@ -1,5 +1,5 @@
 #
-# A tiny multi-state example
+# A tiny multi-state example, all worked out by hand
 #
 library(survival)
 aeq <- function(x,y) all.equal(as.vector(x), as.vector(y))
@@ -40,6 +40,9 @@ mfit <- survfit(Surv(t1, t2, state) ~ 1, mtest, id=id)
 
 # In mfit, the "entry" state is first in the matrices, when this function was
 #  first created it was the last.
+# New survival object also include time =0.  So we swap columns of the test
+#  matrices, and use survfit32 to remove time 0.
+   
 mfit <- survfit32(mfit)  # updated object, but I don't want to rewrite this
 swap <- c(4,1,2,3)  # at one time it was last
 all.equal(mfit$n.risk, matrix(c(0,1,1,2,2,1,0,0,

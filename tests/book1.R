@@ -17,18 +17,18 @@ s1 <- survfit(Surv(time, status) ~1, test1, id=1:7, influence=TRUE)
 inf1 <- matrix(c(10, rep(-2,5), 10, -2, 7,7, -11, -11)/72,
                ncol=2)
 indx <- order(test1$time[!is.na(test1$status)])
-aeq(s1$influence.chaz[indx,], inf1[,c(1,2,2,2)])
+aeq(s1$influence.chaz[indx,-1], inf1[,c(1,2,2,2)])
 
 # KM influence
 inf2 <- matrix(c(-20, rep(4,5), -10, 2, -13, -13, 17, 17,
                  rep(0,6))/144, ncol=3)
-aeq(s1$influence.surv[indx,], inf2[, c(1,2,2,3)])
+aeq(s1$influence.surv[indx,-1], inf2[, c(1,2,2,3)])
 
 # Fleming-Harrington influence
 s2 <- survfit(Surv(time, status) ~ 1, test1, id=1:7, ctype=2, influence=2)
 inf3 <- matrix(c( rep(c(5, -1), c(1, 5))/36, c(5,-1)/36, 
                  c(21,21,-29, -29)/144), ncol=2)
-aeq(s2$influence.chaz[indx,], inf3[,c(1,2,2,2)])
+aeq(s2$influence.chaz[indx,-1], inf3[,c(1,2,2,2)])
 
 
 # Breslow estimate
@@ -62,10 +62,10 @@ byhand1 <- function(beta, newx=0) {
 
     names(xbar) <- names(haz) <- 1:4
     names(surv) <- names(varhaz) <- 1:4
-    list(loglik=loglik, u=u, imat=imat, xbar=xbar, haz=haz,
+    list(loglik=loglik, u=u, imat=imat, xbar=xbar, haz=c(0,haz),
 	     mart=mart,  score=score,
-		scho=scho, surv=surv, var=varhaz,
-		varhaz.g=varhaz.g, varhaz.d=varhaz.d)
+		scho=scho, surv=c(1,surv), var=c(0,varhaz),
+		varhaz.g=c(0,varhaz.g), varhaz.d=c(0, varhaz.d))
     }
 
 
@@ -80,7 +80,7 @@ aeq(truth0$score, resid(fit0, 'score')[c(3:7,1)])
 sfit <- survfit(fit0, list(x=0))
 aeq(sfit$cumhaz, cumsum(truth0$haz))
 aeq(sfit$surv, exp(-cumsum(truth0$haz)))
-aeq(sfit$std.err^2, c(7/180, 2/9, 2/9, 11/9))
+aeq(sfit$std.err^2, c(0, 7/180, 2/9, 2/9, 11/9))
 aeq(resid(fit0, 'score'), c(5/24, NA, 5/12, -1/12, 7/24, -1/24, 5/24))
 
 fit1 <- coxph(Surv(time, status) ~x, test1, iter=1, method='breslow')
@@ -102,8 +102,8 @@ expect <- predict(fit, type='expected', newdata=test1) #force recalc
 aeq(test1$status[-2] -fit$resid, expect[-2]) #tests the predict function
 
 sfit <- survfit(fit, list(x=0), censor=FALSE)
-aeq(sfit$std.err^2, truth$var[c(1,2,4)]) # sfit skips time 8 (no events there)
-aeq(-log(sfit$surv), (cumsum(truth$haz))[c(1,2,4)])
+aeq(sfit$std.err^2, truth$var[c(1,2,3,5)]) # sfit skips time 8 (no events there)
+aeq(-log(sfit$surv), (cumsum(truth$haz))[c(1,2,3,5)])
 sfit <- survfit(fit, list(x=0), censor=TRUE)
 aeq(sfit$std.err^2, truth$var) 
 aeq(-log(sfit$surv), (cumsum(truth$haz)))

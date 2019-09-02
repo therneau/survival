@@ -43,10 +43,10 @@ byhand <- function() {
     list(P=rbind(p1, p2, p3, p3, p6), u2=u2, u3=u3, u6=u6, V=V)
 }
 bfit <- byhand()
-aeq(fit$pstate, bfit$P)
-aeq(fit$n.risk[,1], c(8,7,5,2,1))
-aeq(fit$n.event[,2:3], c(0,1,0,0,0, 0,0 ,2,0,1))
-aeq(fit$std^2, bfit$V)
+aeq(fit$pstate[-1,], bfit$P)
+aeq(fit$n.risk[-1,1], c(8,7,5,2,1))
+aeq(fit$n.event[-1,2:3], c(0,1,0,0,0, 0,0 ,2,0,1))
+aeq(fit$std.err[-1,]^2, bfit$V)
 
 # Times purposely has values that are before the start, exact, intermediate
 #  and after the end of the observed times

@@ -52,9 +52,9 @@ byhand <- function(beta, newx=0) {
 
     varhaz <- (varhaz.g + varhaz.d^2/ imat) * exp(2*beta*newx)
 
-    list(loglik=loglik, u=u, imat=imat, xbar=xbar, haz=haz,
-	     mart=mart,  score=score, var.g=varhaz.g, var.d=varhaz.d,
-		scho=scho, surv=surv, var=varhaz[c(1,3,4)])
+    list(loglik=loglik, u=u, imat=imat, xbar=xbar, haz= c(0,haz),
+         mart=mart,  score=score, var.g=c(0, varhaz.g), var.d= c(0, varhaz.d),
+         scho=scho, surv=c(1,surv), var=c(0, varhaz[c(1,3,4)]))
     }
 
 

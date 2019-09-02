@@ -58,9 +58,9 @@ byhand <- function(beta, newx=0) {
     surv <- exp(-cumsum(hazard) * exp(beta*newx))
     varhaz <- (var.g + var.d^2/imat)* exp(2*beta*newx)
 
-    list(loglik=loglik, u=u, imat=imat, xbar=xbar, haz=hazard,
+    list(loglik=loglik, u=u, imat=imat, xbar=xbar, haz= c(0,hazard),
 	     mart=mart,  score=score, rmat=resid,
-		scho=scho, surv=surv, var=varhaz)
+		scho=scho, surv=c(1,surv), var=c(0,varhaz))
     }
 
 

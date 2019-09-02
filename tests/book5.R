@@ -64,10 +64,10 @@ byhand <- function(beta, newx=0) {
     var.g <- cumsum(hazard^2/ c(1,10,2))
     var.d <- cumsum((xbar-newx)*hazard)
 
-    list(loglik=loglik, U=U, imat=imat, hazard=hazard, xbar=xbar,
+    list(loglik=loglik, U=U, imat=imat, hazard=c(0,hazard), xbar=xbar,
          mart=c(1,0,1,1,1,0,0,1,0)-expected, expected=expected,
          score=rowSums(resid), schoen=c(2,1,1,0,1) - xbar[c(1,2,2,2,3)],
-         varhaz=(var.g + var.d^2/imat)* exp(2*beta*newx))
+         varhaz=c(0, (var.g + var.d^2/imat)* exp(2*beta*newx)))
     }
 
 aeq(byhand(0)$expected, c(1/19, 1/19, rep(103/152, 5), rep(613/456,2))) #verify 

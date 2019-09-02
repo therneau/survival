@@ -37,8 +37,9 @@ newdata <- data.frame(start=c(0,50,100), stop=c(50,100, max(jasa1$stop)),
 surv2 <- survfit(sfit.1, newdata, individual=T)
 # Have to use unclass to avoid [.survfit trying to pick curves,
 #  remove the final element "call" because it won't match
-all.equal(unclass(surv1)[-length(surv1)],
-          unclass(surv2)[-length(surv2)])
+cindex <- match("call", names(surv1))
+all.equal(unclass(surv1)[-cindex],
+          unclass(surv2)[-cindex])
 
 
 # Survival curve for a subject of age 50, with prior surgery, tx at 6 months

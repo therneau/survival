@@ -1,5 +1,5 @@
 
-R Under development (unstable) (2019-05-15 r76504) -- "Unsuffered Consequences"
+R Under development (unstable) (2019-06-28 r76752) -- "Unsuffered Consequences"
 Copyright (C) 2019 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
@@ -67,7 +67,8 @@ Type 'q()' to quit R.
 > # And the depreciated form - call with a named vector as 'newdata'
 > #  the resulting $call component  won't match so delete it before comparing
 > surv3 <- survfit(fit, c(age=40, sex=2, meal.cal=1000))
-> all.equal(unclass(surv2[,2])[-length(surv3)], unclass(surv3)[-length(surv3)])
+> cindex <- match("call", names(surv3))
+> all.equal(unclass(surv2[,2])[-cindex], unclass(surv3)[-cindex])
 [1] TRUE
 > 
 > 
@@ -85,12 +86,12 @@ Type 'q()' to quit R.
 > #
 > surv3 <- survfit(fit1, newdata=data.frame(age=50, ph.ecog=1),
 +                  start.time=100)
-> index <- match(surv3$time, surv1$time)
+> index <- match(surv3$time[-1], surv1$time)
 > rescale <- summary(surv1, time=100)$surv
-> all.equal(surv3$surv, surv1$surv[index]/rescale)
+> all.equal(surv3$surv[-1], surv1$surv[index]/rescale)
 [1] TRUE
 > 
 > 
 > proc.time()
    user  system elapsed 
-  0.808   0.060   0.868 
+  0.860   0.048   0.914 

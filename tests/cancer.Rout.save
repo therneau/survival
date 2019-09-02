@@ -146,9 +146,14 @@ inst=33  2  0.929177  0.416202 0.632249272 0.676682390
 [1] TRUE
 > 
 > # the above verifies that the data set is correct
-> # now compute score tests one variable at a time
 > zp1 <- cox.zph(cfit1, transform="log")
+> zp2 <- cox.zph(cfit2, transform="log")
+> # everything should match but the call
+> icall <- match("Call", names(zp1))
+> all.equal(unclass(zp2)[-icall], unclass(zp1)[-icall])
+[1] TRUE
 > 
+> # now compute score tests one variable at a time
 > ncoef <- length(coef(cfit2))
 > check <- double(ncoef)
 > cname <- names(coef(cfit2))
@@ -163,10 +168,6 @@ inst=33  2  0.929177  0.416202 0.632249272 0.676682390
 > aeq(check, zp1$table[1:ncoef,1]) # skip the 'global' test
 [1] TRUE
 > 
-> zp2 <- cox.zph(cfit2, transform="log")
-> all.equal(zp2$table, zp1$table)
-[1] TRUE
-> 
 > #
 > # Tests of using "."
 > #
@@ -178,4 +179,4 @@ inst=33  2  0.929177  0.416202 0.632249272 0.676682390
 > 
 > proc.time()
    user  system elapsed 
-  1.352   0.028   1.381 
+  1.440   0.032   1.472 

@@ -47,7 +47,7 @@ denom <- rev(cumsum(rev(rscore)))
 denom <- denom[match(unique(atime), atime)]
 deaths <- tapply(aml$status, aml$time, sum)
 chaz <- cumsum(deaths/denom)
-all.equal(sfit$surv, as.vector(exp(-chaz[deaths>0])))
+all.equal(sfit$surv[-1], as.vector(exp(-chaz[deaths>0])))
 
 # And the Efron result
 summary(survfit(tfit))

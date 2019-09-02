@@ -1,5 +1,5 @@
 
-R Under development (unstable) (2019-01-23 r76006) -- "Unsuffered Consequences"
+R Under development (unstable) (2019-06-28 r76752) -- "Unsuffered Consequences"
 Copyright (C) 2019 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
@@ -40,6 +40,7 @@ Type 'q()' to quit R.
 > cfit1<- survfit(coxph(Surv(start, stop, event)~1, test2))
 > cfit2<- survfit(coxph(Surv(start, stop, event) ~ strata(x), test2, subset=-1))
 > 
+> cfit1 <- survfit32(cfit1)  # drop time 0
 > deaths <- (fit1$n.event + fit1$n.censor)>0
 > aeq(fit1$time[deaths], cfit1$time)
 [1] TRUE
@@ -52,6 +53,7 @@ Type 'q()' to quit R.
 > aeq(fit1$std.err[deaths], cfit1$std.err)
 [1] TRUE
 > 
+> cfit2 <- survfit32(cfit2)
 > deaths <- (fit2$n.event + fit2$n.censor)>0
 > aeq(fit2$time[deaths], cfit2$time)
 [1] TRUE
@@ -63,6 +65,7 @@ Type 'q()' to quit R.
 [1] TRUE
 > 
 > fit3 <- survfit(Surv(start, stop, event) ~1, test2) #Kaplan-Meier
+> fit3 <- survfit32(fit3)
 > aeq(fit3$n, 10)
 [1] TRUE
 > aeq(fit3$time, unique(test2$stop))
@@ -81,17 +84,17 @@ Type 'q()' to quit R.
 > 
 > aeq(temp$n.risk, c(6,6,4,4,2,2,1,1,0))
 [1] TRUE
-> aeq(temp$surv, c(1, fit$surv[c(1,1,2,2,3,3,4,4)]))
+> aeq(temp$surv, fit$surv[c(1,2,2,3,3,4,4,5,5)])
 [1] TRUE
 > aeq(temp$n.event, c(0,1,0,2,0,0,0,1,0))
 [1] TRUE
-> aeq(temp$std.err, c(0, (fit$surv*fit$std.err)[c(1,1,2,2,3,3,4,4)]))
+> aeq(temp$std.err, (fit$surv*fit$std.err)[c(1,2,2,3,3,4,4,5,5)])
 [1] TRUE
 > 
 > 
 > fit <- survfit(Surv(start, stop, event) ~1, test2)
 > temp <- summary(fit, times=c(.5, 1.5, 2.5, 3, 6.5, 14.5, 16.5))
-> aeq(temp$surv, c(1, 1, fit$surv[c(1,2,3,6,6)]))
+> aeq(temp$surv, c(1, fit$surv[c(1,2,3,4, 7,7)]))
 [1] TRUE
 > 
 > # This next fails.  With start-stop data the number at risk at intermediate
@@ -101,4 +104,4 @@ Type 'q()' to quit R.
 > 
 > proc.time()
    user  system elapsed 
-  0.784   0.040   0.823 
+  0.816   0.048   0.863 
