@@ -2240,10 +2240,11 @@ Not all paths had the same options or produced the same outputs.
     only one dimension.
 \end{itemize}
 
-A function \code{survfit23} is used by the print and plot methods to ``align''
-all of the elements of the curves to a common starting x and y value, 
-usually 0 for x=time and 1 for y= survival. This also improves consistency.
-
+A utility function \code{survfit0} is used by the print and plot methods to add
+a starting ``time 0'' value of x=0, y=1 the survival curve(s).  It also aligns
+all the matrices so that they correspond to the time vector, inserts the
+correct standard errors, etc.  
+This may be useful to other programs.
 
 \section{Coxph}
  The multi-state objects include a \code{states} vector, which is a simple

@@ -63,8 +63,8 @@ Type 'q()' to quit R.
 +                cbind(data1, status= (data1$event=='death'), etype=2))
 > fit2a <- coxph(Surv(etime, status) ~ age + strata(etype)/sex, data2)
 > 
-> aeq(coef(fit2), coef(fit2a)[c(2,3,1)])  # not in the same order
-[1] "Mean relative difference: 1.466907"
+> aeq(coef(fit2), coef(fit2a)[c(2,1,3)])  # not in the same order
+[1] TRUE
 > aeq(fit2$loglik, fit2a$loglik)
 [1] TRUE
 > 
@@ -110,4 +110,4 @@ Type 'q()' to quit R.
 > 
 > proc.time()
    user  system elapsed 
-  1.355   0.072   1.418 
+  1.159   0.051   1.212 

@@ -7,19 +7,14 @@
 #   The influence matrix, if present, is also filled out to have a 0's for the
 # time, or for a multi-state object, use the influence matrix as provided.
 #
-# The name comes from survival version 2.x to 3.0 conversion, when the complex
-#  logic found in summary and plot was "pulled out" into this routine.
-#
 # It is legal for start.time to be a vector, so that multiple curves start in
 #  different places.  I don't yet have a use for that, but had considered one.
-# If the object x contains a start.time, that trumps the defaults.
 #
-survfit23 <- function(x, start.time =0) {
+survfit0 <- function(x, start.time =0) {
     if (!inherits(x, "survfit")) stop("function requires a survfit object")
-    if (inherits (x, "survfit23")) return(x)
+    if (inherits (x, "survfit0")) return(x)
 
-    if (!is.null(x$start.time)) start.time <- x$start.time
-    else start.time <- min(start.time, x$time)
+    start.time <- min(start.time, 0, x$time)  #start.time might be NULL
 
     if (is.null(x$strata)) insert <- 1   # where to add the zero
     else insert <- unname(1 + cumsum(c(0, x$strata[-length(x$strata)])))
@@ -130,6 +125,6 @@ survfit23 <- function(x, start.time =0) {
             else         new$std.chaz <- new$std.err/new$surv
         }
     }
-    class(new) <- c("survfit23", class(x))
+    class(new) <- c("survfit0", class(x))
     new
 }

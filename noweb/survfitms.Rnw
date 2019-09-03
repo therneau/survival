@@ -25,7 +25,7 @@ or integer indices.
         names(temp) <- target
         temp[i]
     }
-    x <- survfit23(x)   # otherwise influence and pstate don't align
+    x <- survfit0(x, x$start.time)  # otherwise influence and pstate don't align
     # ndots <- ...length()      # the simplest, but not avail in R 3.4
     # ndots <- length(list(...))# fails if any are missing, e.g. fit[,2]
     ndots <- if (missing(drop)) nargs()-1 else nargs()-2  # a workaround
@@ -255,7 +255,7 @@ summary.survfit <- function(object, times, censored=FALSE,
 			    scale=1, extend=FALSE, 
                             rmean=getOption('survfit.rmean'),
                             ...) {
-    fit <- survfit23(object)  #make a local copy, and ensure version 3
+    fit <- survfit0(object, object$start.time)  #add time 0
     if (!inherits(fit, 'survfit'))
 	    stop("summary.survfit can only be used for survfit objects")
     if (is.null(fit$logse)) fit$logse <- TRUE   #older style
@@ -483,7 +483,7 @@ summary.survfitms <- function(object, times, censored=FALSE,
 			    scale=1, extend=FALSE, 
                             rmean= getOption("survfit.rmean"),
                             ...) {
-    fit <- survfit23(object)
+    fit <- survfit0(object, object$start.time)
     if (!inherits(fit, 'survfitms'))
 	    stop("summary.survfitms can only be used for survfitms objects")
     if (is.null(fit$logse)) fit$logse <- FALSE  # older style
@@ -585,7 +585,7 @@ print.survfitms <- function(x, scale=1,
     omit <- x$na.action
     if (length(omit)) cat("  ", naprint(omit), "\n")
 
-    x <- survfit23(x)
+    x <- survfit0(x, x$start.time)
     if (is.null(rmean)) rmean <- "common"
     if (is.numeric(rmean)) {
         if (is.null(x$start.time)) {

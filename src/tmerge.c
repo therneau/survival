@@ -11,6 +11,8 @@
 **   for a given id are together, and in order.
 */
 #include "survS.h"
+#include "survproto.h"
+
 SEXP tmerge(SEXP id2,  SEXP time2x, SEXP newx2,
             SEXP nid2, SEXP ntime2, SEXP x2,  SEXP indx2) {
     int i, k;

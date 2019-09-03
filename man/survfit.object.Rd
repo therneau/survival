@@ -141,7 +141,7 @@ Later iterations of the base routines may omit the confidence intervals.
 
 The survfit object starts at the first observation time, but survival
 curves are normally plotted from time 0.
-A helper routine \code{survfit23} is used to add this first time point
+A helper routine \code{survfit0} can be used to add this first time point
 and align the data.
 }
 \seealso{
@@ -149,6 +149,6 @@ and align the data.
 \code{\link{summary.survfit}},
 \code{\link{print.survfit}},
 \code{\link{survfit}},
-\code{\link{survfit23}}
+\code{\link{survfit0}}
 }
 \keyword{survival}

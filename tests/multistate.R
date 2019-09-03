@@ -40,7 +40,7 @@ data2 <- rbind(cbind(data1, status= (data1$event=="PCM"), etype=1),
                cbind(data1, status= (data1$event=='death'), etype=2))
 fit2a <- coxph(Surv(etime, status) ~ age + strata(etype)/sex, data2)
 
-aeq(coef(fit2), coef(fit2a)[c(2,3,1)])  # not in the same order
+aeq(coef(fit2), coef(fit2a)[c(2,1,3)])  # not in the same order
 aeq(fit2$loglik, fit2a$loglik)
 
 #same fit in more complex ways

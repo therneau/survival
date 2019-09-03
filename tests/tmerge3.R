@@ -35,7 +35,7 @@ tiedat <- data.frame(id=c(1, 1, 1, 2,2,2), time=c(3,4, 4, 3, 5, 5),
 b3 <- tmerge(base, tiedat, id=id, x1= tdc(time, x), x2=cumtdc(time, x),
              x3= event(time, x), x4 = cumevent(time, x))
 all.equal(b3$x1, c(NA, 1, 0, NA, NA, 2,2, 4,4,4))
-all.equal(b3$x2, c(NA, 1, 0, NA, NA, 2,2, 9,9,9))
+all.equal(b3$x2, c(NA, 1, 1, NA, NA, 2,2, 9,9,9))
 all.equal(b3$x3, c(1,0,0,0,2,0,4,0,0,0))
 all.equal(b3$x4, c(1,0,0,0,2,0,9,0,0,0))
 

@@ -28,7 +28,7 @@ plot.survfit<- function(x, conf.int,  mark.time=FALSE,
     dotnames <- names(list(...))
     if (any(dotnames =='type'))
         stop("The graphical argument 'type' is not allowed")
-    x <- survfit23(x,0)   # align data at 0 for plotting
+    x <- survfit0(x, x$start.time)   # align data at 0 for plotting
 
     <<plot-log>>
     <<plot-data>>
@@ -55,7 +55,7 @@ lines.survfit <- function(x, type='s',
                           conf.type=c('log',  'log-log',  'plain', 
                                   'logit', "arcsin"),
                           mark, noplot="()", cumhaz=FALSE, ...) {
-    x <- survfit23(x)
+    x <- survfit0(x, x$start.time)
 
     xlog <- par("xlog")
     <<plot-data>>
@@ -76,7 +76,7 @@ points.survfit <- function(x, fun, censor=FALSE,
                            col=1, pch, noplot="()", cumhaz=FALSE, ...) {
 
     conf.int <- FALSE  # never draw these with 'points'
-    x <- survfit23(x)
+    x <- survfit0(x, x$start.time)
 
     <<plot-data>>
     <<plot-transform>>

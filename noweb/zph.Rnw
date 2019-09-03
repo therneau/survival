@@ -320,11 +320,10 @@ if (terms && any(sapply(asgn, length) > 1)) { # collase multi-column terms
 
     sresid <- sresid %*% temp
     vmean <- t(temp) %*% vmean %*% temp
-    colnames(sresid) <- names(asgn)
     used <- used[, sapply(asgn, function(x) x[1]), drop=FALSE]
 }
 
-rownames(sresid) <- signif(rval$time, 4)
+dimnames(sresid) <- list(signif(rval$time, 4), termname)
 
 # for each stratum, rescale the Schoenfeld residuals in that stratum
 sgrp <- rep(1:nrow(used), apply(used, 1, max))
