@@ -162,7 +162,8 @@ simple historical reasons: since it is the simplest to program it was
 usually the first method to be implemented.
 
 Once having chosen the Efron default it is important to carry
-through.  The approximation turns out to have implications for how residuals 
+through, however.  
+The approximation turns out to have implications for how residuals 
 and baseline hazard functions are computed, 
 which in turn affects robust variance estimates.
 Details of this can be found in the validation vignette. 
@@ -172,29 +173,51 @@ For all the examples that we have investigated in detail, however, the
 practical implications of the inaccuracy have been small.
 The largest practical issue vis-a-vis SAS/R is
 users who don't read the documentation, and then get worried when
-numbers don't exactly agree, since one run used Efron and the other Breslow.
+numbers don't exactly agree, if one run used Efron and the other Breslow.
 
 \section{Efficiency of the Cox model}
+ A question of the relative speeds of coxph and phreg is one that arises
+fairly often; a particular data set caused us to look into this more
+formally.
  \subsection{Counting process data}
 The solution to the Cox estimating equations is found using Newton-Raphson
 iteration, which requires the computation of first and second derivatives
 with respect to to each coefficient.
 The basic quantities for these are a weighted mean and variance of $X$,
 at each event time, taken over the set of subjects who are at risk at
-that event time, using $\exp(X\beta)$ as the weights. 
+that event time, using $\exp(X\hat\beta)$ as the weights. 
 Let $p$ be the number of covariates, $d$ the number of unique event times
 and $n$ the number of observations.
-A simple computation of the $d$ variance matrices will be of order
-$O(ndp^2)$.  For the rest of this section I will drop the $p$ portion and
-refer to the naive method as $O(nd)$.
+An ideal Cox model program would have a computational burden of 
+$(O(d) + O(dp) + O(dp^2)) k$ for the partial likelihood, the coefficients, and
+the variance matrix, respectively, where $k$ is the number of iterations
+to required;
+for almost all data sets $k$ is between 3 and 5.  
+This is simply the work of adding up the partial likelihood and its first
+and second derivatives.
+In a real program there will an additional $(O(n) + O(np) +O(np^2)) k$ 
+time for computing the terms which should be added to the sums,
+where $n$ is total number of observations in the data set.
+For a Cox model the increment to the second derivative, at each death time,
+is a weighted variance of the covariates $X$, over all those who were at risk
+for the event, while the increment to the first derivative involves the
+vector of weighted means.
+For the rest of this discussion assume that $p$ and $k$ are fixed, 
+and we will refer the run time for an ideal program as $O(n) + O(d)$.
+Since $n >d$, often by a large margin, the first term normally dominates 
+the second, and, more importantly,
+real programs and algorithms will not match the ideal, since there are
+various other tasks to be done.
 
 For ordinary \code{Surv(time, status)} survival data, 
 SAS phreg, R coxph, and every
-other code that I am aware of reduces this to an $O(n)$ computation 
+other code that I am aware achieves the $O(n)$ ideal
 via a simple strategy:
 process the data from largest to smallest survival time.  That way the
 sums needed for each of the risk sets occur naturally as we proceed; 
-and one pass through the data will suffice to compute them.  
+and one pass through the data will suffice to compute them using well
+known formulas for updating a mean and variance.
+Essenially no time is spent on the ``who in each risk set'' task. 
 This makes the code quite efficient.
 If there are strata in the model, means and variances of $X$ are taken
 \emph{within} strata; this adds no extra work since we need only zero the
@@ -205,7 +228,19 @@ haven't counted it in the total.
 
 When the data is in counting process form, i.e., 
 \code{Surv(time1, time2, status)}, the computation is more challenging.
-As a way of investigating this we will use a large simulation data set.
+The risk set for a subject who dies at some time $t$ is the set of
+all observations such that \code{time1} $< t \le$ \code{time2}.
+A worst case algorithm is to compute the mean and variance de novo
+at each death time, iterating over all the observations to enumerate the
+at risk subset.  This leads to a computation time of $O(nd)$.  We hope to
+do better than that.  A slightly better approach is to keep a running
+list of which observations are in the risk set, leading to an $O(rd)$
+algorithm where $r$ is the average number of subjects at risk.  
+(Maintaining/updating a list of values is a well known problem in computer
+science, and like sorting it can be done very efficiently.  See red/black
+trees for example.)
+
+As a way of investigating the performance we will use a simulation data set.
 It is intended to mimic to some degree the Nurses Health Study, since analysis
 of that data set raised a question about the relative speed of coxph and phreg.
 The code for the data set is below; most readers can skip 
@@ -222,27 +257,45 @@ temp <- floor(c(30*365.25, 55*365.25))
 age <- sample(temp[1]:temp[2], n, replace=TRUE) # age in days, at enrollment
 iage <- floor(age/365.25)               # birthday age
 
-# a random survival time for each subject.  Minnesota death rates*.8
-#  give approx the same number of deaths as the NHS (personal communication).
-sy <- survexp.mn[1:110, 'female', "1985"]*365.25 *.8 # yearly hazard rate
-dtime <- double(n)
-for (i in 30:55) {
-    j <- which(iage == i)
-    chaz <- rexp(length(j))  # chaz for each subject is exp(1)
-    dtime[j] <- approx(cumsum(sy[i:109]), i:109, chaz, rule=2)$y
-}
-    
-# change to days
-dtime <- pmax(30, ceiling(dtime*365.25))  # at least 1 month of survival
-
 # up to 16 bi-annual follow-ups for each subject + enrollment visit
 #  covariates are rounded to fewer digits to make nicer printout
+#  of data set rows
 times <- matrix(sample(700:770, n*16, replace=TRUE), ncol=n)
 vage <- apply(rbind(age, times), 2, cumsum)
 temp <- data.frame(id=rep(1:n, each=17),
                    vage = c(vage),     # age at visit
                    x1 = round(runif(n* 17, 100, 200)),
                    x2 = round(rgamma(n* 17, 1,2), 2))
+
+# Every subject has a flottila of binary covariates,
+#  which I will make constant per subject (it's simpler and won't change
+#  the timing behavior) and somewhat correlated.
+# There are nice packages for this, but I'm constrained by the fact that
+#  survival is a recommended package
+cbin <- function(n, p, rho=.5) {
+    gauss <- matrix(rnorm(n*p), ncol=p)
+    cmat <- diag(p)
+    cmat[col(cmat) < row(cmat)*.8] <- rho   # cholesky of my variance matrix
+    ifelse(gauss %*% cmat >0, 1, 0) 
+}
+xb <- cbin(n, 40)  # binary covariates
+
+# a random survival time for each subject.  Scaled Minnesota death rates 
+#  give approx the same number of deaths as the NHS (31,000).
+truecoef <- c(rep(seq(-5,4), 2)/10, rep(0,20)) # some are important, more not
+eta <- xb %*% truecoef + rnorm(n, sd=.3)  # we never know all the risks
+sy <- survexp.mn[1:110, 'female', "1985"]*365.25 # yearly hazard rate
+sy <- sy * .8 / mean(exp(eta))  # emprical adjustment
+dtime <- double(n)
+for (i in 30:55) {   # some start at each age
+    j <- which(iage == i)
+    chaz <- rexp(length(j))  # chaz for each subject is exp(1)
+    dtime[j] <- approx(cumsum(sy[i:109]), i:109, chaz/exp(eta[j]), rule=2)$y
+}
+truecoef <- c(0,0, truecoef)  # add the coefs for x1 and x2
+  
+# change to days
+dtime <- pmax(30, ceiling(dtime*365.25))  # at least 1 month of survival
 
 dummy <- data.frame(id=1:n, dtime=dtime, agem = floor(age*12/365.25))
 nhs <- tmerge(dummy, dummy, id=id,  death=event(dtime),
@@ -252,15 +305,17 @@ nhs <- tmerge(nhs, temp, id=id, qnum= cumtdc(vage),
 latedeath <- with(nhs, death==1 & (age2-age1) > 800)
 nhs <- subset(nhs, age1>0 & !latedeath)
 
-# Add a lot of binomial variables.  Adding this at the end in this
-#  way allows me to write + xb in the model rather than +xb.1 + xb.2 + ...xb.40
+# Adding xb last makes if remain a matrix within the dataframe.
+# This allows me to write
+#   + xb in the model rather than +xb.1 + xb.2 + ... + xb.40
 #  That is, same model, less typing.
-nhs$xb <- matrix(rbinom(nrow(nhs)*40, 1, .4), ncol=40)
+nhs$xb <- xb[nhs$id,]
 
 # Look at statistics for the first 1/3, 2/3, and 3/3 of the subjects
 nsubject <- max(nhs$id)
 stats <- matrix(0, 5, 3)
 
+fit1 <- vector("list", 3)
 for (i in 1:3) {
     temp <- subset(nhs, id <= (nsubject* i/3))
     stats[1,i] <- nrow(temp)
@@ -270,7 +325,7 @@ for (i in 1:3) {
     stats[3,i] <- sum(km$n.event>0)
     stats[4,i] <- mean(km$n.risk[km$n.event >0])
 
-    time1 <- system.time(coxph(Surv(age1, age2, death) ~ x1+ x2 + xb,
+    time1 <- system.time(fit1[[i]] <-coxph(Surv(age1, age2, death) ~ x1+ x2 + xb,
                          ties="breslow", temp))
     stats[5,i] <- sum(time1[-3])   # ignore elapsed time
 }
@@ -283,18 +338,39 @@ dimnames(stats) <- list(c("number of observations", "number of events",
 round(stats)
 @ 
 
-The resulting data set has 1.8 million records for 122 thousand subjects,
-reflecting the long bi-annual follow up for the NHS.  
-Subjects have a new observation at each visit, giving the new values of their
-covariates, and their last visit will end in a censoring or death.
-Since we are only interested in compute time issues the covariates were
-created as simple random numbers without any structure, thus none of the
-variables are expected to be statistically important.
+The resulting data set has 
+\Sexpr{round(nrow(nhs)/1e6, 1)} million records for 122 thousand subjects,
+reflecting 24 years of bi-annual follow up in the NHS.  
+Subjects have a new observation at each visit.  In the actual data the
+covariates are time dependent (though most covariates don't change, 
+for most of the visits, for most subjects.)
+There are a lot of events, so coefficient estimates are quite precise as
+shown in the next graph.  Evaluation required 4 iterations of the 
+\code{coxph} function. 
 
-The approach used by coxph is to use a running sum for (time1, time2) data,
+I was asked if the iteration count would increase in the real data set,
+due to high correlation.
+Something that is often not appreciated is that one can replace the matrix of
+covariates $X$ with a transformed version $AX$, and the iteration path for 
+the Newton-Raphson iteration of a Cox model remains unchanged, giving the
+exact same series of likelihood values. 
+Practically, this means that the expected iteration count does not depend
+on whether the covariates are correlated, unless $X$ has become so close to
+singular that round off errors intervene.
+
+<<plot=TRUE>>=
+y <- cbind(coef(fit1[[1]]), coef(fit1[[2]]), coef(fit1[[3]]))
+matplot(1:42, y, pch="123", 
+        xlab="Covariate", ylab="Coefficient")
+lines(1:42, truecoef, lty=2) # add the true coefficient to the plot 
+@ 
+
+The run time for \code{coxph} is nearly linear in $n$, the
+number of observations.
+The approach used by coxph is to use running sums for (time1, time2) data,
 just as it does for simple survival, but in this case
 subjects will be added \emph{and} subtracted from the totals.  
-Again working backwards in time, an
+The code marches backwards in time; an
 observation of (100, 200, 1) would be added to the totals when 
 the code's internal time
 value crosses 200, and then removed when the time crosses 100.  
@@ -302,13 +378,9 @@ This requires some care in the internal routines to avoid catastrophic
 cancellation; e.g., in finite precision arithmetic (1e18 + 123) - (1e18) =0 so
 a large outlier that is added and then later removed can be deadly.
 (Mitigation for this is discussed in the noweb source code.)
-The basic algorithm has a run time of $O(2n)$.
-Looking at the results above, we see that the execution time is almost
-perfectly linear in $n$, the number of observations.
-The ideal, but unobtainable algorithm would be linear in the number
-of unique death times $d$ = the number of terms in the partial likelihood
-sum, with no time at all devoted to bookkeeping; $d$ grows
-slower than $n$ due to ties.
+Said algorithm is expected to have $O(2n)$ run time since it touchs
+ each observation twice.
+Since $d < n/60$ the $O(d)$ term hardly matters in this data.
 
 Running the same data set using SAS phreg, the execution times were 
 85, 303, and 867 seconds for 1/9, 2/9, and 3/9 of the subjects,
@@ -317,45 +389,59 @@ phreg default.)
 The phreg algorithm appears to use the simpler approach, which is to calculate
 the variance anew at each death time.
 In this case the dominating term in the compute time will be $O(nd)$,
-and $d$ grows with $n$.  
+and $d$ grows with $n$. 
 
-The average number at risk, at each death, in the full Cox model was over
-60 thousand.  
-This is statistical overkill: 10-20 conrols per case will work just as well.
-One simple way to thin this down is to match subjects into sets based on
-their age at first response, in months; the variable \code{agem} in our
-data set above.  This gives groups of size 350--450.  What does it do to
-the compute time?
+\subsection{Stratification}
+The average number of subjects at risk, at each death, 
+in the full Cox model, is over 65 thousand:
 
-<<strata>>=
-system.time(assign("fit1", coxph(Surv(age1, age2, death) ~ x1 + x2 + xb,
-                                 ties='breslow', data=nhs)))
-
-system.time(assign("fit2", coxph(Surv(age1, age2, death) ~ x1 + x2 + xb +
-                                 strata(agem), ties='breslow', data=nhs)))
+<<nrisk>>=
+kmfit <- survfit(Surv(age1, age2, death) ~1, nhs)
+mean(kmfit$n.risk[kmfit$n.event > 0])
 @ 
 
-Reducing the average number at risk by 150 fold has reduced the compute time
-by about 25\%; the overall size of the data set has not changed and size
-dominates the \code{coxph} compute time.
+This is statistical overkill: 10-20 conrols per case will work just as well.
+One simple way to thin this down is to stratify the analysis.
+As an example we will break the subjects into sets based on 
+their age at enrollment, in months; the variable \code{agem} in our
+data set above.  This leads to 300 strata, corresponding to the 25 year
+span in ages at enrollment.  
+What does it do to the compute time?
+
+<<strata, plot=TRUE>>=
+system.time(fit2 <- coxph(Surv(age1, age2, death) ~ x1 + x2 + xb +
+                                 strata(agem), ties='breslow', data=nhs))
+par(mfrow=c(1,2))
+matplot(1:42, cbind(coef(fit1[[3]]), coef(fit2)), 
+                    xlab="Coefficient", ylab= "Value")
+s1 <- sqrt(diag(vcov(fit1[[3]])))  # std of coefficients
+s2 <- sqrt(diag(vcov(fit2))
+plot(1:42, s2/s1, xlab="Coefficient", ylab="Ratio of standard errors")
+@ 
+
+Reducing the average number at risk by 300 fold has reduced the compute time
+by about 30\%, without any appreciable change in the estimates or their
+standard errors.   
+The overall size of the data set has not changed and size
+dominates the \code{coxph} compute time.  A small gain comes from observations
+that occur after the last event in any strata; (time1, time2) intervals that
+do not overlap an event time play no role in the partial likelihood and are
+ignored by coxph.
 The effect of stratification on phreg, however, was profound: the run
 times for 1/3, 2/3, and 3/3 of the data were now 7, 18, and 33 seconds;
 still quadratic but with a 120 fold decrease.
-(Note that because of licensing restrictions SAS jobs were run on a 
-dedicated server, so times will not be exactly comparable.  Based on the
-hardware at the time we expect no more than a 2x distortion.)
 
-
+\subsection{Data expansion}
 The NHS example started with a complaint that R was 8 fold \emph{slower}
 than SAS on the actual NHS data set, which puzzled me.
 In what situation could this happen?
-One way is to create a version of the data where $n$ grows, but $m$ and $d$
-do not.
+
+One way is to make the R code slower, by artificially increasing $n$.
 This can be done by \emph{dicing} the nhs data set, i.e., cut each observation 
-into multiple small pieces.  
-(In the same sense as dicing vegetables in the kitchen.)
+into multiple small pieces  
+(in the same sense as dicing vegetables in the kitchen).
 The very first observation of the simulation data set, for instance, is a
-censored time span from age 40 to age 42.06 = 14610 to 15361 days of age.
+censored time span from age 40 to age 42.06 = 14615 to 15361 days of age.
 What if we were to replace this observation by a whole set of rows
 with (age1, age2, death) values of (14610, 14611, 0), (14611, 14612, 0),
 (14612, 14613, 0), \ldots (15360, 15361, 0).
@@ -384,7 +470,7 @@ A special data set is constructed which has 52*11 observations: the first
 event + the 10 controls for it, then the second event + its 10 controls, etc.
 The data set will contain a \code{group} variable that divides these into
 52 groups and a status variable of 1=event/ 0=control.
-A standard Cox model program can be used to fit this.
+A standard Cox model program can now be used to fit the data.
 A \code{time} value, which used by the \code{coxph} routine to determine risk
 sets, is not needed since the risk sets are already set, and one can use
 the call
@@ -393,57 +479,39 @@ the call
 \end{verbatim}
 where \code{dummy} is a dummy variable set to a constant value (often 1.0).
 
-Further conversation with the NHS study personnel clarified that they were 
-indeed using this approach, but had also coarsened the time scale to use time 
-in months. 
-Per the prior section on the Efron estimate, for a data set with 10+ years
-of follow-up
-the use of months vs. days will hardly change the final Cox model estimates.
-If we make the further decision to use those with the same enrollment 
-age as the ``selected subset'', no new data set
-needs to be created at all.
-
-<<matched>>=
-dummy <- rep(1, nrow(nhs))
-dmonth <- floor(nhs$age2 * 12/365.25)   # endpoint in months
-system.time(assign("mfit", coxph(Surv(dummy, death) ~ x1 + x2 + xb +
-                                     strata(dmonth, agem), nhs)))
-@ 
-
-The months with no deaths at all add nothing to the loglikihood and could
-be removed from the data set, but there are very few of them.
-Create an expanded data set using these parameters:
-time scale in months, separate strata based on age at enrollment,
-and expanded data within strata based on death month.
-Since subjects
-come in about every 2 years using months will expand the data set by 
-approximately
-24 fold. To keep the vignette from taking too long to run we'll only use
-the first 1/10 of the NHS identifiers.
+Such an approach has attraction for phreg, since we are no longer using
+a (time1, time2) form. Perhaps trading a larger data set size for $O(n)$
+behavior will be a win?
+To test this out, and yet keep the running time of this vignette sane,
+we create an expanded data set using 1/12 of the subjects, breaking each
+subject into monthly intervals.  
+This will create a data set with approximately 24/12 = 2 times as many
+rows.
+Within the data set, use age in months as the time scale.
 
 <<nhs2, fig=TRUE>>=
-temp <-  subset(nhs, id < 12170)    # 121700 / 10
-temp$month1 <- floor(temp$age1* 12/365.25)
-temp$month2 <- floor(temp$age2* 12/365.25)
-temp <- subset(temp, month1 < month2)  # remove any accidental ties
+temp <-  subset(nhs, id <= 10140)    # 1/12 of 121700 subjects
+temp$dummy <- 1
+temp$month1 <- floor(temp$age1 * 12/365.25)  
+temp$month2 <- floor(temp$age2 * 12/365.25)
+temp <- subset(temp, month1 < month2)   # avoid 0 length intervals
 dtime <- sort(unique(temp$month2[temp$death == 1]))
-nhs2 <- survSplit(Surv(month1, month2, death) ~., data=temp, cut=dtime)
-nrow(nhs2)/nrow(temp)
 
-nrow(nhs2)  # 3.5 million rows
+nhs2 <- survSplit(Surv(month1, month2, death) ~., data=temp, cut=dtime)
+
+nrow(nhs2)  # 3.2 million rows
 
 stat2 <- matrix(0, 6, 3)
-options(warn=-1)  # the second fit will give spurious warnings
 maxid <- max(nhs2$id)
+fit3a <- fit3b <- vector("list", 3)
 for (i in 1:3) {
     temp <- subset(nhs2, id <= (maxid*i/3))  # 1/3, 2/3, 3/3
-    km <- survfit(Surv(month1, month2, death) ~ 1, data=temp)
-    time1 <- system.time(coxph(Surv(month1, month2, death) ~ x1 + x2 + xb,
-                               ties = "breslow", data=temp),
-                         gcFirst= TRUE)
-    time2 <- system.time(coxph(Surv(month2, death) ~ x1 + x2 + xb + 
-                                   strata(month2), ties="breslow", data=temp),
-                         gcFirst= TRUE)
+    km <- survfit(Surv(age1, age2, death) ~ 1, data=temp)
+    time1 <- system.time(fit3a[[i]] <- coxph(Surv(month1, month2, death) ~ x1 +
+                                                 x2 + xb, 
+                               ties = "breslow", data=temp))
+    time2 <- system.time(fit3b[[i]] <- coxph(Surv(dummy, death) ~ x1 + x2 + xb + 
+                                   strata(month2), ties="breslow", data=temp))
     stat2[1, i] <- nrow(temp)
     stat2[2, i] <- sum(temp$death)
     stat2[3, i] <- length(unique(temp$age2[temp$death==1]))
@@ -451,20 +519,31 @@ for (i in 1:3) {
     stat2[5, i] <- sum(time1[-3])
     stat2[6, i] <- sum(time2[-3])
 }
-options(warn=0)  #restore warnings                       
+all.equal(coef(fit3a[[3]]), coef(fit3b[[3]]))
+
 dimnames(stat2) <- list(c("observations", "death", "unique deaths",
                           "mean risk set", 
                           "coxph time 1", "coxph time 2"),
                         c("first 1/3", "2/3", "all"))
 round(stat2)
-plot(c(stats[1,], stat2[1,], stat2[1,])/1e6, 
-     c(stats[5,], stat2[5,], stat2[6,]),
-     pch=c(1,1,1,2,2,2,3,3,3),
-     xlab="Data set size (millions)", ylab="Coxph run time")
-@
 
-Because of tied times the new data set is a little less than 2.4 (24/10) fold 
-larger than the original data.
+ytemp <- cbind(stats[5,], stat2[5,], stat2[6,])
+matplot(cbind(stats[1,], stat2[1,], stat2[1,])/1e6,  ytemp,
+        ylim=c(0, max(ytemp)), pch="1ab",
+        xlab="Data set size (millions)", ylab="Coxph run time")
+@ 
+
+Using the expanded data set and coarsened time scale,
+the results in fit3a and fit3b will be identical, since they have the same
+subjects in the same risk sets.  This is verified by comparing coefficients.
+The figure shows that the run times 
+from \code{fit1} on the original time scale and \code{fit3a} and \code{fit3b}
+on the coarsened and expanded data.
+For the (time1, time2) forms of the data the compute time remains linear in
+the number of rows, coarsening the time scale has had only a small impact.
+The compute time for a model that takes advantage of the strata and a dummy
+time value is indeed smaller, about 1/3 of the (time1, time2) form.
+However, the 
 The coxph compute time is linear in the number of rows, as before, and continues
 the series of values found in the first test.
 The row count grows faster than the number of subjects, since the number of 
@@ -474,67 +553,28 @@ The two fits in the loop, one using (age1, age2) and the other stratified on
 the age at death, give exactly the same likelihood since they have 
 exactly the same risk sets at each event time.
 The expected compute time for the second will grow at the rate of $dm$.
-However, the
-construction of the data ensures that each row of data is in exactly one
-stratum, i.e., that $E(m) = n/d$, so this approach has exactly the same
-growth rate as the counting process data.
-(The fact that the counting process code + expanded data 
-combination is somewhat faster is a bit of a surprise, but it remains linear.)
-If we expand the full nhs data set (not shown) the result has 40.3 million
-rows = a 23.7 fold increase, and the coxph call took 20.3 times as long
-to execute as for the unexpanded data set.
+However, the overall effect is a net loss: 
+\Sexpr{round(stat2[6,3])} seconds for to fit 1/12 of the data in the expanded
+form versus \Sexpr{round(stats[5,3])} seconds for the entire data set in its
+original form. 
 
-As a footnote, since the second fit has only one death time in each stratum,
-we could use a dummy variable as ``time'' in the \code{coxph} call
-without changing the outcome, e.g., set the variable uniformly to a value of
-1.  Matched case-control logistic regression via the \code{clogit} command uses
-exactly this same trick, i.e., it builds the risk sets for each event directly,
-marks each risk set a unique stratum, and adds a dummy time value.
-
-There are 636 unique \code{month2} values, of which only 49 had no event times.
-The above code can be made a slightly faster by eliminating these observations
-from the data before calling \code{coxph}, but the effect is small since
-it does not take much time for the code to pass over a stratum with
-no events. 
-
-For SAS however, the different constructions differ substantially in 
-compute time.  The SAS code is shown below.
-The first form, reported above, takes 11 seconds for 1/10 the data set
-and is anticipated to take approx 1100 seconds for the full counting 
-process data.
-The second form took 109 seconds for 1/3 of the expanded data set  = 1/30
-of the subjects.
-The third approach, like R,
-will have $O(md) = O(n)$ behavior since both SAS and R are
-using an ``ordinary'' Cox model for the fit.
-Using this form phreg took
-7.7, 12.3, and 18.4 seconds for 1/3, 2/3, and 3/3 of the 
-expanded data, which extrapolates to 184 seconds for an expanded form of
-the entire nhs cohort (40 million rows), which is 
-less than 1/5 of the counting process form.
-Because SAS jobs at our institution have to be run on a separate server
-due to licensing issues we can't directly compare the SAS and R run
-times of 18 and 35 seconds for the 1/10 expansion (though the underlying
-hardware at the time should be withing $\pm$ 30\%),
-the important take home point is that both have linear growth.
+For SAS however, the two constructions differ substantially in 
+compute time.  A portion of the SAS code is shown below.
+Using (time1, time2) form on the expanded data set displays quadratic
+behavior of xx, xx, and xx seconds for the nhs2 data set,
+which the stratified form with a dummy time value required
+zz, zz, and zz seconds.  
 
 \begin{verbatim}
-proc phreg data= nhs;
-   where (id <= 12170);
-   model (age1 age2) * death(0) = x1 x2 xb_1 xb_2 xb_3 xb_4 xb_5 xb_6 xb_7
+proc phreg data= nhs2;
+   where (id < 3380);   * 1/3;
+   model (month1 month2) * death(0) = x1 x2 xb_1 xb_2 xb_3 xb_4 xb_5 xb_6 xb_7
         xb_8 xb_9 xb_10 xb_11 xb_12 xb_13 xb_14 xb_15 xb_16 xb_17 xb_18 xb_19
         xb_20 xb_21 xb_22 xb_23 xb_24 xb_25 xb_26 xb_27
         xb_28 xb_29 xb_30 xb_31 xb_32 xb_33 xb_34 xb_35 xb_36
         xb_37 xb_38 xb_39 xb_40;
 proc phreg data=nhs2;
-   where (id < 8113);
-   model (age1 age2) * death(0) = x1 x2 xb_1 xb_2 xb_3 xb_4 xb_5 xb_6 xb_7
-        xb_8 xb_9 xb_10 xb_11 xb_12 xb_13 xb_14 xb_15 xb_16 xb_17 xb_18 xb_19
-        xb_20 xb_21 xb_22 xb_23 xb_24 xb_25 xb_26 xb_27
-        xb_28 xb_29 xb_30 xb_31 xb_32 xb_33 xb_34 xb_35 xb_36
-        xb_37 xb_38 xb_39 xb_40;
-proc phreg data=nhs2;
-   model age2*death(0) =x1 x2 xb_1 xb_2 xb_3 xb_4 xb_5 xb_6 xb_7
+   model dummy*death(0) =x1 x2 xb_1 xb_2 xb_3 xb_4 xb_5 xb_6 xb_7
         xb_8 xb_9 xb_10 xb_11 xb_12 xb_13 xb_14 xb_15 xb_16 xb_17 xb_18 xb_19
         xb_20 xb_21 xb_22 xb_23 xb_24 xb_25 xb_26 xb_27
         xb_28 xb_29 xb_30 xb_31 xb_32 xb_33 xb_34 xb_35 xb_36
@@ -549,11 +589,64 @@ what makes things faster for one statistical package does not necessarily
 work for another.
 This is especially true for something like the NHS simulation, where per
 subject covariate updates occur at a low frequency.  
-The 1.7 million row / 122 thousand subject counting process data set took
-7.5 seconds, while the diced version took 24 times
-as long.  The increase would be even larger if we 
-had cut the data at every death day rather than using months.
 
+\subsection{Speeding up phreg}
+What is the fastest that we can make the phreg run time?
+The obvious target would be to avoid the (time1, time2) form at all costs,
+while at the same time not having to expand the data set; and secondly to
+employ strata to reduce the size of the risk sets.
+Further correspondence with the NHS staff revealed that they had done
+exactly this.
+The key trick is to stratify observations based on each subject's age
+at their \emph{prior} visit (in months).
+Here are four versions in R.
+
+<<trick1>>=
+nhs$month1 <- floor(nhs$age1 * 12/365.25)
+nhs$month2 <- floor(nhs$age2 * 12/365.25)
+tdata <- subset(nhs, month1 < month2)  # remove any ties
+fit4a <- coxph(Surv(age1, age2, death) ~ x1 + x2 + xb + strata(month1), 
+               data=tdata, ties='breslow')
+fit4b <- coxph(Surv(month1, month2, death) ~ x1 + x2 + xb + strata(month1),
+               data=tdata, ties='breslow')
+fit4c <- coxph(Surv(month2, death) ~ x1 + x2 + xb + strata(month1),
+               data=tdata, ties='breslow')
+fit4d <- coxph(Surv(age2, death) ~ x1 + x2 + xb + strata(month1),
+               data=tdata, ties='breslow')
+matplot(1:42, cbind(coef(fit4a), coef(fit4b), coef(fit4c), coef(fit4d)),
+        pch=1:4,
+        xlab="Coefficient", ylab="value")
+lines(1:42, truecoef, lty=3)
+all.equal(coef(fit4a), coef(fit4b))
+all.equal(coef(fit4b), coef(fit4c))
+@ 
+
+The plot shows the coefficients from the 4 fits, results of the four
+are almost identical.
+This is not surprising, since
+over the 50 year age range of the NHS, a coarsening the time scale to months
+hardly changes the outcome.
+A closer look reveals that the fit4a and fit4b differ by less than 1\%, and
+coefficients for fit4b and fit4c are actually identical!
+The reason for the latter is that  everyone in any given
+stratum has exactly the same \code{month1} value, so we can dispense with the
+(time1, time2) form of the call.
+
+In the above example we removed observations where month1=month2 to demonstrate
+the equivalence of fit4b and fit4c; such observations are automatically
+removed when fitting (time1, time2) data.
+However, this is not necessary when using the (time2, death) form of the model.
+The coxph compute time for fit3 above, without the removals,  was 
+24 seconds while the phreg compute time was 15.  
+
+<<echo=FALSE>>=
+# Run by hand, in order to create transfer files to SAS
+if (FALSE) {
+    where <- "/bigdata/users/therneau/sasdata/"
+    write.csv(nhs, row.names=FALSE, file= paste0(where, "nhs1.csv"))
+    write.csv(nhs2,row.names=FALSE, file= paste0(where, "nhs2.csv"))
+}
+@ 
 \subsection{Data set sizes}
 The 'xz' compression option of the \code{save} command 
 is particularly successful for data sets like
@@ -567,7 +660,7 @@ options, more knowledgeable SAS coders perhaps could to do better.
 
 \subsection{The FAST option}
 Our 2019 version of phreg now has a \emph{FAST} option.  
-The phreg manual is vague about the actual approach:
+The phreg manual is completely vague about the actual approach:
 ``FAST
 uses an alternative algorithm to speed up the fitting of the Cox regression for 
 a large data set that has the counting process style of input. 
@@ -583,7 +676,7 @@ not see much improvement in the optimization time if your data set has only a
 moderate number of observations.''
 
 The reference in the manual is ``Simonsen, J. (2014). Statens Serum Institut, 
-Copenhagen. Unpublished SAS macro'', which is not very helpful.
+Copenhagen. Unpublished SAS macro'', which is not helpful at all. 
 However, someone else pointed us to a web reference which contains a macro
 that is the purported prototype for the phreg option;
 it can be found using a web search for the article title 
@@ -603,22 +696,44 @@ Reductions in the data set size of 20-100 fold were not uncommon.
 
 The FAST option appears to use essentially the same approach.
 Say that there are $k$ unique combinations of the categorized covariates.
-For a Cox model, the intermediate data set will have 2k observations at each
-unique event time, one set containing the count of events at that time and one
-the count of those who were at risk but did not have an event at said time.
-Then fit an ordinary Cox model to this data set, stratified by event time.
-The compute time will be $O(kd)$, where $k$ is potentially much smaller than
-$O(md)$ for the original data.  Observations with a weight of 0, if any, 
-can of course be eliminated from the data set before the fit.
+For a Cox model, create an intermediate data set with 2k observations at each
+unique event time, one with status=0 and one with status=1, and weights equal
+to the number of censorings and events in that bin*time combination.
+Observations with a weight of 0, if any, may be omitted.
+Then fit an ordinary Cox model to this data set, stratified by event time and
+using Surv(dummy, status) as the response, \code{dummy} a dummy vector zeros.
+The compute time will be $O(kd)$, which is potentially much smaller than
+the $O(nd)$ compuation for the original data set.  
 Creating the collapsed data set is itself a task that potentially
 requires $O(nd)$ time,
 since for each event time the tally needs to check all $n$ observations to
 see if their (time1, time2) interval includes the given event.
-However, this is essentially an indexing problem and can be done quickly using
-hashing methods.
+However, this is essentially an indexing problem for which there are fast
+algorithms.
 
 As someone who often preaches against categorization of predictors, the
 author does not find this approach attractive.
+
+\subsection{Summary}
+Statistical theory tells us that the variance of the coefficients from
+a Cox model will be of order $V \sum_j (r_j -1)/r_j$, where $V$ is the 
+variance of the predictors $X$ and $r_j$ is the size of the risk set associated
+with the $j$th death. 
+In this data set with an average risk set size of $>65$ thousand, it should
+be no surprise that replacing the risk set with a smaller subsample has no
+measurable effect on the estimates; whether that were to be done with a
+random subsample, stratification on entry date (1/300) or stratificatin on the
+ 650 ``prior visit'' dates. 
+A primary lesson for this statistician is that when analysis is slow due to
+a large data set,
+perhaps our first reaction should be the \emph{think} instead of reaching
+for a bigger hammer.
+
+For the naive $O(nd)$ algorithm used by phreg, the effect of subsampling is a
+staggering decrease in the compute time; stratification essentially replaced
+$n$ with $n/300$.  A clever stratification that allows one to omit time1
+gave another 10 fold improvement.  
+
 
 \section{Type 3 tests}
 Another user query has been for ``type 3'' tests of survival models.
