@@ -20,7 +20,8 @@
 **     (bigger survival + smaller risk score = concordant)
 */
 #include "survS.h"
-#include <stdio.h>
+#include "survproto.h"
+
 void survConcordance(Sint *np,    double *time,  Sint *status, 
 		     double *x,   Sint *n2p,     double *x2,
 		     Sint   *temp,Sint *result) {

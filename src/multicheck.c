@@ -8,6 +8,7 @@
 **        initial state at entry,  first transtion, second, etc.
 */
 #include "survS.h"
+#include "survproto.h"
 
 SEXP multicheck(SEXP y2, SEXP status2, SEXP id2, SEXP istate2, SEXP sort2) {
     int i, ii, ilag;

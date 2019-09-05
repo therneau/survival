@@ -10,6 +10,7 @@
 */ 
 #include <math.h>
 #include "survS.h"
+#include "survproto.h"
 #define SMALL -200  /* exp(-200) is a really small loglik */
 
 double survregc2(int n,          int nvar,     int nstrat,      int whichcase,

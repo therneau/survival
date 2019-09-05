@@ -15,6 +15,7 @@
 */
 
 #include "survS.h"
+#include "survproto.h"
 
 void survfit4(Sint *n,	Sint *dd,  double *x1,  double *x2) {
     double temp, temp1, temp2;

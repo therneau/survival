@@ -348,17 +348,7 @@ There are a lot of events, so coefficient estimates are quite precise as
 shown in the next graph.  Evaluation required 4 iterations of the 
 \code{coxph} function. 
 
-I was asked if the iteration count would increase in the real data set,
-due to high correlation.
-Something that is often not appreciated is that one can replace the matrix of
-covariates $X$ with a transformed version $AX$, and the iteration path for 
-the Newton-Raphson iteration of a Cox model remains unchanged, giving the
-exact same series of likelihood values. 
-Practically, this means that the expected iteration count does not depend
-on whether the covariates are correlated, unless $X$ has become so close to
-singular that round off errors intervene.
-
-<<plot=TRUE>>=
+<<fig=TRUE>>=
 y <- cbind(coef(fit1[[1]]), coef(fit1[[2]]), coef(fit1[[3]]))
 matplot(1:42, y, pch="123", 
         xlab="Covariate", ylab="Coefficient")
@@ -391,52 +381,22 @@ the variance anew at each death time.
 In this case the dominating term in the compute time will be $O(nd)$,
 and $d$ grows with $n$. 
 
-\subsection{Stratification}
-The average number of subjects at risk, at each death, 
-in the full Cox model, is over 65 thousand:
-
-<<nrisk>>=
-kmfit <- survfit(Surv(age1, age2, death) ~1, nhs)
-mean(kmfit$n.risk[kmfit$n.event > 0])
-@ 
-
-This is statistical overkill: 10-20 conrols per case will work just as well.
-One simple way to thin this down is to stratify the analysis.
-As an example we will break the subjects into sets based on 
-their age at enrollment, in months; the variable \code{agem} in our
-data set above.  This leads to 300 strata, corresponding to the 25 year
-span in ages at enrollment.  
-What does it do to the compute time?
-
-<<strata, plot=TRUE>>=
-system.time(fit2 <- coxph(Surv(age1, age2, death) ~ x1 + x2 + xb +
-                                 strata(agem), ties='breslow', data=nhs))
-par(mfrow=c(1,2))
-matplot(1:42, cbind(coef(fit1[[3]]), coef(fit2)), 
-                    xlab="Coefficient", ylab= "Value")
-s1 <- sqrt(diag(vcov(fit1[[3]])))  # std of coefficients
-s2 <- sqrt(diag(vcov(fit2))
-plot(1:42, s2/s1, xlab="Coefficient", ylab="Ratio of standard errors")
-@ 
-
-Reducing the average number at risk by 300 fold has reduced the compute time
-by about 30\%, without any appreciable change in the estimates or their
-standard errors.   
-The overall size of the data set has not changed and size
-dominates the \code{coxph} compute time.  A small gain comes from observations
-that occur after the last event in any strata; (time1, time2) intervals that
-do not overlap an event time play no role in the partial likelihood and are
-ignored by coxph.
-The effect of stratification on phreg, however, was profound: the run
-times for 1/3, 2/3, and 3/3 of the data were now 7, 18, and 33 seconds;
-still quadratic but with a 120 fold decrease.
+I was asked if the iteration count would increase in the real data set,
+due to high correlation.
+Something that is often not appreciated is that one can replace the matrix of
+covariates $X$ with a transformed version $AX$, and the iteration path for 
+the Newton-Raphson iteration of a Cox model remains unchanged, giving the
+exact same series of likelihood values. 
+Practically, this means that the expected iteration count does not depend
+on whether the covariates are correlated, unless $X$ has become so close to
+singular that round off errors intervene.
 
 \subsection{Data expansion}
 The NHS example started with a complaint that R was 8 fold \emph{slower}
 than SAS on the actual NHS data set, which puzzled me.
 In what situation could this happen?
 
-One way is to make the R code slower, by artificially increasing $n$.
+One way is to make the R code slower by artificially increasing $n$.
 This can be done by \emph{dicing} the nhs data set, i.e., cut each observation 
 into multiple small pieces  
 (in the same sense as dicing vegetables in the kitchen).
@@ -444,14 +404,14 @@ The very first observation of the simulation data set, for instance, is a
 censored time span from age 40 to age 42.06 = 14615 to 15361 days of age.
 What if we were to replace this observation by a whole set of rows
 with (age1, age2, death) values of (14610, 14611, 0), (14611, 14612, 0),
-(14612, 14613, 0), \ldots (15360, 15361, 0).
+(14612, 14613, 0), \ldots (15360, 15361, 0)?
 Since NHS subjects are contacted every two years, this will increase
 the data set size by approximately 730 fold,
-leading to a consequence 700 fold increase in the compute time for \code{coxph}.
+leading to a consequence 730 fold increase in the compute time for \code{coxph}.
 
 This kind of expansion is sometimes done to create dummy covariates x*log(t)
 as a step towards testing proportional hazards. 
-The PH test does not require expansion for every single day, however, only for
+Said PH test does not require expansion for every single day, however, only for
 the set of unique death times,
 i.e., we can use the set of death times as the cut points when creating an
 expanded data set.
@@ -472,8 +432,8 @@ The data set will contain a \code{group} variable that divides these into
 52 groups and a status variable of 1=event/ 0=control.
 A standard Cox model program can now be used to fit the data.
 A \code{time} value, which used by the \code{coxph} routine to determine risk
-sets, is not needed since the risk sets are already set, and one can use
-the call
+set membership, is not needed since the risk sets are already set, 
+and one can use the call
 \begin{verbatim}
    fit <- coxph(Surv(dummy, status) ~ strata(group) + x1 + x2 + ...)
 \end{verbatim}
@@ -533,9 +493,6 @@ matplot(cbind(stats[1,], stat2[1,], stat2[1,])/1e6,  ytemp,
         xlab="Data set size (millions)", ylab="Coxph run time")
 @ 
 
-Using the expanded data set and coarsened time scale,
-the results in fit3a and fit3b will be identical, since they have the same
-subjects in the same risk sets.  This is verified by comparing coefficients.
 The figure shows that the run times 
 from \code{fit1} on the original time scale and \code{fit3a} and \code{fit3b}
 on the coarsened and expanded data.
@@ -543,36 +500,37 @@ For the (time1, time2) forms of the data the compute time remains linear in
 the number of rows, coarsening the time scale has had only a small impact.
 The compute time for a model that takes advantage of the strata and a dummy
 time value is indeed smaller, about 1/3 of the (time1, time2) form.
-However, the 
-The coxph compute time is linear in the number of rows, as before, and continues
-the series of values found in the first test.
+However, the overall effect is a net loss: 
+\Sexpr{round(stat2[6,3])} seconds for to fit 1/12 of the data in the expanded
+form versus \Sexpr{round(stats[5,3])} seconds for the entire data set in its
+original form. 
+
 The row count grows faster than the number of subjects, since the number of 
 cut points per subject also grows with $n$,
 though that will eventually slow (there are only so many possible death times).
 The two fits in the loop, one using (age1, age2) and the other stratified on
 the age at death, give exactly the same likelihood since they have 
 exactly the same risk sets at each event time.
-The expected compute time for the second will grow at the rate of $dm$.
-However, the overall effect is a net loss: 
-\Sexpr{round(stat2[6,3])} seconds for to fit 1/12 of the data in the expanded
-form versus \Sexpr{round(stats[5,3])} seconds for the entire data set in its
-original form. 
 
 For SAS however, the two constructions differ substantially in 
 compute time.  A portion of the SAS code is shown below.
-Using (time1, time2) form on the expanded data set displays quadratic
-behavior of xx, xx, and xx seconds for the nhs2 data set,
-which the stratified form with a dummy time value required
-zz, zz, and zz seconds.  
+Using (time1, time2) form on the expanded data set the run time was a little
+over 22 minutes, continuing the quadratic behavior we saw earlier,
+while the stratified form with a dummy time value required
+10, 18, and 25 seconds for 1/3, 2/3 and 3/3 of the subjects, the expected 
+linear growth.
+Extrapolating to the full data set we would predict 12*25 seconds or about
+6 minutes, versus 867*9 seconds or 130 minutes for the original counting
+process form.  Expansion is a clear win.
 
 \begin{verbatim}
 proc phreg data= nhs2;
-   where (id < 3380);   * 1/3;
    model (month1 month2) * death(0) = x1 x2 xb_1 xb_2 xb_3 xb_4 xb_5 xb_6 xb_7
         xb_8 xb_9 xb_10 xb_11 xb_12 xb_13 xb_14 xb_15 xb_16 xb_17 xb_18 xb_19
         xb_20 xb_21 xb_22 xb_23 xb_24 xb_25 xb_26 xb_27
         xb_28 xb_29 xb_30 xb_31 xb_32 xb_33 xb_34 xb_35 xb_36
         xb_37 xb_38 xb_39 xb_40;
+        strata month2;
 proc phreg data=nhs2;
    model dummy*death(0) =x1 x2 xb_1 xb_2 xb_3 xb_4 xb_5 xb_6 xb_7
         xb_8 xb_9 xb_10 xb_11 xb_12 xb_13 xb_14 xb_15 xb_16 xb_17 xb_18 xb_19
@@ -590,8 +548,49 @@ work for another.
 This is especially true for something like the NHS simulation, where per
 subject covariate updates occur at a low frequency.  
 
+
+\subsection{Stratification}
+The average number of subjects at risk, at each death, 
+in the full Cox model, is over 65 thousand:
+
+<<nrisk>>=
+kmfit <- survfit(Surv(age1, age2, death) ~1, nhs)
+mean(kmfit$n.risk[kmfit$n.event > 0])
+@ 
+
+This is statistical overkill: 10-20 conrols per case will work just as well.
+One simple way to thin this down is to stratify the analysis.
+As an example we will break the subjects into sets based on 
+their age at enrollment (in months); which is the variable \code{agem} in our
+data set above.  This leads to 300 strata, corresponding to the 25 year
+span in ages at enrollment.  
+What does it do to the compute time?
+
+<<strata, fig=TRUE>>=
+system.time(fit2 <- coxph(Surv(age1, age2, death) ~ x1 + x2 + xb +
+                                 strata(agem), ties='breslow', data=nhs))
+par(mfrow=c(1,2))
+matplot(1:42, cbind(coef(fit1[[3]]), coef(fit2)), 
+                    xlab="Coefficient", ylab= "Value")
+s1 <- sqrt(diag(vcov(fit1[[3]])))  # std of coefficients
+s2 <- sqrt(diag(vcov(fit2)))
+plot(1:42, s2/s1, xlab="Coefficient", ylab="Ratio of standard errors")
+@ 
+
+Reducing the average number at risk by 300 fold has reduced the compute time
+by about 30\%, without any appreciable change in the estimates or their
+standard errors.   
+The overall size of the data set has not changed and size
+dominates the \code{coxph} compute time.  A small gain comes from observations
+that occur after the last event in any stratum, as (time1, time2) intervals that
+do not overlap an event time play no role in the partial likelihood and are
+ignored by coxph.
+The effect of stratification on phreg, however, was profound: the run
+times for 1/3, 2/3, and 3/3 of the data were now 8, 21, and 40 seconds;
+still quadratic but with a 120 fold decrease.
+
 \subsection{Speeding up phreg}
-What is the fastest that we can make the phreg run time?
+What is the best that we can do with phreg?
 The obvious target would be to avoid the (time1, time2) form at all costs,
 while at the same time not having to expand the data set; and secondly to
 employ strata to reduce the size of the risk sets.
@@ -601,7 +600,7 @@ The key trick is to stratify observations based on each subject's age
 at their \emph{prior} visit (in months).
 Here are four versions in R.
 
-<<trick1>>=
+<<trick1, plot=TRUE>>=
 nhs$month1 <- floor(nhs$age1 * 12/365.25)
 nhs$month2 <- floor(nhs$age2 * 12/365.25)
 tdata <- subset(nhs, month1 < month2)  # remove any ties
@@ -625,10 +624,10 @@ The plot shows the coefficients from the 4 fits, results of the four
 are almost identical.
 This is not surprising, since
 over the 50 year age range of the NHS, a coarsening the time scale to months
-hardly changes the outcome.
+is a small relative change to any subject.
 A closer look reveals that the fit4a and fit4b differ by less than 1\%, and
-coefficients for fit4b and fit4c are actually identical!
-The reason for the latter is that  everyone in any given
+the coefficients for fit4b and fit4c are completely identical.
+The reason for the latter is that  everyone in a given
 stratum has exactly the same \code{month1} value, so we can dispense with the
 (time1, time2) form of the call.
 
@@ -636,8 +635,19 @@ In the above example we removed observations where month1=month2 to demonstrate
 the equivalence of fit4b and fit4c; such observations are automatically
 removed when fitting (time1, time2) data.
 However, this is not necessary when using the (time2, death) form of the model.
-The coxph compute time for fit3 above, without the removals,  was 
-24 seconds while the phreg compute time was 15.  
+The coxph compute time for fit3 above, without the removals, was 
+24 seconds.
+
+The phreg compute times for three models above with (age1 age2), age2, and 
+month2 as the response, respectively, and each stratified by month1, 
+was 289, 28, and 28 seconds.
+Clearly stratification and avoiding the counting process form are important
+for phreg,
+but the final step of coarsening did not create any further gain.
+Why is the (age1, age2) fit so much longer than an identical model stratified
+by month of entry?  This was a complete surprise and I do not have any
+hypothesis.  
+
 
 <<echo=FALSE>>=
 # Run by hand, in order to create transfer files to SAS
@@ -655,7 +665,7 @@ an rda file containing nhs and nhs2 consumed just under 10 MB of disk space,
 while the size using default \code{save} options was 38 MB.
 The save operation itself takes longer using xz compression, 
 but reloading the save data sets requires similar time.
-The SAS data set for nhs used 103 MB and that for nhs2 265 MB using default
+The SAS data set for nhs used 290 MB and that for nhs2 505 MB using default
 options, more knowledgeable SAS coders perhaps could to do better.
 
 \subsection{The FAST option}
@@ -732,7 +742,22 @@ for a bigger hammer.
 For the naive $O(nd)$ algorithm used by phreg, the effect of subsampling is a
 staggering decrease in the compute time; stratification essentially replaced
 $n$ with $n/300$.  A clever stratification that allows one to omit time1
-gave another 10 fold improvement.  
+gave further improvement. 
+
+Stratification can give a statistical benefit of less biased results as well, 
+not just speed, if the stratification variable is correlated with any
+unmeasured covariates that are associated with outcome. 
+This is a justification for stratifying on enrolling institution, for instance.
+In the present case it is hard to argue that either month of enrollment or
+month of the prior response is anything more than a random partition of
+the original risk set \{all subjects of the same age as the death\}.
+In every statistical aspect it should perform the same as random
+subsampling of the same size.  (But in terms of terms of speeding up
+SAS phreg it is a \emph{very} clever idea.)
+
+I have not been able to replicate any case where phreg is significanly
+faster than coxph, and in that sense the report this behaviour from the
+NHS staff remains a mystery.
 
 
 \section{Type 3 tests}
@@ -901,21 +926,21 @@ If $L'L = Z'Z$ is the Cholesky decomposition of $Z'Z$, then $L(Z'Z)^{-1}L'=I$,
 i.e., the Cholesky decomposition was simply a convenient way to create a
 set of contrasts that are orthogonal with respect to $(Z'Z)^{-1}$.
 Any full rank contrast matrix $C$ such that $T= C(Z'Z)^-C'$ is block 
-diagonal will give the same sums of squares, i.e., one where
+diagonal will give the same sums of squares, i.e., any matrix $C$ such that
 $T_{ij}=0$ whenever rows $i$ and $j$ correspond to different terms.
 The equivalence is a consequence of Cochan's theorem.
 Goodnight \cite{Goodnight78} states that any matrix
-which satisfies this condition defines the set of type 3 tests.
+which satisfies this condition defines a set of type 3 tests.
 The SAS technical report given as the usual
- reference for type 3 tests \cite{SAStype3}
-is a simply complex algorithm for creating such an orthogonal decomposition;
+ reference for type 3 tests \cite{SAStype3} describes a
+particular algorithm for creating such an orthogonal decomposition;
 it unfortunately depends on using an $X$ matrix in exactly the same
 internal form as is used by the SAS glm procedure.
 (The report is also remarkably opaque about exactly \emph{what} the algorithm
 is computing.)
 Both the Cholesky approach and the GLM algorithm are invariant to how
 categorical factors are represented: first level as reference, last as
-reference, Helmert coding, etc. all yield the same values.
+reference, Helmert coding, etc.; all yield the same values.
 
 If the linear model has both continuous and categorical predictors, then 
 the \code{z.balance} line above needs to be modified to first omit any columns
@@ -980,11 +1005,12 @@ a reminder here is the two way form where $\epsilon$ is the residual error.
      0 &= \sum_i \gamma_{ij} &= \sum_j \gamma_{ij}
 \end{align*}
 Assume a simple 2 factor model y = trt + x2 + interaction, where treatment
-has two levels A/B and x2 has $k$ levels.
+has two levels A/B and x2 has $k$ levels.  In this simple
 case one can quickly verify that the the NSTT test for treatment is actually a
 comparison of A vs. B in the \emph{reference} level for x2, ignoring all
 others, leading to $k$ different results as we rotate the choice of
-reference.  This is very different than the type 3 narrative of being a
+reference.  
+This is very different than the type 3 narrative of that it is a
 global test.
 When sum constraints are used the `reference' for x2 will be an average and
 the NSTT matches the Yates' estimate.
@@ -1006,7 +1032,7 @@ The NSTT is precisely the algorithm used by the SAS phreg procedure, though
 without any warning about how to choose the coding for categorical predictors.
 This can be verified for the test example above by creating the
 appropriate \code{coxph} fits and performing Wald tests.
-For example, the first two fits below code reproduce phreg results
+For example, the first two fits below reproduce phreg results
 that used 'A' and 'D' as the reference levels.
 The \code{yates} function in the survival package produces Yates' 
 population contrast;

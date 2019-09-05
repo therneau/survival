@@ -40,6 +40,7 @@
 **    derivatives.  (Mayo Biostatistics, TR #53)
 */ 
 #include "survS.h"
+#include "survproto.h"
 #include <math.h>
 #define SMALL -200 /* what to use for log(f(x)) when f(x) gives a zero,
 		       i.e., the calling made a really bad guess for beta */
