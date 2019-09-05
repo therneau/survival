@@ -368,7 +368,7 @@ We draw an empty figure, letting R figure out the limits.
 <<plot-makebox>>=
 # check consistency
 if (!missing(xlim)) {
-    if (!missing(xmax)) stop("cannot have both xlim and xmax arguments")
+    if (!missing(xmax)) warning("cannot have both xlim and xmax arguments, xmax ignored")
     if (!missing(firstx)) stop("cannot have both xlim and firstx arguments")
 }
 if (!missing(ylim)) {
@@ -383,7 +383,7 @@ if (!missing(xlim) && !is.null(xlim)) {
 }
 else {
     temp <-  stime[is.finite(stime)]
-    if (!missing(xmax)) temp <- temp[temp <= xmax]
+    if (!missing(xmax) && missing(xlim)) temp <- temp[temp <= xmax]
     
     if (xaxs=='S') {
         #special x- axis style for survival curves

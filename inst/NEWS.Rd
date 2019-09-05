@@ -1,5 +1,5 @@
 \name{NEWS}
-\title{NEWS file for the survival package}
+\title{NEWS file for the survival package}{
 \section{Changes in version 3.1-0}{
   \itemize {
     \item Respond to some CRAN queries and resubmit.

@@ -255,7 +255,7 @@ summary.survfit <- function(object, times, censored=FALSE,
 			    scale=1, extend=FALSE, 
                             rmean=getOption('survfit.rmean'),
                             ...) {
-    fit <- survfit0(object, object$start.time)  #add time 0
+    fit <- object  #save typing
     if (!inherits(fit, 'survfit'))
 	    stop("summary.survfit can only be used for survfit objects")
     if (is.null(fit$logse)) fit$logse <- TRUE   #older style
@@ -276,7 +276,9 @@ summary.survfit <- function(object, times, censored=FALSE,
         if (length(rmean)==0) stop("Invalid value for rmean option")
     }
 
-    temp <- survmean(fit, scale=scale, rmean)  
+    # adding time 0 makes the mean and median easier
+    fit0 <- survfit0(object, object$start.time)  #add time 0
+    temp <- survmean(fit0, scale=scale, rmean)  
     table <- temp$matrix  #for inclusion in the output list
     rmean.endtime <- temp$end.time
     
@@ -483,7 +485,7 @@ summary.survfitms <- function(object, times, censored=FALSE,
 			    scale=1, extend=FALSE, 
                             rmean= getOption("survfit.rmean"),
                             ...) {
-    fit <- survfit0(object, object$start.time)
+    fit <- object  # save typing
     if (!inherits(fit, 'survfitms'))
 	    stop("summary.survfitms can only be used for survfitms objects")
     if (is.null(fit$logse)) fit$logse <- FALSE  # older style
@@ -504,7 +506,8 @@ summary.survfitms <- function(object, times, censored=FALSE,
         if (length(rmean)==0) stop("Invalid value for rmean option")
     }
 
-    temp <- survmean2(fit, scale=scale, rmean)  
+    fit0 <- survfit0(fit, fit$start.time) # add time 0
+    temp <- survmean2(fit0, scale=scale, rmean)  
     table <- temp$matrix  #for inclusion in the output list
     rmean.endtime <- temp$end.time
 
@@ -534,6 +537,7 @@ summary.survfitms <- function(object, times, censored=FALSE,
         <<survfitms-simple>>
     }
     else {
+        fit <-fit0  # easier to work with
         <<survfitms-times>>
         times <- sort(times)
         if (is.null(fit$strata)) fit <- findrow(fit, times, extend)
