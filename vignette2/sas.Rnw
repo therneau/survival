@@ -156,7 +156,7 @@ compute cost, but one of them behaved better in certain edge cases,
 any sensible code for fundamental libraries would use the
 more stable one.  
 However, in a statistical analysis context and given the usual size of
-standard errors, a Breslow default will cause no real harm.
+standard errors, a Breslow default will be just as good.
 The Breslow approximation is the default in many statistical packages for
 simple historical reasons: since it is the simplest to program it was
 usually the first method to be implemented.
@@ -173,7 +173,7 @@ For all the examples that we have investigated in detail, however, the
 practical implications of the inaccuracy have been small.
 The largest practical issue vis-a-vis SAS/R is
 users who don't read the documentation, and then get worried when
-numbers don't exactly agree, if one run used Efron and the other Breslow.
+numbers don't exactly agree, since one run used Efron and the other Breslow.
 
 \section{Efficiency of the Cox model}
  A question of the relative speeds of coxph and phreg is one that arises
@@ -189,24 +189,24 @@ that event time, using $\exp(X\hat\beta)$ as the weights.
 Let $p$ be the number of covariates, $d$ the number of unique event times
 and $n$ the number of observations.
 An ideal Cox model program would have a computational burden of 
-$(O(d) + O(dp) + O(dp^2)) k$ for the partial likelihood, the coefficients, and
+$[O(d) + O(dp) + O(dp^2)] k$ for the partial likelihood, the coefficients, and
 the variance matrix, respectively, where $k$ is the number of iterations
-to required;
+required;
 for almost all data sets $k$ is between 3 and 5.  
 This is simply the work of adding up the partial likelihood and its first
 and second derivatives.
-In a real program there will an additional $(O(n) + O(np) +O(np^2)) k$ 
-time for computing the terms which should be added to the sums,
+In a real program there will an additional $[O(n) + O(np) +O(np^2)] k$ 
+time for creating the increments which should be added to the sums,
 where $n$ is total number of observations in the data set.
 For a Cox model the increment to the second derivative, at each death time,
 is a weighted variance of the covariates $X$, over all those who were at risk
 for the event, while the increment to the first derivative involves the
 vector of weighted means.
 For the rest of this discussion assume that $p$ and $k$ are fixed, 
-and we will refer the run time for an ideal program as $O(n) + O(d)$.
+and we will refer the run time for a Cox model program as $O(n) + O(d)$.
 Since $n >d$, often by a large margin, the first term normally dominates 
-the second, and, more importantly,
-real programs and algorithms will not match the ideal, since there are
+the second.  More importantly,
+real programs and algorithms will not match this ideal, since there are
 various other tasks to be done.
 
 For ordinary \code{Surv(time, status)} survival data, 
@@ -234,9 +234,9 @@ A worst case algorithm is to compute the mean and variance de novo
 at each death time, iterating over all the observations to enumerate the
 at risk subset.  This leads to a computation time of $O(nd)$.  We hope to
 do better than that.  A slightly better approach is to keep a running
-list of which observations are in the risk set, leading to an $O(rd)$
+list of which observations which are in the risk set, leading to an $O(rd)$
 algorithm where $r$ is the average number of subjects at risk.  
-(Maintaining/updating a list of values is a well known problem in computer
+(Updating a list of indices is a well known problem in computer
 science, and like sorting it can be done very efficiently.  See red/black
 trees for example.)
 
@@ -332,7 +332,7 @@ for (i in 1:3) {
 
 dimnames(stats) <- list(c("number of observations", "number of events",
                           "unique event times", "mean number at risk",
-                          "cpu time"),
+                          "coxph cpu time"),
                         c("first 1/3", "2/3", "all"))
 
 round(stats)
@@ -382,7 +382,7 @@ In this case the dominating term in the compute time will be $O(nd)$,
 and $d$ grows with $n$. 
 
 I was asked if the iteration count would increase in the real data set,
-due to high correlation.
+due to high correlation of the covariates.
 Something that is often not appreciated is that one can replace the matrix of
 covariates $X$ with a transformed version $AX$, and the iteration path for 
 the Newton-Raphson iteration of a Cox model remains unchanged, giving the
