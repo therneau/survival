@@ -345,8 +345,8 @@ Subjects have a new observation at each visit.  In the actual data the
 covariates are time dependent (though most covariates don't change, 
 for most of the visits, for most subjects.)
 There are a lot of events, so coefficient estimates are quite precise as
-shown in the next graph.  Evaluation required 4 iterations of the 
-\code{coxph} function. 
+shown in the next graph, whether one uses all the patients or only 1/3 of
+them.  Evaluation required 4 iterations of the \code{coxph} function. 
 
 <<fig=TRUE>>=
 y <- cbind(coef(fit1[[1]]), coef(fit1[[2]]), coef(fit1[[3]]))
@@ -600,7 +600,7 @@ The key trick is to stratify observations based on each subject's age
 at their \emph{prior} visit (in months).
 Here are four versions in R.
 
-<<trick1, plot=TRUE>>=
+<<trick1, fig=TRUE>>=
 nhs$month1 <- floor(nhs$age1 * 12/365.25)
 nhs$month2 <- floor(nhs$age2 * 12/365.25)
 tdata <- subset(nhs, month1 < month2)  # remove any ties
@@ -622,8 +622,8 @@ all.equal(coef(fit4b), coef(fit4c))
 
 The plot shows the coefficients from the 4 fits, results of the four
 are almost identical.
-This is not surprising, since
-over the 50 year age range of the NHS, a coarsening the time scale to months
+This is not surprising:
+over the 50 year age range of the NHS, coarsening the time scale to months
 is a small relative change to any subject.
 A closer look reveals that the fit4a and fit4b differ by less than 1\%, and
 the coefficients for fit4b and fit4c are completely identical.
@@ -644,7 +644,8 @@ was 289, 28, and 28 seconds.
 Clearly stratification and avoiding the counting process form are important
 for phreg,
 but the final step of coarsening did not create any further gain.
-Why is the (age1, age2) fit so much longer than an identical model stratified
+Why is the (age1, age2) fit for phreg
+so much longer than an identical model stratified
 by month of entry?  This was a complete surprise and I do not have any
 hypothesis.  
 
@@ -671,6 +672,7 @@ options, more knowledgeable SAS coders perhaps could to do better.
 \subsection{The FAST option}
 Our 2019 version of phreg now has a \emph{FAST} option.  
 The phreg manual is completely vague about the actual approach:
+\begin{quote}
 ``FAST
 uses an alternative algorithm to speed up the fitting of the Cox regression for 
 a large data set that has the counting process style of input. 
@@ -684,7 +686,7 @@ PROC PHREG ignores the FAST option if you specify a TIES= option value other
 or if you specify programming statements for time-varying covariates. You might 
 not see much improvement in the optimization time if your data set has only a 
 moderate number of observations.''
-
+\end{quote}
 The reference in the manual is ``Simonsen, J. (2014). Statens Serum Institut, 
 Copenhagen. Unpublished SAS macro'', which is not helpful at all. 
 However, someone else pointed us to a web reference which contains a macro
@@ -763,10 +765,10 @@ NHS staff remains a mystery.
 \section{Type 3 tests}
 Another user query has been for ``type 3'' tests of survival models.
 Up until the latest release (at our institution) the phreg procedure would
-automatically print a quantity the type 3 test --- you couldn't turn it
+automatically the type 3 test --- you couldn't turn it
 off in fact.  
 They have now been relabeled as 
-``joint tests'' but appear to be the same values as before.
+``joint tests'' but appear to be the exact same values as before.
 The primary problem with these is that they depend on the way in which
 covariates are coded.
 
@@ -802,13 +804,13 @@ cards4;
 
 data test2; set test;
    status =1;  * add a dummy status variable;
-   if (x2= 'A') then x2a="xA"; else x2a=x2;
+   if (x2= 'A') then x2a="xA"; else x2a=x2; * A is the reference;
    if (x2= 'B') then x2b="xB"; else x2b=x2; * make B the reference;
-   if (x2= 'C') then x2c="xC"; else x2c=x2;
+   if (x2= 'C') then x2c="xC"; else x2c=x2; * make C the reference;
 
 proc phreg data = test2;
-   class x1 x2;
-   model time * status(0) = x1 x2 x1*x2/ type1;
+   class x1 x2a;
+   model time * status(0) = x1 x2a x1*x2a/ type1;
 
 proc phreg data = test2;
    class x1 x2b;
@@ -934,11 +936,11 @@ which satisfies this condition defines a set of type 3 tests.
 The SAS technical report given as the usual
  reference for type 3 tests \cite{SAStype3} describes a
 particular algorithm for creating such an orthogonal decomposition;
-it unfortunately depends on using an $X$ matrix in exactly the same
-internal form as is used by the SAS glm procedure.
+it unfortunately depends on using an $X$ matrix that is in exactly the same
+internal form as is used by the SAS GLM procedure.
 (The report is also remarkably opaque about exactly \emph{what} the algorithm
 is computing.)
-Both the Cholesky approach and the GLM algorithm are invariant to how
+Both the Cholesky approach and the SAS GLM are invariant to how
 categorical factors are represented: first level as reference, last as
 reference, Helmert coding, etc.; all yield the same values.
 
