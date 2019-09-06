@@ -1,5 +1,5 @@
 /*
-**
+** .Call version of code
 ** Compute the score residuals for a Cox model
 **
 ** Input
@@ -26,17 +26,17 @@
 #include "survS.h"
 #include "survproto.h"
 
-void coxscore(Sint   *nx,      Sint   *nvarx,    double *y, 
-	      double *covar2,  Sint   *strata,   double *score, 
-	      double *weights, Sint   *method,   double *resid2,
-	      double *scratch)
-    {
+SEXP coxscore2(SEXP y2,     SEXP covar2,   SEXP strata2,
+	       SEXP score2, SEXP weights2, SEXP method2) 
+{
     int i,j, k;
     double temp;
-    int n, nvar;
+    int n, nvar, method;
     double deaths;
     int dd;
     double *time, *status;
+    double *score,  *weights;
+    int *strata;
     double *a, *a2;
     double denom=0, e_denom;
     double risk;
@@ -45,18 +45,30 @@ void coxscore(Sint   *nx,      Sint   *nvarx,    double *y,
     double hazard, meanwt;
     double downwt, temp2;
     double mean;
+    SEXP   resid2;   /* the return matrix */
 
-    n = *nx;
-    nvar  = *nvarx;
-    time = y;
-    status = y+n;
-    a = scratch;
+    n = nrows(y2);
+    nvar = ncols(covar2);
+    time = REAL(y2);
+    status = time +n;
+    strata = INTEGER(strata2);
+    score  = REAL(score2);
+    weights= REAL(weights2);
+    method = asInteger(method2);
+
+    /* scratch space */
+    a = (double *) R_alloc(2*nvar, sizeof(double));
     a2 = a+nvar;
+
     /*
-    **  Set up the ragged array
+    **  Set up the ragged arrays
     */
-    covar=  dmatrix(covar2, n, nvar);
-    resid=  dmatrix(resid2, n, nvar);
+    covar=  dmatrix(REAL(covar2), n, nvar);
+    PROTECT(resid2 = allocMatrix(REALSXP, n, nvar));
+    resid=  dmatrix(REAL(resid2), n, nvar);
+    for (i=0; i<n; i++) {
+	for (k=0; k<nvar; k++) resid[k][i] =0.0;
+    }	
 
     e_denom=0;
     deaths=0;
@@ -67,7 +79,7 @@ void coxscore(Sint   *nx,      Sint   *nvarx,    double *y,
 	if (strata[i]==1) {
 	    denom =0;
 	    for (j=0; j<nvar; j++) a[j] =0;
-	    }
+	}
 
 	risk = score[i] * weights[i];
 	denom += risk;
@@ -76,15 +88,15 @@ void coxscore(Sint   *nx,      Sint   *nvarx,    double *y,
 	    e_denom += risk;
 	    meanwt += weights[i];
 	    for (j=0; j<nvar; j++) a2[j] += risk*covar[j][i];
-	    }
+	}
 	for (j=0; j<nvar; j++) {
 	    a[j] += risk * covar[j][i];
 	    resid[j][i] =0;
-	    }
+	}
 
 	if (deaths>0 && (i==0 || strata[i-1]==1 || time[i]!=time[i-1])){
 	    /* last obs of a set of tied death times */
-	    if (deaths <2 || *method==0) {
+	    if (deaths <2 || method==0) {
 		hazard = meanwt/denom;
 		for (j=0; j<nvar; j++)  {
 		    temp = (a[j]/denom);     /* xbar */
@@ -94,9 +106,9 @@ void coxscore(Sint   *nx,      Sint   *nvarx,    double *y,
 				resid[j][k] += temp2;
 			resid[j][k] -= temp2* score[k] * hazard;
 			if (strata[k]==1) break;
-			}
 		    }
 		}
+	    }
 	    else {  /* the harder case */
 		meanwt /= deaths;
 		for (dd=0; dd<deaths; dd++) {
@@ -111,17 +123,19 @@ void coxscore(Sint   *nx,      Sint   *nvarx,    double *y,
 				resid[j][k] += temp2/deaths;
 				resid[j][k] -= temp2 * score[k] * hazard *
 						    (1 - downwt);
-				}
+			    }
 			    else resid[j][k]-= temp2*score[k] * hazard;
 			    if (strata[k]==1) break;
-			    }
 			}
 		    }
 		}
+	    }
 	    e_denom =0;
 	    deaths =0;
 	    meanwt =0;
 	    for (j=0; j<nvar; j++)  a2[j] =0;
-	    }
 	}
     }
+UNPROTECT(1);
+return(resid2);
+}

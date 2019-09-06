@@ -304,6 +304,7 @@ summary.survfit <- function(object, times, censored=FALSE,
         <<survfitms-simple>>
     }
     else {
+        fit <- fit0
         <<survfitms-times>>
         times <- sort(times)  #in case the user forgot
         if (is.null(fit$strata)) fit <- findrow(fit, times, extend)

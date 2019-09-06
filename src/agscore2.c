@@ -18,45 +18,58 @@
 ** Scratch
 **      a       vector of length 3*nvar
 */
-#include <stdio.h>
 #include "survS.h"
 #include "survproto.h"
 
-void agscore(Sint   *nx,       Sint   *nvarx,      double *y,
-	     double *covar2,   Sint   *strata,     double *score,
-	     double *weights,  Sint   *method,     double *resid2, double *a)
-    {
+SEXP agscore2(SEXP y2,     SEXP covar2,   SEXP strata2,
+	      SEXP score2, SEXP weights2, SEXP method2) 
+{
     int i,k;
     int n, nvar;
-    int person;
+    int person, method;
     double denom, time;
-    double *a2, *mean;
+    double *a, *a2, *mean;
+    int *strata;
+    double *score, *weights;
     double e_denom;
     double risk;
     double hazard, meanwt;
     double  deaths, downwt;
     int dd;
-    double *start, *stop, *event;
+    double *tstart, *tstop, *event;
     double **covar,
 	   **resid;
     double temp1, temp2, d2;
     double *mh1, *mh2, *mh3;
+    SEXP resid2;  /* returned matrix */
 
-    n = *nx;
-    nvar  = *nvarx;
-    start =y;
-    stop  = y+n;
-    event = y+(n+n);
-    /*
-    **  Set up the ragged arrays
-    */
-    covar=  dmatrix(covar2, n, nvar);
-    resid = dmatrix(resid2, n, nvar);
+    n = nrows(y2);
+    nvar  = ncols(covar2);
+    tstart = REAL(y2);
+    tstop  = tstart +n;
+    event = tstop + n;
+    strata = INTEGER(strata2);
+    score = REAL(score2);
+    weights = REAL(weights2);
+    method = asInteger(method2);
+   
+    /* scratch space */
+    a = (double *) R_alloc(6*nvar, sizeof(double));
     a2  = a+nvar;
     mean= a2 + nvar;
     mh1 = mean + nvar;
     mh2 = mh1 + nvar;
     mh3 = mh2 + nvar;
+
+    /*
+    **  Set up the ragged arrays
+    */
+    covar=  dmatrix(REAL(covar2), n, nvar);
+    PROTECT(resid2 = allocMatrix(REALSXP, n, nvar));
+    resid = dmatrix(REAL(resid2), n, nvar);
+    for (i=0; i<n; i++) {
+	for (k=0; k<nvar; k++) resid[k][i] =0.0;
+    }	
 
     for (person=0; person<n; ) {
 	if (event[person]==0) person++;
@@ -71,46 +84,46 @@ void agscore(Sint   *nx,       Sint   *nvarx,      double *y,
 	    for (i=0; i<nvar; i++) {
 		a[i] =0;
 		a2[i]=0;
-		}
-	    time = stop[person];
+	    }
+	    time = tstop[person];
 	    for (k=person; k<n; k++) {
-		if (start[k] < time) {
+		if (tstart[k] < time) {
 		    risk = score[k] * weights[k];
 		    denom += risk;
 		    for (i=0; i<nvar; i++) {
 			a[i] = a[i] + risk*covar[i][k];
-			}
-		     if (stop[k]==time && event[k]==1) {
+		    }
+		     if (tstop[k]==time && event[k]==1) {
 			deaths++;
 			e_denom += risk;
 			meanwt += weights[k];
 			for (i=0; i<nvar; i++)
 			    a2[i] = a2[i] + risk*covar[i][k];
-			}
 		     }
-		if (strata[k]==1) break;
 		}
+		if (strata[k]==1) break;
+	    }
 
 	    /* add things in for everyone in the risk set*/
-	    if (deaths <2 || *method==0) {
+	    if (deaths <2 || method==0) {
 		/* easier case */
 		hazard = meanwt/denom;
 		for (i=0; i<nvar; i++) mean[i] = a[i]/denom;
 		for (k=person; k<n; k++) {
-		    if (start[k] < time) {
+		    if (tstart[k] < time) {
 			risk = score[k];
 			for (i=0; i<nvar; i++)
 			    resid[i][k] -= (covar[i][k] -mean[i])*risk*hazard;
-			if (stop[k]==time) {
+			if (tstop[k]==time) {
 			    person++;
 			    if (event[k]==1)
 				for (i=0; i<nvar; i++)
 				    resid[i][k] += (covar[i][k] -mean[i]);
-			    }
 			}
-		    if (strata[k]==1) break;
 		    }
+		    if (strata[k]==1) break;
 		}
+	    }
 
 	    else {
 		/*
@@ -128,7 +141,7 @@ void agscore(Sint   *nx,       Sint   *nvarx,      double *y,
 		    mh1[i] =0;
 		    mh2[i] =0;
 		    mh3[i] =0;
-		    }
+		}
 		meanwt /= deaths;
 		for (dd=0; dd<deaths; dd++){
 		    downwt = dd/deaths;
@@ -141,28 +154,30 @@ void agscore(Sint   *nx,       Sint   *nvarx,      double *y,
 			mh1[i]  += mean[i] * hazard;
 			mh2[i]  += mean[i] * (1-downwt) * hazard;
 			mh3[i]  += mean[i]/deaths;
-			}
 		    }
+		}
 		for (k=person; k<n; k++) {
-		    if (start[k] < time) {
+		    if (tstart[k] < time) {
 			risk = score[k];
-			if (stop[k]==time && event[k]==1) {
+			if (tstop[k]==time && event[k]==1) {
 			    for (i=0; i<nvar; i++) {
 				resid[i][k] += covar[i][k] - mh3[i];
 				resid[i][k] -= risk*covar[i][k]*temp2;
 				resid[i][k] += risk* mh2[i];
-				}
 			    }
+			}
 			else {
 			    for (i=0; i<nvar; i++)
 				resid[i][k] -= risk*(covar[i][k]*temp1 - mh1[i]);
-			    }
 			}
-		    if (strata[k]==1) break;
 		    }
-		for ( ; stop[person]==time; person++)
-		    if (strata[person]==1) break;
+		    if (strata[k]==1) break;
 		}
+		for ( ; tstop[person]==time; person++)
+		    if (strata[person]==1) break;
 	    }
 	}
     }
+UNPROTECT(1);
+return(resid2);
+}	

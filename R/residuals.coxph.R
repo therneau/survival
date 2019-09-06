@@ -106,7 +106,7 @@ residuals.coxph <-
         storage.mode(y) <- storage.mode(x) <- "double"
         storage.mode(newstrat) <- "integer"
         storage.mode(score) <- storage.mode(weights) <- "double"
-	if (ny==2) {
+ 	if (ny==2) {
 	    resid <- .Call(Ccoxscore2, 
                            y, 
                            x, 
@@ -124,6 +124,7 @@ residuals.coxph <-
                            weights[ord],
                            as.integer(method=='efron'))
 	    }
+
 	if (nvar >1) {
 	    rr <- matrix(0, n, nvar)
 	    rr[ord,] <- resid

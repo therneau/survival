@@ -1,11 +1,15 @@
 \name{NEWS}
-\title{NEWS file for the survival package}{
+\title{NEWS file for the survival package}
 \section{Changes in version 3.1-0}{
-  \itemize {
+  \itemize{
     \item Respond to some CRAN queries and resubmit.
     \item Better documentation of the survfit0 routine
     \item Add the sas.Rnw vignette to inst/doc: it takes too long to
     run for inclusion in the vignettes directory
+    \item Fix two edge case errors pointed out on github: coxph on a
+    data set with 0 events, and models with only a frailty term
+    \item Update residuals.coxph to deal with larger matrices, i.e.,
+    change two .C calls to .Call
 }}
 
 \section{Changes in version 3.0-11}{

@@ -26,7 +26,6 @@ static const R_CMethodDef Centries[] = {
     {"Ccoxmart2",   (DL_FUNC) &coxmart2,   7},
     {"Ccoxph_wtest",(DL_FUNC) &coxph_wtest,6},
     {"Ccoxscho",    (DL_FUNC) &coxscho,    8},
-    {"Ccoxscore",   (DL_FUNC) &coxscore,  10},
     {"Cpyears1",    (DL_FUNC) &pyears1,   22},
     {"Cpyears2",    (DL_FUNC) &pyears2,   14},
     {"Csurvdiff2",  (DL_FUNC) &survdiff2, 13},
@@ -37,7 +36,7 @@ static const R_CMethodDef Centries[] = {
 static const R_CallMethodDef Callentries[] = {
     {"Cagfit4",       (DL_FUNC) &agfit4,      14},
     {"Cagmart3",      (DL_FUNC) &agmart3,      8},
-    {"Cagscore2",     (DL_FUNC) &agscore,      6},
+    {"Cagscore2",     (DL_FUNC) &agscore2,     6},
     {"Cconcordance1", (DL_FUNC) &concordance1, 4}, 
     {"Cconcordance2", (DL_FUNC) &concordance2, 6}, 
     {"Cconcordance3", (DL_FUNC) &concordance3, 6},
