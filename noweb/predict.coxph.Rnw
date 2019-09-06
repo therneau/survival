@@ -53,7 +53,7 @@ predict.coxph <- function(object, newdata,
                        reference=c("strata", "sample"), ...) {
     <<pcoxph-init>>
     <<pcoxph-getdata>>
-    if (type=="expected" || type== "surv") {
+    if (type=="expected") {
         <<pcoxph-expected>>
         }
     else {
@@ -80,7 +80,7 @@ Call <- match.call()
 type <-match.arg(type)
 if (type=="survival") {
     survival <- TRUE
-    type == "expected"  #this is to stop lots of "or" statements
+    type <- "expected"  #this is to stop lots of "or" statements
 }
 else survival <- FALSE
 

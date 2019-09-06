@@ -41,7 +41,7 @@ anova.coxph <- function (object, ...,  test = 'Chisq') {
     # By tradition the sequence is main effects (in the order found in
     #  the model statement), then 2 way interactions, then 3, etc.
     #  One does this by using the "assign" attribute of the model matrix.
-    #  (This does not work for penalized terms.
+    #  (This does not work for penalized terms.)
     if (length(object$rscore)>0)
         stop("Can't do anova tables with robust variances")
  

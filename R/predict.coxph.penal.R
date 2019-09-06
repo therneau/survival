@@ -1,4 +1,3 @@
-# $Id: predict.coxph.penal.S 11516 2012-04-24 12:49:14Z therneau $
 predict.coxph.penal <- function(object,  newdata, 
 				type=c("lp", "risk", "expected", "terms"),
 				se.fit=FALSE, terms=names(object$assign), 
@@ -43,9 +42,12 @@ predict.coxph.penal <- function(object,  newdata,
 	    if (!missing(newdata)) {
 		n <- nrow(as.data.frame(newdata))
 		pred <- rep(0,n)
+                se <- rep(0,n)
 		}
-	    se <- sqrt(object$fvar[indx])
-	    pred <- object$linear.predictor
+	    else {
+                if (se.fit) se <- sqrt(object$fvar[indx])
+                pred <- object$linear.predictor
+            }
 	    if (type=='risk') pred <- exp(pred)
             if (type=='expected') {
                 pred <- object$y[,ncol(object$y)] -object$residuals 

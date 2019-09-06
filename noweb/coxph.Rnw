@@ -866,7 +866,8 @@ An overall idea is to return something that won't blow up later code.
 <<coxph-zeroevent>>=
 if (sum(Y[, ncol(Y)]) == 0) {
     # No events in the data!
-    ncoef <    ctemp <- rep (NA, ncoef)
+    ncoef <- ncol(X)
+    ctemp <- rep(NA, ncoef)
     names(ctemp) <- colnames(X)
     concordance= c(concordant=0, discordant=0, tied.x=0, tied.y=0, tied.xy=0,
                    concordance=NA, std=NA, timefix=FALSE)
@@ -879,7 +880,7 @@ if (sum(Y[, ncol(Y)]) == 0) {
                  residuals = rep(0.0, data.n),
                  means = colMeans(X), method=method,
                  n = data.n, nevent=0, terms=Terms, assign=assign,
-                 concordance=concordance, 
+                 concordance=concordance,  wald.test=0.0,
                  y = Y, call=Call)
     class(rval) <- "coxph"
     return(rval)

@@ -103,34 +103,30 @@ residuals.coxph <-
 	}
 
     if (type=='score') {
+        storage.mode(y) <- storage.mode(x) <- "double"
+        storage.mode(newstrat) <- "integer"
+        storage.mode(score) <- storage.mode(weights) <- "double"
 	if (ny==2) {
-	    resid <- .C(Ccoxscore, as.integer(n),
-				as.integer(nvar),
-				as.double(y),
-				x=as.double(x),
-				as.integer(newstrat),
-				as.double(score),
-				as.double(weights[ord]),
-				as.integer(method=='efron'),
-				resid= double(n*nvar),
-				double(2*nvar))$resid
+	    resid <- .Call(Ccoxscore2, 
+                           y, 
+                           x, 
+                           newstrat,
+                           score,
+                           weights[ord],
+                           as.integer(method=='efron'))
 	    }
 	else {
-	    resid<- .C(Cagscore,
-				as.integer(n),
-				as.integer(nvar),
-				as.double(y),
-				as.double(x),
-				as.integer(newstrat),
-				as.double(score),
-				as.double(weights[ord]),
-				as.integer(method=='efron'),
-				resid=double(n*nvar),
-				double(nvar*6))$resid
+	    resid<- .Call(Cagscore2,
+                           y, 
+                           x, 
+                           newstrat,
+                           score,
+                           weights[ord],
+                           as.integer(method=='efron'))
 	    }
 	if (nvar >1) {
 	    rr <- matrix(0, n, nvar)
-	    rr[ord,] <- matrix(resid, ncol=nvar)
+	    rr[ord,] <- resid
 	    dimnames(rr) <- list(names(object$residuals), 
 				 names(object$coefficients))
 	    }
