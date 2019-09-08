@@ -352,10 +352,17 @@ rval$var <- solve(vmean)
 <<cox.zph>>=
 "[.cox.zph" <- function(x, ..., drop=FALSE) {
     i <- ..1
-    z<- list(table=x$table[i,,drop=FALSE], x=x$x, time= x$time, 
-                y = x$y[,i,drop=FALSE],
-		var=x$var[i,i, drop=FALSE], call=x$call,
-		transform=x$transform)
+    if (!is.null(x$strata)) 
+        z<- list(table=x$table[i,,drop=FALSE], x=x$x, time= x$time, 
+                 strata = x$strata,
+                 y = x$y[,i,drop=FALSE],
+                 var=x$var[i,i, drop=FALSE], call=x$call,
+                 transform=x$transform)
+    else
+        z<- list(table=x$table[i,,drop=FALSE], x=x$x, time= x$time, 
+                 y = x$y[,i,drop=FALSE],
+                 var=x$var[i,i, drop=FALSE], call=x$call,
+                 transform=x$transform)
     attributes(z) <- attributes(x)
     z
 }
