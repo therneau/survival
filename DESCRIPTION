@@ -6,6 +6,7 @@ Version: 3.1-1
 Date: 2019-09-08
 Depends: R (>= 3.4.0)
 Imports: graphics, Matrix, methods, splines, stats, utils
+Suggests: noweb
 LazyData: Yes
 LazyLoad: Yes
 ByteCompile: Yes
@@ -20,5 +21,3 @@ Description: Contains the core survival analysis routines, including
 	     and parametric accelerated failure time models.
 License: LGPL (>=2)
 URL: https://github.com/therneau/survival
-
-
