@@ -1,5 +1,10 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 3.1-1}{
+  \itemize{
+    \item Fix error in [.cox.zph, when applied to a stratified model
+}}
+
 \section{Changes in version 3.1-0}{
   \itemize{
     \item Respond to some CRAN queries and resubmit.
