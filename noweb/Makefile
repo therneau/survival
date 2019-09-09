@@ -90,25 +90,25 @@ test: $(RFUN)
 
 %.R: 
 	echo "# Automatically generated from the noweb directory" > $@
-	echo "require(noweb); notangle('code.nw', target='$(*F)', out='zz')" | R  --slave
-	cat zz >> $@
-	rm zz
+	echo "require(noweb); notangle('code.nw', target='$(*F)', out='z$(@F)')" | R  --slave
+	cat z$(@F) >> $@
+	rm z$(@F)
 
 %.S: 
 	echo "# Automatically generated from the noweb directory" > $@
-	echo "require(noweb); notangle('code.nw', target='$(*F)', out='zz')" | R  --slave
-	cat zz >> $@
-	rm zz
+	echo "require(noweb); notangle('code.nw', target='$(*F)', out='z$(@F)')" | R  --slave
+	cat z$(@F) >> $@
+	rm z$(@F)
 
 %.c: 
 	echo "/* Automatically generated from the noweb directory */" > $@
-	echo "require(noweb); notangle('code.nw', target='$(*F)', out='zz')" | R  --slave
-	cat zz >> $@
-	rm zz
+	echo "require(noweb); notangle('code.nw', target='$(*F)', out='z$(@F)')" | R  --slave
+	cat z$(@F) >> $@
+	rm z$(@F)
 
 clean:
-	-rm code.nw code.log code.aux code.toc code.tex code.bbl code.blg code.out
-	-rm noweb.sty
+	-rm -f code.nw code.log code.aux code.toc code.tex code.bbl code.blg code.out
+	-rm -f noweb.sty
 
 noweb.sty:
 	echo 'library(noweb); data(noweb); cat(noweb.sty, sep="\n", file="noweb.sty")' |  R  --slave
