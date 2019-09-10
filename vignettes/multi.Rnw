@@ -8,5 +8,5 @@
 \begin{document}
 \maketitle
 
-This vignette has been absorbed into the overall 'survival' vignette.
+This vignette has been absorbed into the overall `survival' vignette.
 \end{document}

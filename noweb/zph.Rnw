@@ -55,7 +55,7 @@ cox.zph <- function(fit, transform='km', terms=TRUE, singledf =FALSE,
         stop ("argument must be the result of Cox model fit")
     if (inherits(fit, "coxph.null"))
 	stop("there are no score residuals for a Null model")
-    if (!is.null(attr(terms(fit), "specials")[["tt"]])
+    if (!is.null(attr(terms(fit), "specials")[["tt"]]))
         stop("function not defined for models with tt() terms")
 
     cget <- coxph.getdata(fit, y=TRUE, x=TRUE, stratax=TRUE, weights=TRUE)

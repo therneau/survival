@@ -195,7 +195,11 @@ coxsurv.fit2 <- function (ctype, stype, se.fit, varmat, cluster,
 # Compute the hazard  and survival functions 
 multihaz <- function(y, x, position, weight, risk, transition, ctype, stype, 
                      hfill, x2, risk2, vmat, nstate, se.fit, p0, utime) {
-    sort1 <- order(transition, y[,1]) -1L
+    if (ncol(y) ==2) {
+       sort1 <- seq.int(nrow(y))   # any order will be the same
+       y <- cbind(0.0, y)          # add a start.time column
+    }
+    else sort1 <- order(transition, y[,1]) -1L
     sort2 <- order(transition, y[,2]) -1L
     ntime <- length(utime)
 

@@ -1,5 +1,14 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 3.1-2}{
+  \itemize{
+    \item The cox.zph command now refuses models with tt() terms, before
+    it had an incorrect computation.
+    \item Fix 2 errors in plot, for survfit of a coxph model. (I had not
+    scanned the pdf pages from the vignettes, which is the only way to
+    verify plots.)
+}}
+
 \section{Changes in version 3.1-1}{
   \itemize{
     \item Fix error in [.cox.zph, when applied to a stratified model

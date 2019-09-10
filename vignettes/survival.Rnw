@@ -1695,8 +1695,8 @@ legend(20, .22, outer(c("80 year old male,", "80 year old female,"),
 \section{Testing proportional hazards}
 The usual Cox model with $p$ covariates has the form
 \begin{align*}
-  \lambda(t) &= \lambda_0(t) e^{beta_1 x_1 + \beta_2 x_2 + \ldots + \beta_p x_p} \\
-             &= e^{\beta_0(t) + beta_1 x_1 + \beta_2 x_2 + \ldots + \beta_p x_p}
+  \lambda(t) &= \lambda_0(t) e^{\beta_1 x_1 + \beta_2 x_2 + \ldots + \beta_p x_p} \\
+             &= e^{\beta_0(t) + \beta_1 x_1 + \beta_2 x_2 + \ldots + \beta_p x_p}
 \end{align*}
 A key simplifying assumption of the model is that all of the coefficients
 except $\beta_0$ (the baseline hazard) are constant over time,
