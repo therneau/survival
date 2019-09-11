@@ -10,11 +10,14 @@
 # It is legal for start.time to be a vector, so that multiple curves start in
 #  different places.  I don't yet have a use for that, but had considered one.
 #
-survfit0 <- function(x, start.time =0) {
+survfit0 <- function(x, start.time) {
     if (!inherits(x, "survfit")) stop("function requires a survfit object")
     if (inherits (x, "survfit0")) return(x)
 
-    start.time <- min(start.time, 0, x$time)  #start.time might be NULL
+    if (missing(start.time) || is.null(start.time)) {
+        if (is.null(x$start.time)) start.time <- min(c(0, x$time))
+        else start.time <- x$start.time
+    }
 
     if (is.null(x$strata)) insert <- 1   # where to add the zero
     else insert <- unname(1 + cumsum(c(0, x$strata[-length(x$strata)])))
