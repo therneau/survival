@@ -264,11 +264,11 @@ summary.survfit <- function(object, times, censored=FALSE,
     #   to in print.survfit, but ignored here
     if (is.null(rmean)) rmean <- "common"
     if (is.numeric(rmean)) {
-        if (is.null(object$start.time)) {
-            if (rmean < min(object$time)) 
+        if (is.null(fit$start.time)) {
+            if (rmean < min(fit$time)) 
                 stop("Truncation point for the mean time in state is < smallest survival")
         }
-        else if (rmean < object$start.time)
+        else if (rmean < fit$start.time)
             stop("Truncation point for the mean time in state is < smallest survival")
     }
     else {
@@ -277,7 +277,7 @@ summary.survfit <- function(object, times, censored=FALSE,
     }
 
     # adding time 0 makes the mean and median easier
-    fit0 <- survfit0(object, object$start.time)  #add time 0
+    fit0 <- survfit0(fit, fit$start.time)  #add time 0
     temp <- survmean(fit0, scale=scale, rmean)  
     table <- temp$matrix  #for inclusion in the output list
     rmean.endtime <- temp$end.time
@@ -304,6 +304,7 @@ summary.survfit <- function(object, times, censored=FALSE,
         <<survfitms-simple>>
     }
     else {
+        fit <- fit0
         <<survfitms-times>>
         times <- sort(times)  #in case the user forgot
         if (is.null(fit$strata)) fit <- findrow(fit, times, extend)
@@ -494,11 +495,11 @@ summary.survfitms <- function(object, times, censored=FALSE,
     #   to in print.survfit, but ignored here
     if (is.null(rmean)) rmean <- "common"
     if (is.numeric(rmean)) {
-        if (is.null(object$start.time)) {
-            if (rmean < min(object$time)) 
+        if (is.null(fit$start.time)) {
+            if (rmean < min(fit$time)) 
                 stop("Truncation point for the mean is < smallest survival")
         }
-        else if (rmean < object$start.time)
+        else if (rmean < fit$start.time)
             stop("Truncation point for the mean is < smallest survival")
     }
     else {

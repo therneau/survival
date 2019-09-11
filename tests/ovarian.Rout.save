@@ -1,5 +1,5 @@
 
-R Under development (unstable) (2019-06-28 r76752) -- "Unsuffered Consequences"
+R Under development (unstable) (2019-09-06 r77159) -- "Unsuffered Consequences"
 Copyright (C) 2019 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
@@ -21,15 +21,10 @@ Type 'q()' to quit R.
 > 
 > #
 > # Test the coxph program on the Ovarian data
-> #
-> 
-> attach(ovarian)
-> 
-> summary(survfit(Surv(futime, fustat)~1), censor=TRUE)
-Call: survfit(formula = Surv(futime, fustat) ~ 1)
+> summary(survfit(Surv(futime, fustat)~1, data=ovarian), censor=TRUE)
+Call: survfit(formula = Surv(futime, fustat) ~ 1, data = ovarian)
 
  time n.risk n.event survival std.err lower 95% CI upper 95% CI
-    0     26       0    1.000  0.0000        1.000        1.000
    59     26       1    0.962  0.0377        0.890        1.000
   115     25       1    0.923  0.0523        0.826        1.000
   156     24       1    0.885  0.0627        0.770        1.000
@@ -58,36 +53,36 @@ Call: survfit(formula = Surv(futime, fustat) ~ 1)
  1227      1       0    0.497  0.1051        0.328        0.752
 > 
 > # Various models
-> coxph(Surv(futime, fustat)~ age)
+> coxph(Surv(futime, fustat)~ age, data=ovarian)
 Call:
-coxph(formula = Surv(futime, fustat) ~ age)
+coxph(formula = Surv(futime, fustat) ~ age, data = ovarian)
 
        coef exp(coef) se(coef)     z       p
 age 0.16162   1.17541  0.04974 3.249 0.00116
 
 Likelihood ratio test=14.29  on 1 df, p=0.0001564
 n= 26, number of events= 12 
-> coxph(Surv(futime, fustat)~ resid.ds)
+> coxph(Surv(futime, fustat)~ resid.ds, data=ovarian)
 Call:
-coxph(formula = Surv(futime, fustat) ~ resid.ds)
+coxph(formula = Surv(futime, fustat) ~ resid.ds, data = ovarian)
 
            coef exp(coef) se(coef)     z      p
 resid.ds 1.2092    3.3507   0.6724 1.798 0.0721
 
 Likelihood ratio test=3.76  on 1 df, p=0.05251
 n= 26, number of events= 12 
-> coxph(Surv(futime, fustat)~ rx)
+> coxph(Surv(futime, fustat)~ rx, data=ovarian)
 Call:
-coxph(formula = Surv(futime, fustat) ~ rx)
+coxph(formula = Surv(futime, fustat) ~ rx, data = ovarian)
 
       coef exp(coef) se(coef)      z    p
 rx -0.5964    0.5508   0.5870 -1.016 0.31
 
 Likelihood ratio test=1.05  on 1 df, p=0.3052
 n= 26, number of events= 12 
-> coxph(Surv(futime, fustat)~ ecog.ps)
+> coxph(Surv(futime, fustat)~ ecog.ps, data=ovarian)
 Call:
-coxph(formula = Surv(futime, fustat) ~ ecog.ps)
+coxph(formula = Surv(futime, fustat) ~ ecog.ps, data = ovarian)
 
           coef exp(coef) se(coef)     z     p
 ecog.ps 0.3984    1.4894   0.5864 0.679 0.497
@@ -95,9 +90,10 @@ ecog.ps 0.3984    1.4894   0.5864 0.679 0.497
 Likelihood ratio test=0.47  on 1 df, p=0.4935
 n= 26, number of events= 12 
 > 
-> coxph(Surv(futime, fustat)~ resid.ds + rx + ecog.ps)
+> coxph(Surv(futime, fustat)~ resid.ds + rx + ecog.ps, data=ovarian)
 Call:
-coxph(formula = Surv(futime, fustat) ~ resid.ds + rx + ecog.ps)
+coxph(formula = Surv(futime, fustat) ~ resid.ds + rx + ecog.ps, 
+    data = ovarian)
 
             coef exp(coef) se(coef)      z      p
 resid.ds  1.3466    3.8444   0.6803  1.980 0.0478
@@ -106,9 +102,9 @@ ecog.ps   0.4528    1.5727   0.5903  0.767 0.4431
 
 Likelihood ratio test=6.03  on 3 df, p=0.1101
 n= 26, number of events= 12 
-> coxph(Surv(futime, fustat)~ age + rx + ecog.ps)
+> coxph(Surv(futime, fustat)~ age + rx + ecog.ps, data=ovarian)
 Call:
-coxph(formula = Surv(futime, fustat) ~ age + rx + ecog.ps)
+coxph(formula = Surv(futime, fustat) ~ age + rx + ecog.ps, data = ovarian)
 
            coef exp(coef) se(coef)      z      p
 age      0.1470    1.1583   0.0463  3.175 0.0015
@@ -117,9 +113,10 @@ ecog.ps  0.1032    1.1087   0.6064  0.170 0.8649
 
 Likelihood ratio test=15.92  on 3 df, p=0.00118
 n= 26, number of events= 12 
-> coxph(Surv(futime, fustat)~ age + resid.ds + ecog.ps)
+> coxph(Surv(futime, fustat)~ age + resid.ds + ecog.ps, data=ovarian)
 Call:
-coxph(formula = Surv(futime, fustat) ~ age + resid.ds + ecog.ps)
+coxph(formula = Surv(futime, fustat) ~ age + resid.ds + ecog.ps, 
+    data = ovarian)
 
             coef exp(coef) se(coef)     z       p
 age      0.14240   1.15303  0.05196 2.740 0.00614
@@ -128,9 +125,9 @@ ecog.ps  0.16634   1.18097  0.61486 0.271 0.78675
 
 Likelihood ratio test=15.1  on 3 df, p=0.001732
 n= 26, number of events= 12 
-> coxph(Surv(futime, fustat)~ age + resid.ds + rx)
+> coxph(Surv(futime, fustat)~ age + resid.ds + rx, data=ovarian)
 Call:
-coxph(formula = Surv(futime, fustat) ~ age + resid.ds + rx)
+coxph(formula = Surv(futime, fustat) ~ age + resid.ds + rx, data = ovarian)
 
             coef exp(coef) se(coef)      z       p
 age       0.1285    1.1372   0.0473  2.718 0.00657
@@ -141,7 +138,7 @@ Likelihood ratio test=16.77  on 3 df, p=0.0007889
 n= 26, number of events= 12 
 > 
 > # Residuals
-> fit <- coxph(Surv(futime, fustat)~ age + resid.ds + rx + ecog.ps )
+> fit <- coxph(Surv(futime, fustat)~ age + resid.ds + rx + ecog.ps, data=ovarian)
 > resid(fit)
           1           2           3           4           5           6 
  0.84103277  0.54424388  0.59670824 -0.11281376  0.75111588 -0.32609026 
@@ -207,10 +204,11 @@ n= 26, number of events= 12
 563   0.06487219 -0.47274522  0.3319974  0.2747028
 638   1.64752655 -0.50593437 -0.6446947  0.2939883
 > 
-> fit <- coxph(Surv(futime, fustat) ~ age + ecog.ps + strata(rx))
+> fit <- coxph(Surv(futime, fustat) ~ age + ecog.ps + strata(rx), data=ovarian)
 > summary(fit)
 Call:
-coxph(formula = Surv(futime, fustat) ~ age + ecog.ps + strata(rx))
+coxph(formula = Surv(futime, fustat) ~ age + ecog.ps + strata(rx), 
+    data = ovarian)
 
   n= 26, number of events= 12 
 
@@ -282,7 +280,6 @@ Call: survfit(formula = fit, newdata = list(age = c(30, 70), ecog.ps = c(2,
   475      8       1     0.991    0.1207
   563      7       1     0.987    0.0489
 
-> detach()
 > 
 > 
 > # Check of offset + surv, added 7/2000
@@ -314,4 +311,4 @@ Call: survfit(formula = fit, newdata = list(age = c(30, 70), ecog.ps = c(2,
 > 
 > proc.time()
    user  system elapsed 
-  0.808   0.064   0.875 
+  1.529   0.203   1.714 

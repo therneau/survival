@@ -51,7 +51,7 @@ survfit0 <- function(x, start.time) {
             indx <- seq(1, n.add + dd[1])[ -i2]
             newx <- matrix(x[1], dd[1] + n.add, dd[2]*dd[3])
             newx[indx,] <- c(x)
-            newx[i2,] <- z
+            newx[i2,] <- rep(z, each=dd[2])
             dim(newx) <- c(dd[1]+n.add, dd[2], dd[3])
             dimnames(newx) <- list(NULL, NULL, dimnames(x)[[3]])
         }
@@ -76,8 +76,8 @@ survfit0 <- function(x, start.time) {
         if (is.null(x$sp0)) sp0 <- 0 else sp0 <- x$sp0
         if (any(same)) {# we have to subscript p0 and sp0
             # if p0 isn't a matrix, we can't end up here BTW
-            p00 <- x$p0[!same,]
-            if (!is.null(x$sp0)) sp0 <- x$sp0[!same,]
+            p00 <- x$p0[!same,,drop=FALSE]
+            if (!is.null(x$sp0)) sp0 <- x$sp0[!same,,drop=FALSE]
         }
         else p00 <- x$p0
     }

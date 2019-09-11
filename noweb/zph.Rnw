@@ -52,9 +52,11 @@ cox.zph <- function(fit, transform='km', terms=TRUE, singledf =FALSE,
                     global=TRUE) {
     Call <- match.call()
     if (!inherits(fit, "coxph") && !inherits(fit, "coxme")) 
-        stop ("Argument must be the result of Cox model fit")
+        stop ("argument must be the result of Cox model fit")
     if (inherits(fit, "coxph.null"))
-	stop("The are no score residuals for a Null model")
+	stop("there are no score residuals for a Null model")
+    if (!is.null(attr(terms(fit), "specials")[["tt"]]))
+        stop("function not defined for models with tt() terms")
 
     cget <- coxph.getdata(fit, y=TRUE, x=TRUE, stratax=TRUE, weights=TRUE)
     y <- cget$y
@@ -352,10 +354,17 @@ rval$var <- solve(vmean)
 <<cox.zph>>=
 "[.cox.zph" <- function(x, ..., drop=FALSE) {
     i <- ..1
-    z<- list(table=x$table[i,,drop=FALSE], x=x$x, time= x$time, 
-                y = x$y[,i,drop=FALSE],
-		var=x$var[i,i, drop=FALSE], call=x$call,
-		transform=x$transform)
+    if (!is.null(x$strata)) 
+        z<- list(table=x$table[i,,drop=FALSE], x=x$x, time= x$time, 
+                 strata = x$strata,
+                 y = x$y[,i,drop=FALSE],
+                 var=x$var[i,i, drop=FALSE], call=x$call,
+                 transform=x$transform)
+    else
+        z<- list(table=x$table[i,,drop=FALSE], x=x$x, time= x$time, 
+                 y = x$y[,i,drop=FALSE],
+                 var=x$var[i,i, drop=FALSE], call=x$call,
+                 transform=x$transform)
     attributes(z) <- attributes(x)
     z
 }

@@ -1,7 +1,7 @@
 library(survival)
 aeq <- function(x, y, ...) all.equal(as.vector(x), as.vector(y), ...)
 
-# Check that estimates agree with single state models
+# Check that estimates from a multi-state model agree with single state models
 #  Use a simplified version of the myeloid data set
 tdata <- tmerge(myeloid[,1:3], myeloid, id=id, death=event(futime,death),
                 priortx = tdc(txtime), sct= event(txtime))

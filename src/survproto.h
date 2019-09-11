@@ -44,10 +44,6 @@ void agmart(Sint   *n,     Sint   *method,  double *start,   double *stop,
 SEXP agscore2(SEXP y2,       SEXP covar2,   SEXP strata2, 
 	      SEXP score2,   SEXP weights2, SEXP method2);
 
-void agscore(Sint   *nx,       Sint   *nvarx,      double *y,
-	     double *covar2,   Sint   *strata,     double *score,
-	     double *weights,  Sint   *method,     double *resid2, double *a);
-
 void agsurv3(Sint   *sn,    Sint   *snvar,    Sint   *sncurve, 
 	     Sint   *snpt,  Sint   *sse,      double *score, 
 	     double *sy,    Sint   *grpx,     double *r,        double *coef, 
@@ -138,11 +134,6 @@ void coxscho(Sint   *nusedx,    Sint   *nvarx,    double *y,
 
 SEXP coxscore2(SEXP y2,       SEXP covar2,   SEXP strata2,
 	       SEXP score2,   SEXP weights2, SEXP method2);
-
-void coxscore(Sint   *nx,      Sint   *nvarx,    double *y, 
-	      double *covar2,  Sint   *strata,   double *score, 
-	      double *weights, Sint   *method,   double *resid2,
-	      double *scratch);
 
 double coxsafe(double x);
 

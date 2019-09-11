@@ -348,7 +348,7 @@ There are a lot of events, so coefficient estimates are quite precise as
 shown in the next graph, whether one uses all the patients or only 1/3 of
 them.  Evaluation required 4 iterations of the \code{coxph} function. 
 
-<<fig=TRUE>>=
+<<plot1,fig=TRUE>>=
 y <- cbind(coef(fit1[[1]]), coef(fit1[[2]]), coef(fit1[[3]]))
 matplot(1:42, y, pch="123", 
         xlab="Covariate", ylab="Coefficient")
@@ -437,7 +437,7 @@ and one can use the call
 \begin{verbatim}
    fit <- coxph(Surv(dummy, status) ~ strata(group) + x1 + x2 + ...)
 \end{verbatim}
-where \code{dummy} is a dummy variable set to a constant value (often 1.0).
+where \code{dummy} is a dummy variable set to a constant value (often 0 or 1).
 
 Such an approach has attraction for phreg, since we are no longer using
 a (time1, time2) form. Perhaps trading a larger data set size for $O(n)$
@@ -459,7 +459,7 @@ dtime <- sort(unique(temp$month2[temp$death == 1]))
 
 nhs2 <- survSplit(Surv(month1, month2, death) ~., data=temp, cut=dtime)
 
-nrow(nhs2)  # 3.2 million rows
+nrow(nhs2)  # 3 million rows
 
 stat2 <- matrix(0, 6, 3)
 maxid <- max(nhs2$id)
@@ -774,7 +774,7 @@ covariates are coded.
 
 \begin{verbatim}
 data test;
-input y x1 $ x2 $;
+input time status x1 $ x2 $;
 cards4;
  1 a  A
  2 b  B

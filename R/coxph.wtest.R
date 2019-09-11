@@ -27,6 +27,11 @@ coxph.wtest <- function(var, b, toler.chol=1e-9) {
             stop("First argument must be a square matrix")
     if (nrow(var) != nvar) stop("Argument lengths do not match")
 
+    if (any(!is.finite(b)) || any(!is.finite(var))) {
+        cat("not finite in coxph.wtest\n")
+        print(b)
+        print(var)
+        }
     temp <- .C(Ccoxph_wtest, df=as.integer(nvar),
                               as.integer(ntest),
                               as.double(var),
