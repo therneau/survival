@@ -318,11 +318,13 @@ if (data.frame) {
     else {
         keep <- (temp$pyears >0)  # what rows to keep in the output
         # grap prototype rows from the model frame, this preserves class
+        #  (unless it is a tcut variable, then we know what to do)
         tdata <- lapply(1:length(ovars), function(i) {
-            indx <- match(outdname[[i]], mf[[ovars[i]]])
-            mf[[ovars[i]]][indx]
+            temp <- mf[[ovars[i]]]
+            if (inherits(temp, "tcut")) factor(outdname[[i]])
+            else temp[match(outdname[[i]], temp)]
         })
-        df <- do.call("expand.grid", tdata)[keep,,drop=FALSE]
+        df <- do.call("expand.grid", tdata, stringsAsFactors=FALSE)[keep,,drop=FALSE]
         names(df) <- ovars
         df$pyears <- temp$pyears[keep]/scale
         df$n <- temp$pn[keep]

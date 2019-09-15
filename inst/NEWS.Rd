@@ -7,6 +7,8 @@
     \item Fix 2 errors in plot, for survfit of a coxph model. (I had not
     scanned the pdf pages from the vignettes, which is the only way to
     verify plots.)
+    \item Fix labeling error for combination pyears, tcut variable,
+    data.frame option.  (Values were correct).
 }}
 
 \section{Changes in version 3.1-1}{
