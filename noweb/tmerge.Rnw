@@ -540,7 +540,7 @@ else {  # process a tdc or cumtdc variable
                         yinc[keep], indx[keep])
     }  
     else if (is.logical(yinc)) {
-        # same underlying code a numeric, but convert back at the end
+        # same underlying code as numeric, but convert back at the end
         yinc <- as.numeric(yinc)
         if (!is.numeric(newvar)) 
             stop("data and options$tdcstart do not agree on data type")

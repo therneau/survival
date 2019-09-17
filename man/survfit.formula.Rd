@@ -122,7 +122,11 @@
 	These contain the values of the derivative of each value
 	with respect to the case weights of each subject i:
 	\eqn{\partial p/\partial w_i}{dp/dw[i]},
-	evaluated at the vector of weights.
+	evaluated at the vector of weights.  The resulting object will
+	contain \code{influence.surv} and \code{influence.chaz}
+	components.  Alternatively, options of \code{influence=1} or
+	\code{influence=2} will return values for only the
+	survival or hazard curves, respectively.
       }
 
       \item{p0}{this applies only to multi-state curves. 

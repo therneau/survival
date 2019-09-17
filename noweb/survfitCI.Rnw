@@ -126,17 +126,20 @@ survfitCI <- function(X, Y, weights, id, istate, cluster,
     
     # The user can call with cluster, id, both, or neither
     # If only id, treat it as the cluster too
-    if (is.null(id) || missing(id)) {
+    # If influence is requested, this implies clustering
+    has.cluster <-  !(missing(cluster) || length(cluster)==0) 
+    has.id <-       !(missing(id) || length(id)==0)
+    if (has.id) id <- as.factor(id)
+    else  {
         if (ncol(Y) ==3) stop("an id statement is required for start,stop data")
-        has.id <- FALSE
         id <- 1:n
-    } else {
-        has.id <- TRUE
-        id <- as.factor(id)  # make sure it is 1,2, ...
     }
-       
-    if (!(missing(cluster) || is.null(cluster))) {
+    if (influence && !(has.cluster || has.id)) {
+        cluster <- seq(along=x)
         has.cluster <- TRUE
+    }
+
+    if (has.cluster) {
         if (is.factor(cluster)) {
             clname <- levels(cluster)
             cluster <- as.integer(cluster)

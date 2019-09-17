@@ -44,9 +44,14 @@ survfitKM <- function(x, y, weights=rep(1.0,length(x)),
       
     # The user can call with cluster, id, both, or neither
     # If only id, treat it as the cluster too
+    # If influence is requested, this implies clustering
     has.cluster <-  !(missing(cluster) || length(cluster)==0) 
     has.id <-       !(missing(id) || length(id)==0)
     if (has.id) id <- as.factor(id)
+    if (influence && !(has.cluster || has.id)) {
+        cluster <- seq(along=x)
+        has.cluster <- TRUE
+    }
     if (has.cluster) {
         if (is.factor(cluster)) {
             clname <- levels(cluster)
