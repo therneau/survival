@@ -2,7 +2,7 @@
 #  It's first argument must be a list of coxph models
 anova.coxphlist <- function (object, test =  'Chisq' ,...) {
     if (!is.list(object)) stop("First argument must be a list")
-    if (!all(unlist(lapply(object, function(x) inherits(x, 'coxph')))))
+    if (!all(unlist(lapply(object, function(x) inherits (x, 'coxph')))))
 	     stop("Argument must be a list of coxph models")
     if (any(sapply(object, function(x) !is.null(x$naive.var))))
         stop("Can't do anova tables with robust variances")
@@ -15,9 +15,12 @@ anova.coxphlist <- function (object, test =  'Chisq' ,...) {
         warning(paste("Models with response", deparse(responses[!sameresp]), 
             "removed because response differs from", "model 1"))
     }
+    method <- sapply(object, function(x) x$method)
+    if (any(method != method[1]))
+        stop("not all models have the same 'ties' option")
     ns <- sapply(object, function(x) length(x$residuals))
     if (any(ns != ns[1])) 
-        stop("models were not all fitted to the same size of dataset")
+        stop("models were not all fit to the same size of dataset")
     nmodels <- length(object)
     if (nmodels == 1) # only one model remains
         return(anova.coxph(object[[1]], test = test))
