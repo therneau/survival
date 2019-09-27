@@ -199,7 +199,7 @@ underlying C code wants to make the 1970 rate table apply from 1Jan
 everyone's enter-the-study date.  If you were born in March but
 entered in April, make it look like you entered in Febuary; that way
 you get the first 11 months at the entry year's rates, etc.  The birth
-date is entry date - age in days (based on 1/1/1960).
+date is entry date - age in days (based on 1/1/1970).
 
 The other aspect of the rate tables is that ``older style'' tables, those that
 have the factor attribute, contained only decennial data which the C code would
@@ -234,7 +234,7 @@ if (has.ratetable) {  #include expected
         #  rate table.  We fudge by faking their enrollment date back to their
         #  birth date.
         #
-        # The cutpoint for year has been converted to days since 1/1/1960 by
+        # The cutpoint for year has been converted to days since 1/1/1970 by
         #  the ratetableDate function.  (Date objects in R didn't exist when 
         #  rate tables were conceived.) 
         if (is.null(atts$dimid)) dimid <- names(atts$dimnames)
@@ -244,7 +244,7 @@ if (has.ratetable) {  #include expected
             stop("ratetable does not have expected shape")
 
         # The format command works for Dates, use it to get an offset
-        bdate <- as.Date("1960-01-01") + (R[,cols[2]] - R[,cols[1]])
+        bdate <- as.Date("1970-01-01") + (R[,cols[2]] - R[,cols[1]])
         byear <- format(bdate, "%Y")
         offset <- as.numeric(bdate - as.Date(paste0(byear, "-01-01")))
         R[,cols[2]] <- R[,cols[2]] - offset

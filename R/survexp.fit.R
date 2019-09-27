@@ -39,9 +39,8 @@ survexp.fit <- function(group, x, y, times, death, ratetable) {
         #  them to a new rate on both calendar year and birthdays.
         #  We fudge by moving their enrollment date back to their birthday.
         #
-        # The cutpoint for year has been converted to days since 1/1/1960 by
-        #  the ratetableDate function.  (Date objects in R didn't exist when 
-        #  rate tables were conceived.) 
+        # The cutpoint for year has been converted to days since 1/1/1970 by
+        #  the ratetableDate function. 
         if (is.null(atts$dimid)) dimid <- names(atts$dimnames)
         else dimid <- atts$dimid
         cols <- match(c("age", "year"), dimid)
@@ -49,7 +48,7 @@ survexp.fit <- function(group, x, y, times, death, ratetable) {
             stop("ratetable does not have expected shape")
 
         # The format command works for Dates, use it to get an offset
-        bdate <- as.Date("1960-01-01") + (x[,cols[2]] - x[,cols[1]])
+        bdate <- as.Date("1970-01-01") + (x[,cols[2]] - x[,cols[1]])
         byear <- format(bdate, "%Y")
         offset <- as.numeric(bdate - as.Date(paste0(byear, "-01-01")))
         x[,cols[2]] <- x[,cols[2]] - offset

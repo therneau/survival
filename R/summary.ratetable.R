@@ -37,7 +37,9 @@ summary.ratetable <- function(object, ...) {
                     paste(att$dimnames[[i]], collapse=' '), "\n", sep='')
                 }
             else if (att$type[i]>2) { #date
-                if (is.numeric(att$cutpoints[[i]])) #old, numeric
+                if (is.numeric(att$cutpoints[[i]])) { #old, numeric
+                    # This format is > 5 years out of date
+                    #  but some user might keep an old rate table around
                     cat("\t", dimid[i], " ranges from " , 
                         format(as.Date(min(att$cutpoints[[i]]),
                                        origin='1960/01/01')), " to ", 
@@ -45,6 +47,7 @@ summary.ratetable <- function(object, ...) {
                                        origin='1960/01/01')),
                         "; with ", att$dim[i],
                         " categories\n", sep='')
+                    }
                 else # newer, Date
                     cat("\t", dimid[i], " ranges from " , 
                         format(min(att$cutpoints[[i]])), " to ", 

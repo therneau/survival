@@ -28,7 +28,7 @@ ratetableDate.POSIXt <- function(x)
 #ratetableDate.timeDate <- function(x)
 #    rtfun(x - timeDate('1/1/1970'))
 
-# Therneau's old "date" class (will someday wither away?)
+# Therneau's old "date" class (should someday wither away)
 ratetableDate.date <- function(x)  rtfun(x - 3653)
 
 # David James's old "chron" class (will someday wither away)
