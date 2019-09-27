@@ -17,10 +17,16 @@ anova.coxph <- function (object, ...,  test = 'Chisq') {
                 collapse = ", ")))
     dotargs <- dotargs[!named]
 
-    if (length(dotargs) >0) {
+    if (length(dotargs >0)) {
+        if (is.list(object)) object <- c(object, dotargs)
+        else (object <- c(list(object), dotargs))
+    }       
+    if (is.list(object)) {
         # Check that they are all cox or coxme models
-        is.coxmodel <-unlist(lapply(dotargs, function(x) inherits(x, "coxph")))
-        is.coxme <- unlist(lapply(dotargs, function(x) inherits(x, "coxme")))
+        is.coxmodel <-unlist(lapply(object, function(x) inherits(x, "coxph")))
+        is.coxme <- unlist(lapply(object, function(x) inherits(x, "coxme")))
+        is.multi <- unlist(lapply(object, function(x) inherits(x, "coxphms")))
+        if (any(is.multi)) return(anova.coxphms(object, test=test))
         if (!all(is.coxmodel | is.coxme))
             stop("All arguments must be Cox models")
         
@@ -42,9 +48,12 @@ anova.coxph <- function (object, ...,  test = 'Chisq') {
     #  the model statement), then 2 way interactions, then 3, etc.
     #  One does this by using the "assign" attribute of the model matrix.
     #  (This does not work for penalized terms.)
+    # Remember to propogate any the method argument
+    mtie <- fit$method
+    if (inherits(object, "coxphms")) return(anova.coxphms(object, test=test))
     if (length(object$rscore)>0)
         stop("Can't do anova tables with robust variances")
- 
+    
     has.strata <- !is.null(attr(terms(object), "specials")$strata)
     if (is.null(object[['y']]) || (has.strata && is.null(object$strata))) {
         # We need the model frame
@@ -81,14 +90,15 @@ anova.coxph <- function (object, ...,  test = 'Chisq') {
         if (length(object$offset)) {
             if (has.strata) 
                 tfit <- coxph(Y ~ X[,assign <= alevels[i]] + strata(strats) +
-                              offset(object$offset))
+                              offset(object$offset), ties=mtie)
             else tfit <- coxph(Y ~ X[, assign<= alevels[i]] +
-                               offet(object$offset))
+                               offet(object$offset), ties=mtie)
         }
         else {
             if (has.strata) 
-                tfit <- coxph(Y ~ X[,assign <= alevels[i]] + strata(strats))
-            else tfit <- coxph(Y ~ X[,assign <= alevels[i]])
+                tfit <- coxph(Y ~ X[,assign <= alevels[i]] + strata(strats),
+                              ties=mtie)
+            else tfit <- coxph(Y ~ X[,assign <= alevels[i]], ties=mtie)
         }
         df[i+1] <- sum(!is.na(tfit$coefficients))
         loglik[i+1] <- tfit$loglik[2]
@@ -113,4 +123,8 @@ anova.coxph <- function (object, ...,  test = 'Chisq') {
 		   "\nTerms added sequentially (first to last)\n", 
 		   sep = "")
     structure(table, heading = title, class = c("anova", "data.frame"))
+}
+
+anova.coxphms <- function(object, ..., test="chisq") {
+    stop("anova method not yet available for multi-state coxph fits")
 }

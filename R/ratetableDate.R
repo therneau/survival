@@ -18,18 +18,18 @@ rtfun <- function(x) {
     
 # Normally used in R
 ratetableDate.Date <- function(x) 
-    rtfun(x - as.Date("1960/01/01"))
+    rtfun(x)
 
 # POSIXt includes both POSIXlt and POSIXct
 ratetableDate.POSIXt <- function(x)
-    rtfun(as.Date(x) - as.Date("1960/01/01"))
+    rtfun(as.Date(x))
 
 # Normally Splus
 #ratetableDate.timeDate <- function(x)
-#    rtfun(x - timeDate('1/1/1960'))
+#    rtfun(x - timeDate('1/1/1970'))
 
 # Therneau's old "date" class (will someday wither away?)
-ratetableDate.date <- function(x)  rtfun(x)
+ratetableDate.date <- function(x)  rtfun(x - 3653)
 
 # David James's old "chron" class (will someday wither away)
 # Support it without using the chron library, which may not be loaded.
@@ -41,6 +41,9 @@ ratetableDate.chron <- function(x) {
 }
 ratetableDate.dates <- ratetableDate.chron
 
+# Old ratetables had an integer based on 1/1/1960
+ratetableDate.integer <- function(x) 
+    rtfun(x - 3653)    # number of days from 1/1/1960 to 1/1/1970
+
 # leave other data types alone
 ratetableDate.default <- function(x) x 
-
