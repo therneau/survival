@@ -1,5 +1,12 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 3.1-3}{
+  \itemize{
+    \item The results of anova.coxph were incorrect for the case of a
+    single model with ties="breslow" and tied event times: the breslow
+    option was not being passed forward to the secondary fits.
+  }
+
 \section{Changes in version 3.1-2}{
   \itemize{
     \item The cox.zph command now refuses models with tt() terms, before
@@ -7,7 +14,7 @@
     \item Fix 2 errors in plot, for survfit of a coxph model. (I had not
     scanned the pdf pages from the vignettes, which is the only way to
     verify plots.)
-    \item Fix labeling error for combination pyears, tcut variable,
+    \item Fix labeling error for combination of pyears, tcut variable,
     data.frame option.  (Values were correct).
 }}
 
