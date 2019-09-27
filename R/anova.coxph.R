@@ -16,19 +16,19 @@ anova.coxph <- function (object, ...,  test = 'Chisq') {
             "are invalid and dropped:", paste(deparse(dotargs[named]), 
                 collapse = ", ")))
     dotargs <- dotargs[!named]
+    
+    single <- (inherits(object, "coxph") || inherits(object, "coxme"))
+    if (length(dotargs >0)  || ! single) {
+        # there are multiple arguments, either the object itself is a list
+        #  of models, or there were multiple arguments.
+        # paste them all together into a single list
+        if (single) object <- list(object)
+        if (length(dotargs>0)) object <- c(object, dotargs)
 
-    if (length(dotargs >0)) {
-        if (is.list(object)) object <- c(object, dotargs)
-        else (object <- c(list(object), dotargs))
-    }       
-    if (is.list(object)) {
-        # Check that they are all cox or coxme models
-        is.coxmodel <-unlist(lapply(object, function(x) inherits(x, "coxph")))
-        is.coxme <- unlist(lapply(object, function(x) inherits(x, "coxme")))
-        is.multi <- unlist(lapply(object, function(x) inherits(x, "coxphms")))
+        # coxme and coxphms models get sent elsewhere
+        is.coxme <-  sapply(object, function(x) inherits(x, "coxme"))
+        is.multi <-  sapply(object, function(x) inherits(x, "coxphms"))
         if (any(is.multi)) return(anova.coxphms(object, test=test))
-        if (!all(is.coxmodel | is.coxme))
-            stop("All arguments must be Cox models")
         
         if (any(is.coxme)) {
             # We need the anova.coxmelist function from coxme
@@ -36,9 +36,9 @@ anova.coxph <- function (object, ...,  test = 'Chisq') {
             temp <- getS3method("anova", "coxmelist", optional=TRUE)
             if (is.null(temp)) 
                 stop("a coxme model was found and library coxme is not loaded")
-            else return(temp(c(list(object), dotargs), test = test))
+            else return(temp(object), test = test)
         }
-        else return(anova.coxphlist(c(list(object), dotargs), test = test))
+        else return(anova.coxphlist(object), test = test)
     }
 
     #
@@ -49,7 +49,7 @@ anova.coxph <- function (object, ...,  test = 'Chisq') {
     #  One does this by using the "assign" attribute of the model matrix.
     #  (This does not work for penalized terms.)
     # Remember to propogate any the method argument
-    mtie <- fit$method
+    mtie <- object$method
     if (inherits(object, "coxphms")) return(anova.coxphms(object, test=test))
     if (length(object$rscore)>0)
         stop("Can't do anova tables with robust variances")

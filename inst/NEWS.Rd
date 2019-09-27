@@ -5,6 +5,8 @@
     \item The results of anova.coxph were incorrect for the case of a
     single model with ties="breslow" and tied event times: the breslow
     option was not being passed forward to the secondary fits.
+    \item Add more sanity checks to anova.coxph, e.g., all models must
+    have used the same ties option.
   }
 
 \section{Changes in version 3.1-2}{
