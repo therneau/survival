@@ -219,7 +219,7 @@ tmerge <- function(data1, data2, id, ..., tstart, tstop, options) {
           etime <- etime[keep]
           }
         id <- saveid[keep]
-        
+
         # Later steps become easier if we sort the new data by id and time
         #  The match() is critical when baseid is not in sorted order.  The
         #  etime part of the sort will change from one ii value to the next.
@@ -270,7 +270,7 @@ tmerge <- function(data1, data2, id, ..., tstart, tstop, options) {
 
         # count ties.  id and etime are not necessarily sorted
         tcount[ii,8] <- sum(tapply(etime, id, function(x) sum(duplicated(x))))
-        if (is.null(yinc)) yinc <- rep(1.0, length(etime))
+
         indx4 <- which(itype==4)
         n4 <- length(indx4)
         if (n4 > 0) {
@@ -310,16 +310,56 @@ tmerge <- function(data1, data2, id, ..., tstart, tstop, options) {
             subtype[itype==4] <- 1  #all the "insides" are now on a tied edge
             itype[itype==4]   <- 5  
         }
-        # add it in
+        # add a tdc variable
         newvar <- newdata[[argname[ii]]]  # prior value (for sequential tmerge calls)
+        if (argclass[ii] == "tdc") {
+            if (argname[[ii]] %in% tevent)
+                stop("attempt to turn event variable", argname[[ii]], "into a tdc")
+            #if (!is.null(newvar))
+                #warning(paste0("replacement of variable '", argname[ii], "'")) 
+
+            # id can be any data type; feed integers to the C routine
+            storage.mode(dstop) <- storage.mode(etime) <- "double"  #if time is integer
+            uid <- unique(baseid)
+            index <- .Call(Ctmerge2, match(baseid, uid), dstop, 
+                                       match(id, uid),  etime)
+
+            if (is.null(yinc)) newvar <- ifelse(index==0, 0L, 1L) # add a 0/1 variable
+            else {
+                newvar <- yinc[pmax(0L, index)]
+                if (any(index==0)) {
+                    if (is.na(topt$tdcstart)) is.na(newvar) <- (index==0L)
+                    else {
+                        if (is.numeric(newvar)) newvar[index=0L] <- as.numeric(topt$tdcstart)
+                        else newvar[index== 0L] <- topt$tdcstart
+                    }
+                }
+            }
+        }
+        # add events
         if (argclass[ii] %in% c("cumtdc", "cumevent")) {
-            if (is.logical(yinc)) yinc <- as.numeric(yinc)  # allow cumulative T/F
+            if (is.null(yinc)) yinc <- rep(1L, length(id))
+            else if (is.logical(yinc)) yinc <- as.numeric(yinc)  # allow cumulative T/F
             if (!is.numeric(yinc)) stop("invalid increment for cumtdc or cumevent")
             ykeep <- (yinc !=0)  # ignore the addition of a censoring event
             yinc <- unlist(tapply(yinc, match(id, baseid), cumsum))
-            }
+        }
 
         if (argclass[ii] %in% c("event", "cumevent")) {
+            if (!is.null(newvar)) {
+                if (!argname[ii] %in% tevent) {
+                    #warning(paste0("non-event variable '", argname[ii], "' replaced by an event variable"))
+                    newvar <- NULL
+                }
+                else if (!is.null(yinc)) {
+                    if (class(newvar) != class(yinc)) 
+                       stop("attempt to update an event variable with a different type")
+                    if (is.factor(newvar) && !all(levels(yinc) %in% levels(newvar)))
+                       stop("attemp to update an event variable and levels do not match")
+                }
+            }
+
+            if (is.null(yinc)) yinc <- rep(1L, length(id))
             if (is.null(newvar)) {
                 if (is.numeric(yinc)) newvar <- rep(0L, nrow(newdata))
                 else if (is.factor(yinc)) 
@@ -329,13 +369,7 @@ tmerge <- function(data1, data2, id, ..., tstart, tstop, options) {
                 else if (is.logical(yinc)) newvar <- rep(FALSE, nrow(newdata))
                 else stop("invalid value for a status variable")
             }
-            else {
-                if (class(newvar) != class(yinc)) 
-                    stop("attempt to update an event variable with a different type")
-                if (is.factor(newvar) && !all(levels(yinc) %in% levels(newvar)))
-                    stop("attemp to update an event variable and levels do not match")
-                }
-
+         
             keep <- (subtype==1 | subtype==3) # all other events are thrown away
             if (argclass[ii] == "cumevent") keep <- (keep & ykeep)
             newvar[indx2[keep]] <- yinc[keep]
@@ -348,12 +382,13 @@ tmerge <- function(data1, data2, id, ..., tstart, tstop, options) {
                 else if (is.character(yinc)) tcens <- c(tcens, list(""))
                 else tcens <- c(tcens, list(0))
                 names(tcens) <- tevent
-                }
+            }
         }
-        else {  # process a tdc or cumtdc variable
+
+        else if (argclass[ii] == "cumtdc") {  # process a cumtdc variable
             # I don't have a good way to catch the reverse of this user error
             if (argname[[ii]] %in% tevent)
-                stop("attempt to turn event variable", argname[[ii]], "into a tdc")
+                stop("attempt to turn event variable", argname[[ii]], "into a cumtdc")
 
             keep <- itype != 2  # changes after the last interval are ignored
             indx <- ifelse(subtype==1, indx1, 
@@ -366,47 +401,16 @@ tmerge <- function(data1, data2, id, ..., tstart, tstop, options) {
                 else newvar <- rep(topt$tdcstart, nrow(newdata))
             }
             
-            if (is.numeric(yinc)) {
-                # this is the usual case
-                if (!is.numeric(newvar)) 
-                    stop("data and options$tdcstart do not agree on data type")
-                # id can be any data type; feed integers to the C routine
-                storage.mode(yinc) <- storage.mode(dstop) <- "double"
-                storage.mode(newvar) <- storage.mode(etime) <- "double"
-                newvar <- .Call(Ctmerge, match(baseid, baseid), dstop, newvar, 
-                                match(id, baseid)[keep], etime[keep], 
-                                yinc[keep], indx[keep])
-            }  
-            else if (is.logical(yinc)) {
-                # same underlying code as numeric, but convert back at the end
-                yinc <- as.numeric(yinc)
-                if (!is.numeric(newvar)) 
-                    stop("data and options$tdcstart do not agree on data type")
-
-                storage.mode(yinc) <- storage.mode(dstop) <- "double"
-                storage.mode(newvar) <- storage.mode(etime) <- "double"
-                newvar <- .Call(Ctmerge, match(baseid, baseid), dstop, newvar, 
-                                match(id, baseid)[keep], etime[keep], 
-                                yinc[keep], indx[keep])
-                newvar <- as.logical(newvar)
-            }
-            else {
-                # deal with a factor or character
-                if (!(is.factor(yinc) || is.character(yinc)))
-                    stop("the second argument of tdc must be numeric, character, or factor")
-                newlev <- unique(c(levels(as.factor(yinc)), levels(as.factor(newvar))))
-                y2 <- factor(yinc, levels=newlev)
-                newvar <- factor(newvar, levels=newlev)
-
-                storage.mode(dstop) <- storage.mode(etime) <- "double"
-                new <- .Call(Ctmerge, match(baseid, baseid), dstop, as.numeric(newvar), 
+            # the increment must be numeric
+            if (!is.numeric(newvar)) 
+                stop("data and options$tdcstart do not agree on data type")
+            # id can be any data type; feed integers to the C routine
+            storage.mode(yinc) <- storage.mode(dstop) <- "double"
+            storage.mode(newvar) <- storage.mode(etime) <- "double"
+            newvar <- .Call(Ctmerge, match(baseid, baseid), dstop, newvar, 
                             match(id, baseid)[keep], etime[keep], 
-                            as.numeric(y2[keep]), indx[keep])
-
-                if (is.factor(yinc)) newvar <- factor(new, labels=newlev)
-                else newvar <- newlev[new]
-            }
-        }
+                            yinc[keep], indx[keep])
+        }  
 
         newdata[[argname[ii]]] <- newvar
     }

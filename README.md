@@ -14,7 +14,7 @@ The file "tutorial.Rnw", for instance, requires data from
 the mstate package, survival is a recommended package, and such packages can 
 only depend on other recommended packages.  (This allows for a consistent 
 distribution bundle.)  The sas.Rnw vignette has a discussion of compute time and
-takes too long to run.
+takes too long to run, etc.
 
 A large portion of the source is found in the noweb directory, and is based on
 the literate programming ideas of Knuth. The reason is that it allows more
@@ -24,8 +24,8 @@ it much easier to get it right.  Anyone who wants to study the methods is
 advised to perform "make code.pdf" in the noweb directory and then look at the 
 relevant portion of that pdf file.  Any file in the R or src directories that
 starts with an "automatically generated ..." comment should NOT be modified
-directly, instead work with the noweb source.  You will need to have the noweb
-package loaded in order to run the Makefile.
+directly, instead work with the noweb source.  (You will need to have the noweb
+package loaded in order to run the Makefile.)
 
 You should be able to install this using the following R code:
 > library(devtools)

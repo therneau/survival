@@ -190,7 +190,7 @@ pyears <- function(formula, data,
             #  rate table.  We fudge by faking their enrollment date back to their
             #  birth date.
             #
-            # The cutpoint for year has been converted to days since 1/1/1960 by
+            # The cutpoint for year has been converted to days since 1/1/1970 by
             #  the ratetableDate function.  (Date objects in R didn't exist when 
             #  rate tables were conceived.) 
             if (is.null(atts$dimid)) dimid <- names(atts$dimnames)
@@ -200,7 +200,7 @@ pyears <- function(formula, data,
                 stop("ratetable does not have expected shape")
 
             # The format command works for Dates, use it to get an offset
-            bdate <- as.Date("1960-01-01") + (R[,cols[2]] - R[,cols[1]])
+            bdate <- as.Date("1970-01-01") + (R[,cols[2]] - R[,cols[1]])
             byear <- format(bdate, "%Y")
             offset <- as.numeric(bdate - as.Date(paste0(byear, "-01-01")))
             R[,cols[2]] <- R[,cols[2]] - offset
