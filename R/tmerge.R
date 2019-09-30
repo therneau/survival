@@ -326,7 +326,7 @@ tmerge <- function(data1, data2, id, ..., tstart, tstop, options) {
 
             if (is.null(yinc)) newvar <- ifelse(index==0, 0L, 1L) # add a 0/1 variable
             else {
-                newvar <- yinc[pmax(0L, index)]
+                newvar <- yinc[pmax(1L, index)]
                 if (any(index==0)) {
                     if (is.na(topt$tdcstart)) is.na(newvar) <- (index==0L)
                     else {
