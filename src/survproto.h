@@ -240,6 +240,7 @@ SEXP survsplit(SEXP tstart2,  SEXP tstop2,  SEXP cut2);
 
 SEXP tmerge (SEXP id2,  SEXP time2x, SEXP newx2,
 	     SEXP nid2, SEXP ntime2, SEXP x2,  SEXP indx2); 
+SEXP tmerge2(SEXP id2,  SEXP time2x, SEXP nid2, SEXP ntime2);
 
 SEXP zph1(SEXP gt2,    SEXP y2, 
 	  SEXP covar2, SEXP eta2,  SEXP weights2,

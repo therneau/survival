@@ -10,7 +10,7 @@
 # It is legal for start.time to be a vector, so that multiple curves start in
 #  different places.  I don't yet have a use for that, but had considered one.
 #
-survfit0 <- function(x, start.time) {
+survfit0 <- function(x, start.time=0) {
     if (!inherits(x, "survfit")) stop("function requires a survfit object")
     if (inherits (x, "survfit0")) return(x)
 

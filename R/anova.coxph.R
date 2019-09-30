@@ -18,12 +18,12 @@ anova.coxph <- function (object, ...,  test = 'Chisq') {
     dotargs <- dotargs[!named]
     
     single <- (inherits(object, "coxph") || inherits(object, "coxme"))
-    if (length(dotargs >0)  || ! single) {
+    if (length(dotargs) >0  || !single) {
         # there are multiple arguments, either the object itself is a list
         #  of models, or there were multiple arguments.
         # paste them all together into a single list
         if (single) object <- list(object)
-        if (length(dotargs>0)) object <- c(object, dotargs)
+        if (length(dotargs)>0) object <- c(object, dotargs)
 
         # coxme and coxphms models get sent elsewhere
         is.coxme <-  sapply(object, function(x) inherits(x, "coxme"))
@@ -36,9 +36,9 @@ anova.coxph <- function (object, ...,  test = 'Chisq') {
             temp <- getS3method("anova", "coxmelist", optional=TRUE)
             if (is.null(temp)) 
                 stop("a coxme model was found and library coxme is not loaded")
-            else return(temp(object), test = test)
+            else return(temp(object, test = test))
         }
-        else return(anova.coxphlist(object), test = test)
+        else return(anova.coxphlist(object, test = test))
     }
 
     #

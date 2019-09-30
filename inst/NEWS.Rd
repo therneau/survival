@@ -7,7 +7,11 @@
     option was not being passed forward to the secondary fits.
     \item Add more sanity checks to anova.coxph, e.g., all models must
     have used the same ties option.
-  }
+    \item Update tmerge to allow more variable types as the argument to
+    tdc.  A user pointed out that Dates were not preserved; now fixed.
+    \item Move some vignettes to the vignette2 directory, found on the
+    github website.  Add an index to them.
+}}
 
 \section{Changes in version 3.1-2}{
   \itemize{
@@ -17,7 +21,7 @@
     scanned the pdf pages from the vignettes, which is the only way to
     verify plots.)
     \item Fix labeling error for combination of pyears, tcut variable,
-    data.frame option.  (Values were correct).
+    data.frame option.  (The numerical values were correct).
 }}
 
 \section{Changes in version 3.1-1}{
