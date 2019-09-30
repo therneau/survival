@@ -331,7 +331,15 @@ tmerge <- function(data1, data2, id, ..., tstart, tstop, options) {
                     if (is.na(topt$tdcstart)) is.na(newvar) <- (index==0L)
                     else {
                         if (is.numeric(newvar)) newvar[index=0L] <- as.numeric(topt$tdcstart)
-                        else newvar[index== 0L] <- topt$tdcstart
+                        else {
+                            if (is.factor(newvar)) {
+                                # special case: if tdcstart isn't in the set of levels,
+                                #   add it to the levels
+                                if (is.na(match(topt$tdcstart, levels(newvar))))
+                                    levels(newvar) <- c(levels(newvar), topt$tdcstart)
+                            }
+                            newvar[index== 0L] <- topt$tdcstart
+                        }
                     }
                 }
             }

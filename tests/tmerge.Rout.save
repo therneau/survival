@@ -1,7 +1,7 @@
 
-R Under development (unstable) (2017-02-21 r72241) -- "Unsuffered Consequences"
-Copyright (C) 2017 The R Foundation for Statistical Computing
-Platform: i686-pc-linux-gnu (32-bit)
+R Under development (unstable) (2019-09-07 r77160) -- "Unsuffered Consequences"
+Copyright (C) 2019 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -21,7 +21,7 @@ Type 'q()' to quit R.
 > data2 <- data.frame(idd = c(2,5,1,2,1), x2=5:1, age=48:44)
 > test1 <- tmerge(data1, data1, id=idd, death=event(age))
 > test2 <- tmerge(test1, data2, id=idd, zed=tdc(age, x2))
-> all.equal(test2$id, c(1,1,1,5,5,4,3,2,2,2,6))
+> all.equal(test2$idd, c(1,1,1,5,5,4,3,2,2,2,6))
 [1] TRUE
 > all.equal(test2$tstop, c(44, 46, 50, 47, 51, 52, 53, 45, 48, 54, 55))
 [1] TRUE
@@ -84,4 +84,4 @@ Type 'q()' to quit R.
 > 
 > proc.time()
    user  system elapsed 
-  1.364   0.072   1.432 
+  0.743   0.032   0.769 
