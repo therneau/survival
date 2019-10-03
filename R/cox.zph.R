@@ -138,7 +138,7 @@ cox.zph <- function(fit, transform='km', terms=TRUE, singledf =FALSE,
     # The x, y, residuals part of the result is sorted by event time
     indx <- order(y[,ny-1])
     indx <- indx[event[indx]==1]
-    rval <- list(table=tbl, x=unname(gtime[indx]), time=unname(y[indx, ny-1]))
+    rval <- list(table=tbl, x=unname(ttimes[indx]), time=unname(y[indx, ny-1]))
     if (length(cget$strata)) rval$strata <- cget$strata[indx]
     # Watch out for a particular edge case: there is a factor, and one of the
     #   strata happens to not use one of its levels.  The element of resid$used will
