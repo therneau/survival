@@ -303,7 +303,8 @@ if (!inherits(x, "survfitms") && !cumhaz & !missing(fun)) {
                    'surv' = function(x) x,
     		   stop("Unrecognized function argument")
     		   )
-        if (tolower(fun) %in% c("identity", "s")) yzero <- TRUE
+        if (tolower(fun) %in% c("identity", "s") &&
+            !inherits(x, "survfitms") && !cumhaz) yzero <- TRUE
     }
     else if (is.function(fun)) tfun <- fun
     else stop("Invalid 'fun' argument")

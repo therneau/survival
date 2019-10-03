@@ -31,7 +31,6 @@ summary.survfit <- function(object, times, censored=FALSE,
     table <- temp$matrix  #for inclusion in the output list
     rmean.endtime <- temp$end.time
     
-    fit$time <- fit$time/scale
     if (!is.null(fit$strata)) {
         nstrat <-  length(fit$strata)
     }    
@@ -184,6 +183,12 @@ summary.survfit <- function(object, times, censored=FALSE,
     if (!is.null(fit$strata)) 
         fit$strata <- factor(rep(1:nstrat, fit$strata), 1:nstrat,
                              labels= names(fit$strata))
+    if (scale != 1) {
+        # fix scale in the output
+        fit$time <- fit$time/scale
+        fit$rmean.endtime <- fit$rmean.endtime/scale
+    }
+
     class(fit) <- "summary.survfit"
     fit
 }
@@ -221,7 +226,7 @@ summary.survfitms <- function(object, times, censored=FALSE,
         if (!is.numeric(times)) stop ("times must be numeric")
         times <- sort(times)
     }
-    fit$time <- fit$time/scale
+
     if (!is.null(fit$strata)) {
         nstrat <-  length(fit$strata)
         sindx <- rep(1:nstrat, fit$strata)
@@ -372,7 +377,11 @@ summary.survfitms <- function(object, times, censored=FALSE,
 
     # A survfit object may contain std(log S) or std(S), summary always std(S)
     if (!is.null(fit$std.err) && fit$logse) fit$std.err <- fit$std.err * fit$surv 
-
+    if (scale != 1) {
+        # fix scale in the output
+        fit$time <- fit$time/scale
+        fit$rmean.endtime <- fit$rmean.endtime/scale
+    }
     class(fit) <- "summary.survfitms"
     fit
 }

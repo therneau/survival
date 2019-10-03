@@ -42,6 +42,9 @@ Putter, Fiocco and Geskus, \emph{Tutorial in biostatistics:
 In this section we recreate the graphs and tables from
 the paper; it parallels a similar document that is a vignette
 in the \code{mstate} package.  
+This vignette uses newer featuers of the survival package which directly
+support multi-state models; these features were not available at the time
+the tutorial was written.
 The vignette will make the most sense if it
 is read in parallel with the paper.
 
@@ -62,9 +65,25 @@ data(ebmt3)   # transplant data set
 detach("package:mstate")  # the package is not needed for the remainder
 @
 
-\section{Competing risk}
-We first create the multi-state status variable and use it to plot
-the competing risk curves for the outcome.  
+\section{AID data set, competing risk}
+The first analysis uses the AID data set and a competing risks transition
+shown in the figure below.
+<<aids>>=
+states <- c("Follow up", "AIDS", "SI")
+smat <- matrix(0, 3, 3, dimnames=list(states, states))
+smat[1,2] <- smat[1,3] <- 1
+statefig(1:2, smat)
+@ 
+
+We first create a multi-state status variable and use it to plot
+the competing risk curves for the outcome. 
+A key tool for dealing with multi-state outcomes is replacement of the
+normal 0/1 ``status'' variable of 0= censored, 1=event (or FALSE=censored 
+TRUE = event)
+with a factor variable in the \code{Surv} function.  
+This allows us to specify not just \emph{that} an event occured, but
+\emph{what type} of event.
+
 <<aids1, fig=TRUE>>=
 adata <- aidssi
 adata$event <- factor(adata$status, 0:2, c("censored", "AIDS", "SI"))
@@ -77,22 +96,23 @@ bad2 <- survfit(Surv(time, event=="SI") ~1, adata)
 ajfit <- survfit(Surv(time, event) ~1, adata)
 ajfit$transitions
 plot(ajfit, xmax=13, col=1:2, lwd=2,
-     xlab="Years from HIV infection", ylab="Probability")
+     xlab="Years from HIV infection", ylab="Probability in state")
 legend(8, .2, c("AIDS", "SI"), lty=1, lwd=2, col=1:2, bty='n')
 @ 
 
 We will use "Txx" to stand for figures or page numbers in the tutorial.
 figure T2 shows the two Kaplan-Meier curves, with one going uphill
-and the other downhill.
+and the other downhill.  The estimated fraction with AIDS is the area above
+the red curve and the fraction with SI the area below the blue one.
 The fact that they cross is used to emphasize the inconsistency of the
 two estimates, i.e., that they add to more than 1.0.
 
 <<fitT2, fig=TRUE>>=
 # re-create figure T2
-plot(bad1, conf.int=FALSE, xmax=13, 
+plot(bad1, conf.int=FALSE, xmax=13, col=2,
      xlab="Years from HIV infection", ylab="Probability")
-lines(bad2, conf.int=FALSE, fun='event', xmax=13)
-text(c(8,8), c(.8, .22), c("AIDS", "SI"))
+lines(bad2, conf.int=FALSE, fun='event', xmax=13, col=4)
+text(c(8,8, 2), c(.8, .22, .5), c("AIDS", "SI", "neither"), col=c(2,4,1))
 @ 
 
 Figure T3 adds the Aalen-Johansen curves on top of this.
@@ -100,6 +120,14 @@ Plotting the competing risk curve for AIDS ``down from the top'' is
 something we do not recommend, since 
 it is not ``survival free of AIDS'' which is what a naive reader of
 such a curve would expect.
+The \code{ajfit} object contains a vector of times along with a 3
+column matrix \code{pstate} containing, in each row the three
+probabilities $(p_1(t), p_2(t), p_3(t))$, each row sums to 1.
+\begin{itemize}
+  \item $p_1(t)$ = Pr(in the ``neither SI or AIDS state'')
+  \item $p_2(t)$ = Pr(in the AIDS state)
+  \item $p_3(t)$ = Pr(in the SI state)
+\end{itemize}
 
 <<figT3, fig=TRUE>>=
 # re-create figure T3
@@ -108,8 +136,8 @@ plot(bad1, conf.int=FALSE, xmax=13, col="lightgray",
 lines(bad2, conf.int=FALSE, fun='event', xmax=13, col='lightgray')
 text(c(8,8), c(.8, .22), c("AIDS", "SI"))
 
-lines(ajfit[,2], conf.int=FALSE, lwd=2, xmax=13)
-lines(ajfit[,1], conf.int=FALSE, lwd=2, ,xmax=13, fun=function(x) x)
+lines(ajfit[,"SI"], conf.int=FALSE, lwd=2, xmax=13, fun=function(x) 1-x))
+lines(ajfit[,"AIDS"], conf.int=FALSE, lwd=2, ,xmax=13)
 @ 
 
 Figure T4 is a stacked plot of the competing risks outcome.
@@ -133,9 +161,21 @@ cfit1
 
 cfit2 <- coxph(Surv(time, event=="SI") ~ ccr5, adata)
 cfit2
+
+cfit0 <- coxph(Surv(time, event) ~ ccr5, adata, id=patnr)
+coef(cfit0)
 @ 
 
-We can achieve the same result using a stacked data set, which will
+The last line above fits a joint model for both endpoints at once.
+Notice that the coefficients are identical.
+This highlights a basic fact of multi-state models
+\begin{enumerate}
+  \item Hazards and cumulative hazards can be estimated one by one.
+  \item Probability in state (absolute risk) has to be estimated
+    jointly.
+\end{enumerate}
+
+We can fit the joint model 'by hand' using a stacked data set, which will
 have 329 rows = number of subjects for the AIDS endpoint, followed by
 329 rows for the SI endpoint.  
 We had to be a bit cautious since the tutorial uses
@@ -159,7 +199,8 @@ Which form one prefers is a matter of taste.
 In the tutorial, the stacked data set also has individual indicator 
 variables for \code{ccr} within type.
 We can reprise that approach instead of using the interaction to
-get yet a third equivalent fit.
+get yet a third equivalent fit.  We have now replicated the joint
+result in \code{cfit0}.
 <<stack2>>=
 stack$ccr5.1 <- (stack$ccr5=="WM") * (stack$cause == "AIDS")
 stack$ccr5.2 <- (stack$ccr5=="WM") * (stack$cause == "SI")
@@ -173,6 +214,9 @@ cfit4 <- coxph(Surv(time, status) ~ ccr5.1 + ccr5.2 + cause, stack)
 cfit4
 summary(cfit4)$coefficients
 cfit4b <-  coxph(Surv(time, status) ~ ccr5*cause, stack) #same result
+
+cfit4c <- coxph(list(Surv(time, event) ~ ccr5,
+                     1:1 ~ 1 + (event=="SI") / common), adata, id= patnr)
 @ 
 
 We can now generate the Aalen-Johansen curves for \code{cfit4}.  This starts

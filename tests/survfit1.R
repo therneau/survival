@@ -286,4 +286,21 @@ for (i in 1:12) {
 }
 aeq(fit7$influence.chaz[[2]], imat, tol=sqrt(eps))
 
+#
+# verify that the times and scale arguments work as expected.  They
+#  are in the summary and print.survfit functions.
+#
+s1 <- summary(fit1, scale=1)
+s2 <- summary(fit1, scale=2)
+aeq(s1$time/2, s2$time)  #times change
+aeq(s1$surv, s2$surv)
+tscale <- rep(c(1,1,1,1, 2,2,2,2,2), each=2)  
+aeq(s1$table, s2$table *tscale)
 
+s3 <- summary(fit1, scale=1, times=c(9, 18, 23, 33, 34))
+s4 <- summary(fit1, scale=2, times=c(9, 18, 23, 33, 34))
+aeq(s3$time, s4$time*2)
+aeq(s3$surv, s4$surv)
+
+print(fit1, rmean='common')
+print(fit1, rmean='common', scale=2)

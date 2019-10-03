@@ -1,7 +1,5 @@
 Update iteration for penalized models wrt the changes in version 2.44.
 
-look at printCoefmat
-
 pyears with an I() term on the right hand side, "tform" is wrong.
 
 update penalized models terms for cox.zph, it also needs to ignore 
@@ -65,4 +63,12 @@ the issue of strata.
 
 ---------
 coxph still returns the Splus style assign.  It's time to give it up.
+
+-------
+summary(survfit, times=1:5, scale=10)    scale is ignored
+
+outside: a covariate with variance=0 in all the risk sets leads to a
+	 "contact the author" message
+
+incorrect print for a multi-state Cox model predicted curve.
 

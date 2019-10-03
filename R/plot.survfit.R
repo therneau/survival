@@ -194,7 +194,8 @@ plot.survfit<- function(x, conf.int,  mark.time=FALSE,
                        'surv' = function(x) x,
                            stop("Unrecognized function argument")
                            )
-            if (tolower(fun) %in% c("identity", "s")) yzero <- TRUE
+            if (tolower(fun) %in% c("identity", "s") &&
+                !inherits(x, "survfitms") && !cumhaz) yzero <- TRUE
         }
         else if (is.function(fun)) tfun <- fun
         else stop("Invalid 'fun' argument")
@@ -620,7 +621,8 @@ lines.survfit <- function(x, type='s',
                        'surv' = function(x) x,
                            stop("Unrecognized function argument")
                            )
-            if (tolower(fun) %in% c("identity", "s")) yzero <- TRUE
+            if (tolower(fun) %in% c("identity", "s") &&
+                !inherits(x, "survfitms") && !cumhaz) yzero <- TRUE
         }
         else if (is.function(fun)) tfun <- fun
         else stop("Invalid 'fun' argument")
@@ -928,7 +930,8 @@ points.survfit <- function(x, fun, censor=FALSE,
                        'surv' = function(x) x,
                            stop("Unrecognized function argument")
                            )
-            if (tolower(fun) %in% c("identity", "s")) yzero <- TRUE
+            if (tolower(fun) %in% c("identity", "s") &&
+                !inherits(x, "survfitms") && !cumhaz) yzero <- TRUE
         }
         else if (is.function(fun)) tfun <- fun
         else stop("Invalid 'fun' argument")
