@@ -48,56 +48,48 @@ or integer indices.
     class(newx) <- class(x)
 
 
-    if (ndots==1 && length(dd) > 1) {
+    if (ndots==1 && length(dd[dd>1]) > 1) {
         # the 'treat it as a vector' case
-        # if only one dimension is >1, it is easier to expand out i,j,k
-        if (length(dd[dd>1]) ==1) {
-            if (dd[1] > 1) {j <-NULL; k <- NULL};
-            if (dd[3] > 1 || dtype[2]==3) {k <- i;  i <-NULL; j<- NULL}
-            else { j<- i; i<-NULL; k<-NULL }
-        }
+        if (!is.numeric(i))
+            stop("single subscript must be numeric")
+        # when subscripting a mix, these don't endure
+        newx$cumhaz <- newx$std.chaz <- newx$influence.chaz <- NULL
+        newx$transitions <- newx$states <- newx$newdata <- NULL
+        
+        # what strata and columns do I need?
+        itemp <- matrix(1:prod(dd), nrow=dd[1])
+        jj <- (col(itemp))[i]    # columns
+        ii <- (row(itemp))[i]    # this is now the strata id
+        
+        if (dtype[1]!=1 || dd[1]==1) # no strata or only 1
+            irow <- rep(seq(along= x$time), length(ii))
         else {
-            if (!is.numeric(i))
-                stop("single subscript must be numeric")
-            # when subscripting a mix, these don't endure
-            newx$cumhaz <- newx$std.chaz <- newx$influence.chaz <- NULL
-            newx$transitions <- newx$states <- newx$newdata <- NULL
-
-            # what strata and columns do I need?
-            itemp <- matrix(1:prod(dd), nrow=dd[1])
-            jj <- (col(itemp))[i]    # columns
-            ii <- (row(itemp))[i]    # this is now the strata id
-            
-            if (dtype[1]!=1 || dd[1]==1) # no strata or only 1
-                irow <- rep(seq(along= x$time), length(ii))
-            else {
-                itemp2 <- split(1:sum(x$strata), rep(1:length(x$strata), x$strata))
-                irow <- unlist(itemp2[ii])  # rows of the pstate object
-            }
-            inum <- x$strata[ii]        # number of rows in each ii
-            indx <- cbind(irow, rep(jj,ii))      # matrix index for pstate
-           
-            # The n.risk, n.event, .. matrices dont have a newdata dimension.
-            if (all(dtype!=2) || dd["data"]==1) kk <- jj
-            else {  # both data and states
-                itemp <- matrix(1:(dd["data"]*dd["states"]), nrow=dd[2])
-                kk <- (col(itemp))[jj]    # the state of each selected one
-                indx2 <- cbind(irow, rep(k, irow))  
-            }
-            newx$n <- x$n[ii]
-            newx$time <- x$time[irow]
-            for (z in c("n.risk", "n.event", "n.censor", "n.enter"))
-                if (!is.null(x[[z]])) newx[[z]] <- (x[[z]])[indx2]
-            for (z in c("pstate", "std.err", "upper", "lower"))
-                if (!is.null(x[[z]])) newx[[z]] <- (x[[z]])[indx]
-  
-            newx$strata <- x$strata[ii]
-            names(newx$strata) <- seq(along=ii)
-
-            return(newx)
+            itemp2 <- split(1:sum(x$strata), rep(1:length(x$strata), x$strata))
+            irow <- unlist(itemp2[ii])  # rows of the pstate object
         }
+        inum <- x$strata[ii]        # number of rows in each ii
+        indx <- cbind(irow, rep(jj,ii))      # matrix index for pstate
+        
+        # The n.risk, n.event, .. matrices dont have a newdata dimension.
+        if (all(dtype!=2) || dd["data"]==1) kk <- jj
+        else {  # both data and states
+            itemp <- matrix(1:(dd["data"]*dd["states"]), nrow=dd[2])
+            kk <- (col(itemp))[jj]    # the state of each selected one
+            indx2 <- cbind(irow, rep(k, irow))  
+        }
+        newx$n <- x$n[ii]
+        newx$time <- x$time[irow]
+        for (z in c("n.risk", "n.event", "n.censor", "n.enter"))
+            if (!is.null(x[[z]])) newx[[z]] <- (x[[z]])[indx2]
+        for (z in c("pstate", "std.err", "upper", "lower"))
+            if (!is.null(x[[z]])) newx[[z]] <- (x[[z]])[indx]
+        
+        newx$strata <- x$strata[ii]
+        names(newx$strata) <- seq(along=ii)
+        
+        return(newx)
     }
-    
+        
     # not a single subscript, i.e., the usual case
     if (dd[1]==1 && (ndots+1 == length(dd)) && is.null(x$strata)) {
         # if there is only one curve, no 'strata', then we allow users
@@ -109,7 +101,7 @@ or integer indices.
         if (ndots != length(dd)) stop("incorrect number of dimensions")
 
     if (is.null(i)) i <- seq.int(dd[1])
-    else i <- nmatch(i, names(x$strata))
+    else if (length(x$strata)) i <- nmatch(i, names(x$strata))
     if (dd[1]==1) # no strata or only 1
         irow <- rep(seq(along= x$time), length(i))
     else {

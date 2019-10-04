@@ -100,10 +100,21 @@ plot(ajfit, xmax=13, col=1:2, lwd=2,
 legend(8, .2, c("AIDS", "SI"), lty=1, lwd=2, col=1:2, bty='n')
 @ 
 
+Since an initial state was specified in the data or the \code{survfit} call,
+the function assumes that all subjects started in a common state \code{(s0)}
+= ``state 0''. 
+Like the \code{(Intercept)} term in a linear model fit, the name created
+by the survfit function is placed in parenthesis to avoid overlap with any
+actual variable names.  
+The transitions matrix shows that \Scode{ajfit$transitions[1,1]} subjects
+transitioned from this initial state to AIDS, \Scode{ajfit$transitions[1,2]}
+transitioned to SI, and \Scode{ajfit$transitions[1,3]} were censored.
+
 We will use "Txx" to stand for figures or page numbers in the tutorial.
 figure T2 shows the two Kaplan-Meier curves, with one going uphill
 and the other downhill.  The estimated fraction with AIDS is the area above
-the red curve and the fraction with SI the area below the blue one.
+the red curve, the fraction with SI the area below the blue one, and the
+middle part is the fraction with neither.
 The fact that they cross is used to emphasize the inconsistency of the
 two estimates, i.e., that they add to more than 1.0.
 
@@ -115,39 +126,46 @@ lines(bad2, conf.int=FALSE, fun='event', xmax=13, col=4)
 text(c(8,8, 2), c(.8, .22, .5), c("AIDS", "SI", "neither"), col=c(2,4,1))
 @ 
 
-Figure T3 adds the Aalen-Johansen curves on top of this.
-Plotting the competing risk curve for AIDS ``down from the top'' is
-something we do not recommend, since 
-it is not ``survival free of AIDS'' which is what a naive reader of
-such a curve would expect.
-The \code{ajfit} object contains a vector of times along with a 3
-column matrix \code{pstate} containing, in each row the three
-probabilities $(p_1(t), p_2(t), p_3(t))$, each row sums to 1.
-\begin{itemize}
-  \item $p_1(t)$ = Pr(in the ``neither SI or AIDS state'')
-  \item $p_2(t)$ = Pr(in the AIDS state)
-  \item $p_3(t)$ = Pr(in the SI state)
-\end{itemize}
+Figure T3 shows the Aalen-Johansen curves in the same form.
+The default in the survival package is to plot each curve on the
+natural axis $p_k(t)$ = probability of being in state $k$, at time $t$,
+which is the \code{pstate} component of the survfit object.
+The authors of the tutural like to use a stacked display: the distance between
+the horizontal axis and the first curve is the probability of being in
+state 1, the distance between the first and second lines is the probability
+of being in state 2, etc.  
+Since $\sum_k p_k(t)=1$ (everyone has to be somewhere), the final
+curve is a horizontal line at 1. 
+The following helper function \code{cstack} for stacked curves draws the plots
+in this form.
+At time 0 the two lines are at y= 0 and 1: everyone is in the 
+``neither AIDS or SI'' group.  
+<<cstack, echo=TRUE>>=
+cstack <- function(fit, top=FALSE, ...) {
+    temp <- survfit0(fit)   # add the point at time 0
+    if (is.matrix(temp$pstate))  # usual case
+        temp$pstate <- t(apply(temp$pstate, 1, cumsum))
+    else if (is.array(temp$pstate)) 
+        temp <- aperm(apply(temp$pstate, 1:2, cumsum), c(2,3,1))
+    # this works because we don't change any other aspect of the survfit
+    #  object, but only modify the probabilities.
+    if (top) plot(temp, noplot="", ...)
+    else plot(temp, noplot=temp$states[length(temp$states)], ...)
+}
+@ 
 
 <<figT3, fig=TRUE>>=
 # re-create figure T3
-plot(bad1, conf.int=FALSE, xmax=13, col="lightgray",
+cstack(ajfit[c(2,1,3)], col=1:2, xmax=13, lwd=2, 
      xlab="Years from HIV infection", ylab="Probability")
-lines(bad2, conf.int=FALSE, fun='event', xmax=13, col='lightgray')
-text(c(8,8), c(.8, .22), c("AIDS", "SI"))
-
-lines(ajfit[,"SI"], conf.int=FALSE, lwd=2, xmax=13, fun=function(x) 1-x))
-lines(ajfit[,"AIDS"], conf.int=FALSE, lwd=2, ,xmax=13)
+lines(bad1, conf.int=FALSE, col="lightgray")
+lines(bad2, conf.int=FALSE, fun='event', col='lightgray')
+text(c(4, 8,8), c(.5, .85, .15), c("Event free", "AIDS", "SI"), col=c(1,2,1))
 @ 
 
-Figure T4 is a stacked plot of the competing risks outcome.
-We can modify the \code{ajfit} object by replacing each row of the
-\code{pstate} component with the cumulative sum, and then plot the result.
+Figure T4 reorders the states so the event free is the top group.
 <<figT4, fig=TRUE>>=
-# re-create figure T4
-temp <- ajfit
-temp$pstate <- t(apply(temp$pstate, 1, cumsum))  # apply() transposes
-plot(temp, xmax=13, lwd=2, col=1, ylim=c(0,1), 
+cstack(ajfit[c(2,3,1)], xmax=13, lwd=2, col=1, ylim=c(0,1),
         xlab="Years from HIV infection", ylab="Probability")
 text(c(11, 11, 11), c(.2, .55, .9), c("AIDS", "SI", "Event free"))
 @ 
@@ -157,13 +175,13 @@ rates, page T2404.
 
 <<cfit>>=
 cfit1 <- coxph(Surv(time, event=="AIDS") ~ ccr5, adata)
-cfit1
+print(cfit1, digits=2)
 
 cfit2 <- coxph(Surv(time, event=="SI") ~ ccr5, adata)
-cfit2
+print(cfit2, digits=2)
 
 cfit0 <- coxph(Surv(time, event) ~ ccr5, adata, id=patnr)
-coef(cfit0)
+print(cfit0, digits=2)
 @ 
 
 The last line above fits a joint model for both endpoints at once.
@@ -175,7 +193,7 @@ This highlights a basic fact of multi-state models
     jointly.
 \end{enumerate}
 
-We can fit the joint model 'by hand' using a stacked data set, which will
+We can also fit the joint model 'by hand' using a stacked data set, which will
 have 329 rows = number of subjects for the AIDS endpoint, followed by
 329 rows for the SI endpoint.  
 We had to be a bit cautious since the tutorial uses
@@ -189,8 +207,7 @@ temp2 <- data.frame(temp, status= 1*(adata$event=="SI"),   cause="SI")
 stack <- rbind(temp1, temp2)
 
 cfit3 <- coxph(Surv(time, status) ~ ccr5 * strata(cause), data=stack)
-cfit3
-sum(coef(cfit3))
+print(cfit3, digits=2)
 @ 
 
 The use of an interaction term gives a different form for the coefficients;
@@ -204,7 +221,8 @@ result in \code{cfit0}.
 <<stack2>>=
 stack$ccr5.1 <- (stack$ccr5=="WM") * (stack$cause == "AIDS")
 stack$ccr5.2 <- (stack$ccr5=="WM") * (stack$cause == "SI")
-coxph(Surv(time, status) ~ ccr5.1 + ccr5.2 + strata(cause), stack)
+cfit3b <- coxph(Surv(time, status) ~ ccr5.1 + ccr5.2 + strata(cause), stack)
+cfit3b$coef
 @ 
 
 The model \code{cfit4} assumes that the baseline hazards for the two
@@ -216,7 +234,7 @@ summary(cfit4)$coefficients
 cfit4b <-  coxph(Surv(time, status) ~ ccr5*cause, stack) #same result
 
 cfit4c <- coxph(list(Surv(time, event) ~ ccr5,
-                     1:1 ~ 1 + (event=="SI") / common), adata, id= patnr)
+                     1:1 ~ 1 + I(event=="SI") / common), adata, id= patnr)
 @ 
 
 We can now generate the Aalen-Johansen curves for \code{cfit4}.  This starts
