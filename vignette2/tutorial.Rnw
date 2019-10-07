@@ -21,7 +21,7 @@
                         {tutorial-#1.pdf}}
 \setkeys{Gin}{width=\textwidth}
 <<echo=FALSE>>=
-options(continue="  ", width=60)
+options(continue="  ", width=70)
 options(SweaveHooks=list(fig=function() par(mar=c(4.1, 4.1, .3, 1.1))))
 pdf.options(pointsize=10) #text in graph about the same as regular text
 options(contrasts=c("contr.treatment", "contr.poly")) #ensure default
@@ -69,12 +69,13 @@ detach("package:mstate")  # the package is not needed for the remainder
 The first analysis uses the AID data set and a competing risks transition
 shown in the figure below.
 <<aids>>=
-states <- c("Follow up", "AIDS", "SI")
+states <- c("Event free", "AIDS", "SI")
 smat <- matrix(0, 3, 3, dimnames=list(states, states))
 smat[1,2] <- smat[1,3] <- 1
 statefig(1:2, smat)
 @ 
 
+\subsection{Aalen-Johansen curves}
 We first create a multi-state status variable and use it to plot
 the competing risk curves for the outcome. 
 A key tool for dealing with multi-state outcomes is replacement of the
@@ -87,6 +88,7 @@ This allows us to specify not just \emph{that} an event occured, but
 <<aids1, fig=TRUE>>=
 adata <- aidssi
 adata$event <- factor(adata$status, 0:2, c("censored", "AIDS", "SI"))
+adata$id <- 1:nrow(adata)   # a subject identifier
 
 # KM curves that censor the other endpoint (a bad idea)
 bad1 <- survfit(Surv(time, event=="AIDS") ~ 1, adata)
@@ -109,6 +111,17 @@ actual variable names.
 The transitions matrix shows that \Scode{ajfit$transitions[1,1]} subjects
 transitioned from this initial state to AIDS, \Scode{ajfit$transitions[1,2]}
 transitioned to SI, and \Scode{ajfit$transitions[1,3]} were censored.
+
+A small footnote: The \code{survfit} routine in R produces Aalen-Johansen (AJ)
+estimates, which are applicable to any state space diagram (an arrangment of 
+boxes and arrows).  
+For a simple two state model such as alive \rightarrow dead the AJ estimate
+reduces to a Kaplan-Meier (KM).
+For a competing risk model such as this, the AJ estimate produces the same
+values as the 
+\emph{cumulative incidence} estimator.  Put another way, the KM and CI are
+special cases of the AJ.  The tutorial uses KM and CI as labels for their
+estimates and we will more often use AJ as a label.
 
 We will use "Txx" to stand for figures or page numbers in the tutorial.
 figure T2 shows the two Kaplan-Meier curves, with one going uphill
@@ -136,12 +149,12 @@ state 1, the distance between the first and second lines is the probability
 of being in state 2, etc.  
 Since $\sum_k p_k(t)=1$ (everyone has to be somewhere), the final
 curve is a horizontal line at 1. 
-The following helper function \code{cstack} for stacked curves draws the plots
+The following helper function \code{pstack} for stacked curves draws the plots
 in this form.
 At time 0 the two lines are at y= 0 and 1: everyone is in the 
 ``neither AIDS or SI'' group.  
 <<cstack, echo=TRUE>>=
-cstack <- function(fit, top=FALSE, ...) {
+pstack <- function(fit, top=FALSE, ...) {
     temp <- survfit0(fit)   # add the point at time 0
     if (is.matrix(temp$pstate))  # usual case
         temp$pstate <- t(apply(temp$pstate, 1, cumsum))
@@ -156,43 +169,65 @@ cstack <- function(fit, top=FALSE, ...) {
 
 <<figT3, fig=TRUE>>=
 # re-create figure T3
-cstack(ajfit[c(2,1,3)], col=1:2, xmax=13, lwd=2, 
+pstack(ajfit[c(2,1,3)], col=1, xmax=13, lwd=2, 
      xlab="Years from HIV infection", ylab="Probability")
 lines(bad1, conf.int=FALSE, col="lightgray")
 lines(bad2, conf.int=FALSE, fun='event', col='lightgray')
-text(c(4, 8,8), c(.5, .85, .15), c("Event free", "AIDS", "SI"), col=c(1,2,1))
+text(c(4, 8,8), c(.5, .85, .15), c("Event free", "AIDS", "SI"), col=1)
 @ 
 
 Figure T4 reorders the states so the event free is the top group.
+This author much prefers the unstacked version, which shows more
+clearly that the probabilities of the two outcomes are very nearly the same.
 <<figT4, fig=TRUE>>=
-cstack(ajfit[c(2,3,1)], xmax=13, lwd=2, col=1, ylim=c(0,1),
+pstack(ajfit[c(2,3,1)], xmax=13, lwd=2, col=1, ylim=c(0,1),
         xlab="Years from HIV infection", ylab="Probability")
 text(c(11, 11, 11), c(.2, .55, .9), c("AIDS", "SI", "Event free"))
 @ 
 
-The tutorial then fits separate Cox models to the two
-rates, page T2404.
+A last point is to note that for cumulative hazard functions,
+you \emph{can} do the estimates separately for each endpoint, censoring the
+other.  In the figure below the estimates from the joint fit and those from
+the ``bad'' fits completely overlay each other.
+
+<<cuminc, fig=TRUE>>=
+plot(ajfit, cumhaz=TRUE, xmax=13, col=1:2, lty=2,
+     xlab="Years from HIV infection", ylab="Cumulative incidence")
+lines(bad1, cumhaz=TRUE, conf.int=FALSE)
+lines(bad2, cumhaz=TRUE, col=2, conf.int=FALSE)
+@ 
+
+\subsection{Proportional hazards models}
+
+The code below first fits a joint model for the two endpoints,
+followed by indiviual models for the two rates, each of treats the
+other endpoint as censored. 
 
 <<cfit>>=
+cfit0 <- coxph(Surv(time, event) ~ ccr5, adata, id=patnr)
+print(cfit0, digits=2)
+
 cfit1 <- coxph(Surv(time, event=="AIDS") ~ ccr5, adata)
 print(cfit1, digits=2)
 
 cfit2 <- coxph(Surv(time, event=="SI") ~ ccr5, adata)
 print(cfit2, digits=2)
-
-cfit0 <- coxph(Surv(time, event) ~ ccr5, adata, id=patnr)
-print(cfit0, digits=2)
 @ 
 
-The last line above fits a joint model for both endpoints at once.
-Notice that the coefficients are identical.
+Notice that the coefficients are identical to the singleton fits.
 This highlights a basic fact of multi-state models
 \begin{enumerate}
-  \item Hazards and cumulative hazards can be estimated one by one.
+  \item Hazards and cumulative hazards can be estimated one by one.\\
   \item Probability in state (absolute risk) has to be estimated
     jointly.
 \end{enumerate}
 
+The Cox model is a model for the hazards, and the separability allows for
+a lot of freedom in how code and data sets are constructed. 
+(It also gives more opportunity to mess it up, and for this reason the
+authors often prefer the joint approach of \code{cfit0}). 
+The tutorial fits separate Cox 
+models, page T2404, the form found in \code{cfit1} and \code{cfit2}.
 We can also fit the joint model 'by hand' using a stacked data set, which will
 have 329 rows = number of subjects for the AIDS endpoint, followed by
 329 rows for the SI endpoint.  
@@ -200,8 +235,9 @@ We had to be a bit cautious since the tutorial uses
 \code{cause} for the event type and the data set \code{aidsii} already
 has a variable by that name; 
 hence the initial subset call.
+
 <<stack>>=
-temp <- subset(adata, select=c(time, ccr5))
+temp <- subset(adata, select=c(id, time, ccr5))
 temp1 <- data.frame(temp, status= 1*(adata$event=="AIDS"), cause="AIDS")
 temp2 <- data.frame(temp, status= 1*(adata$event=="SI"),   cause="SI")
 stack <- rbind(temp1, temp2)
@@ -213,62 +249,143 @@ print(cfit3, digits=2)
 The use of an interaction term gives a different form for the coefficients;
 the second is now the difference in CCR-5 effect between the two endpoints.
 Which form one prefers is a matter of taste.
-In the tutorial, the stacked data set also has individual indicator 
-variables for \code{ccr} within type.
-We can reprise that approach instead of using the interaction to
-get yet a third equivalent fit.  We have now replicated the joint
-result in \code{cfit0}.
+In the tutorial they used the equation 
+\code{Surv(time, status) ~ ccr5*cause + strata(cause)}, which leads to
+a redundant variable in the $X$ matrix of the regression and a consequent
+NA coeffient in the data set, but does not otherwise affect the results.  
+We can also add individual indicator variables to the stacked
+data set for \code{ccr} within type,
+which gives yet another way of writing the same model.
+Last, we verify that the  partial likelihoods for our three versions are all 
+identical.
+
 <<stack2>>=
 stack$ccr5.1 <- (stack$ccr5=="WM") * (stack$cause == "AIDS")
 stack$ccr5.2 <- (stack$ccr5=="WM") * (stack$cause == "SI")
 cfit3b <- coxph(Surv(time, status) ~ ccr5.1 + ccr5.2 + strata(cause), stack)
 cfit3b$coef
+
+temp <- cbind(cfit0=cfit0$loglik, cfit3= cfit3$loglik, cfit3b= cfit3b$loglik)
+rownames(temp) <- c("beta=0", "beta=final")
+temp
 @ 
 
-The model \code{cfit4} assumes that the baseline hazards for the two
-endpoints are proportional.
-<<cfit4>>= 
-cfit4 <- coxph(Surv(time, status) ~ ccr5.1 + ccr5.2 + cause, stack)
-cfit4
-summary(cfit4)$coefficients
-cfit4b <-  coxph(Surv(time, status) ~ ccr5*cause, stack) #same result
+We can also fit a models where the effect of ccr5 on the two types of outcome
+is assumed to be equal.  (We agree with the tutorial that there is not good
+medical reason for such an assumption, the model is simply for illustration.)
+Not surprisingly, the realized coefficient is midway between the estimates
+of the ccr effect on the two separate endpoints.
+The second fit uses the joint model approach by adding a constraint.
 
-cfit4c <- coxph(list(Surv(time, event) ~ ccr5,
-                     1:1 ~ 1 + I(event=="SI") / common), adata, id= patnr)
+<<common>>=
+common1 <- coxph(Surv(time, status) ~ ccr5 + strata(cause), data=stack)
+print(common1, digits=2)
+
+common1b <- coxph(list( Surv(time, event) ~ ccr5, 1:1 ~ ccr5/common),
+                  data=adata, id=patnr)
 @ 
 
-We can now generate the Aalen-Johansen curves for \code{cfit4}.  This starts
-with obtaining the predictions for the two levels of
-CCR-5 and for the two endpoints, which results in four curves.
-The first two are for AIDS and the second two for SI.
-The temporary matrix \code{smat} can have the states in any order we
-wish (as long as we plug our curves into the right position!);
-we have chosen the order found above in the non-parametric curves \code{fit2}.
-<<figT5, fig=TRUE>>=
+At this point the tutorial explores an approach that we find problematic,
+which is to fit models to the stacked data set \emph{without} including the
+stratum.
+The partial likelihood for the Cox model has a term at each event time, each
+term is a ratio that compares the risk score of the event to the sum of
+risk scores for all subjects who were at risk for the event. 
+When the \code{stack} data set is fit without a strata statement, like below,
+then at each event time the risk set will have 2 clones of each subject,
+one labeled with \code{cause} = AIDS and the other as SI.
+This is not a proper risk set, since the data set has been set up so that
+one of those clones is ``allowed to'' have an AIDS event and the other to have
+an SI event; when an AIDS event occurs not all of them are actually at risk.
+If we look closely, the estimated coefficient from this second fit is
+almost identical to the stratified fit \code{common1}, however.
+
+<<common2>>= 
+common2 <- coxph(Surv(time, status) ~ ccr5, data = stack)
+all.equal(common2$coef, common1$coef)
+@ 
+
+In fact, if the Breslow approximation is used for ties, one can show
+that the partial likelihood (PL) values satisfy an identity
+PL(fit 2) = PL(fit 1) - d log(2), where $d$ is the total number of events.
+Since the two partial likelihoods differ by a constant, they will
+maximize at the same location, i.e., give exactly the same coefficient
+estimates.
+One can further show that if \code{cause} is added to the model as a second
+covariate, that this will not change the ccr5 coefficient, while adding
+an estimate of the relative proportion of events of each type.
+
+<<common3>>=
+test1 <- coxph(Surv(time, status) ~ ccr5 + strata(cause), stack,
+               ties='breslow')
+test2 <- coxph(Surv(time, status) ~ ccr5, stack, ties='breslow')
+all.equal(test2$loglik + test2$nevent * log(2),  test1$loglik)
+all.equal(test2$coef, test1$coef)
+
+test3 <- coxph(Surv(time, status) ~ ccr5 + cause, stack, ties='breslow')
+test3
+all.equal(test3$coef[1], test1$coef)
+@ 
+
+These identities do not assure us that this \emph{psuedo risk set} 
+approach, where subjects are duplicated, is a 
+valid way to estimate the ccr5 effect under the assumption of a common
+baseline hazard.
+The first model \code{common1} can be directly fit in the multi-state framework
+by adding the constraint of a common ccr5 effect for the two transitions;
+this is found above as \code{common1b}.
+One can not directly fit a version of \code{test2} using the joint model,
+however, as the underlying code for
+multi-state fits rigorously enforces a ``one copy'' principle:
+during the entire period of time that a subject is at
+risk, there should be exactly one copy of that subject present in the
+data set.  See the \code{survcheck} routine for a more detailed discussion.
+
+\subsection{Predicted curves}
+We can now generate predicted  Aalen-Johansen curves from the
+Cox model fits.  
+As with any Cox model, this starts by deciding \emph{who} to predict,
+i.e. what set of covariate values. 
+<<aidscurve>>=
 # re-create figure T5 in a single panel
-tdata <- expand.grid(ccr5=c("WW","WM"), cause=c("AIDS", "SI"))
-tdata
+dummy <- data.frame(ccr5=c("WW", "WM"))
+pred.aj <- survfit(cfit0, newdata=dummy)
+dim(pred.aj)
+pred.aj$states
+@ 
+The resulting curves have an apparent dimension of (number of strata,
+number of covariate patterns, number of states).
+We plot subsets of the curves by using subscripts.
+(When there are no strata in the coxph fit (1 stratum) the code allows
+one to omit the first subscript.)
 
-tsurv <- survfit(cfit4b, newdata=tdata)
-smat <- matrix(list(), 3, 3,
-               dimnames=list(from= c("AIDS", "SI", "entry"),
-                             to =  c("AIDS", "SI", "entry")))
-smat[3,1] <- list(tsurv[1:2])
-smat[3,2] <- list(tsurv[3:4])
-smat   #did we put things in the right place?
-
-csurv1 <- survfit(smat, p0=c(0,0,1))
-plot(csurv1[,1:2], col=1:2, lty=c(1,1,2,2), xmax=13, lwd=2, 
-     xlab="Years from HIV infection", ylab="Probability")
-legend(0, .4, c("AIDS, WW", "AIDS, WM", "SI, WW", "SI, WM"),
-       col=1:2, lty=c(1,1,2,2), lwd=2, bty='n')
+<<figT5, fig=TRUE>>=
+oldpar <- par(mfrow=c(1,2))
+plot(pred.aj[,,"AIDS"], lwd=2, col=c("black", "gray"), 
+     xmax=13, ylim=c(0,.5),
+     xlab="Years from HIV infection", ylab="Probability of AIDS")
+text(c(1, 9.5, 10), c(.45, .3, .1), c("AIDS", "WW", "WM"))
+plot(pred.aj[,,"SI"], lwd=2, col=c("black", "gray"), 
+      xmax=13, ylim=c(0,.5),
+    xlab="Years from HIV infection", ylab="Probability of SI")
+text(c(1, 8.5, 9), c(.45, .33, .25), c("SI", "WW", "WM"))
 @ 
 
-Because the entry state has a name, the plot command would have shown
-all 3 curves by default; the 1:2 subscript restricts it to the first two.
+Predicted survival curves from the two fits to individual endpoints
+suffer from the same issue as the individual Kaplan-Meier curves
+\code{bad1} and \code{bad2}: the predicted risk risk of having either 
+AIDS or SI will be greater than 1 for some time points, which is clearly
+impossible.  Absolute risk estimates must be done jointly.
+The tutorial at this point uses simulation data to further elucidate
+the underlying issues between per-endpoint and joint estimates,
+which we will not replicate.
 
-\section{Fine-Gray fits}
+\subsection{Fine-Gray fits}
 We can also fit Fine-Gray models for AIDS and SI appearance.
+In the survival package this can be done by creating a special
+data sets, one for each endpoint.
+Ordinary Cox model code can then be applied to those data sets.
+
 <<>>=
 fdata1 <- finegray(Surv(time, event) ~ ., adata, etype='AIDS')
 fgfit1 <- coxph(Surv(fgstart, fgstop, fgstatus) ~ ccr5, fdata1,
@@ -286,8 +403,8 @@ survival tools (not Aalen-Johansen), since they are ordinary
 Cox models on a special data set.
 <<figT8, fig=TRUE>>=
 # re-create figure T8: Fine-Gray curves
-fgsurv1<-survfit(fgfit1,newdata=tdata)
-fgsurv2<-survfit(fgfit2,newdata=tdata)
+fgsurv1<-survfit(fgfit1,newdata=dummy)
+fgsurv2<-survfit(fgfit2,newdata=dummy)
 
 oldpar <- par(mfrow=c(1,2), mar=c(4.1, 3.1, 3.1, 1)) #leave room for title
 plot(fgsurv1, col=1:2, lty=c(1,1,2,2), lwd=2, xmax=13,
@@ -306,17 +423,29 @@ The last plot in this section of the tutorial contains the non-parametric fits.
 # re-create figure T9: curves by CCR type
 aj2 <- survfit(Surv(time, event) ~ ccr5, adata)
 oldpar <- par(mfrow=c(1,2))
-plot(aj2[,1], xmax=13, col=1:2, lwd=2, ylim=c(0, .5),
+plot(aj2[,"AIDS"], xmax=13, col=1:2, lwd=2, ylim=c(0, .5),
      xlab="Years from HIV infection", ylab="Probability of AIDS")
 text(c(10, 10), c(.35, .07), c("WW", "WM"))
 
-plot(aj2[,2], xmax=13, col=1:2, lwd=2, ylim=c(0, .5), 
+plot(aj2[,"SI"], xmax=13, col=1:2, lwd=2, ylim=c(0, .5), 
      xlab="Years from HIV infection", ylab="Probability of SI")
 text(c(8, 8), c(.34, .18), c("WW", "WM"))
 par(oldpar)
 @ 
 
 \section{Multi-state models}
+
+<<figT13, fig=TRUE>>=
+oldpar <- par(mar=c(.1, .1,.1, .1))
+states <- c("Transplant", "Platelet recovery", 
+            "Relapse or death")
+tmat <- matrix(0, 3,3, dimnames=list(states, states))
+tmat[1,2] <- tmat[1,3] <- tmat[2,3] <- 1 # arrows
+statefig(cbind((1:3)/4, c(1,3,1)/4), tmat)
+text(c(.3, .5, .7), c(.5, .3, .5), c(1169, 458, 383))
+par(oldpar)
+@ 
+
 The multi-state model is based on patients from the European Blood and Marrow
 Transplant registry.
 The initial state for each subject is bone marrow transplant
@@ -339,33 +468,44 @@ Next create the analysis data set \code{edata}.
 The \code{tmerge} function creates the basic time course data set
 that tracks a subject from state to state using
 \code{(tstart, tstop)} intervals of time.
-The \code{enum} variable is 1 for a subject who has had
-platelet recovery.  
 We also shorten one of the factor labels so as to better fit
 the printout on a page. 
 Printout of a subset of rows shows that subjects 8 and 11
 achieve PR, subject 9 is censored at 3.5 years (1264/365),
 and subject 10 dies at about 1 year.
-We then generate the multi-state $P(t)$ curves, a 
-plot that does not appear in the tutorial.
-It shows the rapid onset of platelet recovery followed by a slow but 
-steady conversion of these patients to relapse or death.
-<<data1, fig=TRUE>>=
+Note that the variable for prior platelet recovery (\code{priorpr})
+lags the platelet recovery event.
+The \code{survcheck} call is an important check of the data
+set.  
+The transitions table shows that about 28\% (577/2204) of the subjects 
+had neither platelet recover or failure by the end of follow-up 
+while 383 experienced both. Most important is that the routine
+reported no errors in the data.
+
+<<data1>>=
 temp <- subset(ebmt3, select = -c(prtime, prstat, rfstime, rfsstat))
 edata <- tmerge(temp, ebmt3, id, 
                 rstat = event(rfstime, rfsstat),
                 pstat = event(prtime, prstat),
-                enum  = tdc(prtime))
+                priorpr = tdc(prtime))
 print(edata[15:20,-(3:5)])
 
-# Check that no one has recovery and death on the same day
+# Check that no one had recovery and death on the same day
 with(edata, table(rstat, pstat))
 
 # Create the factor outcome
 edata$event <- with(edata, factor(pstat + 2*rstat, 0:2,
                            labels = c("censor", "PR", "RelDeath")))
 levels(edata$drmatch) <- c("Match", "Mismatch")
+survcheck(Surv(tstart, tstop, event) ~1, edata, id=id)
+@ 
 
+We then generate the multi-state $P(t)$ curves, a 
+plot that does not appear in the tutorial.
+It shows the rapid onset of platelet recovery followed by a slow but 
+steady conversion of these patients to relapse or death.
+
+<<data1b, fig=TRUE>>=
 surv1 <- survfit(Surv(tstart, tstop, event) ~ 1, edata, id=id)
 surv1$transitions   # matches the Frequencies on page C5
 plot(surv1, col=1:2, xscale=365.25, lwd=2, 
@@ -374,167 +514,69 @@ legend(1000, .2, c("Platelet recovery", "Death or Relapse"),
        lty=1, col=1:2, lwd=2, bty='n')
 @ 
 
-Many of the fits in the paper make use of a stacked data set.
-Subjects can go from baseline to platelet recovery (\code{temp1}),
-baseline to death/relapse (\code{temp2}) or from PR to the death/relapse state
-(\code{temp3}).
-<<data2>>=
-temp1 <- with(edata, data.frame(edata[enum==0,], status=pstat[enum==0], 
-                 trans="1->2", from=1, to=2))  # baseline to PR
-temp2 <- with(edata, data.frame(edata[enum==0,], status=rstat[enum==0], 
-                 trans="1->3", from=1, to=3)) # baseline to relapse/death
-temp3 <- with(edata, data.frame(edata[enum==1,], status=rstat[enum==1], 
-                 trans="2->3", from=2, to=3)) # PR to replase/death
-edata2 <- rbind(temp1, temp2, temp3)  # the stacked data set
+The default fit has separate baseline hazards and separate coefficients
+for each transition, and is given below.
+We have used the Breslow approximation for ties so as to exactly match the
+paper.  By default the program uses a robust standard error to account for
+the fact that some subjects have multiple events.
+This reproduces the results in the first column of table III.
+<<efit1, size='small'>>=
+efit1 <- coxph(Surv(tstart, tstop, event) ~ dissub + age + drmatch + tcd,
+               id=id, data=edata, ties='breslow')
+print(efit1, digits=2)
+@
+
+Now draw the figure for baseline hazards
+<<figT14, fig=TRUE>>=
+# a data set containing the ``reference'' categories 
+rdata <- data.frame(dissub="AML", age="<=20", drmatch="Match", tcd="No TCD")
+esurv1 <- survfit(efit1, newdata=rdata)
+plot(esurv1, cumhaz=TRUE, lty=1:3, xscale=365.25, xmax=7*365.35,
+     xlab="Years since transplant", ylab="Cumulative hazard")
+legend(365, .8, c("Transplant to platelet recovery (1:2)",
+                "Transplant to death (1:3)",
+                "Platelet recovery to death (2:3)"), lty=1:3, bty='n')
 @ 
 
-The first fit, found in the left columns of table T3, has separate strata
-and covariate effects for each of the three transitions.
-We can fit the model in multiple ways: first as 3 separate fits
-(\code{efit1.1}, \code{efit1.2}, \code{efit1.3}),
-then using the stacked data set and a strata by
-covariate interaction (\code{efit1b}) and then rewriting the model to get a
-slightly different variable coding (\code{efit1c}).
-In the first two fits below everyone has \code{tstart=0} and so 
-\code{tstart} can be left out of the model statement.
-(Or left in: it has no effect.)
-<<efit1>>=
-efit1.2 <- coxph(Surv(tstop, event=='PR') ~ 
-                    dissub + age + drmatch + tcd, ties='breslow',
-                    data=edata, subset = (enum==0))
-efit1.3 <- coxph(Surv(tstop, event=='RelDeath') ~ 
-                    dissub + age + drmatch + tcd, ties= 'breslow',
-                    data=edata, subset = (enum==0))
-efit2.3 <- coxph(Surv(tstart, tstop, event=='RelDeath') ~ 
-                    dissub + age + drmatch + tcd, ties='breslow',
-                    data=edata, subset = (enum==1))
-round(cbind('1->2'= coef(efit1.2) , '1->3'= coef(efit1.3), 
-            '2->3' =coef(efit2.3)), 3)
-@ 
-These coefficients match those in the left column of table T3,
-which lists all six coefficients for the 1.2 transition, then the
-six for the 1.3 transition, and finally the six for the 2.3 transition.
-This is a rational way to present the results to a reader.
+From the figure, proportional hazards for the two transitions to death
+could be 
+As we noted before, the partial likelihood construction forces separate
+baseline hazards for transitions that eminate from a given state, i.e. the
+1:2 and 1:3 pair in this case.  However, it does allow a shared baseline
+hazard for transitions that terminate in the same state, i.e., 1:3 and 2:3.
+The fit below does adds this constraint by stating that the two
+transitions have a common intercept (`1') and adding a coefficient
+for prior plasma recovery to the two transitions.
+(Every data row at risk for a 2:3 transition has \code{priorpr=1} and
+the rows for a 1:3 all have \code{priorpr=0}.)
+The resulting fit replicates coefficient in the ``proportional hazards''
+columns of table T3. 
 
-The other fits result in a different order.
-<<>>= 
-efit1b <- coxph(Surv(tstart, tstop, status) ~ (dissub + age + drmatch + tcd)
-                           *strata(trans), data=edata2, ties="breslow")
-efit1c <- coxph(Surv(tstart, tstop, status) ~ 
-               strata(trans)/(dissub + age + drmatch + tcd),
-               data=edata2, ties="breslow")
-# Rearrange the order so as to match the paper
-mycoef <- summary(efit1c)$coefficients[, c(1,3)]  # coef and se
-index <- as.vector(matrix(1:18, ncol=3, byrow=T))
-round(mycoef[index,], 3)
-    
-# Compare the log-likelihoods of the fits          
-matrix(c(efit1.2$loglik + efit1.3$loglik + efit2.3$loglik, 
-         efit1b$loglik, efit1c$loglik), nrow=2,
-       dimnames=list(c("Initial LL", "Final LL"), 
-                     c("fit a", "fit b", "fit c")))
-@ 
-The coefficients of \code{efit1b} are focused on contrasts: 
-first the six coefficients for the
-1.2 transition and then  the \emph{changes} in those coefficients for
-the 1.3 and 2.3 transitions.  
-In its favor, this makes it easy to see if there are significant differences 
-in, e.g., the disease effect for transition 1.2 and 1.3.
-The last fit gives the same coefficients as the separate fits,
-but in a different
-order.  
-We can see from the log-likelihoods that the three fits are equivalent.
-
-Unlike '*' and '+', the '/' operator is not symmetric.  
-An equivalent form
-to \code{a/b} is \code{a \%in\% b}, which is supposed to help us remember
-which should be first.  
-However, the natural interpretation (at least to us) of these as 
-coefficients \emph{within} strata is still reversed.
-
-The next fit assumes that the baseline hazards for the two transitions 
-to relapse-death are
-proportional, but retains separate coefficients for each transition.
-Again there are multiple ways to do this.  Since the model leaves the
-coefficients and strata for the transplant to PR transition unchanged
-the first approach is to replace \code{efit1.3} and \code{efit2.3}
-with a single model \code{efit2a}, the second approach is to again
-fit all three at once.
 <<efit2>>=
-efit2a <- coxph(Surv(tstart, tstop, status) ~ 
-                 factor(from)*(dissub + age + drmatch + tcd),
-                data=edata2, ties="breslow", subset= (to==3))
-efit2b <- coxph(Surv(tstart, tstop, status) ~ 
-                 factor(from)/(dissub + age + drmatch + tcd),
-                data=edata2, ties="breslow", subset= (to==3))
-mycoef <- summary(efit2a)$coefficients[, c(1,3)]
-round(mycoef, 3)[c(2,4,6,8,10,12, 3,5,7,9,11,13,1),]
-
-efit2c <- coxph(Surv(tstart, tstop, status) ~ strata(to) +
-               trans/(dissub + age + drmatch + tcd),
-               data=edata2, ties="breslow")
-round(summary(efit2b)$coefficients[, c(1,3)], 3)
-@ 
-This matches the second column of table T3, though again the model
-coefficients are not in the same order as the table.  
-(In table T3 the first 6 coefficients in columns 2 and 3 are left blank since
-they are unchanged from column 1; this confused me at first.)
-The NA in position 2 of \code{efit2c} is due to the fact that the model
-as written
-has both a separate stratum for the 1.2 transition and a coefficient for it.
-These are confounded and as a result \code{coxph} fits one more 
-coefficient than it needs,
-2 instead of 1.  In such a situation the last coefficient is the one set to NA.
-
-Rather than using the plot of figure T14 along with a ``they look parallel''
-argument, we can more directly assess the proportional hazards
-assumption in model efit2a by using the \code{cox.zph} routine.
-We chose to plot on the $\sqrt{t}$ scale to emphasize the first year, where
-more events occur.  There is little formal evidence for non-proportional
-hazards, with a p-value of 0.27, though the confidence limits are very wide.
-<<zph, fig=TRUE>>=
-z2 <- cox.zph(efit2a, transform=function(x) sqrt(x))
-plot(z2[7], resid=FALSE)
-abline(h=coef(efit2a)[7], col=2)
-z2[7]
+efit2 <- coxph(list(Surv(tstart, tstop, event) ~ dissub + age + drmatch + tcd,
+                    1:state("RelDeath") ~ 1 / common,
+                    "PR":"RelDeath" ~ priorpr),
+                    id=id, data=edata, ties='breslow')
+print(coef(efit2, type='matrix'), digits=2)
 @ 
 
-The third column of table S3 adds the time of platelet recovery as
-a covariate, i.e., we simply add \code{tstart} as a variable in
-the model.  We had not changed the data set from days to years, as
-the tutorial did; to match their coefficient this extra variable
-needs to be in years.
+The last model of table 3 adds a term for the time until platelet
+recovery. This variable is only defined for subjects who enter
+state 2.
 
-<<tableS4>>=
-# The extra variable for column 3 of table 3
-efit3 <- coxph(Surv(tstart, tstop, status) ~ I(tstart/365.25) +
-                factor(from)/(dissub + age + drmatch + tcd),
-                data=edata2, ties="breslow", subset= (to==3)) 
-coef(efit3)["I(tstart/365.25)"]
-@ 
-The Cox model fit for \code{efit3} produces a warning message that a time
-variable appears on both sides of the equation.
-This is a warning that should not be ignored without careful thought,
-since it is often associated with an invalid model. 
-In short, a Cox model may not include a time-dependent covariate whose value (at
-any given event time) is dependent on the future.
-In this case we are okay.  Because all the observations are on a common
-time scale, the value of \code{tstart} does not become ``known'' for a subject
-until all of the subjects have passed that time point.
+<<efit3>>=
+prtime <- ifelse(edata$priorpr==1, edata$tstart, 0)/365.25
+efit3 <-  coxph(list(Surv(tstart, tstop, event) ~ dissub + age + drmatch + tcd,
+                    1:state("RelDeath") ~ 1 + priorpr / common,
+                    "PR":"RelDeath" ~ priorpr + prtime), 
+                    id=id, data=edata, ties='breslow')
+print(coef(efit3, type='matrix'), digits=2)
+@  
 
 Table T4 reruns all the models using a ``clock reset'' time scale.
-These are the same models as before but with \code{tstop-tstart} as
-the time value.  The code below gives the first column of the
-table.
-
-<<tableT4>>=
-efit4 <- coxph(Surv(tstop - tstart, status) ~ 
-               strata(trans)/(dissub + age + drmatch + tcd),
-               data=edata2, ties="breslow")
-mycoef4 <- summary(efit4)$coefficients[, c(1,3)]  # coef and se
-index4 <- index[7:18]  # leave off transition 1->2
-round(mycoef4[index4,], 3)  
-@ 
+These are the same models as before but with 
+\code{Surv(tstop - tstart, event)} in the \code{coxph} calls.
+the time value.  
 
 We now predict the future state of a patient, using as our reference
 set two subjects who are $\le 20$ years old, gender matched, AML, with and
@@ -542,15 +584,10 @@ without T-cell depletion. We will use the fit from column 2 of table T3,
 which has proportional hazards 
 for the two transitions to Relapse/Death and a separate baseline hazard for
 the PR transition.
-We can predict the hazard for the $1\rightarrow 2$ transition from model
-\code{efit1.2}, the hazards for the other two transitions come from
-\code{efit2a}.
 <<fig=TRUE>>=
-newdata1 <- expand.grid(age="<=20", dissub="AML", drmatch="Mismatch",
-                       tcd=c("No TCD", "TCD"))
-newdata2 <- cbind(newdata1[c(1,2,1,2),], from=c(1,1,2,2))
-newdata2
-
+edummy <- expand.grid(age="<=20", dissub="AML", drmatch="Mismatch",
+                      tcd=c("No TCD", "TCD"), priorpr=1)
+ecurve2 <- survfit(efit2, newdata= edummy)
 tcurve1 <- survfit(efit1.2, newdata1, se.fit=FALSE)
 tcurve2 <- survfit(efit2a,  newdata2, se.fit=FALSE)
 

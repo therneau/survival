@@ -39,17 +39,22 @@ stacker <- function(cmap, istate, X, Y, strata, states) {
     
     # The constructed X matrix has a block or rows for each ustrata level
     n2 <- sum(n.perstrat)  # number of rows in new data
-    newX <- matrix(0L, nrow=n2, ncol=max(cmap[-1,]))
+    newX <- matrix(0, nrow=n2, ncol=max(cmap[-1,]))
     k <- 0
     rindex <- integer(n2)   # original row for each new row of data
     newstat <- integer(n2)  # new status
     for (i in 1:nstrat) {
-        whichcol <- (cmap[1,] == ustrata[i])  # cols of cmap to look at
-        subject <- which(istate %in% from.state[whichcol]) #participants in block
-        nr <-k + seq(along=subject)  # rows in new matrix
-        nc <- cmap[-1,i]             # variables in new matrix
-        newX[nr, nc[nc>0]] <- X[subject, nc>0]
+        whichcol <- which(cmap[1,] == ustrata[i])  # cols of cmap to look at
+        subject <- which(istate %in% from.state[whichcol]) # data rows in strata
+        nr <- k + seq(along=subject)  # rows in the newX for this strata
         rindex[nr] <- subject
+        # Fill in X one transition at a time
+        for (j in whichcol) {
+            j1 <- which(istate == from.state[j]) # rows of X in transition
+            j2 <- which(istate[subject] == from.state[j]) # new rows
+            nc <- cmap[-1,j]             # variables in this transition
+            newX[nr[j2], nc[nc>0]] <- X[j1, nc>0] # rows of cmap = cols of X
+        }
         
         event.that.counts <- (endpoint[subject] %in% to.state[whichcol])
         newstat[nr] <- ifelse(event.that.counts, 1L, 0L)

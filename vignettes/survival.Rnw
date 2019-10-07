@@ -435,7 +435,7 @@ The plot below shows all 4 curves.
 is omitted since it is the least interesting.)  In the \code{plot.survfit} function there is the argument \code{noplot="(s0)"} which indicates that labels with this curve will not be plotted.  If we had not specified \code{istate} in the call to \code{survfit}, the default label for the initial state would have been ``s0'' and the first curve would not have been plotted.
 
 <<fig=TRUE>>=
-plot(tfit, col=1:4, lty=1:4, lwd=2, ylab="Probability in state")
+plot(tfit, col=1:4, lty=:4, lwd=2, ylab="Probability in state")
 @ 
 
 The resulting \code{survfms} object appears as a matrix and can be
