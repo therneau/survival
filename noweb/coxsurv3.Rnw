@@ -166,7 +166,7 @@ coxsurv.fit2 <- function (ctype, stype, se.fit, varmat, cluster,
  
     if (nstrata==1) {
         temp <- multihaz(y, x, position, weights, risk, transition,
-                                  ctype, stype, hfill,
+                                  ctype, stype, hfill, cmap[1,], 
                                   x2, risk2, varmat, nstate, se.fit, 
                                   cifit$pstate[1,], cifit$time)
         cifit$pstate <- temp$pstate
@@ -183,7 +183,7 @@ coxsurv.fit2 <- function (ctype, stype, se.fit, varmat, cluster,
             survlist[[i]] <- multihaz(y[indx,,drop=F], x[indx,,drop=F],
                                   position[indx], weights[indx], risk[indx],
                                   transition[indx], ctype, stype, hfill,
-                                  x2, risk2, varmat, nstate, se.fit, 
+                                  cmap[1,], x2, risk2, varmat, nstate, se.fit, 
                                   cifit$pstate[firstrow[i],], timelist[[i]])
                                   
             }
@@ -192,9 +192,35 @@ coxsurv.fit2 <- function (ctype, stype, se.fit, varmat, cluster,
     }
     cifit
 }
+@ 
+
+This is the final target.
+Variables are
+\begin{itemize}
+  \item y survival time for each observaion
+  \item x covariates for each observatio
+  \item position: a flag for each obs. Is it the first of a connected string
+    such as (10, 12) (12,19) (19,21), the last of such a string, both, 
+    or neither.
+  \item weight case weight
+  \item risk score
+  \item transtion: which stratum each observation belongs to.  At this point
+    that is a unique baseline hazard in the state space.
+  \item ctype, stype = type of hazard and survival
+  \item hfill: the starting and ending states for each transition, on row per
+    observed transtion type
+  \item cmap: a vector giving the stratum number for each transtion.
+  \item x2, risk2 = covariates and risk scores for the predicted values
+  \item vmat = variance matrix of the coxph model
+  \item se.fit: do or do not compute standard errors
+  \item p0 = starting values for the states
+  \item utime = the set of time points at which to give the results
+\end{itemize}
+
+<<survfit.coxphms>>=
 # Compute the hazard  and survival functions 
 multihaz <- function(y, x, position, weight, risk, transition, ctype, stype, 
-                     hfill, x2, risk2, vmat, nstate, se.fit, p0, utime) {
+                     hfill, cmap, x2, risk2, vmat, nstate, se.fit, p0, utime) {
     if (ncol(y) ==2) {
        sort1 <- seq.int(nrow(y))   # any order will be the same
        y <- cbind(0.0, y)          # add a start.time column
@@ -218,6 +244,10 @@ multihaz <- function(y, x, position, weight, risk, transition, ctype, stype,
 
     hazard <- matrix(cn[,5] / denom1, ncol = fit$ntrans)
     varhaz <- matrix(cn[,5] / denom2, ncol = fit$ntrans)
+    if (any(cmap != seq(along=cmap))) {
+        hazard <- hazard[, cmap]
+        varhaz <- varhaz[, cmap]
+    }
 
     # Expand the result, one "hazard set" for each row of x2
     nx2 <- nrow(x2)

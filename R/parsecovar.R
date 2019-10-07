@@ -38,8 +38,8 @@ parsecovar1 <- function(flist, statedata) {
 
         # and now the terms before the slash, which is the actual formula
         #  a formula of -1 +1 is recorded as intercept=TRUE, pasting a -1 on
-        #  allows us to tell if a 1 was included.
-        form <- formula(paste("~ -1 +", parts[1]))
+        #  allows us to tell if a 1 was included.  (But don't add a second ~).
+        form <- formula(paste("~ -1 +", substring(parts[1], 2, nchar(parts[1]))))
         list(common=common, fixed=fixed, clear=clear, ival=ival, 
            formula = form) 
     })

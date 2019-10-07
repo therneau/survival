@@ -177,6 +177,14 @@ function(formula, newdata, se.fit=TRUE, conf.int=.95, individual=FALSE,
         risk <- c(exp(X%*% beta + offset - xcenter))
     }
     if (missing(newdata)) {
+        # If the model has factor predictors or it has interactions, print
+        #  out a long warning message.  People are going to hate it, but
+        #  I don't see another way to stamp out these bad curves without
+        #  backwards-incompatability.
+        if (any(attr(Terms, "order") > 1) || 
+            any(attr(Terms, "dataClasses") %in% c("factor", "character")))
+            warning("the model contains factor variables and/or interactions. In this situation the default curve based on columm means of the X matrix is almost certainly not useful; consider adding a newdata argument.")
+        
         if (length(object$means)) {
             mf2 <- as.list(object$means)   #create a dummy newdata
             names(mf2) <- names(object$coefficients)
@@ -345,7 +353,7 @@ coxsurv.fit2 <- function (ctype, stype, se.fit, varmat, cluster,
  
     if (nstrata==1) {
         temp <- multihaz(y, x, position, weights, risk, transition,
-                                  ctype, stype, hfill,
+                                  ctype, stype, hfill, cmap[1,], 
                                   x2, risk2, varmat, nstate, se.fit, 
                                   cifit$pstate[1,], cifit$time)
         cifit$pstate <- temp$pstate
@@ -362,7 +370,7 @@ coxsurv.fit2 <- function (ctype, stype, se.fit, varmat, cluster,
             survlist[[i]] <- multihaz(y[indx,,drop=F], x[indx,,drop=F],
                                   position[indx], weights[indx], risk[indx],
                                   transition[indx], ctype, stype, hfill,
-                                  x2, risk2, varmat, nstate, se.fit, 
+                                  cmap[1,], x2, risk2, varmat, nstate, se.fit, 
                                   cifit$pstate[firstrow[i],], timelist[[i]])
                                   
             }
@@ -373,7 +381,7 @@ coxsurv.fit2 <- function (ctype, stype, se.fit, varmat, cluster,
 }
 # Compute the hazard  and survival functions 
 multihaz <- function(y, x, position, weight, risk, transition, ctype, stype, 
-                     hfill, x2, risk2, vmat, nstate, se.fit, p0, utime) {
+                     hfill, cmap, x2, risk2, vmat, nstate, se.fit, p0, utime) {
     if (ncol(y) ==2) {
        sort1 <- seq.int(nrow(y))   # any order will be the same
        y <- cbind(0.0, y)          # add a start.time column
@@ -397,6 +405,10 @@ multihaz <- function(y, x, position, weight, risk, transition, ctype, stype,
 
     hazard <- matrix(cn[,5] / denom1, ncol = fit$ntrans)
     varhaz <- matrix(cn[,5] / denom2, ncol = fit$ntrans)
+    if (any(cmap != seq(along=cmap))) {
+        hazard <- hazard[, cmap]
+        varhaz <- varhaz[, cmap]
+    }
 
     # Expand the result, one "hazard set" for each row of x2
     nx2 <- nrow(x2)

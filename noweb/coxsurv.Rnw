@@ -391,14 +391,14 @@ The dataClasses object is a simple list.
 
 <<survfit.coxph-setup3>>= 
 if (missing(newdata)) {
-    if (is.null(object$frail)) {
-        # If the model has factor predictors or it has interactions, print
-        #  out a long warning message.  People are going to hate it, but
-        #  I don't see another way to stamp out these bad curves without
-        #  backwards-incompatability.
-        if (any(attr(Terms, "order") > 1) || 
-            any(attr(Terms, "dataClasses") %in% c("factor", "character")))
-            warning("the model contains factor variables and/or interactions. In this situation the default curve based on columm means of the X matrix is almost certainly not useful; consider adding a newdata argument.")
+    # If the model has factor predictors or it has interactions, print
+    #  out a long warning message.  People are going to hate it, but
+    #  I don't see another way to stamp out these bad curves without
+    #  backwards-incompatability.
+    if (any(attr(Terms, "order") > 1) || 
+        any(attr(Terms, "dataClasses") %in% c("factor", "character")))
+        warning("the model contains factor variables and/or interactions. In this situation the default curve based on columm means of the X matrix is almost certainly not useful; consider adding a newdata argument.")
+    
     if (length(object$means)) {
         mf2 <- as.list(object$means)   #create a dummy newdata
         names(mf2) <- names(object$coefficients)

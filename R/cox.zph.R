@@ -215,13 +215,13 @@ print.cox.zph <- function(x, digits = max(options()$digits - 4, 3),
         z<- list(table=x$table[i,,drop=FALSE], x=x$x, time= x$time, 
                  strata = x$strata,
                  y = x$y[,i,drop=FALSE],
-                 var=x$var[i,i, drop=FALSE], call=x$call,
-                 transform=x$transform)
+                 var=x$var[i,i, drop=FALSE], 
+                 transform=x$transform, call=x$call)
     else
         z<- list(table=x$table[i,,drop=FALSE], x=x$x, time= x$time, 
                  y = x$y[,i,drop=FALSE],
-                 var=x$var[i,i, drop=FALSE], call=x$call,
-                 transform=x$transform)
-    attributes(z) <- attributes(x)
+                 var=x$var[i,i, drop=FALSE],
+                 transform=x$transform, call=x$call)
+    class(z) <- class(x)
     z
 }
