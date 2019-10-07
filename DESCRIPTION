@@ -2,7 +2,7 @@ Title: Survival Analysis
 Maintainer: Terry M Therneau <therneau.terry@mayo.edu>
 Priority: recommended
 Package: survival
-Version: 3.1-3
+Version: 3.1-4
 Date: 2019-09-10
 Depends: R (>= 3.4.0)
 Imports: graphics, Matrix, methods, splines, stats, utils
