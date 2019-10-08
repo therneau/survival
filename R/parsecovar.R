@@ -135,8 +135,14 @@ parsecovar2 <- function(covar1, statedata, dformula, Terms, transitions,states) 
                 # x is one term
                 if (is.null(x$left)) stop("term found without a :", x)
                 # left of the colon
-                if (!is.list(x$left) && length(x$left) ==1 && x$left==1) 
+                if (!is.list(x$left) && length(x$left) ==1 && x$left==0) 
                     temp1 <- 1:nrow(statedata)
+                else if (is.numeric(x$left)) {
+                    temp1 <- as.integer(x$left)
+                    if (any(temp1 != x$left)) stop("non-integer state number")
+                    if (any(temp1 <1 | temp1> nstate))
+                        stop("numeric state is out of range")
+                }
                 else if (is.list(x$left) && names(x$left)[1] == "stateid"){
                     if (is.null(x$left$value)) 
                         stop("state variable with no list of values: ",x$left$stateid)
@@ -156,8 +162,14 @@ parsecovar2 <- function(covar1, statedata, dformula, Terms, transitions,states) 
                 }
                 
                 # right of colon
-                if (!is.list(x$right) && length(x$right) ==1 && x$right ==1) 
+                if (!is.list(x$right) && length(x$right) ==1 && x$right ==0) 
                     temp2 <- 1:nrow(statedata)
+                else if (is.numeric(x$right)) {
+                    temp2 <- as.integer(x$right)
+                    if (any(temp2 != x$right)) stop("non-integer state number")
+                    if (any(temp2 <1 | temp2> nstate))
+                        stop("numeric state is out of range")
+                }
                 else if (is.list(x$right) && names(x$right)[1] == "stateid") {
                     if (is.null(x$right$value))
                         stop("state variable with no list of values: ",x$right$stateid)

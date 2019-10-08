@@ -33,7 +33,7 @@ aeq(fit1$coef[c(1,4,2,5,3,6)], fit1c$coef)
 
 # force a common age effect across all states
 fit2 <- coxph(list(Surv(etime, event) ~ sex,
-                                  1:1 ~ age / common), 
+                                  1:0 ~ age / common), 
               data1, id=id)
 
 data2 <- rbind(cbind(data1, status= (data1$event=="PCM"), etype=1),

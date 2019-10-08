@@ -339,8 +339,10 @@ with the exception of the \code{event} variable.
     data check, e.g., if it showed a transition from death to PCM.
   \item Each subject's initial state is specified by the \code{istate}
     argument.  When this is omitted all subjects 
-    are assumed to start from an entry state named `` '' (the empty
-    string), as seen in the printout above.
+    are assumed to start from an entry state named '(s0)'.  This default
+    name is an amalgam of ``state 0'', a label sometimes used in textbooks 
+    for the leftmost box, and an R convention of using () for constructed
+    names, e.g., `(Intercept)' from an lm() call.
 \end{enumerate}
 
 The printout shows that a male subject will spend, on average,
@@ -351,21 +353,16 @@ time for all curves, which is 424 months in this case.
 
 The result of a multi-state \code{survfit} is a matrix of probabilities with
 one row per time and one column per state.
-First are the states found in the event variable (excluding
-censoring) and then the states found in the \code{istate} variable,
-removing any duplicates.  
-By default any unnamed state is not plotted -- point 3 above --
-for the simple reason that multiple event curves can 
-very quickly get overcrowded with all the multiple lines.
+These are contained in the probability-in-state (\code{pstate}) component of 
+the resulting survfit object.
 Since the three MGUS states of entry/pcm/death must sum to 1 at any
 given time (everyone has to be somewhere), one of the
 three curves is redundant and the ``fraction still in the entry state''
 curve is normally the least interesting. 
-One can easily add this last state to the plot if desired, e.g.,
-\code{lines(mfit2[,3], col=4, lty=1:2)}, since entry is the third state
-in the printout.
-(One can use, e.g., \code{mfit2[, 'pcm']} to select a state as
-well, but an empty string does not work as the subscript.)
+By default, any state with the label `(s0)' is left off of the plot;
+which is the default value of the \code{noplot} option of 
+\code{plot.survfit}.
+One can easily plot all of the states by setting the option to NULL.
 
 A common mistake with competing risks is to use the Kaplan-Meier
 separately on each
@@ -478,12 +475,12 @@ that state remain there for the duration; in this one they quickly
 pass through.
 It is worthwhile to check the \code{transitions} table in the output 
 simply as a data check. In this case it shows subjects going from the
-entry (unnamed) state to PCM and death along with transitions from PCM
+entry state to PCM and death along with transitions from PCM
 to death.  This is as expected.  
 An error in creating the input data can lead to surprising counts
 and an even more surprising curve.
 
-We have often found the three curve display below useful in the case
+We have often found the three curve display shown below useful in the case
 of a transient state.
 It combines the results from competing risk model used above
 along with a second fit that treats death
@@ -558,6 +555,14 @@ both the rate $\lambda$ (the arrow in figure \ref{mfig1}) and probability
 of residing in the left hand box of the figure.
 For multi-state models this simplicity no longer holds; proportional
 hazards does not lead to proportional $p(t)$ curves.
+There is a fundamental dichotomy in the analysis namely that
+\begin{itemize}
+  \item hazards can be computed one at a time,
+  \item probability in state must be done for all states at once.
+\end{itemize}
+
+
+
 The task before us is more complex.
 
 The analysis of multi-state data has four

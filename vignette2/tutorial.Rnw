@@ -131,7 +131,7 @@ middle part is the fraction with neither.
 The fact that they cross is used to emphasize the inconsistency of the
 two estimates, i.e., that they add to more than 1.0.
 
-<<fitT2, fig=TRUE>>=
+<<figT2, fig=TRUE>>=
 # re-create figure T2
 plot(bad1, conf.int=FALSE, xmax=13, col=2,
      xlab="Years from HIV infection", ylab="Probability")
@@ -159,7 +159,7 @@ pstack <- function(fit, top=FALSE, ...) {
     if (is.matrix(temp$pstate))  # usual case
         temp$pstate <- t(apply(temp$pstate, 1, cumsum))
     else if (is.array(temp$pstate)) 
-        temp <- aperm(apply(temp$pstate, 1:2, cumsum), c(2,3,1))
+        temp$pstate <- aperm(apply(temp$pstate, 1:2, cumsum), c(2,3,1))
     # this works because we don't change any other aspect of the survfit
     #  object, but only modify the probabilities.
     if (top) plot(temp, noplot="", ...)
@@ -177,7 +177,7 @@ text(c(4, 8,8), c(.5, .85, .15), c("Event free", "AIDS", "SI"), col=1)
 @ 
 
 Figure T4 reorders the states so the event free is the top group.
-This author much prefers the unstacked version, which shows more
+This author prefers the unstacked version, which shows more
 clearly that the probabilities of the two outcomes are very nearly the same.
 <<figT4, fig=TRUE>>=
 pstack(ajfit[c(2,3,1)], xmax=13, lwd=2, col=1, ylim=c(0,1),
@@ -224,7 +224,7 @@ This highlights a basic fact of multi-state models
 
 The Cox model is a model for the hazards, and the separability allows for
 a lot of freedom in how code and data sets are constructed. 
-(It also gives more opportunity to mess it up, and for this reason the
+(It also gives more opportunity for error, and for this reason the
 authors often prefer the joint approach of \code{cfit0}). 
 The tutorial fits separate Cox 
 models, page T2404, the form found in \code{cfit1} and \code{cfit2}.
@@ -276,27 +276,32 @@ medical reason for such an assumption, the model is simply for illustration.)
 Not surprisingly, the realized coefficient is midway between the estimates
 of the ccr effect on the two separate endpoints.
 The second fit uses the joint model approach by adding a constraint.
+In this case the formula argument for \code{coxph} is a list.  
+The first element of the list is a standard formula containing the response
+and the set of covariates, and later elements, and the second, third, etc.
+elements of the list are of the form state1:state2 ~ covarariates.  These
+later element modify the formula for selected pairs of states.
+In this case the second element specifies transitions from state 1 to 2 and
+1:3 should share a common ccr5 coefficient.
 
 <<common>>=
 common1 <- coxph(Surv(time, status) ~ ccr5 + strata(cause), data=stack)
 print(common1, digits=2)
 
-common1b <- coxph(list( Surv(time, event) ~ ccr5, 1:1 ~ ccr5/common),
+common1b <- coxph(list( Surv(time, event) ~ ccr5, 
+                        1:2 + 1:3 ~ ccr5/common ),
                   data=adata, id=patnr)
 @ 
 
 At this point the tutorial explores an approach that we find problematic,
 which is to fit models to the stacked data set \emph{without} including the
 stratum.
-The partial likelihood for the Cox model has a term at each event time, each
-term is a ratio that compares the risk score of the event to the sum of
-risk scores for all subjects who were at risk for the event. 
+The partial likelihood for the Cox model has a term for each event time, each
+term is a ratio that compares the risk score of the event (numerator) to the sum of
+risk scores for all subjects who were at risk for the event (denominator). 
 When the \code{stack} data set is fit without a strata statement, like below,
-then at each event time the risk set will have 2 clones of each subject,
-one labeled with \code{cause} = AIDS and the other as SI.
-This is not a proper risk set, since the data set has been set up so that
-one of those clones is ``allowed to'' have an AIDS event and the other to have
-an SI event; when an AIDS event occurs not all of them are actually at risk.
+then at each event time the ``risk set'' will have 2 clones of each subject,
+one labeled with covariate \code{cause} = AIDS and the other as SI.
 If we look closely, the estimated coefficient from this second fit is
 almost identical to the stratified fit \code{common1}, however.
 
@@ -306,16 +311,18 @@ all.equal(common2$coef, common1$coef)
 @ 
 
 In fact, if the Breslow approximation is used for ties, one can show
-that the partial likelihood (PL) values satisfy an identity
-PL(fit 2) = PL(fit 1) - d log(2), where $d$ is the total number of events.
+that the partial likelihood (PL) values for the two fits will satisfy 
+the identity
+PL(common2) = PL(common1) - d log(2), where $d$ is the total number of events.
 Since the two partial likelihoods differ by a constant, they will
 maximize at the same location, i.e., give exactly the same coefficient
 estimates.
-One can further show that if \code{cause} is added to the model as a second
+One can further show that if \code{cause} is added to the second model as a 
 covariate, that this will not change the ccr5 coefficient, while adding
 an estimate of the relative proportion of events of each type.
 
 <<common3>>=
+# reprise common1 and common2, using the breslow option
 test1 <- coxph(Surv(time, status) ~ ccr5 + strata(cause), stack,
                ties='breslow')
 test2 <- coxph(Surv(time, status) ~ ccr5, stack, ties='breslow')
@@ -327,14 +334,14 @@ test3
 all.equal(test3$coef[1], test1$coef)
 @ 
 
-These identities do not assure us that this \emph{psuedo risk set} 
+These identities do not assure the author that this \emph{psuedo risk set} 
 approach, where subjects are duplicated, is a 
 valid way to estimate the ccr5 effect under the assumption of a common
 baseline hazard.
 The first model \code{common1} can be directly fit in the multi-state framework
 by adding the constraint of a common ccr5 effect for the two transitions;
 this is found above as \code{common1b}.
-One can not directly fit a version of \code{test2} using the joint model,
+One can not directly fit a version of \code{test2} using the multi-state model,
 however, as the underlying code for
 multi-state fits rigorously enforces a ``one copy'' principle:
 during the entire period of time that a subject is at
@@ -345,7 +352,9 @@ data set.  See the \code{survcheck} routine for a more detailed discussion.
 We can now generate predicted  Aalen-Johansen curves from the
 Cox model fits.  
 As with any Cox model, this starts by deciding \emph{who} to predict,
-i.e. what set of covariate values. 
+i.e. the set of covariate values at which to obtain a prediction.
+For a model with a single binary variable this is an easy task.
+
 <<aidscurve>>=
 # re-create figure T5 in a single panel
 dummy <- data.frame(ccr5=c("WW", "WM"))
@@ -353,6 +362,7 @@ pred.aj <- survfit(cfit0, newdata=dummy)
 dim(pred.aj)
 pred.aj$states
 @ 
+
 The resulting curves have an apparent dimension of (number of strata,
 number of covariate patterns, number of states).
 We plot subsets of the curves by using subscripts.
@@ -549,12 +559,12 @@ transitions have a common intercept (`1') and adding a coefficient
 for prior plasma recovery to the two transitions.
 (Every data row at risk for a 2:3 transition has \code{priorpr=1} and
 the rows for a 1:3 all have \code{priorpr=0}.)
-The resulting fit replicates coefficient in the ``proportional hazards''
+The resulting fit replicates coefficients in the ``proportional hazards''
 columns of table T3. 
 
 <<efit2>>=
 efit2 <- coxph(list(Surv(tstart, tstop, event) ~ dissub + age + drmatch + tcd,
-                    1:state("RelDeath") ~ 1 / common,
+                    0:state("RelDeath") ~ 1 / common,
                     "PR":"RelDeath" ~ priorpr),
                     id=id, data=edata, ties='breslow')
 print(coef(efit2, type='matrix'), digits=2)
@@ -567,29 +577,41 @@ state 2.
 <<efit3>>=
 prtime <- ifelse(edata$priorpr==1, edata$tstart, 0)/365.25
 efit3 <-  coxph(list(Surv(tstart, tstop, event) ~ dissub + age + drmatch + tcd,
-                    1:state("RelDeath") ~ 1/ common,
+                    0:state("RelDeath") ~ 1/ common,
                     "PR":"RelDeath" ~ priorpr + prtime), 
                     id=id, data=edata, ties='breslow')
 print(coef(efit3, type='matrix'), digits=2)
 @  
 
-Table T4 reruns all the models using a ``clock reset'' time scale.
-These are the same models as before but with 
-\code{Surv(tstop - tstart, event)} in the \code{coxph} calls.
-the time value.  
+We have purposely used a mix of state:state notations in the above 
+call for illustration.
+\begin{itemize}
+  \item 0 is a shorthand for ``any state''
+  \item state(a, b, c) is a way to give a list of states, using the state
+    labels
+  \item or a single state can be identified by its label.
+\end{itemize}
+A line can refer to state pairs that do not exist, without harm; a last
+step in the processing subsets to transtions that actually occur in the data.
+The first line implicity includes 'RelDeath':'RelDeath' for instance.
 
+Table T4 of the tutorial reruns these three models using a ``clock reset'' 
+time scale.
+Code will be the same as before but with 
+\code{Surv(tstop - tstart, event)} in the \code{coxph} calls.
+ 
 We now predict the future state of a patient, using as our reference
 set two subjects who are $\le 20$ years old, gender matched, AML, with and
 without T-cell depletion. We will use the fit from column 2 of table T3,
 which has proportional hazards 
-for the two transitions to Relapse/Death and a separate baseline hazard for
+for the transitions to Relapse/Death and a separate baseline hazard for
 the PR transition.
 <<fig=TRUE>>=
 edummy <- expand.grid(age="<=20", dissub="AML", drmatch="Mismatch",
                       tcd=c("No TCD", "TCD"), priorpr=1)
 ecurve2 <- survfit(efit2, newdata= edummy)
 plot(ecurve2, col=c(1,1,2,2,3,3), lty=1:2, lwd=2, xscale=365.25,
-     noplot="", 
+     noplot=NULL, 
      xlab="Years since transplant", ylab="Predicted probabilities")
 legend(700, .9, c("Currently alive in remission, no PR", "Currently in PR",
                "Relapse or death"), col=1:3, lwd=2, bty='n')
@@ -619,70 +641,52 @@ edata$event4 <- factor(etemp, 1:4, c("censor", "PR", "RelDeath1",
 survcheck(Surv(tstart, tstop, event4) ~ 1, edata, id=id)
 
 efit4 <- coxph(list(Surv(tstart, tstop, event4) ~ dissub + age + drmatch + tcd,
-                    "(s0)":state("RelDeath2", "RelDeath1") ~ 1/ common,
+                    1:3 + 2:4 ~ 1/ common,
                     "PR":"RelDeath2" ~ priorpr), 
                     id=id, data=edata, ties='breslow')
+efit4$cmap
+all.equal(coef(efit4), coef(efit2))
 @ 
-re-package tabove calculation as a four state model which has two
-relapse/death endpoints.
-In order to make it easy to do the stacked plot that they show, the states
-matrix is put in a particular order.
-Note that \code{p0} changes, since everyone now starts in state number 4.
-<<fourstate, fig=TRUE>>=
-dtemp <- c("PR", "R/D after PR", "R/D without PR", "Tx")
-xmat <- matrix(list(), 4, 4, dimnames=list(from=dtemp, to=dtemp))
-xmat[4,1] <- list(tcurve1)
-xmat[4,3] <- list(tcurve2[1:2] )
-xmat[1,2] <- list(tcurve2[3:4] ) 
-ecurve2 <- survfit(xmat, p0=c(0,0,0,1))
-dim(ecurve2)   # rows are the two "subjects", cols are the states
-plot(ecurve2[, 1:3], lwd=2, lty=1:2, col=c(2,2,3,3,4,4,1,1), 
-     xscale=365.25,
-     xlab="Years since transplant", ylab="Predicted probabilities")
-text(c(1500, 1500, 1500), c(.55, .3, .05), 
-     c("PR", "R/D after PR", "R/D w/o PR"), col=2:4)
-text(1550, .66, "solid= no SCD, dashed = SCD", col='gray')
-@ 
-We have left the transplant state off this second plot to reduce the total
-number of lines.  (The sum of state probabilities is 1, so one state can
-always be left off without loss.)
-The suggestion from this plot is that TCD increases the total number of
-PR, but at a cost of the durability of the PR; essentially all of the
-``extra'' failures under TCD have passed through the PR state.
 
-Last, we redraw this figure as a stacked diagram.  The authors are not
-themselves enamored of the stacked form, at least partly because the
-impression it gives can depend on the order of the states.
+The coefficient map (\code{cmap}) component of the fit verifies that the
+final model has a shared baseline for the 1:3 and 2:4 transitions,
+separate coefficients for all the others, and that the priorcr term only
+applies to the 2:4 transition.  
+(The \code{cmap} matrix serves as a table of contents for the 
+19 coefficients in the model.  It is used by the print routine to control
+layout, for instance.)
+We also verify that this simple relabeling of states has not changed the
+estimated transition rates.
+
+Last, we redraw this figure as a stacked diagram. 
 We split it as two figures because the version with both TCD and no TCD together
 had too many crossing lines.  Figure T15 corresponds to the left panel.
-<<figT14, fig=TRUE>>=
-tcurve <- ecurve2
-tcurve$pstate <- t(apply(tcurve$pstate, 1, cumsum))
+
+<<figT15, fig=TRUE>>=
+edummy <- expand.grid(dissub="AML", age= "<=20", drmatch="Match",
+                      tcd=c("No TCD", "TCD"), priorpr=1)
+ecurve4 <- survfit(efit4, newdata=edummy)
+
 oldpar <- par(mfrow=c(1,2), mar=c(4.1, 3.1, 3.1, .1))
-plot(tcurve[1,1:4], col=1, xscale=365.25, ylim=c(0,1), 
-      xlab="Years since transplant", ylab="Predicted probabilities")
-text(rep(4*365, 4), c(.4, .55, .7, .95), cex=.7, 
+
+pstack(ecurve4[,1,c(2,4,3,1)],
+       xscale=365.25, ylim=c(0,1),
+       xlab="Years since transplant", ylab="Predicted probabilities")
+text(rep(4*365, 4), c(.35, .54, .66, .9), cex=.7, 
      c("Alive in remission, PR", "Relapse or death after PR",
        "Relapse or death without PR", "Alive in remission, no PR"))
 title("No TCD")
-plot(tcurve[2,1:4], col=1, xscale=365.25, ylim=c(0,1), 
-      xlab="Years since transplant", ylab="Predicted probabilities")
-text(rep(4*365, 4), c(.45, .7, .82, .95), cex=.7, 
+
+pstack(ecurve4[,2,c(2,4,3,1)],
+       xscale=365.25, ylim=c(0,1),
+       xlab="Years since transplant", ylab="Predicted probabilities")
+text(rep(4*365, 4), c(.35, .65, .8, .95), cex=.7, 
      c("Alive in remission, PR", "Relapse or death after PR",
        "Relapse or death without PR", "Alive in remission, no PR"))
 title("TCD")
+      
 par(oldpar)
 @ 
-
-A last task is to draw the curves using only the overall fits, e.g.,
-\code{efit2b}.  This will be necessary for models with shared
-coefficients across some strata, for instance, since they can
-only be fit using the stacked data form.
-At the moment the \code{survfit} routine gets confused by 
-models that contain nesting (\code{\%in\%} or /) operators).
-However, since the predicted values are independent of exactly how factors
-are coded in the model this is only a nuisance: rerun the fit using
-dummy variables or * operators and obtain the curves from the latter.
 
 \bibliographystyle{plain}
 \bibliography{refer}

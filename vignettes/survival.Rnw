@@ -2228,7 +2228,7 @@ Not all paths had the same options or produced the same outputs.
       \item If ctype=1 the Nelson-Aalen formula is used, and for ctype=2 there
         is a correction for ties.
       \item The usual curve for a Cox model using the Efron approximate is
-        (2,2), for instance, which the ordinary KM is (1, 1).
+        (2,2), for instance, while the ordinary non-parametric KM is (1, 1).
     \end{itemize}
   \item The routines now produce both the estimated survival and the
     estimated cumulative hazard, along with their errors 
@@ -2241,7 +2241,8 @@ Not all paths had the same options or produced the same outputs.
 \end{itemize}
 
 A utility function \code{survfit0} is used by the print and plot methods to add
-a starting ``time 0'' value of x=0, y=1 the survival curve(s).  It also aligns
+a starting ``time 0'' value, normally x=0, y=1, to the survival curve(s).  
+It also aligns
 all the matrices so that they correspond to the time vector, inserts the
 correct standard errors, etc.  
 This may be useful to other programs.
