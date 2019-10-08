@@ -1,5 +1,5 @@
 
-R Under development (unstable) (2019-08-23 r77061) -- "Unsuffered Consequences"
+R Under development (unstable) (2019-09-07 r77160) -- "Unsuffered Consequences"
 Copyright (C) 2019 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
@@ -56,7 +56,7 @@ Type 'q()' to quit R.
 > 
 > # force a common age effect across all states
 > fit2 <- coxph(list(Surv(etime, event) ~ sex,
-+                                   1:1 ~ age / common), 
++                                   1:0 ~ age / common), 
 +               data1, id=id)
 > 
 > data2 <- rbind(cbind(data1, status= (data1$event=="PCM"), etype=1),
@@ -110,4 +110,4 @@ Type 'q()' to quit R.
 > 
 > proc.time()
    user  system elapsed 
-  1.159   0.051   1.212 
+  1.152   0.061   1.205 

@@ -1,5 +1,5 @@
 
-R Under development (unstable) (2019-01-23 r76006) -- "Unsuffered Consequences"
+R Under development (unstable) (2019-09-07 r77160) -- "Unsuffered Consequences"
 Copyright (C) 2019 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
@@ -379,8 +379,42 @@ Type 'q()' to quit R.
 > aeq(fit7$influence.chaz[[2]], imat, tol=sqrt(eps))
 [1] TRUE
 > 
+> #
+> # verify that the times and scale arguments work as expected.  They
+> #  are in the summary and print.survfit functions.
+> #
+> s1 <- summary(fit1, scale=1)
+> s2 <- summary(fit1, scale=2)
+> aeq(s1$time/2, s2$time)  #times change
+[1] TRUE
+> aeq(s1$surv, s2$surv)
+[1] TRUE
+> tscale <- rep(c(1,1,1,1, 2,2,2,2,2), each=2)  
+> aeq(s1$table, s2$table *tscale)
+[1] TRUE
 > 
+> s3 <- summary(fit1, scale=1, times=c(9, 18, 23, 33, 34))
+> s4 <- summary(fit1, scale=2, times=c(9, 18, 23, 33, 34))
+> aeq(s3$time, s4$time*2)
+[1] TRUE
+> aeq(s3$surv, s4$surv)
+[1] TRUE
+> 
+> print(fit1, rmean='common')
+Call: survfit(formula = Surv(time, status) ~ x, data = adata, stype = 2)
+
+                 n events *rmean *se(rmean) median 0.95LCL 0.95UCL
+x=Maintained    11      7   46.1      14.08     34      23      NA
+x=Nonmaintained 12     11   27.1       6.64     27       8      NA
+    * restricted mean with upper limit =  103 
+> print(fit1, rmean='common', scale=2)
+Call: survfit(formula = Surv(time, status) ~ x, data = adata, stype = 2)
+
+                 n events *rmean *se(rmean) median 0.95LCL 0.95UCL
+x=Maintained    11      7   23.1       7.04   17.0    11.5      NA
+x=Nonmaintained 12     11   13.5       3.32   13.5     4.0      NA
+    * restricted mean with upper limit =  51.5 
 > 
 > proc.time()
    user  system elapsed 
-  0.916   0.036   0.952 
+  0.870   0.059   0.923 
