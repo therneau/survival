@@ -186,7 +186,6 @@ summary.survfit <- function(object, times, censored=FALSE,
     if (scale != 1) {
         # fix scale in the output
         fit$time <- fit$time/scale
-        fit$rmean.endtime <- fit$rmean.endtime/scale
     }
 
     class(fit) <- "summary.survfit"
@@ -380,7 +379,6 @@ summary.survfitms <- function(object, times, censored=FALSE,
     if (scale != 1) {
         # fix scale in the output
         fit$time <- fit$time/scale
-        fit$rmean.endtime <- fit$rmean.endtime/scale
     }
     class(fit) <- "summary.survfitms"
     fit
