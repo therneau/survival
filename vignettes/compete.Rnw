@@ -607,23 +607,22 @@ a competing risks model (upper left diagram of figure \ref{mfig2}), distinct bas
 hazards for the two rates, no shared coefficients, and three covariates.
 <<cfit1>>=
 options(show.signif.stars = FALSE)  # display intelligence
-cfit2 <- coxph(Surv(etime, event=="death") ~ age + sex + mspike, mgus2)
-summary(cfit2, scale=c(10, 1, 1))   # scale age in decades 
-@ 
+cfit1 <- coxph(Surv(etime, event) ~ age + sex + mspike, mgus2, id=id)
+cfit1$cmap
+print(cfit1, digits=2)  
+@
+This above call fits both endpoints at once.  There is a single set of 
+coefficients, the \code{cmap} component documents which goes with which
+endpoint and is used by the print routine to organize the printout.
 The effect of age and sex on non-PCM mortality is profound, which is not
 a surprise given the median starting age of \Sexpr{median(mgus2$age)}. 
-Risk rises \Sexpr{round(exp(10*coef(cfit2)[1]),1)} fold per decade of age and
-the death rate for males is \Sexpr{round(exp(coef(cfit2)[2]),1)} times as great
+Risk rises \Sexpr{round(exp(10*coef(cfit1)[4]),1)} fold per decade of age and
+the death rate for males is \Sexpr{round(exp(coef(cfit1)[5]),1)} times as great
 as that for females.  
 The size of the serum monoclonal spike has almost no impact on non-PCM 
 mortality.
 A 1 unit increase changes mortality by only 6\%.
 
-<<cfit2>>=
-cfit1 <- coxph(Surv(etime, event=="pcm") ~ age + sex + mspike, mgus2)
-cfit1
-quantile(mgus2$mspike, na.rm=TRUE)
-@ 
 The mspike size has a major impact on progression, however; each 1 gram
 change increases risk by \Sexpr{round(exp(coef(cfit1)[3]) ,1)} fold.
 The interquartile range of \code{mspike} is 0.9 gram so this risk increase
@@ -648,51 +647,30 @@ temp <- summary(mfit1, rmean="common")  #print the mean survival time
 round(temp$table[,1:6], 1)
 @ 
 
-Notice that each \code{coxph} fit essentially ignores the other event type(s).
-In the figure, each rate (arrow) depends only on the box from which
-it originates and the events which it enumerates.
-Rates are instantaneous quantities, and depend only on the set of subjects
-who are at risk at at a given  moment;
-if someone is not at risk it really does not matter why.
-
+The same Cox model coefficients can also be obtained by fitting separate
+models for the PCM and death endpoint, censoring cases that fail due to
+the other cause.
+Hazards can be computed one at a time.
 When computing $p(t)$, on the other hand, all the
-rates must be considered at once.  
-The Aalen-Johansen estimate applies as before, but now the individual
-entries $\lambda_{ij}(t)$ in each cell of the transition matrix are taken
-from the relevant fit.
-As is also the case with predicted survival curves from a simple 
-Cox model, predicted probability-in-state curves correspond to a set of
-prespecified covariate values.  
-As an example we will generate the curves for four hypothetical
-subjects: male and female, age 60 and 80, and serum m-spike of 1.2 grams.
-These are the approximate quartiles of age, and the median mspike.
+rates must be considered at once, it is necessary to use the
+joint fit \code{cfit1} above.
+We create predicted curves for four hypothetical subjects below.
 
-The Aalen-Johansen estimate for this simple 3-state competing risks setup
-works with a matrix of this form:
-\begin{equation*}
-  \left( \begin{array}{ccc}  & \lambda_{12}{t} & \lambda_{13}(t) \\
-       0 &  & 0 \\ 0 & 0 &  \end{array} \right)
-\end{equation*}
-As before, the diagonal elements are chosen so that each row sums to 1.  
-Standard survival curve calculations for a Cox model can be used to
-obtain $\lambda_{12}$, the rate of transition to the PCM state for our
-four subjects, and $\lambda_{13}$ = the rate of transition to the ``death
-before PCM'' state.  These are placed into a matrix and 
-combined using a third call.
-The standard errors from the individual curves won't be used and the
-survfit routine is a bit faster if we skip them.
+<<PCMcurve>>=
+dummy <- expand.grid(sex=c("F", "M"), age=c(60, 80), mspike=1.2)
+dummy
+csurv  <- survfit(cfit1, newdata=dummy)
+dim(csurv)
+@ 
+The resulting set of Aalen-Johansen estimates can be indexed as though it
+were an array.  There is only one stratum (the Cox model did not have
+strata), four hypothetical subjects, and 3 states.
+(When there is only a single stratum, as here, the subscript method allows
+that index to be omitted, for backwards compatability).
 
-<<PCMcurve, fig=TRUE>>=
-newdata <- expand.grid(sex=c("F", "M"), age=c(60, 80), mspike=1.2)
-newdata
-
-temp <- matrix(list(), 3,3)
-dimnames(temp) <- list(from=c("Entry", "PCM", "Death"),
-                       to  =c("Entry", "PCM", "Death"))
-temp[1,2] <- list(survfit(cfit1, newdata, std.err=FALSE))
-temp[1,3] <- list(survfit(cfit2, newdata, std.err=FALSE))
-csurv  <- survfit(temp, p0 =c(1,0,0))
-plot(csurv[,2], xmax=25*12, xscale=12, 
+<<PCMcurve2, fig=TRUE>>=
+@ 
+plot(csurv[,,'pcm'], xmax=25*12, xscale=12, 
      xlab="Years after MGUS diagnosis", ylab="PCM",
      col=1:2, lty=c(1,1,2,2), lwd=2)
 legend(10, .14, outer(c("female", "male   "), 
@@ -700,51 +678,29 @@ legend(10, .14, outer(c("female", "male   "),
                       paste, sep=", "),
        col=1:2, lty=c(1,1,2,2), bty='n', lwd=2)
 @ 
-The individual survival curves that result from \code{survfit(cfit1)}
-and \code{survfit(cfit2)} are not actually of interest, since 
-each is a Cox model analog of the pcmbad curve we criticized earlier.
-The cumulative hazard portion of the results is what is used to
-build an Aalen-Johansen estimate.
-(Calling \code{survfit} on a set of \code{survfit} objects is, I admit, a
-bit confusing.  
-It would perhaps have been better to name the second routine
-``AalenJohansen'', but we use this often and didn't want to type that 
-long a name.)
 
-Sex has nearly no effect on the hazard of PCM, i.e., on any given day the
+The individual survival curves that would result from fitting each
+endpoint separately are not actually of interest, since 
+each is a Cox model analog of the pcmbad curve we criticized earlier.
+
+The coxph fits showed that
+sex has nearly no effect on the hazard of PCM, i.e., on any given day the
 risk of conversion for a male is essentially the same as for a female of the
 same age.  
 Yet we see above that the fitted Cox models predict a higher lifetime risk 
-for females, and an age effect on lifetime risk that is far from proportional.
+for females; this is due to a longer lifespan.
+The age effect on lifetime risk that is far from proportional: the 80
+year curves flatten out while predictions for the younger subjects do not.
 Very few subjects acquire PCM more than 15 years after a MGUS diagnosis at
 age 80 for the obvious reason: very few of them will still 
 be alive.
-0
-Creating the `list' form matrix above is quite easy, in particular we do
-not need to fill in elements on the diagonal, nor those for which no 
-transitions occur, e.g., from death back to the entry state. 
-The resulting \code{survfit} object is easy to plot or print using standard calls.
-The approach has a number of caveats, however.
-\begin{itemize}
-  \item It does not produce standard errors for the curves, as a consequence
-    of being two steps removed from the data.
-  \item It is easy to ``fool'' the program.  For instance if you were to get 
-    curves for females and males from \code{cfit1}, but the curves from 
-    \code{cfit2} were in the reverse order of male then female, results will
-    still be produced but they would not be valid.  The user is responsible
-    for setting the problem up correctly.
-  \item The R syntax for a matrix of lists is rather fussy, e.g., you can't
-    leave the \code{list} function out of the lines that assign elements
-    to \code{temp} above.
-\end{itemize}
-The \code{mstate} package addresses these issues, at the price of a 
-somewhat more complex syntax.
- 
+
 <<year20>>=
 # Print out a M/F results at 20 years
 temp <- summary(csurv, time=20*12)$pstate
 cbind(newdata, PCM= round(100*temp[,2], 1))
 @ 
+
 The above table shows that females are modeled to 
 have a higher risk of 20 year progression, even
 though their hazard at any given moment is nearly identical to males.

@@ -57,10 +57,11 @@ summary.survfit <- function(object, times, censored=FALSE,
                     temp <- fit[[i]]
                     if (!is.array(temp)) temp <- temp[index]  #simple vector
                     else if (is.matrix(temp)) temp <- temp[index,,drop=FALSE]
-                    else temp <- temp[,,index, drop=FALSE] # 3 way
+                    else temp <- temp[index,,, drop=FALSE] # 3 way
                     fit[[i]] <- temp
                 }
             }
+            browser()
             # The n.enter and n.censor values are accumualated
             #  both of these are simple vectors
             if (is.null(fit$strata)) {
@@ -86,18 +87,14 @@ summary.survfit <- function(object, times, censored=FALSE,
         fit <- fit0
         ssub<- function(x, indx) {  #select an object and index
             if (!is.null(x) && length(indx)>0) {
-                # the as.vector() is a way to keep R from adding "init" as a row name
-                if (is.matrix(x)) x[pmax(1,indx),,drop=FALSE]
+                if (is.array(x))  x[pmax(1,indx),,,drop=FALSE]
+                else if (is.matrix(x)) x[pmax(1,indx),,drop=FALSE]
                 else x[pmax(1, indx)]
             }
             else NULL
         }
         findrow <- function(fit, times, extend) {
             if (FALSE) {
-                # First, toss any printing times that are outside our range
-                #  Later removed: 
-                # an example from R Geskus with negative times showed that
-                #  this is a bad idea -- he asked for those times
                 if (is.null(fit$start.time)) mintime <- min(fit$time, 0)
                 else                         mintime <- fit$start.time
                 ptimes <- times[times >= mintime]
@@ -114,6 +111,7 @@ summary.survfit <- function(object, times, censored=FALSE,
             # The pmax() above encodes the assumption that n.risk for any
             #  times before the first observation = n.risk at the first obs
             fit$time <- ptimes
+
             for (i in c("surv", "pstate", "upper", "lower")) {
                 if (!is.null(fit[[i]])) fit[[i]] <- ssub(fit[[i]], index1)
             }
@@ -195,6 +193,7 @@ summary.survfitms <- function(object, times, censored=FALSE,
                             scale=1, extend=FALSE, 
                             rmean= getOption("survfit.rmean"),
                             ...) {
+
     fit <- object  # save typing
     if (!inherits(fit, 'survfitms'))
             stop("summary.survfitms can only be used for survfitms objects")
@@ -252,10 +251,11 @@ summary.survfitms <- function(object, times, censored=FALSE,
                     temp <- fit[[i]]
                     if (!is.array(temp)) temp <- temp[index]  #simple vector
                     else if (is.matrix(temp)) temp <- temp[index,,drop=FALSE]
-                    else temp <- temp[,,index, drop=FALSE] # 3 way
+                    else temp <- temp[index,,, drop=FALSE] # 3 way
                     fit[[i]] <- temp
                 }
             }
+            browser()
             # The n.enter and n.censor values are accumualated
             #  both of these are simple vectors
             if (is.null(fit$strata)) {
@@ -281,18 +281,14 @@ summary.survfitms <- function(object, times, censored=FALSE,
         fit <-fit0  # easier to work with
         ssub<- function(x, indx) {  #select an object and index
             if (!is.null(x) && length(indx)>0) {
-                # the as.vector() is a way to keep R from adding "init" as a row name
-                if (is.matrix(x)) x[pmax(1,indx),,drop=FALSE]
+                if (is.array(x))  x[pmax(1,indx),,,drop=FALSE]
+                else if (is.matrix(x)) x[pmax(1,indx),,drop=FALSE]
                 else x[pmax(1, indx)]
             }
             else NULL
         }
         findrow <- function(fit, times, extend) {
             if (FALSE) {
-                # First, toss any printing times that are outside our range
-                #  Later removed: 
-                # an example from R Geskus with negative times showed that
-                #  this is a bad idea -- he asked for those times
                 if (is.null(fit$start.time)) mintime <- min(fit$time, 0)
                 else                         mintime <- fit$start.time
                 ptimes <- times[times >= mintime]
@@ -309,6 +305,7 @@ summary.survfitms <- function(object, times, censored=FALSE,
             # The pmax() above encodes the assumption that n.risk for any
             #  times before the first observation = n.risk at the first obs
             fit$time <- ptimes
+
             for (i in c("surv", "pstate", "upper", "lower")) {
                 if (!is.null(fit[[i]])) fit[[i]] <- ssub(fit[[i]], index1)
             }
@@ -429,6 +426,7 @@ print.survfitms <- function(x, scale=1,
 survmean2 <- function(x, scale=1, rmean) {
     nstate <- length(x$states)  #there will always be at least 1 state
     ngrp   <- max(1, length(x$strata))
+    if (is.null(x$newdata)) ndata <- 0  else ndata <- nrow(x$newdata)
     if (ngrp >1)  {
         igrp <- rep(1:ngrp, x$strata)
         rname <- names(x$strata)
@@ -450,13 +448,26 @@ survmean2 <- function(x, scale=1, rmean) {
         names(nevent) <- rname
         }
 
-    outmat <- matrix(0., nrow=nstate*ngrp , ncol=2)
-    outmat[,1] <- rep(x$n, nstate)
-    outmat[1:length(nevent), 2] <- c(nevent)
-  
-    if (ngrp >1) 
-        rowname <- c(outer(rname, x$states, paste, sep=", "))
-    else rowname <- x$states
+    if (ndata< 2) {
+        outmat <- matrix(0., nrow=nstate*ngrp , ncol=2)
+        outmat[,1] <- rep(x$n, nstate)
+        outmat[1:length(nevent), 2] <- c(nevent)
+        
+        if (ngrp >1) 
+            rowname <- c(outer(rname, x$states, paste, sep=", "))
+        else rowname <- x$states
+    }
+    else {
+        outmat <- matrix(0., nrow=nstate*ndata*ngrp, ncol=2)
+        outmat[,1] <- rep(x$n, nstate*ndata)
+        outmat[, 2] <- rep(c(nevent), each=ndata)
+       
+        temp <- outer(1:ndata, x$states, paste, sep=", ")
+        if (ngrp >1) 
+            rowname <- c(outer(rname, temp, paste, sep=", "))
+        else rowname <- temp
+        nstate <- nstate * ndata
+    }
 
     # Caculate the mean time in each state
     if (rmean != "none") {
@@ -467,7 +478,10 @@ survmean2 <- function(x, scale=1, rmean) {
         meantime <- matrix(0., ngrp, nstate)
         if (!is.null(x$influence)) stdtime <- meantime
         for (i in 1:ngrp) {
-            if (is.matrix(x$pstate))
+            if (is.array(x$pstate))
+                temp <- matrix(x$pstate[igrp==i,,,drop=FALSE],
+                               ncol= nstate)
+            else if (is.matrix(x$pstate))
                 temp <- x$pstate[igrp==i,, drop=FALSE]
             else temp <- matrix(x$pstate[igrp==i], ncol=1)
 

@@ -108,14 +108,14 @@ the function assumes that all subjects started in a common state \code{(s0)}
 Like the \code{(Intercept)} term in a linear model fit, the name created
 by the survfit function is placed in parenthesis to avoid overlap with any
 actual variable names.  
-The transitions matrix shows that \Scode{ajfit$transitions[1,1]} subjects
-transitioned from this initial state to AIDS, \Scode{ajfit$transitions[1,2]}
-transitioned to SI, and \Scode{ajfit$transitions[1,3]} were censored.
+The transitions matrix shows that \Sexpr{ajfit$transitions[1,1]} subjects
+transitioned from this initial state to AIDS, \Sexpr{ajfit$transitions[1,2]}
+transitioned to SI, and \Sexpr{ajfit$transitions[1,3]} were censored.
 
 A small footnote: The \code{survfit} routine in R produces Aalen-Johansen (AJ)
 estimates, which are applicable to any state space diagram (an arrangment of 
 boxes and arrows).  
-For a simple two state model such as alive \rightarrow dead the AJ estimate
+For a simple two state model such as alive $\rightarrow$ dead the AJ estimate
 reduces to a Kaplan-Meier (KM).
 For a competing risk model such as this, the AJ estimate produces the same
 values as the 
