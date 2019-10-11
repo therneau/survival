@@ -14,58 +14,71 @@ print.summary.survfitms <- function(x,
     omit <- x$na.action
     if (length(omit)) 
 	    cat(naprint(omit), "\n")
-    if (x$type == 'mright' || is.null(x$n.enter)) {
-	mat <- cbind(x$time, tsum(x$n.risk), tsum(x$n.event), x$pstate)
-	cnames <- c("time", "n.risk", "n.event")
-        }
 
-    else if (x$type == 'mcounting') {
-	mat <- cbind(x$time, tsum(x$n.risk), tsum(x$n.event), x$pstate,)
-	cnames <- c("time", "n.risk", "n.event")
-        }
+    mat <- cbind(x$time, tsum(x$n.risk), tsum(x$n.event))
+    cnames <- c("time", "n.risk", "n.event")
 
-    if (is.matrix(x$pstate)) ncurve <- ncol(x$pstate)
-    else	           ncurve <- 1
-    if (ncurve==1) {                 #only 1 curve
-	cnames <- c(cnames, "P")
+    # If there is only one state, print the estimate, se, and CI at each
+    #   time point.  If there are multiples, print just the estimate.
+    # If there are multiple strata, or multiple newdata rows (predicted
+    #   curves from a multi-state coxph model), then print those sequentially
+    #   with a header line between each.
+    if (is.null(x$states)) nstate <-1
+    else nstate <- length(x$states)
+
+    dd <- dim(x$pstate)
+    if (length(dd) ==3 ) {
+        if (is.null(x$strata)) group <- rep(paste("data", 1:dd[2]), each=dd[1])
+        else group <- c(outer(rep(names(x$strata), x$strata),
+                              paste("data", 1:dd[2]), paste, sep=(", ")))
+        mat <- mat[rep(1:nrow(mat), dim(x$pstate)[2]), ]
+        mat <- cbind(mat, matrix(x$pstate, ncol= dd[3]))
+    } else {
+        if (is.null(strata)) group <- NULL
+        else group <- rep(names(x$strata), x$strata)
+        mat <- cbind(mat, x$pstate)
+    }
+
+    if (nstate >1) 
+        cnames <- c(cnames, paste0("P(", x$states[1:nstate], ")"))
+    else {
+        cnames <- c(cnames, "P")
 	if (!is.null(x$std.err)) {
 	    if (is.null(x$lower)) {
-		mat <- cbind(mat, x$std.err)
+		mat <- cbind(mat, as.vector(x$std.err))
 		cnames <- c(cnames, "std.err")
-	        }
+            }
 	    else {
-		mat <- cbind(mat, x$std.err, x$lower, x$upper)
+		mat <- cbind(mat, as.vector(x$std.err), 
+                             as.vector(x$lower), as.vector(x$upper))
 		cnames <- c(cnames, 'std.err',
 			    paste("lower ", x$conf.int*100, "% CI", sep=''),
 			    paste("upper ", x$conf.int*100, "% CI", sep=''))
-	        }	
-	    }
+            }	
         }
-    else cnames <- c(cnames, paste0("P(", x$states[1:ncurve], ")"))
+    }
+
 
     if (!is.null(x$start.time)) {
 	mat.keep <- mat[,1] >= x$start.time
+        if (!any(mat.keep))
+            stop(paste("No rows remain using start.time =", x$start.time, "."))
 	mat <- mat[mat.keep,,drop=FALSE]
-	if (is.null(dim(mat)))
-		stop(paste("No information available using start.time =", x$start.time, "."))
+        if (!is.null(group)) group <- group[mat.keep]
+    }
+
+    if (nrow(mat) > 1) {
+        dimnames(mat) <- list(rep("", nrow(mat)), cnames)
+        if (is.null(group)) print(mat)
+        else  { #print it out one group at a time
+            for (i in unique(group)) {
+                who <- (group==i)
+                cat("               ", i, "\n")
+                print(mat[who,])
+                cat("\n")
+            }
         }
-    if (!is.matrix(mat)) mat <- matrix(mat, nrow=1)
-    if (!is.null(mat)) {
-	dimnames(mat) <- list(rep("", nrow(mat)), cnames)
-	if (is.null(x$strata)) print(mat)
-	else  { #print it out one strata at a time
-	    strata <- x$strata
-	    if (!is.null(x$start.time))
-		    strata <- strata[mat.keep]
-	    for (i in levels(strata)) {
-		who <- (strata==i)
-		cat("               ", i, "\n")
-		print(mat[who,])
-		cat("\n")
- 	        }
-	    }
-        }
-    else 
+    } else 
 	stop("There are no events to print.  Please use the option ",
 	    "censored=TRUE with the summary function to see the censored ",
 	    "observations.")

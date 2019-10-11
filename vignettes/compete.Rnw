@@ -681,7 +681,7 @@ legend(10, .14, outer(c("female", "male   "),
 
 The individual survival curves that would result from fitting each
 endpoint separately are not actually of interest, since 
-each is a Cox model analog of the pcmbad curve we criticized earlier.
+each will be a Cox model analog of the pcmbad curve we criticized earlier.
 
 The coxph fits showed that
 sex has nearly no effect on the hazard of PCM, i.e., on any given day the
@@ -698,13 +698,14 @@ be alive.
 <<year20>>=
 # Print out a M/F results at 20 years
 temp <- summary(csurv, time=20*12)$pstate
-cbind(newdata, PCM= round(100*temp[,2], 1))
+cbind(dummy, PCM= round(100*temp[,,2], 1))
 @ 
 
-The above table shows that females are modeled to 
+The above table shows that females are predicted to 
 have a higher risk of 20 year progression, even
 though their hazard at any given moment is nearly identical to males.
-The difference at 20 years is on the order of our ``back of the napkin''
+The female/male difference at 20 years is on the order of our 
+``back of the napkin''
 person-years estimate of 1\% progression per year * 1.7 more years of life
 for the females, but the progression fraction varies substantially by group.  
 
