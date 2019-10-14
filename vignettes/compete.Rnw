@@ -836,10 +836,10 @@ In analogy to the survival probability in the two state model define
 and assume that $\gamma_k(t;x) = \gamma_{k0}(t) \exp(X\beta)$.
 In a 2 state alive $\longrightarrow$ death model, $\gamma$ becomes the
 usual hazard function $\lambda$.
-In the same way that our multivariate Cox model \code{cfit2} made the
+In the same way that our multivariate Cox model \code{cfit1} made the
 simplifying assumption that the impact of male sex is to increase the
 hazard for death
-by a factor of \Sexpr{round(exp(coef(cfit2)['sexM']), 2)}, 
+by a factor of \Sexpr{round(exp(coef(cfit1)[5]), 2)}, 
 independent of the subject's age or serum mspike value,
 the Fine-Gray model assumes that each covariate's effect on $\log(1-F)$ 
 is a constant,

@@ -394,10 +394,13 @@ if (missing(newdata)) {
     # If the model has factor predictors or it has interactions, print
     #  out a long warning message.  People are going to hate it, but
     #  I don't see another way to stamp out these bad curves without
-    #  backwards-incompatability.
-    if (any(attr(Terms, "order") > 1) || 
-        any(attr(Terms, "dataClasses") %in% c("factor", "character")))
-        warning("the model contains factor variables and/or interactions. In this situation the default curve based on columm means of the X matrix is almost certainly not useful; consider adding a newdata argument.")
+    #  backwards-incompatability.  Don't complain about factors in any
+    #  strata or cluster terms, however.
+    sdrop <- c(attr(Terms, "specials")$strata, attr(Terms, "specials")$cluster)
+    if (is.null(sdrop)) dc <- attr(Terms, "dataClasses")
+    else dc <- attr(Terms, "dataClasses")[-sdrop]
+    if (any(attr(Terms, "order") > 1) || any(dc %in% c("factor", "character")))
+        warning("the model contains factor variables and/or interactions; the default curve based on columm means of the X matrix is almost certainly not useful. Consider adding a newdata argument.")
     
     if (length(object$means)) {
         mf2 <- as.list(object$means)   #create a dummy newdata
