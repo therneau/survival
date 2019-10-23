@@ -55,13 +55,13 @@ summary.survfit <- function(object, times, censored=FALSE,
                                 "upper", "lower", "cumhaz", "std.chaz")) {
                 if (!is.null(fit[[i]])) {  # not all components in all objects
                     temp <- fit[[i]]
-                    if (!is.array(temp)) temp <- temp[index]  #simple vector
-                    else if (is.matrix(temp)) temp <- temp[index,,drop=FALSE]
+                    if (is.matrix(temp)) temp <- temp[index,,drop=FALSE]
+                    else  if (!is.array(temp)) temp <- temp[index]  #simple vector
                     else temp <- temp[index,,, drop=FALSE] # 3 way
                     fit[[i]] <- temp
                 }
             }
-            browser()
+
             # The n.enter and n.censor values are accumualated
             #  both of these are simple vectors
             if (is.null(fit$strata)) {
@@ -87,8 +87,8 @@ summary.survfit <- function(object, times, censored=FALSE,
         fit <- fit0
         ssub<- function(x, indx) {  #select an object and index
             if (!is.null(x) && length(indx)>0) {
-                if (is.array(x))  x[pmax(1,indx),,,drop=FALSE]
-                else if (is.matrix(x)) x[pmax(1,indx),,drop=FALSE]
+                if (is.matrix(x)) x[pmax(1,indx),,drop=FALSE]
+                else if (is.array(x))  x[pmax(1,indx),,,drop=FALSE]
                 else x[pmax(1, indx)]
             }
             else NULL
@@ -249,13 +249,13 @@ summary.survfitms <- function(object, times, censored=FALSE,
                                 "upper", "lower", "cumhaz", "std.chaz")) {
                 if (!is.null(fit[[i]])) {  # not all components in all objects
                     temp <- fit[[i]]
-                    if (!is.array(temp)) temp <- temp[index]  #simple vector
-                    else if (is.matrix(temp)) temp <- temp[index,,drop=FALSE]
+                    if (is.matrix(temp)) temp <- temp[index,,drop=FALSE]
+                    else  if (!is.array(temp)) temp <- temp[index]  #simple vector
                     else temp <- temp[index,,, drop=FALSE] # 3 way
                     fit[[i]] <- temp
                 }
             }
-            browser()
+
             # The n.enter and n.censor values are accumualated
             #  both of these are simple vectors
             if (is.null(fit$strata)) {
@@ -281,8 +281,8 @@ summary.survfitms <- function(object, times, censored=FALSE,
         fit <-fit0  # easier to work with
         ssub<- function(x, indx) {  #select an object and index
             if (!is.null(x) && length(indx)>0) {
-                if (is.array(x))  x[pmax(1,indx),,,drop=FALSE]
-                else if (is.matrix(x)) x[pmax(1,indx),,drop=FALSE]
+                if (is.matrix(x)) x[pmax(1,indx),,drop=FALSE]
+                else if (is.array(x))  x[pmax(1,indx),,,drop=FALSE]
                 else x[pmax(1, indx)]
             }
             else NULL
@@ -478,11 +478,13 @@ survmean2 <- function(x, scale=1, rmean) {
         meantime <- matrix(0., ngrp, nstate)
         if (!is.null(x$influence)) stdtime <- meantime
         for (i in 1:ngrp) {
-            if (is.array(x$pstate))
+            # a 2 dimensional matrix is an "array", but a 3-dim array is
+            #  not a "matrix", so check for matrix first.
+            if (is.matrix(x$pstate))
+                temp <- x$pstate[igrp==i,, drop=FALSE]
+            else if (is.array(x$pstate))
                 temp <- matrix(x$pstate[igrp==i,,,drop=FALSE],
                                ncol= nstate)
-            else if (is.matrix(x$pstate))
-                temp <- x$pstate[igrp==i,, drop=FALSE]
             else temp <- matrix(x$pstate[igrp==i], ncol=1)
 
             tt <- x$time[igrp==i]
