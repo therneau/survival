@@ -14,7 +14,7 @@
        nafld2
        nafld3}
 \format{
-  \code{nafld1} is a data frame with 17549 observations on the following 12 variables.
+  \code{nafld1} is a data frame with 17549 observations on the following 10 variables.
   \describe{
     \item{\code{id}}{subject identifier}
     \item{\code{age}}{age at entry to the study}
@@ -22,12 +22,8 @@
     \item{\code{weight}}{weight in kg}
     \item{\code{height}}{height in cm}
     \item{\code{bmi}}{body mass index}
-    \item{\code{race}}{a factor with levels \code{asian}, \code{black},
-      \code{other/mixed} and \code{white}}
     \item{\code{case.id}}{the id of the NAFLD case to whom this subject
       is matched}
-    \item{\code{ntime}}{time from entry date to NAFLD date, missing for
-      non-NAFLD subjects}
     \item{\code{futime}}{time to death or last follow-up}
     \item{\code{status}}{0= alive at last follow-up, 1=dead}
   }
@@ -41,7 +37,7 @@
     \item{\code{value}}{the numeric value}
   }
   
-  \code{nafld3} is a data frame with 38575 observations and 3 variables
+  \code{nafld3} is a data frame with 34340 observations and 3 variables
   containing outcomes
   \describe{
     \item{\code{id}}{subject identifier}
@@ -57,8 +53,8 @@ hepatology practice \cite{Tapper2018}.
 It is essentially the presence of excess fat in the
 liver, and parallels the ongoing obesity epidemic.
 Approximately 20-25\% of NAFLD patients will develop the inflammatory state
-of non-alcoholic steatohepatitis (NASH), leading to faster fibrosis 
-progression to end-stage disease.
+of non-alcoholic steatohepatitis (NASH), leading to fibrosis 
+and eventual end-stage liver disease.
 NAFLD can be accurately diagnosed by MRI methods, 
 but NASH diagnosis currently requires a biopsy.
 
@@ -75,8 +71,9 @@ original paper.
 
 There are 3 data sets: \code{nafld1} contains baseline data and has
 one observation per subject, \code{nafld2} has one observation for
-each continuous measurement, and \code{nafld3} has one observation for
-each endpoint that occured.
+each (time dependent) continuous measurement,
+and \code{nafld3} has one observation for
+each yes/no outcome that occured.
 }
 
 \source{Data obtained from the author.}
