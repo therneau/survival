@@ -204,13 +204,18 @@ the X matrix off the model frame, for multistate some more work
 needs to be done.  
 We have to repeat some lines from coxph, but to do that we need some
 further material.
+Always prefer object$y to model.response, since the former will have been
+passed through aeqSurv with the options the user specified.
+Otherwise we guess that the default timefix=TRUE option of coxph.control
+was in force for the coxph fit.
+
 <<survfit.coxph-setup2>>=
 position <- NULL
+Y <- object[['y']]
 if (is.null(mf)) {
     weights <- rep(1., n)
     offset <- rep(0., n)
     X <- object[['x']]
-    Y <- object[['y']]
 }
 else {
     weights <- model.weights(mf)
@@ -218,7 +223,7 @@ else {
     offset <- model.offset(mf)
     if (is.null(offset)) offset <- rep(0., n)
     X <- model.matrix.coxph(object, data=mf)
-    Y <- model.response(mf)
+    if (is.null(Y)) Y <- aeqSurv(model.response(mf))
     oldid <- model.extract(mf, "id")
     if (length(oldid) && ncol(Y)==3) position <- survflag(Y, oldid)
     else position <- NULL

@@ -72,7 +72,7 @@ state5 <- function(what, ...) {
 }
 @
 
-\title{The survival package}
+\title{A package for survival analysis in R}
 \author{Terry Therneau}
 \begin{document}
 \maketitle
@@ -213,6 +213,7 @@ as is shown in figure \ref{fig:multi}.
 The upper left panel is simple survival with two states of alive and dead,
 ``classic'' survival analysis.
 The other three panels show repeated events of the same type (upper right)
+
 competing risks for subjects on a liver transplant waiting list(lower left) 
 and the illness-death model (lower right).
 In this approach interest normally centers on the transition rates or hazards
@@ -232,6 +233,115 @@ will be used to organize other subsections of this document.
  Multiple event types & 3 & 4
 \end{tabular}
 \end{center}
+
+\section{Overview}
+   The summary below is purposefully very terse.  If you are familiar
+with survival analysis {\em and} with other R modeling functions it will
+provide a good summary.  Otherwise, just skim the section to get an overview
+of the type of computations available from this package, and move on to
+section 3 for a fuller description.
+
+\begin{description}
+\item[Surv()] A {\em packaging} function; like I() it doesn't
+    transform its argument.  This is used for the left hand side of all the
+    formulas.
+\begin{itemize}
+\item    \code{Surv(time, status)}  --  right censored data
+\item    \code{Surv(time,  endpoint=='death')} -- right censored data, where the
+  status variable is a character or factor
+\item    \code{Surv(t1, t2, status)} -- counting process data
+\item    \code{Surv(t1, ind, type='left')} -- left censoring
+\item    \code{Surv(time, fstat} -- multiple state data, fstat is a factor
+\end{itemize}
+\item[aareg] Aalen's additive regression model.
+  \begin{itemize}
+    \item The \code{timereg} package is a much more comprehensive implementation
+      of the Aalen model, so this document will say little about \code{aareg}
+  \end{itemize}
+\item[coxph()] Cox's proportional hazards model.
+\begin{itemize}
+\item    \code{coxph(Surv(time, status) {\twid}x, data=aml)}     --
+                        standard Cox model
+\item    \code{coxph(Surv(t1, t2, stat) {\twid} (age + surgery)* transplant)} --
+                           time dependent covariates.
+\item    \code{y <- Surv(t1, t2, stat)} \\
+         \code{coxph(y {\twid} strata(inst) * sex + age + treat)} --  Stratified model, with a
+                            separate baseline per institution, and institution
+                            specific effects for sex.
+\item    \code{coxph(y {\twid} offset(x1) + x2)} --     force in a known term,
+            without estimating a coefficient for it.
+\end{itemize}
+\item[cox.zph] Computes a test of proportional hazards for the fitted
+Cox model.
+\begin{itemize}
+\item    \code{zfit <- cox.zph(coxfit); plot(zfit)}
+\end{itemize}
+\item[pyears] Person-years analysis
+\item[survdiff] One and k-sample versions of the Fleming-Harrington $G^\rho$
+ family.
+    Includes the logrank and Gehan-Wilcoxon as special cases.
+\begin{itemize}
+\item    \code{survdiff(Surv(time, status) {\twid} sex + treat)} --  Compare
+the 4 sub-groups formed by sex and treatment combinations.
+\item    \code{survdiff(Surv(time, status) {\twid} offset(pred))} -  One-sample test
+\end{itemize}
+\item[survexp] Predicted survival for an age and sex matched cohort of
+    subjects, given a baseline matrix of known hazard
+    rates for the population.  Most often these are US mortality tables,
+    but we have also used local tables for stroke rates.
+\begin{itemize}
+\item    \code{survexp(entry.dt, birth.dt, sex)} --  Defaults to
+                 US white, average cohort survival
+\item    \code{pred <- survexp(entry, birth, sex, futime, type='individual')}  Data to enter into
+            a one sample test for comparing the given group to a
+            known population.
+\end{itemize}
+\item[survfit] Fit a survival curve.
+\begin{itemize}
+\item    \code{survfit(Surv(time, status))} --        Simple Kaplan-Meier
+\item    \code{survfit(Surv(time, status) {\twid} rx + sex)} --  Four groups
+\item    \code{fit <- coxph(Surv(time, stat) {\twid} rx + sex)} \\
+         \code{survfit(fit, list(rx=1, sex=2))} --    Predict curv
+\end{itemize}
+\item[survreg]  Parametric survival models.
+\begin{itemize}
+\item \code{survreg(Surv(time, stat) {\twid} x, dist='loglogistic')} - Fit a
+        log-logistic distribution.
+\end{itemize}
+\item[Data set creation]
+  \begin{itemize}
+    \item \code{survSplit} break a survival data set into disjoint portions
+      of time
+    \item \code{tmerge} create survival data sets with time-dependent covariates
+      and/or multiple events
+    \item \code{survcheck} sanity checks for survival data sets
+  \end{itemize}
+\end{description}
+
+\section{Mathematical Notation}
+We start with some mathematical background and notation, simply because it
+will be used later.
+A key part of the computations is the notion of a \emph{risk set}.  
+That is, in time to event analysis a given subject will only be under 
+observation for a specified time.
+Say for instance that we are interested in the patient experience after a 
+certain treatment, then a patient recruited on March 10 1990 and followed
+until an analysis date of June 2000 will have 10 years of potential follow-up,
+but someone who recieved the treatment in 1995 will only have 5 years
+at the analysis date.
+Let $Y_i(t), \,i=1,\ldots,n$ be the indicator that subject $i$ is at 
+risk and under observation at time t.
+Let $N_i(t)$ be the step function for the ith subject, which counts
+the number of ``events'' for that subject up to time t.  
+There might me things that can happen multiple times such as rehospitalization,
+or something that only happens once such as death.
+The total number of events that have occurred up to time $t$ will be
+$\Nbar(t) =\sum N_i(t)$, and the number of subjects at risk at time $t$ will
+be $\Ybar(t) = \sum Y_i(t)$.
+Time-dependent covariates for a subject are the vector $X_i(t)$.
+It will also be useful to define $d(t)$ as the number of deaths that occur
+exactly at time $t$.
+
 
 \chapter{Survival curves}
 \section{One event type, one event per subject}
