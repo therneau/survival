@@ -26,7 +26,7 @@
 
 \setkeys{Gin}{width=\textwidth}
 <<echo=FALSE>>=
-options(continue="  ", width=60)
+options(continue="  ", width=70)
 options(SweaveHooks=list(fig=function() par(mar=c(4.1, 4.1, .3, 1.1))))
 pdf.options(pointsize=10) #text in graph about the same as regular text
 options(contrasts=c("contr.treatment", "contr.poly")) #ensure default
@@ -172,7 +172,8 @@ time'', which in turn leads to two of the primary challenges.
     between early reporting and long term outcomes.
 \end{enumerate}
 
-<<states, fig=TRUE>>=
+\begin{figure}
+<<states, fig=TRUE, echo=FALSE>>=
 oldpar <- par(mar=c(.1, .1, .1, .1), mfrow=c(2,2))
 sname1 <- c("Alive", "Dead")
 cmat1 <- matrix(c(0,0,1,0), nrow=2, 
@@ -196,6 +197,9 @@ statefig(c(1,2), cmat4, offset=.03)
 
 par(oldpar)
 @
+\caption{Four multiple event models.}
+\label{fig:multi}
+\end{figure}
 
 Survival data is often represented as
 a pair $(t_i, \delta_i)$ where $t$ is the time until endpoint or last
@@ -203,9 +207,9 @@ follow-up, and $\delta$ is a 0/1 variable with 0= ``subject was censored at
 $t$'' and 1 =``subject had an event at $t$'',
 or in R code as \code{Surv(time, status)}.  
 The status variable can be logical, e.g., \code{vtype=='death'} where 
-\code{vtype} is the variable ``visit type''.  
+\code{vtype} is a variable in the data set.  
 An alternate view is to think of time to event data as a multi-state process
-as is shown in the above figure. 
+as is shown in figure \ref{fig:multi}. 
 The upper left panel is simple survival with two states of alive and dead,
 ``classic'' survival analysis.
 The other three panels show repeated events of the same type (upper right)
@@ -213,28 +217,31 @@ competing risks for subjects on a liver transplant waiting list(lower left)
 and the illness-death model (lower right).
 In this approach interest normally centers on the transition rates or hazards
 (arrows) from state to state (box to box).
-For simple survival the two viewpoints are equivalent, and we will move
-freely between them, i.e., use whichever viewpoint is handy at the moment,
-either ``time to event'' or ``rate of events''.  
+For simple survival the two multistate/hazard and the time-to-event viewpoints 
+are equivalent, and we will move
+freely between them, i.e., use whichever viewpoint is handy at the moment.
 When there more than one transition the rate approach is particularly useful.
 
 The figure also displays a 2 by 2 division of survival data sets, one that
-will be used to organize many subsections of this document.
-A: one event type (top row) versus multiple types of events 
-(bottom row), and  B: one endpoint per subject (left column) versus multiple
-events per subject (right column). 
-The upper left is simple or ``classic'' survival while the lower right is
-the most complex.
+will be used to organize other subsections of this document.
+\begin{center}
+  \begin{tabular}{l|cc}
+   & One event & Multiple events \\
+   & per subject& per subject \\ \hline
+ One event type & 1 & 2 \\
+ Multiple event types & 3 & 4
+\end{tabular}
+\end{center}
 
-\chapter{Survival and cumulative hazard curves}
-\section{Simple curves}
+\chapter{Survival curves}
+\section{One event type, one event per subject}
 \index{function!survfit}%
 \index{survival curves!one event}
 The most common depiction of survival data is the Kaplan-Meier curve,
 which is created with the \code{survfit} function.
 The left-hand side of the formula will be a Surv object and the right hand
 side contains one or more categorical variables that will divide the 
-observations into groups.  For a single curve use \code{\textasciitilde 1}
+observations into groups.  For a single curve use $\sim 1$
 as the right hand side.
 
 <<survfit1>>=
@@ -249,10 +256,13 @@ number of observations, number of events, median survival, and
 optionally the restricted mean survival time (RMST) in each of
 the groups.  In the above case we used the value at 2.5 years = 913 days
 as the upper threshold for the RMST, the value of 453 for females 
-represents an average survival for 453 or the next 913 days after enrollment
+represents an average survival for 453 of the next 913 days after enrollment
 in the study.
 The summary function gives a more complete description of the curve,
 in this case we chose to show the values every 6 months for the first two years.
+In this case the number of events (\code{n.event}) column is the number of
+deaths in the interval between two time points, all other columns reflect
+the value at the chosen time point.
 
 Arguments for the survfit function include the usual
 \code{data}, \code{weights}, \code{subset} and \code{na.action} 
@@ -272,19 +282,20 @@ intervals, defaults are shown in parenthesis.
 
 \index{survfit!confidence intervals}
 For the default \code{conf.type} the confidence intervals are computed as
-$$
-   e^{\log(p) \pm 1.96 {\rm se}(\log(p))}
-$$
+$
+   \exp[\log(p) \pm 1.96 {\rm se}(\log(p))]
+$
 rather than the direct formula of $p \pm 1.96 {\rm(se)}(p)$, where 
 $p = S(t)$ is the survival probability.
 Many authors have investigated the behavior of transformed intervals, and a 
 general conclusion is that the direct intervals do not behave well, particularly
 near 0 and 1, while all the others are acceptable. 
 Which of the choices of log, log-log, or logit is ``best'' depends on the 
-details of the simulation study.
+details of any particular simulation study,
+all are available as options in the function.
 (The default corresponds to the most recent paper the author had read, at
 the time the default was chosen; a current meta review might give a slight edge
-to log-log option.)
+to the log-log option.)
 
 The \code{conf.lower} option is mostly used for graphs.  If a study has a 
 long string of censored observations, it is intuitive that the precision
@@ -331,33 +342,43 @@ text(400, .95, "Males", cex=2)
 
 \section{Repeated events}
 \index{survival curves!repeated events}
-Repeated events of the same type is quite common in industrial reliability
+This is the case of a single event type, with the possibility of multiple
+events per subject.
+Repeated events are quite common in industrial reliability
 data.
 As an example, consider a data set on the replacement times of
 diesel engine valve seats.
 The simple data set \code{valveSeats} contains an engine identifier, time, and
 a status of 1 for a replacement and 0 for the end of the inspection interval
-for that engine; sorted by time within engine.
-To accommodate multiple events per subject each row needs to span a unique
-time interval $(t1, t2]$, we do this by adding a new variable to the data
-set.
-Intervals of 0 are illegal for \code{Surv} objects.  There are 3 engines that
+for that engine; the data is sorted by time within engine.
+To accommodate multiple events for an engine we need to rewrite the data in
+terms of time intervals.
+For instance, engine 392 had repairs on days 258 and 328 and
+a total observation time of 377 days, and will be represented as three
+intervals of (0, 258), (258, 328) and (328, 377) thus:
+<<echo=FALSE>>=
+data.frame(id=rep(392,3), time1=c(0, 258, 328), time2=c(258, 328, 377),
+           status=c(1,1,0))
+@ 
+Intervals of length 0 are illegal for \code{Surv} objects.  
+There are 3 engines that
 had 2 valves repaired on the same day, which will create such an interval.
-To work around this so move the first repair back
+To work around this move the first repair back
 in time by a tiny amount.  
 
 <<survival4>>=
-vdata <- valveSeat
+vdata <- with(valveSeat, data.frame(id=id, time2=time, status=status))
 first <- !duplicated(vdata$id)
-vdata$t0 <- ifelse(first, 0,  c(0, vdata$time[-nrow(vdata)]))
-double <- which(vdata$t0 == vdata$time)
-vdata$time[double-1] <- vdata$t0[double] <- vdata$t0[double] -.01
-vdata[1:7, c("id", "t0", "time", "status")]
-survcheck(Surv(t0, time, status) ~ 1, id=id, data=vdata)
+vdata$time1 <- ifelse(first, 0,  c(0, vdata$time[-nrow(vdata)]))
+double <- which(vdata$time1 == vdata$time2)
+vdata$time1[double] <- vdata$time1[double] -.01
+vdata$time2[double-1] <- vdata$time1[double]
+vdata[1:7, c("id", "time1", "time2", "status")]
+survcheck(Surv(time1, time2, status) ~ 1, id=id, data=vdata)
 @ 
 
 Creation of (start time, end time) intervals is a common data manipulation 
-tasks when there are multiple events per subject. 
+task when there are multiple events per subject. 
 A later chapter will discuss the \code{tmerge} function, which is very often
 useful for this task. 
 The \emph{survcheck} function can be used as check for some of more common
@@ -371,21 +392,21 @@ repair to another one, 1 $\rightarrow$ 1, or reach end of follow-up.
 The second table printed by \code{survcheck} tells us the 17 engines had 0
 transitions to state 1, i.e., no valve repairs before the end of observation
 for that engine, 9 had 1 repair, etc.
-Perhaps the most important output is that the routine did not print any 
+Perhaps the most important message is that there were no 
 warnings about suspicious data.
 
 We can now compute the survival estimate.  When there are multiple observations
 per subject the \code{id} statement is necessary.
-(It is a good idea if there \emph{could} be multiples, even if there are none,
+(It is a good idea any time there \emph{could} be multiples, even if there are none,
 as it lets the underlying routines check for doubles.)
 
 <<survival5, fig=TRUE>>=
-vfit <- survfit(Surv(t0, time, status) ~1, data=vdata, id=id)
+vfit <- survfit(Surv(time1, time2, status) ~1, data=vdata, id=id)
 plot(vfit, cumhaz=TRUE, xlab="Days", ylab="Cumulative hazard")
 @ 
 
 By default, the \code{survfit} routine computes both the survival and
-the cumulative hazard functions,
+the cumulative hazard estimates,
 to plot the cumulative hazard portion the \code{cumhaz} argument of
 \code{survfit} is used.
 \index{cumulative hazard function}%
@@ -394,21 +415,32 @@ In multi-event data, the cumulative hazard is an estimate of the expected
 \emph{number} of events for a unit that has been observed for the 
 given amount of time, whereas the survival $S$ estimates the probability that
 a unit has had 0 repairs.
-The cumulative hazard is often the more natural quantity to plot in such 
+The cumulative hazard is the more natural quantity to plot in such 
 studies; in reliability analysis it is also known as the 
 \emph{mean cumulative function}.  
+
 The estimate is also important in multi-state models.
+An example is the occurene of repeated infections in children with
+chronic granultomous disease, as found in the \code{cgd} data set.
+<<cgd1>>=
+cgdsurv <- survfit(Surv(tstart, tstop, status) ~ treat, cgd, id=id)
+plot(cgdsurv, cumhaz=TRUE, col=1:2, conf.times=c(100, 200, 300, 400),
+     xlab="Days since randomization", ylab="Cumulative hazard")
+@ 
 
 \section{Competing risks}
-In the classic case, \code{status} is either a logical or 0/1 numeric variable
-that represents censoring (0 or false) or an event (1 or true),
-and the result is a survival curve for each group.
-If \code{status} is a factor, however, the result is a multi-state
-estimate.
-In this case the first level of \code{status} is used to code censoring while
-the remaining ones are possible states.
-For competing risks data each subject has aT most one transition, but there
-are multiple transition types.
+The case of multiple event types, but only one event per subject is commonly
+known as competing risks. 
+We do not need the (time1, time2) data form for this case, since each subject
+has only a single outcome, but we do need a way to identify different outcomes.
+In the prior sections, \code{status} was either a logical or 0/1 numeric variable
+that represents censoring (0 or FALSE) or an event (1 or TRUE),
+and the result was a single survival curve for each group.
+For competing risks data 
+\code{status} will be a factor;
+the first level of the factor is used to code censoring while
+the remaining ones are possible outcomes.
+
 
 \subsection{Simple example}
 Here is a simple competing risks example where the three endpoints are
@@ -432,7 +464,12 @@ We will also use the notation $p(t)$ where $p$ is a vector with one element
 per state and $p_j(t)$ is the fraction in state $j$ at time $t$.
 The plot below shows all 4 curves.
 (Since they sum to 1 one of the 4 curves is redundant, often the entry state
-is omitted since it is the least interesting.)  In the \code{plot.survfit} function there is the argument \code{noplot="(s0)"} which indicates that labels with this curve will not be plotted.  If we had not specified \code{istate} in the call to \code{survfit}, the default label for the initial state would have been ``s0'' and the first curve would not have been plotted.
+is omitted since it is the least interesting.)  
+In the \code{plot.survfit} function there is the argument \code{noplot="(s0)"}
+which indicates that curves for state (s0) will not be plotted.  
+If we had not specified \code{istate} in the call to \code{survfit}, 
+the default label for the initial state would have been ``s0'' and t
+he solid curve would not have been plotted.
 
 <<fig=TRUE>>=
 plot(tfit, col=1:4, lty=1:4, lwd=2, ylab="Probability in state")
@@ -440,7 +477,9 @@ plot(tfit, col=1:4, lty=1:4, lwd=2, ylab="Probability in state")
 
 The resulting \code{survfms} object appears as a matrix and can be
 subscripted as such, with a column for each state and rows for each
-group corresponding to variables on the right hand side of the formula.
+group,
+each unique combination of values on the right hand side of the formula
+is a group or strata.
 This makes it simple to display a subset of the curves using plot
 or lines commands.
 The entry state in the above fit, for instance, can be displayed with
@@ -484,11 +523,11 @@ At a time point with only censoring, such as time 4, $T$ would be the identity
 matrix.  
 
 It is straightforward to show that when there are only two states of
-alive -> dead, then $p_1(t)$ from the Aalen-Johansen estimate replicates 
+alive -> dead, then $p_1(t)$ replicates 
 the Kaplan-Meier computation.  
 For competing risks data such as the simple example above, $p(t)$ replicates
 the cumulative incidence (CI) estimator.
-The KM and CI are both special cases.  
+That is, both the KM and CI are both special cases of the Aalen-Johansen.  
 The AJ is more general, however; a given subject can have multiple 
 transitions from state to state, including transitions to a state that was 
 visited earlier.
@@ -511,6 +550,8 @@ mgus2[55:59, -(4:7)]
 @ 
 
 To generate competing risk curves create a new (etime, event) pair.
+Since each subject has at most 1 transition, we do not need a multi-line
+(time1, time2) dataset.
 
 <<mgus2, fig=TRUE>>=
 event <- with(mgus2, ifelse(pstat==1, 1, 2*death))
@@ -519,7 +560,8 @@ etime <- with(mgus2, ifelse(pstat==1, ptime, futime))
 crfit <- survfit(Surv(etime, event) ~ sex, mgus2)
 crfit
 
-plot(crfit, col=1:2, lty=c(3,3,2,2,1,1), lwd=2,noplot="", xscale=12,
+plot(crfit, col=1:2,  noplot="",
+     lty=c(3,3,2,2,1,1), lwd=2, xscale=12,
      xlab="Years post diagnosis", ylab="P(state)")
 legend(240, .65, c("Female, death", "Male, death", "malignancy", "(s0)"),
        lty=c(1,1,2,3), col=c(1,2,1,1), bty='n', lwd=2)
@@ -587,7 +629,7 @@ One surprising aspect of multi-state data is that hazards can be estimated
 independently although probabilities cannot.
 If you look at the cumulative hazard estimate from the \code{pcmbad}
 fit above using, for instance, \code{plot(pcmbac, cumhaz=TRUE)} you will
-find that it is identical to the estimate from the joint fit.
+find that it is identical to the cumulative hazard estimate from the joint fit.
 This will arise again with Cox models.  
 
 \section{Multi-state data}
@@ -636,7 +678,7 @@ first event time has no impact on the results.
 \subsection{Myeloid data}
 The \code{myeloid} data set contains data from a clinical trial
 in subjects with  acute myeloid leukemia.  To protect patient confidentiality
-the data set in the survival package has slightly perturbed, but 
+the data set in the survival package has been slightly perturbed, but 
 results are essentially unchanged.
 In this comparison of two conditioning regimens, the
 canonical path for a subject is initial therapy $\rightarrow$
@@ -691,10 +733,10 @@ on the same day (temp=3).
 To avoid length 0 intervals, we break the tie so that complete response (CR)
 happens first.
 (Students may be surprised to see anomalies like this, since they never appear
-in textbook data.  In real data such issues always appear.)
+in textbook data sets.  In real data such issues always appear.)
 
 <<sfit0b, echo=TRUE>>=
-tdata <- myeloid
+tdata <- myeloid  # temporary working copy
 tied <- with(tdata, (!is.na(crtime) & !is.na(txtime) & crtime==txtime))
 tdata$crtime[tied] <- tdata$crtime[tied] -1
 mdata <- tmerge(tdata[,1:2], tdata,  id=id,  death= event(futime, death),
@@ -719,9 +761,10 @@ survcheck(Surv(tstart, tstop, event) ~1, mdata, id=id)
 @ 
 
 The second table shows that no single subject had more than one CR, SCT,
-relapse, or death, which is the intention.  Several subjects visited all
-four intermediate states.  
-The transitions table shows 11 subject who achieved CR \emph{after} stem
+relapse, or death; the intention of the study was to count only the first
+of each of these, so this is as expected.
+Several subjects visited all four intermediate states.  
+The transitions table shows 11 subjects who achieved CR \emph{after} stem
 cell transplant and another 106 who received a transplant before
 achieving CR, both of which are deviations from the ``ideal'' pathway.
 No subjects went from death to another state (which is good).
@@ -984,8 +1027,8 @@ The standard errors of the two values are
 \Sexpr{round(temp[3,4],1)} and \Sexpr{round(temp[4,4],1)},
 and since they are based
 on disjoint subjects the values are independent, leading to a standard error
-for the difference of $\sqrt{1.1^2 + 1.2^2} = 1.6$.
-The 5 month difference is over 3 standard errors.
+for the difference of $\sqrt{1.1^2 + 1.1^2} = 1.6$.
+The 5 month difference is more than 3 standard errors, so highly significant.
 
 \begin{figure}
   \myfig{txsurv}
@@ -1073,9 +1116,6 @@ at any point in time the sum of the 5 possible states is 1 ---
 everyone has to be somewhere.  Thus one of the curves
 is redundant, and the fraction still in the entry state is the least 
 interesting of them.
-(A multi-state \code{survfit} call that does not include the \code{istate}
-argument will assume that everyone starts in an unnamed entry state.
-The default plot behavior is to omit the curves for any unnamed states.)
 
 
 <<sfit4, fig=TRUE, include=FALSE>>=
@@ -1287,149 +1327,134 @@ whereas \code{survfit} estimates time until progression was \emph{observed}.
 
 %--------------------------------------------------------
 
-\chapter{A menagerie of models}
-For modeling survival data the package includes several choices, which can 
-be broken up into \emph{hazard} and \emph{direct} models for the data.
-Let $x_1, x_2, \ldots$ be a set of covariates or predictors.
+\chapter{Cox model}
+\index{Cox model}
+The most commonly used models for survival data are those that model the
+transition rate from state to state, i.e., 
+the arrows of figure \ref{fig:multi}.
+They are Poisson regression \eqref{eq2.1}, the Cox or proportional
+hazards model \eqref{eq2.2} and the Aalen additive regression
+model \eqref{eq2.3},
+of which the Cox model is far and away the most popular.
+As seen in the equations they are closely related.
 
-Direct models model the survival time directly as
-\begin{equation*}
-  E(t) = f(\beta_0 + \beta_1 x_1 + \beta_2 x_2 + \ldots)
-\end{equation*}
-for some link function $f$.
-These models are fit using the \code{survreg} function, which will be covered
-in chapter \ref{chap:aft}.
+\begin{eqnarray}
+  \lambda(t) &= e^{beta_0 + \beta_1 x_1 + \beta_2 x_2 + \ldots} \
+           label{eq2.1} \\
+  \lambda(t) &= e^{\beta_0(t) + \beta_1 x_1 + \beta_2 x_2 + \ldots}  \nonumber \\
+             &= \lambda_0(t) e^{\beta_1 x_1 + \beta_2 x_2 + \ldots} \label{eq2.2} \\
+  \lambda(t) &= \beta_0(t) + \beta_1(t) x_1 + \beta_2(t) x_2 + \ldots
+                \label{eq2.3} 
+\end{eqnarray}
 
-Hazard models model the rate or hazard of transition between
-states and include 3 models.
-
-Exponential (or Poisson) models
-\begin{equation*}
- \lambda(t) = \exp(\beta_0 + \beta_1 x_1 + \beta_2 x_2 + \ldots) 
-\end{equation*}
-These can be fit using the \code{glm} command in base R, after proper data
-set up.  
-For example, here is a simple fit to the aml data set.
-<<lungglim>>=
-gfit <- glm(status ~ x + offset(log(time)), family=poisson, data=aml)
-summary(gfit)
-@ 
- 
-The subjects who did not receive maintenance therapy have a 2.5 fold
-higher death rate.
-In this model the response is the number of events for a subject, so the
-model can
-be applied to multiple outcome data as well.
-The \code{offset} term is based on the fact that for a Poisson response
-E(number of events) = rate * time = exp(log(rate) + log(time)).
-We are using $\beta x$ to model the log rate and so log(time) appears in the
-model as an \emph{offset}, a covariate with known coefficient of 1.
-
-The proportional hazards or Cox model allows an semi-parametric intercept
-\begin{align*}
-  \lambda(t) &= \exp(\beta_0(t) + \beta_1 x_1 + \beta_2 x_2 + \ldots) \\
-             &= \lambda_0(t) \exp(\beta_1 x_1 + \beta_2 x_2 + \ldots)
-\end{align*}
-where $\lambda_0$ is referred to as the baseline hazard.
-The literature is about evenly split between using
-$\lambda$, $h$ and $\alpha$ as the symbol for the baseline hazard;
-we will use $\lambda$ but there is no compelling argument for one versus
-another.
-The Cox model will be covered in chapter \ref{chap:PH}.
-
-The Aalen additive regression model is 
-\begin{align*}
-   \lambda(t) = \beta_0(t) + \beta_1(t) x_1 + \beta_2(t) x_2 + \ldots
-\end{align*}
-The model is more complex than the Cox model --- all of the coefficients
-are time dependent --- but it also has important advantages.
-These models can be fit using the \code{aareg} function in the survival
-package.
-The \code{timereg} package has surpassed the \code{aareg} function in every
-way, however, and users of the Aalen model should direct their 
-attention there.  
-
-There are, I think, three keys to a successful statistical
-model, and each of the above attempts to strike a balance
-between them.  A good model
-\begin{enumerate}
-  \item provides a simplified summary of the effects
-  \item executes reliably
-  \item is a \emph{good enough} summary of the biology
-\end{enumerate}
-
-For all of the above, the first of these is addressed by using 
-a linear predictor $\beta_1 x_1 + \beta_2 x_2 + \ldots$ for the covariates.
-This allows us make statements about the covariate effects singly, e.g.
-``the effect of treatment is a \underline{\phantom{abc}}'', ignoring the
-others.
-The second criterion is practical --- programs that sometimes fail, 
-or that require 
-starting estimates or per dataset tuning do not get used in day to day work.
-The last criterion is that the model needs to capture the true biology
-sufficiently well that the result can act as a basis for 
-action.   
-The joint action of the first and third are well captured by three quotations:
-
-\begin{quotation}
-Ce qui est simple est toujours faux. Ce qui ne l'est pas est inutilisable.
-(What is simple is always wrong. What is not is unusable.)\\
-Paul Val\'{e}ry, 1949
-
-All models are approximations. Assumptions, whether implied or clearly 
-stated, are never exactly true. All models are wrong, but some models are 
-useful. So the question you need to ask is not ``Is the model true?" (it never 
-is) but ``Is the model good enough for this particular application?''\\
-G.E.P Box, Statistical Control By Monitoring and Adjustment, 2009.
-
-
-A model is a lie that helps us see the truth.\\  H. Skipper in The Emperor
-of all Maladies, 2011.
-\end{quotation}
-
-Box's statement is often compressed down to the third of its 4 sentences, but
-is best viewed in full.  
-
+(Textbooks on survival use $\lambda(t)$, $\alpha(t)$ and $h(t)$ in about equal
+proportions.  There is no good argument for any one versus another,
+but this author started his career with books that used $\lambda$ so
+that is what you will get.)
 
 % -----------------------------------------
-
-\chapter{Cox proportional hazard model}
-\label{chap:PH}
-The Cox model is the single most popular model for time to event data.
-Part of this is certainly historical.  It has been said that the
-correlation coefficient rose to prominence because R. A. Fisher worked out
-the statistical theory at about the same time that desk calculators could
-first handle a running sum $\sum x_i y_i$; it was both a simple statistic
-and the most complex thing one could do.
-The Cox model's relationship to 1970's computing power was much the same. 
-The fact that it continues to be used is due, however, to the fact that the
-model often provides a very good summary.
-
-We will show the model in four situations
-\begin{centering}
- \begin{tabular}{ccc}
- & One outcome per subject & Multiple outcomes per subject \\
-One type of outcome & 1 & 2 \\
-Multiple types of outcome & 3 & 4
-\end{tabular}
-\end{centering}
-Type 1 is simple or `classic' survival, 2 is repeated events per subject,
-3 is exemplified by competing risks, and 4 is the most general.
-
-\section{Single Event}
-An example of the classic Cox model can be illustrated using the
-lung cancer data set.
-This involves subjects with advanced lung cancer, recruited in a set
-of multi-institutional trials.
+\section{One event type, one event per subject}
+Single event data is the most common use for Cox models.
+We will use a data set that contains the survival of 228 patients
+with advanced lung cancer.
 
 <<lung1>>=
-fit1 <- coxph(Surv(time, status) ~ age + sex + ph.ecog, data=lung)
-print(fit1, digits=2)   # fewer digits to fit on the page
+options(show.signif.stars=FALSE)  # display statistical intelligence
+cfit1 <- coxph(Surv(time, status) ~ age + sex + wt.loss, data=lung)
+print(cfit1, digits=3)
+summary(cfit1, digits=3)
+anova(cfit1)
 @ 
 
-The Eastern Cooperative Oncology Group's performance status is a measure
-of subject's functional ability ranging from 0= asymptomatic to 4=bedbound,
-and is the most powerful predictor of outcome for these patients.
+As is usual with R modeling functions, the default \code{print} routine
+gives a short summary and the \code{summary} routine a longer one.
+The \code{anova} command shows tests for each term in a model, added
+sequentially.
+We purposely avoid the innane addition of ``significant stars'' to
+any printout.
+Age and gender are strong predictors of survival, but the amount of
+recent weight loss was not influential.
+
+The following functions can be used to extract portions of a 
+\code{coxph} object.
+\begin{itemize}
+  \item \code{coef} or \code{coefficients}: the vector of coefficients
+  \item \code{concordance}: the concordance statistic for the model fit
+  \item \code{fitted}: the fitted values, also known as linear predictors
+  \item \code{logLik}: the partial likelihood
+  \item \code{model.frame}: the model.frame of the data used in the fit
+  \item \code{model.matrix}: the $X$ matrix used in the fit
+  \item \code{nobs}: the number of observations
+  \item \code{predict}: a vector or matrix of predicted values
+  \item \code{residuals}: a vector of residuals
+  \item \code{vcov}: the variance-covariance matrix
+  \item \code{weights}: the vector of case weights used in the fit
+\end{itemize}
+Further details about the contents of a \code{coxph} object can be
+found by \code{help('coxph.object')}.
+
+The global \code{na.action} function has an important effect on the 
+returned vector of residuals, as shown below.
+This can be set per fit, but is more often set globally via the
+\code{options()} function.
+
+<<na.action>>=
+cfit1a <- coxph(Surv(time, status) ~ age + sex + wt.loss, data=lung,
+                na.action = na.omit)
+cfit1b <- coxph(Surv(time, status) ~ age + sex + wt.loss, data=lung,
+                na.action = na.exclude)
+r1 <- residuals(cfit1a)
+r2 <- residuals(cfit1b)
+length(r1)
+length(r2)
+@ 
+The fits have excluded 14 subjects with missing values for one or more
+covariates.  
+The residual vector \code{r1} omits those subjects from the residuals,
+while \code{r2} returns a vector of the same length as the original
+data, containing NA for the omitted subjects.
+Which is preferred depends on what you want to do with the residuals.
+For instance \code{mean(r1)} is simpler using the first while
+\code{plot(lung\$ph.ecog, r2)} is simpler with the second.
+
+Stratified Cox models are obtained by adding one or more \code{strata}
+terms to the model formula.
+In a stratified model each subject is compared only to subjects within their
+own stratum for computing the partial likelihood, and then the final results
+are summed over the strata.
+A useful rule of thumb is that a variable included as a stratum is adjusted
+for in the most general way, at the price of not having an estimate of its
+effect.
+One common use of strata is to adjust for the enrolling institution in a
+multi-center study, as below.
+We see that in this case the effect of stratification is slight.
+<<cox12>>=
+cfit2 <- coxph(Surv(time, status) ~ age + sex + wt.loss + strata(inst),
+               data=lung)
+round(cbind(simple= coef(cfit1), stratified=coef(cfit2)), 4)
+@ 
+
+Predicted survival curves from a Cox model are obtained using the
+\code{survfit} function.
+Since these are predictions from a model, it is necessary to specify
+\emph{whom} the predictions should be for, i.e., one or more
+sets of covariate values.
+Here is an example.
+
+<<cox13>>=
+dummy <- expand.grid(age=c(50, 60), sex=1, wt.loss=5)
+dummy
+
+csurv1 <- survfit(cfit1, newdata=dummy)
+csurv2 <- survfit(cfit2, newdata=dummy)
+dim(csurv1)
+dim(csurv2)
+plot(csurv1, col=1:2, xscale=365.25, xlab="Years", ylab="Survival")
+
+dummy2 <- data.frame(age=c(50, 60), sex=1:2, wt.loss=5, inst=c(6,11))
+csurv3 <- survfit(cfit2, newdata=dummy2)
+dim(csurv3)
+@ 
 
 The simplifying aspects of the Cox model that make is so useful are
 exactly those that should be verified, namely proportional hazards,
@@ -1437,7 +1462,7 @@ additivity, linearity, and lack of any high leverage points.
 The first can be checked with the \code{cox.zph} function.
 
 <<lung2, fig=TRUE>>=
-zp1 <- cox.zph(fit1)
+zp1 <- cox.zph(cfit1)
 zp1
 plot(zp1[2], resid=FALSE)
 abline(coef(fit1)[2] ,0, lty=3)
@@ -1447,20 +1472,17 @@ None of the test statistics for PH are remarkable.
 A simple check for linearity of age is to replace the term with a smoothing
 spline. 
 <<lung3>>=
-fit2 <- coxph(Surv(time, status) ~ pspline(age) + sex + ph.ecog, lung)
-print(fit2, digits=2)
+cfit3 <- coxph(Surv(time, status) ~ pspline(age) + sex + wt.loss, lung)
+print(cfit3, digits=2)
+termplot(cfit3, term=1, se=TRUE)
+
+cfit4 <- update(cfit1, . ~ . + age*sex)
+anova(cfit1, cfit4)
 @ 
 
-ECOG performance score only has 4 levels, one of which occurs for only one 
-subject.  A linearity check for this variable is most effectively done
-by using a factor.  The resulting coefficients of 0, .4, .9 for the three
-categories are again reasonably close to linear.
-<<lung3>>=
-table(lung$ph.ecog)
-fit3 <- coxph(Surv(time, status) ~ age + sex + factor(pmin(ph.ecog,2)),
-              data=lung)
-print(fit3, digits=2)
-@ 
+The age effect appears reasonbly linear. 
+Additivity can be examined by adding and age by sex interaction, and
+again is not remarkable.
 
 \section{Repeating Events}
 Children with chronic granulotomous disease (CGD) are subject to repeated 
@@ -1481,44 +1503,46 @@ cfit1 <- coxph(Surv(tstart, tstop, status) ~ treat + inherit + steroids +
                    age + strata(hos.cat), data=cgd)
 print(cfit1, digits=2)
 @ 
- 
+Further examination shows that the fit is problematic in that only 3 of 128
+children have \code{steroids ==1}, so we refit without that variable.
+<<cgd1b>>=
+cfit2 <- coxph(Surv(tstart, tstop, status) ~ treat + inherit+
+                   age + strata(hos.cat), data=cgd)
+print(cfit2, digits=2)
+@ 
+
 Predicted survival and/or cumulative hazard curves can then be obtained from
 the fitted model.  
 Prediction requires the user to specifiy \emph{who} to predict; in this case
-we will use 4 hypothetical subjects on control/interferon treatment, with and
-without prior steroids.  The other two covariates are set to age 12 
-(the median age in the study) and X-linked disease.  This creates a data
-frame with 4 rows.
+we will use 4 hypothetical subjects on control/interferon treatment, at ages
+7 and 20 (near the quantiles).
+  This creates a data frame with 4 rows.
 
-<<cgd2, fig=TRUE>>=
-dummy <- expand.grid(age=12, inherit='X-linked', 
-                     treat=levels(cgd$treat), steroids=0:1)
+<<cgd3, fig=TRUE>>=
+dummy <- expand.grid(age=c(6,12), inherit='X-linked', 
+                     treat=levels(cgd$treat))
 dummy
-csurv <- survfit(cfit1, newdata=dummy)
+csurv <- survfit(cfit2, newdata=dummy)
 dim(csurv)
 
 plot(csurv[1,], fun="event", col=1:2, lty=c(1,1,2,2), 
      xlab="Days on study", ylab="Pr( any infection )")
 @ 
 
-If the strata variable is included in the \code{newdata} dataframe 
-curves will be produced for the selected strata, otherwise the default
-is to produce separate curves for each stratum.  
 The resulting object was subscripted in order to make a plot with fewer
-curves. 
-We see that the sterod subjects have a higher risk, and that treatment is
-effective.
+curves, i.e., predictions for the first level of \code{hosp.cat}.
+We see that treatment is effective but the effect of age is small.
 
 Perhaps more interesting in this situation is the expected number of
 infections, rather than the probability of having at least 1.
 The former is estimated by the cumulative hazard, which is also returned
 by the \code{survfit} routine.
 
-<<cfit3, fig=TRUE>>=
+<<cfit4, fig=TRUE>>=
 plot(csurv[1,], cumhaz=TRUE, col=1:2, lty=c(1,1,2,2), lwd=2,
      xlab="Days on study", ylab="E( number of infections )")
-legend(20, 5, c("Steroid subject, control", "Steroid subject, gamma interferon",
-                "non-steroid, control", "non-steroid, gamma interferon"),
+legend(20, 1.5, c("Age 6, control", "Age 12, control",
+                "Age 6, gamma interferon", "Age 12, gamma interferon"),
        lty=c(2,2,1,1), col=c(1,2,1,2), lwd=2, bty='n')
 @  
 
@@ -1564,53 +1588,21 @@ malignancy''.
 The \code{statefig} function is designed to create simple state diagrams,
 with an emphasis on ease rather than elegance. 
 See more information in section \ref{sect:statefig}.
- 
-To compute the multi-state survival, we first create a data set with
-(begin, end) time intervals using \code{tmerge}.
-As is often the case, a closer look at the data uncovered some special
-issues: there are 9 subjects whose time to progression is identical to
-the death time.
-It turns out that these are subjects whose disease was discovered at
-autopsy.
-The survival code does not allow for time intervals of length zero, 
-so a modification needs to be made to the data.
-Clearly, these autopsied subjects will have had their 
-malignancy for some period of time before death, below we arbitrarily
-move the PCM date back by one month.
+
+For competing risks each subject has at most one transition, so the
+data set only needs one row per subject.
 
 <<survfit-mgus2>>=
-# modified progression time, = -1 month if tied with death
-temp <- with(mgus2, ifelse(pstat==0, NA,
-                           ifelse(ptime==futime, ptime-1, ptime)))
-mdata <- tmerge(mgus2[,1:7], mgus2, id=id, event= event(futime, 2*death),
-                event= event(temp))
-mdata$event <- factor(mdata$event, 0:2, c("censor", "PCM", "Death"))
-mdata[56:59,]
-survcheck(Surv(tstart, tstop, event) ~ 1, mdata, id=id)
-@ 
- 
-The short dataset printout shows that subject 56 is represented as two rows,
-the first from entry to PCM, with a length of 29 months, and second 
-spanning from 29 to 44 months and ending with death.
-The transition table from the \code{survcheck} output shows transitions
-from the entry state ``()'' to PCM and Death, and from PCM to Death.
-\index{function!survcheck}
-Importantly, it does not show any transitions from PCM to PCM, which by
-the study definition can only occur once, or from Death to some other state.
-The table of per subject counts shows 103 subjects who make 2 transitions,
-but no one who has multiple PCM or death events.
-We are now ready to compute an estimate.
+crdata <- mgus2
+crdata$etime <- pmin(crdata$ptime, crdata$futime)
+crdata$event <- ifelse(crdata$pstat==1, 1, 2*crdata$death)
+crdata$event <- factor(crdata$event, 0:2, c("censor", "PCM", "death"))
 
-A competing risks analysis will only consider the first event for each
-subject, so we first subset the data.
-Second, it is good practice to summarize covariates before a fit.
-<<cfit1>>=
-crdata <- subset(mdata, tstart==0)
 quantile(crdata$age, na.rm=TRUE)
 table(crdata$sex)
 quantile(crdata$mspike, na.rm=TRUE)
 
-cfit <- coxph(Surv(tstart, tstop, event) ~ I(age/10) + sex + mspike, 
+cfit <- coxph(Surv(etime, event) ~ I(age/10) + sex + mspike, 
               id = id, crdata)
 print(cfit, digits=1)  # narrow the printout a bit
 @ 
@@ -1676,7 +1668,7 @@ would occur if death could be abolished.  It not surprisingly ends up as about
 1\% per year.  
 
 <<msingle, fig=TRUE>>=
-sfit <- coxph(Surv(tstop, event=="PCM") ~ I(age/10) + sex + mspike, crdata)
+sfit <- coxph(Surv(etime, event=="PCM") ~ I(age/10) + sex + mspike, crdata)
 rbind(single = coef(sfit),
       multi  = coef(cfit)[1:3])
 #par(mfrow=c(1,2))
@@ -1689,8 +1681,12 @@ legend(20, .22, outer(c("80 year old male,", "80 year old female,"),
                   col=1:2, lty=c(2,2,1,1), lwd=2, bty='n')
 @ 
 
+\section{Multiple event types and multiple events per subject}
 
-\section{Multiple event types per subject}
+Still to be filled in.
+
+
+
 
 \section{Testing proportional hazards}
 The usual Cox model with $p$ covariates has the form
@@ -1753,9 +1749,9 @@ fit2b <- coxph(Surv(tstart, time, status) ~ trt + celltype + karno +
 @ 
 
 The fits give a warning message about the use of the \code{time} variable
-on both sides of the equation 
-(two most common cases where time appears on both sides are the naive model
-shown further above and frank typing mistakes).
+on both sides of the equation, since 
+two common cases where time appears on both sides are the naive model
+shown further above and frank typing mistakes.
 In this particular case we can ignore the warning since the data set was 
 carefully constructed for this special purpose, but it should never be treated
 casually.
@@ -1830,7 +1826,7 @@ matching plot approximates the score test.
 used for the formal printout and test as well.)
 If proporitional hazard holds we would expect the fitted line to be
 horizontal, i.e., $\beta(t)$ is constant.
-Rather than show a fitted line the plot add a general smooth curve, which
+Rather than show a fitted line the plot adds a general smooth curve, which
 can help reveal the \emph{form} of non-proportional hazards, if it exists. 
 The first three panels of the plot show curves for the three covariates on
 a log(time) scale.
@@ -1853,7 +1849,7 @@ straight line.
 This is a good default for the score tests, since it essentially 
 guarrantees that there wil be no outliers in the constructed $x g(time)$, 
 while dealing with censoring in a defensible way. 
-The code has opted for a safe default. 
+That is, the code has opted for a \emph{safe} default. 
 It is not as easily interpreted as other scales for the plots, however.
 
 The \code{cox.zph} function does not attempt a score test for random effects 

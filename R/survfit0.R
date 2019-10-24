@@ -69,8 +69,10 @@ survfit0 <- function(x, start.time=0) {
     new <- vector("list", length(newname))
     names(new) <- newname
 
-    add1 <- c("surv", "lower","upper")
+    add1 <- "surv"
     add0 <- c("n.event", "n.censor", "n.add", "cumhaz", "std.chaz")
+    if (inherits(x, "survfitms")) add0 <- c(add0, "lower", "upper")
+    else add1 <- c(add1, "lower", "upper")
 
     if (!is.null(x$p0)) {
         if (is.null(x$sp0)) sp0 <- 0 else sp0 <- x$sp0
