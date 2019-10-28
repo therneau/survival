@@ -97,11 +97,14 @@ function(formula, newdata, se.fit=TRUE, conf.int=.95, individual=FALSE,
         offset <- model.offset(mf)
         if (is.null(offset)) offset <- rep(0., n)
         X <- model.matrix.coxph(object, data=mf)
-        if (is.null(Y)) Y <- aeqSurv(model.response(mf))
+        if (is.null(Y) || coxms) {
+            Y <- model.response(mf)
+            if (is.null(object$timefix) || object$timefix) Y <- aeqSurv(Y)
+        }
         oldid <- model.extract(mf, "id")
         if (length(oldid) && ncol(Y)==3) position <- survflag(Y, oldid)
         else position <- NULL
-        if (nrow(Y) != object$n[1]) 
+        if (!coxms && (nrow(Y) != object$n[1])) 
             stop("Failed to reconstruct the original data set")
         if (has.strata) {
             if (length(strata)==0) {
@@ -177,16 +180,13 @@ function(formula, newdata, se.fit=TRUE, conf.int=.95, individual=FALSE,
         risk <- c(exp(X%*% beta + offset - xcenter))
     }
     if (missing(newdata)) {
-        # If the model has factor predictors or it has interactions, print
-        #  out a long warning message.  People are going to hate it, but
-        #  I don't see another way to stamp out these bad curves without
-        #  backwards-incompatability.  Don't complain about factors in any
-        #  strata or cluster terms, however.
-        sdrop <- c(attr(Terms, "specials")$strata, attr(Terms, "specials")$cluster)
-        if (is.null(sdrop)) dc <- attr(Terms, "dataClasses")
-        else dc <- attr(Terms, "dataClasses")[-sdrop]
-        if (any(attr(Terms, "order") > 1) || any(dc %in% c("factor", "character")))
-            warning("the model contains factor variables and/or interactions; the default curve based on columm means of the X matrix is almost certainly not useful. Consider adding a newdata argument.")
+        # If the model has interactions, print out a long warning message.
+        #  People may hate it, but I don't see another way to stamp out these
+        #  bad curves without backwards-incompatability.  
+        # I probably should complain about factors too (but never in a strata
+        #   or cluster term).
+        if (any(attr(Terms, "order") > 1) )
+            warning("the model contains interactions; the default curve based on columm means of the X matrix is almost certainly not useful. Consider adding a newdata argument.")
         
         if (length(object$means)) {
             mf2 <- as.list(object$means)   #create a dummy newdata

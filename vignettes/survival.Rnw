@@ -1442,6 +1442,23 @@ estimate of variance will be $\sum_i \delta^2$.
 For the simple case of adding up rectangles $f(P +U_i) - f(P) = f(U_i)$ leading
 to particularly simple code, but this will not always be the case.  
 
+\section{Differences in survival}
+There is a single function \code{survdiff} to test for differences between 2
+or more survival curves.  It implements the $G^\rho$ family of Fleming and
+Harrington \cite{FH2}.  A single parameter $\rho$ controls the weights
+given to different survival times, $\rho=0$ yields the log-rank test and
+$\rho=1$ the Peto-Wilcoxon.  Other values give a test that is intermediate
+to these two. The default value is $\rho=0$. 
+The log-rank test is equivalent to the score test from a Cox model with
+the group as a factor variable.
+
+The interpretation of the formula is the same as for \code{survfit}, i.e.,
+variables on the right hand side of the equation jointly break the
+patients into groups.
+<<survdiff>>=
+survdiff(Surv(time, status) ~ x, aml)
+@
+
 \section{State space figures}
 \label{sect:statefig}
 The state space figures in the above example were drawn with a simple
@@ -1970,9 +1987,6 @@ original paper.
 Start by building an analysis data set using the first and third of these.
 
 <<nafld1>>=
-Start by building an analysis data set using the first and third of these.
-
-<<nafld1>>=
 ndata <- tmerge(nafld1[,1:8], nafld1, id=id, death= event(futime, status))
 ndata <- tmerge(ndata, subset(nafld3, event=="nafld"), id, 
                 nafld= tdc(days))
@@ -1986,7 +2000,7 @@ attr(ndata, "tcount")
 @ 
 
 <<echo=FALSE>>=
-tc <- attr(data1, 'tcount')   # shorter name for use in Sexpr below
+tc <- attr(ndata, 'tcount')   # shorter name for use in Sexpr below
 icount <- table(table(nafld3$id)) #number with 1, 2, ... intervals
 ncount <- sum(nafld3$event=="nafld")
 @ 

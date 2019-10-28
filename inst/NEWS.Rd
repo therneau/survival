@@ -1,5 +1,14 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 3.1-4}{
+  \itemize{
+    \item Move some vignettes to the vignette2 directory, found on the
+    github website.  Add an index to those files.
+    \item Add the timefix option to coxph results, and ensure that
+    downstream survfit calls correctly retain it.
+    \item Expand the main survival vignette.
+}}
+
 \section{Changes in version 3.1-3}{
   \itemize{
     \item The results of anova.coxph were incorrect for the case of a
@@ -9,8 +18,6 @@
     have used the same ties option.
     \item Update tmerge to allow more variable types as the argument to
     tdc.  A user pointed out that Dates were not preserved; now fixed.
-    \item Move some vignettes to the vignette2 directory, found on the
-    github website.  Add an index to them.
 }}
 
 \section{Changes in version 3.1-2}{

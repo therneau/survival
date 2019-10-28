@@ -77,7 +77,9 @@ the method used for handling tied survival times.
 \item{na.action}{
 the na.action attribute, if any, that was returned by the \code{na.action} 
 routine. 
-
+}
+\item{timefix}{the value of the timefix option used in the fit
+  
 The object will also contain the following, for documentation see the \code{lm} 
 object: \code{terms}, \code{assign}, \code{formula}, \code{call}, and, optionally, \code{x}, \code{y}, 
 and/or \code{frame}. 

@@ -1013,6 +1013,7 @@ else {
         else if (length(strats)) fit$strata <- strata.keep
     }
     if (y)  fit$y <- Y
+    fit$timefix <- control$timefix  # remember this option
 }
 @ 
 If any of the weights were not 1, save the results.
