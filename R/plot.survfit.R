@@ -56,6 +56,9 @@ plot.survfit<- function(x, conf.int,  mark.time=FALSE,
             if (conf.level<0 || conf.level > 1)
                 stop("invalid value for conf.int")
             if (conf.level ==0) conf.int <- FALSE
+            else if (conf.level != x$conf.int) {
+                x$upper <- x$lower <- NULL  # force recomputation
+            }
         }
         else conf.level = 0.95
     }
@@ -148,13 +151,7 @@ plot.survfit<- function(x, conf.int,  mark.time=FALSE,
     ncurve <- nstrat * ncol(ssurv)
     conf.type <- match.arg(conf.type)
     if (conf.type=="none") conf.int <- FALSE
-    if (is.logical(conf.int)) plot.surv <- TRUE
-    else {
-        temp <- match.arg(conf.int, c("both", "only", "none"))
-        if (is.na(temp)) stop("invalid value for conf.int")
-        if (temp=="none") conf.int <- FALSE  else conf.int <- TRUE
-        if (temp=="only") plot.surv <- FALSE  else plot.surv <- TRUE
-    }
+    plot.surv <- TRUE
 
     if (conf.int) {
         if (is.null(std)) stop("object does not have standard errors, CI not possible")
@@ -483,6 +480,9 @@ lines.survfit <- function(x, type='s',
             if (conf.level<0 || conf.level > 1)
                 stop("invalid value for conf.int")
             if (conf.level ==0) conf.int <- FALSE
+            else if (conf.level != x$conf.int) {
+                x$upper <- x$lower <- NULL  # force recomputation
+            }
         }
         else conf.level = 0.95
     }
@@ -575,13 +575,7 @@ lines.survfit <- function(x, type='s',
     ncurve <- nstrat * ncol(ssurv)
     conf.type <- match.arg(conf.type)
     if (conf.type=="none") conf.int <- FALSE
-    if (is.logical(conf.int)) plot.surv <- TRUE
-    else {
-        temp <- match.arg(conf.int, c("both", "only", "none"))
-        if (is.na(temp)) stop("invalid value for conf.int")
-        if (temp=="none") conf.int <- FALSE  else conf.int <- TRUE
-        if (temp=="only") plot.surv <- FALSE  else plot.surv <- TRUE
-    }
+    plot.surv <- TRUE
 
     if (conf.int) {
         if (is.null(std)) stop("object does not have standard errors, CI not possible")
@@ -824,6 +818,9 @@ points.survfit <- function(x, fun, censor=FALSE,
             if (conf.level<0 || conf.level > 1)
                 stop("invalid value for conf.int")
             if (conf.level ==0) conf.int <- FALSE
+            else if (conf.level != x$conf.int) {
+                x$upper <- x$lower <- NULL  # force recomputation
+            }
         }
         else conf.level = 0.95
     }

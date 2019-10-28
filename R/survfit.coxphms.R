@@ -85,11 +85,11 @@ function(formula, newdata, se.fit=TRUE, conf.int=.95, individual=FALSE,
         }
     else mf <- NULL  #useful for if statements later
     position <- NULL
+    Y <- object[['y']]
     if (is.null(mf)) {
         weights <- rep(1., n)
         offset <- rep(0., n)
         X <- object[['x']]
-        Y <- object[['y']]
     }
     else {
         weights <- model.weights(mf)
@@ -97,7 +97,7 @@ function(formula, newdata, se.fit=TRUE, conf.int=.95, individual=FALSE,
         offset <- model.offset(mf)
         if (is.null(offset)) offset <- rep(0., n)
         X <- model.matrix.coxph(object, data=mf)
-        Y <- model.response(mf)
+        if (is.null(Y)) Y <- aeqSurv(model.response(mf))
         oldid <- model.extract(mf, "id")
         if (length(oldid) && ncol(Y)==3) position <- survflag(Y, oldid)
         else position <- NULL

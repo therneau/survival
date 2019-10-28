@@ -39,6 +39,8 @@ print.coxph <-
         for (i in 1:length(cname)) {
             tmp2 <- tmp[tmap[,i],, drop=FALSE]
             names(dimnames(tmp2)) <- c(cname[i], "")
+            # restore character row names
+            rownames(tmp2) <- rownames(tmap)[tmap[,i]>0]
             printCoefmat(tmp2, digits=digits, P.values=TRUE, has.Pvalue=TRUE,
                  signif.stars = signif.stars, ...)
             cat("\n")

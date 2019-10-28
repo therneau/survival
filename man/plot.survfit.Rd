@@ -19,8 +19,12 @@
     \code{survfit} function. 
   }
   \item{conf.int}{
-    determines whether confidence intervals will be plotted.  The default is to 
-    do so if there is only 1 curve, i.e., no strata. 
+    determines whether pointwise confidence intervals will be plotted.
+    The default is to 
+    do so if there is only 1 curve, i.e., no strata, using 95\% confidence
+    intervals
+    Alternatively, this can be a numeric value giving the desired
+    confidence level.
   }
   \item{mark.time}{
     controls the labeling of the curves.  If set to \code{FALSE}, no

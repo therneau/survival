@@ -565,6 +565,7 @@ coxph <- function(formula, data, weights, subset, na.action,
         fit$states <- states
         fit$cmap <- cmap
         fit$resid <- rowsum(fit$resid, xstack$rindex)
+        names(fit$coefficients) <- seq(along=fit$coefficients)
         if (x) fit$strata <- istrat  # save the expanded strata
         class(fit) <- c("coxphms", class(fit))
     }
