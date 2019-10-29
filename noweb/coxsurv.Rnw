@@ -204,7 +204,7 @@ the X matrix off the model frame, for multistate some more work
 needs to be done.  
 We have to repeat some lines from coxph, but to do that we need some
 further material.
-Prefer object$y to model.response, since the former will have been
+We prefer \code{object\$y} to model.response, since the former will have been
 passed through aeqSurv with the options the user specified.
 For a multi-state model, however, we do have to recreate since the
 saved y has been expanded.

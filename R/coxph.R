@@ -556,6 +556,7 @@ coxph <- function(formula, data, weights, subset, na.action,
             else if (length(strats)) fit$strata <- strata.keep
         }
         if (y)  fit$y <- Y
+        fit$timefix <- control$timefix  # remember this option
     }
     if (!is.null(weights) && any(weights!=1)) fit$weights <- weights
     names(fit$means) <- names(fit$coefficients)

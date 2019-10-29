@@ -1,5 +1,5 @@
 
-R Under development (unstable) (2019-05-16 r76518) -- "Unsuffered Consequences"
+R Under development (unstable) (2019-10-26 r77334) -- "Unsuffered Consequences"
 Copyright (C) 2019 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
@@ -125,7 +125,7 @@ In fitter(X, Y, istrat, offset, init, control, weights = weights,  :
 [1] TRUE
 > 
 > fit <- coxph(Surv(time, status) ~x, test1, method='breslow', eps=1e-8)
-> aeq(round(fit$coef,7), 1.4752849)
+> aeq(fit$coef, log(1.5 + sqrt(33)/2))  # the true solution
 [1] TRUE
 > truth <- byhand1(fit$coef, 0)
 > aeq(truth$loglik, fit$loglik[2])
@@ -249,4 +249,4 @@ Call: survfit(formula = fit, newdata = list(x = 2))
 > 
 > proc.time()
    user  system elapsed 
-  0.784   0.056   0.834 
+  0.808   0.059   0.860 

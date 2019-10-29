@@ -702,9 +702,9 @@ yates_setup.coxph <- function(fit, predict = c("lp", "risk", "expected",
     if (type=="lp" || type == "linear") NULL  
     else if (type=="risk") function(eta, X) exp(eta)
     else if (type == "survival") {
-        # If there are strata we need to do extra work: 
-     #   browser()
-        baseline <- survfit(fit, censor=FALSE)
+        # If there are strata we need to do extra work
+        # if there is an interaction we want to suppress a spurious warning
+        suppressWarnings(baseline <- survfit(fit, censor=FALSE))
         if (missing(options) || is.null(options$rmean)) 
             rmean <- max(baseline$time)  # max death time
         else rmean <- options$rmean

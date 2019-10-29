@@ -1,6 +1,6 @@
 
-R Under development (unstable) (2018-06-26 r74934) -- "Unsuffered Consequences"
-Copyright (C) 2018 The R Foundation for Statistical Computing
+R Under development (unstable) (2019-10-26 r77334) -- "Unsuffered Consequences"
+Copyright (C) 2019 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -26,17 +26,6 @@ Type 'q()' to quit R.
 > 
 > rfit <- coxph(Surv(time,status) ~ rx + frailty(litter), rats,
 + 	     method='breslow', subset= (sex=='f'))
-> names(rfit)
- [1] "coefficients"      "var"               "var2"             
- [4] "loglik"            "iter"              "linear.predictors"
- [7] "residuals"         "means"             "method"           
-[10] "frail"             "fvar"              "df"               
-[13] "df2"               "penalty"           "pterms"           
-[16] "assign2"           "history"           "coxlist1"         
-[19] "printfun"          "n"                 "nevent"           
-[22] "terms"             "assign"            "wald.test"        
-[25] "concordance"       "y"                 "formula"          
-[28] "call"             
 > rfit
 Call:
 coxph(formula = Surv(time, status) ~ rx + frailty(litter), data = rats, 
@@ -111,4 +100,4 @@ n= 150, number of events= 40
 > 
 > proc.time()
    user  system elapsed 
-  0.968   0.032   0.999 
+  0.755   0.045   0.793 

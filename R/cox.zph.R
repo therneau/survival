@@ -131,7 +131,7 @@ cox.zph <- function(fit, transform='km', terms=TRUE, singledf =FALSE,
         dimnames(tbl) <- list(c(termname, "GLOBAL"), c("chisq", "df", "p"))
     }
     else {
-        tbl <- cbind(test, df, pchisq(test, df, lower.tail=FALSE))[1:nterm,]
+        tbl <- cbind(test, df, pchisq(test, df, lower.tail=FALSE))[1:nterm,, drop=FALSE]
         dimnames(tbl) <- list(termname, c("chisq", "df", "p"))
     }
 

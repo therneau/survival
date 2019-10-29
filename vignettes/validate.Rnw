@@ -427,7 +427,7 @@ $$
 \begin{array}{ll}
  LL(0)=-4.276666 & LL(\bhat)=-3.358979 \\
  U(0) = 52/48 & U(\bhat) = 0 \\
- \imat(0) = 83/144  & \imat(\bhat) = 0.652077.
+ \imat(0) = 83/144  & \imat(\bhat) = 0.612632.
 \end{array}
 $$
 

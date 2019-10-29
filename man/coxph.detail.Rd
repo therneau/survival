@@ -8,7 +8,7 @@ Returns the individual contributions to the first and second derivative
 matrix, at each unique event time.
 }
 \usage{
-coxph.detail(object, riskmat=FALSE, timefix=TRUE)
+coxph.detail(object, riskmat=FALSE)
 }
 \arguments{
  \item{object}{
@@ -17,7 +17,6 @@ coxph.detail(object, riskmat=FALSE, timefix=TRUE)
  \item{riskmat}{
    include the at-risk indicator matrix in the output?
  }
- \item{timefix}{Resolve any near ties in the time variable}
 }
 \value{
    a list with components

@@ -1,5 +1,13 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 3.1-5}{
+  \itemize{
+    \item Update coxph.getdata and coxph.detail to work with coxphms
+    objects.  A deficiency in the first affected cox.zph results for
+    multi-state coxph fits.
+    \item Add a formal test suite for the cox.zph routine.
+}}
+
 \section{Changes in version 3.1-4}{
   \itemize{
     \item Move some vignettes to the vignette2 directory, found on the

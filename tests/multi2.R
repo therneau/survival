@@ -130,21 +130,14 @@ if (FALSE) {
     aeq(temp[indx3, 5:6], predict(fit23, type='terms'))
 }
 
-###### check cox.zph fit - transform = 'km'
-test <- cox.zph(fit, transform="km",global=FALSE)
-test12 <- cox.zph(fit12, transform="km",global=FALSE)
-test13 <- cox.zph(fit13, transform="km", global=FALSE)
-test23 <-  cox.zph(fit23, transform="km", global=FALSE)
-
-aeq(test$table[1:2,], test12$table)
-aeq(test$table[3:4,], test13$table)
-aeq(test$table[5:6,], test23$table)
-
-# check cox.zph fit - transform = 'rank'
-test_a <- cox.zph(fit, transform="rank",global=FALSE)
-test_a12 <- cox.zph(fit12, transform="rank",global=FALSE)
-test_a13 <- cox.zph(fit13, transform="rank", global=FALSE)
-test_a23 <-  cox.zph(fit23, transform="rank", global=FALSE)
+# The global and per strata zph tests will differ for the KM or rank
+#  transform, because the overall and subset will have a different list
+#  of event times, which changes the transformed value for all of them.
+# But identity and log are testable.
+test_a <- cox.zph(fit, transform="log",global=FALSE)
+test_a12 <- cox.zph(fit12, transform="log",global=FALSE)
+test_a13 <- cox.zph(fit13, transform="log", global=FALSE)
+test_a23 <-  cox.zph(fit23, transform="log", global=FALSE)
 
 aeq(test_a$table[1:2,], test_a12$table)
 aeq(test_a$table[3:4,], test_a13$table)

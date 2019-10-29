@@ -91,7 +91,7 @@ fit2 <- coxph(Surv(time, status) ~x, test1, method='breslow', iter=2)
 aeq(round(fit2$coef, 6), 1.472724)
 
 fit <- coxph(Surv(time, status) ~x, test1, method='breslow', eps=1e-8)
-aeq(round(fit$coef,7), 1.4752849)
+aeq(fit$coef, log(1.5 + sqrt(33)/2))  # the true solution
 truth <- byhand1(fit$coef, 0)
 aeq(truth$loglik, fit$loglik[2])
 aeq(1/truth$imat, fit$var)

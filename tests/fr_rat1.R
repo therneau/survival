@@ -9,7 +9,6 @@ library(survival)
 
 rfit <- coxph(Surv(time,status) ~ rx + frailty(litter), rats,
 	     method='breslow', subset= (sex=='f'))
-names(rfit)
 rfit
 
 rfit$iter

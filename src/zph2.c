@@ -254,7 +254,7 @@ SEXP zph2(SEXP gt2,    SEXP y2,
                 if (strata[p] != cstrat || tstop[p] < dtime) break; /* no more to add */
                 risk = exp(eta[p]) * weights[p];
 
-                if (status[p] ==1 ){
+                if (status[p] ==1) {
 		    nevent--;
                     keep[p] =1;
                     nrisk++;
@@ -323,7 +323,8 @@ SEXP zph2(SEXP gt2,    SEXP y2,
                         a[i] += a2[i]/ndead;
                         temp = a[i]/denom;
                         u[i] -= meanwt*temp;
-                        for (j=0; j<=i; j++) {
+			u[i+nvar] -= meanwt*temp* timewt;
+			for (j=0; j<=i; j++) {
                             cmat[i][j] += cmat2[i][j]/ndead;
 			    temp2 = meanwt*((cmat[i][j]- temp*a[j])/denom);
                             imat[j][i] += temp2;

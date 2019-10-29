@@ -1,29 +1,17 @@
-coxph.detail <-  function(object, riskmat=FALSE, timefix=TRUE) {
+coxph.detail <-  function(object, riskmat=FALSE) {
     method <- object$method
     if (method!='breslow' && method!='efron')
 	stop(paste("Detailed output is not available for the", method,
 			"method"))
     n <- length(object$residuals)
-    weights <- object$weights        #always present if there are weights
-    x <- object[['x']]
-    y <- object$y
-    strat <- object$strata
+    temp <- coxph.getdata(object, offset=TRUE)
+    weights <- temp$weights        #always present if there are weights
+    x <- temp$x
+    y <- temp$y
+    strat <- temp$strata
     Terms <- object$terms
     if (!inherits(Terms, 'terms'))
 	    stop("invalid terms component of object")
-    strats <- attr(Terms, "specials")$strata
-
-    if (is.null(y)  ||  is.null(x)) {
-        mf <- stats::model.frame(object)
-        y <- model.response(mf)
-        x <- model.matrix(object, data=mf)
-        if (length(strats)) {
-            stemp <- untangle.specials(object$terms, 'strata', 1)
-            if (length(stemp$vars)==1) strat <- mf[[stemp$vars]]
-            else strat  <- strata(mf[,stemp$vars], shortlabel=TRUE)
-            }
-        if (timefix) y <- aeqSurv(y)
-	}
 
     nvar <- ncol(x)
     if (ncol(y)==2) {
@@ -46,7 +34,7 @@ coxph.detail <-  function(object, riskmat=FALSE, timefix=TRUE) {
     y <- y[ord,]
     storage.mode(y) <- 'double'
     score <- exp(object$linear.predictors)[ord]
-    if (is.null(weights)) weights <- rep(1,n)
+    if (is.null(weights)) weights <- rep(1.0, n)
     else                  weights <- weights[ord]
 
     ndeath <- sum(y[,3])
@@ -98,7 +86,7 @@ coxph.detail <-  function(object, riskmat=FALSE, timefix=TRUE) {
     temp <- list(time = time, means=means, nevent=ff$y[keep,1],
 	 nrisk = ff$y[keep,2], hazard= ff$y[keep,3], score= score,  imat=var,
 	 varhaz=ff$weights[keep], y=y, x=x)
-    if (length(strats)) temp$strata <- table((strat[ord])[ff$index[keep]])
+    if (length(strat)) temp$strata <- table((strat[ord])[ff$index[keep]])
     if (riskmat) {
         temp$riskmat <- rmat
         temp$sortorder <- ord
