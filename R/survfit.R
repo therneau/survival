@@ -1,6 +1,6 @@
 # Automatically generated from the noweb directory
 survfit <- function(formula, ...) {
-    UseMethod("survfit", formula)
+    UseMethod("survfit")
 }
 
 dim.survfit <- function(x) {
