@@ -148,7 +148,8 @@ function(formula, newdata, se.fit=TRUE, conf.int=.95, individual=FALSE,
     xstack <- stacker(object$cmap, as.integer(istate), X, Y,
                       as.integer(strata),
                       states= object$states)
-    position <- position[xstack$rindex]   # id was required by coxph
+    if (length(position) >0)
+        position <- position[xstack$rindex]   # id was required by coxph
     X <- xstack$X
     Y <- xstack$Y
     strata <- strata[xstack$rindex]
@@ -351,9 +352,6 @@ coxsurv.fit2 <- function (ctype, stype, se.fit, varmat, cluster,
     to   <- match(colnames(tmat), states)[to]    # actual col of H
     hfill <- cbind(from, to)
 
-    storage.mode(position) <- "integer"  # failsafe
-    storage.mode(weights) <- "double"
- 
     if (nstrata==1) {
         temp <- multihaz(y, x, position, weights, risk, transition,
                                   ctype, stype, hfill, cmap[1,], 
@@ -394,6 +392,10 @@ multihaz <- function(y, x, position, weight, risk, transition, ctype, stype,
     ntime <- length(utime)
 
     # this returns all of the counts we might desire.
+    storage.mode(weight) <- "double"  #failsafe
+    # for Surv(time, status) data position is 2 (last) for all obs
+    if (length(position)==0) position <- rep(2L, nrow(y))
+
     fit <- .Call(Ccoxsurv2, utime, y, weight, sort1, sort2, position, 
                         transition, x, risk)
     cn <- fit$count  # 1-3 = at risk, 4-6 = events, 7-8 = censored events

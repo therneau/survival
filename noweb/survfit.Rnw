@@ -44,7 +44,7 @@ adjudicate ties and near ties.
 
 <<survfit>>=
 survfit <- function(formula, ...) {
-    UseMethod("survfit", formula)
+    UseMethod("survfit")
 }
 
 <<survfit-subscript>>
