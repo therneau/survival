@@ -1,5 +1,12 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 3.1-6}{
+  \itemize{
+    \item Repair issues in coxph.getdata and lines.survfit that were
+    found with reverse dependency checks
+    \item Submit to CRAN
+}}
+
 \section{Changes in version 3.1-5}{
   \itemize{
     \item Update coxph.getdata and coxph.detail to work with coxphms

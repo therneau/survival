@@ -21,7 +21,7 @@ SEXP agfit4(SEXP nused2, SEXP surv2,      SEXP covar2,    SEXP strata2,
     double *a2, **cmat2;
     double *eta;
     double  denom, zbeta, risk;
-    double  dtime;
+    double  dtime =0;  /* initial value to stop a -Wall message */
     double  temp, temp2;
     double  newlk =0;
     int  halving;    /*are we doing step halving at the moment? */

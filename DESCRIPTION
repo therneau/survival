@@ -2,8 +2,8 @@ Title: Survival Analysis
 Maintainer: Terry M Therneau <therneau.terry@mayo.edu>
 Priority: recommended
 Package: survival
-Version: 3.1-5
-Date: 2019-10-29
+Version: 3.1-6
+Date: 2019-11-05
 Depends: R (>= 3.4.0)
 Imports: graphics, Matrix, methods, splines, stats, utils
 LazyData: Yes
