@@ -30,7 +30,7 @@ SEXP agmart3(SEXP nused2,  SEXP surv2,  SEXP score2, SEXP weight2,
     int p1, p2, istrat;
     double deaths, denom, e_denom;
     double hazard, e_hazard, cumhaz;
-    double temp, dtime;
+    double temp, dtime =0;  /* =0 to stop a -Wall message */
     double wtsum;
     int nr, person1, person2, nused;
  

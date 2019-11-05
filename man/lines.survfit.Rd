@@ -15,11 +15,10 @@ generated with \code{plot.survfit}.
         fun, conf.int=FALSE,
         conf.times, conf.cap=.005, conf.offset=.012,
         conf.type = c("log", "log-log", "plain", "logit", "arcsin"),
-        mark, noplot="()",
-        cumhaz= FALSE,  ...)
+        mark, noplot="(s0)", cumhaz= FALSE,  ...)
 \method{lines}{survexp}(x, type="l", ...)
 \method{points}{survfit}(x, fun, censor=FALSE, col=1, pch,
-noplot, cumhaz=FALSE, ...)
+        noplot="(s0)", cumhaz=FALSE, ...)
 }
 
 \arguments{
@@ -71,7 +70,9 @@ and "cloglog" creates a complimentary log-log survival plot
 if \code{TRUE}, confidence bands for the curves are also plotted. 
 If set to \code{"only"}, then only the CI bands are plotted, and the curve 
 itself is left off.   
-This can be useful for fine control over the colors or line types of a plot. 
+This can be useful for fine control over the colors or line types of a
+plot.
+A numeric value, e.g. \code{conf.int = .90}, can be used to 
 }
   \item{conf.times}{optional vector of times at which to place a
     confidence bar on the curve(s).  If present, these will be used
@@ -86,7 +87,7 @@ This can be useful for fine control over the colors or line types of a plot.
     used directly.}
   \item{conf.type}{
 	One of \code{"plain"}, \code{"log"} (the default),
-	\code{"log-log"} or \code{"logit"}.  Only
+	\code{"log-log"}, \code{"logit"}, or \code{"none"}.  Only
 	enough of the string to uniquely identify it is necessary.
 	The first option causes confidence intervals not to be
 	generated.  The second causes the standard intervals

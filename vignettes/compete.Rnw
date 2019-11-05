@@ -122,6 +122,8 @@ the transition matrix is
     \frac{n(s)- d(s)}{n(s)}  & \frac{d(s)}{n(s)} \\\\ 0 & 1 \end{array}
   \right)
 \end{equation*}
+The two rows are ``start in state 1 (alive)'' and ``start in state 2''
+and the two colums are ``finish in state 1'', ``finish in state 2 (death)''.
 The second row corresponds to the fact that death is an absorbing state:
 the probability of a death $\rightarrow$ alive transition (lower left element)
  is 0.
@@ -167,7 +169,8 @@ $D$ is first collapsed to have one row per subject, the new row for subject
 $i$ is the sum of the rows for the observations that represented the 
 subject.  This is essentially the same algorithm as the robust variance for
 a Cox model.
-For simple two state alive -> dead model, the AJ estimate of variance 
+For simple two state alive -> dead model without case weights, 
+the IJ estimate of variance 
 is identical to the traditional Greenwood estimate for the variance of the
 survival curve $S$. 
 (This was a surprise when we first observed it; proving the equivalence
@@ -199,7 +202,7 @@ For simple survival we have gotten used to the idea of using Pr(dead) and
 Pr(alive) interchangeably, but that habit needs to be left behind for
 multi-state models, as curves of $1-p_k(t)$ 
 = probability(any other state than $k$) are not useful.
-In the multi-state case, individual curves can go both up and down.
+In the multi-state case, some curves will rise and then fall.
 For competing risks the curve for the initial state (leftmost
 in the diagram) is rarely included in the final plot. Since the curves sum to
 1, the full set is redundant.  Pr(nothing yet) is usually the least 
@@ -328,7 +331,7 @@ with the exception of the \code{event} variable.
     for those whose follow-up terminated without reaching a new endpoint.
     Codes for the remaining states can be in any order. The labels for the
     states are unrestricted, e.g., the first one does not have to be ``censor''.
-    (It will however be treated as censoring, whatever the name.)
+    (It will be treated as `no event at this time', whatever the label.)
   \item A simple print of the \code{mfit2} object shows the order in
     which the curves will be displayed.  This information was used to 
     choose the line types and colors for the curves.
@@ -370,7 +373,7 @@ event type while treating other event types as censored.
 The next plot is an example of this for the PCM endpoint.
 <<mgus3, fig=TRUE>>=
 pcmbad <- survfit(Surv(etime, pstat) ~ sex, data=mgus2)
-plot(pcmbad[2], mark.time=FALSE, lwd=2, fun="event", conf.int=FALSE, xscale=12,
+plot(pcmbad[2], lwd=2, fun="event", conf.int=FALSE, xscale=12,
      xlab="Years post diagnosis", ylab="Fraction with PCM")
 lines(mfit2[2,"pcm"], lty=2, lwd=2, mark.time=FALSE, conf.int=FALSE)
 legend(0, .25, c("Males, PCM, incorrect curve", "Males, PCM, competing risk"),
@@ -1042,7 +1045,7 @@ cox3b$cmap
 @ 
 For this data set model \code{cox3b} makes very little medical sense, since
 death rates after PCM do not even remotely resemble those for patients
-with a plasma cell malignancy.
+without a plasma cell malignancy.
 (The fact that the package allows something does not make it a good idea.)
 In other data sets a shared baseline for all the transitions to death can
 be an effective model.
@@ -1086,7 +1089,8 @@ been done \emph{correctly}.)
 The \code{mstate} package starts with a definition of the matrix of possible
 transitions and uses that to drive tools that build and analyze a stacked
 data set in a more automated fashion. 
-We find it a little more difficult to use.  
+We find it a little more difficult to use than a \code{coxph} model with
+a multistate status variable.
 (The fact that we like our own child best should be no surprise, however).
 One current disadvantage of the survival package is that the Aalen-Johansen
 curves from a multi-state coxph model currently do not include a variance
@@ -1116,7 +1120,7 @@ the two cases.  Much of the work in
 creating a data set is also nearly the same.  
 The underlying likelihood equations and resulting analytical methods for
 solving the problem are, however, completely different.  
-The \code{msm} package addresses panel data, while \code{survival}, \code{mstate}, and a host of
+The \code{msm} package addresses panel data, while \code{survival}, \code{mstate}, and many
 others are devoted to survival data.
 
 \section{Conclusions}

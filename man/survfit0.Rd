@@ -12,8 +12,8 @@ survfit0(x, start.time=0)
 }
 \arguments{
   \item{x}{a survfit object}
-  \item{start.time}{the desired starting time}
-}
+  \item{start.time}{the desired starting time; see details below.}
+  }
 \value{a reformulated version of the object with an initial data point
   at \code{start.time} added. 
   The \code{time}, \code{surv}, \code{pstate}, \code{cumhaz},
@@ -36,7 +36,7 @@ survfit0(x, start.time=0)
   This is a utility function used by \code{plot.survfit} and
   \code{summary.survfit}.  If the original \code{survfit} call
   included a \code{start.time} argument then that will be used as
-  the starting point, otherwise the default of 0.
+  the starting point, otherwise the default is 0.
   It may be useful to others, so was exported.
 }
 \keyword{survival}

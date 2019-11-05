@@ -10,6 +10,8 @@ coxph.getdata <- function(fit, y=TRUE, x=TRUE, stratax=TRUE,
                           weights=TRUE, offset=FALSE) {
     ty <- fit[['y']]  #avoid grabbing this by accident due to partial matching
     tx <- fit[['x']]  #  for x, fit$x will get fit$xlevels --> not good
+    twt <- fit[["weights"]]
+    toff <- fit[["offset"]]
 
     # if x or y is present, use it to set n
     if (!is.null(ty)) n <- nrow(ty)
@@ -22,15 +24,11 @@ coxph.getdata <- function(fit, y=TRUE, x=TRUE, stratax=TRUE,
 	    stop("invalid terms component of fit")
 
     # Avoid calling model.frame unless we have to: fill in weights and/or
-    #  offset when they were not present
-    twt <- NULL
+    #  offset when they were not present.  But we can only do it successfully
+    #  if we know n.
     if (!is.null(n)) {
         if (is.null(fit$call$weights)) twt <- rep(1,n)
         if (is.null(attr(terms(fit), "offset"))) toff <- rep(0, n)
-    }
-    else {
-        toff <- NULL
-        twt<- fit[["weights"]]
     }
 
     strat <- fit$strata

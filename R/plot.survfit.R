@@ -59,6 +59,7 @@ plot.survfit<- function(x, conf.int,  mark.time=FALSE,
             else if (conf.level != x$conf.int) {
                 x$upper <- x$lower <- NULL  # force recomputation
             }
+            conf.int <- TRUE
         }
         else conf.level = 0.95
     }
@@ -151,7 +152,12 @@ plot.survfit<- function(x, conf.int,  mark.time=FALSE,
     ncurve <- nstrat * ncol(ssurv)
     conf.type <- match.arg(conf.type)
     if (conf.type=="none") conf.int <- FALSE
-    plot.surv <- TRUE
+    if (conf.int== "none") conf.int <- FALSE
+    if (conf.int=="only") {
+        plot.surv <- FALSE
+        conf.int <- TRUE
+        }
+    else plot.surv <- TRUE
 
     if (conf.int) {
         if (is.null(std)) stop("object does not have standard errors, CI not possible")
@@ -459,7 +465,7 @@ lines.survfit <- function(x, type='s',
                           conf.times, conf.cap=.005, conf.offset=.012,
                           conf.type=c('log',  'log-log',  'plain', 
                                   'logit', "arcsin"),
-                          mark, noplot="()", cumhaz=FALSE, ...) {
+                          mark, noplot="(s0)", cumhaz=FALSE, ...) {
     x <- survfit0(x, x$start.time)
 
     xlog <- par("xlog")
@@ -483,6 +489,7 @@ lines.survfit <- function(x, type='s',
             else if (conf.level != x$conf.int) {
                 x$upper <- x$lower <- NULL  # force recomputation
             }
+            conf.int <- TRUE
         }
         else conf.level = 0.95
     }
@@ -575,7 +582,12 @@ lines.survfit <- function(x, type='s',
     ncurve <- nstrat * ncol(ssurv)
     conf.type <- match.arg(conf.type)
     if (conf.type=="none") conf.int <- FALSE
-    plot.surv <- TRUE
+    if (conf.int== "none") conf.int <- FALSE
+    if (conf.int=="only") {
+        plot.surv <- FALSE
+        conf.int <- TRUE
+        }
+    else plot.surv <- TRUE
 
     if (conf.int) {
         if (is.null(std)) stop("object does not have standard errors, CI not possible")
@@ -796,7 +808,7 @@ lines.survfit <- function(x, type='s',
 }
 
 points.survfit <- function(x, fun, censor=FALSE,
-                           col=1, pch, noplot="()", cumhaz=FALSE, ...) {
+                           col=1, pch, noplot="(s0)", cumhaz=FALSE, ...) {
 
     conf.int <- FALSE  # never draw these with 'points'
     x <- survfit0(x, x$start.time)
@@ -821,6 +833,7 @@ points.survfit <- function(x, fun, censor=FALSE,
             else if (conf.level != x$conf.int) {
                 x$upper <- x$lower <- NULL  # force recomputation
             }
+            conf.int <- TRUE
         }
         else conf.level = 0.95
     }

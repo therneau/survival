@@ -17,7 +17,7 @@ SEXP zph2(SEXP gt2,    SEXP y2,
     double *dtemp, timewt=1;
     double *a, *a2, **cmat, **cmat2;
     int *keep;
-    double denom, dtime, ndead, denom2;
+    double denom, dtime=0, ndead, denom2;
     double risk, meanwt;
 
     /* scalar input arguments and counts*/
