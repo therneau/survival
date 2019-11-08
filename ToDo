@@ -1,22 +1,19 @@
+Proper variance for yates survival curve
+
+Robust variance for multi-state Cox survival
+
+Reliability models vignette
+Pseudo-values vignette
+
 Update iteration for penalized models wrt the changes in version 2.44.
-
-pyears with an I() term on the right hand side, "tform" is wrong.
-
-update penalized models terms for cox.zph, it also needs to ignore 
-NA coefficients.
+actually - rewrite the penalized models
 
 add design of the survival library document to vignettes
 
 include.lowest for tcut (first find out what the issue is)
 
-add "fun" to summary.survfit
+add "fun" to summary.survfit (really want this?)
  
-?Surv claims that -Inf is allowed, but survreg chokes.
-   Fixed
-
-timefix for survdiff
-   Fixed
-
 confint method for coxph objects that uses profile likelihood.  (But will it
 actually matter?)
 
@@ -36,10 +33,6 @@ models though.
 
 ----------------
 
-tmerge doesn't like Date objects for the timeline.
-  Fixed.  Added a test case.
-
------------------
 Depricate survConcordance.  Issues that may arise:
 
 Functions that use survConcordance:
@@ -64,11 +57,5 @@ the issue of strata.
 ---------
 coxph still returns the Splus style assign.  It's time to give it up.
 
--------
-summary(survfit, times=1:5, scale=10)    scale is ignored
-
 outside: a covariate with variance=0 in all the risk sets leads to a
 	 "contact the author" message
-
-incorrect print for a multi-state Cox model predicted curve.
-

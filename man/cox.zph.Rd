@@ -50,13 +50,19 @@ and the two-sided p-value.
 \item{x}{
 the transformed time axis. 
 }
-\item{time}{the untransformed time values}
+\item{time}{the untransformed time values; there is one entry for each
+event time in the data}
+\item{strata}{for a stratified \code{coxph model}, the stratum of
+  each of the events}
 \item{y}{
 the matrix of scaled Schoenfeld residuals.  There will be one column per 
 term or per variable (depending on the \code{terms} option above),
 and one row per event.  The row labels are a rounded form of the
 original times.
 }
+\item{var}{a variance matrix for the covariates, used to create an
+  approximate standard error band for plots}
+\item{transform}{the transform of time that was used}
 \item{call}{
 the calling sequence for the routine. 
 }}
@@ -68,12 +74,21 @@ This function would usually be followed by both a plot and a print of
 the result. 
 The plot gives an estimate of the time-dependent coefficient
 \eqn{\beta(t)}{beta(t)}. 
-If the proportional hazards assumption is true, the true
+If the proportional hazards assumption holds then the true
 \eqn{\beta(t)}{beta(t)} function would be a  horizontal line.
-The printout shows the score test for a time dependent effect of 0. 
+The \code{table} component provides the results of a formal score test
+for slope=0, a linear fit to the plot would approximate the test.
 
 Random effects terms such a \code{frailty} or random effects in a
-\code{coxme} model are not checked for proportional hazards.
+\code{coxme} model are not checked for proportional hazards, rather
+they are treated as a fixed offset in model.
+
+If the model contains strata by covariate interactions, then the
+\code{y} matrix may contain structural zeros, i.e., deaths (rows) that
+had no role in estimation of a given coefficient (column).
+These are marked as NA.
+If an entire row is NA, for instance after subscripting a
+\code{cox.zph} object, that row is removed.
 }
 \note{
   In versions of the package before survival3.0 the function

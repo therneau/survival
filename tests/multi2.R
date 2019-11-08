@@ -138,6 +138,7 @@ test_a <- cox.zph(fit, transform="log",global=FALSE)
 test_a12 <- cox.zph(fit12, transform="log",global=FALSE)
 test_a13 <- cox.zph(fit13, transform="log", global=FALSE)
 test_a23 <-  cox.zph(fit23, transform="log", global=FALSE)
+aeq(test_a$y[test_a$strata==1, 1:2], test_a12$y)
 
 aeq(test_a$table[1:2,], test_a12$table)
 aeq(test_a$table[3:4,], test_a13$table)
@@ -153,6 +154,11 @@ aeq(test_b$table[1:2,], test_b12$table)
 aeq(test_b$table[3:4,], test_b13$table)
 aeq(test_b$table[5:6,], test_b23$table)
 
+# check out subscripting of a multi-state zph
+cname <- c("table", "x", "time", "y", "var")
+sapply(cname, function(x) aeq(test_b[1:2]$x, test_b12$x))
+sapply(cname, function(x) aeq(test_b[3:4]$x, test_b13$x))
+sapply(cname, function(x) aeq(test_b[5:6]$x, test_b23$x))
 
 # check model.matrix
 mat1 <- model.matrix(fit)

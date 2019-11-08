@@ -1,6 +1,17 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
-\section{Changes in version 3.1-6}{
+\section{Changes in version 3.1-7}{
+  \itemize{
+    \item For a coxph model with covariate*strata interactions the
+    information matrix will be block diagonal, and the cox.zph function
+    would generate a 0/0 when scaling it for plots.  This led to a
+    BLAS error on some architectures (reported by B. Ripley within 24
+    hours of 3.1-6 being published on CRAN).  Tests were unaffected,
+    subsequent plots fail due to an infinite axis.
+    Repair, and add more checks to the test suite.
+}}
+
+\section{Change in version 3.1-6}{
   \itemize{
     \item Repair issues in coxph.getdata and lines.survfit that were
     found with reverse dependency checks

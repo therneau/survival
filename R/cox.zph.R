@@ -45,7 +45,6 @@ cox.zph <- function(fit, transform='km', terms=TRUE, singledf =FALSE,
         cget$x <- cget$x[, -dcol, drop=FALSE]
         asgn <- asgn[!frail]
     }
-    asgn <- asgn[!grepl("frailty(", names(asgn), fixed=TRUE)] # remove frailty
     nterm <- length(asgn)
     termname <- names(asgn)
 
@@ -117,7 +116,8 @@ cox.zph <- function(fit, transform='km', terms=TRUE, singledf =FALSE,
         }
         else {
             test[ii] <- drop(solve(imat,u) %*% u)
-            df[ii] <- length(jj)
+            if (is.null(fit$df)) df[ii] <- length(jj)
+            else df[ii] <- fit$df[ii]
         }
     }
 
@@ -125,7 +125,8 @@ cox.zph <- function(fit, transform='km', terms=TRUE, singledf =FALSE,
     if (global) {
         u <- c(u0, resid$u[-(1:nvar)])
         test[nterm+1] <- solve(imatr, u) %*% u
-        df[nterm+1]   <- nvar
+        if (is.null(fit$df))  df[nterm+1]   <- nvar
+        else df[nterm+1] <- sum(fit$df)
 
         tbl <- cbind(test, df, pchisq(test, df, lower.tail=FALSE))
         dimnames(tbl) <- list(c(termname, "GLOBAL"), c("chisq", "df", "p"))
@@ -135,9 +136,10 @@ cox.zph <- function(fit, transform='km', terms=TRUE, singledf =FALSE,
         dimnames(tbl) <- list(termname, c("chisq", "df", "p"))
     }
 
-    # The x, y, residuals part of the result is sorted by event time
-    indx <- order(y[,ny-1])
-    indx <- indx[event[indx]==1]
+    # The x, y, residuals part is sorted by time within strata; this is
+    #  what the C routine zph1 and zph2 return
+    indx <- if (ny==2) ord +1 else rev(ord) +1  # return to 1 based subscripts
+    indx <- indx[event[indx]]                   # only keep the death times
     rval <- list(table=tbl, x=unname(ttimes[indx]), time=unname(y[indx, ny-1]))
     if (length(cget$strata)) rval$strata <- cget$strata[indx]
     # Watch out for a particular edge case: there is a factor, and one of the
@@ -153,13 +155,12 @@ cox.zph <- function(fit, transform='km', terms=TRUE, singledf =FALSE,
     wtmat <- matrix(0, nvar, nvar)
     for (i in 1:nrow(used))
         wtmat <- wtmat + outer(used[i,], used[i,], pmin)
-    vmean <- imatr[1:nvar, 1:nvar, drop=FALSE]/wtmat
+    # with strata*covariate interactions (multi-state models for instance) the
+    #  imatr matrix will be block diagonal.  Don't divide these off diagonal zeros
+    #  by a wtmat value of zero.
+    vmean <- imatr[1:nvar, 1:nvar, drop=FALSE]/ifelse(wtmat==0, 1, wtmat)
 
     sresid <- resid$schoen
-    if (any(istrat != istrat[1])) { # more than one stratum
-        # sresid will be sorted by time within strata, sort it instead by time
-        sresid <- sresid[order(y[event, ny-1]),,drop=FALSE]
-    }
     if (terms && any(sapply(asgn, length) > 1)) { # collase multi-column terms
         temp <- matrix(0, ncol(sresid), nterm)
         for (i in 1:nterm) {
@@ -211,12 +212,24 @@ print.cox.zph <- function(x, digits = max(options()$digits - 4, 3),
 }
 "[.cox.zph" <- function(x, ..., drop=FALSE) {
     i <- ..1
-    if (!is.null(x$strata)) 
-        z<- list(table=x$table[i,,drop=FALSE], x=x$x, time= x$time, 
-                 strata = x$strata,
-                 y = x$y[,i,drop=FALSE],
-                 var=x$var[i,i, drop=FALSE], 
-                 transform=x$transform, call=x$call)
+    if (!is.null(x$strata)) {
+        y2 <- x$y[,i,drop=FALSE]
+        ymiss <- apply(is.na(y2), 1, all)
+        if (any(ymiss)) {
+            # some deaths played no role in these coefficients
+            #  due to a strata * covariate interaction, drop unneeded rows
+            z<- list(table=x$table[i,,drop=FALSE], x=x$x[!ymiss], 
+                     time= x$time[!ymiss], 
+                     strata = x$strata[!ymiss],
+                     y = y2[!ymiss,,drop=FALSE],
+                     var=x$var[i,i, drop=FALSE], 
+                     transform=x$transform, call=x$call)
+            }
+        else z<- list(table=x$table[i,,drop=FALSE], x=x$x, time= x$time, 
+                      strata = x$strata,
+                      y = y2,  var=x$var[i,i, drop=FALSE], 
+                      transform=x$transform, call=x$call)
+    }
     else
         z<- list(table=x$table[i,,drop=FALSE], x=x$x, time= x$time, 
                  y = x$y[,i,drop=FALSE],
