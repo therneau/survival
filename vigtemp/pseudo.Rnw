@@ -1,0 +1,248 @@
+\documentclass{article}[11pt]
+\usepackage{Sweave}
+\usepackage{amsmath}
+\addtolength{\textwidth}{1in}
+\addtolength{\oddsidemargin}{-.5in}
+\setlength{\evensidemargin}{\oddsidemargin}
+%\VignetteIndexEntry{Multi-state models and competing risks}
+
+\SweaveOpts{keep.source=TRUE, fig=FALSE}
+% Ross Ihaka suggestions
+\DefineVerbatimEnvironment{Sinput}{Verbatim} {xleftmargin=2em}
+\DefineVerbatimEnvironment{Soutput}{Verbatim}{xleftmargin=2em}
+\DefineVerbatimEnvironment{Scode}{Verbatim}{xleftmargin=2em}
+\fvset{listparameters={\setlength{\topsep}{0pt}}}
+\renewenvironment{Schunk}{\vspace{\topsep}}{\vspace{\topsep}}
+
+% I had been putting figures in the figures/ directory, but the standard
+%  R build script does not copy it and then R CMD check fails
+\SweaveOpts{prefix.string=compete,width=6,height=4}
+\newcommand{\myfig}[1]{\includegraphics[height=!, width=\textwidth]
+                        {compete-#1.pdf}}
+\setkeys{Gin}{width=\textwidth}
+<<echo=FALSE>>=
+options(continue="  ", width=60)
+options(SweaveHooks=list(fig=function() par(mar=c(4.1, 4.1, .3, 1.1))))
+pdf.options(pointsize=10) #text in graph about the same as regular text
+options(contrasts=c("contr.treatment", "contr.poly")) #ensure default
+options(show.signif.stars = FALSE)  # show statistical intelligence
+library("survival")
+@
+
+\title{Psuedo-values}
+\author{Terry Therneau}
+\newcommand{\code}[1]{\texttt{#1}}
+
+\section{Motivation}
+Survival analysis models sometime focus directly on the time to event, e.g.,
+\code{survreg} but most often on the hazard rate, which underlies both the
+Cox proportional hazard model and the nonparametric Kaplan-Meier and 
+Nelson-Aalen estimates.
+A third approach is to look at the simple binomial response of alive/dead.
+The most naive way to do so is to simply ignore subjects' follow-up time,
+but the results of this approach are often badly biased.
+Slightly more sophisticated is to use landmark approach, by choosing a
+predetermined cutoff time $\tau$, along with a binary indicator of whether
+each subject did or did not survival longer than $\tau$.
+Problems with this approach were pointed out 4 decades ago by Berkson and
+Gage \cite{Berkson52}:
+subjects censored before $\tau$ have to be discarded in this approach,
+making inefficient use of the data, and any difference between treatments in
+terms of the censoring distribution can again lead to biased estimates.
+
+If the data were not censored no points would be discarded.  This is one
+motivation for the use of \emph{pseudo values}, which ``fill in'' the
+missing observations.
+The key insight is to note that if the data were uncensored, one could recover
+$N_i(t)$ from the survival curve of the entire data $S(t)$ along with curve
+computed the omits the $i$th observation $S_{-i}(t)$ as
+$$
+   N_i(t) = (n-1)S_{-i}(t)- nS(t)
+$$
+To adapt this to censored data one can use the difference in the 
+two Kaplan-Meier estimators.
+A computationally simpler approach is to use the infinitesimal 
+jackknife estimate that arises from a KM estimate with case weights.
+$$
+  IJ_i(t) = \frac{\partial S(t)}{\partial w_i}
+$$
+The pseudo value for subject $i$ corresponds to a change of that
+weight from $w_i=1$ to $w_i=0$;
+the infinitesimal jackknife approximates this as a simple
+Taylor series with $\Delta w =1$.
+The estimate is simple both from the user's point of view
+because the IJ estimates are returned directly by the
+\code{survfit} function; and computationally the internal calculation
+is more efficient than $n$ complete refits.
+
+\section{Restricted mean survival time}
+
+Here is a very simple example using overall survival from
+a colon cancer trial.
+The resulting influence matrix has a row for each observation and a column for
+each unique time.
+We use then calculate the restriced mean survival time (RMST), which is the
+area under the survival curve, i.e., the summed areas of a series of rectangles.
+The influence of each observation on the RMST is computed in the same way. 
+
+<<aml1, echo=TRUE>>=
+cdata <- subset(colon, etype==2)  # 1 = death or progression
+cdata$years <- cdata$time/365.25  # Simpler display in years
+sfit <- survfit(Surv(years, status) ~1, cdata, influence=1)
+dim(sfit$influence.surv)
+nrow(cdata)
+length(sfit$time)
+
+aucfun <- function(fit, tmax) {
+    # extract the RMST, and the leverage of each subject on the RMST
+    sfit0 <- survfit0(fit)      # add the time=0 point to the result
+    if (missing(tmax)) tmax <- max(sfit0$time)
+    rsum <- function(y, x= sfit0$time) {  # sum of rectangles
+        keep <- which(x < tmax)
+        width <- diff(c(x[keep], tmax))  
+        sum(width * y[keep])
+    }
+    rmst <- rsum(sfit0$surv, sfit0$time)
+    ijack <- apply(sfit0$influence.surv, 1, rsum)
+    list(rmst=rmst, sd.rmst = sqrt(sum(ijack^2)), influence= ijack)
+}
+
+rmst <- aucfun(sfit, 9)
+print(sfit, rmean= 9)
+@ 
+
+The RMST and robust standard error computed by \code{aucfun} agree with
+the estimate and asymptotic standard error from the print command.
+Now fit two regression models to pseudo-values, in order to estimate
+the difference in RMST between the three treatments.
+Infinitesimal jackknife values sum to zero by definition; by adding back
+in the overall RMST the printed linear model coefficients match our overall
+non-parametric estimates, but the estimated difference between groups
+is unchanged by this maneuver.
+That is, if your only interest is in ``effect sizes'' and/or p-values, the
+recentering can be omitted.
+
+<<rmstfit>>=
+cdata$pseudo <- nrow(cdata)* rmst$influence + rmst$rmst
+pfit1 <- lm(pseudo ~ rx -1, data=cdata)
+round(summary(pfit1)$coef, 3)
+
+print(survfit(Surv(years, status) ~ rx, cdata), rmean=9)
+@ 
+
+More interesting is to look at multivariate fits.
+A Cox model with treatment, the presence of 4 or more lymph nodes, and
+extent of disease shows that all 3 variables are important.
+Compare 3 different RMST estimates for the 12 groups that these
+define: non-parametric, predictions from a Cox model, and predictions
+from a linear model.
+
+<<>>=
+cdata$extent2 <- ifelse(cdata$extent > 2, 0, 1)
+sfit3 <- survfit(Surv(years, status) ~ extent2 + node4 + rx, cdata)
+cox3  <- coxph(Surv(years, status) ~ rx + node4 + extent2, cdata)
+print(cox3)
+
+pred.data <- expand.grid(rx = levels(cdata$rx), 
+                         node4=0:1,  extent2=0:1 )
+csurv <- survfit(cox3, newdata= pred.data)
+
+pfit3 <- lm(pseudo ~ rx + node4 + extent2, cdata)
+
+psum <- cbind(direct= summary(sfit3, rmean=9)$table[,5],
+              cox   = summary(csurv, rmean=9)$table[,5],
+              pseudo= predict(pfit3, newdata=pred.data))
+round(psum, 2)
+matplot(psum[,1], psum[,-1], pch='cp',
+        xlab="Direct RSTM estimate", "Model estimate")
+abline(0,1)
+@ 
+
+A linear regression on the psuedo values has given almost idential RMST
+values to the Cox model estimates.
+The plot shows that for 3 of the 12 subgroups the Cox and pseudo-value
+approaches predict larger RMST values than the direct non-parametric
+one.  These, it turns out, are the patients with 4+ nodes and extensive
+disease, under the three different treatments.
+The survival impact of the combination of these two factors is larger than
+an additive risk score predicts.
+
+
+\section{Extended landmark method and Cox models}
+We stated above that a landmark approach is often used, i.e., pick some
+cutpoint time $\tau$ and compare those who died before $\tau$ to those
+known to still be alive at $\tau$.
+This is inefficient, observations censored before $\tau$ are not used at
+all.
+One way to extend this approach and remove the dependence on $\tau$ is to use
+a variant of the proportional odds model, namely
+\begin{align}
+  E(N(t)) &= Pr(N(t) ==1) \nolabel \\
+          &= g( \beta_0(t) + \beta_1 x_1 + \beta_2 x_2 + \ldots) \label{propodds}
+\end{equation}
+where $g$ is an appropriate transformation function,
+often using the usual logisitc regression link of  $g(x) = \exp(x)/[1+ \exp(x)]$,
+and $\beta_0$ is a time dependent intercept.
+Interestingly, if instead we use the complimetarty log-log link  
+$g(x) = exp(-exp(x))$, then
+\begin{eqnarray*}
+  S(t) &= Pr(N(t) ==1) \\
+ \Lambda(t) &= -\log(S(t)) \\
+            &= \exp(\beta_0(t) + \beta_1 x_1 + \beta_2 x_2 + \ldots) \\
+            &= \Lambda_0(t) \exp(\beta_1 x_1 + \beta_2 x_2 + \ldots)
+\end{eqnarray*}
+which is exactly the Cox proportional hazards model.
+A ``stacked'' data set with all $n_1$ observations and status values at
+time $t_1$, then $n_2$ values at time $t_2$, \ldots is then another (tedious)
+way to fit the proportional hazards model, $n_1$ being the number of subjects
+at risk and under observation at time $t_1$, etc.
+This route is one way to derive the formal equivalence of conditional logistic
+regression and the partial likelihood, which is used to computational 
+advantage in the \code{clogit} function.
+
+A further development along these lines is to use psuedo values, which make use
+of all $n$ subjects at all of the event times.  
+The resulting data set is large: all 929 subjects appear at each of the 409
+unique death times.
+Per Andersen and Pohar \cite{Anxx}, the results of a such a fit are essentially
+unchanged if only a half dozen time points are used, spread across the time
+scale.  This speeds up the fit considerably.  We will use 1/2 year intervals
+for 8 years, which is 15 time points.
+In this case we do need to use a robust variance;
+the geese program requires subjects that are clustered to be contiguous
+in the dataset.
+
+<<cdata2>>=
+keep <- findInterval(1:16/2, sfit$time)
+inf15 <- sfit$influence[,keep]
+surv15 <- sfit$surv[keep]
+cdata2 <- data.frame(cdata[row(inf15),],
+                     yp  = c(inf15)*nrow(cdata) + surv15[col(inf15)],
+                     dtime = c(col(inf15)))
+dim(cdata2)
+cdata2 <- cdata2[order(cdata2$id), ]  # sort by id
+clfit <- geese(yp ~ rx + node4 + extent2 + factor(dtime), data=cdata2,
+               mean.link="cloglog", scale.fix=TRUE, id = cdata2$id,
+               corstr= "independence")
+round(summary(clfit)$mean[2:5,] , 3)
+
+# Compare this to the naive glm variance, and to the Cox fit
+gfit2 <- glm(yp ~ rx + node4 + extent2 + factor(dtime), data=cdata2,
+             family=quasi(link='cloglog', variance='constant'),
+             mustart = pmax(.05, pmin(.95, yp)))
+
+temp <- cbind(coef.cox = coef(cox3),
+              coef.gee = clfit$beta[2:5],
+              coef.glm = coef(gfit2)[2:5],
+              std.cox  = sqrt(diag(vcov(cox3))),
+              std.gee  = summary(clfit)$mean[2:5, 2],
+              std.glm  = summary(gfit2)$coefficients[2:5, 2])
+round(temp,2)
+@ 
+
+The glm and gee fits have identical coefficients, but the glm standard
+errors are systematically too small.
+The coefficients for both are reversed from the Cox model coefficients,
+For this particular data set the standard errors of the Cox and GEE
+fits are similar, but other's simulations show that the Cox model
+standard errors are somewhat smaller in general.
