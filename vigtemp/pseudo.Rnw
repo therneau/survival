@@ -56,26 +56,32 @@ missing observations.
 The key insight is to note that if the data were uncensored, one could recover
 $N_i(t)$ from the survival curve of the entire data $S(t)$ along with curve
 computed the omits the $i$th observation $S_{-i}(t)$ as
-$$
-   N_i(t) = (n-1)S_{-i}(t)- nS(t)
-$$
+\begin{align*}
+   N_i(t) &=  nS(t) - (n-1)S_{-i}(t) \\
+         &=   S(t) + (n-1)[S(t) -S_{-i}(t)]
+\end{align*}
 To adapt this to censored data one can use the difference in the 
 two Kaplan-Meier estimators.
 A computationally simpler approach is to use the infinitesimal 
 jackknife estimate that arises from a KM estimate with case weights.
-$$
-  IJ_i(t) = \frac{\partial S(t)}{\partial w_i}
-$$
-The pseudo value for subject $i$ corresponds to a change of that
-weight from $w_i=1$ to $w_i=0$;
-the infinitesimal jackknife approximates this as a simple
-Taylor series with $\Delta w =1$.
-The estimate is simple both from the user's point of view
+\begin{equation}
+  S(t) -S_{-i}(t) \approx \frac{\partial S(t)}{\partial w_i} \label{IJ}
+\end{equation}
+The right hand side of \eqref{IJ} is known as the infinitesimal jackknife.
+The left hand side corresponds to a change of subject $i$'s weight
+from $w_i=1$ to $w_i=0$;
+the infinitesimal jackknife approximates this as a simple Taylor series.
+The estimate is simple from the user's point of view
 because the IJ estimates are returned directly by the
 \code{survfit} function; and computationally the internal calculation
-is more efficient than $n$ complete refits.
+is more efficient than the $n$ recomputations of the Kaplan-Meier 
+required for the formal pseudo values.  
 
 \section{Restricted mean survival time}
+The restricted mean survival time (RMST) can be calculated as the
+area under the Kaplan-Meier curve up to some cutpoint $\tau$.
+The endpoint can be prespecified; other common choices are
+the last observed time in the data or the last observed event time.
 
 Here is a very simple example using overall survival from
 a colon cancer trial.
@@ -83,7 +89,8 @@ The resulting influence matrix has a row for each observation and a column for
 each unique time.
 We use then calculate the restriced mean survival time (RMST), which is the
 area under the survival curve, i.e., the summed areas of a series of rectangles.
-The influence of each observation on the RMST is computed in the same way. 
+The influence of each observation on the RMST is computed in the same way,
+since sum(changes in rectangles) = change in RMST.
 
 <<aml1, echo=TRUE>>=
 cdata <- subset(colon, etype==2)  # 1 = death or progression
@@ -93,10 +100,12 @@ dim(sfit$influence.surv)
 nrow(cdata)
 length(sfit$time)
 
-aucfun <- function(fit, tmax) {
+rmst <- function(fit, tmax) {
     # extract the RMST, and the leverage of each subject on the RMST
-    sfit0 <- survfit0(fit)      # add the time=0 point to the result
     if (missing(tmax)) tmax <- max(sfit0$time)
+    if (length(tmax) !=1) stop("tmax must be a single value")
+
+    sfit0 <- survfit0(fit)      # add the time=0 point to the result
     rsum <- function(y, x= sfit0$time) {  # sum of rectangles
         keep <- which(x < tmax)
         width <- diff(c(x[keep], tmax))  
@@ -104,69 +113,77 @@ aucfun <- function(fit, tmax) {
     }
     rmst <- rsum(sfit0$surv, sfit0$time)
     ijack <- apply(sfit0$influence.surv, 1, rsum)
-    list(rmst=rmst, sd.rmst = sqrt(sum(ijack^2)), influence= ijack)
+    list(rmst=rmst, sd.rmst = sqrt(sum(ijack^2)), 
+         pseudo = rmst + (sfit$n -1)* ijack)
 }
 
-rmst <- aucfun(sfit, 9)
+cmean <- rmst(sfit, 9)
+unlist(cmean[1:2])
 print(sfit, rmean= 9)
 @ 
 
-The RMST and robust standard error computed by \code{aucfun} agree with
+The RMST and robust standard error computed by \code{rmst} agree with
 the estimate and asymptotic standard error from the print command.
-Now fit two regression models to pseudo-values, in order to estimate
-the difference in RMST between the three treatments.
-Infinitesimal jackknife values sum to zero by definition; by adding back
-in the overall RMST the printed linear model coefficients match our overall
-non-parametric estimates, but the estimated difference between groups
-is unchanged by this maneuver.
-That is, if your only interest is in ``effect sizes'' and/or p-values, the
-recentering can be omitted.
 
 <<rmstfit>>=
-cdata$pseudo <- nrow(cdata)* rmst$influence + rmst$rmst
+cdata$pseudo <- cmean$pseudo   # add it to the data frame
 pfit1 <- lm(pseudo ~ rx -1, data=cdata)
 round(summary(pfit1)$coef, 3)
 
 print(survfit(Surv(years, status) ~ rx, cdata), rmean=9)
 @ 
 
+The simple linear regression has created values that are almost identical
+to the per-group non=parametric RMST, as well as replicating the standard
+errors.  
 More interesting is to look at multivariate fits.
 A Cox model with treatment, the presence of 4 or more lymph nodes, and
 extent of disease shows that all 3 variables are important.
 Compare 3 different RMST estimates for the 12 groups that these
-define: non-parametric, predictions from a Cox model, and predictions
+define: non-parametric, predictions from the fitted Cox model, and predictions
 from a linear model.
 
 <<>>=
 cdata$extent2 <- ifelse(cdata$extent > 2, 0, 1)
+# KM based for the 12 groups
 sfit3 <- survfit(Surv(years, status) ~ extent2 + node4 + rx, cdata)
+
+# Cox fit + 12 predicted curves
 cox3  <- coxph(Surv(years, status) ~ rx + node4 + extent2, cdata)
 print(cox3)
 
-pred.data <- expand.grid(rx = levels(cdata$rx), 
+tempdata <- expand.grid(rx = levels(cdata$rx), 
                          node4=0:1,  extent2=0:1 )
-csurv <- survfit(cox3, newdata= pred.data)
+csurv <- survfit(cox3, newdata= tempdata)  
 
+# pseudo-value
 pfit3 <- lm(pseudo ~ rx + node4 + extent2, cdata)
 
+# glue together into one object and print
 psum <- cbind(direct= summary(sfit3, rmean=9)$table[,5],
               cox   = summary(csurv, rmean=9)$table[,5],
-              pseudo= predict(pfit3, newdata=pred.data))
+              pseudo= predict(pfit3, newdata=tempdata))
 round(psum, 2)
+
+# plot the results
 matplot(psum[,1], psum[,-1], pch='cp',
-        xlab="Direct RSTM estimate", "Model estimate")
-abline(0,1)
+        xlab="Direct RSTM estimate", ylab= "Model estimate")
+abline(0,1, lty=2)
+legend(5.5, 4.5, c("Cox model estimate", "Psuedo-value estimate"),
+       pch='cp', col=1:2, bty='n')
 @ 
 
 A linear regression on the psuedo values has given almost idential RMST
 values to the Cox model estimates.
 The plot shows that for 3 of the 12 subgroups the Cox and pseudo-value
 approaches predict larger RMST values than the direct non-parametric
-one.  These, it turns out, are the patients with 4+ nodes and extensive
-disease, under the three different treatments.
-The survival impact of the combination of these two factors is larger than
-an additive risk score predicts.
-
+estimates from individual KM curves.  
+These three groups, it turns out, are the patients with 4+ nodes and extensive
+disease, for the three different treatments.
+It appears that the negative survival impact of the combination of these two 
+factors is larger than an additive risk score predicts;
+both the Cox and linear models may need an \code{entent2 * node4} 
+interaction term.
 
 \section{Extended landmark method and Cox models}
 We stated above that a landmark approach is often used, i.e., pick some
