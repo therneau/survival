@@ -18,20 +18,24 @@
 %  R build script does not copy it and then R CMD check fails
 \SweaveOpts{prefix.string=compete,width=6,height=4}
 \newcommand{\myfig}[1]{\includegraphics[height=!, width=\textwidth]
-                        {compete-#1.pdf}}
+                        {pseudo-#1.pdf}}
 \setkeys{Gin}{width=\textwidth}
 <<echo=FALSE>>=
-options(continue="  ", width=60)
+options(continue="  ", width=70)
 options(SweaveHooks=list(fig=function() par(mar=c(4.1, 4.1, .3, 1.1))))
 pdf.options(pointsize=10) #text in graph about the same as regular text
 options(contrasts=c("contr.treatment", "contr.poly")) #ensure default
 options(show.signif.stars = FALSE)  # show statistical intelligence
 library("survival")
+library("geepack")
 @
 
 \title{Psuedo-values}
 \author{Terry Therneau}
 \newcommand{\code}[1]{\texttt{#1}}
+
+\begin{document}
+\maketitle
 
 \section{Motivation}
 Survival analysis models sometime focus directly on the time to event, e.g.,
@@ -74,8 +78,8 @@ from $w_i=1$ to $w_i=0$;
 the infinitesimal jackknife approximates this as a simple Taylor series.
 The estimate is simple from the user's point of view
 because the IJ estimates are returned directly by the
-\code{survfit} function; and computationally the internal calculation
-is more efficient than  $n$ recomputations of the Kaplan-Meier as is
+\code{survfit} function; computationally the internal calculation
+is more efficient than the $n$ recomputations of the Kaplan-Meier
 required for the formal pseudo values.  
 
 \section{Restricted mean survival time}
@@ -88,7 +92,7 @@ Here is a very simple example using overall survival from
 a clincal trial in colon cancer.
 The resulting KM influence matrix has a row for each observation and a column for
 each unique time.
-We use then calculate the restriced mean survival time (RMST), which is the
+We use then calculate the restricted mean survival time (RMST), which is the
 area under the survival curve, i.e., the summed areas of a series of rectangles.
 The influence of each observation on the RMST is computed in the same way,
 since sum(changes in rectangles) = change in RMST.
@@ -125,6 +129,7 @@ print(sfit, rmean= 9)
 
 The RMST and robust standard error computed by \code{rmst} agree with
 the estimate and asymptotic standard error from the print command.
+Now approach the estimate using pseudo values:
 
 <<rmstfit>>=
 cdata$pseudo <- cmean$pseudo   # add it to the data frame
@@ -134,7 +139,7 @@ round(summary(pfit1)$coef, 3)
 print(survfit(Surv(years, status) ~ rx, cdata), rmean=9)
 @ 
 
-The simple linear regression has created values that are almost identical
+A simple linear regression has created values that are almost identical
 to the per-group non=parametric RMST, as well as replicating the standard
 errors.  
 More interesting is to look at multivariate fits.
@@ -144,7 +149,7 @@ Compare 3 different RMST estimates for the 12 groups that these
 define: non-parametric, predictions from the fitted Cox model, and predictions
 from a linear model based on the pseudo-values.
 
-<<>>=
+<<aml2, fig=TRUE>>=
 cdata$extent2 <- ifelse(cdata$extent > 2, 0, 1)
 # KM for the 12 groups
 sfit3 <- survfit(Surv(years, status) ~ extent2 + node4 + rx, cdata)
@@ -183,7 +188,7 @@ These three groups, it turns out, are the patients with 4+ nodes and extensive
 disease, for each of the three different treatments.
 It appears that the negative survival impact of the combination of these two 
 factors is larger than an additive risk score predicts;
-both the Cox and linear models may need an \code{entent2 * node4} 
+both the Cox and linear models may need an \code{extent * node} 
 interaction term.
 
 \section{Extended landmark method and Cox models}
@@ -195,20 +200,20 @@ all.
 One way to extend this approach and remove the dependence on $\tau$ is to use
 a variant of the proportional odds model, namely
 \begin{align}
-  E(N(t)) &= Pr(N(t) ==1) \nolabel \\
+  E(N(t)) &= Pr(N(t) ==1) \nonumber \\
           &= g( \beta_0(t) + \beta_1 x_1 + \beta_2 x_2 + \ldots) \label{propodds}
-\end{equation}
+\end{align}
 where $g$ is an appropriate transformation function,
 often using the usual logisitc regression link of  $g(x) = \exp(x)/[1+ \exp(x)]$,
 and $\beta_0$ is a time dependent intercept.
-Interestingly, if instead we use the complimetarty log-log link  
-$g(x) = exp(-exp(x))$, then
-\begin{eqnarray*}
+Interestingly, if instead we use the complimentary log-log link  
+$g(x) = \exp(-\exp(x))$, then
+\begin{align*}
   S(t) &= Pr(N(t) ==1) \\
  \Lambda(t) &= -\log(S(t)) \\
             &= \exp(\beta_0(t) + \beta_1 x_1 + \beta_2 x_2 + \ldots) \\
             &= \Lambda_0(t) \exp(\beta_1 x_1 + \beta_2 x_2 + \ldots)
-\end{eqnarray*}
+\end{align*}
 which is exactly the Cox proportional hazards model.
 A ``stacked'' data set with all $n_1$ observations and status values at
 time $t_1$, then $n_2$ values at time $t_2$, \ldots is then another (tedious)
@@ -269,19 +274,23 @@ round(temp,2)
 @ 
 
 The glm and gee fits have identical coefficients, but the glm standard
-errors are systematically too small.
-The coefficients for both are reversed from the Cox model coefficients,
+errors are systematically too small; they do not take account of the
+fact that a single subject generates 16 data points.
 For this particular data set the standard errors of the Cox and GEE
 fits are similar, but other's simulations show that the Cox model
-standard errors are somewhat smaller than the GEE errors on average.
+standard errors are somewhat smaller than GEE on average.
+The coefficients for the glm and gee models are reversed from the Cox model 
+coefficients, since the former are predicting the probablility of
+survival and the latter a death rate. 
+A high survival implies a low death rate and vice versa.
 
 \section{Multi-state models}
 
 When the underlying survival curve is from a multi-state model, the
 \code{survfit} function will estimate the \emph{probability in
-state} matrix (\code{pstate} component) which contains a row for each
+state} matrix (\code{pstate}) which contains a row for each
 unique event or censoring time and a column for each state.
-Each row of the matrix sums to 1 (everyone has to be somewhere).
+Each row of the matrix sums to 1 since everyone has to be somewhere.
 
 The area under each curve, up to a cutoff time $\tau$, is an estimate of the 
 total time spent in the state and is the analog to the RMST.
@@ -294,7 +303,7 @@ diabetes, hyperlipidemia, and hypertension.
 Subjects traverse from 0 to 3 of the these over time, with death as a 
 competing risk.
 
-<<state3>>=
+<<state3, fig=TRUE>>=
 states <- c("0 MC", "1 MC", "2 MC", "3 MC", "death")
 tmat <- matrix(0, 5,5, dimnames = list(states, states))
 tmat[1,2] <- tmat[2,3] <- tmat[3,4] <- 1
@@ -311,28 +320,24 @@ ndata <- tmerge(ndata, temp, id=id, mc= cumevent(days),
                 istate = cumtdc(days))
 ndata$age1 <- ndata$age + ndata$tstart/365
 ndata$age2 <- ndata$age + ndata$tstop/365
-ndata$nafld <- ifelse(nafld$id == nafld$case.id, 1, 0)
+ndata$nafld <- ifelse(ndata$id == ndata$case.id, 1, 0)
 ndata$event <- factor(ifelse(ndata$death==1, 4, ndata$mc), 0:4,
                       c("censor", "1 MC", "2 MC", "3 MC", "death"))
 ndata$istate <- factor(ndata$istate, 0:3, c("0 MC", "1 MC", "2 MC", "3 MC"))
 attr(ndata, "tcount")
-
-first <- !duplicated(ndata$id)   # first row for each subject
-round(100* table(ndata$istate[first])/ nrow(nafld1))
 @ 
 
 The \code{tcount} attribute gives a history of the additions.
 \begin{itemize}
   \item The deaths all occur at the end of a participant's follow-up time
 (trailing), which is as it should be.
-  \item Many of the metabolic comorbidities occur before participants
-were enrolled in the NAFLD study.  A little less than half (45\%) of the
-17549 subjects had 0 MC, and a small number already had all three.
+  \item Many of the metabolic comorbidities are pre-existing, they occur 
+    before participants were enrolled in the NAFLD study (early). 
   \item There are 575 tied values for the MC, for example a patient who had 0
-comorbidies at the prior visit and 2 at the current one: they will have 2
-comorbidities coded on the same day.
+    comorbidies at the prior visit and 2 at the current one: they will have 2
+    comorbidities coded on the same day.
   \item There are 4 comorbidities that occur on the day of enrollment.  
-What happens with these?  I think they do the right thing, but check.
+    (What happens with these?  I think they do the right thing, but check.)
 \end{itemize}
 
 In this study 318 of the 17590 subject who entered the study as controls for
@@ -340,11 +345,104 @@ a NAFLD case were later diagnosed themselves with the disease.
 Survival curves do not extend to time-dependent covariates, nor does the
 concept of mean time in state, so for this analysis we use NAFLD at study entry
 as the covariate of interest.
+Start the analysis with a check of the data set.
 
-<<nafld1>>=
+<<nafld0, size='small'>>=
+temp <- survcheck(Surv(age1, age2, event) ~1, data=ndata, 
+                    id=id, istate=istate)
+temp
+@ 
+
+The second table above shows that no participant had more than 1 transition to
+a given state (no repeats), which is the intention. 
+The majority of the subjects (12733/17549 = 73\%) had no transitions during
+their follow-up, while 22 of them visited all 5 states.
+The first table shows that there are subjects who jump states, e.g., 
+directly from 0MC to 2MC;
+on one visit they had no MC and the next visit, perhaps several years later,
+2 MC were observd. 
+This highlights that we are building a model for time to diagnosis of a condition
+rather than time to occurrence. 
+Most importantly, the check did not reveal any reversions from a greater
+state to a lesser, or other serious errors.
+
+<<nafld1, fig=TRUE>>=
 nfit1 <- survfit(Surv(age1, age2, event) ~ 1, data=ndata,
-                 id = id, istate=istate, influence=1, start.time=40)
-plot(nfit1, col=1:5)
+                 id = id, istate=istate, start.time=40)
+nfit1$start.time <- 40  # oversight in survfit, fixed in 3.1-8
+plot(nfit1, col=1:5, lwd=2, xlab="Age", ylab="P(state)")
+legend(50, .95, nfit1$states, lty=1, lwd=2, col=1:5, bty='n')
+@ 
+
+With (time1, time2) data very early time points can have unstable 
+P(state) estimates due
+to a small number of subjects at risk; we decided to start the curves at age 40
+to avoid this.
+The xet of subjects at risk at age 40 (at risk for further events) 
+defines the initial
+probabilities, thus by definition 0\% begin in the death state.
+The curves then give future estimates for this cohort of 40 year olds.
+The probability in state curves show that at age 40 about 60\% will be in the
+0MC state, while the 1MC state peaks at 33\% in the early 50s and the 3MC
+state peaks at 26\% in the 80s.
+To obtain the estimated prevalence of states among those still alive (the
+common epidemiologic definition of prevalence), one needs to divide each
+curve by the fraction still alive, and omit the death curve.
+
+It is also interesting to look at the estimated future for a 
+hypothetical cohort of
+subjects who were all in the 0MC state at age 40, as is shown below.
+Looking forward, the NAFLD subject migrates out of the 0MC state more
+quickly, 1MC and 2MC peak earlier, and there is a higher prevalence of
+3MC.  Basically, NAFLD subjects have an earlier onset of MC.
+
+<<nafld2, fig=TRUE>>=
+nfit2 <- survfit(Surv(age1, age2, event) ~ nafld, data=ndata,
+                 id = id, istate=istate, start.time=40,
+                 p0=c(1,0,0,0,0), influence=1)
+
+plot(nfit2[,-5], col=rep(1:4,each=2), lty=1:2, lwd=2, 
+     xlab="Age", ylab="P(state)")
+legend(80, .95, c(nfit1$states[-5], "NAFLD"), 
+       lty=c(1,1,1,1,2), lwd=2, col=c(1,2,3,4,1), bty='n')
+@ 
+
+We can summarize this in terms of the mean time in state or RMTS.
+(RMST isn't as nice an acronym for the general case.)
+The NAFLD subjects spend less total time in the 0MC and 1MC states,
+and more in the 3MC and death states.
+
+<<natime>>=
+mtable <- summary(nfit2, rmean=100)$table
+# print(mtable, digits=2)   # simple printout
+# format it more nicely
+mtemp <- matrix(mtable[,3], ncol=2, byrow=2)
+mse   <- matrix(mtable[,4], ncol=2, byrow=2) 
+tfun <- function(x, se, digits=2) 
+    paste0(format(round(x, digits)), " (",
+           format(round(se,digits)), ")")
+
+temp  <- cbind("Control" = tfun(mtemp[,1], mse[,1]),
+               "NAFLD"   = tfun(mtemp[,2], mse[,2]),
+               "Difference" = tfun(mtemp[,2] - mtemp[,1],
+                                sqrt(mse[,1]^2 + mse[,2]^2)))
+rownames(temp) <- nfit2$states
+print(temp, quote=FALSE)
+@ 
+
+Now look at the same comparison using pseudo values.  
+The \code{survfit} call to create them will not include covariates.
+With this approach the total size of the influence
+matrix grows as $n^2$, since both the number of subjects and the number
+of unique event times is larger, which can cause issues with very large
+data sets.
+
+<<nfit3>>=
+nfit3 <- survfit(Surv(age1, age2, event) ~ 1, data=ndata,
+                 id = id, istate=istate, start.time=40,
+                 p0=c(1,0,0,0,0), influence = 1)
+nfit3$start.time <- 40  # oversight, fixed in survival_3.1-8
+dim(nfit3$influence.pstate)
 
 # updated function for multi-state
 rmst <- function(fit, tmax) {
@@ -368,17 +466,52 @@ rmst <- function(fit, tmax) {
     else {
         nstate <- length(sfit0$states)
         rmst <- apply(sfit0$pstate, 2, rsum)
-        ijack <- apply(sfit0$influence.surv, c(1,3), rsum)
-        browser()
+        ijack <- apply(sfit0$influence.pstate, c(1,3), rsum)
+        list(rmst=rmst, sd.rmst = sqrt(colSums(ijack^2)),
+             pseudo = rep(rmst, each= nrow(ijack)) + (nrow(ijack)-1)*ijack)
     }
 }
 # go up to age 100
-nmean <- rmst(nfit1, 100)
+nmean <- rmst(nfit3, 100)
+sum(nmean$rmst)   # will sum to 60
 
-xx <- c(nfit1$time[nfit1$time < 100], 100)
+# Subjects censored before age 40 do not appear in the survival curve
+#  and thus not in the pseudovalues
+tdata <- subset(nafld1, (age + futime/365) > 40)
+tdata$nafld <- ifelse(tdata$case.id == tdata$id, 1, 0)
 
-last <- which(!duplicated(ndata, fromLast=TRUE))
-data2 <- subset(ndata[last,], age2 > 40)
+nfit4 <- lm(nmean$pseudo ~ nafld, data= tdata)
+nfit4
+# summmary(nfit4)   longer, simple printout
+# make a compact one
+temp2 <- summary(nfit4)
+temp3 <- cbind(estimate = sapply(temp2, function(x) x$coefficients[2,1]),
+               se       = sapply(temp2, function(x) x$coefficients[2,2]))
+rownames(temp3) <- nfit3$states
+round(temp3, 2)
 @ 
 
+The estimated RMTS for the large control group is nearly identical for the
+direct and pseudo-value approachs (intercept coefficients).
+The estimated difference in RMTS between NAFLD and control is somewhat smaller
+using pseudo values and the standard errors are comparable.
+The big advantage for the pseudo value approach is the ease of fitting
+additional multivariate models for RMTS values, e.g.,
 
+<<nafld4>>=
+lm(nmean$pseudo ~ nafld + male + bmi, tdata)
+@ 
+
+This estimates that a 40 year old male with 0MC will spend 4.3 more years,
+out of the next 60, in the death state, after adjustment for BMI and NAFLD;
+higher death rates for males are what we would have expected.  
+Each 1 unit increase in body mass index (BMI) is estimated to result
+in .3 years less in the 0MC state, .3 years more in the 3MC state, but only
+a modest change in overall survival; again after adjustment.
+The NAFLD effects on metabolic state are attenuated by the adjustment but
+the effect on overall survival (time in the death state) does not change
+substantially from the unadjusted model.
+Together these raise tantalizing questions about possible underlying
+biological mechanisms. 
+
+\end{document}

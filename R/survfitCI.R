@@ -319,8 +319,9 @@ survfitCI <- function(X, Y, weights, id, istate, cluster,
      
         if (influence) kfit$influence.pstate <- 
             lapply(curves, function(x) x$influence.pstate)
-        if (!missing(start.time)) kfit$start.time <- start.time
     }                         
+
+    if (!missing(start.time)) kfit$start.time <- start.time
     kfit$transitions <- mcheck$transitions
 
     #       

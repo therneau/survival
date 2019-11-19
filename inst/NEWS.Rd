@@ -1,5 +1,12 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 3.1-8}{
+  \itemize{
+    \item For a multistate model which no covariates, the start.time
+    value (if present) was inadvertently omitted from the result.  This
+    affects the default plot.
+}}
+
 \section{Changes in version 3.1-7}{
   \itemize{
     \item For a coxph model with covariate*strata interactions the
