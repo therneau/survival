@@ -274,8 +274,15 @@ tmerge <- function(data1, data2, id, ..., tstart, tstop, options) {
         indx4 <- which(itype==4)
         n4 <- length(indx4)
         if (n4 > 0) {
-            icount <- tapply(etime[indx4], indx1[indx4], function(x) sort(unique(x)))
-            n.add <- sapply(icount, length)  #number of rows to add
+            # we need to eliminate duplicate times within the same id, but
+            #  do so without changing the class of etime: it might
+            #  be a Date, an integer, a double, ... 
+            # Using unique on a data.frame does the trick
+            icount <- data.frame(irow= indx1[indx4], etime=etime[indx4])
+            icount <- unique(icount)   
+            # the icount data frame will be sorted by second column within first
+            #  so rle is faster than table
+            n.add <- rle(icount$irow)$length # number of rows to add for each id
             
             # expand the data 
             irep <- rep.int(1L, nrow(newdata))
@@ -293,12 +300,7 @@ tmerge <- function(data1, data2, id, ..., tstart, tstop, options) {
             for (j in 1:nfix) temp[[j]] <-  -(seq(n.add[j] -1, 0)) + iend[j]
             newrows <- unlist(temp)
             
-            # icount is a list, each element of which is a vector
-            # the natural way to turn that into a vector is unlist(), but that
-            # leads to problems if etime is a date: we lose the time origin
-            if (is.numeric(icount[[1]])) icount <- unlist(icount)
-            else  icount <- do.call('c', icount)
-            dstart[newrows] <- dstop[newrows-1] <- icount
+            dstart[newrows] <- dstop[newrows-1] <- icount$etime
             newdata[[topt$tstartname]] <- dstart
             newdata[[topt$tstopname]]  <- dstop
             for (ename in tevent) newdata[newrows-1, ename] <- tcens[[ename]]
