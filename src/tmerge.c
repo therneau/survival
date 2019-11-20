@@ -128,7 +128,7 @@ SEXP tmerge2(SEXP id2,  SEXP time2x, SEXP nid2, SEXP ntime2) {
 	    for(; i<n1 && (id[i] < oldid || 
 			   (id[i]== oldid && time2[i] <= ntime[k])); i++)
 		index[i] = 0;
-	    if (id[i] == oldid) {index[i] = k+1; i++;}
+	    if (i<n1 && id[i] == oldid) {index[i] = k+1; i++;}
 	}	
 	else {
 	    for (; i<n1 && (id[i] == oldid && time2[i] <= ntime[k]); i++){

@@ -126,5 +126,5 @@ data2 <- subset(tdata, time2> 20)
 data2$time1 <- pmax(20, data2$time1)
 fit2x <- survfit(Surv(time1, time2, stat2) ~1, id=id, weight=wt, data2)
 
-ii <- names(fit2) != "call"
+ii <- names(fit2)[!(names(fit2) %in%  c("call", "start.time"))]
 all.equal(unclass(fit2)[ii], unclass(fit2x)[ii])
