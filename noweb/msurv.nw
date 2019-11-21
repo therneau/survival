@@ -10,7 +10,8 @@ extension.)
 
 SEXP survfitci(SEXP ftime2,  SEXP sort12,  SEXP sort22, SEXP ntime2,
                     SEXP status2, SEXP cstate2, SEXP wt2,  SEXP id2,
-                    SEXP p2,      SEXP i02,     SEXP sefit2) {   
+                    SEXP p2,      SEXP i02,     SEXP sefit2,
+                    SEXP influence2,  SEXP inftime2) {   
     <<survfitci-declare>>
     <<survfitci-compute>>
     <<survfitci-return>>
@@ -35,8 +36,9 @@ object and [[zed]] to the contents of the object.
   \item[p] The initial distribution of states.  This will be updated during
     computation to be the current distribution.
   \item[i0] The initial influence matrix, number of subjects by number of states
-  \item[sefit] If 1 then do the se compuatation, if 2 also return the full
-    influence matrix upon which it is based, if 0 the se is not needed.
+  \item[sefit] If 1 then do the se compuatation
+  \item[influence] 1=pstate + 2=cumhaz + 4=rmst
+  \item[inftime]  time points for the influence matrices
 \end{description}
 
 
@@ -73,13 +75,18 @@ double *wt;         /* weight for each observation */
 double *i0;         /* initial influence */
 int *id;            /* for each obs, which subject is it */
 int sefit;
+int influence;
+double *inftime;
+int ninftime;
     
 /* returned objects */
 SEXP rlist;         /* the returned list and variable names of same */  
 const char *rnames[]= {"nrisk","nevent","ncensor", "p", 
-		       "cumhaz", "std", "influence.pstate", ""};
+		       "cumhaz", "std", "influence.pstate",
+                       "influence.cumhaz", "influence.rmts", ""};
 SEXP setemp;
 double **pmat, **vmat=0, *cumhaz, *usave=0; /* =0 to silence -Wall warning */
+double *rmts;
 int  *ncensor, **nrisk, **nevent;
 @ 
 
@@ -103,6 +110,9 @@ p = REAL(p2);
 nstate = LENGTH(p2);  /* number of states */
 i0 = REAL(i02);
 sefit = asInteger(sefit2);
+influence = asIngeger(influence2);
+inftime = REAL(inftime2);
+ninftime = LENGTH(inftime2);
 
 /* allocate space for the output objects
 ** Ones that are put into a list do not need to be protected
@@ -119,20 +129,24 @@ pmat =   dmatrix(REAL(setemp), ntime, nstate);
 setemp = SET_VECTOR_ELT(rlist, 4, allocMatrix(REALSXP, nstate*nstate, ntime));
 cumhaz = REAL(setemp);
 
-if (sefit >0) {
+if (sefit ==1) {
     setemp = SET_VECTOR_ELT(rlist, 5,  allocMatrix(REALSXP, ntime, nstate));
     vmat= dmatrix(REAL(setemp), ntime, nstate);
 }
-if (sefit >1) {
+if (influence &0x1) {
     /* the max space is larger for a matrix than a vector 
     **  This is pure sneakiness: if I allocate a vector then n*nstate*(ntime+1)
     **  may overflow, as it is an integer argument.  Using the rows and cols of
     **  a matrix neither overflows.  But once allocated, I can treat setemp
     **  like a vector since usave is a pointer to double, which is bigger than
     **  integer and won't overflow. */
-    setemp = SET_VECTOR_ELT(rlist, 6, allocMatrix(REALSXP, n*nstate, ntime+1));
+    setemp = SET_VECTOR_ELT(rlist, 6, allocMatrix(REALSXP, n*nstate, ninftime+1));
     usave = REAL(setemp);
 }
+if (influence &0x4) {
+    setemp = SET_VECTOR_ELT(rlist, 8, allocMatrix(REALSXP, n*nstate, ninftime+1));
+    rmst = REAL(setemp);
+}  
 
 /* allocate space for scratch vectors */
 ws = (double *) R_alloc(2*nstate, sizeof(double)); /*weighted number in state */
@@ -169,21 +183,26 @@ for (i=0; i<nperson; i++) {
 
 Copy over the initial influence data, which was computed in R.
 <<survfitci-declare>>=
-if (sefit ==1) {
+if (sefit ==1 || influence >0) {
     dptr = i0;
     for (j=0; j<nstate; j++) {
         for (i=0; i<nperson; i++) umat[i][j] = *dptr++;
     }
  }
- else if (sefit>1) {
-     /* copy influence, and save it */
-     dptr = i0;
-     for (j=0; j<nstate; j++) {
-	 for (i=0; i<nperson; i++) {
-	     umat[i][j] = *dptr;
-	     *usave++ = *dptr++;   /* save in the output */
-	 }
-     }
+if (influence & 0x1) {
+    dptr = i0;
+    for (j=0; j<nstate; j++) {
+	for (i=0; i<nperson; i++) 
+	    *usave++ = *dptr++;   /* save in the output */
+    }
+} 
+if (influence & 0x4) {
+    /* copy influence, and save it */
+    dptr = i0;
+    for (j=0; j<nstate; j++) {
+	for (i=0; i<nperson; i++) 
+	    rmst++ = *dptr++;   /* save in the output */
+    }
 } 
 @ 
 
@@ -384,7 +403,7 @@ for (j=0; j<nstate; j++) {
 	    temp += wtp[k]* wtp[k]*umat[k][j]*umat[k][j];
 	vmat[j][itime] = sqrt(temp);
     }
-    if (sefit > 1)
+    if (influence & 0x1)
         for (k=0; k<nperson; k++) *usave++ = umat[k][j];
  }
 @ 

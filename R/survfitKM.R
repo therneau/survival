@@ -7,7 +7,7 @@ survfitKM <- function(x, y, weights=rep(1.0,length(x)),
                                   'logit', "arcsin"),
                       conf.lower=c('usual', 'peto', 'modified'),
                       start.time, id, cluster, influence=FALSE,
-                      type) {
+                      inftime, type) {
     
     if (!missing(type)) {
         if (!is.character(type)) stop("type argument must be character")
@@ -66,13 +66,20 @@ survfitKM <- function(x, y, weights=rep(1.0,length(x)),
     if (is.logical(influence)) {
         # TRUE/FALSE is treated as all or nothing
         if (!influence) influence <- 0L
-        else influence <- 3L
+        else influence <- 7L
     }
     else if (!is.numeric(influence))
         stop("influence argument must be numeric or logical")
-    if (!(influence %in% 0:3)) stop("influence argument must be 0, 1, 2, or 3")
+    if (!(influence %in% 0:7)) stop("influence argument must be 0 to 7")
     else influence <- as.integer(influence)
- 
+
+    if (!missing(inftime)) {
+        if (!is.numeric(inftime))
+            stop("inftime must be a vector of survival times")
+        storage.mode(inftime) <- "double"
+        # other checks?
+    } else inftime <- double(0)  # length 0
+
     if (!se.fit) {
         # if the user asked for no standard error, skip any robust computation
         ncluster <- 0L
@@ -116,9 +123,9 @@ survfitKM <- function(x, y, weights=rep(1.0,length(x)),
         n.used <- length(sort2)
         if (ncluster > 0)
             cfit <- .Call(Csurvfitkm, y, weights, sort1-1L, sort2-1L, type, 
-                                   cluster-1L, ncluster, position, influence)
-        else cfit <- .Call(Csurvfitkm, y, weights, sort1-1L, sort2-1L, type,
-                                  0L, 0L, position, influence)
+                          cluster-1L, ncluster, position, influence, inftime)
+         else cfit <- .Call(Csurvfitkm, y, weights, sort1-1L, sort2-1L, type,
+                            0L, 0L, position, influence, inftime)
     } else {
         # multiple groups
         ngroup <- length(xlev)
@@ -154,11 +161,11 @@ survfitKM <- function(x, y, weights=rep(1.0,length(x)),
             
             if (ncluster > 0) 
                 cfit[[i]] <- .Call(Csurvfitkm, ytemp, weights[keep], sort1 -1L, 
-                               sort2 -1L, type,
-                               c2 -1L, length(c.unique), position, influence)
+                               sort2 -1L, type,  c2- 1L,
+                               length(c.unique), position, influence, inftime)
             else cfit[[i]] <- .Call(Csurvfitkm, ytemp, weights[keep], sort1 -1L, 
                                sort2 -1L, type,
-                               0L, 0L, position, influence)
+                               0L, 0L, position, influence, inftime)
         }
     }
     # create the survfit object
@@ -233,7 +240,7 @@ survfitKM <- function(x, y, weights=rep(1.0,length(x)),
     #  remember, if type= 3 or 4, the survival influence has to be constructed.
     if (influence > 0) {
         if (type==1 | type==2) {
-            if (influence==1 || influence ==3) {
+            if (influence%%2 ==1) {
                 if (length(xlev)==1) {
                     rval$influence.surv <- cfit$influence1
                     row.names(rval$influence.surv) <- clname
@@ -247,7 +254,7 @@ survfitKM <- function(x, y, weights=rep(1.0,length(x)),
                     rval$influence.surv <- temp
                 }
             }
-            if (influence==2 || influence==3) {
+            if (floor(influence/2) %%2 ==1) {
                 if (length(xlev)==1) {
                     rval$influence.chaz <- cfit$influence2
                     row.names(rval$influence.chaz) <- clname
@@ -288,6 +295,20 @@ survfitKM <- function(x, y, weights=rep(1.0,length(x)),
                                                      each=nrow(temp[[i]]))
                     rval$influence.surv <- temp
                 }
+            }
+        }
+        if (influence >=4) { # RMST influence
+            if (length(xlev)==1) {
+                rval$influence.rmts <- cfit$influence3
+                row.names(rval$influence.rmts) <- clname
+            } 
+            else {
+                temp <- vector("list", ngroup)
+                for (i in 1:ngroup) {
+                    temp[[i]] <- cfit[[i]]$influence3
+                    row.names(temp[[i]]) <- clname[clusterid[[i]]]
+                }
+                rval$influence.rmts <- temp
             }
         }
     }

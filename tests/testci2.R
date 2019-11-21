@@ -101,22 +101,13 @@ if (FALSE) {
     with(tdata, text(time2, id, as.numeric(stat2)-1, cex=1.5, col=2))
 }
 
-if (FALSE) {
-    # The following lines test out 4 error messages in the routine
-    #
-    # Gap in follow-up time, id 2
-    survfit(Surv(c(0,5,9,0,5,0), c(5,9,12, 4, 6, 3), factor(c(0,0,1,1,0,2))) ~1,
-            id=c(1,1,1,2,2,3))
-    # mismatched weights
-    survfit(Surv(c(0,5,9,0,5,0), c(5,9,12, 5, 6, 3), factor(c(0,0,1,1,0,2))) ~1,
-            id=c(1,1,1,2,2,3), weights=c(1,1,2,1,1,4))
-    # in two groups at once
-     survfit(Surv(c(0,5,9,0,5,0), c(5,9,12, 5, 6, 3), factor(c(0,0,1,1,0,2))) ~
-               c(1,1,2,1,1,2), id=c(1,1,1,2,2,3)) 
-    # state change that isn't a state change (went from 1 to 1)
-        survfit(Surv(c(0,5,9,0,5,0), c(5,9,12, 5, 6, 3), factor(c(0,1,1,1,0,2))) ~1,
-            id=c(1,1,1,2,2,3))
-}
+# Check survcheck 
+# Gap in follow-up, id
+temp1 <-survcheck (Surv(c(0,5,9,0,5,0), c(5,9,12, 4, 6, 3), 
+                        factor(c(0,0,1,1,0,2))) ~1,
+                   id=c(1,1,1,2,2,3))
+all.equal(temp1$gap$id, 2)
+
 
 # Check the start.time option
 #

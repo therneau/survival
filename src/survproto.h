@@ -196,11 +196,12 @@ void survfit4(Sint *n,	Sint *dd,  double *x1,  double *x2) ;
 
 SEXP survfitci(SEXP ftime2,       SEXP sort12,  SEXP sort22, SEXP ntime2,
                     SEXP status2, SEXP cstate2, SEXP wt2,    SEXP id2,
-                    SEXP p2,      SEXP i02,     SEXP sefit2) ;
+                    SEXP p2,      SEXP i02,     SEXP sefit2,
+	            SEXP influence2,  SEXP inftime2) ;
   
 SEXP survfitkm(SEXP y2,     SEXP weight2,  SEXP sort12, SEXP sort22, 
                SEXP type2,  SEXP id2,      SEXP nid2,   SEXP position2, 
-               SEXP influence2) ;
+               SEXP influence2,  SEXP inftime2) ;
 
 SEXP survreg6(SEXP maxiter2,   SEXP nvarx,  SEXP y,
 	      SEXP ny2,        SEXP covar2, SEXP wtx,

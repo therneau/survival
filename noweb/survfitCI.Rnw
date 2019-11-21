@@ -53,7 +53,7 @@ survfitCI <- function(X, Y, weights, id, istate, cluster,
                       conf.type=c('log',  'log-log',  'plain', 'none', 
                                   'logit', "arcsin"),
                       conf.lower=c('usual', 'peto', 'modified'),
-                      influence = FALSE, start.time, p0, type){
+                      influence = 0, inftime, start.time, p0, type){
 
     if (!missing(type)) {
         if (!missing(ctype) || !missing(stype))
@@ -89,9 +89,19 @@ survfitCI <- function(X, Y, weights, id, istate, cluster,
     }
     else if (!is.numeric(influence))
         stop("influence argument must be numeric or logical")
-    if (!(influence %in% 0:3)) stop("influence argument must be 0, 1, 2, or 3")
+    if (!(influence %in% 0:7)) stop("influence argument must be 0 to 7")
     else influence <- as.integer(influence)
- 
+    if (floor(influence/2)%%2 ==1) {
+        warning("code for the cumulative hazard influence is still incomplete")
+        influence <- 4*(influence >=4) + influence%%2
+    }
+    if (!missing(inftime)) {
+        if (!is.numeric(inftime))
+            stop("inftime must be a vector of survival times")
+        storage.mode(inftime) <- "double"
+        # other checks?
+    } else inftime <- double(0)  # length 0
+
     if (!se.fit) {
         # if the user asked for no standard error, skip any robust computation
         ncluster <- 0L
@@ -376,7 +386,7 @@ names(ckeep) <- outer(1:nstate, 1:nstate, paste, sep='.')[ckeep]
 
 if (length(curves) ==1) {
     keep <- c("n", "time", "n.risk", "n.event", "n.censor", "pstate",
-              "p0", "cumhaz", "influence.pstate")
+              "p0", "cumhaz", "influence.pstate", "influence.rmts")
     if (se.fit) keep <- c(keep, "std.err", "sp0")
     kfit <- (curves[[1]])[match(keep, names(curves[[1]]), nomatch=0)]
     names(kfit$p0) <- states
@@ -408,11 +418,14 @@ else {
         t(x$cumhaz[ckeep,,drop=FALSE])))
     colnames(kfit$cumhaz) <- names(ckeep)
  
-    if (influence) kfit$influence.pstate <- 
+    if (influence%%2 > 1) kfit$influence.pstate <- 
         lapply(curves, function(x) x$influence.pstate)
+    if (influence>=4)   kfit$influence.rmst <-
+        lapply(curves, function(x) x$influence.rmts)
 }                         
 
 if (!missing(start.time)) kfit$start.time <- start.time
+if (length(inftime)) kfit$inftime <- inftime
 kfit$transitions <- mcheck$transitions
 
 @ 
@@ -510,6 +523,9 @@ docurve2 <- function(entry, etime, status, istate, wt, states, id,
     # C code has 0 based subscripts
     if (influence) se.fit <- TRUE   # se.fit is free in this case
 
+    if (length(inftime)) itemp <- inftime
+    else itemp <- sort(unique(etime))
+    storage.mode(itemp) <- "double"
     fit <- .Call(Csurvfitci, c(entry, etime), 
                  order(entry) - 1L,
                  order(etime) - 1L,
@@ -519,7 +535,8 @@ docurve2 <- function(entry, etime, status, istate, wt, states, id,
                  wt,
                  index -1L,
                  p0, i0,
-                 as.integer(se.fit) + 2L*as.integer(influence))
+                 as.integer(se.fit),
+                 as.integer(influence), itemp)
 
     if (se.fit) 
         out <- list(n=length(etime), time= timeset, p0 = p0,
@@ -535,11 +552,18 @@ docurve2 <- function(entry, etime, status, istate, wt, states, id,
              n.event = fit$nevent, 
              n.censor= fit$ncensor, 
              cumhaz= fit$cumhaz)
-    if (influence) {
-        temp <-  array(fit$influence, 
-                       dim=c(length(uid), nstate, 1+ length(timeset)),
+    if (length(inftime)>0) j <- 1+ length(inftime) else j < 1+length(timeset)
+    if (influence%%2 ==1) {
+        temp <-  array(fit$influence.pstate, 
+                       dim=c(length(uid), nstate, j),
                        dimnames=list(uid, NULL, NULL))
         out$influence.pstate <- aperm(temp, c(1,3,2))
+    }
+    if (influence >=4) {
+        temp <-  array(fit$influence.rmts, 
+                       dim=c(length(uid), nstate, j),
+                       dimnames=list(uid, NULL, NULL))
+        out$influence.rmts <- aperm(temp, c(1,3,2))
     }
     out
 }

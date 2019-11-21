@@ -5,17 +5,20 @@
 
 SEXP survfitkm(SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22, 
                SEXP type2, SEXP id2, SEXP nid2,   SEXP position2,
-               SEXP influence2) {
+               SEXP influence2, SEXP inftime2) {
               
     int i, i1, i2, j, k, person1, person2;
     int nused, nid, type, influence;
     int ny, ntime;
     double *tstart=0, *stime, *status, *wt;
+    double *inftime;
+    int ninftime, itimej;
     double v1, v2, dtemp, haz;
     double temp, dtemp2, dtemp3, frac, btemp;
     int *sort1=0, *sort2, *id=0;
     static const char *outnames[]={"time", "n", "estimate", "std.err",
-                                     "influence1", "influence2", ""};
+                                     "influence1", "influence2", 
+                                     "influence3", ""};
     SEXP rlist;
     double *gwt=0, *inf1=0, *inf2=0;  /* =0 to silence -Wall */
     int *gcount=0;
@@ -25,7 +28,8 @@ SEXP survfitkm(SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22,
                       
     /* output variables */
     double  *n[10],  *dtime,
-            *kvec, *nvec, *std[2], *imat1=0, *imat2=0; /* =0 to silence -Wall*/
+            *kvec, *nvec, *std[2], *imat1=0, *imat2=0,
+            *imat3 =0;            /* =0 to silence -Wall*/
     double km, nelson;  /* current estimates */
 
     /* map the input data */
@@ -49,6 +53,8 @@ SEXP survfitkm(SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22,
         position = INTEGER(position2);
     } else hasid=0;
     influence = asInteger(influence2);
+    ninftime = LENGTH(inftime2);
+    if (ninftime>0) inftime = REAL(inftime2);
 
     /* nused was used for two things just above.  The first was the length of
        the input data y, only needed for a moment to set up tstart, stime, and
@@ -115,17 +121,26 @@ SEXP survfitkm(SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22,
         }
 
         /* these are not accumulated, so do not need to be zeroed */
+        if (ninftime==0) j= ntime; else j = ninftime;
         if (type <3) {
-            if (influence==1 || influence ==3) 
+            if (influence & 0x1) 
                 imat1 = REAL(SET_VECTOR_ELT(rlist, 4,
-                                     allocMatrix(REALSXP, nid, ntime)));
-            if (influence==2 || influence==3) 
+                                     allocMatrix(REALSXP, nid, j)));
+            if (influence & 0x2) 
                 imat2 =  REAL(SET_VECTOR_ELT(rlist, 5,
-                           allocMatrix(REALSXP, nid, ntime))); 
+                           allocMatrix(REALSXP, nid, j))); 
+            if (influence & 0x4)
+                imat3 =  REAL(SET_VECTOR_ELT(rlist, 6,
+                           allocMatrix(REALSXP, nid, j))); 
         }                
-        else  if (influence !=0) 
+        else {
+            if (influence &0x3)
                 imat2 = REAL(SET_VECTOR_ELT(rlist, 5,
-                               allocMatrix(REALSXP, nid, ntime))); 
+                               allocMatrix(REALSXP, nid, j))); 
+            if (influence & 0x4)
+                imat3 =  REAL(SET_VECTOR_ELT(rlist, 6,
+                           allocMatrix(REALSXP, nid, j))); 
+        }
     }
 
     R_CheckUserInterrupt();  /*check for control-C */
@@ -196,7 +211,7 @@ SEXP survfitkm(SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22,
     }
     R_CheckUserInterrupt();  /*check for control-C */
     nelson =0.0; km=1.0; 
-    v1=0; v2=0;
+    v1=0; v2=0; itimej =0;
     if (nid==0) {  /* simple variance */
        if (type==1 || type==3) {  /* Nelson-Aalen hazard */
             for (i=0; i<ntime; i++) {
@@ -306,10 +321,50 @@ SEXP survfitkm(SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22,
                 nvec[i] = nelson;
                 std[0][i] = sqrt(v1);
                 std[1][i] = sqrt(v2);
-                if (influence==1 || influence ==3) 
-                    for (k=0; k<nid; k++) *imat1++ = inf1[k];
-                if (influence==2 || influence ==3)
-                    for (k=0; k<nid; k++) *imat2++ = inf2[k];
+                if (ninftime ==0) { /* save all times */
+                    if (influence & 0x1) 
+                        for (k=0; k<nid; k++) *imat1++ = inf1[k];
+                    if (influence & 0x2)
+                        for (k=0; k<nid; k++) *imat2++ = inf2[k];
+                    if (influence & 0x4) {
+                        if (i==0) for (k=0; k<nid; k++) imat3[k] = inf1[k];
+                        else {
+                            for (k=0; k<nid; k++) imat3[k+nid] = inf1[k] + imat3[k];
+                            imat3 += nid;
+                        }
+                    }
+                } else if (itimej < ninftime) {
+                    if (influence &0x4) 
+                        for (k=0; k<nid; k++) imat3[k] += inf1[k];
+                    if ((i+1)==n) {
+                        /* end of the survival curve, fill in all the rest of the inftimes */
+                        for (j=itimej; j<ninftime; j++) {
+                            if (influence & 0x1) 
+                                for (k=0; k<nid; k++) *imat1++ = inf1[k];
+                            if (influence & 0x2)
+                                for (k=0; k<nid; k++) *imat2++ = inf2[k];
+                        }
+                        for (j= itimej +1; j < ninftime; j++) {
+                            if (influence & 0x4) {
+                                for (k=0; k<nid; k++) imat3[k+nid] = imat3[k];
+                                k += nid;
+                            }
+                        }
+                    }
+                    else if (dtime[i+1] >= inftime[itimej]) {   
+                        /* we have crossed the next "save it" point */
+                        if (influence & 0x1) 
+                            for (k=0; k<nid; k++) *imat1++ = inf1[k];
+                        if (influence & 0x2)
+                            for (k=0; k<nid; k++) *imat2++ = inf2[k];
+                        itimej++;
+                        if ((itimej < ninftime) && (influence & 0x4)) {
+                            /* look ahead */
+                            for (k=0; k<nid; k++) imat3[k+nid] = imat3[k];
+                            imat3 += nid;
+                        }
+                    }
+                }
             }
         }
         else if (type==2) {  /* KM survival, Fleming-Harrington hazard */
@@ -382,10 +437,50 @@ SEXP survfitkm(SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22,
                 nvec[i] = nelson;
                 std[0][i] = sqrt(v1);
                 std[1][i] = sqrt(v2);
-                if (influence==1 || influence ==3) 
-                    for (k=0; k<nid; k++) *imat1++ = inf1[k];
-                if (influence==2 || influence ==3)
-                    for (k=0; k<nid; k++) *imat2++ = inf2[k];
+                if (ninftime ==0) { /* save all times */
+                    if (influence & 0x1) 
+                        for (k=0; k<nid; k++) *imat1++ = inf1[k];
+                    if (influence & 0x2)
+                        for (k=0; k<nid; k++) *imat2++ = inf2[k];
+                    if (influence & 0x4) {
+                        if (i==0) for (k=0; k<nid; k++) imat3[k] = inf1[k];
+                        else {
+                            for (k=0; k<nid; k++) imat3[k+nid] = inf1[k] + imat3[k];
+                            imat3 += nid;
+                        }
+                    }
+                } else if (itimej < ninftime) {
+                    if (influence &0x4) 
+                        for (k=0; k<nid; k++) imat3[k] += inf1[k];
+                    if ((i+1)==n) {
+                        /* end of the survival curve, fill in all the rest of the inftimes */
+                        for (j=itimej; j<ninftime; j++) {
+                            if (influence & 0x1) 
+                                for (k=0; k<nid; k++) *imat1++ = inf1[k];
+                            if (influence & 0x2)
+                                for (k=0; k<nid; k++) *imat2++ = inf2[k];
+                        }
+                        for (j= itimej +1; j < ninftime; j++) {
+                            if (influence & 0x4) {
+                                for (k=0; k<nid; k++) imat3[k+nid] = imat3[k];
+                                k += nid;
+                            }
+                        }
+                    }
+                    else if (dtime[i+1] >= inftime[itimej]) {   
+                        /* we have crossed the next "save it" point */
+                        if (influence & 0x1) 
+                            for (k=0; k<nid; k++) *imat1++ = inf1[k];
+                        if (influence & 0x2)
+                            for (k=0; k<nid; k++) *imat2++ = inf2[k];
+                        itimej++;
+                        if ((itimej < ninftime) && (influence & 0x4)) {
+                            /* look ahead */
+                            for (k=0; k<nid; k++) imat3[k+nid] = imat3[k];
+                            imat3 += nid;
+                        }
+                    }
+                }
             }
         }
 
@@ -439,8 +534,44 @@ SEXP survfitkm(SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22,
                 std[1][i] = sqrt(v2);
                 std[0][i] = sqrt(v2);
                 
-                if (influence>0)
-                    for (k=0; k<nid; k++) *imat2++ = inf2[k];
+                if (ninftime ==0) { /* save all times */
+                    if (influence & 0x2)
+                        for (k=0; k<nid; k++) *imat2++ = inf2[k];
+                    if (influence & 0x4) {
+                        if (i==0) for (k=0; k<nid; k++) imat3[k] = inf2[k]* kvec[i];
+                        else {
+                            for (k=0; k<nid; k++) imat3[k+nid] = inf2[k]*kvec[i] + imat3[k];
+                            imat3 += nid;
+                        }
+                    }
+                } else if (itimej < ninftime) {
+                    if (influence &0x4) 
+                        for (k=0; k<nid; k++) imat3[k] += inf2[k] * kvec[i];
+                    if ((i+1)==n) {
+                        /* end of the survival curve, fill in all the rest of the inftimes */
+                        if (influence & 0x2)
+                            for (k=0; k<nid; k++) *imat2++ = inf2[k];
+                        for (j=itimej +1; j<ninftime; j++) {
+                            if (influence & 0x2)
+                                for (k=0; k<nid; k++) *imat2++ = inf2[k];
+                            if (influence & 0x4) {
+                                for (k=0; k<nid; k++) imat3[k+nid] = imat3[k];
+                                k += nid;
+                            }
+                        }
+                    }
+                    else if (dtime[i+1] >= inftime[itimej]) {   
+                        /* we have crossed the next "save it" point */
+                        if (influence & 0x2)
+                            for (k=0; k<nid; k++) *imat2++ = inf2[k];
+                        itimej++;
+                        if ((itimej < ninftime) && (influence & 0x4)) {
+                            /* look ahead */
+                            for (k=0; k<nid; k++) imat3[k+nid] = imat3[k];
+                            imat3 += nid;
+                        }
+                    }
+                }
             }
 
         } else {  /* exp() survival,  Fleming-Harrington hazard */
@@ -505,9 +636,44 @@ SEXP survfitkm(SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22,
                 nvec[i] = nelson;
                 std[1][i] = sqrt(v2);
                 std[0][i] = sqrt(v2);
-                
-                if (influence>0)
-                    for (k=0; k<nid; k++) *imat2++ = inf2[k];
+                if (ninftime ==0) { /* save all times */
+                    if (influence & 0x2)
+                        for (k=0; k<nid; k++) *imat2++ = inf2[k];
+                    if (influence & 0x4) {
+                        if (i==0) for (k=0; k<nid; k++) imat3[k] = inf2[k]* kvec[i];
+                        else {
+                            for (k=0; k<nid; k++) imat3[k+nid] = inf2[k]*kvec[i] + imat3[k];
+                            imat3 += nid;
+                        }
+                    }
+                } else if (itimej < ninftime) {
+                    if (influence &0x4) 
+                        for (k=0; k<nid; k++) imat3[k] += inf2[k] * kvec[i];
+                    if ((i+1)==n) {
+                        /* end of the survival curve, fill in all the rest of the inftimes */
+                        if (influence & 0x2)
+                            for (k=0; k<nid; k++) *imat2++ = inf2[k];
+                        for (j=itimej +1; j<ninftime; j++) {
+                            if (influence & 0x2)
+                                for (k=0; k<nid; k++) *imat2++ = inf2[k];
+                            if (influence & 0x4) {
+                                for (k=0; k<nid; k++) imat3[k+nid] = imat3[k];
+                                k += nid;
+                            }
+                        }
+                    }
+                    else if (dtime[i+1] >= inftime[itimej]) {   
+                        /* we have crossed the next "save it" point */
+                        if (influence & 0x2)
+                            for (k=0; k<nid; k++) *imat2++ = inf2[k];
+                        itimej++;
+                        if ((itimej < ninftime) && (influence & 0x4)) {
+                            /* look ahead */
+                            for (k=0; k<nid; k++) imat3[k+nid] = imat3[k];
+                            imat3 += nid;
+                        }
+                    }
+                }
             }
         }
     }
