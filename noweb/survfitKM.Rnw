@@ -1115,42 +1115,45 @@ if (ninftime ==0) { /* save all times */
             imat3 += nid;
         }
     }
-} else if (itimej < ninftime) {
-    if (influence &0x4) 
-        for (k=0; k<nid; k++) imat3[k] += inf1[k];
-    if ((i+1)==n) {
+} else if (itimej < ninftimes) {
+    if ((i+1)==n) { 
         /* end of the survival curve, fill in all the rest of the inftimes */
+        if (influence & 0x4) {
+            for (k=0; k<nid; k++) imat3[k] += inf1[k];	
+            for (j= itimej +1; j < ninftime; j++) {
+                for (k=0; k<nid; k++) imat3[k+nid] = imat3[k];
+                k += nid;
+            }
+	}
         for (j=itimej; j<ninftime; j++) {
             if (influence & 0x1) 
                 for (k=0; k<nid; k++) *imat1++ = inf1[k];
             if (influence & 0x2)
                 for (k=0; k<nid; k++) *imat2++ = inf2[k];
         }
-        for (j= itimej +1; j < ninftime; j++) {
-            if (influence & 0x4) {
+    } else {
+        if (influence &0x4) 
+            for (k=0; k<nid; k++) imat3[k] += inf1[k];
+        while(dtime[i+1] >= intime[itime]) {
+            /* we have crossed the next "save it" point */
+            if (influence & 0x1) 
+                for (k=0; k<nid; k++) *imat1++ = inf1[k];
+            if (influence & 0x2)
+                for (k=0; k<nid; k++) *imat2++ = inf2[k];
+            itimej++;
+            if ((itimej < ninftime) && (influence & 0x4)) {
+                /* look ahead */
                 for (k=0; k<nid; k++) imat3[k+nid] = imat3[k];
-                k += nid;
+                imat3 += nid;
             }
-        }
-    }
-    else if (dtime[i+1] >= inftime[itimej]) {   
-        /* we have crossed the next "save it" point */
-        if (influence & 0x1) 
-            for (k=0; k<nid; k++) *imat1++ = inf1[k];
-        if (influence & 0x2)
-            for (k=0; k<nid; k++) *imat2++ = inf2[k];
-        itimej++;
-        if ((itimej < ninftime) && (influence & 0x4)) {
-            /* look ahead */
-            for (k=0; k<nid; k++) imat3[k+nid] = imat3[k];
-            imat3 += nid;
         }
     }
 }
 @ 
 
 If the Fleming-Harrington is being used, then the influence on the 
-RMSE has to be calculated here, since it needs to be accumulated
+RMSE has to be calculated here rather than one step up in the R code,
+since it needs to be accumulated
 
 <<saveinf2>>=
 if (ninftime ==0) { /* save all times */
@@ -1163,31 +1166,33 @@ if (ninftime ==0) { /* save all times */
             imat3 += nid;
         }
     }
-} else if (itimej < ninftime) {
-    if (influence &0x4) 
-        for (k=0; k<nid; k++) imat3[k] += inf2[k] * kvec[i];
-    if ((i+1)==n) {
+} else if (itimej < ninftimes) {
+    if ((i+1)==n) { 
         /* end of the survival curve, fill in all the rest of the inftimes */
-        if (influence & 0x2)
-            for (k=0; k<nid; k++) *imat2++ = inf2[k];
-        for (j=itimej +1; j<ninftime; j++) {
-            if (influence & 0x2)
-                for (k=0; k<nid; k++) *imat2++ = inf2[k];
-            if (influence & 0x4) {
+        if (influence & 0x4) {
+            for (k=0; k<nid; k++) imat3[k] -= kvec[i]*inf2[k];	
+            for (j= itimej +1; j < ninftime; j++) {
                 for (k=0; k<nid; k++) imat3[k+nid] = imat3[k];
                 k += nid;
             }
+	}
+        for (j=itimej; j<ninftime; j++) {
+            if (influence & 0x2)
+                for (k=0; k<nid; k++) *imat2++ = inf2[k];
         }
-    }
-    else if (dtime[i+1] >= inftime[itimej]) {   
-        /* we have crossed the next "save it" point */
-        if (influence & 0x2)
-            for (k=0; k<nid; k++) *imat2++ = inf2[k];
-        itimej++;
-        if ((itimej < ninftime) && (influence & 0x4)) {
-            /* look ahead */
-            for (k=0; k<nid; k++) imat3[k+nid] = imat3[k];
-            imat3 += nid;
+    } else {
+        if (influence &0x4) 
+            for (k=0; k<nid; k++) imat3[k] -= kvec[i]* inf1[k];
+        while(dtime[i+1] >= intime[itime]) {
+            /* we have crossed the next "save it" point */
+            if (influence & 0x2)
+                for (k=0; k<nid; k++) *imat2++ = inf2[k];
+            itimej++;
+            if ((itimej < ninftime) && (influence & 0x4)) {
+                /* look ahead */
+                for (k=0; k<nid; k++) imat3[k+nid] = imat3[k];
+                imat3 += nid;
+            }
         }
     }
 }

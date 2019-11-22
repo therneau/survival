@@ -2,9 +2,13 @@
 \title{NEWS file for the survival package}
 \section{Changes in version 3.1-8}{
   \itemize{
-    \item For a multistate model which no covariates, the start.time
+    \item For a multistate survfit call with no covariates, the start.time
     value (if present) was inadvertently omitted from the result.  This
-    affects the default plot.
+    affects the default plot range.
+    \item Per user request, the tmerge function can now use Dates as the
+    time variable for the merge.
+    \item Fix an invalid read (one element past the end of a vector)
+    that could occur in tmerge.c; reported by Brian Ripley.
 }}
 
 \section{Changes in version 3.1-7}{
@@ -13,8 +17,8 @@
     information matrix will be block diagonal, and the cox.zph function
     would generate a 0/0 when scaling it for plots.  This led to a
     BLAS error on some architectures (reported by B. Ripley within 24
-    hours of 3.1-6 being published on CRAN).  Tests were unaffected,
-    subsequent plots fail due to an infinite axis.
+    hours of 3.1-6 being published on CRAN).  PH tests reported by cox.zph
+    were unaffected, but subsequent plots fail due to an infinite axis.
     Repair, and add more checks to the test suite.
 }}
 
