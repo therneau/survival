@@ -14,7 +14,7 @@ tdata$stat2 <- factor(tdata$status * as.numeric(tdata$event),
                       labels=c("censor", levels(tdata$event)))
          
 fit <- survfit(Surv(time1, time2, stat2) ~1, id=id, weight=wt, tdata,
-               influence=TRUE)
+               influence=1)
 
 # The exact figures for testci2.
 # The subject data of  id, weight, (transition time, transition)
@@ -77,22 +77,22 @@ all.equal(truth, fit$pstate[,2:5])
 #  the derivative is most accurate is around 1e-7 = approx sqrt(precision).
 # Smaller eps makes the approximate derivative worse.
 # There is a now a formal test in mstate.R, not approximate.
-dfbeta <- 0*fit$influence[,-1,] #  lose the first row
+dfbeta <- 0*fit$influence.pstate[,,-1] #  lose the first row
 eps <- sqrt(.Machine$double.eps)     
 for (i in 1:6) {
     twt <- tdata$wt
     twt[tdata$id ==i] <- twt[tdata$id==i] + eps
     tfit <- survfit(Surv(time1, time2, stat2) ~ 1, id=id, tdata,
                     weight=twt)
-    dfbeta[i,,] <- (tfit$pstate - fit$pstate)/eps  #finite difference approx
+    dfbeta[i,,] <- t(tfit$pstate - fit$pstate)/eps  #finite difference approx
 }
-all.equal(dfbeta, fit$influence[,-1,], tolerance= eps*10)
+all.equal(dfbeta, fit$influence.pstate[,,-1], tolerance= eps*10)
 twt <- tdata$wt[match(1:6, tdata$id)]  # six unique weights
 temp <- dfbeta
 for (i in 1:6) temp[i,,] <- temp[i,,]* twt[i]
 std2 <- sqrt(apply(temp^2, 2:3, sum))
 
-all.equal(fit$std, std2, tolerance=eps, check.attributes=FALSE)
+all.equal(fit$std, t(std2), tolerance=eps, check.attributes=FALSE)
 
 if (FALSE) {
     # a plot of the data that helped during creation of the example

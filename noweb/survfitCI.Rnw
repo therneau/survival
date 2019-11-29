@@ -45,7 +45,6 @@ not be printed or plotted.  (But it is present, with a name of `');
 The first part of the code is standard, parsing out options and
 checking the data.
 <<survfitCI>>= 
-<<survfitCI-compute>>
 survfitCI <- function(X, Y, weights, id, istate, cluster, 
                       stype=1, ctype=1,
                       se.fit=TRUE,
@@ -81,33 +80,6 @@ survfitCI <- function(X, Y, weights, id, istate, cluster,
         conf.int <- .95
     }
 
- 
-    if (is.logical(influence)) {
-        # TRUE/FALSE is treated as all or nothing
-        if (!influence) influence <- 0L
-        else influence <- 3L
-    }
-    else if (!is.numeric(influence))
-        stop("influence argument must be numeric or logical")
-    if (!(influence %in% 0:7)) stop("influence argument must be 0 to 7")
-    else influence <- as.integer(influence)
-    if (floor(influence/2)%%2 ==1) {
-        warning("code for the cumulative hazard influence is still incomplete")
-        influence <- 4*(influence >=4) + influence%%2
-    }
-    if (!missing(inftime)) {
-        if (!is.numeric(inftime))
-            stop("inftime must be a vector of survival times")
-        storage.mode(inftime) <- "double"
-        # other checks?
-    } else inftime <- double(0)  # length 0
-
-    if (!se.fit) {
-        # if the user asked for no standard error, skip any robust computation
-        ncluster <- 0L
-        influence <- 0L
-    }
-
     type <- attr(Y, "type")
     # This line should be unreachable, unless they call "surfitCI" directly
     if (type !='mright' && type!='mcounting')
@@ -119,6 +91,7 @@ survfitCI <- function(X, Y, weights, id, istate, cluster,
         if (!is.numeric(start.time) || length(start.time) !=1
             || !is.finite(start.time))
             stop("start.time must be a single numeric value")
+        time0 <- start.time
         toss <- which(Y[,ncol(Y)-1] <= start.time)
         if (length(toss)) {
             n <- nrow(Y)
@@ -129,10 +102,39 @@ survfitCI <- function(X, Y, weights, id, istate, cluster,
             if (length(id) ==n) id <- id[-toss]
             if (!missing(istate) && length(istate)==n) istate <- istate[-toss]
             }
-    }
+    } else time0 <- 0
+
     n <- nrow(Y)
     status <- Y[,ncol(Y)]
     ncurve <- length(levels(X))
+ 
+    if (is.logical(influence)) {
+        # TRUE/FALSE is treated as all or nothing
+        if (!influence) influence <- 0L
+        else influence <- 5L    # see warning below about "incomplete"
+    }
+    else if (!is.numeric(influence))
+        stop("influence argument must be numeric or logical")
+    if (!(influence %in% 0:7)) stop("influence argument must be 0 to 7")
+    else influence <- as.integer(influence)
+    if (floor(influence/2)%%2 ==1) {
+        warning("code for the cumulative hazard influence is still incomplete")
+        influence <- 4*(influence >=4) + influence%%2
+    }
+
+    if (!missing(inftime)) {
+        if (!is.numeric(inftime))
+            stop("inftime must be a vector of survival times")
+        if (any(inftime < time0))
+            stop("inftime value before the start of the curve")
+    } else inftime <- double(0)  # length 0
+
+    if (!se.fit) {
+        # if the user asked for no standard error, skip any robust computation
+        ncluster <- 0L
+        influence <- 0L
+    }
+
     
     # The user can call with cluster, id, both, or neither
     # If only id, treat it as the cluster too
@@ -210,8 +212,8 @@ The status vector will have values of 0 for censored.
             indx <- which(X==i)
             curves[[i]] <- docurve2(entry[indx], Y[indx,1], status[indx], 
                                     istate[indx], weights[indx], 
-                                    states, 
-                                    id[indx], se.fit, influence, p0)
+                                    states, id[indx], se.fit, influence, 
+                                    p0, inftime, time0)
          }
     }
     else {
@@ -221,6 +223,8 @@ The status vector will have values of 0 for censored.
 
     <<survfitCI-finish>>
 }
+
+<<survfitCI-compute>>
 @         
         
 In the multi-state case we can calculate the current P(state)
@@ -355,7 +359,7 @@ for (i in levels(X)) {
     curves[[i]] <- docurve2(Y[indx,1], Y[indx,2], status[indx], 
                             istate[indx],
                             weights[indx], states, id[indx], se.fit, 
-                            influence, p0)
+                            influence, p0, inftime, time0)
 }
 @ 
             
@@ -368,7 +372,7 @@ grabit <- function(clist, element) {
         }
     else {
         xx <- as.vector(unlist(lapply(clist, function(x) x[element])))
-        if (inherits(temp, "table")) matrix(xx, byrow=T, ncol=length(temp))
+        if (inherits(temp,"table")) matrix(xx, byrow=T, ncol=length(temp))
         else xx
     }
 }
@@ -386,7 +390,7 @@ names(ckeep) <- outer(1:nstate, 1:nstate, paste, sep='.')[ckeep]
 
 if (length(curves) ==1) {
     keep <- c("n", "time", "n.risk", "n.event", "n.censor", "pstate",
-              "p0", "cumhaz", "influence.pstate", "influence.rmts")
+              "p0", "cumhaz", "influence.pstate", "influence.rmst")
     if (se.fit) keep <- c(keep, "std.err", "sp0")
     kfit <- (curves[[1]])[match(keep, names(curves[[1]]), nomatch=0)]
     names(kfit$p0) <- states
@@ -418,10 +422,10 @@ else {
         t(x$cumhaz[ckeep,,drop=FALSE])))
     colnames(kfit$cumhaz) <- names(ckeep)
  
-    if (influence%%2 > 1) kfit$influence.pstate <- 
+    if (influence%%2 == 1) kfit$influence.pstate <- 
         lapply(curves, function(x) x$influence.pstate)
     if (influence>=4)   kfit$influence.rmst <-
-        lapply(curves, function(x) x$influence.rmts)
+        lapply(curves, function(x) x$influence.rmst)
 }                         
 
 if (!missing(start.time)) kfit$start.time <- start.time
@@ -481,7 +485,7 @@ and subjects are dribbling in, then the best point to start a plot
 is open to debate.  Que sera sera.
 <<survfitCI-compute>>=
 docurve2 <- function(entry, etime, status, istate, wt, states, id, 
-                     se.fit, influence=FALSE, p0) {
+                     se.fit, influence=FALSE, p0, inftime, time0) {
     timeset <- sort(unique(etime))
     nstate <- length(states)
     uid <- sort(unique(id))
@@ -536,7 +540,7 @@ docurve2 <- function(entry, etime, status, istate, wt, states, id,
                  index -1L,
                  p0, i0,
                  as.integer(se.fit),
-                 as.integer(influence), itemp)
+                 as.integer(influence), itemp, time0)
 
     if (se.fit) 
         out <- list(n=length(etime), time= timeset, p0 = p0,
@@ -552,18 +556,16 @@ docurve2 <- function(entry, etime, status, istate, wt, states, id,
              n.event = fit$nevent, 
              n.censor= fit$ncensor, 
              cumhaz= fit$cumhaz)
-    if (length(inftime)>0) j <- 1+ length(inftime) else j < 1+length(timeset)
+    if (length(inftime)>0) j <- 1+ length(inftime) else j <- 1+length(timeset)
     if (influence%%2 ==1) {
-        temp <-  array(fit$influence.pstate, 
-                       dim=c(length(uid), nstate, j),
-                       dimnames=list(uid, NULL, NULL))
-        out$influence.pstate <- aperm(temp, c(1,3,2))
+        temp <- fit$influence.pstate 
+        dimnames(temp) <- list(uid, states, NULL)
+        out$influence.pstate <- temp
     }
     if (influence >=4) {
-        temp <-  array(fit$influence.rmts, 
-                       dim=c(length(uid), nstate, j),
-                       dimnames=list(uid, NULL, NULL))
-        out$influence.rmts <- aperm(temp, c(1,3,2))
+        temp <- fit$influence.rmst
+        dimnames(temp) <- list(uid, states, NULL)
+        out$influence.rmst <- temp
     }
     out
 }

@@ -9,6 +9,17 @@
     time variable for the merge.
     \item Fix an invalid read (one element past the end of a vector)
     that could occur in tmerge.c; reported by Brian Ripley.
+    \item For a multistate survival, change the order of the returned
+    influence matrix from (subject, time, state) to (subject, state,
+    time).  The latter is how it is created internally, the object can
+    be huge, and the aperm() call rearranging it is not really needed.
+    \item Add influence.rmst (restricted mean time) as an option to
+    survfit, along with the itime option to report values only at
+    selected time points.  For a multistate survival the default
+    dimension of the returned influence of (number of subjects, number
+    of states, number of unique times) could run R out of memory.
+    \item A multi-state coxph model with strata would fail when parsing
+    the formula, pointed out by xxx. 
 }}
 
 \section{Changes in version 3.1-7}{

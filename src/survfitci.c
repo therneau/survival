@@ -5,11 +5,14 @@
 
 SEXP survfitci(SEXP ftime2,  SEXP sort12,  SEXP sort22, SEXP ntime2,
                     SEXP status2, SEXP cstate2, SEXP wt2,  SEXP id2,
-                    SEXP p2,      SEXP i02,     SEXP sefit2) {   
+                    SEXP p2,      SEXP i02,     SEXP sefit2,
+                    SEXP influence2,  SEXP inftime2,  SEXP time0) {   
     int i, j, k, kk;   /* generic loop indices */
     int ck, itime, eptr; /*specific indices */
+    int itimej;
     double ctime;      /*current time of interest, in the main loop */
     int oldstate, newstate; /*when changing state */
+    double lagtime;
 
     double temp, *temp2;  /* scratch double, and vector of length nstate */
     double *dptr;      /* reused in multiple contexts */
@@ -37,13 +40,19 @@ SEXP survfitci(SEXP ftime2,  SEXP sort12,  SEXP sort22, SEXP ntime2,
     double *i0;         /* initial influence */
     int *id;            /* for each obs, which subject is it */
     int sefit;
+    int influence;
+    double *inftime;
+    int ninftime;
         
     /* returned objects */
     SEXP rlist;         /* the returned list and variable names of same */  
     const char *rnames[]= {"nrisk","nevent","ncensor", "p", 
-                           "cumhaz", "std", "influence.pstate", ""};
+                           "cumhaz", "std", "influence.pstate",
+                           "influence.cumhaz", "influence.rmst", ""};
     SEXP setemp;
-    double **pmat, **vmat=0, *cumhaz, *usave=0; /* =0 to silence -Wall warning */
+    double **pmat, **vmat=0, *cumhaz; /* =0 to silence -Wall warning */
+    double *imat1=0;      /* returned leverage matrix, survival */
+    double *imat3;        /* returned leverage for the RMST */
     int  *ncensor, **nrisk, **nevent;
     ntime= asInteger(ntime2);
     nperson = LENGTH(cstate2); /* number of unique subjects */
@@ -62,6 +71,10 @@ SEXP survfitci(SEXP ftime2,  SEXP sort12,  SEXP sort22, SEXP ntime2,
     nstate = LENGTH(p2);  /* number of states */
     i0 = REAL(i02);
     sefit = asInteger(sefit2);
+    influence = asInteger(influence2);
+    inftime = REAL(inftime2);
+    ninftime = LENGTH(inftime2);
+    lagtime  = asReal(time0);
 
     /* allocate space for the output objects
     ** Ones that are put into a list do not need to be protected
@@ -78,20 +91,29 @@ SEXP survfitci(SEXP ftime2,  SEXP sort12,  SEXP sort22, SEXP ntime2,
     setemp = SET_VECTOR_ELT(rlist, 4, allocMatrix(REALSXP, nstate*nstate, ntime));
     cumhaz = REAL(setemp);
 
-    if (sefit >0) {
+    if (sefit ==1) {
         setemp = SET_VECTOR_ELT(rlist, 5,  allocMatrix(REALSXP, ntime, nstate));
         vmat= dmatrix(REAL(setemp), ntime, nstate);
     }
-    if (sefit >1) {
-        /* the max space is larger for a matrix than a vector 
-        **  This is pure sneakiness: if I allocate a vector then n*nstate*(ntime+1)
-        **  may overflow, as it is an integer argument.  Using the rows and cols of
-        **  a matrix neither overflows.  But once allocated, I can treat setemp
-        **  like a vector since usave is a pointer to double, which is bigger than
-        **  integer and won't overflow. */
-        setemp = SET_VECTOR_ELT(rlist, 6, allocMatrix(REALSXP, n*nstate, ntime+1));
-        usave = REAL(setemp);
+    if (influence &0x1) {
+        /* In R the max space is larger for a matrix than a vector.
+        **  Use of allocVector(REALSXP, nperson * nstate * ninftime) may well 
+        **    overflow the (integer) argument.  
+        **  But alloc3DArray(REALSXP, nperson, nstate, ntime) is okay as long as
+        **    each dimension is an integer.  There might not be enough memory to
+        **    satisfy the request, but the request itself will be valid.
+        **  Once allocated, I can treat setemp like a vector since imat is a pointer
+        **   to double, a pointer is bigger than integer and will not overflow.
+        */
+        setemp = SET_VECTOR_ELT(rlist, 6, alloc3DArray(REALSXP, nperson, nstate, 
+                                                        ninftime +1));
+        imat1 = REAL(setemp);
     }
+    if (influence &0x4) {
+        setemp = SET_VECTOR_ELT(rlist, 8, alloc3DArray(REALSXP, nperson, nstate,
+                                                        ninftime));
+        imat3 = REAL(setemp);
+    }  
 
     /* allocate space for scratch vectors */
     ws = (double *) R_alloc(2*nstate, sizeof(double)); /*weighted number in state */
@@ -124,27 +146,67 @@ SEXP survfitci(SEXP ftime2,  SEXP sort12,  SEXP sort22, SEXP ntime2,
         wtp[i] = 0.0;
         dstate[i] = cstate[i];  /* cstate starts as the initial state */
     }
-    if (sefit ==1) {
+    if (sefit ==1 || influence >0) {
         dptr = i0;
         for (j=0; j<nstate; j++) {
             for (i=0; i<nperson; i++) umat[i][j] = *dptr++;
         }
      }
-     else if (sefit>1) {
-         /* copy influence, and save it */
-         dptr = i0;
-         for (j=0; j<nstate; j++) {
-             for (i=0; i<nperson; i++) {
-                 umat[i][j] = *dptr;
-                 *usave++ = *dptr++;   /* save in the output */
-             }
-         }
+    if (influence & 0x1) {
+        /* The initial influence is saved out first */
+        dptr = i0;
+        for (j=0; j<nstate; j++) {
+            for (i=0; i<nperson; i++) 
+                *imat1++ = *dptr++;   /* save in the output */
+        }
+    } 
+    if (influence & 0x4) {
+        /* Zero the first time point, since we accumulate results */
+        for (j=0; j<(nstate*nperson); j++) {
+            imat3[j] = 0;
+        }
     } 
     itime =0; /*current time index, for output arrays */
     eptr  = 0; /*index to sort1, the entry times */
+    itimej= 0; /* current index for the inftimes vector */
+    ctime = etime[sort2[0]];
     for (i=0; i<n; ) {
         ck = sort2[i];
         ctime = etime[ck];  /* current time value of interest */
+        if (influence) {
+            for (; itimej < ninftime && inftime[itimej] < ctime; itimej++) {
+                if (influence & 0x1) {
+                    for (j=0; j<nstate; j++) {
+                        for (k=0; k<nperson; k++) *imat1++ = umat[k][j];
+                    }
+                }
+                if (influence & 0x4) {
+                    if (inftime[itimej] > lagtime) {
+                        /* this chunk only runs inftimes that are between event times */
+                        for (j=0; j<nstate; j++) {
+                            for (k=0; k<nperson; k++) imat3[k + j*nperson] += umat[k][j] *
+                                                          (inftime[itimej] - lagtime);
+                        }
+                        lagtime = inftime[itimej];
+                    }
+                    if ((itimej+1) < ninftime) {
+                        /* step ahead */
+                        k = nstate* nperson;
+                        for (j=0; j< k; j++)
+                            imat3[k+j] = imat3[j];
+                        imat3 += k;
+                    }
+                }
+            }
+            if ((influence & 0x4) && (ctime > lagtime)) {
+                /* the inf1 value is about to change, catch up */
+                for (j=0; j<nstate; j++) {
+                    for (k=0; k<nperson; k++) imat3[j*nperson +k] += umat[k][j] * 
+                                                      (ctime - lagtime);
+                }
+                lagtime = ctime;
+            }
+        }
 
         /* Add subjects whose entry time is < ctime into the counts */
         for (; eptr<n; eptr++) {
@@ -202,7 +264,7 @@ SEXP survfitci(SEXP ftime2,  SEXP sort12,  SEXP sort22, SEXP ntime2,
                 else hmat[j][j] =1.0; 
          
             }
-            if (sefit >0) {
+            if ((sefit >0) || (influence >0)) {
                 if (sefit >0) {
                     /* Update U, part 1  U = U %*% H -- matrix multiplication */
                     for (j=0; j<nperson; j++) { /* row of U */
@@ -248,9 +310,7 @@ SEXP survfitci(SEXP ftime2,  SEXP sort12,  SEXP sort22, SEXP ntime2,
                     temp += wtp[k]* wtp[k]*umat[k][j]*umat[k][j];
                 vmat[j][itime] = sqrt(temp);
             }
-            if (sefit > 1)
-                for (k=0; k<nperson; k++) *usave++ = umat[k][j];
-         }
+        }
       
         /* Take the current events and censors out of the risk set */
         for (; i<n; i++) {
@@ -265,7 +325,33 @@ SEXP survfitci(SEXP ftime2,  SEXP sort12,  SEXP sort22, SEXP ntime2,
             else break;
         }
         itime++;  
-    }  
+    }
+
+    if (influence) {
+        for (; itimej < ninftime; itimej++) {
+            if (influence & 0x1) {
+                for (j=0; j<nstate; j++) {
+                    for (k=0; k<nperson; k++) *imat1++ = umat[k][j];
+                }
+            }
+            if (influence & 0x4) {
+                if (inftime[itimej] > lagtime) {
+                    for (j=0; j<nstate; j++) {
+                        for (k=0; k<nperson; k++) imat3[k + j*nperson] += umat[k][j] *
+                                                      (inftime[itimej] - lagtime);
+                    }
+                    lagtime = inftime[itimej];
+                }
+                if ((itimej+1) < ninftime) {
+                    /* step ahead */
+                    k = nstate* nperson;
+                    for (j=0; j< k; j++)
+                        imat3[k+j] = imat3[j];
+                    imat3 += k;
+                }
+            }
+        }
+    }
     /* return a list */
     UNPROTECT(3);
     return(rlist);

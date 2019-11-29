@@ -107,7 +107,7 @@ length(sfit$time)
 
 rmst <- function(fit, tmax) {
     # extract the RMST, and the leverage of each subject on the RMST
-    if (missing(tmax)) tmax <- max(sfit0$time)
+    if (missing(tmax)) tmax <- max(fit$time)
     if (length(tmax) !=1) stop("tmax must be a single value")
 
     sfit0 <- survfit0(fit)      # add the time=0 point to the result

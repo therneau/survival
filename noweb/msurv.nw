@@ -11,7 +11,7 @@ extension.)
 SEXP survfitci(SEXP ftime2,  SEXP sort12,  SEXP sort22, SEXP ntime2,
                     SEXP status2, SEXP cstate2, SEXP wt2,  SEXP id2,
                     SEXP p2,      SEXP i02,     SEXP sefit2,
-                    SEXP influence2,  SEXP inftime2) {   
+                    SEXP influence2,  SEXP inftime2,  SEXP time0) {   
     <<survfitci-declare>>
     <<survfitci-compute>>
     <<survfitci-return>>
@@ -46,8 +46,10 @@ Declare all of the variables.
 <<survfitci-declare>>=
 int i, j, k, kk;   /* generic loop indices */
 int ck, itime, eptr; /*specific indices */
+int itimej;
 double ctime;      /*current time of interest, in the main loop */
 int oldstate, newstate; /*when changing state */
+double lagtime;
 
 double temp, *temp2;  /* scratch double, and vector of length nstate */
 double *dptr;      /* reused in multiple contexts */
@@ -83,10 +85,11 @@ int ninftime;
 SEXP rlist;         /* the returned list and variable names of same */  
 const char *rnames[]= {"nrisk","nevent","ncensor", "p", 
 		       "cumhaz", "std", "influence.pstate",
-                       "influence.cumhaz", "influence.rmts", ""};
+                       "influence.cumhaz", "influence.rmst", ""};
 SEXP setemp;
-double **pmat, **vmat=0, *cumhaz, *usave=0; /* =0 to silence -Wall warning */
-double *rmts;
+double **pmat, **vmat=0, *cumhaz; /* =0 to silence -Wall warning */
+double *imat1=0;      /* returned leverage matrix, survival */
+double *imat3;        /* returned leverage for the RMST */
 int  *ncensor, **nrisk, **nevent;
 @ 
 
@@ -110,9 +113,10 @@ p = REAL(p2);
 nstate = LENGTH(p2);  /* number of states */
 i0 = REAL(i02);
 sefit = asInteger(sefit2);
-influence = asIngeger(influence2);
+influence = asInteger(influence2);
 inftime = REAL(inftime2);
 ninftime = LENGTH(inftime2);
+lagtime  = asReal(time0);
 
 /* allocate space for the output objects
 ** Ones that are put into a list do not need to be protected
@@ -134,18 +138,23 @@ if (sefit ==1) {
     vmat= dmatrix(REAL(setemp), ntime, nstate);
 }
 if (influence &0x1) {
-    /* the max space is larger for a matrix than a vector 
-    **  This is pure sneakiness: if I allocate a vector then n*nstate*(ntime+1)
-    **  may overflow, as it is an integer argument.  Using the rows and cols of
-    **  a matrix neither overflows.  But once allocated, I can treat setemp
-    **  like a vector since usave is a pointer to double, which is bigger than
-    **  integer and won't overflow. */
-    setemp = SET_VECTOR_ELT(rlist, 6, allocMatrix(REALSXP, n*nstate, ninftime+1));
-    usave = REAL(setemp);
+    /* In R the max space is larger for a matrix than a vector.
+    **  Use of allocVector(REALSXP, nperson * nstate * ninftime) may well 
+    **    overflow the (integer) argument.  
+    **  But alloc3DArray(REALSXP, nperson, nstate, ntime) is okay as long as
+    **    each dimension is an integer.  There might not be enough memory to
+    **    satisfy the request, but the request itself will be valid.
+    **  Once allocated, I can treat setemp like a vector since imat is a pointer
+    **   to double, a pointer is bigger than integer and will not overflow.
+    */
+    setemp = SET_VECTOR_ELT(rlist, 6, alloc3DArray(REALSXP, nperson, nstate, 
+                                                    ninftime +1));
+    imat1 = REAL(setemp);
 }
 if (influence &0x4) {
-    setemp = SET_VECTOR_ELT(rlist, 8, allocMatrix(REALSXP, n*nstate, ninftime+1));
-    rmst = REAL(setemp);
+    setemp = SET_VECTOR_ELT(rlist, 8, alloc3DArray(REALSXP, nperson, nstate,
+                                                    ninftime));
+    imat3 = REAL(setemp);
 }  
 
 /* allocate space for scratch vectors */
@@ -182,6 +191,10 @@ for (i=0; i<nperson; i++) {
 @ 
 
 Copy over the initial influence data, which was computed in R.
+In R the person index varies fastest, which determines the order of our
+for loops below.  But, we are keeping umat in the opposite order, so that
+person is the first index and state is the second.  It makes the code a bit
+easier to read.
 <<survfitci-declare>>=
 if (sefit ==1 || influence >0) {
     dptr = i0;
@@ -190,18 +203,17 @@ if (sefit ==1 || influence >0) {
     }
  }
 if (influence & 0x1) {
+    /* The initial influence is saved out first */
     dptr = i0;
     for (j=0; j<nstate; j++) {
 	for (i=0; i<nperson; i++) 
-	    *usave++ = *dptr++;   /* save in the output */
+	    *imat1++ = *dptr++;   /* save in the output */
     }
 } 
 if (influence & 0x4) {
-    /* copy influence, and save it */
-    dptr = i0;
-    for (j=0; j<nstate; j++) {
-	for (i=0; i<nperson; i++) 
-	    rmst++ = *dptr++;   /* save in the output */
+    /* Zero the first time point, since we accumulate results */
+    for (j=0; j<(nstate*nperson); j++) {
+        imat3[j] = 0;
     }
 } 
 @ 
@@ -231,9 +243,14 @@ There are four indexing patterns in play which may be confusing.
 <<survfitci-compute>>=
 itime =0; /*current time index, for output arrays */
 eptr  = 0; /*index to sort1, the entry times */
+itimej= 0; /* current index for the inftimes vector */
+ctime = etime[sort2[0]];
 for (i=0; i<n; ) {
     ck = sort2[i];
     ctime = etime[ck];  /* current time value of interest */
+    if (influence) {
+        <<survfitci-save-IJ>>
+    }
 
     /* Add subjects whose entry time is < ctime into the counts */
     for (; eptr<n; eptr++) {
@@ -264,7 +281,11 @@ for (i=0; i<n; ) {
 	else break;
     }
     itime++;  
-}  
+}
+
+if (influence) {
+    <<survfit-ci-finishIJ>> 
+}
 @
  
 The key variables for the computation are the matrix $H$ and the
@@ -324,7 +345,7 @@ if (wevent > 0) {  /* there was at least one move with weight > 0 */
 	else hmat[j][j] =1.0; 
  
     }
-    if (sefit >0) {
+    if ((sefit >0) || (influence >0)) {
 	<<survfitci-compute-U>>
     }
     <<survfitci-compute-P>>
@@ -403,9 +424,87 @@ for (j=0; j<nstate; j++) {
 	    temp += wtp[k]* wtp[k]*umat[k][j]*umat[k][j];
 	vmat[j][itime] = sqrt(temp);
     }
-    if (influence & 0x1)
-        for (k=0; k<nperson; k++) *usave++ = umat[k][j];
- }
+}
+@ 
+
+The itimej index walks down the vector of inftime values, which are the
+time points at which the IJ values are desired.  Say that the time values
+in the data were 5, 10, 15, 20, while inftime is 1, 11, 25. We want to
+save the U values from just before time 5, just before time 15.  Standard
+error values are added in just after time 5, after 10, etc.  So the
+pmat, nris, ...se are added in at the bottom of the loop, and IJ at the
+top of the loop. 
+
+However, the increment to RMST values must be done as a cumulative total since
+they involve the change in time.
+For the above example at inftime=1 nothing has happened yet so the RMST
+leverage is 0.  At inftime=11 the delta will be (10-5)*umat[time 5] + (11-10)*
+umat[time 10].  
+
+
+<<survfitci-save-IJ>>=
+for (; itimej < ninftime && inftime[itimej] < ctime; itimej++) {
+    if (influence & 0x1) {
+        for (j=0; j<nstate; j++) {
+            for (k=0; k<nperson; k++) *imat1++ = umat[k][j];
+        }
+    }
+    if (influence & 0x4) {
+        if (inftime[itimej] > lagtime) {
+            /* this chunk only runs inftimes that are between event times */
+            for (j=0; j<nstate; j++) {
+                for (k=0; k<nperson; k++) imat3[k + j*nperson] += umat[k][j] *
+                                              (inftime[itimej] - lagtime);
+            }
+            lagtime = inftime[itimej];
+        }
+        if ((itimej+1) < ninftime) {
+            /* step ahead */
+            k = nstate* nperson;
+            for (j=0; j< k; j++)
+                imat3[k+j] = imat3[j];
+            imat3 += k;
+        }
+    }
+}
+if ((influence & 0x4) && (ctime > lagtime)) {
+    /* the inf1 value is about to change, catch up */
+    for (j=0; j<nstate; j++) {
+        for (k=0; k<nperson; k++) imat3[j*nperson +k] += umat[k][j] * 
+                                          (ctime - lagtime);
+    }
+    lagtime = ctime;
+}
+@ 
+                                 
+Say that the time values end at 100, but the user asked for influence values
+at 105, 110, and 130.  Then we need to make a few more copies.  The same lines
+as just above, but without the ctime condidion.
+
+<<survfit-ci-finishIJ>>=
+for (; itimej < ninftime; itimej++) {
+    if (influence & 0x1) {
+        for (j=0; j<nstate; j++) {
+            for (k=0; k<nperson; k++) *imat1++ = umat[k][j];
+        }
+    }
+    if (influence & 0x4) {
+        if (inftime[itimej] > lagtime) {
+            for (j=0; j<nstate; j++) {
+                for (k=0; k<nperson; k++) imat3[k + j*nperson] += umat[k][j] *
+                                              (inftime[itimej] - lagtime);
+            }
+            lagtime = inftime[itimej];
+        }
+        if ((itimej+1) < ninftime) {
+            /* step ahead */
+            k = nstate* nperson;
+            for (j=0; j< k; j++)
+                imat3[k+j] = imat3[j];
+            imat3 += k;
+        }
+    }
+}
 @ 
 
 <<survfitci-return>>=

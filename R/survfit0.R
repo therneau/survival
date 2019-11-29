@@ -5,7 +5,7 @@
 # of 0.  For a multi-state curve the values of p0 and sd0 are used to fill
 # in these values.  
 #   The influence matrix, if present, is also filled out to have a 0's for the
-# time, or for a multi-state object, use the influence matrix as provided.
+# time.  For a multi-state object influence.pstate already has time 0.
 #
 # It is legal for start.time to be a vector, so that multiple curves start in
 #  different places.  I don't yet have a use for that, but had considered one.
@@ -104,19 +104,33 @@ survfit0 <- function(x, start.time=0) {
         else new[[i]] <- x[[i]]
     }
     
-    if (!inherits(x, "survfitms")) {
-        addcol <- function(x) cbind(0, x)
-        # we need to fix up influence objects, which have subjects as the
-        #  rows and time as the columns.  If there are multiple curves it
-        #  will be a list with one element per curve
-        for (i in c("influence.surv", "influence.chaz")) {
-            if (!is.null(x[[i]])) {
-                if (is.list(x[[i]])) new[[i]] <- lapply(x[[i]], addcol)
-                else new[[i]] <- addcol(x[[i]])
-            }
+    # time is the last dimension of influence matrices
+    addinf <- function(x) {
+        if (length(dim(x)) ==2) 
+            matrix(c(rep(0., nrow(x)), c(x)), nrow=nrow(x),
+                   dimnames= list(dimnames(x)[[1]], NULL))
+        else {
+            dd <- dim(x)
+            array(c(rep(0, dd[1]*dd[2]), c(x)),
+                      dim= c(dd[1], dd[2], dd[3]+1),
+                      dimnames= dimnames(x))
         }
     }
-                     
+    
+    if (inherits(x, "survfitms")) {
+        # time is the last dimension in influence.rmst, add a 0
+        # influence.pstate and influence.chaz already had the extra row
+        if (!is.null(x$influence.rmst)) {
+            if (is.list(x$influence.rmst))
+                new$influence.rmst <- lapply(x$influence.rmst, addinf)
+            else new$influence.rmst <- addinf(x$influence.rmst)
+        }
+    }  else {
+        for (i in c("influence.surv", "influence.chaz", "influence.rmst")) {
+            if (!is.null(x[[i]])) new[[i]] <- addinf(x[[i]])
+        }
+    }
+                                                     
     if (is.null(new$logse)) {
         # reprise the logic of the older code
         if (inherits(x, "survfitms")) x$logse <- FALSE

@@ -24,20 +24,24 @@ model.matrix.coxph <- function(object, data=NULL,
     }
     else dropterms <- NULL
     
-    attr(Terms, "intercept") <- 1
-    stemp <- untangle.specials(Terms, 'strata', 1)
+    strats <- attr(Terms, "specials")$strata
     hasinteractions <- FALSE
-    dropterms <- NULL
-    if (length(stemp$vars) > 0) {  #if there is a strata statement
+    if (length(strats)) {
+        stemp <- untangle.specials(Terms, 'strata', 1)
+        if (length(stemp$vars)==1) strata.keep <- mf[[stemp$vars]]
+        else strata.keep <- strata(mf[,stemp$vars], shortlabel=TRUE)
+        istrat <- as.integer(strata.keep)
+
         for (i in stemp$vars) {  #multiple strata terms are allowed
             # The factors attr has one row for each variable in the frame, one
             #   col for each term in the model.  Pick rows for each strata
             #   var, and find if it participates in any interactions.
             if (any(attr(Terms, 'order')[attr(Terms, "factors")[i,] >0] >1))
                 hasinteractions <- TRUE  
-            }
-        if (!hasinteractions) dropterms <- stemp$terms 
-    }
+        }
+        if (!hasinteractions) dropterms <- c(dropterms, stemp$terms) 
+    } else istrat <- NULL
+
 
     if (length(dropterms)) {
         Terms2 <- Terms[ -dropterms]

@@ -476,7 +476,14 @@ survmean2 <- function(x, scale=1, rmean) {
         else maxtime <- tapply(x$time, igrp, max)
     
         meantime <- matrix(0., ngrp, nstate)
-        if (!is.null(x$influence)) stdtime <- meantime
+        # if the influence.pstate matrix is there for all times, or
+        # influence.rmst is available for the time of interest, then we
+        # can compute an std of the rmst
+        rstd1 <- (!is.null(x$influence.pstate) && is.null(x$inftime))
+        rstd2 <- (!is.null(x$influence.rmst) && all(maxtime %in% x$inftime))
+        rstd3 <- (!is.null(x$influence.rmst) && 
+                  is.null(x$inftime) && all(maxtime %in% x$time))
+        if (rstd1 || rstd2 || rstd3) stdtime <- meantime
         for (i in 1:ngrp) {
             # a 2 dimensional matrix is an "array", but a 3-dim array is
             #  not a "matrix", so check for matrix first.
@@ -491,24 +498,33 @@ survmean2 <- function(x, scale=1, rmean) {
  
             # Now cut it off at maxtime
             delta <- diff(c(tt[tt<maxtime[i]], maxtime[i]))
-            if (length(delta) > nrow(temp)) delta <- delta[1:nrow(temp)]
-            if (length(delta) < nrow(temp))
-                delta <- c(delta, rep(0, nrow(temp) - length(delta)))
+            temp <- temp[seq(along=delta),]
             meantime[i,] <- colSums(delta*temp)
 
-            if (!is.null(x$influence)) {
+            if (rstd2) {
+                k <- match(maxtime[[i]], x$inftime)
+                if (is.list(x$influence.rmst)) 
+                    stdtime[i,] <- colSums(x$influence.rmst[[i]][,,k])
+                else stdtime[i,] <- colSums(x$influence.rmst[,,k])
+            } else if (rstd3) {
+                k <- match(maxtime[[i]], x$time)
+                if (is.list(x$influence.rmst)) 
+                    stdtime[i,] <- colSums(x$influence.rmst[[i]][,,k])
+                else stdtime[i,] <- colSums(x$influence.rmst[,,k])
+            } else if (rstd1) {
                 # calculate the variance
-                if (is.list(x$influence))
-                    itemp <- apply(x$influence[[i]], 1,
-                                   function(x) colSums(x*delta))
-                else itemp <- apply(x$influence, 1,
-                                    function(x) colSums(x*delta))
-                stdtime[i,] <- sqrt(rowSums(itemp^2))
+                k <- seq(along=delta)
+                if (is.list(x$influence.pstate))
+                    itemp <- apply(x$influence.pstate[[i]][,,k], 1:2,
+                                   function(x) sum(x*delta))
+                else itemp <- apply(x$influence.pstate[,,k], 1:2,
+                                    function(x) sum(x*delta))
+                stdtime[i,] <- sqrt(colSums(itemp^2))
            }
         }
         outmat <- cbind(outmat, c(meantime)/scale)
         cname <- c("n", "nevent", "rmean")
-        if (!is.null(x$influence)) {
+        if (rstd1 || rstd2 || rstd3) {
             outmat <- cbind(outmat, c(stdtime)/scale)
             cname <- c(cname, "std(rmean)")
         }
@@ -636,13 +652,16 @@ survmean2 <- function(x, scale=1, rmean) {
             if (!is.null(x[[z]])) newx[[z]] <- (x[[z]])[irow,j, drop=drop2]
         for (z in c("pstate", "std.err", "upper", "lower"))
             if (!is.null(x[[z]])) newx[[z]] <- (x[[z]])[irow,j, drop=drop2]
-        if (!is.null(x$influence.pstate)) {
-            if (is.list(x$influence.pstate)) {
-                if (length(i)==1) newx$influence.pstate <- x$influence.pstate[[i]]
-                else newx$influence.pstate <- lapply(x$influence.pstate[i],
-                                     function(x) x[,,j, drop= drop])
+        for (z in c("influence.pstate", "influence.rmst")) {
+            if (!is.null(x[[z]])) {
+                if (is.list(x[[z]])) {
+                    if (length(i) ==1)
+                        newx[[z]] <- (x[[z]][[i]])[,j,, drop= drop]
+                    else newx[[z]] <- lapply(x[[z]][i],
+                                     function(x) x[,j,, drop= drop])
                 }
-            else newx$influence.pstate <- x$influence.pstate[,,j, drop=drop]
+                else newx[[z]] <- x[[z]][,j,, drop=drop]
+            }
         }
 
         if (length(j)== nstate && all(j == seq.int(nstate))) {
@@ -686,15 +705,14 @@ survmean2 <- function(x, scale=1, rmean) {
             if (!is.null(x[[z]])) newx[[z]] <- (x[[z]])[irow, k, drop=drop3]
         for (z in c("pstate", "std.err", "upper", "lower"))
             if (!is.null(x[[z]])) newx[[z]] <- (x[[z]])[irow,j,k, drop=drop2]
-  
-        if (!is.null(x$influence.pstate)) {
-            if (is.list(x$influence.pstate)) {
-                if (length(i)==1) 
-                    newx$influence.pstate <- (x$influence.pstate[[i]])[,,j,k, drop=drop]
-                else newx$influence.pstate <- lapply(x$influence.pstate[i],
-                                     function(x) x[,,j,k, drop= drop])
-                }
-            else newx$influence.pstate <- x$influence.pstate[,,j,k, drop=drop]
+        for (z in c("influence.pstate", "influence.rmst")) {
+            if (!is.null(x[[z]])) {
+                if (length(i)==1)
+                    newx[[z]] <- (x[[z]][[i]])[,j,,k, drop= drop]
+                else newx[[z]] <- lapply(x[[z]][i],
+                                         function(x) x[,j,,k, drop= drop])
+            }
+            else newx[[z]] <- x[[z]][,j,,k,, drop=drop]
         }
 
         if (length(k)== nstate && all(k == seq.int(nstate))) {
