@@ -150,7 +150,7 @@ solutions.
 First calculate the angles for which the arc will strike the horizontal
 line.  If the arc is too short to reach the line then there is no
 intersection. 
-Then return legal angles.
+The return legal angles.
 <<statefig-fun>>=
 statefigx <- function(x, C, r, a1, a2) {
     temp <-(x - C[1])/r
@@ -181,7 +181,6 @@ statefigy <-  function(y, C, r, a1, a2) {
 <<statefig-fun>>=
 phi <- function(x1, y1, x2, y2, d, delta1, delta2) {
     # d = height above the line
-    pi <- 3.1415926545898   # in case someone has a variable "pi" 
     theta <- atan2(y2-y1, x2-x1)    # angle from center to center
     if (abs(d) < .001) d=.001       # a really small arc looks like a line
 
@@ -197,7 +196,8 @@ phi <- function(x1, y1, x2, y2, d, delta1, delta2) {
         # a1= 3 and a2=-3, we don't want to include 0
         # nor for a1=-3 and a2=3
         if (a1>0) a2 <- a2 + 2 *pi 
-        else a1 <- a1 + 2*pi    }
+        else a1 <- a1 + 2*pi
+    }
     if (d > 0) { #counterclockwise
         phi1 <- min(statefigx(x1 + delta1[1], C, r, a1, a2),
                     statefigx(x1 - delta1[1], C, r, a1, a2),

@@ -157,7 +157,7 @@ aeq(mfit2$transitions, c(2,0,1,0, 0,2,0,0, 1,1,1,0, 0,0,0,2))
 
 # Now the harder one, where subjects change weights
 mfit3  <- survfit(Surv(t1, t2, st) ~ 1, tdata, id=id, istate=i0,
-                  weights=wt, influence=1)
+                  weights=wt, influence=TRUE)
 aeq(mfit3$p0, p0(1:10)[swap])
 aeq(mfit3$pstate, dopstate(1:10)[,swap])
     
@@ -245,15 +245,15 @@ dp9 <- function(w) dp8(w) %*% aj9(w)
 dp10<- function(w) dp9(w) %*% aj10(w)
 
 w1 <- 1:10
-aeq(mfit3$influence.pstate[,,1], dp0(w1)[,swap])
-aeq(mfit3$influence.pstate[,,2], dp2(w1)[,swap])
-aeq(mfit3$influence.pstate[,,3], dp3(w1)[,swap])
-aeq(mfit3$influence.pstate[,,4], dp4(w1)[,swap])
-aeq(mfit3$influence.pstate[,,5], dp5(w1)[,swap])
-aeq(mfit3$influence.pstate[,,6], dp8(w1)[,swap])
-aeq(mfit3$influence.pstate[,,7], dp9(w1)[,swap])
-aeq(mfit3$influence.pstate[,,8], dp10(w1)[,swap])
-aeq(mfit3$influence.pstate[,,9], dp10(w1)[,swap]) # no changes at time 11
+aeq(mfit3$influence[,1,], dp0(w1)[,swap])
+aeq(mfit3$influence[,2,], dp2(w1)[,swap])
+aeq(mfit3$influence[,3,], dp3(w1)[,swap])
+aeq(mfit3$influence[,4,], dp4(w1)[,swap])
+aeq(mfit3$influence[,5,], dp5(w1)[,swap])
+aeq(mfit3$influence[,6,], dp8(w1)[,swap])
+aeq(mfit3$influence[,7,], dp9(w1)[,swap])
+aeq(mfit3$influence[,8,], dp10(w1)[,swap])
+aeq(mfit3$influence[,9,], dp10(w1)[,swap]) # no changes at time 11
 
 
 # The cumulative hazard at each time point is remapped from a matrix

@@ -15,7 +15,6 @@ PARTS = main.Rnw \
 	survfit.Rnw \
 	survfitKM.Rnw \
 	survfitCI.Rnw \
-	msurv2.nw\
 	msurv.nw \
 	survfitms.Rnw \
 	plot.Rnw \

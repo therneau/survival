@@ -2,24 +2,15 @@
 \title{NEWS file for the survival package}
 \section{Changes in version 3.1-8}{
   \itemize{
-    \item For a multistate survfit call with no covariates, the start.time
+    \item For a multistate model which no covariates, the start.time
     value (if present) was inadvertently omitted from the result.  This
-    affects the default plot range.
+    affects the default plot.
     \item Per user request, the tmerge function can now use Dates as the
     time variable for the merge.
     \item Fix an invalid read (one element past the end of a vector)
     that could occur in tmerge.c; reported by Brian Ripley.
-    \item For a multistate survival, change the order of the returned
-    influence matrix from (subject, time, state) to (subject, state,
-    time).  The latter is how it is created internally, the object can
-    be huge, and the aperm() call rearranging it is not really needed.
-    \item Add influence.rmst (restricted mean time) as an option to
-    survfit, along with the itime option to report values only at
-    selected time points.  For a multistate survival the default
-    dimension of the returned influence of (number of subjects, number
-    of states, number of unique times) could run R out of memory.
     \item A multi-state coxph model with strata would fail when parsing
-    the formula, pointed out by xxx. 
+    the formula, pointed out by Martin van't Hooft. 
 }}
 
 \section{Changes in version 3.1-7}{
@@ -28,8 +19,8 @@
     information matrix will be block diagonal, and the cox.zph function
     would generate a 0/0 when scaling it for plots.  This led to a
     BLAS error on some architectures (reported by B. Ripley within 24
-    hours of 3.1-6 being published on CRAN).  PH tests reported by cox.zph
-    were unaffected, but subsequent plots fail due to an infinite axis.
+    hours of 3.1-6 being published on CRAN).  Tests were unaffected,
+    subsequent plots fail due to an infinite axis.
     Repair, and add more checks to the test suite.
 }}
 

@@ -95,8 +95,7 @@ dim.survfit <- function(x) {
                 if (!is.null(x[[k]])) newx[[k]] <- (x[[k]])[indx1]
             k <- cbind(indx1, indx2)
             for (j in c("surv", "std.err", "upper", "lower", "cumhaz",
-                        "std.chaz", "influence.surv", "influence.chaz", 
-                        "influence.rmst"))
+                        "std.chaz", "influence.surv", "influence.chaz"))
                 if (!is.null(x[[j]])) newx[[j]] <- (x[[j]])[k]
             temp <- x$strata[ii]
             names(temp) <- 1:length(ii)
@@ -136,7 +135,7 @@ dim.survfit <- function(x) {
     if (length(dd)==1) {  # no j dimension
         for (k in c("time", "n.risk", "n.event", "n.censor", "n.enter",
                "surv", "std.err", "cumhaz", "std.chaz", "upper", "lower",
-               "influence.surv", "influence.chaz", "influence.rmst"))
+               "influence.surv", "influence.chaz"))
             if (!is.null(x[[k]])) newx[[k]] <- (x[[k]])[irow]
     }
        
@@ -149,7 +148,7 @@ dim.survfit <- function(x) {
         for (k in c("time", "n.risk", "n.event", "n.censor", "n.enter"))
                  if (!is.null(x[[k]])) newx[[k]] <- (x[[k]])[irow]
         for (k in c("surv", "std.err", "cumhaz", "std.chaz", "upper", "lower",
-               "influence.surv", "influence.chaz", "influence.rmst"))
+               "influence.surv", "influence.chaz"))
             if (!is.null(x[[k]])) newx[[k]] <- (x[[k]])[irow, j, drop=drop]
     }
     newx

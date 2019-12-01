@@ -1,5 +1,5 @@
 
-R Under development (unstable) (2019-05-15 r76504) -- "Unsuffered Consequences"
+R Under development (unstable) (2019-10-29 r77335) -- "Unsuffered Consequences"
 Copyright (C) 2019 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
@@ -146,10 +146,10 @@ Type 'q()' to quit R.
 > data2$time1 <- pmax(20, data2$time1)
 > fit2x <- survfit(Surv(time1, time2, stat2) ~1, id=id, weight=wt, data2)
 > 
-> ii <- names(fit2) != "call"
+> ii <- names(fit2)[!(names(fit2) %in%  c("call", "start.time"))]
 > all.equal(unclass(fit2)[ii], unclass(fit2x)[ii])
 [1] TRUE
 > 
 > proc.time()
    user  system elapsed 
-  0.804   0.032   0.836 
+  1.776   0.092   1.864 

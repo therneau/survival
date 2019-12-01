@@ -37,7 +37,7 @@ survfitCI(X, Y, weights,  id, istate, cluster,
                        conf.type=c('log',  'log-log',  'plain', 'none',
                                    'logit', 'arcsin'),
                        conf.lower=c('usual', 'peto', 'modified'),
-                       influence=FALSE, start.time, p0, inftime, type)
+                       influence=FALSE, start.time, p0, type)
 survfitKM(x, y, weights=rep(1,length(x)),
                        stype=1, ctype=1, 
                        se.fit=TRUE,
@@ -46,7 +46,7 @@ survfitKM(x, y, weights=rep(1,length(x)),
                                    'logit', 'arcsin'),
                        conf.lower=c('usual', 'peto', 'modified'),
                        start.time, id, cluster,
-                       influence=FALSE, inftime, type)
+                       influence=FALSE, type) 
 survfitTurnbull(x, y, weights,
                        type=c('kaplan-meier', 'fleming-harrington', 'fh2'),
                        error=c('greenwood', "tsiatis"), se.fit=TRUE,
