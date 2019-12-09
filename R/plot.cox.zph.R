@@ -3,24 +3,13 @@ plot.cox.zph <- function(x, resid=TRUE, se=TRUE, df=4, nsmo=40,
                          ...) {
     xx <- x$x
     yy <- x$y
-#    d <- nrow(yy)
-    df <- max(df)     #error proofing
+    df <- max(df)     # in case df is a vector
     nvar <- ncol(yy)
     pred.x <- seq(from=min(xx), to=max(xx), length=nsmo)
     temp <- c(pred.x, xx)
     lmat <- ns(temp, df=df, intercept=TRUE)
     pmat <- lmat[1:nsmo,]       # for prediction
     xmat <- lmat[-(1:nsmo),]
-    qmat <- qr(xmat)
-    if (qmat$rank < df) 
-	 stop("Spline fit is singular, try a smaller degrees of freedom")
-
-    if (se) {
-	bk <- backsolve(qmat$qr[1:df, 1:df], diag(df))
-	xtx <- bk %*% t(bk)
-#	seval <- d*((pmat%*% xtx) *pmat) %*% rep(1, df)
-	seval <- ((pmat%*% xtx) *pmat) %*% rep(1, df)
-	}
 
     if (missing(ylab)) ylab <- paste("Beta(t) for", dimnames(yy)[[2]])
     if (missing(var)) var <- 1:nvar
@@ -28,7 +17,7 @@ plot.cox.zph <- function(x, resid=TRUE, se=TRUE, df=4, nsmo=40,
 	if (is.character(var)) var <- match(var, dimnames(yy)[[2]])
 	if  (any(is.na(var)) || max(var)>nvar || min(var) <1)
 	    stop("Invalid variable requested")
-	}
+    }
 
     #
     # Figure out a 'good' set of x-axis labels.  Find 8 equally spaced
@@ -54,8 +43,29 @@ plot.cox.zph <- function(x, resid=TRUE, se=TRUE, df=4, nsmo=40,
     col <- rep(col, length=2)
     lwd <- rep(lwd, length=2)
     lty <- rep(lty, length=2)
+
+    # Now, finally do the work
     for (i in var) {
+        #   Since release 3.1-6, yy can have missing values.  If a covariate is
+        # constant within a stratum then it's Shoenfeld residual is identially
+        # zero for all observations in that stratum.  These "structural zeros"
+        # are marked with an NA.  They contain no information and should not
+        # by plotted.  Thus we need to do the spline fit one stratum at a time.
 	y <- yy[,i]
+        keep <- !is.na(y)
+        if (!all(keep)) y <- y[keep]
+        
+        qmat <- qr(xmat[keep,])
+        if (qmat$rank < df) {
+            warning("Spline fit is singular, linear fit used")
+            qmat <- qr(cbind(1, xx[keep,]))
+        }   
+        if (se) {
+            bk <- backsolve(qmat$qr[1:df, 1:df], diag(df))
+            xtx <- bk %*% t(bk)
+            seval <- ((pmat%*% xtx) *pmat) %*% rep(1, df)
+	}
+
 	yhat <- pmat %*% qr.coef(qmat, y)
 	if (resid) yr <-range(yhat, y)
 	else       yr <-range(yhat)
@@ -69,16 +79,16 @@ plot.cox.zph <- function(x, resid=TRUE, se=TRUE, df=4, nsmo=40,
 	if (x$transform=='identity')
 	    plot(range(xx), yr, type='n', xlab=xlab, ylab=ylab[i], ...)
 	else if (x$transform=='log')
-	    plot(range(xx), yr, type='n', xlab=xlab, ylab=ylab[i], log='x',
-			...)
+	    plot(range(xx[keep]), yr, type='n', xlab=xlab, ylab=ylab[i], 
+                log='x', ...)
 	else {
-	    plot(range(xx), yr, type='n', xlab=xlab, ylab=ylab[i], 
+	    plot(range(xx[keep]), yr, type='n', xlab=xlab, ylab=ylab[i], 
                  axes=FALSE,...)
 	    axis(1, xaxisval, xaxislab)
 	    axis(2)
 	    box()
 	    }
-	if (resid) points(xx, y)
+	if (resid) points(xx[keep], y)
 
 	lines(pred.x, yhat, lty=lty[1], col=col[1], lwd=lwd[1])
 	if (se) {
