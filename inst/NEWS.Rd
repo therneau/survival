@@ -1,8 +1,16 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 3.1-9}{
+  \itemize{
+    \item The plot.cox.zph function would fail for a stratified model,
+    if some covariate was a constant in one of the strata.  The cox.zph
+    routine correctly labeled those points as uninformative via NA, the
+    plot routine needed to actually ignore them.
+}}
+
 \section{Changes in version 3.1-8}{
   \itemize{
-    \item For a multistate model which no covariates, the start.time
+    \item For a multistate model with no covariates, the start.time
     value (if present) was inadvertently omitted from the result.  This
     affects the default plot.
     \item Per user request, the tmerge function can now use Dates as the
