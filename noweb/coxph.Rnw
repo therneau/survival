@@ -204,6 +204,7 @@ coxph <- function(formula, data, weights, subset, na.action,
     }
     
     contrast.arg <- NULL  #due to shared code with model.matrix.coxph
+    attr(Terms, "intercept") <- 1  # always have a baseline hazard
 
     # Grab the id variable to check out multi-state data
     id <- model.extract(mf, "id")

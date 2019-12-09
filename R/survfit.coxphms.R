@@ -128,7 +128,7 @@ function(formula, newdata, se.fit=TRUE, conf.int=.95, individual=FALSE,
     if (missing(start.time)) start.time <- min(Y[,2], 0)
     # If the data has absorbing states (ones with no transitions out), then
     #  remove those rows first since they won't be in the final output.
-    t2 <- transitions[, is.na(match(colnames(transitions), "(censored)"))]
+    t2 <- transitions[, is.na(match(colnames(transitions), "(censored)")), drop=FALSE]
     absorb <- row.names(t2)[rowSums(t2)==0]
     if (length(absorb)) droprow <- istate %in% absorb  else droprow <- FALSE
     if (any(droprow)) {

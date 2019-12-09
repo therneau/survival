@@ -267,7 +267,7 @@ survfitCI <- function(X, Y, weights, id, istate, cluster,
             }
         else {
             xx <- as.vector(unlist(lapply(clist, function(x) x[element])))
-            if (class(temp)=="table") matrix(xx, byrow=T, ncol=length(temp))
+            if (inherits(temp, "table")) matrix(xx, byrow=T, ncol=length(temp))
             else xx
         }
     }

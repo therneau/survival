@@ -141,71 +141,6 @@ coxph <- function(formula, data, weights, subset, na.action,
     if (!multi && multiform)
         stop("formula is a list but the response is not multi-state")
 
-    # Grab the id variable to check out multi-state data
-    id <- model.extract(mf, "id")
-    if (multi) {
-        # check for consistency of the states, and create a transition
-        #  matrix
-        if (length(id)==0) 
-            stop("an id statement is required for multi-state models")
-
-        istate <- model.extract(mf, "istate")
-        mcheck <- survcheck2(Y, id, istate)
-        # error messages here
-        if (mcheck$flag["overlap"] > 0)
-            stop("data set has overlapping intervals for one or more subjects")
-
-        transitions <- mcheck$transitions
-        istate <- mcheck$istate
-        states <- mcheck$states
-
-        #  build tmap, which has one row per term, one column per transition
-        if (missing(statedata))
-            covlist2 <- parsecovar2(covlist, NULL, dformula= dformula,
-                                Terms, transitions, states)
-        else covlist2 <- parsecovar2(covlist, statedata, dformula= dformula,
-                                Terms, transitions, states)
-        tmap <- covlist2$tmap
-        if (!is.null(covlist)) {
-            # first vector will be true if there is at least 1 transition for which all
-            #  covariates are present, second if there is at least 1 for which some are not
-            good.tran <- bad.tran <- rep(FALSE, nrow(Y))  
-            # We don't need to check interaction terms
-            termname <- rownames(attr(Terms, 'factors'))
-            trow <- (!is.na(match(rownames(tmap), termname)))
-
-            # create a missing indicator for each term
-            termiss <- matrix(0L, nrow(mf), ncol(mf))
-            for (i in 1:ncol(mf)) {
-                xx <- is.na(mf[[i]])
-                if (is.matrix(xx)) termiss[,i] <- apply(xx, 1, any)
-                else termiss[,i] <- xx
-            }
-
-            for (i in levels(istate)) {
-                rindex <- which(istate ==i)
-                j <- which(covlist2$mapid[,1] == match(i, states))  #possible transitions
-                for (jcol in j) {
-                    k <- which(trow & tmap[,jcol] > 0)  # the terms involved in that 
-                    bad.tran[rindex] <- (bad.tran[rindex] | 
-                                         apply(termiss[rindex, k, drop=FALSE], 1, any))
-                    good.tran[rindex] <- (good.tran[rindex] |
-                                          apply(!termiss[rindex, k, drop=FALSE], 1, all))
-                }
-            }
-            n.partially.used <- sum(good.tran & bad.tran & !is.na(Y))   
-            omit <- (!good.tran & bad.tran) | is.na(Y)
-            if (all(omit)) stop("all observations deleted due to missing values")
-            temp <- setNames(seq(omit)[omit], attr(mf, "row.names")[omit])
-            attr(temp, "class") <- "omit"
-            mf <- mf[!omit,, drop=FALSE]
-            attr(mf, "na.action") <- temp
-            Y <- Y[!omit]
-            id <- id[!omit]
-            if (length(istate)) istate <- istate[!omit]  # istate can be NULL
-        }
-    }
-
     if (control$timefix) Y <- aeqSurv(Y)
     if (length(attr(Terms, 'variables')) > 2) { # a ~1 formula has length 2
         ytemp <- terms.inner(formula[1:2])
@@ -219,12 +154,27 @@ coxph <- function(formula, data, weights, subset, na.action,
     #  should be extracted after the transform
     #
     strats <- attr(Terms, "specials")$strata
+    hasinteractions <- FALSE
+    dropterms <- NULL
     if (length(strats)) {
         stemp <- untangle.specials(Terms, 'strata', 1)
         if (length(stemp$vars)==1) strata.keep <- mf[[stemp$vars]]
         else strata.keep <- strata(mf[,stemp$vars], shortlabel=TRUE)
         istrat <- as.integer(strata.keep)
+
+        for (i in stemp$vars) {  #multiple strata terms are allowed
+            # The factors attr has one row for each variable in the frame, one
+            #   col for each term in the model.  Pick rows for each strata
+            #   var, and find if it participates in any interactions.
+            if (any(attr(Terms, 'order')[attr(Terms, "factors")[i,] >0] >1))
+                hasinteractions <- TRUE  
+        }
+        if (!hasinteractions) dropterms <- stemp$terms 
     } else istrat <- NULL
+
+    if (hasinteractions && multi)
+        stop("multi-state coxph does not support strata*covariate interactions")
+
 
     timetrans <- attr(Terms, "specials")$tt
     if (missing(tt)) tt <- NULL
@@ -333,20 +283,79 @@ coxph <- function(formula, data, weights, subset, na.action,
     }
     
     contrast.arg <- NULL  #due to shared code with model.matrix.coxph
-    attr(Terms, "intercept") <- 1
-    stemp <- untangle.specials(Terms, 'strata', 1)
-    hasinteractions <- FALSE
-    dropterms <- NULL
-    if (length(stemp$vars) > 0) {  #if there is a strata statement
-        for (i in stemp$vars) {  #multiple strata terms are allowed
-            # The factors attr has one row for each variable in the frame, one
-            #   col for each term in the model.  Pick rows for each strata
-            #   var, and find if it participates in any interactions.
-            if (any(attr(Terms, 'order')[attr(Terms, "factors")[i,] >0] >1))
-                hasinteractions <- TRUE  
+    attr(Terms, "intercept") <- 1  # always have a baseline hazard
+
+    # Grab the id variable to check out multi-state data
+    id <- model.extract(mf, "id")
+    if (multi) {
+        # remove strata from dformula, before any further processing
+        if (length(dropterms)){ 
+            Terms2 <- Terms[-dropterms]
+            dformula <- formula(Terms2)
+        } else Terms2 <- Terms
+
+        # check for consistency of the states, and create a transition
+        #  matrix
+        if (length(id)==0) 
+            stop("an id statement is required for multi-state models")
+
+        istate <- model.extract(mf, "istate")
+        mcheck <- survcheck2(Y, id, istate)
+        # error messages here
+        if (mcheck$flag["overlap"] > 0)
+            stop("data set has overlapping intervals for one or more subjects")
+
+        transitions <- mcheck$transitions
+        istate <- mcheck$istate
+        states <- mcheck$states
+
+        #  build tmap, which has one row per term, one column per transition
+        if (missing(statedata))
+            covlist2 <- parsecovar2(covlist, NULL, dformula= dformula,
+                                Terms2, transitions, states)
+        else covlist2 <- parsecovar2(covlist, statedata, dformula= dformula,
+                                Terms2, transitions, states)
+        tmap <- covlist2$tmap
+        if (!is.null(covlist)) {
+            # first vector will be true if there is at least 1 transition for which all
+            #  covariates are present, second if there is at least 1 for which some are not
+            good.tran <- bad.tran <- rep(FALSE, nrow(Y))  
+            # We don't need to check interaction terms
+            termname <- rownames(attr(Terms, 'factors'))
+            trow <- (!is.na(match(rownames(tmap), termname)))
+
+            # create a missing indicator for each term
+            termiss <- matrix(0L, nrow(mf), ncol(mf))
+            for (i in 1:ncol(mf)) {
+                xx <- is.na(mf[[i]])
+                if (is.matrix(xx)) termiss[,i] <- apply(xx, 1, any)
+                else termiss[,i] <- xx
             }
-        if (!hasinteractions) dropterms <- stemp$terms 
+
+            for (i in levels(istate)) {
+                rindex <- which(istate ==i)
+                j <- which(covlist2$mapid[,1] == match(i, states))  #possible transitions
+                for (jcol in j) {
+                    k <- which(trow & tmap[,jcol] > 0)  # the terms involved in that 
+                    bad.tran[rindex] <- (bad.tran[rindex] | 
+                                         apply(termiss[rindex, k, drop=FALSE], 1, any))
+                    good.tran[rindex] <- (good.tran[rindex] |
+                                          apply(!termiss[rindex, k, drop=FALSE], 1, all))
+                }
+            }
+            n.partially.used <- sum(good.tran & bad.tran & !is.na(Y))   
+            omit <- (!good.tran & bad.tran) | is.na(Y)
+            if (all(omit)) stop("all observations deleted due to missing values")
+            temp <- setNames(seq(omit)[omit], attr(mf, "row.names")[omit])
+            attr(temp, "class") <- "omit"
+            mf <- mf[!omit,, drop=FALSE]
+            attr(mf, "na.action") <- temp
+            Y <- Y[!omit]
+            id <- id[!omit]
+            if (length(istate)) istate <- istate[!omit]  # istate can be NULL
+        }
     }
+
 
     if (length(dropterms)) {
         Terms2 <- Terms[ -dropterms]
