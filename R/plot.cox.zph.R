@@ -11,6 +11,7 @@ plot.cox.zph <- function(x, resid=TRUE, se=TRUE, df=4, nsmo=40,
     pmat <- lmat[1:nsmo,]       # for prediction
     xmat <- lmat[-(1:nsmo),]
 
+
     if (missing(ylab)) ylab <- paste("Beta(t) for", dimnames(yy)[[2]])
     if (missing(var)) var <- 1:nvar
     else {
@@ -57,19 +58,19 @@ plot.cox.zph <- function(x, resid=TRUE, se=TRUE, df=4, nsmo=40,
         
         qmat <- qr(xmat[keep,])
         if (qmat$rank < df) {
-            warning("Spline fit is singular, linear fit used")
-            qmat <- qr(cbind(1, xx[keep,]))
-        }   
-        if (se) {
-            bk <- backsolve(qmat$qr[1:df, 1:df], diag(df))
-            xtx <- bk %*% t(bk)
-            seval <- ((pmat%*% xtx) *pmat) %*% rep(1, df)
-	}
+            warning("spline fit is singular, variable ", i, " skipped")
+            next
+        } 
 
 	yhat <- pmat %*% qr.coef(qmat, y)
 	if (resid) yr <-range(yhat, y)
 	else       yr <-range(yhat)
+
 	if (se) {
+            bk <- backsolve(qmat$qr[1:df, 1:df], diag(df))
+            xtx <- bk %*% t(bk)
+            seval <- ((pmat%*% xtx) *pmat) %*% rep(1, df)
+    
 	    temp <- 2* sqrt(x$var[i,i]*seval)
 	    yup <- yhat + temp
 	    ylow<- yhat - temp
