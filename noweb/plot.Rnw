@@ -197,7 +197,7 @@ if (cumhaz) {  # plot the cumulative hazard instead
     else stop("invalid cumhaz argument")
 }
 else if (inherits(x, "survfitms")) {
-    i <- (x$states != noplot)
+    i <- !(x$states %in% noplot)
     if (all(i) || !any(i)) {
         # the !any is a failsafe, in case none are kept then ignore noplot
         ssurv <- smat(x$pstate)

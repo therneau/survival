@@ -5,7 +5,7 @@ Say we are looking at a particular time point with the following
 counts:
 \begin{center}
   \begin{tabular}{cccc}
-    &\multicolumn{3}{To} \\
+    &\multicolumn{3}{c}{To} \\
     & A & B & C \\ \hline
   A & 91 & 5 & 4 \\
   B &   3 & 50 & 0 \\
@@ -14,7 +14,7 @@ counts:
 \end{center}
 
 The transition rates at this point in time are 
-$\lamba_{AB} = 5/100$ = transitions from A to B,
+$\lambda_{AB} = 5/100$ = transitions from A to B,
 $\lambda_{AC} = 4/100$, $\lambda_{BA} = 3/53$, etc.
 $T$ is a matrix of these rates; every row sums to 1: everyone has to either
 transition to somewhere else or stay put at any given time point.
@@ -51,8 +51,8 @@ exp(A) &= B \\
 The elementwise derivative with respect to $w_i$, the weight of the $i$th 
 subject, will have elements of the form 
 $$
-\frac{\partial B_{jk}}{\partial a}\frac{\partial a}{\parial w_i} +
-\frac{\partial B_{jk}}{\partial b}\frac{\partial b}{\parial w_i}
+\frac{\partial B_{jk}}{\partial a}\frac{\partial a}{\partial w_i} +
+\frac{\partial B_{jk}}{\partial b}\frac{\partial b}{\partial w_i}
 $$ 
 
 A second strategy applies to matrices that are easily factored.

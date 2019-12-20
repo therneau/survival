@@ -818,7 +818,7 @@ btree <- function(n) {
 Referring again to figure \ref{treefig}, \code{btree(13)} yields the vector
 \code{7  3  8  1  9  4 10  0 11  5 12  2  6}
 meaning that the smallest element
-will be in position 8 of the tree, the next smallest in position 2, etc,
+will be in position 8 of the tree, the next smallest in position 4, etc,
 and using indexing that starts at 0 since the results will be passed to a C
 routine.
 The code just above takes care to do all arithmetic as integer.  

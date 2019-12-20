@@ -50,7 +50,7 @@ predetermined cutoff time $\tau$, along with a binary indicator of whether
 each subject did or did not survival longer than $\tau$.
 Problems with this approach were pointed out 4 decades ago by Berkson and
 Gage \cite{Berkson52}:
-subjects censored before $\tau$ have to be discarded in this approach,
+subjects censored before $\tau$ have to be discarded,
 making inefficient use of the data, and any difference between treatments in
 terms of the censoring distribution will again lead to biased estimates.
 
@@ -90,9 +90,9 @@ the last observed time in the data or the last observed event time.
 
 Here is a very simple example using overall survival from
 a clincal trial in colon cancer.
-The resulting KM influence matrix has a row for each observation and a column for
-each unique time.
-We use then calculate the restricted mean survival time (RMST), which is the
+The resulting KM influence matrix has a row for each observation and a column 
+for each unique time.
+We then calculate the restricted mean survival time (RMST), which is the
 area under the survival curve, i.e., the summed areas of a series of rectangles.
 The influence of each observation on the RMST is computed in the same way,
 since sum(changes in rectangles) = change in RMST.
@@ -363,7 +363,7 @@ on one visit they had no MC and the next visit, perhaps several years later,
 2 MC were observd. 
 This highlights that we are building a model for time to diagnosis of a condition
 rather than time to occurrence. 
-Most importantly, the check did not reveal any reversions from a greater
+More importantly, the check did not reveal any reversions from a greater
 state to a lesser, or other serious errors.
 
 <<nafld1, fig=TRUE>>=
@@ -378,7 +378,7 @@ With (time1, time2) data very early time points can have unstable
 P(state) estimates due
 to a small number of subjects at risk; we decided to start the curves at age 40
 to avoid this.
-The xet of subjects at risk at age 40 (at risk for further events) 
+The set of subjects at risk at age 40 (at risk for further events) 
 defines the initial
 probabilities, thus by definition 0\% begin in the death state.
 The curves then give future estimates for this cohort of 40 year olds.
