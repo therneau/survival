@@ -401,7 +401,7 @@ cord.getdata <- function(object, newdata=NULL, cluster=NULL, need.wt, timefix=TR
             else stop("left hand side of the formula  must be a numeric vector or a survival object")
         }
         if (timefix) y <- aeqSurv(y)
-        rval <- list(y= y, x= predict(object))
+        rval <- list(y= y, x= predict(object, newdata))
         # the type of prediction does not matter, as long as it is a 
         #  monotone transform of the linear predictor
     } 
@@ -669,7 +669,7 @@ cord.work <- function(data, timewt, ymin, ymax, influence=0, ranks=FALSE,
         if (is.null(wt)) vmat <- crossprod(dfbeta)
         else vmat <- t(wt * dfbeta) %*% dfbeta
         rval <- list(concordance=concordance, count=count, 
-                     n=length(flist[[1]]$x), var=vmat,
+                     n=flist[[1]]$n, var=vmat,
                      cvar= sapply(flist, function(x) x$cvar))
 
         if (influence==1) rval$dfbeta <- dfbeta

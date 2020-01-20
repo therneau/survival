@@ -1,5 +1,11 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 3.1-10}{
+  \itemize{
+    \item Fix error in concordance(fit, newdata= xxx): it used the old
+    data at one point.  Pointed out by Matjin van't Hooft.   
+}}
+
 \section{Changes in version 3.1-9}{
   \itemize{
     \item The plot.cox.zph function would fail for a stratified model,

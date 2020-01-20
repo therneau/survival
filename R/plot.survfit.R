@@ -97,7 +97,7 @@ plot.survfit<- function(x, conf.int,  mark.time=FALSE,
         else stop("invalid cumhaz argument")
     }
     else if (inherits(x, "survfitms")) {
-        i <- (x$states != noplot)
+        i <- !(x$states %in% noplot)
         if (all(i) || !any(i)) {
             # the !any is a failsafe, in case none are kept then ignore noplot
             ssurv <- smat(x$pstate)
@@ -527,7 +527,7 @@ lines.survfit <- function(x, type='s',
         else stop("invalid cumhaz argument")
     }
     else if (inherits(x, "survfitms")) {
-        i <- (x$states != noplot)
+        i <- !(x$states %in% noplot)
         if (all(i) || !any(i)) {
             # the !any is a failsafe, in case none are kept then ignore noplot
             ssurv <- smat(x$pstate)
@@ -871,7 +871,7 @@ points.survfit <- function(x, fun, censor=FALSE,
         else stop("invalid cumhaz argument")
     }
     else if (inherits(x, "survfitms")) {
-        i <- (x$states != noplot)
+        i <- !(x$states %in% noplot)
         if (all(i) || !any(i)) {
             # the !any is a failsafe, in case none are kept then ignore noplot
             ssurv <- smat(x$pstate)
