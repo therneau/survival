@@ -28,8 +28,7 @@ directly, instead work with the noweb source.  (You will need to have the noweb
 package loaded in order to run the Makefile.)
 
 You should be able to install this using the following R code:
-> library(devtools)
-> install_git("therneau/survival")
+library(devtools); install_github("therneau/survival")
 
 Note that good practice would be to make derived files such as R/tmerge.R
 "on the fly" using a configure script; that way there would not be a 
