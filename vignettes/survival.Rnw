@@ -460,10 +460,10 @@ curve, and omitted if there is more than one curve.
 
 Other options:
 \begin{itemize}
-  \item xaxt('r')  It has been traditional to have survival curves touch 
+  \item xaxs('r')  It has been traditional to have survival curves touch 
     the left axis
     (I will not speculate as to why).
-    This can be accomplished using \code{xaxt='S'}, which was the default in
+    This can be accomplished using \code{xaxs='S'}, which was the default
     before survival 3.x.  The current default is the standard R style,
     which leaves space between the curve and the axis.
   \item The follow-up time in the data set is in days.  This is very common in

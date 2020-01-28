@@ -317,8 +317,8 @@ tmerge <- function(data1, data2, id, ..., tstart, tstop, options) {
         if (argclass[ii] == "tdc") {
             if (argname[[ii]] %in% tevent)
                 stop("attempt to turn event variable", argname[[ii]], "into a tdc")
-            #if (!is.null(newvar))
-                #warning(paste0("replacement of variable '", argname[ii], "'")) 
+            if (!is.null(newvar))
+                warning(paste0("replacement of variable '", argname[ii], "'")) 
 
             # id can be any data type; feed integers to the C routine
             storage.mode(dstop) <- storage.mode(etime) <- "double"  #if time is integer

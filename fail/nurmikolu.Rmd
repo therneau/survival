@@ -15,7 +15,7 @@ this example?
 The first death in the data set is at time 60, so the first observation with
 snp=1 doesn't even count.
 The only window of time that matters is (254,298] where the data has variation
-in the covariate.  
+in the covariate.
 
 ```{r}
 fit0 <- coxph(Surv(time1, time2, status) ~snp, ndata, iter=0)

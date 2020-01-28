@@ -3,7 +3,10 @@
 \section{Changes in version 3.1-10}{
   \itemize{
     \item Fix error in concordance(fit, newdata= xxx): it used the old
-    data at one point.  Pointed out by Matjin van't Hooft.   
+    data at one point.  Pointed out by Matjin van't Hooft.
+    \item Minor update to tmerge -- print a warning when a user attempts
+    to update a variable using tdc, namely that this results in complete
+    replacement of said variable, with no retention of prior values.
 }}
 
 \section{Changes in version 3.1-9}{
