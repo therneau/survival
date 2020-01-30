@@ -258,7 +258,7 @@ plot.survfit<- function(x, conf.int,  mark.time=FALSE,
 
     if (!missing(xlim) && !is.null(xlim)) {
         tempx <- xlim
-        if (xaxs == 'S') tempx[2] <- tempx[2] + diff(tempx)*1.04
+        if (xaxs == 'S') tempx[2] <- tempx[1] + diff(tempx)*1.04
     }
     else {
         temp <-  stime[is.finite(stime)]
@@ -320,7 +320,7 @@ plot.survfit<- function(x, conf.int,  mark.time=FALSE,
 
     if (resetclip) {
       # yes, do it
-      if (xaxs=='S') tempx <- c(tempx[1], temp[1])
+      #if (xaxs=='S') tempx <- c(tempx[1], temp[1])
       clip(tempx[1], tempx[2], tempy[1], tempy[2])
       options(plot.survfit = list(plotclip=c(tempx, tempy), plotreset=par('usr')))
     }

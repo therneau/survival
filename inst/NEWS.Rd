@@ -7,6 +7,8 @@
     \item Minor update to tmerge -- print a warning when a user attempts
     to update a variable using tdc, namely that this results in complete
     replacement of said variable, with no retention of prior values.
+    \item Minor fixes to plot.survfit, when both xlim and xaxs='S' are
+    specified.  Error and suggested fixes from Heinz Tuechler.
 }}
 
 \section{Changes in version 3.1-9}{
