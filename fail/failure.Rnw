@@ -195,7 +195,7 @@ mfit30
 
 In this case the starting point of 0 is over 170 standard errors from the
 solution, due to the bizarre offset.
-The partial likelihood has so little curvature at 0 that the first first
+The partial likelihood has so little curvature at 0 that the first 
 estimate of $\beta$ is so large that the risk scores $\exp(X\beta)$ contain
 infinite values, and the routine fails at the first iteration.
 The step halving approach eventually wins, but it takes forever.

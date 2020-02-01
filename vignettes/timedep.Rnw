@@ -278,7 +278,7 @@ Where \code{data1} is the starting data set and additions to the data are
 taken from \code{data2}.
 The idea behind the function is that each addition will be ``slipped in''
 to the original data in the same way that one
-would slide a new card into an existing deck of cards. 
+would add a new folder into a file cabinet.
 It is a complex function, and we illustrate it below with a set of
 examples that sequentially reveal its features.
 
@@ -326,7 +326,7 @@ process form.
 \begin{itemize}
   \item Each row of the resulting data set represents a time interval
     (time1, time2] which is open on the left and closed on the right.
-    Covariate values for that row are the covariate values that apply
+    Covariate values for each row are the covariate values that apply
     over that interval.
   \item The event variable for each row $i$ is 1 if the time interval ends
     with an event and 0 otherwise.
@@ -417,8 +417,8 @@ all.equal(newcgd, test)
 
 \subsection{Stanford heart transplant}
 The \code{jasa} data set contains information from the Stanford heart
-transplant study, in the form that it appeared in the 
-paper of Crowley and Hu \cite{Crowley77}.
+transplant study, in the form that it appeared in the J American Statistical
+Association paper of Crowley and Hu \cite{Crowley77}.
 The data set has one line per subject
 which contains the baseline covariates along with
 dates of enrollment, transplant, and death or last follow-up.
@@ -439,7 +439,7 @@ that need to be dealt with when setting up an analysis data set.
     treatment for days 1--10 and as transplanted starting on day 11.
     That is, except for patient 38 who died on the same day as their procedure.
     They should be treated as a transplant death; the problem is resolved by
-    moving this transplant back .5 day.
+    moving this forward in time by .5 day.
 
   \item The treatment coefficients in table 6.1 of the 
     definitive analysis found in
@@ -497,7 +497,9 @@ variable is a NA for a
 \code{tdc} or \code{cumtdc} call that has two arguments and 0
 in all other cases.
 If the variable being created is already a part of data1, 
-then our updates make changes to that variable.
+then our updates make changes to that variable; in the case of
+an \code{event} call it results in an addition, for \cod{tdc}
+it results in wholesale replacement of any prior values.
 Be careful of this.  This feature is what allowed for the 
 \code{infection} indicator to be build up incrementally in the cgd
 example above, but quite surprising results can occur when you
