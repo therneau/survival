@@ -1,6 +1,6 @@
 \subsubsection{C-code}
 (This is set up as a separate file in the source code directory since
-it is easier to make the code stay in C-mode if the file has a .nw 
+it is easier to make emacs stay in C-mode if the file has a .nw 
 extension.)
 
 <<survfitci>>=

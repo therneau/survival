@@ -131,8 +131,12 @@ survcheck2 <- function(y, id, istate=NULL, istate0="(s0)") {
                          to= yfac[keep], 
                          useNA="ifany")
 
-    # now continue with error checks.  
+    # now continue with error checks
+    # A censoring hole in the middle, such as happens with survSplit,
+    #  is correctly ignored by the C routine. 
+    #
     mismatch <- (as.numeric(cstate2) != check$cstate)
+                 
 
     # gap = 0   (0, 10], (10, 15]
     # gap = 1   (0, 10], (12, 15]  # a hole in the time

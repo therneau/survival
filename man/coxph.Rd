@@ -91,8 +91,8 @@ coxph(formula, data=, weights, subset,
     the purposes of a robust variance.  If present, it implies
     \code{robust}.
     This variable will normally be found in \code{data}.}
-  \item{istate}{optional variable giving the intial state for each
-    subject. This variable will normally be found in \code{data}.}
+  \item{istate}{optional variable giving the current state at the start
+    each interval. This variable will normally be found in \code{data}.}
   \item{statedata}{optional data set used to describe multistate models.}
   \item{model}{
     logical value: if \code{TRUE}, the model frame is returned in component
