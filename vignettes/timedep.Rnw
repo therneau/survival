@@ -498,7 +498,7 @@ variable is a NA for a
 in all other cases.
 If the variable being created is already a part of data1, 
 then our updates make changes to that variable; in the case of
-an \code{event} call it results in an addition, for \cod{tdc}
+an \code{event} call it results in an addition, for \code{tdc}
 it results in wholesale replacement of any prior values.
 Be careful of this.  This feature is what allowed for the 
 \code{infection} indicator to be build up incrementally in the cgd

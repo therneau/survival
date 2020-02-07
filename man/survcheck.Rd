@@ -85,6 +85,6 @@ create.
 A simple approach is to call the \code{survcheck} routine without an
 \code{istate} argument, and use the constructed \code{istate} variable
 that it returns.  
-
+}
 \keyword{ survival }
 

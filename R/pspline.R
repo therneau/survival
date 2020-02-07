@@ -203,7 +203,7 @@ makepredictcall.pspline <- function(var, call) {
 predict.pspline <- function(object, newx, ...) {
     if (missing(newx)) return(object)
     at <- c(list(x=newx, penalty=FALSE), 
-           attributes(object)[c("nterm","intercept, Boundary.knots", "combine")])
+           attributes(object)[c("nterm","intercept", "Boundary.knots", "combine")])
     do.call("pspline", at)
 }
 
