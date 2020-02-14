@@ -74,12 +74,14 @@ pspline <- function(x, df=4, theta, nterm=2.5*df, degree=3, eps=0.1,
         if (any (combine != floor(combine) | combine < 0) ||
             any(diff(combine) < 0))
             stop("combine must be an increasing vector of positive integers")
-        if (!intercept) combine <- c(0, combine)
-        if (length(combine) != ncol(newx))
+        if (!intercept) ctemp <- c(0, combine)
+        else ctemp <- combine
+        # the intercept is removed from newx later
+        if (length(ctemp) != ncol(newx))
             stop("wrong length for combine")
-        uc <- sort(unique(combine))
+        uc <- sort(unique(ctemp))
         tmat <- matrix(0., nrow=ncol(newx), ncol=length(uc))
-        for (i in 1:length(uc)) tmat[combine==uc[i], i] <- 1
+        for (i in 1:length(uc)) tmat[ctemp==uc[i], i] <- 1
         newx <- newx %*% tmat
     }
 
@@ -99,6 +101,7 @@ pspline <- function(x, df=4, theta, nterm=2.5*df, degree=3, eps=0.1,
         attributes(newx) <- c(attributes(newx), list(intercept=intercept,
                                           nterm=nterm,
                                           Boundary.knots=Boundary.knots))
+        if (!missing(combine)) attr(newx, "combine") <- combine
         class(newx) <- "pspline"
         return(newx)
     }
@@ -188,6 +191,8 @@ pspline <- function(x, df=4, theta, nterm=2.5*df, degree=3, eps=0.1,
     attributes(newx) <- c(attributes(newx), temp,
                           list(intercept=intercept, nterm=nterm,
                           Boundary.knots=Boundary.knots))
+    if (!missing(combine)) attr(newx, "combine") <- combine
+
     class(newx) <- c("pspline", 'coxph.penalty')
     newx
     }
@@ -195,15 +200,20 @@ pspline <- function(x, df=4, theta, nterm=2.5*df, degree=3, eps=0.1,
 makepredictcall.pspline <- function(var, call) {
     if (call[[1]] != as.name("pspline")) return(call)  #wrong phone number
     newcall <- call[1:2]  #don't let the user override anything
-    at <- attributes(var)[c("nterm", "intercept", "Boundary.knots", "combine")]
+    indx <- match(c("nterm", "intercept", "Boundary.knots", "combine"),
+                  names(attributes(var)), nomatch=0)
+    at <- attributes(var)[indx]
     newcall[names(at)] <- at
+
     newcall
 }
     
 predict.pspline <- function(object, newx, ...) {
     if (missing(newx)) return(object)
+    indx <- match(c("nterm", "intercept", "Boundary.knots", "combine"),
+                  names(attributes(object)), nomatch=0)
     at <- c(list(x=newx, penalty=FALSE), 
-           attributes(object)[c("nterm","intercept", "Boundary.knots", "combine")])
+           attributes(object)[indx])
     do.call("pspline", at)
 }
 
