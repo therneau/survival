@@ -9,6 +9,9 @@
     replacement of said variable, with no retention of prior values.
     \item Minor fixes to plot.survfit, when both xlim and xaxs='S' are
     specified.  Error and suggested fixes from Heinz Tuechler.
+    \item Two failures in makepredictcall.pspline, found by 2 different
+    users, both cases of options that should have been carried forward.
+    A subsequent termplot() call failed if pspline had 'nterm' or 'combine'.
 }}
 
 \section{Changes in version 3.1-9}{
