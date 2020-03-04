@@ -69,22 +69,24 @@ survcheck(formula, data, id, istate, istate0="(s0)", timefix=TRUE,...)
 }
 \note{
 For data sets with time-dependent covariates, a given subject will often
-have intermediate rows with a status of 0 (no event at this time), for
-instance a subject who started in state 1 at time 0, transitioned to state
+have intermediate rows with a status of `no event at this time'.  (numeric
+value of 0).
+For instance a subject who started in state 1 at time 0, transitioned to state
 2 at time 10, had a covariate \code{x} change from 135 to 156 at time
 20, and a final transition to state 3 at time 30.
-The response would be \code{Surv(c(0, 10, 20), c(10, 20, 30), c(1,0,2))}:
+The response would be \code{Surv(c(0, 10, 20), c(10, 20, 30), c(2,0,3))}:
 the status variable records \emph{changes} in state, and there was no
 change at time 20.
-The \code{istate} variable would be (1, 2, 2); it retains its prior
-value status = censored.
+The \code{istate} variable would be (1, 2, 2); it contains the \emph{current}
+state, and so the value is unchanged when status = censored.
 
 Thus, when there are intermediate observations \code{istate} is not
 simply a lagged version of the status, and may be more challenging to
 create.
-A simple approach is to call the \code{survcheck} routine without an
-\code{istate} argument, and use the constructed \code{istate} variable
-that it returns.  
+One approach is to let \code{survcheck} do the work: call it with
+an \code{istate} argument that is correct for the first row of each
+subject, or no \code{istate} argument at all, and then insert the
+returned value into ones data frame.
 }
 \keyword{ survival }
 

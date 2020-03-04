@@ -185,7 +185,24 @@ A time-transform term allows variables to vary dynamically in time.  In
 this case the \code{tt} argument will be a function or a list of
 functions (if there are more than one tt() term in the model) giving the
 appropriate transform.   See the examples below.
+
+One user mistake that has recently arisen is to slavishly follow the
+advice of some coding guides and prepend \code{survival::} onto
+everthing, including the special terms, e.g.,
+  \code{survival::coxph(survival:Surv(time, status) ~ age +
+    survival::cluster(inst), data=lung)}
+First, this is unnecessary: arguments within the \code{coxph} call will
+be evaluated within the survival namespace, so another package's Surv or
+cluster function would not be noticed.
+(Full qualification of the coxph call itself may be protective, however.)
+Second, and more importantly, the call just above will not give the
+correct answer.  The specials are recognized by their name, and
+`survival::cluster' is not the same as `cluster'; the above model would
+treat \code{inst} as an ordinary variable.
+A similar issue arises from using \code{stats::offset} as a term, in
+either survival or glm models.
 }
+
 \section{Convergence}{
 In certain data cases the actual MLE estimate of a 
 coefficient is infinity, e.g., a dichotomous variable where one of the 
@@ -195,10 +212,10 @@ routine: either the log likelihood converges, the information matrix
 becomes effectively singular, an argument to exp becomes too large for 
 the computer hardware, or the maximum number of interactions is
 exceeded.
-(Nearly always the first occurs.)
+(Most often number 1 is the first to occur.)
 The routine attempts to detect when this has happened,
 not always successfully.
-The primary consequence for he user is that the Wald statistic =
+The primary consequence for the user is that the Wald statistic =
 coefficient/se(coefficient) is not valid in this case and should be
 ignored; the likelihood ratio and score tests remain valid however.
 }
@@ -228,7 +245,7 @@ for this task, but even with this the computation can be insufferably
 long.  With (start, stop) data it is much worse since the recursion
 needs to start anew for each unique start time.
 
-A second issue is that of artificial ties due to floating-point
+A separate issue is that of artificial ties due to floating-point
 imprecision. See the vignette on this topic for a full explanation or
 the \code{timefix} option in \code{coxph.control}.
 Users may need to add \code{timefix=FALSE} for simulated data sets.

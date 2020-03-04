@@ -19,6 +19,7 @@ SEXP zph2(SEXP gt2,    SEXP y2,
     int *keep;
     double denom, dtime=0, ndead, denom2;
     double risk, meanwt;
+    int nprotect;
 
     /* scalar input arguments and counts*/
     int  nused, nvar, nevent, nstrat;
@@ -63,10 +64,14 @@ SEXP zph2(SEXP gt2,    SEXP y2,
     /*
     **  Set up the ragged arrays and scratch space
     */
-    if (MAYBE_REFERENCED(covar2))
-	covar = dmatrix(REAL(duplicate(covar2)), nused, nvar);
+    nprotect =0;
+    if (MAYBE_REFERENCED(covar2)) {
+	nprotect =1;
+	covar = dmatrix(REAL(PROTECT(duplicate(covar2))), nused, nvar);
+	}
     else covar = dmatrix(REAL(covar2), nused, nvar);
 
+    nprotect++;
     PROTECT(rlist = mkNamed(VECSXP, rnames));
     u = REAL(SET_VECTOR_ELT(rlist, 0, allocVector(REALSXP, 2*nvar)));
     dtemp = REAL(SET_VECTOR_ELT(rlist, 1, allocMatrix(REALSXP, 2*nvar, 2*nvar)));
@@ -363,6 +368,6 @@ SEXP zph2(SEXP gt2,    SEXP y2,
 	    imat[i+nvar][j] = imat[j][i+nvar];
     }	
 
-    UNPROTECT(1);
+    UNPROTECT(nprotect);
     return(rlist);
 }

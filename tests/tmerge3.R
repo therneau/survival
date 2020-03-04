@@ -6,9 +6,9 @@ library(survival)
 #  a row merged in that is a censor, don't mark it as a cumevent.
 #
 base <- data.frame(
-  id = 1:2, tstart = c(0, 0), tstop  = c(10, 10), got_flue = c(0, 0), 
-  has_flue = factor(c("no", "no"), levels = c("no", "yes")))
-base <- tmerge(base, base, id = id, got_flue = event(tstop, got_flue))
+  id = 1:2, tstart = c(0, 0), tstop  = c(10, 10), got_flu = c(0, 0), 
+  has_flu = factor(c("no", "no"), levels = c("no", "yes")))
+base <- tmerge(base, base, id = id, got_flu = event(tstop, got_flu))
 
 # add time-varying covariates
 vars <- data.frame(id = c(1, rep(2, 5)), time = c(0, (0:4) * 2), x = rnorm(6))
@@ -18,13 +18,13 @@ base <- tmerge(base, vars, id = id, x = tdc(time, x))
 events <- data.frame(
   id = c(2, 2, 2), 
   # notice the zero -- the second row should not add an event
-  got_flue = c(1,0,2), 
-  has_flue = c("yes", "no", "yes"),
+  got_flu = c(1,0,2), 
+  has_flu = c("yes", "no", "yes"),
   time = c(3, 5, 8))
-b2 <- tmerge(base, events, id = id, got_flue = cumevent(time, got_flue),
-               has_flue = tdc(time, has_flue))
+b2 <- tmerge(base, events, id = id, got_flu = cumevent(time, got_flu),
+               has_flu = tdc(time, has_flu))
 
-all.equal(b2$got_flue, c(0,0,1,0,0,0,3,0))
+all.equal(b2$got_flu, c(0,0,1,0,0,0,3,0))
 
 
 # Tied times in the merger data set

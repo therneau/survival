@@ -80,7 +80,8 @@ survcheck2 <- function(y, id, istate=NULL, istate0="(s0)") {
     }
     else {
         if (length(istate) !=n) stop ("wrong length for istate")
-        cstate <- as.factor(istate)
+        if (is.factor(istate)) cstate <- istate[, drop=TRUE] #drop unused levels
+        else cstate <- as.factor(istate)
         inull <- FALSE
     }
 

@@ -11,7 +11,9 @@
     specified.  Error and suggested fixes from Heinz Tuechler.
     \item Two failures in makepredictcall.pspline, found by 2 different
     users, both cases of options that should have been carried forward.
-    A subsequent termplot() call failed if pspline had 'nterm' or 'combine'.
+    A subsequent termplot() call failed if pspline had 'nterm' or
+    'combine'.
+    \item Fix memory leak (forgotten PROTECT) in zph[12].c; caught by B Ripley
 }}
 
 \section{Changes in version 3.1-9}{

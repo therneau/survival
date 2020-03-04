@@ -155,7 +155,9 @@ residuals.survreg <- function(object, type=c('response', 'deviance',
                 else score <- cbind(score, deriv[,4])
                 }
             rr <- score %*% vv
-            if (type=='dfbetas') rr <- rr %*% diag(1/sqrt(diag(vv)))
+            # cause column names to be retained
+            # old: if (type=='dfbetas') rr[] <- rr %*% diag(1/sqrt(diag(vv)))
+            if (type=='dfbetas') rr <- rr * rep(1/sqrt(diag(vv)), each=nrow(rr))
             if (type=='ldcase')  rr<- rowSums(rr*score)
             }
 
