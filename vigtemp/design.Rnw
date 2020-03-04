@@ -33,12 +33,13 @@ late 1986.
 Since that point I've migrated through several releases of S-Plus and then of R.
 Why the long loyalty to this tool?
 
-The reason is that S has allowed me to turn ideas into software.  
+The reason is that S/R has allowed me to turn ideas into software.  
 Not just programs that can let me write a paper, but software that 
-I can count on for practical
-analysis, imbedded into a system with rich tools for data manipulation and
+I can count on for practical analysis,
+imbedded into a system with rich tools for data manipulation and
 presentation.
-I am a biostatistician by trade, in an institution where the primary motivation is
+I am a biostatistician by trade, in an institution where the primary 
+motivation is
 to address medical and biologic problems.  Statistics as a useful tool in
 that endeavor, but always secondary to the medicine. 
 Successful software is defined by the problems it helps me address.
@@ -55,22 +56,21 @@ The design details of the package have changed over time, but the primary
 design goals have remainded fairly constant.
 \begin{enumerate}
   \item Responsiveness.  Every addition to the package has been in response to
-a particular data analysis need, 
-so I need to be able to translate a new idea into software quickly.
-
-  \item Flexibility.  I often mix and match approaches from prior functions, or use
-their results in new ways that were unforseen at the time of writing. 
-As much as anything else, facilitating this means documenting all of the 
-components of a model's output. 
-
+    a particular data analysis need, 
+    so I need to be able to translate a new idea into software quickly.
+    The medical paper can't go on hold.
+  \item Flexibility.  I often mix and match approaches from prior functions, 
+    or use their results in new ways that were unforseen at the time of writing. 
+    As much as anything else, facilitating this means documenting all of the 
+    components of a model's output. 
   \item Ease of use, for both me and others.
   \item Reliability.  One of my colleages said this best during the interview of
     a new graduate (BA in statistics) who would be working on analysis of patient
     data:
-    ``An A- is no longer good enough: results have to be correct''.
+    ``An B is no longer good enough: results have to be correct''.
 
-\item Algorithmic excellence and code simplicity.
-This is more personal.  I would like to create the best.
+  \item Algorithmic excellence and code simplicity.
+    This is more personal.  I like things that I create to be well executed.
 \end{enumerate}
 
 The essential document for creating a package
@@ -80,18 +80,24 @@ there is no reason to repeat the material found therein.
 This document lives both above and below that one.
 Above, in discussing some of the higher level thought that went into
 many of the design choices in the survival package.
-Below, in that it also documents several technical aspects of package
-creation that I have not found written about in a cohesive way elsewhere.
+Below, in that it documents some technical aspects of package
+creation that I have not found addressed in a cohesive way elsewhere.
 
 \section{Model functions and formulas}
 Below are the primary functions for survival
 \begin{itemize}
+  \item Basic
+    \begin{description}
+      \item[Surv] package up a survival time
+      \item[tmerge] create survival data sets
+      \item[survSplit] create survival data sets
+      \item[survcheck] sanity checks of a survival data set
+  \end{description}
   \item Modeling
     \begin{description}
       \item[coxph] Cox proportional hazards model
       \item[coxme] Mixed effects Cox model
       \item[survreg] Accelerated failure time models (parametric)
-      \item[aareg] Aalen's additive hazard model
     \end{description}
   \item Survival curves
     \begin{description}
@@ -103,14 +109,9 @@ Below are the primary functions for survival
   \item Other summary
     \begin{description}
       \item[pyears] Summary of observed events, expected events, and observation
- time.
+        time.
       \item[concordance] the concordance statistic, for censored data
-    \end{description}
-  \item Ancillary
-    \begin{description}
-      \item[Surv] a survival time
-      \item[strata] marks a variable as a stratum indicator
-      \item[cluster] marks a variable as a cluster indicator
+      \item[yates] marginal summaries
     \end{description}
 \end{itemize}
 
@@ -122,7 +123,7 @@ rr <- resid(fit, type='dfbeta')
 @
 
 A key part to all the calls is the model formula and data frame.
-R provides very good facilities for this which are easy to use; this
+R provides easy to use functions to parse and manipulate formulas; this
 is one reason the formula interface is consistent across multiple
 packages.
 I'll talk about the left hand side, model frame, special terms,
@@ -130,7 +131,7 @@ and then the further special processing found in \code{coxme}.
 
 \subsection{Surv}
 The consistent model formula/data frame interface is one of the nicer features of
-S and we certainly want to use it.  
+R and we certainly want to use it.  
 The left hand side of all the formulas is a \code{Surv} object.
 Because the formula interface can easily deal with a matrix on the left hand
 side of a formula, this was set up as a matrix with an additional attribute
@@ -145,7 +146,9 @@ it would have been better as an S4 style for later,
 since S4 didn't exist until 10 years
 after it was created.  
 The S3 style has worked well, at least partly since the
-numeric operators on Surv objects are very simple:
+numeric operators on Surv objects are very simple: addition,
+subtraction, and etc. don't make sense, so all we need is an error
+message.
 
 <<methods>>=
 Math.Surv <- function(...)  stop("Invalid operation on a survival time")
@@ -169,6 +172,7 @@ single subscript, then the Surv object is treated as a vector and
 remains a Surv object after the call,
 but if two subscripts are given it is treated as a matrix, with a
 matrix like result.
+
 \begin{verbatim}
 > library(survival)
 > temp <- Surv(1:5, c(1,0,1,0,1))
@@ -185,9 +189,10 @@ matrix like result.
 [2,]    2      0
 [3,]    3      1
 \end{verbatim}
+
 The first behavior makes subscripting work correctly when a Surv
-object is part of a data frame, and a subset of the data frame
-is chosen.
+object is part of a data frame, and a user subscripts selected rows of
+the data frame.
 The second makes it easy to extract the time and/or status portions
 of the object.
 Subscript methods are key operations, and it is worthwhile to
@@ -197,20 +202,25 @@ retain all of the level information or only those which actually
 remain has endured for over a decade.
 
 An is.na method is necessary for na.action methods to work properly
-on a data frame:
+on a data frame, it should return a vector of TRUE/FALSE.
+
 \begin{verbatim}
 is.na.Surv <- function(x) {
     as.vector(rowSums(is.na(unclass(x))) >0)
     }
 \end{verbatim}
-The as.vector portion is to scrub any names from the vector.
-This can make dataframe methods faster and was a useful addition at the
-time I wrote it.  Whether this speed delta is still true I don't know, but
-rather doubt it.
+
+The as.vector portion is to scrub any names from the vector,
+unclass causes it to be treated as a numeric matrix.
+There are many other ways to write the interior of this function,
+some of which may be faster or slower than the one above.
+However it is done the operation is simple and fast, so the method doesn't really
+matter.
+
 The print method turns the object into a character form and then calls
 the ususal print function with \code{quote=FALSE}.
-The most complicated method method for Surv objects
-is \code{as.character]], at least in terms of lines of code. I chose
+A more complicated method method for Surv objects
+is \code{as.character}, at least in terms of lines of code. I chose
 to use an extension of the notation found in Miller 
 (the text I learned from) so that a death at day 30 
 prints as ``30'', right censored at day 30 as
@@ -221,7 +231,7 @@ and counting process data with an observation window between
 ``(20, 30]'' if there was an event at time 30.
 The primary reasons not to print the survival data as a matrix 
 were compactness,
-to make a survival object recognizable as one whenever it printed, 
+to make a survival object recognizable as such whenever it printed, 
 to print as a single object when printing a data frame,
 and also because users do
 not need to be constantly reminded of the internal form I chose to 
@@ -252,7 +262,59 @@ before the na.action is applied.
 
 Lesson: it is not always your first guess which works best.
 
-% Next is dataframe.nw
+There are a large number of S3 methods for Surv objects, and the list
+keeps growing.  All of these need to be defined, if we want the user experience
+to be seamless.
+\begin{itemize}
+  \item subscript ('[') was discussed above
+  \item length: we want Surv(1:3, c(1,1,1)) to return a length of 3, not the
+    number of items in our internal representation of the 3 values.
+  \item Math, Ops, Summary: define basic operations like '+', '&', sin, sum, etc.
+  \item matrix like methods: these call the R internal functions 
+    using as.matrix(x)//;
+    anyDuplicated, duplicated, as.data.frame, t, unique
+  \item names and names<- are implemented internally as row names of the
+    underlying matrix, but to the user it looks like a vector of names
+  \item plotting methdos: print a ``not valid'' error message for barplot, 
+    density, hist, identify, image, lines, points, pairs, text
+    text.  For plot.Surv we elected to print a Kaplan-Meier.
+  \item as.character, as.logical, as.integer, as.matrix, is.na, as.numeric, 
+    format
+  \item head, tail
+  \item levels: show the set of status values
+  \item mean, median, quantile: we chose to leave the mean undefinded (print
+    an error), while the median and quantiles are based on a Kaplan-Meier
+  \item print: lists the as.character form.  There is no summary method.
+  \item rep, rep.int, rep\_len: all the forms of rep
+  \item xtrfm: this method is used internally by the sort and order functions.
+    We chose to order data by status within time
+  \item c: concatonate Surv objects.  This turns out to be harder than one 
+    would expect.  What if they are different types, say one right censored
+    vector and one interval censored?  There are many combinations.
+\end{itemize}
+
+It is worthwhile to add any methods to a package that a user might try to
+apply and either give an error message or a defensible result;
+but remember that users will try things you \emph{never} thought of.
+There is, unfortunately, no curated list of methods.  A search for the
+character string \code{UseMethod} in the R source tree will locate most,
+but not those directly implemented in C.
+Generics are one case where argument names are important.  
+For instance, here is the R print generic 
+<<print, echo=TRUE>>=
+print
+@ 
+Thus the \code{print.coxph} function also should have exactly two argumets,
+of the same name, in the same order.  
+Your package generics will often still work if this advice is ignored,
+but at the cost of higher overhead and some loss in stability. 
+
+Occasionally a method seems reasonable but may be difficult to implement.  
+Creation of a cbind.Surv method, for instance, turns out to introduce more 
+problems than it solves.
+See the comments in the Surv.R source code for more detail.  
+(Perhaps someone else will solve this one day?)
+
 \section{Model frames}
 \subsection{Construction within the model}
 One of the first tasks of any modeling routine is to construct a special
@@ -276,7 +338,7 @@ However, this simple approach will fail with a ``not found'' error message
 if any of the data, subset, weights, etc. arguments are missing.
 Programs have to take the slightly more complicated approach of constructing
 a call.
-<<call, eval=FALSE>>= 
+\begin{verbatim}
 Call <- match.call()
 indx <- match(c("formula", "data", "weights", "subset", "na.action",
                 "cluster", "id", "istate"),
@@ -285,7 +347,7 @@ if (indx[1] ==0) stop("A formula argument is required")
 temp <- Call[c(1,indx)]  # only keep the arguments we wanted
 temp[[1]] <- quote(stats::model.frame)  # change the function called
 mf <- eval(temp, parent.frame())
-@
+\end{verbatim}
 
 We start with a copy of the call to the program; we want a copy of this
 anyway to save as ``call'' in the final output object.
@@ -315,18 +377,24 @@ Take special note that this can include more than just the standard
 quintet of formula, ..., na.action.
 The \code{id} variable, which identifies groups of lines for a single
 subject, is not part of the formula,
-and can be retrieved with \code{model.extract(mr, 'id')}, which will
+and can be retrieved with \code{model.extract(mf, 'id')}, which will
 be NULL if an \code{id} argument was not supplied.  
 At the time that coxph was written I had not caught on to this fact and
 thought that all variables that came from a data frame had to be represented
 in the formula somehow, thus the historical use of a \code{+ cluster(id)} 
 term to show a grouping variable. 
-The code then has to do extra work to pull a cluster variable out of the
+The code then has to do extra work to pull the cluster variable out of the
 model frame, including post-hoc removal of the term from the model formula 
 itself in order to prevent
 its appearance in the final $X$ matrix.
 (This design mistake will be with me forever, to support backwards compatability
 for old code.)
+
+For the usual arguments there are the \code{model.response(mf)},
+\code{model.matrix(mf)},  
+\code{model.weights(mf)}, \code{model.offset(mf)} calls --- though
+the original \code{model.extract(mf, 'response')} form still works.
+These extract the obvious bits from the model frame.
 
 A more complex case of non-formula variables is found in the pyears
 and survexp routines.
@@ -467,6 +535,11 @@ The note starting with ``beware'' was a late addition to the code.
 Someone wrote a model with \code{Surv(time, status) ~ age:strata(sex)},
 which will trigger the specials flag, but the resulting X matrix has
 no strata column that needs to be removed.
+This model has separate strata and coefficients for each sex; results
+are identical to fitting a separate model for each sex.
+That is, it is a completly legal model, but not something I anticipated,
+leading to assumptions in the downstream code that were not quite true
+(though now long fixed).
 
 Lesson: Users will do things you never thought of.  
 
@@ -480,28 +553,35 @@ The survival code first had a creation process local to the
 \code{predict.coxph} function, which was later replaced with this type of
 call.  It would have been easier to do it the new way from the beginning.
 
-There are two ways to create a method.  The first one is simple but a bit
+There are two ways to create a model frame method.  
+The first one is simple but a bit
 sneaky--- it was far from obvious to me at first.  An example
 is found in the \code{lm} routine. 
 In the main routine, just after constructing the model frame \code{m}, the code
 checks to see if it was called with \code{method = 'model.frame'};
-if so the routine returns \code{m}, otherwise it goes forward with the
+if so the routine returns the just constructed model frame \code{m}, 
+otherwise it goes forward with the
 usual computation.  Note that \code{lm} already has a method argument which is
 used to decide the compuational approach.  
-The \code{model.frame.lm} method then chooses between two actions: if its
+The \code{model.frame.lm} function is then very simple: if its
 argument is a prior fit that already contains a model frame (from a call that
 saved the model frame) and there are no further arguments such as data or subset
 that would modify the choice, then return the model frame which is already in
 hand, otherwise pass the arguments forward to the \code{lm} routine with
 method = 'model.frame'.
 
-This is actually a very nice idea, since any changes to the original routine
+This is actually a nice idea, since any changes to the original routine
 will automatically result in a change to the model.frame result.
 However, it is not sufficient to recreate a proper data frame for
 prediction --- predict.lm does not use model.frame.lm to reconstruct data.
-One problem is data dependent transformations, \code{ns(x, df=3)} for instance
-will construct a natural spline basis whose knots depend on selected quantiles
-of the distribution of ``x''.  
+The reason is that a newdata argument has to be handled a little differently,
+but the upshot is that it is easier to write a stand along model.frame
+argument in the first place. 
+
+The issue with new data is the possible presence of data dependent 
+transformations.
+For example, \code{ns(x, df=3)} will construct a natural spline basis
+whose knots are the 3 quartiles of \code{x}.
 If we want to use a fitted model to predict for new data, e.g.,
 \begin{verbatim}
 fit <- coxph(Surv(time, status) ~ trt + ns(age, 3), data=main)
@@ -509,7 +589,8 @@ fit <- coxph(Surv(time, status) ~ trt + ns(age, 3), data=main)
 new <- predict(fit, type="expected", newdata = data2)
 \end{verbatim}
 the predict function needs to know not just the formula from \code{fit}, but
-also what knot points were used by \code{ns}.
+also the quantiles of the \emph{original} age variable, i.e. what knot points 
+were used by  the first \code{ns} call.
 A similar issue occurs with factors (does the set of levels in the new data
 set match those in the old), what contrasts option was in force when the
 X matrix was created, 
@@ -518,12 +599,28 @@ logical in the second).
 All of these were serious issues in S.
 The current version of R has addressed all of them, but in different ways.
 Factors were the first to be repaired, 
-information about them is saved in the model frame
-and contrast informaion as an attribute of the $X$ matrix.
+information about them is saved in the model frame,
+and contrast informaion is returned as an attribute of the $X$ matrix.
 These are stored in the coxph object as \code{xlevels} and \code{contrasts}.
 Information about data dependent transformations is saved in the
 \code{predvars} attribute of the \code{terms} object, and information about
 data types is found in the \code{dataClasses} attribute of \code{terms}.
+All of these bits are available to the programmer, but as a new function
+writer it is your responsibility to actually save it in the fit object.
+As a standard you will find all of the following in an lm, glm, or coxph
+result:
+\begin{itemize}
+  \item call: a copy of the call which created the object (often saved
+    last or near last in the list)
+  \item terms: the result of \code{terms(mf)}, it contains a wealth of
+    information about the model statement and how it was processed
+  \item assign: the assign attribute of the $X$ matrix, as constructed
+    by model.matrix.  It contains the mapping between columns of $X$ and
+    the ``terms'' of the model --- some model variables turn into
+    multiple columns.
+  \item xlevels and contrasts: present if any of the predictors was a factor
+\end{itemize}
+Modeling functions should emulate this behavior.
 
 Here is the first part of predict.lm, with some lines deleted.
 \begin{verbatim}
@@ -562,95 +659,51 @@ This has the interesting (and useful) consequence if the variable
   predict(fit, newdata=test)   # has predictions for all
 \end{verbatim}
 
-The model matrix code for coxph models can't use the generic function
-above \code{model.matrix(Terms,...}.
+The model matrix code for coxph models can't use the simple generic
+form of \code{model.matrix(Terms,...} found above 
 \begin{enumerate}
+  \item We first have to deal with any \code{cluster} or \code{strata}
+    terms in the formula, they are handled in a special way and do not
+    become part of the $X$ matrix.
   \item In a Cox model the baseline hazard plays the role of an intercept.
     Therefore the X matrix should not have a column of 1s, but the rest
     of the matrix should be created as though there were a column of 1s.
-    So we first force the model to have an intercept, then toss the first
-    column of X after it is built.
-  \item Neither strata nor cluster variable should appear in the model.
+    The trick is to force an intercept in, create $X$, then throw away the
+    first column.
 \end{enumerate}
-
-<<model.matrix.coxph>>=
-model.matrix.coxph <- function(object, data=NULL, 
-                               contrast.arg=object$contrasts, ...) {
-    
-    # If the object has an "x" component, return it, unless a new
-    #   data set is given
-    if (is.null(data) && !is.null(object[['x']])) 
-        return(object[['x']]) #don't accidentally match "xlevels" using $
-
-    Terms <- delete.response(object$terms)
-    if (is.null(data)) mf <- model.frame(object)
-    else {
-        if (is.null(attr(data, "terms")))
-            mf <- model.frame(Terms, data, xlev=object$xlevels)
-        else mf <- data  #assume "data" is already a model frame
-    }
-
-    attr(Terms,"intercept")<- 1  #Cox model always has \Lambda_0
-    strats <- attr(Terms, "specials")$strata
-    cluster<- attr(Terms, "specials")$cluster
-    dropx <- NULL
-    if (length(cluster)) {
-        tempc <- untangle.specials(Terms, 'cluster', 1:10)
-        ord <- attr(Terms, 'order')[tempc$terms]
-        if (any(ord>1)) stop ("Cluster can not be used in an interaction")
-        dropx <- tempc$terms
-        }
-    if (length(strats)) {
-        temp <- untangle.specials(Terms, 'strata', 1)
-        dropx <- c(dropx, temp$terms)
-        }
-
-    if (length(dropx)) {
-        newTerms <- Terms[-dropx]
-        X <- model.matrix(newTerms, mf, contrasts=contrast.arg)
-        }
-    else {
-        newTerms <- Terms
-        X <- model.matrix(Terms, mf, contrasts=contrast.arg)
-        }
-@
-
-The model.matrix.lm function is much shorter.  It first checks for
-the existence of a pre-existing \code{x} component.  If that is not
-present, then it calls model.frame.lm followed by the generic
-model.matrix function.
-If called with a data argument the routine currently does not correctly
-use it (a fix may appear shortly).  This has been a rare to non-existent
-usage, however.
 
 Goals for the \code{model.frame.coxph} function were to have a single 
 routine that can be called from the predict, survexp, and survfit
 methods for coxph, and reconstruct either a new frame or the old
 frame correctly.  It should also be valid from the command line.
 There is an apparent problem with this which initially drove me to
-distraction.  The line \code{eval(temp, parent.frame())} looks like it
-would be a problem when we have 
-predict.coxph $\rightarrow$ model.frame.coxph $\rightarrow$ model.frame.
-Say someone had a variable \code{x} in their model and it's not part of the
-data frame.  Then the parent frame when the eval is done inside
-model.frame.coxph will be the predict function.  If my predict.coxph
-function happened to have a variable \code{x} we'd pick that up instead.
-Right?
+distraction.  
+That is, the first part of the evaluation eventually comes down to
+the same line we found in coxph: \code{mf <- eval(temp, parent.frame())}
+What if the user had a variable \code{x}, say, that is part of the 
+formula but not part of the data frame; it was picked up from the
+local environment.  If \code{predict} is run at a later time,
+\code{x} might no longer be part of the local data, i.e. in the parent
+frame.  
+In fact, the original function call might have been inside another
+function call, referring to an \code{x} variable that was ephemeral.
+This can't possibly succeed.
 
 Wrong.  The model.frame function is different.  First, formulas act like
 functions in R, in that they capture the environment.  
 At the moment the formula
 is defined it takes a ``snapshot'' of where it is in the evaluation
 space: what the local variables are and what is the parent environment (which
-keeps track of its parent, which points to its parent, etc.)  
+keeps track of its parent, which points to its parent, etc.) 
 If the first argument of model.frame is a formula or terms object, then
 variables are first searched for in the data argument (if any) and then
-in the environment of the formula.  The second argument of eval is
-completely ignored.
+in the environment of the formula.  
+The parent.frame() argument of eval is essentially ignored for any
+pre-existing formula.
 This non-standard behavior of model.frame is a good thing 95\% of the
 time, as it makes formulas work the way users expect.  
 As for the other 5\%, well, if you put all your variables into a 
-data argument none of these issues arise in the first place.
+data argument none of the odd cases arise in the first place.
 Here is a simple example that manifests the behavior.
 \begin{verbatim}
 myformula <- y ~ x
@@ -661,57 +714,36 @@ myfun <- function(y, x) {
 > myfun(1:10, 11:20)
 Error in eval(expr, envir, enclos) : object 'y' not found
 \end{verbatim}
+The formula is firmly anchored to the moment of its creation; 'y'
+didn't exist then, and so for \code{lm} it doesn't exist now either.
+\begin{quote}
+ Michael: Harold, don't you have any other music, you know,
+from this century?
+Harold: There is no other music ...  The Big Chill
+\end{quote}
 
-Here is the model.frame function.
-<<model.frame.coxph>>=
-model.frame.coxph <- function(formula, ...) {
-    dots <- list(...)
-    nargs <- dots[match(c("data", "na.action", "subset", "weights"), 
-                        names(dots), 0)] 
-
-    # If nothing has changed and the coxph object had a model component,
-    #   simply return it.
-    if (length(nargs) ==0  && !is.null(formula$model)) mf <- formula$model
-    else if (is.null(nargs$data)) {
-        # Rebuild the original call to model.frame
-        fcall <- formula$call
-        indx <- match(c("formula", "data", "weights", "subset", "na.action"),
-                  names(fcall), nomatch=0) 
-        if (indx[1] ==0) stop("The coxph call is missing a formula!")
-
-        temp <- fcall[c(1,indx)]  # only keep the arguments we wanted
-        temp[[1]] <- as.name('model.frame')  # change the function called
-        temp$xlev <- formula$xlevels
-        temp$formula <- terms(formula)  #keep the predvars attribute
-        # Now, any arguments that were on this call overtake the ones that
-        #  were in the original call.  
-        if (length(nargs) >0)
-            temp[names(nargs)] <- nargs
-
-        mf <- eval(temp, parent.frame())
-        # Since this is a call to model.frame with a formula as the first
-        #  argument, the second arg above is ignored.  Leave it in for
-        #  form.
-        if (!is.null(attr(Terms, "dataClasses")))
-	   .checkMFClasses(attr(Terms, "dataClasses"), mf)
-    }
-    else {
-        # Use the old terms (which preserves transformations), 
-        #  new versions of all else
-        newargs <- c(nargs, list(formula=terms(formula), xlev=formula$xlevels))
-        mf <- do.call("model.frame", newargs)
-        if (!is.null(attr(Terms, "dataClasses")))
-	   .checkMFClasses(attr(Terms, "dataClasses"), mf)
-    }
-    mf
-}   
-@ 
-In the above, the odds that someone will want to rebuild the original data
-frame but with different weights, subset, or na.action is very slim.
-Even with a new data set they are unlikely, but including them is not
-much extra work.
-
-
+More serious examples can occur in simulation studies, which is
+the type of situation where variables often are not in a data
+frame, and a later compuational step needs more data information than
+was saved in the fit.
+A survival example is the computation of dfbeta residuals from a
+coxph fit.  (I need to include an concrete example).
+If \code{model=TRUE} in a coxph, glm, lm, etc. call then the output
+will include a full copy of the model frame, and the issues go
+away: the later routine no longer needs to reconstruct the original
+data.
+This leads to an important design decision.
+\begin{itemize}
+  \item The lm and glm routines changed (2000 or so) their default to 
+    \code{model=TRUE}.  Problem solved.
+  \item The survival routines have chosen to use model=FALSE as the
+    default.  The reason is simply that the author often works with
+    large data sets, fitting several dozen models during the course of an
+    analysis, and I prefer not to keep a dozen redundant copies of every
+    data set. It does mean that I get a few ``why does it fail'' queries
+    a year, to which the usual answer is to add the \code{x=TRUE} or
+    \code{model=TRUE} argument to that particular call.
+\end{itemize}
 
 \section{Classes}
 The result of many portions of the survival package, and the fitting 
@@ -721,8 +753,8 @@ The R system has two types of class structures, a more informal and
 flexible one usually
 referred to as ``S3'' which was introduced in version 3 of Splus, 
 and a collection of
-more formal ones of which ``S4'' is the first and most common and
-was introduced about 10 years after S3. 
+more formal ones of which ``S4'' is the first,
+introduced about 10 years after S3. 
 More recent flavors such as prototype based OO have been
 implemented as add on packages.  
 There are few topics in S that generate as much emotion as a debate
@@ -730,14 +762,13 @@ about the ``best'' class system.
 The more formal classes are much more closely aligned with 
 current computer science
 teachings with respect to class design, 
-and there is a commonly voiced sentiment that
-one always use the new methods by preference; some members of R core are
-in this camp, lending the argument weight.
+and there is an oft voiced sentiment that the ``modern'' methods should
+be preferred.  The bioconductor project, for instance, has made this
+a requirement of their packages.
 (Although the large historical body of code based on S3 means 
 that support for it will not go away.)
-In counterpoint are arguments that S4 is a complexity disaster
-suitable only for masochists.
-My view differs from these; 
+In counterpoint are arguments that S4 is a whirlpool of complexity
+suitable only for masochists. 
 I have used both S3 and S4 and find them appropriate for
 different tasks.  We should keep them both.
 
@@ -783,61 +814,56 @@ S3 classes will be superior.
 Many things fall between these two poles of course.
 
 An example of a class for which the advantages of S4 are compelling is 
-date or
-date/time objects.  You want to specify that date+integer, 
-date-integer, and
-date-date create sensible results, 
-but integer-date and date+date do not.
-The S4 system does this with ease.
+date or date/time objects.  
+We expect that expressions of date+integer, 
+date-integer, and date-date will create sensible results, 
+but integer-date and date + date should not.
+The S4 system has defined recipes for all of these.
 As another example, the
 coxme function makes heavy use of a libary for 
 Block Diagonal Sparse matrices.
-The bdsmatrix library used S4 classes entirely, since it allowed me 
-to define
-the appropriate routine to use for combinations 
-like \code{bdsmatrix * numeric}
-or \code{matrix %*% bdsmatrix}. 
+The bdsmatrix library used S4 classes entirely, since it allowed me to
+set up structures such that \code{bdsmatrix * numeric} or 
+\code{matrix \%*\% bdsmatrix} work appropriately, automatically.
 
-The model fit objects for survival and coxme are all of S3 form.
+The model fit objects for survival are all of S3 form.
 The survival model objects in particular have evolved over time,
 and a particular strength of S3 classes is the ease with which they
 accomodate change.  
-The additions to the original coxph object make up almost
+Additions to the original (1990) coxph object now comprise over
 half of the current elements within it (see section \ref{sect:output}),
 and that original was itself the culmination
 of earlier versions developed over several years. 
 An S4 class can extend a prior one, so an alternative would be an original
 coxph class, a later coxph2 that extended it, coxph3 extending coxph2, 
-etc with
-each having more components.  I think I'd be up to 9 or 10 by now --- it is
-very hard to guess what will be important next year, 
-even in my area of particular
-expertise.  To quote the sage
-``Making predictions is difficult, especially
-about the future.'' (Yogi Berra).
-This is my greatest difficulty with S4 and other formal objects, to
-get a complex class like a coxph or other model correct on the first try
-requires near omniscience.
+etc with each having more components. There would have been at least 15
+such extensions by now, leading to a complete mess.
+Essentially, creating a good S4 object requires near omniscience with respect to
+any future components that will be needed.
+This is attainable for the simple stuctures found in a CS classroom, a date, or
+even a matrix.  
+Seeing the future is much harder, perhaps impossible, for the results of a
+complex fitting routine such as coxph. 
 
 One further restriction on S4 objects is that all of their components 
-must also be valid S4 objects.  
+must also be valid S4 objects or base R vectors.  
 For a simple object like Surv this is no hindrance, since the
-basic elements of the language are, for obvious reasons, 
-all defined using the S4 approach. 
-However, the terms structure is not S4 and this plays a key role in
-most of my downstream calculations, loss of it would be a major blow.
+basic elements are all simple.
+However, the terms structure, which plays a key role in many of the
+downstream methods for coxph, is not S4; loss of this would be
+ a major blow.
 Ripley and Venables in \emph{S Programming} have an example using S4 methods
 to define a principle components result, something much simpler in scope
 than a survival curve or model fit; 
 it is instructive to both show how the process
-\emph{can} be done as well being an an illstration of the 
-difficulties this choice brings.
+\emph{can} be done as well being an an illstration of how difficult the task
+is within the S4 constraints.
 
 The Surv object is in the middle.  It is currently of S3 form, 
 which succeeds due to
 the fact that the needed transformations are so few and so simple.  
 If redoing it from scratch I would 
-almost certainly use the S4 paradym.
+likely use the S4 paradym.
 There is a rudimentary facility to define general methods for S3 objects,
 i.e., numerical, logical, etc.  This was sufficient for Surv and continues
 to exist for backwards compatability, but it should not be used for
@@ -847,13 +873,12 @@ My strongest feelings on the S3 versus S4 debate is a
 severe disagreement with any
 who preach that either of the two systems is inferior 
 and should never be used.
-I am a pragmatist, with both metric and English wrenches in my toolbox 
-(well used),
+I am a pragmatist, with both metric and inches wrenches in my toolbox 
+(both well used),
 both frequentist and Bayes methods in my analyses, 
 and both S3 and S4 methods in my code.  
 
 
-% -*- mode: noweb; noweb-default-code-mode: S-mode; -*-
 \section{Output}
 \subsection{What to keep?}
 \label{sect:output}
@@ -897,17 +922,16 @@ prior releases of the code to Statlib).
         it seemed worthwhile to include them by default while other 
         residuals
         could be computed later using the residuals function.
-        Times change and theory advances, however, and now I use them only
-        occassionally.
+        Times change and theory advances, however, and the martingale residuals
+        are only used rarely.
        \item A vector of means, which was used to center the covariates 
          before
         computation.  The Cox model coefficients and likelihood are 
         unchanged by this
         centering, but the internal numerical computations are much 
         more stabile if
-        you do it.  Also, it was traditional to report the basedline 
-        survival for
-        this particular covariate combination.
+        you do it.  Also, it has been traditional to report the basedline 
+        survival for this particular covariate combination.
       \item Miscellaneous information: the number of observations in the 
         fit,
         the number of iterations required, and the method used for ties.
@@ -927,13 +951,11 @@ in roughly the order they were added (as best I can remember).
   \item Robust variance.  If someone asks for a robust variance 
     we'd expect them to want
     to use it, so to avoid having to make changes in all the 
-    rest of the survival functions
-    the original variance is saved as \code{naive.var} and the 
-    robust one takes its
+    rest of the survival functions the original variance is saved as 
+    \code{naive.var} and the robust one takes its
     place in \code{var}.
   \item Information on any penalized terms that were used in the model.  
-    This addition
-    allowed for smoothing spline and simple frailty terms.
+    This addition allowed for smoothing spline and simple frailty terms.
   \item Robust score and Wald tests.
   \item Retention of factor levels and the contrasts used.  
     The behind the scenes code
@@ -944,6 +966,8 @@ in roughly the order they were added (as best I can remember).
   \item Concordance statistic.  This had to wait until I figured out 
     an efficient way to compute it.
   \item Information on any time-transform variables in the model.
+  \item For multi-state models, the mapping between coefficients and
+    transitions (some transitions might share a coefficient).
  \end{itemize}
 
 If designing a new class we can summarize the above into four
@@ -1032,7 +1056,7 @@ work automatically for you.  The fitted model parameters should be
 ``coefficients'', not ``coef'', ``beta'', or ``param'', for instance.
 The lmer routine for linear mixed effects models uses \code{VarCorr} for the
 estimated variance matrix of the random effects; this is not the name
-I would have chosen, but consistency for the users was deemed more important.
+I would have chosen, so the coxme function followed suit.
 
 Last on my list is a set of things that you might never think of.
 Every model should return the following parts:
@@ -1052,10 +1076,6 @@ Every model should return the following parts:
 \end{enumerate}
 The last three of these are important when creating predictions using
 the current model and a new data set. 
-
-
-
-
 
 \section{Missing values}
 Dealing with missing values in the input data set has been covered in the
@@ -1192,7 +1212,7 @@ since the S answer is different than the one from \emph{their} package.
 (For some cases, e.g. SAS phreg + Efron approximation + robust variance,
 it even allows me to tell exactly where they went wrong.)
 
-The survival package test suite currently has 74 test files. 
+The survival package test suite currently has 91 test files. 
 They can be organized into 3 primary groups.
 \begin{itemize}
   \item The formal tests discussed above.  In all these cases there will be
@@ -1231,8 +1251,6 @@ not covered.
 The RUint primer has an excellent description of
 the benefits of proactive testing and the attitude one should take towards it.
 
-
-
 When repeating one of the tests during a debugging cycle, one annoying aspect
 of R is the namespace.
 That is, let us say that I am chasing down a bug in the survfitTurnbull routine,
@@ -1242,8 +1260,8 @@ call to survfit with the appropriate data my edited version will be ignored.
 The survfit routine will call its own version of the routine, out of the
 loaded package, in preference.  
 This is exactly the right thing for R to do in ordinary practice, as it keeps
-users from accidentally overwriting one of my routines (or perhaps purposefully
-if it is FH), but gets in the way when debugging.
+users from accidentally overwriting one of my routines,
+but gets in the way when debugging.
 To solve this I have a second copy of the routines in a separate directory, and
 a Makefile in that directory which copies them from the master source area 
 that is to create my library.  

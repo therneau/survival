@@ -44,10 +44,12 @@ go to one place then fewer go to another.
 This can act as a check on our algebra.
 
 <<sexpm>>=
+#Functions to create the matrix exponential and it's derivative
 sexpm <- list(
     <<dexp2>>
     <<dexp3>>
     <<dexp4>>
+    <<dexp5>>
     )
 @ 
 
@@ -55,6 +57,8 @@ The simplest case of two states and one or 2 transitions.
 <<dexp2>>=
 d2a= list(nstate =2, nonzero=3,
           # 2 states 1 transition
+          #  -a   a
+          #   0   0
           mexp = function(tmat, time, eps=1e-8) {
               a <- tmat[1,2]
               if (a < eps)  # no events
@@ -75,6 +79,8 @@ d2a= list(nstate =2, nonzero=3,
 
 d2b = list(nstate=2, nonzero=2:3,
      # 2 states, 2 transitions
+     #   -a  a
+     #    b -b
      mexp = function(tmat, time, eps= 1e-8) {
          a <- tmat[1,2]; b <- tmat[2,1]
          d1 <- a+b
@@ -102,14 +108,14 @@ d2b = list(nstate=2, nonzero=2:3,
              partial.b <- c(-(a/d1)*(time*e1 - (1-e1)/d1),
                             (1+ b*time*e1 - e1)/d1 - b*(1-e1)/d1^2,
                             (a/d1)*(time*e1 - (1-e1)/d1),
-                            (1-b*time)*e1/d1 - (b*e1 -a)/d1^2)
+                            b*(1-e1)/d1^2 - (1+ b*time*e1 - e1)/d1)
              array(c(partial.b, partial.a), dim=c(2,2,2))
          }
      }
 ),
 @ 
 
-Competing risks for 3, 4, \ldots states.  Here is the analytic form
+Competing risks for 3, 4 and 5 states.  Here is the analytic form
 for 4 states, the others are similar.
 
 \begin{eqnarray}
@@ -126,6 +132,9 @@ for 4 states, the others are similar.
   
 <<dexp3>>=
 # 3 states, 2 transitions, competing risks
+# -(a+b)  a   b
+#   0     0   0
+#   0     0   0
 d3a = list(nstate =3, nonzero=c(4,7),
            mexp = function(tmat, time, eps= 1e-8) {
                d1 <- tmat[1,2] + tmat[1,3]
@@ -177,15 +186,19 @@ d3b = list(nstate=4, nonzero=c(5,9,13),
          if (d1 < eps) array(0, dim=c(4,4,3))
          else {
              e1 <- exp(-time*d1)
-             temp1 <- c(-time*e1, (1 + r1*time*e1)/d1 + r1*(e1-1)/d1^2,
-                        (r2/d1)*(time*e1 + (e1-1)/d1), 
-                        (r3/d1)*(time*e1 + (e1-1)/d1))
-             temp2 <- c(-time*e1,  (r1/d1)*(time*e1 + (e1-1)/d1),
-                        (1 + r2*time*e1)/d1 + r2*(e1-1)/d1^2,
-                        (r3/d1)*(time*e1 + (e1-1)/d1))
-             temp3 <- c(-time*e1,  (r1/d1)*(time*e1 + (e1-1)/d1),
-                        (r2/d1)*(time*e1 + (e1-1)/d1),
-                        (1 + r3*time*e1)/d1 + r3*(e1-1)/d1^2)
+             temp <- (time*e1 + (e1-1)/d1)/d1
+             temp1 <- c(-time*e1, 
+                        r1*temp + (1-e1)/d1,
+                        r2*temp,
+                        r3*temp)
+             temp2 <- c(-time*e1,  
+                        r1*temp,
+                        r2*temp + (1-e1)/d1,
+                        r3*temp)
+             temp3 <- c(-time*e1,  
+                        r1*temp,
+                        r2*temp,
+                        r3*temp + (1-e1)/d1)
              dmat <- array(0, dim=c(4,4,3))
              dmat[1,,1] <- temp1  # derivatives wrt r1
              dmat[1,,2] <- temp2  # derivatives wrt r2
@@ -216,22 +229,20 @@ d3c = list(nstate=5, nonzero=c(6,11,16, 21),
          if (d1 < eps) return(array(0, dim=c(5,5,4)))
 
          e1 <- exp(-time*d1)
-         temp1 <- c(-time*e1, (1 + r1*time*e1)/d1 + r1*(e1-1)/d1^2,
-                    (r2/d1)*(time*e1 + (e1-1)/d1), 
-                    (r3/d1)*(time*e1 + (e1-1)/d1),
-                    (r4/d1)*(time*e1 + (e1-1)/d1))
-         temp2 <- c(-time*e1,  (r1/d1)*(time*e1 + (e1-1)/d1),
-                    (1 + r2*time*e1)/d1 + r2*(e1-1)/d1^2,
-                    (r3/d1)*(time*e1 + (e1-1)/d1),
-                    (r4/d1)*(time*e1 + (e1-1)/d1))
-         temp3 <- c(-time*e1,  (r1/d1)*(time*e1 + (e1-1)/d1),
-                    (r2/d1)*(time*e1 + (e1-1)/d1), 
-                    (1 + r3*time*e1)/d1 + r3*(e1-1)/d1^2,
-                    (r4/d1)*(time*e1 + (e1-1)/d1))
-         temp4 <- c(-time*e1,  (a/d1)*(time*e1 + (e1-1)/d1),
-                    (r2/d1)*(time*e1 + (e1-1)/d1), 
-                    (r3/d1)*(time*e1 + (e1-1)/d1),
-                    (1 + r4*time*e1)/d1 + r4*(e1-1)/d1^2)
+         temp <- (time*e1 + (e1-1)/d1)/d1
+         temp1 <- c(-time*e1, 
+                    r1*temp + (1-e1)/d1,
+                    r2*temp, r3*temp, r4*temp)
+         temp2 <- c(-time*e1, 
+                    r1*temp,
+                    r2*temp + (1-e1)/d1,
+                    r3*temp, r4*temp)
+         temp3 <- c(-time*e1,  
+                    r1*temp, r2*temp,
+                    r3*temp + (1-e1)/d1,  r4*temp)
+         temp4 <- c(-time*e1,  
+                     r1*temp, r2*temp, r3*temp,
+                     r4*temp + (1-e1)/d1)
          dmat <- array(0, dim=c(5,5,4))
          dmat[1,,1] <- temp1
          dmat[1,,2] <- temp2
@@ -247,19 +258,21 @@ death state.
 
 <<dexp4>>=
 # 2 + death
+# -(a+b)  a   b
+#   0    -c   c
 d4a = list(nstate=3, nonzero = c(4, 7, 8),
            mexp = function(tmat, time, eps= 1e-8) {
                r1 <- tmat[1,2]; r2 <- tmat[1,3]; r3 <- tmat[2,3]
                d1 <- r3- (r1 + r2)
                e1 <- exp(-(r1 + r2)*time) 
                if (r1 + r2 + r3 < eps) diag(3)
-               else if (r3 < eps) dexp["3a"]$mexp(tmat, time, eps)
+               else if (r3 < eps) sexpm[["d3a"]]$mexp(tmat, time, eps)
                else if (abs(d1) < eps) {
                    matrix(c(e1, 0, 0, 
                             r1*time*e1, e1, 0,
                             1- e1*(1 + r1*time), 1- e1, 1), 3, 3)
                }
-               else {
+               else { # 99% of the calls
                    e2 <- exp(-r3*time)
                    matrix(c(e1, 0, 0,
                           r1*(e1 -e2)/d1, e2, 0,
@@ -275,8 +288,8 @@ d4a = list(nstate=3, nonzero = c(4, 7, 8),
                else if (r3 < eps)  sexpm["3a"]$deriv(tmat, time, eps)
                else if (abs(d1) < eps) {
                    temp1 <- c(-time* e1, 0, 0,
-                              time*e1*(1- time*r1), -time*e1, 0,
-                              r1* time^2 * e1, time*e1, 0)
+                              (e1-e2)*(1+ r1/d2)/d2 - r1*t*e1/d2, 0, 0,
+                              r1*(e1-e2)/d2^2, 0, 0, 0)
                    temp2 <- c(-time*e1, 0, 0,
                               -a*time^2* e1, -time*e1,  0,
                               time*e1*(1 + time*r1), time*e1, 0)
@@ -285,10 +298,35 @@ d4a = list(nstate=3, nonzero = c(4, 7, 8),
                }
                else {
                    # this case should be 99% of the calls
-                   temp1 <- c(-time*e1, 0, 0, 0)
-                   temp1
+                   e2 <- exp(-r3*time) 
+                   temp1 <- matrix(c(-time*e1, 0, 0, 
+                              (e1-e2)/d1 + r1*(e1-e2)/d1^2 - r1*time*e1/d1,
+                              0, 0, 0, 0, 0), ncol=3)
+                   temp1[,3] <- -rowSums(temp1)
+                   temp2 <- matrix(c(-time*e1, 0, 0, 
+                              r1*(e1-e2)/d1^2 - r1*time*e1/d1,
+                              0, 0, 0, 0, 0), ncol=3)
+                   temp2[,3] <- -rowSums(temp2)
+
+                   temp3 <- matrix(c(0,0,0, 
+                                     r1*(e2-e1)/d1^2 + r1*time*e2/d1, 
+                                     -time*e2, 0, 0,0,0), ncol=3)
+                   temp3[,3] <- -rowSums(temp3)
+                   array(c(temp1, temp2, temp3), dim=c(3,3,3))
                }
            }
 )
-                              
+
+# 3 + death
+# -(a+b)  a      0   b
+#   0    -(c+d)  c   d  
+#   0       0    -e  e
+# Not filled it yet
 @
+
+Since the upper triangular method is also fast (any acyclic graph), the
+competing risks and sequential solvers above were not critical.
+More complex models like illness-death lead to very long code.
+
+
+
