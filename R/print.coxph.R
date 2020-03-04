@@ -36,14 +36,24 @@ print.coxph <-
         # print it group by group
         tmap <- x$cmap[-1,,drop=FALSE]  # ignore the intercept (strata)
         cname <- colnames(tmap)
+        printed <- rep(FALSE, length(cname))
         for (i in 1:length(cname)) {
-            tmp2 <- tmp[tmap[,i],, drop=FALSE]
-            names(dimnames(tmp2)) <- c(cname[i], "")
-            # restore character row names
-            rownames(tmp2) <- rownames(tmap)[tmap[,i]>0]
-            printCoefmat(tmp2, digits=digits, P.values=TRUE, has.Pvalue=TRUE,
-                 signif.stars = signif.stars, ...)
-            cat("\n")
+            # if multiple colums of tmat are identical, only print that
+            #  set of coefficients once
+            if (!printed[i]) {
+                j <- apply(tmap[-1,, drop=FALSE], 2, 
+                           function(x) all(x == tmap[-1,i])) 
+                printed[j] <- TRUE
+
+                tmp2 <- tmp[tmap[,i],, drop=FALSE]
+                names(dimnames(tmp2)) <- c(paste(cname[j], collapse=", "), "")
+                # restore character row names
+                rownames(tmp2) <- rownames(tmap)[tmap[,i]>0]
+                printCoefmat(tmp2, digits=digits, P.values=TRUE, 
+                             has.Pvalue=TRUE,
+                             signif.stars = signif.stars, ...)
+                cat("\n")
+            }       
         }
 
         cat(" States: ", paste(paste(seq(along=x$states), x$states, sep='= '), 
