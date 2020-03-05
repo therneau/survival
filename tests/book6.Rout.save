@@ -1,6 +1,6 @@
 
-R Under development (unstable) (2019-01-23 r76006) -- "Unsuffered Consequences"
-Copyright (C) 2019 The R Foundation for Statistical Computing
+R Under development (unstable) (2020-02-28 r77869) -- "Unsuffered Consequences"
+Copyright (C) 2020 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -151,7 +151,7 @@ x 0.8726    2.3931   0.7126 1.225    0.221
   exp(coef) exp(-coef) lower .95 upper .95
 x     2.393     0.4179    0.5921     9.672
 
-Concordance= 0.638  (se = 0.161 )
+Concordance= 0.637  (se = 0.161 )
 Likelihood ratio test= 1.75  on 1 df,   p=0.2
 Wald test            = 1.5  on 1 df,   p=0.2
 Score (logrank) test = 1.58  on 1 df,   p=0.2
@@ -187,4 +187,4 @@ Score (logrank) test = 1.58  on 1 df,   p=0.2
 > 
 > proc.time()
    user  system elapsed 
-  0.832   0.032   0.875 
+  0.891   0.068   0.952 
