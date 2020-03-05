@@ -4,6 +4,7 @@
   \itemize{
     \item Add 'n' vector to survcheck, update tests.
     \item Improve multistate coxph printout
+    \item Fix a memory reference error in multicheck.c
 }}
 
 \section{Changes in version 3.1-10}{
