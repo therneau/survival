@@ -38,24 +38,26 @@ all.equal(fit2[1:4], tfit[1:4])
 # let a missing value in
 fit2b <- survcheck(Surv(t1, t2, status) ~ x, data2, id=id)
 aeq(fit2b$flag , c(1,1,0,0))
-aeq(fit2b$transition, rbind(c(3,0,0,0), c(0,2,1,0)))
+aeq(fit2b$transition, rbind(c(3,0,0), c(0,2,1)))
 (fit2b$overlap$id == 'B')
 (fit2b$overlap$row ==5)
 all(fit2b$gap$id == "C")
 aeq(fit2b$gap$row, 8)
 
+# designed to trigger all 4 error types
 data3 <- data2
 levels(data3$status) <- c("cens", "mgus", "recur", "death")
 data3$istate <- c("entry", "entry", "recur",  "entry", "recur", "recur",
                   "entry", "recur", "recur")
 fit3 <- survcheck(Surv(t1, t2, status) ~ 1, data3, id=id, istate=istate)
 
-aeq(fit3$flag, c(1, 0, 2, 1))
+aeq(fit3$flag, c(1, 1, 1, 2))
 aeq(fit3$transitions, rbind(c(3,0,0,0), c(0,2,1,1)))
 all.equal(fit3$overlap, fit2$overlap)
 all(fit3$teleport$id == c("A", "C"))
 all(fit3$teleport$row == c(3,9))
 all(fit3$jump$id == "C")
 all(fit3$jump$row == 8)
+all.equal(fit3$gap, list(row=6, id= factor("B", c("A", "B", "C"))))
 
 

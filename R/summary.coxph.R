@@ -64,7 +64,11 @@ summary.coxph <- function(object,  conf.int = 0.95, scale = 1, ...) {
         rval$concordance <- cox$concordance[6:7]
         names(rval$concordance) <- c("C", "se(C)")
     }
- 
+    if (inherits(cox, "coxphms")) {
+        rval$cmap <- cox$cmap
+        rval$states <- cox$states
+    }
+
     class(rval)    <-"summary.coxph"
     rval
     }

@@ -323,7 +323,7 @@ are okay for \emph{some} transitions.  Others could be useless.
 Those rows can be removed from the model frame before creating the X matrix.
 Also identify partially used rows, ones where the necessary covariates are
 present for some of the possible transitions but not all.  
-Those obs are dealt with later by the stackup function.
+Those obs are dealt with later by the stacker function.
 <<coxph-missing>>=
 # first vector will be true if there is at least 1 transition for which all
 #  covariates are present, second if there is at least 1 for which some are not
@@ -370,15 +370,22 @@ factors turn into multiple columns for instance.
 Also create the initial values vector.
 
 The stacker function will create a separate block of observations for every
-unique value in \code{cmat[1,]}.
+unique value in \code{cmap[1,]}.
 Now say that two transitions A:B and A:C share the same baseline hazard. 
 Then either a B or a C outcome will be an ``event'' in that stratum; they 
 would only be distinguished by perhaps having different covariates.
+The first thing we do with the result is to rebuild the transitions matrix:
+the current version was created before removing missings, and can
+seriously overstate the number of transitions available.  
+Then set up the data.
 
 <<coxph-multi-X>>=
 cmap <- parsecovar3(tmap, colnames(X), attr(X, "assign"))
 xstack <- stacker(cmap, as.integer(istate), X, Y, strata=istrat,
                   states=states)
+rkeep <- unique(xstack$rindex)
+transitions <- survcheck2(Y[rkeep,], id[rkeep], istate[rkeep])$transitions
+
 X <- xstack$X
 Y <- xstack$Y
 istrat <- xstack$strata

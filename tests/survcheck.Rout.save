@@ -1,5 +1,5 @@
 
-R Under development (unstable) (2019-08-23 r77061) -- "Unsuffered Consequences"
+R Under development (unstable) (2019-12-08 r77542) -- "Unsuffered Consequences"
 Copyright (C) 2019 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
@@ -29,7 +29,7 @@ Type 'q()' to quit R.
 > aeq(fit1$overlap$id, 2)
 [1] TRUE
 > aeq(fit1$transitions, c(2,1,1,1))
-[1] "Numeric: lengths (16, 4) differ"
+[1] TRUE
 > 
 > 
 > # dummy data 2, no initial values, start stop data
@@ -47,7 +47,7 @@ Type 'q()' to quit R.
 > aeq(fit2$flag , c(1,2,0,0))
 [1] TRUE
 > aeq(fit2$transition, rbind(c(3,0,0,0), c(0,2,1,0), c(0,0,0,1)))
-[1] "Numeric: lengths (16, 12) differ"
+[1] TRUE
 > (fit2$overlap$id == 'B')
 [1] TRUE
 > (fit2$overlap$row ==5)
@@ -67,8 +67,8 @@ Type 'q()' to quit R.
 > fit2b <- survcheck(Surv(t1, t2, status) ~ x, data2, id=id)
 > aeq(fit2b$flag , c(1,1,0,0))
 [1] TRUE
-> aeq(fit2b$transition, rbind(c(3,0,0,0), c(0,2,1,0)))
-[1] "Numeric: lengths (16, 8) differ"
+> aeq(fit2b$transition, rbind(c(3,0,0), c(0,2,1)))
+[1] TRUE
 > (fit2b$overlap$id == 'B')
 [1] TRUE
 > (fit2b$overlap$row ==5)
@@ -78,32 +78,32 @@ Type 'q()' to quit R.
 > aeq(fit2b$gap$row, 8)
 [1] TRUE
 > 
+> # designed to trigger all 4 error types
 > data3 <- data2
 > levels(data3$status) <- c("cens", "mgus", "recur", "death")
 > data3$istate <- c("entry", "entry", "recur",  "entry", "recur", "recur",
 +                   "entry", "recur", "recur")
 > fit3 <- survcheck(Surv(t1, t2, status) ~ 1, data3, id=id, istate=istate)
 > 
-> aeq(fit3$flag, c(1, 0, 2, 1))
-[1] "Mean relative difference: 0.75"
+> aeq(fit3$flag, c(1, 1, 1, 2))
+[1] TRUE
 > aeq(fit3$transitions, rbind(c(3,0,0,0), c(0,2,1,1)))
-[1] "Numeric: lengths (16, 8) differ"
+[1] TRUE
 > all.equal(fit3$overlap, fit2$overlap)
 [1] TRUE
 > all(fit3$teleport$id == c("A", "C"))
 [1] TRUE
 > all(fit3$teleport$row == c(3,9))
-[1] FALSE
-Warning message:
-In fit3$teleport$row == c(3, 9) :
-  longer object length is not a multiple of shorter object length
+[1] TRUE
 > all(fit3$jump$id == "C")
 [1] TRUE
 > all(fit3$jump$row == 8)
+[1] TRUE
+> all.equal(fit3$gap, list(row=6, id= factor("B", c("A", "B", "C"))))
 [1] TRUE
 > 
 > 
 > 
 > proc.time()
    user  system elapsed 
-  0.993   0.059   1.163 
+  0.841   0.051   0.883 

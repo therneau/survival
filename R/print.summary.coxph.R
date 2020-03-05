@@ -25,16 +25,50 @@ print.summary.coxph <-
 	return()
         }
 
+    if (!is.null(x$cmap)) { # this was a coxphms object
+        signif.stars <- FALSE  #work around issue with printCoefmat
+        # print it group by group
+        tmap <- x$cmap[-1,,drop=FALSE]  # ignore the intercept (strata)
+        cname <- colnames(tmap)
+        printed <- rep(FALSE, length(cname))
+        for (i in 1:length(cname)) {
+            # if multiple colums of tmat are identical, only print that
+            #  set of coefficients once
+            if (!printed[i]) {
+                j <- apply(tmap[-1,, drop=FALSE], 2, 
+                           function(x) all(x == tmap[-1,i])) 
+                printed[j] <- TRUE
+               
+                tmp2 <- x$coefficients[tmap[,i],, drop=FALSE]
+                names(dimnames(tmp2)) <- c(paste(cname[j], collapse=", "), "")
+                # restore character row names
+                rownames(tmp2) <- rownames(tmap)[tmap[,i]>0]
+ 
+                printCoefmat(tmp2, digits=digits, P.values=TRUE, 
+                             has.Pvalue=TRUE, signif.legend=FALSE,
+                             signif.stars = signif.stars, ...)
 
-    if(!is.null(x$coefficients)) {
-        cat("\n")
-        printCoefmat(x$coefficients, digits=digits,
-                                 signif.stars=signif.stars, ...)
-    }
-    if(!is.null(x$conf.int)) {
-        cat("\n")
-        print(x$conf.int)
+                if (!is.null(x$conf.int)) {
+                    tmp2 <- x$conf.int[tmap[,i],, drop=FALSE]
+                    rownames(tmp2) <- rownames(tmap)[tmap[,i] >0]
+                    names(dimnames(tmp2)) <- c(paste(cname[j], collapse=", "),"")
+                    print(tmp2, digits=digits, ...)
+                }   
+            } 
+        }        
+        cat("\n States:", paste(paste(seq(along=x$states), x$states, sep='= '), 
+                               collapse=", "), '\n')
+    } else {
+        if(!is.null(x$coefficients)) {
+            cat("\n")
+            printCoefmat(x$coefficients, digits=digits,
+                         signif.stars=signif.stars, ...)
         }
+        if(!is.null(x$conf.int)) {
+            cat("\n")
+            print(x$conf.int)
+        }
+    }       
     cat("\n")
 
     if (!is.null(x$concordance)) {

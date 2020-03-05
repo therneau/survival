@@ -1,5 +1,11 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 3.1-11}{
+  \itemize{
+    \item Add 'n' vector to survcheck, update tests.
+    \item Improve multistate coxph printout
+}}
+
 \section{Changes in version 3.1-10}{
   \itemize{
     \item Fix error in concordance(fit, newdata= xxx): it used the old
