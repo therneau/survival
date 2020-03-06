@@ -413,6 +413,9 @@ coxph <- function(formula, data, weights, subset, na.action,
         cmap <- parsecovar3(tmap, colnames(X), attr(X, "assign"))
         xstack <- stacker(cmap, as.integer(istate), X, Y, strata=istrat,
                           states=states)
+        rkeep <- unique(xstack$rindex)
+        transitions <- survcheck2(Y[rkeep,], id[rkeep], istate[rkeep])$transitions
+
         X <- xstack$X
         Y <- xstack$Y
         istrat <- xstack$strata

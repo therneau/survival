@@ -159,7 +159,7 @@ more stable one.
 However, in a statistical analysis context and given the usual size of
 standard errors, a Breslow default will be just as good.
 The Breslow approximation is the default in many statistical packages for
-simple historical reasons: since it is the simplest to program it was
+simple historical reasons: since it is the easiest to program it was
 usually the first method to be implemented.
 
 Once having chosen the Efron default it is important to carry
@@ -168,7 +168,7 @@ The approximation turns out to have implications for how residuals
 and baseline hazard functions are computed, 
 which in turn affects robust variance estimates.
 Details of this can be found in the validation vignette. 
-This is one area where the phreg procedure is not quite correct, and its
+This is one area where the phreg procedure is not quite correct, so its
 results do not agree with the validation suite.
 For all the examples that we have investigated in detail, however, the
 practical implications of the inaccuracy have been small.
@@ -235,7 +235,7 @@ A worst case algorithm is to compute the mean and variance de novo
 at each death time, iterating over all the observations to enumerate the
 at risk subset.  This leads to a computation time of $O(nd)$.  We hope to
 do better than that.  A slightly better approach is to keep a running
-list of which observations which are in the risk set, leading to an $O(rd)$
+list of which observations are in the risk set, leading to an $O(rd)$
 algorithm where $r$ is the average number of subjects at risk.  
 (Updating a list of indices is a well known problem in computer
 science, and like sorting it can be done very efficiently.  See red/black
@@ -306,7 +306,7 @@ nhs <- tmerge(nhs, temp, id=id, qnum= cumtdc(vage),
 latedeath <- with(nhs, death==1 & (age2-age1) > 800)
 nhs <- subset(nhs, age1>0 & !latedeath)
 
-# Adding xb last makes if remain a matrix within the dataframe.
+# Adding xb last makes it remain a matrix within the dataframe.
 # This allows me to write
 #   + xb in the model rather than +xb.1 + xb.2 + ... + xb.40
 #  That is, same model, less typing.
@@ -341,7 +341,7 @@ round(stats)
 
 The resulting data set has 
 \Sexpr{round(nrow(nhs)/1e6, 1)} million records for 122 thousand subjects,
-reflecting 24 years of bi-annual follow up in the NHS.  
+reflecting 24 years of biennial follow up in the NHS.  
 Subjects have a new observation at each visit.  In the actual data the
 covariates are time dependent (though most covariates don't change, 
 for most of the visits, for most subjects.)
