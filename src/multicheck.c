@@ -40,6 +40,7 @@ SEXP multicheck(SEXP time12, SEXP time22, SEXP status2, SEXP id2,
     cstate= INTEGER(SET_VECTOR_ELT(rlist, 2, allocVector(INTSXP, n)));
 
     oldid = -1;  /* the input id values are all > 0 */
+    oldii = 0 ;  /* stop a complaint from -Wall option of gcc */
     cstate[0] = istate[0];
 	    
     for (i=0; i<n; i++) {  /* ii= next obs, ilag=prior obs */

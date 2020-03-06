@@ -1,6 +1,6 @@
 
-R Under development (unstable) (2019-12-08 r77542) -- "Unsuffered Consequences"
-Copyright (C) 2019 The R Foundation for Statistical Computing
+R Under development (unstable) (2020-02-28 r77869) -- "Unsuffered Consequences"
+Copyright (C) 2020 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -41,7 +41,8 @@ Type 'q()' to quit R.
 +                     t1 = c(0, 10, 20, 0, 15,25, 10, 15, 18),
 +                     t2 = c(10, 20,30, 20, 24, 26, 13, 18, 25),
 +                     status= factor(c(0, 1, 2, 1,2, 0, 1, 0, 3)),
-+                     x = c(1:5, NA, 7:9))
++                     x = c(1:5, NA, 7:9),
++                     stringsAsFactors = FALSE)
 > fit2 <- survcheck(Surv(t1, t2, status) ~ 1, data2, id=id)
 > 
 > aeq(fit2$flag , c(1,2,0,0))
@@ -99,11 +100,11 @@ Type 'q()' to quit R.
 [1] TRUE
 > all(fit3$jump$row == 8)
 [1] TRUE
-> all.equal(fit3$gap, list(row=6, id= factor("B", c("A", "B", "C"))))
+> all.equal(fit3$gap, list(row=6L, id= "B"))
 [1] TRUE
 > 
 > 
 > 
 > proc.time()
    user  system elapsed 
-  0.841   0.051   0.883 
+  0.817   0.051   0.862 

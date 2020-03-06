@@ -20,7 +20,8 @@ data2 <- data.frame(id=rep(LETTERS[1:3], each=3),
                     t1 = c(0, 10, 20, 0, 15,25, 10, 15, 18),
                     t2 = c(10, 20,30, 20, 24, 26, 13, 18, 25),
                     status= factor(c(0, 1, 2, 1,2, 0, 1, 0, 3)),
-                    x = c(1:5, NA, 7:9))
+                    x = c(1:5, NA, 7:9),
+                    stringsAsFactors = FALSE)
 fit2 <- survcheck(Surv(t1, t2, status) ~ 1, data2, id=id)
 
 aeq(fit2$flag , c(1,2,0,0))
@@ -58,6 +59,6 @@ all(fit3$teleport$id == c("A", "C"))
 all(fit3$teleport$row == c(3,9))
 all(fit3$jump$id == "C")
 all(fit3$jump$row == 8)
-all.equal(fit3$gap, list(row=6, id= factor("B", c("A", "B", "C"))))
+all.equal(fit3$gap, list(row=6L, id= "B"))
 
 
