@@ -366,7 +366,7 @@ more bit of information to the data set.
   \item Each additional call then adds either an endpoint or a covariate,
     splitting individual rows of the input in two as necessary.
     An \code{event} or \code{cumevent} directive adds events, while
-    a \code{tdc} or \code{cumtdc} one adds a time dependent covariate.
+    a \code{tdc} or \code{cumtdc} command adds a time dependent covariate.
     Events happen at the ends of intervals and time-dependent covariates 
     change at the start of an interval.  
   \item Additions from \code{data2} with a missing time value are ignored.
@@ -465,6 +465,10 @@ tdata <- with(jasa, data.frame(subject = subject,
                                               (tx.date - accept.dt)),
                                fustat = fustat
                              ))
+xdata <- tmerge(jasa, tdata, id=subject,
+                  death = event(futime, fustat),
+                  transplant   =  tdc(txtime), 
+                  options= list(idname="subject"))
 
 sdata <- tmerge(jasa, tdata, id=subject,
                   death = event(futime, fustat),
@@ -485,32 +489,35 @@ created variable is an event then the time range for each subject is
 inferred to be from 0 to the event time: explicit \code{tstop} 
 and \code{tstart} arguments are not required.
 It also makes use of a two argument form of \code{event}.
-Each of the \code{event}, \code{cumevent}, \code{tdc} and \code{cumtdc}
-functions
+Each of the \code{event} and \code{cumevent} functions
 may have a second argument, which if present will be used as the value
-for the event code or time dependent covariate.
+for the event code.
 If this second argument is not present a value of 1 is used.
-
-If a created variable is not already in data1, 
-the starting value \emph{before} the first definition of that
-variable is a NA for a
-\code{tdc} or \code{cumtdc} call that has two arguments and 0
-in all other cases.
-If the variable being created is already a part of data1, 
-then our updates make changes to that variable; in the case of
-an \code{event} call it results in an addition, for \code{tdc}
-it results in wholesale replacement of any prior values.
-Be careful of this.  This feature is what allowed for the 
+If an event variable is already a part of data1, 
+then our updates make changes to that variable, possibly adding more events.
+This feature is what allowed for the 
 \code{infection} indicator to be build up incrementally in the cgd
-example above, but quite surprising results can occur when you
-think a new variable is being created de novo but its name is already
-in use.  For example, if we name the new variable
-`transplant' in the third line of \code{sdata} above it collides
-with an existing variable in the \code{jasa} data set; the result
-is to not create a time-dependent transplant variable at all.
-(The author made this mistake himself when creating this vignette,
- and then spent several hours searching the tmerge
-code for an error that wasn't there.)
+example above.
+
+The \code{tdc} and \code{cumtdc} arguments can have 1, 2 or three
+arguments.
+The first is always the time point, the second, if present, is the
+value to be inserted, and an optional third argument is the initial value.
+If the \code{tdc} call has a single argument the result is always a
+0/1 variable, 0 before the time point and 1 after.
+For the 2 or three argument form, the starting value \emph{before} the 
+first definition of the new variable (before the first time point)
+will be the initial value.
+The default for the initial value is NA, the value of the 
+\code{tdcstart} option.
+If the \code{tdc} variable being created is already a part of data1,
+the old value is replaced wholesale, it is not updated.
+This differs from the behavior for events.
+Although there is a use case for updating an existing time-dependent value, 
+say from a new data source, our experience had been that the much more
+common case was accidental reuse of an existing name, resulting in
+a chimeric mishmash between an existing baseline covariate and the additions,
+and creating a column which was valid for neither.
 
 The \code{tcount} table for the above fit shows all the deaths at the
 trailing edge of their interval, which is expected since the time

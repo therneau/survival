@@ -20,6 +20,7 @@ all.equal(mydata$ondrug, c(NA, NA,1, 1,0,1, NA, 1,0, NA, 1))
 tests$ff <- factor(tests$onoff, 0:1, letters[4:5])
 tests$fchar <- as.character(tests$ff)
 tests$logic <- as.logical(tests$onoff)
+tests$num <- rep(1:3, length=nrow(tests))
 
 mydata <- tmerge(mydata, tests, id=idd, fgrp= tdc(date, ff),
                  chgrp = tdc(date, fchar), 
@@ -34,6 +35,12 @@ mydat2  <-  tmerge(mydata, tests, id=idd,
 all.equal(mydat2$logic1, c(FALSE, TRUE, NA)[as.numeric(mydat2$fgrp)])
 all.equal(mydat2$logic2, c(FALSE, TRUE, FALSE, FALSE, TRUE, FALSE, TRUE,
                            FALSE, FALSE, TRUE, FALSE))
+
+mydat3 <- tmerge(mydata, tests, id=idd,
+                 xx = tdc(date, num), options=list(tdcstart=5))
+all.equal(mydata$xx, c(5,5,3,2,1,2,5,1,3,5,1))
+temp <- tmerge(mydata, tests, id=idd, xx=tdc(date, num, 5)) # alternate default
+all.equal(mydata$xx, temp$xx)
 
 # Multiple chained calls.  
 newcgd <- tmerge(data1=cgd0[, 1:13], data2=cgd0, id=id, tstop=futime)

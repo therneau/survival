@@ -41,12 +41,12 @@ tmerge <- function(data1, data2, id, ..., tstart, tstop, options) {
     #  arguments, so define a set of functions which will be used to
     #  mark objects
     new <- new.env(parent=parent.frame())
-    assign("tdc", function(time, value=NULL) {
-        x <- list(time=time, value=value); 
+    assign("tdc", function(time, value=NULL, default=NULL) {
+        x <- list(time=time, value=value, default=default); 
         class(x) <- "tdc"; x},
            envir=new)
-    assign("cumtdc", function(time, value=NULL) {
-        x <- list(time=time, value=value); 
+    assign("cumtdc", function(time, value=NULL, default=NULL) {
+        x <- list(time=time, value=value, default=default); 
         class(x) <-"cumtdc"; x},
            envir=new)
     assign("event", function(time, value=NULL, censor=NULL) {
@@ -296,7 +296,7 @@ for (ii in seq(along.with=args)) {
     etime <- argi$time
     if (length(etime) != length(saveid))
         stop("argument ", argname[ii], " is not the same length as id")
-   if (!is.null(argi$value)) {
+    if (!is.null(argi$value)) {
        if (length(argi$value) != length(saveid))
             stop("argument ", argname[ii], " is not the same length as id")
         if (topt$na.rm) keep <- !(is.na(etime) | is.na(argi$value))
@@ -479,8 +479,11 @@ newvar <- newdata[[argname[ii]]]  # prior value (for sequential tmerge calls)
 if (argclass[ii] == "tdc") {
     if (argname[[ii]] %in% tevent)
         stop("attempt to turn event variable", argname[[ii]], "into a tdc")
-    if (!is.null(newvar))
-        warning(paste0("replacement of variable '", argname[ii], "'")) 
+    
+    default <- argi$default   # default value
+    if (is.null(default)) default <- topt$tdcstart
+    else if (length(default) !=1)
+        stop("initial tdc value must be of length 1")
 
     # id can be any data type; feed integers to the C routine
     storage.mode(dstop) <- storage.mode(etime) <- "double"  #if time is integer
@@ -488,21 +491,24 @@ if (argclass[ii] == "tdc") {
     index <- .Call(Ctmerge2, match(baseid, uid), dstop, 
                                match(id, uid),  etime)
 
+    #if (!is.null(newvar))      
+    #   warning(paste0("replacement of variable '", argname[ii], "'")) 
+
     if (is.null(yinc)) newvar <- ifelse(index==0, 0L, 1L) # add a 0/1 variable
     else {
         newvar <- yinc[pmax(1L, index)]
         if (any(index==0)) {
-            if (is.na(topt$tdcstart)) is.na(newvar) <- (index==0L)
+            if (is.na(default)) is.na(newvar) <- (index==0L)
             else {
-                if (is.numeric(newvar)) newvar[index=0L] <- as.numeric(topt$tdcstart)
+                if (is.numeric(newvar)) newvar[index==0L] <- as.numeric(default)
                 else {
                     if (is.factor(newvar)) {
-                        # special case: if tdcstart isn't in the set of levels,
+                        # special case: if default isn't in the set of levels,
                         #   add it to the levels
-                        if (is.na(match(topt$tdcstart, levels(newvar))))
-                            levels(newvar) <- c(levels(newvar), topt$tdcstart)
+                        if (is.na(match(default, levels(newvar))))
+                            levels(newvar) <- c(levels(newvar), default)
                     }
-                    newvar[index== 0L] <- topt$tdcstart
+                    newvar[index== 0L] <- default
                 }
             }
         }
@@ -572,15 +578,21 @@ else if (argclass[ii] == "cumtdc") {  # process a cumtdc variable
                    ifelse(subtype==3, indx2+1L, indx2))
     
     # we want to pass the right kind of NA to the C code
-    if (is.na(topt$tdcstart)) topt$tdcstart <- as.numeric(topt$tdcstart)
+    default <- argi$default
+    if (is.null(default)) default <- topt$tdcstart
+    if (is.na(default)) topt$tdcstart <- as.numeric(default)
+    else {
+        if (length(default) != 1) stop("tdc initial value must be of length 1")
+        if (!is.numeric(default)) stop("cumtdc initial value must be numeric")
+    }       
     if (is.null(newvar)) {  # not overwriting a prior value
         if (is.null(argi$value)) newvar <- rep(0.0, nrow(newdata))
-        else newvar <- rep(topt$tdcstart, nrow(newdata))
+        else newvar <- rep(default, nrow(newdata))
     }
     
     # the increment must be numeric
     if (!is.numeric(newvar)) 
-        stop("data and options$tdcstart do not agree on data type")
+        stop("data and starting value do not agree on data type")
     # id can be any data type; feed integers to the C routine
     storage.mode(yinc) <- storage.mode(dstop) <- "double"
     storage.mode(newvar) <- storage.mode(etime) <- "double"
