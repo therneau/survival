@@ -144,7 +144,8 @@ survcheck2 <- function(y, id, istate=NULL, istate0="(s0)") {
                          to= factor(stat2[keep], c(seq(along=states), 0),
                                     c(states, "(censored)")),
                          useNA="ifany")
-    never <- (rowSums(transitions) + colSums(transitions))==0
+    nr <- nrow(transitions)
+    never <- (rowSums(transitions) + colSums(transitions[,1:nr]))==0
     transitions <- transitions[!never, colSums(transitions)>0, drop = FALSE]
 
     # now continue with error checks
