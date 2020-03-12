@@ -17,13 +17,15 @@ cox.zph <- function(fit, transform='km', terms=TRUE, singledf =FALSE,
         istrat <- as.integer(cget$strata) - 1L # number from 0 for C
     else istrat <- rep(0L, nrow(y))
 
-    varnames <- names(fit$coefficients)
-    nvar <- length(varnames)
-    # if terms==FALSE the singledf argument is moot, but FALSE leads to a
-    #  simpler path through the code
+    # if terms==FALSE the singledf argument is moot, but setting a value
+    #   leads to a simpler path through the code
     if (!terms) singledf <- FALSE 
     
     eta <- fit$linear.predictors
+    X <- cget$x
+    varnames <- names(fit$coefficients)
+    nvar <- length(varnames)
+
     if (!terms) {
         # create a fake asgn that has one value per coefficient
         asgn <- as.list(1:nvar)
@@ -42,19 +44,27 @@ cox.zph <- function(fit, transform='km', terms=TRUE, singledf =FALSE,
     frail <- grepl("frailty(", names(asgn), fixed=TRUE)
     if (any(frail)) {
         dcol <- unlist(asgn[frail])    # remove these columns from X
-        cget$x <- cget$x[, -dcol, drop=FALSE]
+        X <- X[, -dcol, drop=FALSE]
         asgn <- asgn[!frail]
+        # frailties don't appear in the varnames, so no change there
     }
     nterm <- length(asgn)
     termname <- names(asgn)
 
     if (any(is.na(fit$coefficients))) {
-        # fix up assign so as to ignore missing coefs, this should be rare
-        mcoef <- which(is.na(fit$coefficients))
-        asgn <- lapply(asgn, function(i) i[!(i %in% mcoef)])
+        keep <- !is.na(fit$coefficients)
+        varnames <- varnames[keep]
+        X <- X[,keep]
+
+        # fix up assign 
+        new <- unname(unlist(asgn))[keep] # the ones to keep
+        asgn <- sapply(asgn, function(x) {
+            i <- match(x, new, nomatch=0)
+            i[i>0]})
         asgn <- asgn[sapply(asgn, length)>0]  # drop any that were lost
         termname <- names(asgn)
-        nterm <- length(asgn)   # asgn will be 1, 2,2,2, 3, etc
+        nterm <- length(asgn)   # asgn will be a list
+        nvar <- length(new)
     }
     times <- y[,ny-1]
     if (is.character(transform)) {
@@ -66,7 +76,7 @@ cox.zph <- function(fit, transform='km', terms=TRUE, singledf =FALSE,
                          'km' = {
                              temp <- survfitKM(factor(rep(1L, nrow(y))),
                                                y, se.fit=FALSE)
-                             # A nuisance to do left cont KM
+                             # A nuisance to do left continuous KM
                              indx <- findInterval(times, temp$time, left.open=TRUE)
                              1.0 - c(1, temp$surv)[indx+1]
                          },
@@ -82,13 +92,13 @@ cox.zph <- function(fit, transform='km', terms=TRUE, singledf =FALSE,
         # Now get the U, information, and residuals
         if (ny==2) {
             ord <- order(istrat, y[,1]) -1L
-            resid <- .Call(Czph1, gtime, y, cget$x, eta,
+            resid <- .Call(Czph1, gtime, y, X, eta,
                             cget$weights, istrat, fit$method=="efron", ord)
         }
         else {
             ord1 <- order(-istrat, -y[,1]) -1L   # reverse time for zph2
             ord  <- order(-istrat, -y[,2]) -1L
-            resid <- .Call(Czph2, gtime, y, cget$x, eta,
+            resid <- .Call(Czph2, gtime, y, X, eta,
                             cget$weights, istrat, fit$method=="efron", 
                             ord1, ord)
         }

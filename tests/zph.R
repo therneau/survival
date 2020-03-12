@@ -158,4 +158,23 @@ direct <- function(fit) {
 
 aeq(zp7$table[,1], direct(pfit)$sctest)
 
+# Last, make sure that NA coefficients are ignored
+d1 <- survSplit(Surv(time, status) ~ ., veteran, cut=150, episode="epoch")
+fit <- coxph(Surv(tstart, time, status) ~ celltype:strata(epoch) + age, d1)
+zz <- cox.zph(fit)
+
+fit2 <- coxph(Surv(tstart, time, status) ~ celltype:strata(epoch) + age, d1,
+              x=TRUE)
+zz2 <- cox.zph(fit2)
+
+x2 <- fit2$x[, !is.na(fit$coefficients)][,-1]
+fit3 <- coxph(Surv(tstart, time, status) ~ age + x2, d1)
+all.equal(fit3$loglik, fit2$loglik)
+zz3 <- cox.zph(fit3)
+
+all.equal(unclass(zz)[1:7], unclass(zz2)[1:7]) #ignore the call component
+all.equal(as.vector(zz$table), as.vector(zz3$table)) # variable names change
+
+
+
 

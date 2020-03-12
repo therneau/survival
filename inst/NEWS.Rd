@@ -1,5 +1,11 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 3.1-12}{
+  \itemize{
+    \item cox.zph would fail if the coxph fit had NA coefficients
+    \item failure in strata+pspline
+}}
+
 \section{Changes in version 3.1-11}{
   \itemize{
     \item Add 'n' vector to survcheck, update tests.
