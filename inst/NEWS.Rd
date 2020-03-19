@@ -3,7 +3,14 @@
 \section{Changes in version 3.1-12}{
   \itemize{
     \item cox.zph would fail if the coxph fit had NA coefficients
-    \item failure in strata+pspline
+    (something that used to work).  Add a test case to futureproof
+    this.  Caught by Ville Ponkilainen.
+    \item Minor: pyears + data.frame option would not preserve the order
+    of factor levels from a tcut operator.  
+    \item Edge case from Andrea Jaensch: a coxph model with strata +
+    psline terms, plus a (time1, time2) data set containing observations
+    that do not overlap any events, in just the right spot, could cause an
+    infinite loop in agmart3.c. 
 }}
 
 \section{Changes in version 3.1-11}{

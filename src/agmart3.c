@@ -113,7 +113,7 @@ SEXP agmart3(SEXP nused2,  SEXP surv2,  SEXP score2, SEXP weight2,
 		cumhaz =0;
 		denom = 0;
 		istrat= strata[p2];
-		person2=person1;     /* no more sums in that strata */
+		person2 = person1;     /* no more sums in that strata */
 	    }
 	    if (event[p2] >0) {
 		dtime = tstop[p2];

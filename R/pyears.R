@@ -269,11 +269,11 @@ pyears <- function(formula, data,
         }
         else {
             keep <- (temp$pyears >0)  # what rows to keep in the output
-            # grap prototype rows from the model frame, this preserves class
+            # grab prototype rows from the model frame, this preserves class
             #  (unless it is a tcut variable, then we know what to do)
             tdata <- lapply(1:length(ovars), function(i) {
                 temp <- mf[[ovars[i]]]
-                if (inherits(temp, "tcut")) factor(outdname[[i]])
+                if (inherits(temp, "tcut")) factor(outdname[[i]], outdname[[i]])
                 else temp[match(outdname[[i]], temp)]
             })
             tdata$stringsAsFactors <- FALSE  # argument for expand.grid
