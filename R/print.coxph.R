@@ -41,8 +41,8 @@ print.coxph <-
             # if multiple colums of tmat are identical, only print that
             #  set of coefficients once
             if (!printed[i]) {
-                j <- apply(tmap[-1,, drop=FALSE], 2, 
-                           function(x) all(x == tmap[-1,i])) 
+                j <- apply(tmap[,, drop=FALSE], 2, 
+                           function(x) all(x == tmap[,i])) 
                 printed[j] <- TRUE
 
                 tmp2 <- tmp[tmap[,i],, drop=FALSE]
