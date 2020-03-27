@@ -1,7 +1,7 @@
-survcheck <- function(formula, data, id, istate, istate0="(s0)", 
-                      timefix=TRUE, ...) {
+survcheck <- function(formula, data, subset, na.action,  id, istate, 
+                      istate0="(s0)", timefix=TRUE, ...) {
     Call <- match.call()
-    indx <- match(c("formula", "data", "id", "istate"),
+    indx <- match(c("formula", "data", "id", "istate", "subset", "na.action"),
                   names(Call), nomatch=0) 
     if (indx[1] ==0) stop("A formula argument is required")
     tform <- Call[c(1,indx)]  # only keep the arguments we wanted
