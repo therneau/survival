@@ -1,6 +1,6 @@
 
-R Under development (unstable) (2019-09-07 r77160) -- "Unsuffered Consequences"
-Copyright (C) 2019 The R Foundation for Statistical Computing
+R Under development (unstable) (2020-03-27 r78086) -- "Unsuffered Consequences"
+Copyright (C) 2020 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -122,7 +122,7 @@ Type 'q()' to quit R.
 [1] TRUE
 > 
 > # fit2 will use the IJ method
-> fit2 <- survfit(Surv(time, status) ~ x, data=adata, id=id)
+> fit2 <- survfit(Surv(time, status) ~ x, data=adata, id=id, robust=TRUE)
 > aeq(fit2$surv, c(true1a$estimate[,1], true1b$estimate[,1]))
 [1] TRUE
 > aeq(fit2$cumhaz, c(true1a$estimate[,2], true1b$estimate[,2]))
@@ -333,7 +333,8 @@ Type 'q()' to quit R.
 > true6a <- with(subset(adata, x=="Maintained"), fh(time, status, wt, id))
 > true6b <- with(subset(adata, x!="Maintained"), fh(time, status, wt, id))
 > 
-> fit6 <- survfit(Surv(time, status) ~ x, weight=wt, data=adata, stype=2, ctype=2)
+> fit6 <- survfit(Surv(time, status) ~ x, weight=wt, data=adata, stype=2, 
++                 ctype=2, robust=FALSE)
 > aeq(fit6$cumhaz, c(true6a$estimate[,2], true6b$estimate[,2]))
 [1] TRUE
 > aeq(fit6$surv, exp(-c(true6a$estimate[,2], true6b$estimate[,2])))
@@ -347,7 +348,7 @@ Type 'q()' to quit R.
 > 
 > # Robust variance
 > fit7 <- survfit(Surv(time, status) ~ x, weight=wt, data=adata, stype=2,ctype=2, 
-+                 id=id, influence=2)
++                 id=id, influence=2, robust=TRUE)
 > aeq(fit7$cumhaz, c(true6a$estimate[,2], true6b$estimate[,2]))
 [1] TRUE
 > aeq(fit7$surv, exp(-c(true6a$estimate[,2], true6b$estimate[,2])))
@@ -417,4 +418,4 @@ x=Nonmaintained 12     11   13.5       3.32   13.5     4.0      NA
 > 
 > proc.time()
    user  system elapsed 
-  0.870   0.059   0.923 
+  1.081   0.035   1.107 

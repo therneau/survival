@@ -27,7 +27,7 @@ tmerge <- function(data1, data2, id, ..., tstart, tstop, options) {
     if (!inherits(data1, "data.frame")) stop("data1 must be a data frame")
     
     tmerge.control <- function(idname="id", tstartname="tstart", tstopname="tstop",
-                               delay =0, na.rm=TRUE, tdcstart=NA, ...) {
+                               delay =0, na.rm=TRUE, tdcstart=NA_real_, ...) {
         extras <- list(...)
         if (length(extras) > 0) 
             stop("unrecognized option(s):", paste(names(extras), collapse=', '))
@@ -412,8 +412,7 @@ tmerge <- function(data1, data2, id, ..., tstart, tstop, options) {
             
             # we want to pass the right kind of NA to the C code
             default <- argi$default
-            if (is.null(default)) default <- topt$tdcstart
-            if (is.na(default)) topt$tdcstart <- as.numeric(default)
+            if (is.null(default)) default <- as.numeric(topt$tdcstart)
             else {
                 if (length(default) != 1) stop("tdc initial value must be of length 1")
                 if (!is.numeric(default)) stop("cumtdc initial value must be numeric")

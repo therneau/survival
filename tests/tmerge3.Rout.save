@@ -1,5 +1,5 @@
 
-R Under development (unstable) (2020-01-13 r77659) -- "Unsuffered Consequences"
+R Under development (unstable) (2020-03-27 r78086) -- "Unsuffered Consequences"
 Copyright (C) 2020 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
@@ -40,9 +40,6 @@ Type 'q()' to quit R.
 +   time = c(3, 5, 8))
 > b2 <- tmerge(base, events, id = id, got_flu = cumevent(time, got_flu),
 +                has_flu = tdc(time, has_flu))
-Warning message:
-In tmerge(base, events, id = id, got_flu = cumevent(time, got_flu),  :
-  replacement of variable 'has_flu'
 > 
 > all.equal(b2$got_flu, c(0,0,1,0,0,0,3,0))
 [1] TRUE
@@ -80,4 +77,4 @@ successful tmerge error test
 > 
 > proc.time()
    user  system elapsed 
-  0.808   0.035   0.836 
+  0.892   0.047   0.933 

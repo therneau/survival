@@ -48,6 +48,6 @@ and C. J. Maguire (1976).  The 5-year prognosis for vision in diabetes,
 American Journal of Ophthalmology, 81:383-396.
 }
 \examples{
-coxph(Surv(futime, status) ~ type + trt + cluster(id), retinopathy)
+coxph(Surv(futime, status) ~ type + trt, cluster= id, retinopathy)
 }
 \keyword{datasets}

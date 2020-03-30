@@ -67,7 +67,7 @@ print.summary.survfitms <- function(x,
         if (!is.null(group)) group <- group[mat.keep]
     }
 
-    if (nrow(mat) > 1) {
+    if (nrow(mat) > 0) {
         dimnames(mat) <- list(rep("", nrow(mat)), cnames)
         if (is.null(group)) print(mat)
         else  { #print it out one group at a time

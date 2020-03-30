@@ -23,8 +23,11 @@ aeq(fit1$loglik[2] + fit2$loglik[2], fit3$loglik[2])
 # I also am checking that missing values propogate
 test1 <- data.frame(time=  c(9, 3,1,1,6,6,8),
                     status=c(1,NA,1,0,1,1,0),
-                    x=     c(0, 2,1,1,1,0,0))
-fit1 <- survreg(Surv(time, status) ~ x + cluster(1:7), test1)
+                    x=     c(0, 2,1,1,1,0,0),
+                    id=  1:7)
+fit1 <- survreg(Surv(time, status) ~ x, cluster = id, test1)
+fit2 <- survreg(Surv(time, status) ~ x + cluster(id), test1) #old form
+all.equal(fit1, fit2)
 
 db1 <- resid(fit1, 'dfbeta')
 ijack <-db1

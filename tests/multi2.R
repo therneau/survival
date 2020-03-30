@@ -22,7 +22,7 @@ temp <- matrix(0, 6,6)
 temp[1:2, 1:2] <- fit12$var
 temp[3:4, 3:4] <- fit13$var
 temp[5:6, 5:6] <- fit23$var
-aeq(fit$naive.var, temp)
+aeq(fit$var, temp)
 
 ii <- fit$strata==1
 tfit <- coxph(fit$y[ii,] ~ fit$x[ii,])

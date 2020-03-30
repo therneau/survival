@@ -20,7 +20,7 @@ accelerated failure time models.
 survreg(formula, data, weights, subset, 
         na.action, dist="weibull", init=NULL, scale=0, 
         control,parms=NULL,model=FALSE, x=FALSE,
-        y=TRUE, robust=FALSE, score=FALSE, \dots)
+        y=TRUE, robust=FALSE, cluster, score=FALSE, \dots)
 
 }
 \arguments{
@@ -73,9 +73,13 @@ flag arguments.}
 \item{score}{return the score vector. (This is expected to be zero upon
 successful convergence.)
 }
-\item{robust}{Use robust 'sandwich' standard errors, based on
-  independence of individuals if there is no \code{cluster()} term in
-  the formula, based on independence of clusters if there is.}
+\item{robust}{Use robust sandwich error instead of the asymptotic
+  formula.  Defaults to TRUE if there is a \code{cluster} argument.}
+\item{cluster}{Optional variable that identifies groups of subjects,
+  used in computing the robust variance.  Like \code{model} variables,
+  this is searched for in the dataset pointed to by the \code{data}
+  argument.
+}  
 \item{\dots}{
 other arguments which will be passed to \code{survreg.control}.
 }}

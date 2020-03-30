@@ -4,7 +4,7 @@ function(formula, newdata, se.fit=TRUE, conf.int=.95, individual=FALSE,
          stype=2, ctype, 
          conf.type=c("log", "log-log", "plain", "none", "logit", "arcsin"),
          censor=TRUE, start.time, id, influence=FALSE,
-         na.action=na.pass, type, ...) {
+         na.action=na.pass, type, p0=NULL, ...) {
 
     Call <- match.call()
     Call[[1]] <- as.name("survfit")  #nicer output for the user
@@ -134,12 +134,12 @@ function(formula, newdata, se.fit=TRUE, conf.int=.95, individual=FALSE,
     if (any(droprow)) {
         j <- which(!droprow)
         cifit <- survfitCI(as.factor(strata[j]), Y[j,], weights[j], oldid[j], 
-                           istate[j], stype=stype,
-                           ctype=ctype, se.fit=FALSE, start.time=start.time)
+                           istate[j], stype=stype, ctype=ctype,
+                           se.fit=FALSE, start.time=start.time, p0=p0)
         }
     else cifit <- survfitCI(as.factor(strata), Y, weights, oldid, istate, 
                             stype=stype, ctype=ctype, se.fit=FALSE, 
-                            start.time=start.time)
+                            start.time=start.time, p0=p0)
 
     # For computing the  actual estimates it is easier to work with an
     #  expanded data set.

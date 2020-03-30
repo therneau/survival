@@ -7,8 +7,8 @@
 This is a special function used in the context of survival models.  It 
 identifies correlated groups of observations, and is used on the right hand 
 side of a formula.
-Using \code{cluster()} in a formula implies that
-robust sandwich variance estimators are desired.}
+This style is now discouraged, use the \code{cluster} option instead.
+}
 \usage{
 cluster(x)
 }
@@ -33,7 +33,7 @@ second a GEE approach, and these don't mix.
 \code{\link{coxph}},  \code{\link{survreg}}   
 }
 \examples{
-marginal.model <- coxph(Surv(time, status) ~ rx + cluster(litter), rats,
+marginal.model <- coxph(Surv(time, status) ~ rx, data= rats, cluster=litter,
                          subset=(sex=='f'))
 frailty.model  <- coxph(Surv(time, status) ~ rx + frailty(litter), rats,
                          subset=(sex=='f'))

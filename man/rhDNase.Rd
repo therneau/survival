@@ -87,7 +87,7 @@ dnase <- tmerge(dnase, rhDNase, id=id,
 # toss out the non-at-risk intervals, and extra variables
 #  3 subjects had an event on their last day of fu, infect=1 and end=1
 dnase <- subset(dnase, (infect==1 | end==0), c(id:trt, fev:infect))
-agfit <- coxph(Surv(tstart, tstop, infect) ~ trt + fev + cluster(id),
+agfit <- coxph(Surv(tstart, tstop, infect) ~ trt + fev, cluster=id,
                  data=dnase)
 }
 \keyword{datasets}

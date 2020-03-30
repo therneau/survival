@@ -4,7 +4,7 @@ as we trade off simplicty of the code with execution speed.
 This version does all of the oranizational work in S and calls a C
 routine for each separate curve. 
 The first code did everything in C but was too hard to maintain and the most
-recent function did nearly everything in S. 
+recent prior function did nearly everything in S. 
 Introduction of robust variance
 prompted a movement of more of the code into C since that calculation
 is computationally intensive.
@@ -17,7 +17,7 @@ survfitKM <- function(x, y, weights=rep(1.0,length(x)),
                       conf.type=c('log',  'log-log',  'plain', 'none', 
                                   'logit', "arcsin"),
                       conf.lower=c('usual', 'peto', 'modified'),
-                      start.time, id, cluster, influence=FALSE,
+                      start.time, id, cluster, robust, influence=FALSE,
                       type) {
     
     if (!missing(type)) {
@@ -42,54 +42,6 @@ survfitKM <- function(x, y, weights=rep(1.0,length(x)),
         conf.int <- .95
     }
       
-    # The user can call with cluster, id, both, or neither
-    # If only id, treat it as the cluster too
-    # If influence is requested, this implies clustering
-    has.cluster <-  !(missing(cluster) || length(cluster)==0) 
-    has.id <-       !(missing(id) || length(id)==0)
-    if (has.id) id <- as.factor(id)
-    if (influence && !(has.cluster || has.id)) {
-        cluster <- seq(along=x)
-        has.cluster <- TRUE
-    }
-    if (has.cluster) {
-        if (is.factor(cluster)) {
-            clname <- levels(cluster)
-            cluster <- as.integer(cluster)
-        } else {
-            clname  <- sort(unique(cluster))
-            cluster <- match(cluster, clname)
-        }
-        ncluster <- length(clname)
-    } else {
-        if (has.id) {
-            # treat the id as both identifier and clustering
-            clname <- levels(id)
-            cluster <- as.integer(id)
-            ncluster <- length(clname)
-        }
-        else {
-            ncluster <- 0  # has neither
-            clname <- NULL
-        }
-    }
- 
-    if (is.logical(influence)) {
-        # TRUE/FALSE is treated as all or nothing
-        if (!influence) influence <- 0L
-        else influence <- 3L
-    }
-    else if (!is.numeric(influence))
-        stop("influence argument must be numeric or logical")
-    if (!(influence %in% 0:3)) stop("influence argument must be 0, 1, 2, or 3")
-    else influence <- as.integer(influence)
- 
-    if (!se.fit) {
-        # if the user asked for no standard error, skip any robust computation
-        ncluster <- 0L
-        influence <- 0L
-    }
-
     if (!is.Surv(y)) stop("y must be a Surv object")
     if (attr(y, 'type') != 'right' && attr(y, 'type') != 'counting')
 	    stop("Can only handle right censored or counting data")
@@ -102,6 +54,86 @@ survfitKM <- function(x, y, weights=rep(1.0,length(x)),
 
     if (missing(start.time)) time0 <- min(0, y[,ny-1])
     else time0 <- start.time
+
+    # The user can call with cluster, id, robust, or any combination
+    # Default for robust: if cluster or any id with > 1 event or 
+    #  any weights that are not 0 or 1, then TRUE
+    # If only id, treat it as the cluster too
+    has.cluster <- !(missing(cluster) || length(cluster)==0) 
+    has.id <-      !(missing(id) || length(id)==0)
+    has.rwt<-      (!missing(weights) && any(weights != floor(weights)))
+    #has.rwt <- FALSE   # we are rethinking this
+    has.robust <-  !missing(robust) && !is.null(robust)
+    if (has.id) id <- as.factor(id)
+
+    if (missing(robust) || is.null(robust)) {
+        if (influence) {
+            robust <- TRUE
+            if (!(has.cluster || has.id)) {
+                cluster <- seq(along=x)
+                has.cluster <- TRUE
+            }
+        }
+        else if (has.cluster || has.rwt ||
+                 (has.id && anyDuplicated(id[y[,ncol(y)]==1])))
+            robust <- TRUE 
+        else robust <- FALSE
+    }
+    if (!is.logical(robust)) stop("robust must be TRUE/FALSE")
+
+    if (has.cluster) {
+        if (!robust) {
+            warning("cluster specified with robust=FALSE, cluster ignored")
+            ncluster <- 0
+            clname <- NULL
+        }
+        else {
+            if (is.factor(cluster)) {
+                clname <- levels(cluster)
+                cluster <- as.integer(cluster)
+            } else {
+                clname  <- sort(unique(cluster))
+                cluster <- match(cluster, clname)
+            }
+            ncluster <- length(clname)
+        }
+    } else if (robust) {
+        if (has.id) {
+            # treat the id as both identifier and clustering
+            clname <- levels(id)
+            cluster <- as.integer(id)
+            ncluster <- length(clname)
+        }
+        else if (ncol(y)==2 || !has.robust) {
+            # create our own clustering
+            n <- nrow(y)
+            cluster <- 1:n
+            ncluster <- n
+            clname <- 1:n
+        }   
+        else stop("id or cluster option required")
+    } else ncluster <- 0
+ 
+    if (is.logical(influence)) {
+        # TRUE/FALSE is treated as all or nothing
+        if (!influence) influence <- 0L
+        else influence <- 3L
+    }
+    else if (!is.numeric(influence))
+        stop("influence argument must be numeric or logical")
+    if (!(influence %in% 0:3)) stop("influence argument must be 0, 1, 2, or 3")
+    else influence <- as.integer(influence)
+    if (!robust && influence >0) {
+        warning("robust=FALSE implies influence=FALSE")
+        influence <- 0L
+    }       
+  
+    if (!se.fit) {
+        # if the user asked for no standard error, skip any robust computation
+        ncluster <- 0L
+        influence <- 0L
+    }
+
 
     <<survfitKM-compute>>
     <<survfitKM-finish>>

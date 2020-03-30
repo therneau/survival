@@ -1,6 +1,6 @@
 
-R Under development (unstable) (2019-10-26 r77334) -- "Unsuffered Consequences"
-Copyright (C) 2019 The R Foundation for Statistical Computing
+R Under development (unstable) (2020-03-27 r78086) -- "Unsuffered Consequences"
+Copyright (C) 2020 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -198,8 +198,30 @@ censor    pcm  death
 > aeq(zp7$table[,1], direct(pfit)$sctest)
 [1] TRUE
 > 
+> # Last, make sure that NA coefficients are ignored
+> d1 <- survSplit(Surv(time, status) ~ ., veteran, cut=150, episode="epoch")
+> fit <- coxph(Surv(tstart, time, status) ~ celltype:strata(epoch) + age, d1)
+> zz <- cox.zph(fit)
+> 
+> fit2 <- coxph(Surv(tstart, time, status) ~ celltype:strata(epoch) + age, d1,
++               x=TRUE)
+> zz2 <- cox.zph(fit2)
+> 
+> x2 <- fit2$x[, !is.na(fit$coefficients)][,-1]
+> fit3 <- coxph(Surv(tstart, time, status) ~ age + x2, d1)
+> all.equal(fit3$loglik, fit2$loglik)
+[1] TRUE
+> zz3 <- cox.zph(fit3)
+> 
+> all.equal(unclass(zz)[1:7], unclass(zz2)[1:7]) #ignore the call component
+[1] TRUE
+> all.equal(as.vector(zz$table), as.vector(zz3$table)) # variable names change
+[1] TRUE
+> 
+> 
+> 
 > 
 > 
 > proc.time()
    user  system elapsed 
-  1.054   0.073   1.119 
+  1.239   0.059   1.290 

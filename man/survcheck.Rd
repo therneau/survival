@@ -5,13 +5,22 @@
 Perform a set of consistency checks on survival data
 }
 \usage{
-survcheck(formula, data, id, istate, istate0="(s0)", timefix=TRUE,...)
+survcheck(formula, data, subset, na.action, id, istate, istate0="(s0)", 
+timefix=TRUE,...)
 }
 \arguments{
   \item{formula}{a model formula with a \code{Surv} object as the
     response}
   \item{data}{data frame in which to find the \code{id},
     \code{istate} and formula variables}
+  \item{subset}{expression indicating which subset of the rows of data
+    should be used in the fit.    All observations are included by default. 
+  }
+  \item{na.action}{
+    a missing-data filter function.  This is applied to the model.frame
+    after any 
+    subset argument has been used.  Default is \code{options()\$na.action}. 
+  }
   \item{id}{an identifier that labels unique subjects}
   \item{istate}{an optional vector giving the current state at the start
     of each interval}

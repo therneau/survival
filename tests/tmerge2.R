@@ -38,9 +38,9 @@ all.equal(mydat2$logic2, c(FALSE, TRUE, FALSE, FALSE, TRUE, FALSE, TRUE,
 
 mydat3 <- tmerge(mydata, tests, id=idd,
                  xx = tdc(date, num), options=list(tdcstart=5))
-all.equal(mydata$xx, c(5,5,3,2,1,2,5,1,3,5,1))
+all.equal(mydat3$xx, c(5,5,3,2,1,2,5,1,3,5,1))
 temp <- tmerge(mydata, tests, id=idd, xx=tdc(date, num, 5)) # alternate default
-all.equal(mydata$xx, temp$xx)
+all.equal(mydat3$xx, temp$xx)
 
 # Multiple chained calls.  
 newcgd <- tmerge(data1=cgd0[, 1:13], data2=cgd0, id=id, tstop=futime)

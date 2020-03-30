@@ -236,7 +236,7 @@ an error message if it is accidentally there.
 <<survfit-formula>>=
 survfit.formula <- function(formula, data, weights, subset, 
 			    na.action, stype=1, ctype=1, 
-                            id, cluster, istate, 
+                            id, cluster, robust, istate, 
                             timefix=TRUE, etype, error, ...) {
 
     Call <- match.call()
@@ -321,16 +321,17 @@ survfit.formula <- function(formula, data, weights, subset,
         stop("invalid value for timefix option")
     if (timefix) newY <- aeqSurv(Y) else newY <- Y
     
+    if (missing(robust)) robust <- NULL
     # Call the appropriate helper function
     if (attr(Y, 'type') == 'left' || attr(Y, 'type') == 'interval')
         temp <-  survfitTurnbull(X, newY, casewt, ...)
     else if (attr(Y, 'type') == "right" || attr(Y, 'type')== "counting")
         temp <- survfitKM(X, newY, casewt, stype=stype, ctype=ctype, id=id, 
-                          cluster=cluster, ...)
+                          cluster=cluster, robust=robust, ...)
     else if (attr(Y, 'type') == "mright" || attr(Y, "type")== "mcounting")
         temp <- survfitCI(X, newY, weights=casewt, stype=stype, ctype=ctype, 
-                          id=id, 
-                          cluster=cluster,  istate=istate, ...)
+                          id=id, cluster=cluster, robust=robust, 
+                          istate=istate, ...)
     else {
         # This should never happen
         stop("unrecognized survival type")

@@ -51,10 +51,10 @@ Gastroenterology, 106:1284-1290, 1994.
 \examples{
 data(udca)
 # values found in table 8.3 of the book
-fit1 <- coxph(Surv(futime, status) ~ trt + log(bili) + stage +
-          cluster(id), data=udca1)
+fit1 <- coxph(Surv(futime, status) ~ trt + log(bili) + stage,
+          cluster =id , data=udca1)
 fit2 <- coxph(Surv(futime, status) ~ trt + log(bili) + stage +
-          cluster(id) + strata(endpoint), data=udca2)
+          strata(endpoint), cluster=id,  data=udca2)
 
 }
 \keyword{datasets}

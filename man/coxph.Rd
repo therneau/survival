@@ -76,11 +76,10 @@ coxph(formula, data=, weights, subset,
     predictor, 
     the missing coefficients are treated as zeros. 
   }
-  \item{robust}{
-    this argument has been deprecated, use a cluster term in the model
-    instead.  (The two options accomplish the same goal -- creation of a
-    robust variance -- but the second
-    is more flexible).
+  \item{robust}{should a robust variance be computed.
+    The default is TRUE if: there is a \code{cluster} argument, there
+    are case weights that are not 0 or 1, or there are \code{id} values
+    with more than one event. 
   }
 
   \item{id}{optional variable name that identifies subjects.  Only
@@ -300,8 +299,8 @@ summary( coxph( Surv(start, stop, event) ~ x, test2))
 # Fit a stratified model, clustered on patients 
 
 bladder1 <- bladder[bladder$enum < 5, ] 
-coxph(Surv(stop, event) ~ (rx + size + number) * strata(enum) + 
-      cluster(id), bladder1)
+coxph(Surv(stop, event) ~ (rx + size + number) * strata(enum),
+      cluster = id, bladder1)
 
 # Fit a time transform model using current age
 coxph(Surv(time, status) ~ ph.ecog + tt(age), data=lung,

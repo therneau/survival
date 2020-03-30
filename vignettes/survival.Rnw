@@ -850,20 +850,6 @@ fit above using, for instance, \code{plot(pcmbac, cumhaz=TRUE)} you will
 find that it is identical to the cumulative hazard estimate from the joint fit.
 This will arise again with Cox models.  
 
-\subsection{Variance}
-The variance of the AJ estimate is computed using an infinitesimal jackknife 
-(IJ) matrix, which contains the influence of each subject on the estimator;
-formally the derivative with respect to each subject's case weight.
-For a single simple survival curve that has $k$ unique values, for instance, 
-the IJ matrix will have $n$ rows and $k$ columns, one row per subject.
-Columns of the matrix sum to zero, by definition, and the variance at
-a time point $t$ will be the column sums of $(IJ)^2$.
-For a competing risk problem the \code{crfit} object above will contain a
-matrix \code{pstate} with $k$ rows and one column for each state,
-where $k$ is the number of unique time points; and the IJ is an
-array of dimension $(n, k, p)$. 
-In the case of simple survival and all case weights =1, the IJ variance
-collapses to the well known Greenwood variance estimate.
 
 \section{Multi-state data}
 The most general multi-state data will have multiple outcomes and
@@ -1458,6 +1444,53 @@ patients into groups.
 <<survdiff>>=
 survdiff(Surv(time, status) ~ x, aml)
 @
+
+\section{Robust variance}
+The \code{survfit}, \code{coxph} and \code{surveg} routines all allow for
+the computation of an infintisimal jackknife variance estimate.
+This estimator is widely used in statistics under several names: in 
+generalized estimating equation (GEE) models is is known as the
+working-independence variance; in linear models as White's estimate,
+and in survey sampling as the Horvitz-Thompsen estimate.
+One feature of the estimate is that it is robust to model misspecification;
+the argument \code{robust=TRUE} to any of the three routines will
+invoke the estimator. 
+If \code{robust=TRUE} and there is no \code{cluster} or \code{id}
+argument, the program will assume that each row of data is from a unique
+subject, a possibly questionable assumption.  It is better to provide the
+grouping explicitly.
+
+If the robust argument is missing (the usual case), then if there is an 
+\code{cluster} argument, non-integer case weights, or there is an \code{id}
+argument and at least one id has multiple events, then the code
+assumes that robust=TRUE, and otherwise assumes robust=FALSE.
+These are cases where the robust variance is most likely to be 
+desirable.  If there is an \code{id} argument but no \code{cluster} the 
+default is to cluster by id.
+If there are non-integer weights but no clustering
+information is provided (id or cluster statement), the code will assume that
+each row of data is a separate subject. 
+If the response is of (time1, time2) form this assumption is almost
+certainly incorrect, but the model based variance would have the same
+assumption so it is a choice between two evils. Responsibility falls on the
+user to clarify the proper clustering.  
+(A error  or warning from the code would be defensible, but the package author
+so dislikes packages that chatter warnings all the time that he is loath
+to do so.)
+
+The infinitesimal jackknife 
+(IJ) matrix contains the influence of each subject on the estimator;
+formally the derivative with respect to each subject's case weight.
+For a single simple survival curve that has $k$ unique values, for instance, 
+the IJ matrix will have $n$ rows and $k$ columns, one row per subject.
+Columns of the matrix sum to zero, by definition, and the variance at
+a time point $t$ will be the column sums of $(IJ)^2$.
+For a competing risk problem the \code{crfit} object above will contain a
+matrix \code{pstate} with $k$ rows and one column for each state,
+where $k$ is the number of unique time points; and the IJ is an
+array of dimension $(n, k, p)$. 
+In the case of simple survival and all case weights =1, the IJ variance
+collapses to the well known Greenwood variance estimate.
 
 \section{State space figures}
 \label{sect:statefig}
@@ -3342,6 +3375,7 @@ the computations.  This leads to 3 common arguments:
     creating the robust variance
   \item robust: TRUE or FALSE, to compute a robust variance.
 \end{itemize}
+
 
 These arguments have been inconsistent in the past, partly because of the
 sequential appearance of multiple use cases.  The package started with

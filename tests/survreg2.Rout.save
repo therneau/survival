@@ -1,7 +1,7 @@
 
-R Under development (unstable) (2014-05-11 r65563) -- "Unsuffered Consequences"
-Copyright (C) 2014 The R Foundation for Statistical Computing
-Platform: i686-pc-linux-gnu (32-bit)
+R Under development (unstable) (2020-03-27 r78086) -- "Unsuffered Consequences"
+Copyright (C) 2020 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -16,7 +16,6 @@ Type 'demo()' for some demos, 'help()' for on-line help, or
 Type 'q()' to quit R.
 
 > library(survival)
-Loading required package: splines
 > options(na.action=na.exclude, contrasts=c('contr.treatment', 'contr.poly'))
 > 
 > # Verify stratified fits in a simple way, but combining two data
@@ -44,8 +43,12 @@ Loading required package: splines
 > # I also am checking that missing values propogate
 > test1 <- data.frame(time=  c(9, 3,1,1,6,6,8),
 +                     status=c(1,NA,1,0,1,1,0),
-+                     x=     c(0, 2,1,1,1,0,0))
-> fit1 <- survreg(Surv(time, status) ~ x + cluster(1:7), test1)
++                     x=     c(0, 2,1,1,1,0,0),
++                     id=  1:7)
+> fit1 <- survreg(Surv(time, status) ~ x, cluster = id, test1)
+> fit2 <- survreg(Surv(time, status) ~ x + cluster(id), test1) #old form
+> all.equal(fit1, fit2)
+[1] TRUE
 > 
 > db1 <- resid(fit1, 'dfbeta')
 > ijack <-db1
@@ -87,4 +90,4 @@ Loading required package: splines
 > 
 > proc.time()
    user  system elapsed 
-  0.732   0.028   0.759 
+  1.207   0.065   1.262 

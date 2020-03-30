@@ -11,7 +11,7 @@
 }
 \usage{
 \method{survfit}{formula}(formula, data, weights, subset, na.action,  
-        stype=1, ctype=1, id, cluster, istate, timefix=TRUE,
+        stype=1, ctype=1, id, cluster, robust, istate, timefix=TRUE,
         etype, error,  ...)
 }
 \arguments{
@@ -52,8 +52,12 @@
     lines of data.
   }
   \item{cluster}{used to group observations for the infinitesmal
-    jackknife variance estimate, defaults to the value of id}
-  
+    jackknife variance estimate, defaults to the value of id.}
+
+  \item{robust}{logical, should the function compute a robust variance.
+    For multi-state survival curves this is true by default.
+    For single state data see details, below.}
+ 
   \item{istate}{for multi-state models, identifies the initial state of
     each subject or observation}
 
@@ -159,7 +163,7 @@ details. Methods defined for survfit objects are
   The routine returns both an estimated probability in state and an
   estimated cumulative hazard estimate.
   The cumulative hazard estimate is the Nelson-Aalen (NA) estimate or the
-  Fleming-Harrington (FH) estimate, the latter includes a correct for
+  Fleming-Harrington (FH) estimate, the latter includes a correction for
   tied event times.  The estimated probability in state can estimated
   either using the exponential of the cumulative hazard, or as a direct
   estimate using the Aalen-Johansen approach.
@@ -175,10 +179,22 @@ details. Methods defined for survfit objects are
   Currently this algorithm is very slow, only a survival curve is
   produced, and it does not support a robust variance.
 
-  If a \code{id} or \code{cluster} argument is present, or for multi-state
+  Robust variance:
+  If a \code{robust} is TRUE, or for multi-state
   curves, then the standard
   errors of the results will be based on an infinitesimal jackknife (IJ)
   estimate, otherwise the standard model based estimate will be used.
+  For single state curves, the default for \code{robust} will be TRUE 
+  if one of: there is a \code{cluster} argument, there
+  are non-integer weights, or there is a \code{id} statement
+  and at least one of the id values has multiple events, and FALSE otherwise.
+  The default represents our best guess about when one would most
+  often desire a robust variance.
+  When there are non-integer case weights and (time1, time2) survival
+  data the routine is at an impasse: a robust variance likely is called
+  for, but requires either \code{id} or \code{cluster} information to be
+  done correctly; it will default to robust=FALSE.
+ 
   With the IJ estimate, the leverage values themselves can be returned
   as arrays with dimensions: number of subjects, number of unique times,
   and for a multi-state model, the number of unique states.
@@ -260,17 +276,19 @@ fit  <- survfit(Surv(time, time, status, type='interval') ~1,
               data=tdata, weight=n)
 
 #
-# Time to progression/death for patients with monoclonal gammopathy
-#  Competing risk curves (cumulative incidence)
+# Three curves for patients with monoclonal gammopathy.
+#  1. KM of time to PCM, ignoring death (statistically incorrect)
+#  2. Competing risk curves (also known as "cumulative incidence")
+#  3. Multi-state, showing Pr(in each state, at time t)
 #
 fitKM <- survfit(Surv(stop, event=='pcm') ~1, data=mgus1,
                     subset=(start==0))
-
-fitCI <- survfit(Surv(stop, event) ~1,
+fitCR <- survfit(Surv(stop, event) ~1,
                     data=mgus1, subset=(start==0))
+fitMS <- survfit(Surv(start, stop, event) ~ 1, id=id, data=mgus1)
 \dontrun{
-# CI curves show the probability in state
-plot(fitCI, xscale=365.25, xmax=7300, mark.time=FALSE,
+# CR curves show the competing risks
+plot(fitCR, xscale=365.25, xmax=7300, mark.time=FALSE,
             col=2:3, xlab="Years post diagnosis of MGUS",
             ylab="P(state)")
 lines(fitKM, fun='event', xmax=7300, mark.time=FALSE,

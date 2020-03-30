@@ -181,6 +181,7 @@ first <- !duplicated(valveSeat$id)
 vtemp <- with(valveSeat, data.frame(id =id, 
                                     time1= ifelse(first, 0, c(0, temp[-n])),
                                     time2= temp, status=status))
+
 kfit <- survfit(Surv(time1, time2, status) ~1, vtemp, id=id)
 
 plot(kfit, fun='cumhaz', ylab="Sample Mean Cumulative Failures", xlab='Time')
@@ -190,16 +191,17 @@ title("Valve replacement data")
 #   cumulative hazards instead of survival --- need to add that
 #   so I just reprise the central code of print.summary.survfit
 xx <- summary(kfit)
-temp <- cbind(xx$time, xx$n.risk, xx$n.event, -log(xx$surv), 
-              xx$std.err/xx$surv, -log(xx$upper), -log(xx$lower))
+temp <- cbind(xx$time, xx$n.risk, xx$n.event, xx$cumhaz, 
+              xx$std.chaz, -log(xx$upper), -log(xx$lower))
 dimnames(temp) <- list(rep("", nrow(temp)),
                        c("time", "n.risk", "n.event", "Cum haz", "std.err",
                          "lower 95%", "upper 95%"))
 print(temp, digits=2)
 
-# Note that I have the same estimates but different SE's.  We are using a
-#  different estimator. It's a statistical argument as to which is
-#  better (one could defend both sides): do you favor JASA or Technometrics?
+# Note that I have the same estimates but different SE's than SAS.  We are using 
+#  a different estimator. It's a statistical argument as to which is
+#  better (one could defend both sides): SAS the more standard estimate found
+#  in the reliability literature, mine the estimate from statistics literature
 rm(temp, kfit, xx)
                     
 ######################################################

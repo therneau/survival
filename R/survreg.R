@@ -1,15 +1,61 @@
 survreg <- function(formula, data, weights, subset, na.action,
 	dist='weibull', init=NULL,  scale=0, control, parms=NULL, 
-	model=FALSE, x=FALSE, y=TRUE, robust=FALSE, score=FALSE,  ...) {
+	model=FALSE, x=FALSE, y=TRUE, robust=FALSE, cluster, score=FALSE,  ...) {
 
     Call <- match.call()    # save a copy of the call
-    indx <- match(c("formula", "data", "weights", "subset", "na.action"),
+
+    # Move any cluster() term out of the formula, and make it an argument
+    #  instead.  This makes everything easier.  But, I can only do that with
+    #  a local copy, doing otherwise messes up future use of update() on
+    #  the model object for a user stuck in "+ cluster()" mode.
+    if (missing(formula)) stop("a formula argument is required")
+    
+    ss <- c("cluster", "offset")
+    Terms <- if (missing(data)) terms(formula, specials=ss) else
+                 terms(formula, specials=ss, data=data)
+    tcl <- attr(Terms, 'specials')$cluster
+    if (length(tcl) > 1) stop("a formula cannot have multiple cluster terms")
+
+    if (length(tcl) > 0) { # there is one
+        # subscripting of formulas is broken at least through R 3.5, if the
+        #  formula contains an offset.  Adding offset to the "specials" above
+        #  is just a sneaky way to find out if one is present, then call
+        #  reformulate ourselves.  tt is a correct index into the row labels
+        #  of the factors attribute, tt+1 to the variables attribute (which is
+        #  a list, so you have to skip the "list" call).  The term.labels attr
+        #  contains neither the response nor the offset, but does contain the
+        #  interactions, which we need.  
+        factors <- attr(Terms, 'factors')
+        if (any(factors[tcl,] >1)) stop("cluster() cannot be in an interaction")
+        if (attr(Terms, "response") ==0)
+            stop("formula must have a Surv response")
+        # reformulate with the response option puts ` ` around Surv, which messes
+        #  up evaluation, hence the fancy dance to replace a piece rather
+        #  than recreate
+        temp <- attr(Terms, "term.labels")
+        oo <- attr(Terms, 'specials')$offset
+        if (!is.null(oo)) {
+            # add the offset to the set of labels
+            ooterm <- rownames(factors)[oo]
+            if (oo < tcl) temp <- c(ooterm, temp)
+            else temp <- c(temp, ooterm)
+        }
+        if (is.null(Call$cluster))
+            Call$cluster <- attr(Terms, "variables")[[1+tcl]][[2]]
+        else warning("cluster appears both in a formula and as an argument, formula term ignored")
+        formula[[3]]      <- reformulate(temp[1-tcl])[[2]]
+
+        Call$formula <- formula
+    }
+
+    indx <- match(c("formula", "data", "weights", "subset", "na.action",
+                    "cluster"),
                   names(Call), nomatch=0) 
     if (indx[1] ==0) stop("A formula argument is required")
     temp <- Call[c(1,indx)]  # only keep the arguments we wanted
     temp[[1L]] <- quote(stats::model.frame)   # change the function called
 
-    special <- c("strata", "cluster")
+    special <- c("strata")
     temp$formula <- if(missing(data)) terms(formula, special)
                     else              terms(formula, special, data=data)
     m <- eval(temp, parent.frame())
@@ -24,21 +70,18 @@ survreg <- function(formula, data, weights, subset, na.action,
     if (type=="mright" || type=="mcounting") 
         stop("multi-state survival is not supported")
    
-
-    strats <- attr(Terms, "specials")$strata
-    cluster<- attr(Terms, "specials")$cluster
-    dropx <- NULL
+    cluster <- model.extract(m, "cluster")
     if (length(cluster)) {
         if (missing(robust)) robust <- TRUE
-        tempc <- untangle.specials(Terms, 'cluster', 1:10)
-        ord <- attr(Terms, 'order')[tempc$terms]
-        if (any(ord>1)) stop ("Cluster can not be used in an interaction")
-        cluster <- strata(m[,tempc$vars], shortlabel=TRUE)  #allow multiples
-        dropx <- tempc$terms
+        cluster <- as.numeric(as.factor(cluster))
         }
+    else if (robust) cluster <- 1:nrow(Y)
+   
+    strats <- attr(Terms, "specials")$strata
+    dropx <- NULL
     if (length(strats)) {
         temp <- untangle.specials(Terms, 'strata', 1)
-        dropx <- c(dropx, temp$terms)
+        dropx <- temp$terms
         if (length(temp$vars)==1) strata.keep <- m[[temp$vars]]
         else strata.keep <- strata(m[,temp$vars], shortlabel=TRUE)
         strata <- as.numeric(strata.keep)

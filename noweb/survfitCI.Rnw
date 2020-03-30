@@ -46,7 +46,7 @@ The first part of the code is standard, parsing out options and
 checking the data.
 <<survfitCI>>= 
 <<survfitCI-compute>>
-survfitCI <- function(X, Y, weights, id, istate, cluster, 
+survfitCI <- function(X, Y, weights, id, cluster, robust, istate,
                       stype=1, ctype=1,
                       se.fit=TRUE,
                       conf.int= .95,
@@ -124,15 +124,17 @@ survfitCI <- function(X, Y, weights, id, istate, cluster,
     status <- Y[,ncol(Y)]
     ncurve <- length(levels(X))
     
-    # The user can call with cluster, id, both, or neither
+    # The user can call with cluster, id, robust or any combination.
     # If only id, treat it as the cluster too
-    # If influence is requested, this implies clustering
+    if (missing(robust) || length(robust)==0) robust <- TRUE
+    if (!robust) stop("multi-state survfit supports only a robust variance")
+
     has.cluster <-  !(missing(cluster) || length(cluster)==0) 
     has.id <-       !(missing(id) || length(id)==0)
     if (has.id) id <- as.factor(id)
     else  {
         if (ncol(Y) ==3) stop("an id statement is required for start,stop data")
-        id <- 1:n
+        id <- 1:n  # older default, which could lead to invalid curves
     }
     if (influence && !(has.cluster || has.id)) {
         cluster <- seq(along=X)
@@ -180,7 +182,7 @@ survfitCI <- function(X, Y, weights, id, istate, cluster,
     # The states of the status variable are the first columns in the output
     #  any extra initial states are later in the list. 
     # Now that we know the names, verify that p0 is correct (if present)
-    if (!missing(p0)) {
+    if (!missing(p0) && !is.null(p0)) {
         if (length(p0) != nstate) stop("wrong length for p0")
         if (!is.numeric(p0) || abs(1-sum(p0)) > sqrt(.Machine$double.eps))
             stop("p0 must be a numeric vector that adds to 1")

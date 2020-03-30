@@ -137,7 +137,7 @@ coxph <- function(formula, data, weights, subset, na.action,
     if (nrow(mf) ==0) stop("No (non-missing) observations")
     Terms <- terms(mf)
 
-    # Grab the response and id variables
+    # Grab the response variable
     Y <- model.extract(mf, "response")
     if (!inherits(Y, "Surv")) stop("Response must be a survival object")
     type <- attr(Y, "type")
@@ -194,13 +194,58 @@ coxph <- function(formula, data, weights, subset, na.action,
     #  longer encouraged
     cluster <- model.extract(mf, "cluster")
     id <- model.extract(mf, "id")
-    if (!is.null(id) && is.null(cluster) && (missing(robust) || robust)) 
-        cluster <- id
+    weights <- model.weights(mf)
+    # The user can call with cluster, id, robust, or any combination
+    # Default for robust: if cluster or any id with > 1 event or 
+    #  any weights that are not 0 or 1, then TRUE
+    # If only id, treat it as the cluster too
+    has.cluster <- !(missing(cluster) || length(cluster)==0) 
+    has.id <-      !(missing(id) || length(id)==0)
+    has.rwt<-      (!is.null(weights) && any(weights != floor(weights)))
+    #has.rwt<- FALSE  # we are rethinking this
+    has.robust <-  (!missing(robust) && !is.null(robust))  # arg present
+    if (has.id) id <- as.factor(id)
 
-    if (missing(robust)) robust <- !is.null(cluster)
-    else if (robust && is.null(cluster)) {
-        if (ncol(Y) ==2) cluster <- seq.int(1, nrow(mf))
-        else stop("one of cluster or id is needed")
+    if (missing(robust) || is.null(robust)) {
+        if (has.cluster || has.rwt ||
+                 (has.id && anyDuplicated(id[Y[,ncol(Y)]==1])))
+            robust <- TRUE else robust <- FALSE
+    }
+    if (!is.logical(robust)) stop("robust must be TRUE/FALSE")
+
+    if (has.cluster) {
+        if (!robust) {
+            warning("cluster specified with robust=FALSE, cluster ignored")
+            ncluster <- 0
+            clname <- NULL
+        }
+        else {
+            if (is.factor(cluster)) {
+                clname <- levels(cluster)
+                cluster <- as.integer(cluster)
+            } else {
+                clname  <- sort(unique(cluster))
+                cluster <- match(cluster, clname)
+            }
+            ncluster <- length(clname)
+        }
+    } else {
+        if (robust && has.id) {
+            # treat the id as both identifier and clustering
+            clname <- levels(id)
+            cluster <- as.integer(id)
+            ncluster <- length(clname)
+        }
+        else {
+            ncluster <- 0  # has neither
+        }
+    }
+
+    # if the user said "robust", (time1,time2) data, and no cluster or
+    #  id, complain about it
+    if (robust && is.null(cluster)) {
+        if (ncol(Y) ==2 || !has.robust) cluster <- seq.int(1, nrow(mf))
+        else stop("one of cluster or id is needed") 
     }
     
     contrast.arg <- NULL  #due to shared code with model.matrix.coxph
