@@ -34,7 +34,7 @@ surv2data <- function(mf, check=FALSE) {
     if (!is.null(states)) {
         if (all(y3[,1] ==0)) {
             y3 <- y3[,2:3]           
-            attr(y3, "type" <- "msurv")
+            attr(y3, "type") <- "mright"
         }
         else attr(y3, "type") <- "mcounting"
         attr(y3, "states") <- states
@@ -87,7 +87,7 @@ surv2data <- function(mf, check=FALSE) {
     else {
         if (is.null(states)) 
             temp <- survcheck(y3~1, id=id3, istate= istate)
-        else temp <- survcheck(y3~1, id=i3, 
+        else temp <- survcheck(y3~1, id=id3, 
                                istate=factor(istate, 1:length(states), states))
     }
     
@@ -95,4 +95,5 @@ surv2data <- function(mf, check=FALSE) {
                     last=last)
     else list(y=y3, id=id3, istate= temp$istate, mf= mf2)
 }
+   
    

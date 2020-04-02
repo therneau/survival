@@ -1,3 +1,4 @@
+library(survival)
 #
 # check of the Surv2 function
 #
@@ -42,4 +43,4 @@ temp4 <- with(m2,
 mflat2 <- merge(temp1, rbind(temp2, temp4), all=TRUE)
 mflat2$event <- factor(mflat2$event, c("censor", "prog", "death"))
 stemp <- survcheck(Surv2(ftime, event) ~ sex, data=mflat2, id=id)
-stemp
+all.equal(stemp$duplicate$row, which(duplicated(mflat2[,c("id", "ftime")])))

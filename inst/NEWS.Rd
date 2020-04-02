@@ -1,9 +1,12 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
 \section{Changes in version 3.2-0}{
-  \item Add support for "timeline" style survival data.  I
-  think this will be a major step forward in usability for multi-state
-  models.  
+  \itemize{
+    \item Add support for "timeline" style survival data.  I
+    think this will be a major step forward in usability for multi-state
+    models.
+}}
+
 \section{Changes in version 3.1-12}{
   \itemize{
     \item Change the default for a robust variance: if there is a

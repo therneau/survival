@@ -74,7 +74,9 @@ survcheck <- function(formula, data, subset, na.action,  id, istate,
         dummy <- seq(along=new2$isort)[-toss1]  # rows we kept
         if (length(Ydup)) {
             fit$flag <- c(fit$flag, "duplicate"= length(Ydup))
-            fit$duplicate <- list(id= unname(iddup), row=dummy[Ydup+1])
+            # if rows i and i+1 are duplicate times, we see it as i, the
+            #  R duplicated function as i+1.  Mimic that rule.
+            fit$duplicate <- list(id= unname(iddup), row=dummy[Ydup]+1)
         }   
 
         if (length(omit)>0) dummy <- dummy[-omit]
@@ -87,7 +89,7 @@ survcheck <- function(formula, data, subset, na.action,  id, istate,
         }
     }
     else if (length(omit)) {
-        dummy <- seq.int(1, n+ length(omit))[-lost]
+        dummy <- seq.int(1, n+ length(omit))[-omit]
         for (i in c("overlap", "gap", "teleport", "jump")){
             if (!is.null(fit[[i]]$row)) {
                 temp <- fit[[i]]

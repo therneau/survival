@@ -173,6 +173,7 @@ coxph <- function(formula, data, weights, subset, na.action,
     if (n==0) stop("No (non-missing) observations")
 
     type <- attr(Y, "type")
+    multi <- FALSE
     if (type=="mright" || type == "mcounting") multi <- TRUE
     else if (type!='right' && type!='counting')
 	stop(paste("Cox model doesn't support \"", type,
