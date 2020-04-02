@@ -20,6 +20,8 @@
     Remove all mention of the latter from documentation and
     examples. Make the cluster, id, and robust options consistent across
     all the functions.
+    \item Fix bug in plot.survfit with xaxs='S'.  At some point one line
+     of code got lost.  
 }}
 
 \section{Changes in version 3.1-11}{

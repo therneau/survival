@@ -390,10 +390,11 @@ else {
     if (!missing(xmax) && missing(xlim)) temp <- pmin(temp, xmax)
     
     if (xaxs=='S') {
-        delta <- diff(temp)
+        rtemp <- range(temp)
+        delta <- diff(rtemp)
         #special x- axis style for survival curves
-        if (xlog) tempx <- c(min(temp[temp>0]), min(temp)+ delta*1.04)
-        else tempx <- c(min(temp), min(temp)+ delta*1.04)
+        if (xlog) tempx <- c(min(rtemp[rtemp>0]), min(rtemp)+ delta*1.04)
+        else tempx <- c(min(rtemp), min(rtemp)+ delta*1.04)
     }
     else if (xlog) tempx <- range(temp[temp > 0])
     else tempx <- range(temp)
