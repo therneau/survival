@@ -145,5 +145,83 @@ SEXP tmerge2(SEXP id2,  SEXP time2x, SEXP nid2, SEXP ntime2) {
     return(index2);
     }
 
-	    
-       
+
+/*
+** This version is used by the surv2data routine.  It differs
+** from tmerge2 only in tied times -- in this one covariates change
+** at a time point, not after.
+*/	    
+ SEXP tmerge3(SEXP id2,  SEXP time2x, SEXP nid2, SEXP ntime2) {
+    int i, k;
+    int n1, n2;
+    int oldid;
+
+    int *id, *nid;
+    double *time2, 
+	   *ntime;
+    SEXP index2;
+    int  *index;
+
+    n1 = LENGTH(id2);  /* baseline data set */
+    n2 = LENGTH(nid2); /* new data set */
+
+    id	= INTEGER(id2);
+    nid = INTEGER(nid2);
+    time2 = REAL(time2x);
+    ntime = REAL(ntime2);
+
+    PROTECT(index2 = allocVector(INTSXP, n1));
+    index = INTEGER(index2);
+
+    /*
+    ** Every subject in nonmissing data (nid, ntime) will be found in the full
+    ** data set (id, time2), but not necessarily vice-versa.  
+    **   The code walks through the data using i=current row of full data id,
+    ** k = current row of nid. We want to match each row of id with the first
+    ** row of nid which is at that time point or before, which is the action
+    ** of "last value carried forward". 
+    ** The return vector 'index' is of length n1 (id) and contains the index k
+    ** of the nonmissing row that provides a match, or -1 if there is no 
+    ** non-missing at or before that time.  (We actually return 0 and k+1 for 
+    ** easier R indexing in the parent.)
+    **
+    **  We cycle between two actions.
+    **   0. Increment k 
+    **   1. Just found a new value of nid[k].  
+    **      a. while (id[i] == prior nid), set index[i]=k and increment i.
+    **      b. while (id[i] < new id), set index[i] = -1 and increment i (an
+    **       id with no non-missing matches)
+    **      c. while id== new and time[i] < ntime[k], set index[i] = -1 and
+    **        increment i.  Times before the first non-missing value.
+    **   2. Not a new value of nid[k]
+    **      While id[i]==nid[k] and time[i] < ntime[k], set index[i]=k-1 and
+    **      increment i.
+    **     
+    */
+    i=0;  /* index for "id" */
+    oldid = -1;   /* not anybody */
+    for (k=0; k<n2; k++) {
+	if (oldid != nid[k]) {  /* new value */
+	    for (; i<n1 && (id[i] == oldid); i++) index[i] =k;
+	    oldid = nid[k];
+	    for(; i<n1 && (id[i] < oldid || 
+			   (id[i]== oldid && time2[i] < ntime[k])); i++)
+		index[i] = 0;
+	}	
+	else { /* old value */
+	    for (; i<n1 && (id[i] == oldid && time2[i] < ntime[k]); i++){
+		index[i] = k;
+	    }
+	}
+    }
+    /* no more data in nid */
+    for (; i<n1; i++) {
+	if (id[i]==oldid) index[i] = k;
+	else index[i] =0;
+    }
+
+    UNPROTECT(1);
+    return(index2);
+    }
+
+     

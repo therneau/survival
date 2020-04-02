@@ -48,6 +48,13 @@ print.survcheck <- function(x, ...){
             length(x$jump$row),
             " rows)\n", sep="")
     } 
+    if(x$flag["duplicate"]){
+        cat("Duplicate time check: ", 
+            length(x$duplicate$id),
+            ifelse(length(x$duplicate$id)==1," id (", " ids ("),
+            length(x$duplicate$row),
+            " rows)\n", sep="")
+    } 
 }
 
 
@@ -110,7 +117,8 @@ summary.survcheck <- function(object, max.show=5, ...){
         print(tdat[tdat[,1] %in% object$teleport$id[1:nshow],])
         cat('\n')
     } 
-    if(object$flag["jump"]){
+ 
+   if(object$flag["jump"]){
         cat("Jump: ", 
             length(object$jump$id),
             ifelse(length(object$jump$id)==1," id (", " ids ("),
@@ -119,6 +127,18 @@ summary.survcheck <- function(object, max.show=5, ...){
         jdat <- data.frame(id=object$id, y= object$Y)[object$jump$row,]
         nshow <- min(max.show, length(object$jump$id))
         print(jdat[jdat[,1] %in% object$jump$id[1:nshow],])
+        cat('\n')
+    }  
+
+   if(object$flag["duplicate"]){
+        cat("Duplicate times: ", 
+            length(object$duplicate$id),
+            ifelse(length(object$duplicate$id)==1," id (", " ids ("),
+            length(object$duplicate$row),
+            " rows)\n", sep="")
+        jdat <- data.frame(id=object$id, y= object$Y)[object$duplicate$row,]
+        nshow <- min(max.show, length(object$duplicate$id))
+        print(jdat[jdat[,1] %in% object$duplicate$id[1:nshow],])
         cat('\n')
     }  
 }

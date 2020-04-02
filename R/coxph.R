@@ -124,14 +124,45 @@ coxph <- function(formula, data, weights, subset, na.action,
 
     # okay, now evaluate the formula
     mf <- eval(tform, parent.frame())
-    if (nrow(mf) ==0) stop("No (non-missing) observations")
     Terms <- terms(mf)
 
-    # Grab the response variable
-    Y <- model.extract(mf, "response")
-    if (!inherits(Y, "Surv")) stop("Response must be a survival object")
+    # Grab the response variable, and deal with Surv2 objects
+    n <- nrow(mf)
+    Y <- model.response(mf)
+    isSurv2 <- inherits(Y, "Surv2")
+    if (isSurv2) {
+        # this is Surv2 style data
+        # if there were any obs removed due to missing, remake the model frame
+        if (length(attr(mf, "na.action"))) {
+            tform$na.action <- na.pass
+            mf <- eval.parent(tform)
+        }
+        if (!is.null(attr(Terms, "specials")$cluster))
+            stop("cluster() cannot appear in the model statement")
+        new <- surv2data(mf)
+        mf <- new$mf
+        istate <- new$istate
+        id <- new$id
+        Y <- new$y
+        if (anyNA(mf[-1])) { #ignore the response still found there
+            if (missing(na.action)) temp <- get(getOption("na.action"))(mf[-1])
+            else temp <- na.action(mf[-1])
+            omit <- attr(temp, "na.action")
+            mf <- mf[-omit,]
+            Y <- Y[-omit]
+            id <- id[-omit]
+            istate <- istate[-omit]
+        }                      
+        n <- nrow(mf)
+    }       
+    else {
+        if (!is.Surv(Y)) stop("Response must be a survival object")
+        id <- model.extract(mf, "id")
+        istate <- model.extract(mf, "istate")
+    }
+    if (n==0) stop("No (non-missing) observations")
+
     type <- attr(Y, "type")
-    multi <- FALSE
     if (type=="mright" || type == "mcounting") multi <- TRUE
     else if (type!='right' && type!='counting')
         stop(paste("Cox model doesn't support \"", type,
@@ -179,7 +210,7 @@ coxph <- function(formula, data, weights, subset, na.action,
     timetrans <- attr(Terms, "specials")$tt
     if (missing(tt)) tt <- NULL
     if (length(timetrans)) {
-        if (multi) stop("the tt() transform is not implemented for multi-state models")
+        if (multi || isSurv2) stop("the tt() transform is not implemented for multi-state or Surv2 models")
          timetrans <- untangle.specials(Terms, 'tt')
          ntrans <- length(timetrans$terms)
 
@@ -272,7 +303,7 @@ coxph <- function(formula, data, weights, subset, na.action,
     # grab the cluster, if present.  Using cluster() in a formula is no
     #  longer encouraged
     cluster <- model.extract(mf, "cluster")
-    id <- model.extract(mf, "id")
+    if (!isSurv2) id <- model.extract(mf, "id")
     weights <- model.weights(mf)
     # The user can call with cluster, id, robust, or any combination
     # Default for robust: if cluster or any id with > 1 event or 
