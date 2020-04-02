@@ -178,7 +178,7 @@ survfit.formula <- function(formula, data, weights, subset,
 
     n <- nrow(mf)
     Y <- model.response(mf)
-    if (is.Surv2(Y)) {
+    if (inherits(Y, "Surv2")) {
         # this is Surv2 style data
         # if there are any obs removed due to missing, remake the model frame
         if (length(attr(mf, "na.action"))) {

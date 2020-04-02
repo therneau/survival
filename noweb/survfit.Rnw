@@ -259,7 +259,7 @@ survfit.formula <- function(formula, data, weights, subset,
 
     n <- nrow(mf)
     Y <- model.response(mf)
-    if (is.Surv2(Y)) {
+    if (inherits(Y, "Surv2")) {
         # this is Surv2 style data
         # if there are any obs removed due to missing, remake the model frame
         if (length(attr(mf, "na.action"))) {
@@ -289,7 +289,7 @@ survfit.formula <- function(formula, data, weights, subset,
         id <- model.extract(mf, "id")
         istate <- model.extract(mf, "istate")
     }
-    if (n==0) stop("data set has no usable observations")
+    if (n==0) stop("data set has no non-missing observations")
 
     casewt <- model.extract(mf, "weights")
     if (is.null(casewt)) casewt <- rep(1.0, n)
