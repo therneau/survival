@@ -143,7 +143,7 @@ length.Surv2 <- function(x) nrow(x)
 }
 names.Surv2 <- function(x) rownames(x)
 
-format.Sur2v <- function(x, ...) format(as.character.Surv2(x), ...)
+format.Surv2 <- function(x, ...) format(as.character.Surv2(x), ...)
 as.data.frame.Surv2 <- function(x, ...) as.data.frame.model.matrix(x, ...)
 
 # all sorts of methods for Surv, caused by searching for every case of

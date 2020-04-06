@@ -36,7 +36,8 @@ coxsurv.fit <- function(ctype, stype, se.fit, varmat, cluster,
     names(survlist) <- ustrata
     survtype <- if (stype==1) 1 else ctype+1
     vartype <- survtype
-        
+    if (is.null(wt)) wt <- rep(1.0, nrow(y))
+    if (is.null(strata)) strata <- rep(1L, nrow(y))
     for (i in 1:nstrata) {
         indx <- which(strata== ustrata[i])
         survlist[[i]] <- agsurv(y[indx,,drop=F], x[indx,,drop=F], 

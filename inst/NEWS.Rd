@@ -3,8 +3,10 @@
 \section{Changes in version 3.2-0}{
   \itemize{
     \item Add support for "timeline" style survival data.  I
-    think this will be a major step forward in usability for multi-state
+    hope this will be a step forward in usability for multi-state
     models.
+    \item Fix error in survfit.coxphms, the weight vector could be the
+    wrong length.
 }}
 
 \section{Changes in version 3.1-12}{

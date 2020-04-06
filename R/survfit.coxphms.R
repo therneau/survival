@@ -55,7 +55,7 @@ function(formula, newdata, se.fit=TRUE, conf.int=.95, individual=FALSE,
 
     Terms <- object$terms
     n <- object$n[1]
-    if (!has.strata) strata <- rep(0L, n)
+    if (!has.strata) strata <- NULL
     else strata <- object$strata
 
     missid <- missing(id) # I need this later, and setting id below makes
@@ -87,15 +87,13 @@ function(formula, newdata, se.fit=TRUE, conf.int=.95, individual=FALSE,
     position <- NULL
     Y <- object[['y']]
     if (is.null(mf)) {
-        weights <- rep(1., n)
-        offset <- rep(0., n)
+        weights <- object$weights  # let offsets/weights be NULL until needed
+        offset <- NULL
         X <- object[['x']]
     }
     else {
         weights <- model.weights(mf)
-        if (is.null(weights)) weights <- rep(1.0, n)
         offset <- model.offset(mf)
-        if (is.null(offset)) offset <- rep(0., n)
         X <- model.matrix.coxph(object, data=mf)
         if (is.null(Y) || coxms) {
             Y <- model.response(mf)
@@ -130,6 +128,10 @@ function(formula, newdata, se.fit=TRUE, conf.int=.95, individual=FALSE,
     #  remove those rows first since they won't be in the final output.
     t2 <- transitions[, is.na(match(colnames(transitions), "(censored)")), drop=FALSE]
     absorb <- row.names(t2)[rowSums(t2)==0]
+
+    if (is.null(weights)) weights <- rep(1.0, nrow(Y))
+    if (is.null(strata))  strata  <- rep(1L, nrow(Y))
+
     if (length(absorb)) droprow <- istate %in% absorb  else droprow <- FALSE
     if (any(droprow)) {
         j <- which(!droprow)
@@ -172,13 +174,15 @@ function(formula, newdata, se.fit=TRUE, conf.int=.95, individual=FALSE,
     else {
         varmat <- object$var
         beta <- ifelse(is.na(object$coefficients), 0, object$coefficients)
-        xcenter <- sum(object$means * beta)+ mean(offset)
+        if (is.null(offset)) xcenter <- sum(object$means * beta)
+        else xcenter <- sum(object$means * beta)+ mean(offset)
         if (!is.null(object$frail)) {
            keep <- !grepl("frailty(", dimnames(X)[[2]], fixed=TRUE)
            X <- X[,keep, drop=F]
         }
             
-        risk <- c(exp(X%*% beta + offset - xcenter))
+        if (is.null(offset)) risk <- c(exp(X%*% beta - xcenter))
+        else     risk <- c(exp(X%*% beta + offset - xcenter))
     }
     if (missing(newdata)) {
         # If the model has interactions, print out a long warning message.

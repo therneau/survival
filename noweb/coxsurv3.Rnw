@@ -54,6 +54,10 @@ if (missing(start.time)) start.time <- min(Y[,2], 0)
 #  remove those rows first since they won't be in the final output.
 t2 <- transitions[, is.na(match(colnames(transitions), "(censored)")), drop=FALSE]
 absorb <- row.names(t2)[rowSums(t2)==0]
+
+if (is.null(weights)) weights <- rep(1.0, nrow(Y))
+if (is.null(strata))  strata  <- rep(1L, nrow(Y))
+
 if (length(absorb)) droprow <- istate %in% absorb  else droprow <- FALSE
 if (any(droprow)) {
     j <- which(!droprow)

@@ -208,7 +208,7 @@ survfit.formula <- function(formula, data, weights, subset,
         id <- model.extract(mf, "id")
         istate <- model.extract(mf, "istate")
     }
-    if (n==0) stop("data set has no usable observations")
+    if (n==0) stop("data set has no non-missing observations")
 
     casewt <- model.extract(mf, "weights")
     if (is.null(casewt)) casewt <- rep(1.0, n)
