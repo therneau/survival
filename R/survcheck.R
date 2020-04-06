@@ -67,17 +67,18 @@ survcheck <- function(formula, data, subset, na.action,  id, istate,
     fit$n <- c(id = length(unique(id)), observations =length(id), 
                transitions = sum(fit$transitions))
 
+    fit$flag <- c(fit$flag, "duplicate"=0)
     if (isSurv2) {
         # make any numbering match the input data, not the retained data
         toss1 <- new2$isort[new2$last]  # original obs numbers that were the
                                        # last for a subject
         dummy <- seq(along=new2$isort)[-toss1]  # rows we kept
         if (length(Ydup)) {
-            fit$flag <- c(fit$flag, "duplicate"= length(Ydup))
+            fit$flag["duplicate"] <- length(Ydup)
             # if rows i and i+1 are duplicate times, we see it as i, the
             #  R duplicated function as i+1.  Mimic that rule.
             fit$duplicate <- list(id= unname(iddup), row=dummy[Ydup]+1)
-        }   
+        } 
 
         if (length(omit)>0) dummy <- dummy[-omit]
         for (i in c("overlap", "gap", "teleport", "jump")){

@@ -41,14 +41,14 @@ print.survcheck <- function(x, ...){
             length(x$teleport$row),
             " rows)\n", sep="")
     } 
-    if(x$flag["jump"]){
+    if(x$flag["jump"] >0){
         cat("Jump check: ", 
             length(x$jump$id),
             ifelse(length(x$jump$id)==1," id (", " ids ("),
             length(x$jump$row),
             " rows)\n", sep="")
     } 
-    if(x$flag["duplicate"]){
+    if(x$flag["duplicate"] >0) {
         cat("Duplicate time check: ", 
             length(x$duplicate$id),
             ifelse(length(x$duplicate$id)==1," id (", " ids ("),
@@ -118,7 +118,7 @@ summary.survcheck <- function(object, max.show=5, ...){
         cat('\n')
     } 
  
-   if(object$flag["jump"]){
+   if(object$flag["jump"] >0){
         cat("Jump: ", 
             length(object$jump$id),
             ifelse(length(object$jump$id)==1," id (", " ids ("),
@@ -130,7 +130,7 @@ summary.survcheck <- function(object, max.show=5, ...){
         cat('\n')
     }  
 
-   if(object$flag["duplicate"]){
+   if(object$flag["duplicate"] >0){
         cat("Duplicate times: ", 
             length(object$duplicate$id),
             ifelse(length(object$duplicate$id)==1," id (", " ids ("),

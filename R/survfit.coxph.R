@@ -152,6 +152,7 @@ survfit.coxph <-
           #  (This case is really rare)
           # se.fit <- FALSE
           X <- matrix(0., nrow=n, ncol=1)
+          if (is.null(offset)) offset <- rep(0, n)
           xcenter <- mean(offset)
           coef <- 0.0
           varmat <- matrix(0.0, 1, 1)
