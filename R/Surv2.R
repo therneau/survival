@@ -25,7 +25,7 @@ Surv2 <- function(time, event) {
             if (!all(temp[who2], na.rm=TRUE))
                 warning("Invalid status value, converted to NA")
         }
-        else stop("Invalid status value, must be logical or numeric")
+        else stop("Invalid status value, must be factor, logical or numeric")
     }
     ss <- cbind(time=time, status=status)
  

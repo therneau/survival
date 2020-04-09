@@ -6,7 +6,7 @@
     hope this will be a step forward in usability for multi-state
     models.
     \item Fix error in survfit.coxphms, the weight vector could be the
-    wrong length.
+    wrong length when the start.time option was used.
 }}
 
 \section{Changes in version 3.1-12}{

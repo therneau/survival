@@ -96,4 +96,27 @@ surv2data <- function(mf, check=FALSE) {
     else list(y=y3, id=id3, istate= temp$istate, mf= mf2)
 }
    
-   
+# User callable version
+Surv2data <- function(formula, data, subset, id){
+    Call <- match.call()
+    indx <- match(c("formula", "data", "weights", "subset", "na.action",
+                    "cluster", "id", "istate"),
+                  names(Call), nomatch=0)
+    if (indx[1] ==0) stop("A formula argument is required")
+    tform <- Call[c(1, indx)]  # only keep arguments we wanted
+    tform$na.action <- stats::na.pass
+    tform[[1L]] <- quote(stats::model.frame)
+    mf <- eval(tform, parent.frame())
+    temp <- surv2data(mf, check=FALSE)
+    
+    mf2 <- temp$mf
+    mf2[['S2.y']] <- temp$y
+    index <- match(as.character(Call$id), names(mf2), nomatch=0)
+    if (index >0) mf2[[index]] <- temp$id
+    else    mf2[['S2.id']] <- temp$id
+    mf2[['S2.state']] <- temp$istate
+    attr(mf2, "terms") <- NULL
+    mf2
+}
+
+    
