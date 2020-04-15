@@ -448,10 +448,10 @@ If tmap has rows (terms) for strata, then we have to deal with the complication
 that a strata might be applied to some transitions and not to others.
 <<coxph-multi-X>>=
 if (length(strats) >0) {
-    stratmap <- tmap[c(1L, strats),] # strats includes Y, + tmap has an extra row
-    stratmap[-1,] <- ifelse(stratmap[-1,] >0, 1L, 0L)
-    if (nrow(stratmap) > 2) {
-        temp <- stratmap[-1,]
+    stratum_map <- tmap[c(1L, strats),] # strats includes Y, + tmap has an extra row
+    stratum_map[-1,] <- ifelse(stratum_map[-1,] >0, 1L, 0L)
+    if (nrow(stratum_map) > 2) {
+        temp <- stratum_map[-1,]
         if (!all(apply(temp, 2, function(x) all(x==0) || all(x==1)))) {
             # the hard case: some transitions use one strata variable, some
             #  transitions use another.  We need to keep them separate
@@ -460,7 +460,7 @@ if (length(strats) >0) {
         }
     }
 }
-else stratmap <- tmap[1,,drop=FALSE]
+else stratum_map <- tmap[1,,drop=FALSE]
 @ 
 
 Also create the initial values vector.
@@ -477,7 +477,7 @@ Then set up the data.
 
 <<coxph-multi-X>>=
 cmap <- parsecovar3(tmap, colnames(X), attr(X, "assign"))
-xstack <- stacker(cmap, stratmap, as.integer(istate), X, Y, strata=istrat,
+xstack <- stacker(cmap, stratum_map, as.integer(istate), X, Y, strata=istrat,
                   states=states)
 rkeep <- unique(xstack$rindex)
 transitions <- survcheck2(Y[rkeep,], id[rkeep], istate[rkeep])$transitions
@@ -1144,7 +1144,7 @@ if (multi) {
     fit$transitions <- transitions
     fit$states <- states
     fit$cmap <- cmap
-    fit$stratmap <- stratmap   # why not 'stratamap'?  Confusion with fit$strata
+    fit$stratum_map <- stratum_map   # why not 'stratamap'?  Confusion with fit$strata
     fit$resid <- rowsum(fit$resid, xstack$rindex)
     # add a suffix to each coefficent name.  Those that map to multiple transitions
     #  get the first transition they map to

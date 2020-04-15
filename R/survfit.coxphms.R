@@ -148,7 +148,7 @@ function(formula, newdata, se.fit=TRUE, conf.int=.95, individual=FALSE,
     #  expanded data set.
     # Replicate actions found in the coxph-multi-X chunk,
     cluster <- model.extract(mf, "cluster")
-    xstack <- stacker(object$cmap, object$stratmap, as.integer(istate), X, Y,
+    xstack <- stacker(object$cmap, object$stratum_map, as.integer(istate), X, Y,
                       as.integer(strata),
                       states= object$states)
     if (length(position) >0)
@@ -305,7 +305,7 @@ function(formula, newdata, se.fit=TRUE, conf.int=.95, individual=FALSE,
     if (individual) {
         stop("time dependent survival curves not yet supported for multistate")
         result <- coxsurv.fit2(ctype, stype, se.fit, varmat, cluster, start.time,
-                               object$stratmap[1,], object$transitions, object$states,
+                               object$stratum_map[1,], object$transitions, object$states,
                                Y, X, weights, risk, position, strata, oldid,
                                transition, y2, x2, risk2, strata2, id2)
                               
@@ -317,7 +317,7 @@ function(formula, newdata, se.fit=TRUE, conf.int=.95, individual=FALSE,
             p0 <- cifit$pstate[first,, drop=FALSE]
         }
         cifit <- coxsurv.fit2(ctype, stype, se.fit, varmat, cluster, start.time,
-                               object$stratmap[1,], object$transitions, object$states,
+                               object$stratum_map[1,], object$transitions, object$states,
                                Y, X, weights, risk, position, strata, oldid,
                                transition, y2, x2, risk2, cifit=cifit)
 

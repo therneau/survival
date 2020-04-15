@@ -70,7 +70,7 @@ coxph.getdata <- function(fit, y=TRUE, x=TRUE, stratax=TRUE,
             }
             else strat <- NULL
             # Now expand the data
-            xstack <- stacker(fit$cmap, fit$stratmap, as.integer(check$istate), tx, ty, 
+            xstack <- stacker(fit$cmap, fit$stratum_map, as.integer(check$istate), tx, ty, 
                               strat, check$states)
             tx <- xstack$X
             ty <- xstack$Y

@@ -86,7 +86,7 @@ routine.
   If a particular covariate is not used by the transition the matrix
   will contain a zero, if two transitions share a coefficient the matrix
   will contain repeats.}
-\item{stratmap}{stratum mapping, present for multi-state coxph fits.
+\item{stratum_map}{stratum mapping, present for multi-state coxph fits.
   The row labeled `(Baseline)' identifies transitions that do or do not
   share a baseline stratum.  Further rows correspond to strata() terms
   in the model, each of which may apply to some transitions and not others.
