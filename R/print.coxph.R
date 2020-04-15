@@ -34,21 +34,21 @@ print.coxph <-
     
     if (inherits(x, "coxphms")) {
         # print it group by group
-        tmap <- x$cmap[-1,,drop=FALSE]  # ignore the intercept (strata)
-        cname <- colnames(tmap)
+        cmap <- x$cmap  # lazy: I don't want to type x$ many times
+        cname <- colnames(cmap)
         printed <- rep(FALSE, length(cname))
         for (i in 1:length(cname)) {
             # if multiple colums of tmat are identical, only print that
             #  set of coefficients once
             if (!printed[i]) {
-                j <- apply(tmap[,, drop=FALSE], 2, 
-                           function(x) all(x == tmap[,i])) 
+                j <- apply(cmap[,, drop=FALSE], 2, 
+                           function(x) all(x == cmap[,i])) 
                 printed[j] <- TRUE
 
-                tmp2 <- tmp[tmap[,i],, drop=FALSE]
+                tmp2 <- tmp[cmap[,i],, drop=FALSE]
                 names(dimnames(tmp2)) <- c(paste(cname[j], collapse=", "), "")
                 # restore character row names
-                rownames(tmp2) <- rownames(tmap)[tmap[,i]>0]
+                rownames(tmp2) <- rownames(cmap)[cmap[,i]>0]
                 printCoefmat(tmp2, digits=digits, P.values=TRUE, 
                              has.Pvalue=TRUE,
                              signif.stars = signif.stars, ...)
@@ -87,12 +87,11 @@ print.coxph <-
 
 coef.coxphms <- function(object, type=c("vector", "matrix"), ...) {
     type <- match.arg(type)
+    cmap <- object$cmap
     if (type=="matrix") {
-        cmap2 <- object$cmap[-1,, drop=FALSE]
-        cmat <- 0*cmap2  # all the right names
-        cmat[cmap2>0] <- object$coefficient[cmap2]
-        attr(cmat, "states") <- object$states
-        cmat
+        cmap[cmap>0] <- object$coefficients[cmap]
+        attr(cmap, "states") <- object$states
+        cmap
     }
     else NextMethod(object, ...)
 }

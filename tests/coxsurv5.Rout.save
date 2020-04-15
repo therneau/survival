@@ -1,6 +1,6 @@
 
-R Under development (unstable) (2019-06-28 r76752) -- "Unsuffered Consequences"
-Copyright (C) 2019 The R Foundation for Statistical Computing
+R Under development (unstable) (2020-03-27 r78086) -- "Unsuffered Consequences"
+Copyright (C) 2020 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -151,7 +151,7 @@ Type 'q()' to quit R.
 > test2$state <- factor(test2$state, 0:3, c("censor", "a", "b", "c"))
 > 
 > if (FALSE) {
-+     # this graph is very useful
++     # this graph is very useful when debugging
 +     temp <- survcheck(Surv(t1, t2, state) ~1, test2, id=id)
 +     plot(c(0,22), c(1,9.1), type='n', xlab="Time", ylab= "Subject")
 +     with(test2, segments(t1+.1, id, t2, id, col=as.numeric(temp$istate)))
@@ -201,4 +201,4 @@ Type 'q()' to quit R.
 > 
 > proc.time()
    user  system elapsed 
-  1.200   0.040   1.241 
+  1.220   0.067   1.285 

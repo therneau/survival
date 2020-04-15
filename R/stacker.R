@@ -8,7 +8,7 @@
 # For each transition the expanded data has a set of rows, all those whose
 #  initial state makes them eligible for the transition.  
 #
-stacker <- function(cmap, istate, X, Y, strata, states) {
+stacker <- function(cmap, smap, istate, X, Y, strata, states) {
     from.state <- as.numeric(sub(":.*$", "", colnames(cmap)))
     to.state   <- as.numeric(sub("^.*:", "", colnames(cmap)))
 
@@ -28,23 +28,23 @@ stacker <- function(cmap, istate, X, Y, strata, states) {
     endpoint <- endpoint[ 1 + Y[,ncol(Y)]]  # endpoint of each row, 0=censor
 
     # Usually each transition is a separate stratum, but the user can set it
-    #  up otherwise.  The first row of cmat gives the strata for each change
-    ustrata <- unique(cmap[1,])
+    #  up otherwise.  The first row of smap gives the strata for each change
+    ustrata <- unique(smap[1,])
     nstrat <- length(ustrata)
     n.perstrat <- integer(nstrat)
     for (i in 1:nstrat) {
-        itemp <- unique(from.state[cmap[1,] == ustrata[i]])
+        itemp <- unique(from.state[smap[1,] == ustrata[i]])
         n.perstrat[i] <- sum(istate %in% itemp)
     }
     
     # The constructed X matrix has a block or rows for each ustrata level
     n2 <- sum(n.perstrat)  # number of rows in new data
-    newX <- matrix(0, nrow=n2, ncol=max(cmap[-1,]))
+    newX <- matrix(0, nrow=n2, ncol=max(cmap))
     k <- 0
     rindex <- integer(n2)   # original row for each new row of data
     newstat <- integer(n2)  # new status
     for (i in 1:nstrat) {
-        whichcol <- which(cmap[1,] == ustrata[i])  # cols of cmap to look at
+        whichcol <- which(smap[1,] == ustrata[i])  # cols of cmap to look at
         subject <- which(istate %in% from.state[whichcol]) # data rows in strata
         nr <- k + seq(along=subject)  # rows in the newX for this strata
         rindex[nr] <- subject
@@ -52,7 +52,7 @@ stacker <- function(cmap, istate, X, Y, strata, states) {
         for (j in whichcol) {
             j1 <- which(istate == from.state[j]) # rows of X in transition
             j2 <- which(istate[subject] == from.state[j]) # new rows
-            nc <- cmap[-1,j]             # variables in this transition
+            nc <- cmap[,j]             # variables in this transition
             newX[nr[j2], nc[nc>0]] <- X[j1, nc>0] # rows of cmap = cols of X
         }
         
@@ -79,21 +79,30 @@ stacker <- function(cmap, istate, X, Y, strata, states) {
     if (ncol(Y) ==2) newY <- Surv(Y[rindex,1], newstat)
     else newY <- Surv(Y[rindex,1], Y[rindex,2], newstat)
 
-    # new strata, add on any implicit strata in the data.
-    if (is.null(strata)) newstrat <- ustrata[transition]
-    else {
-        # if the old strata is 1, 2, 3 and states are 1-5, the new ones will 
-        #  11-15 for strata 1, 21-25 for strata 2, etc.
-        # (this is always called with 1,2,3... for the strata)
-        # there are usually <10 transitions, so this makes simple labels
-        temp <-10^ ceiling(log(length(ustrata), 10))
-        newstrat <- ustrata[transition] + strata[rindex]*temp
-    } 
-
+    # newstrat should be an integer vector, which can be used for the interal C calls
+    newstrat <- ustrata[transition]
+    if (is.matrix(strata)){
+        # this is the most complex case.  Some transitions use some columns of
+        # istrat, and some use others
+        maxstrat <- apply(strata, 2, max)  # max in each colum of strata
+        mult <- cumprod(c(1, maxstrat))
+        temp <- max(mult) * newstrat
+        for (i in 1:ncol(strata)) {
+            k <- smap[i+1, transition]
+            temp <- temp + ifelse(k ==0, 0L, strata[i, rindex]* temp[i] -1L)
+        } 
+        newstrat <- match(temp, sort(unique(temp)))
+    }
+    else if (length(strata) > 0) {
+        # strata will be an integer vector, values from 1 to number of strata
+        mult <- max(strata)
+        temp <- mult * newstrat + ifelse(smap[2,transition]==0, 0L, strata[rindex] -1L)
+        newstrat <- match(temp, sort(unique(temp)))
+    }       
+ 
     # give variable names to the new data
     vname <- rep("", ncol(newX))
-    ctemp <- cmap[-1,,drop=FALSE]
-    vname[ctemp[ctemp>0]] <- colnames(X)[row(ctemp)[ctemp>0]]
+    vname[cmap[cmap>0]] <- colnames(X)[row(cmap)[cmap>0]]
     colnames(newX) <- vname
 
     list(X=newX, Y=newY, strata=as.integer(newstrat), 

@@ -78,8 +78,20 @@ the method used for handling tied survival times.
 the na.action attribute, if any, that was returned by the \code{na.action} 
 routine. 
 }
-\item{timefix}{the value of the timefix option used in the fit
-  
+\item{timefix}{the value of the timefix option used in the fit}
+\item{cmap}{the coefficient map, present for multi-state coxph fits. There
+  a column for each transition and a row for each coefficient, the value
+  maps that transition/coefficient pair to a position in the coefficient
+  vector.
+  If a particular covariate is not used by the transition the matrix
+  will contain a zero, if two transitions share a coefficient the matrix
+  will contain repeats.}
+\item{stratmap}{stratum mapping, present for multi-state coxph fits.
+  The row labeled `(Baseline)' identifies transitions that do or do not
+  share a baseline stratum.  Further rows correspond to strata() terms
+  in the model, each of which may apply to some transitions and not others.
+}
+  \item{...}{
 The object will also contain the following, for documentation see the \code{lm} 
 object: \code{terms}, \code{assign}, \code{formula}, \code{call}, and, optionally, \code{x}, \code{y}, 
 and/or \code{frame}. 

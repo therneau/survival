@@ -9,7 +9,7 @@ importFrom(stats, anova, approx, as.formula, coef, coefficients,
            pchisq, pnorm, printCoefmat, predict, qnorm, quantile, qgamma,
            reformulate, setNames, terms.formula,
            resid, residuals, rnorm, runif, stat.anova, terms, weights, var, vcov,
-           .checkMFClasses, .getXlevels)
+           .checkMFClasses, .getXlevels, update, update.formula)
 importFrom(graphics, arrows, axis, barplot, box, clip, matlines, matplot,
            hist, frame, identify, image, par, plot, points, lines, 
            segments, strheight, strwidth, text)
