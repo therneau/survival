@@ -2054,7 +2054,7 @@ row in the table.  Column labels are explained by figure \ref{fig:timeline}.
     after the actual notice of NAFLD; no other observations have this
     offset added).  The time dependent covariate \code{nafld} never turns
     from 0 to 1 for these subjects. 
-    (Why were these subject not removed earlier by my ``at least 7 days of
+    (Why were these subjects not removed earlier by my ``at least 7 days of
     follow-up rule?  They are all controls for someone else and so appear
     in the data at a younger age than their NAFLD date.)
   \item \Sexpr{tc[3,1]} of the diabetes diagnoses are before entry, i.e., 
@@ -2076,10 +2076,12 @@ such puzzles are understood.  (This particular one was benign.)
 If, for instance, some condition is noted at autopsy, do we want the related
 time dependent covariate to change before or after the death event?
 Some sort of decision has to be made, and it is better to look and understand
-than to blindly accept some programming default.
+than to blindly accept an arbitrary programming default.
 
 \subsection{Fits}
 Create the covariates for current state and the analysis endpoint.
+It is important that data manipulations like this occur \emph{after}
+the final \code{tmerge} call.
 <<nafld2>>=
 ndata$cstate <- with(ndata, diabetes + htn + lipid)
 temp <- with(ndata, e1 + e2 + e3)
@@ -2098,24 +2100,27 @@ temp3
 @
 
 This is a rich data set with a large number of transitions:
-over 1/4 have at least one event, and there
+over 1/4 of the participants have at least one event, and there
 are a few subjects who transition through all 5 possible states
 (4 transitions).
 Unlike prior examples, subjects do not all enter the study in the same
 state; about 14\% have diabetes at the time of recruitment, for instance.
 Note one major difference between current state and outcome, namely that the
-first is a time-dependent variable.
-If a piece of a subject's time
-were divided into multiple sub-intervals, time dependent covariates
+current state endures across intervals.
+If a portion of a subject's time
+were divided into multiple sub-intervals, time dependent covariates and current state
 repeat in each interval.  An endpoint, however, does not repeat.
-
 
 We see a number of subjects who ``jump'' states, e.g., directly from 0 to
 2 comorbidities.  
 This serves to remind us that this is actually a model of time
 until \emph{detected} comorbidity; which will often have such jumps even if
 the underlying biology is continuous.
-The data look like the figure below.
+The data look like the figure below, where the dotted lines are 
+transformations that we observe, but would not be present if the subjects were
+monitored continuously.
+A call to the \code{survcheck} routine is almost mandatory for a complex setup like 
+this, to ensure that the data set which has been built is what was desired.
 
 <<nafld3>>=
 @ 
@@ -2127,7 +2132,7 @@ cmat[1,2] <- cmat[2,3] <- cmat[3,4] <- 1
 cmat[1,3] <- cmat[2,4] <- 1.6
 cmat[1,4] <- 1.6
 dimnames(cmat) <- list(states, states)
-statefig(cbind(4,1), cmat)
+statefig(cbind(4,1), cmat, alty=c(1,2,1,2,2,1,1,1,1,1,1))
 @
 
 Since age is the dominant driver of the transitions we have chosen to 
@@ -2146,8 +2151,6 @@ nfit1 <- coxph(list(Surv(age1, age2, event) ~ nafld + male,
                      0: "death" ~ male / common),
                data=ndata, id=id, istate=cstate)
 nfit1$states
-round(coef(nfit1), 3)
-nfit1$cmap
 @ 
 
 A list has been used as the formula for the \code{coxph} call.
@@ -2162,19 +2165,32 @@ A '1' on the right-hand side can be used to force a common baseline
 hazard for two transitions.  A common baseline for two transitions
 that originate from the same state is incompatable with the Cox partial
 likelihood, however, and will lead to multiple un-estimable coefficients.
+The right hand side acts like \code{update.formula} in that it can also
+remove of variables found in the default formula.
 
-Here are two forms of the printout.  We limit the number of digits to
-better fit on this document page.
-
+The standard printout is arranged by transition
 <<nafld5>>=
 options(show.signif.stars = FALSE) # display statistical maturity
-print(summary(nfit1, digits =3))
-
 print(nfit1, digits =3)
+nfit1$cmap
 @ 
 
 It is interesting, though not surprising, that the impact of NAFLD on death
 is largest for those with 0mc and smallest for those with 3mc.  
+The \code{cmap} component records the mapping between the coefficient vector
+and the state transtitions. 
+The result of \code{coef(nfit1)} is a vector of length 9, the first element of
+which is the nafld effect for transitions 1:2, 1:3, and 1:4,
+the second coefficient is the effect of male on those three transitions, etc. 
+By default the summary command has rows for each coefficient, not arranged by state.
+If a coefficient maps to multiple transitions it is labeled with the first.
+The printout can be modified by adding an \code{expand=TRUE} option
+to the print statement.
+
+<<nafld5b>>=
+print(summary(nfit1), digits=3)
+@ 
+
 
 
 \section{Testing proportional hazards}
@@ -3461,10 +3477,13 @@ Each element indexes a position in the coefficient vector and variance matrix.
   \item If a particular term in the data, ``age'' say, was not part of the model
     for a particular transition then a 0 will appear in that position 
     of \code{cmap}.
-z  \item If two transitions share a common coefficient, both those element of
+   \item If two transitions share a common coefficient, both those element of
     \code{cmap} will point to the same location.
-  \item The first row of \code{cmap}, labeled ``stratum'', is numbered separately
-    and partitions the transitions into disjoint strata.
+   \item Following the coefficient information will be a row labeled 
+     \code{(Baseline)}, which contains integers identifing which transitions do
+     or do not share their baseline hazard.
+   \item Following this are rows for each strata term (if any) in the model, 
+     each a 0/1 vector which marks transitions to which this strata applies.
 \end{itemize}
 
 \bibliographystyle{plain}

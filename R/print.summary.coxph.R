@@ -1,6 +1,6 @@
 print.summary.coxph <-
  function(x, digits = max(getOption('digits')-3, 3),  
-             signif.stars = getOption("show.signif.stars"), ...) {
+             signif.stars = getOption("show.signif.stars"), expand=FALSE, ...) {
     if (!is.null(x$call)) {
 	cat("Call:\n")
 	dput(x$call)
@@ -25,19 +25,18 @@ print.summary.coxph <-
 	return()
         }
 
-    if (!is.null(x$cmap)) { # this was a coxphms object
+    if (expand && !is.null(x$cmap)) { # this was a coxphms object
         signif.stars <- FALSE  #work around issue with printCoefmat
         # print it group by group
-        tmap <- x$cmap[-1,,drop=FALSE]  # ignore the intercept (strata)
+        tmap <- x$cmap
         cname <- colnames(tmap)
         printed <- rep(FALSE, length(cname))
         for (i in 1:length(cname)) {
             # if multiple colums of tmat are identical, only print that
             #  set of coefficients once
-            if (!printed[i]) {
-                j <- apply(tmap[-1,, drop=FALSE], 2, 
-                           function(x) all(x == tmap[-1,i])) 
-                printed[j] <- TRUE
+            if (!printed[i]) { # this column hasn't been printed
+                j <- apply(tmap, 2, function(x) all(x == tmap[,i])) 
+                printed[j] <- TRUE  # mark all that match as 'printed'
                
                 tmp2 <- x$coefficients[tmap[,i],, drop=FALSE]
                 names(dimnames(tmp2)) <- c(paste(cname[j], collapse=", "), "")

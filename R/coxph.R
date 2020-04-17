@@ -111,7 +111,7 @@ coxph <- function(formula, data, weights, subset, na.action,
     }
 
     # add specials to the formula
-    special <- c("strata", "tt")
+    special <- c("strata", "tt", "frailty", "ridge", "pspline")
     tform$formula <- if(missing(data)) terms(formula, special) else
                                       terms(formula, special, data=data)
 
@@ -124,12 +124,44 @@ coxph <- function(formula, data, weights, subset, na.action,
 
     # okay, now evaluate the formula
     mf <- eval(tform, parent.frame())
-    if (nrow(mf) ==0) stop("No (non-missing) observations")
     Terms <- terms(mf)
 
-    # Grab the response variable
-    Y <- model.extract(mf, "response")
-    if (!inherits(Y, "Surv")) stop("Response must be a survival object")
+    # Grab the response variable, and deal with Surv2 objects
+    n <- nrow(mf)
+    Y <- model.response(mf)
+    isSurv2 <- inherits(Y, "Surv2")
+    if (isSurv2) {
+        # this is Surv2 style data
+        # if there were any obs removed due to missing, remake the model frame
+        if (length(attr(mf, "na.action"))) {
+            tform$na.action <- na.pass
+            mf <- eval.parent(tform)
+        }
+        if (!is.null(attr(Terms, "specials")$cluster))
+            stop("cluster() cannot appear in the model statement")
+        new <- surv2data(mf)
+        mf <- new$mf
+        istate <- new$istate
+        id <- new$id
+        Y <- new$y
+        if (anyNA(mf[-1])) { #ignore the response still found there
+            if (missing(na.action)) temp <- get(getOption("na.action"))(mf[-1])
+            else temp <- na.action(mf[-1])
+            omit <- attr(temp, "na.action")
+            mf <- mf[-omit,]
+            Y <- Y[-omit]
+            id <- id[-omit]
+            istate <- istate[-omit]
+        }                      
+        n <- nrow(mf)
+    }       
+    else {
+        if (!is.Surv(Y)) stop("Response must be a survival object")
+        id <- model.extract(mf, "id")
+        istate <- model.extract(mf, "istate")
+    }
+    if (n==0) stop("No (non-missing) observations")
+
     type <- attr(Y, "type")
     multi <- FALSE
     if (type=="mright" || type == "mcounting") multi <- TRUE
@@ -140,6 +172,12 @@ coxph <- function(formula, data, weights, subset, na.action,
 
     if (!multi && multiform)
         stop("formula is a list but the response is not multi-state")
+    if (multi && length(attr(Terms, "specials")$frailty) >0)
+        stop("multi-state models do not currently support frailty terms")
+    if (multi && length(attr(Terms, "specials")$pspline) >0)
+        stop("multi-state models do not currently support pspline terms")
+    if (multi && length(attr(Terms, "specials")$ridge) >0)
+        stop("multi-state models do not currently support ridge penalties")
 
     if (control$timefix) Y <- aeqSurv(Y)
     if (length(attr(Terms, 'variables')) > 2) { # a ~1 formula has length 2
@@ -179,7 +217,7 @@ coxph <- function(formula, data, weights, subset, na.action,
     timetrans <- attr(Terms, "specials")$tt
     if (missing(tt)) tt <- NULL
     if (length(timetrans)) {
-        if (multi) stop("the tt() transform is not implemented for multi-state models")
+        if (multi || isSurv2) stop("the tt() transform is not implemented for multi-state or Surv2 models")
          timetrans <- untangle.specials(Terms, 'tt')
          ntrans <- length(timetrans$terms)
 
@@ -272,7 +310,7 @@ coxph <- function(formula, data, weights, subset, na.action,
     # grab the cluster, if present.  Using cluster() in a formula is no
     #  longer encouraged
     cluster <- model.extract(mf, "cluster")
-    id <- model.extract(mf, "id")
+    if (!isSurv2) id <- model.extract(mf, "id")
     weights <- model.weights(mf)
     # The user can call with cluster, id, robust, or any combination
     # Default for robust: if cluster or any id with > 1 event or 
@@ -333,12 +371,6 @@ coxph <- function(formula, data, weights, subset, na.action,
     # Grab the id variable to check out multi-state data
     id <- model.extract(mf, "id")
     if (multi) {
-        # remove strata from dformula, before any further processing
-        if (length(dropterms)){ 
-            Terms2 <- Terms[-dropterms]
-            dformula <- formula(Terms2)
-        } else Terms2 <- Terms
-
         # check for consistency of the states, and create a transition
         #  matrix
         if (length(id)==0) 
@@ -357,9 +389,9 @@ coxph <- function(formula, data, weights, subset, na.action,
         #  build tmap, which has one row per term, one column per transition
         if (missing(statedata))
             covlist2 <- parsecovar2(covlist, NULL, dformula= dformula,
-                                Terms2, transitions, states)
+                                Terms, transitions, states)
         else covlist2 <- parsecovar2(covlist, statedata, dformula= dformula,
-                                Terms2, transitions, states)
+                                Terms, transitions, states)
         tmap <- covlist2$tmap
         if (!is.null(covlist)) {
             # first vector will be true if there is at least 1 transition for which all
@@ -455,8 +487,22 @@ coxph <- function(formula, data, weights, subset, na.action,
         return(rval)
     }
     if (multi) {
+        if (length(strats) >0) {
+            stratum_map <- tmap[c(1L, strats),] # strats includes Y, + tmap has an extra row
+            stratum_map[-1,] <- ifelse(stratum_map[-1,] >0, 1L, 0L)
+            if (nrow(stratum_map) > 2) {
+                temp <- stratum_map[-1,]
+                if (!all(apply(temp, 2, function(x) all(x==0) || all(x==1)))) {
+                    # the hard case: some transitions use one strata variable, some
+                    #  transitions use another.  We need to keep them separate
+                    strata.keep <- mf[,strats]  # this will be a data frame
+                    istrat <- sapply(strata.keep, as.numeric)
+                }
+            }
+        }
+        else stratum_map <- tmap[1,,drop=FALSE]
         cmap <- parsecovar3(tmap, colnames(X), attr(X, "assign"))
-        xstack <- stacker(cmap, as.integer(istate), X, Y, strata=istrat,
+        xstack <- stacker(cmap, stratum_map, as.integer(istate), X, Y, strata=istrat,
                           states=states)
         rkeep <- unique(xstack$rindex)
         transitions <- survcheck2(Y[rkeep,], id[rkeep], istate[rkeep])$transitions
@@ -467,10 +513,10 @@ coxph <- function(formula, data, weights, subset, na.action,
         if (length(offset)) offset <- offset[xstack$rindex]
         if (length(weights)) weights <- weights[xstack$rindex]
         if (length(cluster)) cluster <- cluster[xstack$rindex]
-        t2 <- tmap[-1,,drop=FALSE]   # remove the intercept row
+        t2 <- tmap[-c(1, strats),,drop=FALSE]   # remove the intercept row and strata rows
         r2 <- row(t2)[!duplicated(as.vector(t2))]
         c2 <- col(t2)[!duplicated(as.vector(t2))]
-        a2 <- lapply(seq(along=r2), function(i) {cmap[1+assign[[r2[i]]], c2[i]]})
+        a2 <- lapply(seq(along=r2), function(i) {cmap[assign[[r2[i]]], c2[i]]})
         # which elements are unique?  
         tab <- table(r2)
         count <- tab[r2]
@@ -622,8 +668,13 @@ coxph <- function(formula, data, weights, subset, na.action,
         fit$transitions <- transitions
         fit$states <- states
         fit$cmap <- cmap
+        fit$stratum_map <- stratum_map   # why not 'stratamap'?  Confusion with fit$strata
         fit$resid <- rowsum(fit$resid, xstack$rindex)
-        names(fit$coefficients) <- seq(along=fit$coefficients)
+        # add a suffix to each coefficent name.  Those that map to multiple transitions
+        #  get the first transition they map to
+        indx <- col(cmap)[match(1:length(fit$coefficients), cmap)]
+        suffix <- colnames(cmap)[indx]
+        names(fit$coefficients) <- paste(names(fit$coefficients), suffix, sep='_')
         if (x) fit$strata <- istrat  # save the expanded strata
         class(fit) <- c("coxphms", class(fit))
     }

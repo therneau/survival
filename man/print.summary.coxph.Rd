@@ -8,7 +8,7 @@
 }
 \usage{
 \method{print}{summary.coxph}(x, digits=max(getOption("digits") - 3, 3),
-signif.stars = getOption("show.signif.stars"), ...)
+  signif.stars = getOption("show.signif.stars"), expand=FALSE, ...)
 }
 \arguments{
   \item{x}{
@@ -18,5 +18,7 @@ signif.stars = getOption("show.signif.stars"), ...)
   \item{signif.stars}{
     Show stars to highlight small p-values
   }
+  \item{expand}{if the summary is for a multi-state coxph fit, print the
+    results in an expanded format.}
   \item{\dots}{For future methods}
 }

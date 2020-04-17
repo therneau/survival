@@ -75,7 +75,7 @@ agreg.fit <- function(x, y, strata, offset, init, control,
                    as.integer(maxiter), 
                    as.double(control$eps),
                    as.double(control$toler.chol),
-                   as.integer(0)) # internally rescale
+                   as.integer(1)) # internally rescale
 
     vmat <- agfit$imat
     coef <- agfit$coef

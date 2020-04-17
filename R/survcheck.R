@@ -8,9 +8,46 @@ survcheck <- function(formula, data, subset, na.action,  id, istate,
     tform[[1L]] <- quote(stats::model.frame)  # change the function called
 
     mf <- eval(tform, parent.frame())
-    
+    Terms <- terms(mf)
+
     Y <- model.response(mf)
-    if (!inherits(Y, "Surv")) stop("response must be a survival object")
+    isSurv2 <- inherits(Y, "Surv2")
+    if (isSurv2) {
+        # this is Surv2 style data
+        # if there were any obs removed due to missing, remake the model frame
+        if (length(attr(mf, "na.action"))) {
+            tform$na.action <- na.pass
+            mf <- eval.parent(tform)
+        }
+        if (!is.null(attr(Terms, "specials")$cluster))
+            stop("cluster() cannot appear in the model statement")
+        new2 <- surv2data(mf, check=TRUE)
+        mf <- new2$mf
+        istate <- new2$istate
+        id <- new2$id
+        Y <- new2$y
+        Ydup <- which(Y[,1] == Y[,2])
+        iddup <- id[Ydup]
+        if (anyNA(mf[-1]) || length(Ydup)) { 
+            if (missing(na.action)) temp <- get(getOption("na.action"))(mf[-1])
+            else temp <- na.action(mf[-1])
+            omit <- c(Ydup, unclass(attr(temp, "na.action")))
+            mf <- mf[-omit,]
+            Y <- Y[-omit]
+            id <- id[-omit]
+            istate <- istate[-omit]
+        }  else omit <- Ydup                   
+        n <- nrow(mf)
+    }       
+    else {
+        if (!is.Surv(Y)) stop("Response must be a survival object")
+        id <- model.extract(mf, "id")
+        istate <- model.extract(mf, "istate")
+        omit <- attr(mf, "na.action")
+        n <- nrow(Y)
+    }
+    if (n==0) stop("No (non-missing) observations")
+
     type <- attr(Y, "type")
     if (type=="right") Y <- Surv(Y[,1], factor(Y[,2]))  # pretend its multi
     else if (type=="counting")  Y <- Surv(Y[,1], Y[,2], factor(Y[,3]))
@@ -21,22 +58,39 @@ survcheck <- function(formula, data, subset, na.action,  id, istate,
         stop("invalid value for timefix option")
     if (timefix) Y <- aeqSurv(Y)
     
-    id <- model.extract(mf, "id")
     if (is.null(id)) stop("an id argument is required")
     else if (length(id) !=n) stop("wrong length for id")
      
-    istate <- model.extract(mf, "istate")
     if (!is.null(istate) && length(istate) !=n) stop("wrong length for istate")
 
     fit <- survcheck2(Y, id, istate, istate0)
     fit$n <- c(id = length(unique(id)), observations =length(id), 
                transitions = sum(fit$transitions))
-    na.action <- attr(mf, "na.action")
-    if (!is.null(na.action)) {
-        fit$na.action <- na.action
+
+    fit$flag <- c(fit$flag, "duplicate"=0)
+    if (isSurv2) {
         # make any numbering match the input data, not the retained data
-        lost <- unclass(na.action)  # the observations that were removed
-        dummy <- seq.int(1, n+ length(lost))[-lost]
+        toss1 <- new2$isort[new2$last]  # original obs numbers that were the
+                                       # last for a subject
+        dummy <- seq(along=new2$isort)[-toss1]  # rows we kept
+        if (length(Ydup)) {
+            fit$flag["duplicate"] <- length(Ydup)
+            # if rows i and i+1 are duplicate times, we see it as i, the
+            #  R duplicated function as i+1.  Mimic that rule.
+            fit$duplicate <- list(id= unname(iddup), row=dummy[Ydup]+1)
+        } 
+
+        if (length(omit)>0) dummy <- dummy[-omit]
+        for (i in c("overlap", "gap", "teleport", "jump")){
+            if (!is.null(fit[[i]]$row)) {
+                temp <- fit[[i]]
+                temp$row <- dummy[temp$row]
+                fit[[i]] <- temp
+            }
+        }
+    }
+    else if (length(omit)) {
+        dummy <- seq.int(1, n+ length(omit))[-omit]
         for (i in c("overlap", "gap", "teleport", "jump")){
             if (!is.null(fit[[i]]$row)) {
                 temp <- fit[[i]]

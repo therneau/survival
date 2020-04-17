@@ -1,5 +1,22 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 3.2-2}{
+  \itemize{
+    \item Add support for "timeline" style survival data.  I
+    hope this will be a step forward in usability for multi-state
+    models.
+    \item Fix error in survfit.coxphms, the weight vector could be the
+    wrong length when the start.time option was used.
+    \item Formulas in a multistate coxph model can now have "-x1" to
+    delete variable x1, in secondary formulas.  (Update.formula is used
+    behind the scenes to make updates completely general).
+    \item Multistate coxph models now handle strata in full generality
+    -- a stratum can apply to all transitions or just to some.  One
+    consequence is that the cmap element of the returned fit has been broken into
+    two portions: stratamap contains strata information and cmap the
+    coefficient information.  
+}}
+
 \section{Changes in version 3.1-12}{
   \itemize{
     \item Change the default for a robust variance: if there is a

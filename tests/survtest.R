@@ -12,7 +12,8 @@ test1 <- data.frame(time=  c(9, 3,1,1,6,6,8),
 test2 <- data.frame(start=c(1, 2, 5, 2, 1, 7, 3, 4, 8, 8),
                     stop =c(2, 3, 6, 7, 8, 9, 9, 9,14,17),
                     event=c(1, 1, 1, 1, 1, 1, 1, 0, 0, 0),
-                    x    =c(1, 0, 0, 1, 0, 1, 1, 1, 0, 0) )
+                    x    =c(1, 0, 0, 1, 0, 1, 1, 1, 0, 0),
+                    wt   = 1:10)
 aeq <- function(x,y, ...) all.equal(as.vector(x), as.vector(y), ...)
 
 fit1 <- survfit(Surv(start, stop, event) ~1, test2, type='fh2',
@@ -42,6 +43,9 @@ aeq(fit3$time, unique(test2$stop))
 aeq(fit3$n.risk, c(2,3,5,4,4,5,2,1))
 aeq(fit3$n.event,c(1,1,1,1,1,2,0,0))
 aeq(fit3$surv[fit3$n.event>0], c(.5, 1/3, 4/15, 1/5, 3/20, 9/100))
+temp <- with(fit3, n.event/(n.risk * (n.risk - n.event)))
+aeq(fit3$std.err, sqrt(cumsum(temp)))
+
 #
 #  Verify that both surv AND n.risk are right between time points.
 #
@@ -61,4 +65,38 @@ aeq(temp$surv, c(1, 1, fit$surv[c(1,2,3,6,6)]))
 # This next fails.  With start-stop data the number at risk at intermediate
 #  endpoints is not known precisely, since the underlying routine does not report
 #  time points at which only an addition occured. 
-# aeq(temp$n.risk, c(0, 2, 3, 3, 4, 1,1))
+if (FALSE) aeq(temp$n.risk, c(0, 2, 3, 3, 4, 1,1))
+
+# compute conditional survival
+fit1 <- survfit(Surv(start, stop, event)~1, test2, weights=wt)
+fit2 <- survfit(Surv(start, stop, event)~1, test2, weights=wt, start.time=5)
+
+aeq(fit1$surv[2], summary(fit1, time=5)$surv)  # verify my subscript
+aeq(fit2$surv, fit1$surv[3:8]/fit1$surv[2])
+aeq(fit2$std.err^2,   fit1$std.err[3:8]^2 - fit1$std.err[2]^2)
+aeq(fit2$cumhaz, fit1$cumhaz[3:8] - fit1$cumhaz[2])
+aeq(fit2$std.chaz^2,   fit1$std.chaz[3:8]^2 - fit1$std.chaz[2]^2)
+
+# Now with a Cox model
+cfit <- coxph(Surv(start, stop, event)~1, test2, weights=wt)
+fit1 <- survfit(cfit)
+fit2 <- survfit(cfit, start.time=5)
+aeq(fit2$surv, fit1$surv[3:8]/fit1$surv[2])
+aeq(fit2$std.err^2,   fit1$std.err[3:8]^2 - fit1$std.err[2]^2)
+aeq(fit2$cumhaz, fit1$cumhaz[3:8] - fit1$cumhaz[2])
+aeq(fit2$std.chaz^2,   fit1$std.chaz[3:8]^2 - fit1$std.chaz[2]^2)
+
+
+# bigger data set, with covariates and some tied event times
+
+mfit <- coxph(Surv(age, age+futime/12, death) ~ sex + mspike, mgus2)
+dummy <- data.frame(sex='F', mspike=1.3)
+
+msurv1 <- survfit(mfit, newdata=dummy)
+msurv2 <- survfit(mfit, newdata=dummy, start.time=80)
+j <- max(which(msurv1$time <= 80))
+k <- seq(j+1, length(msurv1$time))
+aeq(msurv2$surv, msurv1$surv[k] / msurv1$surv[j])
+aeq(msurv2$cumhaz, msurv1$cumhaz[k] - msurv1$cumhaz[j])
+# standard errors now have a term due to vmat(mfit), so don't factor
+#  into a simple sum

@@ -1029,7 +1029,7 @@ node.
 The tree contains the weights for everyone whose survival is larger
 than the time currently under review, so starts with all weights
 equal to zero.  
-For any pair of observations $i,j$ we need to add [[wt[i]*wt[j]]]
+For any pair of observations $i,j$ we need to add $w_iw_j$
 to the appropriate count, $w_j$ to subject $i$'s row of the leverage
 matrix and $w_i$ to subject $j$'s row.  We use two trees to do this 
 efficiently, one with all the observations to date, one with the events to

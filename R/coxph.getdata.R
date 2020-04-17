@@ -69,9 +69,8 @@ coxph.getdata <- function(fit, y=TRUE, x=TRUE, stratax=TRUE,
 		strat <- as.integer(strata(mf[temp$vars], shortlabel=T))
             }
             else strat <- NULL
-             
             # Now expand the data
-            xstack <- stacker(fit$cmap, as.integer(check$istate), tx, ty, 
+            xstack <- stacker(fit$cmap, fit$stratum_map, as.integer(check$istate), tx, ty, 
                               strat, check$states)
             tx <- xstack$X
             ty <- xstack$Y
@@ -84,11 +83,9 @@ coxph.getdata <- function(fit, y=TRUE, x=TRUE, stratax=TRUE,
             ismiss <- is.nan(ty) | apply(is.na(tx), 1, any)
             if (offset) ismiss <- ismiss | is.nan(toff)
             if (weights) ismiss <- ismiss | is.nan(twt)
-
             if (any(ismiss)) {
                 if (offset) toff <- toff[!ismiss]
                 if (weights) twt  <- twt[!ismiss]
-            
                 if (y) ty<- ty[!ismiss]
                 if (x) tx <- tx[!ismiss,,drop=FALSE]
                 if (stratax) strat <- strat[!ismiss]

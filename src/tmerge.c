@@ -145,5 +145,54 @@ SEXP tmerge2(SEXP id2,  SEXP time2x, SEXP nid2, SEXP ntime2) {
     return(index2);
     }
 
-	    
-       
+
+/*
+** This routine is used by surv2data to accomplish last value carried
+**  forward.  It started out as a modification of tmerge2, but then
+**  simplified.
+** The input data has id, time, and missing yes/no.  The return value
+**  is a vector of integers pointing to the replacement element, or
+**  0 if there is no good replacement, e.g., the first time point for a
+**  subject is missing.  
+** Id is an integer.
+*/	    
+ SEXP tmerge3(SEXP id2, SEXP miss2) {
+    int i, k;
+    int n;
+    int oldid;
+
+    int *id, *miss;
+    SEXP index2;
+    int  *index;
+
+    n = LENGTH(id2);  /* baseline data set */
+    id	= INTEGER(id2);
+    miss = INTEGER(miss2);  /* actually logical, but they pass as integer*/
+
+    PROTECT(index2 = allocVector(INTSXP, n));
+    index = INTEGER(index2);
+
+    /*
+    ** The input is sorted by time within id.
+    **   Simply keep track of the last non-missing row we see, resetting that
+    **   constant to 0 each time a new identifier arises.
+    */
+    oldid = -1;   /* not anybody */
+    k =0;         /* the row of interest */
+    for (i=0; i<n; i++) {
+	if (id[i] != oldid) {
+	    k = 0;
+	    oldid = id[i];
+	}
+	if (miss[i] ==1) index[i] =k;
+	else {
+	    index[i] =i +1;
+	    k = i +1;      /* parent routine indices start at 1 */
+	}	
+    }
+
+    UNPROTECT(1);
+    return(index2);
+    }
+
+     

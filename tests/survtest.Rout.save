@@ -1,6 +1,6 @@
 
-R Under development (unstable) (2019-01-23 r76006) -- "Unsuffered Consequences"
-Copyright (C) 2019 The R Foundation for Statistical Computing
+R Under development (unstable) (2020-03-27 r78086) -- "Unsuffered Consequences"
+Copyright (C) 2020 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -29,7 +29,8 @@ Type 'q()' to quit R.
 > test2 <- data.frame(start=c(1, 2, 5, 2, 1, 7, 3, 4, 8, 8),
 +                     stop =c(2, 3, 6, 7, 8, 9, 9, 9,14,17),
 +                     event=c(1, 1, 1, 1, 1, 1, 1, 0, 0, 0),
-+                     x    =c(1, 0, 0, 1, 0, 1, 1, 1, 0, 0) )
++                     x    =c(1, 0, 0, 1, 0, 1, 1, 1, 0, 0),
++                     wt   = 1:10)
 > aeq <- function(x,y, ...) all.equal(as.vector(x), as.vector(y), ...)
 > 
 > fit1 <- survfit(Surv(start, stop, event) ~1, test2, type='fh2',
@@ -73,6 +74,10 @@ Type 'q()' to quit R.
 [1] TRUE
 > aeq(fit3$surv[fit3$n.event>0], c(.5, 1/3, 4/15, 1/5, 3/20, 9/100))
 [1] TRUE
+> temp <- with(fit3, n.event/(n.risk * (n.risk - n.event)))
+> aeq(fit3$std.err, sqrt(cumsum(temp)))
+[1] TRUE
+> 
 > #
 > #  Verify that both surv AND n.risk are right between time points.
 > #
@@ -97,8 +102,53 @@ Type 'q()' to quit R.
 > # This next fails.  With start-stop data the number at risk at intermediate
 > #  endpoints is not known precisely, since the underlying routine does not report
 > #  time points at which only an addition occured. 
-> # aeq(temp$n.risk, c(0, 2, 3, 3, 4, 1,1))
+> if (FALSE) aeq(temp$n.risk, c(0, 2, 3, 3, 4, 1,1))
+> 
+> # compute conditional survival
+> fit1 <- survfit(Surv(start, stop, event)~1, test2, weights=wt)
+> fit2 <- survfit(Surv(start, stop, event)~1, test2, weights=wt, start.time=5)
+> 
+> aeq(fit1$surv[2], summary(fit1, time=5)$surv)  # verify my subscript
+[1] TRUE
+> aeq(fit2$surv, fit1$surv[3:8]/fit1$surv[2])
+[1] TRUE
+> aeq(fit2$std.err^2,   fit1$std.err[3:8]^2 - fit1$std.err[2]^2)
+[1] TRUE
+> aeq(fit2$cumhaz, fit1$cumhaz[3:8] - fit1$cumhaz[2])
+[1] TRUE
+> aeq(fit2$std.chaz^2,   fit1$std.chaz[3:8]^2 - fit1$std.chaz[2]^2)
+[1] TRUE
+> 
+> # Now with a Cox model
+> cfit <- coxph(Surv(start, stop, event)~1, test2, weights=wt)
+> fit1 <- survfit(cfit)
+> fit2 <- survfit(cfit, start.time=5)
+> aeq(fit2$surv, fit1$surv[3:8]/fit1$surv[2])
+[1] TRUE
+> aeq(fit2$std.err^2,   fit1$std.err[3:8]^2 - fit1$std.err[2]^2)
+[1] TRUE
+> aeq(fit2$cumhaz, fit1$cumhaz[3:8] - fit1$cumhaz[2])
+[1] TRUE
+> aeq(fit2$std.chaz^2,   fit1$std.chaz[3:8]^2 - fit1$std.chaz[2]^2)
+[1] TRUE
+> 
+> 
+> # bigger data set, with covariates and some tied event times
+> 
+> mfit <- coxph(Surv(age, age+futime/12, death) ~ sex + mspike, mgus2)
+> dummy <- data.frame(sex='F', mspike=1.3)
+> 
+> msurv1 <- survfit(mfit, newdata=dummy)
+> msurv2 <- survfit(mfit, newdata=dummy, start.time=80)
+> j <- max(which(msurv1$time <= 80))
+> k <- seq(j+1, length(msurv1$time))
+> aeq(msurv2$surv, msurv1$surv[k] / msurv1$surv[j])
+[1] TRUE
+> aeq(msurv2$cumhaz, msurv1$cumhaz[k] - msurv1$cumhaz[j])
+[1] TRUE
+> # standard errors now have a term due to vmat(mfit), so don't factor
+> #  into a simple sum
 > 
 > proc.time()
    user  system elapsed 
-  0.784   0.040   0.823 
+  0.925   0.048   0.965 

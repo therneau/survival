@@ -55,7 +55,7 @@ function(formula, newdata, se.fit=TRUE, conf.int=.95, individual=FALSE,
 
     Terms <- object$terms
     n <- object$n[1]
-    if (!has.strata) strata <- rep(0L, n)
+    if (!has.strata) strata <- NULL
     else strata <- object$strata
 
     missid <- missing(id) # I need this later, and setting id below makes
@@ -87,15 +87,13 @@ function(formula, newdata, se.fit=TRUE, conf.int=.95, individual=FALSE,
     position <- NULL
     Y <- object[['y']]
     if (is.null(mf)) {
-        weights <- rep(1., n)
-        offset <- rep(0., n)
+        weights <- object$weights  # let offsets/weights be NULL until needed
+        offset <- NULL
         X <- object[['x']]
     }
     else {
         weights <- model.weights(mf)
-        if (is.null(weights)) weights <- rep(1.0, n)
         offset <- model.offset(mf)
-        if (is.null(offset)) offset <- rep(0., n)
         X <- model.matrix.coxph(object, data=mf)
         if (is.null(Y) || coxms) {
             Y <- model.response(mf)
@@ -130,14 +128,19 @@ function(formula, newdata, se.fit=TRUE, conf.int=.95, individual=FALSE,
     #  remove those rows first since they won't be in the final output.
     t2 <- transitions[, is.na(match(colnames(transitions), "(censored)")), drop=FALSE]
     absorb <- row.names(t2)[rowSums(t2)==0]
+
+    if (is.null(weights)) weights <- rep(1.0, nrow(Y))
+    if (is.null(strata))  tempstrat <- rep(1L, nrow(Y))
+    else                  tempstrat <- strata
+
     if (length(absorb)) droprow <- istate %in% absorb  else droprow <- FALSE
     if (any(droprow)) {
         j <- which(!droprow)
-        cifit <- survfitCI(as.factor(strata[j]), Y[j,], weights[j], oldid[j], 
+        cifit <- survfitCI(as.factor(tempstrat[j]), Y[j,], weights[j], oldid[j], 
                            istate[j], stype=stype, ctype=ctype,
                            se.fit=FALSE, start.time=start.time, p0=p0)
         }
-    else cifit <- survfitCI(as.factor(strata), Y, weights, oldid, istate, 
+    else cifit <- survfitCI(as.factor(tempstrat), Y, weights, oldid, istate, 
                             stype=stype, ctype=ctype, se.fit=FALSE, 
                             start.time=start.time, p0=p0)
 
@@ -145,7 +148,7 @@ function(formula, newdata, se.fit=TRUE, conf.int=.95, individual=FALSE,
     #  expanded data set.
     # Replicate actions found in the coxph-multi-X chunk,
     cluster <- model.extract(mf, "cluster")
-    xstack <- stacker(object$cmap, as.integer(istate), X, Y,
+    xstack <- stacker(object$cmap, object$stratum_map, as.integer(istate), X, Y,
                       as.integer(strata),
                       states= object$states)
     if (length(position) >0)
@@ -164,6 +167,7 @@ function(formula, newdata, se.fit=TRUE, conf.int=.95, individual=FALSE,
         #  (This case is really rare)
         # se.fit <- FALSE
         X <- matrix(0., nrow=n, ncol=1)
+        if (is.null(offset)) offset <- rep(0, n)
         xcenter <- mean(offset)
         coef <- 0.0
         varmat <- matrix(0.0, 1, 1)
@@ -172,13 +176,15 @@ function(formula, newdata, se.fit=TRUE, conf.int=.95, individual=FALSE,
     else {
         varmat <- object$var
         beta <- ifelse(is.na(object$coefficients), 0, object$coefficients)
-        xcenter <- sum(object$means * beta)+ mean(offset)
+        if (is.null(offset)) xcenter <- sum(object$means * beta)
+        else xcenter <- sum(object$means * beta)+ mean(offset)
         if (!is.null(object$frail)) {
            keep <- !grepl("frailty(", dimnames(X)[[2]], fixed=TRUE)
            X <- X[,keep, drop=F]
         }
             
-        risk <- c(exp(X%*% beta + offset - xcenter))
+        if (is.null(offset)) risk <- c(exp(X%*% beta - xcenter))
+        else     risk <- c(exp(X%*% beta + offset - xcenter))
     }
     if (missing(newdata)) {
         # If the model has interactions, print out a long warning message.
@@ -299,7 +305,7 @@ function(formula, newdata, se.fit=TRUE, conf.int=.95, individual=FALSE,
     if (individual) {
         stop("time dependent survival curves not yet supported for multistate")
         result <- coxsurv.fit2(ctype, stype, se.fit, varmat, cluster, start.time,
-                               object$cmap, object$transitions, object$states,
+                               object$stratum_map[1,], object$transitions, object$states,
                                Y, X, weights, risk, position, strata, oldid,
                                transition, y2, x2, risk2, strata2, id2)
                               
@@ -311,7 +317,7 @@ function(formula, newdata, se.fit=TRUE, conf.int=.95, individual=FALSE,
             p0 <- cifit$pstate[first,, drop=FALSE]
         }
         cifit <- coxsurv.fit2(ctype, stype, se.fit, varmat, cluster, start.time,
-                               object$cmap, object$transitions, object$states,
+                               object$stratum_map[1,], object$transitions, object$states,
                                Y, X, weights, risk, position, strata, oldid,
                                transition, y2, x2, risk2, cifit=cifit)
 
@@ -324,7 +330,7 @@ function(formula, newdata, se.fit=TRUE, conf.int=.95, individual=FALSE,
     cifit
 }
 coxsurv.fit2 <- function (ctype, stype, se.fit, varmat, cluster, 
-                          start.time, cmap, tmat, states,
+                          start.time, smap, tmat, states,
                           y, x, weights, risk, position, strata, id,
                           transition, y2, x2, risk2, strata2, id2, cifit) {
     # args are the options (ctype, stype, se.fit), args info from the prior fit
@@ -338,12 +344,12 @@ coxsurv.fit2 <- function (ctype, stype, se.fit, varmat, cluster,
     nstrata <- length(ustrata)
 
     # make the expansion map.  
-    #  cmap[1,] will contain integers 1, 2,... which match the values in
+    #  smap will contain integers 1, 2,... which match the values in
     # the transtion vector, which in turn is the set of hazard functions that
     # come back from the .Call
     #  The H matrices we will need are nstate by nstate, at each time, with
     # elements that are non-zero only for observed transtions.  Some elements
-    # may be the same: cmat[1,] can have repeats.
+    # may be the same: smat[1,] can have repeats.
     nstate <- length(states)
     tmat <- tmat[,is.na(match(colnames(tmat), "(censored)")), drop=FALSE]
     from <- row(tmat)[tmat>0]  # tmat contains fit$transitions matrix
@@ -354,7 +360,7 @@ coxsurv.fit2 <- function (ctype, stype, se.fit, varmat, cluster,
 
     if (nstrata==1) {
         temp <- multihaz(y, x, position, weights, risk, transition,
-                                  ctype, stype, hfill, cmap[1,], 
+                                  ctype, stype, hfill, smap, 
                                   x2, risk2, varmat, nstate, se.fit, 
                                   cifit$pstate[1,], cifit$time)
         cifit$pstate <- temp$pstate
@@ -371,7 +377,7 @@ coxsurv.fit2 <- function (ctype, stype, se.fit, varmat, cluster,
             survlist[[i]] <- multihaz(y[indx,,drop=F], x[indx,,drop=F],
                                   position[indx], weights[indx], risk[indx],
                                   transition[indx], ctype, stype, hfill,
-                                  cmap[1,], x2, risk2, varmat, nstate, se.fit, 
+                                  smap, x2, risk2, varmat, nstate, se.fit, 
                                   cifit$pstate[firstrow[i],], timelist[[i]])
                                   
             }
@@ -382,7 +388,7 @@ coxsurv.fit2 <- function (ctype, stype, se.fit, varmat, cluster,
 }
 # Compute the hazard  and survival functions 
 multihaz <- function(y, x, position, weight, risk, transition, ctype, stype, 
-                     hfill, cmap, x2, risk2, vmat, nstate, se.fit, p0, utime) {
+                     hfill, smap, x2, risk2, vmat, nstate, se.fit, p0, utime) {
     if (ncol(y) ==2) {
        sort1 <- seq.int(0, nrow(y)-1L)   # sort order for a constant
        y <- cbind(-1.0, y)               # add a start.time column, -1 in case
@@ -411,9 +417,9 @@ multihaz <- function(y, x, position, weight, risk, transition, ctype, stype,
 
     hazard <- matrix(cn[,5] / denom1, ncol = fit$ntrans)
     varhaz <- matrix(cn[,5] / denom2, ncol = fit$ntrans)
-    if (any(cmap != seq(along=cmap))) {
-        hazard <- hazard[, cmap]
-        varhaz <- varhaz[, cmap]
+    if (any(smap != seq(along=smap))) {
+        hazard <- hazard[, smap]
+        varhaz <- varhaz[, smap]
     }
 
     # Expand the result, one "hazard set" for each row of x2

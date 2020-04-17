@@ -129,7 +129,7 @@ test2 <- data.frame(id= c(1, 1, 1,  2,  3,  4, 4, 4,  5, 5,
 test2$state <- factor(test2$state, 0:3, c("censor", "a", "b", "c"))
 
 if (FALSE) {
-    # this graph is very useful
+    # this graph is very useful when debugging
     temp <- survcheck(Surv(t1, t2, state) ~1, test2, id=id)
     plot(c(0,22), c(1,9.1), type='n', xlab="Time", ylab= "Subject")
     with(test2, segments(t1+.1, id, t2, id, col=as.numeric(temp$istate)))

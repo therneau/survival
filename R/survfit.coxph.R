@@ -54,7 +54,7 @@ survfit.coxph <-
 
       Terms <- object$terms
       n <- object$n[1]
-      if (!has.strata) strata <- rep(0L, n)
+      if (!has.strata) strata <- NULL
       else strata <- object$strata
 
       missid <- missing(id) # I need this later, and setting id below makes
@@ -86,15 +86,13 @@ survfit.coxph <-
       position <- NULL
       Y <- object[['y']]
       if (is.null(mf)) {
-          weights <- rep(1., n)
-          offset <- rep(0., n)
+          weights <- object$weights  # let offsets/weights be NULL until needed
+          offset <- NULL
           X <- object[['x']]
       }
       else {
           weights <- model.weights(mf)
-          if (is.null(weights)) weights <- rep(1.0, n)
           offset <- model.offset(mf)
-          if (is.null(offset)) offset <- rep(0., n)
           X <- model.matrix.coxph(object, data=mf)
           if (is.null(Y) || coxms) {
               Y <- model.response(mf)
@@ -142,10 +140,11 @@ survfit.coxph <-
               stop("start.time argument has removed all endpoints")
           Y <- Y[keep,,drop=FALSE]
           X <- X[keep,,drop=FALSE]
-          offset <- offset[keep]
-          strata <- strata[keep]
+          if (!is.null(offset)) offset <- offset[keep]
+          if (!is.null(weights)) weights <- weights[keep]
+          if (!is.null(strata))  strata <- strata[keep]
           if (length(id) >0 ) id <- id[keep]
-          if (length(position)) position <- position[keep]
+          if (length(position) >0) position <- position[keep]
           n <- nrow(Y)
       }
       if (length(object$means) ==0) { # a model with only an offset term
@@ -153,6 +152,7 @@ survfit.coxph <-
           #  (This case is really rare)
           # se.fit <- FALSE
           X <- matrix(0., nrow=n, ncol=1)
+          if (is.null(offset)) offset <- rep(0, n)
           xcenter <- mean(offset)
           coef <- 0.0
           varmat <- matrix(0.0, 1, 1)
@@ -161,13 +161,15 @@ survfit.coxph <-
       else {
           varmat <- object$var
           beta <- ifelse(is.na(object$coefficients), 0, object$coefficients)
-          xcenter <- sum(object$means * beta)+ mean(offset)
+          if (is.null(offset)) xcenter <- sum(object$means * beta)
+          else xcenter <- sum(object$means * beta)+ mean(offset)
           if (!is.null(object$frail)) {
              keep <- !grepl("frailty(", dimnames(X)[[2]], fixed=TRUE)
              X <- X[,keep, drop=F]
           }
               
-          risk <- c(exp(X%*% beta + offset - xcenter))
+          if (is.null(offset)) risk <- c(exp(X%*% beta - xcenter))
+          else     risk <- c(exp(X%*% beta + offset - xcenter))
       }
       if (missing(newdata)) {
           # If the model has interactions, print out a long warning message.
