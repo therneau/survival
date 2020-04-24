@@ -514,8 +514,8 @@ coxph <- function(formula, data, weights, subset, na.action,
         if (length(weights)) weights <- weights[xstack$rindex]
         if (length(cluster)) cluster <- cluster[xstack$rindex]
         t2 <- tmap[-c(1, strats),,drop=FALSE]   # remove the intercept row and strata rows
-        r2 <- row(t2)[!duplicated(as.vector(t2))]
-        c2 <- col(t2)[!duplicated(as.vector(t2))]
+        r2 <- row(t2)[!duplicated(as.vector(t2)) & t2 !=0]
+        c2 <- col(t2)[!duplicated(as.vector(t2)) & t2 !=0]
         a2 <- lapply(seq(along=r2), function(i) {cmap[assign[[r2[i]]], c2[i]]})
         # which elements are unique?  
         tab <- table(r2)
@@ -672,9 +672,10 @@ coxph <- function(formula, data, weights, subset, na.action,
         fit$resid <- rowsum(fit$resid, xstack$rindex)
         # add a suffix to each coefficent name.  Those that map to multiple transitions
         #  get the first transition they map to
+        single <- apply(cmap, 1, function(x) all(x %in% c(0, max(x)))) #only 1 coef
         indx <- col(cmap)[match(1:length(fit$coefficients), cmap)]
-        suffix <- colnames(cmap)[indx]
-        names(fit$coefficients) <- paste(names(fit$coefficients), suffix, sep='_')
+        suffix <- ifelse(single, "", paste0("_", colnames(cmap)[indx]))
+        names(fit$coefficients) <- paste0(names(fit$coefficients), suffix)
         if (x) fit$strata <- istrat  # save the expanded strata
         class(fit) <- c("coxphms", class(fit))
     }

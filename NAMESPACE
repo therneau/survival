@@ -11,7 +11,7 @@ importFrom(stats, anova, approx, as.formula, coef, coefficients,
            resid, residuals, rnorm, runif, stat.anova, terms, weights, var, vcov,
            .checkMFClasses, .getXlevels, update, update.formula)
 importFrom(graphics, arrows, axis, barplot, box, clip, matlines, matplot,
-           hist, frame, identify, image, par, plot, points, lines, 
+           hist, frame, identify, image, par, points, lines, 
            segments, strheight, strwidth, text)
 importFrom(Matrix, expm)
 importFrom(methods, as)

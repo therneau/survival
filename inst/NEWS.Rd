@@ -13,8 +13,12 @@
     \item Multistate coxph models now handle strata in full generality
     -- a stratum can apply to all transitions or just to some.  One
     consequence is that the cmap element of the returned fit has been broken into
-    two portions: stratamap contains strata information and cmap the
-    coefficient information.  
+    two portions: stratum_map contains strata information and cmap the
+    coefficient information.
+    \item Revert (partially) a change to tmerge. Using tdc() to update a
+    variable that already exists in the baseline data was a problem, so
+    tdc was changed to replace rather than update.  Now allow updates to
+    variables created by a prior tdc.
 }}
 
 \section{Changes in version 3.1-12}{
