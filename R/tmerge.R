@@ -122,6 +122,7 @@ tmerge <- function(data1, data2, id, ..., tstart, tstop, options) {
                                         "tied"))
     tevent <- attr(data1, "tevent") # event type variables
     tcens  <- attr(data1, "tcensor")# censor code for variables
+    tdcvar <- attr(data1, "tdcvar")   # tdc type varaiables
     if (is.null(tcens)) tcens <- vector('list', 0)
     newdata <- data1 #make a copy
     if (firstcall) {
@@ -329,7 +330,7 @@ tmerge <- function(data1, data2, id, ..., tstart, tstop, options) {
             index <- .Call(Ctmerge2, match(baseid, uid), dstop, 
                                        match(id, uid),  etime)
 
-            if (firstcall && !is.null(newvar)) {
+            if (!(argname[[ii]] %in% tdcvar) && !is.null(newvar)) {
                 warning(paste0("replacement of variable '", argname[ii], "'"))
                 newvar <- NULL
             }
@@ -371,7 +372,8 @@ tmerge <- function(data1, data2, id, ..., tstart, tstop, options) {
                 else if (class(yinc) != class(newvar))
                     stop("tdc update does not match prior variable type: ", argname[ii]) 
                 else newvar[index!= 0L] <- yinc[index]
-            }   
+            }
+            tdcvar <- unique(c(tdcvar, argname[[ii]]))
         }
         # add events
         if (argclass[ii] %in% c("cumtdc", "cumevent")) {
@@ -455,7 +457,6 @@ tmerge <- function(data1, data2, id, ..., tstart, tstop, options) {
         }  
 
         newdata[[argname[ii]]] <- newvar
-        firstcall <- FALSE 
     }
     attr(newdata, "tname") <- topt[c("idname", "tstartname", "tstopname")]
     attr(newdata, "tcount") <- rbind(attr(data1, "tcount"), tcount)
@@ -463,6 +464,8 @@ tmerge <- function(data1, data2, id, ..., tstart, tstop, options) {
         attr(newdata, "tevent") <- tevent
         attr(newdata, "tcensor" ) <- tcens
         }
+    if (length(tdcvar)) attr(newdata, "tdcvar") <- tdcvar
+
     row.names(newdata) <- NULL  #These are a mess; kill them off.
     # Not that it works: R just assigns new row names.
     class(newdata) <- c("data.frame")
