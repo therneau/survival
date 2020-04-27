@@ -1969,8 +1969,8 @@ legend(20, .22, outer(c("80 year old male,", "80 year old female,"),
 Non-alcoholic fatty liver disease (NAFLD) is defined by three criteria:
 presence of greater than 5\% fat in the liver (steatosis),
 absence of other indications for the steatosis such as excessive
-alcohol consumption or certain medications, and absence of other liver
-disease \cite{Puri12}.
+alcohol consumption or certain medications, and absence of other 
+liver disease \cite{Puri12}.
 NAFLD is currently responsible for almost 1/3 of
 liver transplants and it's impact is growing, it is expected to be a major
 driver of hepatology practice in the coming decade \cite{Tapper18}.
@@ -2013,22 +2013,25 @@ To protect patient confidentiality all time intervals are in days since
 the index date; none of the dates from the original data were retained.
 Subject age is their integer age at the index date, and the subject
 identifier is an arbitrary integer. 
-As a final protection, only a 90\% random sample of the data was retained.
+As a final protection, a 10\% random sample of subjects was excluded.
 As a consequence analyses results will not exactly match the
 original paper.
 
-Start by building an analysis data set using the first and third of these.
+Start by building an analysis data set using \code{nafld1} and \code{nafld3}
 
 <<nafld1>>=
 ndata <- tmerge(nafld1[,1:8], nafld1, id=id, death= event(futime, status))
 ndata <- tmerge(ndata, subset(nafld3, event=="nafld"), id, 
                 nafld= tdc(days))
 ndata <- tmerge(ndata, subset(nafld3, event=="diabetes"), id = id,
-                diabetes = tdc(days), e1= event(days))
+                diabetes = tdc(days), e1= cumevent(days))
 ndata <- tmerge(ndata, subset(nafld3, event=="htn"),  id = id,
-                htn = tdc(days), e2 = event(days))
+                htn = tdc(days), e2 = cumevent(days))
 ndata <- tmerge(ndata, subset(nafld3, event=="dyslipidemia"), id=id,
-                lipid = tdc(days), e3= event(days))
+                lipid = tdc(days), e3= cumevent(days))
+ndata <- tmerge(ndata, subset(nafld3, event %in% c("diabetes", "htn", 
+                                                   "dyslipidemia")), 
+                id=id, ecount= cumevent(days))
 attr(ndata, "tcount")
 @ 
 
@@ -2051,23 +2054,33 @@ row in the table.  Column labels are explained by figure \ref{fig:timeline}.
     These are subjects whose first NAFLD fell within a year of the end of
     their time line, and the one year delay for ``confirmed'' pushed them
     over the end.  (The time value in the \code{nafld3} data set is 1 year
-    after the actual notice of NAFLD; no other observations have this
+    after the actual notice of NAFLD; no other endpoints have this
     offset added).  The time dependent covariate \code{nafld} never turns
     from 0 to 1 for these subjects. 
     (Why were these subjects not removed earlier by my ``at least 7 days of
-    follow-up rule?  They are all controls for someone else and so appear
+    follow-up'' rule?  They are all controls for someone else and so appear
     in the data at a younger age than their NAFLD date.)
-  \item \Sexpr{tc[3,1]} of the diabetes diagnoses are before entry, i.e., 
+  \item \Sexpr{tc[2,4]} subjects have a NAFLD diagnosis between time 0
+    and last follow-up.
+    These are subjects who were selected as matched controls for another
+    NAFLD case at a particular age, and later were diagnosed with NAFLD 
+    themselves.
+   \item \Sexpr{tc[3,1]} of the diabetes diagnoses are before entry, i.e., 
     these are the prevalent cases.  One diagnosis occurred on the day of
     entry (``leading''), and will not be counted as a post-enrollment endpoint,
     all the other fall somewhere between study entry and last follow-up.
   \item Conversely, \Sexpr{tc[5,7]} subjects were diagnosed with hypertension
     at their final visit (``trailing'').  These will be counted as an
     occurrence of a hypertension event (\code{e2}), but the time dependent 
-    covariate \code{htn} will never become 1.  
+    covariate \code{htn} will never become 1. 
+  \item \Sexpr{tc[9,8]} of the total comorbidity counts are tied. These are
+    subjects for whom the first diagnosis of 2 of the 3 conditions
+    happened on the same office visit, the cumulative count will jump by 2.
+    (We will see below that 4 subjects had all 3 on the same day.)
+    Many times ties indicate a data error.
 \end{itemize}
 
-Such a detailed look at data set construction may seem overmuch.   
+Such a detailed look at data set construction may seem over zealous.   
 Our experience is that issues with covariate and event timing
 occur in nearly all data sets, large or small.  The 13 NAFLD cases ``after
 last follow-up'' were for instance both a surprise and a puzzle to us;
@@ -2081,16 +2094,33 @@ than to blindly accept an arbitrary programming default.
 \subsection{Fits}
 Create the covariates for current state and the analysis endpoint.
 It is important that data manipulations like this occur \emph{after}
-the final \code{tmerge} call.
+the final \code{tmerge} call.  
+Successive \code{tmerge} calls keep track of the time scale, time-dependent and
+event covariates, passing the information forward from call to call, 
+but this information is lost when the resulting data frame is manipulated.  
+(The loss is intentional: we won't know if one of the tracked variables has
+changed.)
+
+The \code{tmerge} call above used the cumevent verb for events, and the first
+line below checks that no subject had diabetes, for instance, coded more than
+once.  For this analysis we think of the three conditions as one-time outcomes,
+you can't get diabetes twice.  When the outcome data set is the result of
+electronic capture one could easily have a diabetes code at every visit,
+in which case the cumulative count of all events (ecount) would not be
+the total number of distinct comorbidities.
+In this particular data set the diabetes codes had already been preprocessed
+so that the data set contains only the first diabetes diagnosis, and likewise
+with hypertension and dyslipidemia.  
+(In counterpoint, the nafld3 data set has multiple myocardial infarctions for 
+some subjects, since MI can happen more than once.)
+
 <<nafld2>>=
-ndata$cstate <- with(ndata, diabetes + htn + lipid)
-temp <- with(ndata, e1 + e2 + e3)
-temp2 <- with(ndata, ifelse(death, 4, 
-              ifelse(temp ==0, 0, cstate + temp)))
-ndata$event <- factor(temp2, 0:4, 
+with(ndata, if (any(e1>1 | e2>1 | e3>1)) stop("multiple events"))
+ndata$cstate <- with(ndata, factor(diabetes + htn + lipid, 0:3, 
+                                   c("0mc", "1mc", "2mc", "3mc")))
+temp <- with(ndata, ifelse(death, 4, ecount))
+ndata$event <- factor(temp, 0:4, 
          c("censored", "1mc", "2mc", "3mc", "death"))
-ndata$cstate <- factor(ndata$cstate, 0:3,
-                       c("0mc", "1mc", "2mc", "3mc"))
 ndata$age1 <- ndata$age + ndata$tstart/365.25   # analysis on age scale
 ndata$age2 <- ndata$age + ndata$tstop/365.25
 
@@ -2101,15 +2131,17 @@ temp3
 
 This is a rich data set with a large number of transitions:
 over 1/4 of the participants have at least one event, and there
-are a few subjects who transition through all 5 possible states
-(4 transitions).
+are a \Sexpr{temp3$events[5,5]} subjects who transition through all 5 
+possible states (4 transitions).
 Unlike prior examples, subjects do not all enter the study in the same
 state; about 14\% have diabetes at the time of recruitment, for instance.
 Note one major difference between current state and outcome, namely that the
-current state endures across intervals.
-If a portion of a subject's time
-were divided into multiple sub-intervals, time dependent covariates and current state
-repeat in each interval.  An endpoint, however, does not repeat.
+current state endures across intervals: it is base in \code{tdc} variables
+while the outcome is based on \code{event} outcome.
+If a subject has time-dependent covariates, there may be intermediate
+intervals where a covariate changed but an outcome did not occur;
+current state will endure across intervals but the intermediate outcome will
+be ``censor''.
 
 We see a number of subjects who ``jump'' states, e.g., directly from 0 to
 2 comorbidities.  
@@ -2119,7 +2151,8 @@ the underlying biology is continuous.
 The data look like the figure below, where the dotted lines are 
 transformations that we observe, but would not be present if the subjects were
 monitored continuously.
-A call to the \code{survcheck} routine is almost mandatory for a complex setup like 
+A call to the \code{survcheck} routine is almost mandatory for a complex 
+setup like 
 this, to ensure that the data set which has been built is what was desired.
 
 <<nafld3>>=
@@ -2137,7 +2170,6 @@ statefig(cbind(4,1), cmat, alty=c(1,2,1,2,2,1,1,1,1,1,1))
 
 Since age is the dominant driver of the transitions we have chosen to 
 do the fits directly on age scale rather than model the age effect.
-
 We force common coefficients for the transitions from 0 comorbidities to
 1, 2 or 3, and for transitions from 1 comorbidity to 2 or 3.
 This is essentially a model of ``any progression'' from a given state.
@@ -2148,7 +2180,7 @@ to death.
 nfit1 <- coxph(list(Surv(age1, age2, event) ~ nafld + male,
                     "0mc":state("1mc", "2mc", "3mc") ~ nafld+ male / common,
                      2:3 + 2:4   ~ nafld + male / common,
-                     0: "death" ~ male / common),
+                     0:"death" ~ male / common),
                data=ndata, id=id, istate=cstate)
 nfit1$states
 @ 
@@ -2165,31 +2197,142 @@ A '1' on the right-hand side can be used to force a common baseline
 hazard for two transitions.  A common baseline for two transitions
 that originate from the same state is incompatable with the Cox partial
 likelihood, however, and will lead to multiple un-estimable coefficients.
-The right hand side acts like \code{update.formula} in that it can also
-remove of variables found in the default formula.
+The right hand side acts like \code{update.formula} in that \code{-x} 
+can be used to remove a variable found in the default formula.
 
-The standard printout is arranged by transition
+The standard printout is arranged by transition.
+It is interesting, though not surprising, that the impact of NAFLD on death
+is largest for those with 0mc and smallest for those with 3mc.  
+
 <<nafld5>>=
 options(show.signif.stars = FALSE) # display statistical maturity
 print(nfit1, digits =3)
 nfit1$cmap
 @ 
 
-It is interesting, though not surprising, that the impact of NAFLD on death
-is largest for those with 0mc and smallest for those with 3mc.  
+
 The \code{cmap} component records the mapping between the coefficient vector
 and the state transtitions. 
 The result of \code{coef(nfit1)} is a vector of length 9, the first element of
 which is the nafld effect for transitions 1:2, 1:3, and 1:4,
 the second coefficient is the effect of male on those three transitions, etc. 
-By default the summary command has rows for each coefficient, not arranged by state.
-If a coefficient maps to multiple transitions it is labeled with the first.
-The printout can be modified by adding an \code{expand=TRUE} option
-to the print statement.
+Because the coefficient vector, variance matrix, and etc. are identical
+to those for a simple coxph call, downstream operations such as 
+\code{predict} and \code{summary} are unchanged.
 
 <<nafld5b>>=
-print(summary(nfit1), digits=3)
+print(coef(nfit1), digits=3)
+print(coef(nfit1, matrix=TRUE), digits=3)  # alternate form
 @ 
+
+The names given to the coefficients in a multi-state model are a compromise,
+designed to give some information to the reader, albeit imperfect. 
+If a variable such as 'sex' only applies to a single coefficient, the simple name
+is used, even if the coefficient corresponds to multiple transitions.
+Otherwise a suffix ``\_a:b'' is appended where a:b corresponds to the first
+transition that this coefficient corresponds to.
+(First in the sense of standard R matrices, i.e., reading the elements in 
+column order.)
+
+\subsection{Timeline data}
+The \code{survfit} and \code{coxph} routines also accept data in what we refer
+to as a ``timeline'' form.  
+In a timeline data contains a case identifier and a timeline variable, with a
+value pair that is unique for each row.  The other covariates are any number
+of variables whose value is ``what was observed at that time'', or missing if
+there was no observation of that variable at that time.
+In contrast to counting process data, there are no time intervals and no 
+distinction between covariates and endpoints.
+In this sense the data is much more straightforward; a simple description of
+what was seen.
+
+Here is a simple example using the mgus2 data set for a competing risks
+analysis.  The \code{Surv2} operation on the left-hand side tells the
+routine that timeline data is being used.
+
+<<timeline1>>=
+ctime <- with(mgus2, ifelse(pstat==1, ptime, futime))
+cstat <- with(mgus2, ifelse(pstat==1, 1, 2*death))
+cstat <- factor(cstat, 0:2, c("censor", "PCM", "death"))
+tdata <- data.frame(id=mgus2$id, days=ctime, cstat=cstat)
+
+# counting process
+mdata1 <- tmerge(mgus2[,1:7], tdata, id, state=event(days, cstat))
+mfit1 <- coxph(Surv(tstart, tstop, state) ~ age + sex, id=id, mdata1)
+
+# timeline
+mdata2 <- data.frame(mgus2[,1:7], days=0)
+mdata2 <- merge(mdata2, tdata, all=TRUE)
+mfit2 <-  coxph(Surv2(days, cstat) ~ age + sex, id=id, mdata2)
+all.equal(coef(mfit1), coef(mfit2))
+
+mdata1[1:3,]
+print(mdata2[1:6,], na.print='.')
+@ 
+
+Here is a reprise of the NAFLD data set.
+<<timeline1>>=
+tdata <- data.frame(nafld1[,1:7],
+                    days= 0,  death=0, iage=nafld1$age)
+tdata <- merge(tdata, with(nafld1, data.frame(id=id, days=futime, death=status)),
+               all=TRUE)
+
+# Add in the comorbidities of interest.  None of these 4 happen to have
+#  duplicates (MI does, for instance).  
+# Treat diabetes before day 0 as diabetes on day 0,
+tdata <- merge(tdata, with(subset(nafld3, event=="diabetes"),
+                           data.frame(id=id, days=pmax(0,days), diabetes=1)),
+                   all=TRUE, by=c("id", "days"))
+tdata <- merge(tdata, with(subset(nafld3, event=="htn"),
+                           data.frame(id=id, days=pmax(0,days), htn=1)),
+                     all=TRUE, by=c("id", "days"))
+tdata <- merge(tdata, with(subset(nafld3, event=="dyslipidemia"),
+                           data.frame(id=id, days= pmax(0, days), dyslipid=1)),
+                       all=TRUE, by=c("id", "days"))
+tdata <- merge(tdata, with(subset(nafld3, event=="nafld"),
+                           data.frame(id=id, days= pmax(0,days), nafld=1)),
+                     all=TRUE, by=c("id", "days"))
+#
+# For cumulative events within subject we use a helper function
+cumevent <- function(id, time, status, istate, firstonly=FALSE) {
+    # do all the work on ordered data
+    ord <- order(id, time)
+    id2 <- id[ord]
+    time2 <- time[ord]
+    stat2 <- ifelse(is.na(status[ord]), 0, status[ord])
+    firstid <- !duplicated(id)
+    csum <- cumsum(stat2)
+    indx <- match(id2, id2)
+    cstat<- csum + stat2[indx] - csum[indx]  
+    cstat[stat2==0] <- 0
+          
+    if (!missing(istate)) cstat[firstid] <- istate
+
+    keep <- (firstid | (!is.na(stat2)& stat2 !=0))
+    newdata <- data.frame(id=id2[keep], time=time2[keep], status=cstat[keep])
+    if (firstonly) { # only keep the first endpoint
+        dummy <- seq(along= newdata$id)
+        count <- dummy - dummy[match(newdata$id, newdata$id)] 
+        newdata <- newdata[count<2,]
+    } 
+    newdata
+}
+
+temp1 <- rowSums(tdata[,c('diabetes', 'htn', 'dyslipid')], na.rm=TRUE)
+temp2 <- with(tdata, cumevent(id, days, pmax(temp1, 4*death, na.rm=TRUE)))
+state <- factor(pmin(temp2$status, 4), -1:4,
+                 c("censor", paste0(0:3, "mc"), "death"))
+tdata <- merge(tdata, data.frame(id=temp2$id, days=temp2$time, state=state),
+               all=TRUE)
+check2 <- survcheck(Surv2(days, state) ~ 1, id=id, tdata)
+check2$transitions
+nfit2 <- coxph(list(Surv2(days, state) ~ nafld + male,
+                    "0mc":state("1mc", "2mc", "3mc") ~ nafld+ male / common,
+                     2:3 + 2:4   ~ nafld + male / common,
+                     0:"death" ~ male / common),  
+               data=tdata, id=id)
+@ 
+
 
 
 

@@ -85,10 +85,9 @@ print.coxph <-
     invisible(x)
     }
 
-coef.coxphms <- function(object, type=c("vector", "matrix"), ...) {
-    type <- match.arg(type)
+coef.coxphms <- function(object, matrix=FALSE, ...){
     cmap <- object$cmap
-    if (type=="matrix") {
+    if (matrix) {
         cmap[cmap>0] <- object$coefficients[cmap]
         attr(cmap, "states") <- object$states
         cmap
