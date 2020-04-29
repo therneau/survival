@@ -364,7 +364,6 @@ coxph <- function(formula, data, weights, subset, na.action,
         if (length(id)==0) 
             stop("an id statement is required for multi-state models")
 
-        istate <- model.extract(mf, "istate")
         mcheck <- survcheck2(Y, id, istate)
         # error messages here
         if (mcheck$flag["overlap"] > 0)
