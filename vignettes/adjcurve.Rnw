@@ -780,7 +780,7 @@ for (i in 1:3) {
     for (j in 1:16) {
         stemp <- summary(temp[j], times=xtime, extend=T)
         smat[,i] <- smat[,i] + pi[j]*stemp$surv
-        serr[,i] <- serr[,i] + pi[i]*stemp$std.err^2
+        serr[,i] <- serr[,i] + pi[j]*stemp$std.err^2
         }
     }
 serr <- sqrt(serr)
