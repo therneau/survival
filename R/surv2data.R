@@ -78,19 +78,23 @@ surv2data <- function(mf, check=FALSE) {
     istate <- y2[!last, 2]
     first <- !duplicated(id3)
     n <- nrow(y3)
-    if (all(is.na(istate[first]) | istate[first]==0)) {
+    temp <- istate[first]
+    if (all(is.na(temp) | (temp==0))) {
         # special case -- no initial state for anyone
         temp <- survcheck(y3 ~1, id=id3)
     } 
-    else if (any(is.na(istate[first] | istate[first==0]))) 
-        stop("everone needs an initial state, or no one")
+    else if (any(is.na(temp) | (temp==0)))
+        stop("everyone or no one should have an initial state")
     else {
+        # survcheck does not like missing istate values.  Only the initial
+        #  one for each subject needs to be correct though
+        itemp <- istate[match(id3, id3)]
         if (is.null(states)) 
-            temp <- survcheck(y3~1, id=id3, istate= istate)
+            temp <- survcheck(y3~1, id=id3, istate= itemp)
         else temp <- survcheck(y3~1, id=id3, 
-                               istate=factor(istate, 1:length(states), states))
+                               istate=factor(itemp, 1:length(states), states))
     }
-    
+     
     if (check) list(y=y3, id=id3, istate= temp$istate, mf= mf2, isort=isort,
                     last=last)
     else list(y=y3, id=id3, istate= temp$istate, mf= mf2)

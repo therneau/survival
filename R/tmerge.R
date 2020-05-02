@@ -43,8 +43,8 @@ tmerge <- function(data1, data2, id, ..., tstart, tstop, options) {
         if (length(na.rm) !=1 || ! is.logical(na.rm))
             stop("na.rm option must be TRUE or FALSE")
         if (length(tdcstart) !=1) stop("tdcstart must be a single value")
-       list(idname=idname, tstartname=tstartname, tstopname=tstopname, 
-            delay=delay, na.rm=na.rm, tdcstart=tdcstart)
+        list(idname=idname, tstartname=tstartname, tstopname=tstopname, 
+             delay=delay, na.rm=na.rm, tdcstart=tdcstart)
     }
 
     tname <- attr(data1, "tname")
@@ -122,6 +122,7 @@ tmerge <- function(data1, data2, id, ..., tstart, tstop, options) {
                                         "tied"))
     tevent <- attr(data1, "tevent") # event type variables
     tcens  <- attr(data1, "tcensor")# censor code for variables
+    tdcvar <- attr(data1, "tdcvar")   # tdc type varaiables
     if (is.null(tcens)) tcens <- vector('list', 0)
     newdata <- data1 #make a copy
     if (firstcall) {
@@ -329,28 +330,50 @@ tmerge <- function(data1, data2, id, ..., tstart, tstop, options) {
             index <- .Call(Ctmerge2, match(baseid, uid), dstop, 
                                        match(id, uid),  etime)
 
-            #if (!is.null(newvar))      
-            #   warning(paste0("replacement of variable '", argname[ii], "'")) 
+            if (!(argname[[ii]] %in% tdcvar) && !is.null(newvar)) {
+                warning(paste0("replacement of variable '", argname[ii], "'"))
+                newvar <- NULL
+            }
 
-            if (is.null(yinc)) newvar <- ifelse(index==0, 0L, 1L) # add a 0/1 variable
-            else {
-                newvar <- yinc[pmax(1L, index)]
-                if (any(index==0)) {
-                    if (is.na(default)) is.na(newvar) <- (index==0L)
-                    else {
-                        if (is.numeric(newvar)) newvar[index==0L] <- as.numeric(default)
+            if (is.null(newvar)) {
+                if (is.null(yinc)) newvar <- ifelse(index==0, 0L, 1L) # add a 0/1 variable
+                else {
+                    newvar <- yinc[pmax(1L, index)]
+                    if (any(index==0)) {
+                        if (is.na(default)) is.na(newvar) <- (index==0L)                
                         else {
-                            if (is.factor(newvar)) {
-                                # special case: if default isn't in the set of levels,
-                                #   add it to the levels
-                                if (is.na(match(default, levels(newvar))))
-                                    levels(newvar) <- c(levels(newvar), default)
+                            if (is.numeric(newvar)) newvar[index==0L] <- as.numeric(default)
+                            else {
+                                if (is.factor(newvar)) {
+                                    # special case: if default isn't in the set of levels,
+                                    #   add it to the levels
+                                    if (is.na(match(default, levels(newvar))))
+                                        levels(newvar) <- c(levels(newvar), default)
+                                }
+                                newvar[index== 0L] <- default
                             }
-                            newvar[index== 0L] <- default
                         }
                     }
                 }
+            } else {
+                # make sure new data type matches the old
+                if (is.null(yinc)){
+                    if (is.integer(newvar) && all(newvar==0L | newvar==1L))
+                        newvar[index!=0L] <- 1L
+                    else stop("tdc update does not match prior variable type: ", argname[ii])
+                }
+                else if (is.factor(yinc)) {
+                    if (!is.factor(newvar)) 
+                        stop("tdc update does not match prior variable type: ", argname[ii])
+                    if (!identical(levels(yinc), levels(newvar)))      
+                        stop("tdc update's levels do not match prior variable: ", argname[ii])
+                    newvar[index!= 0L] <- yinc[index]
+                } 
+                else if (class(yinc) != class(newvar))
+                    stop("tdc update does not match prior variable type: ", argname[ii]) 
+                else newvar[index!= 0L] <- yinc[index]
             }
+            tdcvar <- unique(c(tdcvar, argname[[ii]]))
         }
         # add events
         if (argclass[ii] %in% c("cumtdc", "cumevent")) {
@@ -441,6 +464,8 @@ tmerge <- function(data1, data2, id, ..., tstart, tstop, options) {
         attr(newdata, "tevent") <- tevent
         attr(newdata, "tcensor" ) <- tcens
         }
+    if (length(tdcvar)) attr(newdata, "tdcvar") <- tdcvar
+
     row.names(newdata) <- NULL  #These are a mess; kill them off.
     # Not that it works: R just assigns new row names.
     class(newdata) <- c("data.frame")

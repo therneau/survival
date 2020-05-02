@@ -4,17 +4,27 @@
   \itemize{
     \item Add support for "timeline" style survival data.  I
     hope this will be a step forward in usability for multi-state
-    models.
+    models, since data sets can be built with standard data manipulation tools.
     \item Fix error in survfit.coxphms, the weight vector could be the
     wrong length when the start.time option was used.
     \item Formulas in a multistate coxph model can now have "-x1" to
-    delete variable x1, in secondary formulas.  (Update.formula is used
-    behind the scenes to make updates completely general).
+    delete variable x1, in secondary formulas.  (Update.formula is now used
+    behind the scenes).
     \item Multistate coxph models now handle strata in full generality
     -- a stratum can apply to all transitions or just to some.  One
     consequence is that the cmap element of the returned fit has been broken into
-    two portions: stratamap contains strata information and cmap the
-    coefficient information.  
+    two portions: stratum_map contains strata information and cmap the
+    coefficient information.
+    \item Revert (partially) a change to tmerge. Using tdc() to update a
+    variable that already exists in the baseline data was a problem, so
+    tdc had been changed to replace rather than update.  Now allow updates to
+    variables created by a prior tdc.
+    \item Fix error in survfit, 0/1 status variable: the start.time
+    option worked correctly only if the data set was sorted by time,
+    which unfortunately was true of the test data in tests/survtest.R.
+    Fix code and strengthen the test.
+    \item Multiple updates to multi-state coxph models + follow-on
+    curves. A current clinical project is providing a stress test.
 }}
 
 \section{Changes in version 3.1-12}{

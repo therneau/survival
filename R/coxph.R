@@ -144,15 +144,6 @@ coxph <- function(formula, data, weights, subset, na.action,
         istate <- new$istate
         id <- new$id
         Y <- new$y
-        if (anyNA(mf[-1])) { #ignore the response still found there
-            if (missing(na.action)) temp <- get(getOption("na.action"))(mf[-1])
-            else temp <- na.action(mf[-1])
-            omit <- attr(temp, "na.action")
-            mf <- mf[-omit,]
-            Y <- Y[-omit]
-            id <- id[-omit]
-            istate <- istate[-omit]
-        }                      
         n <- nrow(mf)
     }       
     else {
@@ -310,7 +301,6 @@ coxph <- function(formula, data, weights, subset, na.action,
     # grab the cluster, if present.  Using cluster() in a formula is no
     #  longer encouraged
     cluster <- model.extract(mf, "cluster")
-    if (!isSurv2) id <- model.extract(mf, "id")
     weights <- model.weights(mf)
     # The user can call with cluster, id, robust, or any combination
     # Default for robust: if cluster or any id with > 1 event or 
@@ -368,15 +358,12 @@ coxph <- function(formula, data, weights, subset, na.action,
     contrast.arg <- NULL  #due to shared code with model.matrix.coxph
     attr(Terms, "intercept") <- 1  # always have a baseline hazard
 
-    # Grab the id variable to check out multi-state data
-    id <- model.extract(mf, "id")
     if (multi) {
         # check for consistency of the states, and create a transition
         #  matrix
         if (length(id)==0) 
             stop("an id statement is required for multi-state models")
 
-        istate <- model.extract(mf, "istate")
         mcheck <- survcheck2(Y, id, istate)
         # error messages here
         if (mcheck$flag["overlap"] > 0)
@@ -514,8 +501,8 @@ coxph <- function(formula, data, weights, subset, na.action,
         if (length(weights)) weights <- weights[xstack$rindex]
         if (length(cluster)) cluster <- cluster[xstack$rindex]
         t2 <- tmap[-c(1, strats),,drop=FALSE]   # remove the intercept row and strata rows
-        r2 <- row(t2)[!duplicated(as.vector(t2))]
-        c2 <- col(t2)[!duplicated(as.vector(t2))]
+        r2 <- row(t2)[!duplicated(as.vector(t2)) & t2 !=0]
+        c2 <- col(t2)[!duplicated(as.vector(t2)) & t2 !=0]
         a2 <- lapply(seq(along=r2), function(i) {cmap[assign[[r2[i]]], c2[i]]})
         # which elements are unique?  
         tab <- table(r2)
@@ -662,8 +649,6 @@ coxph <- function(formula, data, weights, subset, na.action,
         fit$timefix <- control$timefix  # remember this option
     }
     if (!is.null(weights) && any(weights!=1)) fit$weights <- weights
-    names(fit$means) <- names(fit$coefficients)
-
     if (multi) {
         fit$transitions <- transitions
         fit$states <- states
@@ -672,12 +657,15 @@ coxph <- function(formula, data, weights, subset, na.action,
         fit$resid <- rowsum(fit$resid, xstack$rindex)
         # add a suffix to each coefficent name.  Those that map to multiple transitions
         #  get the first transition they map to
-        indx <- col(cmap)[match(1:length(fit$coefficients), cmap)]
-        suffix <- colnames(cmap)[indx]
-        names(fit$coefficients) <- paste(names(fit$coefficients), suffix, sep='_')
+        single <- apply(cmap, 1, function(x) all(x %in% c(0, max(x)))) #only 1 coef
+        cindx <- col(cmap)[match(1:length(fit$coefficients), cmap)]
+        rindx <- row(cmap)[match(1:length(fit$coefficients), cmap)]
+        suffix <- ifelse(single[rindx], "", paste0("_", colnames(cmap)[cindx]))
+        names(fit$coefficients) <- paste0(names(fit$coefficients), suffix)
         if (x) fit$strata <- istrat  # save the expanded strata
         class(fit) <- c("coxphms", class(fit))
     }
+    names(fit$means) <- names(fit$coefficients)
      
     fit$formula <- formula(Terms)
     if (length(xlevels) >0) fit$xlevels <- xlevels

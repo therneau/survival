@@ -174,7 +174,7 @@ parsecovar2 <- function(covar1, statedata, dformula, Terms, transitions,states) 
                 }
                 else {
                     k <- match(x$left, statedata$state)
-                    if (any(is.na(k))) stop(x$left[k], ": state not found")
+                    if (any(is.na(k))) stop(x$left[is.na(k)], ": state not found")
                     temp1 <- which(statedata$state %in% x$left)
                 }
                 

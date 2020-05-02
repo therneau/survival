@@ -96,7 +96,7 @@ Create a matrix of risk scores, number of subjects by number of transitions.
 The reason is that different transitions often have different coefficients.
 
 <<survfit.coxphms-setup3b>>=
-risk2 <- exp(x2 %*% coef(object, type="matrix") - xcenter)
+risk2 <- exp(x2 %*% coef(object, matrix=TRUE) - xcenter)
 @ 
 
 The first step in the computation is to compute the hazard functions for

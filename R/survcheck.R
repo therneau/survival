@@ -64,8 +64,9 @@ survcheck <- function(formula, data, subset, na.action,  id, istate,
     if (!is.null(istate) && length(istate) !=n) stop("wrong length for istate")
 
     fit <- survcheck2(Y, id, istate, istate0)
+    temp <- fit$transitions[, is.na(match(colnames(fit$transitions), "(censored)"))]
     fit$n <- c(id = length(unique(id)), observations =length(id), 
-               transitions = sum(fit$transitions))
+               transitions = sum(temp))
 
     fit$flag <- c(fit$flag, "duplicate"=0)
     if (isSurv2) {
@@ -160,6 +161,9 @@ survcheck2 <- function(y, id, istate=NULL, istate0="(s0)") {
     events <- apply(tab1, 2, function(x) table(factor(x, tab1.levels)))
     dimnames(events) = list("count"= tab1.levels,
                                 "state"= c(ystate, "(any)"))
+    # remove columns with no visits
+    novisit <- colSums(events[-1,, drop=FALSE]) ==0
+    if (any(novisit)) events <- events[,!novisit]
 
     # Use a C routine to create 3 variables: a: an index of whether this is
     #   the first (1) or last(2) observation for a subject, 3=both, 0=neither,
