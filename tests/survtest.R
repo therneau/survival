@@ -15,6 +15,7 @@ test2 <- data.frame(start=c(1, 2, 5, 2, 1, 7, 3, 4, 8, 8),
                     x    =c(1, 0, 0, 1, 0, 1, 1, 1, 0, 0),
                     wt   = 1:10)
 aeq <- function(x,y, ...) all.equal(as.vector(x), as.vector(y), ...)
+test2 <- test2[c(1,6,2,7,3,8,4,9,5,10),]  # unsorted data is a harder test
 
 fit1 <- survfit(Surv(start, stop, event) ~1, test2, type='fh2',
                 error='tsiatis')

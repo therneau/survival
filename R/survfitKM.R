@@ -123,6 +123,16 @@ survfitKM <- function(x, y, weights=rep(1.0,length(x)),
         influence <- 0L
     }
 
+    # if start.time was set, delete obs if necessary
+    keep <- y[,ny-1] >= time0
+    if (!all(keep)) {
+        y <- y[keep,]
+        if (length(id) >0) id <- id[keep]
+        if (length(cluster) >0) cluster <- cluster[keep]
+        x <- x[keep]
+        weights <- weights[keep]
+    }
+
 
     if (ny==3 & has.id) position <- survflag(y, id)
     else position <- integer(0)
