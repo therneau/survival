@@ -1,5 +1,11 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 3.2-3}{
+  \itemize{
+    \item Fix error in survfit.coxphms: an internal routine was being
+    called with arguments in the wrong order.  Example due to Beth Atkinson.
+}}
+
 \section{Changes in version 3.2-2}{
   \itemize{
     \item Add support for "timeline" style survival data.  I

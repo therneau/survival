@@ -112,7 +112,7 @@ function(formula, newdata, se.fit=TRUE, conf.int=.95, individual=FALSE,
         }
 
     }
-    # Rebuild istate using the mcheck routine
+    # Rebuild istate using the survcheck routine
     istate <- model.extract(mf, "istate")
     mcheck <- survcheck2(Y, oldid, istate)
     transitions <- mcheck$transitions
@@ -136,11 +136,13 @@ function(formula, newdata, se.fit=TRUE, conf.int=.95, individual=FALSE,
     if (length(absorb)) droprow <- istate %in% absorb  else droprow <- FALSE
     if (any(droprow)) {
         j <- which(!droprow)
-        cifit <- survfitCI(as.factor(tempstrat[j]), Y[j,], weights[j], oldid[j], 
+        cifit <- survfitCI(as.factor(tempstrat[j]), Y[j,], weights[j], 
+                           id =oldid[j], istate= istate[j],
                            istate[j], stype=stype, ctype=ctype,
                            se.fit=FALSE, start.time=start.time, p0=p0)
         }
-    else cifit <- survfitCI(as.factor(tempstrat), Y, weights, oldid, istate, 
+    else cifit <- survfitCI(as.factor(tempstrat), Y, weights, 
+                            id= oldid, istate = istate, 
                             stype=stype, ctype=ctype, se.fit=FALSE, 
                             start.time=start.time, p0=p0)
 

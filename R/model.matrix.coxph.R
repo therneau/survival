@@ -45,7 +45,7 @@ model.matrix.coxph <- function(object, data=NULL,
 
     if (length(dropterms)) {
         Terms2 <- Terms[ -dropterms]
-        X <- model.matrix(Terms2, mf, constrasts=contrast.arg)
+        X <- model.matrix(Terms2, mf, constrasts.arg=contrast.arg)
         # we want to number the terms wrt the original model matrix
         temp <- attr(X, "assign")
         shift <- sort(dropterms)
@@ -53,7 +53,7 @@ model.matrix.coxph <- function(object, data=NULL,
         if (length(shift)==2) temp + 1*(shift[2] <= temp)
         attr(X, "assign") <- temp 
     }
-    else X <- model.matrix(Terms, mf, contrasts=contrast.arg)
+    else X <- model.matrix(Terms, mf, contrasts.arg=contrast.arg)
 
     # drop the intercept after the fact, and also drop strata if necessary
     Xatt <- attributes(X) 
