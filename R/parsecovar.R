@@ -109,6 +109,18 @@ parse_rightside <- function(rhs) {
     })
     new
 }
+termmatch <- function(f1, f2) {
+    # look for f1 in f2, each a factors attribute of a terms object
+    irow <- match(rownames(f1), rownames(f2))
+    if (any(is.na(irow))) stop ("termmatch failure 1") 
+    hashfun <- function(j) sum(ifelse(j==0, 0, 2^(seq(along=j))))
+    hash1 <- apply(f1, 2, hashfun)
+    hash2 <- apply(f2[irow,,drop=FALSE], 2, hashfun)
+    index <- match(hash1, hash2)
+    if (any(is.na(index))) stop("termmatch failure 2")
+    index
+}
+
 parsecovar2 <- function(covar1, statedata, dformula, Terms, transitions,states) {
     if (is.null(statedata))
         statedata <- data.frame(state = states, stringsAsFactors=FALSE)
@@ -127,8 +139,8 @@ parsecovar2 <- function(covar1, statedata, dformula, Terms, transitions,states) 
     #  those were eliminated above.
     # Likewise, the formula list might have rules for transitions that are
     #  not present.  Don't worry about it at this stage.
-    allterm <- attr(Terms, 'term.labels')
-    nterm <- length(allterm)
+    allterm <- attr(Terms, 'factors')
+    nterm <- ncol(allterm)
 
     # create a map for every transition, even ones that are not used.
     # at the end we will thin it out
@@ -137,7 +149,7 @@ parsecovar2 <- function(covar1, statedata, dformula, Terms, transitions,states) 
     nstate <- length(states)
     tmap <- array(0, dim=c(nterm+1, nstate, nstate))
     dmap <- array(seq_len(length(tmap)), dim=c(nterm+1, nstate, nstate)) #unique values
-    dterm <- match(attr(terms(dformula), "term.labels"), allterm)
+    dterm <- termmatch(attr(terms(dformula), "factors"), allterm)
     dterm <- c(1L, 1L+ dterm)  # add intercept
     tmap[dterm,,] <- dmap[dterm,,]
     inits <- NULL
@@ -214,8 +226,7 @@ parsecovar2 <- function(covar1, statedata, dformula, Terms, transitions,states) 
             # update tmap for this set of transitions
             # first, what variables are mentioned, and check for errors
             rterm <- terms(rhs$formula)
-            rindex <- 1L + match(attr(rterm, "term.labels"), allterm, nomatch=0)
-            if (any(rindex== 1L)) stop("dterm mismatch bug 2")
+            rindex <- 1L + termmatch(attr(rterm, "factors"), allterm)
 
             # second, were any variables dropped from the base formula?
             if (rhs$clear) {  # drop everything
@@ -228,8 +239,8 @@ parsecovar2 <- function(covar1, statedata, dformula, Terms, transitions,states) 
                 if (substring(temp, 1,1) == '-') dummy <- formula(paste("~ .", temp))
                 else dummy <- formula(paste("~. +", temp))
 
-                rindex1 <- match(attr(terms(dformula), "term.labels"), allterm)
-                rindex2 <- match(attr(terms(update(dformula, dummy)), "term.labels"),
+                rindex1 <- termmatch(attr(terms(dformula), "factors"), allterm)
+                rindex2 <- termmatch(attr(terms(update(dformula, dummy)), "factors"),
                                  allterm)
                 dropped <- 1L + rindex1[is.na(match(rindex1, rindex2))] # remember the intercept
                 if (length(dropped) >0) {
@@ -278,7 +289,7 @@ parsecovar2 <- function(covar1, statedata, dformula, Terms, transitions,states) 
     if (nrow(tmap2) > 1)
         tmap2[-1,] <- match(tmap2[-1,], unique(c(0L, tmap2[-1,]))) -1L
       
-    dimnames(tmap2) <- list(c("(Baseline)", allterm),
+    dimnames(tmap2) <- list(c("(Baseline)", colnames(allterm)),
                                 paste(indx1[trow], indx2[tcol], sep=':')) 
     list(tmap = tmap2, inits=inits, mapid= cbind(indx1[trow], indx2[tcol]))
 }
