@@ -110,7 +110,8 @@ parse_rightside <- function(rhs) {
     new
 }
 termmatch <- function(f1, f2) {
-    # look for f1 in f2, each a factors attribute of a terms object
+    # look for f1 in f2, each  factors attribute of a terms object
+    if (length(f1) ==0) return(NULL)  # a formula with only ~1
     irow <- match(rownames(f1), rownames(f2))
     if (any(is.na(irow))) stop ("termmatch failure 1") 
     hashfun <- function(j) sum(ifelse(j==0, 0, 2^(seq(along=j))))
