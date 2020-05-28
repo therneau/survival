@@ -175,7 +175,7 @@ SEXP coxsurv2(SEXP otime2, SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22,
 		    n[3]++;
 		    n[4] += wt[i2];
 		    n[5] += wt[i2]* risk[i2];
-		    for (k=0; i<nvar; k++)
+		    for (k=0; k<nvar; k++)
 			xsum2[k] += wt[i2]*risk[i2]*xmat[k][i2];
 		    if (sindex[i2] >1) {
 			n[6]++;

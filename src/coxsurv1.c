@@ -147,7 +147,7 @@ SEXP coxsurv1(SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22,
 	    for (k=0; k<nvar; k++) xsum1[k] += wt[i2]*risk[i2]*xmat[k][person];
 
 	    if (status[i2] > 0) { /* an event */
-		for (k=0; i<nvar; k++) 
+		for (k=0; k<nvar; k++) 
 		    xsum2[k] += wt[i2]*risk[i2]* xmat[k][person];
 		n[3]++;
 		n[4]+= wt[i2];

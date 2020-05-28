@@ -71,7 +71,7 @@ sfit <- survfit(Surv(start, stop, event) ~ sex, mgus1, id=id,
                 subset=(enum==1))
 print(sfit)  # the order of printout is the order in which they plot
 
-plot(sfit, xscale=365.25, lty=c(2,1,2,1), col=c(1,1,2,2),
+plot(sfit, xscale=365.25, lty=c(2,2,1,1), col=c(1,2,1,2),
      xlab="Years after MGUS detection", ylab="Proportion")
 legend(0, .8, c("Death/male", "Death/female", "PCM/male", "PCM/female"),
        lty=c(1,1,2,2), col=c(2,1,2,1), bty='n')
