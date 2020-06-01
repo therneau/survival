@@ -1,8 +1,10 @@
-# This is a trimmed copy of expm:::expm2.R
+# This is a trimmed copy of expm:::expm2.R, optimized for transition matrices
+# The row sums of A are 0, with the diagonal the only negative element, and
+#    transitions away from the diagonal are normally small.  
 #  I don't need balancing, don't need Matrix objects
-#  The matrices are usually very nice
+#  The matrices are usually very nice.
 #  If I need derivatives, then deriv is an (n,n, k) array, the first
-#  slice is dA/(d theta1), and etc for the second, third etc.
+#  slice contains dA/(d beta1), elementwise,  and etc for the second, third etc.
 #
 pade <- function(A, deriv) {
     n <- nrow(A)
@@ -16,7 +18,7 @@ pade <- function(A, deriv) {
     }
     else nderiv <- 0
 
-    ## If the norm is small enough, use the Pade-Approximation (PA) directly
+    ## If the norm is small enough, use the Padé-Approximation (PA) directly
     if (nA <= 2.1) {
     	t <- c(0.015, 0.25, 0.95, 2.1)
     	## the minimal m for the PA :
@@ -119,7 +121,7 @@ pade <- function(A, deriv) {
         }
         
     }
-    if (nderiv > 0) list(P=X, dmat=dmat, nterm=nterm)
-    else list(S=X, nterm=nterm)
+    if (nderiv > 0) list(P=X, dmat=dmat)
+    else X
 }
 

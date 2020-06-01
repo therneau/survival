@@ -17,6 +17,7 @@ PARTS = main.Rnw \
 	survfitCI.Rnw \
 	msurv.nw \
 	survfitms.Rnw \
+	survexpm.Rnw\
 	plot.Rnw \
 	statefig.Rnw\
 	tmerge.Rnw\
@@ -40,6 +41,7 @@ SFUN =  agreg.fit.R \
 	residuals.survreg.R\
 	statefig.R \
 	survexp.R \
+	survexpm.R \
 	survfit.R \
 	survfitCI.R \
 	survfitKM.R \
@@ -52,6 +54,7 @@ SFUN =  agreg.fit.R \
 
 CFUN =  agfit4.c \
         agsurv4.c agsurv5.c \
+	cdecomp.c \
         concordance3.c coxcount1.c \
         coxexact.c \
 	survfitci.c \

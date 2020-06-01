@@ -1,0 +1,68 @@
+# Automatically generated from the noweb directory
+survexpmsetup <- function(rmat) {
+    if (!is.matrix(rmat) || nrow(rmat) != ncol(rmat) || any(diag(rmat) > 0) ||
+        any(rmat[row(rmat) != col(rmat)] < 0))
+        stop ("input is not a transition matrix")
+    if (!is.logical(all.equal(rowSums(rmat), rep(0, ncol(rmat)))))
+        stop("input is not a transition matrix")
+    nc <- ncol(rmat)
+    lower <- row(rmat) > col(rmat)
+    if (all(rmat[lower] ==0))  return(0)  # already in order
+    
+    indx <- 1   # an insertion sort
+    for (i in 2:nc) {
+        j <- sum(rmat[1:(i-1),i] > 0)
+        if (j==0) indx <- c(i, indx)
+        else if (j==i) indx <- c(indx, i)
+        else indx <- c(indx[1:(j-1)], i, indx[(j+1):i])
+    }
+    temp <- rmat[indx, indx]
+    if (all(temp[row(temp) > col(temp)])) indx
+    else -1
+}
+survexpm <- function(rmat, time=1.0, setup, eps=1e-6) {
+    if (missing(setup)) setup <- survexpmsetup(rmat)
+    if (setup[1] <0 || any(diff(sort(diag(rmat)))< eps)) pade(rmat*time)
+    else {
+        if (setup==1) .Call(Ccdecomp, rmat, time)$P
+        else {
+            temp <- rmat
+            temp[setup, setup] <- .Call(Ccdecomp, rmat[setup, setup], time)
+            temp$P
+        }
+    }
+}
+derivative <- function(rmat, time, dR, setup, eps=1e-8) {
+    if (missing(setup)) setup <- survexpmsetup(rmat)
+    if (setup[1] <0 || any(diff(sort(diag(rmat)))< eps)) 
+        return (pade(rmat*time, dR*time))
+
+    if (setup==0) dlist <- .Call(Ccdecomp, rmat, time)
+    else dlist <- .Call(Ccdecomp, rmat[setup, setup], time)
+    ncoef <- dim(dR)[3]
+    nstate <- nrow(rmat)
+    
+    dmat <- array(0.0, dim=c(nstate, nstate, ncoef))
+    vtemp <- outer(dlist$d, dlist$d,
+                   function(a, b) {
+                       ifelse(abs(a-b)< eps, time* exp(time* (a+b)/2),
+                         (exp(a*time) - exp(b*time))/(a-b))})
+    # any unique value of cmap appears on only one row of cmap,
+    #  multiple times in that row if a coefficient is shared
+    # two transitions can share a coef, but only for the same X variable
+    for (i in 1:ncoef) {
+        G <- dlist$Ainv %*% dR[,,i] %*% dlist$A
+        V <- G*vtemp
+        dmat[,,i] <- dlist$A %*% V %*% dlist$Ainv
+    }
+    dlist$dmat <- dmat
+    
+    # undo the reordering, if needed
+    if (setup[1] >0) {
+        indx <- order(setup)
+        dlist <- list(P = dlist$P[indx, indx],
+                      dmat = apply(dmat,1:2, function(x) x[indx, indx]))
+    }
+                      
+    dlist
+}
