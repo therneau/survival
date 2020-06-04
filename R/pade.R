@@ -18,7 +18,7 @@ pade <- function(A, deriv) {
     }
     else nderiv <- 0
 
-    ## If the norm is small enough, use the Padé-Approximation (PA) directly
+    ## If the norm is small enough, use the Pade Approximation (PA) directly
     if (nA <= 2.1) {
     	t <- c(0.015, 0.25, 0.95, 2.1)
     	## the minimal m for the PA :

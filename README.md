@@ -3,15 +3,18 @@
  
 This is the source code for the "survival" package in R.  It gets posted to the
 comprehensive R archive (CRAN) at intervals, each such posting preceded a
-throrough test. (I run the test suite for all 600+ packages that depend on
+throrough test. (I run the test suite for all 800+ packages that depend on
 survival.)  In general, each new push to CRAN will update the second term of
 the version number, e.g. 2.40-5 to 2.41-0.  Updates only to the github source
 increment after the dash.  (If an error is found in the process of CRAN
-submission then the published CRAN version may be x.yy-1 or even x.yy-2 or 3.) 
+submission then the published CRAN version may be x.yy-1 or even x.yy-2 or 3.)
+This directory is a shadow of the 'real' respository, which is in mercurial on 
+my own machine.  As such I don't use git for pull requests.  I will often 
+copy code from a suggestion, however; they don't get ignored!
 
 The vignette2 directory contains material that is not posted to CRAN.
 The file "tutorial.Rnw", for instance, requires data from
-the mstate package, survival is a recommended package, and such packages can 
+the mstate package.  Survival is a recommended package, and such packages can 
 only depend on other recommended packages.  (This allows for a consistent 
 distribution bundle.)  The sas.Rnw vignette has a discussion of compute time and
 takes too long to run, etc.
