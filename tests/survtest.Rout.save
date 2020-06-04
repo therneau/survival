@@ -32,6 +32,7 @@ Type 'q()' to quit R.
 +                     x    =c(1, 0, 0, 1, 0, 1, 1, 1, 0, 0),
 +                     wt   = 1:10)
 > aeq <- function(x,y, ...) all.equal(as.vector(x), as.vector(y), ...)
+> test2 <- test2[c(1,6,2,7,3,8,4,9,5,10),]  # unsorted data is a harder test
 > 
 > fit1 <- survfit(Surv(start, stop, event) ~1, test2, type='fh2',
 +                 error='tsiatis')
@@ -66,7 +67,7 @@ Type 'q()' to quit R.
 > fit3 <- survfit(Surv(start, stop, event) ~1, test2) #Kaplan-Meier
 > aeq(fit3$n, 10)
 [1] TRUE
-> aeq(fit3$time, unique(test2$stop))
+> aeq(fit3$time, sort(unique(test2$stop)))
 [1] TRUE
 > aeq(fit3$n.risk, c(2,3,5,4,4,5,2,1))
 [1] TRUE
@@ -151,4 +152,4 @@ Type 'q()' to quit R.
 > 
 > proc.time()
    user  system elapsed 
-  0.925   0.048   0.965 
+  0.907   0.057   0.956 

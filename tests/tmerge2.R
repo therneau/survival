@@ -70,7 +70,7 @@ temp <- subset(cgd0, select=etime1:etime7)
 counts <- sapply(temp, function(x) 
     as.vector(table(factor(x>= cgd0$futime, c(FALSE, TRUE)))))
 
-all(tcount[1:7, c("within", "trailing")] == t(counts))
+all(tcount[c(1,3,5,7,9,11,13), c("within", "trailing")] == t(counts))
 
 
 #

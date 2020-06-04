@@ -57,6 +57,7 @@ void agsurv4(Sint   *ndeath,   double *risk,    double *wt,
 void agsurv5(Sint *n2,     Sint *nvar2,  Sint *dd, double *x1,  
              double *x2,   double *xsum, double *xsum2, 
              double *sum1, double *sum2, double *xbar) ;
+SEXP cdecomp(SEXP R2, SEXP time2);
 
 void chinv2  (double **matrix, int n);
 int cholesky2(double **matrix, int n, double toler);

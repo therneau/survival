@@ -428,10 +428,16 @@ multihaz <- function(y, x, position, weight, risk, transition, ctype, stype,
     nx2 <- nrow(x2)
     h2 <- array(0, dim=c(nrow(hazard), nx2, ncol(hazard)))
     if (se.fit) v2 <- h2
-    S <- matrix(0, nrow(hazard), nstate)
+    S <- double(nstate)  # survival at the current time
     S2 <- array(0, dim=c(nrow(hazard), nx2, nstate))
  
     H <- matrix(0, nstate, nstate)
+    if (stype==2) {
+        H[hfill] <- colMeans(hazard)
+        diag(H) <- -rowSums(H)
+        esetup <- survexpmsetup(H)
+    }
+
     for (i in 1:nx2) {
         h2[,i,] <- apply(hazard %*% diag(risk2[i,]), 2, cumsum)
         if (se.fit) {
@@ -441,21 +447,21 @@ multihaz <- function(y, x, position, weight, risk, transition, ctype, stype,
 #            v2[jj,] <- (apply(varhaz[jj,],2, cumsum) + d3) * (risk2[i])^2
         }
 
-        S[1,] <- p0
-        for (j in 2:ntime) {
+        S <- p0
+        for (j in 1:ntime) {
             H[,] <- 0.0
             H[hfill] <- hazard[j,] *risk2[i,]
             if (stype==1) {
                 diag(H) <- pmin(0, 1 + diag(H)- rowSums(H))
-                S[j,] <- drop(S[j-1,] %*% H)  
+                S <- as.vector(S %*% H)  # don't keep any names
             }
             else {
                 diag(H) <- diag(H) - rowSums(H)
-                S[j,] <- as.vector(S[j-1,] %*% expm(H))  # dgeMatrix issue
+                #S <- as.vector(S %*% expm(H))  # dgeMatrix issue
+                S <- as.vector(S %*% survexpm(H, 1, esetup))
             }
+            S2[j,i,] <- S
         }
-
-        S2[,i,] <- S
     }
 
     rval <- list(time=utime, xgrp=rep(1:nx2, each=nrow(hazard)),

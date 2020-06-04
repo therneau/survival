@@ -3,7 +3,10 @@
 \section{Changes in version 3.2-3}{
   \itemize{
     \item Fix error in survfit.coxphms: an internal routine was being
-    called with arguments in the wrong order.  Example due to Beth Atkinson.
+    called with arguments in the wrong order.  Example due to Beth
+    Atkinson.
+    \item Add support routines for the derivative of a matrix
+    exponential, needed for survival curve variance (post Cox model).
 }}
 
 \section{Changes in version 3.2-2}{

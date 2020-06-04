@@ -1,5 +1,7 @@
 # Automatically generated from the noweb directory
 survexpmsetup <- function(rmat) {
+    # check the validity of the transition matrix, and determine if it
+    #  is acyclic, i.e., can be reordered into an upper triangular matrix.
     if (!is.matrix(rmat) || nrow(rmat) != ncol(rmat) || any(diag(rmat) > 0) ||
         any(rmat[row(rmat) != col(rmat)] < 0))
         stop ("input is not a transition matrix")
@@ -9,20 +11,16 @@ survexpmsetup <- function(rmat) {
     lower <- row(rmat) > col(rmat)
     if (all(rmat[lower] ==0))  return(0)  # already in order
     
-    indx <- 1   # an insertion sort
-    for (i in 2:nc) {
-        j <- sum(rmat[1:(i-1),i] > 0)
-        if (j==0) indx <- c(i, indx)
-        else if (j==i) indx <- c(indx, i)
-        else indx <- c(indx[1:(j-1)], i, indx[(j+1):i])
-    }
-    temp <- rmat[indx, indx]
-    if (all(temp[row(temp) > col(temp)])) indx
-    else -1
+    # score each state by (number of states it follows) - (number it precedes)
+    temp <- 1*(rmat >0) # 0/1 matrix
+    indx <- order(colSums(temp) - rowSums(temp))
+    temp <- rmat[indx, indx]  # try that ordering
+    if (all(temp[lower]== 0)) indx  # it worked!
+    else -1  # there is a loop in the states
 }
 survexpm <- function(rmat, time=1.0, setup, eps=1e-6) {
-    if (missing(setup)) setup <- survexpmsetup(rmat)
-    if (setup[1] <0 || any(diff(sort(diag(rmat)))< eps)) pade(rmat*time)
+    if (missing(setup) || setup[1] < 0 ||
+        any(diff(sort(diag(rmat)))< eps)) pade(rmat*time)
     else {
         if (setup==1) .Call(Ccdecomp, rmat, time)$P
         else {
@@ -33,8 +31,7 @@ survexpm <- function(rmat, time=1.0, setup, eps=1e-6) {
     }
 }
 derivative <- function(rmat, time, dR, setup, eps=1e-8) {
-    if (missing(setup)) setup <- survexpmsetup(rmat)
-    if (setup[1] <0 || any(diff(sort(diag(rmat)))< eps)) 
+    if (missing(setup) || setup[1] <0 || any(diff(sort(diag(rmat)))< eps)) 
         return (pade(rmat*time, dR*time))
 
     if (setup==0) dlist <- .Call(Ccdecomp, rmat, time)
@@ -47,8 +44,7 @@ derivative <- function(rmat, time, dR, setup, eps=1e-8) {
                    function(a, b) {
                        ifelse(abs(a-b)< eps, time* exp(time* (a+b)/2),
                          (exp(a*time) - exp(b*time))/(a-b))})
-    # any unique value of cmap appears on only one row of cmap,
-    #  multiple times in that row if a coefficient is shared
+
     # two transitions can share a coef, but only for the same X variable
     for (i in 1:ncoef) {
         G <- dlist$Ainv %*% dR[,,i] %*% dlist$A

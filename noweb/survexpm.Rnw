@@ -53,16 +53,12 @@ survexpmsetup <- function(rmat) {
     lower <- row(rmat) > col(rmat)
     if (all(rmat[lower] ==0))  return(0)  # already in order
     
-    indx <- 1   # an insertion sort
-    for (i in 2:nc) {
-        j <- sum(rmat[1:(i-1),i] > 0)
-        if (j==0) indx <- c(i, indx)
-        else if (j==i) indx <- c(indx, i)
-        else indx <- c(indx[1:(j-1)], i, indx[(j+1):i])
-    }
-    temp <- rmat[indx, indx]
-    if (all(temp[row(temp) > col(temp)])) indx
-    else -1
+    # score each state by (number of states it follows) - (number it precedes)
+    temp <- 1*(rmat >0) # 0/1 matrix
+    indx <- order(colSums(temp) - rowSums(temp))
+    temp <- rmat[indx, indx]  # try that ordering
+    if (all(temp[lower]== 0)) indx  # it worked!
+    else -1  # there is a loop in the states
 }
 @ 
 

@@ -2,6 +2,8 @@
 # check of Surv2 on a more complex data set
 #
 # First, baseline and death data, with age and study time (days) as the time scales
+library(survival)
+
 ndata <- data.frame(nafld1[,1:7],
                     days= 0,  death=0, iage=nafld1$age)
 ndata <- merge(ndata, with(nafld1, data.frame(id=id, days=futime, death=status)),
@@ -109,8 +111,6 @@ tdata$cstate <- factor(tdata$pcount, 0:3, paste0(0:3, "comorbid"))
 
 # Check it out
 check2 <- survcheck(Surv(tstart, tstop, state) ~ 1, id=id, istate=cstate, tdata)
-
-                istate=factor(pcount, 0:3, paste0(0:3, "comorbid")), tdata)
 
 all.equal(check1$transitions, check2$transitions)
 all.equal(check1$events, check2$events)
