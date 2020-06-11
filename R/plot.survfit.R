@@ -321,10 +321,12 @@ plot.survfit<- function(x, conf.int,  mark.time=FALSE,
                         missing(xmax) & missing(firstx)& missing(ymin))
 
     if (resetclip) {
-      # yes, do it
-      #if (xaxs=='S') tempx <- c(tempx[1], temp[1])
-      clip(tempx[1], tempx[2], tempy[1], tempy[2])
-      options(plot.survfit = list(plotclip=c(tempx, tempy), plotreset=par('usr')))
+        # yes, do it
+        #if (xaxs=='S') tempx <- c(tempx[1], temp[1])
+        ctemp <- par('usr')
+        ctemp[2] <- tempx[2]  # only be stronger on the right edge, per xmax
+        clip(ctemp[1], ctemp[2], ctemp[3], ctemp[4])
+        options(plot.survfit = list(plotclip= ctemp, plotreset=par('usr')))
     }
     else options(plot.survfit = NULL)  #remove any notes from a prior plot
     # Create a step function, removing redundancies that sometimes occur in
@@ -678,7 +680,7 @@ lines.survfit <- function(x, type='s',
         lwd  <- rep(lwd, length.out=ncurve)
     }
 
-    do.clip <- options("plot.survfit")
+    do.clip <- getOption("plot.survfit")
     if (!is.null(xx <- do.clip$plotclip)) clip(xx[1], xx[2], xx[3], xx[4])
 
     # Create a step function, removing redundancies that sometimes occur in
