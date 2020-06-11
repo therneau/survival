@@ -334,4 +334,32 @@ derivative <- function(rmat, time, dR, setup, eps=1e-8) {
 }
 @ 
 
+The Pade approximation is found in the file pade.R.  There is a good discussion
+of the problem at www.maths.manchester.ac.uk/~higham/talks/exp09.pdf.
+The pade function copied code from the matexp package, which in turn is based
+on Higham 2005.  Let B be a matrix and define
+\begin{eqnarray*}
+  r_m(B) &= p(B)/q(B) \\
+  p(B)   &= \sum_{j=0^m) \frac{((2m-j)! m!}{(2m)!(m-j)! j!} B^j \\
+    q(B) &= p(-B)
+\end{eqnarray*}
 
+The algorithm for calculating $\exp(A)$ is based on the following table
+\begin{center}
+\begin{tabular}{c|ccc}
+   $||A||_1$ & 0.15 & .25 & .95 & 2.1 & 3.4 \\
+    m        & 3    & 5   &  7  & 9   & 13
+\end{tabular} \end{center}
+The 1 norm of a matrix is \code{max(colSums(A))}.  If the norm is $\le 3.4$
+the $\exp(A) = r_m(A)$ using the table.
+Otherwise, find $s$ such that $B = A/2^s$ has norm $<=3.4$ and use the table
+method to find $\exp(B)$, then $\exp(A) \approx B^(2^s)$, the latter involves
+repeated squaring of the matrix.  
+
+The expm code has a lot of extra steps whose job is to make sure that elements
+of $A$ are not too disparate in size.  Transition matrices are nice and we can
+skip all of that.  This makes the pade function conserably faster than the
+expm function from the Matrix library.  In fact, if there aren't any
+tied event times, most elements of the rate matrix will be zero, and 
+others are on the order of 1/(number at risk), so that $m=3$ is the most common
+outcome. 

@@ -25,7 +25,7 @@ cipoisson(k, time = 1, p = 0.95, method = c("exact", "anscombe"))
 \details{
 The likelihood method is based on equation 10.10 of Feller, which relates
 poisson probabilities to tail area of the gamma distribution.
-The Anscombe approximation is based on the fact that sqrt(k + 3/8) is
+The Anscombe approximation is based on the fact that sqrt(k + 3/8)
 has a nearly constant variance of 1/4, along with a continuity
 correction.
 
@@ -56,6 +56,6 @@ intervals for the poisson mean: some new aspects.
 Revstat 10:211-227.
 }
 \seealso{
-\code{\link[stats]{ppois}}, \code{\link[stats]{qpois}}
+\code{\link[stats:Poisson]{ppois}}, \code{\link[stats:Poisson]{qpois}}
 }
 
