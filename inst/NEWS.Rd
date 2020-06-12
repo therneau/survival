@@ -7,6 +7,9 @@
     Atkinson.
     \item Add support routines for the derivative of a matrix
     exponential, needed for survival curve variance (post Cox model).
+    \item Add explicit error message to summary.survfit, when the times
+    argument asks only for times beyond the end of a curve and extend=FALSE.
+    \item Clipping could be too tight in plot.survfit.  
 }}
 
 \section{Changes in version 3.2-2}{

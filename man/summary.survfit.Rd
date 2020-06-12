@@ -38,7 +38,7 @@
     logical value: if TRUE, prints information for all specified \code{times}, 
     even if there are no subjects left at the end of the specified
     \code{times}. 
-    This is only valid if the \code{times} argument is present. 
+    This is only used if the \code{times} argument is present. 
   }
   \item{rmean}{Show restricted mean: see
   \code{\link{print.survfit}} for details}
@@ -113,6 +113,16 @@ table of information that is returned from \code{print.survfit} function.
 type of data censoring.  Passed through from the fit object. 
 }
 }
+\section{Details}
+This routine has two uses: printing out a survival curve at specified
+time points (often yearly), or extracting the values at specified time
+points for further processing.
+In the first case we normally want \code{extend=FALSE}, i.e., don't print out
+data past the end of the curve.  If the \code{times} option only
+contains values beyond the last point in the curve then there is nothing
+to print and an error message will result.
+For the second usage we almost always want \code{extend=TRUE}, so that the
+results will have a predictable length. 
 \seealso{
 \code{\link{survfit}},  \code{\link{print.summary.survfit}}   
 }

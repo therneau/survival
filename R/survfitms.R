@@ -108,6 +108,8 @@ summary.survfit <- function(object, times, censored=FALSE,
             
             index1 <- findInterval(ptimes, fit$time) 
             index2 <- 1 + findInterval(ptimes, fit$time, left.open=TRUE)
+            if (length(index1) ==0)
+                stop("no points selected for one or more curves, consider using the extend argument")
             # The pmax() above encodes the assumption that n.risk for any
             #  times before the first observation = n.risk at the first obs
             fit$time <- ptimes
@@ -302,6 +304,8 @@ summary.survfitms <- function(object, times, censored=FALSE,
             
             index1 <- findInterval(ptimes, fit$time) 
             index2 <- 1 + findInterval(ptimes, fit$time, left.open=TRUE)
+            if (length(index1) ==0)
+                stop("no points selected for one or more curves, consider using the extend argument")
             # The pmax() above encodes the assumption that n.risk for any
             #  times before the first observation = n.risk at the first obs
             fit$time <- ptimes

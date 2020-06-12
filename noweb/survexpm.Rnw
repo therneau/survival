@@ -340,13 +340,13 @@ The pade function copied code from the matexp package, which in turn is based
 on Higham 2005.  Let B be a matrix and define
 \begin{eqnarray*}
   r_m(B) &= p(B)/q(B) \\
-  p(B)   &= \sum_{j=0^m) \frac{((2m-j)! m!}{(2m)!(m-j)! j!} B^j \\
+  p(B)   &= \sum_{j=0^m} \frac{((2m-j)! m!}{(2m)!(m-j)! j!} B^j \\
     q(B) &= p(-B)
 \end{eqnarray*}
 
 The algorithm for calculating $\exp(A)$ is based on the following table
 \begin{center}
-\begin{tabular}{c|ccc}
+\begin{tabular}{c|ccccc}
    $||A||_1$ & 0.15 & .25 & .95 & 2.1 & 3.4 \\
     m        & 3    & 5   &  7  & 9   & 13
 \end{tabular} \end{center}
