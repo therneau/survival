@@ -113,7 +113,7 @@ table of information that is returned from \code{print.survfit} function.
 type of data censoring.  Passed through from the fit object. 
 }
 }
-\section{Details}
+\section{Details}{
 This routine has two uses: printing out a survival curve at specified
 time points (often yearly), or extracting the values at specified time
 points for further processing.
@@ -122,7 +122,8 @@ data past the end of the curve.  If the \code{times} option only
 contains values beyond the last point in the curve then there is nothing
 to print and an error message will result.
 For the second usage we almost always want \code{extend=TRUE}, so that the
-results will have a predictable length. 
+results will have a predictable length.
+}
 \seealso{
 \code{\link{survfit}},  \code{\link{print.summary.survfit}}   
 }
