@@ -103,6 +103,8 @@ survcheck <- function(formula, data, subset, na.action,  id, istate,
 
     fit$Y <- Y      # used by the summary function for details
     fit$id <- unname(id)    #   ""  ""
+
+    if (length(omit)) fit$na.action <- omit
     fit$call <- Call
     class(fit) <- "survcheck"
     fit

@@ -8,7 +8,7 @@ print.survcheck <- function(x, ...){
     names(temp) <- c("Unique identifiers", "Observations", "Transitions")
     print(temp)
     if(!is.null(x$na.action)){
-        cat(length(x$na.action), "observations with missing values:","\n")
+        cat(length(x$na.action), "observations removed due to missing","\n")
     } 
     
     cat("\nTransitions table:\n")
@@ -70,7 +70,7 @@ summary.survcheck <- function(object, max.show=5, ...){
     print(temp)
 
     if(!is.null(object$na.action)){
-        cat(length(object$na.action), "observations with missing values:","\n")
+        cat(length(object$na.action), "observations removed due to missing","\n")
     }
     
     ## change between states

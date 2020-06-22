@@ -1,5 +1,13 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 3.2-4}{
+  \itemize{
+    \item Add na.omit to the output of survcheck.
+    \item Undo ifelse bug (added in 3.2-3) in survexpm that causes it to
+    return NULL for the simplest matrices. (All the tests were for more
+    complex cases of course -- aargh.)
+}}
+
 \section{Changes in version 3.2-3}{
   \itemize{
     \item Fix error in survfit.coxphms: an internal routine was being

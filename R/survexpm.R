@@ -19,10 +19,11 @@ survexpmsetup <- function(rmat) {
     else -1  # there is a loop in the states
 }
 survexpm <- function(rmat, time=1.0, setup, eps=1e-6) {
-    if (missing(setup) || setup[1] < 0 ||
+    if (length(rmat)==1) exp(rmat[1]*time)
+    else if (missing(setup) || setup[1] < 0 ||
         any(diff(sort(diag(rmat)))< eps)) pade(rmat*time)
     else {
-        if (setup==1) .Call(Ccdecomp, rmat, time)$P
+        if (setup[1]==0) .Call(Ccdecomp, rmat, time)$P
         else {
             temp <- rmat
             temp[setup, setup] <- .Call(Ccdecomp, rmat[setup, setup], time)
