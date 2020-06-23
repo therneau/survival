@@ -498,22 +498,23 @@ On output the values are
   \item d=0: the outputs are unchanged (they initialize at 0)
   \item d=1
     \begin{description}
-      \item[sum1]  [[1/x1]]
-      \item[sum2]  [[1/x1^2]]
-      \item[xbar]  [[xsum/x1^2]]
+      \item[sum1]  \code{1/x1}
+      \item[sum2]  \code{1/x1\^2}
+      \item[xbar]  \code{xsum/x1\^2}
     \end{description}
     \item d=2
       \begin{description}
-        \item[sum1] (1/2) [[( 1/x1 + 1/(x1 - x2/2))]]
+        \item[sum1] (1/2) \code{( 1/x1 + 1/(x1 - x2/2))}
         \item[sum2] (1/2) (  same terms, squared)
-        \item[xbar] (1/2) [[(xsum/x1^2 + (xsum - 1/2 x3)/(x1- x2/2)^2)]]
+        \item[xbar] (1/2) \code{(xsum/x1\^2 + (xsum - 1/2 x3)/(x1- x2/2)\^2)}
     \end{description}
     \item d=3
       \begin{description}
-        \item[sum1] (1/3) [[(1/x1 + 1/(x1 - x2/3) + 1/(x1 - 2*x2/3))]]
+        \item[sum1] (1/3) \code{(1/x1 + 1/(x1 - x2/3) + 1/(x1 - 2*x2/3))}
         \item[sum2] (1/3) (  same terms, squared)
-        \item[xbar] (1/3) [[(xsum/x1^2 + (xsum - 1/3 xsum2)/(x1- x2/3)^2 + ]]\\
-          [[(xsum - 2/3 xsum2)/(x1- 2/3 x3)^2)]]
+        \item[xbar] (1/3) \code{xsum/x1\^2 + (xsum - 1/3 xsum2)/(x1- x2/3)\^2 +} 
+          \\
+          \code{(xsum - 2/3 xsum2)/(x1- 2/3 x3)\^2)}
       \end{description}
     \item etc
 \end{itemize}
