@@ -103,8 +103,7 @@ summary.coxph.penal <-  function(object, conf.int = 0.95, scale=1,
     if (!is.null(object$concordance)) {
        ctemp <- object$concordance
        # C= (concordant + tied/2)/(concordant + discordant + tied)
-       rval$concordance <- c((ctemp[1] + ctemp[3]/2)/sum(ctemp[1:3]),
-                              ctemp[6])
+       rval$concordance <- ctemp[c("concordance", "std")]
        names(rval$concordance) <- c("C", "se(C)")
     }
  

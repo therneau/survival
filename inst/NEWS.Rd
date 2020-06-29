@@ -3,18 +3,19 @@
 \section{Changes in version 3.2-4}{
   \itemize{
     \item Add na.omit to the output of survcheck.
-    \item Undo ifelse typo (added in 3.2-3) in survexpm that caused it to
+    \item Undo an ifelse typo (added in 3.2-3) in survexpm that caused it to
     return NULL for an upper triangular rate matrix, breaking survfit
-    for a multi-state coxph model.  (This case has the simplest
+    for a multi-state coxph model.  (Upper triangular has the simplest
     algorithm, and all the tests in the suite were for the more complex
-    cases of course -- aargh.) 
+    cases of course -- aargh.)
+    \item Fix error in summary.coxph.penal; it was incorrectly copying
+    se(concordance) to the new object.
 }}
 
 \section{Changes in version 3.2-3}{
   \itemize{
     \item Fix error in survfit.coxphms: an internal routine was being
-    called with arguments in the wrong order.  Example due to Beth
-    Atkinson.
+    called with arguments in the wrong order. 
     \item Add support routines for the derivative of a matrix
     exponential, needed for survival curve variance (post Cox model).
     \item Add explicit error message to summary.survfit, when the times
