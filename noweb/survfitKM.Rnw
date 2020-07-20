@@ -510,7 +510,7 @@ $g$ is the number of groups and $m$ the number of unique times.
 If type= 3,4 we only compute the
 robust verion of the cumulative hazard variance; 
 the influence matrix for the survival in this case is
-$\exp(H(t)) D(t)$ where $H$ is the cumulative hazard and $D$
+$-\exp(-H(t)) D(t)$ where $H$ is the cumulative hazard and $D$
 is the influence matrix for $H$.
 This can be done in the R code.   
 The influence matrices are large, so only return what they explicitly ask
@@ -740,7 +740,7 @@ whole new estimate.
 Notice that if all the weights were doubled the expression below will stay
 the same since the derivative will drop by 1/2.
 \begin{align*}
-  \sigma^2_{IJ}(t_k) & = \sum_i U_{ik}^2 \\
+  \sigma^2_{IJ}(t_k) & = \sum_i w_i U_{ik}^2 \\
   U_{ik}  & =  \frac{\partial S(t_k)}{\partial w_i}
 \end{align*}
 
