@@ -1,0 +1,432 @@
+\section{Residuals for survival curves}
+\subsection{R-code}
+For all the more complex cases, the variance of a survival curve is based on 
+the infinitesimal jackknife:
+$$
+D_i(t) = \frac{\partial S(t)}{w_i}
+$$
+evaluated at the the observed vector of weights.  The variance at a given 
+time is then  $D'WD'$ where $D$ is a diagonal matrix of the case weights.
+When there are multiple states $S$ is replaced by the vector $p(t)$, with
+one element per state, and the formula gets a bit more complex.
+The predicted curve from a Cox model is the most complex case.
+
+Realizing that we need to return the matrix $D$ to the user, in order to compute
+the variance of derived quantities like the restricted mean time in state, 
+the code has been changed from a primarily internal focus (compute within the
+survfit routine) to an external one. 
+
+The underlying C code is very similar to that in survfitkm.c
+One major difference in the routines is that this code is designed to return
+values at a fixed set of time points; it is an error if the user does not
+provide one.  This allows the result to be presented as a matrix or array.
+Computational differences will be discussed later.
+
+<<residuals.survfit>>=
+# residuals for a survfit object
+residuals.survfit <- function(object, times, 
+                              type=c("surv", "RMTS", "cumhaz"),
+                              collapse=FALSE, weighted=FALSE){
+    if (!inherits(object, "survfit"))
+        stop("argument must be a survfit object")
+    survfitms <- inherits(object, "survfitms")
+    coxsurv <- inherits(object, "survfitcox")
+    timefix <- (is.null(object$timefix) || object$timefix)
+    type <- match.arg(type)
+    type.int <- match(type, c("surv", "RMTS", "cumhaz"))
+    
+    start.time <- object$start.time
+    if (is.null(start.time)) start.time <- min(c(0, object$time))
+
+    # check input arguments
+    if (missing(times)) 
+        stop ("the times argument is required")
+    else {
+        if (!is.numeric(times)) stop("times must be a numeric vector")
+        times <- sort(unique(times))
+        if (timefix) times <- aeqSurv(Surv(times))[,1]
+    }
+    
+    # get the data
+    <<rsurvfit-data>>
+
+    ny <- ncol(newY)
+    # order the data by group, which is the order we want for the output
+    sort1 <- order(cluster)
+    newY <- newY[sort1,]
+    X <- X[sort1]
+    casewt <- casewt[sort1]
+    cluster <- cluster[sort1]
+
+    # What survival curves was used?
+    if (!coxsurv) {
+        stype <- Call$stype
+        if (is.null(stype)) stype <- 1
+        ctype <- Call$ctype
+        if (is.null(ctype)) ctype <- 1
+        
+        if (!survfitms) {
+            resid <- rsurvpart1(newY, X, casewt, times,
+                                type.int, stype, ctype, object)
+            dimnames(resid) <- list(NULL, times)
+        }
+        else stop("multi-state survival not yet available")
+    }
+    else stop("coxph survival curves not yet available")
+    
+    if (weighted && any(casewt !=1)) resid <- resid*casewt
+    if (collapse) {
+        resid <- rowsum(resid, cluster, reorder=FALSE)
+        rownames(resid) <- unique(cluster)
+    }
+    resid
+}
+@ 
+
+The first part of the work is retrieve the data set.  This is done in multiple
+places in the survival code, all essentially the same.  
+If I gave up (like lm) and forced the model frame to be saved this would be
+easier of course.
+
+<<rsurvfit-data>>=
+# I always need the model frame
+if (coxsurv) {
+    mf <- model.frame(object)
+    if (is.null(object$y)) Y <- model.response(mf)
+    else Y <- object$y
+}
+else {
+    Call <- object$call
+    formula <- formula(object)
+
+    # the chunk below is shared with survfit.formula 
+    <<survfit.formula-getdata>>
+    # end of shared code 
+}
+
+xlev <- levels(X)
+
+# Deal with ties
+if (is.null(Call$timefix) || Call$timefix) newY <- aeqSurv(Y) else newY <- Y
+
+# Find the clustering, if any
+if (!is.null(cluster)) {
+    if (is.factor(cluster)) {
+        clname <- levels(cluster)
+        cluster <- as.integer(cluster)
+    } else {
+        clname  <- sort(unique(cluster))
+        cluster <- match(cluster, clname)
+    }
+    ncluster <- length(clname)
+} 
+else if (!is.null(id)) {
+    # treat the id as both identifier and clustering
+    clname <- levels(id)
+    cluster <- as.integer(id)
+    ncluster <- length(clname)
+}
+else {
+    # create our own clustering
+    n <- nrow(Y)
+    cluster <- 1:n
+    ncluster <- n
+    clname <- NULL
+}   
+@
+
+\subsection{Simple survival}
+<<residuals.survfit>>=
+ rsurvpart1 <- function(Y, X, casewt, times,
+         type, stype, ctype, fit) {
+     
+     ntime <- length(times)
+     # We need an index of where the times vector matches the
+     #  fit$time vector.  If the latter were (1, 24, 40) and
+     #  times= (0, 5, 24, 50) the result would be 0, 1, 2, 3)
+     # This has to be done separately for each curve though.
+     # Also, we only want to match death times, not others
+     if (is.null(fit$strata)) fitrow <- list(seq(along=fit$time))
+     else {
+         temp1 <- cumsum(fit$strata)
+         temp2 <- c(1, temp1+1)
+         fitrow <- lappy(1:length(j), function(i) seq(temp2[i], temp1[i]))
+     }
+     matchfun <- function(x, fit, index) {
+         tt <- fit$time[index]  # subset to this curve
+         deaths <- tt[fit$n.event[index] >0]
+         i1 <- match(deaths, tt)
+         i2 <- findInterval(x, deaths, left.open=FALSE) 
+         # why pmax?  indices of 0 drop elements, so i1[i2] will be the
+         #  wrong length
+         ifelse(i2==0, 0, i1[pmax(1,i2)] + index[1] -1)  # index in fit
+     }
+         
+     tindex <- matrix(0L, nrow(Y), length(times))
+     for (i in 1:length(fitrow)) {
+         yrow <- (as.integer(X) ==i)
+         temp <- matchfun(times, fit, fitrow[[i]])
+         tindex[yrow, ] <- rep(temp, each= length(yrow))
+     }
+
+     # repeat the indexing for Y onto fit$time
+     ny <- ncol(Y)
+     yindex <- matrix(0L, nrow(Y), length(times))
+     event <- Y[,ny]
+     if (ny==3) startindex <- yindex
+     for (i in 1:length(fitrow)) {
+         temp <- matchfun(Y[,ny-1], fit, fitrow[[i]])
+         yrow <- (as.integer(X) ==i)
+         yindex[yrow,] <- rep(temp, ncol(yindex))
+         if (ny==3) {
+             temp <- matchfun(Y[,1], fit, fitrow[[i]])
+             startindex[yrow,] <- rep(temp, ncol(yindex))
+         }
+     }                    
+
+     if (type==3 || stype==2) {
+         if (ctype==1) {
+             <<residpart1-nelson>>
+         } else {
+             <<residpart1-fleming>>
+         }
+     } else {
+         <<residpart1-AJ>>
+     }
+     D
+}
+@
+
+\paragraph{Nelson-Aalen}
+The Nelson-Aalen estimate of the
+the influence at time $t$ for subject $i$ is
+\begin{align}
+  H(t) &= H(t-) + h(t) \nonumber \\
+  \frac{\partial H(t)}{\partial w_i} &= \frac{\partial H(t-)}{\partial w_i} +
+       [dN_i(t) - Y_i(t)h(t)]/r(t) \nonumber \\
+       &= \sum_{d_j \le t} dN_i(d_j)/r(d_j) - Y_i(d_j)h(d_j)/r(d_j) 
+         \label{NAderiv}
+\end{align}
+where $H$ the cumulative hazard, 
+$h$ is the increment to the cumulative hazard, $Y_i$ is 1 when a
+subject is at risk, $dN_i$ marks an event for the subject, $r$ is the
+total weighted number at risk, and $d_j$ is the set of death times.
+
+Let $D$ be the matrix of dfbeta residuals, with one column for each requested
+outcome time and one row per observation.
+For the first term in equation \eqref{NAderiv}, use the fact that a
+given observation $i$ has either 0 (censored) or 1 event time.
+It contributes a value of $1/r(d_j)$ to $D$ for any column where $t \ge t_i$, 
+the event time of observation $i$.
+For the second term, create a running sum of $h(d_j)/r(d_j)$.  The contribution
+for observation $i$ will be the difference in this cumulative sum between
+an observation's entry and min(report, exit) time.
+
+<<residpart1-nelson>>=
+add1 <- (yindex <= tindex & rep(event, ntime))
+lsum <- unlist(lapply(fitrow, function(i) 
+             cumsum(fit$n.event[i]/fit$n.risk[i]^2)))
+    
+term1 <- c(0, 1/fit$n.risk)[ifelse(add1, 1+yindex, 1)]
+term2 <- c(0, lsum)[1+pmin(yindex, tindex)]
+if (ny==3) term3 <- c(0, lsum)[1 + startindex]
+
+if (ny==2) D <- matrix(term1 -  term2, ncol=ntime)
+else       D <- matrix(term1 + term3 - term2, ncol=ntime)
+
+# survival is exp(-H) so the derivative is a simple transform of D
+if (type==1) D <- -D* c(1,fit$surv)[1+ tindex]
+
+@ 
+
+Type 2 = the RMST, which is the area under $S(t)$ up to a given time. 
+The influence for S is -inflence(H) * S, so
+the influence on the RMST segment from $d_j$ to $d_{j+1}$ will be 
+$-{\rm influence}(H(d_j)) S(d_j) [d_{j+1}-d_j]$), where $d$ are the death times.
+Let $A(s,t)$ be the area under the survival curve from $s$ to $t$, with the
+convention that if $s \ge t$ then $A(s,t) =0$.  Let
+$dH_{ij}$ be the influence of observation $i$ on the $j$th cumulative
+ hazard $H$,
+and $dh_{ij}$ the influence of observation $i$ on the increment of $H$ at $d_j$. 
+Then we have
+\begin{align*}
+  \frac{\partial A(0,t)}{\partial w_i} &= \sum_j -dH_{ij} 
+  A(d_j, t \wedge d_{j+1})  \\
+  \sum_j \left(\sum_{k \le j}(-dh_{ik}\right) A(d_j, t \wedge d_{j+1}) \\
+   \sum_{jk} \left(Y_i(d_k)h(d_k) - dN_i(d_k)\right)/r(t_k) 
+          A(d_k\vee d_j, t \wedge d_{j+1}) \\
+ &= \sum_{k}\left[Y_i(d_k)h(d_k) - dN_i(d_k))/r(t_k)\right]
+   \left(\sum_j A(d_j\vee d_k, t \wedge d_{j+1}) \right) \\
+&= \sum_{k} \frac{Y_i(d_k)h(d_k)- dN_i(d_k)}{/r(d_k)} A(d_k, t) \\
+& =\sum_{k} \frac{Y_i(d_k)h(d_k)- dN_i(d_k)}{/r(d_k)} \left[A(0,t) - A(0,d_k)
+     \right]
+\end{align*}
+
+What we must avoid is a sum over event times for each subject.  
+This is essentially $O(n^2)$ and will fail for large data sets.
+First recognize that if $d_k \ge t$ the contribution is zero.
+Break this into three parts:
+\begin{align*}
+  1 &=\sum_{d_k\le t} \frac{Y_i(d_k)h(d_k)- dN_i(d_k)}{/r(d_k)} A(0,t) \\
+  2 &=\sum_{d_k \le t} \frac{Y_i(d_k)h(d_k)}{/r(d_k)} A(0, d_k) \\
+  3 &=\sum_{d_k \le t} \frac{ dN_i(d_k)}{/r(d_k)} A(0,d_k)
+\end{align*}
+
+The first term is the leverage of the CH at time $t$, times a constant.
+Since there is only one death for a
+given subject, pointed to by yindex, the third term is a single value for
+each subject/reporting time pair.
+The third requires another running sum lsum2.
+When $t$ lies between two event times, then $AUC(0,t)$ requires adding on the
+last interval width times the survival.
+
+<<residpart1-nelson>>=
+if (type==2) { # type 2 = AUC
+    auc <- unlist(lapply(fitrow, function(i) {
+        temp <- c(1, fit$surv[i])
+        cumsum(temp[-length(temp)] * diff(c(0, fit$time[i])))
+    }))
+
+    overtime <- (times[col(D)]- c(0,fit$time)[1+tindex]) # t - last event time
+    auc2 <- c(0, auc)[1 + tindex]  + overtime* c(1,fit$surv)[1+tindex] # A(0, t)
+    aterm1 <- -D * auc2
+    
+    lsum2 <- unlist(lapply(fitrow, function(i) 
+             cumsum(auc[i]*fit$n.event[i]/fit$n.risk[i]^2)))
+    aterm2 <- c(0, lsum2)[1 + pmin(yindex, tindex)]
+    aterm3 <- c(0, auc/fit$n.risk)[ifelse(add1, 1+yindex, 1)]
+
+    D <- matrix(aterm1 + aterm3 - aterm2, ncol=ntime)
+}
+@ 
+
+\paragraph{Fleming-Harrington}
+For the Fleming-Harrington estimator the calculation at a tied time differs
+slightly.
+If there were 10 at risk and 3 tied events, the Nelson-Aalen has an increment
+of 3/10, while the FH has an increment of (1/10 + 1/9 + 1/8).  The underlying
+idea is that the true time values are continuous and we observe ties due to
+coarsening of the data.  The derivative will have 3 terms as well.  In this
+case the needed value cannot be pulled directly from the survfit object.
+Computationally, the number of distinct times at which a tie occurs is normally
+quite small, and the for loop below will not be too expensive.
+
+<<residpart1-fleming>>=
+nevent <- fit$n.event/casewt[1]
+if (any(casewt != casewt[1])) {
+    # Have to reconstruct the number of obs with an event
+    temp <- lappy(seq(along=levels(X)), function(i) {
+        keep <- which(as.numeric(X) ==i)
+        dtime <- Y[keep & status==1, ny-1]
+        count <- table(dtime)
+        nindx <- (fitrow[[i]])[fit$n.event[fitrow[[i]]] > 0]
+        nevent[nindx] <- as.vector(count)
+        })
+}
+
+risk2 <- fit$n.risk
+ltemp <- fit$n.event/fit$n.risk^2
+for (i in which(nevent>1)) {
+    denom <- risk2[i] - fit$n.event*(0:(nevent[i]-1))/nevent[i]
+    risk2[i] <- mean(1/denom) # multiplier for the event
+    ltemp[i] <- fit$n.event* mean(1/denom^2)
+}
+
+add1 <- (yindex >= tindex & rep(event, ntime))
+lsum <- unlist(lapply(fitrow, function(i) cumsum(ltemp[i])))
+term1 <- c(0, 1/risk2)[ifelse(add1, 1+yindex, 1)]
+term2 <- c(0, lsum)[1+pmin(yindex, tindex)]
+if (ny==3) term3 <- c(0, lsum)[1 + startindex]
+
+if (ny==2) D <- matrix(term1 - term2, ncol=ntime)
+else D <- matrix(term1 + term3 - term2, ncol=ntime)
+
+if (type==1) D <- -D* c(0,fit$surv)[1+ tindex]
+else if (type==2) { #RMST
+    auc <- unlist(lapply(fitrow, function(i) {
+        temp <- c(1, fit$surv[i])
+        cumsum(temp[-length(temp)] * diff(c(0, fit$time[i])))
+    }))
+
+    overtime <- (times[col(D)]- c(0,fit$time)[1+tindex]) # t - last event time
+    auc2 <- c(0, auc)[1 + tindex]  + overtime* c(1,fit$surv)[1+tindex] # A(0, t)
+    aterm1 <- -D * auc2
+    
+    lsum2 <- unlist(lapply(fitrow, function(i) 
+             cumsum(auc[i]*ltemp)))
+    aterm2 <- c(0, lsum2)[1 + pmin(yindex, tindex)]
+    aterm3 <- c(0, auc/risk2)[ifelse(add1, 1+yindex, 1)]
+
+    D <- matrix(aterm1 + aterm3 - aterm2, ncol=ntime)
+}
+@ 
+
+
+\paragraph{Aalen-Johansen}
+For the Kaplan-Meier (a special case of the Aalen-Johansen) the underlying
+algorithm is multiplicative.
+\begin{align}
+    S(t) &= S(t-) [1 - h(t)]  \nonumber\\
+    U_i(t) &= \frac{\partial S(t)}{\partial w_i}  \nonumber\\
+           &= U_i(t-) [1- h(t)] - 
+               S(t-)\frac{\partial h(t)}{\partial w_i} \label{Ukm}
+           &= -\sum_{d_j \le t} \frac{\partial h(d_j}{\partial w_i}
+                 S(d_{j}-)\left[\prod_{d_j < d_k <=t} (1 - h(d_k)) \right]
+                 \nolabel \\
+           &= \left[-\sum_{d_j \le t} \frac{dN_i(d_j) - Y_i(d_j)h(d_j)}{r(d_j)}
+                   S(d_{j}-) \frac{S(t)}{S(d_j)} \right]
+             &= \left[-\sum_{d_j\le t} \frac{dN_i(d_j) - Y_i(d_j)h(d_j)}{r(d_j)}
+                   \frac{1}{1-h(d_j} \right] S(t) \label{ajfactor}
+\end{align}
+where $h$ is the increment in  Nelson-Aalen at each event time and 
+$d$ are the event times.  The step after equation \label{Ukm} is based on
+fully expanding the entire  and collecting $dh$ terms
+(pencil + paper + brute force).
+Our algorithm is based on the last equation \eqref{ajfactor}.
+Exectution is very similar to the algorithm for $dH$.
+One insight with respect to the final formula 
+is that the step of the KM are a little bit larger than the
+steps of $\exp(-H)$, with a larger difference for small risk sets.  The
+first term for $dS$ is thus a little bigger, by a factor of 
+$1/(1-h)$.  (It is then multiplied by $S$, which is smaller than
+the multiplier of $\exp(-H)$, partially attenuating the increase.)
+
+\begin{align*}
+<<residpart1-AJ>>=
+add1 <- (yindex <= tindex & rep(event, ntime))
+# dtemp avoids 1/0.  (When this occurs the influence is 0, since
+#  the curve has dropped to zero; and this avoids Inf-Inf in term1-term2).
+dtemp <- ifelse(fit$n.risk==fit$n.event, 0, 1/(fit$n.risk- fit$n.event))
+hsum <- unlist(lapply(fitrow, function(i) 
+             cumsum(dtemp[i]*fit$n.event[i]/fit$n.risk[i])))
+    
+term1 <- c(0, dtemp)[ifelse(add1, 1+yindex, 1)]
+term2 <- c(0, hsum)[1+pmin(yindex, tindex)]
+if (ny==3) term3 <- c(0, hsum)[1 + startindex]
+
+if (ny==2) D <- matrix(term1 -  term2, ncol=ntime)
+else       D <- matrix(term1 + term3 - term2, ncol=ntime)
+
+if (type==1) D <- -D* c(1,fit$surv)[1+ tindex]
+else if (type==2){
+    auc <- unlist(lapply(fitrow, function(i) {
+        temp <- c(1, fit$surv[i])
+        cumsum(temp[-length(temp)] * diff(c(0, fit$time[i])))
+    }))
+
+    overtime <- (times[col(D)]- c(0,fit$time)[1+tindex]) # t - last event time
+    auc2 <- c(0, auc)[1 + tindex]  + overtime* c(1,fit$surv)[1+tindex] # A(0, t)
+    aterm1 <- -D * auc2
+    
+    lsum2 <- unlist(lapply(fitrow, function(i) 
+             cumsum(auc[i]*(dtemp[i]*fit$n.event[i]/fit$n.risk[i]))))
+    aterm2 <- c(0, lsum2)[1 + pmin(yindex, tindex)]
+    aterm3 <- c(0, auc/fit$n.risk)[ifelse(add1, 1+yindex, 1)]
+
+    D <- matrix(aterm1 + aterm3 - aterm2, ncol=ntime)
+}
+@
+ 
+Just as in the prior AUC, our influence on the survival is (something)*S,
+so the influence on the AUC is (same something) * AUC.  
+This means that the code for type 2 nearly identical to what came before.

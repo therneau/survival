@@ -867,8 +867,8 @@ Thus the inner loop must be repeated at least twice.
 A second variance computation treats the data as a Cox model.
 Create zero-centered scores for all subjects in the risk set:
 \begin{align}
-  z_i(t) &= \sum_{j \in R(t)} w_j \sign(x_i - x_j) \nonumber
-  D-C = \sum_i \delta_i z_i(t_i)              \label{zcord}
+  z_i(t) &= \sum_{j \in R(t)} w_j \sign(x_i - x_j) \nonumber \\
+  D-C &= \sum_i \delta_i z_i(t_i)              \label{zcord}
 \end{align}
 At any event time $\sum w_i z_i =0$.  
 Equation \eqref{zcord} is the score equation

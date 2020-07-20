@@ -170,7 +170,7 @@ survfit.formula <- function(formula, data, weights, subset,
     temp <- Call[c(1, indx)]
     temp[[1L]] <- quote(stats::model.frame)
     mf <- eval.parent(temp)
-    
+
     Terms <- terms(formula, c("strata", "cluster"))
     ord <- attr(Terms, 'order')
     if (length(ord) & any(ord !=1))
@@ -233,7 +233,7 @@ survfit.formula <- function(formula, data, weights, subset,
     ll <- attr(Terms, 'term.labels')
     if (length(ll) == 0) X <- factor(rep(1,n))  # ~1 on the right
     else X <- strata(mf[ll])
-    
+
     # Backwards support for the now-depreciated etype argument
     etype <- model.extract(mf, "etype")
     if (!is.null(etype)) {

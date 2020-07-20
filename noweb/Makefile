@@ -11,6 +11,7 @@ PARTS = main.Rnw \
 	survexp.Rnw \
 	parse.Rnw \
 	pyears.Rnw pyears2.Rnw \
+	residuals.survfit.Rnw \
 	residuals.survreg.Rnw \
 	survfit.Rnw \
 	survfitKM.Rnw \
@@ -38,6 +39,7 @@ SFUN =  agreg.fit.R \
 	predict.coxph.R \
 	pyears.R \
 	print.pyears.R \
+	residuals.survfit.R \
 	residuals.survreg.R\
 	statefig.R \
 	survexp.R \
