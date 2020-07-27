@@ -72,7 +72,6 @@ Otherwise, it is the cumulative number of subjects that have entered
 since the last time listed until time t.  
 }
 \item{n.exit.censored}{
-
 if the \code{times} argument is 
 missing, this column is the number of subjects that left without an 
 event at time t. 

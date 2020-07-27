@@ -26,7 +26,7 @@ Computational differences will be discussed later.
 # residuals for a survfit object
 residuals.survfit <- function(object, times, 
                               type=c("surv", "RMTS", "cumhaz"),
-                              collapse=FALSE, weighted=FALSE){
+                              collapse=TRUE, weighted=FALSE){
     if (!inherits(object, "survfit"))
         stop("argument must be a survfit object")
     survfitms <- inherits(object, "survfitms")
@@ -70,7 +70,10 @@ residuals.survfit <- function(object, times,
                                 type.int, stype, ctype, object)
             dimnames(resid) <- list(NULL, times)
         }
-        else stop("multi-state survival not yet available")
+        else {
+            if (is.null(istate)) istate <-survcheck2(newY, id)$istate
+            resid <- rsurvpart2(newY, casewt, istate, times, cluster,
+                                type.int, object)
     }
     else stop("coxph survival curves not yet available")
     
@@ -154,7 +157,7 @@ else {
      }
      matchfun <- function(x, fit, index) {
          tt <- fit$time[index]  # subset to this curve
-         deaths <- tt[fit$n.event[index] >0]
+         deaths <- tt[rowSums(fit$n.event[index,]) >0]
          i1 <- match(deaths, tt)
          i2 <- findInterval(x, deaths, left.open=FALSE) 
          # why pmax?  indices of 0 drop elements, so i1[i2] will be the
@@ -172,7 +175,7 @@ else {
      # repeat the indexing for Y onto fit$time
      ny <- ncol(Y)
      yindex <- matrix(0L, nrow(Y), length(times))
-     event <- Y[,ny]
+     event <- (Y[,ny] >0)
      if (ny==3) startindex <- yindex
      for (i in 1:length(fitrow)) {
          temp <- matchfun(Y[,ny-1], fit, fitrow[[i]])
