@@ -1,14 +1,15 @@
 # Automatically generated from the noweb directory
 # residuals for a survfit object
 residuals.survfit <- function(object, times, 
-                              type=c("surv", "cumsurv", "cumhaz")){
+                              type=c("surv", "RMTS", "cumhaz"),
+                              collapse=TRUE, weighted=FALSE){
     if (!inherits(object, "survfit"))
         stop("argument must be a survfit object")
     survfitms <- inherits(object, "survfitms")
     coxsurv <- inherits(object, "survfitcox")
     timefix <- (is.null(object$timefix) || object$timefix)
     type <- match.arg(type)
-    type.int <- match(type, c("surv", "cumsurv", "cumhaz"))
+    type.int <- match(type, c("surv", "RMTS", "cumhaz"))
     
     start.time <- object$start.time
     if (is.null(start.time)) start.time <- min(c(0, object$time))
@@ -185,9 +186,20 @@ residuals.survfit <- function(object, times,
         if (!survfitms) {
             resid <- rsurvpart1(newY, X, casewt, times,
                                 type.int, stype, ctype, object)
-            dimnames(resid) <- list(clname, times)
+            dimnames(resid) <- list(NULL, times)
         }
-        else stop("not finished")
+        else {
+            if (is.null(istate)) istate <-survcheck2(newY, id)$istate
+            resid <- rsurvpart2(newY, X, casewt, istate, times, cluster,
+                                type.int, object)
+        }
+    }
+    else stop("coxph survival curves not yet available")
+    
+    if (weighted && any(casewt !=1)) resid <- resid*casewt
+    if (collapse) {
+        resid <- rowsum(resid, cluster, reorder=FALSE)
+        rownames(resid) <- unique(cluster)
     }
     resid
 }
@@ -208,7 +220,7 @@ residuals.survfit <- function(object, times,
      }
      matchfun <- function(x, fit, index) {
          tt <- fit$time[index]  # subset to this curve
-         deaths <- tt[fit$n.event[index] >0]
+         deaths <- tt[rowSums(fit$n.event[index,]) >0]
          i1 <- match(deaths, tt)
          i2 <- findInterval(x, deaths, left.open=FALSE) 
          # why pmax?  indices of 0 drop elements, so i1[i2] will be the
@@ -226,7 +238,7 @@ residuals.survfit <- function(object, times,
      # repeat the indexing for Y onto fit$time
      ny <- ncol(Y)
      yindex <- matrix(0L, nrow(Y), length(times))
-     event <- Y[,ny]
+     event <- (Y[,ny] >0)
      if (ny==3) startindex <- yindex
      for (i in 1:length(fitrow)) {
          temp <- matchfun(Y[,ny-1], fit, fitrow[[i]])
@@ -322,7 +334,8 @@ residuals.survfit <- function(object, times,
          }
      } else {
          add1 <- (yindex <= tindex & rep(event, ntime))
-         # dtemp avoids 1/0
+         # dtemp avoids 1/0.  (When this occurs the influence is 0, since
+         #  the curve has dropped to zero; and this avoids Inf-Inf in term1-term2).
          dtemp <- ifelse(fit$n.risk==fit$n.event, 0, 1/(fit$n.risk- fit$n.event))
          hsum <- unlist(lapply(fitrow, function(i) 
                       cumsum(dtemp[i]*fit$n.event[i]/fit$n.risk[i])))
@@ -334,11 +347,99 @@ residuals.survfit <- function(object, times,
          if (ny==2) D <- matrix(term1 -  term2, ncol=ntime)
          else       D <- matrix(term1 + term3 - term2, ncol=ntime)
 
-         browser()
          if (type==1) D <- -D* c(1,fit$surv)[1+ tindex]
-         else {
-             stop("not done")
+         else if (type==2){
+             auc <- unlist(lapply(fitrow, function(i) {
+                 temp <- c(1, fit$surv[i])
+                 cumsum(temp[-length(temp)] * diff(c(0, fit$time[i])))
+             }))
+
+             overtime <- (times[col(D)]- c(0,fit$time)[1+tindex]) # t - last event time
+             auc2 <- c(0, auc)[1 + tindex]  + overtime* c(1,fit$surv)[1+tindex] # A(0, t)
+             aterm1 <- -D * auc2
+             
+             lsum2 <- unlist(lapply(fitrow, function(i) 
+                      cumsum(auc[i]*(dtemp[i]*fit$n.event[i]/fit$n.risk[i]))))
+             aterm2 <- c(0, lsum2)[1 + pmin(yindex, tindex)]
+             aterm3 <- c(0, auc/fit$n.risk)[ifelse(add1, 1+yindex, 1)]
+
+             D <- matrix(aterm1 + aterm3 - aterm2, ncol=ntime)
          }
+     }
+     D
+}
+rsurvpart2 <- function(Y, X, casewt, istate, times, cluster, type, fit) {
+     ntime <- length(times)
+     # We need an index of where the times vector matches the
+     #  fit$time vector.  If the latter were (1, 24, 40) and
+     #  times= (0, 5, 24, 50) the result would be 0, 1, 2, 3)
+     # This has to be done separately for each curve though.
+     # Also, we only want to match death times, not others
+     if (is.null(fit$strata)) fitrow <- list(seq(along=fit$time))
+     else {
+         temp1 <- cumsum(fit$strata)
+         temp2 <- c(1, temp1+1)
+         fitrow <- lappy(1:length(j), function(i) seq(temp2[i], temp1[i]))
+     }
+     matchfun <- function(x, fit, index) {
+         tt <- fit$time[index]  # subset to this curve
+         deaths <- tt[rowSums(fit$n.event[index,]) >0]
+         i1 <- match(deaths, tt)
+         i2 <- findInterval(x, deaths, left.open=FALSE) 
+         # why pmax?  indices of 0 drop elements, so i1[i2] will be the
+         #  wrong length
+         ifelse(i2==0, 0, i1[pmax(1,i2)] + index[1] -1)  # index in fit
+     }
+         
+     tindex <- matrix(0L, nrow(Y), length(times))
+     for (i in 1:length(fitrow)) {
+         yrow <- (as.integer(X) ==i)
+         temp <- matchfun(times, fit, fitrow[[i]])
+         tindex[yrow, ] <- rep(temp, each= length(yrow))
+     }
+
+     # repeat the indexing for Y onto fit$time
+     ny <- ncol(Y)
+     yindex <- matrix(0L, nrow(Y), length(times))
+     event <- (Y[,ny] >0)
+     if (ny==3) startindex <- yindex
+     for (i in 1:length(fitrow)) {
+         temp <- matchfun(Y[,ny-1], fit, fitrow[[i]])
+         yrow <- (as.integer(X) ==i)
+         yindex[yrow,] <- rep(temp, ncol(yindex))
+         if (ny==3) {
+             temp <- matchfun(Y[,1], fit, fitrow[[i]])
+             startindex[yrow,] <- rep(temp, ncol(yindex))
+         }
+     } 
+
+     if (type==3) {
+         dstate <- Y[,ncol(Y)]
+         istate <- as.numeric(istate)
+         ntrans <- ncol(fit$cumhaz)  # the number of possible transitions
+         D <- array(0, dim=c(nrow(Y), ntime, ntrans))
+
+         scount <- table(istate[dstate!=0], dstate[dstate!=0]) # non-censor transitions
+         state1 <- row(scount)[scount>0]
+         state2 <- col(scount)[scount>0]
+         temp <- paste(state1, state2, sep='.')
+         if (!identical(temp, colnames(fit$cumhaz))) stop("setup error")
+
+         for (k in length(state1)) {
+             e2 <- Y[,ny] == state2[k]
+             add1 <- (yindex <= tindex & rep(e2, ntime))
+             lsum <- unlist(lapply(fitrow, function(i) 
+                      cumsum(fit$n.event[i,k]/fit$n.risk[i,k]^2)))
+             
+             term1 <- c(0, 1/fit$n.risk[,k])[ifelse(add1, 1+yindex, 1)]
+             term2 <- c(0, lsum)[1+pmin(yindex, tindex)]
+             if (ny==3) term3 <- c(0, lsum)[1 + startindex]
+
+             if (ny==2) D[,,k] <- matrix(term1 -  term2, ncol=ntime)
+             else       D[,,k] <- matrix(term1 + term3 - term2, ncol=ntime)
+         }
+     } else {
+         stop("type survival not finished for Aalen-Johansen")
      }
      D
 }

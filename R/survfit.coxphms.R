@@ -303,7 +303,8 @@ function(formula, newdata, se.fit=TRUE, conf.int=.95, individual=FALSE,
         else offset2 <- 0
         x2 <- model.matrix(Terms2, mf2)[,-1, drop=FALSE]  #no intercept
     }
-    risk2 <- exp(x2 %*% coef(object, matrix=TRUE) - xcenter)
+    temp <- coef(object, matrix=TRUE) # ignore missing coefs
+    risk2 <- exp(x2 %*% ifelse(is.na(temp), 0, temp) - xcenter)
     if (individual) {
         stop("time dependent survival curves not yet supported for multistate")
         result <- coxsurv.fit2(ctype, stype, se.fit, varmat, cluster, start.time,

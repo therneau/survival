@@ -10,6 +10,8 @@
     cases of course -- aargh.)
     \item Fix error in summary.coxph.penal; it was incorrectly copying
     se(concordance) to the new object.
+    \item Minor error in survfit.coxphms; it would fail if the model had
+    an NA coefficient.
 }}
 
 \section{Changes in version 3.2-3}{

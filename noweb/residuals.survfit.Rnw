@@ -72,8 +72,9 @@ residuals.survfit <- function(object, times,
         }
         else {
             if (is.null(istate)) istate <-survcheck2(newY, id)$istate
-            resid <- rsurvpart2(newY, casewt, istate, times, cluster,
+            resid <- rsurvpart2(newY, X, casewt, istate, times, cluster,
                                 type.int, object)
+        }
     }
     else stop("coxph survival curves not yet available")
     
@@ -388,7 +389,7 @@ fully expanding the entire  and collecting $dh$ terms
 Our algorithm is based on the last equation \eqref{ajfactor}.
 Exectution is very similar to the algorithm for $dH$.
 One insight with respect to the final formula 
-is that the step of the KM are a little bit larger than the
+is that the steps of the KM are a little bit larger than the
 steps of $\exp(-H)$, with a larger difference for small risk sets.  The
 first term for $dS$ is thus a little bigger, by a factor of 
 $1/(1-h)$.  (It is then multiplied by $S$, which is smaller than
@@ -433,3 +434,163 @@ else if (type==2){
 Just as in the prior AUC, our influence on the survival is (something)*S,
 so the influence on the AUC is (same something) * AUC.  
 This means that the code for type 2 nearly identical to what came before.
+
+\subsection{Multi-state Aalen-Johansen estimate}
+For multi-state models a correction for ties of similar spirit to the 
+Efron approximation in a Cox model or the ctype=2 argument for \code{survfit}
+is difficult, i.e., it is not clear \emph{what} should be done, much less how.
+Thus the ctype argument is not present.  Currently one \code{stype=1} is
+supported.
+This makes the code somewhat simpler, but is more than offset by the 
+multi-state nature.
+For the cumulative hazard, however, the code is very similar to the simple
+Nelson-Aalen case, so we start with the same indexing matrices as are used
+in the \code{rsurvpart1} routine.
+
+<<residuals.survfit>>=
+rsurvpart2 <- function(Y, X, casewt, istate, times, cluster, type, fit) {
+     ntime <- length(times)
+     # We need an index of where the times vector matches the
+     #  fit$time vector.  If the latter were (1, 24, 40) and
+     #  times= (0, 5, 24, 50) the result would be 0, 1, 2, 3)
+     # This has to be done separately for each curve though.
+     # Also, we only want to match death times, not others
+     if (is.null(fit$strata)) fitrow <- list(seq(along=fit$time))
+     else {
+         temp1 <- cumsum(fit$strata)
+         temp2 <- c(1, temp1+1)
+         fitrow <- lappy(1:length(j), function(i) seq(temp2[i], temp1[i]))
+     }
+     matchfun <- function(x, fit, index) {
+         tt <- fit$time[index]  # subset to this curve
+         deaths <- tt[rowSums(fit$n.event[index,]) >0]
+         i1 <- match(deaths, tt)
+         i2 <- findInterval(x, deaths, left.open=FALSE) 
+         # why pmax?  indices of 0 drop elements, so i1[i2] will be the
+         #  wrong length
+         ifelse(i2==0, 0, i1[pmax(1,i2)] + index[1] -1)  # index in fit
+     }
+         
+     tindex <- matrix(0L, nrow(Y), length(times))
+     for (i in 1:length(fitrow)) {
+         yrow <- (as.integer(X) ==i)
+         temp <- matchfun(times, fit, fitrow[[i]])
+         tindex[yrow, ] <- rep(temp, each= length(yrow))
+     }
+
+     # repeat the indexing for Y onto fit$time
+     ny <- ncol(Y)
+     yindex <- matrix(0L, nrow(Y), length(times))
+     event <- (Y[,ny] >0)
+     if (ny==3) startindex <- yindex
+     for (i in 1:length(fitrow)) {
+         temp <- matchfun(Y[,ny-1], fit, fitrow[[i]])
+         yrow <- (as.integer(X) ==i)
+         yindex[yrow,] <- rep(temp, ncol(yindex))
+         if (ny==3) {
+             temp <- matchfun(Y[,1], fit, fitrow[[i]])
+             startindex[yrow,] <- rep(temp, ncol(yindex))
+         }
+     } 
+
+     if (type==3) {
+         <<residpart2CH>>
+     } else {
+         <<residpart2AJ>>
+     }
+     D
+}
+@ 
+
+/paragraph{Nelson-Aalen}
+The multi-state Nelson-Aalen estimate of the cumulative hazard at time $t$
+is a vector with one element for each observed transition pair.  If there
+were $k$ states there are potentially $k(k-1)$ transition pairs, though 
+normally only a small number will occur in a given fit.  
+We don't keep track of a transition from state $j$ to state $j$.
+Let $r(t)$ be the weighted number at risk at time $t$, in each state.
+When some subject makes a $j:k$ transition, the $j:k$ transition will
+have an increment of $w_i/r_j(t)$. 
+This is precisely the same increment as the ordinary Nelson estimate.
+The only change then is that we loop over the set of possible transitions,
+creating a large output object.
+
+<<residpart2CH>>=
+dstate <- Y[,ncol(Y)]
+istate <- as.numeric(istate)
+ntrans <- ncol(fit$cumhaz)  # the number of possible transitions
+D <- array(0, dim=c(nrow(Y), ntime, ntrans))
+
+scount <- table(istate[dstate!=0], dstate[dstate!=0]) # non-censor transitions
+state1 <- row(scount)[scount>0]
+state2 <- col(scount)[scount>0]
+temp <- paste(state1, state2, sep='.')
+if (!identical(temp, colnames(fit$cumhaz))) stop("setup error")
+
+for (k in length(state1)) {
+    e2 <- Y[,ny] == state2[k]
+    add1 <- (yindex <= tindex & rep(e2, ntime))
+    lsum <- unlist(lapply(fitrow, function(i) 
+             cumsum(fit$n.event[i,k]/fit$n.risk[i,k]^2)))
+    
+    term1 <- c(0, 1/fit$n.risk[,k])[ifelse(add1, 1+yindex, 1)]
+    term2 <- c(0, lsum)[1+pmin(yindex, tindex)]
+    if (ny==3) term3 <- c(0, lsum)[1 + startindex]
+
+    if (ny==2) D[,,k] <- matrix(term1 -  term2, ncol=ntime)
+    else       D[,,k] <- matrix(term1 + term3 - term2, ncol=ntime)
+}
+@ 
+
+\paragraph{Aalen-Johansen}
+The multi-state AJ estimate is more complex.  Let $p(t)$ be the vector
+of probability in state at time $t$.
+Then
+\begin{align}
+  p(t) &= p(t-) H(t) \\
+  \frac{partial p(t)}{\partial w_i} &= \fract{\partial p(t-)}{\partial w_i} H(t)
+     +  p(t-) \frac{\partial H(t)}{\partial w_i} \nonumber\\
+   &= U_i(t-) H(t) + p(t-) \frac{\partial H(t)}{\partial w_i} \label{ajresidx}\\
+\end{align*}
+
+When we expand the left hand portion of \eqref{ajresidx} to include all 
+observations it becomes simple matrix multiplication, not so with
+the right hand portion.
+Each individual subject $i$ it has a subject-specific
+nstate * nstate $dH$ matrix for that subject, and the matrix product adds to 
+that particular row of $U$.
+The transition matrix at time $t$ has elements
+\begin{align*}
+H(t)_{jk} &= \frac{\sum_i I{s_i(t-)=j, s_i(t)=k} w_i}{\sum_i I{s_i(t-)=j} w_i} \\
+    &= \frac{\sum_i I{s_i(t-)=j, s_i(t)=k} w_i}{r_j(t)}
+\end{equation*}
+The notation $s_i(t)$ is the state of observation $i$ at time $t$ and 
+$r_j(t)$ the weighted number at risk.
+Each observation at risk appears in only 1 row of $H(t)$.
+The sum of each row is 1.
+For any given observtion the derivative matrix will be 0 for all but the
+row $j$ corresponding to the initial state, and that row will be zero if there
+are no transitions out of $j$ at this time point.
+Otherwise that row will have
+$(1- H_{jk}(t))/r_j(t)$ in one position and $-H_{jk}(t)/r_j(t)$ in all others,
+the '1' appears at the new state for an observation that transitions and the 
+current state for others.
+
+By rearranging terms \eqref{ajresidx} can be re-written as line 1 below,
+where $d$ are the unique event times.
+This is can also be seen as the product rule for derivatives applied to
+$p(t) = p(0) H(d_1) H(d_2) \ldots$.
+If we could treat matrices as scalars this can be factored in the form of
+the second line.
+\begin{align*}
+  U_i(t) &= \sum_{d_j \le t} \left( p(d_j-) \frac{\partial H(d_j)}{\partial w_i} 
+    \prod_{d_k <d_j \le t} H(d_k) \right)\\
+  &= p(t) \left( \sum_j \frac{\partial H(d_j)}{\partial w_i} \frac{1}{H(d_j)} 
+  \right)
+\end{equation*}
+This was used in the KM case to avoid any $O(nd)$ computations 
+where $n$ = number of observations and $d$ = number of events.
+
+<<residpart2AJ>>=
+stop("type survival not finished for Aalen-Johansen")
+@ 

@@ -16,10 +16,15 @@ vignettes/.*.pdf
 vignettes/.*.tex
 vignettes/.*.log
 vignettes/figures
+vignettes/.install_extras
 vignette2/.*.pdf
 vignette2/figures
 vignette2/.*.tex
 vignette2/.*.log
+vignette2/.*.aux
+vignette2/.*.bbl
+vignette2/.*.blg
+vignette2/mstate.rda
 vignette2/beyersmann/
 tests/plot1.pdf
 temp
