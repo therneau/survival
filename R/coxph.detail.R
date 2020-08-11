@@ -88,8 +88,8 @@ coxph.detail <-  function(object, riskmat=FALSE) {
 	 varhaz=ff$weights[keep], y=y, x=x)
     if (length(strat)) temp$strata <- table((strat[ord])[ff$index[keep]])
     if (riskmat) {
-        temp$riskmat <- rmat
-        temp$sortorder <- ord
+        temp$riskmat <- matrix(0, nrow(rmat), ncol(rmat))
+        temp$riskmat[ord,] <- rmat
     }
     if (!all(weights==1)) {
 	temp$weights <- weights

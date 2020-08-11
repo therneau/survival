@@ -62,7 +62,8 @@ coxph.detail(object, riskmat=FALSE)
     \item{riskmat}{
       a matrix with one row for each time and one column for each observation
     containing a 0/1 value to indicate whether that observation was (1) or
-    was not (0) at risk at the given time point.
+    was not (0) at risk at the given time point.  Rows are in the order
+    of the original data (after removal of any missings by \code{coxph}).
   }
 }
 \details{

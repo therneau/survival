@@ -146,7 +146,7 @@ the default behavior for subscripting matrices.
 \seealso{
 \code{\link{coxph}},  
 \code{\link{survfit}},  
-\code{\link{survreg}}, \code{link{lung}}.   
+\code{\link{survreg}}, \code{\link{lung}}.   
 }
 \examples{
 with(aml, Surv(time, status))

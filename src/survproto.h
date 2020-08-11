@@ -69,6 +69,8 @@ int cholesky5(double **matrix, int n, double toler);
 void chsolve3(double **matrix, int n, int m, double *diag, double *y);
 void chsolve5(double **matrix, int n, double *y, int flag);	
 
+SEXP collapse(SEXP y2,  SEXP x2, SEXP istate2, SEXP id2, SEXP wt2, 
+	      SEXP order2) ;
 SEXP concordance1(SEXP y, SEXP wt2,  SEXP indx2, SEXP ntree2);
  
 SEXP concordance2(SEXP y,     SEXP wt2,  SEXP indx2, SEXP ntree2,

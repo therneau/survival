@@ -7,9 +7,7 @@
 \description{Survival of patients on the waiting list for the Stanford
   heart transplant program.}
 \usage{
-heart
-jasa
-jasa1
+data(heart)
 }
 \format{
   jasa: original data

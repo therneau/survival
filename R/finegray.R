@@ -85,17 +85,6 @@ finegray <- function(formula, data, weights, subset, na.action= na.pass,
     if (!missing(count)) count <- make.names(count) else count <- NULL
     oname <- paste0(prefix, c("start", "stop", "status", "wt"))
         
-    find2 <- function(x, vec, left.open=FALSE, ...) {
-        if (!left.open) findInterval(x, vec, ...)
-        else {
-            # the left.open arg is a recent addition to findInterval, and I want
-            #  this to work in 3.2.0 (my employer's default).  In another cycle or
-            #  so we can drop this workaround and call findInterval directly
-            #
-            length(vec) - findInterval(-x, rev(-vec), ...)
-        }
-    }
-        
     if (ncol(Y) ==2) {
         temp <- min(Y[,1], na.rm=TRUE)
         if (temp >0) zero <- 0
@@ -103,18 +92,15 @@ finegray <- function(formula, data, weights, subset, na.action= na.pass,
         Y <- cbind(zero, Y)  # add a start column
     }
 
-    utime <- sort(unique(c(Y[,1:2])))  # all the unique times
-    newtime <- matrix(findInterval(Y[,1:2], utime), ncol=2) 
+    # For G, make event be just a bit before censors
     status <- Y[,3]
-
-    newtime[status !=0, 2] <- newtime[status !=0,2] - .2
-    Gsurv <- survfit(Surv(newtime[,1], newtime[,2], last & status==0) ~ istrat, 
+    eps <- min(diff(sort(unique(Y[,1:2]))))
+    delta <- ifelse(status==0, 0, eps/2)
+    Gsurv <- survfit(Surv(Y[,1], Y[,2]-delta, status==0) ~ istrat, 
                      se.fit=FALSE)
     if (delay) 
-        Hsurv <- survfit(Surv(-newtime[,2], -newtime[,1], first) ~ istrat, 
+        Hsurv <- survfit(Surv(-Y[,2], -Y[,1], first) ~ istrat, 
                          se.fit =FALSE)
-    status <- Y[, 3]
-
     # Do computations separately for each stratum
     stratfun <- function(i) {
         keep <- (istrat ==i)
@@ -125,20 +111,19 @@ finegray <- function(formula, data, weights, subset, na.action= na.pass,
 
         if (dim(Gsurv)==1) {
             # the phrase Gsurv[1] gives a warning when there is only one curve
-            # keep only the event times, and convert back to the original time units
+            # keep only the event times
             if (delay) {
                 dtime <- rev(-Hsurv$time[Hsurv$n.event > 0])
                 dprob <- c(rev(Hsurv$surv[Hsurv$n.event > 0])[-1], 1)
                 ctime <- Gsurv$time[Gsurv$n.event > 0]
                 cprob <- c(1, Gsurv$surv[Gsurv$n.event > 0]) 
-                temp <- sort(unique(c(dtime, ctime))) # these will all be integers
+                temp <- sort(unique(c(dtime, ctime)))
                 index1 <- findInterval(temp, dtime)
                 index2 <- findInterval(temp, ctime)
-                ctime <- utime[temp]
                 cprob <- dprob[index1] * cprob[index2+1]  # G(t)H(t), eq 11 Geskus
             }
             else {
-                ctime <- utime[Gsurv$time[Gsurv$n.event > 0]]
+                ctime <- Gsurv$time[Gsurv$n.event > 0]
                 cprob <- Gsurv$surv[Gsurv$n.event > 0]
             }
         } else {
@@ -149,21 +134,20 @@ finegray <- function(formula, data, weights, subset, na.action= na.pass,
                 dprob <- c(rev(Htemp$surv[Htemp$n.event > 0])[-1], 1)
                 ctime <- Gtemp$time[Gtemp$n.event > 0]
                 cprob <- c(1, Gtemp$surv[Gtemp$n.event > 0]) 
-                temp <- sort(unique(c(dtime, ctime))) # these will all be integers
+                temp <- sort(unique(c(dtime, ctime))) 
                 index1 <- findInterval(temp, dtime)
                 index2 <- findInterval(temp, ctime)
-                ctime <- utime[temp]
                 cprob <- dprob[index1] * cprob[index2+1]  # G(t)H(t), eq 11 Geskus
             }
             else {
-                ctime <- utime[Gtemp$time[Gtemp$n.event > 0]]
+                ctime <- Gtemp$time[Gtemp$n.event > 0]
                 cprob <- Gtemp$surv[Gtemp$n.event > 0]
             }
         }
 
         ct2 <- c(ctime, maxtime)
         cp2 <- c(1.0, cprob)
-        index <- find2(times, ct2, left.open=TRUE)
+        index <- findInterval(times, ct2, left.open=TRUE)
         index <- sort(unique(index))  # the intervals that were actually seen
         # times before the first ctime get index 0, those between 1 and 2 get 1
         ckeep <- rep(FALSE, length(ct2))

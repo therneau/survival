@@ -628,14 +628,15 @@ cord.work <- function(data, timewt, ymin, ymax, influence=0, ranks=FALSE,
         rval <- eval(fcall, parent.frame())
     }
     else {
-        # Check that all of the models have the identical Y and weights
+        # Check that all of the models used the same data set, in the same
+        #  order, to the best of our abilities
         n <- length(data[[1]]$x)
         for (i in 2:nfit) {
             if (length(data[[i]]$x) != n)
                 stop("all models must have the same sample size")
             
             if (!identical(data[[1]]$y, data[[i]]$y))
-                stop("all models must have the exact same response vector")
+                warning("models do not have the same response vector")
             
             if (!identical(data[[1]]$weights, data[[i]]$weights))
                 stop("all models must have the same weight vector")

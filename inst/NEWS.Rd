@@ -12,6 +12,13 @@
     se(concordance) to the new object.
     \item Minor error in survfit.coxphms; it would fail if the model had
     an NA coefficient.
+    \item Relax a check in concordance, to allow comparing two models
+    with the same subjects but different response vector.
+    \item If multiple strata() terms were first in a coxph model, the labels
+    of the assign component would be incorrect, which affected labeling of
+    cox.zph results (numeric values were correct, however).
+    \item The riskmat option of the coxph.detail command now returns the
+    matrix in data order rather than time-sorted order.
 }}
 
 \section{Changes in version 3.2-3}{

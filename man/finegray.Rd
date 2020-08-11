@@ -69,6 +69,14 @@ finegray(formula, data, weights, subset, na.action= na.pass, etype,
   set had \code{Surv(entry, exit, stat)} as the left hand side, then
   an \code{id} statement is required.  The program does data checks
   in this case, and needs to know which rows belong to each subject.
+
+  The output data set will often have gaps. Say that there were events
+  at time 50 and 100 (and none between) and censoring at 60, 70, and 80.
+  Formally, a non event subjects at risk from 50 to 100 will have
+  different weights in each of
+  the 3 intervals 50-60, 60-70, and 80-100, but because the middle
+  interval does not span any event times the subsequent Cox model will
+  never use that row.  The \code{finegray} output omits such rows.
   
   See the competing risks vignette for more details.
 }

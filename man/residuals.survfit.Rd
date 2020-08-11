@@ -2,17 +2,18 @@
 \alias{residuals.survfit}
 \title{IJ residuals from a survfit object.}
 \description{
-  Obtain infinitesimal jackknife residuals from a survfit object, for
+  Return infinitesimal jackknife residuals from a survfit object, for
   the survival, cumulative hazard, or restricted mean time in state (RMTS).
 }
 \usage{
-\method{residuals}{survfit}(object, times, type = c("surv", "RMTS", "cumhaz"),
-  weighted=FALSE, collapse=FALSE)
+\method{residuals}{survfit}(object, times, 
+    type,
+    weighted=FALSE, collapse=TRUE)
 }
 \arguments{
   \item{object}{a \code{survfit} object}
   \item{times}{a vector of times at which the residuals are desired}
-  \item{type}{the type of residual}
+  \item{type}{the type of residual, see below}
   \item{weighted}{weight the residuals by each observation's weight}
   \item{collapse}{add the residuals for all subjects in a cluster}
 }
@@ -21,18 +22,27 @@ This function is designed to efficiently compute the residuals at a
 small number of time points; a primary use is the creation of
 pseudo-values.
 If the residuals at all time points are needed, e.g. to compute a robust
-pointwise confidence interval for the survival curve, this can be done
+pointwise confidence interval for the survival curve, then this can be done
+more efficiently
 using the \code{influence} argument of the underlying \code{survfit}
-function.  (But be aware that such matrices can get very large).
+function.  But be aware that such matrices can get very large.  For a
+small number of reporting times this function is more efficient.
 
-For an ordinary alive->death survival curve, mean time in state is only
-of interest for the "alive" state, and in this case the acronym
-"restricted mean survival time" (RMST) is much more common than RMTS,
-which is more general.  
+The residuals are the impact of each observation or cluster on the
+resulting \code{surv}, \code{pstate} or code{\cumhaz} component of a
+\code{survfit} object.  The restricted mean survival time (RMST)
+is E[min(survival, t)], and can be computed as the area under the
+survival curve.
+A multi-state survival curve has a \code{pstate} component instead of
+\code{surv}, and the area under each component is the restricted mean time
+in state (RMTS).
+For simplicity, in this function \code{surv} and \code{pstate} are
+treated as synonyms for the \code{type} argument,
+and likewise for \code{rmst}, \code{rmts} or their capitalized versions.
 }
 \value{A matrix or array with one row per observation or cluster, and one column
-  for each value in \code{times}.  In a multi-state model the state will
-  be the third dimension, e.g., restricted mean time in each state.
+  for each value in \code{times}.  For a multi-state model the three
+  dimensions are observation, state, and time.
 }
 \seealso{\code{\link{survfit}}, \code{\link{survfit.formula}}
 }

@@ -198,8 +198,16 @@ residuals.survfit <- function(object, times,
     
     if (weighted && any(casewt !=1)) resid <- resid*casewt
     if (collapse) {
-        resid <- rowsum(resid, cluster, reorder=FALSE)
-        rownames(resid) <- unique(cluster)
+        dd <- dim(resid)
+        if (length(dd) ==3) {
+            resid <- rowsum(matrix(resid, nrow=dd[1]), cluster, reorder=FALSE)
+            dim(resid) <- c(length(resid)/(dd[2]*dd[3]), dd[2:3])
+            dimnames(resid)[[1]] <- unique(cluster)
+        }
+        else {
+            resid <- rowsum(resid, cluster, reorder=FALSE)
+            rownames(resid) <- unique(cluster)
+        }
     }
     resid
 }
@@ -207,27 +215,35 @@ residuals.survfit <- function(object, times,
          type, stype, ctype, fit) {
      
      ntime <- length(times)
-     # We need an index of where the times vector matches the
-     #  fit$time vector.  If the latter were (1, 24, 40) and
-     #  times= (0, 5, 24, 50) the result would be 0, 1, 2, 3)
-     # This has to be done separately for each curve though.
-     # Also, we only want to match death times, not others
-     if (is.null(fit$strata)) fitrow <- list(seq(along=fit$time))
+     etime <- (fit$n.event >0)
+     event <- (Y[,ny] >0)
+     # 
+     #  Create a list whose first element contains the location of
+     #   the death times in curve 1, second element for curve 2, etc.
+     #  
+     if (is.null(fit$strata)) fitrow <- list(which(etime))
      else {
          temp1 <- cumsum(fit$strata)
          temp2 <- c(1, temp1+1)
-         fitrow <- lappy(1:length(j), function(i) seq(temp2[i], temp1[i]))
+         fitrow <- lappy(1:length(fit$strata), function(i) {
+             indx <- seq(temp2[i], temp1[i])
+             indx[etime[indx]] # keep the death times
+         }) 
      }
+ 
+     # for each time x, the index of the last death time which is <=x.
+     #  0 if x is before the first death time
      matchfun <- function(x, fit, index) {
-         tt <- fit$time[index]  # subset to this curve
-         deaths <- tt[rowSums(fit$n.event[index,]) >0]
-         i1 <- match(deaths, tt)
-         i2 <- findInterval(x, deaths, left.open=FALSE) 
-         # why pmax?  indices of 0 drop elements, so i1[i2] will be the
-         #  wrong length
-         ifelse(i2==0, 0, i1[pmax(1,i2)] + index[1] -1)  # index in fit
+         dtime <- fit$time[index]  # subset to this curve
+         i2 <- findInterval(x, dtime, left.open=FALSE)
+         c(0, index)[i2 +1]
      }
-         
+     
+     # output matrix D will have one row per observation, one col for each
+     #  reporting time. tindex and yindex have the same dimension as D.
+     # tindex points to the last death time in fit which
+     #  is <= the reporting time.  (If there is only 1 curve, each col of
+     #  tindex will be a repeat of the same value.)
      tindex <- matrix(0L, nrow(Y), length(times))
      for (i in 1:length(fitrow)) {
          yrow <- (as.integer(X) ==i)
@@ -235,21 +251,23 @@ residuals.survfit <- function(object, times,
          tindex[yrow, ] <- rep(temp, each= length(yrow))
      }
 
-     # repeat the indexing for Y onto fit$time
+     # repeat the indexing for Y onto fit$time.  Each row of yindex points
+     #  to the last row of fit with death time <= Y[,ny]
      ny <- ncol(Y)
      yindex <- matrix(0L, nrow(Y), length(times))
      event <- (Y[,ny] >0)
      if (ny==3) startindex <- yindex
      for (i in 1:length(fitrow)) {
-         temp <- matchfun(Y[,ny-1], fit, fitrow[[i]])
-         yrow <- (as.integer(X) ==i)
+         yrow <- (as.integer(X) ==i)  # rows of Y for this curve
+         temp <- matchfun(Y[yrow,ny-1], fit, fitrow[[i]])
          yindex[yrow,] <- rep(temp, ncol(yindex))
          if (ny==3) {
-             temp <- matchfun(Y[,1], fit, fitrow[[i]])
+             temp <- matchfun(Y[yrow,1], fit, fitrow[[i]])
              startindex[yrow,] <- rep(temp, ncol(yindex))
          }
      }                    
 
+     # Now do the work
      if (type==3 || stype==2) {
          if (ctype==1) {
              add1 <- (yindex <= tindex & rep(event, ntime))
@@ -258,7 +276,7 @@ residuals.survfit <- function(object, times,
                  
              term1 <- c(0, 1/fit$n.risk)[ifelse(add1, 1+yindex, 1)]
              term2 <- c(0, lsum)[1+pmin(yindex, tindex)]
-             if (ny==3) term3 <- c(0, lsum)[1 + startindex]
+             if (ny==3) term3 <- c(0, lsum)[1 + pmin(startindex, tindex)]
 
              if (ny==2) D <- matrix(term1 -  term2, ncol=ntime)
              else       D <- matrix(term1 + term3 - term2, ncol=ntime)
@@ -369,57 +387,127 @@ residuals.survfit <- function(object, times,
      D
 }
 rsurvpart2 <- function(Y, X, casewt, istate, times, cluster, type, fit) {
-     ntime <- length(times)
-     # We need an index of where the times vector matches the
-     #  fit$time vector.  If the latter were (1, 24, 40) and
-     #  times= (0, 5, 24, 50) the result would be 0, 1, 2, 3)
-     # This has to be done separately for each curve though.
-     # Also, we only want to match death times, not others
-     if (is.null(fit$strata)) fitrow <- list(seq(along=fit$time))
-     else {
-         temp1 <- cumsum(fit$strata)
-         temp2 <- c(1, temp1+1)
-         fitrow <- lappy(1:length(j), function(i) seq(temp2[i], temp1[i]))
-     }
-     matchfun <- function(x, fit, index) {
-         tt <- fit$time[index]  # subset to this curve
-         deaths <- tt[rowSums(fit$n.event[index,]) >0]
-         i1 <- match(deaths, tt)
-         i2 <- findInterval(x, deaths, left.open=FALSE) 
-         # why pmax?  indices of 0 drop elements, so i1[i2] will be the
-         #  wrong length
-         ifelse(i2==0, 0, i1[pmax(1,i2)] + index[1] -1)  # index in fit
-     }
-         
-     tindex <- matrix(0L, nrow(Y), length(times))
-     for (i in 1:length(fitrow)) {
-         yrow <- (as.integer(X) ==i)
-         temp <- matchfun(times, fit, fitrow[[i]])
-         tindex[yrow, ] <- rep(temp, each= length(yrow))
-     }
+    ny <- ncol(Y)
+    ntime <- length(times)
+    nstate <- length(fit$states)
+    
+    # ensure that Y, istate, and fit all use the same set of states
+    states <- fit$states
+    if (!identical(attr(Y, "states"), fit$states)) {
+        map <- match(attr(Y, "states"), fit$states)
+        Y[,ny] <- c(0, map)[1+ Y[,ny]]    # 0 = censored
+    }
+    if (is.character(istate)) istate <- factor(istate)
+    if (is.factor(istate)) {
+        if (!identical(levels(istate), fit$states)) {
+            map <- match(levels(istate), fit$states)
+            if (any(is.na(map))) stop ("invalid levels in istate")
+            istate <- map[istate]
+        }
+    } # istate is numeric, we take what we get and hope it's right
 
-     # repeat the indexing for Y onto fit$time
-     ny <- ncol(Y)
-     yindex <- matrix(0L, nrow(Y), length(times))
-     event <- (Y[,ny] >0)
-     if (ny==3) startindex <- yindex
-     for (i in 1:length(fitrow)) {
-         temp <- matchfun(Y[,ny-1], fit, fitrow[[i]])
-         yrow <- (as.integer(X) ==i)
-         yindex[yrow,] <- rep(temp, ncol(yindex))
-         if (ny==3) {
-             temp <- matchfun(Y[,1], fit, fitrow[[i]])
-             startindex[yrow,] <- rep(temp, ncol(yindex))
-         }
-     } 
+    # Compute the initial leverage
+    inf0 <- NULL
+    if (is.null(fit$call$p0)) { #p0 was not supplied by the user
+        inf0 <- matrix(0., nrow=nrow(Y), ncol=nstate)
+        i0fun <- function(i, fit, inf0) {
+            # reprise algorithm in survfitCI
+            p0 <- fit$p0
+            t0 <- fit$time[1]
+            if (ny==2) at.zero <- which(as.numeric(X) ==i)
+            else       
+                at.zero <- which(as.numeric(X) ==i &
+                          (Y[,1] < t0 & Y[,2] >= t0))
+            for (j in 1:nstate) {
+                inf0[at.zero, j] <- (ifelse(istate[at.zero]==states[j], 1, 0) -
+                                     p0[j])/sum(casewt[at.zero])
+            }
+            inf0
+        }
+
+        if (is.null(fit$strata)) inf0 <- i0fun(1, fit, inf0)
+        else for (i in 1:length(levels(X)))
+            inf0 <- ifun0(i, fit[i], inf0)
+    }
+    
+    # collapse redundant rows in Y, for efficiency
+    if (ny==3 && any(duplicated(cluster))) {
+        ord <- order(cluster, X, istate, Y[,1])
+        cfit <- .Call(Ccollapse, Y, X, istate, cluster, casewt, ord -1L) 
+        if (nrow(cfit) < .8*length(X))  {
+            # shrinking the data by 20% is worth it
+            temp <- Y[ord,]
+            Y <- cbind(temp[cfit[,1], 1], temp[cfit[2], 2:3])
+            X <- X[cfit[,1]]
+            istate <- istate[cfit[1,]]
+            cluster <- cluster[cfit[1,]]
+        }       
+    }
+
+    fit <- survfit0(fit)  # package the initial state into the picture
+  
+    # This next block is identical to the one in rsurvpart1, more comments are
+    #  there
+    etime <- (rowSums(fit$n.event) >0)
+    event <- (Y[,ny] >0)
+    # 
+    #  Create a list whose first element contains the location of
+    #   the death times in curve 1, second element for curve 2, etc.
+    #  
+    if (is.null(fit$strata)) fitrow <- list(which(etime))
+    else {
+        temp1 <- cumsum(fit$strata)
+        temp2 <- c(1, temp1+1)
+        fitrow <- lappy(1:length(fit$strata), function(i) {
+            indx <- seq(temp2[i], temp1[i])
+            indx[etime[indx]] # keep the death times
+        }) 
+    }
+ 
+     # for each time x, the index of the last death time which is <=x.
+     #  0 if x is before the first death time
+     matchfun <- function(x, fit, index) {
+         dtime <- fit$time[index]  # subset to this curve
+         i2 <- findInterval(x, dtime, left.open=FALSE)
+         c(0, index)[i2 +1]
+     }
+     
 
      if (type==3) {
+         # output matrix D will have one row per observation, one col for each
+         #  reporting time. tindex and yindex have the same dimension as D.
+         # tindex points to the last death time in fit which
+         #  is <= the reporting time.  (If there is only 1 curve, each col of
+         #  tindex will be a repeat of the same value.)
+         tindex <- matrix(0L, nrow(Y), length(times))
+         for (i in 1:length(fitrow)) {
+             yrow <- (as.integer(X) ==i)
+             temp <- matchfun(times, fit, fitrow[[i]])
+             tindex[yrow, ] <- rep(temp, each= length(yrow))
+         }
+
+         # repeat the indexing for Y onto fit$time.  Each row of yindex points
+         #  to the last row of fit with death time <= Y[,ny]
+         ny <- ncol(Y)
+         yindex <- matrix(0L, nrow(Y), length(times))
+         event <- (Y[,ny] >0)
+         if (ny==3) startindex <- yindex
+         for (i in 1:length(fitrow)) {
+             yrow <- (as.integer(X) ==i)  # rows of Y for this curve
+             temp <- matchfun(Y[yrow,ny-1], fit, fitrow[[i]])
+             yindex[yrow,] <- rep(temp, ncol(yindex))
+             if (ny==3) {
+                 temp <- matchfun(Y[yrow,1], fit, fitrow[[i]])
+                 startindex[yrow,] <- rep(temp, ncol(yindex))
+             }
+         }                    
+
          dstate <- Y[,ncol(Y)]
          istate <- as.numeric(istate)
          ntrans <- ncol(fit$cumhaz)  # the number of possible transitions
          D <- array(0, dim=c(nrow(Y), ntime, ntrans))
 
-         scount <- table(istate[dstate!=0], dstate[dstate!=0]) # non-censor transitions
+         scount <- table(istate[dstate!=0], dstate[dstate!=0]) # observed transitions
          state1 <- row(scount)[scount>0]
          state2 <- col(scount)[scount>0]
          temp <- paste(state1, state2, sep='.')
@@ -439,7 +527,134 @@ rsurvpart2 <- function(Y, X, casewt, istate, times, cluster, type, fit) {
              else       D[,,k] <- matrix(term1 + term3 - term2, ncol=ntime)
          }
      } else {
-         stop("type survival not finished for Aalen-Johansen")
+         ndeath <- sum(fit$time <= max(times) & etime)  # number of unique event times
+         # Expand Y
+         if (ny==2) split <- .Call(rep(0., nrow(Y)), Y[,1], times)
+         else split <- .Call(Csurvsplit, Y[,1], Y[,2], times)
+         X <- X[split$row]
+         casewt <- casewt[split$row]
+         istate <- istate[split$row]
+         Y <- cbind(split$start, split$end, 
+                     ifelse(split$censor, 0, Y[split$row,ny]))
+         ny <- 3
+
+         # Create a vector containing the index of each end time into the fit object
+         yindex <- ystart <- double(nrow(Y))
+         for (i in 1:length(fitrow)) {
+             yrow <- (as.integer(X) ==i)  # rows of Y for this curve
+             yindex[yrow] <- matchfun(Y[yrow, 2], fit, fitrow[[i]])
+             ystart[yrow] <- matchfun(Y[yrow, 1], fit, fitrow[[i]])
+         }
+         # And one indexing the reporting times into fit
+         tindex <- matrix(0L, nrow=length(fitrow), ncol=ntime)
+         for (i in 1:length(fitrow)) {
+             tindex[i,] <- matchfun(times, fit, fitrow[[i]])
+         }
+
+         # Create the array of C matrices
+         cmat <- array(0, dim=c(nstate, nstate, ndeath)) # max(i2) = ndeath, by design
+         Hmat <- cmat
+
+         # We only care about observations that had a transition; any transitions
+         #  after the last reporting time are not relevant
+         transition <- (Y[,ny] !=0 & Y[,ny] != istate &
+                        Y[,ny-1] <= max(times)) # obs that had a transition
+         i2 <- match(yindex, sort(unique(yindex)))  # which C matrix this obs goes to
+         i2 <- i2[transition]
+         from <- as.numeric(istate[transition])  # from this state
+         to   <- Y[transition, ny]   # to this state
+         nrisk <- fit$n.risk[cbind(yindex[transition], from)]  # number at risk
+         wt <- casewt[transition]
+         for (i in seq(along=from)) {
+             j <- c(from[i], to[i])
+             haz <- wt[i]/nrisk[i]
+             cmat[from[i], j, i2[i]] <- cmat[from[i], j, i2[i]] + c(-haz, haz)
+         }
+         for (i in 1:ndeath) Hmat[,,i] <- cmat[,,i] + diag(nstate)
+
+         # The transformation matrix H(t) at time t  is cmat[,,t] + I
+         # Create the set of W matrices.
+         # 
+         dindex <- which(etime & fit$time <= max(times))
+         Wmat <- array(0, dim=c(nstate, nstate, ndeath))
+         for (i in ndeath:1) {
+             j <- match(dindex[i], tindex, nomatch=0) 
+             if (j > 0) {
+                 # this death matches one of the reporting times
+                 Wmat[,,i] <- diag(nstate)
+             } 
+             else Wmat[,,i] <- Hmat[,,i+1] %*% Wmat[,,i+1]
+         }
+         iterm <- array(0, dim=c(nstate, nstate, ndeath)) # term in equation
+         itemp <- matrix(0, nstate, nstate)  # cumulative sum, temporary
+         isum  <- isum2 <- iterm  # cumulative sum
+         for (i in 1:ndeath) {
+             j <- dindex[i]
+             n0 <- ifelse(fit$n.risk[j,] ==0, 1, fit$n.risk[j,]) # avoid 0/0
+             iterm[,,i] <- ((fit$pstate[j-1,]/n0) * cmat[,,i]) %*% Wmat[,,i]
+             itemp <- itemp + iterm[,,i]
+             isum[,,i] <- itemp
+             j <- match(dindex[i], tindex, nomatch=0)
+             if (j>0) itemp <- matrix(0, nstate, nstate)  # reset
+             isum2[,,i] <- itemp
+         }
+
+         # We want to add isum[state,, entry time] - isum[state,, exit time] for
+         #  each subject, and for those with an a:b transition there will be an 
+         #  additional vector with -1, 1 in the a and b position.
+         i1 <- match(ystart, sort(unique(yindex)), nomatch=0) # start at 0 gives 0
+         i2 <- match(yindex, sort(unique(yindex)))
+         D <- matrix(0., nrow(Y), nstate)
+         keep <- (Y[,2] <= max(times))  # any intervals after the last reporting time
+                                         # will have 0 influence
+         for (i in which(keep)) {
+             if (Y[i,3] !=0 && istate[i] != Y[i,3]) {
+                 z <- fit$pstate[yindex[i]-1, istate[i]]/fit$n.risk[yindex[i], istate[i]]
+                 temp <- double(nstate)
+                 temp[istate[i]] = -z
+                 temp[Y[i,3]]    =  z
+                 temp <- temp %*% Wmat[,,i2[i]] - isum[istate[i],,i2[i]]
+                 if (i1[i] >0) temp <- temp + isum2[istate[i],, i1[i]]
+                 D[i,] <- temp
+             }
+             else {
+                 if (i1[i] >0) D[i,] = isum2[istate[i],,i1[i]] - isum[istate[i],, i2[i]]
+                 else  D[i,] =  -isum[istate[i],, i2[i]]
+             }
+         }
+         Dsave <- D
+         if (!is.null(inf0)) {
+             # add in the initial influence, to the first row of each obs
+             #   (inf0 was created on unsplit data)
+             j <- which(!duplicated(split$row))
+             D[j,] <- D[j,] + (inf0%*% Hmat[,,1] %*% Wmat[,,1])
+         }
+         if (ntime > 1) {
+             interval <- findInterval(yindex, tindex, left.open=TRUE)
+             D2 <- array(0., dim=c(dim(D), ntime))
+             D2[interval==0,,1] <- D[interval==0,]
+             for (i in 1:(ntime-1)) {
+                 D2[interval==i,,i+1] = D[interval==i,]
+                 browser()
+                 j <- tindex[i]
+                 D2[,,i+1] = D2[,,i+1] + D2[,,i] %*% (Hmat[,,j] %*% Wmat[,,j])
+             } 
+         browser()
+             D <- D2
+         }
+         else browser()
+
+         # undo any artificial split
+         if (any(duplicated(split$row))) {
+             if (ntime==1) D <- rowsum(D, split$row)
+             else {
+                 # rowsums has to be fooled
+                 temp <- rowsum(matrix(D, ncol=(nstate*ntime)), split$row)
+                 # then undo it
+                 D <- array(temp, dim=c(nrow(temp), nstate, ntime))
+             }
+         }
+         D
      }
      D
 }
