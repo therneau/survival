@@ -98,6 +98,7 @@ survfitCI <- function(X, Y, weights, id, cluster, robust, istate,
         if (!(stype %in% 1:2)) stop("stype must be 1 or 2")
         type <- as.integer(2*stype + ctype  -2)
     }
+    if (type != 1) warning("only stype=1, ctype=1 currently implimented for multi-state data")
 
     conf.type <- match.arg(conf.type)
     conf.lower<- match.arg(conf.lower)

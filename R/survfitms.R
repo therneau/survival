@@ -114,10 +114,8 @@ summary.survfit <- function(object, times, censored=FALSE,
             #  times before the first observation = n.risk at the first obs
             fit$time <- ptimes
 
-            for (i in c("surv", "pstate", "upper", "lower")) {
-                if (!is.null(fit[[i]])) fit[[i]] <- ssub(fit[[i]], index1)
-            }
-            for (i in c("std.err", "cumhaz")) {
+            for (i in c("surv", "pstate", "upper", "lower", "std.err", "cumhaz",
+                        "std.chaz")) {
                 if (!is.null(fit[[i]])) fit[[i]] <- ssub(fit[[i]], index1)
             }
             
@@ -310,10 +308,8 @@ summary.survfitms <- function(object, times, censored=FALSE,
             #  times before the first observation = n.risk at the first obs
             fit$time <- ptimes
 
-            for (i in c("surv", "pstate", "upper", "lower")) {
-                if (!is.null(fit[[i]])) fit[[i]] <- ssub(fit[[i]], index1)
-            }
-            for (i in c("std.err", "cumhaz")) {
+            for (i in c("surv", "pstate", "upper", "lower", "std.err", "cumhaz",
+                        "std.chaz")) {
                 if (!is.null(fit[[i]])) fit[[i]] <- ssub(fit[[i]], index1)
             }
             

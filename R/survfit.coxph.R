@@ -286,7 +286,11 @@ survfit.coxph <-
           else offset2 <- 0
           x2 <- model.matrix(Terms2, mf2)[,-1, drop=FALSE]  #no intercept
       }
-      if (missing(newdata)) risk2 <- 1
+      if (missing(newdata)) {
+          if (inherits(formula, "coxphms"))
+              stop ("newdata is required for multi-state models")
+          risk2 <- 1
+      }
       else {
           if (length(object$means)) 
               risk2 <- exp(c(x2 %*% beta) + offset2 - xcenter)

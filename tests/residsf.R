@@ -6,8 +6,8 @@ library(survival)
 #  point, but for large data sets the result will be huge.  This function uses
 #  a different algorithm which should be faster when the number of time
 #  points being reported out is small. 
-# For testing, we can compare it to the results from the influence arg, which
-#  is tested in the mstate.R file.
+# For testing, we can compare it to the results from the survfit.  This 
+#  particular data set is checked extensively in mstate.R
 #
 
 aeq <- function(x,y) all.equal(as.vector(x), as.vector(y))
@@ -30,11 +30,39 @@ tfun <- function(data=tdata) {
 }
 mtest2 <- tfun(tdata)  # scrambled version
 
-
 mfit1 <- survfit(Surv(t1, t2, st) ~ 1, tdata, id=id, istate=i0,
                  influence=1)
 
-test1 <- resid(mfit1, time=c(3, 7))
-aeq(aperm(test1, c(1,3,2)), mfit1$influence.pstate[,c(3,5),])
+test1 <- resid(mfit1, time=c(3, 7, 9))
+aeq(aperm(test1, c(1,3,2)), mfit1$influence.pstate[,c(3,5,7),])
 
+test2 <- resid(mfit1, time=c(3, 7, 9), method=2)
+aeq(aperm(test2, c(1,3,2)), mfit1$influence.pstate[,c(3,5,7),])
+
+# AUC, start simple - auc at final time
+test3 <- resid(mfit1, time=11, type='RMST')
+delta <- diff(c(0, mfit1$time))
+s1 <- apply(mfit1$influence[, 1:8, ], c(1,3), function(x) sum(delta*x))
+aeq(test3, s1)
+
+# extend to an earlier and later time
+test3b <- resid(mfit1, time=c(-1,11,15), type='RMST')
+all(test3b[,,1] ==0)
+aeq(test3b[,,2], s1)
+aeq(test3b[,,3], s1 + mfit1$influence[,9,]*4)
+
+
+
+auc <- function(fit, time) {
+    tfit <- survfit0(fit)  # add time 0
+    t2 <- sort(unique(c(time, tfit$time)))
+    indx <- findInterval(t2, tfit$time, left.open=TRUE)
+    delta <- diff(t2)
+    temp <- apply(tfit$influence.pstate[,indx+1,], c(1,3), 
+                  function(x) cumsum(x* c(delta,0)))
+    temp2 <- temp[, match(time, t2),,drop=FALSE]
+    aperm(temp2, c(1,3,2))
+}
+    
+test2 <- resid(mfit1, time=c(3,7,14), type="rmst")
 
