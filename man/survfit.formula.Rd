@@ -78,15 +78,16 @@
 	}
       \item{conf.type}{
 	One of \code{"none"}, \code{"plain"}, \code{"log"} (the default),
-	\code{"log-log"} or \code{"logit"}.  Only
+	\code{"log-log"}, \code{"logit"} or \code{"arcsin"}.  Only
 	enough of the string to uniquely identify it is necessary.
 	The first option causes confidence intervals not to be
 	generated.  The second causes the standard intervals
 	\code{curve +- k *se(curve)}, where k is determined from
 	\code{conf.int}.  The log option calculates intervals based on the
 	cumulative hazard or log(survival). The log-log option bases the
-	intervals on the log hazard or log(-log(survival)), and the
-	logit option on log(survival/(1-survival)). 
+	intervals on the log hazard or log(-log(survival)), the
+	logit option on log(survival/(1-survival))
+	and arcsin on arcsin(survival). 
       }
       \item{conf.lower}{
 	a character string to specify modified lower limits to the curve, the 
