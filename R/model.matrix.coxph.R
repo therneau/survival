@@ -49,8 +49,8 @@ model.matrix.coxph <- function(object, data=NULL,
         # we want to number the terms wrt the original model matrix
         temp <- attr(X, "assign")
         shift <- sort(dropterms)
-        temp <- temp + 1*(shift[1] <= temp)
-        if (length(shift)==2) temp + 1*(shift[2] <= temp)
+        for (i in seq(along=shift))
+            temp <- temp + 1*(shift[i] <= temp)
         attr(X, "assign") <- temp 
     }
     else X <- model.matrix(Terms, mf, contrasts.arg=contrast.arg)

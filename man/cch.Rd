@@ -11,7 +11,7 @@ case-cohort data, and Borgan II, a generalization of the Lin-Ying
 estimator.
 }
 \usage{
-cch(formula, data = sys.parent(), subcoh, id, stratum=NULL, cohort.size,
+cch(formula, data, subcoh, id, stratum=NULL, cohort.size,
     method =c("Prentice","SelfPrentice","LinYing","I.Borgan","II.Borgan"),
     robust=FALSE)
 }

@@ -221,7 +221,7 @@ survmean <- function(x, scale=1, rmean) {
         last.time <- (rev(stime))[match(1:nstrat, rev(stemp))]
         if (rmean=='none') end.time <- rep(NA, nstrat)
         else if (is.numeric(rmean)) end.time <- rep(rmean, nstrat)
-        else if (rmean== 'common')  end.time <- rep(median(last.time), nstrat)
+        else if (rmean== 'common')  end.time <- rep(max(last.time), nstrat)
         else end.time <- last.time
 	if (is.matrix(surv)) {
 	    ns <- ncol(surv)
