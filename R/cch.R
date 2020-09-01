@@ -1,11 +1,11 @@
 ### Suite of programs for case-cohort analysis
 ### Main program
 
-cch <- function(formula, data=sys.parent(), subcoh, id, stratum=NULL, cohort.size, 
+cch <- function(formula, data, subcoh, id, stratum=NULL, cohort.size, 
                 method=c("Prentice", "SelfPrentice", "LinYing","I.Borgan","II.Borgan"),
                 robust=FALSE){
     call <- match.call()
-    
+    if (missing(data)) data <- parent.frame()
     if (is.data.frame(data)){
         if (inherits(id,"formula"))
             id<- stats::model.frame(id,data,na.action=na.fail)[,1]
