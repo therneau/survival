@@ -39,6 +39,16 @@ object and [[zed]] to the contents of the object.
     influence matrix upon which it is based, if 0 the se is not needed.
 \end{description}
 
+Note that code is called with id and not cluster: there is a basic premise that
+each id is a single subject and thus has a unique "current state" at any
+given time point.  The history of this is that before the survcheck routine,
+we did not have a good way for a user to normalize the 'current state' variable
+for a subject, so this routine takes care of that tracking process. 
+When multi-state Cox models were added we became more formal about this, and
+users can now have data sets with quite odd patterns of transitions and current
+state, ones that survcheck calls a teleport.  At some point this routine should
+be updated as well.  Cumulative hazard estimates make at least some sense
+when a subject has a hole, though P(state |t) curves do not.
 
 Declare all of the variables.
 <<survfitci-declare>>=
@@ -208,6 +218,10 @@ There are four indexing patterns in play which may be confusing.
   \item The \code{nperson} individual subjects (variables cstate, atrisk)
   \item The \code{[nstate} states (variables hmat, p)
 \end{itemize}
+
+In the code below \code{i} steps through the exit times and \code{eptr} the
+entry time.  The \code{atrisk} variable keeps track of \emph{subjects} who are
+at risk.  
 
 <<survfitci-compute>>=
 itime =0; /*current time index, for output arrays */
