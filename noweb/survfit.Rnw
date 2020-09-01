@@ -47,8 +47,8 @@ survfit <- function(formula, ...) {
     UseMethod("survfit")
 }
 
-<<survfit-subscript>>
 <<survfit-formula>>
+<<survfit-subscript>>
 <<survfit-Surv>>    
 @ 
 
@@ -309,7 +309,7 @@ if (inherits(Y, "Surv2")) {
     istate <- new$istate
     id <- new$id
     Y <- new$y
-    if (anyNA(mf[-1])) { #ignore the response still found there
+    if (anyNA(mf[-1])) { #ignore the response variable still found there
         if (missing(na.action)) temp <- get(getOption("na.action"))(mf[-1])
         else temp <- na.action(mf[-1])
         omit <- attr(temp, "na.action")
