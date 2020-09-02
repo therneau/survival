@@ -51,8 +51,6 @@ all(test3b[,,1] ==0)
 aeq(test3b[,,2], s1)
 aeq(test3b[,,3], s1 + mfit1$influence[,9,]*4)
 
-
-
 auc <- function(fit, time) {
     tfit <- survfit0(fit)  # add time 0
     t2 <- sort(unique(c(time, tfit$time)))

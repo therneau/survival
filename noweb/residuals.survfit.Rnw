@@ -24,9 +24,8 @@ Computational differences will be discussed later.
 
 <<residuals.survfit>>=
 # residuals for a survfit object
-residuals.survfit <- function(object, times, 
-                              type= "surv",
-                              collapse=TRUE, weighted=FALSE, method=1){
+residuals.survfit <- function(object, times, type= "surv",
+                              collapse=TRUE, weighted=FALSE, method=1, ...){
     if (!inherits(object, "survfit"))
         stop("argument must be a survfit object")
     survfitms <- inherits(object, "survfitms")
@@ -178,6 +177,7 @@ rsurvpart1 <- function(Y, X, casewt, times,
      
     ntime <- length(times)
     etime <- (fit$n.event >0)
+    ny <- ncol(Y)
     event <- (Y[,ny] >0)
     status <- Y[,ny]
     # 
@@ -209,7 +209,7 @@ rsurvpart1 <- function(Y, X, casewt, times,
     #  tindex will be a repeat of the same value.)
     tindex <- matrix(0L, nrow(Y), length(times))
     for (i in 1:length(fitrow)) {
-        yrow <- (as.integer(X) ==i)
+        yrow <- which(as.integer(X) ==i)
         temp <- matchfun(times, fit, fitrow[[i]])
         tindex[yrow, ] <- rep(temp, each= length(yrow))
     }
@@ -418,10 +418,10 @@ algorithm is multiplicative.
          &= \prod_{d_j \le t} [1- h(d_j)] \\
     U_i(t) &= \frac{\partial S(t)}{\partial w_i}  \nonumber\\
            &= U_i(t-) [1- h(t)] - 
-               S(t-)\frac{\partial h(t)}{\partial w_i} \label{Ukm}
+               S(t-)\frac{\partial h(t)}{\partial w_i} \label{sUkm} \\
            &= \sum_{d_j \le t} S(d_{j}-)\frac{\partial 1- h(d_j}{\partial w_i}
                    \left[\prod_{d_j < d_k <=t} (1 - h(d_k)) \right]
-                 \label{Ukm2} \\
+                 \label{sUkm2} \\
             &= \sum_{d_j \le t} S(d_{j}-)\frac{\partial 1- h(d_j}{\partial w_i}
                    \frac{1-h(d_j)}{1-h(d_j)} 
                    \left[\prod_{d_j < d_k <=t} (1 - h(d_k)) \right]
@@ -432,8 +432,8 @@ algorithm is multiplicative.
 \end{align}
 where $h$ is the increment in  Nelson-Aalen at each event time and 
 $d$ are the event times.  
-The derivative form \eqref{Ukm} is based on expanding the recursive definition
-of the KM, and \eqref{Ukm2} on using the second definition and the product
+The derivative form \eqref{sUkm} is based on expanding the recursive definition
+of the KM, and \eqref{sUkm2} on using the second definition and the product
 rule for derivatives: each term is replaced, one by one, with it's derivative.
 The final step add $1-h(d_j)$ to the numberator and denominator, which allows
 all of the $1-h$ term to be gathered together as $S(t)$.
@@ -444,7 +444,6 @@ is that the steps of the KM are a little bit larger than the
 steps of $\exp(-H)$, and terms in the sum of equation \eqref{ajfactor}
 are a little larger than those in the Nelson-Aalen.
 
-\begin{align*}
 <<residpart1-AJ>>=
 add1 <- (yindex <= tindex & rep(event, ntime))
 # dtemp avoids 1/0.  (When this occurs the influence is 0, since
@@ -674,10 +673,10 @@ of probability in state at time $t$.
 Then
 \begin{align}
   p(t) &= p(t-) H(t) \\
-  \frac{partial p(t)}{\partial w_i} &= \fract{\partial p(t-)}{\partial w_i} H(t)
+  \frac{partial p(t)}{\partial w_i} &= \frac{\partial p(t-)}{\partial w_i} H(t)
      +  p(t-) \frac{\partial H(t)}{\partial w_i} \nonumber\\
    &= U_i(t-) H(t) + p(t-) \frac{\partial H(t)}{\partial w_i} \label{ajresidx}\\
-\end{align*}
+\end{align}
 
 When we expand the left hand portion of \eqref{ajresidx} to include all 
 observations it becomes simple matrix multiplication, not so with
@@ -691,7 +690,7 @@ The transition matrix at time $t$ has elements
 \begin{align*}
 H(t)_{jk} &= \frac{\sum_i I{s_i(t-)=j, s_i(t)=k} w_i}{\sum_i I{s_i(t-)=j} w_i} \\
     &= \frac{\sum_i I{s_i(t-)=j, s_i(t)=k} w_i}{r_j(t)}
-\end{equation*}
+\end{align*}
 The notation $s_i(t)$ is the state of observation $i$ at time $t$ and 
 $r_j(t)$ the weighted number at risk.
 Each observation at risk appears in only 1 row of $H(t)$. 
@@ -759,7 +758,7 @@ replaced, one by one, with its derivative:
 \begin{align}
   U_i(t) &= \sum_{d_j \le t} \left( p(d_j-) \frac{\partial H(d_j)}{\partial w_i} 
     \prod_{d_j <d_k \le t} H(d_k) \right) \label{ajresidy}
-\end{equation*}
+\end{align}
 We cannot insert an $H(d_j)/H(d_j)$ term and rearrange the equation so as to
 factor out $p(t)$, as was done in the KM case, however,
 since matrix products do not commute.
@@ -775,8 +774,8 @@ $d_{9} \le t < d_{10}$, and the contribution of $H(d_5)$, for a subject who
 transitions from state 2 to state 3 in a 4 state model.
 \begin{equation}
   \frac{partial H(d_5)}{\partial w_i} = 
-    \right[(0,-1, 1, 0)/r(d_5) H(d_6)H(d_7)H(d_8)H(d_9) \right] -
-    \right[C_{2.}(d_4)/r(d_5)H(d_6)H(d_6)H(d_7)H(d_8)H(d_9) \right]
+    \left[(0,-1, 1, 0)/r(d_5) H(d_6)H(d_7)H(d_8)H(d_9) \right] -
+    \left[C_{2.}(d_4)/r(d_5)H(d_6)H(d_6)H(d_7)H(d_8)H(d_9) \right]
 \end{equation}
 The above only looks at row 2 of the partial, since that is all that matters
 for this subject.
@@ -909,7 +908,7 @@ Now work forward in time.
 iterm <- array(0, dim=c(nstate, nstate, ndeath)) # term in equation
 itemp <- vtemp <- matrix(0, nstate, nstate)  # cumulative sum, temporary
 isum  <- isum2 <- iterm  # cumulative sum
-vsum  <- vsum2 <- vterm
+vsum  <- vsum2 <- vterm <- iterm
 for (i in 1:ndeath) {
     j <- dindex[i]
     n0 <- ifelse(fit$n.risk[j,] ==0, 1, fit$n.risk[j,]) # avoid 0/0

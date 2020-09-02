@@ -1,6 +1,6 @@
 
-R Under development (unstable) (2019-05-15 r76504) -- "Unsuffered Consequences"
-Copyright (C) 2019 The R Foundation for Statistical Computing
+R Under development (unstable) (2020-06-10 r78681) -- "Unsuffered Consequences"
+Copyright (C) 2020 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -58,20 +58,20 @@ Type 'q()' to quit R.
 > # In mfit, the "entry" state is first in the matrices, when this function was
 > #  first created it was the last.
 > swap <- c(4,1,2,3)  # at one time it was last
-> all.equal(mfit$n.risk, matrix(c(0,1,1,2,2,1,0,0,
-+                                 0,0,1,1,1,1,2,1,
-+                                 0,0,0,0,0,1,0,0,
-+                                 4,4,3,2,1,1,0,0), ncol=4)[,swap])
+> all.equal(mfit$n.risk,  matrix(c(4,4,3,2,1,1,0,0,
++                                  0,1,1,2,2,1,0,0,
++                                  0,0,1,1,1,1,2,1,
++                                  0,0,0,0,0,1,0,0), ncol=4))
 [1] TRUE
-> all.equal(mfit$pstate,  matrix(c(8,  8, 14, 14, 7, 0,  9.5, 9.5, 
-+                                 0,  6,  6, 12, 12,19,9.5, 9.5, 
-+                                 0,  0,  0,  0, 7, 13, 13, 13,
-+                                24, 18, 12,  6, 6, 0, 0,  0)/32, ncol=4)[,swap])
+> all.equal(mfit$pstate,  matrix(c(24, 18, 12,  6, 6, 0, 0,  0,
++                                   8,  8, 14, 14, 7, 0,  9.5, 9.5, 
++                                   0,  6,  6, 12, 12,19,9.5, 9.5, 
++                                   0,  0,  0,  0, 7, 13, 13, 13)/32, ncol=4))
 [1] TRUE
-> all.equal(mfit$n.event, matrix(c(1,0,1,0,0,0,1,0,
+> all.equal(mfit$n.event, matrix(c(0,0,0,0,0,0,0,0,
++                                  1,0,1,0,0,0,1,0,
 +                                  0,1,0,1,0,1,0,0,
-+                                  0,0,0,0,1,1,0,0,
-+                                  0,0,0,0,0,0,0,0), ncol=4)[,swap])
++                                  0,0,0,0,1,1,0,0), ncol=4))
 [1] TRUE
 > all.equal(mfit$time, c(2, 3, 4, 5, 8, 9, 10, 11))
 [1] TRUE
@@ -102,6 +102,8 @@ Type 'q()' to quit R.
 > 
 > # These weight vectors are in the order of tdata
 > # w[9] is the weight for subject 5 at time 1.5, for instance
+> # p0 is defined as all those at risk just before the first event, which in
+> #  this data set is entry:a at time 2 for id=4; id 1,2,4,5 at risk
 > p0 <- function(w) c(w[4], w[9], 0, w[1]+ w[6])/ (w[1]+ w[4] + w[6] + w[9])
 > 
 > #  aj2 = Aalen-Johansen H matrix at time 2, etc.
@@ -217,7 +219,7 @@ Type 'q()' to quit R.
 +     h2 <- aj2(w)   # H matrix at time 2
 +     part1 <- dp0(w) %*% h2
 + 
-+     # 1 and 4 in state 4, obs 1 and 6, 4 moves to a
++     # 1 and 4 in state 4, obs 4 moves from entry to a
 +     mult  <- p0(w)[4]/(w[1] + w[6])  #p(t-) / weights in state
 +     part2 <- rbind((c(0,0,0,1)- h2[4,]) * mult,
 +                    0,
@@ -335,4 +337,4 @@ Type 'q()' to quit R.
 > 
 > proc.time()
    user  system elapsed 
-  0.840   0.060   0.901 
+  0.917   0.055   0.965 

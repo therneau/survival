@@ -7,8 +7,7 @@
 }
 \usage{
 \method{residuals}{survfit}(object, times, 
-    type,
-    weighted=FALSE, collapse=TRUE, method=1)
+    type, collapse=TRUE, weighted=FALSE, method=1)
 }
 \arguments{
   \item{object}{a \code{survfit} object}

@@ -64,7 +64,7 @@ rttright(formula, data, weights, subset, na.action, time, id, timefix = TRUE)
 }
 \value{a vector or matrix of weights, with one column for each requested time} 
 \seealso{
-  \code{\link{brier}},\code{\link{survfit}}
+  \code{\link{survfit}}
 }
 \examples{
 afit <- survfit(Surv(time, status) ~1, data=aml)

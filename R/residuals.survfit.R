@@ -1,8 +1,7 @@
 # Automatically generated from the noweb directory
 # residuals for a survfit object
-residuals.survfit <- function(object, times, 
-                              type= "surv",
-                              collapse=TRUE, weighted=FALSE, method=1){
+residuals.survfit <- function(object, times, type= "surv",
+                              collapse=TRUE, weighted=FALSE, method=1, ...){
     if (!inherits(object, "survfit"))
         stop("argument must be a survfit object")
     survfitms <- inherits(object, "survfitms")
@@ -37,6 +36,7 @@ residuals.survfit <- function(object, times,
         formula <- formula(object)
 
         # the chunk below is shared with survfit.formula 
+        na.action <- get(getOption("na.action"))  # this is a temporary hack
         # create a copy of the call that has only the arguments we want,
         #  and use it to call model.frame()
         indx <- match(c('formula', 'data', 'weights', 'subset','na.action',
@@ -69,7 +69,7 @@ residuals.survfit <- function(object, times,
             istate <- new$istate
             id <- new$id
             Y <- new$y
-            if (anyNA(mf[-1])) { #ignore the response still found there
+            if (anyNA(mf[-1])) { #ignore the response variable still found there
                 if (missing(na.action)) temp <- get(getOption("na.action"))(mf[-1])
                 else temp <- na.action(mf[-1])
                 omit <- attr(temp, "na.action")
@@ -229,7 +229,9 @@ rsurvpart1 <- function(Y, X, casewt, times,
      
     ntime <- length(times)
     etime <- (fit$n.event >0)
+    ny <- ncol(Y)
     event <- (Y[,ny] >0)
+    status <- Y[,ny]
     # 
     #  Create a list whose first element contains the location of
     #   the death times in curve 1, second element for curve 2, etc.
@@ -259,7 +261,7 @@ rsurvpart1 <- function(Y, X, casewt, times,
     #  tindex will be a repeat of the same value.)
     tindex <- matrix(0L, nrow(Y), length(times))
     for (i in 1:length(fitrow)) {
-        yrow <- (as.integer(X) ==i)
+        yrow <- which(as.integer(X) ==i)
         temp <- matchfun(times, fit, fitrow[[i]])
         tindex[yrow, ] <- rep(temp, each= length(yrow))
     }
@@ -456,7 +458,7 @@ rsurvpart2 <- function(Y, X, casewt, istate, times, cluster, type, fit,
 
         if (is.null(fit$strata)) inf0 <- i0fun(1, fit, inf0)
         else for (i in 1:length(levels(X)))
-            inf0 <- ifun0(i, fit[i], inf0)  # each iteration fills in some rows
+            inf0 <- i0fun(i, fit[i], inf0)  # each iteration fills in some rows
     }
    
     fit <- survfit0(fit)  # package the initial state into the picture
@@ -646,7 +648,7 @@ rsurvpart2 <- function(Y, X, casewt, istate, times, cluster, type, fit,
              iterm <- array(0, dim=c(nstate, nstate, ndeath)) # term in equation
              itemp <- vtemp <- matrix(0, nstate, nstate)  # cumulative sum, temporary
              isum  <- isum2 <- iterm  # cumulative sum
-             vsum  <- vsum2 <- vterm
+             vsum  <- vsum2 <- vterm <- iterm
              for (i in 1:ndeath) {
                  j <- dindex[i]
                  n0 <- ifelse(fit$n.risk[j,] ==0, 1, fit$n.risk[j,]) # avoid 0/0

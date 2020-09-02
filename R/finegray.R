@@ -92,15 +92,18 @@ finegray <- function(formula, data, weights, subset, na.action= na.pass,
         Y <- cbind(zero, Y)  # add a start column
     }
 
-    # For G, make event be just a bit before censors
+    utime <- sort(unique(c(Y[,1:2])))  # all the unique times
+    newtime <- matrix(findInterval(Y[,1:2], utime), ncol=2) 
     status <- Y[,3]
-    eps <- min(diff(sort(unique(Y[,1:2]))))
-    delta <- ifelse(status==0, 0, eps/2)
-    Gsurv <- survfit(Surv(Y[,1], Y[,2]-delta, status==0) ~ istrat, 
+
+    newtime[status !=0, 2] <- newtime[status !=0,2] - .2
+    Gsurv <- survfit(Surv(newtime[,1], newtime[,2], last & status==0) ~ istrat, 
                      se.fit=FALSE)
     if (delay) 
-        Hsurv <- survfit(Surv(-Y[,2], -Y[,1], first) ~ istrat, 
+        Hsurv <- survfit(Surv(-newtime[,2], -newtime[,1], first) ~ istrat, 
                          se.fit =FALSE)
+    status <- Y[, 3]
+
     # Do computations separately for each stratum
     stratfun <- function(i) {
         keep <- (istrat ==i)
@@ -111,19 +114,20 @@ finegray <- function(formula, data, weights, subset, na.action= na.pass,
 
         if (dim(Gsurv)==1) {
             # the phrase Gsurv[1] gives a warning when there is only one curve
-            # keep only the event times
+            # keep only the event times, and convert back to the original time units
             if (delay) {
                 dtime <- rev(-Hsurv$time[Hsurv$n.event > 0])
                 dprob <- c(rev(Hsurv$surv[Hsurv$n.event > 0])[-1], 1)
                 ctime <- Gsurv$time[Gsurv$n.event > 0]
                 cprob <- c(1, Gsurv$surv[Gsurv$n.event > 0]) 
-                temp <- sort(unique(c(dtime, ctime)))
+                temp <- sort(unique(c(dtime, ctime))) # these will all be integers
                 index1 <- findInterval(temp, dtime)
                 index2 <- findInterval(temp, ctime)
+                ctime <- utime[temp]
                 cprob <- dprob[index1] * cprob[index2+1]  # G(t)H(t), eq 11 Geskus
             }
             else {
-                ctime <- Gsurv$time[Gsurv$n.event > 0]
+                ctime <- utime[Gsurv$time[Gsurv$n.event > 0]]
                 cprob <- Gsurv$surv[Gsurv$n.event > 0]
             }
         } else {
@@ -134,13 +138,14 @@ finegray <- function(formula, data, weights, subset, na.action= na.pass,
                 dprob <- c(rev(Htemp$surv[Htemp$n.event > 0])[-1], 1)
                 ctime <- Gtemp$time[Gtemp$n.event > 0]
                 cprob <- c(1, Gtemp$surv[Gtemp$n.event > 0]) 
-                temp <- sort(unique(c(dtime, ctime))) 
+                temp <- sort(unique(c(dtime, ctime))) # these will all be integers
                 index1 <- findInterval(temp, dtime)
                 index2 <- findInterval(temp, ctime)
+                ctime <- utime[temp]
                 cprob <- dprob[index1] * cprob[index2+1]  # G(t)H(t), eq 11 Geskus
             }
             else {
-                ctime <- Gtemp$time[Gtemp$n.event > 0]
+                ctime <- utime[Gtemp$time[Gtemp$n.event > 0]]
                 cprob <- Gtemp$surv[Gtemp$n.event > 0]
             }
         }
