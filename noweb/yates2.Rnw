@@ -60,17 +60,16 @@ yates <- function(fit, term, population=c("data", "factorial", "sas"),
     method <- match.arg(casefold(method), c("direct", "sgtt")) #allow SGTT
     if (method=="sgtt" && missing(population)) population <- "sas"
 
-    if (is.character(population)) {
+    if (inherits(population, "data.frame")) popframe <- TRUE
+    else if (is.character(population)) {
+        popframe <- FALSE
         population <- match.arg(tolower(population[1]),
                                 c("data", "factorial", "sas",
                                   "empirical", "yates"))
         if (population=="empirical") population <- "data"
         if (population=="yates") population <- "factorial"
     }
-    else {
-        if (!inherits(population, "data.frame"))
-            stop("the population argument must be a data frame or character")
-        }
+    else stop("the population argument must be a data frame or character")
     test <- match.arg(test)
     
     if (method=="sgtt" && (population !="sas" || predict != "linear"))
@@ -119,7 +118,7 @@ yates <- function(fit, term, population=c("data", "factorial", "sas"),
 
 Models with factor variables may often lead to population predictions that
 involve non-estimable functions, particularly if there are interactions
-or the user specifies a factorial population.  
+and the user specifies a factorial population.  
 If there are any missing coefficients we have to do formal checking for
 this: any given row of the new $X$ matrix, for prediction, must be in the
 row space of the original $X$ matrix. 
@@ -129,10 +128,12 @@ It is not possible to derive this from the pattern of NA coefficients alone.
 Set up a function that returns a true/false vector of whether each row of
 a matrix is estimable.  This test isn't relevant if population=none.
 
+
 <<yates-estim-setup>>=
-if (any(is.na(beta)) && population != "none") {
-    if (inherits(fit, "coxph")) X.qr <- qr(rbind(1, t(Xold)))
-    else  X.qr <- qr(t(Xold))   # QR decomposition of the row space
+if (any(is.na(beta)) && (popframe || population != "none")) {
+    Xu <- unique(Xold)  # we only need unique rows, saves time to do so
+    if (inherits(fit, "coxph")) X.qr <- qr(t(cbind(1.0,Xu)))
+    else  X.qr <- qr(t(Xu))   # QR decomposition of the row space
     estimcheck <- function(x, eps= sqrt(.Machine$double.eps)) {
         temp <- abs(qr.resid(X.qr, t(x)))
         # apply(abs(temp), 1, function(x) all(x < eps)) # each row estimable
@@ -150,8 +151,9 @@ contrast matrix Cmat, and then use Cmat to get the pmm values and
 tests of the pmm values.
 
 <<yates-linear>>=
-if (is.na(match(contr$termname, colnames(Tatt$factors))))
-    stop("term '", contr$termname, "' not found in the model")
+temp <- match(contr$termname, colnames(Tatt$factors)) 
+if (any(is.na(temp)))
+    stop("term '", contr$termname[is.na(temp)], "' not found in the model")
 
 Cmat <- t(sapply(xmatlist, colMeans))[,!nabeta]
           
@@ -185,7 +187,7 @@ else {
     else {
         test <- testfun(contr$cmat %*% Cmat, beta, vmat, sigma^2)
         test <- matrix(test, nrow=1, 
-                       dimnames=list(contr$termname, names(test)))
+                       dimnames=list("global", names(test)))
         natest <- nafun(contr$cmat, estimate$pmm)
     }
     if (any(natest)) test[natest,] <- NA

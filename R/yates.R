@@ -63,7 +63,8 @@ cmatrix <- function(fit, term,
     # What kind of term is being tested.  It can be categorical, continuous,
     #  an interaction of only categorical terms, interaction of only continuous
     #  terms, or a mixed interaction.
-    parts <- row.names(Tatt$factors)[Tatt$factors[,indx] !=0]
+    parts <- row.names(Tatt$factors)[apply(Tatt$factors[,indx, drop=FALSE] !=0,
+                                           1, any)]
     types <- Tatt$dataClasses[parts]
     iscat <- as.integer(types=="factor" | types=="character")
     if (length(parts)==1) termtype <-iscat
@@ -74,7 +75,7 @@ cmatrix <- function(fit, term,
     #  or double check them (categorical)
     if (missing(levels)) {
         temp <- fit$xlevels[match(parts, names(fit$xlevels), nomatch=0)]
-        if (length(temp) ==0) 
+        if (length(temp) < length(parts))
             stop("continuous variables require the levels argument")
         levels <- do.call(expand.grid, c(temp, stringsAsFactors=FALSE))
         }
@@ -114,7 +115,7 @@ cmatrix <- function(fit, term,
         else if (length(parts) > 1)
             stop("levels should be a data frame or matrix")
         else levels <- data.frame(x=unique(levels), stringsAsFactors=FALSE)
-        names(levels) <- user.name
+#        names(levels) <- user.name
     }
 
     # check that any categorical levels are legal
@@ -291,17 +292,16 @@ yates <- function(fit, term, population=c("data", "factorial", "sas"),
     method <- match.arg(casefold(method), c("direct", "sgtt")) #allow SGTT
     if (method=="sgtt" && missing(population)) population <- "sas"
 
-    if (is.character(population)) {
+    if (inherits(population, "data.frame")) popframe <- TRUE
+    else if (is.character(population)) {
+        popframe <- FALSE
         population <- match.arg(tolower(population[1]),
                                 c("data", "factorial", "sas",
                                   "empirical", "yates"))
         if (population=="empirical") population <- "data"
         if (population=="yates") population <- "factorial"
     }
-    else {
-        if (!inherits(population, "data.frame"))
-            stop("the population argument must be a data frame or character")
-        }
+    else stop("the population argument must be a data frame or character")
     test <- match.arg(test)
     
     if (method=="sgtt" && (population !="sas" || predict != "linear"))
@@ -331,9 +331,10 @@ yates <- function(fit, term, population=c("data", "factorial", "sas"),
                                 iscat)
  
     # check rows of xmat for estimability
-    if (any(is.na(beta)) && population != "none") {
-        if (inherits(fit, "coxph")) X.qr <- qr(rbind(1, t(Xold)))
-        else  X.qr <- qr(t(Xold))   # QR decomposition of the row space
+    if (any(is.na(beta)) && (popframe || population != "none")) {
+        Xu <- unique(Xold)  # we only need unique rows, saves time to do so
+        if (inherits(fit, "coxph")) X.qr <- qr(t(cbind(1.0,Xu)))
+        else  X.qr <- qr(t(Xu))   # QR decomposition of the row space
         estimcheck <- function(x, eps= sqrt(.Machine$double.eps)) {
             temp <- abs(qr.resid(X.qr, t(x)))
             # apply(abs(temp), 1, function(x) all(x < eps)) # each row estimable
@@ -346,8 +347,9 @@ yates <- function(fit, term, population=c("data", "factorial", "sas"),
     beta <- beta[!nabeta]
     if (predict == "linear" || is.null(mfun)) {
         # population averages of the simple linear predictor
-        if (is.na(match(contr$termname, colnames(Tatt$factors))))
-            stop("term '", contr$termname, "' not found in the model")
+        temp <- match(contr$termname, colnames(Tatt$factors)) 
+        if (any(is.na(temp)))
+            stop("term '", contr$termname[is.na(temp)], "' not found in the model")
 
         Cmat <- t(sapply(xmatlist, colMeans))[,!nabeta]
                   
@@ -453,7 +455,7 @@ yates <- function(fit, term, population=c("data", "factorial", "sas"),
             else {
                 test <- testfun(contr$cmat %*% Cmat, beta, vmat, sigma^2)
                 test <- matrix(test, nrow=1, 
-                               dimnames=list(contr$termname, names(test)))
+                               dimnames=list("global", names(test)))
                 natest <- nafun(contr$cmat, estimate$pmm)
             }
             if (any(natest)) test[natest,] <- NA

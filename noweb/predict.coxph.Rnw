@@ -1,9 +1,9 @@
 \subsection{The predict method}
-The [[predict.coxph]] function
+The \code{predict.coxph} function
 produces various types of predicted values from a Cox model.
 The arguments are
 \begin{description}
-  \item [obejct] The result of a call to [[coxph]].
+  \item [object] The result of a call to \code{coxph}.
   \item [newdata] Optionally, a new data set for which prediction is
     desired.  If this is absent predictions are for the observations used 
     fit the model.
@@ -37,11 +37,11 @@ We will need the following components:
     is saved in coxph objects by default so will only need to be fetched in
     the highly unusual case that a user specfied 
     \code{y=FALSE} in the orignal call.
-  \item for any call with either newdata, standard errors,  or type='terms'
+  \item for any call with either newdata, standard errors, or type='terms'
      the original $X$ matrix, weights, strata, and offset. 
      When checking for the existence of a saved $X$ matrix we can't    %'
      use \code{object\$x}
-     since that will also match the [[xlevels]] component.
+     since that will also match the \code{xlevels} component.
   \item the new data matrix, if any 
 \end{itemize}
 
@@ -51,7 +51,7 @@ predict.coxph <- function(object, newdata,
 		       type=c("lp", "risk", "expected", "terms", "survival"),
 		       se.fit=FALSE, na.action=na.pass,
 		       terms=names(object$assign), collapse, 
-                       reference=c("strata", "sample"), ...) {
+                       reference=c("strata", "sample", "zero"), ...) {
     <<pcoxph-init>>
     <<pcoxph-getdata>>
     if (type=="expected") {
@@ -68,7 +68,7 @@ predict.coxph <- function(object, newdata,
 We start of course with basic argument checking.
 Then retrieve the model parameters: does it have a strata
 statement, offset, etc.  
-The [[Terms2]] object is a model statement without the strata or cluster terms,
+The \code{Terms2} object is a model statement without the strata or cluster terms,
 appropriate for recreating the matrix of covariates $X$.
 For type=expected the response variable needs to be kept, if not we remove
 it as well since the user's newdata might not contain one.    %'
@@ -121,12 +121,12 @@ else reference <- match.arg(reference)
 @ 
 
 The next task of the routine is to reconsruct necessary data elements
-that were not saved as a part of the [[coxph]] fit.  
+that were not saved as a part of the \code{coxph} fit.  
 We will need the following components: 
 \begin{itemize}
   \item for type=`expected' residuals we need the orignal survival y.  This %'`
     is saved in coxph objects by default so will only need to be fetched in
-    the highly unusual case that a user specfied [[y=FALSE]] in the orignal 
+    the highly unusual case that a user specfied \code{y=FALSE} in the orignal 
     call.  We also need the strata in this case.  Grabbing it is the same
     amount of work as grabbing X, so gets lumped with that case in the
     code.
@@ -139,17 +139,17 @@ We will need the following components:
   \item the new data matrix, if present, along with offset and strata.
 \end{itemize}
 For the case that none of the above are needed, we can use the 
-[[linear.predictors]] component of the fit.  The variable [[use.x]] signals
+\code{linear.predictors} component of the fit.  The variable \code{use.x} signals
 this case, which takes up almost none of the code but is common in usage.
 
 The check below that nrow(mf)==n is to avoid data sets that change under our
 feet.  A fit was based on data set ``x'', and when we reconstruct the data
 frame it is a different size!  This means someone changed the data between
 the model fit and the extraction of residuals.  
-One other non-obvious case is that coxph treats the model [[age:strata(grp)]]
-as though it were [[age:strata(grp) + strata(grp)]].  
+One other non-obvious case is that coxph treats the model \code{age:strata(grp)}
+as though it were \code{age:strata(grp) + strata(grp)}.  
 The untangle.specials function will return 
-[[vars= strata(grp),  terms=integer(0)]]; the first shows a strata to extract
+\code{vars= strata(grp),  terms=integer(0)}; the first shows a strata to extract
 and the second that there is nothing to remove from the terms structure.
 
 <<pcoxph-getdata>>=
@@ -460,16 +460,20 @@ if (missing(newdata)) {
         #   give 1,2,5 for instance.
         xmeans <- rowsum(x*weights, oldstrat)/c(rowsum(weights, oldstrat))
         newx <- x - xmeans[match(oldstrat,row.names(xmeans)),]
-        }
-    else if (use.x) newx <- x - rep(object$means, each=nrow(x))
     }
+    else if (use.x) {
+        if (refererence == "sample") newx <- x - rep(object$means, each=nrow(x))
+        else newx <- x
+    }
+}
 else {
     offset <- newoffset - mean(offset)
     if (has.strata && reference=="strata") {
         xmeans <- rowsum(x*weights, oldstrat)/c(rowsum(weights, oldstrat))
         newx <- newx - xmeans[match(newstrat, row.names(xmeans)),]
         }
-    else newx <- newx - rep(object$means, each=nrow(newx))
+    else if (reference=="sample") 
+        newx <- newx - rep(object$means, each=nrow(newx))
     }
 
 if (type=='lp' || type=='risk') {
@@ -496,17 +500,17 @@ The basic formula is to
   \item If the model has an intercept, then sweep the column means
     out of the X matrix.  We've already done this.
   \item For each term separately, get the list of coefficients that
-    belong to that term; call this list [[tt]].
+    belong to that term; call this list \code{tt}.
   \item Restrict $X$, $\beta$ and $V$ (the variance matrix) to that
     subset, then the linear predictor is $X\beta$ with variance
     matrix $X V X'$.  The standard errors are the square root of 
     the diagonal of this latter matrix.  This can be computed,
     as colSums((X %*% V) * X)).
 \end{enumerate}
-Note that the [[assign]] component of a coxph object is the same
+Note that the \code{assign} component of a coxph object is the same
 as that found in Splus models (a list), most R models retain a numeric vector
 which contains the same information but it is not as easily used.  The first
-first part of predict.lm in R rebuilds the list form as its [[asgn]] variable.
+first part of predict.lm in R rebuilds the list form as its \code{asgn} variable.
 I can skip this part since it is already done.
 <<pcoxph-terms>>= 
 else if (type=='terms') { 

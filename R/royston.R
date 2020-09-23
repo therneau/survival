@@ -20,6 +20,7 @@ royston <- function(fit, newdata, ties=TRUE, adjust=FALSE) {
     }
     n <- length(eta)
 
+    R.pm <- var(eta)/(pi^2/6 +var(eta))  # the measure of Kent and O'Quigley
     # eta = X beta, the linear predictor
     # They replace it with a "nicer" one, z = normal scores
     #  If there are ties in eta, replace each with the average normal
@@ -41,8 +42,9 @@ royston <- function(fit, newdata, ties=TRUE, adjust=FALSE) {
     beta <- unname(coef(rfit))
     D    <- beta * sqrt(8/pi)  # They consider D the main result
     se.D <- sqrt(rfit$var[1,1]* 8/pi)
-    R2   <- beta^2/ (1+ beta^2)  # most users will look at R-squared
-    
+    R2   <- beta^2/ (pi^2/6 + beta^2)  # most users will look at R-squared
+    R.I  <- beta^2/ (1 + beta^2)       # their R_I statistic
+
     if (adjust) {
         # overfitting adjustment, related to events per coefficient
         #  if user follows the rule of 10-20 per coef it will often be small
@@ -50,7 +52,7 @@ royston <- function(fit, newdata, ties=TRUE, adjust=FALSE) {
         temp <- (1 + beta^2 -r) /r  # negative values are rare
         D <- sign(beta)*sign(temp) *sqrt(abs(temp) *8/pi)
         se.D <- se.D * abs(beta)/(r*sqrt(abs(temp)))
-        R2 <- 1- r*(1-R2)
+        R2 <- 1- r*(1-R.I)
     }       
-    c(D  = D, R2 = R2, "se(D)" = se.D)  # return vector
+    c(D  = D, "se(D)" = se.D, R.D = R2, R.PM=R.pm)  # return vector
 }

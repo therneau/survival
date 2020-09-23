@@ -12,7 +12,7 @@
 \method{predict}{coxph}(object, newdata,
 type=c("lp", "risk", "expected", "terms", "survival"),
 se.fit=FALSE, na.action=na.pass, terms=names(object$assign), collapse,
-reference=c("strata", "sample"),  ...)
+reference=c("strata", "sample", "zero"),  ...)
 }
 \arguments{
 \item{object}{
@@ -66,28 +66,28 @@ option is TRUE.
   The Cox model is a \emph{relative} risk model; predictions
 of type "linear predictor", "risk", and "terms" are all
 relative to the sample from which they came.  By default, the reference
-value for each of these is the mean covariate within strata.  The
-primary underlying
-reason is statistical: a Cox model only predicts relative risks
+value for each of these is the mean covariate within strata.
+The underlying reason is both statistical and practial.
+First, a Cox model only predicts relative risks
 between pairs of subjects within the same strata, and hence the addition
 of a constant to any covariate, either overall or only within a
 particular stratum, has no effect on the fitted results.
-Using the \code{reference="strata"} option causes this to be true for
-predictions as well.
-(There have been occasional requests for reference="zero", i.e., a
-hypothetical subject with all covariates equal to zero, in order to
-match certain other packages' results.
-The issue is that the results are often silly, e.g., risk relative to
-a subject with height, weight, or blood pressure of zero.)
-
+Second, downstream calculations depend on the risk score exp(linear
+predictor), which will fall prey to numeric overflow for a linear
+predictor greater than \code{.Machine\$double.max.exp}.
+The \code{coxph} routines try to approximately center the predictors out
+of self protection.
+Using the \code{reference="strata"} option is the safest centering,
+since strata occassionally have different means.
 When the results of \code{predict} are used in further calculations it
-may be desirable to use a fixed reference level.
+may be desirable to use a single reference level for all observations.
 Use of \code{reference="sample"} will use the overall means, and agrees
 with the \code{linear.predictors} component of the coxph object (which
 uses the overall mean for backwards compatability with older code).
 Predictions of \code{type="terms"} are almost invariably passed
 forward to further calculation, so for these we default to using
 the sample as the reference.
+A reference of \code{"zero"} causes no centering to be done.
 
 Predictions of type "expected" incorporate the baseline hazard and are
 thus absolute instead of relative; the

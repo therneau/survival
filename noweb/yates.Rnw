@@ -110,7 +110,8 @@ cmatrix <- function(fit, term,
     # What kind of term is being tested.  It can be categorical, continuous,
     #  an interaction of only categorical terms, interaction of only continuous
     #  terms, or a mixed interaction.
-    parts <- row.names(Tatt$factors)[Tatt$factors[,indx] !=0]
+    parts <- row.names(Tatt$factors)[apply(Tatt$factors[,indx, drop=FALSE] !=0,
+                                           1, any)]
     types <- Tatt$dataClasses[parts]
     iscat <- as.integer(types=="factor" | types=="character")
     if (length(parts)==1) termtype <-iscat
@@ -121,7 +122,7 @@ cmatrix <- function(fit, term,
     #  or double check them (categorical)
     if (missing(levels)) {
         temp <- fit$xlevels[match(parts, names(fit$xlevels), nomatch=0)]
-        if (length(temp) ==0) 
+        if (length(temp) < length(parts))
             stop("continuous variables require the levels argument")
         levels <- do.call(expand.grid, c(temp, stringsAsFactors=FALSE))
         }
@@ -161,7 +162,7 @@ cmatrix <- function(fit, term,
         else if (length(parts) > 1)
             stop("levels should be a data frame or matrix")
         else levels <- data.frame(x=unique(levels), stringsAsFactors=FALSE)
-        names(levels) <- user.name
+#        names(levels) <- user.name
     }
 
     # check that any categorical levels are legal

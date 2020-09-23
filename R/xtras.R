@@ -45,7 +45,7 @@ rep.Surv <- function(x, ...) {
 }
 
 # This function is just like all.vars -- except that it does not recur
-#  on the $ sign, it follows both arguments of +, * and - in order to
+#  on the $ sign, it follows both arguments of +, *, - and : in order to
 #  track formulas, all arguments of Surv, and only the first of things 
 #  like ns().  And - it works only on formulas.
 # This is used to generate a warning in coxph if the same variable is used
@@ -57,7 +57,7 @@ terms.inner <- function(x) {
     }
     else if (inherits(x, "call") && 
              (x[[1]] != as.name("$") && x[[1]] != as.name("["))) {
-        if (x[[1]] == '+' || x[[1]]== '*' || x[[1]] == '-') {
+        if (x[[1]] == '+' || x[[1]]== '*' || x[[1]] == '-' || x[[1]] ==':') {
             # terms in a model equation, unary minus only has one argument
             if (length(x)==3) c(terms.inner(x[[2]]), terms.inner(x[[3]]))
             else terms.inner(x[[2]])

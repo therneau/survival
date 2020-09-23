@@ -18,7 +18,7 @@ SEXP zph2(SEXP gt2,    SEXP y2,
     double *a, *a2, **cmat, **cmat2;
     int *keep;
     double denom, dtime=0, ndead, denom2;
-    double risk, meanwt;
+    double risk, meanwt, recenter;
     int nprotect;
 
     /* scalar input arguments and counts*/
@@ -173,6 +173,7 @@ SEXP zph2(SEXP gt2,    SEXP y2,
     nrisk=0;
     etasum =0;
     cstrat = -1;
+    recenter =0;
     while (person < nused) {
         /* find the next death time */
         for (k=person; k< nused; k++) {
@@ -218,7 +219,7 @@ SEXP zph2(SEXP gt2,    SEXP y2,
                 }
                 else {
                     etasum -= eta[p1];
-                    risk = exp(eta[p1]) * weights[p1];
+                    risk = exp(eta[p1] - recenter) * weights[p1];
                     denom -= risk;
                     for (i=0; i<nvar; i++) {
                         a[i] -= risk*covar[i][p1];
@@ -226,20 +227,7 @@ SEXP zph2(SEXP gt2,    SEXP y2,
                             cmat[i][j] -= risk*covar[i][p1]*covar[j][p1];
                     }
                 }
-                if (fabs(etasum/nrisk) > 200) {  
-                    temp = etasum/nrisk;
-                    for (i=0; i<nused; i++) eta[i] -= temp;
-                    temp = exp(-temp);
-                    denom *= temp;
-                    for (i=0; i<nvar; i++) {
-                        a[i] *= temp;
-                        for (j=0; j<nvar; j++) {
-                            cmat[i][j]*= temp;
-                        }
-                    }
-                    etasum =0;
-                }
-            }
+	    }
 
             /* 
             ** add any new subjects who are at risk 
@@ -257,13 +245,31 @@ SEXP zph2(SEXP gt2,    SEXP y2,
             for (; person<nused; person++) {
                 p = sort2[person];
                 if (strata[p] != cstrat || tstop[p] < dtime) break; /* no more to add */
-                risk = exp(eta[p]) * weights[p];
+		etasum += weights[p];
+		nrisk++;
+                if (fabs(etasum/nrisk - recenter) > 200) {  
+                    temp = etasum/nrisk - recenter;
+                    recenter = etasum/nrisk;
+
+                    if (denom > 0) {
+                        /* we can skip this if there is no one at risk */
+                        if (fabs(temp) > 709) error("exp overflow due to covariates\n");
+                             
+                        temp = exp(-temp); 
+                        denom *= temp;
+                        for (i=0; i<nvar; i++) {
+                            a[i] *= temp;
+                            for (j=0; j<nvar; j++) {
+                                cmat[i][j]*= temp;
+                            }
+                        }
+                    }       
+                }
+                risk = exp(eta[p] - recenter) * weights[p];
 
                 if (status[p] ==1) {
 		    nevent--;
                     keep[p] =1;
-                    nrisk++;
-                    etasum += eta[p];
                     ndead++;
                     denom2 += risk;
                     meanwt += weights[p];
@@ -278,8 +284,6 @@ SEXP zph2(SEXP gt2,    SEXP y2,
                 }
                 else if (start[p] < dtime) {
                     keep[p] =1;
-                    nrisk++;
-                    etasum += eta[p];
                     denom += risk;
                     for (i=0; i<nvar; i++) {
                         a[i] += risk*covar[i][p];

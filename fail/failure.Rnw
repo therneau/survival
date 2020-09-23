@@ -30,10 +30,10 @@ b <- seq(0, .006, length=13)
 logb <- matrix(0, 13, 2)
 for (i in 1:13) {
     logb[i,1] <- coxph(Surv(start, end, status) ~ v2, data=adata, iter=0,
-                     init=b[i])$loglik[1]
-    logb[i,2] <- fit0$loglik[1] + b[i]*sum(dt0$score) - b[i]^2*sum(dt0$imat)/2
+                     init=b[i])$loglik[1] - fit0$loglik[1]
+    logb[i,2] <- b[i]*sum(dt0$score) - b[i]^2*sum(dt0$imat)/2
 }
-matplot(b, logb/1e5, type='n', xlab='beta', ylab="Loglik/1e5")
+matplot(b, logb/1e5, type='n', xlab='beta', ylab="Change in loglik")
 lines(b, logb[,2]/1e5, lty=2)
 points(b, logb[,1]/1e5)
 abline(h=fit0$loglik[1]/1e5, lty=3)
@@ -139,7 +139,7 @@ d3 <- survSplit(Surv(time, status) ~ ., d1, cut= 1:max(d1$time))
 
 Now we want to fit a model that looks at the possible time dependence
 of the Karnofsky score coefficient.
-I happen to kwow that for that purpose, we only need to cut the data at
+I happen to know that for that purpose, we only need to cut the data at
 the death times, hence my data set d2.
 The user cut at a lot more times, his data set is d3.  
 Mathematically, the extra cuts make no difference since the death times and
@@ -168,7 +168,7 @@ to pot.
 This led to a change in the coxph function.  It now eliminates non-productive
 observations first, before any compuation.
 
-\subsection{Offset}
+\section{Offset issues}
 A nastier problem is found as a test case in the model4you package.  It is
 an artificial data set shown below.
 <<m4>>=
@@ -196,7 +196,7 @@ mfit30
 In this case the starting point of 0 is over 170 standard errors from the
 solution, due to the bizarre offset.
 The partial likelihood has so little curvature at 0 that the first 
-estimate of $\beta$ is so large that the risk scores $\exp(X\beta)$ contain
+estimate of $\beta$ overshoots, the risk scores $\exp(X\beta)$ contain
 infinite values, and the routine fails at the first iteration.
 The step halving approach eventually wins, but it takes forever.
 At iteration 46 the routine finally finds a point close enough that the
@@ -209,16 +209,170 @@ for (i in 1:50) {
 }
 indx <- which(!duplicated(test[,1]))
 plot(indx, test[indx,2], xlab="Iteration", ylab="Coefficient")
-
 @ 
 
-\subsection{Trust region}
+
+\section{Corrleation example}
+This example was pointed out by Brian Borstrom and uses the mort data
+set from the eha package.
+The data set contains mortality data from a parish in northern Sweden, for
+all males born in the years 1800--1820 and who survived to age 40, 
+followed until death or their 60th birthday.  
+The start-stop aspect is due to subjects who change social strata.
+
+<<mort1>>=
+load('mort.rda')
+mort[1:5,]
+fita <- coxph(Surv(enter, exit, event) ~ ses*birthdate, mort, x=T)
+cor(fita$x)
+svd(fita$var)$d
+@ 
+A singular value decomposition shows that the information
+matrix has a condition number of about $10^{11}$, which is large.
+(The ratio of the largest and smallest singular values.)
+The cholesky decomposition is still stable. 
+The very high correlation, however, makes this susceptible to round off
+errors.  Centering the data after forming the interactions does not
+help with this.
+
+When the data is pre-centered the correlation number is much more
+sensible and the condtion number is on the order of 1500, making it
+a well behaved problem.
+However, the number of iterations is exactly the same.
+This fact was a surprise to me when I first encountered it. 
+When using Newton-Raphson iteration the iteration path is completely
+invariant to any affine transformation of the covariates,
+as long as accuracy is not lost.  
+Centering does change the ses coefficient, but not the predictions.
+<<center>>=
+birth2 <- mort$birthdate -1800
+fitb <-  coxph(Surv(enter, exit, event) ~ ses*birth2, mort, x=TRUE)
+cor(fitb$x)
+svd(fitb$var)$d
+all.equal(predict(fita), predict(fitb))
+@ 
+
+In the 2015 version of the library, iteration for this simple model got stuck,
+while the eha package succeeded (pointed out by Goran Borstrom).
+A small mistake in the information matrix sufficed.
+We can force failure in the current code making year less centered, but it
+requires a strong shift.
+<<center2>>=
+birth3 <- mort$birthdate + 1e7
+fitc <-  coxph(Surv(enter, exit, event) ~ ses*birth3, mort, x=TRUE)
+@ 
+
+\section{Sliding mean}
+A data set from Michael Young shows a problem that can occur when using
+calendar year or age time scales.  There are 23000 observations but only
+23 events.  The issue turns out to be a variable tyear.
+Below is a summary:
+
+<<ydata>>=
+load("young.rda")
+ydata <- ydata[order(ydata$tstop),]  # put it in end time order
+
+dtime <- sort(ydata$tstop[ydata$event==1])
+temp <- matrix(0, length(dtime), ncol=5)
+temp[,1] <- dtime
+tyear2 <- ydata$tyear
+for (i in 1:length(dtime)) {
+    atrisk <- (ydata$tstart < dtime[i] & ydata$tstop >= dtime[i])
+    temp[i, 2:3] <- c(mean(ydata$tyear[atrisk]), sd(ydata$tyear[atrisk]))
+    temp[i, 4:5] <- range(which(atrisk))
+    tyear2[atrisk] <- tyear2[atrisk] - temp[i,2]
+}
+colnames(temp) <- c("time", "mean(tyear)", "sd(tyear)", "first", "last")
+round(temp,2)
+
+yfit <- coxph(Surv(tstart, tstop, event) ~ tyear2 + exposure, ydata)
+@ 
+
+The standard deviation within a risk set is small, and the final coefficient
+from a successful fit is about 0.7, giving  a sd of about .5 for the predicted
+risk score.  That is, a moderately strong covariate.
+The problem is that the centered value of \code{tyear} ranges from -3000 to
+3000, leading to an $X\beta$ range of $\pm 2000$, which overflows the 
+exp function.  
+The constants in \code{.Machine} reveal maximum and minimum exponents of 1024
+and -1022.  
+
+Another example of this type involved 
+the number of nursing shift changes, with a hypothesis that each hand off
+increased the chance of an adverse event. 
+The number of changes moves almost in lockstep for subjects: the normal shift
+is 8 hours during the week and 12 on the weekend.
+Analysis was on a time since admission scale: a set of subjects who had
+been in for 30 days would have between 20 and 22 weekdays, or 70 to 72 hand offs.
+
+<<sliding>>=
+fit0 <- coxph(Surv(time, status) ~ ph.ecog + age, lung) 
+sdata <- survSplit(Surv(time, status) ~., lung, cut=seq(5, 1000, by=50))
+sfit0 <- coxph(Surv(tstart, time, status) ~ ph.ecog + age, sdata)
+all.equal(fit0$coef, sfit0$coef)
+
+sdata$fakeph <- sdata$ph.ecog + sdata$tstart
+sfit <- coxph(Surv(tstart, time, status) ~ fakeph + age, sdata)
+@ 
+
+
+\section{Infinite coefficients}
+Assume that the actual solution to the LL contains an infinite coefficient.
+Then after the first few Newton-Raphson iterations the coefficient
+grows by an approximate constant at each iteration, while the loglik 
+asymptotes to a constant.
+There is a race condition:
+\begin{enumerate}
+  \item Convergence of the loglik
+  \item Overflow of the exp function
+  \item Singularity in the computed information matrix
+\end{enumerate}
+
+Data sets where one group has no events usually end up at condition 1.
+Ones that do the other are more trouble.
+
+This example comes from the moonBook package.  It's a sneaky
+way to get a variable on both sides, and fails with number 2.
+<<sneaky>>=
+ysurv <- Surv(colon$time, colon$status)
+stest <- coxph(ysurv ~ time, colon)
+@ 
+
+The Rehberg data set manages 2 and 3 at the same iteration, which forced a
+different failure in the code: an NaN in the infinite coefficient check.
+<<rehberg>>=
+rdata <- read.csv('rdata.csv')
+fit <- coxph(Surv(time, status) ~x, rdata)  
+
+options(warn=-1)
+tcoef <- tlog <- timat <- tscore <- double(17)
+for (i in 1:17) {
+    tfit <- coxph(Surv(time, status) ~x, rdata, iter=i)
+    tcoef[i] <- tfit$coef
+    tlog[i] <-  tfit$loglik[2]
+    dt <- coxph.detail(tfit)
+    tscore[i] <- sum(dt$score)
+    timat[i]  <- sum(dt$imat)
+}
+options(warn=0)
+
+#plot(tcoef, tlog, xlab="Coefficient", ylab="Loglik")
+plot(tcoef, -tlog, log='y', xlab="Coefficient", ylab= "-loglik")
+matplot(1:17, cbind(timat, tscore), pch='is', log='y',
+        xlab="Iteration", ylab="Score and Information")
+@ 
+
+At iteration 17 the computations for both the first and second derivative
+fail due to exp() overflow.
+
+
+\section{Trust region approach}
 A trust region approach asks the question: over what region is the Newton-Raphson
 step reliable?  It then takes the maximum step within the reliable region.
 Reliable is normally defined as $r$ =(actual improvement)/(predicted improvement)
 $> .25$.  
-If $r < .25$ then the trust region is made smaller, if $r > .75$ or .5 
-it is made bigger.
+If $r < .25$ then the trust region is made smaller, if $r > c$ it is made bigger,
+where $c$ may be .5 or .75, depending on who you read.
 Because of the equivalence of penalties and limits, a Levenberg-Marquardt
 step of $d = -(H + \lambda I)^{-1} U$ is the maximum of the quadratic NR
 update under a
@@ -279,7 +433,7 @@ for (i in 1:21) {
     l2[i,2] <- first2*(b2[i] - coef(fit2)) - (b2[i]-coef(fit2))^2*second2/2
 }
 matplot(b2, l2)
-plabline(v=coef(fit2))
+abline(v=coef(fit2))
 @ 
 
 For the first iteration we found that the second order Taylor is a good
@@ -307,125 +461,6 @@ between $\lambda$ and the size of the trust region changes under our feet.
 d2 <- first2/(second2 + lambda)
 matplot(lambda, cbind(beta^2, d2^2), log='xy',
         xlab="lambda", ylab="d^2")
-@ 
-
-
-\section{Corrleation example}
-This example was pointed out by Brian Borstrom and uses the mort data
-set from the eha package.
-The data set contains mortality data from a parish in northern Sweden, for
-all males born in the years 1800--1820 and who survived to age 40, 
-followed until death or their 60th birthday.  
-The start-stop aspect is due to subjects who change social strata.
-
-<<mort1>>=
-load('mort.rda')
-mort[1:5,]
-fita <- coxph(Surv(enter, exit, event) ~ ses*birthdate, mort, x=T)
-cor(fita$x)
-svd(fita$var)$d
-@ 
-A singular value decomposition shows that the information
-matrix has a condition number of about $10^{11}$, which is large.
-(The ratio of the largest and smallest singular values.)
-The cholesky decomposition is still stable. 
-The very high correlation, however, makes this susceptible to round off
-errors.  Centering the data after forming the interactions does not
-help with this.
-
-When the data is pre-centered the correlation number is much more
-sensible and the condtion number is on the order of 1500, making it
-a well behaved problem.
-However, the number of iterations is exactly the same.
-This fact was a surprise to me when I first encountered it. 
-When using Newton-Raphson iteration the iteration path is completely
-invariant to any affine transformation of the covariates,
-as long as accuracy is not lost.  
-Centering does change the ses coefficient, but not the predictions.
-<<center>>=
-birth2 <- mort$birthdate -1800
-fitb <-  coxph(Surv(enter, exit, event) ~ ses*birth2, mort, x=TRUE)
-cor(fitb$x)
-svd(fitb$var)$d
-all.equal(predict(fita), predict(fitb))
-@ 
-
-In the 2015 version of the library, iteration for this simple model got stuck,
-while the eha package succeeded (pointed out by Goran Borstrom).
-A small mistake in the information matrix sufficed.
-We can force failure in the current code making year less centered, but it
-requires a strong shift.
-<<center2>>=
-birth3 <- mort$birthdate + 1e7
-fitc <-  coxph(Surv(enter, exit, event) ~ ses*birth3, mort, x=TRUE)
-@ 
-
-\section{Sliding mean}
-This is synthetic data that follows a particular example.  The covariate was
-the number of nursing shift changes, with a hypothesis that each hand off
-increased the chance of an adverse event. 
-The number of changes moves almost in lockstep for subjects: the normal shift
-is 8 hours during the week and 12 on the weekend.  
-For this reason the covariate turned out to be uninteresting, but it did cause
-the routine to fail.
-
-<<sliding>>=
-fit0 <- coxph(Surv(time, status) ~ ph.ecog + age, lung) 
-sdata <- survSplit(Surv(time, status) ~., lung, cut=seq(5, 1000, by=50))
-sfit0 <- coxph(Surv(tstart, time, status) ~ ph.ecog + age, sdata)
-all.equal(fit0$coef, sfit0$coef)
-
-sdata$fakeph <- sdata$ph.ecog + sdata$tstart
-sfit <- coxph(Surv(tstart, time, status) ~ fakeph + age, sdata)
-@ 
-
-
-\section{Infinite coefficients}
-For an infinite coefficient, after the first few iterations the coefficient
-grows by an approximate constant at each iteration, while the loglik 
-asymptotes to a constant.
-There is a race condition:
-\begin{enumerate}
-  \item Convergence of the loglik
-  \item Overflow of the exp function
-  \item Singularity in the computed information matrix
-\end{enumerate}
-
-Data sets where one group has no events usually end up at condition 1.
-Ones that do the other are more trouble.
-
-This example comes from the moonBook package.  It's a sneaky
-way to get a variable on both sides, and fails with number 2.
-<<sneaky>>=
-ysurv <- Surv(colon$time, colon$status)
-stest <- coxph(ysurv ~ time, colon)
-@ 
-
-The Rehberg data set manages 2 and 3 at the same iteration, which forced a
-different failure in the code: an NaN in the infinite coefficient check.
-<<rehberg>>=
-rdata <- read.csv('rdata.csv')
-fit <- coxph(Surv(time, status) ~x, rdata)  
-
-options(warn=-1)
-tcoef <- tlog <- timat <- tscore <- double(17)
-for (i in 1:17) {
-    tfit <- coxph(Surv(time, status) ~x, rdata, iter=i)
-    tcoef[i] <- tfit$coef
-    tlog[i] <-  tfit$loglik[2]
-    dt <- coxph.detail(tfit)
-    tscore[i] <- sum(dt$score)
-    timat[i]  <- sum(dt$imat)
-}
-options(warn=0)
-
-#plot(tcoef, tlog, xlab="Coefficient", ylab="Loglik")
-plot(tcoef, -tlog, log='y', xlab="Coefficient", ylab= "-loglik")
-matplot(1:17, cbind(timat, tscore), pch='is', log='y',
-        xlab="Iteration", ylab="Score and Information")
-@ 
-
-At iteration 17 the computations for both the first and second derivative
-fail due to exp() overflow.
-
+@
+ 
 \end{document}
