@@ -1,5 +1,9 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 3.2-6}{
+  \itemize{
+    \item Fix one URL, submit to CRAN
+}}
 \section{Changes in version 3.2-5}{
   \itemize{
     \item Fix error in summary.coxph.penal; it was incorrectly copying
