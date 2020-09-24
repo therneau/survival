@@ -1,0 +1,93 @@
+
+R Under development (unstable) (2020-06-10 r78681) -- "Unsuffered Consequences"
+Copyright (C) 2020 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> library(survival)
+> #
+> # Tests of the residuals.survfit function
+> #
+> # The influence argument of survfit returns all the residuals at every time
+> #  point, but for large data sets the result will be huge.  This function uses
+> #  a different algorithm which should be faster when the number of time
+> #  points being reported out is small. 
+> # For testing, we can compare it to the results from the survfit.  This 
+> #  particular data set is checked extensively in mstate.R
+> #
+> 
+> aeq <- function(x,y) all.equal(as.vector(x), as.vector(y))
+> tdata <- data.frame(id= c(1, 1, 1,  2,  3,  4, 4, 4,  5,  5),
++                     t1= c(0, 4, 9,  1,  2,  0, 2, 8,  1,  3),
++                     t2= c(4, 9, 10, 5,  9,  2, 8, 9,  3, 11),
++                     st= c(1, 2,  1, 2,  3,  1, 3, 0,  3,  0),
++                     i0= c(1, 2,  3, 2,  1,  1, 2, 4,  3,  4),
++                     wt= 1:10)
+> 
+> tdata$st <- factor(tdata$st, c(0:3),
++                     labels=c("censor", "a", "b", "c"))
+> tdata$i0 <- factor(tdata$i0, 1:4,
++                     labels=c("entry", "a", "b", "c"))  
+> 
+> tfun <- function(data=tdata) {
++     reorder <- c(10, 9, 1, 2, 5, 4, 3, 7, 8, 6)
++     new <- data[reorder,]
++     new
++ }
+> mtest2 <- tfun(tdata)  # scrambled version
+> 
+> mfit1 <- survfit(Surv(t1, t2, st) ~ 1, tdata, id=id, istate=i0,
++                  influence=1)
+> 
+> test1 <- resid(mfit1, time=c(3, 7, 9))
+> aeq(aperm(test1, c(1,3,2)), mfit1$influence.pstate[,c(3,5,7),])
+[1] TRUE
+> 
+> test2 <- resid(mfit1, time=c(3, 7, 9), method=2)
+> aeq(aperm(test2, c(1,3,2)), mfit1$influence.pstate[,c(3,5,7),])
+[1] TRUE
+> 
+> # AUC, start simple - auc at final time
+> test3 <- resid(mfit1, time=11, type='RMST')
+> delta <- diff(c(0, mfit1$time))
+> s1 <- apply(mfit1$influence[, 1:8, ], c(1,3), function(x) sum(delta*x))
+> aeq(test3, s1)
+[1] TRUE
+> 
+> # extend to an earlier and later time
+> test3b <- resid(mfit1, time=c(-1,11,15), type='RMST')
+> all(test3b[,,1] ==0)
+[1] TRUE
+> aeq(test3b[,,2], s1)
+[1] TRUE
+> aeq(test3b[,,3], s1 + mfit1$influence[,9,]*4)
+[1] TRUE
+> 
+> auc <- function(fit, time) {
++     tfit <- survfit0(fit)  # add time 0
++     t2 <- sort(unique(c(time, tfit$time)))
++     indx <- findInterval(t2, tfit$time, left.open=TRUE)
++     delta <- diff(t2)
++     temp <- apply(tfit$influence.pstate[,indx+1,], c(1,3), 
++                   function(x) cumsum(x* c(delta,0)))
++     temp2 <- temp[, match(time, t2),,drop=FALSE]
++     aperm(temp2, c(1,3,2))
++ }
+>     
+> test2 <- resid(mfit1, time=c(3,7,14), type="rmst")
+> 
+> 
+> proc.time()
+   user  system elapsed 
+  0.889   0.032   0.912 

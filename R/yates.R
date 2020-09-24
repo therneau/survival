@@ -78,7 +78,7 @@ cmatrix <- function(fit, term,
         if (length(temp) < length(parts))
             stop("continuous variables require the levels argument")
         levels <- do.call(expand.grid, c(temp, stringsAsFactors=FALSE))
-        }
+    }
     else {  #user supplied
         if (is.data.frame(levels)) {
             temp <- match(names(levels), parts)
@@ -90,12 +90,16 @@ cmatrix <- function(fit, term,
         else if (is.list(levels)) {
             if (length(levels) != length(parts))
                 stop("levels list should have", length(parts), "components")
-            if (!is.null(names(levels))) {
-                temp <- match(names(levels), parts)
-                if (any(is.null(temp)))
-                    stop("names of levels does not match the terms")
-                else levels <- levels[temp]  #reorder them
+            if (is.null(names(levels))) {
+                if (length(levels) == length(user.name)) 
+                    names(levels) <- user.name
+                else stop("levels list should have names")
             }
+            temp <- match(names(levels), parts)
+            if (any(is.null(temp)))
+                stop("names of levels does not match the terms")
+            else levels <- levels[temp]  #reorder them
+        
             if (any(sapply(levels, function(x) any(duplicated(x)))))
                 stop("one or more elements of the levels list has duplicates")
             levels <- do.call("expand.grid", levels)
@@ -114,8 +118,10 @@ cmatrix <- function(fit, term,
          }
         else if (length(parts) > 1)
             stop("levels should be a data frame or matrix")
-        else levels <- data.frame(x=unique(levels), stringsAsFactors=FALSE)
-#        names(levels) <- user.name
+        else {
+            levels <- data.frame(x=unique(levels), stringsAsFactors=FALSE)
+            names(levels) <- user.name
+        }       
     }
 
     # check that any categorical levels are legal

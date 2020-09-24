@@ -3,7 +3,7 @@ predict.coxphms <- function(object, newdata,
                        se.fit=FALSE, na.action=na.pass,
                        terms=names(object$assign), collapse, 
                        reference=c("strata", "sample"), ...) {
-    if (missing(newdata) && type %in% c("lp", "risk")) NextMethod();
+    if (missing(newdata) && type %in% c("lp", "risk")) NextMethod()
     else stop("predict method not yet available for multistate coxph")
 }
 

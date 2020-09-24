@@ -3,7 +3,7 @@ predict.coxph <- function(object, newdata,
                        type=c("lp", "risk", "expected", "terms", "survival"),
                        se.fit=FALSE, na.action=na.pass,
                        terms=names(object$assign), collapse, 
-                       reference=c("strata", "sample"), ...) {
+                       reference=c("strata", "sample", "zero"), ...) {
     if (!inherits(object, 'coxph'))
         stop("Primary argument much be a coxph object")
 
@@ -260,16 +260,20 @@ predict.coxph <- function(object, newdata,
                 #   give 1,2,5 for instance.
                 xmeans <- rowsum(x*weights, oldstrat)/c(rowsum(weights, oldstrat))
                 newx <- x - xmeans[match(oldstrat,row.names(xmeans)),]
-                }
-            else if (use.x) newx <- x - rep(object$means, each=nrow(x))
             }
+            else if (use.x) {
+                if (reference == "zero") newx <- x
+                else newx <- x - rep(object$means, each=nrow(x))
+            }
+        }
         else {
             offset <- newoffset - mean(offset)
             if (has.strata && reference=="strata") {
                 xmeans <- rowsum(x*weights, oldstrat)/c(rowsum(weights, oldstrat))
                 newx <- newx - xmeans[match(newstrat, row.names(xmeans)),]
                 }
-            else newx <- newx - rep(object$means, each=nrow(newx))
+            else if (reference!= "zero") 
+                newx <- newx - rep(object$means, each=nrow(newx))
             }
 
         if (type=='lp' || type=='risk') {

@@ -7,7 +7,7 @@
 }
 \usage{
 \method{residuals}{survfit}(object, times, 
-    type, collapse=TRUE, weighted=FALSE, method=1)
+    type, collapse=TRUE, weighted=FALSE, method=1, ...)
 }
 \arguments{
   \item{object}{a \code{survfit} object}
@@ -17,6 +17,7 @@
   \item{weighted}{weight the residuals by each observation's weight}
   \item{method}{controls a choice of algorithm.  Current an internal
     debugging option.}
+  \item{...}{arguments for other methods}
 }
 \details{
 This function is designed to efficiently compute the residuals at a
@@ -26,8 +27,7 @@ If the residuals at all time points are needed, e.g. to compute a robust
 pointwise confidence interval for the survival curve, then this can be done
 more efficiently
 using the \code{influence} argument of the underlying \code{survfit}
-function.  But be aware that such matrices can get very large.  For a
-small number of reporting times this function should be more efficient.
+function.  But be aware that such matrices can get very large. 
 
 The residuals are the impact of each observation or cluster on the
 resulting \code{surv}, \code{pstate} or code{cumhaz} component of a

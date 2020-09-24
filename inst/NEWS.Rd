@@ -22,6 +22,9 @@
     R^2 measure of Royston and Sauerbrei.
     \item Add residuals.survfit, which will be important for
     pseudo-values.  Still incomplete.
+    \item Better hardening of coxph against a particular kind of skewed
+    variable.  This had led to the
+    "This should never happen, please contact the author" message.
 }}
 
 \section{Changes in version 3.2-4}{

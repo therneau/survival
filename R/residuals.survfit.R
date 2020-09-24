@@ -36,7 +36,9 @@ residuals.survfit <- function(object, times, type= "surv",
         formula <- formula(object)
 
         # the chunk below is shared with survfit.formula 
-        na.action <- get(getOption("na.action"))  # this is a temporary hack
+        na.action <- getOption("na.action")
+        if (is.character(na.action))
+            na.action <- get(na.action)  # this is a temporary hack
         # create a copy of the call that has only the arguments we want,
         #  and use it to call model.frame()
         indx <- match(c('formula', 'data', 'weights', 'subset','na.action',
@@ -585,7 +587,7 @@ rsurvpart2 <- function(Y, X, casewt, istate, times, cluster, type, fit,
              delta <- diff(c(start.time, utime))
 
              # Expand Y
-             if (ny==2) split <- .Call(rep(0., nrow(Y)), Y[,1], times)
+             if (ny==2) split <- .Call(Csurvsplit, rep(0., nrow(Y)), Y[,1], times)
              else split <- .Call(Csurvsplit, Y[,1], Y[,2], times)
              X <- X[split$row]
              casewt <- casewt[split$row]

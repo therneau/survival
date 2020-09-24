@@ -84,7 +84,6 @@ temp3 <- with(temp2, data.frame(id=id, days=time,
                      state=factor(pmin(status, 4), -1:4,
                                c("censor", paste0(0:3, "comorbid"), "death"))))
 ndata <- merge(ndata, temp3, all=TRUE,  by=c("id", "days"))
-check1 <- survcheck(Surv2(days, state) ~ 1, id=id, ndata)
 
 
 # Repeat the process with tmerge
@@ -110,6 +109,12 @@ tdata$state <- factor(temp, 0:4, c("censor", paste0(1:3, "comorbid"), "death"))
 tdata$cstate <- factor(tdata$pcount, 0:3, paste0(0:3, "comorbid"))
 
 # Check it out
+cfit1 <- coxph(Surv2(days, state) ~ age + male + nafld0, id = id, data= ndata)
+cfit2 <- coxph(Surv(tstart, tstop, state) ~ age + male + nafld0, id=id, tdata)
+
+
+check1 <- survcheck(Surv2(days, state) ~ 1, id=id, ndata)
+
 check2 <- survcheck(Surv(tstart, tstop, state) ~ 1, id=id, istate=cstate, tdata)
 
 all.equal(check1$transitions, check2$transitions)

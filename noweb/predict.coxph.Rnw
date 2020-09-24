@@ -462,8 +462,8 @@ if (missing(newdata)) {
         newx <- x - xmeans[match(oldstrat,row.names(xmeans)),]
     }
     else if (use.x) {
-        if (refererence == "sample") newx <- x - rep(object$means, each=nrow(x))
-        else newx <- x
+        if (reference == "zero") newx <- x
+        else newx <- x - rep(object$means, each=nrow(x))
     }
 }
 else {
@@ -472,7 +472,7 @@ else {
         xmeans <- rowsum(x*weights, oldstrat)/c(rowsum(weights, oldstrat))
         newx <- newx - xmeans[match(newstrat, row.names(xmeans)),]
         }
-    else if (reference=="sample") 
+    else if (reference!= "zero") 
         newx <- newx - rep(object$means, each=nrow(newx))
     }
 

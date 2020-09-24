@@ -16,7 +16,7 @@ Cox proportional hazards model.
        collapse=FALSE, weighted= (type \%in\% c("dfbeta", "dfbetas")), ...)
 \method{residuals}{coxph.null}(object,
        type=c("martingale", "deviance","score","schoenfeld"),
-       collapse=FALSE, weighted= (type \%in\% c("dfbeta", "dfbetas")), ...)
+       collapse=FALSE, weighted= FALSE, ...)
 }
 \arguments{
 \item{object}{
