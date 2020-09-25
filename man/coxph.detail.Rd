@@ -8,7 +8,7 @@ Returns the individual contributions to the first and second derivative
 matrix, at each unique event time.
 }
 \usage{
-coxph.detail(object, riskmat=FALSE)
+coxph.detail(object, riskmat=FALSE, rorder=c("data", "time"))
 }
 \arguments{
  \item{object}{
@@ -16,6 +16,9 @@ coxph.detail(object, riskmat=FALSE)
  }
  \item{riskmat}{
    include the at-risk indicator matrix in the output?
+ }
+ \item{rorder}{if \code{riskmat=TRUE}, the rows of riskmat will be in the
+   original data order, otherwise sorted by time within strata.
  }
 }
 \value{
@@ -60,10 +63,12 @@ coxph.detail(object, riskmat=FALSE)
     were contributed by each of the strata.
     }
     \item{riskmat}{
-      a matrix with one row for each time and one column for each observation
+      a matrix with one row for each observation and one colum for each
+     unique event time,
     containing a 0/1 value to indicate whether that observation was (1) or
     was not (0) at risk at the given time point.  Rows are in the order
-    of the original data (after removal of any missings by \code{coxph}).
+    of the original data (after removal of any missings by
+    \code{coxph}), or in time order.
   }
 }
 \details{

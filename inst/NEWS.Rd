@@ -1,8 +1,11 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
-\section{Changes in version 3.2-6}{
+\section{Changes in version 3.2-7}{
   \itemize{
-    \item Fix one URL, submit to CRAN
+    \item Fix one URL, revealed by the CRAN submission.
+    \item Column labels had been lost on the riskmat argument of
+    coxph.detail, which broke the linERR package.  Found in reverse
+    dependency checks for CRAN.
 }}
 \section{Changes in version 3.2-5}{
   \itemize{
@@ -21,13 +24,13 @@
     component when subsetting based on the times argument.
     \item The documentation for print.survfit stated that rmean="common"
     would use the largest time across curves, the code had the median.
-    Fixed the code.  Pointed out by Qingxia Chen.
+    Make code agree with the documentation.  Pointed out by Qingxia Chen.
     \item Add the rttright function (redistribute to the right) and the
     R^2 measure of Royston and Sauerbrei.
     \item Add residuals.survfit, which will be important for
     pseudo-values.  Still incomplete.
     \item Better hardening of coxph against a particular kind of skewed
-    variable.  This had led to the
+    variable, based on a test case from Michael Young.  This had led to the
     "This should never happen, please contact the author" message.
 }}
 

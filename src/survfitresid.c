@@ -64,7 +64,7 @@ SEXP survfitresid(SEXP Y2,      SEXP sort12,  SEXP sort22,  SEXP cstate2,
     /* returned objects */
     SEXP rlist;         /* the returned list and variable names of same */  
     const char *rnames[]= {"influence.pstate", "influence.auc", ""}; 
-    double **infa, **infp; /* pointers to influence arrays */
+    double **infa=0, **infp; /* pointers to influence arrays */
 
     nobs   = LENGTH(sort12);    /* number of observations in the data */
     cstate  = INTEGER(cstate2);

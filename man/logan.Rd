@@ -20,7 +20,7 @@ Intergenerational occupational mobility data with covariates.
 \source{
   General Social Survey data, see the web site for detailed information
   on the variables.
-  \url{http://gss.norc.org/}.
+  \url{https://gss.norc.org/}.
 }
 \references{
   Logan, John A. (1983). A Multivariate Model for Mobility Tables.
