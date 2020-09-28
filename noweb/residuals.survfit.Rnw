@@ -3,7 +3,7 @@
 For all the more complex cases, the variance of a survival curve is based on 
 the infinitesimal jackknife:
 $$
-D_i(t) = \frac{\partial S(t)}{w_i}
+D_i(t) = \frac{\partial S(t)}{\partial w_i}
 $$
 evaluated at the the observed vector of weights.  The variance at a given 
 time is then  $D'WD'$ where $D$ is a diagonal matrix of the case weights.
@@ -19,7 +19,7 @@ survfit routine) to an external one.
 The underlying C code is very similar to that in survfitkm.c
 One major difference in the routines is that this code is designed to return
 values at a fixed set of time points; it is an error if the user does not
-provide one.  This allows the result to be presented as a matrix or array.
+provide them.  This allows the result to be presented as a matrix or array.
 Computational differences will be discussed later.
 
 <<residuals.survfit>>=
@@ -162,12 +162,10 @@ else {
 }   
 @
 
-The key trick in this calculation is to use a cumulative sum over the
-survival times in the survfit object.
-Say there were deaths at times (1, 24, 40), which occur in positions 10, 12,
-and 17 in \code{fit\$time}, the Y observation of interest is (7,30), and
-lsum=cumsum(...) is the cumulative sum.
-We will want lsum[12] - lsum[10].
+The survfit object will contain both event and censoring times, and for
+this calculation we only care about the event times.
+An index list vector \code{fitrow} points to the death times, which
+allows us to index it as if there were no censored values.
 If there are multiple curves they are end to end as a single long vector,
 adding a bit more nuisance to the compuatation.
 The number of curves is normally modest.
@@ -186,18 +184,22 @@ rsurvpart1 <- function(Y, X, casewt, times,
     #  Create a list whose first element contains the location of
     #   the death times in curve 1, second element for curve 2, etc.
     #  
-    if (is.null(fit$strata)) fitrow <- list(which(etime))
+    if (is.null(fit$strata)) {
+        fitrow <- list(which(etime))
+    }
     else {
         temp1 <- cumsum(fit$strata)
         temp2 <- c(1, temp1+1)
         fitrow <- lapply(1:length(fit$strata), function(i) {
             indx <- seq(temp2[i], temp1[i])
             indx[etime[indx]] # keep the death times
-        }) 
+        })
     }
+    ff <- unlist(fitrow) 
  
     # for each time x, the index of the last death time which is <=x.
     #  0 if x is before the first death time
+    # if a curve had 10 rows and 4 deaths, matchfun gives a value from 0 to 4
     matchfun <- function(x, fit, index) {
         dtime <- fit$time[index]  # subset to this curve
         i2 <- findInterval(x, dtime, left.open=FALSE)
@@ -276,8 +278,8 @@ The first min is to deal with an obs which enters after the report time.
 add1 <- (yindex <= tindex & rep(event, ntime))
 lsum <- unlist(lapply(fitrow, function(i) 
              cumsum(fit$n.event[i]/fit$n.risk[i]^2)))
-    
-term1 <- c(0, 1/fit$n.risk)[ifelse(add1, 1+yindex, 1)]
+
+term1 <- c(0, 1/fit$n.risk[ff])[ifelse(add1, 1+yindex, 1)]
 term2 <- c(0, lsum)[1+pmin(yindex, tindex)]
 if (ny==3) term3 <- c(0, lsum)[1 + pmin(startindex, tindex)]
 
@@ -335,16 +337,17 @@ if (type==2) { # type 2 = AUC
     auc <- unlist(lapply(fitrow, function(i) {
         temp <- c(1, fit$surv[i])
         cumsum(temp[-length(temp)] * diff(c(0, fit$time[i])))
-    }))
+    }))  # each element of AUC has same length as the survival curve
 
-    overtime <- (times[col(D)]- c(0,fit$time)[1+tindex]) # t - last event time
-    auc2 <- c(0, auc)[1 + tindex]  + overtime* c(1,fit$surv)[1+tindex] # A(0, t)
+    # overtime has a row for each subject and a col for each event time
+    overtime <- (times[col(D)]- c(0,fit$time[ff])[1+tindex]) # t -last event time
+    auc2 <- c(0, auc)[1 + tindex]  + overtime* c(1,fit$surv[ff])[1+tindex] # A(0, t)
     aterm1 <- -D * auc2
     
     lsum2 <- unlist(lapply(fitrow, function(i) 
              cumsum(auc[i]*fit$n.event[i]/fit$n.risk[i]^2)))
     aterm2 <- c(0, lsum2)[1 + pmin(yindex, tindex)]
-    aterm3 <- c(0, auc/fit$n.risk)[ifelse(add1, 1+yindex, 1)]
+    aterm3 <- c(0, auc/fit$n.risk[ff])[ifelse(add1, 1+yindex, 1)]
 
     D <- matrix(aterm1 + aterm3 - aterm2, ncol=ntime)
 }
@@ -362,24 +365,24 @@ Computationally, the number of distinct times at which a tie occurs is normally
 quite small and the for loop below will not be too expensive.
 
 <<residpart1-fleming>>=
-nevent <- fit$n.event/casewt[1]
+nevent <- fit$n.event[ff]/casewt[1]  # the number of events, if all wts equal
 if (any(casewt != casewt[1])) {
-    # Have to reconstruct the number of obs with an event
-    temp <- lapply(seq(along=levels(X)), function(i) {
+    # Have to reconstruct the number of obs with an event, the curve only
+    # contains the weighted sum
+    nevent <- unlist(lapply(seq(along=levels(X)), function(i) {
         keep <- which(as.numeric(X) ==i)
         dtime <- Y[keep & status==1, ny-1]
-        count <- table(dtime)
-        nindx <- (fitrow[[i]])[fit$n.event[fitrow[[i]]] > 0]
-        nevent[nindx] <- as.vector(count)
-        })
+        as.vector(table(dtime))
+        }))
 }
 
-risk2 <- fit$n.risk
-ltemp <- fit$n.event/fit$n.risk^2
+risk2 <- fit$n.risk[ff]
+ntemp <- fit$n.event[ff]
+ltemp <- ntemp/risk2^2
 for (i in which(nevent>1)) {
-    denom <- risk2[i] - fit$n.event*(0:(nevent[i]-1))/nevent[i]
+    denom <- risk2[i] - ntemp[i]*(0:(nevent[i]-1))/nevent[i] # num at risk
     risk2[i] <- mean(1/denom) # multiplier for the event
-    ltemp[i] <- fit$n.event* mean(1/denom^2)
+    ltemp[i] <- ntemp[i]* mean(1/denom^2)
 }
 
 add1 <- (yindex >= tindex & rep(event, ntime))
@@ -393,7 +396,7 @@ else D <- matrix(term1 + term3 - term2, ncol=ntime)
 
 if (type==1) D <- -D* c(0,fit$surv)[1+ tindex]
 else if (type==2) { #RMST
-    auc <- unlist(lapply(fitrow, function(i) {
+    auc <- unlist(lapply(row2, function(i) {
         temp <- c(1, fit$surv[i])
         cumsum(temp[-length(temp)] * diff(c(0, fit$time[i])))
     }))
@@ -463,7 +466,7 @@ else       D <- matrix(term1 + term3 - term2, ncol=ntime)
 
 if (type==1) D <- -D* c(1,fit$surv)[1+ tindex]
 else if (type==2){
-    auc <- unlist(lapply(fitrow, function(i) {
+    auc <- unlist(lapply(row2, function(i) {
         temp <- c(1, fit$surv[i])
         cumsum(temp[-length(temp)] * diff(c(0, fit$time[i])))
     }))

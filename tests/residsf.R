@@ -6,7 +6,7 @@ library(survival)
 #  point, but for large data sets the result will be huge.  This function uses
 #  a different algorithm which should be faster when the number of time
 #  points being reported out is small. 
-# For testing, we can compare it to the results from the survfit.  This 
+# For testing, we can compare it to the results from mstate.R.  This 
 #  particular data set is checked extensively in mstate.R
 #
 

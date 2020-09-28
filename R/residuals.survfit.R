@@ -237,19 +237,25 @@ rsurvpart1 <- function(Y, X, casewt, times,
     # 
     #  Create a list whose first element contains the location of
     #   the death times in curve 1, second element for curve 2, etc.
+    #  row2 contains all the rows, censor and event
     #  
-    if (is.null(fit$strata)) fitrow <- list(which(etime))
+    if (is.null(fit$strata)) {
+        fitrow <- list(which(etime))
+        row2 <- list(seq(along=fit$time))
+    }
     else {
         temp1 <- cumsum(fit$strata)
         temp2 <- c(1, temp1+1)
         fitrow <- lapply(1:length(fit$strata), function(i) {
             indx <- seq(temp2[i], temp1[i])
             indx[etime[indx]] # keep the death times
-        }) 
+        })
+        row2 <- lapply(1:length(fit$strata), function(i) seq(temp2[i],temp1[i]))
     }
  
     # for each time x, the index of the last death time which is <=x.
     #  0 if x is before the first death time
+    # if a curve had 10 rows and 4 deaths, matchfun gives a value from 0 to 4
     matchfun <- function(x, fit, index) {
         dtime <- fit$time[index]  # subset to this curve
         i2 <- findInterval(x, dtime, left.open=FALSE)
@@ -290,8 +296,9 @@ rsurvpart1 <- function(Y, X, casewt, times,
             add1 <- (yindex <= tindex & rep(event, ntime))
             lsum <- unlist(lapply(fitrow, function(i) 
                          cumsum(fit$n.event[i]/fit$n.risk[i]^2)))
-                
-            term1 <- c(0, 1/fit$n.risk)[ifelse(add1, 1+yindex, 1)]
+
+            jj <- unlist(fitrow)
+            term1 <- c(0, 1/fit$n.risk[jj])[ifelse(add1, 1+yindex, 1)]
             term2 <- c(0, lsum)[1+pmin(yindex, tindex)]
             if (ny==3) term3 <- c(0, lsum)[1 + pmin(startindex, tindex)]
 
@@ -305,16 +312,17 @@ rsurvpart1 <- function(Y, X, casewt, times,
                 auc <- unlist(lapply(fitrow, function(i) {
                     temp <- c(1, fit$surv[i])
                     cumsum(temp[-length(temp)] * diff(c(0, fit$time[i])))
-                }))
+                }))  # each element of AUC has same length as the survival curve
 
-                overtime <- (times[col(D)]- c(0,fit$time)[1+tindex]) # t - last event time
-                auc2 <- c(0, auc)[1 + tindex]  + overtime* c(1,fit$surv)[1+tindex] # A(0, t)
+                # overtime has a row for each subject and a col for each event time
+                overtime <- (times[col(D)]- c(0,fit$time[jj])[1+tindex]) # t -last event time
+                auc2 <- c(0, auc)[1 + tindex]  + overtime* c(1,fit$surv[jj])[1+tindex] # A(0, t)
                 aterm1 <- -D * auc2
                 
                 lsum2 <- unlist(lapply(fitrow, function(i) 
                          cumsum(auc[i]*fit$n.event[i]/fit$n.risk[i]^2)))
                 aterm2 <- c(0, lsum2)[1 + pmin(yindex, tindex)]
-                aterm3 <- c(0, auc/fit$n.risk)[ifelse(add1, 1+yindex, 1)]
+                aterm3 <- c(0, auc/fit$n.risk[jj])[ifelse(add1, 1+yindex, 1)]
 
                 D <- matrix(aterm1 + aterm3 - aterm2, ncol=ntime)
             }
@@ -350,7 +358,7 @@ rsurvpart1 <- function(Y, X, casewt, times,
 
             if (type==1) D <- -D* c(0,fit$surv)[1+ tindex]
             else if (type==2) { #RMST
-                auc <- unlist(lapply(fitrow, function(i) {
+                auc <- unlist(lapply(row2, function(i) {
                     temp <- c(1, fit$surv[i])
                     cumsum(temp[-length(temp)] * diff(c(0, fit$time[i])))
                 }))
@@ -384,7 +392,7 @@ rsurvpart1 <- function(Y, X, casewt, times,
 
         if (type==1) D <- -D* c(1,fit$surv)[1+ tindex]
         else if (type==2){
-            auc <- unlist(lapply(fitrow, function(i) {
+            auc <- unlist(lapply(row2, function(i) {
                 temp <- c(1, fit$surv[i])
                 cumsum(temp[-length(temp)] * diff(c(0, fit$time[i])))
             }))
