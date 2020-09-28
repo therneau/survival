@@ -237,11 +237,9 @@ rsurvpart1 <- function(Y, X, casewt, times,
     # 
     #  Create a list whose first element contains the location of
     #   the death times in curve 1, second element for curve 2, etc.
-    #  row2 contains all the rows, censor and event
     #  
     if (is.null(fit$strata)) {
         fitrow <- list(which(etime))
-        row2 <- list(seq(along=fit$time))
     }
     else {
         temp1 <- cumsum(fit$strata)
@@ -250,8 +248,8 @@ rsurvpart1 <- function(Y, X, casewt, times,
             indx <- seq(temp2[i], temp1[i])
             indx[etime[indx]] # keep the death times
         })
-        row2 <- lapply(1:length(fit$strata), function(i) seq(temp2[i],temp1[i]))
     }
+    ff <- unlist(fitrow) 
  
     # for each time x, the index of the last death time which is <=x.
     #  0 if x is before the first death time
@@ -297,8 +295,7 @@ rsurvpart1 <- function(Y, X, casewt, times,
             lsum <- unlist(lapply(fitrow, function(i) 
                          cumsum(fit$n.event[i]/fit$n.risk[i]^2)))
 
-            jj <- unlist(fitrow)
-            term1 <- c(0, 1/fit$n.risk[jj])[ifelse(add1, 1+yindex, 1)]
+            term1 <- c(0, 1/fit$n.risk[ff])[ifelse(add1, 1+yindex, 1)]
             term2 <- c(0, lsum)[1+pmin(yindex, tindex)]
             if (ny==3) term3 <- c(0, lsum)[1 + pmin(startindex, tindex)]
 
@@ -315,36 +312,36 @@ rsurvpart1 <- function(Y, X, casewt, times,
                 }))  # each element of AUC has same length as the survival curve
 
                 # overtime has a row for each subject and a col for each event time
-                overtime <- (times[col(D)]- c(0,fit$time[jj])[1+tindex]) # t -last event time
-                auc2 <- c(0, auc)[1 + tindex]  + overtime* c(1,fit$surv[jj])[1+tindex] # A(0, t)
+                overtime <- (times[col(D)]- c(0,fit$time[ff])[1+tindex]) # t -last event time
+                auc2 <- c(0, auc)[1 + tindex]  + overtime* c(1,fit$surv[ff])[1+tindex] # A(0, t)
                 aterm1 <- -D * auc2
                 
                 lsum2 <- unlist(lapply(fitrow, function(i) 
                          cumsum(auc[i]*fit$n.event[i]/fit$n.risk[i]^2)))
                 aterm2 <- c(0, lsum2)[1 + pmin(yindex, tindex)]
-                aterm3 <- c(0, auc/fit$n.risk[jj])[ifelse(add1, 1+yindex, 1)]
+                aterm3 <- c(0, auc/fit$n.risk[ff])[ifelse(add1, 1+yindex, 1)]
 
                 D <- matrix(aterm1 + aterm3 - aterm2, ncol=ntime)
             }
         } else {
-            nevent <- fit$n.event/casewt[1]
+            nevent <- fit$n.event[ff]/casewt[1]  # the number of events, if all wts equal
             if (any(casewt != casewt[1])) {
-                # Have to reconstruct the number of obs with an event
-                temp <- lapply(seq(along=levels(X)), function(i) {
+                # Have to reconstruct the number of obs with an event, the curve only
+                # contains the weighted sum
+                nevent <- unlist(lapply(seq(along=levels(X)), function(i) {
                     keep <- which(as.numeric(X) ==i)
                     dtime <- Y[keep & status==1, ny-1]
-                    count <- table(dtime)
-                    nindx <- (fitrow[[i]])[fit$n.event[fitrow[[i]]] > 0]
-                    nevent[nindx] <- as.vector(count)
-                    })
+                    as.vector(table(dtime))
+                    }))
             }
 
-            risk2 <- fit$n.risk
-            ltemp <- fit$n.event/fit$n.risk^2
+            risk2 <- fit$n.risk[ff]
+            ntemp <- fit$n.event[ff]
+            ltemp <- ntemp/risk2^2
             for (i in which(nevent>1)) {
-                denom <- risk2[i] - fit$n.event*(0:(nevent[i]-1))/nevent[i]
+                denom <- risk2[i] - ntemp[i]*(0:(nevent[i]-1))/nevent[i] # num at risk
                 risk2[i] <- mean(1/denom) # multiplier for the event
-                ltemp[i] <- fit$n.event* mean(1/denom^2)
+                ltemp[i] <- ntemp[i]* mean(1/denom^2)
             }
 
             add1 <- (yindex >= tindex & rep(event, ntime))
