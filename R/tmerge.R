@@ -116,10 +116,10 @@ tmerge <- function(data1, data2, id, ..., tstart, tstop, options) {
         stop(paste("argument(s)", argname[is.na(check)], 
                        "not a recognized type"))
     # The tcount matrix is useful for debugging
-    tcount <- matrix(0L, length(argname), 8)
+    tcount <- matrix(0L, length(argname), 9)
     dimnames(tcount) <- list(argname, c("early","late", "gap", "within", 
                                         "boundary", "leading", "trailing",
-                                        "tied"))
+                                        "tied", "missid"))
     tevent <- attr(data1, "tevent") # event type variables
     tcens  <- attr(data1, "tcensor")# censor code for variables
     tdcvar <- attr(data1, "tdcvar")   # tdc type varaiables
@@ -151,20 +151,31 @@ tmerge <- function(data1, data2, id, ..., tstart, tstop, options) {
         if (any(duplicated(baseid))) 
             stop("for the first call (that establishes the time range) data1 must have no duplicate identifiers")
 
-        if (length(baseid)== length(id) && all(baseid == id)) newdata <- data1
-        else {  # Note: 'id' is the idlist for data 2
-            indx2 <- match(id, baseid)
-            if (any(is.na(indx2)))
-                stop("'id' has values not in data1")
-            newdata <- data1[indx2,]
-            }
-        if (missing(tstop)) { # case 2
+        if (missing(tstop)) {
             if (length(argclass)==0 || argclass[1] != "event")
                 stop("neither a tstop argument nor an initial event argument was found")
-            tstop <- args[[1]][[1]]
+            # this is case 2 -- the first time value for each obs sets the range
+            last <- !duplicated(id)
+            indx2 <- match(unique(id[last]), baseid)
+            if (any(is.na(indx2)))
+                stop("setting the range, and data2 has id values not in data1")
+            if (any(is.na(match(baseid, id))))
+                stop("setting the range, and data1 has id values not in data2")
+            newdata <- data1[indx2,]
+            tstop <- (args[[1]]$time)[last]
+        }
+        else {
+            if (length(baseid)== length(id) && all(baseid == id)) newdata <- data1
+            else {  # Note: 'id' is the idlist for data 2
+                indx2 <- match(id, baseid)
+                if (any(is.na(indx2)))
+                    stop("setting the range, and data2 has id values not in data1")
+                if (any(is.na(match(baseid, id))))
+                    stop("setting the range, and data1 has id values not in data2")
+                newdata <- data1[indx2,]
             }
-         
-        # at this point newdata and data2 are in the same order, same # rows
+        }
+          
         if (any(is.na(tstop))) 
             stop("missing time value, when that variable defines the span")
         if (missing(tstart)) {
@@ -185,13 +196,18 @@ tmerge <- function(data1, data2, id, ..., tstart, tstop, options) {
          }
         temp <- newdata[[topt$idname]]
         if (any(tstart >= tstop)) stop("tstart must be < tstop")
-        if (any(newdata$tstart[-n] > newdata$tstop[-1] &
+        if (any(newdata$tstop[-n] > newdata$tstart[-1] &
                 temp[-n] == temp[-1]))
             stop("first call has created overlapping or duplicated time intervals")
+        idmiss <- 0  # the tcount table should have a zero
     }
     else { #not a first call
-        if (any(is.na(match(id, data1[[topt$idname]]))))
-            stop("id values were found in data2 which are not in data1")
+        idmatch <- match(id, data1[[topt$idname]], nomatch=0)
+        if (any(idmatch==0)) {
+            idmiss <- sum(idmatch==0)
+            data1 <- data1[idmatch>0,]
+        }
+        else idmiss <- 0
     }
     saveid <- id
     for (ii in seq(along.with=args)) {
@@ -271,7 +287,7 @@ tmerge <- function(data1, data2, id, ..., tstart, tstop, options) {
 
         # count ties.  id and etime are not necessarily sorted
         tcount[ii,8] <- sum(tapply(etime, id, function(x) sum(duplicated(x))))
-
+        tcount[ii,9] <- idmiss
         indx4 <- which(itype==4)
         n4 <- length(indx4)
         if (n4 > 0) {

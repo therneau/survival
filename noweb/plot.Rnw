@@ -12,6 +12,13 @@ makes this routine easier to write.
 The plot, lines, and points routines use several common code blocks in order to 
 maintain consistency.
 
+The xmax argument has been a long term issue.  Using xmax on a plot call, we
+would like that xmax to persist in a subsequent lines.survfit call.  
+But, the problem with this is that lines might not be called after plot.survfit:
+someone might have other data and then want to add a survfit line to it (rare
+case I know).  If we save the xlimits in some global object, there is no way
+to erase that object every time a high level call is made.  
+
 <<plot.survfit>>=
 plot.survfit<- function(x, conf.int,  mark.time=FALSE,
 			pch=3,  col=1,lty=1, lwd=1, 
@@ -39,17 +46,13 @@ plot.survfit<- function(x, conf.int,  mark.time=FALSE,
     <<plot-functions>>
     type <- 's'
     <<plot-draw>> 
-    if (resetclip) {
-        xx <- par("usr")
-        clip(xx[1], xx[2], xx[3], xx[4])  # undo the clipping
-    }
     invisible(lastx)
 }
 
 lines.survfit <- function(x, type='s', 
                           pch=3, col=1, lty=1, lwd=1,
                           cex=1,
-                          mark.time=FALSE, 
+                          mark.time=FALSE, xmax,
                           fun,  conf.int=FALSE,  
                           conf.times, conf.cap=.005, conf.offset=.012,
                           conf.type=c('log',  'log-log',  'plain', 
@@ -63,12 +66,10 @@ lines.survfit <- function(x, type='s',
     <<plot-transform>>
     <<plot-setup-marks>>
 
-    do.clip <- getOption("plot.survfit")
-    if (!is.null(xx <- do.clip$plotclip)) clip(xx[1], xx[2], xx[3], xx[4])
-
+    # remember a prior xmax 
+    if (missing(xmax)) xmax <- getOption("plot.survfit")$xmax 
     <<plot-functions>>
     <<plot-draw>>
-    if (!is.null(xx <- do.clip$plotreset)) clip(xx[1], xx[2], xx[3], xx[4])
     invisible(lastx)
 }
 
@@ -80,9 +81,7 @@ points.survfit <- function(x, fun, censor=FALSE,
 
     <<plot-data>>
     <<plot-transform>>
-    do.clip <- options("plot.survfit")
-    if (!is.null(xx <- do.clip$plotclip)) clip(xx[1], xx[2], xx[3], xx[4])
-
+    
     if (ncurve==1 || (length(col)==1 && missing(pch))) {
         if (censor) points(stime, ssurv, ...)
         else points(stime[x$n.event>0], ssurv[x$n.event>0], ...)
@@ -108,7 +107,6 @@ points.survfit <- function(x, fun, censor=FALSE,
             }
         }
     }
-    if (!is.null(xx <- do.clip$plotreset)) clip(xx[1], xx[2], xx[3], xx[4])
 }
 @ 
 
@@ -199,7 +197,7 @@ if (cumhaz) {  # plot the cumulative hazard instead
 else if (inherits(x, "survfitms")) {
     i <- !(x$states %in% noplot)
     if (all(i) || !any(i)) {
-        # the !any is a failsafe, in case none are kept then ignore noplot
+        # the !any is a failsafe, in case none are kept we ignore noplot
         ssurv <- smat(x$pstate)
         if (!is.null(x$std.err)) std <- smat(x$std.err)
     }
@@ -210,10 +208,18 @@ else if (inherits(x, "survfitms")) {
             ssurv <- smat(x$pstate[,,i, drop=FALSE])
             if (!is.null(x$std.err))
                 std <- smat(x$std.err[,,i, drop=FALSE])
+            if (!is.null(x$lower)) {
+                slower <- smat(x$lower[,,i, drop=FALSE])
+                supper <- smat(x$upper[,,i, drop=FALSE])
+            }
         }
         else {
             ssurv <- x$pstate[,i, drop=FALSE]
             if (!is.null(x$std.err)) std <- x$std.err[,i, drop=FALSE]
+            if (!is.null(x$lower)) {
+                slower <- smat(x$lower[,i, drop=FALSE])
+                supper <- smat(x$upper[,i, drop=FALSE])
+            }
         }
     }
 }
@@ -277,12 +283,12 @@ if (conf.int) {
     else if (is.null(x$upper)) {
         if (missing(conf.type) && !is.null(x$conf.type))
             conf.type <- x$conf.type
-        temp <- survfit_confint(ssurv, x$std.err, logse= x$logse,
+        temp <- survfit_confint(ssurv, std, logse= x$logse,
                                 conf.type, conf.level, ulimit=FALSE)
         supper <- as.matrix(temp$upper)
         slower <- as.matrix(temp$lower)
     }
-    else {
+    else if (!inherits(x, "survfitms")) {
         supper <- as.matrix(x$upper)
         slower <- as.matrix(x$lower)
     }
@@ -380,14 +386,15 @@ if (!missing(ylim)) {
 }
 
 # Do axis range computations
-
 if (!missing(xlim) && !is.null(xlim)) {
     tempx <- xlim
+    xmax <- xlim[2]
     if (xaxs == 'S') tempx[2] <- tempx[1] + diff(tempx)*1.04
 }
 else {
     temp <-  stime[is.finite(stime)]
     if (!missing(xmax) && missing(xlim)) temp <- pmin(temp, xmax)
+    else xmax <- NULL
     
     if (xaxs=='S') {
         rtemp <- range(temp)
@@ -399,6 +406,9 @@ else {
     else if (xlog) tempx <- range(temp[temp > 0])
     else tempx <- range(temp)
 }  
+if (!missing(xlim) || !missing(xmax)) 
+    options(plot.survfit = list(xmax=tempx[2]))
+else options(plot.survfit = NULL)
 
 if (!missing(ylim) && !is.null(ylim)) tempy <- ylim
 else {
@@ -446,24 +456,6 @@ The use of [[par(usr)]] just above is a bit sneaky.  I want the
 lines and points routines to be able to add to the plot, \emph{without}
 passing them a global parameter that determines the y-scale or forcing
 the user to repeat it.
-
-Use clipping to get a nice limit to the plot, without having any of the lines
-touch the edge.
-<<plot-makebox>>=
-if (xaxs=='i') resetclip <- FALSE
-else resetclip <- !(missing(xlim) & missing(ylim) & 
-                    missing(xmax) & missing(firstx)& missing(ymin))
-
-if (resetclip) {
-    # yes, do it
-    #if (xaxs=='S') tempx <- c(tempx[1], temp[1])
-    ctemp <- par('usr')
-    ctemp[2] <- tempx[2]  # only be stronger on the right edge, per xmax
-    clip(ctemp[1], ctemp[2], ctemp[3], ctemp[4])
-    options(plot.survfit = list(plotclip= ctemp, plotreset=par('usr')))
-}
-else options(plot.survfit = NULL)  #remove any notes from a prior plot
-@ 
 
 The next functions do the actual drawing.
 <<plot-functions>>=
@@ -519,8 +511,6 @@ drawmark <- function(x, y, mark.time, censor, cex, ...) {
 }
 @ 
 
-The code to actually draw curves for the plot.
-
 The code to draw the lines and confidence bands.
 <<plot-draw>>=
 c1 <- 1  # keeps track of the curve number
@@ -543,6 +533,14 @@ for (j in 1:ncol(ssurv)) {
         else censor <- ifelse(x$n.censor[who]==0, 0, 1 + (x$n.event[who] > 0))
         xx <- stime[who]
         yy <- ssurv[who,j]
+        if (!is.null(xmax) && max(xx) > xmax) {  # truncate on the right
+            xn <- min(which(xx > xmax))
+            xx <- xx[1:xn]
+            yy <- yy[1:xn]
+            xx[xn] <- xmax
+            yy[xn] <- yy[xn-1]
+        }
+            
 
         if (plot.surv) {
             if (type=='s')

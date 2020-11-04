@@ -215,7 +215,7 @@ survfitKM <- function(x, y, weights=rep(1.0,length(x)),
                      cumhaz  = cfit$estimate[,2],
                      std.chaz = cfit$std[,2])
      } else {
-         strata <- sapply(cfit, function(x) nrow(x$n))
+         strata <- sapply(cfit, function(x) if (is.null(x$n)) 0L else nrow(x$n))
          names(strata) <- xlev
          # we need to collapse the curves
          rval <- list(n= as.vector(table(x)),

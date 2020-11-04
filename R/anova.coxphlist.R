@@ -6,7 +6,7 @@ anova.coxphlist <- function (object, test =  'Chisq' ,...) {
     if (!all(is.coxmodel))
         stop("All arguments must be Cox models")    
 
-    is.robust <- sapply(object, function(x) !is.null(object$rscore))
+    is.robust <- sapply(object, function(x) !is.null(x$rscore))
     if (any(is.robust)) stop("Can't do anova tables with robust variances")
     
     ties <- sapply(object, function(x) x$method)

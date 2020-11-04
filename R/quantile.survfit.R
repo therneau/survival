@@ -40,15 +40,15 @@ findq <- function(x, y, p, tol) {
     quant
     }
 
-doquant <- function(p, time, surv, upper, lower, firstx, tol) {
+doquant <- function(p, time, surv, upper, lower, firstx, scale, tol) {
     qq <- findq(c(firstx,time), c(0, 1-surv), p, tol) 
-#   browser()
-    if (missing(upper)) qq
+    if (missing(upper)) qq/scale
     else rbind(qq, findq(c(firstx, time), c(0, 1-lower), p, tol), 
-                   findq(c(firstx, time), c(0, 1-upper), p, tol))
+                   findq(c(firstx, time), c(0, 1-upper), p, tol))*(1/scale)
     }
 
-quantile.survfit <- function(x, probs=c(.25, .5, .75), conf.int=TRUE, 
+quantile.survfit <- function(x, probs=c(.25, .5, .75), conf.int=TRUE,
+                             scale, 
                              tolerance= sqrt(.Machine$double.eps), ...) {
     if (!inherits(x, "survfit")) stop("Must be a survfit object")
     if (any(!is.numeric(probs)) || any(is.na(probs)))
@@ -57,6 +57,7 @@ quantile.survfit <- function(x, probs=c(.25, .5, .75), conf.int=TRUE,
     if (is.null(x$lower)) conf.int <- FALSE
     nprob <- length(probs)
     pname <- format(probs*100)
+    if (missing(scale)) scale <- 1.0
 
     # What do we report for p=0?  Use x$start.time if it exists, 0 otherwise
     xmin <- if (is.null(x$start.time)) 0 else x$start.time
@@ -72,7 +73,7 @@ quantile.survfit <- function(x, probs=c(.25, .5, .75), conf.int=TRUE,
                 qupper <- qlower <- qmat
                 for (i in 1:ncol(x$surv)) {
                     temp <- doquant(probs, x$time, x$surv[,i], x$upper[,i],
-                                    x$lower[,i], xmin, tolerance)
+                                    x$lower[,i], xmin, scale, tolerance)
                     qmat[i,] <- temp[1,]
                     qupper[i,] <- temp[3,]
                     qlower[i,] <- temp[2,]
@@ -82,7 +83,7 @@ quantile.survfit <- function(x, probs=c(.25, .5, .75), conf.int=TRUE,
             else {
                 for (i in 1:ncol(x$surv)) 
                     qmat[i,] <- doquant(probs, x$time, x$surv[,i], firstx=xmin,
-                                        tol=tolerance)
+                                        scale=scale, tol=tolerance)
                 return(qmat)
             }
         }
@@ -90,13 +91,13 @@ quantile.survfit <- function(x, probs=c(.25, .5, .75), conf.int=TRUE,
             # No strata and no matrix
             if (conf.int) {
                 temp <- doquant(probs, x$time, x$surv, x$upper, x$lower, xmin,
-                                tolerance)
+                                scale=scale, tolerance)
                 dimnames(temp) <- list(NULL, pname)
                 return(list(quantile=temp[1,], lower=temp[2,], upper=temp[3,]))
             }
             else {
                 temp <- doquant(probs, x$time, x$surv, firstx=xmin, 
-                                tol =tolerance)
+                                scale= scale, tol =tolerance)
                 names(temp) <- pname
                 return(temp)
             }
@@ -117,7 +118,8 @@ quantile.survfit <- function(x, probs=c(.25, .5, .75), conf.int=TRUE,
                     z <- x[strat, ]
                     for (i in 1:ncol(z$surv)) {
                         temp <- doquant(probs, z$time, z$surv[,i], 
-                                        z$upper[,i], z$lower[,i], xmin,tolerance)
+                                        z$upper[,i], z$lower[,i], xmin,
+                                        scale=scale, tolerance)
                         qmat[strat,i,] <- temp[1,]
                         qupper[strat,i,] <- temp[3,]
                         qlower[strat,i,] <- temp[2,]
@@ -130,7 +132,8 @@ quantile.survfit <- function(x, probs=c(.25, .5, .75), conf.int=TRUE,
                     z <- x[strat, ]
                     for (i in 1:ncol(z$surv)) 
                         qmat[strat,i,] <- doquant(probs, z$time, z$surv[,i],
-                                                  firstx=xmin, tol=tolerance)
+                                                  firstx=xmin, scale= scale, 
+                                                  tol=tolerance)
                 }
                 return(qmat)
             }
@@ -144,7 +147,7 @@ quantile.survfit <- function(x, probs=c(.25, .5, .75), conf.int=TRUE,
                 for (i in 1:nstrat) {
                     z <- x[i]
                     temp <- doquant(probs, z$time, z$surv, z$upper, z$lower,
-                                    xmin, tolerance)
+                                    xmin, scale, tolerance)
                     qmat[i,] <- temp[1,]
                     qupper[i,] <- temp[3,]
                     qlower[i,] <- temp[2,]
@@ -155,7 +158,7 @@ quantile.survfit <- function(x, probs=c(.25, .5, .75), conf.int=TRUE,
                 for (i in 1:nstrat) {
                     z <- x[i]
                     qmat[i,] <- doquant(probs, z$time, z$surv, firstx=xmin,
-                                        tol = tolerance)
+                                        scale=scale, tol = tolerance)
                 }
                 return(qmat)
             }
@@ -168,7 +171,7 @@ quantile.survfit <- function(x, probs=c(.25, .5, .75), conf.int=TRUE,
 #  object doesn't work out for that operation.  But more importantly,
 #  I don't know how a quantile would be defined.
 #
-quantile.survfitms <- function(x, probs=c(.25, .5, .75), conf.int=TRUE, 
+quantile.survfitms <- function(x, probs=c(.25, .5, .75), conf.int=TRUE, scale,
                                tolerance= sqrt(.Machine$double.eps), ...) {
     stop("quantiles are not a well defined quantity for multi-state models")
 }

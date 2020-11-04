@@ -1973,7 +1973,8 @@ alcohol consumption or certain medications, and absence of other
 liver disease \cite{Puri12}.
 NAFLD is currently responsible for almost 1/3 of
 liver transplants and it's impact is growing, it is expected to be a major
-driver of hepatology practice in the coming decade \cite{Tapper18}.
+driver of hepatology practice in the coming decade \cite{Tapper18},
+driven at least in part by the growing obesity epidemic.
 The \code{nafld} data set includes all patients with a NAFLD 
 diagnosis in Olmsted County,
 Minnesota between 1997 to 2014 along with up to four age and sex matched 

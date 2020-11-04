@@ -160,7 +160,12 @@ survcheck2 <- function(y, id, istate=NULL, istate0="(s0)") {
     tab1 <- table(id, factor(y[,ncol(y)], 0:length(ystate)))[,-1, drop=FALSE]
     tab1 <- cbind(tab1, rowSums(tab1))
     tab1.levels <- sort(unique(c(tab1)))  #unique counts
-    events <- apply(tab1, 2, function(x) table(factor(x, tab1.levels)))
+    if (length(tab1.levels) ==1) {
+        # In this special case the table command does not give a matrix
+        #  A data set with no events falls here, for instance
+        events <- matrix(tab1.levels, nrow=1, ncol= (1 + length(ystate)))
+    }
+    else events <- apply(tab1, 2, function(x) table(factor(x, tab1.levels)))
     dimnames(events) = list("count"= tab1.levels,
                                 "state"= c(ystate, "(any)"))
     # remove columns with no visits

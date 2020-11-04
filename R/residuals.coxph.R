@@ -1,8 +1,8 @@
 residuals.coxph <-
   function(object, type=c("martingale", "deviance", "score", "schoenfeld",
 			  "dfbeta", "dfbetas", "scaledsch","partial"),
-	    collapse=FALSE, weighted=(type %in% c("dfbeta", "dfbetas")), ...)
-    {
+	    collapse=FALSE, weighted=(type %in% c("dfbeta", "dfbetas")), ...) {
+      
     type <- match.arg(type)
     otype <- type
     if (type=='dfbeta' || type=='dfbetas') {
@@ -10,7 +10,7 @@ residuals.coxph <-
 	type <- 'score'
 	if (missing(weighted))
             weighted <- TRUE  # different default for this case
-	}
+    }
     if (type=='scaledsch') type<-'schoenfeld'
 
     n <- length(object$residuals)
@@ -39,7 +39,7 @@ residuals.coxph <-
 	    y <- temp$y
 	    x <- temp$x
 	    if (length(strats)) strat <- temp$strata
-	    }
+        }
 
 	ny <- ncol(y)
 	status <- y[,ny,drop=TRUE]
@@ -50,19 +50,19 @@ residuals.coxph <-
 	    if (is.null(strat)) {
 		ord <- order(y[,ny-1], -status)
 		newstrat <- rep(0,n)
-		}
+            }
 	    else {
 		ord <- order(nstrat, y[,ny-1], -status)
 		newstrat <- c(diff(as.numeric(nstrat[ord]))!=0 ,1)
-		}
+            }
 	    newstrat[n] <- 1
 
 	    # sort the data
 	    x <- x[ord,]
 	    y <- y[ord,]
 	    score <- exp(object$linear.predictors)[ord]
-	    }
-	}
+        }
+    }
 
     #
     # Now I have gotton the data that I need-- do the work
@@ -72,7 +72,7 @@ residuals.coxph <-
  	    mintime <- min(y[,1])
  	    if (mintime < 0) y <- cbind(2*mintime -1, y)
  	    else             y <- cbind(-1,y)
- 	    }
+        }
 	temp <- .C(Ccoxscho, n=as.integer(n),
 			    as.integer(nvar),
 			    as.double(y),
@@ -97,10 +97,14 @@ residuals.coxph <-
 	    ndead <- sum(deaths)
 	    coef <- ifelse(is.na(object$coefficients), 0, object$coefficients)
             if (nvar==1) rr <- rr * vv * ndead + coef
-	    else rr <- drop(rr %*% vv *ndead + rep(coef, each=nrow(rr)))
-	    }
+	    else {
+                cname <- colnames(rr)  # preserve column names
+                rr <- drop(rr %*% vv *ndead + rep(coef, each=nrow(rr)))
+                colnames(rr) <- cname
+            }
+        }
 	return(rr)
-	}
+    }   
 
     if (type=='score') {
         storage.mode(y) <- storage.mode(x) <- "double"
@@ -114,7 +118,7 @@ residuals.coxph <-
                            score,
                            weights[ord],
                            as.integer(method=='efron'))
-	    }
+        }
 	else {
 	    resid<- .Call(Cagscore2,
                            y, 
@@ -123,25 +127,25 @@ residuals.coxph <-
                            score,
                            weights[ord],
                            as.integer(method=='efron'))
-	    }
-
+        }
+        
 	if (nvar >1) {
 	    rr <- matrix(0, n, nvar)
 	    rr[ord,] <- resid
 	    dimnames(rr) <- list(names(object$residuals), 
 				 names(object$coefficients))
-	    }
+        }
 	else rr[ord] <- resid
 
 	if      (otype=='dfbeta') {
 	    if (is.matrix(rr)) rr <- rr %*% vv
 	    else               rr <- rr * vv
-	    }
+        }
 	else if (otype=='dfbetas') {
 	    if (is.matrix(rr))  rr <- (rr %*% vv) %*% diag(sqrt(1/diag(vv)))
 	    else                rr <- rr * sqrt(vv)
-	    }
-	}
+        }
+    }
     
     #
     # Multiply up by case weights (which will be 1 for unweighted)
@@ -154,26 +158,46 @@ residuals.coxph <-
    	if (is.matrix(rr)) n <- nrow(rr)
 	else               n <- length(rr)
 	if (type=='deviance') status <- naresid(object$na.action, status)
-	}
+    }
     
     if (type=="partial"){
 	# This needs to be done after the naresid expansion, since the
 	#   predict function will have done naresid expansion, so that
 	#   the lengths match
         rr <- rr + predict(object,type="terms")
-        }
+    }
 
     # Collapse if desired
     if (!missing(collapse)) {
 	if (length(collapse) !=n) stop("Wrong length for 'collapse'")
 	rr <- drop(rowsum(rr, collapse))
   	if (type=='deviance') status <- drop(rowsum(status, collapse))
-	}
+    }
 
     # Deviance residuals are computed after collapsing occurs
     if (type=='deviance')
 	sign(rr) *sqrt(-2* (rr+
 			      ifelse(status==0, 0, status*log(status-rr))))
     else rr
-    }
+}
     
+
+# Much of this may be folded directly into residuals.coxph, later
+
+residuals.coxphms <- function(object, type=c("martingale","score",
+                                             "schoenfeld",
+			  "dfbeta", "dfbetas", "scaledsch"),
+                          collapse=FALSE, weighted=FALSE, ...) {
+    type <- match.arg(type)
+    # Do I need to reconscruct the data frame?  This routine is not yet done
+    #  for that case
+    y <- object$y
+    x <- object[['x']]  # avoid matching object$xlevels
+
+    if (type != "martingale" && (is.null(y) || is.null(x))) {
+        # we need to reconstruct Y and X both
+        stop("residuals method for multistate coxph objects is incomplete")
+    }       
+    else NextMethod()
+}
+

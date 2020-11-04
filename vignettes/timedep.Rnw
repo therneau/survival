@@ -364,7 +364,7 @@ more bit of information to the data set.
     This first result has \Sexpr{nrow(cgd0)} rows, the same number as
     \code{cgd0}.
   \item Each additional call then adds either an endpoint or a covariate,
-    splitting individual rows of the input in two as necessary.
+    splitting individual rows of the input into two as necessary.
     An \code{event} or \code{cumevent} directive adds events, while
     a \code{tdc} or \code{cumtdc} command adds a time dependent covariate.
     Events happen at the ends of intervals and time-dependent covariates 
@@ -380,16 +380,18 @@ more bit of information to the data set.
     An event at
     time 3 is within an interval, one at 5 is on the border of two
     intervals, one at 14 is at the leading edge of an interval, one at
-    time 10 in on the trailing edge and at time 11 is in a gap.
+    time 10 in on the trailing edge, and one at time 11 is in a gap.
     In this data set all new additions fell strictly within prior intervals.
     We also see that etime6 and etime7 each added only a single event to 
-    the data.
+    the data.  Only one subject had more than 5 infections.
   \item If two observations in data2 for a single person share exactly
     the same time, the created value will be the later contribution for
     tdc() or event() calls, cumtdc() and cumevent() will add.
     The ``tied'' column tells how often this happened; in some
     data sets this behavior might not be desired and one would need to
     break the ties before calling tmerge.
+  \item If there are observations in \code{data2} that do not match any
+    of the identifiers in \code{data1} they count in the `missid' column.
   \item The last tmerge call adds a
     simple time-dependent variable \code{enum} which is a running observation
     count for each subject.  This can often be a useful variable in later
@@ -397,9 +399,11 @@ more bit of information to the data set.
     for each subject.
   \item The extra attributes of the data frame are ephemeral: they will be
     lost as soon as any further manipulation is done.  This is intentional.
+    The reason is that these may be invalid if, for instance, a subset of
+    the data was selected.
   \item One can verify that the resulting data set is equivalent to
     \code{cgd}, a (start, stop] version of the CGD data in the
-    survival library which had been created by hand several years earlier.
+    survival library, which had been created by hand several years earlier.
 \end{itemize}
 
 The \code{tmerge} function processes arguments sequentially, and the 

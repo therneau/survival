@@ -132,6 +132,10 @@ survfit.formula <- function(formula, data, weights, subset,
         stop("unrecognized survival type")
     }
 
+    # If a stratum had no one beyond start.time, the length 0 gives downstream
+    #  failure, e.g., there is no sensible printout for summary(fit, time= 100)
+    #  for such a curve
+    temp$strata <- temp$strata[temp$strata >0]  
     if (is.null(temp$states)) class(temp) <- 'survfit'
     else class(temp) <- c("survfitms", "survfit")
 

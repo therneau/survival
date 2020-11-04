@@ -1,37 +1,77 @@
 \section{Matrix exponentials and transition matrices}
 For multi-state models, we need to compute the exponential of the transition
 matrix, sometimes many times.
-The matrix exponential is a hard problem, formally defined as
+The matrix exponentual is formally defined as
 \begin{equation*}
   \exp(R) = I + \sum_{j=1}^\infty R^i/i!
   \end{equation*}
 The computation is nicely solved by the expm package
 \emph{if} we didn't need derivatives and/or high speed.  
 We want both.
-The key idea is from a paper by Kalbfleisch and Lawless: if the rate matrix
-$R$ has distinct eigenvalues then $\exp(R)$ and its derivative can be written
-in terms of a matrix decomposition.  
-If $R$ is upper triangular this decompostion is itself very easy to compute.
-If the transition matrix is acylic then it can be rearranged to be in upper
-triangular form.  
-As importantly, the decomposition leads to a simple computation for the
-first derivative of each element.
 
+For the package there are three cases:
+\begin{enumerate}
+  \item If there is only one departure state, then there is a fast closed
+    form solution, shown below.  This case occurs whenever an event time
+    is unique, i.e., no other event times are tied with this one.
+  \item If the rate matrix $R$ is upper triangular and the (non-zero) diagonal
+    elements are distinct, there is a fast matrix decomposition algorithm.
+    If the transition matrix is acylic then it can be rearranged to be in upper
+    triangular form.  The decomposition also gives a simple expression for
+    the derivative.
+  \item In the general case we use a Pade-Laplace algorithm: the same found 
+    in the matexp package.
+\end{enumerate}
+
+For a rate matrix $R$, $R_{jk}$ is the rate of transition from state $j$ to
+state $k$, and is itself an exponential $R_{jk} = \exp(\eta_{jk})$.
+Thus all non-diagonal values must be $/ge 0$.  Transitions that do not occur
+have rate 0. 
+The diagonal element is determined by the constraint that row sums are 0.
+Let $A= \exp(R)$.
 Also be aware that $\exp(A)\exp(B) \ne \exp(A+B)$ for the case of matrices.
 
-Nearly all the rate matrices encountered during an iteration will have
-distint eigenvalues.
-For the few which do not we can use the Pade' approximation found in the
+If there is only one non-zero diagonal element, $R_{jj}$ say, then
+\begin{align*} {
+    A_{jj} &= e^{R_{jj}} \\
+    A_{jk} &= left(1- e^{R_{jj}}\right) \frac{R_{jk}}/{\sum_{l\ne j} R_{jl}}
+    A_{kk} &= 1; k\ne j \\
+\end{align*}
+and all other elements of $A$ are zero.
+The derivative of $A$ with respect to $\eta_{jk}$ will be 0 for all rows
+except row $j$.
+\begin{align*} 
+  \frac{\partial A_{jj}}{\partial \eta_{jk}} &= 
+    \frac{\partial \exp(-\sum_{k!=j} \eta_{jk})}{\partial \eta_{jk}}  \\
+    &= -\eta_{jk} A_{jj} \\
+  \frac{\partial A_{jk}{\partial \eta_{jk}} &= eta_{jk}A_{jj} 
+     \;\mbox{single event type} \\
+    \frac{\partial A_{jk}{\partial \eta_{jm}}&=  
+      A_{jj} eta_{jm}\frac{R_{jm}{\sum_{l\ne j} R_{jl}} +
+      (A_{jj} -1) \frac{\eta_{jm} (1- \sum_{l\ne j} R_{jl})}{(\sum_{l\ne j} R_{jl})^2}
+        \\
+\end{align}
+If time is continuous then most events will be at a unique event time, and this
+fast computation will be the most common case.
+    
+If the state space is acylic, the case for many survival problems, then
+we can reorder the states so that R is upper triangular.
+In that case, the diagonal elements of R are the eigenvalues.  If these
+are unique (ignoring the zeros), then an algorithm of Kalbfleisch and Lawless
+gives both A and the derivatives of A in terms of a matrix decomposition.
+For the remaining cases use the Pade' approximation as found in the
 matexp package.
-If the rate matrix is upper triangular (\code{uppertri}), then the
-eigenvalues are found on the diagonal of $R$.  
 The overall stategy is the following:
 \begin{enumerate} 
   \item Call \code{survexpmsetup} once, which will decide if the matrix is
     acyclic, and return a reorder vector if so or a flag if it is not.
-  \item Call \code{survexpm} multiple times.  For that routine
+    This determination is based on the possible transitions, e.g., on the
+    transitions matrix from survcheck.
+  \item Call \code{survexpm} for each individual transition matrix.
+    In that routine
     \begin{itemize}
-      \item Do not need derivatives: call survexpm or pade as appropriate
+      \item First check for the simple case, otherwise
+      \item Do not need derivatives: call survexpm
       \item Do need derivatives
         \begin{itemize}
           \item If upper triangular and no tied values, use the deriv routine
@@ -67,8 +107,9 @@ Based on Kalbfleisch and Lawless, ``The analysis of panel data under a
 Markov assumption'' (J Am Stat Assoc, 1985:863-871), the
 rate matrix $R$ can be written as $ADA^{-1}$ for some matrix $A$, where
 $D$ is a diagonal matrix of eigenvalues, provided all of the eigenvalues
-are distinct.
-Then $\exp(R) = A \exp(D) A^{-1}$, and the exponential of a diagonal
+are distinct.  Then $R^k = A D^k A^{-1}$, and using the definition of
+a matrix exponential we see that
+$\exp(R) = A \exp(D) A^{-1}$.  The exponential of a diagonal
 matrix is simply a diagonal matrix of the exponentials.
 The matrix $Rt$ for a scalar $t$ has decomposition $A\exp(Dt)A^{-1}$; a
 single decompostion suffices for all values of $t$.
@@ -103,7 +144,7 @@ We want the eigenvectors, i.e. solutions to
 \end{align*}
 for $i= 1, \dots, 6$, where $v_i$ are the colums of $V$. 
 
-A sneaky fact is that the set of eigenvectors is
+It turns out that the set of eigenvectors is
 also upper triangular; we can solve for them one by one
 using back substitution.
 For the first eigenvector we have 
@@ -130,15 +171,27 @@ at least for small matrices without deriviatives.
 
 <<survexpm>>=
 survexpm <- function(rmat, time=1.0, setup, eps=1e-6) {
+    # rmat is a transition matrix, so the diagonal elements are 0 or negative
     if (length(rmat)==1) exp(rmat[1]*time)
-    else if (missing(setup) || setup[1] < 0 ||
-        any(diff(sort(diag(rmat)))< eps)) pade(rmat*time)
     else {
-        if (setup[1]==0) .Call(Ccdecomp, rmat, time)$P
+        nonzero <- (diag(rmat) != 0)
+        if (sum(nonzero) ==1) {
+            j <- which(nonzero)
+            emat <- matrix(0.0, length(nonzero), length(nonzero))
+            temp <- exp(rmat[j,j] * time)
+            emat[j,j] <- temp
+            emat[j, -j] <- (1-temp)* emat[j, -j]/sum(emat[j,-j])
+            emat
+        }
+        else if (missing(setup) || setup[1] < 0 ||
+                 any(diff(sort(diag(rmat)))< eps)) pade(rmat*time)
         else {
-            temp <- rmat
-            temp[setup, setup] <- .Call(Ccdecomp, rmat[setup, setup], time)
-            temp$P
+            if (setup[1]==0) .Call(Ccdecomp, rmat, time)$P
+            else {
+                temp <- rmat
+                temp[setup, setup] <- .Call(Ccdecomp, rmat[setup, setup], time)
+                temp$P
+            }
         }
     }
 }
@@ -201,11 +254,13 @@ SEXP cdecomp(SEXP R2, SEXP time2) {
     for (i=0; i<nc; i++) { /* computations for column i */
 	dd[i] = R[i +ii];    /* the i,i diagonal element = eigenvalue*/
 	A[i +ii] = 1.0;
-	for (j=(i-1); j >=0; j--) {  /* fill in the rest */
-	    temp =0;
-	    for (k=j; k<=i; k++) temp += R[j + k*nc]* A[k +ii];
-	    A[j +ii] = temp/(dd[i]- R[j + j*nc]);
-	}
+        if (dd[i] !=0) {
+            for (j=(i-1); j >=0; j--) {  /* fill in the rest */
+                temp =0;
+                for (k=j; k<=i; k++) temp += R[j + k*nc]* A[k +ii];
+                A[j +ii] = temp/(dd[i]- R[j + j*nc]);
+            }
+        }
 	ii += nc;
     }
     
@@ -289,7 +344,7 @@ Since the rows of R sum to a constant then the rows of
 its derivative must sum to zero;
 we can fill in the diagonal element after the off diagonal ones are computed.
 This notation has left something out: there is a separate $\eta$ vector
-for each of the non-zero transitions, there is a matrix
+for each of the non-zero transitions, giving a matrix
 of derivatives ($P$ is a matrix after all) for each $\beta_j$.
 
 This computation is more bookkeeping than the earlier one, but no

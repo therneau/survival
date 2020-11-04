@@ -1,5 +1,24 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 3.2-8}{
+  \itemize{
+    \item In tmerge, if data2 contains identifiers not found in data1
+    these rows are now counted in the "missid" column of the tcount
+    attribute, rather than treated as an error.
+    \item In a survfit() call with the start.time option, if one curve
+    had no subjects past the start time the dim of the result was wrong,
+    leading to multiple downstream failures.
+    \item Add a scale argument to quantile.survfit.
+    \item Revert a change to plot.survfit, which was the use of clip() to
+    keep lines away from the right margin.  This had some unforseen downstream
+    consequences, e.g., later addition of a legend.
+    \item Minor fix to survcheck: if the events table had only 1 row the
+    matrix property was lost. Pointed out by Oleguer Plana-Ripoll.
+    \item Error in plot.survfit: the noplot argument had been overlooked
+    for the confidence intervals, and the wrong interval could be matched to
+    each curve.
+}}
+
 \section{Changes in version 3.2-7}{
   \itemize{
     \item Fix one URL, revealed by the CRAN submission.

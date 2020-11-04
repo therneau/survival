@@ -99,7 +99,7 @@ plot.survfit<- function(x, conf.int,  mark.time=FALSE,
     else if (inherits(x, "survfitms")) {
         i <- !(x$states %in% noplot)
         if (all(i) || !any(i)) {
-            # the !any is a failsafe, in case none are kept then ignore noplot
+            # the !any is a failsafe, in case none are kept we ignore noplot
             ssurv <- smat(x$pstate)
             if (!is.null(x$std.err)) std <- smat(x$std.err)
         }
@@ -110,10 +110,18 @@ plot.survfit<- function(x, conf.int,  mark.time=FALSE,
                 ssurv <- smat(x$pstate[,,i, drop=FALSE])
                 if (!is.null(x$std.err))
                     std <- smat(x$std.err[,,i, drop=FALSE])
+                if (!is.null(x$lower)) {
+                    slower <- smat(x$lower[,,i, drop=FALSE])
+                    supper <- smat(x$upper[,,i, drop=FALSE])
+                }
             }
             else {
                 ssurv <- x$pstate[,i, drop=FALSE]
                 if (!is.null(x$std.err)) std <- x$std.err[,i, drop=FALSE]
+                if (!is.null(x$lower)) {
+                    slower <- smat(x$lower[,i, drop=FALSE])
+                    supper <- smat(x$upper[,i, drop=FALSE])
+                }
             }
         }
     }
@@ -171,12 +179,12 @@ plot.survfit<- function(x, conf.int,  mark.time=FALSE,
         else if (is.null(x$upper)) {
             if (missing(conf.type) && !is.null(x$conf.type))
                 conf.type <- x$conf.type
-            temp <- survfit_confint(ssurv, x$std.err, logse= x$logse,
+            temp <- survfit_confint(ssurv, std, logse= x$logse,
                                     conf.type, conf.level, ulimit=FALSE)
             supper <- as.matrix(temp$upper)
             slower <- as.matrix(temp$lower)
         }
-        else {
+        else if (!inherits(x, "survfitms")) {
             supper <- as.matrix(x$upper)
             slower <- as.matrix(x$lower)
         }
@@ -255,14 +263,15 @@ plot.survfit<- function(x, conf.int,  mark.time=FALSE,
     }
 
     # Do axis range computations
-
     if (!missing(xlim) && !is.null(xlim)) {
         tempx <- xlim
+        xmax <- xlim[2]
         if (xaxs == 'S') tempx[2] <- tempx[1] + diff(tempx)*1.04
     }
     else {
         temp <-  stime[is.finite(stime)]
         if (!missing(xmax) && missing(xlim)) temp <- pmin(temp, xmax)
+        else xmax <- NULL
         
         if (xaxs=='S') {
             rtemp <- range(temp)
@@ -274,6 +283,9 @@ plot.survfit<- function(x, conf.int,  mark.time=FALSE,
         else if (xlog) tempx <- range(temp[temp > 0])
         else tempx <- range(temp)
     }  
+    if (!missing(xlim) || !missing(xmax)) 
+        options(plot.survfit = list(xmax=tempx[2]))
+    else options(plot.survfit = NULL)
 
     if (!missing(ylim) && !is.null(ylim)) tempy <- ylim
     else {
@@ -316,19 +328,6 @@ plot.survfit<- function(x, conf.int,  mark.time=FALSE,
         if (xlog) par(usr =par("usr") -c(log10(xscale), log10(xscale), 0,0)) 
         else par(usr =par("usr")*c(xscale, xscale, 1, 1))   
     }  
-    if (xaxs=='i') resetclip <- FALSE
-    else resetclip <- !(missing(xlim) & missing(ylim) & 
-                        missing(xmax) & missing(firstx)& missing(ymin))
-
-    if (resetclip) {
-        # yes, do it
-        #if (xaxs=='S') tempx <- c(tempx[1], temp[1])
-        ctemp <- par('usr')
-        ctemp[2] <- tempx[2]  # only be stronger on the right edge, per xmax
-        clip(ctemp[1], ctemp[2], ctemp[3], ctemp[4])
-        options(plot.survfit = list(plotclip= ctemp, plotreset=par('usr')))
-    }
-    else options(plot.survfit = NULL)  #remove any notes from a prior plot
     # Create a step function, removing redundancies that sometimes occur in
     #  curves with lots of censoring.
     dostep <- function(x,y) {
@@ -400,6 +399,14 @@ plot.survfit<- function(x, conf.int,  mark.time=FALSE,
             else censor <- ifelse(x$n.censor[who]==0, 0, 1 + (x$n.event[who] > 0))
             xx <- stime[who]
             yy <- ssurv[who,j]
+            if (!is.null(xmax) && max(xx) > xmax) {  # truncate on the right
+                xn <- min(which(xx > xmax))
+                xx <- xx[1:xn]
+                yy <- yy[1:xn]
+                xx[xn] <- xmax
+                yy[xn] <- yy[xn-1]
+            }
+                
 
             if (plot.surv) {
                 if (type=='s')
@@ -454,17 +461,13 @@ plot.survfit<- function(x, conf.int,  mark.time=FALSE,
         }
     }
     lastx <- list(x=xend, y=yend)
-    if (resetclip) {
-        xx <- par("usr")
-        clip(xx[1], xx[2], xx[3], xx[4])  # undo the clipping
-    }
     invisible(lastx)
 }
 
 lines.survfit <- function(x, type='s', 
                           pch=3, col=1, lty=1, lwd=1,
                           cex=1,
-                          mark.time=FALSE, 
+                          mark.time=FALSE, xmax,
                           fun,  conf.int=FALSE,  
                           conf.times, conf.cap=.005, conf.offset=.012,
                           conf.type=c('log',  'log-log',  'plain', 
@@ -533,7 +536,7 @@ lines.survfit <- function(x, type='s',
     else if (inherits(x, "survfitms")) {
         i <- !(x$states %in% noplot)
         if (all(i) || !any(i)) {
-            # the !any is a failsafe, in case none are kept then ignore noplot
+            # the !any is a failsafe, in case none are kept we ignore noplot
             ssurv <- smat(x$pstate)
             if (!is.null(x$std.err)) std <- smat(x$std.err)
         }
@@ -544,10 +547,18 @@ lines.survfit <- function(x, type='s',
                 ssurv <- smat(x$pstate[,,i, drop=FALSE])
                 if (!is.null(x$std.err))
                     std <- smat(x$std.err[,,i, drop=FALSE])
+                if (!is.null(x$lower)) {
+                    slower <- smat(x$lower[,,i, drop=FALSE])
+                    supper <- smat(x$upper[,,i, drop=FALSE])
+                }
             }
             else {
                 ssurv <- x$pstate[,i, drop=FALSE]
                 if (!is.null(x$std.err)) std <- x$std.err[,i, drop=FALSE]
+                if (!is.null(x$lower)) {
+                    slower <- smat(x$lower[,i, drop=FALSE])
+                    supper <- smat(x$upper[,i, drop=FALSE])
+                }
             }
         }
     }
@@ -605,12 +616,12 @@ lines.survfit <- function(x, type='s',
         else if (is.null(x$upper)) {
             if (missing(conf.type) && !is.null(x$conf.type))
                 conf.type <- x$conf.type
-            temp <- survfit_confint(ssurv, x$std.err, logse= x$logse,
+            temp <- survfit_confint(ssurv, std, logse= x$logse,
                                     conf.type, conf.level, ulimit=FALSE)
             supper <- as.matrix(temp$upper)
             slower <- as.matrix(temp$lower)
         }
-        else {
+        else if (!inherits(x, "survfitms")) {
             supper <- as.matrix(x$upper)
             slower <- as.matrix(x$lower)
         }
@@ -680,9 +691,8 @@ lines.survfit <- function(x, type='s',
         lwd  <- rep(lwd, length.out=ncurve)
     }
 
-    do.clip <- getOption("plot.survfit")
-    if (!is.null(xx <- do.clip$plotclip)) clip(xx[1], xx[2], xx[3], xx[4])
-
+    # remember a prior xmax 
+    if (missing(xmax)) xmax <- getOption("plot.survfit")$xmax 
     # Create a step function, removing redundancies that sometimes occur in
     #  curves with lots of censoring.
     dostep <- function(x,y) {
@@ -753,6 +763,14 @@ lines.survfit <- function(x, type='s',
             else censor <- ifelse(x$n.censor[who]==0, 0, 1 + (x$n.event[who] > 0))
             xx <- stime[who]
             yy <- ssurv[who,j]
+            if (!is.null(xmax) && max(xx) > xmax) {  # truncate on the right
+                xn <- min(which(xx > xmax))
+                xx <- xx[1:xn]
+                yy <- yy[1:xn]
+                xx[xn] <- xmax
+                yy[xn] <- yy[xn-1]
+            }
+                
 
             if (plot.surv) {
                 if (type=='s')
@@ -807,7 +825,6 @@ lines.survfit <- function(x, type='s',
         }
     }
     lastx <- list(x=xend, y=yend)
-    if (!is.null(xx <- do.clip$plotreset)) clip(xx[1], xx[2], xx[3], xx[4])
     invisible(lastx)
 }
 
@@ -877,7 +894,7 @@ points.survfit <- function(x, fun, censor=FALSE,
     else if (inherits(x, "survfitms")) {
         i <- !(x$states %in% noplot)
         if (all(i) || !any(i)) {
-            # the !any is a failsafe, in case none are kept then ignore noplot
+            # the !any is a failsafe, in case none are kept we ignore noplot
             ssurv <- smat(x$pstate)
             if (!is.null(x$std.err)) std <- smat(x$std.err)
         }
@@ -888,10 +905,18 @@ points.survfit <- function(x, fun, censor=FALSE,
                 ssurv <- smat(x$pstate[,,i, drop=FALSE])
                 if (!is.null(x$std.err))
                     std <- smat(x$std.err[,,i, drop=FALSE])
+                if (!is.null(x$lower)) {
+                    slower <- smat(x$lower[,,i, drop=FALSE])
+                    supper <- smat(x$upper[,,i, drop=FALSE])
+                }
             }
             else {
                 ssurv <- x$pstate[,i, drop=FALSE]
                 if (!is.null(x$std.err)) std <- x$std.err[,i, drop=FALSE]
+                if (!is.null(x$lower)) {
+                    slower <- smat(x$lower[,i, drop=FALSE])
+                    supper <- smat(x$upper[,i, drop=FALSE])
+                }
             }
         }
     }
@@ -956,9 +981,7 @@ points.survfit <- function(x, fun, censor=FALSE,
             slower <- tfun(slower)
         }
     }
-    do.clip <- options("plot.survfit")
-    if (!is.null(xx <- do.clip$plotclip)) clip(xx[1], xx[2], xx[3], xx[4])
-
+    
     if (ncurve==1 || (length(col)==1 && missing(pch))) {
         if (censor) points(stime, ssurv, ...)
         else points(stime[x$n.event>0], ssurv[x$n.event>0], ...)
@@ -984,5 +1007,4 @@ points.survfit <- function(x, fun, censor=FALSE,
             }
         }
     }
-    if (!is.null(xx <- do.clip$plotreset)) clip(xx[1], xx[2], xx[3], xx[4])
 }

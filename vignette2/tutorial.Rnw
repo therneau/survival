@@ -59,10 +59,8 @@ The second data set is from the European Blood and Marrow Transplant
 to relapse or death, with platelet recovery as an intermediate state.
 
 <<inital>>=
-require(mstate, quietly = TRUE)
-data(aidssi)  # AIDS data set
-data(ebmt3)   # transplant data set
-detach("package:mstate")  # the package is not needed for the remainder
+data(aidssi, package="mstate")  # AIDS data set
+data(ebmt3, package="mstate")   # transplant data set
 @
 
 \section{AID data set, competing risk}
@@ -86,16 +84,14 @@ This allows us to specify not just \emph{that} an event occured, but
 \emph{what type} of event.
 
 <<aids1, fig=TRUE>>=
-adata <- aidssi
-adata$event <- factor(adata$status, 0:2, c("censored", "AIDS", "SI"))
-adata$id <- 1:nrow(adata)   # a subject identifier
+aidssi$event <- factor(aidssi$status, 0:2, c("censored", "AIDS", "SI"))
 
 # KM curves that censor the other endpoint (a bad idea)
-bad1 <- survfit(Surv(time, event=="AIDS") ~ 1, adata)
-bad2 <- survfit(Surv(time, event=="SI") ~1, adata)
+bad1 <- survfit(Surv(time, event=="AIDS") ~ 1, aidssi)
+bad2 <- survfit(Surv(time, event=="SI") ~1, aidssi)
 
 # The correct Aalen-Johansen curves
-ajfit <- survfit(Surv(time, event) ~1, adata)
+ajfit <- survfit(Surv(time, event) ~1, aidssi)
 ajfit$transitions
 plot(ajfit, xmax=13, col=1:2, lwd=2,
      xlab="Years from HIV infection", ylab="Probability in state")
@@ -204,13 +200,13 @@ followed by indiviual models for the two rates, each of treats the
 other endpoint as censored. 
 
 <<cfit>>=
-cfit0 <- coxph(Surv(time, event) ~ ccr5, adata, id=patnr)
+cfit0 <- coxph(Surv(time, event) ~ ccr5, aidssi, id=patnr)
 print(cfit0, digits=2)
 
-cfit1 <- coxph(Surv(time, event=="AIDS") ~ ccr5, adata)
+cfit1 <- coxph(Surv(time, event=="AIDS") ~ ccr5, aidssi)
 print(cfit1, digits=2)
 
-cfit2 <- coxph(Surv(time, event=="SI") ~ ccr5, adata)
+cfit2 <- coxph(Surv(time, event=="SI") ~ ccr5, aidssi)
 print(cfit2, digits=2)
 @ 
 
@@ -225,9 +221,9 @@ This highlights a basic fact of multi-state models
 The Cox model is a model for the hazards, and the separability allows for
 a lot of freedom in how code and data sets are constructed. 
 (It also gives more opportunity for error, and for this reason the
-authors often prefer the joint approach of \code{cfit0}). 
+authors prefer the joint approach of \code{cfit0}). 
 The tutorial fits separate Cox 
-models, page T2404, the form found in \code{cfit1} and \code{cfit2}.
+models, page T2404, of the form found in \code{cfit1} and \code{cfit2}.
 We can also fit the joint model 'by hand' using a stacked data set, which will
 have 329 rows = number of subjects for the AIDS endpoint, followed by
 329 rows for the SI endpoint.  
@@ -237,9 +233,9 @@ has a variable by that name;
 hence the initial subset call.
 
 <<stack>>=
-temp <- subset(adata, select=c(id, time, ccr5))
-temp1 <- data.frame(temp, status= 1*(adata$event=="AIDS"), cause="AIDS")
-temp2 <- data.frame(temp, status= 1*(adata$event=="SI"),   cause="SI")
+temp <- subset(aidssi, select=c(id, time, ccr5))
+temp1 <- data.frame(temp, status= 1*(aidssi$event=="AIDS"), cause="AIDS")
+temp2 <- data.frame(temp, status= 1*(aidssi$event=="SI"),   cause="SI")
 stack <- rbind(temp1, temp2)
 
 cfit3 <- coxph(Surv(time, status) ~ ccr5 * strata(cause), data=stack)
@@ -290,7 +286,7 @@ print(common1, digits=2)
 
 common1b <- coxph(list( Surv(time, event) ~ ccr5, 
                         1:2 + 1:3 ~ ccr5/common ),
-                  data=adata, id=patnr)
+                  data=aidssi, id=patnr)
 @ 
 
 At this point the tutorial explores an approach that we find problematic,
@@ -397,12 +393,12 @@ data sets, one for each endpoint.
 Ordinary Cox model code can then be applied to those data sets.
 
 <<>>=
-fdata1 <- finegray(Surv(time, event) ~ ., adata, etype='AIDS')
+fdata1 <- finegray(Surv(time, event) ~ ., aidssi, etype='AIDS')
 fgfit1 <- coxph(Surv(fgstart, fgstop, fgstatus) ~ ccr5, fdata1,
                 weight = fgwt)
 fgfit1
 
-fdata2 <- finegray(Surv(time, event) ~., adata, etype="SI")
+fdata2 <- finegray(Surv(time, event) ~., aidssi, etype="SI")
 fgfit2 <- coxph(Surv(fgstart, fgstop, fgstatus) ~ ccr5, fdata2,
                 weight = fgwt)
 fgfit2
@@ -431,7 +427,7 @@ par(oldpar)
 The last plot in this section of the tutorial contains the non-parametric fits.
 <<figT9, fig=TRUE>>=
 # re-create figure T9: curves by CCR type
-aj2 <- survfit(Surv(time, event) ~ ccr5, adata)
+aj2 <- survfit(Surv(time, event) ~ ccr5, aidssi)
 oldpar <- par(mfrow=c(1,2))
 plot(aj2[,"AIDS"], xmax=13, col=1:2, lwd=2, ylim=c(0, .5),
      xlab="Years from HIV infection", ylab="Probability of AIDS")

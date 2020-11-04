@@ -304,7 +304,8 @@ survfitCI <- function(X, Y, weights, id, cluster, robust, istate,
                      n.censor=grabit(curves, "n.censor"),
                      pstate = grabit(curves, "pstate"),
                      p0     = grabit(curves, "p0"),
-                     strata= unlist(lapply(curves, function(x) length(x$time))))
+                     strata= unlist(lapply(curves, function(x)
+                         if (is.null(x$time)) 0L else length(x$time))))
         kfit$p0 <- matrix(kfit$p0, ncol=nstate, byrow=TRUE,
                           dimnames=list(names(curves), states))
         if (se.fit) {

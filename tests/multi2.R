@@ -38,12 +38,11 @@ aeq(tfit$loglik, fit23$loglik)   # check that x, y, strata are correct
 fita <- coxph(Surv(tstart, tstop, event) ~ trt, tdata, id=id)
 fitb <- coxph(Surv(tstart, tstop, event) ~ trt, tdata, id=id, model=TRUE)
 all.equal(model.frame(fita), fitb$model)
+# model.frame fails due to an interal rule in R, factors vs characters
+#  result if the xlev arg is in the call.
 
 #check residuals
 aeq(residuals(fit), c(residuals(fit12), residuals(fit13), residuals(fit23)))
-aeq(residuals(fit, type='deviance'),
-    c(residuals(fit12, type='deviance'), residuals(fit13, type='deviance'),
-      residuals(fit23, type='deviance')))
 
 # score residuals
 indx1 <- 1:fit12$n
@@ -102,8 +101,9 @@ if (FALSE) {
     aeq(temp[sindx2, 3:4], residuals(fit13, type='scaledsch'))
     aeq(temp[sindx3, 5:6], residuals(fit23, type='scaledsch'))
 }
+}
 
-
+if (FALSE) {  # predict for multi-state still needs some thought
 # predicted values differ because of different centering
 c0 <-  sum(fit$mean * coef(fit))
 c12 <- sum(fit12$mean * coef(fit12))
@@ -129,6 +129,7 @@ if (FALSE) {
     aeq(temp[indx2, 3:4], predict(fit13, type='terms'))
     aeq(temp[indx3, 5:6], predict(fit23, type='terms'))
 }
+} # end of prediction section
 
 # The global and per strata zph tests will differ for the KM or rank
 #  transform, because the overall and subset will have a different list

@@ -355,7 +355,7 @@ rsurvpart1 <- function(Y, X, casewt, times,
 
             if (type==1) D <- -D* c(0,fit$surv)[1+ tindex]
             else if (type==2) { #RMST
-                auc <- unlist(lapply(row2, function(i) {
+                auc <- unlist(lapply(fitrow, function(i) {
                     temp <- c(1, fit$surv[i])
                     cumsum(temp[-length(temp)] * diff(c(0, fit$time[i])))
                 }))
@@ -389,7 +389,7 @@ rsurvpart1 <- function(Y, X, casewt, times,
 
         if (type==1) D <- -D* c(1,fit$surv)[1+ tindex]
         else if (type==2){
-            auc <- unlist(lapply(row2, function(i) {
+            auc <- unlist(lapply(fitrow, function(i) {
                 temp <- c(1, fit$surv[i])
                 cumsum(temp[-length(temp)] * diff(c(0, fit$time[i])))
             }))
