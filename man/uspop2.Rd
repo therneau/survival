@@ -3,7 +3,6 @@
 \docType{data}
 \title{Projected US Population}
 \description{US population by age and sex, for 2000 through 2020}
-\usage{data(uspop2)}
 \format{
   The data is a matrix with dimensions age, sex, and calendar year.
   Age goes from 0 through 100, where the value for age 100 is the total

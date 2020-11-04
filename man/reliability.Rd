@@ -83,7 +83,6 @@ Meeker and Escobar.
 }
 
 \examples{
-data(capacitor)
 survreg(Surv(time, status) ~ temperature + voltage, capacitor)
 }
 \keyword{datasets}

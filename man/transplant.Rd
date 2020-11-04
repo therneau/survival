@@ -8,7 +8,7 @@
   disposition: received a transplant, died while waiting, withdrew from
   the list, or censored.
 }
-\usage{data("transplant")}
+\usage{transplant}
 \format{
   A data frame with 815 (transplant) or 861 (transplant2) observations
   on the following 6 variables.

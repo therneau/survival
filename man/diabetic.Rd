@@ -6,7 +6,7 @@
   Partial results from a trial of laser coagulation for the treatment
   of diabetic retinopathy.
 }
-\usage{data("diabetic")}
+\usage{diabetic}
 \format{
   A data frame with 394 observations on the following 8 variables.
   \describe{

@@ -11,7 +11,7 @@ generated with \code{plot.survfit}.
 }
 \usage{
 \method{lines}{survfit}(x, type="s", pch=3, col=1, lty=1,
-        lwd=1, cex=1, mark.time=FALSE, 
+        lwd=1, cex=1, mark.time=FALSE, xmax,
         fun, conf.int=FALSE,
         conf.times, conf.cap=.005, conf.offset=.012,
         conf.type = c("log", "log-log", "plain", "logit", "arcsin"),
@@ -47,7 +47,6 @@ for \code{lines.survfit}.
   function?
 }  
   
-\item{...}{other graphical parameters}
 \item{mark.time}{
 controls the labeling of the curves.   
 If \code{FALSE}, no labeling is done.   
@@ -55,6 +54,7 @@ If \code{TRUE}, then curves are marked at each censoring time.
 If \code{mark.time} is a numeric vector, then curves are marked at  
 the specified time points. 
 }
+\item{xmax}{optional cutoff for the right hand of the curves.}
 \item{fun}{
 an arbitrary function defining a transformation of the survival curve. 
 For example \code{fun=log} is an alternative way to draw a log-survival curve 
@@ -101,6 +101,7 @@ A numeric value, e.g. \code{conf.int = .90}, can be used to
     be plotted.  The default corresponds to an unspecified state.}
   \item{cumhaz}{plot the cumulative hazard, rather than the survival or
     probability in state.}
+\item{...}{other graphical parameters}
 }
 \value{
 a list with components \code{x} and \code{y}, containing the coordinates of the 
@@ -119,6 +120,11 @@ one or more curves are added to the current plot.
   the plots is that that it defaults to a curve that goes from lower
   left to upper right (starting at 0), where survival curves default
   to starting at 1 and going down.  All other options are identical.
+
+  If the user set an explicit range in an earlier \code{plot.survfit}
+  call, e.g. via \code{xlim} or \code{xmax}, subsequent calls to
+  this function remember the right hand cutoff. This memory can be
+  erased by \code{options(plot.survfit) <- NULL}. 
 }    
 \examples{
 fit <- survfit(Surv(time, status==2) ~ sex, pbc,subset=1:312)

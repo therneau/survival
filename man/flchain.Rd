@@ -8,7 +8,7 @@
   and mortality.  The original sample contains samples on
   approximately 2/3 of the residents of Olmsted County aged 50 or greater.
 }
-\usage{data(flchain)}
+\usage{flchain}
 \format{
   A data frame with 7874 persons containing the following variables.
   \describe{

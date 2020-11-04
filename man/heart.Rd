@@ -6,9 +6,7 @@
 \title{Stanford Heart Transplant data}
 \description{Survival of patients on the waiting list for the Stanford
   heart transplant program.}
-\usage{
-data(heart)
-}
+\usage{heart}
 \format{
   jasa: original data
   \tabular{ll}{

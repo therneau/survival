@@ -9,7 +9,7 @@ for mounting electronic componentes to printed circuit boards.
 The experiment varied a number of factors relevant to the process.
 The response, measured by eye, is the number of visible solder skips.
 }
-\usage{data("solder")}
+\usage{solder}
 \format{
   A data frame with 900 observations on the following 6 variables.
   \describe{
@@ -35,7 +35,6 @@ pad type A6 and the other 3 with pad type A3.
 J Chambers and T Hastie, Statistical models in S.  Chapman and Hall, 1993.
 }
 \examples{
-data(solder)
 # The balanced subset used by Chambers and Hastie
 #   contains the first 180 of each mask and deletes mask A6. 
 index <- 1 + (1:nrow(solder)) - match(solder$Mask, solder$Mask)

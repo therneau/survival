@@ -6,7 +6,7 @@
 The \code{rotterdam} data set includes 2982 primary breast cancers patients
 whose data whose records were included in the Rotterdam tumor bank.
 }
-\usage{data("rotterdam")}
+\usage{rotterdam}
 \format{
   A data frame with 2982 observations on the following 15 variables.
   \describe{

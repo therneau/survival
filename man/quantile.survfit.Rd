@@ -7,14 +7,16 @@
 }
 \usage{
 \method{quantile}{survfit}(x, probs = c(0.25, 0.5, 0.75), conf.int = TRUE,
-  tolerance= sqrt(.Machine$double.eps), ...)
+  scale, tolerance= sqrt(.Machine$double.eps), ...)
 \method{quantile}{survfitms}(x, probs = c(0.25, 0.5, 0.75), conf.int = TRUE,
-  tolerance= sqrt(.Machine$double.eps), ...)
+  scale, tolerance= sqrt(.Machine$double.eps), ...)
 }
 \arguments{
   \item{x}{a result of the survfit function}
   \item{probs}{numeric vector of probabilities with values in [0,1]}
   \item{conf.int}{should lower and upper confidence limits be returned?}
+  \item{scale}{optional scale factor, e.g., \code{scale=365.25} would
+    return results in years if the fit object were in days.}
   \item{tolerance}{tolerance for checking that the survival curve exactly
     equals one of the quantiles}
   \item{...}{optional arguments for other methods}

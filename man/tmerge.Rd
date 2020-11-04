@@ -91,13 +91,16 @@ value to be delayed, see the vignette for an example.
   The tcount variable contains counts of the match types.
   New time values that occur before the first interval for a subject
   are "early", those after the last interval for a subject are "late",
-  and those that fall into a gap are of type "gap".
+  and those that fall into a gap are of type "gap". 
   All these are are considered to be outside the specified time frame for the
-  given subject.  An event of this type will be discarded.  A
-  time-dependent covariate value will be applied to later intervals but
+  given subject.  An event of this type will be discarded.
+  An observation in \code{data2} whose identifier matches no rows in
+  \code{data1} is of type "missid" and is also discarded.
+  A time-dependent covariate value will be applied to later intervals but
   will not generate a new time point in the output.
 
-  The most common type will usually be "within", for those new times that
+  The most common type will usually be "within", corresponding to
+  those new times that
   fall inside an existing interval and cause it to be split into two.
   Observations that fall exactly on the edge of an interval but within the
   (min, max] time for a subject are counted
