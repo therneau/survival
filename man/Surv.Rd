@@ -25,7 +25,7 @@ is.Surv(x)
     \code{TRUE}/\code{FALSE} (\code{TRUE} = death) or 1/2 (2=death). For
     interval censored data, the status indicator is 0=right censored,
     1=event at \code{time}, 2=left censored, 3=interval censored.
-    For multiple enpoint data the event variable will be a factor,
+    For multiple endpoint data the event variable will be a factor,
     whose first level is treated as censoring.
     Although unusual, the event indicator can be omitted, in which case
     all subjects are assumed to have an event.
