@@ -64,14 +64,15 @@ neardate <- function(id1, id2, y1, y2, best=c("after", "prior"),
     delta <- 1.0 + length(alldate)  #numeric, not integer, on purpose
     hash1 <- match(id1, id1)*delta + y1
     hash2 <- indx1*delta + y2 
+    indx3 <- order(hash2)  # in case data set 2 is not sorted
 
     if (best=="prior") {
-        indx2 <- findInterval(hash1, hash2)
-        indx2 <- ifelse(indx2==0, NA, indx2)
+        indx2 <- findInterval(hash1, hash2[indx3])
+        indx2 <- ifelse(indx2==0, NA, c(0,indx3)[1+ indx2])
      }
     else {
-        indx2 <- findInterval(hash1, hash2, left.open=TRUE)
-        indx2 <- ifelse(indx2==n2, NA, indx2 + 1L)
+        indx2 <- findInterval(hash1, hash2[indx3], left.open=TRUE)
+        indx2 <- ifelse(indx2==n2, NA, c(indx3,0)[indx2 + 1L])
     }
     temp <- (!is.na(indx2) & id1== id2[indx2])
     ifelse(temp, rowid[ifelse(is.na(indx2), 1, indx2)], nomatch)
