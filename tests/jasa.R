@@ -33,8 +33,8 @@ sfit.6
 surv1 <- survfit(sfit.1, newdata=list(age=-2, surgery=0, transplant=0))
 newdata <- data.frame(start=c(0,50,100), stop=c(50,100, max(jasa1$stop)), 
                    event=c(1,1,1), age=rep(-2,3), surgery=rep(0,3),
-                   transplant=rep(0,3))
-surv2 <- survfit(sfit.1, newdata, individual=T)
+                   transplant=rep(0,3), name=c("Smith", "Smith", "Smith"))
+surv2 <- survfit(sfit.1, newdata, id=name)
 # Have to use unclass to avoid [.survfit trying to pick curves,
 #  remove the final element "call" because it won't match
 all.equal(unclass(surv1)[-length(surv1)],
@@ -44,8 +44,8 @@ all.equal(unclass(surv1)[-length(surv1)],
 # Survival curve for a subject of age 50, with prior surgery, tx at 6 months
 #  Remember that 'age' in jasa 1 was centered at 48
 data <- data.frame(start=c(0,183), stop=c(183,3*365), event=c(1,1),
-		   age=c(2,2),  surgery=c(1,1), transplant=c(0,1))
-summary(survfit(sfit.1, data, individual=T))
+		   age=c(2,2),  surgery=c(1,1), transplant=c(0,1), id=c(1,1))
+summary(survfit(sfit.1, data, id=id))
 
 # These should all give the same answer
 # When there are offsets, the default curve is always for someone with

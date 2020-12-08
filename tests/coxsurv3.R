@@ -28,8 +28,8 @@ aeq(-log(surv1$surv), cumsum(true$lambda))
 
 # Reprise it with a time dependent subject who doesn't change
 data2 <- data.frame(start=c(0, 4, 9, 11), stop=c(4, 9, 11, 17),
-                      event=c(0,0,0,0), x=c(0,0,0,0))
-surv2 <- survfit(fit, newdata=data2, individual=TRUE, censor=FALSE)
+                      event=c(0,0,0,0), x=c(0,0,0,0), patn=c(1,1,1,1))
+surv2 <- survfit(fit, newdata=data2, id=patn, censor=FALSE)
 aeq(surv2$surv, surv1$surv)
 
 
@@ -62,12 +62,13 @@ aeq(true1$time, (surv3[1])$time)
 aeq(-log(surv3[1]$surv), cumsum(true1$lambda))
 
 data4 <- data.frame(start=c(0, 4, 9, 11), stop=c(4, 9, 11, 17),
-                      event=c(0,0,0,0), x=c(0,0,0,0), grp=rep('a', 4))
-surv4a <- survfit(fit2, newdata=data4, individual=T, censor=FALSE)
+                      event=c(0,0,0,0), x=c(0,0,0,0), grp=rep('a', 4),
+                    patid= rep("Jones", 4))
+surv4a <- survfit(fit2, newdata=data4, id=patid, censor=FALSE)
 aeq(-log(surv4a$surv), cumsum(true1$lambda))
 
 data4$grp <- rep('b',4)
-surv4b <- survfit(fit2, newdata=data4, individual=T, censor=FALSE)
+surv4b <- survfit(fit2, newdata=data4, id=patid, censor=FALSE)
 aeq(-log(surv4b$surv), cumsum(true2$lambda))
 
 

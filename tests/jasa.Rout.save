@@ -1,6 +1,6 @@
 
-R Under development (unstable) (2019-01-23 r76006) -- "Unsuffered Consequences"
-Copyright (C) 2019 The R Foundation for Statistical Computing
+R Under development (unstable) (2020-09-23 r79248) -- "Unsuffered Consequences"
+Copyright (C) 2020 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -158,8 +158,8 @@ n= 170, number of events= 75
 > surv1 <- survfit(sfit.1, newdata=list(age=-2, surgery=0, transplant=0))
 > newdata <- data.frame(start=c(0,50,100), stop=c(50,100, max(jasa1$stop)), 
 +                    event=c(1,1,1), age=rep(-2,3), surgery=rep(0,3),
-+                    transplant=rep(0,3))
-> surv2 <- survfit(sfit.1, newdata, individual=T)
++                    transplant=rep(0,3), name=c("Smith", "Smith", "Smith"))
+> surv2 <- survfit(sfit.1, newdata, id=name)
 > # Have to use unclass to avoid [.survfit trying to pick curves,
 > #  remove the final element "call" because it won't match
 > all.equal(unclass(surv1)[-length(surv1)],
@@ -170,9 +170,9 @@ n= 170, number of events= 75
 > # Survival curve for a subject of age 50, with prior surgery, tx at 6 months
 > #  Remember that 'age' in jasa 1 was centered at 48
 > data <- data.frame(start=c(0,183), stop=c(183,3*365), event=c(1,1),
-+ 		   age=c(2,2),  surgery=c(1,1), transplant=c(0,1))
-> summary(survfit(sfit.1, data, individual=T))
-Call: survfit(formula = sfit.1, newdata = data, individual = T)
++ 		   age=c(2,2),  surgery=c(1,1), transplant=c(0,1), id=c(1,1))
+> summary(survfit(sfit.1, data, id=id))
+Call: survfit(formula = sfit.1, newdata = data, id = id)
 
    time n.risk n.event survival std.err lower 95% CI upper 95% CI
     0.5    103       1    0.994 0.00722        0.980        1.000
@@ -281,4 +281,4 @@ Call: survfit(formula = sfit.1, newdata = data, individual = T)
 > 
 > proc.time()
    user  system elapsed 
-  0.856   0.064   0.929 
+  0.908   0.076   0.976 
