@@ -26,7 +26,6 @@ The input arguments are
     backwards compatability with older versions of the code.
   \item[id] replacement and extension for the individual argument
   \item[start.time] Start a curve at a later timepoint than zero.
-  \item[id] replacement for the individual option
   \item[influence] whether to return the influence matrix
 \end{description}
 All the other arguments are common to all the methods, refer to the 
@@ -150,17 +149,16 @@ n <- object$n[1]
 if (!has.strata) strata <- NULL
 else strata <- object$strata
 
+if (!missing(individual)) warning("the `id' option supersedes `individual'")
 missid <- missing(id) # I need this later, and setting id below makes
                       # "missing(id)" always false
-if (!missid & !missing(individual))
-    warning("the `id' option supersedes `individual'")
 
 if (!missid) individual <- TRUE
-else if (missid && individual) id <- rep(0,n)  #dummy value
+else if (missid && individual) id <- rep(0L,n)  #dummy value
 else id <- NULL
 
 if (individual & missing(newdata)) {
-    stop("the id and/or individual options only make sense with new data")
+    stop("the id option only makes sense with new data")
 }
 @ 
 
@@ -268,7 +266,6 @@ if (!is.null(mf)){
 type <- attr(Y, 'type')
 if (!type %in% c("right", "counting", "mright", "mcounting"))
     stop("Cannot handle \"", type, "\" type survival data")
-if (type=="right" || type== "mright") individual <- FALSE
 
 if (!missing(start.time)) {
     if (!is.numeric(start.time) || length(start.time) > 1)

@@ -55,7 +55,7 @@ rightslash <- function(x) {
     if (class(x) != 'call') return(x)
     else {
         if (x[[1]] == as.name('/')) return(list(x[[2]], x[[3]]))
-        else if (x[[1]]==as.name('+') || (x[[1]]==as.name('-') && length(x)==3) ||
+        else if (x[[1]]==as.name('+') || (x[[1]]==as.name('-') && length(x)==3)||
                  x[[1]]==as.name('*') || x[[1]]==as.name(':')  ||
                  x[[1]]==as.name('%in%')) {
                      temp <- rightslash(x[[3]])
@@ -80,7 +80,7 @@ parse_rightside <- function(rhs) {
         if (!is.list(opt)) { # no options for this line
             tform[[2]] <- opt
             list(formula = tform, ival = NULL, common = FALSE,
-                 fixed = FALSE, clear = FALSE)
+                 shared = FALSE, prop = FALSE)
         }
         else{
             # treat the option list as though it were a formula
@@ -88,14 +88,15 @@ parse_rightside <- function(rhs) {
             temp[[2]] <- opt[[2]]
             optterms <- terms(temp)
             ff <- rownames(attr(optterms, "factors"))
-            index <- match(ff, c("common", "fixed", "init", "clear"))
+            index <- match(ff, c("common", "shared", "prop", "init"))
             if (any(is.na(index)))
                 stop("option not recognized in a covariates formula: ",
                      paste(ff[is.na(index)], collapse=", "))
             common <- any(index==1)
-            fixed  <- any(index==2)
-            clear  <- any(index==3)
-            if (any(index==3)) {
+            shared  <- any(index==2)
+            prop    <- any(index==3)
+            if (shared & prop) shared <- FALSE
+            if (any(index==4)) {
                 optatt <- attributes(optterms)
                 j <- optatt$variables[1 + which(index==3)]
                 j[[1]] <- as.name("list")
@@ -103,8 +104,8 @@ parse_rightside <- function(rhs) {
             } 
             else ival <- NULL
             tform[[2]] <- opt[[1]] 
-            list(formula= tform, ival= ival, common= common, fixed = fixed,
-                 clear = clear)
+            list(formula= tform, ival= ival, common= common, shared=shared,
+                 prop=prop)
         }
     })
     new
@@ -229,24 +230,18 @@ parsecovar2 <- function(covar1, statedata, dformula, Terms, transitions,states) 
             rterm <- terms(rhs$formula)
             rindex <- 1L + termmatch(attr(rterm, "factors"), allterm)
 
-            # second, were any variables dropped from the base formula?
-            if (rhs$clear) {  # drop everything
-                for(k in 1:npair) tmap[-1, state1[k], state2[k]] <- 0
-            }
-            else {
-                # the update.formula function is good at identifying changes
-                # formulas that start with  "- x" have to be pasted on carefully
-                temp <- substring(deparse(rhs$formula, width.cutoff=500), 2)
-                if (substring(temp, 1,1) == '-') dummy <- formula(paste("~ .", temp))
-                else dummy <- formula(paste("~. +", temp))
+            # the update.formula function is good at identifying changes
+            # formulas that start with  "- x" have to be pasted on carefully
+            temp <- substring(deparse(rhs$formula, width.cutoff=500), 2)
+            if (substring(temp, 1,1) == '-') dummy <- formula(paste("~ .", temp))
+            else dummy <- formula(paste("~. +", temp))
 
-                rindex1 <- termmatch(attr(terms(dformula), "factors"), allterm)
-                rindex2 <- termmatch(attr(terms(update(dformula, dummy)), "factors"),
-                                 allterm)
-                dropped <- 1L + rindex1[is.na(match(rindex1, rindex2))] # remember the intercept
-                if (length(dropped) >0) {
-                    for (k in 1:npair) tmap[dropped, state1[k], state2[k]] <- 0
-                }
+            rindex1 <- termmatch(attr(terms(dformula), "factors"), allterm)
+            rindex2 <- termmatch(attr(terms(update(dformula, dummy)), "factors"),
+                             allterm)
+            dropped <- 1L + rindex1[is.na(match(rindex1, rindex2))] # remember the intercept
+            if (length(dropped) >0) {
+                for (k in 1:npair) tmap[dropped, state1[k], state2[k]] <- 0
             }
             
             # grab initial values

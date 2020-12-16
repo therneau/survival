@@ -123,7 +123,7 @@ a unique set of survival and variance(survival) values, but all of the
 same size since each uses all the strata.  The final output structure in
 this case has single vectors for the time, number of events, number censored,
 and number at risk values since they are common to all the curves, and a
-marix of
+matrix of
 survival and variance estimates, one column for each of the
 distinct target values.  
 If $\Lambda_0$ is the baseline cumulative hazard from the

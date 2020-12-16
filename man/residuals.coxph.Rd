@@ -2,8 +2,8 @@
 \alias{residuals.coxph.penal}
 \alias{residuals.coxph.null}
 \alias{residuals.coxph}
-\title{
-Calculate Residuals for a `coxph' Fit
+\alias{residuals.coxphms}
+\title{Calculate Residuals for a `coxph' Fit
 }
 \description{
 Calculates martingale, deviance, score or Schoenfeld residuals for a
@@ -14,10 +14,10 @@ Cox proportional hazards model.
        type=c("martingale", "deviance", "score", "schoenfeld",
 	      "dfbeta", "dfbetas", "scaledsch","partial"),
        collapse=FALSE, weighted= (type \%in\% c("dfbeta", "dfbetas")), ...)
-\method{residuals}{coxph.ms}(object,
+\method{residuals}{coxphms}(object,
        type=c("martingale", "score", "schoenfeld",
 	      "dfbeta", "dfbetas", "scaledsch"),
-       collapse=FALSE, weighted= (type \%in\% c("dfbeta", "dfbetas")), ...)
+       collapse=FALSE, weighted= FALSE, ...)
 \method{residuals}{coxph.null}(object,
        type=c("martingale", "deviance","score","schoenfeld"),
        collapse=FALSE, weighted= FALSE, ...)

@@ -1,7 +1,7 @@
 \section{Matrix exponentials and transition matrices}
 For multi-state models, we need to compute the exponential of the transition
 matrix, sometimes many times.
-The matrix exponentual is formally defined as
+The matrix exponential is formally defined as
 \begin{equation*}
   \exp(R) = I + \sum_{j=1}^\infty R^i/i!
   \end{equation*}
@@ -13,7 +13,8 @@ For the package there are three cases:
 \begin{enumerate}
   \item If there is only one departure state, then there is a fast closed
     form solution, shown below.  This case occurs whenever an event time
-    is unique, i.e., no other event times are tied with this one.
+    is unique, i.e., no other event times are tied with this one.  It also
+    holds for competing risk models.
   \item If the rate matrix $R$ is upper triangular and the (non-zero) diagonal
     elements are distinct, there is a fast matrix decomposition algorithm.
     If the transition matrix is acylic then it can be rearranged to be in upper
@@ -32,25 +33,24 @@ Let $A= \exp(R)$.
 Also be aware that $\exp(A)\exp(B) \ne \exp(A+B)$ for the case of matrices.
 
 If there is only one non-zero diagonal element, $R_{jj}$ say, then
-\begin{align*} {
+\begin{align*} 
     A_{jj} &= e^{R_{jj}} \\
-    A_{jk} &= left(1- e^{R_{jj}}\right) \frac{R_{jk}}/{\sum_{l\ne j} R_{jl}}
-    A_{kk} &= 1; k\ne j \\
+    A_{jk} &= \left(1- e^{R_{jj}}\right) \frac{R_{jk}}/{\sum_{l\ne j} R_{jl}} \\
+    A_{kk} &= 1; k\ne j 
 \end{align*}
 and all other elements of $A$ are zero.
 The derivative of $A$ with respect to $\eta_{jk}$ will be 0 for all rows
 except row $j$.
 \begin{align*} 
-  \frac{\partial A_{jj}}{\partial \eta_{jk}} &= 
+  \frac{\partial A_{jj}}{\partial \eta_{jk}} &=
     \frac{\partial \exp(-\sum_{k!=j} \eta_{jk})}{\partial \eta_{jk}}  \\
-    &= -\eta_{jk} A_{jj} \\
-  \frac{\partial A_{jk}{\partial \eta_{jk}} &= eta_{jk}A_{jj} 
+   &= -\eta_{jk} A_{jj} \\
+ \frac{\partial A_{jk}}{\partial \eta_{jk}} &= eta_{jk}A_{jj} 
      \;\mbox{single event type} \\
-    \frac{\partial A_{jk}{\partial \eta_{jm}}&=  
-      A_{jj} eta_{jm}\frac{R_{jm}{\sum_{l\ne j} R_{jl}} +
+    \frac{\partial A_{jk}}{\partial \eta_{jm}}&=  
+      A_{jj} eta_{jm}\frac{R_{jm}}{\sum_{l\ne j} R_{jl}} +
       (A_{jj} -1) \frac{\eta_{jm} (1- \sum_{l\ne j} R_{jl})}{(\sum_{l\ne j} R_{jl})^2}
-        \\
-\end{align}
+\end{align*}
 If time is continuous then most events will be at a unique event time, and this
 fast computation will be the most common case.
     

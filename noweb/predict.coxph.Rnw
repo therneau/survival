@@ -45,7 +45,6 @@ We will need the following components:
   \item the new data matrix, if any 
 \end{itemize}
 
-
 <<predict.coxph>>=
 predict.coxph <- function(object, newdata, 
 		       type=c("lp", "risk", "expected", "terms", "survival"),

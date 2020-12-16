@@ -187,7 +187,9 @@ survfitTurnbull <- function(x, y, weights,
 	    wt2 <- wtmat %*% diag(jumps, length(jumps))
 	    wt2 <- (lwt/(apply(wt2,1,sum))) * wt2 
 	    wt2 <- apply(wt2, 2, sum)
-	    tfit <- survfitKM(tempx, tempy, weights=c(wt[status<2], wt2), ...)
+	    tfit <- survfitKM(tempx, tempy, weights=c(wt[status<2], wt2),
+                              se.fit= se.fit, conf.int=conf.int, 
+                              conf.type= conf.type, ...)
 
 	    if (FALSE) {
                 # these lines are in for debugging: change the above to 

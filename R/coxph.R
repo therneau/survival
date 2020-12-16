@@ -94,6 +94,8 @@ coxph <- function(formula, data, weights, subset, na.action,
                 stop("statedata data frame must contain a 'state' variable")
             covlist <- parsecovar1(formula[-1], names(statedata))
         }
+
+        # create the master formula, used for model.frame
         # the term.labels + reformulate + environment trio is used in [.terms;
         #  if it's good enough for base R it's good enough for me
         tlab <- unlist(lapply(covlist$rhs, function(x) 

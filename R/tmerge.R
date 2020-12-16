@@ -25,7 +25,6 @@ tmerge <- function(data1, data2, id, ..., tstart, tstop, options) {
     if (missing(data1) || missing(data2) || missing(id)) 
         stop("the data1, data2, and id arguments are required")
     if (!inherits(data1, "data.frame")) stop("data1 must be a data frame")
-    
     tmerge.control <- function(idname="id", tstartname="tstart", tstopname="tstop",
                                delay =0, na.rm=TRUE, tdcstart=NA_real_, ...) {
         extras <- list(...)
@@ -47,10 +46,41 @@ tmerge <- function(data1, data2, id, ..., tstart, tstop, options) {
              delay=delay, na.rm=na.rm, tdcstart=tdcstart)
     }
 
-    tname <- attr(data1, "tname")
-    firstcall <- is.null(tname)  #first call to the function
-    if (!firstcall && any(is.null(match(unlist(tname), names(data1)))))
-        stop("data1 does not match its own tname attribute")
+    if (!inherits(data1, "tmerge") && !is.null(attr(data1, "tname"))) {
+        # old style object that someone saved!
+        tm.retain <- list(tname = attr(data1, "tname"),
+                          tevent= list(name=attr(data1, "tevent"),
+                                       censor= attr(data1, "tcensor")),
+                          tdcvar = attr(data1, "tdcvar"),
+                          n = nrow(data1))
+        attr(data1, "tname") <- attr(data1, "tevent") <- NULL
+        attr(data1, "tcensor") <- attr(data1, "tdcvar") <- NULL
+        attr(data1, "tm.retain") <- tm.retain
+        class(data1) <- c("tmerge", class(data1))
+    }
+                          
+    if (inherits(data1, "tmerge")) {
+        tm.retain <- attr(data1, "tm.retain")
+        firstcall <- FALSE
+        # check out whether the object looks legit:
+        #  has someone tinkered with it?  This won't catch everything
+        tname <- tm.retain$tname
+        tevent <- tm.retain$tevent
+        tdcvar <- tm.retain$tdcvar
+        if (nrow(data1) != tm.retain$n)
+            stop("tmerge object has been modified, size")
+        if (any(is.null(match(unlist(tname), names(data1)))) ||
+            any(is.null(match(tm.retain$tcdname, names(data1)))) ||
+            any(is.null(match(tevent$name, names(data1)))))
+            stop("tmerge object has been modified, missing variables")
+        for (i in seq(along=tevent$name)) {
+            if (!inherits(data1[[tevent$name[i]]], class(tevent$censor[[i]])))
+            stop("tmerge object has been modified, event variable")
+        }
+    } else {
+        firstcall <- TRUE
+        tname <- tevent <- tdcvar <- NULL
+    }
 
     if (!missing(options)) {
         if (!is.list(options)) stop("options must be a list")
@@ -120,9 +150,8 @@ tmerge <- function(data1, data2, id, ..., tstart, tstop, options) {
     dimnames(tcount) <- list(argname, c("early","late", "gap", "within", 
                                         "boundary", "leading", "trailing",
                                         "tied", "missid"))
-    tevent <- attr(data1, "tevent") # event type variables
-    tcens  <- attr(data1, "tcensor")# censor code for variables
-    tdcvar <- attr(data1, "tdcvar")   # tdc type varaiables
+    tcens <- tevent$censor
+    tevent <- tevent$name
     if (is.null(tcens)) tcens <- vector('list', 0)
     newdata <- data1 #make a copy
     if (firstcall) {
@@ -331,10 +360,18 @@ tmerge <- function(data1, data2, id, ..., tstart, tstop, options) {
         }
         # add a tdc variable
         newvar <- newdata[[argname[ii]]]  # prior value (for sequential tmerge calls)
-        if (argclass[ii] == "tdc") {
+        if (argclass[ii] %in% c("tdc", "cumtdc")){
             if (argname[[ii]] %in% tevent)
                 stop("attempt to turn event variable", argname[[ii]], "into a tdc")
-            
+            if (!(argname[[ii]] %in% tdcvar)){
+                tdcvar <- c(tdcvar, argname[[ii]])
+                if (!is.null(newvar)) {
+                    warning(paste0("replacement of variable '", argname[ii], "'"))
+                    newvar <- NULL
+                }
+            }
+        }
+        if (argclass[ii] == "tdc") {
             default <- argi$default   # default value
             if (is.null(default)) default <- topt$tdcstart
             else if (length(default) !=1)
@@ -345,11 +382,6 @@ tmerge <- function(data1, data2, id, ..., tstart, tstop, options) {
             uid <- unique(baseid)
             index <- .Call(Ctmerge2, match(baseid, uid), dstop, 
                                        match(id, uid),  etime)
-
-            if (!(argname[[ii]] %in% tdcvar) && !is.null(newvar)) {
-                warning(paste0("replacement of variable '", argname[ii], "'"))
-                newvar <- NULL
-            }
 
             if (is.null(newvar)) {
                 if (is.null(yinc)) newvar <- ifelse(index==0, 0L, 1L) # add a 0/1 variable
@@ -435,6 +467,7 @@ tmerge <- function(data1, data2, id, ..., tstart, tstop, options) {
                 if (is.factor(yinc)) tcens <- c(tcens, list(levels(yinc)[1]))
                 else if (is.logical(yinc)) tcens <- c(tcens, list(FALSE))
                 else if (is.character(yinc)) tcens <- c(tcens, list(""))
+                else if (is.integer(yinc))   tcens <- c(tcens, list(0L))
                 else tcens <- c(tcens, list(0))
                 names(tcens) <- tevent
             }
@@ -474,16 +507,37 @@ tmerge <- function(data1, data2, id, ..., tstart, tstop, options) {
 
         newdata[[argname[ii]]] <- newvar
     }
-    attr(newdata, "tname") <- topt[c("idname", "tstartname", "tstopname")]
+    tm.retain <- list(tname = topt[c("idname", "tstartname", "tstopname")],
+                      n= nrow(newdata))
+    if (length(tevent)) 
+        tm.retain$tevent <- list(name = tevent, censor=tcens)
+    if (length(tdcvar)>0) tm.retain$tdcvar <- tdcvar
+    attr(newdata, "tm.retain") <- tm.retain
     attr(newdata, "tcount") <- rbind(attr(data1, "tcount"), tcount)
-    if (length(tevent)) {
-        attr(newdata, "tevent") <- tevent
-        attr(newdata, "tcensor" ) <- tcens
-        }
-    if (length(tdcvar)) attr(newdata, "tdcvar") <- tdcvar
+    attr(newdata, "call") <- Call
 
     row.names(newdata) <- NULL  #These are a mess; kill them off.
     # Not that it works: R just assigns new row names.
-    class(newdata) <- c("data.frame")
+    class(newdata) <- c("tmerge", "data.frame")
     newdata
 }
+summary.tmerge <- function(object, ...) {
+    if (!is.null(cl <- attr(object, "call"))) {
+        cat("Call:\n")
+        dput(cl)
+        cat("\n")
+    }
+
+    print(attr(object, "tcount"))
+}
+
+# This could be smarter: if you only drop variables that are not known 
+# to tmerge then it would be okay.  But I currently like the "touch it
+#  and it dies" philosophy
+"[.tmerge" <- function(x, ..., drop=TRUE){
+    class(x) <- "data.frame"
+    attr(x, "tm.retain") <- NULL
+    attr(x, "tcount") <- NULL
+    attr(x, "call") <- NULL
+    NextMethod(x)
+    }

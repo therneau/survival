@@ -15,6 +15,10 @@ function(formula, newdata, se.fit=TRUE, conf.int=.95, individual=FALSE,
     object <- formula     #'formula' because it has to match survfit
     se.fit <- FALSE   #still to do
 
+    temp <- object$stratum_map
+    if (!is.null(temp) && any(duplicated(temp["(Baseline)",]))) 
+        stop("survfit does not yet do estimates with share baseline hazards")
+
     <<survfit.coxph-setup1>>
     <<survfit.coxph-setup2>>
     <<survfit.coxphms-setupa>>
@@ -42,7 +46,7 @@ expanded data set that coxph used for a multi-state fit.
 istate <- model.extract(mf, "istate")
 mcheck <- survcheck2(Y, oldid, istate)
 transitions <- mcheck$transitions
-istate <- mcheck$istate
+if (is.null(istate)) istate <- mcheck$istate
 if (!identical(object$states, mcheck$states))
     stop("failed to rebuild the data set")
 
@@ -203,7 +207,7 @@ This is the final target.
 Variables are
 \begin{itemize}
   \item y survival time for each observaion
-  \item x covariates for each observatio
+  \item x covariates for each observation
   \item position: a flag for each obs. Is it the first of a connected string
     such as (10, 12) (12,19) (19,21), the last of such a string, both, 
     or neither.  1*first + 2* last
@@ -212,7 +216,7 @@ Variables are
   \item transtion: which stratum each observation belongs to.  At this point
     that is a unique baseline hazard in the state space.
   \item ctype, stype = type of hazard and survival
-  \item hfill: the starting and ending states for each transition, on row per
+  \item hfill: the starting and ending states for each transition, one row per
     observed transtion type
   \item smap: a vector giving the stratum number for each transtion.
   \item x2, risk2 = covariates and risk scores for the predicted values

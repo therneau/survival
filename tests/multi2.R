@@ -101,7 +101,6 @@ if (FALSE) {
     aeq(temp[sindx2, 3:4], residuals(fit13, type='scaledsch'))
     aeq(temp[sindx3, 5:6], residuals(fit23, type='scaledsch'))
 }
-}
 
 if (FALSE) {  # predict for multi-state still needs some thought
 # predicted values differ because of different centering

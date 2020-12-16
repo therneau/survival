@@ -322,7 +322,7 @@ specify other covariates for all from:to transitions.
 Steps in processing such a formula are
 \begin{enumerate}
   \item Gather all the variables that appear on a right-hand side, and
-    create a master formula y ~ all of them.  This is use to create the
+    create a master formula y ~ all of them.  This is used to create the
     model.frame.  We also need to defer missing value processing, since
     some covariates might appear for only some transitions.
   \item Get the data.  The response, id, and statedata variables can now
@@ -342,6 +342,8 @@ else {
         stop("statedata data frame must contain a 'state' variable")
     covlist <- parsecovar1(formula[-1], names(statedata))
 }
+
+# create the master formula, used for model.frame
 # the term.labels + reformulate + environment trio is used in [.terms;
 #  if it's good enough for base R it's good enough for me
 tlab <- unlist(lapply(covlist$rhs, function(x) 
@@ -453,12 +455,12 @@ else stratum_map <- tmap[1,,drop=FALSE]
 Also create the initial values vector.
 
 The stacker function will create a separate block of observations for every
-unique value in \code{cmap[1,]}.
+unique value in \code{stratum\_map}.
 Now say that two transitions A:B and A:C share the same baseline hazard. 
 Then either a B or a C outcome will be an ``event'' in that stratum; they 
 would only be distinguished by perhaps having different covariates.
 The first thing we do with the result is to rebuild the transitions matrix:
-the current version was created before removing missings, and can
+the working version was created before removing missings and can
 seriously overstate the number of transitions available.  
 Then set up the data.
 

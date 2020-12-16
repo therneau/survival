@@ -22,19 +22,43 @@ values at a fixed set of time points; it is an error if the user does not
 provide them.  This allows the result to be presented as a matrix or array.
 Computational differences will be discussed later.
 
+The method argument is for debugging.  For multi-state it uses either C code
+or the optimized R method.
+The double call below is because we want residuals to return a simple matrix,
+but the pseudo function needs to get back a little bit more.
+
 <<residuals.survfit>>=
 # residuals for a survfit object
-residuals.survfit <- function(object, times, type= "surv",
-                              collapse=TRUE, weighted=FALSE, method=1, ...){
+residuals.survfit <- function(object, times, 
+                              type= "pstate",
+                              collapse, weighted=FALSE, method=1, ...){
+
     if (!inherits(object, "survfit"))
         stop("argument must be a survfit object")
+    if (missing(times)) stop("the times argument is required")
+    # allow a set of alias
+    temp <- c("pstate", "cumhaz", "sojourn", "survival",
+                              "chaz", "rmst", "rmts", "auc")
+    type <- match.arg(casefold(type), temp)
+    itemp <-  c(1,2,3,1,2,3,3,3)[match(type, temp)]
+    type <- c("pstate", "cumhaz", "auc")[itemp]
+
+    if (missing(collapse)) 
+         fit <- survresid.fit(object, times, type, weighted=weighted, 
+                              method= method)
+    else fit <- survresid.fit(object, times, type, collapse= collapse, 
+                              weighted= weighted, method= method)
+
+    fit$residuals
+}
+
+survresid.fit <- function(object, times, 
+                              type= "pstate",
+                              collapse, weighted=FALSE, method=1) {
+    
     survfitms <- inherits(object, "survfitms")
     coxsurv <- inherits(object, "survfitcox")
     timefix <- (is.null(object$timefix) || object$timefix)
-    type <- match.arg(casefold(type), c("surv", "pstate", "cumhaz",
-                                        "rmst", "rmts", "auc"))
-    type.int <- c(1,1,3,2,2,2)[match(type, c("surv", "pstate", "cumhaz",
-                                           "rmst", "rmts", "auc"))]
     
     start.time <- object$start.time
     if (is.null(start.time)) start.time <- min(c(0, object$time))
@@ -47,63 +71,65 @@ residuals.survfit <- function(object, times, type= "surv",
         times <- sort(unique(times))
         if (timefix) times <- aeqSurv(Surv(times))[,1]
     }
-    
+
     # get the data
-    <<rsurvfit-data>>
+   <<rsurvfit-data>>
+
+    if (missing(collapse)) collapse <- (!(is.null(id)) && any(duplicated(id)))
+    if (collapse && is.null(id)) stop("collapse argument requires an id or cluster argument in the survfit call")
 
     ny <- ncol(newY)
     if (collapse && any(X != X[1])) {
         # If the same id shows up in multiple curves, we just can't deal
         #  with it.
-        temp <- unlist(lapply(split(cluster, X), unique))
+        temp <- unlist(lapply(split(id, X), unique))
         if (any(duplicated(temp)))
-            stop("same id/cluster appears in multiple curves")
+            stop("same id appears in multiple curves, cannot collapse")
     }
     
-    if (FALSE) {  # later consideration made me change this
-    # order the data by cluster, which is the order we want for the output
-    sort1 <- order(cluster)
-    newY <- newY[sort1,]
-    X <- X[sort1]
-    casewt <- casewt[sort1]
-    cluster <- cluster[sort1]
-    }
-
     # What type of survival curve?
     if (!coxsurv) {
         stype <- Call$stype
         if (is.null(stype)) stype <- 1
         ctype <- Call$ctype
         if (is.null(ctype)) ctype <- 1
-        
         if (!survfitms) {
             resid <- rsurvpart1(newY, X, casewt, times,
-                                type.int, stype, ctype, object)
-            dimnames(resid) <- list(NULL, times)
+                                type, stype, ctype, object)
+            if (collapse) {
+                resid <- rowsum(resid, id, reorder=FALSE)
+                dimnames(resid) <- list(id= unique(id), NULL)
+                curve <- (as.integer(X))[!duplicated(id)] #which curve for each
+            } 
+            else {
+                if (length(id) >0) dimnames(resid) <- list(id=id, NULL)
+                curve <- as.integer(X)
+            }
         }
-        else {
-            if (is.null(istate)) istate <-survcheck2(newY, id)$istate
-            if (!collapse) cluster <- 1:nrow(Y)
+        else {  # multi-state
+            if (!collapse) {
+                if (length(id >0)) d1name <- id else d1name <- NULL
+                d1name <- NULL
+                cluster <- d1name
+                curve <- as.integer(X)
+            }       
+            else {
+                d1name <- unique(id)
+                cluster <- match(id, d1name)
+                curve <- (as.integer(X))[!duplicated(id)]
+            }
             resid <- rsurvpart2(newY, X, casewt, istate, times, cluster,
-                                type.int, object, method=method)
+                                type, object, method=method, collapse=collapse)
+            if (length(dim(resid)) ==3) 
+                 dimnames(resid) <- list(id=d1name, state= object$states, NULL)
+            else dimnames(resid) <- list(id=d1name, state= object$states)
         }
     }
     else stop("coxph survival curves not yet available")
-    
+
     if (weighted && any(casewt !=1)) resid <- resid*casewt
-    if (collapse) {
-        dd <- dim(resid)
-        if (length(dd) ==3) {
-            resid <- rowsum(matrix(resid, nrow=dd[1]), cluster, reorder=FALSE)
-            dim(resid) <- c(length(resid)/(dd[2]*dd[3]), dd[2:3])
-            dimnames(resid)[[1]] <- unique(cluster)
-        }
-        else {
-            resid <- rowsum(resid, cluster, reorder=FALSE)
-            rownames(resid) <- unique(cluster)
-        }
-    }
-    resid
+
+    list(residuals= resid, curve= curve, id= id, idname=idname)
 }
 @ 
 
@@ -113,6 +139,13 @@ If I gave up (like lm) and forced the model frame to be saved this would be
 easier of course.
 
 <<rsurvfit-data>>=
+Call <- object$call
+
+# remember the name of the id variable, if present.
+#  but we don't try to parse it:  id= mydata$clinic becomes NULL
+idname <- Call$id
+if (is.name(idname)) idname <- as.character(idname)
+else idname <- NULL   
 # I always need the model frame
 if (coxsurv) {
     mf <- model.frame(object)
@@ -120,7 +153,6 @@ if (coxsurv) {
     else Y <- object$y
 }
 else {
-    Call <- object$call
     formula <- formula(object)
 
     # the chunk below is shared with survfit.formula 
@@ -135,40 +167,37 @@ xlev <- levels(X)
 
 # Deal with ties
 if (is.null(Call$timefix) || Call$timefix) newY <- aeqSurv(Y) else newY <- Y
-
-# Find the clustering, if any
-if (!is.null(cluster)) {
-    if (is.factor(cluster)) {
-        clname <- levels(cluster)
-        cluster <- as.integer(cluster)
-    } else {
-        clname  <- sort(unique(cluster))
-        cluster <- match(cluster, clname)
-    }
-    ncluster <- length(clname)
-} 
-else if (!is.null(id)) {
-    # treat the id as both identifier and clustering
-    clname <- levels(id)
-    cluster <- as.integer(id)
-    ncluster <- length(clname)
-}
-else {
-    # create our own clustering
-    n <- nrow(Y)
-    cluster <- 1:n
-    ncluster <- n
-    clname <- NULL
-}   
 @
 
 The survfit object will contain both event and censoring times, and for
 this calculation we only care about the event times.
 An index list vector \code{fitrow} points to the death times, which
 allows us to index it as if there were no censored values.
-If there are multiple curves they are end to end as a single long vector,
-adding a bit more nuisance to the compuatation.
+If there are multiple curves fitrow will be a list, with ff=unlist(fitrow).
 The number of curves is normally modest.
+
+One ``watch out'' is that there are 3 separate indices of interest. An
+index into the surival curves that points at the event times, an index
+to the event number (first, second, third, etc.) and an index to the output
+times.  Most intermediate computations give a vector with one element per event
+time, and they need the second. 
+The output matrix has one row per subject, one col per reporting (output) time. 
+
+For many of the compuations a subject's value at a given time t will be a sum
+up to min(t, last fu for the subject).  A primary trick in the code below is
+to create two matrices of indices, each matching the output (one row per
+subject, one col per output time).
+The \code{tindex} array carries, in each column, the index of the last applicable
+death for this output time.  This might be 0 -- users sometimes ask for an
+output value before the first event.
+The \code{yindex} array carries, in each row, the index of the last applicable
+death for this subject.  This also might be zero, for a subject censored before
+the first event.
+ Then \code{pmin(tindex, yindex)} is the last event time for
+that subject/output time pair; an index to the event number.
+The vector \code{ff} contains the indices of all the event times in the
+fit object, e.g., \code{fit\$n.risk[ff]} is the vector of $n$ at the event
+times and \code{(/fit\$n.risk[ff])[pmin(tindex, yindex)]} is a common idiom. %$
 
 \subsection{Simple survival}
 <<residuals.survfit>>=
@@ -180,6 +209,7 @@ rsurvpart1 <- function(Y, X, casewt, times,
     ny <- ncol(Y)
     event <- (Y[,ny] >0)
     status <- Y[,ny]
+
     # 
     #  Create a list whose first element contains the location of
     #   the death times in curve 1, second element for curve 2, etc.
@@ -198,8 +228,8 @@ rsurvpart1 <- function(Y, X, casewt, times,
     ff <- unlist(fitrow) 
  
     # for each time x, the index of the last death time which is <=x.
-    #  0 if x is before the first death time
-    # if a curve had 10 rows and 4 deaths, matchfun gives a value from 0 to 4
+    #  0 if x is before the first death time in the fit object.
+    #  The result is an index to the survival curve
     matchfun <- function(x, fit, index) {
         dtime <- fit$time[index]  # subset to this curve
         i2 <- findInterval(x, dtime, left.open=FALSE)
@@ -217,6 +247,7 @@ rsurvpart1 <- function(Y, X, casewt, times,
         temp <- matchfun(times, fit, fitrow[[i]])
         tindex[yrow, ] <- rep(temp, each= length(yrow))
     }
+    tindex[,] <- match(tindex, c(0,ff)) -1L  # the [,] preserves dimensions
 
     # repeat the indexing for Y onto fit$time.  Each row of yindex points
     #  to the last row of fit with death time <= Y[,ny]
@@ -233,15 +264,21 @@ rsurvpart1 <- function(Y, X, casewt, times,
             startindex[yrow,] <- rep(temp, ncol(yindex))
         }
     }                    
-
+    yindex[,] <- match(yindex, c(0,ff)) -1L
+    if (ny==3) {
+        startindex[,] <- match(startindex, c(0,ff)) -1L
+        # no subtractions for report times before subject's entry
+        startindex <- pmin(startindex, tindex) 
+    }
+    
     # Now do the work
-    if (type==3 || stype==2) {
+    if (type=="cumhaz" || stype==2) {  # result based on hazards
         if (ctype==1) {
             <<residpart1-nelson>>
         } else {
             <<residpart1-fleming>>
         }
-    } else {
+    } else { # not hazard based
         <<residpart1-AJ>>
     }
     D
@@ -275,10 +312,11 @@ min(report, entry) and min(report, exit) time.
 The first min is to deal with an obs which enters after the report time.
 
 <<residpart1-nelson>>=
-add1 <- (yindex <= tindex & rep(event, ntime))
-lsum <- unlist(lapply(fitrow, function(i) 
-             cumsum(fit$n.event[i]/fit$n.risk[i]^2)))
+add1 <- (yindex <= tindex & rep(event, ntime)) # an event occured at <= t
 
+# compute D = influence for cumulative hazard
+lsum <- unlist(lapply(fitrow, function(i) 
+         cumsum(fit$n.event[i]/fit$n.risk[i]^2)))  # one element per event
 term1 <- c(0, 1/fit$n.risk[ff])[ifelse(add1, 1+yindex, 1)]
 term2 <- c(0, lsum)[1+pmin(yindex, tindex)]
 if (ny==3) term3 <- c(0, lsum)[1 + pmin(startindex, tindex)]
@@ -287,69 +325,84 @@ if (ny==2) D <- matrix(term1 -  term2, ncol=ntime)
 else       D <- matrix(term1 + term3 - term2, ncol=ntime)
 
 # survival is exp(-H) so the derivative is a simple transform of D
-if (type==1) D <- -D* c(1,fit$surv)[1+ tindex]
-
+if (type== "pstate") D <- -D* c(1,fit$surv[ff])[1+ tindex]
 @ 
 
-Type 2 = the RMST, which is the area under $S(t)$ up to a given time. 
-The influence for S is -inflence(H) * S, so
-the influence on the RMST segment from $d_j$ to $d_{j+1}$ will be 
-$-{\rm influence}(H(d_j)) S(d_j) [d_{j+1}-d_j]$), where $d$ are the death times.
-Let $A(s,t)$ be the area under the survival curve from $s$ to $t$, with the
-convention that if $s \ge t$ then $A(s,t) =0$.  Let
-$dH_{ij}$ be the influence of observation $i$ on the $j$th cumulative
- hazard $H$,
-and $dh_{ij}$ the influence of observation $i$ on the increment of $H$ at $d_j$. 
-Then we have
+Type = RMTS is the area under $S(t)$ up to a given time. 
+The AUC at any time point is $\sum c_k S_k$, where $c_k$ are the widths of
+the rectangles.
+Let $A(s,t)$ be the area under the curve from  $s$ to $t$, with the convention
+that $A=0$ if $s \ge t$.
+\begin{align}
+  \frac{\partial S(t)}{\partial w_i} &= 
+   -\partial{H(t)}{\partial w_i} S(t) \nonumber\\
+    &= S(t)\sum_{d_j \le t} dN_i(d_j)/r(d_j) - Y_i(d_j)h(d_j)/r(d_j) 
+   \label{rsurv1}\\
+  \frac{\partial A(0,t)}{\partial w_i} &= 
+     (\sum_{d_j \le t} c_j \frac{\partial S(d_j)}{\partial w_i} \nonumber\\
+  &=  \sum_{d_j \le t} -\partial{H(t_j)}\partial{w_i} A(t_j, s \wedge t_{j+1})
+    \label{rsurv2} \\
+  &=   \sum_{d_j \le t} -\left(dN_i(d_j)/r(d_j) - Y_i(d_j)h(d_j)/r(d_j)\right)
+        A(d_j, t)  \label{rsurv3} \\
+  &= \sum_{d_j \le t} \left(dN_i(d_j)/r(d_j) - Y_i(d_j)h(d_j)/r(d_j)\right)
+        \left[ A(0,d_j) - A(0,t) \right] \nonumber \\
+  &= \left[\sum_{d_j \le t} -\left(dN_i(d_j)/r(d_j) - Y_i(d_j)h(d_j)/r(d_j)\right)
+          A(0, d_j) \right] - A(0,t)\partial{H(t)}{\partial w_i}
+        \label{rsurv4}
+\end{align}
+
+The problem with equation \eqref{rsurv2} is that it requires the influence of $H$
+at all the death time/subject pairs, which is exactly the computation we want
+to avoid.
+Substitution of the expansion in \eqref{rsurv1} for $dH$ and rearranging the
+terms leads to \eqref{rsurv3}.
+Replace the partial in \eqref{rsurv2} with the expansion in \eqref{rsurv1}
+and reverse the order if the sums to get \eqref{rsurv3}.
+
+Then break the compuation in into three parts:
 \begin{align*}
-  \frac{\partial A(0,t)}{\partial w_i} &= \sum_j -dH_{ij} 
-  A(d_j, t \wedge d_{j+1})  \\
-  \sum_j \left(\sum_{k \le j}(-dh_{ik}\right) A(d_j, t \wedge d_{j+1}) \\
-   \sum_{jk} \left(Y_i(d_k)h(d_k) - dN_i(d_k)\right)/r(t_k) 
-          A(d_k\vee d_j, t \wedge d_{j+1}) \\
- &= \sum_{k}\left[Y_i(d_k)h(d_k) - dN_i(d_k))/r(t_k)\right]
-   \left(\sum_j A(d_j\vee d_k, t \wedge d_{j+1}) \right) \\
-&= \sum_{k} \frac{Y_i(d_k)h(d_k)- dN_i(d_k)}{/r(d_k)} A(d_k, t) \\
-& =\sum_{k} \frac{Y_i(d_k)h(d_k)- dN_i(d_k)}{/r(d_k)} \left[A(0,t) - A(0,d_k)
-     \right]
+  1 &=\sum_{d_k \le t} \frac{ dN_i(d_k)}{r(d_k)} A(0,d_k)
+  2 &=\sum_{d_k \le t} \frac{Y_i(d_k)h(d_k)}{r(d_k)} A(0, d_k) \\
+  3 & A(0,t) \partial H(t)/\partial w_i
 \end{align*}
 
-What we must avoid is a sum over event times for each subject; that 
-is essentially $O(n^2)$ and will fail for large data sets.
-First recognize that if $d_k \ge t$ the contribution is zero.
-Break this into three parts:
-\begin{align*}
-  1 &=\sum_{d_k\le t} \frac{Y_i(d_k)h(d_k)- dN_i(d_k)}{/r(d_k)} A(0,t) \\
-  2 &=\sum_{d_k \le t} \frac{Y_i(d_k)h(d_k)}{/r(d_k)} A(0, d_k) \\
-  3 &=\sum_{d_k \le t} \frac{ dN_i(d_k)}{/r(d_k)} A(0,d_k)
-\end{align*}
-
-The first term is the leverage of the CH at time $t$, times a constant.
 Since there is only one death for a
-given subject, pointed to by yindex, the third term is a single value for
+given subject, pointed to by yindex, the first term is a single value for
 each subject/reporting time pair.
-The third requires another running sum lsum2.
-When $t$ lies between two event times, then $AUC(0,t)$ requires adding on the
-last interval width times the survival.
+The second term requires a running sum lsum2 exactly parallel to lsum.
+The third term is the easiest since the partial of $H$ is already available
+as the matrix $D$.  We simply need the constant $A(t)$ for each reporting
+time.
+
+Not all survival curves start at 0.  However, 
+up to the first death time $S$ is a constant value of 1, so the derivatives of
+S and the AUC are zero up to that point.  Thus we can use 
+$A(s,t) = A(d_1, t) - A(d_1,s)$ in the formula instead.
 
 <<residpart1-nelson>>=
-if (type==2) { # type 2 = AUC
+else if (type=="auc") { 
     auc <- unlist(lapply(fitrow, function(i) {
-        temp <- c(1, fit$surv[i])
-        cumsum(temp[-length(temp)] * diff(c(0, fit$time[i])))
-    }))  # each element of AUC has same length as the survival curve
+        if (length(i) <=1) 0
+        else c(0, cumsum(diff(fit$time[i]) * (fit$surv[i])[-length(i)]))
+    }))  # AUC at each event time
 
-    # overtime has a row for each subject and a col for each event time
+    aterm1 <- c(0, auc/fit$n.risk[ff])[ifelse(add1, 1+ yindex, 1)]
+
+    lsum2 <- unlist(lapply(fitrow, function(i) {
+        if (length(i) <=1) 0
+        else {
+            auc <- c(0, cumsum(diff(fit$time[i]) * (fit$surv[i])[-length(i)]))
+            cumsum(auc*fit$n.event[i]/fit$n.risk[i]^2)
+        }}))
+
+    aterm2 <- -c(0, lsum2)[1+ pmin(yindex, tindex)]
+
+   # Make an AUC(t) matrix that is the same shape as D
     overtime <- (times[col(D)]- c(0,fit$time[ff])[1+tindex]) # t -last event time
-    auc2 <- c(0, auc)[1 + tindex]  + overtime* c(1,fit$surv[ff])[1+tindex] # A(0, t)
-    aterm1 <- -D * auc2
-    
-    lsum2 <- unlist(lapply(fitrow, function(i) 
-             cumsum(auc[i]*fit$n.event[i]/fit$n.risk[i]^2)))
-    aterm2 <- c(0, lsum2)[1 + pmin(yindex, tindex)]
-    aterm3 <- c(0, auc/fit$n.risk[ff])[ifelse(add1, 1+yindex, 1)]
+    auc2 <- c(0, auc)[1+ tindex]  + overtime* c(1,fit$surv[ff])[1+tindex] 
+    aterm3 <- -D * auc2
 
-    D <- matrix(aterm1 + aterm3 - aterm2, ncol=ntime)
+    D <- matrix(aterm1 + aterm2 + aterm3, ncol=ntime)
 }
 @ 
 
@@ -365,44 +418,44 @@ Computationally, the number of distinct times at which a tie occurs is normally
 quite small and the for loop below will not be too expensive.
 
 <<residpart1-fleming>>=
-nevent <- fit$n.event[ff]/casewt[1]  # the number of events, if all wts equal
+stop("fleming-harrington case not yet completed")
 if (any(casewt != casewt[1])) {
     # Have to reconstruct the number of obs with an event, the curve only
     # contains the weighted sum
     nevent <- unlist(lapply(seq(along=levels(X)), function(i) {
         keep <- which(as.numeric(X) ==i)
-        dtime <- Y[keep & status==1, ny-1]
-        as.vector(table(dtime))
+        counts <- table(Y[keep, ny-1], status)
+        as.vector(counts[, ncol(counts)])
         }))
-}
+} else nevent <- fit$n.event
 
-risk2 <- fit$n.risk[ff]
-ntemp <- fit$n.event[ff]
-ltemp <- ntemp/risk2^2
-for (i in which(nevent>1)) {
-    denom <- risk2[i] - ntemp[i]*(0:(nevent[i]-1))/nevent[i] # num at risk
+n2 <- fit$n.risk
+risk2 <- 1/fit$n.risk
+ltemp <- risk2^2
+for (i in which(nevent>1)) {  # assume not too many ties
+    denom <- fit$n.risk[i] - fit$n.event[i]*(0:(nevent[i]-1))/nevent[i] 
     risk2[i] <- mean(1/denom) # multiplier for the event
-    ltemp[i] <- ntemp[i]* mean(1/denom^2)
+    ltemp[i] <- mean(1/denom^2)
+    n2[i] <- mean(denom)
 }
-
-add1 <- (yindex >= tindex & rep(event, ntime))
-lsum <- unlist(lapply(fitrow, function(i) cumsum(ltemp[i])))
-term1 <- c(0, 1/risk2)[ifelse(add1, 1+yindex, 1)]
-term2 <- c(0, lsum)[1+pmin(yindex, tindex)]
+add1 <- (yindex <= tindex & rep(event, ntime))
+lsum <- unlist(lapply(fitrow, function(i) cumsum(fit$n.event[i]*ltemp[i])))
+term1 <- c(0, risk2[ff])[ifelse(add1, 1+yindex, 1)]
+term2 <- c(0, lsum)[1+ pmin(yindex, tindex)]
 if (ny==3) term3 <- c(0, lsum)[1 + startindex]
 
 if (ny==2) D <- matrix(term1 - term2, ncol=ntime)
 else D <- matrix(term1 + term3 - term2, ncol=ntime)
 
-if (type==1) D <- -D* c(0,fit$surv)[1+ tindex]
-else if (type==2) { #RMST
+if (type=="pstate") D <- -D* c(0,fit$surv[ff])[1+ tindex]
+else if (type=="auc") { #RMST
     auc <- unlist(lapply(fitrow, function(i) {
         temp <- c(1, fit$surv[i])
         cumsum(temp[-length(temp)] * diff(c(0, fit$time[i])))
     }))
 
-    overtime <- (times[col(D)]- c(0,fit$time)[1+tindex]) # t - last event time
-    auc2 <- c(0, auc)[1 + tindex]  + overtime* c(1,fit$surv)[1+tindex] # A(0, t)
+    overtime <-(times[col(D)]- c(0,fit$time[ff])[1+tindex]) # t -last event time
+    auc2 <- c(0, auc)[1 + tindex]  + overtime* c(1,fit$surv[ff])[1+tindex] # A(0, t)
     aterm1 <- -D * auc2
     
     lsum2 <- unlist(lapply(fitrow, function(i) 
@@ -419,30 +472,28 @@ else if (type==2) { #RMST
 For the Kaplan-Meier (a special case of the Aalen-Johansen) the underlying
 algorithm is multiplicative.
 \begin{align}
-    S(t) &= S(t-) [1 - h(t)]  \nonumber\\
-         &= \prod_{d_j \le t} [1- h(d_j)] \\
+    S(t) &= S(t-) [1 - h(t)]  \label{recursive}\\
+         &= \prod_{d_j \le t} [1- h(d_j)] \label{direct}\\
     U_i(t) &= \frac{\partial S(t)}{\partial w_i}  \nonumber\\
            &= U_i(t-) [1- h(t)] - 
                S(t-)\frac{\partial h(t)}{\partial w_i} \label{sUkm} \\
-           &= \sum_{d_j \le t} S(d_{j}-)\frac{\partial 1- h(d_j}{\partial w_i}
-                   \left[\prod_{d_j < d_k <=t} (1 - h(d_k)) \right]
+           &= \sum_j \left(\frac{\partial [1- h(d_j)]}{\partial w_i}
+                   \left[\prod_{d_k\le t; k \ne j} (1 - h(d_k)) \right]\right)
                  \label{sUkm2} \\
-            &= \sum_{d_j \le t} S(d_{j}-)\frac{\partial 1- h(d_j}{\partial w_i}
-                   \frac{1-h(d_j)}{1-h(d_j)} 
-                   \left[\prod_{d_j < d_k <=t} (1 - h(d_k)) \right]
-                 \nonumber \\
-          &= \left(\prod_{d_j \le t} [1- h(d_j)] \right)
-              \left[-\sum_{d_j\le t} \frac{dN_i(d_j) - Y_i(d_j)h(d_j)}{r(d_j)}
-                   \frac{1}{1-h(d_j} \right] S(t) \label{ajfactor}
+            &= S(t) \left[-\sum_{d_j\le t} \frac{dN_i(d_j) - Y_i(d_j)h(d_j)}{r(d_j)}
+                   \frac{1}{1-h(d_j)} \right] \label{ajfactor}
 \end{align}
 where $h$ is the increment in  Nelson-Aalen at each event time and 
 $d$ are the event times.  
 The derivative form \eqref{sUkm} is based on expanding the recursive definition
-of the KM, and \eqref{sUkm2} on using the second definition and the product
+of the KM \eqref{recursive}, and \eqref{sUkm2} on using the direct
+definition \eqref{direct} along with the product
 rule for derivatives: each term is replaced, one by one, with it's derivative.
-The final step add $1-h(d_j)$ to the numberator and denominator, which allows
-all of the $1-h$ term to be gathered together as $S(t)$.
-Our algorithm is based on the last equation \eqref{ajfactor}.
+The final step is to notice that the right hand product in \eqref{sUkm2}
+is $S(t)$ less a single term: multiply by $(1-h_j)/(1-h_j)$ and gather the
+numerator term into $S(t)$.
+which allows all of the $1-h$ term to be gathered together as $S(t)$.
+Our algorithm is based on this last equation \eqref{ajfactor}.
 Exectution is very similar to the algorithm for $dH$.
 One insight with respect to this final formula 
 is that the steps of the KM are a little bit larger than the
@@ -457,56 +508,63 @@ dtemp <- ifelse(fit$n.risk==fit$n.event, 0, 1/(fit$n.risk- fit$n.event))
 hsum <- unlist(lapply(fitrow, function(i) 
              cumsum(dtemp[i]*fit$n.event[i]/fit$n.risk[i])))
     
-term1 <- c(0, dtemp)[ifelse(add1, 1+yindex, 1)]
+term1 <- c(0, dtemp[ff])[ifelse(add1, 1+yindex, 1)]
 term2 <- c(0, hsum)[1+pmin(yindex, tindex)]
 if (ny==3) term3 <- c(0, hsum)[1 + startindex]
 
 if (ny==2) D <- matrix(term1 -  term2, ncol=ntime)
 else       D <- matrix(term1 + term3 - term2, ncol=ntime)
 
-if (type==1) D <- -D* c(1,fit$surv)[1+ tindex]
-else if (type==2){
+if (type== "pstate") D <- -D* c(1,fit$surv[ff])[1+ tindex]
+else if (type== "auc"){
     auc <- unlist(lapply(fitrow, function(i) {
-        temp <- c(1, fit$surv[i])
-        cumsum(temp[-length(temp)] * diff(c(0, fit$time[i])))
-    }))
+        if (length(i) <=1) 0
+        else c(0, cumsum(diff(fit$time[i]) * (fit$surv[i])[-length(i)]))
+    }))  # AUC at each event time
 
-    overtime <- (times[col(D)]- c(0,fit$time)[1+tindex]) # t - last event time
-    auc2 <- c(0, auc)[1 + tindex]  + overtime* c(1,fit$surv)[1+tindex] # A(0, t)
-    aterm1 <- -D * auc2
+    aterm1 <- c(0, auc*dtemp[ff])[ifelse(add1, 1+ yindex, 1)]
+
+    lsum2 <- unlist(lapply(fitrow, function(i) {
+        if (length(i) <=1) 0
+        else {
+            auc <- c(0, cumsum(diff(fit$time[i]) * (fit$surv[i])[-length(i)]))
+            cumsum(auc* dtemp[i] *fit$n.event[i]/fit$n.risk[i])
+        }}))
+
+    aterm2 <- -c(0, lsum2)[1+ pmin(yindex, tindex)]
+
+   # Make an AUC(t) matrix that is the same shape as D
+    overtime <- (times[col(D)]- c(0,fit$time[ff])[1+tindex]) # t -last event time
+    auc2 <- c(0, auc)[1+ tindex]  + overtime* c(1,fit$surv[ff])[1+tindex] 
+    aterm3 <- -D * auc2
     
-    lsum2 <- unlist(lapply(fitrow, function(i) 
-             cumsum(auc[i]*(dtemp[i]*fit$n.event[i]/fit$n.risk[i]))))
-    aterm2 <- c(0, lsum2)[1 + pmin(yindex, tindex)]
-    aterm3 <- c(0, auc/fit$n.risk)[ifelse(add1, 1+yindex, 1)]
-
-    D <- matrix(aterm1 + aterm3 - aterm2, ncol=ntime)
+    D <- matrix(aterm1 + aterm2 + aterm3, ncol=ntime)
 }
 @
  
 Just as in the prior AUC, our influence on the survival is (something)*S,
 so the influence on the AUC is (same something) * AUC.  
-This means that the code for type 2 is nearly identical to what came before.
+This means that the code for AUC is nearly identical to what came before.
 
 \subsection{Multi-state Aalen-Johansen estimate}
 For multi-state models a correction for ties of similar spirit to the 
 Efron approximation in a Cox model (the ctype=2 argument for \code{survfit})
 is difficult: the 'right' answer depends on the study.
 Thus the ctype argument is not present.  
-Both stype 1 and 2 are feasible, but currently one \code{stype=1} is
+Both stype 1 and 2 are feasible, but currently only \code{stype=1} is
 supported.
 This makes the code somewhat simpler, but this is more than offset by the 
 multi-state nature.
 With multiple states we also need to account for influence on the starting
 state $p(0)$.
 
-On thing that can make this code slow is data that has been divided into a
+One thing that can make this code slow is data that has been divided into a
 very large number of intervals, giving a large number of observations for
 each cluster.  We first deal with that by collapsing adjacent observations.
 
 <<residuals.survfit>>=
 rsurvpart2 <- function(Y, X, casewt, istate, times, cluster, type, fit,
-                       method) {
+                       method, collapse) {
     ny <- ncol(Y)
     ntime <- length(times)
     nstate <- length(fit$states)
@@ -518,17 +576,23 @@ rsurvpart2 <- function(Y, X, casewt, istate, times, cluster, type, fit,
         Y[,ny] <- c(0, map)[1+ Y[,ny]]    # 0 = censored
         attr(Y, "states") <- fit$states
     }
-    if (is.character(istate)) istate <- factor(istate)
-    if (is.factor(istate)) {
-        if (!identical(levels(istate), fit$states)) {
-            map <- match(levels(istate), fit$states)
-            if (any(is.na(map))) stop ("invalid levels in istate")
-            istate <- map[istate]
-        }
-    } # istate is numeric, we take what we get and hope it is right
+    if (is.null(istate)) istate <- rep(1L, nrow(Y)) #everyone starts in s0
+    else {
+        if (is.character(istate)) istate <- factor(istate)
+        if (is.factor(istate)) {
+            if (!identical(levels(istate), fit$states)) {
+                map <- match(levels(istate), fit$states)
+                if (any(is.na(map))) stop ("invalid levels in istate")
+                istate <- map[istate]
+            }       
+        } # istate is numeric, we take what we get and hope it is right
+    }
 
     # collapse redundant rows in Y, for efficiency
-    if (ny==3 && any(duplicated(cluster))) {
+    #  a redundant row is a censored obs in the middle of a chain of times
+    #  if the user wants individial obs, however, we would just have to
+    #  expand it again
+    if (ny==3 && collapse & any(duplicated(cluster))) {
         ord <- order(cluster, X, istate, Y[,1])
         cfit <- .Call(Ccollapse, Y, X, istate, cluster, casewt, ord -1L) 
         if (nrow(cfit) < .8*length(X))  {
@@ -543,7 +607,8 @@ rsurvpart2 <- function(Y, X, casewt, istate, times, cluster, type, fit,
 
     # Compute the initial leverage
     inf0 <- NULL
-    if (is.null(fit$call$p0)) { #p0 was not supplied by the user
+    if (is.null(fit$call$p0) && any(istate != istate[1])) { 
+        #p0 was not supplied by the user, and the intitial states vary
         inf0 <- matrix(0., nrow=nrow(Y), ncol=nstate)
         i0fun <- function(i, fit, inf0) {
             # reprise algorithm in survfitCI
@@ -585,31 +650,44 @@ rsurvpart2 <- function(Y, X, casewt, istate, times, cluster, type, fit,
             indx[etime[indx]] # keep the death times
         }) 
     }
- 
-     # for each time x, the index of the last death time which is <=x.
-     #  0 if x is before the first death time
-     matchfun <- function(x, fit, index) {
-         dtime <- fit$time[index]  # subset to this curve
-         i2 <- findInterval(x, dtime, left.open=FALSE)
-         c(0, index)[i2 +1]
-     }
+    ff <- unlist(fitrow)
+
+    # for each time x, the index of the last death time which is <=x.
+    #  0 if x is before the first death time
+    matchfun <- function(x, fit, index) {
+        dtime <- fit$time[index]  # subset to this curve
+        i2 <- findInterval(x, dtime, left.open=FALSE)
+        c(0, index)[i2 +1]
+    }
      
 
-     if (type==3) {
-         <<residpart2CH>>
-     } else {
-         <<residpart2AJ>>
-     }
-     D
+    if (type== "cumhaz") {
+        <<residpart2CH>>
+    } else {
+        <<residpart2AJ>>
+    }   
+
+    # since we may have done a partial collapse (removing redundant rows), the
+    # parent routine can't collapse the data
+    if (collapse & any(duplicated(cluster))) {
+        if (length(dim(D)) ==2)
+            D <- rowsum(D, cluster, reorder=FALSE)
+        else { #rowsums has to be fooled
+            dd <- dim(D)
+            temp <- rowsum(matrix(D, nrow=dd[1]), cluster)
+            D <- array(temp, dim=c(nrow(temp), dd[2:3]))
+        }       
+    }
+    D
 }
 @ 
 
-/paragraph{Nelson-Aalen}
+\paragraph{Nelson-Aalen}
 The multi-state Nelson-Aalen estimate of the cumulative hazard at time $t$
 is a vector with one element for each observed transition pair.  If there
 were $k$ states there are potentially $k(k-1)$ transition pairs, though 
 normally only a small number will occur in a given fit.  
-We don't keep track of a transition from state $j$ to state $j$.
+We ignore transitions from state $j$ to state $j$.
 Let $r(t)$ be the weighted number at risk at time $t$, in each state.
 When some subject makes a $j:k$ transition, the $j:k$ transition will
 have an increment of $w_i/r_j(t)$. 
@@ -629,6 +707,7 @@ for (i in 1:length(fitrow)) {
     temp <- matchfun(times, fit, fitrow[[i]])
     tindex[yrow, ] <- rep(temp, each= length(yrow))
 }
+tindex[,] <- match(tindex, c(0,ff)) -1L  # the [,] preserves dimensions
 
 # repeat the indexing for Y onto fit$time.  Each row of yindex points
 #  to the last row of fit with death time <= Y[,ny]
@@ -645,9 +724,15 @@ for (i in 1:length(fitrow)) {
         startindex[yrow,] <- rep(temp, ncol(yindex))
     }
 }                    
+yindex[,] <- match(yindex, c(0,ff)) -1L
+if (ny==3) {
+    startindex[,] <- match(startindex, c(0, ff)) -1L
+    # no subtractions for report times before subject's entry
+    startindex <- pmin(startindex, tindex) 
+}
 
 dstate <- Y[,ncol(Y)]
-istate <- as.numeric(istate)
+istate <- as.integer(istate)
 ntrans <- ncol(fit$cumhaz)  # the number of possible transitions
 D <- array(0, dim=c(nrow(Y), ntime, ntrans))
 
@@ -663,7 +748,7 @@ for (k in length(state1)) {
     lsum <- unlist(lapply(fitrow, function(i) 
              cumsum(fit$n.event[i,k]/fit$n.risk[i,k]^2)))
     
-    term1 <- c(0, 1/fit$n.risk[,k])[ifelse(add1, 1+yindex, 1)]
+    term1 <- c(0, 1/fit$n.risk[ff,k])[ifelse(add1, 1+yindex, 1)]
     term2 <- c(0, lsum)[1+pmin(yindex, tindex)]
     if (ny==3) term3 <- c(0, lsum)[1 + startindex]
 
@@ -677,62 +762,69 @@ The multi-state AJ estimate is more complex.  Let $p(t)$ be the vector
 of probability in state at time $t$.
 Then
 \begin{align}
-  p(t) &= p(t-) H(t) \\
-  \frac{partial p(t)}{\partial w_i} &= \frac{\partial p(t-)}{\partial w_i} H(t)
-     +  p(t-) \frac{\partial H(t)}{\partial w_i} \nonumber\\
-   &= U_i(t-) H(t) + p(t-) \frac{\partial H(t)}{\partial w_i} \label{ajresidx}\\
+  p(t) &= p(t-) [I+ A(t)]\nonumber\\
+  \frac{\partial p(t)}{\partial w_i} &= \frac{\partial p(t-)}{\partial w_i} 
+                                        [I+ A(t)]
+     +  p(t-) \frac{\partial A(t)}{\partial w_i} \nonumber\\
+   &= U_i(t-) [I+ A(t)] + p(t-) \frac{\partial A(t)}{\partial w_i} 
+       \label{ajresidx}\\
 \end{align}
 
 When we expand the left hand portion of \eqref{ajresidx} to include all 
 observations it becomes simple matrix multiplication, not so with
 the right hand portion.
 Each individual subject $i$ has a subject-specific
-nstate * nstate derivative matrix $dH$, which will be non-zero only for the 
+nstate * nstate derivative matrix $dA$, which will be non-zero only for the 
 state (row) $j$ that the subject occupies at time $t-$. 
 The $j$th row of $p(t-) dH$ is added to each subject's derivative.
 
-The transition matrix at time $t$ has elements
-\begin{align*}
-H(t)_{jk} &= \frac{\sum_i I{s_i(t-)=j, s_i(t)=k} w_i}{\sum_i I{s_i(t-)=j} w_i} \\
-    &= \frac{\sum_i I{s_i(t-)=j, s_i(t)=k} w_i}{r_j(t)}
-\end{align*}
-The notation $s_i(t)$ is the state of observation $i$ at time $t$ and 
-$r_j(t)$ the weighted number at risk.
-Each observation at risk appears in only 1 row of $H(t)$. 
-The sum of each row is 1, and if there are no transitions from state $j$ at
-this time, said row $j$ is equal to the row of an identity matrix.
-
-We can also write the transition matrix as $H = I +C$, the identity plus
-a correction.
-The derivative is incremented by $-C_{j.}/r_j(t)$ for each subject in state
-$j$ at time $t-$, and by a further increment of  $1/r_j(t)$ and $-1/r_j(t)$ to
-the $j$ and $kth$ positions, resectively, of any observation who transitioned
-from $j$ to $k$.
+The $A$ matrix at time $t$ has off diagonal elements and derivative
+\begin{align}
+A(t)_{jk} &= \frac{\sum_i w_i Y_{ij}(t) dN{ik}(t)}
+     {\sum_i w_iY_{ij}(t)} \\
+     &= \lambda_{jk}(t) \\
+\frac{\partial A(t)}{\partial w_i} &= \frac{dN_{ik}(t) - \lambda_{jk}(t)}
+     {\sum_i w_iY_{ij}(t)} \label{Aderiv}
+\end{align}
+    
+This is the standard counting process notation: $Y_{ij}(t)$ is 1 if subject $i$
+is in state $j$ and at risk at time $t-$, and $dN_{ik}(t)$ is a transition to
+state $k$ at time $t$.
+Each observation at risk appears in at most 1 row of $A(t)$, since they can
+only be in one state.  
+The diagonal element of $A$ are set so that each row sums to 0.
+If there are no transitions out of state $j$ at some time point, then that
+row of $A$ is zero.
+Since the row sums are constant, the sum of the derivatives for each row
+must be zero.
 
 If we evaluate equation \label{ajresidx} directly there will be 
 $O(nk^2)$ operations at each death time for the matrix product, and another
 $O(nk)$  to add in the new increment.  For a large data set $d$ is often
 of the same order as $n$, which makes this an expensive calculation.
-Collapsing can in theory occur at the same time as the addition
-step, so that $U$ has one row per cluster rather than one per observation.
-However, if the user's data set has the same subject in multiple curves this
-leads to subtle indexing issues, so we currently don't do it in the C-code.
+But, this is what the C-code version currently does, because I have code that
+actually works.
+
 
 <<residpart2AJ>>=
 if (method==1) {
     # Compute the result using the direct method, in C code
     # the routine is called separately for each curve, data in sorted order
     #
-    if (ny==2) asort1 <- 0 else asort1 <- order(Y[,1], Y[,2]) -1L
-    asort2 <- order(Y[,2]) -1L
+    if (ny==2) asort1 <- 0L else asort1 <- order(Y[,1], Y[,2]) -1L
+    asort2 <- order(Y[,ny-1]) -1L
     is1 <- as.integer(istate) -1L  # 0 based subscripts for C
+    if (is.null(inf0)) inf0 <- matrix(0, nrow=nrow(Y), ncol=nstate)
     if (all(as.integer(X) ==1)) { # only one curve
         tfit <- .Call(Csurvfitresid, Y, asort1, asort2, is1, 
                       casewt, fit$pstate[1,], inf0, times, start.time, 
-                      type==2)
-        if (ntime==1) {if (type==2) D <- tfit[[2]] else D <- tfit[[1]]}
+                      type== "auc")
+
+        if (ntime==1) {
+            if (type=="auc") D <- tfit[[2]] else D <- tfit[[1]]
+        }
         else {
-            if (type==2) D <- array(tfit[[2]], dim=c(nrow(Y), nstate, ntime))
+            if (type=="auc") D <- array(tfit[[2]], dim=c(nrow(Y), nstate, ntime))
             else         D <- array(tfit[[1]], dim=c(nrow(Y), nstate, ntime))
         }
     }
@@ -747,93 +839,90 @@ if (method==1) {
             j <- which(ix== curve)
             tfit <- .Call(Csurvfitresid, Y, a1, a2, is1, 
                           casewt, fit$pstate[i,]$pstate , inf0[j,], times, 
-                          start.time, type==2)
-            if (type==2) D[j,,] <- tfit[[2]] else D[j,,] <- tfit[[1]]
+                          start.time, type=="auc")
+            if (type=="auc") D[j,,] <- tfit[[2]] else D[j,,] <- tfit[[1]]
         }
     }                                    
 }
 else {
+    # method 2
     <<residpart2AJ2>>
 }
 @   
 
-Applying the product rule for derivatives to the expression
-$p(t) = p(0) H(d_1) H(d_2) \ldots$, leads to a sum, where each $H$ term is
-replaced, one by one, with its derivative:
+Can we speed this up?
+An alternate is to look at the direct expansion.
 \begin{align}
-  U_i(t) &= \sum_{d_j \le t} \left( p(d_j-) \frac{\partial H(d_j)}{\partial w_i} 
-    \prod_{d_j <d_k \le t} H(d_k) \right) \label{ajresidy}
+  p(t) &= p(0) \prod_{d_j \le t} [I+ A(d_j)] \nonumber \\
+  \frac{\partial p(t)}{\partial w_i} &=
+     \frac{\partial p(0)}{\partial w_i} \prod_{d_j \le t} [I+ A(d_j)] \\
+     &  + p(0)\sum_{d_j \le t} \left( \prod_{k<j}[I+ A(d_k)]
+            \frac{\partial A(d_j)}{\partial w_i}  
+            \prod_{j<k, d_k\le t}[I+ A(d_k)]  \right)\nonumber \\
+   &= \frac{\partial p(0)}{w_i} \prod_{d_j \le t} [I+ A(d_j)] +  
+            p(d_{j-1}) \frac{\partial A(d_j)}{\partial w_i}
+            \prod_{j<k, d_k\le t}[I+ A(d_k)] \label{ajresidy}
 \end{align}
-We cannot insert an $H(d_j)/H(d_j)$ term and rearrange the equation so as to
-factor out $p(t)$, as was done in the KM case, however,
+We cannot insert an $(I+ A(d_j))/(I + A(d_j))$ term and rearrange the last
+equation so as to factor out $p(t)$, as was done in the KM case, however,
 since matrix products do not commute.
+Instead think of accumulating the terms sequentially.  
+Let $B^{(j)}(t)$ be the nstate by nstate matrix derivative matrix with
+row $j$ of $\lambda_{jk}/n_j(t)$, and zero in all of the other
+rows, i.e., term 2 of equation \eqref{Aderiv} for someone in state $j$.
+(This is the part of the derivative that is common to all subjects at
+risk.) Let $B(t)$ be the sum of these matrices, i.e., all states filled.
+Now, here is the trick.  The product $B^{(j)}(t)[I + A(t)]$ also is
+zero for all but the $jth$ row, and is in fact equal to the $j$th
+row of $B(t)[I + A(t)]$.
+Further, $p(t-)B^{(j)}(t)[I + A(t)]$ is the $j$th row of
+${rm diag}(p(t-))B(t)[I + A(t)]$.
 
-For fast computing, we must not update all $n$ observation's influence at 
-each of the $d$ deaths. One approach is to precompute the transition matrices.
-Consider for a moment a single reporting time $t$ such that 
-$d_{9} \le t < d_{10}$, and the derivative of $H(d_5)$, and a subject who
-transitions from state 2 to state 3 in a 4 state model.
+The key computation is based on a matrix of matrices.  Start with the following
+definitions.  $T_{jk}$ is the $j$th term in the expansion, at
+death time $k$.  $T_{jk}=0$ whenever $k=0$ or $j>k$.
+Let $D(x)$ be the diagonal matrix.
+\begin{align}
+T_{01} &= D(p'(0))[I+ A(d_1)] & T_{02} &= T_{01}[I + A(d_2)] &
+         T_{03} &= T_{02} [I + A(d_3)] &  \ldots \\
+T_{11} &=  D(p(d_1)) B(d_1) & T_{12} &= T_{11}[I + A(d_2)] &
+         T_{13} &= T_{12}[I + A(d_3)] & \ldots \\
+T_{21} &=  0 & T_{22} &= D(p(d_2)) B(d_2) & T_{23} &= T_{22}[I+ A(d_2)] & \ldots \\
+T_{31} &=  0 & T_{32}&=0 & T_{33} &= D(p(d_3)) B(d_3) &\ldots 
+\end{align}
+(According to the latex guide the above should be nicely spaced, but I get
+equations that are touching.  Why?)
 
-Consider for a moment a single reporting time $t$ such that 
-$d_{9} \le t < d_{10}$, and the contribution of $H(d_5)$, for a subject who
-transitions from state 2 to state 3 in a 4 state model.
-\begin{equation}
-  \frac{partial H(d_5)}{\partial w_i} = 
-    \left[(0,-1, 1, 0)/r(d_5) H(d_6)H(d_7)H(d_8)H(d_9) \right] -
-    \left[C_{2.}(d_4)/r(d_5)H(d_6)H(d_6)H(d_7)H(d_8)H(d_9) \right]
-\end{equation}
-The above only looks at row 2 of the partial, since that is all that matters
-for this subject.
-Pre-compute the matrix products since it can be done efficiently
-in reverse order
+If $p(0)$ is a fixed value specified by the user then $p'(0)$ =0.
+Otherwise $p(0)$ is the emprical distribution of the initial states, just
+before the first death time $d_1$.  Let $n_0$ be the (weighted) count of 
+subjects who are at risk at that time.  
+The $j$th row of $p'(0)$ is defined as the deviative wrt $w_i$ for a subject
+who starts in state $j$.  
+If no one starts in state $j$ that row of the matrix will be 0, otherwise
+it contains $(1-p_j(0)$ in the $jth$ element and $p_j(0)/n_0$ elsewhere.
+
+Define the matrix $W_{jk} = \sum_{l=1}^j T_{lk}$, with $W_{j0}=0$.
+Then for someone who enters at time $s$ such that $d_a < s \le d_{a+1}$,
+is censored or has an event at time $t$ such that $d_b \le t <d_{b+1}$,
+reporting at time $r$ such that $d_c \le r < d_{c+1}$, the first portion of
+the contribution for an observation in state $j$ will be the 
+$j$th row of $- (W_{br}-W_{ar})$. 
+
+The second contribution is the effect of the $dN$ term in the derivative.
+An observation that has a j:k transtion at time $d_i$ will have an
+additional term of $c \prod_{k=i+1}^r [I + A(t_k)]$ where $c$ is a vector
+with 
 \begin{align*}
-  W_1 & = \prod_{j=2}^{9} H(d_j)
-  W_2 &=  \prod_{j=3}^{9} H(d_j)
-  \vdots &= \vdots
-  W_{8} &= H(d_{9})
-  W_{9} &= I
+  c_j &= -1/n_j(d_i) \\
+  c_k &=  1/n_j(d_i) \\
+  c   &=  0 \;\mbox{otherwise}
 \end{align*}
-Compute the $k$ by $k$ matrix $A= (p(t_4)/r(d_5) C(d_5)W_5$, which 
-will be fast since the matrices are $k$ by $k$.  
-Everyone in state 2 at time $d_5$ will have row 2 of $A$ added to
-their row of the influence at time $t$.  Those who experience an event at
-time $d_5$ have an extra entry $pm 1$ term carried through in the same
-way.
-This has eliminated a lot of matrix multiplication, but we still have
-$O(nk)$ additions performed at each death.  The matrix $A$ will have a 0 row
-for any states without transitions, which can be used to advantage.
-But, when the number of states is small $O(ndk)$ is not tremendously better
-than $O(ndk^2)$, and the code is more complex.
 
-The real gain is when the $C(d_j)$ part of the derivative, which is the
-same for everyone, is kept as a running sum. Each observation then has a single
-addition and subtraction when they enter and leave the risk set.
-There is one serious complication, which is when an observation spans one
-of the reporting times, e.g., an obs of (20, 80) with events at 30, 50, 70 and
-a read out at 60: they get a partial total at 60 and final total at 80.
-I was not able to come up with an efficient way to deal with this: keeping
-track of who is and is not at currenty at risk is an $O(nd)$ job.  But there
-is a trick: use the survSplit code to make sure no such observations exist!
-The premise is again that there will be only a handful of reporting times.
-(If a user asks for lots, slowness is their own fault.)
-
-To compute the area under the curve replace the matrices $W$ with an alternate
-set of matrices $V$.  Going back to our example of an event at time $d_5$
-and reporting at $d_9$.  
-Gathering the lead terms together as $B$, the influence of $H(d_5)$ 
-on times 5--9 is $B$, $B H(d_6)$, $B H(d_6) H(d_7)$, $B H(d_6) H(d_7) H(d_8)$,
-and $B H(d_6) H(d_7) H(d_8) H(d_9)$, and the influence on the AUC will be
-$B (d_6-d_5)$, $B[(d_6-d_5) H(d_6)(d_7-d_6)]$, \ldots, giving the series
-\begin{align*}
-  V_1 & = (t_2-t_1) + H(d_2)V_2
-  V_2 &=  (t_3-t_2) + H(d_3)V_3
-  \vdots &= \vdots
-  V_{8} &= (t_9-t_8) + H(d_9)V_9
-  V_{9} &= 0
-\end{align*}
-In the prior formulas $V$ replaces $W$. 
-Again, any issues with intervals that span one of the reporting times
-has been solved by the data split.
+If there are multiple reporting times, it is currently simplest to do each
+one separately (at least for now), having computed and stored the sets of
+matrices $A(d_i)$ and $p(d_i)B(d_i)$ once at the start.
+If there are multiple strata in a curve, this is done separately per stratum.
 
 <<residpart2AJ2>>=
 Yold <- Y
@@ -863,6 +952,9 @@ tindex <- matrix(0L, nrow=length(fitrow), ncol=ntime)
 for (i in 1:length(fitrow)) {
     tindex[i,] <- matchfun(times, fit, fitrow[[i]])
 }
+yindex[,] <- match(yindex, c(0,ff)) -1L
+tindex[,] <- match(tindex, c(0,ff)) -1L
+ystart[,] <- pmin(match(ystart, c(0,ff)) -1L, tindex)
 
 # Create the array of C matrices
 cmat <- array(0, dim=c(nstate, nstate, ndeath)) # max(i2) = ndeath, by design
@@ -994,5 +1086,4 @@ if (any(duplicated(split$row))) {
         D <- array(temp, dim=c(nrow(temp), nstate, ntime))
     }
 }
-D
 @

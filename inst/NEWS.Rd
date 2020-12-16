@@ -17,6 +17,15 @@
     \item Error in plot.survfit: the noplot argument had been overlooked
     for the confidence intervals, and the wrong interval could be matched to
     each curve.
+    \item The neardate routine implicitly assumed that data set 2 was in
+    sorted order, if it is not an error message ensues from the internal
+    call to findInterval.  Now repaired and a new test added.  Pointed
+    out by Bruce Macwilliams.
+    \item Add an error message to survfit recognizing that it can not
+    yet deal with multistate coxph models that have shared baseline
+    hazards.
+    \item Add the pseudo function for psuedo-values. Vignette in
+    vignette2 since it uses other packages.
 }}
 
 \section{Changes in version 3.2-7}{

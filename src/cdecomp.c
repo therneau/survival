@@ -49,10 +49,12 @@ SEXP cdecomp(SEXP R2, SEXP time2) {
     for (i=0; i<nc; i++) { /* computations for column i */
         dd[i] = R[i +ii];    /* the i,i diagonal element = eigenvalue*/
         A[i +ii] = 1.0;
-        for (j=(i-1); j >=0; j--) {  /* fill in the rest */
-            temp =0;
-            for (k=j; k<=i; k++) temp += R[j + k*nc]* A[k +ii];
-            A[j +ii] = temp/(dd[i]- R[j + j*nc]);
+        if (dd[i] !=0) {
+            for (j=(i-1); j >=0; j--) {  /* fill in the rest */
+                temp =0;
+                for (k=j; k<=i; k++) temp += R[j + k*nc]* A[k +ii];
+                A[j +ii] = temp/(dd[i]- R[j + j*nc]);
+            }
         }
         ii += nc;
     }

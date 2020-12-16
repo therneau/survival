@@ -102,6 +102,10 @@ plot.survfit<- function(x, conf.int,  mark.time=FALSE,
             # the !any is a failsafe, in case none are kept we ignore noplot
             ssurv <- smat(x$pstate)
             if (!is.null(x$std.err)) std <- smat(x$std.err)
+            if (!is.null(x$lower)) {
+                slower <- smat(x$lower)
+                supper <- smat(x$upper)
+            }
         }
         else {
             i <- which(i)  # the states to keep
@@ -539,6 +543,10 @@ lines.survfit <- function(x, type='s',
             # the !any is a failsafe, in case none are kept we ignore noplot
             ssurv <- smat(x$pstate)
             if (!is.null(x$std.err)) std <- smat(x$std.err)
+            if (!is.null(x$lower)) {
+                slower <- smat(x$lower)
+                supper <- smat(x$upper)
+            }
         }
         else {
             i <- which(i)  # the states to keep
@@ -897,6 +905,10 @@ points.survfit <- function(x, fun, censor=FALSE,
             # the !any is a failsafe, in case none are kept we ignore noplot
             ssurv <- smat(x$pstate)
             if (!is.null(x$std.err)) std <- smat(x$std.err)
+            if (!is.null(x$lower)) {
+                slower <- smat(x$lower)
+                supper <- smat(x$upper)
+            }
         }
         else {
             i <- which(i)  # the states to keep

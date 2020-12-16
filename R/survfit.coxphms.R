@@ -11,6 +11,10 @@ function(formula, newdata, se.fit=TRUE, conf.int=.95, individual=FALSE,
     object <- formula     #'formula' because it has to match survfit
     se.fit <- FALSE   #still to do
 
+    temp <- object$stratum_map
+    if (!is.null(temp) && any(duplicated(temp["(Baseline)",]))) 
+        stop("survfit does not yet do estimates with share baseline hazards")
+
     Terms  <- terms(object)
     robust <- !is.null(object$naive.var)   # did the coxph model use robust var?
 
@@ -58,17 +62,16 @@ function(formula, newdata, se.fit=TRUE, conf.int=.95, individual=FALSE,
     if (!has.strata) strata <- NULL
     else strata <- object$strata
 
+    if (!missing(individual)) warning("the `id' option supersedes `individual'")
     missid <- missing(id) # I need this later, and setting id below makes
                           # "missing(id)" always false
-    if (!missid & !missing(individual))
-        warning("the `id' option supersedes `individual'")
 
     if (!missid) individual <- TRUE
-    else if (missid && individual) id <- rep(0,n)  #dummy value
+    else if (missid && individual) id <- rep(0L,n)  #dummy value
     else id <- NULL
 
     if (individual & missing(newdata)) {
-        stop("the id and/or individual options only make sense with new data")
+        stop("the id option only makes sense with new data")
     }
     if (has.strata) {
         temp <- attr(Terms, "specials")$strata
@@ -116,7 +119,7 @@ function(formula, newdata, se.fit=TRUE, conf.int=.95, individual=FALSE,
     istate <- model.extract(mf, "istate")
     mcheck <- survcheck2(Y, oldid, istate)
     transitions <- mcheck$transitions
-    istate <- mcheck$istate
+    if (is.null(istate)) istate <- mcheck$istate
     if (!identical(object$states, mcheck$states))
         stop("failed to rebuild the data set")
 

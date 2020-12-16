@@ -7,7 +7,8 @@
 }
 \usage{
 \method{residuals}{survfit}(object, times, 
-    type, collapse=TRUE, weighted=FALSE, method=1, ...)
+    type="pstate", collapse, weighted=FALSE,
+    method=1, ...)
 }
 \arguments{
   \item{object}{a \code{survfit} object}
@@ -20,7 +21,7 @@
   \item{...}{arguments for other methods}
 }
 \details{
-This function is designed to efficiently compute the residuals at a
+This function is designed to efficiently compute the leverage residuals at a
 small number of time points; a primary use is the creation of
 pseudo-values.
 If the residuals at all time points are needed, e.g. to compute a robust
@@ -30,16 +31,21 @@ using the \code{influence} argument of the underlying \code{survfit}
 function.  But be aware that such matrices can get very large. 
 
 The residuals are the impact of each observation or cluster on the
-resulting \code{surv}, \code{pstate} or code{cumhaz} component of a
-\code{survfit} object.  The restricted mean survival time (RMST)
-is E[min(survival, t)], and can be computed as the area under the
-survival curve.
-A multi-state survival curve has a \code{pstate} component instead of
-\code{surv}, and the area under each component is the restricted mean time
-in state (RMTS).
-For simplicity, in this function \code{surv} and \code{pstate} are
-treated as synonyms for the \code{type} argument,
-and likewise for \code{rmst}, \code{rmts} or their capitalized versions.
+resulting probability in state curves at the given time points,
+the cumulative hazard curv\code{surv} at those time points,
+or the expected sojourn time in each state up to the given time points.
+For a simple Kaplan-Meier the \code{survfit} object contains only the
+probability in the "initial" state, i.e., the survival fraction.
+For the KM case the sojourn time, the expected amount of time spent in
+the initial state, up to the specified endpoint, is more commonly known as the
+restricted mean survival time (RMST).
+For a multistate model this same quantity is also referred to as the
+restricted mean time in state (RMTS).
+It can be computed as the area under the respective probability in state curve.
+The program allows any of \code{pstate}, \code{surv}, \code{cumhaz},
+\code{chaz}, \code{sojourn}, \code{rmst}, \code{rmts} or \code{auc}
+for the type argument, ignoring upper/lowercase, so
+users can choose whichever abbreviation they like best.
 
 When \code{collapse=TRUE} the result has the cluster identifier (which
 defaults to the \code{id} variable) as the dimname for the first dimension.
@@ -53,7 +59,8 @@ but this was deemed too confusing.
 
 \value{A matrix or array with one row per observation or cluster, and one column
   for each value in \code{times}.  For a multi-state model the three
-  dimensions are observation, state, and time.
+  dimensions are observation, state, and time.  For cumulative hazard,
+  the second dimension is the set of transitions.
 }
 \seealso{\code{\link{survfit}}, \code{\link{survfit.formula}}
 }

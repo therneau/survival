@@ -25,7 +25,7 @@ export(Surv, Surv2, Surv2data, aeqSurv, aareg, agreg.fit,
        frailty.gaussian, frailty.t, is.Surv, 
        is.na.Surv, is.ratetable,
        labels.survreg, match.ratetable, neardate,
-       psurvreg, qsurvreg, dsurvreg,
+       psurvreg, qsurvreg, dsurvreg, pseudo,
        pspline, pyears, ratetableDate, ratetable,
        ridge, royston, rsurvreg, rttright,statefig, strata, 
        survSplit, survcheck, survdiff, survexp,  survfit,
@@ -46,6 +46,7 @@ S3method('[', ratetable)
 S3method('[', survfit)
 S3method('[', survfitms)
 S3method('[', tcut)
+S3method('[', tmerge)
 S3method(Math, Surv)
 S3method(Math, Surv2)
 S3method(Math, ratetable)
@@ -197,6 +198,7 @@ S3method(summary, survexp)
 S3method(summary, survfit)
 S3method(summary, survfitms)
 S3method(summary, survreg)
+S3method(summary, tmerge)
 S3method(survfit, coxph)
 S3method(survfit, coxphms)
 S3method(survfit, formula)

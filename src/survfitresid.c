@@ -1,8 +1,8 @@
 /*
 ** This is a modified copy of survfitci, whose sole job is to compute
 **  the influence matrix of the AJ estimate, at a particular set of points
-** Extra arguments are the number and location of reporting times, and
-**  whether mean time in state is required.
+** Extra arguments are the reporting times and whether mean time in state is 
+**  required.
 **
 ** Arguments:  For an R objects 'zed' I use 'zed2' to refer to the object
 **     and 'zed' for the contents of the object.
@@ -12,7 +12,6 @@
 **  sort2 = order vector for the exit times
 **  cstate= current state for each observation
 **  wt    = case weight for each observation
-**   and accumulation starts afresh at a new one.
 **  p0    = initial distribution of states
 **  i0    = initial influence matrix, will be number of subjects by number
 **           of states, often will be 0.
@@ -66,7 +65,7 @@ SEXP survfitresid(SEXP Y2,      SEXP sort12,  SEXP sort22,  SEXP cstate2,
     const char *rnames[]= {"influence.pstate", "influence.auc", ""}; 
     double **infa=0, **infp; /* pointers to influence arrays */
 
-    nobs   = LENGTH(sort12);    /* number of observations in the data */
+    nobs   = LENGTH(sort22);    /* number of observations in the data */
     cstate  = INTEGER(cstate2);
     ncolY  = ncols(Y2);
     nrowY  = nrows(Y2);
@@ -161,8 +160,8 @@ SEXP survfitresid(SEXP Y2,      SEXP sort12,  SEXP sort22,  SEXP cstate2,
     for (i=0; i<nobs; ) {  /* the main loop */
 	p2 = sort2[i];
 	ctime = etime[p2];  /* current time value of interest */
-	
-	/* this is cast as a loop in case there are multipe output times
+
+	/* this is cast as a loop in case there are multiple output times
 	**  between two data times
 	*/
 	for(; (itime < nout) && otime[itime] < ctime ; itime++) {
@@ -247,23 +246,34 @@ SEXP survfitresid(SEXP Y2,      SEXP sort12,  SEXP sort22,  SEXP cstate2,
 	    }
 	    starttime = ctime;
 	}
+	
+	/* Update the derivative
+	**   Each obs i that has moved from state j to state k has added 
+	**    -wt[i]/ws[j] to cmat[j,j] and wt[i]/ws[j] to cmat[j,k]
+	**  S(t) = S(t-)(I+C), so the dS/w[i] = U(I+C) + S(t-) dC/w[i]
+	**   The U(I+C) terms is matrix multiplication: U= infa is n by p
+	**   The second term only affects those at risk.  For each of those
+	**    it contributes -C[oldstate,]/ws[olstate] to all at risk, and
+	**    an additional  1/ws[oldstate] and -1/ws[oldstate] to the j and
+	**    k elements, for one who transitions.  (For an obs which does
+	**    not transition these additions cancel out.)
+	*/
 
 	if (nevent ==1) {
 	    /*
-	    ** The H matrix is actually I + C, we have so far computed C
 	    ** In this single event case, which is moderately common,
-	    **  we can use a faster update due to the simplicity of C
+	    **  all but the oldstate row of C will be 0.  
 	    */
 	    temp = -cmat[oldstate][oldstate];
 	    for (j=0; j<nobs; j++) {
 		/* update U, part 1, new U = UH = U + UC  (U = infa)*/
 		infp[newstate][j] += temp* infp[oldstate][j];
 		infp[oldstate][j] -= temp* infp[oldstate][j];
-	    }
+            }
 	    
 	    /* add C/wt[i], which affects all those in oldstate*/
-	    temp2 = pstate[oldstate]/ws[oldstate];
-	    infp[newstate][psave] += temp2;
+	    temp2 = pstate[oldstate]/ws[oldstate];   /* S(t)/ wt */
+	    infp[newstate][psave] += temp2; /* the obs which moved */
 	    infp[oldstate][psave] -= temp2;
 	    for (j=i; j<nobs; j++) {
 		p2 = sort2[j];
@@ -281,32 +291,35 @@ SEXP survfitresid(SEXP Y2,      SEXP sort12,  SEXP sort22,  SEXP cstate2,
 			tempvec[k] += infp[kk][j] * cmat[kk][k];
 		}  
 		for (k=0; k<nstate; k++) infp[k][j] += tempvec[k];
-	    }
-    
+            }
+	    
 	    /* step 2, add in dH term 
 	    ** the set of obs with i <= j are the set who have not yet been
-	    **  removed from the risk set, those with j >= eptr have not yet
+	    **  removed from the risk set, those with atrisk=0 have not yet
 	    **  been added to the risk set.  So the loop below is over all
-	    **  those who are at risk
+	    **  those who are at risk.
 	    */
 	    for (j=i; j<nobs; j++) {
 		p2 = sort2[j];
-		oldstate = cstate[p2];
 		if (atrisk[p2]==1) { 
-
+	            oldstate = cstate[p2];
 		    temp2 = pstate[oldstate]/ws[oldstate];
-		    for (k=0; k<nstate; k++){
+		    for (k=0; k<nstate; k++)
 			infp[k][p2] -= cmat[oldstate][k]* temp2;
-		    }
-
-		    if (status[p2] !=0 && oldstate != status[p2]-1) { 
-			/*transition*/	
-			newstate = status[p2] -1;
-			infp[oldstate][p2] -= temp2;
-			infp[newstate][p2] +=  temp2;
-		    }
+		}	
+	    }		
+	    for (j=i; j<nobs; j++) {
+		p2 = sort2[j];
+		if (etime[p2] > ctime) break;
+		oldstate = cstate[p2];
+		if (status[p2] >1 && oldstate != status[p2]-1) { 
+		    /* subject made a transition at this time */
+		    temp2 = pstate[oldstate]/ws[oldstate];
+		    newstate = status[p2] -1;
+		    infp[oldstate][p2] -= temp2;
+		    infp[newstate][p2] +=  temp2; 
 		}
-	    }	    
+	    }
 	}
 
 	/* Update p  */

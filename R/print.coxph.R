@@ -34,15 +34,16 @@ print.coxph <-
     
     if (inherits(x, "coxphms")) {
         # print it group by group
-        cmap <- x$cmap  # lazy: I don't want to type x$ many times
+        # lazy: I don't want to type x$cmap many times
+        #  remove transitions with no covariates
+        cmap <- x$cmap[, colSums(x$cmap) > 0, drop=FALSE]
         cname <- colnames(cmap)
         printed <- rep(FALSE, length(cname))
         for (i in 1:length(cname)) {
             # if multiple colums of tmat are identical, only print that
             #  set of coefficients once
             if (!printed[i]) {
-                j <- apply(cmap[,, drop=FALSE], 2, 
-                           function(x) all(x == cmap[,i])) 
+                j <- apply(cmap, 2, function(x) all(x == cmap[,i])) 
                 printed[j] <- TRUE
 
                 tmp2 <- tmp[cmap[,i],, drop=FALSE]
@@ -52,7 +53,7 @@ print.coxph <-
                 printCoefmat(tmp2, digits=digits, P.values=TRUE, 
                              has.Pvalue=TRUE,
                              signif.stars = signif.stars, ...)
-                cat("\n")
+                cat("\n")   
             }       
         }
 

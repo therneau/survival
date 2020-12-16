@@ -1,0 +1,664 @@
+\documentclass{article}[11pt]
+\usepackage{Sweave}
+\usepackage{amsmath}
+\addtolength{\textwidth}{1in}
+\addtolength{\oddsidemargin}{-.5in}
+\setlength{\evensidemargin}{\oddsidemargin}
+%\VignetteIndexEntry{Pseudovalues}
+
+\SweaveOpts{keep.source=TRUE, fig=FALSE}
+% Ross Ihaka suggestions
+\DefineVerbatimEnvironment{Sinput}{Verbatim} {xleftmargin=2em}
+\DefineVerbatimEnvironment{Soutput}{Verbatim}{xleftmargin=2em}
+\DefineVerbatimEnvironment{Scode}{Verbatim}{xleftmargin=2em}
+\fvset{listparameters={\setlength{\topsep}{0pt}}}
+\renewenvironment{Schunk}{\vspace{\topsep}}{\vspace{\topsep}}
+
+% I had been putting figures in the figures/ directory, but the standard
+%  R build script does not copy it and then R CMD check fails
+\SweaveOpts{prefix.string=compete,width=6,height=4}
+\newcommand{\myfig}[1]{\includegraphics[height=!, width=\textwidth]
+                        {compete-#1.pdf}}
+\setkeys{Gin}{width=\textwidth}
+<<echo=FALSE>>=
+options(continue="  ", width=60)
+options(SweaveHooks=list(fig=function() par(mar=c(4.1, 4.1, .3, 1.1))))
+pdf.options(pointsize=10) #text in graph about the same as regular text
+options(contrasts=c("contr.treatment", "contr.poly")) #ensure default
+
+library("survival")
+library(geepack)
+library(survey)
+@
+
+\title{Pseudovalues for survival data}
+\author{Terry Therneau}
+\newcommand{\code}[1]{\texttt{#1}}
+
+\begin{document}
+\maketitle
+\section{Introduction}
+
+Let $Y$ be survival time and $f$ some function of interest, for which we desire
+to estimate $E(f(Y))$ over the population.
+With complete data on each observation's survival time, we can compute the
+expectation in the straightforward way as the simple mean $\sum f(y_i) /n$.
+Of course, due to censoring our data is incomplete.
+
+Pseudo-values are based on a simple idea.  Suppose the data are imcomplete but
+we have an If we have an estimator 
+$\hat\theta = E(f(Y)$ of the quantity, e.g., $f$ = survival probability at
+time 45, and $\hat\theta$ the Kaplan-Meier estimate at time 45.
+The pseudo-observation for $y_i$ is then defined as
+
+\begin{equation}
+  \hat\theta_i = \hat\theta + (n-1)(\hat\theta - \hat\theta^{-i})
+\end{equation}
+
+where $\hat\theta^{-i}$ is defined as the value of the estimate when subject $i$
+is omitted from the sample.
+An an illustration, evaluate this formula when $\theta$ is an ordinary mean:
+\begin{align*}
+  \hat\theta +  (n-1)(\hat\theta - \hat\theta^{-i}) &=
+   \sum_j y_j/n + (n-1)\left( \sum_{j} y_j/n - \sum_{j\ne i} y_j/(n-1) \right)\\
+  &= \sum_j y_j - \sum_{j\ne i} y_j \\
+  &= y_i
+\end{align*}
+
+The idea is to use the pseudo-observations $\hat\theta_i$ as a replacement
+for the incompletely observed data $y_i$.  These pseudo values are not
+censored, allowing for ordinary statistical methods to be applied.
+An good overview of pseudo-value based methods is provided by Andersen and
+Perme \cite{Andersen10}.
+
+The \code{pseudo} function in the survival package uses values based on the
+infinitesimal jackknife (IJ), i.e.,
+\begin{equation}
+ \hat\theta_i = \hat\theta + n\frac{\partial \hat\theta}{\partial w_i}
+\end{equation}
+Why use IJ based pseudo-values instead of jackknife based values?
+\begin{enumerate}
+  \item The largest advantage is compuatational; IJ values can be assembled
+    more quickly.  
+  \item The survival package already makes extensive use of IJ values to
+    compute robust variance estimates, so these naturally fit into that
+    framework.  We take advantage of existing test suites to ensure
+    accurate computations.
+\end{enumerate}
+Both estimates are linear approximations to a functional surface, something 
+nicely pointed out by Efron \cite{Efron82}: the IJ is a tangent plane to the
+surface and the jackknife a secant plane.  As such, they share the property
+that the average of the pseudo values will recover the starting estimate,
+mean$(\hat\theta_i) = \hat\theta$.  The choice of $n$ for the IJ based
+pseudo value makes the compuation for an ordinary mean exact, as was shown above
+for $n-1$ and the jackknife pseudovalue, 
+and in fact Efron argues out that the
+use of $n-1$ is somewhat arbitrary, i.e., other statistics than the mean might
+be more exact using $n$, $n+1$ or some other multiplier.
+The largest potential deficit of the IJ based approach is that the literature
+is small --- most of the direct examinations have focused on jackknife
+based values.  
+Examples show that the numerical difference between the two is miniscule, with
+the possible exception of large outliers, 
+but a critic might call the IJ approach ``pseudo-pseudo'' values and claim that
+they are as yet unproven.
+  
+\section{Residual mean survival time}
+We will start with one of the more compelling uses, which provides modeling
+tools for the mean time spent in a state.
+For any postive probability distribution, a well known identity is that
+mean is equal to the area under the survival curve.
+\begin{equation*}
+ \mu = \int S(t) dt
+\end{equation}
+This extends to the multi-state case, the expected time in state will be
+equal to the area under the P(state) curve for that state.
+
+Since the Kaplan-Meier gives an unbiased estimate of Pr(in the alive state),
+we can use the area under the KM to estimate the mean time to death.
+However, since the entire $S(t)$ curve is usually not available, i.e., the
+KM terminates before reaching 0, we instead estimate the restricted mean
+survival time (RMST), using the area under the KM up to some specified
+point $\tau$. 
+This is interpreted as the expected number of life years, out of the first 
+$\tau$ years since intitation.  If $\tau=10$ and the area under the curve
+were 8.1, the phrase would be an expected liftime of 8.1 out of the next 10.
+Other labels the sojourn time, or for a multi-state model, 
+the restricted mean time in state (RMTS).
+For a multi-state model, the sojourn time for all states must sum to $\tau$ ---
+everyone has to be somewhere.
+
+Common choices for $\tau$ are either a fixed time of interest such as 2, 5 or
+10 years, the last observed event time, or the point at which one of the
+curves has 0 subjects. 
+
+Here is a simple example using the lung cancer data set. 
+For this cohort of subjects with advanced disease, the strongest predictor
+is performance score.
+<<lung1, fig=TRUE>>=
+lfit0 <- survfit(Surv(time/365.25, status) ~ 1, data=lung)
+lfit1 <- survfit(Surv(time/365.25, status) ~ ph.ecog, data=lung)
+print(lfit1, rmean=2.5)
+plot(lfit1, lty=1:4, xlab="Years since enrollment", ylab="Survival")
+legend(1.5, 1, c("PS 0", "PS 1", "PS 2", "PS 3"), lty=1:4)
+@ 
+
+The strongest predictor in the data set is ECOG performance score, which has
+levels of 0--3.
+For a single categorical predictor such as this, it is easy to obtain the
+RMST and its standard error directly from the \code{survfit}. 
+We can also do this with pseudo-values, which allow for a multivariate model.
+The result shows a loss of about .26 years for each 1 point increase in the
+performance score, and about .32 years longer RMST for females.
+
+<<lung2>>=
+pmean <- pseudo(lfit0, times=2.5, type="RMST")
+ldata <- data.frame(lung, pmean= c(pmean), 
+                    id=1:nrow(lung))  
+afit1 <- lm(pmean ~ ph.ecog + sex + age, data=ldata)
+round(summary(afit1)$coefficients, 3)
+@
+
+The IJ residuals for observations that are censored early in the study are
+of necessity small, as they have less opportunity to affect the results, which
+in turn means that the pseudo values are not equivariant.
+(An observation censored befor the first event has residual 0, so its pseudo
+value has no variance at all.)
+In such a case theory argues for using White's variance estimate for the linear
+model fit, which accounts for possible heterscadisity.
+This is the same as the ``working indepence'' estimate of a GEE model, or the
+variance estimate from a survey sampling approach.  We compute both of these
+below.
+
+<<>>=
+afit2 <- geese(pmean ~ ph.ecog + sex + age, data=ldata, 
+               subset= (!is.na(ph.ecog)))
+round(summary(afit2)$mean, 3)
+#
+
+ldesign <- svydesign(data=ldata, id= ~id, weights=NULL,
+              variables= ~ . -id)
+afit3 <- svyglm(pmean ~ ph.ecog + sex + age, design=ldesign)
+round(summary(afit3)$coefficients, 3)
+@ 
+
+The estimated coefficients will be identical for all three
+approaches, as evidenced above.  
+In this particular case the robust and normal standard errors hardly
+differ, which we have found to be the usual case when there is a single
+psuedo value per subject.  
+When there are psuedo values at multiple reporting times, and thus mulitple
+observations per subject, then the correction becomes essential.
+Deficiencies in R's \code{geese} function lead us to use the survey
+sampling approach from here forward, in particular that any missing values
+cause it to fail, the input data is required to be sorted by id, and that
+standard extraction functions such as \code{coef} and \code{vcov} have not
+been implemented.
+The \code{survey} package requires that the design be specified in advance;
+the result object can then be used to fit multiple models.
+
+Stratified pseudo values can also be computed, i.e., where each is based on
+the observation's leverate within a subset.
+For example, the \code{lung} data set comes from a multi-center study, and
+contains an identifier for the instutition from which the subject was recruited.
+We might want to adjust for the possibility that different instutions recruit
+from different patient populations.
+One way to do so is to add \code{factor(inst)} to the model, but another is
+to base the result off per-institution curves.
+
+<<strata>>=
+lfit4 <- survfit(Surv(time/365.25, status) ~ inst, data=lung)
+pmean4 <- pseudo(lfit4, time=2.5, type="auc")
+ldata$pmean4 <- c(pmean4)
+afit4a <- lm(pmean4 ~ ph.ecog + sex + age, ldata)
+afit4b <- lm(pmean4 ~ ph.ecog + sex + age + factor(inst), ldata)
+
+# survey package does not allow a missing strata
+temp <- subset(ldata, !is.na(inst))
+ldesign4 <- svydesign(data=temp,  id= ~id, weights=NULL, strata= ~inst,
+                      variables= ~ .-id -inst)
+afit4c <- svyglm(pmean4 ~ ph.ecog + sex + age, design=ldesign4)
+afit4d <- svyglm(pmean4 ~ ph.ecog + sex + age + factor(inst), design=ldesign4)
+round(summary(afit4c)$coefficients, 3)
+round(summary(afit4d)$coefficients[1:4,], 3)
+@ 
+
+This section needs some input from Thomas L.  
+
+\section{Survival and probability in state}
+\subsection{AML data}
+As a first case for this endpoint look at a simple survival data set, 
+for a multi-state model this
+extends to the more general probability in state vector $p(t)$.
+Psuedo-values are obtained from the \code{survfit} object.  
+Start with the simple AML data set, and get the pseudo values for 12 and 24 month
+survival.
+This data set records the time to relapse for patients with acute myelogenous
+leukemia.
+Relapse times range from 5 to 48 months, 5 of the 23 patient times are censored.
+<<test1>>=
+with(aml, Surv(time, status))
+fit1 <- survfit(Surv(time, status) ~1, aml)
+rr1 <- resid(fit1, times=c(12,24))
+pv1 <- pseudo(fit1, times= c(12, 24))
+round(pv1, 4)
+@ 
+
+Both the matrix of IJ values from \code{resid} and the matrix of pseudo-values
+from \code{pseudo}
+have one row per subject and one column per reporting time.
+The first censoring is at 13 months, and so at the first reporting time of
+12 months the pseudo values behave exactly like a mean, and have recaptured
+the (uncensored) 0/1 response of ``relapse within 12 months''.
+At 24 months, after censoring enters, the pseudo values are no longer constrained
+to lie in $(0,1)$.
+
+What happens if we use these values in an ordinary regression?
+The \code{data.frame} argument causes the value to be returned in long form
+as a data.frame.
+<<test2>>=
+pdata <- pseudo(fit1, times= c(12, 24), data.frame=TRUE)
+lfit1 <- lm(pseudo ~1, pdata, subset= (time==12))
+lfit2 <- lm(pseudo ~1, pdata, subset= (time==24))
+
+summary(lfit1)$coefficients
+summary(lfit2)$coefficients
+
+summary(fit1, time=c(12,24))
+@ 
+
+The regressions have exactly reproduced the KM values at 12 and 24 months,
+as expected, and the estimated standard errors almost match those from the
+\code{survfit} function.
+The robust (IJ) variance for the Kaplan-Meier, i.e. the sum of squared IJ
+values, can in fact be shown to exactly equal the Greenwood
+estimate of variance for a KM (Anne Eaton, personal communication).
+The lm difference is due to the fact that the linear model uses $n-1$ 
+rather than $n$ in computing a variance.
+
+A natural follow-on is to look at covariates.  In the AML data set the covariate
+\code{x} denotes the two treatment arms.
+<<test3>>=
+cfit3 <- coxph(Surv(time, status) ~x, aml)
+cfit3
+
+pdata <- cbind(pdata, x= aml$x)   # original data + pseudovalues
+lfit3 <- lm(pseudo ~ x + factor(time), pdata)
+summary(lfit3)$coefficients
+
+sfit3 <- survfit(cfit3, newdata=list(x= c("Maintained", "Nonmaintained")))
+summary(sfit3, times=c(12,24))
+@ 
+
+The above code contains a lot of ideas. The Cox model estimates that the
+subjects on the no maintainance arm have a hazard rate of about 2.5 fold higher
+than the maintainance arm, $p=.09$.
+The linear model estimates the probability of no recurrence at 12 or 24 months
+to be about 23\% lower for the no maintainance group, $p=.12$; conversely
+the probability of recurrence is 23\% higher. 
+The overall probabilities of recurrence are gathered into a table below.
+
+<<test4>>=
+temp <- matrix(0, 2, 4, dimnames=list(c("Maintainance", "Nonmaintainance"),
+                                      c("Cox, 12", "Pseudo, 12", 
+                                        "Cox, 24", "Pseudo, 24")))
+temp[,c(1,3)] <- 1- t(summary(sfit3, times=c(12,24))$surv)
+dummy <-  expand.grid(x= c("Maintained", "Nonmaintained"),
+                      time=c(12, 24))
+temp[,c(2,4)] <- 1- predict(lfit3, newdata= dummy)
+temp <- rbind(temp, "Difference" = temp[2,]- temp[1,])
+round(temp,2)
+@ 
+
+The linear model contains the strong assumption that the difference in survival
+is the same at times 12 and 24, the Cox model the equally strong one that
+hazards are proportional across all time points.
+Of potentially more consequence, the pseudo-value has two observations for
+each subject, leading to correlated data. We can correct for this using a
+robust sandwich estimor either via survey sampling or a GEE argument.
+These are shown below.  The \code{geese} function has the unfortunate feature
+that correct standard errors require that all of the observations for a 
+subject are in contiguous rows of the input data.  No error message arises
+if this does not hold, only an incorrect result.
+
+<<svy>>=
+# Naive lm
+summary(lfit3)$coefficients
+#
+#survey
+library(survey)
+# When an id is constructed rather than supplied, pseudo() purposely gives
+#  it a non-standard name to avoid confusion with any user's variable names.
+#  But that name is a PITA to use in formulas
+pdata$id <- pdata[['(Id)']] 
+pdesign <- svydesign(id= ~ id, varibles= ~ pseudo + x + time, weights=NULL,
+                     data=pdata)
+sfit <- svyglm(pseudo ~ x + factor(time), design=pdesign)
+summary(sfit)$coefficients
+#
+# GEE 1
+library(geepack)
+gfit1 <- geese(pseudo ~ x + factor(time), data=pdata, id= id) # wrong answer
+summary(gfit1)$mean
+#
+# GEE 2
+pdata <- pdata[order(pdata$id),]  # group id values to be together
+gfit2 <- geese(pseudo ~ x + factor(time), data=pdata, id= id)
+summary(gfit2)$mean
+@ 
+
+All of the approaches give the same coefficient estimates, differing only in 
+the estimated standard error. 
+
+\subsection{Colon cancer}
+Now work with a larger data set, using time to failure (recurrence or death)
+in the colon cancer study.
+The data set has 2*929 observations, the first set for time to recurrence
+and the second for time to death. For anyone without recurrence, their
+follow-up time for recurrence is equal to their follow-up time for death.
+
+follow-up
+
+<<cdata, fig=TRUE>>=
+cdata <- subset(colon, etype==1, -etype)  # time to recurrence
+temp  <- subset(colon, etype==2)
+cdata$status <- pmax(cdata$status, temp$status)
+
+trtsurv <- survfit(Surv(time, status) ~ rx, cdata, id=id)
+plot(trtsurv, fun="event", xscale= 365.25, col = 1:3, lwd=2,
+     xlab= "Years from randomization", ylab="Treatment failure")
+legend(5*365, .25, levels(cdata$rx), col=1:3, lwd=2, bty='n')
+
+ccox <- coxph(Surv(time, status) ~ rx + sex + age + extent + node4+
+                  obstruct + perfor + adhere,  data=cdata)
+@ 
+The graph shows that the Levamisole + 5-FU treatment are is markedly superior
+to either observation or 5-FU alone (the standard treatment at the time).  
+There are few further events after 4--5 years and the curves flatten out.
+Having 4 or more positive lymph nodes and greater local spread of the disease
+are also potent predictors.
+Now look at pseudo values for the data.
+
+<<colon2>>=
+csurv <- survfit(Surv(time, status)  ~1, data=cdata, id=id)
+cptemp <- pseudo(csurv, time= 1:6 * 365.25, data.frame=TRUE)
+cptemp$pdeath <- 1- cptemp$pseudo
+cptemp$year <- round(cptemp$time/365.25)
+
+cpdat <- merge(cptemp, 
+               subset(cdata,,c(id, rx, extent, node4)), by="id")
+@
+ 
+Most users will prefer a model for the risk of death, i.e., for psuedo values
+based on the probability of death $1- S(t)$.  
+It is easy to show that these are simply $1- p(S)$ where $p(S)$ are the 
+psuedovalues for $S$.  This was saved as the variable \code{pdeath}.
+We then merge the pseudo data, which has multiple rows per subject, 
+with the original data, by the subject identifier \code{id} found in the
+colon cancer data set.
+Because id was specified in the survfit call it carries through and properly
+labels the pseudo values.
+
+<<fig=TRUE>>=
+hist(cpdat$pdeath, nclass=50, main=NULL)
+@ 
+
+This shows that for a large data set with moderate censoring, the pseudo-values
+are clustered around 0 and 1, mimicing binomial data.
+To assess survival, which values should we use: year 4 alone, 2 or 3 of the
+6 years, or all of them? 
+One important consideration for all of this is the choice of a transformation
+function
+$f$, where we assume that $E(y) \approx f(\eta) + \epsilon$.  (Generalized
+linear model literature normally focuses on the \emph{link} function
+$g= f^{-1}$.)
+The ideal function $f$ will 
+\begin{itemize}
+  \item Transform treatment effects to a common scale over time.  That is, a
+    separate intercept for each time point will suffice.  No interactions between
+    covariates and time are needed.
+  \item Cause multivariate effects to be additive.  That example, the effect of
+    treatment is the same for those with and without 4+ positive lymph nodes.
+    No between covariate interactions are needed.
+   \item Normalize the variance so that $\epsilon$ is constant across time 
+     and across covariates.  Alternatively, choose a distribution that 
+     properly maps between the predicted mean and variance.
+   \item Bound predicted values to the range of 0--1.
+\end{itemize}
+
+Satisfying all four of these at once is likely to be impossible.
+Logistic regression, most user's immediate response to estimation of a yes/no
+question, fails directly.  First, it does not accomodate response values
+outside the range of 0--1, and secondly the variance for a predicted value
+near 0 or 1 is assumed to drop to zero.  The maximum value of 1.4 for 
+\code{cpdat\$pdeath} fails both of these.
+
+As a first pass, look at the between curve difference for the other arms vs.
+5-FU across time, based on the Kaplan-Meier estimates.
+For this particular data set and these time points,
+absolute difference between the curves is more stable across time
+than logit differences.  
+<<c6>>=
+temp1 <- summary(trtsurv, times= 1:6*365.25)
+temp2 <- matrix(temp1$surv, nrow=6)
+temp3 <- rbind("Obs vs 5FU"= temp2[,1]- temp2[,2],
+            "Lev vs 5FU"= temp2[,3]- temp2[,2]) 
+
+cat("absolute difference\n")
+round(temp3*100, 1)
+#
+cat("logit difference\n") 
+logit <- function(x) log(1/(1-x))
+temp4 <- rbind("Obs vs 5FU"= logit(temp2[,1])- logit(temp2[,2]),
+            "Lev vs 5FU"= logit(temp2[,3])- logit(temp2[,2]))
+round(temp4*100, 1)
+@ 
+
+Based on this, do a first model with linear effects.
+The next question is which time points to use, and how many.
+First, look at 6 models with a single time point, each containing
+treatment, extent and nodes, but summarize only the levamisole coefficient.
+<<times>>=
+onetime <- matrix(0, 6, 4,
+                  dimnames=list(paste("Time", 1:6), 
+                                c("coefficient", "se.glm", "coef", "se.survey")))
+cpdesign <- svydesign(id= ~id, weights=NULL, data=cpdat,
+                      variables = ~ . - id)
+for (i in 1:6) {
+    fit1 <- lm(pdeath ~ rx + extent + node4, data=cpdat, subset= (year==i))
+    onetime[i,1:2] <- summary(fit1)$coefficients[3,1:2]
+    sfit1 <- svyglm(pdeath ~ rx+ extent + node4, design=cpdesign, 
+                    subset= (year==i))
+    onetime[i,3:4] <- summary(sfit1)$coefficients[3, 1:2]
+}
+
+onetime <- cbind(onetime, "coef/se"= onetime[,3]/onetime[,4])
+round(onetime[, c(1,2,4,5)],3)
+@ 
+
+If you are only going to use one time point, then a robust variance is
+in this case not necesary, and the best time point in terms of $z$ statistic
+or power, by an admittedly
+small margin, is 4--5 years when the results have largely matured.
+This happens to be the largest estimated gain for levamisole, reducing the
+absolute failure rate by 16\%. 
+A robust variance is called for not only when there are multiple observations
+per subject, but in the case of heteroscedaticity in the variance. 
+We should therefore not be too quick to declare it unnecessary based
+on a single example.
+
+Now consider combination of times 2,4,6, or all 6 time points.
+<<twotime>>=
+pfun <- function(x,d=2) printCoefmat(x, digits=d, P.values=TRUE,
+                                 has.Pvalue=TRUE, signif.stars= FALSE)
+
+sfit1 <- svyglm(pdeath ~ rx + extent + node4,
+                        design= cpdesign, subset=(year==4))
+pfun(summary(sfit1)$coefficients[2:5,])
+
+#
+sfit3 <- svyglm(pdeath ~ rx + extent + node4 + factor(year), 
+                        design= cpdesign, 
+                subset= (year==2 | year==4 | year==6))
+pfun(summary(sfit3)$coefficients[2:5,],)
+
+sfit6 <- svyglm(pdeath ~ rx + extent + node4 + factor(year),
+                design= cpdesign)
+pfun(summary(sfit6)$coefficients)
+@
+
+For the coefficient of interest, the treatment effect, the use of 1, 3, or
+6 time points hardly changes the t-statistic or the estimate.
+All the remaining coefficients are also fairly stable.
+The year coefficients show the baseline rate creeping up.
+
+\paragraph{Logit link}
+Although a linear link was indicated for the colon data, the logit link is
+more common. 
+Directly using it will fail, however: consider the following
+<<catch>>=
+tryCatch( svyglm(pdeath ~rx + extent + node4 + factor(year), design=cpdesign,
+              family= gaussian(link = "logit")),
+         error= function(e) e)
+@  
+The same out of range error occurs with the simple \code{glm} function.
+The issue is that the glm function uses the 
+logit link of $f(x) = \log(x/(1-x))$ to create starting estimates for the
+iteration, and values outside of $(0, 1)$ lead to a missing value.
+(That is actually the only place the link is used.)
+Two choices are to give explicit initial values, or to define our own link.
+Here is an example of the first, it give starting estimates which are
+``good enough''.
+
+<<link1>>=
+sfit6b <- svyglm(pdeath ~rx + extent + node4 + factor(year), design=cpdesign,
+              family= gaussian(link = "logit"), 
+              etastart= pmax(.05, pmin(.95, cpdat$pdeath)))
+@ 
+A problem with this is that if we add a subset argument, then the starting
+estimate also needs to be explicitly trimmed down.
+An alternate is to define our own link function, based on the code found
+in the documentation for \code{family}, or on examination of the glm
+\code{make.link} function.  We call the function \code{blogit} for
+``bounded logit''.
+
+<<blogit>>=
+blogit <- function(edge=.05) {
+    new <- make.link("logit")
+    new$linkfun <- function(mu) { 
+        x <- (pmax(edge, pmin(mu, 1-edge)))
+        log(x/(1-x))
+    }
+    new
+}
+sfit3c <- svyglm(pdeath ~rx + extent + node4 + factor(year), design=cpdesign,
+              family= gaussian(link = blogit()), subset=(year %in% c(2,4,6)))
+pfun(summary(sfit3c)$coefficients)
+@ 
+Though common, results from the logit link are harder to interpret than the
+linear link.  The latter estimates that Levamisole+5FU will reduce the
+probability of death by 14\%, on average, for time points from years 2--6,
+while the logit link predicts an exp(-.645)= .52 odds of relapse.
+
+\paragraph{log-log link}
+If a Cox model holds, then 
+\begin{align*}
+  S(t) ^= e^{- \Lambda_0(t) e^{(X\beta)}} \\
+  \log(-\log(S(t)) &= \log[\Lambda_0(t)]  + X \beta
+\end{align*}
+which motivates using the following link function.
+
+<<loglog>>=
+bloglog <- function(edge=.05) {
+    new <- list(linkfun = function(mu) {
+                              x <- (pmax(edge, pmin(mu, 1-edge)))
+                              log(-log(x))} ,
+                linkinv = function(eta) exp(-exp(eta)),
+                mu.eta  = function(eta) -exp(eta)* exp(-exp(eta)),
+                valideta= function(eta) TRUE,
+                name="loglog")
+    class(new) <- "link-glm"
+    new
+}
+sfit3d <- svyglm(pdeath ~rx + extent + node4 + factor(year), design=cpdesign,
+              family= gaussian(link = bloglog()), subset=(year %in% c(2,4,6)))
+pfun(summary(sfit3d)$coefficients)
+cfit <- coxph(Surv(time, status) ~ rx + extent + node4, cdata)                 
+round(summary(cfit)$coefficients, 3)
+@ 
+
+We should in theory get similar coefficients to the \code{coxph} fit.
+Why are they larger?
+
+\section{Competing risks}
+Psuedo values based on the multi-state Aalen-Johansen estimate allow a
+look at the absolute risk of an outcome, in the presence of a competing
+risk.  We will use the \code{mgus2} data set, which has been used to
+illustrate competing risks elsewhere in the vignettes. 
+
+<<mgus2cr, fig=TRUE>>=
+mdata <- mgus2
+mdata$etime <- with(mdata, ifelse(pstat==1, ptime, futime))
+mdata$event <- factor(with(mdata, ifelse(pstat==1, 1, 2*death)), 0:2,
+                      c("censor", "PCM", "Death"))
+mdata$age10 <- mdata$age/10  # age in decades
+
+msurv <- survfit(Surv(etime, event) ~1, data=mdata, id=id)
+plot(msurv, lty=1:2, xscale=12, 
+     xlab="Years from Diagnosis", ylab="Probability in state")
+text(c(345, 340), c(.18, .73), c("PCM", "Death w/o PCM"))
+@ 
+
+At 30 years post diagnosis approximately 13\% of the subjects have
+experienced a plasma cell malignancy (PCM), while 78\% have died without
+PCM.
+The pseudo-value matrix has 3 columns correponding to each of the 3 states.
+We are interested in factors that promote malignancy, so model the PCM
+outcome at 30 years.
+
+<<mgus2p>>=
+mps <- pseudo(msurv, time=30*12, type="pstate")
+dim(mps)
+mdata$ps.pcm <- mps[,2]
+mfit1 <- lm(ps.pcm ~ age10 + sex + mspike, data= mdata)
+pfun(summary(mfit1)$coefficients)
+@
+
+We see that males have a slightly lower 30 risk, though not significant
+on this scale, which age and diagnosis and the sized of the serum monoclonal
+spike are very important.  
+How do these results change when using more time points and/or a different
+link function?
+
+<<mgus3p>>=
+mps6 <- pseudo(msurv, time= 12*seq(5, 30, by=5),
+               data.frame=TRUE) # every 5 years
+mdata6 <- merge(mdata, subset(mps6, state== "PCM"), by="id")
+mdata6$year <- mdata6$time/12
+
+mdesign <- svydesign(data=mdata6, id=~id, weights=NULL, variables= ~. -id)
+mpfit1 <- svyglm(pseudo ~ age10 + sex + mspike,  design=mdesign,
+                 subset= (year==10))
+mpfit2 <- svyglm(pseudo ~ age10 + sex + mspike,  design=mdesign,
+                 subset= (year==20))
+mpfit3 <- svyglm(pseudo ~ age10 + sex + mspike,  design=mdesign,
+                 subset= (year==30))
+mpfit6 <- svyglm(pseudo ~ age10 + sex + mspike + factor(year),  design=mdesign)
+
+temp <- rbind(yr10 = coef(mpfit1)[1:4], yr20= coef(mpfit2)[1:4], 
+              yr30 = coef(mpfit3)[1:4], all= coef(mpfit6)[1:4])
+round(temp,4)
+@ 
+
+With multiple time points, the use of a simple linear link is not
+sensible: the spread between groups grows with time, and so the
+coefficients are not constant over time.
+The overall incidence rate of PCM in the study is nearly constant at 1\%
+per year, so we allow for linear growth by adding time by covariate
+interactions.
+<<mginter>>=
+mpfit7 <- svyglm(pseudo ~ (age10 + sex + mspike) * year, design=mdesign)
+pfun(summary(mpfit7)$coefficients)
+@ 
+\end{document}
+
