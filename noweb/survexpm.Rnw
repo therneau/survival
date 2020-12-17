@@ -172,15 +172,16 @@ at least for small matrices without deriviatives.
 <<survexpm>>=
 survexpm <- function(rmat, time=1.0, setup, eps=1e-6) {
     # rmat is a transition matrix, so the diagonal elements are 0 or negative
-    if (length(rmat)==1) exp(rmat[1]*time)
+    if (length(rmat)==1) exp(rmat[1]*time)  #failsafe -- should never be called
     else {
         nonzero <- (diag(rmat) != 0)
+        if (sum(nonzero ==0)) diag(nrow(rmat))  # expm(0 matrix) = identity
         if (sum(nonzero) ==1) {
             j <- which(nonzero)
-            emat <- matrix(0.0, length(nonzero), length(nonzero))
+            emat <- diag(nrow(rmat))
             temp <- exp(rmat[j,j] * time)
             emat[j,j] <- temp
-            emat[j, -j] <- (1-temp)* emat[j, -j]/sum(emat[j,-j])
+            emat[j, -j] <- (1-temp)* rmat[j, -j]/sum(rmat[j,-j])
             emat
         }
         else if (missing(setup) || setup[1] < 0 ||

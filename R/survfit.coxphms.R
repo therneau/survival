@@ -315,12 +315,6 @@ function(formula, newdata, se.fit=TRUE, conf.int=.95, individual=FALSE,
                                transition, y2, x2, risk2, strata2, id2)
                               
     } else {
-        if (is.null(cifit$strata)) p0 <- cifit$pstate[1,, drop=FALSE]
-        else {
-            last <- cumsum(cifit$strata)  # last obs of each strata
-            first<- 1 + c(0, last[-length(last)])
-            p0 <- cifit$pstate[first,, drop=FALSE]
-        }
         cifit <- coxsurv.fit2(ctype, stype, se.fit, varmat, cluster, start.time,
                                object$stratum_map[1,], object$transitions, object$states,
                                Y, X, weights, risk, position, strata, oldid,
@@ -367,14 +361,13 @@ coxsurv.fit2 <- function (ctype, stype, se.fit, varmat, cluster,
         temp <- multihaz(y, x, position, weights, risk, transition,
                                   ctype, stype, hfill, smap, 
                                   x2, risk2, varmat, nstate, se.fit, 
-                                  cifit$pstate[1,], cifit$time)
+                                  cifit$p0, cifit$time)
         cifit$pstate <- temp$pstate
         cifit$cumhaz <- temp$cumhaz
     } 
     else {
         itemp <- rep(1:nstrata, cifit$strata)
         timelist <- split(cifit$time, itemp)
-        firstrow <- match(1:nstrata, itemp)
         ustrata <- names(cifit$strata)
         survlist <- vector("list", nstrata)
         for (i in 1:nstrata) {
@@ -383,7 +376,7 @@ coxsurv.fit2 <- function (ctype, stype, se.fit, varmat, cluster,
                                   position[indx], weights[indx], risk[indx],
                                   transition[indx], ctype, stype, hfill,
                                   smap, x2, risk2, varmat, nstate, se.fit, 
-                                  cifit$pstate[firstrow[i],], timelist[[i]])
+                                  cifit$p0[i,], timelist[[i]])
                                   
             }
         cifit$pstate <- do.call(rbind, lapply(survlist, function(x) x$pstate))

@@ -23,12 +23,14 @@ survexpm <- function(rmat, time=1.0, setup, eps=1e-6) {
     if (length(rmat)==1) exp(rmat[1]*time)
     else {
         nonzero <- (diag(rmat) != 0)
+        nstate <- nrow(rmat)
+        if (sum(nonzero ==0)) diag(nstate)
         if (sum(nonzero) ==1) {
             j <- which(nonzero)
-            emat <- matrix(0.0, length(nonzero), length(nonzero))
+            emat <- diag(nstate)
             temp <- exp(rmat[j,j] * time)
             emat[j,j] <- temp
-            emat[j, -j] <- (1-temp)* emat[j, -j]/sum(emat[j,-j])
+            emat[j, -j] <- (1-temp)* rmat[j, -j]/sum(rmat[j,-j])
             emat
         }
         else if (missing(setup) || setup[1] < 0 ||

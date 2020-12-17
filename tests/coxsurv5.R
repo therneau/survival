@@ -3,7 +3,7 @@ aeq <- function(x, y) all.equal(as.vector(x), as.vector(y))
 # 
 # Compute the hazard functions for a multi-state Cox model
 #
-coxhaz <- function(y, id, risk, wt) {
+coxhaz <- function(y, id, risk, wt, expm=TRUE) {
     # y should be a multi-state survival
     if (!inherits(y, "Surv") || attr(y, "type") != "mcounting")
         stop("invalid response")
@@ -31,15 +31,19 @@ coxhaz <- function(y, id, risk, wt) {
 
     # Hazards can be done one at a time.  For each of them the risk
     #  weight vector for the subjects can be different.
-    # First organized the material as a 2 dim matrix
-    temp <- apply(tmat, 2:3, sum)
+    # First organize the material as a 2 dim matrix
+    temp <- apply(tmat, 2:3, sum)  # count of transtions
     keep <- which(temp>0)
-    from <- states[row(temp)[keep]]
-    hlab <- outer(rownames(temp), colnames(temp), paste, sep=':')[keep]
+    from <- states[row(temp)[keep]] 
+    hlab <- outer(match(rownames(temp), states), 
+                  match(colnames(temp), states), paste, sep=':')[keep]
     nhaz <- length(keep)
     nevent <- matrix(tmat2, nrow(tmat2))[,keep]
     dtime <- sort(unique(y[event,2]))
     ntime <- length(dtime)
+    dimnames(nevent) <- list(NULL, hlab)
+    aindex <- cbind(as.numeric(substring(hlab,1,1)), 
+                    as.numeric(substring(hlab,3,3)))
 
     if (missing(risk)) risk <- matrix(1, nrow=n, ncol=nhaz)
     if (!is.matrix(risk) || nrow(risk) != n || ncol(risk) != nhaz)
@@ -58,8 +62,23 @@ coxhaz <- function(y, id, risk, wt) {
     haz <- nevent/ifelse(wtrisk==0, 1, wtrisk)   # avoid 0/0
     chaz<- apply(haz, 2, cumsum)
     
+    # compute the probability in state, with p(0)= 1,0, ..
+    pstate <- matrix(0, ntime+1, nstate)
+    pstate[1,1] <- 1
+    for (i in 1:ntime) {
+        tmat <- matrix(0, nstate, nstate)
+        tmat[aindex] <- haz[i,]
+        if (expm) {
+            diag(tmat) <- -rowSums(tmat)
+            pstate[i+1,] <- pstate[i,] %*% as.matrix(Matrix::expm(tmat))
+        } else {  
+            diag(tmat) <- 1-rowSums(tmat)
+            pstate[i+1,] <- pstate[i,] %*% tmat
+        }
+    }
+
     list(time=dtime, nrisk=wtrisk, nevent=nevent,
-         haz=haz, cumhaz=chaz, states=states)
+         haz=haz, cumhaz=chaz, states=states, pstate= pstate[-1,])
 }
 
 mtest <- data.frame(id= c(1, 1, 1,  2,  3,  4, 4, 4,  5, 5),
@@ -84,7 +103,7 @@ mtest$state <- factor(mtest$state, 0:3, c("censor", "a", "b", "c"))
 #11                   5          censor
 
 # with all coefficients =0 
-check1 <- coxhaz(Surv(mtest$t1, mtest$t2, mtest$state), mtest$id)
+check1 <- with(mtest, coxhaz(Surv(t1, t2, state), id))
 fit1 <- survfit(Surv(t1, t2, state) ~1, mtest, id=id)
 aeq(check1$cumhaz, fit1$cumhaz[match(check1$time, fit1$time),])
 
@@ -94,6 +113,7 @@ cfit0 <- survfit(cox0, newdata=dummy)
 indx <- match(check1$time, cfit0$time)
 aeq(check1$cumhaz, cfit0$cumhaz[indx,1,])
 aeq(check1$cumhaz, cfit0$cumhaz[indx,2,])
+aeq(check1$pstate, cfit0$pstate[indx,1,])
 
 # a fixed coefficient
 mfit <- coxph(Surv(t1, t2, state) ~x, iter=0, mtest, id=id,
@@ -102,9 +122,17 @@ msurv <- survfit(mfit, newdata=list(x=0:1))
 mrisk <- exp(outer(mtest$x, log(1:6), '*'))  # hazards for each transition
 check2 <- with(mtest, coxhaz(Surv(t1, t2, state), id=id, risk=mrisk))
 aeq(check2$cumhaz, msurv$cumhaz[indx,1,])
+aeq(check2$pstate, msurv$pstate[indx,1,])
 
-# a different predicted x multiplies each column of the cumulative hazard
-aeq(check2$cumhaz %*% diag(1:6), msurv$cumhaz[indx,2,]) 
+# a different predicted x multiplies the risk weights
+#  now use exp(x - target) as the risk score
+mrisk2 <- mrisk %*% diag(1/(1:6))
+check2b <- with(mtest, coxhaz(Surv(t1, t2, state), id=id, risk=mrisk2))
+aeq(check2b$cumhaz, msurv$cumhaz[indx,2,]) 
+aeq(check2b$pstate, msurv$pstate[indx,2,])
+
+# since pstate depends only on the hazards and p(0), if the hazards are
+#  right I don't have to check pstate for every subcase
 
 if (FALSE) {
     # this graph is very useful
@@ -162,6 +190,7 @@ aeq(csurv3$cumhaz[,2,], chaz2)
 check3 <- with(test2, coxhaz(Surv(t1, t2, state), id=id))
 indx3 <- match(check3$time, csurv3$time)
 aeq(check3$cumhaz, chaz2[indx3,])  # a check on the coxhaz function above
+aeq(check3$pstate, csurv3$pstate[indx3,1,])
 
 cox4 <- coxph(Surv(t1,t2, state) ~ x, id=id, test2, 
                      init=log(1:6), iter=0)
@@ -169,4 +198,5 @@ csurv4 <- survfit(cox4, newdata=data.frame(x=0:1))
 mrisk4 <- exp(outer(test2$x, log(1:6), '*'))  # hazards for each transition
 check4 <- with(test2, coxhaz(Surv(t1, t2, state), id=id, risk=mrisk4))
 aeq(check4$cumhaz, csurv4$cumhaz[indx3,1,])
+aeq(check4$pstate, csurv4$pstate[indx3,1,])
 aeq(csurv4$cumhaz[,2,], csurv4$cumhaz[,1,] %*% diag(1:6))
