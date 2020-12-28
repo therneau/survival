@@ -23,7 +23,7 @@ export(Surv, Surv2, Surv2data, aeqSurv, aareg, agreg.fit,
        coxph.wtest, finegray, format.Surv, 
        frailty,  frailty.gamma, 
        frailty.gaussian, frailty.t, is.Surv, 
-       is.na.Surv, is.ratetable,
+       is.na.Surv, is.ratetable, nsk,
        labels.survreg, match.ratetable, neardate,
        psurvreg, qsurvreg, dsurvreg, pseudo,
        pspline, pyears, ratetableDate, ratetable,
@@ -117,6 +117,7 @@ S3method(logLik, coxph)
 S3method(logLik, coxph.null)
 S3method(logLik, survreg)
 S3method(makepredictcall, pspline)
+S3method(makepredictcall, nsk)
 S3method(median, Surv)
 S3method(model.frame, coxph)
 S3method(model.frame, survreg)
