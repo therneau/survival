@@ -132,6 +132,7 @@ if (!missing(fun)) {
             if (ylog) logax <- 'xy'
             else logax <- 'x'
         }
+        if (fun=="cumhaz" && missing(cumhaz)) cumhaz <- TRUE
     }
 }
 @ 
@@ -231,7 +232,7 @@ else {
     yzero <- TRUE
     ssurv <- as.matrix(x$surv)   # x$surv will have one column
     if (!is.null(x$std.err)) std <- as.matrix(x$std.err)
-    # The fun argument only applies to single state survfit objects
+    # The fun argument usually applies to single state survfit objects
     #  First deal with the special case of fun='cumhaz', which is here for
     #  backwards compatability; people should use the cumhaz argument
     if (!missing(fun) && is.character(fun) && fun=="cumhaz") {
@@ -299,25 +300,48 @@ if (conf.int) {
 } else supper <- slower <- NULL
 @ 
 
+The functional form of the fun argument can be whatever the user wants.
+For the character form we try to thin out the obvious mistakes.
+If fun=='cumhaz', the code above has already replaced ssurv with the
+cumulative hazard, so this part of the code should plug in an identity
+function.
+
 <<plot-transform>>=
-if (!inherits(x, "survfitms") && !cumhaz & !missing(fun)) {
-    yzero <- FALSE
+if (!missing(fun)){
     if (is.character(fun)) {
-        tfun <- switch(tolower(fun),
-    		   'log' = function(x) x,
-    		   'event'=function(x) 1-x,
-    		   'cumhaz'=function(x) -log(x),
-    		   'cloglog'=function(x) log(-log(x)),
-    		   'pct' = function(x) x*100,
-    		   'logpct'= function(x) 100*x,  #special case further below
-                   'identity'= function(x) x,
-                   'f' = function(x) 1-x,
-                   's' = function(x) x,
-                   'surv' = function(x) x,
-    		   stop("Unrecognized function argument")
-    		   )
-        if (tolower(fun) %in% c("identity", "s") &&
-            !inherits(x, "survfitms") && !cumhaz) yzero <- TRUE
+        if (cumhaz) {
+            tfun <- switch(tolower(fun),
+                           'log' = function(x) x,
+                           'cumhaz'=function(x) x,
+                           'identity'= function(x) x,
+                           stop("Invalid function argument")
+                           )
+        } else if (inherits(x, "survfitms")) {
+            tfun <-switch(tolower(fun),
+                          'log' = function(x) log(x),
+                          'event'=function(x) x,
+                          'cloglog'=function(x) log(-log(1-x)),
+                          'cumhaz' = function(x) x,
+                          'pct' = function(x) x*100,
+                          'identity'= function(x) x,
+                          stop("Invalid function argument")
+                          )
+        } else {
+            yzero <- FALSE
+            tfun <- switch(tolower(fun),
+                       'log' = function(x) x,
+                       'event'=function(x) 1-x,
+                       'cumhaz'=function(x) x,
+                       'cloglog'=function(x) log(-log(x)),
+                       'pct' = function(x) x*100,
+                       'logpct'= function(x) 100*x,  #special case further below
+                       'identity'= function(x) x,
+                       'f' = function(x) 1-x,
+                       's' = function(x) x,
+                       'surv' = function(x) x,
+                       stop("Unrecognized function argument")
+                       )
+        }
     }
     else if (is.function(fun)) tfun <- fun
     else stop("Invalid 'fun' argument")

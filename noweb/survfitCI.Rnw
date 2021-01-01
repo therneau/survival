@@ -217,10 +217,12 @@ The status vector will have values of 0 for censored.
 @         
         
 In the multi-state case we can calculate the current P(state)
-vector $p(t)$ using the product-limit form
+vector $p(t)$ using the product-limit form, while the cumulative hazard
+$c(t)$ is a sum.
 \begin{align*}
     p(t) &= p(0)\prod_{s<=t} [I + dA(s)] \\
-         &= p(0) \prod_{s<=t} H(s)
+         &= p(0) \prod_{s<=t} H(s) \\
+    c(t) &= \sum_{s<=t} dA(s)
 \end{align*}
 Where $p$ is a row vector and $H$ is the multi-state hazard matrix.  
 $H(t)$ is a simple transition matrix.  
@@ -292,6 +294,14 @@ that were collapsed in to one row of data to save space, then the
 variance is $U'WU$.  
 Case weights were somewhat common in my youth due to small computer memory,
 but I haven't seen such data in 20 years.
+
+The residuals for the cumulative hazard are an easier computation, since each
+hazard function stands alone.  In a multistate model with $k$ states there
+are potentially $k(k-1)$ hazard functions arranged in a $k$ by $k$ matrix,
+i.e., as used for the NA update; in the code both the hazard, the IJ scores
+and the standard errors are kept as matrices with a column for each combination
+that does occur.  At each event time only the rows of U2 that correspond to
+the risk set will be updated.  
 
 Below is the function for a single curve.
 For the status variable a value if 0 is ``no event''.  
@@ -421,19 +431,14 @@ kfit$transitions <- mcheck$transitions
 
 @ 
 
-
 <<survfitCI-finish>>=
 #       
 # Last bit: add in the confidence bands:
 #  
-if (se.fit) {
-    kfit$conf.int <- conf.int
-    kfit$conf.type <- conf.type
-    if (conf.type != "none") {
-        ci <- survfit_confint(kfit$pstate, kfit$std.err, logse=FALSE, 
+if (se.fit && conf.type != "none") {
+    ci <- survfit_confint(kfit$pstate, kfit$std.err, logse=FALSE, 
                               conf.type, conf.int)
-        kfit <- c(kfit, ci, conf.type=conf.type, conf.int=conf.int)
-    }
+    kfit <- c(kfit, ci, conf.type=conf.type, conf.int=conf.int)
 }
 kfit$states <- states
 kfit$type   <- attr(Y, "type")

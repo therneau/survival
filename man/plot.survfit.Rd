@@ -82,20 +82,22 @@
     messages about out of bounds points are not generated.
   }
   \item{fun}{
-    an arbitrary function defining a transformation of the survival curve. 
+    an arbitrary function defining a transformation of the survival
+    (or probability in state, or cumulative hazard) curves. 
     For example \code{fun=log} is an alternative way to draw a log-survival curve 
     (but with the axis labeled with log(S) values), 
     and \code{fun=sqrt} would generate a curve on square root scale. 
-    Five often used transformations can be specified with a character 
+    Four often used transformations can be specified with a character 
     argument instead: \code{"S"} gives the usual survival curve,
     \code{"log"} is the same as using the \code{log=T} option, 
     \code{"event"} or \code{"F"} plots the empirical CDF \eqn{F(t)= 1-S(t)}
-    (f(y) = 1-y),  
-    \code{"cumhaz"} plots the cumulative hazard function (see details), and 
+    (f(y) = 1-y), and
     \code{"cloglog"} creates a complimentary log-log survival plot (f(y) = 
     log(-log(y)) along with log scale for the x-axis).
     The terms \code{"identity"} and \code{"surv"} are
     allowed as synonyms for \code{type="S"}.
+    The argument \code{"cumhaz"} causes the cumulative hazard function
+    to be plotted.
   }
   \item{xlab}{
     label given to the x-axis. 
@@ -141,7 +143,8 @@
     be plotted.  (Also see the \code{istate0} argument in
     \code{survcheck}.)}
   \item{cumhaz}{plot the cumulative hazard rather than the probability
-    in state or survival}
+    in state or survival.  Optionally, this can be a numeric vector
+    specifying which columns of the \code{cumhaz} component to plot.}
   \item{ymin}{ this will normally be given as part of the \code{ylim}
     argument}
   \item{firstx}{this will normally be given as part of the \code{xlim}
@@ -186,11 +189,20 @@ This will be the order in which \code{col}, \code{lty}, etc are used.
   substantially differ for positive and negative values of
   \code{conf.offset}.
 }
+
 \note{In prior versions the behavior of \code{xscale} and
   \code{yscale} differed: the first changed the scale both for the plot
   and for all subsequent actions such as adding a legend, whereas \code{yscale}
   affected only the axis label.  This was normalized in version 2-36.4,
   and both parameters now only affect the labeling.
+
+  In versions prior to approximately 2.36 a \code{survfit} object did
+  not contain the cumulative hazard as a separate result, and the use of
+  fun="cumhaz" would plot the approximation -log(surv) to the cumulative
+  hazard.  When cumulative hazards were added to the object, the
+  \code{cumhaz=TRUE} argument to the plotting function was added.
+  In version 2.3-8 the use of fun="cumhaz" became a synonym for
+  \code{cumhaz=TRUE}.
   }
 \seealso{ \code{\link{points.survfit}},
 \code{\link{lines.survfit}},   

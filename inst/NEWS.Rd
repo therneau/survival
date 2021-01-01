@@ -24,8 +24,10 @@
     \item Add an error message to survfit recognizing that it can not
     yet deal with multistate coxph models that have shared baseline
     hazards.
-    \item Add the pseudo function for psuedo-values. Vignette in
+    \item Add the pseudo function for psuedo-values. The vignette is in
     vignette2 since it uses other packages.
+    \item Add the nsk function.
+    \item Add the aggregate.survfit method
 }}
 
 \section{Changes in version 3.2-7}{

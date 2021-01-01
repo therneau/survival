@@ -1,13 +1,13 @@
 useDynLib(survival, .registration = TRUE)
 importFrom(splines, spline.des, ns)
 importFrom(Matrix, expm)
-importFrom(stats, anova, approx, as.formula, coef, coefficients,
+importFrom(stats, aggregate, anova, approx, as.formula, coef, coefficients,
            contr.treatment, cor, density, delete.response, extractAIC, formula, 
            family, fitted, lm, logLik, makepredictcall, median, model.extract,
            model.frame, model.matrix, model.offset, model.response,
            model.weights, na.fail, na.pass, napredict, naprint, naresid, nobs,
            pchisq, pnorm, printCoefmat, predict, qnorm, quantile, qgamma,
-           reformulate, setNames, terms.formula,
+           reformulate, setNames, terms.formula, 
            resid, residuals, rnorm, runif, stat.anova, terms, weights, var, vcov,
            .checkMFClasses, .getXlevels, update, update.formula)
 importFrom(graphics, arrows, axis, barplot, box, clip, matlines, matplot,
@@ -23,7 +23,7 @@ export(Surv, Surv2, Surv2data, aeqSurv, aareg, agreg.fit,
        coxph.wtest, finegray, format.Surv, 
        frailty,  frailty.gamma, 
        frailty.gaussian, frailty.t, is.Surv, 
-       is.na.Surv, is.ratetable,
+       is.na.Surv, is.ratetable, nsk,
        labels.survreg, match.ratetable, neardate,
        psurvreg, qsurvreg, dsurvreg, pseudo,
        pspline, pyears, ratetableDate, ratetable,
@@ -61,6 +61,7 @@ S3method(anova, coxph)
 S3method(anova, coxphlist)
 S3method(anova, survreg)
 S3method(anova, survreglist)
+S3method(aggregate, survfit)
 S3method(as.character, Surv)
 S3method(as.character, Surv2)
 S3method(as.data.frame, Surv)
@@ -117,6 +118,7 @@ S3method(logLik, coxph)
 S3method(logLik, coxph.null)
 S3method(logLik, survreg)
 S3method(makepredictcall, pspline)
+S3method(makepredictcall, nsk)
 S3method(median, Surv)
 S3method(model.frame, coxph)
 S3method(model.frame, survreg)

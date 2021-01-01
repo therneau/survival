@@ -1,0 +1,42 @@
+
+R Under development (unstable) (2020-12-17 r79644) -- "Unsuffered Consequences"
+Copyright (C) 2020 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> library(survival)
+> library(splines)
+> 
+> # the nsk function should give the same solution as ns, but with a different
+> #  parameterization
+> #
+> xx <- runif(500, 1, 100)
+> yy <- 10*log(xx) + rnorm(500, 0, 2)
+> tdata <- data.frame(xx=xx, yy=yy)
+> fit1 <- lm(yy ~ ns(xx, df=4), tdata, model=TRUE)
+> fit2 <- lm(yy ~ nsk(xx, df=4, b=0), tdata)
+> all.equal(predict(fit1), predict(fit2))  # same solution
+[1] TRUE
+> 
+> xattr <- attributes(fit1$model[[2]])
+> allknots <- sort(c(xattr$knots, xattr$Boundary.knots)) # knots that were used
+> pred.knot <- predict(fit1, newdata=list(xx=allknots))
+> all.equal(pred.knot[-1] - pred.knot[1], coef(fit2)[-1],
++           check.attributes = FALSE)
+[1] TRUE
+> 
+> 
+> proc.time()
+   user  system elapsed 
+  0.857   0.036   0.887 

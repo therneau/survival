@@ -26,20 +26,22 @@ or integer indices.
         temp[i]
     }
     x <- survfit0(x, x$start.time)  # otherwise influence and pstate don't align
-    # ndots <- ...length()      # the simplest, but not avail in R 3.4
+    ndots <- ...length()      # the simplest, but not avail in R 3.4
     # ndots <- length(list(...))# fails if any are missing, e.g. fit[,2]
-    ndots <- if (missing(drop)) nargs()-1 else nargs()-2  # a workaround
+    # ndots <- if (missing(drop)) nargs()-1 else nargs()-2  # a workaround
  
     dd <- dim(x)
-    dtype <- match(names(dd), c("strata", "data", "states"))
+    dmatch <- match(c("strata", "data", "states"), names(dd), nomatch=0)
     if (is.null(x$states)) stop("survfitms object has no states component")
+    if (dmatch[3]==0) stop ("survfitms object has no states dimension")
+    dtype <- match(names(dd), c("strata", "data", "states"))
+
     if (ndots==0) return(x)  # no subscript given
     if (ndots >0 && !missing(..1)) i <- ..1 else i <- NULL
     if (ndots> 1 && !missing(..2)) j <- ..2 else j <- NULL
     if (ndots> 2 && !missing(..3)) k <- ..3 else k <- NULL
-    if (ndots >3) stop("too many subscripts for survfit object")
-    if (is.null(i) & is.null(j) & is.null(k)) return(x)
-
+    if (is.null(i) & is.null(j) & is.null(k)) return(x) # only one curve
+    
     # Make a new object
     newx <- vector("list", length(x))
     names(newx) <- names(x)
@@ -47,8 +49,8 @@ or integer indices.
         if (!is.null(x[[kk]])) newx[[kk]] <- x[[kk]]
     class(newx) <- class(x)
 
-
-    if (ndots==1 && length(dd[dd>1]) > 1) {
+    # Like a matrix, let the user use a single subscript if they desire
+    if (ndots==1 && length(dd) > 1) {
         # the 'treat it as a vector' case
         if (!is.numeric(i))
             stop("single subscript must be numeric")
@@ -91,38 +93,54 @@ or integer indices.
     }
         
     # not a single subscript, i.e., the usual case
-    if (dd[1]==1 && (ndots+1 == length(dd)) && is.null(x$strata)) {
-        # if there is only one curve, no 'strata', then we allow users
-        #  to ignore the first dimension
-        k <- j; j <- i; i <- 1
-        ndots <- ndots +1
-    }
-    else 
-        if (ndots != length(dd)) stop("incorrect number of dimensions")
+    # Backwards compatability: If x$strata=NULL, it is a semantic argument
+    #  of whether there is still "1 stratum".  I have used the second
+    #  form at times, e.g.  x[1,,2] for an object with only data and state
+    #  dimensions.
+    # If there are no strata, 1 too many subscripts, and the first is 1,
+    #  assume this case and toss the first
+    if (ndots == (length(dd)+1)) {
+        if (is.null(x$strata) && (is.null(i) || (length(i)==1 && i==1))) {
+            i <-j; j <-k; k <- NULL
+        } else stop("incorrect number of dimensions")
+    } else if (ndots != length(dd)) stop("incorrect number of dimensions")
 
-    if (is.null(i)) i <- seq.int(dd[1])
-    else if (length(x$strata)) i <- nmatch(i, names(x$strata))
-    if (dd[1]==1) # no strata or only 1
-        irow <- rep(seq(along= x$time), length(i))
+    # create irow, which selects for the time dimension of x
+    if (dtype[1]!=1 || is.null(i)) {
+        irow <- seq(along= x$time)
+    }
     else {
+        i <- nmatch(i, names(x$strata))
         itemp <- split(1:sum(x$strata), rep(1:length(x$strata), x$strata))
         irow <- unlist(itemp[i])  # rows of the pstate object
     }
-    newx$n <- x$n[i]
-    newx$time <- x$time[irow]
+
+    # Select the n, strata, and time components of the output.  Make j,k
+    #  point to the subscripts other than strata (makes later code a touch
+    #  simpler.)
+    newx$time <- x$time[irow]    
+    if (dtype[1] !=1) {  # there are no strata
+        newx$n <- x$n
+        k <- j; j <- i;
+        dd <- c(0, dd)
+        dtype <- c(1, dtype)
+    }
+    else { # there are strata
+        if (is.null(i)) i <-seq(along=x$strata)
+        if ((drop && length(i)>1) || !drop) newx$strata <- x$strata[i]
+        newx$n <- x$n[i]
+    }
+
     # The n.censor and n.enter values do not repeat with multiple X values
     for (z in c("n.censor", "n.enter"))
         if (!is.null(x[[z]])) newx[[z]] <- (x[[z]])[irow, drop=FALSE]
     
     # two cases: with newx or without newx  (pstate is always present)
     nstate <- length(x$states)
-    if (dtype[2] !=2) {  # j indexes the states
+    if (dtype[2] !=2) {  # j indexes the states, there is no data dimension
         if (is.null(j)) j <- seq.int(nstate)
         else j <- nmatch(j, x$states)
          
-        if (length(i) ==1 && drop) newx$strata <- NULL
-        else newx$strata <- x$strata[i]
-
         # in the rare case of a single strata with 1 obs, don't drop dims
         if (length(irow)==1 && length(j) > 1) drop2 <- FALSE 
         else drop2 <- drop
