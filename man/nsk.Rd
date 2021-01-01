@@ -64,7 +64,6 @@ nsk(x, df = NULL, knots = NULL, intercept = FALSE, b = 0.05,
   Attributes are returned that correspond to the arguments to kns,
   and explicitly give the knots, Boundary.knots etc for use by predict.kns().
 }
-}
 \note{
   A thin flexible metal or wooden strip is called a spline, and is the
   traditional method for laying out a smooth curve, e.g., for a ship's
@@ -106,7 +105,7 @@ nsk(x, df = NULL, knots = NULL, intercept = FALSE, b = 0.05,
 }
 
 \seealso{
-\code{\link{splines::ns}}
+\code{\link[splines]{ns}}
 }
 \examples{
 # make some dummy data
@@ -122,9 +121,10 @@ unname(coef(fit1))  # predictions at the knot points
 unname(coef(fit1)[-1] - coef(fit1)[1])  # differences: yhat[2:4] - yhat[1]
 unname(coef(fit2))
 
-\notrun{
+\dontrun{
 plot(y ~ x, data=tdata)
 points(sort(knots), coef(fit1), col=2, pch=19)
 coef(fit)[1] + c(0, coef(fit)[-1])
+}
 }
 \keyword{ smooth }

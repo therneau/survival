@@ -225,44 +225,24 @@ stratfun <- function(i) {
     tdata <- mf[keep, -1, drop=FALSE]
     maxtime <- max(Y[keep, 2])
 
-    if (dim(Gsurv)==1) {
-        # the phrase Gsurv[1] gives a warning when there is only one curve
-        # keep only the event times, and convert back to the original time units
-        if (delay) {
-            dtime <- rev(-Hsurv$time[Hsurv$n.event > 0])
-            dprob <- c(rev(Hsurv$surv[Hsurv$n.event > 0])[-1], 1)
-            ctime <- Gsurv$time[Gsurv$n.event > 0]
-            cprob <- c(1, Gsurv$surv[Gsurv$n.event > 0]) 
-            temp <- sort(unique(c(dtime, ctime))) # these will all be integers
-            index1 <- findInterval(temp, dtime)
-            index2 <- findInterval(temp, ctime)
-            ctime <- utime[temp]
-            cprob <- dprob[index1] * cprob[index2+1]  # G(t)H(t), eq 11 Geskus
-        }
-        else {
-            ctime <- utime[Gsurv$time[Gsurv$n.event > 0]]
-            cprob <- Gsurv$surv[Gsurv$n.event > 0]
-        }
-    } else {
-        Gtemp <- Gsurv[i]
-        if (delay) {
-            Htemp <- Hsurv[i]
-            dtime <- rev(-Htemp$time[Htemp$n.event > 0])
-            dprob <- c(rev(Htemp$surv[Htemp$n.event > 0])[-1], 1)
-            ctime <- Gtemp$time[Gtemp$n.event > 0]
-            cprob <- c(1, Gtemp$surv[Gtemp$n.event > 0]) 
-            temp <- sort(unique(c(dtime, ctime))) # these will all be integers
-            index1 <- findInterval(temp, dtime)
-            index2 <- findInterval(temp, ctime)
-            ctime <- utime[temp]
-            cprob <- dprob[index1] * cprob[index2+1]  # G(t)H(t), eq 11 Geskus
-        }
-        else {
-            ctime <- utime[Gtemp$time[Gtemp$n.event > 0]]
-            cprob <- Gtemp$surv[Gtemp$n.event > 0]
-        }
+    Gtemp <- Gsurv[i]
+    if (delay) {
+        Htemp <- Hsurv[i]
+        dtime <- rev(-Htemp$time[Htemp$n.event > 0])
+        dprob <- c(rev(Htemp$surv[Htemp$n.event > 0])[-1], 1)
+        ctime <- Gtemp$time[Gtemp$n.event > 0]
+        cprob <- c(1, Gtemp$surv[Gtemp$n.event > 0]) 
+        temp <- sort(unique(c(dtime, ctime))) # these will all be integers
+        index1 <- findInterval(temp, dtime)
+        index2 <- findInterval(temp, ctime)
+        ctime <- utime[temp]
+        cprob <- dprob[index1] * cprob[index2+1]  # G(t)H(t), eq 11 Geskus
     }
-
+    else {
+        ctime <- utime[Gtemp$time[Gtemp$n.event > 0]]
+        cprob <- Gtemp$surv[Gtemp$n.event > 0]
+    }
+    
     ct2 <- c(ctime, maxtime)
     cp2 <- c(1.0, cprob)
     index <- findInterval(times, ct2, left.open=TRUE)

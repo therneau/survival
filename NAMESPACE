@@ -1,13 +1,13 @@
 useDynLib(survival, .registration = TRUE)
 importFrom(splines, spline.des, ns)
 importFrom(Matrix, expm)
-importFrom(stats, anova, approx, as.formula, coef, coefficients,
+importFrom(stats, aggregate, anova, approx, as.formula, coef, coefficients,
            contr.treatment, cor, density, delete.response, extractAIC, formula, 
            family, fitted, lm, logLik, makepredictcall, median, model.extract,
            model.frame, model.matrix, model.offset, model.response,
            model.weights, na.fail, na.pass, napredict, naprint, naresid, nobs,
            pchisq, pnorm, printCoefmat, predict, qnorm, quantile, qgamma,
-           reformulate, setNames, terms.formula,
+           reformulate, setNames, terms.formula, 
            resid, residuals, rnorm, runif, stat.anova, terms, weights, var, vcov,
            .checkMFClasses, .getXlevels, update, update.formula)
 importFrom(graphics, arrows, axis, barplot, box, clip, matlines, matplot,

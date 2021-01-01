@@ -23,7 +23,7 @@ over a grouping.
   Cox model.
 }
 \value{a \code{survfit} object of lower dimension.}
-\seealso{\code{\link{\survfit}}}
+\seealso{\code{\link{survfit}}}
 \examples{
 cfit <- coxph(Surv(futime, death) ~ sex + age*hgb, data=mgus2)
 # marginal effect of sex, after adjusting for the others
@@ -33,4 +33,5 @@ dummy <- na.omit(dummy)   # don't count missing hgb in our "population
 csurv <- survfit(cfit, newdata=dummy)
 dim(csurv)  # 2 * 1384 survival curves
 csurv2 <- aggregate(csurv, dummy$sex)
+}
 \keyword{ survival }

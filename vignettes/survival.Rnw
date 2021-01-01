@@ -1915,7 +1915,7 @@ with ages of 60 and 80.
 <<PCMcurve, fig=TRUE>>=
 dummy <- expand.grid(sex=c("F", "M"), age=c(60, 80), mspike=1.2)
 csurv  <- survfit(cfit, newdata=dummy)
-plot(csurv[,,2], xmax=20*12, xscale=12,
+plot(csurv[,2], xmax=20*12, xscale=12,
      xlab="Years after MGUS diagnosis", ylab="Pr(has entered PCM state)",
      col=1:2, lty=c(1,1,2,2), lwd=2)
 legend(100, .04, outer(c("female,", "male,  "), 

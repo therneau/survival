@@ -55,18 +55,26 @@ aggregate.survfit <- function(x, by=NULL, FUN= mean, ...) {
         }
         else {  # the complicated one
             if (!is.null(x$surv)) {
-                temp <- apply(x$surv, 1, function(z) tapply(z, by, FUN))
+                temp <- apply(x$surv, 1, function(z) tapply(z, index, FUN))
                 newx$surv <- t(temp)
             }
             if (!is.null(x$pstate)) {
-                temp <- apply(x$pstate, c(1,3), function(z) tapply(z, by, FUN))
+                temp <- apply(x$pstate, c(1,3), function(z) tapply(z, index, FUN))
                 newx$pstate <- aperm(temp, c(2,1,3))
             }
         }
     }    
 
+    
     if (is.null(by)) newx$newdata <- NULL
-    else newx$newdata <- data.frame("(aggregate)" = seq.int(max(index)))
+    else { # get useful labels for the groups
+        if (length(by)==1 && is.null(names(by))) 
+            newx$newdata <- data.frame(aggregate= levels(as.factor(by[[1]])))
+        else {
+            temp <- aggregate(integer(dd.data), by, sum)
+            newx$newdata <- temp[-ncol(temp)]
+        }
+    }
 
     class(newx) <- class(x)
     newx

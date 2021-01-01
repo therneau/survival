@@ -331,14 +331,10 @@ survfitCI <- function(X, Y, weights, id, cluster, robust, istate,
     #       
     # Last bit: add in the confidence bands:
     #  
-    if (se.fit) {
-        kfit$conf.int <- conf.int
-        kfit$conf.type <- conf.type
-        if (conf.type != "none") {
-            ci <- survfit_confint(kfit$pstate, kfit$std.err, logse=FALSE, 
+    if (se.fit && conf.type != "none") {
+        ci <- survfit_confint(kfit$pstate, kfit$std.err, logse=FALSE, 
                                   conf.type, conf.int)
-            kfit <- c(kfit, ci, conf.type=conf.type, conf.int=conf.int)
-        }
+        kfit <- c(kfit, ci, conf.type=conf.type, conf.int=conf.int)
     }
     kfit$states <- states
     kfit$type   <- attr(Y, "type")

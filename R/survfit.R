@@ -149,7 +149,7 @@ dim.survfit <- function(x) {
     d1name <- "strata"
     d2name <- "data"
     d3name <- "states"
-    if (is.null(x$strata))  d1 <- 1  else d1 <- length(x$strata)
+    if (is.null(x$strata))  {d1 <- d1name <- NULL} else d1 <- length(x$strata)
     if (is.null(x$newdata)) {d2 <- d2name <- NULL} else d2 <- nrow(x$newdata)
     if (is.null(x$states))  {d3 <- d3name <- NULL} else d3 <- length(x$states)
     
@@ -162,7 +162,7 @@ dim.survfit <- function(x) {
 
     dd <- c(d1, d2, d3)
     names(dd) <- c(d1name, d2name, d3name)
-    if (is.null(dd)) 1 else dd
+    dd
 }
 
 # there is a separate function for survfitms objects
@@ -177,11 +177,13 @@ dim.survfit <- function(x) {
     }
     
     if (!inherits(x, "survfit")) stop("[.survfit called on non-survfit object")
-    # ndots <- ...length()      # the simplest, but not avail in R 3.4
+    ndots <- ...length()      # the simplest, but not avail in R 3.4
     # ndots <- length(list(...))# fails if any are missing, e.g. fit[,2]
-    ndots <- if (missing(drop)) nargs()-1 else nargs()-2  # a workaround
+    # ndots <- if (missing(drop)) nargs()-1 else nargs()-2  # a workaround
 
     dd <- dim(x)
+    # for dd=NULL, an object with only one curve, x[1] is always legal
+    if (is.null(dd)) dd <- c(strata=1L) # survfit object with only one curve
     dtype <- match(names(dd), c("strata", "data", "states"))
 
     if (ndots >0 && !missing(..1)) i <- ..1 else i <- NULL

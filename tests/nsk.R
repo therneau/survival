@@ -1,4 +1,5 @@
 library(survival)
+library(splines)
 
 # the nsk function should give the same solution as ns, but with a different
 #  parameterization
