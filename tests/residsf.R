@@ -98,7 +98,7 @@ tdata$st <- factor(tdata$st, c(0:3),
                     labels=c("censor", "a", "b", "c"))
 tdata$i0 <- factor(tdata$i0, 1:4,
                     labels=c("entry", "a", "b", "c"))  
-
+ 
 tfun <- function(data=tdata) {
     reorder <- c(10, 9, 1, 2, 5, 4, 3, 7, 8, 6)
     new <- data[reorder,]
@@ -112,7 +112,7 @@ mfit1 <- survfit(Surv(t1, t2, st) ~ 1, tdata, id=id, istate=i0,
 test1a <- resid(mfit1, time=c(3, 7, 9), method=1)
 #test1b <- resid(mfit1, time=c(3, 7, 9), method=2)
 #aeq(test1a, test1b)
-aeq(aperm(test1a, c(1,3,2)), mfit1$influence.pstate[,c(3,5,7),])
+aeq(test1a, mfit1$influence.pstate[,c(3,5,7),])
 
 # AUC, start simple - auc at final time
 test3 <- resid(mfit1, time=11, type='RMST')
@@ -122,9 +122,9 @@ aeq(test3, s1)
 
 # extend to an earlier and later time
 test3b <- resid(mfit1, time=c(-1,11,15), type='RMST')
-all(test3b[,,1] ==0)
-aeq(test3b[,,2], s1)
-aeq(test3b[,,3], s1 + mfit1$influence[,9,]*4)
+all(test3b[,1,] ==0)
+aeq(test3b[,2,], s1)
+aeq(test3b[,3,], s1 + mfit1$influence[,9,]*4)
 
 #
 # competing risks

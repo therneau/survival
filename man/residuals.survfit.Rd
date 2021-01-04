@@ -59,8 +59,9 @@ but this was deemed too confusing.
 
 \value{A matrix or array with one row per observation or cluster, and one column
   for each value in \code{times}.  For a multi-state model the three
-  dimensions are observation, state, and time.  For cumulative hazard,
-  the second dimension is the set of transitions.
+  dimensions are observation, time and state.  For cumulative hazard,
+  the last dimension is the set of transitions.  (A competing risks
+  model for instance has 3 states and 2 transitions.)
 }
 \seealso{\code{\link{survfit}}, \code{\link{survfit.formula}}
 }

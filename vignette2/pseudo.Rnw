@@ -241,7 +241,7 @@ with(aml, Surv(time, status))
 fit1 <- survfit(Surv(time, status) ~1, aml)
 rr1 <- resid(fit1, times=c(12,24))
 pv1 <- pseudo(fit1, times= c(12, 24))
-round(pv1, 4)
+round(pv1[1:8,], 4)
 @ 
 
 Both the matrix of IJ values from \code{resid} and the matrix of pseudo-values
