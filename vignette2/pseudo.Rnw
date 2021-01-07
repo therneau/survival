@@ -317,7 +317,7 @@ than a hazards ratio.
 The linear model contains the strong assumption that the difference in survival
 is the same at times 12 and 24, the Cox model the equally strong one that
 hazards are proportional across all time points.
-Of potentially more consequence, the pseudo-value has two observations for
+Of potentially more consequepsnce, the pseudo-value has two observations for
 each subject, leading to correlated data. We can correct for this using a
 robust sandwich estimor either via survey sampling or a GEE argument.
 These are shown below.  The \code{geese} function has the unfortunate feature
@@ -391,10 +391,10 @@ cpdat <- merge(cptemp,
                subset(cdata,,c(id, rx, extent, node4)), by="id")
 @
  
-Most users will prefer a model for the risk of death, i.e., for psuedo values
+Most users will prefer a model for the risk of death, i.e., for pseudo values
 based on the probability of death $1- S(t)$.  
 It is easy to show that these are simply $1- p(S)$ where $p(S)$ are the 
-psuedovalues for $S$.  This was saved as the variable \code{pdeath}.
+pseudovalues for $S$.  This was saved as the variable \code{pdeath}.
 We then merge the pseudo data, which has multiple rows per subject, 
 with the original data, by the subject identifier \code{id} found in the
 colon cancer data set.
@@ -593,7 +593,7 @@ We should in theory get similar coefficients to the \code{coxph} fit.
 Why are they larger?
 
 \section{Competing risks}
-Psuedo values based on the multi-state Aalen-Johansen estimate allow a
+Pseudo values based on the multi-state Aalen-Johansen estimate allow a
 look at the absolute risk of an outcome, in the presence of a competing
 risk.  We will use the \code{mgus2} data set, which has been used to
 illustrate competing risks elsewhere in the vignettes. 
@@ -662,5 +662,8 @@ interactions.
 mpfit7 <- svyglm(pseudo ~ (age10 + sex + mspike) * year, design=mdesign)
 pfun(summary(mpfit7)$coefficients)
 @ 
+
+\bibliographystyle{plain}
+\bibliography{refer}
 \end{document}
 
