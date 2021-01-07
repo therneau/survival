@@ -43,11 +43,12 @@ Let $Y$ be survival time and $f$ some function of interest, for which we desire
 to estimate $E(f(Y))$ over the population.
 With complete data on each observation's survival time, we can compute the
 expectation in the straightforward way as the simple mean $\sum f(y_i) /n$.
-Of course, due to censoring our data is incomplete.
+Due t censoring, survival data is unfortunately incomplete.
 
-Pseudo-values are based on a simple idea.  Suppose the data are imcomplete but
-we have an If we have an estimator 
-$\hat\theta = E(f(Y)$ of the quantity, e.g., $f$ = survival probability at
+Pseudo-values are based on a simple idea.  Suppose the data are incomplete but
+we have an estimator 
+$\hat\theta = E(f(Y)$ of the quantity of interest, e.g., 
+$f$ = survival probability at
 time 45, and $\hat\theta$ the Kaplan-Meier estimate at time 45.
 The pseudo-observation for $y_i$ is then defined as
 
@@ -100,7 +101,7 @@ is small --- most of the direct examinations have focused on jackknife
 based values.  
 Examples show that the numerical difference between the two is miniscule, with
 the possible exception of large outliers, 
-but a critic might call the IJ approach ``pseudo-pseudo'' values and claim that
+but a critic might call the IJ approach ``pseudo'' pseudovalues and claim that
 they are as yet unproven.
   
 \section{Residual mean survival time}
@@ -110,8 +111,8 @@ For any postive probability distribution, a well known identity is that
 mean is equal to the area under the survival curve.
 \begin{equation*}
  \mu = \int S(t) dt
-\end{equation}
-This extends to the multi-state case, the expected time in state will be
+\end{equation*}
+This extends to the multi-state case, where the expected time in state will be
 equal to the area under the P(state) curve for that state.
 
 Since the Kaplan-Meier gives an unbiased estimate of Pr(in the alive state),
@@ -122,15 +123,16 @@ survival time (RMST), using the area under the KM up to some specified
 point $\tau$. 
 This is interpreted as the expected number of life years, out of the first 
 $\tau$ years since intitation.  If $\tau=10$ and the area under the curve
-were 8.1, the phrase would be an expected liftime of 8.1 out of the next 10.
-Other labels the sojourn time, or for a multi-state model, 
+were 8.1, the relevant phrase would be an ``expected liftime of 8.1 out of 
+the next 10 years''.
+Other common labels the sojourn time, or for a multi-state model, 
 the restricted mean time in state (RMTS).
-For a multi-state model, the sojourn time for all states must sum to $\tau$ ---
-everyone has to be somewhere.
+For a multi-state model, the sojourn time for all states must sum to $\tau$,
+i.e. everone has to be somewhere.
 
 Common choices for $\tau$ are either a fixed time of interest such as 2, 5 or
-10 years, the last observed event time, or the point at which one of the
-curves has 0 subjects. 
+10 years, the last observed event time, or the point at which any one of the
+curves has no subjects. 
 
 Here is a simple example using the lung cancer data set. 
 For this cohort of subjects with advanced disease, the strongest predictor
@@ -146,7 +148,7 @@ legend(1.5, 1, c("PS 0", "PS 1", "PS 2", "PS 3"), lty=1:4)
 The strongest predictor in the data set is ECOG performance score, which has
 levels of 0--3.
 For a single categorical predictor such as this, it is easy to obtain the
-RMST and its standard error directly from the \code{survfit}. 
+RMST and its standard error directly from the print routine for \code{survfit}. 
 We can also do this with pseudo-values, which allow for a multivariate model.
 The result shows a loss of about .26 years for each 1 point increase in the
 performance score, and about .32 years longer RMST for females.
@@ -156,7 +158,7 @@ pmean <- pseudo(lfit0, times=2.5, type="RMST")
 ldata <- data.frame(lung, pmean= c(pmean), 
                     id=1:nrow(lung))  
 afit1 <- lm(pmean ~ ph.ecog + sex + age, data=ldata)
-round(summary(afit1)$coefficients, 3)
+round(summary(afit1)$coefficients, 2)
 @
 
 The IJ residuals for observations that are censored early in the study are
@@ -223,19 +225,14 @@ round(summary(afit4c)$coefficients, 3)
 round(summary(afit4d)$coefficients[1:4,], 3)
 @ 
 
-This section needs some input from Thomas L.  
-
 \section{Survival and probability in state}
 \subsection{AML data}
-As a first case for this endpoint look at a simple survival data set, 
-for a multi-state model this
-extends to the more general probability in state vector $p(t)$.
-Psuedo-values are obtained from the \code{survfit} object.  
-Start with the simple AML data set, and get the pseudo values for 12 and 24 month
-survival.
-This data set records the time to relapse for patients with acute myelogenous
+As a first case for this endpoint look at a simple survival data set,
+the well known AML study with 23 subjects, which
+records the time to relapse for patients with acute myelogenous
 leukemia.
 Relapse times range from 5 to 48 months, 5 of the 23 patient times are censored.
+Get the pseudo values for 12 and 24 month survival.
 <<test1>>=
 with(aml, Surv(time, status))
 fit1 <- survfit(Surv(time, status) ~1, aml)
@@ -254,7 +251,7 @@ At 24 months, after censoring enters, the pseudo values are no longer constraine
 to lie in $(0,1)$.
 
 What happens if we use these values in an ordinary regression?
-The \code{data.frame} argument causes the value to be returned in long form
+The \code{data.frame} argument causes the values to be returned in long form
 as a data.frame.
 <<test2>>=
 pdata <- pseudo(fit1, times= c(12, 24), data.frame=TRUE)
@@ -290,15 +287,19 @@ sfit3 <- survfit(cfit3, newdata=list(x= c("Maintained", "Nonmaintained")))
 summary(sfit3, times=c(12,24))
 @ 
 
-The above code contains a lot of ideas. The Cox model estimates that the
+The above code contains a lot of ideas. 
+First, the Cox model estimates that the
 subjects on the no maintainance arm have a hazard rate of about 2.5 fold higher
 than the maintainance arm, $p=.09$.
-The linear model estimates the probability of no recurrence at 12 or 24 months
-to be about 23\% lower for the no maintainance group, $p=.12$; conversely
-the probability of recurrence is 23\% higher. 
+Second, a linear model using pseudovalues has estimated
+the absolute probability of no recurrence,
+at 12 and 24 months, 
+to be about .23 lower for the no maintainance group, $p=.12$; conversely
+the probability of recurrence is .23 higher. 
+Last is a plot comparing the curves.
 The overall probabilities of recurrence are gathered into a table below.
 
-<<test4>>=
+<<test4, echo=FALSE>>=
 temp <- matrix(0, 2, 4, dimnames=list(c("Maintainance", "Nonmaintainance"),
                                       c("Cox, 12", "Pseudo, 12", 
                                         "Cox, 24", "Pseudo, 24")))
@@ -310,6 +311,9 @@ temp <- rbind(temp, "Difference" = temp[2,]- temp[1,])
 round(temp,2)
 @ 
 
+One advantage of the linear model is that the pseudovalues are direct estimates
+of a probability, and so may be easier to communicate to study participants 
+than a hazards ratio. 
 The linear model contains the strong assumption that the difference in survival
 is the same at times 12 and 24, the Cox model the equally strong one that
 hazards are proportional across all time points.
@@ -356,8 +360,6 @@ in the colon cancer study.
 The data set has 2*929 observations, the first set for time to recurrence
 and the second for time to death. For anyone without recurrence, their
 follow-up time for recurrence is equal to their follow-up time for death.
-
-follow-up
 
 <<cdata, fig=TRUE>>=
 cdata <- subset(colon, etype==1, -etype)  # time to recurrence

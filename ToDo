@@ -2,8 +2,13 @@ Proper variance for yates survival curve
 
 Robust variance for multi-state Cox survival
 
+survfit.coxph does not correctly save p0 if differnt data= arguments would
+lead to a differnt p0.  But when would they?  p0 is an unweighted mean.  This
+just needs a bit more thought.  What isn't done is to save p0 when using a
+single subsript for a multidim object -- not sure what to do there.  Hopefully
+people won't use that feature
+
 Reliability models vignette
-Pseudo-values vignette
 
 Update iteration for penalized models wrt the changes in version 2.44.
 actually - rewrite the penalized models

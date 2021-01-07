@@ -1,6 +1,6 @@
-# Automatically generated from the noweb directory
 # Replaced by concordance.R.  This code is now frozen and will be deprecated
 survConcordance.fit <- function(y, x, strata, weight) { 
+    .Deprecated("concordancefit")
     # The coxph program may occassionally fail, and this will kill the C
     #  routine below
     if (any(is.na(x)) || any(is.na(y))) return(NULL)   

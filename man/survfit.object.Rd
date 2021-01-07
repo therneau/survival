@@ -75,7 +75,12 @@ The following components must be included in a legitimate
   \item{lower}{options 
     lower confidence limit for the survival curve or pstate
   }
-  \item{start.time, p0, sp0}{see \code{details} below
+  \item{start.time}{optional, the starting time for the curve if other
+    than 0}
+  \item{p0, sp0}{for a multistate object, the distribution of starting
+    states.  If the curve has a strata dimension, this will be a matrix
+    one row per stratum.  The \code{sp0} element has the standard error
+    of p0, if p0 was estimated.
   }
   \item{newdata}{for survival curves from a fitted model, this contains
     the covariate values for the curves

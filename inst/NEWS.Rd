@@ -25,9 +25,13 @@
     yet deal with multistate coxph models that have shared baseline
     hazards.
     \item Add the pseudo function for psuedo-values. The vignette is in
-    vignette2 since it uses other packages.
+    vignette2 since it uses svyglm (survey) to get better standard
+    errors (see 'other' vignette).
+    Add supporting routine residuals.survfit (which does the real work.)
     \item Add the nsk function.
     \item Add the aggregate.survfit method
+    \item Formally depricate survConcordance, replaced with the more capable
+    concordance method which has formula, lm, glm, and coxph methods.    
 }}
 
 \section{Changes in version 3.2-7}{

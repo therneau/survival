@@ -627,7 +627,8 @@ rsurvpart2 <- function(Y, X, casewt, istate, times, cluster, type, fit,
             }
             else { # one curve at a time
                 ix <- as.numeric(X)  # 1, 2, etc
-                D <- array(0, dim=c(nrow(Y), nstate, ntime))
+                if (ntime==1) D <- matrix(0, nrow(Y), nstate)
+                else D <- array(0, dim=c(nrow(Y), nstate, ntime))
                 for (curve in 1:max(ix)) {
                     j <- which(ix==curve)
                     ytemp <- Y[j,,drop=FALSE]
@@ -640,7 +641,11 @@ rsurvpart2 <- function(Y, X, casewt, istate, times, cluster, type, fit,
                     tfit <- .Call(Csurvfitresid, ytemp, asort1, asort2, is1[j],
                                   casewt[j], p0[curve,], inf0[j,], times, 
                                   start.time, type=="auc")
-                    if (type=="auc") D[j,,] <- tfit[[2]] else D[j,,] <- tfit[[1]]
+                    if (ntime==1) {
+                        if (type=="auc") D[j,] <- tfit[[2]] else D[j,] <- tfit[[1]]
+                    } else {
+                        if (type=="auc") D[j,,] <- tfit[[2]] else D[j,,] <- tfit[[1]]
+                    }
                 }
             } 
             # the C code makes time the last dimension, we want it to be second

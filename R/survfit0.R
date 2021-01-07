@@ -65,7 +65,10 @@ survfit0 <- function(x, start.time=0) {
     }
     
     # I want the result to be a list in the same order
-    newname <- names(x)[!(names(x) %in% c("start.time", "p0", "sp0"))]
+    # change on 12/2020: p0 and sp0 will be redundant, but leave them in
+    #  anyway.  It makes it easier for survfitCI and residuals.survfit.
+    #newname <- names(x)[!(names(x) %in% c("start.time", "p0", "sp0"))]
+    newname <- names(x)[!(names(x) %in% c("start.time"))]
     new <- vector("list", length(newname))
     names(new) <- newname
 

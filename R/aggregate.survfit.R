@@ -45,13 +45,13 @@ aggregate.survfit <- function(x, by=NULL, FUN= mean, ...) {
             newx$pstate <- apply(x$pstate, c(1,3), FUN)
     }
     else {
-        if (FALSE) {
+        if (FALSE) {  # not yet debugged
         #if missing(FUN)) { # use a fast algorithm tailored to the mean
-            if (!is.null(x$surv))
-                newx$surv <- .Call(Csurvfitmean, x$surv, dim(x$surv), index- 1L)
-            if (!is.null(x$pstate))
-                newx$pstate <-.Call(Csurvfitmean, x$pstate, dim(x$pstate), 
-                                    index -1L)
+        #    if (!is.null(x$surv))
+        #        newx$surv <- .Call(Csurvfitmean, x$surv, dim(x$surv), index- 1L)
+        #    if (!is.null(x$pstate))
+        #        newx$pstate <-.Call(Csurvfitmean, x$pstate, dim(x$pstate), 
+        #                            index -1L)
         }
         else {  # the complicated one
             if (!is.null(x$surv)) {

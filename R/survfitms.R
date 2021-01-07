@@ -645,7 +645,16 @@ survmean2 <- function(x, scale=1, rmean) {
     if (dtype[2] !=2) {  # j indexes the states, there is no data dimension
         if (is.null(j)) j <- seq.int(nstate)
         else j <- nmatch(j, x$states)
-         
+
+        # keep these as start points for plotting, even though they won't make
+        #  true sense is states are subset, since rows won't sum to 1
+        if (!is.null(x$p0)) {
+            if (is.matrix(x$p0)) newx$p0 <- x$p0[i,j] else newx$p0 <- x$p0[j]
+        }
+        if (!is.null(x$sp0)) {
+            if (is.matrix(x$sp0)) newx$sp0 <- x$p0[i,j] else newx$sp0 <- x$sp0[j]
+        }   
+        
         # in the rare case of a single strata with 1 obs, don't drop dims
         if (length(irow)==1 && length(j) > 1) drop2 <- FALSE 
         else drop2 <- drop
@@ -678,6 +687,9 @@ survmean2 <- function(x, scale=1, rmean) {
             }
         }
         else {
+            # Some states were dropped, leaving no consistent way to 
+            #  subscript cumhaz, or not one I have yet seen clearly
+            # So remove it from the object
             newx$cumhaz <- newx$std.chaz <- newx$influence.chaz <- NULL
             if (length(j)==1 & drop) {
                 newx$states <- NULL
@@ -694,7 +706,17 @@ survmean2 <- function(x, scale=1, rmean) {
         if (is.null(k)) k <- seq.int(nstate)
         else k <- nmatch(k, x$states)
 
-        if (length(irow)==1) {
+        # keep these as start points for plotting, even though they won't make
+        #  true sense is states are subset, since rows won't sum to 1
+        # (all data= sets have the same p0)
+        if (!is.null(x$p0)) {
+            if (is.matrix(x$p0)) newx$p0 <- x$p0[i,k] else newx$p0 <- x$p0[k]
+        }
+        if (!is.null(x$sp0)) {
+            if (is.matrix(x$sp0)) newx$sp0 <- x$p0[i,k] else newx$sp0 <- x$sp0[k]
+        }   
+
+         if (length(irow)==1) {
             if (length(j) > 1) drop2 <- FALSE else drop2<- drop
             if (length(k) > 1) drop3 <- FALSE else drop3 <- drop
         } 

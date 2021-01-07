@@ -32,68 +32,55 @@ pseudo <- function(fit, times, type, addNA=TRUE, data.frame=FALSE,
     else ncurve <- length(fit$strata)  # ncurve will also = max(curve)
 
     ntime <- length(times)
-    nstate <- if (inherits(fit, "survfitms")) length(fit$states) else 1L
-    nhaz   <- if (is.matrix(fit$cumhaz)) ncol(fit$cumhaz) else 1L
+    nstate <- length(fit$states)
 
     minus <- ifelse(minus1, 1, 0)  # use n-1 or n to multiply
 
     # get the estimates
     # retain the dimension of the residuals, which will have subjects first,
     #  timepoints second and (state or cumhaz) last.
-    # The residuals have a row for each subject.  If there are multiple groups
-    # (strata), the centering constant is a weighted average of the survival
-    #   estimates.
-    curvewt <- fit$n/sum(fit$n)
-    ones <- rep.int(1L, ddr[1])
-    if (type== "pstate") {
+    # The residuals have a row for each subject.  To recenter them for a
+    #  pseudovalue, however, we need to match each one to the curve from
+    #  whence it came.
+    #
+    if (type == "pstate") {
         temp <- summary(fit, times=times, extend=TRUE)
-        if (inherits(fit, "survfitms")) {
-            if (ncurve==1) yhat <- array(temp$pstate, dim=c(1,ntime, nstate))
-            else {
-                yhat <- array(temp$pstate, dim=c(ntime, ncurve, nstate))
-                ymean <- apply(yhat, c(1,3), function(x) sum(x* curvewt))
-                yhat <- array(ymean, dim=c(1, ncurve, nstate))
-            }  
-            ptemp <- yhat[ones,,] + (fit$n[curve] -minus)*resid
-        } else {
-            if (ncurve ==1) yhat <- matrix(temp$surv, nrow=1)
-            else {
-                ymean <- apply(matrix(temp$surv, ncurve, ntime), 2,
-                                 function(x) sum(x*curvewt))
-                yhat <- matrix(ymean, nrow=1)
-            }
-            ptemp <- yhat[ones,] + (fit$n[curve] -minus)*resid
+        if (!is.null(temp$pstate)) { # multi-state
+            # pstate will have times, curve, state,  as the order
+            # resid will have subject, times, state
+            yhat <-  array(temp$pstate, dim=c(ntime, ncurve, nstate))
+            yhat <-  aperm(yhat, c(2,1,3))
+            # yhat[curve,,] is the trick: resid has first dimension of n =
+            #  number of subjects, yhat has 1 row per curve, yhat[curve,,]
+            #  will have n rows, each pulled from the correct curve
+            ptemp <- yhat[curve,,] + (fit$n[curve] -minus)*resid
         }
-    }
-    else if (type == "cumhaz") {
+        else {
+            yhat <- matrix(temp$surv, nrow = ncurve, byrow=TRUE)
+            ptemp <- yhat[curve,] + (fit$n[curve] -minus)*resid
+        }
+    }       
+    else if (type=="cumhaz") {
         temp <- summary(fit, times=times, extend=TRUE)$cumhaz
-        if (inherits(fit, "survfitms")) {
-            if (ncurve==1) yhat <- array(temp$cumhaz, dim=c(1,ntime, nstate))
-            else {
-                yhat <- array(temp$cumhaz, dim=c(ntime, ncurve, nstate))
-                ymean <- apply(yhat, c(1,3), function(x) sum(x* curvewt))
-                yhat <- array(ymean, dim=c(1, ncurve, nstate))
-            }       
-            ptemp <- yhat[ones,,] + (fit$n[curve] -minus)*resid
-        } else {
-            if (ncurve ==1) yhat <- matrix(temp$cumhaz, nrow=1)
-            else {
-                ymean <- apply(matrix(temp$cumhaz, ncurve, ntime), 2,
-                                 function(x) sum(x*curvewt))
-                yhat <- matrix(ymean, nrow=1)
-            }
-            ptemp <- yhat[ones,] + (fit$n[curve] -minus)*resid
+        if (is.matrix(temp)) { # multi-state
+            nhaz <- ncol(fit$cumhaz)
+            yhat <- array(temp, dim=c(ntime, ncurve, nhaz))
+            yhat <- aperm(yhat, c(2,1,3)) 
+            ptemp <- yhat[curve,,] + (fit$n[curve] -minus)*resid
+        }
+         else {
+            yhat <- matrix(temp, nrow=ncurve, byrow=TRUE)
+            ptemp <- yhat[curve,] + (fit$n[curve] -minus)*resid
         }
     }
-            
-    else { #AUC 
-        # first compute the AUC at all the timepoints
-        fit <- survfit0(fit)  # add the 0 time point
+
+    else { #auc
+        fit <- survfit0(fit) # add in time 0
         aucfun <- function(x, y, times) {
             # the nuisance is allowing for in-between values  
             # the solution is to expand the list of times, and fill in y for
             #  those insertions.
-            alltime <- sort(c(x, times))
+            alltime <- unique(sort(c(x, times)))
             alltime <- alltime[alltime <= max(times)]
             index <- findInterval(alltime, x, left.open=FALSE)
             delta <- c(diff(alltime), 0)
@@ -101,31 +88,29 @@ pseudo <- function(fit, times, type, addNA=TRUE, data.frame=FALSE,
             if (is.matrix(y)) {
                temp <- apply(y[index,,drop=FALSE], 2, 
                              function(y) cumsum(delta*y))
-               temp[i2,,drop=FALSE]
+               temp[i2-1,,drop=FALSE]
             }
             else {
                 temp <- cumsum(y[index]*delta)
-                temp[i2]
+                temp[i2-1]
             }       
         }                  
 
         if (inherits(fit, "survfitms")) { # multi-state
-            if (ncurve==1) {
+            if (is.null(fit$strata)) {
                 auc <- aucfun(fit$time, fit$pstate, times)
                 yhat <- array(auc, dim=c(1, ntime, nstate))
+                ptemp <- yhat[curve,,] + (fit$n[curve] -minus)*resid
             } else {
-                yhat <- array(0, dim=c(ntime, nstate, ncurve))
+                yhat <- array(0, dim=c(ncurve, ntime, nstate))
                 for (i in 1:ncurve) {
                     temp <- fit[i,]
-                    yhat[,,i] <- aucfun(temp$time, temp$pstate, times)
+                    yhat[i,,] <- aucfun(temp$time, temp$pstate, times)
                 }
-                ymean <- apply(yhat, 1:2, function(x) sum(x*curvewt))
-                yhat <- array(ymean, dim=c(1, ntime, nstate))
-                }               
-            ptemp <- yhat[ones,,] + (fit$n[curve] -minus)*resid
-
+                ptemp <- yhat[curve,,] + (fit$n[curve] -minus)*resid
+            }
          } else { # simple survival
-             if (ncurve==1) {
+             if (is.null(fit$strata)) {
                  yhat <- aucfun(fit$time, fit$surv, times) # will be a vector
                  ptemp <- yhat[col(resid)] + (fit$n[curve]- minus)*resid
              } else {
@@ -134,8 +119,7 @@ pseudo <- function(fit, times, type, addNA=TRUE, data.frame=FALSE,
                      temp <- fit[i]
                      yhat[i,] <- aucfun(temp$time, temp$surv, times)
                  }
-                 yhat <- colMeans(yhat)
-             ptemp <- yhat[col(resid)] + (fit$n[curve] -minus)*resid
+             ptemp <- yhat[curve,] + (fit$n[curve] -minus)*resid
              } 
          }
     }
