@@ -18,9 +18,10 @@ aeqSurv <- function(x, tolerance = sqrt(.Machine$double.eps)) {
     tied <- ((dy <=tolerance) |( (dy/ mean(abs(y)) <=tolerance)))
     if (!any(tied)) return(x)   # all values are unique
 
-    cuts <- y[c(TRUE, !tied)]
+    # There were ties.  Bin the data by the unique values that were found
+    cuts <- y[c(TRUE, !tied)]  # set of unique values
     if (ncol(x) ==2) {  # simple survival
-        z <- findInterval(x[,1], cuts)
+        z <- findInterval(x[,1], cuts)   # map each time point to an interval
         z <- cbind(cuts[z], as.integer(x[,2]))
     }
     else {

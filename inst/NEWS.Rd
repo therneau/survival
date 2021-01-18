@@ -1,5 +1,9 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 3.2-9}{
+  \itemize{
+    \item More careful tests of the rttright function.
+}}
 \section{Changes in version 3.2-8}{
   \itemize{
     \item In tmerge, if data2 contains identifiers not found in data1

@@ -10,7 +10,7 @@
 #   
 #  Output: a vector (one output time) or matrix of weights, one per observation
 #
-rttright <- function(formula, data, weights, subset, na.action, time,
+rttright <- function(formula, data, weights, subset, na.action, times,
                      id, timefix=TRUE) {
     Call <- match.call()  # save a copy of the call
 
@@ -38,8 +38,9 @@ rttright <- function(formula, data, weights, subset, na.action, time,
     Y <- model.response(mf)
     ny <- ncol(Y)
     if (!is.Surv(Y)) stop("response must be a Surv object")
-    if (!attr(Y, 'type') == "right" && !attr(Y, 'type')== "counting")
-         stop("invalid survival type")
+    type <- attr(Y, "type")
+    if (!(type %in% c("right", "mright", "counting", "mcounting")))
+        stop("response must be right censored")
     
     casewt <- model.extract(mf, "weights")
     if (is.null(casewt)) casewt <- rep(1, n)
@@ -67,41 +68,69 @@ rttright <- function(formula, data, weights, subset, na.action, time,
     if (timefix) Y <- aeqSurv(Y) 
         
     id <- model.extract(mf, "id")
-
+    if (ny==3 && is.null(id)) stop("id is required for start-stop data")
     # Finally, it's time to do the actual work.  
     # The compact algorithm depends on G(t), the censoring distribution
-    # Two issues:  1. G(t) is left continuous, the KM is right continuous
-    #              2. For tied times, censors happen after deaths
+    # Four issues:  1. G(t) is left continuous, the KM is right continuous
+    #               2. For tied times, censors happen after deaths
+    #               3. The RTTR concept does not hold for delayed entry.
+    #               4. Holes in the follow-up won't work.
     # For an id with multiple observations, only the last can be a 
     #   true censoring
-    if (is.null(id)) censor <- (Y[,ny] ==0)
-    else {
-        ord <- order(id)
-        ctemp <- (!duplicated(id[ord]) & Y[ord, ny]==0)
-        censor <- vector("logical", n)
-        censor[ord] <- ctemp
+    if (is.null(id)) {
+        censor <- (Y[,ny] ==0)
+        last <- rep(TRUE, nrow(Y))
     }
+    else {
+        if (is.null(attr(Y, 'states'))) {
+            ytemp <- Y
+            attr(ytemp, 'states') <- 'fail'  # survcheck2 wants this
+            temp <- survcheck2(ytemp, id)
+        }
+        else temp <- survcheck2(Y, id)
+        if (any(temp$flag > 0)) 
+                stop("one or more flags are >0 in survcheck")
+        ord <- order(id, Y[,ny-1])  # time within subject
+        y2 <- Y[ord,]   #temporary
+        id2 <- id[ord]
+        ltemp <- !duplicated(id2, fromLast=TRUE)
+        time1 <- y2[!duplicated(id2), 1]  # starting time for each id
+        last  <- vector("logical", n)
+        last[ord] <- ltemp
+        censor <- (last & Y[,ny] ==0)
+        if (ny==3) {
+            time1 <- y2[!duplicated(id2), 1]  # starting time for each id
+            event <- Y[, ny] >0
+            if (any(time1) >= min(Y[event, ny-1], Y[censor, ny-1]))
+                stop("rttr not computed for delayed entry")
+        }
+    }
+
     ctime <- unique(Y[censor,ny-1])  # the unique censoring times
     event <- (Y[,ny] > 0)
     etime <- unique(Y[event, ny-1])  # unique event times
-    if (any(duplicated(c(etime, ctime)))) {
+    ties <- duplicated(c(etime, ctime))
+    if (any(ties)) {
         eps <- min(diff(sort(unique(c(ctime, etime)))))/2  # an offset
         y2 <- Y
         y2[,ny] <- ifelse(censor, 1, 0)
-        y2[censor, ny-1] <- y2[censor, ny-1] + eps  # break the ties
+        y2[event&last, ny-1] <- y2[event&last, ny-1] - eps  # break the ties
     }  
     else {
         y2 <- Y
         y2[,ny] <- ifelse(censor, 1, 0)
         eps <- 0
     }
+    if (ny==3) attr(y2, "type") <- "counting" else attr(y2, "type") <- "right"
     G <- survfitKM(X, y2, casewt, se.fit=FALSE)
+
     # read off separately for each stratum, and for each time
     istrat <- as.numeric(X)
     nstrat <- max(istrat)
     if (nstrat>1) gstrat <- rep(1:nstrat, G$strata)
     else gstrat <- rep(1, length(G$time))
 
+    # Grab the weights at a given time
     gread <- function(y, weight, gtime, gsurv, cut) {
         if (length(gtime) ==0) new <- weight # no censorings
         else {
@@ -112,19 +141,20 @@ rttright <- function(formula, data, weights, subset, na.action, time,
         unname(new)
     } 
             
-    if (missing(time)) time <- 2*max(abs(G$time)) +1  # past the last
-    wtmat <- matrix(casewt, n, length(time))
+    if (missing(times)) times <- 2*max(abs(G$time)) +1  # past the last
+    wtmat <- matrix(casewt, n, length(times))
     for (i in 1:nstrat) {
         keep <- (gstrat==i & G$n.event > 0)
         if (any(keep)) {
-            gtime <- G$time[keep] - eps
-            for (j in 1:length(time)) {
-                wtmat[istrat==i, j] <- gread(Y[istrat==i,], casewt[istrat==i],
-                                             gtime, G$surv[keep], time[j])
-            }       
+            gtime <- G$time[keep]
+            ikeep <- (istrat==i)  # longer than keep if data has tied times
+            for (j in 1:length(times)) {
+                wtmat[ikeep, j] <- gread(Y[istrat==i,], wtmat[ikeep, j],
+                                             gtime, G$surv[keep], times[j])
+            }
         }
-    }   
-    colnames(wtmat) <- time
+    }  
+    colnames(wtmat) <- times
     drop(wtmat)  
 }
 
