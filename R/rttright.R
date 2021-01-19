@@ -101,7 +101,7 @@ rttright <- function(formula, data, weights, subset, na.action, times,
         if (ny==3) {
             time1 <- y2[!duplicated(id2), 1]  # starting time for each id
             event <- Y[, ny] >0
-            if (any(time1) >= min(Y[event, ny-1], Y[censor, ny-1]))
+            if (any(time1 >= min(Y[event, ny-1], Y[censor, ny-1])))
                 stop("rttr not computed for delayed entry")
         }
     }

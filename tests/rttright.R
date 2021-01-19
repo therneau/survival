@@ -70,6 +70,6 @@ delay <- data.frame(t0=c(0,0,0,0,3,0),
                     t1=1:6,
                     status=c(1,0,1,0,0,1),
                     id=1:6)
-dwt <- rttright(Surv(t0, t1, status) ~ 1, delay, id=id,
-                times=0:5 + .9)
+# dwt <- rttright(Surv(t0, t1, status) ~ 1, delay, id=id,
+#                 times=0:5 + .9)
 

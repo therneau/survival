@@ -85,6 +85,11 @@ tmerge <- function(data1, data2, id, ..., tstart, tstop, options) {
                     stop("event variable ", ename, 
                          " no longer matches it's original class")
             }
+            else if (is.logical(data1[[ename]])) {
+                if (!is.logical(tevent$censor[[i]]))
+                    stop("event variable ", ename,
+                         " no longer matches it's original class")
+            }
             else if (is.factor(data1[[ename]])) {
                 if (levels(data1[[ename]])[1] != tevent$censor[[i]])
                     stop("event variable ", ename,

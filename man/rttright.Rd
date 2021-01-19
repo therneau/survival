@@ -8,7 +8,7 @@
  compute on the remaining, uncensored data.
 }
 \usage{
-rttright(formula, data, weights, subset, na.action, time, id, timefix = TRUE)
+rttright(formula, data, weights, subset, na.action, times, id, timefix = TRUE)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -37,7 +37,7 @@ rttright(formula, data, weights, subset, na.action, time, id, timefix = TRUE)
     \code{subset} argument has been used. 
     Default is \code{options()$na.action}. 
   }
-  \item{time}{a vector of time points, for which to return updated
+  \item{times}{a vector of time points, for which to return updated
     weights.  If missing, a time after the largest time in the data is
     assumed.}
   \item{id}{optional: if the data set has multiple rows per subject, a

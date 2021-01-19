@@ -1,6 +1,6 @@
 
-R Under development (unstable) (2020-06-10 r78681) -- "Unsuffered Consequences"
-Copyright (C) 2020 The R Foundation for Statistical Computing
+R Under development (unstable) (2021-01-18 r79846) -- "Unsuffered Consequences"
+Copyright (C) 2021 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -40,14 +40,64 @@ Type 'q()' to quit R.
 > for (i in 1:2) {
 +     atemp <- awt[igroup ==i]   # subset for this curve
 +     index <- order(aml$time[igroup ==i])
-+     cdf <- cumsum(atemp[index])/length(atemp)
-+     cdf <- cdf[!duplicated(aml$time[igroup ==i], fromLast=TRUE)]
-+     print(all.equal(afit[i]$surv, 1-cdf))
++     acdf <- cumsum(atemp[index])/length(atemp)
++     acdf <- acdf[!duplicated(aml$time[igroup ==i], fromLast=TRUE)]
++     print(all.equal(afit[i]$surv, 1-acdf))
 + }
 [1] TRUE
 [1] TRUE
 > 
+> # Now test with (start, stop] data
+> b2 <- survSplit(Surv(time, status) ~ 1, bdata, cut= c(3,5, 7, 14),
++                 id = "subject")
+> indx <- c(seq(1, 65, by=2), seq(64, 2, by= -2))
+> b2 <- b2[indx,]    # not in time within subject order
+> 
+> b2wt <- rttright(Surv(tstart, time, status) ~1, b2, id=subject)
+> indx2 <- order(b2$time)
+> cdf2 <- cumsum(b2wt[indx2])/length(unique(b2$subject))
+> cdf2 <- cdf2[!duplicated(b2$time[indx2], fromLast=TRUE)] # remove duplicates
+> utime2 <- sort(unique(b2$time))   # will have an extra time 7
+> utime1 <- sort(unique(bdata$time))
+> all.equal(cdf2[match(utime1, utime2)], cdf)
+[1] TRUE
+> 
+> 
+> # Competing risks
+> mdata <- mgus2
+> mdata$etime <- with(mgus2, ifelse(pstat==1, ptime, futime))
+> mdata$estat <- with(mgus2, ifelse(pstat==1, 1, 2*death))
+> mdata$estat <- factor(mdata$estat, 0:2, c('censor', 'pcm', 'death'))
+> mfit <- survfit(Surv(etime, estat) ~1, mdata, id=id)
+> mwt1 <- rttright(Surv(etime, estat) ~1, mdata, id=id)
+> 
+> morder <- order(mdata$etime)
+> mdata2 <- mdata[morder,]
+> mwt2   <- rttright(Surv(etime,estat) ~1, mdata2, id=id)
+> all.equal(mwt1[morder], mwt2)
+[1] TRUE
+> 
+> keep <- !duplicated(mdata2$etime, fromLast=TRUE)
+> csum1 <- cumsum(ifelse(mdata2$estat=="pcm", mwt2, 0))/nrow(mdata2)
+> csum2 <- cumsum(ifelse(mdata2$estat=="death", mwt2, 0))/nrow(mdata2)
+> 
+> all.equal(mfit$pstate[,2], csum1[keep])
+[1] TRUE
+> all.equal(mfit$pstate[,3], csum2[keep])
+[1] TRUE
+> 
+> ###
+> # Delayed entry, tiny data set
+> #  This is the data that showed me that the RTTR idea does not extend
+> #  to delayed entry, compute it how you will.
+> delay <- data.frame(t0=c(0,0,0,0,3,0),
++                     t1=1:6,
++                     status=c(1,0,1,0,0,1),
++                     id=1:6)
+> # dwt <- rttright(Surv(t0, t1, status) ~ 1, delay, id=id,
+> #                 times=0:5 + .9)
+> 
 > 
 > proc.time()
    user  system elapsed 
-  0.824   0.056   0.872 
+  0.873   0.059   0.925 

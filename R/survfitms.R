@@ -559,6 +559,8 @@ survmean2 <- function(x, scale=1, rmean) {
         # the 'treat it as a vector' case
         if (!is.numeric(i))
             stop("single subscript must be numeric")
+        if (any(dmatch==2)) stop("single index subscripts are not supported for a survfit objet with both data and state dimesions")
+
         # when subscripting a mix, these don't endure
         newx$cumhaz <- newx$std.chaz <- newx$influence.chaz <- NULL
         newx$transitions <- newx$states <- newx$newdata <- NULL
