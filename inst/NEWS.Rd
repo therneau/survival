@@ -3,6 +3,8 @@
 \section{Changes in version 3.2-9}{
   \itemize{
     \item More careful tests of the rttright function.
+    \item Fix bug in tmerge that was introduced in 3.2-8. A new
+    consistency check was too aggressive and would flag a legal dataset.
 }}
 \section{Changes in version 3.2-8}{
   \itemize{
