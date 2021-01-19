@@ -124,8 +124,23 @@ if (inherits(data1, "tmerge")) {
         any(is.null(match(tevent$name, names(data1)))))
         stop("tmerge object has been modified, missing variables")
     for (i in seq(along=tevent$name)) {
-        if (!inherits(data1[[tevent$name[i]]], class(tevent$censor[[i]])))
-        stop("tmerge object has been modified, event variable")
+        ename <- tevent$name[i]
+        if (is.numeric(data1[[ename]])) {
+            if (!is.numeric(tevent$censor[[i]]))
+                stop("event variable ", ename, 
+                     " no longer matches it's original class")
+        }
+        else if (is.character(data1[[ename]])) {
+            if (!is.character(tevent$censor[[i]]))
+                stop("event variable ", ename, 
+                     " no longer matches it's original class")
+        }
+        else if (is.factor(data1[[ename]])) {
+            if (levels(data1[[ename]])[1] != tevent$censor[[i]])
+                stop("event variable ", ename,
+                     " has a new first level")
+        }
+        else stop("event variable ", ename, " is of an invalid class")
     }
 } else {
     firstcall <- TRUE
