@@ -490,7 +490,7 @@ coxph <- function(formula, data, weights, subset, na.action,
             }
         }
         else stratum_map <- tmap[1,,drop=FALSE]
-        cmap <- parsecovar3(tmap, colnames(X), attr(X, "assign"))
+        cmap <- parsecovar3(tmap, colnames(X), attr(X, "assign"), covlist2$phbaseline)
         xstack <- stacker(cmap, stratum_map, as.integer(istate), X, Y, strata=istrat,
                           states=states)
         rkeep <- unique(xstack$rindex)
@@ -557,8 +557,10 @@ coxph <- function(formula, data, weights, subset, na.action,
         }
         else stop(paste ("Unknown method", method))
 
+        rname <- row.names(mf)
+        if (multi) rname <- rname[xstack$rindex]
         fit <- fitter(X, Y, istrat, offset, init, control, weights=weights,
-                      method=method, row.names(mf))
+                      method=method, rname)
     }
     if (is.character(fit)) {
         fit <- list(fail=fit)

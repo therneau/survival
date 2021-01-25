@@ -160,7 +160,7 @@ parsecovar2 <- function(covar1, statedata, dformula, Terms, transitions,states) 
         for (i in 1:length(covar1$rhs)) {  
             rhs <- covar1$rhs[[i]]
             lhs <- covar1$lhs[[i]]  # one rhs and one lhs per formula
-             
+          
             state1 <- state2 <- NULL
             for (x in lhs) {
                 # x is one term
@@ -243,7 +243,7 @@ parsecovar2 <- function(covar1, statedata, dformula, Terms, transitions,states) 
             if (length(dropped) >0) {
                 for (k in 1:npair) tmap[dropped, state1[k], state2[k]] <- 0
             }
-            
+           
             # grab initial values
             if (length(rhs$ival)) 
                 inits <- c(inits, list(term=rindex, state1=state1, 
@@ -265,6 +265,12 @@ parsecovar2 <- function(covar1, statedata, dformula, Terms, transitions,states) 
                         tmap[rindex, state1[k], state2[k]] <- dmap[rindex, state1[k], state2[k]]
                 }
             }
+
+            # Deal with the prop argument
+            if (rhs$prop && npair>1) {
+                j <- dmap[1, state1[1], state2[1]]
+                for (k in 2:npair) tmap[1, state1[k], state2[k]] <- -j
+            }
         }    
     }
     i <- match("(censored)", colnames(transitions), nomatch=0)
@@ -281,19 +287,28 @@ parsecovar2 <- function(covar1, statedata, dformula, Terms, transitions,states) 
             tmap2[i,j] <- tmap[i, indx1[trow[j]], indx2[tcol[j]]]
     }
 
-    tmap2[1,] <- match(tmap2[1,], unique(c(0L, tmap2[1,]))) -1L
+    # Add a map for any hazards that have PH
+    phbaseline <- ifelse(tmap2[1,]<0, -tmap2[1,], 0)
+    tmap2[1,] <- abs(tmap2[1,])
+    utemp <-  unique(c(0L, tmap2[1,]))
+    tmap2[1,] <- match(tmap2[1,], utemp) -1L
+    phbaseline <- match(phbaseline, utemp) -1L
+                       
     if (nrow(tmap2) > 1)
         tmap2[-1,] <- match(tmap2[-1,], unique(c(0L, tmap2[-1,]))) -1L
       
     dimnames(tmap2) <- list(c("(Baseline)", colnames(allterm)),
                                 paste(indx1[trow], indx2[tcol], sep=':')) 
-    list(tmap = tmap2, inits=inits, mapid= cbind(indx1[trow], indx2[tcol]))
+    # mapid gives the from,to for each realized state
+    list(tmap = tmap2, inits=inits, mapid= cbind(from=indx1[trow], to=indx2[tcol]),
+         phbaseline = phbaseline)
 }
-parsecovar3 <- function(tmap, Xcol, Xassign) {
+parsecovar3 <- function(tmap, Xcol, Xassign, phbaseline=NULL) {
     # sometime X will have an intercept, sometimes not; cmap never does
     hasintercept <- (Xassign[1] ==0)
 
-    cmap <- matrix(0L, length(Xcol) - hasintercept, ncol(tmap))
+    nph <- sum(phbaseline > 0)
+    cmap <- matrix(0L, length(Xcol) + nph - hasintercept, ncol(tmap))
     uterm <- unique(Xassign[Xassign != 0])   # terms that will have coefficients
     
     xcount <- table(factor(Xassign, levels=1:max(Xassign)))
@@ -307,12 +322,26 @@ parsecovar3 <- function(tmap, Xcol, Xassign) {
         ii <- ii + max(k)
     }
 
+    if (nph > 0) {
+        k <- seq_len(nph)
+        i <- length(Xcol) + k - hasintercept # extra rows in cmap
+        j <- which(phbaseline >0)            # coefficients to add
+        cmap[cbind(i, j)] <- k + max(cmap)
+        
+        # I have changed my mind, twice, about a good name
+        #newname <- paste0("(", colnames(tmap)[j], ', ',
+        #      colnames(tmap)[phbaseline[j]], ")")
+        #newname <- paste0("baseline(", j, " vs ", phbaseline[j], ")")
+        newname <- paste0("ph(", colnames(tmap)[j], ",", 
+                                 colnames(tmap)[phbaseline[j]], ")")
+    } else newname <- NULL
+
     # renumber coefs as 1, 2, 3, ...
     cmap[,] <- match(cmap, sort(unique(c(0L, cmap)))) -1L
     
     colnames(cmap) <- colnames(tmap)
-    if (hasintercept) rownames(cmap) <- Xcol[-1]
-    else rownames(cmap) <- Xcol
+    if (hasintercept) rownames(cmap) <- c(Xcol[-1], newname)
+    else rownames(cmap) <- c(Xcol, newname)
 
     cmap
 }

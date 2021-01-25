@@ -1,8 +1,9 @@
 #
 # This routine creates a stacked data set
 # The key input is the cmap matrix, which has one row for each column 
-#  of X (plus a first row for the intercept of a Cox model which turns into
-#  strata) and one column for each transition.
+#  of X and one column per transition.  It may have extra rows if there are
+#  proportional baseline hazards
+# The first row of smat contains state to strata information.
 # Input data is X, Y, strata, and initial state (integer).
 #
 # For each transition the expanded data has a set of rows, all those whose
@@ -17,8 +18,8 @@ stacker <- function(cmap, smap, istate, X, Y, strata, states) {
     check <- match(from.state, istate, nomatch=0)
     if (any(check==0)){
         # I think that this is impossible
-        warning("extra column in cmap")  # debugging line
-        browser()
+        warning("extra column in cmap, this is a bug")  # debugging line
+        # browser()
         cmap <- cmap[,check>0]
         from.state <- from.state[check>0]
         to.state <- to.state[check>0]
@@ -27,42 +28,43 @@ stacker <- function(cmap, smap, istate, X, Y, strata, states) {
     endpoint <- c(0, match(attr(Y, "states"), states))
     endpoint <- endpoint[ 1 + Y[,ncol(Y)]]  # endpoint of each row, 0=censor
 
-    # Usually each transition is a separate stratum, but the user can set it
-    #  up otherwise.  The first row of smap gives the strata for each change
-    ustrata <- unique(smap[1,])
-    nstrat <- length(ustrata)
-    n.perstrat <- integer(nstrat)
-    for (i in 1:nstrat) {
-        itemp <- unique(from.state[smap[1,] == ustrata[i]])
-        n.perstrat[i] <- sum(istate %in% itemp)
+    # Jan 2021: changed from looping once per strata to once per transition.
+    #  Essentially, a block of data for each unique column of cmap.  If two
+    #  of those columns have the same starting state, it makes me nervous
+    #  (statistically), but forge onward and sort the issues out in the
+    #  fits.
+    # Pass 1 to find the total data set size
+    nblock <- ncol(cmap)
+    n.perblock <- integer(nblock)
+    for (i in 1:nblock) {
+        n.perblock[i] <- sum(istate == from.state[i]) # can participate
     }
     
-    # The constructed X matrix has a block or rows for each ustrata level
-    n2 <- sum(n.perstrat)  # number of rows in new data
+    # The constructed X matrix has a block of rows for each column of cmap
+    n2 <- sum(n.perblock)  # number of rows in new data
     newX <- matrix(0, nrow=n2, ncol=max(cmap))
     k <- 0
     rindex <- integer(n2)   # original row for each new row of data
     newstat <- integer(n2)  # new status
-    for (i in 1:nstrat) {
-        whichcol <- which(smap[1,] == ustrata[i])  # cols of cmap to look at
-        subject <- which(istate %in% from.state[whichcol]) # data rows in strata
+    Xcols   <- ncol(X)      # number of columns in X
+    for (i in 1:nblock) {
+        subject <- which(istate == from.state[i]) # data rows in strata
         nr <- k + seq(along=subject)  # rows in the newX for this strata
         rindex[nr] <- subject
-        # Fill in X one transition at a time
-        for (j in whichcol) {
-            j1 <- which(istate == from.state[j]) # rows of X in transition
-            j2 <- which(istate[subject] == from.state[j]) # new rows
-            nc <- cmap[,j]             # variables in this transition
-            newX[nr[j2], nc[nc>0]] <- X[j1, nc>0] # rows of cmap = cols of X
+        nc <- cmap[,i]  
+        if (any(nc > Xcols)) { # constructed PH variables
+            newX[nr, nc[nc>Xcols] ] <- 1
+            nc <- nc[1:Xcols]
         }
+        newX[nr, nc[nc>0]] <- X[subject, which(nc>0)] # row of cmap= col of X
         
-        event.that.counts <- (endpoint[subject] %in% to.state[whichcol])
+        event.that.counts <- (endpoint[subject] == to.state[i])
         newstat[nr] <- ifelse(event.that.counts, 1L, 0L)
         k <- max(nr)
     }
 
     # which transition each row  of newX represents
-    transition <- rep(ustrata, n.perstrat)
+    transition <- rep(1:nblock, n.perblock)
 
     # remove any rows where X is missing
     #  these arise when a variable is used only for some transitions
@@ -79,8 +81,8 @@ stacker <- function(cmap, smap, istate, X, Y, strata, states) {
     if (ncol(Y) ==2) newY <- Surv(Y[rindex,1], newstat)
     else newY <- Surv(Y[rindex,1], Y[rindex,2], newstat)
 
-    # newstrat should be an integer vector, which can be used for the interal C calls
-    newstrat <- ustrata[transition]
+    # newstrat should be an integer vector, used for the interal C calls
+    newstrat <- smap[1, transition]
     if (is.matrix(strata)){
         # this is the most complex case.  Some transitions use some columns of
         # istrat, and some use others
@@ -100,9 +102,11 @@ stacker <- function(cmap, smap, istate, X, Y, strata, states) {
         newstrat <- match(temp, sort(unique(temp)))
     }       
  
-    # give variable names to the new data
-    vname <- rep("", ncol(newX))
-    vname[cmap[cmap>0]] <- colnames(X)[row(cmap)[cmap>0]]
+    # give variable names to the new data  (some names get used more than once)
+#    vname <- rep("", ncol(newX))
+#    vname[cmap[cmap>0]] <- colnames(X)[row(cmap)[cmap>0]]
+    first <- match(sort(unique(cmap[cmap>0])), cmap) #first instance of each value
+    vname <- rownames(cmap)[row(cmap)[first]]
     colnames(newX) <- vname
 
     list(X=newX, Y=newY, strata=as.integer(newstrat), 

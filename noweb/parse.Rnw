@@ -8,20 +8,21 @@ the basic formula wrt those transitions.
 
 Step 1 is to break the formula into parts.  There will be a list of left sides,
 a list of right sides, and a list of options.
-From this we can create a single ``pseudo formula'' that is used to drive the model.frame
-process, which ensures that all of the variables we need will be found
-in the model frame.
+From this we can create a single ``pseudo formula'' that is used to drive 
+the model.frame process, which ensures that all of the variables we need 
+will be found in the model frame.
 Further processing has to wait until after the model frame has been constructed,
 i.e., if a left side referred to state ``deathh'' that might be a real state
 or a typing mistake, we can't know until the data is in hand.
 
 Should we walk the parse tree of the formula, or convert it to character and use
-string manipulations?  The latter looks promising until you see a fragment like this:
+string manipulations?  The latter looks promising until you see a fragment 
+like this:
 \code{entry:death ~ age/sex + ns(weight/height, df=4) / common}
-Walking the parse tree is a bit more subtle, but we then can take advantage of all
-the knowledge built into the R parser.
-A formula is a 3 element list of ``~'', leftside, rightside, or 2 elements if it has
-only a right hand side.  Legal ones for coxph have both left and right.
+Walking the parse tree is a bit more subtle, but we then can take advantage of 
+all the knowledge built into the R parser.
+A formula is a 3 element list of ``~'', leftside, rightside, or 2 elements if 
+it has only a right hand side.  Legal ones for coxph have both left and right.
 
 <<parsecovar>>=
 parsecovar1 <- function(flist, statedata) {
@@ -368,7 +369,7 @@ we don't yet know how many columns a term will expand into.
 for (i in 1:length(covar1$rhs)) {  
     rhs <- covar1$rhs[[i]]
     lhs <- covar1$lhs[[i]]  # one rhs and one lhs per formula
-     
+  
     <<parse-lmatch>>
     npair <- length(state1)  # number of state:state pairs for this line
 
@@ -390,7 +391,7 @@ for (i in 1:length(covar1$rhs)) {
     if (length(dropped) >0) {
         for (k in 1:npair) tmap[dropped, state1[k], state2[k]] <- 0
     }
-    
+   
     # grab initial values
     if (length(rhs$ival)) 
         inits <- c(inits, list(term=rindex, state1=state1, 
@@ -411,6 +412,12 @@ for (i in 1:length(covar1$rhs)) {
             for (k in 1:npair)
                 tmap[rindex, state1[k], state2[k]] <- dmap[rindex, state1[k], state2[k]]
         }
+    }
+
+    # Deal with the prop argument
+    if (rhs$prop && npair>1) {
+        j <- dmap[1, state1[1], state2[1]]
+        for (k in 2:npair) tmap[1, state1[k], state2[k]] <- -j
     }
 }    
 @ 
@@ -434,13 +441,21 @@ for (i in 1:nrow(tmap2)) {
         tmap2[i,j] <- tmap[i, indx1[trow[j]], indx2[tcol[j]]]
 }
 
-tmap2[1,] <- match(tmap2[1,], unique(c(0L, tmap2[1,]))) -1L
+# Add a map for any hazards that have PH
+phbaseline <- ifelse(tmap2[1,]<0, -tmap2[1,], 0)
+tmap2[1,] <- abs(tmap2[1,])
+utemp <-  unique(c(0L, tmap2[1,]))
+tmap2[1,] <- match(tmap2[1,], utemp) -1L
+phbaseline <- match(phbaseline, utemp) -1L
+                   
 if (nrow(tmap2) > 1)
     tmap2[-1,] <- match(tmap2[-1,], unique(c(0L, tmap2[-1,]))) -1L
   
 dimnames(tmap2) <- list(c("(Baseline)", colnames(allterm)),
                             paste(indx1[trow], indx2[tcol], sep=':')) 
-list(tmap = tmap2, inits=inits, mapid= cbind(indx1[trow], indx2[tcol]))
+# mapid gives the from,to for each realized state
+list(tmap = tmap2, inits=inits, mapid= cbind(from=indx1[trow], to=indx2[tcol]),
+     phbaseline = phbaseline)
 @
 
 
@@ -467,11 +482,12 @@ The cmap matrix will ignore rows 1 and 3 since they do not correspond to
 coefficients in the model.   
 
 <<parsecovar>>=
-parsecovar3 <- function(tmap, Xcol, Xassign) {
+parsecovar3 <- function(tmap, Xcol, Xassign, phbaseline=NULL) {
     # sometime X will have an intercept, sometimes not; cmap never does
     hasintercept <- (Xassign[1] ==0)
 
-    cmap <- matrix(0L, length(Xcol) - hasintercept, ncol(tmap))
+    nph <- sum(phbaseline > 0)
+    cmap <- matrix(0L, length(Xcol) + nph - hasintercept, ncol(tmap))
     uterm <- unique(Xassign[Xassign != 0])   # terms that will have coefficients
     
     xcount <- table(factor(Xassign, levels=1:max(Xassign)))
@@ -485,12 +501,27 @@ parsecovar3 <- function(tmap, Xcol, Xassign) {
         ii <- ii + max(k)
     }
 
+    if (nph > 0) {
+        k <- seq_len(nph)
+        i <- length(Xcol) + k - hasintercept # extra rows in cmap
+        j <- which(phbaseline >0)            # coefficients to add
+        jj <- which(phbaseline==0)           # what they point to
+        cmap[cbind(i, j)] <- k + max(cmap)
+        
+        # I have changed my mind, twice, about a good name
+        #newname <- paste0("(", colnames(tmap)[j], ', ',
+        #      colnames(tmap)[phbaseline[j]], ")")
+        #newname <- paste0("baseline(", j, " vs ", phbaseline[j], ")")
+        newname <- paste0("ph(", colnames(tmap)[j], ",", 
+                                 colnames(tmap)[jj[j]], ")")
+    } else newname <- NULL
+
     # renumber coefs as 1, 2, 3, ...
     cmap[,] <- match(cmap, sort(unique(c(0L, cmap)))) -1L
     
     colnames(cmap) <- colnames(tmap)
-    if (hasintercept) rownames(cmap) <- Xcol[-1]
-    else rownames(cmap) <- Xcol
+    if (hasintercept) rownames(cmap) <- c(Xcol[-1], newname)
+    else rownames(cmap) <- c(Xcol, newname)
 
     cmap
 }
