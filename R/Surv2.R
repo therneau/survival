@@ -2,54 +2,31 @@
 # Package up surivival type data as a structure
 #  This variant is for time-course data
 #
-Surv2 <- function(time, event) {
+Surv2 <- function(time, event, repeated=FALSE) {
     if (missing(time)) stop ("must have a time argument")
     if (inherits(time ,"difftime")) time <- unclass(time)
     if (!is.numeric(time)) stop ("Time variable is not numeric")
     nn <- length(time)
+    if (!is.logical(repeated) || length(repeated) != 1)
+        stop("invalid value for repeated option")
 
     if (missing(event)) stop("must have an event argument")
     if (length(event) != nn) stop ("Time and event are different lengths")
-    if (is.factor(event)) {
-        states <- levels(event)[-1]
-        status <- as.numeric(event) -1
-    }
-    else {
-        if (is.logical(event)) status <- as.numeric(event)
-        else  if (is.numeric(event)) {
-            who2 <- !is.na(event)
-            if (max(event[who2]) ==2) status <- event -1
-            else status <- event
-            temp <- (status==0 | status==1)
-            status <- ifelse(temp, status, NA)
-            if (!all(temp[who2], na.rm=TRUE))
-                warning("Invalid status value, converted to NA")
-        }
-        else stop("Invalid status value, must be factor, logical or numeric")
-    }
+    event <- as.factor(event)
+    states <- levels(event)
+    status <- as.numeric(event)
     ss <- cbind(time=time, status=status)
  
-    # Retain any attributes of the input arguments. Originally requested
-    #  by the rms package
-    inputAttributes <- list()
-    if (!is.null(attributes(time)))
-        inputAttributes$time  <-attributes(time)
-    if (!missing(event) && !is.null(attributes(event)))
-        inputAttributes$event <- attributes(event)
-
     # In rare cases there are no column names, and I have discovered that
     #  people depend on them.
     cname <- dimnames(ss)[[2]]
     if (length(cname) ==0) cname <- c("time", "status")
     dimnames(ss) <- list(NULL, cname)  #kill extraneous row names
                                            
-    if (is.factor(event)) {
-        if (any(is.na(states) | states=='') )
-            stop("each state must have a non-blank name")
-        attr(ss, "states") <- states
-    }
-    if (length(inputAttributes) > 0) 
-        attr(ss, "inputAttributes") <- inputAttributes
+    if (any(is.na(states) | states=='') )
+        stop("each state must have a non-blank name")
+    attr(ss, "states") <- states
+    attr(ss, "repeated") <- repeated
     class(ss) <- 'Surv2'
     ss
     }
@@ -86,14 +63,7 @@ as.character.Surv2 <- function(x, ...) {
         xattr <- attributes(x)
         x <- unclass(x)[i,, drop=FALSE] # treat it as a matrix: handles dimnames
         if (!is.null(xattr$states)) attr(x, "states") <- xattr$states
-        if (!is.null(xattr$inputAttributes)) {
-            # If I see "names" subscript it, leave all else alone
-            attr(x, 'inputAttributes') <- 
-                lapply(xattr$inputAttributes, function(z) {
-                       if (any(names(z)=="names")) z$names <- z$names[i]
-                       z
-                   })
-        }
+        attr(x, "repeated") <- xattr$repeated
         class(x) <- "Surv2"  #restore the class
         x
     }
@@ -128,7 +98,7 @@ is.Surv2 <- function(x) inherits(x, 'Surv2')
 as.matrix.Surv2 <- function(x, ...) {
     y <- unclass(x)
     attr(y, "states") <- NULL
-    attr(y, "inputAttributes") <- NULL
+    attr(y, "repeated") <- NULL
     y
 }
 
@@ -158,7 +128,7 @@ head.Surv2 <- function(x, ...)
 
 # packge:graphics.  All try to give a nicer failure message
 plot.Surv2 <- function(x, ...)
-    stop("note defined for a Surv2 object")
+    stop("method not defined for a Surv2 object")
 
 barplot.Surv2 <- function(height, ...)
     stop("not defined for a Surv2 object")

@@ -6,20 +6,23 @@
 #     2. Missing covariates are filled in using last-value-carried forward.
 #     3. A response, id, current state, and new data set are returned.
 # If check=FALSE, it is being called by survcheck.  In that case don't fail
-#   if there is a duplicate time, but rather let it worry about it.
+#   if there is a duplicate time, but rather let survcheck worry about it.
+# The repeat attribute of the Surv2 object determines whether events can
+#   "stutter", i.e., two of the same type that are adjacent, or only have
+#    missing between them, count as a second event.
 #
-
 surv2data <- function(mf, check=FALSE) {
     Terms <- terms(mf)
     y <- model.response(mf)
     if (!inherits(y, "Surv2")) stop("response must be a Surv2 object")
     n <- nrow(y)
     states <- attr(y, "states")
+    repeated <- attr(y, "repeated")
 
     id <- model.extract(mf, "id")
     if (length(id) != n) stop("id statement is required")
 
-    # relax this later
+    # relax this some later day (or not?)
     if (any(is.na(id)) || any(is.na(y[,1])))
         stop("id and time cannot be missing")
     
@@ -95,9 +98,23 @@ surv2data <- function(mf, check=FALSE) {
                                istate=factor(itemp, 1:length(states), states))
     }
      
+    # Treat any repeated events as censors
+    if (!repeated) {
+        ny <- ncol(y3)
+        if (is.null(states)) stutter <- y3[,ny] == temp$istate
+        else {
+            itemp <- c(0L, match(attr(y3, "states"), temp$states, nomatch=0L))
+            stutter <- (itemp[1L+ y3[,ny]] == as.integer(temp$istate))
+        }
+        if (any(stutter)) y3[stutter, ny] <- 0L
+    }
+        
     if (check) list(y=y3, id=id3, istate= temp$istate, mf= mf2, isort=isort,
                     last=last)
-    else list(y=y3, id=id3, istate= temp$istate, mf= mf2)
+    else { #put the data back into the original order
+        jj <- order(isort[!last])  # this line is not obvious, but it works!
+        list(y=y3[jj,], id=id3[jj], istate= temp$istate[jj], mf= mf2[jj,])
+    }
 }
    
 # User callable version
@@ -114,11 +131,11 @@ Surv2data <- function(formula, data, subset, id){
     temp <- surv2data(mf, check=FALSE)
     
     mf2 <- temp$mf
-    mf2[['S2.y']] <- temp$y
+    mf2[['Surv2.y']] <- temp$y
     index <- match(as.character(Call$id), names(mf2), nomatch=0)
     if (index >0) mf2[[index]] <- temp$id
-    else    mf2[['S2.id']] <- temp$id
-    mf2[['S2.state']] <- temp$istate
+    else    mf2[['Surv2.id']] <- temp$id
+    mf2[['Surv2.istate']] <- temp$istate
     attr(mf2, "terms") <- NULL
     mf2
 }

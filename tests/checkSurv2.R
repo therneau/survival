@@ -36,7 +36,7 @@ all.equal(cfit1[c("coefficients", "var", "loglik", "score")],
 
 # And using the explicit call to build a data set
 sdata <- Surv2data(Surv2(ftime, event) ~ ., data=mflat, id=id)
-cfit3 <- coxph(S2.y ~ sex + age, data=sdata, id=id)
+cfit3 <- coxph(Surv2.y ~ sex + age, data=sdata, id=id)
 all.equal(cfit1[c("coefficients", "var", "loglik", "score")],
           cfit3[c("coefficients", "var", "loglik", "score")])
 
