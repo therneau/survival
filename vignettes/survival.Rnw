@@ -973,7 +973,7 @@ mdata[1:7, c("id", "trt", "tstart", "tstop", "event", "priorcr", "priortx")]
 Subject 1 has a CR on day 44, relapse on day 113, death on day 235 and
 did not receive a stem cell transplant. 
 The data for the first three subjects looks good.  
-Check it out a little more thoroughly.
+Check it out a little more thoroughly using survcheck.
 
 <<>>=
 survcheck(Surv(tstart, tstop, event) ~1, mdata, id=id)
@@ -997,7 +997,7 @@ For investigating the data we would like to add a set of alternate endpoints.
     before SCT.
 \end{enumerate}
 Each of these can be accomplished by adding further outcome variables to 
-the data set, we will not need to change the time intervals.
+the data set, we do not need to change the time intervals.
 
 <<newevent>>=
 levels(mdata$event)
@@ -2255,7 +2255,8 @@ transition that maps onto this coefficient.
 
 \subsection{Timeline data}
 The \code{survfit} and \code{coxph} routines also accept data in what we refer
-to as a ``timeline'' form.  
+to as a ``timeline'' form.  (The option is still under development so detail
+may change.) 
 Timeline data contains a case identifier and a timeline variable, where this
 value pair that is unique for each row.  The other covariates are any number
 of variables whose value is ``what was observed at that time'', or missing if

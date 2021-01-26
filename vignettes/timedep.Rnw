@@ -347,7 +347,7 @@ newcgd <- tmerge(newcgd, cgd0, id=id, infect = event(etime7))
 newcgd <- tmerge(newcgd, newcgd, id, enum=cumtdc(tstart))
 dim(newcgd)
 newcgd[1:5,c(1, 4:6, 13:17)]
-attr(newcgd, "tcount")
+summary(newcgd)
 coxph(Surv(tstart, tstop, infect) ~ treat + inherit + steroids +
       + cluster(id), newcgd)
 @ 
@@ -372,7 +372,7 @@ more bit of information to the data set.
   \item Additions from \code{data2} with a missing time value are ignored.
   \item The result of \code{tmerge} is a data frame with a few extra
     attributes. One of these, tcount, is designed to help visualize
-    the process and was printed out after the last step above.
+    the process, it is printed out by the summary function.
     Assume that a subject already had 3 intervals of (2,5), (5,10)
     and (14,40).
     A new event added at time 1 would be ``early'' while one at time 50
@@ -490,7 +490,7 @@ coxph(Surv(tstart, tstop, death) ~ age*trt + surgery + year,
 This example shows a special case for the \code{tmerge} function that 
 is quite common: if the first
 created variable is an event then the time range for each subject is
-inferred to be from 0 to the event time: explicit \code{tstop} 
+inferred to be from 0 to that event time: explicit \code{tstop} 
 and \code{tstart} arguments are not required.
 It also makes use of a two argument form of \code{event}.
 Each of the \code{event} and \code{cumevent} functions
@@ -522,6 +522,8 @@ say from a new data source, our experience had been that the much more
 common case was accidental reuse of an existing name, resulting in
 a chimeric mishmash between an existing baseline covariate and the additions,
 and creating a column which was valid for neither.
+Equally, some examples showed that we can not reliably update a tdc, i.e., 
+cases where the correct answer is unclear.
 
 The \code{tcount} table for the above fit shows all the deaths at the
 trailing edge of their interval, which is expected since the time

@@ -5,6 +5,9 @@
     \item More careful tests of the rttright function.
     \item Fix bug in tmerge that was introduced in 3.2-8. A new
     consistency check was too aggressive and would flag a legal dataset.
+    \item Fix tmerge bug reported by E Lundt: if two or more additions
+    were before the start of a subject's timeline, tdc would pick the
+    first rather than the last.  
 }}
 \section{Changes in version 3.2-8}{
   \itemize{
