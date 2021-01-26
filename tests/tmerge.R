@@ -56,3 +56,15 @@ all.equal(attr(newdata,'tcount'), attr(test3, 'tcount'))
 test4 <- newdata[order(newdata$id, newdata$tstart),]
 all.equal(test3, test4, check.attributes=FALSE) #rownames differ
 
+# An extension of the first example, where the second data set has a surfeit
+#  of rows: some before the start, some doubled up in the middle
+data1 <- data.frame(idd = c(1,5,4,3,2,6), x1=1:6, age=50:55)
+data3 <- data.frame(idd = c(2,5,1,2,1,2,2,1,1,7,3,3), 
+                    x2=c(5:1, 10:4), age=c(48:44, -4, -3, -1, -2, 35, 62,61))
+test1 <- tmerge(data1, data1, id=idd, death=event(age))
+test3 <- tmerge(test1, data3, id= idd, xx = tdc(age, x2), cx=cumtdc(age, x2, 2))
+all.equal(test3$idd, c(1,1,1,5,5,4,3,2,2,2,6))
+all.equal(test3$xx,  c(8, 1, 3, NA, 4, NA, NA, 9, 2, 5, NA))
+all.equal(test3$cx,  c(17, 18, 21, 2, 6, 2,2, 21, 23, 28, 2))
+
+                         

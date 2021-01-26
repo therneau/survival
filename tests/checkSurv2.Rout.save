@@ -1,6 +1,6 @@
 
-R Under development (unstable) (2020-03-27 r78086) -- "Unsuffered Consequences"
-Copyright (C) 2020 The R Foundation for Statistical Computing
+R Under development (unstable) (2021-01-18 r79846) -- "Unsuffered Consequences"
+Copyright (C) 2021 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -55,7 +55,7 @@ Type 'q()' to quit R.
 > 
 > # And using the explicit call to build a data set
 > sdata <- Surv2data(Surv2(ftime, event) ~ ., data=mflat, id=id)
-> cfit3 <- coxph(S2.y ~ sex + age, data=sdata, id=id)
+> cfit3 <- coxph(Surv2.y ~ sex + age, data=sdata, id=id)
 > all.equal(cfit1[c("coefficients", "var", "loglik", "score")],
 +           cfit3[c("coefficients", "var", "loglik", "score")])
 [1] TRUE
@@ -98,4 +98,4 @@ Type 'q()' to quit R.
 > 
 > proc.time()
    user  system elapsed 
-  1.335   0.051   1.377 
+  1.906   0.109   2.060 

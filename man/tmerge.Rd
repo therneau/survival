@@ -39,7 +39,7 @@ tmerge(data1, data2,  id,\dots, tstart, tstop, options)
  Time dependent covariates change their values before an event,
  events are outcomes.
  \itemize{
-   \item{newname = tdc(y, x)}{ A new time dependent covariate
+   \item{newname = tdc(y, x, init)}{ A new time dependent covariate
      variable will created. 
    The argument \code{y} is assumed to be on the
    scale of the start and end time, and each instance describes the
@@ -48,13 +48,16 @@ tmerge(data1, data2,  id,\dots, tstart, tstop, options)
    \code{x} is missing the count variable starts at 0 for each subject
    and becomes 1 at the time of the event.
    If \code{x} is present the value of the time dependent covariate
-   is initialized to the \code{tdcstart} option and is reset to the
+   is initialized to value of \code{init}, if present, or
+   the \code{tdcstart} option otherwise, and is updated to the
    value of \code{x} at each observation.
    If the option \code{na.rm=TRUE} missing values of \code{x} are
    first removed, i.e., the update will not create missing values.  
 
- \item{newname = cumtdc(y,x)}{ Similar to tdc, except that the event
-   count is accumulated over time for each subject.}
+ \item{newname = cumtdc(y,x, init)}{ Similar to tdc, except that the event
+   count is accumulated over time for each subject.  The variable
+   \code{x} must be numeric.
+ }
 
  \item{newname = event(y,x)}{ Mark an event at time y.
    In the usual case that \code{x} is missing the new 0/1 variable

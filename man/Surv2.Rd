@@ -41,7 +41,7 @@ Surv2(time, event, repeated=FALSE)
   visit.
 }
 \seealso{
-\code{\link{S2data}}, \code{\link{coxph}},  
+\code{\link{Surv2data}}, \code{\link{coxph}},  
 \code{\link{survfit}}  
 }
 \keyword{survival}

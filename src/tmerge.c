@@ -1,27 +1,28 @@
 /*
 ** Fill in a new time-dependent variable
 ** 
-**  id: subjec id in the baseline datata set (integer)
-**  time1, time2: time intervals in the baseline data, only the second is needed
+**  id: subject id in the baseline datata set (integer)
+**  time1: start time for each interval in the baseline data
 **  nid, ntime: the id and time point for the new covariate
-**  x:  vaule of the new covariate
+**  x:  value of the new covariate
 **  indx:  starting point for matching in the baseline
 **
-**  the baseline need not be in sorted id order, but all time points
-**   for a given id are together, and in order.
+**  Both data sets are in order of time within id
 */
 #include "survS.h"
 #include "survproto.h"
 
-SEXP tmerge(SEXP id2,  SEXP time2x, SEXP newx2,
+/* First routine, for cumtdc, return a cumulative sum */
+SEXP tmerge(SEXP id2,  SEXP time1x, SEXP newx2,
             SEXP nid2, SEXP ntime2, SEXP x2,  SEXP indx2) {
     int i, k;
-    int n1, n2;
+    int n1, n2, oldid;
+    int hasone;
 
     int *id, *nid;
-    double *time2, 
+    double *time1, 
 	   *ntime, *x;
-    int *indx;
+    double csum;
     double *newx;
     SEXP newx3;
 
@@ -30,52 +31,59 @@ SEXP tmerge(SEXP id2,  SEXP time2x, SEXP newx2,
 
     id	= INTEGER(id2);
     nid = INTEGER(nid2);
-    time2 = REAL(time2x);
+    time1 = REAL(time1x);
     ntime = REAL(ntime2);
     x     = REAL(x2);
-    indx  = INTEGER(indx2);
 
     PROTECT(newx3 = duplicate(newx2));
     newx = REAL(newx3);
 
     /*
-    **	There are two indices i= baseline data set, k= additions
-    **  For a given subject we might have time intervals of
-    **   say (2, 5], [5,9], (12,15], (15,18]
-    **   with a newtime, x pairs of (1,105), (15, 202)
-    **  In this case the first 3 intervals get a value of 105 and
-    **   the last a value of 202.  
-    **  The indx variable says where to start for each new addition,
-    **   one continues as long as time2 > newtime and id=nid.
+    ** i= index of baseline subject, k= index of addition row
+    **  oldid = prior id, id's for baseline are integers starting with 1
+    ** hasone: 0 if nothing has yet been accumlated for this subject, 1
+    **  it it has
     */
-    for (k=0; k<n2; k++) {
-	for (i=indx[k]-1; i<n1; i++) {
-	    if (id[i] != nid[k] || time2[i] <= ntime[k]) break;
-	    newx[i] = x[k];
-	    }
+    oldid = -1;  /* nobody */
+    k =0;
+    for (i=0; i<n1; i++) {
+	if (id[i] != oldid) {
+	    csum = 0;  
+	    oldid = id[i];
+	    hasone =0;
 	}
+	for (; k<n2 && nid[k] < id[i]; k++);  
+	for (; k<n2 && (nid[k] == id[i]) && ntime[k] <= time1[i]; k++) {
+	    csum += x[k];
+	    hasone = 1;
+	}
+	
+	if (hasone ==1) {
+	    if (ISNA(newx[i])) newx[i] = csum;  /* an NA is replaced */
+	    else  newx[i] = newx[i] + csum;     /* otherwise incremented */
+	}
+    }
     
     UNPROTECT(1);
     return(newx3);
     }
 
 /*
-** version 2 of the code, used for tdc
-**  for each row of the master data (id, time2), return the row of
+** Part 2 of the code, used for tdc
+**  for each row of the master data (id, time1), return the row of
 **  the new data (nid, ntime2) that will provide the new data.
 ** Based on a last-value-carried forward rule, if the master for an id
-**  had time values of 5, 10, 15, 20 and the new data has time values of 7, 15,
-**  and 30, the return index would be 0, 1, 1, and 2.  (Covariates change
-**  after a time point change.)
+**  had time intervals of (0,5), (5,10), (15,20) and the new data had time values
+**  of  -1, 5, 11, 12, the return index would be 1, 2, and 4.  Covariates take
+**  effect at the start of an interval.  Notice that obs 3 is never used.
 */
 	    
-SEXP tmerge2(SEXP id2,  SEXP time2x, SEXP nid2, SEXP ntime2) {
+SEXP tmerge2(SEXP id2,  SEXP time1x, SEXP nid2, SEXP ntime2) {
     int i, k;
     int n1, n2;
-    int oldid;
 
     int *id, *nid;
-    double *time2, 
+    double *time1, 
 	   *ntime;
     SEXP index2;
     int  *index;
@@ -85,7 +93,7 @@ SEXP tmerge2(SEXP id2,  SEXP time2x, SEXP nid2, SEXP ntime2) {
 
     id	= INTEGER(id2);
     nid = INTEGER(nid2);
-    time2 = REAL(time2x);
+    time1 = REAL(time1x);
     ntime = REAL(ntime2);
 
     PROTECT(index2 = allocVector(INTSXP, n1));
@@ -93,52 +101,25 @@ SEXP tmerge2(SEXP id2,  SEXP time2x, SEXP nid2, SEXP ntime2) {
 
     /*
     ** Every subject in the new data (nid, ntime) will be found in the baseline
-    ** data set (id, time2), but not necessarily vice-versa.  
-    **   The code walks through the data using i=current row of baseline id,
-    ** k = current row of nid.  Visualize each value k as a file folder that 
-    ** we want to insert into a file drawer containing the baseline values. 
-    ** Folders sorted by time within id, new folder after the baseline if there
-    ** is a tied time.
-    ** The return vector 'index' is of length n1 (id) and contains the index of
-    ** the file folder k that preceeds each i, or -1 if there is no preceeding
-    ** insertion with the same id.  We actually return 0 and k+1 for easier
-    ** R indexing in the parent.
+    ** data set (id, time1) -- if not the parent routine has already tossed
+    ** them, but not every obs in id will have a representative in the new.
+    ** For those we return 0, otherwise the max k such that nid[k]== id[i]
+    ** and ntime[k] <= time1[i]
     **
-    **  We cycle between two actions.
-    **   0. Increment k 
-    **   1. Just found a new value of nid[k].  
-    **      a. while (id[i] == prior nid), set index[i]=k and increment i.
-    **      b. find the first obs with id[i]==nid[k] and ntime[k] < time[i].
-    **     The new obs inserts just in front of 'i' in the file drawer. 
-    **     Subjects with this id that preceed the time get a 0.
-    **     There might not be such an observation, if the new value would be
-    **     the last folder for subject nid[k]; in which case the insertion will
-    **     not be used, otherwise set index[i] = k+1.
-    **   2. nid[k] = prior value = nid[k-1]
-    **      While id[i]==nid[k] and time[i] <= ntime[k], set index[i]=k and
-    **      increment i
-    **     
+    ** For each element in (id, time1):
+    **   set index to 0
+    **   walk forward in data set 2 until the newid is >= current
+    **   while (id matches and newtime <= oldtime), set pointer
+    **        to this row
     */
-    i=0;  /* index for "id" */
-    oldid = -1;   /* not anybody */
-    for (k=0; k<n2; k++) {
-	if (oldid != nid[k]) {
-	    for (; i<n1 && (id[i] == oldid); i++) index[i] =k;
-	    oldid = nid[k];
-	    for(; i<n1 && (id[i] < oldid || 
-			   (id[i]== oldid && time2[i] <= ntime[k])); i++)
-		index[i] = 0;
-	    if (i<n1 && id[i] == oldid) {index[i] = k+1; i++;}
-	}	
-	else {
-	    for (; i<n1 && (id[i] == oldid && time2[i] <= ntime[k]); i++){
-		index[i] = k;
-	    }
+    k=0;  /* index for newid */
+    for (i=0; i< n1; i++) {
+	index[i] =0;  /* default, assume we won't find a match */
+	for (; k< n2 && (nid[k] < id[i]); k++);
+	for (; k< n2 && (nid[k] == id[i]) && (ntime[k] <= time1[i]); k++) {
+	    index[i] = k+1;
 	}
-    }	
-    for (; i<n1; i++) {
-	if (id[i]==oldid) index[i] = k;
-	else index[i] =0;
+	k--;  /* the next obs might need the same k */
     }
 
     UNPROTECT(1);

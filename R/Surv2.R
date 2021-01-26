@@ -13,9 +13,9 @@ Surv2 <- function(time, event, repeated=FALSE) {
     if (missing(event)) stop("must have an event argument")
     if (length(event) != nn) stop ("Time and event are different lengths")
     event <- as.factor(event)
-    states <- levels(event)
-    status <- as.numeric(event)
-    ss <- cbind(time=time, status=status)
+    states <- levels(event)[-1]
+    status <- as.integer(event) -1L # usually time is not integer, and
+    ss <- cbind(time=time, status=status) # this line makes status double, too
  
     # In rare cases there are no column names, and I have discovered that
     #  people depend on them.

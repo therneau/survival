@@ -41,12 +41,12 @@ tmerge <- function(data1, data2, id, ..., tstart, tstop, options) {
     #  arguments, so define a set of functions which will be used to
     #  mark objects
     new <- new.env(parent=parent.frame())
-    assign("tdc", function(time, value=NULL, default=NULL) {
-        x <- list(time=time, value=value, default=default); 
+    assign("tdc", function(time, value=NULL, init=NULL) {
+        x <- list(time=time, value=value, default= init); 
         class(x) <- "tdc"; x},
            envir=new)
-    assign("cumtdc", function(time, value=NULL, default=NULL) {
-        x <- list(time=time, value=value, default=default); 
+    assign("cumtdc", function(time, value=NULL, init=NULL) {
+        x <- list(time=time, value=value, default= init); 
         class(x) <-"cumtdc"; x},
            envir=new)
     assign("event", function(time, value=NULL, censor=NULL) {
@@ -339,10 +339,7 @@ if (firstcall) {
 }
 else { #not a first call
     idmatch <- match(id, data1[[topt$idname]], nomatch=0)
-    if (any(idmatch==0)) {
-        idmiss <- sum(idmatch==0)
-        data1 <- data1[idmatch>0,]
-    }
+    if (any(idmatch==0)) idmiss <- sum(idmatch==0)
     else idmiss <- 0
 }
 @ 
@@ -363,22 +360,25 @@ for (ii in seq(along.with=args)) {
     dstop  <- newdata[[topt$tstopname]]
     argcen <- argi$censor
     
-    # if an event time is missing then skip that obs
+    # if an event time is missing then skip that obs.  Also toss obs that 
+    #  whose id does not match anyone in data1
     etime <- argi$time
+    if (idmiss ==0) keep <- rep(TRUE, length(etime))
+    else keep <- (idmatch > 0)
     if (length(etime) != length(saveid))
         stop("argument ", argname[ii], " is not the same length as id")
     if (!is.null(argi$value)) {
        if (length(argi$value) != length(saveid))
             stop("argument ", argname[ii], " is not the same length as id")
-        if (topt$na.rm) keep <- !(is.na(etime) | is.na(argi$value))
-        else keep <- !is.na(etime)
+        if (topt$na.rm) keep <- keep & !(is.na(etime) | is.na(argi$value))
+        else keep <- keep & !is.na(etime)
         if (!all(keep)) {
             etime <- etime[keep]
             argi$value <- argi$value[keep]
             }
         }
     else {
-      keep <- !is.na(etime)
+      keep <- keep & !is.na(etime)
       etime <- etime[keep]
       }
     id <- saveid[keep]
@@ -556,7 +556,7 @@ if (argclass[ii] %in% c("tdc", "cumtdc")){
         stop("attempt to turn event variable", argname[[ii]], "into a tdc")
     if (!(argname[[ii]] %in% tdcvar)){
         tdcvar <- c(tdcvar, argname[[ii]])
-        if (!is.null(newvar)) {
+        if (!is.null(newvar) && argclass[ii] == "tdc") {
             warning(paste0("replacement of variable '", argname[ii], "'"))
             newvar <- NULL
         }
@@ -569,13 +569,14 @@ if (argclass[ii] == "tdc") {
         stop("initial tdc value must be of length 1")
 
     # id can be any data type; feed integers to the C routine
-    storage.mode(dstop) <- storage.mode(etime) <- "double"  #if time is integer
+    storage.mode(dstart) <- storage.mode(etime) <- "double"  #if time is integer
     uid <- unique(baseid)
-    index <- .Call(Ctmerge2, match(baseid, uid), dstop, 
+    index <- .Call(Ctmerge2, match(baseid, uid), dstart, 
                                match(id, uid),  etime)
 
+    if (!is.null(yinc)) newvar <- NULL  # a tdc can't be updated, other than 0/1
     if (is.null(newvar)) {
-        if (is.null(yinc)) newvar <- ifelse(index==0, 0L, 1L) # add a 0/1 variable
+        if (is.null(yinc)) newvar <- ifelse(index==0, 0L, 1L) #add a 0/1 variable
         else {
             newvar <- yinc[pmax(1L, index)]
             if (any(index==0)) {
@@ -595,22 +596,10 @@ if (argclass[ii] == "tdc") {
             }
         }
     } else {
-        # make sure new data type matches the old
-        if (is.null(yinc)){
-            if (is.integer(newvar) && all(newvar==0L | newvar==1L))
-                newvar[index!=0L] <- 1L
-            else stop("tdc update does not match prior variable type: ", argname[ii])
-        }
-        else if (is.factor(yinc)) {
-            if (!is.factor(newvar)) 
-                stop("tdc update does not match prior variable type: ", argname[ii])
-            if (!identical(levels(yinc), levels(newvar)))      
-                stop("tdc update's levels do not match prior variable: ", argname[ii])
-            newvar[index!= 0L] <- yinc[index]
-        } 
-        else if (class(yinc) != class(newvar))
-            stop("tdc update does not match prior variable type: ", argname[ii]) 
-        else newvar[index!= 0L] <- yinc[index]
+        # update a 0/1 variable
+        if (is.integer(newvar) && all(newvar==0L | newvar==1L))
+            newvar[index!=0L] <- 1L
+        else stop("tdc update does not match prior variable type: ", argname[ii])
     }
     tdcvar <- unique(c(tdcvar, argname[[ii]]))
 }
@@ -624,6 +613,8 @@ if (argclass[ii] %in% c("cumtdc", "cumevent")) {
     if (is.null(yinc)) yinc <- rep(1L, length(id))
     else if (is.logical(yinc)) yinc <- as.numeric(yinc)  # allow cumulative T/F
     if (!is.numeric(yinc)) stop("invalid increment for cumtdc or cumevent")
+}   
+if (argclass[ii] == "cumevent"){
     ykeep <- (yinc !=0)  # ignore the addition of a censoring event
     yinc <- unlist(tapply(yinc, match(id, baseid), cumsum))
 }
@@ -694,9 +685,9 @@ else if (argclass[ii] == "cumtdc") {  # process a cumtdc variable
     if (!is.numeric(newvar)) 
         stop("data and starting value do not agree on data type")
     # id can be any data type; feed integers to the C routine
-    storage.mode(yinc) <- storage.mode(dstop) <- "double"
+    storage.mode(yinc) <- storage.mode(dstart) <- "double"
     storage.mode(newvar) <- storage.mode(etime) <- "double"
-    newvar <- .Call(Ctmerge, match(baseid, baseid), dstop, newvar, 
+    newvar <- .Call(Ctmerge, match(baseid, baseid), dstart, newvar, 
                     match(id, baseid)[keep], etime[keep], 
                     yinc[keep], indx[keep])
 }  
