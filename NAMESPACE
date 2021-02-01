@@ -18,7 +18,7 @@ importFrom(methods, as)
 importFrom(utils, getS3method, type.convert, methods, head, tail)
 export(Surv, Surv2, Surv2data, aeqSurv, aareg, agreg.fit,
        agexact.fit, attrassign, 
-       blogit, bprobit, bcloglog,
+       blogit, bprobit, bcloglog, blog,
        basehaz, cch, clogit, cipoisson, cluster, concordance, concordancefit, 
        coxph, cox.zph, coxph.control, coxph.detail, coxph.fit,
        coxph.wtest, finegray, format.Surv, 
