@@ -245,7 +245,7 @@ SEXP zph2(SEXP gt2,    SEXP y2,
             for (; person<nused; person++) {
                 p = sort2[person];
                 if (strata[p] != cstrat || tstop[p] < dtime) break; /* no more to add */
-		etasum += weights[p];
+		etasum += eta[p];
 		nrisk++;
                 if (fabs(etasum/nrisk - recenter) > 200) {  
                     temp = etasum/nrisk - recenter;

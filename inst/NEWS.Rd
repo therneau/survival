@@ -7,7 +7,9 @@
     consistency check was too aggressive and would flag a legal dataset.
     \item Fix tmerge bug reported by E Lundt: if two or more additions
     were before the start of a subject's timeline, tdc would pick the
-    first rather than the last.  
+    first rather than the last.
+    \item Add the last test case for residuals.survfit (auc for time1,
+    time2 data), and yes, it uncovered an error.
 }}
 \section{Changes in version 3.2-8}{
   \itemize{
@@ -34,8 +36,8 @@
     yet deal with multistate coxph models that have shared baseline
     hazards.
     \item Add the pseudo function for psuedo-values. The vignette is in
-    vignette2 since it uses svyglm (survey) to get better standard
-    errors (see 'other' vignette).
+    vignette2 since it uses svyglm (survey) to get proper standard
+    errors (see the 'other' vignette).
     Add supporting routine residuals.survfit (which does the real work.)
     \item Add the nsk function.
     \item Add the aggregate.survfit method

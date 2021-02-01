@@ -29,3 +29,14 @@ bprobit <- function(edge=.05) {
     new$name <- "probit"
     new
 }
+
+blog <- function(edge= .05) {
+    new <- make.link("log")
+    new$linkfun <- function(mu) { 
+        x <- pmax(edge, mu)
+        log(x)
+    }
+    new$name <- "blog"
+    new
+}
+   

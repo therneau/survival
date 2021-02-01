@@ -326,6 +326,7 @@ parsecovar3 <- function(tmap, Xcol, Xassign, phbaseline=NULL) {
         k <- seq_len(nph)
         i <- length(Xcol) + k - hasintercept # extra rows in cmap
         j <- which(phbaseline >0)            # coefficients to add
+        jj <- which(phbaseline==0)           # what they point to
         cmap[cbind(i, j)] <- k + max(cmap)
         
         # I have changed my mind, twice, about a good name
@@ -333,7 +334,7 @@ parsecovar3 <- function(tmap, Xcol, Xassign, phbaseline=NULL) {
         #      colnames(tmap)[phbaseline[j]], ")")
         #newname <- paste0("baseline(", j, " vs ", phbaseline[j], ")")
         newname <- paste0("ph(", colnames(tmap)[j], ",", 
-                                 colnames(tmap)[phbaseline[j]], ")")
+                                 colnames(tmap)[jj[j]], ")")
     } else newname <- NULL
 
     # renumber coefs as 1, 2, 3, ...

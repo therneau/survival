@@ -17,12 +17,12 @@ SEXP tmerge(SEXP id2,  SEXP time1x, SEXP newx2,
             SEXP nid2, SEXP ntime2, SEXP x2,  SEXP indx2) {
     int i, k;
     int n1, n2, oldid;
-    int hasone;
+    int hasone =0;
 
     int *id, *nid;
     double *time1, 
 	   *ntime, *x;
-    double csum;
+    double csum =0;
     double *newx;
     SEXP newx3;
 
