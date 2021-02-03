@@ -70,6 +70,8 @@ tmerge(data1, data2,  id,\dots, tstart, tstop, options)
 The function adds three new variables to the output data set: 
 \code{tstart}, \code{tstop}, and \code{id}.  The \code{options} argument
 can be used to change these names.
+If, in the first call, the \code{id} argument is a simple name, that
+variable name will be used as the default for the \code{idname} option.
 If \code{data1} contains the \code{tstart} variable then that is used as
 the starting point for the created time intervals, otherwise the initial
 interval for each id will begin at 0 by default.

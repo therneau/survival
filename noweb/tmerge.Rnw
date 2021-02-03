@@ -72,7 +72,8 @@ The program can't use formulas because the \ldots arguments need to be
 named.  This results in a bit of evaluation magic to correctly assess
 arguments.  
 The routine below could have been set out as a separate top-level routine,
-the argument is where we want to document it: within the tmerge page or not.
+the argument is where we want to document it: within the tmerge page or
+on a separate one.
 I decided on the former.
 <<tmerge-setup>>= 
 tmerge.control <- function(idname="id", tstartname="tstart", tstopname="tstop",
@@ -150,6 +151,11 @@ if (inherits(data1, "tmerge")) {
 } else {
     firstcall <- TRUE
     tname <- tevent <- tdcvar <- NULL
+    if (is.name(Call[["id"]])) {
+        idx <- as.character(Call[["id"]])
+        if (missing(options)) options <-list(idname= idx)
+        else if (is.null(options$idname)) options$idname <- idx
+    }
 }
 
 if (!missing(options)) {

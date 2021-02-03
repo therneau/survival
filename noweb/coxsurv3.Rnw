@@ -189,8 +189,16 @@ coxsurv.fit2 <- function (ctype, stype, se.fit, varmat, cluster,
                                   cifit$p0[i,], timelist[[i]])
                                   
             }
-        cifit$pstate <- do.call(rbind, lapply(survlist, function(x) x$pstate))
-        cifit$cumhaz <- do.call(rbind, lapply(survlist, function(x) x$cumhaz))
+
+        # rbind doesn't work for arrays, it loses a dimension
+        ntime <- length(cifit$time)
+        cifit$pstate <- array(0., dim=c(ntime, dim(survlist[[1]]$pstate)[2:3]))
+        cifit$cumhaz <- array(0., dim=c(ntime, dim(survlist[[1]]$cumhaz)[2:3]))
+        rtemp <- split(seq(along=cifit$time), itemp)
+        for (i in 1:nstrata) {
+            cifit$pstate[rtemp[[i]],,] <- survlist[[i]]$pstate
+            cifit$cumhaz[rtemp[[i]],,] <- survlist[[i]]$cumhaz
+        }
     }
     cifit
 }

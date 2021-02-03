@@ -100,6 +100,11 @@ tmerge <- function(data1, data2, id, ..., tstart, tstop, options) {
     } else {
         firstcall <- TRUE
         tname <- tevent <- tdcvar <- NULL
+        if (is.name(Call[["id"]])) {
+            idx <- as.character(Call[["id"]])
+            if (missing(options)) options <-list(idname= idx)
+            else if (is.null(options$idname)) options$idname <- idx
+        }
     }
 
     if (!missing(options)) {

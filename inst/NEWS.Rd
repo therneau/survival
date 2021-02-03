@@ -8,8 +8,11 @@
     \item Fix tmerge bug reported by E Lundt: if two or more additions
     were before the start of a subject's timeline, tdc would pick the
     first rather than the last.
-    \item Add the last test case for residuals.survfit (auc for time1,
-    time2 data), and yes, it uncovered an error.
+    \item Add the last test case for residuals.survfit (auc for tstart,
+    tstop data), and yes, it uncovered an error.
+    \item Survit.coxph for a multistate fit with strata error, an array
+    dimension was wrong (but contents correct).  It led to downstream
+    problems with print and plot.  Pointed out by Matthew Hall.
 }}
 \section{Changes in version 3.2-8}{
   \itemize{

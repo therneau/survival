@@ -724,7 +724,6 @@ rsurvpart2 <- function(Y, X, casewt, istate, times, cluster, type, fit,
                     tfit <- .Call(Csurvfitresid, ytemp, asort1, asort2, is1[j],
                                   casewt[j], p0[curve,], inf0[j,], times, 
                                   start.time, type=="auc")
-        browser()
                     if (ntime==1) {
                         if (type=="auc") D[j,] <- tfit[[2]] else D[j,] <- tfit[[1]]
                     } else {
