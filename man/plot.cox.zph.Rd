@@ -8,7 +8,7 @@ Displays a graph of the scaled Schoenfeld residuals, along with a smooth curve.
 }
 \usage{
 \method{plot}{cox.zph}(x, resid=TRUE, se=TRUE, df=4, nsmo=40, var,
-        xlab="Time", ylab, lty=1:2, col=1, lwd=1, ...)
+        xlab="Time", ylab, lty=1:2, col=1, lwd=1, hr=FALSE, ...)
 }
 \arguments{
 \item{x}{
@@ -36,6 +36,9 @@ zero or a main title.
 
 This has been superseded by a subscripting method; see the example below. 
 }
+\item{hr}{if TRUE, label the y-axis using the estimated hazard ratio
+  rather than the estimated coefficient.  (The plot does not change,
+  only the axis label.)}
 
 \item{xlab}{label for the x-axis of the plot}
 \item{ylab}{optional label for the y-axis of the plot.  If missing a

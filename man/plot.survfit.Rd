@@ -171,7 +171,7 @@ This will be the order in which \code{col}, \code{lty}, etc are used.
   If the object contains a cumulative hazard curve, then
   \code{fun='cumhaz'} will plot that curve, otherwise it will plot
   -log(S) as an approximation.  Theoretically, S =
-  \eqn{log(-\Lambda)}{log(-H)} where S is the survival and
+  \eqn{\exp(-\Lambda)}{exp(-H)} where S is the survival and
   \eqn{\Lambda}{H} is the cumulative hazard.  The same relationship
   holds for estimates of S and \eqn{\Lambda}{H} only in special cases,
   but the approximation is often close.

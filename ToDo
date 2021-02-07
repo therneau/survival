@@ -64,3 +64,11 @@ coxph still returns the Splus style assign.  It's time to give it up.
 
 outside: a covariate with variance=0 in all the risk sets leads to a
 	 "contact the author" message
+---
+
+Request to add a row for the entry times in the survfit object:
+"Dear Terry,
+the issue came from clinicians who complained about false counts. These counts are needed in the reporting of survival curves in clinical papers. Of course the exact counts it are not relevant when you just plot a survival curve, but the statistician is in trouble if he has not got these numbers right. 
+I see your point, too, as I know that the code of the survival package is quite complex. Maybe at least warning in the summary output would be helpful so that the user knows that he has to calculate the exact figures by himself.
+Best 
+Franz Quehenberger"

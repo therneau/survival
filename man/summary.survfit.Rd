@@ -122,6 +122,14 @@ contains values beyond the last point in the curve then there is nothing
 to print and an error message will result.
 For the second usage we almost always want \code{extend=TRUE}, so that the
 results will have a predictable length.
+
+The \code{survfit} object itself will have a row of information at each
+censoring or event time, it does not save information on each unique
+entry time.  For printout at two time points t1, t2, this function will
+give the the number at risk at the smallest event times that are >= t1
+and >= t2, respectively, the survival curve at the largest recoreded times
+<= t1 and <= t2, and the number of events and censorings in the interval
+t1 < t <= t2.  
 }
 \seealso{
 \code{\link{survfit}},  \code{\link{print.summary.survfit}}   
