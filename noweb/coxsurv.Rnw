@@ -127,6 +127,7 @@ if (missing(ctype)) {
     ctype <- c(1,1,2)[temp1]
 }
 else if (!(ctype %in% 1:2)) stop ("ctype must be 1 or 2")
+if (!(stype %in% 1:2)) stop("stype must be 1 or 2")
 
 if (!se.fit) conf.type <- "none"
 else conf.type <- match.arg(conf.type)

@@ -6,7 +6,7 @@
 **
 **  otime:  vector of output times.  All the transitions will get reports at
 **            these time points.  (Normally this fcn is called for all of the 
-**            transitions at once, but separately for for any strata.)
+**            transitions at once, but separately for any strata.)
 **  y   :    survival response
 **  weight:  observation weight
 **  sort1, sort2: sort indices for the start and stop time

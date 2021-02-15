@@ -2034,6 +2034,7 @@ ndata <- tmerge(ndata, subset(nafld3, event %in% c("diabetes", "htn",
                                                    "dyslipidemia")), 
                 id=id, comorbid= cumevent(days))
 attr(ndata, "tcount")
+# summary(ndata) gives the same information
 @ 
 
 <<echo=FALSE>>=
@@ -2154,8 +2155,8 @@ The data look like the figure below, where the dotted lines are
 transformations that we observe, but would not be present if the subjects were
 monitored continuously.
 A call to the \code{survcheck} routine is almost mandatory for a complex 
-setup like 
-this, to ensure that the data set which has been built is what you intended to build.
+setup like this,
+to ensure that the data set which has been built is what you intended to build.
 
 Calling \code{survcheck} with \textasciitilde 1 on the right hand side or with
 the covariates for the model on the right hand side will potentially give different
@@ -2163,14 +2164,12 @@ event counts, due to the removal of rows with a missing value.
 Both can be useful summaries.
 For a multi-state coxph model neither may be exactly correct, however.  If the model
 contains a covariate which applies only to certain transitions, then events that
-do not depend on that covariate will be retained, event occurences that do depend
-on the covariate will be dropped, leading to counts that may be intermediate between
+do not depend on that covariate will be retained, 
+while event occurences that do depend on the covariate
+will be dropped, leading to counts that may be intermediate between
 the two survcheck outputs.
 
-
-
 <<nafld3>>=
-@ 
 states <- c("No comorbidity", "1 comorbidity", "2 comorbidities", 
             "3 comorbitities", "Death")
 cmat <- matrix(0, 5,5)
@@ -2207,16 +2206,14 @@ Elements 2--4 of the list are pseudo formulas, which specify a set of
 states on the left and covariates on the right, along with the optional
 modifier \code{/common}.
 As shown, there are multiple ways to specify a set of transitions either by
-name or by number, the value 0 is shorthand for ``any state''. 
-A '1' on the right-hand side can be used to force a common baseline
-hazard for two transitions.  A common baseline for two transitions
-that originate from the same state is incompatable with the Cox partial
-likelihood, however, and will lead to multiple un-estimable coefficients.
-The right hand side acts like \code{update.formula} in that \code{-x} 
-can be used to remove a variable found in the default formula.
+name or by number, the value 0 is shorthand for ``any state''.
+The coefficient matrix reveals that the 1:2, 1:3, and 1:4 transitions all
+share the same coefficients, as intended.
 
-The \code{cmap} component records the mapping between the coefficient vector
-and the state transtitions. 
+The actual coefficient vector (\code{coef(fit)}) and variance covariance
+matrix do not have repeats.
+The fit also includes a \code{cmap} component that records the mapping
+between the coefficient vector and the state transtitions. 
 The result of \code{coef(nfit1)} is a vector of length 9, the first element of
 which is the nafld effect for transitions 1:2, 1:3, and 1:4,
 the second coefficient is the effect of male on those three transitions, etc. 
@@ -2224,25 +2221,25 @@ Because the coefficient vector, variance matrix, and etc. are identical
 to those for a simple coxph call, downstream operations such as 
 \code{predict} and \code{summary} are unchanged.
 
-<<nafld5b>>=
-print(coef(nfit1), digits=3)
-print(coef(nfit1, matrix=TRUE), digits=3)  # alternate form
-@ 
-
-The standard printout makes use of \code{cmap} to rearrange the output into 
+The standard printouts makes use of \code{cmap} to rearrange the output into 
 a nicer format.
 It is interesting, though not surprising, that the impact of NAFLD on death
 is largest for those with 0mc and smallest for those with 3mc.  
 
-<<nafld5>>=
-options(show.signif.stars = FALSE) # display statistical maturity
-print(nfit1, digits =3)
+<<nafld5b>>=
+print(coef(nfit1), digits=3)
+
+print(coef(nfit1, matrix=TRUE), digits=3)  # alternate form
+
+print(nfit1)
 @ 
 
 The summary command does not rearrange.
 <<>>=
+options(show.signif.stars = FALSE) # display statistical maturity
 summary(nfit1, digits=3)
 @ 
+
 
 The names attached to the coefficients in a multi-state model are a compromise,
 designed to give some information to the reader, albeit imperfect. 
@@ -2252,6 +2249,18 @@ Otherwise a suffix ``\_a:b'' is appended where a:b corresponds to the first
 transition that maps onto this coefficient.
 (First in the sense of standard R matrices, i.e., reading the elements of
 \code{cmap} in column order.)
+
+A second available keyword is \code{shared}, which indicates that the baseline
+hazards for transitions share a common shape.
+Here is an example:
+<<nafld5c>>=
+nfit2 <- coxph(list(Surv(age1, age2, event) ~ nafld + male,
+                    "0mc":state("1mc", "2mc", "3mc") ~ nafld+ male / common,
+                     2:3 + 2:4   ~ nafld + male / common,
+                     1:5 + 2:5 +3:5 ~ male / common + shared),
+               data=ndata, id=id, istate=cstate)
+nfit2$cmap
+@ 
 
 \subsection{Timeline data}
 The \code{survfit} and \code{coxph} routines also accept data in what we refer

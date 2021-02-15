@@ -493,6 +493,7 @@ coxph <- function(formula, data, weights, subset, na.action,
         cmap <- parsecovar3(tmap, colnames(X), attr(X, "assign"), covlist2$phbaseline)
         xstack <- stacker(cmap, stratum_map, as.integer(istate), X, Y, strata=istrat,
                           states=states)
+
         rkeep <- unique(xstack$rindex)
         transitions <- survcheck2(Y[rkeep,], id[rkeep], istate[rkeep])$transitions
 
@@ -675,6 +676,7 @@ coxph <- function(formula, data, weights, subset, na.action,
     if (length(xlevels) >0) fit$xlevels <- xlevels
     fit$contrasts <- contr.save
     if (any(offset !=0)) fit$offset <- offset
+
     fit$call <- Call
     fit
     }
