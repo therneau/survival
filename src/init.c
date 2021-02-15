@@ -10,16 +10,16 @@
 #include "survproto.h"
 
 static const R_CMethodDef Centries[] = {
-    {"Cagfit5a",    (DL_FUNC) &agfit5a,  20},
+    {"Cagfit5a",    (DL_FUNC) &agfit5a,  21},
     {"Cagfit5b",    (DL_FUNC) &agfit5b,  19},
     {"Cagfit5c",    (DL_FUNC) &agfit5c,   1},
     {"Cagsurv3",    (DL_FUNC) &agsurv3,   19},
     {"Cagsurv4",    (DL_FUNC) &agsurv4,    6},
     {"Cagsurv5",    (DL_FUNC) &agsurv5,   10},
-    {"Cagexact",    (DL_FUNC) &agexact,   20},
+    {"Cagexact",    (DL_FUNC) &agexact,   21},
     {"Cagmart",     (DL_FUNC) &agmart,     9},
     {"Ccoxdetail",  (DL_FUNC) &coxdetail, 14},
-    {"Ccoxfit5a",   (DL_FUNC) &coxfit5_a, 20},
+    {"Ccoxfit5a",   (DL_FUNC) &coxfit5_a, 21},
     {"Ccoxfit5b",   (DL_FUNC) &coxfit5_b, 19},
     {"Ccoxfit5c",   (DL_FUNC) &coxfit5_c,  5},
     {"Ccoxmart",    (DL_FUNC) &coxmart,    8},

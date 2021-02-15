@@ -16,7 +16,8 @@ void agfit5a(Sint *nusedx,     Sint *nvarx,     double *yy,
               double *beta,     double *u,       double *loglik, 
 	      Sint *methodx,    Sint *ptype2,    Sint *pdiag2,
 	      Sint *nfrail,     Sint *frail2,
-              void *fexpr1,     void *fexpr2,    void *rho) ;
+              void *fexpr1,     void *fexpr2,    void *rho,
+	      int *docenter) ;
 
 void agfit5b( Sint *maxiter,   Sint *nusedx,    Sint *nvarx, 
 	       Sint *strata,    double *beta,    double *u,
@@ -35,7 +36,8 @@ void agexact(Sint *maxiter,  Sint *nusedx,   Sint *nvarx,   double *start,
 	     double *stop,   Sint *event,    double *covar2,double *offset, 
 	     Sint   *strata, double *means,  double *beta,  double *u, 
 	     double *imat2,  double loglik[2], Sint *flag,  double *work, 
-	     Sint   *work2,  double *eps,    double *tol_chol, double *sctest);
+	     Sint   *work2,  double *eps,    double *tol_chol, double *sctest,
+	     Sint   *nocenter);
 
 void agmart(Sint   *n,     Sint   *method,  double *start,   double *stop, 
 	    Sint   *event, double *score,   double *wt,      Sint   *strata, 
@@ -102,7 +104,8 @@ void coxfit5_a(Sint *nusedx,     Sint *nvarx,     double *yy,
                double *beta,     double *u,       double *loglik, 
 	       Sint *methodx,    Sint *ptype2,    Sint *pdiag2,
 	       Sint *nfrail,     Sint *frail2,
-               void *fexpr1,     void *fexpr2,    void *rho) ;
+               void *fexpr1,     void *fexpr2,    void *rho,
+	       int  *docenter) ;
 
 void coxfit5_b( Sint *maxiter,   Sint *nusedx,    Sint *nvarx, 
 	        Sint *strata,    double *beta,    double *u,

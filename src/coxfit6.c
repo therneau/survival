@@ -22,7 +22,7 @@
 **                       the percent change in loglikelihood is <= eps.
 **       chol_tol     : tolerance for the Cholesky decompostion
 **       method       : 0=Breslow, 1=Efron
-**       doscale      : 0=don't scale the X matrix, 1=scale the X matrix
+**       doscale      : center and scale each col of X
 **
 **  returned parameters
 **       means(nv)    : vector of column means of X
@@ -80,7 +80,7 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
     int     nused, nvar, maxiter;
     int     method;
     double  eps, toler;
-    int doscale;
+    int *doscale;
    
     /* returned objects */
     SEXP imat2, means2, beta2, u2, loglik2;
@@ -98,7 +98,7 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
     maxiter = asInteger(maxiter2);
     eps  = asReal(eps2);     /* convergence criteria */
     toler = asReal(toler2);  /* tolerance for cholesky */
-    doscale = asInteger(doscale2);
+    doscale = INTEGER(doscale2);
 
     xtime = REAL(time2);
     weights = REAL(weights2);
@@ -157,13 +157,15 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
 	temp2 += weights[i];
     }	
     for (i=0; i<nvar; i++) {
-	temp=0;
-	for (person=0; person<nused; person++) 
-	    temp += weights[person] * covar[i][person];
-	temp /= temp2;
-	means[i] = temp;
-	for (person=0; person<nused; person++) covar[i][person] -=temp;
-	if (doscale==1) {  /* and also scale it */
+	if (doscale[i]==0) {scale[i] = 1.0; means[i] =0;}
+	else {
+	    temp=0;
+	    for (person=0; person<nused; person++) 
+		temp += weights[person] * covar[i][person];
+	    temp /= temp2;
+	    means[i] = temp;
+	    for (person=0; person<nused; person++) covar[i][person] -=temp;
+
 	    temp =0;
 	    for (person=0; person<nused; person++) {
 		temp += weights[person] * fabs(covar[i][person]);
@@ -177,12 +179,7 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
 	    }
 	}
  
-   if (doscale==1) {
-	for (i=0; i<nvar; i++) beta[i] /= scale[i]; /*rescale initial betas */
-	}
-    else {
-	for (i=0; i<nvar; i++) scale[i] = 1.0;
-	}
+    for (i=0; i<nvar; i++) beta[i] /= scale[i]; /*rescale initial betas */
 
     /*
     ** do the initial iteration step

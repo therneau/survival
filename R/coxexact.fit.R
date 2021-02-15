@@ -3,7 +3,7 @@
 #   case-control data.
 coxexact.fit <- function(x, y, strata, offset, init, control,
 			  weights, method, rownames,
-                         resid=TRUE)
+                         resid=TRUE, nocenter=NULL)
     {
     if (!is.matrix(x)) stop("Invalid formula for cox fitting function")
     if (!is.null(weights) && any(weights!=1))
@@ -50,10 +50,16 @@ coxexact.fit <- function(x, y, strata, offset, init, control,
     # Prescale the data set to improve numerical accuracy.
     #  We will undo the scaling before finishing up.
     newx <- scale(x[sorted,])
-#    newx <- scale(x, scale=NULL)  #debug
     rescale <- attr(newx, "scaled:scale")
     means   <- attr(newx, "scaled:center")
-
+    if (!is.null(nocenter)){
+       zero.one <- apply(x, 2, function(z) all(z %in% nocenter))
+       for (i in which(zero.one)) {
+           newx[,i] <- x[sorted,i]
+           rescale[i] <- 1.0
+           means[i]   <- 0.0
+       }
+    }
     cfit <- .Call(Ccoxexact, 
                   as.integer(maxiter),
                   as.double(y),  # interger data?  Just in case.

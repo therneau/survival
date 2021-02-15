@@ -1,6 +1,6 @@
 agexact.fit <- function(x, y, strata, offset, init, control,
 			  weights, method, rownames,
-                         resid=TRUE)
+                         resid=TRUE, nocenter=NULL)
     {
     if (!is.matrix(x)) stop("Invalid formula for cox fitting function")
     if (!is.null(weights) && any(weights!=1))
@@ -44,6 +44,10 @@ agexact.fit <- function(x, y, strata, offset, init, control,
     }
     else init <- rep(0,nvar)
 
+    # 2012 change: individually choose which variable to rescale
+    # default: leave 0/1 variables along
+    if (is.null(nocenter)) zero.one <- rep(FALSE, ncol(x))
+    else zero.one <- apply(x, 2, function(z) all(z %in% nocenter))
     agfit <- .C(Cagexact, iter= as.integer(control$iter.max),
 		   as.integer(n),
 		   as.integer(nvar), sstart, sstop,
@@ -60,7 +64,8 @@ agexact.fit <- function(x, y, strata, offset, init, control,
 		   integer(2*n),
 		   as.double(control$eps),
 		   as.double(control$toler.chol),
-		   sctest=double(1))
+		   sctest=double(1), 
+                   ifelse(zero.one, 0L, 1L))
 
     var <- matrix(agfit$imat,nvar,nvar)
     coef <- agfit$coef

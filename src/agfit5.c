@@ -98,7 +98,8 @@ void agfit5a(Sint *nusedx, Sint *nvarx, double *yy,
 	       double *loglik, 
 	       Sint *methodx, Sint *ptype2, Sint *pdiag2,
 	       Sint *nfrail,  Sint *frail2,
-               void *fexpr1, void *fexpr2, void *rho) {
+               void *fexpr1, void *fexpr2, void *rho,
+	       Sint *docenter) {
 
     int i,j,k, person;
     int     nused, nvar;
@@ -174,15 +175,18 @@ void agfit5a(Sint *nusedx, Sint *nvarx, double *yy,
 
     /*
     ** Subtract the mean from each covar, as this makes the regression
-    **  much more stable
+    **  more stable
     */
     for (i=0; i<nvar; i++) {
-	temp=0;
-	for (person=0; person<nused; person++) temp += covar[i][person];
-	temp /= nused;
-	means[i] = temp;
-	for (person=0; person<nused; person++) covar[i][person] -=temp;
+	if (docenter[i] ==0) means[i] =0;
+	else {
+	    temp=0;
+	    for (person=0; person<nused; person++) temp += covar[i][person];
+	    temp /= nused;
+	    means[i] = temp;
+	    for (person=0; person<nused; person++) covar[i][person] -=temp;
 	}
+    }	
 	
     /*
     ** Find the loglik of the initial model

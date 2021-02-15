@@ -90,7 +90,8 @@ aeq(fit1$coef, 8/5)
 fit2 <- coxph(Surv(time, status) ~x, test1, method='breslow', iter=2)
 aeq(round(fit2$coef, 6), 1.472724)
 
-fit <- coxph(Surv(time, status) ~x, test1, method='breslow', eps=1e-8)
+fit <- coxph(Surv(time, status) ~x, test1, method='breslow', eps=1e-8,
+             nocenter=NULL)
 aeq(fit$coef, log(1.5 + sqrt(33)/2))  # the true solution
 truth <- byhand1(fit$coef, 0)
 aeq(truth$loglik, fit$loglik[2])
@@ -115,14 +116,9 @@ resid(fit)
 resid(fit, 'scor')
 resid(fit, 'scho')
 
-predict(fit, type='lp')
-predict(fit, type='risk')
-predict(fit, type='expected')
-predict(fit, type='terms')
 predict(fit, type='lp', se.fit=T)
 predict(fit, type='risk', se.fit=T)
 predict(fit, type='expected', se.fit=T)
 predict(fit, type='terms', se.fit=T)
 
-summary(survfit(fit))
 summary(survfit(fit, list(x=2)))

@@ -11,9 +11,9 @@
 }
 \usage{
 agreg.fit(x, y, strata, offset, init, control, weights, method,
-rownames, resid=TRUE)
+rownames, resid=TRUE, nocenter=NULL)
 coxph.fit(x, y, strata, offset, init, control, weights, method,
-rownames, resid=TRUE)
+rownames, resid=TRUE, nocenter=NULL)
 }
 \arguments{
   \item{x}{Matix of predictors.  This should \emph{not} include an
@@ -31,6 +31,9 @@ rownames, resid=TRUE)
   \item{rownames}{this is only needed for a NULL model, in which case it
     contains the rownames (if any) of the original data.}
   \item{resid}{compute and return residuals.}
+  \item{nocenter}{an optional list of values. Any column of the X matrix
+    whose values lie strictly within that set will not be recentered.
+  Note that the coxph function has (-1, 0, 1) as the default.}
 }
 \details{
 This routine does no checking that arguments are the proper length or

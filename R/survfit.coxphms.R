@@ -26,7 +26,8 @@ function(formula, newdata, se.fit=TRUE, conf.int=.95, individual=FALSE,
             index <- which(ctemp >0)
             baselinecoef[2, index] <- exp(object$coef[ctemp[index]])
         }
-    }       
+    } else phbase <- rep(FALSE, nrow(object$cmap))
+      
     # process options, set up Y and the model frame, deal with start.time
     Terms  <- terms(object)
     robust <- !is.null(object$naive.var)   # did the coxph model use robust var?
@@ -371,7 +372,8 @@ function(formula, newdata, se.fit=TRUE, conf.int=.95, individual=FALSE,
     else {
         if (is.factor(strata)) ustrata <- levels(strata)
         else                   ustrata <- sort(unique(strata))
-        nstrata <- length(ustrata)
+        nstrata <- length(cifit$strata)
+        itemp <- rep(1:nstrata, cifit$strata)
         timelist <- split(cifit$time, itemp)
         ustrata <- names(cifit$strata)
         tfit <- vector("list", nstrata)
@@ -386,8 +388,8 @@ function(formula, newdata, se.fit=TRUE, conf.int=.95, individual=FALSE,
 
         # do.call(rbind) doesn't work for arrays, it loses a dimension
         ntime <- length(cifit$time)
-        cifit$pstate <- array(0., dim=c(ntime, dim(survlist[[1]]$pstate)[2:3]))
-        cifit$cumhaz <- array(0., dim=c(ntime, dim(survlist[[1]]$cumhaz)[2:3]))
+        cifit$pstate <- array(0., dim=c(ntime, dim(tfit[[1]]$pstate)[2:3]))
+        cifit$cumhaz <- array(0., dim=c(ntime, dim(tfit[[1]]$cumhaz)[2:3]))
         rtemp <- split(seq(along=cifit$time), itemp)
         for (i in 1:nstrata) {
             cifit$pstate[rtemp[[i]],,] <- tfit[[i]]$pstate
@@ -431,10 +433,10 @@ multihaz <- function(y, x, position, weight, risk, istrat, ctype, stype,
     }
 
     temp <- matrix(cn[,5] / denom1, ncol = fit$ntrans)
-    hazard <- temp[,bcoef[,1]] * rep(bcoef[,2], each=nrow(temp))
+    hazard <- temp[,bcoef[1,]] * rep(bcoef[2,], each=nrow(temp))
     if (se.fit) {
         temp <- matrix(cn[,5] / denom2, ncol = fit$ntrans)
-        varhaz <- temp[,bcoef[,1]] * rep(bcoef[,2]^2, each=nrow(temp))
+        varhaz <- temp[,bcoef[1,]] * rep(bcoef[2,]^2, each=nrow(temp))
     }
     
     # Expand the result, one "hazard set" for each row of x2

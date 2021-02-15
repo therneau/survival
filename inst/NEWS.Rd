@@ -10,9 +10,18 @@
     first rather than the last.
     \item Add the last test case for residuals.survfit (auc for tstart,
     tstop data), and yes, it uncovered an error.
-    \item Survit.coxph for a multistate fit with strata error, an array
+    \item Error in survit.coxph for a multistate fit with strata, an array
     dimension was wrong (but contents correct).  It led to downstream
     problems with print and plot.  Pointed out by Matthew Hall.
+    \item Add ability for a multistate coxph model to have shared
+    (proportional) baselines for transitions.
+    \item The coxph routine no longer recenters 0/1 predictors (fit$mean
+    will be 0), per the default value of the new \code{nocenter}
+    argument. Application of survfit to a coxph model without specifying
+    newdata remains a bad idea, but this change makes it a little
+    less bad since for factors the curve will refer to the reference
+    level.  The results of predict(fit) are now more defensible for a
+    factor variable.
 }}
 \section{Changes in version 3.2-8}{
   \itemize{

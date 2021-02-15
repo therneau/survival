@@ -9,7 +9,7 @@ library(survival)
 test2 <- data.frame(start=c(1, 2, 5, 2, 1, 7, 3, 4, 8, 8),
                     stop =c(2, 3, 6, 7, 8, 9, 9, 9,14,17),
                     event=c(1, 1, 1, 1, 1, 1, 1, 0, 0, 0),
-                    x    =c(1, 0, 0, 1, 0, 1, 1, 1, 0, 0) )
+                    x    =c(1, 0, 0, 1, 0, 1, 1, 1, 0, 0))
 
 byhand <- function(beta, newx=0) {
     r <- exp(beta)
@@ -73,7 +73,7 @@ aeq(truth0$scho, resid(fit0, 'schoen'))
 aeq(truth0$score, resid(fit0, 'score')) 
 
 
-fit <- coxph(Surv(start, stop, event) ~x, test2, eps=1e-8)
+fit <- coxph(Surv(start, stop, event) ~x, test2, eps=1e-8, nocenter=NULL)
 truth <- byhand(fit$coef, 0)
 aeq(truth$loglik, fit$loglik[2])
 aeq(1/truth$imat, fit$var)

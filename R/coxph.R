@@ -4,7 +4,7 @@ coxph <- function(formula, data, weights, subset, na.action,
         init, control, ties= c("efron", "breslow", "exact"),
         singular.ok =TRUE,  robust,
         model=FALSE, x=FALSE, y=TRUE,  tt, method=ties, 
-        id, cluster, istate, statedata,...) {
+        id, cluster, istate, statedata, nocenter=c(-1, 0, 1), ...) {
 
     ties <- match.arg(ties)
     Call <- match.call()
@@ -545,23 +545,31 @@ coxph <- function(formula, data, weights, subset, na.action,
         fit <- coxpenal.fit(X, Y, istrat, offset, init=init,
                             control,
                             weights=weights, method=method,
-                            row.names(mf), pcols, pattr, assign)
+                            row.names(mf), pcols, pattr, assign, 
+                            nocenter= nocenter)
     }
     else {
-        if( method=="breslow" || method =="efron") {
-            if (grepl('right', type))  fitter <- get("coxph.fit")
-            else                 fitter <- get("agreg.fit")
-        }
-        else if (method=='exact') {
-            if (type== "right")  fitter <- get("coxexact.fit")
-            else  fitter <- get("agexact.fit")
-        }
-        else stop(paste ("Unknown method", method))
-
         rname <- row.names(mf)
         if (multi) rname <- rname[xstack$rindex]
-        fit <- fitter(X, Y, istrat, offset, init, control, weights=weights,
-                      method=method, rname)
+        if( method=="breslow" || method =="efron") {
+            if (grepl('right', type))  
+                fit <- coxph.fit(X, Y, istrat, offset, init, control, 
+                                 weights=weights, method=method, 
+                                 rname, nocenter=nocenter)
+            else  fit <- agreg.fit(X, Y, istrat, offset, init, control, 
+                                   weights=weights, method=method, 
+                                   rname, nocenter=nocenter)
+        }
+        else if (method=='exact') {
+            if (type== "right")  
+                fit <- coxexact.fit(X, Y, istrat, offset, init, control, 
+                                    weights=weights, method=method, 
+                                    rname, nocenter=nocenter)
+            else fit <- agexact.fit(X, Y, istrat, offset, init, control, 
+                                    weights=weights, method=method, 
+                                    rname, nocenter=nocenter)
+        }
+        else stop(paste ("Unknown method", method))
     }
     if (is.character(fit)) {
         fit <- list(fail=fit)

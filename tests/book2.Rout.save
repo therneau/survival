@@ -1,7 +1,7 @@
 
-R Under development (unstable) (2016-01-29 r70039) -- "Unsuffered Consequences"
-Copyright (C) 2016 The R Foundation for Statistical Computing
-Platform: i686-pc-linux-gnu (32-bit)
+R Under development (unstable) (2021-01-28 r79896) -- "Unsuffered Consequences"
+Copyright (C) 2021 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -97,7 +97,7 @@ Type 'q()' to quit R.
 > aeq(sfit$surv, truth0$surv)
 [1] TRUE
 > 
-> fit <- coxph(Surv(time, status) ~x, test1, eps=1e-8)
+> fit <- coxph(Surv(time, status) ~x, test1, eps=1e-8, nocenter=NULL)
 > aeq(round(fit$coef,6), 1.676857)
 [1] TRUE
 > truebeta <- log(cos(acos((45/23)*sqrt(3/23))/3) * 2* sqrt(23/3))
@@ -223,4 +223,4 @@ Call: survfit(formula = fit, newdata = list(x = 2))
 > 
 > proc.time()
    user  system elapsed 
-  0.232   0.012   0.238 
+  1.070   0.096   1.169 

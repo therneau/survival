@@ -2169,7 +2169,7 @@ while event occurences that do depend on the covariate
 will be dropped, leading to counts that may be intermediate between
 the two survcheck outputs.
 
-<<nafld3>>=
+<<nafld3, fig=TRUE>>=
 states <- c("No comorbidity", "1 comorbidity", "2 comorbidities", 
             "3 comorbitities", "Death")
 cmat <- matrix(0, 5,5)

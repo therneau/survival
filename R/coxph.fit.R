@@ -1,5 +1,6 @@
 coxph.fit <- function(x, y, strata, offset, init, control,
-			weights, method, rownames, resid=TRUE)
+                      weights, method, rownames, resid=TRUE, 
+                      nocenter=NULL)
 {
     n <-  nrow(y)
     if (is.matrix(x)) nvar <- ncol(x)
@@ -49,6 +50,11 @@ coxph.fit <- function(x, y, strata, offset, init, control,
 	else init <- rep(0,nvar)
 	}
 
+    # 2012 change: individually choose which variable to rescale
+    # default: leave 0/1 variables along
+    if (is.null(nocenter)) zero.one <- rep(FALSE, ncol(x))
+    else zero.one <- apply(x, 2, function(z) all(z %in% nocenter))
+
     storage.mode(weights) <- storage.mode(init) <- "double"
     coxfit <- .Call(Ccoxfit6, 
                      as.integer(maxiter),
@@ -62,7 +68,7 @@ coxph.fit <- function(x, y, strata, offset, init, control,
                      as.double(control$eps),
                      as.double(control$toler.chol),
                      as.vector(init),
-                     as.integer(1))  # internally rescale
+                     ifelse(zero.one, 0L, 1L))
 
     if (nullmodel) {
         if (resid) {

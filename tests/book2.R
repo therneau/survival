@@ -72,7 +72,7 @@ sfit <- survfit(fit0, list(x=0), censor=FALSE)
 aeq(sfit$std.err^2, truth0$var)
 aeq(sfit$surv, truth0$surv)
 
-fit <- coxph(Surv(time, status) ~x, test1, eps=1e-8)
+fit <- coxph(Surv(time, status) ~x, test1, eps=1e-8, nocenter=NULL)
 aeq(round(fit$coef,6), 1.676857)
 truebeta <- log(cos(acos((45/23)*sqrt(3/23))/3) * 2* sqrt(23/3))
 truth <- byhand(truebeta, 0)

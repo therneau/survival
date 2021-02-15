@@ -3,7 +3,7 @@
 #
 coxpenal.fit <- function(x, y, strata, offset, init, control,
 			weights, method, rownames, 
-			pcols, pattr, assign) {
+			pcols, pattr, assign, nocenter=NULL) {
     eps <- control$eps
     n <-  nrow(y)
     if (is.matrix(x)) nvar <- ncol(x)
@@ -283,7 +283,12 @@ coxpenal.fit <- function(x, y, strata, offset, init, control,
 
     ## need the current environment for callbacks
     rho<-environment()
-    
+
+    # 2012 change: individually choose which variable to recenter
+    # default: leave 0/1 variables along
+    if (is.null(nocenter)) zero.one <- rep(FALSE, ncol(x))
+    zero.one <- apply(x, 2, function(z) all(z %in% nocenter))
+
     #
     # Have C store the data, and get the loglik for beta=initial, frailty=0
     #
@@ -308,7 +313,8 @@ coxpenal.fit <- function(x, y, strata, offset, init, control,
                                as.integer(nfrail),
                                as.integer(frailx),
                                #R callback additions
-                               f.expr1,f.expr2,rho)
+                               f.expr1,f.expr2,rho,
+                               ifelse(zero.one, 0L, 1L))
     else       coxfit <- .C(Ccoxfit5a, 
                                as.integer(n),
                                as.integer(nvar), 
@@ -327,7 +333,8 @@ coxpenal.fit <- function(x, y, strata, offset, init, control,
                                as.integer(full.imat),
                                as.integer(nfrail),
                                as.integer(frailx),
-                               f.expr1,f.expr2,rho)
+                               f.expr1,f.expr2,rho,
+                               ifelse(zero.one, 0L, 1L))
 
     loglik0 <- coxfit$loglik
     means   <- coxfit$means

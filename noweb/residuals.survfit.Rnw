@@ -241,7 +241,7 @@ First, compute three vectors, each with one element per event time.
   \item term3 = cumulative sum of term2
 \end{itemize}
 
-For any given observation $i$ whose follow-up interval is (s_i, t_i), their
+For any given observation $i$ whose follow-up interval is $(s_i, t_i)$, their
 derivative at time $z$ is the sum of
 \begin{itemize}
   \item term3(min($z$, $t_i$)) - term3(min($z$, $s_i$))
@@ -375,7 +375,7 @@ event time.
    \sum_{j=1}^m -x_j S(d_j) \frac{\partial H(d_j)}{\partial w_i} \\
   &= \sum_{j=1}^m -x_jS(d_j) \sum_{k \le j} \frac{\partial h(d_k)}{\partial w_i} \\
   &= \sum_{k=1}^m \frac{\partial h(d_k)}{\partial w_i} 
-          \left(\sum{j\ge k} -x_j S(d_j) \\
+          \left(\sum_{j\ge k} -x_j S(d_j) \right) \\
   &= \sum_{k=1}^m -A(d_k, t) \frac{\partial h(d_k)}{\partial w_i}    
 \end{align*}
 

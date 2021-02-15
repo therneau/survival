@@ -97,7 +97,8 @@ void coxfit5_a(Sint *nusedx,     Sint *nvarx,     double *yy,
                double *beta,     double *u,       double *loglik, 
 	       Sint *methodx,    Sint *ptype2,    Sint *pdiag2,
 	       Sint *nfrail,     Sint *frail2,
-               void *fexpr1,     void *fexpr2,    void *rho) {
+               void *fexpr1,     void *fexpr2,    void *rho,
+	       Sint *docenter) {
 
     int i,j,k, p, istrat;
     int ii; 
@@ -202,13 +203,15 @@ void coxfit5_a(Sint *nusedx,     Sint *nvarx,     double *yy,
     **  much more stable
     */
     for (i=0; i<nvar; i++) {
-	temp=0;
-	for (p=0; p<nused; p++) temp += covar[i][p];
-	temp /= nused;
-	means[i] = temp;
-	for (p=0; p<nused; p++) covar[i][p] -=temp;
+	if (docenter[i] ==0) means[i] = 0;
+	else {
+	    temp=0;
+	    for (p=0; p<nused; p++) temp += covar[i][p];
+	    temp /= nused;
+	    means[i] = temp;
+	    for (p=0; p<nused; p++) covar[i][p] -=temp;
 	}
-
+    }
     /*
     ** do the initial iteration step of a no-frailty model
     **   (actually, just a no-sparse-terms model) -- loglik only

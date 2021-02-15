@@ -26,10 +26,10 @@ match.ratetable(R, ratetable)
 coxpenal.df(hmat, hinv, fdiag, assign.list, ptype, nvar, pen1,
     pen2, sparse)
 coxpenal.fit(x, y, strata, offset, init, control, weights, method,
-    rownames, pcols, pattr, assign)
+    rownames, pcols, pattr, assign, nocenter)
 coxph.wtest(var, b, toler.chol = 1e-09)
 agexact.fit(x, y, strata, offset, init, control, weights, method,
-    rownames, resid=TRUE) 
+    rownames, resid=TRUE, nocenter=NULL) 
 survfitCI(X, Y, weights,  id, cluster, robust, istate,
                        stype=1, ctype=1, 
                        se.fit=TRUE,

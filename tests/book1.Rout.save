@@ -1,6 +1,6 @@
 
-R Under development (unstable) (2019-10-26 r77334) -- "Unsuffered Consequences"
-Copyright (C) 2019 The R Foundation for Statistical Computing
+R Under development (unstable) (2021-01-28 r79896) -- "Unsuffered Consequences"
+Copyright (C) 2021 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -119,12 +119,13 @@ Type 'q()' to quit R.
 > # This next gives an ignorable warning message
 > fit2 <- coxph(Surv(time, status) ~x, test1, method='breslow', iter=2)
 Warning message:
-In fitter(X, Y, istrat, offset, init, control, weights = weights,  :
+In coxph.fit(X, Y, istrat, offset, init, control, weights = weights,  :
   Ran out of iterations and did not converge
 > aeq(round(fit2$coef, 6), 1.472724)
 [1] TRUE
 > 
-> fit <- coxph(Surv(time, status) ~x, test1, method='breslow', eps=1e-8)
+> fit <- coxph(Surv(time, status) ~x, test1, method='breslow', eps=1e-8,
++              nocenter=NULL)
 > aeq(fit$coef, log(1.5 + sqrt(33)/2))  # the true solution
 [1] TRUE
 > truth <- byhand1(fit$coef, 0)
@@ -168,22 +169,6 @@ In fitter(X, Y, istrat, offset, init, control, weights = weights,  :
          1          6          6          9 
  0.1861407  0.4069297 -0.5930703  0.0000000 
 > 
-> predict(fit, type='lp')
-[1] -0.7376425         NA  0.7376425  0.7376425  0.7376425 -0.7376425 -0.7376425
-> predict(fit, type='risk')
-[1] 0.4782401        NA 2.0910001 2.0910001 2.0910001 0.4782401 0.4782401
-> predict(fit, type='expected')
-        1         2         3         4         5         6         7 
-1.3333333        NA 0.2712864 0.2712864 1.4574271 0.3333333 0.3333333 
-> predict(fit, type='terms')
-           x
-1 -0.7376425
-2         NA
-3  0.7376425
-4  0.7376425
-5  0.7376425
-6 -0.7376425
-7 -0.7376425
 > predict(fit, type='lp', se.fit=T)
 $fit
          1          2          3          4          5          6          7 
@@ -232,13 +217,6 @@ $se.fit
 7 0.6278672
 
 > 
-> summary(survfit(fit))
-Call: survfit(formula = fit)
-
- time n.risk n.event survival std.err lower 95% CI upper 95% CI
-    1      6       1   0.8783   0.122      0.66827            1
-    6      4       2   0.4981   0.218      0.21125            1
-    9      1       1   0.0615   0.150      0.00051            1
 > summary(survfit(fit, list(x=2)))
 Call: survfit(formula = fit, newdata = list(x = 2))
 
@@ -249,4 +227,4 @@ Call: survfit(formula = fit, newdata = list(x = 2))
 > 
 > proc.time()
    user  system elapsed 
-  0.808   0.059   0.860 
+  0.979   0.060   1.041 

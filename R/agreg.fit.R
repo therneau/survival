@@ -1,6 +1,6 @@
 # Automatically generated from the noweb directory
 agreg.fit <- function(x, y, strata, offset, init, control,
-                        weights, method, rownames, resid=TRUE)
+                        weights, method, rownames, resid=TRUE, nocenter=NULL)
     {
     nvar <- ncol(x)
     event <- y[,3]
@@ -61,6 +61,11 @@ agreg.fit <- function(x, y, strata, offset, init, control,
         if (length(init) != nvar) stop("Wrong length for inital values")
         }
 
+    # 2021 change: pass in per covariate centering.  This gives
+    #  us more freedom to experiment.  Default is to leave 0/1 variables alone
+    if (is.null(nocenter)) zero.one <- rep(FALSE, ncol(x))
+    zero.one <- apply(x, 2, function(z) all(z %in% nocenter)) 
+
     # the returned value of agfit$coef starts as a copy of init, so make sure
     #  is is a vector and not a matrix; as.double suffices.
     # Solidify the storage mode of other arguments
@@ -75,7 +80,10 @@ agreg.fit <- function(x, y, strata, offset, init, control,
                    as.integer(maxiter), 
                    as.double(control$eps),
                    as.double(control$toler.chol),
-                   as.integer(1)) # internally rescale
+                   ifelse(zero.one, 0L, 1L))
+    # agfit4 centers variables within strata, so does not return a vector
+    #  of means.  Use a fill in consistent with other coxph routines
+    agmeans <- ifelse(zero.one, 0, colMeans(x))
 
     vmat <- agfit$imat
     coef <- agfit$coef
@@ -98,7 +106,7 @@ agreg.fit <- function(x, y, strata, offset, init, control,
                               "; beta may be infinite. "))
         }
     }
-    lp  <- as.vector(x %*% coef + offset - sum(coef * colMeans(x)))
+    lp  <- as.vector(x %*% coef + offset - sum(coef * agmeans))
     if (resid) {
         score <- as.double(exp(lp))
         residuals <- .Call(Cagmart3, nused,
@@ -134,7 +142,7 @@ agreg.fit <- function(x, y, strata, offset, init, control,
                          iter   = agfit$iter,
                          linear.predictors = as.vector(lp),
                          residuals = residuals, 
-                         means = colMeans(x),
+                         means = agmeans,
                          first = agfit$u,
                          info = flag,
                          method= method,
@@ -146,7 +154,7 @@ agreg.fit <- function(x, y, strata, offset, init, control,
                          score  = agfit$sctest,
                          iter   = agfit$iter,
                          linear.predictors = as.vector(lp),
-                         means = colMeans(x),
+                         means = agmeans,
                          first = agfit$u,
                          info = flag,
                          method = method,

@@ -1,7 +1,7 @@
 
-R Under development (unstable) (2016-03-23 r70368) -- "Unsuffered Consequences"
-Copyright (C) 2016 The R Foundation for Statistical Computing
-Platform: i686-pc-linux-gnu (32-bit)
+R Under development (unstable) (2021-01-28 r79896) -- "Unsuffered Consequences"
+Copyright (C) 2021 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -26,7 +26,7 @@ Type 'q()' to quit R.
 > test2 <- data.frame(start=c(1, 2, 5, 2, 1, 7, 3, 4, 8, 8),
 +                     stop =c(2, 3, 6, 7, 8, 9, 9, 9,14,17),
 +                     event=c(1, 1, 1, 1, 1, 1, 1, 0, 0, 0),
-+                     x    =c(1, 0, 0, 1, 0, 1, 1, 1, 0, 0) )
++                     x    =c(1, 0, 0, 1, 0, 1, 1, 1, 0, 0))
 > 
 > byhand <- function(beta, newx=0) {
 +     r <- exp(beta)
@@ -95,7 +95,7 @@ Type 'q()' to quit R.
 [1] TRUE
 > 
 > 
-> fit <- coxph(Surv(start, stop, event) ~x, test2, eps=1e-8)
+> fit <- coxph(Surv(start, stop, event) ~x, test2, eps=1e-8, nocenter=NULL)
 > truth <- byhand(fit$coef, 0)
 > aeq(truth$loglik, fit$loglik[2])
 [1] TRUE
@@ -271,4 +271,4 @@ Call: survfit(formula = fit, newdata = list(x = 2))
 > 
 > proc.time()
    user  system elapsed 
-  0.244   0.020   0.259 
+  0.907   0.072   0.972 

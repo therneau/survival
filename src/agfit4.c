@@ -37,7 +37,7 @@ SEXP agfit4(SEXP nused2, SEXP surv2,      SEXP covar2,    SEXP strata2,
     int *sort1, *sort2, maxiter;
     int *strata;
     double method;  /* saving this as double forces some double arithmetic */
-    int doscale;
+    int *doscale;
 
     /* returned objects */
     SEXP imat2, beta2, u2, loglik2;
@@ -58,7 +58,7 @@ SEXP agfit4(SEXP nused2, SEXP surv2,      SEXP covar2,    SEXP strata2,
     eps   = asReal(eps2);
     tol_chol = asReal(tolerance2);
     maxiter = asInteger(maxiter2);
-    doscale = asInteger(doscale2);
+    doscale = INTEGER(doscale2);
   
     /* input arguments */
     start = REAL(surv2);
@@ -128,25 +128,27 @@ SEXP agfit4(SEXP nused2, SEXP surv2,      SEXP covar2,    SEXP strata2,
     **  the scaling is overall.
     */
     for (i=0; i<nvar; i++) {
-        istrat = strata[sort2[0]];  /* the current stratum */
-        k = 0;                      /* first obs of current one */
-        temp =0;  temp2=0;
-        for (person=0; person< nused; person++) {
-            p = sort2[person];
-            if (strata[p] == istrat) {
-                temp += weights[p] * covar[i][p];
+        if (doscale[i] == 0) scale[i] =1; /* skip this variable */
+        else {
+            istrat = strata[sort2[0]];  /* the current stratum */
+            k = 0;                      /* first obs of current one */
+            temp =0;  temp2=0;
+            for (person=0; person< nused; person++) {
+                p = sort2[person];
+                if (strata[p] == istrat) {
+                    temp += weights[p] * covar[i][p];
                 temp2 += weights[p];
+                }
+                else {  /* new stratum */
+                    temp /= temp2;  /* mean for this covariate, this strata */
+                    for (; k< person; k++) covar[i][sort2[k]] -=temp;
+                    temp =0;  temp2=0;
+                    istrat = strata[p];
+                }
+                temp /= temp2;  /* mean for last stratum */
+                for (; k< nused; k++) covar[i][sort2[k]] -= temp;
             }
-            else {  /* new stratum */
-                temp /= temp2;  /* mean for this covariate, this strata */
-                for (; k< person; k++) covar[i][sort2[k]] -=temp;
-                temp =0;  temp2=0;
-                istrat = strata[p];
-            }
-        temp /= temp2;  /* mean for last stratum */
-        for (; k< nused; k++) covar[i][sort2[k]] -= temp;
-        }
-        if (doscale ==1) { /* also scale the regression */
+
             /* this cannot be done per stratum */
             temp =0;
             temp2 =0;
@@ -163,11 +165,8 @@ SEXP agfit4(SEXP nused2, SEXP surv2,      SEXP covar2,    SEXP strata2,
             }
         }
     }
- 
-    if (doscale ==1) {
-        for (i=0; i<nvar; i++) beta[i] /= scale[i]; /* rescale initial betas */
-        }
-    else {for (i=0; i<nvar; i++) scale[i] = 1.0;}
+                
+    for (i=0; i<nvar; i++) beta[i] /= scale[i]; /* rescale initial betas */
              
     /* main loop */
     halving =0 ;             /* =1 when in the midst of "step halving" */

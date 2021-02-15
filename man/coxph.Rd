@@ -20,7 +20,7 @@ coxph(formula, data=, weights, subset,
       ties=c("efron","breslow","exact"), 
       singular.ok=TRUE, robust, 
       model=FALSE, x=FALSE, y=TRUE, tt, method=ties,
-      id, cluster, istate, statedata, ...)
+      id, cluster, istate, statedata, nocenter=c(-1, 0, 1), ...)
 }
 \arguments{
   \item{formula}{
@@ -107,6 +107,8 @@ coxph(formula, data=, weights, subset,
   }
   \item{tt}{optional list of time-transform functions.}
   \item{method}{alternate name for the \code{ties} argument.}
+  \item{nocenter}{columns of the X matrix whose values lie strictly
+      within this set are not recentered}
   \item{...}{Other arguments will be passed to \code{\link{coxph.control}}
   }
 }
@@ -143,6 +145,9 @@ of which applies to an interval of observation (start, stop].
 The routine internally scales and centers data to avoid overflow in
 the argument to the exponential function.  These actions do not change
 the result, but lead to more numerical stability.
+Any column of the X matrix whose values lie within \code{nocenter} list
+are not recentered.  The practical consequence of the default is to not
+recenter dummy variables corresponding to factors.
 However, arguments to offset are not scaled since there are situations
 where a large offset value is a purposefully used.
 In general, however, users should not avoid very large numeric values
@@ -196,7 +201,7 @@ cluster function would not be noticed.
 (Full qualification of the coxph call itself may be protective, however.)
 Second, and more importantly, the call just above will not give the
 correct answer.  The specials are recognized by their name, and
-`survival::cluster' is not the same as `cluster'; the above model would
+\code{survival::cluster} is not the same as \code{cluster}; the above model would
 treat \code{inst} as an ordinary variable.
 A similar issue arises from using \code{stats::offset} as a term, in
 either survival or glm models.
