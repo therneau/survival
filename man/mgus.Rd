@@ -10,6 +10,7 @@ undetermined significance (MGUS).
 \usage{
 mgus
 mgus1
+data(cancer, package="survival")
 }
 \format{
   mgus: A data frame with 241 observations on the following 12 variables.

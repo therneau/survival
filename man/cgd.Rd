@@ -9,7 +9,9 @@
   Contains the data on time to serious infections observed through
   end of study for each patient. 
 }
-\usage{cgd}
+\usage{cgd
+data(cgd)
+}
 \format{
   \describe{
    \item{id}{subject identification number}

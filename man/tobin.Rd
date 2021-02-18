@@ -6,7 +6,9 @@
   Economists fit a parametric censored data model called the
   \sQuote{tobit}.  These data are from Tobin's original paper. 
 }
-\usage{tobin}
+\usage{tobin
+data(tobin, package="survival")
+}
 \format{
   A data frame with 20 observations on the following 3 variables.
   \describe{

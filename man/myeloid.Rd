@@ -6,6 +6,9 @@
   This simulated data set is based on a trial in acute myeloid
   leukemia.
 }
+\usage{myeloid
+data(cancer, package="survival")
+}
 \format{
   A data frame with 646 observations on the following 9 variables.
   \describe{

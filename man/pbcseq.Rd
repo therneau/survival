@@ -25,7 +25,9 @@ often undertaken because of worsening medical condition, did not
 necessarily have all this lab work. 
 The missing values are thus potentially informative.
 }
-\usage{pbc}
+\usage{pbcseq
+data(pbc, package="survival")
+}
 \format{
   \tabular{ll}{
     id:\tab case number\cr

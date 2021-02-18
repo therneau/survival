@@ -8,7 +8,7 @@ library(survival)
 aeq <- function(x,y, ...) all.equal(as.vector(x), as.vector(y), ...)
 
 fit <- coxph(Surv(time, status) ~ age + sex + meal.cal + strata(ph.ecog),
-		data=cancer)
+		data=lung)
 surv1 <- survfit(fit)
 temp <- surv1[2:3]
 
@@ -20,7 +20,7 @@ aeq(surv1$time[zed], temp$time)
 # This call should not create a model frame in the code -- so same
 #  answer but a different path through the underlying code
 fit <- coxph(Surv(time, status) ~ age + sex + meal.cal + strata(ph.ecog),
-		x=T, data=cancer)
+		x=T, data=lung)
 surv2 <- survfit(fit)
 all.equal(surv1, surv2)
 

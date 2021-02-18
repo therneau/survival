@@ -79,12 +79,12 @@ Smoothing parameter selection in nonparametric regression using
 JRSSB, volume 60, 271--293.
 }    
 \examples{
-lfit6 <- survreg(Surv(time, status)~pspline(age, df=2), cancer)
-plot(cancer$age, predict(lfit6), xlab='Age', ylab="Spline prediction")
+lfit6 <- survreg(Surv(time, status)~pspline(age, df=2), lung)
+plot(lung$age, predict(lfit6), xlab='Age', ylab="Spline prediction")
 title("Cancer Data")
-fit0 <- coxph(Surv(time, status) ~ ph.ecog + age, cancer)
-fit1 <- coxph(Surv(time, status) ~ ph.ecog + pspline(age,3), cancer)
-fit3 <- coxph(Surv(time, status) ~ ph.ecog + pspline(age,8), cancer)
+fit0 <- coxph(Surv(time, status) ~ ph.ecog + age, lung)
+fit1 <- coxph(Surv(time, status) ~ ph.ecog + pspline(age,3), lung)
+fit3 <- coxph(Surv(time, status) ~ ph.ecog + pspline(age,8), lung)
 fit0
 fit1
 fit3

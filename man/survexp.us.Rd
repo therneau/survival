@@ -8,6 +8,9 @@
 \description{
   Census data sets for the expected survival and person years functions.
 }
+\usage{
+data(survexp, package="survival")
+}
 \details{
   \describe{
     \item{survexp.us}{

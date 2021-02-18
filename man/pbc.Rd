@@ -28,7 +28,9 @@ A nearly identical data set found in appendix D of Fleming and Harrington;
 this version has fewer missing values.
 
 }
-\usage{pbc}
+\usage{pbc
+data(pbc, package="survival")
+}
 \format{
   \tabular{ll}{
     age:\tab in years\cr

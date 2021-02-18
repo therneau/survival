@@ -1,6 +1,6 @@
 
-R Under development (unstable) (2019-05-15 r76504) -- "Unsuffered Consequences"
-Copyright (C) 2019 The R Foundation for Statistical Computing
+R Under development (unstable) (2021-02-16 r80015) -- "Unsuffered Consequences"
+Copyright (C) 2021 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -25,7 +25,7 @@ Type 'q()' to quit R.
 > aeq <- function(x,y, ...) all.equal(as.vector(x), as.vector(y), ...)
 > 
 > fit <- coxph(Surv(time, status) ~ age + sex + meal.cal + strata(ph.ecog),
-+ 		data=cancer)
++ 		data=lung)
 > surv1 <- survfit(fit)
 > temp <- surv1[2:3]
 > 
@@ -39,7 +39,7 @@ Type 'q()' to quit R.
 > # This call should not create a model frame in the code -- so same
 > #  answer but a different path through the underlying code
 > fit <- coxph(Surv(time, status) ~ age + sex + meal.cal + strata(ph.ecog),
-+ 		x=T, data=cancer)
++ 		x=T, data=lung)
 > surv2 <- survfit(fit)
 > all.equal(surv1, surv2)
 [1] TRUE
@@ -93,4 +93,4 @@ Type 'q()' to quit R.
 > 
 > proc.time()
    user  system elapsed 
-  0.808   0.060   0.868 
+  0.900   0.048   0.939 

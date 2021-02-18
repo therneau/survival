@@ -4,7 +4,9 @@
 \title{Veterans' Administration Lung Cancer study}
 \description{Randomised trial of two treatment regimens for lung cancer.
   This is a standard survival analysis data set.} 
-\usage{veteran}
+\usage{veteran
+data(cancer, package="survival")
+}
 \format{
   \tabular{ll}{
     trt:\tab 1=standard 2=test\cr

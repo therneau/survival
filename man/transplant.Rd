@@ -1,6 +1,5 @@
 \name{transplant}
 \alias{transplant}
-\alias{transplant2}
 \docType{data}
 \title{Liver transplant waiting list}
 \description{
@@ -8,9 +7,11 @@
   disposition: received a transplant, died while waiting, withdrew from
   the list, or censored.
 }
-\usage{transplant}
+\usage{transplant
+data(transplant, package="survival")
+}
 \format{
-  A data frame with 815 (transplant) or 861 (transplant2) observations
+  A data frame with 815 (transplant) observations
   on the following 6 variables.
   \describe{
     \item{\code{age}}{age at addition to the waiting list}
@@ -21,13 +22,6 @@
     \item{\code{event}}{final disposition: \code{censored},
       \code{death},
       \code{ltx} or \code{withdraw}}
-    \item{\code{creat}}{serum creatinine}
-    \item{\code{bili}}{serum bilirubin}
-    \item{\code{inr}}{International Normalized Ratio, a measure of the
-      blood's clotting ability}
-    \item{\code{meld}}{calculated MELD score}
-    \item{diag}{primary diagnosis: alcoholic liver disease,
-      cholestatic liver disease, hepatitis B, hepatitis C, or other}
   }
 }
 \details{

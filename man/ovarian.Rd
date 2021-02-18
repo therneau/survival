@@ -2,7 +2,9 @@
 \alias{ovarian}
 \docType{data}
 \title{Ovarian Cancer Survival Data}
-\usage{ovarian}
+\usage{ovarian
+data(cancer, package="survival")
+}
 \description{Survival in a randomised trial comparing two treatments for
     ovarian cancer}
 \format{

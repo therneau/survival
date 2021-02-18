@@ -6,7 +6,9 @@
   Three rats were chosen from each of 100 litters, one of which was
   treated with a drug, and then all followed for tumor incidence.
 }
-\usage{rats}
+\usage{rats
+data(cancer, package="survival")
+}
 \format{
   \tabular{ll}{
     litter:\tab litter number from 1 to 100\cr

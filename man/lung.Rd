@@ -8,7 +8,9 @@
   Central Cancer Treatment Group.  Performance
   scores rate how well the patient can perform usual daily activities.
 }
-\usage{lung}
+\usage{lung
+data(cancer, package="survival")
+}
 \format{
   \tabular{ll}{
     inst:\tab Institution code\cr

@@ -1,7 +1,9 @@
 \name{colon}
 \alias{colon}
 \title{Chemotherapy for Stage B/C colon cancer}
-\usage{colon}
+\usage{colon
+       data(cancer, package="survival")
+}
 \description{These are data from one of the first successful trials of
     adjuvant chemotherapy for colon cancer. Levamisole is a low-toxicity
     compound previously used to treat worm infestations in animals; 5-FU

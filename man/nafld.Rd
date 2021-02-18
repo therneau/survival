@@ -12,7 +12,9 @@
 }
 \usage{nafld1
        nafld2
-       nafld3}
+       nafld3
+data(nafld, package="survival")
+}
 \format{
   \code{nafld1} is a data frame with 17549 observations on the following 10 variables.
   \describe{

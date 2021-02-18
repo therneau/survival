@@ -44,10 +44,10 @@ Gray (1992) "Flexible methods of analysing survival data using splines, with app
 coxph(Surv(futime, fustat) ~ rx + ridge(age, ecog.ps, theta=1),
 	      ovarian)
 
-lfit0 <- survreg(Surv(time, status) ~1, cancer)
-lfit1 <- survreg(Surv(time, status) ~ age + ridge(ph.ecog, theta=5), cancer)
-lfit2 <- survreg(Surv(time, status) ~ sex + ridge(age, ph.ecog, theta=1), cancer)
-lfit3 <- survreg(Surv(time, status) ~ sex + age + ph.ecog, cancer)
+lfit0 <- survreg(Surv(time, status) ~1, lung)
+lfit1 <- survreg(Surv(time, status) ~ age + ridge(ph.ecog, theta=5), lung)
+lfit2 <- survreg(Surv(time, status) ~ sex + ridge(age, ph.ecog, theta=1), lung)
+lfit3 <- survreg(Surv(time, status) ~ sex + age + ph.ecog, lung)
 
 }
 \keyword{survival }%-- one or more ...

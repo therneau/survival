@@ -10,6 +10,7 @@ cycles.}
 \usage{
 aml
 leukemia
+data(cancer, package="survival")
 }
 \format{
   \tabular{ll}{

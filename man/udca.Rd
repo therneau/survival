@@ -9,7 +9,10 @@
   Data from a trial of ursodeoxycholic acid (UDCA) in patients with primary
   biliary cirrohosis (PBC).  
 }
-\usage{udca}
+\usage{udca
+udca2
+data(udca, package="survival")
+}
 \format{
   A data frame with 170 observations on the following 15 variables.
   \describe{

@@ -6,6 +6,9 @@
   Results of a randomized trial of rhDNase for the treatment of cystic
   fibrosis.
 }
+\usage{rhDNase
+data(rhDNase, package="survival")
+}
 \format{
   A data frame with 767 observations on the following 8 variables.
   \describe{

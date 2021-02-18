@@ -9,7 +9,9 @@ for mounting electronic componentes to printed circuit boards.
 The experiment varied a number of factors relevant to the process.
 The response, measured by eye, is the number of visible solder skips.
 }
-\usage{solder}
+\usage{solder
+data(solder, package="survival")
+}
 \format{
   A data frame with 900 observations on the following 6 variables.
   \describe{

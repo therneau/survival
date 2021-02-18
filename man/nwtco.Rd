@@ -7,7 +7,9 @@
   survival, but prediction is stronger with central lab histology than
   with the local institution determination.
 }
-\usage{nwtco}
+\usage{nwtco
+data(nwtco, package="survival")
+}
 \format{
   A data frame with 4028 observations on the following 9 variables.
   \describe{

@@ -6,7 +6,9 @@
 \description{A trial of laser coagulation as a treatment to delay
   diabetic retinopathy.
 }
-\usage{data("retinopathy")}
+\usage{retinopathy
+data(retinopathy, package="survival")
+}
 \format{
   A data frame with 394 observations on the following 9 variables.
   \describe{

@@ -8,6 +8,7 @@
 bladder1
 bladder
 bladder2
+data(cancer, package="survival")
 }
 \description{Data on recurrences of bladder cancer, used by many people
   to demonstrate methodology for recurrent event modelling.

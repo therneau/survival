@@ -7,7 +7,9 @@
   gammopathy of undetermined significance (MGUS).  This is a superset of
   the \code{mgus} data, at a later point in the accrual process
 }
-\usage{mgus2}
+\usage{mgus2
+data(cancer, package="survival")
+}
 \format{
   A data frame with 1384 observations on the following 10 variables.
   \describe{
