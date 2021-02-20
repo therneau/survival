@@ -16,7 +16,8 @@ function(formula, newdata, se.fit=TRUE, conf.int=.95, individual=FALSE,
     se.fit <- FALSE   #still to do
     if (missing(newdata))
         stop("multi-state survival requires a newdata argument")
-
+    if (!missing(id)) 
+        stop("using a covariate path is not supported for multi-state")
     temp <- object$stratum_map["(Baseline)",] 
     baselinecoef <- rbind(temp, coef= 1.0)
     if (any(duplicated(temp))) {

@@ -6,7 +6,7 @@ Date: 2021-02-15
 Depends: R (>= 3.5.0)
 Imports: graphics, Matrix, methods, splines, stats, utils
 LazyData: Yes
-LazyLoad: Yes
+LazyDataCompression: xz
 ByteCompile: Yes
 Authors@R: c(person(c("Terry", "M"), "Therneau",
                     email="therneau.terry@mayo.edu",
