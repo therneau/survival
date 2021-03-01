@@ -473,14 +473,14 @@ clarity, allow us to easily identify them.
 Before calling the model.frame function, we mark these words as
 ``special'' in the formula, and the resulting terms object will
 contain a specials attribute.
-<<special, eval=FALSE>>=
+\begin{verbatim}
 temp <- Call[c(1,indx)]  # only keep the arguments we wanted
-temp\code{1} <- as.name('model.frame')  # change the function called
+temp$code[[1]]<- as.name('model.frame')  # change the function called
 special <- c("strata", "cluster", "tt")
 temp$formula <- if(missing(data)) terms(formula, special)
                 else              terms(formula, special, data=data)
 mf <- eval(temp, parent.frame())
-@
+\end{verbatim}
 
 Here is a test call to show how it works.
 \begin{verbatim}
@@ -1088,8 +1088,8 @@ Here are the lines that retain the information in coxph.
 The missing values information, if any were detected, will be
 an attribute of the model frame that was constructed.
 If present, we save it.
-<<missing>>=
-na.action <- attr(m, "na.action")
+<<missing, eval=FALSE>>=
+na.action <- attr(mf, "na.action")
 if (length(na.action)) fit$na.action <- na.action
 @ 
 
@@ -1097,7 +1097,7 @@ Printing is similarly easy using the naprint method; add
 a line like the following to your print function.
 The naprint function returns a character string appropriate
 to the language setting.
-<<missing2>>=
+<<missing2, eval=FALSE>>=
 if (!is.null(x$na.action)) cat(naprint(x$na.action), "\n")
 @ 
 

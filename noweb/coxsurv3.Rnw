@@ -36,6 +36,7 @@ function(formula, newdata, se.fit=TRUE, conf.int=.95, individual=FALSE,
     # process options, set up Y and the model frame, deal with start.time
     <<survfit.coxph-setup1>>
     <<survfit.coxph-setup2>>
+    istate <- model.extract(mf, "istate")
     if (!missing(start.time)) {
         if (!is.numeric(start.time) || length(start.time) !=1
             || !is.finite(start.time))
@@ -47,8 +48,8 @@ function(formula, newdata, se.fit=TRUE, conf.int=.95, individual=FALSE,
             Y <- Y[-toss,,drop=FALSE]
             X <- X[-toss,,drop=FALSE]
             weights <- weights[-toss]
-            id <- id[-toss]
-            if (!missing(istate))istate <- istate[-toss]
+            oldid <- oldid[-toss]
+            istate <- istate[-toss]
         }
     }
 
@@ -78,7 +79,6 @@ expanded data set that coxph used for a multi-state fit.
 
 <<survfit.coxphms-setupa>>=
 # Rebuild istate using the survcheck routine
-istate <- model.extract(mf, "istate")
 mcheck <- survcheck2(Y, oldid, istate)
 transitions <- mcheck$transitions
 if (is.null(istate)) istate <- mcheck$istate

@@ -24,7 +24,11 @@ stacker <- function(cmap, smap, istate, X, Y, strata, states) {
         from.state <- from.state[check>0]
         to.state <- to.state[check>0]
     }
- 
+
+    # Don't create X and Y matrices for transitions with no covariates
+    zerocol <- apply(cmap==0, 2, all)
+    if (any(zerocol)) cmap <- cmap[,!zerocol]  
+
     endpoint <- c(0, match(attr(Y, "states"), states))
     endpoint <- endpoint[ 1 + Y[,ncol(Y)]]  # endpoint of each row, 0=censor
 

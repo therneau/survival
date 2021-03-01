@@ -12,7 +12,8 @@ function(formula, newdata, se.fit=TRUE, conf.int=.95, individual=FALSE,
     se.fit <- FALSE   #still to do
     if (missing(newdata))
         stop("multi-state survival requires a newdata argument")
-
+    if (!missing(id)) 
+        stop("using a covariate path is not supported for multi-state")
     temp <- object$stratum_map["(Baseline)",] 
     baselinecoef <- rbind(temp, coef= 1.0)
     if (any(duplicated(temp))) {
@@ -130,6 +131,7 @@ function(formula, newdata, se.fit=TRUE, conf.int=.95, individual=FALSE,
         }
 
     }
+    istate <- model.extract(mf, "istate")
     if (!missing(start.time)) {
         if (!is.numeric(start.time) || length(start.time) !=1
             || !is.finite(start.time))
@@ -141,14 +143,13 @@ function(formula, newdata, se.fit=TRUE, conf.int=.95, individual=FALSE,
             Y <- Y[-toss,,drop=FALSE]
             X <- X[-toss,,drop=FALSE]
             weights <- weights[-toss]
-            id <- id[-toss]
-            if (!missing(istate))istate <- istate[-toss]
+            oldid <- oldid[-toss]
+            istate <- istate[-toss]
         }
     }
 
     # expansion of the X matrix with stacker, set up shared hazards
     # Rebuild istate using the survcheck routine
-    istate <- model.extract(mf, "istate")
     mcheck <- survcheck2(Y, oldid, istate)
     transitions <- mcheck$transitions
     if (is.null(istate)) istate <- mcheck$istate

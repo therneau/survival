@@ -45,6 +45,10 @@ Other features, neither good nor bad, are that they will agree with
 robust standard errors of other survival package estimates,
 which are based on the IJ, and that the mean of the estimates, over
 subjects, is exactly the underlying survival estimate.
+
+For the \code{type} variable, \code{surv} is an acceptable synonym for
+\code{pstate}, and \code{rmst, rmts} are equivalent to \code{sojourn}.
+All of these are case insensitive.
 }
 \value{
   A vector, matrix, or array.  The first dimension is always the number of
