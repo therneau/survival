@@ -109,10 +109,8 @@ plot.cox.zph <- function(x, resid=TRUE, se=TRUE, df=4, nsmo=40,
                      ylab=ylab[i], log='xy', ...)
             else {
                 plot(range(xx[keep]), exp(yr), type='n', xlab=xlab, 
-                     ylab=ylab[i], log='y', axes=FALSE,...)
+                     ylab=ylab[i], log='y', xaxt= 'n',...)
                 axis(1, xaxisval, xaxislab)
-                axis(2)
-                box()
 	    }
             if (resid) points(xx[keep], exp(y))
 
