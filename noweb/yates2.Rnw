@@ -17,7 +17,7 @@ These are also referred to as U and V in the vignette.
 
 <<yates>>=
 yates <- function(fit, term, population=c("data", "factorial", "sas"),
-                  levels, test =c("global", "trend", "pairwise", "mean"),
+                  levels, test =c("global", "trend", "pairwise"),
                   predict="linear", options, nsim=200,
                   method=c("direct", "sgtt")) {
     Call <- match.call()

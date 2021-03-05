@@ -92,7 +92,7 @@ cmatrix <- function(fit, term,
             if (any(duplicated(levels)))
                 stop("levels matrix has duplicated rows")
             levels <- data.frame(levels, stringsAsFactors=FALSE)
-            names(levels) <- termnames
+            names(levels) <- termname
          }
         else if (length(parts) > 1)
             stop("levels should be a data frame or matrix")
@@ -137,11 +137,11 @@ cmatrix <- function(fit, term,
             cname <- rep("", npair)
             for (i in 1:(nlev-1)) {
                 temp <- double(nlev)
-                temp[tindex[i]] <- 1
+                temp[i] <- 1
                 for (j in (i+1):nlev) {
-                    temp[tindex[j]] <- -1
+                    temp[j] <- -1
                     cmat[[k]] <- matrix(temp, nrow=1)
-                    temp[tindex[j]] <- 0
+                    temp[j] <- 0
                     cname[k] <- paste(i, "vs", j)
                     k <- k+1
                 }
@@ -178,7 +178,9 @@ cmatrix <- function(fit, term,
             else stop("don't know how to do a linear contrast for this term")
         }
     }
-    rval <- list(levels=levels, termname=termname, cmat=cmat, iscat=iscat)
+    # the user can say "age" when the model has "ns(age)", but we need
+    #   the more formal label going forward
+    rval <- list(levels=levels, termname=parts, cmat=cmat, iscat=iscat)
     class(rval) <- "cmatrix"
     rval
 }
@@ -236,7 +238,7 @@ nafun <- function(cmat, est) {
     any(used & is.na(est))
     }
 yates <- function(fit, term, population=c("data", "factorial", "sas"),
-                  levels, test =c("global", "trend", "pairwise", "mean"),
+                  levels, test =c("global", "trend", "pairwise"),
                   predict="linear", options, nsim=200,
                   method=c("direct", "sgtt")) {
     Call <- match.call()
