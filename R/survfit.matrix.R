@@ -102,7 +102,7 @@ survfit.matrix <- function(formula, p0, method=c("discrete", "matexp"),
         ptemp <- p0
         for (i in 1:nrow(jumps)) {
             Tmat[nonzero] <- jumps[i,]
-            if (method == "matrix") {
+            if (method == "discrete") {
                 temp <- pmin(1, rowSums(Tmat) - diag(Tmat)) # failsafe
                 diag(Tmat) <- 1 - temp  #rows sum to 1
                 ptemp <- ptemp %*% Tmat

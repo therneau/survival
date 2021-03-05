@@ -17,7 +17,7 @@ These are also referred to as U and V in the vignette.
 
 <<yates>>=
 yates <- function(fit, term, population=c("data", "factorial", "sas"),
-                  levels, test =c("global", "trend", "pairwise"),
+                  levels, test =c("global", "trend", "pairwise", "mean"),
                   predict="linear", options, nsim=200,
                   method=c("direct", "sgtt")) {
     Call <- match.call()
@@ -30,9 +30,10 @@ yates <- function(fit, term, population=c("data", "factorial", "sas"),
     # a flaw in delete.response: it doesn't subset dataClasses
     Tatt$dataClasses <- Tatt$dataClasses[row.names(Tatt$factors)]
     
+    if (inherits(fit, "coxphms")) stop("multi-state coxph not yet supported")
     if (is.list(predict) || is.function(predict)) { 
         # someone supplied their own
-        stop("user written prediction function are not yet supported")
+        stop("user written prediction functions are not yet supported")
     }
     else {  # call the method
         indx <- match(c("fit", "predict", "options"), names(Call), nomatch=0)
@@ -50,6 +51,7 @@ yates <- function(fit, term, population=c("data", "factorial", "sas"),
         xassign <- attr(Xold, "assign")
     }
     else xassign <- fit$assign 
+    
 
     nvar <- length(xassign)
     nterm <- length(Tatt$term.names)
@@ -72,6 +74,18 @@ yates <- function(fit, term, population=c("data", "factorial", "sas"),
     else stop("the population argument must be a data frame or character")
     test <- match.arg(test)
     
+    if (popframe || population != "data") weight <- NULL
+    else {
+        weight <- model.extract(mframe, "weights")
+        if (is.null(weight)) {
+            id <- model.extract(mframe, "id")
+            if (!is.null(id)) { # each id gets the same weight
+                count <- c(table(id))
+                weight <- 1/count[match(id, names(count))]
+            }
+        }
+    }       
+
     if (method=="sgtt" && (population !="sas" || predict != "linear"))
         stop("sgtt method only applies if population = sas and predict = linear")
 
@@ -155,7 +169,9 @@ temp <- match(contr$termname, colnames(Tatt$factors))
 if (any(is.na(temp)))
     stop("term '", contr$termname[is.na(temp)], "' not found in the model")
 
-Cmat <- t(sapply(xmatlist, colMeans))[,!nabeta]
+meanfun <- if (is.null(weight)) colMeans else function(x) {
+    colSums(x*weight)/ sum(weight)}
+Cmat <- t(sapply(xmatlist, meanfun))[,!nabeta]
           
 # coxph model: the X matrix is built as though an intercept were there (the
 #  baseline hazard plays that role), but then drop it from the coefficients
@@ -332,7 +348,7 @@ extra space before the 4 compared to what was typed.
 
 <<yates>>=
 yates_xmat <- function(Terms, Tatt, contr, population, mframe, fit, 
-                       iscat) {
+                       iscat, weight) {
     # which variables(s) are in x1 (variables of interest)
     x1indx <- apply(Tatt$factors[,contr$termname,drop=FALSE] >0, 1, any)  
     x2indx <- !x1indx  # adjusters

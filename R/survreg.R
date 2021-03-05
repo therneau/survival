@@ -70,6 +70,9 @@ survreg <- function(formula, data, weights, subset, na.action,
     if (type=="mright" || type=="mcounting") 
         stop("multi-state survival is not supported")
    
+    pterms <- sapply(mf, inherits, 'coxph.penalty')
+    if (any(pterms)) stop("survreg does not support penalized terms such as frailty, pspline, or ridge")
+
     cluster <- model.extract(m, "cluster")
     if (length(cluster)) {
         if (missing(robust)) robust <- TRUE

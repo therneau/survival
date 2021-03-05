@@ -1,6 +1,6 @@
 # Automatically generated from the noweb directory
 cmatrix <- function(fit, term, 
-                    test =c("global", "trend", "pairwise"),
+                    test =c("global", "trend", "pairwise", "mean"),
                     levels, assign) {
     # Make sure that "fit" is present and isn't missing any parts.
     if (missing(fit)) stop("a fit argument is required")
@@ -23,53 +23,25 @@ cmatrix <- function(fit, term,
         else stop("a numeric term must be an integer between 1 and max terms in the fit")
         }
     else if (!inherits(term, "formula"))
-        stop("the term must be a formula, character string, or integer")
+        stop("the term must be a formula or integer")
     fterm <- delete.response(terms(term))
     fatt <- attributes(fterm)
     user.name <- fatt$term.labels  # what the user called it
-    indx <- match(fatt$term.labels, Tatt$term.labels)
-    if (any(is.na(indx))) {
-        # allow partial matching.  If the fit had factor(x) but user said "x",
-        #  pretend they said "factor(x)".  Fail for ns(x) + log(x) though.
-        # but match the first for factor(x) + factor(x):z
-        temp <- fatt$term.labels
-        temp2 <- Tatt$term.labels
-        temp2[grepl(":", temp2)] <- ""
-        for (i in 1:length(temp)) {
-            j <- grep(temp[i], Tatt$term.labels)
-            k <- grep(temp[i], temp2)
-            if (length(j)==1) temp[i] <- Tatt$term.labels[j]
-            else if (length(k)==1) temp[i] <- Tatt$term.labels[k]
-            else stop("term '", temp[i], "' not found in the fit")
-            }
-        fterm <- terms(formula( paste("~", paste(temp, collapse="+"))))
-        fatt <- attributes(fterm)
-        indx <- match(fatt$term.labels, Tatt$term.labels)
-   }
+    termname <- all.vars(fatt$variables)
+    indx <- match(termname, all.vars(Tatt$variables))
+    if (any(is.na(indx))) 
+        stop("variable ", termname[is.na(indx)], " not found in the formula")
     
-    # match these up with the columns via the assign attribute
-    if (missing(assign)) assign <- fit$assign
-    if (missing(assign)) stop("the fit is missing an assign component")
-    if (is.list(assign)) {
-        # old style assign as used in Splus, and still used in coxph
-        assign <- rep(1:length(assign), sapply(assign, length))
-    }
-    ncoef <- length(assign)
-    whichcol <- which(assign %in% indx & !is.na(coef(fit)))
-    ntest <- length(whichcol)
-    if (ntest ==0) stop("no non-missing coefficients in the estimate")
-    termname <- Tatt$term.labels[indx]  # to label the output
-    
-    # What kind of term is being tested.  It can be categorical, continuous,
+    # What kind of term is being tested?  It can be categorical, continuous,
     #  an interaction of only categorical terms, interaction of only continuous
     #  terms, or a mixed interaction.
-    parts <- row.names(Tatt$factors)[apply(Tatt$factors[,indx, drop=FALSE] !=0,
-                                           1, any)]
+    # Key is a trick to get "zed" from ns(zed, df= dfvar)
+    key <- sapply(Tatt$variables[-1], function(x) all.vars(x)[1])
+    parts <- names(Tatt$dataClasses)[match(termname, key)]
     types <- Tatt$dataClasses[parts]
     iscat <- as.integer(types=="factor" | types=="character")
-    if (length(parts)==1) termtype <-iscat
+    if (length(iscat)==1) termtype <- iscat
     else  termtype <- 2 + any(iscat) + all(iscat)
-
 
     # Were levels specified?  If so we either simply accept them (continuous),
     #  or double check them (categorical)
@@ -80,47 +52,53 @@ cmatrix <- function(fit, term,
         levels <- do.call(expand.grid, c(temp, stringsAsFactors=FALSE))
     }
     else {  #user supplied
-        if (is.data.frame(levels)) {
-            temp <- match(names(levels), parts)
-            if (any(is.na(temp)))
-                stop("not found in levels data frame:", parts)
-            else levels <- levels[temp]  # reorder it
-            if (any(duplicated(levels))) stop("levels data frame has duplicates")
-        }
-        else if (is.list(levels)) {
-            if (length(levels) != length(parts))
-                stop("levels list should have", length(parts), "components")
+        if (is.list(levels)) {
             if (is.null(names(levels))) {
-                if (length(levels) == length(user.name)) 
-                    names(levels) <- user.name
-                else stop("levels list should have names")
+                if (length(termname)==1) names(levels)== termname
+                else stop("levels list requires named elements")
             }
-            temp <- match(names(levels), parts)
-            if (any(is.null(temp)))
-                stop("names of levels does not match the terms")
-            else levels <- levels[temp]  #reorder them
-        
-            if (any(sapply(levels, function(x) any(duplicated(x)))))
-                stop("one or more elements of the levels list has duplicates")
-            levels <- do.call("expand.grid", levels)
+        }
+        if (is.data.frame(levels) || is.list(levels)) {
+            index1 <- match(termname, names(levels), nomatch=0)
+            # Grab the cols from levels that are needed (we allow it to have
+            #  extra, unused columns)
+            levels <- as.list(levels[index1])
+            # now, levels = the set of ones that the user supplied (which might
+            #   be none, if names were wrong)
+            if (length(levels) < length(termname)) {
+                # add on the ones we don't have, using fit$xlevels as defaults
+                temp <- fit$xlevels[parts[index1==0]]
+                if (length(temp) > 0) {
+                    names(temp) <- termname[index1 ==0]
+                    levels <- c(levels, temp)
+                }
+            } 
+            index2 <- match(termname, names(levels), nomatch=0)
+            if (any(index2==0)) 
+                stop("levels information not found for: ", termname[index2==0])
+            levels <- expand.grid(levels[index2], stringsAsFactors=FALSE)
+            if (any(duplicated(levels))) stop("levels data frame has duplicates")
         }
         else if (is.matrix(levels)) {
             if (ncol(levels) != length(parts))
                 stop("levels matrix has the wrong number of columns")
             if (!is.null(dimnames(levels)[[2]])) {
-                temp <- match(dimnames(levels)[[2]], parts)
-                if (any(is.na(temp)))
-                    stop("matrix column names do no match the terms")
-            } else dimnames(levels)[[2]] <- parts
+                index <- match(termname, dimnames(levels)[[2]], nomatch=0)
+                if (index==0)
+                    stop("matrix column names do no match the variable list")
+                else levels <- levels[,index, drop=FALSE]
+            } else if (ncol(levels) > 1) 
+                stop("multicolumn levels matrix requires column names")
             if (any(duplicated(levels)))
                 stop("levels matrix has duplicated rows")
             levels <- data.frame(levels, stringsAsFactors=FALSE)
+            names(levels) <- termnames
          }
         else if (length(parts) > 1)
             stop("levels should be a data frame or matrix")
         else {
             levels <- data.frame(x=unique(levels), stringsAsFactors=FALSE)
-            names(levels) <- user.name
+            names(levels) <- termname
         }       
     }
 
@@ -128,10 +106,10 @@ cmatrix <- function(fit, term,
     for (i in which(iscat==1)) {
         xlev <- fit$xlevels[[parts[i]]]
         if (is.null(xlev))
-            stop("xlevels attribute not found for", parts[i])
-        temp <- match(levels[[parts[i]]], xlev)
+            stop("xlevels attribute not found for", termname[i])
+        temp <- match(levels[[i]], xlev)
         if (any(is.na(temp)))
-            stop("invalid level for term", parts[i])
+            stop("invalid level for term", termname[i])
     }
     
     rval <- list(levels=levels, termname=termname)
@@ -149,14 +127,12 @@ cmatrix <- function(fit, term,
         else stop("not yet done 2")
     }
     else if (test=="pairwise") {
-        if (length(parts) > 1) stop("pairwise tests must be for a single term")
-        tindex <- match(levels[[1]], levels[[1]])  #convert to integer
-        nlev <- length(tindex)  # this is the number of groups being compared
-        if (nlev < 2) stop("pairwise tests need at least 2 levels")
+        nlev <- nrow(levels)  # this is the number of groups being compared
+        if (nlev < 2) stop("pairwise tests need at least 2 groups")
         npair <- nlev*(nlev-1)/2
         if (npair==1) cmat <- matrix(c(1, -1), nrow=1)
         else {
-            cmat <- vector("list", npair +1)
+            cmat <- vector("list", npair)
             k <- 1
             cname <- rep("", npair)
             for (i in 1:(nlev-1)) {
@@ -170,12 +146,17 @@ cmatrix <- function(fit, term,
                     k <- k+1
                 }
             }
-            # global test
-            temp <- diag(nlev)
-            temp[,nlev] <- -1
-            cmat[[k]] <- temp[-nlev,]
-            names(cmat) <- c(cname, termname)
         }
+    }
+    else if (test=="mean") {
+        ntest <- nrow(levels)
+        cmat <- vector("list", ntest)
+        for (k in 1:ntest) {
+            temp <- rep(-1/ntest, ntest)
+            temp[k] <- (ntest-1)/ntest
+            cmat[[k]] <- matrix(temp, nrow=1)
+        }
+        names(cmat) <- paste(1:ntest, "vs mean")
     }
     else {
         cmat <- vector("list", 2)
@@ -255,7 +236,7 @@ nafun <- function(cmat, est) {
     any(used & is.na(est))
     }
 yates <- function(fit, term, population=c("data", "factorial", "sas"),
-                  levels, test =c("global", "trend", "pairwise"),
+                  levels, test =c("global", "trend", "pairwise", "mean"),
                   predict="linear", options, nsim=200,
                   method=c("direct", "sgtt")) {
     Call <- match.call()
@@ -268,9 +249,10 @@ yates <- function(fit, term, population=c("data", "factorial", "sas"),
     # a flaw in delete.response: it doesn't subset dataClasses
     Tatt$dataClasses <- Tatt$dataClasses[row.names(Tatt$factors)]
     
+    if (inherits(fit, "coxphms")) stop("multi-state coxph not yet supported")
     if (is.list(predict) || is.function(predict)) { 
         # someone supplied their own
-        stop("user written prediction function are not yet supported")
+        stop("user written prediction functions are not yet supported")
     }
     else {  # call the method
         indx <- match(c("fit", "predict", "options"), names(Call), nomatch=0)
@@ -288,6 +270,7 @@ yates <- function(fit, term, population=c("data", "factorial", "sas"),
         xassign <- attr(Xold, "assign")
     }
     else xassign <- fit$assign 
+    
 
     nvar <- length(xassign)
     nterm <- length(Tatt$term.names)
@@ -310,6 +293,18 @@ yates <- function(fit, term, population=c("data", "factorial", "sas"),
     else stop("the population argument must be a data frame or character")
     test <- match.arg(test)
     
+    if (popframe || population != "data") weight <- NULL
+    else {
+        weight <- model.extract(mframe, "weights")
+        if (is.null(weight)) {
+            id <- model.extract(mframe, "id")
+            if (!is.null(id)) { # each id gets the same weight
+                count <- c(table(id))
+                weight <- 1/count[match(id, names(count))]
+            }
+        }
+    }       
+
     if (method=="sgtt" && (population !="sas" || predict != "linear"))
         stop("sgtt method only applies if population = sas and predict = linear")
 
@@ -357,7 +352,9 @@ yates <- function(fit, term, population=c("data", "factorial", "sas"),
         if (any(is.na(temp)))
             stop("term '", contr$termname[is.na(temp)], "' not found in the model")
 
-        Cmat <- t(sapply(xmatlist, colMeans))[,!nabeta]
+        meanfun <- if (is.null(weight)) colMeans else function(x) {
+            colSums(x*weight)/ sum(weight)}
+        Cmat <- t(sapply(xmatlist, meanfun))[,!nabeta]
                   
         # coxph model: the X matrix is built as though an intercept were there (the
         #  baseline hazard plays that role), but then drop it from the coefficients
@@ -559,7 +556,7 @@ yates <- function(fit, term, population=c("data", "factorial", "sas"),
     result
 }
 yates_xmat <- function(Terms, Tatt, contr, population, mframe, fit, 
-                       iscat) {
+                       iscat, weight) {
     # which variables(s) are in x1 (variables of interest)
     x1indx <- apply(Tatt$factors[,contr$termname,drop=FALSE] >0, 1, any)  
     x2indx <- !x1indx  # adjusters
