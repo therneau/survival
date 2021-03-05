@@ -2929,8 +2929,8 @@ as those for \code{coxph}.
 This works well in the case of ridge and pspline, but frailty terms
 are more problematic in that the code to automatically choose the
 tuning parameter for the random effect no longer solves an MLE
-equation.  
-More work on understanding these models is needed.
+equation.
+The current code will not lead to the correct choice of penalty.
 
 \subsection{Specifying a distribution}
 The fitting routine is quite general, and can accept any distribution that

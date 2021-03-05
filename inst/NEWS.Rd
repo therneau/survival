@@ -22,6 +22,12 @@
     less bad since for factors the curve will refer to the reference
     level.  The results of predict(fit) are now more defensible for a
     factor variable.
+    \item Add an explicit error message for survreg() with a frailty
+    term.  This usage was never supported -- it is integrating out the
+    appropriate density for a coxph model, which is the wrong one for
+    survreg -- but because the code would run we've found that people
+    assumed it must be right, despite a statement to the contrary in the
+    survival vignette.  Long overdue fix. 
 }}
 \section{Changes in version 3.2-8}{
   \itemize{

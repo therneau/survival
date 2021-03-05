@@ -130,10 +130,10 @@ J Computational and Graphical Statistics, 12:156-175, 2003.
 coxph(Surv(time, status) ~ age + frailty(inst, df=4), lung)
 
 # Litter effects for the rats data
-rfit2a <- survreg(Surv(time, status) ~ rx +
+rfit2a <- coxph(Surv(time, status) ~ rx +
                   frailty.gaussian(litter, df=13, sparse=FALSE), rats,
                   subset= (sex=='f'))
-rfit2b <- survreg(Surv(time, status) ~ rx +
+rfit2b <- coxph(Surv(time, status) ~ rx +
                   frailty.gaussian(litter, df=13, sparse=TRUE), rats,
                   subset= (sex=='f'))
 }
