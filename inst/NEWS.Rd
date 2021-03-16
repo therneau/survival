@@ -1,5 +1,11 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 3.2.10}{
+  \itemize{
+    \item CRAN valgrind checks discovered and uninitialized vector in
+    one of the C routines.  Now fixed.  Updated version is now on CRAN.
+}}
+
 \section{Changes in version 3.2-9}{
   \itemize{
     \item More careful tests of the rttright function.

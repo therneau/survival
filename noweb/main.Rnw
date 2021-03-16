@@ -2,12 +2,12 @@
 \usepackage{noweb}
 \usepackage{amsmath}
 \usepackage{fancyvrb}
+\usepackage{graphicx}
 \addtolength{\textwidth}{1in}
 \addtolength{\oddsidemargin}{-.5in}
 \setlength{\evensidemargin}{\oddsidemargin}
 
-\newcommand{\myfig}[1]{\resizebox{\textwidth}{!}
-                        {\includegraphics{figures/#1.pdf}}}
+\newcommand{\myfig}[1]{\includegraphics[width=\textwidth]{figures/#1.pdf}}
 \newcommand{\code}[1]{\texttt{#1}}
 \newcommand{\xbar}{\overline{x}}
 \newcommand{\sign}{{\rm sign}}

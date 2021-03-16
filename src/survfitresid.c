@@ -145,7 +145,10 @@ SEXP survfitresid(SEXP Y2,      SEXP sort12,  SEXP sort22,  SEXP cstate2,
 	if (doauc==1) for (i=0; i<nobs; i++) infa[j][i] = 0;
     } 
     
-    if (ncolY ==3) eptr  = 0; /*index to sort1, the entry times */
+    if (ncolY ==3) {
+	eptr  = 0; /*index to sort1, the entry times */
+	for (i=0; i< nobs; i++) atrisk[i] =0;
+    }
     else {
 	for (i=0; i<nobs; i++) { /* everyone starts out at risk */
 	    atrisk[i] =1;
