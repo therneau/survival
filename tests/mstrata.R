@@ -19,7 +19,6 @@ fit2 <- coxph(list(Surv(time, state) ~1,
 aeq(coef(fit1), coef(fit2))
 all.equal(fit1$loglik, fit2$loglik)
 
-# won't quite match due to Efron/Breslow hazard
 csurv1 <- survfit(fit1, newdata=expand.grid(age=65, sex=1, ph.ecog=0:2))
 csurv2a <- survfit(fit2, newdata= list(age=65, sex=1), p0=c(1,0,0,0))
 csurv2b <- survfit(fit2, newdata= list(age=65, sex=1), p0=c(0,1,0,0))
