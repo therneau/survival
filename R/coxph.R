@@ -429,7 +429,7 @@ coxph <- function(formula, data, weights, subset, na.action,
         # we want to number the terms wrt the original model matrix
         temp <- attr(X, "assign")
         shift <- sort(dropterms)
-        for (i in seq(along=shift))
+        for (i in seq(along.with=shift))
             temp <- temp + 1*(shift[i] <= temp)
         attr(X, "assign") <- temp 
     }
@@ -506,7 +506,7 @@ coxph <- function(formula, data, weights, subset, na.action,
         t2 <- tmap[-c(1, strats),,drop=FALSE]   # remove the intercept row and strata rows
         r2 <- row(t2)[!duplicated(as.vector(t2)) & t2 !=0]
         c2 <- col(t2)[!duplicated(as.vector(t2)) & t2 !=0]
-        a2 <- lapply(seq(along=r2), function(i) {cmap[assign[[r2[i]]], c2[i]]})
+        a2 <- lapply(seq(along.with=r2), function(i) {cmap[assign[[r2[i]]], c2[i]]})
         # which elements are unique?  
         tab <- table(r2)
         count <- tab[r2]

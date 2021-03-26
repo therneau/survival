@@ -242,7 +242,7 @@ termmatch <- function(f1, f2) {
     if (length(f1)==0) return(NULL)   # a formula with only ~1
     irow <- match(rownames(f1), rownames(f2))
     if (any(is.na(irow))) stop ("termmatch failure 1") 
-    hashfun <- function(j) sum(ifelse(j==0, 0, 2^(seq(along=j))))
+    hashfun <- function(j) sum(ifelse(j==0, 0, 2^(seq(along.with=j))))
     hash1 <- apply(f1, 2, hashfun)
     hash2 <- apply(f2[irow,,drop=FALSE], 2, hashfun)
     index <- match(hash1, hash2)
@@ -512,7 +512,7 @@ parsecovar3 <- function(tmap, Xcol, Xassign, phbaseline=NULL) {
     if (nph.row > 0) {
         i <- length(Xcol)- hasintercept      # non-ph rows in cmap
         j <- cbind(i+ match(ptemp, unique(ptemp)), which(phbaseline>0)) 
-        cmap[j] <- max(cmap) + seq(along=ptemp)
+        cmap[j] <- max(cmap) + seq(along.with =ptemp)
         newname <- paste0("ph(",colnames(tmap)[unique(ptemp)], ")")
     } else newname <- NULL
 

@@ -55,7 +55,7 @@ print.summary.coxph <-
                 }   
             } 
         }        
-        cat("\n States:", paste(paste(seq(along=x$states), x$states, sep='= '), 
+        cat("\n States:", paste(paste(seq(along.with =x$states), x$states, sep='= '), 
                                collapse=", "), '\n')
     } else {
         if(!is.null(x$coefficients)) {

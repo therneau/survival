@@ -31,6 +31,6 @@ attrassign.default<-function(object, tt, ...){
         ll<-attr(tt,"term.labels")
         temp <- c("(Intercept)", ll)[aa+1]  #vector of term names
         # Don't put them in alphabetical order, retain the order we inherited
-        split(seq(along=temp), factor(temp, levels=unique(temp)))
+        split(seq(along.with=temp), factor(temp, levels=unique(temp)))
 }
 

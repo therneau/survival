@@ -380,7 +380,7 @@ rsurvpart1 <- function(Y, X, casewt, times,
             if (any(casewt != casewt[1])) {
                 # Have to reconstruct the number of obs with an event, the curve only
                 # contains the weighted sum
-                nevent <- unlist(lapply(seq(along=levels(X)), function(i) {
+                nevent <- unlist(lapply(seq(along.with=levels(X)), function(i) {
                     keep <- which(as.numeric(X) ==i)
                     counts <- table(Y[keep, ny-1], status)
                     as.vector(counts[, ncol(counts)])
@@ -781,7 +781,7 @@ rsurvpart2 <- function(Y, X, casewt, istate, times, cluster, type, fit,
             to   <- Y[transition, ny]   # to this state
             nrisk <- fit$n.risk[cbind(yindex[transition], from)]  # number at risk
             wt <- casewt[transition]
-            for (i in seq(along=from)) {
+            for (i in seq(along.with =from)) {
                 j <- c(from[i], to[i])
                 haz <- wt[i]/nrisk[i]
                 cmat[from[i], j, i2[i]] <- cmat[from[i], j, i2[i]] + c(-haz, haz)

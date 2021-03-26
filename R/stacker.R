@@ -53,7 +53,7 @@ stacker <- function(cmap, smap, istate, X, Y, strata, states) {
     Xcols   <- ncol(X)      # number of columns in X
     for (i in 1:nblock) {
         subject <- which(istate == from.state[i]) # data rows in strata
-        nr <- k + seq(along=subject)  # rows in the newX for this strata
+        nr <- k + seq(along.with =subject)  # rows in the newX for this strata
         rindex[nr] <- subject
         nc <- cmap[,i]  
         if (any(nc > Xcols)) { # constructed PH variables

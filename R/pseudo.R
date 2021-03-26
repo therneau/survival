@@ -140,7 +140,7 @@ pseudo <- function(fit, times, type, addNA=TRUE, data.frame=FALSE,
                     omit <- fit$na.action  #observations tossed out
                     n2 <- dim(ptemp)[1]
                     keep <- rep.int(NA, n2)
-                    keep[-omit] <- seq(along=id)
+                    keep[-omit] <- seq(along.with =id)
                     temp <- id
                     id <- vector(class(id), n2)
                     id[keep] <- temp
