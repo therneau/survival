@@ -8,7 +8,7 @@ tdata <- tmerge(myeloid[,1:3], myeloid, id=id, death=event(futime,death),
 tdata$event <- factor(with(tdata, sct + 2*death), 0:2,
                       c("censor", "sct", "death"))
 fit <- coxph(Surv(tstart, tstop, event) ~ trt + sex, tdata, id=id,
-             iter=4, x=TRUE)
+             iter=4, x=TRUE, robust=FALSE)
 
 fit12 <- coxph(Surv(tstart, tstop, event=='sct') ~ trt + sex, tdata,
                subset=(priortx==0), iter=4, x=TRUE)
