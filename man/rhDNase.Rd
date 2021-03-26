@@ -71,7 +71,7 @@ T. M. Therneau and P. M. Grambsch, Modeling Survival Data: Extending
   the Cox Model, Springer, 2000.
 
 
-T. M. Therneau and S.A. Mamilton,
+T. M. Therneau and S.A. Hamilton,
 rhDNase as an example of recurrent event analysis, Statistics
 in Medicine, 16:2029-2047, 1997.
 }

@@ -8,7 +8,7 @@
 }
 \description{
 The frailty function allows one to add a simple random effects term to
-a Cox or survreg model.
+a Cox model.
 }
 \usage{
 frailty(x, distribution="gamma", ...)

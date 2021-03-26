@@ -23,7 +23,7 @@ data(cancer, package="survival")
     \item{\code{pgr}}{progesterone receptors (fmol/l)}
     \item{\code{er}}{estrogen receptors (fmol/l)}
     \item{\code{hormon}}{hormonal therapy, 0= no, 1= yes}
-    \item{\code{rfstime}}{recurrnece free survival time; days to first of reccurence, death or last follow-up}
+    \item{\code{rfstime}}{recurrence free survival time; days to first of reccurence, death or last follow-up}
     \item{\code{status}}{0= alive without recurrence, 1= recurrence or
 death}
 }}

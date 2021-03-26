@@ -317,7 +317,7 @@ coxph <- function(formula, data, weights, subset, na.action,
 
     if (missing(robust) || is.null(robust)) {
         if (has.cluster || has.rwt ||
-                 (has.id && anyDuplicated(id[Y[,ncol(Y)]==1])))
+                 (has.id && (multi || anyDuplicated(id[Y[,ncol(Y)]==1]))))
             robust <- TRUE else robust <- FALSE
     }
     if (!is.logical(robust)) stop("robust must be TRUE/FALSE")
