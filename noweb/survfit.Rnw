@@ -154,7 +154,7 @@ dim.survfit <- function(x) {
             jj <- col(itemp)[keep]
             # at this point we have a matrix subscript of (ii, jj)
             # expand into a long pair of rows and cols
-            temp <- split(seq(along=x$time), 
+            temp <- split(seq(along.with=x$time), 
                           rep(1:length(x$strata), x$strata))
             indx1 <- unlist(temp[ii])   # rows of the surv object
             indx2 <- rep(jj, x$strata[ii])
@@ -177,12 +177,12 @@ dim.survfit <- function(x) {
     # irow will be the rows that need to be taken
     #  j the columns (of present)
     if (is.null(x$strata)) {
-           if (is.null(i) || all(i==1)) irow <- seq(along=x$time)
+           if (is.null(i) || all(i==1)) irow <- seq(along.with=x$time)
            else stop("subscript out of bounds")
            newx$n <- x$n
     }
     else { 
-        if (is.null(i)) indx <- seq(along= x$strata)
+        if (is.null(i)) indx <- seq(along.with= x$strata)
         else indx <- nmatch(i, names(x$strata)) #strata to keep
         if (any(is.na(indx))) 
             stop(paste("strata", 
@@ -190,7 +190,7 @@ dim.survfit <- function(x) {
                        'not matched'))
         # Now, indx may not be in order: some can use curve[3:2] to reorder
         #  The list/unlist construct will reorder the data
-        temp <- split(seq(along=x$time), 
+        temp <- split(seq(along.with =x$time), 
                       rep(1:length(x$strata), x$strata))
         irow <- unlist(temp[indx])
         

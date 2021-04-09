@@ -1,6 +1,20 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
-\section{Changes in version 3.2.10}{
+\section{Changes in version 3.2-11}{
+  \itemize{
+    \item Missing labels for the "pairwise" option in yates(), fixed.
+    \item Bug in plot.survfit -- could not use conf.int=T and xmax in
+    the same call.  Pointed out by Dirk Larson.
+    \item Failure of survfit, when applied to a multi-state coxph model with
+    strata().  Repaired and added this as a test case.
+    \item Change seq(along=  to seq(along.with=, to match the complete
+    name
+    \item In pyears(...,data.frame=TRUE), if the levels of a tcut are
+    numeric return a numeric rather than a factor.  (Version 2.4 feature
+    that had been inadvertently removed.)
+}}
+
+\section{Changes in version 3.2-10}{
   \itemize{
     \item CRAN valgrind checks discovered an uninitialized vector in
     one of the C routines.  Now fixed.  Updated version is now on CRAN.

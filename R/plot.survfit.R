@@ -421,12 +421,22 @@ plot.survfit<- function(x, conf.int,  mark.time=FALSE,
             else censor <- ifelse(x$n.censor[who]==0, 0, 1 + (x$n.event[who] > 0))
             xx <- stime[who]
             yy <- ssurv[who,j]
+            if (conf.int) {
+                ylower <- (slower[who,j])
+                yupper <- (supper[who,j])
+            }
             if (!is.null(xmax) && max(xx) > xmax) {  # truncate on the right
                 xn <- min(which(xx > xmax))
                 xx <- xx[1:xn]
                 yy <- yy[1:xn]
                 xx[xn] <- xmax
                 yy[xn] <- yy[xn-1]
+                if (conf.int) {
+                    ylower <- ylower[1:xn]
+                    yupper <- yupper[1:xn]
+                    ylower[xn] <- ylower[xn-1]
+                    yupper[xn] <- yupper[xn-1]
+                }
             }
                 
 
@@ -444,9 +454,9 @@ plot.survfit<- function(x, conf.int,  mark.time=FALSE,
             if (conf.int && !is.null(conf.times)) {
                 # add vertical bars at the specified times
                 x2 <- conf.times + temp.offset[c1]
-                templow <- approx(xx, slower[who,j], x2,
+                templow <- approx(xx, ylower, x2,
                                   method='constant', f=1)$y
-                temphigh<- approx(xx, supper[who,j], x2,
+                temphigh<- approx(xx, yupper, x2,
                                   method='constant', f=1)$y
                 segments(x2, templow, x2, temphigh,
                           lty=lty[c2], col=col[c2], lwd=lwd[c2])
@@ -463,18 +473,18 @@ plot.survfit<- function(x, conf.int,  mark.time=FALSE,
 
             if (conf.int && is.null(conf.times)) {
                 if (type == 's') {
-                    lines(dostep(xx, slower[who,j]), lty=lty[c2], 
+                    lines(dostep(xx, ylower), lty=lty[c2], 
                           col=col[c2],lwd=lwd[c2])
                     c2 <- c2 +1
-                    lines(dostep(xx, supper[who,j]), lty=lty[c2], 
+                    lines(dostep(xx, yupper), lty=lty[c2], 
                           col=col[c2], lwd= lwd[c2])
                     c2 <- c2 + 1
                 }
                 else {
-                    lines(xx, slower[who,j], lty=lty[c2], 
+                    lines(xx, ylower, lty=lty[c2], 
                           col=col[c2],lwd=lwd[c2], type=type) 
                     c2 <- c2 +1
-                    lines(xx, supper[who,j], lty=lty[c2], 
+                    lines(xx, yupper, lty=lty[c2], 
                           col=col[c2], lwd= lwd[c2], type= type)
                     c2 <- c2 + 1
                 }
@@ -806,12 +816,22 @@ lines.survfit <- function(x, type='s',
             else censor <- ifelse(x$n.censor[who]==0, 0, 1 + (x$n.event[who] > 0))
             xx <- stime[who]
             yy <- ssurv[who,j]
+            if (conf.int) {
+                ylower <- (slower[who,j])
+                yupper <- (supper[who,j])
+            }
             if (!is.null(xmax) && max(xx) > xmax) {  # truncate on the right
                 xn <- min(which(xx > xmax))
                 xx <- xx[1:xn]
                 yy <- yy[1:xn]
                 xx[xn] <- xmax
                 yy[xn] <- yy[xn-1]
+                if (conf.int) {
+                    ylower <- ylower[1:xn]
+                    yupper <- yupper[1:xn]
+                    ylower[xn] <- ylower[xn-1]
+                    yupper[xn] <- yupper[xn-1]
+                }
             }
                 
 
@@ -829,9 +849,9 @@ lines.survfit <- function(x, type='s',
             if (conf.int && !is.null(conf.times)) {
                 # add vertical bars at the specified times
                 x2 <- conf.times + temp.offset[c1]
-                templow <- approx(xx, slower[who,j], x2,
+                templow <- approx(xx, ylower, x2,
                                   method='constant', f=1)$y
-                temphigh<- approx(xx, supper[who,j], x2,
+                temphigh<- approx(xx, yupper, x2,
                                   method='constant', f=1)$y
                 segments(x2, templow, x2, temphigh,
                           lty=lty[c2], col=col[c2], lwd=lwd[c2])
@@ -848,18 +868,18 @@ lines.survfit <- function(x, type='s',
 
             if (conf.int && is.null(conf.times)) {
                 if (type == 's') {
-                    lines(dostep(xx, slower[who,j]), lty=lty[c2], 
+                    lines(dostep(xx, ylower), lty=lty[c2], 
                           col=col[c2],lwd=lwd[c2])
                     c2 <- c2 +1
-                    lines(dostep(xx, supper[who,j]), lty=lty[c2], 
+                    lines(dostep(xx, yupper), lty=lty[c2], 
                           col=col[c2], lwd= lwd[c2])
                     c2 <- c2 + 1
                 }
                 else {
-                    lines(xx, slower[who,j], lty=lty[c2], 
+                    lines(xx, ylower, lty=lty[c2], 
                           col=col[c2],lwd=lwd[c2], type=type) 
                     c2 <- c2 +1
-                    lines(xx, supper[who,j], lty=lty[c2], 
+                    lines(xx, yupper, lty=lty[c2], 
                           col=col[c2], lwd= lwd[c2], type= type)
                     c2 <- c2 + 1
                 }

@@ -21,11 +21,12 @@ or integer indices.
         # This function lets R worry about character, negative, 
         # or logical subscripts
         #  It always returns a set of positive integer indices
-        temp <- seq(along=target)
+        temp <- seq(along.with=target)
         names(temp) <- target
         temp[i]
     }
-    x <- survfit0(x, x$start.time)  # otherwise influence and pstate don't align
+    if (!is.null(x$influence.pstate) || !is.null(x$influence.cumhaz))
+        x <- survfit0(x, x$start.time)  # make influence and pstate align
     ndots <- ...length()      # the simplest, but not avail in R 3.4
     # ndots <- length(list(...))# fails if any are missing, e.g. fit[,2]
     # ndots <- if (missing(drop)) nargs()-1 else nargs()-2  # a workaround
@@ -66,7 +67,7 @@ or integer indices.
         ii <- (row(itemp))[i]    # this is now the strata id
         
         if (dtype[1]!=1 || dd[1]==1) # no strata or only 1
-            irow <- rep(seq(along= x$time), length(ii))
+            irow <- rep(seq(along.with= x$time), length(ii))
         else {
             itemp2 <- split(1:sum(x$strata), rep(1:length(x$strata), x$strata))
             irow <- unlist(itemp2[ii])  # rows of the pstate object
@@ -89,7 +90,7 @@ or integer indices.
             if (!is.null(x[[z]])) newx[[z]] <- (x[[z]])[indx]
         
         newx$strata <- x$strata[ii]
-        names(newx$strata) <- seq(along=ii)
+        names(newx$strata) <- seq(along.with=ii)
         
         return(newx)
     }
@@ -109,7 +110,7 @@ or integer indices.
 
     # create irow, which selects for the time dimension of x
     if (dtype[1]!=1 || is.null(i)) {
-        irow <- seq(along= x$time)
+        irow <- seq(along.with= x$time)
     }
     else {
         i <- nmatch(i, names(x$strata))
@@ -128,7 +129,7 @@ or integer indices.
         dtype <- c(1, dtype)
     }
     else { # there are strata
-        if (is.null(i)) i <-seq(along=x$strata)
+        if (is.null(i)) i <-seq(along.with=x$strata)
         if ((drop && length(i)>1) || !drop) newx$strata <- x$strata[i]
         newx$n <- x$n[i]
     }
@@ -144,12 +145,14 @@ or integer indices.
         else j <- nmatch(j, x$states)
 
         # keep these as start points for plotting, even though they won't make
-        #  true sense is states are subset, since rows won't sum to 1
+        #  true sense if states are subset, since rows won't sum to 1
         if (!is.null(x$p0)) {
-            if (is.matrix(x$p0)) newx$p0 <- x$p0[i,j] else newx$p0 <- x$p0[j]
+            if (is.matrix(x$p0)) newx$p0 <- x$p0[i,j, drop=FALSE] 
+            else newx$p0 <- x$p0[j]
         }
         if (!is.null(x$sp0)) {
-            if (is.matrix(x$sp0)) newx$sp0 <- x$p0[i,j] else newx$sp0 <- x$sp0[j]
+            if (is.matrix(x$sp0)) newx$sp0 <- x$p0[i,j, drop=FALSE] 
+            else newx$sp0 <- x$sp0[j]
         }   
         
         # in the rare case of a single strata with 1 obs, don't drop dims

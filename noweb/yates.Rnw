@@ -223,6 +223,7 @@ else {
             k <- k+1
         }
     }
+    names(cmat) <- cname
 }
 @ 
 

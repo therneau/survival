@@ -138,7 +138,7 @@ survfitCI <- function(X, Y, weights, id, cluster, robust, istate,
         id <- 1:n  # older default, which could lead to invalid curves
     }
     if (influence && !(has.cluster || has.id)) {
-        cluster <- seq(along=X)
+        cluster <- seq(along.with=X)
         has.cluster <- TRUE
     }
 

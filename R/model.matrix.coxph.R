@@ -49,7 +49,7 @@ model.matrix.coxph <- function(object, data=NULL,
         # we want to number the terms wrt the original model matrix
         temp <- attr(X, "assign")
         shift <- sort(dropterms)
-        for (i in seq(along.with =shift))
+        for (i in seq(along.with=shift))
             temp <- temp + 1*(shift[i] <= temp)
         attr(X, "assign") <- temp 
     }

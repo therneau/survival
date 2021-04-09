@@ -134,12 +134,18 @@ if (robust & length(cluster)==0) cluster <- oldid
 @ 
 
 The survfit.coxph-setup3 chunk, shared with single state Cox models, has created
-an mf3 model frame and an x2 matrix. 
+an mf2 model frame and an x2 matrix. 
+For multi-state, we ignore any strata variables in mf2.
 Create a matrix of risk scores, number of subjects by number of transitions.
 Different transitions often have different coefficients, so there is a risk
 score vector per transition.
 
 <<survfit.coxphms-setup3b>>=
+if (has.strata && !is.null(mf2[[stangle$vars]])){
+    mf2 <- mf2[is.na(match(names(mf2), stangle$vars))]
+    mf2 <- unique(mf2)
+    x2 <- unique(x2)
+}
 temp <- coef(object, matrix=TRUE)[!phbase,,drop=FALSE] # ignore missing coefs
 risk2 <- exp(x2 %*% ifelse(is.na(temp), 0, temp) - xcenter)
 @ 
@@ -149,22 +155,20 @@ expanded into a new X and Y.
 \begin{itemize}
   \item \code{strata} contains any strata that were specified by the user
     in the original fit. We do completely separate computations for each
-    stratum: the time scale starts over, nrisk, etc.  The final survival
-    curve will have a block of rows for each stratum.
+    stratum: the time scale starts over, nrisk, etc.  Each has a separate
+    call to the multihaz function.
   \item \code{transtion} contains the transition to which each observation
     applies
-  \item \code{istrat} contains the combination of strata and transition.
-    Each istrat defines a separate hazard function.  Separate istrat within
-    the same stratum will share the same time scale.
-  \item \code{baselinecoef} maps from hazards (istrat) to transitions.  It
-    has one column per transition, which strata that points to, and the
-    multiplier.  
-    Most multipliers will be 1.
+  \item \code{istrat} comes from the xstack routine, and marks each
+    strata * basline hazard combination.
+  \item \code{baselinecoef} maps from baseline hazards to transitions.  It
+    has one column per transition, which hazard it points to, and a
+    multiplier. Most multipliers will be 1.
   \item \code{hfill} is constructed below. It contains the row/column to which
     each column of baselinecoef is mapped, within the H matrix used to compute
     P(state).
 \end{itemize}
-The coxph routine fit all strata and transitions at once, since the loglik is
+The coxph routine fits all strata and transitions at once, since the loglik is
 a sum over strata.  This routine does each stratum separately.
 
 <<survfit.coxphms-result>>=
@@ -204,7 +208,7 @@ else {
         indx <- which(strata== ustrata[i])  # divides the data
         tfit[[i]] <- multihaz(Y[indx,,drop=F], X[indx,,drop=F],
                               position[indx], weights[indx], risk[indx],
-                              itemp, ctype, stype, baselinecoef, hfill,
+                              istrat[indx], ctype, stype, baselinecoef, hfill,
                               x2, risk2, varmat, nstate, se.fit,
                               cifit$p0[i,], timelist[[i]])
     }

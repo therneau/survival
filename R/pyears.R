@@ -273,7 +273,10 @@ pyears <- function(formula, data,
             #  (unless it is a tcut variable, then we know what to do)
             tdata <- lapply(1:length(ovars), function(i) {
                 temp <- mf[[ovars[i]]]
-                if (inherits(temp, "tcut")) factor(outdname[[i]], outdname[[i]])
+                if (inherits(temp, "tcut")) { #if levels are numeric, return numeric
+                    if (is.numeric(outdname[[i]])) outdname[[i]]
+                    else  factor(outdname[[i]], outdname[[i]]) # else factor
+                }
                 else temp[match(outdname[[i]], temp)]
             })
             tdata$stringsAsFactors <- FALSE  # argument for expand.grid

@@ -146,6 +146,7 @@ cmatrix <- function(fit, term,
                     k <- k+1
                 }
             }
+            names(cmat) <- cname
         }
     }
     else if (test=="mean") {

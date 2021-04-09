@@ -73,7 +73,7 @@ survcheck <- function(formula, data, subset, na.action,  id, istate,
         # make any numbering match the input data, not the retained data
         toss1 <- new2$isort[new2$last]  # original obs numbers that were the
                                        # last for a subject
-        dummy <- seq(along=new2$isort)[-toss1]  # rows we kept
+        dummy <- seq(along.with=new2$isort)[-toss1]  # rows we kept
         if (length(Ydup)) {
             fit$flag["duplicate"] <- length(Ydup)
             # if rows i and i+1 are duplicate times, we see it as i, the
@@ -195,7 +195,7 @@ survcheck2 <- function(y, id, istate=NULL, istate0="(s0)") {
         # if there was no istate entered in, use the constructed one from
         # the check routine
         # if ny=2 then every row starts at time 0
-        cstate2 <-factor(check$cstate, seq(along=states), states)
+        cstate2 <-factor(check$cstate, seq(along.with=states), states)
     }       
 
     # create the transtions table
@@ -206,7 +206,7 @@ survcheck2 <- function(y, id, istate=NULL, istate0="(s0)") {
     #  with unused levels)
     keep <- (stat2 !=0 | check$dupid > 1)  # not censored or last obs of this id
     transitions <- table(from=cstate2[keep], 
-                         to= factor(stat2[keep], c(seq(along=states), 0),
+                         to= factor(stat2[keep], c(seq(along.with=states), 0),
                                     c(states, "(censored)")),
                          useNA="ifany")
     nr <- nrow(transitions)
@@ -229,7 +229,7 @@ survcheck2 <- function(y, id, istate=NULL, istate0="(s0)") {
 
     rval <- list(states=states, transitions=transitions,
                  events= t(events), flag=flag, 
-                 istate= factor(check$cstate, seq(along=states), states))
+                 istate= factor(check$cstate, seq(along.with=states), states))
  
     # add error details, if necessary
     if (flag["overlap"] > 0) {

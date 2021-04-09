@@ -1,5 +1,5 @@
 
-R Under development (unstable) (2021-02-19 r80028) -- "Unsuffered Consequences"
+R Under development (unstable) (2021-03-25 r80120) -- "Unsuffered Consequences"
 Copyright (C) 2021 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
@@ -22,7 +22,7 @@ Type 'q()' to quit R.
 > library(survival)
 > aeq <- function(x, y, ...) all.equal(as.vector(x), as.vector(y), ...)
 > 
-> tdata <- subset(lung, ph.ecog < 3)  # there is only one of them
+> tdata <- subset(lung, ph.ecog < 3)  # there is only one row with ph.ecog=3
 > tdata$state <- factor(tdata$status, 1:2, c("censor", "death"))
 > tdata$cstate<- factor(tdata$ph.ecog, 0:2, c("ph0", "ph1", "ph2"))
 > tdata$id  <- 1:nrow(tdata)
@@ -59,7 +59,6 @@ state    0   1
 > all.equal(fit1$loglik, fit2$loglik)
 [1] TRUE
 > 
-> # won't quite match due to Efron/Breslow hazard
 > csurv1 <- survfit(fit1, newdata=expand.grid(age=65, sex=1, ph.ecog=0:2))
 > csurv2a <- survfit(fit2, newdata= list(age=65, sex=1), p0=c(1,0,0,0))
 > csurv2b <- survfit(fit2, newdata= list(age=65, sex=1), p0=c(0,1,0,0))
@@ -75,6 +74,28 @@ state    0   1
 > # Since the multi-state does not yet implement the Efron approx (and may never)
 > #  for the survival curve, the above only perfectly matches with Breslow.
 > 
+> 
+> # part 2: predicted values for a multistate model that has a strata
+> mgus2$etime <- with(mgus2, ifelse(pstat==0, futime, ptime))
+> event <- with(mgus2, ifelse(pstat==0, 2*death, 1))
+> mgus2$event <- factor(event, 0:2, labels=c("censor", "pcm", "death"))
+> 
+> dummy <- expand.grid(sex=c("F", "M"), age=c(60, 80), mspike=1.2)
+> 
+> cfit1 <- coxph(Surv(etime, event) ~ age + mspike +strata(sex), mgus2, id=id)
+> 
+> csurv1 <- survfit(cfit1, newdata=dummy)
+> csurv2 <- survfit(cfit1, newdata=expand.grid(age=c(60, 80), mspike=1.2))
+> temp <- c('n', 'time', 'n.risk', 'n.event', 'n.censor', 'pstate', 'cumhaz')
+> all.equal(unclass(csurv1)[temp], unclass(csurv2)[temp])
+[1] TRUE
+> 
+> cfit2 <- coxph(Surv(etime, event) ~ age + mspike, id=id,
++                init= coef(cfit1), iter=0, data=mgus2, subset=(sex=='F'))
+> csurv3 <- survfit(cfit2, newdata= expand.grid(age=c(60, 80), mspike=1.2))
+> all.equal(unclass(csurv1[1,,])[temp], unclass(csurv3)[temp])
+[1] TRUE
+> 
 > proc.time()
    user  system elapsed 
-  0.945   0.051   0.987 
+  1.603   0.073   1.679 

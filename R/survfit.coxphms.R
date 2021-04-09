@@ -344,6 +344,11 @@ function(formula, newdata, se.fit=TRUE, conf.int=.95, individual=FALSE,
         x2 <- model.matrix(Terms2, mf2)[,-1, drop=FALSE]  #no intercept
     }
 
+    if (has.strata && !is.null(mf2[[stangle$vars]])){
+        mf2 <- mf2[is.na(match(names(mf2), stangle$vars))]
+        mf2 <- unique(mf2)
+        x2 <- unique(x2)
+    }
     temp <- coef(object, matrix=TRUE)[!phbase,,drop=FALSE] # ignore missing coefs
     risk2 <- exp(x2 %*% ifelse(is.na(temp), 0, temp) - xcenter)
     # make the expansion map.  
@@ -382,7 +387,7 @@ function(formula, newdata, se.fit=TRUE, conf.int=.95, individual=FALSE,
             indx <- which(strata== ustrata[i])  # divides the data
             tfit[[i]] <- multihaz(Y[indx,,drop=F], X[indx,,drop=F],
                                   position[indx], weights[indx], risk[indx],
-                                  itemp, ctype, stype, baselinecoef, hfill,
+                                  istrat[indx], ctype, stype, baselinecoef, hfill,
                                   x2, risk2, varmat, nstate, se.fit,
                                   cifit$p0[i,], timelist[[i]])
         }
