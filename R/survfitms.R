@@ -656,7 +656,7 @@ survmean2 <- function(x, scale=1, rmean) {
             else newx$p0 <- x$p0[j]
         }
         if (!is.null(x$sp0)) {
-            if (is.matrix(x$sp0)) newx$sp0 <- x$p0[i,j, drop=FALSE] 
+            if (is.matrix(x$sp0)) newx$sp0 <- x$sp0[i,j, drop=FALSE] 
             else newx$sp0 <- x$sp0[j]
         }   
         
