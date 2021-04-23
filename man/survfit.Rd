@@ -54,7 +54,8 @@ manipulations, and this case is no longer supported.
          \code{\link{survfit.coxph}},
 	 \code{\link{survfit.object}}, \code{\link{print.survfit}},
 	 \code{\link{plot.survfit}}, \code{\link{quantile.survfit}},
-	 \code{\link{residuals.survfit}, \code{\link{summary.survfit}}}
+	 \code{\link{residuals.survfit}}, \code{\link{summary.survfit}}
+       }
 
 \keyword{ survival}
 

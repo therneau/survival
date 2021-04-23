@@ -551,8 +551,10 @@ survmean2 <- function(x, scale=1, rmean) {
     # Make a new object
     newx <- vector("list", length(x))
     names(newx) <- names(x)
-    for (kk in c("logse", "version", "conf.int", "conf.type", "type", "call"))
+    for (kk in c("logse", "version", "conf.int", "conf.type", "type", 
+                 "start.time", "call"))
         if (!is.null(x[[kk]])) newx[[kk]] <- x[[kk]]
+    newx$transitions <- NULL # may no longer be accurate, and not needed
     class(newx) <- class(x)
 
     # Like a matrix, let the user use a single subscript if they desire
