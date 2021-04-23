@@ -950,7 +950,7 @@ The routine will return list with three components:
 
 <<walkup>>
     
-    SEXP concordance3(SEXP y, SEXP x2, SEXP wt2, SEXP timewt2, 
+SEXP concordance3(SEXP y, SEXP x2, SEXP wt2, SEXP timewt2, 
                       SEXP sortstop, SEXP doresid2) {
     int i, j, k, ii, jj, kk, j2;
     int n, ntree, nevent;
@@ -1245,7 +1245,7 @@ void addin(double *nwt, double *twt, int index, double wt) {
 @ 
 
 The code for [start, stop) data is almost identical, the primary call
-simply has one more index  
+simply has one more index.  
 As in the agreg routines there are two sort indices, the first indexes
 the data by stop time, longest to earliest, and the second by start time. 
 The [[y]] variable now has three columns.
