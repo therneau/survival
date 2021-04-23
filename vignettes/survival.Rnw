@@ -1259,7 +1259,7 @@ The 5 month difference is more than 3 standard errors, so highly significant.
 In summary
   \begin{itemize}
     \item Arm B adds late complete responses (about 4\%); there are 
-      206/317 in arm B vs. 248/329 in arm B.
+      206/317 in arm A vs. 248/329 in arm B.
     \item The difference in 4 year survival is about 6\%.
     \item There is approximately 2 months longer average duration of CR (of 48).
   \end{itemize}

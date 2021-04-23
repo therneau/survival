@@ -4,6 +4,7 @@
 .*\.o
 .*\.so
 todo
+datasource
 noweb/code*
 noweb/*.pdf
 vignettes/*.pdf

@@ -13,7 +13,7 @@ from this point forward.
 
 The easiest way to understand the estimate is to consider first the
 case of no censoring.  
-In that setting the estimate of $F_k(t) = 1-S_k(t)$ for all states
+In that setting the estimate of $p_k(t)$ for all states
 is obtained from a simple table of the current state at time $t$
 of the subjects, divided by $n$, the original
 sample size.
@@ -28,8 +28,7 @@ but the routine name survfitCI endures.
 The cannonical call is one of
 \begin{verbatim}
   fit <- survfit(Surv(time, status) ~ sex, data=mine)
-  fit <- survfit(Surv(time1, time2, status) ~ sex, data=mine)
-
+  fit <- survfit(Surv(time1, time2, status) ~ sex, id= id, data=mine)
 \end{verbatim}
 where \code{status} is a factor variable.
 Optionally, there can be an id statement

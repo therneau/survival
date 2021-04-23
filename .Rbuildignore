@@ -1,3 +1,4 @@
+datasource
 noweb/.*.aux
 noweb/.*.log
 noweb/.*.tex

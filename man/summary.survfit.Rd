@@ -127,9 +127,16 @@ The \code{survfit} object itself will have a row of information at each
 censoring or event time, it does not save information on each unique
 entry time.  For printout at two time points t1, t2, this function will
 give the the number at risk at the smallest event times that are >= t1
-and >= t2, respectively, the survival curve at the largest recoreded times
+and >= t2, respectively, the survival curve at the largest recorded times
 <= t1 and <= t2, and the number of events and censorings in the interval
-t1 < t <= t2.  
+t1 < t <= t2.
+
+When the routine is called with counting process data many users are
+confused by counts that are too large.
+For example, \code{Surv(c(0,0, 5, 5), c(2, 3, 8, 10), c(1, 0, 1, 0))}
+followed by a request for the values at time 4.
+The \code{survfit} object has entries only at times 2, 3, 8, and 10;
+there are 2 subjects at risk at time 8, so that is what will be printed.
 }
 \seealso{
 \code{\link{survfit}},  \code{\link{print.summary.survfit}}   
