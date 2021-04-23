@@ -15,9 +15,9 @@ data(cancer, package="survival")
    A data set with 686 observations and 11 variables.
    \describe{
    \item{\code{pid}}{patient identifier}
-    \item{\code{age}}{age}
+    \item{\code{age}}{age, years}
     \item{\code{meno}}{menopausal status (0= premenopausal, 1= postmenopausal)}
-    \item{\code{size}}{tumor size}
+    \item{\code{size}}{tumor size, mm}
     \item{\code{grade}}{tumor grade}
     \item{\code{nodes}}{number of positive lymph nodes}
     \item{\code{pgr}}{progesterone receptors (fmol/l)}

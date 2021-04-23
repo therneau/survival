@@ -13,18 +13,18 @@ data(cancer, package="survival")
   A data frame with 2982 observations on the following 15 variables.
   \describe{
     \item{\code{pid}}{patient identifier}
-    \item{\code{year}}{year of cancer incidence}
-    \item{\code{age}}{age}
+    \item{\code{year}}{year of surgery}
+    \item{\code{age}}{age at surgery}
     \item{\code{meno}}{menopausal status (0= premenopausal, 1= postmenopausal)}
     \item{\code{size}}{tumor size, a factor with levels \code{<=20} \code{20-50} \code{>50}}
-    \item{\code{grade}}{tumor grade}
+    \item{\code{grade}}{differentiation grade}
     \item{\code{nodes}}{number of positive lymph nodes}
     \item{\code{pgr}}{progesterone receptors (fmol/l)}
     \item{\code{er}}{estrogen receptors (fmol/l)}
     \item{\code{hormon}}{hormonal treatment (0=no, 1=yes)}
     \item{\code{chemo}}{chemotherapy}
-    \item{\code{rtime}}{days to recurrence or last follow-up}
-    \item{\code{recur}}{0= no recurrence, 1= recurrence}
+    \item{\code{rtime}}{days to relapse or last follow-up}
+    \item{\code{recur}}{0= no relapse, 1= relapse}
     \item{\code{dtime}}{days to death or last follow-up}
     \item{\code{death}}{0= alive, 1= dead}
   }
