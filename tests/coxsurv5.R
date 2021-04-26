@@ -200,3 +200,11 @@ check4 <- with(test2, coxhaz(Surv(t1, t2, state), id=id, risk=mrisk4))
 aeq(check4$cumhaz, csurv4$cumhaz[indx3,1,])
 aeq(check4$pstate, csurv4$pstate[indx3,1,])
 aeq(csurv4$cumhaz[,2,], csurv4$cumhaz[,1,] %*% diag(1:6))
+
+
+# Check the stype=1 option
+csurv4b <- survfit(cox4, newdata= data.frame(x=0:1), stype=1)
+check4b <- with(test2, coxhaz(Surv(t1, t2, state), id=id, risk=mrisk4, 
+                              expm=FALSE))
+aeq(check4b$cumhaz, csurv4b$cumhaz[indx3,1,])
+aeq(check4b$pstate, csurv4b$pstate[indx3,1,])

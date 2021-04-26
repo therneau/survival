@@ -473,11 +473,11 @@ multihaz <- function(y, x, position, weight, risk, istrat, ctype, stype,
             H[,] <- 0.0
             H[hfill] <- hazard[j,] *risk2[i,]
             if (stype==1) {
-                diag(H) <- pmin(0, 1 + diag(H)- rowSums(H))
+                diag(H) <- pmax(0, 1.0 - rowSums(H))
                 S <- as.vector(S %*% H)  # don't keep any names
             }
             else {
-                diag(H) <- diag(H) - rowSums(H)
+                diag(H) <- 0.0 - rowSums(H)
                 #S <- as.vector(S %*% expm(H))  # dgeMatrix issue
                 S <- as.vector(S %*% survexpm(H, 1, esetup))
             }

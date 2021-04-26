@@ -894,7 +894,7 @@ lines.survfit <- function(x, type='s',
 points.survfit <- function(x, fun, censor=FALSE,
                            col=1, pch, noplot="(s0)", cumhaz=FALSE, ...) {
 
-    conf.int <- FALSE  # never draw these with 'points'
+    conf.int <- conf.times <- FALSE  # never draw these with 'points'
     x <- survfit0(x, x$start.time)
 
     # The default for plot and lines is to add confidence limits

@@ -8,10 +8,12 @@
     \item Failure of survfit, when applied to a multi-state coxph model with
     strata().  Repaired and added this as a test case.
     \item Change seq(along=  to seq(along.with=, to match the complete
-    name
+    argument name.
     \item In pyears(...,data.frame=TRUE), if the levels of a tcut are
     numeric return a numeric rather than a factor.  (Version 2.4 feature
     that had been inadvertently removed.)
+    \item Fix mistake in survfit.coxphms(..., stype=1): pmin when I
+    meant pmax.  (Resulting curves were not even close.)  Add a test case.   
 }}
 
 \section{Changes in version 3.2-10}{

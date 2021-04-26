@@ -1,6 +1,6 @@
 
-R Under development (unstable) (2020-12-17 r79644) -- "Unsuffered Consequences"
-Copyright (C) 2020 The R Foundation for Statistical Computing
+R Under development (unstable) (2021-04-20 r80202) -- "Unsuffered Consequences"
+Copyright (C) 2021 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -234,6 +234,16 @@ Type 'q()' to quit R.
 > aeq(csurv4$cumhaz[,2,], csurv4$cumhaz[,1,] %*% diag(1:6))
 [1] TRUE
 > 
+> 
+> # Check the stype=1 option
+> csurv4b <- survfit(cox4, newdata= data.frame(x=0:1), stype=1)
+> check4b <- with(test2, coxhaz(Surv(t1, t2, state), id=id, risk=mrisk4, 
++                               expm=FALSE))
+> aeq(check4b$cumhaz, csurv4b$cumhaz[indx3,1,])
+[1] TRUE
+> aeq(check4b$pstate, csurv4b$pstate[indx3,1,])
+[1] TRUE
+> 
 > proc.time()
    user  system elapsed 
-  1.153   0.044   1.199 
+  1.224   0.078   1.296 

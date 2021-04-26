@@ -28,7 +28,7 @@ void addin(double *nwt, double *twt, int index, double wt) {
     twt[0] += wt;
 }
     
-    SEXP concordance3(SEXP y, SEXP x2, SEXP wt2, SEXP timewt2, 
+SEXP concordance3(SEXP y, SEXP x2, SEXP wt2, SEXP timewt2, 
                       SEXP sortstop, SEXP doresid2) {
     int i, j, k, ii, jj, kk, j2;
     int n, ntree, nevent;

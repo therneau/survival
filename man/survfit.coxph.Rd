@@ -85,17 +85,29 @@ details. Methods defined for survfit objects are
 \code{lines}, and \code{points}. 
 }
 \details{
-  This routine produces survival curves based on a \code{coxph}
-  model fit.  The \code{ctype} option found in
-  \code{survfit.formula} is not present, it instead follows from the
-  choice of the \code{ties} option in the \code{coxph} call.  Likewise
+  This routine produces Pr(state) curves based on a \code{coxph}
+  model fit. For single state models it produces the single curve for
+  S(t) = Pr(remain in initial state at time t), known as the survival
+  curve; for multi-state models a matrix giving probabilities for all states.
+  The \code{stype} argument states the type of estimate, and defaults
+  to the exponential of the cumulative hazard, better known as the Breslow
+  estimate.  For a multi-state Cox model this involves the exponential
+    of a matrix. 
+  The argument \code{stype=1} uses a non-exponential or `direct'
+  estimate.  For a single endpoint coxph model the code evaluates the
+  Kalbfleich-Prentice estimate, and for a multi-state model it uses an
+  analog of the Aalen-Johansen estimator.  The latter approach is the
+    default in the \code{mstate} package.
+
+  The \code{ctype} option affects the estimated cumulative hazard, and
+  if \code{stype=2} the estimated P(state) curves as well.  If not
+  present it is chosen so as to be concordant with the 
+  \code{ties} option in the \code{coxph} call. (For multistate
+  \code{coxphms} objects only \code{ctype=1} is currently implemented.)
+  Likewise
   the choice between a model based and robust variance estimate for the
-  curve will mirror the choice made in the \code{coxph} call.
-  The \code{cluster} and \code{influence} options are only relevant for
-  the robust variance.  A \code{id} statment in the original call causes
-  subjects that have multiple lines in the original data to be correctly
-  identified.  (This calculation needs both the original data and the
-  new data.)
+  curve will mirror the choice made in the \code{coxph} call,
+  any clustering is also inherited from the parent model.
 
   If the \code{newdata} argument is missing, then a curve is produced
   for a single "pseudo" subject with
@@ -111,7 +123,9 @@ details. Methods defined for survfit objects are
     ages ranging from 50 to 80, and a model with age*sex.  The ``mean''
     value for the age:sex interaction term will be about 30, a value
     that does not occur in the data.
-    Users are strongly advised to use the newdata argument. 
+    Users are strongly advised to use the newdata argument.
+  For these reasons predictions from a multistate coxph model require
+  the newdata argument.
 
 When the original model contains time-dependent covariates, then the
 path of that covariate through time needs to be specified in order to
