@@ -81,6 +81,10 @@ SEXP concordance3(SEXP y,        SEXP x2, SEXP wt2, SEXP timewt2,
                   SEXP sortstop, SEXP doresid2);
 SEXP concordance4(SEXP y, SEXP x2, SEXP wt2, SEXP timewt2, 
                   SEXP sortstart, SEXP sortstop, SEXP doresid2); 
+SEXP concordance5(SEXP y,        SEXP x2, SEXP wt2, SEXP timewt2, 
+                  SEXP sortstop);
+SEXP concordance6(SEXP y, SEXP x2, SEXP wt2, SEXP timewt2, 
+                  SEXP sortstart, SEXP sortstop); 
 
 void cox_callback(int which, double *coef, double *first, double *second,
 		  double *penalty, int *flag, int p, SEXP fexpr, SEXP rho);
@@ -253,6 +257,9 @@ SEXP tmerge (SEXP id2,  SEXP time1x, SEXP newx2,
 	     SEXP nid2, SEXP ntime2, SEXP x2,  SEXP indx2); 
 SEXP tmerge2(SEXP id2,  SEXP time1x, SEXP nid2, SEXP ntime2);
 SEXP tmerge3(SEXP id2, SEXP miss2);
+
+void walkup(double *nwt, double* twt, int index, double sums[3], int ntree);
+void addin(double *nwt, double *twt, int index, double wt);
 
 SEXP zph1(SEXP gt2,    SEXP y2, 
 	  SEXP covar2, SEXP eta2,  SEXP weights2,

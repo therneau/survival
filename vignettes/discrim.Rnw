@@ -1,0 +1,183 @@
+\documentclass{article}[11pt]
+\usepackage{Sweave}
+\usepackage{amsmath}
+\addtolength{\textwidth}{1in}
+\addtolength{\oddsidemargin}{-.5in}
+\setlength{\evensidemargin}{\oddsidemargin}
+%\VignetteIndexEntry{Discrimination and Calibration}
+
+\SweaveOpts{keep.source=TRUE, fig=FALSE}
+% Ross Ihaka suggestions
+\DefineVerbatimEnvironment{Sinput}{Verbatim} {xleftmargin=2em}
+\DefineVerbatimEnvironment{Soutput}{Verbatim}{xleftmargin=2em}
+\DefineVerbatimEnvironment{Scode}{Verbatim}{xleftmargin=2em}
+\fvset{listparameters={\setlength{\topsep}{0pt}}}
+\renewenvironment{Schunk}{\vspace{\topsep}}{\vspace{\topsep}}
+
+% I had been putting figures in the figures/ directory, but the standard
+%  R build script does not copy it and then R CMD check fails
+\SweaveOpts{prefix.string=surv,width=6,height=4}
+
+\newcommand{\myfig}[1]{\includegraphics[height=!, width=\textwidth]
+                        {surv-#1.pdf}}
+
+\newcommand{\bhat}{\hat \beta}        %define "bhat" to mean "beta hat"
+\newcommand{\Mhat}{\widehat M}        %define "Mhat" to mean M-hat
+\newcommand{\zbar}{\bar Z}
+\newcommand{\lhat}{\hat \Lambda}
+\newcommand{\Ybar}{\overline{Y}}
+\newcommand{\Nbar}{\overline{N}}
+\newcommand{\Vbar}{\overline{V}}
+\newcommand{\yhat}{\hat y}
+\newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\co}[1]{\texttt{#1}}
+\newcommand{\twid}{\ensuremath{\sim}}
+\newcommand{\Lhat}{\hat\Lambda}
+
+
+\setkeys{Gin}{width=\textwidth}
+<<echo=FALSE>>=
+options(continue="  ", width=70)
+options(SweaveHooks=list(fig=function() par(mar=c(4.1, 4.1, .3, 1.1))))
+pdf.options(pointsize=10) #text in graph about the same as regular text
+options(contrasts=c("contr.treatment", "contr.poly")) #ensure default
+library("survival")
+palette(c("#000000", "#D95F02", "#1B9E77", "#7570B3", "#E7298A", "#66A61E"))
+@
+
+\title{Discrimination and Calibration}
+\author{Terry Therneau}
+\begin{document}
+\maketitle
+\clearpage
+
+\section{Introduction}
+This vignette is in progress and not yet complete}
+
+\section{Discrimination}
+\subsection{Pseudo $R^2$ measures}
+There have been many attempts to define an overall ``goodness of fit'' criteria
+for the Cox model which would be parallel to the widely used $R^2$ of linear
+models.
+A direct analog is hampered by the issues of censoring and scale.
+Censoring is the major technical impediment, how do we define error for an
+observation known only to be $> t_i$? 
+One of the earlies examples is zed/zed linear regression, which used the minimum 
+possible error for any censored observation.
+That is, if $t_i$ were censored and $\hat t_i > t_i$ then the error was taken
+as zero. 
+A potentially larger issue is the one of scale: if we have $(t, \hat t)$ pairs
+of (3 m, 6 m) and (9 yr, 10 yr), which one represents the greater error?  
+On an absolute scale the second is the larger difference, but in a clinical
+study the first may be more important. 
+
+What has arisen instead, and been the topic of considerable literature, are
+pseudo-R^2 measures.
+These re-write the linear model statistic in another way, and then evaluate the
+alternate formula.
+
+\begin{align}
+  \item R^2 &= 1 - \frac{\sum (y_i - \hat y_i)^2)}{sum (y_i - \overline y)^2}
+                  \nonumber \\
+      &=  1- \left(\frac{LL(\mbox{intercept})}{LL(\mbox{full})}\right)^{2/n}
+  \label{coxsnell} \\ 
+
+ &=  \frac{{\rm var} \hat_y}{{\rm var} \hat_y} + \sigma^2} 
+                 \label{kent} 
+
+\end{align}
+
+Equation \eqref{coxsnell} is the Cox and Snell formula, for a Cox model
+replace the linear model log-likelhood ($LL$) with the partial likelihood of
+the null and fitted models.  This
+gives the measure proposed by Nagelkerke \cite{Nagelkerke84} 
+which was part of the standard
+printout of \code{coxph} for many years.  
+It has, however,  been recognized as overly sensitive to censoring.
+
+The measure of Kent and O'Quigley \cite{Kent98} is based on \eqref{kent}.  
+Replace $\hat y$ with the Cox model linear predictor $\eta= X \hat \beta$ and
+$sigma^2$ by $\pi^2/6$.  The latter is based on an extreme value distribution,
+and the equivalence of the Cox model to a transformation model.
+
+Royston and Sauerbrei replace the risk scores $\eta$ with a normal-scores
+transform
+\begin{align*}
+  s_i &= \Phi^{-1}\left( \frac{r_i - 3/8}{n + 1/4}) \\
+  r_i &= {\rm rank}{\eta_i}
+\end{equation*}
+then re-fit the Cox model using $s$ as the single covariate.  
+Since ${\rm var}(s) =1$ by design, the variance of the normalized risk score
+will be captured by the coefficient $\beta^2$ from the re-fit; the Cox model
+estimate of the variance of $\beta$ is used as an estimate of variance.
+They then further define a measure $D =  \beta \sqrt{8/\pi}$.
+The rationale is that this is the distance between the mean $s$ in the
+lower half of the distribtion, i.e., $< 0$, and the mean of the upper half.
+This value is then `comparable' to the hazard ratio for a binomial covariate
+such as treatment.  
+We prefer to use the 25th and 75th quantiles of the risk score, untransformed,
+for this purpose, i.e. the  ``middle of the top half'' versus 
+the ``middle of the bottom half''.
+
+One issue with the Royston and Sauerbrei approach is that although the risk
+scores from a fitted Cox model will sometimes be approximately symmetric, 
+there is no reason to assume that this will be so.  
+In medical data they are often right skewed:
+it is easier to have an extremely high risk of
+death than an extremely low one (there are no immortals).
+For the well known PBC data set, for instance, whose risk score has been 
+validated in several independent studies, 
+the median-centered risk scores range from -2 to 5.4. 
+Remember that even in the classic linear model, $\hat \beta$ and the residuals
+are assumed to Gaussian, but no such assumption is needed for $y$ or $\hat y$;
+in fact such an outcome would be uncommon. 
+See ``Health, Normality and the Ghost of Gauss'' \cite{Elveback70} 
+for a good discussion of this topic.
+
+{G\"{o}en and Heller \cite{Goen05} create a pseudo-concordance that also uses
+only the risk scores. 
+It is based on the fact that, if proportional hazards holds, then the times
+to event $t_i$ and $t_j$ for two subjects satisfy
+\begin{equation}
+  P(t_i > t_j) = \frac{1}{1 + exp(\eta_j - \eta_i)}
+\end{equation}
+
+If there is no relationship between $X$ and $t$ then $\beta=0$ and $\eta=0$,
+leading to a concordance of 1/2. 
+They then propose the estimate
+
+\begin{equation}
+  C_{GH} = \frac{2}{n(n-1)} \sum_{\eta_i > \eta_j} \frac{1}{1 + exp(\eta_j - \eta_i)}
+\end{equation}
+
+which can be translated to a -1--1 scale as $R^_{GH}^2 = 2C -1$ if desired.
+An advantage of the GH measure over the usual concordance is that it is not
+affected by censoring.  A primary disadvantage is that it is based on the
+assumption that the model is completely correct, and in particular that 
+proportional hazards holds for all time.  This last is unlikely.
+
+All of the above measures are computed by the \cite{royston} command.
+
+\subsubsection*{Evaluation of new data}
+When applying these measures to new data, for an existing model, it is
+necessary to first compute a scaling factor.
+That is, compute the risk score $\eta = X\beta$ for each subject using the 
+coefficients of the prior model,
+and then fit a new Cox model using the response from the new data with
+$\eta$ as the only predictor.  The rescaled risk scores $\hat\beta \eta$
+are then used in the formulas.
+
+To see why this is necessary, assume that the validation data set were an exact
+copy of the development data set, but with an error: at some point the 
+survival time column
+had been randomly re-ordered but without perturbing the other columns. 
+The survival time is now unrelated to the linear predictor $\eta$, yet the
+values of the pseudo R-squared and C statistic would be unchanged from the
+original fit since $\eta$ is unchanged.  In this extreme case the rescaling
+fit would have coefficient 0, leading to the appropriate conclusions.
+This rescaling is done automatically by the \code{royston} command when the
+call includes a \code{newdata} argument.
+
+\subsection{Concordance}
+
+\section{Calibration}

@@ -3,8 +3,7 @@ options(na.action=na.exclude) # preserve missings
 options(contrasts=c('contr.treatment', 'contr.poly')) #ensure constrast type
 
 #
-# Simple tests of survConcordance, which has been replaced by the more general
-#  concordance function.
+# Simple tests of concordance
 #
 aeq <- function(x,y, ...) all.equal(as.vector(x), as.vector(y), ...)
 
@@ -66,6 +65,12 @@ addxy <- function(x) c(x[1:3], sum(x[4:5]))
 aeq(addxy(fit2$count), allpair(tempx, tempy[,1], tempy[,2]))
 cfit2 <-  coxph(tempy ~ tt(tempx), tt=grank, method='breslow', iter=0)
 aeq(cfit2$var, 1/cfun(fit2))
+
+# Direct call
+fit2b <- concordancefit(tempy, tempx)
+fit2c <- concordancefit(tempy, tempx, robustse=FALSE)
+all.equal(fit2[1:5], fit2b)
+all.equal(fit2b[-4], fit2c)
 
 # Bigger data
 fit3 <- concordance(Surv(time, status) ~ age, lung, reverse=TRUE)

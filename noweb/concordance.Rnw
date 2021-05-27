@@ -164,11 +164,13 @@ If $y$ is not a survival quantity, then all of the options for the
 concordancefit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL, 
                             timewt=c("n", "S", "S/G", "n/G", "n/G2", "I"),
                             cluster, influence=0, ranks=FALSE, reverse=FALSE,
-                            timefix=TRUE, keepstrata=10) {
+                            timefix=TRUE, keepstrata=10, robustse =TRUE) {
     # The coxph program may occassionally fail, and this will kill the C
     #  routine further below.  So check for it.
     if (any(is.na(x)) || any(is.na(y))) return(NULL)
     timewt <- match.arg(timewt)
+
+    if (!robustse) {ranks <- FALSE; influence =0;}
 
     # these should only occur if something other package calls this routine
     if (!is.Surv(y)) {
@@ -277,32 +279,42 @@ concordancefit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL,
         
         storage.mode(y) <- "double"  # just in case y is integer
         storage.mode(wts) <- "double"
-        if (ncol(y) ==2)
-            fit <- .Call(Cconcordance3, y, bindex, wts, rev(timewt), 
-                         sort.stop, ranks)
-        else fit <- .Call(Cconcordance4, y, bindex, wts, rev(timewt), 
-                          sort.start, sort.stop, ranks)
-        # The C routine gives back an influence matrix which has columns for
-        #  concordant, discordant, tied on x but not y, tied on y, and tied on
-        #  both x and y. 
-        dimnames(fit$influence) <- list(NULL, 
+        if (robustse) {
+            if (ncol(y) ==2)
+                fit <- .Call(Cconcordance3, y, bindex, wts, rev(timewt), 
+                             sort.stop, ranks)
+            else fit <- .Call(Cconcordance4, y, bindex, wts, rev(timewt), 
+                              sort.start, sort.stop, ranks)
+            
+            # The C routine gives back an influence matrix which has columns for
+            #  concordant, discordant, tied on x but not y, tied on y, and tied
+            #  on both x and y. 
+            dimnames(fit$influence) <- list(NULL, 
                    c("concordant", "discordant", "tied.x", "tied.y", "tied.xy"))
-        if (ranks) {
-            if (ncol(y)==2) dtime <- y[y[,2]==1, 1]
-            else dtime <- y[y[,3]==1, 2]
-            temp <- data.frame(time= sort(dtime), fit$resid)
-            names(temp) <- c("time", "rank", "timewt", "casewt", "variance")
-            fit$resid <- temp[temp[,3] > 0,]  # don't return zeros
+            if (ranks) {
+                if (ncol(y)==2) dtime <- y[y[,2]==1, 1]
+                else dtime <- y[y[,3]==1, 2]
+                temp <- data.frame(time= sort(dtime), fit$resid)
+                names(temp) <- c("time", "rank", "timewt", "casewt", "variance")
+                fit$resid <- temp[temp[,3] > 0,]  # don't return zeros
+            }
+        }
+        else {
+            if (ncol(y) ==2)
+                fit <- .Call(Cconcordance5, y, bindex, wts, rev(timewt), 
+                             sort.stop)
+            else fit <- .Call(Cconcordance6, y, bindex, wts, rev(timewt), 
+                              sort.start, sort.stop)
         }
         fit
     }
-    
+        
     if (nstrat < 2) {
         fit <- docount(y, x, weights, timewt, timefix=timefix)
         count2 <- fit$count[1:5]
         vcox <- fit$count[6]
         fit$count <- fit$count[1:5]
-        imat <- fit$influence
+        if (robustse) imat <- fit$influence
         if (ranks) resid <- fit$resid
     } else {
         strata <- as.factor(strata)
@@ -317,29 +329,35 @@ concordancefit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL,
         count2 <- colSums(fit$count)
         if (!keepstrata) fit$count <- count2
         vcox <- sum(temp[,6])
-        imat <- do.call("rbind", lapply(tfit, function(x) x$influence))
-        # put it back into data order
-        index <- match(1:n, (1:n)[order(strata)])
-        imat <- imat[index,]
-        if (ranks) {
-            nr <- lapply(tfit, function(x) nrow(x$resid))
-            resid <- do.call("rbind", lapply(tfit, function(x) x$resid))
-            resid$strata <- rep(ustrat, nr)
+        if (robustse) {
+            imat <- do.call("rbind", lapply(tfit, function(x) x$influence))
+            # put it back into data order
+            index <- match(1:n, (1:n)[order(strata)])
+            imat <- imat[index,]
+            if (ranks) {
+                nr <- lapply(tfit, function(x) nrow(x$resid))
+                resid <- do.call("rbind", lapply(tfit, function(x) x$resid))
+                resid$strata <- rep(ustrat, nr)
+            }
         }
     }
-
+        
     npair <- sum(count2[1:3])
-    somer <- (count2[1] - count2[2])/npair
-    dfbeta <- weights*((imat[,1]- imat[,2])/npair -
-                      (somer/npair)* rowSums(imat[,1:3]))
-    if (!missing(cluster) && length(cluster)>0) {
-        dfbeta <- tapply(dfbeta, cluster, sum)
-        dfbeta <- ifelse(is.na(dfbeta),0, dfbeta)  # if cluster is a factor
-    }
-    var.somer <- sum(dfbeta^2)
     if (!keepstrata && is.matrix(fit$count)) fit$count <- colSums(fit$count)
-    rval <- list(concordance = (somer+1)/2, count=fit$count, n=n,
-                 var = var.somer/4, cvar=vcox/(4*npair^2))
+    somer <- (count2[1] - count2[2])/npair
+    if (robustse) {
+        dfbeta <- weights*((imat[,1]- imat[,2])/npair -
+                           (somer/npair)* rowSums(imat[,1:3]))
+        if (!missing(cluster) && length(cluster)>0) {
+            dfbeta <- tapply(dfbeta, cluster, sum)
+            dfbeta <- ifelse(is.na(dfbeta),0, dfbeta)  # if cluster is a factor
+        }
+        var.somer <- sum(dfbeta^2)
+        rval <- list(concordance = (somer+1)/2, count=fit$count, n=n,
+                     var = var.somer/4, cvar=vcox/(4*npair^2))
+        }
+    else  rval <- list(concordance = (somer+1)/2, count=fit$count, n=n,
+                     cvar=vcox/(4*npair^2))
     if (is.matrix(rval$count))
         colnames(rval$count) <- c("concordant", "discordant", "tied.x", 
                                    "tied.y", "tied.xy")
@@ -947,6 +965,7 @@ The routine will return list with three components:
 
 <<concordance3>>=
 #include "survS.h"
+#include "survproto.h"
 
 <<walkup>>
     

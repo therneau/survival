@@ -7,6 +7,7 @@ bdata <- data.frame(time =   c(1, 2, 2, 3, 4, 4, 5, 5, 8, 8,
                     status = c(1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 1,
                                0, 0, 1, 0, 0, 1, 0, 1, 0))
 
+# First check depends on the fact the the RTTR reproduces the KM
 kfit <- survfit(Surv(time, status) ~1, bdata)
 bwt  <- rttright(Surv(time, status) ~1, bdata)
 
@@ -15,6 +16,8 @@ cdf <- cdf[!duplicated(bdata$time, fromLast=TRUE)]  # remove duplicates
 all.equal(kfit$surv, 1-cdf)
 
 
+# A covariate divides both survfit and rttr into disjoint groups, so repeat
+#  the above on the subsets
 afit <- survfit(Surv(time, status) ~x, aml)
 awt <-  rttright(Surv(time, status) ~x, aml)
 
@@ -27,7 +30,25 @@ for (i in 1:2) {
     print(all.equal(afit[i]$surv, 1-acdf))
 }
 
-# Now test with (start, stop] data
+
+###########
+# Alternate computation using inverse prob of censoring weights.
+# First shift the censorings to avoid ties: if there is a death and a censor
+#   at time 10, say, the death was not at risk of censoring. Censoring weights
+#   happen "later".  This also results in a left-continuous curve.
+delta <- min(diff(sort(unique(bdata$time)))) /3
+offset <- ifelse(bdata$status==1, 0, delta)
+cfit <- survfit(Surv(time+ offset, 1-status) ~ 1, bdata)
+
+# interpolate
+indx <- findInterval(bdata$time, cfit$time)
+cwt <- ifelse(bdata$status==0, 0, 1/cfit$surv[indx])
+all.equal(bwt, cwt) 
+
+
+
+
+# Now test with (start, stop] data, should get the same results
 b2 <- survSplit(Surv(time, status) ~ 1, bdata, cut= c(3,5, 7, 14),
                 id = "subject")
 indx <- c(seq(1, 65, by=2), seq(64, 2, by= -2))
@@ -62,14 +83,27 @@ csum2 <- cumsum(ifelse(mdata2$estat=="death", mwt2, 0))/nrow(mdata2)
 all.equal(mfit$pstate[,2], csum1[keep])
 all.equal(mfit$pstate[,3], csum2[keep])
 
+
+
+
+
+
+
+
+
+
+
+
+
 ###
 # Delayed entry, tiny data set
 #  This is the data that showed me that the RTTR idea does not extend
-#  to delayed entry, compute it how you will.
+#  to delayed entry, attempt it how you will.
 delay <- data.frame(t0=c(0,0,0,0,3,0),
                     t1=1:6,
                     status=c(1,0,1,0,0,1),
                     id=1:6)
 # dwt <- rttright(Surv(t0, t1, status) ~ 1, delay, id=id,
 #                 times=0:5 + .9)
+
 
