@@ -75,8 +75,8 @@ rttright <- function(formula, data, weights, subset, na.action, times,
     #               2. For tied times, censors happen after deaths
     #               3. The RTTR concept does not hold for delayed entry.
     #               4. Holes in the follow-up won't work.
-    # For an id with multiple observations, only the last can be a 
-    #   true censoring
+    # For an id with multiple observations, censorings in the middle are not
+    #  true censoring, so don't affect the argument.
     if (is.null(id)) {
         censor <- (Y[,ny] ==0)
         last <- rep(TRUE, nrow(Y))
@@ -84,7 +84,7 @@ rttright <- function(formula, data, weights, subset, na.action, times,
     else {
         if (is.null(attr(Y, 'states'))) {
             ytemp <- Y
-            attr(ytemp, 'states') <- 'fail'  # survcheck2 wants this
+            attr(ytemp, 'states') <- 'fail'  # survcheck2 wants a states attr
             temp <- survcheck2(ytemp, id)
         }
         else temp <- survcheck2(Y, id)

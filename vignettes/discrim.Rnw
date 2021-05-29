@@ -52,7 +52,7 @@ palette(c("#000000", "#D95F02", "#1B9E77", "#7570B3", "#E7298A", "#66A61E"))
 \clearpage
 
 \section{Introduction}
-This vignette is in progress and not yet complete}
+This vignette is in progress and not yet complete.
 
 \section{Discrimination}
 \subsection{Pseudo $R^2$ measures}
@@ -60,31 +60,26 @@ There have been many attempts to define an overall ``goodness of fit'' criteria
 for the Cox model which would be parallel to the widely used $R^2$ of linear
 models.
 A direct analog is hampered by the issues of censoring and scale.
-Censoring is the major technical impediment, how do we define error for an
+Censoring is the major technical impediment: how do we define error for an
 observation known only to be $> t_i$? 
-One of the earlies examples is zed/zed linear regression, which used the minimum 
-possible error for any censored observation.
-That is, if $t_i$ were censored and $\hat t_i > t_i$ then the error was taken
-as zero. 
-A potentially larger issue is the one of scale: if we have $(t, \hat t)$ pairs
+A potentially larger issue is that of scale: if we have two $(t, \hat t)$ pairs
 of (3 m, 6 m) and (9 yr, 10 yr), which one represents the greater error?  
 On an absolute scale the second is the larger difference, but in a clinical
-study the first may be more important. 
+study the first may be more important. Simon xxx has a nice discussion of the
+issue.
 
-What has arisen instead, and been the topic of considerable literature, are
-pseudo-R^2 measures.
+Rather than a direct extension of $R^2$, subject to the issues raised above,
+the most common approach has been based on pseudo-$R^2$ measures.
 These re-write the linear model statistic in another way, and then evaluate the
 alternate formula.
 
 \begin{align}
-  \item R^2 &= 1 - \frac{\sum (y_i - \hat y_i)^2)}{sum (y_i - \overline y)^2}
+  R^2 &= 1 - \frac{\sum (y_i - \hat y_i)^2}{\sum (y_i - \overline y)^2}
                   \nonumber \\
-      &=  1- \left(\frac{LL(\mbox{intercept})}{LL(\mbox{full})}\right)^{2/n}
-  \label{coxsnell} \\ 
-
- &=  \frac{{\rm var} \hat_y}{{\rm var} \hat_y} + \sigma^2} 
-                 \label{kent} 
-
+       &=  1- \left(\frac{LL(\mbox{intercept})}{LL(\mbox{full})}\right)^{2/n}
+   \label{coxsnell} \\ 
+ &=  \frac{\mbox{var} (\hat y)} {\mbox{var} (\hat y) + \sigma^2} 
+                \label{kent} 
 \end{align}
 
 Equation \eqref{coxsnell} is the Cox and Snell formula, for a Cox model
@@ -103,26 +98,28 @@ and the equivalence of the Cox model to a transformation model.
 Royston and Sauerbrei replace the risk scores $\eta$ with a normal-scores
 transform
 \begin{align*}
-  s_i &= \Phi^{-1}\left( \frac{r_i - 3/8}{n + 1/4}) \\
-  r_i &= {\rm rank}{\eta_i}
-\end{equation*}
+  s_i &= \Phi^{-1}\left( \frac{r_i - 3/8}{n + 1/4} \right) \\
+  r_i &= {\rm rank}(\eta_i)
+\end{align*}
 then re-fit the Cox model using $s$ as the single covariate.  
 Since ${\rm var}(s) =1$ by design, the variance of the normalized risk score
-will be captured by the coefficient $\beta^2$ from the re-fit; the Cox model
+will be captured by the coefficient $\beta^2$ from the re-fit; while the Cox 
+model
 estimate of the variance of $\beta$ is used as an estimate of variance.
 They then further define a measure $D =  \beta \sqrt{8/\pi}$.
-The rationale is that this is the distance between the mean $s$ in the
-lower half of the distribtion, i.e., $< 0$, and the mean of the upper half.
+The rationale is that $E(s | s>0) = \sqrt(2/\pi)$, so $D$ represents the
+hazard ratio between a random draw from the bottom half of the $s$ distribution
+to a random draw from the top half.
 This value is then `comparable' to the hazard ratio for a binomial covariate
 such as treatment.  
-We prefer to use the 25th and 75th quantiles of the risk score, untransformed,
+(We prefer to use the 25th and 75th quantiles of the risk score, untransformed,
 for this purpose, i.e. the  ``middle of the top half'' versus 
-the ``middle of the bottom half''.
+the ``middle of the bottom half'', rather than mean(bottom) vs. mean(top).)
 
-One issue with the Royston and Sauerbrei approach is that although the risk
+A issue with the Royston and Sauerbrei approach is that although the risk
 scores from a fitted Cox model will sometimes be approximately symmetric, 
-there is no reason to assume that this will be so.  
-In medical data they are often right skewed:
+there is no reason to assume that this should be so.  
+In medical data the risks are often right skewed:
 it is easier to have an extremely high risk of
 death than an extremely low one (there are no immortals).
 For the well known PBC data set, for instance, whose risk score has been 
@@ -130,54 +127,158 @@ validated in several independent studies,
 the median-centered risk scores range from -2 to 5.4. 
 Remember that even in the classic linear model, $\hat \beta$ and the residuals
 are assumed to Gaussian, but no such assumption is needed for $y$ or $\hat y$;
-in fact such an outcome would be uncommon. 
+in fact such a distribution is uncommon. 
 See ``Health, Normality and the Ghost of Gauss'' \cite{Elveback70} 
 for a good discussion of this topic.
 
 {G\"{o}en and Heller \cite{Goen05} create a pseudo-concordance that also uses
 only the risk scores. 
-It is based on the fact that, if proportional hazards holds, then the times
-to event $t_i$ and $t_j$ for two subjects satisfy
+It is based on the fact that, if proportional hazards holds, then the time
+to event $t_i$ and $t_j$ for two subjects satisfies
 \begin{equation}
-  P(t_i > t_j) = \frac{1}{1 + exp(\eta_j - \eta_i)}
+  P(t_i > t_j) = \frac{1}{1 + \exp(\eta_j - \eta_i)}
 \end{equation}
 
-If there is no relationship between $X$ and $t$ then $\beta=0$ and $\eta=0$,
-leading to a concordance of 1/2. 
 They then propose the estimate
 
 \begin{equation}
-  C_{GH} = \frac{2}{n(n-1)} \sum_{\eta_i > \eta_j} \frac{1}{1 + exp(\eta_j - \eta_i)}
+  C_{GH} = \frac{2}{n(n-1)} \sum_{\eta_i > \eta_j} \frac{1}{1 + \exp(\eta_j - \eta_i)}
 \end{equation}
 
-which can be translated to a -1--1 scale as $R^_{GH}^2 = 2C -1$ if desired.
-An advantage of the GH measure over the usual concordance is that it is not
+which can be translated from the (0,1) concordance scale to a (-1, 1) range
+via $R^2_{GH} = 2C -1$, if desired.
+If there is no relationship between $X$ and $t$ then $\beta=0$ and $\eta=0$,
+leading to a concordance of 1/2. 
+A claimed advantage of the GH measure over the usual concordance is that
+it is not
 affected by censoring.  A primary disadvantage is that it is based on the
-assumption that the model is completely correct, and in particular that 
-proportional hazards holds for all time.  This last is unlikely.
+assumption that the model is completely correct;
+the assumption that proportional hazards holds for all time, even well beyond 
+any observed data, is particularly unlikely.
 
-All of the above measures are computed by the \cite{royston} command.
+All of the above measures are computed by the \code{royston} command.
 
 \subsubsection*{Evaluation of new data}
 When applying these measures to new data, for an existing model, it is
 necessary to first compute a scaling factor.
-That is, compute the risk score $\eta = X\beta$ for each subject using the 
-coefficients of the prior model,
+That is, compute the vector of risk scores $\eta = X\beta$ using the 
+coefficients of the prior model and covariates from the new data,
 and then fit a new Cox model using the response from the new data with
 $\eta$ as the only predictor.  The rescaled risk scores $\hat\beta \eta$
 are then used in the formulas.
 
-To see why this is necessary, assume that the validation data set were an exact
+To see why rescaling is necessary, 
+assume a case where the validation data set was an exact
 copy of the development data set, but with an error: at some point the 
 survival time column
 had been randomly re-ordered but without perturbing the other columns. 
 The survival time is now unrelated to the linear predictor $\eta$, yet the
 values of the pseudo R-squared and C statistic would be unchanged from the
-original fit since $\eta$ is unchanged.  In this extreme case the rescaling
+original fit, since $\eta$ is unchanged.  In this extreme case the rescaling
 fit would have coefficient 0, leading to the appropriate conclusions.
-This rescaling is done automatically by the \code{royston} command when the
+Rescaling is done automatically by the \code{royston} command when the
 call includes a \code{newdata} argument.
 
 \subsection{Concordance}
+The most commonly used measure of discrimination is the concordance.
+[merge with concordance vignette]
 
 \section{Calibration}
+
+
+\section{Computing IPC weights}
+\subsection{Ties}
+The computation of inverse of probability of censoring (IPC) weights would
+appear to be a straightforward task, but has some tricky edge cases.
+The simple algorthm, used by many, is to do an ordinary Kaplan-Meier with
+censoring as the endpoint, what is somtetimes called the reverse KM,
+ and then simply read off numbers from the graph,
+i.e., use the following bit of code in the kernel.
+\begin{verbatim}
+cfit <- survfit(Surv(time, 1-status) ~ 1, data=mydata)
+cprob <- summary(cfit, times= mydata$time)$surv)
+\end{verbatim}
+
+There are two problems with this. The first is that the Kaplan-Meier creates
+a right continuous estimate, and IPC weights need to be left continuous.  That
+is, if we want a censoring weight at time $t$, this should be based on the
+probability of being censored \emph{before} time $t$; $C(t-)$.
+The \code{summary} function returns $C(t)$.
+The second is that if the starting data set includes any time points with
+both an event and a censoring at that time point, the observation with an
+event is \emph{not} at risk for censoring at that time, but in a reverse KM
+they will be counted.
+Complicating things even further is the issue of round-off error as dicussed
+in the vignette on tied times.
+
+A general solution to the above is shift all of the censoring times right by
+a small amount $\epsilon$, before using \code{survfit} to compute $C(t)$.
+This resolves the issue of tied death and censoring times.  When
+time values are looked up on the resulting curve, the result will 
+effectively be based on the right-continuous version of $C(t)$. 
+Care much be used to choose $\epsilon$ sufficiently small so that the shifted
+values do not overstep another unique time point, and sufficiently large that
+the shift is not lost due to roundoff error (in floating point arithmetic 
+1000 + 1e-16 =1000).
+Then, at any chosen cutoff $\tau$, the IPW weights will be 0 for any
+observation censored before $\tau$, and $1/C(\min(t_i, \tau))$ otherwise, where
+$t_i$ is the follow-up time for observation $i$.
+
+There are two fairly simple checks on any implementation of IPW.  The first
+is to compute weights using the maximum uncensored time as the cutoff $\tau$, 
+then the weighted emprical CDF of $t$ should exactly agree with the Kaplan-Meier.
+The second is that the sum of the weights must equal $n$, the number of 
+observations, for any cutoff $\tau$.  
+Ignoring the issue of tied event and censoring times creates
+weights that are too small, and using right-continuous vs. left continuous
+$C$ creates weights that are too large.
+
+\subsection{Extensions}
+A further set of implementation issues is how to extend this calculation 
+to weighted data, extention to counting process data, e.g. 
+\code{Surv(time1, time2, status)}to (time1, time2), extensions to multi-state
+models, and dealing with delayed entry.  The last of these affects each of the
+other three, so we will discuss it first.
+The primary underlying question is whether we consider the censoring process
+to begin at the time a subject enters the study, or whether it was in effect
+from time 0.
+
+As an example consider the survival from the diagnosis of multiple myeloma in
+a sample of subjects from Mayo Clinic (cite something), a tertiary care center.
+Each subject has a single row in the data set with time1, time2, and status.
+For those subjects diagnosed at Mayo, time1 =0.  For those where were
+diagnosed elsewhere, followed by referral to Mayo, time1 ranges from a few weeks
+to 2 years.  
+The standard survfit call treats the delayed entry subjects as though they were
+a risk for death before their arrival, while censoring risk does not start until
+study entry.  Censoring is viewed as a function of Mayo's follow-up system.
+This is often the more natural assumption.  
+In this case our weight is built on $C(entry+)/C(t+)$.
+In the alternative view where subjects were subject to the censoring process
+from time 0 the weight will be based on $1/C(t+)$.
+
+With respect to case weights, if censoring is assumed to start at time 0
+then nothing further needs to be done.
+For censoring that does not begin until entry, post-multiply each weight
+by $W(t)/n$, where $W(t)$ is the cumulative
+sum of weights for those entered into the study by time $t$. 
+If we are using a robust variance for later estimation, as we
+normally will with weighted data, the division by $n$ willhave no impact on
+ the final result.
+In the second case, the sum of weights at any cutpoint $\tau$ will be $W(\tau)$.
+
+For counting process data we need to distinguish true censoring from
+continuation.
+Assume that a subject has intervals of $(0, t_1), (t_1, t_2)$ and $(t_2, t_3)$ 
+with status codes of 0 for all three.  The first two of these do not represent
+censoring, which is a cessation of follow-up; the next observation picks up
+where this one began.  
+The compuation of $C(t)$ must use only actual censoring times such as $t_3$ as
+an `event'.  The inclusion of an \code{id} statement into the call is thus
+critical. 
+A subject with a gap in their follow-up time, $(0, t_1)$ $(t_2, t_3)$, 
+currently results in an error.  We do not have a good answer to the question of
+what should be done in that case, it likely depends on the context from which the
+data arose.
+
+\end{document}
