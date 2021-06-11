@@ -1,5 +1,14 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 3.2-12}{
+  \itemize{
+    \item Avoid a downstream error from infinte coefficients in
+    coxph.  In special case it would fail by passing an NA to C code.
+    \item The df column from cox.zph could be incorrect for a coxme
+    model
+    \item cox.zph would crash for a coxme model whose random effect
+    contained a factor (odd issue with model.frame).
+}}
 \section{Changes in version 3.2-11}{
   \itemize{
     \item Missing labels for the "pairwise" option in yates(), fixed.

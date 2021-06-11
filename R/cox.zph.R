@@ -9,6 +9,12 @@ cox.zph <- function(fit, transform='km', terms=TRUE, singledf =FALSE,
     if (!is.null(attr(terms(fit), "specials")[["tt"]]))
         stop("function not defined for models with tt() terms")
 
+    if (inherits(fit, "coxme")) {
+        # drop all mention of the random effects, before getdata
+        fit$formula <- fit$formula$fixed
+        fit$call$formula <- fit$formula
+     }
+
     cget <- coxph.getdata(fit, y=TRUE, x=TRUE, stratax=TRUE, weights=TRUE)
     y <- cget$y
     ny <- ncol(y)
@@ -36,6 +42,7 @@ cox.zph <- function(fit, transform='km', terms=TRUE, singledf =FALSE,
         # allow for a spelling inconsistency in coxme, later fixed
         if (is.null(fit$linear.predictors)) 
             eta <- fit$linear.predictor
+        fit$df <- NULL  # don't confuse later code
     }
     else   asgn <- fit$assign
         

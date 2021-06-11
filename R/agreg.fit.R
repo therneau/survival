@@ -108,7 +108,7 @@ agreg.fit <- function(x, y, strata, offset, init, control,
     }
     lp  <- as.vector(x %*% coef + offset - sum(coef * agmeans))
     if (resid) {
-        if (any(lp > log(.Machine$double.xmax)) {
+        if (any(lp > log(.Machine$double.xmax))) {
             # prevent a failure message due to overflow
             #  this occurs with near-infinite coefficients
             temp <- lp + log(.Machine$double.xmax) - (1 + max(lp))
