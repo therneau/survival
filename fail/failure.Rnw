@@ -462,5 +462,36 @@ d2 <- first2/(second2 + lambda)
 matplot(lambda, cbind(beta^2, d2^2), log='xy',
         xlab="lambda", ylab="d^2")
 @
+
+\section{Infinite coefficients}
+This small data set comes from Jack Chenry.
+There are more covariates than events, which leads to infinite coefficients.
+However, the iteration path for this data set is particularly difficult.
+All the covariates are continuous with only minor correlation.
+
+<<henry>>=
+load("cdata.rda")
+icoef <- matrix(0, 15, 10)
+ilog  <- double(15)
+for (i in 1:15) {
+    suppressWarnings(tfit <- coxph(Surv(time, status) ~ ., iter=i-1, cdata))
+    icoef[i,] <- coef(tfit)
+    ilog[i] <- tfit$loglik[2]
+}
+
+par(mfrow=c(1,2))
+matplot(0:14, icoef, xlab="Iteration", ylab="Coefficient")
+plot(0:14, -ilog, log='y', xlab="Iteration", ylab="-1* loglik")
+abline(0,0, lty=2)
+par(mfrow=c(1,1))
+@ 
  
+There are 26 observations, 7 events, and 10 covariates that each have a standard
+devation of about 1.  
+After some initial stutters the partial likelihood is converging to 0, i.e., a
+perfect fit.  
+
+In this data set the risk scores become large, overflowing the exp function,
+before the model converges.  The log-likelihood actually never achieves
+relative convergence, nor does the variance become singular.
 \end{document}
