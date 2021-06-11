@@ -2,8 +2,8 @@
 \alias{royston}
 \title{Compute Royston's D for a Cox model}
 \description{
-  Compute the D statistic and R^2 for a coxph model, proposed by
-  Royston and Sauerbrei
+  Compute the D statistic proposed by Royston and Sauerbrei along with
+  several pseudo- R square values.
 }
 \usage{
 royston(fit, newdata, ties = TRUE, adjust = FALSE)
@@ -16,12 +16,20 @@ royston(fit, newdata, ties = TRUE, adjust = FALSE)
   \item{adjust}{adjust for possible overfitting}
 }
 \details{
-  The adjustment is based on the ratio
+  These values are called pseudo R-squared since they involve only
+  the linear predictor, and not the outcome.
+  \code{R.D} is the value that corresponsds the Royston and Sauerbrei
+  \eqn{D}{D} statistic.  \code{R.KO} is the value proposed by Kent and
+  O'Quigley, \code{R.N} is the value proposed by Nagelkerke, and
+  \code{C.GH} corresponds to Goen and Heller's concordance measure.
+  See the vignette for further details.
+  
+  An adjustment for D is based on the ratio
   r= (number of events)/(number of coefficients). For models which have
-  sufficient sample size (r>20) the adjustment will be small.
+  sufficient sample size (r>20) the adjustment will be small. 
 }
-\value{a vector containing the value of D, \eqn{R-squared}{R^2_D} and
-  the estimated standard error of D.
+\value{a vector containing the value of D, the estimated standard error
+  of D, and four pseudo R-squared values.
 }
 \references{
 P. Royston and W. Sauerbrei, A new measure of prognostic separation in

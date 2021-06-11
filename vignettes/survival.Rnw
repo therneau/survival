@@ -117,7 +117,7 @@ package will also have nothing to say on the topic.
 Luckily, there are many other R packages that build on or extend
 the survival package, and anyone working in the field (the author included) 
 can expect to use more packages than just this one.
-The author certainly never foresaw that the library would become as popular 
+I certainly never foresaw that the library would become as popular 
 as it has.
 
 This vignette is an introduction to version 3.x of the survival package. 
@@ -151,9 +151,11 @@ Appendix \ref{sect:changes} summarizes changes that were made which are not
 backwards compatible.
 
 The two other major changes are to collapse many of vignettes into this single
-large one, and the parallel creation of an actual book.  
-We've recognized that the package needs more than a vignette.  
-With the book's appearance this vignette can also
+large one, and the parallel creation of an actual book. 
+Documentation is an ongoing process, and there are still things the package
+can do which are not well described. That said,  
+we've recognized that the package needs more than a vignette.  
+With the book's (eventual) appearance this vignette can also
 be more brief, essentially leaving out a lot of the theory.
 
 Version 3 will not appear all at once, however; it will take some time to get 
@@ -2588,6 +2590,721 @@ offset.
 
 \chapter{Accelerated Failure Time models}
 \label{chap:aft}
+\section{Usage}
+The \co{survreg} function implements the class of parametric accelerated
+failure time models.  
+Assume that the survival time $y$ satisfies $\log(y) = X'\beta + \sigma W$,
+for $W$ from some given distribution.
+Then if $\Lambda_w(t)$ is the cumulative hazard function for $W$, the
+cumulative hazard function for subject $i$ is 
+$\Lambda_w[\exp(-\eta_i/\sigma)t]$, that is, the time scale for the subject
+is accelerated by a constant factor.
+A good description of the models is found in chapter 3 of 
+Kalbfleisch and Prentice \cite{Kalbfleisch80}.
+
+The following fits a Weibull model to the lung cancer data set included
+in the package.
+\begin{verbatim}
+> fit <- survreg(Surv(time, status) {\twiddle} age + sex + ph.karno, data=lung,
+        dist='weibull')
+> fit
+Call:
+survreg(formula = Surv(time, status) {\twiddle} age + sex + ph.karno, data = lung, dist
+         = "weibull")
+
+Coefficients:
+ (Intercept)          age       sex    ph.karno 
+    5.326344 -0.008910282 0.3701786 0.009263843
+
+Scale= 0.7551354 
+
+Loglik(model)= -1138.7   Loglik(intercept only)= -1147.5
+        Chisq= 17.59 on 3 degrees of freedom, p= 0.00053 
+n=227 (1 observations deleted due to missing)
+\end{verbatim}
+
+The code for the routines has undergone substantial revision between
+releases 4 and 5 of the code.
+Calls to the older version are not compatable with all of the changes,
+users can use the \code{survreg.old} function if desired, which
+retains the old argument style (but uses the newer maximization
+code).
+Major additions included penalzed models, strata, user specified
+distributions, and more stable maximization code.
+
+\section{Strata}
+In a Cox model the \code{strata} statement is used to allow separate
+baseline hazards for subgroups of the data, while retaining 
+common coefficients for the other covariates across groups.
+For parametric models, the statement allows for a separate
+scale parameter for each subgroup, but again keeping the other
+coefficients common across groups.
+For instance, assume that separate ``baseline'' hazards were
+desired for males and females in the lung cancer data set.
+If we think of the intercept and scale as the baseline shape,
+then an appropriate model is
+\begin{verbatim}
+> sfit <- survreg(Surv(time, status) ~ sex + age + ph.karno + strata(sex),
+        data=lung)
+> sfit
+Coefficients:
+ (Intercept)       sex          age   ph.karno 
+    5.059089 0.3566277 -0.006808082 0.01094966
+
+Scale:
+     sex=1     sex=2 
+ 0.8165161 0.6222807
+
+Loglik(model)= -1136.7   Loglik(intercept only)= -1146.2
+        Chisq= 18.95 on 3 degrees of freedom, p= 0.00028 
+\end{verbatim}
+The intercept only model used for the likelihood ratio test has
+3 degrees of freedom, corresponding to the intercept and two scales, as compared to the
+6 degrees of freedom for the full model.
+
+This is quite different from the effect of the \code{strata}
+statement in \code{censorReg}; there it acts as a `by'
+statement and causes a totally separate model to be fit
+to each gender. 
+The same fit (but not as nice a printout) can be obtained from
+\code{survreg} by adding an explicit interaction to the formula:
+\begin{verbatim}
+ Surv(time,status) ~ sex + (age + ph.karno)*strata(sex)
+\end{verbatim}
+ 
+\section{Penalized models}
+Let the linear predictor for a \code{survreg} model be
+$\eta = X\beta + Z\omega$, and consider maximizing the penalized
+log-likelihood
+$$
+  PLL = LL(y; \beta, \omega) - p(\omega; \theta)\,,
+$$
+where $\beta$ and $\omega$ are the unconstrained effects, respectively,
+$X$ and $Z$ are the covariates, 
+$p$ is a function that penalizes certain choices for $\omega$,
+and $\theta$ is a vector of tuning parameters.
+
+For instance, ridge regression is based on the penalty
+$p = \theta \sum \omega_j^2$; it shrinks coefficients towards zero.
+
+The penalty functions in \code{survreg} currently use the same code
+as those for \code{coxph}.
+This works well in the case of ridge and pspline, but frailty terms
+are more problematic in that the code to automatically choose the
+tuning parameter for the random effect no longer solves an MLE
+equation.
+The current code will not lead to the correct choice of penalty.
+
+\section{Specifying a distribution}
+The fitting routine is quite general, and can accept any distribution that
+spans the real line for $W$, and any monotone transformation of $y$.
+The standard set of distributions is contained in a list 
+\code{survreg.distributions}. Elements of the list are of two types.
+Basic elements are a description of a distribution.  Here is the entry
+for the logistic family:
+\begin{verbatim}
+logistic = list(
+    name  = "Logistic",
+    variance = function(parm) pi^2/3, 
+    init  = function(x, weights, ...) \{
+        mean <- sum(x*weights)/ sum(weights)
+        var  <- sum(weights*(x-mean)^2)/ sum(weights)
+        c(mean, var/3.2)
+        \},
+    deviance= function(y, scale, parms) \{
+        status <- y[,ncol(y)]
+        width <- ifelse(status==3,(y[,2] - y[,1])/scale, 0)
+        center <- y[,1] - width/2
+        temp2 <- ifelse(status==3, exp(width/2), 2) #avoid a log(0) message
+        temp3 <- log((temp2-1)/(temp2+1))
+        best <- ifelse(status==1, -log(4*scale),
+                                    ifelse(status==3, temp3, 0))
+        list(center=center, loglik=best) 
+        \},
+    density = function(x, ...) \{
+        w <- exp(x)
+        cbind(w/(1+w), 1/(1+w), w/(1+w)^2, (1-w)/(1+w), (w*(w-4) +1)/(1+w)^2)
+        \},
+    quantile = function(p, ...) log(p/(1-p))
+    )
+\end{verbatim}
+\begin{itemize}
+\item Name is used to label the printout.
+\item Variance contains the variance of the distribution. For distributions
+with an optional parameter such as the $t$-distribution, the \code{parm} argument will
+contain those parameters.
+\item Deviance gives a function to compute the deviance residuals.  More
+on this is explained below in the mathematical details.
+\item The density function gives the necessary quantities to fit the
+distribution.  It should return a matrix with columns $F(x)$, $1-F(x)$,
+$f(x)$, $f'(x)/f(x)$ and $f''(x)/f(x)$, where $f'$ and $f''$ are the
+first and second derivatives of the density function, respectively. 
+\item The quantiles function returns quantiles, and is used for residuals.
+\end{itemize}
+The reason for returning both $F$ and $1-F$ 
+in the density function is to avoid round off error
+when $F(x)$ is very close to 1. 
+This is quite simple for symmetric distributions, in the Gaussian case
+for instance we use \code{qnorm(x)} and \code{qnorm(-x)} respectively.
+(In the intermediate steps of iteration very large deviates may be
+generated, and a probabilty value of zero will cause further problems.)
+
+Here is an example of the second type of entry:
+\begin{verbatim}
+exponential = list(
+    name  = "Exponential",
+    dist  = "extreme",
+    scale =1 ,
+    trans = function(y) log(y),
+    dtrans= function(y) 1/y ,
+    itrans= function(x) exp(x)
+    )
+\end{verbatim}
+This states that an exponential fit is computed by fitting an extreme value
+distribution to the log transformation of $y$.
+(The distribution pointed to must not itself be a pointer to another).
+The extreme value distribution is restricted to have a scale of 1. 
+The first derivative of the transformation, \code{dtrans}, is used to
+adjust the final log-likelihood of the model back to the exponential's scale.
+The inverse transformation \code{itrans} is used to create predicted values
+on the original scale.  
+
+The formal rules for an entry are that it must include a name,
+either the ``dist" component or the set ``variance",``init",
+``deviance", ``density" and ``quantile", an optional scale,
+and either all or none of ``trans", ``dtrans" and ``itrans".
+
+The \code{dist="weibull"} argument to the \code{survreg} function chooses the
+appropriate list from the survreg.distributions object.  User defined
+distributions of either type can be specified by supplying
+the appropriate list object rather than a character string.
+Distributions should, in general, be defined on the entire real
+line.  If not the minimizer used is likely to fail, since it has no
+provision for range restrictions.
+
+Currently supported distributions are
+\begin{itemize}
+\item basic
+\begin{itemize}
+\item (least) Extreme value
+\item Gaussian
+\item Logistic
+\item $t$-distribution
+\end{itemize}
+\item transformations
+\begin{itemize}
+\item Exponential
+\item Weibull
+\item Log-normal ('lognormal' or 'loggaussian')
+\item Log-logistic ('loglogistic')
+\end{itemize}
+\end{itemize}
+
+% Residuals for parametric survival models
+%  and predicted values
+\section{Residuals}
+\subsection{Response}
+The target return value is $y - \yhat$, but what should we
+use for $y$ when the observation is not exact?
+We will let $\yhat_0$ be the MLE for the location
+parameter $\mu$ over a data set with
+only the observation of interest, with $\sigma$ fixed
+at the solution to the problem as a whole, 
+subject to the constraint that $\mu$ be consistent with the data.
+That is, for an observation right censored at $t=20$, we constain
+$\mu \ge 20$, similarly for left censoring, and constrain
+$\mu$ to lie within the two endpoints of an
+interval censored observation.
+To be consistent as the width of an interval censored observation
+goes to zero, this definition does require that the mode of the
+density lies at zero.
+
+For exact, left, and right censored observations $\yhat_0 =y$, so
+that this appears to be an ordinary response residual.
+For interval censored observations from a symmetric distribution,
+$\yhat_0 =$ the center of the censoring interval.  
+The only unusual case, then, is for a non-symmetric distribution
+such as the extreme value.  
+As shown later in the detailed information
+on distributions, for the extreme value distribution this
+occurs for $\yhat_0 = y^l - \log(b/[exp(b)-1])$, where
+$b = y^u - y^l$ is the length of the interval.
+
+
+\subsection{Deviance}
+Deviance residuals are response residuals, but transformed to the
+log-likelihood scale.  
+$$ d_i = sign(r_i) \sqrt{LL(y_i, \yhat_0;\sigma) -LL(y_i,\eta_i; \sigma)}$$
+The definition for $\yhat_0$ used for response residuals, however, could
+lead to the square root of a negative number  for left or right
+censored observations, e.g., if the predicted value for a right censored
+observation is less than the censoring time for that observation. 
+For these observations we let $\yhat_0$ be the \emph{unconstrained}
+maximum, which leads to $yhat_0 = -\infty$ and $+\infty$
+for right and left censored observations, respectively,
+and a log-likelihood term of 0. 
+
+The advantages of these residuals for plotting and outlier detection
+are nicely detailed in McCullagh and Nelder \cite{glim}.
+However, unlike GLM models, deviance residuals for interval censored data
+are not free of the scale parameter.  
+This means that if there are interval censored data values and one fits 
+two models A and B, say, 
+that the sum of the squared deviance residuals for model A minus the
+sum for model B is \emph{not} equal to the difference in log-likelihoods.
+This is one reason that the current \code{survreg} function does
+not inherit from class \code{glm}: \code{glm} models use the deviance
+as the main summary statistic in the printout.
+
+\subsection{Dfbeta}
+ The \code{dfbeta} residuals are a matrix with one row per subject and one column
+per parameter.
+The $i$th row gives the approximate change in the parameter vector due to 
+observation $i$, i.e., the change in $\bhat$ when observation $i$ is added
+to a fit based on all observations but the $i$th.
+The \code{dfbetas} residuals scale each column of this matrix by the standard
+error of the respective parameter.
+
+\subsection{Working}
+As shown in section \ref{sect:irls} below, the Newton-Raphson iteration used
+to solve the model can be viewed as an iteratively reweighted least squares
+problem with a dependent variable of ``current prediction - correction''.
+The working residual is the correction term. 
+
+\subsection{Likelihood displacement residuals}
+Escobar and Meeker \cite{Escobar92} define a matrix of likelihood displacement
+residuals for the accelerated failure time model.
+The full residual information is a square matrix $\ddot A$, with
+dimension the number of pertubations considered.  
+Three examples are developed in detail, all with dimension $n$, the number
+of observations.
+
+Case weight pertubations measure the overall effect on the parameter vector
+of dropping a case.  Let $V$ be the variance matrix of the model, and
+$L$ the $n$ by $p$ matrix with elements $\partial L_i/ \partial \beta_j$,
+where $L_i$ is the likelihood contribution of the $i$th observation.
+Then $\ddot A = LVL'$.  The residuals function returns the diagonal values
+of the matrix.  Note that $LV$ equals the \code{dfbeta} residuals.
+
+Response pertubations correspond to a change of 1 $\sigma$ unit in one of
+the response values.  For a Gaussian linear model, the equivalent computation
+yields the diagonal elements of the hat matrix.
+
+Shape pertubations measure the effect of a change in the log of the scale
+parameter by 1 unit. 
+
+The \code{matrix} residual type returns the raw values that can be used to
+compute these and other LD influence measures.  The result is an $n$ by
+6 matrix, containing columns for
+$$
+   L_i \quad \frac{\partial L_i}{\partial \eta_i} 
+        \quad \frac{\partial^2 L_i}{\partial \eta_i^2}
+       \quad \frac{\partial L_i}{\partial \log(\sigma)}       
+       \quad \frac{\partial L_i}{\partial \log(\sigma)^2} 
+       \quad \frac{\partial^2 L_i}{\partial \eta \partial\log(\sigma)}
+$$
+
+\section{Predicted values}
+\subsection{Linear predictor and response}
+The linear predictor is $\eta_i = x'_i \bhat$, where $x_i$ is the covariate
+vecor for subject $i$ and $\bhat$ is the final parameter estimate.
+The standard error of the linear predictor is 
+$x'_i V x_i$, where $V$ is the variance matrix for $\bhat$.
+
+The predicted response is identical to the linear predictor for fits to
+the untransformed distributions, i.e., the extreme-value, logistic and
+Gaussian.  For transformed distributions such as the Weibull, for which
+$\log(y)$ is from an extreme value distribution, the linear predictor is
+on the transformed scale and the response is the inverse transform,
+e.g. $\exp(\eta_i)$ for the Weibull.  
+The standard error of the transformed response is the standard error
+of $\eta_i$, times the first derivative of the inverse transformation.
+
+\subsection{Terms}
+Predictions of type \code{terms} are useful for examination of terms in
+the model that expand into multiple dummy variables, such as factors
+and p-splines.  
+The result is a matrix with one column for each of the terms in
+the model, along with an optional matrix of standard errors.
+Here is an example using psplines on the 1980 Stanford data
+\begin{verbatim}
+> fit <- survreg(Surv(time, status) ~ pspline(age, df=3) + t5, stanford2,
+        dist='lognormal')
+> tt <- predict(fit, type='terms', se.fit=T)
+> yy <- cbind(tt$fit[,1], tt$fit[,1] -1.96*tt$se.fit[,1],
+                          tt$fit[,1] +1.96*tt$se.fit[,1])
+> matplot(stanford2$age, yy, type='l', lty=c(1,2,2))
+
+> plot(stanford2$age, stanford2$time, log='y', 
+        xlab='Age', ylab='Days', ylim=c(.1, 10000))
+> matlines(stanford2$age, exp(yy+ attr(tt$fit, 'constant')), lty=c(1,2,2))
+\end{verbatim}
+The second plot puts the fit onto the scale of the data, and thus is
+similar in scope to figure 1 in Escobar and Meeker \cite{Escobar92}.
+Their plot is for a quadratic fit to age, and without T5 mismatch score in
+the model.
+
+\subsection{Quantiles}
+If predicted quantiles are desired, then the set of probability values
+$p$ must also be given to the \code{predict} function.
+A matrix of $n$ rows and $p$ columns is returned, whose $ij$ element is
+the $p_j$th quantile of the predicted survival distribution, 
+based on the covariates of subject $i$.  
+This can be written as $X\beta + z_q \sigma$ where $z_q$ is the $q$th
+quantile of the parent distribution.
+The variance of the quantile estimate is then $cVc'$ where
+$V$ is the variance matrix of $(\beta, \sigma)$ and $c=(X,z_q)$.
+
+In computing confidence bands for the quantiles, it may be preferable
+to add standard errors on the untransformed scale.
+For instance, consider the motor reliability data of Kalbfleisch and
+Prentice \cite{Kalbfleisch02}.
+\begin{verbatim}
+> fit <- survreg(Surv(time, status) ~ temp, data=motors)
+> q1 <- predict(fit, data.frame(temp=130), type='quantile',
+                p=c(.1, .5, .9), se.fit=T)
+> ci1 <- cbind(q1$fit, q1$fit - 1.96*q1$se.fit, q1$fit + 1.96*q1$se.fit)
+> dimnames(ci1) <- list(c(.1, .5, .9), c("Estimate", "Lower ci", "Upper ci"))
+> round(ci1)
+    Estimate Lower ci Upper ci 
+0.1    15935     9057    22812
+0.5    29914    17395    42433
+0.9    44687    22731    66643
+
+> q2 <- predict(fit, data.frame(temp=130), type='uquantile', 
+                p=c(.1, .5, .9), se.fit=T)
+> ci2 <- cbind(q2$fit, q2$fit - 1.96*q2$se.fit, q2$fit + 1.96*q2$se.fit)
+> ci2 <- exp(ci2)  #convert from log scale to original y
+> dimnames(ci2) <- list(c(.1, .5, .9), c("Estimate", "Lower ci", "Upper ci"))
+> round(ci2)
+    Estimate Lower ci Upper ci 
+0.1    15935    10349    24535
+0.5    29914    19684    45459
+0.9    44687    27340    73041
+\end{verbatim}
+Using the (default) Weibull model, the data is fit on the $\log(y)$ scale.
+The confidence bands obtained by the second method are asymmetric and may
+be more reasonable.  They are also guarranteed to be $>0$.
+
+This example reproduces figure 1 of Escobar and Meeker 
+\cite{Escobar92}.
+\begin{verbatim}
+> plot(stanford2$age, stanford2$time, log='y', 
+        xlab='Age', ylab='Days', ylim=c(.01, 10^6), xlim=c(1,65))
+> fit <- survreg(Surv(time, status) ~ age + age^2, stanford2,
+        dist='lognormal')
+> qq <- predict(fit, newdata=list(age=1:65), type='quantile',
+         p=c(.1, .5, .9))
+> matlines(1:65, qq, lty=c(1,2,2))
+\end{verbatim}
+
+Note that the percentile bands on this figure are really quite a different
+object than the confidence bands on the spline fit.  The latter
+reflect the uncertainty of the fitted estimate and are related to the
+standard error.
+The quantile bands reflect the predicted distribution of a subject at
+each given age (assuming no error in the quadratic estimate of the
+mean), and are related to the standard deviation of the population.
+
+\section{Fitting the model}
+\label{sect:irls}
+    With some care, parametric survival can be written so as to fit into the
+iteratively reweighted least squares formulation used in Generalized
+Linear Models of McCullagh and Nelder \cite{glim}.
+A detailed description of this setup for general maximum likelihood
+computation is found in Green \cite{Green84}.
+
+Let $y$ be the data vector (possibly transformed), 
+and $x_i$ be the vector of covariates for the
+$i$th observation.  Assume that
+$$ z_i \equiv \frac{y_i - x_i'\beta}{\sigma} \sim f $$
+for some distribution $f$, where $y$ may be censored.
+
+Then the likelihood for $y$ is
+$$ l = \left( \prod_{exact} f(z_i)/\sigma \,         \right)
+       \left( \prod_{right} \int_{z_i}^\infty f(u) du \,   \right)
+       \left( \prod_{left}  \int_{-\infty}^{z_i} f(u) du \,\right)
+       \left( \prod_{interval} \int_{z_i^l}^{z_i^u} f(u) du \right),
+$$
+where ``exact'', ``right'', ``left'', and ``interval'' refer to uncensored,
+right censored, left censored, and interval censored observations,
+respectively,
+and $z_i^l$, $z_i^u$ are the lower and upper endpoints, respectively, for
+an interval censored observation.
+ Then the log likelihood is defined as
+\begin{equation}
+   LL = \sum_{exact} g_1(z_i) - log(\sigma) + \sum_{right} g_2(z_i) +
+           \sum_{left} g_3(z_i)  + \sum_{interval} g_4(z_i, z_i^*)\,,
+\label{ggdef} \end{equation}
+where $g_1=\log(f)$, $g_2 = \log(1-F)$, etc.
+
+Derivatives of the LL with respect to the regression parameters are:
+\begin{eqnarray}
+\frac{\partial LL}{\partial \beta_j} &=&
+        \sum_{i=1}^n \frac{\partial g}{\partial \eta_i}
+                     \frac{\partial \eta_i}{\partial \beta_j} \nonumber \\
+        &=&        \sum_{i=1}^n x_{ij} \frac{\partial g}{\partial \eta_i} \\
+\frac{\partial^2 LL} {\partial \beta_j \beta_k} &=&
+           \sum x_{ij}x_{ik} \frac{\partial^2 g}{\partial \eta_i^2}\, ,
+\end{eqnarray}
+where $\eta = X'\beta$ is the vector of linear predictors.
+
+Ignore for a moment the derivatives with respect to $\sigma$ (or treat
+it as fixed). 
+The Newton-Raphson step defines an update $\delta$
+$$  (X^T DX) \delta = X^T  U, $$
+where $D$ is the diagonal matrix formed from $-g''$,
+and $U$ is the vector $g'$.
+The current estimate $\beta$ satisfies $X \beta = \eta$, so that the new
+estimate $\beta + \delta$ will have
+\begin{eqnarray*}
+    (X^T DX)(\beta + \delta) &=& X^T D \eta + X^T U \\
+                           &=& (X^T D) (\eta + D^{-1}U)
+\end{eqnarray*}
+Thus if we treat $\sigma$ as fixed, iteration
+is equivalent to IRLS with weights of $-g''$ and adjusted dependent variable
+of $\eta - g'/g''$.
+At the solution to the iteration we might expect that $\hat\eta \approx y$;
+and a weighted regression with $y$ replacing $\eta$ gives, in general, 
+good starting estimates for the iteration.
+(For an interval censored observation we use the center of the interval
+as `y').
+Note that if all of the observations are uncensored, then this reduces
+to using the linear regression of $y$ on $X$ as a starting estimate:
+$y=\eta$ so $z=0$, thus $g'=0$ and $g''=$ a constant (all of the supported
+densities have a mode at zero).
+
+This clever starting estimate is introduced in Generalized Linear
+Models (McCullagh and Nelder \cite{glim}), and works extremely
+well in that context: convergence often occurs in 3-4 iterations.
+It does not work quite so well here, since a ``good" fit to a right
+censored observation might have $\eta >> y$.
+Secondly,
+the other coefficients are not independent of $\sigma$, and $\sigma$ often appears
+to be the most touchy variable in the iteration. 
+
+Most often, the routines will be used with $\log(y)$, which
+corresponds to the set of accelerated failure time models. 
+The transform can be applied implicitly or explicitly;
+the following two fits give identical coefficients:
+\begin{verbatim}
+> fit1 <- survreg(Surv(futime, fustat)~ age + rx, fleming, dist='weibull')
+> fit2 <- survreg(Surv(log(futime), fustat) ~ age + rx, data=fleming,
+                dist='extreme')
+\end{verbatim}
+The log-likelihoods for the two fits differ by a constant, i.e.,
+the sum of $d\log(y)/dy$ for the uncensored observations, and certain
+predicted values and residuals will be on the $y$ versus $\log(y)$ scale.
+
+\section {Derivatives}
+  This section is very similar to the appendix of Escobar and Meeker
+\cite{Escobar92}, differing only in our use of $\log(\sigma)$ rather than
+$\sigma$ as the natural parameter.  
+Let $f$ and $F$ denote the density and distribution functions, respectively,
+of the distributions.  Using (\ref{ggdef}) as the definition of
+$g1,\ldots,g4$ we have
+\begin{eqnarray*}
+\frac{\partial g_1}{\partial \eta} &=& - \frac{1}{\sigma}
+                \left[\frac{f'(z)}{f(z)}  \right]             \\
+\frac{\partial g_4}{\partial \eta} &=& - \frac{1}{\sigma} \left[
+               \frac{f(z^u) - f(z^l)}{F(z^u) - F(z^l)}  \right] \\
+\frac{\partial^2 g_1}{\partial \eta^2} &=&  \frac{1}{\sigma^2}
+                \left[ \frac{f''(z)}{f(z)} \right]
+                 - (\partial g_1 / \partial \eta)^2                   \\
+\frac{\partial^2 g_4}{\partial \eta^2} &=&  \frac{1}{\sigma^2} \left[
+                \frac{f'(z^u) - f'(z^l)}{F(z^u) - F(z^l)} \right]
+                 - (\partial g_4 / \partial \eta)^2                 \\
+\frac{\partial g_1}{\partial \log\sigma} &=& -  \left[
+                \frac{zf'(z)}{f(z)}     \right]                          \\
+\frac{\partial g_4}{\partial \log\sigma} &=& -  \left[
+                \frac{z^uf(z^u) - z^lf(z^l)}{F(z^u) - F(z^l)} \right] \\
+\frac{\partial^2 g_1}{\partial (\log\sigma)^2} &=&   \left[
+                 \frac{z^2 f''(z) + zf'(z)}{f(z)} \right]
+                - (\partial g_1 / \partial \log\sigma)^2                   \\
+\frac{\partial^2 g_4}{\partial (\log\sigma)^2} &=&  \left[
+                \frac{(z^u)^2 f'(z^u) - (z^l)^2f'(z_l) }
+                {F(z^u) - F(z^l)} \right]
+  - \partial g_1 /\partial \log\sigma(1+\partial g_1 / \partial \log\sigma)  \\
+\frac{\partial^2 g_1}{\partial \eta \partial \log\sigma} &=&
+               \frac{zf''(z)}{\sigma f(z)}
+       -\partial g_1/\partial \eta (1 + \partial g_1/\partial \log\sigma) \\
+\frac{\partial^2 g_4}{\partial \eta \partial \log\sigma} &=&
+               \frac{z^uf'(z^u) -  z^lf'(z^l)}{\sigma [F(z^u) - F(z^l)]}
+       -\partial g_4/\partial \eta (1 + \partial g_4/\partial \log\sigma) \\
+\end{eqnarray*}
+To obtain the derivatives for $g_2$, set the upper endpoint $z_u$ to $\infty$
+in the equations for $g_4$.  To obtain the equations for $g_3$, left censored
+data, set the lower endpoint to $-\infty$.
+
+After much experimentation, a further decision was made to do the internal
+iteration in terms of $\log(\sigma)$.  This avoids the boundary condition at
+zero, and also helped the iteration speed considerably for some test
+cases.
+The changes to the code were not too great.  By the chain rule
+\begin{eqnarray*}
+\frac{\partial LL}{\partial \log\sigma} &=&
+          \sigma \frac{\partial LL}{\partial \sigma}           \\
+\frac{\partial^2 LL}{\partial (\log\sigma)^2} &=&
+          \sigma^2 \frac{\partial^2 LL}{\partial \sigma^2} +
+          \sigma \frac{\partial LL}{\partial \sigma}               \\
+\frac{\partial^2 LL} {\partial \eta \partial \log\sigma} &=&
+          \sigma \frac{\partial^2}{\partial \eta \partial \sigma}
+\end{eqnarray*}
+At the solution $\partial LL/\partial \sigma =0$, so the variance matrix
+for $\sigma$ is a simple scale change of the returned matrix for
+$\log(\sigma)$.
+
+
+\section{Distributions}
+\subsection {Gaussian}
+ Everyone's favorite distribution.  The continual calls to $\Phi$ may make
+it slow on censored data, however.  Because there is no closed form for
+$\Phi$, only the equations for $g_1$ simplify from the general form given
+in section 2 above.
+\begin{eqnarray*}
+  \mu=0 &,& \sigma^2=1 \\
+   F(z)&=& \Phi(z) \\
+    f(z)&=&\exp(-z^2/2) / \sqrt{2 \pi} \\
+   f'(z) &=& -zf(z) \\
+   f''(z) &=& (z^2-1)f(z)
+\end{eqnarray*}
+For uncensored data, the standard glm results are clear by substituting
+$g_1= -z/\sigma$ into equations  1-5.  The first derivative vector is equal to
+$X'r$ where $r= -z/\sigma$ is a scaled residual, the update step $I^{-1}U$
+is independent of the estimate of $\sigma$, and the maximum likelihood
+estimate of $n\sigma^2$ is the sum of squared residuals.
+None of these hold so neatly for right censored data.
+
+\subsection{Extreme value}
+
+
+    If $y$ is Weibull then $\log(y)$ is distributed according to the
+(least) extreme value distribution.  
+As stated above, fits on the latter scale are numerically preferable 
+because it removes the range restriction on $y$.
+A Weibull distribution with the scale restricted to 1 gives
+an exponential model.
+$$     \mu= -\gamma = .5722\ldots,\; \sigma^2=\pi^2/6 $$
+\begin{eqnarray*}
+  F(z)&=&1 - \exp(-w)\\
+  f(z)&=& we^{-w}    \\
+  f'(z) &=& (1-w)f(z)   \\
+  f''(z) &=& (w^2 - 3w+1)f(z)
+\end{eqnarray*}
+where $w \equiv exp(z)$.
+
+The mode of the distribution is at $f(0) = 1/e$, 
+so for an exact observation the
+deviance term has $\hat y = y$.  For interval censored data
+where the interval is
+of length $b = z^u - z^l$, it turns out that we cover the most mass if the
+interval has a lower endpoint of $a=\log(b/(\exp(b)-1)))$, and
+the resulting log-likelihood is
+$$
+    \log(e^{-e^a} - e^{-e^{a+b}}).
+$$
+Proving this is left as an exercise for the reader.
+
+The cumulative hazard for the Weibull is usually written as
+$\Lambda(t) = (at)^p$.  
+Comparing this to the extreme value we see that
+$p = 1/\sigma$ and
+$a= \exp(-\eta)$.  
+(On the hazard
+scale the change of variable from $t$ to $\log(t)$ adds another
+term).  
+The Weibull can be thought of as both an accelerated failure time
+model, with acceleration factor $a$ or as a proportional hazards
+model with constant of proportionality $a^p$.
+If a Weibull model holds, the coefficients of a Cox model will be
+approximately equal to $-\beta/\sigma$, the latter coming from
+a \code{survreg} fit.
+The change in sign reflects a change in perspective: in a proportional hazards
+model a positive coefficient corresponds to an increase in the
+death rate (bad), 
+whereas in an accelerated failure time model a positive coefficient 
+corresponds to an increase in lifetime (good).
+
+\subsection{Logistic}
+  This distribution is very close to the Gaussian except in the extreme tails,
+but it is easier to compute.
+However, some data sets may contain survival times close to zero,
+leading to differences in fit between the lognormal and log-logistic
+choices.
+(In such cases the rationality of a Gaussian fit may also be in question).
+Again let $w= \exp(z)$.
+$$
+\mu=0,\; \sigma^2=\pi^2/3
+$$
+\begin{eqnarray*}
+  F(z) &=& w/(1+w)      \\
+  f(z) &=& w/(1+w)^2      \\
+  f'(z) &=& f(z)\,(1-w)/(1+w)  \\
+  f''(z)&=& f(z)\,(w^2 -4w+1)/(1+w)^2
+\end{eqnarray*}
+
+The distribution is symmetric about 0, so for an exact observation the
+contribution to the deviance term is $-\log(4)$.  For an interval censored
+observation with span $2b$ the contribution is
+$$
+    \log\left(F(b) - F(-b)\right) = \log \left( \frac{e^b-1}{e^b+1} \right).
+$$
+
+\subsection{Other distributions}
+Some other population hazards can be fit into this location-scale
+framework, some can not.
+\begin{center}
+\begin{tabular}{ll}
+Distribution & \multicolumn{1}{c}{Hazard} \\ \hline 
+    Weibull&           $p\lambda (\lambda t)^{p-1}$ \\
+    Extreme value&     $(1/ \sigma) e^{ (t- \eta)/ \sigma}$\\
+    Rayleigh&          $a + bt$\\
+    Gompertz&          $b c^t$\\
+    Makeham&          $ a + b c^t$  \\
+\end{tabular}
+\end{center}
+         
+
+The Makeham hazard seems to fit human mortality experience beyond
+infancy quite well, where $a$ is a constant mortality which is
+independent of the health of the subject (accidents, homicide, etc)
+and the second term models the Gompertz assumption that ``the average
+exhaustion of a man's power to avoid death is such that at the end
+of equal infinitely small itervals of time he has lost equal portions of
+his remaining power to oppose destruction which he had at the
+commencement of these intervals".  For older ages $a$ is a neglible 
+portion of the death rate and the Gompertz model holds.
+
+Clearly \begin{itemize}
+\item The Wiebull distribution with $p=2$ ($\sigma=.5$) 
+is the same as a Rayleigh
+distribution with $a=0$.  It is not, however, the most general form of a 
+Rayleigh.  
+\item The extreme value and Gompertz distributions have the same
+hazard function, with
+$ \sigma = 1/ \log(c)$, and $\exp(-\eta/ \sigma) = b$.
+\end{itemize}
+It would appear that the Gompertz can be fit with an identity link function
+combined with the extreme value distribution.  However, this ignores a
+boundary restriction.  If $f(x; \eta, \sigma)$ is the extreme value 
+distribution
+with paramters $\eta$ and $\sigma$, 
+then the definition of the Gompertz densitiy
+is 
+\begin{displaymath}
+\begin{array}{ll}
+        g(x; \eta, \sigma)  = 0 &                    x< 0 \\
+        g(x; \eta, \sigma)  = c f(x; \eta, \sigma) &  x>=0
+\end{array}
+\end{displaymath}
+where $c= \exp(\exp(-\eta / \sigma))$ is the necessary 
+constant so that $g$ integrates
+to 1.  If $\eta / \sigma$ is far from 1, then the correction term will be
+minimal and the above fit will be a good approximation to the Gompertz.
+
+   The Makeham distribution falls into the gamma family (equation 2.3 of
+Kalbfleisch and Prentice, Survival Analysis), but with the same range
+restriction problem. 
 
 \chapter{Tied event times}
 \label{chap:tied}
@@ -2796,7 +3513,7 @@ the Kaplan-Meier.  There are three reasons for this.
   \item The KP estimate reqires iteration so the code is more complex.
 \end{enumerate}
 
-\section{Multi-state models}
+\chapter{Multi-state models}
 Multi-state hazards models have a very interesting (and useful)
 property,
 which is that hazards can be estimated singly (without reference to any
@@ -2826,725 +3543,6 @@ The survival package takes a moderated view and will apply the coarsening
 argument separately to each hazard, i.e., it chose to retain the separation
 policy.
 
-\section{Parametric Regression}
-\subsection{Usage}
-The \co{survreg} function implements the class of parametric accelerated
-failure time models.  
-Assume that the survival time $y$ satisfies $\log(y) = X'\beta + \sigma W$,
-for $W$ from some given distribution.
-Then if $\Lambda_w(t)$ is the cumulative hazard function for $W$, the
-cumulative hazard function for subject $i$ is 
-$\Lambda_w[\exp(-\eta_i/\sigma)t]$, that is, the time scale for the subject
-is accelerated by a constant factor.
-A good description of the models is found in chapter 3 of 
-Kalbfleisch and Prentice \cite{Kalbfleisch80}.
-
-The following fits a Weibull model to the lung cancer data set included
-in the package.
-\begin{verbatim}
-> fit <- survreg(Surv(time, status) {\twiddle} age + sex + ph.karno, data=lung,
-        dist='weibull')
-> fit
-Call:
-survreg(formula = Surv(time, status) {\twiddle} age + sex + ph.karno, data = lung, dist
-         = "weibull")
-
-Coefficients:
- (Intercept)          age       sex    ph.karno 
-    5.326344 -0.008910282 0.3701786 0.009263843
-
-Scale= 0.7551354 
-
-Loglik(model)= -1138.7   Loglik(intercept only)= -1147.5
-        Chisq= 17.59 on 3 degrees of freedom, p= 0.00053 
-n=227 (1 observations deleted due to missing)
-\end{verbatim}
-
-The code for the routines has undergone substantial revision between
-releases 4 and 5 of the code.
-Calls to the older version are not compatable with all of the changes,
-users can use the \code{survreg.old} function if desired, which
-retains the old argument style (but uses the newer maximization
-code).
-Major additions included penalzed models, strata, user specified
-distributions, and more stable maximization code.
-
-\subsection{Strata}
-In a Cox model the \code{strata} statement is used to allow separate
-baseline hazards for subgroups of the data, while retaining 
-common coefficients for the other covariates across groups.
-For parametric models, the statement allows for a separate
-scale parameter for each subgroup, but again keeping the other
-coefficients common across groups.
-For instance, assume that separate ``baseline'' hazards were
-desired for males and females in the lung cancer data set.
-If we think of the intercept and scale as the baseline shape,
-then an appropriate model is
-\begin{verbatim}
-> sfit <- survreg(Surv(time, status) ~ sex + age + ph.karno + strata(sex),
-        data=lung)
-> sfit
-Coefficients:
- (Intercept)       sex          age   ph.karno 
-    5.059089 0.3566277 -0.006808082 0.01094966
-
-Scale:
-     sex=1     sex=2 
- 0.8165161 0.6222807
-
-Loglik(model)= -1136.7   Loglik(intercept only)= -1146.2
-        Chisq= 18.95 on 3 degrees of freedom, p= 0.00028 
-\end{verbatim}
-The intercept only model used for the likelihood ratio test has
-3 degrees of freedom, corresponding to the intercept and two scales, as compared to the
-6 degrees of freedom for the full model.
-
-This is quite different from the effect of the \code{strata}
-statement in \code{censorReg}; there it acts as a `by'
-statement and causes a totally separate model to be fit
-to each gender. 
-The same fit (but not as nice a printout) can be obtained from
-\code{survreg} by adding an explicit interaction to the formula:
-\begin{verbatim}
- Surv(time,status) ~ sex + (age + ph.karno)*strata(sex)
-\end{verbatim}
- 
-\subsection{Penalized models}
-Let the linear predictor for a \code{survreg} model be
-$\eta = X\beta + Z\omega$, and consider maximizing the penalized
-log-likelihood
-$$
-  PLL = LL(y; \beta, \omega) - p(\omega; \theta)\,,
-$$
-where $\beta$ and $\omega$ are the unconstrained effects, respectively,
-$X$ and $Z$ are the covariates, 
-$p$ is a function that penalizes certain choices for $\omega$,
-and $\theta$ is a vector of tuning parameters.
-
-For instance, ridge regression is based on the penalty
-$p = \theta \sum \omega_j^2$; it shrinks coefficients towards zero.
-
-The penalty functions in \code{survreg} currently use the same code
-as those for \code{coxph}.
-This works well in the case of ridge and pspline, but frailty terms
-are more problematic in that the code to automatically choose the
-tuning parameter for the random effect no longer solves an MLE
-equation.
-The current code will not lead to the correct choice of penalty.
-
-\subsection{Specifying a distribution}
-The fitting routine is quite general, and can accept any distribution that
-spans the real line for $W$, and any monotone transformation of $y$.
-The standard set of distributions is contained in a list 
-\code{survreg.distributions}. Elements of the list are of two types.
-Basic elements are a description of a distribution.  Here is the entry
-for the logistic family:
-\begin{verbatim}
-logistic = list(
-    name  = "Logistic",
-    variance = function(parm) pi^2/3, 
-    init  = function(x, weights, ...) \{
-        mean <- sum(x*weights)/ sum(weights)
-        var  <- sum(weights*(x-mean)^2)/ sum(weights)
-        c(mean, var/3.2)
-        \},
-    deviance= function(y, scale, parms) \{
-        status <- y[,ncol(y)]
-        width <- ifelse(status==3,(y[,2] - y[,1])/scale, 0)
-        center <- y[,1] - width/2
-        temp2 <- ifelse(status==3, exp(width/2), 2) #avoid a log(0) message
-        temp3 <- log((temp2-1)/(temp2+1))
-        best <- ifelse(status==1, -log(4*scale),
-                                    ifelse(status==3, temp3, 0))
-        list(center=center, loglik=best) 
-        \},
-    density = function(x, ...) \{
-        w <- exp(x)
-        cbind(w/(1+w), 1/(1+w), w/(1+w)^2, (1-w)/(1+w), (w*(w-4) +1)/(1+w)^2)
-        \},
-    quantile = function(p, ...) log(p/(1-p))
-    )
-\end{verbatim}
-\begin{itemize}
-\item Name is used to label the printout.
-\item Variance contains the variance of the distribution. For distributions
-with an optional parameter such as the $t$-distribution, the \code{parm} argument will
-contain those parameters.
-\item Deviance gives a function to compute the deviance residuals.  More
-on this is explained below in the mathematical details.
-\item The density function gives the necessary quantities to fit the
-distribution.  It should return a matrix with columns $F(x)$, $1-F(x)$,
-$f(x)$, $f'(x)/f(x)$ and $f''(x)/f(x)$, where $f'$ and $f''$ are the
-first and second derivatives of the density function, respectively. 
-\item The quantiles function returns quantiles, and is used for residuals.
-\end{itemize}
-The reason for returning both $F$ and $1-F$ 
-in the density function is to avoid round off error
-when $F(x)$ is very close to 1. 
-This is quite simple for symmetric distributions, in the Gaussian case
-for instance we use \code{qnorm(x)} and \code{qnorm(-x)} respectively.
-(In the intermediate steps of iteration very large deviates may be
-generated, and a probabilty value of zero will cause further problems.)
-
-Here is an example of the second type of entry:
-\begin{verbatim}
-exponential = list(
-    name  = "Exponential",
-    dist  = "extreme",
-    scale =1 ,
-    trans = function(y) log(y),
-    dtrans= function(y) 1/y ,
-    itrans= function(x) exp(x)
-    )
-\end{verbatim}
-This states that an exponential fit is computed by fitting an extreme value
-distribution to the log transformation of $y$.
-(The distribution pointed to must not itself be a pointer to another).
-The extreme value distribution is restricted to have a scale of 1. 
-The first derivative of the transformation, \code{dtrans}, is used to
-adjust the final log-likelihood of the model back to the exponential's scale.
-The inverse transformation \code{itrans} is used to create predicted values
-on the original scale.  
-
-The formal rules for an entry are that it must include a name,
-either the ``dist" component or the set ``variance",``init",
-``deviance", ``density" and ``quantile", an optional scale,
-and either all or none of ``trans", ``dtrans" and ``itrans".
-
-The \code{dist="weibull"} argument to the \code{survreg} function chooses the
-appropriate list from the survreg.distributions object.  User defined
-distributions of either type can be specified by supplying
-the appropriate list object rather than a character string.
-Distributions should, in general, be defined on the entire real
-line.  If not the minimizer used is likely to fail, since it has no
-provision for range restrictions.
-
-Currently supported distributions are
-\begin{itemize}
-\item basic
-\begin{itemize}
-\item (least) Extreme value
-\item Gaussian
-\item Logistic
-\item $t$-distribution
-\end{itemize}
-\item transformations
-\begin{itemize}
-\item Exponential
-\item Weibull
-\item Log-normal ('lognormal' or 'loggaussian')
-\item Log-logistic ('loglogistic')
-\end{itemize}
-\end{itemize}
-
-% Residuals for parametric survival models
-%  and predicted values
-\subsection{Residuals}
-\subsubsection{Response}
-The target return value is $y - \yhat$, but what should we
-use for $y$ when the observation is not exact?
-We will let $\yhat_0$ be the MLE for the location
-parameter $\mu$ over a data set with
-only the observation of interest, with $\sigma$ fixed
-at the solution to the problem as a whole, 
-subject to the constraint that $\mu$ be consistent with the data.
-That is, for an observation right censored at $t=20$, we constain
-$\mu \ge 20$, similarly for left censoring, and constrain
-$\mu$ to lie within the two endpoints of an
-interval censored observation.
-To be consistent as the width of an interval censored observation
-goes to zero, this definition does require that the mode of the
-density lies at zero.
-
-For exact, left, and right censored observations $\yhat_0 =y$, so
-that this appears to be an ordinary response residual.
-For interval censored observations from a symmetric distribution,
-$\yhat_0 =$ the center of the censoring interval.  
-The only unusual case, then, is for a non-symmetric distribution
-such as the extreme value.  
-As shown later in the detailed information
-on distributions, for the extreme value distribution this
-occurs for $\yhat_0 = y^l - \log(b/[exp(b)-1])$, where
-$b = y^u - y^l$ is the length of the interval.
-
-
-\subsubsection{Deviance}
-Deviance residuals are response residuals, but transformed to the
-log-likelihood scale.  
-$$ d_i = sign(r_i) \sqrt{LL(y_i, \yhat_0;\sigma) -LL(y_i,\eta_i; \sigma)}$$
-The definition for $\yhat_0$ used for response residuals, however, could
-lead to the square root of a negative number  for left or right
-censored observations, e.g., if the predicted value for a right censored
-observation is less than the censoring time for that observation. 
-For these observations we let $\yhat_0$ be the \emph{unconstrained}
-maximum, which leads to $yhat_0 = -\infty$ and $+\infty$
-for right and left censored observations, respectively,
-and a log-likelihood term of 0. 
-
-The advantages of these residuals for plotting and outlier detection
-are nicely detailed in McCullagh and Nelder \cite{glim}.
-However, unlike GLM models, deviance residuals for interval censored data
-are not free of the scale parameter.  
-This means that if there are interval censored data values and one fits 
-two models A and B, say, 
-that the sum of the squared deviance residuals for model A minus the
-sum for model B is \emph{not} equal to the difference in log-likelihoods.
-This is one reason that the current \code{survreg} function does
-not inherit from class \code{glm}: \code{glm} models use the deviance
-as the main summary statistic in the printout.
-
-\subsubsection{Dfbeta}
- The \code{dfbeta} residuals are a matrix with one row per subject and one column
-per parameter.
-The $i$th row gives the approximate change in the parameter vector due to 
-observation $i$, i.e., the change in $\bhat$ when observation $i$ is added
-to a fit based on all observations but the $i$th.
-The \code{dfbetas} residuals scale each column of this matrix by the standard
-error of the respective parameter.
-
-\subsubsection{Working}
-As shown in section \ref{sect:irls} below, the Newton-Raphson iteration used
-to solve the model can be viewed as an iteratively reweighted least squares
-problem with a dependent variable of ``current prediction - correction''.
-The working residual is the correction term. 
-
-\subsubsection{Likelihood displacement residuals}
-Escobar and Meeker \cite{Escobar92} define a matrix of likelihood displacement
-residuals for the accelerated failure time model.
-The full residual information is a square matrix $\ddot A$, with
-dimension the number of pertubations considered.  
-Three examples are developed in detail, all with dimension $n$, the number
-of observations.
-
-Case weight pertubations measure the overall effect on the parameter vector
-of dropping a case.  Let $V$ be the variance matrix of the model, and
-$L$ the $n$ by $p$ matrix with elements $\partial L_i/ \partial \beta_j$,
-where $L_i$ is the likelihood contribution of the $i$th observation.
-Then $\ddot A = LVL'$.  The residuals function returns the diagonal values
-of the matrix.  Note that $LV$ equals the \code{dfbeta} residuals.
-
-Response pertubations correspond to a change of 1 $\sigma$ unit in one of
-the response values.  For a Gaussian linear model, the equivalent computation
-yields the diagonal elements of the hat matrix.
-
-Shape pertubations measure the effect of a change in the log of the scale
-parameter by 1 unit. 
-
-The \code{matrix} residual type returns the raw values that can be used to
-compute these and other LD influence measures.  The result is an $n$ by
-6 matrix, containing columns for
-$$
-   L_i \quad \frac{\partial L_i}{\partial \eta_i} 
-        \quad \frac{\partial^2 L_i}{\partial \eta_i^2}
-       \quad \frac{\partial L_i}{\partial \log(\sigma)}       
-       \quad \frac{\partial L_i}{\partial \log(\sigma)^2} 
-       \quad \frac{\partial^2 L_i}{\partial \eta \partial\log(\sigma)}
-$$
-
-\subsection{Predicted values}
-\subsubsection{Linear predictor and response}
-The linear predictor is $\eta_i = x'_i \bhat$, where $x_i$ is the covariate
-vecor for subject $i$ and $\bhat$ is the final parameter estimate.
-The standard error of the linear predictor is 
-$x'_i V x_i$, where $V$ is the variance matrix for $\bhat$.
-
-The predicted response is identical to the linear predictor for fits to
-the untransformed distributions, i.e., the extreme-value, logistic and
-Gaussian.  For transformed distributions such as the Weibull, for which
-$\log(y)$ is from an extreme value distribution, the linear predictor is
-on the transformed scale and the response is the inverse transform,
-e.g. $\exp(\eta_i)$ for the Weibull.  
-The standard error of the transformed response is the standard error
-of $\eta_i$, times the first derivative of the inverse transformation.
-
-\subsubsection{Terms}
-Predictions of type \code{terms} are useful for examination of terms in
-the model that expand into multiple dummy variables, such as factors
-and p-splines.  
-The result is a matrix with one column for each of the terms in
-the model, along with an optional matrix of standard errors.
-Here is an example using psplines on the 1980 Stanford data
-\begin{verbatim}
-> fit <- survreg(Surv(time, status) ~ pspline(age, df=3) + t5, stanford2,
-        dist='lognormal')
-> tt <- predict(fit, type='terms', se.fit=T)
-> yy <- cbind(tt$fit[,1], tt$fit[,1] -1.96*tt$se.fit[,1],
-                          tt$fit[,1] +1.96*tt$se.fit[,1])
-> matplot(stanford2$age, yy, type='l', lty=c(1,2,2))
-
-> plot(stanford2$age, stanford2$time, log='y', 
-        xlab='Age', ylab='Days', ylim=c(.1, 10000))
-> matlines(stanford2$age, exp(yy+ attr(tt$fit, 'constant')), lty=c(1,2,2))
-\end{verbatim}
-The second plot puts the fit onto the scale of the data, and thus is
-similar in scope to figure 1 in Escobar and Meeker \cite{Escobar92}.
-Their plot is for a quadratic fit to age, and without T5 mismatch score in
-the model.
-
-\subsubsection{Quantiles}
-If predicted quantiles are desired, then the set of probability values
-$p$ must also be given to the \code{predict} function.
-A matrix of $n$ rows and $p$ columns is returned, whose $ij$ element is
-the $p_j$th quantile of the predicted survival distribution, 
-based on the covariates of subject $i$.  
-This can be written as $X\beta + z_q \sigma$ where $z_q$ is the $q$th
-quantile of the parent distribution.
-The variance of the quantile estimate is then $cVc'$ where
-$V$ is the variance matrix of $(\beta, \sigma)$ and $c=(X,z_q)$.
-
-In computing confidence bands for the quantiles, it may be preferable
-to add standard errors on the untransformed scale.
-For instance, consider the motor reliability data of Kalbfleisch and
-Prentice \cite{Kalbfleisch02}.
-\begin{verbatim}
-> fit <- survreg(Surv(time, status) ~ temp, data=motors)
-> q1 <- predict(fit, data.frame(temp=130), type='quantile',
-                p=c(.1, .5, .9), se.fit=T)
-> ci1 <- cbind(q1$fit, q1$fit - 1.96*q1$se.fit, q1$fit + 1.96*q1$se.fit)
-> dimnames(ci1) <- list(c(.1, .5, .9), c("Estimate", "Lower ci", "Upper ci"))
-> round(ci1)
-    Estimate Lower ci Upper ci 
-0.1    15935     9057    22812
-0.5    29914    17395    42433
-0.9    44687    22731    66643
-
-> q2 <- predict(fit, data.frame(temp=130), type='uquantile', 
-                p=c(.1, .5, .9), se.fit=T)
-> ci2 <- cbind(q2$fit, q2$fit - 1.96*q2$se.fit, q2$fit + 1.96*q2$se.fit)
-> ci2 <- exp(ci2)  #convert from log scale to original y
-> dimnames(ci2) <- list(c(.1, .5, .9), c("Estimate", "Lower ci", "Upper ci"))
-> round(ci2)
-    Estimate Lower ci Upper ci 
-0.1    15935    10349    24535
-0.5    29914    19684    45459
-0.9    44687    27340    73041
-\end{verbatim}
-Using the (default) Weibull model, the data is fit on the $\log(y)$ scale.
-The confidence bands obtained by the second method are asymmetric and may
-be more reasonable.  They are also guarranteed to be $>0$.
-
-This example reproduces figure 1 of Escobar and Meeker 
-\cite{Escobar92}.
-\begin{verbatim}
-> plot(stanford2$age, stanford2$time, log='y', 
-        xlab='Age', ylab='Days', ylim=c(.01, 10^6), xlim=c(1,65))
-> fit <- survreg(Surv(time, status) ~ age + age^2, stanford2,
-        dist='lognormal')
-> qq <- predict(fit, newdata=list(age=1:65), type='quantile',
-         p=c(.1, .5, .9))
-> matlines(1:65, qq, lty=c(1,2,2))
-\end{verbatim}
-
-Note that the percentile bands on this figure are really quite a different
-object than the confidence bands on the spline fit.  The latter
-reflect the uncertainty of the fitted estimate and are related to the
-standard error.
-The quantile bands reflect the predicted distribution of a subject at
-each given age (assuming no error in the quadratic estimate of the
-mean), and are related to the standard deviation of the population.
-
-\subsection{Fitting the model}
-\label{sect:irls}
-    With some care, parametric survival can be written so as to fit into the
-iteratively reweighted least squares formulation used in Generalized
-Linear Models of McCullagh and Nelder \cite{glim}.
-A detailed description of this setup for general maximum likelihood
-computation is found in Green \cite{Green84}.
-
-Let $y$ be the data vector (possibly transformed), 
-and $x_i$ be the vector of covariates for the
-$i$th observation.  Assume that
-$$ z_i \equiv \frac{y_i - x_i'\beta}{\sigma} \sim f $$
-for some distribution $f$, where $y$ may be censored.
-
-Then the likelihood for $y$ is
-$$ l = \left( \prod_{exact} f(z_i)/\sigma \,         \right)
-       \left( \prod_{right} \int_{z_i}^\infty f(u) du \,   \right)
-       \left( \prod_{left}  \int_{-\infty}^{z_i} f(u) du \,\right)
-       \left( \prod_{interval} \int_{z_i^l}^{z_i^u} f(u) du \right),
-$$
-where ``exact'', ``right'', ``left'', and ``interval'' refer to uncensored,
-right censored, left censored, and interval censored observations,
-respectively,
-and $z_i^l$, $z_i^u$ are the lower and upper endpoints, respectively, for
-an interval censored observation.
- Then the log likelihood is defined as
-\begin{equation}
-   LL = \sum_{exact} g_1(z_i) - log(\sigma) + \sum_{right} g_2(z_i) +
-           \sum_{left} g_3(z_i)  + \sum_{interval} g_4(z_i, z_i^*)\,,
-\label{ggdef} \end{equation}
-where $g_1=\log(f)$, $g_2 = \log(1-F)$, etc.
-
-Derivatives of the LL with respect to the regression parameters are:
-\begin{eqnarray}
-\frac{\partial LL}{\partial \beta_j} &=&
-        \sum_{i=1}^n \frac{\partial g}{\partial \eta_i}
-                     \frac{\partial \eta_i}{\partial \beta_j} \nonumber \\
-        &=&        \sum_{i=1}^n x_{ij} \frac{\partial g}{\partial \eta_i} \\
-\frac{\partial^2 LL} {\partial \beta_j \beta_k} &=&
-           \sum x_{ij}x_{ik} \frac{\partial^2 g}{\partial \eta_i^2}\, ,
-\end{eqnarray}
-where $\eta = X'\beta$ is the vector of linear predictors.
-
-Ignore for a moment the derivatives with respect to $\sigma$ (or treat
-it as fixed). 
-The Newton-Raphson step defines an update $\delta$
-$$  (X^T DX) \delta = X^T  U, $$
-where $D$ is the diagonal matrix formed from $-g''$,
-and $U$ is the vector $g'$.
-The current estimate $\beta$ satisfies $X \beta = \eta$, so that the new
-estimate $\beta + \delta$ will have
-\begin{eqnarray*}
-    (X^T DX)(\beta + \delta) &=& X^T D \eta + X^T U \\
-                           &=& (X^T D) (\eta + D^{-1}U)
-\end{eqnarray*}
-Thus if we treat $\sigma$ as fixed, iteration
-is equivalent to IRLS with weights of $-g''$ and adjusted dependent variable
-of $\eta - g'/g''$.
-At the solution to the iteration we might expect that $\hat\eta \approx y$;
-and a weighted regression with $y$ replacing $\eta$ gives, in general, 
-good starting estimates for the iteration.
-(For an interval censored observation we use the center of the interval
-as `y').
-Note that if all of the observations are uncensored, then this reduces
-to using the linear regression of $y$ on $X$ as a starting estimate:
-$y=\eta$ so $z=0$, thus $g'=0$ and $g''=$ a constant (all of the supported
-densities have a mode at zero).
-
-This clever starting estimate is introduced in Generalized Linear
-Models (McCullagh and Nelder \cite{glim}), and works extremely
-well in that context: convergence often occurs in 3-4 iterations.
-It does not work quite so well here, since a ``good" fit to a right
-censored observation might have $\eta >> y$.
-Secondly,
-the other coefficients are not independent of $\sigma$, and $\sigma$ often appears
-to be the most touchy variable in the iteration. 
-
-Most often, the routines will be used with $\log(y)$, which
-corresponds to the set of accelerated failure time models. 
-The transform can be applied implicitly or explicitly;
-the following two fits give identical coefficients:
-\begin{verbatim}
-> fit1 <- survreg(Surv(futime, fustat)~ age + rx, fleming, dist='weibull')
-> fit2 <- survreg(Surv(log(futime), fustat) ~ age + rx, data=fleming,
-                dist='extreme')
-\end{verbatim}
-The log-likelihoods for the two fits differ by a constant, i.e.,
-the sum of $d\log(y)/dy$ for the uncensored observations, and certain
-predicted values and residuals will be on the $y$ versus $\log(y)$ scale.
-
-\subsection {Derivatives}
-  This section is very similar to the appendix of Escobar and Meeker
-\cite{Escobar92}, differing only in our use of $\log(\sigma)$ rather than
-$\sigma$ as the natural parameter.  
-Let $f$ and $F$ denote the density and distribution functions, respectively,
-of the distributions.  Using (\ref{ggdef}) as the definition of
-$g1,\ldots,g4$ we have
-\begin{eqnarray*}
-\frac{\partial g_1}{\partial \eta} &=& - \frac{1}{\sigma}
-                \left[\frac{f'(z)}{f(z)}  \right]             \\
-\frac{\partial g_4}{\partial \eta} &=& - \frac{1}{\sigma} \left[
-               \frac{f(z^u) - f(z^l)}{F(z^u) - F(z^l)}  \right] \\
-\frac{\partial^2 g_1}{\partial \eta^2} &=&  \frac{1}{\sigma^2}
-                \left[ \frac{f''(z)}{f(z)} \right]
-                 - (\partial g_1 / \partial \eta)^2                   \\
-\frac{\partial^2 g_4}{\partial \eta^2} &=&  \frac{1}{\sigma^2} \left[
-                \frac{f'(z^u) - f'(z^l)}{F(z^u) - F(z^l)} \right]
-                 - (\partial g_4 / \partial \eta)^2                 \\
-\frac{\partial g_1}{\partial \log\sigma} &=& -  \left[
-                \frac{zf'(z)}{f(z)}     \right]                          \\
-\frac{\partial g_4}{\partial \log\sigma} &=& -  \left[
-                \frac{z^uf(z^u) - z^lf(z^l)}{F(z^u) - F(z^l)} \right] \\
-\frac{\partial^2 g_1}{\partial (\log\sigma)^2} &=&   \left[
-                 \frac{z^2 f''(z) + zf'(z)}{f(z)} \right]
-                - (\partial g_1 / \partial \log\sigma)^2                   \\
-\frac{\partial^2 g_4}{\partial (\log\sigma)^2} &=&  \left[
-                \frac{(z^u)^2 f'(z^u) - (z^l)^2f'(z_l) }
-                {F(z^u) - F(z^l)} \right]
-  - \partial g_1 /\partial \log\sigma(1+\partial g_1 / \partial \log\sigma)  \\
-\frac{\partial^2 g_1}{\partial \eta \partial \log\sigma} &=&
-               \frac{zf''(z)}{\sigma f(z)}
-       -\partial g_1/\partial \eta (1 + \partial g_1/\partial \log\sigma) \\
-\frac{\partial^2 g_4}{\partial \eta \partial \log\sigma} &=&
-               \frac{z^uf'(z^u) -  z^lf'(z^l)}{\sigma [F(z^u) - F(z^l)]}
-       -\partial g_4/\partial \eta (1 + \partial g_4/\partial \log\sigma) \\
-\end{eqnarray*}
-To obtain the derivatives for $g_2$, set the upper endpoint $z_u$ to $\infty$
-in the equations for $g_4$.  To obtain the equations for $g_3$, left censored
-data, set the lower endpoint to $-\infty$.
-
-After much experimentation, a further decision was made to do the internal
-iteration in terms of $\log(\sigma)$.  This avoids the boundary condition at
-zero, and also helped the iteration speed considerably for some test
-cases.
-The changes to the code were not too great.  By the chain rule
-\begin{eqnarray*}
-\frac{\partial LL}{\partial \log\sigma} &=&
-          \sigma \frac{\partial LL}{\partial \sigma}           \\
-\frac{\partial^2 LL}{\partial (\log\sigma)^2} &=&
-          \sigma^2 \frac{\partial^2 LL}{\partial \sigma^2} +
-          \sigma \frac{\partial LL}{\partial \sigma}               \\
-\frac{\partial^2 LL} {\partial \eta \partial \log\sigma} &=&
-          \sigma \frac{\partial^2}{\partial \eta \partial \sigma}
-\end{eqnarray*}
-At the solution $\partial LL/\partial \sigma =0$, so the variance matrix
-for $\sigma$ is a simple scale change of the returned matrix for
-$\log(\sigma)$.
-
-
-\subsection{Distributions}
-\subsubsection {Gaussian}
- Everyone's favorite distribution.  The continual calls to $\Phi$ may make
-it slow on censored data, however.  Because there is no closed form for
-$\Phi$, only the equations for $g_1$ simplify from the general form given
-in section 2 above.
-\begin{eqnarray*}
-  \mu=0 &,& \sigma^2=1 \\
-   F(z)&=& \Phi(z) \\
-    f(z)&=&\exp(-z^2/2) / \sqrt{2 \pi} \\
-   f'(z) &=& -zf(z) \\
-   f''(z) &=& (z^2-1)f(z)
-\end{eqnarray*}
-For uncensored data, the standard glm results are clear by substituting
-$g_1= -z/\sigma$ into equations  1-5.  The first derivative vector is equal to
-$X'r$ where $r= -z/\sigma$ is a scaled residual, the update step $I^{-1}U$
-is independent of the estimate of $\sigma$, and the maximum likelihood
-estimate of $n\sigma^2$ is the sum of squared residuals.
-None of these hold so neatly for right censored data.
-
-\subsubsection{Extreme value}
-
-
-    If $y$ is Weibull then $\log(y)$ is distributed according to the
-(least) extreme value distribution.  
-As stated above, fits on the latter scale are numerically preferable 
-because it removes the range restriction on $y$.
-A Weibull distribution with the scale restricted to 1 gives
-an exponential model.
-$$     \mu= -\gamma = .5722\ldots,\; \sigma^2=\pi^2/6 $$
-\begin{eqnarray*}
-  F(z)&=&1 - \exp(-w)\\
-  f(z)&=& we^{-w}    \\
-  f'(z) &=& (1-w)f(z)   \\
-  f''(z) &=& (w^2 - 3w+1)f(z)
-\end{eqnarray*}
-where $w \equiv exp(z)$.
-
-The mode of the distribution is at $f(0) = 1/e$, 
-so for an exact observation the
-deviance term has $\hat y = y$.  For interval censored data
-where the interval is
-of length $b = z^u - z^l$, it turns out that we cover the most mass if the
-interval has a lower endpoint of $a=\log(b/(\exp(b)-1)))$, and
-the resulting log-likelihood is
-$$
-    \log(e^{-e^a} - e^{-e^{a+b}}).
-$$
-Proving this is left as an exercise for the reader.
-
-The cumulative hazard for the Weibull is usually written as
-$\Lambda(t) = (at)^p$.  
-Comparing this to the extreme value we see that
-$p = 1/\sigma$ and
-$a= \exp(-\eta)$.  
-(On the hazard
-scale the change of variable from $t$ to $\log(t)$ adds another
-term).  
-The Weibull can be thought of as both an accelerated failure time
-model, with acceleration factor $a$ or as a proportional hazards
-model with constant of proportionality $a^p$.
-If a Weibull model holds, the coefficients of a Cox model will be
-approximately equal to $-\beta/\sigma$, the latter coming from
-a \code{survreg} fit.
-The change in sign reflects a change in perspective: in a proportional hazards
-model a positive coefficient corresponds to an increase in the
-death rate (bad), 
-whereas in an accelerated failure time model a positive coefficient 
-corresponds to an increase in lifetime (good).
-
-\subsubsection{Logistic}
-  This distribution is very close to the Gaussian except in the extreme tails,
-but it is easier to compute.
-However, some data sets may contain survival times close to zero,
-leading to differences in fit between the lognormal and log-logistic
-choices.
-(In such cases the rationality of a Gaussian fit may also be in question).
-Again let $w= \exp(z)$.
-$$
-\mu=0,\; \sigma^2=\pi^2/3
-$$
-\begin{eqnarray*}
-  F(z) &=& w/(1+w)      \\
-  f(z) &=& w/(1+w)^2      \\
-  f'(z) &=& f(z)\,(1-w)/(1+w)  \\
-  f''(z)&=& f(z)\,(w^2 -4w+1)/(1+w)^2
-\end{eqnarray*}
-
-The distribution is symmetric about 0, so for an exact observation the
-contribution to the deviance term is $-\log(4)$.  For an interval censored
-observation with span $2b$ the contribution is
-$$
-    \log\left(F(b) - F(-b)\right) = \log \left( \frac{e^b-1}{e^b+1} \right).
-$$
-
-\subsubsection{Other distributions}
-Some other population hazards can be fit into this location-scale
-framework, some can not.
-\begin{center}
-\begin{tabular}{ll}
-Distribution & \multicolumn{1}{c}{Hazard} \\ \hline 
-    Weibull&           $p\lambda (\lambda t)^{p-1}$ \\
-    Extreme value&     $(1/ \sigma) e^{ (t- \eta)/ \sigma}$\\
-    Rayleigh&          $a + bt$\\
-    Gompertz&          $b c^t$\\
-    Makeham&          $ a + b c^t$  \\
-\end{tabular}
-\end{center}
-         
-
-The Makeham hazard seems to fit human mortality experience beyond
-infancy quite well, where $a$ is a constant mortality which is
-independent of the health of the subject (accidents, homicide, etc)
-and the second term models the Gompertz assumption that ``the average
-exhaustion of a man's power to avoid death is such that at the end
-of equal infinitely small itervals of time he has lost equal portions of
-his remaining power to oppose destruction which he had at the
-commencement of these intervals".  For older ages $a$ is a neglible 
-portion of the death rate and the Gompertz model holds.
-
-Clearly \begin{itemize}
-\item The Wiebull distribution with $p=2$ ($\sigma=.5$) 
-is the same as a Rayleigh
-distribution with $a=0$.  It is not, however, the most general form of a 
-Rayleigh.  
-\item The extreme value and Gompertz distributions have the same
-hazard function, with
-$ \sigma = 1/ \log(c)$, and $\exp(-\eta/ \sigma) = b$.
-\end{itemize}
-It would appear that the Gompertz can be fit with an identity link function
-combined with the extreme value distribution.  However, this ignores a
-boundary restriction.  If $f(x; \eta, \sigma)$ is the extreme value 
-distribution
-with paramters $\eta$ and $\sigma$, 
-then the definition of the Gompertz densitiy
-is 
-\begin{displaymath}
-\begin{array}{ll}
-        g(x; \eta, \sigma)  = 0 &                    x< 0 \\
-        g(x; \eta, \sigma)  = c f(x; \eta, \sigma) &  x>=0
-\end{array}
-\end{displaymath}
-where $c= \exp(\exp(-\eta / \sigma))$ is the necessary 
-constant so that $g$ integrates
-to 1.  If $\eta / \sigma$ is far from 1, then the correction term will be
-minimal and the above fit will be a good approximation to the Gompertz.
-Alternatively, one could use \code{censorReg} with the \code{truncation}
-argument to indicate that each observation is restricted to
-$(0,\infty)$.
-
-   The Makeham distribution falls into the gamma family (equation 2.3 of
-Kalbfleisch and Prentice, Survival Analysis), but with the same range
-restriction problem. 
 
 
 \appendix

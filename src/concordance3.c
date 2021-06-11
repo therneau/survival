@@ -1,5 +1,6 @@
 /* Automatically generated from the noweb directory */
 #include "survS.h"
+#include "survproto.h"
 
 void walkup(double *nwt, double* twt, int index, double sums[3], int ntree) {
     int i, j, parent;

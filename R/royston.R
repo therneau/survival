@@ -13,16 +13,27 @@ royston <- function(fit, newdata, ties=TRUE, adjust=FALSE) {
         y2 <- fit$y
     }
     else {
+        temp <- attr(terms(fit), "specials")
+        if (!is.null(temp$strata)) 
+            stop("cannot use newdata for a stratified model")
+        if (!is.null(temp$tt)) 
+            stop("cannot use newdata for a model with tt() terms")
+        if (!is.null(fit$penaly))
+            stop("cannot use newdata for a penalized model")
+
         eta <- predict(fit, newdata)
         yform <- formula(fit)
         yform[3] <- 1   
         y2 <- model.response(model.frame(yform, data=newdata))
+        newfit <- coxph(y2 ~ eta)   # rescale
+        eta <- newfit$linear.predictor
     }
     n <- length(eta)
 
     R.pm <- var(eta)/(pi^2/6 +var(eta))  # the measure of Kent and O'Quigley
-    # eta = X beta, the linear predictor
-    # They replace it with a "nicer" one, z = normal scores
+
+    # Now for Royston and Sauerbrie
+    # They replace eta with a "nicer" one, z = normal scores
     #  If there are ties in eta, replace each with the average normal
     # score to which it matches
     if (ties && any(duplicated(eta))) {
@@ -53,6 +64,22 @@ royston <- function(fit, newdata, ties=TRUE, adjust=FALSE) {
         D <- sign(beta)*sign(temp) *sqrt(abs(temp) *8/pi)
         se.D <- se.D * abs(beta)/(r*sqrt(abs(temp)))
         R2 <- 1- r*(1-R.I)
-    }       
-    c(D  = D, "se(D)" = se.D, R.D = R2, R.PM=R.pm)  # return vector
+    }  
+
+    # The measure of Goen and Heller, computation is O(n^2)
+    #
+    eta <- sort(eta)
+    n <- length(eta)    
+    temp <- 0
+    for (i in 1:(n-1)) {
+        temp <- temp + sum(1/(1 + exp(eta[i]- eta[(i+1):n])))
+    }
+    GH = temp *2/(n * (n-1))
+
+    # Nagelkirke
+    logtest <- -2 * (fit$loglik[1] - fit$loglik[2])
+    R.n = 1-exp(-logtest/fit$n)
+
+    c(D  = D, "se(D)" = se.D, R.D = R2, R.pm= R.pm, R.N= R.n,
+        C.GH= GH)   # return vector
 }
