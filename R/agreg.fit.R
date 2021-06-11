@@ -108,7 +108,13 @@ agreg.fit <- function(x, y, strata, offset, init, control,
     }
     lp  <- as.vector(x %*% coef + offset - sum(coef * agmeans))
     if (resid) {
-        score <- as.double(exp(lp))
+        if (any(lp > log(.Machine$double.xmax)) {
+            # prevent a failure message due to overflow
+            #  this occurs with near-infinite coefficients
+            temp <- lp + log(.Machine$double.xmax) - (1 + max(lp))
+            score <- exp(temp)
+        } else score <- exp(lp)
+
         residuals <- .Call(Cagmart3, nused,
                        y, score, weights,
                        strata,

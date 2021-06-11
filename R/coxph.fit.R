@@ -133,7 +133,13 @@ coxph.fit <- function(x, y, strata, offset, init, control,
                     method = method,
  		    class ='coxph')
 	if (resid) {
-            score <- exp(lp[sorted])
+            temp <- lp[sorted]
+            if (any(temp > log(.Machine$double.xmax))) {
+                # prevent a failure message due to overflow
+                #  this occurs with near-infinite coefficients
+                temp <- temp + log(.Machine$double.xmax) - (1 + max(temp))
+            }
+            score <- exp(temp)
             coxres <- .C(Ccoxmart, as.integer(n),
 				as.integer(method=='efron'),
 				stime,
