@@ -13,8 +13,7 @@ btree <- function(n) {
    tfun(n, 1, 2^(floor(logb(n-1,2))))
    }
 
-set.seed(12345)
-temp <- sort(unique(floor(runif(40,0,30)))[1:13])/10
+temp <- c(1,2,6,8, 9,12,14, 18, 19, 21, 23, 24, 27, 32)
 indx <- btree(13)
 
 xpos <- 1:15

@@ -233,52 +233,69 @@ Ignoring the issue of tied event and censoring times creates
 weights that are too small, and using right-continuous vs. left continuous
 $C$ creates weights that are too large.
 
-\subsection{Extensions}
-A further set of implementation issues is how to extend this calculation 
-to weighted data, extention to counting process data, e.g. 
-\code{Surv(time1, time2, status)}to (time1, time2), extensions to multi-state
-models, and dealing with delayed entry.  The last of these affects each of the
-other three, so we will discuss it first.
-The primary underlying question is whether we consider the censoring process
-to begin at the time a subject enters the study, or whether it was in effect
-from time 0.
+\subsection{Counting process data}
+Modification of the redistribute to the right (RTTR) algorithm for counting
+data is straightforward.  
+First, only actual censorings cause a redistribution. For example,
+assume we have a data set with time-dependent covariates, and a subject
+with three (time1, time2, status) intervals of (0, 5, 0), (5,18, 0)
+and (18, 25, 0).  
+Only the last of these, time 25, is an actual censoring time.
+For counting process data the \code{rttright} function will insist on an
+\code{id} statement to correctly group rows for a subject, and makes use
+of \code{survcheck} to insure that there are no gaps or overlaps.
+(The \code{survfit} routine imposes the same restriction).
 
-As an example consider the survival from the diagnosis of multiple myeloma in
-a sample of subjects from Mayo Clinic (cite something), a tertiary care center.
-Each subject has a single row in the data set with time1, time2, and status.
-For those subjects diagnosed at Mayo, time1 =0.  For those where were
-diagnosed elsewhere, followed by referral to Mayo, time1 ranges from a few weeks
-to 2 years.  
-The standard survfit call treats the delayed entry subjects as though they were
-a risk for death before their arrival, while censoring risk does not start until
-study entry.  Censoring is viewed as a function of Mayo's follow-up system.
-This is often the more natural assumption.  
-In this case our weight is built on $C(entry+)/C(t+)$.
-In the alternative view where subjects were subject to the censoring process
-from time 0 the weight will be based on $1/C(t+)$.
+A general form of the RTTR algorithm that allows for multiple states
+has the following features
+\begin{enumerate}
+  \item Censoring weights $c_i(t)$ for each observation are explicitly a 
+    function of time, and sum to 1.
+  \item When an observation is censored, the weight it redistributied to all
+    other observations in the same state.
+  \item At any time, for any given state, the non-zero weights for all 
+    observations in that state are proportional to prior case weights $w_i$.
+\end{enumerate}
+The estimated probability in state $j$ is estimated as a sum of weights of those
+currently in state $j$.
+\begin{equation*}
+  p_j(t) = \sum_{s_i=j} c_i(t)
+\end{equation*}
+This estimate agrees with the Aalen-Johansen estimate.
 
-With respect to case weights, if censoring is assumed to start at time 0
-then nothing further needs to be done.
-For censoring that does not begin until entry, post-multiply each weight
-by $W(t)/n$, where $W(t)$ is the cumulative
-sum of weights for those entered into the study by time $t$. 
-If we are using a robust variance for later estimation, as we
-normally will with weighted data, the division by $n$ willhave no impact on
- the final result.
-In the second case, the sum of weights at any cutpoint $\tau$ will be $W(\tau)$.
+Point 3 means that whenenever an observation changes state, this necessates
+re-balancing of the weights in the new state.
+As an example assume a model with three states 1 $\rightarrow$ 2 $\rightarrow$ 3,
+and 5 subjects who start in state 1, and the following data set where a
+state of 0 = censoring.
+At time 2.1 the weights are 1/5, 0, 4/15, 4/15, 4/15, with observation 1 in 
+state 2 and 3--5 in state 1, and at time 3 observation 3 transitions to state
+2.  At time 4, observation 1 transitions to state 3 with a weight
+of (1/5 + 4/15)/2.
 
-For counting process data we need to distinguish true censoring from
-continuation.
-Assume that a subject has intervals of $(0, t_1), (t_1, t_2)$ and $(t_2, t_3)$ 
-with status codes of 0 for all three.  The first two of these do not represent
-censoring, which is a cessation of follow-up; the next observation picks up
-where this one began.  
-The compuation of $C(t)$ must use only actual censoring times such as $t_3$ as
-an `event'.  The inclusion of an \code{id} statement into the call is thus
-critical. 
-A subject with a gap in their follow-up time, $(0, t_1)$ $(t_2, t_3)$, 
-currently results in an error.  We do not have a good answer to the question of
-what should be done in that case, it likely depends on the context from which the
-data arose.
+<<echo=FALSE>>=
+tdata <- data.frame(id=c(1,1,1, 2, 3,3, 4, 5),
+                    time1=c(0, 1, 4, 0, 0, 3, 0, 0),
+                    time2=c(1, 4, 8, 2, 3, 6, 7, 8),
+                    state=c(2, 3, 0, 0, 2, 0, 0, 0))
+tdata
+@
+
+For an absorbing state, i.e., one with no departures, the rebalancing step is
+not technically necessary since it does not change the sum.
+As a practical matter in the code, there is actually no need to rebalance until
+there is a departure of an observation to another state.  
+This fits well with a design decision of the survival package to not force
+declaration of the aborbing states by the user, but to simply notice them as
+those states where no one departs.
+
+For the case of a simple alive-dead or competing risks model, the
+weights generated by the RTTR approach also have a simple representation
+as $1/G(t)$ for some censoring distribution $G$.
+The keys that makes it work for these two cases are that everyone starts in
+the same state and that subjects are only censored from that state. 
+There is in essence only one censoring distribution to keep track of. 
+There is not natural way (that we have seen) to reflect RTTR weights that
+involve rebalancing as the inverse of a censoring distribution $G$.
 
 \end{document}
