@@ -1,4 +1,3 @@
-# $Id: anova.survreg.S 11230 2009-02-09 23:37:55Z therneau $
 anova.survreg <- function(object, ..., test = c("Chisq", "none")) {
     test <- match.arg(test)
     margs <- function(...)
@@ -52,5 +51,6 @@ anova.survreg <- function(object, ..., test = c("Chisq", "none")) {
     class(aod) <- c("anova", "data.frame")
     if(test == "none")
 	    return(aod)
-    else stat.anova(aod, test, scale=1 ,n= nrow(y))
+    else structure(stat.anova(aod, test, scale=1 ,n= nrow(y)), 
+                   heading=heading, class=c("anova","data.frame"))
     }

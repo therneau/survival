@@ -12,8 +12,11 @@
     \item In pyears(...,data.frame=TRUE), if the levels of a tcut are
     numeric return a numeric rather than a factor.  (Version 2.4 feature
     that had been inadvertently removed.)
-    \item Fix mistake in survfit.coxphms(..., stype=1): pmin when I
-    meant pmax.  (Resulting curves were not even close.)  Add a test case.   
+    \item Fix mistake in survfit.coxphms(..., stype=1): had pmin when I
+    meant pmax.  (Resulting curves were not even close.)  Add a test
+    case.
+    \item update anova.survreg to have class("anova", "data.table").
+    Error pointed out by Daniel Sjoberg.
 }}
 
 \section{Changes in version 3.2-10}{
