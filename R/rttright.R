@@ -12,7 +12,7 @@
 rttright <- function(formula, data, weights, subset, na.action, times,
                      id, timefix=TRUE) {
     Call <- match.call()  # save a copy of the call
-    if (missing(time)) times <- NULL
+    if (missing(times)) times <- NULL
 
     # The first chunk of this function is essentially a copy of the code
     #  from the survfit function, the exception being how covariates are handled

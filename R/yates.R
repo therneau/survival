@@ -351,9 +351,9 @@ yates <- function(fit, term, population=c("data", "factorial", "sas"),
     beta <- beta[!nabeta]
     if (predict == "linear" || is.null(mfun)) {
         # population averages of the simple linear predictor
-        temp <- match(contr$termname, colnames(Tatt$factors)) 
-        if (any(is.na(temp)))
-            stop("term '", contr$termname[is.na(temp)], "' not found in the model")
+        #temp <- match(contr$termname, colnames(Tatt$factors)) 
+        #if (any(is.na(temp)))
+        #    stop("term '", contr$termname[is.na(temp)], "' not found in the model")
 
         meanfun <- if (is.null(weight)) colMeans else function(x) {
             colSums(x*weight)/ sum(weight)}
@@ -361,9 +361,12 @@ yates <- function(fit, term, population=c("data", "factorial", "sas"),
                   
         # coxph model: the X matrix is built as though an intercept were there (the
         #  baseline hazard plays that role), but then drop it from the coefficients
-        #  before computing estimates and tests.
+        #  before computing estimates and tests.  If there was a strata * covariate
+        #  interaction there will be many more colums to drop.
         if (inherits(fit, "coxph")) {
-            Cmat <- Cmat[,-1, drop=FALSE]
+            nkeep <- length(fit$means)  # number of non-intercept columns
+            col.to.keep <- seq(to=ncol(Cmat), length= nkeep)
+            Cmat <- Cmat[,col.to.keep, drop=FALSE]
             offset <- -sum(fit$means[!nabeta] * beta)  # recenter the predictions too
             }
         else offset <- 0
@@ -561,7 +564,13 @@ yates <- function(fit, term, population=c("data", "factorial", "sas"),
 yates_xmat <- function(Terms, Tatt, contr, population, mframe, fit, 
                        iscat, weight) {
     # which variables(s) are in x1 (variables of interest)
-    x1indx <- apply(Tatt$factors[,contr$termname,drop=FALSE] >0, 1, any)  
+    # First a special case of strata(grp):x, which causes strata(grp) not to
+    #  appear as a column
+    if (is.na(match(contr$termname, colnames(Tatt$factors)))) {
+        x1indx <- (contr$termname== rownames(Tatt$factors))
+        names(x1indx) <- rownames(Tatt$factors)
+        if (!any(x1indx)) stop(paste("variable", contr$termname, "not found"))
+    } else x1indx <- apply(Tatt$factors[,contr$termname,drop=FALSE] >0, 1, any)  
     x2indx <- !x1indx  # adjusters
     if (inherits(population, "data.frame")) pdata <- population  #user data
     else if (population=="data") pdata <- mframe  #easy case
