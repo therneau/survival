@@ -1,6 +1,6 @@
 
-R Under development (unstable) (2021-01-18 r79846) -- "Unsuffered Consequences"
-Copyright (C) 2021 The R Foundation for Statistical Computing
+R version 4.0.3 (2020-10-10) -- "Bunny-Wunnies Freak Out"
+Copyright (C) 2020 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -24,6 +24,7 @@ Type 'q()' to quit R.
 +                     status = c(1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 1,
 +                                0, 0, 1, 0, 0, 1, 0, 1, 0))
 > 
+> # First check: verify that the the RTTR reproduces the KM
 > kfit <- survfit(Surv(time, status) ~1, bdata)
 > bwt  <- rttright(Surv(time, status) ~1, bdata)
 > 
@@ -33,6 +34,8 @@ Type 'q()' to quit R.
 [1] TRUE
 > 
 > 
+> # A covariate divides both survfit and rttr into disjoint groups, so repeat
+> #  the above check on subsets of the aml data
 > afit <- survfit(Surv(time, status) ~x, aml)
 > awt <-  rttright(Surv(time, status) ~x, aml)
 > 
@@ -47,11 +50,28 @@ Type 'q()' to quit R.
 [1] TRUE
 [1] TRUE
 > 
-> # Now test with (start, stop] data
+> 
+> ###########
+> # Alternate computation using inverse prob of censoring weights.
+> # First shift the censorings to avoid ties: if there is a death and a censor
+> #   at time 10, say, the death was not at risk of censoring. Censoring weights
+> #   happen "later".  This also results in a left-continuous curve.
+> delta <- min(diff(sort(unique(bdata$time)))) /3
+> offset <- ifelse(bdata$status==1, 0, delta)
+> cfit <- survfit(Surv(time+ offset, 1-status) ~ 1, bdata)
+> 
+> # interpolate
+> indx <- findInterval(bdata$time, cfit$time)
+> cwt <- ifelse(bdata$status==0, 0, 1/cfit$surv[indx])
+> all.equal(bwt, cwt) 
+[1] TRUE
+> 
+> 
+> # Now test with (start, stop] data, should get the same results
 > b2 <- survSplit(Surv(time, status) ~ 1, bdata, cut= c(3,5, 7, 14),
 +                 id = "subject")
 > indx <- c(seq(1, 65, by=2), seq(64, 2, by= -2))
-> b2 <- b2[indx,]    # not in time within subject order
+> b2 <- b2[indx,]    # not in time within subject order (stronger test)
 > 
 > b2wt <- rttright(Surv(tstart, time, status) ~1, b2, id=subject)
 > indx2 <- order(b2$time)
@@ -86,10 +106,22 @@ Type 'q()' to quit R.
 > all.equal(mfit$pstate[,3], csum2[keep])
 [1] TRUE
 > 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
 > ###
 > # Delayed entry, tiny data set
 > #  This is the data that showed me that the RTTR idea does not extend
-> #  to delayed entry, compute it how you will.
+> #  to delayed entry, attempt it how you will.
 > delay <- data.frame(t0=c(0,0,0,0,3,0),
 +                     t1=1:6,
 +                     status=c(1,0,1,0,0,1),
@@ -98,6 +130,7 @@ Type 'q()' to quit R.
 > #                 times=0:5 + .9)
 > 
 > 
+> 
 > proc.time()
    user  system elapsed 
-  0.873   0.059   0.925 
+  1.248   0.129   1.430 
