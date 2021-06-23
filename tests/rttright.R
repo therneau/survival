@@ -7,7 +7,7 @@ bdata <- data.frame(time =   c(1, 2, 2, 3, 4, 4, 5, 5, 8, 8,
                     status = c(1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 1,
                                0, 0, 1, 0, 0, 1, 0, 1, 0))
 
-# First check depends on the fact the the RTTR reproduces the KM
+# First check: verify that the the RTTR reproduces the KM
 kfit <- survfit(Surv(time, status) ~1, bdata)
 bwt  <- rttright(Surv(time, status) ~1, bdata)
 
@@ -17,7 +17,7 @@ all.equal(kfit$surv, 1-cdf)
 
 
 # A covariate divides both survfit and rttr into disjoint groups, so repeat
-#  the above on the subsets
+#  the above check on subsets of the aml data
 afit <- survfit(Surv(time, status) ~x, aml)
 awt <-  rttright(Surv(time, status) ~x, aml)
 
@@ -46,13 +46,11 @@ cwt <- ifelse(bdata$status==0, 0, 1/cfit$surv[indx])
 all.equal(bwt, cwt) 
 
 
-
-
 # Now test with (start, stop] data, should get the same results
 b2 <- survSplit(Surv(time, status) ~ 1, bdata, cut= c(3,5, 7, 14),
                 id = "subject")
 indx <- c(seq(1, 65, by=2), seq(64, 2, by= -2))
-b2 <- b2[indx,]    # not in time within subject order
+b2 <- b2[indx,]    # not in time within subject order (stronger test)
 
 b2wt <- rttright(Surv(tstart, time, status) ~1, b2, id=subject)
 indx2 <- order(b2$time)

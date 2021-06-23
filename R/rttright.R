@@ -12,6 +12,7 @@
 rttright <- function(formula, data, weights, subset, na.action, times,
                      id, timefix=TRUE) {
     Call <- match.call()  # save a copy of the call
+    if (missing(time)) times <- NULL
 
     # The first chunk of this function is essentially a copy of the code
     #  from the survfit function, the exception being how covariates are handled
@@ -68,11 +69,9 @@ rttright <- function(formula, data, weights, subset, na.action, times,
     if (timefix) Y <- aeqSurv(Y) 
         
     id <- model.extract(mf, "id")
-    if (ny==3) {
-        if (is.null(id)) stop("id is required for start-stop data")
-    }
+    if (ny==3 && (is.null(id))) stop("id is required for start-stop data")
+
     if (!is.null(id)) {
-        
         if (is.null(attr(Y, 'states'))) {
             ytemp <- Y
             attr(ytemp, 'states') <- 'fail'  # survcheck2 wants a states attr
@@ -83,10 +82,10 @@ rttright <- function(formula, data, weights, subset, na.action, times,
         if (any(check$flag > 0)) 
                 stop("one or more flags are >0 in survcheck")
         n.startstate <- sum(check$transitions[,1] >1)
-        if (ny ==2) samestart=TRUE
+        if (ny ==2) samestart=TRUE   # everyone starts 
         else {
            etemp  <- tapply(Y[,1], id, min)
-           samestart <- all(temp==temp[1])
+           samestart <- all(etemp== etemp[1])
         }    
     } else check <- NULL
 
@@ -108,13 +107,14 @@ rttright <- function(formula, data, weights, subset, na.action, times,
             ord <- order(id, Y[,2])  # time within subject
             ltemp <- !duplicated(id[ord], fromLast=TRUE)  # last for each id
             last <- ltemp[order(ord)]  # marks the last obs, in data order
-            censor <- ifelse(last & Y[,2]==0, 1, 0)
+            censor <- ifelse(last & Y[,3]==0, 1, 0)
         }
 
-        delta <- min(diff(sort(unique(c(Y[,-ny]))))) /2
+        delta <- min(diff(sort(unique(c(Y[,-ny], times))))) /2
         y2 <- Y
         y2[,ny] <- censor
         y2[censor==1, ny-1] <- y2[censor==1, ny-1] + delta
+        if (ny==3) attr(y2, "type") <- "counting" else attr(y2, "type")<- "right"
         G <- survfitKM(X, y2, casewt, se.fit=FALSE)
 
         # read off separately for each stratum, and for each time
@@ -134,7 +134,7 @@ rttright <- function(formula, data, weights, subset, na.action, times,
             unname(new)
         } 
             
-        if (missing(times)) times <- 2*max(abs(G$time)) +1  # past the last
+        if (is.null(times)) times <- 2*max(abs(G$time)) +1  # past the last
         wtmat <- matrix(casewt, n, length(times))
         for (i in 1:nstrat) {
             keep <- (gstrat==i & G$n.event > 0)
@@ -151,7 +151,7 @@ rttright <- function(formula, data, weights, subset, na.action, times,
     else { 
         # The more difficult case, where there are multiple states or delayed
         #   entry
-        stop("Code not yet complete for multistate")
+        stop("function not defined for delayed entry or multistate data")
     }
     colnames(wtmat) <- times
     drop(wtmat)  
