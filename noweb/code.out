@@ -1,0 +1,12 @@
+\BOOKMARK [1][-]{section.1}{Introduction}{}% 1
+\BOOKMARK [1][-]{section.2}{Cox Models}{}% 2
+\BOOKMARK [2][-]{subsection.2.1}{Coxph}{section.2}% 3
+\BOOKMARK [2][-]{subsection.2.2}{Exact partial likelihood}{section.2}% 4
+\BOOKMARK [2][-]{subsection.2.3}{Andersen-Gill fits}{section.2}% 5
+\BOOKMARK [2][-]{subsection.2.4}{Predicted survival}{section.2}% 6
+\BOOKMARK [3][-]{subsubsection.2.4.1}{Multi-state models}{subsection.2.4}% 7
+\BOOKMARK [1][-]{section.3}{The Fine-Gray model}{}% 8
+\BOOKMARK [2][-]{subsection.3.1}{The predict method}{section.3}% 9
+\BOOKMARK [1][-]{section.4}{Concordance}{}% 10
+\BOOKMARK [2][-]{subsection.4.1}{Main routine}{section.4}% 11
+\BOOKMARK [2][-]{subsection.4.2}{Methods}{section.4}% 12
