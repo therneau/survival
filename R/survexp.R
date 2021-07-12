@@ -145,6 +145,8 @@ survexp <- function(formula, data,
         if (any(names(mf[,rate]) !=  attr(ratetable$terms, 'term.labels')))
              stop("Unable to match new data to old formula")
         }
+    else if (inherits(ratetable, "coxphms"))
+        stop("survexp not defined for multi-state coxph models")
     else stop("Invalid ratetable")
     if (substring(method, 1, 10) == "individual") { #individual survival
         if (no.Y) stop("for individual survival an observation time must be given")

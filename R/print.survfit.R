@@ -64,15 +64,21 @@ print.survfit <- function(x, scale=1,
 
     if (all(mtemp[,1] == mtemp[,2])) 
         mtemp <- mtemp[,-1, drop=FALSE]
-    temp$matrix <- drop(mtemp)
 
-    print(temp$matrix)
+    # for printing, put a footnote on the rmean label
     if (rmean != 'none') {
+        dd <- dimnames(mtemp)
+        dd[[2]] <- ifelse(dd[[2]]=="rmean", "rmean*", dd[[2]])
+        dimnames(mtemp) <- dd
+        print(mtemp)
+
         if (rmean == 'individual') 
             cat("   * restricted mean with variable upper limit\n")
         else cat("    * restricted mean with upper limit = ", 
                  format(temp$end.time[1]), "\n")
         }
+    else print(mtemp)
+
     invisible(x)
     }
 
@@ -179,7 +185,7 @@ survmean <- function(x, scale=1, rmean) {
     if (is.numeric(rmean)) rmean <- rmean/scale
     surv <- x$surv
     plab <- c("records", "n.max", "n.start", "events", 
-                  "*rmean", "*se(rmean)", "median",
+                  "rmean", "se(rmean)", "median",
               paste(x$conf.int, c("LCL", "UCL"), sep=''))  #col labels
     ncols <- 9    #number of columns in the output
     

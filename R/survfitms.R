@@ -417,9 +417,9 @@ print.survfitms <- function(x, scale=1,
         dimnames(temp$matrix) <- dd
         print(temp$matrix, ...)
         if (length(etime) ==1)
-             cat("   *mean time in state, restricted (max time =", 
+             cat("   *restricted mean time in state (max time =", 
                  format(etime, ...), ")\n")
-        else cat("   *mean time in state, restricted (per curve cutoff)\n")
+        else cat("   *restricted mean time in state (per curve cutoff)\n")
     }
     invisible(x)
 }
