@@ -180,8 +180,8 @@ tvec <- tvec[2:4]
 rr1 <- resid(fit1, tvec, type="auc")
 afun <- function(fit, times) {
     ntime <- length(times)
-    if (length(fit$strata)) xfun <- function(x) x$table[, "*rmean"]
-        else xfun <- function(x) x$table["*rmean"]
+    if (length(fit$strata)) xfun <- function(x) x$table[, "rmean"]
+        else xfun <- function(x) x$table["rmean"]
 
     temp <- xfun(summary(fit, rmean=times[1]))
     if (ntime==1) return(temp)

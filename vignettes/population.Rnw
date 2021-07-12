@@ -605,7 +605,7 @@ ysurv <- yates(coxfit4, ~fgroup, predict="survival", nsim=50,
 ysurv
 
 # display side by side
-temp <- rbind("simple KM" = summary(flkm, rmean=13*365.25)$table[, "*rmean"],
+temp <- rbind("simple KM" = summary(flkm, rmean=13*365.25)$table[, "rmean"],
               "population adjusted" = ysurv$estimate[,"pmm"])
 round(temp/365.25, 2)
 

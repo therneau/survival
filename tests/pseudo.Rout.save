@@ -1,6 +1,6 @@
 
-R Under development (unstable) (2020-12-17 r79644) -- "Unsuffered Consequences"
-Copyright (C) 2020 The R Foundation for Statistical Computing
+R Under development (unstable) (2021-06-11 r80486) -- "Unsuffered Consequences"
+Copyright (C) 2021 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -233,8 +233,8 @@ Type 'q()' to quit R.
 > rr1 <- resid(fit1, tvec, type="auc")
 > afun <- function(fit, times) {
 +     ntime <- length(times)
-+     if (length(fit$strata)) xfun <- function(x) x$table[, "*rmean"]
-+         else xfun <- function(x) x$table["*rmean"]
++     if (length(fit$strata)) xfun <- function(x) x$table[, "rmean"]
++         else xfun <- function(x) x$table["rmean"]
 + 
 +     temp <- xfun(summary(fit, rmean=times[1]))
 +     if (ntime==1) return(temp)
@@ -338,4 +338,4 @@ Type 'q()' to quit R.
 > 
 > proc.time()
    user  system elapsed 
-  1.101   0.061   1.154 
+  1.045   0.075   1.113 

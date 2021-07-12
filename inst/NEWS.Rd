@@ -12,6 +12,8 @@
     interaction
     \item Clarify documentation for the royston command.
     \item Add error for survexp applied to a multistate model.
+    \item Make the labeling of restricted mean consistent in print and
+    summary, for single state and multistate survfit.
 }}
 \section{Changes in version 3.2-11}{
   \itemize{

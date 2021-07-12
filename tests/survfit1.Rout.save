@@ -1,6 +1,6 @@
 
-R Under development (unstable) (2020-06-10 r78681) -- "Unsuffered Consequences"
-Copyright (C) 2020 The R Foundation for Statistical Computing
+R Under development (unstable) (2021-06-11 r80486) -- "Unsuffered Consequences"
+Copyright (C) 2021 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -404,18 +404,18 @@ Type 'q()' to quit R.
 > print(fit1, rmean='common')
 Call: survfit(formula = Surv(time, status) ~ x, data = adata, stype = 2)
 
-                 n events *rmean *se(rmean) median 0.95LCL 0.95UCL
-x=Maintained    11      7   60.3      25.60     34      23      NA
-x=Nonmaintained 12     11   30.1       9.14     27       8      NA
+                 n events rmean* se(rmean) median 0.95LCL 0.95UCL
+x=Maintained    11      7   60.3     25.60     34      23      NA
+x=Nonmaintained 12     11   30.1      9.14     27       8      NA
     * restricted mean with upper limit =  161 
 > print(fit1, rmean='common', scale=2)
 Call: survfit(formula = Surv(time, status) ~ x, data = adata, stype = 2)
 
-                 n events *rmean *se(rmean) median 0.95LCL 0.95UCL
-x=Maintained    11      7   30.2      12.80   17.0    11.5      NA
-x=Nonmaintained 12     11   15.1       4.57   13.5     4.0      NA
+                 n events rmean* se(rmean) median 0.95LCL 0.95UCL
+x=Maintained    11      7   30.2     12.80   17.0    11.5      NA
+x=Nonmaintained 12     11   15.1      4.57   13.5     4.0      NA
     * restricted mean with upper limit =  80.5 
 > 
 > proc.time()
    user  system elapsed 
-  0.966   0.064   1.021 
+  0.944   0.056   0.993 
