@@ -8,7 +8,10 @@
     model
     \item cox.zph would crash for a coxme model whose random effect
     contained a factor (odd issue with model.frame).
-    \item yates error for a coxph model with a strata * covariate interaction
+    \item yates error for a coxph model with a strata * covariate
+    interaction
+    \item Clarify documentation for the royston command.
+    \item Add error for survexp applied to a multistate model.
 }}
 \section{Changes in version 3.2-11}{
   \itemize{

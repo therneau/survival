@@ -22,7 +22,6 @@ royston(fit, newdata, ties = TRUE, adjust = FALSE)
   \eqn{D}{D} statistic.  \code{R.KO} is the value proposed by Kent and
   O'Quigley, \code{R.N} is the value proposed by Nagelkerke, and
   \code{C.GH} corresponds to Goen and Heller's concordance measure.
-  See the vignette for further details.
   
   An adjustment for D is based on the ratio
   r= (number of events)/(number of coefficients). For models which have
@@ -32,11 +31,17 @@ royston(fit, newdata, ties = TRUE, adjust = FALSE)
   of D, and four pseudo R-squared values.
 }
 \references{
+M. Goen and G. Heller, Concordance probability and discriminatory power
+in proportional hazards regression.  Biometrika 92:965-970, 2005.
+
+N. Nagelkerke, J. Oosting, J. and A. Hart, A simple test for goodness of fit
+of Cox's proportional hazards model.  Biometrics 40:483-486, 1984.
+
 P. Royston and W. Sauerbrei, A new measure of prognostic separation in
 survival data.  Statistics in Medicine 23:723-748, 2004.
 }
 \examples{
-# one of the examples from the paper
+# An example used in Royston and Sauerbrei
 pbc2 <- na.omit(pbc)  # no missing values
 cfit <- coxph(Surv(time, status==2) ~ age + log(bili) + edema + albumin +
                    stage + copper, data=pbc2, ties="breslow")

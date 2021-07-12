@@ -80,6 +80,6 @@ royston <- function(fit, newdata, ties=TRUE, adjust=FALSE) {
     logtest <- -2 * (fit$loglik[1] - fit$loglik[2])
     R.n = 1-exp(-logtest/fit$n)
 
-    c(D  = D, "se(D)" = se.D, R.D = R2, R.pm= R.pm, R.N= R.n,
+    c(D  = D, "se(D)" = se.D, R.D = R2, R.KO= R.pm, R.N= R.n,
         C.GH= GH)   # return vector
 }
