@@ -67,7 +67,7 @@ cfit3 <- coxph(Surv(time, status) ~ age + sex + ridge(snp, theta=.1),
 
 This fit has completely ignored the variable X1, X2, ..., X50 found in the
 data frame. 
-If the SNP data had come to us as a data frame, then we would make a
+If the SNP data had come to us as a data frame, then we would
 create a temporary  matrix
 using the as.matrix command, applied to the appropriate columns of said data.
 
@@ -85,7 +85,7 @@ We get a failure message that ``variable lengths differ''.  The reason is that
 R fitting functions look for their variables first in the data= argument, 
 and then
 look in the primary working data for any that were not found.  The call to
-cfit3 has 3 variables of age, sex, and snp; which the new data frame prdata
+cfit3 has 3 variables of age, sex, and snp; while the new data frame prdata
 has variables of age, sex, X1, X2, ..., X20.  The predict function pulls 4 rows
 from prdata (for age and sex), and 50 rows from the global variable snp.
 This clearly does not work.

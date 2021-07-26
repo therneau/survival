@@ -4,7 +4,7 @@
 \addtolength{\textwidth}{1in}
 \addtolength{\oddsidemargin}{-.5in}
 \setlength{\evensidemargin}{\oddsidemargin}
-%\VignetteIndexEntry{Pseudovalues}
+%\VignetteIndexEntry{Breast cancer data}
 
 \SweaveOpts{keep.source=TRUE, fig=FALSE}
 % Ross Ihaka suggestions
