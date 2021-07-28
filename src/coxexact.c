@@ -4,6 +4,8 @@
 #include "survproto.h"
 #include <R_ext/Utils.h>
 
+#define NOTDONE -1.1
+
 double coxd0(int d, int n, double *score, double *dmat,
              int dmax) {
     double *dn;
@@ -11,9 +13,9 @@ double coxd0(int d, int n, double *score, double *dmat,
     if (d==0) return(1.0);
     dn = dmat + (n-1)*dmax + d -1;  /* pointer to dmat[d,n] */
 
-    if (*dn ==0) {  /* still to be computed */
+    if (*dn == NOTDONE) {  /* still to be computed */
         *dn = score[n-1]* coxd0(d-1, n-1, score, dmat, dmax);
-            if (d<n) *dn += coxd0(d, n-1, score, dmat, dmax);
+        if (d<n) *dn += coxd0(d, n-1, score, dmat, dmax);
     }
     return(*dn);
 }
@@ -22,7 +24,7 @@ double coxd1(int d, int n, double *score, double *dmat, double *d1,
     int indx;
     
     indx = (n-1)*dmax + d -1;  /*index to the current array member d1[d.n]*/
-    if (d1[indx] ==0) { /* still to be computed */
+    if (d1[indx] == NOTDONE) { /* still to be computed */
         d1[indx] = score[n-1]* covar[n-1]* coxd0(d-1, n-1, score, dmat, dmax);
         if (d<n) d1[indx] += coxd1(d, n-1, score, dmat, d1, covar, dmax);
         if (d>1) d1[indx] += score[n-1]*
@@ -37,7 +39,7 @@ double coxd2(int d, int n, double *score, double *dmat, double *d1j,
     int indx;
     
     indx = (n-1)*dmax + d -1;  /*index to the current array member d1[d,n]*/
-    if (d2[indx] ==0) { /*still to be computed */
+    if (d2[indx] == NOTDONE) { /*still to be computed */
         d2[indx] = coxd0(d-1, n-1, score, dmat, dmax)*score[n-1] *
             covarj[n-1]* covark[n-1];
         if (d<n) d2[indx] += coxd2(d, n-1, score, dmat, d1j, d1k, d2, covarj, 
@@ -125,7 +127,8 @@ SEXP coxexact(SEXP maxiter2,  SEXP y2,
     temp = 0;      /* temp variable for dsize */
 
     maxdeath =0;
-    j=0;   /* start of the strata */
+    j=0;   /* first obs of current stratum */
+    ndeath=0; nrisk=0;
     for (i=0; i<nused;) {
         if (strata[i]==1) { /* first obs of a new strata */
            if (i>0) {
@@ -145,7 +148,7 @@ SEXP coxexact(SEXP maxiter2,  SEXP y2,
             nrisk++;
             ndeath += status[i];
             i++;
-            if (i>=nused || strata[i] >0) break;  /*tied deaths don't cross strata */
+            if (i>=nused || strata[i] >0) break;  /* don't cross strata */
         }
         if (ndeath > maxdeath) maxdeath = ndeath;
     }
@@ -181,7 +184,7 @@ SEXP coxexact(SEXP maxiter2,  SEXP y2,
         if (strata[i] >0) { /* first obs of a new strata */
             maxdeath= strata[i];
             dtemp = dmem0;
-            for (j=0; j<dmemtot; j++) *dtemp++ =0.0;
+            for (j=0; j<dmemtot; j++) *dtemp++ = NOTDONE;
             sstart =i;
             nrisk =0;
         }
@@ -287,7 +290,7 @@ SEXP coxexact(SEXP maxiter2,  SEXP y2,
             if (strata[i] >0) { /* first obs of a new strata */
                 maxdeath= strata[i];
                 dtemp = dmem0;
-                for (j=0; j<dmemtot; j++) *dtemp++ =0.0;
+                for (j=0; j<dmemtot; j++) *dtemp++ = NOTDONE;
                 sstart =i;
                 nrisk =0;
             }

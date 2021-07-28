@@ -5,7 +5,7 @@
     \item Avoid a downstream error from infinte coefficients in
     coxph.  In special case it would fail by passing an NA to C code.
     \item The df column from cox.zph could be incorrect for a coxme
-    model
+    model.
     \item cox.zph would crash for a coxme model whose random effect
     contained a factor (odd issue with model.frame).
     \item yates error for a coxph model with a strata * covariate
@@ -14,6 +14,9 @@
     \item Add error for survexp applied to a multistate model.
     \item Make the labeling of restricted mean consistent in print and
     summary, for single state and multistate survfit.
+    \item With just the right data the coxexact.c routine would do a
+    very inefficient calculation: so slow it appeared to be an infinite
+    loop. 
 }}
 \section{Changes in version 3.2-11}{
   \itemize{
