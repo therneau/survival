@@ -16,7 +16,9 @@
     summary, for single state and multistate survfit.
     \item With just the right data the coxexact.c routine would do a
     very inefficient calculation: so slow it appeared to be an infinite
-    loop. 
+    loop.
+    \item Bug in pspline.R: I had neglected to include 'degree' in the
+    retained arguments for makepredictcall. 
 }}
 \section{Changes in version 3.2-11}{
   \itemize{

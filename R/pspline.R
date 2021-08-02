@@ -99,7 +99,7 @@ pspline <- function(x, df=4, theta, nterm=2.5*df, degree=3, eps=0.1,
 
     if (!penalty) {
         attributes(newx) <- c(attributes(newx), list(intercept=intercept,
-                                          nterm=nterm,
+                                          nterm=nterm, degree= degree, 
                                           Boundary.knots=Boundary.knots))
         if (!missing(combine)) attr(newx, "combine") <- combine
         class(newx) <- "pspline"
@@ -190,7 +190,8 @@ pspline <- function(x, df=4, theta, nterm=2.5*df, degree=3, eps=0.1,
     
     attributes(newx) <- c(attributes(newx), temp,
                           list(intercept=intercept, nterm=nterm,
-                          Boundary.knots=Boundary.knots))
+                               degree= degree, 
+                               Boundary.knots=Boundary.knots))
     if (!missing(combine)) attr(newx, "combine") <- combine
 
     class(newx) <- c("pspline", 'coxph.penalty')
@@ -200,17 +201,16 @@ pspline <- function(x, df=4, theta, nterm=2.5*df, degree=3, eps=0.1,
 makepredictcall.pspline <- function(var, call) {
     if (call[[1]] != as.name("pspline")) return(call)  #wrong phone number
     newcall <- call[1:2]  #don't let the user override anything
-    indx <- match(c("nterm", "intercept", "Boundary.knots", "combine"),
+    indx <- match(c("nterm", "intercept", "Boundary.knots", "combine", "degree"),
                   names(attributes(var)), nomatch=0)
     at <- attributes(var)[indx]
     newcall[names(at)] <- at
-
     newcall
 }
     
 predict.pspline <- function(object, newx, ...) {
     if (missing(newx)) return(object)
-    indx <- match(c("nterm", "intercept", "Boundary.knots", "combine"),
+    indx <- match(c("nterm", "intercept", "Boundary.knots", "combine", "degree"),
                   names(attributes(object)), nomatch=0)
     at <- c(list(x=newx, penalty=FALSE), 
            attributes(object)[indx])
