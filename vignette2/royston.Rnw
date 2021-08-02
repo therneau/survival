@@ -74,13 +74,14 @@ data is relapse-free survival (RFS), the earlier of death or relapse, censored
 at 84 months, and that they will omit those with nodes=0.
 It also has the statement that ``The Rotterdam data (with RFS truncated to
 120 months) can be downloaded from www.stat-press.com.'',
-I expect this latter has caused many to assume that the \code{(\_t, \_d)}
-pair contain RFS, while examination shows that they encode 10 year relapse.
+I expect this latter statement has caused many to assume that the 
+\code{(\_t, \_d)} pair in that data set contains RFS values, but examination 
+shows that they encode 10 year relapse.
 
 Table 1 shows the distribution for 1546 subjects, the number with nodes > 0.
 The distribution below, from the R data set, matches the table with the
 exception of the mean estrogen receptor (ER) level.  If I winsorize that
-at 2000 to exclude large outliers, however, I match.
+at 2000 to exclude large outliers, however, I match the table.
 
 <<table1, echo= TRUE>>=
 rotterdam2 <- subset(rotterdam, nodes>0)
@@ -94,7 +95,7 @@ round(mean(rotterdam$er), 1)
 round(mean(pmin(rotterdam$er, 2000)), 1)
 @ 
  
-The Cox model was fit using fractional polynomials.  If we use the
+The Cox model in the paper was fit using fractional polynomials.  If we use the
 RPS at 84 months = 7 years, the model fit looks like the following.
 The created variable does not exactly match the description on page 3,
 which claims 965 events.
@@ -134,7 +135,7 @@ termplot(cfit, term=1, ylab="Estimated age effect", col.term=1, col.se=1,
 The histogram of the risk scores is not a perfect match, either, 
 but again very close in its overall form.
 
-<<hist1, echo=TRUE>>=
+<<hist1, plot=TRUE, echo=TRUE>>=
 PI1 <- predict(cfit) - mean(predict(cfit))
 hist(PI1, breaks=seq(-1.5, 1.6, by=.1), xlab="Validation data", man=NULL)
 @ 

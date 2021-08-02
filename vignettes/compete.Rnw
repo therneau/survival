@@ -721,7 +721,7 @@ values $P$ can be complex, even if the models for the hazards are relatively
 simple. 
 The primary idea of the Fine-Gray approach is to turn the multi-state 
 problem into a collection of two-state ones. 
-In the upper right diagram of figure 1, draw a circle around all of the
+In the upper right diagram of figure \ref{mfig2}, draw a circle around all of the
 states except the chosen endpoint and collapse them into a single meta-state.
 For the MGUS data these are 
 \begin{itemize}
