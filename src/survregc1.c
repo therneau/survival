@@ -1,5 +1,5 @@
 /*
-** HOw the routines fit together
+** How the routines fit together
 **  survreg.fit, the S function, calls either 
 **     survreg6 -- no penalized terms
 **     survreg7 -- with penalized terms

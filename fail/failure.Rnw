@@ -494,4 +494,6 @@ perfect fit.
 In this data set the risk scores become large, overflowing the exp function,
 before the model converges.  The log-likelihood actually never achieves
 relative convergence, nor does the variance become singular.
+
 \end{document}
+

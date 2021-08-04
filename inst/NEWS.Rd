@@ -18,7 +18,10 @@
     very inefficient calculation: so slow it appeared to be an infinite
     loop.
     \item Bug in pspline.R: I had neglected to include 'degree' in the
-    retained arguments for makepredictcall. 
+    retained arguments for makepredictcall.
+    \item Fix scale factor error in cholesky3.c, which could cause it to
+    incorrectly mark a column as singular.  Found via a survreg example
+    from Nathan Adams, where y had large values.
 }}
 \section{Changes in version 3.2-11}{
   \itemize{

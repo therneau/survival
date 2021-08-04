@@ -30,9 +30,10 @@ data(cancer, package="survival")
   }
 }
 \details{
-These data sets are used in the paper by Royston and Altman.
+  These data sets are used in the paper by Royston and Altman that is
+  referenced below.
 The Rotterdam data is used to create a fitted model, and the GBSG data for 
-validation of the model.  The paper below gives references for the data
+validation of the model.  The paper gives references for the data
 source.
 
 There are 43 subjects who have died without recurrence, but whose death

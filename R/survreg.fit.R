@@ -4,7 +4,6 @@
 #
 survreg.fit<- function(x, y, weights, offset, init, controlvals, dist, 
 		       scale=0, nstrat=1, strata, parms=NULL, assign) {
-
     iter.max <- controlvals$iter.max
     eps <- controlvals$rel.tolerance
     toler.chol <- controlvals$toler.chol
@@ -110,7 +109,7 @@ survreg.fit<- function(x, y, weights, offset, init, controlvals, dist,
     #  If someone provided initial values, assume they know what they
     #  are doing.
     rescaled <- FALSE
-    if (is.null(init) && all(x[,1]==1) && ncol(x)>1 && is.null(init)) {  
+    if (is.null(init) && all(x[,1]==1) && ncol(x)>1) {  
         okay <- apply(x, 2, function(z) all(z==0 | z==1)) # leave these alone
         if (!all(okay)) {
             rescaled <- TRUE
@@ -140,7 +139,7 @@ survreg.fit<- function(x, y, weights, offset, init, controlvals, dist,
 	#init returns \sigma^2, I need log(sigma)
 	# We sometimes get into trouble with a small estimate of sigma,
 	#  (the surface isn't SPD), but never with a large one.  Double it.
-	if (scale >0) vars <- log(scale)
+	if (scale >0) vars <- log(scale) # scale was passed in as a parameter
 	else vars <- log(4*coef[2])/2    # log(2*sqrt(variance)) = log(4*var)/2
 	coef <- c(coef[1], rep(vars, nstrat))
 	
@@ -214,7 +213,6 @@ survreg.fit<- function(x, y, weights, offset, init, controlvals, dist,
 		   as.integer(dnum),
 		   f.expr,
 		   rho)
-
     if (iter.max >1 && fit$flag > nvar2) {
         warning("Ran out of iterations and did not converge")
 	}
