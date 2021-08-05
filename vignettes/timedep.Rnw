@@ -104,7 +104,7 @@ interpolation between the creatinine values 0.9 and 1.5 to get a
 predicted value of 1.1 on day 100; on day 100 the later value of 1.5 has
 not yet been seen.
 
-A an example consider a recent analysis from the Mayo Clinic
+As an example consider a recent analysis from the Mayo Clinic
 study of aging (MCSA), a study which enrolled a stratified random sample from
 the population of Olmsted County and then has followed them forward in
 time.  The occurrence of mild cognitive impairment (MCI), dementia, and
@@ -154,9 +154,9 @@ with a p-value of less than 1 in 1000.
 The alarm about this incorrect approach has been sounded often
 \cite{Anderson83, Buyse96, Suissa08} but the analysis is routinely 
 re-discovered.
-A slightly subtler form of the error is discussed in Redmond et al
+A slightly subtler form of the error is discussed in Redmond et al.
 \cite{Redmond83}.  The exploration was motivated by a flawed analysis presented
-in Bonadonna et. al \cite{Bref} which looked at the effect of total dose.
+in Bonadonna et al. \cite{Bref} which looked at the effect of total dose.
 Breast cancer chemotherapy patients were
 divided into three groups based on whether the patient eventually
 received $>85$\%, 65--85\% or $<65$\% of the dose planned at the start of
@@ -172,7 +172,7 @@ This false result actively harmed patients.
 Redmond looked at a variant of this: create a variable $p$ for each subject
 which
 is the fraction of the target dose \emph{up to} the last entry for that subject.
-A subject who died after recieving only 6 weeks of a planned 12 week regimen
+A subject who died after receiving only 6 weeks of a planned 12 week regimen
 could still score 100\%.
 This looks like it should cure the bias issue,
 but as it turns out it leads to bias in the other direction.  The reason
@@ -425,7 +425,7 @@ transplant study, in the form that it appeared in the J American Statistical
 Association paper of Crowley and Hu \cite{Crowley77}.
 The data set has one line per subject
 which contains the baseline covariates along with
-dates of enrollment, transplant, and death or last follow-up.
+dates of enrolment, transplant, and death or last follow-up.
 We want to create \code{transplant} as a time dependent covariate.
 As is often the case with real data, this data set contains a few anomalies 
 that need to be dealt with when setting up an analysis data set.
@@ -452,7 +452,7 @@ that need to be dealt with when setting up an analysis data set.
     in precisely the same way, since their models include interactions.
     (Table 5.2 in the original edition of the book).
     For age this is (age in days)/ 365.25 - 48 
-    years, and for year of enrollment it is the number of years since the
+    years, and for year of enrolment it is the number of years since the
     start of the study: (entry date - 1967/10/1)/365.25. 
     (Until I figured this out I would get occasional ``why is coxph giving
     the wrong answers'' emails.)
@@ -614,7 +614,7 @@ a boundary of two intervals.
 Another \Sexpr{atemp[1, 'late']} non-missing alkaline phosphotase
 values occurred after the last follow-up date
 of the pbc data set and are ignored.  
-Bilirubin is missing on no subjects, so it's addition creates a few more
+Bilirubin is missing on no subjects, so its addition creates a few more
 unique break points in the follow-up, namely those clinical visits for
 which the ascites value was missing.
 
@@ -1172,12 +1172,12 @@ age change of less than one year would have minimal impact.
 
 The Cox model requires computation of a weighted mean and variance of
 the covariates at each event time, a process that is inherently 
-$O(ndp^2)$ where $n$ = the sample size, $d$ = the number of events and $p$=
+$O(ndp^2)$ where $n$ = the sample size, $d$ = the number of events and $p$ =
 the number of covariates.  
 Much of the algorithmic effort in the underlying code is to use 
 updating methods for
 the mean and variance matrices, reducing the compute time to $O((n+d) p^2)$.
-Updating is not possible across a time split and the compuatation starts
+Updating is not possible across a time split and the computation starts
 anew, for a \code{tt} term we never update at all; for even moderate size
 data sets the impact of $nd$ versus $n+d$ can be surprising.
 
