@@ -80,19 +80,17 @@ death time were <= 0.
 
 The \code{na.rm} option affects creation of time-dependent covariates.
 Should a data row in \code{data2} that has a missing value for the
-variable be ignored (na.rm=FALSE, default) or should it generate an
-observation with a value of NA?  The default value leads to
-"last value carried forward" behavior.
+variable be ignored or should it generate an
+observation with a value of NA?  The default of TRUE causes
+the last non-missing value to be carried forward.
 The \code{delay} option causes a time-dependent covariate's new
 value to be delayed, see the vignette for an example.
 }
 
-
-\value{a data frame with two extra attributes \code{tname} and
+\value{a data frame with two extra attributes \code{tm.retain} and
   \code{tcount}.
-  The first contains the names of the key variables; it's persistence
-  from call to call allows the user to avoid constantly reentering the
-  \code{options} argument.
+  The first contains the names of the key variables, and which names
+  correspond to tdc or event variables.
   The tcount variable contains counts of the match types.
   New time values that occur before the first interval for a subject
   are "early", those after the last interval for a subject are "late",

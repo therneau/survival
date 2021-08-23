@@ -49,8 +49,7 @@ SEXP concordance5(SEXP y, SEXP x2, SEXP wt2, SEXP timewt2,
         
     nwt = (double *) R_alloc(2*ntree, sizeof(double));
     twt = nwt + ntree;
-    
-    for (i=0; i< 4*ntree; i++) nwt[i] =0.0;
+    for (i=0; i< 2*ntree; i++) nwt[i] =0.0;
     
     PROTECT(rlist = mkNamed(VECSXP, outnames));
     count2 = SET_VECTOR_ELT(rlist, 0, allocVector(REALSXP, 6));

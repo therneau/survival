@@ -1,5 +1,13 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 3.2-13}{
+  \itemize{
+    \item Clarify some sentences in tmerge help file.
+    \item Fix a memory access error found by CRAN
+    \item Add the drop.special function (internal) to work around some
+      problems in [.terms.
+    \item Resubmit to CRAN
+}}
 \section{Changes in version 3.2-12}{
   \itemize{
     \item Avoid a downstream error from infinte coefficients in
@@ -22,6 +30,7 @@
     \item Fix scale factor error in cholesky3.c, which could cause it to
     incorrectly mark a column as singular.  Found via a survreg example
     from Nathan Adams, where y had large values.
+    \item 2021-08-12: update CRAN
 }}
 \section{Changes in version 3.2-11}{
   \itemize{
@@ -56,7 +65,7 @@
     \item Fix tmerge bug reported by E Lundt: if two or more additions
     were before the start of a subject's timeline, tdc would pick the
     first rather than the last.
-    \item Add the last test case for residuals.survfit (auc for tstart,
+sou    \item Add the last test case for residuals.survfit (auc for tstart,
     tstop data), and yes, it uncovered an error.
     \item Error in survit.coxph for a multistate fit with strata, an array
     dimension was wrong (but contents correct).  It led to downstream

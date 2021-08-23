@@ -33,14 +33,14 @@ a numeric vector, suitable for subscripting the terms structure, that indexes
 the terms in the expanded model formula which involve the special.
 }}
 \examples{
-formula<-Surv(tt,ss)~x+z*strata(id)
-tms<-terms(formula,specials="strata")
+formula <- Surv(tt,ss) ~ x + z*strata(id)
+tms <- terms(formula, specials="strata")
 ## the specials attribute
-attr(tms,"specials")
+attr(tms, "specials")
 ## main effects 
-untangle.specials(tms,"strata")
+untangle.specials(tms, "strata")
 ## and interactions
-untangle.specials(tms,"strata",order=1:2)
+untangle.specials(tms, "strata", order=1:2)
 }
 \keyword{survival}
 % Converted by Sd2Rd version 0.3-2.

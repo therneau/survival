@@ -131,7 +131,7 @@ Prentice <- function(tenter, texit, cc,  id, X, ntot,robust, delta){
     dum <- c(dum,rep(0,nc))
     gp <- rep(1,nd)
     gp <- c(gp,rep(0,nc))
-    fit <- coxph(Surv(aent,aexit,gp)~aX+offset(dum)+cluster(aid), x=TRUE,
+    fit <- coxph(Surv(aent,aexit,gp)~aX+offset(dum), cluster= aid, x=TRUE,
                  iter.max=35,init=fit1$coefficients, timefix=FALSE)
     db <- resid(fit,type="dfbeta")
     db <- as.matrix(db)
@@ -161,7 +161,7 @@ SelfPrentice <- function(tenter, texit, cc,  id, X, ntot,robust, delta){
     dum <- c(dum,rep(0,nc))
     gp <- rep(1,nd)
     gp <- c(gp,rep(0,nc))
-    fit <- coxph(Surv(aent,aexit,gp)~aX+offset(dum)+cluster(aid),
+    fit <- coxph(Surv(aent,aexit,gp)~aX+offset(dum), cluster= aid,
                  x=TRUE, timefix=FALSE)
     db <- resid(fit,type="dfbeta")
     db <- as.matrix(db)
@@ -183,7 +183,7 @@ LinYing <- function(tenter, texit, cc,  id, X, ntot,robust, delta){
     offs <- rep((ntot-nd)/(nc-ncd),length(texit))
     offs[cc>0] <- 1
     loffs <- log(offs)
-    fit <- coxph(Surv(tenter, texit, cens)~X+offset(loffs)+cluster(id),
+    fit <- coxph(Surv(tenter, texit, cens)~X+offset(loffs), cluster =id,
                  x=TRUE, timefix=FALSE)
     db <- resid(fit,type="dfbeta")
     db <- as.matrix(db)
@@ -229,7 +229,7 @@ I.Borgan <- function(tenter, texit, cc,  id, X, stratum, stratum.sizes, delta){
   gp <- rep(1, nd)
   gp <- c(gp, rep(0, nc))
   w[gp==1] <- 1
-  fit <- coxph(Surv(ent,exit,gp)~X+offset(dum)+cluster(id),
+  fit <- coxph(Surv(ent,exit,gp)~X+offset(dum), cluster= id,
                weights=w, x=T, iter.max=25, timefix=FALSE)  
   score <- resid(fit, type = "score", weighted=F)
   sc <- resid(fit, type="score", collapse=id, weighted=T)
@@ -280,7 +280,7 @@ II.Borgan <- function(tenter, texit, cc,  id, X, stratum, stratum.sizes, delta){
   wt <- as.vector(nn0/m0)
   w <- wt[stratum]
   w[cens==1] <- 1
-  fit <- coxph(Surv(tenter,texit,cens)~X+cluster(id),
+  fit <- coxph(Surv(tenter,texit,cens)~X, cluster=id,
                weights=w, x=T, iter.max=25, timefix=FALSE)  ## Borgan Estimate II
   score <- resid(fit, type = "score", weighted=F)
   sc <- resid(fit,type="score", collapse=id, weighted=T)

@@ -17,35 +17,19 @@ survreg <- function(formula, data, weights, subset, na.action,
     if (length(tcl) > 1) stop("a formula cannot have multiple cluster terms")
 
     if (length(tcl) > 0) { # there is one
-        # subscripting of formulas is broken at least through R 3.5, if the
-        #  formula contains an offset.  Adding offset to the "specials" above
-        #  is just a sneaky way to find out if one is present, then call
-        #  reformulate ourselves.  tt is a correct index into the row labels
-        #  of the factors attribute, tt+1 to the variables attribute (which is
-        #  a list, so you have to skip the "list" call).  The term.labels attr
-        #  contains neither the response nor the offset, but does contain the
-        #  interactions, which we need.  
         factors <- attr(Terms, 'factors')
         if (any(factors[tcl,] >1)) stop("cluster() cannot be in an interaction")
         if (attr(Terms, "response") ==0)
             stop("formula must have a Surv response")
-        # reformulate with the response option puts ` ` around Surv, which messes
-        #  up evaluation, hence the fancy dance to replace a piece rather
-        #  than recreate
-        temp <- attr(Terms, "term.labels")
-        oo <- attr(Terms, 'specials')$offset
-        if (!is.null(oo)) {
-            # add the offset to the set of labels
-            ooterm <- rownames(factors)[oo]
-            if (oo < tcl) temp <- c(ooterm, temp)
-            else temp <- c(temp, ooterm)
-        }
+
         if (is.null(Call$cluster))
             Call$cluster <- attr(Terms, "variables")[[1+tcl]][[2]]
         else warning("cluster appears both in a formula and as an argument, formula term ignored")
-        formula[[3]]      <- reformulate(temp[1-tcl])[[2]]
 
-        Call$formula <- formula
+        # [.terms is broken at least through R 4.1; use our
+        #  local drop.special() so as to not lose offsets.
+        Terms <- drop.special(Terms, tcl)  
+        formula <- Call$formula <- formula(Terms)
     }
 
     indx <- match(c("formula", "data", "weights", "subset", "na.action",
