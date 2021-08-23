@@ -7,7 +7,7 @@
 # [.terms, unfortunately, implicitly assumes that they do align.
 #
 #  Unlike drop.terms, do not remove offset terms in the process
-drop.special <- function(termobj, i, addparen= TRUE) {
+drop.special <- function(termobj, i, addparen= FALSE) {
     # First step is to rebuild the formula using term.labels and reformulate
     # Map row name to the right column name
     ff <- attr(termobj, "factors")
@@ -20,9 +20,9 @@ drop.special <- function(termobj, i, addparen= TRUE) {
         newterms <- c(newterms, rownames(ff)[attr(termobj, "offset")])
 
     rvar <- if (attr(termobj, "response") ==1) termobj[[2L]]
+
     # Adding () around each term is for a formula containing  + (sex=='male')
-    #   A more sophisticated version might look for strings with
-    #  no parenthesis and one of ==, < or >
+    #   It's a crude fix and causes the formula to look different
     if (addparen)
         newformula <- reformulate(paste0("(", newterms, ")"), response= rvar,
                               intercept = attr(termobj, "intercept"),

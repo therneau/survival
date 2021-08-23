@@ -348,8 +348,8 @@ newcgd <- tmerge(newcgd, newcgd, id, enum=cumtdc(tstart))
 dim(newcgd)
 newcgd[1:5,c(1, 4:6, 13:17)]
 summary(newcgd)
-coxph(Surv(tstart, tstop, infect) ~ treat + inherit + steroids +
-      + cluster(id), newcgd)
+coxph(Surv(tstart, tstop, infect) ~ treat + inherit + steroids,
+      data =newcgd, cluster = id)
 @ 
 
 These lines show the canonical way to use tmerge: each call adds one

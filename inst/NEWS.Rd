@@ -3,10 +3,9 @@
 \section{Changes in version 3.2-13}{
   \itemize{
     \item Clarify some sentences in tmerge help file.
-    \item Fix a memory access error found by CRAN
-    \item Add the drop.special function (internal) to work around some
+    \item Fix a memory access error in concordance3.c, found by CRAN.
+    \item Add the drop.special function (internal) to work around offset
       problems in [.terms.
-    \item Resubmit to CRAN
 }}
 \section{Changes in version 3.2-12}{
   \itemize{

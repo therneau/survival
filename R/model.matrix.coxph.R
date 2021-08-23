@@ -44,7 +44,7 @@ model.matrix.coxph <- function(object, data=NULL,
 
 
     if (length(dropterms)) {
-        Terms2 <- Terms[ -dropterms]
+        Terms2 <- Terms[-dropterms]
         X <- model.matrix(Terms2, mf, constrasts.arg=contrast.arg)
         # we want to number the terms wrt the original model matrix
         temp <- attr(X, "assign")
