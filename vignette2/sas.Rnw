@@ -54,7 +54,7 @@ variety  --- and can be ignored for practical purposes.
 I'm hoping that it diverts at least some of the comments like the above.
 (By the way, in that particular email the real problem was the the
 \emph{data sets} used for the SAS and R calls were slightly different, a
-simple user error had occured in setting up the comparison.)
+simple user error had occurred in setting up the comparison.)
 
 \section{Convergence}
 It should go without saying that \code{coxph} and SAS \code{phreg} will not
@@ -220,7 +220,7 @@ process the data from largest to smallest survival time.  That way the
 sums needed for each of the risk sets occur naturally as we proceed; 
 and one pass through the data will suffice to compute them using well
 known formulas for updating a mean and variance.
-Essenially no time is spent on the ``who is in each risk set'' task. 
+Essentially no time is spent on the ``who is in each risk set'' task. 
 This makes the code quite efficient.
 If there are strata in the model, means and variances of $X$ are taken
 \emph{within} strata; this adds no extra work since we need only zero the
@@ -270,7 +270,7 @@ temp <- data.frame(id=rep(1:n, each=17),
                    x1 = round(runif(n* 17, 100, 200)),
                    x2 = round(rgamma(n* 17, 1,2), 2))
 
-# Every subject has a flottila of binary covariates,
+# Every subject has a flotilla of binary covariates,
 #  which I will make constant per subject (it's simpler and won't change
 #  the timing behavior) and somewhat correlated.
 # There are nice packages for this, but I'm constrained by the fact that
@@ -371,7 +371,7 @@ This requires some care in the internal routines to avoid catastrophic
 cancellation; e.g., in finite precision arithmetic (1e18 + 123) - (1e18) =0 so
 a large outlier that is added and then later removed can be deadly.
 (Mitigation for this is discussed in the noweb source code.)
-Said algorithm is expected to have $O(2n)$ run time since it touchs
+Said algorithm is expected to have $O(2n)$ run time since it touches
  each observation twice.
 Since $d < n/60$ the $O(d)$ term hardly matters in this data.
 
@@ -383,7 +383,7 @@ The phreg algorithm appears to use the simpler approach, which is to calculate
 the variance anew at each death time.
 In this case the dominating term in the compute time will be $O(nd)$,
 and $d$ grows with $n$; the full data set fit is anticipated to take 
-approximatedly 9*867 seconds or about 2.2 hours.  (We ran out of patience and
+approximately 9*867 seconds or about 2.2 hours.  (We ran out of patience and
 did not actually run this case.)
 
 I was asked if the iteration count would increase in the real data set,
@@ -429,7 +429,7 @@ relevant score test in $O(n)$ time, without data expansion.
 
 Another use of such data sets is when a user desires to control the risk
 sets exactly. An example is nested case-control sampling, where at each 
-death time a subsample of the subjects who were at risk at that time is
+death time a sub-sample of the subjects who were at risk at that time is
 selected.  
 Say there were 52 events and 10 controls were selected for each.
 A special data set is constructed which has 52*11 observations: the first
@@ -563,7 +563,7 @@ kmfit <- survfit(Surv(age1, age2, death) ~1, nhs)
 mean(kmfit$n.risk[kmfit$n.event > 0])
 @ 
 
-This is statistical overkill: 10-20 conrols per case will work just as well.
+This is statistical overkill: 10-20 controls per case will work just as well.
 One simple way to thin this down is to stratify the analysis.
 As an example we will break the subjects into sets based on 
 their age at enrollment (in months); which is the variable \code{agem} in our
@@ -720,7 +720,7 @@ Observations with a weight of 0, if any, may be omitted.
 Then fit an ordinary Cox model to this data set, stratified by event time and
 using Surv(dummy, status) as the response, \code{dummy} a dummy vector zeros.
 The compute time will be $O(kd)$, which is potentially much smaller than
-the $O(nd)$ compuation for the original data set.  
+the $O(nd)$ computation for the original data set.  
 Creating the collapsed data set is itself a task that potentially
 requires $O(nd)$ time,
 since for each event time the tally needs to check all $n$ observations to
@@ -737,9 +737,9 @@ a Cox model will be of order $V \sum_j (r_j -1)/r_j$, where $V$ is the
 variance of the predictors $X$ and $r_j$ is the size of the risk set associated
 with the $j$th death. 
 In this data set with an average risk set size of $>65$ thousand, it should
-be no surprise that replacing the risk set with a smaller subsample has no
+be no surprise that replacing the risk set with a smaller sub-sample has no
 measurable effect on the estimates; whether that were to be done with a
-random subsample, stratification on entry date (1/300) or stratificatin on the
+random subsample, stratification on entry date (1/300) or stratification on the
  650 ``prior visit'' dates. 
 A primary lesson for this statistician is that when analysis is slow due to
 a large data set,
@@ -762,7 +762,7 @@ In every statistical aspect it should perform the same as random
 subsampling of the same size.  (But in terms of terms of speeding up
 SAS phreg it is a \emph{very} clever idea.)
 
-I have not been able to replicate any case where phreg is significanly
+I have not been able to replicate any case where phreg is significantly
 faster than coxph, and in that sense the report of this behaviour from the
 NHS staff remains a mystery.
 
@@ -895,8 +895,8 @@ however, which led to a small industry of shortcut methods
 for producing a ``Yates' sum of squares''.
 The SAS GLM algorithm is based on a particular one of these, namely that
 for a balanced factorial design, the sums-of-squares for
-all of the effects are orthagonal.
-Therefore, choose contrasts that are orthagonal to the variance matrix we
+all of the effects are orthogonal.
+Therefore, choose contrasts that are orthogonal to the variance matrix we
 \emph{would have had} had the data been of this type.
 It can be reproduced using the following steps:
 \begin{itemize}
@@ -935,7 +935,7 @@ set of contrasts that are orthogonal with respect to $(Z'Z)^{-1}$.
 Any full rank contrast matrix $C$ such that $T= C(Z'Z)^-C'$ is block 
 diagonal will give the same sums of squares, i.e., any matrix $C$ such that
 $T_{ij}=0$ whenever rows $i$ and $j$ correspond to different terms.
-The equivalence is a consequence of Cochan's theorem.
+The equivalence is a consequence of Cochran's theorem.
 Goodnight \cite{Goodnight78} states that any matrix
 which satisfies this condition defines a set of type 3 tests.
 The SAS technical report given as the usual
