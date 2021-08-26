@@ -163,7 +163,7 @@ termplot(cfit, term=1, ylab="Estimated age effect", col.term=1, col.se=1,
 The histogram of the risk scores is not a perfect match, either, 
 but again very close in its overall form.
 
-<<hist1, plot=TRUE, echo=TRUE>>=
+<<hist1, fig=TRUE, echo=TRUE>>=
 PI1 <- predict(cfit) - mean(predict(cfit))
 hist(PI1, breaks=seq(-1.5, 1.6, by=.1), xlab="Validation data", man=NULL)
 @ 

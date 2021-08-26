@@ -3,4 +3,5 @@ Why:  sas.Rnw does timings, and is too slow
       tutorial.Rnw uses data from outside the survival package
       pseudo.Rnw requires a robust variance version of glm
 
-
+Because they are not available in the package, I have created the pdf for some of
+the entries.
