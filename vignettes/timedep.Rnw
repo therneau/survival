@@ -925,7 +925,7 @@ Each has the appropriate values for the time dependent covariate \code{tgroup},
 which is 1, 2, 3 over 0--90, 90--180 and 180+ days, respectively.
 We will draw curves for the first year.
 
-<<split4>>=
+<<split4, fig=TRUE>>=
 quantile(veteran$karno)
 cdata <- data.frame(tstart= rep(c(0,90,180), 2),
                     time =  rep(c(90,180, 365), 2),
@@ -991,6 +991,7 @@ vfit3 <-  coxph(Surv(time, status) ~ trt + prior + karno + tt(karno),
                 tt = function(x, t, ...) x * log(t+20))
 vfit3
 @ 
+
 The time dependent coefficient is estimated to be
 $\beta(t) =$ \Sexpr{round(coef(vfit3)[3], 3)} + 
   \Sexpr{round(coef(vfit3)[4], 3)} * log(t + 20).
@@ -1002,6 +1003,7 @@ by the p-value for the slope term in \code{vfit3}.
 (The p-value for that term from cox.zph is nearly identical, as it
 must be, since the tests in cox.zph are for a linear effect on the
 chosen time scale.)
+
 <<vet3b, fig=TRUE>>=
 plot(zp[3])
 abline(coef(vfit3)[3:4], lwd=2, lty=3, col=2)
@@ -1022,20 +1024,22 @@ side, as shown in the following code.
 <<vet4>>=
 vfit4 <-  coxph(Surv(time, status) ~ trt + prior + karno + tt(karno),
                 data=veteran,
-                tt = function(x, t, ...) x* nsk(t, knots=c(100, 200)))
+                tt = function(x, t, ...) x* nsk(t, knots=c(5, 100, 200, 400),
+                                                Boundary = FALSE))
 vfit4
 @ 
-The time dependent coefficient is estimated to be
-$\beta(t) =$ \Sexpr{round(coef(vfit3)[3], 3)} + 
-  \Sexpr{round(coef(vfit3)[4], 3)} * log(t + 20).
-We can add said line to the \code{cox.zph} plot.
-Not surprisingly, the result is rather too high for time $>$ 200
-and underestimates the initial slope.
 
-
+The \code{nsk} function is a variant if \code{ns} such that the coefficients
+are the predicted values at knots 2, 3, \ldots - the predicted value at knot
+1, the \code{Boundary= FALSE} argument omits addition of extra knots at the 
+boundary times of t=1 and 999.
+We see a large decrease in effect from time= 5 to time 100,
+a coefficient of essentially -.060 + .048 = -.012 for Karnofsky at this later
+point, with minimal changes thereafter.
+Unfortunately, follow-on functions such as \code{cox.zph} within the 
+survival package do not work reliably.  We will come back to this example
+in the next section, using another approach.
 @ 
-
-
 
 The use of programming statements to create a yes/no variable deserves
 extra comment because of a common error.
@@ -1068,9 +1072,11 @@ they are completely different.
 The issue is subject 7 whose time to diabetes falls exactly at one of the
 event times.  In fit1 their diabetes covariate effectively changes just 
 after the event at time 30,
-in fit2 it changes before the event.  The second is incorrect.
-Stated in the gambling context, all rolette bets must be placed
-\emph{before} the ball lands.
+in fit2 it changes at the event.  The second is incorrect.
+Stated in the gambling context, all roulette bets must be placed
+\emph{before} the ball lands in the slot, or they apply to the next spin of
+the wheel.  
+Likewise, a change in diabetes status needs to apply to the next event time.
 
 When a data set is expanded into a start, stop format using the
 \code{tmerge} function ties are dealt with correctly.
@@ -1087,7 +1093,8 @@ c(coef(fit1), coef(fit2), coef(fit3))
 Occasionally one has a time-dependent covariate whose values in the future
 are predictable.
 The most obvious of these is patient age, occasionally this may also be
-true for the cumulative dose of a drug.
+true for the cumulative dose of a drug; say that subjects are assigned to
+take one 5mg tablet a day (and they keep their schedule).
 If age is entered as a linear term in the model, then the effect of changing
 age can be ignored in a Cox model, due to the structure of the partial
 likelihood.  Assume that subject $i$ has an event at time $t_i$, with other
@@ -1097,7 +1104,7 @@ The partial likelihood term is
   \frac{e^{\beta * a_i}}{\sum_{j \in R_i} e^{\beta* a_j}} =
   \frac{e^{\beta * (a_i + t_i)}}{\sum_{j \in R_i} e^{\beta* (a_j + t_i)}} 
 \end{equation*}
-We see that using time-dependent age (the right hand version) or age at
+We see that using current age (the right hand version) or age at
 baseline (left hand), the partial likelihood term is identical since
 $\exp(\beta t_i)$ cancels out of the fraction.
 However, if the effect of age on risk is \emph{non-linear}, this
@@ -1108,7 +1115,7 @@ data set to completely capture the effect, one interval
 per day to match the usual resolution for death times.
 In practice this level of resolution is not necessary; though we all
 grow older, risk does not increase so rapidly that we need to know
-our age to the day!  
+our age to the day. 
 
 One method to create a time-changing covariate is to use the
 \emph{time-transform} feature of coxph.  Below is an example using
@@ -1125,7 +1132,7 @@ pfit2 <- coxph(Surv(time, status==2) ~ log(bili) + ascites + tt(age),
                 data=pbc,
                 tt=function(x, t, ...) {
                     age <- x + t/365.25 
-                    cbind(age=age, age2= (age-50)^2, age3= (age-50)^3)
+                    cbind(cage=age, cage2= (age-50)^2, cage3= (age-50)^3)
                 })
 pfit2
 anova(pfit2)
@@ -1165,7 +1172,7 @@ set directly and then do an ordinary \code{coxph} call on the expanded
 data. The disadvantage of this is the very large data set, of course, but
 it is no larger than the internal one created by the \code{tt} call.
 An advantage is that further processing of the model is available, such as
-residuals or survival curves. 
+residuals, the anova function, or survival curves. 
 The following reprises the above \code{tt} call.
 
 <<expand>>=
@@ -1180,11 +1187,12 @@ rbind(coef(pfit2), coef(pfit3))
 The above expansion has resulted in a data set of 
 \Sexpr{nrow(tdata)} observations, as compared to the \Sexpr{nrow(pbc)}
 observations of the starting \code{pbc} data.
+
 A sensible fit can often be obtained with a coarser time grid: in the pbc data
 there is an event on day 41 and 43, is it really necessary to update all the
 subject ages by 2/365 at the second of these to reflect an increased risk?
 Instead divide the \code{max(dtimes)/365.25} = 11.5 years of total follow
-up into years.
+up into single years.
 
 <<expand2>>=
 dtime2 <- 1:11 * 365.25
@@ -1206,16 +1214,49 @@ refine it.
 In this data set we reasoned that although risk increases with age, a
 age change of less than one year would have minimal impact.
 
-The Cox model requires computation of a weighted mean and variance of
+For the veteran data set 131/137 of the observation times are 13 months or
+less.  Look at cutting this into 14 different points:the interval starting at
+0, at 1 month, at 2 months, \ldots, 13 for construction of the time-dependent
+Karnofsy coefficient.  This does not categorize the follow-up times themselves,
+only the time-dependent effect, so we don't lose precision in the response.
+
+<<veteran3, fig=TRUE>>=
+dtime <- round(1:13 * 30.5)
+vdata2 <- survSplit(Surv(time, status) ~ ., veteran, cut=dtime,
+                    episode= "month")
+vfit1 <- coxph(Surv(tstart, time, status) ~ trt + prior + karno, vdata2)
+vfit5 <- coxph(Surv(tstart, time, status) ~ trt + prior + karno + 
+                   karno:nsk(month, df=3), vdata2)
+anova(vfit1, vfit5)
+
+tdata <- expand.grid(trt=0, prior=0, karno=30, month=seq(1,13, length=50))
+yhat <- predict(vfit5, newdata=tdata, se.fit=TRUE, reference="zero")
+yy <- yhat$fit+ outer(yhat$se.fit, c(0, -1.96, 1.96), '*')
+matplot(seq(1,13, length=50), yy, type='l', lty=c(1,2,2), col=1, lwd=c(1,2,2),
+        xlab="Month of fu", ylab="Effect, Karnofsky 60 vs 90")
+@ 
+
+Because the spline is now a direct part of the model downstream
+functions such as \code{anova} work properly, and it is straightforward to
+create a plot of the of the fit.
+A Cox model produces \emph{relative} risk, and the default for the predict
+function is to use the mean covariates as our reference.  We wanted to
+assess the effect of a 30 point change in Karnofsy, holding the other covariates
+fixed: values of 0 plus a reference of 0 accomplished this.
+
+For these small data sets the tt() approach and a subset of times are both
+feasable, but for a large data set the first can become very slow, or even
+run out of resources.  The reason is that a
+a Cox model fit requires computation of a weighted mean and variance of
 the covariates at each event time, a process that is inherently 
 $O(ndp^2)$ where $n$ = the sample size, $d$ = the number of events and $p$=
 the number of covariates.  
-Much of the algorithmic effort in the underlying code is to use 
+Much of the algorithmic effort in the underlying code is to use clever 
 updating methods for
-the mean and variance matrices, reducing the compute time to $O((n+d) p^2)$.
-Updating is not possible across a time split and the computation starts
-anew, for a \code{tt} term we never update at all; for even moderate size
-data sets the impact of $nd$ versus $n+d$ can be surprising.
+the mean and variance matrices, reducing the compute time to $O(np + d p^2)$.
+For a large data set the tt() approach can produce an intermediate data
+set with $O(nd)$ rows, however, overcoming the computation.
+For even moderate data sets the impact of $(nd)p$ vs $np$ can be surprising.
 
 There are other interesting uses for the time-transform capability.
 One example is O'Brien's logit-rank test procedure \cite{obrien78}.
