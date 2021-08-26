@@ -52,8 +52,9 @@ None of the material in this vignette is terribly important, and in fact for
 many of cases the change will be numerically small --- of the $n-1$ vs $n$ 
 variety  --- and can be ignored for practical purposes.
 I'm hoping that it diverts at least some of the comments like the above.
-(By the way, in that particular case the real problem was the the
-\emph{data sets} used for the SAS and R calls were slightly different.)
+(By the way, in that particular email the real problem was the the
+\emph{data sets} used for the SAS and R calls were slightly different, a
+simple user error had occured in setting up the comparison.)
 
 \section{Convergence}
 It should go without saying that \code{coxph} and SAS \code{phreg} will not
@@ -103,8 +104,9 @@ but the consensus has now settled down to a few simple points.
    \emph{numerical} difference between the methods will be negligible.
 \end{itemize}
 
-A primary point that has come to be appreciated is the fourth of these,
-and most people have now simply (and sensibly) stopped worrying about it.
+It has now come to be appreciated that point 4 may be the most important one,
+and most people have simply (and sensibly) stopped worrying about which
+approximation to use.
 Consider for instance the example below using recurrence time for the 
 colon cancer data set, and then a second version of the data
 where time is rounded to the nearest month.
@@ -158,8 +160,8 @@ any sensible code for fundamental libraries would use the
 more stable one.  
 However, in a statistical analysis context and given the usual size of
 standard errors, a Breslow default will be just as good.
-The Breslow approximation is the default in many statistical packages for
-simple historical reasons: since it is the easiest to program it was
+The Breslow approximation is the default in many statistical packages for a
+simple historical reason: since it is the easiest to program it was
 usually the first method to be implemented.
 
 Once having chosen the Efron default it is important to carry
@@ -172,7 +174,7 @@ This is one area where the phreg procedure is not quite correct, so its
 results do not agree with the validation suite.
 For all the examples that we have investigated in detail, however, the
 practical implications of the inaccuracy have been small.
-The largest practical issue vis-a-vis SAS/R is
+The largest practical issue are
 users who don't read the documentation, and then get worried when
 numbers don't exactly agree, since one run used Efron and the other Breslow.
 
@@ -218,7 +220,7 @@ process the data from largest to smallest survival time.  That way the
 sums needed for each of the risk sets occur naturally as we proceed; 
 and one pass through the data will suffice to compute them using well
 known formulas for updating a mean and variance.
-Essenially no time is spent on the ``who in each risk set'' task. 
+Essenially no time is spent on the ``who is in each risk set'' task. 
 This makes the code quite efficient.
 If there are strata in the model, means and variances of $X$ are taken
 \emph{within} strata; this adds no extra work since we need only zero the
@@ -380,7 +382,9 @@ phreg default.)
 The phreg algorithm appears to use the simpler approach, which is to calculate
 the variance anew at each death time.
 In this case the dominating term in the compute time will be $O(nd)$,
-and $d$ grows with $n$. 
+and $d$ grows with $n$; the full data set fit is anticipated to take 
+approximatedly 9*867 seconds or about 2.2 hours.  (We ran out of patience and
+did not actually run this case.)
 
 I was asked if the iteration count would increase in the real data set,
 due to high correlation of the covariates.
@@ -390,7 +394,7 @@ the Newton-Raphson iteration of a Cox model remains unchanged, giving the
 exact same series of likelihood values. 
 Practically, this means that the expected iteration count does not depend
 on whether the covariates are correlated, unless $X$ has become so close to
-singular that round off errors intervene.
+singularity that round off errors intervene.
 
 \subsection{Data expansion}
 The NHS example started with a complaint that R was 8 fold \emph{slower}
@@ -398,8 +402,8 @@ than SAS on the actual NHS data set, which puzzled me.
 In what situation could this happen?
 
 One way is to make the R code slower by artificially increasing $n$.
-This can be done by \emph{dicing} the nhs data set, i.e., cut each observation 
-into multiple small pieces  
+This can be done by \emph{dicing} the \code{nhs} data set, i.e., 
+cut each observation into multiple small pieces  
 (in the same sense as dicing vegetables in the kitchen).
 The very first observation of the simulation data set, for instance, is a
 censored time span from age 40 to age 42.06 = 14615 to 15361 days of age.
@@ -408,7 +412,8 @@ with (age1, age2, death) values of (14610, 14611, 0), (14611, 14612, 0),
 (14612, 14613, 0), \ldots (15360, 15361, 0)?
 Since NHS subjects are contacted every two years, this will increase
 the data set size by approximately 730 fold,
-leading to a consequence 730 fold increase in the compute time for \code{coxph}.
+leading to a corresponding 730 fold increase in the compute time 
+for \code{coxph}.
 
 This kind of expansion is sometimes done to create dummy covariates x*log(t)
 as a step towards testing proportional hazards. 
@@ -447,7 +452,7 @@ To test this out, and yet keep the running time of this vignette sane,
 we create an expanded data set using 1/12 of the subjects, breaking each
 subject into monthly intervals.  
 This will create a data set with approximately 24/12 = 2 times as many
-rows.
+rows as the starting \code{nhs} data set.
 Within the data set, use age in months as the time scale.
 
 <<nhs2, fig=TRUE>>=
@@ -459,7 +464,6 @@ temp <- subset(temp, month1 < month2)   # avoid 0 length intervals
 dtime <- sort(unique(temp$month2[temp$death == 1]))
 
 nhs2 <- survSplit(Surv(month1, month2, death) ~., data=temp, cut=dtime)
-
 nrow(nhs2)  # 3 million rows
 
 stat2 <- matrix(0, 6, 3)
@@ -495,14 +499,14 @@ matplot(cbind(stats[1,], stat2[1,], stat2[1,])/1e6,  ytemp,
 @ 
 
 The figure shows that the run times 
-from \code{fit1} on the original time scale and \code{fit3a} and \code{fit3b}
-on the coarsened and expanded data.
+from \code{fit1} on the original time scale as '1', 'a' for the coarsened and 
+expanded data using (time1, time2) form, and 'b' using strata.
 For the (time1, time2) forms of the data the compute time remains linear in
 the number of rows, coarsening the time scale has had only a small impact.
 The compute time for a model that takes advantage of the strata and a dummy
 time value is indeed smaller, about 1/3 of the (time1, time2) form.
 However, the overall effect is a net loss: 
-\Sexpr{round(stat2[6,3])} seconds for to fit 1/12 of the data in the expanded
+\Sexpr{round(stat2[6,3])} seconds to fit 1/12 of the data in the expanded
 form versus \Sexpr{round(stats[5,3])} seconds for the entire data set in its
 original form. 
 
@@ -543,7 +547,7 @@ proc phreg data=nhs2;
 
 
 The main take home message for R is ``don't dice your data set!''
-Though that step is essential to achieve good performance in SAS,
+That step is essential to achieve good performance in SAS, but
 what makes things faster for one statistical package does not necessarily
 work for another.
 This is especially true for something like the NHS simulation, where per
@@ -626,9 +630,9 @@ are almost identical.
 This is not surprising:
 over the 50 year age range of the NHS, coarsening the time scale to months
 is a small relative change to any subject.
-A closer look reveals that the fit4a and fit4b differ by less than 1\%, and
+A closer look reveals that fit4a and fit4b differ by less than 1\%, and
 the coefficients for fit4b and fit4c are completely identical.
-The reason for the latter is that  everyone in a given
+The reason for the latter is that everyone in a given
 stratum has exactly the same \code{month1} value, so we can dispense with the
 (time1, time2) form of the call.
 
@@ -668,7 +672,7 @@ while the size using default \code{save} options was 38 MB.
 The save operation itself takes longer using xz compression, 
 but reloading the save data sets requires similar time.
 The SAS data set for nhs used 290 MB and that for nhs2 505 MB using default
-options, more knowledgeable SAS coders perhaps could to do better.
+options, more knowledgeable SAS coders perhaps could do better.
 
 \subsection{The FAST option}
 Our 2019 version of phreg now has a \emph{FAST} option.  
@@ -759,16 +763,16 @@ subsampling of the same size.  (But in terms of terms of speeding up
 SAS phreg it is a \emph{very} clever idea.)
 
 I have not been able to replicate any case where phreg is significanly
-faster than coxph, and in that sense the report this behaviour from the
+faster than coxph, and in that sense the report of this behaviour from the
 NHS staff remains a mystery.
 
 
 \section{Type 3 tests}
 Another user query has been for ``type 3'' tests of survival models.
 Up until the latest release (at our institution) the phreg procedure would
-automatically the type 3 test --- you couldn't turn it
+automatically produce a  `type 3 test' --- you couldn't turn it
 off in fact.  
-They have now been relabeled as 
+The output has now been relabeled as 
 ``joint tests'' but appear to be the exact same values as before.
 The primary problem with these is that they depend on the way in which
 covariates are coded.
@@ -988,7 +992,7 @@ An alternate ``type 3'' algorithm found outside of SAS is the following.
 If the columns of $X$ for the categorical variables in the model are coded 
 using the summation constraint, and the Yates' SS is well
 defined (no missing cells),
-then, rather remarkably, half-baked approach will re-create 
+then, rather remarkably, this half-baked approach will re-create 
 the Yates sum-of-squares for each term.
 If any other method is used to generate the 0/1 columns for a categorical
 variable the results are meaningless, and in fact will often change 
@@ -1013,12 +1017,10 @@ case one can quickly verify that the the NSTT test for treatment is actually a
 comparison of A vs. B in the \emph{reference} level for x2, ignoring all
 others, leading to $k$ different results as we rotate the choice of
 reference.  
-This is very different than the type 3 narrative of that it is a
-global test.
+This is very different than the usual narrative that type 3 is a ``global'' test.
 When sum constraints are used the `reference' for x2 will be an average and
 the NSTT matches the Yates' estimate.
 We suspect that the same general pattern extends to more complex models.
-
 
 The flawed NSTT algorithm is, I believe, a primary source of a common 
 critique that

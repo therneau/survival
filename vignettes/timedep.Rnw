@@ -815,7 +815,7 @@ below.
   \lambda(t) &= \lambda_0(t) e^{\beta X(t)} \label{tdcovar} \\
   \lambda(t) &= \lambda_0(t) e^{\beta(t) X} \label{tdbeta} 
 \end{align}
-Equation \eqref{tdcovar} is a time dependent covariate, a commonly used
+Equation \eqref{tdcovar} is a time dependent covariate, a common
 and well understood usage.
 Equation \eqref{tdbeta} has a time dependent coefficient.
 These models are much less common, but represent one way to deal with
@@ -824,33 +824,48 @@ precisely that the coefficient does not change over time: $\beta(t) = c$.
 The \code{cox.zph} function will plot an estimate of $\beta(t)$ for
 a study and is used to diagnose and understand non-proportional
 hazards.
-Here for example is a test case using the veterans cancer data.
+The code belowshows a test case using the veterans cancer data, with the
+results plotted in figure \ref{veteran1b}.
 
-<<veteran1, fig=TRUE>>=
-options(show.signif.stars = FALSE)  # display user intelligence
+\begin{figure}
+<<veteran1>>=
+options(show.signif.stars = FALSE)  # display statistical intelligence
 vfit <- coxph(Surv(time, status) ~ trt + prior + karno, veteran)
 vfit
 quantile(veteran$karno)
 
 zp <- cox.zph(vfit, transform= function(time) log(time +20))
 zp
-plot(zp[3])    # a plot for the 3rd variable in the fit
-abline(0,0, col=2)
-abline(h= vfit$coef[3], col=3, lwd=2, lty=2)
+@
+
+\begin{figure}
+<<veteran1b, fig=TRUE, echo=FALSE>>=
+plot(zp[3], resid=FALSE)    # a plot for the 3rd variable in the fit
+abline(0,0, lty=3)
+abline(h= vfit$coef[3], lwd=2, lty=3)
 @ 
+ \caption{Solid line = the estimated effect if Karnofsy score, versus time, 
+   in the Veteran's cancer data set, as estimated by \code{cox.zph}, along
+   with confidence intervals.  Dotted lines are the overall estimate from
+   a Cox model with karno as a time-fixed effect, and a reference line at 0.}
+ \label{veteran1b}
+\end{figure}
 
 Karnofsky score is a very important predictor, but its effect is not
 constant over time as shown by both the test and the plot. 
 Early on it has a large negative
 effect: the risk of someone at the first quartile is
-approximately exp(35*.03377) = 3.2 fold times that of someone at
+approximately exp(35*.05) = 5.7 fold times that of someone at
 the third quartile, but by 200 days this has waned and is not much
 different from zero.  
 One explanation is that, in this very acute illness, any measure
 that is over 6 months old is no longer relevant.
+Another is that a large portion of subjects with the lowest Karnofsky
+values have been lost; at 200 days 4\% of the remaining subjects have
+a value $\le 40$ versus 28\% at the start.
 
 The proportional hazards model estimates an average hazard over time,
-the value of which is shown by the dashed horizontal line.
+the value of which is shown by the dotted horizontal line.
 The use of an average hazard is often reasonable, the proportional hazards
 assumption is after all never precisely true.
 In this case, however, the departure is quite large and a time dependent
@@ -949,8 +964,8 @@ further above of $\log(t + 20)$ was chosen
 to make the first 200 days of the plot roughly linear.
 Per the figure this simple linear model does not fit over the entire range, 
 but we will forge ahead and use it as an example anyway.
-(After all, most who fit the log(t) form have not bothered to even 
-look at a plot.)
+(After all, most users who fit the log(t) form, based on seeing it a paper,
+don't bother to even look at a plot.)
 An obvious but incorrect approach is
 <<vfit3, echo=TRUE, eval=FALSE>>=
 vfit3 <- coxph(Surv(time, status) ~ trt + prior + karno +
@@ -989,7 +1004,7 @@ must be, since the tests in cox.zph are for a linear effect on the
 chosen time scale.)
 <<vet3b, fig=TRUE>>=
 plot(zp[3])
-abline(coef(vfit3)[3:4], col=2)
+abline(coef(vfit3)[3:4], lwd=2, lty=3, col=2)
 @ 
 
 This same coding dichotomy exists in SAS phreg, by the way.  Adding
@@ -999,7 +1014,28 @@ while a programming statement within phreg that
 uses \code{time} as a variable will generate time-dependent objects.
 The error is less likely there because phreg's model statement is less
 flexible than R, i.e., you cannot simply write
-``log(time)'' on the right hand side.
+``log(time)'' on the right hand side of a formula.
+
+A more general approach is to allow a flexible fit on the right hand
+side, as shown in the following code.
+
+<<vet4>>=
+vfit4 <-  coxph(Surv(time, status) ~ trt + prior + karno + tt(karno),
+                data=veteran,
+                tt = function(x, t, ...) x* nsk(t, knots=c(100, 200)))
+vfit4
+@ 
+The time dependent coefficient is estimated to be
+$\beta(t) =$ \Sexpr{round(coef(vfit3)[3], 3)} + 
+  \Sexpr{round(coef(vfit3)[4], 3)} * log(t + 20).
+We can add said line to the \code{cox.zph} plot.
+Not surprisingly, the result is rather too high for time $>$ 200
+and underestimates the initial slope.
+
+
+@ 
+
+
 
 The use of programming statements to create a yes/no variable deserves
 extra comment because of a common error.
@@ -1033,8 +1069,8 @@ The issue is subject 7 whose time to diabetes falls exactly at one of the
 event times.  In fit1 their diabetes covariate effectively changes just 
 after the event at time 30,
 in fit2 it changes before the event.  The second is incorrect.
-Stated in the gambling context, all bets must be placed
-\emph{before} the roulette ball lands.
+Stated in the gambling context, all rolette bets must be placed
+\emph{before} the ball lands.
 
 When a data set is expanded into a start, stop format using the
 \code{tmerge} function ties are dealt with correctly.
