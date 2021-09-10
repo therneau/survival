@@ -50,7 +50,7 @@ in the most common case $x = \hat\eta$, the linear predictor from a fitted
 model.
 The concordance is defined $P(x_i > x_j | y_i > y_j)$, the probability
 that the prediction $x$ goes in the same direction as the actual data $y$.
-A pair of obervations $i$, $j$ is considered concordant if the prediction
+A pair of observations $i$, $j$ is considered concordant if the prediction
 and the data go in the same direction, i.e., 
 $(y_i > y_j, x_i > x_j)$ or $(y_i < y_j, x_i < x_j)$.
 The concordance is the fraction of concordant pairs.
@@ -157,7 +157,7 @@ model can decrease the concordance.
 
 Concordance can be visualized using its contribution at each
 event time as shown below.
-The vertial axis on the graph is the rank of each of the risk score for
+The vertical axis on the graph is the rank of each of the risk score for
 each subject who has an event, among all those with at risk.
 Each rank ranges from 0 to 1, where 1= the subject who died had the
 highest risk score at that time and 0 = lowest.
@@ -165,7 +165,7 @@ In a highly predictive Cox model we expect the subjects with the highest risks
 to die soonest.
 A log transformation on the x-axis was used to 
 visually spread out the points. 
-The concordance is a weigthed average of these $y$ values.
+The concordance is a weighted average of these $y$ values.
 After about 50 days, the baseline data has little predictive ability and 
 the average ranks are close to 1/2. 
 The second panel shows two possible weights, based on the number of subjects 
@@ -235,7 +235,7 @@ An alternative that remains unbiased is the infinitesimal jackknife (IJ) varianc
   U_i &= \frac{\partial c}{\partial w_i}
 \end{align*}
 The concordance routine calculates an influence matrix $U$ with one row per
-subject and columns that contain the derivitives of the 5 individual counts:
+subject and columns that contain the derivatives of the 5 individual counts:
 concordant, discordant, tied on x, tied on y, and tied on xy pairs.  From
 this it is straightforward to derive the influence of each subject on 
 the concordance, or on any other
@@ -452,7 +452,7 @@ The concordance is a weighted mean of the ranks, with one term per
 death time in the sum.  
 The quantile shows that 1/2 the deaths occur before 5 years and 3/4 of
 them before 9; the larger weights simply play only a small role in the
-overll sum.
+overall sum.
 
 So, which weight should we use? As shown in the examples above, it may not 
 matter that much.  
@@ -478,9 +478,9 @@ Further issues to consider:
   \item  Safety.  If using the usual Gehan-Wilcoxon weights of $n(t)$,
     the Peto-Wilcoxon variant $S(t)$ would appear advantageous, particularly
     if there is differential censoring for some subjects.
-  \item Current data versus future invariance.  On the one hand assessment
+  \item Current data versus future invariance.  On the one hand, assessment
     of a model should make use of 
-    the all available data, ``make the most with what you have'', 
+    the all available data (i.e., ``make the most with what you have''),
     but on the other hand
     we would prefer the estimated concordance to stay stable as a study's
     follow-up matures, which argues for $S/G$ or $n/G^2$ weights.
@@ -542,7 +542,7 @@ at risk.
 For the the ordinary concordance the time weight at this point will be the
 number of \emph{comparable pairs} for each of the 3 events, i.e., 37 for each.
 The rank of an event will be 1 if its predictor is smaller than all 37
-comparitors and -1 if it is larger than all 37.  When using a weight of
+comparators and -1 if it is larger than all 37.  When using a weight of
 $S(t)$ the weight will be $nS(t)$ at that point, for $S/G$ it will be
 $nS(t)/G(t-)$.
 The Cox model computation takes a slightly different view, in that all

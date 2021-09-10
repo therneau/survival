@@ -55,8 +55,10 @@ number of iterations used.
 the martingale residuals. 
 }
 \item{means}{
-vector of column means of the X matrix.  Subsequent survival curves are 
-adjusted to this value. 
+  vector of values used as the reference for each covariate.
+  For instance, a later call to \code{predict(fit, type='risk')} will
+  give the hazard ratio between an observation and this reference.
+  (For most covariates this will contain the mean.)
 }
 \item{n}{
 the number of observations used in the fit. 

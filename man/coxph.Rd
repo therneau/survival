@@ -108,7 +108,8 @@ coxph(formula, data=, weights, subset,
   \item{tt}{optional list of time-transform functions.}
   \item{method}{alternate name for the \code{ties} argument.}
   \item{nocenter}{columns of the X matrix whose values lie strictly
-      within this set are not recentered}
+    within this set are not recentered.  Remember that a factor
+    variable becomes a set of 0/1 columns.}
   \item{...}{Other arguments will be passed to \code{\link{coxph.control}}
   }
 }

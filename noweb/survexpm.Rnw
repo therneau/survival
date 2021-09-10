@@ -13,8 +13,8 @@ For the package there are three cases:
 \begin{enumerate}
   \item If there is only one departure state, then there is a fast closed
     form solution, shown below.  This case occurs whenever an event time
-    is unique, i.e., no other event times are tied with this one.  This always
-    holds for competing risk models.
+    is unique, i.e., no other event times are tied with this one.  It also
+    holds, by definition, for competing risk models.
   \item If the rate matrix $R$ is upper triangular and the (non-zero) diagonal
     elements are distinct, there is a fast matrix decomposition algorithm.
     If the transition matrix is acylic then it can be rearranged to be in upper
@@ -176,7 +176,7 @@ survexpm <- function(rmat, time=1.0, setup, eps=1e-6) {
     else {
         nonzero <- (diag(rmat) != 0)
         if (sum(nonzero ==0)) diag(nrow(rmat))  # expm(0 matrix) = identity
-        if (sum(nonzero) ==1) {
+        if (sum(nonzero) ==1) {   # only one state had departures
             j <- which(nonzero)
             emat <- diag(nrow(rmat))
             temp <- exp(rmat[j,j] * time)
