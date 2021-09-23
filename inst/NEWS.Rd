@@ -1,11 +1,17 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 3.2-14}{
+  \itemize{
+    \item Update the royston function to report the scaled Cox-Snell
+    Rsquared as the Nagelkirke estimate, and clarify the documentation.
+}}
+ 
 \section{Changes in version 3.2-13}{
   \itemize{
     \item Clarify some sentences in tmerge help file.
     \item Fix a memory access error in concordance3.c, found by CRAN.
     \item Add the drop.special function (internal) to work around offset
-      problems in [.terms.
+    problems in [.terms.
 }}
 \section{Changes in version 3.2-12}{
   \itemize{
