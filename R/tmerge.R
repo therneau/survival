@@ -371,6 +371,8 @@ tmerge <- function(data1, data2, id, ..., tstart, tstop, options) {
             for (j in 1:nfix) temp[[j]] <-  -(seq(n.add[j] -1, 0)) + iend[j]
             newrows <- unlist(temp)
             
+            if (inherits(dstart, "Date"))
+                icount$etime <- as.Date(icount$etime, origin= "1970-01-01")
             dstart[newrows] <- dstop[newrows-1] <- icount$etime
             newdata[[topt$tstartname]] <- dstart
             newdata[[topt$tstopname]]  <- dstop

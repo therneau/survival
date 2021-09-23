@@ -4,6 +4,7 @@
   \itemize{
     \item Update the royston function to report the scaled Cox-Snell
     Rsquared as the Nagelkirke estimate, and clarify the documentation.
+    \item Address an origin= issue for tmerge, when Dates are the time scale
 }}
  
 \section{Changes in version 3.2-13}{
