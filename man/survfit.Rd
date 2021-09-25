@@ -22,8 +22,9 @@ survfit(formula, ...)
   For further details see the documentation for the appropriate method, i.e.,
   \code{?survfit.formula} or \code{?survfit.coxph}.  
 
-  A survfit object may contain a single curve, a set of curves, or a
-  matrix curves.
+  A survfit object may contain a single curve, a set of curves (vector), a
+  matrix of curves, or even a 3 way array: \code{dim(fit)} will reveal
+  the dimensions.
   Predicted curves from a \code{coxph} model have one row for each
   stratum in the Cox model fit and one column for each specified
   covariate set.
@@ -31,12 +32,6 @@ survfit(formula, ...)
   a column for each state, the strata correspond to predictors on the
   right hand side of the equation.  The default printing and plotting
   order for curves is by column, as with other matrices.
-
-  Curves can be subscripted using either a single or double subscript.
-  If the set of curves is a matrix, as in the above, and one of the
-  dimensions is 1 then the code allows a single subscript to be used.
-  (That is, it is not quite as general as using a single subscript for
-  a numeric matrix.)
 }
 \value{
 An object of class \code{survfit} containing one or more survival curves.

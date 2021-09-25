@@ -68,7 +68,8 @@ Note that SAS (as of version 9.3) uses the integral up to the last
 of the choices and do not provide an option for that calculation.
 
 The median and its confidence interval are defined by drawing a horizontal 
-line at 0.5 on the plot of the survival curve and its confidence bands. 
+line at 0.5 on the plot of the survival curve and its confidence bands.
+If that line does not intersect the curve, then the median is undefined.
 The intersection of the line with the lower CI band defines the lower limit 
 for the median's interval, and similarly for the upper band.  If any of the 
 intersections is not a point then we use the center of the intersection interval, 

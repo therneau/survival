@@ -57,6 +57,9 @@ nsk(x, df = NULL, knots = NULL, intercept = FALSE, b = 0.05,
   The second differnce with \code{ns} is one of opinion with respect to
   the default position for the boundary knots.  The default here is
   closer to that found in the \code{rms::rcs} function.
+
+  This function is a trial if a new idea, it's future inclusion in the
+  package is not yet guarranteed.
 }
 \value{
   A matrix of dimension length(x) * df where either df was supplied or,
@@ -85,22 +88,23 @@ nsk(x, df = NULL, knots = NULL, intercept = FALSE, b = 0.05,
   the end knots, this is often called a 'natural spline', due to the
   fact that a wooden or metal spline will also be linear beyond the last
   knots.  Another name for the same object is a 'restricted cubic
-  spline', since it is achieved in code by adding a further constraint.
+  spline', since it is achieved in code by adding further constraints.
   Given a vector of data points and a set of knots, it is possible to
   create a basis matrix X with one column per knot, such that ordinary
   regression of X on y will fit the cubic spline function, hence these
-  are also called 'regression splines'. One label is no better than another.
+  are also called 'regression splines'. (One of these three labels is no
+  better or worse than another, in our opinion).
 
-  Given a basis matrix $X$, the
+  Given a basis matrix X with k columns, the
   matrix Z= XT for any k by k nonsingular matrix T is is also a basis
   matrix, and will result in identical predicted values, but a new set
   of coefficients gamma = (T-inverse) beta in place of beta.  One can
-  choose the basis function so that X is easy to construct, to
+  choose the basis functions so that X is easy to construct, to
   make the regression numerically stable, to make tests easier, or based
   on other considerations.
-  It seems as though every spline function returns a different basis
-  set, which unfortunately makes fits difficult to compare;
-  and this is yet one more, chosen to make the coefficients
+  It seems as though every spline library returns a different basis
+  set, which unfortunately makes fits difficult to compare between packages.
+  This is yet one more basis set, chosen to make the coefficients
   more interpretable. 
 }
 
