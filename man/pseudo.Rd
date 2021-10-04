@@ -78,6 +78,17 @@ fit1 <- survfit(Surv(time, status) ~ 1, data=lung)
 yhat <- pseudo(fit1, times=c(365, 730))
 dim(yhat)
 lfit <- lm(yhat[,1] ~ ph.ecog + age + sex, data=lung)
+
+# Restricted Mean Time in State (RMST) 
+rms <- pseudo(fit1, times= 730, type='RMST') # 2 years
+rfit <- lm(rms ~ ph.ecog + sex, data=lung)
+rhat <- matrix(predict(rfit, newdata=expand.grid(ph.ecog=0:3, sex=1:2)),
+               ncol=2, dimnames=list(ph.ecog=0:3, sex=1:2))
+round(rhat, 1)
+fit2 <- survfit(Surv(time, status) ~ ph.ecog, data=lung)
+print(fit2, rmean=720)
+
+
 }
 \keyword{ survival }
 
