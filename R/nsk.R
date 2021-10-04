@@ -4,7 +4,7 @@
 nsk <- function(x, df=NULL, knots=NULL, intercept=FALSE, b=.05,
                 Boundary.knots = quantile(x, c(b, 1-b), na.rm=TRUE)) {
 
-    if ((is.logical(Boundary.knots) || length(Boundary.knots) == 0)  
+    if (is.logical(Boundary.knots) || length(Boundary.knots) == 0)  
         kx <- range(x, na.rm=TRUE)   # the ns() default
     else if (length(knots) == 0) kx <- Boundary.knots
     else {

@@ -1,5 +1,5 @@
 
-R Under development (unstable) (2021-08-12 r80744) -- "Unsuffered Consequences"
+R Under development (unstable) (2021-04-20 r80202) -- "Unsuffered Consequences"
 Copyright (C) 2021 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
@@ -1114,16 +1114,15 @@ n= 646, number of events= 320
 > 
 > # the knots (same for both fits)
 > knots <- unlist(attributes(fit1$model[[2]])[c('Boundary.knots', 'knots')])
-> knots
- Boundary.knots.5% Boundary.knots.95%    knots.33.33333%    knots.66.66667% 
-             45.35              75.00              59.00              67.00 
+> sort(unname(knots))
+[1] 45.35 59.00 67.00 75.00
 > unname(coef(fit1))  # predictions at the knot points
 [1] 22.23565 32.18784 34.82994 36.93020
 > 
 > unname(coef(fit1)[-1] - coef(fit1)[1])  # differences: yhat[2:4] - yhat[1]
 [1]  9.952189 12.594290 14.694549
-> unname(coef(fit2))
-[1] 22.235650  9.952189 12.594290 14.694549
+> unname(coef(fit2))[-1]                  # ditto
+[1]  9.952189 12.594290 14.694549
 > 
 > ## Not run: 
 > ##D plot(y ~ x, data=tdata)
@@ -2525,7 +2524,7 @@ n= 26, number of events= 12
 +                    stage + copper, data=pbc2, ties="breslow")
 > royston(cfit)
         D     se(D)       R.D      R.KO       R.N      C.GH 
-2.6917766 0.2273352 0.6336693 0.5554885 0.4626961 0.7735923 
+2.6917766 0.2273352 0.6336693 0.5554885 0.4714442 0.7735923 
 > 
 > 
 > 
@@ -3655,7 +3654,7 @@ $terms
 > cleanEx()
 > options(digits = 7L)
 > base::cat("Time elapsed: ", proc.time() - base::get("ptime", pos = 'CheckExEnv'),"\n")
-Time elapsed:  3.156 0.108 3.265 0 0 
+Time elapsed:  3.919 0.128 4.056 0 0 
 > grDevices::dev.off()
 null device 
           1 
