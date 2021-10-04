@@ -10,7 +10,6 @@
 \usage{
 rttright(formula, data, weights, subset, na.action, times, id, timefix = TRUE)
 }
-%- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{formula}{
     a formula object, which must have a 
@@ -48,7 +47,7 @@ rttright(formula, data, weights, subset, na.action, times, id, timefix = TRUE)
   The \code{formula} argument is treated exactly the same as in the
   \code{survfit} function.
   
-  Redistribution is recursive: redistribute the weight of the smallest
+  Redistribution is recursive: redistribute the weight of the first
   censored observation to all those with longer time, which may include
   other censored observations.  Then redistribute the next smallest and
   etc. up to the specified \code{time} value.

@@ -363,7 +363,7 @@ The \code{temp} variable will contain a object of type ``call'', which is
 an unevaluated call to a routine.
 Finally, the name of the function to be called is changed from
 ``coxph'' to ``model.frame'' and the call is evaluated.
-In many of the core routines the result is stored in a variable ``f''.
+In many of the core routines the result is stored in a variable ``m''.
 This is a horribly short and non-descriptive name (mine is a little better,
 but not much).
 Many routines also use ``m'' for the temporary variable leading
@@ -374,7 +374,7 @@ The list of names in the \code{match} call will include all
 arguments that should be searched for in the named dataframe.
 The order of names in the list makes no difference.
 Take special note that this can include more than just the standard
-quintet of formula, ..., na.action.
+quintet of formula, data, subset, weights, and na.action.
 The \code{id} variable, which identifies groups of lines for a single
 subject, is not part of the formula,
 and can be retrieved with \code{model.extract(mf, 'id')}, which will

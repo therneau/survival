@@ -3,8 +3,11 @@
 \section{Changes in version 3.2-14}{
   \itemize{
     \item Update the royston function to report the scaled Cox-Snell
-    Rsquared as the Nagelkirke estimate, and clarify the documentation.
-    \item Address an origin= issue for tmerge, when Dates are the time scale
+    R-squared as the Nagelkirke estimate, and clarify the documentation.
+    \item Update for coxph with ties=exact, for the case of an infinite
+    coefficient where the information matrix becomes singular.  Code for
+    this case had been developed for coxfit6.c (Breslow/Efron) but not
+    replicated in coxexact.c
 }}
  
 \section{Changes in version 3.2-13}{

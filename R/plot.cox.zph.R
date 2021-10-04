@@ -80,6 +80,9 @@ plot.cox.zph <- function(x, resid=TRUE, se=TRUE, df=4, nsmo=40,
 	    yr <- range(yr, yup, ylow)
 	    }
 
+        plotpar <- list(...)
+        doxaxis <- FALSE
+        if (!is.null(plotpar$xaxt) && !plotpar$xaxt) doxaxis <- TRUE
         if (!hr) {
             if (x$transform=='identity')
                 plot(range(xx), yr, type='n', xlab=xlab, ylab=ylab[i], ...)
@@ -88,11 +91,9 @@ plot.cox.zph <- function(x, resid=TRUE, se=TRUE, df=4, nsmo=40,
                      log='x', ...)
             else {
                 plot(range(xx[keep]), yr, type='n', xlab=xlab, ylab=ylab[i], 
-                     axes=FALSE,...)
-                axis(1, xaxisval, xaxislab)
-                axis(2)
-                box()
-	    }
+                     xaxt = 'n', ...)
+                if (doxaxis) axis(1, xaxisval, xaxislab)
+            }
             if (resid) points(xx[keep], y)
 
             lines(pred.x, yhat, lty=lty[1], col=col[1], lwd=lwd[1])
@@ -110,7 +111,7 @@ plot.cox.zph <- function(x, resid=TRUE, se=TRUE, df=4, nsmo=40,
             else {
                 plot(range(xx[keep]), exp(yr), type='n', xlab=xlab, 
                      ylab=ylab[i], log='y', xaxt= 'n',...)
-                axis(1, xaxisval, xaxislab)
+                if (doxaxis) axis(1, xaxisval, xaxislab)
 	    }
             if (resid) points(xx[keep], exp(y))
 

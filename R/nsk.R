@@ -32,7 +32,8 @@ nsk <- function(x, df=NULL, knots=NULL, intercept=FALSE, b=.05,
         # 
         # We know that gamma = Kbasis *beta = yhat at knots
         # then (basis* K-inverse) gamma =  basis * beta
-        #  inverting a 3x3 or 4x4 matrix is not compute issue
+        #  inverting a 3x3 or 4x4 matrix is not a computing burden, no
+        #  need to be clever about the explicit inverse in solve
         #
         if (intercept) ibasis <- basis %*% solve(kbasis)
         else ibasis <- (cbind(1, basis) %*% solve(cbind(1, kbasis)))[, -1]

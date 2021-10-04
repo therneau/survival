@@ -24,7 +24,7 @@ survexpm <- function(rmat, time=1.0, setup, eps=1e-6) {
     else {
         nonzero <- (diag(rmat) != 0)
         if (sum(nonzero ==0)) diag(nrow(rmat))  # expm(0 matrix) = identity
-        if (sum(nonzero) ==1) {
+        if (sum(nonzero) ==1) {   # only one state had departures
             j <- which(nonzero)
             emat <- diag(nrow(rmat))
             temp <- exp(rmat[j,j] * time)

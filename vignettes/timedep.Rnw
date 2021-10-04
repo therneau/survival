@@ -827,7 +827,6 @@ hazards.
 The code belowshows a test case using the veterans cancer data, with the
 results plotted in figure \ref{veteran1b}.
 
-\begin{figure}
 <<veteran1>>=
 options(show.signif.stars = FALSE)  # display statistical intelligence
 vfit <- coxph(Surv(time, status) ~ trt + prior + karno, veteran)
