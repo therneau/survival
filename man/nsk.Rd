@@ -119,11 +119,11 @@ fit2 <- lm(y ~ nsk(x, df=3), data=tdata)
 
 # the knots (same for both fits)
 knots <- unlist(attributes(fit1$model[[2]])[c('Boundary.knots', 'knots')])
-knots
+sort(unname(knots))
 unname(coef(fit1))  # predictions at the knot points
 
 unname(coef(fit1)[-1] - coef(fit1)[1])  # differences: yhat[2:4] - yhat[1]
-unname(coef(fit2))
+unname(coef(fit2))[-1]                  # ditto
 
 \dontrun{
 plot(y ~ x, data=tdata)
