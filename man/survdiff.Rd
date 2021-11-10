@@ -69,7 +69,7 @@ the variance matrix of the test.
 \item{strata}{
 optionally, the number of subjects contained in each stratum.
 }}
-\section{METHOD}{
+\section{Description}{
 This function implements the G-rho family of
 Harrington and Fleming (1982), with weights on each death of \eqn{S(t)^\rho}{S(t)^rho},
 where \eqn{S(t)}{S} is the Kaplan-Meier estimate of survival.
@@ -77,18 +77,29 @@ With \code{rho = 0} this is the log-rank or Mantel-Haenszel test,
 and with \code{rho = 1} it is equivalent to the Peto & Peto modification
 of the Gehan-Wilcoxon test.
 
+Peto and Peto show that the Gehan-Wilcoxon test can be badly biased if
+the two groups have different censoring patterns, and proposed an
+alternative.  Prentice and Marek later showed an actual example where this
+issue occurs.  For most data sets the Gehan-Wilcoxon and
+Peto-Peto-Prentice variant will hardly differ, however.
 
 If the right hand side of the formula consists only of an offset term,
 then a one sample test is done.
 To cause missing values in the predictors to be treated as a separate
 group, rather than being omitted, use the \code{factor} function with its
-\code{exclude} argument.
+\code{exclude} argument to recode the righ-hand-side covariate.
 }
 \references{
-Harrington, D. P. and Fleming, T. R. (1982).
+  Harrington, D. P. and Fleming, T. R. (1982).
 A class of rank test procedures for censored survival data.
-\emph{Biometrika}
-\bold{69}, 553-566.}
+ Biometrika, 553-566.
+
+  Peto R. Peto and Peto, J. (1972) Asymptotically efficient rank invariant
+  test procedures (with discussion), JRSSA, 185-206.
+
+  Prentice, R. and Marek, P. (1979)  A qualitative discrepancy between
+  censored data rank tests, Biometics, 861--867.
+}
 \examples{
 ## Two-sample test
 survdiff(Surv(futime, fustat) ~ rx,data=ovarian)

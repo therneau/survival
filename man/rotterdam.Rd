@@ -47,7 +47,7 @@ at 6.6 years; when creating the endpoint of recurrence free survival
 (earlier of recurrence or death), treating them as a death at 6.6 years
 implicitly assumes that they were recurrence free just before death.
 For this to be true we would have to assume that if they had progressed in
-the 2.4 year interval before death (off study),
+the 2.4 year interval before death (while off study),
 that this information would also have been noted
 in their general medical record, and would also be captured in
 the study data set.
