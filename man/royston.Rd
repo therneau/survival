@@ -28,13 +28,14 @@ royston(fit, newdata, ties = TRUE, adjust = FALSE)
   sufficient sample size (r>20) the adjustment will be small.
 
   The Nagelkirke value is the Cox-Snell R-squared divided by a scaling
-  constant.  The two separate values are present in the result of
+  constant. The two separate values are present in the result of
   \code{summary.coxph} as a 2 element vector \code{rsq}, and were listed as
   "Rsquare" and "max possible" in older versions of the print routine.
   (Since superseded in the default printout by the concordance.)
+  The Nagelkirke estimate is not returned when \code{newdata} is present.
 }
 \value{a vector containing the value of D, the estimated standard error
-  of D, and four pseudo R-squared values.
+  of D, and three or four pseudo R-squared values.
 }
 \references{
 M. Goen and G. Heller, Concordance probability and discriminatory power
