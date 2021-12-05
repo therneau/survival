@@ -28,7 +28,7 @@ coxph.wtest <- function(var, b, toler.chol=1e-9) {
     if (nrow(var) != nvar) stop("Argument lengths do not match")
 
     if (any(!is.finite(b)) || any(!is.finite(var))) {
-        cat("not finite in coxph.wtest\n")
+        warning("b and/or var not finite in coxph.wtest\n Results may not be accurate")
         print(b)
         print(var)
         }
