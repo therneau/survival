@@ -93,7 +93,7 @@ that the average of the pseudo values will recover the starting estimate,
 mean$(\hat\theta_i) = \hat\theta$.  The choice of $n$ for the IJ based
 pseudo value makes the compuation for an ordinary mean exact, as was shown above
 for $n-1$ and the jackknife pseudovalue, 
-and in fact Efron argues out that the
+and in fact Efron argues that the
 use of $n-1$ is somewhat arbitrary, i.e., other statistics than the mean might
 be more exact using $n$, $n+1$ or some other multiplier.
 The largest potential deficit of the IJ based approach is that the literature
@@ -101,7 +101,7 @@ is small --- most of the direct examinations have focused on jackknife
 based values.  
 Examples show that the numerical difference between the two is miniscule, with
 the possible exception of large outliers, 
-but a critic might call the IJ approach ``pseudo'' pseudovalues and claim that
+but a critic might label the IJ approach ``pseudo pseudovalues'' and claim that
 they are as yet unproven.
   
 \section{Residual mean survival time}
@@ -123,7 +123,7 @@ survival time (RMST), using the area under the KM up to some specified
 point $\tau$. 
 This is interpreted as the expected number of life years, out of the first 
 $\tau$ years since intitation.  If $\tau=10$ and the area under the curve
-were 8.1, the relevant phrase would be an ``expected liftime of 8.1 out of 
+were 8.1, the relevant phrase would be an ``expected lifetime of 8.1 out of 
 the next 10 years''.
 Other common labels the sojourn time, or for a multi-state model, 
 the restricted mean time in state (RMTS).
@@ -135,8 +135,6 @@ Common choices for $\tau$ are either a fixed time of interest such as 2, 5 or
 curves has no subjects. 
 
 Here is a simple example using the lung cancer data set. 
-For this cohort of subjects with advanced disease, the strongest predictor
-is performance score.
 <<lung1, fig=TRUE>>=
 lfit0 <- survfit(Surv(time/365.25, status) ~ 1, data=lung)
 lfit1 <- survfit(Surv(time/365.25, status) ~ ph.ecog, data=lung)
@@ -158,14 +156,14 @@ pmean <- pseudo(lfit0, times=2.5, type="RMST")
 ldata <- data.frame(lung, pmean= c(pmean), 
                     id=1:nrow(lung))  
 afit1 <- lm(pmean ~ ph.ecog + sex + age, data=ldata)
-round(summary(afit1)$coefficients, 2)
+round(summary(afit1)$coefficients, 3)
 @
 
 The IJ residuals for observations that are censored early in the study are
 of necessity small, as they have less opportunity to affect the results, which
 in turn means that the pseudo values are not equivariant.
-(An observation censored befor the first event has residual 0, so its pseudo
-value has no variance at all.)
+And an observation censored befor the first event has residual 0, so its pseudo
+value has no variance at all.
 In such a case theory argues for using White's variance estimate for the linear
 model fit, which accounts for possible heterscadisity.
 This is the same as the ``working indepence'' estimate of a GEE model, or the
@@ -184,8 +182,8 @@ afit3 <- svyglm(pmean ~ ph.ecog + sex + age, design=ldesign)
 round(summary(afit3)$coefficients, 3)
 @ 
 
-The estimated coefficients will be identical for all three
-approaches, as evidenced above.  
+The estimated coefficients must be identical for all three
+approaches, as evidenced above.
 In this particular case the robust and normal standard errors hardly
 differ, which we have found to be the usual case when there is a single
 psuedo value per subject.  
@@ -193,7 +191,7 @@ When there are psuedo values at multiple reporting times, and thus mulitple
 observations per subject, then the correction becomes essential.
 Deficiencies in R's \code{geese} function lead us to use the survey
 sampling approach from here forward, in particular that any missing values
-cause it to fail, the input data is required to be sorted by id, and that
+cause geese to fail, the input data is required to be sorted by id, and that
 standard extraction functions such as \code{coef} and \code{vcov} have not
 been implemented.
 The \code{survey} package requires that the design be specified in advance;
@@ -215,7 +213,8 @@ ldata$pmean4 <- c(pmean4)
 afit4a <- lm(pmean4 ~ ph.ecog + sex + age, ldata)
 afit4b <- lm(pmean4 ~ ph.ecog + sex + age + factor(inst), ldata)
 
-# survey package does not allow a missing strata
+# survey package does not allow a missing strata, and one obs in the lung data
+#  set has institution missing
 temp <- subset(ldata, !is.na(inst))
 ldesign4 <- svydesign(data=temp,  id= ~id, weights=NULL, strata= ~inst,
                       variables= ~ .-id -inst)
@@ -241,8 +240,8 @@ pv1 <- pseudo(fit1, times= c(12, 24))
 round(pv1[1:8,], 4)
 @ 
 
-Both the matrix of IJ values from \code{resid} and the matrix of pseudo-values
-from \code{pseudo}
+Both the matrix of IJ values from \code{resid} and the matrix of 
+IJ pseudovalues from the \code{pseudo} function
 have one row per subject and one column per reporting time.
 The first censoring is at 13 months, and so at the first reporting time of
 12 months the pseudo values behave exactly like a mean, and have recaptured
@@ -270,7 +269,7 @@ as expected, and the estimated standard errors almost match those from the
 The robust (IJ) variance for the Kaplan-Meier, i.e. the sum of squared IJ
 values, can in fact be shown to exactly equal the Greenwood
 estimate of variance for a KM (Anne Eaton, personal communication).
-The lm difference is due to the fact that the linear model uses $n-1$ 
+The difference above is due to the fact that the lm function uses $n-1$ 
 rather than $n$ in computing a variance.
 
 A natural follow-on is to look at covariates.  In the AML data set the covariate
@@ -330,7 +329,6 @@ if this does not hold, only an incorrect result.
 summary(lfit3)$coefficients
 #
 #survey
-library(survey)
 # When an id is constructed rather than supplied, pseudo() purposely gives
 #  it a non-standard name to avoid confusion with any user's variable names.
 #  But that name is a PITA to use in formulas
@@ -341,7 +339,6 @@ sfit <- svyglm(pseudo ~ x + factor(time), design=pdesign)
 summary(sfit)$coefficients
 #
 # GEE 1
-library(geepack)
 gfit1 <- geese(pseudo ~ x + factor(time), data=pdata, id= id) # wrong answer
 summary(gfit1)$mean
 #
@@ -478,14 +475,15 @@ onetime <- cbind(onetime, "coef/se"= onetime[,3]/onetime[,4])
 round(onetime[, c(1,2,4,5)],3)
 @ 
 
-If you are only going to use one time point, then a robust variance is
-in this case not necesary, and the best time point in terms of $z$ statistic
+If you are only going to use one time point, then a robust variance is 
+apparently not necessary, at least in this case,
+and the best time point in terms of $z$ statistic
 or power, by an admittedly
 small margin, is 4--5 years when the results have largely matured.
 This happens to be the largest estimated gain for levamisole, reducing the
 absolute failure rate by 16\%. 
 A robust variance is called for not only when there are multiple observations
-per subject, but in the case of heteroscedaticity in the variance. 
+per subject, but in the case of heteroscedaticity, however.
 We should therefore not be too quick to declare it unnecessary based
 on a single example.
 
@@ -529,7 +527,7 @@ logit link of $f(x) = \log(x/(1-x))$ to create starting estimates for the
 iteration, and values outside of $(0, 1)$ lead to a missing value.
 (That is actually the only place the link is used.)
 Two choices are to give explicit initial values, or to define our own link.
-Here is an example of the first, it give starting estimates which are
+Here is an example of the first, i.e., give starting estimates which are
 ``good enough''.
 
 <<link1>>=
@@ -541,8 +539,8 @@ A problem with this is that if we add a subset argument, then the starting
 estimate also needs to be explicitly trimmed down.
 An alternate is to define our own link function, based on the code found
 in the documentation for \code{family}, or on examination of the glm
-\code{make.link} function.  We call the function \code{blogit} for
-``bounded logit''.
+\code{make.link} function.  We call the resulting function \code{blogit} for
+``bounded logit'', and have included it in the survival package.
 
 <<blogit>>=
 blogit <- function(edge=.05) {
@@ -562,41 +560,45 @@ linear link.  The latter estimates that Levamisole+5FU will reduce the
 probability of death by 14\%, on average, for time points from years 2--6,
 while the logit link predicts an exp(-.645)= .52 odds of relapse.
 
-\paragraph{log-log link}
+\paragraph{Complementary log-log link}
 If a Cox model holds, then 
 \begin{align*}
-  S(t) ^= e^{- \Lambda_0(t) e^{(X\beta)}} \\
+  1 - F(t) &= S(t) = e^{- \Lambda_0(t) e^{(X\beta)}} \\
   \log(-\log(S(t)) &= \log[\Lambda_0(t)]  + X \beta
 \end{align*}
 which motivates using the following link function.
 
 <<loglog>>=
-bloglog <- function(edge=.05) {
-    new <- list(linkfun = function(mu) {
-                              x <- (pmax(edge, pmin(mu, 1-edge)))
-                              log(-log(x))} ,
-                linkinv = function(eta) exp(-exp(eta)),
-                mu.eta  = function(eta) -exp(eta)* exp(-exp(eta)),
-                valideta= function(eta) TRUE,
-                name="loglog")
-    class(new) <- "link-glm"
+bcloglog <- function(edge=.05) {
+    new <- make.link("cloglog")
+    new$linkfun <- function(mu) {
+        x <- (pmax(edge, pmin(mu, 1-edge)))
+        log(-log(x))
+    }
+    new$name <- "bcloglog"
     new
 }
-sfit3d <- svyglm(pdeath ~rx + extent + node4 + factor(year), design=cpdesign,
+sfit3d <- svyglm(pseudo ~rx + extent + node4 + factor(year), design=cpdesign,
               family= gaussian(link = bloglog()), subset=(year %in% c(2,4,6)))
 pfun(summary(sfit3d)$coefficients)
 cfit <- coxph(Surv(time, status) ~ rx + extent + node4, cdata)                 
 round(summary(cfit)$coefficients, 3)
 @ 
 
-We should in theory get similar coefficients to the \code{coxph} fit.
-Why are they larger?
+And indeed, the coefficients of the glm model closely mimic a coxph fit.
 
 \section{Competing risks}
-Pseudo values based on the multi-state Aalen-Johansen estimate allow a
-look at the absolute risk of an outcome, in the presence of a competing
-risk.  We will use the \code{mgus2} data set, which has been used to
-illustrate competing risks elsewhere in the vignettes. 
+In a competing risks situation, let $p_j(t)$ be the probability of being in
+state $j$ at time $t$.
+The Fine-Gray model assumes that $1- p_1(t) = exp(-exp(\beta_0(t) + \beta X))$
+or equivalently that $\log(-\log(1- p_1(t))) = \beta_0(t) + \beta X$,
+where outcome $j=1$ is assumed to be the event of interest.
+We can use pseudo values from an Aalen-Johansen estimate of $p_j$,
+along with a complimentary log-log link GLM, to estimate the same
+quantity.
+We will use the \code{mgus2} data set, which has been used to
+illustrate competing risks elsewhere in the survival vignettes. 
+
 
 <<mgus2cr, fig=TRUE>>=
 mdata <- mgus2
@@ -614,54 +616,52 @@ text(c(345, 340), c(.18, .73), c("PCM", "Death w/o PCM"))
 At 30 years post diagnosis approximately 13\% of the subjects have
 experienced a plasma cell malignancy (PCM), while 78\% have died without
 PCM.
-The pseudo-value matrix has 3 columns correponding to each of the 3 states.
-We are interested in factors that promote malignancy, so model the PCM
-outcome at 30 years.
+Fit the model using either 30 time point for the pseudo values (years 1--30),
+10 (every 3 years) or 5 (every 6).
+The pseudo-value matrix has 3 columns correponding to each of the 3 states,
+we focus on the PCM outcome (column).
 
 <<mgus2p>>=
-mps <- pseudo(msurv, time=30*12, type="pstate")
-dim(mps)
-mdata$ps.pcm <- mps[,2]
-mfit1 <- lm(ps.pcm ~ age10 + sex + mspike, data= mdata)
-pfun(summary(mfit1)$coefficients)
-@
-
-We see that males have a slightly lower 30 risk, though not significant
-on this scale, which age and diagnosis and the sized of the serum monoclonal
-spike are very important.  
-How do these results change when using more time points and/or a different
-link function?
-
-<<mgus3p>>=
-mps6 <- pseudo(msurv, time= 12*seq(5, 30, by=5),
-               data.frame=TRUE) # every 5 years
-mdata6 <- merge(mdata, subset(mps6, state== "PCM"), by="id")
+mps <- pseudo(msurv, times=12*(1:30), type="pstate", data.frame=TRUE)
+mdata6 <- merge(mdata, subset(mps, state== "PCM"), by="id")
 mdata6$year <- mdata6$time/12
 
 mdesign <- svydesign(data=mdata6, id=~id, weights=NULL, variables= ~. -id)
-mpfit1 <- svyglm(pseudo ~ age10 + sex + mspike,  design=mdesign,
-                 subset= (year==10))
-mpfit2 <- svyglm(pseudo ~ age10 + sex + mspike,  design=mdesign,
-                 subset= (year==20))
-mpfit3 <- svyglm(pseudo ~ age10 + sex + mspike,  design=mdesign,
-                 subset= (year==30))
-mpfit6 <- svyglm(pseudo ~ age10 + sex + mspike + factor(year),  design=mdesign)
+mpfit1 <- svyglm(pseudo ~ age10 + sex + mspike + factor(year), design = mdesign,
+                 family = gaussian(link =bcloglog()))
+mpfit2 <- svyglm(pseudo ~ age10 + sex + mspike + factor(year), design = mdesign,
+                 subset = (year %in% (3* 1:10)),
+                 family = gaussian(link =bcloglog()))
+mpfit3 <- svyglm(pseudo ~ age10 + sex + mspike + factor(year), design = mdesign,
+                 subset = (year %in% (6* 1:5)),
+                 family = gaussian(link =bcloglog()))
 
-temp <- rbind(yr10 = coef(mpfit1)[1:4], yr20= coef(mpfit2)[1:4], 
-              yr30 = coef(mpfit3)[1:4], all= coef(mpfit6)[1:4])
-round(temp,4)
-@ 
+fgdata <- finegray(Surv(etime, event) ~ .,  mdata, etype="PCM")
+fgfit <-  coxph(Surv(fgstart, fgstop, fgstatus) ~ age10 + sex + mspike, 
+                data=fgdata, weights = fgwt)
 
-With multiple time points, the use of a simple linear link is not
-sensible: the spread between groups grows with time, and so the
-coefficients are not constant over time.
-The overall incidence rate of PCM in the study is nearly constant at 1\%
-per year, so we allow for linear growth by adding time by covariate
-interactions.
-<<mginter>>=
-mpfit7 <- svyglm(pseudo ~ (age10 + sex + mspike) * year, design=mdesign)
-pfun(summary(mpfit7)$coefficients)
-@ 
+temp <- cbind(summary(fgfit)$coef[1:3, c(1,3)],
+              summary(mpfit1)$coef[2:4, 1:2],
+              summary(mpfit2)$coef[2:4,1:2],
+              summary(mpfit3)$coef[2:4,1:2])
+colnames(temp) <- c("FGcoef", "FGstd", "Coef30", "Std30", 
+                    "Coef10", "Std10", "Coef5", "Std5")
+
+round(temp[,c(1,3,5,7, 2,4,6,8)], 3)
+@
+
+We see that using pseudovalues with a complimentary log-log link 
+returns coefficients that are very close to the formal Fine-Gray
+method, within 1/5 of a standard error or less, but with somewhat
+larger estimated standard errors.  The intercept terms from the GLM
+model (not shown) estimate a cumulative baseline hazard.
+Other links and exploration are of course possible.
+
+One lack in the pseudovalue approach is that it does not extend to 
+time-dependent covariates, unlike the Fine-Gray model. 
+A second concern is that in a data set with left-truncation, it has been
+shown that the final regression coefficients will be biased whenever the
+truncation is covariate dependent.  
 
 \bibliographystyle{plain}
 \bibliography{refer}

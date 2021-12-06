@@ -76,10 +76,13 @@ royston <- function(fit, newdata, ties=TRUE, adjust=FALSE) {
     }
     GH = temp *2/(n * (n-1))
 
-    # Nagelkirke
-    logtest <- -2 * (fit$loglik[1] - fit$loglik[2])
-    R.n = (1-exp(-logtest/fit$n)) / (1-exp(2*fit$loglik[1]/fit$n))
+    # Nagelkirke is not defined for newdata
+    if (missing(newdata)) {
+        logtest <- -2 * (fit$loglik[1] - fit$loglik[2])
+        R.n = (1-exp(-logtest/fit$n)) / (1-exp(2*fit$loglik[1]/fit$n))
 
-    c(D  = D, "se(D)" = se.D, R.D = R2, R.KO= R.pm, R.N= R.n,
-        C.GH= GH)   # return vector
+        c(D  = D, "se(D)" = se.D, R.D = R2, R.KO= R.pm, R.N= R.n,
+          C.GH= GH)   # return vector
+    }
+    else c(D  = D, "se(D)" = se.D, R.D = R2, R.KO= R.pm, C.GH= GH) 
 }

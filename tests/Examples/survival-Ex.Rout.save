@@ -1,5 +1,5 @@
 
-R Under development (unstable) (2021-04-20 r80202) -- "Unsuffered Consequences"
+R Under development (unstable) (2021-08-22 r80811) -- "Unsuffered Consequences"
 Copyright (C) 2021 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
@@ -2074,6 +2074,32 @@ $se.fit
 [1] 228   2
 > lfit <- lm(yhat[,1] ~ ph.ecog + age + sex, data=lung)
 > 
+> # Restricted Mean Time in State (RMST) 
+> rms <- pseudo(fit1, times= 730, type='RMST') # 2 years
+> rfit <- lm(rms ~ ph.ecog + sex, data=lung)
+> rhat <- matrix(predict(rfit, newdata=expand.grid(ph.ecog=0:3, sex=1:2)),
++                ncol=2, dimnames=list(ph.ecog=0:3, sex=1:2))
+> round(rhat, 1)
+       sex
+ph.ecog     1     2
+      0 393.7 510.6
+      1 307.8 424.7
+      2 221.9 338.8
+      3 136.1 253.0
+> fit2 <- survfit(Surv(time, status) ~ ph.ecog, data=lung)
+> print(fit2, rmean=720)
+Call: survfit(formula = Surv(time, status) ~ ph.ecog, data = lung)
+
+   1 observation deleted due to missingness 
+            n events rmean* se(rmean) median 0.95LCL 0.95UCL
+ph.ecog=0  63     37    427      31.7    394     348     574
+ph.ecog=1 113     82    365      22.2    306     268     429
+ph.ecog=2  50     44    255      29.8    199     156     288
+ph.ecog=3   1      1    118       0.0    118      NA      NA
+    * restricted mean with upper limit =  720 
+> 
+> 
+> 
 > 
 > 
 > cleanEx()
@@ -3654,7 +3680,7 @@ $terms
 > cleanEx()
 > options(digits = 7L)
 > base::cat("Time elapsed: ", proc.time() - base::get("ptime", pos = 'CheckExEnv'),"\n")
-Time elapsed:  3.919 0.128 4.056 0 0 
+Time elapsed:  3.166 0.064 3.229 0 0 
 > grDevices::dev.off()
 null device 
           1 
