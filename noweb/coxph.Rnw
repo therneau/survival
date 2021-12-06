@@ -195,7 +195,9 @@ coxph <- function(formula, data, weights, subset, na.action,
     if (missing(tt)) tt <- NULL
     if (length(timetrans)) {
         if (multi || isSurv2) stop("the tt() transform is not implemented for multi-state or Surv2 models")
-         <<coxph-transform>>
+        # begin tt() preprocessing
+        <<coxph-transform>>
+        # end tt() preprocessing
         }
    
     xlevels <- .getXlevels(Terms, mf)
@@ -418,9 +420,13 @@ If tmap has rows (terms) for strata, then we have to deal with the complication
 that a strata might be applied to some transitions and not to others.
 <<coxph-multi-X>>=
 if (length(strats) >0) {
-    stratum_map <- tmap[c(1L, strats),] # strats includes Y, + tmap has an extra row
+    # tmap starts with a "(Baseline)" row, which we want
+    # strats is indexed off the data frame, which includes the response, so
+    #  turns out to be correct for the remaining rows of tmap
+    stratum_map <- tmap[c(1L, strats),] 
     stratum_map[-1,] <- ifelse(stratum_map[-1,] >0, 1L, 0L)
     if (nrow(stratum_map) > 2) {
+        # multi state with more than 1 strata statement -- really unusual
         temp <- stratum_map[-1,]
         if (!all(apply(temp, 2, function(x) all(x==0) || all(x==1)))) {
             # the hard case: some transitions use one strata variable, some
