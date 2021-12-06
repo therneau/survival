@@ -1999,15 +1999,6 @@ The NAFLD data is represented as 3 data sets, \code{nafld1} has one observation
 per subject containing basline information (age, sex, etc.),
 nafld2 has information on repeated laboratory tests, e.g. blood pressure,
 and nafld3 has information on yes/no endpoints.
-Because NAFLD is often a disease of exclusion, a NAFLD diagnosis followed
-shortly by the diagnosis of another liver disease is considered a false
-positive.  For this study we only consider ``confirmed'' NAFLD, i.e., if
-someone were diagnosed on 2001-06-20, the index date for confirmed NAFLD 
-would be 2002-06-20, assuming that another liver diagnosis, death, or
-incomplete follow-up did not intervene.  Control subjects are matched on
-age and sex, and for each their follow-up also commences on the 
-``confirmed NAFLD'' date.
-
 After the case-control set was assembled, we removed any subjects with less
 than 7 days of follow-up.  These subjects add little information, and it
 prevents a particular confusion that can occur with a multi-day medical visit
