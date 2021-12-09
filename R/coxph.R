@@ -194,91 +194,93 @@ coxph <- function(formula, data, weights, subset, na.action,
     if (missing(tt)) tt <- NULL
     if (length(timetrans)) {
         if (multi || isSurv2) stop("the tt() transform is not implemented for multi-state or Surv2 models")
-         timetrans <- untangle.specials(Terms, 'tt')
-         ntrans <- length(timetrans$terms)
+        # begin tt() preprocessing
+        timetrans <- untangle.specials(Terms, 'tt')
+        ntrans <- length(timetrans$terms)
 
-         if (is.null(tt)) {
-             tt <- function(x, time, riskset, weights){ #default to O'Brien's logit rank
-                 obrien <- function(x) {
-                     r <- rank(x)
-                     (r-.5)/(.5+length(r)-r)
-                 }
-                 unlist(tapply(x, riskset, obrien))
-             }
-         }
-         if (is.function(tt)) tt <- list(tt)  #single function becomes a list
-             
-         if (is.list(tt)) {
-             if (any(!sapply(tt, is.function))) 
-                 stop("The tt argument must contain function or list of functions")
-             if (length(tt) != ntrans) {
-                 if (length(tt) ==1) {
-                     temp <- vector("list", ntrans)
-                     for (i in 1:ntrans) temp[[i]] <- tt[[1]]
-                     tt <- temp
-                 }
-                 else stop("Wrong length for tt argument")
-             }
-         }
-         else stop("The tt argument must contain a function or list of functions")
+        if (is.null(tt)) {
+            tt <- function(x, time, riskset, weights){ #default to O'Brien's logit rank
+                obrien <- function(x) {
+                    r <- rank(x)
+                    (r-.5)/(.5+length(r)-r)
+                }
+                unlist(tapply(x, riskset, obrien))
+            }
+        }
+        if (is.function(tt)) tt <- list(tt)  #single function becomes a list
+            
+        if (is.list(tt)) {
+            if (any(!sapply(tt, is.function))) 
+                stop("The tt argument must contain function or list of functions")
+            if (length(tt) != ntrans) {
+                if (length(tt) ==1) {
+                    temp <- vector("list", ntrans)
+                    for (i in 1:ntrans) temp[[i]] <- tt[[1]]
+                    tt <- temp
+                }
+                else stop("Wrong length for tt argument")
+            }
+        }
+        else stop("The tt argument must contain a function or list of functions")
 
-         if (ncol(Y)==2) {
-             if (length(strats)==0) {
-                 sorted <- order(-Y[,1], Y[,2])
-                 newstrat <- rep.int(0L, nrow(Y))
-                 newstrat[1] <- 1L
-                 }
-             else {
-                 sorted <- order(istrat, -Y[,1], Y[,2])
-                 #newstrat marks the first obs of each strata
-                 newstrat <-  as.integer(c(1, 1*(diff(istrat[sorted])!=0))) 
-                 }
-             if (storage.mode(Y) != "double") storage.mode(Y) <- "double"
-             counts <- .Call(Ccoxcount1, Y[sorted,], 
-                             as.integer(newstrat))
-             tindex <- sorted[counts$index]
-         }
-         else {
-             if (length(strats)==0) {
-                 sort.end  <- order(-Y[,2], Y[,3])
-                 sort.start<- order(-Y[,1])
-                 newstrat  <- c(1L, rep(0, nrow(Y) -1))
-             }
-             else {
-                 sort.end  <- order(istrat, -Y[,2], Y[,3])
-                 sort.start<- order(istrat, -Y[,1])
-                 newstrat  <- c(1L, as.integer(diff(istrat[sort.end])!=0))
-             }
-             if (storage.mode(Y) != "double") storage.mode(Y) <- "double"
-             counts <- .Call(Ccoxcount2, Y, 
-                             as.integer(sort.start -1L),
-                             as.integer(sort.end -1L), 
-                             as.integer(newstrat))
-             tindex <- counts$index
-         }
-         Y <- Surv(rep(counts$time, counts$nrisk), counts$status)
-         type <- 'right'  # new Y is right censored, even if the old was (start, stop]
+        if (ncol(Y)==2) {
+            if (length(strats)==0) {
+                sorted <- order(-Y[,1], Y[,2])
+                newstrat <- rep.int(0L, nrow(Y))
+                newstrat[1] <- 1L
+                }
+            else {
+                sorted <- order(istrat, -Y[,1], Y[,2])
+                #newstrat marks the first obs of each strata
+                newstrat <-  as.integer(c(1, 1*(diff(istrat[sorted])!=0))) 
+                }
+            if (storage.mode(Y) != "double") storage.mode(Y) <- "double"
+            counts <- .Call(Ccoxcount1, Y[sorted,], 
+                            as.integer(newstrat))
+            tindex <- sorted[counts$index]
+        }
+        else {
+            if (length(strats)==0) {
+                sort.end  <- order(-Y[,2], Y[,3])
+                sort.start<- order(-Y[,1])
+                newstrat  <- c(1L, rep(0, nrow(Y) -1))
+            }
+            else {
+                sort.end  <- order(istrat, -Y[,2], Y[,3])
+                sort.start<- order(istrat, -Y[,1])
+                newstrat  <- c(1L, as.integer(diff(istrat[sort.end])!=0))
+            }
+            if (storage.mode(Y) != "double") storage.mode(Y) <- "double"
+            counts <- .Call(Ccoxcount2, Y, 
+                            as.integer(sort.start -1L),
+                            as.integer(sort.end -1L), 
+                            as.integer(newstrat))
+            tindex <- counts$index
+        }
+        Y <- Surv(rep(counts$time, counts$nrisk), counts$status)
+        type <- 'right'  # new Y is right censored, even if the old was (start, stop]
 
-         mf <- mf[tindex,]
-         istrat <- rep(1:length(counts$nrisk), counts$nrisk)
-         weights <- model.weights(mf)
-         if (!is.null(weights) && any(!is.finite(weights)))
-             stop("weights must be finite")  
+        mf <- mf[tindex,]
+        istrat <- rep(1:length(counts$nrisk), counts$nrisk)
+        weights <- model.weights(mf)
+        if (!is.null(weights) && any(!is.finite(weights)))
+            stop("weights must be finite")  
 
-         tcall <- attr(Terms, 'variables')[timetrans$terms+2]
-         pvars <- attr(Terms, 'predvars')
-         pmethod <- sub("makepredictcall.", "", as.vector(methods("makepredictcall")))
-         for (i in 1:ntrans) {
-             newtt <- (tt[[i]])(mf[[timetrans$var[i]]], Y[,1], istrat, weights)
-             mf[[timetrans$var[i]]] <- newtt
-             nclass <- class(newtt)
-             if (any(nclass %in% pmethod)) { # It has a makepredictcall method
-                 dummy <- as.call(list(as.name(class(newtt)[1]), tcall[[i]][[2]]))
-                 ptemp <- makepredictcall(newtt, dummy)
-                 pvars[[timetrans$terms[i]+2]] <- ptemp
-             }
-         }
-         attr(Terms, "predvars") <- pvars
+        tcall <- attr(Terms, 'variables')[timetrans$terms+2]
+        pvars <- attr(Terms, 'predvars')
+        pmethod <- sub("makepredictcall.", "", as.vector(methods("makepredictcall")))
+        for (i in 1:ntrans) {
+            newtt <- (tt[[i]])(mf[[timetrans$var[i]]], Y[,1], istrat, weights)
+            mf[[timetrans$var[i]]] <- newtt
+            nclass <- class(newtt)
+            if (any(nclass %in% pmethod)) { # It has a makepredictcall method
+                dummy <- as.call(list(as.name(class(newtt)[1]), tcall[[i]][[2]]))
+                ptemp <- makepredictcall(newtt, dummy)
+                pvars[[timetrans$terms[i]+2]] <- ptemp
+            }
+        }
+        attr(Terms, "predvars") <- pvars
+        # end tt() preprocessing
         }
    
     xlevels <- .getXlevels(Terms, mf)
@@ -460,9 +462,13 @@ coxph <- function(formula, data, weights, subset, na.action,
     }
     if (multi) {
         if (length(strats) >0) {
-            stratum_map <- tmap[c(1L, strats),] # strats includes Y, + tmap has an extra row
+            # tmap starts with a "(Baseline)" row, which we want
+            # strats is indexed off the data frame, which includes the response, so
+            #  turns out to be correct for the remaining rows of tmap
+            stratum_map <- tmap[c(1L, strats),] 
             stratum_map[-1,] <- ifelse(stratum_map[-1,] >0, 1L, 0L)
             if (nrow(stratum_map) > 2) {
+                # multi state with more than 1 strata statement -- really unusual
                 temp <- stratum_map[-1,]
                 if (!all(apply(temp, 2, function(x) all(x==0) || all(x==1)))) {
                     # the hard case: some transitions use one strata variable, some

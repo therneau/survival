@@ -451,8 +451,10 @@ for (i in 1:nrow(tmap2)) {
 # If the hazard for colum 6 is proportional to the hazard for column 2,
 # the tmap2[1,2] = tmap[1,6], and phbaseline[6] =2
 temp <- tmap2[1,]
-tmap2[1,] <- match(abs(tmap2[1,]), unique(abs(temp)))
-phbaseline <- ifelse(temp<0, tmap2[1,], 0)
+indx <- which(temp> 0)
+tmap2[1,] <- indx[match(abs(temp), temp[indx])]
+phbaseline <- ifelse(temp<0, tmap2[1,], 0)    # remembers column numbers   
+tmap2[1,] <- match(tmap2[1,], unique(tmap2[1,])) # unique strata 1,2, ...
                   
 if (nrow(tmap2) > 1)
     tmap2[-1,] <- match(tmap2[-1,], unique(c(0L, tmap2[-1,]))) -1L
@@ -487,15 +489,18 @@ Let's say that there were 3 transitions and tmap looks like this:
 The cmap matrix will ignore rows 1 and 3 since they do not correspond to 
 coefficients in the model.  
 Proportional baseline hazards add another wrinkle: say that the 1:3 and 2:3
-hazards were proportional, then the phbaseline vector will be 1,2,2, and 
+hazards were proportional, and the user had \code{1:3 + 2:3 /shared} in thier
+call.  Then the phbaseline vector will be 0,0,2 and 
 cmap will gain an extra row with label ph(1:3) which has a coefficient
 for the 2:3 transition. 
+If the user typed \code{2:3 + 1:3/shared} then the phbaseline vector will
+be (0,3,0) and 2:3 is the reference level.
 
 <<parsecovar>>=
 parsecovar3 <- function(tmap, Xcol, Xassign, phbaseline=NULL) {
     # sometime X will have an intercept, sometimes not; cmap never does
     hasintercept <- (Xassign[1] ==0)
-    ph.coef <- duplicated(phbaseline)  # any ph baselines?
+    ph.coef <- (phbaseline !=0)  # any proportional baselines?
     ph.rows <- sum(ph.coef)  # extra rows in cmap
     cmap <- matrix(0L, length(Xcol) + ph.rows -hasintercept, ncol(tmap))
     uterm <- unique(Xassign[Xassign != 0])   # terms that will have coefficients
@@ -512,11 +517,11 @@ parsecovar3 <- function(tmap, Xcol, Xassign, phbaseline=NULL) {
     }
 
     if (ph.rows > 0) {
-        temp <- match(phbaseline[ph.coef], phbaseline) # where each points
+        temp <- phbaseline[ph.coef] # where each points
         newname <- paste0("ph(", colnames(tmap)[temp], ")")
         
-        j <- cbind(ii + 1:ph.rows, match(temp, unique(temp)) 
-        cmap[j] <- max(cmap) + temp
+        j <- cbind(ii + 1:ph.rows, which(ph.coef)) 
+        cmap[j] <- max(cmap) + seq(along=temp)
     } else newname <- NULL
 
     # renumber coefs as 1, 2, 3, ...
