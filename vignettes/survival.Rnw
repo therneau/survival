@@ -1961,7 +1961,7 @@ ssurv <- survfit(sfit, newdata=dummy)
 plot(ssurv[3:4], col=1:2, lty=2, xscale=12, xmax=12*20, lwd=2, fun="event",
      xlab="Years from diagnosis", ylab= "Pr(has entered PCM state)")
 lines(csurv[3:4, 2], col=1:2, lty=1, lwd=2)
-legend(20, .22, outer(c("80 year old male,", "80 year old female,"),
+legend(20, .22, outer(c("80 year old female,", "80 year old male,"),
                       c("incorrect", "correct"), paste),
                   col=1:2, lty=c(2,2,1,1), lwd=2, bty='n')
 @ 

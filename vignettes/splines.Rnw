@@ -39,7 +39,7 @@ reference for me.
 Here is a simple example using the MGUS data.
 I prefer a simpler color palette than the default found in termplot.
 <<mplot, fig=TRUE>>=
-require(survival)
+library(survival)
 mfit <- coxph(Surv(futime, death) ~ sex + pspline(age, df=4), data=mgus)
 mfit
 termplot(mfit, term=2, se=TRUE, col.term=1, col.se=1)
