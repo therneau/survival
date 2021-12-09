@@ -69,8 +69,8 @@ An an illustration, evaluate this formula when $\theta$ is an ordinary mean:
 The idea is to use the pseudo-observations $\hat\theta_i$ as a replacement
 for the incompletely observed data $y_i$.  These pseudo values are not
 censored, allowing for ordinary statistical methods to be applied.
-An good overview of pseudo-value based methods is provided by Andersen and
-Perme \cite{Andersen10}.
+An good overview of pseudo-value based methods for survival is provided by 
+Andersen and Perme \cite{Andersen10}.
 
 The \code{pseudo} function in the survival package uses values based on the
 infinitesimal jackknife (IJ), i.e.,
@@ -98,11 +98,11 @@ use of $n-1$ is somewhat arbitrary, i.e., other statistics than the mean might
 be more exact using $n$, $n+1$ or some other multiplier.
 The largest potential deficit of the IJ based approach is that the literature
 is small --- most of the direct examinations have focused on jackknife
-based values.  
+based values. 
+Parner et. al \cite{Parner21} examine the IJ approach in detail, and show that
+they have the same asymptotic properties as the jackknife pseudo values.
 Examples show that the numerical difference between the two is miniscule, with
-the possible exception of large outliers, 
-but a critic might label the IJ approach ``pseudo pseudovalues'' and claim that
-they are as yet unproven.
+the possible exception of large outliers. 
   
 \section{Residual mean survival time}
 We will start with one of the more compelling uses, which provides modeling
@@ -655,13 +655,14 @@ returns coefficients that are very close to the formal Fine-Gray
 method, within 1/5 of a standard error or less, but with somewhat
 larger estimated standard errors.  The intercept terms from the GLM
 model (not shown) estimate a cumulative baseline hazard.
-Other links and exploration are of course possible.
+Other links are of course possible, and may be more appropriate in a
+given situation.
 
 One lack in the pseudovalue approach is that it does not extend to 
 time-dependent covariates, unlike the Fine-Gray model. 
 A second concern is that in a data set with left-truncation, it has been
 shown that the final regression coefficients will be biased whenever the
-truncation is covariate dependent.  
+truncation is covariate dependent \cite{Parner21}  
 
 \bibliographystyle{plain}
 \bibliography{refer}
