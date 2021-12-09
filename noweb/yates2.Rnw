@@ -355,7 +355,9 @@ yates_xmat <- function(Terms, Tatt, contr, population, mframe, fit,
     # which variables(s) are in x1 (variables of interest)
     # First a special case of strata(grp):x, which causes strata(grp) not to
     #  appear as a column
-    if (is.na(match(contr$termname, colnames(Tatt$factors)))) {
+    if (any(is.na(match(contr$termname, colnames(Tatt$factors))))) {
+        #tis rare
+        if (length(contr$termname) > 1) stop("incomplete code 1")
         x1indx <- (contr$termname== rownames(Tatt$factors))
         names(x1indx) <- rownames(Tatt$factors)
         if (!any(x1indx)) stop(paste("variable", contr$termname, "not found"))

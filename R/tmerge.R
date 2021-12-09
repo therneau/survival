@@ -371,8 +371,9 @@ tmerge <- function(data1, data2, id, ..., tstart, tstop, options) {
             for (j in 1:nfix) temp[[j]] <-  -(seq(n.add[j] -1, 0)) + iend[j]
             newrows <- unlist(temp)
             
-            if (inherits(dstart, "Date"))
-                icount$etime <- as.Date(icount$etime, origin= "1970-01-01")
+            # this should not be necessary
+            #    if (inherits(dstart, "Date"))
+            #        icount$etime <- as.Date(icount$etime, origin= "1970-01-01")
             dstart[newrows] <- dstop[newrows-1] <- icount$etime
             newdata[[topt$tstartname]] <- dstart
             newdata[[topt$tstopname]]  <- dstop
@@ -410,7 +411,8 @@ tmerge <- function(data1, data2, id, ..., tstart, tstop, options) {
             index <- .Call(Ctmerge2, match(baseid, uid), dstart, 
                                        match(id, uid),  etime)
 
-            if (!is.null(yinc)) newvar <- NULL  # a tdc can't be updated, other than 0/1
+            # Next line removed 11/2021, I can't recall why was added
+            #if (!is.null(yinc)) newvar <- NULL #a tdc can't be updated, other than 0/1
             if (is.null(newvar)) {
                 if (is.null(yinc)) newvar <- ifelse(index==0, 0L, 1L) #add a 0/1 variable
                 else {

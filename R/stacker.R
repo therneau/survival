@@ -8,6 +8,8 @@
 #
 # For each transition the expanded data has a set of rows, all those whose
 #  initial state makes them eligible for the transition.  
+# Strata is most often null; it encodes a users strata() addition(s); less
+#  often used in multistate.
 #
 stacker <- function(cmap, smap, istate, X, Y, strata, states) {
     from.state <- as.numeric(sub(":.*$", "", colnames(cmap)))
@@ -27,8 +29,12 @@ stacker <- function(cmap, smap, istate, X, Y, strata, states) {
 
     # Don't create X and Y matrices for transitions with no covariates
     zerocol <- apply(cmap==0, 2, all)
-    if (any(zerocol)) cmap <- cmap[,!zerocol]  
-
+    if (any(zerocol)) {
+        cmap <- cmap[,!zerocol, drop=FALSE] 
+        smap <- smap[,!zerocol, drop=FALSE]
+        smap[,] <- match(smap, sort(unique(c(smap)))) # relabel as 1, 2,...
+    }
+        
     endpoint <- c(0, match(attr(Y, "states"), states))
     endpoint <- endpoint[ 1 + Y[,ncol(Y)]]  # endpoint of each row, 0=censor
 
@@ -67,7 +73,7 @@ stacker <- function(cmap, smap, istate, X, Y, strata, states) {
         k <- max(nr)
     }
 
-    # which transition each row  of newX represents
+    # which transition each row of newX represents
     transition <- rep(1:nblock, n.perblock)
 
     # remove any rows where X is missing
@@ -85,11 +91,11 @@ stacker <- function(cmap, smap, istate, X, Y, strata, states) {
     if (ncol(Y) ==2) newY <- Surv(Y[rindex,1], newstat)
     else newY <- Surv(Y[rindex,1], Y[rindex,2], newstat)
 
-    # newstrat should be an integer vector, used for the interal C calls
-    newstrat <- smap[1, transition]
+    # newstrat will be an integer vector.
+    newstrat <- smap[1, transition]   # start with strata induced by multi-state
+    # then add any strata from the users strata() terms
     if (is.matrix(strata)){
-        # this is the most complex case.  Some transitions use some columns of
-        # istrat, and some use others
+        # this is the most complex case. 
         maxstrat <- apply(strata, 2, max)  # max in each colum of strata
         mult <- cumprod(c(1, maxstrat))
         temp <- max(mult) * newstrat
@@ -100,7 +106,7 @@ stacker <- function(cmap, smap, istate, X, Y, strata, states) {
         newstrat <- match(temp, sort(unique(temp)))
     }
     else if (length(strata) > 0) {
-        # strata will be an integer vector, values from 1 to number of strata
+        # strata will be an integer vector with elements of 1, 2 etc 
         mult <- max(strata)
         temp <- mult * newstrat + ifelse(smap[2,transition]==0, 0L, strata[rindex] -1L)
         newstrat <- match(temp, sort(unique(temp)))
@@ -112,7 +118,6 @@ stacker <- function(cmap, smap, istate, X, Y, strata, states) {
     first <- match(sort(unique(cmap[cmap>0])), cmap) #first instance of each value
     vname <- rownames(cmap)[row(cmap)[first]]
     colnames(newX) <- vname
-
     list(X=newX, Y=newY, strata=as.integer(newstrat), 
          transition= as.integer(transition), rindex=rindex)
 }

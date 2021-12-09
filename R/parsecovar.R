@@ -307,11 +307,9 @@ parsecovar2 <- function(covar1, statedata, dformula, Terms, transitions,states) 
 parsecovar3 <- function(tmap, Xcol, Xassign, phbaseline=NULL) {
     # sometime X will have an intercept, sometimes not; cmap never does
     hasintercept <- (Xassign[1] ==0)
-
-    ptemp <- phbaseline[phbaseline >0]
-    nph.coef <- length(ptemp)
-    nph.row  <- length(unique(ptemp))
-    cmap <- matrix(0L, length(Xcol) + nph.row - hasintercept, ncol(tmap))
+    ph.coef <- duplicated(phbaseline)  # any ph baselines?
+    ph.rows <- sum(ph.coef)  # extra rows in cmap
+    cmap <- matrix(0L, length(Xcol) + ph.rows -hasintercept, ncol(tmap))
     uterm <- unique(Xassign[Xassign != 0])   # terms that will have coefficients
     
     xcount <- table(factor(Xassign, levels=1:max(Xassign)))
@@ -325,11 +323,12 @@ parsecovar3 <- function(tmap, Xcol, Xassign, phbaseline=NULL) {
         ii <- ii + max(k)
     }
 
-    if (nph.row > 0) {
-        i <- length(Xcol)- hasintercept      # non-ph rows in cmap
-        j <- cbind(i+ match(ptemp, unique(ptemp)), which(phbaseline>0)) 
-        cmap[j] <- max(cmap) + seq(along.with =ptemp)
-        newname <- paste0("ph(",colnames(tmap)[unique(ptemp)], ")")
+    if (ph.rows > 0) {
+        temp <- match(phbaseline[ph.coef], phbaseline) # where each points
+        newname <- paste0("ph(", colnames(tmap)[temp], ")")
+        
+        j <- cbind(ii + 1:ph.rows, match(temp, unique(temp)) 
+        cmap[j] <- max(cmap) + temp
     } else newname <- NULL
 
     # renumber coefs as 1, 2, 3, ...

@@ -17,8 +17,8 @@ coxph.detail(object, riskmat=FALSE, rorder=c("data", "time"))
  \item{riskmat}{
    include the at-risk indicator matrix in the output?
  }
- \item{rorder}{if \code{riskmat=TRUE}, the rows of riskmat will be in the
-   original data order, otherwise sorted by time within strata.
+ \item{rorder}{only applicable if \code{riskmat=TRUE}.  Should the rows
+   of riskmat be in the original data order, or sorted by time within strata.
  }
 }
 \value{
