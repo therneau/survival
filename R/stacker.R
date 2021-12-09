@@ -1,5 +1,5 @@
 #
-# This routine creates a stacked data set
+# This routine creates a stacked data set.
 # The key input is the cmap matrix, which has one row for each column 
 #  of X and one column per transition.  It may have extra rows if there are
 #  proportional baseline hazards
