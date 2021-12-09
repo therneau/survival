@@ -33,6 +33,8 @@ stacker <- function(cmap, smap, istate, X, Y, strata, states) {
         cmap <- cmap[,!zerocol, drop=FALSE] 
         smap <- smap[,!zerocol, drop=FALSE]
         smap[,] <- match(smap, sort(unique(c(smap)))) # relabel as 1, 2,...
+        from.state <- from.state[!zerocol]
+        to.state <- to.state[!zerocol]
     }
         
     endpoint <- c(0, match(attr(Y, "states"), states))
