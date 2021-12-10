@@ -118,7 +118,7 @@ else cifit <- survfitCI(as.factor(tempstrat), Y, weights,
 cluster <- model.extract(mf, "cluster")
 xstack <- stacker(object$cmap, object$stratum_map, as.integer(istate), X, Y,
                   as.integer(strata),
-                  states= object$states)
+                  states= object$states, dropzero=FALSE)
 if (length(position) >0)
     position <- position[xstack$rindex]   # id was required by coxph
 X <- xstack$X
@@ -131,6 +131,38 @@ if (length(weights)) weights <- weights[xstack$rindex]
 if (length(cluster)) cluster <- cluster[xstack$rindex]
 oldid <- oldid[xstack$rindex]
 if (robust & length(cluster)==0) cluster <- oldid
+@
+
+Fix up the X matrix to avoid huge values.  In the single state case this
+is fairly straightforward: use $(X-1m')\beta = X\beta - m'\beta$ where
+$m$ is the vector of centering constants found in the 
+\code{object\$means} component.
+However, 
+<<survfit.coxph-setup2d>>=
+if (length(object$means) ==0) { # a model with only an offset term
+    # Give it a dummy X so the rest of the code goes through
+    #  (This case is really rare)
+    # se.fit <- FALSE
+    X <- matrix(0., nrow=n, ncol=1)
+    if (is.null(offset)) offset <- rep(0, n)
+    xcenter <- mean(offset)
+    coef <- 0.0
+    varmat <- matrix(0.0, 1, 1)
+    risk <- rep(exp(offset- mean(offset)), length=n)
+}
+else {
+    varmat <- object$var
+    beta <- ifelse(is.na(object$coefficients), 0, object$coefficients)
+    if (is.null(offset)) xcenter <- sum(object$means * beta)
+    else xcenter <- sum(object$means * beta)+ mean(offset)
+    if (!is.null(object$frail)) {
+       keep <- !grepl("frailty(", dimnames(X)[[2]], fixed=TRUE)
+       X <- X[,keep, drop=F]
+    }
+        
+    if (is.null(offset)) risk <- c(exp(X%*% beta - xcenter))
+    else     risk <- c(exp(X%*% beta + offset - xcenter))
+}
 @ 
 
 The survfit.coxph-setup3 chunk, shared with single state Cox models, has created

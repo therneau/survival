@@ -189,7 +189,7 @@ function(formula, newdata, se.fit=TRUE, conf.int=.95, individual=FALSE,
     cluster <- model.extract(mf, "cluster")
     xstack <- stacker(object$cmap, object$stratum_map, as.integer(istate), X, Y,
                       as.integer(strata),
-                      states= object$states)
+                      states= object$states, dropzero=FALSE)
     if (length(position) >0)
         position <- position[xstack$rindex]   # id was required by coxph
     X <- xstack$X

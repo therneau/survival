@@ -11,7 +11,7 @@
 # Strata is most often null; it encodes a users strata() addition(s); less
 #  often used in multistate.
 #
-stacker <- function(cmap, smap, istate, X, Y, strata, states) {
+stacker <- function(cmap, smap, istate, X, Y, strata, states, dropzero=TRUE) {
     from.state <- as.numeric(sub(":.*$", "", colnames(cmap)))
     to.state   <- as.numeric(sub("^.*:", "", colnames(cmap)))
 
@@ -27,9 +27,10 @@ stacker <- function(cmap, smap, istate, X, Y, strata, states) {
         to.state <- to.state[check>0]
     }
 
-    # Don't create X and Y matrices for transitions with no covariates
+    # Don't create X and Y matrices for transitions with no covariates, for
+    #  coxph calls.  But I need them for survfit.coxph.
     zerocol <- apply(cmap==0, 2, all)
-    if (any(zerocol)) {
+    if (dropzero && any(zerocol)) {
         cmap <- cmap[,!zerocol, drop=FALSE] 
         smap <- smap[,!zerocol, drop=FALSE]
         smap[,] <- match(smap, sort(unique(c(smap)))) # relabel as 1, 2,...
