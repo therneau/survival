@@ -132,7 +132,7 @@ void agfit5a(Sint *nusedx, Sint *nvarx, double *yy,
 	cmat2= cmatrix(0, nvar2, nvar+1);
         }
 
-    a = Calloc(4*nvar2 + 5*nused , double);
+    a = CALLOC(4*nvar2 + 5*nused , double);
     oldbeta = a + nvar2;
     a2 =  oldbeta + nvar2;
     weights = a2+ nvar2;
@@ -142,7 +142,7 @@ void agfit5a(Sint *nusedx, Sint *nvarx, double *yy,
     start   = tmean + nvar2;
     stop    = start + nused;
     
-    event  = Calloc(3*nused, int);
+    event  = CALLOC(3*nused, int);
     sort1   = event + nused;
     sort2   = sort1 + nused;
 
@@ -162,14 +162,14 @@ void agfit5a(Sint *nusedx, Sint *nvarx, double *yy,
     */
     if (nf > nvar) i=nf; else i=nvar;
     if (nf > nvar*nvar) j=nf; else j=nvar*nvar;
-    if (pdiag==0)  upen = Calloc(2*i, double);
-    else           upen = Calloc(i+j, double);
+    if (pdiag==0)  upen = CALLOC(2*i, double);
+    else           upen = CALLOC(i+j, double);
     ipen = upen + i;
-    if (ptype>1)  zflag = Calloc(nvar, Sint);
-    else          zflag = Calloc(2, Sint);
+    if (ptype>1)  zflag = CALLOC(nvar, Sint);
+    else          zflag = CALLOC(2, Sint);
 
     if (nf>0) {
-	frail = Calloc(nused, int);
+	frail = CALLOC(nused, int);
 	for (i=0; i<nused; i++) frail[i] = frail2[i];
         }
 
@@ -653,8 +653,8 @@ static double **cmatrix(double *data, int ncol, int nrow)
     double **pointer;
     double *temp;
  
-    pointer = Calloc(nrow, double *);
-    temp =    Calloc(nrow*ncol, double);
+    pointer = CALLOC(nrow, double *);
+    temp =    CALLOC(nrow*ncol, double);
     if (data==0){
 	for (i=0; i<nrow; i++) {
 	    pointer[i] = temp;
@@ -671,19 +671,19 @@ static double **cmatrix(double *data, int ncol, int nrow)
 	}
 
 static void cmatrix_free(double **data) {
-    Free(*data);
-    Free(data);
+    FREE(*data);
+    FREE(data);
     }
 
 void agfit5c(Sint *nvar) {
     /*
-    ** Free up the extra memory
+    ** FREE up the extra memory
     */
-    Free(zflag);
-    Free(upen);
-    Free(event);
-    Free(a);
-    if (frail != NULL) Free(frail);
+    FREE(zflag);
+    FREE(upen);
+    FREE(event);
+    FREE(a);
+    if (frail != NULL) FREE(frail);
     if (*nvar > 0) {
 	cmatrix_free(cmat2);
 	cmatrix_free(cmat);
