@@ -1,6 +1,7 @@
 \name{quantile.survfit}
 \alias{quantile.survfit}
 \alias{quantile.survfitms}
+\alias{median.survfit}
 \title{Quantiles from a survfit object}
 \description{Retrieve quantiles and confidence intervals for them from
   a survfit object.
@@ -10,6 +11,7 @@
   scale, tolerance= sqrt(.Machine$double.eps), ...)
 \method{quantile}{survfitms}(x, probs = c(0.25, 0.5, 0.75), conf.int = TRUE,
   scale, tolerance= sqrt(.Machine$double.eps), ...)
+\method{median}{survfit}(x, na.rm=FALSE, ...)
 }
 \arguments{
   \item{x}{a result of the survfit function}
@@ -19,6 +21,7 @@
     return results in years if the fit object were in days.}
   \item{tolerance}{tolerance for checking that the survival curve exactly
     equals one of the quantiles}
+  \item{na.rm}{not relevant (required argument for the median method)}
   \item{...}{optional arguments for other methods}
 }
 \details{

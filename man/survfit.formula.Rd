@@ -195,6 +195,14 @@ details. Methods defined for survfit objects are
   data the routine is at an impasse: a robust variance likely is called
   for, but requires either \code{id} or \code{cluster} information to be
   done correctly; it will default to robust=FALSE.
+
+  One unanticipated side effect of defaulting to a robust variance when
+  there are non integer case weights is that a fit using
+  interval censored data, which iterates an underlying KM using an
+  updated weight vector, now returns a robust variance by default.
+  Based on Sun (2001) this may be preferred, as the naive estimate
+  ignores the estimation of the weights.  The prior behavior can be
+  obtained with \code{robust= FALSE}.
  
   With the IJ estimate, the leverage values themselves can be returned
   as arrays with dimensions: number of subjects, number of unique times,
@@ -206,8 +214,9 @@ details. Methods defined for survfit objects are
   A numeric value for the \code{influence} argument allows finer
   control: 0= return neither (same as FALSE), 1= return the influence
   array for probability in state, 2= return the influence array for the
-  cumulative hazard, 3= both (same as TRUE).
-  }
+  cumulative hazard, 3= return both (same as TRUE).
+}
+
 \section{References}{
 Dorey, F. J. and Korn, E. L. (1987).  Effective sample sizes for confidence 
 intervals for survival probabilities.  \emph{Statistics in Medicine} 
@@ -231,6 +240,9 @@ Link, C. L. (1984). Confidence intervals for the survival
 function using Cox's proportional hazards model with  
 covariates.  \emph{Biometrics}  
 \bold{40}, 601-610.
+
+Sun, J. (2001). Variance estimation of a survival function
+for interval-censored data. \emph{Stat Med} \bold{20}, 1949-1957.
 
 Turnbull, B. W. (1974).  Nonparametric estimation of a survivorship
 function with doubly censored data. \emph{J Am Stat Assoc},

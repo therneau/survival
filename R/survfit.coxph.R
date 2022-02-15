@@ -131,10 +131,10 @@ survfit.coxph <-
           # To do so, remove any rows of the data with an endpoint before that
           #  time.
           if (ncol(Y)==3) {
-              keep <- Y[,2] > start.time
+              keep <- Y[,2] >= start.time
               Y[keep,1] <- pmax(Y[keep,1], start.time)
           }
-          else keep <- Y[,1] > start.time
+          else keep <- Y[,1] >= start.time
           if (!any(Y[keep, ncol(Y)]==1)) 
               stop("start.time argument has removed all endpoints")
           Y <- Y[keep,,drop=FALSE]
@@ -342,7 +342,13 @@ survfit.coxph <-
               }
           result <- lapply(result, kfun, keep)
           }
-      result$logse = TRUE   # this will migrate further in
+          
+      if (se.fit) {
+          result$logse = TRUE   # this will migrate to solutio
+          # In this particular case, logse=T and they are the same
+          #  Other cases await addition of code
+          if (stype==2) result$std.chaz <- result$std.err
+      }
 
       if (se.fit && conf.type != "none") {
           ci <- survfit_confint(result$surv, result$std.err, logse=result$logse,

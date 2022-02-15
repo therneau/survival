@@ -109,7 +109,7 @@ survfitCI <- function(X, Y, weights, id, cluster, robust, istate,
         if (!is.numeric(start.time) || length(start.time) !=1
             || !is.finite(start.time))
             stop("start.time must be a single numeric value")
-        toss <- which(Y[,ncol(Y)-1] <= start.time)
+        toss <- which(Y[,ncol(Y)-1] < start.time)
         if (length(toss)) {
             n <- nrow(Y)
             if (length(toss)==n) stop("start.time has removed all observations")

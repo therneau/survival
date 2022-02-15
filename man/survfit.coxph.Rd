@@ -1,5 +1,6 @@
 \name{survfit.coxph}
 \alias{survfit.coxph}
+\alias{survfit.coxphms}
 \title{
   Compute a Survival Curve from a Cox model
 }
@@ -13,6 +14,11 @@ hazards model.
         conf.type=c("log","log-log","plain","none", "logit", "arcsin"),
         censor=TRUE, start.time, id, influence=FALSE,
         na.action=na.pass, type, ...)
+\method{survfit}{coxphms}(formula, newdata, 
+        se.fit=FALSE, conf.int=.95, individual=FALSE, stype=2, ctype,
+        conf.type=c("log","log-log","plain","none", "logit", "arcsin"),
+        censor=TRUE, start.time, id, influence=FALSE,
+        na.action=na.pass, type, p0=NULL, ...)
 }
 \arguments{
   \item{formula}{
@@ -30,7 +36,8 @@ hazards model.
   }
   \item{se.fit}{
     a logical value indicating whether standard errors should be 
-    computed.  Default is \code{TRUE}. 
+    computed.  Default is \code{TRUE} for standard models, \code{FALSE}
+    for multi-state (code not yet present for that case.)
   }
 
   \item{conf.int}{
@@ -75,7 +82,10 @@ hazards model.
   \item{na.action}{the na.action to be used on the newdata argument}
   \item{type}{older argument that encompassed \code{stype} and
     \code{ctype}, now depricated}
-   \item{\dots}{for future methods}
+  \item{p0}{optional, a vector of probabilities.  The returned curve
+    will be for a cohort with this mixture of starting states.  Most
+    often a single state is chosen}
+     \item{\dots}{for future methods}
 }
 \value{
 an object of class \code{"survfit"}.  

@@ -119,7 +119,8 @@ survfit.formula <- function(formula, data, weights, subset,
     if (missing(robust)) robust <- NULL
     # Call the appropriate helper function
     if (attr(Y, 'type') == 'left' || attr(Y, 'type') == 'interval')
-        temp <-  survfitTurnbull(X, newY, casewt, ...)
+        temp <-  survfitTurnbull(X, newY, casewt, cluster= cluster,
+                                 robust= robust, ...)
     else if (attr(Y, 'type') == "right" || attr(Y, 'type')== "counting")
         temp <- survfitKM(X, newY, casewt, stype=stype, ctype=ctype, id=id, 
                           cluster=cluster, robust=robust, ...)

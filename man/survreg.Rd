@@ -92,6 +92,16 @@ an object of class \code{survreg} is returned.
   parameterization of the distributions is sometimes (e.g. gaussian)
   identical to the usual form found in statistics textbooks, but other
   times (e.g. Weibull) it is not.  See the book for detailed formulas.
+
+  When using weights be aware of the difference between replication
+  weights and sampling weights.  In the former, a weight of '2' means
+  that there are two identical observations, which have been combined
+  into a single row of data.  With sampling weights there is a single
+  observed value, with a weight used to achieve balance with respect to
+  some population.  To get proper variance with replication weights use
+  the default variance, for sampling weights use the robust variance.
+  Replication weights were once common (when computer memory was much
+  smaller) but are now rare.  
   }
 \seealso{
 \code{\link{survreg.object}}, \code{\link{survreg.distributions}},

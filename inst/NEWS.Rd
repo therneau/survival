@@ -1,5 +1,31 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 3.3-0}{
+  \itemize{
+    \item Change any calls to Calloc or Free in the C code to R_Calloc
+    and R_Free, at the request of R core.
+    \item Fix an oversight in aareg: when coxph and survreg were
+    converted from using +cluster() in a formula to cluster as an
+    argument, that same change needed to be made in aareg.  Pointed out
+    by zdgager.
+    \item The std of the cumulative hazard is now present, for select
+    cases of a coxph model curve.  More work remains to be done to
+    return the std for all cases.
+    \item Add a paragraph to the help page for survfit.Rd, pointing out
+    that robust variance is now the default for interval censored data,
+    and why.
+    \item Add the median.survfit method
+}}
+
+\section{Changes in version 3.2-15}{
+  \itemize{
+    \item Fix an inconsistency with the start.time argument.  One of
+    the survfit paths would include an event at start.time (curve starts
+    with an immediate drop) others did not.  All paths now do so. This
+    makes start.time=0 behave the same as ordinary survfit, without a
+    start.time argument, when there is a death at time 0.
+}}
+
 \section{Changes in version 3.2-14}{
   \itemize{
     \item Update the royston function to report the scaled Cox-Snell

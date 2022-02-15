@@ -820,11 +820,12 @@ and well understood usage.
 Equation \eqref{tdbeta} has a time dependent coefficient.
 These models are much less common, but represent one way to deal with
 non-proportional hazards -- the proportional hazard assumption is
-precisely that the coefficient does not change over time: $\beta(t) = c$.
+precisely that  $\beta(t) = \beta$, i.e., the coefficient does not change 
+over time.
 The \code{cox.zph} function will plot an estimate of $\beta(t)$ for
 a study and is used to diagnose and understand non-proportional
 hazards.
-The code belowshows a test case using the veterans cancer data, with the
+The code below shows a test case using the veterans cancer data, with the
 results plotted in figure \ref{veteran1b}.
 
 <<veteran1>>=
@@ -1287,10 +1288,10 @@ function(x, t, riskset, weights)
 @ 
 The score statistic for this model is $(C-D)/2$, where $C$ and $D$ are the
 number of concordant and discordant pairs, see the
-survConcordance function.  
+concordance function.  
 The score statistic from this fit is then a test for significance of the
-concordance statistic, and is in fact the basis for the standard error
-reported by survConcordance.  
+concordance statistic, and is in fact the basis for an approximate 
+standard error for the concordance.
 The O'Brien test can be viewed as concordance statistic that gives equal  %'
 weight to each event time, whereas the standard concordance weights each
 event proportionally to the size of the risk set.

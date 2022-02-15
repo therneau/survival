@@ -8,23 +8,54 @@
 #
 aareg <- function(formula, data, weights, subset, na.action,
                   qrtol=1e-7, nmin, dfbeta=FALSE, taper=1,
-		  test = c('aalen', 'variance', 'nrisk'),
+		  test = c('aalen', 'variance', 'nrisk'), cluster,
 		  model=FALSE, x=FALSE, y=FALSE) {
-    call <- match.call()
-
-    m <- match.call(expand.dots=FALSE)
-    temp <- c("", "formula", "data", "weights", "subset", "na.action")
-    m <- m[ match(temp, names(m), nomatch=0)]
-    special <- c("strata", "cluster")
-    Terms <- if(missing(data)) terms(formula, special)
-	     else              terms(formula, special, data=data)
-    m$formula <- Terms
-    m[[1L]] <- quote(stats::model.frame)
-    m <- eval(m, sys.parent())
-
+    Call <- match.call()    # save a copy of the call
     test <- match.arg(test)     #check for legal argument
 
-    # Now grab the terms that we need
+    # Move any cluster() term out of the formula, and make it an argument
+    #  instead.  This makes everything easier.  But, I can only do that with
+    #  a local copy, doing otherwise messes up future use of update() on
+    #  the model object for a user stuck in "+ cluster()" mode.
+    if (missing(formula)) stop("a formula argument is required")
+    
+    ss <- c("cluster", "offset")
+    Terms <- if (missing(data)) terms(formula, specials=ss) else
+                 terms(formula, specials=ss, data=data)
+    tcl <- attr(Terms, 'specials')$cluster
+    if (length(tcl) > 1) stop("a formula cannot have multiple cluster terms")
+
+    if (length(tcl) > 0) { # there is one
+        factors <- attr(Terms, 'factors')
+        if (any(factors[tcl,] >1)) stop("cluster() cannot be in an interaction")
+        if (attr(Terms, "response") ==0)
+            stop("formula must have a Surv response")
+
+        if (is.null(Call$cluster))
+            Call$cluster <- attr(Terms, "variables")[[1+tcl]][[2]]
+        else warning("cluster appears both in a formula and as an argument, formula term ignored")
+
+        # [.terms is broken at least through R 4.1; use our
+        #  local drop.special() so as to not lose offsets.
+        Terms <- drop.special(Terms, tcl)  
+        formula <- Call$formula <- formula(Terms)
+    }
+
+    indx <- match(c("formula", "data", "weights", "subset", "na.action",
+                    "cluster"),
+                  names(Call), nomatch=0) 
+    if (indx[1] ==0) stop("A formula argument is required")
+    temp <- Call[c(1,indx)]  # only keep the arguments we wanted
+    temp[[1L]] <- quote(stats::model.frame)   # change the function called
+
+    special <- c("strata")
+    temp$formula <- if(missing(data)) terms(formula, special)
+                    else              terms(formula, special, data=data)
+    m <- eval(temp, parent.frame())
+
+    Terms <- attr(m, 'terms')
+
+    # Now grab the items that we need
     Y <- model.extract(m, "response")
     if (!inherits(Y, "Surv")) stop("Response must be a survival object")
     offset<- attr(Terms, "offset")
@@ -40,22 +71,11 @@ aareg <- function(formula, data, weights, subset, na.action,
 		    ff
 		    }
 
-    # Create an X matrix, to feed to the coxdetail routine.
-    attr(Terms,"intercept")<- 1  # force no intercept
-    strats <- attr(Terms, "specials")$strata
-    cluster<- attr(Terms, "specials")$cluster
-    dropx <- NULL
+    cluster <- model.extract(m, "cluster")
     if (length(cluster)) {
-        dropx <- cluster
-	dfbeta <- TRUE
-	tempc <- untangle.specials(Terms, 'cluster', 1:10)
-	ord <- attr(Terms, 'order')[tempc$terms]
-	if (any(ord>1)) stop ("Cluster can not be used in an interaction")
-	cluster <- strata(m[,tempc$vars], shortlabel=TRUE)  #allow multiples
-	cluster <- as.numeric(cluster) #labels don't matter, and processing
-	                               # is a bit faster without them
-	}
-    else cluster <- 1:nrow(m)
+        cluster <- as.numeric(as.factor(cluster))
+        dfbeta = TRUE
+        }
 
     # Adding strata, when there is a coefficent per death, is identical
     #  to doing a totally separate fit per group.
@@ -66,12 +86,12 @@ aareg <- function(formula, data, weights, subset, na.action,
     # I've changed my mind multiple times on commenting out the line below.
     #  Computationally identical to factor() -- is an error message or not
     #  an error message the greater source of confusion to a user?
+    strats <- attr(Terms, "specials")$strata
     if (length(strats)) {
        stop("Strata terms not allowed")
        }
 
-    if (length(dropx)) X <- model.matrix(Terms[-dropx], m)[,-1,drop=FALSE]
-    else               X <- model.matrix(Terms, m)[,-1,drop=FALSE]
+    X <- model.matrix(Terms, m)[,-1,drop=FALSE]
     nvar <- ncol(X)
     nused<- nrow(X)
     weights <- model.extract(m, 'weights')
@@ -82,7 +102,7 @@ aareg <- function(formula, data, weights, subset, na.action,
 	stop(paste("Aalen model doesn't support \"", type,
 			  "\" survival data", sep=''))
    
-    # Get the peices that I need from the coxdetail routine
+    # Get the pieces that I need from the coxdetail routine
     #  1. It expects a "counting process" type of Y
     if (ncol(Y)==2) {
 	mintime <- min(Y[,1])
@@ -343,7 +363,7 @@ aareg <- function(formula, data, weights, subset, na.action,
 		nrisk=dt$nrisk[dindex], 
 		coefficient=coefficient, 
 		test.statistic=test.statistic, test.var=test.var, test=test,
-		tweight = twt, call=call) 
+		tweight = twt, call=Call) 
 
     if (dfbeta) {
 	ans$dfbeta <- dmat
