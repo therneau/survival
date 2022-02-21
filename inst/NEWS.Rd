@@ -15,6 +15,7 @@
     that robust variance is now the default for interval censored data,
     and why.
     \item Add the median.survfit method
+    \item Improve the examples in pseudo.Rd
 }}
 
 \section{Changes in version 3.2-15}{
@@ -22,8 +23,8 @@
     \item Fix an inconsistency with the start.time argument.  One of
     the survfit paths would include an event at start.time (curve starts
     with an immediate drop) others did not.  All paths now do so. This
-    makes start.time=0 behave the same as ordinary survfit, without a
-    start.time argument, when there is a death at time 0.
+    makes start.time=0 behave the same as ordinary survfit, without the
+    argument, when there is a death at time 0.
 }}
 
 \section{Changes in version 3.2-14}{

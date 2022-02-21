@@ -132,7 +132,7 @@ survfit.coxph <-
           #  time.
           if (ncol(Y)==3) {
               keep <- Y[,2] >= start.time
-              Y[keep,1] <- pmax(Y[keep,1], start.time)
+      #        Y[keep,1] <- pmax(Y[keep,1], start.time)  # removed 2/2022
           }
           else keep <- Y[,1] >= start.time
           if (!any(Y[keep, ncol(Y)]==1)) 

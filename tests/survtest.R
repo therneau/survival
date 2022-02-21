@@ -89,13 +89,12 @@ aeq(fit2$std.chaz^2,   fit1$std.chaz[3:8]^2 - fit1$std.chaz[2]^2)
 
 
 # bigger data set, with covariates and some tied event times
-
 mfit <- coxph(Surv(age, age+futime/12, death) ~ sex + mspike, mgus2)
 dummy <- data.frame(sex='F', mspike=1.3)
 
 msurv1 <- survfit(mfit, newdata=dummy)
 msurv2 <- survfit(mfit, newdata=dummy, start.time=80)
-j <- max(which(msurv1$time <= 80))
+j <- max(which(msurv1$time < 80))
 k <- seq(j+1, length(msurv1$time))
 aeq(msurv2$surv, msurv1$surv[k] / msurv1$surv[j])
 aeq(msurv2$cumhaz, msurv1$cumhaz[k] - msurv1$cumhaz[j])

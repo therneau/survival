@@ -11,7 +11,7 @@
   scale, tolerance= sqrt(.Machine$double.eps), ...)
 \method{quantile}{survfitms}(x, probs = c(0.25, 0.5, 0.75), conf.int = TRUE,
   scale, tolerance= sqrt(.Machine$double.eps), ...)
-\method{median}{survfit}(x, na.rm=FALSE, ...)
+\method{median}{survfit}(x, ...)
 }
 \arguments{
   \item{x}{a result of the survfit function}
@@ -21,7 +21,6 @@
     return results in years if the fit object were in days.}
   \item{tolerance}{tolerance for checking that the survival curve exactly
     equals one of the quantiles}
-  \item{na.rm}{not relevant (required argument for the median method)}
   \item{...}{optional arguments for other methods}
 }
 \details{

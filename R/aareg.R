@@ -76,6 +76,9 @@ aareg <- function(formula, data, weights, subset, na.action,
         cluster <- as.numeric(as.factor(cluster))
         dfbeta = TRUE
         }
+    else if (dfbeta) {
+        cluster <- seq.int(length(Y))
+    }
 
     # Adding strata, when there is a coefficent per death, is identical
     #  to doing a totally separate fit per group.
