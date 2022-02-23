@@ -16,6 +16,12 @@
     and why.
     \item Add the median.survfit method
     \item Improve the examples in pseudo.Rd
+    \item Fix error in survreg.distributions$gaussian$deviance. The
+    deviance of an interval censored observation was NA due to a sign
+    that was backwards, leading to log of a negative value.  (Simple
+    typo.)
+    \item Error in predict.coxph: it would fail for a model that had two
+    strata terms. Reported by Hanna Frick.    
 }}
 
 \section{Changes in version 3.2-15}{

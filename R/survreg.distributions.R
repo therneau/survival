@@ -42,7 +42,7 @@ logistic = list(
 	status <- y[,ncol(y)]
 	width <- ifelse(status==3,(y[,2] - y[,1])/scale, 0)
         # for the symmetric distributions "center" is obvious
-	center <- ifelse(status==3, rowMeans(y), y[,1])
+	center <- ifelse(status==3, (y[,1]+y[,2])/2, y[,1])
 	temp2 <- ifelse(status==3, exp(width/2), 2) #avoid a log(0) message
 	temp3 <- log((temp2-1)/(temp2+1))
 	loglik <- ifelse(status==1, -log(4*scale),
@@ -67,8 +67,10 @@ gaussian = list(
     deviance= function(y, scale, parms) {
 	status <- y[,ncol(y)]
 	width <- ifelse(status==3,(y[,2] - y[,1])/scale, 0)
-	center <- ifelse(status==3, rowMeans(y), y[,1])
-	temp2 <- log(1 - 2*pnorm(width/2))
+	center <- ifelse(status==3, (y[,1] + y[,2])/2, y[,1])
+        # want the Gaussina area from -width/2 to width/2
+        #  which is 2*(pnorm(width/2) -.5)
+	temp2 <- log(2*pnorm(width/2) -1)
 	loglik <- ifelse(status==1, -log(sqrt(2*pi)*scale),
 				ifelse(status==3, temp2, 0))
 	list(center=center, loglik=loglik) 
