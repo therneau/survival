@@ -305,16 +305,18 @@ survfit.coxph <-
                                  Y, X, weights, risk, position, strata, oldid,
                                  y2, x2, risk2)
           if (has.strata && found.strata) {
-              if (is.matrix(result$surv)) {
-                  nr <- nrow(result$surv)  #a vector if newdata had only 1 row
+                  if (is.matrix(result$surv)) nr <- nrow(result$surv) 
+                  else nr <- length(result$surv)   # if newdata had only one row
                   indx1 <- split(1:nr, rep(1:length(result$strata), result$strata))
                   rows <- indx1[as.numeric(strata2)]  #the rows for each curve
 
                   indx2 <- unlist(rows)  #index for time, n.risk, n.event, n.censor
                   indx3 <- as.integer(strata2) #index for n and strata
 
-                  for(i in 2:length(rows)) rows[[i]] <- rows[[i]]+ (i-1)*nr #linear subscript
-                  indx4 <- unlist(rows)   #index for surv and std.err
+                  if (is.matrix(result$surv)) {
+                      for(i in 2:length(rows)) rows[[i]] <- rows[[i]]+ (i-1)*nr #linear subscript
+                      indx4 <- unlist(rows)   #index for surv and std.err
+                  } else indx4 <- indx2
                   temp <- result$strata[indx3]
                   names(temp) <- row.names(mf2)
                   new <- list(n = result$n[indx3],
@@ -327,8 +329,7 @@ survfit.coxph <-
                               cumhaz = result$cumhaz[indx4])
                   if (se.fit) new$std.err <- result$std.err[indx4]
                   result <- new
-              }
-          }
+          }    
       }
       if (!censor) {
           kfun <- function(x, keep){ if (is.matrix(x)) x[keep,,drop=F] 

@@ -21,7 +21,10 @@
     that was backwards, leading to log of a negative value.  (Simple
     typo.)
     \item Error in predict.coxph: it would fail for a model that had two
-    strata terms. Reported by Hanna Frick.    
+    strata terms. Reported by Hanna Frick.
+    \item Fix github issue 130. If newdata contained the strata
+    information, and there was only one curve requested, survfit.coxph
+    would return too many curves.
 }}
 
 \section{Changes in version 3.2-15}{
