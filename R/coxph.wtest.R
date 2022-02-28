@@ -4,6 +4,13 @@
 #  function chokes on singular matrices.
 #
 coxph.wtest <- function(var, b, toler.chol=1e-9) {
+    if (any(is.na(b))) {
+        # there is a redundant column in the X matrix, remove it
+        toss <- which(is.na(b))
+        b <- b[!toss]
+        var <- var[!toss, !toss]
+    }
+ 
     if (is.matrix(b)) {
         nvar <- nrow(b)
         ntest<- ncol(b)
@@ -28,9 +35,8 @@ coxph.wtest <- function(var, b, toler.chol=1e-9) {
     if (nrow(var) != nvar) stop("Argument lengths do not match")
 
     if (any(!is.finite(b)) || any(!is.finite(var))) {
-        cat("not finite in coxph.wtest\n")
-        print(b)
-        print(var)
+        stop("infinite argument in coxph.wtest")
+        # this shouldn't happen
         }
     temp <- .C(Ccoxph_wtest, df=as.integer(nvar),
                               as.integer(ntest),

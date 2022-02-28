@@ -88,7 +88,7 @@ survfit.matrix <- function(formula, p0, method=c("discrete", "matexp"),
         # deal with the start time argument
         if (is.null(start.time)) stime <- min(c(0, utime))
         else stime <- start.time
-        toss <- (utime < stime) 
+        toss <- (utime <= stime) 
         if (any(toss)) {
             utime <- utime[!toss]
             jumps <- jumps[!toss,]

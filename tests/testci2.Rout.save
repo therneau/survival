@@ -1,6 +1,6 @@
 
-R Under development (unstable) (2019-10-29 r77335) -- "Unsuffered Consequences"
-Copyright (C) 2019 The R Foundation for Statistical Computing
+R Under development (unstable) (2022-01-17 r81511) -- "Unsuffered Consequences"
+Copyright (C) 2022 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -142,8 +142,7 @@ Type 'q()' to quit R.
 > #
 > fit2 <- survfit(Surv(time1, time2, stat2) ~1, id=id, weight=wt, tdata,
 +                 start.time=20)
-> data2 <- subset(tdata, time2> 20)
-> data2$time1 <- pmax(20, data2$time1)
+> data2 <- subset(tdata, time2>= 20)
 > fit2x <- survfit(Surv(time1, time2, stat2) ~1, id=id, weight=wt, data2)
 > 
 > ii <- names(fit2)[!(names(fit2) %in%  c("call", "start.time"))]
@@ -152,4 +151,4 @@ Type 'q()' to quit R.
 > 
 > proc.time()
    user  system elapsed 
-  1.776   0.092   1.864 
+  0.888   0.072   0.950 

@@ -10,7 +10,7 @@ represents an Aalen model.
 \usage{
 aareg(formula, data, weights, subset, na.action,
    qrtol=1e-07, nmin, dfbeta=FALSE, taper=1,
-   test = c('aalen', 'variance', 'nrisk'),
+   test = c('aalen', 'variance', 'nrisk'), cluster,
     model=FALSE, x=FALSE, y=FALSE) 
 }
 \arguments{
@@ -93,6 +93,8 @@ The default value gives the standard Aalen model.
 selects the weighting to be used, for computing an overall ``average''
 coefficient vector over time and the subsequent test for equality to zero.
 }
+\item{cluster}{the clustering group, optional.  The variable will be
+  searched for in the data argument.}
 \item{model, x, y }{
 should copies of the model frame, the x matrix of predictors, or the
 response vector y be included in the saved result.

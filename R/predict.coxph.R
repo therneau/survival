@@ -113,8 +113,8 @@ predict.coxph <- function(object, newdata,
         
         if (!is.null(attr(Terms, "specials")$strata) && !has.strata) {
            temp.lev <- object$xlevels
-           temp.lev[[strat.term$vars]] <- NULL
-           tcall$xlev <- temp.lev
+           temp.lev[strat.term$vars] <- NULL
+           tcall$xlev <- temp.lev   
         }
         else tcall$xlev <- object$xlevels
         mf2 <- eval(tcall, parent.frame())

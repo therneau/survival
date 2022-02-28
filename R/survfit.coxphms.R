@@ -1,6 +1,6 @@
 # Automatically generated from the noweb directory
 survfit.coxphms <-
-function(formula, newdata, se.fit=TRUE, conf.int=.95, individual=FALSE,
+function(formula, newdata, se.fit=FALSE, conf.int=.95, individual=FALSE,
          stype=2, ctype, 
          conf.type=c("log", "log-log", "plain", "none", "logit", "arcsin"),
          censor=TRUE, start.time, id, influence=FALSE,

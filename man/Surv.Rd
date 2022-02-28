@@ -90,7 +90,7 @@ is.Surv(x)
    use \code{type = "interval"} and the codes shown above.  In that usage the
    value of the \code{time2} argument is ignored unless event=3.
    The second approach is to think of each observation as a time
-   interval with (-infinity, t) for left censored, (t, infinity) for
+   interval with (-infinity, t2) for left censored, (t1, infinity) for
    right censored, (t,t) for exact and (t1, t2) for an interval.
    This is the approach used for type = interval2.  Infinite values can
    be represented either by actual infinity (Inf) or NA.
@@ -140,7 +140,7 @@ the default behavior for subscripting matrices.
   alive/dead endured long after the demise of the punch cards that had
   sired the practice.
   At the time \code{Surv} was written many Mayo data sets still used this
-  convention, e.g., the 1994 \code{lung} data set found in the package.
+  obsolete convention, e.g., the \code{lung} data set found in the package.
 }   
   
 \seealso{

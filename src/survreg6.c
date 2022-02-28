@@ -119,7 +119,7 @@ SEXP survreg6(SEXP maxiter2,   SEXP nvarx,  SEXP y,
     **   parent routine, and also used to "backtrack" when we need to fail
     **   over to a Fisher step after NR + halving didn't work
     */
-    newbeta = (double *) Calloc(LENGTH(beta2) + nvar2 + nvar2*nvar2, double);
+    newbeta = (double *) CALLOC(LENGTH(beta2) + nvar2 + nvar2*nvar2, double);
     u = newbeta + length(beta2);
     JJ  = dmatrix(u +nvar2, nvar2, nvar2);
 
@@ -329,7 +329,7 @@ alldone:
 #endif    
 
     UNPROTECT(nprotect + 2);
-    Free(newbeta);
+    FREE(newbeta);
     return(rlist);
     }
     

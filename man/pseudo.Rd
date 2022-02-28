@@ -82,13 +82,23 @@ lfit <- lm(yhat[,1] ~ ph.ecog + age + sex, data=lung)
 # Restricted Mean Time in State (RMST) 
 rms <- pseudo(fit1, times= 730, type='RMST') # 2 years
 rfit <- lm(rms ~ ph.ecog + sex, data=lung)
-rhat <- matrix(predict(rfit, newdata=expand.grid(ph.ecog=0:3, sex=1:2)),
-               ncol=2, dimnames=list(ph.ecog=0:3, sex=1:2))
-round(rhat, 1)
+rhat <- predict(rfit, newdata=expand.grid(ph.ecog=0:3, sex=1:2), se.fit=TRUE)
+# print it out nicely
+temp1 <- cbind(matrix(rhat$fit, 4,2))
+temp2 <- cbind(matrix(rhat$se.fit, 4, 2))
+temp3 <- cbind(temp1[,1], temp2[,1], temp1[,2], temp2[,2])
+dimnames(temp3) <- list(paste("ph.ecog", 0:3), 
+                        c("Male RMST", "(se)", "Female RMST", "(se)"))
+
+round(temp3, 1)
+# compare this to the fully non-parametric estimate
 fit2 <- survfit(Surv(time, status) ~ ph.ecog, data=lung)
-print(fit2, rmean=720)
-
-
+print(fit2, rmean=730)
+# the estimate for ph.ecog=3 is very unstable (n=1), pseudovalues smooth it.
+#
+# In all the above we should be using the robust variance, e.g., svyglm, but
+#  a recommended package can't depend on external libraries.
+# See the vignette for a more complete exposition.
 }
 \keyword{ survival }
 

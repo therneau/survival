@@ -54,7 +54,7 @@ survfitTurnbull(x, y, weights,
                        conf.type=c('log',  'log-log',  'plain', 'none',
                                    'logit', 'arcsin'),
                        conf.lower=c('usual', 'peto', 'modified'),
-                       start.time)
+                       start.time, robust, cluster)
 }
 \details{The arguments to these routines are not guaranteed to stay the
 same from release to release -- call them at your own risk!}
