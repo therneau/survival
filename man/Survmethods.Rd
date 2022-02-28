@@ -43,7 +43,7 @@
     \method{is.na}{Surv}(x)
     \method{length}{Surv}(x)
     \method{mean}{Surv}(x, ...)
-    \method{median}{Surv}(x, ...)
+    \method{median}{Surv}(x, na.rm=FALSE, ...)
     \method{names}{Surv}(x)
     \method{names}{Surv}(x) <- value
     \method{quantile}{Surv}(x, probs, na.rm=FALSE, ...)

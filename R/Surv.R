@@ -426,8 +426,8 @@ as.numeric.Surv <- function(x, ...) {
 mean.Surv <-function(x, ...)
     stop("a mean method has not been defined for Surv objects")
 
-median.Surv <- function(x, ...)
-    quantile(x, probs=0.5, ...)
+median.Surv <- function(x, na.rm=FALSE, ...)
+    quantile(x, probs=0.5, na.rm= na.rm, ...)
 
 quantile.Surv <- function(x, probs, na.rm=FALSE, ...) {
     if (!na.rm && any(is.na(x)))

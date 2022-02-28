@@ -47,8 +47,8 @@ doquant <- function(p, time, surv, upper, lower, firstx, scale, tol) {
                    findq(c(firstx, time), c(0, 1-upper), p, tol))*(1/scale)
     }
 
-median.survfit <- function(x, na.rm, ...) 
-    quantile.survfit(x, probs= .5, conf.int=FALSE)
+median.survfit <- function(x, ...) 
+    quantile.survfit(x, probs= .5, conf.int=FALSE, ...)
 
 quantile.survfit <- function(x, probs=c(.25, .5, .75), conf.int=TRUE,
                              scale, 

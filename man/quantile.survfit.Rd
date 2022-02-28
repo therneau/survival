@@ -4,7 +4,7 @@
 \alias{median.survfit}
 \title{Quantiles from a survfit object}
 \description{Retrieve quantiles and confidence intervals for them from
-  a survfit object.
+  a survfit or Surv object.
 }
 \usage{
 \method{quantile}{survfit}(x, probs = c(0.25, 0.5, 0.75), conf.int = TRUE,
