@@ -264,7 +264,7 @@ The issues as compared to using \code{termplot} are
     \code{pdata}.  The data set is in order of females, then males.
     We fold it into an appropriate matrix for use with matplot.
   \item The vertical centering of the curves corresponds to an average
-    population predictor of$\eta = X\beta =0$; i.e., the average over the
+    population predictor of $\eta = X\beta =0$; i.e., the average over the
     subjects in the data set.  This is a consequence of the
     variable centering that \code{coxph} does for numerical stability.
     To center at some particular (age, sex) pair obtain the predicted

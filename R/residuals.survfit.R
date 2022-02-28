@@ -553,10 +553,10 @@ rsurvpart2 <- function(Y, X, casewt, istate, times, cluster, type, fit,
 
     # collapse redundant rows in Y, for efficiency
     #  a redundant row is a censored obs in the middle of a chain of times
-    #  if the user wants individial obs, however, we would just have to
+    #  If the user wants individial obs, however, we would just have to
     #  expand it again
     if (ny==3 && collapse & any(duplicated(cluster))) {
-        ord <- order(cluster, X, istate, Y[,1])
+        ord <- order(cluster, Y[,1])  # time within subject
         cfit <- .Call(Ccollapse, Y, X, istate, cluster, casewt, ord -1L) 
         if (nrow(cfit) < .8*length(X))  {
             # shrinking the data by 20 percent is worth it

@@ -2011,7 +2011,7 @@ As a final protection, a 10\% random sample of subjects was excluded.
 As a consequence analyses results will not exactly match the
 original paper.
 
-Start by building an analysis data set using \code{nafld1} and \code{nafld3}
+Start by building an analysis data set using \code{nafld1} and \code{nafld3}.
 
 <<nafld1>>=
 ndata <- tmerge(nafld1[,1:8], nafld1, id=id, death= event(futime, status))
@@ -2026,8 +2026,7 @@ ndata <- tmerge(ndata, subset(nafld3, event=="dyslipidemia"), id=id,
 ndata <- tmerge(ndata, subset(nafld3, event %in% c("diabetes", "htn", 
                                                    "dyslipidemia")), 
                 id=id, comorbid= cumevent(days))
-attr(ndata, "tcount")
-# summary(ndata) gives the same information
+summary(ndata)
 @ 
 
 <<echo=FALSE>>=
@@ -2036,7 +2035,7 @@ icount <- table(table(nafld3$id)) #number with 1, 2, ... intervals
 ncount <- sum(nafld3$event=="nafld")
 @ 
 
-The \code{tcount} attribute tells us a lot about the creation process.
+The summary function tells us a lot about the creation process.
 Each addition of a new endpoint or covariate to the data generates one 
 row in the table.  Column labels are explained by figure \ref{fig:timeline}.
 \begin{itemize}
