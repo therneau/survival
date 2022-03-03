@@ -1,5 +1,11 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 3.3-1}{
+  \itemize{
+    \item Update the saved tests/Examples/survival-Ex.Rout.save file so
+    as to remove timings, at the behest of CRAN.  (Footnote 21 in the
+    packages manual talks about this.)
+}}
 \section{Changes in version 3.3-0}{
   \itemize{
     \item Change any calls to Calloc or Free in the C code to R_Calloc

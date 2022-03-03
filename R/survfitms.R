@@ -510,7 +510,7 @@ survmean2 <- function(x, scale=1, rmean) {
         cname <- c("n", "nevent", "rmean")
         if (!is.null(x$influence)) {
             outmat <- cbind(outmat, c(stdtime)/scale)
-            cname <- c(cname, "std(rmean)")
+            cname <- c(cname, "se(rmean)")
         }
         # report back a single time, if there is only one
         if (all(maxtime == maxtime[1])) maxtime <- maxtime[1]
