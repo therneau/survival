@@ -501,7 +501,7 @@ parsecovar3 <- function(tmap, Xcol, Xassign, phbaseline=NULL) {
     # sometime X will have an intercept, sometimes not; cmap never does
     hasintercept <- (Xassign[1] ==0)
     ph.coef <- (phbaseline !=0)  # any proportional baselines?
-    ph.rows <- sum(ph.coef)  # extra rows in cmap
+    ph.rows <- length(unique(phbaseline[ph.coef])) #extra rows to add to cmap
     cmap <- matrix(0L, length(Xcol) + ph.rows -hasintercept, ncol(tmap))
     uterm <- unique(Xassign[Xassign != 0])   # terms that will have coefficients
     
@@ -518,10 +518,14 @@ parsecovar3 <- function(tmap, Xcol, Xassign, phbaseline=NULL) {
 
     if (ph.rows > 0) {
         temp <- phbaseline[ph.coef] # where each points
-        newname <- paste0("ph(", colnames(tmap)[temp], ")")
-        
-        j <- cbind(ii + 1:ph.rows, which(ph.coef)) 
-        cmap[j] <- max(cmap) + seq(along=temp)
+        for (i in unique(temp)) {
+            # for each baseline that forms a reference
+            j <- which(phbaseline ==i)  # the others that are proportional to it
+            k <- seq_len(length(j))
+            ii <- ii +1   # row of cmat for this baseline
+            cmap[ii, j] <- max(cmap) + k  # fill in elements
+        }
+        newname <- paste0("ph(", colnames(tmap)[unique(temp)], ")")
     } else newname <- NULL
 
     # renumber coefs as 1, 2, 3, ...

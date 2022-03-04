@@ -1139,7 +1139,15 @@ if (multi) {
     cindx <- col(cmap)[match(1:length(fit$coefficients), cmap)]
     rindx <- row(cmap)[match(1:length(fit$coefficients), cmap)]
     suffix <- ifelse(single[rindx], "", paste0("_", colnames(cmap)[cindx]))
-    names(fit$coefficients) <- paste0(names(fit$coefficients), suffix)
+    newname <- paste0(names(fit$coefficients), suffix)
+    if (any(covlist2$phbaseline > 0)) {
+        # for proporional baselines, use a better name
+        base  <- colnames(tmap)[covlist2$phbaseline]
+        child <- colnames(tmap)[which(covlist2$phbaseline >0)]
+        indx <- 1 + length(newname) - length(base):1 # coefs are the last ones
+        newname[indx] <-  paste0("ph(", child, "/", base, ")")
+        }
+    names(fit$coefficients) <- newname
     if (x) fit$strata <- istrat  # save the expanded strata
     class(fit) <- c("coxphms", class(fit))
 }
