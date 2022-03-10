@@ -5,8 +5,9 @@
 **  however.
 **
 **  otime:  vector of output times.  All the transitions will get reports at
-**            these time points.  (Normally this fcn is called for all of the 
-**            transitions at once, but separately for any strata.)
+**            these time points.  This fcn is called for all of the 
+**            transitions at once, sorted by transition,
+**            but called separately for any strata.
 **  y   :    survival response
 **  weight:  observation weight
 **  sort1, sort2: sort indices for the start and stop time
@@ -30,7 +31,7 @@
 **    timepoint.
 **
 **  Let w1=1, w2= wt, w3= wt*risk.  The counts n[] are
-**   0-2: number at risk, w1, w2, w3,
+**   0-2: number at risk: w1, w2, w3
 **   3-5: events: w1, w2, w3
 **   6-7: censored endpoints: w1,w2
 **   8-9: censor: w1, w2

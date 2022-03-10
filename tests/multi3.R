@@ -67,3 +67,83 @@ aeq(coef(fit5), coef(fit6))
 
 # Now for the hard part; verify that the resulting estimated survival curves
 #  are correct
+# First fit1/fit2
+
+# Compute the curve by hand
+# (Creating risk sets one by one like this if far too slow for the production
+#  code; it does a lot more preemptive bookkeeping.)
+#
+# The last arguements are the risk score eta for each observation, which is
+#  constant for any subject, and the strata map, and shared strata coefs
+coxsurve <- function(t1, t2, state, istate, rwt, p0, smap, scoef) {
+    if (missing(smap)) stop("a strata map is required")
+    # set up shared baseline coefficients = bcoef
+    temp <- colnames(smap)
+    from <- as.numeric(sub(":.*$", "", temp))
+    to   <- as.numeric(sub("^.*:", "", temp))
+    smap <- smap[1,]  # we only need the baseline part
+    shared <- duplicated(smap)
+    nshare <- sum(shared)
+    bcoef <- rep(1, length(smap))   # coefficients for shared baseline
+    if (nshare >0) {
+        if (missing(scoef) || length(scoef) != nshare) stop("invalid scoef")
+        bcoef[shared] <- exp(scoef)
+    }
+
+    # set up istate and state to have matching levels, state also has 'censored'
+    cstate <- as.numeric(istate)
+    allstate <- unique(c(levels(state), levels(istate)))
+    nstate <- length(allstate) -1
+    # make istate have all the levels
+    if (length(levels(istate)) != nstate) 
+        istate <- factor(as.numeric(istate), 1:nstate, allstate[-1])
+    # and state too
+    if (length(levels(state)) != nstate +1)
+        state <- factor(as.numeric(state), 1:(nstate+1), allstate)
+
+    # set up output
+    utime <- sort(unique(t2[state != levels(state)[1]]))
+    ntime <- length(utime)
+    tmat <- matrix(0, nstate, nstate) # transtion matrix at this time point
+    pmat <- diag(nstate)              # product of transitions
+    nrisk <- wtrisk <- matrix(0., ntime, nstate) #number at risk, weighted nrisk
+    nevent <- matrix(0L, ntime, nstate)  # number of events of each type
+    pstate <- matrix(0L, ntime, nstate)  # probability in state
+    hmat <- matrix(0., nstate, nstate)   # working matrix of hazards
+    for (i in 1:ntime) {
+        atrisk <- which(t1 < utime[i] &  utime[i] <= t2) # risk set at this time
+        event <- which(utime[i] == t2)  # events at this time
+        nrisk[i,]  <- c(table(istate[atrisk]))   # number at risk in each state
+        temp  <- c(tapply(rwt[atrisk], istate[atrisk], sum))
+        wtrisk[i,] <- ifelse(is.na(temp), 0, temp)  # tapply creates NA
+        dtemp <- table(istate[event], state[event])[,-1]
+        for (j in unique(smap)) {
+            k <- which(smap == j)
+            deaths <- sum(dtemp[cbind(from[k], to[k])]) 
+            if (deaths==0) hmat[cbind(from[k], to[k])] <- 0
+            else  hmat[cbind(from[k], to[k])] <- deaths/
+                      sum(wtrisk[i, from[k]] * bcoef[k])
+        }
+        diag(hmat) <- diag(hmat) - rowSums(hmat)   # rows sum to zero
+        pmat <- pmat %*% expm(hmat)
+        pstate[i,] <- p0 <- drop(p0 %*% expm(hmat))
+    }
+    list(time=utime, nrisk=nrisk, nevent=nevent, pstate=pstate,  
+         wtrisk= wtrisk, P=pmat)
+}
+
+dummy <- data.frame(age = 45)
+surv2 <- survfit(fit2, newdata=dummy, p0=c(1,0,0,0,0))
+
+# risk score for each subject, at event times, relative to a 45 year old
+rwt <- exp(predict(fit2) - 45*fit2$coef[1])
+test2 <- with(pbc2, coxsurve(tstart, tstop, bstat, bili4, rwt= rwt, 
+                  p0= c(1,0,0,0,0), smap= fit2$stratum_map, fit2$coef[2:4]))
+
+ones <- rep(1, nrow(pbc2))
+rtest <-  with(pbc2, handcurve(tstart, tstop, bstat, bili4, ones, c(1,0,0,0,0)))
+test3 <- survfit(Surv(tstart, tstop, bstat) ~1, pbc2, id=id, istate=bili4,
+                 p0 = c(1,0,0,0,0))
+plot(test3, col=1:5)
+matpoints(rtest$time, rtest$pstate, pch=1, col=1:5)
+

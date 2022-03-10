@@ -350,7 +350,7 @@ if (mcheck$flag["overlap"] > 0)
     stop("data set has overlapping intervals for one or more subjects")
 
 transitions <- mcheck$transitions
-istate <- mcheck$istate
+if (is.null(istate)) istate <- mcheck$istate   # fill in, if not supplied
 states <- mcheck$states
 
 #  build tmap, which has one row per term, one column per transition
