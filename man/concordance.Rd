@@ -113,7 +113,6 @@ concordance(object, \ldots)
   default simply keeps the printout managable.
 }
 \value{
-
   An object of class \code{concordance} containing the following
   components:
   \item{concordance}{the estimated concordance value or values}
@@ -139,7 +138,8 @@ concordance(object, \ldots)
      proportional hazards model information matrix).
      A weighted mean of the ranks equals Somer's d.}
  }
-  
+\note{A coxph model that has a numeric failure may have undefined
+  predicted values, in which case the concordance will be NULL.}
 \author{Terry Therneau}
 \seealso{\code{\link{coxph}}}
 \examples{
