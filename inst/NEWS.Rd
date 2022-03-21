@@ -1,5 +1,11 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 3.3-2}{
+  \itemize{
+    \item Error in concordance(fit, newdata) if newdata had missing
+    values: the derived x and y could be different lengths.
+}}
+
 \section{Changes in version 3.3-1}{
   \itemize{
     \item Update the saved tests/Examples/survival-Ex.Rout.save file so
