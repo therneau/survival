@@ -2441,9 +2441,13 @@ fit2 <- coxph(Surv(time, status) ~ trt + trt*time + celltype + karno,
 @ 
 The problem is that \code{time} is trying to play two roles in the above 
 equation,
-the \emph{final} follow-up time for each subject and the
+the \emph{final} follow-up time for each subject (the left hand side of 
+the formula) and the
 \emph{continuous} time scale $t$ of equation \eqref{ph1}.
-The solution to to create the special variable explicitly
+The \code{veteran} data set contains the first of these as an explicit variable,
+and the \code{coxph} function will use that variable on both the right and
+left hand sides, which is not the desired time-dependent effect.
+The solution to to create the special variable, explicitly,
 before calling the regression function.
 Since the Cox model adds a term to the likelihood at each unique death
 time, it is sufficient to create a data set with the same granularity.
@@ -2540,7 +2544,7 @@ par(oldpar)
 A test for zero slope, from a least squares regression using data in the 
 matching plot approximates the score test.
 (In versions of the package prior to survival3.0, the approximate test was
-used for the formal printout and test as well.)
+used for the formal test and printout as well.)
 If proporitional hazard holds we would expect the fitted line to be
 horizontal, i.e., $\beta(t)$ is constant.
 Rather than show a fitted line the plot adds a general smooth curve, which
@@ -2551,9 +2555,9 @@ Since \code{celltype} is a factor, the plot shows the time dependent effect
 of the portion of the linear predictor associated with cell type; 
 if proportional hazards is true wrt that term a fitted line should be
 horizontal with a coefficient of 1.
-The effect of Karnofsky score appears become essentially 0 after
+The effect of Karnofsky score appears to become essentially 0 after
 approximately 6 months; for this cohort of subjects with advanced lung cancer,
-a 6 month old assessment is no longer relevant.
+a 6 month old assessment of Karnofsky is no longer relevant.
 The corresponding plot in the lower right panel, however, shows that the outlier
 time of 999 days has an undue influence on any such regression. 
 A test of proportional hazards on that scale must also be treated with
@@ -2564,7 +2568,8 @@ The default time transform is based on a Kaplan-Meier transform, i.e., that
 monotone transform of the time axis that will cause the KM plot to be a 
 straight line.
 This is a good default for the score tests, since it essentially 
-guarrantees that there wil be no outliers in the constructed $x g(time)$, 
+guarrantees that there wil be no outliers in the constructed $x g(time)$
+variable, 
 while dealing with censoring in a defensible way. 
 That is, the code has opted for a \emph{safe} default. 
 It is not as easily interpreted as other scales for the plots, however.
@@ -2573,9 +2578,89 @@ The \code{cox.zph} function does not attempt a score test for random effects
 (frailty) terms, 
 in fact is not clear what the computation for such a test should be.
 The function will check other covariates in a model that
-contains a random effect, however; 
+contains a random effect, however; in that test
 the estimated random effect per subject is essentially treated as a fixed 
 offset.
+
+\subsection{Computational details}
+The score test is simple in theory, but ``the devil is in the details'' as they
+say.
+Consider adding the constructed variables for celltype to the fit.
+That is g(t)*x2, g(t)*x3, g(t)*x4, where x2-x4 are the three dummy variables
+that represent celltype.
+The new model has 5 + 3 covariates, and is evaluated at $(\hat\beta, 0, 0, 0)$.
+The score statistic at this coefficient value will be
+$(0,0,0,0,0, u_6, u_7, u_8)$, the first 5 elements are zero since that is the
+definition of model convergence for $\hat\beta$.
+
+The information or Hessian matrix for a Cox model is 
+$$ \sum_{j \in deaths} V(t_j)  = \sum_jV_j$$
+where $V_j$ is the variance matrix of the weighted covariate values, over
+all subjects at risk at time $t_j$.
+Then the expanded information matrix for the score test is
+\begin{align*}
+  H &= \left(\begin{array}{cc}  H_1 & H_2 \\ H_2' & H_3 \end{array} \right) \\
+  H_1 &= \sum V(t_j) \\
+  H_2 &= \sum V(t_j) g(t_j) \\
+  H_3 &= \sum V(t_j) g^2(t_j)
+\end{align*}
+The inverse of the matrix will be more numerically stable if $g(t)$ is centered
+at zero, and this does not change the test statistic.
+In the usual case $V(t)$ is close to constant in time --- the variance of
+$X$ does not change rapidly --- and then $H_2$ is approximately zero.
+The original cox.zph used an approximation, which is to assume that
+$V(t)$ is exactly constant.
+In that case $H_2=0$ and $H_3= \sum V(t_j) \sum g^2(t_j)$ and the test
+is particularly easy to compute.
+This assumption of identical components can fail badly for models with a
+covariate by strata interaction, and for some models with covariate
+dependent censoring.
+
+If there are $p$ covariates, the new score vector will be of length $2p$ and
+the information matrix will be $2p$ by $2p$.  These can be computed using
+a simple variant of the C code for coxph; no iteration is done.  
+In fact, the use of time-weighted risk sets has been proposed by several
+authors, for multiple rationales.  This has not been implemented in the
+coxph routine (but we have thought about it).
+
+The score tests are done for single covariates or terms. 
+Using the veteran example, a test for celltype as a term would first select
+rows 1-5 and 7-9 of the score vector $U$ and information matrix $H$; i.e., 
+if \code{j <- c(1:5, 7:9)} the test is \code{U[j] \%*\% inverse(H[j,j]) \%*\% U[j]}.  (This is done using the the \code{solve} function of course, rather than
+taking an explicit inverse).  The result is a 3 degree of freedom chisquare
+statistic. 
+For a single variable test, the fact that only a single element of \code{U[j]}
+is non-zero allows for a faster shortcut calculation.
+
+A few further things need to be considered.
+\begin{enumerate}
+  \item There may be NA coefficients in the fit, e.g., for a model that
+   has redundant variables in its $X$ matrix.  It is fairly simple to keep 
+   track of these, and remove any such from our set of variables $j$.
+   \item There is not a good defintion of how to test PH for a random effects
+     term, e.g., from a coxme model or a copxh fit with a frailty term.
+     For these, we treat the resultant random coefficients as though they were
+     fixed, and test the other variable under this constraint.
+   \item For a penalized model, the penalty is assumed to apply to both the
+     original and to then extended coefficients.  However,
+     \begin{itemize}
+       \item Penalties depend only the coefficient $hat \beta$, not on the
+         data or the time weights.
+       \item All the penalties that we support are 0 at $\beta =0$, and have a
+         first derivative of 0 there, so there is no impact on the score vector
+         $U$.  $U$ is 0 for the current covariates, by definition, and the new
+         ones are being evaluated at 0.
+       \item There will be an impact on the second derivative, however.  But
+         this will by definition be idential to the penalty for the original
+         variables.
+     \end{itemize}
+   \item The most difficult issue is use of a robust variance in the original
+     model.  This requires not just the score vector $U$, but the $n by p$
+     matrix of of dfbeta residuals $D$.
+     This requires a special version of the relevant C routine; there are no
+     simple computaional shortcuts.
+\end{enumerate}
+
 
 
 \chapter{Accelerated Failure Time models}
