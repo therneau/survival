@@ -1,4 +1,4 @@
-\section{Concordance}
+section{Concordance}
 \subsection{Main routine}
  The concordance statistic is the most used measure of goodness-of-fit
 in survival models.  
@@ -419,9 +419,12 @@ cord.getdata <- function(object, newdata=NULL, cluster=NULL, need.wt, timefix=TR
             else stop("left hand side of the formula  must be a numeric vector or a survival object")
         }
         if (timefix) y <- aeqSurv(y)
-        rval <- list(y= y, x= predict(object, newdata))
-        # the type of prediction does not matter, as long as it is a 
-        #  monotone transform of the linear predictor
+        yhat <- model.matrix(object, data=mf) %*% object$coefficients
+        rval <- list(y= y, x= as.vector(yhat))
+        # why not just x= predict(object, newdata)?  If there is a missing
+        #  value, then x and y won't be the same length
+        # why not predict(object, newdata=mf)?  If there is a factor the names
+        #  will be wrong.
     } 
     else {
         mf <- object$model
@@ -707,7 +710,7 @@ cord.work <- function(data, timewt, ymin, ymax, influence=0, ranks=FALSE,
         }
      }
     
-    class(rval) <- "concordance"
+    if (!is.null(rval)) class(rval) <- "concordance"
     rval
 }
 @ 
