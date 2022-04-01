@@ -49,7 +49,7 @@ anova.coxphlist <- function (object, test =  'Chisq' ,...) {
     topnote <- paste(" Model ", format(1:nmodels), ": ", variables, 
 		     sep = "", collapse = "\n")
     if (!is.null(test)) {
-        table[['P(>|Chi|)']] <- pchisq(table$Chisq, table$Df, lower.tail=FALSE)
+        table[['Pr(>|Chi|)']] <- pchisq(table$Chisq, table$Df, lower.tail=FALSE)
         }
     structure(table, heading = c(title, topnote), 
 			  class = c("anova", "data.frame"))
