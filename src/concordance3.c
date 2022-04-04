@@ -98,6 +98,7 @@ SEXP concordance3(SEXP y, SEXP x2, SEXP wt2, SEXP timewt2,
     /* the timewt vector has one element per unique death time, with utime as
     **  an index, residuals have one element per death, with nevent as an index
     **  and the influence has one element per observation.
+    */
     z2 =0; utime=0;
     for (i=0; i<n;) {
         ii = sort2[i];  
