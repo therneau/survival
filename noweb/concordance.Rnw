@@ -179,8 +179,12 @@ concordancefit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL,
         else if (is.numeric(y) && is.vector(y))  y <- Surv(y)
         else stop("left hand side of the formula must be a numeric vector,
  survival object, or an orderable factor")
-        if (timefix) y <- aeqSurv(y)
     }
+     
+    # When concordance is called with new data, this is the first point where
+    #  aeqSurv will be encountered.  Survival data or not, near ties will be
+    #  fatal.  
+    if (timefix) y <- aeqSurv(y) 
     n <- length(y)
     if (length(x) != n) stop("x and y are not the same length")
     if (missing(strata) || length(strata)==0) strata <- rep(1L, n)
@@ -413,6 +417,9 @@ cord.getdata <- function(object, newdata=NULL, cluster=NULL, need.wt, timefix=TR
  
     if (!is.null(newdata)) {
         mf <- model.frame(Terms, data=newdata)
+        # do not use model.frame(object, newdata) --- if there are other
+        # terms such as offset, weights, id,... it doesn't do what you
+        # would expect.
         y <- model.response(mf)
         if (!is.Surv(y)) {
             if (is.numeric(y) && is.vector(y))  y <- Surv(y)
@@ -543,7 +550,7 @@ concordance.lm <- function(object, ..., newdata, cluster, ymin, ymax,
 
 concordance.survreg <- function(object, ..., newdata, cluster, ymin, ymax,
                                 timewt=c("n", "S", "S/G", "n/G", "n/G2", "I"),
-                                influence=0, ranks=FALSE, timefix=FALSE,
+                                influence=0, ranks=FALSE, timefix=TRUE,
                                 keepstrata=10) {
     Call <- match.call()
     fits <- list(object, ...)
@@ -580,7 +587,7 @@ concordance.survreg <- function(object, ..., newdata, cluster, ymin, ymax,
     
 concordance.coxph <- function(object, ..., newdata, cluster, ymin, ymax, 
                                timewt=c("n", "S", "S/G", "n/G", "n/G2", "I"),
-                               influence=0, ranks=FALSE, timefix=FALSE,
+                               influence=0, ranks=FALSE, timefix=TRUE,
                                keepstrata=10) {
     Call <- match.call()
     fits <- list(object, ...)
@@ -1118,6 +1125,9 @@ and we use the same algorithm, but reset \code{dwt2} to zero  whenever
 either $x$ or $y$ changes.
 
 <<concordance3-work>>=
+/* the timewt vector has one element per unique death time, with utime as
+**  an index, residuals have one element per death, with nevent as an index
+**  and the influence has one element per observation.
 z2 =0; utime=0;
 for (i=0; i<n;) {
     ii = sort2[i];  
@@ -1138,6 +1148,8 @@ for (i=0; i<n;) {
         i++;
     }
     else {  /* process all tied deaths at this point */
+        /* any censors at this time point have already been processed --
+            data is sorted so that they come first */
 	ndeath=0; dwt=0; 
         dwt2 =0; xsave=x[ii]; j2= i;
         adjtimewt = timewt[utime++];
@@ -1145,7 +1157,7 @@ for (i=0; i<n;) {
 	/* pass 1 */
 	for (j=i; j<n && time[sort2[j]]==time[ii]; j++) {
 	    jj = sort2[j];
-	    ndeath++; 
+	    ndeath++;
 	    count[3] += wt[jj] * dwt * adjtimewt;  /* update total tied on y */
             dwt += wt[jj];   /* sum of wts at this death time */
 

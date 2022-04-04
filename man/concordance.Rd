@@ -20,10 +20,10 @@ concordance(object, \ldots)
   influence=0, ranks=FALSE, timefix=TRUE, keepstrata=10)
 \method{concordance}{coxph}(object, \ldots, newdata, cluster, ymin, ymax,
   timewt= c("n", "S", "S/G", "n/G", "n/G2", "I"), influence=0,
-  ranks=FALSE, timefix=FALSE, keepstrata=10)
+  ranks=FALSE, timefix=TRUE, keepstrata=10)
 \method{concordance}{survreg}(object, \ldots, newdata, cluster, ymin, ymax,
   timewt= c("n", "S", "S/G", "n/G", "n/G2", "I"), influence=0,
-  ranks=FALSE, timefix=FALSE, keepstrata=10)
+  ranks=FALSE, timefix=TRUE, keepstrata=10)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -78,11 +78,13 @@ concordance(object, \ldots)
     smaller response values \code{y}; a proportional hazards model is
     the common example of this. }
 
-  \item{timefix}{if the response is a Surv object, correct for possible
-    rounding error; otherwise this argument has no effect.  See the
-    vignette on tied times for more explanation.  For the coxph and
-    survreg methods this issue will have already been addressed in the
-    parent routine, so should not be revisited.
+  \item{timefix}{correct for possible rounding error. When response
+    times $y$ are \emph{almost} identical, then different base R
+    functions can yeild different results wrt to which are exact ties or
+    not, which in turn can differ from C code.  See the
+    vignette on tied times for more detail.  Since the concordance
+    statistic counts exact ties differently, we preemtively avoid the
+    issue.  Change this option at your own risk.
   }
   \item{keepstrata}{either TRUE, FALSE, or an integer value.
     Computations are always done within stratum, then added. If the

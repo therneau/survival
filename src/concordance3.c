@@ -95,6 +95,9 @@ SEXP concordance3(SEXP y, SEXP x2, SEXP wt2, SEXP timewt2,
         for (i=0; i<4; i++) resid[i] = REAL(resid2) + i*nevent;
         }
     
+    /* the timewt vector has one element per unique death time, with utime as
+    **  an index, residuals have one element per death, with nevent as an index
+    **  and the influence has one element per observation.
     z2 =0; utime=0;
     for (i=0; i<n;) {
         ii = sort2[i];  
@@ -115,6 +118,8 @@ SEXP concordance3(SEXP y, SEXP x2, SEXP wt2, SEXP timewt2,
             i++;
         }
         else {  /* process all tied deaths at this point */
+            /* any censors at this time point have already been processed --
+                data is sorted so that they come first */
             ndeath=0; dwt=0; 
             dwt2 =0; xsave=x[ii]; j2= i;
             adjtimewt = timewt[utime++];
@@ -122,7 +127,7 @@ SEXP concordance3(SEXP y, SEXP x2, SEXP wt2, SEXP timewt2,
             /* pass 1 */
             for (j=i; j<n && time[sort2[j]]==time[ii]; j++) {
                 jj = sort2[j];
-                ndeath++; 
+                ndeath++;
                 count[3] += wt[jj] * dwt * adjtimewt;  /* update total tied on y */
                 dwt += wt[jj];   /* sum of wts at this death time */
 

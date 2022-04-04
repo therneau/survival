@@ -126,8 +126,12 @@ concordancefit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL,
         else if (is.numeric(y) && is.vector(y))  y <- Surv(y)
         else stop("left hand side of the formula must be a numeric vector,
  survival object, or an orderable factor")
-        if (timefix) y <- aeqSurv(y)
     }
+     
+    # When concordance is called with new data, this is the first point where
+    #  aeqSurv will be encountered.  Survival data or not, near ties will be
+    #  fatal.  
+    if (timefix) y <- aeqSurv(y) 
     n <- length(y)
     if (length(x) != n) stop("x and y are not the same length")
     if (missing(strata) || length(strata)==0) strata <- rep(1L, n)
@@ -361,19 +365,20 @@ cord.getdata <- function(object, newdata=NULL, cluster=NULL, need.wt, timefix=TR
         stop("cannot yet handle models with tt terms")
  
     if (!is.null(newdata)) {
-        mf <- model.frame(object, data=newdata)
+        mf <- model.frame(Terms, data=newdata)
+        # do not use model.frame(object, newdata) --- if there are other
+        # terms such as offset, weights, id,... it doesn't do what you
+        # would expect.
         y <- model.response(mf)
         if (!is.Surv(y)) {
             if (is.numeric(y) && is.vector(y))  y <- Surv(y)
             else stop("left hand side of the formula  must be a numeric vector or a survival object")
         }
         if (timefix) y <- aeqSurv(y)
-        yhat <- model.matrix(object, data=mf) %*% object$coefficients
-        rval <- list(y= y, x= as.vector(yhat))
-        # why not just x= predict(object, newdata)?  If there is a missing
-        #  value, then x and y won't be the same length
-        # why not predict(object, newdata=mf)?  If there is a factor the names
-        #  will be wrong.
+        xhat <- model.matrix(object,newdata)%*% coef(object)
+        rval <- list(y= y, x= xhat)
+        # the type of prediction does not matter, as long as it is a 
+        #  monotone transform of the linear predictor
     } 
     else {
         mf <- object$model
@@ -458,7 +463,7 @@ concordance.lm <- function(object, ..., newdata, cluster, ymin, ymax,
 
 concordance.survreg <- function(object, ..., newdata, cluster, ymin, ymax,
                                 timewt=c("n", "S", "S/G", "n/G", "n/G2", "I"),
-                                influence=0, ranks=FALSE, timefix=FALSE,
+                                influence=0, ranks=FALSE, timefix=TRUE,
                                 keepstrata=10) {
     Call <- match.call()
     fits <- list(object, ...)
@@ -495,7 +500,7 @@ concordance.survreg <- function(object, ..., newdata, cluster, ymin, ymax,
     
 concordance.coxph <- function(object, ..., newdata, cluster, ymin, ymax, 
                                timewt=c("n", "S", "S/G", "n/G", "n/G2", "I"),
-                               influence=0, ranks=FALSE, timefix=FALSE,
+                               influence=0, ranks=FALSE, timefix=TRUE,
                                keepstrata=10) {
     Call <- match.call()
     fits <- list(object, ...)
@@ -613,7 +618,7 @@ cord.work <- function(data, timewt, ymin, ymax, influence=0, ranks=FALSE,
         }
      }
     
-    if (!is.null(rval)) class(rval) <- "concordance"
+    class(rval) <- "concordance"
     rval
 }
 coef.concordance <- function(object, ...) object$concordance
