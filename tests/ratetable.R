@@ -5,16 +5,10 @@ library(survival)
 #
 # Generate each of the messages from is.ratetable
 #
-{if (is.R()) mdy.date <- function(m, d, y) {
+mdy.date <- function(m, d, y) {
     y <- ifelse(y<100, y+1900, y)
     as.Date(paste(m,d,y, sep='/'), "%m/%d/%Y")
     }
-else mdy.date <- function(m,d,y) {
-    y <- ifelse(y<100, y+1900, y)
-    timeDate(paste(y, m, d, sep='/'), in.format="%Y/%m/%d")
-    }
- }
-
 temp <- runif(21*2*4)
 
 # Good
@@ -59,5 +53,5 @@ is.ratetable(temp, verbose=T)
 
 
 # Print and summary
-print(survexp.us[1:30,,c('1953', '1985')] )
+print(survexp.us[1:20,,c('1953', '1985')] )
 summary(survexp.usr)

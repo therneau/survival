@@ -1,4 +1,3 @@
-/* $Id: pyears1.c 11192 2009-01-26 04:40:23Z therneau $ */
 /*
 **  Person-years calculations, in its most general
 **
@@ -56,7 +55,7 @@ void pyears1(Sint   *sn,      Sint   *sny,      Sint   *sdoevent,
 	     double *sodata,  double *pyears,   double *pn, 
 	     double *pcount,  double *pexpect,  double *offtable)
     {
-S_EVALUATOR
+
     int i,j;
     int     n,
 	    ny,
@@ -209,7 +208,11 @@ S_EVALUATOR
 		else           pexpect[index] += exp(-cumhaz)*temp * weight[i];
 		cumhaz += hazard;
 		}
-	    else  *offtable += thiscell * weight[i];
+	    else  {
+		*offtable += thiscell * weight[i];
+		for (j=0; j<edim; j++)
+		    if (efac[j] !=1) data2[j] += thiscell;
+		}
 
 	    for (j=0; j<odim; j++)
 		if (ofac[j] ==0) data[j] += thiscell;

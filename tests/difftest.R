@@ -33,12 +33,12 @@ survdiff(Surv(time, status) ~x, aml3)
 #   There are no tied times within institution, so the coxph program
 #   can be used to give a complete test
 #
-fit <- survdiff(Surv(time, status) ~ pat.karno + strata(inst), cancer)
+fit <- survdiff(Surv(time, status) ~ pat.karno + strata(inst), lung)
 
 cfit <- coxph(Surv(time, status) ~ factor(pat.karno) + strata(inst),
-		cancer, iter=0)
+		lung, iter=0)
 
-tdata <- na.omit(cancer[,c('time', 'status', 'pat.karno', 'inst')])
+tdata <- na.omit(lung[,c('time', 'status', 'pat.karno', 'inst')])
 
 temp1 <- tapply(tdata$status-1, list(tdata$pat.karno, tdata$inst), sum)
 temp1 <- ifelse(is.na(temp1), 0, temp1)

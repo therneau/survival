@@ -1,0 +1,540 @@
+\subsection{Parsing the covariates list}
+For a multi-state Cox model we allow a list of formulas to take the place
+of the \code{formula} argument.
+The first element of the list is the default formula, later elements
+are of the form \code{transitions ~ formula/options}, where the left hand side
+denotes one or more transitions, and the right hand side is used to augment
+the basic formula wrt those transitions.
+
+Step 1 is to break the formula into parts.  There will be a list of left sides,
+a list of right sides, and a list of options.
+From this we can create a single ``pseudo formula'' that is used to drive 
+the model.frame process, which ensures that all of the variables we need 
+will be found in the model frame.
+Further processing has to wait until after the model frame has been constructed,
+i.e., if a left side referred to state ``deathh'' that might be a real state
+or a typing mistake, we can't know until the data is in hand.
+
+Should we walk the parse tree of the formula, or convert it to character and use
+string manipulations?  The latter looks promising until you see a fragment 
+like this:
+\code{entry:death ~ age/sex + ns(weight/height, df=4) / common}
+Walking the parse tree is a bit more subtle, but we then can take advantage of 
+all the knowledge built into the R parser.
+A formula is a 3 element list of ``~'', leftside, rightside, or 2 elements if 
+it has only a right hand side.  Legal ones for coxph have both left and right.
+
+<<parsecovar>>=
+parsecovar1 <- function(flist, statedata) {
+    if (any(sapply(flist, function(x) !inherits(x, "formula"))))
+        stop("an element of the formula list is not a formula")
+    if (any(sapply(flist, length) != 3))
+        stop("all formulas must have a left and right side")
+    
+    # split the formulas into a right hand and left hand side
+    lhs <- lapply(flist, function(x) x[-3])   # keep the ~
+    rhs <- lapply(flist, function(x) x[[3]])  # don't keep the ~
+    
+    rhs <- parse_rightside(rhs)
+    <<parse-leftside>>
+    list(rhs = rhs, lhs= lterm)
+}
+@ 
+
+\begin{figure}
+  \includegraphics{figures/fig1.pdf}
+  \caption{The parse tree for the formula 
+    \code{1:3 +2:3 ~ strata(sex)/(age + trt) + ns(weight/ht, df=4) / common + shared}}
+  \label{figparse}
+\end{figure}
+
+Figure \ref{figparse} shows the parse tree for a complex formula.
+The following function splits the formula at the rightmost slash, ignoring the
+inside of any function or parenthesised phrase.
+Recursive functions like this are almost impossible to read, but luckily 
+it is short.
+The formula recurrs on the left and right side of +*: and \%in\%, and on 
+binary - (but not on unary -).
+<<parsecovar>>=
+rightslash <- function(x) {
+    if (class(x) != 'call') return(x)
+    else {
+        if (x[[1]] == as.name('/')) return(list(x[[2]], x[[3]]))
+        else if (x[[1]]==as.name('+') || (x[[1]]==as.name('-') && length(x)==3)||
+                 x[[1]]==as.name('*') || x[[1]]==as.name(':')  ||
+                 x[[1]]==as.name('%in%')) {
+                     temp <- rightslash(x[[3]])
+                     if (is.list(temp)) {
+                         x[[3]] <- temp[[1]]
+                         return(list(x, temp[[2]]))
+                     } else {
+                         temp <- rightslash(x[[2]])
+                         if (is.list(temp)) {
+                             x[[2]] <- temp[[2]]
+                             return(list(temp[[1]], x))
+                         } else return(x)
+                     }
+                 }
+        else return(x)
+    }
+}
+@ 
+
+There are 4 possble options of common, shared, and init. 
+The first 2 appear just as words, the last should have a set of
+values attached which become the \code{ival} vector.
+There will, of course, one day be a user with a variable named \code{common}
+who wants a nested term \code{x/common}. Since we don't look inside
+parenthesis they will be able to use \code{1:3 ~ (x/common)}.
+
+<<parsecovar>>=
+parse_rightside <- function(rhs) {
+    parts <- lapply(rhs, rightslash)
+    new <- lapply(parts, function(opt) {
+        tform <- ~ x    # a skeleton, "x" will be replaced
+        if (!is.list(opt)) { # no options for this line
+            tform[[2]] <- opt
+            list(formula = tform, ival = NULL, common = FALSE,
+                 shared = FALSE)
+        }
+        else{
+            # treat the option list as though it were a formula
+            temp <- ~ x
+            temp[[2]] <- opt[[2]]
+            optterms <- terms(temp)
+            ff <- rownames(attr(optterms, "factors"))
+            index <- match(ff, c("common", "shared", "init"))
+            if (any(is.na(index)))
+                stop("option not recognized in a covariates formula: ",
+                     paste(ff[is.na(index)], collapse=", "))
+            common <- any(index==1)
+            shared  <- any(index==2)
+            if (any(index==3)) {
+                optatt <- attributes(optterms)
+                j <- optatt$variables[1 + which(index==3)]
+                j[[1]] <- as.name("list")
+                ival <- unlist(eval(j, parent.frame()))
+            } 
+            else ival <- NULL
+            tform[[2]] <- opt[[1]] 
+            list(formula= tform, ival= ival, common= common, shared=shared)
+        }
+    })
+    new
+}
+@
+ 
+The left hand side of each formula specifies the set of transitions to which
+the covariates apply, and is more complex.
+Say instance that we had 7 states and the following statedata
+data set.
+\begin{center}
+  \begin{tabular}{cccc}
+    state & A&  N& death \\ \hline 
+    A-N- &  0&  0 & 0\\
+    A+N- &  1&  0 & 0\\
+    A-N1 &  0&  1 & 0\\
+    A+N1 &  1&  1 & 0\\
+    A-N2 &  0&  2 & 0\\
+    A+N2 &  1&  2 & 0\\
+    Death&  NA & NA& 1 
+\end{tabular}
+\end{center}
+
+  Here are some valid transitions
+\begin{enumerate}
+   \item 0:state('A+N+'),   any transition to the A+N+ state
+   \item state('A-N-'):death(0), a transition from A-N-, but not to death
+   \item A(0):A(1), any of the 4 changes that start with A=0 and end with A=1
+   \item N(0):N(1,2) + N(1):N(2), an upward change of N
+   \item 'A-N-':c('A-N+','A+N-'); if there is no variable then the 
+     overall state is assumed
+   \item 1:3 + 2:3;  we can refer to states by number, and we can have multiples
+\end{enumerate}
+
+<<parse-leftside>>=
+# deal with the left hand side of the formula
+# the next routine cuts at '+' signs
+pcut <- function(form) {
+    if (length(form)==3) {
+        if (form[[1]] == '+') 
+            c(pcut(form[[2]]), pcut(form[[3]]))
+        else if (form[[1]] == '~') pcut(form[[2]])
+        else list(form)
+    }
+    else list(form)
+}
+lcut <- lapply(lhs, function(x) pcut(x[[2]]))
+@ 
+We now have one list per formula, each list is either a single term
+or a list of terms (case 4 above).
+To make evaluation easier, create functions that append their
+name to a list of values.
+I have not yet found a way to do this without eval(parse()), which
+always seems clumsy.
+A use for the labels without an argument will arise later, hence the
+double environments.
+
+Repeating the list above, this is what we want to end with
+\begin{itemize}
+  \item a list with one element per formula in the covariates list
+  \item each element is a list, with one element per term: multiple
+    a:b terms are allowed separated by + signs
+  \item each of these level 3 elements is a list with two elements
+    ``left'' and ``right'', for the two sides of the : operator
+  \item left and right will be one of 3 forms: a simple vector,
+    a one element list containing the stateid, or a two element list
+    containing the stateid and the values.  
+    Any word that doesn't match one of the
+    column names of statedata ends up as a vector.
+\end{itemize}
+
+<<parse-leftside>>=
+env1 <- new.env(parent= parent.frame(2))
+env2 <- new.env(parent= env1)
+if (missing(statedata)) {
+    assign("state", function(...) list(stateid= "state", 
+                                       values=c(...)), env1)
+    assign("state", list(stateid="state"))
+}
+else {
+    for (i in statedata) {
+        assign(i, eval(list(stateid=i)), env2)
+        tfun <- eval(parse(text=paste0("function(...) list(stateid='"
+                                       , i, "', values=c(...))")))
+        assign(i, tfun, env1)
+    }
+}
+lterm <- lapply(lcut, function(x) {
+    lapply(x, function(z) {
+        if (length(z)==1) {
+            temp <- eval(z, envir= env2)
+            if (is.list(temp) && names(temp)[[1]] =="stateid") temp
+            else temp
+        }
+        else if (length(z) ==3 && z[[1]]==':')
+            list(left=eval(z[[2]], envir=env2), right=eval(z[[3]], envir=env2))
+        else stop("invalid term: ", deparse(z))
+    })
+})
+@ 
+
+
+The second call, which builds tmap, the terms map.
+Arguments are the results from the first pass, the statedata data frame,
+the default formula, the terms structure from the full formula,
+and the transitions count.
+
+One nuisance is that the terms function sometimes inverts things.  For 
+example in the formula
+\code{terms(~ x1 + x1:iage + x2 + x2:iage)} the label for the second
+of these becomes \code{iage:x2}.  
+I'm guessing it is because the variable first appear in the order x1, iage, x2
+and labels make use of that order. 
+But when we look at the formula fragment \code{~ x2 + x2:iage} the terms
+will be in the other order.  
+A way out of this is to use the simple \code{termmatch} function below,
+which keys off of the factors attribute instead of the names. 
+
+<<parsecovar>>=
+termmatch <- function(f1, f2) {
+    # look for f1 in f2, each the factors attribute of a terms object
+    if (length(f1)==0) return(NULL)   # a formula with only ~1
+    irow <- match(rownames(f1), rownames(f2))
+    if (any(is.na(irow))) stop ("termmatch failure 1") 
+    hashfun <- function(j) sum(ifelse(j==0, 0, 2^(seq(along.with=j))))
+    hash1 <- apply(f1, 2, hashfun)
+    hash2 <- apply(f2[irow,,drop=FALSE], 2, hashfun)
+    index <- match(hash1, hash2)
+    if (any(is.na(index))) stop("termmatch failure 2")
+    index
+}
+
+parsecovar2 <- function(covar1, statedata, dformula, Terms, transitions,states) {
+    if (is.null(statedata))
+        statedata <- data.frame(state = states, stringsAsFactors=FALSE)
+    else {
+        if (is.null(statedata$state)) 
+            stop("the statedata data set must contain a variable 'state'")
+        indx1 <- match(states, statedata$state, nomatch=0)
+        if (any(indx1==0))
+            stop("statedata does not contain all the possible states: ", 
+                 states[indx1==0])
+        statedata <- statedata[indx1,]   # put it in order
+    }
+    
+    # Statedata might have rows for states that are not in the data set,
+    #  for instance if the coxph call had used a subset argument.  Any of
+    #  those were eliminated above.
+    # Likewise, the formula list might have rules for transitions that are
+    #  not present.  Don't worry about it at this stage.
+    allterm <- attr(Terms, 'factors')
+    nterm <- ncol(allterm)
+
+    # create a map for every transition, even ones that are not used.
+    # at the end we will thin it out
+    # It has an extra first row for intercept (baseline)
+    # Fill it in with the default formula
+    nstate <- length(states)
+    tmap <- array(0, dim=c(nterm+1, nstate, nstate))
+    dmap <- array(seq_len(length(tmap)), dim=c(nterm+1, nstate, nstate)) #unique values
+    dterm <- termmatch(attr(terms(dformula), "factors"), allterm)
+    dterm <- c(1L, 1L+ dterm)  # add intercept
+    tmap[dterm,,] <- dmap[dterm,,]
+    inits <- NULL
+
+    if (!is.null(covar1)) {
+        <<parse-tmap>>
+    }
+    <<parse-finish>>
+}
+@ 
+
+Now go through the formulas one by one.  The left hand side tells us which
+state:state transitions to fill in,  the right hand side tells the variables.
+The code block below goes through lhs element(s) for a single formula.
+That element is itself a list which has an entry for each term, and that
+entry can have left and right portions.
+<<parse-lmatch>>=
+state1 <- state2 <- NULL
+for (x in lhs) {
+    # x is one term
+    if (!is.list(x) || is.null(x$left)) stop("term found without a ':' ", x)
+    # left of the colon
+    if (!is.list(x$left) && length(x$left) ==1 && x$left==0) 
+        temp1 <- 1:nrow(statedata)
+    else if (is.numeric(x$left)) {
+        temp1 <- as.integer(x$left)
+        if (any(temp1 != x$left)) stop("non-integer state number")
+        if (any(temp1 <1 | temp1> nstate))
+            stop("numeric state is out of range")
+    }
+    else if (is.list(x$left) && names(x$left)[1] == "stateid"){
+        if (is.null(x$left$value)) 
+            stop("state variable with no list of values: ",x$left$stateid)
+        else {
+            if (any(k= is.na(match(x$left$stateid, names(statedata)))))
+                stop(x$left$stateid[k], ": state variable not found")
+            zz <- statedata[[x$left$stateid]]
+            if (any(k= is.na(match(x$left$value, zz))))
+                stop(x$left$value[k], ": state value not found")
+            temp1 <- which(zz %in% x$left$value)
+        }
+    }
+    else {
+        k <- match(x$left, statedata$state)
+        if (any(is.na(k))) stop(x$left[is.na(k)], ": state not found")
+        temp1 <- which(statedata$state %in% x$left)
+    }
+    
+    # right of colon
+    if (!is.list(x$right) && length(x$right) ==1 && x$right ==0) 
+        temp2 <- 1:nrow(statedata)
+    else if (is.numeric(x$right)) {
+        temp2 <- as.integer(x$right)
+        if (any(temp2 != x$right)) stop("non-integer state number")
+        if (any(temp2 <1 | temp2> nstate))
+            stop("numeric state is out of range")
+    }
+    else if (is.list(x$right) && names(x$right)[1] == "stateid") {
+        if (is.null(x$right$value))
+            stop("state variable with no list of values: ",x$right$stateid)
+        else {
+            if (any(k= is.na(match(x$right$stateid, names(statedata)))))
+                stop(x$right$stateid[k], ": state variable not found")
+            zz <- statedata[[x$right$stateid]]
+            if (any(k= is.na(match(x$right$value, zz))))
+                stop(x$right$value[k], ": state value not found")
+            temp2 <- which(zz %in% x$right$value)
+        }
+    }
+    else {
+        k <- match(x$right, statedata$state)
+        if (any(is.na(k))) stop(x$right[k], ": state not found")
+        temp2 <- which(statedata$state %in% x$right)
+    }
+
+
+    state1 <- c(state1, rep(temp1, length(temp2)))
+    state2 <- c(state2, rep(temp2, each=length(temp1)))
+}           
+@ 
+At the end it has created to vectors state1 and state2 listing all
+the pairs of states that are indicated.
+
+The init clause (initial values) are gathered but not checked:
+we don't yet know how many columns a term will expand into.
+tmap is a 3 way array: term, state1, state2 containing coefficient numbers and
+zeros.
+
+<<parse-tmap>>=
+for (i in 1:length(covar1$rhs)) {  
+    rhs <- covar1$rhs[[i]]
+    lhs <- covar1$lhs[[i]]  # one rhs and one lhs per formula
+  
+    <<parse-lmatch>>
+    npair <- length(state1)  # number of state:state pairs for this line
+
+    # update tmap for this set of transitions
+    # first, what variables are mentioned, and check for errors
+    rterm <- terms(rhs$formula)
+    rindex <- 1L + termmatch(attr(rterm, "factors"), allterm)
+
+    # the update.formula function is good at identifying changes
+    # formulas that start with  "- x" have to be pasted on carefully
+    temp <- substring(deparse(rhs$formula, width.cutoff=500), 2)
+    if (substring(temp, 1,1) == '-') dummy <- formula(paste("~ .", temp))
+    else dummy <- formula(paste("~. +", temp))
+
+    rindex1 <- termmatch(attr(terms(dformula), "factors"), allterm)
+    rindex2 <- termmatch(attr(terms(update(dformula, dummy)), "factors"),
+                     allterm)
+    dropped <- 1L + rindex1[is.na(match(rindex1, rindex2))] # remember the intercept
+    if (length(dropped) >0) {
+        for (k in 1:npair) tmap[dropped, state1[k], state2[k]] <- 0
+    }
+
+    # grab initial values
+    if (length(rhs$ival)) 
+        inits <- c(inits, list(term=rindex, state1=state1, 
+                               state2= state2, init= rhs$ival))
+    
+    # adding -1 to the front is a trick, to check if there is a "+1" term
+    dummy <- ~ -1 + x
+    dummy[[2]][[3]] <- rhs$formula
+    if (attr(terms(dummy), "intercept") ==1) rindex <- c(1L, rindex)
+ 
+    # an update of "- sex" won't generate anything to add
+    # dmap is simply an indexed set of unique values to pull from, so that
+    #  no number is used twice
+    if (length(rindex) > 0) {  # rindex = things to add
+        if (rhs$common) {
+            j <- dmap[rindex, state1[1], state2[1]] 
+            for(k in 1:npair) tmap[rindex, state1[k], state2[k]] <- j
+        }
+        else {
+            for (k in 1:npair)
+                tmap[rindex, state1[k], state2[k]] <- dmap[rindex, state1[k], state2[k]]
+        }
+    }
+
+    # Deal with the shared argument, using - for a separate coef
+    if (rhs$shared && npair>1) {
+        j <- dmap[1, state1[1], state2[1]]
+        for (k in 2:npair) 
+            tmap[1, state1[k], state2[k]] <- -j
+    }
+}    
+@ 
+
+
+Fold the 3-dimensional tmap into a matrix with terms as rows
+and one column for each transition that actually occured.
+ 
+<<parse-finish>>=
+i <- match("(censored)", colnames(transitions), nomatch=0)
+if (i==0) t2 <- transitions
+else t2 <- transitions[,-i, drop=FALSE]   # transitions to 'censor' don't count
+indx1 <- match(rownames(t2), states)
+indx2 <- match(colnames(t2), states)
+tmap2 <- matrix(0L, nrow= 1+nterm, ncol= sum(t2>0))
+
+trow <- row(t2)[t2>0]
+tcol <- col(t2)[t2>0]
+for (i in 1:nrow(tmap2)) {
+    for (j in 1:ncol(tmap2))
+        tmap2[i,j] <- tmap[i, indx1[trow[j]], indx2[tcol[j]]]
+}
+
+# Remember which hazards had ph
+# tmap2[1,] is the 'intercept' row
+# If the hazard for colum 6 is proportional to the hazard for column 2,
+# the tmap2[1,2] = tmap[1,6], and phbaseline[6] =2
+temp <- tmap2[1,]
+indx <- which(temp> 0)
+tmap2[1,] <- indx[match(abs(temp), temp[indx])]
+phbaseline <- ifelse(temp<0, tmap2[1,], 0)    # remembers column numbers   
+tmap2[1,] <- match(tmap2[1,], unique(tmap2[1,])) # unique strata 1,2, ...
+                  
+if (nrow(tmap2) > 1)
+    tmap2[-1,] <- match(tmap2[-1,], unique(c(0L, tmap2[-1,]))) -1L
+  
+dimnames(tmap2) <- list(c("(Baseline)", colnames(allterm)),
+                            paste(indx1[trow], indx2[tcol], sep=':')) 
+# mapid gives the from,to for each realized state
+list(tmap = tmap2, inits=inits, mapid= cbind(from=indx1[trow], to=indx2[tcol]),
+     phbaseline = phbaseline)
+@
+
+
+Last is a helper routine that converts tmap, which has one row per term,
+into cmap, which has one row per coefficient.  Both have one column per 
+transition.
+It uses the assign attribute of the X matrix along with the column names.
+
+Consider the model \code{~ x1 + strata(x2) + factor(x3)} where x3 has 4 levels.
+The Xassign vector will be 1, 3, 3, 3, since it refers to terms and there are 3
+columns of X for term number 3.
+If there were an intercept the first column of X
+would be a 1 and Xassign would be 0, 1, 3, 3, 3.
+
+Let's say that there were 3 transitions and tmap looks like this:
+\begin{tabular}{rccc}
+            & 1:2 & 1:3 & 2:3 \\
+(Baseline)  & 1   & 2   & 3 \\
+ x1         & 1   & 4   & 4 \\ 
+ strata(x2) & 2   & 5   & 6 \\
+ factor(x3) & 3   & 3   & 7
+\end{tabular}
+The cmap matrix will ignore rows 1 and 3 since they do not correspond to 
+coefficients in the model.  
+Proportional baseline hazards add another wrinkle: say that the 1:3 and 2:3
+hazards were proportional, and the user had \code{1:3 + 2:3 /shared} in thier
+call.  Then the phbaseline vector will be 0,0,2 and 
+cmap will gain an extra row with label ph(1:3) which has a coefficient
+for the 2:3 transition. 
+If the user typed \code{2:3 + 1:3/shared} then the phbaseline vector will
+be (0,3,0) and 2:3 is the reference level.
+
+<<parsecovar>>=
+parsecovar3 <- function(tmap, Xcol, Xassign, phbaseline=NULL) {
+    # sometime X will have an intercept, sometimes not; cmap never does
+    hasintercept <- (Xassign[1] ==0)
+    ph.coef <- (phbaseline !=0)  # any proportional baselines?
+    ph.rows <- length(unique(phbaseline[ph.coef])) #extra rows to add to cmap
+    cmap <- matrix(0L, length(Xcol) + ph.rows -hasintercept, ncol(tmap))
+    uterm <- unique(Xassign[Xassign != 0])   # terms that will have coefficients
+    
+    xcount <- table(factor(Xassign, levels=1:max(Xassign)))
+    mult <- 1+ max(xcount)  # temporary scaling
+
+    ii <- 0
+    for (i in uterm) {
+        k <- seq_len(xcount[i])
+        for (j in 1:ncol(tmap)) 
+            cmap[ii+k, j] <- if(tmap[i+1,j]==0) 0 else tmap[i+1,j]*mult +k
+        ii <- ii + max(k)
+    }
+
+    if (ph.rows > 0) {
+        temp <- phbaseline[ph.coef] # where each points
+        for (i in unique(temp)) {
+            # for each baseline that forms a reference
+            j <- which(phbaseline ==i)  # the others that are proportional to it
+            k <- seq_len(length(j))
+            ii <- ii +1   # row of cmat for this baseline
+            cmap[ii, j] <- max(cmap) + k  # fill in elements
+        }
+        newname <- paste0("ph(", colnames(tmap)[unique(temp)], ")")
+    } else newname <- NULL
+
+    # renumber coefs as 1, 2, 3, ...
+    cmap[,] <- match(cmap, sort(unique(c(0L, cmap)))) -1L
+    
+    colnames(cmap) <- colnames(tmap)
+    if (hasintercept) rownames(cmap) <- c(Xcol[-1], newname)
+    else rownames(cmap) <- c(Xcol, newname)
+
+    cmap
+}
+@ 

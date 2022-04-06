@@ -1,7 +1,7 @@
 
-R version 2.7.1 (2008-06-23)
-Copyright (C) 2008 The R Foundation for Statistical Computing
-ISBN 3-900051-07-0
+R Under development (unstable) (2019-05-15 r76504) -- "Unsuffered Consequences"
+Copyright (C) 2019 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -16,36 +16,36 @@ Type 'demo()' for some demos, 'help()' for on-line help, or
 Type 'q()' to quit R.
 
 > options(na.action=na.exclude) # preserve missings
-> options(contrasts=c('contr.treatment', 'contr.poly')) #ensure constrast type
+> options(contrasts=c('contr.treatment', 'contr.poly'),
++                      show.signif.stars=FALSE) #ensure constrast type
 > library(survival)
-Loading required package: splines
 > 
 > #
 > # Fit the models found in Wei et. al.
 > #
-> wfit <- coxph(Surv(stop, event) ~ (rx + size + number)* strata(enum) +
-+ 		 cluster(id), bladder, method='breslow')
+> wfit <- coxph(Surv(stop, event) ~ (rx + size + number)* strata(enum),
++ 		 cluster=id, bladder, ties='breslow')
 > wfit
 Call:
-coxph(formula = Surv(stop, event) ~ (rx + size + number) * strata(enum) + 
-    cluster(id), data = bladder, method = "breslow")
+coxph(formula = Surv(stop, event) ~ (rx + size + number) * strata(enum), 
+    data = bladder, ties = "breslow", cluster = id)
 
+                              coef exp(coef) se(coef) robust se      z       p
+rx                        -0.51762   0.59594  0.31576   0.30750 -1.683 0.09231
+size                       0.06789   1.07025  0.10125   0.08529  0.796 0.42602
+number                     0.23599   1.26617  0.07608   0.07208  3.274 0.00106
+rx:strata(enum)enum=2     -0.10182   0.90319  0.50427   0.32654 -0.312 0.75518
+rx:strata(enum)enum=3     -0.18226   0.83339  0.55790   0.39162 -0.465 0.64165
+rx:strata(enum)enum=4     -0.13317   0.87531  0.65813   0.49680 -0.268 0.78865
+size:strata(enum)enum=2   -0.14401   0.86588  0.16800   0.11190 -1.287 0.19812
+size:strata(enum)enum=3   -0.27920   0.75639  0.20862   0.15115 -1.847 0.06472
+size:strata(enum)enum=4   -0.27106   0.76257  0.25146   0.18563 -1.460 0.14422
+number:strata(enum)enum=2 -0.09843   0.90625  0.11931   0.11439 -0.861 0.38951
+number:strata(enum)enum=3 -0.06616   0.93598  0.12983   0.11672 -0.567 0.57083
+number:strata(enum)enum=4  0.09280   1.09724  0.14657   0.11754  0.790 0.42982
 
-                             coef exp(coef) se(coef) robust se      z      p
-rx                        -0.5176     0.596    0.316    0.3075 -1.683 0.0920
-size                       0.0679     1.070    0.101    0.0853  0.796 0.4300
-number                     0.2360     1.266    0.076    0.0721  3.274 0.0011
-rx:strata(enum)enum=2     -0.1018     0.903    0.504    0.3265 -0.312 0.7600
-rx:strata(enum)enum=3     -0.1823     0.833    0.558    0.3916 -0.465 0.6400
-rx:strata(enum)enum=4     -0.1332     0.875    0.658    0.4968 -0.268 0.7900
-size:strata(enum)enum=2   -0.1440     0.866    0.168    0.1119 -1.287 0.2000
-size:strata(enum)enum=3   -0.2792     0.756    0.209    0.1511 -1.847 0.0650
-size:strata(enum)enum=4   -0.2711     0.763    0.251    0.1856 -1.460 0.1400
-number:strata(enum)enum=2 -0.0984     0.906    0.119    0.1144 -0.861 0.3900
-number:strata(enum)enum=3 -0.0662     0.936    0.130    0.1167 -0.567 0.5700
-number:strata(enum)enum=4  0.0928     1.097    0.147    0.1175  0.790 0.4300
-
-Likelihood ratio test=29.4  on 12 df, p=0.00344  n= 340 
+Likelihood ratio test=29.39  on 12 df, p=0.003443
+n= 340, number of events= 112 
 > 
 > # Check the rx coefs versus Wei, et al, JASA 1989
 > rx <- c(1,4,5,6)  # the treatment coefs above
@@ -54,99 +54,100 @@ Likelihood ratio test=29.4  on 12 df, p=0.00344  n= 340
            [,1]       [,2]       [,3]       [,4]
 [1,] -0.5176209 -0.6194404 -0.6998771 -0.6507935
 > t(cmat) %*% wfit$var[rx,rx] %*% cmat  # var matrix (eqn 3.2)
-           [,1]       [,2]      [,3]      [,4]
-[1,] 0.09455501 0.06017669 0.0567733 0.0437777
-[2,] 0.06017669 0.13242834 0.1301156 0.1160420
-[3,] 0.05677331 0.13011557 0.1723588 0.1590865
-[4,] 0.04377770 0.11604200 0.1590865 0.2398112
+           [,1]       [,2]       [,3]      [,4]
+[1,] 0.09455501 0.06017669 0.05677331 0.0437777
+[2,] 0.06017669 0.13242834 0.13011557 0.1160420
+[3,] 0.05677331 0.13011557 0.17235879 0.1590865
+[4,] 0.04377770 0.11604200 0.15908650 0.2398112
 > 
 > # Anderson-Gill fit
-> fita <- coxph(Surv(start, stop, event) ~ rx + size + number + cluster(id),
-+ 		  bladder2,  method='breslow')
+> fita <- coxph(Surv(start, stop, event) ~ rx + size + number, cluster=id,
++ 		  bladder2,  ties='breslow')
 > summary(fita)
 Call:
-coxph(formula = Surv(start, stop, event) ~ rx + size + number + 
-    cluster(id), data = bladder2, method = "breslow")
+coxph(formula = Surv(start, stop, event) ~ rx + size + number, 
+    data = bladder2, ties = "breslow", cluster = id)
 
-  n= 178 
+  n= 178, number of events= 112 
 
-           coef exp(coef) se(coef) robust se      z Pr(>|z|)   
-rx     -0.45979   0.63142  0.19996   0.25801 -1.782  0.07474 . 
-size   -0.04256   0.95833  0.06903   0.07555 -0.563  0.57317   
-number  0.17164   1.18726  0.04733   0.06131  2.799  0.00512 **
----
-Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1 
+           coef exp(coef) se(coef) robust se      z Pr(>|z|)
+rx     -0.45979   0.63142  0.19996   0.25801 -1.782  0.07474
+size   -0.04256   0.95833  0.06903   0.07555 -0.563  0.57317
+number  0.17164   1.18726  0.04733   0.06131  2.799  0.00512
 
        exp(coef) exp(-coef) lower .95 upper .95
 rx        0.6314     1.5837    0.3808     1.047
 size      0.9583     1.0435    0.8264     1.111
 number    1.1873     0.8423    1.0528     1.339
 
-Rsquare= 0.09   (max possible= 0.994 )
-Likelihood ratio test= 16.77  on 3 df,   p=0.000787
-Wald test            = 11.76  on 3 df,   p=0.008256
-Score (logrank) test = 18.57  on 3 df,   p=0.0003355,   Robust = 11.44  p=0.009588
+Concordance= 0.634  (se = 0.032 )
+Likelihood ratio test= 16.77  on 3 df,   p=8e-04
+Wald test            = 11.76  on 3 df,   p=0.008
+Score (logrank) test = 18.57  on 3 df,   p=3e-04,   Robust = 11.44  p=0.01
 
   (Note: the likelihood ratio and score tests assume independence of
      observations within a cluster, the Wald and robust score tests do not).
 > 
 > # Prentice fits.  Their model 1 a and b are the same
 > fit1p  <- coxph(Surv(stop, event) ~ rx + size + number, bladder2,
-+ 		subset=(enum==1), method='breslow')
++ 		subset=(enum==1), ties='breslow')
 > fit2pa <- coxph(Surv(stop, event) ~ rx + size + number, bladder2,
-+ 		subset=(enum==2), method='breslow')
++ 		subset=(enum==2), ties='breslow')
 > fit2pb <- coxph(Surv(stop-start,  event) ~ rx + size + number, bladder2,
-+ 		   subset=(enum==2), method='breslow')
++ 		   subset=(enum==2), ties='breslow')
 > fit3pa <- coxph(Surv(stop, event) ~ rx + size + number, bladder2,
-+ 		subset=(enum==3), method='breslow')
++ 		subset=(enum==3), ties='breslow')
 >  #and etc.
 > fit1p
 Call:
 coxph(formula = Surv(stop, event) ~ rx + size + number, data = bladder2, 
-    subset = (enum == 1), method = "breslow")
+    subset = (enum == 1), ties = "breslow")
 
+           coef exp(coef) se(coef)      z       p
+rx     -0.51762   0.59594  0.31576 -1.639 0.10115
+size    0.06789   1.07025  0.10125  0.671 0.50253
+number  0.23599   1.26617  0.07608  3.102 0.00192
 
-          coef exp(coef) se(coef)     z      p
-rx     -0.5176     0.596    0.316 -1.64 0.1000
-size    0.0679     1.070    0.101  0.67 0.5000
-number  0.2360     1.266    0.076  3.10 0.0019
-
-Likelihood ratio test=9.66  on 3 df, p=0.0216  n= 85 
+Likelihood ratio test=9.66  on 3 df, p=0.02164
+n= 85, number of events= 47 
 > fit2pa
 Call:
 coxph(formula = Surv(stop, event) ~ rx + size + number, data = bladder2, 
-    subset = (enum == 2), method = "breslow")
+    subset = (enum == 2), ties = "breslow")
 
+            coef exp(coef)  se(coef)      z     p
+rx     -0.424214  0.654284  0.402200 -1.055 0.292
+size   -0.125033  0.882467  0.117088 -1.068 0.286
+number  0.001987  1.001989  0.093760  0.021 0.983
 
-           coef exp(coef) se(coef)       z    p
-rx     -0.42421     0.654   0.4022 -1.0547 0.29
-size   -0.12503     0.882   0.1171 -1.0679 0.29
-number  0.00199     1.002   0.0938  0.0212 0.98
-
-Likelihood ratio test=2.02  on 3 df, p=0.569  n= 46 
+Likelihood ratio test=2.02  on 3 df, p=0.5688
+n= 46, number of events= 29 
 > fit2pb
 Call:
 coxph(formula = Surv(stop - start, event) ~ rx + size + number, 
-    data = bladder2, subset = (enum == 2), method = "breslow")
+    data = bladder2, subset = (enum == 2), ties = "breslow")
 
+            coef exp(coef)  se(coef)      z     p
+rx     -0.259112  0.771737  0.405110 -0.640 0.522
+size   -0.116363  0.890152  0.119236 -0.976 0.329
+number -0.005709  0.994307  0.096671 -0.059 0.953
 
-           coef exp(coef) se(coef)      z    p
-rx     -0.25911     0.772   0.4051 -0.640 0.52
-size   -0.11636     0.890   0.1192 -0.976 0.33
-number -0.00571     0.994   0.0967 -0.059 0.95
-
-Likelihood ratio test=1.27  on 3 df, p=0.735  n= 46 
+Likelihood ratio test=1.27  on 3 df, p=0.7353
+n= 46, number of events= 29 
 > fit3pa
 Call:
 coxph(formula = Surv(stop, event) ~ rx + size + number, data = bladder2, 
-    subset = (enum == 3), method = "breslow")
+    subset = (enum == 3), ties = "breslow")
 
+           coef exp(coef) se(coef)      z     p
+rx     -0.89854   0.40716  0.55352 -1.623 0.105
+size    0.08497   1.08869  0.20861  0.407 0.684
+number -0.01716   0.98298  0.12802 -0.134 0.893
 
-          coef exp(coef) se(coef)      z    p
-rx     -0.8985     0.407    0.554 -1.623 0.10
-size    0.0850     1.089    0.209  0.407 0.68
-number -0.0172     0.983    0.128 -0.134 0.89
-
-Likelihood ratio test=4.16  on 3 df, p=0.245  n= 27 
+Likelihood ratio test=4.16  on 3 df, p=0.2452
+n= 27, number of events= 22 
 > rm(rx, cmat, wfit, fita, fit1p, fit2pa, fit2pb, fit3pa)
 > 
+> proc.time()
+   user  system elapsed 
+  0.772   0.040   0.816 

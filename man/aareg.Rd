@@ -10,7 +10,7 @@ represents an Aalen model.
 \usage{
 aareg(formula, data, weights, subset, na.action,
    qrtol=1e-07, nmin, dfbeta=FALSE, taper=1,
-   test = c('aalen', 'variance', 'nrisk'),
+   test = c('aalen', 'variance', 'nrisk'), cluster,
     model=FALSE, x=FALSE, y=FALSE) 
 }
 \arguments{
@@ -29,7 +29,7 @@ data frame in which to interpret the variables named in the
 \code{subset}, and \code{weights} arguments.
 This may also be a single number to handle
 some speci al cases -- see below for details. If
-\code{data} is missi ng, the variables in the
+\code{data} is missing, the variables in the
 model formula should be in the search path.
 }
 \item{weights}{
@@ -46,7 +46,7 @@ exclude particular observations from the model, use the
 expression specifying which subset of observations should be used in
 the fit. Th is can be a logical vector (which is replicated to have
 length equal to the numb er of observations), a numeric vector
-indicating the observation numbers to be i ncluded, or a character
+indicating the observation numbers to be included, or a character
 vector of the observation names that should be included.  All
 observations are included by default.
 }
@@ -66,7 +66,7 @@ tolerance for detection of singularity in the QR decomposition
 minimum number of observations for an estimate; defaults to 3 times the
 number of covariates.
 This essentially truncates the computations near the tail of the data
-set, when n is small and the calcualtions can become numerically
+set, when n is small and the calculations can become numerically
 unstable.
 }
 \item{dfbeta}{
@@ -93,21 +93,40 @@ The default value gives the standard Aalen model.
 selects the weighting to be used, for computing an overall ``average''
 coefficient vector over time and the subsequent test for equality to zero.
 }
+\item{cluster}{the clustering group, optional.  The variable will be
+  searched for in the data argument.}
 \item{model, x, y }{
 should copies of the model frame, the x matrix of predictors, or the
 response vector y be included in the saved result.
 }
 }
 \value{
-an object of class \code{"aareg"} 
-representing the fit.
+  an object of class \code{"aareg"} 
+  representing the fit, with the following components:
+  \item{n}{vector containing the number of observations in the data set,
+    the number of event times, and the number of event times used in the
+    computation}
+  \item{times}{vector of sorted event times, which may contain
+    duplicates}
+  \item{nrisk}{vector containing the number of subjects at risk, of the
+    same length as \code{times}}
+  \item{coefficient}{matrix of coefficients, with one row per event and
+    one column per covariate}
+  \item{test.statistic}{the value of the test statistic, a vector with
+    one element per covariate}
+  \item{test.var}{variance-covariance matrix for the test}
+  \item{test}{the type of test; a copy of the \code{test} argument
+    above}
+  \item{tweight}{matrix of weights used in the computation, one row per
+    event}
+  \item{call}{a copy of the call that produced this result}
 }
 \details{
 The Aalen model assumes that the cumulative hazard H(t) for a subject
 can be expressed as a(t) + X B(t), where a(t) is a time-dependent intercept
 term, X is the vector of covariates for the subject (possibly time-dependent),
 and B(t) is a time-dependent matrix of coefficients.
-The estimates are inheritly non-parametric; a fit of the model will normally
+The estimates are inherently non-parametric; a fit of the model will normally
 be followed by one or more plots of the estimates.
 
 The estimates may become unstable near the tail of a data set, since the

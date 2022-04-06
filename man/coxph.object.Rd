@@ -17,11 +17,10 @@ object.
 }
 \arguments{
 \item{coefficients}{
-the coefficients of the linear predictor, which multiply the columns of 
-the 
-model matrix.  If the model is over-determined there will be missing 
-values in the vector corresponding to the redundant columns in the model 
-matrix. 
+  the vector of coefficients.
+  If the model is over-determined there will be missing 
+  values in the vector corresponding to the redundant columns in the model 
+  matrix. 
 }
 \item{var}{
 the variance matrix of the coefficients.  Rows and columns corresponding to 
@@ -49,28 +48,52 @@ the Wald test of whether the final coefficients differ from the initial values.
 number of iterations used. 
 }
 \item{linear.predictors}{
-the vector of linear predictors, one per subject. 
+  the vector of linear predictors, one per subject.  Note that this
+  vector has been centered, see \code{predict.coxph} for more details.
 }
 \item{residuals}{
 the martingale residuals. 
 }
 \item{means}{
-vector of column means of the X matrix.  Subsequent survival curves are 
-adjusted to this value. 
+  vector of values used as the reference for each covariate.
+  For instance, a later call to \code{predict(fit, type='risk')} will
+  give the hazard ratio between an observation and this reference.
+  (For most covariates this will contain the mean.)
 }
 \item{n}{
 the number of observations used in the fit. 
 }
+\item{nevent}{
+the number of events (usually deaths) used in the fit. 
+}
+\item{concordance}{a vector of length 6, containing the number of pairs
+  that are concordant, discordant, tied on x, tied on y, and tied on both,
+  followed by the standard error of the concordance statistic.}
+\item{first}{the first derivative vector at the solution.}
 \item{weights}{
 the vector of case weights, if one was used. 
 }
 \item{method}{
-the computation method used. 
+the method used for handling tied survival times.
 }
 \item{na.action}{
 the na.action attribute, if any, that was returned by the \code{na.action} 
 routine. 
-
+}
+\item{timefix}{the value of the timefix option used in the fit}
+\item{cmap}{the coefficient map, present for multi-state coxph fits. There
+  a column for each transition and a row for each coefficient, the value
+  maps that transition/coefficient pair to a position in the coefficient
+  vector.
+  If a particular covariate is not used by the transition the matrix
+  will contain a zero, if two transitions share a coefficient the matrix
+  will contain repeats.}
+\item{stratum_map}{stratum mapping, present for multi-state coxph fits.
+  The row labeled `(Baseline)' identifies transitions that do or do not
+  share a baseline stratum.  Further rows correspond to strata() terms
+  in the model, each of which may apply to some transitions and not others.
+}
+  \item{...}{
 The object will also contain the following, for documentation see the \code{lm} 
 object: \code{terms}, \code{assign}, \code{formula}, \code{call}, and, optionally, \code{x}, \code{y}, 
 and/or \code{frame}. 

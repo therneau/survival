@@ -1,0 +1,102 @@
+/* all of this code was copy-pasted into the maxima program,
+   and results used to build the R program */
+
+/* 2 states, 2 transitions 
+  Remember that R stores matrices columnwise, when copying these results
+ over.  This code uses a,b, c,... in rows.
+*/
+
+tmat : matrix([-a,a], [b,-b]);
+etmat: matrixexp(tmat, t);
+
+d1:  a+b;
+e1 : exp(-d1*t);
+test: matrix([(a*e1 +b)/d1, (a-a*e1)/d1], [(b-b*e1)/d1, (a+b*e1)/d1]);
+expand(test- etmat);  /* should be all zeros */
+
+deriv1a: diff(etmat[1,1], a);
+test: e1*(1-a*t)/d1 - (a*e1 +b)/d1^2;
+expand(test - deriv1a);  /* should print a 0 */
+
+deriv2a: diff(etmat[1,2], a);
+deriv3a: diff(etmat[2,1], a);
+expand(deriv3a - (b/d1)*(t*e1 + (e1-1)/d1));
+
+deriv4a: diff(etmat[2,2], a);
+
+deriv1b: diff(etmat[1,1], b);
+deriv2b: diff(etmat[1,2], b);
+deriv3b: diff(etmat[2,1], b);
+deriv4b: diff(etmat[2,2], b);
+
+/* 3 states competing risks */
+tmat : matrix([-(a+b), a, b], [0,0,0], [0,0,0]);
+etmat: matrixexp(tmat, t);
+
+d1: a + b;
+e1: exp(-d1*t);
+test: matrix([e1, a*(1-e1)/d1, b*(1-e1)/d1], [0,1, 0], [0,0, 1]);
+expand(test-etmat);  /* should print 0 */
+
+dmata: diff(etmat, a);
+dmatb: diff(etmat, b);
+
+test: (1+ a*t*e1 - e1)/d1 + a(e1-1)/d1^2;
+expand(test - dmata[1,2]);
+
+test: (b/d1)*(t*e1 + (e1-1)/d1);
+expand(test - dmata[1,3]);
+
+test: (a/d1)*(t*e1 + (e1-1)/d1);
+expand(test - dmatb[1,2]);
+
+/* 4 states, competing risks */
+tmat : matrix([-(a+b+d), a, b, d], [0,0,0,0], [0,0,0,0], [0,0,0,0]);
+etmat: matrixexp(tmat, t);
+dmata: diff(etmat, a);
+dmatb: diff(etmat, b);
+
+d1: a+b+d;
+e1: exp(-d1*t);
+test: (1+ a*t*e1 - e1)/d1 + a(e1-1)/d1^2;
+expand(test - dmata[1,2]);
+
+test: (b/d1)*(t*e1 + (e1-1)/d1);
+expand(test - dmata[1,3]);
+
+
+/*  3 states, a to b and all to death */
+tmat : matrix([-(a+b), a, b], [0, -c, c], [0,0,0]);
+etmat: matrixexp(tmat * t);
+
+d1 : c- a+b;
+e1 : exp(-(a+b)*t);
+e2 : exp(-c*t);
+expand(a*(e1 - e2)/d1 - etmat[1,2]);  /* simpler form for the term */
+expand((b-c)*e1/d1 + a*e2/d1 +1 - etmat[1,3]);
+
+expand(diff(etmat[1,1], a));
+diff(etmat[1,2], a);
+diff(etmat[2,2], a);
+
+test3: (e1-e2)*(1+ a/d2)/d2 - a*t*e1/d2;
+expand(test3- diff(etmat[1,2], a));
+test2: t + a*t/d2 -
+diff(etmat[2,2], a) - (test1 + test2);
+
+expand(diff(etmat[1,3], a));
+expand(diff(etmat[2,2], a));
+
+
+/* special case of the above, where c= a+b */
+tmat : matrix([-(a+b), a, b], [0,-(a+b), a+b], [0,0,0]);
+etmat: matrixexp(tmat*t);
+
+expand(diff(etmat[1,1], a));
+expand(diff(etmat[1,2], a));
+expand(diff(etmat[1,3], a));
+expand(diff(etmat[2,2], a))
+
+/* illness-death */
+tmat : matrix([-(a+b), a, b], [c, -(c+d), d], [0,0,0]);
+etmat: matrixexp(tmat*t);

@@ -36,7 +36,7 @@ can help in creating a new rate table.
 }
 \examples{
 is.ratetable(survexp.us)  # True
-is.ratetable(cancer)      # False
+is.ratetable(lung)        # False
 }
 
 \keyword{survival}

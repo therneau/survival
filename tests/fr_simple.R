@@ -21,7 +21,7 @@ tfit2 <- coxph(Surv(time,status) ~x + frailty(zz, theta=0, sparse=T), test1)
 tfit3 <- coxph(Surv(zz,time,status) ~x + frailty(zz, theta=0, sparse=T), test1)
 
 temp <- c('coefficients', 'var', 'loglik', 'linear.predictors',
-	  'means', 'n')
+	  'means', 'n', 'concordance')
 
 all.equal(tfit1[temp], tfit2[temp])
 all.equal(tfit2[temp], tfit3[temp])

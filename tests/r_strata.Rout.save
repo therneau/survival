@@ -1,7 +1,7 @@
 
-R version 2.11.1 (2010-05-31)
-Copyright (C) 2010 The R Foundation for Statistical Computing
-ISBN 3-900051-07-0
+R version 3.4.1 (2017-06-30) -- "Single Candle"
+Copyright (C) 2017 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -18,7 +18,6 @@ Type 'q()' to quit R.
 > options(na.action=na.exclude) # preserve missings
 > options(contrasts=c('contr.treatment', 'contr.poly')) #ensure constrast type
 > library(survival)
-Loading required package: splines
 > 
 > #
 > # Test out the strata capabilities
@@ -59,7 +58,7 @@ Scale:
 0.8084294 0.6355816 
 
 Loglik(model)= -1147.1   Loglik(intercept only)= -1152.5
-	Chisq= 10.9 on 1 degrees of freedom, p= 0.00096 
+	Chisq= 10.9 on 1 degrees of freedom, p= 0.000963 
 n= 228 
 > aeq(fit2$scale, c(fit3a$scale, fit3b$scale), tolerance=tol)
 [1] TRUE
@@ -79,7 +78,7 @@ survreg(formula = Surv(time, status) ~ pspline(age, theta = 0.92) +
     strata(sex), data = lung)
 
                           coef    se(coef) se2    Chisq DF   p      
-(Intercept)                6.9036 0.8469   0.5688 66.45 1.00 3.3e-16
+(Intercept)                6.9036 0.8469   0.5688 66.45 1.00 3.6e-16
 pspline(age, theta = 0.92 -0.0124 0.0067   0.0067  3.45 1.00 6.3e-02
 pspline(age, theta = 0.92                          2.53 2.65 4.0e-01
 
@@ -90,7 +89,7 @@ sex=1 sex=2
 Iterations: 1 outer, 4 Newton-Raphson
      Theta= 0.92 
 Degrees of freedom for terms= 0.5 3.6 2.0 
-Likelihood ratio test=6.54  on 3.1 df, p=0.0937  n= 228 
+Likelihood ratio test=6.54  on 3.1 df, p=0.09  n= 228 
 > fit2
 Call:
 survreg(formula = Surv(time, status) ~ pspline(age, theta = 0.92) + 
@@ -109,7 +108,7 @@ sex=1 sex=2
 Iterations: 1 outer, 5 Newton-Raphson
      Theta= 0.92 
 Degrees of freedom for terms= 0.5 3.7 1.0 2.0 
-Likelihood ratio test=16.8  on 4.2 df, p=0.00245  n= 228 
+Likelihood ratio test=16.8  on 4.2 df, p=0.002  n= 228 
 > 
 > age1 <- ifelse(lung$sex==1, lung$age, mean(lung$age))
 > age2 <- ifelse(lung$sex==2, lung$age, mean(lung$age))
@@ -146,3 +145,6 @@ Likelihood ratio test=16.8  on 4.2 df, p=0.00245  n= 228
 > 
 > 
 > 
+> proc.time()
+   user  system elapsed 
+  2.032   0.131   2.443 

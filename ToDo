@@ -1,0 +1,74 @@
+Proper variance for yates survival curve
+
+Robust variance for multi-state Cox survival
+
+survfit.coxph does not correctly save p0 if differnt data= arguments would
+lead to a differnt p0.  But when would they?  p0 is an unweighted mean.  This
+just needs a bit more thought.  What isn't done is to save p0 when using a
+single subsript for a multidim object -- not sure what to do there.  Hopefully
+people won't use that feature
+
+Reliability models vignette
+
+Update iteration for penalized models wrt the changes in version 2.44.
+actually - rewrite the penalized models
+
+add design of the survival library document to vignettes
+
+include.lowest for tcut (first find out what the issue is)
+
+add "fun" to summary.survfit (really want this?)
+ 
+confint method for coxph objects that uses profile likelihood.  (But will it
+actually matter?)
+
+deal with variables that have spaces, e.g.,  Surv(time, status) ~ `bad name`
+
+---
+Cook and Lawless, Multistate models for life history data, page 104, just above 
+section 3.5.2.  State that  
+  $\hat \theta - \hat\theta_{(i)} \approx V U_i$
+where $V$ is the Cox model variance.
+This is my formula for the dfbeta residuals.  Thay also state that
+ $LD_i = 2(loglik(\theta) - loglik(\theta_{(i)}) = U'_i V U_i $
+
+This appears to be Han Van H's likelihood displacement residual and would lead
+to the cross-validated log-likelhood?   They are talking about parametric
+models though.
+
+----------------
+
+Depricate survConcordance.  Issues that may arise:
+
+Functions that use survConcordance:
+CatPredi: survConcordance.fit
+messina:  survConcordance.fit
+distcomp:  ""
+
+These use survConcordance()$concordance
+palasso
+ePCR
+ncvreg
+MXM
+compound.Cox
+survminer
+
+These include my survproto.h, but don't seem to use concordance1/2
+KMgene, distcomp, seqMeta
+
+survBootOutliers uses cox_object$concordance with C/(C+D), and does not notice
+the issue of strata.  
+
+---------
+coxph still returns the Splus style assign.  It's time to give it up.
+
+outside: a covariate with variance=0 in all the risk sets leads to a
+	 "contact the author" message
+---
+
+Request to add a row for the entry times in the survfit object:
+"Dear Terry,
+the issue came from clinicians who complained about false counts. These counts are needed in the reporting of survival curves in clinical papers. Of course the exact counts it are not relevant when you just plot a survival curve, but the statistician is in trouble if he has not got these numbers right. 
+I see your point, too, as I know that the code of the survival package is quite complex. Maybe at least warning in the summary output would be helpful so that the user knows that he has to calculate the exact figures by himself.
+Best 
+Franz Quehenberger"

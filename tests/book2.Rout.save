@@ -1,7 +1,7 @@
 
-R version 2.11.1 (2010-05-31)
-Copyright (C) 2010 The R Foundation for Statistical Computing
-ISBN 3-900051-07-0
+R Under development (unstable) (2021-01-28 r79896) -- "Unsuffered Consequences"
+Copyright (C) 2021 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -16,7 +16,6 @@ Type 'demo()' for some demos, 'help()' for on-line help, or
 Type 'q()' to quit R.
 
 > library(survival)
-Loading required package: splines
 > options(na.action=na.exclude) # preserve missings
 > options(contrasts=c('contr.treatment', 'contr.poly')) #ensure constrast type
 > 
@@ -98,10 +97,11 @@ Loading required package: splines
 > aeq(sfit$surv, truth0$surv)
 [1] TRUE
 > 
-> fit <- coxph(Surv(time, status) ~x, test1, eps=1e-8)
+> fit <- coxph(Surv(time, status) ~x, test1, eps=1e-8, nocenter=NULL)
 > aeq(round(fit$coef,6), 1.676857)
 [1] TRUE
-> truth <- byhand(fit$coef, 0)
+> truebeta <- log(cos(acos((45/23)*sqrt(3/23))/3) * 2* sqrt(23/3))
+> truth <- byhand(truebeta, 0)
 > aeq(truth$loglik, fit$loglik[2])
 [1] TRUE
 > aeq(1/truth$imat, fit$var)
@@ -111,6 +111,16 @@ Loading required package: splines
 > aeq(truth$scho, resid(fit, 'schoen'))
 [1] TRUE
 > aeq(truth$score, resid(fit, 'score')[c(3:7,1)])
+[1] TRUE
+> 
+> # Per comments in the source code, the below is expected to fail for Efron 
+> #  at the tied death times.  (When predicting for new data, predict
+> #  treats a time in the new data set that exactly matches one in the original
+> #  as being just after the original, i.e., experiences the full hazard
+> #  jump there, in the same way that censors do.)
+> expect <- predict(fit, type='expected', newdata=test1) #force recalc
+> use <- !(test1$time==6 | is.na(test1$status))
+> aeq(test1$status[use] - resid(fit)[use], expect[use])  
 [1] TRUE
 > 
 > sfit <- survfit(fit, list(x=0), censor=FALSE)
@@ -129,15 +139,13 @@ Loading required package: splines
          1          2          3          4          5          6          7 
  0.2208584         NA  0.1132780 -0.0442340 -0.1029199 -0.4078409  0.2208584 
 > resid(fit, 'scho')
-         1          6          6          9 
- 0.1575120  0.4212440 -0.5787560  0.0000000 
+        1         6         6         9 
+ 0.157512  0.421244 -0.578756  0.000000 
 > 
 > predict(fit, type='lp')
-         1          2          3          4          5          6          7 
--0.8384287         NA  0.8384287  0.8384287  0.8384287 -0.8384287 -0.8384287 
+[1] -0.8384287         NA  0.8384287  0.8384287  0.8384287 -0.8384287 -0.8384287
 > predict(fit, type='risk')
-        1         2         3         4         5         6         7 
-0.4323894        NA 2.3127302 2.3127302 2.3127302 0.4323894 0.4323894 
+[1] 0.4323894        NA 2.3127302 2.3127302 2.3127302 0.4323894 0.4323894
 > predict(fit, type='expected')
         1         2         3         4         5         6         7 
 1.3655434        NA 0.2808293 0.2808293 1.4383414 0.2689131 0.3655434 
@@ -174,8 +182,7 @@ $fit
 1.3655434        NA 0.2808293 0.2808293 1.4383414 0.2689131 0.3655434 
 
 $se.fit
-        1         2         3         4         5         6         7 
-1.1685647        NA 0.5299333 0.5299333 1.1993087 0.5185684 0.6046019 
+[1] 1.0649293        NA 0.2864593 0.2864593 1.5922983 0.3661617 0.3661617
 
 > predict(fit, type='terms', se.fit=T)
 $fit
@@ -214,3 +221,6 @@ Call: survfit(formula = fit, newdata = list(x = 2))
     6      4       2 2.87e-05 5.69e-04     3.96e-22            1
     9      1       1 1.08e-17 1.04e-15     1.07e-99            1
 > 
+> proc.time()
+   user  system elapsed 
+  1.070   0.096   1.169 

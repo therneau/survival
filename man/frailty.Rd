@@ -8,13 +8,16 @@
 }
 \description{
 The frailty function allows one to add a simple random effects term to
-a Cox or survreg model.
+a Cox model.
 }
 \usage{
 frailty(x, distribution="gamma", ...)
-frailty.gamma(x, sparse = (nclass > 5), theta, df, eps = 1e-05, method = c("em","aic", "df", "fixed"), ...) 
-frailty.gaussian(x, sparse = (nclass > 5), theta, df, method =c("reml","aic", "df", "fixed"), ...)
-frailty.t(x, sparse = (nclass > 5), theta, df, eps = 1e-05, tdf = 5,method = c("aic", "df", "fixed"), ...)
+frailty.gamma(x, sparse = (nclass > 5), theta, df, eps = 1e-05,
+         method = c("em","aic", "df", "fixed"), ...) 
+frailty.gaussian(x, sparse = (nclass > 5), theta, df,
+         method =c("reml","aic", "df", "fixed"), ...)
+frailty.t(x, sparse = (nclass > 5), theta, df, eps = 1e-05, tdf = 5,
+         method = c("aic", "df", "fixed"), ...)
 }
 
 \arguments{
@@ -38,7 +41,7 @@ frailty.t(x, sparse = (nclass > 5), theta, df, eps = 1e-05, tdf = 5,method = c("
     than this value, then a sparse matrix approximation is used.
     The correct cutoff is still a matter of exploration: if the number of
     levels is very large (thousands) then the non-sparse calculation may not be
-    feasable in terms of both memory and compute time.  
+    feasible in terms of both memory and compute time.
     Likewise, the accuracy of the sparse approximation appears to be related to
     the maximum proportion of subjects in any one class, being best when no
     one class has a large membership.
@@ -62,9 +65,9 @@ frailty.t(x, sparse = (nclass > 5), theta, df, eps = 1e-05, tdf = 5,method = c("
     The \code{df} selects the variance such that the
     degrees of freedom for the random effect matches a user specified value.
     The \code{aic} method seeks to 
-    maximize Akiake's information criteria 
+    maximize Akaike's information criteria 
     2*(partial likelihood - df).
-    The \code{ml} and \code{reml}
+    The \code{em} and \code{reml}
     methods are specific to Cox models with gamma and gaussian random effects,
     respectively.
     Please see further discussion below.
@@ -73,11 +76,11 @@ frailty.t(x, sparse = (nclass > 5), theta, df, eps = 1e-05, tdf = 5,method = c("
     the degrees of freedom for the t-distribution.
   }
   \item{eps}{
-    convergence critera for the iteration on theta.
+    convergence criteria for the iteration on theta.
   }
 }
 \value{
-this function is used in the model statment of either
+this function is used in the model statement of either
 \code{coxph} or \code{survreg}.
 It's results are used internally.
 }
@@ -104,8 +107,11 @@ routine they choose.  A weakness is that it is very difficult for the
 modeling routine to know whether a sensible penalty routine has been
 supplied.
 
-For Cox models the \code{coxme} package has replaced superseded
-this method.
+Note that use of a frailty term implies a mixed effects model and use of
+a cluster term implies a GEE approach; these cannot be mixed.
+
+The \code{coxme} package has superseded
+this method.  It is faster, more stable, and more flexible.
 }
 \section{References}{
 S Ripatti and J Palmgren, Estimation of multivariate frailty 
@@ -124,10 +130,12 @@ J Computational and Graphical Statistics, 12:156-175, 2003.
 coxph(Surv(time, status) ~ age + frailty(inst, df=4), lung)
 
 # Litter effects for the rats data
-rfit2a <- survreg(Surv(time, status) ~ rx +
-                  frailty.gaussian(litter, df=13, sparse=FALSE), rats )
-rfit2b <- survreg(Surv(time, status) ~ rx +
-                  frailty.gaussian(litter, df=13, sparse=TRUE), rats )
+rfit2a <- coxph(Surv(time, status) ~ rx +
+                  frailty.gaussian(litter, df=13, sparse=FALSE), rats,
+                  subset= (sex=='f'))
+rfit2b <- coxph(Surv(time, status) ~ rx +
+                  frailty.gaussian(litter, df=13, sparse=TRUE), rats,
+                  subset= (sex=='f'))
 }
 \keyword{survival}
 

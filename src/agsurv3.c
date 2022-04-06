@@ -1,4 +1,3 @@
-/*  SCCS $Id: agsurv3.c 11183 2009-01-21 13:33:40Z therneau $ */
 /*
 ** Create the cohort survival curve(s) for a set of subjects.
 **
@@ -14,11 +13,11 @@
 **    score  - the risk score for the old subjects
 **    y -  the max fu time for each subject
 **    score[n] - vector of weights
-**    r  =    an nvar+1 column matrix.  Column 1 is the group designator (for
-**              multiple survival curves).  Columns 2 to nvar+1 are the X data
+**    strata = the group designator (for multiple survival curves)
+**    r  =    an nvar column matrix containing the X data
 **              for the new subjects.
 **    var    = Cox variance matrix
-**    mean   = vector of means, for the Cox program
+**    xmean  = vector of means of the data, for centering.
 **    cn     =  n for the original (Cox) data
 **    cy     =  3 column matrix of original data
 **    cx     =  the original X data -- will be a dummy is se =0
@@ -31,9 +30,6 @@
 **    surv[ncurve][npt]  the conditional survival at t
 **    varh[ncurve][npt]  variance of the survival (if requested)
 **    used[ncurve][npt]  # of subjects contributing to each time point
-**    y[1,] - contains the survival times
-**    y[2,] - the number at risk at the time (old subjects)
-**    y[3,]  - the number of events (old subjects) at the time
 **
 **  Work space is allocated as needed
 **    for the calculations on the "old" data
@@ -58,8 +54,8 @@ static double   *y,
 		*isurv,
 		**used,
 		**tvar;
-static double   *strata,
-                ttime,    /* Some HP compilers choke on "time" as a variable */
+static int      *strata;
+static double   ttime,    /* Some HP compilers choke on "time" as a variable */
 		**imat,
 		*mean;
 static int      death,
@@ -71,13 +67,13 @@ static void    addup();
 
 void agsurv3(Sint   *sn,    Sint   *snvar,    Sint   *sncurve, 
 	     Sint   *snpt,  Sint   *sse,      double *score, 
-	     double *sy,    double *r,        double *coef, 
-	     double *var,   double *cmean,    Sint   *scn, 
+	     double *sy,    Sint   *grpx,     double *r,        double *coef, 
+	     double *var,   double *xmean,    Sint   *scn, 
 	     double *cy,    double *cx,       double *ssurv,
 	     double *varh,  double *sused,    Sint   *smethod)
 {
-S_EVALUATOR
-    register int i,j,k,l;
+
+    int i,j,k,l;
     double *start, *stop, *event;
     int cn;
     int npt,
@@ -106,7 +102,6 @@ S_EVALUATOR
     n = *sn;  nvar = *snvar;
     cn = *scn; npt = *snpt;
     se = *sse;
-    mean = cmean;
     ncurve = *sncurve;
     method = *smethod;
     death = method/10;
@@ -115,15 +110,16 @@ S_EVALUATOR
     start = cy;
     stop  = cy+ cn;
     event = cy+ cn+ cn;
-    strata = r;
+    strata = grpx;
 
     /*
     ** scratch space
     */
-    need = 2*n + se*nvar*(2+ n*(n+1)/2);
+    need = 2*n + se*nvar*(2+ n*(n+1)/2) + nvar;
     nscore = (double *) ALLOC(need, sizeof(double));
     for (i=0; i<need; i++) nscore[i] =0.0;  /* R doesn't zero the memory */
-    isurv  = nscore + n;
+    mean = nscore +n;
+    isurv  = mean + nvar;
     for (i=0; i<n; i++) isurv[i]=1;
     if (se==1) {
 	a = isurv + n;
@@ -139,7 +135,7 @@ S_EVALUATOR
     **  Set up the ragged arrays
     */
     if (se==1) oldx = dmatrix(cx, cn, nvar);
-    newx = dmatrix(r+n, n, nvar);
+    newx = dmatrix(r, n, nvar);
     imat = dmatrix(var,  nvar, nvar);
     surv = dmatrix(ssurv, npt, ncurve);
     vsurv = dmatrix(varh,  npt, ncurve);
@@ -149,19 +145,12 @@ S_EVALUATOR
 	for (j=0; j<npt; j++)  surv[i][j] =1;
 
     /*
-    ** compute the risk scores, and center the data for stability
+    ** compute the risk scores
     */
-    if (se==1) {
-	for (i=0; i<cn; i++) {
-	    for (j=0; j<nvar; j++)
-		oldx[j][i] -= mean[j];
-	    }
-	}
     for (i=0; i<n; i++) {
 	nscore[i] =0;
 	for (j=0; j<nvar; j++) {
-	    newx[j][i] -= mean[j];
-	    nscore[i] += coef[j]* newx[j][i];
+	    nscore[i] += coef[j]* (newx[j][i] - xmean[j]);
 	    }
 	nscore[i] = exp(nscore[i]);
 	}
@@ -193,7 +182,7 @@ S_EVALUATOR
 		    weight = score[k];
 		    denom += weight;
 		    for (i=0; i<nvar2; i++) {
-			a[i] += weight*(oldx[i][k]);
+			a[i] += weight*(oldx[i][k] - xmean[i]);
 			}
 		     }
 		if (stop[k]==ttime && event[k]==1) {
@@ -201,7 +190,7 @@ S_EVALUATOR
 		    deaths++;
 		    e_denom += weight;
 		    for (i=0; i<nvar2; i++) {
-			a2[i] += weight*(oldx[i][k]);
+			a2[i] += weight*(oldx[i][k] - xmean[i]);
 			}
 		    }
 		}
@@ -262,9 +251,6 @@ S_EVALUATOR
 		    person++;
 		    }
 		}
-	    start[itime] = ttime;
-	    stop[itime] = nrisk;
-	    event[itime]= deaths;
 	    itime++;
 	    }
 	}
@@ -275,7 +261,7 @@ static void addup(itime, haz, var)
 int itime;
 double haz, var;
     {
-    register int i, j, k, l;
+    int i, j, k, l;
     int     pstart,
 	    ic;
     double  temp,

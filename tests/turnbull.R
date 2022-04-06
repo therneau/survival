@@ -56,7 +56,7 @@ emsurv <- function(time, status, wt, verbose=T) {
 	   cat("             weights=", format(round(wt2,3)), "\n")
 	   }
 	}
-    survfit(tempy ~ tempx, weights=c(ww, wt2))
+    survfit(tempy ~ tempx, weights=c(ww, wt2), robust=FALSE)
     }
 
 temp <-emsurv(turnbull$time, turnbull$status, turnbull$n)

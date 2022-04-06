@@ -8,7 +8,7 @@ Returns the individual contributions to the first and second derivative
 matrix, at each unique event time.
 }
 \usage{
-coxph.detail(object, riskmat=FALSE)
+coxph.detail(object, riskmat=FALSE, rorder=c("data", "time"))
 }
 \arguments{
  \item{object}{
@@ -16,6 +16,9 @@ coxph.detail(object, riskmat=FALSE)
  }
  \item{riskmat}{
    include the at-risk indicator matrix in the output?
+ }
+ \item{rorder}{only applicable if \code{riskmat=TRUE}.  Should the rows
+   of riskmat be in the original data order, or sorted by time within strata.
  }
 }
 \value{
@@ -35,10 +38,7 @@ coxph.detail(object, riskmat=FALSE)
     \item{nrisk}{
     number of subjects at risk.
     }
-    \item{hazard}{
-    the hazard increment.
-    }
-    \item{score}{
+   \item{score}{
     the contribution to the score vector (first derivative of the log
     partial likelihood) at each time point.
     }
@@ -46,7 +46,12 @@ coxph.detail(object, riskmat=FALSE)
     the contribution to the information matrix (second derivative of the
     log partial likelihood) at each time point.
     }
-    \item{varhaz}{
+    \item{hazard}{
+    the hazard increment.  Note that the hazard and variance of the
+    hazard are always for some particular future subject.  This routine
+    uses \code{object$mean} as the future subject.
+    }
+     \item{varhaz}{
     the variance of the hazard increment.
     }
     \item{x,y}{
@@ -58,9 +63,12 @@ coxph.detail(object, riskmat=FALSE)
     were contributed by each of the strata.
     }
     \item{riskmat}{
-      a matrix with one row for each time and one column for each observation
+      a matrix with one row for each observation and one colum for each
+     unique event time,
     containing a 0/1 value to indicate whether that observation was (1) or
-    was not (0) at risk at the given time point.
+    was not (0) at risk at the given time point.  Rows are in the order
+    of the original data (after removal of any missings by
+    \code{coxph}), or in time order.
   }
 }
 \details{
@@ -74,10 +82,15 @@ the Schoenfeld residuals.
 \examples{
 fit   <- coxph(Surv(futime,fustat) ~ age + rx + ecog.ps, ovarian, x=TRUE)
 fitd  <- coxph.detail(fit)
+#  There is one Schoenfeld residual for each unique death.  It is a
+# vector (covariates for the subject who died) - (weighted mean covariate
+# vector at that time).  The weighted mean is defined over the subjects
+# still at risk, with exp(X beta) as the weight.
+
 events <- fit$y[,2]==1
 etime  <- fit$y[events,1]   #the event times --- may have duplicates
 indx   <- match(etime, fitd$time)
-sresid <- fit$x[events,] - fitd$means[indx,]
+schoen <- fit$x[events,] - fitd$means[indx,]
 }
 \keyword{survival}
 

@@ -1,7 +1,7 @@
 
-R version 2.10.0 (2009-10-26)
-Copyright (C) 2009 The R Foundation for Statistical Computing
-ISBN 3-900051-07-0
+R Under development (unstable) (2021-01-28 r79896) -- "Unsuffered Consequences"
+Copyright (C) 2021 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -18,7 +18,6 @@ Type 'q()' to quit R.
 > options(na.action=na.exclude) # preserve missings
 > options(contrasts=c('contr.treatment', 'contr.poly')) #ensure constrast type
 > library(survival)
-Loading required package: splines
 > 
 > #
 > # Tests from the appendix of Therneau and Grambsch
@@ -27,7 +26,7 @@ Loading required package: splines
 > test2 <- data.frame(start=c(1, 2, 5, 2, 1, 7, 3, 4, 8, 8),
 +                     stop =c(2, 3, 6, 7, 8, 9, 9, 9,14,17),
 +                     event=c(1, 1, 1, 1, 1, 1, 1, 0, 0, 0),
-+                     x    =c(1, 0, 0, 1, 0, 1, 1, 1, 0, 0) )
++                     x    =c(1, 0, 0, 1, 0, 1, 1, 1, 0, 0))
 > 
 > byhand <- function(beta, newx=0) {
 +     r <- exp(beta)
@@ -96,7 +95,7 @@ Loading required package: splines
 [1] TRUE
 > 
 > 
-> fit <- coxph(Surv(start, stop, event) ~x, test2, eps=1e-8)
+> fit <- coxph(Surv(start, stop, event) ~x, test2, eps=1e-8, nocenter=NULL)
 > truth <- byhand(fit$coef, 0)
 > aeq(truth$loglik, fit$loglik[2])
 [1] TRUE
@@ -107,6 +106,37 @@ Loading required package: splines
 > aeq(truth$scho, resid(fit, 'schoen'))
 [1] TRUE
 > aeq(truth$score, resid(fit, 'score'))
+[1] TRUE
+> 
+> # Reprise the test, with strata
+> #  offseting the times ensures that we will get the wrong risk sets
+> #  if strata were not kept separate
+> test2b <- rbind(test2, test2, test2)
+> test2b$group <- rep(1:3, each= nrow(test2))
+> test2b$start <- test2b$start + test2b$group
+> test2b$stop  <- test2b$stop  + test2b$group
+> fit0 <- coxph(Surv(start, stop, event) ~ x + strata(group), test2b, iter=0)
+> aeq(3*truth0$loglik, fit0$loglik[1])
+[1] TRUE
+> aeq(3*truth0$imat, 1/fit0$var)
+[1] TRUE
+> aeq(rep(truth0$mart,3), fit0$resid)
+[1] TRUE
+> aeq(rep(truth0$scho,3),  resid(fit0, 'schoen'))
+[1] TRUE
+> aeq(rep(truth0$score,3), resid(fit0, 'score')) 
+[1] TRUE
+> 
+> fit3 <- coxph(Surv(start, stop, event) ~x + strata(group), test2b, eps=1e-8)
+> aeq(3*truth$loglik, fit3$loglik[2])
+[1] TRUE
+> aeq(3*truth$imat, 1/fit3$var)
+[1] TRUE
+> aeq(rep(truth$mart,3), fit3$resid)
+[1] TRUE
+> aeq(rep(truth$scho,3), resid(fit3, 'schoen'))
+[1] TRUE
+> aeq(rep(truth$score,3), resid(fit3, 'score'))
 [1] TRUE
 > 
 > # 
@@ -127,38 +157,36 @@ Loading required package: splines
  0.5052761 -0.3286599 -0.5949242  0.2539781 -0.7460219  0.4551759  0.4551759 
 > 
 > predict(fit, type='lp')
-          1           2           3           4           5           6 
--0.01055260  0.01055260  0.01055260 -0.01055260  0.01055260 -0.01055260 
-          7           8           9          10 
--0.01055260 -0.01055260  0.01055260  0.01055260 
+ [1] -0.0105526  0.0105526  0.0105526 -0.0105526  0.0105526 -0.0105526
+ [7] -0.0105526 -0.0105526  0.0105526  0.0105526
 > predict(fit, type='risk')
-        1         2         3         4         5         6         7         8 
-0.9895029 1.0106085 1.0106085 0.9895029 1.0106085 0.9895029 0.9895029 0.9895029 
-        9        10 
-1.0106085 1.0106085 
+ [1] 0.9895029 1.0106085 1.0106085 0.9895029 1.0106085 0.9895029 0.9895029
+ [8] 0.9895029 1.0106085 1.0106085
 > predict(fit, type='expected')
         1         2         3         4         5         6         7         8 
 0.4947239 0.3356701 0.2025379 0.7756420 1.5514402 0.5706630 1.0176451 1.1413261 
         9        10 
 0.4551759 0.4551759 
 > predict(fit, type='terms')
-             x
-1  -0.01055260
-2   0.01055260
-3   0.01055260
-4  -0.01055260
-5   0.01055260
-6  -0.01055260
-7  -0.01055260
-8  -0.01055260
-9   0.01055260
-10  0.01055260
+            x
+1  -0.0105526
+2   0.0105526
+3   0.0105526
+4  -0.0105526
+5   0.0105526
+6  -0.0105526
+7  -0.0105526
+8  -0.0105526
+9   0.0105526
+10  0.0105526
+attr(,"constant")
+[1] -0.0105526
 > predict(fit, type='lp', se.fit=T)
 $fit
-          1           2           3           4           5           6 
--0.01055260  0.01055260  0.01055260 -0.01055260  0.01055260 -0.01055260 
-          7           8           9          10 
--0.01055260 -0.01055260  0.01055260  0.01055260 
+         1          2          3          4          5          6          7 
+-0.0105526  0.0105526  0.0105526 -0.0105526  0.0105526 -0.0105526 -0.0105526 
+         8          9         10 
+-0.0105526  0.0105526  0.0105526 
 
 $se.fit
         1         2         3         4         5         6         7         8 
@@ -187,24 +215,24 @@ $fit
 0.4551759 0.4551759 
 
 $se.fit
-        1         2         3         4         5         6         7         8 
-0.7033661 0.5793704 0.4500421 0.8807054 1.2455682 0.7554224 1.0087840 1.0683286 
-        9        10 
-0.6746673 0.6746673 
+ [1] 0.5331623 0.3940109 0.3241963 0.6388491 1.0026838 0.6453101 0.7848594
+ [8] 0.7848594 0.6401915 0.6401915
 
 > predict(fit, type='terms', se.fit=T)
 $fit
-             x
-1  -0.01055260
-2   0.01055260
-3   0.01055260
-4  -0.01055260
-5   0.01055260
-6  -0.01055260
-7  -0.01055260
-8  -0.01055260
-9   0.01055260
-10  0.01055260
+            x
+1  -0.0105526
+2   0.0105526
+3   0.0105526
+4  -0.0105526
+5   0.0105526
+6  -0.0105526
+7  -0.0105526
+8  -0.0105526
+9   0.0105526
+10  0.0105526
+attr(,"constant")
+[1] -0.0105526
 
 $se.fit
            x
@@ -241,3 +269,6 @@ Call: survfit(formula = fit, newdata = list(x = 2))
     8      4       1    0.226   0.418      0.00603            1
     9      5       2    0.146   0.343      0.00147            1
 > 
+> proc.time()
+   user  system elapsed 
+  0.907   0.072   0.972 

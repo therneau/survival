@@ -1,4 +1,3 @@
-/* $Id: cholesky3.c 11166 2008-11-24 22:10:34Z therneau $ */
 /*
 ** subroutine to do Cholesky decompostion on a matrix: C = FDF'
 **   where F is lower triangular with 1's on the diagonal, and D is diagonal
@@ -42,14 +41,16 @@ int cholesky3(double **matrix, int n, int m, double *diag, double toler)
     nonneg=1;
     eps =0;
     for (i=0; i<m; i++) if (diag[i] <eps) eps = diag[i];
-    for (i=0; i<n2; i++) if (matrix[i][i+m] > eps)  eps = matrix[i][i+m];
-    eps *= toler;
-
+    for (i=0; i<n2; i++) if (matrix[i][i+m] < eps)  eps = matrix[i][i+m];
+     
+    if (eps==0) eps= toler;  /* no positive diagonals! */
+    else eps *= toler;
+ 
     rank =0;
     /* pivot out the diagonal elements */
     for (i=0; i<m; i++) {
 	pivot = diag[i];
-        if (pivot < eps) {
+        if (isfinite(pivot)==0 || pivot < eps) {
             for (j=0; j<n2; j++) matrix[j][i] =0;
             if (pivot < -8*eps) nonneg= -1;
             }
@@ -67,7 +68,7 @@ int cholesky3(double **matrix, int n, int m, double *diag, double toler)
     /* Now the rest of the matrix */
     for (i=0; i<n2; i++) {
 	pivot = matrix[i][i+m];
-	if (pivot < eps) {
+	if (isfinite(pivot)==0 || pivot < eps) {
 	    for (j=i; j<n2; j++) matrix[j][i+m] =0;  /* zero the column */
             if (pivot < -8*eps) nonneg= -1;
 	    }

@@ -1,4 +1,3 @@
-/* $Id: chsolve3.c 11166 2008-11-24 22:10:34Z therneau $ */
 /*
 ** Solve the equation Ab = y, where the cholesky decomposition of A and y
 **   are the inputs.

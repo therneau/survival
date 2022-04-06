@@ -11,8 +11,8 @@ output table, and optionally the number of events and/or expected number of
 events in each cell. 
 }
 \usage{
-pyears(formula, data, weights, subset, na.action,  
-       ratetable=survexp.us, scale=365.25, expect=c('event', 'pyears'),
+pyears(formula, data, weights, subset, na.action,  rmap,
+       ratetable, scale=365.25, expect=c('event', 'pyears'),
        model=FALSE, x=FALSE, y=FALSE, data.frame=FALSE)
 }
 \arguments{
@@ -42,7 +42,12 @@ pyears(formula, data, weights, subset, na.action,
   }
   \item{na.action}{
     a missing-data filter function, applied to the model.frame, after any 
-    \code{subset} argument has been used.  Default is \code{options()$na.action}. 
+    \code{subset} argument has been used.
+    Default is \code{options()$na.action}. 
+  }
+  \item{rmap}{
+    an optional list that maps data set names to the ratetable names.  See
+    the details section below.
   }
   \item{ratetable}{
     a table of event rates, such as \code{survexp.uswhite}. 
@@ -70,7 +75,7 @@ a list with components:
 \item{pyears}{
 an array containing the person-years of exposure. (Or other units, depending 
 on the rate table and the scale).
-The dimension and dimmanes of the array correspond to the variables on
+The dimension and dimnames of the array correspond to the variables on
 the right hand side of the model equation.
 }
 \item{n}{
@@ -99,6 +104,7 @@ if
 there is a mismatch of units between two variables, nearly all the person 
 years may be off table. 
 }
+\item{tcut}{whether the call included any time-dependent cutpoints.}
 \item{summary}{
 a summary of the rate-table matching. This is also useful as an error 
 check. 
@@ -106,6 +112,9 @@ check.
 \item{call}{
 an image of the call to the function. 
 }
+\item{observations}{the number of observations in the input data set,
+after any missings were removed.}
+
 \item{na.action}{
 the \code{na.action} attribute contributed by an \code{na.action}
 routine, if any. 
@@ -115,13 +124,24 @@ routine, if any.
 Because \code{pyears} may have several time variables, it is necessary that all 
 of them be in the same units.  For instance, in the call 
 \preformatted{
- py <- pyears(futime ~ rx + ratetable(age=age, sex=sex, year=entry.dt)) 
+  py <- pyears(futime ~ rx, rmap=list(age=age, sex=sex, year=entry.dt),
+                    ratetable=survexp.us) 
 }
-with a ratetable whose natural unit is days, it is important that
+the natural unit of the ratetable is hazard per day, it is important that
 \code{futime}, 
 \code{age} and \code{entry.dt} all be in days. 
 Given the wide range of possible inputs, 
 it is difficult for the routine to do sanity checks of this aspect. 
+
+The ratetable being used may have different variable names than the user's
+data set, this is dealt with by the \code{rmap} argument.  
+The rate table for the above calculation was \code{survexp.us}, a call to
+\code{summary{survexp.us}} reveals that it expects to have variables 
+\code{age} = age in days, \code{sex}, and \code{year} = the date of study
+entry, we create them in the \code{rmap} line.  The sex variable is not
+mapped, therefore the code assumes that it exists in \code{mydata} in the
+correct format.  (Note: for factors such as sex, the program will match on
+any unique abbreviation, ignoring case.)
 
 A special function \code{tcut} is needed to specify time-dependent cutpoints. 
 For instance, assume that age is in years, and that the desired final 
@@ -137,15 +157,6 @@ to correctly track the subject.
 The results of \code{pyears} are normally used as input to further calculations. 
 The \code{print} routine, therefore, is designed to give only a summary of the 
 table. 
-
-The example below is from a study of hip fracture rates from 1930 - 1990 
-in Rochester, Minnesota.  Survival post hip fracture has increased over 
-that time, but so has the survival of elderly subjects in the population 
-at large.  A model of relative survival helps to clarify what has happened: 
-Poisson regression is used, but replacing exposure time with expected 
-exposure (for an age and sex matched control). 
-Death rates change with age, of course, so the result is carved into 
-1 year increments of time.  Males and females were done separately. 
 }
 \seealso{
 \code{\link{ratetable}},  \code{\link{survexp}},  \code{\link{Surv}}.   

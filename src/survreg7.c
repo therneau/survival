@@ -71,7 +71,6 @@ SEXP survreg7(SEXP maxiter2,   SEXP nvarx,  SEXP y,
     /* local variables */
     int i,j;	
     int nvar, nvar2, nvar3, nstrat;
-    int newton;      /* will be 1 if the last beta was from an NR step */
     int iter;
     double newlk =0;
     double (*dolik)();   /* will point to (*dolik) or survregc2 */
@@ -175,7 +174,7 @@ SEXP survreg7(SEXP maxiter2,   SEXP nvarx,  SEXP y,
     **   parent routine, and also used to "backtrack" when we need to fail
     **   over to a Fisher step instead of an NR step
     */
-    newbeta = Calloc(LENGTH(beta2) + nvar3 + nfrail + nvar2*nvar3, double);
+    newbeta = CALLOC(LENGTH(beta2) + nvar3 + nfrail + nvar2*nvar3, double);
     jdiag = newbeta + length(beta2);
     u  = jdiag + nfrail;
     JJ  = dmatrix(u + nvar3,  nvar3, nvar2);
@@ -189,6 +188,7 @@ SEXP survreg7(SEXP maxiter2,   SEXP nvarx,  SEXP y,
     if (ny==2) {
 	time1= REAL(y);
 	status = time1 +n;
+        time2 = NULL;       /*quiet a compiler warning*/
 	}
     else {
 	time1= REAL(y);
@@ -268,11 +268,9 @@ SEXP survreg7(SEXP maxiter2,   SEXP nvarx,  SEXP y,
 	    /* Fisher step */
 	    cholesky3(JJ, nvar3, nfrail, jdiag, tol_chol);
 	    chsolve3(JJ, nvar3, nfrail, jdiag, u);
-	    newton =0;
 	    }
 	else {  /* Newton-Raphson step */
 	    chsolve3(hmat,nvar3, nfrail, hdiag, u);
-	    newton =1;
 	    }
 
 	for (i=0; i<nvar3; i++) {
@@ -464,7 +462,7 @@ alldone:
 	    hinv[i-nfrail][j] = 0;
 	    }
 	}
-    Free(newbeta);
+    FREE(newbeta);
 
     /* Create the list object for return */
     PROTECT(rlist=allocVector(VECSXP, 9));

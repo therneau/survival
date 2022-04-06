@@ -6,7 +6,6 @@
 \alias{print.summary.survreg}
 \alias{survReg}
 \alias{anova.survreg}
-\alias{vcov.survreg}
 \alias{anova.survreglist}
 \title{
   Regression for a Parametric Survival Model 
@@ -21,7 +20,7 @@ accelerated failure time models.
 survreg(formula, data, weights, subset, 
         na.action, dist="weibull", init=NULL, scale=0, 
         control,parms=NULL,model=FALSE, x=FALSE,
-        y=TRUE, robust=FALSE, score=FALSE, \dots)
+        y=TRUE, robust=FALSE, cluster, score=FALSE, \dots)
 
 }
 \arguments{
@@ -74,15 +73,36 @@ flag arguments.}
 \item{score}{return the score vector. (This is expected to be zero upon
 successful convergence.)
 }
-\item{robust}{Use robust 'sandwich' standard errors, based on
-  independence of individuals if there is no \code{cluster()} term in
-  the formula, based on independence of clusters if there is.}
+\item{robust}{Use robust sandwich error instead of the asymptotic
+  formula.  Defaults to TRUE if there is a \code{cluster} argument.}
+\item{cluster}{Optional variable that identifies groups of subjects,
+  used in computing the robust variance.  Like \code{model} variables,
+  this is searched for in the dataset pointed to by the \code{data}
+  argument.
+}  
 \item{\dots}{
 other arguments which will be passed to \code{survreg.control}.
 }}
 \value{
 an object of class \code{survreg} is returned.
 }
+\details{
+  All the distributions are cast into a location-scale framework, based
+  on chapter 2.2 of Kalbfleisch and Prentice.  The resulting
+  parameterization of the distributions is sometimes (e.g. gaussian)
+  identical to the usual form found in statistics textbooks, but other
+  times (e.g. Weibull) it is not.  See the book for detailed formulas.
+
+  When using weights be aware of the difference between replication
+  weights and sampling weights.  In the former, a weight of '2' means
+  that there are two identical observations, which have been combined
+  into a single row of data.  With sampling weights there is a single
+  observed value, with a weight used to achieve balance with respect to
+  some population.  To get proper variance with replication weights use
+  the default variance, for sampling weights use the robust variance.
+  Replication weights were once common (when computer memory was much
+  smaller) but are now rare.  
+  }
 \seealso{
 \code{\link{survreg.object}}, \code{\link{survreg.distributions}},
 \code{\link{pspline}}, \code{\link{frailty}}, \code{\link{ridge}}
@@ -96,11 +116,11 @@ survreg(Surv(futime, fustat) ~ ecog.ps + rx, ovarian,
 
 #
 # A model with different baseline survival shapes for two groups, i.e.,
-#   two different scales
+#   two different scale parameters
 survreg(Surv(time, status) ~ ph.ecog + age + strata(sex), lung)
 
 # There are multiple ways to parameterize a Weibull distribution. The survreg 
-# function imbeds it in a general location-scale familiy, which is a 
+# function embeds it in a general location-scale family, which is a 
 # different parameterization than the rweibull function, and often leads
 # to confusion.
 #   survreg's scale  =    1/(rweibull shape)
@@ -114,4 +134,8 @@ survreg(Surv(y)~1, dist="weibull")
 tobinfit <- survreg(Surv(durable, durable>0, type='left') ~ age + quant,
 	            data=tobin, dist='gaussian')
 }
+\references{
+  Kalbfleisch, J. D. and Prentice, R. L., The statistical analysis of
+  failure time data, Wiley, 2002.
+  }
 \keyword{survival}

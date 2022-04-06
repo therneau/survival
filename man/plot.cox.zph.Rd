@@ -7,7 +7,8 @@
 Displays a graph of the scaled Schoenfeld residuals, along with a smooth curve. 
 }
 \usage{
-\method{plot}{cox.zph}(x, resid=TRUE, se=TRUE, df=4, nsmo=40, var, \dots)
+\method{plot}{cox.zph}(x, resid=TRUE, se=TRUE, df=4, nsmo=40, var,
+        xlab="Time", ylab, lty=1:2, col=1, lwd=1, hr=FALSE, ...)
 }
 \arguments{
 \item{x}{
@@ -24,9 +25,9 @@ will be added.
 the degrees of freedom for the fitted natural spline, \code{df=2} leads 
 to a linear fit. 
 }
-\item{nsmo}{
-number of points used to plot the fitted spline. 
-}
+
+\item{nsmo}{number of points to use for the lines}
+
 \item{var}{
 the set of variables for which plots are desired.  By default, plots are 
 produced in turn for each variable of a model.  Selection of a single variable 
@@ -35,6 +36,16 @@ zero or a main title.
 
 This has been superseded by a subscripting method; see the example below. 
 }
+\item{hr}{if TRUE, label the y-axis using the estimated hazard ratio
+  rather than the estimated coefficient.  (The plot does not change,
+  only the axis label.)}
+
+\item{xlab}{label for the x-axis of the plot}
+\item{ylab}{optional label for the y-axis of the plot.  If missing a
+  default label is provided.  This can be a vector of labels.}
+\item{lty, col, lwd}{line type, color, and line width for the overlaid
+  curve.  Each of these can be vector of length 2, in which case the
+  second element is used for the confidence interval.}
 \item{\dots}{
 additional graphical arguments passed to the \code{plot} function. 
 }
@@ -49,11 +60,11 @@ a plot is produced on the current graphics device.
 vfit <- coxph(Surv(time,status) ~ trt + factor(celltype) + 
               karno + age, data=veteran, x=TRUE) 
 temp <- cox.zph(vfit) 
-plot(temp, var=5)      # Look at Karnofsy score, old way of doing plot 
-plot(temp[5])     # New way with subscripting 
+plot(temp, var=3)      # Look at Karnofsy score, old way of doing plot 
+plot(temp[3])     # New way with subscripting 
 abline(0, 0, lty=3) 
 # Add the linear fit as well  
-abline(lm(temp$y[,5] ~ temp$x)$coefficients, lty=4, col=3)  
+abline(lm(temp$y[,3] ~ temp$x)$coefficients, lty=4, col=3)  
 title(main="VA Lung Study") 
 }
 \keyword{survival}

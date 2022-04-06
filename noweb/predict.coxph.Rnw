@@ -1,0 +1,577 @@
+\subsection{The predict method}
+The \code{predict.coxph} function
+produces various types of predicted values from a Cox model.
+The arguments are
+\begin{description}
+  \item [object] The result of a call to \code{coxph}.
+  \item [newdata] Optionally, a new data set for which prediction is
+    desired.  If this is absent predictions are for the observations used 
+    fit the model.
+  \item[type] The type of prediction
+    \begin{itemize}
+      \item lp = the linear predictor for each observation
+      \item risk = the risk score $exp(lp)$ for each observation
+      \item expected = the expected number of events
+      \item survival = predicted survival = exp(-expected)
+      \item terms = a matrix with one row per subject and one column for
+	each term in the model.
+    \end{itemize}
+  \item[se.fit] Whether or not to return standard errors of the predictions.
+  \item[na.action] What to do with missing values \emph{if} there is new
+    data. 
+ \item[terms] The terms that are desired.  This option is almost never used,
+    so rarely in fact that it's hard to justify keeping it.
+  \item[collapse] An optional vector of subject identifiers, over which to
+    sum or `collapse' the results
+  \item[reference] the reference context for centering the results
+  \item[\ldots] All predict methods need to have a \ldots argument; we make
+    no use of it however.
+\end{description}
+
+%\subsection{Setup}
+The first task of the routine is to reconsruct necessary data elements
+that were not saved as a part of the \code{coxph} fit.  
+We will need the following components: 
+\begin{itemize}
+  \item for type=`expected' residuals we need the orignal survival y.  This %'`
+    is saved in coxph objects by default so will only need to be fetched in
+    the highly unusual case that a user specfied 
+    \code{y=FALSE} in the orignal call.
+  \item for any call with either newdata, standard errors, or type='terms'
+     the original $X$ matrix, weights, strata, and offset. 
+     When checking for the existence of a saved $X$ matrix we can't    %'
+     use \code{object\$x}
+     since that will also match the \code{xlevels} component.
+  \item the new data matrix, if any 
+\end{itemize}
+
+<<predict.coxph>>=
+predict.coxph <- function(object, newdata, 
+		       type=c("lp", "risk", "expected", "terms", "survival"),
+		       se.fit=FALSE, na.action=na.pass,
+		       terms=names(object$assign), collapse, 
+                       reference=c("strata", "sample", "zero"), ...) {
+    <<pcoxph-init>>
+    <<pcoxph-getdata>>
+    if (type=="expected") {
+        <<pcoxph-expected>>
+        }
+    else {
+        <<pcoxph-simple>>
+        <<pcoxph-terms>>
+        }
+    <<pcoxph-finish>>
+    }
+@ 
+
+We start of course with basic argument checking.
+Then retrieve the model parameters: does it have a strata
+statement, offset, etc.  
+The \code{Terms2} object is a model statement without the strata or cluster terms,
+appropriate for recreating the matrix of covariates $X$.
+For type=expected the response variable needs to be kept, if not we remove
+it as well since the user's newdata might not contain one.    %'
+The type= survival is treated the same as type expected.
+<<pcoxph-init>>=
+if (!inherits(object, 'coxph'))
+    stop("Primary argument much be a coxph object")
+
+Call <- match.call()
+type <-match.arg(type)
+if (type=="survival") {
+    survival <- TRUE
+    type <- "expected"  #this is to stop lots of "or" statements
+}
+else survival <- FALSE
+
+n <- object$n
+Terms <-  object$terms
+
+if (!missing(terms)) {
+    if (is.numeric(terms)) {
+        if (any(terms != floor(terms) | 
+                terms > length(object$assign) |
+                terms <1)) stop("Invalid terms argument")
+        }
+    else if (any(is.na(match(terms, names(object$assign)))))
+       stop("a name given in the terms argument not found in the model")
+    }
+
+# I will never need the cluster argument, if present delete it.
+#  Terms2 are terms I need for the newdata (if present), y is only
+#  needed there if type == 'expected'
+if (length(attr(Terms, 'specials')$cluster)) {
+    temp <- untangle.specials(Terms, 'cluster', 1)
+    Terms  <- object$terms[-temp$terms]
+    }
+else Terms <- object$terms
+
+if (type != 'expected') Terms2 <- delete.response(Terms)
+else Terms2 <- Terms
+
+has.strata <- !is.null(attr(Terms, 'specials')$strata)
+has.offset <- !is.null(attr(Terms, 'offset'))
+has.weights <- any(names(object$call) == 'weights')
+na.action.used <- object$na.action
+n <- length(object$residuals)
+
+if (missing(reference) && type=="terms") reference <- "sample"
+else reference <- match.arg(reference)
+@ 
+
+The next task of the routine is to reconsruct necessary data elements
+that were not saved as a part of the \code{coxph} fit.  
+We will need the following components: 
+\begin{itemize}
+  \item for type=`expected' residuals we need the orignal survival y.  This %'`
+    is saved in coxph objects by default so will only need to be fetched in
+    the highly unusual case that a user specfied \code{y=FALSE} in the orignal 
+    call.  We also need the strata in this case.  Grabbing it is the same
+    amount of work as grabbing X, so gets lumped with that case in the
+    code.
+  \item for any call with either standard errors,  reference strata, 
+    or type=`terms'
+     the original $X$ matrix, weights, strata, and offset. 
+     When checking for the existence of a saved $X$ matrix we can't        %'
+     use \code{object\$x}
+     since that will also match the \code{xlevels} component.
+  \item the new data matrix, if present, along with offset and strata.
+\end{itemize}
+For the case that none of the above are needed, we can use the 
+\code{linear.predictors} component of the fit.  The variable \code{use.x} signals
+this case, which takes up almost none of the code but is common in usage.
+
+The check below that nrow(mf)==n is to avoid data sets that change under our
+feet.  A fit was based on data set ``x'', and when we reconstruct the data
+frame it is a different size!  This means someone changed the data between
+the model fit and the extraction of residuals.  
+One other non-obvious case is that coxph treats the model \code{age:strata(grp)}
+as though it were \code{age:strata(grp) + strata(grp)}.  
+The untangle.specials function will return 
+\code{vars= strata(grp),  terms=integer(0)}; the first shows a strata to extract
+and the second that there is nothing to remove from the terms structure.
+
+<<pcoxph-getdata>>=
+have.mf <- FALSE
+if (type == "expected") {
+    y <- object[['y']]
+    if (is.null(y)) {  # very rare case
+        mf <- stats::model.frame(object)
+        y <-  model.extract(mf, 'response')
+        have.mf <- TRUE  #for the logic a few lines below, avoid double work
+        }
+    }
+
+# This will be needed if there are strata, and is cheap to compute
+strat.term <- untangle.specials(Terms, "strata")
+if (se.fit || type=='terms' || (!missing(newdata) && type=="expected") ||
+    (has.strata && (reference=="strata") || type=="expected")) {
+    use.x <- TRUE
+    if (is.null(object[['x']]) || has.weights || has.offset ||
+         (has.strata && is.null(object$strata))) {
+        # I need the original model frame
+        if (!have.mf) mf <- stats::model.frame(object)
+        if (nrow(mf) != n)
+            stop("Data is not the same size as it was in the original fit")
+        x <- model.matrix(object, data=mf)
+        if (has.strata) {
+            if (!is.null(object$strata)) oldstrat <- object$strata
+            else {
+                if (length(strat.term$vars)==1) oldstrat <- mf[[strat.term$vars]]
+                else oldstrat <- strata(mf[,strat.term$vars], shortlabel=TRUE)
+              }
+        }
+        else oldstrat <- rep(0L, n)
+
+        weights <- model.weights(mf)
+        if (is.null(weights)) weights <- rep(1.0, n)
+        offset <- model.offset(mf)
+        if (is.null(offset))  offset  <- 0
+    }
+    else {
+        x <- object[['x']]
+        if (has.strata) oldstrat <- object$strata
+        else oldstrat <- rep(0L, n)
+        weights <-  rep(1.,n)
+        offset <-   0
+    }
+}
+else {
+    # I won't need strata in this case either
+    if (has.strata) {
+        stemp <- untangle.specials(Terms, 'strata', 1)
+        Terms2  <- Terms2[-stemp$terms]
+        has.strata <- FALSE  #remaining routine never needs to look
+    }
+    oldstrat <- rep(0L, n)
+    offset <- 0
+    use.x <- FALSE
+}
+@ 
+
+Now grab data from the new data set.  We want to use model.frame
+processing, in order to correctly expand factors and such.
+We don't need weights, however, and don't want to make the user
+include them in their new dataset.   Thus we build the call up
+the way it is done in coxph itself, but only keeping the newdata
+argument.  Note that terms2 may have fewer variables than the 
+original model: no cluster and if type!= expected no response.
+If the original model had a strata, but newdata does not, we need to
+remove the strata from xlev to stop a spurious warning message.
+
+<<pcoxph-getdata>>=
+if (!missing(newdata)) {
+    use.x <- TRUE  #we do use an X matrix later
+    tcall <- Call[c(1, match(c("newdata", "collapse"), names(Call), nomatch=0))]
+    names(tcall)[2] <- 'data'  #rename newdata to data
+    tcall$formula <- Terms2  #version with no response
+    tcall$na.action <- na.action #always present, since there is a default
+    tcall[[1L]] <- quote(stats::model.frame)  # change the function called
+    
+    if (!is.null(attr(Terms, "specials")$strata) && !has.strata) {
+       temp.lev <- object$xlevels
+       temp.lev[strat.term$vars] <- NULL
+       tcall$xlev <- temp.lev   
+    }
+    else tcall$xlev <- object$xlevels
+    mf2 <- eval(tcall, parent.frame())
+
+    collapse <- model.extract(mf2, "collapse")
+    n2 <- nrow(mf2)
+    
+    if (has.strata) {
+        if (length(strat.term$vars)==1) newstrat <- mf2[[strat.term$vars]]
+        else newstrat <- strata(mf2[,strat.term$vars], shortlabel=TRUE)
+        if (any(is.na(match(newstrat, oldstrat)))) 
+            stop("New data has a strata not found in the original model")
+        else newstrat <- factor(newstrat, levels=levels(oldstrat)) #give it all
+        if (length(strat.term$terms))
+            newx <- model.matrix(Terms2[-strat.term$terms], mf2,
+                         contr=object$contrasts)[,-1,drop=FALSE]
+        else newx <- model.matrix(Terms2, mf2,
+                         contr=object$contrasts)[,-1,drop=FALSE]
+         }
+    else {
+        newx <- model.matrix(Terms2, mf2,
+                         contr=object$contrasts)[,-1,drop=FALSE]
+        newstrat <- rep(0L, nrow(mf2))
+        }
+
+    newoffset <- model.offset(mf2) 
+    if (is.null(newoffset)) newoffset <- 0
+    if (type== 'expected') {
+        newy <- model.response(mf2)
+        if (attr(newy, 'type') != attr(y, 'type'))
+            stop("New data has a different survival type than the model")
+        }
+    na.action.used <- attr(mf2, 'na.action')
+    } 
+else n2 <- n
+@ 
+
+%\subsection{Expected hazard}
+When we do not need standard errors the computation of expected
+hazard is very simple since
+the martingale residual is defined as status - expected.  The 0/1
+status is saved as the last column of $y$.
+<<pcoxph-expected>>=
+if (missing(newdata))
+    pred <- y[,ncol(y)] - object$residuals
+if (!missing(newdata) || se.fit) {
+    <<pcoxph-expected2>>
+    }
+if (survival) { #it actually was type= survival, do one more step
+    if (se.fit) se <- se * exp(-pred)
+    pred <- exp(-pred)  # probablility of being in state 0
+}
+@ 
+
+The more general case makes use of the [agsurv] routine to calculate
+a survival curve for each strata.  The routine is defined in the
+section on individual Cox survival curves.  The code here closely matches
+that.  The routine only returns values at the death times, so we need
+approx to get a complete index.
+
+One non-obvious, but careful choice is to use the residuals for the predicted
+value instead of the compuation below, whenever operating on the original 
+data set.  This is a consequence of the Efron approx.  When someone in
+a new data set has exactly the same time as one of the death times in the
+original data set, the code below implicitly makes them the ``last'' death
+in the set of tied times.  
+The Efron approx puts a tie somewhere in the middle of the pack.  This is
+way too hard to work out in the code below, but thankfully the original
+Cox model already did it.  However, it does mean that a different answer will
+arise if you set newdata = the original coxph data set.  
+Standard errors have the same issue, but 1. they are hardly used and 2. the
+original coxph doesn't do that calculation. So we do what's easiest.
+
+<<pcoxph-expected2>>=
+ustrata <- unique(oldstrat)
+risk <- exp(object$linear.predictors)
+x <- x - rep(object$means, each=nrow(x))  #subtract from each column
+if (missing(newdata)) #se.fit must be true
+    se <- double(n)
+else {
+    pred <- se <- double(nrow(mf2))
+    newx <- newx - rep(object$means, each=nrow(newx))
+    newrisk <- c(exp(newx %*% object$coef) + newoffset)
+    }
+
+survtype<- ifelse(object$method=='efron', 3,2)
+for (i in ustrata) {
+    indx <- which(oldstrat == i)
+    afit <- agsurv(y[indx,,drop=F], x[indx,,drop=F], 
+                                  weights[indx], risk[indx],
+                                  survtype, survtype)
+    afit.n <- length(afit$time)
+    if (missing(newdata)) { 
+        # In this case we need se.fit, nothing else
+        j1 <- approx(afit$time, 1:afit.n, y[indx,1], method='constant',
+                     f=0, yleft=0, yright=afit.n)$y
+        chaz <- c(0, afit$cumhaz)[j1 +1]
+        varh <- c(0, cumsum(afit$varhaz))[j1 +1]
+        xbar <- rbind(0, afit$xbar)[j1+1,,drop=F]
+        if (ncol(y)==2) {
+            dt <- (chaz * x[indx,]) - xbar
+            se[indx] <- sqrt(varh + rowSums((dt %*% object$var) *dt)) *
+                risk[indx]
+            }
+        else {
+            j2 <- approx(afit$time, 1:afit.n, y[indx,2], method='constant',
+                     f=0, yleft=0, yright=afit.n)$y
+            chaz2 <- c(0, afit$cumhaz)[j2 +1]
+            varh2 <- c(0, cumsum(afit$varhaz))[j2 +1]
+            xbar2 <- rbind(0, afit$xbar)[j2+1,,drop=F]
+            dt <- (chaz * x[indx,]) - xbar
+            v1 <- varh +  rowSums((dt %*% object$var) *dt)
+            dt2 <- (chaz2 * x[indx,]) - xbar2
+            v2 <- varh2 + rowSums((dt2 %*% object$var) *dt2)
+            se[indx] <- sqrt(v2-v1)* risk[indx]
+            }
+        }
+
+    else {
+        #there is new data
+        use.x <- TRUE
+        indx2 <- which(newstrat == i)
+        j1 <- approx(afit$time, 1:afit.n, newy[indx2,1], 
+                     method='constant', f=0, yleft=0, yright=afit.n)$y
+        chaz <-c(0, afit$cumhaz)[j1+1]
+        pred[indx2] <- chaz * newrisk[indx2]
+        if (se.fit) {
+            varh <- c(0, cumsum(afit$varhaz))[j1+1]
+            xbar <- rbind(0, afit$xbar)[j1+1,,drop=F]
+            }
+        if (ncol(y)==2) {
+            if (se.fit) {
+                dt <- (chaz * newx[indx2,]) - xbar
+                se[indx2] <- sqrt(varh + rowSums((dt %*% object$var) *dt)) *
+                    newrisk[indx2]
+                }
+            }
+        else {
+            j2 <- approx(afit$time, 1:afit.n, newy[indx2,2], 
+                     method='constant', f=0, yleft=0, yright=afit.n)$y
+                        chaz2 <- approx(-afit$time, afit$cumhaz, -newy[indx2,2],
+                       method="constant", rule=2, f=0)$y
+            chaz2 <-c(0, afit$cumhaz)[j2+1]
+            pred[indx2] <- (chaz2 - chaz) * newrisk[indx2]
+        
+            if (se.fit) {
+                varh2 <- c(0, cumsum(afit$varhaz))[j1+1]
+                xbar2 <- rbind(0, afit$xbar)[j1+1,,drop=F]
+                dt <- (chaz * newx[indx2,]) - xbar
+                dt2 <- (chaz2 * newx[indx2,]) - xbar2
+
+                v2 <- varh2 + rowSums((dt2 %*% object$var) *dt2)
+                v1 <- varh +  rowSums((dt %*% object$var) *dt)
+                se[indx2] <- sqrt(v2-v1)* risk[indx2]
+                }
+            }
+        }
+    }
+@ 
+
+%\subsection{Linear predictor, risk, and terms}
+For these three options what is returned is a \emph{relative} prediction
+which compares each observation to the average for the data set.
+Partly this is practical.  Say for instance that a treatment covariate
+was coded as 0=control and 1=treatment.
+If the model were refit using a new coding of 3=control 4=treatment, the
+results of the Cox model would be exactly the same with respect to
+coefficients, variance, tests, etc.  
+The raw linear predictor $X\beta$ however would change, increasing by
+a value of $3\beta$.  
+The relative predictor 
+\begin{equation}
+  \eta_i = X_i\beta - (1/n)\sum_j X_j\beta
+  \label{eq:eta}
+\end{equation}
+will stay the same.
+The second reason for doing this is that the Cox model is a 
+relative risks model rather than an absolute risks model,
+and thus relative predictions are almost certainly what the 
+user was thinking of.
+
+When the fit was for a stratified Cox model more care is needed.
+For instance assume that we had a fit that was stratified by sex with
+covaritate $x$, and a second data set were created where for the
+females $x$ is replaced
+by $x+3$.  The Cox model results will be unchanged for the two
+models, but the `normalized' linear predictors $(x - \overline x)'\beta$ %`
+will not be the same.
+This reflects a more fundamental issue that the for a stratified
+Cox model relative risks are well defined only \emph{within} a
+stratum, i.e. for subject pairs that share a common baseline
+hazard.
+The example above is artificial, but the problem arises naturally
+whenever the model includes a strata by covariate interaction.
+So for a stratified Cox model the predictions should be forced to
+sum to zero within each stratum, or equivalently be made relative
+to the weighted mean of the stratum.
+Unfortunately, this important issue was not realized until late in 2009
+when a puzzling query was sent to the author involving the results
+from such an interaction.
+Note that this issue did not arise with type='expected', which 
+has a natural scaling.
+
+An offset variable, if specified, is treated like any other covariate
+with respect to centering.  
+The logic for this choice is not as compelling, but it seemed the
+best that I could do.
+Note that offsets play no role whatever in predicted terms, only in
+the lp and risk. 
+
+Start with the simple ones
+<<pcoxph-simple>>=
+if (is.null(object$coefficients))
+    coef<-numeric(0)
+else {
+    # Replace any NA coefs with 0, to stop NA in the linear predictor
+    coef <- ifelse(is.na(object$coefficients), 0, object$coefficients)
+    }
+
+if (missing(newdata)) {
+    offset <- offset - mean(offset)
+    if (has.strata && reference=="strata") {
+        # We can't use as.integer(oldstrat) as an index, if oldstrat is
+        #   a factor variable with unrepresented levels as.integer could
+        #   give 1,2,5 for instance.
+        xmeans <- rowsum(x*weights, oldstrat)/c(rowsum(weights, oldstrat))
+        newx <- x - xmeans[match(oldstrat,row.names(xmeans)),]
+    }
+    else if (use.x) {
+        if (reference == "zero") newx <- x
+        else newx <- x - rep(object$means, each=nrow(x))
+    }
+}
+else {
+    offset <- newoffset - mean(offset)
+    if (has.strata && reference=="strata") {
+        xmeans <- rowsum(x*weights, oldstrat)/c(rowsum(weights, oldstrat))
+        newx <- newx - xmeans[match(newstrat, row.names(xmeans)),]
+        }
+    else if (reference!= "zero") 
+        newx <- newx - rep(object$means, each=nrow(newx))
+    }
+
+if (type=='lp' || type=='risk') {
+    if (use.x) pred <- drop(newx %*% coef) + offset
+    else pred <- object$linear.predictors
+    if (se.fit) se <- sqrt(rowSums((newx %*% object$var) *newx))
+
+    if (type=='risk') {
+        pred <- exp(pred)
+        if (se.fit) se <- se * sqrt(pred)  # standard Taylor series approx
+        }
+    }
+@ 
+
+The type=terms residuals are a bit more work.  
+In Splus this code used the Build.terms function, which was essentially
+the code from predict.lm extracted out as a separate function.  
+As of March 2010 (today) a check of the Splus function and the R code
+for predict.lm revealed no important differences.  
+A lot of the bookkeeping in both is to work around any possible NA
+coefficients resulting from a singularity.
+The basic formula is to
+\begin{enumerate}
+  \item If the model has an intercept, then sweep the column means
+    out of the X matrix.  We've already done this.
+  \item For each term separately, get the list of coefficients that
+    belong to that term; call this list \code{tt}.
+  \item Restrict $X$, $\beta$ and $V$ (the variance matrix) to that
+    subset, then the linear predictor is $X\beta$ with variance
+    matrix $X V X'$.  The standard errors are the square root of 
+    the diagonal of this latter matrix.  This can be computed,
+    as colSums((X %*% V) * X)).
+\end{enumerate}
+Note that the \code{assign} component of a coxph object is the same
+as that found in Splus models (a list), most R models retain a numeric vector
+which contains the same information but it is not as easily used.  The first
+first part of predict.lm in R rebuilds the list form as its \code{asgn} variable.
+I can skip this part since it is already done.
+<<pcoxph-terms>>= 
+else if (type=='terms') { 
+    asgn <- object$assign
+    nterms<-length(asgn)
+    pred<-matrix(ncol=nterms,nrow=NROW(newx))
+    dimnames(pred) <- list(rownames(newx), names(asgn))
+    if (se.fit) se <- pred
+    
+    for (i in 1:nterms) {
+        tt <- asgn[[i]]
+        tt <- tt[!is.na(object$coefficients[tt])]
+        xtt <- newx[,tt, drop=F]
+        pred[,i] <- xtt %*% object$coefficient[tt]
+        if (se.fit)
+            se[,i] <- sqrt(rowSums((xtt %*% object$var[tt,tt]) *xtt))
+        }
+    pred <- pred[,terms, drop=F]
+    if (se.fit) se <- se[,terms, drop=F]
+    
+    attr(pred, 'constant') <- sum(object$coefficients*object$means, na.rm=T)
+    }
+@ 
+
+To finish up we need to first expand out any missings in the result
+based on the na.action, and optionally collapse the results within
+a subject.
+What should we do about the standard errors when collapse is specified?
+We assume that the individual pieces are
+independent and thus var(sum) = sum(variances).  
+The statistical justification of this is quite solid for the linear predictor,
+risk and terms type of prediction due to independent increments in a martingale.
+For expecteds the individual terms are positively correlated so the se will
+be too small.  One solution would be to refuse to return an se in this
+case, but the the bias should usually be small, 
+and besides it would be unkind to the user.
+
+Prediction of type='terms' is expected to always return a matrix, or
+the R termplot() function gets unhappy.  
+<<pcoxph-finish>>=
+if (type != 'terms') {
+    pred <- drop(pred)
+    if (se.fit) se <- drop(se)
+    }
+
+if (!is.null(na.action.used)) {
+    pred <- napredict(na.action.used, pred)
+    if (is.matrix(pred)) n <- nrow(pred)
+    else               n <- length(pred)
+    if(se.fit) se <- napredict(na.action.used, se)
+    }
+
+if (!missing(collapse) && !is.null(collapse)) {
+    if (length(collapse) != n2) stop("Collapse vector is the wrong length")
+    pred <- rowsum(pred, collapse)  # in R, rowsum is a matrix, always
+    if (se.fit) se <- sqrt(rowsum(se^2, collapse))
+    if (type != 'terms') {
+        pred <- drop(pred)
+        if (se.fit) se <- drop(se)
+        }
+    }
+
+if (se.fit) list(fit=pred, se.fit=se)
+else pred
+@

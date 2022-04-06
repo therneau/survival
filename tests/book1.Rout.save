@@ -1,7 +1,7 @@
 
-R version 2.11.1 (2010-05-31)
-Copyright (C) 2010 The R Foundation for Statistical Computing
-ISBN 3-900051-07-0
+R Under development (unstable) (2021-01-28 r79896) -- "Unsuffered Consequences"
+Copyright (C) 2021 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -16,9 +16,9 @@ Type 'demo()' for some demos, 'help()' for on-line help, or
 Type 'q()' to quit R.
 
 > library(survival)
-Loading required package: splines
 > options(na.action=na.exclude) # preserve missings
 > options(contrasts=c('contr.treatment', 'contr.poly')) #ensure constrast type
+> aeq <- function(x,y) all.equal(as.vector(x), as.vector(y))
 > 
 > #
 > # Tests from the appendix of Therneau and Grambsch
@@ -28,6 +28,28 @@ Loading required package: splines
 > test1 <- data.frame(time=  c(9, 3,1,1,6,6,8),
 +                     status=c(1,NA,1,0,1,1,0),
 +                     x=     c(0, 2,1,1,1,0,0))
+> 
+> # Nelson-Aalen influence
+> s1 <- survfit(Surv(time, status) ~1, test1, id=1:7, influence=TRUE)
+> inf1 <- matrix(c(10, rep(-2,5), 10, -2, 7,7, -11, -11)/72,
++                ncol=2)
+> indx <- order(test1$time[!is.na(test1$status)])
+> aeq(s1$influence.chaz[indx,], inf1[,c(1,2,2,2)])
+[1] TRUE
+> 
+> # KM influence
+> inf2 <- matrix(c(-20, rep(4,5), -10, 2, -13, -13, 17, 17,
++                  rep(0,6))/144, ncol=3)
+> aeq(s1$influence.surv[indx,], inf2[, c(1,2,2,3)])
+[1] TRUE
+> 
+> # Fleming-Harrington influence
+> s2 <- survfit(Surv(time, status) ~ 1, test1, id=1:7, ctype=2, influence=2)
+> inf3 <- matrix(c( rep(c(5, -1), c(1, 5))/36, c(5,-1)/36, 
++                  c(21,21,-29, -29)/144), ncol=2)
+> aeq(s2$influence.chaz[indx,], inf3[,c(1,2,2,2)])
+[1] TRUE
+> 
 > 
 > # Breslow estimate
 > byhand1 <- function(beta, newx=0) {
@@ -67,7 +89,6 @@ Loading required package: splines
 +     }
 > 
 > 
-> aeq <- function(x,y) all.equal(as.vector(x), as.vector(y))
 > 
 > fit0 <-coxph(Surv(time, status) ~x, test1, iter=0, method='breslow')
 > truth0 <- byhand1(0,0)
@@ -82,6 +103,10 @@ Loading required package: splines
 > aeq(truth0$score, resid(fit0, 'score')[c(3:7,1)])
 [1] TRUE
 > sfit <- survfit(fit0, list(x=0))
+> aeq(sfit$cumhaz, cumsum(truth0$haz))
+[1] TRUE
+> aeq(sfit$surv, exp(-cumsum(truth0$haz)))
+[1] TRUE
 > aeq(sfit$std.err^2, c(7/180, 2/9, 2/9, 11/9))
 [1] TRUE
 > aeq(resid(fit0, 'score'), c(5/24, NA, 5/12, -1/12, 7/24, -1/24, 5/24))
@@ -94,13 +119,14 @@ Loading required package: splines
 > # This next gives an ignorable warning message
 > fit2 <- coxph(Surv(time, status) ~x, test1, method='breslow', iter=2)
 Warning message:
-In fitter(X, Y, strats, offset, init, control, weights = weights,  :
+In coxph.fit(X, Y, istrat, offset, init, control, weights = weights,  :
   Ran out of iterations and did not converge
 > aeq(round(fit2$coef, 6), 1.472724)
 [1] TRUE
 > 
-> fit <- coxph(Surv(time, status) ~x, test1, method='breslow', eps=1e-8)
-> aeq(round(fit$coef,7), 1.4752849)
+> fit <- coxph(Surv(time, status) ~x, test1, method='breslow', eps=1e-8,
++              nocenter=NULL)
+> aeq(fit$coef, log(1.5 + sqrt(33)/2))  # the true solution
 [1] TRUE
 > truth <- byhand1(fit$coef, 0)
 > aeq(truth$loglik, fit$loglik[2])
@@ -113,6 +139,9 @@ In fitter(X, Y, strats, offset, init, control, weights = weights,  :
 [1] TRUE
 > aeq(truth$score, resid(fit, 'score')[c(3:7,1)])
 [1] TRUE
+> expect <- predict(fit, type='expected', newdata=test1) #force recalc
+> aeq(test1$status[-2] -fit$resid, expect[-2]) #tests the predict function
+[1] TRUE
 > 
 > sfit <- survfit(fit, list(x=0), censor=FALSE)
 > aeq(sfit$std.err^2, truth$var[c(1,2,4)]) # sfit skips time 8 (no events there)
@@ -124,7 +153,6 @@ In fitter(X, Y, strats, offset, init, control, weights = weights,  :
 [1] TRUE
 > aeq(-log(sfit$surv), (cumsum(truth$haz)))
 [1] TRUE
-> 
 > 
 > # 
 > # Done with the formal test, now print out lots of bits
@@ -141,24 +169,6 @@ In fitter(X, Y, strats, offset, init, control, weights = weights,  :
          1          6          6          9 
  0.1861407  0.4069297 -0.5930703  0.0000000 
 > 
-> predict(fit, type='lp')
-         1          2          3          4          5          6          7 
--0.7376425         NA  0.7376425  0.7376425  0.7376425 -0.7376425 -0.7376425 
-> predict(fit, type='risk')
-        1         2         3         4         5         6         7 
-0.4782401        NA 2.0910001 2.0910001 2.0910001 0.4782401 0.4782401 
-> predict(fit, type='expected')
-        1         2         3         4         5         6         7 
-1.3333333        NA 0.2712864 0.2712864 1.4574271 0.3333333 0.3333333 
-> predict(fit, type='terms')
-           x
-1 -0.7376425
-2         NA
-3  0.7376425
-4  0.7376425
-5  0.7376425
-6 -0.7376425
-7 -0.7376425
 > predict(fit, type='lp', se.fit=T)
 $fit
          1          2          3          4          5          6          7 
@@ -183,8 +193,7 @@ $fit
 1.3333333        NA 0.2712864 0.2712864 1.4574271 0.3333333 0.3333333 
 
 $se.fit
-        1         2         3         4         5         6         7 
-1.1547005        NA 0.5208517 0.5208517 1.2072395 0.5773503 0.5773503 
+[1] 1.0540926        NA 0.2785989 0.2785989 1.1069433 0.3333333 0.3333333
 
 > predict(fit, type='terms', se.fit=T)
 $fit
@@ -208,13 +217,6 @@ $se.fit
 7 0.6278672
 
 > 
-> summary(survfit(fit))
-Call: survfit(formula = fit)
-
- time n.risk n.event survival std.err lower 95% CI upper 95% CI
-    1      6       1   0.8783   0.122      0.66827            1
-    6      4       2   0.4981   0.218      0.21125            1
-    9      1       1   0.0615   0.150      0.00051            1
 > summary(survfit(fit, list(x=2)))
 Call: survfit(formula = fit, newdata = list(x = 2))
 
@@ -223,3 +225,6 @@ Call: survfit(formula = fit, newdata = list(x = 2))
     6      4       2 1.71e-03 1.98e-02     2.33e-13            1
     9      1       1 8.52e-12 5.29e-10     1.22e-64            1
 > 
+> proc.time()
+   user  system elapsed 
+  0.979   0.060   1.041 

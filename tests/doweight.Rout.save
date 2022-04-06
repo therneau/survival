@@ -1,7 +1,7 @@
 
-R version 2.7.1 (2008-06-23)
-Copyright (C) 2008 The R Foundation for Statistical Computing
-ISBN 3-900051-07-0
+R Under development (unstable) (2020-02-28 r77869) -- "Unsuffered Consequences"
+Copyright (C) 2020 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -18,7 +18,6 @@ Type 'q()' to quit R.
 > options(na.action=na.exclude) # preserve missings
 > options(contrasts=c('contr.treatment', 'contr.poly')) #ensure constrast type
 > library(survival)
-Loading required package: splines
 > 
 > # Tests of the weighted Cox model
 > #
@@ -49,9 +48,9 @@ Loading required package: splines
 > 
 > fit0 <- coxph(Surv(time, status) ~x, testw1, weights=wt,
 + 		    method='breslow', iter=0)
-> fit0b <- coxph(Surv(time, status) ~x, testw2, method='breslow', iter=0)
-> fit  <- coxph(Surv(time, status) ~x, testw1, weights=wt, method='breslow')
-> fitb <- coxph(Surv(time, status) ~x, testw2, method='breslow')
+> fit0b <- coxph(Surv(time, status) ~x, testw2, ties='breslow', iter=0)
+> fit  <- coxph(Surv(time, status) ~x, testw1, weights=wt, ties='breslow')
+> fitb <- coxph(Surv(time, status) ~x, testw2, ties='breslow')
 > 
 > texp <- function(beta) {  # expected, Breslow estimate
 +     r <- exp(beta)
@@ -72,17 +71,17 @@ Call:
 coxph(formula = Surv(time, status) ~ x, data = testw1, weights = wt, 
     method = "breslow", iter = 0)
 
+    coef exp(coef) se(coef) z p
+x 0.0000    1.0000   0.5858 0 1
 
-  coef exp(coef) se(coef) z p
-x    0         1    0.586 0 1
-
-Likelihood ratio test=0  on 1 df, p=1  n= 9 
+Likelihood ratio test=0  on 1 df, p=1
+n= 9, number of events= 5 
 > summary(fit)
 Call:
 coxph(formula = Surv(time, status) ~ x, data = testw1, weights = wt, 
-    method = "breslow")
+    ties = "breslow")
 
-  n= 9 
+  n= 9, number of events= 5 
 
     coef exp(coef) se(coef)     z Pr(>|z|)
 x 0.8596    2.3621   0.7131 1.205    0.228
@@ -90,10 +89,10 @@ x 0.8596    2.3621   0.7131 1.205    0.228
   exp(coef) exp(-coef) lower .95 upper .95
 x     2.362     0.4233    0.5839     9.556
 
-Rsquare= 0.171   (max possible= 0.999 )
-Likelihood ratio test= 1.69  on 1 df,   p=0.1932
-Wald test            = 1.45  on 1 df,   p=0.2281
-Score (logrank) test = 1.52  on 1 df,   p=0.217
+Concordance= 0.637  (se = 0.161 )
+Likelihood ratio test= 1.69  on 1 df,   p=0.2
+Wald test            = 1.45  on 1 df,   p=0.2
+Score (logrank) test = 1.52  on 1 df,   p=0.2
 
 > aeq(resid(fit0), testw1$status - texp(0))
 [1] TRUE
@@ -140,17 +139,17 @@ Score (logrank) test = 1.52  on 1 df,   p=0.217
 > aeq(rr2/rr1, testw1$wt)
 [1] TRUE
 > 
-> fit  <- coxph(Surv(time, status) ~x, testw1, weights=wt, method='efron')
+> fit  <- coxph(Surv(time, status) ~x, testw1, weights=wt, ties='efron')
 > fit
 Call:
 coxph(formula = Surv(time, status) ~ x, data = testw1, weights = wt, 
-    method = "efron")
+    ties = "efron")
 
+    coef exp(coef) se(coef)     z     p
+x 0.8726    2.3931   0.7126 1.225 0.221
 
-   coef exp(coef) se(coef)    z    p
-x 0.873      2.39    0.713 1.22 0.22
-
-Likelihood ratio test=1.75  on 1 df, p=0.186  n= 9 
+Likelihood ratio test=1.75  on 1 df, p=0.1858
+n= 9, number of events= 5 
 > resid(fit, type='mart')
           1           2           3           4           5           6 
  0.85334536 -0.02560716  0.32265266  0.32265266  0.71696234 -1.07772629 
@@ -176,24 +175,24 @@ Likelihood ratio test=1.75  on 1 df, p=0.186  n= 9
 + 		    wt =    c( 1, 1, 2, 3, 3, 3, 4, 3, 3, 2, 1, 2, 2, 1))
 > 
 > fit0 <- coxph(Surv(begin,time, status) ~x, testw3, weights=wt,
-+ 		    method='breslow', iter=0)
-> fit  <- coxph(Surv(begin,time, status) ~x, testw3, weights=wt, method='breslow')
++ 		    ties='breslow', iter=0)
+> fit  <- coxph(Surv(begin,time, status) ~x, testw3, weights=wt, ties='breslow')
 > fit0
 Call:
 coxph(formula = Surv(begin, time, status) ~ x, data = testw3, 
-    weights = wt, method = "breslow", iter = 0)
+    weights = wt, ties = "breslow", iter = 0)
 
+    coef exp(coef) se(coef) z p
+x 0.0000    1.0000   0.5858 0 1
 
-  coef exp(coef) se(coef) z p
-x    0         1    0.586 0 1
-
-Likelihood ratio test=0  on 1 df, p=1  n= 14 
+Likelihood ratio test=0  on 1 df, p=1
+n= 14, number of events= 5 
 > summary(fit)
 Call:
 coxph(formula = Surv(begin, time, status) ~ x, data = testw3, 
-    weights = wt, method = "breslow")
+    weights = wt, ties = "breslow")
 
-  n= 14 
+  n= 14, number of events= 5 
 
     coef exp(coef) se(coef)     z Pr(>|z|)
 x 0.8596    2.3621   0.7131 1.205    0.228
@@ -201,10 +200,10 @@ x 0.8596    2.3621   0.7131 1.205    0.228
   exp(coef) exp(-coef) lower .95 upper .95
 x     2.362     0.4233    0.5839     9.556
 
-Rsquare= 0.114   (max possible= 0.991 )
-Likelihood ratio test= 1.69  on 1 df,   p=0.1932
-Wald test            = 1.45  on 1 df,   p=0.2281
-Score (logrank) test = 1.52  on 1 df,   p=0.217
+Concordance= 0.637  (se = 0.172 )
+Likelihood ratio test= 1.69  on 1 df,   p=0.2
+Wald test            = 1.45  on 1 df,   p=0.2
+Score (logrank) test = 1.52  on 1 df,   p=0.2
 
 > resid(fit0, type='mart', collapse=testw3$id)
           1           2           3           4           5           6 
@@ -246,17 +245,17 @@ Score (logrank) test = 1.52  on 1 df,   p=0.217
           7           8           9 
 -0.88126566 -0.54793233 -1.54793233 
 > 
-> fit  <- coxph(Surv(begin,time, status) ~x, testw3, weights=wt, method='efron')
+> fit  <- coxph(Surv(begin,time, status) ~x, testw3, weights=wt, ties='efron')
 > fit
 Call:
 coxph(formula = Surv(begin, time, status) ~ x, data = testw3, 
-    weights = wt, method = "efron")
+    weights = wt, ties = "efron")
 
+    coef exp(coef) se(coef)     z     p
+x 0.8726    2.3931   0.7126 1.225 0.221
 
-   coef exp(coef) se(coef)    z    p
-x 0.873      2.39    0.713 1.22 0.22
-
-Likelihood ratio test=1.75  on 1 df, p=0.186  n= 14 
+Likelihood ratio test=1.75  on 1 df, p=0.1858
+n= 14, number of events= 5 
 > resid(fit, type='mart', collapse=testw3$id)
           1           2           3           4           5           6 
  0.85334536 -0.02560716  0.32265266  0.32265266  0.71696234 -1.07772629 
@@ -289,9 +288,9 @@ Likelihood ratio test=1.75  on 1 df, p=0.186  n= 14
 > #
 > # Effect of case weights on expected survival curves post Cox model
 > #
-> fit0  <- coxph(Surv(time, status) ~x, testw1, weights=wt, method='breslow',
+> fit0  <- coxph(Surv(time, status) ~x, testw1, weights=wt, ties='breslow',
 + 	       iter=0)
-> fit0b <- coxph(Surv(time, status) ~x, testw2, method='breslow', iter=0)
+> fit0b <- coxph(Surv(time, status) ~x, testw2, ties='breslow', iter=0)
 > 
 > surv1 <- survfit(fit0, newdata=list(x=0))
 > surv2 <- survfit(fit0b, newdata=list(x=0))
@@ -396,15 +395,17 @@ TRUE
 > test1 <- data.frame(time=  c(9, 3,1,1,6,6,8),
 +                     status=c(1,NA,1,0,1,1,0),
 +                     x=     c(0, 2,1,1,1,0,0),
-+ 		    wt=    c(3,0,1,1,1,1,1))
++ 		    wt=    c(3,0,1,1,1,1,1),
++                     id=    1:7)
 > testx <- data.frame(time=  c(4,4,4,1,1,2,2,3),
 +                     status=c(1,1,1,1,0,1,1,0),
 +                     x=     c(0,0,0,1,1,1,0,0),
-+ 		    wt=    c(1,1,1,1,1,1,1,1))
++ 		    wt=    c(1,1,1,1,1,1,1,1),
++                     id=    1:8)
 >  
-> fit1 <- coxph(Surv(time, status) ~x, test1, method='breslow', weights=wt,
-+ 	      robust=T)
-> fit2 <- coxph(Surv(time, status) ~x, testx, method='breslow', robust=T)
+> fit1 <- coxph(Surv(time, status) ~x, cluster=id, test1, ties='breslow',
++               weights=wt)
+> fit2 <- coxph(Surv(time, status) ~x, cluster=id, testx, ties='breslow')
 > 
 > db1 <- resid(fit1, 'dfbeta', weighted=F)
 > db1 <- db1[-2]         #toss the missing
@@ -419,3 +420,6 @@ TRUE
 [1] TRUE
 > 
 > 
+> proc.time()
+   user  system elapsed 
+  0.986   0.049   1.028 

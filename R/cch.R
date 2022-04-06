@@ -1,18 +1,18 @@
 ### Suite of programs for case-cohort analysis
 ### Main program
 
-cch <- function(formula, data=sys.parent(), subcoh, id, stratum=NULL, cohort.size, 
+cch <- function(formula, data, subcoh, id, stratum=NULL, cohort.size, 
                 method=c("Prentice", "SelfPrentice", "LinYing","I.Borgan","II.Borgan"),
                 robust=FALSE){
     call <- match.call()
-    
+    if (missing(data)) data <- parent.frame()
     if (is.data.frame(data)){
         if (inherits(id,"formula"))
-            id<-model.frame(id,data,na.action=na.fail)[,1]
+            id<- stats::model.frame(id,data,na.action=na.fail)[,1]
         if (inherits(subcoh,"formula"))
-            subcoh<-model.frame(subcoh,data,na.action=na.fail)[,1]
+            subcoh<- stats::model.frame(subcoh,data,na.action=na.fail)[,1]
         if (inherits(stratum,"formula"))
-            stratum<-model.frame(stratum,data,na.action=na.fail)[,1]
+            stratum<- stats::model.frame(stratum,data,na.action=na.fail)[,1]
     }
 
     ## Check id, subcoh and cohort.size variables
@@ -41,7 +41,7 @@ cch <- function(formula, data=sys.parent(), subcoh, id, stratum=NULL, cohort.siz
             warning("stratum levels and names(cohort.size) do not agree")
         subcohort.sizes<-table(stratum)
     } else if(!stratified) {
-        if (!(method =="LinYing"))
+        if (!(method =="LinYing") && robust)
             warning("`robust' ignored for  method (",method,")")
         if (!is.null(stratum))
             warning("'stratum' ignored for method (",method,")")
@@ -54,7 +54,7 @@ cch <- function(formula, data=sys.parent(), subcoh, id, stratum=NULL, cohort.siz
     ## Evaluate model formula
     m <- match.call(expand.dots=FALSE)
     m$method <- m$cohort.size <- m$id <- m$subcoh <- m$stratum <-m$robust<- NULL
-    m[[1]] <- as.name("model.frame")
+    m[[1L]] <- quote(stats::model.frame)
     m <- eval(m,sys.parent())
     Terms <- attr(m,"terms")
     Y <- model.extract(m, "response")
@@ -74,11 +74,20 @@ cch <- function(formula, data=sys.parent(), subcoh, id, stratum=NULL, cohort.siz
     X <- model.matrix(Terms, m)
     X <- X[,2:ncol(X)]
     fitter <- get(method)
+
+    # The artificial offset is 1/2 the minimal distance between events
+    # If there is only one unique event time then any offset is ok
+    if (ncol(Y)==3) dtime <- unique(Y[cens==1,2])
+    else dtime <- unique(Y[cens==1, 1])
+    if (length(dtime) > 1) delta <- min(diff(sort(dtime))) /2 
+    else delta <- 1
+
     if (stratified)        
         out<-fitter(tenter=tenter, texit=texit, cc=cc, id=id, X=X,
-                    stratum=as.numeric(stratum), stratum.sizes=cohort.size)
+                    stratum=as.numeric(stratum), stratum.sizes=cohort.size,
+                    delta)
     else
-        out<-fitter(tenter=tenter, texit=texit, cc=cc, id=id, X=X, ntot=nn, robust=robust)
+        out<-fitter(tenter=tenter, texit=texit, cc=cc, id=id, X=X, ntot=nn, robust=robust, delta)
     out$method <- method
     names(out$coefficients) <- dimnames(X)[[2]]
     if(!is.null(out$var))
@@ -100,15 +109,14 @@ cch <- function(formula, data=sys.parent(), subcoh, id, stratum=NULL, cohort.siz
 
 ### Subprograms
 
-Prentice <- function(tenter, texit, cc,  id, X, ntot,robust){
-    eps <- 0.00000001
+Prentice <- function(tenter, texit, cc,  id, X, ntot,robust, delta){
     cens <- as.numeric(cc>0) # Censorship indicators
     subcoh <- as.numeric(cc<2) # Subcohort indicators
 
     ## Calculate Prentice estimate
     ent2 <- tenter
-    ent2[cc==2] <- texit[cc==2]-eps
-    fit1 <- coxph(Surv(ent2,texit,cens)~X,eps=eps,x=TRUE)
+    ent2[cc==2] <- texit[cc==2]- delta
+    fit1 <- coxph(Surv(ent2,texit,cens)~X, x=TRUE, timefix=FALSE)
 
     ## Calculate Prentice estimate and variance
     nd <- sum(cens) # Number of failures
@@ -123,8 +131,8 @@ Prentice <- function(tenter, texit, cc,  id, X, ntot,robust){
     dum <- c(dum,rep(0,nc))
     gp <- rep(1,nd)
     gp <- c(gp,rep(0,nc))
-    fit <- coxph(Surv(aent,aexit,gp)~aX+offset(dum)+cluster(aid),eps=eps,x=TRUE,
-                 iter.max=35,init=fit1$coefficients)
+    fit <- coxph(Surv(aent,aexit,gp)~aX+offset(dum), cluster= aid, x=TRUE,
+                 iter.max=35,init=fit1$coefficients, timefix=FALSE)
     db <- resid(fit,type="dfbeta")
     db <- as.matrix(db)
     db <- db[gp==0,]
@@ -136,8 +144,7 @@ Prentice <- function(tenter, texit, cc,  id, X, ntot,robust){
     fit
 }
 
-SelfPrentice <- function(tenter, texit, cc,  id, X, ntot,robust){
-    eps <- 0.00000001
+SelfPrentice <- function(tenter, texit, cc,  id, X, ntot,robust, delta){
     cens <- as.numeric(cc>0) # Censorship indicators
     subcoh <- as.numeric(cc<2) # Subcohort indicators
 
@@ -154,7 +161,8 @@ SelfPrentice <- function(tenter, texit, cc,  id, X, ntot,robust){
     dum <- c(dum,rep(0,nc))
     gp <- rep(1,nd)
     gp <- c(gp,rep(0,nc))
-    fit <- coxph(Surv(aent,aexit,gp)~aX+offset(dum)+cluster(aid),eps=eps,x=TRUE)
+    fit <- coxph(Surv(aent,aexit,gp)~aX+offset(dum), cluster= aid,
+                 x=TRUE, timefix=FALSE)
     db <- resid(fit,type="dfbeta")
     db <- as.matrix(db)
     db <- db[gp==0,,drop=FALSE]
@@ -164,8 +172,7 @@ SelfPrentice <- function(tenter, texit, cc,  id, X, ntot,robust){
     fit
 }
 
-LinYing <- function(tenter, texit, cc,  id, X, ntot,robust){
-    eps <- 0.000000001
+LinYing <- function(tenter, texit, cc,  id, X, ntot,robust, delta){
     cens <- as.numeric(cc>0) # Censorship indicators
     subcoh <- as.numeric(cc<2) # Subcohort indicators
     nd <- sum(cens) # Number of failures
@@ -176,8 +183,8 @@ LinYing <- function(tenter, texit, cc,  id, X, ntot,robust){
     offs <- rep((ntot-nd)/(nc-ncd),length(texit))
     offs[cc>0] <- 1
     loffs <- log(offs)
-    fit <- coxph(Surv(tenter, texit, cens)~X+offset(loffs)+cluster(id),
-                 eps=eps,x=TRUE)
+    fit <- coxph(Surv(tenter, texit, cens)~X+offset(loffs), cluster =id,
+                 x=TRUE, timefix=FALSE)
     db <- resid(fit,type="dfbeta")
     db <- as.matrix(db)
     db0 <- db[cens==0,,drop=FALSE]
@@ -192,8 +199,7 @@ LinYing <- function(tenter, texit, cc,  id, X, ntot,robust){
     fit
 }
 
-I.Borgan <- function(tenter, texit, cc,  id, X, stratum, stratum.sizes){
-  eps <- 0.00000001
+I.Borgan <- function(tenter, texit, cc,  id, X, stratum, stratum.sizes, delta){
   nobs <- length(texit)
   idx <- 1:length(nobs)
   jj <- max(stratum)
@@ -223,8 +229,8 @@ I.Borgan <- function(tenter, texit, cc,  id, X, stratum, stratum.sizes){
   gp <- rep(1, nd)
   gp <- c(gp, rep(0, nc))
   w[gp==1] <- 1
-  fit <- coxph(Surv(ent,exit,gp)~X+offset(dum)+cluster(id),
-               weights=w, eps=eps,x=T, iter.max=25)  
+  fit <- coxph(Surv(ent,exit,gp)~X+offset(dum), cluster= id,
+               weights=w, x=T, iter.max=25, timefix=FALSE)  
   score <- resid(fit, type = "score", weighted=F)
   sc <- resid(fit, type="score", collapse=id, weighted=T)
   score <- as.matrix(score)
@@ -255,8 +261,7 @@ I.Borgan <- function(tenter, texit, cc,  id, X, stratum, stratum.sizes){
   fit
 }
 
-II.Borgan <- function(tenter, texit, cc,  id, X, stratum, stratum.sizes){
-  eps <- 0.00000001
+II.Borgan <- function(tenter, texit, cc,  id, X, stratum, stratum.sizes, delta){
   jj <- max(stratum)
   nn <- stratum.sizes  ## Cohort stratum sizes
   n <- table(stratum)  ## Sample stratum sizes
@@ -275,8 +280,8 @@ II.Borgan <- function(tenter, texit, cc,  id, X, stratum, stratum.sizes){
   wt <- as.vector(nn0/m0)
   w <- wt[stratum]
   w[cens==1] <- 1
-  fit <- coxph(Surv(tenter,texit,cens)~X+cluster(id),
-               weights=w,eps=eps,x=T, iter.max=25)  ## Borgan Estimate II
+  fit <- coxph(Surv(tenter,texit,cens)~X, cluster=id,
+               weights=w, x=T, iter.max=25, timefix=FALSE)  ## Borgan Estimate II
   score <- resid(fit, type = "score", weighted=F)
   sc <- resid(fit,type="score", collapse=id, weighted=T)
   score <- as.matrix(score)
@@ -334,7 +339,7 @@ vcov.cch<-function(object,...) object$var
     if (x$stratified){
         cat("Exposure-stratified case-cohort analysis,", x$method, "method.\n")
         m<-rbind(subcohort=x$subcohort.size, cohort=x$cohort.size)
-        prmatrix(m,quote=FALSE)
+        print(m,quote=FALSE)
     } else{
         cat("Case-cohort analysis,")
         cat("x$method,", x$method,"\n with subcohort of",
@@ -376,7 +381,7 @@ print.summary.cch <- function(x,digits=3,...){
     if (x$stratified){
         cat("Exposure-stratified case-cohort analysis,", x$method, "method.\n")
         m<-rbind(subcohort=x$subcohort.size, cohort=x$cohort.size)
-        prmatrix(m,quote=FALSE)
+        print(m,quote=FALSE)
     } else{
         cat("Case-cohort analysis,")
         cat("x$method,", x$method,"\n with subcohort of",

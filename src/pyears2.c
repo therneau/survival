@@ -1,4 +1,3 @@
-/* $Id: pyears2.c 11166 2008-11-24 22:10:34Z therneau $ */
 /*
 **  Person-years calculations.
 **     same as pyears1, but no expected rates
@@ -39,7 +38,7 @@ void pyears2(Sint   *sn,      Sint   *sny,   Sint   *sdoevent,
 	     double *pyears,  double *pn,    double *pcount, 
 	     double *offtable)
     {
-S_EVALUATOR
+
     int i,j;
     int     n,
 	    ny,
@@ -112,6 +111,7 @@ S_EVALUATOR
 
     *offtable =0;
     for (i=0; i<n; i++) {
+	R_CheckUserInterrupt();  /* in case of long calculations */
 	/*
 	** initialize
 	** "data" will be the vector of starting values for each subject

@@ -41,7 +41,8 @@ py1 <- pyears(temp.time ~ temp.age + temp.yr, scale=1) #output in days
 xx <- matrix(0, nrow=14, ncol=11)
 xx[cbind(3:11, 3:11)] <- 156
 xx[cbind(3:12, 2:11)] <- c(209, 210, rep(c(209, 209, 209, 210),2))
-dimnames(xx) <- list(c('0-18', paste(18:30, 19:31, sep='-')), 1954:1964)
+dimnames(xx) <- list(temp.age= c('0-18', paste(18:30, 19:31, sep='-')), 
+                     temp.yr = 1954:1964)
 all.equal(xx, py1$pyears)
 all.equal(203, py1$offtable)
 all.equal(1*(xx>0), py1$n)
@@ -56,9 +57,18 @@ all.equal(xx, py2$pyears)
 all.equal(203, py2$offtable)
 all.equal(1*(xx>0), py2$n)
 
+py2b <- pyears(temp.time ~ temp.age + temp.yr,
+	      rmap = list(age=temp2-temp1, year=temp2, sex=1),
+	     scale=1, ratetable=survexp.us ) #output in days
+all.equal(xx, py2b$pyears)
+all.equal(203, py2b$offtable)
+all.equal(1*(xx>0), py2b$n)
+all.equal(py2$expected, py2b$expected)
 
-py3 <-  pyears(temp.time ~ temp.age + temp.yr
-		+ ratetable(age=temp2-temp1, year=temp2, sex=1),
+
+
+py3 <-  pyears(temp.time ~ temp.age + temp.yr,
+		rmap=list(age=temp2-temp1, year=temp2, sex=1),
 	     scale=1, ratetable=survexp.us , expect='pyears')
 all.equal(py2$n, py3$n)
 all.equal(py2$pyear, py3$pyear)
@@ -122,7 +132,8 @@ py1 <- pyears(temp.time ~ temp.age + temp.yr, scale=1) #output in days
 xx <- matrix(0, nrow=14, ncol=11)
 xx[cbind(3:11, 3:11)] <- 156
 xx[cbind(3:12, 2:11)] <- c(209, 210, rep(c(209, 209, 209, 210),2))
-dimnames(xx) <- list(c('0-18', paste(18:30, 19:31, sep='-')), 1954:1964)
+dimnames(xx) <- list(temp.age= c('0-18', paste(18:30, 19:31, sep='-')), 
+                     temp.yr = 1954:1964)
 all.equal(xx, py1$pyears)
 all.equal(203, py1$offtable)
 all.equal(1*(xx>0), py1$n)

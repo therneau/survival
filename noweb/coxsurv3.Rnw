@@ -53,6 +53,7 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95, individual=FALSE,
         }
     }
 
+<<<<<<< working copy
     # risk scores, mf2, and x2
     <<survfit.coxph-setup2c>>
     <<survfit.coxph-setup3>>

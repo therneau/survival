@@ -1,7 +1,7 @@
 
-R version 2.7.1 (2008-06-23)
-Copyright (C) 2008 The R Foundation for Statistical Computing
-ISBN 3-900051-07-0
+R Under development (unstable) (2020-03-27 r78086) -- "Unsuffered Consequences"
+Copyright (C) 2020 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -18,7 +18,6 @@ Type 'q()' to quit R.
 > options(na.action=na.exclude) # preserve missings
 > options(contrasts=c('contr.treatment', 'contr.poly')) #ensure constrast type
 > library(survival)
-Loading required package: splines
 > 
 > #
 > # The test data set from Turnbull, JASA 1974, 169-73.
@@ -74,7 +73,7 @@ Loading required package: splines
 + 	   cat("             weights=", format(round(wt2,3)), "\n")
 + 	   }
 + 	}
-+     survfit(tempy ~ tempx, weights=c(ww, wt2))
++     survfit(tempy ~ tempx, weights=c(ww, wt2), robust=FALSE)
 +     }
 > 
 > temp <-emsurv(turnbull$time, turnbull$status, turnbull$n)
@@ -88,7 +87,7 @@ Iteration 3 survival= 0.538 0.295 0.210 0.095
 Iteration 4 survival= 0.538 0.295 0.210 0.095 
              weights= 8.338 3.342 0.685 0.635 
 > print(summary(temp))
-Call: survfit(formula = tempy ~ tempx, weights = c(ww, wt2))
+Call: survfit(formula = tempy ~ tempx, weights = c(ww, wt2), robust = FALSE)
 
  time n.risk n.event survival std.err lower 95% CI upper 95% CI
     1  44.00   20.34   0.5378  0.0752       0.4089        0.707
@@ -192,3 +191,6 @@ Call: survfit(formula = tempy ~ tempx, weights = c(ww, wt2))
 > 
 > rm(tfun, nfit, nparm, zparm, time1, time2, zfit) 
 > 
+> proc.time()
+   user  system elapsed 
+  0.964   0.036   0.991 

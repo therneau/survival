@@ -1,10 +1,8 @@
 \name{coxph}
 \alias{coxph}
-\alias{vcov.coxph}
 \alias{print.coxph.null}
 \alias{print.coxph.penal}
 \alias{coxph.penalty}
-\alias{[.coxph.penalty}
 \alias{coxph.getdata}
 \alias{summary.coxph.penal}
 \title{
@@ -19,9 +17,10 @@ of Andersen and Gill.
 \usage{
 coxph(formula, data=, weights, subset, 
       na.action, init, control, 
-      method=c("efron","breslow","exact"), 
-      singular.ok=TRUE, robust=FALSE, 
-      model=FALSE, x=FALSE, y=TRUE, ...)
+      ties=c("efron","breslow","exact"), 
+      singular.ok=TRUE, robust, 
+      model=FALSE, x=FALSE, y=TRUE, tt, method=ties,
+      id, cluster, istate, statedata, nocenter=c(-1, 0, 1), ...)
 }
 \arguments{
   \item{formula}{
@@ -35,11 +34,9 @@ coxph(formula, data=, weights, subset,
     argument. 
   }
   \item{weights}{
-    vector of case weights.  If \code{weights} is a vector of integers,
-    then the 
-    estimated coefficients are equivalent to estimating the model from data 
-    with the individual cases replicated as many times as indicated by 
-    \code{weights}. 
+    vector of case weights, see the note below.
+    For a thorough discussion of these see the
+    book by Therneau and Grambsch.
   }
   \item{subset}{
     expression indicating which subset of the rows of data should be used in 
@@ -58,18 +55,17 @@ coxph(formula, data=, weights, subset,
     Object of class \code{\link{coxph.control}} specifying iteration limit
     and other control options. Default is \code{coxph.control(...)}.
   }
-  \item{method}{
+  \item{ties}{
     a character string specifying the method for tie handling.  If there  
     are no tied death times all the methods are equivalent. 
     Nearly all Cox regression programs use the Breslow method by default, 
     but not this one. 
-    The Efron approximation is used as the default here, as it is much more 
+    The Efron approximation is used as the default here, it is more 
     accurate when dealing with tied death times, and is as efficient 
     computationally. 
-    The exact method computes the exact partial likelihood, which is 
-    equivalent 
-    to a conditional logistic model.  If there are a large number of ties 
-    the computational time will be excessive. 
+    The ``exact partial likelihood'' is 
+    equivalent to a conditional logistic model, and is appropriate when
+    the times are a small set of discrete values.  See further below.
   }
   \item{singular.ok}{
     logical value indicating how to handle collinearity in the model matrix. 
@@ -80,37 +76,62 @@ coxph(formula, data=, weights, subset,
     predictor, 
     the missing coefficients are treated as zeros. 
   }
-  \item{robust}{
-    if \code{TRUE} a robust variance estimate is returned.
-    Default is \code{TRUE} if the model includes a \code{cluster}
-    operative, 
-    \code{FALSE} otherwise. 
+  \item{robust}{should a robust variance be computed.
+    The default is TRUE if: there is a \code{cluster} argument, there
+    are case weights that are not 0 or 1, or there are \code{id} values
+    with more than one event. 
   }
+
+  \item{id}{optional variable name that identifies subjects.  Only
+    necessary when a subject can have multiple rows in the data, and
+    there is more than one event type.  This variable will normally be
+    found in \code{data}.}
+  \item{cluster}{optional variable which clusters the observations, for
+    the purposes of a robust variance.  If present, it implies
+    \code{robust}.
+    This variable will normally be found in \code{data}.}
+  \item{istate}{optional variable giving the current state at the start
+    each interval. This variable will normally be found in \code{data}.}
+  \item{statedata}{optional data set used to describe multistate models.}
   \item{model}{
     logical value: if \code{TRUE}, the model frame is returned in component
     \code{model}. 
   }
   \item{x}{
-    logical value: if \code{TRUE}, the model frame is returned in
+    logical value: if \code{TRUE}, the x matrix is returned in
     component \code{x}. 
   }
   \item{y}{
-    logical value: if \code{TRUE}, the model frame is returned in
+    logical value: if \code{TRUE}, the response vector is returned in
     component \code{y}. 
   }
+  \item{tt}{optional list of time-transform functions.}
+  \item{method}{alternate name for the \code{ties} argument.}
+  \item{nocenter}{columns of the X matrix whose values lie strictly
+    within this set are not recentered.  Remember that a factor
+    variable becomes a set of 0/1 columns.}
   \item{...}{Other arguments will be passed to \code{\link{coxph.control}}
   }
 }
 \value{
-an object of class \code{"coxph"} representing the fit. 
+an object of class \code{coxph} representing the fit. 
 See \code{coxph.object} for details.  
 }
 \section{Side Effects}{
-Depending on the call, the \code{predict}, \code{residuals}, and \code{survfit} routines may 
-need to reconstruct the x matrix created by \code{coxph}.  Differences in the 
-environment, such as which data frames are attached or the value of 
-\code{options()\$contrasts}, may cause this computation to fail or worse, to be 
-incorrect.  See the survival overview document for details. 
+  Depending on the call, the \code{predict}, \code{residuals},
+and \code{survfit} routines may 
+need to reconstruct the x matrix created by \code{coxph}.
+It is possible for this to fail, as in the example below in
+which the predict function is unable to find \code{tform}.
+
+\preformatted{  tfun <- function(tform) coxph(tform, data=lung)
+  fit <- tfun(Surv(time, status) ~ age)
+  predict(fit)}
+
+In such a case add the \code{model=TRUE} option to the
+\code{coxph} call to obviate the
+need for reconstruction, at the expense of a larger \code{fit}
+object.  
 }
 \details{
 The proportional hazards model is usually expressed in terms of a 
@@ -120,20 +141,73 @@ as time marches onward we observe the events for a subject, rather
 like watching a Geiger counter. 
 The data for a subject is presented as multiple rows or "observations", 
 each 
-of which applies to an interval of observation (start, stop]. 
+of which applies to an interval of observation (start, stop].
+
+The routine internally scales and centers data to avoid overflow in
+the argument to the exponential function.  These actions do not change
+the result, but lead to more numerical stability.
+Any column of the X matrix whose values lie within \code{nocenter} list
+are not recentered.  The practical consequence of the default is to not
+recenter dummy variables corresponding to factors.
+However, arguments to offset are not scaled since there are situations
+where a large offset value is a purposefully used.
+In general, however, users should not avoid very large numeric values
+for an offset due to possible loss of precision in the estimates.
+}
+\section{Case weights}{
+Case weights are treated as replication weights, i.e., a case weight of
+2 is equivalent to having 2 copies of that subject's observation.
+When computers were much smaller grouping like subjects together was a
+common trick to used to conserve memory.  Setting all weights to 2 for
+instance will give the same coefficient estimate but halve the variance.
+When the Efron approximation for ties (default) is employed replication
+of the data will not give exactly the same coefficients as the weights option,
+and in this case the weighted fit is arguably the correct one.
+
+When the model includes a \code{cluster} term or the \code{robust=TRUE}
+option the computed variance treats any weights as sampling weights;
+setting all weights to 2 will in this case give the same variance as weights of 1.
 }
 \section{Special terms}{
-There are two special terms that may be used in the model equation. 
+There are three special terms that may be used in the model equation. 
 A \code{strata} term identifies a stratified Cox model; separate baseline 
 hazard functions are fit for each strata. 
 The \code{cluster} term is used to compute a robust variance for the model. 
-The term \code{+ cluster(id)} where each value of \code{id} is unique is equivalent to 
-specifying the \code{robust=T} argument, and produces an approximate 
-jackknife estimate of the variance.  If the \code{id} variable were not 
-unique, but instead 
-identifies clusters of correlated observations, then the variance 
-estimate is based on a grouped jackknife. 
+The term \code{+ cluster(id)} where each value of \code{id} is unique is
+equivalent to 
+specifying the \code{robust=TRUE} argument.
+If the \code{id} variable is not 
+unique, it is assumed that it identifies clusters of correlated
+observations.
+The robust estimate arises from many different arguments and thus has
+had many labels.  It is variously known as the
+Huber sandwich estimator, White's estimate (linear models/econometrics),
+the Horvitz-Thompson estimate (survey sampling), the working
+independence variance (generalized estimating equations), the
+infinitesimal jackknife, and the Wei, Lin, Weissfeld (WLW) estimate.
+
+A time-transform term allows variables to vary dynamically in time.  In
+this case the \code{tt} argument will be a function or a list of
+functions (if there are more than one tt() term in the model) giving the
+appropriate transform.   See the examples below.
+
+One user mistake that has recently arisen is to slavishly follow the
+advice of some coding guides and prepend \code{survival::} onto
+everthing, including the special terms, e.g.,
+  \code{survival::coxph(survival:Surv(time, status) ~ age +
+    survival::cluster(inst), data=lung)}
+First, this is unnecessary: arguments within the \code{coxph} call will
+be evaluated within the survival namespace, so another package's Surv or
+cluster function would not be noticed.
+(Full qualification of the coxph call itself may be protective, however.)
+Second, and more importantly, the call just above will not give the
+correct answer.  The specials are recognized by their name, and
+\code{survival::cluster} is not the same as \code{cluster}; the above model would
+treat \code{inst} as an ordinary variable.
+A similar issue arises from using \code{stats::offset} as a term, in
+either survival or glm models.
 }
+
 \section{Convergence}{
 In certain data cases the actual MLE estimate of a 
 coefficient is infinity, e.g., a dichotomous variable where one of the 
@@ -143,15 +217,46 @@ routine: either the log likelihood converges, the information matrix
 becomes effectively singular, an argument to exp becomes too large for 
 the computer hardware, or the maximum number of interactions is
 exceeded.
-(Nearly always the first occurs.)
+(Most often number 1 is the first to occur.)
 The routine attempts to detect when this has happened,
 not always successfully.
-The primary consequence for he user is that the Wald statistic,
-coefficient/se(coefficient), is not valid in this case and should be
-ignored; the likelihood ratio and Wald tests remain valid however.
+The primary consequence for the user is that the Wald statistic =
+coefficient/se(coefficient) is not valid in this case and should be
+ignored; the likelihood ratio and score tests remain valid however.
 }
-\section{PENALISED REGRESSION}{
-  \code{coxph} can now maximise a penalised partial likelihood with
+\section{Ties}{
+There are three possible choices for handling tied event times.
+The Breslow approximation is the easiest to program and hence became the
+first option coded for almost all computer routines. It then ended up
+as the default option when other options were added in order to "maintain
+backwards compatability".  The Efron option is more accurate if there are
+a large number of ties, and it is the default option here.
+In practice the number of ties is usually small, in which case all the
+methods are statistically indistinguishable.
+
+Using the "exact partial likelihood" approach the Cox partial likelihood
+is equivalent to that for matched logistic regression.  (The
+\code{clogit} function uses the \code{coxph} code to do the fit.)
+It is technically appropriate when the time scale is discrete and has
+only a few unique values, and some packages refer to this as the
+"discrete" option.  There is also an "exact marginal likelihood" due to
+Prentice which is not implemented here.
+
+The calculation of the exact partial likelihood is numerically intense.
+Say for instance 180 subjects are at risk on day 7 of which 15 had an event; then
+the code needs to compute sums over all 180-choose-15 > 10^43 different
+possible subsets of size 15.  There is an efficient recursive algorithm
+for this task, but even with this the computation can be insufferably
+long.  With (start, stop) data it is much worse since the recursion
+needs to start anew for each unique start time.
+
+A separate issue is that of artificial ties due to floating-point
+imprecision. See the vignette on this topic for a full explanation or
+the \code{timefix} option in \code{coxph.control}.
+Users may need to add \code{timefix=FALSE} for simulated data sets.
+}
+\section{Penalized regression}{
+  \code{coxph} can maximise a penalised partial likelihood with
 arbitrary user-defined penalty.  Supplied penalty functions include
 ridge regression (\link{ridge}), smoothing splines
 (\link{pspline}), and frailty models (\link{frailty}).
@@ -166,8 +271,9 @@ Therneau, T., Grambsch, P., Modeling Survival Data: Extending the Cox Model.
 Springer-Verlag, 2000.
 }
 \seealso{
+\code{\link{coxph.object}}, \code{\link{coxph.control}},
 \code{\link{cluster}},  \code{\link{strata}},  \code{\link{Surv}},
-\code{\link{survfit}}, \code{\link{pspline}}, \code{\link{frailty}},
+\code{\link{survfit}}, \code{\link{pspline}}, 
 \code{\link{ridge}}.   
 }
 \examples{
@@ -199,8 +305,12 @@ summary( coxph( Surv(start, stop, event) ~ x, test2))
 # Fit a stratified model, clustered on patients 
 
 bladder1 <- bladder[bladder$enum < 5, ] 
-coxph(Surv(stop, event) ~ (rx + size + number) * strata(enum) + 
-      cluster(id), bladder1) 
+coxph(Surv(stop, event) ~ (rx + size + number) * strata(enum),
+      cluster = id, bladder1)
+
+# Fit a time transform model using current age
+coxph(Surv(time, status) ~ ph.ecog + tt(age), data=lung,
+     tt=function(x,t,...) pspline(x + t/365.25))
 }
 \keyword{survival}
 

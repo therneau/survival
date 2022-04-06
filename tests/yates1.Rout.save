@@ -1,0 +1,145 @@
+
+R Under development (unstable) (2018-04-09 r74565) -- "Unsuffered Consequences"
+Copyright (C) 2018 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> library(survival)
+> aeq <- function(x, y, ...) all.equal(as.vector(x), as.vector(y), ...)
+> 
+> fit1 <- lm(skips ~ Opening + Solder + Mask + PadType + Panel,
++               data=solder)
+> y1 <- yates(fit1, "Opening")
+> 
+> temp <- levels(solder$Opening)
+> tpred <- matrix(0., nrow(solder), 3)
+> for (i in 1:3) {
++     tdata <- solder
++     tdata$Opening <- temp[i]
++     tpred[,i] <- predict(fit1, newdata=tdata)
++  }
+> all.equal(y1$estimate[,"pmm"], colMeans(tpred))
+[1] TRUE
+> 
+> # This fit is deficient: there are no Opening=L and Mask=A6 obs
+> # The MPV for Mask=A6 and Opening L will therefore be NA, as well
+> #   as for all levels of Solder, but we can compute the others.
+> # Solder will be NA for all levels
+> fit2 <- lm(skips ~ Opening*Mask + Solder,
++               data=solder)
+> y2a <- yates(fit2, "Mask", population="factorial")
+> y2b <- yates(fit2, "Opening",  population="factorial")
+> y2c <- yates(fit2, "Solder",  population="factorial")
+> 
+> # The predict.lm function gives correct predictions for estimable
+> #  functions (all but L,A6) and nonsense for others.  It knows that
+> #  some are not estimable due to the NA coefficients, but not which ones,
+> #  so always prints a warning.  Hence the suppressWarnings call.
+> tdata <- do.call(expand.grid, fit2$xlevels[1:3])
+> temp <- levels(solder$Mask)
+> tpreda <- matrix(0., nrow(tdata), length(temp),
++                  dimnames=list(NULL, temp))
+> for (i in seq(along=temp)) {
++     tdata$Mask <- temp[i]
++     suppressWarnings(tpreda[,i] <- predict(fit2, newdata=tdata))
++  }
+> tpreda[,"A6"] <- NA  # the A6 estimate is deficient
+> aeq(y2a$estimate[,"pmm"], colMeans(tpreda))
+[1] TRUE
+> 
+> tdata <- do.call(expand.grid, fit2$xlevels[1:3])
+> temp <- levels(solder$Opening)
+> tpredb <- matrix(0., nrow(tdata), length(temp),
++                  dimnames=list(NULL, temp))
+> for (i in seq(along=temp)) {
++     tdata$Opening <- temp[i]
++     suppressWarnings(tpredb[,i] <- predict(fit2, newdata=tdata))
++  }
+> tpredb[,"L"] <- NA  
+> aeq(y2b$estimate[,"pmm"], colMeans(tpredb))
+[1] TRUE
+> 
+> # Solder should be all NA
+> all(is.na(y2c$estimate[,"pmm"]))
+[1] TRUE
+> 
+> # Tests for Solder are defined for a non-factorial population, however.
+> # the [] below retains the factor structure of the variable, where the
+> #  runs above did not.  R gets prediction correct  both ways.
+> y2d <- yates(fit2, ~Solder)
+> temp <- levels(solder$Solder)
+> tdata <- solder
+> tpredd <- matrix(0, nrow(tdata), length(temp),
++                  dimnames=list(NULL, temp))
+> for (i in seq(along=temp)) {
++     tdata$Solder[] <- temp[i]
++     suppressWarnings(tpredd[,i] <- predict(fit2, newdata=tdata))
++ }
+> aeq(y2d$estimate$pmm, colMeans(tpredd))
+[1] TRUE
+> 
+> #
+> # Verify that the result is unchanged by how dummies are coded
+> #   The coefs move all over the map, but predictions are unchanged
+> fit3 <- lm(skips ~ C(Opening, contr.helmert)*Mask + C(Solder, contr.SAS),
++            data=solder)
+> y3a <- yates(fit3, ~Mask, population='yates')
+> equal <- c("estimate", "test", "mvar")
+> all.equal(y3a[equal], y2a[equal])
+[1] TRUE
+> 
+> tdata <- do.call(expand.grid, fit2$xlevels[1:3]) # use orignal variable names
+> temp <- levels(solder$Mask)
+> cpred <- matrix(0., nrow(tdata), length(temp),
++                  dimnames=list(NULL, temp))
+> for (i in seq(along=temp)) {
++     tdata$Mask <- temp[i]
++     suppressWarnings(cpred[,i] <- predict(fit3, newdata=tdata))
++  }
+> aeq(cpred[, temp!="A6"], tpreda[, temp!= "A6"])  # same predictions
+[1] TRUE
+> all.equal(y3a$estimate, y2a$estimate)
+[1] TRUE
+> 
+> y3b <- yates(fit3, ~Opening, population='yates')
+> # column names will differ
+> all.equal(y3b$estimate, y2b$estimate, check.attributes=FALSE)
+[1] TRUE
+> 
+> y3d <- yates(fit3, ~Solder)
+> for (i in 1:3) {
++     print(all.equal(y3d[[i]], y2d[[i]], check.attributes=FALSE))
++ }
+[1] TRUE
+[1] TRUE
+[1] TRUE
+> 
+> # Reprise this with a character variable in the model
+> sdata <- solder
+> sdata$Mask <- as.character(sdata$Mask)
+> fit4 <-  lm(skips ~ Opening*Mask + Solder, data=sdata)
+> y4a <- yates(fit4, ~ Mask, population= "yates")
+> y4b <- yates(fit4, ~ Opening, population= "yates")
+> y4d <- yates(fit4, ~ Solder)
+> equal <- c("estimate", "tests", "mvar", "cmat")
+> all.equal(y2a[equal], y4a[equal])  # the "call" component differs
+[1] TRUE
+> all.equal(y2b[equal], y4b[equal])
+[1] TRUE
+> all.equal(y2d[equal], y4d[equal])
+[1] TRUE
+> 
+> proc.time()
+   user  system elapsed 
+  1.004   0.032   1.034 

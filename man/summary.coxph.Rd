@@ -19,38 +19,42 @@ Produces a summary of a fitted coxph model
   }
   \item{scale}{
     vector of scale factors for the coefficients, defaults to 1. 
-    The confidence limits are for the risk change associated with one scale unit. 
+    The printed coefficients, se, and confidence intervals will be
+    associated with one scale unit. 
   }
   \item{\dots}{for future methods}
 }
 \value{
-An object of class \code{summary.coxph}. 
+  An object of class \code{summary.coxph}, with components:
+  \item{n, nevent}{number of observations and number of events,
+    respectively, in the fit}
+  \item{loglik}{the log partial likelihood at the initial and final
+    values}
+  \item{coefficients}{a matrix with one row for each coefficient, and
+    columns containing the coefficient, the hazard ratio exp(coef),
+    standard error, Wald statistic, and P value.}
+  \item{conf.int}{a matrix with one row for each coefficient, containing
+    the confidence limits for exp(coef)}
+  \item{logtest, sctest, waldtest}{the overall likelihood ratio, score,
+    and Wald test statistics for the model}
+  \item{concordance}{the concordance statistic and its standard error}
+  \item{used.robust}{whether an asymptotic or robust variance was used}
+  \item{rsq}{an approximate R^2 based on Nagelkirke (Biometrika 1991).}
+  \item{fail}{a message, if the underlying coxph call failed}
+  \item{call}{a copy of the call}
+  \item{na.action}{information on missing values}
+}
+\note{
+  The pseudo r-squared of Nagelkirke is attractive because it is simple,
+  but further work has shown that it has poor properties and it is now
+  depricated.  The value is no longer printed by default, and will
+  eventually be removed from the object.
 }
 \seealso{
-  coxph, print.coxph  
+  \code{\link{coxph}}, \code{\link{print.coxph}}  
 }
 \examples{
 fit <- coxph(Surv(time, status) ~ age + sex, lung) 
-summary(fit) 
-\dontrun{
-Call: 
-coxph(formula = Surv(time, status) ~ age + sex, data = lung) 
-  
-  n= 228  
-  
-      coef exp(coef) se(coef)     z      p  
-age  0.017     1.017  0.00922  1.85 0.0650 
-sex -0.513     0.599  0.16745 -3.06 0.0022 
-  
-    exp(coef) exp(-coef) lower .95 upper .95  
-age     1.017      0.983     0.999     1.036 
-sex     0.599      1.670     0.431     0.831 
-  
-Rsquare= 0.06   (max possible= 0.999 ) 
-Likelihood ratio test= 14.1  on 2 df,   p=0.000857 
-Wald test            = 13.5  on 2 df,   p=0.00119 
-Score (logrank) test = 13.7  on 2 df,   p=0.00105 
-}}
+summary(fit)
+}
 \keyword{survival}
-% docclass is function
-% Converted by Sd2Rd version 37351.

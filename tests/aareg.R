@@ -79,8 +79,6 @@ mine <- diag(1/dt1$nrisk[1:9]) %*% mine
 
 aeq(mine, afit$coef[1:9, -1])
 
-rm(tfit, afit, mine, dt1, cfit, sch1)
-
 #
 # Check out the dfbeta matrix from aareg
 #   Note that it is kept internally in time order, not data set order
@@ -125,8 +123,6 @@ for (i in c(2,5,27,54,101, 135)) {
     cat(" dfbeta=", aeq(df, afit$dfbeta[lwho,,i]), "\n")
     }
 	  
-rm(afit, cfit, cdt, lwho, lmx, lmy, fit, rr, zz, df)
-
 
 # Repeat it with case weights
 ww <- rep(1:5, length=nrow(lung))/ 3.0
@@ -154,9 +150,6 @@ for (i in c(2,5,27,54,101, 135)) {
     cat(" dfbeta=", aeq(df, afit$dfbeta[who,,i]), "\n")
     }
 	  
-rm(afit, cfit, cdt, who, x, y, fit, rr, zz, df)
-rm(ord, acoef)
-    
 #
 # Check that the test statistic computed within aareg and
 #  the one recomputed within summary.aareg are the same.

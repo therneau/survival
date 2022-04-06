@@ -9,6 +9,9 @@ aeq <- function(x,y) all.equal(as.vector(x), as.vector(y))
 tdata <- lung
 tdata$sex <- lung$sex +3
 
+# Both of these should produce warning messages about singular X, since there
+#  are ph.ecog=3 subjects in only 1 of the strata. 
+# Does not affect the test 
 fit1 <- coxph(Surv(time, status) ~ age + sex:strata(ph.ecog), lung)
 fit2 <- coxph(Surv(time, status) ~ age + sex:strata(ph.ecog), tdata)
 

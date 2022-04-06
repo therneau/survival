@@ -1,0 +1,387 @@
+\section{Person years}
+The person years routine and the expected survival code are the
+two parts of the survival package that make use of external
+rate tables, of which the United States mortality tables \code{survexp.us}
+and \code{survexp.usr} are examples contained in the package.
+The arguments for pyears are
+\begin{description}
+  \item[formula] The model formula. The right hand side consists of grouping
+    variables and is essentially identical to [[survfit]], the result of the
+    model will be a table of results with dimensions determined from the 
+    right hand variables.  The formula can include an optional [[ratetable]]
+    directive; but this style has been superseded by the [[rmap]] argument.
+  \item [data, weights, subset, na.action] as usual
+  \item[rmap] an optional mapping for rate table variables, see more below.
+  \item[ratetable] the population rate table to use as a reference.  This can
+    either be a ratetable object or a previously fitted Cox model
+  \item[scale] Scale the resulting output times, e.g., 365.25 to turn days into
+    years.
+  \item[expect] Should the output table include the expected number of 
+    events, or the expected number of person-years of observation?
+  \item[model, x, y] as usual
+  \item[data.frame] if true the result is returned as a data frame, if false
+    as a set of tables.
+\end{description}
+
+<<pyears>>=
+pyears <- function(formula, data,
+	weights, subset, na.action, rmap,
+	ratetable, scale=365.25,  expect=c('event', 'pyears'),
+	model=FALSE, x=FALSE, y=FALSE, data.frame=FALSE) {
+
+    <<pyears-setup>>
+    <<pyears-compute>>
+    <<pyears-finish>>
+    }
+@         
+
+Start out with the standard model processing, which involves making a copy
+of the input call, but keeping only the arguments we want.
+We then process the special argument [[rmap]].  This is discussed in the
+section on the [[survexp]] function so we need not repeat the 
+explantation here.
+<<pyears-setup>>=
+expect <- match.arg(expect)
+Call <- match.call()
+    
+# create a call to model.frame() that contains the formula (required)
+#  and any other of the relevant optional arguments
+# then evaluate it in the proper frame
+indx <- match(c("formula", "data", "weights", "subset", "na.action"),
+                  names(Call), nomatch=0) 
+if (indx[1] ==0) stop("A formula argument is required")
+tform <- Call[c(1,indx)]  # only keep the arguments we wanted
+tform[[1L]] <- quote(stats::model.frame)  # change the function called
+
+Terms <- if(missing(data)) terms(formula, 'ratetable')
+         else              terms(formula, 'ratetable',data=data)
+if (any(attr(Terms, 'order') >1))
+        stop("Pyears cannot have interaction terms")
+
+rate <- attr(Terms, "specials")$ratetable                   
+if (length(rate) >0 || !missing(rmap) || !missing(ratetable)) {
+    has.ratetable <- TRUE
+    if(length(rate) > 1)
+        stop("Can have only 1 ratetable() call in a formula")
+    if (missing(ratetable)) stop("No rate table specified")
+
+    <<survexp-setup-rmap>>
+    }
+else has.ratetable <- FALSE
+
+mf <- eval(tform, parent.frame())
+
+Y <- model.extract(mf, 'response')
+if (is.null(Y)) stop ("Follow-up time must appear in the formula")
+if (!is.Surv(Y)){
+    if (any(Y <0)) stop ("Negative follow up time")
+    Y <- as.matrix(Y)
+    if (ncol(Y) >2) stop("Y has too many columns")
+    }
+else {
+    stype <- attr(Y, 'type')
+    if (stype == 'right') {
+        if (any(Y[,1] <0)) stop("Negative survival time")
+        nzero <- sum(Y[,1]==0 & Y[,2] ==1)
+        if (nzero >0) 
+            warning(paste(nzero, 
+                     "observations with an event and 0 follow-up time,",
+                   "any rate calculations are statistically questionable"))
+        }
+    else if (stype != 'counting')
+        stop("Only right-censored and counting process survival types are supported")
+    }
+
+n <- nrow(Y)
+if (is.null(n) || n==0) stop("Data set has 0 observations")
+
+weights <- model.extract(mf, 'weights')
+if (is.null(weights)) weights <- rep(1.0, n)
+@ 
+
+The next step is to check out the ratetable. 
+For a population rate table a set of consistency checks is done by the
+[[match.ratetable]] function, giving a set of sanitized indices [[R]].
+This function wants characters turned to factors.
+For a Cox model [[R]] will be a model matix whose covariates are coded
+in exactly the same way that variables were coded in the original
+Cox model.  We call the model.matrix.coxph function so as not to have to
+repeat the steps found there (remove cluster statements, etc).   
+<<pyears-setup>>=
+# rdata contains the variables matching the ratetable
+if (has.ratetable) {
+    rdata <- data.frame(eval(rcall, mf), stringsAsFactors=TRUE)  
+    if (is.ratetable(ratetable)) {
+        israte <- TRUE
+        rtemp <- match.ratetable(rdata, ratetable)
+        R <- rtemp$R
+        }
+    else if (inherits(ratetable, 'coxph') && !inherits(ratetable, "coxphms")) {
+        israte <- FALSE
+        Terms <- ratetable$terms
+        if (!is.null(attr(Terms, 'offset')))
+            stop("Cannot deal with models that contain an offset")
+        strats <- attr(Terms, "specials")$strata
+        if (length(strats))
+            stop("pyears cannot handle stratified Cox models")
+
+        if (any(names(mf[,rate]) !=  attr(ratetable$terms, 'term.labels')))
+             stop("Unable to match new data to old formula")
+        R <- model.matrix.coxph(ratetable, data=rdata)
+        }
+    else stop("Invalid ratetable")
+    }
+@ 
+
+Now we process the non-ratetable variables. 
+Those of class [[tcut]] set up time-dependent classes.  For
+these the cutpoints attribute sets the intervals, if there
+were 4 cutpoints of 1, 5,6, and 10 the 3 intervals will be 1-5,
+5-6 and 6-10, and odims will be 3.
+All other variables are treated as factors.
+<<pyears-setup>>= 
+ovars <- attr(Terms, 'term.labels')
+if (length(ovars)==0)  {
+    # no categories!
+    X <- rep(1,n)
+    ofac <- odim <- odims <- ocut <- 1
+    }
+else {
+    odim <- length(ovars)
+    ocut <- NULL
+    odims <- ofac <- double(odim)
+    X <- matrix(0, n, odim)
+    outdname <- vector("list", odim)
+    names(outdname) <- attr(Terms, 'term.labels')
+    for (i in 1:odim) {
+        temp <- mf[[ovars[i]]]
+        if (inherits(temp, 'tcut')) {
+            X[,i] <- temp
+            temp2 <- attr(temp, 'cutpoints')
+            odims[i] <- length(temp2) -1
+            ocut <- c(ocut, temp2)
+            ofac[i] <- 0
+            outdname[[i]] <- attr(temp, 'labels')
+    	}
+        else {
+            temp2 <- as.factor(temp)
+            X[,i] <- temp2
+            temp3 <- levels(temp2)
+            odims[i] <- length(temp3)
+            ofac[i] <- 1
+            outdname[[i]] <- temp3
+    	}
+    }
+}
+@
+
+Now do the computations.  
+The code above has separated out the variables into 3 groups:
+\begin{itemize}
+  \item The variables in the rate table.  These determine where we 
+    \emph{start} in the rate table with respect to retrieving the relevant
+    death rates.  For the US table [[survexp.us]] this will be the date of
+    study entry, age (in days) at study entry, and sex of each subject.
+  \item The variables on the right hand side of the model.  These are 
+    interpreted almost identically to a call to [[table]], with special
+    treatment for those of class \emph{tcut}.
+  \item The response variable, which tells the number of days of follow-up
+    and optionally the status at the end of follow-up.
+\end{itemize}
+
+Start with the rate table variables. 
+There is an oddity about US rate tables: the entry for age (year=1970,
+age=55) contains the daily rate for anyone who turns 55 in that year,
+from their birthday forward for 365 days.  So if your birthday is on
+Oct 2, the 1970 table applies from 2Oct 1970 to 1Oct 1971.  The
+underlying C code wants to make the 1970 rate table apply from 1Jan
+1970 to 31Dec 1970.  The easiest way to finess this is to fudge
+everyone's enter-the-study date.  If you were born in March but
+entered in April, make it look like you entered in Febuary; that way
+you get the first 11 months at the entry year's rates, etc.  The birth
+date is entry date - age in days (based on 1/1/1970).
+
+The other aspect of the rate tables is that ``older style'' tables, those that
+have the factor attribute, contained only decennial data which the C code would
+interpolate on the fly.  The value of [[atts$factor]] was 10 indicating that
+there are 10 years in the interpolation interval.  The newer tables do not
+do this and the C code is passed a 0/1 for continuous (age and year) versus
+discrete (sex, race).
+<<pyears-compute>>=
+ocut <-c(ocut,0)   #just in case it were of length 0
+osize <- prod(odims)
+if (has.ratetable) {  #include expected
+    atts <- attributes(ratetable)
+    datecheck <- function(x) 
+        inherits(x, c("Date", "POSIXt", "date", "chron"))
+    cuts <- lapply(attr(ratetable, "cutpoints"), function(x)
+        if (!is.null(x) & datecheck(x)) ratetableDate(x) else x)
+
+    if (is.null(atts$type)) {
+        #old stlye table
+        rfac <- atts$factor
+        us.special <- (rfac >1)
+        }
+    else {
+        rfac <- 1*(atts$type ==1)
+        us.special <- (atts$type==4)
+        }
+    if (any(us.special)) {  #special handling for US pop tables
+        if (sum(us.special) > 1) stop("more than one type=4 in a rate table")
+        # Someone born in June of 1945, say, gets the 1945 US rate until their
+        #  next birthday.  But the underlying logic of the code would change
+        #  them to the 1946 rate on 1/1/1946, which is the cutpoint in the
+        #  rate table.  We fudge by faking their enrollment date back to their
+        #  birth date.
+        #
+        # The cutpoint for year has been converted to days since 1/1/1970 by
+        #  the ratetableDate function.  (Date objects in R didn't exist when 
+        #  rate tables were conceived.) 
+        if (is.null(atts$dimid)) dimid <- names(atts$dimnames)
+        else dimid <- atts$dimid
+        cols <- match(c("age", "year"), dimid)
+        if (any(is.na(cols))) 
+            stop("ratetable does not have expected shape")
+
+        # The format command works for Dates, use it to get an offset
+        bdate <- as.Date("1970-01-01") + (R[,cols[2]] - R[,cols[1]])
+        byear <- format(bdate, "%Y")
+        offset <- as.numeric(bdate - as.Date(paste0(byear, "-01-01")))
+        R[,cols[2]] <- R[,cols[2]] - offset
+   
+        # Doctor up "cutpoints" - only needed for (very) old style rate tables
+        #  for which the C code does interpolation on the fly
+        if (any(rfac >1)) {
+            temp <-  which(us.special)
+            nyear <- length(cuts[[temp]])
+            nint <- rfac[temp]       #intervals to interpolate over
+            cuts[[temp]] <- round(approx(nint*(1:nyear), cuts[[temp]],
+    				nint:(nint*nyear))$y - .0001)
+            }
+        }
+    docount <- is.Surv(Y)
+    temp <- .C(Cpyears1,
+    		as.integer(n),
+    		as.integer(ncol(Y)),
+    		as.integer(is.Surv(Y)),
+    		as.double(Y),
+    	        as.double(weights),
+    		as.integer(length(atts$dim)),
+    		as.integer(rfac),
+    		as.integer(atts$dim),
+    		as.double(unlist(cuts)),
+    		as.double(ratetable),
+    		as.double(R),
+    		as.integer(odim),
+    		as.integer(ofac),
+    		as.integer(odims),
+    		as.double(ocut),
+    		as.integer(expect=='event'),
+    		as.double(X),
+    		pyears=double(osize),
+    		pn    =double(osize),
+    		pcount=double(if(docount) osize else 1),
+    		pexpect=double(osize),
+    		offtable=double(1))[18:22]
+    }
+else {   #no expected
+    docount <- as.integer(ncol(Y) >1)
+    temp <- .C(Cpyears2,
+    		as.integer(n),
+    		as.integer(ncol(Y)),
+    		as.integer(docount),
+    		as.double(Y),
+    	        as.double(weights),
+    		as.integer(odim),
+    		as.integer(ofac),
+    		as.integer(odims),
+    		as.double(ocut),
+    		as.double(X),
+    		pyears=double(osize),
+    		pn    =double(osize),
+    		pcount=double(if (docount) osize else 1),
+    		offtable=double(1)) [11:14]
+    }
+@     
+
+Create the output object.
+<<pyears-finish>>=
+has.tcut <- any(sapply(mf, function(x) inherits(x, 'tcut')))
+if (data.frame) {
+    # Create a data frame as the output, rather than a set of
+    #  rate tables
+    if (length(ovars) ==0) {  # no variables on the right hand side
+        keep <- TRUE
+        df <- data.frame(pyears= temp$pyears/scale,
+                         n = temp$n)
+    }
+    else {
+        keep <- (temp$pyears >0)  # what rows to keep in the output
+        # grab prototype rows from the model frame, this preserves class
+        #  (unless it is a tcut variable, then we know what to do)
+        tdata <- lapply(1:length(ovars), function(i) {
+            temp <- mf[[ovars[i]]]
+            if (inherits(temp, "tcut")) { #if levels are numeric, return numeric
+                if (is.numeric(outdname[[i]])) outdname[[i]]
+                else  factor(outdname[[i]], outdname[[i]]) # else factor
+            }
+            else temp[match(outdname[[i]], temp)]
+        })
+        tdata$stringsAsFactors <- FALSE  # argument for expand.grid
+        df <- do.call("expand.grid", tdata)[keep,,drop=FALSE]
+        names(df) <- ovars
+        df$pyears <- temp$pyears[keep]/scale
+        df$n <- temp$pn[keep]
+    }
+    row.names(df) <- NULL   # toss useless 'creation history'
+    if (has.ratetable) df$expected <- temp$pexpect[keep]
+    if (expect=='pyears') df$expected <- df$expected/scale
+    if (docount) df$event <- temp$pcount[keep]
+    # if any of the predictors were factors, make them factors in the output
+    for (i in 1:length(ovars)){
+        if (is.factor( mf[[ovars[i]]]))
+            df[[ovars[i]]] <- factor(df[[ovars[i]]], levels( mf[[ovars[i]]]))
+    }
+
+    out <- list(call=Call,
+                data= df, offtable=temp$offtable/scale,
+                tcut=has.tcut)
+    if (has.ratetable && !is.null(rtemp$summ))
+        out$summary <- rtemp$summ
+}
+
+else if (prod(odims) ==1) {  #don't make it an array
+    out <- list(call=Call, pyears=temp$pyears/scale, n=temp$pn,
+    	    offtable=temp$offtable/scale, tcut = has.tcut)
+    if (has.ratetable) {
+        out$expected <- temp$pexpect
+        if (expect=='pyears') out$expected <- out$expected/scale
+        if (!is.null(rtemp$summ)) out$summary <- rtemp$summ
+    }
+    if (docount) out$event <- temp$pcount
+}
+else {
+    out <- list(call = Call,
+    	pyears= array(temp$pyears/scale, dim=odims, dimnames=outdname),
+    	n     = array(temp$pn,     dim=odims, dimnames=outdname),
+    	offtable = temp$offtable/scale, tcut=has.tcut)
+    if (has.ratetable) {
+        out$expected <- array(temp$pexpect, dim=odims, dimnames=outdname)
+        if (expect=='pyears') out$expected <- out$expected/scale
+        if (!is.null(rtemp$summ)) out$summary <- rtemp$summ
+    }
+    if (docount)
+    	out$event <- array(temp$pcount, dim=odims, dimnames=outdname)
+}
+out$observations <- nrow(mf)
+out$terms <- Terms
+na.action <- attr(mf, "na.action")
+if (length(na.action))  out$na.action <- na.action
+if (model) out$model <- mf
+else {
+    if (x) out$x <- X
+    if (y) out$y <- Y
+}
+class(out) <- 'pyears'
+out
+@ 

@@ -1,4 +1,3 @@
-/* $Id: coxfit5.c 11196 2009-02-02 04:55:23Z therneau $  */
 /* A reentrant version of the Coxfit program, for random effects modeling
 **   with reasonable efficiency (I hope).  The important arrays are saved
 **   from call to call so as to speed up the process.  The x-matrix itself
@@ -83,7 +82,7 @@ static double **covar, **cmat, **cmat2;
 static double *mark, *wtave;
 static double *a, *oldbeta, *a2;
 static double *offset, *weights;
-static int    *status, *frail, *sort;
+static int    *status, *frail=NULL, *sort;
 static double *score, *ttime;  /* Hp-UX really doesn't like "time" as a var */
 static double *tmean;
 static int    ptype, pdiag;
@@ -92,15 +91,15 @@ static Sint   *zflag;
 
 static double **cmatrix(double *, int, int);
 
-void coxfit5_a(Sint *nusedx, Sint *nvarx, double *yy, 
-	       double *covar2, double *offset2,
-	       double *weights2, Sint *strata,  Sint *sorted,
-	       double *means, double *beta, double *u, 
-	       double *loglik, 
-	       Sint *methodx, Sint *ptype2, Sint *pdiag2,
-	       Sint *nfrail,  Sint *frail2,
-               void *fexpr1, void *fexpr2, void *rho) {
-S_EVALUATOR
+void coxfit5_a(Sint *nusedx,     Sint *nvarx,     double *yy, 
+	       double *covar2,   double *offset2, double *weights2,
+	       Sint *strata,     Sint *sorted,    double *means, 
+               double *beta,     double *u,       double *loglik, 
+	       Sint *methodx,    Sint *ptype2,    Sint *pdiag2,
+	       Sint *nfrail,     Sint *frail2,
+               void *fexpr1,     void *fexpr2,    void *rho,
+	       Sint *docenter) {
+
     int i,j,k, p, istrat;
     int ii; 
     int     nused, nvar;
@@ -131,7 +130,7 @@ S_EVALUATOR
 	cmat2= cmatrix(0, nvar2, nvar+1);
         }
 
-    a = Calloc(4*nvar2 + 6*nused, double);
+    a = CALLOC(4*nvar2 + 6*nused, double);
     oldbeta = a + nvar2;
     a2 =  oldbeta + nvar2;
     mark = a2 + nvar2;
@@ -141,7 +140,7 @@ S_EVALUATOR
     score   = offset + nused;
     tmean   = score + nused;
     ttime    = tmean + nvar2;
-    status  = Calloc(2*nused, int);
+    status  = CALLOC(2*nused, int);
     sort    = status + nused;
     for (i=0; i<nused; i++) {
 	weights[i] = weights2[i];
@@ -157,14 +156,14 @@ S_EVALUATOR
     */
     if (nf > nvar) i=nf; else i=nvar;
     if (nf > nvar*nvar) j=nf; else j=nvar*nvar;
-    if (pdiag==0)  upen = Calloc(2*i, double);
-    else           upen = Calloc(i+j, double);
+    if (pdiag==0)  upen = CALLOC(2*i, double);
+    else           upen = CALLOC(i+j, double);
     ipen = upen + i;
-    if (ptype>1)  zflag = Calloc(nvar, Sint);
-    else          zflag = Calloc(2, Sint);
+    if (ptype>1)  zflag = CALLOC(nvar, Sint);
+    else          zflag = CALLOC(2, Sint);
 
     if (nf>0) {
-	frail = Calloc(nused, int);
+	frail = CALLOC(nused, int);
 	for (i=0; i<nused; i++) frail[i] = frail2[i];
         }
 
@@ -204,13 +203,15 @@ S_EVALUATOR
     **  much more stable
     */
     for (i=0; i<nvar; i++) {
-	temp=0;
-	for (p=0; p<nused; p++) temp += covar[i][p];
-	temp /= nused;
-	means[i] = temp;
-	for (p=0; p<nused; p++) covar[i][p] -=temp;
+	if (docenter[i] ==0) means[i] = 0;
+	else {
+	    temp=0;
+	    for (p=0; p<nused; p++) temp += covar[i][p];
+	    temp /= nused;
+	    means[i] = temp;
+	    for (p=0; p<nused; p++) covar[i][p] -=temp;
 	}
-
+    }
     /*
     ** do the initial iteration step of a no-frailty model
     **   (actually, just a no-sparse-terms model) -- loglik only
@@ -235,6 +236,7 @@ S_EVALUATOR
 	zbeta = offset[p];    /* form the term beta*z   (vector mult) */
 	for (i=0; i<nvar; i++)
 	    zbeta += beta[i]*covar[i][p];
+	zbeta = coxsafe(zbeta);
 	risk = exp(zbeta) * weights[p];
 	denom += risk;
 
@@ -289,7 +291,7 @@ void coxfit5_b(Sint *maxiter, Sint *nusedx, Sint *nvarx,
 	       Sint *nfrail, double *fbeta, double *fdiag,
                void *fexpr1, void *fexpr2, void *rho)
 {
-S_EVALUATOR
+
     int i,j,k, p;
     int ii, istrat, ip;
     int     iter;
@@ -358,6 +360,7 @@ S_EVALUATOR
 
 	    for (i=0; i<nvar; i++)
 		zbeta += beta[i]*covar[i][p];
+	    zbeta = coxsafe(zbeta);
 	    score[p] = exp(zbeta);
 	    risk = score[p] * weights[p];
 	    denom += risk;
@@ -467,7 +470,8 @@ S_EVALUATOR
 	**   update the betas and test for convergence
 	*/
 	*flag = cholesky3(jmat, nvar2, nf, fdiag, *tolerch);
-	if (fabs(1-(*loglik/newlk))<=*eps && halving==0) { /* all done */
+	if (fabs(newlk) < *eps ||
+	    (fabs(1-(*loglik/newlk))<=*eps && halving==0)) { /* all done */
 	    *loglik = newlk;
 	    for (i=0; i<nvar; i++) {
 	        for (j=0; j<nvar2; j++)  imat[i][j] = jmat[i][j];
@@ -535,13 +539,13 @@ S_EVALUATOR
 
 static double **cmatrix(double *data, int ncol, int nrow)
     {
-S_EVALUATOR
+
     int i,j;
     double **pointer;
     double *temp;
  
-    pointer = Calloc(nrow, double *);
-    temp = Calloc(nrow*ncol, double);
+    pointer = CALLOC(nrow, double *);
+    temp = CALLOC(nrow*ncol, double);
     if (data==0){
 	for (i=0; i<nrow; i++) {
 	    pointer[i] = temp;
@@ -559,14 +563,13 @@ S_EVALUATOR
 
 static void cmatrix_free(double **data) 
 {
-    Free(*data);
-    Free(data);
+    FREE(*data);
+    FREE(data);
     }
 
 
 void coxfit5_c (Sint *nusedx, Sint *nvar, Sint *strata, Sint *methodx, 
 		double *expect) {
-S_EVALUATOR
     double hazard, 
            denom,
            temp, temp2,
@@ -661,12 +664,13 @@ S_EVALUATOR
 	}
     
     /*
-    ** Free up the extra memory
+    ** FREE up the extra memory
     */
-    Free(zflag);
-    Free(upen);
-    Free(status);
-    Free(a);
+    FREE(zflag);
+    FREE(upen);
+    FREE(status);
+    FREE(a);
+    if (frail != NULL) FREE(frail);
     if (*nvar > 0) {
 	cmatrix_free(cmat2);
 	cmatrix_free(cmat);

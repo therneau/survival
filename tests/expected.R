@@ -6,16 +6,11 @@ library(survival)
 aeq <- function(x,y) all.equal(as.vector(x), as.vector(y))
 #
 # This makes several scripts easier
-#  Certain tests depended in the now-depreciated date library
-{if (is.R()) mdy.date <- function(m, d, y) {
+# 
+mdy.Date <- function(m, d, y) {
     y <- ifelse(y<100, y+1900, y)
     as.Date(paste(m,d,y, sep='/'), "%m/%d/%Y")
     }
-else mdy.date <- function(m,d,y) {
-    y <- ifelse(y<100, y+1900, y)
-    timeDate(paste(y, m, d, sep='/'), in.format="%Y/%m/%d")
-    }
- }
 
 # This function takes a single subject and walks down the rate table
 # Input: the vector of starting points, futime, and a ratetable
@@ -65,11 +60,11 @@ ratewalk <- function(start, futime, ratetable=survexp.us) {
     list(cell=cell[1:n,], days=days[1:n], hazard=hazard[1:n])
     }
 
-# Simple test of ratewalk: 20 years old, start on 7Sep 1960 (day 250)
+# Simple test of ratewalk: 20 years old, start on 7Sep 1960
 #   116 days at the 1960, 20 year old male rate, through the end of the day
 #     on 12/31/1960, then 84 days at the 1961 rate.  
 #   The decennial q for 1960 males is .00169.
-zz <- ratewalk(c(20.4*365.25, 1, 250), 200)
+zz <- ratewalk(c(20.4*365.25, 1, as.Date("1960/09/07")), 200)
 all.equal(zz$hazard[1], -(116/365.25)*log(1-.00169))
 all.equal(zz$days, c(116,84))
 
@@ -79,49 +74,59 @@ all.equal(zz$days, c(116,84))
 #
 #  Compute the 1, 5, 10 and 12 year expected survival
 
-temp1 <- mdy.date(1,1,36)
-temp2 <- mdy.date(1,2,55)
-exp1 <- survexp(~ratetable(year=temp2, age=(temp2-temp1), sex=1, race='white'),
-		    ratetable=survexp.usr,times=c(366, 1827, 3653, 4383))
+temp1 <- mdy.Date(1,1,36)
+temp2 <- mdy.Date(1,2,55)
+exp1 <- survexp(~1,  ratetable=survexp.usr,times=c(366, 1827, 3653, 4383),
+                rmap= list(year=temp2, age=(temp2-temp1), sex=1, race='white'))
+#older style call
+exp1b <- survexp(~ratetable(year=temp2, age=(temp2-temp1), sex=1, race='white'),
+		    ratetable=survexp.usr, times=c(366, 1827, 3653, 4383))
 
-tyear <- as.numeric(temp2 - mdy.date(1,1,1960))
-h1 <- ratewalk(c(temp2-temp1, 1, 1, tyear), 366,  survexp.usr)
-h2 <- ratewalk(c(temp2-temp1, 1, 1, tyear), 1827, survexp.usr)
-h3 <- ratewalk(c(temp2-temp1, 1, 1, tyear), 3653, survexp.usr)
-h4 <- ratewalk(c(temp2-temp1, 1, 1, tyear), 4383, survexp.usr)
+t12 <- as.numeric(temp2-temp1)   # difftimes are a PITA
+h1 <- ratewalk(c(t12, 1, 1, temp2), 366,  survexp.usr)
+h2 <- ratewalk(c(t12, 1, 1, temp2), 1827, survexp.usr)
+h3 <- ratewalk(c(t12, 1, 1, temp2), 3653, survexp.usr)
+h4 <- ratewalk(c(t12, 1, 1, temp2), 4383, survexp.usr)
 
 aeq(-log(exp1$surv), c(sum(h1$hazard), sum(h2$hazard), sum(h3$hazard),
                        sum(h4$hazard)))
+aeq(exp1$surv, exp1b$surv)
+
+# pyears should give the same result
+dummy <- data.frame(time = 4383,
+                    year=temp2, sex = 1, age= temp2-temp1, race="white")
+cuts <- tcut(0, c(0, 366, 1827, 3653, 4383))
+exp1c <- pyears(time ~ cuts, data=dummy, ratetable=survexp.usr)
+aeq(exp1$surv, exp(-cumsum(exp1c$expected)))
 
 
 # Just a little harder: 
 #   Born 3/1/25 and entered the study on 6/10/55.  The code creates shifted
 #   dates to align with US rate tables - entry is 59 days earlier (days from
-#   1/1/25 to 3/1/25).
+#   1/1/1925 to 3/1/1925).
 #
-temp1 <- mdy.date(3,1,25)
-temp2 <- mdy.date(6,10,55)
-exp1 <- survexp(~ratetable(year=temp2, age=(temp2-temp1), sex=2, race='black'),
-		    ratetable=survexp.usr,times=c(366, 1827, 3653, 4383))
+temp1 <- mdy.Date(3,1,25)
+temp2 <- mdy.Date(6,10,55)
+exp1 <- survexp(~1, ratetable=survexp.usr,times=c(366, 1827, 3653, 4383),
+                rmap= list(year=temp2, age=(temp2-temp1), sex=2, race='black'))
 
-tyear <- as.numeric(temp2 - mdy.date(1,1,1960)) - 59
-h1 <- ratewalk(c(temp2-temp1, 2, 2, tyear), 366,  survexp.usr)
-h2 <- ratewalk(c(temp2-temp1, 2, 2, tyear), 1827, survexp.usr)
-h3 <- ratewalk(c(temp2-temp1, 2, 2, tyear), 3653, survexp.usr)
-h4 <- ratewalk(c(temp2-temp1, 2, 2, tyear), 4383, survexp.usr)
+tyear <- temp2 - 59
+t12 <-  as.numeric(temp2-temp1)
+h1 <- ratewalk(c(t12, 2, 2, tyear), 366,  survexp.usr)
+h2 <- ratewalk(c(t12, 2, 2, tyear), 1827, survexp.usr)
+h3 <- ratewalk(c(t12, 2, 2, tyear), 3653, survexp.usr)
+h4 <- ratewalk(c(t12, 2, 2, tyear), 4383, survexp.usr)
 
 aeq(-log(exp1$surv), c(sum(h1$hazard), sum(h2$hazard), sum(h3$hazard),
                        sum(h4$hazard)))
-
-rm(temp1, temp2, zz, exp1, h1, h2, h3, h4 )
 
 #
 # Simple case 2: make sure that the averages are correct, for Ederer method
 #
 #  Compute the 1, 5, 10 and 12 year expected survival
 
-temp1 <- mdy.date(1:6,6:11,1890:1895)
-temp2 <- mdy.date(6:1,11:6,c(55:50))
+temp1 <- mdy.Date(1:6,6:11,1890:1895)
+temp2 <- mdy.Date(6:1,11:6,c(55:50))
 temp3 <- c(1,2,1,2,1,2)
 age <- temp2 - temp1
 
@@ -142,12 +147,12 @@ print(all.equal(exp1$surv, apply(exp2$surv, 1, mean)))
 # They agree, but are they right?
 #
 for (i in 1:length(temp1)) {
-    offset <- as.numeric(temp1[i] - mdy.date(1,1, 1889+i))
-    tyear = (as.numeric(temp2[i] - mdy.date(1,1,1960))) - offset
-    haz1 <- ratewalk(c((temp2-temp1)[i], temp3[i], tyear), 366)
-    haz2 <- ratewalk(c((temp2-temp1)[i], temp3[i], tyear), 1827)
-    haz3 <- ratewalk(c((temp2-temp1)[i], temp3[i], tyear), 3653)
-    haz4 <- ratewalk(c((temp2-temp1)[i], temp3[i], tyear), 4383)
+    offset <- as.numeric(temp1[i] - mdy.Date(1,1, 1889+i))
+    tyear = temp2[i] - offset
+    haz1 <- ratewalk(c(as.numeric(temp2-temp1)[i], temp3[i], tyear), 366)
+    haz2 <- ratewalk(c(as.numeric(temp2-temp1)[i], temp3[i], tyear), 1827)
+    haz3 <- ratewalk(c(as.numeric(temp2-temp1)[i], temp3[i], tyear), 3653)
+    haz4 <- ratewalk(c(as.numeric(temp2-temp1)[i], temp3[i], tyear), 4383)
     print(aeq(-log(exp2$surv[,i]), c(sum(haz1$hazard), sum(haz2$hazard),
                                     sum(haz3$hazard), sum(haz4$hazard))))
     }
@@ -167,7 +172,7 @@ aeq(exp1$surv, exp4$surv[match(exp1$time, exp4$time, nomatch=0)])
 #
 # Now test Hakulinen's method, assuming an analysis date of 3/1/57
 #
-futime <- mdy.date(3,1,57) - temp2
+futime <- mdy.Date(3,1,57) - temp2
 xtime  <- sort(c(futime, 30, 60, 185, 365))
 
 exp1 <- survexp(futime ~ ratetable(year=temp2, age=(temp2-temp1), sex=1),
@@ -198,9 +203,6 @@ for (i in 1:6) con[i] <- exp(mean(log(cond[i, i:6])))
 
 all.equal(exp1$surv[match(futime, xtime)], cumprod(con))
 cumprod(con)
-
-rm(con, cond, exp1, exp2, wt, temp1, temp2, age)
-rm(exp3, exp4, futime, xtime)
 
 #
 # Test out expected survival, when the parent pop is another Cox model
@@ -265,7 +267,7 @@ for (i in 1:3) {
     surv <- surv * exp(-haz[i]*risk)
     }
 
-all.equal(as.vector(efit$surv), as.vector(cumprod(hak2)))
+all.equal(as.vector(efit$surv), as.vector(cumprod(hak1)))
 
 #
 #  Now do the conditional estimate
@@ -280,7 +282,3 @@ for (i in 1:3) {
     }
 
 all.equal(as.vector(efit$surv), as.vector(cumprod(cond)))
-
-rm(wt, cond, efit, tt, surv, hak1, hak2)
-rm(fit, dummy, ss, efit2, chaz, chaz2, risk)
-rm(d2, direct)

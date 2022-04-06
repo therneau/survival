@@ -72,14 +72,24 @@ sfit <- survfit(fit0, list(x=0), censor=FALSE)
 aeq(sfit$std.err^2, truth0$var)
 aeq(sfit$surv, truth0$surv)
 
-fit <- coxph(Surv(time, status) ~x, test1, eps=1e-8)
+fit <- coxph(Surv(time, status) ~x, test1, eps=1e-8, nocenter=NULL)
 aeq(round(fit$coef,6), 1.676857)
-truth <- byhand(fit$coef, 0)
+truebeta <- log(cos(acos((45/23)*sqrt(3/23))/3) * 2* sqrt(23/3))
+truth <- byhand(truebeta, 0)
 aeq(truth$loglik, fit$loglik[2])
 aeq(1/truth$imat, fit$var)
 aeq(truth$mart, fit$resid[c(2:6,1)])
 aeq(truth$scho, resid(fit, 'schoen'))
 aeq(truth$score, resid(fit, 'score')[c(3:7,1)])
+
+# Per comments in the source code, the below is expected to fail for Efron 
+#  at the tied death times.  (When predicting for new data, predict
+#  treats a time in the new data set that exactly matches one in the original
+#  as being just after the original, i.e., experiences the full hazard
+#  jump there, in the same way that censors do.)
+expect <- predict(fit, type='expected', newdata=test1) #force recalc
+use <- !(test1$time==6 | is.na(test1$status))
+aeq(test1$status[use] - resid(fit)[use], expect[use])  
 
 sfit <- survfit(fit, list(x=0), censor=FALSE)
 aeq(sfit$surv, truth$surv)

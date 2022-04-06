@@ -2,8 +2,8 @@
 \alias{residuals.coxph.penal}
 \alias{residuals.coxph.null}
 \alias{residuals.coxph}
-\title{
-Calculate Residuals for a `coxph' Fit
+\alias{residuals.coxphms}
+\title{Calculate Residuals for a `coxph' Fit
 }
 \description{
 Calculates martingale, deviance, score or Schoenfeld residuals for a
@@ -13,10 +13,14 @@ Cox proportional hazards model.
 \method{residuals}{coxph}(object,
        type=c("martingale", "deviance", "score", "schoenfeld",
 	      "dfbeta", "dfbetas", "scaledsch","partial"),
-       collapse=FALSE, weighted=FALSE, ...)
+       collapse=FALSE, weighted= (type \%in\% c("dfbeta", "dfbetas")), ...)
+\method{residuals}{coxphms}(object,
+       type=c("martingale", "score", "schoenfeld",
+	      "dfbeta", "dfbetas", "scaledsch"),
+       collapse=FALSE, weighted= FALSE, ...)
 \method{residuals}{coxph.null}(object,
        type=c("martingale", "deviance","score","schoenfeld"),
-       collapse=FALSE, weighted=FALSE, ...)
+       collapse=FALSE, weighted= FALSE, ...)
 }
 \arguments{
 \item{object}{
@@ -27,7 +31,7 @@ Typically this is the output from the \code{coxph} function.
 \item{type}{
 character string indicating the type of residual desired.
 Possible values are \code{"martingale"}, \code{"deviance"}, \code{"score"}, \code{"schoenfeld"},
-"dfbeta"', \code{"dfbetas"}, and \code{"scaledsch"}.
+"dfbeta"', \code{"dfbetas"}, \code{"scaledsch"} and \code{"partial"}.
 Only enough of the string to determine a unique match is required.
 }
 \item{collapse}{

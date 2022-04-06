@@ -1,0 +1,26 @@
+ Some portions of the survival package have been written using the literate
+programming paradym.  These are contained here, and have a .Rnw suffix.
+Long term, the plan is to have all of the code source here to maximize
+the documentation, and through it the reliability of the package. 
+
+These files are processed using the noweb package, NOT by Sweave or knitr.
+The purpose of the latter two is to create reports that interweave text and
+exectuted results.  The noweb package documents and writes out source code
+for functions.  Use "make fun" to create the objects in ../R.  (If you
+don't, changes here will have no effect on the final pacakge.)
+
+The file code.pdf is documentation for understanding the code, 
+not how to use the survival functions for data analysis.  For those who
+maintain the code it will be a big help, for everyone else I'd expect
+it to be boring.  To create code.pdf type  "make doc".
+
+Any .Rnw files that are not yet included in the Makefile are works in progress.
+
+A note on style: I prefer to use smaller "chunks" of code in my editor, and so
+this is broken up into a lot of pieces.  That is neither right nor wrong, just 
+my preference.  Similarly, the Makefile creates many different .R files in the
+../R directory.  We could have a much simpler Makefile that created a single 
+large "code.R" file, but I tend to add cat() and browser() calls to the .R when
+debugging, rather than the .Rnw, so I like smaller files there too.
+
+	Terry Therneau

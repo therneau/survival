@@ -1,4 +1,4 @@
-/*  $Id: chsolve2.c 11376 2009-12-14 22:53:57Z therneau $
+/* 
 **
 ** Solve the equation Ab = y, where the cholesky decomposition of A and y
 **   are the inputs.
@@ -16,8 +16,8 @@
 
 void chsolve2(double **matrix, int n, double *y)
      {
-     register int i,j;
-     register double temp;
+     int i,j;
+     double temp;
 
      /*
      ** solve Fb =y

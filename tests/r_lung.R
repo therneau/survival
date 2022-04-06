@@ -46,4 +46,4 @@ lfit7 <- survreg(Surv(time, status) ~ offset(lfit6$lin), lung)
 lfit4
 lfit5
 lfit6
-lfit7$coef
+signif(lfit7$coef,6)

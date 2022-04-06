@@ -1,37 +1,38 @@
 \name{basehaz}
 \alias{basehaz}
-\title{Compute the baseline survival curve for a Cox model}
+\title{Alias for the survfit function}
 \description{
-  Compute the baseline survival curve for a Cox model.
+  Compute the predicted survival curve for a Cox model.
 }
 \usage{
-basehaz(fit, centered = TRUE)
+basehaz(fit, centered=TRUE)
 }
 \arguments{
-  \item{fit}{The result of a \code{coxph} fit.}
-  \item{centered}{If TRUE, the resultant curve is for a hypothetical
-    subject whose covariate values are the corresponding means from the
-    original data, otherwise for a hypothetical subject with a mean
-    vector of zero.}
+  \item{fit}{a coxph fit}
+  \item{centered}{if TRUE return data from a predicted survival curve at
+    the mean values of the covariates \code{fit$mean}, if FALSE return a
+    prediction for all covariates equal to zero.}
 }
 \details{
-  This function exists primarily because users will look for the phrase
-  'baseline hazard' (often SAS converts looking for familiar
-  keywords.) The primary function for creating a survival curve is
-  \code{survfit}, which this calls.  See that manual page for more
-  options, including confidence limits and the ability to use other
-  covariate vectors.  The result of \code{survfit} also has print, plot
-  and summary methods that make it far more useful. 
+  This function is simply an alias for \code{survfit}, which does the
+  actual work and has a richer set of options.  
+  The alias exists only because some users look for predicted survival
+  estimates under this name.
+
+  The function returns a data frame containing the \code{time},
+  \code{cumhaz} and optionally the strata (if the fitted Cox model used
+  a strata statement), which are copied the \code{survfit} result.
+  If there are factor variables in the model, then the default
+  predictions at the "mean" are meaningless since they do not correspond
+  to any possible subject; correct results require use of the
+  \code{newdata} argument of survfit.  Results for all covariates =0 are
+  normally only of use as a building block for further calculations.
 }
 \value{
-  a data frame with components
-  \item{time}{The sorted vector of unique time points (those at which an
-    event occurred}
-  \item{hazard}{The baseline hazard function}
-  \item{strata}{If \code{fit} was a stratified Cox model, the strata.
-    There will be one survival curve per strata.}
+  a data frame with variable names of \code{hazard}, \code{time} and
+  optionally \code{strata}.  The first is actually the cumulative hazard.
 }
 
-\seealso{\code{\link{survfit}}}
+\seealso{\code{\link{survfit.coxph}}}
 \keyword{survival }
 

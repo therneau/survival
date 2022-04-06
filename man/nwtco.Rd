@@ -3,11 +3,13 @@
 \docType{data}
 \title{Data from the National Wilm's Tumor Study}
 \description{
-  Missing data/masurement error example. Tumor histology predicts
+  Measurement error example. Tumor histology predicts
   survival, but prediction is stronger with central lab histology than
   with the local institution determination.
 }
-\usage{nwtco}
+\usage{nwtco
+data(nwtco, package="survival")
+}
 \format{
   A data frame with 4028 observations on the following 9 variables.
   \describe{
@@ -22,9 +24,6 @@
     \item{\code{in.subcohort}}{Included in the subcohort for the example in the
     paper}
   }
-}
-\source{
-  \url{http://faculty.washington.edu/norm/software.html}
 }
 \references{
   NE Breslow and N Chatterjee (1999),

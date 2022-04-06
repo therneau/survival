@@ -23,8 +23,11 @@ aeq(fit1$loglik[2] + fit2$loglik[2], fit3$loglik[2])
 # I also am checking that missing values propogate
 test1 <- data.frame(time=  c(9, 3,1,1,6,6,8),
                     status=c(1,NA,1,0,1,1,0),
-                    x=     c(0, 2,1,1,1,0,0))
-fit1 <- survreg(Surv(time, status) ~ x + cluster(1:7), test1)
+                    x=     c(0, 2,1,1,1,0,0),
+                    id=  1:7)
+fit1 <- survreg(Surv(time, status) ~ x, cluster = id, test1)
+fit2 <- survreg(Surv(time, status) ~ x + cluster(id), test1) #old form
+all.equal(fit1, fit2)
 
 db1 <- resid(fit1, 'dfbeta')
 ijack <-db1
@@ -37,7 +40,7 @@ for (i in 1:7) {
     }
 ijack[2,] <- NA  # stick the NA back in
 ijack <- (rep(c(fit1$coef, log(fit1$scale)), each=nrow(db1)) - ijack)/eps
-all.equal(db1, ijack, tol=eps)
+all.equal(db1, ijack, tolerance=eps)
 all.equal(t(db1[-2,])%*% db1[-2,], fit1$var)
 
 # This is a harder test since there are multiple strata and multiple 
@@ -58,5 +61,5 @@ for (i in 1:nrow(db1)) {
     ijack[i,] <- c(coef(tfit), log(tfit$scale)) 
     }
 ijack <- (rep(c(fit1$coef, log(fit1$scale)), each=nrow(db1)) - ijack)/eps
-all.equal(db1, ijack, tol=eps*2)
+all.equal(db1, ijack, tolerance=eps*2)
 

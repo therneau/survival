@@ -2,7 +2,7 @@ options(na.action=na.exclude)  #preserve length of missings
 library(survival)
 
 #
-# Run a test that can be verified using other packages (we used SAS)
+# Run a test that can be verified using other packages
 #
 test1 <- data.frame(time=  c(9, 3,1,1,6,6,8),
                     status=c(1,NA,1,0,1,1,0),
@@ -77,3 +77,13 @@ rho    <- 1/3
 temp <- (lambda*x)^rho
 all.equal(psurvreg(x, 2, 3), 1- exp(-temp))
 all.equal(dsurvreg(x, 2, 3), lambda*rho*(lambda*x)^(rho-1)*exp(-temp))
+
+
+# verify labeling in the vcov function, with 0, 1, or 2 scale factors
+fit0 <- survreg(Surv(time, status) ~ age + ph.ecog, lung, dist='exponential')
+vcov(fit0)
+fit1 <- survreg(Surv(time, status) ~ age + ph.ecog, lung, dist='weibull')
+vcov(fit1)
+
+fit2 <- survreg(Surv(time, status) ~ age + ph.ecog + strata(sex), lung)
+vcov(fit2)

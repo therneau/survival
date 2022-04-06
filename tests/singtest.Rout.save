@@ -1,7 +1,7 @@
 
-R version 2.7.1 (2008-06-23)
-Copyright (C) 2008 The R Foundation for Statistical Computing
-ISBN 3-900051-07-0
+R Under development (unstable) (2018-04-09 r74565) -- "Unsuffered Consequences"
+Copyright (C) 2018 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -18,10 +18,10 @@ Type 'q()' to quit R.
 > options(na.action=na.exclude) # preserve missings
 > options(contrasts=c('contr.treatment', 'contr.poly')) #ensure constrast type
 > library(survival)
-Loading required package: splines
 > 
 > #
-> # A simple test of the singular=ok option
+> # A simple test of an overdetermined system
+> #  Should give a set of NA coefficients
 > #
 > test1 <- data.frame(time=  c(4, 3,1,1,2,2,3),
 + 		    status=c(1,NA,1,0,1,1,0),
@@ -35,13 +35,16 @@ Loading required package: splines
 + 		    x      = c(test1$x+ 1:7, rep(test1$x,3)),
 + 		    epoch  = rep(1:4, rep(7,4)))
 > 
+> # Will create a warning about a singular X matrix
 > fit1 <- coxph(Surv(start, stop, status) ~ x * factor(epoch), stest)
-Warning message:
-In coxph(Surv(start, stop, status) ~ x * factor(epoch), stest) :
-  X matrix deemed to be singular; variable 2 3 4
 > fit1$coef    # elements 2:4 should be NA
                x   factor(epoch)2   factor(epoch)3   factor(epoch)4 
        0.1041579               NA               NA               NA 
 x:factor(epoch)2 x:factor(epoch)3 x:factor(epoch)4 
        1.5726996        1.5726996        1.5726996 
+> all.equal(is.na(fit1$coef), c(F,T,T,T,F,F,F), check.attributes=FALSE)
+[1] TRUE
 > 
+> proc.time()
+   user  system elapsed 
+  0.668   0.040   0.704 

@@ -11,7 +11,7 @@ case-cohort data, and Borgan II, a generalization of the Lin-Ying
 estimator.
 }
 \usage{
-cch(formula, data = sys.parent(), subcoh, id, stratum=NULL, cohort.size,
+cch(formula, data, subcoh, id, stratum=NULL, cohort.size,
     method =c("Prentice","SelfPrentice","LinYing","I.Borgan","II.Borgan"),
     robust=FALSE)
 }
@@ -21,7 +21,7 @@ A formula object that must have a \code{\link{Surv}} object as the response.
 The Surv object must be of type \code{"right"}, or of type \code{"counting"}.
 }
 \item{subcoh}{
-  Vector of indicatorsfor subjects sampled as part of the
+  Vector of indicators for subjects sampled as part of the
   sub-cohort. Code \code{1} or \code{TRUE} for members of the
   sub-cohort, \code{0} or \code{FALSE} for others. If \code{data} is a
   data frame then \code{subcoh} may be a one-sided formula.

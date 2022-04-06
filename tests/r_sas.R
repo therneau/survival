@@ -7,19 +7,19 @@ library(survival)
 #
 
 # this fit doesn't give the same log-lik that they claim
-motor <- read.table('data.motor', col.names=c('temp', 'time', 'status'))
-fit1 <- survreg(Surv(time, status) ~ I(1000/(273.2+temp)), motor,
+fit1 <- survreg(Surv(time, status) ~ I(1000/(273.2+temp)), imotor,
 		subset=(temp>150), dist='lognormal')
 summary(fit1)
 
 # This one, with the loglik on the transformed scale (the inappropriate
 #   scale, Ripley & Venables would argue) does agree.
 # All coefs are of course identical.
-fit2 <- survreg(Surv(log(time), status) ~ I(1000/(273.2+temp)), motor,
+fit2 <- survreg(Surv(log(time), status) ~ I(1000/(273.2+temp)), imotor,
 		subset=(temp>150), dist='gaussian')
 
 
-# Give the quantile estimates
+# Give the quantile estimates, which is the lower half of "output 48.1.5"
+#  in the SAS 9.2 manual
 
 pp1 <- predict(fit1, newdata=list(temp=c(130,150)), p=c(.1, .5, .9),
 		      type='quantile', se=T)
@@ -51,32 +51,31 @@ pdf(file='reliability.pdf')
 #
 # Insulating fluids example
 #
-fluid <- read.table('data.fluid', col.names=c('time', 'voltage'))
 
 # Adding a -1 to the fit just causes the each group to have it's own
 # intercept, rather than a global intercept + constrasts.  The strata
 # statement allows each to have a separate scale
-ffit <- survreg(Surv(time) ~ voltage + strata(voltage) -1, fluid)
+ffit <- survreg(Surv(time) ~ factor(voltage) + strata(voltage) -1, ifluid)
 
 # Get predicted quantiles at each of the voltages
 # By default predict() would give a line of results for each observation,
 #  I only want the unique set of x's, i.e., only 4 cases
-uvolt <- sort(unique(fluid$voltage))      #the unique levels
+uvolt <- sort(unique(ifluid$voltage))      #the unique levels
 plist <- c(1, 2, 5, 1:9 *10, 95, 99)/100
 pred  <- predict(ffit, type='quantile', p=plist,
-                 newdata=data.frame(voltage=factor(uvolt)))
+                 newdata=data.frame(voltage=uvolt))
 tfun <- function(x) log(-log(1-x))
 
 matplot(t(pred), tfun(plist), type='l', log='x', lty=1,
-        col=1:4, yaxt='n')
+        col=1:4, yaxt='n',
+        xlab="Predicted", ylab="Quantile")
 axis(2, tfun(plist), format(100*plist), adj=1)
 
-kfit <- survfit(Surv(time) ~ voltage, fluid, type='fleming') #KM fit
+kfit <- survfit(Surv(time) ~ voltage, ifluid, type='fleming') #KM fit
 for (i in 1:4) {
     temp <- kfit[i]
     points(temp$time, tfun(1-temp$surv), col=i, pch=i)
     }
-
 
 # Now a table
 temp <- array(0, dim=c(4,4,4))  #4 groups by 4 parameters by 4 stats
@@ -109,9 +108,10 @@ rm(temp, uvolt, plist, pred, ffit, kfit)
 
 #####################################################################
 # Turbine cracks data
-cracks <- read.table('data.cracks', col.names=c('time1', 'time2', 'n'))
-cfit <- survreg(Surv(time1, time2, type='interval2') ~1, 
-                dist='weibull', data=cracks, weight=n)
+crack2 <- with(cracks, data.frame(day1=c(NA, days), day2=c(days, NA),
+                                  n=c(fail, 167-sum(fail))))
+cfit <- survreg(Surv(day1, day2, type='interval2') ~1, 
+                dist='weibull', data=crack2, weight=n)
 
 summary(cfit)
 #Their output also has Wiebull scale = exp(cfit$coef), shape = 1/(cfit$scale)
@@ -126,7 +126,7 @@ plot(qsurvreg(plist, cfit$coef, cfit$scale), tfun(plist), log='x',
      xlab="Weibull Plot for Time", ylab="Percent")
 axis(2, tfun(plist), format(100*plist), adj=1)
 
-kfit <- survfit(Surv(time1, time2, type='interval2') ~1, data=cracks,
+kfit <- survfit(Surv(day1, day2, type='interval2') ~1, data=crack2,
                 weight=n, type='fleming')
 # Only plot point where n.event > 0 
 # Why?  I'm trying to match them.  Personally, all should be plotted.
@@ -141,10 +141,11 @@ text(rep(3,6), seq(.5, -1.0, length=6),
 text(rep(9,6), seq(.5, -1.0, length=6), 
          c(format(round(exp(cfit$coef), 2)),
            format(round(1/cfit$scale, 2)),
-           format(tapply(cracks$n, cfit$y[,3], sum)), "ML"), adj=1)
+           format(tapply(crack2$n, cfit$y[,3], sum)), "ML"), adj=1)
 
 # Now a portion of his percentiles table
-#  I don't get the same SE as SAS, haven't checked out why
+#  I don't get the same SE as SAS, I haven't checked out why.  The
+#  estimates and se for the underlying Weibull model are the same.
 temp <- predict(cfit, type='quantile', p=plist, se=T)
 tempse <- sqrt(temp$se[1,])
 mat <- cbind(temp$fit[1,], tempse, 
@@ -155,9 +156,9 @@ print(mat)
 #
 # The cracks data has a particularly easy estimate, so use
 # it to double check code
-time <- c(cracks$time2[1], (cracks$time1 + cracks$time2)[2:8]/2, 
-          cracks$time1[9])
-cdf  <- cumsum(cracks$n)/sum(cracks$n)
+time <- c(crack2$day2[1], (crack2$day1 + crack2$day2)[2:8]/2, 
+          crack2$day1[9])
+cdf  <- cumsum(crack2$n)/sum(crack2$n)
 all.equal(kfit$time, time)
 all.equal(kfit$surv, 1-cdf[c(1:8,8)]) 
 rm(time, cdf, kfit)
@@ -165,47 +166,43 @@ rm(time, cdf, kfit)
 
 #######################################################
 #
-# Valve data
+# Replacement of valve seats in diesel engines
 #   The input data has id, time, and an indicator of whether there was an
-#   event at that time: -1=no, 1=yes.  No one has an event at their last time.
-#  Convert the data to (start, stop] form
+#   event at that time: 0=no, 1=yes.  No one has an event at their last time.
 #  The input data has two engines with dual failures: 328 loses 2 valves at 
 #    time 653, and number 402 loses 2 at time 139.  For each, fudge the first
-#    time to be .1 days earlier.
+#    time to be .1 days earlier. 
 #
-temp <- matrix(scan('data.valve'), byrow=T, ncol=3)
+ties <- which(diff(valveSeat$time)==0 & diff(valveSeat$id)==0)
+temp <- valveSeat$time
+temp[ties] <- temp[ties] - .1
+n <- length(temp)
+first <- !duplicated(valveSeat$id)
+vtemp <- with(valveSeat, data.frame(id =id, 
+                                    time1= ifelse(first, 0, c(0, temp[-n])),
+                                    time2= temp, status=status))
 
-n <- nrow(temp)
-valve <- data.frame(id=temp[,1], 
-                    time1 = c(0, ifelse(diff(temp[,1])==0, temp[-n,2],0)),
-                    time2 = temp[,2],
-                    status= as.numeric(temp[,3]==1))
+kfit <- survfit(Surv(time1, time2, status) ~1, vtemp, id=id)
 
-indx <- (1:nrow(valve))[valve$time1==valve$time2]
-valve$time1[indx]   <- valve$time1[indx] - .1
-valve$time2[indx-1] <- valve$time2[indx-1] - .1
-
-kfit <- survfit(Surv(time1, time2, status) ~1, valve, type='fh2')
-plot(kfit, fun='cumhaz', ylab="Sample Mean Cumulative Failures", xlab='Time',
-     ylim=range(-log(kfit$lower)))
+plot(kfit, fun='cumhaz', ylab="Sample Mean Cumulative Failures", xlab='Time')
 title("Valve replacement data")
 
 # The summary.survfit function doesn't have an option for printing out
 #   cumulative hazards instead of survival --- need to add that
 #   so I just reprise the central code of print.summary.survfit
 xx <- summary(kfit)
-temp <- cbind(xx$time, xx$n.risk, xx$n.event, -log(xx$surv), 
-              xx$std.err/xx$surv, -log(xx$upper), -log(xx$lower))
+temp <- cbind(xx$time, xx$n.risk, xx$n.event, xx$cumhaz, 
+              xx$std.chaz, -log(xx$upper), -log(xx$lower))
 dimnames(temp) <- list(rep("", nrow(temp)),
                        c("time", "n.risk", "n.event", "Cum haz", "std.err",
                          "lower 95%", "upper 95%"))
 print(temp, digits=2)
 
-# Note that I have different estimates and SE's.  We are using a
-#  different estimator of both the curve and the se. It's a statistical 
-#  argument  about which estimator is more appropriate (one coulde defend both
-#  sides).
-rm(temp, kfit, indx, xx)
+# Note that I have the same estimates but different SE's than SAS.  We are using 
+#  a different estimator. It's a statistical argument as to which is
+#  better (one could defend both sides): SAS the more standard estimate found
+#  in the reliability literature, mine the estimate from statistics literature
+rm(temp, kfit, xx)
                     
 ######################################################
 # Turbine data, lognormal fit
@@ -228,6 +225,7 @@ qstat <- function(data) {
     }
 
 {if (exists('bootstrap')) {
+    set.seed(1953)  # a good year :-)
     bfit <- bootstrap(tdata, qstat, B=1000)
     bci <- limits.bca(bfit, probs=c(.025, .975))
     }

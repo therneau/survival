@@ -1,0 +1,433 @@
+\section{Expected Survival}
+The expected survival routine creates the overall survival curve for a
+\emph{group} of people.  It is possible to take the set of expected 
+survival curves for each individual and average them, which is the
+\texttt{Ederer} method below, but this is not always the wisest choice:
+the Hakulinen and conditional methods average in anothers ways, both of
+which are more sophisticated ways to deal with censoring.
+The individual curves are dervived either from population rate tables such 
+as the US annual life tables from the National Center for Health Statistics
+or the larger multi-national collection at mortality.org, or by using a
+previously fitted Cox model as the table.
+
+The arguments for [[survexp]] are
+\begin{description}
+  \item[formula] The model formula.  The right hand side consists of grouping
+    variables, identically to [[survfit]] and an optional [[ratetable]]
+    directive.  The ``response'' varies by method:
+    \begin{itemize}
+      \item for the Hakulinen method it is a vector of censoring times.  This is
+        the actual censoring time for censored subjecs, and is what the 
+        censoring time `would have been' for each subject who died.         %'`
+      \item for the conditional method it is the usual Surv(time, status) code
+      \item for the Ederer method no response is needed
+    \end{itemize}
+  \item[data, weights, subset, na.action] as usual
+  \item[rmap] an optional mapping for rate table variables, see more below.
+  \item[times] An optional vector of time points at which to compute the
+    response.  For the Hakulinen and conditional methods the program uses the
+    vector of unique y values if this is missing.  For the Ederer the component
+    is not optional.
+  \item[method] The method used for the calculation.  Choices are individual
+    survival, or the Ederer, Hakulinen, or conditional methods for cohort
+    survival.
+  \item[cohort, conditional] Older arguments that were used to select the
+    method.
+  \item[ratetable] the population rate table to use as a reference.  This can
+    either be a ratetable object or a previously fitted Cox model
+  \item[scale] Scale the resulting output times, e.g., 365.25 to turn days into
+    years.
+  \item[se.fit] This has been deprecated.
+  \item[model, x, y] usual
+\end{description}
+
+The output of survexp contains a subset of the elements in a [[survfit]]
+object, so many of the survfit methods can be applied.  The result
+has a class of [[c('survexp', 'survfit')]]. 
+<<survexp>>=
+survexp <- function(formula, data,
+	weights, subset, na.action, rmap, times,
+	method=c("ederer", "hakulinen", "conditional", "individual.h", 
+                 "individual.s"),
+        cohort=TRUE,  conditional=FALSE,
+	ratetable=survival::survexp.us, scale=1, se.fit,
+	model=FALSE, x=FALSE, y=FALSE) {
+    <<survexp-setup>>
+    <<survexp-compute>>
+    <<survexp-format>>
+    <<survexp-finish>>
+}
+@ 
+
+
+The first few lines are standard.  Keep a copy of the call, then manufacture
+a call to [[model.frame]] that contains only the arguments relevant to that
+function.
+<<survexp-setup>>=
+Call <- match.call()
+    
+# keep the first element (the call), and the following selected arguments
+indx <- match(c('formula', 'data', 'weights', 'subset', 'na.action'),
+                  names(Call), nomatch=0)
+if (indx[1] ==0) stop("A formula argument is required")
+tform <- Call[c(1,indx)]  # only keep the arguments we wanted
+tform[[1L]] <- quote(stats::model.frame)  # change the function called
+    
+Terms <- if(missing(data)) terms(formula, 'ratetable')
+         else              terms(formula, 'ratetable',data=data)
+@ 
+
+The function works with two data sets, the user's data on an actual set of %'
+subjects and the reference ratetable.  
+This leads to a particular nuisance, that the variable names in the data
+set may not match those in the ratetable.  
+For instance the United States overall death rate table [[survexp.us]] expects
+3 variables, as shown by [[summary(survexp.us)]]
+\begin{itemize}
+  \item age = age in days for each subject at the start of follow-up
+  \item sex = sex of the subject, ``male'' or ``female'' (the routine accepts
+    any unique abbreviation and is case insensitive)
+  \item year = date of the start of follow-up
+    \end{itemize}
+
+Up until the most recent revision, the
+formula contained any necessary  mapping between the variables in the data 
+set and
+the ratetable.  For instance
+\begin{verbatim}
+  survexp( ~ sex + ratetable(age=age*365.25, sex=sex, 
+                              year=entry.dt), 
+             data=mydata, ratetable=survexp.us)
+\end{verbatim}
+In this case the user's data set has a variable `age' containing age in years,
+along with sex and an entry date. 
+This had to be changed for two reasons.  The primary one is that the data
+in a [[ratetable]] call had to be converted into a matrix in order to ``pass
+through'' the model.frame logic.  With the recent updates to coxph so that it
+remembers factor codings correctly in new data sets, it is advantageous to
+keep factors as factors.  
+The second is that a coxph model with a large number of covariates induces a
+very long ratetable clause; at about 40 variable it caused one of the 
+R internal
+routines to fail due to a long expression.
+A third reason, perhaps the most pressing in reality, is that I've always    %'
+felt that the prior code was confusing since it used the same term 'ratetable'
+for two different tasks.
+
+The new process adds the [[rmap]] argument, an example would be 
+[[rmap=list(age =age*365.25, year=entry.dt)]].
+Any variables in the ratetable that are not found in [[rmap]] are assumed to
+not need a mapping, this would be [[sex]] in the above example.
+For backwards compatability we allow the old style argument, converting it
+into the new style.
+
+The [[rmap]] argument needs to be examined without evaluating it; we then add
+the appropriate extra variables into a temporary formula so that the model
+frame has all that is required.  The ratetable variables then can be
+retrieved from the model frame.
+The [[pyears]] routine uses the same rmap argument; this segment of the
+code is given its own name so that it can be included there as well.
+<<survexp-setup>>=
+rate <- attr(Terms, "specials")$ratetable                   
+if(length(rate) > 1)
+        stop("Can have only 1 ratetable() call in a formula")
+<<survexp-setup-rmap>>
+
+mf <- eval(tform, parent.frame())
+@ 
+<<survexp-setup-rmap>>=
+if(length(rate) == 1) {
+    if (!missing(rmap)) 
+        stop("The ratetable() call in a formula is depreciated")
+
+    stemp <- untangle.specials(Terms, 'ratetable')
+    rcall <- as.call(parse(text=stemp$var)[[1]])   # as a call object
+    rcall[[1]] <- as.name('list')                  # make it a call to list(..
+    Terms <- Terms[-stemp$terms]                   # remove from the formula
+    }
+else if (!missing(rmap)) {
+    rcall <- substitute(rmap)
+    if (!is.call(rcall) || rcall[[1]] != as.name('list'))
+        stop ("Invalid rcall argument")
+    }
+else rcall <- NULL   # A ratetable, but no rcall argument
+
+# Check that there are no illegal names in rcall, then expand it
+#  to include all the names in the ratetable
+if (is.ratetable(ratetable))   {
+    varlist <- names(dimnames(ratetable))
+    if (is.null(varlist)) varlist <- attr(ratetable, "dimid") # older style
+}
+else if(inherits(ratetable, "coxph") && !inherits(ratetable, "coxphms")) {
+    ## Remove "log" and such things, to get just the list of
+    #   variable names
+    varlist <- all.vars(delete.response(ratetable$terms))
+    }
+else stop("Invalid rate table")
+
+temp <- match(names(rcall)[-1], varlist) # 2,3,... are the argument names
+if (any(is.na(temp)))
+    stop("Variable not found in the ratetable:", (names(rcall))[is.na(temp)])
+    
+if (any(!(varlist %in% names(rcall)))) {
+    to.add <- varlist[!(varlist %in% names(rcall))]
+    temp1 <- paste(text=paste(to.add, to.add, sep='='), collapse=',')
+    if (is.null(rcall)) rcall <- parse(text=paste("list(", temp1, ")"))[[1]]
+    else {
+        temp2 <- deparse(rcall)
+        rcall <- parse(text=paste("c(", temp2, ",list(", temp1, "))"))[[1]]
+        }
+    }
+@ 
+
+The formula below is used only in the call to [[model.frame]] to ensure
+that the frame has both the formula and the ratetable variables.
+We don't want to modify the original formula, since we use it to create
+the $X$ matrix and the response variable.
+The non-obvious bit of code is the addition of an environment to the
+formula.  The [[model.matrix]] routine has a non-standard evaluation - it
+uses the frame of the formula, rather than the parent.frame() argument
+below, along with the [[data]] to look up variables. 
+If a formula is long enough deparse() will give two lines, hence the
+extra paste call to re-collapse it into one.
+<<survexp-setup-rmap>>= 
+# Create a temporary formula, used only in the call to model.frame
+newvar <- all.vars(rcall)
+if (length(newvar) > 0) {
+    temp <- paste(paste(deparse(Terms), collapse=""),  
+                   paste(newvar, collapse='+'), sep='+')
+    tform$formula <- as.formula(temp, environment(Terms))
+    }
+@
+
+If the user data has 0 rows, e.g. from a mistaken [[subset]] statement
+that eliminated all subjects, we need to stop early.  Otherwise the
+.C code fails in a nasty way. 
+<<survexp-setup>>= 
+n <- nrow(mf)
+if (n==0) stop("Data set has 0 rows")
+if (!missing(se.fit) && se.fit)
+    warning("se.fit value ignored")
+
+weights <- model.extract(mf, 'weights')
+if (length(weights) ==0) weights <- rep(1.0, n)
+if (class(ratetable)=='ratetable' && any(weights !=1))
+    warning("weights ignored")
+
+if (any(attr(Terms, 'order') >1))
+        stop("Survexp cannot have interaction terms")
+if (!missing(times)) {
+    if (any(times<0)) stop("Invalid time point requested")
+    if (length(times) >1 )
+        if (any(diff(times)<0)) stop("Times must be in increasing order")
+    }
+@
+
+If a response variable was given, we only need the times and not the 
+status.  To be correct,
+computations need to be done for each of the times given in
+the [[times]] argument as well as for each of the unique y values.
+This ends up as the vector [[newtime]].  If a [[times]] argument was
+given we will subset down to only those values at the end.
+For a population rate table and the Ederer method the times argument is
+required.
+<<survexp-setup>>=
+Y <- model.extract(mf, 'response')
+no.Y <- is.null(Y)
+if (no.Y) {
+    if (missing(times)) {
+        if (is.ratetable(ratetable)) 
+            stop("either a times argument or a response is needed")
+        }
+    else newtime <- times
+    }
+else {
+    if (is.matrix(Y)) {
+        if (is.Surv(Y) && attr(Y, 'type')=='right') Y <- Y[,1]
+        else stop("Illegal response value")
+        }
+    if (any(Y<0)) stop ("Negative follow up time")
+#    if (missing(npoints)) temp <- unique(Y)
+#    else                  temp <- seq(min(Y), max(Y), length=npoints)
+    temp <- unique(Y)
+    if (missing(times)) newtime <- sort(temp)
+    else  newtime <- sort(unique(c(times, temp[temp<max(times)])))
+    }
+
+if (!missing(method)) method <- match.arg(method)
+else {
+    # the historical defaults and older arguments
+    if (!missing(conditional) && conditional) method <- "conditional"
+    else {
+        if (no.Y) method <- "ederer"
+        else method <- "hakulinen"
+        }
+    if (!missing(cohort) && !cohort) method <- "individual.s"
+    }
+if (no.Y && (method!="ederer")) 
+    stop("a response is required in the formula unless method='ederer'")
+@
+
+The next step is to check out the ratetable. 
+For a population rate table a set of consistency checks is done by the
+[[match.ratetable]] function, giving a set of sanitized indices [[R]].
+This function wants characters turned to factors.
+For a Cox model [[R]] will be a model matix whose covariates are coded
+in exactly the same way that variables were coded in the original
+Cox model.  We call the model.matrix.coxph function to avoid repeating the
+steps found there (remove cluster statements, etc).   
+We also need to use the [[mf]] argument of the function, otherwise
+it will call model.frame internally and fail when it can't find the
+response variable (which we don't need).
+
+Note that for a population rate table the standard error of the expected
+is by definition 0 (the population rate table is based on a huge sample).
+For a Cox model rate table, an se formula is currently only available for
+the Ederer method.
+
+<<survexp-compute>>=
+ovars <- attr(Terms, 'term.labels')
+# rdata contains the variables matching the ratetable
+rdata <- data.frame(eval(rcall, mf), stringsAsFactors=TRUE)  
+if (is.ratetable(ratetable)) {
+    israte <- TRUE
+    if (no.Y) {
+        Y <- rep(max(times), n)
+        }
+    rtemp <- match.ratetable(rdata, ratetable)
+    R <- rtemp$R
+    }
+else if (inherits(ratetable, 'coxph')) {
+    israte <- FALSE
+    Terms <- ratetable$terms
+#    if (!is.null(attr(Terms, 'offset')))
+#        stop("Cannot deal with models that contain an offset")
+#    strats <- attr(Terms, "specials")$strata
+#    if (length(strats))
+#        stop("survexp cannot handle stratified Cox models")
+#
+    if (any(names(mf[,rate]) !=  attr(ratetable$terms, 'term.labels')))
+         stop("Unable to match new data to old formula")
+    }
+else if (inherits(ratetable, "coxphms"))
+    stop("survexp not defined for multi-state coxph models")
+else stop("Invalid ratetable")
+@ 
+
+Now for some calculation.  If cohort is false, then any covariates on the
+right hand side (other than the rate table) are irrelevant, the function
+returns a vector of expected values rather than survival curves.
+<<survexp-compute>>=
+if (substring(method, 1, 10) == "individual") { #individual survival
+    if (no.Y) stop("for individual survival an observation time must be given")
+    if (israte)
+	 temp <- survexp.fit (1:n, R, Y, max(Y), TRUE, ratetable)
+    else {
+        rmatch <- match(names(data), names(rdata))
+        if (any(is.na(rmatch))) rdata <- cbind(rdata, data[,is.na(rmatch)])
+        temp <- survexp.cfit(1:n, rdata, Y, 'individual', ratetable)
+    }
+    if (method == "individual.s") xx <- temp$surv
+    else xx <- -log(temp$surv)
+    names(xx) <- row.names(mf)
+    na.action <- attr(mf, "na.action")
+    if (length(na.action)) return(naresid(na.action, xx))
+    else return(xx)
+    }
+@ 
+
+Now for the more commonly used case: returning a survival curve.
+First see if there are any grouping variables.
+The results of the [[tcut]] function are often used in person-years
+analysis, which is somewhat related to expected survival.  However
+tcut results aren't relevant here and we put in a check for the         %'
+confused user.
+The strata command creates a single factor incorporating all the 
+variables.
+<<survexp-compute>>=
+if (length(ovars)==0)  X <- rep(1,n)  #no categories
+else {
+    odim <- length(ovars)
+    for (i in 1:odim) {
+	temp <- mf[[ovars[i]]]
+	ctemp <- class(temp)
+	if (!is.null(ctemp) && ctemp=='tcut')
+	    stop("Can't use tcut variables in expected survival")
+	}
+    X <- strata(mf[ovars])
+    }
+
+#do the work
+if (israte)
+    temp <- survexp.fit(as.numeric(X), R, Y, newtime,
+		       method=="conditional", ratetable)
+else {
+    temp <- survexp.cfit(as.numeric(X), rdata, Y, method, ratetable, weights)
+    newtime <- temp$time
+    }
+@ 
+
+Now we need to package up the curves properly
+All the results can
+be returned as a single matrix of survivals with a common vector of times.
+If there was a times argument we need to subset to selected rows of the
+computation.
+<<survexp-format>>=
+if (missing(times)) {
+    n.risk <- temp$n
+    surv <- temp$surv
+    }
+else {
+    if (israte) keep <- match(times, newtime)
+    else {
+        # The result is from a Cox model, and it's list of
+        #  times won't match the list requested in the user's call
+        # Interpolate the step function, giving survival of 1
+        #  for requested points that precede the Cox fit's
+        #  first downward step.  The code is like summary.survfit.
+        n <- length(temp$time)
+        keep <- approx(temp$time, 1:n, xout=times, yleft=0,
+                       method='constant', f=0, rule=2)$y
+        }
+
+    if (is.matrix(temp$surv)) {
+        surv <- (rbind(1,temp$surv))[keep+1,,drop=FALSE]
+        n.risk <- temp$n[pmax(1,keep),,drop=FALSE]
+         }
+    else {
+        surv <- (c(1,temp$surv))[keep+1]
+        n.risk <- temp$n[pmax(1,keep)]
+        }
+    newtime <- times
+    }
+newtime <- newtime/scale
+if (is.matrix(surv)) {
+    dimnames(surv) <- list(NULL, levels(X))
+    out <- list(call=Call, surv= drop(surv), n.risk=drop(n.risk),
+		    time=newtime)
+    }
+else {
+     out <- list(call=Call, surv=c(surv), n.risk=c(n.risk),
+		   time=newtime)
+     }
+@ 
+
+Last do the standard things: add the model, x, or y components to the output
+if the user asked for them.  (For this particular routine I can't think of  %'
+a reason they every would.)  Copy across summary information from the 
+rate table computation if present, and add the method and class to the
+output.
+<<survexp-finish>>=
+if (model) out$model <- mf
+else {
+    if (x) out$x <- X
+    if (y) out$y <- Y
+    }
+if (israte && !is.null(rtemp$summ)) out$summ <- rtemp$summ
+if (no.Y) out$method <- 'Ederer'
+else if (conditional) out$method <- 'conditional'
+else                  out$method <- 'cohort'
+class(out) <- c('survexp', 'survfit')
+out
+@
+

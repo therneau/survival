@@ -19,7 +19,7 @@ all.equal(as.vector(tempf), as.vector(temp))
 kfitx <- coxph(Surv(time, status) ~ age + sex + offset(tempf),kidney,
 	       eps=1e-7)
 
-# These are not precisely the same, due to different iteration paths
+# These are not always precisely the same, due to different iteration paths
 aeq(kfitx$coef, kfit1$coef)
 
 # This will make them identical
@@ -31,12 +31,15 @@ aeq(resid(kfit1, type='schoe'), resid(kfitx, type='schoe'))
 
 # These are not the same, due to a different variance matrix
 #  The frailty model's variance is about 2x the naive "assume an offset" var
-# The score residuals are equal, however.
+# Expect a value of about 0.5
 aeq(resid(kfit1, type='dfbeta'), resid(kfitx, type='dfbeta'))
+
+# Force equality
 zed <- kfitx
 zed$var <- kfit1$var
 aeq(resid(kfit1, type='dfbeta'), resid(zed, type='dfbeta'))
 
+# The score residuals are equal, however.
 
 temp1 <- resid(kfit1, type='score')
 temp2 <- resid(kfitx, type='score')
@@ -51,7 +54,8 @@ aeq(predict(kfit1, type='lp'), predict(kfitx, type='lp'))
 temp1 <- predict(kfit1, type='terms', se.fit=T)
 temp2 <- predict(kfitx, type='terms', se.fit=T)
 aeq(temp1$fit[,1:2], temp2$fit)
-aeq(temp1$se.fit[,1:2], temp2$se.fit)  #should be false
+# the next is not equal, all.equal returns a character string in that case
+is.character(aeq(temp1$se.fit[,1:2], temp2$se.fit))
 mean(temp1$se.fit[,1:2]/ temp2$se.fit)
 aeq(as.vector(temp1$se.fit[,3])^2, 
 	  as.vector(kfit1$fvar[match(kidney$id, sort(unique(kidney$id)))]))

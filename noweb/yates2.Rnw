@@ -1,0 +1,769 @@
+Now for the primary function.
+The user may have a list of tests, or a single term.
+The first part of the function does the usual of grabbing arguments
+and then checking them.
+The fit object has to have the standard stuff: terms, assign, xlevels
+and contrasts. 
+Attributes of the terms are used often enough that we copy them
+to \code{Tatt} to save typing.
+We will almost certainly need the model frame and/or model matrix as
+well.
+
+In the discussion below I use x1 to refer to the covariates/terms that are
+the target, e.g. \code{test='Mask'} to get the mean population values for
+each level of the Mask variable in the solder data set, and x2 to refer to
+all the other terms in the model, the ones that we average over.  
+These are also referred to as U and V in the vignette.
+
+<<yates>>=
+yates <- function(fit, term, population=c("data", "factorial", "sas"),
+                  levels, test =c("global", "trend", "pairwise"),
+                  predict="linear", options, nsim=200,
+                  method=c("direct", "sgtt")) {
+    Call <- match.call()
+    if (missing(fit)) stop("a fit argument is required")
+    Terms <- try(terms(fit), silent=TRUE)
+    if (inherits(Terms, "try-error"))
+        stop("the fit does not have a terms structure")
+    else Terms <- delete.response(Terms)   # y is not needed
+    Tatt <- attributes(Terms)
+    # a flaw in delete.response: it doesn't subset dataClasses
+    Tatt$dataClasses <- Tatt$dataClasses[row.names(Tatt$factors)]
+    
+    if (inherits(fit, "coxphms")) stop("multi-state coxph not yet supported")
+    if (is.list(predict) || is.function(predict)) { 
+        # someone supplied their own
+        stop("user written prediction functions are not yet supported")
+    }
+    else {  # call the method
+        indx <- match(c("fit", "predict", "options"), names(Call), nomatch=0)
+        temp <- Call[c(1, indx)]
+        temp[[1]] <- quote(yates_setup)
+        mfun <- eval(temp, parent.frame())
+    }
+    if (is.null(mfun)) predict <- "linear"
+
+   # we will need the original model frame and X matrix
+    mframe <- fit$model
+    if (is.null(mframe)) mframe <- model.frame(fit)
+    Xold <- model.matrix(fit)
+    if (is.null(fit$assign)) { # glm models don't save assign
+        xassign <- attr(Xold, "assign")
+    }
+    else xassign <- fit$assign 
+    
+
+    nvar <- length(xassign)
+    nterm <- length(Tatt$term.names)
+    termname <- rownames(Tatt$factors)
+    iscat <- sapply(Tatt$dataClasses, 
+                    function(x) x %in% c("character", "factor"))
+    
+    method <- match.arg(casefold(method), c("direct", "sgtt")) #allow SGTT
+    if (method=="sgtt" && missing(population)) population <- "sas"
+
+    if (inherits(population, "data.frame")) popframe <- TRUE
+    else if (is.character(population)) {
+        popframe <- FALSE
+        population <- match.arg(tolower(population[1]),
+                                c("data", "factorial", "sas",
+                                  "empirical", "yates"))
+        if (population=="empirical") population <- "data"
+        if (population=="yates") population <- "factorial"
+    }
+    else stop("the population argument must be a data frame or character")
+    test <- match.arg(test)
+    
+    if (popframe || population != "data") weight <- NULL
+    else {
+        weight <- model.extract(mframe, "weights")
+        if (is.null(weight)) {
+            id <- model.extract(mframe, "id")
+            if (!is.null(id)) { # each id gets the same weight
+                count <- c(table(id))
+                weight <- 1/count[match(id, names(count))]
+            }
+        }
+    }       
+
+    if (method=="sgtt" && (population !="sas" || predict != "linear"))
+        stop("sgtt method only applies if population = sas and predict = linear")
+
+    beta <-  coef(fit, complete=TRUE)
+    nabeta <- is.na(beta)  # undetermined coefficients
+    vmat <-  vcov(fit, complete=FALSE)
+    if (nrow(vmat) > sum(!nabeta)) {
+        # a vcov method that does not obey the complete argument
+        vmat <- vmat[!nabeta, !nabeta]
+    }
+    
+    # grab the dispersion, needed for the writing an SS in linear models
+    if (class(fit)[1] =="lm") sigma <- summary(fit)$sigma
+    else sigma <- NULL   # don't compute an SS column
+    
+    # process the term argument and check its legality
+    if (missing(levels)) 
+        contr <- cmatrix(fit, term, test, assign= xassign)
+    else contr <- cmatrix(fit, term, test, assign= xassign, levels = levels)
+    x1data <- as.data.frame(contr$levels)  # labels for the PMM values
+    
+    # Make the list of X matrices that drive everything: xmatlist
+    #  (Over 1/2 the work of the whole routine)
+    xmatlist <- yates_xmat(Terms, Tatt, contr, population, mframe, fit,
+                                iscat)
+ 
+    # check rows of xmat for estimability
+    <<yates-estim-setup>>
+    
+    # Drop missing coefficients, and use xmatlist to compute the results
+    beta <- beta[!nabeta]
+    if (predict == "linear" || is.null(mfun)) {
+        # population averages of the simple linear predictor
+        <<yates-linear>>
+    }
+    else {
+        <<yates-nonlinear>>
+    }
+    result$call <- Call
+    class(result) <- "yates"
+    result
+}
+@
+
+Models with factor variables may often lead to population predictions that
+involve non-estimable functions, particularly if there are interactions
+and the user specifies a factorial population.  
+If there are any missing coefficients we have to do formal checking for
+this: any given row of the new $X$ matrix, for prediction, must be in the
+row space of the original $X$ matrix. 
+If this is true then a regression of a new row on the old $X$ will have 
+residuals of zero.
+It is not possible to derive this from the pattern of NA coefficients alone.
+Set up a function that returns a true/false vector of whether each row of
+a matrix is estimable.  This test isn't relevant if population=none.
+
+
+<<yates-estim-setup>>=
+if (any(is.na(beta)) && (popframe || population != "none")) {
+    Xu <- unique(Xold)  # we only need unique rows, saves time to do so
+    if (inherits(fit, "coxph")) X.qr <- qr(t(cbind(1.0,Xu)))
+    else  X.qr <- qr(t(Xu))   # QR decomposition of the row space
+    estimcheck <- function(x, eps= sqrt(.Machine$double.eps)) {
+        temp <- abs(qr.resid(X.qr, t(x)))
+        # apply(abs(temp), 1, function(x) all(x < eps)) # each row estimable
+        all(temp < eps)
+    }
+    estimable <- sapply(xmatlist, estimcheck)
+} else estimable <- rep(TRUE, length(xmatlist))
+@ 
+
+When the prediction target is $X\beta$ there is a four step
+process: build the reference population, create the list of X matrices
+(one prediction matrix for each for x1 value), 
+column means of each X form each row of the
+contrast matrix Cmat, and then use Cmat to get the pmm values and
+tests of the pmm values.
+
+<<yates-linear>>=
+#temp <- match(contr$termname, colnames(Tatt$factors)) 
+#if (any(is.na(temp)))
+#    stop("term '", contr$termname[is.na(temp)], "' not found in the model")
+
+meanfun <- if (is.null(weight)) colMeans else function(x) {
+    colSums(x*weight)/ sum(weight)}
+Cmat <- t(sapply(xmatlist, meanfun))[,!nabeta]
+          
+# coxph model: the X matrix is built as though an intercept were there (the
+#  baseline hazard plays that role), but then drop it from the coefficients
+#  before computing estimates and tests.  If there was a strata * covariate
+#  interaction there will be many more colums to drop.
+if (inherits(fit, "coxph")) {
+    nkeep <- length(fit$means)  # number of non-intercept columns
+    col.to.keep <- seq(to=ncol(Cmat), length= nkeep)
+    Cmat <- Cmat[,col.to.keep, drop=FALSE]
+    offset <- -sum(fit$means[!nabeta] * beta)  # recenter the predictions too
+    }
+else offset <- 0
+    
+# Get the PMM estimates, but only for estimable ones
+estimate <- cbind(x1data, pmm=NA, std=NA)
+if (any(estimable)) {
+    etemp <- estfun(Cmat[estimable,,drop=FALSE], beta, vmat)
+    estimate$pmm[estimable] <- etemp$estimate + offset
+    estimate$std[estimable] <- sqrt(diag(etemp$var))
+}
+    
+# Now do tests on the PMM estimates, one by one
+if (method=="sgtt") {
+        <<yates-sgtt>>
+}
+else {
+    if (is.list(contr$cmat)) {
+        test <- t(sapply(contr$cmat, function(x)
+                         testfun(x %*% Cmat, beta, vmat, sigma^2)))
+        natest <- sapply(contr$cmat, nafun, estimate$pmm)
+    }
+    else {
+        test <- testfun(contr$cmat %*% Cmat, beta, vmat, sigma^2)
+        test <- matrix(test, nrow=1, 
+                       dimnames=list("global", names(test)))
+        natest <- nafun(contr$cmat, estimate$pmm)
+    }
+    if (any(natest)) test[natest,] <- NA
+}
+if (any(estimable)){
+#    Cmat[!estimable,] <- NA
+    result <- list(estimate=estimate, test=test, mvar=etemp$var, cmat=Cmat)
+    }
+else  result <- list(estimate=estimate, test=test, mvar=NA)
+if (method=="sgtt") result$SAS <- Smat
+@ 
+
+In the non-linear case the mfun object is either a single function
+or a list containing two functions \code{predict} and \code{summary}.
+The predict function is handed a vector $\eta = X\beta$ along with 
+the $X$ matrix, though most methods don't use $X$.
+The result of predict can be a vector or a matrix.
+For coxph models we add on an ``intercept coef'' that will center the
+predictions.
+
+<<yates-nonlinear>>=
+xall <- do.call(rbind, xmatlist)[,!nabeta, drop=FALSE]
+if (inherits(fit, "coxph")) {
+    xall <- xall[,-1, drop=FALSE]  # remove the intercept
+    eta <- xall %*% beta -sum(fit$means[!nabeta]* beta)
+}
+else eta <- xall %*% beta
+n1 <- nrow(xmatlist[[1]])  # all of them are the same size
+index <- rep(1:length(xmatlist), each = n1)
+if (is.function(mfun)) predfun <- mfun
+else {  # double check the object
+    if (!is.list(mfun) || 
+        any(is.na(match(c("predict", "summary"), names(mfun)))) ||
+        !is.function(mfun$predic) || !is.function(mfun$summary))
+        stop("the prediction should be a function, or a list with two functions")
+    predfun <- mfun$predict
+    sumfun  <- mfun$summary
+}
+pmm <- predfun(eta, xall)
+n2 <- length(eta)
+if (!(is.numeric(pmm)) || !(length(pmm)==n2 || nrow(pmm)==n2))
+    stop("prediction function should return a vector or matrix")
+pmm <- rowsum(pmm, index, reorder=FALSE)/n1
+pmm[!estimable,] <- NA
+
+# get a sample of coefficients, in order to create a variance
+# this is lifted from the mvtnorm code (can't include a non-recommended
+# package in the dependencies)
+tol <- sqrt(.Machine$double.eps)
+if (!isSymmetric(vmat, tol=tol, check.attributes=FALSE))
+    stop("variance matrix of the coefficients is not symmetric")
+ev <- eigen(vmat, symmetric=TRUE)
+if (!all(ev$values >= -tol* abs(ev$values[1])))
+    warning("variance matrix is numerically not positive definite")
+Rmat <- t(ev$vectors %*% (t(ev$vectors) * sqrt(ev$values)))
+bmat <- matrix(rnorm(nsim*ncol(vmat)), nrow=nsim) %*% Rmat
+bmat <- bmat + rep(beta, each=nsim)  # add the mean
+
+# Now use this matrix of noisy coefficients to get a set of predictions
+# and use those to create a variance matrix
+# Since if Cox we need to recenter each run
+sims <- array(0., dim=c(nsim, nrow(pmm), ncol(pmm)))
+if (inherits(fit, 'coxph')) offset <- bmat %*% fit$means[!nabeta]
+else offset <- rep(0., nsim)
+   
+for (i in 1:nsim)
+    sims[i,,] <- rowsum(predfun(xall %*% bmat[i,] - offset[i]), index, 
+                        reorder=FALSE)/n1
+mvar <- var(sims[,,1])  # this will be used for the tests
+estimate <- cbind(x1data, pmm=unname(pmm[,1]), std= sqrt(diag(mvar)))
+
+# Now do the tests, on the first column of pmm only
+if (is.list(contr$cmat)) {
+    test <- t(sapply(contr$cmat, function(x)
+        testfun(x, pmm[,1], mvar[estimable, estimable], NULL)))
+    natest <- sapply(contr$cmat, nafun, pmm[,1])
+}
+else {
+    test <- testfun(contr$cmat, pmm[,1], mvar[estimable, estimable], NULL)
+    test <- matrix(test, nrow=1, 
+                   dimnames=list(contr$termname, names(test)))
+    natest <- nafun(contr$cmat, pmm[,1])
+}
+if (any(natest)) test[natest,] <- NA
+if (any(estimable))
+    result <- list(estimate=estimate,test=test, mvar=mvar)
+else  result <- list(estimate=estimate, test=test, mvar=NA)
+
+# If there were multiple columns from predfun, compute the matrix of
+#  results and variances 
+if (ncol(pmm) > 1 && any(estimable)){
+    pmm <-  apply(sims, 2:3, mean)
+    mvar2 <- apply(sims, 2:3, var)
+    # Call the summary function, if present
+    if (is.list(mfun)) result$summary <- sumfun(pmm, mvar2)
+    else {
+        result$pmm <- pmm
+        result$mvar2 <- mvar2
+    }
+}
+@ 
+
+
+Build the population data set. 
+If the user provided a data set as the population then the task is
+fairly straightforward: we manipulate the data set and then call
+model.frame followed by model.matrix in the usual way.
+The primary task in that
+case is to verify that the data has all the needed variables.
+
+Otherwise we have to be subtle.
+\begin{enumerate}
+  \item We have ready access to a model frame, but not to the data.
+    Consider a spline term for instance --- it's not always possible
+    to go backwards and get the data.
+  \item We need to manipulate this model frame, e.g., make everyone
+    treatment=A, then repeat with everyone treatment B.
+  \item We need to do it in a way that makes the frame still look
+    like a correct model frame to R.  This requires care.
+\end{enumerate}
+
+For population= factorial we create a population data set that has all
+the combinations.  If there are three adjusters z1, z2 and z3 with
+2, 3, and 5 levels, respectively, the new data set will have 30
+rows.  
+If the primary model didn't have any z1*z2*z3 terms in it we
+likely could get by with less, but it's not worth the programming effort
+to figure that out: predicted values are normally fairly cheap.
+For population=sas we need a mixture: categoricals are factorial and others
+are data.  Say there were categoricals with 3 and 5 levels, so the factorial
+data set has 15 obs, while the overall n is 50.  We need a data set of 15*50
+observations to ensure all combinations of the two categoricals with each
+continuous line.
+
+An issue  with data vs model is names.  Suppose the original model was
+\code{lm(y \textasciitilde ns(age,4) + factor(ph.ecog))}.
+In the data set the variable name is ph.ecog, in the model frame,
+the xlevels list, and terms structure it is factor(ph.ecog). 
+The data frame has individual columns for the four variables, the model frame
+is a list with 3 elements, one of which is named ``ns(age, 4)'': notice the
+extra space before the 4 compared to what was typed.
+
+<<yates>>=
+yates_xmat <- function(Terms, Tatt, contr, population, mframe, fit, 
+                       iscat, weight) {
+    # which variables(s) are in x1 (variables of interest)
+    # First a special case of strata(grp):x, which causes strata(grp) not to
+    #  appear as a column
+    if (any(is.na(match(contr$termname, colnames(Tatt$factors))))) {
+        #tis rare
+        if (length(contr$termname) > 1) stop("incomplete code 1")
+        x1indx <- (contr$termname== rownames(Tatt$factors))
+        names(x1indx) <- rownames(Tatt$factors)
+        if (!any(x1indx)) stop(paste("variable", contr$termname, "not found"))
+    } else x1indx <- apply(Tatt$factors[,contr$termname,drop=FALSE] >0, 1, any)  
+    x2indx <- !x1indx  # adjusters
+    if (inherits(population, "data.frame")) pdata <- population  #user data
+    else if (population=="data") pdata <- mframe  #easy case
+    else if (population=="factorial") 
+        pdata <- yates_factorial_pop(mframe, Terms, x2indx, fit$xlevels)
+    else if (population=="sas") {
+        if (all(iscat[x2indx])) 
+            pdata <- yates_factorial_pop(mframe, Terms, x2indx, fit$xlevels)
+        else if (!any(iscat[x2indx])) pdata <- mframe # no categoricals
+        else { # mixed population
+            pdata <- yates_factorial_pop(mframe, Terms, x2indx & iscat, 
+                                         fit$xlevels)
+            n2 <- nrow(pdata)
+            pdata <- pdata[rep(1:nrow(pdata), each=nrow(mframe)), ]
+            row.names(pdata) <- 1:nrow(pdata)
+            # fill in the continuous
+            k <- rep(1:nrow(mframe), n2)
+            for (i in which(x2indx & !iscat)) {
+                j <- names(x1indx)[i]
+                if (is.matrix(mframe[[j]])) 
+                    pdata[[j]] <- mframe[[j]][k,, drop=FALSE]
+                else pdata[[j]] <- (mframe[[j]])[k]
+                attributes(pdata[[j]]) <- attributes(mframe[[j]])
+            }
+        }
+    }
+    else stop("unknown population")  # this should have been caught earlier
+
+    # Now create the x1 data set, the unique rows we want to test
+    <<yates-x1mat>>
+    
+    xmatlist
+}
+@ 
+
+Build a factorial data set from a model frame. 
+<<yates>>=
+yates_factorial_pop <- function(mframe, terms, x2indx, xlevels) {
+    x2name <- names(x2indx)[x2indx]
+    dclass <- attr(terms, "dataClasses")[x2name]
+    if (!all(dclass %in% c("character", "factor")))
+        stop("population=factorial only applies if all the adjusting terms are categorical")
+   
+    nvar <- length(x2name)
+    n2 <- sapply(xlevels[x2name], length)  # number of levels for each
+    n <- prod(n2)                          # total number of rows needed
+    pdata <- mframe[rep(1, n), -1]  # toss the response
+    row.names(pdata) <- NULL        # throw away funny names
+    n1 <- 1
+    for (i in 1:nvar) {
+        j <- rep(rep(1:n2[i], each=n1), length=n)
+        xx <- xlevels[[x2name[i]]]
+        if (dclass[i] == "factor") 
+            pdata[[x2name[i]]] <- factor(j, 1:n2[i], labels= xx)
+        else pdata[[x2name[i]]] <- xx[j]
+        n1 <- n1 * n2[i]
+    }
+    attr(pdata, "terms") <- terms
+    pdata
+}
+@ 
+
+The next section builds a set of X matrices, one for each level of the
+x1 combination. 
+The following was learned by reading the source code for
+model.matrix:
+\begin{itemize}
+\item If pdata has no terms attribute then model.matrix will call model.frame
+  first, otherwise not.  The xlev argument is passed forward to model.frame
+  but is otherwise unused.
+\item If necessary, it will reorder the columns of pdata to match the terms,
+  though I try to avoid that.  
+\item Toss out the response variable, if present.
+\item Any character variables are turned into factors.  The dataClass attribute
+  of the terms object is not consulted.
+\item For each column that is a factor
+  \begin{itemize}
+    \item if it alreay has a contrasts attribute, it is left alone.
+    \item otherwise a contrasts attribute is added using a matching
+      element from contrasts.arg, if present, otherwise the global default
+    \item contrasts.arg must be a list, but it does not have to contain all
+      factors
+  \end{itemize}
+  \item Then call the internal C code
+\end{itemize}
+
+If pdata already is a model frame we want to leave it as one, so as to
+avoid recreating the raw data.
+If x1data comes from the user though, so we need to do that portion of
+model.frame processing ourselves, in order to get it into the right
+form.  Always turn characters into factors, since individual elements
+of \code{xmatlist} will have only a subset of the x1 variables.
+One nuisance is name matching.  Say the model had 
+\code{factor(ph.ecog)} as a term; then \code{fit\$xlevels} will have
+`factor(ph.ecog)' as a name but the user will likely have created a
+data set using `ph.ecog' as the name.
+
+<<yates-x1mat>>=
+if (is.null(contr$levels)) stop("levels are missing for this contrast")
+x1data <- as.data.frame(contr$levels)  # in case it is a list
+x1name <- names(x1indx)[x1indx]
+for (i in 1:ncol(x1data)) {
+    if (is.character(x1data[[i]])) {
+        if (is.null(fit$xlevels[[x1name[i]]])) 
+            x1data[[i]] <- factor(x1data[[i]])
+        else x1data[[i]] <- factor(x1data[[i]], fit$xlevels[[x1name[i]]])
+    }
+}
+
+xmatlist <- vector("list", nrow(x1data))
+if (is.null(attr(pdata, "terms"))) {
+    np <- nrow(pdata)
+    k <- match(x1name, names(pdata), nomatch=0)
+    if (any(k>0)) pdata <- pdata[, -k, drop=FALSE]  # toss out yates var
+    for (i in 1:nrow(x1data)) {
+        j <- rep(i, np)
+        tdata <- cbind(pdata, x1data[j,,drop=FALSE]) # new data set
+        xmatlist[[i]] <- model.matrix(Terms, tdata, xlev=fit$xlevels,
+                                      contrast.arg= fit$contrasts)
+    }
+} else {
+    # pdata is a model frame, convert x1data
+    # if the name and the class agree we go forward simply
+    index <- match(names(x1data), names(pdata), nomatch=0)
+        
+    if (all(index >0) && 
+        identical(lapply(x1data, class), lapply(pdata, class)[index]) &
+        identical(sapply(x1data, ncol) , sapply(pdata, ncol)[index]))
+            { # everything agrees
+        for (i in 1:nrow(x1data)) {
+            j <- rep(i, nrow(pdata))
+            tdata <- pdata
+            tdata[,names(x1data)] <- x1data[j,]
+            xmatlist[[i]] <- model.matrix(Terms, tdata,
+                                           contrasts.arg= fit$contrasts)
+        }
+    }
+    else {
+        # create a subset of the terms structure, for x1 only
+        #  for instance the user had age=c(75, 75, 85) and the term was ns(age)
+        # then call model.frame to fix it up
+        x1term <- Terms[which(x1indx)]
+        x1name <- names(x1indx)[x1indx]
+        attr(x1term, "dataClasses") <- Tatt$dataClasses[x1name] # R bug
+        x1frame <- model.frame(x1term, x1data, xlev=fit$xlevels[x1name])
+        for (i in 1:nrow(x1data)) {
+            j <- rep(i, nrow(pdata))
+            tdata <- pdata
+            tdata[,names(x1frame)] <- x1frame[j,]
+            xmatlist[[i]] <- model.matrix(Terms, tdata, xlev=fit$xlevels,
+                                      contrast.arg= fit$contrasts)
+        }
+    }
+}      
+@ 
+
+The decompostion based algorithm for SAS type 3 tests.
+Ignore the set of contrasts cmat since the algorithm can only
+do a global test.
+We mostly mimic the SAS GLM algorithm.
+
+For the generalized Cholesky decomposition $LDL' = X'X$, where $L$ is
+lower triangular with $L_{ii}=1$ and $D$ is diagonal, the set of contrasts
+$L'\beta$ gives the type I sequential sums of squares, partitioning the
+rows of $L$ into those for term 1, term 2, etc.
+If $X$ is the design matrix for a balanced factorial design then it is
+also true that $L_{ij}=0$ unless term $j$ includes term $i$, e.g., x1:x2
+includes x1. These blocks of zeros mean that changing the order of the terms
+in the model simply rearranges $L$, and individual tests are unchanged.
+
+This is precisely the definition of a type III contrast in SAS.
+With a bit of reading between the lines the ``four types of estimable
+functions'' document suggests the following algorithm:
+\begin{enumerate}
+  \item Start with an $X$ matrix in standard order of intercept, main effects,
+   first order interactions, etc.  Code any categorical variable with $k$ levels
+   as $k$ 0/1 columns.  An interaction of two categoricals with $k$ and $l$
+   levels will have $kl$ columns, etc.
+ \item Create the dependency matrix $D = (X'X)^-(X'X)$.  If column $i$ of $X$
+   can be written as a linear combination of prior columns, then column $i$ of
+   $D$ contains that combination.  Other columns of $D$ match the identity
+   matrix.
+ \item Intitialize $L = D$.
+ \item For any row $i$ and $j$ such that $i$ is contained in $j$, make $L_i$
+   orthagonal to $L_j$.
+\end{enumerate}
+The algorithm appears to work in almost all cases, an exception is when the
+type 3 test has fewer degrees of freedom that we would expect.
+
+Continuous variables are not orthagonalized in the SAS type III approach,
+nor any interaction that contains a continuous variable as one of its parts.
+To find the nested terms first note which rows of \code{factors} refer
+to categorical variables (the \code{iscat} variable);
+columns of \code{factors} that are non-zero only
+in categorical rows are the ``categorical'' columns.
+A term represented by one column in \code{factors} ``contains'' the term 
+represented in some other column iff it's non-zero elements are a superset.
+
+We have to build a new X matrix that is the expanded SAS coding, and are only
+able to do that for models that have an intercept, and use contr.treatement
+or contr.SAS coding. 
+<<yates-sgtt>>=
+# It would be simplest to have the contrasts.arg to be a list of function names.
+# However, model.matrix plays games with the calling sequence, and any function
+#  defined at this level will not be seen.  Instead create a list of contrast
+#  matrices.
+temp <- sapply(fit$contrasts, function(x) (is.character(x) &&
+                           x %in% c("contr.SAS", "contr.treatment")))
+if (!all(temp)) 
+        stop("yates sgtt method can only handle contr.SAS or contr.treatment")
+temp <- vector("list", length(fit$xlevels))
+names(temp) <- names(fit$xlevels)
+for (i in 1:length(fit$xlevels)) {
+    cmat <- diag(length(fit$xlevels[[i]]))
+    dimnames(cmat) <- list(fit$xlevels[[i]], fit$xlevels[[i]])
+    if (i>1 || Tatt$intercept==1) {
+        if (fit$contrasts[[i]] == "contr.treatment")
+            cmat <- cmat[, c(2:ncol(cmat), 1)]
+    }
+    temp[[i]] <- cmat
+}
+sasX <- model.matrix(formula(fit),  data=mframe, xlev=fit$xlevels,
+                      contrasts.arg=temp)
+sas.assign <- attr(sasX, "assign")
+    
+# create the dependency matrix D.  The lm routine is unhappy if it thinks
+#  the right hand and left hand sides are the same, fool it with I().
+# We do this using the entire X matrix even though only categoricals will
+#  eventually be used; if a continuous variable made it NA we need to know.
+D <- coef(lm(sasX ~ I(sasX) -1))
+dimnames(D)[[1]] <- dimnames(D)[[2]] #get rid if the I() names
+zero <- is.na(D[,1])  # zero rows, we'll get rid of these later
+D <- ifelse(is.na(D), 0, D) 
+    
+# make each row orthagonal to rows for other terms that contain it
+#  Containing blocks, if any, will always be below
+# this is easiest to do with the transposed matrix
+# Only do this if both row i and j are for a categorical variable
+if (!all(iscat)) {
+    # iscat marks variables in the model frame as categorical
+    # tcat marks terms as categorical.  For x1 + x2 + x1:x2 iscat has
+    # 2 entries and tcat has 3.
+    tcat <- (colSums(Tatt$factors[!iscat,,drop=FALSE]) == 0)
+}
+else tcat <- rep(TRUE, max(sas.assign)) # all vars are categorical
+   
+B <- t(D)
+dimnames(B)[[2]] <- paste0("L", 1:ncol(B))  # for the user
+if (ncol(Tatt$factors) > 1) {
+    share <- t(Tatt$factors) %*% Tatt$factors
+    nc <- ncol(share)
+    for (i in which(tcat[-nc])) {
+        j <- which(share[i,] > 0 & tcat)
+        k <- j[j>i]  # terms that I need to regress out
+        if (length(k)) {
+            indx1 <- which(sas.assign ==i)
+            indx2 <- which(sas.assign %in% k)
+            B[,indx1] <- resid(lm(B[,indx1] ~ B[,indx2]))
+        }
+    }
+}
+
+# Cut B back down to the non-missing coefs of the original fit
+Smat <- t(B)[!zero, !zero]
+Sassign <- xassign[!nabeta]
+@ 
+
+Although the SGTT does test for all terms, we only want to print out the
+ones that were asked for.
+<<yates-sgtt>>=
+keep <- match(contr$termname, colnames(Tatt$factors))
+if (length(keep) > 1) { # more than 1 term in the model
+    test <- t(sapply(keep, function(i)
+                   testfun(Smat[Sassign==i,,drop=FALSE], beta, vmat, sigma^2)))
+    rownames(test) <- contr$termname
+}  else {
+    test <- testfun(Smat[Sassign==keep,, drop=FALSE], beta, vmat, sigma^2)
+    test <- matrix(test, nrow=1, 
+                   dimnames=list(contr$termname, names(test)))
+}
+@ 
+
+
+The print routine places the population predicted values (PPV) alongside the
+tests on those values.  Defaults are copied from printCoefmat.
+
+<<yates>>=
+print.yates <- function(x, digits = max(3, getOption("digits") -2),
+                        dig.tst = max(1, min(5, digits-1)),
+                        eps=1e-8, ...) {
+    temp1 <- x$estimate
+    temp1$pmm <- format(temp1$pmm, digits=digits)
+    temp1$std <- format(temp1$std, digits=digits)
+
+    # the spaces help separate the two parts of the printout
+    temp2 <- cbind(test= paste("    ", rownames(x$test)), 
+                   data.frame(x$test), stringsAsFactors=FALSE)
+    row.names(temp2) <- NULL
+
+    temp2$Pr <- format.pval(pchisq(temp2$chisq, temp2$df, lower.tail=FALSE),
+                            eps=eps, digits=dig.tst)
+    temp2$chisq <- format(temp2$chisq, digits= dig.tst)
+    temp2$df <- format(temp2$df)
+    if (!is.null(temp2$ss)) temp2$ss <- format(temp2$ss, digits=digits)
+    
+    if (nrow(temp1) > nrow(temp2)) {
+        dummy <- temp2[1,]
+        dummy[1,] <- ""
+        temp2 <- rbind(temp2, dummy[rep(1, nrow(temp1)-nrow(temp2)),])
+        }
+    if (nrow(temp2) > nrow(temp1)) {
+        # get rid of any factors before padding
+        for (i in which(sapply(temp1, is.factor))) 
+            temp1[[i]] <- as.character(temp1[[i]])
+        
+        dummy <- temp1[1,]
+        dummy[1,] <- ""
+        temp1 <- rbind(temp1, dummy[rep(1, nrow(temp2)- nrow(temp1)),])
+        }
+    print(cbind(temp1, temp2), row.names=FALSE)
+    invisible(x)
+}
+@ 
+
+
+Routines to allow yates to interact with other models.
+Each is called with the fitted model and the type of prediction.
+It should return NULL when the type is a linear predictor, since the
+parent routine has a very efficient approach in that case.
+Otherwise it returns a function that will be applied to each value
+$\eta$, from each row of a prediction matrix.
+
+<<yates>>=
+yates_setup <- function(fit, ...)
+    UseMethod("yates_setup", fit)
+
+yates_setup.default <- function(fit, type, ...) {
+    if (!missing(type) && !(type %in% c("linear", "link")))
+        warning("no yates_setup method exists for a model of class ",
+                class(fit)[1], " and estimate type ", type,
+                ", linear predictor estimate used by default")
+    NULL
+}
+
+yates_setup.glm <- function(fit, predict = c("link", "response", "terms", 
+                                          "linear"), ...) {
+    type <- match.arg(predict)
+    if (type == "link" || type== "linear") NULL # same as linear
+    else if (type == "response") {
+        finv <- family(fit)$linkinv
+        function(eta, X) finv(eta)
+    }
+    else if (type == "terms")
+        stop("type terms not yet supported")
+}
+@ 
+
+For the coxph routine, we are making use of the R environment by first
+defining the baseline hazard and then defining the predict and summary
+functions.  This means that those functions have access to the baseline.
+
+<<yates>>=
+yates_setup.coxph <- function(fit, predict = c("lp", "risk", "expected",
+                                     "terms", "survival", "linear"), 
+                              options, ...) {
+    type <- match.arg(predict)
+    if (type=="lp" || type == "linear") NULL  
+    else if (type=="risk") function(eta, X) exp(eta)
+    else if (type == "survival") {
+        # If there are strata we need to do extra work
+        # if there is an interaction we want to suppress a spurious warning
+        suppressWarnings(baseline <- survfit(fit, censor=FALSE))
+        if (missing(options) || is.null(options$rmean)) 
+            rmean <- max(baseline$time)  # max death time
+        else rmean <- options$rmean
+
+        if (!is.null(baseline$strata)) 
+            stop("stratified models not yet supported")
+        cumhaz <- c(0, baseline$cumhaz)
+        tt <- c(diff(c(0, pmin(rmean, baseline$time))), 0)
+         
+        predict <- function(eta, ...) {
+            c2 <- outer(exp(drop(eta)), cumhaz)  # matrix of values
+            surv <- exp(-c2)
+            meansurv <- apply(rep(tt, each=nrow(c2)) * surv, 1, sum)
+            cbind(meansurv, surv)
+        }
+        summary <- function(surv, var) {
+            bsurv <- t(surv[,-1])
+            std <- t(sqrt(var[,-1]))
+            chaz <- -log(bsurv)
+            zstat <- -qnorm((1-baseline$conf.int)/2)
+            baseline$lower <- exp(-(chaz + zstat*std))
+            baseline$upper <- exp(-(chaz - zstat*std))
+            baseline$surv <- bsurv
+            baseline$std.err  <- std/bsurv
+            baselinecumhaz <- chaz
+            baseline
+        }
+        list(predict=predict, summary=summary)
+     }
+    else stop("type expected is not supported")
+}
+    
+@ 

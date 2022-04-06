@@ -58,10 +58,8 @@ aeq(resid(fit1, type='matrix'),   resid(fit4, type='matrix'))
 #
 # Some tests of the quantile residuals
 #
-motor <- read.table('data.motor', col.names=c('temp', 'time', 'status'))
-
 # These should agree exactly with Ripley and Venables' book
-fit1 <- survreg(Surv(time, status) ~ temp, data=motor)
+fit1 <- survreg(Surv(time, status) ~ temp, data=imotor)
 summary(fit1)
 
 #
@@ -73,7 +71,7 @@ summary(fit1)
 #
 predict(fit1, data.frame(temp=130), type='uquantile', p=c(.5, .1), se=T)
 
-fit2 <- survreg(Surv(time, status) ~ temp, data=motor, scale=fit1$scale)
+fit2 <- survreg(Surv(time, status) ~ temp, data=imotor, scale=fit1$scale)
 predict(fit2, data.frame(temp=130), type='uquantile', p=c(.5, .1), se=T)
 
 fit3 <- fit2

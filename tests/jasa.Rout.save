@@ -1,7 +1,7 @@
 
-R version 2.11.1 (2010-05-31)
-Copyright (C) 2010 The R Foundation for Statistical Computing
-ISBN 3-900051-07-0
+R Under development (unstable) (2020-09-23 r79248) -- "Unsuffered Consequences"
+Copyright (C) 2020 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -18,7 +18,6 @@ Type 'q()' to quit R.
 > options(na.action=na.exclude) # preserve missings
 > options(contrasts=c('contr.treatment', 'contr.poly')) #ensure constrast type
 > library(survival)
-Loading required package: splines
 > 
 > expect <- survexp(futime ~ ratetable(age=(accept.dt - birth.dt), sex=1,
 + 		year=accept.dt, race='white'), jasa, cohort=F, 
@@ -49,7 +48,7 @@ Call:
 coxph(formula = Surv(start, stop, event) ~ (age + surgery) * 
     transplant, data = jasa1, method = "breslow")
 
-  n= 170 
+  n= 170, number of events= 75 
 
                        coef exp(coef) se(coef)      z Pr(>|z|)
 age                 0.01386   1.01395  0.01813  0.765    0.445
@@ -65,29 +64,29 @@ transplant             1.123     0.8907    0.5911     2.132
 age:transplant         1.035     0.9659    0.9815     1.092
 surgery:transplant     0.748     1.3369    0.1692     3.306
 
-Rsquare= 0.071   (max possible= 0.97 )
-Likelihood ratio test= 12.45  on 5 df,   p=0.02915
-Wald test            = 11.62  on 5 df,   p=0.04031
-Score (logrank) test = 12.02  on 5 df,   p=0.03457
+Concordance= 0.595  (se = 0.037 )
+Likelihood ratio test= 12.45  on 5 df,   p=0.03
+Wald test            = 11.62  on 5 df,   p=0.04
+Score (logrank) test = 12.02  on 5 df,   p=0.03
 
 > sfit.2
 Call:
 coxph(formula = Surv(start, stop, event) ~ year * transplant, 
     data = jasa1, method = "breslow")
 
+                   coef exp(coef) se(coef)      z      p
+year            -0.2652    0.7671   0.1051 -2.522 0.0117
+transplant      -0.2871    0.7504   0.5137 -0.559 0.5762
+year:transplant  0.1371    1.1469   0.1409  0.973 0.3306
 
-                  coef exp(coef) se(coef)      z     p
-year            -0.265     0.767    0.105 -2.522 0.012
-transplant      -0.287     0.750    0.514 -0.559 0.580
-year:transplant  0.137     1.147    0.141  0.973 0.330
-
-Likelihood ratio test=8.61  on 3 df, p=0.0349  n= 170 
+Likelihood ratio test=8.61  on 3 df, p=0.03488
+n= 170, number of events= 75 
 > summary(sfit.3)
 Call:
 coxph(formula = Surv(start, stop, event) ~ (age + year) * transplant, 
     data = jasa1, method = "breslow")
 
-  n= 170 
+  n= 170, number of events= 75 
 
                     coef exp(coef) se(coef)      z Pr(>|z|)   
 age              0.01558   1.01571  0.01734  0.899  0.36887   
@@ -96,7 +95,7 @@ transplant      -0.59388   0.55218  0.54222 -1.095  0.27339
 age:transplant   0.03380   1.03438  0.02795  1.209  0.22653   
 year:transplant  0.20228   1.22419  0.14247  1.420  0.15566   
 ---
-Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
                 exp(coef) exp(-coef) lower .95 upper .95
 age                1.0157     0.9845    0.9818    1.0508
@@ -105,62 +104,62 @@ transplant         0.5522     1.8110    0.1908    1.5981
 age:transplant     1.0344     0.9668    0.9792    1.0926
 year:transplant    1.2242     0.8169    0.9259    1.6185
 
-Rsquare= 0.084   (max possible= 0.97 )
-Likelihood ratio test= 14.85  on 5 df,   p=0.01102
-Wald test            = 13.77  on 5 df,   p=0.01716
-Score (logrank) test = 14.06  on 5 df,   p=0.01525
+Concordance= 0.63  (se = 0.036 )
+Likelihood ratio test= 14.85  on 5 df,   p=0.01
+Wald test            = 13.77  on 5 df,   p=0.02
+Score (logrank) test = 14.06  on 5 df,   p=0.02
 
 > sfit.4
 Call:
 coxph(formula = Surv(start, stop, event) ~ (year + surgery) * 
     transplant, data = jasa1, method = "breslow")
 
+                      coef exp(coef) se(coef)      z      p
+year               -0.2541    0.7756   0.1077 -2.360 0.0183
+surgery            -0.2365    0.7894   0.6282 -0.377 0.7065
+transplant         -0.2969    0.7431   0.5054 -0.588 0.5568
+year:transplant     0.1653    1.1797   0.1416  1.167 0.2431
+surgery:transplant -0.5499    0.5770   0.7759 -0.709 0.4785
 
-                     coef exp(coef) se(coef)      z     p
-year               -0.254     0.776    0.108 -2.360 0.018
-surgery            -0.237     0.789    0.628 -0.377 0.710
-transplant         -0.297     0.743    0.505 -0.588 0.560
-year:transplant     0.165     1.180    0.142  1.167 0.240
-surgery:transplant -0.550     0.577    0.776 -0.709 0.480
-
-Likelihood ratio test=12.4  on 5 df, p=0.0302  n= 170 
+Likelihood ratio test=12.36  on 5 df, p=0.03021
+n= 170, number of events= 75 
 > sfit.5
 Call:
 coxph(formula = Surv(start, stop, event) ~ (age + surgery) * 
     transplant + year, data = jasa1, method = "breslow")
 
+                       coef exp(coef) se(coef)      z      p
+age                 0.01504   1.01516  0.01760  0.855 0.3928
+surgery            -0.42025   0.65689  0.61564 -0.683 0.4948
+transplant          0.07412   1.07694  0.33113  0.224 0.8229
+year               -0.13631   0.87258  0.07097 -1.921 0.0548
+age:transplant      0.02691   1.02728  0.02712  0.992 0.3210
+surgery:transplant -0.29656   0.74337  0.75800 -0.391 0.6956
 
-                      coef exp(coef) se(coef)      z     p
-age                 0.0150     1.015   0.0176  0.855 0.390
-surgery            -0.4202     0.657   0.6156 -0.683 0.490
-transplant          0.0741     1.077   0.3311  0.224 0.820
-year               -0.1363     0.873   0.0710 -1.921 0.055
-age:transplant      0.0269     1.027   0.0271  0.992 0.320
-surgery:transplant -0.2966     0.743   0.7580 -0.391 0.700
-
-Likelihood ratio test=16.2  on 6 df, p=0.0127  n= 170 
+Likelihood ratio test=16.2  on 6 df, p=0.0127
+n= 170, number of events= 75 
 > sfit.6
 Call:
 coxph(formula = Surv(start, stop, event) ~ age * transplant + 
     surgery + year, data = jasa1, method = "breslow")
 
+                   coef exp(coef) se(coef)      z      p
+age             0.01527   1.01539  0.01750  0.873 0.3828
+transplant      0.04457   1.04558  0.32171  0.139 0.8898
+surgery        -0.62113   0.53734  0.36786 -1.688 0.0913
+year           -0.13608   0.87278  0.07090 -1.919 0.0550
+age:transplant  0.02703   1.02740  0.02714  0.996 0.3193
 
-                  coef exp(coef) se(coef)      z     p
-age             0.0153     1.015   0.0175  0.873 0.380
-transplant      0.0446     1.046   0.3217  0.139 0.890
-surgery        -0.6211     0.537   0.3679 -1.688 0.091
-year           -0.1361     0.873   0.0709 -1.919 0.055
-age:transplant  0.0270     1.027   0.0271  0.996 0.320
-
-Likelihood ratio test=16.1  on 5 df, p=0.00669  n= 170 
+Likelihood ratio test=16.06  on 5 df, p=0.006687
+n= 170, number of events= 75 
 > 
 > # Survival curve for an "average" subject,
 > #  done once as overall, once via individual method
 > surv1 <- survfit(sfit.1, newdata=list(age=-2, surgery=0, transplant=0))
 > newdata <- data.frame(start=c(0,50,100), stop=c(50,100, max(jasa1$stop)), 
 +                    event=c(1,1,1), age=rep(-2,3), surgery=rep(0,3),
-+                    transplant=rep(0,3))
-> surv2 <- survfit(sfit.1, newdata, individual=T)
++                    transplant=rep(0,3), name=c("Smith", "Smith", "Smith"))
+> surv2 <- survfit(sfit.1, newdata, id=name)
 > # Have to use unclass to avoid [.survfit trying to pick curves,
 > #  remove the final element "call" because it won't match
 > all.equal(unclass(surv1)[-length(surv1)],
@@ -171,9 +170,9 @@ Likelihood ratio test=16.1  on 5 df, p=0.00669  n= 170
 > # Survival curve for a subject of age 50, with prior surgery, tx at 6 months
 > #  Remember that 'age' in jasa 1 was centered at 48
 > data <- data.frame(start=c(0,183), stop=c(183,3*365), event=c(1,1),
-+ 		   age=c(2,2),  surgery=c(1,1), transplant=c(0,1))
-> summary(survfit(sfit.1, data, individual=T))
-Call: survfit(formula = sfit.1, newdata = data, individual = T)
++ 		   age=c(2,2),  surgery=c(1,1), transplant=c(0,1), id=c(1,1))
+> summary(survfit(sfit.1, data, id=id))
+Call: survfit(formula = sfit.1, newdata = data, id = id)
 
    time n.risk n.event survival std.err lower 95% CI upper 95% CI
     0.5    103       1    0.994 0.00722        0.980        1.000
@@ -247,8 +246,8 @@ Call: survfit(formula = sfit.1, newdata = data, individual = T)
 > fit3 <- coxph(Surv(start, stop, event) ~ age, jasa1)
 > fit4 <- coxph(Surv(start, stop, event) ~ offset(age*fit1$coef), jasa1)
 > 
-> s1 <- survfit(fit1, fit3$means, censor=FALSE)
-> s2 <- survfit(fit2, fit3$means, censor=FALSE)
+> s1 <- survfit(fit1, list(j.age=fit3$means), censor=FALSE)
+> s2 <- survfit(fit2, list(j.age=fit3$means), censor=FALSE)
 > s3 <- survfit(fit3, censor=FALSE)
 > s4 <- survfit(fit4, censor=FALSE)
 > 
@@ -262,12 +261,11 @@ Call: survfit(formula = sfit.1, newdata = data, individual = T)
 > # Still the same answer, fit multiple strata at once
 > #  Strata 1 has independent coefs of strata 2, so putting in
 > #    the other data should not affect it
-> attach(jasa1)
-> ll <- length(start)
+> ll <- nrow(jasa1)
 > ss <- rep(0:1, c(ll,ll))
-> tdata <- data.frame(start=rep(start,2), stop=rep(stop,2),
+> tdata <- with(jasa1, data.frame(start=rep(start,2), stop=rep(stop,2),
 + 		    event=rep(event,2), ss=ss, age=rep(age,2),
-+ 		    age2 = (rep(age,2))^2 * ss)
++ 		    age2 = (rep(age,2))^2 * ss))
 > fit <- coxph(Surv(start, stop, event) ~ age*strata(ss) + age2, tdata)
 > #  Above replaced these 2 lines, which kill Splus5 as of 8/98
 > #    Something with data frames, I expect.
@@ -278,9 +276,9 @@ Call: survfit(formula = sfit.1, newdata = data, individual = T)
 > s5 <- survfit(fit, data.frame(age=fit3$means, age2=0, ss=0), censor=FALSE)
 > all.equal(s5$surv[1:(s5$strata[1])],  s3$surv)
 [1] TRUE
-> detach("jasa1")
 > 
-> rm(s1, s2, s3, s4, s5, tdata, ll, ss, data)
-> rm(fit1, fit2, fit3, fit4, fit, j.age)
-> rm(sfit.1, sfit.2, sfit.3, sfit.4, sfit.5, sfit.6)
 > 
+> 
+> proc.time()
+   user  system elapsed 
+  0.908   0.076   0.976 

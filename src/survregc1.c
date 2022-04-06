@@ -1,5 +1,5 @@
 /*
-** HOw the routines fit together
+** How the routines fit together
 **  survreg.fit, the S function, calls either 
 **     survreg6 -- no penalized terms
 **     survreg7 -- with penalized terms
@@ -40,6 +40,7 @@
 **    derivatives.  (Mayo Biostatistics, TR #53)
 */ 
 #include "survS.h"
+#include "survproto.h"
 #include <math.h>
 #define SMALL -200 /* what to use for log(f(x)) when f(x) gives a zero,
 		       i.e., the calling made a really bad guess for beta */
@@ -71,7 +72,7 @@ double survregc1(int n,          int nvar,      int nstrat,     int whichcase,
     double  sz;
     double  sig2;
     double  funs[4], ufun[4];
-    int     fgrp;
+    int     fgrp =0;        /* the =0 to quiet a compiler warning */
     double  w;
     /* add "=0" to keep the compiler from worrying about uninitialized vars */
     double g=0, dg=0, ddg=0, dsig=0, ddsig=0, dsg=0;

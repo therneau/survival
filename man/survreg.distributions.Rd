@@ -11,7 +11,6 @@ survreg.distributions
 }
 
 \format{
- 
   There are two basic formats, the first defines a distribution de novo,
 the second defines a new distribution in terms of an old one.
   \tabular{ll}{
@@ -20,8 +19,8 @@ the second defines a new distribution in terms of an old one.
     init(x,weights,...):\tab Function returning an initial\cr
     \tab estimate of the mean and variance \cr
     \tab (used for initial values in the iteration)\cr
-    density(x,parms):\tab Function returning a matrix with columns \eqn{F},\cr
-    \tab \eqn{1-F},\eqn{f},\eqn{f'/f},\eqn{f''/f}\cr
+    density(x,parms):\tab Function returning a matrix with columns \eqn{F},
+    \eqn{1-F}, \eqn{f}, \eqn{f'/f}, and \eqn{f''/f}\cr
     quantile(p,parms):\tab Quantile function\cr
     scale:\tab Optional fixed value for the scale parameter\cr
     parms:\tab Vector of default values and names for any additional parameters\cr
@@ -48,7 +47,7 @@ are parametrised in the same way as the distributions already present in
 
 When the logarithm of survival time has one of the first three distributions
 we obtain respectively \code{weibull}, \code{lognormal}, and
-\code{loglogistic}. The location-scale parameterizaion of a Weibull
+\code{loglogistic}. The location-scale parameterization of a Weibull
 distribution found in \code{survreg} is not the same as the parameterization
 of \code{\link{rweibull}}.
 
@@ -59,7 +58,7 @@ distributions with fixed \code{scale} of 1 and 0.5 respectively, and
 
 For speed parts of the three most commonly used distributions
 are hardcoded in C; for this reason the elements of \code{survreg.distributions}
-with names of "Extreme value", "Logisitic" and "Gaussian" should not be
+with names of "Extreme value", "Logistic" and "Gaussian" should not be
 modified.  (The order of these in the list is not important, recognition
 is by name.)
 As an alternative to modifying \code{survreg.distributions}
@@ -83,7 +82,7 @@ survreg(Surv(time, status) ~ ph.ecog + sex, lung, dist=my.weibull)
 # Weibull parametrisation
 y<-rweibull(1000, shape=2, scale=5)
 survreg(Surv(y)~1, dist="weibull")
-# survreg parameters are scale=1/shape, intercept=log(scale)
+# survreg scale parameter maps to 1/shape, linear predictor to log(scale)
 
 # Cauchy fit
 mycauchy <- list(name='Cauchy',
@@ -91,8 +90,8 @@ mycauchy <- list(name='Cauchy',
                       c(median(x), mad(x)),
                  density= function(x, parms) {
                       temp <- 1/(1 + x^2)
-                      cbind(.5 + atan(temp)/pi, .5+ atan(-temp)/pi,
-                            temp/pi, -2 *x*temp, 2*temp^2*(4*x^2*temp -1))
+                      cbind(.5 + atan(x)/pi, .5+ atan(-x)/pi,
+                            temp/pi, -2 *x*temp, 2*temp*(4*x^2*temp -1))
                       },
                  quantile= function(p, parms) tan((p-.5)*pi),
                  deviance= function(...) stop('deviance residuals not defined')

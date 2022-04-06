@@ -10,6 +10,7 @@
 */ 
 #include <math.h>
 #include "survS.h"
+#include "survproto.h"
 #define SMALL -200  /* exp(-200) is a really small loglik */
 
 double survregc2(int n,          int nvar,     int nstrat,      int whichcase,
@@ -25,7 +26,7 @@ double survregc2(int n,          int nvar,     int nstrat,      int whichcase,
     double  eta,
 	    sigma;
     int     icount;  /* running count of # of interval censored */
-    int     fgrp;
+    int     fgrp =0; /* the =0 to quiet a compiler warning */
     double  loglik,
 	    temp;
     double  temp1, temp2;

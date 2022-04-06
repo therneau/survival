@@ -1,0 +1,1117 @@
+\subsection{Kaplan-Meier}
+This routine has been rewritten more times than any other in the package,
+as we trade off simplicty of the code with execution speed.  
+This version does all of the oranizational work in S and calls a C
+routine for each separate curve. 
+The first code did everything in C but was too hard to maintain and the most
+recent prior function did nearly everything in S. 
+Introduction of robust variance
+prompted a movement of more of the code into C since that calculation
+is computationally intensive.
+
+<<survfitKM>>= 
+survfitKM <- function(x, y, weights=rep(1.0,length(x)), 
+                      stype=1, ctype=1,
+                      se.fit=TRUE,
+                      conf.int= .95,
+                      conf.type=c('log',  'log-log',  'plain', 'none', 
+                                  'logit', "arcsin"),
+                      conf.lower=c('usual', 'peto', 'modified'),
+                      start.time, id, cluster, robust, influence=FALSE,
+                      type) {
+    
+    if (!missing(type)) {
+        if (!is.character(type)) stop("type argument must be character")
+        # older style argument is allowed
+        temp <- charmatch(type, c("kaplan-meier", "fleming-harrington", "fh2"))
+        if (is.na(temp)) stop("invalid value for 'type'")
+        type <- c(1,3,4)[temp]
+    }
+    else {
+        if (!(ctype %in% 1:2)) stop("ctype must be 1 or 2")
+        if (!(stype %in% 1:2)) stop("stype must be 1 or 2")
+        type <- as.integer(2*stype + ctype  -2)
+    }
+ 
+    conf.type <- match.arg(conf.type)
+    conf.lower<- match.arg(conf.lower)
+    if (is.logical(conf.int)) {
+        # A common error is for users to use "conf.int = FALSE"
+        #  it's not correct, but allow it
+        if (!conf.int) conf.type <- "none"
+        conf.int <- .95
+    }
+      
+    if (!is.Surv(y)) stop("y must be a Surv object")
+    if (attr(y, 'type') != 'right' && attr(y, 'type') != 'counting')
+	    stop("Can only handle right censored or counting data")
+    ny <- ncol(y)       # Will be 2 for right censored, 3 for counting
+    # The calling routine has used 'strata' on x, so it is a factor with
+    #  no unused levels.  But just in case a user called this...
+    if (!is.factor(x)) stop("x must be a factor")
+    xlev <- levels(x)   # Will supply names for the curves
+    x <- as.integer(x)  # keep the integer index
+
+    if (missing(start.time)) time0 <- min(0, y[,ny-1])
+    else time0 <- start.time
+
+    # The user can call with cluster, id, robust, or any combination
+    # Default for robust: if cluster or any id with > 1 event or 
+    #  any weights that are not 0 or 1, then TRUE
+    # If only id, treat it as the cluster too
+    has.cluster <- !(missing(cluster) || length(cluster)==0) 
+    has.id <-      !(missing(id) || length(id)==0)
+    has.rwt<-      (!missing(weights) && any(weights != floor(weights)))
+    #has.rwt <- FALSE   # we are rethinking this
+    has.robust <-  !missing(robust) && !is.null(robust)
+    if (has.id) id <- as.factor(id)
+
+    if (missing(robust) || is.null(robust)) {
+        if (influence) {
+            robust <- TRUE
+            if (!(has.cluster || has.id)) {
+                cluster <- seq(along=x)
+                has.cluster <- TRUE
+            }
+        }
+        else if (has.cluster || has.rwt ||
+                 (has.id && anyDuplicated(id[y[,ncol(y)]==1])))
+            robust <- TRUE 
+        else robust <- FALSE
+    }
+    if (!is.logical(robust)) stop("robust must be TRUE/FALSE")
+
+    if (has.cluster) {
+        if (!robust) {
+            warning("cluster specified with robust=FALSE, cluster ignored")
+            ncluster <- 0
+            clname <- NULL
+        }
+        else {
+            if (is.factor(cluster)) {
+                clname <- levels(cluster)
+                cluster <- as.integer(cluster)
+            } else {
+                clname  <- sort(unique(cluster))
+                cluster <- match(cluster, clname)
+            }
+            ncluster <- length(clname)
+        }
+    } else if (robust) {
+        if (has.id) {
+            # treat the id as both identifier and clustering
+            clname <- levels(id)
+            cluster <- as.integer(id)
+            ncluster <- length(clname)
+        }
+        else if (ncol(y)==2 || !has.robust) {
+            # create our own clustering
+            n <- nrow(y)
+            cluster <- 1:n
+            ncluster <- n
+            clname <- 1:n
+        }   
+        else stop("id or cluster option required")
+    } else ncluster <- 0
+ 
+    if (is.logical(influence)) {
+        # TRUE/FALSE is treated as all or nothing
+        if (!influence) influence <- 0L
+        else influence <- 3L
+    }
+    else if (!is.numeric(influence))
+        stop("influence argument must be numeric or logical")
+    if (!(influence %in% 0:3)) stop("influence argument must be 0, 1, 2, or 3")
+    else influence <- as.integer(influence)
+    if (!robust && influence >0) {
+        warning("robust=FALSE implies influence=FALSE")
+        influence <- 0L
+    }       
+  
+    if (!se.fit) {
+        # if the user asked for no standard error, skip any robust computation
+        ncluster <- 0L
+        influence <- 0L
+    }
+
+    # if start.time was set, delete obs if necessary
+    keep <- y[,ny-1] >= time0
+    if (!all(keep)) {
+        y <- y[keep,]
+        if (length(id) >0) id <- id[keep]
+        if (length(cluster) >0) cluster <- cluster[keep]
+        x <- x[keep]
+        weights <- weights[keep]
+    }
+
+
+    <<survfitKM-compute>>
+    <<survfitKM-finish>>
+}
+@ 
+
+At each event time we have 
+\begin{itemize}
+  \item n(t) = number at risk = sum of weigths for those at risk
+  \item d(t) = number of events = sum of weights for the deaths
+  \item e(t) = unweighted number of events
+\end{itemize}
+From this we can calculate the Kapan-Meier and Nelson-Aalen estimates.
+The Fleming-Harrington estimate is the analog of the Efron approximation
+in a Cox model.
+When there are no case weights the FH idea is quite simple.
+Assume that the real data is not tied, but we saw a coarsened version.
+If we see 3 events out of 10 subjects at risk the NA increment is 3/10 but the
+FH is 1/10 + 1/9 + 1/8, it is what we would have seen with the 
+uncoarsened data.
+If there are case weights we give each of the 3 terms a 1/3 chance of being
+the first, second, or third event
+\begin{align*}
+  KM(t) &= KM(t-) (1- d(t)/n(t) \\
+  NA(t) &= NA(t-) + d(t)/n(t) \\
+  FH(t) &= FH(t-) + \sum_{i=1}^{3} \frac{(d(t)/3}{n(t)- d(t)(i-1)/3}
+\end{align*}
+
+When one of these 3 subjects has an event but continues, which can happen with
+start/stop data, then this gets trickier: the second $d$ in the last equation
+above should include only the other 2.  The idea is that each of those will
+certainly be present for the first event, has 2/3 chance of being present
+for the second, and 1/3 for the third.
+If we think of the size of the denominator as a random variable $Z$, an
+exact solution would use $E(1/Z)$, the FH uses $1/E(Z)$ and the NA uses
+$1/\max(Z)$ as the denominator for each of the 3 deaths.  
+
+One problem with survival is near ties in Y: table, unique, ==, etc. can
+do different things in this case.  Luckily, the parent survfit routine 
+has dealt with that by using the \code{aeqSurv} function.
+
+The underlying C code allows the sort1/sort2 vectors to be a different
+length than y, weights, and cluster.  
+When there is only one curve we use that to our advantage to avoid creating
+a new copy of the last 3, passing in the original data.
+When there are multiple curves  I had an internal debate about efficiency.
+Is is better to make a subset of y for each curve = more memory, or keep the
+original y and address a different subset in each C call = worse memory
+cache performance?   I don't know the answer.
+In either case the cluster vector needs to be re-done for each group.
+Say that curve 1 uses subjects 1-10 and curve 2 uses 11-n: we don't want
+the first curve to compute or keep the zero influence values for all the
+subjects who are not in it.  
+Especially when returning the influence matrix, which can get too large
+for memory.
+
+If ny==3 and has.id is true, then do some extra setup work, which is to
+create a position vector of 1=first obs for the subject, 2 = last, 3=both,
+0= other, for each set of back to back times.
+This is used to prevent counting a subject with data of (0,10], (10,15] in
+both the censored at 10 and entered at 10 totals.
+We assume the data has been vetted to prevent overlapping intervals, so that
+it suffices to sort by ending time. If a subject has holes in their timeline
+they will have more than one first and last indicator.
+
+<<survfitKM-compute>>=
+if (ny==3 & has.id) position <- survflag(y, id)
+else position <- integer(0)
+
+if (length(xlev) ==1) {# only one group
+    if (ny==2) {
+        sort1 <- NULL
+        sort2 <- order(y[,1]) 
+    }
+    else {
+        sort2 <- order(y[,2])
+        sort1 <- order(y[,1])
+    }
+    toss <- (y[sort2, ny-1] < time0)
+    if (any(toss)) {
+        # Some obs were removed by the start.time argument
+        sort2 <- sort2[!toss]
+        if (ny ==3) {
+            index <- match(which(toss), sort1)
+            sort1 <- sort1[-index]
+        }
+    }  
+    n.used <- length(sort2)
+    if (ncluster > 0)
+        cfit <- .Call(Csurvfitkm, y, weights, sort1-1L, sort2-1L, type, 
+                               cluster-1L, ncluster, position, influence)
+    else cfit <- .Call(Csurvfitkm, y, weights, sort1-1L, sort2-1L, type,
+                              0L, 0L, position, influence)
+} else {
+    # multiple groups
+    ngroup <- length(xlev)
+    cfit <- vector("list", ngroup)
+    n.used <- integer(ngroup)
+    if (influence) clusterid <- cfit # empty list of group id values
+    for (i in 1:ngroup) {
+        keep <- which(x==i & y[,ny-1] >= time0)
+        if (length(keep) ==0) next;  # rare case where all are < start.time
+        ytemp <- y[keep,]
+        n.used[i] <- nrow(ytemp)
+        if (ny==2) {
+            sort1 <- NULL
+            sort2 <- order(ytemp[,1]) 
+        }
+        else {
+            sort2 <- order(ytemp[,2])
+            sort1 <- order(ytemp[,1])
+        }
+ 
+        # Cluster is a nuisance: every curve might have a different set
+        #  We need to relabel them from 1 to "number of unique clusters in this
+        #  curve for the C routine
+        if (ncluster > 0) {
+            c2 <- cluster[keep]
+            c.unique <- sort(unique(c2))
+            nc <- length(c.unique)
+            c2 <- match(c2, c.unique)  # renumber them
+            if (influence >0) {
+                clusterid[[i]] <-c.unique
+            }
+        }
+        
+        if (ncluster > 0) 
+            cfit[[i]] <- .Call(Csurvfitkm, ytemp, weights[keep], sort1 -1L, 
+                           sort2 -1L, type,
+                           c2 -1L, length(c.unique), position, influence)
+        else cfit[[i]] <- .Call(Csurvfitkm, ytemp, weights[keep], sort1 -1L, 
+                           sort2 -1L, type,
+                           0L, 0L, position, influence)
+    }
+}
+@ 
+
+<<survfitKM-finish>>=
+# create the survfit object
+if (length(n.used) == 1) {
+    rval <- list(n= length(x),
+                 time= cfit$time,
+                 n.risk = cfit$n[,4],
+                 n.event= cfit$n[,5],
+                 n.censor=cfit$n[,6],
+                 surv = cfit$estimate[,1],
+                 std.err = cfit$std.err[,1],
+                 cumhaz  = cfit$estimate[,2],
+                 std.chaz = cfit$std[,2])
+ } else {
+     strata <- sapply(cfit, function(x) if (is.null(x$n)) 0L else nrow(x$n))
+     names(strata) <- xlev
+     # we need to collapse the curves
+     rval <- list(n= as.vector(table(x)),
+                  time =   unlist(lapply(cfit, function(x) x$time)),
+                  n.risk=  unlist(lapply(cfit, function(x) x$n[,4])),
+                  n.event= unlist(lapply(cfit, function(x) x$n[,5])),
+                  n.censor=unlist(lapply(cfit, function(x) x$n[,6])),
+                  surv =   unlist(lapply(cfit, function(x) x$estimate[,1])),
+                  std.err =unlist(lapply(cfit, function(x) x$std.err[,1])),
+                  cumhaz  =unlist(lapply(cfit, function(x) x$estimate[,2])),
+                  std.chaz=unlist(lapply(cfit, function(x) x$std.err[,2])),
+                  strata=strata)
+      if (ny==3) rval$n.enter <- unlist(lapply(cfit, function(x) x$n[,8]))
+}
+    
+if (ny ==3) {
+        rval$n.enter <- cfit$n[,8]
+        rval$type <- "counting"
+}
+else rval$type <- "right"
+
+if (se.fit) {
+    rval$logse = (ncluster==0 || (type==2 || type==4))  # se(log S) or se(S)
+    rval$conf.int   = conf.int
+    rval$conf.type= conf.type
+    if (conf.lower != "usual") rval$conf.lower = conf.lower
+
+    if (conf.lower == "modified") {
+        nstrat = length(n.used)
+	events <- rval$n.event >0
+	if (nstrat ==1) events[1] <- TRUE
+	else           events[1 + cumsum(c(0, rval$strata[-nstrat]))] <- TRUE
+	zz <- 1:length(events)
+	n.lag <- rep(rval$n.risk[events], diff(c(zz[events], 1+max(zz))))
+	#
+	# n.lag = the # at risk the last time there was an event (or
+	#   the first time of a strata)
+	#
+    }
+    std.low <- switch(conf.lower,
+                      'usual' = rval$std.err,
+                      'peto' = sqrt((1-rval$surv)/ rval$n.risk),
+                      'modified' = rval$std.err * sqrt(n.lag/rval$n.risk))
+        
+    if (conf.type != "none") {
+        ci <- survfit_confint(rval$surv, rval$std.err, logse=rval$logse,
+                              conf.type, conf.int, std.low)
+        rval <- c(rval, list(lower=ci$lower, upper=ci$upper))
+     }
+} else {
+    # for consistency don't return the se if std.err=FALSE
+    rval$std.err <- NULL  
+    rval$std.chaz <- NULL
+}
+
+# Add the influence, if requested by the user
+#  remember, if type= 3 or 4, the survival influence has to be constructed.
+if (influence > 0) {
+    if (type==1 | type==2) {
+        if (influence==1 || influence ==3) {
+            if (length(xlev)==1) {
+                rval$influence.surv <- cfit$influence1
+                row.names(rval$influence.surv) <- clname
+            } 
+            else {
+                temp <- vector("list", ngroup)
+                for (i in 1:ngroup) {
+                    temp[[i]] <- cfit[[i]]$influence1
+                    row.names(temp[[i]]) <- clname[clusterid[[i]]]
+                }
+                rval$influence.surv <- temp
+            }
+        }
+        if (influence==2 || influence==3) {
+            if (length(xlev)==1) {
+                rval$influence.chaz <- cfit$influence2
+                row.names(rval$influence.chaz) <- clname
+            }
+            else {
+                temp <- vector("list", ngroup)
+                for (i in 1:ngroup) {
+                    temp[[i]] <- cfit[[i]]$influence2
+                    row.names(temp[[i]]) <- clname[clusterid[[i]]]
+                }
+                rval$influence.chaz <- temp
+            }
+        }
+    }
+    else {
+        # everything is derived from the influence of the cumulative hazard
+        if (length(xlev) ==1) {
+            temp <- cfit$influence2
+            row.names(temp) <- clname
+        } else {
+            temp <- vector("list", ngroup)
+            for (i in 1:ngroup) {
+                temp[[i]] <- cfit[[i]]$influence2
+                row.names(temp[[i]]) <- clname[clusterid[[i]]]
+            }
+        }
+        
+        if (influence==2 || influence ==3)
+            rval$influence.chaz <- temp
+      
+        if (influence==1 || influence==3) {
+            # if an obs moves the cumulative hazard up, then it moves S down
+            if (length(xlev) ==1) 
+                rval$influence.surv <- -temp * rep(rval$surv, each=nrow(temp))
+            else {
+                for (i in 1:ngroup)
+                    temp[[i]] <- -temp[[i]] * rep(cfit[[i]]$estimate[,1],
+                                                 each=nrow(temp[[i]]))
+                rval$influence.surv <- temp
+            }
+        }
+    }
+}
+
+if (!missing(start.time)) rval$start.time <- start.time
+rval  
+@ 
+
+Now for the real work using C routines. 
+My standard for a variable named ``zed'' is to use zed2 for the S object
+and zed for the data part of the object; the latter is what the C code
+works with.
+<<survfitkm>>=
+#include <math.h>
+#include "survS.h"
+#include "survproto.h"
+
+SEXP survfitkm(SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22, 
+               SEXP type2, SEXP id2, SEXP nid2,   SEXP position2,
+               SEXP influence2) {
+              
+    int i, i1, i2, j, k, person1, person2;
+    int nused, nid, type, influence;
+    int ny, ntime;
+    double *tstart=0, *stime, *status, *wt;
+    double v1, v2, dtemp, haz;
+    double temp, dtemp2, dtemp3, frac, btemp;
+    int *sort1=0, *sort2, *id=0;
+    static const char *outnames[]={"time", "n", "estimate", "std.err",
+				     "influence1", "influence2", ""};
+    SEXP rlist;
+    double *gwt=0, *inf1=0, *inf2=0;  /* =0 to silence -Wall */
+    int *gcount=0;
+    int n1, n2, n3, n4;
+    int *position=0, hasid;
+    double wt1, wt2, wt3, wt4;
+		      
+    /* output variables */
+    double  *n[10],  *dtime,
+	    *kvec, *nvec, *std[2], *imat1=0, *imat2=0; /* =0 to silence -Wall*/
+    double km, nelson;  /* current estimates */
+
+    /* map the input data */
+    ny = ncols(y2);     /* 2= ordinary survival 3= start,stop data */
+    nused = nrows(y2);
+    if (ny==3) { 
+        tstart = REAL(y2);
+        stime = tstart + nused;
+        sort1 = INTEGER(sort12);
+    }
+    else stime = REAL(y2);
+    status= stime +nused;
+    wt = REAL(weight2);
+    sort2 = INTEGER(sort22);
+    nused = LENGTH(sort22);
+                   
+    type = asInteger(type2);
+    nid = asInteger(nid2);
+    if (LENGTH(position2) > 0) {
+        hasid =1;
+        position = INTEGER(position2);
+    } else hasid=0;
+    influence = asInteger(influence2);
+
+    /* nused was used for two things just above.  The first was the length of
+       the input data y, only needed for a moment to set up tstart, stime, and
+       status.  The second is the number of these observations we will actually
+       use, which is the length of sort2.  This routine can be called multiple
+       times with sort1/sort2 pointing to different subsets of the data while
+       y, wt, id and position can remain unchanged
+    */
+
+    if (length(id2)==0) nid =0;  /* no robust variance */
+    else id = INTEGER(id2);
+
+    /* pass 1, get the number of unique times, needed for memory allocation 
+      Number of xval groups (unique id values) has been supplied 
+      Data is sorted by time
+    */
+    ntime =1; 
+    temp = stime[sort2[0]];
+    for (i=1; i<nused; i++) {
+	i2 = sort2[i];
+        if (stime[i2] != temp) {
+            ntime++;
+            temp = stime[i2];
+        }
+    }	
+@ 
+
+I don't want to rewrite this routine again, so make the C code return
+most everything that I think I will ever want. 
+For type=1,2 compute the KM, otherwise use exp(chaz).
+For type=1,3 compute the Nelson-Aalen and for 
+2,4  the Efron variant of the NA as the cumulative hazard.
+Without robust variance, do the simple Greenwood and NA variances.
+Robust variances take more time since they are by their nature $O(gm)$ where
+$g$ is the number of groups and $m$ the number of unique times.
+If type= 3,4 we only compute the
+robust verion of the cumulative hazard variance; 
+the influence matrix for the survival in this case is
+$-\exp(-H(t)) D(t)$ where $H$ is the cumulative hazard and $D$
+is the influence matrix for $H$.
+This can be done in the R code.   
+The influence matrices are large, so only return what they explicitly ask
+for. 
+
+<<survfitkm>>=   
+    /* Allocate memory for the output 
+        n has 6 columns for number at risk, events, censor, then the 
+        3 weighted versions of the same, then optionally two more for
+        number added to the risk set (when ny=3)
+    */
+    PROTECT(rlist = mkNamed(VECSXP, outnames));
+    
+    dtime  = REAL(SET_VECTOR_ELT(rlist, 0, allocVector(REALSXP, ntime)));
+    if (ny==2) j=7;  else j=9;
+    n[0]  = REAL(SET_VECTOR_ELT(rlist, 1, allocMatrix(REALSXP, ntime, j)));
+    for (i=1; i<j; i++) n[i] = n[0] + i*ntime;
+
+    kvec  = REAL(SET_VECTOR_ELT(rlist, 2, allocMatrix(REALSXP, ntime, 2)));
+    nvec  = kvec + ntime;  /* Nelson-Aalen estimate */
+    std[0] = REAL(SET_VECTOR_ELT(rlist, 3, allocMatrix(REALSXP, ntime,2)));
+    std[1] = std[0] + ntime;
+  
+    if (nid >0 ) { /* robust variance */
+	gcount = (int *) R_alloc(nid, sizeof(int));
+	if (type <3) {  /* working vectors for the influence */
+            gwt  = (double *) R_alloc(3*nid, sizeof(double)); 
+            inf1 = gwt + nid;
+	    inf2 = inf1 + nid; 
+            for (i=0; i< nid; i++) {
+                gwt[i] =0.0;
+                gcount[i] = 0;
+                inf1[i] =0;
+                inf2[i] =0;
+	    }
+	}
+	else {
+            gwt = (double *) R_alloc(2*nid, sizeof(double));
+            inf2 = gwt + nid;
+            for (i=0; i< nid; i++) {
+                gwt[i] =0.0;
+                gcount[i] = 0;
+                inf2[i] =0;
+	    }
+        }
+
+        /* these are not accumulated, so do not need to be zeroed */
+        if (type <3) {
+            if (influence==1 || influence ==3) 
+                imat1 = REAL(SET_VECTOR_ELT(rlist, 4,
+                                     allocMatrix(REALSXP, nid, ntime)));
+            if (influence==2 || influence==3) 
+                imat2 =  REAL(SET_VECTOR_ELT(rlist, 5,
+			   allocMatrix(REALSXP, nid, ntime))); 
+	}		
+	else  if (influence !=0) 
+                imat2 = REAL(SET_VECTOR_ELT(rlist, 5,
+    			   allocMatrix(REALSXP, nid, ntime))); 
+    }
+
+    <<survfitkm-pass2>>
+    <<survfitkm-pass3>>
+    
+    UNPROTECT(1);
+    return(rlist);
+}
+@ 
+
+Pass 2 goes from the last time to the first and fills in the \code{n} matrix.
+<<survfitkm-pass2>>=
+R_CheckUserInterrupt();  /*check for control-C */
+/*
+** person1, person2 track through sort1 and sort2, respectively
+**  likewise with i1 and i2
+*/
+person1 = nused-1;  person2 = nused-1;
+n1=0; wt1=0;
+for (k=ntime-1; k>=0; k--) {
+    dtime[k] = stime[sort2[person2]];  /* current time point */
+    n2=0; n3=0; wt2=0; wt3=0; 
+    for (; person2 >=0; person2--) {
+        i2= sort2[person2];
+        if (stime[i2] != dtime[k]) break;
+
+        n1++;             /* number at risk */
+        wt1 += wt[i2];    /* weighted number at risk */
+        if (status[i2] ==1) {
+	    n2++;            /* events */
+	    wt2 += wt[i2];
+        } else if (hasid==0 || (position[i2]& 2)) {
+            /* if there are no repeated obs for a subject (hasid=0)
+            **  or this is the last of a string (a,b](b,c](c,d].. for
+            **  a subject (position[i2]=2 or 3), then it is a 'real' censor
+            */
+	    n3++;
+	    wt3 += wt[i2];
+        }
+    }
+    
+    if (ny==3) { /* remove any with start time >=dtime*/
+	n4 =0; wt4 =0;
+        for (; person1 >=0; person1--) {
+            i1 = sort1[person1];
+            if (tstart[i1] < dtime[k]) break;
+	    n1--;
+	    wt1 -= wt[i1];
+	    if (hasid==0 || (position[i1] & 1)) {
+                /* if there are no repeated id (hasid=0) or this is the
+                ** first of a string of (a,b](b,c](c,d] for a subject, then
+                ** this is a 'real' entry */
+                n4++;
+                wt4 += wt[i1];
+            }
+	}
+        if (n4>0) {
+           n[6][k+1] = n4;
+           n[7][k+1] = wt4;
+       }
+    }
+
+    n[0][k] = n1;  n[1][k]=n2;  n[2][k]=n3;
+    n[3][k] = wt1; n[4][k]=wt2; n[5][k]=wt3; 
+}
+
+if (ny ==3) {   /* fill in number entered for the initial interval */
+    n4=0; wt4=0;
+    for (; person1>=0; person1--) {
+        i1 = sort1[person1];
+        if (hasid==0 || (position[i1] & 1)) {
+            n4++;
+            wt4 += wt[i1];
+        }
+    }
+    n[6][0] = n4;    
+    n[7][0] = wt4;
+}
+@ 
+
+The rest of the code is identical for simple survival or start-stop data.
+The cumulative hazard estimates are the Nelson-Aalen-Breslow (same estimate,
+three different papers) or the Fleming-Harrington.
+\begin{align*}
+  \Lambda_A(t) &\ \sum{u_j \le t} d_j/r_j \\
+  \Lambda_{FH}(t) &= \sum{u_j \le t} \frac{d_j}
+         {f_j \sum_{k=0}^{f_j-1} (r_j - kd_j/f_j)}
+\end{align*}
+To understand the Fleming-Harrington estimate, suppose that at some time
+point we had three deaths out of 10 at risk.  The Aalen estimate gives a
+hazard estimate of 3/10.  
+The FH estimate assumes that the deaths didn't actually all happen at once,
+even though rounding in the data collection process makes it appear that
+way, so the better estimate is 1/10 + 1/9 + 1/8.  The third person to die,
+whoever that was, would have had only 8 at risk when their event happened.
+
+The estimate of survival is either the Kaplan-Meier or the exponential
+of the hazard.
+\begin{equation*}
+  KM(t) = \prod_{u_j \le t} \frac{r_j - d_j}{r_j}
+\end{equation*}
+
+The third pass goes from smallest time to largest. 99 times out of 100 the
+user will choose type=1, so we try to avoid testing those
+expression n times.
+<<survfitkm-pass3>>=
+R_CheckUserInterrupt();  /*check for control-C */
+nelson =0.0; km=1.0; 
+v1=0; v2=0;
+if (nid==0) {  /* simple variance */
+   if (type==1 || type==3) {  /* Nelson-Aalen hazard */
+	for (i=0; i<ntime; i++) {
+	    if (n[1][i]>0 && n[4][i]>0) {  /* at least one event with wt>0*/
+		nelson += n[4][i]/n[3][i];
+		v2 += n[4][i]/(n[3][i]*n[3][i]);
+		}
+
+	    nvec[i] = nelson;
+	    std[0][i] = sqrt(v2);
+	    std[1][i] = sqrt(v2);
+	    }
+   } else {              /* Fleming hazard */
+	for (i=0; i<ntime; i++) {
+            for (j=0; j<n[1][i]; j++) {
+                dtemp = n[3][i] - j*n[4][i]/n[1][i];
+                nelson += n[4][i] /(n[1][i]* dtemp);
+                v2 += n[4][i]/(n[1][i]*dtemp*dtemp);
+            }
+	    kvec[i] = exp(-nelson);
+	    nvec[i] = nelson;
+	    std[0][i] = sqrt(v2);
+	    std[1][i] = sqrt(v2);
+	}
+    }
+
+    if (type < 3) {  /* KM survival */
+	for (i=0; i<ntime; i++) {
+	    if (n[1][i]>0 && n[4][i]>0) {  /* at least one event */
+		km *= (n[3][i]-n[4][i])/n[3][i];
+		v1 += n[4][i]/(n[3][i] * (n[3][i] - n[4][i])); /* Greenwood */
+		}
+	    kvec[i] = km;
+	    std[0][i] = sqrt(v1);
+	}
+    } else {  /* exp survival */
+	for (i=0; i< ntime; i++) {
+            kvec[i] = exp(-nvec[i]);
+            std[0][i] = std[1][i];
+        }
+    }
+}
+
+else { /* infinitesimal jackknife variance */
+    <<survfitkm-influence>>
+}
+@ 
+
+The robust variance is based on an infinitesimal jackknife (IJ).
+Let $S_{-i}(t)$ be the survival curve without subject $i$ and
+$J_i(t) = S_i(t) - S_{-i}(t)$ be the change in the 
+survival curve from adding subject $i$ back in.
+Then the jackknife estimate of variance is 
+$$
+    \sigma^2_J(t) = \sum \left( J_i(t) - \overline J(t) \right)^2
+$$
+The IJ estimate instead uses the linear approximation to the
+jackknife, since it is normally less work to compute the derivative than a
+whole new estimate.
+Notice that if all the weights were doubled the expression below will stay
+the same since the derivative will drop by 1/2.
+\begin{align*}
+  \sigma^2_{IJ}(t_k) & = \sum_i w_i U_{ik}^2 \\
+  U_{ik}  & =  \frac{\partial S(t_k)}{\partial w_i}
+\end{align*}
+
+The big problem with the IJ estimate is that a first derivative matrix $U$
+will have one row per subject and one column per event time.
+Since the number of unique event times tends to grow with $n$, this
+matrix very rapidly becomes too large to manage. 
+Instead use a grouped jackknife with $g$ groups, 
+$g$ will often be on the order of 20--50.
+The 0/1 design matrix $B$ has $n$ rows and $g$ columns, one column per group,
+marking which subject is in each group.
+The grouped jackknife can be written as 
+\begin{align*}
+  U'WBB'W U &= V'V
+\end{align*}
+Our goal is to accumulate and use $V$ instead of $U$. 
+The working vectors \code{inf1} and \code{inf2} contain the current 
+estimate for the survival S and cumulative hazard H, at a given time.
+They are saved into the \code{imat} array for users, if desired.
+
+First work this out for the cumulative hazard, which is simpler, and a single
+subject $k$.
+\begin{align}
+    H(t) &= \sum_{s\le t} \frac{\sum w_i dN_i(s)}{\sum w_i Y_i(s)} \nonumber\\
+         &= \sum _{s\le t} h(s) \nonumber \\
+    U_k(t) &= U_k(t-) + \frac{\partial h(t)}{\partial w_k}  \nonumber \\
+     &= U_k(t-) + \frac{1}{\sum w_i Y_i(t)} \left(dN_k(t) - Y_k(t)h(t) \right)
+        \label{Una} \\
+   \sum_k w_k U_k(t) &= 0 \nonumber
+\end{align}
+using the counting process notation of $N(t)$ for events and $Y(t)$ for at risk.
+The weighted sum of the first derivatives is zero, so we don't need a mean
+when computing the variance estimate.  (This is true for all IJ estimators.)
+$V$ involves the weighted sum of this over groups,
+for the increment to each row of $V$ the rightmost term of \eqref{Una} is
+replaced by the weighted sum over each group.  Since $h$ is the same for
+every subject at risk, we only need accumulate the sum of
+subjects in and sum of events in each group.  The first can be kept as
+a running sum with $O(n)$ effort.  
+
+When using the FH2 estimate tied deaths are different.  Say that subject $i$ 
+dies at some time $t$ where there are 2 other tied deaths.
+Let $w_i$ for $i=1,2,3$ be the weight of those who die and $s$ the sum of 
+weights for all the others.
+The contribution to the cumulative hazard and derivative at this time point is
+\begin{align*}
+   h &= \frac{w_1+w_2+w_3}{3} \frac{1}{s+w_1+w_2+w_3} + 
+         \frac{w_1+w_2+w_3}{3} \frac{1}{s+ 2(w_1+w_2+w_3)/3} +
+          \frac{w_1+w_2+w_3}{3} \frac{1}{s+ (w_1 + w_2 + w_3)/3} \\
+      &\equiv a(b_1 + b_2 + b_3)
+  \frac{\partial h}{\partial w_i} &= 
+        &= \left\{ \begin{array}{cl}
+    \frac{b_1 + b_2 + b_3}{3} - a b_1^2 - (2/3)a b_2^2 - (1/3)a b_3^2 & i\le 3 \\
+    -a(b_1^2 + b_2^2 + b_3^2) & i> 3 \end{array} \right .
+\end{align*}
+The idea is that if the data had been gathered with more precision, then there
+would not be ties.  The first death has 1/3 chance of being subject 1,2, or 3
+and all are in the denominator.  The second also has 1/3 chance of being 1--3,
+and each of these has 2/3 chance of still being in the denominator, etc.
+The standard variance will be $ab_1^2 + ab_2^2 + ab_3^2$.
+
+For the Kaplan-Meier we have
+\begin{align}
+    KM(t) &= KM(t-) [1 - h(t)]  \nonumber\\
+    U_k(t) &= \frac{\partial KM(t)}{\partial w_k}  \nonumber\\
+           &= U_k(t-) [1- h(t)] - 
+               KM(t-)\frac{\partial h(t)}{\partial w_k} \label{Ukm}
+\end{align}
+The $V$ matrix is again a weighted sum.  The first term of \eqref{Ukm} does
+not change, it multiplies the current value times $1-h$.  
+The second term involves the same summation as the cumulative hazard.
+
+When using $\exp(-H)$ as the survival estimate then 
+\begin{align*}
+   \frac{partial S(t)}{\partial w_k} &= \frac{\partial e^{-H(t)}}{\partial w_k}\\
+   &= e^{-H(t)} \partial{H(t)}{\partial w_k}
+\end{align*}
+so in this case only the robust variance for the cumulative hazard $H$ is
+needed, and the parent R routine can fill in the rest.
+
+The variance for a given survival time is $\sum V^2$, which is always returned.
+The code keeps the current $V$ vector for the hazard $H$ in \code{inf2}, and if
+necessary that for the KM in \code{inf1}.
+A last step is to add up the squares of all of these, so the algorithm is
+$O(gp)$ where $p$ is the number of unique event times and $g$ is the number
+of groups.
+The sum of weights for each group is kept in a vector \code{gwt}, which is
+updated as subjects enter and leave.
+
+Say that a study had n= 10 million subjects in g=100 groups with
+d = 1 million deaths. 
+At each death we update the 'hazard' part of the influence for all 100
+groups, which is O(gd). 
+The deaths at that time point have a second increment, to whichever
+group each is in, but since time is sorted that adds O(n) for indexing and
+O(d) for the work.  The most important thing is to avoid doing anything 
+that would be O(ng) or O(nd).  
+For method=3 the hazard part of the increment is also 
+different for a death, the solution is to do an ordinary increment for everyone
+in the O(gd) step, then correct it when doing the O(d) update.
+
+<<survfitkm-influence>>=
+v1=0; v2 =0; km=1; nelson =0;
+person2=0; 
+if (ny==3) {
+    person1 =0;
+} else {
+    /* at the start, everyone is at risk */
+    for (i=0; i< nused; i++) {
+        i2 = id[i];
+        gcount[i2]++;
+        gwt[i2] += wt[i];
+    }
+}
+    
+if (type==1) {
+    for (i=0; i< ntime; i++) {
+        if (ny==3) {
+            /* add in new subjects */
+            for (; person1 < nused; person1++) {
+                /* add in those whose start time is < dtime */
+                i1 = sort1[person1];
+                if (tstart[i1] >= dtime[i]) break;  
+                gcount[id[i1]]++;
+                gwt[id[i1]] += wt[i1];
+            }
+        }
+ 
+        if (n[1][i] > 0 && n[4][i]>0) { /* need to update the sums */
+            haz = n[4][i]/n[3][i];
+            for (k=0; k< nid; k++) {
+                inf1[k] = inf1[k] *(1.0 -haz) + gwt[k]*km*haz/n[3][i];
+                inf2[k] -= gwt[k] * haz/n[3][i];
+            }
+            for (; person2<nused; person2++) { 
+                i2 = sort2[person2];
+                if (stime[i2] > dtime[i]) break;   /* those at this time */
+                if (status[i2]==1) {
+                    inf1[id[i2]] -= km* wt[i2]/n[3][i];
+                    inf2[id[i2]] += wt[i2]/n[3][i];
+                }
+                gcount[id[i2]] --;
+                if (gcount[id[i2]] ==0) gwt[id[i2]] = 0.0;
+                else gwt[id[i2]] -= wt[i2];
+            }
+            km *= (1-haz);
+            nelson += haz;
+           
+            v1=0; v2=0;
+            for (k=0; k<nid; k++) {
+                v1 += inf1[k]*inf1[k];
+                v2 += inf2[k]*inf2[k];
+            }
+        } else {  /* only need to udpate weights */
+            for (; person2<nused; person2++) { 
+                i2 = sort2[person2];
+                if (stime[i2] > dtime[i]) break;
+                gcount[id[i2]] --;
+                if (gcount[id[i2]] ==0) gwt[id[i2]] = 0.0;
+                else gwt[id[i2]] -= wt[i2];
+            }
+        }
+ 
+        kvec[i] = km;
+        nvec[i] = nelson;
+        std[0][i] = sqrt(v1);
+        std[1][i] = sqrt(v2);
+        if (influence==1 || influence ==3) 
+            for (k=0; k<nid; k++) *imat1++ = inf1[k];
+        if (influence==2 || influence ==3)
+            for (k=0; k<nid; k++) *imat2++ = inf2[k];
+    }
+}
+else if (type==2) {  /* KM survival, Fleming-Harrington hazard */
+    for (i=0; i< ntime; i++) {
+        if (ny==3) {
+            /* add in new subjects */
+            for (; person1<nused; person1++) {
+                i1 = sort1[person1];
+                if (tstart[i1] >= dtime[i]) break;
+                gcount[id[i1]]++;
+                gwt[id[i1]] += wt[i1];
+            }
+        }
+ 
+        if (n[1][i] > 0 && n[4][i] >0) { /* need to update the sums */
+            dtemp =0;  /* the working denominator */
+            dtemp2=0;  /* sum of squares */
+            dtemp3=0;
+            temp = n[3][i] - n[4][i];  /* sum of weights for the non-deaths */
+            for (k=n[1][i]; k>0; k--) {
+                frac = k/n[1][i];
+                btemp = 1/(temp + frac*n[4][i]);  /* "b" in the math */
+                dtemp += btemp;
+                dtemp2 += btemp*btemp*frac;
+                dtemp3 += btemp*btemp;    /* non-death deriv */
+            }
+
+            dtemp /=  n[1][i];        /* average denominator */
+            if (n[4][i] != n[1][i]) { /* case weights */
+                dtemp2 *= n[4][i]/ n[1][i];
+                dtemp3 *= n[4][i]/ n[1][i];
+            }
+            nelson += n[4][i]*dtemp;
+
+            haz = n[4][i]/n[3][i];
+            for (k=0; k< nid; k++) {
+                inf1[k] = inf1[k] *(1.0 -haz) + gwt[k]*km*haz/n[3][i];
+                if (gcount[k]>0) inf2[k] -= gwt[k] * dtemp3;
+            }
+            for (; person2<nused; person2++) {                
+                /* catch the endpoints up to this event time */
+                i2 = sort2[person2];
+                if (stime[i2] > dtime[i]) break;
+                if (status[i2]==1) {
+                    inf1[id[i2]] -= km* wt[i2]/n[3][i];
+                    inf2[id[i2]] += wt[i2] *(dtemp + dtemp3 - dtemp2);
+                 }
+                gcount[id[i2]] --;
+                if (gcount[id[i2]] ==0) gwt[id[i2]] = 0.0;
+                else gwt[id[i2]] -= wt[i2];
+            }
+            km *= (1-haz);
+            
+            v1=0; v2=0;
+            for (k=0; k<nid; k++) {
+                v1 += inf1[k]*inf1[k];
+                v2 += inf2[k]*inf2[k];
+            }
+        } else {  /* only need to udpate weights */
+            for (; person2<nused; person2++) { 
+                i2 = sort2[person2];
+                if (stime[i2] > dtime[i]) break;
+                gcount[id[i2]] --;
+                if (gcount[id[i2]] ==0) gwt[id[i2]] = 0.0;
+                else gwt[id[i2]] -= wt[i2];
+            }
+        }
+ 
+        kvec[i] = km;
+        nvec[i] = nelson;
+        std[0][i] = sqrt(v1);
+        std[1][i] = sqrt(v2);
+        if (influence==1 || influence ==3) 
+            for (k=0; k<nid; k++) *imat1++ = inf1[k];
+        if (influence==2 || influence ==3)
+            for (k=0; k<nid; k++) *imat2++ = inf2[k];
+    }
+}
+
+else if (type==3) {  /* exp() survival, NA hazard */
+    for (i=0; i< ntime; i++) {
+        if (ny==3) {
+            /* add in new subjects */
+            for (; person1 < nused; person1++) {
+                i1 = sort1[person1];
+                if (tstart[i1] >= dtime[i]) break;
+
+                gcount[id[i1]]++;
+                gwt[id[i1]] += wt[i1];
+            }
+        }
+         
+        if (n[1][i] > 0 && n[4][i]>0) { /* need to update the sums */
+            haz = n[4][i]/n[3][i];
+            for (k=0; k< nid; k++) {
+                inf2[k] -= gwt[k] * haz/n[3][i];
+            }
+            for (; person2<nused; person2++) { 
+                /* catch the endpoints up to this event time */
+                i2 = sort2[person2];
+                if (stime[i2] > dtime[i]) break;
+                if (status[i2]==1) {
+                     inf2[id[i2]] += wt[i2]/n[3][i];
+                }
+                gcount[id[i2]] --;
+                if (gcount[id[i2]] ==0) gwt[id[i2]] = 0.0;
+                else gwt[id[i2]] -= wt[i2];
+            }
+            nelson += haz;
+           
+            v2=0;
+            for (k=0; k<nid; k++) {
+                v2 += inf2[k]*inf2[k];
+            }
+        } else {  /* only need to udpate weights */
+            for (; person2<nused; person2++) { 
+                i2 = sort2[person2];
+                if (stime[i2] > dtime[i]) break;
+                gcount[id[i2]] --;
+                if (gcount[id[i2]] ==0) gwt[id[i2]] = 0.0;
+                else gwt[id[i2]] -= wt[i2];
+            }
+        }
+ 
+        kvec[i] = exp(-nelson);
+        nvec[i] = nelson;
+        std[1][i] = sqrt(v2);
+        std[0][i] = sqrt(v2);
+        
+        if (influence>0)
+            for (k=0; k<nid; k++) *imat2++ = inf2[k];
+    }
+
+} else {  /* exp() survival,  Fleming-Harrington hazard */
+    for (i=0; i< ntime; i++) {
+        if (ny==3) {
+            /* add in new subjects */
+            for (; person1 < nused; person1++) {
+                i1 = sort1[person1];
+                if (tstart[i1] >= dtime[i]) break;
+                gcount[id[i1]]++;
+                gwt[id[i1]] += wt[i1];
+            }
+        }
+        if (n[1][i] > 0 && n[4][i] >0) { /* need to update the sums */
+    	    dtemp =0;  /* the working denominator */
+            dtemp2=0;  /* sum of squares */
+            dtemp3=0;
+            temp = n[3][i] - n[4][i];  /* sum of weights for the non-deaths */
+            for (k=n[1][i]; k>0; k--) {
+                frac = k/n[1][i];  
+                btemp = 1/(temp + frac*n[4][i]);  /* "b" in the math */
+                dtemp += btemp;
+                dtemp2 += btemp*btemp*frac;
+                dtemp3 += btemp*btemp;    /* non-death deriv */
+            } 
+            
+            dtemp /=  n[1][i];        /* average denominator */
+            if (n[4][i] != n[1][i]) { /* case weights */
+                dtemp2 *= n[4][i]/ n[1][i];
+                dtemp3 *= n[4][i]/ n[1][i];
+            }
+            nelson += n[4][i]*dtemp;
+
+            for (k=0; k< nid; k++) {
+                if (gcount[k]>0) inf2[k] -= gwt[k] * dtemp3;
+            }
+            for (; person2<nused; person2++) { 
+                 i2 = sort2[person2];
+                if (stime[i2] > dtime[i]) break;
+                if (status[i2]==1) {
+                    inf2[id[i2]] += wt[i2] *(dtemp + dtemp3 - dtemp2);
+                }
+                gcount[id[i2]] --;
+                if (gcount[id[i2]] ==0) gwt[id[i2]] = 0.0;
+                else gwt[id[i2]] -= wt[i2];
+            }
+    
+            v2=0;
+            for (k=0; k<nid; k++) v2 += inf2[k]*inf2[k];
+        }
+        else { /* only need to update weights */
+            for (; person2<nused; person2++) { 
+                i2 = sort2[person2];
+                if (stime[i2] > dtime[i]) break;
+                gcount[id[i2]] --;
+                if (gcount[id[i2]] ==0) gwt[id[i2]] = 0.0;
+                else gwt[id[i2]] -= wt[i2];
+            }
+        }
+        
+        kvec[i] = exp(-nelson);
+        nvec[i] = nelson;
+        std[1][i] = sqrt(v2);
+        std[0][i] = sqrt(v2);
+        
+        if (influence>0)
+            for (k=0; k<nid; k++) *imat2++ = inf2[k];
+    }
+}
+@ 
+
+

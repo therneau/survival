@@ -1,0 +1,96 @@
+
+R Under development (unstable) (2019-06-28 r76752) -- "Unsuffered Consequences"
+Copyright (C) 2019 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> library(survival)
+> # Make sure that the old-style and new-style calls both work
+> 
+> # new style
+> vet2 <- survSplit(Surv(time, status) ~ ., data= veteran, cut=c(90, 180), 
++                   episode= "tgroup", id="id")
+> vet2[1:7, c("id", "tstart", "time", "status", "tgroup", "age", "karno")]
+  id tstart time status tgroup age karno
+1  1      0   72      1      1  69    60
+2  2      0   90      0      1  64    70
+3  2     90  180      0      2  64    70
+4  2    180  411      1      3  64    70
+5  3      0   90      0      1  38    60
+6  3     90  180      0      2  38    60
+7  3    180  228      1      3  38    60
+> 
+> # old style
+> vet3 <- survSplit(veteran, end='time', event='status', cut=c(90,180),
++                   episode="tgroup", id="id")
+> all.equal(vet2, vet3)
+[1] TRUE
+> 
+> all.equal(nrow(vet2), nrow(veteran) + sum(veteran$time >90) + 
++                       sum(veteran$time > 180))
+[1] TRUE
+> 
+> 
+> # Do a parallel computation using survSplit, and pyears/tcut.  We should get
+> #  the same answer.
+> # Break subjects up by year of entry and current time on study.  Most of
+> #  the deaths are within 3 months
+> # pyears complains (justifiably) about the obs with 0 days of fu, so we add 1
+> #
+> data1 <- jasa
+> data1$ayear <- as.numeric(substring(as.character(jasa$accept.dt), 1,4))
+> temp <- round(c(0, .25, 1,2,5)*365.25)   # years
+> ftime <- tcut(rep(0, nrow(jasa)), temp, 
++                   labels=paste(c(0, .25, 1:2), c(.25, 1,2,5), sep='-'))
+> pfit <- pyears(Surv(futime +1,fustat) ~ ayear + ftime, data1,
++                scale=1)
+> 
+> data2 <- survSplit(Surv(futime+1, fustat) ~ ., cut=temp, data=data1,
++                    episode = "tgroup")
+> 
+> tab1 <- with(data2, tapply(fustat, list(ayear, tgroup), sum))
+> tab1 <- ifelse(is.na(tab1), 0, tab1)
+> 
+> all.equal(as.vector(tab1), as.vector(pfit$event))  # ignore dimnames
+[1] TRUE
+> 
+> tab2 <- with(data2, tapply(tstop-tstart, list(ayear, tgroup), sum))
+> tab2 <- ifelse(is.na(tab2), 0, tab2)
+> 
+> all.equal(as.vector(tab2), as.vector(pfit$pyears))
+[1] TRUE
+> 
+> # double check that the "data" option gives the same values
+> pfit2 <- pyears(Surv(futime +1,fustat) ~ ayear + ftime, data1,
++                scale=1, data.frame=TRUE)$data
+> all.equal(pfit2$pyears, pfit$pyears[pfit$pyears >0])
+[1] TRUE
+> all.equal(pfit2$event,  pfit$event[pfit$pyears >0])
+[1] TRUE
+> 
+> # and that the rows of data2 have the right labels
+> keep <- which(pfit$pyears >0)  # these are not in the data
+> rname <- rownames(pfit$pyears)[row(pfit$pyears)[keep]]
+> all.equal(rname, as.character(pfit2$ayear))
+[1] TRUE
+> 
+> cname <- colnames(pfit$pyears)[col(pfit$pyears)[keep]]
+> all.equal(cname, as.character(pfit2$ftime))
+[1] TRUE
+> 
+>                    
+> 
+> proc.time()
+   user  system elapsed 
+  0.764   0.032   0.805 

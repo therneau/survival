@@ -4,43 +4,33 @@ library(survival)
 
 #
 # Test the coxph program on the Ovarian data
-#
-
-attach(ovarian)
-
-summary(survfit(Surv(futime, fustat)~1), censor=TRUE)
+summary(survfit(Surv(futime, fustat)~1, data=ovarian), censor=TRUE)
 
 # Various models
-coxph(Surv(futime, fustat)~ age)
-coxph(Surv(futime, fustat)~ resid.ds)
-coxph(Surv(futime, fustat)~ rx)
-coxph(Surv(futime, fustat)~ ecog.ps)
+coxph(Surv(futime, fustat)~ age, data=ovarian)
+coxph(Surv(futime, fustat)~ resid.ds, data=ovarian)
+coxph(Surv(futime, fustat)~ rx, data=ovarian)
+coxph(Surv(futime, fustat)~ ecog.ps, data=ovarian)
 
-coxph(Surv(futime, fustat)~ resid.ds + rx + ecog.ps)
-coxph(Surv(futime, fustat)~ age + rx + ecog.ps)
-coxph(Surv(futime, fustat)~ age + resid.ds + ecog.ps)
-coxph(Surv(futime, fustat)~ age + resid.ds + rx)
+coxph(Surv(futime, fustat)~ resid.ds + rx + ecog.ps, data=ovarian)
+coxph(Surv(futime, fustat)~ age + rx + ecog.ps, data=ovarian)
+coxph(Surv(futime, fustat)~ age + resid.ds + ecog.ps, data=ovarian)
+coxph(Surv(futime, fustat)~ age + resid.ds + rx, data=ovarian)
 
 # Residuals
-fit <- coxph(Surv(futime, fustat)~ age + resid.ds + rx + ecog.ps )
+fit <- coxph(Surv(futime, fustat)~ age + resid.ds + rx + ecog.ps, data=ovarian)
 resid(fit)
 resid(fit, 'dev')
 resid(fit, 'scor')
 resid(fit, 'scho')
 
-fit <- coxph(Surv(futime, fustat) ~ age + ecog.ps + strata(rx))
+fit <- coxph(Surv(futime, fustat) ~ age + ecog.ps + strata(rx), data=ovarian)
 summary(fit)
 summary(survfit(fit))
 sfit <- survfit(fit, list(age=c(30,70), ecog.ps=c(2,3)))  #two columns
 sfit
 summary(sfit)
-detach()
 
-
-# Test the robust=T option of coxph
-fit <- coxph(Surv(futime, fustat) ~ age + ecog.ps + rx, ovarian, robust=T)
-rr <- resid(fit, type='dfbeta')
-all.equal(as.vector(t(rr) %*% rr), as.vector(fit$var))
 
 # Check of offset + surv, added 7/2000
 fit1 <- coxph(Surv(futime, fustat) ~ age + rx, ovarian,
@@ -63,4 +53,4 @@ dead <- (ovarian$fustat[ord]==1)
 baseline <- cumsum(1/rsum[dead])
 all.equal(survfit(fit, censor=FALSE)$surv, exp(-baseline))
 
-rm(fit, fit1, fit2, ord, eta, risk, rsum, dead, baseline, rr, sfit)
+rm(fit, fit1, fit2, ord, eta, risk, rsum, dead, baseline, sfit)

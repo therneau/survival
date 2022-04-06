@@ -1,11 +1,16 @@
 \name{pspline}
 \alias{pspline}
+\alias{psplineinverse}
 \title{Smoothing splines using a pspline basis}
 \usage{
-pspline(x, df=4, theta, nterm=2.5 * df, degree=3, eps=0.1, method, ...)
-}
+pspline(x, df=4, theta, nterm=2.5 * df, degree=3, eps=0.1, method,
+   Boundary.knots=range(x), intercept=FALSE, penalty=TRUE, combine, ...)
+
+psplineinverse(x)}
 \arguments{
-  \item{x}{predictor.  The function does not apply to factor variables.}
+  \item{x}{for psline: a covariate vector.
+    The function does not apply to factor variables.
+    For psplineinverse x will be the result of a pspline call.}
   \item{df}{the desired degrees of freedom.
     One of the arguments \code{df} or \code{theta}' must be given, but not both.
     If \code{df=0}, then the AIC = (loglik -df) is used to choose an
@@ -27,6 +32,17 @@ pspline(x, df=4, theta, nterm=2.5 * df, degree=3, eps=0.1, method, ...)
     If method='aic' then the degrees of freedom is chosen automatically using
     Akaike's information criterion.}
   \item{\dots}{optional arguments to the control function}
+  \item{Boundary.knots}{the spline is linear beyond the boundary knots.
+    These default to the range of the data.}
+  \item{intercept}{if TRUE, the basis functions include the intercept.}
+  \item{penalty}{if FALSE a large number of attributes having to do with
+    penalized fits are excluded.  This is useful to create a pspline
+    basis matrix for other uses.}
+  \item{combine}{an optional vector of increasing integers.  If two
+    adjacent values of \code{combine} are equal, then the corresponding
+    coefficients of the fit are forced to be equal.  This is useful for
+    monotone fits, see the vignette for more details.
+  }
   }
 \description{
     Specifies a penalised spline basis for the predictor.
@@ -37,13 +53,16 @@ pspline(x, df=4, theta, nterm=2.5 * df, degree=3, eps=0.1, method, ...)
     indistinguishable for any number of basis functions greater than about 
     2-3 times the degrees of freedom. 
     Eilers and Marx point out that if the basis functions are evenly spaced,
-    this leads to significant computational simplifications.
+    this leads to significant computational simplification, they refer
+    to the result as a p-spline.
 }
 
 \value{
-  Object of class \code{coxph.penalty} containing the spline basis,
+  Object of class \code{pspline, coxph.penalty} containing the spline basis,
  with the appropriate attributes to be
-recognized as a penalized term by the coxph or survreg functions.
+ recognized as a penalized term by the coxph or survreg functions.
+
+ For psplineinverse the original x vector is reconstructed.
 }
 
 \seealso{\code{\link{coxph}},\code{\link{survreg}},\code{\link{ridge}},
@@ -60,12 +79,12 @@ Smoothing parameter selection in nonparametric regression using
 JRSSB, volume 60, 271--293.
 }    
 \examples{
-lfit6 <- survreg(Surv(time, status)~pspline(age, df=2), cancer)
-plot(cancer$age, predict(lfit6), xlab='Age', ylab="Spline prediction")
+lfit6 <- survreg(Surv(time, status)~pspline(age, df=2), lung)
+plot(lung$age, predict(lfit6), xlab='Age', ylab="Spline prediction")
 title("Cancer Data")
-fit0 <- coxph(Surv(time, status) ~ ph.ecog + age, cancer)
-fit1 <- coxph(Surv(time, status) ~ ph.ecog + pspline(age,3), cancer)
-fit3 <- coxph(Surv(time, status) ~ ph.ecog + pspline(age,8), cancer)
+fit0 <- coxph(Surv(time, status) ~ ph.ecog + age, lung)
+fit1 <- coxph(Surv(time, status) ~ ph.ecog + pspline(age,3), lung)
+fit3 <- coxph(Surv(time, status) ~ ph.ecog + pspline(age,8), lung)
 fit0
 fit1
 fit3

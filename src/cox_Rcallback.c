@@ -1,9 +1,8 @@
 /*
-**  SCCS  @(#)cox_Rcallback.c	1.1 06/06/97
 ** callback routines for the coxph frailty interface
 *** This is completely  rewritten for R (TSL April 99)
 */
-#include "S.h"
+#include "survS.h"
 #include "Rinternals.h"
 
 /*
@@ -13,7 +12,6 @@
 /**
 *** We need to call fexpr in environment rho in R
 *** These return lists, which need to be processed to get at the elements
-*** They are passed in to coxfit4_a as void * and cast to  SEXPs there. 
 ***
 *** Also, we pass in the length of coef rather than messing about in
 *** the calling environment to find it.
@@ -37,8 +35,9 @@ SEXP fexpr,rho;
 	}
 
     /** eval function */
-    PROTECT(coxlist=eval(lang2(fexpr,data),rho));
-    UNPROTECT(2);
+    PROTECT(temp=lang2(fexpr, data));
+    PROTECT(coxlist=eval(temp,rho));
+    UNPROTECT(3);
     PROTECT(coxlist);
     /* stick it back in the calling frame */
     if (which==1)

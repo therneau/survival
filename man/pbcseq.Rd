@@ -9,10 +9,10 @@ An analysis based on the data can be found in Murtagh, et. al.
   
 The primary PBC data set contains only baseline measurements 
 of the laboratory 
-paramters.  This data set contains multiple laboratory results, but
+parameters.  This data set contains multiple laboratory results, but
 only on the 312 randomized patients.  Some baseline data values in this file
 differ from the original PBC file, for instance, the data errors in
-prothrombin time and age which were discovered after the orignal analysis
+prothrombin time and age which were discovered after the original analysis
 (see Fleming and Harrington, figure 4.6.7).
    
 One "feature" of the data deserves special comment.  The last
@@ -25,7 +25,9 @@ often undertaken because of worsening medical condition, did not
 necessarily have all this lab work. 
 The missing values are thus potentially informative.
 }
-\usage{pbc}
+\usage{pbcseq
+data(pbc, package="survival")
+}
 \format{
   \tabular{ll}{
     id:\tab case number\cr
@@ -59,6 +61,18 @@ The missing values are thus potentially informative.
   "Modeling Survival Data: Extending the Cox Model",
   Springer-Verlag, New York, 2000.
   ISBN: 0-387-98784-3.
+}
+\seealso{\code{\link{pbc}}}
+\examples{
+# Create the start-stop-event triplet needed for coxph
+first <- with(pbcseq, c(TRUE, diff(id) !=0)) #first id for each subject
+last  <- c(first[-1], TRUE)  #last id
+
+time1 <- with(pbcseq, ifelse(first, 0, day))
+time2 <- with(pbcseq, ifelse(last,  futime, c(day[-1], 0)))
+event <- with(pbcseq, ifelse(last,  status, 0))
+
+fit1 <- coxph(Surv(time1, time2, event) ~ age + sex + log(bili), pbcseq)
 }
 \references{
   Murtaugh PA. Dickson ER. Van Dam GM. Malinchoc M. Grambsch PM.

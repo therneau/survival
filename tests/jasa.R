@@ -33,8 +33,8 @@ sfit.6
 surv1 <- survfit(sfit.1, newdata=list(age=-2, surgery=0, transplant=0))
 newdata <- data.frame(start=c(0,50,100), stop=c(50,100, max(jasa1$stop)), 
                    event=c(1,1,1), age=rep(-2,3), surgery=rep(0,3),
-                   transplant=rep(0,3))
-surv2 <- survfit(sfit.1, newdata, individual=T)
+                   transplant=rep(0,3), name=c("Smith", "Smith", "Smith"))
+surv2 <- survfit(sfit.1, newdata, id=name)
 # Have to use unclass to avoid [.survfit trying to pick curves,
 #  remove the final element "call" because it won't match
 all.equal(unclass(surv1)[-length(surv1)],
@@ -44,8 +44,8 @@ all.equal(unclass(surv1)[-length(surv1)],
 # Survival curve for a subject of age 50, with prior surgery, tx at 6 months
 #  Remember that 'age' in jasa 1 was centered at 48
 data <- data.frame(start=c(0,183), stop=c(183,3*365), event=c(1,1),
-		   age=c(2,2),  surgery=c(1,1), transplant=c(0,1))
-summary(survfit(sfit.1, data, individual=T))
+		   age=c(2,2),  surgery=c(1,1), transplant=c(0,1), id=c(1,1))
+summary(survfit(sfit.1, data, id=id))
 
 # These should all give the same answer
 # When there are offsets, the default curve is always for someone with
@@ -56,8 +56,8 @@ fit2 <- coxph(Surv(futime, fustat) ~ j.age, jasa, init=fit1$coef, iter=0)
 fit3 <- coxph(Surv(start, stop, event) ~ age, jasa1)
 fit4 <- coxph(Surv(start, stop, event) ~ offset(age*fit1$coef), jasa1)
 
-s1 <- survfit(fit1, fit3$means, censor=FALSE)
-s2 <- survfit(fit2, fit3$means, censor=FALSE)
+s1 <- survfit(fit1, list(j.age=fit3$means), censor=FALSE)
+s2 <- survfit(fit2, list(j.age=fit3$means), censor=FALSE)
 s3 <- survfit(fit3, censor=FALSE)
 s4 <- survfit(fit4, censor=FALSE)
 
@@ -68,12 +68,11 @@ all.equal(s1$surv, s4$surv)
 # Still the same answer, fit multiple strata at once
 #  Strata 1 has independent coefs of strata 2, so putting in
 #    the other data should not affect it
-attach(jasa1)
-ll <- length(start)
+ll <- nrow(jasa1)
 ss <- rep(0:1, c(ll,ll))
-tdata <- data.frame(start=rep(start,2), stop=rep(stop,2),
+tdata <- with(jasa1, data.frame(start=rep(start,2), stop=rep(stop,2),
 		    event=rep(event,2), ss=ss, age=rep(age,2),
-		    age2 = (rep(age,2))^2 * ss)
+		    age2 = (rep(age,2))^2 * ss))
 fit <- coxph(Surv(start, stop, event) ~ age*strata(ss) + age2, tdata)
 #  Above replaced these 2 lines, which kill Splus5 as of 8/98
 #    Something with data frames, I expect.
@@ -82,8 +81,5 @@ fit <- coxph(Surv(start, stop, event) ~ age*strata(ss) + age2, tdata)
 all.equal(fit$coef[1], fit3$coef)
 s5 <- survfit(fit, data.frame(age=fit3$means, age2=0, ss=0), censor=FALSE)
 all.equal(s5$surv[1:(s5$strata[1])],  s3$surv)
-detach("jasa1")
 
-rm(s1, s2, s3, s4, s5, tdata, ll, ss, data)
-rm(fit1, fit2, fit3, fit4, fit, j.age)
-rm(sfit.1, sfit.2, sfit.3, sfit.4, sfit.5, sfit.6)
+

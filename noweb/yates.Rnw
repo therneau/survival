@@ -1,0 +1,339 @@
+\section{Linear models and contrasts}
+The primary contrast function is \code{yates}.  
+This function does both simple and population contrasts; the name is a nod
+to the ``Yates weighted means'' method, the first population contrast that
+I know of.  
+A second reason for the name is that
+the word ``contrast'' is already overused in the S/R lexicon.
+Both \code{yates}  and \code{cmatrix} can be used with any model that returns 
+the necessary
+portions, e.g., lm, coxph, or glm.
+They were written because I became embroiled in the ``type III'' controversy,
+and made it a goal to figure out what exactly it is that SAS does. 
+If I had known that that quest would take multiple years would 
+perhaps have never started.
+
+Population contrasts can result in some head scratching.
+It is easy to create the predicted value for any hypothethical
+subject from a model.  
+A population prediction holds some data values constant and lets the
+others range over a population, giving a mean predicted value or
+population average.  
+Population predictions for two treatments are the familiar g-estimates
+of causal models. 
+We can take sums or differences of these predictions as well, e.g. to
+ask if they are significantly different.
+What can't be done is to work backwards from one of these contrasts to the
+populations, at least for continuous variables.
+If someone asks for an x contrast of 15-5 is this a sum of two population
+estimates at 15 and -5, or a difference?  
+It's always hard to guess the mind of a user.
+Therefore what is needed is a fitted model, the term (covariate) of interest,
+levels of that covariate, a desired comparison, and a population.
+
+First is cmatrix routine.  This is called by users to create a contrast
+matrix for a model, users can also construct their own contrast matrices.
+The result has two parts: the definition of a set of predicted values and
+a set of contrasts between those values.  
+The routine requires a fit and a formula.  The formula is simply a way to
+get a set of variable names: all those variables are the fixed ones in 
+the population contrast, and all others form the ``population''.
+The result will be a matrix or list that has a label
+attribute containing the name of the term; this is used in printouts in the
+obvious way.
+Suppose that our model was \code{coxph(Surv(time, status) ~ age*sex + ph.ecog)}.
+Someone might want the population matrix for age, sex, ph.ecog, or age+ sex.
+For the last it doesn't matter if they say age+sex, age*sex, or age:sex.
+  
+<<yates>>=
+cmatrix <- function(fit, term, 
+                    test =c("global", "trend", "pairwise", "mean"),
+                    levels, assign) {
+    # Make sure that "fit" is present and isn't missing any parts.
+    if (missing(fit)) stop("a fit argument is required")
+    Terms <- try(terms(fit), silent=TRUE)
+
+    if (inherits(Terms, "try-error"))
+        stop("the fit does not have a terms structure")
+    else Terms <- delete.response(Terms)   # y is not needed
+    Tatt <- attributes(Terms)
+    # a flaw in delete.response: it doesn't subset dataClasses
+    Tatt$dataClasses <- Tatt$dataClasses[row.names(Tatt$factors)]
+    test <- match.arg(test)
+
+    if (missing(term)) stop("a term argument is required")
+    if (is.character(term)) term <- formula(paste("~", term))
+    else if (is.numeric(term)) {
+        if (all(term == floor(term) & term >0 & term < length(Tatt$term.labels)))
+            term <- formula(paste("~", 
+                                  paste(Tatt$term.labels[term], collapse='+')))
+        else stop("a numeric term must be an integer between 1 and max terms in the fit")
+        }
+    else if (!inherits(term, "formula"))
+        stop("the term must be a formula or integer")
+    fterm <- delete.response(terms(term))
+    fatt <- attributes(fterm)
+    user.name <- fatt$term.labels  # what the user called it
+    termname <- all.vars(fatt$variables)
+    indx <- match(termname, all.vars(Tatt$variables))
+    if (any(is.na(indx))) 
+        stop("variable ", termname[is.na(indx)], " not found in the formula")
+    
+    # What kind of term is being tested?  It can be categorical, continuous,
+    #  an interaction of only categorical terms, interaction of only continuous
+    #  terms, or a mixed interaction.
+    # Key is a trick to get "zed" from ns(zed, df= dfvar)
+    key <- sapply(Tatt$variables[-1], function(x) all.vars(x)[1])
+    parts <- names(Tatt$dataClasses)[match(termname, key)]
+    types <- Tatt$dataClasses[parts]
+    iscat <- as.integer(types=="factor" | types=="character")
+    if (length(iscat)==1) termtype <- iscat
+    else  termtype <- 2 + any(iscat) + all(iscat)
+
+    # Were levels specified?  If so we either simply accept them (continuous),
+    #  or double check them (categorical)
+    if (missing(levels)) {
+        temp <- fit$xlevels[match(parts, names(fit$xlevels), nomatch=0)]
+        if (length(temp) < length(parts))
+            stop("continuous variables require the levels argument")
+        levels <- do.call(expand.grid, c(temp, stringsAsFactors=FALSE))
+    }
+    else {  #user supplied
+        if (is.list(levels)) {
+            if (is.null(names(levels))) {
+                if (length(termname)==1) names(levels)== termname
+                else stop("levels list requires named elements")
+            }
+        }
+        if (is.data.frame(levels) || is.list(levels)) {
+            index1 <- match(termname, names(levels), nomatch=0)
+            # Grab the cols from levels that are needed (we allow it to have
+            #  extra, unused columns)
+            levels <- as.list(levels[index1])
+            # now, levels = the set of ones that the user supplied (which might
+            #   be none, if names were wrong)
+            if (length(levels) < length(termname)) {
+                # add on the ones we don't have, using fit$xlevels as defaults
+                temp <- fit$xlevels[parts[index1==0]]
+                if (length(temp) > 0) {
+                    names(temp) <- termname[index1 ==0]
+                    levels <- c(levels, temp)
+                }
+            } 
+            index2 <- match(termname, names(levels), nomatch=0)
+            if (any(index2==0)) 
+                stop("levels information not found for: ", termname[index2==0])
+            levels <- expand.grid(levels[index2], stringsAsFactors=FALSE)
+            if (any(duplicated(levels))) stop("levels data frame has duplicates")
+        }
+        else if (is.matrix(levels)) {
+            if (ncol(levels) != length(parts))
+                stop("levels matrix has the wrong number of columns")
+            if (!is.null(dimnames(levels)[[2]])) {
+                index <- match(termname, dimnames(levels)[[2]], nomatch=0)
+                if (index==0)
+                    stop("matrix column names do no match the variable list")
+                else levels <- levels[,index, drop=FALSE]
+            } else if (ncol(levels) > 1) 
+                stop("multicolumn levels matrix requires column names")
+            if (any(duplicated(levels)))
+                stop("levels matrix has duplicated rows")
+            levels <- data.frame(levels, stringsAsFactors=FALSE)
+            names(levels) <- termname
+         }
+        else if (length(parts) > 1)
+            stop("levels should be a data frame or matrix")
+        else {
+            levels <- data.frame(x=unique(levels), stringsAsFactors=FALSE)
+            names(levels) <- termname
+        }       
+    }
+
+    # check that any categorical levels are legal
+    for (i in which(iscat==1)) {
+        xlev <- fit$xlevels[[parts[i]]]
+        if (is.null(xlev))
+            stop("xlevels attribute not found for", termname[i])
+        temp <- match(levels[[i]], xlev)
+        if (any(is.na(temp)))
+            stop("invalid level for term", termname[i])
+    }
+    
+    rval <- list(levels=levels, termname=termname)
+    # Now add the contrast matrix between the levels, if needed
+    if (test=="global") {
+        <<cmatrix-build-default>>
+    }
+    else if (test=="pairwise") {
+        <<cmatrix-build-pairwise>>
+    }
+    else if (test=="mean") {
+        <<cmatrix-build-mean>>
+    }
+    else {
+        <<cmatrix-build-linear>>
+    }
+    # the user can say "age" when the model has "ns(age)", but we need
+    #   the more formal label going forward
+    rval <- list(levels=levels, termname=parts, cmat=cmat, iscat=iscat)
+    class(rval) <- "cmatrix"
+    rval
+}
+@ 
+
+The default contrast matrix is a simple test of equality if there is only
+one term.  
+If the term is the interaction of multiple categorical variables
+then we do an anova type decomposition.
+In other cases we currently fail.
+<<cmatrix-build-default>>=
+if (TRUE) {
+#if (length(parts) ==1) {
+    cmat <- diag(nrow(levels))
+    cmat[, nrow(cmat)] <- -1   # all equal to the last
+    cmat <- cmat[-nrow(cmat),, drop=FALSE]
+}
+else if (termtype== 4) { # anova type
+    stop("not yet done 1")
+}
+else stop("not yet done 2")
+@ 
+
+
+The \code{pairwise} option creates a set of contrast matrices for all pairs
+of a factor.
+
+<<cmatrix-build-pairwise>>=
+nlev <- nrow(levels)  # this is the number of groups being compared
+if (nlev < 2) stop("pairwise tests need at least 2 groups")
+npair <- nlev*(nlev-1)/2
+if (npair==1) cmat <- matrix(c(1, -1), nrow=1)
+else {
+    cmat <- vector("list", npair)
+    k <- 1
+    cname <- rep("", npair)
+    for (i in 1:(nlev-1)) {
+        temp <- double(nlev)
+        temp[i] <- 1
+        for (j in (i+1):nlev) {
+            temp[j] <- -1
+            cmat[[k]] <- matrix(temp, nrow=1)
+            temp[j] <- 0
+            cname[k] <- paste(i, "vs", j)
+            k <- k+1
+        }
+    }
+    names(cmat) <- cname
+}
+@ 
+
+The mean option compares each to the overall mean.
+<<cmatrix-build-mean>>=
+ntest <- nrow(levels)
+cmat <- vector("list", ntest)
+for (k in 1:ntest) {
+    temp <- rep(-1/ntest, ntest)
+    temp[k] <- (ntest-1)/ntest
+    cmat[[k]] <- matrix(temp, nrow=1)
+}
+names(cmat) <- paste(1:ntest, "vs mean")
+@ 
+
+The  \code{linear} option is of interest for terms that have more than one
+column; the two most common cases are a factor variable or a spline.
+It forms a pair of tests, one for the linear and one
+for the nonlinear part.  For non-linear functions such as splines we need
+some notion of the range of the data, since we want to be linear over the
+entire range.  
+
+<<cmatrix-build-linear>>=
+cmat <- vector("list", 2)
+cmat[[1]] <- matrix(1:ntest, 1, ntest)
+cmat[[2]] <- diag(ntest)
+attr(cmat, "nested") <- TRUE
+if (is.null(levels[[1]])) {
+    # a continuous variable, and the user didn't give levels for the test
+    #  look up the call and use the knots
+    tcall <- Tatt$predvars[[indx + 1]]  # skip the 'call' 
+    if (tcall[[1]] == as.name("pspline")) {
+        bb <- tcall[["Boundary.knots"]]
+        levels[[1]] <- seq(bb[1], bb[2], length=ntest)
+    }
+    else if (tcall[[1]] %in% c("ns", "bs")) {
+        bb <- c(tcall[["Boundary.knots"]], tcall[["knots"]])
+        levels[[1]] <- sort(bb)
+    }
+    else stop("don't know how to do a linear contrast for this term")
+}
+@ 
+
+
+Here are some helper routines.
+Formulas are from chapter 5 of Searle.  The sums of squares only makes
+sense within a linear model.
+<<yates>>=
+gsolve <- function(mat, y, eps=sqrt(.Machine$double.eps)) {
+    # solve using a generalized inverse
+    # this is very similar to the ginv function of MASS
+    temp <- svd(mat, nv=0)
+    dpos <- (temp$d > max(temp$d[1]*eps, 0))
+    dd <- ifelse(dpos, 1/temp$d, 0)
+    # all the parentheses save a tiny bit of time if y is a vector
+    if (all(dpos)) x <- drop(temp$u %*% (dd*(t(temp$u) %*% y)))
+    else if (!any(dpos)) x <- drop(temp$y %*% (0*y)) # extremely rare
+    else x <-drop(temp$u[,dpos] %*%(dd[dpos] * (t(temp$u[,dpos, drop=FALSE]) %*% y)))
+    attr(x, "df") <- sum(dpos)
+    x
+}
+
+qform <- function(var, beta) { # quadratic form b' (V-inverse) b
+    temp <- gsolve(var, beta)
+    list(test= sum(beta * temp), df=attr(temp, "df"))
+}
+@ 
+
+The next functions do the work.  Some bookkeeping is needed for 
+a missing value in beta: we leave that coefficient out of the linear
+predictor.
+If there are missing coefs then the variance matrix will not have those 
+columns in any case.
+The nafun function asks if a linear combination is NA.  It treats
+0*NA as 0.
+
+<<yates>>=
+estfun <- function(cmat, beta, varmat) {
+    nabeta <- is.na(beta)
+    if (any(nabeta)) {
+        k <- which(!nabeta)  #columns to keep
+        estimate <- drop(cmat[,k] %*% beta[k])  # vector of predictions
+        evar <- cmat[,k] %*% varmat %*% t(cmat[,k, drop=FALSE])
+        list(estimate = estimate, var=evar)
+    }
+    else {
+        list(estimate = drop(cmat %*% beta),
+             var = cmat %*% varmat %*% t(cmat))
+    }
+}
+             
+testfun <- function(cmat, beta, varmat, sigma2) {
+    nabeta <- is.na(beta)
+    if (any(nabeta)) {
+        k <- which(!nabeta)  #columns to keep
+        estimate <- drop(cmat[,k] %*% beta[k])  # vector of predictions
+        temp <- qform(cmat[,k] %*% varmat %*% t(cmat[,k,drop=FALSE]), estimate)
+        rval <- c(chisq=temp$test, df=temp$df)
+    }
+    else {
+       estimate <- drop(cmat %*% beta)
+       temp <- qform(cmat %*% varmat %*% t(cmat), estimate)
+       rval <- c(chisq=temp$test, df=temp$df)
+       }
+    if (!is.null(sigma2)) rval <- c(rval, ss= unname(rval[1]) * sigma2)
+    rval
+}
+
+nafun <- function(cmat, est) {
+    used <- apply(cmat, 2, function(x) any(x != 0))
+    any(used & is.na(est))
+    }
+@ 

@@ -1,0 +1,44 @@
+
+R Under development (unstable) (2019-08-23 r77061) -- "Unsuffered Consequences"
+Copyright (C) 2019 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> library(survival)
+> 
+> # the way a +cluster() term is handled in coxph has implications for update.
+> 
+> fit1 <- coxph(Surv(time, status) ~ age, cluster= inst, lung)
+> fit2 <- coxph(Surv(time, status) ~ age + cluster(inst), lung)
+> all.equal(fit1, fit2)
+[1] TRUE
+> 
+> fit3 <- coxph(Surv(time, status) ~ age + sex + cluster(inst), lung)
+> 
+> test1 <- update(fit1, .~ .+ sex)
+> all.equal(test1, fit3)
+[1] TRUE
+> 
+> # Gives a spurious warning message
+> test2 <- update(fit1, . ~ age + sex + cluster(inst), lung)
+Warning message:
+In coxph(formula = Surv(time, status) ~ age + sex + cluster(inst),  :
+  cluster appears both in a formula and as an argument, formula term ignored
+> all.equal(test2, fit3)
+[1] TRUE
+> 
+> 
+> proc.time()
+   user  system elapsed 
+  0.751   0.039   0.791 

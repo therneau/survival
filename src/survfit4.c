@@ -1,4 +1,3 @@
-/* $Id: survfit4.c 11166 2008-11-24 22:10:34Z therneau $ */
 /*
 ** C routine to do a small computation that is hard in Splus
 **
@@ -16,6 +15,7 @@
 */
 
 #include "survS.h"
+#include "survproto.h"
 
 void survfit4(Sint *n,	Sint *dd,  double *x1,  double *x2) {
     double temp, temp1, temp2;

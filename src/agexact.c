@@ -1,4 +1,3 @@
-/* $Id: agexact.c 11166 2008-11-24 22:10:34Z therneau $ */
 /*
 ** Anderson-Gill formulation of the cox Model
 **   Do an exact calculation of the partial likelihood. (CPU city!)
@@ -56,7 +55,8 @@ void agexact(Sint *maxiter,  Sint *nusedx,   Sint *nvarx,   double *start,
 	     double *stop,   Sint *event,    double *covar2,double *offset, 
 	     Sint   *strata, double *means,  double *beta,  double *u, 
 	     double *imat2,  double loglik[2], Sint *flag,  double *work, 
-	     Sint   *work2,  double *eps,    double *tol_chol, double *sctest)
+	     Sint   *work2,  double *eps,    double *tol_chol, 
+	     double *sctest, Sint *nocenter)
 {
     int i,j,k, l, person;
     int     iter;
@@ -93,13 +93,15 @@ void agexact(Sint *maxiter,  Sint *nusedx,   Sint *nvarx,   double *start,
     **  much more stable
     */
     for (i=0; i<nvar; i++) {
-	temp=0;
-	for (person=0; person<n; person++) temp += covar[i][person];
-	temp /= n;
-	means[i] = temp;
-	for (person=0; person<n; person++) covar[i][person] -= temp;
+	if (nocenter[i]==0) means[i] = 0;
+	else {
+	    temp=0;
+	    for (person=0; person<n; person++) temp += covar[i][person];
+	    temp /= n;
+	    means[i] = temp;
+	    for (person=0; person<n; person++) covar[i][person] -= temp;
 	}
-
+    }
     /*
     ** do the initial iteration step
     */
@@ -252,6 +254,7 @@ void agexact(Sint *maxiter,  Sint *nusedx,   Sint *nvarx,   double *start,
 	    }
 
 	for (person=0; person<n; ) {
+	    R_CheckUserInterrupt();
 	    if (event[person]==0) person++;
 	    else {
 		denom =0;

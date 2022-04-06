@@ -1,0 +1,499 @@
+\documentclass{article}
+\title{Overflow example}
+\newcommand{\code}[1]{\texttt{#1}}
+\begin{document}
+
+\section{Overflow examples}
+\subsection{Skewed covariate}
+<<readin>>=
+adata <- read.csv('overflow.csv')
+dim(adata)
+etime <- table(adata$end[adata$status==1])
+sum(etime)
+length(etime)
+etime
+@ 
+This data set has 240 thousand lines and 145 thousand events, but only
+48 unique event times.  This makes it possible to debug issues with the
+code in a simple fashion.  The time variable has been changed to 1, 2,
+\ldots to make things even simpler.  There are a \emph{lot} of tied events.
+The plot shows the partial likelihood as points, and the Newton-Raphson
+quadratic approximation at $\beta=0$ as a line.
+
+<<skew>>=
+with(adata, quantile(v2, 0:10/10))
+with(adata, quantile(v2, 990:1000/1000))
+fit0 <- coxph(Surv(start, end, status) ~ v2, data=adata, iter=0)
+dt0 <- coxph.detail(fit0)
+
+b <- seq(0, .006, length=13)
+logb <- matrix(0, 13, 2)
+for (i in 1:13) {
+    logb[i,1] <- coxph(Surv(start, end, status) ~ v2, data=adata, iter=0,
+                     init=b[i])$loglik[1] - fit0$loglik[1]
+    logb[i,2] <- b[i]*sum(dt0$score) - b[i]^2*sum(dt0$imat)/2
+}
+matplot(b, logb/1e5, type='n', xlab='beta', ylab="Change in loglik")
+lines(b, logb[,2]/1e5, lty=2)
+points(b, logb[,1]/1e5)
+abline(h=fit0$loglik[1]/1e5, lty=3)
+@ 
+
+The first problem with the data set is variable \code{v2} which is terribly
+skewed.  
+The second is that the log-likelihood is asymmetric around the maximum of
+about .004.  
+
+<<initial>>=
+beta1 <- sum(dt0$score)/ sum(dt0$imat)
+beta1
+@ 
+
+The very first iteration of the program takes far too large
+a step; the initial value for $\hat beta$ is approximately 30 times
+too large.  
+The effect of this on our calculations is catastrophic: here are the
+quantiles of the risk weights $\exp(X \beta)$.
+
+<<risk>>=
+rwt <- exp(.1 * (adata$v2 - mean(adata$v2)))
+wt2 <- sort(rwt/sum(rwt))
+cumsum(rev(wt2))[1:5]
+@ 
+
+The largest observation has 55\% of the total weight, the first 2 99.5\% and
+the first 5 99.99\%. 
+Look at what happens to our calculation of the variance, which uses the centered
+values. Compute the mean and variance at each of the 48 death times.
+
+<<var>>=
+vmean <- vvar <- double(48)
+for (i in 1:48) {
+    atrisk <- with(adata, which(start < i & end >= i))
+    denom <- sum(rwt[atrisk])
+    vmean[i] <- sum((rwt*adata$v2)[atrisk])/ denom
+    vvar[i]  <- sum(rwt[atrisk]*(adata$v2[atrisk] - vmean[i])^2)  / denom
+}
+signif(vmean,4)
+signif(vvar, 3)
+@ 
+
+The standard formula used by the routine is below, where $m$ is
+the current working definition of the mean and the weights are 
+scaled so as to add to 1.
+\begin{equation}
+  \sum w_i (x_i - \bar x)^2 = \sum w_i(x-m)^2 - (m- \bar x)^2 \label{vvar}
+\end{equation}
+The routine uses the grand mean for $m$ (\Sexpr{round(mean(adata$v2), 3)}), %$
+while $\bar x$ is the actual mean over the current risk set.
+With 16 digits of accuracy, the formula is doomed to fail for any term where
+the the true variance is proprotional to the 16th or smaller digit of the 
+second term in equation eqref{vvar}.  That is, for almost all of the 48 death
+times.
+
+The log-likelihood ends up as NaN for this estimate as well, for essentially
+the same reason.  The contribution to the partial likelihood is the probability
+for the subject who perished = $w_i/ \sum w_j$ where $i$ indexes the death
+and $j$ the risk set.  This fraction becomes 0 due to round off error and
+the log is undefined.  
+
+The update formulas do hold in the neighborhood of the MLE, which is between
+.003 and .004.  
+<<try4>>=
+fit4 <- coxph(Surv(start, end, status) ~ v2, adata, iter=0, init=.004)
+rwt <- exp(.04 * (adata$v2 - mean(adata$v2)))
+for (i in 1:48) {
+    atrisk <- with(adata, which(start < i & end >= i))
+    denom <- sum(rwt[atrisk])
+    vmean[i] <- sum((rwt*adata$v2)[atrisk])/ denom
+    vvar[i]  <- sum(rwt[atrisk]*(adata$v2[atrisk] - vmean[i])^2)  / denom
+}
+signif(vmean,4)
+signif(vvar, 3)
+@ 
+
+The iteration succeeds if step halving is invoked whenever the 
+loglik is infinite or NaN, the information matrix drops in rank, or the 
+step has increased the loglikelihood.
+<<fit>>= 
+fit <- coxph(Surv(start, end, status) ~ v2, adata)
+quantile(exp(fit$linear.predictor), c(0, .5, .9, .99, .999, 1))
+@
+The utility of the fit remains dubious, however; the final model is driven
+by a miniscule fraction of the subjects (16 out of 240 thousand) who have risks
+of 100 fold.
+
+\subsection{Skewed data 2}
+This example was sent by a user and is more subtle.  Start by making a
+particular data set from the veteran's data.
+<<skew2>>=
+d1 <- subset(veteran, status==1 & time < 900)
+d1$status <- ifelse(d1$time < 49, 1, 0)
+fit1 <- coxph(Surv(time, status) ~ trt + prior + karno, d1)
+
+dtime <- sort(unique(d1$time[d1$status==1]))
+
+d2 <- survSplit(Surv(time, status) ~ ., d1, cut= dtime)
+d3 <- survSplit(Surv(time, status) ~ ., d1, cut= 1:max(d1$time))
+@ 
+
+Now we want to fit a model that looks at the possible time dependence
+of the Karnofsky score coefficient.
+I happen to know that for that purpose, we only need to cut the data at
+the death times, hence my data set d2.
+The user cut at a lot more times, his data set is d3.  
+Mathematically, the extra cuts make no difference since the death times and
+risk sets all stay the same.
+However, the first model below succeeded while the second failed.
+
+<<skew2b>>=
+qq <- quantile(dtime, c(.25, .5, .75))
+
+fit2 <- coxph(Surv(tstart, time, status) ~ trt + prior + karno +
+              karno:ns(time, knots=qq, df=4), data=d2)
+
+fit3 <- coxph(Surv(tstart, time, status) ~ trt + prior + karno +
+              karno:ns(time, knots=qq, df=4), data=d3)
+@ 
+
+The issue is subtle and took me some time to figure out.  The event times
+range from 1 to 48 months, but data d3 has a maximum \code{time} value of
+587. The natural spline's coefficients are completely determined by the
+1--48 data window, the predicted values beyond that are based on a cubic
+extrapolation, and some of them ended up as huge numbers.  
+Even though those values are not in any risk set so are never used, the
+entire ``avoid infinite predictors'' logic kicked in and the iteration went
+to pot.
+
+This led to a change in the coxph function.  It now eliminates non-productive
+observations first, before any compuation.
+
+\section{Offset issues}
+A nastier problem is found as a test case in the model4you package.  It is
+an artificial data set shown below.
+<<m4>>=
+set.seed(1212)
+n <- 90
+d1 <- data.frame(y = abs(rnorm(n) +5) + .5, x= 1:n -10,
+                    trt= rep(1:3, each=n/3))
+mfit0 <- coxph(Surv(y) ~ trt + offset(x), data=d1, iter=0)
+dtm <- coxph.detail(mfit0)
+mcoef <- sum(dtm$score)/sum(dtm$imat)
+mcoef
+
+beta <- seq(-40, 5, by=1)
+loglik <- double(length(beta))
+for (i in 1:length(beta)) {
+    tfit <- coxph(Surv(y) ~ trt + offset(x), iter=0, init=beta[i], d1)
+    loglik[i] <- tfit$loglik[1]
+}
+plot(beta, loglik)
+
+mfit30 <- coxph(Surv(y) ~ trt + offset(x), data=d1, init=-30)
+mfit30
+@ 
+
+In this case the starting point of 0 is over 170 standard errors from the
+solution, due to the bizarre offset.
+The partial likelihood has so little curvature at 0 that the first 
+estimate of $\beta$ overshoots, the risk scores $\exp(X\beta)$ contain
+infinite values, and the routine fails at the first iteration.
+The step halving approach eventually wins, but it takes forever.
+At iteration 46 the routine finally finds a point close enough that the
+Newton-Raphson method works.
+<<half>>=
+test <- matrix(0, 50, 2)
+for (i in 1:50) {
+    tfit <- coxph(Surv(y) ~ trt + offset(x), data=d1, iter=i)
+    test[i,] <- c(tfit$loglik[2], tfit$coef)
+}
+indx <- which(!duplicated(test[,1]))
+plot(indx, test[indx,2], xlab="Iteration", ylab="Coefficient")
+@ 
+
+
+\section{Corrleation example}
+This example was pointed out by Brian Borstrom and uses the mort data
+set from the eha package.
+The data set contains mortality data from a parish in northern Sweden, for
+all males born in the years 1800--1820 and who survived to age 40, 
+followed until death or their 60th birthday.  
+The start-stop aspect is due to subjects who change social strata.
+
+<<mort1>>=
+load('mort.rda')
+mort[1:5,]
+fita <- coxph(Surv(enter, exit, event) ~ ses*birthdate, mort, x=T)
+cor(fita$x)
+svd(fita$var)$d
+@ 
+A singular value decomposition shows that the information
+matrix has a condition number of about $10^{11}$, which is large.
+(The ratio of the largest and smallest singular values.)
+The cholesky decomposition is still stable. 
+The very high correlation, however, makes this susceptible to round off
+errors.  Centering the data after forming the interactions does not
+help with this.
+
+When the data is pre-centered the correlation number is much more
+sensible and the condtion number is on the order of 1500, making it
+a well behaved problem.
+However, the number of iterations is exactly the same.
+This fact was a surprise to me when I first encountered it. 
+When using Newton-Raphson iteration the iteration path is completely
+invariant to any affine transformation of the covariates,
+as long as accuracy is not lost.  
+Centering does change the ses coefficient, but not the predictions.
+<<center>>=
+birth2 <- mort$birthdate -1800
+fitb <-  coxph(Surv(enter, exit, event) ~ ses*birth2, mort, x=TRUE)
+cor(fitb$x)
+svd(fitb$var)$d
+all.equal(predict(fita), predict(fitb))
+@ 
+
+In the 2015 version of the library, iteration for this simple model got stuck,
+while the eha package succeeded (pointed out by Goran Borstrom).
+A small mistake in the information matrix sufficed.
+We can force failure in the current code making year less centered, but it
+requires a strong shift.
+<<center2>>=
+birth3 <- mort$birthdate + 1e7
+fitc <-  coxph(Surv(enter, exit, event) ~ ses*birth3, mort, x=TRUE)
+@ 
+
+\section{Sliding mean}
+A data set from Michael Young shows a problem that can occur when using
+calendar year or age time scales.  There are 23000 observations but only
+23 events.  The issue turns out to be a variable tyear.
+Below is a summary:
+
+<<ydata>>=
+load("young.rda")
+ydata <- ydata[order(ydata$tstop),]  # put it in end time order
+
+dtime <- sort(ydata$tstop[ydata$event==1])
+temp <- matrix(0, length(dtime), ncol=5)
+temp[,1] <- dtime
+tyear2 <- ydata$tyear
+for (i in 1:length(dtime)) {
+    atrisk <- (ydata$tstart < dtime[i] & ydata$tstop >= dtime[i])
+    temp[i, 2:3] <- c(mean(ydata$tyear[atrisk]), sd(ydata$tyear[atrisk]))
+    temp[i, 4:5] <- range(which(atrisk))
+    tyear2[atrisk] <- tyear2[atrisk] - temp[i,2]
+}
+colnames(temp) <- c("time", "mean(tyear)", "sd(tyear)", "first", "last")
+round(temp,2)
+
+yfit <- coxph(Surv(tstart, tstop, event) ~ tyear2 + exposure, ydata)
+@ 
+
+The standard deviation within a risk set is small, and the final coefficient
+from a successful fit is about 0.7, giving  a sd of about .5 for the predicted
+risk score.  That is, a moderately strong covariate.
+The problem is that the centered value of \code{tyear} ranges from -3000 to
+3000, leading to an $X\beta$ range of $\pm 2000$, which overflows the 
+exp function.  
+The constants in \code{.Machine} reveal maximum and minimum exponents of 1024
+and -1022.  
+
+Another example of this type involved 
+the number of nursing shift changes, with a hypothesis that each hand off
+increased the chance of an adverse event. 
+The number of changes moves almost in lockstep for subjects: the normal shift
+is 8 hours during the week and 12 on the weekend.
+Analysis was on a time since admission scale: a set of subjects who had
+been in for 30 days would have between 20 and 22 weekdays, or 70 to 72 hand offs.
+
+<<sliding>>=
+fit0 <- coxph(Surv(time, status) ~ ph.ecog + age, lung) 
+sdata <- survSplit(Surv(time, status) ~., lung, cut=seq(5, 1000, by=50))
+sfit0 <- coxph(Surv(tstart, time, status) ~ ph.ecog + age, sdata)
+all.equal(fit0$coef, sfit0$coef)
+
+sdata$fakeph <- sdata$ph.ecog + sdata$tstart
+sfit <- coxph(Surv(tstart, time, status) ~ fakeph + age, sdata)
+@ 
+
+
+\section{Infinite coefficients}
+Assume that the actual solution to the LL contains an infinite coefficient.
+Then after the first few Newton-Raphson iterations the coefficient
+grows by an approximate constant at each iteration, while the loglik 
+asymptotes to a constant.
+There is a race condition:
+\begin{enumerate}
+  \item Convergence of the loglik
+  \item Overflow of the exp function
+  \item Singularity in the computed information matrix
+\end{enumerate}
+
+Data sets where one group has no events usually end up at condition 1.
+Ones that do the other are more trouble.
+
+This example comes from the moonBook package.  It's a sneaky
+way to get a variable on both sides, and fails with number 2.
+<<sneaky>>=
+ysurv <- Surv(colon$time, colon$status)
+stest <- coxph(ysurv ~ time, colon)
+@ 
+
+The Rehberg data set manages 2 and 3 at the same iteration, which forced a
+different failure in the code: an NaN in the infinite coefficient check.
+<<rehberg>>=
+rdata <- read.csv('rdata.csv')
+fit <- coxph(Surv(time, status) ~x, rdata)  
+
+options(warn=-1)
+tcoef <- tlog <- timat <- tscore <- double(17)
+for (i in 1:17) {
+    tfit <- coxph(Surv(time, status) ~x, rdata, iter=i)
+    tcoef[i] <- tfit$coef
+    tlog[i] <-  tfit$loglik[2]
+    dt <- coxph.detail(tfit)
+    tscore[i] <- sum(dt$score)
+    timat[i]  <- sum(dt$imat)
+}
+options(warn=0)
+
+#plot(tcoef, tlog, xlab="Coefficient", ylab="Loglik")
+plot(tcoef, -tlog, log='y', xlab="Coefficient", ylab= "-loglik")
+matplot(1:17, cbind(timat, tscore), pch='is', log='y',
+        xlab="Iteration", ylab="Score and Information")
+@ 
+
+At iteration 17 the computations for both the first and second derivative
+fail due to exp() overflow.
+
+
+\section{Trust region approach}
+A trust region approach asks the question: over what region is the Newton-Raphson
+step reliable?  It then takes the maximum step within the reliable region.
+Reliable is normally defined as $r$ =(actual improvement)/(predicted improvement)
+$> .25$.  
+If $r < .25$ then the trust region is made smaller, if $r > c$ it is made bigger,
+where $c$ may be .5 or .75, depending on who you read.
+Because of the equivalence of penalties and limits, a Levenberg-Marquardt
+step of $d = -(H + \lambda I)^{-1} U$ is the maximum of the quadratic NR
+update under a
+constraint that $\sum d^2 \le c$ for some constant $c$, $\lambda$ playing the
+role of a Lagrange multiplier.
+When there is a single covariate this is no different than step halving, with
+$\lambda =  kH$ and $k$ of $1,3, 5, 7, \ldots$.  
+But it does give a rationale for tuning the amount of shrinkage.
+
+Let's look at the overflow data in terms of trust regions.
+From the first figure, we see that a trust region of about .0045 would be
+acceptable.  The gain at that step is 1/2 of what is predicted.
+When the iteration goes wrong, we need some way to create an initial region
+size. 
+One way to do this is to search for a $\lambda$ that satisfies the goals.
+We expect the information
+matrix at time zero to be approximately equal to the number of death $d$ times
+the variance of $x$.  
+The coxph routine scales the data, so if we start with $\lambda=d$ the first
+constraint will be close to step halving.
+Assume an increase/decrease of $\lambda$ by a factor of 2, which is fairly
+usual.  It takes 2 doublings of this initial guess to get an answer in the
+range where the ratio is $>.25$, i.e., the quadratic is acceptable.  
+
+We will create a variable v2b= v2/1000, so that coefficients
+are on a more natural scale.
+<<try1>>=
+adata$v2b <- adata$v2/1000
+lambda <- sum(adata$status) * var(adata$v2b) * 2^(0:5)
+beta <- logdiff <- lhat <- double(6)
+
+fit1 <- coxph(Surv(start, end, status) ~ v2b, iter=0, adata)
+dt1 <- coxph.detail(fit1)
+first <- sum(dt1$score)
+second <- sum(dt1$imat) # second derivative
+for (i in 1:6) {
+    beta[i] <- first/(second + lambda[i])
+    lhat[i] <-  beta[i]*first - 0.5* beta[i]^2/ second
+    tfit <- coxph(Surv(start, end, status) ~ v2b, iter=0, init=beta[i], adata)
+    logdiff[i] <- tfit$loglik[1] - fit0$loglik[1]
+}
+data.frame(doubling=0:5, lambda=lambda, beta=beta, lhat=lhat,
+           ratio = logdiff/lhat)
+@ 
+
+Look at the data in the region of this new solution.
+<<try2>>=
+fit2 <- coxph(Surv(start, end, status) ~ v2b, iter=0, init=beta[3], adata)
+dt2  <- coxph.detail(fit2)
+first2 <- sum(dt2$score)
+second2 <- sum(dt2$imat) # second derivative
+
+b2 <- seq(3, 5, length=21)
+l2 <- matrix(0, 21, 2)
+for (i in 1:21) {
+    tfit <-  coxph(Surv(start, end, status) ~ v2b, iter=0, init=b2[i], adata)
+    l2[i,1] <- tfit$loglik[1]- fit2$loglik[1]
+    l2[i,2] <- first2*(b2[i] - coef(fit2)) - (b2[i]-coef(fit2))^2*second2/2
+}
+matplot(b2, l2)
+abline(v=coef(fit2))
+@ 
+
+For the first iteration we found that the second order Taylor is a good
+approximation in a region of  
+$\sum_j d_j^2 < 17.6$, where $d$ is the iteration step.
+$\Delta = 17.6$ is our trust region, the Levenberg-Marquardt step found both
+a region and a solution on the boundary.
+Further iterations want to find updates that maximize the quadratic NR, subject
+to $\sum d^2 \le \Delta$.  The algorithm has 3 steps.
+\begin{enumerate}
+  \item First find the unconstrained maximum.  If it is within the trust region
+    then accept it.
+  \item If not, find the solution on the boundary. 
+  \item Check the ratio for this solution, and adjust the size of the trust
+    region accordingly.  Repeat 2-3 until a step has been found that increases
+    the logliklihood.  
+\end{enumerate}
+
+The figure below shows the size of the constrained step as a function of
+lambda, for both the first and second iteration.
+This is one problem with the Levenberg-Marquardt algorithm: the relationship
+between $\lambda$ and the size of the trust region changes under our feet.
+<<lfig>>=
+# look at lambda and d^2 in the neighborhood of the second iterate
+d2 <- first2/(second2 + lambda)
+matplot(lambda, cbind(beta^2, d2^2), log='xy',
+        xlab="lambda", ylab="d^2")
+@
+
+\section{Infinite coefficients}
+This small data set comes from Jack Chenry.
+There are more covariates than events, which leads to infinite coefficients.
+However, the iteration path for this data set is particularly difficult.
+All the covariates are continuous with only minor correlation.
+
+<<henry>>=
+load("cdata.rda")
+icoef <- matrix(0, 15, 10)
+ilog  <- double(15)
+for (i in 1:15) {
+    suppressWarnings(tfit <- coxph(Surv(time, status) ~ ., iter=i-1, cdata))
+    icoef[i,] <- coef(tfit)
+    ilog[i] <- tfit$loglik[2]
+}
+
+par(mfrow=c(1,2))
+matplot(0:14, icoef, xlab="Iteration", ylab="Coefficient")
+plot(0:14, -ilog, log='y', xlab="Iteration", ylab="-1* loglik")
+abline(0,0, lty=2)
+par(mfrow=c(1,1))
+@ 
+ 
+There are 26 observations, 7 events, and 10 covariates that each have a standard
+devation of about 1.  
+After some initial stutters the partial likelihood is converging to 0, i.e., a
+perfect fit.  
+
+In this data set the risk scores become large, overflowing the exp function,
+before the model converges.  The log-likelihood actually never achieves
+relative convergence, nor does the variance become singular.
+
+\end{document}
+

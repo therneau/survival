@@ -2,7 +2,6 @@
 \alias{attrassign.default}
 \alias{attrassign}
 \alias{attrassign.lm}
-%- Also NEED an `\alias' for EACH other topic documented here.
 \title{Create new-style "assign" attribute}
 \description{
 The \code{"assign"} attribute on model matrices describes which columns
@@ -50,9 +49,9 @@ S-plus is sometimes useful.
 \seealso{\code{\link{terms}},\code{\link{model.matrix}}}
 
 \examples{
-formula <- Surv(time,status)~factor(edema)
+formula <- Surv(time,status)~factor(ph.ecog)
 tt <- terms(formula)
-mf <- model.frame(tt,data=pbc)
+mf <- model.frame(tt,data=lung)
 mm <- model.matrix(tt,mf)
 ## a few rows of data
 mm[1:3,]
@@ -61,4 +60,4 @@ attr(mm,"assign")
 ## alternate style assign attribute
 attrassign(mm,tt)
 }
-\keyword{models}%-- one or more ...
+\keyword{models}

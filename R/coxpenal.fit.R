@@ -1,10 +1,9 @@
-# SCCS @(#)coxpenal.fit.s	1.8 06/12/00
 #
 # General penalized likelihood
 #
 coxpenal.fit <- function(x, y, strata, offset, init, control,
 			weights, method, rownames, 
-			pcols, pattr, assign) {
+			pcols, pattr, assign, nocenter=NULL) {
     eps <- control$eps
     n <-  nrow(y)
     if (is.matrix(x)) nvar <- ncol(x)
@@ -21,31 +20,28 @@ coxpenal.fit <- function(x, y, strata, offset, init, control,
     if (ncol(y) ==3) {
 	if (length(strata) ==0) {
 	    sorted <- cbind(order(-y[,2], y[,3]), 
-			    order(-y[,1]))
-	    newstrat <- n
+			    order(-y[,1])) -1L
+	    newstrat <- as.integer(n)
 	    }
 	else {
 	    sorted <- cbind(order(strata, -y[,2], y[,3]),
-			    order(strata, -y[,1]))
-	    newstrat  <- cumsum(table(strata))
+			    order(strata, -y[,1])) -1L
+	    newstrat  <- as.integer(cumsum(table(strata)))
 	    }
 	status <- y[,3]
 	andersen <- TRUE
-	routines <- paste('agfit5', c('a', 'b', 'c'), sep='_')
         }
     else {
 	if (length(strata) ==0) {
-	    sorted <- order(-y[,1], y[,2])
-	    newstrat <- n
+	    sorted <- order(-y[,1], y[,2]) -1L
+	    newstrat <- as.integer(n)
 	    }
 	else {
-	    sorted <- order(strata, -y[,1], y[,2])
-	    strata <- (as.numeric(strata))[sorted]
-	    newstrat <-  cumsum(table(strata))
+	    sorted <- order(strata, -y[,1], y[,2]) -1L
+	    newstrat <-  as.integer(cumsum(table(strata)))
 	    }
 	status <- y[,2]
 	andersen <- FALSE
-	routines <- paste('coxfit5', c('a', 'b', 'c'), sep='_')
         }
 
     n.eff <- sum(y[,ncol(y)])  #effective n for a Cox model is #events
@@ -287,32 +283,59 @@ coxpenal.fit <- function(x, y, strata, offset, init, control,
 
     ## need the current environment for callbacks
     rho<-environment()
-    
+
+    # 2012 change: individually choose which variable to recenter
+    # default: leave 0/1 variables along
+    if (is.null(nocenter)) zero.one <- rep(FALSE, ncol(x))
+    zero.one <- apply(x, 2, function(z) all(z %in% nocenter))
+
     #
     # Have C store the data, and get the loglik for beta=initial, frailty=0
     #
-    coxfit <- .C(routines[1],
-                       as.integer(n),
-                       as.integer(nvar), 
-                       as.double(y),
-                       x= as.double(xx) ,
-                       as.double(offset - mean(offset)),
-                       as.double(weights),
-		       as.integer(newstrat),
-		       as.integer(sorted-1),
-                       means= double(nvar),
-                       coef= as.double(init),
-                       u = double(nvar),
-		       loglik=double(1),
-		       as.integer(method=='efron'),
-		       as.integer(ptype),
-		       as.integer(full.imat),
-		       as.integer(nfrail),
-		       as.integer(frailx),
-                 #R callback additions
-                 f.expr1,f.expr2,rho,
-                 PACKAGE="survival"
-                 )
+    storage.mode(y) <- storage.mode(weights) <-  "double"
+    storage.mode(xx) <- storage.mode(offset) <- "double"
+    if (andersen) coxfit <- .C(Cagfit5a,
+                               as.integer(n),
+                               as.integer(nvar), 
+                               y,
+                               xx ,
+                               offset,
+                               weights,
+                               newstrat,
+                               sorted,
+                               means= double(nvar),
+                               coef= as.double(init),
+                               u = double(nvar),
+                               loglik=double(1),
+                               as.integer(method=='efron'),
+                               as.integer(ptype),
+                               as.integer(full.imat),
+                               as.integer(nfrail),
+                               as.integer(frailx),
+                               #R callback additions
+                               f.expr1,f.expr2,rho,
+                               ifelse(zero.one, 0L, 1L))
+    else       coxfit <- .C(Ccoxfit5a, 
+                               as.integer(n),
+                               as.integer(nvar), 
+                               y,
+                               xx,
+                               offset,
+                               weights,
+                               newstrat,
+                               sorted,
+                               means= double(nvar),
+                               coef= as.double(init),
+                               u = double(nvar),
+                               loglik=double(1),
+                               as.integer(method=='efron'),
+                               as.integer(ptype),
+                               as.integer(full.imat),
+                               as.integer(nfrail),
+                               as.integer(frailx),
+                               f.expr1,f.expr2,rho,
+                               ifelse(zero.one, 0L, 1L))
+
     loglik0 <- coxfit$loglik
     means   <- coxfit$means
 
@@ -323,27 +346,42 @@ coxpenal.fit <- function(x, y, strata, offset, init, control,
     iterfail <- NULL
     thetasave <- unlist(thetalist)
     for (outer in 1:control$outer.max) {
-        coxfit <- .C(routines[2], 
-		        iter=as.integer(control$iter.max),
-			as.integer(n),
-			as.integer(nvar),
-		        as.integer(newstrat),
-			coef = as.double(init),
-		        u    = double(nvar+nfrail),
-			hmat = double(nvar*(nvar+nfrail)),
-			hinv = double(nvar*(nvar+nfrail)),
-			loglik = double(1),
-			flag = integer(1),
-			as.double(control$eps),
-		        as.double(control$toler.chol),
-			as.integer(method=='efron'),
-			as.integer(nfrail),
-		        fcoef = as.double(finit),
-			fdiag = double(nfrail+nvar),
-                     ## R additions
-                     f.expr1,f.expr2,rho,
-                     PACKAGE="survival"
-                     )
+        if (andersen)  coxfit <- .C(Cagfit5b,  
+                                    iter=as.integer(control$iter.max),
+                                    as.integer(n),
+                                    as.integer(nvar),
+                                    as.integer(newstrat),
+                                    coef = as.double(init),
+                                    u    = double(nvar+nfrail),
+                                    hmat = double(nvar*(nvar+nfrail)),
+                                    hinv = double(nvar*(nvar+nfrail)),
+                                    loglik = double(1),
+                                    flag = integer(1),
+                                    as.double(control$eps),
+                                    as.double(control$toler.chol),
+                                    as.integer(method=='efron'),
+                                    as.integer(nfrail),
+                                    fcoef = as.double(finit),
+                                    fdiag = double(nfrail+nvar),
+                                    f.expr1,f.expr2,rho)
+        else   coxfit <- .C(Ccoxfit5b,  
+                                    iter=as.integer(control$iter.max),
+                                    as.integer(n),
+                                    as.integer(nvar),
+                                    as.integer(newstrat),
+                                    coef = as.double(init),
+                                    u    = double(nvar+nfrail),
+                                    hmat = double(nvar*(nvar+nfrail)),
+                                    hinv = double(nvar*(nvar+nfrail)),
+                                    loglik = double(1),
+                                    flag = integer(1),
+                                    as.double(control$eps),
+                                    as.double(control$toler.chol),
+                                    as.integer(method=='efron'),
+                                    as.integer(nfrail),
+                                    fcoef = as.double(finit),
+                                    fdiag = double(nfrail+nvar),
+                                    f.expr1,f.expr2,rho)
 
 	iter <- outer
 	iter2 <- iter2 + coxfit$iter
@@ -418,13 +456,37 @@ coxpenal.fit <- function(x, y, strata, offset, init, control,
 	    thetasave <- cbind(thetasave, temp)
 	    }
         }
+ 
+   if (nfrail >0) {
+       lp <- offset + coxfit$fcoef[frailx]
+       	if (nvar >0)    #sparse frailties and covariates
+	    lp <- lp + x[,-fcol,drop=FALSE] %*%coxfit$coef - 
+                sum(means*coxfit$coef)
+   }    
+   else  lp <- offset + as.vector(x%*%coxfit$coef) - sum(means*coxfit$coef)
 
     # release the memory
-    expect <- .C(routines[3], as.integer(n),
+    if (andersen) {
+        .C(Cagfit5c, as.integer(nvar)) #release the memory
+        # the agmart3 routine uses slightly different arguments:
+        # strata are marked by a vector 1,1,1,...1,2,2,2  etc.
+        if (length(strata) < nrow(y)) strata <- rep(1L, nrow(y))
+        resid <- .Call(Cagmart3, nrow(y),
+                        y, exp(lp), 
+                        weights, 
+                        as.integer(strata),
+                        sorted[,2], sorted[,1],
+                        as.integer(method=='efron'))
+    }
+    else  { 
+        expect <- .C(Ccoxfit5c, as.integer(n),
 		             as.integer(nvar),
 		             as.integer(newstrat),
 		             as.integer(method=='efron'),
-		             expect= double(n),PACKAGE="survival")$expect
+		             expect= double(n))$expect
+        resid <- status - expect
+    }
+    names(resid) <- rownames
 
     if (!need.df) {  #didn't need it iteration by iteration, but do it now
         #get the penalty portion of the second derive matrix
@@ -451,16 +513,10 @@ coxpenal.fit <- function(x, y, strata, offset, init, control,
     coef <- coxfit$coef
     names(coef) <- varnames
     coef[which.sing] <- NA
-    resid <- double(n)
-    resid <- status - expect
-    names(resid) <- rownames
 
     names(iterlist) <- names(pterms[pterms>0])
-
     if (nfrail >0) {
-	lp <- offset + coxfit$fcoef[x[,fcol]]
 	if (nvar >0) {   #sparse frailties and covariates
-	    lp <- lp + x[,-fcol,drop=FALSE] %*%coef - sum(means*coef)
 	    list(coefficients  = coef,
 		 var    = var,
 		 var2   = var2,
@@ -469,7 +525,8 @@ coxpenal.fit <- function(x, y, strata, offset, init, control,
 		 linear.predictors = as.vector(lp),
 		 residuals = resid,
 		 means = means,
-		 method= c('coxph.penal', 'coxph'),
+                 method = method,
+		 class = c('coxph.penal', 'coxph'),
 		 frail = coxfit$fcoef,
 		 fvar  = dftemp$fvar,
 		 df = df, df2=dftemp$df2, 
@@ -485,7 +542,8 @@ coxpenal.fit <- function(x, y, strata, offset, init, control,
 		 linear.predictors = as.vector(lp),
 		 residuals = resid,
 		 means = means,
-		 method= c('coxph.penal', 'coxph'),
+                 method = method, 
+		 class = c('coxph.penal', 'coxph'),
 		 frail = coxfit$fcoef,
 		 fvar  = dftemp$fvar,
 		 df = df, df2=dftemp$df2, 
@@ -501,10 +559,11 @@ coxpenal.fit <- function(x, y, strata, offset, init, control,
 	     var2   = var2,
 	     loglik = c(loglik0, loglik1),
 	     iter   = c(iter, iter2),
-	     linear.predictors = as.vector(x%*%coef) - sum(means*coef),
+	     linear.predictors = lp,
 	     residuals = resid,
 	     means = means,
-	     method= c('coxph.penal', 'coxph'),
+             method = method,
+	     class = c('coxph.penal', 'coxph'),
 	     df = df, df2=dftemp$df2,
 	     penalty= c(penalty0, penalty), 
 	     pterms = pterms, assign2=assign,

@@ -1,0 +1,277 @@
+\section{The Fine-Gray model}
+For competing risks with ending states 1, 2, \ldots $k$, 
+the Fine-Gray approach turns these into a set of simple 2-state
+Cox models:
+\begin{itemize}
+  \item (not yet in state 1) $\longrightarrow$ state 1
+  \item (not yet in state 2) $\longrightarrow$ state 2
+  \item \ldots
+\end{itemize}
+Each of these is now a simple Cox model, assuming that we are willing
+to make a proportional hazards assumption.
+There is one added complication:
+when estimating the first model, one wants to use the data set that
+would have occured if the subjects being followed for state 1 had
+not had an artificial censoring, that is, had continued to be followed
+for event 1 even after event 2 occured.
+Sometimes this can be filled in directly, e.g., if we knew the enrollment
+dates for each subject along with the date that follow-up for the
+study was terminated, and there was no lost to follow-up (only administrative
+censoring.)
+An example is the mgus2 data set, where follow-up for death continued
+after the occurence of plasma cell malignancy.
+In practice what is done is to estimate the overall censoring distribution and
+give subjects artificial follow-up.
+
+The function below creates a data set that can then be used with coxph.
+<<finegray>>= 
+finegray <- function(formula, data, weights, subset, na.action= na.pass,
+                     etype, prefix="fg", count="", id, timefix=TRUE) {
+    Call <- match.call()
+    indx <- match(c("formula", "data", "weights", "subset", "id"),
+              names(Call), nomatch=0) 
+    if (indx[1] ==0) stop("A formula argument is required")
+    temp <- Call[c(1,indx)]  # only keep the arguments we wanted
+    temp$na.action <- na.action
+    temp[[1L]] <- quote(stats::model.frame)  # change the function called
+
+    special <- c("strata", "cluster")
+    temp$formula <- if(missing(data)) terms(formula, special)
+    else              terms(formula, special, data=data)
+
+    mf <- eval(temp, parent.frame())
+    if (nrow(mf) ==0) stop("No (non-missing) observations")
+    Terms <- terms(mf)
+
+    Y <- model.extract(mf, "response")
+    if (!inherits(Y, "Surv")) stop("Response must be a survival object")
+    type <- attr(Y, "type")
+    if (type!='mright' && type!='mcounting')
+	stop("Fine-Gray model requires a multi-state survival")
+    nY <- ncol(Y)
+    states <- attr(Y, "states")
+    if (timefix) Y <- aeqSurv(Y)
+
+    strats <- attr(Terms, "specials")$strata
+    if (length(strats)) {
+	stemp <- untangle.specials(Terms, 'strata', 1)
+	if (length(stemp$vars)==1) strata <- mf[[stemp$vars]]
+	else strata <- survival::strata(mf[,stemp$vars], shortlabel=TRUE)
+        istrat <- as.numeric(strata)
+        mf[stemp$vars] <- NULL
+	}
+    else istrat <- rep(1, nrow(mf))
+    
+    id <- model.extract(mf, "id")
+    if (!is.null(id)) mf["(id)"] <- NULL  # don't leave it in result
+    user.weights <- model.weights(mf)
+    if (is.null(user.weights)) user.weights <- rep(1.0, nrow(mf))
+
+    cluster<- attr(Terms, "specials")$cluster
+    if (length(cluster)) {
+        stop("a cluster() term is not valid")
+    }
+    
+    # If there is start-stop data, then there needs to be an id
+    #  also check that this is indeed a competing risks form of data.
+    # Mark the first and last obs of each subject, as we need it later.
+    #  Observations may not be in time order within a subject
+    delay <- FALSE  # is there delayed entry?
+    if (type=="mcounting") {
+        if (is.null(id)) stop("(start, stop] data requires a subject id")
+        else {
+            index <- order(id, Y[,2]) # by time within id
+            sorty <- Y[index,]
+            first <- which(!duplicated(id[index]))
+            last  <- c(first[-1] -1, length(id))
+            if (any(sorty[-last, 3] != 0))
+                stop("a subject has a transition before their last time point")
+            delta <- c(sorty[-1,1], 0) - sorty[,2]
+            if (any(delta[-last] !=0)) 
+                stop("a subject has gaps in time")
+            if (any(Y[first,1] > min(Y[,2]))) delay <- TRUE
+            temp1 <- temp2 <- rep(FALSE, nrow(mf))
+            temp1[index[first]] <- TRUE
+            temp2[index[last]]  <- TRUE
+            first <- temp1  #used later
+            last <-  temp2
+         }
+    } else last <- rep(TRUE, nrow(mf))  
+
+    if (missing(etype)) enum <- 1  #generate a data set for which endpoint?
+    else {
+        index <- match(etype, states)
+        if (any(is.na(index)))
+            stop ("etype argument has a state that is not in the data")
+        enum <- index[1]
+        if (length(index) > 1) warning("only the first endpoint was used")
+    }
+    
+    # make sure count, if present is syntactically valid
+    if (!missing(count)) count <- make.names(count) else count <- NULL
+    oname <- paste0(prefix, c("start", "stop", "status", "wt"))
+        
+    <<finegray-censor>>   
+    <<finegray-build>>
+}  
+@
+
+The censoring and truncation distributions are
+\begin{align*}
+  G(t) &= \prod_{s \le t} \left(1 - \frac{c(s)}{r_c(s)} \right ) \\
+  H(t) &= \prod_{s > t} \left(1 - \frac{e(s)}{r_e(s)} \right ) 
+\end{align*}
+where $c(t)$ is the number of subjects censored at time $t$, $e(t)$ is the
+number who enter at time $t$, and $r$ is the size of the relevant risk set.
+These are equations 5 and  6 of Geskus (Biometrics 2011).
+Note that both $G$ and $H$ are right continuous functions.
+For tied times the assumption is that event $<$ censor $<$ entry.
+For $G$ we use a modified Kapan-Meier where any events at censoring time $t$ are
+removed from the risk set just before time $t$.
+To avoid issues with times that are nearly identical (but not quite) we first
+convert to an integer time scale, and then move events backwards by .2.
+Since this is a competing risks data set any non-censored observation for a
+subject is their last, so this time shift does not goof up the alignment
+of start, stop data.
+For the truncation distribution it is the subjects with times 
+at or before time $t$ that
+are in the risk set $r_e(t)$ for truncation at (or before) $t$.
+$H$ can be calculated using an ordinary KM on the reverse time scale.
+
+When there is (start,stop) data and hence multiple observations per subject,
+calculation of $G$ needs use a status that is 1 only for the \emph{last} row
+row of a censored subject. 
+
+<<finegray-censor>>=
+if (ncol(Y) ==2) {
+    temp <- min(Y[,1], na.rm=TRUE)
+    if (temp >0) zero <- 0
+    else zero <- 2*temp -1  # a value less than any observed y
+    Y <- cbind(zero, Y)  # add a start column
+}
+
+utime <- sort(unique(c(Y[,1:2])))  # all the unique times
+newtime <- matrix(findInterval(Y[,1:2], utime), ncol=2) 
+status <- Y[,3]
+
+newtime[status !=0, 2] <- newtime[status !=0,2] - .2
+Gsurv <- survfit(Surv(newtime[,1], newtime[,2], last & status==0) ~ istrat, 
+                 se.fit=FALSE)
+@ 
+
+The calculation for $H$ is also done on the integer scale.
+Otherwise we will someday be clobbered by times that differ only in
+round off error. The only nuisance is the status variable, which is
+1 for the first row of each subject, since the data set may not
+be in sorted order.  The offset of .2 used above is not needed, but due
+to the underlying integer scale it doesn't harm anything either.
+Reversal of the time scale leads to a left continuous function which
+we fix up later.
+<<finegray-censor>>= 
+if (delay) 
+    Hsurv <- survfit(Surv(-newtime[,2], -newtime[,1], first) ~ istrat, 
+                     se.fit =FALSE)
+@ 
+
+Consider the following data set: 
+\begin{itemize}
+  \item Events of type 1 at times 1, 4, 5,  10
+  \item Events of type 2 at times 2, 5, 8
+  \item Censors at times 3, 4, 4, 6, 8, 9, 12
+\end{itemize}
+The censoring distribution will have the following shape:
+\begin{center}
+  \begin{tabular}{rcccccc}
+    interval& (0,3]& (3,4] & (4,6]         & (6,8]       & (8,12] & 12+\\
+    C(t)    &  1   &11/12  & (11/12)(8/10) & (11/15)(5/6)&  (11/15)(5/6)(3/4)&
+       0 \\
+       & 1.0000 & .9167 & .7333 & .6111 & .4583
+    \end{tabular}
+  \end{center}
+Notice that the event at time 4 is not counted in the risk set at time 4,
+so the jump is 8/10 rather than 8/11. 
+Likewise at time 8 the risk set has 4 instead of 5: censors occur after deaths.
+
+When creating the data set for event type 1, subjects who have an event of
+type 2 get extended out using this censoring distribution.  The event at
+time 2, for instance, appears as a censored observation with time dependent
+weights of $G(t)$.  The type 2 event at time 5 has weight 1 up through time 5,
+then weights of $G(t)/C(5)$ for the remainder.
+This means a weight of 1 over (5,6], 5/6 over (6,8], (5/6)(3/4) over (9,12]
+and etc. 
+
+Though there are 6 unique censoring intervals, 
+in the created data set for event type 1 we only need to know case
+weights at times 1, 4, 5, and 10; the information from the (4,6] and (6,8] 
+intervals will never be used.  
+To create a minimal sized data set we can leave those intervals out. 
+$G(t)$ only drops to zero if the largest time(s) are censored observations, so
+by definition no events lie in an interval with $G(t)=0$.
+
+If there is delayed entry, then the set of intervals is larger due to a merge
+with the jumps in Hsurv.
+The truncation distribution Hsurv ($H$) will become 0 at the first entry time; 
+it is a left continuous function whereas Gsurv ($G$) is right continuous.  
+We can slide $H$ one point to the left and merge them at the jump points.
+
+<<finegray-build>>=
+status <- Y[, 3]
+
+# Do computations separately for each stratum
+stratfun <- function(i) {
+    keep <- (istrat ==i)
+    times <- sort(unique(Y[keep & status == enum, 2])) #unique event times 
+    if (length(times)==0) return(NULL)  #no events in this stratum
+    tdata <- mf[keep, -1, drop=FALSE]
+    maxtime <- max(Y[keep, 2])
+
+    Gtemp <- Gsurv[i]
+    if (delay) {
+        Htemp <- Hsurv[i]
+        dtime <- rev(-Htemp$time[Htemp$n.event > 0])
+        dprob <- c(rev(Htemp$surv[Htemp$n.event > 0])[-1], 1)
+        ctime <- Gtemp$time[Gtemp$n.event > 0]
+        cprob <- c(1, Gtemp$surv[Gtemp$n.event > 0]) 
+        temp <- sort(unique(c(dtime, ctime))) # these will all be integers
+        index1 <- findInterval(temp, dtime)
+        index2 <- findInterval(temp, ctime)
+        ctime <- utime[temp]
+        cprob <- dprob[index1] * cprob[index2+1]  # G(t)H(t), eq 11 Geskus
+    }
+    else {
+        ctime <- utime[Gtemp$time[Gtemp$n.event > 0]]
+        cprob <- Gtemp$surv[Gtemp$n.event > 0]
+    }
+    
+    ct2 <- c(ctime, maxtime)
+    cp2 <- c(1.0, cprob)
+    index <- findInterval(times, ct2, left.open=TRUE)
+    index <- sort(unique(index))  # the intervals that were actually seen
+    # times before the first ctime get index 0, those between 1 and 2 get 1
+    ckeep <- rep(FALSE, length(ct2))
+    ckeep[index] <- TRUE
+    expand <- (Y[keep, 3] !=0 & Y[keep,3] != enum & last[keep]) #which rows to expand
+    split <- .Call(Cfinegray, Y[keep,1], Y[keep,2], ct2, cp2, expand, 
+                   c(TRUE, ckeep)) 
+    tdata <- tdata[split$row,,drop=FALSE]
+    tstat <- ifelse((status[keep])[split$row]== enum, 1, 0)
+
+
+    tdata[[oname[1]]] <- split$start
+    tdata[[oname[2]]] <- split$end
+    tdata[[oname[3]]] <- tstat
+    tdata[[oname[4]]] <- split$wt * user.weights[split$row]
+    if (!is.null(count)) tdata[[count]] <- split$add
+    tdata
+}
+
+if (max(istrat) ==1) result <- stratfun(1)
+else {
+    tlist <- lapply(1:max(istrat), stratfun)
+    result <- do.call("rbind", tlist)
+}
+
+rownames(result) <- NULL   #remove all the odd labels that R adds
+attr(result, "event") <- states[enum]
+result
+@ 

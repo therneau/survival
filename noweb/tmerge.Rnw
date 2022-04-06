@@ -1,0 +1,747 @@
+\section{tmerge}
+The tmerge function was designed around a set of specific problems.
+The idea is to build up a time dependent data set one endpoint at at time.
+The primary arguments are
+\begin{itemize}
+  \item data1: the base data set that will be added onto
+  \item data2: the source for new information
+  \item id: the subject identifier in the new data
+  \item \ldots: additional arguments that add variables to the data set
+  \item tstart, tstop: used to set the time range for each subject
+  \item options
+\end{itemize}
+The created data set has three new variables (at least), which are
+\code{id}, \code{tstart} and \code{tstop}.
+
+The key part of the call are the ``\ldots'' arguments 
+which each can be one of four types:
+tdc() and cumtdc() add a time dependent variable, event() and cumevent()
+add a new endpoint.
+In the survival routines time intervals are open on the left and
+closed on the right, i.e.,  (tstart, tstop].
+Time dependent covariates apply from the start of an interval and events
+occur at the end of an interval.
+If a data set already had intervals of (0,10] and (10, 14] a new time
+dependent covariate or event at time 8 would lead to three intervals of
+(0,8], (8,10], and (10,14];
+the new time-dependent covariate value would be added to the second interval,
+a new event would be added to the first one.
+      
+A typical call would be
+<<dummy>>= 
+ newdata <- tmerge(newdata, old, id=clinic, diabetes=tdc(diab.time))
+@
+which would add a new time dependent covariate \code{diabetes} to the
+data set.
+
+<<tmerge>>=
+tmerge <- function(data1, data2, id, ..., tstart, tstop, options) {
+    Call <- match.call()
+    # The function wants to recognize special keywords in the
+    #  arguments, so define a set of functions which will be used to
+    #  mark objects
+    new <- new.env(parent=parent.frame())
+    assign("tdc", function(time, value=NULL, init=NULL) {
+        x <- list(time=time, value=value, default= init); 
+        class(x) <- "tdc"; x},
+           envir=new)
+    assign("cumtdc", function(time, value=NULL, init=NULL) {
+        x <- list(time=time, value=value, default= init); 
+        class(x) <-"cumtdc"; x},
+           envir=new)
+    assign("event", function(time, value=NULL, censor=NULL) {
+        x <- list(time=time, value=value, censor=censor); 
+        class(x) <-"event"; x},
+           envir=new)
+    assign("cumevent", function(time, value=NULL, censor=NULL) {
+        x <- list(time=time, value=value, censor=censor); 
+        class(x) <-"cumevent"; x},
+           envir=new)
+
+    if (missing(data1) || missing(data2) || missing(id)) 
+        stop("the data1, data2, and id arguments are required")
+    if (!inherits(data1, "data.frame")) stop("data1 must be a data frame")
+    <<tmerge-setup>>
+    <<tmerge-addvar>>
+    <<tmerge-finish>>
+}
+<<tmerge-print>>
+@ 
+
+The program can't use formulas because the \ldots arguments need to be
+named.  This results in a bit of evaluation magic to correctly assess
+arguments.  
+The routine below could have been set out as a separate top-level routine,
+the argument is where we want to document it: within the tmerge page or
+on a separate one.
+I decided on the former.
+<<tmerge-setup>>= 
+tmerge.control <- function(idname="id", tstartname="tstart", tstopname="tstop",
+                           delay =0, na.rm=TRUE, tdcstart=NA_real_, ...) {
+    extras <- list(...)
+    if (length(extras) > 0) 
+        stop("unrecognized option(s):", paste(names(extras), collapse=', '))
+    if (length(idname) != 1 || make.names(idname) != idname)
+        stop("idname option must be a valid variable name")
+    if (!is.null(tstartname) && 
+        (length(tstartname) !=1 || make.names(tstartname) != tstartname))
+        stop("tstart option must be NULL or a valid variable name")
+    if (length(tstopname) != 1 || make.names(tstopname) != tstopname)
+        stop("tstop option must be a valid variable name") 
+    if (length(delay) !=1 || !is.numeric(delay) || delay < 0)
+        stop("delay option must be a number >= 0")
+    if (length(na.rm) !=1 || ! is.logical(na.rm))
+        stop("na.rm option must be TRUE or FALSE")
+    if (length(tdcstart) !=1) stop("tdcstart must be a single value")
+    list(idname=idname, tstartname=tstartname, tstopname=tstopname, 
+         delay=delay, na.rm=na.rm, tdcstart=tdcstart)
+}
+
+if (!inherits(data1, "tmerge") && !is.null(attr(data1, "tname"))) {
+    # old style object that someone saved!
+    tm.retain <- list(tname = attr(data1, "tname"),
+                      tevent= list(name=attr(data1, "tevent"),
+                                   censor= attr(data1, "tcensor")),
+                      tdcvar = attr(data1, "tdcvar"),
+                      n = nrow(data1))
+    attr(data1, "tname") <- attr(data1, "tevent") <- NULL
+    attr(data1, "tcensor") <- attr(data1, "tdcvar") <- NULL
+    attr(data1, "tm.retain") <- tm.retain
+    class(data1) <- c("tmerge", class(data1))
+}
+                      
+if (inherits(data1, "tmerge")) {
+    tm.retain <- attr(data1, "tm.retain")
+    firstcall <- FALSE
+    # check out whether the object looks legit:
+    #  has someone tinkered with it?  This won't catch everything
+    tname <- tm.retain$tname
+    tevent <- tm.retain$tevent
+    tdcvar <- tm.retain$tdcvar
+    if (nrow(data1) != tm.retain$n)
+        stop("tmerge object has been modified, size")
+    if (any(is.null(match(unlist(tname), names(data1)))) ||
+        any(is.null(match(tm.retain$tcdname, names(data1)))) ||
+        any(is.null(match(tevent$name, names(data1)))))
+        stop("tmerge object has been modified, missing variables")
+    for (i in seq(along=tevent$name)) {
+        ename <- tevent$name[i]
+        if (is.numeric(data1[[ename]])) {
+            if (!is.numeric(tevent$censor[[i]]))
+                stop("event variable ", ename, 
+                     " no longer matches it's original class")
+        }
+        else if (is.character(data1[[ename]])) {
+            if (!is.character(tevent$censor[[i]]))
+                stop("event variable ", ename, 
+                     " no longer matches it's original class")
+        }
+        else if (is.logical(data1[[ename]])) {
+            if (!is.logical(tevent$censor[[i]]))
+                stop("event variable ", ename,
+                     " no longer matches it's original class")
+        }
+        else if (is.factor(data1[[ename]])) {
+            if (levels(data1[[ename]])[1] != tevent$censor[[i]])
+                stop("event variable ", ename,
+                     " has a new first level")
+        }
+        else stop("event variable ", ename, " is of an invalid class")
+    }
+} else {
+    firstcall <- TRUE
+    tname <- tevent <- tdcvar <- NULL
+    if (is.name(Call[["id"]])) {
+        idx <- as.character(Call[["id"]])
+        if (missing(options)) options <-list(idname= idx)
+        else if (is.null(options$idname)) options$idname <- idx
+    }
+}
+
+if (!missing(options)) {
+    if (!is.list(options)) stop("options must be a list")
+    if (!is.null(tname)) {
+        # If an option name matches one already in tname, don't confuse
+        #  the tmerge.control routine with duplicate arguments
+        temp <- match(names(options), names(tname), nomatch=0)
+        topt <- do.call(tmerge.control, c(options, tname[temp==0]))
+        if (any(temp >0)) {
+            # A variable name is changing midstream, update the
+            # variable names in data1
+            varname <- tname[c("idname", "tstartname", "tstopname")]
+            temp2 <- match(varname, names(data1))
+            names(data1)[temp2] <- varname
+        }
+    }
+    else topt <- do.call(tmerge.control, options)
+}
+else if (length(tname)) topt <- do.call(tmerge.control, tname)
+else  topt <- tmerge.control()
+
+# id, tstart, tstop are found in data2
+if (missing(id)) stop("the id argument is required")
+if (missing(data1) || missing(data2))
+    stop("two data sets are required")
+id <- eval(Call[["id"]], data2, enclos=emptyenv()) #don't find it elsewhere
+if (is.null(id)) stop("id variable not found in data2")
+if (any(is.na(id))) stop("id variable cannot have missing values")
+
+if (firstcall) {
+    if (!missing(tstop)) {
+         tstop <-  eval(Call[["tstop"]],  data2)
+         if (length(tstop) != length(id))
+             stop("tstop and id must be the same length")
+         # The neardate routine will check for legal tstop data type
+      }
+    if (!missing(tstart)) {
+        tstart <- eval(Call[["tstart"]], data2)
+        if (length(tstart)==1) tstart <- rep(tstart, length(id))
+        if  (length(tstart) != length(id))        
+            stop("tstart and id must be the same length")
+        if (any(tstart >= tstop))
+            stop("tstart must be < tstop")
+         }
+}
+else {
+    if (!missing(tstart) || !missing(tstop))
+        stop("tstart and tstop arguments only apply to the first call")
+}
+@ 
+
+Get the \ldots arguments.  They are evaluated in a special frame,
+set up earlier, so that the definitions of the functions tdc,
+cumtdc, event, and cumevent are local to tmerge.
+Check that they are all legal: each argument is named, and is one of the four
+allowed types.
+<<tmerge-setup>>=
+# grab the... arguments
+notdot <- c("data1", "data2", "id", "tstart", "tstop", "options")
+dotarg <- Call[is.na(match(names(Call), notdot))]
+dotarg[[1]] <- as.name("list")  # The as-yet dotarg arguments
+if (missing(data2)) args <- eval(dotarg, envir=new)
+else  args <- eval(dotarg, data2, enclos=new)
+    
+argclass <- sapply(args, function(x) (class(x))[1])
+argname <- names(args)
+if (any(argname== "")) stop("all additional argments must have a name")
+       
+check <- match(argclass, c("tdc", "cumtdc", "event", "cumevent"))
+if (any(is.na(check)))
+    stop(paste("argument(s)", argname[is.na(check)], 
+                   "not a recognized type"))
+@ 
+
+The tcount matrix keeps track of what we have done, and is added to
+the final object at the end.  
+This is useful to the user for debugging what may have gone right or
+wrong in their usage.
+
+<<tmerge-setup>>= 
+# The tcount matrix is useful for debugging
+tcount <- matrix(0L, length(argname), 9)
+dimnames(tcount) <- list(argname, c("early","late", "gap", "within", 
+                                    "boundary", "leading", "trailing",
+                                    "tied", "missid"))
+tcens <- tevent$censor
+tevent <- tevent$name
+if (is.null(tcens)) tcens <- vector('list', 0)
+@ 
+
+The very first call to the routine is special, since this is when the
+range of legal times is set. We also apply an initial sort to the data
+if necessary so that times are in order.
+There are 2 cases:
+\begin{enumerate}
+  \item Adding a time range: tstop comes from data2, optional tstart, and the
+    id can be simply matched, by which we mean no duplicates in data1.
+  \item The more common case: there is no tstop, one observation per subject,
+    and the first optional argument is an
+    event or cumevent.  We then use its time as the range.
+\end{enumerate} 
+One thing we could add, but didn't, was to warn if any of the three new
+variables will stomp on ones already in data1.
+
+Note that in case 2 we cannot wait for the later code to deal with duplicate
+id/time pairs, since that later code requires a valid starting point.  That
+code will work out which of a duplicate should be retained, however.
+
+<<tmerge-setup>>= 
+newdata <- data1 #make a copy
+if (firstcall) {
+    # We don't look for topt$id.  What if the user had id=clinic, but their
+    #  starting data set also had a variable named "id".  We want clinic for
+    #  this first call.
+    idname <- Call[["id"]]
+    if (!is.name(idname)) 
+        stop("on the first call 'id' must be a single variable name")
+ 
+    # The line below finds tstop and tstart variables in data1
+    indx <- match(c(topt$idname, topt$tstartname, topt$tstopname), names(data1), 
+                  nomatch=0)
+    if (any(indx[1:2]>0) && FALSE) {  # warning currently turned off. Be chatty?
+        overwrite <- c(topt$tstartname, topt$tstopname)[indx[2:3]]
+        warning("overwriting data1 variables", paste(overwrite, collapse=' '))
+        }
+    
+    temp <- as.character(idname)
+    if (!is.na(match(temp, names(data1)))) {
+            data1[[topt$idname]] <- data1[[temp]]
+            baseid <- data1[[temp]]
+            }
+    else stop("id variable not found in data1")
+
+    if (any(duplicated(baseid))) 
+        stop("for the first call (that establishes the time range) data1 must have no duplicate identifiers")
+
+    if (missing(tstop)) {
+        if (length(argclass)==0 || argclass[1] != "event")
+            stop("neither a tstop argument nor an initial event argument was found")
+        # this is case 2 -- the first time value for each obs sets the range
+        last <- !duplicated(id)
+        indx2 <- match(unique(id[last]), baseid)
+        if (any(is.na(indx2)))
+            stop("setting the range, and data2 has id values not in data1")
+        if (any(is.na(match(baseid, id))))
+            stop("setting the range, and data1 has id values not in data2")
+        newdata <- data1[indx2,]
+        tstop <- (args[[1]]$time)[last]
+    }
+    else {
+        if (length(baseid)== length(id) && all(baseid == id)) newdata <- data1
+        else {  # Note: 'id' is the idlist for data 2
+            indx2 <- match(id, baseid)
+            if (any(is.na(indx2)))
+                stop("setting the range, and data2 has id values not in data1")
+            if (any(is.na(match(baseid, id))))
+                stop("setting the range, and data1 has id values not in data2")
+            newdata <- data1[indx2,]
+        }
+    }
+      
+    if (any(is.na(tstop))) 
+        stop("missing time value, when that variable defines the span")
+    if (missing(tstart)) {
+        indx <- which(tstop <=0)
+        if (length(indx) >0) stop("found an ending time of ", tstop[indx[1]],
+                                  ", the default starting time of 0 is invalid")
+        tstart <- rep(0, length(tstop))
+    }
+    if (any(tstart >= tstop)) 
+        stop("tstart must be < tstop")
+    newdata[[topt$tstartname]] <- tstart
+    newdata[[topt$tstopname]] <- tstop
+    n <- nrow(newdata)
+    if (any(duplicated(id))) {
+        # sort by time within id
+        indx1 <- match(id, unique(id))
+        newdata <- newdata[order(indx1, tstop),]
+     }
+    temp <- newdata[[topt$idname]]
+    if (any(tstart >= tstop)) stop("tstart must be < tstop")
+    if (any(newdata$tstop[-n] > newdata$tstart[-1] &
+            temp[-n] == temp[-1]))
+        stop("first call has created overlapping or duplicated time intervals")
+    idmiss <- 0  # the tcount table should have a zero
+}
+else { #not a first call
+    idmatch <- match(id, data1[[topt$idname]], nomatch=0)
+    if (any(idmatch==0)) idmiss <- sum(idmatch==0)
+    else idmiss <- 0
+}
+@ 
+
+Now for the real work.  For each additional argument we first match the
+id/time pairs of the new data to the current data set, and categorize
+each into a type.  If the time value in data2 is NA, then that
+addition is skipped.  Ditto if the value is NA and options narm=TRUE.
+This is a convenience for the user, who will often
+be merging in a variable like ``day of first diabetes diagnosis'' which
+is missing for those who never had that outcome occur.
+<<tmerge-addvar>>=
+saveid <- id
+for (ii in seq(along.with=args)) {
+    argi <- args[[ii]]
+    baseid <- newdata[[topt$idname]]
+    dstart <- newdata[[topt$tstartname]]
+    dstop  <- newdata[[topt$tstopname]]
+    argcen <- argi$censor
+    
+    # if an event time is missing then skip that obs.  Also toss obs that 
+    #  whose id does not match anyone in data1
+    etime <- argi$time
+    if (idmiss ==0) keep <- rep(TRUE, length(etime))
+    else keep <- (idmatch > 0)
+    if (length(etime) != length(saveid))
+        stop("argument ", argname[ii], " is not the same length as id")
+    if (!is.null(argi$value)) {
+       if (length(argi$value) != length(saveid))
+            stop("argument ", argname[ii], " is not the same length as id")
+        if (topt$na.rm) keep <- keep & !(is.na(etime) | is.na(argi$value))
+        else keep <- keep & !is.na(etime)
+        if (!all(keep)) {
+            etime <- etime[keep]
+            argi$value <- argi$value[keep]
+            }
+        }
+    else {
+      keep <- keep & !is.na(etime)
+      etime <- etime[keep]
+      }
+    id <- saveid[keep]
+
+    # Later steps become easier if we sort the new data by id and time
+    #  The match() is critical when baseid is not in sorted order.  The
+    #  etime part of the sort will change from one ii value to the next.
+    indx <- order(match(id, baseid), etime)
+    id <- id[indx]
+    etime <- etime[indx]
+    if (!is.null(argi$value))
+        yinc <- argi$value[indx]
+    else yinc <- NULL
+        
+    # indx1 points to the closest start time in the baseline data (data1)
+    #  that is <= etime.  indx2 to the closest end time that is >=etime.
+    # If etime falls into a (tstart, tstop) interval, indx1 and indx2
+    #   will match
+    # If the "delay" argument is set and this event is of type tdc, then
+    #   move any etime that is after the entry time for a subject.
+    if (topt$delay >0 && argclass[ii] %in% c("tdc", "cumtdc")) {
+        mintime <- tapply(dstart, baseid, min)
+        index <- match(id, names(mintime))
+        etime <- ifelse(etime <= mintime[index], etime, etime+ topt$delay)
+    }
+    
+    indx1 <- neardate(id, baseid, etime, dstart, best="prior")
+    indx2 <- neardate(id, baseid, etime, dstop, best="after")
+
+    # The event times fall into one of 5 categories
+    #   1. Before the first interval
+    #   2. After the last interval
+    #   3. Outside any interval but with time span, i.e, it falls into
+    #       a gap in follow-up
+    #   4. Strictly inside an interval (does't touch either end)
+    #   5. Inside an interval, but touching.
+    itype <- ifelse(is.na(indx1), 1,
+                    ifelse(is.na(indx2), 2, 
+                           ifelse(indx2 > indx1, 3,
+                                  ifelse(etime== dstart[indx1] | 
+                                         etime== dstop[indx2], 5, 4))))
+
+    # Subdivide the events that touch on a boundary
+    #  1: intervals of (a,b] (b,d], new count at b  "tied edge"
+    #  2: intervals of (a,b] (c,d] with c>b, new count at c, "front edge"
+    #  3: intervals of (a,b] (c,d] with c>b, new count at b, "back edge"
+    #
+    subtype <- ifelse(itype!=5, 0, 
+                      ifelse(indx1 == indx2+1, 1,
+                             ifelse(etime==dstart[indx1], 2, 3)))
+    tcount[ii,1:7] <- table(factor(itype+subtype, levels=c(1:4, 6:8)))
+
+    # count ties.  id and etime are not necessarily sorted
+    tcount[ii,8] <- sum(tapply(etime, id, function(x) sum(duplicated(x))))
+    tcount[ii,9] <- idmiss
+    <<tmerge-addin2>>
+}
+@ 
+
+A \code{tdc} or \code{cumtdc} operator defines a new time-dependent
+variable which applies to all future times.
+Say that we had the following scenario for one subject
+\begin{center}
+  \begin{tabular}{rr|rr}
+    \multicolumn{2}{c}{current} & \multicolumn{2}{c}{addition} \\
+    tstart & tstop & time & x \\
+    2 & 5 & 1 & 20.2 \\
+    6 & 7 & 7 & 11 \\
+    7 & 15 &  8  & 17.3 \\
+    15 & 30 \\
+    \end{tabular}
+  \end{center}
+The resulting data set will have intervals of (2,5), (6,7), (7,8) and (8,15)
+with covariate values of 20.2, 20.2,  11, and 17.3.
+Only a covariate change that occurs within an interval causes a new data
+row.  Covariate changes that happen after the last interval are ignored,
+i.e. at change at time $\ge 30$ in the above example.
+
+If instead this had been events at times 1, 7, and 8, the first event would
+be ignored since it happens outside of any interval, so would an event
+at exactly time 2.  The event at time
+7 would be recorded in the (6,7) interval and the one at time 8 in the 
+(7,8) interval: events happen at the ends of intervals.
+In both cases new rows are only generated for new time values that fall
+strictly within one of the old intervals.
+
+When a subject has two increments on the same day the later one wins.
+This is correct behavior for cumtdc, a bit odd for cumevent, and the
+user's problem for tdc and event.
+We report back the number of ties so that the user can deal with it. 
+
+Where are we now with the variables?
+\begin{center}
+  \begin{tabular}{cccc}
+    itype& class &   indx1 & indx2 \\ \hline
+    1    & before       &   NA & next interval \\
+    2    & after        & prior interval & NA \\
+    3    & in a gap     & prior interval & next interval \\ 
+    4    & within interval & containing interval & containing interval \\
+    5-1  & on a join    & next interval & prior interval \\
+    5-2  & front edge   & containing & containing \\
+    5-3  & back edge    & containing & containing \\
+    \end{tabular}
+\end{center}
+If there are any itype 4, start by expanding the data set to add
+new cut points, which will turn all the 4's into 5-1 types.
+When expanding, all the event type variables turn into ``censor'' at the
+newly added times and other variables stay the same.
+A subject could have more than one new cutpoint added within an interval
+so we have to count each.
+In newdata all the rows for a given subject are contiguous and in time
+order, though the data set may not be in subject order.
+<<tmerge-addin2>>=
+indx4 <- which(itype==4)
+n4 <- length(indx4)
+if (n4 > 0) {
+    # we need to eliminate duplicate times within the same id, but
+    #  do so without changing the class of etime: it might
+    #  be a Date, an integer, a double, ... 
+    # Using unique on a data.frame does the trick
+    icount <- data.frame(irow= indx1[indx4], etime=etime[indx4])
+    icount <- unique(icount)   
+    # the icount data frame will be sorted by second column within first
+    #  so rle is faster than table
+    n.add <- rle(icount$irow)$length # number of rows to add for each id
+    
+    # expand the data 
+    irep <- rep.int(1L, nrow(newdata))
+    erow <- unique(indx1[indx4])   # which rows in newdata to be expanded
+    irep[erow] <- 1+ n.add # number of rows in new data
+    jrep <- rep(1:nrow(newdata), irep)  #stutter the duplicated rows
+    newdata <- newdata[jrep,]  #expand it out
+    dstart <- dstart[jrep]
+    dstop <-  dstop[jrep]
+
+    #fix up times
+    nfix <- length(erow)
+    temp <- vector("list", nfix)
+    iend <- (cumsum(irep))[irep >1]  #end row of each duplication set
+    for (j in 1:nfix) temp[[j]] <-  -(seq(n.add[j] -1, 0)) + iend[j]
+    newrows <- unlist(temp)
+    
+    # this should not be necessary
+    #    if (inherits(dstart, "Date"))
+    #        icount$etime <- as.Date(icount$etime, origin= "1970-01-01")
+    dstart[newrows] <- dstop[newrows-1] <- icount$etime
+    newdata[[topt$tstartname]] <- dstart
+    newdata[[topt$tstopname]]  <- dstop
+    for (ename in tevent) newdata[newrows-1, ename] <- tcens[[ename]]
+
+    # refresh indices
+    baseid <- newdata[[topt$idname]]
+    indx1 <- neardate(id, baseid, etime, dstart, best="prior")
+    indx2 <- neardate(id, baseid, etime, dstop, best="after")
+    subtype[itype==4] <- 1  #all the "insides" are now on a tied edge
+    itype[itype==4]   <- 5  
+}
+@ 
+
+Now we can add the new variable.  
+The most common is a tdc, so start with it.
+The C routine returns a set of indices: 0,1,1,2,3,0,4,... would mean that
+row 1 of the new data happens before the tdc variable, 2 and 3 take values from
+the first element of yinc, etc.  
+By returning an index, the yinc variable can be of any data type.  Using
+is.na() on the left side below causes the \emph{right} kind of NA to be inserted
+(this trick was stolen from the merge routine).
+
+If this is a first call, don't allow the new variable to overwrite a variable
+already existing in the data set, we found it leads to problems.  (Usually it
+is a user mistake.)  However, tdc calls themselves can stack.
+
+<<tmerge-addin2>>=
+# add a tdc variable
+newvar <- newdata[[argname[ii]]]  # prior value (for sequential tmerge calls)
+if (argclass[ii] %in% c("tdc", "cumtdc")){
+    if (argname[[ii]] %in% tevent)
+        stop("attempt to turn event variable", argname[[ii]], "into a tdc")
+    if (!(argname[[ii]] %in% tdcvar)){
+        tdcvar <- c(tdcvar, argname[[ii]])
+        if (!is.null(newvar) && argclass[ii] == "tdc") {
+            warning(paste0("replacement of variable '", argname[ii], "'"))
+            newvar <- NULL
+        }
+    }
+}
+if (argclass[ii] == "tdc") {
+    default <- argi$default   # default value
+    if (is.null(default)) default <- topt$tdcstart
+    else if (length(default) !=1)
+        stop("initial tdc value must be of length 1")
+
+    # id can be any data type; feed integers to the C routine
+    storage.mode(dstart) <- storage.mode(etime) <- "double"  #if time is integer
+    uid <- unique(baseid)
+    index <- .Call(Ctmerge2, match(baseid, uid), dstart, 
+                               match(id, uid),  etime)
+
+    # Next line removed 11/2021, I can't recall why was added
+    #if (!is.null(yinc)) newvar <- NULL #a tdc can't be updated, other than 0/1
+    if (is.null(newvar)) {
+        if (is.null(yinc)) newvar <- ifelse(index==0, 0L, 1L) #add a 0/1 variable
+        else {
+            newvar <- yinc[pmax(1L, index)]
+            if (any(index==0)) {
+                if (is.na(default)) is.na(newvar) <- (index==0L)                
+                else {
+                    if (is.numeric(newvar)) newvar[index==0L] <- as.numeric(default)
+                    else {
+                        if (is.factor(newvar)) {
+                            # special case: if default isn't in the set of levels,
+                            #   add it to the levels
+                            if (is.na(match(default, levels(newvar))))
+                                levels(newvar) <- c(levels(newvar), default)
+                        }
+                        newvar[index== 0L] <- default
+                    }
+                }
+            }
+        }
+    } else {
+        # update a 0/1 variable
+        if (is.integer(newvar) && all(newvar==0L | newvar==1L))
+            newvar[index!=0L] <- 1L
+        else stop("tdc update does not match prior variable type: ", argname[ii])
+    }
+    tdcvar <- unique(c(tdcvar, argname[[ii]]))
+}
+@ 
+
+Events and cumevents are easy because
+each affects only one interval.
+<<tmerge-addin2>>=
+# add events
+if (argclass[ii] %in% c("cumtdc", "cumevent")) {
+    if (is.null(yinc)) yinc <- rep(1L, length(id))
+    else if (is.logical(yinc)) yinc <- as.numeric(yinc)  # allow cumulative T/F
+    if (!is.numeric(yinc)) stop("invalid increment for cumtdc or cumevent")
+}   
+if (argclass[ii] == "cumevent"){
+    ykeep <- (yinc !=0)  # ignore the addition of a censoring event
+    yinc <- unlist(tapply(yinc, match(id, baseid), cumsum))
+}
+
+if (argclass[ii] %in% c("event", "cumevent")) {
+    if (!is.null(newvar)) {
+        if (!argname[ii] %in% tevent) {
+            #warning(paste0("non-event variable '", argname[ii], "' replaced by an event variable"))
+            newvar <- NULL
+        }
+        else if (!is.null(yinc)) {
+            if (class(newvar) != class(yinc)) 
+               stop("attempt to update an event variable with a different type")
+            if (is.factor(newvar) && !all(levels(yinc) %in% levels(newvar)))
+               stop("attemp to update an event variable and levels do not match")
+        }
+    }
+
+    if (is.null(yinc)) yinc <- rep(1L, length(id))
+    if (is.null(newvar)) {
+        if (is.numeric(yinc)) newvar <- rep(0L, nrow(newdata))
+        else if (is.factor(yinc)) 
+            newvar <- factor(rep(levels(yinc)[1], nrow(newdata)),
+                             levels(yinc))
+        else if (is.character(yinc)) newvar <- rep('', nrow(newdata))
+        else if (is.logical(yinc)) newvar <- rep(FALSE, nrow(newdata))
+        else stop("invalid value for a status variable")
+    }
+ 
+    keep <- (subtype==1 | subtype==3) # all other events are thrown away
+    if (argclass[ii] == "cumevent") keep <- (keep & ykeep)
+    newvar[indx2[keep]] <- yinc[keep]
+    
+    # add this into our list of 'this is an event type variable'
+    if (!(argname[ii] %in% tevent)) {
+        tevent <- c(tevent, argname[[ii]])
+        if (is.factor(yinc)) tcens <- c(tcens, list(levels(yinc)[1]))
+        else if (is.logical(yinc)) tcens <- c(tcens, list(FALSE))
+        else if (is.character(yinc)) tcens <- c(tcens, list(""))
+        else if (is.integer(yinc))   tcens <- c(tcens, list(0L))
+        else tcens <- c(tcens, list(0))
+        names(tcens) <- tevent
+    }
+}
+
+else if (argclass[ii] == "cumtdc") {  # process a cumtdc variable
+    # I don't have a good way to catch the reverse of this user error
+    if (argname[[ii]] %in% tevent)
+        stop("attempt to turn event variable", argname[[ii]], "into a cumtdc")
+
+    keep <- itype != 2  # changes after the last interval are ignored
+    indx <- ifelse(subtype==1, indx1, 
+                   ifelse(subtype==3, indx2+1L, indx2))
+    
+    # we want to pass the right kind of NA to the C code
+    default <- argi$default
+    if (is.null(default)) default <- as.numeric(topt$tdcstart)
+    else {
+        if (length(default) != 1) stop("tdc initial value must be of length 1")
+        if (!is.numeric(default)) stop("cumtdc initial value must be numeric")
+    }       
+    if (is.null(newvar)) {  # not overwriting a prior value
+        if (is.null(argi$value)) newvar <- rep(0.0, nrow(newdata))
+        else newvar <- rep(default, nrow(newdata))
+    }
+    
+    # the increment must be numeric
+    if (!is.numeric(newvar)) 
+        stop("data and starting value do not agree on data type")
+    # id can be any data type; feed integers to the C routine
+    storage.mode(yinc) <- storage.mode(dstart) <- "double"
+    storage.mode(newvar) <- storage.mode(etime) <- "double"
+    newvar <- .Call(Ctmerge, match(baseid, baseid), dstart, newvar, 
+                    match(id, baseid)[keep], etime[keep], 
+                    yinc[keep], indx[keep])
+}  
+
+newdata[[argname[ii]]] <- newvar
+@ 
+
+Finish up by adding the attributes and the class
+<<tmerge-finish>>=
+tm.retain <- list(tname = topt[c("idname", "tstartname", "tstopname")],
+                  n= nrow(newdata))
+if (length(tevent)) 
+    tm.retain$tevent <- list(name = tevent, censor=tcens)
+if (length(tdcvar)>0) tm.retain$tdcvar <- tdcvar
+attr(newdata, "tm.retain") <- tm.retain
+attr(newdata, "tcount") <- rbind(attr(data1, "tcount"), tcount)
+attr(newdata, "call") <- Call
+
+row.names(newdata) <- NULL  #These are a mess; kill them off.
+# Not that it works: R just assigns new row names.
+class(newdata) <- c("tmerge", "data.frame")
+newdata
+@ 
+
+The summary routine is for checking: it simply prints out the attributes.
+<<tmerge-print>>=
+summary.tmerge <- function(object, ...) {
+    if (!is.null(cl <- attr(object, "call"))) {
+        cat("Call:\n")
+        dput(cl)
+        cat("\n")
+    }
+
+    print(attr(object, "tcount"))
+}
+
+# This could be smarter: if you only drop variables that are not known 
+# to tmerge then it would be okay.  But I currently like the "touch it
+#  and it dies" philosophy
+"[.tmerge" <- function(x, ..., drop=TRUE){
+    class(x) <- "data.frame"
+    attr(x, "tm.retain") <- NULL
+    attr(x, "tcount") <- NULL
+    attr(x, "call") <- NULL
+    NextMethod(x)
+    }
+@ 

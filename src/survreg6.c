@@ -1,4 +1,3 @@
-/* $Id$ */
 /*
 ** Fit one of several censored data distributions
 **
@@ -39,6 +38,7 @@
 **      newbeta(nvar)- always contains the "next iteration"
 **      JJ = the approx variance matrix J'J, guarranteed non-singular
 */
+#include "math.h"
 #include "survS.h"
 #include "survproto.h"
 
@@ -119,7 +119,7 @@ SEXP survreg6(SEXP maxiter2,   SEXP nvarx,  SEXP y,
     **   parent routine, and also used to "backtrack" when we need to fail
     **   over to a Fisher step after NR + halving didn't work
     */
-    newbeta = (double *) Calloc(LENGTH(beta2) + nvar2 + nvar2*nvar2, double);
+    newbeta = (double *) CALLOC(LENGTH(beta2) + nvar2 + nvar2*nvar2, double);
     u = newbeta + length(beta2);
     JJ  = dmatrix(u +nvar2, nvar2, nvar2);
 
@@ -216,7 +216,8 @@ SEXP survreg6(SEXP maxiter2,   SEXP nvarx,  SEXP y,
 	/* 
 	**   Am I done?  Check for convergence, then update betas
 	*/
-	if (fabs(1-(*loglik/newlk))<=eps && halving==0 ) { /* all done */
+	if (!isnan(newlk) && 0== isinf(newlk) && 
+	    fabs(1-(*loglik/newlk))<=eps && halving==0 ) { /* all done */
 	    *loglik = newlk;
 	    *flag = cholesky3(imat, nvar2, 0, NULL, tol_chol);
 
@@ -231,7 +232,8 @@ SEXP survreg6(SEXP maxiter2,   SEXP nvarx,  SEXP y,
 	    goto alldone;
 	    }
 	
-	if (newlk < *loglik)   {    /*it is not converging ! */
+	if (isnan(newlk) || 0 != isinf(newlk) || newlk < *loglik)   {    
+	    /*it is not converging ! */
 	    for (j=0; j<5 && newlk < *loglik; j++) {
 		halving++;
 		for (i=0; i<nvar2; i++)
@@ -327,7 +329,7 @@ alldone:
 #endif    
 
     UNPROTECT(nprotect + 2);
-    Free(newbeta);
+    FREE(newbeta);
     return(rlist);
     }
     

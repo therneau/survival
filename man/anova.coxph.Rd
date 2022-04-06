@@ -6,7 +6,8 @@
 \method{anova}{coxph}(object, \dots,  test = 'Chisq')
 }
 \description{
-  Compute an analysis of deviance table for one or more Cox model fits.
+  Compute an analysis of deviance table for one or more Cox model fits,
+  based on the log partial likelihood.
 }
 \arguments{
   \item{object}{An object of class \code{coxph}}
@@ -16,13 +17,15 @@ other choices result in no test being done.}
 }
 \details{
   Specifying a single object gives a sequential analysis of deviance
-  table for that fit.  That is, the reductions in the model log-likelihood
+  table for that fit.  That is, the reductions in the model
+  Cox log-partial-likelihood
   as each term of the formula is added in turn are given in as
   the rows of a table, plus the log-likelihoods themselves.
   A robust variance estimate is normally used in situations where the
   model may be mis-specified, e.g., multiple events per subject.
-  In this case a comparison of partial-likelihood values does not make
-  sense, and \code{anova} will refuse to print results.
+  In this case a comparison of likelihood values does not make
+  sense (differences no longer have a chi-square distribution),
+  and \code{anova} will refuse to print results.
   
   If more than one object is specified, the table has a row for the
   degrees of freedom and loglikelihood for each model. For all
@@ -38,7 +41,7 @@ other choices result in no test being done.}
   An object of class \code{"anova"} inheriting from class \code{"data.frame"}.
 }
 \section{Warning}{
-  The comparison between two or more models by \code{anova} or
+  The comparison between two or more models by \code{anova}
    will only be valid if they
   are fitted to the same dataset. This may be a problem if there are
   missing values.}

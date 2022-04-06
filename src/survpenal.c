@@ -11,6 +11,7 @@
 **   old result.
 */
 #include "survS.h"
+#include "survproto.h"
 
 void survpenal(int whichcase, int nfrail,    int  nvar,    double **hmat, 
 	       double **JJ,   double *hdiag, double *jdiag,

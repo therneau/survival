@@ -1,7 +1,7 @@
 
-R version 2.11.1 (2010-05-31)
-Copyright (C) 2010 The R Foundation for Statistical Computing
-ISBN 3-900051-07-0
+R Under development (unstable) (2020-02-28 r77869) -- "Unsuffered Consequences"
+Copyright (C) 2020 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -16,7 +16,6 @@ Type 'demo()' for some demos, 'help()' for on-line help, or
 Type 'q()' to quit R.
 
 > library(survival)
-Loading required package: splines
 > options(na.action=na.exclude) # preserve missings
 > options(contrasts=c('contr.treatment', 'contr.poly')) #ensure constrast type
 > 
@@ -135,16 +134,16 @@ Call:
 coxph(formula = Surv(time, status) ~ x, data = testw1, weights = wt, 
     iter = 0)
 
+    coef exp(coef) se(coef) z p
+x 0.0000    1.0000   0.5843 0 1
 
-  coef exp(coef) se(coef) z p
-x    0         1    0.584 0 1
-
-Likelihood ratio test=0  on 1 df, p=1  n= 9 
+Likelihood ratio test=0  on 1 df, p=1
+n= 9, number of events= 5 
 > summary(fit)
 Call:
 coxph(formula = Surv(time, status) ~ x, data = testw1, weights = wt)
 
-  n= 9 
+  n= 9, number of events= 5 
 
     coef exp(coef) se(coef)     z Pr(>|z|)
 x 0.8726    2.3931   0.7126 1.225    0.221
@@ -152,10 +151,10 @@ x 0.8726    2.3931   0.7126 1.225    0.221
   exp(coef) exp(-coef) lower .95 upper .95
 x     2.393     0.4179    0.5921     9.672
 
-Rsquare= 0.177   (max possible= 0.999 )
-Likelihood ratio test= 1.75  on 1 df,   p=0.1858
-Wald test            = 1.5  on 1 df,   p=0.2207
-Score (logrank) test = 1.58  on 1 df,   p=0.2094
+Concordance= 0.637  (se = 0.161 )
+Likelihood ratio test= 1.75  on 1 df,   p=0.2
+Wald test            = 1.5  on 1 df,   p=0.2
+Score (logrank) test = 1.58  on 1 df,   p=0.2
 
 > resid(fit0, type='score')
           1           2           3           4           5           6 
@@ -186,3 +185,6 @@ Score (logrank) test = 1.58  on 1 df,   p=0.2094
 [1] TRUE
 > 
 > 
+> proc.time()
+   user  system elapsed 
+  0.891   0.068   0.952 

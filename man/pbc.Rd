@@ -1,10 +1,19 @@
 \name{pbc}
 \alias{pbc}
 \docType{data}
-\title{Mayo Clinic Primary Biliary Cirrhosis Data}
-\description{D
-This data is from the Mayo Clinic
-trial in primary biliary cirrhosis (PBC) of the liver conducted between 1974
+\title{Mayo Clinic Primary Biliary Cholangitis Data}
+\description{
+  Primary sclerosing cholangitis is an autoimmune disease leading to
+  destruction of the small bile ducts in the liver.  Progression is
+  slow but inexhortable, eventually leading to cirrhosis and liver
+  decompensation.
+  The condition has been recognised since at least 1851 and was named
+  "primary biliary cirrhosis" in 1949.
+  Because cirrhosis is a feature only of advanced disease, a change of
+  its name to "primary biliary cholangitis" was proposed by patient
+  advocacy groups in 2014.
+  
+This data is from the Mayo Clinic trial in PBC conducted between 1974
 and 1984.  
 A total of 424 PBC patients, referred to Mayo Clinic during that ten-year
 interval, met eligibility criteria for the randomized placebo controlled
@@ -17,12 +26,15 @@ are on an additional 106 cases as well as the 312 randomized participants.
     
 A nearly identical data set found in appendix D of Fleming and Harrington;
 this version has fewer missing values.
+
 }
-\usage{pbc}
+\usage{pbc
+data(pbc, package="survival")
+}
 \format{
   \tabular{ll}{
     age:\tab in years\cr
-    albumin:\tab serum albumin (mg/dl)\cr
+    albumin:\tab serum albumin (g/dl)\cr
     alk.phos:\tab alkaline phosphotase (U/liter)\cr
     ascites:\tab presence of ascites \cr
     ast:\tab aspartate aminotransferase, once called SGOT (U/ml)\cr
@@ -51,4 +63,5 @@ this version has fewer missing values.
   Springer-Verlag, New York.
   ISBN: 0-387-98784-3.
 }
+\seealso{\code{\link{pbcseq}}}
 \keyword{datasets}

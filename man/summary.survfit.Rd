@@ -9,7 +9,7 @@
 }
 
 \usage{
-  \method{summary}{survfit}(object, times=, censored=FALSE, scale=1,
+  \method{summary}{survfit}(object, times, censored=FALSE, scale=1,
   extend=FALSE, rmean=getOption('survfit.rmean'), ...)
   }
 \arguments{
@@ -19,7 +19,8 @@
     \item{times}{
     vector of times; 
     the returned matrix will contain 1 row for each time. 
-    This must be in increasing order and missing values are not allowed. 
+    The vector will be sorted into increasing order;
+    missing values are not allowed. 
     If \code{censored=T}, the default \code{times} vector contains all
     the unique times in \code{fit}, otherwise
     the default \code{times} vector uses only the event (death) times. 
@@ -37,10 +38,10 @@
     logical value: if TRUE, prints information for all specified \code{times}, 
     even if there are no subjects left at the end of the specified
     \code{times}. 
-    This is only valid if the \code{times} argument is present. 
+    This is only used if the \code{times} argument is present. 
   }
   \item{rmean}{Show restricted mean: see
-  \code{\link{print.summary.survfit}} for details}
+  \code{\link{print.survfit}} for details}
   \item{\dots}{for future methods}
   }
 
@@ -71,7 +72,6 @@ Otherwise, it is the cumulative number of subjects that have entered
 since the last time listed until time t.  
 }
 \item{n.exit.censored}{
-
 if the \code{times} argument is 
 missing, this column is the number of subjects that left without an 
 event at time t. 
@@ -111,6 +111,32 @@ table of information that is returned from \code{print.survfit} function.
 \item{type}{
 type of data censoring.  Passed through from the fit object. 
 }
+}
+\section{Details}{
+This routine has two uses: printing out a survival curve at specified
+time points (often yearly), or extracting the values at specified time
+points for further processing.
+In the first case we normally want \code{extend=FALSE}, i.e., don't print out
+data past the end of the curve.  If the \code{times} option only
+contains values beyond the last point in the curve then there is nothing
+to print and an error message will result.
+For the second usage we almost always want \code{extend=TRUE}, so that the
+results will have a predictable length.
+
+The \code{survfit} object itself will have a row of information at each
+censoring or event time, it does not save information on each unique
+entry time.  For printout at two time points t1, t2, this function will
+give the the number at risk at the smallest event times that are >= t1
+and >= t2, respectively, the survival curve at the largest recorded times
+<= t1 and <= t2, and the number of events and censorings in the interval
+t1 < t <= t2.
+
+When the routine is called with counting process data many users are
+confused by counts that are too large.
+For example, \code{Surv(c(0,0, 5, 5), c(2, 3, 8, 10), c(1, 0, 1, 0))}
+followed by a request for the values at time 4.
+The \code{survfit} object has entries only at times 2, 3, 8, and 10;
+there are 2 subjects at risk at time 8, so that is what will be printed.
 }
 \seealso{
 \code{\link{survfit}},  \code{\link{print.summary.survfit}}   

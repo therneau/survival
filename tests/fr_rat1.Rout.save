@@ -1,7 +1,7 @@
 
-R version 2.9.0 (2009-04-17)
-Copyright (C) 2009 The R Foundation for Statistical Computing
-ISBN 3-900051-07-0
+R Under development (unstable) (2019-10-26 r77334) -- "Unsuffered Consequences"
+Copyright (C) 2019 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -18,7 +18,6 @@ Type 'q()' to quit R.
 > options(na.action=na.exclude) # preserve missings
 > options(contrasts=c('contr.treatment', 'contr.poly')) #ensure constrast type
 > library(survival)
-Loading required package: splines
 > 
 > # Tests using the rats data
 > #
@@ -26,30 +25,21 @@ Loading required package: splines
 > #    3863-3868, November 77)
 > 
 > rfit <- coxph(Surv(time,status) ~ rx + frailty(litter), rats,
-+ 	     method='breslow')
-> names(rfit)
- [1] "coefficients"      "var"               "var2"             
- [4] "loglik"            "iter"              "linear.predictors"
- [7] "residuals"         "means"             "method"           
-[10] "frail"             "fvar"              "df"               
-[13] "df2"               "penalty"           "pterms"           
-[16] "assign2"           "history"           "coxlist1"         
-[19] "printfun"          "n"                 "terms"            
-[22] "assign"            "wald.test"         "y"                
-[25] "formula"           "call"             
++ 	     method='breslow', subset= (sex=='f'))
 > rfit
 Call:
 coxph(formula = Surv(time, status) ~ rx + frailty(litter), data = rats, 
-    method = "breslow")
+    subset = (sex == "f"), method = "breslow")
 
-                coef  se(coef) se2   Chisq DF   p    
-rx              0.906 0.323    0.319  7.88  1.0 0.005
-frailty(litter)                      16.89 13.8 0.250
+                  coef se(coef)    se2  Chisq   DF     p
+rx               0.906    0.323  0.319  7.882  1.0 0.005
+frailty(litter)                        16.888 13.8 0.253
 
 Iterations: 6 outer, 25 Newton-Raphson
      Variance of random effect= 0.474   I-likelihood = -181.1 
 Degrees of freedom for terms=  1.0 13.9 
-Likelihood ratio test=36.3  on 14.8 df, p=0.00144  n= 150 
+Likelihood ratio test=36.3  on 14.8 df, p=0.001
+n= 150, number of events= 40 
 > 
 > rfit$iter
 [1]  6 25
@@ -77,31 +67,37 @@ $c.loglik
 
 > 
 > rfit1 <- coxph(Surv(time,status) ~ rx + frailty(litter, theta=1), rats,
-+ 	     method='breslow')
++ 	     method='breslow', subset=(sex=="f"))
 > rfit1
 Call:
 coxph(formula = Surv(time, status) ~ rx + frailty(litter, theta = 1), 
-    data = rats, method = "breslow")
+    data = rats, subset = (sex == "f"), method = "breslow")
 
-                          coef  se(coef) se2   Chisq DF   p     
-rx                        0.918 0.327    0.321  7.85  1.0 0.0051
-frailty(litter, theta = 1                      27.25 22.7 0.2300
+                            coef se(coef)    se2  Chisq   DF      p
+rx                         0.918    0.327  0.321  7.851  1.0 0.0051
+frailty(litter, theta = 1                        27.245 22.7 0.2324
 
 Iterations: 1 outer, 6 Newton-Raphson
      Variance of random effect= 1   I-likelihood = -181.5 
 Degrees of freedom for terms=  1.0 22.7 
-Likelihood ratio test=50.7  on 23.7 df, p=0.00100  n= 150 
+Likelihood ratio test=50.7  on 23.7 df, p=0.001
+n= 150, number of events= 40 
 > 
-> rfit2 <- coxph(Surv(time,status) ~ frailty(litter), rats)
+> rfit2 <- coxph(Surv(time,status) ~ frailty(litter), rats, subset=(sex=='f'))
 > rfit2
 Call:
-coxph(formula = Surv(time, status) ~ frailty(litter), data = rats)
+coxph(formula = Surv(time, status) ~ frailty(litter), data = rats, 
+    subset = (sex == "f"))
 
-                coef se(coef) se2 Chisq DF   p   
-frailty(litter)                   18.0  14.6 0.24
+                coef se(coef) se2 Chisq   DF    p
+frailty(litter)                      18 14.6 0.24
 
 Iterations: 6 outer, 22 Newton-Raphson
      Variance of random effect= 0.504   I-likelihood = -184.8 
 Degrees of freedom for terms= 14.6 
-Likelihood ratio test=30  on 14.6 df, p=0.0101  n= 150 
+Likelihood ratio test=30  on 14.6 df, p=0.01
+n= 150, number of events= 40 
 > 
+> proc.time()
+   user  system elapsed 
+  0.755   0.045   0.793 

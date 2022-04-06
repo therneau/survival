@@ -1,7 +1,7 @@
 
-R version 2.11.1 (2010-05-31)
-Copyright (C) 2010 The R Foundation for Statistical Computing
-ISBN 3-900051-07-0
+R Under development (unstable) (2019-05-15 r76504) -- "Unsuffered Consequences"
+Copyright (C) 2019 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -18,7 +18,6 @@ Type 'q()' to quit R.
 > options(na.action=na.exclude) # preserve missings
 > options(contrasts=c('contr.treatment', 'contr.poly')) #ensure constrast type
 > library(survival)
-Loading required package: splines
 > aeq <- function(x,y) all.equal(as.vector(x), as.vector(y))
 > #
 > # These results can be found in Miller
@@ -28,11 +27,11 @@ Loading required package: splines
 Call:
 coxph(formula = Surv(aml$time, aml$status) ~ aml$x, method = "breslow")
 
+                     coef exp(coef) se(coef)     z      p
+aml$xNonmaintained 0.9042    2.4700   0.5122 1.765 0.0775
 
-                    coef exp(coef) se(coef)    z     p
-aml$xNonmaintained 0.904      2.47    0.512 1.77 0.078
-
-Likelihood ratio test=3.3  on 1 df, p=0.0694  n= 23 
+Likelihood ratio test=3.3  on 1 df, p=0.06945
+n= 23, number of events= 18 
 > resid(fit, type='mart')
           1           2           3           4           5           6 
  0.86225539  0.79200985 -0.20799015  0.74818869  0.65652976 -0.39796610 
@@ -59,13 +58,23 @@ Likelihood ratio test=3.3  on 1 df, p=0.0694  n= 23
         34         43         45         48 
 -0.5525731  0.3778334  0.5484457  0.0000000 
 > 
+> # Test the drop of an itercept: should have no effect
+> fit2 <- coxph(Surv(time, status) ~ x -1, method='breslow',
++                    data=aml)
+> aeq(fit$loglik, fit2$loglik)
+[1] TRUE
+> aeq(coef(fit), coef(fit2))
+[1] TRUE
+> aeq(fit$var, fit2$var)
+[1] TRUE
+> 
 > fit <- survfit(Surv(aml$time, aml$status) ~ aml$x)
 > fit
 Call: survfit(formula = Surv(aml$time, aml$status) ~ aml$x)
 
-                    records n.max n.start events median 0.95LCL 0.95UCL
-aml$x=Maintained         11    11      11      7     31      18      NA
-aml$x=Nonmaintained      12    12      12     11     23       8      NA
+                     n events median 0.95LCL 0.95UCL
+aml$x=Maintained    11      7     31      18      NA
+aml$x=Nonmaintained 12     11     23       8      NA
 > summary(fit)
 Call: survfit(formula = Surv(aml$time, aml$status) ~ aml$x)
 
@@ -96,17 +105,17 @@ Call:
 survdiff(formula = Surv(aml$time, aml$status) ~ aml$x)
 
                      N Observed Expected (O-E)^2/E (O-E)^2/V
-aml$x=Maintained    11        7    10.69      1.27      3.40
-aml$x=Nonmaintained 12       11     7.31      1.86      3.40
+aml$x=Maintained    11        7    10.69      1.27       3.4
+aml$x=Nonmaintained 12       11     7.31      1.86       3.4
 
- Chisq= 3.4  on 1 degrees of freedom, p= 0.0653 
+ Chisq= 3.4  on 1 degrees of freedom, p= 0.07 
 > 
 > #
 > # Test out the weighted K-M
 > #
 > #  First, equal case weights- shouldn't change the survival, but will
 > #    halve the variance
-> temp2 <-survfit(Surv(aml$time, aml$status)~1, type='kaplan', weight=rep(2,23))
+> temp2 <-survfit(Surv(aml$time, aml$status)~1, weight=rep(2,23))
 > temp  <-survfit(Surv(time, status)~1, aml)
 > aeq(temp$surv, temp2$surv)
 [1] TRUE
@@ -115,12 +124,12 @@ aml$x=Nonmaintained 12       11     7.31      1.86      3.40
 > 
 > # Risk weights-- use a null Cox model
 > tfit <- coxph(Surv(aml$time, aml$status) ~ offset(log(1:23)))
-> sfit <- survfit(tfit, type='aalen', censor=FALSE)
+> sfit <- survfit(tfit, stype=2, ctype=1, censor=FALSE)
 > 
 > # Now compute it by hand.  The survfit program will produce a curve
-> #   corresponding to the mean offset.  This is a change on 7/2010,
-> #   which caused S(new) = S(old)^exp(mean(log(1:23))).
-> #  Ties are a nuisance
+> #   corresponding to the mean offset.
+> #  Ties are a nuisance, the line above forced the Nelson rather than Efron 
+> # to make it easier
 > rscore <- exp(log(1:23) - mean(log(1:23)))[order(aml$time)]
 > atime <- sort(aml$time)
 > denom <- rev(cumsum(rev(rscore)))
@@ -128,9 +137,6 @@ aml$x=Nonmaintained 12       11     7.31      1.86      3.40
 > deaths <- tapply(aml$status, aml$time, sum)
 > chaz <- cumsum(deaths/denom)
 > all.equal(sfit$surv, as.vector(exp(-chaz[deaths>0])))
-[1] TRUE
-> cvar <- cumsum(deaths/denom^2)
-> all.equal(sfit$std^2, as.vector(cvar[deaths>0]))
 [1] TRUE
 > 
 > # And the Efron result
@@ -160,14 +166,16 @@ Call: survfit(formula = tfit)
 Call:
 coxph(formula = Surv(time, status) ~ x, data = aml, method = "efron")
 
+                 coef exp(coef) se(coef)     z      p
+xNonmaintained 0.9155    2.4981   0.5119 1.788 0.0737
 
-                coef exp(coef) se(coef)    z     p
-xNonmaintained 0.916       2.5    0.512 1.79 0.074
-
-Likelihood ratio test=3.38  on 1 df, p=0.0658  n= 23 
+Likelihood ratio test=3.38  on 1 df, p=0.06581
+n= 23, number of events= 18 
 > x2 <- coxph(Surv(rep(0,23),time, status) ~x, aml, method='efron')
 > aeq(x1$coef, x2$coef)
 [1] TRUE
 > 
-> rm(x1, x2, atime, denom, deaths, chaz,cvar, tfit, sfit, temp, temp2, fit)
 > 
+> proc.time()
+   user  system elapsed 
+  0.820   0.028   0.848 
