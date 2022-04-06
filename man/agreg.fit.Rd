@@ -27,7 +27,7 @@ rownames, resid=TRUE, nocenter=NULL)
   \item{init}{initial values for the coefficients}
   \item{control}{the result of a call to \code{coxph.control}}
   \item{weights}{optional vector of weights}
-  \item{method}{method for hanling ties, one of "breslow" or "efron"}
+  \item{method}{method for handling ties, one of "breslow" or "efron"}
   \item{rownames}{this is only needed for a NULL model, in which case it
     contains the rownames (if any) of the original data.}
   \item{resid}{compute and return residuals.}

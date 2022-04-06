@@ -71,7 +71,7 @@ aeq(coef(fit5), coef(fit6))
 
 # Compute the curve by hand
 # (Creating risk sets one by one like this if far too slow for the production
-#  code; it does a lot more preemptive bookkeeping.)
+#  code; which does a lot more preemptive bookkeeping.)
 #
 # The last arguements are the risk score eta for each observation, which is
 #  constant for any subject, and the strata map, and shared strata coefs
@@ -146,4 +146,3 @@ test3 <- survfit(Surv(tstart, tstop, bstat) ~1, pbc2, id=id, istate=bili4,
                  p0 = c(1,0,0,0,0))
 plot(test3, col=1:5)
 matpoints(rtest$time, rtest$pstate, pch=1, col=1:5)
-

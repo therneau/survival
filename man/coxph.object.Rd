@@ -29,7 +29,9 @@ any missing coefficients are set to zero.
 \item{naive.var}{
 this component will be present only if the \code{robust} option was true.  If so, 
 the \code{var} component will contain the robust estimate of variance, and this 
-component will contain the ordinary estimate. 
+component will contain the ordinary estimate. (A far better name would
+be \code{asymp.var} since it contains the model-based asympotitic
+variance estimate, which is not necessarily "naive"; but that ship has sailed.)
 }
 \item{loglik}{
 a vector of length 2 containing the log-likelihood with the initial values and 
