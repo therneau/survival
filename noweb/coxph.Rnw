@@ -622,7 +622,9 @@ mf <- mf[tindex,]
 istrat <- rep(1:length(counts$nrisk), counts$nrisk)
 weights <- model.weights(mf)
 if (!is.null(weights) && any(!is.finite(weights)))
-    stop("weights must be finite")  
+    stop("weights must be finite") 
+id <- model.extract(mf, "id")   # update the id and/or cluster, if present
+cluster <- model.extract(mf, "cluster")
 
 tcall <- attr(Terms, 'variables')[timetrans$terms+2]
 pvars <- attr(Terms, 'predvars')

@@ -6,7 +6,7 @@
 **  all but the last are not an event, and the times align.
 **
 ** y = Surv matrix
-** x = survival curve
+** x = stratum
 ** istate = initial state
 ** id   = subject id
 ** order = order vector for sorting

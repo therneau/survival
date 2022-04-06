@@ -78,11 +78,10 @@ concordance(object, \ldots)
     smaller response values \code{y}; a proportional hazards model is
     the common example of this. }
 
-  \item{timefix}{if the response is a Surv object, correct for possible
-    rounding error; otherwise this argument has no effect.  See the
-    vignette on tied times for more explanation.  For the coxph and
-    survreg methods this issue will have already been addressed in the
-    parent routine, so should not be revisited.
+  \item{timefix}{correct for possible rounding error.  See the
+    vignette on tied times for more explanation. Essentially, exact ties
+    are an important part of the concordance computatation, but "exact"
+    can be a subtle issue with floating point numbers.
   }
   \item{keepstrata}{either TRUE, FALSE, or an integer value.
     Computations are always done within stratum, then added. If the
@@ -109,11 +108,12 @@ concordance(object, \ldots)
   When the number of strata is very large, such as in a conditional
   logistic regression for instance (\code{clogit} function), a much
   faster computation is available when the individual strata results
-  are not retained.  In the more general case the \code{keepstrata = 10}
-  default simply keeps the printout managable.
+  are not retained; use \code{keepstrata=FALSE} or \code{keepstrata=0}
+  to do so. In the general case the \code{keepstrata = 10}
+  default simply keeps the printout managable: it retains and prints
+  per-strata information if the number of strata is <= 10.
 }
 \value{
-
   An object of class \code{concordance} containing the following
   components:
   \item{concordance}{the estimated concordance value or values}
@@ -139,7 +139,22 @@ concordance(object, \ldots)
      proportional hazards model information matrix).
      A weighted mean of the ranks equals Somer's d.}
  }
-  
+ \note{
+   Computation for an existing coxph model along with \code{newdata} has
+  some subtleties with respect to extra arguments in the original call.
+  These include
+  \itemize{
+    \item tt() terms in the model.  This is not supported with newdata.
+    \item subset.  Any subset clause in the original call is ignored,
+    i.e., not applied to the new data.
+    \item strata() terms in the model.  The new data is expected to also
+    have the strata variable(s) found in the original data set,
+    with concordance computed within strata.
+    The levels of the strata variable need not be
+    the same as in the original data.
+    \item id or cluster directives.  This has not yet been sorted out.
+  }
+}
 \author{Terry Therneau}
 \seealso{\code{\link{coxph}}}
 \examples{
