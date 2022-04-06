@@ -594,8 +594,7 @@ concordance.survreg <- function(object, ..., newdata, cluster, ymin, ymax,
     
 concordance.coxph <- function(object, ..., newdata, cluster, ymin, ymax, 
                                timewt=c("n", "S", "S/G", "n/G", "n/G2", "I"),
-                               influence=0, ranks=FALSE, 
-                               timefix=!missing(newdata),
+                               influence=0, ranks=FALSE, timefix=TRUE,
                                keepstrata=10) {
     Call <- match.call()
     fits <- list(object, ...)

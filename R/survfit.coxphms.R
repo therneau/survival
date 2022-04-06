@@ -149,12 +149,14 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95, individual=FALSE,
     }
 
     # expansion of the X matrix with stacker, set up shared hazards
-    # Rebuild istate using the survcheck routine
+    # Rebuild istate using the survcheck routine, as a double check
     mcheck <- survcheck2(Y, oldid, istate)
     transitions <- mcheck$transitions
-    if (is.null(istate)) istate <- mcheck$istate
     if (!identical(object$states, mcheck$states))
         stop("failed to rebuild the data set")
+    if (is.null(istate)) istate <- mcheck$istate
+    else if (any(as.character(istate) != as.character(mcheck$istate))) 
+        stop("survival curve cannot be created due to survcheck warnings")
 
     # Let the survfitCI routine do the work of creating the
     #  overall counts (n.risk, etc).  The rest of this code then
@@ -356,12 +358,8 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95, individual=FALSE,
     # elements that are non-zero only for observed transtions.
     states <- object$states
     nstate <- length(states)
-    notcens <- (colnames(object$transitions) != "(censored)")
-    trmat <- object$transitions[, notcens, drop=FALSE]
-    from <- row(trmat)[trmat>0]  
-    from <- match(rownames(trmat), states)[from]  # actual row of H
-    to   <- col(trmat)[trmat>0]
-    to   <- match(colnames(trmat), states)[to]    # actual col of H
+    from <- as.numeric(sub(":.*$", "", colnames(object$stratum_map)))
+    to   <- as.numeric(sub("^.*:", "", colnames(object$stratum_map)))
     hfill <- cbind(from, to)
 
     if (individual) {

@@ -25,7 +25,7 @@ concordance(object, \ldots)
   timewt= c("n", "S", "S/G", "n/G", "n/G2", "I"), influence=0,
   ranks=FALSE, timefix=TRUE, keepstrata=10)
 }
-%- maybe also 'usage' for other objects documented here.
+
 \arguments{
   \item{object}{a fitted model or a formula.  The formula should be of
   the form \code{y ~x}  or \code{y ~ x + strata(z)} with a single
@@ -139,11 +139,10 @@ concordance(object, \ldots)
      proportional hazards model information matrix).
      A weighted mean of the ranks equals Somer's d.}
  }
-<<<<<<< working copy
+
 \note{A coxph model that has a numeric failure may have undefined
-  predicted values, in which case the concordance will be NULL.}
-=======
- \note{
+  predicted values, in which case the concordance will be NULL.
+
    Computation for an existing coxph model along with \code{newdata} has
   some subtleties with respect to extra arguments in the original call.
   These include
@@ -151,7 +150,7 @@ concordance(object, \ldots)
     \item tt() terms in the model.  This is not supported with newdata.
     \item subset.  Any subset clause in the original call is ignored,
     i.e., not applied to the new data.
-    \item strata() terms in the model.  The new data is expected to also
+    \item strata() terms in the model.  The new data is expected to
     have the strata variable(s) found in the original data set,
     with concordance computed within strata.
     The levels of the strata variable need not be
@@ -159,7 +158,7 @@ concordance(object, \ldots)
     \item id or cluster directives.  This has not yet been sorted out.
   }
 }
->>>>>>> merge rev
+
 \author{Terry Therneau}
 \seealso{\code{\link{coxph}}}
 \examples{

@@ -53,14 +53,12 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95, individual=FALSE,
         }
     }
 
-<<<<<<< working copy
-    # risk scores, mf2, and x2
-    <<survfit.coxph-setup2c>>
-    <<survfit.coxph-setup3>>
-
     # expansion of the X matrix with stacker, set up shared hazards
     <<survfit.coxphms-setupa>>
 
+    # risk scores, mf2, and x2
+    <<survfit.coxph-setup2c>>
+    <<survfit.coxph-setup3>>
 
     <<survfit.coxphms-setup3b>>
     <<survfit.coxphms-result>>
@@ -80,12 +78,14 @@ while for the computation proper it is easier to make use of the same
 expanded data set that coxph used for a multi-state fit.
 
 <<survfit.coxphms-setupa>>=
-# Rebuild istate using the survcheck routine
+# Rebuild istate using the survcheck routine, as a double check
 mcheck <- survcheck2(Y, oldid, istate)
 transitions <- mcheck$transitions
-if (is.null(istate)) istate <- mcheck$istate
 if (!identical(object$states, mcheck$states))
     stop("failed to rebuild the data set")
+if (is.null(istate)) istate <- mcheck$istate
+else if (any(as.character(istate) != as.character(mcheck$istate))) 
+    stop("survival curve cannot be created due to survcheck warnings")
 
 # Let the survfitCI routine do the work of creating the
 #  overall counts (n.risk, etc).  The rest of this code then
@@ -211,12 +211,8 @@ a sum over strata.  This routine does each stratum separately.
 # elements that are non-zero only for observed transtions.
 states <- object$states
 nstate <- length(states)
-notcens <- (colnames(object$transitions) != "(censored)")
-trmat <- object$transitions[, notcens, drop=FALSE]
-from <- row(trmat)[trmat>0]  
-from <- match(rownames(trmat), states)[from]  # actual row of H
-to   <- col(trmat)[trmat>0]
-to   <- match(colnames(trmat), states)[to]    # actual col of H
+from <- as.numeric(sub(":.*$", "", colnames(object$stratum_map)))
+to   <- as.numeric(sub("^.*:", "", colnames(object$stratum_map)))
 hfill <- cbind(from, to)
 
 if (individual) {

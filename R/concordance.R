@@ -126,12 +126,8 @@ concordancefit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL,
         else if (is.numeric(y) && is.vector(y))  y <- Surv(y)
         else stop("left hand side of the formula must be a numeric vector,
  survival object, or an orderable factor")
+        if (timefix) y <- aeqSurv(y)
     }
-     
-    # When concordance is called with new data, this is the first point where
-    #  aeqSurv will be encountered.  Survival data or not, near ties will be
-    #  fatal.  
-    if (timefix) y <- aeqSurv(y) 
     n <- length(y)
     if (length(x) != n) stop("x and y are not the same length")
     if (missing(strata) || length(strata)==0) strata <- rep(1L, n)
@@ -366,29 +362,17 @@ cord.getdata <- function(object, newdata=NULL, cluster=NULL, need.wt, timefix=TR
  
     if (!is.null(newdata)) {
         mf <- model.frame(Terms, data=newdata)
-<<<<<<< working copy
-        # do not use model.frame(object, newdata) --- if there are other
-        # terms such as offset, weights, id,... it doesn't do what you
-        # would expect.
-=======
         y <- model.response(mf)
         # why not model.frame(object, newdata)?  Because model.frame.coxph
         #  uses the Call to fill in names for subset, if present, which of
         #  course is not relevant to the new data. model.frame.lm does the
         #  same, btw.
->>>>>>> merge rev
         y <- model.response(mf)
         if (!is.Surv(y)) {
             if (is.numeric(y) && is.vector(y))  y <- Surv(y)
             else stop("left hand side of the formula  must be a numeric vector or a survival object")
         }
         if (timefix) y <- aeqSurv(y)
-<<<<<<< working copy
-        xhat <- model.matrix(object,newdata)%*% coef(object)
-        rval <- list(y= y, x= xhat)
-        # the type of prediction does not matter, as long as it is a 
-        #  monotone transform of the linear predictor
-=======
 
         # special handling for coxph objects: object to tt()
         specials <- attr(Terms, "specials")
@@ -407,7 +391,6 @@ cord.getdata <- function(object, newdata=NULL, cluster=NULL, need.wt, timefix=TR
             else strata.keep <- strata(mf[,stemp$vars], shortlabel=TRUE)
             rval$strata <- as.integer(strata.keep)
         }
->>>>>>> merge rev
     } 
     else {
         mf <- object$model
@@ -487,11 +470,7 @@ concordance.lm <- function(object, ..., newdata, cluster, ymin, ymax,
 
 concordance.survreg <- function(object, ..., newdata, cluster, ymin, ymax,
                                 timewt=c("n", "S", "S/G", "n/G", "n/G2", "I"),
-<<<<<<< working copy
-                                influence=0, ranks=FALSE, timefix=TRUE,
-=======
                                 influence=0, ranks=FALSE, timefix= TRUE,
->>>>>>> merge rev
                                 keepstrata=10) {
     Call <- match.call()
     fits <- list(object, ...)
@@ -528,12 +507,7 @@ concordance.survreg <- function(object, ..., newdata, cluster, ymin, ymax,
     
 concordance.coxph <- function(object, ..., newdata, cluster, ymin, ymax, 
                                timewt=c("n", "S", "S/G", "n/G", "n/G2", "I"),
-<<<<<<< working copy
                                influence=0, ranks=FALSE, timefix=TRUE,
-=======
-                               influence=0, ranks=FALSE, 
-                               timefix=!missing(newdata),
->>>>>>> merge rev
                                keepstrata=10) {
     Call <- match.call()
     fits <- list(object, ...)

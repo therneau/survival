@@ -1,6 +1,6 @@
 
-R Under development (unstable) (2021-04-20 r80202) -- "Unsuffered Consequences"
-Copyright (C) 2021 The R Foundation for Statistical Computing
+R Under development (unstable) (2022-02-28 r81833) -- "Unsuffered Consequences"
+Copyright (C) 2022 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -214,9 +214,9 @@ Analysis of Deviance Table
  Cox model: response is  Surv(futime, fustat)
  Model 1: ~ resid.ds + rx + ecog.ps
  Model 2: ~ resid.ds * rx + ecog.ps
-   loglik  Chisq Df P(>|Chi|)
-1 -31.970                    
-2 -30.946 2.0469  1    0.1525
+   loglik  Chisq Df Pr(>|Chi|)
+1 -31.970                     
+2 -30.946 2.0469  1     0.1525
 >  
 > 
 > 
@@ -3689,7 +3689,7 @@ $terms
 > cleanEx()
 > options(digits = 7L)
 > base::cat("Time elapsed: ", proc.time() - base::get("ptime", pos = 'CheckExEnv'),"\n")
-Time elapsed:  3.774 0.164 3.968 0 0 
+Time elapsed:  3.109 0.076 3.184 0 0 
 > grDevices::dev.off()
 null device 
           1 

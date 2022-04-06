@@ -305,10 +305,10 @@ The code below creates the necessary \code{etime} and \code{event}
 variables, then computes and plots the competing risks estimate.
 
 <<mgus2, echo=TRUE, fig=TRUE>>=
-etime <- with(mgus2, ifelse(pstat==0, futime, ptime))
+mgus2$etime <- with(mgus2, ifelse(pstat==0, futime, ptime))
 event <- with(mgus2, ifelse(pstat==0, 2*death, 1))
-event <- factor(event, 0:2, labels=c("censor", "pcm", "death"))
-table(event)
+mgus2$event <- factor(event, 0:2, labels=c("censor", "pcm", "death"))
+table(mgus2$event)
 
 mfit2 <- survfit(Surv(etime, event) ~ sex, data=mgus2)
 print(mfit2, rmean=240, scale=12)
