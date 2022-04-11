@@ -1,17 +1,17 @@
 \section{Cox Models}
 \subsection{Coxph}
-The [[coxph]] routine is the underlying basis for all the models.
+The \code{coxph} routine is the underlying basis for all the models.
 The source was converted to noweb when adding time-transform terms.
 
 The call starts out with the basic building of a model frame
 and proceeds from there.
-The aeqSurv function is used to adjucate near ties in the time
-variable, numerical precision issues that occur when users base
-caculations on days/365.25 instead of days.
-
 A cluster term in the model is an exception.  The variable mentioned is
 never part of the formal model, and so it is not kept as part of the saved
 terms structure.
+
+The aeqSurv function is used to adjucate near ties in the time
+variable, numerical precision issues that occur when users base
+caculations on days/365.25 instead of days.
 
 The analysis for multi-state data is a bit more complex.
 \begin{itemize}
@@ -459,6 +459,8 @@ xstack <- stacker(cmap, stratum_map, as.integer(istate), X, Y, strata=istrat,
 rkeep <- unique(xstack$rindex)
 transitions <- survcheck2(Y[rkeep,], id[rkeep], istate[rkeep])$transitions
 
+Xsave <- X  # the originals may be needed later
+Ysave <- Y
 X <- xstack$X
 Y <- xstack$Y
 istrat <- xstack$strata
@@ -1113,11 +1115,13 @@ else {
         fit$model <- mf
     }
     if (x)  {
-        fit$x <- X
+        if (multi) fit$x <- Xsave else fit$x <- X
         if (length(timetrans)) fit$strata <- istrat
         else if (length(strats)) fit$strata <- strata.keep
     }
-    if (y)  fit$y <- Y
+    if (y)  {
+        if (multi) fit$y <- Ysave else fit$y <- Y
+    }
     fit$timefix <- control$timefix  # remember this option
 }
 @ 
@@ -1127,6 +1131,23 @@ useful to survfit.coxph.
 Other objects below are used when we need to recreate a 
 model frame.
 
+A multi-state model will have a matrix of linear predictors and of residuals.
+Each has a column for each transition and a row for each subject.
+The rows are with respect to the starting X and Y, not the expanded ones which
+were used to compute the coefficients.  
+The expanded linear predictor is easy: Xbeta where beta is the matrix form of
+the coefficients.
+Residuals are a bit more nuisance: if an observation was a risk for an a:b
+transition, it will appear in the a:b strata of the expanded X matrix, and that
+residual fills in the appropriate row/col.  If it was not at risk for said
+transition, the residual is zero. 
+There is, however, a further problem. Any transitions for which there are no
+covariates were not sent across as a strata to the fitting routine --- they 
+would create a stratum where all covariates = 0, which cause computation for
+no cause.
+But that also means that the martingale residuals are not computed for those
+rows of the data.
+
 <<coxph-finish>>=
 if (!is.null(weights) && any(weights!=1)) fit$weights <- weights
 if (multi) {
@@ -1134,7 +1155,7 @@ if (multi) {
     fit$states <- states
     fit$cmap <- cmap
     fit$stratum_map <- stratum_map   # why not 'stratamap'?  Confusion with fit$strata
-    fit$resid <- rowsum(fit$resid, xstack$rindex)
+    
     # add a suffix to each coefficent name.  Those that map to multiple transitions
     #  get the first transition they map to
     single <- apply(cmap, 1, function(x) all(x %in% c(0, max(x)))) #only 1 coef
@@ -1143,14 +1164,33 @@ if (multi) {
     suffix <- ifelse(single[rindx], "", paste0("_", colnames(cmap)[cindx]))
     newname <- paste0(names(fit$coefficients), suffix)
     if (any(covlist2$phbaseline > 0)) {
-        # for proporional baselines, use a better name
+        # for proportional baselines, use a better name
         base  <- colnames(tmap)[covlist2$phbaseline]
         child <- colnames(tmap)[which(covlist2$phbaseline >0)]
         indx <- 1 + length(newname) - length(base):1 # coefs are the last ones
         newname[indx] <-  paste0("ph(", child, "/", base, ")")
+        matcoef <- cmap[-indx, ] # ph() terms exluded from linear predictor
         }
+    else matcoef <- cmap   
     names(fit$coefficients) <- newname
-    if (x) fit$strata <- istrat  # save the expanded strata
+    
+    # linear predictor and residuals
+    matcoef[matcoef>0] <- fit$coefficients[matcoef]
+    temp <- Xsave %*% matcoef
+    colnames(temp) <- colnames(cmap)
+    fit$linear.predictors <- temp
+
+    temp <- matrix(0., nrow=nrow(Xsave), ncol=ncol(fit$cmap))
+    temp[xstack$rindex, xstack$transition] <- fit$residuals
+    # if there are any transitions with no covariates, residuals have not
+    #  yet been calculated for those.
+    if (any(colSums(cmap) ==0)) {
+        from.state <- as.numeric(sub(":.*$", "", colnames(cmap)))
+        to.state   <- as.numeric(sub("^.*:", "", colnames(cmap)))
+       # warning("no covariate residuals not filled in")
+    }
+    fit$residuals <- temp
+    fit$means <- NULL  # not meaningul any more
     class(fit) <- c("coxphms", class(fit))
 }
 names(fit$means) <- names(fit$coefficients)

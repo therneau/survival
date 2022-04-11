@@ -3,6 +3,7 @@
 ** for martingale residuals from a (start, stop] model.  
 **
 ** Input
+**      nused   the number on which to compute a residual
 **      surv    start, stop, event matrix of survival data
 **      score   the vector of subject scores, i.e., exp(beta*z)
 **      weight  case weights
@@ -16,8 +17,11 @@
 ** If an observation is never at risk, e.g. (50, 72] and there are no events
 **   in that window, then ensure that we never add/subtract that obs from
 **   any totals.  Sometimes users "dice" a data set into a lot of small
-**   intervals, and this step helps preserve numeric accuracy.  Such obs
-**   have a residual of zero.
+**   intervals, and this step helps preserve numeric accuracy if said obs were
+**   to have a huge risk score (it happens).  Such obs have a residual of 0.
+**   The parent routine will have sorted these to the end of the data, and set
+**   nused < nr. The routine below allocated space for the residual
+**   (nr= nrow(surv2)) but never uses the obs.
 */
 #include <math.h>
 #include "survS.h"

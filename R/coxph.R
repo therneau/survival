@@ -488,6 +488,8 @@ coxph <- function(formula, data, weights, subset, na.action,
         rkeep <- unique(xstack$rindex)
         transitions <- survcheck2(Y[rkeep,], id[rkeep], istate[rkeep])$transitions
 
+        Xsave <- X  # the originals may be needed later
+        Ysave <- Y
         X <- xstack$X
         Y <- xstack$Y
         istrat <- xstack$strata
@@ -645,11 +647,13 @@ coxph <- function(formula, data, weights, subset, na.action,
             fit$model <- mf
         }
         if (x)  {
-            fit$x <- X
+            if (multi) fit$x <- Xsave else fit$x <- X
             if (length(timetrans)) fit$strata <- istrat
             else if (length(strats)) fit$strata <- strata.keep
         }
-        if (y)  fit$y <- Y
+        if (y)  {
+            if (multi) fit$y <- Ysave else fit$y <- Y
+        }
         fit$timefix <- control$timefix  # remember this option
     }
     if (!is.null(weights) && any(weights!=1)) fit$weights <- weights
@@ -658,7 +662,7 @@ coxph <- function(formula, data, weights, subset, na.action,
         fit$states <- states
         fit$cmap <- cmap
         fit$stratum_map <- stratum_map   # why not 'stratamap'?  Confusion with fit$strata
-        fit$resid <- rowsum(fit$resid, xstack$rindex)
+        
         # add a suffix to each coefficent name.  Those that map to multiple transitions
         #  get the first transition they map to
         single <- apply(cmap, 1, function(x) all(x %in% c(0, max(x)))) #only 1 coef
@@ -667,14 +671,30 @@ coxph <- function(formula, data, weights, subset, na.action,
         suffix <- ifelse(single[rindx], "", paste0("_", colnames(cmap)[cindx]))
         newname <- paste0(names(fit$coefficients), suffix)
         if (any(covlist2$phbaseline > 0)) {
-            # for proporional baselines, use a better name
+            # for proportional baselines, use a better name
             base  <- colnames(tmap)[covlist2$phbaseline]
             child <- colnames(tmap)[which(covlist2$phbaseline >0)]
             indx <- 1 + length(newname) - length(base):1 # coefs are the last ones
             newname[indx] <-  paste0("ph(", child, "/", base, ")")
+            matcoef <- cmap[-indx, ] # ph() terms exluded from linear predictor
             }
+        else matcoef <- cmap   
         names(fit$coefficients) <- newname
-        if (x) fit$strata <- istrat  # save the expanded strata
+        
+        # linear predictor and residuals
+        matcoef[matcoef>0] <- fit$coefficients[matcoef]
+        fit$linear.predictors <- Xsave %*% matcoef
+
+        temp <- matrix(0., nrow=nrow(Xsave), ncol=ncol(fit$cmap))
+        temp[xstack$rindex, xstack$transition] <- fit$residuals
+        # if there are any transitions with no covariates, residuals have not
+        #  yet been calculated for those.
+        if (any(colSums(cmap) ==0)) {
+            from.state <- as.numeric(sub(":.*$", "", colnames(cmap)))
+            to.state   <- as.numeric(sub("^.*:", "", colnames(cmap)))
+            warning("no covariate residuals not filled in")
+        }
+        fit$residuals <- temp
         class(fit) <- c("coxphms", class(fit))
     }
     names(fit$means) <- names(fit$coefficients)

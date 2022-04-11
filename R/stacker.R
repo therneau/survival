@@ -8,8 +8,8 @@
 #
 # For each transition the expanded data has a set of rows, all those whose
 #  initial state makes them eligible for the transition.  
-# Strata is most often null; it encodes a users strata() addition(s); less
-#  often used in multistate.
+# Strata is most often null; it encodes a users strata() addition(s). Such terms
+#  occur less often in multistate models (in my experience so far.)
 #
 stacker <- function(cmap, smap, istate, X, Y, strata, states, dropzero=TRUE) {
     from.state <- as.numeric(sub(":.*$", "", colnames(cmap)))

@@ -1,13 +1,17 @@
 /*
 ** Survival curves for a Cox model.  This routine counts up all
-**  the totals that we need (more than we need, actually).  The number at risk
-**  is a PITA in R code.  All of the rest of the computation can be done in R,
-**  however.
+**  the totals that we need. The number at risk is a PITA in R code, but all
+**  the rest of the compuations are simple there.  This creates more totals
+**  than we currenly use, as an attempt to future proof the code.
+** The coxsurv1 routine uses a stacked input data set, one 'layer' per stratum,
+**  and outputs unique times for each strata.  This routine also uses
+**  stacked data, one layer per transition, but adds a preselected vector of 
+**  output times, used for all curves.
 **
 **  otime:  vector of output times.  All the transitions will get reports at
 **            these time points.  This fcn is called for all of the 
 **            transitions at once, sorted by transition,
-**            but called separately for any strata.
+**            but called separately for any strata() groups.
 **  y   :    survival response
 **  weight:  observation weight
 **  sort1, sort2: sort indices for the start and stop time
