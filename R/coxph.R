@@ -683,7 +683,9 @@ coxph <- function(formula, data, weights, subset, na.action,
         
         # linear predictor and residuals
         matcoef[matcoef>0] <- fit$coefficients[matcoef]
-        fit$linear.predictors <- Xsave %*% matcoef
+        temp <- Xsave %*% matcoef
+        colnames(temp) <- colnames(cmap)
+        fit$linear.predictors <- temp
 
         temp <- matrix(0., nrow=nrow(Xsave), ncol=ncol(fit$cmap))
         temp[xstack$rindex, xstack$transition] <- fit$residuals
@@ -692,9 +694,10 @@ coxph <- function(formula, data, weights, subset, na.action,
         if (any(colSums(cmap) ==0)) {
             from.state <- as.numeric(sub(":.*$", "", colnames(cmap)))
             to.state   <- as.numeric(sub("^.*:", "", colnames(cmap)))
-            warning("no covariate residuals not filled in")
+           # warning("no covariate residuals not filled in")
         }
         fit$residuals <- temp
+    #    fit$means <- NULL  # not meaningul any more
         class(fit) <- c("coxphms", class(fit))
     }
     names(fit$means) <- names(fit$coefficients)

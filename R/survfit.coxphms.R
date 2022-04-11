@@ -15,7 +15,7 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95, individual=FALSE,
     if (!missing(id)) 
         stop("using a covariate path is not supported for multi-state")
     temp <- object$stratum_map["(Baseline)",] 
-    baselinecoef <- rbind(temp, coef= 1.0, parent=0)
+    baselinecoef <- rbind(temp, coef= 1.0)
     if (any(duplicated(temp))) {
         # We have shared hazards 
         # If there are k duplicates, then the last k coefficient in beta are
@@ -23,10 +23,12 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95, individual=FALSE,
         idup <- duplicated(temp)
         ncoef <- length(object$coefficients)
         ndup <- sum(idup)
-        baselinecoef[2, idup] <- exp(object$coefficients[(ncoef-ndup):ncoef])
+        # shared baseline coefficients are last in the coefficient vector
+        i <- seq(to = ncoef, length=ndup)
+        baselinecoef[2, idup] <- exp(object$coefficients[i])
 
-        # which rows of cmat point to scale coefs?
-        phbase <- apply(cmap, 1, function(i) any(i > ncoef-ndup))
+        # which rows of cmap point to scale coefs?
+        phbase <- apply(object$cmap, 1, function(i) any(i > ncoef-ndup))
     }
     else phbase <- rep(FALSE, nrow(object$cmap))
       
@@ -178,10 +180,14 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95, individual=FALSE,
     # For computing the  actual estimates it is easier to work with an
     #  expanded data set.
     # Replicate actions found in the coxph-multi-X chunk
-    # Note the dropzero=FALSE argument: if there is a transition with no covariates
-    #  we still need it expanded; this differs from coxph.
+    # Note the dropzero=FALSE argument: if there is a transition with no 
+    #  covariates we still need it expanded; this differs from coxph.
+    # A second differnence is tstrata: force stacker to think that every
+    #  transition is a unique hazard, so that it does proper expansion.
     cluster <- model.extract(mf, "cluster")
-    xstack <- stacker(object$cmap, object$stratum_map, as.integer(istate), X, Y,
+    tstrata <- object$stratum_map
+    tstrata[1,] <- 1:ncol(tstrata)
+    xstack <- stacker(object$cmap, tstrata, as.integer(istate), X, Y,
                       as.integer(strata),
                       states= object$states, dropzero=FALSE)
     if (length(position) >0)
@@ -444,7 +450,7 @@ multihaz <- function(y, x, position, weight, risk, istrat, ctype, stype,
         events <- cn[,,5] %*% design
         atrisk <- denom1 %*% (design* bcoef[2,])
         basehaz <- events/atrisk
-        hazard <- basehaz[,bcoef[,1]] * rep(bcoef[,2], each=nrow(basehaz))
+        hazard <- basehaz[,bcoef[1,]] * rep(bcoef[2,], each=nrow(basehaz))
     }                                  
     else {
         hazard <- cn[,,5]/denom1

@@ -1190,7 +1190,7 @@ if (multi) {
        # warning("no covariate residuals not filled in")
     }
     fit$residuals <- temp
-    fit$means <- NULL  # not meaningul any more
+#    fit$means <- NULL  # not meaningul any more
     class(fit) <- c("coxphms", class(fit))
 }
 names(fit$means) <- names(fit$coefficients)

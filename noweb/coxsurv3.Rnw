@@ -31,8 +31,8 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95, individual=FALSE,
         i <- seq(to = ncoef, length=ndup)
         baselinecoef[2, idup] <- exp(object$coefficients[i])
 
-        # which rows of cmat point to scale coefs?
-        phbase <- apply(cmap, 1, function(i) any(i > ncoef-ndup))
+        # which rows of cmap point to scale coefs?
+        phbase <- apply(object$cmap, 1, function(i) any(i > ncoef-ndup))
     }
     else phbase <- rep(FALSE, nrow(object$cmap))
       
@@ -314,20 +314,26 @@ multihaz <- function(y, x, position, weight, risk, istrat, ctype, stype,
     #  no allocArray macro.  So we first reset the dimensions.
     # The first dimension is time
     # Second is the transition, same order as columns of bcoef
-    # Third is the count type: 1-3 = at risk, 4-6 = events, 7-8 = censored 
-    #   events, 9-10 = censored, 11-12 = Efron
+    # Third is the count type: 1-3 = at risk (unweighted, with case weights,
+    #  with casewt * risk wt), 4-6 = events (unweighted, case, risk), 
+    #  7-8 = censored events, 9-10 = censored, 11-12 = Efron
 
+    # We will use cn[,,5]/denom later, avoid any 0/0
+    # cn[,,4] is safer since it is integer, but if someone had case weights,
+    #  and a subject with weight=0 were the only event, we need cn[,,5]
+    noevent <- (cn[,,4]==0 || cn[,,5]==0)
     if (ctype ==1) {
-        denom1 <- ifelse(cn[,,4]==0, 1, cn[,,3])
-        denom2 <- ifelse(cn[,,4]==0, 1, cn[,,3]^2)
+        denom1 <- ifelse(noevent, 1, cn[,,3])   # avoid a later 0/0
+        denom2 <- ifelse(noevent, 1, cn[,,3]^2)
     } else {
-        denom1 <- ifelse(cn[,,4]==0, 1, cn[,,11])
-        denom2 <- ifelse(cn[,,4]==0, 1, cn[,,12])
+        denom1 <- ifelse(noevent, 1, cn[,,11])
+        denom2 <- ifelse(noevent, 1, cn[,,12])
     }
 
     if (any(duplicated(bcoef[1,]))) {
         # there are shared hazards: we have to collapse and then expand
         design <- model.matrix(~factor(zed) -1, data.frame(zed=bcoef[1,]))
+        colnames(design) <- 1:ncol(design)  # easier to read when debuggin
         events <- cn[,,5] %*% design
         atrisk <- denom1 %*% (design* bcoef[2,])
         basehaz <- events/atrisk
