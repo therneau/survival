@@ -676,7 +676,8 @@ coxph <- function(formula, data, weights, subset, na.action,
             child <- colnames(tmap)[which(covlist2$phbaseline >0)]
             indx <- 1 + length(newname) - length(base):1 # coefs are the last ones
             newname[indx] <-  paste0("ph(", child, "/", base, ")")
-            matcoef <- cmap[-indx, ] # ph() terms exluded from linear predictor
+            phrow <- apply(cmap, 1, function(x) all(x[x>0] %in% indx))
+            matcoef <- cmap[!phrow,,drop=FALSE ] # ph() terms exluded 
             }
         else matcoef <- cmap   
         names(fit$coefficients) <- newname

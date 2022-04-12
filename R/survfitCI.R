@@ -22,13 +22,14 @@ docurve2 <- function(entry, etime, status, istate, wt, states, id,
     # Compute p0 (unless given by the user), and initial leverage matrix
     nid <- length(uid)
     i0  <- matrix(0., nid, nstate)
+    if (all(status==0))  t0 <- max(etime)  #failsafe
+    else t0 <- min(etime[status!=0])  # first transition event
+    at.zero <- (entry < t0 & etime >= t0) 
     if (is.null(p0)) {
-        if (all(status==0))  t0 <- max(etime)  #failsafe
-        else t0 <- min(etime[status!=0])  # first transition event
         wtsum <- sum(wt[at.zero])  # weights for a subject may change
         p0 <- tapply(wt[at.zero], istate[at.zero], sum) / wtsum
         p0 <- ifelse(is.na(p0), 0, p0)  #for a state not in at.zero, tapply =NA
-        if (all(p0 <1)) {  # compute intitial leverage
+        if (influence & all(p0 <1)) {  # compute intitial leverage
             who <- index[at.zero]  # this will have no duplicates
             for (j in 1:nstate) 
                i0[who,j] <- (ifelse(istate[at.zero]==states[j], 1, 0) - p0[j])/wtsum

@@ -318,29 +318,37 @@ multihaz <- function(y, x, position, weight, risk, istrat, ctype, stype,
     #  with casewt * risk wt), 4-6 = events (unweighted, case, risk), 
     #  7-8 = censored events, 9-10 = censored, 11-12 = Efron
 
-    # We will use cn[,,5]/denom later, avoid any 0/0
-    # cn[,,4] is safer since it is integer, but if someone had case weights,
-    #  and a subject with weight=0 were the only event, we need cn[,,5]
-    noevent <- (cn[,,4]==0 || cn[,,5]==0)
+    # We will use events/(at risk) = cn[,,5]/cn[,,3] a few lines below; avoid 0/0
+    # If there is no one at risk there are no events, obviously.
+    # cn[,,1] is the safer check since it is an integer, but if there are weights
+    #  and a subject with weight=0 were the only one at risk, we need cn[,,2]
+    # (Users should never use weights of 0, but someone, somewhere, will do it.)
+    none.atrisk <- (cn[,,1]==0 | cn[,,2]==0)
     if (ctype ==1) {
-        denom1 <- ifelse(noevent, 1, cn[,,3])   # avoid a later 0/0
-        denom2 <- ifelse(noevent, 1, cn[,,3]^2)
+        denom1 <- ifelse(none.atrisk, 1, cn[,,3])   # avoid a later 0/0
+        denom2 <- ifelse(none.atrisk, 1, cn[,,3]^2)
     } else {
-        denom1 <- ifelse(noevent, 1, cn[,,11])
-        denom2 <- ifelse(noevent, 1, cn[,,12])
+        denom1 <- ifelse(none.atrisk, 1, cn[,,11])
+        denom2 <- ifelse(none.atrisk, 1, cn[,,12])
     }
 
+    # We want to avoid 0/0. If there is no one at risk (denominator) then
+    # by definition there will be no events (numerator), and that element of
+    # the hazard is by definintion also 0.
     if (any(duplicated(bcoef[1,]))) {
         # there are shared hazards: we have to collapse and then expand
-        design <- model.matrix(~factor(zed) -1, data.frame(zed=bcoef[1,]))
+        if (all(bcoef[1,] == bcoef[1,1])) design <- matrix(1, nrow=ncol(bcoef))
+        else design <- model.matrix(~factor(zed) -1, data.frame(zed=bcoef[1,]))
         colnames(design) <- 1:ncol(design)  # easier to read when debuggin
         events <- cn[,,5] %*% design
-        atrisk <- denom1 %*% (design* bcoef[2,])
-        basehaz <- events/atrisk
+        if (ctype==1) atrisk <- cn[,,3]  %*% design
+        else          atrisk <- cn[,,11] %*% design
+        basehaz <- events/ifelse(atrisk<=0, 1, atrisk)
         hazard <- basehaz[,bcoef[1,]] * rep(bcoef[2,], each=nrow(basehaz))
     }                                  
     else {
-        hazard <- cn[,,5]/denom1
+        if (ctype==1) hazard <- cn[,,5]/ifelse(cn[,,3]<=0, 1, cn[,,3])
+        else          hazard <- cn[,,5]/ifelse(cn[,,11] <=0, 1, cn[,,11])
     }
 
     # Expand the result, one "hazard set" for each row of x2
@@ -357,7 +365,7 @@ multihaz <- function(y, x, position, weight, risk, istrat, ctype, stype,
     }
 
     for (i in 1:nx2) {
-        h2[,i,] <- apply(hazard %*% diag(risk2[i,]), 2, cumsum)
+        h2[,i,] <- hazard * rep(risk2[i,], each=ntime)
         if (FALSE) {  # if (se.fit) eventually
             d1 <- fit$xbar - rep(x[i,], each=nrow(fit$xbar))
             d2 <- apply(d1*hazard, 2, cumsum)
@@ -367,16 +375,18 @@ multihaz <- function(y, x, position, weight, risk, istrat, ctype, stype,
 
         S <- p0
         for (j in 1:ntime) {
-            H[,] <- 0.0
-            H[hfill] <- hazard[j,] *risk2[i,]
-            if (stype==1) {
-                diag(H) <- pmax(0, 1.0 - rowSums(H))
-                S <- as.vector(S %*% H)  # don't keep any names
-            }
-            else {
-                diag(H) <- 0.0 - rowSums(H)
-                #S <- as.vector(S %*% expm(H))  # dgeMatrix issue
-                S <- as.vector(S %*% survexpm(H, 1, esetup))
+            if (any(hazard[j,] > 0)) { # hazard =0 for censoring times
+                H[,] <- 0.0
+                H[hfill] <- hazard[j,] *risk2[i,]
+                if (stype==1) {
+                    diag(H) <- pmax(0, 1.0 - rowSums(H))
+                    S <- as.vector(S %*% H)  # don't keep any names
+                }
+                else {
+                    diag(H) <- 0.0 - rowSums(H)
+                    #S <- as.vector(S %*% expm(H))  # dgeMatrix issue
+                    S <- as.vector(S %*% survexpm(H, 1, esetup))
+                }
             }
             S2[j,i,] <- S
         }
