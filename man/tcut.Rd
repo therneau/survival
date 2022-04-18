@@ -26,17 +26,26 @@ tcut(x, breaks, labels, scale=1)
 \seealso{ \code{\link{cut}}, \code{\link{pyears}} }
 
 \examples{
-mdy.date <- function(m,d,y)
-   as.Date(paste(ifelse(y<100, y+1900, y), m, d, sep='/'))
-temp1 <- mdy.date(6,6,36)
-temp2 <- mdy.date(6,6,55)# Now compare the results from person-years
-#
-temp.age <- tcut(temp2-temp1, floor(c(-1, (18:31 * 365.24))),
-	labels=c('0-18', paste(18:30, 19:31, sep='-')))
-temp.yr  <- tcut(temp2, mdy.date(1,1,1954:1965), labels=1954:1964)
-temp.time <- 3700   #total days of fu
-py1 <- pyears(temp.time ~ temp.age + temp.yr, scale=1) #output in days
-py1
+# For pyears, all time variable need to be on the same scale; but
+# futime is in months and age is in years
+test <- mgus2
+test$years <- test$futime/30.5   # follow-up in years
+
+# first grouping based on years from starting age (= current age)
+# second based on years since enrollment (all start at 0)
+test$agegrp <- tcut(test$age, c(0,60, 70, 80, 100), 
+                     c("<=60", "60-70", "70-80", ">80"))
+test$fgrp  <- tcut(rep(0, nrow(test)), c(0, 1, 5, 10, 100),
+                   c("0-1yr", "1-5yr", "5-10yr", ">10yr"))
+
+# death rates per 1000, by age group
+pfit1 <- pyears(Surv(years, death) ~ agegrp, scale =1000, data=test)
+round(pfit1$event/ pfit1$pyears) 
+
+#death rates per 100, by follow-up year and age
+# there are excess deaths in the first year, within each age stratum
+pfit2 <- pyears(Surv(years, death) ~ fgrp + agegrp, scale =1000, data=test)
+round(pfit2$event/ pfit2$pyears)  
 }
 \keyword{survival}
 
