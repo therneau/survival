@@ -4,8 +4,9 @@
   \itemize{
     \item Error in concordance(fit, newdata) if newdata had missing
     values: the derived x and y could be different lengths.
-    \item Add test cases for the (rather difficult) case of a
-    multi-state coxph model that has shared hazards, predicted survival
+    \item Add test cases for the (rather difficult) case of predicted
+    survival for multi-state coxph model that has shared hazards
+    \item nsk(..., Boundary.knots=FALSE) was not being handled properly.
 }}
 
 \section{Changes in version 3.3-1}{
