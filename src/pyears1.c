@@ -46,12 +46,12 @@
 #include "survproto.h"
 
 /* names that begin with "s" will be re-declared in the main body */
-void pyears1(Sint   *sn,      Sint   *sny,      Sint   *sdoevent, 
+void pyears1(int    *sn,      int    *sny,      int    *sdoevent, 
 	     double *sy,      double *weight,       
-             Sint   *sedim,   Sint   *efac, 
-	     Sint   *edims,   double *secut,    double *expect, 
-	     double *sedata,  Sint   *sodim,    Sint   *ofac, 
-	     Sint   *odims,   double *socut,    Sint   *smethod, 
+             int    *sedim,   int    *efac, 
+	     int    *edims,   double *secut,    double *expect, 
+	     double *sedata,  int    *sodim,    int    *ofac, 
+	     int    *odims,   double *socut,    int    *smethod, 
 	     double *sodata,  double *pyears,   double *pn, 
 	     double *pcount,  double *pexpect,  double *offtable)
     {

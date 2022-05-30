@@ -1,6 +1,6 @@
 /* Automatically generated from the noweb directory */
 #include "survS.h"
-void agsurv5(Sint *n2,     Sint *nvar2,  Sint *dd, double *x1,  
+void agsurv5(int *n2,      int *nvar2,   int *dd, double *x1,  
              double *x2,   double *xsum, double *xsum2, 
              double *sum1, double *sum2, double *xbar) {
     double temp;

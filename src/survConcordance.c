@@ -22,13 +22,13 @@
 #include "survS.h"
 #include "survproto.h"
 
-void survConcordance(Sint *np,    double *time,  Sint *status, 
-		     double *x,   Sint *n2p,     double *x2,
-		     Sint   *temp,Sint *result) {
+void survConcordance(int  *np,    double *time,  int  *status, 
+		     double *x,   int  *n2p,     double *x2,
+		     int    *temp,int  *result) {
     int i, j, k=0;
     int start, end;
     int n, n2;
-    Sint *count1, *count2, *count;
+    int  *count1, *count2, *count;
     int tdeath; 
     int nright, nsame;
 

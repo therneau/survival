@@ -55,11 +55,11 @@ SEXP survreg6(SEXP maxiter2,   SEXP nvarx,  SEXP y,
     double newlk;
     double *loglik, eps, tol_chol;
     double *beta;
-    Sint   *flag;
+    int    *flag;
     SEXP   out_beta;
     int    nvar, nvar2, nstrat;
     double **covar;
-    Sint   *strat ;
+    int    *strat ;
     double *time2, *time1, *status;
     double *offset;
     double **imat, **JJ;
@@ -70,7 +70,7 @@ SEXP survreg6(SEXP maxiter2,   SEXP nvarx,  SEXP y,
     SEXP  out_iter, out_loglik, out_imat, out_flag;
     SEXP  out_u;
     SEXP  rlist, rlistnames;
-    Sint *iter2;
+    int  *iter2;
     int nprotect;
 
     /*

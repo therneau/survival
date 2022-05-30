@@ -450,8 +450,8 @@ the subjects with an event.  Their length will be equal to sum(ndeath).
 #include "survS.h"
 #include "survproto.h"
 
-void agsurv4(Sint   *ndeath,   double *risk,    double *wt,
-             Sint   *sn,        double *denom,   double *km) 
+void agsurv4(int   *ndeath,   double *risk,    double *wt,
+             int   *sn,        double *denom,   double *km) 
 {
     int i,j,k, l;
     int n;  /* number of unique death times */
@@ -524,7 +524,7 @@ the mean of $x$ at this point.
 
 <<agsurv5>>=
 #include "survS.h"
-void agsurv5(Sint *n2,     Sint *nvar2,  Sint *dd, double *x1,  
+void agsurv5(int *n2,      int *nvar2,   int *dd,  double *x1,  
              double *x2,   double *xsum, double *xsum2, 
              double *sum1, double *sum2, double *xbar) {
     double temp;

@@ -17,9 +17,9 @@
 */
 #include "survS.h"
 #include "survproto.h"
-void coxmart2(Sint   *sn,     double *time, 
-	     Sint   *status, Sint   * strata,   double *score, 
-	     double *wt,     double *resid)
+void coxmart2(int   *sn,     double *time, 
+	      int   *status, int   * strata,   double *score, 
+	      double *wt,    double *resid)
     {
     int i,j;
     int n;

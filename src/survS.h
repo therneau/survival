@@ -6,8 +6,6 @@
 #include "Rinternals.h"
 #include <R_ext/Utils.h>  
 
-/* typedef int Sint; */  /* no longer needed */
-
 /*
 ** Memory defined with ALLOC is removed automatically by S.
 **  That with "Calloc" I have to remove myself.  Use the

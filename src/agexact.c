@@ -51,12 +51,12 @@
 #include "survS.h"
 #include "survproto.h"
 
-void agexact(Sint *maxiter,  Sint *nusedx,   Sint *nvarx,   double *start, 
-	     double *stop,   Sint *event,    double *covar2,double *offset, 
-	     Sint   *strata, double *means,  double *beta,  double *u, 
-	     double *imat2,  double loglik[2], Sint *flag,  double *work, 
-	     Sint   *work2,  double *eps,    double *tol_chol, 
-	     double *sctest, Sint *nocenter)
+void agexact(int  *maxiter,  int  *nusedx,   int  *nvarx,   double *start, 
+	     double *stop,   int  *event,    double *covar2,double *offset, 
+	     int    *strata, double *means,  double *beta,  double *u, 
+	     double *imat2,  double loglik[2], int  *flag,  double *work, 
+	     int    *work2,  double *eps,    double *tol_chol, 
+	     double *sctest, int  *nocenter)
 {
     int i,j,k, l, person;
     int     iter;

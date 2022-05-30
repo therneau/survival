@@ -20,7 +20,7 @@ void survpenal(int whichcase, int nfrail,    int  nvar,    double **hmat,
 	       SEXP pexpr2,   double *cptr2, SEXP rho) {
 
     int i,j, k;
-    Sint *flag;
+    int *flag;
     SEXP plist;
     double *dptr;
 

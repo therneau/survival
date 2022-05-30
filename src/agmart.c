@@ -25,8 +25,8 @@
 #include "survS.h"
 #include "survproto.h"
 
-void agmart(Sint   *n,     Sint   *method,  double *start,   double *stop, 
-	    Sint   *event, double *score,   double *wt,      Sint   *strata, 
+void agmart(int    *n,     int    *method,  double *start,   double *stop, 
+	    int    *event, double *score,   double *wt,      int    *strata, 
 	    double *resid)
     {
     int i,k;

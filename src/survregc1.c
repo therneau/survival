@@ -54,11 +54,11 @@ static void (*sreg_gg)();
 #define  ROOT_2 1.414213562373095
 
 double survregc1(int n,          int nvar,      int nstrat,     int whichcase,
-		 double *beta,   int dist,      Sint *strat,    double *offset,
+		 double *beta,   int dist,      int *strat,     double *offset,
 		 double *time1,  double *time2, double *status, double *wt,
 		 double **covar, double **imat, double **JJ,    double *u, 
 		 SEXP expr,      SEXP rho,      double *dummy,  int nf,
-		 Sint *frail,    double *fdiag, double *jdiag ) {
+		 int *frail,     double *fdiag, double *jdiag ) {
     
     int person, i,j,k;
     int nvar2;        /* nvar + nstrat */
