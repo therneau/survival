@@ -46,7 +46,7 @@ rep.Surv <- function(x, ...) {
 
 # This function is just like all.vars -- except that it does not recur
 #  on the $ sign, it follows both arguments of +, *, - and : in order to
-#  track formulas, all arguments of Surv, and only the first of things
+#  track formulas, all arguments of Surv, and only the first of things 
 #  like ns().  And - it works only on formulas.
 # This is used to generate a warning in coxph if the same variable is used
 #  on both sides, so perfection is not required of the function.
@@ -56,7 +56,7 @@ terms.inner <- function(x) {
         if (length(x) ==3) c(terms.inner(x[[2]]), terms.inner(x[[3]]))
         else terms.inner(x[[2]])
     }
-    else if (inherits(x, "call") &&
+    else if (inherits(x, "call") && 
              (x[[1]] != as.name("$") && x[[1]] != as.name("["))) {
         if (x[[1]] == '+' || x[[1]]== '*' || x[[1]] == '-' || x[[1]] ==':') {
             # terms in a model equation, unary minus only has one argument
@@ -72,7 +72,7 @@ terms.inner <- function(x) {
   error = function(e) return(character(0L))
   )
 }
-
+   
 # If a subject had (start, stop) observations of (1,2) (2,10) (10,15) (20,25),
 #  say, code often wants to distiguish intervals that are "real" censoring
 #  from a simple split due to a time dependent covariate.
@@ -83,7 +83,7 @@ survflag <- function(y, id) {
     if (!inherits(y, "Surv")) stop("y must be a Surv object")
     if (nrow(y) != length(id)) stop("length mismatch")
     if (ncol(y) != 3) stop("y needs to be of (tstart, tstop) form")
-
+  
     n <- nrow(y)
     indx <- order(id, y[,2])  # sort the data by time within id
     y2 <- y[indx,]
@@ -91,7 +91,7 @@ survflag <- function(y, id) {
 
     newid <- (id2[-n] != id2[-1])
     gap <-  (y2[-n,2] < y2[-1,1]) 
-
+   
     flag <- 1L*c(TRUE, newid | gap) + 2L*c(newid | gap, TRUE)
     flag[indx] <- flag   # return it to data order
     flag
