@@ -33,9 +33,9 @@
 #include "survS.h"
 #include "survproto.h"
 
-void coxscho(Sint   *nusedx,    Sint   *nvarx,    double *y, 
-	     double *covar2,    double *score,    Sint   *strata,  
-	     Sint   *method2,   double *work)
+void coxscho(int    *nusedx,    int    *nvarx,    double *y, 
+	     double *covar2,    double *score,    int    *strata,  
+	     int    *method2,   double *work)
 {
     int i,k,person;
     int     nused, nvar;

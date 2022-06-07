@@ -51,10 +51,10 @@
 #include "survS.h"
 #include "survproto.h"
 
-void coxdetail(Sint   *nusedx,   Sint   *nvarx,    Sint   *ndeadx, 
-	       double *y,        double *covar2,   Sint   *strata,  
+void coxdetail(int    *nusedx,   int    *nvarx,    int    *ndeadx, 
+	       double *y,        double *covar2,   int    *strata,  
 	       double *score,    double *weights,  double *means2, 
-	       double *u2,       double *var,      Sint   *rmat,
+	       double *u2,       double *var,      int    *rmat,
 	       double *nrisk2,   double *work)
 {
     int i,j,k,person;

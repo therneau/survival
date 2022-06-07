@@ -64,7 +64,8 @@ terms.inner <- function(x) {
         }
         else if (x[[1]] == as.name("Surv"))
                  unlist(lapply(x[-1], terms.inner))
-        else terms.inner(x[[2]])
+        else if (length(x) ==2) terms.inner(x[[2]])
+        else character(0)
     }
     else(deparse(x))
 }

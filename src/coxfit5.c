@@ -87,18 +87,18 @@ static double *score, *ttime;  /* Hp-UX really doesn't like "time" as a var */
 static double *tmean;
 static int    ptype, pdiag;
 static double *ipen, *upen, logpen;
-static Sint   *zflag;
+static int    *zflag;
 
 static double **cmatrix(double *, int, int);
 
-void coxfit5_a(Sint *nusedx,     Sint *nvarx,     double *yy, 
+void coxfit5_a(int  *nusedx,     int  *nvarx,     double *yy, 
 	       double *covar2,   double *offset2, double *weights2,
-	       Sint *strata,     Sint *sorted,    double *means, 
+	       int  *strata,     int  *sorted,    double *means, 
                double *beta,     double *u,       double *loglik, 
-	       Sint *methodx,    Sint *ptype2,    Sint *pdiag2,
-	       Sint *nfrail,     Sint *frail2,
+	       int  *methodx,    int  *ptype2,    int  *pdiag2,
+	       int  *nfrail,     int  *frail2,
                void *fexpr1,     void *fexpr2,    void *rho,
-	       Sint *docenter) {
+	       int  *docenter) {
 
     int i,j,k, p, istrat;
     int ii; 
@@ -159,8 +159,8 @@ void coxfit5_a(Sint *nusedx,     Sint *nvarx,     double *yy,
     if (pdiag==0)  upen = CALLOC(2*i, double);
     else           upen = CALLOC(i+j, double);
     ipen = upen + i;
-    if (ptype>1)  zflag = CALLOC(nvar, Sint);
-    else          zflag = CALLOC(2, Sint);
+    if (ptype>1)  zflag = CALLOC(nvar, int );
+    else          zflag = CALLOC(2, int );
 
     if (nf>0) {
 	frail = CALLOC(nused, int);
@@ -284,11 +284,11 @@ void coxfit5_a(Sint *nusedx,     Sint *nvarx,     double *yy,
 /*
 ** This call is used for iteration
 */
-void coxfit5_b(Sint *maxiter, Sint *nusedx, Sint *nvarx, 
-	       Sint *strata, double *beta, double *u,
+void coxfit5_b(int  *maxiter, int  *nusedx, int  *nvarx, 
+	       int  *strata, double *beta, double *u,
 	       double *imat2,  double *jmat2, double *loglik, 
-	       Sint *flag,  double *eps, double *tolerch, Sint *methodx, 
-	       Sint *nfrail, double *fbeta, double *fdiag,
+	       int  *flag,  double *eps, double *tolerch, int  *methodx, 
+	       int  *nfrail, double *fbeta, double *fdiag,
                void *fexpr1, void *fexpr2, void *rho)
 {
 
@@ -568,7 +568,7 @@ static void cmatrix_free(double **data)
     }
 
 
-void coxfit5_c (Sint *nusedx, Sint *nvar, Sint *strata, Sint *methodx, 
+void coxfit5_c (int  *nusedx, int  *nvar, int  *strata, int  *methodx, 
 		double *expect) {
     double hazard, 
            denom,

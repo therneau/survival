@@ -101,7 +101,7 @@ A covariate may change in any way based on past data or outcomes, but it
 may not reach forward in time.
 In the above simple data set this means that we cannot add a linear
 interpolation between the creatinine values 0.9 and 1.5 to get a
-predicted value of 1.1 on day 100; on day 100 the later value of 1.5 has
+predicted value of 1.1 on day 45; on day 45 the later value of 1.5 has
 not yet been seen.
 
 As an example consider a recent analysis from the Mayo Clinic

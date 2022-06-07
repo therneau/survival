@@ -86,20 +86,20 @@ static int    *sort1, *sort2;
 static double *tmean;
 static int    ptype, pdiag;
 static double *ipen, *upen, logpen;
-static Sint   *zflag;
+static int    *zflag;
 
 static double **cmatrix(double *, int, int);
 
-void agfit5a(Sint *nusedx, Sint *nvarx, double *yy, 
+void agfit5a(int  *nusedx, int  *nvarx, double *yy, 
 	       double *covar2, double *offset2,
 	       double *weights2, 
-	       Sint   *strata,  Sint   *sort,
+	       int    *strata,  int    *sort,
 	       double *means, double *beta, double *u, 
 	       double *loglik, 
-	       Sint *methodx, Sint *ptype2, Sint *pdiag2,
-	       Sint *nfrail,  Sint *frail2,
+	       int  *methodx, int  *ptype2, int  *pdiag2,
+	       int  *nfrail,  int  *frail2,
                void *fexpr1, void *fexpr2, void *rho,
-	       Sint *docenter) {
+	       int  *docenter) {
 
     int i,j,k, person;
     int     nused, nvar;
@@ -165,8 +165,8 @@ void agfit5a(Sint *nusedx, Sint *nvarx, double *yy,
     if (pdiag==0)  upen = CALLOC(2*i, double);
     else           upen = CALLOC(i+j, double);
     ipen = upen + i;
-    if (ptype>1)  zflag = CALLOC(nvar, Sint);
-    else          zflag = CALLOC(2, Sint);
+    if (ptype>1)  zflag = CALLOC(nvar, int );
+    else          zflag = CALLOC(2, int );
 
     if (nf>0) {
 	frail = CALLOC(nused, int);
@@ -299,11 +299,11 @@ void agfit5a(Sint *nusedx, Sint *nvarx, double *yy,
 ** This call is used for iteration
 */
 
-void agfit5b(Sint *maxiter, Sint *nusedx, Sint *nvarx, 
-	       Sint *strata, double *beta, double *u,
+void agfit5b(int  *maxiter, int  *nusedx, int  *nvarx, 
+	       int  *strata, double *beta, double *u,
 	       double *imat2,  double *jmat2, double *loglik, 
-	       Sint *flag,  double *eps, double *tolerch, Sint *methodx, 
-	       Sint *nfrail, double *fbeta, double *fdiag,
+	       int  *flag,  double *eps, double *tolerch, int  *methodx, 
+	       int  *nfrail, double *fbeta, double *fdiag,
                void *fexpr1, void *fexpr2, void *rho)
 {
     int i,j,k, person;
@@ -675,7 +675,7 @@ static void cmatrix_free(double **data) {
     FREE(data);
     }
 
-void agfit5c(Sint *nvar) {
+void agfit5c(int  *nvar) {
     /*
     ** FREE up the extra memory
     */

@@ -2,9 +2,9 @@
 #include "survS.h"
 #include "survproto.h"
 
-void survdiff2(Sint   *nn,     Sint   *nngroup,    Sint   *nstrat, 
-	       double *rho,    double *time,       Sint   *status, 
-	       Sint   *group,  Sint   *strata,	   double *obs, 
+void survdiff2(int    *nn,     int    *nngroup,    int    *nstrat, 
+	       double *rho,    double *time,       int    *status, 
+	       int    *group,  int    *strata,	   double *obs, 
 	       double *exp,    double *var,        double *risk, 
 	       double *kaplan)
     {

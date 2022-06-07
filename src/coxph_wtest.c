@@ -4,7 +4,7 @@
 #include "survS.h"
 #include "survproto.h"
 
-void coxph_wtest(Sint *nvar2, Sint *ntest, double *var, double *b,
+void coxph_wtest(int *nvar2,    int *ntest, double *var, double *b,
 		 double *solve, double *tolerch) {
     int i,j;
     int nvar, df;

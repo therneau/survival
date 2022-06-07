@@ -7,6 +7,8 @@
     \item Add test cases for the (rather difficult) case of predicted
     survival for multi-state coxph model that has shared hazards
     \item nsk(..., Boundary.knots=FALSE) was not being handled properly.
+    \item Fix error in terms.inner; it failed for a function with no
+    arguments. Pointed out by Daniel Sjberg and Duncan Murdoch.
 }}
 
 \section{Changes in version 3.3-1}{

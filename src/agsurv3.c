@@ -65,12 +65,12 @@ static int      death,
 		n;
 static void    addup();
 
-void agsurv3(Sint   *sn,    Sint   *snvar,    Sint   *sncurve, 
-	     Sint   *snpt,  Sint   *sse,      double *score, 
-	     double *sy,    Sint   *grpx,     double *r,        double *coef, 
-	     double *var,   double *xmean,    Sint   *scn, 
+void agsurv3(int    *sn,    int    *snvar,    int    *sncurve, 
+	     int    *snpt,  int    *sse,      double *score, 
+	     double *sy,    int    *grpx,     double *r,        double *coef, 
+	     double *var,   double *xmean,    int    *scn, 
 	     double *cy,    double *cx,       double *ssurv,
-	     double *varh,  double *sused,    Sint   *smethod)
+	     double *varh,  double *sused,    int    *smethod)
 {
 
     int i,j,k,l;

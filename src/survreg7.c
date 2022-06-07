@@ -81,10 +81,10 @@ SEXP survreg7(SEXP maxiter2,   SEXP nvarx,  SEXP y,
 
     /* pointers for the data regions of the input arguments */
     double **covar;
-    Sint   *strat ;
+    int    *strat ;
     double *time2, *time1, *status;
     double *offset;
-    Sint *fgrp;
+    int  *fgrp;
     double *wt;
 
     /* copies of the scalar input arguments */
@@ -113,7 +113,7 @@ SEXP survreg7(SEXP maxiter2,   SEXP nvarx,  SEXP y,
     double **hmat, **hinv, *beta, *hdiag;
     double *penalty;
     SEXP  rlist, rlistnames;
-    Sint *iter2, *flag;
+    int  *iter2, *flag;
     int nprotect;   /* number of PROTECT calls that I have issued */
 
     /*
