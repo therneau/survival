@@ -47,7 +47,7 @@ which are based on the IJ, and that the mean of the estimates, over
 subjects, is exactly the underlying survival estimate.
 
 For the \code{type} variable, \code{surv} is an acceptable synonym for
-\code{pstate}, and \code{rmst, rmts} are equivalent to \code{sojourn}.
+\code{pstate}, and \code{rmst} and \code{rmts} are equivalent to \code{sojourn}.
 All of these are case insensitive.
 }
 \value{
