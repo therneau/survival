@@ -1020,12 +1020,14 @@ flexible than R, i.e., you cannot simply write
 
 A more general approach is to allow a flexible fit on the right hand
 side, as shown in the following code.
+(The Boundary.knots=FALSE argument simply says that the \code{knots} argument
+contains \emph{all} the knots, i.e., don't separate them into two sets.)
 
 <<vet4>>=
 vfit4 <-  coxph(Surv(time, status) ~ trt + prior + karno + tt(karno),
                 data=veteran,
                 tt = function(x, t, ...) x* nsk(t, knots=c(5, 100, 200, 400),
-                                                Boundary = FALSE))
+                                                Boundary.knots = FALSE))
 vfit4
 @ 
 

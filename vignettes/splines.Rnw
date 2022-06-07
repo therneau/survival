@@ -200,7 +200,7 @@ options(show.signif.stars=FALSE) # display intelligence
 fit1 <- coxph(Surv(futime, death) ~ sex + pspline(age, 3), data=flchain)
 fit1
 termplot(fit1, term=2, se=TRUE, col.term=1, col.se=1,
-         ylab="log hazard")
+         ylab="log hazard ratio")
 @ 
 
 We used a \code{pspline} term rather than \code{ns}, say, 
