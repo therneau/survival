@@ -72,3 +72,21 @@ the issue came from clinicians who complained about false counts. These counts a
 I see your point, too, as I know that the code of the survival package is quite complex. Maybe at least warning in the summary output would be helpful so that the user knows that he has to calculate the exact figures by himself.
 Best 
 Franz Quehenberger"
+
+
+---
+ 
+False values from cox.zph for a model with robust variance
+
+---
+
+This fails:
+ fit <- coxph(Surv(time, status) ~ .- zed, data1)
+ concordance(fit, newdata= data2)
+If a. zed is a factor and b. data2 has levels not in data1
+Strange
+
+---
+The predict(coxmodel, type='surv') needs a times= argument. Users don't get
+what they expect, at present.   And what is there now is not useful.
+
