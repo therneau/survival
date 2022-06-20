@@ -79,9 +79,9 @@ survdiff <- function(formula, data, subset, na.action, rho=0, timefix=TRUE) {
 	    vv <- (fit$var[df,df])[-1,-1, drop=FALSE]
 	    chi <- sum(solve(vv, temp2) * temp2)
 	    }
-
+	df <- (sum(1*(etmp>0))) -1
 	rval <-list(n= table(groups), obs = fit$observed,
-		    exp = fit$expected, var=fit$var,  chisq=chi)
+		    exp = fit$expected, var=fit$var,  chisq=chi, p.value= round(pchisq(chi, df, lower.tail=FALSE), 3))
 	if (length(strats)) rval$strata <- table(strata.keep)
 	}
 
