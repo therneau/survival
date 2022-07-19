@@ -4,7 +4,7 @@
 \title{Breast cancer data set used in Royston and Altman (2013)}
 \description{
 The \code{rotterdam} data set includes 2982 primary breast cancers patients
-whose data whose records were included in the Rotterdam tumor bank.
+whose records were included in the Rotterdam tumor bank.
 }
 \usage{rotterdam
 data(cancer, package="survival")

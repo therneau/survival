@@ -4,6 +4,8 @@
 #
 basehaz <- function (fit, centered = TRUE) 
 {
+    if (inherits(fit, "coxphms"))
+        stop("the basehaz function is not implemented for multi-state models")
     if (!inherits(fit, "coxph")) 
         stop("must be a coxph object")
     sfit <- survfit(fit, se.fit=FALSE)   
