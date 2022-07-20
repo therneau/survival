@@ -39,7 +39,7 @@ print.survdiff <- function(x, digits = max(options()$digits - 4, 3), ...) {
 				  "(O-E)^2/E", "(O-E)^2/V"))
 	print(temp)
 	cat("\n Chisq=", format(round(x$chisq,1)),
-		 " on", df, "degrees of freedom, p.value=",
+		 " on", df, "degrees of freedom, p=",
 		 format.pval(pchisq(x$chisq, df, lower.tail=FALSE)),
             "\n")
        }

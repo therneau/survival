@@ -1,5 +1,5 @@
 
-R Under development (unstable) (2022-02-28 r81833) -- "Unsuffered Consequences"
+R Under development (unstable) (2022-06-02 r82447) -- "Unsuffered Consequences"
 Copyright (C) 2022 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
@@ -20,6 +20,18 @@ Type 'q()' to quit R.
 > pkgname <- "survival"
 > source(file.path(R.home("share"), "R", "examples-header.R"))
 > options(warn = 1)
+> base::assign(".ExTimings", "survival-Ex.timings", pos = 'CheckExEnv')
+> base::cat("name\tuser\tsystem\telapsed\n", file=base::get(".ExTimings", pos = 'CheckExEnv'))
+> base::assign(".format_ptime",
++ function(x) {
++   if(!is.na(x[4L])) x[1L] <- x[1L] + x[4L]
++   if(!is.na(x[5L])) x[2L] <- x[2L] + x[5L]
++   options(OutDec = '.')
++   format(x[1L:3L], digits = 7L)
++ },
++ pos = 'CheckExEnv')
+> 
+> ### * </HEADER>
 > library('survival')
 > 
 > base::assign(".oldSearch", base::search(), pos = 'CheckExEnv')
@@ -30,6 +42,7 @@ Type 'q()' to quit R.
 > 
 > flush(stderr()); flush(stdout())
 > 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
 > ### Name: Surv
 > ### Title: Create a Survival Object
 > ### Aliases: Surv is.Surv [.Surv
@@ -96,12 +109,15 @@ ph.ecog=3   1      1    118      NA      NA
 > 
 > 
 > 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("Surv", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
 > cleanEx()
 > nameEx("aareg")
 > ### * aareg
 > 
 > flush(stderr()); flush(stdout())
 > 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
 > ### Name: aareg
 > ### Title: Aalen's additive regression model for censored data
 > ### Aliases: aareg
@@ -155,12 +171,15 @@ ph.ecog=3   1      1    118      NA      NA
 > 
 > 
 > 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("aareg", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
 > cleanEx()
 > nameEx("aggregate.survfit")
 > ### * aggregate.survfit
 > 
 > flush(stderr()); flush(stdout())
 > 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
 > ### Name: aggregate.survfit
 > ### Title: Average survival curves
 > ### Aliases: aggregate.survfit
@@ -181,12 +200,15 @@ data
 > 
 > 
 > 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("aggregate.survfit", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
 > cleanEx()
 > nameEx("anova.coxph")
 > ### * anova.coxph
 > 
 > flush(stderr()); flush(stdout())
 > 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
 > ### Name: anova.coxph
 > ### Title: Analysis of Deviance for a Cox model.
 > ### Aliases: anova.coxph anova.coxphlist
@@ -220,12 +242,15 @@ Analysis of Deviance Table
 >  
 > 
 > 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("anova.coxph", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
 > cleanEx()
 > nameEx("attrassign")
 > ### * attrassign
 > 
 > flush(stderr()); flush(stdout())
 > 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
 > ### Name: attrassign
 > ### Title: Create new-style "assign" attribute
 > ### Aliases: attrassign.default attrassign attrassign.lm
@@ -257,12 +282,15 @@ $`factor(ph.ecog)`
 > 
 > 
 > 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("attrassign", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
 > cleanEx()
 > nameEx("blogit")
 > ### * blogit
 > 
 > flush(stderr()); flush(stdout())
 > 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
 > ### Name: blogit
 > ### Title: Bounded link functions
 > ### Aliases: blogit bcloglog bprobit blog
@@ -279,12 +307,15 @@ $`factor(ph.ecog)`
 > 
 > 
 > 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("blogit", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
 > cleanEx()
 > nameEx("cch")
 > ### * cch
 > 
 > flush(stderr()); flush(stdout())
 > 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
 > ### Name: cch
 > ### Title: Fits proportional hazards regression model to case-cohort data
 > ### Aliases: cch
@@ -375,12 +406,15 @@ age      0.043 1.044 0.996 1.093 0.072
 > 
 > 
 > 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("cch", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
 > cleanEx()
 > nameEx("cipoisson")
 > ### * cipoisson
 > 
 > flush(stderr()); flush(stdout())
 > 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
 > ### Name: cipoisson
 > ### Title: Confidence limits for the Poisson
 > ### Aliases: cipoisson
@@ -402,12 +436,15 @@ age      0.043 1.044 0.996 1.093 0.072
 > 
 > 
 > 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("cipoisson", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
 > cleanEx()
 > nameEx("clogit")
 > ### * clogit
 > 
 > flush(stderr()); flush(stdout())
 > 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
 > ### Name: clogit
 > ### Title: Conditional logistic regression
 > ### Aliases: clogit
@@ -449,12 +486,15 @@ n= 4190, number of events= 838
 > 
 > 
 > 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("clogit", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
 > cleanEx()
 > nameEx("cluster")
 > ### * cluster
 > 
 > flush(stderr()); flush(stdout())
 > 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
 > ### Name: cluster
 > ### Title: Identify clusters.
 > ### Aliases: cluster
@@ -469,12 +509,15 @@ n= 4190, number of events= 838
 > 
 > 
 > 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("cluster", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
 > cleanEx()
 > nameEx("concordance")
 > ### * concordance
 > 
 > flush(stderr()); flush(stdout())
 > 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
 > ### Name: concordance
 > ### Title: Compute the concordance statistic for data or a model
 > ### Aliases: concordance concordance.coxph concordance.formula
@@ -506,12 +549,15 @@ concordant discordant     tied.x     tied.y    tied.xy
 > 
 > 
 > 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("concordance", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
 > cleanEx()
 > nameEx("cox.zph")
 > ### * cox.zph
 > 
 > flush(stderr()); flush(stdout())
 > 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
 > ### Name: cox.zph
 > ### Title: Test the Proportional Hazards Assumption of a Cox Regression
 > ### Aliases: cox.zph [.cox.zph print.cox.zph
@@ -531,12 +577,15 @@ GLOBAL  3.633  2 0.16
 > 
 > 
 > 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("cox.zph", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
 > cleanEx()
 > nameEx("coxph")
 > ### * coxph
 > 
 > flush(stderr()); flush(stdout())
 > 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
 > ### Name: coxph
 > ### Title: Fit Proportional Hazards Regression Model
 > ### Aliases: coxph print.coxph.null print.coxph.penal coxph.penalty
@@ -657,12 +706,15 @@ n= 227, number of events= 164
 > 
 > 
 > 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("coxph", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
 > cleanEx()
 > nameEx("coxph.detail")
 > ### * coxph.detail
 > 
 > flush(stderr()); flush(stdout())
 > 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
 > ### Name: coxph.detail
 > ### Title: Details of a Cox Model Fit
 > ### Aliases: coxph.detail
@@ -684,12 +736,15 @@ n= 227, number of events= 164
 > 
 > 
 > 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("coxph.detail", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
 > cleanEx()
 > nameEx("diabetic")
 > ### * diabetic
 > 
 > flush(stderr()); flush(stdout())
 > 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
 > ### Name: diabetic
 > ### Title: Ddiabetic retinopathy
 > ### Aliases: diabetic
@@ -714,12 +769,15 @@ n= 394, number of events= 155
 > 
 > 
 > 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("diabetic", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
 > cleanEx()
 > nameEx("dsurvreg")
 > ### * dsurvreg
 > 
 > flush(stderr()); flush(stdout())
 > 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
 > ### Name: dsurvreg
 > ### Title: Distributions available in survreg.
 > ### Aliases: dsurvreg psurvreg qsurvreg rsurvreg
@@ -748,12 +806,15 @@ n= 394, number of events= 155
 > 
 > 
 > 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("dsurvreg", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
 > cleanEx()
 > nameEx("finegray")
 > ### * finegray
 > 
 > flush(stderr()); flush(stdout())
 > 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
 > ### Name: finegray
 > ### Title: Create data for a Fine-Gray model
 > ### Aliases: finegray
@@ -777,12 +838,15 @@ n= 394, number of events= 155
 > 
 > 
 > 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("finegray", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
 > cleanEx()
 > nameEx("flchain")
 > ### * flchain
 > 
 > flush(stderr()); flush(stdout())
 > 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
 > ### Name: flchain
 > ### Title: Assay of serum free light chain for 7874 subjects.
 > ### Aliases: flchain
@@ -802,12 +866,15 @@ n= 394, number of events= 155
 > 
 > 
 > 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("flchain", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
 > cleanEx()
 > nameEx("frailty")
 > ### * frailty
 > 
 > flush(stderr()); flush(stdout())
 > 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
 > ### Name: frailty
 > ### Title: Random effects terms
 > ### Aliases: frailty frailty.gamma frailty.gaussian frailty.t
@@ -842,12 +909,15 @@ n= 227, number of events= 164
 > 
 > 
 > 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("frailty", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
 > cleanEx()
 > nameEx("is.ratetable")
 > ### * is.ratetable
 > 
 > flush(stderr()); flush(stdout())
 > 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
 > ### Name: is.ratetable
 > ### Title: Verify that an object is of class ratetable.
 > ### Aliases: is.ratetable Math.ratetable Ops.ratetable
@@ -862,12 +932,15 @@ n= 227, number of events= 164
 > 
 > 
 > 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("is.ratetable", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
 > cleanEx()
 > nameEx("kidney")
 > ### * kidney
 > 
 > flush(stderr()); flush(stdout())
 > 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
 > ### Name: kidney
 > ### Title: Kidney catheter data
 > ### Aliases: kidney
@@ -882,12 +955,15 @@ n= 227, number of events= 164
 > 
 > 
 > 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("kidney", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
 > cleanEx()
 > nameEx("levels.Surv")
 > ### * levels.Surv
 > 
 > flush(stderr()); flush(stdout())
 > 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
 > ### Name: levels.Surv
 > ### Title: Return the states of a multi-state Surv object
 > ### Aliases: levels.Surv
@@ -908,12 +984,15 @@ NULL
 > 
 > 
 > 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("levels.Surv", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
 > cleanEx()
 > nameEx("lines.survfit")
 > ### * lines.survfit
 > 
 > flush(stderr()); flush(stdout())
 > 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
 > ### Name: lines.survfit
 > ### Title: Add Lines or Points to a Survival Plot
 > ### Aliases: lines.survfit points.survfit lines.survexp
@@ -939,12 +1018,15 @@ NULL
 > 
 > 
 > 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("lines.survfit", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
 > cleanEx()
 > nameEx("mgus")
 > ### * mgus
 > 
 > flush(stderr()); flush(stdout())
 > 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
 > ### Name: mgus
 > ### Title: Monoclonal gammopathy data
 > ### Aliases: mgus mgus1
@@ -979,12 +1061,15 @@ sex=male, death   137    100 7303.682
 > 
 > 
 > 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("mgus", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
 > cleanEx()
 > nameEx("model.matrix.coxph")
 > ### * model.matrix.coxph
 > 
 > flush(stderr()); flush(stdout())
 > 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
 > ### Name: model.matrix.coxph
 > ### Title: Model.matrix method for coxph models
 > ### Aliases: model.matrix.coxph
@@ -1002,12 +1087,15 @@ sex=male, death   137    100 7303.682
 > 
 > 
 > 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("model.matrix.coxph", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
 > cleanEx()
 > nameEx("myeloid")
 > ### * myeloid
 > 
 > flush(stderr()); flush(stdout())
 > 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
 > ### Name: myeloid
 > ### Title: Acute myeloid leukemia
 > ### Aliases: myeloid
@@ -1028,12 +1116,15 @@ n= 646, number of events= 320
 > 
 > 
 > 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("myeloid", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
 > cleanEx()
 > nameEx("myeloma")
 > ### * myeloma
 > 
 > flush(stderr()); flush(stdout())
 > 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
 > ### Name: myeloma
 > ### Title: Survival times of patients with multiple myeloma
 > ### Aliases: myeloma
@@ -1048,12 +1139,15 @@ n= 646, number of events= 320
 > 
 > 
 > 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("myeloma", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
 > cleanEx()
 > nameEx("neardate")
 > ### * neardate
 > 
 > flush(stderr()); flush(stdout())
 > 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
 > ### Name: neardate
 > ### Title: Find the index of the closest value in data set 2, for each
 > ###   entry in data set one.
@@ -1094,12 +1188,15 @@ n= 646, number of events= 320
 > 
 > 
 > 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("neardate", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
 > cleanEx()
 > nameEx("nsk")
 > ### * nsk
 > 
 > flush(stderr()); flush(stdout())
 > 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
 > ### Name: nsk
 > ### Title: Natural splines with knot heights as the basis.
 > ### Aliases: nsk
@@ -1132,12 +1229,15 @@ n= 646, number of events= 320
 > 
 > 
 > 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("nsk", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
 > cleanEx()
 > nameEx("nwtco")
 > ### * nwtco
 > 
 > flush(stderr()); flush(stdout())
 > 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
 > ### Name: nwtco
 > ### Title: Data from the National Wilm's Tumor Study
 > ### Aliases: nwtco
@@ -1175,12 +1275,15 @@ Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’
 > 
 > 
 > 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("nwtco", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
 > cleanEx()
 > nameEx("pbcseq")
 > ### * pbcseq
 > 
 > flush(stderr()); flush(stdout())
 > 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
 > ### Name: pbcseq
 > ### Title: Mayo Clinic Primary Biliary Cirrhosis, sequential data
 > ### Aliases: pbcseq
@@ -1202,12 +1305,15 @@ Warning in Surv(time1, time2, event) :
 > 
 > 
 > 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("pbcseq", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
 > cleanEx()
 > nameEx("plot.cox.zph")
 > ### * plot.cox.zph
 > 
 > flush(stderr()); flush(stdout())
 > 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
 > ### Name: plot.cox.zph
 > ### Title: Graphical Test of Proportional Hazards
 > ### Aliases: plot.cox.zph
@@ -1227,12 +1333,15 @@ Warning in Surv(time1, time2, event) :
 > 
 > 
 > 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("plot.cox.zph", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
 > cleanEx()
 > nameEx("plot.survfit")
 > ### * plot.survfit
 > 
 > flush(stderr()); flush(stdout())
 > 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
 > ### Name: plot.survfit
 > ### Title: Plot method for 'survfit' objects
 > ### Aliases: plot.survfit
@@ -1250,12 +1359,15 @@ Warning in Surv(time1, time2, event) :
 > 
 > 
 > 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("plot.survfit", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
 > cleanEx()
 > nameEx("predict.coxph")
 > ### * predict.coxph
 > 
 > flush(stderr()); flush(stdout())
 > 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
 > ### Name: predict.coxph
 > ### Title: Predictions for a Cox model
 > ### Aliases: predict.coxph predict.coxph.penal
@@ -2020,12 +2132,15 @@ $se.fit
 > 
 > 
 > 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("predict.coxph", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
 > cleanEx()
 > nameEx("predict.survreg")
 > ### * predict.survreg
 > 
 > flush(stderr()); flush(stdout())
 > 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
 > ### Name: predict.survreg
 > ### Title: Predicted Values for a 'survreg' Object
 > ### Aliases: predict.survreg predict.survreg.penal
@@ -2055,12 +2170,15 @@ $se.fit
 > 
 > 
 > 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("predict.survreg", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
 > cleanEx()
 > nameEx("pseudo")
 > ### * pseudo
 > 
 > flush(stderr()); flush(stdout())
 > 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
 > ### Name: pseudo
 > ### Title: Pseudo values for survival.
 > ### Aliases: pseudo
@@ -2111,12 +2229,15 @@ ph.ecog=3   1      1    118       0.0    118      NA      NA
 > 
 > 
 > 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("pseudo", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
 > cleanEx()
 > nameEx("pspline")
 > ### * pspline
 > 
 > flush(stderr()); flush(stdout())
 > 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
 > ### Name: pspline
 > ### Title: Smoothing splines using a pspline basis
 > ### Aliases: pspline psplineinverse
@@ -2176,12 +2297,15 @@ n= 227, number of events= 164
 > 
 > 
 > 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("pspline", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
 > cleanEx()
 > nameEx("pyears")
 > ### * pyears
 > 
 > flush(stderr()); flush(stdout())
 > 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
 > ### Name: pyears
 > ### Title: Person Years
 > ### Aliases: pyears
@@ -2237,12 +2361,15 @@ tcut(age + 48, c(0, 50, 60, 70, 100))         0         1
 > 
 > 
 > 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("pyears", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
 > cleanEx()
 > nameEx("quantile.survfit")
 > ### * quantile.survfit
 > 
 > flush(stderr()); flush(stdout())
 > 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
 > ### Name: quantile.survfit
 > ### Title: Quantiles from a survfit object
 > ### Aliases: quantile.survfit quantile.survfitms median.survfit
@@ -2287,12 +2414,15 @@ ph.ecog=3  NA  NA  NA
 > 
 > 
 > 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("quantile.survfit", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
 > cleanEx()
 > nameEx("reliability")
 > ### * reliability
 > 
 > flush(stderr()); flush(stdout())
 > 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
 > ### Name: reliability
 > ### Title: Reliability data sets
 > ### Aliases: reliability capacitor cracks genfan ifluid imotor turbine
@@ -2318,12 +2448,15 @@ n= 64
 > 
 > 
 > 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("reliability", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
 > cleanEx()
 > nameEx("residuals.coxph")
 > ### * residuals.coxph
 > 
 > flush(stderr()); flush(stdout())
 > 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
 > ### Name: residuals.coxph
 > ### Title: Calculate Residuals for a 'coxph' Fit
 > ### Aliases: residuals.coxph.penal residuals.coxph.null residuals.coxph
@@ -2339,12 +2472,15 @@ n= 64
 > 
 > 
 > 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("residuals.coxph", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
 > cleanEx()
 > nameEx("residuals.survfit")
 > ### * residuals.survfit
 > 
 > flush(stderr()); flush(stdout())
 > 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
 > ### Name: residuals.survfit
 > ### Title: IJ residuals from a survfit object.
 > ### Aliases: residuals.survfit
@@ -2380,12 +2516,15 @@ n= 64
 > 
 > 
 > 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("residuals.survfit", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
 > cleanEx()
 > nameEx("residuals.survreg")
 > ### * residuals.survreg
 > 
 > flush(stderr()); flush(stdout())
 > 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
 > ### Name: residuals.survreg
 > ### Title: Compute Residuals for 'survreg' Objects
 > ### Aliases: residuals.survreg residuals.survreg.penal
@@ -2421,12 +2560,15 @@ n= 1384
 > 
 > 
 > 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("residuals.survreg", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
 > cleanEx()
 > nameEx("retinopathy")
 > ### * retinopathy
 > 
 > flush(stderr()); flush(stdout())
 > 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
 > ### Name: retinopathy
 > ### Title: Diabetic Retinopathy
 > ### Aliases: retinopathy
@@ -2448,12 +2590,15 @@ n= 394, number of events= 155
 > 
 > 
 > 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("retinopathy", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
 > cleanEx()
 > nameEx("rhDNase")
 > ### * rhDNase
 > 
 > flush(stderr()); flush(stdout())
 > 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
 > ### Name: rhDNase
 > ### Title: rhDNASE data set
 > ### Aliases: rhDNase
@@ -2480,12 +2625,15 @@ n= 394, number of events= 155
 > 
 > 
 > 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("rhDNase", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
 > cleanEx()
 > nameEx("ridge")
 > ### * ridge
 > 
 > flush(stderr()); flush(stdout())
 > 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
 > ### Name: ridge
 > ### Title: Ridge regression
 > ### Aliases: ridge
@@ -2518,12 +2666,15 @@ n= 26, number of events= 12
 > 
 > 
 > 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("ridge", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
 > cleanEx()
 > nameEx("rotterdam")
 > ### * rotterdam
 > 
 > flush(stderr()); flush(stdout())
 > 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
 > ### Name: rotterdam
 > ### Title: Breast cancer data set used in Royston and Altman (2013)
 > ### Aliases: rotterdam
@@ -2540,12 +2691,15 @@ n= 26, number of events= 12
 > 
 > 
 > 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("rotterdam", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
 > cleanEx()
 > nameEx("royston")
 > ### * royston
 > 
 > flush(stderr()); flush(stdout())
 > 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
 > ### Name: royston
 > ### Title: Compute Royston's D for a Cox model
 > ### Aliases: royston
@@ -2563,12 +2717,15 @@ n= 26, number of events= 12
 > 
 > 
 > 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("royston", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
 > cleanEx()
 > nameEx("rttright")
 > ### * rttright
 > 
 > flush(stderr()); flush(stdout())
 > 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
 > ### Name: rttright
 > ### Title: Compute redistribute-to-the-right weights
 > ### Aliases: rttright
@@ -2579,9 +2736,10 @@ n= 26, number of events= 12
 > afit <- survfit(Surv(time, status) ~1, data=aml)
 > rwt  <- rttright(Surv(time, status) ~1, data=aml)
 > 
+> # Reproduce a Kaplan-Meier
 > index <- order(aml$time)
 > cdf <- cumsum(rwt[index])  # weighted CDF
-> cdf <- cdf[!duplicated(aml$time[index], fromLast=TRUE)]  # remove duplicates
+> cdf <- cdf[!duplicated(aml$time[index], fromLast=TRUE)]  # remove duplicate times
 > cbind(time=afit$time, KM= afit$surv, RTTR= 1-cdf)
       time         KM       RTTR
  [1,]    5 0.91304348  -1.000000
@@ -2603,14 +2761,22 @@ n= 26, number of events= 12
 [17,]   48 0.08281573 -20.095238
 [18,]  161 0.08281573 -20.095238
 > 
+> # Hormonal patients have a diffent censoring pattern
+> wt2 <- rttright(Surv(dtime, death) ~ hormon, rotterdam, times= 365*c(3, 5))
+> dim(wt2)
+[1] 2982    2
 > 
 > 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("rttright", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
 > cleanEx()
 > nameEx("solder")
 > ### * solder
 > 
 > flush(stderr()); flush(stdout())
 > 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
 > ### Name: solder
 > ### Title: Data from a soldering experiment
 > ### Aliases: solder
@@ -2625,12 +2791,15 @@ n= 26, number of events= 12
 > 
 > 
 > 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("solder", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
 > cleanEx()
 > nameEx("statefig")
 > ### * statefig
 > 
 > flush(stderr()); flush(stdout())
 > 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
 > ### Name: statefig
 > ### Title: Draw a state space figure.
 > ### Aliases: statefig
@@ -2646,12 +2815,15 @@ n= 26, number of events= 12
 > 
 > 
 > 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("statefig", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
 > cleanEx()
 > nameEx("strata")
 > ### * strata
 > 
 > flush(stderr()); flush(stdout())
 > 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
 > ### Name: strata
 > ### Title: Identify Stratification Variables
 > ### Aliases: strata
@@ -2679,12 +2851,15 @@ n= 26, number of events= 12
 > 
 > 
 > 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("strata", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
 > cleanEx()
 > nameEx("summary.aareg")
 > ### * summary.aareg
 > 
 > flush(stderr()); flush(stdout())
 > 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
 > ### Name: summary.aareg
 > ### Title: Summarize an aareg fit
 > ### Aliases: summary.aareg
@@ -2801,12 +2976,15 @@ attr(,"class")
 > ## End(Not run)
 > 
 > 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("summary.aareg", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
 > cleanEx()
 > nameEx("summary.coxph")
 > ### * summary.coxph
 > 
 > flush(stderr()); flush(stdout())
 > 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
 > ### Name: summary.coxph
 > ### Title: Summary method for Cox models
 > ### Aliases: summary.coxph
@@ -2839,12 +3017,15 @@ Score (logrank) test = 13.72  on 2 df,   p=0.001
 > 
 > 
 > 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("summary.coxph", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
 > cleanEx()
 > nameEx("summary.survfit")
 > ### * summary.survfit
 > 
 > flush(stderr()); flush(stdout())
 > 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
 > ### Name: summary.survfit
 > ### Title: Summary of a Survival Curve
 > ### Aliases: summary.survfit
@@ -2892,12 +3073,15 @@ Call: survfit(formula = Surv(futime, fustat) ~ rx, data = ovarian)
 > 
 > 
 > 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("summary.survfit", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
 > cleanEx()
 > nameEx("survSplit")
 > ### * survSplit
 > 
 > flush(stderr()); flush(stdout())
 > 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
 > ### Name: survSplit
 > ### Title: Split a survival data set at specified times
 > ### Aliases: survSplit
@@ -2924,12 +3108,15 @@ overall.karno   t0_60.karno       t60_120          t120
 > 
 > 
 > 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("survSplit", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
 > cleanEx()
 > nameEx("survdiff")
 > ### * survdiff
 > 
 > flush(stderr()); flush(stdout())
 > 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
 > ### Name: survdiff
 > ### Title: Test Survival Curve Differences
 > ### Aliases: survdiff print.survdiff
@@ -2946,7 +3133,7 @@ survdiff(formula = Surv(futime, fustat) ~ rx, data = ovarian)
 rx=1 13        7     5.23     0.596      1.06
 rx=2 13        5     6.77     0.461      1.06
 
- Chisq= 1.1  on 1 degrees of freedom, p= 0.3 
+ Chisq= 1.1  on 1 degrees of freedom, p.value= 0.3 
 > 
 > ## Stratified 7-sample test
 > 
@@ -2967,7 +3154,7 @@ pat.karno=80  50       38   41.938   0.36978   0.60032
 pat.karno=90  60       38   47.242   1.80800   3.23078
 pat.karno=100 35       21   26.207   1.03451   1.44067
 
- Chisq= 21.4  on 7 degrees of freedom, p= 0.003 
+ Chisq= 21.4  on 7 degrees of freedom, p.value= 0.003 
 > 
 > ## Expected survival for heart transplant patients based on
 > ## US mortality tables
@@ -2984,12 +3171,15 @@ Observed Expected        Z        p
 > 
 > 
 > 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("survdiff", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
 > cleanEx()
 > nameEx("survexp")
 > ### * survexp
 > 
 > flush(stderr()); flush(stdout())
 > 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
 > ### Name: survexp
 > ### Title: Compute Expected Survival
 > ### Aliases: survexp print.survexp
@@ -3052,12 +3242,15 @@ survexp(formula = ~surgery, data = jasa, rmap = list(sex = "male",
 > 
 > 
 > 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("survexp", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
 > cleanEx()
 > nameEx("survexp.us")
 > ### * survexp.us
 > 
 > flush(stderr()); flush(stdout())
 > 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
 > ### Name: ratetables
 > ### Title: Census Data Sets for the Expected Survival and Person Years
 > ###   Functions
@@ -3070,12 +3263,15 @@ survexp(formula = ~surgery, data = jasa, rmap = list(sex = "male",
 > 
 > 
 > 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("survexp.us", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
 > cleanEx()
 > nameEx("survfit.formula")
 > ### * survfit.formula
 > 
 > flush(stderr()); flush(stdout())
 > 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
 > ### Name: survfit.formula
 > ### Title: Compute a Survival Curve for Censored Data
 > ### Aliases: survfit.formula [.survfit
@@ -3136,12 +3332,15 @@ survexp(formula = ~surgery, data = jasa, rmap = list(sex = "male",
 > 
 > 
 > 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("survfit.formula", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
 > cleanEx()
 > nameEx("survfit.matrix")
 > ### * survfit.matrix
 > 
 > flush(stderr()); flush(stdout())
 > 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
 > ### Name: survfit.matrix
 > ### Title: Create Aalen-Johansen estimates of multi-state survival from a
 > ###   matrix of hazards.
@@ -3169,12 +3368,15 @@ survexp(formula = ~surgery, data = jasa, rmap = list(sex = "male",
 > 
 > 
 > 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("survfit.matrix", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
 > cleanEx()
 > nameEx("survobrien")
 > ### * survobrien
 > 
 > flush(stderr()); flush(stdout())
 > 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
 > ### Name: survobrien
 > ### Title: O'Brien's Test for Association of a Single Variable with
 > ###   Survival
@@ -3198,12 +3400,15 @@ n= 230, number of events= 12
 > 
 > 
 > 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("survobrien", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
 > cleanEx()
 > nameEx("survreg")
 > ### * survreg
 > 
 > flush(stderr()); flush(stdout())
 > 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
 > ### Name: survreg
 > ### Title: Regression for a Parametric Survival Model
 > ### Aliases: survreg model.frame.survreg labels.survreg print.survreg.penal
@@ -3292,12 +3497,15 @@ n= 1000
 > 
 > 
 > 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("survreg", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
 > cleanEx()
 > nameEx("survreg.distributions")
 > ### * survreg.distributions
 > 
 > flush(stderr()); flush(stdout())
 > 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
 > ### Name: survreg.distributions
 > ### Title: Parametric Survival Distributions
 > ### Aliases: survreg.distributions
@@ -3385,12 +3593,15 @@ n=227 (1 observation deleted due to missingness)
 > 
 > 
 > 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("survreg.distributions", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
 > cleanEx()
 > nameEx("survregDtest")
 > ### * survregDtest
 > 
 > flush(stderr()); flush(stdout())
 > 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
 > ### Name: survregDtest
 > ### Title: Verify a survreg distribution
 > ### Aliases: survregDtest
@@ -3417,12 +3628,15 @@ n=227 (1 observation deleted due to missingness)
 > 
 > 
 > 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("survregDtest", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
 > cleanEx()
 > nameEx("tcut")
 > ### * tcut
 > 
 > flush(stderr()); flush(stdout())
 > 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
 > ### Name: tcut
 > ### Title: Factors for person-year calculations
 > ### Aliases: tcut [.tcut levels.tcut
@@ -3430,33 +3644,47 @@ n=227 (1 observation deleted due to missingness)
 > 
 > ### ** Examples
 > 
-> mdy.date <- function(m,d,y)
-+    as.Date(paste(ifelse(y<100, y+1900, y), m, d, sep='/'))
-> temp1 <- mdy.date(6,6,36)
-> temp2 <- mdy.date(6,6,55)# Now compare the results from person-years
-> #
-> temp.age <- tcut(temp2-temp1, floor(c(-1, (18:31 * 365.24))),
-+ 	labels=c('0-18', paste(18:30, 19:31, sep='-')))
-> temp.yr  <- tcut(temp2, mdy.date(1,1,1954:1965), labels=1954:1964)
-> temp.time <- 3700   #total days of fu
-> py1 <- pyears(temp.time ~ temp.age + temp.yr, scale=1) #output in days
-> py1
-Call:
-pyears(formula = temp.time ~ temp.age + temp.yr, scale = 1)
-
-Total number of person-years tabulated: 3497 
-Total number of person-years off table: 203 
-Observations in the data set: 1 
-
+> # For pyears, all time variable need to be on the same scale; but
+> # futime is in months and age is in years
+> test <- mgus2
+> test$years <- test$futime/30.5   # follow-up in years
+> 
+> # first grouping based on years from starting age (= current age)
+> # second based on years since enrollment (all start at 0)
+> test$agegrp <- tcut(test$age, c(0,60, 70, 80, 100), 
++                      c("<=60", "60-70", "70-80", ">80"))
+> test$fgrp  <- tcut(rep(0, nrow(test)), c(0, 1, 5, 10, 100),
++                    c("0-1yr", "1-5yr", "5-10yr", ">10yr"))
+> 
+> # death rates per 1000, by age group
+> pfit1 <- pyears(Surv(years, death) ~ agegrp, scale =1000, data=test)
+> round(pfit1$event/ pfit1$pyears) 
+agegrp
+ <=60 60-70 70-80   >80 
+   89   128   245   479 
+> 
+> #death rates per 100, by follow-up year and age
+> # there are excess deaths in the first year, within each age stratum
+> pfit2 <- pyears(Surv(years, death) ~ fgrp + agegrp, scale =1000, data=test)
+> round(pfit2$event/ pfit2$pyears)  
+        agegrp
+fgrp     <=60 60-70 70-80  >80
+  0-1yr   139   137   234  437
+  1-5yr    68   117   241  499
+  5-10yr   91   145   300  476
+  >10yr     0   424     0 2440
 > 
 > 
 > 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("tcut", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
 > cleanEx()
 > nameEx("tmerge")
 > ### * tmerge
 > 
 > flush(stderr()); flush(stdout())
 > 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
 > ### Name: tmerge
 > ### Title: Time based merge for survival data
 > ### Aliases: tmerge
@@ -3481,12 +3709,15 @@ Observations in the data set: 1
 > 
 > 
 > 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("tmerge", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
 > cleanEx()
 > nameEx("tobin")
 > ### * tobin
 > 
 > flush(stderr()); flush(stdout())
 > 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
 > ### Name: tobin
 > ### Title: Tobin's Tobit data
 > ### Aliases: tobin
@@ -3506,12 +3737,15 @@ Observations in the data set: 1
 > 
 > 
 > 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("tobin", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
 > cleanEx()
 > nameEx("transplant")
 > ### * transplant
 > 
 > flush(stderr()); flush(stdout())
 > 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
 > ### Name: transplant
 > ### Title: Liver transplant waiting list
 > ### Aliases: transplant
@@ -3543,12 +3777,15 @@ abo=O, death  346     32 182.1075
 > 
 > 
 > 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("transplant", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
 > cleanEx()
 > nameEx("udca")
 > ### * udca
 > 
 > flush(stderr()); flush(stdout())
 > 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
 > ### Name: udca
 > ### Title: Data from a trial of usrodeoxycholic acid
 > ### Aliases: udca udca1 udca2
@@ -3565,12 +3802,15 @@ abo=O, death  346     32 182.1075
 > 
 > 
 > 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("udca", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
 > cleanEx()
 > nameEx("untangle.specials")
 > ### * untangle.specials
 > 
 > flush(stderr()); flush(stdout())
 > 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
 > ### Name: untangle.specials
 > ### Title: Help Process the 'specials' Argument of the 'terms' Function.
 > ### Aliases: untangle.specials
@@ -3610,12 +3850,15 @@ $terms
 > 
 > 
 > 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("untangle.specials", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
 > cleanEx()
 > nameEx("uspop2")
 > ### * uspop2
 > 
 > flush(stderr()); flush(stdout())
 > 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
 > ### Name: uspop2
 > ### Title: Projected US Population
 > ### Aliases: uspop2
@@ -3633,12 +3876,15 @@ $terms
 > 
 > 
 > 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("uspop2", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
 > cleanEx()
 > nameEx("xtfrm.Surv")
 > ### * xtfrm.Surv
 > 
 > flush(stderr()); flush(stdout())
 > 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
 > ### Name: xtfrm.Surv
 > ### Title: Sorting order for Surv objects
 > ### Aliases: xtfrm.Surv sort.Surv order.Surv
@@ -3654,12 +3900,15 @@ $terms
 > 
 > 
 > 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("xtfrm.Surv", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
 > cleanEx()
 > nameEx("yates")
 > ### * yates
 > 
 > flush(stderr()); flush(stdout())
 > 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
 > ### Name: yates
 > ### Title: Population prediction
 > ### Aliases: yates
@@ -3684,12 +3933,14 @@ $terms
 > 
 > 
 > 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("yates", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
 > ### * <FOOTER>
 > ###
 > cleanEx()
 > options(digits = 7L)
 > base::cat("Time elapsed: ", proc.time() - base::get("ptime", pos = 'CheckExEnv'),"\n")
-Time elapsed:  3.109 0.076 3.184 0 0 
+Time elapsed:  10.088 0.1 10.188 0 0 
 > grDevices::dev.off()
 null device 
           1 

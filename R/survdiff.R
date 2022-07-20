@@ -44,7 +44,7 @@ survdiff <- function(formula, data, subset, na.action, rho=0, timefix=TRUE) {
 	    }
 	chi <- num*num/var
 	rval <-list(n= n, obs = observed, exp=expected, var=var,
-			chisq= chi)
+		chisq= chi, pvalue = pchisq(chi, df=1, lower.tail=FALSE))
 	}
 
     else { #k sample test
@@ -81,7 +81,8 @@ survdiff <- function(formula, data, subset, na.action, rho=0, timefix=TRUE) {
 	    }
 	df <- (sum(1*(etmp>0))) -1
 	rval <-list(n= table(groups), obs = fit$observed,
-		    exp = fit$expected, var=fit$var,  chisq=chi, p.value= round(pchisq(chi, df, lower.tail=FALSE), 3))
+		    exp = fit$expected, var=fit$var,  chisq=chi, 
+                    pvalue= pchisq(chi, df, lower.tail=FALSE))
 	if (length(strats)) rval$strata <- table(strata.keep)
 	}
 

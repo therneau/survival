@@ -9,6 +9,7 @@
     \item nsk(..., Boundary.knots=FALSE) was not being handled properly.
     \item Fix error in terms.inner; it failed for a function with no
     arguments. Pointed out by Daniel Sjberg and Duncan Murdoch.
+    \item Remove Sint from C code.
 }}
 
 \section{Changes in version 3.3-1}{
