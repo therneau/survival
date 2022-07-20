@@ -2,8 +2,8 @@
 #include "survS.h"
 #include "survproto.h"
 
-void agsurv4(int    *ndeath,   double *risk,    double *wt,
-             int    *sn,        double *denom,   double *km) 
+void agsurv4(int   *ndeath,   double *risk,    double *wt,
+             int   *sn,        double *denom,   double *km) 
 {
     int i,j,k, l;
     int n;  /* number of unique death times */

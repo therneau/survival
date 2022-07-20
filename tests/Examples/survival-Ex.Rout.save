@@ -1,6 +1,6 @@
 
-R Under development (unstable) (2022-02-28 r81833) -- "Unsuffered Consequences"
-Copyright (C) 2022 The R Foundation for Statistical Computing
+R Under development (unstable) (2021-04-20 r80202) -- "Unsuffered Consequences"
+Copyright (C) 2021 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -2695,48 +2695,13 @@ n= 26, number of events= 12
 > afit <- aareg(Surv(time, status) ~ age + sex + ph.ecog, data=lung,
 +      dfbeta=TRUE)
 > summary(afit)
-$table
-                  slope          coef     se(coef)    robust se         z
-Intercept  5.048983e-03  5.868616e-03 4.739162e-03 4.771021e-03  1.230055
-age        4.005089e-05  7.149015e-05 7.228889e-05 6.996847e-05  1.021748
-sex       -3.164485e-03 -4.030555e-03 1.217949e-03 1.227954e-03 -3.282333
-ph.ecog    3.009913e-03  3.673470e-03 1.016785e-03 1.015845e-03  3.616171
-                     p
-Intercept 0.2186766165
-age       0.3069001400
-sex       0.0010295209
-ph.ecog   0.0002989931
+              slope      coef se(coef) robust se     z        p
+Intercept  5.05e-03  5.87e-03 4.74e-03   0.00477  1.23 0.219000
+age        4.01e-05  7.15e-05 7.23e-05   0.00007  1.02 0.307000
+sex       -3.16e-03 -4.03e-03 1.22e-03   0.00123 -3.28 0.001030
+ph.ecog    3.01e-03  3.67e-03 1.02e-03   0.00102  3.62 0.000299
 
-$test
-[1] "aalen"
-
-$test.statistic
- Intercept        age        sex    ph.ecog 
-  1.901744 108.155068 -19.531696  33.158152 
-
-$test.var
-            b0                                  
-b0    2.358499  -151.80330 -3.715147    2.157013
-   -151.803299 11960.36511 16.697824 -277.142084
-     -3.715147    16.69782 34.834385   -5.183630
-      2.157013  -277.14208 -5.183630   84.233750
-
-$test.var2
-            [,1]        [,2]       [,3]        [,4]
-[1,]    2.390315  -149.43604  -4.237668    1.406427
-[2,] -149.436042 11204.85060  69.078254 -169.293859
-[3,]   -4.237668    69.07825  35.409086  -12.726907
-[4,]    1.406427  -169.29386 -12.726907   84.078078
-
-$chisq
-         [,1]
-[1,] 22.84047
-
-$n
-[1] 227 136 138
-
-attr(,"class")
-[1] "summary.aareg"
+Chisq=22.84 on 3 df, p=4.36e-05; test weights=aalen
 > ## Not run: 
 > ##D               slope   test se(test) robust se     z        p 
 > ##D Intercept  5.05e-03    1.9     1.54      1.55  1.23 0.219000
@@ -2748,48 +2713,13 @@ attr(,"class")
 > ## End(Not run)
 > 
 > summary(afit, maxtime=600)
-$table
-                  slope          coef     se(coef)    robust se         z
-Intercept  4.157249e-03  6.669391e-03 4.616582e-03 0.0045848352  1.454663
-age        2.820613e-05  5.738087e-05 7.069894e-05 0.0000669899  0.856560
-sex       -2.536835e-03 -4.304800e-03 1.172585e-03 0.0011773976 -3.656199
-ph.ecog    2.472413e-03  3.540475e-03 9.986578e-04 0.0009721356  3.641956
-                     p
-Intercept 0.1457625229
-age       0.3916881027
-sex       0.0002559827
-ph.ecog   0.0002705746
+              slope      coef se(coef) robust se      z        p
+Intercept  4.16e-03  6.67e-03 4.62e-03  0.004580  1.450 0.146000
+age        2.82e-05  5.74e-05 7.07e-05  0.000067  0.857 0.392000
+sex       -2.54e-03 -4.30e-03 1.17e-03  0.001180 -3.660 0.000256
+ph.ecog    2.47e-03  3.54e-03 9.99e-04  0.000972  3.640 0.000271
 
-$test
-[1] "aalen"
-
-$test.statistic
- Intercept        age        sex    ph.ecog 
-  2.134219  85.797235 -20.601360  31.593788 
-
-$test.var
-            Intercept         age       sex     ph.ecog
-Intercept    2.182462  -141.28105 -3.398501    2.207493
-age       -141.281046 11174.75712 16.439611 -271.147721
-sex         -3.398501    16.43961 31.490109   -5.423722
-ph.ecog      2.207493  -271.14772 -5.423722   79.417053
-
-$test.var2
-            [,1]       [,2]      [,3]        [,4]
-[1,]    2.152549  -133.2752 -4.043482    1.231431
-[2,] -133.275184 10033.0045 70.870904 -180.875471
-[3,]   -4.043482    70.8709 31.749153   -7.222745
-[4,]    1.231431  -180.8755 -7.222745   75.254781
-
-$chisq
-         [,1]
-[1,] 27.08125
-
-$n
-[1] 227 121 138
-
-attr(,"class")
-[1] "summary.aareg"
+Chisq=27.08 on 3 df, p=5.66e-06; test weights=aalen
 > ## Not run: 
 > ##D               slope   test se(test) robust se      z        p 
 > ##D Intercept  4.16e-03   2.13     1.48      1.47  1.450 0.146000
@@ -3430,24 +3360,35 @@ n=227 (1 observation deleted due to missingness)
 > 
 > ### ** Examples
 > 
-> mdy.date <- function(m,d,y)
-+    as.Date(paste(ifelse(y<100, y+1900, y), m, d, sep='/'))
-> temp1 <- mdy.date(6,6,36)
-> temp2 <- mdy.date(6,6,55)# Now compare the results from person-years
-> #
-> temp.age <- tcut(temp2-temp1, floor(c(-1, (18:31 * 365.24))),
-+ 	labels=c('0-18', paste(18:30, 19:31, sep='-')))
-> temp.yr  <- tcut(temp2, mdy.date(1,1,1954:1965), labels=1954:1964)
-> temp.time <- 3700   #total days of fu
-> py1 <- pyears(temp.time ~ temp.age + temp.yr, scale=1) #output in days
-> py1
-Call:
-pyears(formula = temp.time ~ temp.age + temp.yr, scale = 1)
-
-Total number of person-years tabulated: 3497 
-Total number of person-years off table: 203 
-Observations in the data set: 1 
-
+> # For pyears, all time variable need to be on the same scale; but
+> # futime is in months and age is in years
+> test <- mgus2
+> test$years <- test$futime/30.5   # follow-up in years
+> 
+> # first grouping based on years from starting age (= current age)
+> # second based on years since enrollment (all start at 0)
+> test$agegrp <- tcut(test$age, c(0,60, 70, 80, 100), 
++                      c("<=60", "60-70", "70-80", ">80"))
+> test$fgrp  <- tcut(rep(0, nrow(test)), c(0, 1, 5, 10, 100),
++                    c("0-1yr", "1-5yr", "5-10yr", ">10yr"))
+> 
+> # death rates per 1000, by age group
+> pfit1 <- pyears(Surv(years, death) ~ agegrp, scale =1000, data=test)
+> round(pfit1$event/ pfit1$pyears) 
+agegrp
+ <=60 60-70 70-80   >80 
+   89   128   245   479 
+> 
+> #death rates per 100, by follow-up year and age
+> # there are excess deaths in the first year, within each age stratum
+> pfit2 <- pyears(Surv(years, death) ~ fgrp + agegrp, scale =1000, data=test)
+> round(pfit2$event/ pfit2$pyears)  
+        agegrp
+fgrp     <=60 60-70 70-80  >80
+  0-1yr   139   137   234  437
+  1-5yr    68   117   241  499
+  5-10yr   91   145   300  476
+  >10yr     0   424     0 2440
 > 
 > 
 > 
@@ -3689,7 +3630,7 @@ $terms
 > cleanEx()
 > options(digits = 7L)
 > base::cat("Time elapsed: ", proc.time() - base::get("ptime", pos = 'CheckExEnv'),"\n")
-Time elapsed:  3.109 0.076 3.184 0 0 
+Time elapsed:  3.797 0.147 3.963 0 0 
 > grDevices::dev.off()
 null device 
           1 
