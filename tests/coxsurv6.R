@@ -84,7 +84,7 @@ sum(basehaz * exp(eta)) ==1
 tmat <- array(0., dim= dim(hmat))  # transition matrices
 pstate <- matrix((4:0)/10, nrow=1)
 for (i in 1:6) {
-    tmat[,,i] <- as.matrix(expm(hmat[,,i]))
+    tmat[,,i] <- as.matrix(matrix::expm(hmat[,,i]))
     pstate <- rbind(pstate, pstate[i,]%*% tmat[,,i])
 }
 
@@ -161,7 +161,7 @@ mysurv <- function(t1, t2, state, istate, p0, fit, baseline, debug=0) {
             }
         }
         diag(hmat) <- diag(hmat) - rowSums(hmat)   # rows sum to zero
-        tmat <- as.matrix(expm(hmat))          # transtion matrix
+        tmat <- as.matrix(matrix::expm(hmat))          # transtion matrix
         if (i >= debug) browser()
         pmat <- pmat %*% tmat
         pstate[i,] <- drop(p0 %*% pmat)

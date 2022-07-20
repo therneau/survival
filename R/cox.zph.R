@@ -48,7 +48,10 @@ cox.zph <- function(fit, transform='km', terms=TRUE, singledf =FALSE,
         
     if (!is.list(asgn)) stop ("unexpected assign component")
 
-    frail <- grepl("frailty(", names(asgn), fixed=TRUE)
+    frail <- grepl("frailty(", names(asgn), fixed=TRUE) |
+             grepl("frailty.gamma(", names(asgn), fixed = TRUE) |
+             grepl("frailty.gaussian(", names(asgn), fixed = TRUE)
+                                                      
     if (any(frail)) {
         dcol <- unlist(asgn[frail])    # remove these columns from X
         X <- X[, -dcol, drop=FALSE]
