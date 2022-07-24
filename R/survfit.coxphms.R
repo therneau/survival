@@ -484,7 +484,7 @@ multihaz <- function(y, x, position, weight, risk, istrat, ctype, stype,
     }
 
     for (i in 1:nx2) {
-        h2[,i,] <- hazard * rep(risk2[i,], each=ntime)
+        h2[,i,] <- apply(hazard * rep(risk2[i,], each=ntime), 2, cumsum)
         if (FALSE) {  # if (se.fit) eventually
             d1 <- fit$xbar - rep(x[i,], each=nrow(fit$xbar))
             d2 <- apply(d1*hazard, 2, cumsum)

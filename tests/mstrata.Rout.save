@@ -1,6 +1,6 @@
 
-R Under development (unstable) (2021-03-25 r80120) -- "Unsuffered Consequences"
-Copyright (C) 2021 The R Foundation for Statistical Computing
+R Under development (unstable) (2022-07-22 r82614) -- "Unsuffered Consequences"
+Copyright (C) 2022 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -49,17 +49,23 @@ state    0   1
   (any) 63 163
 
 > 
+> # standard coxph fit, stratified by the ph0/1/2 groups
 > fit1 <- coxph(Surv(time, status) ~ age + sex + factor(ph.ecog), tdata, 
 +                  ties="breslow")
+> # multi-state fit, where ph0/1/2 are states with a shared hazard
 > fit2 <- coxph(list(Surv(time, state) ~1,
 +                    1:4 + 2:4 + 3:4~ age + sex/ common + shared), 
 +               id=id, istate=cstate, data= tdata, ties="breslow")
-> aeq(coef(fit1), coef(fit2))
+> 
+> aeq(coef(fit1), coef(fit2))  # the names are quite different, values the same
 [1] TRUE
 > all.equal(fit1$loglik, fit2$loglik)
 [1] TRUE
 > 
+> # Three curves in the usual way: ph0, 1, or 2 for all time, common baseline
 > csurv1 <- survfit(fit1, newdata=expand.grid(age=65, sex=1, ph.ecog=0:2))
+> 
+> # Multistate: start in p0, p1, or p2 (the only place to go is death)
 > csurv2a <- survfit(fit2, newdata= list(age=65, sex=1), p0=c(1,0,0,0))
 > csurv2b <- survfit(fit2, newdata= list(age=65, sex=1), p0=c(0,1,0,0))
 > csurv2c <- survfit(fit2, newdata= list(age=65, sex=1), p0=c(0,0,1,0))
@@ -75,27 +81,26 @@ state    0   1
 > #  for the survival curve, the above only perfectly matches with Breslow.
 > 
 > 
-> # part 2: predicted values for a multistate model that has a strata
+> # part 2: predicted survival for a multistate model that has a strata
 > mgus2$etime <- with(mgus2, ifelse(pstat==0, futime, ptime))
-> event <- with(mgus2, ifelse(pstat==0, 2*death, 1))
-> mgus2$event <- factor(event, 0:2, labels=c("censor", "pcm", "death"))
+> temp <- with(mgus2, ifelse(pstat==0, 2*death, 1))
+> mgus2$event <- factor(temp, 0:2, labels=c("censor", "pcm", "death"))
 > 
-> dummy <- expand.grid(sex=c("F", "M"), age=c(60, 80), mspike=1.2)
+> dummy <- expand.grid(age=c(60, 80), mspike=1.2)
 > 
 > cfit1 <- coxph(Surv(etime, event) ~ age + mspike +strata(sex), mgus2, id=id)
 > 
 > csurv1 <- survfit(cfit1, newdata=dummy)
-> csurv2 <- survfit(cfit1, newdata=expand.grid(age=c(60, 80), mspike=1.2))
-> temp <- c('n', 'time', 'n.risk', 'n.event', 'n.censor', 'pstate', 'cumhaz')
-> all.equal(unclass(csurv1)[temp], unclass(csurv2)[temp])
-[1] TRUE
 > 
 > cfit2 <- coxph(Surv(etime, event) ~ age + mspike, id=id,
 +                init= coef(cfit1), iter=0, data=mgus2, subset=(sex=='F'))
 > csurv3 <- survfit(cfit2, newdata= expand.grid(age=c(60, 80), mspike=1.2))
-> all.equal(unclass(csurv1[1,,])[temp], unclass(csurv3)[temp])
+> test <- c('n', 'time', 'n.risk', 'n.event', 'n.censor', 'pstate', 'cumhaz')
+> all.equal(unclass(csurv1[1,,])[test], unclass(csurv3)[test])
 [1] TRUE
+> 
+> 
 > 
 > proc.time()
    user  system elapsed 
-  1.603   0.073   1.679 
+  1.145   0.076   1.214 
