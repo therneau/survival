@@ -1,10 +1,12 @@
 library(survival)
 aeq <- function(x, y, ...) all.equal(as.vector(x), as.vector(y), ...)
 
-# Use the same data set as multi3.R, to test the code for the survival curve
-# of a time-dependent covaraite.
-# Use the pbcseq data set, and turn bilirubin into a time-dependent state
-# A bilirubin value of <1 is normal.
+# Test the survival curve for a fit with shared hazards.
+# Use the pbcseq data set, and turn bilirubin into a time-dependent state with
+#  4 levels, and a shared baseline hazard for the 4 transitions to death.
+# The subtlety is that coefficients for a shared (proportional) baseline hazard
+#  are attached to a state, not to an observation. 
+# (A bilirubin value of <1 is normal.)
 pbc1 <- pbcseq
 pbc1$bili4 <- cut(pbc1$bili, c(0,1, 2,4, 100), 
                   c("normal", "1-2", "2-4", ">4"))
@@ -36,7 +38,7 @@ fit2 <- coxph(list(Surv(tstart, tstop, bstat) ~ 1,
 pbc3 <- subset(pbc2, id < 10)
 pbc3$age <- round(pbc3$age)  # easier to do "by hand" sums
 fit3 <- coxph(list(Surv(tstart, tstop, bstat) ~ 1, 
-                   c(1:4):5 ~ age / common + shared), 
+                   c(1:4):5 ~ age / common + shared),  x=TRUE,
               id= id, istate=bili4, data=pbc3, init= c(.05, .6, 1.1), iter=0)
 # a mixed p0 gives a stronger test than our usual (1, 0,0,0,0)
 surv3 <- survfit(fit3, newdata=list(age=50), p0=c(.4, .3, .2, .1, 0))
@@ -52,7 +54,7 @@ table(pbc3$bili4[atrisk])
 #  other rows are 0. 
 with(subset(pbc3, tstop== 182), table(istate= bili4, state=bstat))
 
-# At the next four events are from 3:4, 3:2, 2:3, and 1:2, so also have 
+# The next four events are from 3:4, 3:2, 2:3, and 1:2, so also have 
 #  simple transtions, i.e., no covariates so all risk scores are exp(0) =1
 #
 hmat <- array(0, dim=c(5,5,6))  # first 6 hazard matrices, start with 3,3,2,1
@@ -93,11 +95,16 @@ aeq(surv3$pstate[dtime[1:7],1,], pstate)
 
 #
 # A function to do the above "by hand" calculations, over all time points
-# The linear predictors and the strata map are pulled from the fit.
+# It is verified for the particular fit we did, but written for
+#  more generality.
+# fit: a multi-state fit, with shared baselines
+# istate: the inital state for each row of data
+# p0: starting dist for compuation
+# x0: curve for this set of covariates
 #  
-mysurv <- function(t1, t2, state, istate, p0, fit, baseline, debug=0) {
+mysurv <- function(fit, istate, p0, x0, debug=0) {
     if (!inherits(fit, 'coxphms')) stop("invalid fit")
-    smap <- fit$stratum_map
+    smap <- fit$smap
     from <- as.numeric(sub(":.*$", "", colnames(smap)))
     to   <- as.numeric(sub("^.*:", "", colnames(smap)))
     shared <- duplicated(smap[1,])
@@ -110,19 +117,21 @@ mysurv <- function(t1, t2, state, istate, p0, fit, baseline, debug=0) {
         bcoef[shared] <- exp(fit$coefficients[i])
         # remove shared coef rows from beta
         phrow <- apply(fit$cmap, 1, function(x) any(x %in% i))
-        beta <- beta[!phrow,]
+        beta <- beta[!phrow,, drop=FALSE]
     }
-    baserisk <- baseline %*% beta
-
+          
     # Make the values for istate and state match the 1:2, etc of the fit,
     #  i.e., the order of fit$states
-    istate <- factor(as.character(istate), fit$states)
-    state  <- factor(as.character(state),  fit$states) #censor= NA
+    # istate and state are used in tables, using factors makes sure the result
+    #  is always the right size
     nstate <- length(fit$states)
+    state <-  factor(fit$y[,3], 1:nstate)  # endpoint of a transition
+    if (length(istate) != nrow(fit$y)) stop ("mismatched istate")
+    istate <- factor(as.character(istate), fit$states)
 
     # set up output
     ntran <- ncol(smap)    # number of transitions
-    utime <- sort(unique(t2[!is.na(state)])) # unique event times
+    utime <- sort(unique(fit$y[!is.na(state), 2])) # unique event times
     ntime <- length(utime)
     tmat <- matrix(0, nstate, nstate)  # transtion matrix at this time point
     pmat <- diag(nstate)               # product of transitions
@@ -131,12 +140,17 @@ mysurv <- function(t1, t2, state, istate, p0, fit, baseline, debug=0) {
     nevent <- matrix(0L, ntime, nstate)  # number of events of each type
     pstate <- matrix(0L, ntime, nstate)  # probability in state
     hmat <- matrix(0., nstate, nstate)   # working matrix of hazards
-    rwt <- exp(fit$linear.predictor - rep(baserisk, each=length(t1)))
-    if (nrow(rwt) != length(t1)) stop("mismatched time vector")
 
+    # eta is a matrix of (x for subject - x0) %*% coef, one row per subject,
+    #  one column per transition
+    eta <- (fit$x - rep(x0, each= nrow(fit$y))) %*% beta
+    rwt <- exp(eta)  # the risk weight for each obs
+
+    t1 <- fit$y[,1]
+    t2 <- fit$y[,2]
     for (i in 1:ntime) {
         atrisk <- (t1 < utime[i] &  utime[i] <= t2) # risk set at this time
-        event <- which(utime[i] == t2)  # potential events, end at this time
+        event <- which(utime[i] == t2)  # potential events, at this time
         nrisk[i,]  <- c(table(istate[atrisk]))   # number at risk in each state
         nevent[i,] <- c(table(state[event]))
         # The linear predictor and hence the number at risk is different for
@@ -161,8 +175,8 @@ mysurv <- function(t1, t2, state, istate, p0, fit, baseline, debug=0) {
             }
         }
         diag(hmat) <- diag(hmat) - rowSums(hmat)   # rows sum to zero
-        tmat <- as.matrix(Matrix::expm(hmat))          # transtion matrix
-        if (i >= debug) browser()
+        tmat <- as.matrix(Matrix::expm(hmat))      # transtion matrix
+#        if (i >= debug) browser()
         pmat <- pmat %*% tmat
         pstate[i,] <- drop(p0 %*% pmat)
     }
@@ -170,22 +184,20 @@ mysurv <- function(t1, t2, state, istate, p0, fit, baseline, debug=0) {
          wtrisk= wtrisk, P=pmat)
 }
 
-test3 <- with(pbc3, mysurv(tstart, tstop, bstat, bili4, p0= 4:0/10, fit3,
-                         baseline =50))
+test3 <- mysurv(fit3, pbc3$bili4, p0= 4:0/10,  x0 =50)
 aeq(test3$pstate, surv3$pstate[match(test3$time, surv3$time),1,])
 
 # Now with the full data set
 fit2 <- coxph(list(Surv(tstart, tstop, bstat) ~ 1,
                    c(1:4):5 ~ age / common + shared), id= id, istate=bili4,
-              data=pbc2, ties='breslow')
+              data=pbc2, ties='breslow', x=TRUE)
 surv2 <- survfit(fit2, newdata=list(age=50), p0=c(.4, .3, .2, .1, 0))
-test2 <- with(pbc2, mysurv(tstart, tstop, bstat, bili4, p0= 4:0/10, fit2,
-                         baseline =50))
+test2 <- mysurv(fit2, pbc2$bili4, p0= 4:0/10, fit2, x0 =50)
 aeq(test2$pstate, surv2$pstate[match(test2$time, surv2$time),1,])
 
 
 if (FALSE){
-    # for testing
+    # for testing, make a plot
     xfun <- function(i) {
         j <- match(test2$time[i], surv2$time)
         all.equal(test2$pstate[i,], surv2$pstate[j,1,])

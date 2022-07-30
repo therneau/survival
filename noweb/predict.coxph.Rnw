@@ -28,12 +28,12 @@ The arguments are
     no use of it however.
 \end{description}
 
-%\subsection{Setup}
+\paragraph{Setup}
 The first task of the routine is to reconsruct necessary data elements
 that were not saved as a part of the \code{coxph} fit.  
 We will need the following components: 
 \begin{itemize}
-  \item for type=`expected' residuals we need the orignal survival y.  This %'`
+  \item for type=`expected' residuals we need the orignal survival y.  This
     is saved in coxph objects by default so will only need to be fetched in
     the highly unusual case that a user specfied 
     \code{y=FALSE} in the orignal call.

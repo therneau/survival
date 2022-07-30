@@ -34,11 +34,12 @@ residuals.coxph <-
 	if (!inherits(Terms, 'terms'))
 		stop("invalid terms component of object")
 	strats <- attr(Terms, "specials")$strata
-	if (is.null(y)  ||  (is.null(x) && type!= 'deviance')) {
+	if (is.null(y)  ||  (is.null(x) && type!= 'deviance') ||
+            inherits(object, "coxphms")) {
 	    temp <- coxph.getdata(object, y=TRUE, x=TRUE, stratax=TRUE)
 	    y <- temp$y
 	    x <- temp$x
-	    if (length(strats)) strat <- temp$strata
+	    strat <- temp$strata
         }
 
 	ny <- ncol(y)
@@ -132,8 +133,8 @@ residuals.coxph <-
 	if (nvar >1) {
 	    rr <- matrix(0, n, nvar)
 	    rr[ord,] <- resid
-	    dimnames(rr) <- list(names(object$residuals), 
-				 names(object$coefficients))
+            dimnames(rr) <- list(names(object$residuals), 
+                                     names(object$coefficients))
         }
 	else rr[ord] <- resid
 

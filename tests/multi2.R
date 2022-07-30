@@ -24,30 +24,24 @@ temp[3:4, 3:4] <- fit13$var
 temp[5:6, 5:6] <- fit23$var
 aeq(fit$var, temp)
 
-ii <- fit$strata==1
-tfit <- coxph(fit$y[ii,] ~ fit$x[ii,])
-aeq(tfit$loglik, fit12$loglik)   # check that x, y, strata are correct
-ii <- fit$strata==2
-tfit <- coxph(fit$y[ii,] ~ fit$x[ii,])
-aeq(tfit$loglik, fit13$loglik)   # check that x, y, strata are correct
-ii <- fit$strata==3
-tfit <- coxph(fit$y[ii,] ~ fit$x[ii,])
-aeq(tfit$loglik, fit23$loglik)   # check that x, y, strata are correct
-
 # check out model.frame
 fita <- coxph(Surv(tstart, tstop, event) ~ trt, tdata, id=id)
 fitb <- coxph(Surv(tstart, tstop, event) ~ trt, tdata, id=id, model=TRUE)
 all.equal(model.frame(fita), fitb$model)
 # model.frame fails due to an interal rule in R, factors vs characters
-#  result if the xlev arg is in the call.
+#  result when the xlev arg is in the call.  So model.frame(fita) has trt
+#  as a factor, not character.
 
 #check residuals
+indx1 <- which(fit$rmap[,2] ==1)
+indx2 <- which(fit$rmap[,2] ==2)
+indx3 <- which(fit$rmap[,2] ==3)
 aeq(residuals(fit), c(residuals(fit12), residuals(fit13), residuals(fit23)))
+aeq(residuals(fit)[indx1], residuals(fit12))
+aeq(residuals(fit)[indx2], residuals(fit13))
+aeq(residuals(fit)[indx3], residuals(fit23))
 
 # score residuals
-indx1 <- 1:fit12$n
-indx2 <- 1:fit13$n + fit12$n
-indx3 <- 1:fit23$n + (fit12$n + fit13$n)
 temp <- residuals(fit, type='score')
 aeq(temp[indx1, 1:2], residuals(fit12, type='score'))
 aeq(temp[indx2, 3:4], residuals(fit13, type='score'))
@@ -74,18 +68,17 @@ aeq(temp[indx2, 3:4], residuals(fit13, type='dfbetas'))
 aeq(temp[indx3, 5:6], residuals(fit23, type='dfbetas'))
 
 # Schoenfeld and scaled shoenfeld have one row per event
-ecount <- table(fit$strata[fit$y[,3]==1])
-temp <- rep(1:3, ecount)
-sindx1 <- which(temp==1)
-sindx2 <- which(temp==2)
-sindx3 <- which(temp==3)
+sr1 <- residuals(fit12, type="schoenfeld")
+sr2 <- residuals(fit13, type="schoenfeld")
+sr3 <- residuals(fit23, type="schoenfeld")
+end <- rep(1:3, c(nrow(sr1), nrow(sr2), nrow(sr3)))
 temp <- residuals(fit, type="schoenfeld")
-all(temp[sindx1, 3:6] ==0)
-all(temp[sindx2, c(1,2,5,6)] ==0)
-all(temp[sindx3, 1:4]==0)
-aeq(temp[sindx1, 1:2], residuals(fit12, type='schoenfeld'))
-aeq(temp[sindx2, 3:4], residuals(fit13, type='schoenfeld'))
-aeq(temp[sindx3, 5:6], residuals(fit23, type='schoenfeld'))
+aeq(temp[end==1, 1:2], sr1)
+aeq(temp[end==2, 3:4], sr2)
+aeq(temp[end==3, 5:6], sr3)
+all(temp[end==1, 3:6] ==0)
+all(temp[end==2, c(1,2,5,6)] ==0)
+all(temp[end==3, 1:4] ==0)
 
 
 #The scaled Schoenfeld don't agree, due to the use of a robust
@@ -102,7 +95,7 @@ if (FALSE) {
     aeq(temp[sindx3, 5:6], residuals(fit23, type='scaledsch'))
 }
 
-if (FALSE) {  # predict for multi-state still needs some thought
+if (FALSE) { # the predicted values are a work in progress
 # predicted values differ because of different centering
 c0 <-  sum(fit$mean * coef(fit))
 c12 <- sum(fit12$mean * coef(fit12))
@@ -117,17 +110,16 @@ aeq(exp(predict(fit)), predict(fit, type='risk'))
 aeq(predict(fit, type="expected"), c(predict(fit12, type="expected"),
                                      predict(fit13, type="expected"),
                                      predict(fit23, type="expected")))
-
+}
 # predict(type='terms') is a matrix, centering changes as well
-temp <- predict(fit, type='terms')
 if (FALSE) {
+    temp <- predict(fit, type='terms')
     all(temp[indx1, 3:6] ==0)
     all(temp[indx2, c(1,2,5,6)] ==0)
     all(temp[indx3, 1:4]==0)
     aeq(temp[indx1, 1:2], predict(fit12, type='terms'))
     aeq(temp[indx2, 3:4], predict(fit13, type='terms'))
     aeq(temp[indx3, 5:6], predict(fit23, type='terms'))
-}
 } # end of prediction section
 
 # The global and per strata zph tests will differ for the KM or rank
@@ -162,20 +154,19 @@ sapply(cname, function(x) aeq(test_b[5:6]$x, test_b23$x))
 
 # check model.matrix
 mat1 <- model.matrix(fit)
+all.equal(mat1, fit$x)
+
+# Check that the internal matix agrees (uses stacker, which is not exported)
 mat2 <- model.matrix(fit12)
 mat3 <- model.matrix(fit13)
 mat4 <- model.matrix(fit23)
 
-test.matrix1 <- matrix(0, nrow=dim(mat2),ncol=2,dimnames=c())
-test.matrix2 <- matrix(0, nrow=dim(mat3),ncol=2,dimnames=c())
-test.matrix3 <- matrix(0, nrow=dim(mat4),ncol=2,dimnames=c())
+# first reconstruct istate
+tcheck <- survcheck(Surv(tstart, tstop, event) ~ 1, tdata, id=id)
+temp <- survival:::stacker(fit$cmap, fit$smap, as.numeric(tcheck$istate), fit$x,
+                          fit$y, NULL, fit$states)
+aeq(temp$X[temp$transition==1, 1:2], mat2)
+aeq(temp$X[temp$transition==2, 3:4], mat3)
+aeq(temp$X[temp$transition==3, 5:6], mat4)
 
-com1 <- cbind(mat2,test.matrix1, test.matrix1)
-com2 <- cbind(test.matrix2, mat3, test.matrix2)
-com3 <- cbind(test.matrix3, test.matrix3, mat4)
-combined.matrix <- do.call(rbind,list(com1,com2,com3)) #create combined matrix to compare to model matrix from 'fit' model
-
-final <- rbind(com1,com2,com3)
-
-aeq(mat1,combined.matrix) #GOOD
 

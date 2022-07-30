@@ -146,7 +146,7 @@ parsecovar2 <- function(covar1, statedata, dformula, Terms, transitions,states) 
     # It has an extra first row for intercept (baseline)
     # Fill it in with the default formula
     nstate <- length(states)
-    tmap <- array(0, dim=c(nterm+1, nstate, nstate))
+    tmap <- array(0L, dim=c(nterm+1, nstate, nstate))
     dmap <- array(seq_len(length(tmap)), dim=c(nterm+1, nstate, nstate)) #unique values
     dterm <- termmatch(attr(terms(dformula), "factors"), allterm)
     dterm <- c(1L, 1L+ dterm)  # add intercept
@@ -312,16 +312,16 @@ parsecovar3 <- function(tmap, Xcol, Xassign, phbaseline=NULL) {
     ph.coef <- (phbaseline !=0)  # any proportional baselines?
     ph.rows <- length(unique(phbaseline[ph.coef])) #extra rows to add to cmap
     cmap <- matrix(0L, length(Xcol) + ph.rows -hasintercept, ncol(tmap))
-    uterm <- unique(Xassign[Xassign != 0])   # terms that will have coefficients
+    uterm <- unique(Xassign[Xassign != 0L])  # terms that will have coefficients
     
     xcount <- table(factor(Xassign, levels=1:max(Xassign)))
-    mult <- 1+ max(xcount)  # temporary scaling
+    mult <- 1L+ max(xcount)  # temporary scaling
 
     ii <- 0
     for (i in uterm) {
         k <- seq_len(xcount[i])
         for (j in 1:ncol(tmap)) 
-            cmap[ii+k, j] <- if(tmap[i+1,j]==0) 0 else tmap[i+1,j]*mult +k
+            cmap[ii+k, j] <- if(tmap[i+1,j]==0) 0L else tmap[i+1,j]*mult +k
         ii <- ii + max(k)
     }
 

@@ -29,7 +29,6 @@ aeq(fit1$loglik, fit1a$loglik + fit1b$loglik)
 aeq(fit1$coef, c(fit1a$coef, fit1b$coef))
 aeq(fit1$var[1:3, 1:3], fit1a$var)
 aeq(fit1$var[4:6, 4:6], fit1b$var)
-aeq(fit1$x[,c(1,4,2,5,3,6)], fit1c$x)
 aeq(fit1$coef[c(1,4,2,5,3,6)], fit1c$coef)
 
 # force a common age effect across all states

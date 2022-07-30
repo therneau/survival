@@ -467,11 +467,11 @@ coxph <- function(formula, data, weights, subset, na.action,
             # tmap starts with a "(Baseline)" row, which we want
             # strats is indexed off the data frame, which includes the response, so
             #  turns out to be correct for the remaining rows of tmap
-            stratum_map <- tmap[c(1L, strats),] 
-            stratum_map[-1,] <- ifelse(stratum_map[-1,] >0, 1L, 0L)
-            if (nrow(stratum_map) > 2) {
+            smap <- tmap[c(1L, strats),] 
+            smap[-1,] <- ifelse(smap[-1,] >0, 1L, 0L)
+            if (nrow(smap) > 2) {
                 # multi state with more than 1 strata statement -- really unusual
-                temp <- stratum_map[-1,]
+                temp <- smap[-1,]
                 if (!all(apply(temp, 2, function(x) all(x==0) || all(x==1)))) {
                     # the hard case: some transitions use one strata variable, some
                     #  transitions use another.  We need to keep them separate
@@ -480,9 +480,9 @@ coxph <- function(formula, data, weights, subset, na.action,
                 }
             }
         }
-        else stratum_map <- tmap[1,,drop=FALSE]
+        else smap <- tmap[1,,drop=FALSE]
         cmap <- parsecovar3(tmap, colnames(X), attr(X, "assign"), covlist2$phbaseline)
-        xstack <- stacker(cmap, stratum_map, as.integer(istate), X, Y, strata=istrat,
+        xstack <- stacker(cmap, smap, as.integer(istate), X, Y, strata=istrat,
                           states=states)
 
         rkeep <- unique(xstack$rindex)
@@ -661,7 +661,9 @@ coxph <- function(formula, data, weights, subset, na.action,
         fit$transitions <- transitions
         fit$states <- states
         fit$cmap <- cmap
-        fit$stratum_map <- stratum_map   # why not 'stratamap'?  Confusion with fit$strata
+        fit$smap <- smap   # why not 'stratamap'?  Confusion with fit$strata
+        nonzero <- which(colSums(cmap)!=0)
+        fit$rmap <- cbind(row=xstack$rindex, transition= nonzero[xstack$transition])
         
         # add a suffix to each coefficent name.  Those that map to multiple transitions
         #  get the first transition they map to
@@ -682,23 +684,25 @@ coxph <- function(formula, data, weights, subset, na.action,
         else matcoef <- cmap   
         names(fit$coefficients) <- newname
         
-        # linear predictor and residuals
-        matcoef[matcoef>0] <- fit$coefficients[matcoef]
-        temp <- Xsave %*% matcoef
-        colnames(temp) <- colnames(cmap)
-        fit$linear.predictors <- temp
+        if (FALSE) { 
+            # an idea that was tried, then paused: make the linear predictors
+            # and residuals into matrices with one column per transition
+            matcoef[matcoef>0] <- fit$coefficients[matcoef]
+            temp <- Xsave %*% matcoef
+            colnames(temp) <- colnames(cmap)
+            fit$linear.predictors <- temp
 
-        temp <- matrix(0., nrow=nrow(Xsave), ncol=ncol(fit$cmap))
-        temp[xstack$rindex, xstack$transition] <- fit$residuals
-        # if there are any transitions with no covariates, residuals have not
-        #  yet been calculated for those.
-        if (any(colSums(cmap) ==0)) {
-            from.state <- as.numeric(sub(":.*$", "", colnames(cmap)))
-            to.state   <- as.numeric(sub("^.*:", "", colnames(cmap)))
-           # warning("no covariate residuals not filled in")
+            temp <- matrix(0., nrow=nrow(Xsave), ncol=ncol(fit$cmap))
+            temp[cbind(xstack$rindex, xstack$transition)] <- fit$residuals
+            # if there are any transitions with no covariates, residuals have not
+            #  yet been calculated for those.
+            if (any(colSums(cmap) ==0)) {
+                from.state <- as.numeric(sub(":.*$", "", colnames(cmap)))
+                to.state   <- as.numeric(sub("^.*:", "", colnames(cmap)))
+               # warning("no covariate residuals not filled in")
+            }
+            fit$residuals <- temp
         }
-        fit$residuals <- temp
-    #    fit$means <- NULL  # not meaningul any more
         class(fit) <- c("coxphms", class(fit))
     }
     names(fit$means) <- names(fit$coefficients)
