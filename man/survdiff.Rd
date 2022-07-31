@@ -68,7 +68,9 @@ the variance matrix of the test.
 }
 \item{strata}{
 optionally, the number of subjects contained in each stratum.
-}}
+}
+\item{pvalue}{the p-value corresponding to the Chisquare statistic}
+}
 \section{Description}{
 This function implements the G-rho family of
 Harrington and Fleming (1982), with weights on each death of \eqn{S(t)^\rho}{S(t)^rho},

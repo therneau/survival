@@ -17,16 +17,14 @@ basehaz(fit, centered=TRUE)
   This function is simply an alias for \code{survfit}, which does the
   actual work and has a richer set of options.  
   The alias exists only because some users look for predicted survival
-  estimates under this name.
+  estimates under this name. 
 
   The function returns a data frame containing the \code{time},
   \code{cumhaz} and optionally the strata (if the fitted Cox model used
   a strata statement), which are copied the \code{survfit} result.
-  If there are factor variables in the model, then the default
-  predictions at the "mean" are meaningless since they do not correspond
-  to any possible subject; correct results require use of the
-  \code{newdata} argument of survfit.  Results for all covariates =0 are
-  normally only of use as a building block for further calculations.
+  Results for all covariates =0 are a standard form found in textbooks,
+  however, due to possible overflow in the exp() function this is, in
+  practice, a very bad idea in practice.  
 }
 \value{
   a data frame with variable names of \code{hazard}, \code{time} and

@@ -1,7 +1,7 @@
 #
 # Reconstruct the Cox model data.  This is done in many routines.
 # Users use model.matrix.coxph and model.frame.coxph methods, but they
-#  do not extract strata or offset.
+#  do not extract strata, offset, or istate
 #
 # The "stratax" name is to avoid conflicts with the strata() function, but
 #   still allow users to type "strata" as an arg.
@@ -37,7 +37,8 @@ coxph.getdata <- function(fit, y=TRUE, x=TRUE, stratax=TRUE,
 
     if ((y && is.null(ty)) || (x && is.null(tx)) || 
         (weights && is.null(twt)) ||  
-	(stratax && is.null(strat)) || (offset && is.null(toff))) {
+	(stratax && is.null(strat)) || (offset && is.null(toff)) ||
+        !is.null(fit$call$istate)) {
 	# get the model frame
 	mf <- stats::model.frame(fit)
         n <- nrow(mf)
@@ -53,11 +54,8 @@ coxph.getdata <- function(fit, y=TRUE, x=TRUE, stratax=TRUE,
             if (is.null(toff)) toff <- rep(0.0, n)
         }
 
-        if (inherits(fit, "coxphms") && 
-            ((y && is.null(ty)) ||  ((x | stratax) && is.null(tx)))) {
-            # If we need either of y or x, both have to be fetched
-            #  due to the need for a call to stacker()
-            # If both were saved in the model, they will be post-stacker
+        if (inherits(fit, "coxphms")) {
+            # we need to call stacker
             id <- model.extract(mf, "id")
             istate <- model.extract(mf, "istate")
             ty <- model.response(mf)
@@ -70,7 +68,7 @@ coxph.getdata <- function(fit, y=TRUE, x=TRUE, stratax=TRUE,
             }
             else strat <- NULL
             # Now expand the data
-            xstack <- stacker(fit$cmap, fit$stratum_map, as.integer(check$istate), tx, ty, 
+            xstack <- stacker(fit$cmap, fit$smap, as.integer(check$istate), tx, ty, 
                               strat, check$states)
             tx <- xstack$X
             ty <- xstack$Y

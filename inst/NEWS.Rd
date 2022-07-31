@@ -13,7 +13,11 @@
     \item nsk(..., Boundary.knots=FALSE) was not being handled properly.
     \item Fix error in terms.inner; it failed for a function with no
     arguments. Pointed out by Daniel Sjberg and Duncan Murdoch.
-}}
+    \item Remove Sint from C code.
+    \item The package sometimes used P(>Chi) and somtimes Pr(>Chi) as a
+    printout label; the base packages all use "Pr".  Changed this to be
+    consistent.
+    }}
 
 \section{Changes in version 3.3-1}{
   \itemize{

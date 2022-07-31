@@ -1,6 +1,6 @@
 
-R Under development (unstable) (2019-05-16 r76518) -- "Unsuffered Consequences"
-Copyright (C) 2019 The R Foundation for Statistical Computing
+R Under development (unstable) (2022-06-20 r82505) -- "Unsuffered Consequences"
+Copyright (C) 2022 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -242,40 +242,11 @@ Chisq=4.44 on 1 df, p=0.0351; test weights=aalen
 [1] TRUE
 > 
 > summary(afit)
-$table
-                  slope        coef    se(coef)   robust se         z
-Intercept -0.0009538483 -0.11693804 0.534885651 0.533148054 -0.219335
-age        0.0001053024  0.01795521 0.008746523 0.008734005  2.055782
-                   p
-Intercept 0.82638908
-age       0.03980352
+              slope   coef se(coef) robust se      z      p
+Intercept -0.000954 -0.117  0.53500   0.53300 -0.219 0.8260
+age        0.000105  0.018  0.00875   0.00873  2.060 0.0398
 
-$test
-[1] "nrisk"
-
-$test.statistic
-Intercept       age 
--19.29478   2.96261 
-
-$test.var
-          [,1]        [,2]
-[1,] 7789.1449 -126.055872
-[2,] -126.0559    2.082758
-
-$test.var2
-          [,1]      [,2]
-[1,] 7738.6204 -125.5077
-[2,] -125.5077    2.0768
-
-$chisq
-        [,1]
-[1,] 4.22624
-
-$n
-[1] 228 139 139
-
-attr(,"class")
-[1] "summary.aareg"
+Chisq=4.23 on 1 df, p=0.0398; test weights=nrisk
 > 
 > #
 > # Mulitvariate
@@ -318,52 +289,14 @@ Chisq=23.36 on 4 df, p=0.000107; test weights=aalen
 [1] TRUE
 > 
 > summary(afit)
-$table
-                  slope        coef    se(coef)   robust se         z
-Intercept  2.119015e-02  3.05872822 1.044992929 0.955953617  3.199662
-age        3.181122e-05  0.01071085 0.009280348 0.008182931  1.308926
-sex       -2.985556e-03 -0.49368373 0.153217001 0.151559500 -3.257359
-ph.karno  -8.371983e-05 -0.01131957 0.007825769 0.009654398 -1.172478
-pat.karno -8.501076e-05 -0.01328844 0.007241150 0.007669582 -1.732617
-                   p
-Intercept 0.00137589
-age       0.19055946
-sex       0.00112454
-ph.karno  0.24100515
-pat.karno 0.08316385
+              slope    coef se(coef) robust se     z       p
+Intercept  2.12e-02  3.0600  1.04000   0.95600  3.20 0.00138
+age        3.18e-05  0.0107  0.00928   0.00818  1.31 0.19100
+sex       -2.99e-03 -0.4940  0.15300   0.15200 -3.26 0.00112
+ph.karno  -8.37e-05 -0.0113  0.00783   0.00965 -1.17 0.24100
+pat.karno -8.50e-05 -0.0133  0.00724   0.00767 -1.73 0.08320
 
-$test
-[1] "nrisk"
-
-$test.statistic
- Intercept        age        sex   ph.karno  pat.karno 
-480.220330   1.681604 -77.508345  -1.777173  -2.086286 
-
-$test.var
-            b0                                                   
-b0 26916.95995 -177.3767597 -791.4141458 -103.5540756 -69.1210402
-    -177.37676    2.1228915    0.1752574    0.4055099   0.1622945
-    -791.41415    0.1752574  578.6463538   -0.9726495  -0.6320578
-    -103.55408    0.4055099   -0.9726495    1.5095704  -0.5793466
-     -69.12104    0.1622945   -0.6320578   -0.5793466   1.2924520
-
-$test.var2
-            [,1]         [,2]         [,3]         [,4]        [,5]
-[1,] 22525.42254 -109.0376340 -1294.620657 -135.7477106 -24.1718358
-[2,]  -109.03763    1.6505060     2.562655    0.1774270  -0.1206339
-[3,] -1294.62066    2.5626546   566.194480    7.4865489  -4.7691882
-[4,]  -135.74771    0.1774270     7.486549    2.2974694  -0.9877341
-[5,]   -24.17184   -0.1206339    -4.769188   -0.9877341   1.4499155
-
-$chisq
-        [,1]
-[1,] 22.3874
-
-$n
-[1] 224 132 136
-
-attr(,"class")
-[1] "summary.aareg"
+Chisq=22.39 on 4 df, p=0.000168; test weights=nrisk
 > 
 > # Weights play no role in the final computation of the test statistic, given
 > #  the coefficient matrix, nrisk, and dfbeta as inputs.  (Weights do
@@ -372,4 +305,4 @@ attr(,"class")
 > 
 > proc.time()
    user  system elapsed 
-  0.949   0.056   0.998 
+  1.119   0.077   1.189 

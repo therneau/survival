@@ -1,6 +1,5 @@
-# survival
-![Survival package for R](man/figures/logo.png)
- 
+# survival <img src='man/figures/logo.png' align="right" height="120" />
+
 This is the source code for the "survival" package in R.  It gets posted to the
 comprehensive R archive (CRAN) at intervals, each such posting preceded a
 throrough test. (I run the test suite for all 800+ packages that depend on

@@ -15,10 +15,10 @@ test2 <- data.frame(start=c(1, 2, 5, 2, 1, 7, 3, 4, 8, 8),
                     event=c(1, 1, 1, 1, 1, 1, 1, 0, 0, 0),
                     x    =c(1, 0, 0, 1, 0, 1, 1, 1, 0, 0) )
 
-zz <- rep(0, nrow(test1))
+zz <- zz2 <- rep(0, nrow(test1))
 tfit1 <- coxph(Surv(time,status) ~x, test1, eps=1e-7)
 tfit2 <- coxph(Surv(time,status) ~x + frailty(zz, theta=0, sparse=T), test1)
-tfit3 <- coxph(Surv(zz,time,status) ~x + frailty(zz, theta=0, sparse=T), test1)
+tfit3 <- coxph(Surv(zz,time,status) ~x + frailty(zz2, theta=0, sparse=T), test1)
 
 temp <- c('coefficients', 'var', 'loglik', 'linear.predictors',
 	  'means', 'n', 'concordance')
@@ -40,11 +40,11 @@ all.equal(tfit1[temp], tfit2[temp])
 #
 test3 <- rbind(test1, test1)
 test3$x2 <- rep(1:2, rep(nrow(test1),2))
-zz <- rep(0, nrow(test3))
+zz <- zz2 <- rep(0, nrow(test3))
 tfit1 <- coxph(Surv(time,status) ~x + strata(x2), test3, eps=1e-7)
 tfit2 <- coxph(Surv(time,status) ~x + frailty(zz, theta=0, sparse=T)
 	       + strata(x2), test3)
-tfit3 <- coxph(Surv(zz,time,status) ~x + frailty(zz, theta=0, sparse=T)
+tfit3 <- coxph(Surv(zz,time,status) ~x + frailty(zz2, theta=0, sparse=T)
 	         + strata(x2), test3)
 
 all.equal(tfit1[temp], tfit2[temp])
@@ -59,4 +59,4 @@ tfit2 <- coxph(Surv(start, stop, event) ~ x + frailty(zz, theta=0, sparse=T),
 	       test4)
 all.equal(tfit1[temp], tfit2[temp])
 
-rm(test3, test4, tfit1, tfit2, tfit3, temp, zz)
+rm(test3, test4, tfit1, tfit2, tfit3, temp, zz, zz2)

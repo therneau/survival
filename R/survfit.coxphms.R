@@ -14,7 +14,7 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95, individual=FALSE,
         stop("multi-state survival requires a newdata argument")
     if (!missing(id)) 
         stop("using a covariate path is not supported for multi-state")
-    temp <- object$stratum_map["(Baseline)",] 
+    temp <- object$smap["(Baseline)",] 
     baselinecoef <- rbind(temp, coef= 1.0)
     if (any(duplicated(temp))) {
         # We have shared hazards 
@@ -185,7 +185,7 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95, individual=FALSE,
     # A second differnence is tstrata: force stacker to think that every
     #  transition is a unique hazard, so that it does proper expansion.
     cluster <- model.extract(mf, "cluster")
-    tstrata <- object$stratum_map
+    tstrata <- object$smap
     tstrata[1,] <- 1:ncol(tstrata)
     xstack <- stacker(object$cmap, tstrata, as.integer(istate), X, Y,
                       as.integer(strata),
@@ -360,8 +360,8 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95, individual=FALSE,
     # elements that are non-zero only for observed transtions.
     states <- object$states
     nstate <- length(states)
-    from <- as.numeric(sub(":.*$", "", colnames(object$stratum_map)))
-    to   <- as.numeric(sub("^.*:", "", colnames(object$stratum_map)))
+    from <- as.numeric(sub(":.*$", "", colnames(object$smap)))
+    to   <- as.numeric(sub("^.*:", "", colnames(object$smap)))
     hfill <- cbind(from, to)
 
     if (individual) {
@@ -484,7 +484,7 @@ multihaz <- function(y, x, position, weight, risk, istrat, ctype, stype,
     }
 
     for (i in 1:nx2) {
-        h2[,i,] <- hazard * rep(risk2[i,], each=ntime)
+        h2[,i,] <- apply(hazard * rep(risk2[i,], each=ntime), 2, cumsum)
         if (FALSE) {  # if (se.fit) eventually
             d1 <- fit$xbar - rep(x[i,], each=nrow(fit$xbar))
             d2 <- apply(d1*hazard, 2, cumsum)

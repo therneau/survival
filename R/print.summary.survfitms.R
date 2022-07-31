@@ -40,7 +40,7 @@ print.summary.survfitms <- function(x,
     }
 
     if (nstate >1) 
-        cnames <- c(cnames, paste0("P(", x$states[1:nstate], ")"))
+        cnames <- c(cnames, paste0("Pr(", x$states[1:nstate], ")"))
     else {
         cnames <- c(cnames, "P")
 	if (!is.null(x$std.err)) {

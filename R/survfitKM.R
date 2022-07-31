@@ -213,7 +213,7 @@ survfitKM <- function(x, y, weights=rep(1.0,length(x)),
                      surv = cfit$estimate[,1],
                      std.err = cfit$std.err[,1],
                      cumhaz  = cfit$estimate[,2],
-                     std.chaz = cfit$std[,2])
+                     std.chaz = cfit$std.err[,2])
      } else {
          strata <- sapply(cfit, function(x) if (is.null(x$n)) 0L else nrow(x$n))
          names(strata) <- xlev

@@ -120,7 +120,7 @@ survSplit <- function(formula, data, subset, na.action=na.pass,
         newdata[[event]] <- status
     }
     else {
-        if (class(formula[[2]]) != "name")
+        if (!inherits(formula[[2]], "name"))
             stop("left hand side not recognized")
         temp <- as.character(formula[[2]])
         newdata[temp] <- Surv(index$start, index$end, status)
