@@ -1,5 +1,9 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 3.4-0}{
+  \itemize{
+    \item Fix all errors in R CMD check, and submit to CRAN
+}}
 \section{Changes in version 3.3-2}{
   \itemize{
     \item Error in concordance(fit, newdata) if newdata had missing
