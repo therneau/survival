@@ -52,7 +52,7 @@ parsecovar1 <- function(flist, statedata) {
     list(rhs = rhs, lhs= lterm)
 }
 rightslash <- function(x) {
-    if (class(x) != 'call') return(x)
+    if (!inherits(x, 'call')) return(x)
     else {
         if (x[[1]] == as.name('/')) return(list(x[[2]], x[[3]]))
         else if (x[[1]]==as.name('+') || (x[[1]]==as.name('-') && length(x)==3)||

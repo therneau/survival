@@ -11,7 +11,6 @@ losing the underlying continuous representation
 tcut(x, breaks, labels, scale=1)
 \method{levels}{tcut}(x)
 }
-%- maybe also `usage' for other objects documented here.
 \arguments{
   \item{x}{numeric/date variable }
   \item{breaks}{breaks between categories, which are right-continuous }

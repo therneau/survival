@@ -1,6 +1,6 @@
 
-R Under development (unstable) (2019-08-23 r77061) -- "Unsuffered Consequences"
-Copyright (C) 2019 The R Foundation for Statistical Computing
+R Under development (unstable) (2022-07-22 r82614) -- "Unsuffered Consequences"
+Copyright (C) 2022 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -75,7 +75,7 @@ $class
 > fit3 <- lm(y ~ x1 + C(x2, contr.SAS), tdata)   
 > m3 <- fit3$model
 > attr(m3[[3]], 'contr')   # the contrast is saved
-  1 2 3
+  A B C
 A 1 0 0
 B 0 1 0
 C 0 0 1
@@ -99,4 +99,4 @@ D 0 0 0
 > 
 > proc.time()
    user  system elapsed 
-  0.117   0.012   0.122 
+  0.128   0.017   0.138 
