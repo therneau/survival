@@ -1,31 +1,3 @@
-\section{Residuals for survival curves}
-\subsection{R-code}
-For all the more complex cases, the variance of a survival curve is based on 
-the infinitesimal jackknife:
-$$
-D_i(t) = \frac{\partial S(t)}{\partial w_i}
-$$
-evaluated at the the observed vector of weights.  The variance at a given 
-time is then  $D'WD'$ where $D$ is a diagonal matrix of the case weights.
-When there are multiple states $S$ is replaced by the vector $p(t)$, with
-one element per state, and the formula gets a bit more complex.
-The predicted curve from a Cox model is the most complex case.
-
-Realizing that we need to return the matrix $D$ to the user, in order to compute
-the variance of derived quantities like the restricted mean time in state, 
-the code has been changed from a primarily internal focus (compute within the
-survfit routine) to an external one. 
-
-The underlying C code is very similar to that in survfitkm.c
-One major difference in the routines is that this code is designed to return
-values at a fixed set of time points; it is an error if the user does not
-provide them.  This allows the result to be presented as a matrix or array.
-Computational differences will be discussed later.
-
-The method argument is for debugging.  For multi-state it uses either C code
-or the optimized R method.
-The double call below is because we want residuals to return a simple matrix,
-but the pseudo function needs to get back a little bit more.
 
 \section{Residuals for survival curves}
 \subsection{R-code}
@@ -251,7 +223,7 @@ derivative at time $z$ is the sum of
 The Fleming-Harrington estimate of survival is 
 \begin{align*}
   S(t) &= e^{-H(t)} \\
-  \partial{S(t)}{\partial w_i} &=  -S(t)\partial{H(t)}{\partial w_i} 
+  \frac{\partial S(t)}{\partial w_i} &=  -S(t)\frac{\partial H(t)}{\partial w_i} 
 \end{align*}
 So has exactly the same computation, with a multiplication at the end.
 
@@ -367,7 +339,7 @@ else if (type == "auc") {
 
 The sojourn time is the area under the survival curve. Let $x_j$ be the
 widths of the rectangles under the curve from event time $d_j$ to
-$min(d_{j+1}, t)$, zero if $t \le d_j$, or $t-d_m$ if $t$ is after the last
+$\min(d_{j+1}, t)$, zero if $t \le d_j$, or $t-d_m$ if $t$ is after the last
 event time.
 \begin{align*}
   A(0,t) &= \sum_{j=1}^m x_j S(d_j) \\
@@ -498,7 +470,7 @@ algoritm with a slight of hand.
 \begin{align*}
   S(t) &= \prod_{d_j\le t} (1- h(d_j)) \\
        &= \exp \left(\sum_{d_j\le t} \log(1- h(d_j)) \right) \\
-       &= \exp \left(\sum_{d_j\le t} \log(r(d_j) - dN(d_j)) - log(r(d_j)) \right) \\
+       &= \exp \left(\sum_{d_j\le t} \log(r(d_j) - dN(d_j)) - \log(r(d_j)) \right) \\
   \frac{\partial S(t)}{\partial w_i} &= 
                S(t) \sum_{d_j\le t} \frac{Y_i(d_j) - dN_i(d_j)}{r(d_j) - dN(d_j)} -
                            \frac{Y_i(d_j)}{ r(d_j)}   
@@ -535,7 +507,7 @@ else if (type == "auc") {
 \subsection{Multi-state Aalen-Johansen estimate}
 For multi-state models a correction for ties of similar spirit to the 
 Efron approximation in a Cox model (the ctype=2 argument for \code{survfit})
-is difficult: the 'right' answer depends on the study.
+is difficult: the `right' answer depends on the study.
 Thus the ctype argument is not present.  
 Both stype 1 and 2 are feasible, but currently only \code{stype=1} is
 supported.
@@ -750,15 +722,15 @@ The multi-state AJ estimate is more complex.  Let $p(t)$ be the vector
 of probability in state at time $t$.
 Then
 \begin{align}
-  p(t) &= p(t-) [I+ A(t)]\nonumber\\
+  p(t) &= p(t-) [I+ A(t)] \nonumber \\
   \frac{\partial p(t)}{\partial w_i} &= \frac{\partial p(t-)}{\partial w_i} 
                                         [I+ A(t)]
      +  p(t-) \frac{\partial A(t)}{\partial w_i} \nonumber\\
    &= U_i(t-) [I+ A(t)] + p(t-) \frac{\partial A(t)}{\partial w_i} 
-       \label{ajresidx}\\
+       \label{ajresidx2}
 \end{align}
 
-When we expand the left hand portion of \eqref{ajresidx} to include all 
+When we expand the left hand portion of \eqref{ajresidx2} to include all 
 observations it becomes simple matrix multiplication, not so with
 the right hand portion.
 Each individual subject $i$ has a subject-specific
@@ -874,7 +846,7 @@ Now, here is the trick.  The product $B^{(j)}(t)[I + A(t)]$ also is
 zero for all but the $jth$ row, and is in fact equal to the $j$th
 row of $B(t)[I + A(t)]$.
 Further, $p(t-)B^{(j)}(t)[I + A(t)]$ is the $j$th row of
-${rm diag}(p(t-))B(t)[I + A(t)]$.
+${\rm diag}(p(t-))B(t)[I + A(t)]$.
 
 The key computation is based on a matrix of matrices.  Start with the following
 definitions.  $T_{jk}$ is the $j$th term in the expansion, at
