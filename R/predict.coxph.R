@@ -33,9 +33,8 @@ predict.coxph <- function(object, newdata,
     #  needed there if type == 'expected'
     if (length(attr(Terms, 'specials')$cluster)) {
         temp <- untangle.specials(Terms, 'cluster', 1)
-        Terms  <- object$terms[-temp$terms]
+        Terms  <- drop.special(Terms, attr(Terms, "specials")$cluster)
         }
-    else Terms <- object$terms
 
     if (type != 'expected') Terms2 <- delete.response(Terms)
     else Terms2 <- Terms
@@ -95,8 +94,7 @@ predict.coxph <- function(object, newdata,
     else {
         # I won't need strata in this case either
         if (has.strata) {
-            stemp <- untangle.specials(Terms, 'strata', 1)
-            Terms2  <- Terms2[-stemp$terms]
+            Terms2  <- drop.special(Terms2, attr(Terms2, "specials")$strata)
             has.strata <- FALSE  #remaining routine never needs to look
         }
         oldstrat <- rep(0L, n)

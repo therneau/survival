@@ -37,9 +37,10 @@ drop.special <- function(termobj, i, addparen= FALSE) {
     
     # now add back the predvars and dataClasses attributes; which do contain
     # the response and offset.
-    index2 <- seq.int(nrow(ff))[-i]
+    index2 <- match(rownames(attr(result, "factors")), rownames(ff))
     if (!is.null(attr(termobj, "predvars")))
         attr(result, "predvars") <- attr(termobj, "predvars")[c(1, index2 +1)]
+
     if (!is.null(attr(termobj, "dataClasses")))
         attr(result, "dataClasses") <- attr(termobj, "dataClasses")[index2]
 

@@ -2,6 +2,9 @@
 \title{NEWS file for the survival package}
 \section{Changes in version 3.4-0}{
   \itemize{
+    \item Replace .[terms call in predict.coxph with drop.term();
+    due to an error in [.term discovered by Jorge Menezes.  Add
+    dropterm.R to the test suite.
     \item Fix all errors in R CMD check, and submit to CRAN
 }}
 \section{Changes in version 3.3-2}{
