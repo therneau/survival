@@ -51,7 +51,7 @@
     identifies individual subjects, when a given person can have multiple
     lines of data.
   }
-  \item{cluster}{used to group observations for the infinitesmal
+  \item{cluster}{used to group observations for the infinitesimal
     jackknife variance estimate, defaults to the value of id.}
 
   \item{robust}{logical, should the function compute a robust variance.
@@ -66,7 +66,7 @@
 
   \item{etype}{
     a variable giving the type of event.  This has been superseded by
-    multi-state Surv objects and is depricated; see example below.
+    multi-state Surv objects and is deprecated; see example below.
   }
   \item{error}{this argument is no longer used}
   \item{\dots}{
@@ -141,7 +141,7 @@
 	at \code{start.time}, or if that is not specified, at
 	the time of the first event.}
       \item{type}{an older argument that combined \code{stype} and
-	\code{ctype}, now depricated.  Legal values were "kaplan-meier"
+	\code{ctype}, now deprecated.  Legal values were "kaplan-meier"
 	which is equivalent to \code{stype=1, ctype=1}, "fleming-harrington"
 	which is equivalent to \code{stype=2, ctype=1}, and "fh2" which
 	is equivalent to \code{stype=2, ctype=2.}

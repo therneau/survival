@@ -44,7 +44,7 @@ hazards model.
     the level for a two-sided confidence interval on the survival curve(s). 
     Default is 0.95. 
   }
-  \item{individual}{depricated argument, replaced by the general
+  \item{individual}{deprecated argument, replaced by the general
     \code{id}}
   \item{stype}{computation of the survival curve, 1=direct, 2=
     exponenial of the cumulative hazard.}
@@ -81,7 +81,7 @@ hazards model.
   \item{influence}{option to return the influence values}
   \item{na.action}{the na.action to be used on the newdata argument}
   \item{type}{older argument that encompassed \code{stype} and
-    \code{ctype}, now depricated}
+    \code{ctype}, now deprecated}
   \item{p0}{optional, a vector of probabilities.  The returned curve
     will be for a cohort with this mixture of starting states.  Most
     often a single state is chosen}

@@ -47,7 +47,7 @@ Produces a summary of a fitted coxph model
 \note{
   The pseudo r-squared of Nagelkirke is attractive because it is simple,
   but further work has shown that it has poor properties and it is now
-  depricated.  The value is no longer printed by default, and will
+  deprecated.  The value is no longer printed by default, and will
   eventually be removed from the object.
 }
 \seealso{
