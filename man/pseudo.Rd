@@ -49,6 +49,22 @@ subjects, is exactly the underlying survival estimate.
 For the \code{type} variable, \code{surv} is an acceptable synonym for
 \code{pstate}, and \code{rmst} and \code{rmts} are equivalent to \code{sojourn}.
 All of these are case insensitive.
+
+The result from this routine is simply n times the IJ value, where n is
+the number of subjects.
+(If the the \code{survfit} call included and \code{id} option, n is
+the number of unique id values, otherwise the number of rows in the data set.) 
+IJ values are well defined for all variants of the Aalen-Johansen
+estimate, as computed by the \code{survfit} function; indeed, they are
+the basis for standard errors of the result.
+Understanding of the properties of the pseudo-values, however, is still
+evolving.  Validity has been shown for the simplest case (Kaplan-Meier),
+for competing risks, and for the corresponding sojourn times.
+On the other hand, one must be careful when the data includes
+left-truncation (P. K. Andersen, personal communication), and also with
+pseudo-values for the cumulative hazard.
+As understanding evolves, treat this routine's results as a reseach
+tool, not production, for the more complex models.
 }
 \value{
   A vector, matrix, or array.  The first dimension is always the number of
@@ -58,6 +74,8 @@ All of these are case insensitive.
   the second, if applicable, corresponds to \code{fit$states}, e.g.,
   multi-state
   survival, and the last dimension to the selected time points.
+  (If there are multiple rows for a given id, there is only one
+  pseudovalue per unique id.)
 
   For the data.frame option, a data frame containing values for id,
   time, and pseudo.  If the original \code{survfit} call contained an
