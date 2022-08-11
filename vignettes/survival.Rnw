@@ -3544,7 +3544,7 @@ The direct (KM) vs. exponential estimates of survival are obtained with
 the \code{ctype=1} and \code{ctype=2} arguments; however, the
 exponential estimate is quite uncommon outside of the Cox model.
 
-\section{Predicted cumulative hazard and surival from a Cox model}
+\section{Predicted cumulative hazard and survival from a Cox model}
 
 Predictions from a coxph model must always be for \emph{someone}, i.e.,
 some particular set of covariate values.
