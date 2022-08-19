@@ -52,6 +52,14 @@ surv1 <- survfit(fit1, newdata=data.frame(age=50, ph.ecog=1))
 surv2 <- survfit(fit2, newdata=data.frame(age=50, ph.ecog=1))
 all.equal(surv1$surv, surv2$surv)
 
+# And a model with only offsets.
+eta <- cbind(lung$age, lung$ph.ecog) %*% coef(fit1)
+fit3 <- coxph(Surv(time, status) ~ offset(eta), lung)
+aeq(fit3$log, fit1$log[2])
+
+surv3 <- survfit(fit3, newdata=data.frame(eta= 50*fit1$coef[1] + fit1$coef[2]))
+all.equal(surv3$surv, surv1$surv)
+
 #
 # Check out the start.time option
 #

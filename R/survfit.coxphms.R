@@ -111,11 +111,17 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95, individual=FALSE,
     if (is.null(mf)) {
         weights <- object$weights  # let offsets/weights be NULL until needed
         offset <- NULL
+        offset.mean <- 0
         X <- object[['x']]
     }
     else {
         weights <- model.weights(mf)
         offset <- model.offset(mf)
+        if (is.null(offset)) offset.mean <- 0
+        else {
+            if (is.null(weights)) offset.mean <- mean(offset)
+            else offset.mean <- sum(offset * (weights/sum(weights)))
+        }
         X <- model.matrix.coxph(object, data=mf)
         if (is.null(Y) || coxms) {
             Y <- model.response(mf)
@@ -210,16 +216,15 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95, individual=FALSE,
         # se.fit <- FALSE
         X <- matrix(0., nrow=n, ncol=1)
         if (is.null(offset)) offset <- rep(0, n)
-        xcenter <- mean(offset)
+        xcenter <- offset.mean
         coef <- 0.0
         varmat <- matrix(0.0, 1, 1)
-        risk <- rep(exp(offset- mean(offset)), length=n)
+        risk <- rep(exp(offset- offset.mean), length=n)
     }
     else {
         varmat <- object$var
         beta <- ifelse(is.na(object$coefficients), 0, object$coefficients)
-        if (is.null(offset)) xcenter <- sum(object$means * beta)
-        else xcenter <- sum(object$means * beta)+ mean(offset)
+        xcenter <- sum(object$means * beta) + offset.mean
         if (!is.null(object$frail)) {
            keep <- !grepl("frailty(", dimnames(X)[[2]], fixed=TRUE)
            X <- X[,keep, drop=F]
@@ -255,7 +260,10 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95, individual=FALSE,
             stop("Newdata cannot be used when a model has frailty terms")
 
         Terms2 <- Terms 
-        if (!individual)  Terms2 <- delete.response(Terms)
+        if (!individual)  {
+            Terms2 <- delete.response(Terms)
+            y2 <- NULL  # a dummy to carry along, for the call to coxsurv.fit
+        }
         if (is.vector(newdata, "numeric")) {
             if (individual) stop("newdata must be a data frame")
             if (is.null(names(newdata))) {
@@ -339,9 +347,10 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95, individual=FALSE,
         }
     } else {
         offset2 <- model.offset(mf2)
-        if (length(offset2) >0) offset2 <- offset2 
-        else offset2 <- 0
-        x2 <- model.matrix(Terms2, mf2)[,-1, drop=FALSE]  #no intercept
+        if (length(offset2)==0 ) offset2 <- 0
+        # a model with only an offset, but newdata containing a value for it
+        if (length(object$means)==0) x2 <- 0
+        else x2 <- model.matrix(Terms2, mf2)[,-1, drop=FALSE]  #no intercept
     }
 
     if (has.strata && !is.null(mf2[[stangle$vars]])){

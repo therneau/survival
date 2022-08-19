@@ -1,5 +1,11 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 3.4-1}{
+  \itemize{
+    \item Add newdata argument to basehaz, along with more documentation
+    \item survfit.coxph would fail for the combination of newdata and a
+    model with only an offset term
+}}
 \section{Changes in version 3.4-0}{
   \itemize{
     \item Replace .[terms call in predict.coxph with drop.term();

@@ -5,12 +5,15 @@
   Compute the predicted survival curve for a Cox model.
 }
 \usage{
-basehaz(fit, centered=TRUE)
+basehaz(fit, newdata, centered=TRUE)
 }
 \arguments{
   \item{fit}{a coxph fit}
-  \item{centered}{if TRUE return data from a predicted survival curve at
-    the mean values of the covariates \code{fit$mean}, if FALSE return a
+  \item{newdata}{a data frame containing one row for each predicted
+    survival curve, said row contains the covariate values for that curve}
+  \item{centered}{ignored if the \code{newdata} argument is present.
+    Otherwise, if TRUE return data from a predicted survival curve
+    for the covariate values \code{fit$mean}, if FALSE return a
     prediction for all covariates equal to zero.}
 }
 \details{
@@ -23,8 +26,8 @@ basehaz(fit, centered=TRUE)
   \code{cumhaz} and optionally the strata (if the fitted Cox model used
   a strata statement), which are copied the \code{survfit} result.
   Results for all covariates =0 are a standard form found in textbooks,
-  however, due to possible overflow in the exp() function this is, in
-  practice, a very bad idea in practice.  
+  however, due to possible overflow in the exp() function this can be a
+  very bad idea in practice. 
 }
 \value{
   a data frame with variable names of \code{hazard}, \code{time} and
