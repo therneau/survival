@@ -243,7 +243,7 @@ This corresponds to being simultaneously at risk for two distinct outcomes.
 \subsection{The function}
 A useful function for building data sets is \code{tmerge}, which is
 part of the survival library.
-The idea is to build up a time dependent data set one endpoint at at time.
+The idea is to build up a time dependent data set one endpoint at a time.
 The primary arguments are
 \begin{itemize}
   \item data1: the base data set that will be added onto
