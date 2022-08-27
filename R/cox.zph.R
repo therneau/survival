@@ -160,7 +160,7 @@ cox.zph <- function(fit, transform='km', terms=TRUE, singledf =FALSE,
     #  what the C routine zph1 and zph2 return
     indx <- if (ny==2) ord +1 else rev(ord) +1  # return to 1 based subscripts
     indx <- indx[event[indx]]                   # only keep the death times
-    rval <- list(table=tbl, x=unname(ttimes[indx]), time=unname(y[indx, ny-1]))
+    rval <- list(table=tbl, x=unname(ttimes[indx]), time=unname(y[indx, ny - 1]))
     if (length(cget$strata)) rval$strata <- cget$strata[indx]
     # Watch out for a particular edge case: there is a factor, and one of the
     #   strata happens to not use one of its levels.  The element of resid$used will
@@ -233,27 +233,27 @@ print.cox.zph <- function(x, digits = max(options()$digits - 4, 3),
 "[.cox.zph" <- function(x, ..., drop=FALSE) {
     i <- ..1
     if (!is.null(x$strata)) {
-        y2 <- x$y[,i,drop=FALSE]
+        y2 <- x$y[i,drop=FALSE]
         ymiss <- apply(is.na(y2), 1, all)
         if (any(ymiss)) {
             # some deaths played no role in these coefficients
             #  due to a strata * covariate interaction, drop unneeded rows
-            z<- list(table=x$table[i,,drop=FALSE], x=x$x[!ymiss], 
+            z<- list(table=x$table[i,drop=FALSE], x=x$x[!ymiss], 
                      time= x$time[!ymiss], 
                      strata = x$strata[!ymiss],
                      y = y2[!ymiss,,drop=FALSE],
-                     var=x$var[i,i, drop=FALSE], 
+                     var=x$var[i, drop=FALSE], 
                      transform=x$transform, call=x$call)
             }
-        else z<- list(table=x$table[i,,drop=FALSE], x=x$x, time= x$time, 
+        else z<- list(table=x$table[i,drop=FALSE], x=x$x, time= x$time, 
                       strata = x$strata,
-                      y = y2,  var=x$var[i,i, drop=FALSE], 
+                      y = y2,  var=x$var[i, drop=FALSE], 
                       transform=x$transform, call=x$call)
     }
     else
         z<- list(table=x$table[i,,drop=FALSE], x=x$x, time= x$time, 
-                 y = x$y[,i,drop=FALSE],
-                 var=x$var[i,i, drop=FALSE],
+                 y = x$y[i,drop=FALSE],
+                 var=x$var[i, drop=FALSE],
                  transform=x$transform, call=x$call)
     class(z) <- class(x)
     z
