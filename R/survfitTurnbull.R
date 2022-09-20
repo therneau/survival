@@ -262,7 +262,7 @@ survfitTurnbull <- function(x, y, weights,
 		 n.event= unlist(n.event),
 		 n.censor = unlist(n.cens),
 		 surv = unlist(surv),
-		 type='right')
+		 type='interval')
     
     if (nstrat >1) {
         strata <- unlist(lapply(time, length))

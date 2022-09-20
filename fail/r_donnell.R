@@ -15,7 +15,7 @@ dfit <- survreg(Surv(time1, time2, status, type='interval') ~1, donnell)
 summary(dfit)
 
 #
-# Fit the Donnell data using Statsci's code - should get the same coefs
+# Fit the Donnell data using Bill Meeker's code - should get the same coefs
 #
 if (exists('censorReg')) {
     dfitc <- censorReg(censor(time1, time2, status, type='interval') ~1, 
@@ -25,9 +25,9 @@ if (exists('censorReg')) {
 #
 # Do a contour plot of the donnell data
 #
-npt <- 20
-beta0  <- seq(.4, 3.6, length=npt)
-logsig <- seq(-1.4, 0.41, length=npt)
+npt <- 40
+beta0  <- seq(.4, 4, length=npt)
+logsig <- seq(-1.4, .8, length=npt)
 donlog <- matrix(0,npt, npt)
 
 for (i in 1:npt) {
@@ -59,6 +59,7 @@ for (i in 0:niter){
 		    donnell, maxiter=i)
     donpath[i+1,] <- c(fit$coef, log(fit$scale))
     }
-points(donpath[,1], donpath[,2])
+text(donpath[,1], donpath[,2], letters[1:14])
 lines(donpath[,1], donpath[,2], col=4)
 options(warn=0)  #reset
+# step 5 (e) was a bad one

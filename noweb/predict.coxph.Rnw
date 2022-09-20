@@ -164,7 +164,8 @@ if (type == "expected") {
 # This will be needed if there are strata, and is cheap to compute
 strat.term <- untangle.specials(Terms, "strata")
 if (se.fit || type=='terms' || (!missing(newdata) && type=="expected") ||
-    (has.strata && (reference=="strata") || type=="expected")) {
+    (has.strata && (reference=="strata") || type=="expected") ||
+    (reference=="zero" && any(object[["means"]] !=0))) {
     use.x <- TRUE
     if (is.null(object[['x']]) || has.weights || has.offset ||
          (has.strata && is.null(object$strata))) {
