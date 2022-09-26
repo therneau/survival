@@ -4,7 +4,14 @@
   \itemize{
     \item Add newdata argument to basehaz, along with more documentation
     \item survfit.coxph would fail for the combination of newdata and a
-    model with only an offset term
+    model with only an offset term, fixed
+    \item Add a check to pseudo. The algorithm was not designed for a
+    survfit curve from interval censored data, but still produced a
+    result (assuredly an incorrect one).  Interval censored curves now
+    have type='interval' to help support this.
+    \item Predict.coxph with reference='zero' and missing newdata
+    incorrectly assumed it could simply return fit$residuals.  Pointed
+    out by David Collett.
 }}
 \section{Changes in version 3.4-0}{
   \itemize{

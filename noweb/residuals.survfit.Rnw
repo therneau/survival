@@ -36,6 +36,17 @@ residuals.survfit <- function(object, times,
 
     if (!inherits(object, "survfit"))
         stop("argument must be a survfit object")
+    if (object$type=="interval") {
+        # trial code to support it
+        # reconstruct the data set
+        # create dummy time/status for all interval or left censored
+        #   over the span of jump points in S, non-censored obs with
+        #   weights proportional to the jumps
+        # combine dummy + (exact, right) from original, compute KM
+        # get pseudo for this new KM
+        # collapse dummy obs back to a single
+        }
+
     if (missing(times)) stop("the times argument is required")
     # allow a set of alias
     temp <- c("pstate", "cumhaz", "sojourn", "survival",
@@ -56,7 +67,7 @@ residuals.survfit <- function(object, times,
 survresid.fit <- function(object, times, 
                               type= "pstate",
                               collapse, weighted=FALSE, method=1) {
-    
+    if (object$type=="interval") stop("interval censored not yet supported")
     survfitms <- inherits(object, "survfitms")
     coxsurv <- inherits(object, "survfitcox")
     timefix <- (is.null(object$timefix) || object$timefix)
