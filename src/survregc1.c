@@ -48,7 +48,7 @@
 static void exvalue_d(double z, double ans[4], int j);
 static void logistic_d(double z, double ans[4], int j);
 static void gauss_d(double z, double ans[4], int j);
-static void (*sreg_gg)();
+static void (*sreg_gg)(double z, double ans[4], int j);
 
 #define  SPI    2.506628274631001     /* sqrt(2*pi) */
 #define  ROOT_2 1.414213562373095

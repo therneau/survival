@@ -13,7 +13,6 @@ static const R_CMethodDef Centries[] = {
     {"Cagfit5a",    (DL_FUNC) &agfit5a,  21},
     {"Cagfit5b",    (DL_FUNC) &agfit5b,  19},
     {"Cagfit5c",    (DL_FUNC) &agfit5c,   1},
-    {"Cagsurv3",    (DL_FUNC) &agsurv3,   19},
     {"Cagsurv4",    (DL_FUNC) &agsurv4,    6},
     {"Cagsurv5",    (DL_FUNC) &agsurv5,   10},
     {"Cagexact",    (DL_FUNC) &agexact,   21},

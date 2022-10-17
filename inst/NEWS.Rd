@@ -12,6 +12,10 @@
     \item Predict.coxph with reference='zero' and missing newdata
     incorrectly assumed it could simply return fit$residuals.  Pointed
     out by David Collett.
+    \item Change the prototype in a few .c routines, per a request from
+    CRAN. (chinv.c for instance was using the old K&R style declaration,
+    which shows how long ago it was written.)
+    \item Check and submit to CRAN
 }}
 \section{Changes in version 3.4-0}{
   \itemize{

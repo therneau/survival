@@ -73,11 +73,21 @@ SEXP survreg7(SEXP maxiter2,   SEXP nvarx,  SEXP y,
     int nvar, nvar2, nvar3, nstrat;
     int iter;
     double newlk =0;
-    double (*dolik)();   /* will point to (*dolik) or survregc2 */
     double x1, x2, x3, x4;
     double y1, y2, y3;
     int golden, goright;
     double newpen;
+
+    /* 
+    ** This will be pointed to survregc1 (built in distributions) or
+    **  survregc2 (user specified)
+    */
+    double (*dolik)(int n,       int nvar,     int nstrat,      int whichcase,
+		 double *beta,   int dist,     int *strat,     double *offset,
+		 double *time1,  double *time2, double *status, double *wt,
+		 double **covar, double **imat, double **JJ,    double *u, 
+		 SEXP expr,      SEXP rho,      double *z,      int nf,
+		 int *frail,     double *fdiag, double *jdiag );
 
     /* pointers for the data regions of the input arguments */
     double **covar;

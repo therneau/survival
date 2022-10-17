@@ -55,10 +55,7 @@ void chinv3(double **matrix , int n, int m, double *fdiag)
 **  This is split out of chinv3 so that one more number may be saved by
 **  the calling routine.
 */
-void chprod3(matrix, n, m, fdiag)
-int  n, m;
-double fdiag[];
-double **matrix;
+void chprod3(double **matrix, int n, int m, double fdiag[])
      {
      double temp;	 
      int i,j,k;

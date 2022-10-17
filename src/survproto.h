@@ -46,13 +46,6 @@ void agmart(int    *n,     int    *method,  double *start,   double *stop,
 SEXP agscore2(SEXP y2,       SEXP covar2,   SEXP strata2, 
 	      SEXP score2,   SEXP weights2, SEXP method2);
 
-void agsurv3(int    *sn,    int    *snvar,    int    *sncurve, 
-	     int    *snpt,  int    *sse,      double *score, 
-	     double *sy,    int    *grpx,     double *r,        double *coef, 
-	     double *var,   double *xmean,    int    *scn, 
-	     double *cy,    double *cx,       double *ssurv,
-	     double *varh,  double *sused,    int    *smethod);
-
 void agsurv4(int    *ndeath,   double *risk,    double *wt,
              int    *sn,        double *denom,   double *km);
 

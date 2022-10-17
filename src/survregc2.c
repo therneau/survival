@@ -4,7 +4,7 @@
 **   This is the version for the "callback".  The code below
 **   was previously the dolik() routine and it's children found in 
 **   survreg3, modified for a joint R/Splus syntax.
-** This has exactly the same arguments as survregc2 and returns the
+** This has exactly the same arguments as survregc1 and returns the
 **   same values: see that routine for more comments.  This actually
 **   uses expr, rho, and z, however.
 */ 

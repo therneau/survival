@@ -1766,7 +1766,7 @@ anova(cfit1, cfit4)
 @ 
 
 The age effect appears reasonbly linear. 
-Additivity can be examined by adding and age by sex interaction, and
+Additivity can be examined by adding an age by sex interaction, and
 again is not remarkable.
 
 \section{Repeating Events}
