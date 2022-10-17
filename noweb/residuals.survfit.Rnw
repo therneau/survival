@@ -45,6 +45,7 @@ residuals.survfit <- function(object, times,
         # combine dummy + (exact, right) from original, compute KM
         # get pseudo for this new KM
         # collapse dummy obs back to a single
+        stop("residuals for interval-censored data are not available")
         }
 
     if (missing(times)) stop("the times argument is required")

@@ -43,31 +43,33 @@ Let $Y$ be survival time and $f$ some function of interest, for which we desire
 to estimate $E(f(Y))$ over the population.
 With complete data on each observation's survival time, we can compute the
 expectation in the straightforward way as the simple mean $\sum f(y_i) /n$.
-Due t censoring, survival data is unfortunately incomplete.
+Due to censoring, survival data is unfortunately incomplete.
 
 Pseudo-values are based on a simple idea.  Suppose the data are incomplete but
 we have an estimator 
 $\hat\theta = E(f(Y)$ of the quantity of interest, e.g., 
-$f$ = survival probability at
+$\theta$ = survival probability at
 time 45, and $\hat\theta$ the Kaplan-Meier estimate at time 45.
-The pseudo-observation for $y_i$ is then defined as
+The pseudo-value for $y_i$ is then defined as
 
 \begin{equation}
-  \hat\theta_i = \hat\theta + (n-1)(\hat\theta - \hat\theta^{-i})
+  \theta_{(i)} = \hat\theta + (n-1)(\hat\theta - \hat\theta_{-i})
 \end{equation}
 
-where $\hat\theta^{-i}$ is defined as the value of the estimate when subject $i$
+where $\hat\theta_{-i}$ is defined as the value of the estimate when subject $i$
 is omitted from the sample.
 An an illustration, evaluate this formula when $\theta$ is an ordinary mean:
 \begin{align*}
-  \hat\theta +  (n-1)(\hat\theta - \hat\theta^{-i}) &=
+  \hat\theta +  (n-1)(\hat\theta - \hat\theta_{-i}) &=
    \sum_j y_j/n + (n-1)\left( \sum_{j} y_j/n - \sum_{j\ne i} y_j/(n-1) \right)\\
   &= \sum_j y_j - \sum_{j\ne i} y_j \\
   &= y_i
 \end{align*}
 
-The idea is to use the pseudo-observations $\hat\theta_i$ as a replacement
-for the incompletely observed data $y_i$.  These pseudo values are not
+In this case the pseudo-value has exactly recovered the data value $y_i$.
+The idea is to use the pseudo-observations $\theta_{(i)}$ as a replacement
+for the incompletely observed data $y_i$, i.e., as a stand-in for
+the \emph{uncensored} data.  These pseudo values are not
 censored, allowing for ordinary statistical methods to be applied.
 An good overview of pseudo-value based methods for survival is provided by 
 Andersen and Perme \cite{Andersen10}.
@@ -75,12 +77,12 @@ Andersen and Perme \cite{Andersen10}.
 The \code{pseudo} function in the survival package uses values based on the
 infinitesimal jackknife (IJ), i.e.,
 \begin{equation}
- \hat\theta_i = \hat\theta + n\frac{\partial \hat\theta}{\partial w_i}
+ \tilde\theta_{(i)} = \hat\theta + n\frac{\partial \hat\theta}{\partial w_i}
 \end{equation}
 Why use IJ based pseudo-values instead of jackknife based values?
 \begin{enumerate}
   \item The largest advantage is compuatational; IJ values can be assembled
-    more quickly.  
+    much more quickly.  
   \item The survival package already makes extensive use of IJ values to
     compute robust variance estimates, so these naturally fit into that
     framework.  We take advantage of existing test suites to ensure
@@ -88,13 +90,15 @@ Why use IJ based pseudo-values instead of jackknife based values?
 \end{enumerate}
 Both estimates are linear approximations to a functional surface, something 
 nicely pointed out by Efron \cite{Efron82}: the IJ is a tangent plane to the
-surface and the jackknife a secant plane.  As such, they share the property
-that the average of the pseudo values will recover the starting estimate,
-mean$(\hat\theta_i) = \hat\theta$.  The choice of $n$ for the IJ based
+surface at its center and the jackknife a secant plane.  
+As such, they have the property
+that the average of the IJ pseudo values will recover the starting estimate,
+mean$(\tilde\theta_{(i)}) = \hat\theta$.  The choice of $n$ for the IJ based
 pseudo value makes the compuation for an ordinary mean exact, as was shown above
 for $n-1$ and the jackknife pseudovalue, 
 and in fact Efron argues that the
-use of $n-1$ is somewhat arbitrary, i.e., other statistics than the mean might
+use of $n-1$ is somewhat arbitrary, i.e., $\theta$ statistics other 
+than the mean might
 be more exact using $n$, $n+1$ or some other multiplier.
 The largest potential deficit of the IJ based approach is that the literature
 is small --- most of the direct examinations have focused on jackknife
@@ -115,7 +119,7 @@ mean is equal to the area under the survival curve.
 This extends to the multi-state case, where the expected time in state will be
 equal to the area under the P(state) curve for that state.
 
-Since the Kaplan-Meier gives an unbiased estimate of Pr(in the alive state),
+Since the Kaplan-Meier gives an unbiased estimate of $S$,
 we can use the area under the KM to estimate the mean time to death.
 However, since the entire $S(t)$ curve is usually not available, i.e., the
 KM terminates before reaching 0, we instead estimate the restricted mean
@@ -127,9 +131,8 @@ were 8.1, the relevant phrase would be an ``expected lifetime of 8.1 out of
 the next 10 years''.
 Other common labels the sojourn time, or for a multi-state model, 
 the restricted mean time in state (RMTS).
-For a multi-state model, the sojourn time for all states must sum to $\tau$,
+The sojourn time for all states must sum to $\tau$,
 i.e. everone has to be somewhere.
-
 Common choices for $\tau$ are either a fixed time of interest such as 2, 5 or
 10 years, the last observed event time, or the point at which any one of the
 curves has no subjects. 
@@ -162,7 +165,7 @@ round(summary(afit1)$coefficients, 3)
 The IJ residuals for observations that are censored early in the study are
 of necessity small, as they have less opportunity to affect the results, which
 in turn means that the pseudo values are not equivariant.
-And an observation censored befor the first event has residual 0, so its pseudo
+An observation censored befor the first event has residual 0, so its pseudo
 value has no variance at all.
 In such a case theory argues for using White's variance estimate for the linear
 model fit, which accounts for possible heterscadisity.
@@ -182,7 +185,7 @@ afit3 <- svyglm(pmean ~ ph.ecog + sex + age, design=ldesign)
 round(summary(afit3)$coefficients, 3)
 @ 
 
-The estimated coefficients must be identical for all three
+The estimated coefficients will be identical for all three
 approaches, as evidenced above.
 In this particular case the robust and normal standard errors hardly
 differ, which we have found to be the usual case when there is a single
@@ -195,34 +198,38 @@ cause geese to fail, the input data is required to be sorted by id, and that
 standard extraction functions such as \code{coef} and \code{vcov} have not
 been implemented.
 The \code{survey} package requires that the design be specified in advance;
-the result object can then be used to fit multiple models.
+the resulting object acts as the data for subsequent fits.
 
-Stratified pseudo values can also be computed, i.e., where each is based on
-the observation's leverate within a subset.
+Pseudo-values' validity relies on an assumption of non-informative censoring.
+When censoring is uninformative within strata, but not overall, a solution is
+to base the pseudo values on the per-stratum survival curves.
 For example, the \code{lung} data set comes from a multi-center study, and
 contains an identifier for the instutition from which the subject was recruited.
 We might want to adjust for the possibility that different instutions recruit
-from different patient populations.
-One way to do so is to add \code{factor(inst)} to the model, but another is
-to base the result off per-institution curves.
+from different patient populations, with different overall survival.
+If those institutions had different median follow-up times as
+well as differential survival, this would introduce informative censoring.
+(Differential follow-up of quite common in multi-center studies; some will join
+late due to administrative delays.)
 
 <<strata>>=
 lfit4 <- survfit(Surv(time/365.25, status) ~ inst, data=lung)
 pmean4 <- pseudo(lfit4, time=2.5, type="auc")
 ldata$pmean4 <- c(pmean4)
 afit4a <- lm(pmean4 ~ ph.ecog + sex + age, ldata)
-afit4b <- lm(pmean4 ~ ph.ecog + sex + age + factor(inst), ldata)
 
 # survey package does not allow a missing strata, and one obs in the lung data
 #  set has institution missing
 temp <- subset(ldata, !is.na(inst))
 ldesign4 <- svydesign(data=temp,  id= ~id, weights=NULL, strata= ~inst,
                       variables= ~ .-id -inst)
-afit4c <- svyglm(pmean4 ~ ph.ecog + sex + age, design=ldesign4)
-afit4d <- svyglm(pmean4 ~ ph.ecog + sex + age + factor(inst), design=ldesign4)
-round(summary(afit4c)$coefficients, 3)
-round(summary(afit4d)$coefficients[1:4,], 3)
+afit4b <- svyglm(pmean4 ~ ph.ecog + sex + age, design=ldesign4)
+round(summary(afit4a)$coefficients, 3)
+round(summary(afit4b)$coefficients[1:4,], 3)
 @ 
+
+It is interesting that correct variance is somewhat smaller than the 
+simple glm result, in this case.
 
 \section{Survival and probability in state}
 \subsection{AML data}
@@ -579,7 +586,7 @@ bcloglog <- function(edge=.05) {
     new
 }
 sfit3d <- svyglm(pseudo ~rx + extent + node4 + factor(year), design=cpdesign,
-              family= gaussian(link = bloglog()), subset=(year %in% c(2,4,6)))
+              family= gaussian(link = bcloglog()), subset=(year %in% c(2,4,6)))
 pfun(summary(sfit3d)$coefficients)
 cfit <- coxph(Surv(time, status) ~ rx + extent + node4, cdata)                 
 round(summary(cfit)$coefficients, 3)
@@ -662,7 +669,7 @@ One lack in the pseudovalue approach is that it does not extend to
 time-dependent covariates, unlike the Fine-Gray model. 
 A second concern is that in a data set with left-truncation, it has been
 shown that the final regression coefficients will be biased whenever the
-truncation is covariate dependent \cite{Parner21}  
+truncation is covariate dependent (personal communication, PK Andersen).  
 
 \bibliographystyle{plain}
 \bibliography{refer}

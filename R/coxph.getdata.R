@@ -7,11 +7,13 @@
 #   still allow users to type "strata" as an arg.
 #
 coxph.getdata <- function(fit, y=TRUE, x=TRUE, stratax=TRUE, 
-                          weights=TRUE, offset=FALSE) {
+                          weights=TRUE, offset=FALSE, id=TRUE, cluster=TRUE) {
     ty <- fit[['y']]  #avoid grabbing this by accident due to partial matching
     tx <- fit[['x']]  #  for x, fit$x will get fit$xlevels --> not good
     twt <- fit[["weights"]]
     toff <- fit[["offset"]]
+    if (is.null(fit$call$id)) id <- FALSE  # there is no id to return
+    if (is.null(fit$call$cluster) cluster <- FALSE
 
     # if x or y is present, use it to set n
     if (!is.null(ty)) n <- nrow(ty)
@@ -36,7 +38,7 @@ coxph.getdata <- function(fit, y=TRUE, x=TRUE, stratax=TRUE,
     if (length(strats)==0 && length(strat)==0 & !coxms) stratax <- FALSE
 
     if ((y && is.null(ty)) || (x && is.null(tx)) || 
-        (weights && is.null(twt)) ||  
+        (weights && is.null(twt)) ||  cluster || id ||
 	(stratax && is.null(strat)) || (offset && is.null(toff)) ||
         !is.null(fit$call$istate)) {
 	# get the model frame
@@ -53,14 +55,16 @@ coxph.getdata <- function(fit, y=TRUE, x=TRUE, stratax=TRUE,
             toff <- model.extract(mf, 'offset')
             if (is.null(toff)) toff <- rep(0.0, n)
         }
+        if (id) idx <- model.extract(mf, "id")
+        if (cluster) clusterx <- model.extact(mf, "cluster")
 
         if (inherits(fit, "coxphms")) {
             # we need to call stacker
-            id <- model.extract(mf, "id")
+            idx <- model.extract(mf, "id")
             istate <- model.extract(mf, "istate")
             ty <- model.response(mf)
             if (is.null(fit$timefix) || fit$timefix) ty <- aeqSurv(ty) 
-            check <- survcheck2(ty, id, istate)
+            check <- survcheck2(ty, idx, istate)
             tx <- model.matrix.coxph(fit, data=mf)
             if (length(strats)) {
   		temp <- untangle.specials(Terms, 'strata', 1)
@@ -76,6 +80,8 @@ coxph.getdata <- function(fit, y=TRUE, x=TRUE, stratax=TRUE,
             stratax <- TRUE
             if (offset) toff <- toff[xstack$rindex]
             if (weights) twt  <- twt[xstack$rindex]
+            if (id) idx <- idx[xstack$rindex]
+            if (cluster) clusterx <- clusterx[xstack$rindex]
 
             # And last, toss missing values, which had been deferred
             ismiss <- is.nan(ty) | apply(is.na(tx), 1, any)
@@ -87,6 +93,8 @@ coxph.getdata <- function(fit, y=TRUE, x=TRUE, stratax=TRUE,
                 if (y) ty<- ty[!ismiss]
                 if (x) tx <- tx[!ismiss,,drop=FALSE]
                 if (stratax) strat <- strat[!ismiss]
+                if (id) idx <- idx[!imiss]
+                if (cluster) clusterx <- clusterx[!imiss]
             }       
         } 
         else { # not multi-state, or everything was there
@@ -112,5 +120,7 @@ coxph.getdata <- function(fit, y=TRUE, x=TRUE, stratax=TRUE,
     if (stratax)  temp$strata <- strat
     if (offset)  temp$offset <- toff
     if (weights) temp$weights <- twt
+    if (id) temp$id <- idx
+    if (cluster) temp$cluster <- clusterx
     temp
     }
