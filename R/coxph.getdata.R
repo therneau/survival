@@ -13,7 +13,7 @@ coxph.getdata <- function(fit, y=TRUE, x=TRUE, stratax=TRUE,
     twt <- fit[["weights"]]
     toff <- fit[["offset"]]
     if (is.null(fit$call$id)) id <- FALSE  # there is no id to return
-    if (is.null(fit$call$cluster) cluster <- FALSE
+    if (is.null(fit$call$cluster)) cluster <- FALSE
 
     # if x or y is present, use it to set n
     if (!is.null(ty)) n <- nrow(ty)

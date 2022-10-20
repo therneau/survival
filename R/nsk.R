@@ -30,6 +30,19 @@ nsk <- function(x, df=NULL, knots=NULL, intercept=FALSE, b=.05,
     else basis <- ns(x, df=df, knots= iknot, intercept=intercept,
                    Boundary.knots = bknot)
     iknot <- attr(basis, "knots")
+    
+    temp <- c(bknot, iknot)
+    if (any(duplicated(temp))) {
+        # duplicate knots not allowed, but can occur in ns if there are a
+        #  lot of ties near one end
+        temp <- unique(temp)
+        if (length(temp)==2) 
+             basis <- ns(x, intercept=intercept, Boundary.knots = bknot)
+        else basis <- ns(x, intercept=intercept, Boundary.knots = bknot,
+                         knots = temp[-(1:2)])
+       iknot <- attr(basis, "knots")
+    }     
+            
     kx <- c(bknot[1], iknot, bknot[2])
     kbasis <- ns(kx, df=df, knots=iknot, intercept=intercept,
                  Boundary.knots = bknot)         
