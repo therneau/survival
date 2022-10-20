@@ -422,8 +422,8 @@ multihaz <- function(y, x, position, weight, risk, istrat, ctype, stype,
                      bcoef, hfill, x2, risk2, vmat, nstate, se.fit, p0, utime) {
     if (ncol(y) ==2) {
        sort1 <- seq.int(0, nrow(y)-1L)   # sort order for a constant
-       y <- cbind(-1.0, y)               # add a start.time column, -1 in case
-                                         #  there is an event at time 0
+       y <- cbind(min(c(0,y)- 10, y)     # add a start.time column, earlier than
+                                         #  the first event
     }
     else sort1 <- order(istrat, y[,1]) -1L
     sort2 <- order(istrat, y[,2]) -1L

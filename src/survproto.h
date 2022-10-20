@@ -140,8 +140,8 @@ SEXP coxscore2(SEXP y2,       SEXP covar2,   SEXP strata2,
 
 double coxsafe(double x);
 
-SEXP coxsurv1(SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22, 
-              SEXP position2,   SEXP strata2, SEXP xmat2, SEXP risk2);
+SEXP coxsurv1(SEXP otime,   SEXP y2,     SEXP weight2, SEXP sort22, 
+              SEXP strata2, SEXP xmat2,  SEXP risk2);
 
 SEXP coxsurv2(SEXP otime2, SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22, 
               SEXP position2,  SEXP strata2, SEXP xmat2, SEXP risk2);

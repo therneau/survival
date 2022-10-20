@@ -3,10 +3,7 @@
 **  the totals that we need. The number at risk is a PITA in R code, but all
 **  the rest of the compuations are simple there.  This creates more totals
 **  than we currenly use, as an attempt to future proof the code.
-** The coxsurv1 routine uses a stacked input data set, one 'layer' per stratum,
-**  and outputs unique times for each strata.  This routine also uses
-**  stacked data, one layer per transition, but adds a preselected vector of 
-**  output times, used for all curves.
+** The coxsurv1 routine is for simple survival, this one for (time1, time2) data
 **
 **  otime:  vector of output times.  All the transitions will get reports at
 **            these time points.  This fcn is called for all of the 

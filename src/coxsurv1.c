@@ -1,35 +1,46 @@
 /*
-** Hazard curves for a Cox model.  This routine counts up all
-**  the totals that we need (more than we need, actually).  The number at risk
-**  is a PITA in R code.  Much of the rest of the computation can be done in R,
-**  however.
-**
-**  y   :    survival response
+** Survival curves for a Cox model.  This routine counts up all
+**  the totals that we need. The number at risk is a PITA in R code, but all
+**  the rest of the compuations are simple there.  This creates more totals
+**  than we currenly use, as an attempt to future proof the code.
+** The routine uses a stacked input data set, one 'layer' per transition,
+**  and outputs values for each transition, at each of the prespecified time
+**  points. In a multistate model we need the values for all strata,
+**  even if there was no event in some particular transtition at that time
+**  point.  When there are extranal strata in the model, e.g.,
+**  coxph(Surv(time, status) ~ age + strata(inst), lung), then this
+**  routine will be called separatedly for individual strata, with otime the
+**  event times in that stratum.  Ditto for a multistate model that had
+**  external strata.
+** 
+**  otime:  vector of output times.  All the transitions will get reports at
+**            these time points.  This fcn is called for all of the 
+**            transitions at once, sorted by transition,
+**            but called separately for any strata() groups.
+**  y   :    survival response, two column
 **  weight:  observation weight
-**  sort1, sort2: sort indices for the start and stop time
-**  position: in a string of obs (1,2) (2,3) (3,4) (5,8) for a given subject,
-**             1= start of a sequence, 2= end of sequence, 3= both
-**            the above would be 1, 0, 2, 3
-**  strata:  stratum for each obs
+**  sort2: sort index for the survival time
+**  trans:   the data set is stacked: all the data for transition 1, then 
+**            transition 2, etc for a multi-state model (th
 **  xmat2:   covariates
 **  risk2:   risk score
 **
-**  output: a vector of unique death times, a vector of strata, a matrix of
-**           counts (one row per time), and matrices of X sums, for all those
-**           at risk and the current time.
+**  output: A matrix of counts, with one row per time, per stratum, and
+**           matrices with xbar for those at risk, and the sum of x for
+**	     terminal events at the current time.
 **
 **  For the weighted counts, number at risk != entries - exits.  Someone with 
 **    a sequence of (1,2)(2,5)(5,6) will have 1 entry and 1 exit, but they might
 **    have 3 changes of risk score due to time-dependent covariates.
-**  So n1 has to count all the changes, while n2 and n3 (used for user printout)
-**  only keep track of the first entry and final exit.
+**  n0-3 has to count all the changes, while n8-n9 (only used in printout)
+**    keep track of the final exit, and 3-7 and 10-11 refer only to a given
+**    timepoint.
 **
-**  Let w1=1, w2= wt, w3= wt*risk.  The counts are
-**   0-2: number at risk, w1, w2, w3
-**   3-4: events: w1, w2
-**   5-6: censor: w1, w2
-**   7-9: censored endpoints: w1, w2, w3
-**   10-11: entries: w1, w2
+**  Let w1=1, w2= wt, w3= wt*risk.  The counts n[] are
+**   0-2: number at risk: w1, w2, w3
+**   3-5: events: w1, w2, w3
+**   6-7: censored: w1,w2
+**   8-9: Efron number at risk
 */
 
 #include <math.h>
@@ -37,178 +48,156 @@
 #include "survproto.h"
 #include <stdio.h>
 
-SEXP coxsurv1(SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22, 
-              SEXP position2,   SEXP strata2, SEXP xmat2, SEXP risk2) {
+SEXP coxsurv1(SEXP otime2, SEXP y2,    SEXP weight2,  SEXP sort22, 
+              SEXP trans2, SEXP xmat2, SEXP risk2) {
               
-    int i, i2, j2, k, person, person2, itime;
-    int nused, istrat;
-    int ntime;
-    double *tstart=0, *stime, *status, *wt;
-    int *strata;
-    double dtime;
-    int *sort1=0, *sort2;
+    int i, i2, k, person2, itrans;
+    int nused, ntrans, ntime, irow, ii, jj;
+    double *tstop, *status, *wt, *otime;
+    int *trans;
+    double dtime, meanwt;
+    int  *sort2;
     double **xmat, *risk;  /* X matrix and risk score */
     int nvar;              /* number of covariates */
     double  *xsum1,  /* a weighted sum, for computing xbar */
 	    *xsum2;
-
-    static const char *outnames[]={"time", "strata", "count", 
-				   "xbar1", "xbar2", ""};
+	    
+    static const char *outnames[]={"ntrans", "count", 
+				   "xbar", "xsum2", ""};
     SEXP rlist;
     double n[12];
-    int *position;
 
     /* output variables */
-    double  *rtime, **rn, *rstrat;
+    double  **rn, *rstrat;
     double  **rx1, **rx2;
 
     /* map the input data */
+    otime = REAL(otime2);
+    ntime = LENGTH(otime2);
     nused = nrows(y2);
-    tstart = REAL(y2);
-    stime = tstart + nused;
-    status= stime +nused;
+    tstop = REAL(y2);
+    status= tstop +nused;
     wt = REAL(weight2);
-    sort1 = INTEGER(sort12);
     sort2 = INTEGER(sort22);
-    strata= INTEGER(strata2);
-    position = INTEGER(position2);
+    trans= INTEGER(trans2);
     risk = REAL(risk2);
     nvar = ncols(xmat2);
     xmat = dmatrix(REAL(xmat2), nrows(xmat2), nvar);
 
-    /* pass 1, get the number of unique event times, needed to alloc memory
-    **  data is sorted by time within strata. The same time in 2 strata
-    **  counts as 2 separate times.
+    /* pass 1, count the number of transitions, needed to alloc memory
+    **  data is sorted by time within trans
     */
-    ntime =1; dtime=stime[sort2[0]]; istrat= strata[sort2[0]];
+    itrans= trans[0];
+    ntrans=1;
     for (i=1; i<nused; i++) {
 	i2 = sort2[i];
-	if (strata[i2] != istrat) {
-	    ntime++;
-	    istrat = strata[i2];
+	if (trans[i2] != itrans) {
+	    ntrans++;
+	    itrans = trans[i2];
 	}	
-	else if (stime[i2] != dtime) ntime++;
-	dtime = stime[i2];
     }  
-
+ 
     /* Allocate memory for the working matrices. */
     xsum1 = (double *) ALLOC(2*nvar, sizeof(double));
     xsum2 = xsum1 + nvar;
-   
-    /* Allocate memory for returned objects.  Essentially ntime copies of each
-       of n, xsum1, xsum2.
+    
+    /* Allocate memory for returned objects: ntime*ntrans copies of n, xsum1,
+       and xsum2
     */
     PROTECT(rlist = mkNamed(VECSXP, outnames));
-    rtime  = REAL(SET_VECTOR_ELT(rlist, 0, allocVector(REALSXP, ntime)));
-    rstrat = REAL(SET_VECTOR_ELT(rlist, 1, allocVector(REALSXP, ntime)));
-    rn = dmatrix(REAL(SET_VECTOR_ELT(rlist, 2, 
-			    allocMatrix(REALSXP, ntime, 12))), ntime, 12);
-    rx1 = dmatrix(REAL(SET_VECTOR_ELT(rlist, 3, 
-			      allocMatrix(REALSXP, ntime, nvar))), ntime, nvar);
-    rx2 = dmatrix(REAL(SET_VECTOR_ELT(rlist, 4, 
-			      allocMatrix(REALSXP, ntime, nvar))), ntime, nvar);
+    irow = ntime*ntrans;
+    rstrat = REAL(SET_VECTOR_ELT(rlist, 0, allocVector(REALSXP, 1)));
+    rn = dmatrix(REAL(SET_VECTOR_ELT(rlist, 1, 
+			    allocMatrix(REALSXP, irow, 10))), irow, 10);
+    rx1 = dmatrix(REAL(SET_VECTOR_ELT(rlist, 2, 
+			      allocMatrix(REALSXP, irow, nvar))), irow, nvar);
+    rx2 = dmatrix(REAL(SET_VECTOR_ELT(rlist, 3, 
+			      allocMatrix(REALSXP, irow, nvar))), irow, nvar);
 						     
     R_CheckUserInterrupt();  /*check for control-C */
 
-    /* now add up all the sums */
-    person = 0; person2=0 ;   /* person2 tracks start times */
-    istrat = strata[sort2[0]];  /* initial stratum */
-    for (itime=ntime-1; itime>=0; itime--) {
-	i2 = sort2[person];
-	if (person==0 || strata[i2] != istrat) {
-	    if (person>0) {
-		/* catch up on entries at the end of a stratum */
-		j2 = sort2[person2];
-		for (; tstart[j2] >= dtime && strata[j2]==istrat; person2++) {
-		    n[10]++;
-		    n[11] += wt[j2];
-		    j2 = sort1[person2];
-		}
-/* printf("itime=%d, n= %4.2f %4.2f\n", itime, n[10], n[11]); */
-		rn[10][itime+1] = n[10];
-		rn[11][itime+1] = n[11];
-	    }
-            /* new stratum, zero everything */
-	    for (k=0; k<12; k++) n[k] =0;
-	    for (k=0; k < nvar; k++) xsum1[k] =0;
-	    istrat = strata[i2];
-	}
-	dtime = stime[i2];    /*current time point */
-	rtime[itime] = dtime;
-	rstrat[itime] = istrat;
-	for (k=3; k<12; k++) n[k]=0;  /* zero all but cumulative n */
+    /* now add up all the sums 
+    **  All this is done backwards in time.  The logic is a bit easier, and
+    **   the computation is numerically more stable (fewer subtractions).
+    **  One by one for the desired output times "otime".
+    **  1. While tstop > otime, walk backwards adding subjects to the risk
+    **     set when we cross their ending time.  Also add them to the "censored"
+    **     count.  Don't add any who will be removed before otime to either
+    **     count, however.
+    **  
+    **  2. While tstop==otime, add them to the risk set, and count the 
+    **   observation with repect to n3- n7.
+    **
+    ** In the code position2 is the current index into the sort2 vector,
+    **   and i2 is the current value of sort2.
+    */
+    rstrat[0] = ntrans;   /* single element, number of transitions found */
+    person2= nused-1;  
+    irow = (ntime*ntrans);                /* row of output objects */
+    for (ii =0; ii<ntrans; ii++) {
+	itrans= trans[sort2[person2]];  /* current transition */
+	for (k=0; k<10; k++) n[k] =0;
+	for (k=0; k<nvar; k++) {xsum1[k] =0; xsum2[k] =0; }
 
-	while(person< nused && stime[i2]==dtime && strata[i2]==istrat) {
-	    for (k=0; k<nvar; k++) xsum2[k] =0;
+	for (jj=ntime-1; jj>=0; jj--) { /* one by one through the times */
+	    dtime = otime[jj];
+	    for (k=3; k<8; k++) n[k]=0;  /* counts are only for this interval*/
 
-	    n[0]++;
-	    n[1] += wt[i2];
-	    n[2] += wt[i2] * risk[i2];
-	    for (k=0; k<nvar; k++) xsum1[k] += wt[i2]*risk[i2]*xmat[k][person];
-
-	    if (status[i2] > 0) { /* an event */
+	    /* Step 1 */
+	    for(; person2 >=0 && trans[person2]==itrans; person2--) {
+		i2 = sort2[person2];
+		if (tstop[i2] <dtime) break;
+		n[0]++;
+		n[1] += wt[i2];
+		n[2] += wt[i2] * risk[i2];
 		for (k=0; k<nvar; k++) 
-		    xsum2[k] += wt[i2]*risk[i2]* xmat[k][person];
-		n[3]++;
-		n[4]+= wt[i2];
-		if (position[i2] >1) {
-		    n[7]++;
-		    n[8]+= wt[i2];
-		    n[9] += wt[i2]*risk[i2];
+		    xsum1[k] += wt[i2]*risk[i2]*xmat[k][i2];
+
+		if (status[i2]==0) {
+		    /* count them as a 'censor' */
+		    n[6]++;
+		    n[7]+= wt[i2];
+		}
+		else if (tstop[i2]==dtime) {
+		    /* step 2 */
+printf("person=%d, i2=%d, dtime= %3.1f, n3=%3.1f\n", person2,i2, dtime, n[3]);
+		    n[3]++;
+		    n[4] += wt[i2];
+		    n[5] += wt[i2]* risk[i2];
+		    for (k=0; k<nvar; k++)
+			xsum2[k] += wt[i2]*risk[i2]*xmat[k][i2];
 		}
 	    }
-	    
-	    if (position[i2] > 1) {  /* 2 or 3 = end of a subject's series */
-		n[5]++;
-		n[6] += wt[i2];
-	    }
-	    person++;
-	    i2 = sort2[person];
-	}				
 
-	j2 = sort1[person2];
-	while(person2 < nused && tstart[j2] >= dtime && strata[j2]==istrat) {
-	    /* remove subjects */
-	    n[0]--;
-	    if (n[0] ==0) {
-		n[1] =0;
-		n[2] =0;
-		for (k=0; k<nvar; k++) xsum1[k] =0;
-	    }
+	    /* Compute the Efron number at risk */
+	    if (n[3] <=1) {   /* only one event */
+		n[8]= n[2];
+		n[9] = n[2]*n[2];
+	    }		
 	    else {
-		n[1] -= wt[j2];
-		n[2] -= wt[j2]*risk[j2];
-		for (k=0; k<nvar; k++) xsum1[k] -=xmat[k][j2] * wt[j2]* risk[j2];
-	    }
-		    
-	    /* count entries */
-	    if (position[j2]==1 || position[j2]==3) {
-		n[10]++;
-		n[11] += wt[j2];
-	    }
-		
-	    person2++;
-	    j2 = sort1[person2];	
-	}
-/*    printf("itime=%d, istrat=%d, dtime=%f, n=%3.1f %3.1f %3.1f %3.1f %3.1f \n",
-	       itime, istrat, dtime, n[0], n[3], n[5], n[7], n[10]);
-*/	
-	/* copy results to the R structures */
-	for (k=0; k<12; k++) rn[k][itime] = n[k];
-	for (k=0; k<nvar; k++){
-	    rx1[k][itime] = xsum1[k]/n[3];
-	    rx2[k][itime] = xsum2[k]/n[3];
-	}
-    }
+		meanwt = n[5]/(n[3]*n[3]);  /* average weight of deaths /n */
+		for (k=0; k<n[3]; k++) {
+		    n[8] += n[2] - k*meanwt;
+		    n[9] += (n[2] -k*meanwt)*(n[2] - k*meanwt);
+		}
+		n[8] /= n[3];
+		n[9] /= n[3];
+	    }		
 
-    j2 = sort2[person2];
-    for (; person2 < nused; person2++) {
-	n[10]++;
-	n[11] += wt[j2];
-    }
-    rn[10][0] = n[10];
-    rn[11][0] = n[11];
+	    /* save the results */
+	    irow--;
+	    if (irow <0) Rprintf("irow error in coxsurv2.  This should never happen: please contact package author\n");
+	    for (k=0; k<10; k++) rn[k][irow] = n[k];
+	    for (k=0; k<nvar; k++) {
+		if (n[0]==0) rx1[k][irow]=  0;
+		else         rx1[k][irow] = xsum1[k]/n[3];
+		rx2[k][irow] = xsum2[k];
+	    }
+        } /* end of time points */
 
+	/* walk past any data after the last selected time point */
+	while(trans[person2]==itrans) person2--;
+    }
     UNPROTECT(1);
     return(rlist);
 }
