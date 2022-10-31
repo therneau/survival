@@ -6,9 +6,8 @@
 ** The coxsurv1 routine is for simple survival, this one for (time1, time2) data
 **
 **  otime:  vector of output times.  All the transitions will get reports at
-**            these time points.  This fcn is called for all of the 
-**            transitions at once, sorted by transition,
-**            but called separately for any strata() groups.
+**            these time points.  (To be useful, the times should be a superset
+**            of the event times, since the parent routine will do cumsums.)
 **  y   :    survival response
 **  weight:  observation weight
 **  sort1, sort2: sort indices for the start and stop time

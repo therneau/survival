@@ -3,8 +3,6 @@
 ** Compute the score residuals for a Cox model
 **
 ** Input
-**      nx      number of subjects
-**      nvarx   number of variables in the covariance matrix
 **      y       matrix of time and status values
 **      strata  =1 for the last obs of each strata
 **      covar2  the matrix of covariates, rows=variables, columns=subjects

@@ -1,0 +1,60 @@
+\name{survcollapse}
+\alias{survcollapse}
+\title{Shorten a (time1, time2) survival dataset
+}
+\description{
+  Counting process data sets can sometimes grow to be unweildy, this can
+  be used to compact one.
+}
+\usage{
+survcollapse(formula, data, id, start = "tstart", end = "tstop", event = "event")
+}
+%- maybe also 'usage' for other objects documented here.
+\arguments{
+  \item{formula}{
+    a formula object, with the response on the left of a \code{~} operator, and 
+    the terms on the right.  The response must be a survival object as 
+    returned by the \code{Surv} function. 
+  }
+  \item{data}{
+    a data.frame in which to interpret the variables named in 
+    the \code{formula} and the \code{id} argument
+    argument. 
+  }
+   \item{id}{variable name that identifies subjects}
+  \item{start}{optional character string, giving the name of the start
+    time variable in the result}
+  \item{end}{optional character string, giving the name of the stop
+    time variable in the result}
+  \item{event}{optional character string, giving the name of the event
+    variable in the result}
+}
+\details{
+  Through the use of the \code{survSplit} and \code{tmerge} functions, a
+  counting process data set will gain more and more rows of data.
+  Occassionally it is useful to collapse this surplus back down, e.g.,
+  when interest is to be focused on only a few covariates, or for
+  debugging.  The right hand side of \code{formula} will often have only
+  a few variables, in this use.
+
+  If a row of data is censored, and represents the same covariates and
+  identifier as the row below it, then the two rows can be merged
+  together using a single (time1, time2) interval.  The compression can
+  sometimes be large.
+}
+\value{a data frame}
+\author{Terry Therneau}
+\seealso{
+\code{\link{survSplit}},\code{\link{tmerge}}
+}
+\examples{
+dim(aml)
+test1 <- survSplit(Surv(time, status) ~ ., data=aml, 
+                   cut=c(10, 20, 30), id="newid")
+dim(test1)
+
+# remove the added rows
+test2 <- survcollapse(Surv(tstart, time, status) ~ x, test1, id=newid)
+dim(test2)
+}
+\keyword{ survival }
