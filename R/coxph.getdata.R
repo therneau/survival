@@ -56,7 +56,7 @@ coxph.getdata <- function(fit, y=TRUE, x=TRUE, stratax=TRUE,
             if (is.null(toff)) toff <- rep(0.0, n)
         }
         if (id) idx <- model.extract(mf, "id")
-        if (cluster) clusterx <- model.extact(mf, "cluster")
+        if (cluster) clusterx <- model.extract(mf, "cluster")
 
         if (inherits(fit, "coxphms")) {
             # we need to call stacker
@@ -93,8 +93,8 @@ coxph.getdata <- function(fit, y=TRUE, x=TRUE, stratax=TRUE,
                 if (y) ty<- ty[!ismiss]
                 if (x) tx <- tx[!ismiss,,drop=FALSE]
                 if (stratax) strat <- strat[!ismiss]
-                if (id) idx <- idx[!imiss]
-                if (cluster) clusterx <- clusterx[!imiss]
+                if (id) idx <- idx[!ismiss]
+                if (cluster) clusterx <- clusterx[!ismiss]
             }       
         } 
         else { # not multi-state, or everything was there

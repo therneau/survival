@@ -167,8 +167,14 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95, individual=FALSE,
     if (!identical(object$states, mcheck$states))
         stop("failed to rebuild the data set")
     if (is.null(istate)) istate <- mcheck$istate
-    else if (any(as.character(istate) != as.character(mcheck$istate))) 
-        stop("survival curve cannot be created due to survcheck warnings")
+    else {
+        # if istate has unused levels, mcheck$istate won't have them so they
+        #  need to be dropped.
+        istate <- factor(istate, object$states) 
+        # a new level in state should only happen if someone has mucked up the
+        #  data set used in the coxph fit
+        if (any(is.na(istate))) stop("unrecognized initial state, data changed?")
+    }
 
     # Let the survfitCI routine do the work of creating the
     #  overall counts (n.risk, etc).  The rest of this code then
@@ -420,24 +426,24 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95, individual=FALSE,
 # Compute the hazard  and survival functions 
 multihaz <- function(y, x, position, weight, risk, istrat, ctype, stype, 
                      bcoef, hfill, x2, risk2, vmat, nstate, se.fit, p0, utime) {
-    if (ncol(y) ==2) {
-       sort1 <- seq.int(0, nrow(y)-1L)   # sort order for a constant
-       y <- cbind(min(c(0,y)- 10, y)     # add a start.time column, earlier than
-                                         #  the first event
-    }
-    else sort1 <- order(istrat, y[,1]) -1L
     sort2 <- order(istrat, y[,2]) -1L
     ntime <- length(utime)
+    storage.mode(weight) <- "double"  #failsafe
 
     # this returns all of the counts we might desire.
-    storage.mode(weight) <- "double"  #failsafe
-    # for Surv(time, status), position is 2 (last) for all obs
-    if (length(position)==0) position <- rep(2L, nrow(y))
-
-    fit <- .Call(Ccoxsurv2, utime, y, weight, sort1, sort2, position, 
+    if (ncol(y) ==2) 
+    if (ncol(y) ==2) {
+        fit <- .Call(Ccoxsurv1, utime, y, weight, sort2, istrat, x, risk)
+        cn <- fit$count  
+        dim(cn) <- c(length(utime), fit$ntrans, 10) 
+    }
+    else {    
+        sort1 <- order(istrat, y[,1]) -1L
+        fit <- .Call(Ccoxsurv2, utime, y, weight, sort1, sort2, position, 
                         istrat, x, risk)
-    cn <- fit$count  
-    dim(cn) <- c(length(utime), fit$ntrans, 12) 
+        cn <- fit$count  
+        dim(cn) <- c(length(utime), fit$ntrans, 12) 
+    }
     # cn is returned as a matrix since there is an allocMatrix C macro, but
     #  no allocArray macro.  So we first reset the dimensions.
     # The first dimension is time

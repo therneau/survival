@@ -386,51 +386,6 @@ rsurvpart1 <- function(Y, X, casewt, times,
                 #                               c(col(yindex)))]
                 if (ny==2) D <- matrix(sum1 -  sum2, ncol=ntime)
                 else       D <- matrix(sum1 + sum3 - sum2, ncol=ntime)
-                auc1 <- lapply(fitrow, function(i) {
-                             if (length(i) <=1) 0
-                             else c(0, cumsum(diff(fit$time[i]) * (fit$surv[i])[-length(i)]))
-                                 })  # AUC at each event time
-                auc2 <- lapply(fitrow, function(i) {
-                             if (length(i) <=1) 0
-                             else {
-                                 xx <- sort(unique(c(fit$time[i], times))) # all the times
-                                 yy <- (fit$surv[i])[findInterval(xx, fit$time[i])]
-                                 auc <- cumsum(c(diff(xx),0) * yy)
-                                 c(0, auc)[match(times, xx)]
-                                 }})  # AUC at the output times
-
-                # Most often this function is called with a single curve, so make that case
-                #  faster.  (Or I presume so: mapply and do.call may be more efficient than 
-                #  I think for lists of length 1).
-                if (length(fitrow)==1) { # simple case, most common to ask for auc 
-                    wtmat <- pmin(outer(auc1[[1]], -auc2[[1]], '+'),0)
-                    term1 <- term1 * wtmat
-                    term2 <- unlist(term2) * wtmat
-                    term3 <- apply(term2, 2, cumsum)
-                }
-                else { #more than one curve, compute weighted cumsum per curve
-                    wtmat <- mapply(function(x, y) pmin(outer(x, -y, "+"), 0), auc1, auc2)
-                    term1 <- term1 * do.call(rbind, wtmat)
-                    temp <- mapply(function(x, y) apply(x*y, 2, cumsum), term2, wtmat)
-                    term3 <- do.call(rbind, temp)
-                }
-
-                sum1 <- sum2 <- matrix(0, nrow(yindex), ntime)
-                if (ny ==3) sum3 <- sum1
-                for (i in 1:ntime) {
-                    sum1[,i] <- c(0, term1[,i])[ifelse(death[,i], 1 + yindex[,i], 1)]
-                    sum2[,i] <- c(0, term3[,i])[1 + pmin(yindex[,i], tindex[,i])]
-                    if (ny==3) sum3[,i] <- c(0, term3[,i])[1 + pmin(startindex[,i], tindex[,i])]
-                }
-                # Perhaps a bit faster(?), but harder to read. And for AUC people usually only
-                #  ask for one time point
-                #sum1 <- rbind(0, term1)[cbind(c(ifelse(death, 1+yindex, 1)), c(col(yindex)))]
-                #sum2 <- rbind(0, term3)[cbind(c(1 + pmin(yindex, tindex)), c(col(yindex)))]
-                #if (ny==3) sum3 <- 
-                #             rbind(0, term3)[c(cbind(1 + pmin(startindex, tindex)), 
-                #                               c(col(yindex)))]
-                if (ny==2) D <- matrix(sum1 -  sum2, ncol=ntime)
-                else       D <- matrix(sum1 + sum3 - sum2, ncol=ntime)
             }
         } else {
             stop("residuals function still imcomplete, for FH estimate")
@@ -513,51 +468,6 @@ rsurvpart1 <- function(Y, X, casewt, times,
                 #                               c(col(yindex)))]
                 if (ny==2) D <- matrix(sum1 -  sum2, ncol=ntime)
                 else       D <- matrix(sum1 + sum3 - sum2, ncol=ntime)
-                auc1 <- lapply(fitrow, function(i) {
-                             if (length(i) <=1) 0
-                             else c(0, cumsum(diff(fit$time[i]) * (fit$surv[i])[-length(i)]))
-                                 })  # AUC at each event time
-                auc2 <- lapply(fitrow, function(i) {
-                             if (length(i) <=1) 0
-                             else {
-                                 xx <- sort(unique(c(fit$time[i], times))) # all the times
-                                 yy <- (fit$surv[i])[findInterval(xx, fit$time[i])]
-                                 auc <- cumsum(c(diff(xx),0) * yy)
-                                 c(0, auc)[match(times, xx)]
-                                 }})  # AUC at the output times
-
-                # Most often this function is called with a single curve, so make that case
-                #  faster.  (Or I presume so: mapply and do.call may be more efficient than 
-                #  I think for lists of length 1).
-                if (length(fitrow)==1) { # simple case, most common to ask for auc 
-                    wtmat <- pmin(outer(auc1[[1]], -auc2[[1]], '+'),0)
-                    term1 <- term1 * wtmat
-                    term2 <- unlist(term2) * wtmat
-                    term3 <- apply(term2, 2, cumsum)
-                }
-                else { #more than one curve, compute weighted cumsum per curve
-                    wtmat <- mapply(function(x, y) pmin(outer(x, -y, "+"), 0), auc1, auc2)
-                    term1 <- term1 * do.call(rbind, wtmat)
-                    temp <- mapply(function(x, y) apply(x*y, 2, cumsum), term2, wtmat)
-                    term3 <- do.call(rbind, temp)
-                }
-
-                sum1 <- sum2 <- matrix(0, nrow(yindex), ntime)
-                if (ny ==3) sum3 <- sum1
-                for (i in 1:ntime) {
-                    sum1[,i] <- c(0, term1[,i])[ifelse(death[,i], 1 + yindex[,i], 1)]
-                    sum2[,i] <- c(0, term3[,i])[1 + pmin(yindex[,i], tindex[,i])]
-                    if (ny==3) sum3[,i] <- c(0, term3[,i])[1 + pmin(startindex[,i], tindex[,i])]
-                }
-                # Perhaps a bit faster(?), but harder to read. And for AUC people usually only
-                #  ask for one time point
-                #sum1 <- rbind(0, term1)[cbind(c(ifelse(death, 1+yindex, 1)), c(col(yindex)))]
-                #sum2 <- rbind(0, term3)[cbind(c(1 + pmin(yindex, tindex)), c(col(yindex)))]
-                #if (ny==3) sum3 <- 
-                #             rbind(0, term3)[c(cbind(1 + pmin(startindex, tindex)), 
-                #                               c(col(yindex)))]
-                if (ny==2) D <- matrix(sum1 -  sum2, ncol=ntime)
-                else       D <- matrix(sum1 + sum3 - sum2, ncol=ntime)
             }
         }
     } else { # not hazard based
@@ -579,51 +489,6 @@ rsurvpart1 <- function(Y, X, casewt, times,
         # survival is exp(-H) so the derivative is a simple transform of D
         if (type== "pstate") D <- -D* c(1,fit$surv[ff])[1+ tindex]
         else if (type == "auc") {
-            auc1 <- lapply(fitrow, function(i) {
-                         if (length(i) <=1) 0
-                         else c(0, cumsum(diff(fit$time[i]) * (fit$surv[i])[-length(i)]))
-                             })  # AUC at each event time
-            auc2 <- lapply(fitrow, function(i) {
-                         if (length(i) <=1) 0
-                         else {
-                             xx <- sort(unique(c(fit$time[i], times))) # all the times
-                             yy <- (fit$surv[i])[findInterval(xx, fit$time[i])]
-                             auc <- cumsum(c(diff(xx),0) * yy)
-                             c(0, auc)[match(times, xx)]
-                             }})  # AUC at the output times
-
-            # Most often this function is called with a single curve, so make that case
-            #  faster.  (Or I presume so: mapply and do.call may be more efficient than 
-            #  I think for lists of length 1).
-            if (length(fitrow)==1) { # simple case, most common to ask for auc 
-                wtmat <- pmin(outer(auc1[[1]], -auc2[[1]], '+'),0)
-                term1 <- term1 * wtmat
-                term2 <- unlist(term2) * wtmat
-                term3 <- apply(term2, 2, cumsum)
-            }
-            else { #more than one curve, compute weighted cumsum per curve
-                wtmat <- mapply(function(x, y) pmin(outer(x, -y, "+"), 0), auc1, auc2)
-                term1 <- term1 * do.call(rbind, wtmat)
-                temp <- mapply(function(x, y) apply(x*y, 2, cumsum), term2, wtmat)
-                term3 <- do.call(rbind, temp)
-            }
-
-            sum1 <- sum2 <- matrix(0, nrow(yindex), ntime)
-            if (ny ==3) sum3 <- sum1
-            for (i in 1:ntime) {
-                sum1[,i] <- c(0, term1[,i])[ifelse(death[,i], 1 + yindex[,i], 1)]
-                sum2[,i] <- c(0, term3[,i])[1 + pmin(yindex[,i], tindex[,i])]
-                if (ny==3) sum3[,i] <- c(0, term3[,i])[1 + pmin(startindex[,i], tindex[,i])]
-            }
-            # Perhaps a bit faster(?), but harder to read. And for AUC people usually only
-            #  ask for one time point
-            #sum1 <- rbind(0, term1)[cbind(c(ifelse(death, 1+yindex, 1)), c(col(yindex)))]
-            #sum2 <- rbind(0, term3)[cbind(c(1 + pmin(yindex, tindex)), c(col(yindex)))]
-            #if (ny==3) sum3 <- 
-            #             rbind(0, term3)[c(cbind(1 + pmin(startindex, tindex)), 
-            #                               c(col(yindex)))]
-            if (ny==2) D <- matrix(sum1 -  sum2, ncol=ntime)
-            else       D <- matrix(sum1 + sum3 - sum2, ncol=ntime)
             auc1 <- lapply(fitrow, function(i) {
                          if (length(i) <=1) 0
                          else c(0, cumsum(diff(fit$time[i]) * (fit$surv[i])[-length(i)]))

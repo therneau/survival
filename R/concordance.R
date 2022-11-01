@@ -32,6 +32,7 @@ concordance.formula <- function(object, data,
         if (is.factor(Y) && (is.ordered(Y) || length(levels(Y))==2))
             Y <- Surv(as.numeric(Y))
         else if (is.numeric(Y) && is.vector(Y))  Y <- Surv(Y)
+        else if (is.logical(Y)) Y <- as.numeric(Y)
         else stop("left hand side of the formula must be a numeric vector,
  survival object, or an orderable factor")
         if (timefix) Y <- aeqSurv(Y)

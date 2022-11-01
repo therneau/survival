@@ -160,7 +160,6 @@ SEXP coxsurv1(SEXP otime2, SEXP y2,    SEXP weight2,  SEXP sort22,
 		}
 		else if (tstop[i2]==dtime) {
 		    /* step 2 */
-printf("person=%d, i2=%d, dtime= %3.1f, n3=%3.1f\n", person2,i2, dtime, n[3]);
 		    n[3]++;
 		    n[4] += wt[i2];
 		    n[5] += wt[i2]* risk[i2];
