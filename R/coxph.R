@@ -6,6 +6,7 @@ coxph <- function(formula, data, weights, subset, na.action,
         model=FALSE, x=FALSE, y=TRUE,  tt, method=ties, 
         id, cluster, istate, statedata, nocenter=c(-1, 0, 1), ...) {
 
+    missing.ties <- missing(ties) & missing(method) #see later multistate sect
     ties <- match.arg(ties)
     Call <- match.call()
     ## We want to pass any ... args to coxph.control, but not pass things
@@ -146,13 +147,16 @@ coxph <- function(formula, data, weights, subset, na.action,
 
     if (!multi && multiform)
         stop("formula is a list but the response is not multi-state")
-    if (multi && length(attr(Terms, "specials")$frailty) >0)
-        stop("multi-state models do not currently support frailty terms")
-    if (multi && length(attr(Terms, "specials")$pspline) >0)
-        stop("multi-state models do not currently support pspline terms")
-    if (multi && length(attr(Terms, "specials")$ridge) >0)
-        stop("multi-state models do not currently support ridge penalties")
-
+    if (multi) {
+        if (length(attr(Terms, "specials")$frailty) >0)
+            stop("multi-state models do not currently support frailty terms")
+        if (length(attr(Terms, "specials")$pspline) >0)
+            stop("multi-state models do not currently support pspline terms")
+        if (length(attr(Terms, "specials")$ridge) >0)
+            stop("multi-state models do not currently support ridge penalties")
+        if (!missing.ties) method <- ties <- "breslow"
+    }
+    
     if (control$timefix) Y <- aeqSurv(Y)
     if (length(attr(Terms, 'variables')) > 2) { # a ~1 formula has length 2
         ytemp <- terms.inner(formula[1:2])
@@ -562,7 +566,7 @@ coxph <- function(formula, data, weights, subset, na.action,
                                     weights=weights, method=method, 
                                     rname, nocenter=nocenter)
         }
-        else stop(paste ("Unknown method", method))
+        else stop(paste ("Unknown method to ties", method))
     }
     if (is.character(fit)) {
         fit <- list(fail=fit)

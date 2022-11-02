@@ -26,7 +26,8 @@ coxph(formula, data=, weights, subset,
   \item{formula}{
     a formula object, with the response on the left of a \code{~} operator, and 
     the terms on the right.  The response must be a survival object as 
-    returned by the \code{Surv} function. 
+    returned by the \code{Surv} function.  For a multi-state model the
+    formula may be a list of formulas.
   }
   \item{data}{
     a data.frame in which to interpret the variables named in 
@@ -57,15 +58,13 @@ coxph(formula, data=, weights, subset,
   }
   \item{ties}{
     a character string specifying the method for tie handling.  If there  
-    are no tied death times all the methods are equivalent. 
-    Nearly all Cox regression programs use the Breslow method by default, 
-    but not this one. 
-    The Efron approximation is used as the default here, it is more 
+    are no tied death times all the methods are equivalent.
+    The Efron approximation is used as the default, it is more 
     accurate when dealing with tied death times, and is as efficient 
-    computationally. 
+    computationally. (But see below for multi-state models.)
     The ``exact partial likelihood'' is 
     equivalent to a conditional logistic model, and is appropriate when
-    the times are a small set of discrete values.  See further below.
+    the times are a small set of discrete values.
   }
   \item{singular.ok}{
     logical value indicating how to handle collinearity in the model matrix. 
@@ -243,12 +242,23 @@ only a few unique values, and some packages refer to this as the
 Prentice which is not implemented here.
 
 The calculation of the exact partial likelihood is numerically intense.
-Say for instance 180 subjects are at risk on day 7 of which 15 had an event; then
-the code needs to compute sums over all 180-choose-15 > 10^43 different
+Say for instance 180 subjects are at risk on day 7 of which 15 had an event;
+then the code needs to compute sums over all 180-choose-15 > 10^43 different
 possible subsets of size 15.  There is an efficient recursive algorithm
 for this task, but even with this the computation can be insufferably
 long.  With (start, stop) data it is much worse since the recursion
 needs to start anew for each unique start time.
+
+Multi state models are a more difficult case.  If there are two
+transitions of the same type A:B at the same time, the the arguments in
+favor of the Efron approximation carry forward unchanged.  For an A:B and
+and an A:C transition at the same time, e.g. competing risks, one can
+make a similar argument; however, implementing this in the code would be
+very difficult and has not been attempted.  For a tied A:B and B:C,
+or A:B and C:D, pair we would want to use Breslow form.  Due to this
+complexity, the default is \code{ties='breslow'} for the multistate
+case. If \code{ties='efron'} is selected the current code will, in
+effect, only apply to to tied transitions of the same type.
 
 A separate issue is that of artificial ties due to floating-point
 imprecision. See the vignette on this topic for a full explanation or

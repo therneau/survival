@@ -426,13 +426,13 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95, individual=FALSE,
 # Compute the hazard  and survival functions 
 multihaz <- function(y, x, position, weight, risk, istrat, ctype, stype, 
                      bcoef, hfill, x2, risk2, vmat, nstate, se.fit, p0, utime) {
-    sort2 <- order(istrat, y[,2]) -1L
+    ny <- ncol(y)
+    sort2 <- order(istrat, y[,ny-1L]) -1L
     ntime <- length(utime)
     storage.mode(weight) <- "double"  #failsafe
 
     # this returns all of the counts we might desire.
-    if (ncol(y) ==2) 
-    if (ncol(y) ==2) {
+    if (ny ==2) {
         fit <- .Call(Ccoxsurv1, utime, y, weight, sort2, istrat, x, risk)
         cn <- fit$count  
         dim(cn) <- c(length(utime), fit$ntrans, 10) 
@@ -462,8 +462,8 @@ multihaz <- function(y, x, position, weight, risk, istrat, ctype, stype,
         denom1 <- ifelse(none.atrisk, 1, cn[,,3])   # avoid a later 0/0
         denom2 <- ifelse(none.atrisk, 1, cn[,,3]^2)
     } else {
-        denom1 <- ifelse(none.atrisk, 1, cn[,,11])
-        denom2 <- ifelse(none.atrisk, 1, cn[,,12])
+        denom1 <- ifelse(none.atrisk, 1, cn[,,9])
+        denom2 <- ifelse(none.atrisk, 1, cn[,,10])
     }
 
     # We want to avoid 0/0. If there is no one at risk (denominator) then
@@ -476,13 +476,13 @@ multihaz <- function(y, x, position, weight, risk, istrat, ctype, stype,
         colnames(design) <- 1:ncol(design)  # easier to read when debuggin
         events <- cn[,,5] %*% design
         if (ctype==1) atrisk <- cn[,,3]  %*% design
-        else          atrisk <- cn[,,11] %*% design
+        else          atrisk <- cn[,,9] %*% design
         basehaz <- events/ifelse(atrisk<=0, 1, atrisk)
         hazard <- basehaz[,bcoef[1,]] * rep(bcoef[2,], each=nrow(basehaz))
     }                                  
     else {
         if (ctype==1) hazard <- cn[,,5]/ifelse(cn[,,3]<=0, 1, cn[,,3])
-        else          hazard <- cn[,,5]/ifelse(cn[,,11] <=0, 1, cn[,,11])
+        else          hazard <- cn[,,5]/ifelse(cn[,,9] <=0, 1, cn[,,9])
     }
 
     # Expand the result, one "hazard set" for each row of x2

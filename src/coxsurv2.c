@@ -34,8 +34,8 @@
 **   0-2: number at risk: w1, w2, w3
 **   3-5: events: w1, w2, w3
 **   6-7: censored endpoints: w1,w2
-**   8-9: censor: w1, w2
-**  10-11: Efron sums 1 and 2
+**   8-9: Efron sums 1 and 2
+**  10-11: censored counts w1 and w2
 */
 
 #include <math.h>
@@ -166,8 +166,8 @@ SEXP coxsurv2(SEXP otime2, SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22,
 
 		    if (sindex[i2]>1 && status[i2]==0) {
 			/* count them as a 'censor' */
-			n[8]++;
-			n[9]+= wt[i2];
+			n[10]++;
+			n[11]+= wt[i2];
 		    }
 		}
 
@@ -207,17 +207,17 @@ SEXP coxsurv2(SEXP otime2, SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22,
 
 	    /* Compute the Efron number at risk */
 	    if (n[3] <=1) {   /* only one event */
-		n[10]= n[2];
-		n[11] = n[2]*n[2];
+		n[8]= n[2];
+		n[9] = n[2]*n[2];
 	    }		
 	    else {
 		meanwt = n[5]/(n[3]*n[3]);  /* average weight of deaths /n */
 		for (k=0; k<n[3]; k++) {
-		    n[10] += n[2] - k*meanwt;
-		    n[11] += (n[2] -k*meanwt)*(n[2] - k*meanwt);
+		    n[8] += n[2] - k*meanwt;
+		    n[9] += (n[2] -k*meanwt)*(n[2] - k*meanwt);
 		}
-		n[10] /= n[3];
-		n[11] /= n[3];
+		n[8] /= n[3];
+		n[9] /= n[3];
 	    }		
 
 	    /* save the results */

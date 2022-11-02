@@ -34,9 +34,8 @@ aeq(csurv1[1]$surv, csurv2a$pstate[,1,1])
 aeq(csurv1[2]$surv, csurv2b$pstate[,1,2])
 aeq(csurv1[3]$surv, csurv2c$pstate[,1,3])
 
-# Since the multi-state does not yet implement the Efron approx (and may never)
-#  for the survival curve, the above only perfectly matches with Breslow.
-
+# Note that multi-state defaults to the Breslow, as it implements the Efron
+#  only imperfectly.
 
 # part 2: predicted survival for a multistate model that has a strata
 mgus2$etime <- with(mgus2, ifelse(pstat==0, futime, ptime))

@@ -66,8 +66,7 @@ SEXP coxsurv3(SEXP y2, SEXP weight2,  SEXP sort22,
     nvar = ncols(xmat2);
     xmat = dmatrix(REAL(xmat2), nrows(xmat2), nvar);
 
-    printf("nvar=%d, nused=%d\n", nvar, nused);
-    /* pass 1, get the number of unique times, needed to alloc memory
+     /* pass 1, get the number of unique times, needed to alloc memory
     **  data is sorted by time within strata. The same time in 2 strata
     **  counts as 2 separate times.
     */
@@ -85,7 +84,6 @@ SEXP coxsurv3(SEXP y2, SEXP weight2,  SEXP sort22,
     /* Allocate memory for the working matrices. */
     xsum1 = (double *) ALLOC(2*nvar, sizeof(double));
     xsum2 = xsum1 + nvar;
-    printf("check 1, ntime=%d\n", ntime);
     /* Allocate memory for returned objects.  Essentially ntime copies of each
        of n, xsum1, xsum2.
     */
@@ -141,12 +139,7 @@ SEXP coxsurv3(SEXP y2, SEXP weight2,  SEXP sort22,
 	    i2 = sort2[person];
 	}				
 
-    printf("itime=%d, istrat=%d, dtime=%f, n=%3.1f %3.1f %3.1f %3.1f %3.1f %3.1f %3.1f\n",
-	       itime, istrat, dtime, n[0], n[1], n[2], n[3], n[4], n[5], n[6]);
-	
 	/* copy results to the R structures */
-	for (k=0; k<8; k++) rn[k][itime] = n[k];
-	   printf("  copy 1\n");
 	for (k=0; k<nvar; k++){
 	    rx1[k][itime] = xsum1[k]/n[3];
 	    rx2[k][itime] = xsum2[k]/n[3];
