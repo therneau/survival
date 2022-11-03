@@ -1,5 +1,15 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 3.4-2}{
+  \itemize{
+    \item For a multi-state coxph model, the default is now
+    ties='breslow'. When there is a tied transition of the same type, A:B
+    and A:B say, the Efron approx is justified and was correctly computed.
+    However, ties of different types such as A:B and A:C (competing risks)
+    transitions at the same time or A:B and C:D are effectively ignored
+    by the code; and this would be very hard to change.
+    Using the Breslow for multistate was felt to be more defensible.
+}}
 \section{Changes in version 3.4-1}{
   \itemize{
     \item Add newdata argument to basehaz, along with more documentation
