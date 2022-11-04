@@ -1,5 +1,5 @@
-\name{survcollapse}
-\alias{survcollapse}
+\name{survcondense}
+\alias{survcondense}
 \title{Shorten a (time1, time2) survival dataset
 }
 \description{
@@ -7,7 +7,7 @@
   be used to compact one.
 }
 \usage{
-survcollapse(formula, data, id, start = "tstart", end = "tstop", event = "event")
+survcondense(formula, data, id, start = "tstart", end = "tstop", event = "event")
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -54,7 +54,7 @@ test1 <- survSplit(Surv(time, status) ~ ., data=aml,
 dim(test1)
 
 # remove the added rows
-test2 <- survcollapse(Surv(tstart, time, status) ~ x, test1, id=newid)
+test2 <- survcondense(Surv(tstart, time, status) ~ x, test1, id=newid)
 dim(test2)
 }
 \keyword{ survival }
