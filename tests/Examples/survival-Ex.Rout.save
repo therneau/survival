@@ -1,6 +1,6 @@
 
-R Under development (unstable) (2022-06-20 r82505) -- "Unsuffered Consequences"
-Copyright (C) 2022 The R Foundation for Statistical Computing
+R version 4.1.2 (2021-11-01) -- "Bird Hippie"
+Copyright (C) 2021 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -2861,6 +2861,33 @@ overall.karno   t0_60.karno       t60_120          t120
 > 
 > 
 > cleanEx()
+> nameEx("survcollapse")
+> ### * survcollapse
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: survcollapse
+> ### Title: Shorten a (time1, time2) survival dataset
+> ### Aliases: survcollapse
+> ### Keywords: survival
+> 
+> ### ** Examples
+> 
+> dim(aml)
+[1] 23  3
+> test1 <- survSplit(Surv(time, status) ~ ., data=aml, 
++                    cut=c(10, 20, 30), id="newid")
+> dim(test1)
+[1] 62  5
+> 
+> # remove the added rows
+> test2 <- survcollapse(Surv(tstart, time, status) ~ x, test1, id=newid)
+> dim(test2)
+[1] 23  4
+> 
+> 
+> 
+> cleanEx()
 > nameEx("survdiff")
 > ### * survdiff
 > 
@@ -3634,6 +3661,9 @@ $terms
 > ### * <FOOTER>
 > ###
 > cleanEx()
+> options(digits = 7L)
+> base::cat("Time elapsed: ", proc.time() - base::get("ptime", pos = 'CheckExEnv'),"\n")
+Time elapsed:  4.054 0.148 4.255 0 0 
 > grDevices::dev.off()
 null device 
           1 
