@@ -43,6 +43,11 @@ survcondense(formula, data, subset, id, start = "tstart", end = "tstop",
   identifier as the row below it, then the two rows can be merged
   together using a single (time1, time2) interval.  The compression can
   sometimes be large.
+
+  The \code{start}, \code{stop} and \code{end} options are used when the
+  left hand side of the formula has expressions that are not a simple
+  name, e.g. \code{Surv(time1, time2, death | progression)} would be a
+  case where \code{event} is used to set the outcome variable's name.
 }
 \value{a data frame}
 \author{Terry Therneau}
