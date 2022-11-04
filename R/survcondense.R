@@ -7,7 +7,7 @@
 #   Jones  10      25       0     1   3
 # Delete the first row and replace time1 on the second row.
 
-survcondense <- function(formula, data, id, start="tstart",
+survcondense <- function(formula, data, subset, id, start="tstart",
                               end="tstop", event="event") {
     Call <- match.call()
     if (missing(id)) stop("id is required")
