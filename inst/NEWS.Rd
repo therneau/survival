@@ -10,6 +10,8 @@
     by the code; and this would be very hard to change. Using Breslow
     rather than a partial Efron was felt to be more defensible.
     \item Add the survcondense function.
+    \item Improve tmerge handling of a wide data set and add a test case
+    for it.  Add a caution to the vignette wrt using wide data sets.
 }}
 \section{Changes in version 3.4-1}{
   \itemize{

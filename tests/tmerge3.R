@@ -50,4 +50,33 @@ test <- tryCatch(
             }
 )
 
- 
+# Using a tdc that depends on more than one variable.  If they are not
+#  exactly the same class, tmerge should fail.
+# Happens with wide data sets
+
+tdata <- data.frame(id= 1:3, age=c(40,44,38), dtime=c(700, 600, 500),  
+                    t1 = c(111, 211, 311), x1= as.integer(c(4, 5, 6)),
+                    t2 = c(120, 240, 400.3), x2=c( 9, 8, 7),
+                    t3 = c(400, 500, 450), x3=c(12,2, 0))
+# This works
+wide1 <- tmerge(tdata[,1:2], tdata, id=id, death= event(dtime),
+                x = tdc(t1, x1),  x= tdc(t2, x2), x= tdc(t3, x3))
+
+r1 <- data.frame(id=rep(1:3, each=4), 
+                 age= tdata$age[rep(1:3, each=4)],
+                 tstart=c(0,111, 120, 400, 0, 211, 240, 500, 0, 311,400.3, 450),
+                 tstop =c(111, 120, 400, 700, 211, 240, 500, 600, 
+                          311, 400.3, 450, 500),
+                 death= rep(c(0,0,0,1), 3),
+                 x= c(NA,4, 9,12, NA, 5, 8, 2, NA, 6,7, 0))
+all.equal(r1, wide1, check.attributes=FALSE)
+
+tdata$x2[2] <- 'c'  # different data type
+test <- tryCatch(
+            {tmerge(tdata[,1:2], tdata, id=id, death= event(dtime),
+                x = tdc(t1, x1),  x= tdc(t2, x2), x= tdc(t3, x3))},
+             error= function(cond) {
+                if (grepl("tdc update does not match prior variable type: x", cond)) 
+                    cat("successful tmerge error test\n")
+            }
+)

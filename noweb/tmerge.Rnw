@@ -575,7 +575,7 @@ if (argclass[ii] == "tdc") {
     default <- argi$default   # default value
     if (is.null(default)) default <- topt$tdcstart
     else if (length(default) !=1)
-        stop("initial tdc value must be of length 1")
+        stop("default tdc value must be of length 1")
 
     # id can be any data type; feed integers to the C routine
     storage.mode(dstart) <- storage.mode(etime) <- "double"  #if time is integer
@@ -583,9 +583,7 @@ if (argclass[ii] == "tdc") {
     index <- .Call(Ctmerge2, match(baseid, uid), dstart, 
                                match(id, uid),  etime)
 
-    # Next line removed 11/2021, I can't recall why was added
-    #if (!is.null(yinc)) newvar <- NULL #a tdc can't be updated, other than 0/1
-    if (is.null(newvar)) {
+    if (is.null(newvar)) {  # create new variable 
         if (is.null(yinc)) newvar <- ifelse(index==0, 0L, 1L) #add a 0/1 variable
         else {
             newvar <- yinc[pmax(1L, index)]
@@ -605,10 +603,26 @@ if (argclass[ii] == "tdc") {
                 }
             }
         }
-    } else {
-        # update a 0/1 variable
-        if (is.integer(newvar) && all(newvar==0L | newvar==1L))
+    } else if (is.null(yinc)) {
+        # Existing variable, no yinc, so update will be 0 or 1
+        # Okay only if the current variable is 0/1
+        if (all(is.na(newvar) | newvar==0L | newvar==1L))
             newvar[index!=0L] <- 1L
+        else stop("tdc update does not match prior variable type: ", argname[ii])
+    } else {
+        # attempt to update an existing tdc with new values from a new variable
+        # We know how to handle a few special cases, but the basic strategy
+        #  is "don't try to be clever".  Remember that class() can return
+        #  a vector of length > 1
+        if (inherits(newvar, "factor") && (!iherits(yinc, "factor") ||
+                                    !identical(levels(newvar), levels(yinc))))
+            stop("tdc update does not match prior factor: ", argname[ii])
+        clnew <- class(yinc)
+        clold <- class(newvar)
+        if (identical(clnew, clold) || (length(clnew)==1 && length(clold)==1  &&
+                                 class(newvar) %in% c("integer", "numeric") && 
+                                 class(yinc)   %in% c("integer", "numeric")))
+            newvar[index != 0L] <- yinc[index]
         else stop("tdc update does not match prior variable type: ", argname[ii])
     }
     tdcvar <- unique(c(tdcvar, argname[[ii]]))

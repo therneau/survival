@@ -419,6 +419,27 @@ test <- tmerge(test, test,  id= id, enum = cumtdc(tstart))
 all.equal(newcgd, test)
 @ 
 
+This example is atypical in that we have used a \emph{wide} data set, one with
+multiple outcomes per subject on a single line.
+The \code{tmerge} function was primarily designed to work with long data.
+An underlying issue is that when you create a new variable with \code{tmerge}
+from multiple source variables, and those variable are not of exactly the 
+same structure, then \code{tmerge} can become confused.  If \code{etime1}
+was numeric and \code{etime2} had a difftime class for example. 
+If issues arise create a long form data set and merge that in, as shown
+below.  Both the data.table and tidyr libraries have well regarded functions
+to do this; below we use the reshape function from base R.
+
+<<cgd1c>>=
+# create a long data set with the recurrences
+temp <- reshape(cgd0[c(1, 14:20)], varying= 2:8, v.names="etime",
+                 idvar="id", direction="long")
+cgdrecur <- subset(temp, !is.na(etime))  # toss missings (not essential)
+
+newcgd <- tmerge(data1=cgd0[, 1:13], data2=cgd0, id=id, tstop=futime)
+newcgd <- tmerge(newcgd, cgdrecur, id=id, infect= event(etime))
+@ 
+
 \subsection{Stanford heart transplant}
 The \code{jasa} data set contains information from the Stanford heart
 transplant study, in the form that it appeared in the J American Statistical
