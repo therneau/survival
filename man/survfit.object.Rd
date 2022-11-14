@@ -60,8 +60,8 @@ The following components must be included in a legitimate
     standard error of prev.  This difference is a reflection of
     the fact that each is the natural calculation for that case.
   }
-  \item{cumhaz hazard}{optional.  Contains the cumulative
-    hazard for each possible transtion.
+  \item{cumhaz}{optional.  Contains the cumulative
+    hazard for each possible transition.
   }
   \item{strata}{
     if there are multiple curves, this component gives the number of

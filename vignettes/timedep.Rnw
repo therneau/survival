@@ -423,7 +423,7 @@ This example is atypical in that we have used a \emph{wide} data set, one with
 multiple outcomes per subject on a single line.
 The \code{tmerge} function was primarily designed to work with long data.
 An underlying issue is that when you create a new variable with \code{tmerge}
-from multiple source variables, and those variable are not of exactly the 
+from multiple source variables, and those variables are not of exactly the 
 same structure, then \code{tmerge} can become confused.  If \code{etime1}
 was numeric and \code{etime2} had a difftime class for example. 
 If issues arise create a long form data set and merge that in, as shown
