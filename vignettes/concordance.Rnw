@@ -574,7 +574,7 @@ zci <- function(fit, p=.95) {
     
     z <-  qnorm((1-p)/2)
     old.ci  <- temp$concordance + c(z, -z)*old.sd
-    new.ci  <- logistic(ilogist(temp$concordance) + c(-1.96, 1.96)* new.sd)
+    new.ci  <- logistic(ilogist(temp$concordance) + c(z, -z)* new.sd)
     rbind(old = old.ci, new= new.ci)
 }
 
