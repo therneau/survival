@@ -451,7 +451,7 @@ A clue to this lies in the quantile result.
 The concordance is a weighted mean of the ranks, with one term per
 death time in the sum.  
 The quantile shows that 1/2 the deaths occur before 5 years and 3/4 of
-them before 9; the larger weights simply play only a small role in the
+them before 9; hence the larger weights play only a small role in the
 overall sum.
 
 So, which weight should we use? As shown in the examples above, it may not 
@@ -513,6 +513,88 @@ The starting point should always be to think through exactly \emph{what} one
 wants to estimate.
 As stated by Yogi Berra ``if you don't know where you are going, you
 might not get there.''
+
+\section{Asymmetric confidence intervals}
+The infinitesimal jackknife (IJ) has provided us with an honest estimate of
+the standard deviation $C$.  
+A natural confidence interval for the concordance is then 
+$C \pm z_{\alpha} sd(C)$. 
+As with confidence intervals for an ordinary proportion $\hat p$, however, 
+this simple interval can sometimes be inconsistent, giving CI endpoints that
+lie outside of the legal range of $[0,1]$. 
+In the case of $\hat p$ there is a long history of methods to address this
+issue, going back at least as far as the 1956 paper by 
+Anscombe \cite{Anscombe56}; but far less for the concordance or AUC.
+Newcombe \cite{Newcombe06} provides corrected methods, but with
+the caveat that they ``have the drawback that on account of the large number
+of outcomes they are compuationally practicable only for very small sample
+sizes.'' 
+The tree based computations used in the \code{concordance} function might well
+address this speed issue, but have not been implemented.
+
+Here we persue another avenue, which is to consider a tranformation based
+confidence interval, in much the same way as is done for confidence intervals
+of a survival curve.  That is we use
+$$
+ g^{-1}\left[g(C) \pm z \sigma(g(C)) \right]
+$$
+for some transformation function $g$.  For survival curves, the $g$ functions 
+$\log(p)$, $\log(p/(1-p)$, $\log(-log(1-p))$ and $\arcsin(p)$ have all been
+found to be superior to the simple interval.
+
+For the concordance, 
+consider the Fisher z-transform, widely used for the correlation coefficient
+$r$
+\begin{equation}
+  z = \frac{1}{2} \log\left(\frac{1+r}{1-r} \right) \label{Fisherz}
+\end{equation}
+Since $C$ and $r$ are targeted at similar concepts, we might assume that 
+a similar transformation of Somers' $d$ may also be close to equivariant.
+Since $d = 2C -1$ we have 
+\begin{equation}
+z_c =  \frac{1}{2} \log\left(\frac{C}{1-C} \right) \label{FisherC}
+\end{equation}
+which we recognize as the inverse of the logistic link of a \code{glm}
+model. 
+
+We can get the standard error of $z_c$ by retrieving the individual 
+dfbeta values and performing a transformation.
+The dfbeta value is defined as $d_i =C - C_{-i}$ where the latter is the $C$
+statistic omitting the $i$th observation.
+<<Cztrans>>=
+zci <- function(fit, p=.95) {
+    ilogist   <- function(p) log(p/(1-p))         # inverse logistic
+    logistic  <- function(x) exp(x)/(1 + exp(x))  
+    temp <- concordance(fit, influence =1)
+    cminus <- temp$concordance - temp$dfbeta # values of concordance, without i
+
+    newd    <- ilogist(temp$concordance) - ilogist(cminus) # dfbeta on new scale
+    new.sd  <- sqrt(sum(newd^2))
+    old.sd  <- sqrt(sum(temp$dfbeta^2))  # same as sqrt(temp$var)
+    
+    z <-  qnorm((1-p)/2)
+    old.ci  <- temp$concordance + c(z, -z)*old.sd
+    new.ci  <- logistic(ilogist(temp$concordance) + c(-1.96, 1.96)* new.sd)
+    rbind(old = old.ci, new= new.ci)
+}
+
+round(zci(colonfit), 4)
+@ 
+
+The two intervals hardly differ, which is what we would expect for a value
+far from 1.  
+As a second example, create a small data set with a concordance that is
+close to 1.  As we see below, the z-transform shifts the CI towards zero,
+as it should, but also avoids the out of bounds endpoint.  
+
+<<close>>=
+set.seed(1953)
+ytest <- matrix(rexp(20), ncol=2) %*% chol(matrix(c(1, .98, .98, 1), 2))
+cor(ytest)
+lfit <- lm(ytest[,1] ~ ytest[,2])
+zci(lfit)
+@ 
+
 
 
 \section{Details}
