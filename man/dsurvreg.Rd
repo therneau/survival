@@ -31,7 +31,7 @@ vector of probabilities.
 Missing values (\code{NA}s) are allowed. 
 }
 \item{n}{number of random deviates to produce}
-\item{mean}{vector of linear predictors for the model.  
+\item{mean}{vector of location (linear predictor) parameters for the model.  
 This is replicated to be the same length as \code{p}, \code{q}
 or \code{n}.  
 }
@@ -65,20 +65,28 @@ elements of the result to be missing.
 The \code{location} and \code{scale}
 values are as they would be for \code{survreg}.
 The label "mean" was an unfortunate choice (made in mimicry of qnorm);
-since almost none of these distributions are symmetric it will not
-actually be a mean, but corresponds instead to the linear predictor of
-a fitted model.
+a more correct label would be "linear predictor".  
+Since almost none of these distributions are symmetric the location
+parameter is not actually a mean.
+
+The \code{survreg} routines use the parameterization found in chapter
+2 of Kalbfleisch and Prentice. 
 Translation to the usual parameterization found in a textbook is not
 always obvious.
-For example, the Weibull distribution is fit using the
-Extreme value distribution along with a log transformation.
-Letting \eqn{F(t) = 1 - \exp[-(at)^p]}{F(t) = 1 - exp(-(at)^p)}
-be the cumulative distribution of the
-Weibull using a standard parameterization in terms of
-\eqn{a} and \eqn{p},
-the survreg location corresponds to \eqn{-\log(a)}{-log(a)} and the scale
-to \eqn{1/p} 
-(Kalbfleisch and Prentice, section 2.2.2).
+For example, the Weibull distribution has cumulative distribution
+function
+\eqn{F(t) = 1 - e^{-(\lambda t)^p}}{F(t)}{1 - exp((-lambda t)^p)}.
+The actual fit uses the fact that \eqn{\log(t)}{log(t)} has an extreme
+value distribution, with location and scale of
+\eqn{\alpha, \sigma}{a,s}, which are the location and scale parameters
+reported by the \code{survreg} function.
+The parameters are related by \eqn{\sigma= 1/p}{s=1/p} and
+\eqn{\alpha = -\log(\lambda}{a= =log(lambda)}.
+The \code{stats::dweibull} routine is parameterized in terms of
+shape and scale parameters which correspond to \eqn{p}{p} and
+\eqn{1/\lambda}{1/lambda} in the K and P notation.
+Combining these we see that shape = \eqn{1/\sigma}{1/s} and
+scale = \eqn{\exp{alpha}}{exp(a)}.
 }
 \section{References}{
 Kalbfleisch, J. D. and Prentice, R. L. (1970).
@@ -105,5 +113,22 @@ haz <- dsurvreg(x, 2, 3)/ (1-psurvreg(x, 2, 3))
 \dontrun{
 plot(x, haz, log='xy', ylab="Hazard") #line with slope (1/scale -1)
 }
+
+# Estimated CDF of a simple Weibull
+fit <- survreg(Surv(time, status) ~ 1, data=lung)
+pp <- 1:99/100  
+q1 <- qsurvreg(pp, coef(fit), fit$scale)
+q2 <- qweibull(pp, shape= 1/fit$scale, scale= exp(coef(fit)))
+all.equal(q1, q2)
+\dontrun{
+plot(q1, pp, type='l', xlab="Months", ylab="CDF")
+}
+# per the help page for dweibull, the mean is scale * gamma(1 + 1/shape)
+c(mean = exp(coef(fit))* gamma(1 + fit$scale))
+
+}
+\references{
+  Kalbfleisch, J. D. and Prentice, R. L., The statistical analysis of
+  failure time data, Wiley, 2002.
 }
 \keyword{distribution}

@@ -15,7 +15,7 @@ can be ignored in the count (treated as incomparable), treated as discordant,
 or given a score of 1/2.
 \begin{itemize}
   \item Kendall's $\tau$-a scores ties as 0.
-  \item Kendall's $\tau$-b and the Goodman-Kruskal $\gamma$ ignore ties in 
+  \item The Goodman-Kruskal $\gamma$ ignore ties in 
     either $y$ or $x$.
   \item Somers' $d$ treats ties in $y$ as incomparable, pairs that are tied
     in $x$ (but not $y$) score as 1/2.  The AUC from logistic regression is
@@ -37,6 +37,7 @@ discordant, tied on time, and tied on $x$ but not on time.
 The default concordance is based on the Somers'/AUC definition,
 but all 4 values are reported back so that a user
 can recreate Kendall's or Goodmans values if desired.
+The timewt option has no effect for other than survival data.
 
 Here is the main routine.
 <<concordance>>=
@@ -48,7 +49,7 @@ concordance.formula <- function(object, data,
                                 ymin, ymax, 
                                 timewt=c("n", "S", "S/G", "n/G", "n/G2", "I"),
                                 influence=0, ranks=FALSE, reverse=FALSE,
-                                timefix=TRUE, keepstrata=10, ...) {
+                                timefix=TRUE, keepstrata=10, std.err=TRUE, ...) {
     Call <- match.call()  # save a copy of of the call, as documentation
     timewt <- match.arg(timewt)
     if (missing(ymin)) ymin <- NULL
@@ -76,6 +77,7 @@ concordance.formula <- function(object, data,
         else if (is.logical(Y)) Y <- as.numeric(Y)
         else stop("left hand side of the formula must be a numeric vector,
  survival object, or an orderable factor")
+        timewt <- "n"
         if (timefix) Y <- aeqSurv(Y)
     }
     n <- nrow(Y)
@@ -115,7 +117,8 @@ concordance.formula <- function(object, data,
         stop ("the reverse argument must be TRUE/FALSE")
  
     fit <- concordancefit(Y, x, strat, wt, ymin, ymax, timewt, cluster,
-                           influence, ranks, reverse, keepstrata=keepstrata)
+                           influence, ranks, reverse, keepstrata=keepstrata,
+                          std.err = std.err)
     na.action <- attr(mf, "na.action")
     if (length(na.action)) fit$na.action <- na.action
     fit$call <- Call
@@ -161,17 +164,26 @@ routine.
 If $y$ is not a survival quantity, then all of the options for the
 \code{timewt} parameter lead to the same result.
 
+It turns out that for moderate sized data sets, the computation of the
+survival curve S (or censoring G) takes as much or more compuational time
+as the routine proper. For this reason, make sure not to call survfit unless
+we have to.
+Since we are calling those routines for data with
+no grouping variable, no standard error, and none of the other options, speed
+could be gained by moving the computation of those quantities inside of the
+C code.
+
 <<concordancefit>>=
 concordancefit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL, 
                             timewt=c("n", "S", "S/G", "n/G", "n/G2", "I"),
                             cluster, influence=0, ranks=FALSE, reverse=FALSE,
-                            timefix=TRUE, keepstrata=10, robustse =TRUE) {
+                            timefix=TRUE, keepstrata=10, std.err =TRUE) {
     # The coxph program may occassionally fail, and this will kill the C
     #  routine further below.  So check for it.
     if (any(is.na(x)) || any(is.na(y))) return(NULL)
     timewt <- match.arg(timewt)
 
-    if (!robustse) {ranks <- FALSE; influence =0;}
+    if (!std.err) {ranks <- FALSE; influence =0;}
 
     # these should only occur if something other package calls this routine
     if (!is.Surv(y)) {
@@ -226,45 +238,12 @@ concordancefit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL,
     # This routine is called once per stratum
     docount <- function(y, risk, wts, timeopt= 'n', timefix) {
         n <- length(risk)
+        ny <- ncol(y)   # 2 or 3
         # this next line is mostly invoked in stratified logistic, where
         #  only 1 event per stratum occurs.  All time weightings are the same
         # don't waste time even if the user asked for something different
-        if (sum(y[,ncol(y)]) <2) timeopt <- 'n'
+        if (sum(y[,ny]) <2) timeopt <- 'n'
         
-        sfit <- survfit(y~1, weights=wts, se.fit=FALSE, timefix=timefix)
-        etime <- sfit$time[sfit$n.event > 0]
-        esurv <- sfit$surv[sfit$n.event > 0]
-        
-        if (length(etime)==0) {
-            # the special case of a stratum with no events (it happens)
-            # No need to do any more work
-            return(list(count= rep(0.0, 6), influence=matrix(0.0, n, 5),
-                        resid=NULL))
-        }
-
-       if (timeopt %in% c("S/G", "n/G", "n/G2")) {
-            temp <- y
-            temp[,ncol(temp)] <- 1- temp[,ncol(temp)] # switch event/censor
-            gfit <- survfit(temp~1, weights=wts, se.fit=FALSE, timefix=timefix)
-            # G has the exact same time values as S
-            gsurv <- c(1, gfit$surv)  # We want G(t-)
-            gsurv <- gsurv[which(sfit$n.event > 0)]
-        }
-
-        npair <- (sfit$n.risk- sfit$n.event)[sfit$n.event>0]
-        temp  <- ifelse(esurv==0, 0, esurv/npair)  # avoid 0/0
-        timewt <- switch(timeopt,
-                         "S" =  sum(wts)*temp,
-                         "S/G" = sum(wts)* temp/ gsurv,
-                         "n" =   rep(1.0, length(npair)),
-                         "n/G" = 1/gsurv,
-                         "n/G2"= 1/gsurv^2,
-                         "I"  =  rep(1.0, length(esurv))
-                     )
-        if (!is.null(ymin)) timewt[etime < ymin] <- 0
-        if (!is.null(ymax)) timewt[etime > ymax] <- 0
-        timewt <- ifelse(is.finite(timewt), timewt, 0)  # 0 at risk case
-
         # order the data: reverse time, censors before deaths
         if (ncol(y)==2) { 
             sort.stop <- order(-y[,1], y[,2], risk) -1L 
@@ -272,15 +251,51 @@ concordancefit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL,
             sort.stop  <- order(-y[,2], y[,3], risk) -1L   #order by endpoint
             sort.start <- order(-y[,1]) -1L       
         }
+
+        storage.mode(y) <- "double"  # just in case y is integer
+        storage.mode(wts) <- "double"
+        if (timeopt == 'n') {
+            deaths <- y[,ny] > 0
+            etime  <- sort(unique(y[deaths, ny-1]))  # event times
+        }
+        else {
+            if (ny==2) {
+                sort.stop <- order(-y[,1], y[,2], risk) -1L 
+                gfit <- .Call(Cfastkm1, Y, wts, sort.stop)
+            } else {
+                sort.stop  <- order(-y[,2], y[,3], risk) -1L   #order by endpoint
+                sort.start <- order(-y[,1]) -1L       
+                gfit <- .Call(Cfastkm2, Y, wts, sort.stop, sort.start)
+            }
+            etime <- gfit$etime
+        }
+         
+        ntime <- length(etime)
+        if (ntime == 0) {
+            # the special case of a stratum with no events (it happens)
+            # No need to do any more work
+            return(list(count= rep(0.0, 6), influence=matrix(0.0, n, 5),
+                        resid=NULL))
+        }
+
+        timewt <- switch(timeopt,
+                         "S"   = sum(wts)*gfit$S/gfit$nrisk,
+                         "S/G" = sum(wts)* gfit$S/ (gfit$G * gfit$nrisk),
+                         "n" =   rep(1.0, ntime),
+                         "n/G" = 1/gfit$G,
+                         "n/G2"= 1/gfit$G^2,
+                         "I"  =  1/gfit$nrisk)
+                     
+        if (!is.null(ymin)) timewt[etime < ymin] <- 0
+        if (!is.null(ymax)) timewt[etime > ymax] <- 0
+        if (any(!is.finite(timewt))) stop("program error")
  
         # match each prediction score to the unique set of scores
         # (to deal with ties)
         utemp <- match(risk, sort(unique(risk)))
         bindex <- btree(max(utemp))[utemp]
         
-        storage.mode(y) <- "double"  # just in case y is integer
-        storage.mode(wts) <- "double"
-        if (robustse) {
+        if (std.err) {
             if (ncol(y) ==2)
                 fit <- .Call(Cconcordance3, y, bindex, wts, rev(timewt), 
                              sort.stop, ranks)
@@ -315,7 +330,7 @@ concordancefit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL,
         count2 <- fit$count[1:5]
         vcox <- fit$count[6]
         fit$count <- fit$count[1:5]
-        if (robustse) imat <- fit$influence
+        if (std.err) imat <- fit$influence
         if (ranks) resid <- fit$resid
     } else {
         strata <- as.factor(strata)
@@ -330,7 +345,7 @@ concordancefit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL,
         count2 <- colSums(fit$count)
         if (!keepstrata) fit$count <- count2
         vcox <- sum(temp[,6])
-        if (robustse) {
+        if (std.err) {
             imat <- do.call("rbind", lapply(tfit, function(x) x$influence))
             # put it back into data order
             index <- match(1:n, (1:n)[order(strata)])
@@ -346,7 +361,7 @@ concordancefit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL,
     npair <- sum(count2[1:3])
     if (!keepstrata && is.matrix(fit$count)) fit$count <- colSums(fit$count)
     somer <- (count2[1] - count2[2])/npair
-    if (robustse) {
+    if (std.err) {
         dfbeta <- weights*((imat[,1]- imat[,2])/npair -
                            (somer/npair)* rowSums(imat[,1:3]))
         if (!missing(cluster) && length(cluster)>0) {

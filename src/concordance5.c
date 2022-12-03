@@ -1,6 +1,6 @@
 /*
-** a modified version of concordance3 and concordance4: skip the influence
-**   computation, for speed
+** A modified version of concordance3 and concordance4: skip the influence
+**   and std error portions, for speed.  
 */
 
 #include "survS.h"
