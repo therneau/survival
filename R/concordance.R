@@ -28,6 +28,8 @@ concordance.formula <- function(object, data,
     Y <- model.response(mf)
     if (inherits(Y, "Surv")) {
         if (timefix) Y <- aeqSurv(Y)
+        if (ncol(y) == 3 && timewt %in% c("S/G", "n/G", "n/G2"))
+            stop(timewt, " timewt option not supported for (time1, time2) data")
     } else {
         if (is.factor(Y) && (is.ordered(Y) || length(levels(Y))==2))
             Y <- Surv(as.numeric(Y))
@@ -119,31 +121,56 @@ concordancefit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL,
     #  routine further below.  So check for it.
     if (any(is.na(x)) || any(is.na(y))) return(NULL)
     timewt <- match.arg(timewt)
+    if (!is.null(ymin) && !is.numeric(ymin)) stop("ymin must be numeric")
+    if (!is.null(ymax) && !is.null(ymax))    stop("ymax must be numeric")
+    if (!std.err) {ranks <- FALSE; influence <- 0;}
 
-    if (!std.err) {ranks <- FALSE; influence =0;}
-
-    # these should only occur if something other package calls this routine
-    if (!is.Surv(y)) {
-        if (is.factor(y) && (is.ordered(y) || length(levels(y))==2))
-            y <- Surv(as.numeric(y))
-        else if (is.numeric(y) && is.vector(y))  y <- Surv(y)
-        else stop("left hand side of the formula must be a numeric vector,
- survival object, or an orderable factor")
-        if (timefix) y <- aeqSurv(y)
-    }
     n <- length(y)
     if (length(x) != n) stop("x and y are not the same length")
     if (missing(strata) || length(strata)==0) strata <- rep(1L, n)
     if (length(strata) != n)
         stop("y and strata are not the same length")
     if (missing(weights) || length(weights)==0) weights <- rep(1.0, n)
-    else if (length(weights) != n) stop("y and weights are not the same length")
+    else {
+        if (length(weights) != n) stop("y and weights are not the same length")
+        storage.mode(weights) <- "double" # for the .Call, in case of integers
+    }
+    if (is.Surv(y)) {
+        if (ncol(y) == 3 && timewt %in% c("S/G", "n/G", "n/G2"))
+            stop(timewt, " timewt option not supported for (time1, time2) data")
+        if (timefix) y <- aeqSurv(y)
+        if (!is.null(ymin)) {
+            earlycensor <- (y[,ny]==0 & y[, ny-1] < ymin)
+            if (any(earlycensor)) {
+                y <- y[!earlycensor,]
+                x <- x[!earlycensor]
+                weights <- weights[!earlycensor]
+                strata  <- strata[!earlycensor]
+            }
+        }
+    } else {
+        # should only occur if another package calls this routine
+        if (is.factor(y) && (is.ordered(y) || length(levels(y))==2))
+            y <- Surv(as.numeric(y))
+        else if (is.numeric(y) && is.vector(y))  y <- Surv(y)
+        else stop("left hand side of the formula must be a numeric vector,
+ survival object, or an orderable factor")
+    }
 
     type <- attr(y, "type")
     if (type %in% c("left", "interval"))
         stop("left or interval censored data is not supported")
     if (type %in% c("mright", "mcounting"))
         stop("multiple state survival is not supported")
+    storage.mode(y) <- "double"   # in case of integers, for the .Call
+
+    if (!is.null(ymin) && any(y[, ny-1] < ymin))
+        y[,ny-1] <- pmax(y[,ny-1], ymin)
+    # ymax is dealt with in the docount routine, as shifting end of a (t1, t2)
+    #  interval could generate invalid data
+
+    if (!is.null(ymax) && any(y[, ny-1] > ymax))
+        y[,ny-1] <- 
 
     nstrat <- length(unique(strata))
     if (!is.logical(keepstrata)) {
@@ -173,24 +200,30 @@ concordancefit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL,
     }
 
     # This routine is called once per stratum
-    docount <- function(y, risk, wts, timeopt= 'n', timefix) {
+    docount <- function(y, risk, wts, timeopt= 'n') {
         n <- length(risk)
         ny <- ncol(y)   # 2 or 3
+
+        if (sum(y[,ncol(y)] ==0)) {
+            # the special case of a stratum with no events (it happens)
+            # No need to do any more work
+            return(list(count= rep(0.0, 6), influence=matrix(0.0, n, 5),
+                        resid=NULL))
+        }
+     
         # this next line is mostly invoked in stratified logistic, where
         #  only 1 event per stratum occurs.  All time weightings are the same
         # don't waste time even if the user asked for something different
         if (sum(y[,ny]) <2) timeopt <- 'n'
         
         # order the data: reverse time, censors before deaths
-        if (ncol(y)==2) { 
+        if (ny ==2) { 
             sort.stop <- order(-y[,1], y[,2], risk) -1L 
         } else {
             sort.stop  <- order(-y[,2], y[,3], risk) -1L   #order by endpoint
             sort.start <- order(-y[,1]) -1L       
         }
 
-        storage.mode(y) <- "double"  # just in case y is integer
-        storage.mode(wts) <- "double"
         if (timeopt == 'n') {
             deaths <- y[,ny] > 0
             etime  <- sort(unique(y[deaths, ny-1]))  # event times
@@ -207,25 +240,16 @@ concordancefit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL,
             etime <- gfit$etime
         }
          
-        ntime <- length(etime)
-        if (ntime == 0) {
-            # the special case of a stratum with no events (it happens)
-            # No need to do any more work
-            return(list(count= rep(0.0, 6), influence=matrix(0.0, n, 5),
-                        resid=NULL))
-        }
-
         timewt <- switch(timeopt,
-                         "S"   = sum(wts)*gfit$S/gfit$nrisk,
-                         "S/G" = sum(wts)* gfit$S/ (gfit$G * gfit$nrisk),
-                         "n" =   rep(1.0, ntime),
+                         "S"   = gfit$S/gfit$nrisk,
+                         "S/G" = gfit$S/ (gfit$G * gfit$nrisk),
+                         "n" =   rep(1.0, length(etime)),
                          "n/G" = 1/gfit$G,
                          "n/G2"= 1/gfit$G^2,
                          "I"  =  1/gfit$nrisk)
-                     
-        if (!is.null(ymin)) timewt[etime < ymin] <- 0
+        if (any(!is.finite(timewt))) stop("program error, notify author")
+                    
         if (!is.null(ymax)) timewt[etime > ymax] <- 0
-        if (any(!is.finite(timewt))) stop("program error")
  
         # match each prediction score to the unique set of scores
         # (to deal with ties)

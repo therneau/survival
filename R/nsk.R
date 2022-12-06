@@ -62,7 +62,7 @@ nsk <- function(x, df=NULL, knots=NULL, intercept=FALSE, b=.05,
 
 makepredictcall.nsk <- function(var, call)
 {
-    if(as.character(call)[1L] == "nsk" || 
+    if (as.character(call)[1L] == "nsk" || 
        (is.call(call) && identical(eval(call[[1L]]), nsk))) {
 	at <- attributes(var)[c("knots", "Boundary.knots", "intercept")]
 	call <- call[1L:2L]

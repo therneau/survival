@@ -101,10 +101,15 @@ concordance(object, \ldots)
   under the receiver operating curve (AUC) for a binary response,
   and (d+1)/2 when y is continuous, where d is Somers' d.
   For a survival time, \code{timewt} of n gives Harrell's c-statistic,
-  which is closely related to the Gehan-Wilcoxon test,
-  S corresponds to the Peto-Wilcoxon, n/G2 is the weighted advocated
-  by Umo, and S/G the weighting proposed by Schemper.
-
+  which is closely related to the Gehan-Wilcoxon test; here n is short
+  for \eqn{n(t)}{n(t)}, the number at risk at each event time.
+  S corresponds to the Peto-Wilcoxon, n/G^2 is the weight advocated
+  by Uno, and S/G the weighting proposed by Schemper.
+  Peto pointed out that \eqn{n(t) \approx n(0) S(t-) G(t-)}
+  {n(t) approx= n(0)S(t-)G(t-)} where S and G are the survival and censoring
+  distributions; this implies that the Schemper and Uno weightings
+  should give very similar results. 
+  
   When the number of strata is very large, such as in a conditional
   logistic regression for instance (\code{clogit} function), a much
   faster computation is available when the individual strata results
@@ -168,6 +173,22 @@ concordance(fit1, timewt="n")
 # logistic regression
 fit2 <- glm(pstat ~ age + sex + mspike, binomial, data= mgus2)
 concordance(fit2)  # equal to the AUC
+}
+\references{
+  F Harrell, R Califf, D Pryor, K Lee and R Rosati, 
+  Evaluating the yield of medical tests, J Am Medical Assoc, 1982.
+
+  R Peto and J Peto,
+  Asymptotically efficient rank invariant test procedures (with
+  discussion), J Royal Stat Soc A, 1972.
+  
+  M Schemper, Cox analysis of survival data with non-proportional
+  hazard functions, The Statistician, 1992.
+
+  H Uno, T Cai, M Pencina, R D'Agnostino and Lj Wei,
+  On the C-statistics for evaluating overall adequacy of risk 
+        prediction procedures with censored survival data,
+	Statistics in Medicine, 2011.
 }
 
 \keyword{ survival }
