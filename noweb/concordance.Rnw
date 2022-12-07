@@ -302,8 +302,8 @@ concordancefit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL,
         }
          
         timewt <- switch(timeopt,
-                         "S"   = gfit$S/gfit$nrisk,
-                         "S/G" = gfit$S/ (gfit$G * gfit$nrisk),
+                         "S"   = sum(wts)* gfit$S/gfit$nrisk,
+                         "S/G" = sum(wts)* gfit$S/ (gfit$G * gfit$nrisk),
                          "n" =   rep(1.0, length(etime)),
                          "n/G" = 1/gfit$G,
                          "n/G2"= 1/gfit$G^2,

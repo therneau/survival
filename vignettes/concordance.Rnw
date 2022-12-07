@@ -539,7 +539,7 @@ $$
  g^{-1}\left[g(C) \pm z \sigma(g(C)) \right]
 $$
 for some transformation function $g$.  For survival curves, the $g$ functions 
-$\log(p)$, $\log(p/(1-p)$, $\log(-log(1-p))$ and $\arcsin(p)$ have all been
+$\log(p)$, $\log(p/(1-p)$, $\log(-\log(1-p))$ and $\arcsin(p)$ have all been
 found to be superior to the simple interval.
 
 For the concordance, 
