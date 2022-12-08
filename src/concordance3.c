@@ -2,6 +2,14 @@
 #include "survS.h"
 #include "survproto.h"
 
+/*
+** Given a tree described by 
+**   nwt = weight at each node
+**   twt = weight of node + children
+**   index = pointer to a location in the tree
+**   ntree = number of nodes in the tree
+** return the  count of those smaller, greater, tied
+*/
 void walkup(double *nwt, double* twt, int index, double sums[3], int ntree) {
     int i, j, parent;
 
@@ -20,6 +28,7 @@ void walkup(double *nwt, double* twt, int index, double sums[3], int ntree) {
     }
 }
 
+/* Add an observation into the tree (a negative weight takes them out) */
 void addin(double *nwt, double *twt, int index, double wt) {
     nwt[index] += wt;
     while (index >0) {
@@ -47,10 +56,10 @@ SEXP concordance3(SEXP y, SEXP x2, SEXP wt2, SEXP timewt2,
     int utime;    /* number of unique event times seen so far */
     double dwt, dwt2;   /* sum of weights for deaths and deaths tied on x */
     double wsum[3]; /* the sum of weights that are > current, <, or equal  */
-    double temp, adjtimewt;  /* the second accounts for npair and timewt*/
+    double adjtimewt;  /* accounts for npair and timewt*/
 
     SEXP rlist, count2, imat2, resid2;
-    double *count, *imat[5], *resid[4];
+    double *count, *imat[5], *resid[3];
     double *wt, *timewt;
     int    *x, *sort2;
     int doresid;
@@ -91,8 +100,8 @@ SEXP concordance3(SEXP y, SEXP x2, SEXP wt2, SEXP timewt2,
         for (j=0; j<n; j++) imat[i][j] =0;
     }
     if (doresid==1) {
-        resid2 = SET_VECTOR_ELT(rlist, 2, allocMatrix(REALSXP, nevent, 4));
-        for (i=0; i<4; i++) resid[i] = REAL(resid2) + i*nevent;
+        resid2 = SET_VECTOR_ELT(rlist, 2, allocMatrix(REALSXP, nevent, 3));
+        for (i=0; i<3; i++) resid[i] = REAL(resid2) + i*nevent;
         }
     
     z2 =0; utime=0;
@@ -151,13 +160,6 @@ SEXP concordance3(SEXP y, SEXP x2, SEXP wt2, SEXP timewt2,
                 /* add to the event tree */
                 addin(dnwt, dtwt, x[jj], adjtimewt*wt[jj]);  /* weighted deaths */
 
-                /* first part of residuals */
-                if (doresid) {
-                    nevent--;
-                    resid[0][nevent] = (wsum[0] - wsum[1])/twt[0]; /* -1 to 1 */
-                    resid[1][nevent] = twt[0] * adjtimewt;
-                    resid[2][nevent] = wt[jj];
-                }
             }
             /* finish the tied.xy influence */
             if (wt[sort2[j2]] < dwt2) { /* more than 1 tied */
@@ -188,13 +190,22 @@ SEXP concordance3(SEXP y, SEXP x2, SEXP wt2, SEXP timewt2,
                 addin(nwt, twt, x[jj], wt[jj]); 
             }
             count[5] += dwt * adjtimewt* z2/twt[0]; /* weighted var in risk set*/
-            i += ndeath;
 
-            if (doresid) { /*Add the last part of the residuals */
-                temp = twt[0]*twt[0]*twt[0];
-                for (j=0; j<ndeath; j++)
-                    resid[3][nevent+j] = z2/temp;
+            /* 
+            ** Residuals are done after the deaths have been added to the tree
+            **   since they are based on the Cox model risk set
+            */
+            if (doresid) {
+                for (j=i; j< (i+ndeath); j++) {
+                    jj = sort2[j];
+                    walkup(nwt, twt, x[jj], wsum, ntree);
+                    nevent--;
+                    resid[0][nevent] = (wsum[0] - wsum[1])/twt[0]; /* -1 to 1 */
+                    resid[1][nevent] = twt[0] * adjtimewt;
+                    resid[2][nevent] = wt[jj];
+                }
             }
+            i += ndeath;
         }
     }
 
@@ -233,10 +244,10 @@ SEXP concordance3(SEXP y, SEXP x2, SEXP wt2, SEXP timewt2,
     double dwt;   /* weighted number of deaths at this point */
     double dwt2;  /* tied on both x and y */
     double wsum[3]; /* the sum of weights that are > current, <, or equal  */
-    double temp, adjtimewt;  /* the second accounts for npair and timewt*/
+    double adjtimewt;  /* accounts for npair and timewt*/
 
     SEXP rlist, count2, imat2, resid2;
-    double *count, *imat[5], *resid[4];
+    double *count, *imat[5], *resid[3];
     double *wt, *timewt;
     int    *x, *sort2, *sort1;
     int doresid;
@@ -284,8 +295,8 @@ SEXP concordance3(SEXP y, SEXP x2, SEXP wt2, SEXP timewt2,
         for (j=0; j<n; j++) imat[i][j] =0;
     }
     if (doresid==1) {
-        resid2 = SET_VECTOR_ELT(rlist, 2, allocMatrix(REALSXP, nevent, 4));
-        for (i=0; i<4; i++) resid[i] = REAL(resid2) + i*nevent;
+        resid2 = SET_VECTOR_ELT(rlist, 2, allocMatrix(REALSXP, nevent, 3));
+        for (i=0; i<3; i++) resid[i] = REAL(resid2) + i*nevent;
         }
     
     z2 =0; utime=0; i2 =0;  /* i2 tracks the start times */
@@ -362,14 +373,6 @@ SEXP concordance3(SEXP y, SEXP x2, SEXP wt2, SEXP timewt2,
 
                 /* add to the event tree */
                 addin(dnwt, dtwt, x[jj], adjtimewt*wt[jj]);  /* weighted deaths */
-
-                /* first part of residuals */
-                if (doresid) {
-                    nevent--;
-                    resid[0][nevent] = (wsum[0] - wsum[1])/twt[0]; /* -1 to 1 */
-                    resid[1][nevent] = twt[0] * adjtimewt;
-                    resid[2][nevent] = wt[jj];
-                }
             }
             /* finish the tied.xy influence */
             if (wt[sort2[j2]] < dwt2) { /* more than 1 tied */
@@ -400,13 +403,19 @@ SEXP concordance3(SEXP y, SEXP x2, SEXP wt2, SEXP timewt2,
                 addin(nwt, twt, x[jj], wt[jj]); 
             }
             count[5] += dwt * adjtimewt* z2/twt[0]; /* weighted var in risk set*/
+
+            if (doresid) {
+                for (j=i; j< (i+ndeath); j++) {
+                    jj = sort2[j];
+                    walkup(nwt, twt, x[jj], wsum, ntree);
+                    nevent--;
+                    resid[0][nevent] = (wsum[0] - wsum[1])/twt[0]; /* -1 to 1 */
+                    resid[1][nevent] = twt[0] * adjtimewt;
+                    resid[2][nevent] = wt[jj];
+                }
+            }
             i += ndeath;
 
-            if (doresid) { /*Add the last part of the residuals */
-                temp = twt[0]*twt[0]*twt[0];
-                for (j=0; j<ndeath; j++)
-                    resid[3][nevent+j] = z2/temp;
-            }
         }
     }
 

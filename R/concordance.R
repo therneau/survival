@@ -6,7 +6,7 @@ concordance.formula <- function(object, data,
                                 weights, subset, na.action, cluster,
                                 ymin, ymax, 
                                 timewt=c("n", "S", "S/G", "n/G", "n/G2", "I"),
-                                influence=0, ranks=FALSE, reverse=FALSE,
+                               influence=0, ranks=FALSE, reverse=FALSE,
                                 timefix=TRUE, keepstrata=10, std.err=TRUE, ...) {
     Call <- match.call()  # save a copy of of the call, as documentation
     timewt <- match.arg(timewt)
@@ -28,7 +28,7 @@ concordance.formula <- function(object, data,
     Y <- model.response(mf)
     if (inherits(Y, "Surv")) {
         if (timefix) Y <- aeqSurv(Y)
-        if (ncol(y) == 3 && timewt %in% c("S/G", "n/G", "n/G2"))
+        if (ncol(Y) == 3 && timewt %in% c("S/G", "n/G", "n/G2"))
             stop(timewt, " timewt option not supported for (time1, time2) data")
     } else {
         if (is.factor(Y) && (is.ordered(Y) || length(levels(Y))==2))
@@ -146,6 +146,7 @@ concordancefit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL,
                 x <- x[!earlycensor]
                 weights <- weights[!earlycensor]
                 strata  <- strata[!earlycensor]
+                n <- nrow(y)
             }
         }
     } else {
@@ -168,9 +169,6 @@ concordancefit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL,
         y[,ny-1] <- pmax(y[,ny-1], ymin)
     # ymax is dealt with in the docount routine, as shifting end of a (t1, t2)
     #  interval could generate invalid data
-
-    if (!is.null(ymax) && any(y[, ny-1] > ymax))
-        y[,ny-1] <- 
 
     nstrat <- length(unique(strata))
     if (!is.logical(keepstrata)) {
@@ -204,7 +202,7 @@ concordancefit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL,
         n <- length(risk)
         ny <- ncol(y)   # 2 or 3
 
-        if (sum(y[,ncol(y)] ==0)) {
+        if (sum(y[,ncol(y)]) ==0) {
             # the special case of a stratum with no events (it happens)
             # No need to do any more work
             return(list(count= rep(0.0, 6), influence=matrix(0.0, n, 5),
@@ -231,18 +229,18 @@ concordancefit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL,
         else {
             if (ny==2) {
                 sort.stop <- order(-y[,1], y[,2], risk) -1L 
-                gfit <- .Call(Cfastkm1, Y, wts, sort.stop)
+                gfit <- .Call(Cfastkm1, y, wts, sort.stop)
             } else {
                 sort.stop  <- order(-y[,2], y[,3], risk) -1L   #order by endpoint
                 sort.start <- order(-y[,1]) -1L       
-                gfit <- .Call(Cfastkm2, Y, wts, sort.stop, sort.start)
+                gfit <- .Call(Cfastkm2, y, wts, sort.stop, sort.start)
             }
             etime <- gfit$etime
         }
          
         timewt <- switch(timeopt,
-                         "S"   = gfit$S/gfit$nrisk,
-                         "S/G" = gfit$S/ (gfit$G * gfit$nrisk),
+                         "S"   = sum(wts)* gfit$S/gfit$nrisk,
+                         "S/G" = sum(wts)* gfit$S/ (gfit$G * gfit$nrisk),
                          "n" =   rep(1.0, length(etime)),
                          "n/G" = 1/gfit$G,
                          "n/G2"= 1/gfit$G^2,
@@ -272,7 +270,7 @@ concordancefit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL,
                 if (ncol(y)==2) dtime <- y[y[,2]==1, 1]
                 else dtime <- y[y[,3]==1, 2]
                 temp <- data.frame(time= sort(dtime), fit$resid)
-                names(temp) <- c("time", "rank", "timewt", "casewt", "variance")
+                names(temp) <- c("time", "rank", "timewt", "casewt")
                 fit$resid <- temp[temp[,3] > 0,]  # don't return zeros
             }
         }
@@ -287,7 +285,7 @@ concordancefit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL,
     }
         
     if (nstrat < 2) {
-        fit <- docount(y, x, weights, timewt, timefix=timefix)
+        fit <- docount(y, x, weights, timewt)
         count2 <- fit$count[1:5]
         vcox <- fit$count[6]
         fit$count <- fit$count[1:5]
@@ -298,8 +296,7 @@ concordancefit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL,
         ustrat <- levels(strata)[table(strata) >0]  #some strata may have 0 obs
         tfit <- lapply(ustrat, function(i) {
             keep <- which(strata== i)
-            docount(y[keep,,drop=F], x[keep], weights[keep], timewt,
-                    timefix=timefix)
+            docount(y[keep,,drop=F], x[keep], weights[keep], timewt)
         })
         temp <-  t(sapply(tfit, function(x) x$count))
         fit <- list(count = temp[,1:5])

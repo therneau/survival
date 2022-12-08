@@ -18,7 +18,6 @@ SEXP concordance5(SEXP y, SEXP x2, SEXP wt2, SEXP timewt2,
     **  deaths
     */
     double *nwt, *twt;
-    double z2;  /* sum of z^2 values */    
         
     int ndeath;   /* total number of deaths at this point */    
     int utime;    /* number of unique event times seen so far */
@@ -52,20 +51,14 @@ SEXP concordance5(SEXP y, SEXP x2, SEXP wt2, SEXP timewt2,
     for (i=0; i< 2*ntree; i++) nwt[i] =0.0;
     
     PROTECT(rlist = mkNamed(VECSXP, outnames));
-    count2 = SET_VECTOR_ELT(rlist, 0, allocVector(REALSXP, 6));
+    count2 = SET_VECTOR_ELT(rlist, 0, allocVector(REALSXP, 5));
     count = REAL(count2); 
-    for (i=0; i<6; i++) count[i]=0.0;
+    for (i=0; i<5; i++) count[i]=0.0;
     
-    z2 =0; utime=0;
+    utime=0;
     for (i=0; i<n;) {
         ii = sort2[i];  
         if (status[ii]==0) { /* censored, simply add them into the tree */
-            /* Cox variance */
-            walkup(nwt, twt, x[ii], wsum, ntree);
-            z2 += wt[ii]*(wsum[0]*(wt[ii] + 2*(wsum[1] + wsum[2])) +
-                          wsum[1]*(wt[ii] + 2*(wsum[0] + wsum[2])) +
-                          (wsum[0]-wsum[1])*(wsum[0]-wsum[1]));
-            /* add them to the tree */
             addin(nwt, twt, x[ii], wt[ii]);
             i++;
         }
@@ -98,16 +91,8 @@ SEXP concordance5(SEXP y, SEXP x2, SEXP wt2, SEXP timewt2,
             /* pass 2 */
             for (j=i; j< (i+ndeath); j++) {
                 jj = sort2[j];
-    
-                /* increment Cox var and add obs into the tree */
-                walkup(nwt, twt, x[jj], wsum, ntree);
-                z2 += wt[jj]*(wsum[0]*(wt[jj] + 2*(wsum[1] + wsum[2])) +
-                              wsum[1]*(wt[jj] + 2*(wsum[0] + wsum[2])) +
-                              (wsum[0]-wsum[1])*(wsum[0]-wsum[1]));
-
                 addin(nwt, twt, x[jj], wt[jj]); 
             }
-            count[5] += dwt * adjtimewt* z2/twt[0]; /* weighted var in risk set*/
             i += ndeath;
         }
     }
@@ -128,7 +113,6 @@ SEXP concordance5(SEXP y, SEXP x2, SEXP wt2, SEXP timewt2,
     **  deaths
     */
     double *nwt, *twt;
-    double z2;  /* sum of z^2 values */    
         
     int ndeath;   /* total number of deaths at this point */    
     int utime;    /* number of unique event times seen so far */
@@ -170,20 +154,14 @@ SEXP concordance5(SEXP y, SEXP x2, SEXP wt2, SEXP timewt2,
     for (i=0; i< 4*ntree; i++) nwt[i] =0.0;
     
     PROTECT(rlist = mkNamed(VECSXP, outnames));
-    count2 = SET_VECTOR_ELT(rlist, 0, allocVector(REALSXP, 6));
+    count2 = SET_VECTOR_ELT(rlist, 0, allocVector(REALSXP, 5));
     count = REAL(count2); 
-    for (i=0; i<6; i++) count[i]=0.0;
+    for (i=0; i<5; i++) count[i]=0.0;
     
-    z2 =0; utime=0; i2 =0;  /* i2 tracks the start times */
+    utime=0; i2 =0;  /* i2 tracks the start times */
     for (i=0; i<n;) {
         ii = sort2[i];  
         if (status[ii]==0) { /* censored, simply add them into the tree */
-            /* Cox variance */
-            walkup(nwt, twt, x[ii], wsum, ntree);
-            z2 += wt[ii]*(wsum[0]*(wt[ii] + 2*(wsum[1] + wsum[2])) +
-                          wsum[1]*(wt[ii] + 2*(wsum[0] + wsum[2])) +
-                          (wsum[0]-wsum[1])*(wsum[0]-wsum[1]));
-            /* add them to the tree */
             addin(nwt, twt, x[ii], wt[ii]);
             i++;
         }
@@ -192,12 +170,6 @@ SEXP concordance5(SEXP y, SEXP x2, SEXP wt2, SEXP timewt2,
             for (; i2<n && (time1[sort1[i2]] >= time2[ii]); i2++) {
                 jj = sort1[i2];
 		addin(nwt, twt, x[jj], -wt[jj]);  /*remove from main tree */
-
-                /* Cox variance */
-                walkup(nwt, twt, x[jj], wsum, ntree);
-                z2 -= wt[jj]*(wsum[0]*(wt[jj] + 2*(wsum[1] + wsum[2])) +
-                              wsum[1]*(wt[jj] + 2*(wsum[0] + wsum[2])) +
-                              (wsum[0]-wsum[1])*(wsum[0]-wsum[1]));
             }
 
             ndeath=0; dwt=0; 
@@ -225,19 +197,12 @@ SEXP concordance5(SEXP y, SEXP x2, SEXP wt2, SEXP timewt2,
                     count[k] += wt[jj]* wsum[k] * adjtimewt;
 		}
             }
-            /* pass 3 */
+            /* pass 2 */
             for (j=i; j< (i+ndeath); j++) {
                 jj = sort2[j];
-
-                /* increment Cox var and add obs into the tree */
-                walkup(nwt, twt, x[jj], wsum, ntree);
-                z2 += wt[jj]*(wsum[0]*(wt[jj] + 2*(wsum[1] + wsum[2])) +
-                              wsum[1]*(wt[jj] + 2*(wsum[0] + wsum[2])) +
-                              (wsum[0]-wsum[1])*(wsum[0]-wsum[1]));
-
                 addin(nwt, twt, x[jj], wt[jj]); 
             }
-            count[5] += dwt * adjtimewt* z2/twt[0]; /* weighted var in risk set*/
+
             i += ndeath;
 
         }

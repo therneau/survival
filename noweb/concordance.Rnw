@@ -48,7 +48,7 @@ concordance.formula <- function(object, data,
                                 weights, subset, na.action, cluster,
                                 ymin, ymax, 
                                 timewt=c("n", "S", "S/G", "n/G", "n/G2", "I"),
-                                influence=0, ranks=FALSE, reverse=FALSE,
+                               influence=0, ranks=FALSE, reverse=FALSE,
                                 timefix=TRUE, keepstrata=10, std.err=TRUE, ...) {
     Call <- match.call()  # save a copy of of the call, as documentation
     timewt <- match.arg(timewt)
@@ -141,19 +141,23 @@ print.concordance <- function(x, digits= max(1L, getOption("digits") - 3L),
         cat("n=", x$n, " (", naprint(omit), ")\n", sep = "")
     else cat("n=", x$n, "\n")
     
-    if (length(x$concordance) > 1) {
-        # result of a call with multiple fits
-        tmat <- cbind(concordance= x$concordance, se=sqrt(diag(x$var)))
-        print(round(tmat, digits=digits), ...)
-        cat("\n")
+    if (is.null(x$var)) {
+        # Result of a call with std.err = FALSE
+        cat("Concordance= ", format(x$concordance, digits=digits), "\n")
+    } else {
+        if (length(x$concordance) > 1) {
+            # result of a call with multiple fits
+            tmat <- cbind(concordance= x$concordance, se=sqrt(diag(x$var)))
+            print(round(tmat, digits=digits), ...)
+            cat("\n")
+        }
+        else cat("Concordance= ", format(x$concordance, digits=digits), 
+                 " se= ", format(sqrt(x$var), digits=digits), '\n', sep='')
     }
-    else cat("Concordance= ", format(x$concordance, digits=digits), " se= ", 
-             format(sqrt(x$var), digits=digits), '\n', sep='')
-
     if (!is.matrix(x$count) || nrow(x$count < 11)) 
         print(round(x$count,2))
     invisible(x)
-    }
+}
 
 <<concordancefit>>
 
@@ -333,7 +337,7 @@ concordancefit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL,
                 if (ncol(y)==2) dtime <- y[y[,2]==1, 1]
                 else dtime <- y[y[,3]==1, 2]
                 temp <- data.frame(time= sort(dtime), fit$resid)
-                names(temp) <- c("time", "rank", "timewt", "casewt", "variance")
+                names(temp) <- c("time", "rank", "timewt", "casewt")
                 fit$resid <- temp[temp[,3] > 0,]  # don't return zeros
             }
         }
@@ -393,8 +397,8 @@ concordancefit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL,
         rval <- list(concordance = (somer+1)/2, count=fit$count, n=n,
                      var = var.somer/4, cvar=vcox/(4*npair^2))
         }
-    else  rval <- list(concordance = (somer+1)/2, count=fit$count, n=n,
-                     cvar=vcox/(4*npair^2))
+    else  rval <- list(concordance = (somer+1)/2, count=fit$count, n=n)
+
     if (is.matrix(rval$count))
         colnames(rval$count) <- c("concordant", "discordant", "tied.x", 
                                    "tied.y", "tied.xy")
@@ -1007,10 +1011,11 @@ The routine will return list with three components:
     discordant, tied on $x$ but not $y$, and tied on y pairs.  
     The weight for a pair is $w_iw_j$.
   \item resid, a three column matrix with one row per event, containing the 
-    score residual at that event, its variance, and the sum of weights.
-    The score residual is
-    a rescaled $z_i$ so as to lie between 0 and 1: $(1+ z/\sum(w))/2$.
-    The concordance is then a weighted sum of the residuals.
+    score residual at that event, the time weight, and the case weight of the
+    event. The residual is $s_i - \overline s$: the percentile of the subject
+      with the event, among all those at risk, minus the mean.  
+      This is the "Cox model" way of looking at that data.
+    A weighted sum of the residuals will equal C-D = concordant - discordant.
   \item influence, a matrix with one row per observation and 4 columns, giving
     that observation's first derivative with respect to the count vector.
 \end{itemize}    
@@ -1039,10 +1044,10 @@ SEXP concordance3(SEXP y, SEXP x2, SEXP wt2, SEXP timewt2,
     int utime;    /* number of unique event times seen so far */
     double dwt, dwt2;   /* sum of weights for deaths and deaths tied on x */
     double wsum[3]; /* the sum of weights that are > current, <, or equal  */
-    double temp, adjtimewt;  /* the second accounts for npair and timewt*/
+    double adjtimewt;  /* accounts for npair and timewt*/
 
     SEXP rlist, count2, imat2, resid2;
-    double *count, *imat[5], *resid[4];
+    double *count, *imat[5], *resid[3];
     double *wt, *timewt;
     int    *x, *sort2;
     int doresid;
@@ -1083,8 +1088,8 @@ SEXP concordance3(SEXP y, SEXP x2, SEXP wt2, SEXP timewt2,
         for (j=0; j<n; j++) imat[i][j] =0;
     }
     if (doresid==1) {
-        resid2 = SET_VECTOR_ELT(rlist, 2, allocMatrix(REALSXP, nevent, 4));
-        for (i=0; i<4; i++) resid[i] = REAL(resid2) + i*nevent;
+        resid2 = SET_VECTOR_ELT(rlist, 2, allocMatrix(REALSXP, nevent, 3));
+        for (i=0; i<3; i++) resid[i] = REAL(resid2) + i*nevent;
         }
     
     <<concordance3-work>>
@@ -1125,7 +1130,6 @@ Starting at the largest time (which is sorted last), walk through the tree.
           \item Count concordant, discordant, tied.x counts, both total
             and for the observation's influence
           \item Add the subject to the event tree
-          \item Compute the first 3 columns of the residuals.
         \end{itemize}
       \item Finish up the tied.xy influence, for the last unique x in this set.
       \item Pass 2: 
@@ -1135,6 +1139,7 @@ Starting at the largest time (which is sorted last), walk through the tree.
           \item Increment the Cox variance
           \item Add the subject into the main tree
         \end{itemize}
+      \item Pass 3: compute the residuals.  
     \end{itemize}
 
     \item When all the subjects have been added to the tree, then add the final
@@ -1225,13 +1230,6 @@ for (i=0; i<n;) {
 	    /* add to the event tree */
 	    addin(dnwt, dtwt, x[jj], adjtimewt*wt[jj]);  /* weighted deaths */
 
-	    /* first part of residuals */
-	    if (doresid) {
-		nevent--;
-		resid[0][nevent] = (wsum[0] - wsum[1])/twt[0]; /* -1 to 1 */
-		resid[1][nevent] = twt[0] * adjtimewt;
-		resid[2][nevent] = wt[jj];
-	    }
 	}
 	/* finish the tied.xy influence */
 	if (wt[sort2[j2]] < dwt2) { /* more than 1 tied */
@@ -1262,13 +1260,22 @@ for (i=0; i<n;) {
 	    addin(nwt, twt, x[jj], wt[jj]); 
 	}
         count[5] += dwt * adjtimewt* z2/twt[0]; /* weighted var in risk set*/
-	i += ndeath;
 
-	if (doresid) { /*Add the last part of the residuals */
-	    temp = twt[0]*twt[0]*twt[0];
-	    for (j=0; j<ndeath; j++)
-		resid[3][nevent+j] = z2/temp;
+	/* 
+        ** Residuals are done after the deaths have been added to the tree
+	**   since they are based on the Cox model risk set
+	*/
+	if (doresid) {
+	    for (j=i; j< (i+ndeath); j++) {
+		jj = sort2[j];
+		walkup(nwt, twt, x[jj], wsum, ntree);
+		nevent--;
+		resid[0][nevent] = (wsum[0] - wsum[1])/twt[0]; /* -1 to 1 */
+		resid[1][nevent] = twt[0] * adjtimewt;
+		resid[2][nevent] = wt[jj];
+	    }
 	}
+	i += ndeath;
     }
 }
 
@@ -1287,6 +1294,14 @@ count[3] -= count[4];   /* the tied.xy were counted twice, once as tied.y */
 @ 
 
 <<walkup>>=
+/*
+** Given a tree described by 
+**   nwt = weight at each node
+**   twt = weight of node + children
+**   index = pointer to a location in the tree
+**   ntree = number of nodes in the tree
+** return the  count of those smaller, greater, tied
+*/
 void walkup(double *nwt, double* twt, int index, double sums[3], int ntree) {
     int i, j, parent;
 
@@ -1305,6 +1320,7 @@ void walkup(double *nwt, double* twt, int index, double sums[3], int ntree) {
     }
 }
 
+/* Add an observation into the tree (a negative weight takes them out) */
 void addin(double *nwt, double *twt, int index, double wt) {
     nwt[index] += wt;
     while (index >0) {
@@ -1340,10 +1356,10 @@ The [[y]] variable now has three columns.
     double dwt;   /* weighted number of deaths at this point */
     double dwt2;  /* tied on both x and y */
     double wsum[3]; /* the sum of weights that are > current, <, or equal  */
-    double temp, adjtimewt;  /* the second accounts for npair and timewt*/
+    double adjtimewt;  /* accounts for npair and timewt*/
 
     SEXP rlist, count2, imat2, resid2;
-    double *count, *imat[5], *resid[4];
+    double *count, *imat[5], *resid[3];
     double *wt, *timewt;
     int    *x, *sort2, *sort1;
     int doresid;
@@ -1391,8 +1407,8 @@ The [[y]] variable now has three columns.
         for (j=0; j<n; j++) imat[i][j] =0;
     }
     if (doresid==1) {
-        resid2 = SET_VECTOR_ELT(rlist, 2, allocMatrix(REALSXP, nevent, 4));
-        for (i=0; i<4; i++) resid[i] = REAL(resid2) + i*nevent;
+        resid2 = SET_VECTOR_ELT(rlist, 2, allocMatrix(REALSXP, nevent, 3));
+        for (i=0; i<3; i++) resid[i] = REAL(resid2) + i*nevent;
         }
     
     <<concordance4-work>>
@@ -1484,14 +1500,6 @@ for (i=0; i<n;) {
 
 	    /* add to the event tree */
 	    addin(dnwt, dtwt, x[jj], adjtimewt*wt[jj]);  /* weighted deaths */
-
-	    /* first part of residuals */
-	    if (doresid) {
-		nevent--;
-		resid[0][nevent] = (wsum[0] - wsum[1])/twt[0]; /* -1 to 1 */
-		resid[1][nevent] = twt[0] * adjtimewt;
-		resid[2][nevent] = wt[jj];
-	    }
 	}
 	/* finish the tied.xy influence */
 	if (wt[sort2[j2]] < dwt2) { /* more than 1 tied */
@@ -1522,13 +1530,19 @@ for (i=0; i<n;) {
 	    addin(nwt, twt, x[jj], wt[jj]); 
 	}
         count[5] += dwt * adjtimewt* z2/twt[0]; /* weighted var in risk set*/
+
+	if (doresid) {
+	    for (j=i; j< (i+ndeath); j++) {
+		jj = sort2[j];
+		walkup(nwt, twt, x[jj], wsum, ntree);
+		nevent--;
+		resid[0][nevent] = (wsum[0] - wsum[1])/twt[0]; /* -1 to 1 */
+		resid[1][nevent] = twt[0] * adjtimewt;
+		resid[2][nevent] = wt[jj];
+	    }
+	}
 	i += ndeath;
 
-	if (doresid) { /*Add the last part of the residuals */
-	    temp = twt[0]*twt[0]*twt[0];
-	    for (j=0; j<ndeath; j++)
-		resid[3][nevent+j] = z2/temp;
-	}
     }
 }
 

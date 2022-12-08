@@ -139,10 +139,9 @@ concordance(object, \ldots)
    \item{influence}{optional, the matrix of leverage values for each of
      the counts, one row per observation}
    \item{ranks}{optional, a data frame containing the Somers' d rank
-     at each event time, along with the time weight, case weight of the
-     observation with an event, and variance (contribution to the
-     proportional hazards model information matrix).
-     A weighted mean of the ranks equals Somer's d.}
+     at each event time, along with the time weight, and the case weight of
+     the observation.  The time weighted sum of the ranks will equal
+     concordant pairs - discordant pairs.}
  }
 
 \note{A coxph model that has a numeric failure may have undefined

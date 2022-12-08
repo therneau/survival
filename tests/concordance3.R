@@ -54,13 +54,13 @@ sindx <- findInterval(rd1$time, sfit$time, left.open=TRUE)
 gindx <- findInterval(rd1$time, gfit$time, left.open=TRUE) 
 all.equal(rd1$timewt, sfit$n.risk[sindx])
 
-nt <- sfit$n.risk[indx] - sfit$n.event[indx]
+nt <- sfit$n.risk[sindx] 
 all.equal(rd1$timewt, nt)
 
 # I need S(t-) and G(t-),  at the death unique death times in S
 sminus <- c(1, sfit$surv)[1L +findInterval(rd1$time, sfit$time, left.open=TRUE)]
 gminus <- c(1, gfit$surv)[1L +findInterval(rd1$time, gfit$time, left.open=TRUE)]
-all.equal(rd2$timewt, mfit$n* sfit$surv[indx])
-all.equal(rd3$timewt, mfit$n* sfit$surv[indx] /gminus[indx])
+all.equal(rd2$timewt, mfit$n* sminus)
+all.equal(rd3$timewt, mfit$n* sminus/gminus)
 
 
