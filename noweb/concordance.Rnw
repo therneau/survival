@@ -203,18 +203,17 @@ concordancefit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL,
         storage.mode(weights) <- "double" # for the .Call, in case of integers
     }
     if (is.Surv(y)) {
-        if (ncol(y) == 3 && timewt %in% c("S/G", "n/G", "n/G2"))
+        ny <- ncol(y)
+        if (ny == 3 && timewt %in% c("S/G", "n/G", "n/G2"))
             stop(timewt, " timewt option not supported for (time1, time2) data")
+        if (!is.na(attr(y, "states"))) 
+            stop("concordance not defined for a multi-state outcome")
         if (timefix) y <- aeqSurv(y)
         if (!is.null(ymin)) {
-            earlycensor <- (y[,ny]==0 & y[, ny-1] < ymin)
-            if (any(earlycensor)) {
-                y <- y[!earlycensor,]
-                x <- x[!earlycensor]
-                weights <- weights[!earlycensor]
-                strata  <- strata[!earlycensor]
-                n <- nrow(y)
-            }
+            censored <- (y[,ny] ==0)
+            if (any(y[censored, ny-1] < ymin))
+                stop("data has a censored value less than ymin")
+            else y[,ny-1] <- pmax(y[,ny-1], ymin)
         }
     } else {
         # should only occur if another package calls this routine
