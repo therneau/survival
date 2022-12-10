@@ -5,9 +5,9 @@ concordance <- function(object, ...)
 concordance.formula <- function(object, data,
                                 weights, subset, na.action, cluster,
                                 ymin, ymax, 
-                                timewt=c("n", "S", "S/G", "n/G", "n/G2", "I"),
+                                timewt=c("n", "S", "S/G", "n/G2", "I"),
                                influence=0, ranks=FALSE, reverse=FALSE,
-                                timefix=TRUE, keepstrata=10, std.err=TRUE, ...) {
+                                timefix=TRUE, keepstrata=10, ...) {
     Call <- match.call()  # save a copy of of the call, as documentation
     timewt <- match.arg(timewt)
     if (missing(ymin)) ymin <- NULL
@@ -77,8 +77,7 @@ concordance.formula <- function(object, data,
         stop ("the reverse argument must be TRUE/FALSE")
  
     fit <- concordancefit(Y, x, strat, wt, ymin, ymax, timewt, cluster,
-                           influence, ranks, reverse, keepstrata=keepstrata,
-                          std.err = std.err)
+                           influence, ranks, reverse, keepstrata=keepstrata)
     na.action <- attr(mf, "na.action")
     if (length(na.action)) fit$na.action <- na.action
     fit$call <- Call
@@ -99,22 +98,26 @@ print.concordance <- function(x, digits= max(1L, getOption("digits") - 3L),
         cat("n=", x$n, " (", naprint(omit), ")\n", sep = "")
     else cat("n=", x$n, "\n")
     
-    if (length(x$concordance) > 1) {
-        # result of a call with multiple fits
-        tmat <- cbind(concordance= x$concordance, se=sqrt(diag(x$var)))
-        print(round(tmat, digits=digits), ...)
-        cat("\n")
+    if (is.null(x$var)) {
+        # Result of a call with std.err = FALSE
+        cat("Concordance= ", format(x$concordance, digits=digits), "\n")
+    } else {
+        if (length(x$concordance) > 1) {
+            # result of a call with multiple fits
+            tmat <- cbind(concordance= x$concordance, se=sqrt(diag(x$var)))
+            print(round(tmat, digits=digits), ...)
+            cat("\n")
+        }
+        else cat("Concordance= ", format(x$concordance, digits=digits), 
+                 " se= ", format(sqrt(x$var), digits=digits), '\n', sep='')
     }
-    else cat("Concordance= ", format(x$concordance, digits=digits), " se= ", 
-             format(sqrt(x$var), digits=digits), '\n', sep='')
-
     if (!is.matrix(x$count) || nrow(x$count < 11)) 
         print(round(x$count,2))
     invisible(x)
-    }
+}
 
 concordancefit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL, 
-                            timewt=c("n", "S", "S/G", "n/G", "n/G2", "I"),
+                            timewt=c("n", "S", "S/G", "n/G2", "I"),
                             cluster, influence=0, ranks=FALSE, reverse=FALSE,
                             timefix=TRUE, keepstrata=10, std.err =TRUE) {
     # The coxph program may occassionally fail, and this will kill the C
@@ -122,7 +125,7 @@ concordancefit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL,
     if (any(is.na(x)) || any(is.na(y))) return(NULL)
     timewt <- match.arg(timewt)
     if (!is.null(ymin) && !is.numeric(ymin)) stop("ymin must be numeric")
-    if (!is.null(ymax) && !is.null(ymax))    stop("ymax must be numeric")
+    if (!is.null(ymax) && !is.numeric(ymax))    stop("ymax must be numeric")
     if (!std.err) {ranks <- FALSE; influence <- 0;}
 
     n <- length(y)
@@ -136,18 +139,17 @@ concordancefit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL,
         storage.mode(weights) <- "double" # for the .Call, in case of integers
     }
     if (is.Surv(y)) {
-        if (ncol(y) == 3 && timewt %in% c("S/G", "n/G", "n/G2"))
+        ny <- ncol(y)
+        if (ny == 3 && timewt %in% c("S/G", "n/G2"))
             stop(timewt, " timewt option not supported for (time1, time2) data")
+        if (!is.null(attr(y, "states"))) 
+            stop("concordance not defined for a multi-state outcome")
         if (timefix) y <- aeqSurv(y)
         if (!is.null(ymin)) {
-            earlycensor <- (y[,ny]==0 & y[, ny-1] < ymin)
-            if (any(earlycensor)) {
-                y <- y[!earlycensor,]
-                x <- x[!earlycensor]
-                weights <- weights[!earlycensor]
-                strata  <- strata[!earlycensor]
-                n <- nrow(y)
-            }
+            censored <- (y[,ny] ==0)
+            if (any(y[censored, ny-1] < ymin))
+                stop("data has a censored value less than ymin")
+            else y[,ny-1] <- pmax(y[,ny-1], ymin)
         }
     } else {
         # should only occur if another package calls this routine
@@ -242,7 +244,6 @@ concordancefit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL,
                          "S"   = sum(wts)* gfit$S/gfit$nrisk,
                          "S/G" = sum(wts)* gfit$S/ (gfit$G * gfit$nrisk),
                          "n" =   rep(1.0, length(etime)),
-                         "n/G" = 1/gfit$G,
                          "n/G2"= 1/gfit$G^2,
                          "I"  =  1/gfit$nrisk)
         if (any(!is.finite(timewt))) stop("program error, notify author")
@@ -330,8 +331,8 @@ concordancefit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL,
         rval <- list(concordance = (somer+1)/2, count=fit$count, n=n,
                      var = var.somer/4, cvar=vcox/(4*npair^2))
         }
-    else  rval <- list(concordance = (somer+1)/2, count=fit$count, n=n,
-                     cvar=vcox/(4*npair^2))
+    else  rval <- list(concordance = (somer+1)/2, count=fit$count, n=n)
+
     if (is.matrix(rval$count))
         colnames(rval$count) <- c("concordant", "discordant", "tied.x", 
                                    "tied.y", "tied.xy")
@@ -496,7 +497,7 @@ concordance.lm <- function(object, ..., newdata, cluster, ymin, ymax,
 }
 
 concordance.survreg <- function(object, ..., newdata, cluster, ymin, ymax,
-                                timewt=c("n", "S", "S/G", "n/G", "n/G2", "I"),
+                                timewt=c("n", "S", "S/G", "n/G2", "I"),
                                 influence=0, ranks=FALSE, timefix= TRUE,
                                 keepstrata=10) {
     Call <- match.call()
@@ -533,7 +534,7 @@ concordance.survreg <- function(object, ..., newdata, cluster, ymin, ymax,
 }
     
 concordance.coxph <- function(object, ..., newdata, cluster, ymin, ymax, 
-                               timewt=c("n", "S", "S/G", "n/G", "n/G2", "I"),
+                               timewt=c("n", "S", "S/G", "n/G2", "I"),
                                influence=0, ranks=FALSE, timefix=TRUE,
                                keepstrata=10) {
     Call <- match.call()

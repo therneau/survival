@@ -22,8 +22,6 @@ Type 'q()' to quit R.
 > options(warn = 1)
 > library('survival')
 > 
-> base::assign(".oldSearch", base::search(), pos = 'CheckExEnv')
-> base::assign(".old_wd", base::getwd(), pos = 'CheckExEnv')
 > cleanEx()
 > nameEx("Surv")
 > ### * Surv
@@ -746,6 +744,20 @@ n= 394, number of events= 155
 > ##D plot(x, haz, log='xy', ylab="Hazard") #line with slope (1/scale -1)
 > ## End(Not run)
 > 
+> # Estimated CDF of a simple Weibull
+> fit <- survreg(Surv(time, status) ~ 1, data=lung)
+> pp <- 1:99/100  
+> q1 <- qsurvreg(pp, coef(fit), fit$scale)
+> q2 <- qweibull(pp, shape= 1/fit$scale, scale= exp(coef(fit)))
+> all.equal(q1, q2)
+[1] TRUE
+> ## Not run: 
+> ##D plot(q1, pp, type='l', xlab="Months", ylab="CDF")
+> ## End(Not run)
+> # per the help page for dweibull, the mean is scale * gamma(1 + 1/shape)
+> c(mean = exp(coef(fit))* gamma(1 + fit$scale))
+mean.(Intercept) 
+        384.8529 
 > 
 > 
 > cleanEx()
@@ -2335,7 +2347,7 @@ n= 64
 > 
 >  fit <- coxph(Surv(start, stop, event) ~ (age + surgery)* transplant,
 +                data=heart)
->  mresid <- resid(fit, collapse=heart$id)
+>  mresid <- resid(fit, condense=heart$id)
 > 
 > 
 > 
@@ -2861,14 +2873,14 @@ overall.karno   t0_60.karno       t60_120          t120
 > 
 > 
 > cleanEx()
-> nameEx("survcollapse")
-> ### * survcollapse
+> nameEx("survcondense")
+> ### * survcondense
 > 
 > flush(stderr()); flush(stdout())
 > 
-> ### Name: survcollapse
+> ### Name: survcondense
 > ### Title: Shorten a (time1, time2) survival dataset
-> ### Aliases: survcollapse
+> ### Aliases: survcondense
 > ### Keywords: survival
 > 
 > ### ** Examples
@@ -2881,7 +2893,7 @@ overall.karno   t0_60.karno       t60_120          t120
 [1] 62  5
 > 
 > # remove the added rows
-> test2 <- survcollapse(Surv(tstart, time, status) ~ x, test1, id=newid)
+> test2 <- survcondense(Surv(tstart, time, status) ~ x, test1, id=newid)
 > dim(test2)
 [1] 23  4
 > 
@@ -3662,8 +3674,6 @@ $terms
 > ###
 > cleanEx()
 > options(digits = 7L)
-> base::cat("Time elapsed: ", proc.time() - base::get("ptime", pos = 'CheckExEnv'),"\n")
-Time elapsed:  4.054 0.148 4.255 0 0 
 > grDevices::dev.off()
 null device 
           1 

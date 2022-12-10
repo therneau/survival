@@ -442,7 +442,7 @@ tmerge <- function(data1, data2, id, ..., tstart, tstop, options) {
                 # We know how to handle a few special cases, but the basic strategy
                 #  is "don't try to be clever".  Remember that class() can return
                 #  a vector of length > 1
-                if (inherits(newvar, "factor") && (!iherits(yinc, "factor") ||
+                if (inherits(newvar, "factor") && (!inherits(yinc, "factor") ||
                                             !identical(levels(newvar), levels(yinc))))
                     stop("tdc update does not match prior factor: ", argname[ii])
                 clnew <- class(yinc)

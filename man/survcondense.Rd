@@ -7,8 +7,8 @@
   be used to compact one.
 }
 \usage{
-survcondense(formula, data, subset, id, start = "tstart", end = "tstop",
-             event = "event")
+survcondense(formula, data, subset, na.action= na.pass, id, 
+             start = "tstart", end = "tstop", event = "event")
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -23,6 +23,7 @@ survcondense(formula, data, subset, id, start = "tstart", end = "tstop",
     argument. 
   }
   \item{subset}{optional subset expression to apply to the data set}
+  \item{na.action}{optional removal of missing values}
   \item{id}{variable name that identifies subjects}
   \item{start}{optional character string, giving the name of the start
     time variable in the result}

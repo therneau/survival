@@ -40,8 +40,6 @@ SEXP fastkm1(SEXP y2, SEXP wt2, SEXP sort2) {
     **  the event (etime) are accumulated at the same time.
     */
     dtime = time[sort[0]];  /* most recently found death time */
-    ctime = dtime;          /* most recently found censor time */
-    dfirst = 1;
     nevent = 0;
     ntemp = 0; dtemp=0; ctemp=0;
     ncount = (double *) ALLOC(n, sizeof(double));  /*n at risk */
@@ -49,19 +47,19 @@ SEXP fastkm1(SEXP y2, SEXP wt2, SEXP sort2) {
     ccount = (double *) ALLOC(n, sizeof(double));  /* number of censors*/
     for (i=0; i<n; i++) {
 	p = sort[i];
-	if (dtime != time[p]) {dtemp=0; ctemp=0;}
+	if (dtime != time[p]) {
+	    dtemp=0; 
+	    ctemp=0;
+	    dtime = time[p];
+	    if (dcount[i-1] > 0) nevent++;  /* unique event time */
+	}
 	ntemp += wt[p];
 	if (status[p] ==0) ctemp += wt[p]; else dtemp += wt[p];
 	ncount[i] = ntemp;
 	dcount[i] = dtemp;
 	ccount[i] = ctemp;
-	if (status[p]==1 && (dfirst==1 || dtime != time[p])) {
-	    dtime = time[p];  /* set to the new value*/
-	    dfirst =0;   
-	    nevent++;
-	}
     }
-    
+    if (dcount[n-1] > 0) nevent++;  
     /*
     ** create output vectors
     */
@@ -87,7 +85,7 @@ SEXP fastkm1(SEXP y2, SEXP wt2, SEXP sort2) {
     stemp =1;
     gtemp =1;
     dfirst =1;  cfirst =1;
-    for (i= n-1; i >=0; i--) { /* earliest time to last time */
+    for (i= n-1; k< nevent; i--) { /* earliest time to last time */
 	p = sort[i];
 	if (status[p] ==1 && (dfirst || time[p] != dtime)) {
 	    dtime = time[p];
@@ -113,7 +111,7 @@ SEXP fastkm1(SEXP y2, SEXP wt2, SEXP sort2) {
 
 /*
 ** The case of start-stop data.  
-** G will be incorrect here, but we leave the worries to the parent routine
+** G will be incorrect here, so don't compute it.
 ** The reason is that a subject with two rows of (0,5) (5,10) will get counted
 **   as a censor at time 5, when they were not; to solve this the parent would
 **   need to recode the status as censor/event/ignore.  Concordance currently

@@ -68,9 +68,9 @@ aeq(cfit2$var, 1/cfun(fit2))
 
 # Direct call
 fit2b <- concordancefit(tempy, tempx)
-fit2c <- concordancefit(tempy, tempx, robustse=FALSE)
+fit2c <- concordancefit(tempy, tempx, std.err=FALSE)
 all.equal(fit2[1:5], fit2b)
-all.equal(fit2b[-4], fit2c)
+all.equal(fit2b[1:3], fit2c)
 
 # Bigger data
 fit3 <- concordance(Surv(time, status) ~ age, lung, reverse=TRUE)

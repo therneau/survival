@@ -10,9 +10,9 @@ routine is responsible for these things.
 }
 \usage{
 concordancefit(y, x, strata, weights, ymin = NULL, ymax = NULL,
- timewt = c("n", "S", "S/G", "n/G", "n/G2", "I"), cluster, influence =0,
+ timewt = c("n", "S", "S/G", "n/G2", "I"), cluster, influence =0,
  ranks = FALSE, reverse = FALSE, timefix = TRUE, keepstrata=10, 
- robustse = TRUE)
+ std.err = TRUE)
 }
 \arguments{
   \item{y}{the response.  It can be numeric, factor, or a Surv object}
@@ -29,7 +29,15 @@ concordancefit(y, x, strata, weights, ymin = NULL, ymax = NULL,
     total number of strata greater than \code{keepstrata}, or
     \code{keepstrata=FALSE}, those subtotals are not kept in the output.
   }
-  \item{robustse}{comput the robust standard error}
+  \item{std.err}{compute the standard error; not doing so saves some
+  compute time.}
+}
+\details{
+  This function is provided for those who want a ``direct'' call to the
+  concordance calculations, without using the formula interface.  A
+  primary use has been other packages.   The routine does minimal
+  checking of its input arguments, under the assumption that this has
+  already been taken care of by the calling routine.
 }
 \value{a list containing the results}
 \author{ Terry Therneau}

@@ -149,6 +149,9 @@ SEXP coxsurv2(SEXP otime2, SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22,
 double **dmatrix(double *array, int nrow, int ncol);
 int    **imatrix(int *array, int nrow, int ncol);
 
+SEXP fastkm1(SEXP y2, SEXP wt2, SEXP sort2);
+SEXP fastkm2(SEXP y2, SEXP wt2, SEXP sort12, SEXP sort22);
+
 SEXP finegray(SEXP tstart2, SEXP tstop2,   SEXP ctime2,   SEXP cprob2, 
 	      SEXP extend2, SEXP keep2);
 

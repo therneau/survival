@@ -12,6 +12,8 @@
     \item Add the survcondense function.
     \item Improve tmerge handling of a wide data set and add a test case
     for it.  Add a caution to the vignette wrt using wide data sets.
+    \item Improve the speed of concordance (request of Frank H).  Update
+    the vignette and add more tests.
 }}
 \section{Changes in version 3.4-1}{
   \itemize{

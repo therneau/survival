@@ -47,9 +47,9 @@ concordance <- function(object, ...)
 concordance.formula <- function(object, data,
                                 weights, subset, na.action, cluster,
                                 ymin, ymax, 
-                                timewt=c("n", "S", "S/G", "n/G", "n/G2", "I"),
+                                timewt=c("n", "S", "S/G", "n/G2", "I"),
                                influence=0, ranks=FALSE, reverse=FALSE,
-                                timefix=TRUE, keepstrata=10, std.err=TRUE, ...) {
+                                timefix=TRUE, keepstrata=10, ...) {
     Call <- match.call()  # save a copy of of the call, as documentation
     timewt <- match.arg(timewt)
     if (missing(ymin)) ymin <- NULL
@@ -119,8 +119,7 @@ concordance.formula <- function(object, data,
         stop ("the reverse argument must be TRUE/FALSE")
  
     fit <- concordancefit(Y, x, strat, wt, ymin, ymax, timewt, cluster,
-                           influence, ranks, reverse, keepstrata=keepstrata,
-                          std.err = std.err)
+                           influence, ranks, reverse, keepstrata=keepstrata)
     na.action <- attr(mf, "na.action")
     if (length(na.action)) fit$na.action <- na.action
     fit$call <- Call
@@ -181,7 +180,7 @@ C code.
 
 <<concordancefit>>=
 concordancefit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL, 
-                            timewt=c("n", "S", "S/G", "n/G", "n/G2", "I"),
+                            timewt=c("n", "S", "S/G", "n/G2", "I"),
                             cluster, influence=0, ranks=FALSE, reverse=FALSE,
                             timefix=TRUE, keepstrata=10, std.err =TRUE) {
     # The coxph program may occassionally fail, and this will kill the C
@@ -189,7 +188,7 @@ concordancefit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL,
     if (any(is.na(x)) || any(is.na(y))) return(NULL)
     timewt <- match.arg(timewt)
     if (!is.null(ymin) && !is.numeric(ymin)) stop("ymin must be numeric")
-    if (!is.null(ymax) && !is.null(ymax))    stop("ymax must be numeric")
+    if (!is.null(ymax) && !is.numeric(ymax))    stop("ymax must be numeric")
     if (!std.err) {ranks <- FALSE; influence <- 0;}
 
     n <- length(y)
@@ -204,9 +203,9 @@ concordancefit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL,
     }
     if (is.Surv(y)) {
         ny <- ncol(y)
-        if (ny == 3 && timewt %in% c("S/G", "n/G", "n/G2"))
+        if (ny == 3 && timewt %in% c("S/G", "n/G2"))
             stop(timewt, " timewt option not supported for (time1, time2) data")
-        if (!is.na(attr(y, "states"))) 
+        if (!is.null(attr(y, "states"))) 
             stop("concordance not defined for a multi-state outcome")
         if (timefix) y <- aeqSurv(y)
         if (!is.null(ymin)) {
@@ -308,7 +307,6 @@ concordancefit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL,
                          "S"   = sum(wts)* gfit$S/gfit$nrisk,
                          "S/G" = sum(wts)* gfit$S/ (gfit$G * gfit$nrisk),
                          "n" =   rep(1.0, length(etime)),
-                         "n/G" = 1/gfit$G,
                          "n/G2"= 1/gfit$G^2,
                          "I"  =  1/gfit$nrisk)
         if (any(!is.finite(timewt))) stop("program error, notify author")
@@ -596,7 +594,7 @@ concordance.lm <- function(object, ..., newdata, cluster, ymin, ymax,
 }
 
 concordance.survreg <- function(object, ..., newdata, cluster, ymin, ymax,
-                                timewt=c("n", "S", "S/G", "n/G", "n/G2", "I"),
+                                timewt=c("n", "S", "S/G", "n/G2", "I"),
                                 influence=0, ranks=FALSE, timefix= TRUE,
                                 keepstrata=10) {
     Call <- match.call()
@@ -633,7 +631,7 @@ concordance.survreg <- function(object, ..., newdata, cluster, ymin, ymax,
 }
     
 concordance.coxph <- function(object, ..., newdata, cluster, ymin, ymax, 
-                               timewt=c("n", "S", "S/G", "n/G", "n/G2", "I"),
+                               timewt=c("n", "S", "S/G", "n/G2", "I"),
                                influence=0, ranks=FALSE, timefix=TRUE,
                                keepstrata=10) {
     Call <- match.call()

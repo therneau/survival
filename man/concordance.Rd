@@ -14,15 +14,15 @@ calculated from the results of this function.
 \usage{
 concordance(object, \ldots)
 \method{concordance}{formula}(object, data, weights, subset, na.action,
-  cluster, ymin, ymax, timewt= c("n", "S", "S/G", "n/G", "n/G2", "I"),
+  cluster, ymin, ymax, timewt= c("n", "S", "S/G", "n/G2", "I"),
   influence=0, ranks = FALSE, reverse=FALSE, timefix=TRUE, keepstrata=10, \ldots)
 \method{concordance}{lm}(object, \ldots, newdata, cluster, ymin, ymax,
   influence=0, ranks=FALSE, timefix=TRUE, keepstrata=10)
 \method{concordance}{coxph}(object, \ldots, newdata, cluster, ymin, ymax,
-  timewt= c("n", "S", "S/G", "n/G", "n/G2", "I"), influence=0,
+  timewt= c("n", "S", "S/G", "n/G2", "I"), influence=0,
   ranks=FALSE, timefix=TRUE, keepstrata=10)
 \method{concordance}{survreg}(object, \ldots, newdata, cluster, ymin, ymax,
-  timewt= c("n", "S", "S/G", "n/G", "n/G2", "I"), influence=0,
+  timewt= c("n", "S", "S/G", "n/G2", "I"), influence=0,
   ranks=FALSE, timefix=TRUE, keepstrata=10)
 }
 
@@ -72,11 +72,11 @@ concordance(object, \ldots)
     influence matrix, 3 = return both
   }
   \item{ranks}{if TRUE, return a data frame containing the
-    individual ranks that make up the overall score.  
+    scaled ranks that make up the overall score.  
   }
   \item{reverse}{if TRUE then assume that larger \code{x} values predict
     smaller response values \code{y}; a proportional hazards model is
-    the common example of this. }
+    the common example of this, larger hazard = shorter survival.}
 
   \item{timefix}{correct for possible rounding error.  See the
     vignette on tied times for more explanation. Essentially, exact ties
@@ -90,25 +90,43 @@ concordance(object, \ldots)
     }
 }
 \details{
-  At each event time, compute the rank of the subject who had the
-  event as compared to all others with a longer survival, where the
-  rank is value between 0 and 1.  The concordance is a weighted mean
-  of these values, determined by the \code{timewt} option.
-  For uncensored data each unique response value is compared to all
-  those which are larger.
+  The concordance is an estimate of
+  \eqn{Pr(x_i < x_j | y_i < y_j)}{Pr(x[i] < x[j] | y[i] < y[j])},
+  for a model fit replace \eqn{x}{x} with \eqn{\hat y}{yhat}, the
+  predicted response from the model.
+  For a survival outcome some pairs of values
+  are not comparable, e.g., censored at time 5 and a death at time 6,
+  as we do not know if the first observation will or will not outlive
+  the second.  In this case the total number of evaluable pairs is smaller.
 
-  Using the default value for \code{timewt} gives the area
-  under the receiver operating curve (AUC) for a binary response,
-  and (d+1)/2 when y is continuous, where d is Somers' d.
-  For a survival time, \code{timewt} of n gives Harrell's c-statistic,
-  which is closely related to the Gehan-Wilcoxon test; here n is short
-  for \eqn{n(t)}{n(t)}, the number at risk at each event time.
-  S corresponds to the Peto-Wilcoxon, n/G^2 is the weight advocated
-  by Uno, and S/G the weighting proposed by Schemper.
-  Peto pointed out that \eqn{n(t) \approx n(0) S(t-) G(t-)}
-  {n(t) approx= n(0)S(t-)G(t-)} where S and G are the survival and censoring
-  distributions; this implies that the Schemper and Uno weightings
-  should give very similar results. 
+  A naive compuation requires adding up over all n(n-1)/2 comparisons,
+  which can be quite slow for large data sets.
+  This routine uses an O(n log(n)) algorithm.
+  At each uncensored event time y, compute the rank of x for the subject
+  who had the event as compared to the x values for all others with a longer
+  survival, where the rank has value between 0 and 1.
+  The concordance is a weighted mean of these ranks,
+  determined by the \code{timewt} option. The rank vector can be
+  efficiently updated as subjects are added to the risk set.
+  For further details see the vignette.
+
+  The \code{timewt} option is only applicable to censored data.  In this
+  case the default corresponds to Harrell's C statistic, which is
+  closely related to the Gehan-Wilcoxon test;
+  \code{timewt="S"} corrsponds to the Peto-Wilcoxon,
+  \code{timewt="S/G"} is suggested by Schemper, and
+  \code{timewt="n/G2"} corresponds to Uno's C.
+  It turns out that the Schemper and Uno weights are computationally
+  identical, we have retained both option labels as a user convenience.
+  The \code{timewt= "I"} option is related to the log-rank
+  statistic.
+  
+  Relatations to other statistics:
+  For continuous x and y, 2C- 1 is equal to Somers' d.
+  If the response is binary, C is equal to the area under the reciever
+  operating curve or AUC.
+  For a survival response and binary predictor C is the numerator of
+  the Genan-Wilcoxon test.
   
   When the number of strata is very large, such as in a conditional
   logistic regression for instance (\code{clogit} function), a much
