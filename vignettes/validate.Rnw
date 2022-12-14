@@ -32,9 +32,9 @@ library(survival, quietly=TRUE)
 \def\Mhat{\widehat M}        %define "Mhat" to mean M-hat
 \newcommand{\code}[1]{\texttt{#1}}
 
-\title{Validation}
+\title{Software validation}
 \author{Terry M Therneau}
-\date{Dec 2015}
+\date{Dec 2022 (updated)}
 \begin{document}
 \maketitle
 \section{Introduction}
@@ -143,7 +143,7 @@ The log partial likelihood (LPL) has a term for each event; each term is
 the log of the ratio of the score for the subject who had an event over
 the sum of scores for those who did not.
 The LPL, first derivative $U$ of the LPL and 
-second derivative (or Hession) $\imat$ are:
+second derivative (or Hessian) $\imat$ are:
 \begin{eqnarray*}
 LPL &=& \{\beta- \log(3r+3)\} + \{\beta - \log(r+3)\} +
    \{0-\log(r+3)\} + \{0-0\} \\
@@ -159,6 +159,9 @@ U &=& \left(1-\frac{r}{r+1}\right) + \left(1-\frac{r}{r+3}\right) +
 (For a 0/1 covariate the variance formula \eqref{H2} simplifies to
 $\xbar - \xbar^2$, but only in that case.  We used this fact above.)
 
+The actual solution corresponds to $U(\beta)=0$, which from the quadratic
+formula is $r=(1/2)(3 + \sqrt{33})$; 
+or $\bhat = \log(r) \approx 1.475285$.  
 The following function computes these quantities.
 <<breslow1>>=
 breslow1 <- function(beta) {
@@ -181,8 +184,7 @@ Using the usual formula for a quadratic equation gives
 $r=(1/2)(3 + \sqrt{33})$ and $\bhat = \log(r) \approx 1.475285$.  
 The above call to \code{breslow1} verifies that the first derivative
 is zero at this point.
-
-Newton--Raphson iteration has increments of $-\Cvar U$.
+The Newton--Raphson iteration has increments of $-\Cvar U$.
 Starting with the usual initial estimate of $\beta=0$, the first
 iteration is $\beta=8/5$ and further ones are shown below.
 <<>>=
@@ -191,11 +193,11 @@ iter <- matrix(0, nrow=6, ncol=4,
                              c("beta", "loglik", "U", "H")))
 # Exact Newton-Raphson
 beta <- 0
-for (i in 1:6) {
+for (i in 1:5) {
     iter[i,] <- breslow1(beta)
     beta <- beta + iter[i,"U"]/iter[i,"H"]
 }
-print(iter, digits=10)
+print(iter, digits=9)
 
 # coxph fits
 test1 <- data.frame(time=  c(1, 1, 6, 6, 8, 9),
@@ -311,7 +313,7 @@ Similarly, the scaled Schoenfeld residuals are the (number of events) by $p$
 matrix obtained by multiplying the Schoenfeld residuals by $\Cvar$.
 
 As stated above there is a close connection between the
-Nelson--Aalen estimate estimate of cumulative hazard and the
+Nelson-Aalen estimate estimate of cumulative hazard and the
 Breslow approximation for ties.
 The baseline hazard is shown as the column $\Lambda_0$ in table \ref{tab:val1}.
 The estimated hazard for a subject with covariate $x_i$ is
@@ -501,7 +503,7 @@ be similar as well in that case, sufficiently so that
 explorations of functional form (martingale residuals), leverage and robust
 variance (dfbeta) and proportional hazards (scaled Schoenfeld) led to
 the same conclusions.
-This will not hold when there are a moderate to large number of ties.
+This may not hold when there is a large number of ties.
 
   The variance formula for the baseline hazard function in the Efron case
 is evaluated the same way as before, as 
@@ -1167,7 +1169,7 @@ they have further follow-up after the last observed change of state.
   \label{mstate1t}
 \end{table}
 
-
+(This section not yet finished.)
 
 \bibliographystyle{plain}
 \bibliography{refer}
