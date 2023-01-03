@@ -92,4 +92,6 @@ dnase <- tmerge(dnase, rhDNase, id=id,
 dnase <- subset(dnase, (infect==1 | end==0), c(id:trt, fev:infect))
 agfit <- coxph(Surv(tstart, tstop, infect) ~ trt + fev, cluster=id,
                  data=dnase)
+}
 \keyword{datasets}
+
