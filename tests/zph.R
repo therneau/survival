@@ -174,7 +174,3 @@ zz3 <- cox.zph(fit3)
 
 all.equal(unclass(zz)[1:7], unclass(zz2)[1:7]) #ignore the call component
 all.equal(as.vector(zz$table), as.vector(zz3$table)) # variable names change
-
-
-
-

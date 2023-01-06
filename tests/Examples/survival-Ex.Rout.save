@@ -2347,7 +2347,7 @@ n= 64
 > 
 >  fit <- coxph(Surv(start, stop, event) ~ (age + surgery)* transplant,
 +                data=heart)
->  mresid <- resid(fit, condense=heart$id)
+>  mresid <- resid(fit, collapse=heart$id)
 > 
 > 
 > 
@@ -2474,7 +2474,7 @@ n= 394, number of events= 155
 > ### ** Examples
 > 
 > # Build the start-stop data set for analysis, and
-> #  replicate line 2 of table 8.13
+> #  replicate line 2 of table 8.13 in the book
 > first <- subset(rhDNase, !duplicated(id)) #first row for each subject
 > dnase <- tmerge(first, first, id=id, tstop=as.numeric(end.dt -entry.dt))
 > 
