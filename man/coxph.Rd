@@ -249,13 +249,13 @@ for this task, but even with this the computation can be insufferably
 long.  With (start, stop) data it is much worse since the recursion
 needs to start anew for each unique start time.
 
-Multi state models are a more difficult case.  If there are two
-transitions of the same type A:B at the same time, the the arguments in
-favor of the Efron approximation carry forward unchanged.  For an A:B and
-and an A:C transition at the same time, e.g. competing risks, one can
-make a similar argument; however, implementing this in the code would be
-very difficult and has not been attempted.  For a tied A:B and B:C,
-or A:B and C:D, pair we would want to use Breslow form.  Due to this
+Multi state models are a more difficult case.
+First of all, a proper extension of the Efron argument is much more
+difficult to do, and this author is not yet fully convinced that the
+resulting algorithm is defensible.  
+Secondly, the current code for Efron case does not consistently
+compute that extended logic (and extension would require major changes
+in the code).  Due to this
 complexity, the default is \code{ties='breslow'} for the multistate
 case. If \code{ties='efron'} is selected the current code will, in
 effect, only apply to to tied transitions of the same type.

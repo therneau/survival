@@ -1,5 +1,9 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 3.5-0}{
+  \itemize{
+    \item Final check and updates for CRAN submission
+}}
 \section{Changes in version 3.4-2}{
   \itemize{
     \item For a multi-state coxph model, the default is now
