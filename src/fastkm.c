@@ -152,7 +152,7 @@ SEXP fastkm2(SEXP y2, SEXP wt2, SEXP sort12, SEXP sort22) {
     dtime = tstop[sort2[0]];  /* most recently found death time */
     dfirst = 1;
     nevent = 0;
-    ntemp = 0; dtemp=0; 
+    ntemp = 0; ctemp=0; dtemp=0; 
     ncount = (double *) ALLOC(n, sizeof(double));  /*n at risk */
     dcount = (double *) ALLOC(n, sizeof(double));  /* number of deaths */
     k=0;  /* tracks removals */
