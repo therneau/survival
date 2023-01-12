@@ -169,7 +169,7 @@ SEXP fastkm2(SEXP y2, SEXP wt2, SEXP sort12, SEXP sort22) {
 	    nevent++;
 	    for (; k<n; k++) {
 		p1 = sort1[k];
-		if (tstart[p1] >= dtime) ntemp =- wt[p1];
+		if (tstart[p1] >= dtime) ntemp -= wt[p1];
 		else break;
 	    }
 	}
