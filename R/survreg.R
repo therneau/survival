@@ -266,8 +266,8 @@ survreg <- function(formula, data, weights, subset, na.action,
 
     # set singular coefficients to NA
     #  this is purposely not done until the residuals, etc. are computed
-    singular <- (diag(fit$var)==0)[1:length(fit$coef)]
-    if (any(singular)) fit$coeffients[singular] <- NA
+    singular <- (diag(fit$var)==0)[1:length(fit$coefficients)]
+    if (any(singular)) fit$coefficients[singular] <- NA
 
     na.action <- attr(m, "na.action")
     if (length(na.action)) fit$na.action <- na.action

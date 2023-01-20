@@ -17,7 +17,7 @@ SEXP fastkm1(SEXP y2, SEXP wt2, SEXP sort2) {
     double *time, *status, *wt;
     int *sort;
     double *S, *G, *nrisk;  /* survival function for S and G, number at risk */
-    double stemp, gtemp, ntemp, dtemp, ctemp;
+    double stemp, gtemp, ntemp, dtemp, ctemp =0;
     double dtime, ctime;
     double *ncount, *dcount, *ccount;  /* number at risk, deaths, censors */
     static const char *outnames[]={"S", "G", "nrisk", "etime", ""};
@@ -125,7 +125,7 @@ SEXP fastkm2(SEXP y2, SEXP wt2, SEXP sort12, SEXP sort22) {
     double *tstart, *tstop, *status, *wt;
     int *sort1, *sort2;
     double *S, *nrisk;  /* survival function, number at risk */
-    double stemp, ntemp, dtemp, ctemp;
+    double stemp, ntemp, dtemp;
     double dtime;
     double *ncount, *dcount;  /* number at risk, deaths */
     static const char *outnames[]={"S", "nrisk", "etime", ""};
@@ -152,7 +152,7 @@ SEXP fastkm2(SEXP y2, SEXP wt2, SEXP sort12, SEXP sort22) {
     dtime = tstop[sort2[0]];  /* most recently found death time */
     dfirst = 1;
     nevent = 0;
-    ntemp = 0; dtemp=0; 
+    ntemp = 0;  dtemp =0;
     ncount = (double *) ALLOC(n, sizeof(double));  /*n at risk */
     dcount = (double *) ALLOC(n, sizeof(double));  /* number of deaths */
     k=0;  /* tracks removals */
@@ -160,7 +160,7 @@ SEXP fastkm2(SEXP y2, SEXP wt2, SEXP sort12, SEXP sort22) {
 	p2 = sort2[i];
 	if (dtime != tstop[p2]) dtemp =0;
 	ntemp += wt[p2];
-	if (status[p2] ==0) ctemp += wt[p2]; else dtemp += wt[p2];
+	if (status[p2] ==1)  dtemp += wt[p2];
 	ncount[i] = ntemp;
 	dcount[i] = dtemp;
 	if (status[p2]==1 && (dfirst==1 || dtime != tstop[p2])) {
@@ -169,7 +169,7 @@ SEXP fastkm2(SEXP y2, SEXP wt2, SEXP sort12, SEXP sort22) {
 	    nevent++;
 	    for (; k<n; k++) {
 		p1 = sort1[k];
-		if (tstart[p1] >= dtime) ntemp =- wt[p1];
+		if (tstart[p1] >= dtime) ntemp -= wt[p1];
 		else break;
 	    }
 	}

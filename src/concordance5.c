@@ -101,7 +101,7 @@ SEXP concordance5(SEXP y, SEXP x2, SEXP wt2, SEXP timewt2,
     UNPROTECT(1);
     return(rlist);
 }
-    SEXP concordance6(SEXP y, SEXP x2, SEXP wt2, SEXP timewt2, 
+SEXP concordance6(SEXP y, SEXP x2, SEXP wt2, SEXP timewt2, 
                       SEXP sortstart, SEXP sortstop) {
     int i, j, k, ii, jj, i2;
     int n, ntree, nevent;

@@ -1,5 +1,12 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 3.5-1}{
+  \itemize{
+    \item Minor edits to survreg (fit$coef to fit$coefficients) and
+    summary.coxph (a model with only an offset)
+    \item Fix error in fastkm.c (new routine, edge case, no one had
+    found it yet.)
+}}
 \section{Changes in version 3.5-0}{
   \itemize{
     \item Final check and updates for CRAN submission
