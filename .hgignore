@@ -5,12 +5,11 @@
 .*\.so
 todo
 datasource
-noweb/code*
-noweb/*.pdf
 vignettes/*.pdf
 noweb/figures/.*.pdf
 noweb/code*
 noweb/noweb.sty
+noweb/test
 vigtemp/
 test.local
 vignettes/.*.pdf

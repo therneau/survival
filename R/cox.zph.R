@@ -61,10 +61,12 @@ cox.zph <- function(fit, transform='km', terms=TRUE, singledf =FALSE,
     nterm <- length(asgn)
     termname <- names(asgn)
 
-    if (any(is.na(fit$coefficients))) {
-        keep <- !is.na(fit$coefficients)
+    fcoef <- fit$coefficients
+    if (any(is.na(fcoef))) {
+        keep <- !is.na(fcoef)
         varnames <- varnames[keep]
         X <- X[,keep]
+        fcoef <- fcoef[keep]
 
         # fix up assign 
         new <- unname(unlist(asgn))[keep] # the ones to keep
@@ -75,7 +77,7 @@ cox.zph <- function(fit, transform='km', terms=TRUE, singledf =FALSE,
         termname <- names(asgn)
         nterm <- length(asgn)   # asgn will be a list
         nvar <- length(new)
-    }
+    } 
     times <- y[,ny-1]
     if (is.character(transform)) {
         tname <- transform
@@ -130,8 +132,8 @@ cox.zph <- function(fit, transform='km', terms=TRUE, singledf =FALSE,
         u <- c(u0, resid$u[jj+nvar])
         if (singledf && length(jj) >1) {
             vv <- solve(imat)[-(1:nvar), -(1:nvar)]
-            t1 <- sum(fit$coef[jj] * resid$u[jj+nvar])
-            test[ii] <- t1^2 * (fit$coef[jj] %*% vv %*% fit$coef[jj])
+            t1 <- sum(fcoef[jj] * resid$u[jj+nvar])
+            test[ii] <- t1^2 * (fcoef[jj] %*% vv %*% fcoef[jj])
             df[ii] <- 1
         }
         else {
@@ -186,7 +188,7 @@ cox.zph <- function(fit, transform='km', terms=TRUE, singledf =FALSE,
         for (i in 1:nterm) {
             j <- asgn[[i]]
             if (length(j) ==1) temp[j, i] <- 1
-            else temp[j, i] <- fit$coefficients[j]
+            else temp[j, i] <- fcoef[j]
         }
 
         sresid <- sresid %*% temp
@@ -212,7 +214,7 @@ cox.zph <- function(fit, transform='km', terms=TRUE, singledf =FALSE,
     #  the linear predictor X\beta, which always has a coefficient of 1
     for (i in 1:nterm) {
         j <- asgn[[i]]
-        if (length(j) ==1) sresid[,i] <- sresid[,i] + fit$coefficients[j]
+        if (length(j) ==1) sresid[,i] <- sresid[,i] + fcoef[j]
         else sresid[,i] <- sresid[,i] +1
     }
 

@@ -1,5 +1,9 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 3.5-0}{
+  \itemize{
+    \item Final check and updates for CRAN submission
+}}
 \section{Changes in version 3.4-2}{
   \itemize{
     \item For a multi-state coxph model, the default is now
@@ -14,6 +18,9 @@
     for it.  Add a caution to the vignette wrt using wide data sets.
     \item Improve the speed of concordance (request of Frank H).  Update
     the vignette and add more tests.
+    \item Fix bug in cox.zph: if there was any NA coefficient in the
+    coxph fit, the residuals used for the plot would also be NA.
+    \item Run all tests and submit to CRAN (2023-01-06)
 }}
 \section{Changes in version 3.4-1}{
   \itemize{

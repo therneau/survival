@@ -447,7 +447,7 @@ SEXP survfitkm(SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22,
     double wt1, wt2, wt3, wt4;
 		      
     /* output variables */
-    double  *n[10],  *dtime,
+    double  *n[8],  *dtime,
 	    *kvec, *nvec, *std[2], *imat1=0, *imat2=0; /* =0 to silence -Wall*/
     double km, nelson;  /* current estimates */
 
@@ -525,7 +525,7 @@ for.
     PROTECT(rlist = mkNamed(VECSXP, outnames));
     
     dtime  = REAL(SET_VECTOR_ELT(rlist, 0, allocVector(REALSXP, ntime)));
-    if (ny==2) j=7;  else j=9;
+    if (ny==2) j=6;  else j=8;
     n[0]  = REAL(SET_VECTOR_ELT(rlist, 1, allocMatrix(REALSXP, ntime, j)));
     for (i=1; i<j; i++) n[i] = n[0] + i*ntime;
 

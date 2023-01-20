@@ -8,7 +8,7 @@ basehaz <- function (fit, newdata, centered = TRUE)
         stop("the basehaz function is not implemented for multi-state models")
     if (!inherits(fit, "coxph")) 
         stop("must be a coxph object")
-    if (!is.null(newdata)) {
+    if (!missing(newdata)) {
         sfit <- survfit(fit, newdata=newdata, se.fit=FALSE)
         chaz <- sfit$cumhaz
     }

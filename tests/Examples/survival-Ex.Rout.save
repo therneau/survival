@@ -1,6 +1,6 @@
 
-R version 4.1.2 (2021-11-01) -- "Bird Hippie"
-Copyright (C) 2021 The R Foundation for Statistical Computing
+R Under development (unstable) (2023-01-09 r83585) -- "Unsuffered Consequences"
+Copyright (C) 2023 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -22,6 +22,8 @@ Type 'q()' to quit R.
 > options(warn = 1)
 > library('survival')
 > 
+> base::assign(".oldSearch", base::search(), pos = 'CheckExEnv')
+> base::assign(".old_wd", base::getwd(), pos = 'CheckExEnv')
 > cleanEx()
 > nameEx("Surv")
 > ### * Surv
@@ -758,6 +760,8 @@ n= 394, number of events= 155
 > c(mean = exp(coef(fit))* gamma(1 + fit$scale))
 mean.(Intercept) 
         384.8529 
+> 
+> 
 > 
 > 
 > cleanEx()
@@ -2347,7 +2351,7 @@ n= 64
 > 
 >  fit <- coxph(Surv(start, stop, event) ~ (age + surgery)* transplant,
 +                data=heart)
->  mresid <- resid(fit, condense=heart$id)
+>  mresid <- resid(fit, collapse=heart$id)
 > 
 > 
 > 
@@ -2474,7 +2478,7 @@ n= 394, number of events= 155
 > ### ** Examples
 > 
 > # Build the start-stop data set for analysis, and
-> #  replicate line 2 of table 8.13
+> #  replicate line 2 of table 8.13 in the book
 > first <- subset(rhDNase, !duplicated(id)) #first row for each subject
 > dnase <- tmerge(first, first, id=id, tstop=as.numeric(end.dt -entry.dt))
 > 
@@ -2895,7 +2899,7 @@ overall.karno   t0_60.karno       t60_120          t120
 > # remove the added rows
 > test2 <- survcondense(Surv(tstart, time, status) ~ x, test1, id=newid)
 > dim(test2)
-[1] 23  4
+[1] 23  5
 > 
 > 
 > 
@@ -3674,6 +3678,8 @@ $terms
 > ###
 > cleanEx()
 > options(digits = 7L)
+> base::cat("Time elapsed: ", proc.time() - base::get("ptime", pos = 'CheckExEnv'),"\n")
+Time elapsed:  2.942 0.129 3.071 0 0 
 > grDevices::dev.off()
 null device 
           1 
