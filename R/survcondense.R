@@ -7,7 +7,7 @@
 #   Jones  10      25       0     1   3
 # Delete the first row and replace time1 on the second row.
 
-survcondense <- function(formula, data, subset, na.action= na.pass, id, 
+survcondense <- function(formula, data, weights, subset, na.action= na.pass, id, 
                          start="tstart", end="tstop", event="event") {
     Call <- match.call()
     if (missing(id)) stop("id is required")
@@ -18,7 +18,8 @@ survcondense <- function(formula, data, subset, na.action= na.pass, id,
     if (length(attr(Terms, "specials")$cluster) >0)
         stop("function does not handle cluster terms")
 
-    indx <- match(c("formula", "data", "subset","id"), names(Call), nomatch=0)
+    indx <- match(c("formula", "data", "weights", "subset","id"), 
+                  names(Call), nomatch=0)
     if (indx[1] ==0) stop("A formula argument is required")
     temp <- Call[c(1,indx)]  # only keep the arguments we wanted
     temp$na.action <- na.action # use the default
@@ -77,10 +78,12 @@ survcondense <- function(formula, data, subset, na.action= na.pass, id,
         }
     }
 
-    # thin the data rows, and remove the first colum rename or remove "(id)",
-    #  which will always be last
+    # thin the data rows, and remove the first column (Y), 
+    #  rename (weights), rename or remove "(id)"
+    #
     mfname <- names(mf)
     mfname[mfname=="(id)"] <- as.character(Call[["id"]])
+    mfname[mfname=="(weights)"] <- as.character(Call[["weights"]])
     names(mf) <- mfname
 
     newdata <- mf[-index[droprow], -c(1, which(duplicated(mfname))), drop=FALSE]
