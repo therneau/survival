@@ -16,28 +16,15 @@ pyears <- function(formula, data,
     tform <- Call[c(1,indx)]  # only keep the arguments we wanted
     tform[[1L]] <- quote(stats::model.frame)  # change the function called
 
-    Terms <- if(missing(data)) terms(formula, 'ratetable')
-             else              terms(formula, 'ratetable',data=data)
+    Terms <- if(missing(data)) terms(formula)
+             else              terms(formula, data=data)
     if (any(attr(Terms, 'order') >1))
             stop("Pyears cannot have interaction terms")
 
-    rate <- attr(Terms, "specials")$ratetable                   
-    if (length(rate) >0 || !missing(rmap) || !missing(ratetable)) {
+    if (!missing(rmap) || !missing(ratetable)) {
         has.ratetable <- TRUE
-        if(length(rate) > 1)
-            stop("Can have only 1 ratetable() call in a formula")
         if (missing(ratetable)) stop("No rate table specified")
-
-        if(length(rate) == 1) {
-            if (!missing(rmap)) 
-                stop("The ratetable() call in a formula is depreciated")
-
-            stemp <- untangle.specials(Terms, 'ratetable')
-            rcall <- as.call(parse(text=stemp$var)[[1]])   # as a call object
-            rcall[[1]] <- as.name('list')                  # make it a call to list(..
-            Terms <- Terms[-stemp$terms]                   # remove from the formula
-            }
-        else if (!missing(rmap)) {
+        if (!missing(rmap)) {
             rcall <- substitute(rmap)
             if (!is.call(rcall) || rcall[[1]] != as.name('list'))
                 stop ("Invalid rcall argument")
@@ -125,8 +112,6 @@ pyears <- function(formula, data,
             if (length(strats))
                 stop("pyears cannot handle stratified Cox models")
 
-            if (any(names(mf[,rate]) !=  attr(ratetable$terms, 'term.labels')))
-                 stop("Unable to match new data to old formula")
             R <- model.matrix.coxph(ratetable, data=rdata)
             }
         else stop("Invalid ratetable")

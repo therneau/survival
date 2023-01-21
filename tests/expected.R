@@ -78,9 +78,6 @@ temp1 <- mdy.Date(1,1,36)
 temp2 <- mdy.Date(1,2,55)
 exp1 <- survexp(~1,  ratetable=survexp.usr,times=c(366, 1827, 3653, 4383),
                 rmap= list(year=temp2, age=(temp2-temp1), sex=1, race='white'))
-#older style call
-exp1b <- survexp(~ratetable(year=temp2, age=(temp2-temp1), sex=1, race='white'),
-		    ratetable=survexp.usr, times=c(366, 1827, 3653, 4383))
 
 t12 <- as.numeric(temp2-temp1)   # difftimes are a PITA
 h1 <- ratewalk(c(t12, 1, 1, temp2), 366,  survexp.usr)
@@ -90,7 +87,6 @@ h4 <- ratewalk(c(t12, 1, 1, temp2), 4383, survexp.usr)
 
 aeq(-log(exp1$surv), c(sum(h1$hazard), sum(h2$hazard), sum(h3$hazard),
                        sum(h4$hazard)))
-aeq(exp1$surv, exp1b$surv)
 
 # pyears should give the same result
 dummy <- data.frame(time = 4383,
@@ -130,13 +126,15 @@ temp2 <- mdy.Date(6:1,11:6,c(55:50))
 temp3 <- c(1,2,1,2,1,2)
 age <- temp2 - temp1
 
-exp1 <- survexp(~ratetable(year=temp2, age=(temp2-temp1), sex=temp3),
+exp1 <- survexp(~1, rmap= list(year=temp2, age=(temp2-temp1), sex=temp3),
 		       times=c(366, 1827, 3653, 4383))
-exp2 <- survexp(~ratetable(year=temp2, age=(temp2-temp1), sex=temp3) + I(1:6),
+exp2 <- survexp(~ I(1:6), 
+                rmap= list(year=temp2, age=(temp2-temp1), sex=temp3),
 			times=c(366, 1827, 3653, 4383))
 exp3 <- exp2$surv
 for (i in 1:length(temp1)){
-    exp3[,i] <- survexp(~ratetable(year=temp2, age=(temp2-temp1), sex=temp3),
+    exp3[,i] <- survexp(~ 1,
+                        rmap = list(year=temp2, age=(temp2-temp1), sex=temp3),
                         times=c(366, 1827, 3653, 4383), subset=i)$surv
     }
 
@@ -160,11 +158,13 @@ for (i in 1:length(temp1)) {
 #
 # Check that adding more time points doesn't change things
 #
-exp4 <- survexp(~ratetable(year=temp2, age=(temp2-temp1), sex=temp3) + I(1:6),
+exp4 <- survexp(~ I(1:6),
+          rmap= list(year=temp2, age=(temp2-temp1), sex=temp3),
 		times=sort(c(366, 1827, 3653, 4383, 30*(1:100))))
 aeq(exp4$surv[match(exp2$time, exp4$time),], exp2$surv)
 
-exp4 <- survexp(~ratetable(year=temp2, age=(temp2-temp1), sex=temp3),
+exp4 <- survexp(~1,
+                rmap = list(year=temp2, age=(temp2-temp1), sex=temp3),
 		times=sort(c(366, 1827, 3653, 4383, 30*(1:100))))
 aeq(exp1$surv, exp4$surv[match(exp1$time, exp4$time, nomatch=0)])
 
@@ -175,10 +175,10 @@ aeq(exp1$surv, exp4$surv[match(exp1$time, exp4$time, nomatch=0)])
 futime <- mdy.Date(3,1,57) - temp2
 xtime  <- sort(c(futime, 30, 60, 185, 365))
 
-exp1 <- survexp(futime ~ ratetable(year=temp2, age=(temp2-temp1), sex=1),
+exp1 <- survexp(futime ~ 1, rmap= list(year=temp2, age=(temp2-temp1), sex=1),
 		times=xtime, conditional=F)
-exp2 <- survexp(~ratetable(year=temp2, age=(temp2-temp1), sex=1) + I(1:6),
-			times=futime)
+exp2 <- survexp(~ I(1:6), times=futime, 
+                rmap= list(year=temp2, age=(temp2-temp1), sex=1))
 
 wt <- rep(1,6)
 con <- double(6)
@@ -194,7 +194,7 @@ aeq(exp1$surv[match(futime, xtime)], cumprod(con))
 #
 # Now for the conditional method
 #
-exp1 <- survexp(futime ~ ratetable(year=temp2, age=(temp2-temp1), sex=1),
+exp1 <- survexp(futime ~ 1, rmap= list(year=temp2, age=(temp2-temp1), sex=1),
 		times=xtime, conditional=T)
 
 cond <- exp2$surv
@@ -216,7 +216,7 @@ fit <- coxph(Surv(time, status) ~x, test1, method='breslow')
 dummy <- data.frame(time=c(.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5),
 		    status=c(1,0,1,0,1,0,1,1,1), x=(-4:4)/2)
 
-efit <- survexp(time ~ ratetable(x=x), dummy, ratetable=fit, cohort=F)
+efit <- survexp(time ~ 1, rmap= list(x=x), dummy, ratetable=fit, cohort=F)
 
 #
 # Now, compare to the true answer, which is known to us
@@ -234,7 +234,7 @@ all.equal(as.vector(efit), as.vector(efit2))  #ignore mismatched name attrib
 #
 # Now test the direct-adjusted curve (Ederer)
 #
-efit <- survexp( ~ ratetable(x=x), dummy, ratetable=fit, se=F)
+efit <- survexp( ~ 1, dummy, ratetable=fit, se=F)
 direct <- survfit(fit, newdata=dummy, censor=FALSE)$surv
 
 chaz <- chaz[-1]                  #drop time 0
@@ -244,7 +244,7 @@ all.equal(as.vector(direct), as.vector(d2))   #this tests survfit
 all.equal(as.vector(efit$surv), as.vector(apply(direct,1,mean)))  #direct
 
 # Check out the "times" arg of survexp
-efit2 <- survexp( ~ ratetable(x=x), dummy, ratetable=fit, se=F,
+efit2 <- survexp( ~1, dummy, ratetable=fit, se=F,
                   times=c(.5, 2, 3.5,6))
 aeq(efit2$surv, c(1, efit$surv[c(2,2,3)]))
 
@@ -255,7 +255,7 @@ aeq(efit2$surv, c(1, efit$surv[c(2,2,3)]))
 # In theory, hak1 and hak2 would be the same.  In practice, like a KM and
 #   F-H, they differ when n is small.
 #
-efit <- survexp( time ~ ratetable(x=x), dummy, ratetable=fit, se=F)
+efit <- survexp( time ~1, dummy, ratetable=fit, se=F)
 
 surv  <- wt <- rep(1,9)
 tt <- c(1,2,4)
@@ -272,7 +272,7 @@ all.equal(as.vector(efit$surv), as.vector(cumprod(hak1)))
 #
 #  Now do the conditional estimate
 #
-efit <- survexp( time ~ ratetable(x=x), dummy, ratetable=fit, se=F,
+efit <- survexp( time ~ 1, dummy, ratetable=fit, se=F,
 			conditional=T)
 wt <- rep(1,9)
 cond <- NULL

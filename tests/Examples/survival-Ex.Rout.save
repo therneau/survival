@@ -2961,6 +2961,18 @@ survdiff(formula = Surv(jasa$futime, jasa$fustat) ~ offset(expect))
 Observed Expected        Z        p 
   75.000    0.644  -92.681    0.000 
 > 
+> # The free light chain data set is close to the population.
+> e2 <- survexp(futime ~ 1, data=flchain, cohort=FALSE,
++               rmap= list(age= age*365.25, sex=sex, 
++                          year=as.Date(paste0(sample.yr, "-07-01"))),
++               ratetable= survexp.mn)
+> survdiff(Surv(futime, death) ~ offset(e2), flchain)
+Call:
+survdiff(formula = Surv(futime, death) ~ offset(e2), data = flchain)
+
+ Observed  Expected         Z         p 
+2169.0000 2073.9133   -2.0880    0.0368 
+> 
 > 
 > 
 > cleanEx()
@@ -3679,7 +3691,7 @@ $terms
 > cleanEx()
 > options(digits = 7L)
 > base::cat("Time elapsed: ", proc.time() - base::get("ptime", pos = 'CheckExEnv'),"\n")
-Time elapsed:  2.942 0.129 3.071 0 0 
+Time elapsed:  3.04 0.112 3.152 0 0 
 > grDevices::dev.off()
 null device 
           1 

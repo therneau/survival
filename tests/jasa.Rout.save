@@ -1,6 +1,6 @@
 
-R Under development (unstable) (2020-09-23 r79248) -- "Unsuffered Consequences"
-Copyright (C) 2020 The R Foundation for Statistical Computing
+R Under development (unstable) (2023-01-09 r83585) -- "Unsuffered Consequences"
+Copyright (C) 2023 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -19,7 +19,8 @@ Type 'q()' to quit R.
 > options(contrasts=c('contr.treatment', 'contr.poly')) #ensure constrast type
 > library(survival)
 > 
-> expect <- survexp(futime ~ ratetable(age=(accept.dt - birth.dt), sex=1,
+> expect <- survexp(futime ~ 1,
++                   rmap = list(age=(accept.dt - birth.dt), sex=1,
 + 		year=accept.dt, race='white'), jasa, cohort=F, 
 +                   ratetable=survexp.usr)
 > 
@@ -281,4 +282,4 @@ Call: survfit(formula = sfit.1, newdata = data, id = id)
 > 
 > proc.time()
    user  system elapsed 
-  0.908   0.076   0.976 
+  1.045   0.100   1.135 

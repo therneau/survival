@@ -10,6 +10,7 @@ the original version, but the alternate version found in
 S-plus is sometimes useful.
 }
 \usage{
+attrassign(object, ...)
 \method{attrassign}{default}(object, tt,...)
 \method{attrassign}{lm}(object,...)
 }
@@ -17,7 +18,7 @@ S-plus is sometimes useful.
 \arguments{
   \item{object}{model matrix or linear model object}
   \item{tt}{terms object}
-  \item{...}{ignored}
+  \item{...}{further arguments for other methods}
 }
 
 \value{

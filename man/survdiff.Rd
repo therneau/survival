@@ -117,6 +117,13 @@ expect <- survexp(futime ~ 1, data=jasa, cohort=FALSE,
                   ratetable=survexp.us)
 ## actual survival is much worse (no surprise)
 survdiff(Surv(jasa$futime, jasa$fustat) ~ offset(expect))
+
+# The free light chain data set is close to the population.
+e2 <- survexp(futime ~ 1, data=flchain, cohort=FALSE,
+              rmap= list(age= age*365.25, sex=sex, 
+                         year=as.Date(paste0(sample.yr, "-07-01"))),
+              ratetable= survexp.mn)
+survdiff(Surv(futime, death) ~ offset(e2), flchain)
 }
 \keyword{survival}
 

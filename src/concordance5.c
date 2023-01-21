@@ -9,7 +9,7 @@
 SEXP concordance5(SEXP y, SEXP x2, SEXP wt2, SEXP timewt2, 
                       SEXP sortstop) {
     int i, j, k, ii, jj;
-    int n, ntree, nevent;
+    int n, ntree;
     double *time, *status;
     int xsave;
 
@@ -40,10 +40,9 @@ SEXP concordance5(SEXP y, SEXP x2, SEXP wt2, SEXP timewt2,
     status = time + n;
    
     /* if there are tied predictors, the total size of the tree will be < n */
-    ntree =0; nevent =0;
+    ntree =0;
     for (i=0; i<n; i++) {
         if (x[i] >= ntree) ntree = x[i] +1;  
-        nevent += status[i];
     }
         
     nwt = (double *) R_alloc(2*ntree, sizeof(double));
@@ -104,7 +103,7 @@ SEXP concordance5(SEXP y, SEXP x2, SEXP wt2, SEXP timewt2,
 SEXP concordance6(SEXP y, SEXP x2, SEXP wt2, SEXP timewt2, 
                       SEXP sortstart, SEXP sortstop) {
     int i, j, k, ii, jj, i2;
-    int n, ntree, nevent;
+    int n, ntree;
     double *time1, *time2, *status;
     int xsave; 
 
@@ -138,10 +137,9 @@ SEXP concordance6(SEXP y, SEXP x2, SEXP wt2, SEXP timewt2,
     status = time2 + n;
    
     /* if there are tied predictors, the total size of the tree will be < n */
-    ntree =0; nevent =0;
+    ntree =0;
     for (i=0; i<n; i++) {
         if (x[i] >= ntree) ntree = x[i] +1;  
-        nevent += status[i];
     }
         
     /*

@@ -6,6 +6,9 @@
     summary.coxph (a model with only an offset)
     \item Fix error in fastkm.c (new routine, edge case, no one had
     found it yet.)
+    \item Fix a few niggles in .c code, found by the new compiler chain
+    \item Remove backwards compatability for ratetable() calls in a
+    formula;  this was changed in the main code many years ago.
 }}
 \section{Changes in version 3.5-0}{
   \itemize{

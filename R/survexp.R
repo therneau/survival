@@ -15,21 +15,9 @@ survexp <- function(formula, data,
     tform <- Call[c(1,indx)]  # only keep the arguments we wanted
     tform[[1L]] <- quote(stats::model.frame)  # change the function called
         
-    Terms <- if(missing(data)) terms(formula, 'ratetable')
-             else              terms(formula, 'ratetable',data=data)
-    rate <- attr(Terms, "specials")$ratetable                   
-    if(length(rate) > 1)
-            stop("Can have only 1 ratetable() call in a formula")
-    if(length(rate) == 1) {
-        if (!missing(rmap)) 
-            stop("The ratetable() call in a formula is depreciated")
-
-        stemp <- untangle.specials(Terms, 'ratetable')
-        rcall <- as.call(parse(text=stemp$var)[[1]])   # as a call object
-        rcall[[1]] <- as.name('list')                  # make it a call to list(..
-        Terms <- Terms[-stemp$terms]                   # remove from the formula
-        }
-    else if (!missing(rmap)) {
+    Terms <- if(missing(data)) terms(formula)
+             else              terms(formula, data=data)
+    if (!missing(rmap)) {
         rcall <- substitute(rmap)
         if (!is.call(rcall) || rcall[[1]] != as.name('list'))
             stop ("Invalid rcall argument")
@@ -69,7 +57,6 @@ survexp <- function(formula, data,
                        paste(newvar, collapse='+'), sep='+')
         tform$formula <- as.formula(temp, environment(Terms))
         }
-
     mf <- eval(tform, parent.frame())
     n <- nrow(mf)
     if (n==0) stop("Data set has 0 rows")
@@ -136,14 +123,6 @@ survexp <- function(formula, data,
     else if (inherits(ratetable, 'coxph')) {
         israte <- FALSE
         Terms <- ratetable$terms
-    #    if (!is.null(attr(Terms, 'offset')))
-    #        stop("Cannot deal with models that contain an offset")
-    #    strats <- attr(Terms, "specials")$strata
-    #    if (length(strats))
-    #        stop("survexp cannot handle stratified Cox models")
-    #
-        if (any(names(mf[,rate]) !=  attr(ratetable$terms, 'term.labels')))
-             stop("Unable to match new data to old formula")
         }
     else if (inherits(ratetable, "coxphms"))
         stop("survexp not defined for multi-state coxph models")

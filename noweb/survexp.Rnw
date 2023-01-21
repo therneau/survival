@@ -2,7 +2,7 @@
 The expected survival routine creates the overall survival curve for a
 \emph{group} of people.  It is possible to take the set of expected 
 survival curves for each individual and average them, which is the
-\texttt{Ederer} method below, but this is not always the wisest choice:
+\code{Ederer} method below, but this is not always the wisest choice:
 the Hakulinen and conditional methods average in anothers ways, both of
 which are more sophisticated ways to deal with censoring.
 The individual curves are dervived either from population rate tables such 
@@ -73,8 +73,8 @@ if (indx[1] ==0) stop("A formula argument is required")
 tform <- Call[c(1,indx)]  # only keep the arguments we wanted
 tform[[1L]] <- quote(stats::model.frame)  # change the function called
     
-Terms <- if(missing(data)) terms(formula, 'ratetable')
-         else              terms(formula, 'ratetable',data=data)
+Terms <- if(missing(data)) terms(formula)
+         else              terms(formula, data=data)
 @ 
 
 The function works with two data sets, the user's data on an actual set of %'
@@ -90,10 +90,9 @@ For instance the United States overall death rate table [[survexp.us]] expects
   \item year = date of the start of follow-up
     \end{itemize}
 
-Up until the most recent revision, the
-formula contained any necessary  mapping between the variables in the data 
-set and
-the ratetable.  For instance
+In earlier versions of the code, the mapping between variables in the data
+set and the ratetable was managed by a ratetable() term in the formula.
+For instance
 \begin{verbatim}
   survexp( ~ sex + ratetable(age=age*365.25, sex=sex, 
                               year=entry.dt), 
@@ -101,51 +100,30 @@ the ratetable.  For instance
 \end{verbatim}
 In this case the user's data set has a variable `age' containing age in years,
 along with sex and an entry date. 
-This had to be changed for two reasons.  The primary one is that the data
-in a [[ratetable]] call had to be converted into a matrix in order to ``pass
-through'' the model.frame logic.  With the recent updates to coxph so that it
-remembers factor codings correctly in new data sets, it is advantageous to
-keep factors as factors.  
-The second is that a coxph model with a large number of covariates induces a
-very long ratetable clause; at about 40 variable it caused one of the 
-R internal
-routines to fail due to a long expression.
-A third reason, perhaps the most pressing in reality, is that I've always    %'
-felt that the prior code was confusing since it used the same term 'ratetable'
-for two different tasks.
+This had to be changed for several reasons, but still exists in some old user
+level code, and also in the relsurv package.  As of 1/2023 the code has stopped
+supporting it. 
 
 The new process adds the [[rmap]] argument, an example would be 
-[[rmap=list(age =age*365.25, year=entry.dt)]].
-Any variables in the ratetable that are not found in [[rmap]] are assumed to
-not need a mapping, this would be [[sex]] in the above example.
+\code{rmap=list(age =age*365.25, year=entry.dt)}.
+Any variables in the ratetable that are not found in \code{rmap} are assumed to
+not need a mapping, this would be \code{sex} in the above example.
 For backwards compatability we allow the old style argument, converting it
 into the new style.
 
-The [[rmap]] argument needs to be examined without evaluating it; we then add
+The \code{rmap} argument needs to be examined without evaluating it; we then add
 the appropriate extra variables into a temporary formula so that the model
-frame has all that is required.  The ratetable variables then can be
-retrieved from the model frame.
-The [[pyears]] routine uses the same rmap argument; this segment of the
+frame has all that is required, \emph{before} calling model.frame.
+The ratetable variables then can be retrieved from the model frame.
+The \code{pyears} routine uses the same rmap argument; this segment of the
 code is given its own name so that it can be included there as well.
 <<survexp-setup>>=
-rate <- attr(Terms, "specials")$ratetable                   
-if(length(rate) > 1)
-        stop("Can have only 1 ratetable() call in a formula")
 <<survexp-setup-rmap>>
-
 mf <- eval(tform, parent.frame())
 @ 
-<<survexp-setup-rmap>>=
-if(length(rate) == 1) {
-    if (!missing(rmap)) 
-        stop("The ratetable() call in a formula is depreciated")
 
-    stemp <- untangle.specials(Terms, 'ratetable')
-    rcall <- as.call(parse(text=stemp$var)[[1]])   # as a call object
-    rcall[[1]] <- as.name('list')                  # make it a call to list(..
-    Terms <- Terms[-stemp$terms]                   # remove from the formula
-    }
-else if (!missing(rmap)) {
+<<survexp-setup-rmap>>=
+if (!missing(rmap)) {
     rcall <- substitute(rmap)
     if (!is.call(rcall) || rcall[[1]] != as.name('list'))
         stop ("Invalid rcall argument")
@@ -300,14 +278,6 @@ if (is.ratetable(ratetable)) {
 else if (inherits(ratetable, 'coxph')) {
     israte <- FALSE
     Terms <- ratetable$terms
-#    if (!is.null(attr(Terms, 'offset')))
-#        stop("Cannot deal with models that contain an offset")
-#    strats <- attr(Terms, "specials")$strata
-#    if (length(strats))
-#        stop("survexp cannot handle stratified Cox models")
-#
-    if (any(names(mf[,rate]) !=  attr(ratetable$terms, 'term.labels')))
-         stop("Unable to match new data to old formula")
     }
 else if (inherits(ratetable, "coxphms"))
     stop("survexp not defined for multi-state coxph models")

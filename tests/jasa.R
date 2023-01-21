@@ -2,7 +2,8 @@ options(na.action=na.exclude) # preserve missings
 options(contrasts=c('contr.treatment', 'contr.poly')) #ensure constrast type
 library(survival)
 
-expect <- survexp(futime ~ ratetable(age=(accept.dt - birth.dt), sex=1,
+expect <- survexp(futime ~ 1,
+                  rmap = list(age=(accept.dt - birth.dt), sex=1,
 		year=accept.dt, race='white'), jasa, cohort=F, 
                   ratetable=survexp.usr)
 

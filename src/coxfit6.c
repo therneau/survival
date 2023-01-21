@@ -449,6 +449,11 @@ static double coxfit6_iter(int nvar, int nused,  int method, double *beta) {
 	    }
 	}
     }   /* end  of accumulation loop */
-    
+
+    /* A dummy line to stop a "set but never used" line in the compiler
+    **  I don't use nrisk, but often used it in a print statement when debugging
+    **  the code.   That may happen again 
+    */
+    nrisk = nrisk - 1;
     return(loglik);
 }	

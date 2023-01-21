@@ -25,9 +25,9 @@ export(Surv, Surv2, Surv2data, aeqSurv, aareg, agreg.fit,
        frailty,  frailty.gamma, 
        frailty.gaussian, frailty.t, is.Surv, 
        is.na.Surv, is.ratetable, nsk,
-       labels.survreg, match.ratetable, neardate,
+       match.ratetable, neardate,
        psurvreg, qsurvreg, dsurvreg, pseudo,
-       pspline, pyears, ratetableDate, ratetable,
+       pspline, pyears, ratetableDate, 
        ridge, royston, rsurvreg, rttright,statefig, strata, 
        survSplit, survcheck, survcondense, survdiff, survexp,  survfit,
        survfit0, survfit.formula,
@@ -226,8 +226,6 @@ S3method(weights, survreg)
 S3method(yates_setup, default)
 S3method(yates_setup, glm)
 S3method(yates_setup, coxph)
-S3method('[', ratetable2)
-S3method(is.na,ratetable2)
 
 # xtfrm.Surv was moved out of base into survival at one point
 if(getRversion() >= "3.6.0")

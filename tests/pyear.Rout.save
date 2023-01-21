@@ -1,7 +1,7 @@
 
-R Under development (unstable) (2016-03-23 r70368) -- "Unsuffered Consequences"
-Copyright (C) 2016 The R Foundation for Statistical Computing
-Platform: i686-pc-linux-gnu (32-bit)
+R Under development (unstable) (2023-01-09 r83585) -- "Unsuffered Consequences"
+Copyright (C) 2023 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -70,8 +70,8 @@ Type 'q()' to quit R.
 > #
 > # Now with expecteds
 > #
-> py2 <- pyears(temp.time ~ temp.age + temp.yr
-+ 		+ ratetable(age=temp2-temp1, year=temp2, sex=1),
+> py2 <- pyears(temp.time ~ temp.age + temp.yr,
++ 		rmap=list(age=temp2-temp1, year=temp2, sex=1),
 + 	     scale=1, ratetable=survexp.us ) #output in days
 > all.equal(xx, py2$pyears)
 [1] TRUE
@@ -79,19 +79,6 @@ Type 'q()' to quit R.
 [1] TRUE
 > all.equal(1*(xx>0), py2$n)
 [1] TRUE
-> 
-> py2b <- pyears(temp.time ~ temp.age + temp.yr,
-+ 	      rmap = list(age=temp2-temp1, year=temp2, sex=1),
-+ 	     scale=1, ratetable=survexp.us ) #output in days
-> all.equal(xx, py2b$pyears)
-[1] TRUE
-> all.equal(203, py2b$offtable)
-[1] TRUE
-> all.equal(1*(xx>0), py2b$n)
-[1] TRUE
-> all.equal(py2$expected, py2b$expected)
-[1] TRUE
-> 
 > 
 > 
 > py3 <-  pyears(temp.time ~ temp.age + temp.yr,
@@ -177,8 +164,8 @@ Type 'q()' to quit R.
 > #
 > # Now with expecteds
 > #
-> py2 <- pyears(temp.time ~ temp.age + temp.yr
-+ 		+ ratetable(age=temp2-temp1, year=temp2, sex=1),
+> py2 <- pyears(temp.time ~ temp.age + temp.yr,
++ 	   rmap= list(age=temp2-temp1, year=temp2, sex=1),
 + 	     scale=1, ratetable=survexp.us ) #output in days
 > all.equal(xx, py2$pyears)
 [1] TRUE
@@ -188,8 +175,8 @@ Type 'q()' to quit R.
 [1] TRUE
 > 
 > 
-> py3 <-  pyears(temp.time ~ temp.age + temp.yr
-+ 		+ ratetable(age=temp2-temp1, year=temp2, sex=1),
+> py3 <-  pyears(temp.time ~ temp.age + temp.yr,
++ 		rmap= list(age=temp2-temp1, year=temp2, sex=1),
 + 	     scale=1, ratetable=survexp.us , expect='pyears')
 > all.equal(py2$n, py3$n)
 [1] TRUE
@@ -669,4 +656,4 @@ Rate table with dimension(s): age amount sex duration status
 > 
 > proc.time()
    user  system elapsed 
-  0.416   0.032   0.446 
+  0.895   0.115   1.001 

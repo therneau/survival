@@ -49,7 +49,7 @@ summary.coxph <- function(object,  conf.int = 0.95, scale = 1, ...) {
                      pvalue= pchisq(cox$score, df, lower.tail=FALSE))
     rval$rsq<-c(rsq=1-exp(-logtest/cox$n),
                  maxrsq=1-exp(2*cox$loglik[1]/cox$n))
-    if (!is.null(cox$waldtest)) {  # a model with no covariates is missing this
+    if (!is.null(cox$wald.test)) {  # a model with no covariates is missing this
         rval$waldtest<-c(test=as.vector(round(cox$wald.test, 2)),
                          df=df,
                          pvalue= pchisq(as.vector(cox$wald.test), df, 

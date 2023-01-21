@@ -53,18 +53,14 @@ if (indx[1] ==0) stop("A formula argument is required")
 tform <- Call[c(1,indx)]  # only keep the arguments we wanted
 tform[[1L]] <- quote(stats::model.frame)  # change the function called
 
-Terms <- if(missing(data)) terms(formula, 'ratetable')
-         else              terms(formula, 'ratetable',data=data)
+Terms <- if(missing(data)) terms(formula)
+         else              terms(formula, data=data)
 if (any(attr(Terms, 'order') >1))
         stop("Pyears cannot have interaction terms")
 
-rate <- attr(Terms, "specials")$ratetable                   
-if (length(rate) >0 || !missing(rmap) || !missing(ratetable)) {
+if (!missing(rmap) || !missing(ratetable)) {
     has.ratetable <- TRUE
-    if(length(rate) > 1)
-        stop("Can have only 1 ratetable() call in a formula")
     if (missing(ratetable)) stop("No rate table specified")
-
     <<survexp-setup-rmap>>
     }
 else has.ratetable <- FALSE
@@ -125,8 +121,6 @@ if (has.ratetable) {
         if (length(strats))
             stop("pyears cannot handle stratified Cox models")
 
-        if (any(names(mf[,rate]) !=  attr(ratetable$terms, 'term.labels')))
-             stop("Unable to match new data to old formula")
         R <- model.matrix.coxph(ratetable, data=rdata)
         }
     else stop("Invalid ratetable")

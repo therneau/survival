@@ -50,21 +50,12 @@ all.equal(1*(xx>0), py1$n)
 #
 # Now with expecteds
 #
-py2 <- pyears(temp.time ~ temp.age + temp.yr
-		+ ratetable(age=temp2-temp1, year=temp2, sex=1),
+py2 <- pyears(temp.time ~ temp.age + temp.yr,
+		rmap=list(age=temp2-temp1, year=temp2, sex=1),
 	     scale=1, ratetable=survexp.us ) #output in days
 all.equal(xx, py2$pyears)
 all.equal(203, py2$offtable)
 all.equal(1*(xx>0), py2$n)
-
-py2b <- pyears(temp.time ~ temp.age + temp.yr,
-	      rmap = list(age=temp2-temp1, year=temp2, sex=1),
-	     scale=1, ratetable=survexp.us ) #output in days
-all.equal(xx, py2b$pyears)
-all.equal(203, py2b$offtable)
-all.equal(1*(xx>0), py2b$n)
-all.equal(py2$expected, py2b$expected)
-
 
 
 py3 <-  pyears(temp.time ~ temp.age + temp.yr,
@@ -141,16 +132,16 @@ all.equal(1*(xx>0), py1$n)
 #
 # Now with expecteds
 #
-py2 <- pyears(temp.time ~ temp.age + temp.yr
-		+ ratetable(age=temp2-temp1, year=temp2, sex=1),
+py2 <- pyears(temp.time ~ temp.age + temp.yr,
+	   rmap= list(age=temp2-temp1, year=temp2, sex=1),
 	     scale=1, ratetable=survexp.us ) #output in days
 all.equal(xx, py2$pyears)
 all.equal(203, py2$offtable)
 all.equal(1*(xx>0), py2$n)
 
 
-py3 <-  pyears(temp.time ~ temp.age + temp.yr
-		+ ratetable(age=temp2-temp1, year=temp2, sex=1),
+py3 <-  pyears(temp.time ~ temp.age + temp.yr,
+		rmap= list(age=temp2-temp1, year=temp2, sex=1),
 	     scale=1, ratetable=survexp.us , expect='pyears')
 all.equal(py2$n, py3$n)
 all.equal(py2$pyear, py3$pyear)

@@ -7,7 +7,7 @@
   be used to compact one.
 }
 \usage{
-survcondense(formula, data, subset, na.action= na.pass, id, 
+survcondense(formula, data, subset, weights, na.action= na.pass, id, 
              start = "tstart", end = "tstop", event = "event")
 }
 %- maybe also 'usage' for other objects documented here.
@@ -23,6 +23,7 @@ survcondense(formula, data, subset, na.action= na.pass, id,
     argument. 
   }
   \item{subset}{optional subset expression to apply to the data set}
+  \item{weights}{optional variable name for case weights}
   \item{na.action}{optional removal of missing values}
   \item{id}{variable name that identifies subjects}
   \item{start}{optional character string, giving the name of the start

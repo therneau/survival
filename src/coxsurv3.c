@@ -144,8 +144,8 @@ SEXP coxsurv3(SEXP y2, SEXP weight2,  SEXP sort22,
 	    rx1[k][itime] = xsum1[k]/n[3];
 	    rx2[k][itime] = xsum2[k]/n[3];
 	}
+	for (k=0; k<7; k++) rn[k][itime] = n[i];
     }
-
     UNPROTECT(1);
     return(rlist);
 }
