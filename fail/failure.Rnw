@@ -182,15 +182,7 @@ npt <- 25
 b1 <- seq(0, 15, length=npt)
 b2 <- seq(0, 15, length=npt)
 log1 <- log2 <- matrix(0, npt, npt)
-
-for (i in 1:npt) {coef1 <- matrix(0, 4,2)
-for (i in 1:4) {
-    tfit <- suppressWarnings(coxph(Surv(time1, time2, status) ~ factor(x), 
-                                   kdata, iter=i))
-    coef1[i,] <- coef(tfit)
-}
-text(c(0, coef1[,1]), c(0, coef1[,2]), as.character(0:4), col=2)
-
+for (i in 1:npt) {
     for (j in 1:npt) {
         tfit1 <- coxph(Surv(time1, time2, status) ~ factor(x), kdata, iter=0,
                        init=c(b1[i], b2[j]))

@@ -1,0 +1,355 @@
+---
+title: Trust Regions
+---
+
+# Method
+
+The Newton-Raphson step for the Cox model iteration is based on a second
+order Taylor series approximation
+$$ L(\beta + d) \approx L(\beta) + d' U(\beta) + d'V(\beta)d/2$$
+where $\beta$ is the current solution, $d$ a potential increment, $U$ the
+vector of first derivatives at $\beta$ and $V$ the matrix of second derivatives.
+Statisticians often refer to $U$ as the score vector and $H = -V$ as the
+information matrix.
+
+The unconstrained NR step $d$ satisfies $Hd= U$, with $\Delta = d'H^{-1}d/2$
+as the predicted gain in the loglikelihood $L$.
+(Most of the literature is focused on minimization, by the way; then the
+optimal increment is $-d$ and the function will decrease by $Delta$).
+Of course, a Taylor series will only be accurate within a local region
+of the current estimate.  Define a trust region as a set of
+possible increments $d$ such that $||d|| \le \delta$, within which the quadratic
+approximation is considered ``good enough'' to be used.
+
+The trust region approach for function maximization is based on three
+intersecting ideas.
+
+1. Given $\delta$ choose 
+$$ d(x) = \max_{||d|| \le \delta} d'U(x) - d'H(x)d/2 $$
+
+2. If the solution $d$ is on the boundary, look at the ratio 
+$r = (L(x+d) - L(x))/ ( d'U(x) - d'H(x)d/2)$, the ratio of the realized gain
+in the loglikiehood to the expected gain, if the Taylor series were perfect.
+In the ideal world $r=1$.
+  - If $r < .25$ the trust region is too large: replace $\delta$ with
+$\delta/4$.
+  - If $r > .75$ we can take larger steps, set $\delta$ to $2\delta$.
+
+3. For a solution $d$ on the boundary, there exists a constant $\lambda >0$ such
+that $d = (H + \lambda I)^{-1} U$.
+
+The constants of .25, .75, 4, and 2 above can be varied, but these are values I
+have seen in the literature.  If the coefficients $\beta$ are not on the same
+scale, then one can define $||d|| = \sqrt{d'Ad}$ rather than $\sqrt{d'd}$,
+where $A$ is a scaling matrix.
+A sensible choice is $A = \rm{diag}(H)$, i.e., which for a Cox model essetially
+scales the by the standard deviation of each covariate.
+(remember that large covariates have small $\beta$
+coefficients, so we want to weight those $\beta$ values more strongly).
+The optimal solution now satisfies $(H + \lambda A)^{-1} U$.
+
+# Kalia data
+
+Let's look at the kalia data set, since it has 2 covariates and it fails.
+The next figure shows a contour plot of the loglikelihood, along with the 
+iteration path from an initial estimate of (0, 0), traced for a range of
+$\lambda$ values, shown in red.
+
+```{r, path}
+kdata <- readRDS("kalia.rds")
+npt <- 25
+b1 <- seq(0, 15, length=npt)
+b2 <- seq(0, 15, length=npt)
+log2 <- matrix(0, npt, npt)
+for (i in 1:npt) {
+    for (j in 1:npt) {
+        tfit <- coxph(Surv(time1, time2, status) ~ factor(x), kdata, iter=0,
+                       init=c(b1[i], b2[j]), weights = wt)
+        log2[i,j] <- tfit$loglik[1]
+    }
+}
+contour(b1, b2, log2, levels=c(-19, -21, seq(-25, -85, by=-5)))
+tfit1 <- coxph(Surv(time1, time2, status) ~ factor(x), kdata, iter=1,
+               weights = wt)
+points(c(0, tfit1$coef[1]), c(0, tfit1$coef[2]), pch=19, col=2)
+
+tfit0 <- coxph(Surv(time1, time2, status) ~ factor(x), kdata, iter=0,
+               weights = wt, x=TRUE)
+dt0 <- coxph.detail(tfit0)
+U <- colSums(dt0$score)
+H <- apply(dt0$imat, 1:2, sum)
+D <- diag(2)
+path <- matrix(0, 50, 2)
+#lambda <- seq(0,10, length=50)
+lambda <- c(20/exp(0:48/6), 0)
+for (i in 1:50) {
+	path[i,] <- solve(H + lambda[i]*D, U)
+}
+lines(path[,1],path[,2], col=2)
+
+r <- diff(tfit1$loglik)/ sum(U * solve(H,U)/2)
+delta <- sqrt(sum(tfit1$coef^2))
+```
+
+The ratio of observed to expected gain is `r round(r,3)`, far below the 
+threshold of 1/4.
+If we use the observed inital jump of 18 as the starting $\delta$, 
+this would suggest that the
+next iteration have $\delta$ = 18/4 = 4.5.
+Described algorithms have a further threshold on the gain, i.e., $r < c$ then
+re-use the prior starting point rather that the new iterate, even if
+the new one is somewhat better.  (If the first iterate had been worse $r$ will
+be negative.)
+
+The next graph shows the two choices, one in red and the other in blue.
+
+```{r, path2}
+contour(b1, b2, log2, levels=c(-19, -21, seq(-25, -85, by=-5)))
+points(c(0, tfit1$coef[1]), c(0, tfit1$coef[2]), pch=19, col=2:3)
+
+delta2 <- delta/4
+theta <- seq(0, 2*pi, length=100)
+bound1 <- cbind(delta2*cos(theta), delta2*sin(theta))
+lines(bound1, col=2, lty=2)
+lines(path[1:21,], col=2, lty=1)
+
+dt1 <- coxph.detail(tfit1)
+U1 <- colSums(dt1$score)
+H1 <- apply(dt1$imat, 1:2, sum)
+
+path1 <- path
+for (i in 1:50) {
+    path1[i,] <- solve(H1 + lambda[i]*D, U1) + tfit1$coef
+}
+lines(path1[1:18,], col=3)
+
+theta <- seq(pi/2, 3*pi/2, length=30)
+bound2 <- bound1 + rep(tfit1$coef, each=nrow(bound1))
+lines(bound2, col=3, lty=2)
+```
+
+Solving for the value of $\lambda$ that preserves the boundary is a 
+subproblem does not have a closed form, and there are various approximations
+that can be used. In the case of coxph, unless the number of coefficient is
+very large, multiple cholesky decomposition is much faster than recreating
+$U$ and $H$, so we can afford to do a quick univariate search.
+The relationship is fairly between $\log(\lambda)$ and 
+$\log(\delta)$ can be close to linear, as shown below,
+to loglinear, as shown below.
+It is not necessary to be perfect, in any case. 
+We don't have to shrink $\delta$ by exactly 1/4 to accomplish our purpose.
+In this particular data set $\lambda$ values of approximately .8 and 1.3 will 
+suffice, or even 1.0 for both.
+
+```{r, loglin}
+dist <- function(x, center=c(0,0)) {
+    sqrt( (x[,1] - center[1])^2 + (x[,2] - center[2])^2)
+}
+d0 <- dist(path)
+d1 <- dist(path1, tfit1$coef)
+matplot(lambda[1:40], cbind(d0, d1)[1:40,], 
+        col=2:3, xlab="lambda", ylab="delta", log='xy', pch='01')
+abline(h=delta2, lty=2)
+```
+
+At this point, step aside an create a function that does this one step
+update, that can be used for exploration.
+
+```{r, step}
+step <- function(formula, data, weights, init, delta, scaled=FALSE) {
+    Call <- match.call()
+    # Do a single step of the trust region algorithm, and report
+    #  results
+    indx <- match(c("formula", "data", "weights", "init"),names(Call), nomatch=0)
+    temp <- Call[c(1, indx)]
+    temp[[1L]] <- as.name("coxph")
+    temp$iter <- 0
+
+    fit0 <- eval(temp, parent.frame())
+    dt <- coxph.detail(fit0)
+    U0  <- colSums(dt$score)
+    H0  <- apply(dt$imat, 1:2, sum)   # will equal solve(fit$imat)
+    step <- solve(H0, U0)
+
+    D <- diag(diag(H0))
+    Imat <- diag(length(U0))
+    dist <- sqrt(c(sum(step^2), step%*% D %*% step))
+
+    # take a whole step?
+    if (missing(delta) || (scaled && dist[2] <= delta) || 
+        (!scaled && dist[1] <= delta)) {
+        # report the unconstrained first step statistics
+        temp$init <- fit0$coef + step
+        fit1 <- eval(temp, parent.frame())
+
+        egain <- drop(step%*% U0 - (step %*% H0 %*% step)/2) # expected gain
+        ratio = (fit1$loglik - fit0$loglik)[1] /  egain
+        ret <- list(coef = coef(fit1),
+                    loglik= c(fit0$loglik[1], fit1$loglik[1]),
+                    U = U0, H= H0, egain= egain, R= ratio,
+                    dist = dist, lambda =0, score = fit0$score)
+    } else { 
+        if (scaled) {
+            # find the lambda coef that meets the boundary
+            tfun <- function(ll) {
+                tstep <- solve(H0 + exp(ll)*D, U0) # trial step
+                log(sqrt(tstep %*% D %*% tstep)) - log(delta)
+            }
+            nfit <- uniroot(tfun, c(-10, 10), extendInt='yes', tol=.01)
+            lambda <- exp(nfit$root)
+            stepd <- solve(H0 + lambda*D, U0) 
+        } else {
+            # find the lambda coef that meets the boundary
+            tfun <- function(ll) {
+                tstep <- solve(H0 + exp(ll)*Imat, U0) # trial step
+                log(sqrt(sum(tstep^2))) - log(delta)
+            }
+            nfit <- uniroot(tfun, c(-10, 10), extendInt='yes', tol=.01)
+            lambda <- exp(nfit$root)
+            stepd <- solve(H0 + lambda*Imat, U0)
+        }
+
+        # Get the new loglik
+        egain <- drop(stepd %*% U0 - (stepd %*% H0 %*% stepd)/2) # expected gain
+        temp$init <- fit0$coef + stepd
+        fit2 <- eval(temp, parent.frame())
+        ratio = (fit2$loglik - fit0$loglik)[1] /  egain
+      
+        dist <- sqrt(c(sum(stepd^2), stepd%*% D %*% stepd))
+        ret <- list(coef = coef(fit2),
+                    loglik= c(fit0$loglik[1], fit2$loglik[1]),
+                    U = U0, H= H0, egain= egain, R= ratio,
+                    dist = dist, lambda = lambda, step=stepd)
+    }
+    ret
+}
+
+# The Cox model score statistic is an estimate of 2* the change in log-lik,
+# check this
+all.equal(test0$score, 2*test0$egain)
+```
+
+The figure below shows the first few steps for both procedures.
+
+```{r, step2}
+# The approach that went back to zero.
+delta <- 4.5
+step01 <-  step(Surv(time1, time2, status) ~ factor(x), kdata, weights=wt,
+                delta= 4.5)
+step02 <-  step(Surv(time1, time2, status) ~ factor(x), kdata, weights=wt,
+                delta= 4.5, init= step01$coef)
+tfit02 <- coxph(Surv(time1, time2, status) ~ factor(x), kdata, iter=2,
+               weights = wt, init= step01$coef)
+
+contour(b1, b2, log2, levels=c(-19, -21, seq(-25, -85, by=-5)))
+temp <- rbind(c(0,0), step01$coef, step02$coef, coef(tfit02))
+points(temp[,1], temp[,2], pch=19, col=2, type='b')
+lines(bound1, col=2, lty=2)
+lines(bound1 + rep(step01$coef, each=nrow(bound1)), lty=2, col=2)
+
+# Don't return to zero
+step11 <- step(Surv(time1, time2, status) ~ factor(x), kdata, weights=wt,
+                delta= 4.5, init= tfit1$coef)
+step12 <- step(Surv(time1, time2, status) ~ factor(x), kdata, weights=wt,
+                delta= 4.5, init= step11$coef)
+step13 <- step(Surv(time1, time2, status) ~ factor(x), kdata, weights=wt,
+                delta= 4.5, init= step12$coef)
+step14 <- step(Surv(time1, time2, status) ~ factor(x), kdata, weights=wt,
+                delta= 4.5, init= step13$coef)
+
+temp <- rbind(coef(tfit1), step11$coef, step12$coef, step13$coef)
+lines(temp, col=3, type='b', pch=19, lwd=2)
+lines(bound1 + rep(coef(tfit1), each = nrow(bound1)), lty=2, col=3)
+lines(bound1 + rep(step11$coef, each=nrow(bound1)), lty=2, col=3)
+lines(bound1 + rep(step12$coef, each=nrow(bound1)), lty=2, col=3)
+```
+
+The red line shows the path, restarting at (0,0), with a constraint of 4.5.
+The first iteration stops at the constrained maximum, with
+$\lambda$ = `r round(step01$lambda,2)` and 
+$r$ = `r round(step01$R, 2)` at this point.  We could expand the trust region.
+However, it was not necessary; the second iteration lies within the 4.5
+radius as does the third, both are solutions with $\lambda =0$, 
+i.e., unconstrained. 
+We are close enough to the true
+maximum that the quadratic approximation works well.
+
+The green line shows the path starting with unconstrained iteration 1, whose
+loglikelihood was just a little better than the value at (0,0),
+`r round(tfit1$loglik[1], 1)` vs. `r round(tfit0$loglik[1], 1)`.
+The second step has been
+constained within the trust region shown by the dotted line, with 
+$\lambda$ and $r$ of (`r round(step11$lambda, 2)`, `r round(step11$R, 2`).
+Since $.25 < R < .75$ the trust region size remains the same. 
+The unconstrained increment at this point would have been
+(`r round(solve(step11$H, step11$U), 1)`), which is a disastrous.
+The next step is also constrained, with $\lambda$ and $R$ of
+ (`r round(step12$lambda, 2)`, `r round(step12$R, 2`); and the unconstrained
+step of (`r round(solve(step12$H, step12$U),1)`) is again a bad one. 
+Not until iteration 5, the next step after the last green dot in the figure,
+does the solution lie inside the boundary of the region. 
+
+For this example, there are several advantages of the trust region approach over
+standard step halving. 
+- The Cox log-likelihood is never evaluated at an extreme coefficient.  This data
+set was sent to me because it caused the scaling part of the underlying C
+routine to fail: the range of $X\beta$ was too great for $\exp(X\beta)$ to
+be reliable.
+- It is faster, we can try out multiple values of $\lambda$ faster than 
+more evaluation of the Cox likelihood.
+Even if the second step increment of (-2808, -2775) had not failed outright, it
+would take 9 step halvings to recover, with a new estimate of (9.47, 4.68).
+This new point is still on a very flat portion of the likelihood surface, and
+leads to another overshoot, though not as drastic, and further step halving.
+
+\section{Uweighted Kalia data}
+An unweighted fit with the Kalia data does succeed with the current step halving
+proceedure, via a bit of luck.  The path is shown below. 
+Because the first iteration gives a solution just a bit worse than (0,0),
+the second iteration is step-halving, which turns out to give a value close
+enough to the true maximum that no further problems arise. 
+"There but for fortune" as the saying goes.
+The trust region approach gets near the maximum 3 iterations after the initial
+guess, as well, but is more certain.
+
+
+```{r kalia2}
+kfit <- coxph(Surv(time1, time2, status) ~ factor(x), kdata)
+kcoef <- matrix(0, 7, 2)
+for (i in 0:6) {
+    tfit <- suppressWarnings(coxph(Surv(time1, time2, status) ~ factor(x),
+                                   kdata, iter=i))
+    kcoef[i+1,] <- coef(tfit)
+}
+
+npt <- 25
+k1 <- seq(0, 15, length=npt)
+k2 <- seq(0, 15, length=npt)
+logk <- matrix(0, npt, npt)
+for (i in 1:npt) {
+    for (j in 1:npt) {
+        tfit <- coxph(Surv(time1, time2, status) ~ factor(x), kdata, iter=0,
+                       init=c(k1[i], k2[j]))
+        logk[i,j] <- tfit$loglik[1]
+    }
+}
+contour(k1, k2, logk, levels= c(-24, -26, seq(-30, -90, -5)),
+        xlab="beta 1", ylab="beta 2")
+points(kcoef[1:5,1], kcoef[1:5,2], col=2)
+lines(kcoef[1:5,1], kcoef[1:5,2], col=2)
+
+kfit1 <- coxph(Surv(time1, time2, status) ~ factor(x), kdata, iter=1)
+delta <- sqrt(sum(kfit1$coef^2))/4
+
+kstep0 <- step(Surv(time1, time2, status) ~ factor(x), kdata, delta=delta)
+kstep1 <- step(Surv(time1, time2, status) ~ factor(x), kdata, delta=delta,
+               init= kstep0$coef)
+kstep2 <- step(Surv(time1, time2, status) ~ factor(x), kdata, delta=delta,
+               init= kstep1$coef)
+kstep3 <- step(Surv(time1, time2, status) ~ factor(x), kdata, delta=delta,
+               init= kstep1$coef)
+ptemp <- rbind(c(0,0), kstep0$coef, kstep1$coef, kstep2$coef, kstep3$coef)
+lines(ptemp[,1], ptemp[,2], col=3, type='b')
+```
+
+
