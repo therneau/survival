@@ -226,6 +226,7 @@ step <- function(formula, data, weights, init, delta, scaled=FALSE) {
 
 # The Cox model score statistic is an estimate of 2* the change in log-lik,
 # check this
+test0 <- step(Surv(time1, time2, status) ~ factor(x), kdata, weights=wt)
 all.equal(test0$score, 2*test0$egain)
 ```
 
@@ -352,4 +353,28 @@ ptemp <- rbind(c(0,0), kstep0$coef, kstep1$coef, kstep2$coef, kstep3$coef)
 lines(ptemp[,1], ptemp[,2], col=3, type='b')
 ```
 
+# Infinite coefficients
+If one group of subjects has no events, the true coefficient will be infinite.
+After a few iterations the coefficient often grows by a constant at each
+iterate while the likelihood approaches an asymptote.
+How does this look to the trust region algorith?
+
+Start with the simple example found in my book.  To avoid error messages about
+the same variable on both sides, make a copy
+```{r, ovarian}
+bdata <- ovarian
+bdata$stat2 <- bdata$fustat
+bcoef <- matrix(0, 10,4, dimnames=list(NULL, c("beta1", "beta2", "R", "loglik")))
+temp <- step(Surv(futime, fustat) ~ rx + stat2, bdata)
+bcoef[1,] <- c(temp$coef, temp$R, temp$loglik[1])
+for (i in 2:10) {
+    temp <- step(Surv(futime, fustat) ~ rx + stat2, bdata, init=temp$coef)
+    bcoef[i,] <- c(temp$coef, temp$R, temp$logl[1])
+}
+round(bcoef,2)
+```
+The pattern in this case is benign: the finite coefficient and loglik have
+converged, the infinite coefficient is marching forward, and the Taylor
+series is *underestimating* the increase in loglik at each step.  A trust
+region is not evoked nor is it needed.
 

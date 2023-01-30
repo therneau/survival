@@ -1,7 +1,10 @@
 \documentclass{article}
-\title{Overflow example}
+\title{Failure examples}
+\author{Terry Therneau}
 \newcommand{\code}[1]{\texttt{#1}}
 \begin{document}
+This is a collection of data examles that have caused failures in the
+survival routines.  Each resulted in better methods.
 
 \section{Overflow examples}
 \subsection{Skewed covariate}
@@ -168,114 +171,6 @@ to pot.
 This led to a change in the coxph function.  It now eliminates non-productive
 observations first, before any compuation.
 
-\subsection{Kalia data}
-This data set was contributed by Sumeet Kalia, and arose from a simulation
-study.  When case weights are ignored it succeeds, with case weights it
-fails.  The figure below shows the likelihood surface and the iteration path
-without case weights, 0 = iteration 0 = the starting point.
-The first iteration overshoots, finds a worse loglik, does one iteration of
-step halving, and from there proceeds to the solution. 
-
-<<kdata>>=
-kdata <- readRDS("kalia.rds")
-npt <- 25
-b1 <- seq(0, 15, length=npt)
-b2 <- seq(0, 15, length=npt)
-log1 <- log2 <- matrix(0, npt, npt)
-for (i in 1:npt) {
-    for (j in 1:npt) {
-        tfit1 <- coxph(Surv(time1, time2, status) ~ factor(x), kdata, iter=0,
-                       init=c(b1[i], b2[j]))
-        tfit2 <- coxph(Surv(time1, time2, status) ~ factor(x), kdata, iter=0,
-                       init=c(b1[i], b2[j]), weights = wt)
-        log1[i,j] <- tfit1$loglik[1]
-        log2[i,j] <- tfit2$loglik[1]
-    }
-}
-
-coef1 <- matrix(0, 4,2)
-for (i in 1:4) {
-    tfit <- suppressWarnings(coxph(Surv(time1, time2, status) ~ factor(x), 
-                                   kdata, iter=i))
-    coef1[i,] <- coef(tfit)
-}
-
-contour(b1, b2, log1, level= c(-24, -26, seq(-30, -95, -5)))
-text(c(0, coef1[,1]), c(0, coef1[,2]), as.character(0:4), col=2)
-@ 
-
-The next figure shows the weighted loglik surface along with the first iteration.
-The shape of the log-likeihood surface is nearly the same, and the first
-iteration overshoots, but in this case it has the misfortune of having a somewhat
-better likelihood than iteration 0.  As a consequence, another Newton-Raphson
-iteration is attempted, and this one is disastrous.
-Because the log-likelihood surface is flat around iteration 1, the hessian matrix
-is nearly singular and the update step is huge; shown as 'update' below.
-
-<<kdata2>>=
-contour(b1, b2, log2, levels=c(-19, -21, seq(-25, -85, by=-5)))
-tfit2 <- coxph(Surv(time1, time2, status) ~ factor(x), kdata, iter=1,
-               weights = wt)
-text(c(0, tfit2$coef[1]), c(0, tfit2$coef[2]), 0:1, col=2)
-
-# Update step from iteration 1
-dt1 <- coxph.detail(tfit2)
-update <- solve(apply(dt1$imat, 1:2, sum), colSums(dt1$score))
-update
-@ 
-
-The problem is that this update is so extreme that the C routine failed when
-screening for too large a range in $X\beta$, before the new likelihood is
-even computed.  
-One possible correction for this is a trust region approach. The basic rule
-is to compare the gain in loglik to the predicted gain if the NR iteration's
-quadratic approximation were correct.
-The NR assumes that 
-$$
-  f(x) = f(x_0) + (x-x_0)'U + (x-x_0)'H(x-x_0)/2
-$$
-where $U$ and $H$ are the first and second derivatives at $x_0$.  
-The quadratic function has a maximum at $x_0 + H^{-1}U$, with predicted gain in
-$f$ of $U'H^{-1}U/2$. As an example of successful approximation consider the
-first iteration of a Cox model using the lung data set shown below.  The
-actual gain in log-likelihood is .97 of that predicted by the quadratic
-approximation, i.e., it is working quite well.
-
-<<test>>=
-lfit0 <- coxph(Surv(time, status) ~ age + ph.ecog, lung, iter=0)
-lfit1 <- coxph(Surv(time, status) ~ age + ph.ecog, lung, iter=1)
-temp  <- coxph.detail(lfit0)
-U <- colSums(temp$score)
-H <- apply(temp$imat, 1:2, sum)
-c("actual gain"    = diff(lfit1$loglik),
-  "predicted gain" = sum(U * solve(H, U))/2)
-@ 
-
-Now consider the first iteration of the weighted model, where the gain is
-only .05 of the predicted.
-
-<<test2>>=
-tfit0 <- coxph(Surv(time1, time2, status) ~ factor(x), kdata, iter=0,
-               weights = wt)
-temp  <- coxph.detail(tfit0)
-U <- colSums(temp$score)
-H <- apply(temp$imat, 1:2, sum)
-c("actual gain"    = diff(tfit2$loglik),
-  "predicted gain" = sum(U * solve(H, U))/2)
-@ 
-
-This ratio of observed versus expected gain, often denoted as $\rho$, 
-is what drives the trust region approach.  
-If $\rho < .25$ the steps are too big, i.e., the quadratic approximation is
-not accurate so far away from the current estimate and we want to constrain
-to a smaller region.  If $rho > .75$ and the current solution is on the
-boundary, then we want to increase the region.
-One approach is to denote the region size using a Levenburg-Marquadt step
-$$
-  \delta(\lambda) = (H + \lambda {\rm diag}(H))^{-1}U
-$$
-larger values of $\lambda$ correspond to finding the maximum of the quadratic
-approx within a disk.   
 
 \section{Offset issues}
 A nastier problem is found as a test case in the model4you package.  It is
@@ -321,7 +216,7 @@ plot(indx, test[indx,2], xlab="Iteration", ylab="Coefficient")
 @ 
 
 
-\section{Corrleation example}
+\section{Correlation example}
 This example was pointed out by Brian Borstrom and uses the mort data
 set from the eha package.
 The data set contains mortality data from a parish in northern Sweden, for
@@ -438,10 +333,11 @@ There is a race condition:
 \end{enumerate}
 
 Data sets where one group has no events usually end up at condition 1.
-Ones that do the other are more trouble.
+Data sets that fall into 2 or 3 are more trouble.
 
 This example comes from the moonBook package.  It's a sneaky
 way to get a variable on both sides, and fails with number 2.
+
 <<sneaky>>=
 ysurv <- Surv(colon$time, colon$status)
 stest <- coxph(ysurv ~ time, colon)
@@ -580,9 +476,9 @@ All the covariates are continuous with only minor correlation.
 
 <<henry>>=
 load("cdata.rda")
-icoef <- matrix(0, 15, 10)
-ilog  <- double(15)
-for (i in 1:15) {
+icoef <- matrix(0, 16, 10)
+ilog  <- double(16)
+for (i in 1:16) {
     suppressWarnings(tfit <- coxph(Surv(time, status) ~ ., iter=i-1, cdata))
     icoef[i,] <- coef(tfit)
     ilog[i] <- tfit$loglik[2]
