@@ -171,11 +171,9 @@ SEXP survfitkm(SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22,
                     n4++;
                     wt4 += wt[i1];
                 }
+                n[6][k] = n4;
+                n[7][k] = wt4;
             }
-            if (n4>0) {
-               n[6][k+1] = n4;
-               n[7][k+1] = wt4;
-           }
         }
 
         n[0][k] = n1;  n[1][k]=n2;  n[2][k]=n3;
