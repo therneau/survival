@@ -214,6 +214,7 @@ survfitKM <- function(x, y, weights=rep(1.0,length(x)),
                      std.err = cfit$std.err[,1],
                      cumhaz  = cfit$estimate[,2],
                      std.chaz = cfit$std.err[,2])
+        if (ncluster >0 & ny==3) rval$n.enter <- cfit$n[,8]
      } else {
          strata <- sapply(cfit, function(x) if (is.null(x$n)) 0L else nrow(x$n))
          names(strata) <- xlev
@@ -228,13 +229,11 @@ survfitKM <- function(x, y, weights=rep(1.0,length(x)),
                       cumhaz  =unlist(lapply(cfit, function(x) x$estimate[,2])),
                       std.chaz=unlist(lapply(cfit, function(x) x$std.err[,2])),
                       strata=strata)
-          if (ny==3) rval$n.enter <- unlist(lapply(cfit, function(x) x$n[,8]))
+          if (ncluster > 0 & ny==3) 
+              rval$n.enter <- unlist(lapply(cfit, function(x) x$n[,8]))
     }
         
-    if (ny ==3) {
-            rval$n.enter <- cfit$n[,8]
-            rval$type <- "counting"
-    }
+    if (ny ==3) rval$type <- "counting"
     else rval$type <- "right"
 
     if (se.fit) {

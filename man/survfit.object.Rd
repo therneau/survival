@@ -32,8 +32,11 @@ The following components must be included in a legitimate
     the number of events that occur at time t. 
   }
   \item{n.enter}{
-    for counting process data only,
-    the number of subjects that enter at time t. 
+    for counting process data only, and only if there was an \code{id}
+    argument, the number of subjects that enter the risk set during the
+    current interval.  If there are event/censoring times at 1, 3, 5 for
+    instance, someone who enters at time 1 is counted in the (1, 3]
+    interval, i.e., appears in the row for time 3. 
   }
   \item{n.censor}{
     for counting process data only,

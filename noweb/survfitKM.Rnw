@@ -293,6 +293,7 @@ if (length(n.used) == 1) {
                  std.err = cfit$std.err[,1],
                  cumhaz  = cfit$estimate[,2],
                  std.chaz = cfit$std.err[,2])
+    if (ncluster >0 & ny==3) rval$n.enter <- cfit$n[,8]
  } else {
      strata <- sapply(cfit, function(x) if (is.null(x$n)) 0L else nrow(x$n))
      names(strata) <- xlev
@@ -307,13 +308,11 @@ if (length(n.used) == 1) {
                   cumhaz  =unlist(lapply(cfit, function(x) x$estimate[,2])),
                   std.chaz=unlist(lapply(cfit, function(x) x$std.err[,2])),
                   strata=strata)
-      if (ny==3) rval$n.enter <- unlist(lapply(cfit, function(x) x$n[,8]))
+      if (ncluster > 0 & ny==3) 
+          rval$n.enter <- unlist(lapply(cfit, function(x) x$n[,8]))
 }
     
-if (ny ==3) {
-        rval$n.enter <- cfit$n[,8]
-        rval$type <- "counting"
-}
+if (ny ==3) rval$type <- "counting"
 else rval$type <- "right"
 
 if (se.fit) {
@@ -617,12 +616,20 @@ for (k=ntime-1; k>=0; k--) {
             if (tstart[i1] < dtime[k]) break;
 	    n1--;
 	    wt1 -= wt[i1];
-	    if (hasid==0 || (position[i1] & 1)) {
+	    if (hasid==1 && (position[i1] & 1)) {
                 /* if there are no repeated id (hasid=0) or this is the
                 ** first of a string of (a,b](b,c](c,d] for a subject, then
-                ** this is a 'real' entry */
-                n4++;
-                wt4 += wt[i1];
+                ** this is a 'real' entry 
+                ** Entries at an event time count as entries in the following
+                **    time interval
+                */
+                if (tstart[i1] == dtime[k]) {
+                    n[6][k+1]++;
+                    n[7][k+1] += wt[i1];
+                } else	{
+                    n4++;
+                    wt4 += wt[i1];
+                }
             }
         }
         n[6][k] = n4;

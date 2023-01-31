@@ -164,12 +164,20 @@ SEXP survfitkm(SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22,
                 if (tstart[i1] < dtime[k]) break;
                 n1--;
                 wt1 -= wt[i1];
-                if (hasid==0 || (position[i1] & 1)) {
+                if (hasid==1 && (position[i1] & 1)) {
                     /* if there are no repeated id (hasid=0) or this is the
                     ** first of a string of (a,b](b,c](c,d] for a subject, then
-                    ** this is a 'real' entry */
-                    n4++;
-                    wt4 += wt[i1];
+                    ** this is a 'real' entry 
+                    ** Entries at an event time count as entries in the following
+                    **    time interval
+                    */
+                    if (tstart[i1] == dtime[k]) {
+                        n[6][k+1]++;
+                        n[7][k+1] += wt[i1];
+                    } else        {
+                        n4++;
+                        wt4 += wt[i1];
+                    }
                 }
             }
             n[6][k] = n4;
