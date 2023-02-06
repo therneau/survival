@@ -1,5 +1,12 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 3.5-3}{
+  \itemize{
+    \item Fix final compiler warnings that affect CRAN
+    \item Restore backwards compatability for ratetable() calls in a
+    formula. The feature is used by the relsurv package.
+    \item Add information on trust regions to the fail directory.
+}}
 \section{Changes in version 3.5-2}{
   \itemize{
     \item New release for CRAN; chase down some challenging (for me)

@@ -435,9 +435,10 @@ coxph <- function(formula, data, weights, subset, na.action,
     attr(X, "assign") <- Xatt$assign[!xdrop]
     attr(X, "contrasts") <- Xatt$contrasts
     offset <- model.offset(mf)
-    if (is.null(offset) | all(offset==0)) offset <- rep(0., nrow(mf))
+    if (is.null(offset) || all(offset==0)) offset <- rep(0., nrow(mf))
     else if (any(!is.finite(offset) | !is.finite(exp(offset)))) 
         stop("offsets must lead to a finite risk score")
+    else offset <- offset - mean(offset)  # this can help stability of exp()
         
     weights <- model.weights(mf)
     if (!is.null(weights) && any(!is.finite(weights)))

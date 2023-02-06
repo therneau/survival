@@ -31,7 +31,7 @@ SEXP survfitresid(SEXP Y2,      SEXP sort12,  SEXP sort22,  SEXP cstate2,
     int nout;          /* number of output times */
     int itime, eptr, psave; /*specific indices */
     double ctime;      /*current time of interest, in the main loop */
-    int oldstate, newstate; /*when changing state */
+    int oldstate=0, newstate; /*when changing state  (=0 to keep gcc happy) */
     int nrowY, ncolY;  /* rows and cols in Y */
 
     double temp, temp2, *tempvec;  /* scratch doubles and vector */
@@ -99,7 +99,7 @@ SEXP survfitresid(SEXP Y2,      SEXP sort12,  SEXP sort22,  SEXP cstate2,
     }
     
     /* allocate space for scratch vectors */
-    ws = (double *) R_alloc(3*nstate, sizeof(double)); /*weighted number in state */
+    ws = (double *) R_alloc(3*nstate, sizeof(double)); /*wt number in state */
     pstate = ws + nstate;
     tempvec = pstate + nstate;
 
@@ -249,7 +249,8 @@ SEXP survfitresid(SEXP Y2,      SEXP sort12,  SEXP sort22,  SEXP cstate2,
 	    }
 	    starttime = ctime;
 	}
-	
+	wevent = wevent -0;  /* I will need this for the Efron approx eventually,
+			       until then need to keep clang from complaining*/
 	/* Update the derivative
 	**   Each obs i that has moved from state j to state k has added 
 	**    -wt[i]/ws[j] to cmat[j,j] and wt[i]/ws[j] to cmat[j,k]
@@ -261,7 +262,6 @@ SEXP survfitresid(SEXP Y2,      SEXP sort12,  SEXP sort22,  SEXP cstate2,
 	**    k elements, for one who transitions.  (For an obs which does
 	**    not transition these additions cancel out.)
 	*/
-
 	if (nevent ==1) {
 	    /*
 	    ** In this single event case, which is moderately common,
