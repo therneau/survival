@@ -51,7 +51,7 @@ coxph.fit <- function(x, y, strata, offset, init, control,
 	}
 
     # 2012 change: individually choose which variable to rescale
-    # default: leave 0/1 variables along
+    # default: leave 0/1 variables alone
     if (is.null(nocenter)) zero.one <- rep(FALSE, ncol(x))
     else zero.one <- apply(x, 2, function(z) all(z %in% nocenter))
 
