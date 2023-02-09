@@ -1284,7 +1284,7 @@ case dividing the transplant state into two sub-states based on the presence
 of a prior CR.  The code makes use of the time-dependent covariate 
 \code{priorcr}.
 (Because of scheduling constraints within a hospital it is unlikely that
-a CR that is within a few days prior to transplant could have effected the
+a CR that is within a few days prior to transplant could have affected the
 decision to schedule a transplant, however.  An alternate breakdown that
 might be useful would be ``transplant without CR or within 7 days after CR''
 versus those that are more than a week later. 

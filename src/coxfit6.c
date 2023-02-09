@@ -1,8 +1,5 @@
 /*
-** Cox regression fit, replacement for coxfit2 in order
-**   to be more frugal about memory: specificly that we 
-**   don't make copies of the input data.
-** 6/2019 : change variable name "time" to "xtime", Sun OS reserves 'time'
+** Cox regression fit, update to coxfit6, to use trust regions
 **
 **  the input parameters are
 **
@@ -43,6 +40,7 @@
 **       cmat(nvar,nvar)       ragged array
 **       cmat2(nvar,nvar)
 **       newbeta(nvar)         always contains the "next iteration"
+**       step(nvar)            The proposed increment to beta
 **
 **  calls functions:  cholesky2, chsolve2, chinv2
 **
@@ -71,10 +69,12 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
 	     SEXP toler2,    SEXP ibeta,    SEXP doscale2) {
 
     int i,j, person;
-    double temp, temp2;
+    double temp, temp2, temp3, temp4;
     double *newbeta, *scale;
     double halving =0, newlk;
     int notfinite;
+    double *step, radius, egain, ratio;
+    double *usave, *isave;
 
     /* copies of scalar input arguments */
     int     nused, nvar, maxiter;
@@ -122,12 +122,15 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
     PROTECT(imat2 = allocVector(REALSXP, nvar*nvar)); 
     nprotect++;
     imat = dmatrix(REAL(imat2),  nvar, nvar);
-    a = (double *) R_alloc(2*nvar*nvar + 4*nvar, sizeof(double));
+    a = (double *) R_alloc(2*nvar*nvar + 6*nvar, sizeof(double));
     newbeta = a + nvar;
     a2 = newbeta + nvar;
-    scale = a2 + nvar;
-    cmat = dmatrix(scale + nvar,   nvar, nvar);
-    cmat2= dmatrix(scale + nvar +nvar*nvar, nvar, nvar);
+    usave = a2 + nvar;
+    scale = usave + nvar;
+    step  = scale + nvar;
+    cmat = dmatrix(step + nvar,   nvar, nvar);
+    cmat2= dmatrix(step + nvar +nvar*nvar, nvar, nvar);
+    isave= (double *) R_alloc(nvar*nvar, sizeof(double));
 
     /* 
     ** create output variables
@@ -151,13 +154,20 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
     /*
     ** Subtract the mean from each covar, as this makes the regression
     **  much more stable.
+    ** The input variable doscale =0 for 0/1 indicator variables, they are
+    **  left alone.
+    ** Also set the intial step radius for the trust region, which will be
+    **  min(3, 20/diff(range(x))).  The latter is to guarrantee that the
+    **  the first beta is such that maxrisk/minrisk < exp(20).  The rationale
+    **  for this choice is found in fail/trustregion.Rnw.
     */
     temp2=0;
     for (i=0; i<nused; i++) {
 	temp2 += weights[i];
-    }	
+    }
+    radius =3;  temp3=0; temp4=0;
     for (i=0; i<nvar; i++) {
-	if (doscale[i]==0) {scale[i] = 1.0; means[i] =0;}
+	if (doscale[i]==0) {scale[i] = 1.0; means[i] = 0;}
 	else {
 	    temp=0;
 	    for (person=0; person<nused; person++) 
@@ -165,7 +175,7 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
 	    temp /= temp2;
 	    means[i] = temp;
 	    for (person=0; person<nused; person++) covar[i][person] -=temp;
-
+	
 	    temp =0;
 	    for (person=0; person<nused; person++) {
 		temp += weights[person] * fabs(covar[i][person]);
@@ -175,7 +185,11 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
 	    scale[i] = temp;
 	    for (person=0; person<nused; person++) {
 		covar[i][person] *= temp;
+		if (covar[i][person] < temp3) temp3 = covar[i][person];
+		if (covar[i][person] > temp4) temp4 = covar[i][person];
 		}
+	    if (temp4 > temp3 &&  radius*(temp4-temp3) > 20)
+		radius = 20/(temp4-temp3);  /* more conservative trust region*/
 	    }
 	}
  
@@ -192,23 +206,20 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
     /* am I done?
     **   update the betas and test for convergence
     */
-    for (i=0; i<nvar; i++) /*use 'a' as a temp to save u0, for the score test*/
-	a[i] = u[i];
-
+    for (i=0; i<nvar; i++) {
+	step[i] = u[i];
+	usave[i] = u[i];  /* needed if the first step goes badly awry */
+    }
+    
     *flag= cholesky2(imat, nvar, toler);
-    chsolve2(imat,nvar,a);        /* a replaced by  a *inverse(i) */
+    chsolve2(imat,nvar, step);        /* u replaced by  u *inverse(i) */
 
     temp=0;
     for (i=0; i<nvar; i++)
-	temp +=  u[i]*a[i];
+	temp +=  u[i]*step[i];
     *sctest = temp;  /* score test */
 
-    /*
-    **  Never, never complain about convergence on the first step.  That way,
-    **  if someone HAS to they can force one iter at a time.
-    ** A non-finite loglik comes from exp overflow and requires almost
-    **  malicious initial values.
-    */
+    loglik[1] = loglik[0];   /* loglik[1] contains the best so far */
     if (maxiter==0 || isfinite(loglik[0])==0) {
 	chinv2(imat,nvar);
 	for (i=0; i<nvar; i++) {
@@ -222,25 +233,69 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
 	}
 	goto finish;
     }
-
+    
     /*
-    ** here is the main loop
+    ** Here is the main loop
     */
-    loglik[1] = loglik[0];   /* loglik[1] contains the best so far */
-    for (i=0; i<nvar; i++) {
-	newbeta[i] = beta[i] + a[i];
-    }
-
-    halving = 0;       /* =1 when in the midst of "step halving" */
     for (*iter=1; *iter<= maxiter; (*iter)++) {
 	R_CheckUserInterrupt();  
+
+	if (*iter >1) {
+	    /* compute the proposed step */
+	    for (i=0; i<nvar; i++) step[i] = u[i];
+	    chsolve2(imat, nvar, step);
+	}
+	temp =0;
+	for (i=0; i<nvar; i++) temp += step[i]*step[i];
+	temp = sqrt(temp);   /* length of proposed step */
+
+	/*
+	** Do the trust region checks.
+	** step 1 is to check if the proposed step will lie within the
+	**  trust region radius.  If so, use it.  If not, use a gradient
+	**  step with length = radius (edge of trust region), and set halving=1
+	**  as a flag.  
+        ** Whichever is chosen, calculate the expected gain of the step.
+	**  If the second order Taylor series that unerlies the Newton-Raphson
+	**  iteration were perfect, the loglik will increase by s'U - s'Hs/2,
+	**  where s is the step we are about to take and H= imat = second deriv
+	*/
+	egain =0;
+	if (temp < radius) {
+	    /* within the region */
+	    halving =0;
+	    for (i=0; i<nvar; i++) {
+		newbeta[i] = beta[i] + step[i];
+		egain += step[i]*u[i]/2;
+	    }
+	} else { /* constrained */
+	    temp2 =0;
+	    for (i=0; i<nvar; i++) temp2 += u[i]*u[i];
+	    temp2 = sqrt(temp2);  /* length of the u vector */
+	    for (i=0; i<nvar; i++) {
+		step[i] = u[i]*radius/temp2;
+		newbeta[i] = beta[i] + step[i];
+	    }
+	    for (i=0; i<nvar; i++) {
+		egain += step[i]*u[i];
+		temp3 = step[i];
+		for (j=i+1; j<nvar; j++) {
+		    /* we want (step %*% imat %*% step)/2, but remember
+		       imat now contains the cholesky  */
+		    temp3 += step[j]*imat[j][i];
+		}
+		egain -= temp3 * temp3 * imat[i][i]/2;
+	    }
+	    halving =1;  
+	}
+	    
+	/* evaluate the loglik at this new point, and compute u and imat there*/
 	newlk = coxfit6_iter(nvar, nused, method, newbeta);
+	*flag = cholesky2(imat, nvar, toler);
 
 	/* am I done?
 	**   test for convergence and then update beta
 	*/
-	*flag = cholesky2(imat, nvar, toler);
-
 	notfinite = 0;
 	for (i=0; i<nvar; i++) {
 	    if (isfinite(u[i]) ==0) notfinite=2;     /* infinite score stat */
@@ -268,21 +323,28 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
 	    goto finish;
 	}
 
-	if (notfinite >0 || newlk < loglik[1])   {    
-	    /*it is not converging ! */
-	    halving++;  /* get more agressive when it doesn't work */
-	    for (i=0; i<nvar; i++) 
-		newbeta[i] = (newbeta[i] + halving*beta[i])/(halving + 1.0);
-		    
-	    }
-	else {
-	    halving=0;
-	    loglik[1] = newlk;
-	    chsolve2(imat,nvar,u);
+	/*
+	** Evaluate how well the step just taken worked, using the ratio of 
+	**      (actual gain in loglik)/ (expected gain)
+	** and use this to update the radius of the trust region.
+        ** Then decide whether to accept the current increment or not
+	*/
+	ratio = (newlk - loglik[1])/egain;
+	if (notfinite >0 || ratio < .25) radius = radius/4;
+	else if (ratio > .75) radius = radius *2;
+
+	if (notfinite ==0 && ratio > .1) {  /* accept */
 	    for (i=0; i<nvar; i++) {
 		beta[i] = newbeta[i];
-		newbeta[i] = newbeta[i] +  u[i];
-	    }	
+		usave[i] = u[i];
+	    }
+	    for (i=0; i< nvar*nvar;  i++) 
+		isave[i] = imat[0][i];
+	    loglik[1] = newlk;
+	} else {
+	    /* reset and try again */
+	    for (i=0; i< nvar; i++) u[i] = usave[i];
+	    for (i=0; i< nvar*nvar; i++) imat[0][i] = isave[i];
 	}
     }  /* return for another iteration */
 
