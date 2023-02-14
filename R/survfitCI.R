@@ -336,6 +336,6 @@ survfitCI <- function(X, Y, weights, id, cluster, robust, istate,
         kfit <- c(kfit, ci, conf.type=conf.type, conf.int=conf.int)
     }
     kfit$states <- states
-    kfit$type   <- attr(Y, "type")
+    kfit$type   <- type
     kfit
 }
