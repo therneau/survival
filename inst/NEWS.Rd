@@ -5,7 +5,6 @@
     \item Small bug in survfit: if start.time was present, the 'type' element
     could be missing from the output object.
 }}
-
 \section{Changes in version 3.5-3}{
   \itemize{
     \item Fix final compiler warnings that affect CRAN
