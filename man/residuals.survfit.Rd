@@ -14,7 +14,9 @@
   \item{object}{a \code{survfit} object}
   \item{times}{a vector of times at which the residuals are desired}
   \item{type}{the type of residual, see below}
-  \item{collapse}{add the residuals for all subjects in a cluster}
+  \item{collapse}{add the residuals for all subjects in a cluster. If
+    the \code{survfit} object used an \code{id} statement, the default is
+    to collapse over that variable.}
   \item{weighted}{weight the residuals by each observation's weight}
   \item{method}{controls a choice of algorithm.  Current an internal
     debugging option.}

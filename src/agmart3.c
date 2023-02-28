@@ -102,7 +102,7 @@ SEXP agmart3(SEXP nused2,  SEXP surv2,  SEXP score2, SEXP weight2,
     person1 =0;
     denom =0;
     cumhaz =0;
-    istrat = strata[sort1[0]];
+    istrat = strata[sort2[0]];
     for (person2=0; person2 <nused; ) {
 	/* find the next event time */
 	for (k=person2; k<nused; k++) {
