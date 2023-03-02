@@ -57,15 +57,27 @@ finegray(formula, data, weights, subset, na.action= na.pass, etype,
   where \code{astat} is a factor whose first level represents censoring
   and remaining levels are states.  The output data set will contain simple
   survival data (status = 0 or 1) for a single endpoint of interest.
-  In the output data set subjects who did not experience the event of
-  interest become censored subjects
-  whose times are artificially extended over multiple intervals, with a
+  For exposition
+  call this endpoint A and lump all others as endpoint B.
+  In the output data set subjects who experience endpoint B become
+  censored observations 
+  whose times are artificially extended to the right, with a
   decreasing case weight from interval to interval.  
   The output data set will normally contain many more rows than the
   input.
 
-  Time dependent covariates are allowed, but not (currently) delayed
-  entry.  If there are time dependent covariates, e.g.., the input data
+  The algorithm allows for delayed entry, and only a limited form of
+  time-dependent covariates.  That is, when subjects with endpoint B are
+  extended, those future covariate values stay constant; so there is an
+  implicit assumption that no more changes would have occurred if
+  the event had not intervened and follow-up had been longer. 
+  For predictable time-dependent covariates the final data set could be
+  further processed to fix this, but this is not included in the
+  function.  Geskus for example considers an example with different
+  calendar epochs, corresponding to a change in standard medical
+  practice for the disese, as a covariate.
+  dependent covariates.  
+  If there are time dependent covariates or delayed entry, e.g.., the input data
   set had \code{Surv(entry, exit, stat)} as the left hand side, then
   an \code{id} statement is required.  The program does data checks
   in this case, and needs to know which rows belong to each subject.
