@@ -185,11 +185,29 @@ concordance(object, \ldots)
 \seealso{\code{\link{coxph}}}
 \examples{
 fit1 <- coxph(Surv(ptime, pstat) ~ age + sex + mspike, mgus2)
-concordance(fit1, timewt="n") 
+concordance(fit1, timewt="n/G2")  # Uno's weighting
 
 # logistic regression
 fit2 <- glm(pstat ~ age + sex + mspike, binomial, data= mgus2)
 concordance(fit2)  # equal to the AUC
+
+# compare two non-nested models
+options(na.action = na.exclude)   # predict all 1341 obs, including missing
+fit3 <- coxph(Surv(ptime, pstat) ~ age + sex + mspike, mgus2)
+fit4 <- coxph(Surv(ptime, pstat) ~ age + sex + hgb + creat, mgus2)
+            family= poisson, data= mgus2)
+p3 <- -predict(fit3)  # high risk scores predict shorter survival
+p4 <- -predict(fit4)
+options(na.action = na.omit)      # return to the R default
+
+cfit <- concordance(Surv(ptime, pstat) ~ p3 + p4, mgus2)
+cfit
+round(coef(cfit), 3)
+signif(vcov(cfit), 3)
+
+test <- c(1, -1)  # contrast vector for model 1 - model 2 concordance
+round(c(difference = test %*% coef(cfit),
+        sd= sqrt(test %*% vcov(cfit) %*%test)), 3)
 }
 \references{
   F Harrell, R Califf, D Pryor, K Lee and R Rosati, 

@@ -4,6 +4,9 @@
   \itemize{
     \item Small bug in survfit: if start.time was present, the 'type' element
     could be missing from the output object.
+    \item Enhance the concordance command: one can now put multiple
+    predictions on the right hand side of the equation; this will give
+    the set of concordances and their variance-covariance matrix. 
 }}
 \section{Changes in version 3.5-3}{
   \itemize{

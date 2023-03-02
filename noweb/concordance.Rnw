@@ -109,7 +109,6 @@ concordance.formula <- function(object, data,
     if (length(group)) cluster <- group
                                             
     x <- model.matrix(Terms, mf)[,-1, drop=FALSE]  #remove the intercept
-    if (ncol(x) > 1) stop("Only one predictor variable allowed")
 
     if (!is.null(ymin) & (length(ymin)> 1 || !is.numeric(ymin)))
         stop("ymin must be a single number")
@@ -192,7 +191,14 @@ concordancefit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL,
     if (!std.err) {ranks <- FALSE; influence <- 0;}
 
     n <- length(y)
-    if (length(x) != n) stop("x and y are not the same length")
+    X <- as.matrix(x)
+    nvar <- ncol(X)
+    if (nvar >1) {
+        Xname <- colnames(X)
+        if (is.null(Xname)) Xname <- paste0("X", 1:nvar)
+    }
+    if (nrow(X) != n) stop("x and y are not the same length")
+
     if (missing(strata) || length(strata)==0) strata <- rep(1L, n)
     if (length(strata) != n)
         stop("y and strata are not the same length")
@@ -238,9 +244,10 @@ concordancefit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL,
     nstrat <- length(unique(strata))
     if (!is.logical(keepstrata)) {
         if (!is.numeric(keepstrata))
-            stop("keepstrat argument must be logical or numeric")
+            stop("keepstrata argument must be logical or numeric")
         else keepstrata <- (nstrat <= keepstrata)
     }
+    if (nvar>1 || nstrat ==1) keepstrata <- FALSE  #keeping both is difficult
 
     if (timewt %in% c("n", "I") && nstrat > 10 && !keepstrata) {
         # Special trickery for matched case-control data, where the
@@ -324,17 +331,11 @@ concordancefit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL,
                              sort.stop, ranks)
             else fit <- .Call(Cconcordance4, y, bindex, wts, rev(timewt), 
                               sort.start, sort.stop, ranks)
-            
-            # The C routine gives back an influence matrix which has columns for
-            #  concordant, discordant, tied on x but not y, tied on y, and tied
-            #  on both x and y. 
-            dimnames(fit$influence) <- list(NULL, 
-                   c("concordant", "discordant", "tied.x", "tied.y", "tied.xy"))
             if (ranks) {
                 if (ncol(y)==2) dtime <- y[y[,2]==1, 1]
                 else dtime <- y[y[,3]==1, 2]
-                temp <- data.frame(time= sort(dtime), fit$resid)
-                names(temp) <- c("time", "rank", "timewt", "casewt")
+                temp <- cbind(sort(dtime), fit$resid)
+                colnames(temp) <- c("time", "rank", "timewt", "casewt")
                 fit$resid <- temp[temp[,3] > 0,]  # don't return zeros
             }
         }
@@ -348,72 +349,145 @@ concordancefit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL,
         fit
     }
         
-    if (nstrat < 2) {
-        fit <- docount(y, x, weights, timewt)
-        count2 <- fit$count[1:5]
-        vcox <- fit$count[6]
-        fit$count <- fit$count[1:5]
-        if (std.err) imat <- fit$influence
-        if (ranks) resid <- fit$resid
-    } else {
+    # iterate over predictors (x) if necessary, calling docount for each
+    #  then repack the returned list
+    cfun <- function(y, x, weights, timewt) {
+        if (!is.matrix(x) || ncol(x) ==1) {
+            fit <- docount(y, as.vector(x), weights, timewt)
+        } else {
+            temp <- lapply(1:ncol(x), function(i) 
+                docount(y, x[,i], weights, timewt))
+            fit <- list(count = t(sapply(temp, function(x) x$count)))
+            nvar <- ncol(X)
+            if (std.err) 
+                fit$influence <-array(unlist(lapply(temp, function(x) x$influence)),
+                         dim=c(dim(temp[[1]]$influence), nvar))
+            if (ranks) {
+                fit$resid <- array(unlist(lapply(temp, function(x) x$resid)),
+                                   dim=c(dim(temp[[1]]$resid), nvar),
+                                   dimnames =c(dimnames(temp[[1]]$resid),
+                                               list(Xname)))
+            }
+        }
+        fit
+    }       
+        
+    # unpack the strata, if needed
+    if (nstrat < 2) fit <- cfun(y, drop(X), weights, timewt)
+    else {
+        # iterate over strata, calling cfun for each
         strata <- as.factor(strata)
         ustrat <- levels(strata)[table(strata) >0]  #some strata may have 0 obs
         tfit <- lapply(ustrat, function(i) {
             keep <- which(strata== i)
-            docount(y[keep,,drop=F], x[keep], weights[keep], timewt)
+            cfun(y[keep,,drop=FALSE], X[keep,,drop=FALSE], weights[keep], timewt)
         })
-        temp <-  t(sapply(tfit, function(x) x$count))
-        fit <- list(count = temp[,1:5])
-        count2 <- colSums(fit$count)
-        if (!keepstrata) fit$count <- count2
-        vcox <- sum(temp[,6])
-        if (std.err) {
-            imat <- do.call("rbind", lapply(tfit, function(x) x$influence))
-            # put it back into data order
-            index <- match(1:n, (1:n)[order(strata)])
-            imat <- imat[index,]
-            if (ranks) {
-                nr <- lapply(tfit, function(x) nrow(x$resid))
-                resid <- do.call("rbind", lapply(tfit, function(x) x$resid))
-                resid$strata <- rep(ustrat, nr)
+
+        # note that both keepstrata and ncol(X) >1 won't both be true, so
+        #  count will be a vector or matrix, never an array
+        temp <- unlist(lapply(tfit, function(x) x$count))
+        if (!keepstrata & nvar ==1)  # collapse over strata
+            fit <- list(count= colSums(matrix(temp, ncol=6, byrow=TRUE)))
+        else fit <- list(count = matrix(temp, ncol=6, byrow=TRUE))
+
+        if (std.err || influence >0) {
+            # the influence array is per observation, strata splits those rows
+            #  up for computation, but not the result.  Each strata will be a
+            #  different size.
+            if (nvar ==1) {
+                temp <- matrix(0, n, 5)
+                for (i in ustrat) 
+                    temp[strata==i,] <- tfit[[i]]$influence
+            } else {
+                temp <- array(0, dim=c(n, 5, nvar))
+                for (i in ustrat)
+                    temp[strata==i,,] <- tfit[[i]]$influence
             }
+            fit$influence <- temp
+        }
+        if (ranks) {
+            # same reassemby task for resid as for influence
+            if (nvar ==1) {
+                temp <- matrix(0, n, 4,
+                               dimnames=list(NULL, c("time", "rank", "timewt",
+                                                     "casewt")))
+                for (i in ustrat) 
+                    temp[strata==i,] <- tfit[[i]]$resid
+            } else {        
+                temp <- array(0, dim=c(n, 4, nvar),
+                               dimnames=list(NULL, c("time", "rank", "timewt",
+                                                     "casewt"), Xname))
+                for (i in ustrat)
+                    temp[strata==i,,] <- tfit[[i]]$resid
+            }
+            fit$resid <- temp
         }
     }
-        
-    npair <- sum(count2[1:3])
-    if (!keepstrata && is.matrix(fit$count)) fit$count <- colSums(fit$count)
-    somer <- (count2[1] - count2[2])/npair
+    
+    # Assemble the result
+    cname <- c("concordant", "discordant", "tied.x", "tied.y","tied.xy")
+    if (nvar > 1) {  # concordance per outcome (count has one row per X col)
+        npair <- rowSums(fit$count[,1:3])
+        somer <- (fit$count[,1] - fit$count[,2])/ npair
+        names(somer) <- Xname
+        coxvar <- fit$count[,6]/(4*npair^2)
+        rval <- list(concordance = (somer +1)/2, count=fit$count[,1:5], n=n)
+        dimnames(rval$count) <- list(Xname, cname)
+        if (std.err || influence ==1 || influence > 3) {
+            # dfbeta will have one column per outcome, one row per obs
+            #  influence has dimension (n, 5, nvar)
+            dfbeta <- ((fit$influence[,1,]- fit$influence[,2,]) -
+                       (apply(fit$influence[,1:3,], c(1,3), sum) *
+                        rep(somer, each=n)))* weights/ (2* rep(npair, each= n))
+            if (!missing(cluster) && length(cluster) > 0)
+                dfbeta <- rowsum(dfbeta, cluster)
+            cvar <- crossprod(dfbeta)
+        }
+    } 
+    else {
+        if (nstrat > 1) ctemp <- colSums(fit$count) else ctemp <- fit$count
+        npair <- sum(ctemp[1:3])
+        somer <- (ctemp[1] - ctemp[2])/ npair  # no concordance per stratum
+        coxvar <- sum(ctemp[6])/(4*npair^2)  # cox variance
+        if (keepstrata) {
+            rval <- list(concordance = (somer+1)/2, count=fit$count[,1:5], n=n)
+            dimnames(rval$count) <- list(levels(strata), cname)
+        }
+        else {
+            rval <- list(concordance= (somer+1)/2, count=ctemp[1:5], n=n)
+            names(rval$count) <- cname
+        }
+
+        if (std.err || influence ==1 || influence ==3) {
+            # deriv of (A/B) = dA/B - dB*A/B^2 = (dA - db*A/B)) /B
+            dfbeta <- ((fit$influence[,1]- fit$influence[,2]) - 
+                       (rowSums(fit$influence[,1:3])*somer))*weights/(2*npair)
+            # dfbeta is a vector of length n
+            if (!missing(cluster) && length(cluster)>0) 
+                dfbeta <- drop(rowsum(dfbeta, cluster))
+            cvar <- sum(dfbeta^2)
+        }
+    }
+
+
     if (std.err) {
-        dfbeta <- weights*((imat[,1]- imat[,2])/npair -
-                           (somer/npair)* rowSums(imat[,1:3]))
-        if (!missing(cluster) && length(cluster)>0) {
-            dfbeta <- tapply(dfbeta, cluster, sum)
-            dfbeta <- ifelse(is.na(dfbeta),0, dfbeta)  # if cluster is a factor
-        }
-        var.somer <- sum(dfbeta^2)
-        rval <- list(concordance = (somer+1)/2, count=fit$count, n=n,
-                     var = var.somer/4, cvar=vcox/(4*npair^2))
-        }
-    else  rval <- list(concordance = (somer+1)/2, count=fit$count, n=n)
-
-    if (is.matrix(rval$count))
-        colnames(rval$count) <- c("concordant", "discordant", "tied.x", 
-                                   "tied.y", "tied.xy")
-    else names(rval$count) <- c("concordant", "discordant", "tied.x", "tied.y",
-                           "tied.xy")
-
+        rval$var <- cvar
+        rval$cvar <- coxvar
+    }
     if (influence == 1 || influence==3) rval$dfbeta <- dfbeta/2
-    if (influence >=2) rval$influence <- imat
-         
-    if (ranks) rval$ranks <- resid
+    if (influence >=2) {
+        rval$influence <- fit$influence
+        if (nvar > 1) dimnames(rval$influence) <- list(NULL, cname, Xname)
+        else dimnames(rval$influence) <- list(NULL, cname)
+    }
+
+    if (ranks) rval$ranks <- fit$resid
+
     if (reverse) {
         # flip concordant/discordant values but not the labels
         rval$concordance <- 1- rval$concordance
         if (!is.null(rval$dfbeta)) rval$dfbeta <- -rval$dfbeta
-        if (!is.null(rval$influence)) {
-            rval$influence <- rval$influence[,c(2,1,3,4,5)]
-            colnames(rval$influence) <- colnames(rval$influence)[c(2,1,3,4,5)]
-        }
+            
         if (is.matrix(rval$count)) {
             rval$count <- rval$count[, c(2,1,3,4,5)]
             colnames(rval$count) <- colnames(rval$count)[c(2,1,3,4,5)]
@@ -422,9 +496,18 @@ concordancefit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL,
             rval$count <- rval$count[c(2,1,3,4,5)]
             names(rval$count) <- names(rval$count)[c(2,1,3,4,5)]
         }
+
+        if (!is.null(rval$influence)) {
+            if (nvar >1) {
+                rval$influence <- rval$influence[,c(2,1,3,4,5),]
+                dimnames(rval$influence) <- list(Null, cname, Xname)
+            } else {
+                rval$influence <- rval$influence[, c(2,1,3,4,5)]
+                dimnames(rval$influece) <- list(NULL, cname)
+            }
+        }
         if (ranks) rval$ranks$rank <- -rval$ranks$rank
     }
-
     rval
 }
 @ 
