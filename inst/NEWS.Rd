@@ -2,6 +2,11 @@
 \title{NEWS file for the survival package}
 \section{Changes in version 3.5-4}{
   \itemize{
+    \item Update the help file for the finegray command.  It was
+    incorrect with respect to time-dependent covariates.
+    \item Add model= as an option to survfit, and add a
+    model.frame.survfit method.  These are needed to call the
+    survfit/pseudo pair inside another function.
     \item Small bug in survfit: if start.time was present, the 'type' element
     could be missing from the output object.
     \item Enhance the concordance command: one can now put multiple
