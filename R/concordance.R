@@ -224,7 +224,7 @@ concordancefit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL,
         if (sum(y[,ny]) <2) timeopt <- 'n'
         
         # order the data: reverse time, censors before deaths
-        if (ny ==2) { 
+        if (ny ==2) {
             sort.stop <- order(-y[,1], y[,2], risk) -1L 
         } else {
             sort.stop  <- order(-y[,2], y[,3], risk) -1L   #order by endpoint
@@ -333,12 +333,12 @@ concordancefit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL,
             #  different size.
             if (nvar ==1) {
                 temp <- matrix(0, n, 5)
-                for (i in ustrat) 
-                    temp[strata==i,] <- tfit[[i]]$influence
+                for (i in 1:nstrat) 
+                    temp[strata==ustrat[i],] <- tfit[[i]]$influence
             } else {
                 temp <- array(0, dim=c(n, 5, nvar))
-                for (i in ustrat)
-                    temp[strata==i,,] <- tfit[[i]]$influence
+                for (i in 1:nstrat)
+                    temp[strata==ustrat[i],,] <- tfit[[i]]$influence
             }
             fit$influence <- temp
         }
@@ -348,14 +348,14 @@ concordancefit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL,
                 temp <- matrix(0, n, 4,
                                dimnames=list(NULL, c("time", "rank", "timewt",
                                                      "casewt")))
-                for (i in ustrat) 
-                    temp[strata==i,] <- tfit[[i]]$resid
+                for (i in 1:nstrat) 
+                    temp[strata==ustrat[i],] <- tfit[[i]]$resid
             } else {        
                 temp <- array(0, dim=c(n, 4, nvar),
                                dimnames=list(NULL, c("time", "rank", "timewt",
                                                      "casewt"), Xname))
-                for (i in ustrat)
-                    temp[strata==i,,] <- tfit[[i]]$resid
+                for (i in 1:nstrat)
+                    temp[strata==ustrat[i],,] <- tfit[[i]]$resid
             }
             fit$resid <- temp
         }
