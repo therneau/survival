@@ -50,21 +50,23 @@ rep.Surv <- function(x, ...) {
 #  like ns().  And - it works only on formulas.
 # This is used to generate a warning in coxph if the same variable is used
 #  on both sides, so perfection is not required of the function.
-terms.inner <- function(x) {
+# Changed from terms.inner to innerterms at CRAN's request, as the former
+#  created a false positive as an undocumented method for the terms generic
+innerterms <- function(x) {
     if (inherits(x, "formula")) {
-        if (length(x) ==3) c(terms.inner(x[[2]]), terms.inner(x[[3]]))
-        else terms.inner(x[[2]])
+        if (length(x) ==3) c(innerterms(x[[2]]), innerterms(x[[3]]))
+        else innerterms(x[[2]])
     }
     else if (inherits(x, "call") && 
              (x[[1]] != as.name("$") && x[[1]] != as.name("["))) {
         if (x[[1]] == '+' || x[[1]]== '*' || x[[1]] == '-' || x[[1]] ==':') {
             # terms in a model equation, unary minus only has one argument
-            if (length(x)==3) c(terms.inner(x[[2]]), terms.inner(x[[3]]))
-            else terms.inner(x[[2]])
+            if (length(x)==3) c(innerterms(x[[2]]), innerterms(x[[3]]))
+            else innerterms(x[[2]])
         }
         else if (x[[1]] == as.name("Surv"))
-                 unlist(lapply(x[-1], terms.inner))
-        else if (length(x) ==2) terms.inner(x[[2]])
+                 unlist(lapply(x[-1], innerterms))
+        else if (length(x) ==2) innerterms(x[[2]])
         else character(0)
     }
     else(deparse(x))
