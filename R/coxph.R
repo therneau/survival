@@ -159,10 +159,10 @@ coxph <- function(formula, data, weights, subset, na.action,
     
     if (control$timefix) Y <- aeqSurv(Y)
     if (length(attr(Terms, 'variables')) > 2) { # a ~1 formula has length 2
-        ytemp <- terms.inner(formula[1:2])
+        ytemp <- innerterms(formula[1:2])
         suppressWarnings(z <- as.numeric(ytemp)) # are any of the elements numeric?
         ytemp <- ytemp[is.na(z)]  # toss numerics, e.g. Surv(t, 1-s)
-        xtemp <- terms.inner(formula[-2])
+        xtemp <- innerterms(formula[-2])
         if (any(!is.na(match(xtemp, ytemp))))
             warning("a variable appears on both the left and right sides of the formula")
     }

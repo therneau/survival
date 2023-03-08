@@ -418,7 +418,7 @@ concordancefit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL,
         else dimnames(rval$influence) <- list(NULL, cname)
     }
 
-    if (ranks) rval$ranks <- fit$resid
+    if (ranks) rval$ranks <- data.frame(fit$resid)
 
     if (reverse) {
         # flip concordant/discordant values but not the labels
@@ -443,7 +443,7 @@ concordancefit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL,
                 dimnames(rval$influece) <- list(NULL, cname)
             }
         }
-        if (ranks) rval$ranks$rank <- -rval$ranks$rank
+        if (ranks) rval$ranks[,"rank"] <- -rval$ranks[,"rank"]
     }
     rval
 }

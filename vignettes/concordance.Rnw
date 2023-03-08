@@ -292,8 +292,6 @@ A solution is to use a stratified concordance, which compares all pairs
 In the example below there is a separate count for each stratum, the
 final concordance is based on the column sums.
 The same issue, and solution, applies to stratified \code{survreg} models.
-(The fact that strata names are not retained as labels for the counts
-matrix is a deficiency in the routine.)
 
 <<veteran2>>=
 fit4b <- coxph(formula = Surv(time, status) ~ karno + age + trt + 
@@ -343,8 +341,7 @@ Gehan-Wilcoxon statistic; replacing $n(t)$ with weights of 1
 will yield the log-rank statistic. 
 
 There is a deep literature with respect to the ``best'' weight for survival 
-tests,
-and we can apply the same historical arguments
+tests, and we can apply the same historical arguments
 to the concordance as well.  We will point out four of interest:
 
 \begin{itemize}
@@ -353,15 +350,14 @@ to the concordance as well.  We will point out four of interest:
     is the survival distribution and $G$ the censoring distribution.
     They argue that $S(t-)$ would be a better weight since $G$ may have
     features that are irrelevant to the question being tested.  
-    For a particular data set Prentice \cite{Prentice79} later showed 
+    For a particular data set Prentice \cite{Prentice79} showed 
     that these concerns were indeed justified, and
     most software now uses the Peto-Wilcoxon variant. 
 \item Tarone and Ware point out that weights of $n(t)$ and 1 give the
     Gehan-Wilcoxon and log-rank tests, respectively, and suggest $\sqrt{n(t)}$
     as an intermediate value.
-\item Schemper et al
-    \cite{Schemper09} argue for
-    a weight of $S(t)/G(t)$ in the Cox model.  
+\item Schemper et al \cite{Schemper09} argue for
+    a weight of $S(t-)/G(t-)$ in the Cox model.  
     When proportional hazards does not hold the coefficient from the Cox model
     is an ``average'' hazard ratio, and they show that using $S/G$ leads to
     a value that remains interpretable in terms of an underlying population
@@ -407,7 +403,10 @@ As a consequence the Schemper and Uno weights are also identical.
 
 The \code{timewt} option allows you to modify weights for the concordance.
 The options are: \code{n, S, S/G, n/G2, I}, the last giving equal weight
-to each event time.
+to each event time; this would correspond to a log-rank test.  
+(We do not recommend this nor have we found any literature that does so, but
+included it for completeness.)  For non-survival data $G =1$ and the first four
+weights give identical concordance values.
 The figure below shows the first four weights for the colon cancer
 data set.
 This data is from a clinical trial of 929 subjects, with 3 years of enrollment
