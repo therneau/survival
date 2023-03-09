@@ -503,7 +503,7 @@ concordancefit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL,
                 dimnames(rval$influence) <- list(Null, cname, Xname)
             } else {
                 rval$influence <- rval$influence[, c(2,1,3,4,5)]
-                dimnames(rval$influece) <- list(NULL, cname)
+                dimnames(rval$influence) <- list(NULL, cname)
             }
         }
         if (ranks) rval$ranks[,"rank"] <- -rval$ranks[,"rank"]
