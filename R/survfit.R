@@ -6,7 +6,7 @@ survfit <- function(formula, ...) {
 survfit.formula <- function(formula, data, weights, subset, 
                             na.action, stype=1, ctype=1, 
                             id, cluster, robust, istate, 
-                            timefix=TRUE, etype, error, ...) {
+                            timefix=TRUE, etype, model=FALSE, error, ...) {
 
     Call <- match.call()
     Call[[1]] <- as.name('survfit')  #make nicer printout for the user
@@ -142,7 +142,7 @@ survfit.formula <- function(formula, data, weights, subset,
 
     if (!is.null(attr(mf, 'na.action')))
             temp$na.action <- attr(mf, 'na.action')
-
+    if (model) temp$model <- mf
     temp$call <- Call
     temp
     }

@@ -84,6 +84,11 @@ tool, not production, for the more complex models.
   form, e.g., \code{id = patno}, then the name of the id column will
   be `patno', otherwise it will be named `(id)'.
 }
+\note{
+  The code will be slightly faster if the \code{model=TRUE} option is
+  used in the \code{survfit} call.  It may be essential if the
+  survfit/pseudo pair is used inside another function.
+}
 \references{
 PK Andersen and M Pohar-Perme, Pseudo-observations in surivival
 analysis, Stat Methods Medical Res, 2010; 19:71-99

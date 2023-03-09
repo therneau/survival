@@ -268,7 +268,6 @@ predict.coxph <- function(object, newdata,
         }
         else {
             offset <- newoffset - mean(offset)
-            browser()
             if (has.strata && any(is.na(newstrat))) is.na(newx) <- is.na(newstrat)
             if (has.strata && reference=="strata") {
                 xmeans <- rowsum(x*weights, oldstrat)/c(rowsum(weights, oldstrat))

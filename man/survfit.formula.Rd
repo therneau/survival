@@ -12,7 +12,7 @@
 \usage{
 \method{survfit}{formula}(formula, data, weights, subset, na.action,  
         stype=1, ctype=1, id, cluster, robust, istate, timefix=TRUE,
-        etype, error,  ...)
+        etype, model=FALSE, error, ...)
 }
 \arguments{
   \item{formula}{
@@ -68,6 +68,7 @@
     a variable giving the type of event.  This has been superseded by
     multi-state Surv objects and is deprecated; see example below.
   }
+  \item{model}{include a copy of the model frame in the output}
   \item{error}{this argument is no longer used}
   \item{\dots}{
     The following additional arguments are passed to internal functions

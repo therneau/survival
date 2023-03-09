@@ -411,7 +411,7 @@ concordancefit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL,
         rval$var <- cvar
         rval$cvar <- coxvar
     }
-    if (influence == 1 || influence==3) rval$dfbeta <- dfbeta/2
+    if (influence == 1 || influence==3) rval$dfbeta <- dfbeta
     if (influence >=2) {
         rval$influence <- fit$influence
         if (nvar > 1) dimnames(rval$influence) <- list(NULL, cname, Xname)
@@ -437,7 +437,7 @@ concordancefit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL,
         if (!is.null(rval$influence)) {
             if (nvar >1) {
                 rval$influence <- rval$influence[,c(2,1,3,4,5),]
-                dimnames(rval$influence) <- list(Null, cname, Xname)
+                dimnames(rval$influence) <- list(NULL, cname, Xname)
             } else {
                 rval$influence <- rval$influence[, c(2,1,3,4,5)]
                 dimnames(rval$influence) <- list(NULL, cname)

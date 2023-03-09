@@ -165,6 +165,7 @@ easier of course.
 
 <<rsurvfit-data>>=
 Call <- object$call
+Terms <- object$terms
 
 # remember the name of the id variable, if present.
 #  but we don't try to parse it:  id= mydata$clinic becomes NULL
@@ -172,21 +173,17 @@ idname <- Call$id
 if (is.name(idname)) idname <- as.character(idname)
 else idname <- NULL   
 # I always need the model frame
-if (coxsurv) {
-    mf <- model.frame(object)
-    if (is.null(object$y)) Y <- model.response(mf)
-    else Y <- object$y
-}
-else {
-    formula <- formula(object)
+mf <- model.frame(object)
+if (is.null(object$y)) Y <- model.response(mf)
+else Y <- object$y
 
-    # the chunk below is shared with survfit.formula 
-    na.action <- getOption("na.action")
-    if (is.character(na.action))
-        na.action <- get(na.action)  # this is a temporary hack
-    <<survfit.formula-getdata>>
-    # end of shared code 
-}
+formula <- formula(object)
+# the chunk below is shared with survfit.formula 
+na.action <- getOption("na.action")
+if (is.character(na.action))
+    na.action <- get(na.action)  # a hack to allow the shared code
+<<survfit.formula-getdata>>
+# end of shared code 
 
 xlev <- levels(X)
 

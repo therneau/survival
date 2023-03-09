@@ -98,6 +98,13 @@ concordance(object, \ldots)
   are not comparable, e.g., censored at time 5 and a death at time 6,
   as we do not know if the first observation will or will not outlive
   the second.  In this case the total number of evaluable pairs is smaller.
+  
+  Relatations to other statistics:
+  For continuous x and y, 2C- 1 is equal to Somers' d.
+  If the response is binary, C is equal to the area under the receiver
+  operating curve or AUC.
+  For a survival response and binary predictor C is the numerator of
+  the Gehan-Wilcoxon test.
 
   A naive compuation requires adding up over all n(n-1)/2 comparisons,
   which can be quite slow for large data sets.
@@ -110,6 +117,17 @@ concordance(object, \ldots)
   efficiently updated as subjects are added to the risk set.
   For further details see the vignette.
 
+  The variance is based on an infinetesimal jackknife.  One advantage of
+  this approach is that it also gives a valid covariance for the
+  covariance based on multiple different predicted values, even if those
+  predictions come from quite different models.  See for instance the
+  example below which has a poisson and two non-nested Cox models.
+  This has been useful to compare a machine learning model to a Cox
+  model fit, say.
+  It is absolutely critical, however, that the predicted values line up
+  exactly, with the same observation in each row; otherwise the result
+  will be nonsense.  (Be alert to the impact of missing values.)
+
   The \code{timewt} option is only applicable to censored data.  In this
   case the default corresponds to Harrell's C statistic, which is
   closely related to the Gehan-Wilcoxon test;
@@ -121,20 +139,13 @@ concordance(object, \ldots)
   The \code{timewt= "I"} option is related to the log-rank
   statistic.
   
-  Relatations to other statistics:
-  For continuous x and y, 2C- 1 is equal to Somers' d.
-  If the response is binary, C is equal to the area under the reciever
-  operating curve or AUC.
-  For a survival response and binary predictor C is the numerator of
-  the Genan-Wilcoxon test.
-  
   When the number of strata is very large, such as in a conditional
   logistic regression for instance (\code{clogit} function), a much
   faster computation is available when the individual strata results
   are not retained; use \code{keepstrata=FALSE} or \code{keepstrata=0}
   to do so. In the general case the \code{keepstrata = 10}
   default simply keeps the printout managable: it retains and prints
-  per-strata information if the number of strata is <= 10.
+  per-strata counts if the number of strata is <= 10.
 }
 \value{
   An object of class \code{concordance} containing the following
@@ -187,27 +198,31 @@ concordance(object, \ldots)
 fit1 <- coxph(Surv(ptime, pstat) ~ age + sex + mspike, mgus2)
 concordance(fit1, timewt="n/G2")  # Uno's weighting
 
-# logistic regression
-fit2 <- glm(pstat ~ age + sex + mspike, binomial, data= mgus2)
+# logistic regression 
+fit2 <- glm(I(sex=='M') ~ age + log(creatinine), binomial, data= flchain)
 concordance(fit2)  # equal to the AUC
 
-# compare two non-nested models
-options(na.action = na.exclude)   # predict all 1341 obs, including missing
-fit3 <- coxph(Surv(ptime, pstat) ~ age + sex + mspike, mgus2)
-fit4 <- coxph(Surv(ptime, pstat) ~ age + sex + hgb + creat, mgus2)
-            family= poisson, data= mgus2)
-p3 <- -predict(fit3)  # high risk scores predict shorter survival
-p4 <- -predict(fit4)
+# compare multiple models 
+options(na.action = na.exclude)   # predict all 1384 obs, including missing
+fit3 <- glm(pstat ~ age + sex + mspike + offset(log(ptime)), 
+            poisson, data= mgus2)
+fit4 <- coxph(Surv(ptime, pstat) ~ age + sex + mspike, mgus2)
+fit5 <- coxph(Surv(ptime, pstat) ~ age + sex + hgb + creat, mgus2)
+
+tdata <- mgus2; tdata$ptime <- 60   # prediction at 60 months
+p3 <- -predict(fit3, newdata=tdata) 
+p4 <- -predict(fit4) # high risk scores predict shorter survival
+p5 <- -predict(fit5)
 options(na.action = na.omit)      # return to the R default
 
-cfit <- concordance(Surv(ptime, pstat) ~ p3 + p4, mgus2)
+cfit <- concordance(Surv(ptime, pstat) ~p3 +  p4 + p5, mgus2)
 cfit
 round(coef(cfit), 3)
-signif(vcov(cfit), 3)
+round(cov2cor(vcov(cfit)), 3)  # high correlation
 
-test <- c(1, -1)  # contrast vector for model 1 - model 2 concordance
-round(c(difference = test %*% coef(cfit),
-        sd= sqrt(test %*% vcov(cfit) %*%test)), 3)
+test <- c(1, -1, 0)  # contrast vector for model 1 - model 2 
+round(c(difference = test \%*\% coef(cfit),
+        sd= sqrt(test \%*\% vcov(cfit) \%*\% test)), 3)
 }
 \references{
   F Harrell, R Califf, D Pryor, K Lee and R Rosati, 
