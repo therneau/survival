@@ -1,5 +1,5 @@
 
-R Under development (unstable) (2023-01-09 r83585) -- "Unsuffered Consequences"
+R Under development (unstable) (2023-01-30 r83727) -- "Unsuffered Consequences"
 Copyright (C) 2023 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
@@ -484,25 +484,69 @@ n= 4190, number of events= 838
 > ### ** Examples
 > 
 > fit1 <- coxph(Surv(ptime, pstat) ~ age + sex + mspike, mgus2)
-> concordance(fit1, timewt="n") 
+> concordance(fit1, timewt="n/G2")  # Uno's weighting
 Call:
-concordance.coxph(object = fit1, timewt = "n")
+concordance.coxph(object = fit1, timewt = "n/G2")
 
 n= 1373 
-Concordance= 0.6577 se= 0.03057
+Concordance= 0.6132 se= 0.1026
 concordant discordant     tied.x     tied.y    tied.xy 
-     54083      28129         79         31          0 
+ 461425.07  290956.09     265.66     120.39       0.00 
 > 
-> # logistic regression
-> fit2 <- glm(pstat ~ age + sex + mspike, binomial, data= mgus2)
+> # logistic regression 
+> fit2 <- glm(I(sex=='M') ~ age + log(creatinine), binomial, data= flchain)
 > concordance(fit2)  # equal to the AUC
 Call:
 concordance.lm(object = fit2)
 
-n= 1373 
-Concordance= 0.6861 se= 0.02592
+n= 6524 
+Concordance= 0.8151 se= 0.005304
 concordant discordant     tied.x     tied.y    tied.xy 
-     99195      45360        115     796404        804 
+   8568768    1931502      31474   10689870      56412 
+> 
+> # compare multiple models 
+> options(na.action = na.exclude)   # predict all 1384 obs, including missing
+> fit3 <- glm(pstat ~ age + sex + mspike + offset(log(ptime)), 
++             poisson, data= mgus2)
+> fit4 <- coxph(Surv(ptime, pstat) ~ age + sex + mspike, mgus2)
+> fit5 <- coxph(Surv(ptime, pstat) ~ age + sex + hgb + creat, mgus2)
+> 
+> tdata <- mgus2; tdata$ptime <- 60   # prediction at 60 months
+> p3 <- -predict(fit3, newdata=tdata) 
+> p4 <- -predict(fit4) # high risk scores predict shorter survival
+> p5 <- -predict(fit5)
+> options(na.action = na.omit)      # return to the R default
+> 
+> cfit <- concordance(Surv(ptime, pstat) ~p3 +  p4 + p5, mgus2)
+> cfit
+Call:
+concordance.formula(object = Surv(ptime, pstat) ~ p3 + p4 + p5, 
+    data = mgus2)
+
+n=1338 (46 observations deleted due to missingness)
+   concordance     se
+p3      0.6598 0.0313
+p4      0.6618 0.0310
+p5      0.6000 0.0293
+
+   concordant discordant tied.x tied.y tied.xy
+p3      51105      26333     74     28       0
+p4      51258      26180     74     28       0
+p5      46507      31003      2     28       0
+> round(coef(cfit), 3)
+   p3    p4    p5 
+0.660 0.662 0.600 
+> round(cov2cor(vcov(cfit)), 3)  # high correlation
+      [,1]  [,2]  [,3]
+[1,] 1.000 0.994 0.236
+[2,] 0.994 1.000 0.258
+[3,] 0.236 0.258 1.000
+> 
+> test <- c(1, -1, 0)  # contrast vector for model 1 - model 2 
+> round(c(difference = test %*% coef(cfit),
++         sd= sqrt(test %*% vcov(cfit) %*% test)), 3)
+difference         sd 
+    -0.002      0.003 
 > 
 > 
 > 
@@ -3691,7 +3735,7 @@ $terms
 > cleanEx()
 > options(digits = 7L)
 > base::cat("Time elapsed: ", proc.time() - base::get("ptime", pos = 'CheckExEnv'),"\n")
-Time elapsed:  3.04 0.112 3.152 0 0 
+Time elapsed:  3.085 0.112 3.199 0 0 
 > grDevices::dev.off()
 null device 
           1 

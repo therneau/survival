@@ -12,6 +12,7 @@
     \item Enhance the concordance command: one can now put multiple
     predictions on the right hand side of the equation; this will give
     the set of concordances and their variance-covariance matrix. 
+   \item Add a couple of overlooked S3 methods to the NAMESPACE
 }}
 \section{Changes in version 3.5-3}{
   \itemize{
