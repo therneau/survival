@@ -1,12 +1,21 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
-\section{Changes in version 3.5-6{}
+\section{Changes in version 3.5-6}{
   \itemize{
     \item Fix error in a (time1, time2) coxph model with both strata and
     tt() terms; pointed out by Pierre Joly.  Add a new test case for
     this to the tests directory.
 }}
-
+\section{Changes in version 3.5-5}{
+  \itemize{
+    \item Add the hoel data set, cancer in irradiated male mice, found
+    in Kalbfleisch and Prentice.  It is useful for illustrating
+    competing risks.
+    \item Update some S3 methods in NAMESPACE, and rename the
+    internal terms.inner function to innerterms.  Both were generating
+    warnings with the latest CRAN check suite.
+    \item Submit to CRAN
+}}
 \section{Changes in version 3.5-4}{
   \itemize{
     \item Update the help file for the finegray command.  It was
