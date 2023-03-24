@@ -6,11 +6,12 @@ aeq <- function(x, y) all.equal(as.vector(x), as.vector(y))
 # A contrived example for the tt function
 #
 mkdata <- function(n, beta) {
-    age <- runif(n, 20, 60)
+    age <- round(runif(n, 20, 60))
     x <- rbinom(n, 1, .5)
 
     futime <- rep(40, n)   # everyone has 40 years of follow-up
     entry  <- pmax(0, seq(-10, 30, length=n))  # 1/4 enter at 0
+    entry  <- round(entry)
     status <- rep(0, n)
     dtime <-  runif(n/2, 1, 40)  # 1/2 of them die
     dtime <- sort(dtime)
@@ -30,17 +31,16 @@ mkdata <- function(n, beta) {
         futime[dead] <- dtime[i]
         status[dead] <- 1
     }
-    data.frame(time1= entry, time2=round(futime,1), status=status, age=age,
-               x=x, risk=risk,
+    out <- data.frame(time1= entry, time2=round(futime,1), status=status, 
+                      age=age, x=x, risk=risk,
                casewt = sample(1:5, n, replace=TRUE),
                grp = sample(1:15, n, replace=TRUE), id= 1:n)
+    subset(out, time1 < time2)
 }
 
 set.seed(1953)  # a good year
-# The functional form won't be well estimated with n=100, but a large
-#  n makes the test slow, and as a validity test n=100 and n=1000 are equally
-#  good.
-tdata <- mkdata(20, c(log(1.5), 2/30))   # data set has many ties
+# Make n larger for the (time1, time2) case; more stress.
+tdata <- mkdata(250, c(log(1.5), 2/30))   # data set has many ties
 #tdata <- mkdata(100, c(log(1.5), 2/30))   # data set has many ties
 tdata$strat <- floor(tdata$grp/10)
 
@@ -95,16 +95,3 @@ fit6a <- coxph(Surv(time1, time2, status) ~ x + tt(age) + strata(strat), tdata,
 fit6b <- coxph(Surv(time1, time2, status) ~ x + I(c.age^2) +strata(strat), data2)
 aeq(coef(fit6a), coef(fit6b))
 aeq(vcov(fit6a), vcov(fit6b))
-
-                                             
-# temp stuff
-deaths <- which(tdata$status==1)
-atrisk <- list(10)
-deaths <- deaths[order(tdata$stra[deaths], -tdata$time2[deaths])]
-for (i in 1:10) {
-    j <- deaths[i]
-    dtime <- tdata$time2[j]
-    atrisk[[i]] <- with(tdata, which(time1<dtime & time2 >= dtime & 
-                                      strat==strat[j]))
-}
-

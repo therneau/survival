@@ -1,5 +1,12 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 3.5-6{}
+  \itemize{
+    \item Fix error in a (time1, time2) coxph model with both strata and
+    tt() terms; pointed out by Pierre Joly.  Add a new test case for
+    this to the tests directory.
+}}
+
 \section{Changes in version 3.5-4}{
   \itemize{
     \item Update the help file for the finegray command.  It was

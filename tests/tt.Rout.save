@@ -1,6 +1,6 @@
 
-R Under development (unstable) (2019-06-28 r76752) -- "Unsuffered Consequences"
-Copyright (C) 2019 The R Foundation for Statistical Computing
+R Under development (unstable) (2023-01-30 r83727) -- "Unsuffered Consequences"
+Copyright (C) 2023 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -112,6 +112,17 @@ Type 'q()' to quit R.
 > aeq(vcov(fit5a), vcov(fit5b))
 [1] TRUE
 > 
+> # Check that strata is correct
+> fit6a <- coxph(Surv(futime, status) ~ x + tt(age) + strata(grp), tdata,
++                tt = function(x, t, ...) (x+t)^2)
+> fit6b <- coxph(Surv(tstart, futime, status) ~ x + I(c.age^2) +strata(grp), data2)
+> aeq(coef(fit6a), coef(fit6b))
+[1] TRUE
+> aeq(vcov(fit6a), vcov(fit6b))
+[1] TRUE
+> 
+>                                              
+> 
 > proc.time()
    user  system elapsed 
-  1.024   0.052   1.084 
+  1.147   0.101   1.237 

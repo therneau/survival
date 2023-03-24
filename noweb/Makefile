@@ -58,7 +58,7 @@ SFUN =  agreg.fit.R \
 CFUN =  agfit4.c \
         agsurv4.c agsurv5.c \
 	cdecomp.c \
-        concordance3.c coxcount1.c \
+        concordance3.c \
         coxexact.c \
 	survfitci.c \
 	survfitkm.c \

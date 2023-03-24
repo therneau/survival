@@ -5,7 +5,7 @@
 \description{
 Days until occurence of cancer for male mice
 }
-\usage{data("hoel")}
+\usage{data("cancer")}
 \format{
   A data frame with 181 observations on the following 4 variables.
   \describe{
