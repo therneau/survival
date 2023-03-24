@@ -1,4 +1,21 @@
-/* Automatically generated from the noweb directory */
+/*
+** This routine is used by coxph when there is a tt() term in the model
+**   In that case, the data set gets expanded to long form, which has a 
+** separate set of rows for each unique death time.  Each event time and its
+** risk set is treated as a separte stratum.  We might expect a data
+** set with 1000 rows and 200 deaths to end up with 200*500 rows, if the deaths
+** were spread out evenly over time.  These expansions are done separately
+** within each strata.
+**
+** This routine returns vectors with the unique event times, the number of obs
+** in the risk set at each time (ntime elements), the row indices and the status
+** The latter two have the values for strata 1, then strata 2, ... (nrow
+** elements).  This process is not particularly fast: it is just brute force.
+**
+** The inoput data is assumed sorted by strata, decreasing y, and censors before
+** deaths.  The strat variable is =1 for the first obs of each stratum.
+*/
+ 
 #include "survS.h"
 /*
 ** Count up risk sets and identify who is in each
@@ -11,8 +28,10 @@ SEXP coxcount1(SEXP y2, SEXP strat2) {
     double *time, *status;
     int *strata;
     double dtime;
-    SEXP rlist, rlistnames, rtime, rn, rindex, rstatus;
-    int *rrindex, *rrstatus;
+    SEXP rlist;
+    const char *rnames[] = {"time", "nrisk", "index", "status", ""}; 
+    double *rtime;
+    int *rn, *rindex, *rstatus;
     
     n = nrows(y2);
     time = REAL(y2);
@@ -40,12 +59,11 @@ SEXP coxcount1(SEXP y2, SEXP strat2) {
     /*
     **  Allocate memory
     */
-    PROTECT(rtime = allocVector(REALSXP, ntime));
-    PROTECT(rn = allocVector(INTSXP, ntime));
-    PROTECT(rindex=allocVector(INTSXP, nrow));
-    PROTECT(rstatus=allocVector(INTSXP,nrow));
-    rrindex = INTEGER(rindex);
-    rrstatus= INTEGER(rstatus);
+    PROTECT(rlist = mkNamed(VECSXP, rnames));
+    rtime  = REAL(SET_VECTOR_ELT(rlist, 0, allocVector(REALSXP, ntime)));
+    rn     = INTEGER(SET_VECTOR_ELT(rlist, 1, allocVector(INTSXP, ntime)));
+    rindex = INTEGER(SET_VECTOR_ELT(rlist, 2, allocVector(INTSXP, nrow)));
+    rstatus= INTEGER(SET_VECTOR_ELT(rlist, 3, allocVector(INTSXP, nrow)));
     
     /*
     ** Pass 2, fill them in
@@ -55,37 +73,28 @@ SEXP coxcount1(SEXP y2, SEXP strat2) {
         if (strata[i] ==1) stratastart =i;
         if (status[i]==1) {
             dtime = time[i];
-            for (j=stratastart; j<i; j++) *rrstatus++=0; /*non-deaths */
-            *rrstatus++ =1; /* this death */
+            for (j=stratastart; j<i; j++) *rstatus++=0; /*non-deaths */
+            *rstatus++ =1; /* this death */
             /* tied deaths */
             for(j= i+1; j<n && status[j]==1 && time[j]==dtime  && strata[j]==0;
-                j++) *rrstatus++ =1;
+                j++) *rstatus++ =1;
             i = j-1;
 
-            REAL(rtime)[ntime] = dtime;
-            INTEGER(rn)[ntime] = i +1 -stratastart;
+            rtime[ntime] = dtime;
+            rn[ntime] = i +1 -stratastart;
             ntime++;
-            for (j=stratastart; j<=i; j++) *rrindex++ = j+1;
-            }
+            for (j=stratastart; j<=i; j++) *rindex++ = j+1;
+	}
     }
-    /* return the list */
-    PROTECT(rlist = allocVector(VECSXP, 4));
-    SET_VECTOR_ELT(rlist, 0, rn);
-    SET_VECTOR_ELT(rlist, 1, rtime);
-    SET_VECTOR_ELT(rlist, 2, rindex);
-    SET_VECTOR_ELT(rlist, 3, rstatus);
-    PROTECT(rlistnames = allocVector(STRSXP, 4));
-    SET_STRING_ELT(rlistnames, 0, mkChar("nrisk"));
-    SET_STRING_ELT(rlistnames, 1, mkChar("time"));
-    SET_STRING_ELT(rlistnames, 2, mkChar("index"));
-    SET_STRING_ELT(rlistnames, 3, mkChar("status"));
-    setAttrib(rlist, R_NamesSymbol, rlistnames);
 
-    unprotect(6);
+    unprotect(1);
     return(rlist);
 }
-#include "survS.h"
-/* count up risk sets and identify who is in each, (start,stop] version */
+
+/*
+** This is the (time1, time2, status) version
+*/
+
 SEXP coxcount2(SEXP y2, SEXP isort1, SEXP isort2, SEXP strat2) {
     int ntime, nrow;
     int i, j, istart, n;
@@ -95,8 +104,10 @@ SEXP coxcount2(SEXP y2, SEXP isort1, SEXP isort2, SEXP strat2) {
     double dtime;
     int iptr, jptr;
 
-    SEXP rlist, rlistnames, rtime, rn, rindex, rstatus;
-    int *rrindex, *rrstatus;
+    SEXP rlist;
+    const char *rnames[] = {"time", "nrisk", "index", "status", ""}; 
+    double *rtime;
+    int *rn, *rindex, *rstatus;
     int *sort1, *sort2;
     
     n = nrows(y2);
@@ -115,8 +126,12 @@ SEXP coxcount2(SEXP y2, SEXP isort1, SEXP isort2, SEXP strat2) {
     istart =0;  /* walks along the sort1 vector (start times) */
         for (i=0; i<n; i++) {
         iptr = sort2[i];
-        if (strata[i]==1) nrisk=0;
-        nrisk++;
+        if (strata[iptr]==1) {
+	    nrisk=0;
+	    istart =i;
+	    }
+ 
+	nrisk++;
         if (status[iptr] ==1) {
             ntime++;
             dtime = time2[iptr];
@@ -136,12 +151,11 @@ SEXP coxcount2(SEXP y2, SEXP isort1, SEXP isort2, SEXP strat2) {
     /*
     **  Allocate memory
     */
-    PROTECT(rtime = allocVector(REALSXP, ntime));
-    PROTECT(rn = allocVector(INTSXP, ntime));
-    PROTECT(rindex=allocVector(INTSXP, nrow));
-    PROTECT(rstatus=allocVector(INTSXP,nrow));
-    rrindex = INTEGER(rindex);
-    rrstatus= INTEGER(rstatus);
+    PROTECT(rlist = mkNamed(VECSXP, rnames));
+    rtime  = REAL(SET_VECTOR_ELT(rlist, 0, allocVector(REALSXP, ntime)));
+    rn     = INTEGER(SET_VECTOR_ELT(rlist, 1, allocVector(INTSXP, ntime)));
+    rindex = INTEGER(SET_VECTOR_ELT(rlist, 2, allocVector(INTSXP, nrow)));
+    rstatus= INTEGER(SET_VECTOR_ELT(rlist, 3, allocVector(INTSXP, nrow)));
     atrisk = (int *)R_alloc(n, sizeof(int)); /* marks who is at risk */
     
     /*
@@ -154,6 +168,7 @@ SEXP coxcount2(SEXP y2, SEXP isort1, SEXP isort2, SEXP strat2) {
         iptr = sort2[i];
         if (strata[i] ==1) {
             nrisk=0;
+	    istart =i;
             for (j=0; j<n; j++) atrisk[j] =0;
             }
         nrisk++;
@@ -163,25 +178,25 @@ SEXP coxcount2(SEXP y2, SEXP isort1, SEXP isort2, SEXP strat2) {
                 atrisk[sort1[istart]]=0;
                 nrisk--;
                 }
-            for (j=1; j<nrisk; j++) *rrstatus++ =0;
-            for (j=0; j<n; j++) if (atrisk[j]) *rrindex++ = j+1;
+            for (j=1; j<nrisk; j++) *rstatus++ =0;
+            for (j=0; j<n; j++) if (atrisk[j]) *rindex++ = j+1; 
 
             atrisk[iptr] =1;
-            *rrstatus++ =1; 
-            *rrindex++ = iptr +1;
+            *rstatus++ =1; 
+            *rindex++ = iptr +1; /* R subscripts start at 1 */
             for (j=i+1; j<n; j++) {
                 jptr = sort2[j];
                 if (time2[jptr]==dtime && status[jptr]==1 && strata[jptr]==0){
                     atrisk[jptr] =1;
-                    *rrstatus++ =1;
-                    *rrindex++ = jptr +1;
+                    *rstatus++ =1;
+                    *rindex++ = jptr +1;
                     nrisk++;
                     }
                 else break;
                 }
             i = j;
-            REAL(rtime)[ntime] = dtime;
-            INTEGER(rn)[ntime] = nrisk;
+            rtime[ntime] = dtime;
+            rn[ntime] = nrisk;
             ntime++;
         }
         else {
@@ -189,19 +204,7 @@ SEXP coxcount2(SEXP y2, SEXP isort1, SEXP isort2, SEXP strat2) {
             i++;
         }
     }    
-    /* return the list */
-    PROTECT(rlist = allocVector(VECSXP, 4));
-    SET_VECTOR_ELT(rlist, 0, rn);
-    SET_VECTOR_ELT(rlist, 1, rtime);
-    SET_VECTOR_ELT(rlist, 2, rindex);
-    SET_VECTOR_ELT(rlist, 3, rstatus);
-    PROTECT(rlistnames = allocVector(STRSXP, 4));
-    SET_STRING_ELT(rlistnames, 0, mkChar("nrisk"));
-    SET_STRING_ELT(rlistnames, 1, mkChar("time"));
-    SET_STRING_ELT(rlistnames, 2, mkChar("index"));
-    SET_STRING_ELT(rlistnames, 3, mkChar("status"));
-    setAttrib(rlist, R_NamesSymbol, rlistnames);
 
-    unprotect(6);
+    unprotect(1);
     return(rlist);
 }
