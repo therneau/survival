@@ -12,7 +12,7 @@ Days until occurence of cancer for male mice
     \item{\code{trt}}{treatment assignment: \code{Control} or \code{Germ-free}}
     \item{\code{days}}{days until death}
     \item{\code{outcome}}{outcome: code{censor}, \code{thymic
-	lymphoma}, \code{recticulum cell sarcoma} \code{other causes}}
+	lymphoma}, \code{reticulum cell sarcoma} \code{other causes}}
     \item{\code{id}}{mouse id}
   }
 }
@@ -23,6 +23,10 @@ Days until occurence of cancer for male mice
   Kalbfleisch and Prentice.  The germ-free environment has little effect
   on the rate of occurence of thymic lymphoma, but significantly delays
   the other causes of death.
+}
+\note{The Ontology Search website defines reticulm cell sarcoma as
+  "An antiquated term that refers to a non-Hodgkin lymphoma composed of
+  diffuse infiltrates of large, often anaplastic lymphocytes".
 }
 \source{
   The data can be found in appendix I of Kalbfleisch and Prentice.
