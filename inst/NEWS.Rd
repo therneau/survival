@@ -5,6 +5,9 @@
     \item Fix error in a (time1, time2) coxph model with both strata and
     tt() terms; pointed out by Pierre Joly.  Add a new test case for
     this to the tests directory.
+    \item Small update to coxph prompted by a user query: for a model
+    with an offset, the mean offset is no longer subtracted from the
+    linear.predictor component.  This make it agree with predict.coxph.
 }}
 \section{Changes in version 3.5-5}{
   \itemize{
