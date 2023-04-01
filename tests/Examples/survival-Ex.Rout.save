@@ -1,5 +1,5 @@
 
-R Under development (unstable) (2023-01-30 r83727) -- "Unsuffered Consequences"
+R Under development (unstable) (2023-03-05 r83940) -- "Unsuffered Consequences"
 Copyright (C) 2023 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
@@ -276,6 +276,37 @@ $`factor(ph.ecog)`
 > pfit <- glm(py ~ ph.ecog, data=lung, family=gaussian(link=blogit()))
 > # For each +1 change in performance score, the odds of 2 year survival
 > #  are multiplied by 1/2  = exp of the coefficient.
+> 
+> 
+> 
+> cleanEx()
+> nameEx("brier")
+> ### * brier
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: brier
+> ### Title: Compute the Brier score for a Cox model
+> ### Aliases: brier
+> ### Keywords: survival
+> 
+> ### ** Examples
+> 
+> cfit <- coxph(Surv(rtime, recur) ~ age + meno + size + pmin(nodes,11), 
++               data= rotterdam)
+> round(cfit$concordance["concordance"], 3)  # some predictive power
+concordance 
+      0.675 
+> brier(cfit, times=c(4,6)*365.25)   # values at 4 and 6 years
+$rsquared
+[1] 0.1501931 0.1514488
+
+$brier
+[1] 0.1952731 0.2097106
+
+$times
+[1] 1461.0 2191.5
+
 > 
 > 
 > 
@@ -2615,11 +2646,24 @@ n= 26, number of events= 12
 > 
 > ### ** Examples
 > 
-> status  <- pmax(rotterdam$recur, rotterdam$death)
+> # liberal definition of rfs (count later deaths)
+> rfs  <- pmax(rotterdam$recur, rotterdam$death)
 > rfstime <- with(rotterdam, ifelse(recur==1, rtime, dtime))
-> fit1 <- coxph(Surv(rfstime, status) ~ pspline(age) + meno + size + 
-+         pspline(nodes) + er,
-+      data=rotterdam, subset = (nodes > 0))
+> fit1 <- coxph(Surv(rfstime, rfs) ~ pspline(age) + meno + size + 
++         pspline(nodes) + er,  data = rotterdam)
+> 
+> # conservative (no deaths after last fu for recurrence)
+> ignore <- with(rotterdam, recur ==0 & death==1 & rtime < dtime)
+> table(ignore)
+ignore
+FALSE  TRUE 
+ 2939    43 
+> rfs2 <- with(rotterdam, ifelse(recur==1 | ignore, recur, death))
+> rfstime2 <- with(rotterdam, ifelse(recur==1 | ignore, rtime, dtime))
+> fit2 <- coxph(Surv(rfstime2, rfs2) ~ pspline(age) + meno + size + 
++         pspline(nodes) + er,  data = rotterdam)
+> 
+> # Note: Both age and nodes show non-linear effects.
 > # Royston and Altman used fractional polynomials for the nonlinear terms
 > 
 > 
@@ -2669,24 +2713,24 @@ n= 26, number of events= 12
 > cdf <- cdf[!duplicated(aml$time[index], fromLast=TRUE)]  # remove duplicate times
 > cbind(time=afit$time, KM= afit$surv, RTTR= 1-cdf)
       time         KM       RTTR
- [1,]    5 0.91304348  -1.000000
- [2,]    8 0.82608696  -3.000000
- [3,]    9 0.78260870  -4.000000
- [4,]   12 0.73913043  -5.000000
- [5,]   13 0.69565217  -6.000000
- [6,]   16 0.69565217  -6.000000
- [7,]   18 0.64596273  -7.142857
- [8,]   23 0.54658385  -9.428571
- [9,]   27 0.49689441 -10.571429
-[10,]   28 0.49689441 -10.571429
-[11,]   30 0.44168392 -11.841270
-[12,]   31 0.38647343 -13.111111
-[13,]   33 0.33126294 -14.380952
-[14,]   34 0.27605245 -15.650794
-[15,]   43 0.22084196 -16.920635
-[16,]   45 0.16563147 -18.190476
-[17,]   48 0.08281573 -20.095238
-[18,]  161 0.08281573 -20.095238
+ [1,]    5 0.91304348 0.91304348
+ [2,]    8 0.82608696 0.82608696
+ [3,]    9 0.78260870 0.78260870
+ [4,]   12 0.73913043 0.73913043
+ [5,]   13 0.69565217 0.69565217
+ [6,]   16 0.69565217 0.69565217
+ [7,]   18 0.64596273 0.64596273
+ [8,]   23 0.54658385 0.54658385
+ [9,]   27 0.49689441 0.49689441
+[10,]   28 0.49689441 0.49689441
+[11,]   30 0.44168392 0.44168392
+[12,]   31 0.38647343 0.38647343
+[13,]   33 0.33126294 0.33126294
+[14,]   34 0.27605245 0.27605245
+[15,]   43 0.22084196 0.22084196
+[16,]   45 0.16563147 0.16563147
+[17,]   48 0.08281573 0.08281573
+[18,]  161 0.08281573 0.08281573
 > 
 > # Hormonal patients have a diffent censoring pattern
 > wt2 <- rttright(Surv(dtime, death) ~ hormon, rotterdam, times= 365*c(3, 5))
@@ -3759,7 +3803,7 @@ $terms
 > cleanEx()
 > options(digits = 7L)
 > base::cat("Time elapsed: ", proc.time() - base::get("ptime", pos = 'CheckExEnv'),"\n")
-Time elapsed:  3.15 0.152 3.304 0 0 
+Time elapsed:  6.28 0.228 6.52 0 0 
 > grDevices::dev.off()
 null device 
           1 

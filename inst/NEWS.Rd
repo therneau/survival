@@ -8,6 +8,8 @@
     \item Small update to coxph prompted by a user query: for a model
     with an offset, the mean offset is no longer subtracted from the
     linear.predictor component.  This make it agree with predict.coxph.
+    \item Add the brier function, along with tests and a new vignette.
+    Update rttright and strengthen the tests.
 }}
 \section{Changes in version 3.5-5}{
   \itemize{

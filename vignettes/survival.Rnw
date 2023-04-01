@@ -2661,6 +2661,68 @@ A few further things need to be considered.
      simple computaional shortcuts.
 \end{enumerate}
 
+\section{Profile likelihood}
+Ordinary confidence intervals of $\beta \pm 1.96 se(\beta)$ work very well
+for the Cox model, but occasionally a user would like to base the confidence
+interval directly on the partial log-likelihood.
+The example used here is taken from section 3.5 of \cite{Therneau00}.
+Below is a fit to the ovarian cancer data; age is the only significant
+coefficient.
+
+<<profile1>>=
+fit1 <- coxph(Surv(futime, fustat) ~ rx + age + resid.ds, ovarian)
+fit1
+
+# create the profile plot
+imat <- solve(vcov(fit1))  #information matrix
+
+acoef <- seq(0, .25, length=100)
+profile <- matrix(0, 100, 2)
+for (i in 1:100) {
+    icoef <- c(fit1$coef[1], acoef[i], fit1$coef[3])
+    tfit <- coxph(Surv(futime, fustat) ~ rx + age + resid.ds, ovarian,
+                  init= icoef, iter=0)
+    profile[i,1] <- tfit$loglik[2]
+    delta <- c(0, acoef[i]- fit1$coef[2], 0)
+    profile[i,2] <- fit1$loglik[2] - delta%*% imat %*% delta/2
+}
+matplot(acoef, profile*2, type='l', lwd=2, lty=1, xlab="Coefficient for age",
+        ylab="2*loglik")
+abline(h = 2*fit1$loglik[2] - qchisq(.95, 1), lty=3)
+legend(.11, -58, c("Cox likelihood", "Wald approximation"), lty=1, lwd=2, 
+       col=1:2, bty='n')
+@ 
+
+The plot shows the profile likelihood for the Cox model, along with the quadratic
+approximation to the likihood that is the basis for the usual tests of 
+significance and confidence intervals, along with a line 3.84 units down from
+the maximum. 
+The profile likelihood confidence limits for the age coefficient 
+are the intersection of this line with
+the black curve, approximately (.052, .227).  
+The standard confidence interval is the intersection with the red curve, or
+(.043, .215). 
+
+This is a fit of 3 covariates to a data set with only 12 events, which is far 
+under the rule of 10--20 events per covariate recommended for a stable fit.
+If we do the same exercise with a larger data set the two curves will
+normally be indistiguishable.  There are cases, an infinite coefficient for
+example, where the profile likelihood interval is much more reliable.
+
+If you don't want to read values off the plot using locator(), as I did above,
+the uniroot function can be employed as in the example below. 
+ 
+<<profile2>>=
+myfun <- function(beta) {
+    icoef <- coef(fit1)
+    icoef[2] <- beta
+    tfit <- coxph(Surv(futime, fustat) ~ rx + age + resid.ds, ovarian,
+                  init = icoef, iter=0)
+    (fit1$loglik - tfit$loglik)[2] - qchisq(.95, 1)/2 
+}
+uniroot(myfun, c (0, .2))$root  # lower
+uniroot(myfun, c(.2, .5))$root  # upper
+@ 
 
 
 \chapter{Accelerated Failure Time models}

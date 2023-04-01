@@ -8,7 +8,8 @@
  compute on the remaining, uncensored data.
 }
 \usage{
-rttright(formula, data, weights, subset, na.action, times, id, timefix = TRUE)
+rttright(formula, data, weights, subset, na.action, times, id, timefix = TRUE,
+         renorm= TRUE)
 }
 \arguments{
   \item{formula}{
@@ -42,6 +43,7 @@ rttright(formula, data, weights, subset, na.action, times, id, timefix = TRUE)
   \item{id}{optional: if the data set has multiple rows per subject, a
     a variable containing the subect identifier of each row.}
   \item{timefix}{correct for possible round-off error}
+  \item{renorm}{the resulting weights sum to 1 within each group}
 }
 \details{
   The \code{formula} argument is treated exactly the same as in the

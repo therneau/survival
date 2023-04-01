@@ -153,9 +153,11 @@ concordancefit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL,
         if (timefix) y <- aeqSurv(y)
         if (!is.null(ymin)) {
             censored <- (y[,ny] ==0)
-            if (any(y[censored, ny-1] < ymin))
-                stop("data has a censored value less than ymin")
-            else y[,ny-1] <- pmax(y[,ny-1], ymin)
+            # relaxed this rule, 30 March 2023
+            #if (any(y[censored, ny-1] < ymin))
+            #    stop("data has a censored value less than ymin")
+            #else y[,ny-1] <- pmax(y[,ny-1], ymin)
+            y[,ny-1] <- pmax(y[,ny-1], ymin)
         }
     } else {
         # should only occur if another package calls this routine
