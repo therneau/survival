@@ -1,15 +1,10 @@
 options(na.action=na.exclude) # preserve missings
 options(contrasts=c('contr.treatment', 'contr.poly')) #ensure constrast type
 library(survival)
-{if (is.R()) mdy.date <- function(m, d, y) {
+mdy.date <- function(m, d, y) {
     y <- ifelse(y<100, y+1900, y)
     as.Date(paste(m,d,y, sep='/'), "%m/%d/%Y")
-    }
-else mdy.date <- function(m,d,y) {
-    y <- ifelse(y<100, y+1900, y)
-    timeDate(paste(y, m, d, sep='/'), in.format="%Y/%m/%d")
-    }
- }
+}
 
 # 
 # Simple case: a single male subject, born 6/6/36 and entered on study 6/6/55.

@@ -40,9 +40,10 @@ aeq(surv2$surv[zed, ], surv2[1, ]$surv)
 
 # And the depreciated form - call with a named vector as 'newdata'
 #  the resulting $call component  won't match so delete it before comparing
+# newdata will have mismatched row names due to subscripting
 surv3 <- survfit(fit, c(age=40, sex=2, meal.cal=1000))
-all.equal(unclass(surv2[,2])[-length(surv3)], unclass(surv3)[-length(surv3)])
-
+keep <- which(!(names(surv3) %in% c("newdata", "call")))
+all.equal(unclass(surv2[,2])[keep], unclass(surv3)[keep])
 
 # Test out offsets, which have recently become popular due to a Langholz paper
 fit1 <- coxph(Surv(time, status) ~ age + ph.ecog, lung)

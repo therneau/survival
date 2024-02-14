@@ -1,7 +1,7 @@
 
-R Under development (unstable) (2023-01-09 r83585) -- "Unsuffered Consequences"
-Copyright (C) 2023 The R Foundation for Statistical Computing
-Platform: x86_64-pc-linux-gnu (64-bit)
+R Under development (unstable) (2024-02-07 r85873) -- "Unsuffered Consequences"
+Copyright (C) 2024 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -18,15 +18,10 @@ Type 'q()' to quit R.
 > options(na.action=na.exclude) # preserve missings
 > options(contrasts=c('contr.treatment', 'contr.poly')) #ensure constrast type
 > library(survival)
-> {if (is.R()) mdy.date <- function(m, d, y) {
+> mdy.date <- function(m, d, y) {
 +     y <- ifelse(y<100, y+1900, y)
 +     as.Date(paste(m,d,y, sep='/'), "%m/%d/%Y")
-+     }
-+ else mdy.date <- function(m,d,y) {
-+     y <- ifelse(y<100, y+1900, y)
-+     timeDate(paste(y, m, d, sep='/'), in.format="%Y/%m/%d")
-+     }
-+  }
++ }
 > 
 > # 
 > # Simple case: a single male subject, born 6/6/36 and entered on study 6/6/55.
@@ -656,4 +651,4 @@ Rate table with dimension(s): age amount sex duration status
 > 
 > proc.time()
    user  system elapsed 
-  0.895   0.115   1.001 
+  0.881   0.097   0.969 

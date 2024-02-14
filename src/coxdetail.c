@@ -7,6 +7,7 @@
 **       nused        :number of people
 **       nvar         :number of covariates
 **       ndead        :total number of deaths
+**       center       : the centering constant for the hazard 
 **       y(3,n)       :start, stop, and event for each subject
 **       covar(nv,n)  :covariates for person i.
 **                        Note that S sends this in column major order.
@@ -39,7 +40,6 @@
 **       a2(nvar)
 **       cmat(nvar,nvar)       ragged array
 **       cmat2(nvar,nvar)
-**       wmeans(nvar)
 **
 **  the 5 arrays a, a2, cmat, cmat2 and wmeans are passed as a single
 **    vector of storage, and then broken out.
@@ -52,6 +52,7 @@
 #include "survproto.h"
 
 void coxdetail(int    *nusedx,   int    *nvarx,    int    *ndeadx, 
+	       double *center,
 	       double *y,        double *covar2,   int    *strata,  
 	       double *score,    double *weights,  double *means2, 
 	       double *u2,       double *var,      int    *rmat,
@@ -65,7 +66,6 @@ void coxdetail(int    *nusedx,   int    *nvarx,    int    *ndeadx,
     double **u;
     double *a;
     double *a2, **cmat2;
-    double *wmeans;
     double  denom;
     double  time;
     double  temp, temp2, temp3;
@@ -99,22 +99,16 @@ void coxdetail(int    *nusedx,   int    *nvarx,    int    *ndeadx,
     cmat2= dmatrix(work + nvar*nvar, nvar, nvar);
     a = work + 2*nvar*nvar;
     a2= a+nvar;
-    wmeans = a2+nvar;
     start =y;
     stop  =y + nused;
     event =y + nused +nused;
 
     /*
-    ** Subtract the mean from each covar, as this makes the variance calc
-    **  much more stable
+    ** Subtract the centering value from each covar
     */
     for (i=0; i<nvar; i++) {
-	temp=0;
-	for (person=0; person<nused; person++) temp += covar[i][person];
-	temp /= nused;
-	wmeans[i] = temp;
-	for (person=0; person<nused; person++) covar[i][person] -=temp;
-	}
+	for (person=0; person<nused; person++) covar[i][person] -= center[i];
+    }
 
     /*
     ** Zero out some arrays
@@ -191,7 +185,7 @@ void coxdetail(int    *nusedx,   int    *nvarx,    int    *ndeadx,
 		    varhaz += meanwt*meanwt/(d2*d2);
 		    for (i=0; i<nvar; i++) {
 			temp2 = (a[i] - temp*a2[i])/d2;
-			means[i][ideath] += (wmeans[i] +temp2)/deaths;
+			means[i][ideath] += (center[i] +temp2)/deaths;
 			u[i][ideath] += weights[k]*covar[i][k] - meanwt*temp2;
 			for (j=0; j<=i; j++) {
 			    temp3 =((cmat[i][j] - temp*cmat2[i][j]) -

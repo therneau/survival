@@ -3,6 +3,12 @@
 **  the totals that we need. The number at risk is a PITA in R code, but all
 **  the rest of the compuations are simple there.  This creates more totals
 **  than we currenly use, as an attempt to future proof the code.
+**
+** coxsurv1: (time,status) for multistate
+** coxsurv2: (time1, time2, status) for multistate
+** coxsurv3: (time, status) for single state
+** coxsurv4: (time1, time2, status) for single state
+**
 ** The routine uses a stacked input data set, one 'layer' per transition,
 **  and outputs values for each transition, at each of the prespecified time
 **  points. In a multistate model we need the values for all strata,

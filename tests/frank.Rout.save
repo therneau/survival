@@ -1,7 +1,7 @@
 
-R version 3.0.0 (2013-04-03) -- "Masked Marvel"
-Copyright (C) 2013 The R Foundation for Statistical Computing
-Platform: i686-pc-linux-gnu (32-bit)
+R Under development (unstable) (2023-05-10 r84417) -- "Unsuffered Consequences"
+Copyright (C) 2023 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -16,7 +16,6 @@ Type 'demo()' for some demos, 'help()' for on-line help, or
 Type 'q()' to quit R.
 
 > library(survival)
-Loading required package: splines
 > #
 > # Check out intercept/interaction for Frank H
 > #
@@ -28,8 +27,8 @@ Loading required package: splines
 > 
 > surv1 <- survfit(fit1, tdata)
 > surv2 <- survfit(fit2, tdata)
-> # The call won't match, but the rest should
-> icall <- match("call", names(surv1))
+> # The call won't match, nor the newdata data frame
+> icall <- match(c("newdata", "call"), names(surv1))
 > all.equal(unclass(surv1)[-icall], unclass(surv2)[-icall])
 [1] TRUE
 > 
@@ -47,4 +46,4 @@ Loading required package: splines
 > 
 > proc.time()
    user  system elapsed 
-  0.280   0.028   0.306 
+  0.920   0.070   0.981 

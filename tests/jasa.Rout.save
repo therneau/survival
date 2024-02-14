@@ -1,5 +1,5 @@
 
-R Under development (unstable) (2023-01-09 r83585) -- "Unsuffered Consequences"
+R Under development (unstable) (2023-05-10 r84417) -- "Unsuffered Consequences"
 Copyright (C) 2023 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
@@ -162,9 +162,10 @@ n= 170, number of events= 75
 +                    transplant=rep(0,3), name=c("Smith", "Smith", "Smith"))
 > surv2 <- survfit(sfit.1, newdata, id=name)
 > # Have to use unclass to avoid [.survfit trying to pick curves,
-> #  remove the final element "call" because it won't match
-> all.equal(unclass(surv1)[-length(surv1)],
-+           unclass(surv2)[-length(surv2)])
+> #  remove the final element "call" because it won't match, nor will newdata
+> ii <- match(c("newdata", "call"), names(surv1))
+> all.equal(unclass(surv1)[-ii],
++           unclass(surv2)[-ii])
 [1] TRUE
 > 
 > 
@@ -282,4 +283,4 @@ Call: survfit(formula = sfit.1, newdata = data, id = id)
 > 
 > proc.time()
    user  system elapsed 
-  1.045   0.100   1.135 
+  1.011   0.101   1.104 

@@ -84,7 +84,7 @@ the textbook of Therneau and Grambsch
 
 \section{Basic formulas}
 All these examples have a single covariate.
-Let $x_i$ be the covariate for each subject, $r_i= exp(x_i \beta)$
+Let $x_i$ be the covariate for each subject, $r_i= \exp(x_i \beta)$
 the risk score for the subject, and $w_i$ the case weight, if any.
 Let $Y_i(t)$ be 1 if subject $i$ is at risk at time $t$ and 0 otherwise,
 and $dN_i(t)$ be the death indicator which is 1 if subject $i$ has
@@ -178,12 +178,8 @@ dimnames(temp)[[1]] <- c("beta=0", "beta=solution")
 temp
 @ 
 
-The maximum partial likelihood occurs when $U(\beta)=0$, namely 
-$r^2 -3r -6 =0$.  
-Using the usual formula for a quadratic equation gives
-$r=(1/2)(3 + \sqrt{33})$ and $\bhat = \log(r) \approx 1.475285$.  
 The above call to \code{breslow1} verifies that the first derivative
-is zero at this point.
+is zero at the solution.
 The Newton--Raphson iteration has increments of $-\Cvar U$.
 Starting with the usual initial estimate of $\beta=0$, the first
 iteration is $\beta=8/5$ and further ones are shown below.
@@ -370,8 +366,8 @@ Time  & $c$ \\ \hline
 \begin{tabular}{c|lll}
      Time  &   \multicolumn{2}{c}{Variance}&\\ \hline 
        1  &     0.0038498  &+  .004021  &= 0.007871\\
-       2   &    0.040648   &+ .0704631  &= 0.111111\\
-       4    &   1.040648   &+ .0704631  &= 1.111111\\
+       6   &    0.040648   &+ .0704631  &= 0.111111\\
+       9    &   1.040648   &+ .0704631  &= 1.111111\\
 \end{tabular}
 \end{center}
 
@@ -425,13 +421,13 @@ where $\phi=\arccos\{(45/23)\sqrt{3/23}\}$ via the standard formula
 for the roots of a cubic equation.
 This yields $r \approx 5.348721$ or $\bhat = \log(r) \approx 1.676857$.
 Plugging this value into the formulas above yields
-$$
+\begin{equation*}
 \begin{array}{ll}
  LL(0)=-4.276666 & LL(\bhat)=-3.358979 \\
  U(0) = 52/48 & U(\bhat) = 0 \\
  \imat(0) = 83/144  & \imat(\bhat) = 0.612632.
 \end{array}
-$$
+\end{equation*}
 
 The martingale residuals are again $O-E$, but the expected part of the
 calculation changes.
@@ -441,13 +437,13 @@ $1/(r+3)$ to their expected value.
 For the second event at time 6 subjects 3 and 4 have a weight of 1/2,
 the total number of tickets is $(r+5)/2$
 and the consequent increment in the cumulative hazard is $2/(r+5)$.
-This $\beta=0$ this calculation is equivalent to the Fleming-Harrington 
+For $\beta=0$ this calculation is equivalent to the Fleming-Harrington 
 \cite{Fleming84} estimate of cumulative hazard.
 Subjects 3 and 4 receive 1/2 of this second increment to $E$ and subjects
 5 and 6 the full increment.
 Efron \cite{Efron77} did not discuss residuals so did not investigate this
 aspect of the approximation, we nevertheless sometime refer to 
-this using combinations of
+this using a label that is some combination of
 Fleming, Harrington, Efron in the same way as the Nelson-Aalen-Breslow
 estimate.  The martingale residuals are
 \begin{center}
@@ -455,16 +451,41 @@ estimate.  The martingale residuals are
    Subject & $M_i$ \\ \hline
    1 & $1 - r/(3r+3)$ \\
    2 & $0 - r/(3r+3)$ \\
-   3 & $1 - r/(3r+3) - r/(r+3) - r/(r+5)$ \\
-   4 & $1 - 1/(3r+3) - 1/(r+3) - 1/(r+5)$ \\
-   5 & $0 - 1/(3r+3) - 1/(r+3) - 2/(r+5)$ \\
-   6 & $0 - 1/(3r+3) - 1/(r+3) - 2/(r+5) - 1$ \\
+   3 & $1 - (r/(3r+3) + r/(r+3) + r/(r+5))$ \\
+   4 & $1 - (1/(3r+3) + 1/(r+3) + 1/(r+5)$ \\
+   5 & $0 - (1/(3r+3) + 1/(r+3) + 2/(r+5)$ \\
+   6 & $1 - (1/(3r+3) + 1/(r+3) + 2/(r+5) + 1)$ \\
 \end{tabular}  
 \end{center}
 giving residuals at $\beta=0$ of 5/6, -1/6, 5/12, 5/12, -3/4 and -3/4.
 
 The matrix defining the score and Schoenfeld residuals 
-has the same first column (time 1) and last column as before, with the
+has the same first column (time 1) and last column (time 9) as before. 
+At time 6 the hazard increases by $1/(r+3) + 1/(r+5)$, with means of
+$r/(r+3)$ and $r/(r+5)$.
+Subjects 5 and 6 each have a contribution of 
+$[0- r/(r+3)][0- 1/(r+3)] + [0- r/(r+5)][0- 1/(r+5)]$ to their score
+residual; they receive the full increment.
+The two tied deaths have an increment of 
+\begin{align*}
+  s_3(6) &= 1 - .5\left(\frac{r}{r+3} + \frac{r}{r+5}\right) +
+            \left(1- \frac{r}{r+3}\right)\frac{-1}{r+3} + 
+            \left(1- \frac{r}{r+5}\right)\frac{-.5}{r+5} \\
+  s_4(6) &= 0 - .5\left(\frac{r}{r+3} + \frac{r}{r+5}\right) +
+            \left(0- \frac{r}{r+3}\right)\frac{-1}{r+3} + 
+            \left(0- \frac{r}{r+5}\right)\frac{-.5}{r+5}
+\end{align*}
+We can't as neatly collapse the deaths: the $dN$ and $d\Lambda$ parts of their
+martigale residual end up as separate terms.  The first can be written as
+$x - \rm{ave}(\xbar)$: if there were $k$ tied deaths the average of the $k$
+$\xbar$ terms that arise there.  
+For the  $d\Lambda$ term they get credit for all of the 
+first hazard jump, $(k-1)/k$ of the second, $(k-2)/k$ of the third, \ldots,
+$1/k$ of the last.
+
+
+The contributions
+for a tied death time with the
 following contributions at time 6.
 \begin{center}
   \begin{tabular}{ccc}
@@ -537,8 +558,8 @@ Greenwood variance used in the Kaplan--Meier.)
 \begin{tabular}{c|ll}
      Time  &   \multicolumn{2}{c}{Variance}\\ \hline 
        1  &     0.00275667 + .00319386 & = 0.0059505\\
-       2  &     0.05445330 + .0796212  & = 0.134075\\
-       4  &     1.05445330 + .0796212   &= 1.134075\\
+       6  &     0.05445330 + .0796212  & = 0.134075\\
+       9  &     1.05445330 + .0796212   &= 1.134075\\
 \end{tabular}
 \end{center}
 
@@ -814,7 +835,7 @@ Id&2&3&6&7&8&9& Resid \\ \hline
 \end{center}
 Both the Schoenfeld and score residuals sum to the score statistic $U(\beta)$.
 As discussed further above, programs will return two Schoenfeld residuals
-at time 7, one for each subject who had an event at that time.
+at time 9, one for each subject who had an event at that time.
 
 \subsection{Efron approximation}
 This example has only one tied death time, so only the term(s) for the

@@ -3,7 +3,11 @@
 **  the totals that we need. The number at risk is a PITA in R code, but all
 **  the rest of the compuations are simple there.  This creates more totals
 **  than we currenly use, as an attempt to future proof the code.
-** The coxsurv1 routine is for simple survival, this one for (time1, time2) data
+** 
+** coxsurv1: (time,status) for multistate
+** coxsurv2: (time1, time2, status) for multistate
+** coxsurv3: (time, status) for single state
+** coxsurv4: (time1, time2, status) for single state
 **
 **  otime:  vector of output times.  All the transitions will get reports at
 **            these time points.  (To be useful, the times should be a superset

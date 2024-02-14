@@ -10,8 +10,8 @@ tdata <- data.frame(age=50:60, age2=0:10, sex=c(1,2,1,2,1,2,1,2,1,2,1))
 
 surv1 <- survfit(fit1, tdata)
 surv2 <- survfit(fit2, tdata)
-# The call won't match, but the rest should
-icall <- match("call", names(surv1))
+# The call won't match, nor the newdata data frame
+icall <- match(c("newdata", "call"), names(surv1))
 all.equal(unclass(surv1)[-icall], unclass(surv2)[-icall])
 
 

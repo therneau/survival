@@ -45,6 +45,8 @@ void agmart(int    *n,     int    *method,  double *start,   double *stop,
 
 SEXP agscore2(SEXP y2,       SEXP covar2,   SEXP strata2, 
 	      SEXP score2,   SEXP weights2, SEXP method2);
+SEXP agscore3(SEXP y2,       SEXP covar2,   SEXP strata2, 
+	      SEXP score2,   SEXP weights2, SEXP method2, SEXP sort12);
 
 void agsurv4(int    *ndeath,   double *risk,    double *wt,
              int    *sn,        double *denom,   double *km);
@@ -86,6 +88,7 @@ SEXP coxcount1(SEXP y2, SEXP strat2) ;
 SEXP coxcount2(SEXP y2, SEXP isort1, SEXP isort2, SEXP strat2) ;
 
 void coxdetail(int   *nusedx,    int   *nvarx,     int   *ndeadx, 
+	       double *center,
 	       double *y,        double *covar2,   int   *strata,  
 	       double *score,    double *weights,  double *means2, 
 	       double *u2,       double *var,      int   *rmat,
@@ -146,6 +149,13 @@ SEXP coxsurv1(SEXP otime,   SEXP y2,     SEXP weight2, SEXP sort22,
 SEXP coxsurv2(SEXP otime2, SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22, 
               SEXP position2,  SEXP strata2, SEXP xmat2, SEXP risk2);
 
+SEXP coxsurv3(SEXP y2, SEXP xmat2,  SEXP strata2, 
+              SEXP risk2, SEXP weight2, SEXP sort22,
+	      SEXP efron2);
+
+SEXP coxsurv4(SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22, 
+              SEXP position2,   SEXP strata2, SEXP xmat2, SEXP risk2);
+
 double **dmatrix(double *array, int nrow, int ncol);
 int    **imatrix(int *array, int nrow, int ncol);
 
@@ -192,6 +202,8 @@ SEXP pyears3b(SEXP   death2,    SEXP   efac2,   SEXP edims2,
 double pystep(int nc,        int  *index,  int  *index2,   double *wt, 
 	      double *data,  int *fac,    int *dims,     double **cuts, 
 	      double step,   int  edge);
+
+SEXP residcsum(SEXP y2, SEXP strata2);
 
 void survdiff2(int   *nn,     int   *nngroup,    int   *nstrat, 
 	       double *rho,    double *time,       int   *status, 

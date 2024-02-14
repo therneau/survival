@@ -42,15 +42,24 @@ library(splines)
 \section{The concordance statistic}
 \subsection{Overview}
 Let $(x_i, y_i)$ be paired data values, say two measurements on a set of
-subjects, or observed data $y$ and predictions $x$ for those values from
+subjects, or observed data $y$ and predictions $x$ for those values from a 
 statistical model.
-A pair of observations $i$, $j$ is considered concordant if the prediction
+A pair of observations ($i$, $j$) is considered concordant if the prediction
 and the data go in the same direction, i.e., 
-$(y_i > y_j, x_i > x_j)$ or $(y_i < y_j, x_i < x_j)$.
-The concordance $C$ is defined as the fraction of concordant pairs,
-and is an estimate of $P(x_i>x_j | y_i > y_j)$.
+$(x_i > x_j, y_i > y_j)$ or $(x_i < x_j, y_i < y_j)$.
+The concordance statistic $C$ is defined as the fraction of concordant pairs,
+and is an estimate of $P(x_i > x_j | y_i > y_j)$, or equivalently
+$P(y_i>y_j | x_i > x_j)$.  
+The first form might make more sense if, for instance, one took a list of
+elected officials, say, and looked back at local newspapers to see how many of 
+the election contests had been predicted correctly
+(probablility the prediction is correct, given outcome).
+The second conforms to our though process if we started with the predictions,
+before election day, and then counted up the fraction correct after the 
+contest.  When looking at a statistical model's predictions either form can
+be argued; they give the same result.
 
-One wrinkle is what to do with ties in either $y$ or $x$.  Such pairs
+One wrinkle is what to do with ties in either $x$ or $y$.  Such pairs
 can be ignored in the count (treated as incomparable), treated as discordant,
 or given a score of 1/2.  
 Let $c, d, t_x, t_y$ and $t_{xy}$ be a count of the pairs that are concordant,
@@ -71,15 +80,17 @@ tied on $y$ (but not $x$), and tied on both. Then
     either $y$ or $x$.
   \item Somers' $D$ \eqref{somer} treats ties in $y$ as incomparable; 
     pairs that are tied in $x$ (but not $y$) score as 1/2, as we can see from
-    equation \eqref{dC}.
-   \item Kendall's tau-b can be viewed as a version of Somers' $D$ that is
-     symmetric in $x$ and $y$.
+    equation \eqref{dC} which is the concordance statistic.
+   \item Kendall's tau-b \eqref{tau.b} can be viewed as a version of Somers' $D$
+     that is symmetric in $x$ and $y$.
 \end{itemize}
 
-All 4 of these range from -1 to 1, similar to the correlation coefficient 
-$R$.
-The concordance \eqref{dC} ranges from 0--1, a more scale for a probability.
-Why is it defined using Somers' $D$ rather than one of the other three? 
+The first 4 statistics range from -1 to 1, similar to the correlation coefficient 
+$r$.
+The concordance \eqref{dC} ranges from 0--1, which matches the scale for a probability.
+
+Why is $C$ defined using Somers' $D$ rather than one of the other three? 
+
 \begin{itemize}
   \item If $y$ is a 0/1 variable, then $C$ = AUROC, the area under the 
     receiver operating curve, which is well established for binary outcomes.
@@ -109,25 +120,43 @@ mind.
    
 \subsection{Simple examples}
 The \code{concordance} function accepts simple data or models as input.
-For the latter it assesses the concordance between $y$ and the model
+For the latter, it assesses the concordance between $y$ and the model
 prediction $\hat y$.  Here is a set of simple examples.
 
-<<examples1>>=
-# direct
-concordance(y2 ~ x1, data= anscombe)
+\subsubsection*{Direct}
 
-# logistic regression using Fisher's iris data
+<<examples1a>>=
+# x1 and y2 are both continuous variables
+concordance(y2 ~ x1, data= anscombe)
+@
+
+\subsubsection*{Logistic regression}
+
+<<examples1b>>=
+# Fisher's iris data
 fit1 <- glm(Species=="versicolor" ~ ., family=binomial, data=iris) 
 concordance(fit1)  # equivalent to an AUC
+@
 
-# linear regression using the Anscombe data
+\subsubsection*{Linear regression}
+
+<<examples1c>>=
+# Anscombe data (all variables are continuous)
 fit2 <- lm(y2 ~ x1 + x4, data= anscombe)
-concordance(fit2)  # (R = .89)
+concordance(fit2)  # C
+sqrt(summary(fit2)$r.squared) # R
+@
 
+\subsubsection*{Parametric survival}
+<<examples1d>>=
 # parametric survival 
 fit3 <- survreg(Surv(time, status) ~ karno + age + trt, data=veteran)
 concordance(fit3)
+@
 
+\subsubsection*{Cox regression}
+
+<<examples1e>>=
 # 3 Cox models
 fit4 <- coxph(Surv(time, status) ~ karno + age + trt, data=veteran)
 fit5 <- update(fit4, . ~ . + celltype)
@@ -140,30 +169,30 @@ As shown in the last example, the concordance for multiple fits can
 be obtained from a single call.  The variance-covariance
 matrix for all three concordance values is available using
 \code{vcov(ctest)};
-this is used in an example below to formally test equality of
+this is used in Section \ref{sec:multiple} to formally test the equality of
 two concordance values.
 The above also shows that addition of another variable to a fitted
 model can decrease the concordance.
 The larger model will have higher correlation between the linear predictor
-$X \beta$ and the response $y$, by definition, but this does not guarrantee 
-a greater association between ${\rm rank}(X \beta)$ and $y$.
+$X \beta$ and the response $y$, by definition, but this does not guarantee 
+a greater association between ${\rm rank}(X \beta)$ and ${\rm rank}(y)$.
 
 \subsection{Efficient compuatation}
 For continuous data without ties, the concordance involves a comparison
 between all $n(n-1)/2$ pairs. 
-This $O(n^2)$ compuation will become painfully slow for large data sets.
+This $O(n^2)$ computation will become painfully slow for large datasets.
 To improve this, first order the data by increasing $y$ values, leading to
 \begin{align}
   c-d &= \frac{1}{2} \sum_{i=1}^n \sum_{j=1}^n {\rm sign}(y_i-y_j) 
          {\rm sign}(x_i-x_j) \label{cd1} \\
       &= \sum_{i=n}^1 \left[ \sum_{y_j > y_i} {\rm sign}(x_i - x_j) \right]
-          \label{cd2} \\
+          \label{cd2} 
 \end{align}
 
 
 \begin{figure}
 <<balance, fig=TRUE, echo=FALSE>>=
-# The balance figure for the concondance document
+# The balance figure for the concordance document
 btree <- function(n) {
    tfun <- function(n, id, power) {
        if (n==1) id
@@ -213,17 +242,17 @@ $n^2$ possible pairs, where ${\rm sign}$ is the R \code{sign} function.
 Equation \eqref{cd2} makes the obvious simplification of counting each pair
 only once, by taking advantage of the fact that $y$ is sorted.
 The key coding insight is to store the $x$ values as part of a balanced
-binary tree, an example of such a tree is shown in figure \ref{btree}.
-The basic algorithm is to
+binary tree; an example of such a tree is shown in Figure \ref{btree}.
+The basic algorithm is to:
 \begin{enumerate}
   \item Create a balanced binary tree for all $n$ $x_i$ values.  This can be
     done in $O(n \log_2(n))$ steps.  The final tree will have a node for each
     unique $x$ value.  Each node contains the value, along with counts for the
     number of observations at that value, for left hand children, and 
-    for right hand children. Intialize all the counts to 0.
+    for right hand children. Initialize all the counts to 0.
   \item Go through the data from largest $y$ to smallest $y$.
     \begin{enumerate}
-      \item For this new $(y_i,x_i)$ pair, 
+      \item For this new $(x_i, y_i)$ pair, 
         count the number of $x_j$ values in the 
         tree that are smaller or larger than this element, and increment
         the overall counts of concordant, discordant, and tied.  This can be
@@ -234,19 +263,19 @@ The basic algorithm is to
         etc.
     \end{enumerate}
 \end{enumerate}
-If there are tied $y$ values do all the counts for a set of ties first, and
+If there are tied $y$ values, do all the counts for a set of ties first, and
 then add their $x$ values to the tree.  
 
 \section{Concordance and survival data}
 
-For continuous data without ties, the concordance involves a comparison
+As stated above, for continuous data without ties, the concordance involves a comparison
 between all $n(n-1)/2$ pairs.
 If there are tied $y$ values, however, those pairs are ignored.
 For example, in the iris data above $C= 4129/(4129 + 871)$, the 
 6175 pairs with tied response values play no role.
 For survival data, this set of incomparables is extended to include those
 pairs for which the time ordering is ambiguous.
-For instance assume that $y_i$ is censored at time 10 and $y_j$ is an 
+For instance, assume that $y_i$ is censored at time 10 and $y_j$ is an 
 event (or censor) at time 20.
 Subject $i$ may or may not survive longer than subject $j$,
 and so it is not possible to tell if a rule has ranked them correctly
@@ -262,7 +291,7 @@ A second, smaller issue for survival data is to recognize that we
 desire to assess the concordance between an observed survival time $y_i$
 and a predicted survival time $\hat y_i$.
 This can be done without creating an explicit survival curve from the
-model: for a \code{survreg} fit for instance
+model: for a \code{survreg} fit, for instance,
 $\eta_1 > \eta_2$ implies $S(t; x_1) > S(t; x_2)$ for all $t$, where
 $\eta_1$ and $\eta_2$ are the respective linear predictors $x_i\beta$ and
 $x_2\beta$.  Not creating the survival curves saves considerable computation
@@ -271,18 +300,23 @@ For a Cox model $\eta_1 > \eta_2$ implies $S(t; x_1) < S(t; x_2)$; the order is
 reversed.  This is because the Cox model is a hazard model, and higher hazard
 implies a shorter survival.
 When a \code{coxph} object is used as the argument to 
-\code{concordance} the reversal handled automatically.  
+\code{concordance} the reversal is handled automatically.  
 However, when a concordance is done ``by hand'' the user needs to be aware of
 this as seen in the example below.  
 In this case the concordance routine does not
 know that the prediction came from a Cox model, resulting in a swap of the
 count for concordant and discordant pairs and $C < .5$.
-The user is responsible for adding the \code{reverse = TRUE}
- argument in this case. 
+The user is responsible for adding the \code{reverse = TRUE} argument in this case. 
 
 <<>>=
-concordance(Surv(time, status) ~ predict(fit4), data= veteran)
+# Concordance for a coxph object
+concordance(fit4)
+
+# Concordance using predictions from a Cox model
+concordance(Surv(time, status) ~ predict(fit4), data = veteran, reverse = TRUE)
 @ 
+
+\subsubsection*{Stratified models}
 
 Stratified models present a further variation: if observations $i$ and
 $j$ are in different strata, the survival curves for those strata might
@@ -292,11 +326,14 @@ A solution is to use a stratified concordance, which compares all pairs
 In the example below there is a separate count for each stratum, the
 final concordance is based on the column sums.
 The same issue, and solution, applies to stratified \code{survreg} models.
+(The fact that strata names are not retained as labels for the counts
+matrix is a deficiency in the routine.)
 
 <<veteran2>>=
 fit4b <- coxph(formula = Surv(time, status) ~ karno + age + trt + 
-                   strata(celltype), veteran)
+                   strata(celltype), data = veteran)
 concordance(fit4b)
+table(veteran$celltype)
 @ 
 
 \subsection{Time-weighted concordance}
@@ -311,7 +348,7 @@ as
             \label{cd4} \\
      &=   2 \sum_i \delta_i n(t_i) \left[ r_i(t_i) - \overline r \right] \label{cscore}
 \end{align}
-Here $\delta$ is 0 = censored 1 = uncensored; if $t_i$ is censored then all
+Here $\delta$ is 0 = censored, 1 = uncensored; if $t_i$ is censored then all
 other observations with $t_j \ge t_i$ are not comparable.
 Equation \eqref{cd4} rewrites the inner term is a sum over all subjects in the
 risk set at time $t_i$, a familiar concept in survival models.
@@ -324,14 +361,12 @@ mean of those ranks.
 It turns out that 
 equation \eqref{cscore} is exactly the score statistic for a Cox model
 with a single time-dependent covariate  $n(t) r(t)$.
-
 One immediate consequence of this connection is a straightforward definition
 of concordance for a risk score containing time dependent covariates. Since
 the Cox model score statistic is well defined for time dependent covariates,
 the concordance is also well defined for a time-dependent risk score: at each
 event time the current risk score of the subject who failed is compared to the
 current (time dependent) scores of all those still at risk.
-
 A deeper consequence of the equivalence between the concordance and
 the Cox model is a link to alternate weightings of the
 risk scores. 
@@ -341,7 +376,8 @@ Gehan-Wilcoxon statistic; replacing $n(t)$ with weights of 1
 will yield the log-rank statistic. 
 
 There is a deep literature with respect to the ``best'' weight for survival 
-tests, and we can apply the same historical arguments
+tests,
+and we can apply the same historical arguments
 to the concordance as well.  We will point out four of interest:
 
 \begin{itemize}
@@ -350,14 +386,15 @@ to the concordance as well.  We will point out four of interest:
     is the survival distribution and $G$ the censoring distribution.
     They argue that $S(t-)$ would be a better weight since $G$ may have
     features that are irrelevant to the question being tested.  
-    For a particular data set Prentice \cite{Prentice79} showed 
+    For a particular dataset, Prentice \cite{Prentice79} later showed 
     that these concerns were indeed justified, and
     most software now uses the Peto-Wilcoxon variant. 
 \item Tarone and Ware point out that weights of $n(t)$ and 1 give the
     Gehan-Wilcoxon and log-rank tests, respectively, and suggest $\sqrt{n(t)}$
     as an intermediate value.
-\item Schemper et al \cite{Schemper09} argue for
-    a weight of $S(t-)/G(t-)$ in the Cox model.  
+\item Schemper et al
+    \cite{Schemper09} argue for
+    a weight of $S(t)/G(t)$ in the Cox model.  
     When proportional hazards does not hold the coefficient from the Cox model
     is an ``average'' hazard ratio, and they show that using $S/G$ leads to
     a value that remains interpretable in terms of an underlying population
@@ -366,7 +403,7 @@ to the concordance as well.  We will point out four of interest:
     goal is an ``assumption free'' assessment of association.
 \item  Uno et al \cite{Uno11} recommend the use of $n/G^2$ as a weight based
     on a consistency argument.  If we assume that the concordance value that
-    would be obtained after full followup of all subjects (no censoring) is
+    would be obtained after full follow-up of all subjects (no censoring) is
     the ``right'' one, and proportional hazards does not hold, then the
     standard concordance will not consistently estimate this target quantity
     when there is censoring.
@@ -374,12 +411,12 @@ to the concordance as well.  We will point out four of interest:
 
 In practice, weights need to be based on left continuous versions of the 
 survival curves $S(t-)$ and $G(t-)$, and extra care needs to be exercised
-in computation of $G$.  Consider the \code{aml} data set as an
-example, the first few lines of the relevant survival curve are shown below.
+in computation of $G$.  Consider the \code{aml} dataset as an
+example; the first few lines of the relevant survival curve are shown below.
 
 <<amlexample>>=
-afit <- survfit(Surv(time, status) ~1, aml, se =FALSE)
-summary(afit, times=afit$time[1:6], censor=TRUE)
+afit <- survfit(Surv(time, status) ~1, aml, se = FALSE)
+summary(afit, times = afit$time[1:6], censor = TRUE)
 @ 
 
 The first censor is at time 13, when there is both a death and a censor.
@@ -399,51 +436,64 @@ Based on the Peto and Peto argument that $n(t) \approx n(0)S(t-)G(t-)$,
 we might expect the Schemper and Uno weights to be similar.
 In testing, we discovered to our surprise that if computations are
 done carefully as per above, then $n(t) = n(0)S(t-)G(t-)$ exactly.
-As a consequence the Schemper and Uno weights are also identical.
+As a consequence, the Schemper and Uno weights are also identical.
 
-The \code{timewt} option allows you to modify weights for the concordance.
-The options are: \code{n, S, S/G, n/G2, I}, the last giving equal weight
-to each event time; this would correspond to a log-rank test.  
-(We do not recommend this nor have we found any literature that does so, but
-included it for completeness.)  For non-survival data $G =1$ and the first four
-weights give identical concordance values.
-The figure below shows the first four weights for the colon cancer
-data set.
+The \code{timewt} option in the \code{concordance} function allows 
+you to modify weights for the concordance.
+The options are: \code{n, S, S/G, n/G2} and \code{I},
+the last of which giving equal weight to each event time; this would
+correspond to a log-rank test.
+(We do not recommend this nor are we aware of any literature which does so,
+but included it for completeness).
+For non-survival data all the weights become identical.
+
+The figure below shows the first three weights for the colon cancer
+dataset.
 This data is from a clinical trial of 929 subjects, with 3 years of enrollment
 followed by 5 years of follow.  
-Since there is almost no one lost to follow-up in the first 5 years all four
-weights are nearly identical over that time.
-From 5 to 8 years $S(t)$ continues its steady decline, $n(t)$ plummets due
+Since there is almost no one lost to follow-up in the first 5 years, the choices
+are nearly identical over that time.
+From 5 to 8 years, $S(t)$ continues its steady decline, $n(t)$ plummets due
 to administrative censoring, and $S/G$ explodes.
 Even with these changes in weights, the concordance values are all very similar.
 
 <<tmwt, fig=TRUE>>=
-colonfit <- coxph(Surv(time, status) ~ rx + nodes + extent, data=colon,
-                 subset=(etype==2))   # death only
+colonfit <- coxph(Surv(time, status) ~ rx + nodes + extent, data = colon,
+                 subset = (etype == 2))   # death only
 cord1 <- concordance(colonfit, timewt="n",    ranks=TRUE)
 cord2 <- concordance(colonfit, timewt="S",    ranks=TRUE)
 cord3 <- concordance(colonfit, timewt="S/G",  ranks=TRUE)
 cord4 <- concordance(colonfit, timewt="n/G2", ranks=TRUE)
 temp <- c("n(t)"= coef(cord1), S=coef(cord2), "S/G"= coef(cord3), 
           "n/G2"= coef(cord4))
-round(temp,5)
+round(temp,5) # 4 different concordance estimates
+
+# Plot the weights over time using the first 3 approaches
 matplot(cord1$ranks$time/365.25, cbind(cord1$ranks$timewt,
                                        cord2$ranks$timewt,
                                        cord3$ranks$timewt),
-        type= "l", 
+        type= "l", lwd=2, col=c(1,2,4),
         xlab="Years since enrollment", ylab="Weight")
 legend(1, 3000, c("n(t)", "nS(t-)", "nS(t-)/G(t-)"), lwd=2,
-       col=1:4, lty=1:4, bty="n")
+       col=c(1,2,4), lty=1:3, bty="n")
+
+# Note that n/G2 and S/G are identical
+all.equal(cord3$ranks$timewt,cord4$ranks$timewt)
 @
+
+\subsubsection*{When do weights matter?}
 
 When might the concordance differ between weight functions?
 In order for $S/G$ weights to show an important difference we need to
 have two conditions.
-First, sufficient censoring that the two weights differ for a reasonable
+
+\begin{itemize}
+\item First, sufficient censoring that the two weights differ for a reasonable
 fraction of the data, that is, $G(t)$ is low and $S(t)$ has not flattened
 (deaths are still occurring).
-Second, per the arguments in Schemper and in Uno, is the potential presence
+\item Second, per the arguments in Schemper and in Uno, is the potential presence
 of non-proportional hazards in the fit.
+\end{itemize}
 
 \begin{figure}
 <<manycurve, fig=TRUE, echo=FALSE>>=
@@ -464,55 +514,60 @@ duo(nafld1$futime/365.25, nafld1$status, "NAFLD")
 duo(pbc$time/365.25, pmin(pbc$status,1), "PBC")
 with(rotterdam, duo(pmin(rtime, dtime)/365.25, pmax(recur, death), "Rotterdam"))
 
-nfit <- coxph(Surv(futime/365.25, status) ~ age + male, nafld1)
-znfit <- cox.zph(nfit, transform='identity')
-plot(znfit[1], resid=FALSE)
+nfit <- coxph(Surv(futime/365.25, status) ~ age + male, data = nafld1)
+znfit <- cox.zph(nfit, transform = 'identity')
+plot(znfit[1], resid = FALSE)
 par(oldpar)
 @ 
-  \caption{Survival (black) and censoring (red) curves for 8 data sets found
+  \caption{Survival (black) and censoring (red) curves for 8 datasets found
     in the survival package.  The final panel shows a proportional hazards
     evaluation for the age variable, in a fit of age + male to the NAFLD
     data.}
    \label{surv8}
 \end{figure}
 
-Figure \ref{surv8} shows survival and censoring curves for 8 different data
-sets found in the survival package. 
-Based on these, the data set with the greatest potential for an $S/G$ difference
-is the NAFLD data; the data set also has some early non-proportionality.
-Code is shown below. Surprisingly, the four weightings still yield very similar
+Figure \ref{surv8} shows survival and censoring curves for 8 different 
+datasets found in the survival package. 
+Based on these, the dataset with the greatest potential for an $S/G$ difference
+is the NAFLD data; the dataset also has some early non-proportionality for age.
+The code below shows the calculation of the $S/G$ difference. Surprisingly, the four weightings still yield very similar
 concordance values; the Harrell (n) and Uno (n/G2) weighting differ in only
 the second decimal place.
 
 <<nafld1>>=
-nfit <- coxph(Surv(futime/365.25, status) ~ age + male, nafld1)
-ncord1 <- concordance(nfit)
-ncord2 <- concordance(nfit, timewt="S")
-ncord4 <- concordance(nfit, timewt="n/G2")
-temp <- c(n= coef(ncord1), S=coef(ncord2), "n/G2"= coef(ncord4))
+nfit <- coxph(Surv(futime/365.25, status) ~ age + male, data = nafld1)
+ncord1 <- concordance(nfit, timewt = "n")
+ncord2 <- concordance(nfit, timewt = "S")
+ncord3 <- concordance(nfit, timewt = "S/G")
+ncord4 <- concordance(nfit, timewt = "n/G2")
+temp <- c(n = coef(ncord1), S = coef(ncord2), 
+          "S/G" = coef(ncord3), "n/G2" = coef(ncord4))
 round(temp,6)
 @
 
 The \code{concordance} function provides a \code{ranks=TRUE} argument which
-can be used to further exploration.  If set, the output will include a
-data frame that contains one row for each event, containing the time
+can be used to further exploration of the weights.  I
+f set, the output will include a
+dataframe that contains one row for each event, containing the time
 point, its relative rank in the risk set ($r_i - \overline r$), the case weight
 for the observation and the time weight at that time point.  
 The relative ranks are comparable to Schoenfeld residuals,
 and their weighted sum will equal $c -d$. 
 We can plot them over time and apply a smooth.
-Figure \ref{vetfit} below, for the veteran dataset, shows a 
+Figure \ref{vetfit}, for the veteran dataset, shows a 
 precipitous drop to 0.
-The Veteran's cancer data is perhaps extreme in this; due to the very rapid
-progression of disease baseline measurements soon lose their meaning.
+The Veteran's cancer data is perhaps an extreme of this pattern.  
+Due to the very rapid
+progression of disease, baseline measurements soon lose their meaning.
 
 <<rankresid, eval=FALSE>>=
-# pick a data set with a smaller number of points, and non PH
-vfit <- coxph(Surv(time/365.25, status) ~ age + karno, veteran)
+# code for Figure 3
+# pick a dataset with a smaller number of points, and non PH
+vfit <- coxph(Surv(time/365.25, status) ~ age + karno, data = veteran)
 temp <- concordance(vfit, ranks=TRUE)$rank
 # Two outliers at 999 days = 2.7 years stretch the axis too far
 plot(rank ~ time, data=temp, xlim=c(0,1.6),
-     xlab="Years", ylab="rank residual")
+     xlab="Years", ylab="Rank residual")
 lines(lowess(temp$time, temp$rank, iter=1), lwd=2, col=2)
 abline(0, 0, lty=3)
 @ 
@@ -522,7 +577,7 @@ abline(0, 0, lty=3)
 <<rankresid>>
 @ 
   \caption{Schoenfeld residuals for the scaled ranks, from a fit to
-    the veteran data set.}
+    the veteran dataset.}
   \label{vetfit}
 \end{figure}
 
@@ -535,26 +590,26 @@ Altman and Royston \cite{Altman00}.
 The title of the second makes its purpose clear: ``What do we mean by validating
 a prognostic model?''
 
-Korn and Simon for instance 
+Korn and Simon, for instance, 
 point out the importance of restricting the range of comparison, a point
 echoed by Altman and Royston.
 Though a risk model can be used for long-range prediction, in actual patient
 practice this will very often not be the need; the model should be
 evaluated over the time range in which it will actually be used.  
 For example, for a patient who returns every 4 years, a 10 year prediction will
-never actually be put to the test, predictions will be updated every 4 years
+never actually be put to the test; predictions will be updated every 4 years
 based on the most current information. 
 If the model is to be used for ongoing patient management we will want to
 restrict attention to a 4 year horizon, with respect to evaluating its utility.
 (A 10 year Framingham heart risk might still be useful in \emph{convincing} a
 subject to stop smoking, however.)
 
-We sometimes receive pushback on this, with the argument that one should use 
+We sometimes receive push-back on this, with the argument that one should use 
 all the data.
 We disagree, and think that the target of the validation is critical.
 Predictions become less
-accurate the further out we reach in time;  this is true for everthing from
-weather forcasts to the stock market, and survival models are not immune.
+accurate the further out we reach in time;  this is true for everything from
+weather forecasts to the stock market, and survival models are not immune.
 Reaching too far into the future may return an overly pessimistic value of
 $C$.
 
@@ -563,7 +618,7 @@ unstable as the sample size becomes small (large jumps in the KM), or
 unreasonably large as $G$ approaches 0. Most authors suggest an upper limit
 for this purely technical reason.
 
-<<rotterdam, fig=TRUE>>=
+<<rotterdam, fig=TRUE, eval=FALSE>>=
 # should this be included?
 # recurrence free survival = earlier of recurrence and death
 rdata <- rotterdam
@@ -585,8 +640,8 @@ matplot(ctime, yhat, type='l', lty=c(1,2,2), lwd=c(2,1,1), col=1,
 Argument could also be made for a lower limit, though this would be uncommon
 for censored data.  Many laboratory values, for instance, treat all results
 less than some threshold as identical.
-However, the ability implement a lower limit correctly is constrained by 
-censoring.  Say for instance that there were values of  5, 8+, 9 and a
+However, the ability to implement a lower limit correctly is constrained by 
+censoring.  Say for instance that there were values of  5, 8+, and 9, and a
 lower limit of 10 were chosen.  The approach used for non-censored data 
 is to treat 5 and 9 as tied values, but this logic does not 
 correctly extend to the censored
@@ -603,23 +658,24 @@ $$
 $$
 They then order the $\eta$ values from a fitted model, and take an average
 over all $n(n-1)/2$ ordered pairs.
-The authors argue that this is an estimate that is indepenent of censoring, and
-therefore preferable to Harrell's C.  (The estimate is can be obtained from the 
+The authors argue that this is an estimate that is independent of censoring, and
+therefore preferable to Harrell's C.  (The estimate can be obtained by using the 
 \code{royston} function.)
 
 The biggest problem with this approach is that it gives an estimate of 
-concordance under an assumption that the model is \emph{ exactly correct}. 
+concordance under an assumption that the model is \emph{exactly correct}. 
 Our goal, rather, is to assess how \emph{well} the model performs, 
 for our needs, knowing that it will be imperfect.  
 The G and H formula answers a question that we did not ask, over a time range 
 $(0, \infty)$ which is not of interest.
 The calculation is also $O(n^2)$ so will be slow for large sample sizes.
 
-\subsection{Summary}
+\subsection{Picking a weight}
+
 So, which weight should we use? As shown in the examples above, it may not 
 matter that much.  
 (The fact that we have never found an example where the effect is large does not
-mean there are no such data sets, however.) Time weights play no role for
+mean there are no such datasets, however.) Time weights play no role for
 uncensored data.
 
 Further issues to consider: 
@@ -627,10 +683,10 @@ Further issues to consider:
 \begin{enumerate}
   \item An important issue
     that has not been sorted out is how to extend $1/G$ weighting
-    arguments to data sets that are subject to delayed entry, e.g., when 
+    arguments to datasets that are subject to delayed entry, e.g., when 
     using age as the time scale instead of time since enrollment.
     There is, in this case, no natural estimate available for $G$.
-    This moderately frequent.  It is also not possible
+    It is also not possible
     for the \code{coxph} routine to reliably tell the difference between such
     left truncation and simple time-dependent covariates or strata.
     The default action of the routine is to use the safe choice of $n(t)$.
@@ -658,7 +714,7 @@ weights.  Both give more prominence to the later time points as compared to
 the default $n(t)$ choice, but if time limits have been thought through 
 carefully the difference between these three will almost always be ignorable.
 
-We most definitely disgree with Uno's unstated assumption that
+We most definitely disagree with Uno's unstated assumption that
 the $C$ statistic one would obtain with infinite follow-up and no
 censoring is the proper target of estimation, and the ordinary concordance
 is therefore biased.  That target will never be attainable, and we would argue
@@ -678,7 +734,7 @@ the variance of the equivalent Cox model score statistic.
 As pointed out
 by Watson, this estimate is both correct and efficient under $H_0: C=.5$,
 and so it forms a valid test of $H_0$.
-However, when the concordance is over .7 or so this estimator systematically
+However, when the concordance is over .7 or so, this estimator systematically
 overestimates the true variance.  
 An alternative that remains unbiased is the infinitesimal jackknife (IJ) variance
 \begin{align*}
@@ -697,22 +753,24 @@ an earlier \code{survConcordance} function only computed the PH variance.
 The \code{condordance} function does not compute Kendall's $\tau$-a or
 $\tau$-b, nor Goodman's gamma.  
 However, since all of the necessary components for those values are returned,
-along with IJ influence for each, it can be used as the computional engine
+along with IJ influence for each, it can be used as the computational engine
 for those measures and their variance, should someone wish to do so.
 
-In computing the variance we have taken the view that the total number of 
+The variance computation accounts for the influence of each subject on both
+the numberator and denominator of $C$; this agrees with parallel development
+used by Newson \cite{Newson06} and implemented in STATA.
+An alternate approach is to treat the total number of  
 comparable pairs is an ancillary statistic, thus
 ${\rm var}(C) = {\rm var}(c-d)/(4 m)$ where $m$ is the number of comparable
 pairs ($n(n-1)/2$ for uncensored data). 
-Newson \cite{Newson06} has also developed jackknife estimates of variance
-for $C$ and $D$, but does not treat the denominator as ancillary. The methods
-are implemented in STATA.  Arguments about what aspects of a data set 
+Arguments about what aspects of a dataset 
 can or should be treated as ancillary are as old as statistics, e.g., treating
 the margins of a 2x2 table as ancillary leads to Fisher's exact test.
-In this case we anticpate that the differences will be quite small, but have
+In this case we anticipate that the differences will be quite small, but have
 done no formal exploration.
 
 \subsection{Multiple concordances}
+\label{sec:multiple}
 
 One useful property of using a jackknife variance estimate is that the 
 variance of the 
@@ -769,18 +827,19 @@ this simple interval can sometimes be inconsistent, giving CI endpoints that
 lie outside of the legal range of $[0,1]$. 
 In the case of $\hat p$ there is a long history of methods to address this
 issue, going back at least as far as the 1956 paper by 
-Anscombe \cite{Anscombe56}; but there is less literature for the concordance 
+Anscombe \cite{Anscombe56}, but there is less 
+literature for the concordance 
 or AUC.
 Newcombe \cite{Newcombe06} provides corrected methods, but with
 the caveat that they ``have the drawback that on account of the large number
-of outcomes they are compuationally practicable only for very small sample
+of outcomes they are computationally practicable only for very small sample
 sizes.'' 
 The tree based computations used in the \code{concordance} function might well
 address the speed issue, but have not been implemented.
 
-Here we persue another avenue, which is to consider a tranformation based
+Here we pursue another avenue, which is to consider a transformation based
 confidence interval, in much the same way as is done for confidence intervals
-of a survival curve.  That is we use
+of a survival curve.  That is, we use
 $$
  g^{-1}\left[g(C) \pm z \sigma(g(C)) \right]
 $$
@@ -831,9 +890,9 @@ round(zci(colonfit), 4)
 
 The two intervals hardly differ, which is what we would expect for a value
 far from 1.  
-As a second example, create a small data set with a concordance that is
+As a second example, create a small dataset with a concordance that is
 close to 1.  As shown below, the z-transform shifts the CI towards zero,
-as it should, but also avoids the out of bounds endpoint.  
+as it should, but also avoids the out-of-bounds endpoint.  
 
 <<close>>=
 set.seed(1953)
@@ -860,7 +919,7 @@ larger weight.
 (Both the Uno and Schemper papers ignore this detail.)
 
 When using weights of $S(t)$ the program actually uses a weight of $nS(t-)$ 
-where $n$ is the number of observations in the data set.
+where $n$ is the number of observations in the dataset.
 The reason is that for a stratified model the weighted number of concordant,
 discordant and tied pairs is calculated separately for each stratum, and
 then added together.  
