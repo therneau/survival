@@ -31,7 +31,7 @@ export(Surv, Surv2, Surv2data, aeqSurv, aareg, agreg.fit,
        ridge, royston, rsurvreg, rttright,statefig, strata, 
        survSplit, survcheck, survcondense, survdiff, survexp,  survfit,
        survfit0, survfit.formula,
-       coxsurv.fit, survfitKM, survfitCI,
+       coxsurv.fit, survfitKM,
        survobrien,  
        survpenal.fit, 
        survreg, survreg.control, survreg.fit,
@@ -84,10 +84,12 @@ S3method(c, Surv)
 S3method(c, Surv2)
 S3method(coef, concordance)
 S3method(coef, coxphms)
+S3method(coef, survfit)
 S3method(concordance, formula)
 S3method(concordance, lm)
 S3method(concordance, coxph)
 S3method(concordance, survreg)
+S3method(confint, survfit)
 S3method(density, Surv)
 S3method(dim, survfit)
 S3method(duplicated, Surv)
@@ -226,6 +228,7 @@ S3method(unique, Surv)
 S3method(vcov, cch)
 S3method(vcov, concordance)
 S3method(vcov, coxph)
+S3method(vcov, survfit)
 S3method(vcov, survreg)
 S3method(weights, coxph)
 S3method(weights, survreg)

@@ -149,24 +149,26 @@ survfit.formula <- function(formula, data, weights, subset,
 dim.survfit <- function(x) {
     d1name <- "strata"
     d2name <- "data"
-    d3name <- "states"
+    d3name <- "states"    
     if (is.null(x$strata))  {d1 <- d1name <- NULL} else d1 <- length(x$strata)
-    if (is.null(x$newdata)) {d2 <- d2name <- NULL} else d2 <- nrow(x$newdata)
-    if (is.null(x$states))  {d3 <- d3name <- NULL} else d3 <- length(x$states)
-    
-    if (inherits(x, "survfitcox") && is.null(d2) && is.null(d3) &&
-        is.matrix(x$surv)) {
-        # older style survfit.coxph object, before I added newdata to the output
-        d2name <- "data"
-        d2 <- ncol(x$surv)
+    # d3 is present for a survfitms object, null otherwise
+    if (is.null(x$states))  {
+        d3 <- d3name <- NULL
+        if (is.matrix(x$surv)) d2 <- ncol(x$surv)
+        else {d2 <- d2name <- NULL}
+    } else {
+        d3 <- length(x$states) 
+        dp <- dim(x$pstate)
+        if (length(dp) ==3) d2 <- dp[2]
+        else {d2 <- d2name <- NULL}
     }
-
+    
     dd <- c(d1, d2, d3)
     names(dd) <- c(d1name, d2name, d3name)
     dd
 }
 
-# there is a separate function for survfitms objects
+# there is a separate subscript function for survfitms objects
 "[.survfit" <- function(x, ... , drop=TRUE) {
     nmatch <- function(indx, target) { 
         # This function lets R worry about character, negative, or 
@@ -277,7 +279,7 @@ dim.survfit <- function(x) {
         else    newx$strata <- x$strata[indx]
     }
 
-    if (length(dd)==1) {  # no j dimension
+    if (!is.matrix(x[["surv"]])) {  # no j dimension
         for (k in c("time", "n.risk", "n.event", "n.censor", "n.enter",
                "surv", "std.err", "cumhaz", "std.chaz", "upper", "lower",
                "influence.surv", "influence.chaz"))
@@ -295,6 +297,8 @@ dim.survfit <- function(x) {
         for (k in c("surv", "std.err", "cumhaz", "std.chaz", "upper", "lower",
                "influence.surv", "influence.chaz"))
             if (!is.null(x[[k]])) newx[[k]] <- (x[[k]])[irow, j, drop=drop]
+        # for a survfit.coxph object, newdata is a data frame whose rows match j
+        if (!is.null(x[["newdata"]])) newx[["newdata"]] <- x[["newdata"]][j,]
     }
     newx
 }

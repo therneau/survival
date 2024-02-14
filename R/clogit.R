@@ -38,8 +38,8 @@ clogit <- function(formula, data, weights, subset, na.action,
     # If the method is "exact", then case weights nor robust variance are
     #  possible
     if (method =="exact") {
-        if (missing(data)) temp <- terms(formula, special='cluster')
-        else temp <- terms(formula, special="cluster", data=data)
+        if (missing(data)) temp <- terms(formula, specials='cluster')
+        else temp <- terms(formula, specials="cluster", data=data)
         if (!is.null(attr(temp, 'specials')$cluster) && method=="exact")
             stop("robust variance plus the exact method is not supported")
 

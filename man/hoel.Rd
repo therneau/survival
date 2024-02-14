@@ -11,7 +11,7 @@ Days until occurence of cancer for male mice
   \describe{
     \item{\code{trt}}{treatment assignment: \code{Control} or \code{Germ-free}}
     \item{\code{days}}{days until death}
-    \item{\code{outcome}}{outcome: code{censor}, \code{thymic
+    \item{\code{outcome}}{outcome: \code{censor}, \code{thymic
 	lymphoma}, \code{reticulum cell sarcoma} \code{other causes}}
     \item{\code{id}}{mouse id}
   }

@@ -31,8 +31,8 @@ coxph.detail <-  function(object, riskmat=FALSE, rorder=c("data", "time")) {
     newstrat[n] <- 1
 
     # sort the data
-    x <- x[ord,]
-    y <- y[ord,]
+    xnew <- x[ord,]
+    ynew <- y[ord,]
     storage.mode(y) <- 'double'
     score <- exp(object$linear.predictors)[ord]
     if (is.null(weights)) weights <- rep(1.0, n)
@@ -48,8 +48,9 @@ coxph.detail <-  function(object, riskmat=FALSE, rorder=c("data", "time")) {
     ff <- .C(Ccoxdetail, as.integer(n),
 			  as.integer(nvar),
 			  ndeath= as.integer(ndeath),
-			  y = y,
-			  as.double(x),
+                          center = object$means,
+			  y = ynew,
+			  as.double(xnew),
 			  index = as.integer(newstrat),
 			  event2 =as.double(score),
 			  weights = as.double(weights),
@@ -61,7 +62,7 @@ coxph.detail <-  function(object, riskmat=FALSE, rorder=c("data", "time")) {
 			  double(nvar*(3 + 2*nvar)))
     keep <- 1:ff$ndeath
     vname<- dimnames(x)[[2]]
-    time <- y[ff$index[keep],2]
+    time <- ynew[ff$index[keep],2]
     names(time) <- NULL
     means<- (matrix(ff$means,ndeath, nvar))[keep,]
     score<-  matrix(ff$u, ndeath, nvar)[keep,]
@@ -86,7 +87,10 @@ coxph.detail <-  function(object, riskmat=FALSE, rorder=c("data", "time")) {
     dimnames(ff$y) <- NULL
     temp <- list(time = time, means=means, nevent=ff$y[keep,1],
 	 nrisk = ff$y[keep,2], hazard= ff$y[keep,3], score= score,  imat=var,
-	 varhaz=ff$weights[keep], y=y, x=x)
+	 varhaz=ff$weights[keep], wtrisk = ff$nrisk2[keep])
+    if (rorder == "data") {
+        temp$y <- y; temp$x <-x}
+    else {temp$y <- ynew; temp$x <- xnew}
     if (length(strat)) temp$strata <- table((strat[ord])[ff$index[keep]])
     if (riskmat) {
         if (rorder=="data") {

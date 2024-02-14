@@ -1,5 +1,26 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 3.5-8}{
+  \itemize{
+    \item Add dummy methods for coef.survfit, vcov.survfit and
+    confint.survfit that print a sensible error message.
+    \item Add plot= option to plot.cox.zph.R (for those who want to
+    further examine the curve it generates).
+    \item Fix error in survcondense.
+    \item Multiple formatting errors in the help files
+}}
+
+\section{Changes in version 3.5-7}{
+  \itemize{
+    \item Improve the algorithm for score residuals from O(ndp) to
+    O((n+d)p), where n= number of observations, d= number of events, p =
+    number of covariates.  For large data sets this can have a substantial
+    impact.  (Score residuals are used for robust variance.)
+    \item Add short vignette on how we compute mulitstate Cox model
+    curves.
+    \item 13Aug23, check dependent packages (10605 this time) and submit
+    to CRAN
+}}
 \section{Changes in version 3.5-6}{
   \itemize{
     \item Fix error in a (time1, time2) coxph model with both strata and
@@ -10,6 +31,8 @@
     linear.predictor component.  This make it agree with predict.coxph.
     \item Add the brier function, along with tests and a new vignette.
     Update rttright and strengthen the tests.
+    \item Update coxph.detail; the roder argument now applies to the x,
+    y, and riskmat components.  
 }}
 \section{Changes in version 3.5-5}{
   \itemize{

@@ -12,7 +12,6 @@ survSplit(formula, data, subset, na.action=na.pass,
             cut, start="tstart", id, zero=0, episode,
                               end="tstop", event="event")
 }
-%- maybe also `usage' for other objects documented here.
 \arguments{
   \item{formula}{a model formula}
   \item{data}{a data frame}
@@ -85,7 +84,22 @@ c(overall= coef(fit1)[1],
   t0_60  = coef(fit2)[1],
   t60_120= sum(coef(fit2)[c(1,4)]),
   t120   = sum(coef(fit2)[c(1,5)]))
-}
 
+# Sometimes we want to split on one scale and analyse on another
+#  Add a "current age" variable to the mgus2 data set.
+temp1 <- mgus2
+temp1$endage <- mgus2$age + mgus2$futime/12    # futime is in months
+temp1$startage <- temp1$age
+temp2 <- survSplit(Surv(age, endage, death) ~ ., temp1, cut=25:100,
+                   start= "age1", end= "age2")
+
+# restore the time since enrollment scale
+temp2$time1 <- (temp2$age1 - temp2$startage)*12
+temp2$time2 <- (temp2$age2 - temp2$startage)*12
+
+# In this data set, initial age and current age have similar utility
+mfit1 <- coxph(Surv(futime, death) ~ age + sex, data=mgus2)
+mfit2 <- coxph(Surv(time1, time2, death) ~ age1 + sex, data=temp2)
+}
 \keyword{survival }
 \keyword{utilities}

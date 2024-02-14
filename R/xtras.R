@@ -96,3 +96,13 @@ survflag <- function(y, id) {
     flag
 }
 
+
+# Dummy methods, to create an informative error message
+coef.survfit <- function(object, ...) 
+    stop("coef method not applicable for survfit objects")
+vcov.survfit <- function(object, ...) 
+    stop("vcov method not applicable for survfit objects")
+confint.survfit <- function(object, ...)
+    stop(paste("confint method not defined for survfit objects," ,
+         "use quantile for confidence intervals of the median survival"))
+

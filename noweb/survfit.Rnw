@@ -13,8 +13,8 @@ A note on times:  one of the things that drove me nuts was the problem of
 As an example consider two values of 24173 = 23805 + 368. These are values from
 an actual study with times in days.
 However, the user chose to use age in years, and saved those values out
-in a CSV file, resulting in values for the above of 66.18206708000000 
-and 66.18206708000001.
+in a CSV file, the left hand side of the above equation becomes
+66.18206708000000 and the right hand side addition yeilds 66.18206708000001.
 The R phrase \code{unique(x)} sees these two values as distinct but 
 \code{table(x)} and \code{tapply} see it as a single value since they 
 first apply \code{factor} to the values, and that in turn uses 
@@ -33,13 +33,14 @@ for (i in 1:200) {
 table(test)
 @ 
 The number of FALSE entries in the table depends on machine, compiler,
-and a host of other issues.
+and a host of other issues. 
 There is discussion of this general issue in the R FAQ: ``why doesn't R
 think these numbers are equal''.
 The Kaplan-Meier and Cox model both pay careful attention to ties, and
 so both now use the \code{aeqSurv} routine to first preprocess
 the time data.  It uses the same rules as \code{all.equal} to
-adjudicate ties and near ties.
+adjudicate ties and near ties.  See the vignette on tied times for more
+detail.
 
 
 <<survfit>>=
@@ -67,31 +68,38 @@ The \code{surv} component contains the time points for the first stratum,
 the second, third, etc stacked one above the other.  
 As with R matrices, if only 1 subscript is given for an array or matrix of
 curves, we treat the collection of curves as a vector of curves.
-We need to make sure that the new object has the same order of elements as
-the old -- users count on this.
+We need to make sure that the new object has all the elements of the returned
+object in the same order as the original --- users count on this.
+
+The dimension of a survival curve is closely tied to the number of rows in
+newdata, but isn't exactly that.  The most common mismatch is when newdata has
+only 1 row: the curves omit that dimension.  
+A newdata with one row per stratum is another exception.
 
 <<survfit-subscript>>=
 dim.survfit <- function(x) {
     d1name <- "strata"
     d2name <- "data"
-    d3name <- "states"
+    d3name <- "states"    
     if (is.null(x$strata))  {d1 <- d1name <- NULL} else d1 <- length(x$strata)
-    if (is.null(x$newdata)) {d2 <- d2name <- NULL} else d2 <- nrow(x$newdata)
-    if (is.null(x$states))  {d3 <- d3name <- NULL} else d3 <- length(x$states)
-    
-    if (inherits(x, "survfitcox") && is.null(d2) && is.null(d3) &&
-        is.matrix(x$surv)) {
-        # older style survfit.coxph object, before I added newdata to the output
-        d2name <- "data"
-        d2 <- ncol(x$surv)
+    # d3 is present for a survfitms object, null otherwise
+    if (is.null(x$states))  {
+        d3 <- d3name <- NULL
+        if (is.matrix(x$surv)) d2 <- ncol(x$surv)
+        else {d2 <- d2name <- NULL}
+    } else {
+        d3 <- length(x$states) 
+        dp <- dim(x$pstate)
+        if (length(dp) ==3) d2 <- dp[2]
+        else {d2 <- d2name <- NULL}
     }
-
+    
     dd <- c(d1, d2, d3)
     names(dd) <- c(d1name, d2name, d3name)
     dd
 }
 
-# there is a separate function for survfitms objects
+# there is a separate subscript function for survfitms objects
 "[.survfit" <- function(x, ... , drop=TRUE) {
     nmatch <- function(indx, target) { 
         # This function lets R worry about character, negative, or 
@@ -202,7 +210,7 @@ dim.survfit <- function(x) {
         else    newx$strata <- x$strata[indx]
     }
 
-    if (length(dd)==1) {  # no j dimension
+    if (!is.matrix(x[["surv"]])) {  # no j dimension
         for (k in c("time", "n.risk", "n.event", "n.censor", "n.enter",
                "surv", "std.err", "cumhaz", "std.chaz", "upper", "lower",
                "influence.surv", "influence.chaz"))
@@ -220,6 +228,8 @@ dim.survfit <- function(x) {
         for (k in c("surv", "std.err", "cumhaz", "std.chaz", "upper", "lower",
                "influence.surv", "influence.chaz"))
             if (!is.null(x[[k]])) newx[[k]] <- (x[[k]])[irow, j, drop=drop]
+        # for a survfit.coxph object, newdata is a data frame whose rows match j
+        if (!is.null(x[["newdata"]])) newx[["newdata"]] <- x[["newdata"]][j,]
     }
     newx
 }

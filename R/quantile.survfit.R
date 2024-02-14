@@ -54,6 +54,9 @@ quantile.survfit <- function(x, probs=c(.25, .5, .75), conf.int=TRUE,
                              scale, 
                              tolerance= sqrt(.Machine$double.eps), ...) {
     if (!inherits(x, "survfit")) stop("Must be a survfit object")
+    if (inherits(x, "survfitms")) 
+        stop("quantiles are not a well defined quantity for multi-state models")
+
     if (any(!is.numeric(probs)) || any(is.na(probs)))
         stop("invalid probability")
     if (any(probs <0 | probs >1)) stop("Invalid probability")

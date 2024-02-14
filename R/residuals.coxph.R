@@ -46,15 +46,16 @@ residuals.coxph <-
 	status <- y[,ny,drop=TRUE]
 
 	if (type != 'deviance') {
-	    nstrat <- as.numeric(strat)
 	    nvar <- ncol(x)
 	    if (is.null(strat)) {
 		ord <- order(y[,ny-1], -status)
-		newstrat <- rep(0,n)
+		newstrat <- integer(n)
+                istrat <- integer(n)  # used by score resdiuals
             }
 	    else {
-		ord <- order(nstrat, y[,ny-1], -status)
-		newstrat <- c(diff(as.numeric(nstrat[ord]))!=0 ,1)
+                istrat <- as.integer(strat)  # strat is a factor
+		ord <- order(istrat, y[,ny-1], -status)
+		newstrat <- c(diff(as.numeric(istrat[ord]))!=0 ,1)
             }
 	    newstrat[n] <- 1
 
@@ -62,6 +63,11 @@ residuals.coxph <-
 	    x <- x[ord,]
 	    y <- y[ord,]
 	    score <- exp(object$linear.predictors)[ord]
+            istrat <- istrat[ord]
+            if (ny==3) {
+                if (is.null(strat)) sort1 <- order(y[,1])
+                else sort1 <- order(istrat, y[,1])
+            }
         }
     }
 
@@ -115,19 +121,20 @@ residuals.coxph <-
 	    resid <- .Call(Ccoxscore2, 
                            y, 
                            x, 
-                           newstrat,
+                           istrat,
                            score,
                            weights[ord],
                            as.integer(method=='efron'))
         }
 	else {
-	    resid<- .Call(Cagscore2,
+	    resid<- .Call(Cagscore3,
                            y, 
                            x, 
-                           newstrat,
+                           istrat,
                            score,
                            weights[ord],
-                           as.integer(method=='efron'))
+                           as.integer(method=='efron'), 
+                           sort1 -1L)
         }
         
 	if (nvar >1) {

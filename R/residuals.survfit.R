@@ -40,7 +40,8 @@ survresid.fit <- function(object, times,
                               collapse, weighted=FALSE, method=1) {
     if (object$type=="interval") stop("interval censored not yet supported")
     survfitms <- inherits(object, "survfitms")
-    coxsurv <- inherits(object, "survfitcox")
+    coxsurv <- inherits(object, "survfitcox")  # should never be true, as there
+                                               #  is a residuals.survfitcox
     timefix <- (is.null(object$timefix) || object$timefix)
     
     start.time <- object$start.time
@@ -56,130 +57,130 @@ survresid.fit <- function(object, times,
     }
 
     # get the data
-   Call <- object$call
-   Terms <- object$terms
+    Call <- object$call
+    Terms <- object$terms
 
-   # remember the name of the id variable, if present.
-   #  but we don't try to parse it:  id= mydata$clinic becomes NULL
-   idname <- Call$id
-   if (is.name(idname)) idname <- as.character(idname)
-   else idname <- NULL   
-   # I always need the model frame
-   mf <- model.frame(object)
-   if (is.null(object$y)) Y <- model.response(mf)
-   else Y <- object$y
+    # remember the name of the id variable, if present.
+    #  but we don't try to parse it:  id= mydata$clinic becomes NULL
+    idname <- Call$id
+    if (is.name(idname)) idname <- as.character(idname)
+    else idname <- NULL   
+    # I always need the model frame
+    mf <- model.frame(object)
+    if (is.null(object$y)) Y <- model.response(mf)
+    else Y <- object$y
 
-   formula <- formula(object)
-   # the chunk below is shared with survfit.formula 
-   na.action <- getOption("na.action")
-   if (is.character(na.action))
-       na.action <- get(na.action)  # a hack to allow the shared code
-   # create a copy of the call that has only the arguments we want,
-   #  and use it to call model.frame()
-   indx <- match(c('formula', 'data', 'weights', 'subset','na.action',
-                   'istate', 'id', 'cluster', "etype"), names(Call), nomatch=0)
-   #It's very hard to get the next error message other than malice
-   #  eg survfit(wt=Surv(time, status) ~1) 
-   if (indx[1]==0) stop("a formula argument is required")
-   temp <- Call[c(1, indx)]
-   temp[[1L]] <- quote(stats::model.frame)
-   mf <- eval.parent(temp)
+    formula <- formula(object)
+    # the chunk below is shared with survfit.formula 
+    na.action <- getOption("na.action")
+    if (is.character(na.action))
+        na.action <- get(na.action)  # a hack to allow the shared code
+    # create a copy of the call that has only the arguments we want,
+    #  and use it to call model.frame()
+    indx <- match(c('formula', 'data', 'weights', 'subset','na.action',
+                    'istate', 'id', 'cluster', "etype"), names(Call), nomatch=0)
+    #It's very hard to get the next error message other than malice
+    #  eg survfit(wt=Surv(time, status) ~1) 
+    if (indx[1]==0) stop("a formula argument is required")
+    temp <- Call[c(1, indx)]
+    temp[[1L]] <- quote(stats::model.frame)
+    mf <- eval.parent(temp)
 
-   Terms <- terms(formula, c("strata", "cluster"))
-   ord <- attr(Terms, 'order')
-   if (length(ord) & any(ord !=1))
-           stop("Interaction terms are not valid for this function")
+    Terms <- terms(formula, c("strata", "cluster"))
+    ord <- attr(Terms, 'order')
+    if (length(ord) & any(ord !=1))
+            stop("Interaction terms are not valid for this function")
 
-   n <- nrow(mf)
-   Y <- model.response(mf)
-   if (inherits(Y, "Surv2")) {
-       # this is Surv2 style data
-       # if there are any obs removed due to missing, remake the model frame
-       if (length(attr(mf, "na.action"))) {
-           temp$na.action <- na.pass
-           mf <- eval.parent(temp)
-       }
-       if (!is.null(attr(Terms, "specials")$cluster))
-           stop("cluster() cannot appear in the model statement")
-       new <- surv2data(mf)
-       mf <- new$mf
-       istate <- new$istate
-       id <- new$id
-       Y <- new$y
-       if (anyNA(mf[-1])) { #ignore the response variable still found there
-           if (missing(na.action)) temp <- get(getOption("na.action"))(mf[-1])
-           else temp <- na.action(mf[-1])
-           omit <- attr(temp, "na.action")
-           mf <- mf[-omit,]
-           Y <- Y[-omit]
-           id <- id[-omit]
-           istate <- istate[-omit]
-       }                      
-       n <- nrow(mf)
-   }       
-   else {
-       if (!is.Surv(Y)) stop("Response must be a survival object")
-       id <- model.extract(mf, "id")
-       istate <- model.extract(mf, "istate")
-   }
-   if (n==0) stop("data set has no non-missing observations")
+    n <- nrow(mf)
+    Y <- model.response(mf)
+    if (inherits(Y, "Surv2")) {
+        # this is Surv2 style data
+        # if there are any obs removed due to missing, remake the model frame
+        if (length(attr(mf, "na.action"))) {
+            temp$na.action <- na.pass
+            mf <- eval.parent(temp)
+        }
+        if (!is.null(attr(Terms, "specials")$cluster))
+            stop("cluster() cannot appear in the model statement")
+        new <- surv2data(mf)
+        mf <- new$mf
+        istate <- new$istate
+        id <- new$id
+        Y <- new$y
+        if (anyNA(mf[-1])) { #ignore the response variable still found there
+            if (missing(na.action)) temp <- get(getOption("na.action"))(mf[-1])
+            else temp <- na.action(mf[-1])
+            omit <- attr(temp, "na.action")
+            mf <- mf[-omit,]
+            Y <- Y[-omit]
+            id <- id[-omit]
+            istate <- istate[-omit]
+        }                      
+        n <- nrow(mf)
+    }       
+    else {
+        if (!is.Surv(Y)) stop("Response must be a survival object")
+        id <- model.extract(mf, "id")
+        istate <- model.extract(mf, "istate")
+    }
+    if (n==0) stop("data set has no non-missing observations")
 
-   casewt <- model.extract(mf, "weights")
-   if (is.null(casewt)) casewt <- rep(1.0, n)
-   else {
-       if (!is.numeric(casewt)) stop("weights must be numeric")
-       if (any(!is.finite(casewt))) stop("weights must be finite") 
-       if (any(casewt <0)) stop("weights must be non-negative")
-       casewt <- as.numeric(casewt)  # transform integer to numeric
-   }
+    casewt <- model.extract(mf, "weights")
+    if (is.null(casewt)) casewt <- rep(1.0, n)
+    else {
+        if (!is.numeric(casewt)) stop("weights must be numeric")
+        if (any(!is.finite(casewt))) stop("weights must be finite") 
+        if (any(casewt <0)) stop("weights must be non-negative")
+        casewt <- as.numeric(casewt)  # transform integer to numeric
+    }
 
-   if (!is.null(attr(Terms, 'offset'))) warning("Offset term ignored")
+    if (!is.null(attr(Terms, 'offset'))) warning("Offset term ignored")
 
-   cluster <- model.extract(mf, "cluster")
-   temp <- untangle.specials(Terms, "cluster")
-   if (length(temp$vars)>0) {
-       if (length(cluster) >0) stop("cluster appears as both an argument and a model term")
-       if (length(temp$vars) > 1) stop("can not have two cluster terms")
-       cluster <- mf[[temp$vars]]
-       Terms <- Terms[-temp$terms]
-   }
+    cluster <- model.extract(mf, "cluster")
+    temp <- untangle.specials(Terms, "cluster")
+    if (length(temp$vars)>0) {
+        if (length(cluster) >0) stop("cluster appears as both an argument and a model term")
+        if (length(temp$vars) > 1) stop("can not have two cluster terms")
+        cluster <- mf[[temp$vars]]
+        Terms <- Terms[-temp$terms]
+    }
 
-   ll <- attr(Terms, 'term.labels')
-   if (length(ll) == 0) X <- factor(rep(1,n))  # ~1 on the right
-   else X <- strata(mf[ll])
+    ll <- attr(Terms, 'term.labels')
+    if (length(ll) == 0) X <- factor(rep(1,n))  # ~1 on the right
+    else X <- strata(mf[ll])
 
-   # Backwards support for the now-depreciated etype argument
-   etype <- model.extract(mf, "etype")
-   if (!is.null(etype)) {
-       if (attr(Y, "type") == "mcounting" ||
-           attr(Y, "type") == "mright")
-           stop("cannot use both the etype argument and mstate survival type")
-       if (length(istate)) 
-           stop("cannot use both the etype and istate arguments")
-       status <- Y[,ncol(Y)]
-       etype <- as.factor(etype)
-       temp <- table(etype, status==0)
+    # Backwards support for the now-depreciated etype argument
+    etype <- model.extract(mf, "etype")
+    if (!is.null(etype)) {
+        if (attr(Y, "type") == "mcounting" ||
+            attr(Y, "type") == "mright")
+            stop("cannot use both the etype argument and mstate survival type")
+        if (length(istate)) 
+            stop("cannot use both the etype and istate arguments")
+        status <- Y[,ncol(Y)]
+        etype <- as.factor(etype)
+        temp <- table(etype, status==0)
 
-       if (all(rowSums(temp==0) ==1)) {
-           # The user had a unique level of etype for the censors
-           newlev <- levels(etype)[order(-temp[,2])] #censors first
-       }
-       else newlev <- c(" ", levels(etype)[temp[,1] >0])
-       status <- factor(ifelse(status==0,0, as.numeric(etype)),
-                            labels=newlev)
+        if (all(rowSums(temp==0) ==1)) {
+            # The user had a unique level of etype for the censors
+            newlev <- levels(etype)[order(-temp[,2])] #censors first
+        }
+        else newlev <- c(" ", levels(etype)[temp[,1] >0])
+        status <- factor(ifelse(status==0,0, as.numeric(etype)),
+                             labels=newlev)
 
-       if (attr(Y, 'type') == "right")
-           Y <- Surv(Y[,1], status, type="mstate")
-       else if (attr(Y, "type") == "counting")
-           Y <- Surv(Y[,1], Y[,2], status, type="mstate")
-       else stop("etype argument incompatable with survival type")
-   }
-   # end of shared code 
+        if (attr(Y, 'type') == "right")
+            Y <- Surv(Y[,1], status, type="mstate")
+        else if (attr(Y, "type") == "counting")
+            Y <- Surv(Y[,1], Y[,2], status, type="mstate")
+        else stop("etype argument incompatable with survival type")
+    }
+    # end of shared code 
 
-   xlev <- levels(X)
+    xlev <- levels(X)
 
-   # Deal with ties
-   if (is.null(Call$timefix) || Call$timefix) newY <- aeqSurv(Y) else newY <- Y
+    # Deal with ties
+    if (is.null(Call$timefix) || Call$timefix) newY <- aeqSurv(Y) else newY <- Y
 
     if (missing(collapse)) collapse <- (!(is.null(id)) && any(duplicated(id)))
     if (collapse && is.null(id)) stop("collapse argument requires an id or cluster argument in the survfit call")
@@ -195,55 +196,52 @@ survresid.fit <- function(object, times,
     
     timelab <- signif(times, 3)  # used for dimnames
     # What type of survival curve?
-    if (!coxsurv) {
-        stype <- Call$stype
-        if (is.null(stype)) stype <- 1
-        ctype <- Call$ctype
-        if (is.null(ctype)) ctype <- 1
-        if (!survfitms) {
-            resid <- rsurvpart1(newY, X, casewt, times,
-                                type, stype, ctype, object)
-            if (collapse) {
-                resid <- rowsum(resid, id, reorder=FALSE)
-                dimnames(resid) <- list(id= unique(id), times=timelab)
-                curve <- (as.integer(X))[!duplicated(id)] #which curve for each
-            } 
-            else {
-                if (length(id) >0) dimnames(resid) <- list(id=id, times=timelab)
-                curve <- as.integer(X)
-            }
-        }
-        else {  # multi-state
-            if (!collapse) {
-                if (length(id >0)) d1name <- id else d1name <- NULL
-                cluster <- d1name
-                curve <- as.integer(X)
-            }       
-            else {
-                d1name <- unique(id)
-                cluster <- match(id, d1name)
-                curve <- (as.integer(X))[!duplicated(id)]
-            }
-            resid <- rsurvpart2(newY, X, casewt, istate, times, cluster,
-                                type, object, method=method, collapse=collapse)
-
-            if (type == "cumhaz") {
-                ntemp <- colnames(object$cumhaz)
-                if (length(dim(resid)) ==3)
-                     dimnames(resid) <- list(id=d1name, times=timelab, 
-                                             cumhaz= ntemp)
-                else dimnames(resid) <- list(id=d1name, cumhaz=ntemp)
-            }
-            else {
-                ntemp <- object$states
-                if (length(dim(resid)) ==3) 
-                    dimnames(resid) <- list(id=d1name, times=timelab, 
-                                            state= ntemp)
-                else dimnames(resid) <- list(id=d1name, state= ntemp)
-            }
+    stype <- Call$stype
+    if (is.null(stype)) stype <- 1
+    ctype <- Call$ctype
+    if (is.null(ctype)) ctype <- 1
+    if (!survfitms) {
+        resid <- rsurvpart1(newY, X, casewt, times,
+                            type, stype, ctype, object)
+        if (collapse) {
+            resid <- rowsum(resid, id, reorder=FALSE)
+            dimnames(resid) <- list(id= unique(id), times=timelab)
+            curve <- (as.integer(X))[!duplicated(id)] #which curve for each
+        } 
+        else {
+            if (length(id) >0) dimnames(resid) <- list(id=id, times=timelab)
+            curve <- as.integer(X)
         }
     }
-    else stop("coxph survival curves not yet available")
+    else {  # multi-state
+        if (!collapse) {
+            if (length(id >0)) d1name <- id else d1name <- NULL
+            cluster <- d1name
+            curve <- as.integer(X)
+        }       
+        else {
+            d1name <- unique(id)
+            cluster <- match(id, d1name)
+            curve <- (as.integer(X))[!duplicated(id)]
+        }
+        resid <- rsurvpart2(newY, X, casewt, istate, times, cluster,
+                            type, object, method=method, collapse=collapse)
+
+        if (type == "cumhaz") {
+            ntemp <- colnames(object$cumhaz)
+            if (length(dim(resid)) ==3)
+                 dimnames(resid) <- list(id=d1name, times=timelab, 
+                                         cumhaz= ntemp)
+            else dimnames(resid) <- list(id=d1name, cumhaz=ntemp)
+        }
+        else {
+            ntemp <- object$states
+            if (length(dim(resid)) ==3) 
+                dimnames(resid) <- list(id=d1name, times=timelab, 
+                                        state= ntemp)
+            else dimnames(resid) <- list(id=d1name, state= ntemp)
+        }
+    }
 
     if (weighted && any(casewt !=1)) resid <- resid*casewt
 

@@ -9,7 +9,7 @@ accelerated failure time model.
 \usage{
 survfit(formula, ...)
 }
-%- maybe also 'usage' for other objects documented here.
+%- coef, vcov, and confint return "not applicable" errors, on purpose
 \arguments{
   \item{formula}{either a formula or a previously fitted model}
   \item{\dots}{other arguments to the specific method}

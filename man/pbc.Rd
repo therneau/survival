@@ -3,7 +3,8 @@
 \docType{data}
 \title{Mayo Clinic Primary Biliary Cholangitis Data}
 \description{
-  Primary sclerosing cholangitis is an autoimmune disease leading to
+  Primary biliary cholangitis
+  is an autoimmune disease leading to
   destruction of the small bile ducts in the liver.  Progression is
   slow but inexhortable, eventually leading to cirrhosis and liver
   decompensation.

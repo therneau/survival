@@ -70,7 +70,8 @@ survresid.fit <- function(object, times,
                               collapse, weighted=FALSE, method=1) {
     if (object$type=="interval") stop("interval censored not yet supported")
     survfitms <- inherits(object, "survfitms")
-    coxsurv <- inherits(object, "survfitcox")
+    coxsurv <- inherits(object, "survfitcox")  # should never be true, as there
+                                               #  is a residuals.survfitcox
     timefix <- (is.null(object$timefix) || object$timefix)
     
     start.time <- object$start.time
@@ -86,7 +87,7 @@ survresid.fit <- function(object, times,
     }
 
     # get the data
-   <<rsurvfit-data>>
+    <<rsurvfit-data>>
 
     if (missing(collapse)) collapse <- (!(is.null(id)) && any(duplicated(id)))
     if (collapse && is.null(id)) stop("collapse argument requires an id or cluster argument in the survfit call")
@@ -102,55 +103,52 @@ survresid.fit <- function(object, times,
     
     timelab <- signif(times, 3)  # used for dimnames
     # What type of survival curve?
-    if (!coxsurv) {
-        stype <- Call$stype
-        if (is.null(stype)) stype <- 1
-        ctype <- Call$ctype
-        if (is.null(ctype)) ctype <- 1
-        if (!survfitms) {
-            resid <- rsurvpart1(newY, X, casewt, times,
-                                type, stype, ctype, object)
-            if (collapse) {
-                resid <- rowsum(resid, id, reorder=FALSE)
-                dimnames(resid) <- list(id= unique(id), times=timelab)
-                curve <- (as.integer(X))[!duplicated(id)] #which curve for each
-            } 
-            else {
-                if (length(id) >0) dimnames(resid) <- list(id=id, times=timelab)
-                curve <- as.integer(X)
-            }
-        }
-        else {  # multi-state
-            if (!collapse) {
-                if (length(id >0)) d1name <- id else d1name <- NULL
-                cluster <- d1name
-                curve <- as.integer(X)
-            }       
-            else {
-                d1name <- unique(id)
-                cluster <- match(id, d1name)
-                curve <- (as.integer(X))[!duplicated(id)]
-            }
-            resid <- rsurvpart2(newY, X, casewt, istate, times, cluster,
-                                type, object, method=method, collapse=collapse)
-
-            if (type == "cumhaz") {
-                ntemp <- colnames(object$cumhaz)
-                if (length(dim(resid)) ==3)
-                     dimnames(resid) <- list(id=d1name, times=timelab, 
-                                             cumhaz= ntemp)
-                else dimnames(resid) <- list(id=d1name, cumhaz=ntemp)
-            }
-            else {
-                ntemp <- object$states
-                if (length(dim(resid)) ==3) 
-                    dimnames(resid) <- list(id=d1name, times=timelab, 
-                                            state= ntemp)
-                else dimnames(resid) <- list(id=d1name, state= ntemp)
-            }
+    stype <- Call$stype
+    if (is.null(stype)) stype <- 1
+    ctype <- Call$ctype
+    if (is.null(ctype)) ctype <- 1
+    if (!survfitms) {
+        resid <- rsurvpart1(newY, X, casewt, times,
+                            type, stype, ctype, object)
+        if (collapse) {
+            resid <- rowsum(resid, id, reorder=FALSE)
+            dimnames(resid) <- list(id= unique(id), times=timelab)
+            curve <- (as.integer(X))[!duplicated(id)] #which curve for each
+        } 
+        else {
+            if (length(id) >0) dimnames(resid) <- list(id=id, times=timelab)
+            curve <- as.integer(X)
         }
     }
-    else stop("coxph survival curves not yet available")
+    else {  # multi-state
+        if (!collapse) {
+            if (length(id >0)) d1name <- id else d1name <- NULL
+            cluster <- d1name
+            curve <- as.integer(X)
+        }       
+        else {
+            d1name <- unique(id)
+            cluster <- match(id, d1name)
+            curve <- (as.integer(X))[!duplicated(id)]
+        }
+        resid <- rsurvpart2(newY, X, casewt, istate, times, cluster,
+                            type, object, method=method, collapse=collapse)
+
+        if (type == "cumhaz") {
+            ntemp <- colnames(object$cumhaz)
+            if (length(dim(resid)) ==3)
+                 dimnames(resid) <- list(id=d1name, times=timelab, 
+                                         cumhaz= ntemp)
+            else dimnames(resid) <- list(id=d1name, cumhaz=ntemp)
+        }
+        else {
+            ntemp <- object$states
+            if (length(dim(resid)) ==3) 
+                dimnames(resid) <- list(id=d1name, times=timelab, 
+                                        state= ntemp)
+            else dimnames(resid) <- list(id=d1name, state= ntemp)
+        }
+    }
 
     if (weighted && any(casewt !=1)) resid <- resid*casewt
 
@@ -228,6 +226,11 @@ derivative at time $z$ is the sum of
   \item term3(min($z$, $t_i$)) - term3(min($z$, $s_i$))
   \item term1($t_i$) if $t_i \le z$ and observation $i$ is an event
 \end{itemize}
+The computation of term1 and term3 are each $O(d)$, the number of events, and
+the residual is $O(2n)$, an addition is done when it enters the risk set and
+another when it leaves.  This accomplishes our goal to not update every member
+of the risk set at every event.
+
 
 The Fleming-Harrington estimate of survival is 
 \begin{align*}
@@ -350,15 +353,17 @@ The sojourn time is the area under the survival curve. Let $x_j$ be the
 widths of the rectangles under the curve from event time $d_j$ to
 $\min(d_{j+1}, t)$, zero if $t \le d_j$, or $t-d_m$ if $t$ is after the last
 event time.
-\begin{align*}
-  A(0,t) &= \sum_{j=1}^m x_j S(d_j) \\
+\begin{align}
+  A(0,t) &= \sum_{j=1}^m x_j S(d_j) \\nonumber \\
   \frac{\partial A(0,t)}{\partial w_i} &=
-   \sum_{j=1}^m -x_j S(d_j) \frac{\partial H(d_j)}{\partial w_i} \\
-  &= \sum_{j=1}^m -x_jS(d_j) \sum_{k \le j} \frac{\partial h(d_k)}{\partial w_i} \\
+   \sum_{j=1}^m -x_j S(d_j) \frac{\partial H(d_j)}{\partial w_i} \nonumber \\
+  &= \sum_{j=1}^m -x_jS(d_j) \sum_{k \le j} \frac{\partial h(d_k)}{\partial w_i} 
+   \nonumber \\
   &= \sum_{k=1}^m \frac{\partial h(d_k)}{\partial w_i} 
-          \left(\sum_{j\ge k} -x_j S(d_j) \right) \\
-  &= \sum_{k=1}^m -A(d_k, t) \frac{\partial h(d_k)}{\partial w_i}    
-\end{align*}
+          \left(\sum_{j\ge k} -x_j S(d_j) \right) \nonumber \\
+  &= \sum_{k=1}^m -A(d_k, t) \frac{\partial h(d_k)}{\partial w_i} 
+          \label{eq:auctrick}   
+\end{align}
 
 For an observation at risk over the interval $(a,b)$ we have exactly the same
 calculus as the cumulative hazard with respect to which $h(d_k)$ terms
@@ -767,7 +772,7 @@ row of $A$ is zero.
 Since the row sums are constant, the sum of the derivatives for each row
 must be zero.
 
-If we evaluate equation \label{ajresidx} directly there will be 
+If we evaluate equation \eqref{ajresidx} directly there will be 
 $O(nk^2)$ operations at each death time for the matrix product, and another
 $O(nk)$  to add in the new increment.  For a large data set $d$ is often
 of the same order as $n$, which makes this an expensive calculation.
@@ -843,7 +848,7 @@ An alternate is to look at the direct expansion.
             \prod_{j<k, d_k\le t}[I+ A(d_k)] \label{ajresidy}
 \end{align}
 We cannot insert an $(I+ A(d_j))/(I + A(d_j))$ term and rearrange the last
-equation so as to factor out $p(t)$, as was done in the KM case, however,
+equation so as to factor out $p(t)$, as was done in the KM case,
 since matrix products do not commute.
 Instead think of accumulating the terms sequentially.  
 Let $B^{(j)}(t)$ be the nstate by nstate matrix derivative matrix with

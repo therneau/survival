@@ -39,16 +39,18 @@ Produces a summary of a fitted coxph model
     and Wald test statistics for the model}
   \item{concordance}{the concordance statistic and its standard error}
   \item{used.robust}{whether an asymptotic or robust variance was used}
-  \item{rsq}{an approximate R^2 based on Nagelkirke (Biometrika 1991).}
+  \item{rsq}{an approximate R^2 based on Nagelkerke (Biometrika 1991).}
   \item{fail}{a message, if the underlying coxph call failed}
   \item{call}{a copy of the call}
   \item{na.action}{information on missing values}
 }
 \note{
-  The pseudo r-squared of Nagelkirke is attractive because it is simple,
+  The pseudo r-squared of Nagelkerke is attractive because it is simple,
   but further work has shown that it has poor properties and it is now
   deprecated.  The value is no longer printed by default, and will
   eventually be removed from the object.
+  The \code{royston} function now includes it along with several other
+  measures of association.
 }
 \seealso{
   \code{\link{coxph}}, \code{\link{print.coxph}}  

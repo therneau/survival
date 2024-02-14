@@ -212,7 +212,7 @@ survfit.coxph <-
                   stop("Newdata argument must be a data frame")
               }
               newdata <- data.frame(as.list(newdata), stringsAsFactors=FALSE)
-          }
+          }  else if (is.list(newdata)) newdata <- as.data.frame(newdata) 
           if (has.strata) {
               found.strata <- TRUE
               tempenv <- new.env(, parent=emptyenv())
@@ -369,6 +369,7 @@ survfit.coxph <-
 
       if (!missing(start.time)) result$start.time <- start.time
 
+      if (!missing(newdata)) result$newdata <- newdata
       result$call <- Call
       class(result) <- c('survfitcox', 'survfit')
       result

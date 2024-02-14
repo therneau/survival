@@ -69,7 +69,7 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95, individual=FALSE,
     <<survfit.coxphms-result>>
 
     cifit$call <- Call
-    class(cifit) <- c("survfitms", "survfit")
+    class(cifit) <- c("survfitcoxms", "survfitms", "survfit")
     cifit
 }
 @ 
@@ -182,7 +182,7 @@ Different transitions often have different coefficients, so there is a risk
 score vector per transition.
 
 <<survfit.coxphms-setup3b>>=
-if (has.strata && !is.null(mf2[[stangle$vars]])){
+if (has.strata && any(stangle$vars %in% names(mf2))) {
     mf2 <- mf2[is.na(match(names(mf2), stangle$vars))]
     mf2 <- unique(mf2)
     x2 <- unique(x2)
@@ -264,7 +264,8 @@ else {
         cifit$cumhaz[rtemp[[i]],,] <- tfit[[i]]$cumhaz
     }
 }
-cifit$newdata <- mf2
+
+cifit$newdata <- newdata
 @
 
 Finally, a routine that does all the actual work.

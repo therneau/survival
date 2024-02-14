@@ -8,10 +8,14 @@
 \alias{match.ratetable}
 \alias{survfitCI}
 \alias{survfitKM}
+\alias{survfitTurnbull}
 \alias{survreg.fit}
 \alias{survpenal.fit}
 \alias{survdiff.fit}
 \alias{[.coxph.penalty}
+\alias{coef.survfit}
+\alias{vcov.survfit}
+\alias{confint.survfit}
 \title{Internal survival functions}
 \description{Internal survival functions}
 \usage{
@@ -27,7 +31,6 @@ coxpenal.df(hmat, hinv, fdiag, assign.list, ptype, nvar, pen1,
     pen2, sparse)
 coxpenal.fit(x, y, strata, offset, init, control, weights, method,
     rownames, pcols, pattr, assign, nocenter)
-coxph.wtest(var, b, toler.chol = 1e-09)
 agexact.fit(x, y, strata, offset, init, control, weights, method,
     rownames, resid=TRUE, nocenter=NULL) 
 survfitCI(X, Y, weights,  id, cluster, robust, istate,

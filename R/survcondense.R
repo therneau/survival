@@ -16,7 +16,7 @@ survcondense <- function(formula, data, subset, weights, na.action= na.pass, id,
     Terms <- if (missing(data)) terms(formula, specials=ss) else
                  terms(formula, specials=ss, data=data)
     if (length(attr(Terms, "specials")$cluster) >0)
-        stop("function does not handle cluster terms")
+        stop("function does not handle cluster() terms")
 
     indx <- match(c("formula", "data", "weights", "subset","id"), 
                   names(Call), nomatch=0)
@@ -47,10 +47,6 @@ survcondense <- function(formula, data, subset, weights, na.action= na.pass, id,
     Ydup <- c(Y[index[-1], 1]== Y[index[-n], 2], FALSE)
 
     droprow <- unname(Xdup & Ydup)
-    if (!any(droprow)) {  # toss nothing
-        if (!missing(subset)) return(subset(data, subset))
-        else return(data)
-    }
 
     # There will often be clusters of rows with droprow=TRUE, the start time
     #  for the first row of said cluster is moved to the first row after
@@ -60,7 +56,8 @@ survcondense <- function(formula, data, subset, weights, na.action= na.pass, id,
     
     # The last rle value is always a FALSE
     # Two special cases first
-    if (length(temp2)==2) { # only deletion is the very first 1 or more rows
+    if (!any(droprow)){} 
+    else if (length(temp2)==2) { # only deletion is the very first k rows
         Y[temp2[1] +1, 1] = Y[1, 1]
     } else if (length(temp2) ==3) { # a single block somewhere in the middle
         Y[temp2[2] +1, 1] = Y[temp2[1] +1, 1]

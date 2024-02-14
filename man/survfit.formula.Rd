@@ -159,7 +159,7 @@ details. Methods defined for survfit objects are
 }
 \details{
   If there is a \code{data} argument, then variables in the \code{formula},
-  code{weights}, \code{subset}, \code{id}, \code{cluster} and
+  \code{weights}, \code{subset}, \code{id}, \code{cluster} and
   \code{istate} arguments will be searched for in that data set.
 
   The routine returns both an estimated probability in state and an

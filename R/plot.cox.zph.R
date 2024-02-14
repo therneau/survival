@@ -1,6 +1,6 @@
 plot.cox.zph <- function(x, resid=TRUE, se=TRUE, df=4, nsmo=40, 
                          var, xlab="Time", ylab="", lty=1:2, col=1, lwd=1,
-                         hr = FALSE, ...) {
+                         hr = FALSE, plot=TRUE, ...) {
     xx <- x$x
     yy <- x$y
     df <- max(df)     # in case df is a vector
@@ -22,6 +22,7 @@ plot.cox.zph <- function(x, resid=TRUE, se=TRUE, df=4, nsmo=40,
 	if  (any(is.na(var)) || max(var)>nvar || min(var) <1)
 	    stop("Invalid variable requested")
     }
+    if (!plot) resid <- FALSE   # only return the curve
 
     #
     # Figure out a 'good' set of x-axis labels.  Find 8 equally spaced
@@ -83,6 +84,9 @@ plot.cox.zph <- function(x, resid=TRUE, se=TRUE, df=4, nsmo=40,
         doxaxis <- TRUE
         if (!is.null(plotpar$xaxt)) doxaxis <- FALSE
 
+        if (!plot)  # return the curve
+            return(list(x=pred.x, y=cbind(yhat, yup, ylow)))
+4
         if (!hr) {
             if (x$transform=='identity')
                 plot(range(xx), yr, type='n', xlab=xlab, ylab=ylab[i], ...)

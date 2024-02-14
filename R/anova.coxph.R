@@ -92,7 +92,7 @@ anova.coxph <- function (object, ...,  test = 'Chisq') {
                 tfit <- coxph(Y ~ X[,assign <= alevels[i]] + strata(strats) +
                               offset(object$offset), ties=mtie)
             else tfit <- coxph(Y ~ X[, assign<= alevels[i]] +
-                               offet(object$offset), ties=mtie)
+                               offset(object$offset), ties=mtie)
         }
         else {
             if (has.strata) 

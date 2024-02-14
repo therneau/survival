@@ -75,7 +75,7 @@ Translation to the usual parameterization found in a textbook is not
 always obvious.
 For example, the Weibull distribution has cumulative distribution
 function
-\eqn{F(t) = 1 - e^{-(\lambda t)^p}}{F(t)}{1 - exp((-lambda t)^p)}.
+\eqn{F(t) = 1 - e^{-(\lambda t)^p}}{F(t)= 1 - exp((-lambda t)^p)}.
 The actual fit uses the fact that \eqn{\log(t)}{log(t)} has an extreme
 value distribution, with location and scale of
 \eqn{\alpha, \sigma}{a,s}, which are the location and scale parameters

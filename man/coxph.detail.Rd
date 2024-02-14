@@ -17,8 +17,8 @@ coxph.detail(object, riskmat=FALSE, rorder=c("data", "time"))
  \item{riskmat}{
    include the at-risk indicator matrix in the output?
  }
- \item{rorder}{only applicable if \code{riskmat=TRUE}.  Should the rows
-   of riskmat be in the original data order, or sorted by time within strata.
+ \item{rorder}{should the rows of \code{x}, \code{y} and \code{riskmat}
+   be returned in the original data order, or sorted by time within strata.
  }
 }
 \value{
@@ -49,7 +49,7 @@ coxph.detail(object, riskmat=FALSE, rorder=c("data", "time"))
     \item{hazard}{
     the hazard increment.  Note that the hazard and variance of the
     hazard are always for some particular future subject.  This routine
-    uses \code{object$mean} as the future subject.
+    uses \code{object$means} as the future subject.
     }
      \item{varhaz}{
     the variance of the hazard increment.
@@ -61,7 +61,8 @@ coxph.detail(object, riskmat=FALSE, rorder=c("data", "time"))
     only present for a stratified Cox model, this is
     a table giving the number of time points of component \code{time} that
     were contributed by each of the strata.
-    }
+  }
+    \item{wtrisk}{the weighted number at risk}
     \item{riskmat}{
       a matrix with one row for each observation and one colum for each
      unique event time,

@@ -417,10 +417,11 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95, individual=FALSE,
             cifit$cumhaz[rtemp[[i]],,] <- tfit[[i]]$cumhaz
         }
     }
-    cifit$newdata <- mf2
+
+    cifit$newdata <- newdata
 
     cifit$call <- Call
-    class(cifit) <- c("survfitms", "survfit")
+    class(cifit) <- c("survfitcoxms", "survfitms", "survfit")
     cifit
 }
 # Compute the hazard  and survival functions 
