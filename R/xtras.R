@@ -11,12 +11,13 @@ vcov.coxph <- function (object, complete=TRUE, ...) {
 }
 
 vcov.survreg<-function (object, complete=TRUE, ...) {
+    vname <- names(coef(object))   # add dimnames
     if (!complete && any(is.na(coef(object)))) {
         keep <- !is.na(coef(object))
         vv <- object$var[keep, keep, drop=FALSE]
+        vname<-vname[keep] # filter dimnames
     }
     else vv <- object$var
-    vname <- names(coef(object))   # add dimnames
     extra <- ncol(vv) - length(vname)
     if (extra ==1) vname <- c(vname, "Log(scale)")
     else if(extra >1) 
