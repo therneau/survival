@@ -68,7 +68,7 @@ Meeker and Escobar.
       \item failed: number that failed
     }
 
-    Data set \code{valveSeat}:
+    \item Data set \code{valveSeat}:
     Time to replacement of valve seats for 41 diesel engines.  More than
     one seat may be replaced at a particular service, leading to duplicate
     times in the data set.  The final inspection time for each engine will
@@ -86,5 +86,22 @@ Meeker and Escobar.
 
 \examples{
 survreg(Surv(time, status) ~ temperature + voltage, capacitor)
+
+# Replacement of valve seats.  In this case the cumulative hazard is the 
+#  natural target, an estimate of the number of replacements by a given time
+#  (known as the cumulative mean function = CMF in relability).
+# When two valve seats failed at the same inspection, we need to jitter one
+#  of the times, to avoid a (time1, time2) interval of length 0
+ties <- which(with(valveSeat, diff(id)==0 & diff(time)==0))  #first of a tie
+temp <- valveSeat$time
+temp[ties] <- temp[ties] - .1 # jittered time
+vdata <- valveSeat
+vdata$time1 <- ifelse(!duplicated(vdata$id), 0, c(0, temp[-length(temp)]))
+vdata$time2 <- temp
+fit2 <- survfit(Surv(time1, time2, status) ~1, vdata, id=id)
+\dontrun{
+plot(fit2, cumhaz= TRUE, xscale= 365.25, 
+      xlab="Years in service", ylab = "Expected number of repairs")
+}
 }
 \keyword{datasets}

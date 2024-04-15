@@ -2,6 +2,7 @@
 # Create time values such that tiny differences are treated as a tie
 #  The decision and tolerance are the same as all.equal
 #
+# see methods document: tied times
 aeqSurv <- function(x, tolerance = sqrt(.Machine$double.eps)) {
     if (!missing(tolerance)) {
         if (!is.numeric(tolerance) || length(tolerance)!=1 ||

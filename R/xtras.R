@@ -14,9 +14,12 @@ vcov.survreg<-function (object, complete=TRUE, ...) {
     if (!complete && any(is.na(coef(object)))) {
         keep <- !is.na(coef(object))
         vv <- object$var[keep, keep, drop=FALSE]
+        vname <- names(coef(object))[keep]
     }
-    else vv <- object$var
-    vname <- names(coef(object))   # add dimnames
+    else {
+        vv <- object$var
+        vname <- names(coef(object))   # add dimnames
+    }
     extra <- ncol(vv) - length(vname)
     if (extra ==1) vname <- c(vname, "Log(scale)")
     else if(extra >1) 
@@ -37,12 +40,8 @@ extractAIC.coxph.null <- function(fit, scale, k=2, ...) {
     c(0, -2*fit$loglik[1])
 }
 
-labels.survreg <- function(object, ...) attr(object,"term.labels")
+labels.survreg <- function(object, ...) attr(object$terms, "term.labels")
 
-rep.Surv <- function(x, ...) {
-    indx <- rep(1:nrow(x), ...)
-    x[indx,]
-}
 
 # This function is just like all.vars -- except that it does not recur
 #  on the $ sign, it follows both arguments of +, *, - and : in order to
@@ -75,27 +74,35 @@ innerterms <- function(x) {
 # If a subject had (start, stop) observations of (1,2) (2,10) (10,15) (20,25),
 #  say, code often wants to distiguish intervals that are "real" censoring
 #  from a simple split due to a time dependent covariate.
+# To support users who like the 'extended Kaplan-Meier' , i.e. a person can
+#  switch curves midstream, we need to define someone as censored from the
+#  first curve and an entry to the second whenever such a switch occurs.
 # This routine returns 1*(first in a sequence) + 2*(last in a sequence),
-#  which for the above is 1,0,2,3.  This assumes no overlapping intervals
+#  which for the above is 1,0,2,3.  This assumes no overlapping intervals.
 
-survflag <- function(y, id) {
+survflag <- function(y, id, group) {
     if (!inherits(y, "Surv")) stop("y must be a Surv object")
     if (nrow(y) != length(id)) stop("length mismatch")
     if (ncol(y) != 3) stop("y needs to be of (tstart, tstop) form")
   
     n <- nrow(y)
-    indx <- order(id, y[,2])  # sort the data by time within id
+    if (missing(group))
+        indx <- order(id, y[,2])  # sort the data by time within id
+    else indx <- order(group, id, y[,2])
     y2 <- y[indx,]
     id2 <- id[indx]
 
-    newid <- (id2[-n] != id2[-1])
+    if (missing(group)) newid <- (id2[-n] != id2[-1])
+    else {
+        group2 <-as.numeric(group)[indx]  #normally group is a factor
+        newid <- ((id2[-n] != id2[-1]) | (group2[-n] != group2[-1]))
+    }       
     gap <-  (y2[-n,2] < y2[-1,1]) 
-   
-    flag <- 1L*c(TRUE, newid | gap) + 2L*c(newid | gap, TRUE)
+
+    flag <- unname(1L*c(TRUE, newid | gap) + 2L*c(newid | gap, TRUE))
     flag[indx] <- flag   # return it to data order
     flag
 }
-
 
 # Dummy methods, to create an informative error message
 coef.survfit <- function(object, ...) 

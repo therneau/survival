@@ -40,7 +40,7 @@ survdiff <- function(formula, data, subset, na.action, rho=0, timefix=TRUE) {
 	    }
 	else {
 	    var <-  sum(-log(offset))
-	    num <-  var - observed
+	    num <-  observed - var
 	    }
 	chi <- num*num/var
 	rval <-list(n= n, obs = observed, exp=expected, var=var,

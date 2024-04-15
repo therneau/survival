@@ -26,7 +26,7 @@ brier <- function(fit, times, newdata, ties=TRUE, detail =FALSE, timefix=TRUE,
         casewt <- as.numeric(casewt)  # transform integer to numeric
     }
 
-    id <- model.extract(mf, "(id)")
+    id <- model.extract(mf, "id")
     if (ny==3 && (is.null(id))) stop("id is required for start-stop data")
     if (!is.null(id)) {
         if (is.null(attr(Y, 'states'))) {

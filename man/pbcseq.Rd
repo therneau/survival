@@ -13,14 +13,14 @@ parameters.  This data set contains multiple laboratory results, but
 only on the 312 randomized patients.  Some baseline data values in this file
 differ from the original PBC file, for instance, the data errors in
 prothrombin time and age which were discovered after the original analysis
-(see Fleming and Harrington, figure 4.6.7).
+(see Fleming and Harrington, figure 4.6.7). It also contains further follow-up.
    
-One "feature" of the data deserves special comment.  The last
+One feature of the data deserves special comment.  The last
 observation before death or liver transplant often has many more
 missing covariates than other data rows.  The original clinical
 protocol for these patients specified visits at 6 months, 1 year, and
 annually thereafter.  At these protocol visits lab values were
-obtained for a large pre-specified battery of tests.  "Extra" visits,
+obtained for a pre-specified battery of tests.  "Extra" visits,
 often undertaken because of worsening medical condition, did not
 necessarily have all this lab work. 
 The missing values are thus potentially informative.
