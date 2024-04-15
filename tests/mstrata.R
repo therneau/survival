@@ -55,3 +55,17 @@ test <- c('n', 'time', 'n.risk', 'n.event', 'n.censor', 'pstate', 'cumhaz')
 all.equal(unclass(csurv1[1,,])[test], unclass(csurv3)[test])
 
 
+# Part 3: compare a shared baseline to identical baseline
+if (FALSE) {
+ # not yet completed
+fit3 <- coxph(list(Surv(time, state) ~1,
+                   1:4 + 2:4 + 3:4~ age + sex/ common + 1), 
+              id=id, istate=cstate, data= tdata)
+fit4 <- coxph(list(Surv(time, state) ~1,
+                   1:4 + 2:4 + 3:4~ age + sex/ 1), 
+              id=id, istate=cstate, data= tdata)
+
+fit0 <- coxph(Surv(time, status) ~ age + sex, tdata,  ties="breslow")
+
+survfit(fit3, newdata= list(age=65, sex=1))
+}

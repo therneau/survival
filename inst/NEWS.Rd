@@ -1,15 +1,39 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
-\section{Changes in version 3.5-8}{
+\section{Changes in version 3.6-1}{
   \itemize{
-    \item Add dummy methods for coef.survfit, vcov.survfit and
-    confint.survfit that print a sensible error message.
-    \item Add plot= option to plot.cox.zph.R (for those who want to
-    further examine the curve it generates).
-    \item Fix error in survcondense.
-    \item Multiple formatting errors in the help files
+    \item Major update to survfit routines. Infinitesimal jackknife (IJ)
+    residuals are now primarily computed using the residuals() function
+    post fit, de-emphasizing return of an influence component from the
+    fit, with significant work to make the residuals function
+    computationally  efficient. New tests for many edge cases.
+    \item Addition of a "methods" vignette to more fully document
+    formulas and code, begining a move away from noweb documentation.
+    \item Add test case for the 'extended KM', one where subjects change
+    arms in mid-stream.  (I'm not a fan, but some advocate it.)  This
+    uncovered some inconsistencies in the n.risk and n.censor values;
+    the survival estimates themselves were correct.  For a subject with data
+    of (1, 5+), (5, 7), say, there is no "censor" at time 5; the prior code
+    sometimes emited an unneeded output line for such rows.
+    \item Add n.id to the survfit object= number of unique id values
+    used in creating a curve; available when the survfit call contains
+    an id argument.  This is used as "n" in the default printout.
+    Useful when a subject spans multiple rows.
+    \item Add a new option to survfit. If \code{entry=TRUE} the output
+    will contain \code{n.enter} = the number of entries at this time;
+    new rows are added for each unique entry time.  The default option
+    of FALSE creates rows only at event/censor times; the historical behavior.
+    \item Fix a bug in survfit.coxph. If the start.time option resulted
+    in 0 subjects for a curve it didn't catch it properly.
+    \item Update the US and Minnesota rate tables, adding years up to
+    2020.
+    \item Updates to the Aalen-Johansen, i.e., survfit when 'status' is
+    a factor variable. 1. If case weights varied between rows in the
+    same cluster, the infinitesimal jackknife could be wrong and hence
+    the variance incorrect. 2. n.censor is now reported per state 3. new
+    elements of n.transtions and count.
 }}
-
+ 
 \section{Changes in version 3.5-7}{
   \itemize{
     \item Improve the algorithm for score residuals from O(ndp) to
@@ -18,7 +42,7 @@
     impact.  (Score residuals are used for robust variance.)
     \item Add short vignette on how we compute mulitstate Cox model
     curves.
-    \item 13Aug23, check dependent packages (10605 this time) and submit
+    \item 13Aug23, check dependent CRAN packages (860) and submit
     to CRAN
 }}
 \section{Changes in version 3.5-6}{
@@ -186,7 +210,7 @@
 \section{Changes in version 3.2-14}{
   \itemize{
     \item Update the royston function to report the scaled Cox-Snell
-    R-squared as the Nagelkirke estimate, and clarify the documentation.
+    R-squared as the Nagelkerke estimate, and clarify the documentation.
     \item Update for coxph with ties=exact, for the case of an infinite
     coefficient where the information matrix becomes singular.  Code for
     this case had been developed for coxfit6.c (Breslow/Efron) but not
@@ -588,7 +612,7 @@ sou    \item Add the last test case for residuals.survfit (auc for tstart,
     unique stop times.
     \item Update plot.survfit to plot the cumulative hazard when
     fun='cumhaz', rather than plotting log(surv).
-    \item The Nagelkirke R^2 has been removed from summary.coxph.
+    \item The Nagelkerke R^2 has been removed from summary.coxph.
     The shortcomings of this measure are well known, concordance is a
     better measure.
     \item A cluster() term is not allowed in the finegray function; now

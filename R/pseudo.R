@@ -1,12 +1,13 @@
 #
-# Function for pseudo-values
+# Get pseudo values for a survival curve, based on the IJ
 #
-pseudo <- function(fit, times, type, addNA=TRUE, data.frame=FALSE,
-                   minus1=FALSE, ...) {
+pseudo <- function(fit, times, type, collapse=TRUE, data.frame=FALSE, ...){
     if (!inherits(fit, "survfit"))
         stop("fit argument must be a survfit object")
-    if (inherits(fit, "survfit.coxph"))
-        stop("psuedo values not defined for a coxph survival curve")
+    # Add the model.frame here, rather than one step down.  It seems to help
+    #  some "not found" type errors.
+    if (is.null(fit$model)) # add it before calling residuals
+        fit$model <- model.frame(fit)
 
     if (missing(type)) type <- "pstate"
     else {
@@ -19,190 +20,119 @@ pseudo <- function(fit, times, type, addNA=TRUE, data.frame=FALSE,
     }
 
     # all the real work is done by the residuals function
-    rfit <- survresid.fit(fit, times=times, type=type, ...)
-    resid <- rfit$residuals
-    curve <- rfit$curve
-    id    <- rfit$id
-    idname <- rfit$idname
+    rfit <- residuals.survfit(fit, times=times, type=type, array=FALSE,
+                              collapse= collapse, data.frame=TRUE, ...)
 
-    ddr <- dim(resid)
     ddf <- dim(fit)
-
-    if (is.null(fit$strata)) ncurve <- 1L  
-    else ncurve <- length(fit$strata)  # ncurve will also = max(curve)
-
+    if (is.null(fit$strata)) {
+        ncurve <- 1L  
+        icurve <- 1L
+    } else {
+        ncurve <- length(fit$strata)  # this should match ddf[1]
+        icurve <- rfit$curve
+    }
+    if (!is.null(fit$states)) {
+        nstate <- length(fit$states)
+        if (type=="cumhaz"){
+            ihaz <- match(rfit$transition, colnames(fit$cumhaz))
+            nhaz <- ncol(fit$cumhaz)
+        }
+        else istate <- match(rfit$state, fit$states)
+    } else nstate <- 1L
+    itime <- match(rfit$time, times)
     ntime <- length(times)
-    nstate <- length(fit$states)
+    
+    # warn about pseudo values after the end of a curve
+    if (ncurve==1) etime <- max(fit$time)
+    else etime <- fit$time[cumsum(fit$strata)]
+    if (any(etime < max(times))) 
+        warning("requested time points are beyond the end of one or more curves")
 
-    minus <- ifelse(minus1, 1, 0)  # use n-1 or n to multiply
 
-    # get the estimates
-    # retain the dimension of the residuals, which will have subjects first,
-    #  timepoints second and (state or cumhaz) last.
-    # The residuals have a row for each subject.  To recenter them for a
-    #  pseudovalue, however, we need to match each one to the curve from
-    #  whence it came.
-    # If the data has been collapsed, n is the number of subjects after
-    #  the collapse, otherwise the number of observations.
-    nn <- as.vector(table(curve)) - minus
-
-    if (type == "pstate") {
+    #  Pseudovalues are centered, for which we need match each subject to
+    #  their curve.  Then the residuals are inflated by nn
+    if (is.null(fit$n.id)) nn <- fit$n  # each row a separate subject
+    else nn <- fit$n.id
+    
+    if (type == "pstate") { 
         temp <- summary(fit, times=times, extend=TRUE)
-        if (!is.null(temp$pstate)) { # multi-state
+        if (nstate >1) { # multi-state
             # pstate will have times, curve, state,  as the order
             # resid will have subject, times, state
             yhat <-  array(temp$pstate, dim=c(ntime, ncurve, nstate))
-            yhat <-  aperm(yhat, c(2,1,3))
-            # yhat[curve,,] is the trick: resid has first dimension of n =
-            #  number of subjects, yhat has 1 row per curve, yhat[curve,,]
-            #  will have n rows, each pulled from the correct curve
-            ptemp <- yhat[curve,,] + nn[curve]*resid
+            ptemp <- yhat[cbind(itime, icurve, istate)] + nn[icurve]* rfit$resid
         }
         else {
-            yhat <- matrix(temp$surv, nrow = ncurve, byrow=TRUE)
-            ptemp <- yhat[curve,] + nn[curve]*resid
+            # yhat will be a matrix with one row per time, one col per curve
+            yhat <- matrix(temp$surv, ncol = ncurve)
+            ptemp <- yhat[cbind(itime, icurve)] + nn[icurve]*rfit$resid
         }
-    }       
-    else if (type=="cumhaz") {
-        temp <- summary(fit, times=times, extend=TRUE)$cumhaz
-        if (is.matrix(temp)) { # multi-state
-            nhaz <- ncol(fit$cumhaz)
-            yhat <- array(temp, dim=c(ntime, ncurve, nhaz))
-            yhat <- aperm(yhat, c(2,1,3)) 
-            ptemp <- yhat[curve,,] + nn[curve]*resid
+    } else if (type =="auc") { 
+        if (nstate >1) { # multi-state
+            yhat <- array(0, dim=c(ntime, ncurve, nstate))
+            # summary.survfit gives only one AUC time per call
+            for (i in 1:ntime) {
+                temp <- summary(fit, rmean=times[i])$table
+                yhat[i,,] <- temp[,"rmean"]
+            }
+            # pstate will have times, curve, state,  as the order
+            # resid will have subject, times, state
+            ptemp <- yhat[cbind(itime, icurve, istate)] + nn[icurve]* rfit$resid
+        }
+        else {  
+            # yhat will be a matrix with one row per time, one col per curve
+            yhat <- matrix(0, ntime, ncurve)
+            for (i in 1:ntime) {
+                temp <- summary(fit, rmean=times[i])$table 
+                if (ncurve==1) yhat[i,] <- temp["rmean"]
+                else yhat[i,] <- temp[,"rmean"]
+            }
+            ptemp <- yhat[cbind(itime, icurve)] + nn[icurve]*rfit$resid
+        }
+    } else if (type== "cumhaz") {
+        temp <- summary(fit, times=times, extend=TRUE)
+        if (nstate > 1) {
+            yhat <- array(temp$cumhaz, dim=c(ntime, ncurve, nhaz))
+            ptemp <- yhat[cbind(itime, icurve, ihaz)] + nn[icurve]* rfit$resid
         }
          else {
-            yhat <- matrix(temp, nrow=ncurve, byrow=TRUE)
-            ptemp <- yhat[curve,] + nn[curve]*resid
+            yhat <- matrix(temp$cumhaz, ncol=ncurve)
+            ptemp <- yhat[cbind(itime, icurve)] + nn[icurve]* rfit$resid
         }
-    }
+    } else stop("unknown type")  # this should never happen
 
-    else { #auc
-        fit <- survfit0(fit) # add in time 0
-        aucfun <- function(x, y, times) {
-            # the nuisance is allowing for in-between values  
-            # the solution is to expand the list of times, and fill in y for
-            #  those insertions.
-            alltime <- unique(sort(c(x, times)))
-            alltime <- alltime[alltime <= max(times)]
-            index <- findInterval(alltime, x, left.open=FALSE)
-            delta <- c(diff(alltime), 0)
-            i2 <- match(times, alltime)
-            if (is.matrix(y)) {
-               temp <- apply(y[index,,drop=FALSE], 2, 
-                             function(y) cumsum(delta*y))
-               temp[i2-1,,drop=FALSE]
-            }
+    if (data.frame) { 
+        rfit$pseudo <- ptemp
+        rfit
+    } else {
+        # Add id as a dimname, if it is present.
+        #  For multistate also add state or hazard
+        # time will be continuous, so does not work well as a dimname
+        # Each id is allowed to be in only 1 curve, so curve is not a dimension
+        if (names(rfit)[1] == "(id)") uid <- NULL else uid <- unique(rfit[[1]])
+        if (nstate ==1) {
+            if (ntime ==1) names(ptemp) <- uid  # return a vector
             else {
-                temp <- cumsum(y[index]*delta)
-                temp[i2-1]
-            }       
-        }                  
-
-        if (inherits(fit, "survfitms")) { # multi-state
-            if (is.null(fit$strata)) {
-                auc <- aucfun(fit$time, fit$pstate, times)
-                yhat <- array(auc, dim=c(1, ntime, nstate))
-                ptemp <- yhat[curve,,] + nn[curve]*resid
-            } else {
-                yhat <- array(0, dim=c(ncurve, ntime, nstate))
-                for (i in 1:ncurve) {
-                    temp <- fit[i,]
-                    yhat[i,,] <- aucfun(temp$time, temp$pstate, times)
-                }
-                ptemp <- yhat[curve,,] + nn[curve]*resid
-            }
-         } else { # simple survival
-             if (is.null(fit$strata)) {
-                 yhat <- aucfun(fit$time, fit$surv, times) # will be a vector
-                 ptemp <- yhat[col(resid)] + nn[curve]*resid
-             } else {
-                 yhat <- matrix(0, ncurve, ntime)
-                 for (i in 1:ncurve) {
-                     temp <- fit[i]
-                     yhat[i,] <- aucfun(temp$time, temp$surv, times)
-                 }
-             ptemp <- yhat[curve,] + nn[curve]*resid
-             } 
-         }
-    }
-        
-    if (missing(addNA) && !is.null(id) && 
-               any(duplicated(id))) addNA <- FALSE
-    if (addNA && length(fit$na.action) >0) {
-        if (!is.null(id)) {
-            if (any(duplicated(id))) {
-                # the data set was collapsed over id, we can't do it
-                warning("data collapsed on id, addNA option ignored")
-            } else {
-                ptemp <- pexpand(fit$na.action, ptemp)
-                if (data.frame) {
-                    omit <- fit$na.action  #observations tossed out
-                    n2 <- dim(ptemp)[1]
-                    keep <- rep.int(NA, n2)
-                    keep[-omit] <- seq(along.with =id)
-                    temp <- id
-                    id <- vector(class(id), n2)
-                    id[keep] <- temp
+                ptemp <- matrix(ptemp, ncol=ntime)
+                if (!is.null(uid)) {
+                    dd <- list(uid, NULL)
+                    names(dd) <- c(names(rfit)[1], "time")
+                    dimnames(ptemp) <- dd
                 }
             }
-        }
-        else ptemp <- pexpand(fit$na.action, ptemp)
-    }
-
-    if (data.frame) { # return this as a data.frame
-        # warning: expand.grid defaults to stringsAsFactors = TRUE
-        if (is.null(id)) id <- seq.int(1, dim(ptemp)[1])
-        else if (length(id) > length(cluster)) id <- unique(id)
-        if (length(fit$states) >0)
-             temp <- expand.grid(id=id, times=times, state=fit$states,
-                                 stringsAsFactors=FALSE)
-        else temp <-  expand.grid(id =id, time=times, stringsAsFactors=FALSE)
-        ptemp <- data.frame(temp, pseudo= as.vector(ptemp))
-        # if there is no id variable we want to return a column labeled as (Id).
-        #  like (Intercept) a convention that made up names not conflict with
-        #  standard names.  But anything you do to a dataframe with such a
-        #  name will cause it to be replaced with X.Id.  So we have to do this
-        #  at the very last.
-        if (!is.null(idname)) names(ptemp)[1] <- idname
-        else names(ptemp)[1] <- "(Id)"
-    }
-
-    ptemp
+        } else {
+            if (type=="cumhaz") 
+                dd <- list(uid, transtion= unique(rfit$transition))
+            else dd <- list(uid, state =unique(rfit$state))
+            if (!is.null(uid)) names(dd)[1] <- names(rfit)[1]
+            if (ntime==1) 
+                ptemp <- matrix(ptemp, nrow=sum(nn), dimnames=dd)
+            else {
+                ptemp <- array(ptemp, dim=c(sum(nn), length(dd[[2]]), ntime),
+                               dimnames= c(dd, "time"=NULL))
+            }
+        }    
+        ptemp
+    }    
 }        
 
-# this is a copy of the naomit.exclude function
-pexpand <- function (omit, x) 
-{
-    if (is.null(x)) 
-        return(x)
-    n <- NROW(x)
-    keep <- rep.int(NA, n + length(omit))
-    keep[-omit] <- 1:n
-        
-    if (is.matrix(x)) {
-        x <- x[keep, , drop = FALSE]
-        temp <- rownames(x)
-        if (length(temp)) {
-            temp[omit] <- names(omit)
-            rownames(x) <- temp
-        }
-    }
-    else if (is.array(x) && length(d <- dim(x)) > 2L) {
-        x <- x[keep, , , drop = FALSE]
-        temp <- (dn <- dimnames(x))[[1L]]
-        if (!is.null(temp)) {
-            temp[omit] <- names(omit)
-            dimnames(x)[[1L]] <- temp
-        }
-    }
-    else {
-        x <- x[keep]
-        temp <- names(x)
-        if (length(temp)) {
-            temp[omit] <- names(omit)
-            names(x) <- temp
-        }
-    }
-    x
-}

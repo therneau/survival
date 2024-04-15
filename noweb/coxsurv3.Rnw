@@ -8,7 +8,7 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95, individual=FALSE,
          stype=2, ctype, 
          conf.type=c("log", "log-log", "plain", "none", "logit", "arcsin"),
          censor=TRUE, start.time, id, influence=FALSE,
-         na.action=na.pass, type, p0=NULL, ...) {
+         na.action=na.pass, type, p0=NULL, time0=FALSE, ...) {
 
     Call <- match.call()
     Call[[1]] <- as.name("survfit")  #nicer output for the user
@@ -77,7 +77,7 @@ The third line \code{as.name('survfit')} causes the printout to say
 `survfit' instead of `survfit.coxph'.                              %'
 
 Notice that setup is almost completely shared with survival for single state
-models.  The major change is that we use survfitCI (non-Cox) to do all the
+models.  The major change is that we use survfitAJ (non-Cox) to do all the
 legwork wrt the tabulation values (number at risk, etc.),
 while for the computation proper it is easier to make use of the same
 expanded data set that coxph used for a multi-state fit.
@@ -99,7 +99,7 @@ else {
     if (any(is.na(istate))) stop("unrecognized initial state, data changed?")
 }
 
-# Let the survfitCI routine do the work of creating the
+# Let the survfitAJ routine do the work of creating the
 #  overall counts (n.risk, etc).  The rest of this code then
 #  replaces the surv and hazard components.
 if (missing(start.time)) start.time <- min(Y[,2], 0)
@@ -108,9 +108,9 @@ if (is.null(weights)) weights <- rep(1.0, nrow(Y))
 if (is.null(strata))  tempstrat <- rep(1L, nrow(Y))
 else                  tempstrat <- strata
 
-cifit <- survfitCI(as.factor(tempstrat), Y, weights, 
+cifit <- survfitAJ(as.factor(tempstrat), Y, weights, 
                         id= oldid, istate = istate, se.fit=FALSE, 
-                        start.time=start.time, p0=p0)
+                        start.time=start.time, p0=p0, time0= time0)
 
 # For computing the  actual estimates it is easier to work with an
 #  expanded data set.
@@ -182,7 +182,7 @@ Different transitions often have different coefficients, so there is a risk
 score vector per transition.
 
 <<survfit.coxphms-setup3b>>=
-if (has.strata && any(stangle$vars %in% names(mf2))) {
+if (has.strata && any(stangle$vars %in% names(mf2))){
     mf2 <- mf2[is.na(match(names(mf2), stangle$vars))]
     mf2 <- unique(mf2)
     x2 <- unique(x2)
@@ -276,7 +276,7 @@ Finally, a routine that does all the actual work.
     such as (10, 12) (12,19) (19,21), the last of such a string, both, 
     or neither.  1*first + 2*last.   This affects whether an obs is labeled
     as censored or not in user printout, nothing else.  (That part has actually
-    already been done via the survfitCI call.)
+    already been done via the survfitAJ call.)
   \item x2 and risk2 are the covariates and risk scores for the predicted 
     values.  These do not involve any ph(a:b) coefficients.
   \item baselinecoef encodes shared hazards

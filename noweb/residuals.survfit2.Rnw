@@ -1,4 +1,4 @@
-\subsection{Cox model case}
+ \subsection{Cox model case}
 The code for a simple Cox model has a lot of overlap with the simple 
 Nelson-Aalen case, leading to overlap between this section and
 the rsurvpart1 routine. 

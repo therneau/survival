@@ -8,7 +8,7 @@ survfitTurnbull <- function(x, y, weights,
                        conf.type=c('log',  'log-log',  'plain', 'none',
                                    'logit', 'arcsin'),
                        conf.lower=c('usual', 'peto', 'modified'),
-		       start.time, robust, cluster) {
+		       start.time, robust=TRUE, cluster, time0) {
 			     
     type <- match.arg(type)
     error <- match.arg(error)

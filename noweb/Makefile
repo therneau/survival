@@ -15,8 +15,6 @@ PARTS = main.Rnw \
 	residuals.survfit2.Rnw \
 	residuals.survreg.Rnw \
 	survfit.Rnw \
-	survfitKM.Rnw \
-	survfitCI.Rnw \
 	msurv.nw \
 	survfitms.Rnw \
 	survexpm.Rnw\
@@ -41,30 +39,24 @@ SFUN =  agreg.fit.R \
 	predict.coxph.R \
 	pyears.R \
 	print.pyears.R \
-	residuals.survfit.R \
-	residuals.survfitcox.R \
 	residuals.survreg.R\
 	statefig.R \
 	survexp.R \
 	survexpm.R \
-	survfit.R \
-	survfitCI.R \
-	survfitKM.R \
 	survfit.coxph.R \
 	survfit.coxphms.R \
 	survfitms.R\
 	tmerge.R \
 	yates.R \
 	cox.zph.R
+#	residuals.survfitcox.R \
+#	survfit.R \
 
 CFUN =  agfit4.c \
         agsurv4.c agsurv5.c \
 	cdecomp.c \
         concordance3.c \
-        coxexact.c \
-	survfitci.c \
-	survfitkm.c \
-#	coxdetail2.c
+        coxexact.c
 
 RDIR = ../R
 RFUN = $(SFUN:%=$(RDIR)/%)

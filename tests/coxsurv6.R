@@ -90,8 +90,8 @@ for (i in 1:6) {
     pstate <- rbind(pstate, pstate[i,]%*% tmat[,,i])
 }
 
-dtime <- c(1, which(surv3$time %in% etime))  # skip censored rows
-aeq(surv3$pstate[dtime[1:7],1,], pstate)
+dtime <- which(surv3$time %in% etime)  # skip censored rows
+aeq(surv3$pstate[dtime[1:6],1,], pstate[-1,])
 
 #
 # A function to do the above "by hand" calculations, over all time points

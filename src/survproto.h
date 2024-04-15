@@ -2,6 +2,7 @@
 ** Prototypes of all the survival functions
 **  Including this in each routine helps prevent mismatched argument errors
 */
+
 SEXP agfit4(SEXP n2,
 	    SEXP surv2,      SEXP covar2,    SEXP strata2,
             SEXP weights2,   SEXP offset2,   SEXP ibeta2,
@@ -205,6 +206,12 @@ double pystep(int nc,        int  *index,  int  *index2,   double *wt,
 
 SEXP residcsum(SEXP y2, SEXP strata2);
 
+typedef struct snode {
+    int value;
+    int depth;  /* number of forward links */
+    struct snode *forward[1];  /* the set of forward links*/
+} snode;
+
 void survdiff2(int   *nn,     int   *nngroup,    int   *nstrat, 
 	       double *rho,    double *time,       int   *status, 
 	       int   *group,  int   *strata,	   double *obs, 
@@ -213,17 +220,18 @@ void survdiff2(int   *nn,     int   *nngroup,    int   *nstrat,
 
 void survfit4(int *n,	int *dd,  double *x1,  double *x2) ;
 
-SEXP survfitci(SEXP ftime2,       SEXP sort12,  SEXP sort22, SEXP ntime2,
-                    SEXP status2, SEXP cstate2, SEXP wt2,    SEXP id2,
-                    SEXP p2,      SEXP i02,     SEXP sefit2) ;
-  
+SEXP survfitaj(SEXP y2,       SEXP sort12,  SEXP sort22, SEXP utime2,
+               SEXP cstate2,  SEXP wt2,     SEXP grp2,   SEXP ngrp2,
+	       SEXP p02,      SEXP i02,     SEXP sefit2, SEXP entry2,
+	       SEXP position2,SEXP hindx2,  SEXP trmat2, SEXP t0);  
+     
 SEXP survfitkm(SEXP y2,     SEXP weight2,  SEXP sort12, SEXP sort22, 
                SEXP type2,  SEXP id2,      SEXP nid2,   SEXP position2, 
-               SEXP influence2) ;
+               SEXP influence2,  SEXP reverse2,  SEXP entry2) ;
 
 SEXP survfitresid(SEXP Y2,      SEXP sort12,  SEXP sort22,  SEXP cstate2, 
 		  SEXP wt2,     SEXP p02,     SEXP i02,     SEXP otime2,  
-		  SEXP starttime2, SEXP doauc2);
+		  SEXP lefttime2, SEXP doauc2);  
  
 SEXP survreg6(SEXP maxiter2,   SEXP nvarx,  SEXP y,
 	      SEXP ny2,        SEXP covar2, SEXP wtx,
@@ -265,7 +273,7 @@ SEXP tmerge (SEXP id2,  SEXP time1x, SEXP newx2,
 	     SEXP nid2, SEXP ntime2, SEXP x2,  SEXP indx2); 
 SEXP tmerge2(SEXP id2,  SEXP time1x, SEXP nid2, SEXP ntime2);
 SEXP tmerge3(SEXP id2, SEXP miss2);
-
+SEXP twoclust(SEXP id2, SEXP cluster2, SEXP idord2);
 void walkup(double *nwt, double* twt, int index, double sums[3], int ntree);
 void addin(double *nwt, double *twt, int index, double wt);
 

@@ -41,7 +41,7 @@ survfit.coxph <-
             stype=2, ctype, 
             conf.type=c("log", "log-log", "plain", "none", "logit", "arcsin"),
             censor=TRUE, start.time, id, influence=FALSE,
-            na.action=na.pass, type, ...) {
+            na.action=na.pass, type, time0= FALSE,...) {
 
       Call <- match.call()
       Call[[1]] <- as.name("survfit")  #nicer output for the user
@@ -517,8 +517,11 @@ tcall$data <- newdata
 tcall$formula <- Terms2
 tcall$xlev <- object$xlevels[match(attr(Terms2,'term.labels'),
                                    names(object$xlevels), nomatch=0)]
+tcall$na.action <- na.omit  # do not allow missing values
 tcall[[1L]] <- quote(stats::model.frame)
 mf2 <- eval(tcall)
+if (nrow(mf2) ==0)
+    stop("all rows of newdata have missing values")
 @    
 
 Now, finally, extract the \code{x2} matrix from the just-created frame.

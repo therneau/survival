@@ -1,28 +1,27 @@
 # This is a utility function, used by printing and plotting.
-#    It's job is to add a "time 0" to the survival curve, and at the same time
-# to fill in values for the responses at that time.  For ordinary survival
-# the standard response is surv=1, cumulative hazard =0, and standard errors
+#   If the original call had time0=FALSE as the option, then the curve does not
+# have time 0 in the surv, pstate or cumhaz, and corresponding std dev matrices
+# This function's job is to turn it into the time0=TRUE form.
+# For ordinary survival surv=1, cumulative hazard =0, and standard errors
 # of 0.  For a multi-state curve the values of p0 and sd0 are used to fill
 # in these values.  
-#   The influence matrix, if present, is also filled out to have a 0's for the
-# time, or for a multi-state object, use the influence matrix as provided.
 #
-# It is legal for start.time to be a vector, so that multiple curves start in
-#  different places.  I don't yet have a use for that, but had considered one.
+#  The influence matrix, if present, is also filled out using i0, if present.
+# Older versions of survfit had included time0 in the influence.
 #
-survfit0 <- function(x, start.time=0) {
+survfit0 <- function(x, start.time) {
     if (!inherits(x, "survfit")) stop("function requires a survfit object")
-    if (inherits (x, "survfit0")) return(x)
+    # the !is.na is for backwards compatability with a saved object
+    if (inherits (x, "survfit0") || (!is.null(x$time0) && x$time0)) return(x)
 
-    if (missing(start.time) || is.null(start.time)) {
-        if (is.null(x$start.time)) start.time <- min(c(0, x$time))
-        else start.time <- x$start.time
-    }
-
+    t0 <- x$t0 # present for multi-state
+    if (is.null(t0)) t0 <- min(c(0, x$time))  # ordinary survival
+ 
+    # insert will point to the first row of each stratum
     if (is.null(x$strata)) insert <- 1   # where to add the zero
     else insert <- unname(1 + cumsum(c(0, x$strata[-length(x$strata)])))
 
-    same <- x$time[insert] == start.time  # no row need to be inserted here
+    same <- x$time[insert] == t0  # no row need to be inserted here
     insert <- insert[!same]
     if (length(insert)==0) return(x)   # nothing  to do
 
@@ -67,17 +66,18 @@ survfit0 <- function(x, start.time=0) {
     # I want the result to be a list in the same order
     # change on 12/2020: p0 and sp0 will be redundant, but leave them in
     #  anyway.  It makes it easier for survfitCI and residuals.survfit.
-    #newname <- names(x)[!(names(x) %in% c("start.time", "p0", "sp0"))]
-    newname <- names(x)[!(names(x) %in% c("start.time"))]
+    # Note on 3/2024: actually, p0 is not redundant when there is an event
+    #  exactly at the starting time, but sp0 is not needed
+    newname <- names(x)[!(names(x) %in% c("sp0"))]
     new <- vector("list", length(newname))
     names(new) <- newname
 
     add1 <- "surv"
-    add0 <- c("n.event", "n.censor", "n.add", "cumhaz", "std.chaz")
+    add0 <- c("n.event", "n.censor", "n.add", "cumhaz", "std.chaz", "std.auc")
     if (inherits(x, "survfitms")) add0 <- c(add0, "lower", "upper")
     else add1 <- c(add1, "lower", "upper")
 
-    if (!is.null(x$p0)) {
+    if (!is.null(x$p0)) {  # multi-state
         if (is.null(x$sp0)) sp0 <- 0 else sp0 <- x$sp0
         if (any(same)) {# we have to subscript p0 and sp0
             # if p0 isn't a matrix, we can't end up here BTW
@@ -87,13 +87,12 @@ survfit0 <- function(x, start.time=0) {
         else p00 <- x$p0
     }
     else { # this call is simply adding a time 0 to the front
-        p00 <- x$pstate[insert,]
         if (!is.null(x$xtd.err)) sp0 <- x$std.err[insert,]
         else sp0 <- 0
     }
 
     for (i in names(new)) {
-        if (i=="time") new[[i]] <- addto(x[[i]], insert, start.time)
+        if (i=="time") new[[i]] <- addto(x[[i]], insert, t0)
         else if (i=="n.risk") {
             if (is.matrix(x$n.risk))
                 new[[i]] <- addto(x[[i]], insert, x$n.risk[insert,])
@@ -118,8 +117,26 @@ survfit0 <- function(x, start.time=0) {
                 else new[[i]] <- addcol(x[[i]])
             }
         }
+    } else if (!is.null(x$influence)) { # this is harder, multi-state
+        addi0 <- function(x, i0 =0) {
+            # the influence matrix will be (observations, times, states),
+            # we need to add a new time
+            dd <- dim(x)
+            temp <- array(0., dim=c(dd[1], 1L + dd[2], dd[3]))
+            temp[,-1,] <- x
+            if (!is.null(i0)) temp[,1,] <- i0
+            temp
+        }
+        if (is.list(x$influence)) {
+            if (is.null(x$i0)) new$influence <- lapply(x$influence, addi0)
+            else { # i0 will be a list as well
+                new$influence <- vector("list", length(x$influence))
+                for (i in 1:length(x$influence))
+                    new$influence[[i]] <- addi0(x$influence[[i]], x$i0[[i]])
+            }
+        } else new$influence <- addi0(x$influence, x$i0)
     }
-                     
+
     if (is.null(new$logse)) {
         # reprise the logic of the older code
         if (inherits(x, "survfitms")) x$logse <- FALSE

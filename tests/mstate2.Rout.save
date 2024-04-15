@@ -1,0 +1,292 @@
+
+R Under development (unstable) (2024-04-01 r86255) -- "Unsuffered Consequences"
+Copyright (C) 2024 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> library(survival)
+> aeq <- function(x, y, ...) all.equal(as.vector(x), as.vector(y), ...)
+> 
+> # This is a test of the influence matrix for an Andersen-Gill fit, using the
+> #  formulas found in the methods document, and implemented in the survfitaj.c 
+> #  code.  As much as anything it was a help in debugging -- both the mathematics
+> #  and the program.
+> # The test case below has tied events, tied event/censoring, entry in mutiple
+> #  states, staggered entry, repeated events for a subject, varying case weights
+> #  within a subject, ... on purpose
+> 
+> tdata <- data.frame(id= c(1, 1, 1,  2,  2,  3,  4, 4, 4, 4,  5,  5, 6, 6),
++                     t1= c(0, 4, 9,  1,  5,  2,  0, 2, 5, 8,  1,  3, 3, 5),
++                     t2= c(4, 9, 10, 5,  7,  9,  2, 5, 8, 9,  3, 11, 5, 8),
++                     st= c(2, 3,  2, 3,  1,  2,  2, 4, 4, 1,  3,  1, 3, 2),
++                     i0= c(1, 2,  3, 2,  3,  1,  1, 2, 4, 4,  4,  3, 2, 3),
++                     wt= c(1:8, 8:3))
+> 
+> tdata$st <- factor(tdata$st, c(1:4),
++                     labels=c("censor", "a", "b", "c"))
+> tdata$i0 <- factor(tdata$i0, 1:4,
++                     labels=c("entry","a", "b", "c"))
+> check <- survcheck(Surv(t1, t2,st) ~1, tdata, id=id, istate=i0)
+> 
+> if (FALSE) {
++     #useful picture     
++     plot(c(0,11), c(1,6.5), type='n', xlab="Time", ylab= "Subject")
++     with(tdata, segments(t1+.1, id, t2, id, col=as.numeric(check$istate)))
++     with(subset(tdata, st!= "censor"),
++           text(t2, id+.15, as.character(st)))
++     with(tdata, text((t1+t2)/2, id+.25, wt))
++     with(subset(tdata, !duplicated(id)),
++            text(t1, id+.15, as.character(i0)))
++     #segments are colored by current state, case weight in center, events at ends
++     abline(v=c(2:5, 8:11), lty=3, col='gray')
++ }
+> 
+> # Compute the unweighted per observation leverages, using the approach in
+> #  the methods document, as a check of both it and the C code.
+> # These IJ residuals can be directly verified using emprical derivatives,
+> #  and collapsed to test the weighted+collapsed results from survfitAJ.
+> #
+> survfitaj <- function(t1, t2, state, istate=NULL, wt, id, p0, start.time=NULL,
++                       debug = FALSE) {
++     check <- survcheck(Surv(t1, t2, state) ~ 1, id=id, istate=istate)
++     if (any(check$flag >0)) stop("failed survcheck")
++     states <- check$states
++     nstate <- length(states) 
++     istate <- check$istate # will have the correct levels
++     isn <- as.numeric(istate)
++     n <- length(t1)
++     if (length(t2) !=n || length(state) !=n || length(istate) !=n ||
++         length(wt) !=n || length(id) !=n) stop("input error")
++ 
++     newstate <- factor(state, unique(c(levels(state)[1], states)))
++     Y <- Surv(t1, t2, newstate)  # makes the levels match up
++     position <- survival:::survflag(Y, id)
++     
++     uid <- unique(id)
++     nid <- length(uid)
++     id <- match(id, uid)  # turn it into 1,2,...
++     event <- (Y[,3] >0)
++ 
++     U <- A <- matrix(0, n, nstate) # per observation influence, unweighted
++     if (missing(p0)) {
++         if (!missing(start.time)) t0 <- start.time
++         else {
++             if (all(Y[, 3] ==0)) t0 <- min(Y[, 2]) # no events!
++             else t0 <- min(Y[event, 2])
++         }
++         atrisk <- (Y[,1] < t0 & Y[,2] >= t0)
++         wtsum <- sum(wt[atrisk])  # weights at that time
++         p0 <- tapply(wt[atrisk], istate[atrisk], sum) / wtsum
++         p0 <- ifelse(is.na(p0), 0, p0)  #if a state has no one, tapply =NA
++         if (all(p0 <1)) {  # compute intitial leverage
++             for (j in 1:nstate) {
++                 U[atrisk,j] <- (ifelse(istate[atrisk]==states[j], 1, 0) 
++                                     - p0[j])/wtsum
++             }       
++         }
++     } else {
++         if (missing(start.time)) t0 <- 0 else t0 <- start.time
++     }
++ 
++     utime <- sort(unique(c(0, Y[event | position>1, 2])))
++ 
++     ntime <- length(utime)
++     phat <- matrix(0, ntime, nstate)
++     phat[1,] <- p0
++     n.risk <- matrix(0, ntime, nstate)
++     n.risk[1,] <- table(istate[Y[,1]< start.time & Y[,2] > start.time])
++ 
++     # count the number of transitions, and make an index to them
++     temp <- table(istate[event], factor(Y[event,3], 1:nstate, states))
++     trmat <- cbind(from= row(temp)[temp>0], to= col(temp)[temp>0])
++     nhaz <- nrow(trmat)
++     n.event <- matrix(0, ntime, nhaz)
++     C <- matrix(0, n, nhaz)
++     chaz <- matrix(0, ntime, nhaz)
++  
++     hash <- trmat %*% c(1,10)
++     tindx <- match(isn + 10*Y[,3], hash, nomatch=0) #index to transitions
++ 
++     # at this point I have the initial inflence matrices (U= pstate, 
++     #  C= cumhaz, A= auc). The auc and cumhaz are 0 at the starting point
++     #  so their influence is 0.
++ 
++     Usave <- array(0, dim=c(dim(U), ntime))
++     Usave[,,1] <- U
++     Csave <- array(0, dim= c(dim(C), ntime)) #chaz and AUC are 0 at start.time
++     Asave <- array(0, dim= c(dim(A), ntime))
++     
++     for (it in 2:ntime) {
++         # AUC
++         if (it==2) delta <- utime[it]- t0
++         else delta <- utime[it] - utime[it-1]
++         A <- A + delta* U
++ 
++         # count noses
++         atrisk <- (t1 < utime[it] & t2 >= utime[it])
++         temp <- tapply(wt[atrisk], istate[atrisk], sum)
++         n.risk[it,] <- ifelse(is.na(temp), 0, temp)
++         event <- (Y[,2]== utime[it] & Y[,3]>0)
++         temp <- tapply(wt[event], factor(tindx[event], 1:nhaz), sum)
++         n.event[it,] <- ifelse(is.na(temp), 0, temp)
++         
++ 
++         # Add events to C and create the H matrix 
++         H <- diag(nstate)
++         for (i in which(event)) {
++             j <- isn[i]  # from, to, and transition indices
++             k <- Y[i,3]
++             jk <- match(j+10*k, hash)
++             C[i, jk] <- C[i, jk] + 1/n.risk[it,j]
++             if (j!=k) {
++                 H[j,j] <- H[j,j] - wt[i]/n.risk[it,j]
++                 H[j,k] <- H[j,k] + wt[i]/n.risk[it,j]
++             }
++         }
++  
++         U <- U %*% H
++         phat[it,] <- phat[it-1,] %*% H
++ 
++         if (debug) browser()
++         # Add events to U
++         for (i in which(event)) {
++             j <- isn[i]  # from, to, and transition indices
++             k <- Y[i,3]
++             if (j != k) {
++                 U[i,j] <- U[i,j] - phat[it-1,j]/n.risk[it,j]
++                 U[i,k] <- U[i,k] + phat[it-1,j]/n.risk[it,j]
++             }
++         }
++  
++         if (debug) browser()
++         # now the hazard part
++         for (h in which(n.event[it,] >0)) {
++             j <- trmat[h,1]
++             k <- trmat[h,2]
++             haz <- n.event[it,h]/n.risk[it, j]
++             h2 <- haz/n.risk[it,j]
++             who <- (atrisk & isn ==j) # at risk, currently in state j
++ 
++             C[who,h] <- C[who,h] - h2
++             if (j != k) {
++                 U[who,j] <- U[who,j] + h2 * phat[it-1,j]
++                 U[who,k] <- U[who,k] - h2 * phat[it-1,j]
++             }
++         }  
++         if (debug) browser()
++         Usave[,,it] <- U
++         Csave[,,it] <- C
++         Asave[,,it] <- A
++     }
++     colnames(n.event) <- paste(trmat[,1], trmat[,2], sep=':')
++     colnames(n.risk) <- check$states
++     colnames(phat) <- check$states
++     
++     list(time = utime, n.risk= n.risk, n.event=n.event, pstate= phat, 
++          C=Csave, U=Usave, A=Asave)
++ }
+> 
+> mfit  <- survfit(Surv(t1, t2, st) ~ 1, tdata, id=id, istate=i0,
++                   weights=wt, influence=TRUE)
+> mtest <- with(tdata, survfitaj(t1, t2, st, i0, wt, id))
+> # mtest <- with(tdata, survfitaj(t1, t2, st, i0, wt, id, debug=TRUE))
+> 
+> # p0 and U0 from the methods document
+> p0 <- c(8, 4,0,6)/ 18
+> U0 <- rbind(c(1,0,0,0) - p0, 0, 0,    
++             c(0,1,0,0) - p0, 0,
++             0,
++             c(1,0,0,0) - p0, 0, 0, 0,   
++             c(0,0,0,1) - p0, 0,
++             0, 0) /18
+> 
+> aeq(mtest$pstate[1,], p0)
+[1] TRUE
+> aeq(mtest$U[,,1], U0)
+[1] TRUE
+> aeq(mtest$time[-1], mfit$time)         # mtest includes U(2-eps) as 'time 0'
+[1] TRUE
+> aeq(mtest$pstate[-1,], mfit$pstate)
+[1] TRUE
+> aeq(mfit$p0, p0)
+[1] TRUE
+> aeq(mfit$i0, rowsum(U0*tdata$wt, tdata$id))
+[1] TRUE
+> 
+> # direct check that mtest has the correct answer
+> eps <- 1e-6
+> delta <- array(0, dim= c(nrow(tdata), dim(mfit$pstate))) 
+> deltaC<- array(0, dim= c(nrow(tdata), dim(mfit$cumhaz)))
+> for (i in 1:nrow(tdata)) {
++     twt <- tdata$wt
++     twt[i] <- twt[i] + eps
++     tfit <- survfit(Surv(t1, t2, st) ~1, tdata, id=id, istate=i0,
++                     weights= twt)
++     delta[i,,] <- (tfit$pstate - mfit$pstate)/eps
++     deltaC[i,,] <-(tfit$cumhaz - mfit$cumhaz)/eps
++ }
+> temp <- aperm(mtest$U, c(1,3,2)) # drop time 0, put state last
+> all.equal(temp[,-1,], delta, tol=eps/2)
+[1] TRUE
+> 
+> tempC <-aperm(mtest$C, c(1,3,2))
+> all.equal(tempC[,-1,], deltaC, tol= eps/2)
+[1] TRUE
+> 
+> # Now check mfit, which returns the weighted collapsed values
+> BD <- t(model.matrix(~ factor(id) -1, tdata)) %*% diag(tdata$wt)
+> rownames(BD) <- 1:6
+> 
+> collapse <- function(U, cmat=BD) {
++     # for each time point, replace the inflence matrix U with BDU
++     if (is.matrix(U)) BD %*% U
++     else {
++         dd <- dim(U)
++         temp <- cmat %*% matrix(U, nrow = dd[1]) #fake out matrix multiply
++         array(temp, dim= c(nrow(temp), dd[2:3]))
++     }
++ }
+> 
+> sqsum <- function(x) sqrt(sum(x^2))
+> temp <- collapse(mtest$U[,,-1]) # mtest has time 0, mfit does not
+> # mfit$influence is in id, time, state order
+> aeq(aperm(temp, c(1,3,2)), mfit$influence)  # mtest has time 0, mfit does not
+[1] TRUE
+> 
+> setemp <- apply(collapse(mtest$U[,,-1]), 2:3, sqsum)
+> aeq(t(setemp), mfit$std.err)
+[1] TRUE
+> 
+> ctemp <- apply(collapse(mtest$C[,,-1]), 2:3, sqsum)
+> aeq(t(ctemp), mfit$std.chaz)
+[1] TRUE
+> 
+> atemp <- apply(collapse(mtest$A[,,-1]), 2:3, sqsum)
+> aeq(t(atemp), mfit$std.auc)
+[1] TRUE
+> 
+>             
+> # check residuals
+> rr1 <- resid(mfit, times=mfit$time, type='pstate')
+> aeq(rr1, mtest$U[,,-1])
+[1] TRUE
+> rr2 <- resid(mfit, times=mfit$time, type='auc')
+> aeq(rr2, mtest$A[,,-1])
+[1] TRUE
+> 
+> 
+> 
+> proc.time()
+   user  system elapsed 
+  1.175   0.081   1.248 

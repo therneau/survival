@@ -76,7 +76,7 @@ mdata <- mgus2
 mdata$etime <- with(mgus2, ifelse(pstat==1, ptime, futime))
 mdata$estat <- with(mgus2, ifelse(pstat==1, 1, 2*death))
 mdata$estat <- factor(mdata$estat, 0:2, c('censor', 'pcm', 'death'))
-mfit <- survfit(Surv(etime, estat) ~1, mdata, id=id)
+mfit <- survfit(Surv(etime, estat) ~1, mdata, id=id, time0=FALSE)
 mwt1 <- rttright(Surv(etime, estat) ~1, mdata, id=id)
 
 morder <- order(mdata$etime)
@@ -101,15 +101,5 @@ for (i in 1:length(tm)) {
     c1 <- sum(fit1[bdata$status==1 & bdata$time <= tm[i], i])
     print(all.equal(c1, 1-csum1$surv[i]))
 }
-
-
-###
-# Delayed entry, tiny data set
-#  Still to be done
-delay <- data.frame(t0=c(0,0,0,0,3,0),
-                    t1=1:6,
-                    status=c(1,0,1,0,0,1),
-                    id=1:6)
-# dwt <- rttright(Surv(t0, t1, status) ~ 1, delay, id=id, times=0:5 + .9)
 
 

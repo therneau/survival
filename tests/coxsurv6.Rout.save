@@ -1,7 +1,7 @@
 
-R Under development (unstable) (2021-04-20 r80202) -- "Unsuffered Consequences"
-Copyright (C) 2021 The R Foundation for Statistical Computing
-Platform: x86_64-pc-linux-gnu (64-bit)
+R Under development (unstable) (2023-08-01 r84818) -- "Unsuffered Consequences"
+Copyright (C) 2023 The R Foundation for Statistical Computing
+Platform: aarch64-unknown-linux-gnu
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -136,8 +136,8 @@ normal    1-2    2-4     >4
 +     pstate <- rbind(pstate, pstate[i,]%*% tmat[,,i])
 + }
 > 
-> dtime <- c(1, which(surv3$time %in% etime))  # skip censored rows
-> aeq(surv3$pstate[dtime[1:7],1,], pstate)
+> dtime <- which(surv3$time %in% etime)  # skip censored rows
+> aeq(surv3$pstate[dtime[1:6],1,], pstate[-1,])
 [1] TRUE
 > 
 > #
@@ -258,4 +258,4 @@ normal    1-2    2-4     >4
 > 
 > proc.time()
    user  system elapsed 
-  2.541   0.156   2.791 
+  0.732   0.029   0.755 

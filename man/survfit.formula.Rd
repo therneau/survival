@@ -12,7 +12,7 @@
 \usage{
 \method{survfit}{formula}(formula, data, weights, subset, na.action,  
         stype=1, ctype=1, id, cluster, robust, istate, timefix=TRUE,
-        etype, model=FALSE, error, ...)
+        etype, model=FALSE, error, entry=FALSE, time0=FALSE, ...)
 }
 \arguments{
   \item{formula}{
@@ -55,11 +55,12 @@
     jackknife variance estimate, defaults to the value of id.}
 
   \item{robust}{logical, should the function compute a robust variance.
-    For multi-state survival curves this is true by default.
+    For multi-state survival curves or interval censored data
+    this is true by default.
     For single state data see details, below.}
  
   \item{istate}{for multi-state models, identifies the initial state of
-    each subject or observation}
+    each subject or observation.  This also forces \code{time0 =TRUE}.}
 
   \item{timefix}{process times through the \code{aeqSurv} function to
   eliminate potential roundoff issues.}
@@ -70,6 +71,14 @@
   }
   \item{model}{include a copy of the model frame in the output}
   \item{error}{this argument is no longer used}
+  \item{entry}{if TRUE, the output will contain \code{n.enter} which is
+    the number of observations entering the risk set at any time; extra
+    rows of output are created, if needed, for each unique entry time.
+    Only applicable if there is an \code{id} statement.
+  }
+  \item{time0}{if TRUE, the output will include estimates at the
+    starting point of the curve or `time 0'.  See discussion below.
+  }
   \item{\dots}{
     The following additional arguments are passed to internal functions
     called by \code{survfit}.
@@ -121,19 +130,20 @@
       }
       \item{se.fit}{
 	a logical value indicating whether standard errors should be 
-	computed.  Default is \code{TRUE}.
+	computed.  Default is \code{TRUE}. For a multistate model, where
+	the infinitesimal jackknife (robust) standar error is used, the
+	compute time for the standard error is O(ndp) where n = number of
+	observations, d = number of events and p = number of states,
+	while that for all other portions of the output
+	(\code{pstate}, \code{cumhaz} and counts) is O((n+d)p).
+	For a moderate to large data set the compute time difference
+	between nd and n+d can be huge; using \code{se.fit = FALSE} may
+	be a wise choice.
       }
       \item{influence}{a logical value indicating whether to return the
 	infinitesimal jackknife (influence) values for each subject.
-	These contain the values of the derivative of each value
-	with respect to the case weights of each subject i:
-	\eqn{\partial p/\partial w_i}{dp/dw[i]},
-	evaluated at the vector of weights.  The resulting object will
-	contain \code{influence.surv} and \code{influence.chaz}
-	components.  Alternatively, options of \code{influence=1} or
-	\code{influence=2} will return values for only the
-	survival or hazard curves, respectively.
-      }
+	See details below.
+     }
 
       \item{p0}{this applies only to multi-state curves. 
 	An optional vector giving the initial probability across
@@ -141,6 +151,18 @@
 	frequency of the starting states of all observations at risk
 	at \code{start.time}, or if that is not specified, at
 	the time of the first event.}
+      \item{entry}{by default, the survfit routines only return
+	information at the event/censoring times. If \code{entry=TRUE} then
+	also return a \code{n.enter} component containing the number
+	who joined the risk set at each time; if necessary add extra
+	rows to the output for each unique entry time. 
+	This is only applicable for (time1, time2) survival data, and
+	if there is an \code{id} statement.  If a single subject had
+	times of (0,10), (10, 20), (25,30) with an event at 30,
+	then time 10 is not an entry or censoring time,
+	but 20 counts as censored and 25 as an entry. 
+      }
+	
       \item{type}{an older argument that combined \code{stype} and
 	\code{ctype}, now deprecated.  Legal values were "kaplan-meier"
 	which is equivalent to \code{stype=1, ctype=1}, "fleming-harrington"
@@ -153,9 +175,9 @@
 \value{
 an object of class \code{"survfit"}.  
 See \code{survfit.object} for 
-details. Methods defined for survfit objects are  
+details. Some of the methods defined for survfit objects are  
 \code{print}, \code{plot}, 
-\code{lines}, and \code{points}. 
+\code{lines}, \code{points} and \code{residual}. 
 }
 \details{
   If there is a \code{data} argument, then variables in the \code{formula},
@@ -164,6 +186,9 @@ details. Methods defined for survfit objects are
 
   The routine returns both an estimated probability in state and an
   estimated cumulative hazard estimate.
+  For simple survival the probability in state = probability alive, i.e,
+  the estimated survival. For multi-state it will be a matrix with one
+  row per time and a column per state, rows sum to 1.
   The cumulative hazard estimate is the Nelson-Aalen (NA) estimate or the
   Fleming-Harrington (FH) estimate, the latter includes a correction for
   tied event times.  The estimated probability in state can estimated
@@ -175,12 +200,55 @@ details. Methods defined for survfit objects are
   estimator.
   For backward compatability the \code{type} argument can be used instead.
   
-
   When the data set includes left censored or interval censored data (or both),
   then the EM approach of Turnbull is used to compute the overall curve.
-  Currently this algorithm is very slow, only a survival curve is
-  produced, and it does not support a robust variance.
+  Currently this algorithm is very slow, only applies to simple survival
+  (not multi-state), and defaults to a robust variance.  Other R
+  packages are available which implement the iterative convex minorant
+  (ICM) algorithm for
+  interval censored data, which is much faster than Turnbull's method.
+  Based on Sun (2001) the robust variance may be preferred, as the naive estimate
+  ignores the estimation of the weights.  The standard estimate can be
+  obtained with \code{robust= FALSE}.
+ 
+  Without interval or left censored data (the usual case) the
+  underlying algorithm for the routine is the Aalen-Johansen
+  estimate, of which the Kaplan-Meier (for single outcome data) and the
+  cumulative incidence (CI) estimate (for competing risks) are each a special
+  case. For multi-state, the estimate can be written as
+  \eqn{p(t_0)H(t_1)H(t_2)\ldots}{p(t0)H(t1)H(t2)...} where \eqn{p(t_0)}{p(t0)}
+  is the prevalance vector across the states at starting
+  point \eqn{t_0}{t0}, \eqn{t_1, t_2, \ldots}{t1, t2, ...} are the
+  times at which events (transitions between states) occur, and H are
+  square transtion matrices with a row for each state.
 
+  Starting point: When diffent subjects (\code{id}) start at different
+  time points, data using age as the time scale for instance,
+  deciding the default "time 0" can be complex.  This value is the
+  starting point for the restricted mean estimate (area under the
+  curve), the initial prevalence p0, and the first
+  row of output if \code{time0 = TRUE}.  The order of the decision is
+  \enumerate{
+    \item For a 2 column response (simple survival or competing risks)
+    use the minimum of 0 and the smallest time value (times can be
+    negative).
+    \item If all subjects start in the same state, start at the same time,
+    or if \code{p0} is specified, use the minimum observed starting
+    time.  If there is no \code{istate} argument all observations are
+    assumed to start in a state "(s0)".
+    \item Use the minimum observed event time, if the number at risk at
+     that time is >0 for every curve that will be created.
+    \item Use the minimum event time for each curve, separately.
+    }
+  The last two above are a failsafe to prevent the routine from basing
+  the initial prevalence of the states on none or only a handful of
+  observations.   That does not mean such curves
+  will be scientfically sensible: when using age scale the user may wish
+  to specify an explicit starting time.
+  If \code{time0 = TRUE} the first row of output for each curve will be
+  at the starting time, 
+  otherwise the first event time (for each curve separately).
+    
   Robust variance:
   If a \code{robust} is TRUE, or for multi-state
   curves, then the standard
@@ -195,27 +263,25 @@ details. Methods defined for survfit objects are
   When there are non-integer case weights and (time1, time2) survival
   data the routine is at an impasse: a robust variance likely is called
   for, but requires either \code{id} or \code{cluster} information to be
-  done correctly; it will default to robust=FALSE.
+  done correctly; it will default to robust=FALSE if they are not present.
 
-  One unanticipated side effect of defaulting to a robust variance when
-  there are non integer case weights is that a fit using
-  interval censored data, which iterates an underlying KM using an
-  updated weight vector, now returns a robust variance by default.
-  Based on Sun (2001) this may be preferred, as the naive estimate
-  ignores the estimation of the weights.  The prior behavior can be
-  obtained with \code{robust= FALSE}.
- 
   With the IJ estimate, the leverage values themselves can be returned
-  as arrays with dimensions: number of subjects, number of unique times,
-  and for a multi-state model, the number of unique states.
-  Be forwarned that these arrays can be huge.  If there is a
-  \code{cluster} argument this first dimension will be the number of
-  clusters and the variance will be a grouped IJ estimate; this can be
-  an important tool for reducing the size.
-  A numeric value for the \code{influence} argument allows finer
-  control: 0= return neither (same as FALSE), 1= return the influence
-  array for probability in state, 2= return the influence array for the
-  cumulative hazard, 3= return both (same as TRUE).
+  as an array using the \code{influence} argument.
+  Be forwarned that this array can be huge. Post fit influence using the
+  \code{resid} method is more flexible and would normally be preferred,
+  in particular to get influence at only a select set of time points.
+  The \code{influence} option is currently used mostly in the package's
+  validity checks.
+
+  Let \eqn{U(t)}{U(t)} be the matrix of IJ values at time t, which has
+  one row per observation, one column per state. The robust variance
+  compuation uses the collapsed weighted matrix
+  \code{rowsum(wU, cluster)},
+  where w is the vector of weights and cluster is the grouping (most often
+  the id). The result for each curve is an array with dimensions
+  (number of clusters, number of states, number of times), or a matrix
+  for single state data.  When there are multiple curves, the
+  influence is a list with one element per curve.
 }
 
 \section{References}{
@@ -256,7 +322,8 @@ function with doubly censored data. \emph{J Am Stat Assoc},
   survfit object,
 \code{\link{print.survfit}},  
 \code{\link{plot.survfit}},  
-\code{\link{lines.survfit}},   
+\code{\link{lines.survfit}},
+\code{\link{residuals.survfit}},
 \code{\link{coxph}},  
 \code{\link{Surv}}.  
 }

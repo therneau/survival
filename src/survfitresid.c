@@ -52,7 +52,7 @@ SEXP survfitresid(SEXP Y2,      SEXP sort12,  SEXP sort22,  SEXP cstate2,
 
     /* pointers to the R variables */
     int *sort1, *sort2;  /*sort index for entry time, event time */
-    double *entry=0,* etime;  /*entry time, event time */
+    double *entry=0,*etime;  /*entry time, event time */
     double *status;        /*0=censored, 1,2,... new states */
     int *cstate;        /* current state for each subject */
     double *wt;         /* weight for each observation */
@@ -65,17 +65,17 @@ SEXP survfitresid(SEXP Y2,      SEXP sort12,  SEXP sort22,  SEXP cstate2,
     const char *rnames[]= {"influence.pstate", "influence.auc", ""}; 
     double **infa=0, **infp; /* pointers to influence arrays */
 
-    nobs   = LENGTH(sort22);    /* number of observations in the data */
+    nobs   = LENGTH(sort22);    /* number of observations used */
     cstate  = INTEGER(cstate2);
     ncolY  = ncols(Y2);
-    nrowY  = nrows(Y2);
+    nrowY  = nrows(Y2);  /* number of obs in the data set */
     if (ncolY == 2) {
 	etime = REAL(Y2);
     } else {	
 	entry = REAL(Y2);
 	etime = entry + nrowY;
     }
-    status= etime + nrowY;
+    status= etime + nrowY;  /* last use of nrowY */
     sort1= INTEGER(sort12);
     sort2= INTEGER(sort22);
     wt = REAL(wt2);
@@ -122,7 +122,7 @@ SEXP survfitresid(SEXP Y2,      SEXP sort12,  SEXP sort22,  SEXP cstate2,
 
     dptr = i0;
     /* if a user specified times before the first, set influence to 0 */
-    for (itime=0; itime <nout && (otime[itime] <= starttime); itime++) {
+    for (itime=0; itime <nout && (otime[itime] < starttime); itime++) {
 	if (doauc ==1) {
 	    for (j=0; j<nstate; j++) {
 		for (k=0; k<nobs; k++) {
@@ -213,7 +213,7 @@ SEXP survfitresid(SEXP Y2,      SEXP sort12,  SEXP sort22,  SEXP cstate2,
 		    nrisk[k]++;
 		}
 		else break;
-	    }		
+	    }
 	}
 
 	for (j=0; j<nstate; j++) {
@@ -333,16 +333,15 @@ SEXP survfitresid(SEXP Y2,      SEXP sort12,  SEXP sort22,  SEXP cstate2,
 	}	
 	for (j=0; j<nstate; j++) pstate[j] += tempvec[j];
 		
-	/* Take the current events and censors out of the risk set */
+	/* Take all the events and censors tied at ctime out of the risk set */
 	for (; i<nobs; i++) {
 	    p2 = sort2[i];
-	    if (etime[p2] == ctime) {
-		oldstate = cstate[p2]; /*current state */
-		ws[oldstate] -= wt[p2];
-		nrisk[oldstate]--;
-		atrisk[p2] = 0;
-	    }
-	    else break;
+	    if (etime[p2] > ctime) break;
+		
+	    oldstate = cstate[p2]; /*current state */
+	    ws[oldstate] -= wt[p2];
+	    nrisk[oldstate]--;
+	    atrisk[p2] = 0;
 	}	
     } /* end of the main for loop */
 

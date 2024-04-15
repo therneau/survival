@@ -13,12 +13,12 @@ hazards model.
         se.fit=TRUE, conf.int=.95, individual=FALSE, stype=2, ctype,
         conf.type=c("log","log-log","plain","none", "logit", "arcsin"),
         censor=TRUE, start.time, id, influence=FALSE,
-        na.action=na.pass, type, ...)
+        na.action=na.pass, type, time0=FALSE, ...)
 \method{survfit}{coxphms}(formula, newdata, 
         se.fit=FALSE, conf.int=.95, individual=FALSE, stype=2, ctype,
         conf.type=c("log","log-log","plain","none", "logit", "arcsin"),
         censor=TRUE, start.time, id, influence=FALSE,
-        na.action=na.pass, type, p0=NULL, ...)
+        na.action=na.pass, type, p0=NULL, time0= FALSE, ...)
 }
 \arguments{
   \item{formula}{
@@ -81,6 +81,7 @@ hazards model.
   \item{p0}{optional, a vector of probabilities.  The returned curve
     will be for a cohort with this mixture of starting states.  Most
     often a single state is chosen}
+  \item{time0}{include the starting time for the curve in the output}
      \item{\dots}{for future methods}
 }
 \value{
@@ -109,7 +110,7 @@ details. Methods defined for survfit objects are
   if \code{stype=2} the estimated P(state) curves as well.  If not
   present it is chosen so as to be concordant with the 
   \code{ties} option in the \code{coxph} call. (For multistate
-  \code{coxphms} objects only \code{ctype=1} is currently implemented.)
+  \code{coxphms} objects, only \code{ctype=1} is currently implemented.)
   Likewise
   the choice between a model based and robust variance estimate for the
   curve will mirror the choice made in the \code{coxph} call,
@@ -118,20 +119,18 @@ details. Methods defined for survfit objects are
   If the \code{newdata} argument is missing, then a curve is produced
   for a single "pseudo" subject with
   covariate values equal to the \code{means} component of the fit.
-  The resulting curve(s) almost never make sense, but 
-  the default remains due to an unwarranted attachment to the option shown by
-  some users and by other packages.  Two particularly egregious examples
-  are factor variables and interactions.  Suppose one were studying
-  interspecies transmission of a virus, and the data set has a factor
-  variable with levels ("pig", "chicken") and about equal numbers of
-  observations for each.  The ``mean'' covariate level will be 0.5 --
-  is this a flying pig?  As to interactions assume data with sex coded as 0/1,
-  ages ranging from 50 to 80, and a model with age*sex.  The ``mean''
-  value for the age:sex interaction term will be about 30, a value
-  that does not occur in the data.
-  Users are strongly advised to use the newdata argument.
-  For these reasons predictions from a multistate coxph model require
-  the newdata argument.
+  The resulting curve(s) rarely make scientific sense, but 
+  the default remains due to an unwarranted belief by many that it
+  represents an "average" curve, and it's use as a default in other
+  packages. For coxph, the \code{means} component will contain the value
+  0 for any 0/1 or TRUE/FALSE variables, and the mean value in the data
+  for others.  Its primary reason for this default is to
+  increase numerical accuracy in internal computations of the routine
+  via recentering the X matrix;
+  there is no reason to assume this represents an `interesting'
+  hypothetical subject for prediction of their survival curve. 
+  Users are strongly advised to use the newdata argument;
+  predictions from a multistate coxph model require the newdata argument.
 
   If the \code{coxph} model contained an offset term, then the data set
   in the \code{newdata} argument should also contain that variable.

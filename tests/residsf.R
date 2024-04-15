@@ -106,7 +106,7 @@ aeq(r6[reord,], r9)
  
 # 
 # For multistate use the same data set as mstate.R, where results have been
-#  worked out by hand.
+#  worked out by hand.  Except, make it harder by adding an initial state.
 #
 tdata <- data.frame(id= LETTERS[3*c(1, 1, 1,  2,  3,  4, 4, 4,  5,  5)],
                     t1= c(0, 4, 9,  1,  2,  0, 2, 8,  1,  3),
@@ -119,6 +119,20 @@ tdata$st <- factor(tdata$st, c(0:3),
                     labels=c("censor", "a", "b", "c"))
 tdata$i0 <- factor(tdata$i0, 1:4,
                     labels=c("entry", "a", "b", "c"))  
+if (FALSE) {
+    #useful picture  
+    check <- survcheck(Surv(t1, t2, st) ~1, tdata, istate=i0, id=id)
+    plot(c(0,11), c(1,5.5), type='n', xlab="Time", ylab= "Subject")
+    tdata$idx <- as.numeric(factor(tdata$id))
+    with(tdata, segments(t1+.1, idx, t2, idx, col=as.numeric(check$istate)))
+    with(subset(tdata, st!= "censor"),
+          text(t2, idx+.15, as.character(st)))
+    with(tdata, text((t1+t2)/2, idx+.25, wt))
+    with(subset(tdata, !duplicated(id)),
+           text(t1, idx+.15, as.character(i0)))
+    #segments are colored by current state, case weight in center, events at ends
+    abline(v=c(2:5, 8:11), lty=3, col='gray')
+}
  
 tfun <- function(data=tdata) {
     reorder <- c(10, 9, 1, 2, 5, 4, 3, 7, 8, 6)
@@ -130,22 +144,30 @@ mtest2 <- tfun(tdata)  # scrambled version
 mfit1 <- survfit(Surv(t1, t2, st) ~ 1, tdata, id=id, istate=i0,
                  influence=1)
 
-test1a <- resid(mfit1, time=c(3, 7, 9), method=1)
-#test1b <- resid(mfit1, time=c(3, 7, 9), method=2)
-#aeq(test1a, test1b)
-aeq(test1a, mfit1$influence.pstate[,c(3,5,7),])
+test1 <- resid(mfit1, times= mfit1$time, collapse=TRUE)
+aeq(test1, aperm(mfit1$influence, c(1,3,2)))
+aeq(sqrt(apply(test1^2, 2:3, sum)), t(mfit1$std.err))
 
-# AUC, start simple - auc at final time
-test3 <- resid(mfit1, time=11, type='RMST')
-delta <- diff(c(0, mfit1$time))
-s1 <- apply(mfit1$influence[, 1:8, ], c(1,3), function(x) sum(delta*x))
-aeq(test3, s1)
+test1a <- resid(mfit1, times=c(3, 7, 9), method=1, collapse=TRUE)
+minf <- aperm(mfit1$influence, c(1,3,2)) # influence has time second, resid third
+aeq(test1a, minf[,,c(2,4,6)])  # interpolated times work
 
-# extend to an earlier and later time
-test3b <- resid(mfit1, time=c(-1,11,15), type='RMST')
-all(test3b[,1,] ==0)
-aeq(test3b[,2,], s1)
-aeq(test3b[,3,], s1 + mfit1$influence[,9,]*4)
+test2 <- resid(mfit1, times= mfit1$time, collapse=TRUE, type="cumhaz")
+aeq(sqrt(apply(test2^2, 2:3, sum)), t(mfit1$std.chaz))
+test3 <- resid(mfit1, times= mfit1$time, collapse=TRUE, type="auc")
+aeq(sqrt(apply(test3^2, 2:3, sum)), t(mfit1$std.auc))
+
+# Do a couple AUC by hand
+atime <- c(1, 5.6, 8.1, 15)
+test4 <- resid(mfit1, times=atime, type="auc", collapse=TRUE)
+all(test4[,,1] ==0) # before the first time
+# 5.6 covers rectangles of widths 1,1,1, and .6 after times 2, 3,4 and 5
+temp <- apply(test1, 1:2, function(x) sum(x*c(1,1,1, .6, 0,0,0,0)))
+aeq(temp, test4[,,2])
+temp <- apply(test1, 1:2, function(x) sum(x*c(1,1,1,  3, .1, 0, 0, 0)))
+aeq(temp, test4[,,3])
+temp <- apply(test1, 1:2, function(x) sum(x*c(1,1,1,  3, 1, 1, 1, 4)))
+aeq(temp, test4[,,4])
 
 #
 # competing risks
@@ -156,6 +178,6 @@ temp <- with(mdata, ifelse(pstat==1, 1, 2*death))
 mdata$event <- factor(temp, 0:2, c("censor", "PCM", "Death"))
 mfit <- survfit(Surv(etime, event) ~1, mdata, influence=1)
 rr <- resid(mfit, time=360)
-index <- sum(mfit$time <= 360) +1  # influence has time 0 too
+index <- sum(mfit$time <= 360)
 aeq(mfit$influence.pstate[,index,], rr)
 

@@ -476,7 +476,7 @@ survmean2 <- function(x, scale=1, rmean) {
         else maxtime <- tapply(x$time, igrp, max)
     
         meantime <- matrix(0., ngrp, nstate)
-        if (!is.null(x$influence)) stdtime <- meantime
+        if (!is.null(x$influence) || !is.null(x$std.auc)) stdtime <- meantime
         for (i in 1:ngrp) {
             # a 2 dimensional matrix is an "array", but a 3-dim array is
             #  not a "matrix", so check for matrix first.
@@ -504,11 +504,18 @@ survmean2 <- function(x, scale=1, rmean) {
                 else itemp <- apply(x$influence, 1,
                                     function(x) colSums(x*delta))
                 stdtime[i,] <- sqrt(rowSums(itemp^2))
-           }
+            } else if (!is.null(x$std.auc)) {
+                if (is.matrix(x$std.auc)){
+                    for (j in 1:nstate) 
+                        stdtime[i,j] <- 
+                          approx(tt, x$std.auc[igrp==i,j], maxtime[i], rule=2)$y
+                } else stdtime[i] <- approx(tt, x$std.auc[igrp==i], maxtime[i],
+                                            rule=2)$y
+            }
         }
         outmat <- cbind(outmat, c(meantime)/scale)
         cname <- c("n", "nevent", "rmean")
-        if (!is.null(x$influence)) {
+        if (!is.null(x$std.auc) || !is.null(x$influence)) {
             outmat <- cbind(outmat, c(stdtime)/scale)
             cname <- c(cname, "se(rmean)")
         }
@@ -530,8 +537,8 @@ survmean2 <- function(x, scale=1, rmean) {
         names(temp) <- target
         temp[i]
     }
-    if (!is.null(x$influence.pstate) || !is.null(x$influence.cumhaz))
-        x <- survfit0(x, x$start.time)  # make influence and pstate align
+    #if (!is.null(x$influence.pstate) || !is.null(x$influence.cumhaz))
+    #    x <- survfit0(x, x$start.time)  # make influence and pstate align
     ndots <- ...length()      # the simplest, but not avail in R 3.4
     # ndots <- length(list(...))# fails if any are missing, e.g. fit[,2]
     # ndots <- if (missing(drop)) nargs()-1 else nargs()-2  # a workaround
@@ -552,7 +559,7 @@ survmean2 <- function(x, scale=1, rmean) {
     newx <- vector("list", length(x))
     names(newx) <- names(x)
     for (kk in c("logse", "version", "conf.int", "conf.type", "type", 
-                 "start.time", "call"))
+                 "start.time", "t0", "call"))
         if (!is.null(x[[kk]])) newx[[kk]] <- x[[kk]]
     newx$transitions <- NULL # may no longer be accurate, and not needed
     class(newx) <- class(x)
@@ -567,6 +574,7 @@ survmean2 <- function(x, scale=1, rmean) {
         # when subscripting a mix, these don't endure
         newx$cumhaz <- newx$std.chaz <- newx$influence.chaz <- NULL
         newx$transitions <- newx$states <- newx$newdata <- NULL
+        news$n.transition <- NULL
         
         # what strata and columns do I need?
         itemp <- matrix(1:prod(dd), nrow=dd[1])
@@ -590,10 +598,11 @@ survmean2 <- function(x, scale=1, rmean) {
             indx2 <- cbind(irow, rep(k, irow))  
         }
         newx$n <- x$n[ii]
+        newx$n.id <-x$n.id[ii]
         newx$time <- x$time[irow]
         for (z in c("n.risk", "n.event", "n.censor", "n.enter"))
             if (!is.null(x[[z]])) newx[[z]] <- (x[[z]])[indx2]
-        for (z in c("pstate", "std.err", "upper", "lower"))
+        for (z in c("pstate", "std.err", "upper", "lower", "std.auc"))
             if (!is.null(x[[z]])) newx[[z]] <- (x[[z]])[indx]
         
         newx$strata <- x$strata[ii]
@@ -630,7 +639,7 @@ survmean2 <- function(x, scale=1, rmean) {
     #  simpler.)
     newx$time <- x$time[irow]    
     if (dtype[1] !=1) {  # there are no strata
-        newx$n <- x$n
+        newx$n <- x$n; newx$n.id <- x$id
         k <- j; j <- i;
         dd <- c(0, dd)
         dtype <- c(1, dtype)
@@ -639,11 +648,12 @@ survmean2 <- function(x, scale=1, rmean) {
         if (is.null(i)) i <-seq(along.with=x$strata)
         if ((drop && length(i)>1) || !drop) newx$strata <- x$strata[i]
         newx$n <- x$n[i]
+        newx$n.id <- x$n.id
     }
 
     # The n.censor and n.enter values do not repeat with multiple X values
     for (z in c("n.censor", "n.enter"))
-        if (!is.null(x[[z]])) newx[[z]] <- (x[[z]])[irow, drop=FALSE]
+        if (!is.null(x[[z]])) newx[[z]] <- (x[[z]])[irow,, drop=FALSE]
     
     # two cases: with newx or without newx  (pstate is always present)
     nstate <- length(x$states)
@@ -668,7 +678,7 @@ survmean2 <- function(x, scale=1, rmean) {
 
         for (z in c("n.risk", "n.event"))
             if (!is.null(x[[z]])) newx[[z]] <- (x[[z]])[irow,j, drop=drop2]
-        for (z in c("pstate", "std.err", "upper", "lower"))
+        for (z in c("pstate", "std.err", "std.auc", "upper", "lower"))
             if (!is.null(x[[z]])) newx[[z]] <- (x[[z]])[irow,j, drop=drop2]
         if (!is.null(x$influence.pstate)) {
             if (is.list(x$influence.pstate)) {
@@ -682,7 +692,7 @@ survmean2 <- function(x, scale=1, rmean) {
         if (length(j)== nstate && all(j == seq.int(nstate))) {
             # user kept all the states, in original order
             newx$states <- x$states
-            for (z in c("cumhaz", "std.chaz"))
+            for (z in c("cumhaz", "std.chaz", "n.transtion"))
                  if (!is.null(x[[z]])) newx[[z]] <- (x[[z]])[irow,, drop=drop2]
             if (!is.null(x$influence.chaz)) {
                 if (is.list(x$influence.chaz)) {
@@ -698,6 +708,8 @@ survmean2 <- function(x, scale=1, rmean) {
             #  subscript cumhaz, or not one I have yet seen clearly
             # So remove it from the object
             newx$cumhaz <- newx$std.chaz <- newx$influence.chaz <- NULL
+            newx$n.transition <- NULL
+            newx$oldstate <- x$states
             if (length(j)==1 & drop) {
                 newx$states <- NULL
                 temp <- class(newx)
@@ -731,7 +743,7 @@ survmean2 <- function(x, scale=1, rmean) {
 
         for (z in c("n.risk", "n.event"))
             if (!is.null(x[[z]])) newx[[z]] <- (x[[z]])[irow, k, drop=drop3]
-        for (z in c("pstate", "std.err", "upper", "lower"))
+        for (z in c("pstate", "std.err", "std.auc", "upper", "lower"))
             if (!is.null(x[[z]])) newx[[z]] <- (x[[z]])[irow,j,k, drop=drop2]
   
         if (!is.null(x$influence.pstate)) {
@@ -747,6 +759,8 @@ survmean2 <- function(x, scale=1, rmean) {
         if (length(k)== nstate && all(k == seq.int(nstate))) {
             # user kept all the states
             newx$states <- x$states
+            if (!is.null(x$n.transition)) 
+                newx$n.transition <- x$n.transition[irow,drop=drop2]
             for (z in c("cumhaz", "std.chaz"))
                  if (!is.null(x[[z]])) 
                      newx[[z]] <- (x[[z]])[irow,j,, drop=drop2]
@@ -764,6 +778,8 @@ survmean2 <- function(x, scale=1, rmean) {
             #  will start looking for x$surv instead of x$pstate
             newx$states <- x$states[k]
             newx$cumhaz <- newx$std.chaz <- newx$influence.chaz <- NULL
+            newx$transition <- NULL
+            newx$oldstate <- x$states
             x$transitions <- NULL
          }
 

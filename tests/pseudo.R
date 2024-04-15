@@ -8,25 +8,27 @@ temp <- ifelse(mdata$pstat==1, 1, 2*mdata$death)
 mdata$event <- factor(temp, 0:2, c("censor", "pcm", "death"))
 mdata$etime <- ifelse(mdata$pstat==1, mdata$ptime, mdata$futime)
 mdata <- subset(mdata, etime > 12)  # remove first year
+tvec <- c(10, 100, 200, 365)
 
 # Single endpoint, one curve
 fit1 <- survfit(Surv(ptime, pstat) ~1, mdata)
 # a time point before first event, after last event, at an event time,
 #  and between event times
-tvec <- c(10, 100, 250, 450)
 rr1 <- resid(fit1, tvec)
+aeq(colSums(rr1), rep(0,4))
 sv1 <- summary(fit1, time=tvec, extend=TRUE)$surv
 
 # one time point  
 ps1a <- pseudo(fit1, time=100)
 aeq(ps1a, sv1[2] + fit1$n*rr1[,2])
 # multiple
-ps1b <- pseudo(fit1,  time=c(10, 100, 250, 450))
+ps1b <- pseudo(fit1,  time=tvec)
 aeq(ps1b,  sv1[col(rr1)] + fit1$n * rr1)
 
 # Single endpoint, multiple curves
 fit2 <- survfit(Surv(futime, death) ~ sex, mdata)
 rr2 <- resid(fit2, time=tvec)
+aeq(colSums(rr2), rep(0,4))
 sv2 <- summary(fit2, time=tvec, extend=TRUE)$surv
 sv2 <- t(matrix(sv2, ncol=2))   # row 1= female, row2 = male
 
@@ -66,6 +68,7 @@ fit3 <- survfit(Surv(etime, event) ~ sex, mdata)
 fit3a <- survfit(Surv(etime, event) ~1, mdata, subset= (sex=='F'))
 fit3b <- survfit(Surv(etime, event) ~1, mdata, subset= (sex=='M'))
 rr3 <-  resid(fit3, times=tvec)
+aeq(apply(rr3, 2:3, sum), matrix(0,3,4)) # resids sum to 0 for each state & time
 rr3a <- resid(fit3a, times=tvec)
 rr3b <- resid(fit3b, times=tvec)
 all.equal(rr3[fem,,], rr3a)
@@ -78,16 +81,16 @@ all.equal(ps3[ fem,,], ps3a)
 all.equal(ps3[!fem,,], ps3b)
 
 sv3 <- summary(fit3, times=tvec, extend=TRUE)$pstate
-sv3 <- array(sv3, dim=c(4,2,3))      #times, curve, state
-# ps3a has dimensions (number obs in fit3a, 4 timepoints, 3 states)
-#  to each of the 4x3 combinations we need to add the value of the
+sv3 <- array(sv3, dim=c(4,2,3))      #times, curve, order
+# ps3a has dimensions (number obs in fit3a, 3 states, 4 timepoints)
+#  to each of the 3x4 combinations we need to add the value of the
 #  survival curve at that time.  A loop is easiest
 temp1 <- array(0, dim= dim(rr3a))
 temp2 <- array(0, dim= dim(rr3b))
-for (i in 1:4) { # each of the 4 times
-    for (j in 1:3) {  # each of the 3 endpoints
-        temp1[, i,j] <- sv3[i,1,j] + fit3$n[1]*rr3a[,i,j]
-        temp2[, i,j] <- sv3[i,2,j] + fit3$n[2]*rr3b[,i,j]
+for (i in 1:3) { # each of the 3 states
+    for (j in 1:4) {  # each of the 4 times 
+        temp1[, i,j] <- sv3[j,1,i] + fit3$n[1]*rr3a[,i,j]
+        temp2[, i,j] <- sv3[j,2,i] + fit3$n[2]*rr3b[,i,j]
     }
 }
 aeq(temp1, ps3a)
@@ -98,18 +101,20 @@ aeq(temp2, ps3b)
 #  Though there are 2 of them, vs 3 states.
 #
 rr1 <- resid(fit1, tvec, type="cumhaz")
+aeq(colSums(rr1), rep(0,4))
 sv1 <- summary(fit1, time=tvec, extend=TRUE)$cumhaz
 
 # one time point  
 ps1a <- pseudo(fit1, time=100, type="cumhaz")
 aeq(ps1a, sv1[2] + fit1$n*rr1[,2])
 # multiple
-ps1b <- pseudo(fit1,  time=c(10, 100, 250, 450), type="cumhaz")
+ps1b <- pseudo(fit1,  time=tvec, type="cumhaz")
 aeq(ps1b,  sv1[col(rr1)] + fit1$n * rr1)
 
 # Single endpoint, multiple curves
 fit2 <- survfit(Surv(futime, death) ~ sex, mdata)
 rr2 <- resid(fit2, time=tvec, type="cumhaz")
+aeq(colSums(rr2), rep(0,4))
 sv2 <- summary(fit2, time=tvec, extend=TRUE)$cumhaz
 sv2 <- t(matrix(sv2, ncol=2))   # row 1= female, row2 = male
 
@@ -143,6 +148,7 @@ all.equal(ps2e, ps2f[!fem,])
 
 # Repeat the process for a multi-state model
 rr3 <-  resid(fit3, times=tvec, type="cumhaz")
+aeq(apply(rr3, 2:3, sum), matrix(0, 2,4))
 rr3a <- resid(fit3a, times=tvec, type="cumhaz")
 rr3b <- resid(fit3b, times=tvec, type="cumhaz")
 all.equal(rr3[fem,,], rr3a)
@@ -155,16 +161,16 @@ all.equal(ps3[ fem,,], ps3a)
 all.equal(ps3[!fem,,], ps3b)
 
 sv3 <- summary(fit3, times=tvec, extend=TRUE)$cumhaz
-sv3 <- array(sv3, dim=c(4,2,2))      #times, curve, state
+sv3 <- array(sv3, dim=c(4,2,2))      #times, curve, hazard
 # ps3a has dimensions (number obs in fit3a, 4 timepoints, 3 states)
 #  to each of the 4x3 combinations we need to add the value of the
 #  survival curve at that time.  A loop is easiest
 temp1 <- array(0, dim= dim(rr3a))
 temp2 <- array(0, dim= dim(rr3b))
-for (i in 1:4) { # each of the 4 times
-    for (j in 1:2) {  # each of the 3 endpoints
-        temp1[, i,j] <- sv3[i,1,j] + fit3$n[1]*rr3a[,i,j]
-        temp2[, i,j] <- sv3[i,2,j] + fit3$n[2]*rr3b[,i,j]
+for (i in 1:2) { # each of the 2 hazard
+    for (j in 1:4) {  # each of the 4 timepoints
+        temp1[, i,j] <- sv3[j,1,i] + fit3$n[1]*rr3a[,i,j]
+        temp2[, i,j] <- sv3[j,2,i] + fit3$n[2]*rr3b[,i,j]
     }
 }
 aeq(temp1, ps3a)
@@ -178,6 +184,7 @@ aeq(temp2, ps3b)
 tvec <- tvec[2:4]
 
 rr1 <- resid(fit1, tvec, type="auc")
+all.equal(colSums(rr1), rep(0,3))
 afun <- function(fit, times) {
     ntime <- length(times)
     if (length(fit$strata)) xfun <- function(x) x$table[, "rmean"]
@@ -196,7 +203,7 @@ afun <- function(fit, times) {
 sv1 <- afun(fit1, tvec)
 
 # one time point  
-ps1a <- pseudo(fit1, time=100, type="auc")
+ps1a <- pseudo(fit1, time=tvec[1], type="auc")
 aeq(ps1a, sv1[1] + fit1$n*rr1[,1])
 # multiple
 ps1b <- pseudo(fit1,  time=tvec, type="auc")
@@ -205,6 +212,7 @@ aeq(ps1b,  sv1[col(rr1)] + fit1$n * rr1)
 # Single endpoint, multiple curves
 rr2 <- resid(fit2, time=tvec, type="auc")
 sv2 <- t(afun(fit2, tvec))
+all.equal(colSums(rr2), rep(0,3))
 
 # residuals are the same as for separate models
 rr2a <- resid(fit2a, times=tvec, type= "auc")
@@ -236,6 +244,7 @@ all.equal(ps2e, ps2f[!fem,])
 
 # Repeat the process for a multi-state model
 rr3 <-  resid(fit3, times=tvec, type="auc")
+aeq(apply(rr3, 2:3, sum), matrix(0, 3,3))
 rr3a <- resid(fit3a, times=tvec, type="auc")
 rr3b <- resid(fit3b, times=tvec, type="auc")
 all.equal(rr3[fem,,], rr3a)
@@ -247,19 +256,19 @@ ps3b <- pseudo(fit3b, times=tvec, type="auc")
 all.equal(ps3[ fem,,], ps3a)
 all.equal(ps3[!fem,,], ps3b)
 
-sv3 <- rbind(summary(fit3, rmean=tvec[1])$table[,3],
-             summary(fit3, rmean=tvec[2])$table[,3],
-             summary(fit3, rmean=tvec[3])$table[,3])
+sv3 <- rbind(summary(fit3, rmean=tvec[1])$table[,"rmean"],
+             summary(fit3, rmean=tvec[2])$table[,"rmean"],
+             summary(fit3, rmean=tvec[3])$table[,"rmean"])
 sv3 <- array(sv3, dim=c(3,2,3))      #times, curve, state
 # ps3a has dimensions (number obs in fit3a, 4 timepoints, 3 states)
 #  to each of the 4x3 combinations we need to add the value of the
 #  survival curve at that time.  A loop is easiest
 temp1 <- array(0, dim= dim(rr3a))
 temp2 <- array(0, dim= dim(rr3b))
-for (i in 1:3) { # each of the 3 times
-    for (j in 1:3) {  # each of the 3 states
-        temp1[, i,j] <- sv3[i,1,j] + fit3$n[1]*rr3a[,i,j]
-        temp2[, i,j] <- sv3[i,2,j] + fit3$n[2]*rr3b[,i,j]
+for (i in 1:3) { # each of the 3 states
+    for (j in 1:3) {  # each of the 3 times
+        temp1[, i,j] <- sv3[j,1,i] + fit3$n[1]*rr3a[,i,j]
+        temp2[, i,j] <- sv3[j,2,i] + fit3$n[2]*rr3b[,i,j]
     }
 }
 aeq(temp1, ps3a)

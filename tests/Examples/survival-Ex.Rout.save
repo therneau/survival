@@ -1,7 +1,7 @@
 
-R Under development (unstable) (2023-03-05 r83940) -- "Unsuffered Consequences"
-Copyright (C) 2023 The R Foundation for Statistical Computing
-Platform: x86_64-pc-linux-gnu (64-bit)
+R Under development (unstable) (2024-03-04 r86048) -- "Unsuffered Consequences"
+Copyright (C) 2024 The R Foundation for Statistical Computing
+Platform: aarch64-unknown-linux-gnu
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -1074,13 +1074,13 @@ NULL
 Call: survfit(formula = Surv(start, stop, event) ~ sex, data = mgus1, 
     subset = (enum == 1), id = id)
 
-                    n nevent   rmean*
-sex=female, (s0)  104      0 5762.379
-sex=male, (s0)    137      0 4543.293
-sex=female, pcm   104     33 2881.500
-sex=male, pcm     137     31 2478.026
-sex=female, death 104     63 5681.121
-sex=male, death   137    100 7303.682
+                    n nevent    rmean se(rmean)*
+sex=female, (s0)  104      0 5762.379   372.6367
+sex=male, (s0)    137      0 4543.293   315.1668
+sex=female, pcm   104     33 2881.500   400.8899
+sex=male, pcm     137     31 2478.026   397.9675
+sex=female, death 104     63 5681.121   462.1850
+sex=male, death   137    100 7303.682   452.9533
    *restricted mean time in state (max time = 14325 )
 > 
 > plot(sfit, xscale=365.25, lty=c(2,2,1,1), col=c(1,2,1,2),
@@ -1130,14 +1130,16 @@ sex=male, death   137    100 7303.682
 > 
 > ### ** Examples
 > 
-> coxph(Surv(futime, death) ~ trt, data=myeloid)
+> coxph(Surv(futime, death) ~ trt + flt3, data=myeloid)
 Call:
-coxph(formula = Surv(futime, death) ~ trt, data = myeloid)
+coxph(formula = Surv(futime, death) ~ trt + flt3, data = myeloid)
 
-        coef exp(coef) se(coef)      z       p
-trtB -0.3457    0.7077   0.1122 -3.081 0.00206
+         coef exp(coef) se(coef)      z        p
+trtB  -0.3534    0.7023   0.1122 -3.149  0.00164
+flt3B  0.4114    1.5089   0.1587  2.593  0.00952
+flt3C  0.7878    2.1985   0.1656  4.758 1.96e-06
 
-Likelihood ratio test=9.52  on 1 df, p=0.002029
+Likelihood ratio test=34.04  on 3 df, p=1.94e-07
 n= 646, number of events= 320 
 > # See the mstate vignette for a more complete analysis
 > 
@@ -2431,6 +2433,23 @@ Loglik(model)= -244.2   Loglik(intercept only)= -254.5
 	Chisq= 20.57 on 2 degrees of freedom, p= 3.41e-05 
 n= 64 
 > 
+> # Replacement of valve seats.  In this case the cumulative hazard is the 
+> #  natural target, an estimate of the number of replacements by a given time
+> #  (known as the cumulative mean function = CMF in relability).
+> # When two valve seats failed at the same inspection, we need to jitter one
+> #  of the times, to avoid a (time1, time2) interval of length 0
+> ties <- which(with(valveSeat, diff(id)==0 & diff(time)==0))  #first of a tie
+> temp <- valveSeat$time
+> temp[ties] <- temp[ties] - .1 # jittered time
+> vdata <- valveSeat
+> vdata$time1 <- ifelse(!duplicated(vdata$id), 0, c(0, temp[-length(temp)]))
+> vdata$time2 <- temp
+> fit2 <- survfit(Surv(time1, time2, status) ~1, vdata, id=id)
+> ## Not run: 
+> ##D plot(fit2, cumhaz= TRUE, xscale= 365.25, 
+> ##D       xlab="Years in service", ylab = "Expected number of repairs")
+> ## End(Not run)
+> 
 > 
 > 
 > cleanEx()
@@ -2986,6 +3005,22 @@ Call: survfit(formula = Surv(futime, fustat) ~ rx, data = ovarian)
 overall.karno   t0_60.karno       t60_120          t120 
  -0.034443897  -0.049176157  -0.011031558  -0.007629841 
 > 
+> # Sometimes we want to split on one scale and analyse on another
+> #  Add a "current age" variable to the mgus2 data set.
+> temp1 <- mgus2
+> temp1$endage <- mgus2$age + mgus2$futime/12    # futime is in months
+> temp1$startage <- temp1$age
+> temp2 <- survSplit(Surv(age, endage, death) ~ ., temp1, cut=25:100,
++                    start= "age1", end= "age2")
+> 
+> # restore the time since enrollment scale
+> temp2$time1 <- (temp2$age1 - temp2$startage)*12
+> temp2$time2 <- (temp2$age2 - temp2$startage)*12
+> 
+> # In this data set, initial age and current age have similar utility
+> mfit1 <- coxph(Surv(futime, death) ~ age + sex, data=mgus2)
+> mfit2 <- coxph(Surv(time1, time2, death) ~ age1 + sex, data=temp2)
+> 
 > 
 > 
 > cleanEx()
@@ -3083,7 +3118,7 @@ Call:
 survdiff(formula = Surv(futime, death) ~ offset(e2), data = flchain)
 
  Observed  Expected         Z         p 
-2169.0000 2073.9133   -2.0880    0.0368 
+2169.0000 2076.8776   -2.0214    0.0432 
 > 
 > 
 > 
@@ -3130,9 +3165,9 @@ survexp(formula = ~surgery, data = jasa, rmap = list(sex = "male",
     year = accept.dt, age = (accept.dt - birth.dt)), times = 1:10 * 
     182.5, method = "ederer")
 
-  age ranges from 8.8 to 64.4 years
-  male: 103  female: 0 
-  date of entry from 1967-09-13 to 1974-03-22 
+ age ranges from 8.8 to 64.4 years
+    male: 103  female: 0 
+    date of entry from 1967-09-13 to 1974-03-22 
 
  time nrisk1 nrisk2 surgery=0 surgery=1
   182     87     16     0.996     0.996
@@ -3638,11 +3673,11 @@ fgrp     <=60 60-70 70-80  >80
 > pfit[,2]  #time to liver transplant, by blood type
 Call: survfit(formula = Surv(futime, event) ~ abo, data = transplant)
 
-                n nevent   rmean*
-abo=A, death  325     21 164.9734
-abo=B, death  103     10 202.4902
-abo=AB, death  41      3 137.8293
-abo=O, death  346     32 182.1075
+                n nevent    rmean se(rmean)*
+abo=A, death  325     21 164.9734   17.49968
+abo=B, death  103     10 202.4902   59.61134
+abo=AB, death  41      3 137.8293   19.65319
+abo=O, death  346     32 182.1075   28.17050
    *restricted mean time in state (max time = 2055 )
 > plot(pfit[,2], mark.time=FALSE, col=1:4, lwd=2, xmax=735,
 +        xscale=30.5, xlab="Months", ylab="Fraction transplanted",
@@ -3803,7 +3838,7 @@ $terms
 > cleanEx()
 > options(digits = 7L)
 > base::cat("Time elapsed: ", proc.time() - base::get("ptime", pos = 'CheckExEnv'),"\n")
-Time elapsed:  6.28 0.228 6.52 0 0 
+Time elapsed:  2.642 0.116 2.759 0 0 
 > grDevices::dev.off()
 null device 
           1 

@@ -47,7 +47,8 @@ residuals.survfit <- function(object, times,
         # collapse dummy obs back to a single
         stop("residuals for interval-censored data are not available")
         }
-
+    if (!is.null(object$oldstates)) 
+        stop("residuals not available for a subscripted survfit object")
     if (missing(times)) stop("the times argument is required")
     # allow a set of alias
     temp <- c("pstate", "cumhaz", "sojourn", "survival",

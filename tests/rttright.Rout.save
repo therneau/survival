@@ -1,7 +1,7 @@
 
-R Under development (unstable) (2023-03-05 r83940) -- "Unsuffered Consequences"
-Copyright (C) 2023 The R Foundation for Statistical Computing
-Platform: x86_64-pc-linux-gnu (64-bit)
+R Under development (unstable) (2024-02-06 r85866) -- "Unsuffered Consequences"
+Copyright (C) 2024 The R Foundation for Statistical Computing
+Platform: aarch64-unknown-linux-gnu
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -100,7 +100,7 @@ Type 'q()' to quit R.
 > mdata$etime <- with(mgus2, ifelse(pstat==1, ptime, futime))
 > mdata$estat <- with(mgus2, ifelse(pstat==1, 1, 2*death))
 > mdata$estat <- factor(mdata$estat, 0:2, c('censor', 'pcm', 'death'))
-> mfit <- survfit(Surv(etime, estat) ~1, mdata, id=id)
+> mfit <- survfit(Surv(etime, estat) ~1, mdata, id=id, time0=FALSE)
 > mwt1 <- rttright(Surv(etime, estat) ~1, mdata, id=id)
 > 
 > morder <- order(mdata$etime)
@@ -135,17 +135,7 @@ Type 'q()' to quit R.
 [1] TRUE
 > 
 > 
-> ###
-> # Delayed entry, tiny data set
-> #  Still to be done
-> delay <- data.frame(t0=c(0,0,0,0,3,0),
-+                     t1=1:6,
-+                     status=c(1,0,1,0,0,1),
-+                     id=1:6)
-> # dwt <- rttright(Surv(t0, t1, status) ~ 1, delay, id=id, times=0:5 + .9)
-> 
-> 
 > 
 > proc.time()
    user  system elapsed 
-  1.410   0.125   1.525 
+  0.448   0.032   0.478 

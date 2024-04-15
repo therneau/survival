@@ -1,5 +1,5 @@
 library(survival)
-
+aeq <- function(x,y, ...) all.equal(as.vector(x), as.vector(y), ...)
 #
 # Test the multi-state version of the CI curve
 #
@@ -70,29 +70,31 @@ truth <- truth[c(1:6, 6:11),]/10  #the explicit censor at 22
 
 #dimnames(truth) <- list(c(5, 6, 10, 15, 18, 20, 25, 30, 34, 40, 50),
 #                        c('a', 'b', 'c', 'd')
-all.equal(truth, fit$pstate[,2:5])
+aeq(truth, fit$pstate[,2:5])
 
 # Test the dfbetas
 # It was a big surprise, but the epsilon where a finite difference approx to
 #  the derivative is most accurate is around 1e-7 = approx sqrt(precision).
 # Smaller eps makes the approximate derivative worse.
 # There is a now a formal test in mstate.R, not approximate.
-dfbeta <- 0*fit$influence[,-1,] #  lose the first row
-eps <- sqrt(.Machine$double.eps)     
-for (i in 1:6) {
+
+# compute the per observation influence first
+n <- nrow(tdata)     
+U <- array(0, dim=c(n, dim(fit$pstate)))
+eps <- sqrt(.Machine$double.eps)
+n <- nrow(tdata)     
+for (i in 1:n) {
     twt <- tdata$wt
-    twt[tdata$id ==i] <- twt[tdata$id==i] + eps
+    twt[i] <- twt[i] + eps
     tfit <- survfit(Surv(time1, time2, stat2) ~ 1, id=id, tdata,
                     weight=twt)
-    dfbeta[i,,] <- (tfit$pstate - fit$pstate)/eps  #finite difference approx
+    U[i,,] <- (tfit$pstate - fit$pstate)/eps  #finite difference approx
 }
-all.equal(dfbeta, fit$influence[,-1,], tolerance= eps*10)
-twt <- tdata$wt[match(1:6, tdata$id)]  # six unique weights
-temp <- dfbeta
-for (i in 1:6) temp[i,,] <- temp[i,,]* twt[i]
-std2 <- sqrt(apply(temp^2, 2:3, sum))
+dfbeta <- rowsum(tdata$wt*matrix(U,nrow=n), tdata$id) # per subject
+dfbeta <- array(dfbeta, dim=c(6,12,5))
+aeq(dfbeta, fit$influence, tolerance= eps*10)
 
-all.equal(fit$std, std2, tolerance=eps, check.attributes=FALSE)
+aeq(fit$std.err, sqrt(apply(fit$influence.pstate^2, 2:3, sum)))
 
 if (FALSE) {
     # a plot of the data that helped during creation of the example
@@ -120,6 +122,11 @@ if (FALSE) {
 
 # Check the start.time option
 #
+# Later work showed this test has to be false.  At time 0 everyone starts in
+# state (s0), but by time 20 many have shifted to another.  fit2 picks up at
+# the right place, but because there is no istate varaible, fit2x starts
+# everyone in (s0) at time 20.  There is no way for survfit to know.
+if (FALSE) {
 fit2 <- survfit(Surv(time1, time2, stat2) ~1, id=id, weight=wt, tdata,
                 start.time=20)
 data2 <- subset(tdata, time2>= 20)
@@ -127,3 +134,4 @@ fit2x <- survfit(Surv(time1, time2, stat2) ~1, id=id, weight=wt, data2)
 
 ii <- names(fit2)[!(names(fit2) %in%  c("call", "start.time"))]
 all.equal(unclass(fit2)[ii], unclass(fit2x)[ii])
+}

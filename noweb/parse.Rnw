@@ -350,7 +350,7 @@ for (x in lhs) {
     }
     else {
         k <- match(x$right, statedata$state)
-        if (any(is.na(k))) stop(x$right[k], ": state not found")
+        if (any(is.na(k))) stop(x$right, ": state not found")
         temp2 <- which(statedata$state %in% x$right)
     }
 
@@ -359,7 +359,7 @@ for (x in lhs) {
     state2 <- c(state2, rep(temp2, each=length(temp1)))
 }           
 @ 
-At the end it has created to vectors state1 and state2 listing all
+At the end it has created two vectors state1 and state2 listing all
 the pairs of states that are indicated.
 
 The init clause (initial values) are gathered but not checked:

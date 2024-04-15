@@ -7,7 +7,7 @@ Pseudo values for survival.
 Produce pseudo values from a survival curve.
 }
 \usage{
-pseudo(fit, times, type, addNA=TRUE, data.frame=FALSE, minus1=FALSE, ...)
+pseudo(fit, times, type, collapse= TRUE, data.frame=FALSE, ...) 
 }
 \arguments{
   \item{fit}{a \code{survfit} object, or one that inherits that class.   
@@ -20,24 +20,25 @@ pseudo(fit, times, type, addNA=TRUE, data.frame=FALSE, minus1=FALSE, ...)
     the cumulative hazard \code{cumhaz} or the expected sojourn time in
     the state \code{sojourn}.  
   }
-  \item{addNA}{If any observations were removed due to missing values
-    in the \code{fit} object, add those rows (as NA) into the return.
-    This causes the result of pseudo to match the original dataframe.
+  \item{collapse}{
+    if the original survfit call had an \code{id} variable, return one
+    residual per unique id
   }
   \item{data.frame}{if TRUE, return the data in "long" form as a
-    data.frame with id, time, and pseudo as variables.}
-  \item{minus1}{use n-1 as the multiplier rather than n}.
+    data.frame with id, state (or transition), curve, time, residual
+    and pseudo as variables.}
   \item{\dots}{
     other arguments to the \code{residuals.survfit} function, which does
- the majority of the work, e.g., \code{collapse} and \code{weighted}.
+    the majority of the work, e.g.,  \code{weighted}.
 }
 }
 \details{
 This function computes pseudo values based on a first order Taylor
 series, also known as the "infinitesimal jackknife" (IJ) or "dfbeta"
-residuals.  To be completely correct these results could perhaps be
+residuals.  To be completely correct the results of this function
+could perhaps be
 called `IJ pseudo values' or even pseudo psuedo-values.
-For moderate to large data, however, the resulting values will
+For moderate to large data, however, the resulta will
 be almost identical, numerically, to the ordinary jackknife.
 
 A primary advantage of this approach is computational speed.
@@ -47,24 +48,36 @@ which are based on the IJ, and that the mean of the estimates, over
 subjects, is exactly the underlying survival estimate.
 
 For the \code{type} variable, \code{surv} is an acceptable synonym for
-\code{pstate}, and \code{rmst} and \code{rmts} are equivalent to \code{sojourn}.
+\code{pstate}, \code{chaz} for \code{cumhaz}, and
+\code{rmst},\code{rmts}
+and \code{auc} are equivalent to \code{sojourn}.
 All of these are case insensitive.
 
+If the orginal \code{survfit} call produced multiple curves, the internal
+computations are done separately for each curve.
 The result from this routine is simply n times the IJ value, where n is
-the number of subjects.
+the number of uniue subjects in the respective curve.
 (If the the \code{survfit} call included and \code{id} option, n is
 the number of unique id values, otherwise the number of rows in the data set.) 
 IJ values are well defined for all variants of the Aalen-Johansen
 estimate, as computed by the \code{survfit} function; indeed, they are
 the basis for standard errors of the result.
-Understanding of the properties of the pseudo-values, however, is still
-evolving.  Validity has been shown for the simplest case (Kaplan-Meier),
-for competing risks, and for the corresponding sojourn times.
-On the other hand, one must be careful when the data includes
-left-truncation (P. K. Andersen, personal communication), and also with
-pseudo-values for the cumulative hazard.
+
+Understanding of the properties of the pseudo-values is still
+evolving.  Validity has been verified for the probability in state and
+sojourn times whenever all subjects start in the same state;
+this includes for instance the usual Kaplan-Meier and competing risks cases.
+On the other hand, one must be cautious when the data includes
+left-truncation (Parner); and pseudo-values for the cumulative hazard
+have not been widely explored.
+When a given subject is spread across multiple (time1, time2) windows
+with different weights for each of those portions, which can happen
+with time-dependent inverse probability of censoring (IPW) weights for
+instance, the current thought is to set both collapse and weight to
+FALSE, with clustering and weighting as part of the subsequent GEE
+model; but this is quite tentative.
 As understanding evolves, treat this routine's results as a reseach
-tool, not production, for the more complex models.
+tool, not production, for these more complex models.
 }
 \value{
   A vector, matrix, or array.  The first dimension is always the number of
@@ -92,6 +105,10 @@ tool, not production, for the more complex models.
 \references{
 PK Andersen and M Pohar-Perme, Pseudo-observations in surivival
 analysis, Stat Methods Medical Res, 2010; 19:71-99
+
+ET Parner, PK Andersen and M Overgaard, Regression models for censored
+time-to-event data using infinitesimal jack-knife pseudo-observations, with
+applications to left-truncation, Lifetime Data Analysis, 2023, 29:654-671
 }
 \seealso{
 \code{\link{residuals.survfit}}

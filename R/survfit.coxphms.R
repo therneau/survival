@@ -4,7 +4,7 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95, individual=FALSE,
          stype=2, ctype, 
          conf.type=c("log", "log-log", "plain", "none", "logit", "arcsin"),
          censor=TRUE, start.time, id, influence=FALSE,
-         na.action=na.pass, type, p0=NULL, ...) {
+         na.action=na.pass, type, p0=NULL, time0=FALSE, ...) {
 
     Call <- match.call()
     Call[[1]] <- as.name("survfit")  #nicer output for the user
@@ -176,7 +176,7 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95, individual=FALSE,
         if (any(is.na(istate))) stop("unrecognized initial state, data changed?")
     }
 
-    # Let the survfitCI routine do the work of creating the
+    # Let the survfitAJ routine do the work of creating the
     #  overall counts (n.risk, etc).  The rest of this code then
     #  replaces the surv and hazard components.
     if (missing(start.time)) start.time <- min(Y[,2], 0)
@@ -185,9 +185,9 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95, individual=FALSE,
     if (is.null(strata))  tempstrat <- rep(1L, nrow(Y))
     else                  tempstrat <- strata
 
-    cifit <- survfitCI(as.factor(tempstrat), Y, weights, 
+    cifit <- survfitAJ(as.factor(tempstrat), Y, weights, 
                             id= oldid, istate = istate, se.fit=FALSE, 
-                            start.time=start.time, p0=p0)
+                            start.time=start.time, p0=p0, time0= time0)
 
     # For computing the  actual estimates it is easier to work with an
     #  expanded data set.
@@ -276,7 +276,7 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95, individual=FALSE,
                 stop("Newdata argument must be a data frame")
             }
             newdata <- data.frame(as.list(newdata), stringsAsFactors=FALSE)
-        }
+        }  else if (is.list(newdata)) newdata <- as.data.frame(newdata) 
         if (has.strata) {
             found.strata <- TRUE
             tempenv <- new.env(, parent=emptyenv())
@@ -303,8 +303,11 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95, individual=FALSE,
         tcall$formula <- Terms2
         tcall$xlev <- object$xlevels[match(attr(Terms2,'term.labels'),
                                            names(object$xlevels), nomatch=0)]
+        tcall$na.action <- na.omit  # do not allow missing values
         tcall[[1L]] <- quote(stats::model.frame)
         mf2 <- eval(tcall)
+        if (nrow(mf2) ==0)
+            stop("all rows of newdata have missing values")
     }
     if (has.strata && found.strata) { #pull them off
         temp <- untangle.specials(Terms2, 'strata')
@@ -359,7 +362,7 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95, individual=FALSE,
         else x2 <- model.matrix(Terms2, mf2)[,-1, drop=FALSE]  #no intercept
     }
 
-    if (has.strata && !is.null(mf2[[stangle$vars]])){
+    if (has.strata && any(stangle$vars %in% names(mf2))){
         mf2 <- mf2[is.na(match(names(mf2), stangle$vars))]
         mf2 <- unique(mf2)
         x2 <- unique(x2)

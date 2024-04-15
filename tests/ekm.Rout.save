@@ -1,0 +1,192 @@
+
+R Under development (unstable) (2024-04-01 r86255) -- "Unsuffered Consequences"
+Copyright (C) 2024 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> library(survival)
+> aeq <- function(x, y, ...) all.equal(as.vector(x), as.vector(y), ...)
+> 
+> # test for the "extended KM", where subjects change arms midstream
+> # (I don't like it statistically, but some use it).  
+> 
+> tdata <- aml
+> tdata$id <- 1:nrow(tdata)
+> tdata <- survSplit(Surv(time, status) ~ ., tdata, cut= c(9, 17, 30))
+> tdata$trt <- rep(c(1,1,2,2,2), length=nrow(tdata))
+> # different weights for different rows of the same subject = hardest case
+> tdata$wt <-  rep(1:6, length= nrow(tdata))
+> tdata$status[tdata$time==13] <- 1   # force at least 1 tied event
+> 
+> # not exported, but used in byhand
+> if (!exists("survflag")) survflag <- survival:::survflag
+> 
+> byhand <- function(t1, t2, status, grp, id, wt, debug=FALSE) {
++     if (missing(wt)) wt <- rep(1, length(t1))
++     ugrp <- unique(grp)
++     ngrp <- length(ugrp)
++     out <- vector("list", ngrp)
++     names(out) <- ugrp
++     pos <- survflag(Surv(t1, t2, status), id, grp)
++     for (i in ugrp) { # create this curve
++         keep <- (grp ==i)
++         n <- sum(keep)
++         utime <- sort(unique(c(t1[keep], t2[keep])))
++         ntime <- length(utime)
++         nrisk <- ncensor <- nevent <- entry <- double(ntime)
++         surv <- cumhaz <- double(ntime)
++         U <- C <- matrix(0, n, ntime) # influence
++         U2 <- dN <- U  # portions of U, useful for debugging the AUC
++         utemp <- ctemp <- double(n)
++         km <- 1.0; chaz <- 0
++         for (j in 1:ntime) {
++             atrisk <- (keep & t1 < utime[j] &  t2 >= utime[j])
++             nrisk[j] <- sum(wt[atrisk])
++             nevent[j] <- sum(wt[keep & t2== utime[j]  & status ==1])
++             ncensor[j] <- sum(wt[keep & t2==utime[j]  & status==0 & pos >1])
++             entry[j] <- sum(wt[keep & t1== utime[j] & pos%%2 ==1])
++             if (nrisk[j] >0) {
++                 km <- km * (nrisk[j]- nevent[j])/ nrisk[j]
++                 chaz <- chaz + nevent[j]/nrisk[j]
++             }
++             surv[j] =km
++             cumhaz[j] =chaz
++ 
++             # influence
++             if (nrisk[j] > 0) {
++                 haz <- nevent[j]/nrisk[j]
++                 death <- (t2[keep]== utime[j]  & status[keep] ==1)
++                 temp <- double(n)
++                 temp[death] <- 1/nrisk[j]
++                 temp[atrisk[keep]] <- temp[atrisk[keep]] - haz/nrisk[j]
++                 ctemp <- ctemp + temp
++                 if (haz <1) utemp <- utemp - temp/(1-haz) else utemp <- 0
++                 dN[death,j] <- 1/(nrisk[j]* (1-haz))
++                 U2[atrisk[keep],j] <- haz/(nrisk[j] * (1-haz))
++             }
++             U[,j] <- utemp*km
++             C[,j] <- ctemp
++         }   
++         out[[i]] <- list(n.id = length(unique(id[keep])), n= n,
++                          time= utime, n.enter=entry, n.risk=nrisk, 
++                          n.event=nevent, n.censor=  ncensor, surv= surv,
++                          cumhaz = cumhaz, U=U, C=C, U2=U2, dN=dN)
++         }
++     out
++ }
+> 
+> true <- with(tdata, byhand(tstart, time, status, trt, id, wt))
+> ekm <- survfit(Surv(tstart, time, status) ~ trt, tdata, id=id, entry=TRUE,
++                influence= TRUE, weights=wt)
+> 
+> aeq(ekm$n.id,    unlist(lapply(true, function(x) x$n.id)))
+[1] TRUE
+> aeq(ekm$n,       unlist(lapply(true, function(x) x$n)))
+[1] TRUE
+> aeq(ekm$time,    unlist(lapply(true, function(x) x$time)))
+[1] TRUE
+> aeq(ekm$n.risk,  unlist(lapply(true, function(x) x$n.risk)))
+[1] TRUE
+> aeq(ekm$n.enter, unlist(lapply(true, function(x) x$n.enter)))
+[1] TRUE
+> aeq(ekm$n.event, unlist(lapply(true, function(x) x$n.event)))
+[1] TRUE
+> aeq(ekm$n.censor,unlist(lapply(true, function(x) x$n.censor)))
+[1] TRUE
+> aeq(ekm$surv    ,unlist(lapply(true, function(x) x$surv)))
+[1] TRUE
+> 
+> # The byhand function gives per-observation influence, ekm has per-subject,
+> #  residuals can do either, but will fail with an error for this data when
+> #  collapse=TRUE with a message "same id appears in multiple curves "
+> rr <- residuals(ekm, times= c(9, 17, 30, 45), type="cumhaz")
+> aeq(rr[tdata$trt==1,], true[[1]]$C[, match(c(9,17,30,45), true[[1]]$time)])
+[1] TRUE
+> aeq(rr[tdata$trt==2,], true[[2]]$C[, match(c(9,17,30,45), true[[2]]$time)])
+[1] TRUE
+> 
+> rr <- residuals(ekm, times= c(9, 17, 30, 45), type= "pstate")
+> aeq(rr[tdata$trt==1,], true[[1]]$U[, match(c(9,17,30,45), true[[1]]$time)])
+[1] TRUE
+> aeq(rr[tdata$trt==2,], true[[2]]$U[, match(c(9,17,30,45), true[[2]]$time)])
+[1] TRUE
+> 
+> # Check influence returned by survfit
+> tdata1 <- subset(tdata, trt==1)
+> tdata2 <- subset(tdata, trt==2)
+> inf1 <- rowsum(tdata1$wt* true[[1]]$U, tdata1$id, reorder=FALSE)
+> inf2 <- rowsum(tdata2$wt* true[[2]]$U, tdata2$id, reorder=FALSE)
+> aeq(inf1, ekm$influence.surv[[1]])
+[1] TRUE
+> aeq(inf2, ekm$influence.surv[[2]])
+[1] TRUE
+> 
+> c1 <- rowsum(tdata1$wt* true[[1]]$C, tdata$id[tdata$trt==1], reorder=FALSE)
+> c2 <- rowsum(tdata2$wt* true[[2]]$C, tdata$id[tdata$trt==2], reorder=FALSE)
+> aeq(c1, ekm$influence.chaz[[1]])
+[1] TRUE
+> aeq(c2, ekm$influence.chaz[[2]])
+[1] TRUE
+> 
+> # Look at the AUC
+> t1 <- true[[1]]
+> width <- diff(c(t1$time, 50)) 
+> aucr <- width* t1$surv  # the rectangles that make up auc(50)
+> ainf <- t1$U %*% diag(width) # row i= influence of obs i on each rectangle
+> aucinf <- t(apply(ainf,1,cumsum))
+> 
+> rr <- residuals(ekm, times= c(t1$time[-1], 50), type= "auc")
+> aeq(rr[tdata$trt==1,], aucinf)
+[1] TRUE
+> 
+> # use factor(status) to force the multi-state code
+> ekm2 <- survfit(Surv(tstart, time, factor(status)) ~ trt, tdata, id=id, 
++                 entry=TRUE, influence= TRUE, weights=wt)
+> 
+> aeq(ekm$n,        ekm2$n)
+[1] TRUE
+> aeq(ekm$time,     ekm2$time)
+[1] TRUE
+> aeq(ekm$n.risk,   ekm2$n.risk[,1])
+[1] TRUE
+> aeq(ekm$n.event,  ekm2$n.event[,2])
+[1] TRUE
+> aeq(ekm$n.censor, ekm2$n.censor[,1])
+[1] TRUE
+> aeq(ekm$n.enter,  ekm2$n.enter[,1])
+[1] TRUE
+> aeq(ekm$surv,     ekm2$pstate[,1])
+[1] TRUE
+> aeq(ekm$std.err,  ekm2$std.err[,1])
+[1] TRUE
+> aeq(ekm$cumhaz,   ekm2$cumhaz[,1])
+[1] TRUE
+> aeq(ekm$std.chaz, ekm2$std.chaz[,1])
+[1] TRUE
+> aeq(ekm$strata,   ekm2$strata)
+[1] TRUE
+> aeq(ekm$n.id,     ekm2$n.id)
+[1] TRUE
+> aeq(ekm$counts, 
++     ekm2$counts[,c("nrisk:1", "ntrans:1.2", "ncensor:1", "nenter:1")])
+[1] TRUE
+> aeq(ekm$influence.surv[[1]], ekm2$influence.pstate[[1]][,,1])
+[1] TRUE
+> aeq(ekm$influence.surv[[2]], ekm2$influence.pstate[[2]][,,1])
+[1] TRUE
+> 
+> 
+> proc.time()
+   user  system elapsed 
+  0.971   0.071   1.034 

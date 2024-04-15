@@ -20,7 +20,7 @@ The following components must be included in a legitimate
 }
 \arguments{
   \item{n}{
-    total number of subjects in each curve.
+    total number of observations in each curve.
   }
   \item{time}{
     the time points at which the curve has a step. 
@@ -66,6 +66,12 @@ The following components must be included in a legitimate
   \item{cumhaz}{optional.  Contains the cumulative
     hazard for each possible transition.
   }
+  \item{counts}{optional. If weights were used, the \code{n.risk} etc
+    elements contain weighted sums; the \code{counts} matrix will
+    contain unweighted values.  Weighted values are normally more useful
+    for further computation, unweighted may be preferred for labeling or
+    printout.
+  }
   \item{strata}{
     if there are multiple curves, this component gives the number of
     elements of the \code{time}  vector corresponding to the first curve,
@@ -78,8 +84,7 @@ The following components must be included in a legitimate
   \item{lower}{options 
     lower confidence limit for the survival curve or pstate
   }
-  \item{start.time}{optional, the starting time for the curve if other
-    than 0}
+  \item{t0}{for multi-state curves,the starting time for the curve}
   \item{p0, sp0}{for a multistate object, the distribution of starting
     states.  If the curve has a strata dimension, this will be a matrix
     one row per stratum.  The \code{sp0} element has the standard error
@@ -89,13 +94,9 @@ The following components must be included in a legitimate
     the covariate values for the curves
   }
 
-  \item{n.all}{the total number of observations that were available
-    For counting process data, and any time that the 
-    \code{start.time} argument was used, 
-    not all may have been used in creating the curve, in which case this value
-    will be larger than \code{n} above.
-    The \code{print} and \code{plot} routines in the package do no use this
-    value, it is for information only.
+  \item{n.id}{the total number of unique id values that contributed to
+    the curve.  This is only available if the original call used the id
+    option.
   }
   \item{conf.type}{
     the approximation used to compute the confidence limits. 
@@ -141,16 +142,31 @@ which is the number of different covariate prediction vectors.
 The \code{survfit} object has evolved over time: when first created
 there was no thought of multi-state models for instance.  This evolution
 has almost entirely been accomplished by the addition of new elements.
-One change in survival version 3 is the addition of a \code{survfitconf} routine
-which will compute confidence intervals for a \code{survfit} object.
-This allows the computation of CI intervals to be deferred until later,
-if desired, rather than making them a permanent part of the object.
-Later iterations of the base routines may omit the confidence intervals.
 
-The survfit object starts at the first observation time, but survival
-curves are normally plotted from time 0.
-A helper routine \code{survfit0} can be used to add this first time point
-and align the data.
+For both plots of the curves and computation of the restricted mean
+time in state (RMTS) we need the concept of a starting point t0 and
+starting prevalence of the states p0 for each curve.
+(Sojourn time, area under the curve and restricted mean survival time
+are other labels for the RMTS).
+Time 0 is not, by default, included as part of the standard
+tableau of results, i.e., time, number at risk, number of events, etc.
+For simple survival with a 0/1 status variable, the starting state p0 is
+the obvious default of "everyone alive", and t0 is formally not discernable
+from the data and so was left out. 
+(A design decision made in 1986, and now far too late to change.)
+However, for plots t0 is assumed to be the minimum of 0 and all observed
+times. Negative survival times are unusual but not invalid.
+Multi-state survival curves include \code{t0} and \code{p0} as a part of
+the returned object. The first is a single value for all curves, the
+second is per curve.  
+
+The \code{survfit0} routine can be used to add these values to the main
+curve data, this is done by the default print, plot, and summary methods
+for survfit objects.  The methods vignette has discussion of the
+rationale of how t0 and p0 are chosen in the multi-state case.
+Notice that if there is an event at time t0, e.g., a death on day 0 for
+competing risks, then p0 will contain the prevalence just before that
+event occured.  
 }
 \seealso{
 \code{\link{plot.survfit}},  

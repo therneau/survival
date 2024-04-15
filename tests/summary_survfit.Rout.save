@@ -1,7 +1,7 @@
 
-R Under development (unstable) (2019-05-15 r76504) -- "Unsuffered Consequences"
-Copyright (C) 2019 The R Foundation for Statistical Computing
-Platform: x86_64-pc-linux-gnu (64-bit)
+R Under development (unstable) (2024-02-06 r85866) -- "Unsuffered Consequences"
+Copyright (C) 2024 The R Foundation for Statistical Computing
+Platform: aarch64-unknown-linux-gnu
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -127,10 +127,11 @@ Type 'q()' to quit R.
 > all.equal(s2$n.event, apply(temp,2, diff))
 [1] TRUE
 > 
-> temp <- c(0, 0,sum(m1$n.censor[m1$time <= 100]),
-+                sum(m1$n.censor[m1$time <= 200]),
-+                sum(m1$n.censor[m1$time <= 300]))
-> all.equal(s1$n.censor, diff(temp))
+> temp <- rbind(0, 0,
++               colSums(m1$n.censor[m1$time <= 100,]),
++               colSums(m1$n.censor[m1$time <= 200,]),
++               colSums(m1$n.censor[m1$time <= 300,]))
+> all.equal(s1$n.censor, apply(temp, 2, diff))
 [1] TRUE
 >               
 > # check the same with survfit objects
@@ -219,4 +220,4 @@ Type 'q()' to quit R.
 > 
 > proc.time()
    user  system elapsed 
-  0.800   0.060   0.861 
+  0.413   0.039   0.450 

@@ -1,4 +1,5 @@
-# Automatically generated from the noweb directory
+# Working routine for survival data with a single endpoint
+# 
 survfitKM <- function(x, y, weights=rep(1.0,length(x)), 
                       stype=1, ctype=1,
                       se.fit=TRUE,
@@ -7,8 +8,9 @@ survfitKM <- function(x, y, weights=rep(1.0,length(x)),
                                   'logit', "arcsin"),
                       conf.lower=c('usual', 'peto', 'modified'),
                       start.time, id, cluster, robust, influence=FALSE,
-                      type) {
+                      type, entry=FALSE, time0=FALSE) {
     
+    # ctype and stype are preferred, 'type' is for backward compatability
     if (!missing(type)) {
         if (!is.character(type)) stop("type argument must be character")
         # older style argument is allowed
@@ -30,36 +32,53 @@ survfitKM <- function(x, y, weights=rep(1.0,length(x)),
         if (!conf.int) conf.type <- "none"
         conf.int <- .95
     }
-      
+    if (!is.logical(entry)) stop("entry argument must be TRUE/FALSE")
+
     if (!is.Surv(y)) stop("y must be a Surv object")
     if (attr(y, 'type') != 'right' && attr(y, 'type') != 'counting')
             stop("Can only handle right censored or counting data")
     ny <- ncol(y)       # Will be 2 for right censored, 3 for counting
     # The calling routine has used 'strata' on x, so it is a factor with
-    #  no unused levels.  But just in case a user called this...
+    #  no unused levels.  But just in case a user called this routine...
     if (!is.factor(x)) stop("x must be a factor")
     xlev <- levels(x)   # Will supply names for the curves
     x <- as.integer(x)  # keep the integer index
 
     if (missing(start.time)) time0 <- min(0, y[,ny-1])
     else time0 <- start.time
+    # delete obs if necessary that fall entirely before the staring time
+    #  (do this before the robust/cluster/id logic
+    #  below, else we could mess up the clname variable
+    keep <- y[,ny-1] >= time0
+    if (!all(keep)) {
+        if (!any(keep)) stop("all observations removed by start.time")
+        y <- y[keep,,drop=FALSE]
+        if (length(id) >0) id <- id[keep]
+        if (length(cluster) >0) cluster <- cluster[keep]
+        x <- x[keep]
+        weights <- weights[keep]
+    }
 
-    # The user can call with cluster, id, robust, or any combination
+    # The user can call with cluster, id, robust, or any combination thereof
     # Default for robust: if cluster or any id with > 1 event or 
     #  any weights that are not 0 or 1, then TRUE
-    # If only id, treat it as the cluster too
+    # If only id is present, treat it as the clustering variable
     has.cluster <- !(missing(cluster) || length(cluster)==0) 
     has.id <-      !(missing(id) || length(id)==0)
     has.rwt<-      (!missing(weights) && any(weights != floor(weights)))
     #has.rwt <- FALSE   # we are rethinking this
     has.robust <-  !missing(robust) && !is.null(robust)
-    if (has.id) id <- as.factor(id)
+
+    # Residuals will be in the order of integer(id), and we want them to
+    #  be in the same order as the data.  So prevent the default sorted levels
+    if (has.id) id <- factor(id, unique(id))
 
     if (missing(robust) || is.null(robust)) {
         if (influence) {
             robust <- TRUE
             if (!(has.cluster || has.id)) {
                 cluster <- seq(along=x)
+                clname <- cluster
                 has.cluster <- TRUE
             }
         }
@@ -77,19 +96,15 @@ survfitKM <- function(x, y, weights=rep(1.0,length(x)),
             clname <- NULL
         }
         else {
-            if (is.factor(cluster)) {
-                clname <- levels(cluster)
-                cluster <- as.integer(cluster)
-            } else {
-                clname  <- sort(unique(cluster))
-                cluster <- match(cluster, clname)
-            }
+            cluster <- factor(cluster, unique(cluster)) # same arg as id above
+            clname <- levels(cluster)
+            cluster <- as.integer(cluster)
             ncluster <- length(clname)
         }
     } else if (robust) {
         if (has.id) {
             # treat the id as both identifier and clustering
-            clname <- levels(id)
+            clname <- levels(id)  # a prior line has ensured it is a factor
             cluster <- as.integer(id)
             ncluster <- length(clname)
         }
@@ -122,90 +137,82 @@ survfitKM <- function(x, y, weights=rep(1.0,length(x)),
         ncluster <- 0L
         influence <- 0L
     }
+    if (!has.id || ncol(y)==2) entry <- FALSE
 
-    # if start.time was set, delete obs if necessary
-    keep <- y[,ny-1] >= time0
-    if (!all(keep)) {
-        y <- y[keep,]
-        if (length(id) >0) id <- id[keep]
-        if (length(cluster) >0) cluster <- cluster[keep]
-        x <- x[keep]
-        weights <- weights[keep]
-    }
-
-
-    if (ny==3 & has.id) position <- survflag(y, id)
-    else position <- integer(0)
+    if (ny==3 && has.id) position <- survflag(y, id, x)
+    else position <- rep.int(3L, nrow(y))  # every observation stands alone
 
     if (length(xlev) ==1) {# only one group
+        n.used <- nrow(y)
         if (ny==2) {
             sort1 <- NULL
-            sort2 <- order(y[,1]) 
+            sort2 <- order(y[,1])
         }
         else {
             sort2 <- order(y[,2])
             sort1 <- order(y[,1])
         }
-        toss <- (y[sort2, ny-1] < time0)
-        if (any(toss)) {
-            # Some obs were removed by the start.time argument
-            sort2 <- sort2[!toss]
-            if (ny ==3) {
-                index <- match(which(toss), sort1)
-                sort1 <- sort1[-index]
-            }
-        }  
-        n.used <- length(sort2)
-        if (ncluster > 0)
-            cfit <- .Call(Csurvfitkm, y, weights, sort1-1L, sort2-1L, type, 
-                                   cluster-1L, ncluster, position, influence)
-        else cfit <- .Call(Csurvfitkm, y, weights, sort1-1L, sort2-1L, type,
-                                  0L, 0L, position, influence)
+        if (has.id) n.id <- length(unique(id))
+
+        if (ncluster > 0) {
+            # cluster is an integer vector, clname the levels
+            cfit <- .Call(Csurvfitkm, y, weights, sort1-1L, sort2-1L, type,
+                          cluster- 1L, ncluster, position, influence, 0L, entry)
+        }
+        else cfit <- .Call(Csurvfitkm, y, weights, sort1-1L, sort2-1L, 
+                           type, 0L, 0L, position, influence, 0L, entry)
     } else {
         # multiple groups
         ngroup <- length(xlev)
-        cfit <- vector("list", ngroup)
         n.used <- integer(ngroup)
-        if (influence) clusterid <- cfit # empty list of group id values
+        cfit <- vector("list", ngroup)
+        if (influence) clusterid <- cfit # empty list, fill later with group ids
+        if (has.id) n.id <- integer(ngroup)
+
+        # The C routine will be called once per curve (values of x)
+        # The y, weights, & position values stay the same across calls,
+        #  sort1 and sort2 select out the rows that we need
+        if (ncluster >0) ctemp <- integer(length(cluster))
         for (i in 1:ngroup) {
-            keep <- which(x==i & y[,ny-1] >= time0)
+            keep <- which(x==i)
+            n.used[i] <- length(keep)
             if (length(keep) ==0) next;  # rare case where all are < start.time
-            ytemp <- y[keep,]
-            n.used[i] <- nrow(ytemp)
+            if (has.id) n.id[i] <- length(unique(id[keep]))
             if (ny==2) {
                 sort1 <- NULL
-                sort2 <- order(ytemp[,1]) 
+                sort2 <- keep[order(y[keep,1])]
             }
             else {
-                sort2 <- order(ytemp[,2])
-                sort1 <- order(ytemp[,1])
+                sort2 <- keep[order(y[keep,2])]
+                sort1 <- keep[order(y[keep,1])]
             }
-     
-            # Cluster is a nuisance: every curve might have a different set
-            #  We need to relabel them from 1 to "number of unique clusters in this
-            #  curve for the C routine
+      
+            # Cluster is a nuisance: each curve will often have a different set
+            #  Say curve1 had id 1,3,5,...99 and curve2 2,4,...,100  
+            # We don't want to add up over the 50 extra zeros for curve1, and 
+            #  more importantly shouldn't return rows for all thos
+            # Use ctemp to give clusters of 0, 1, 2, ...; it can be full length
+            #  since the .Call only looks at the sort1/sort2 rows.
             if (ncluster > 0) {
-                c2 <- cluster[keep]
-                c.unique <- sort(unique(c2))
-                nc <- length(c.unique)
-                c2 <- match(c2, c.unique)  # renumber them
-                if (influence >0) {
-                    clusterid[[i]] <-c.unique
-                }
+                c.unique <- unique(cluster[keep])
+                ctemp[keep] <- match(cluster[keep], c.unique) -1L 
+                if (influence >0) 
+                    clusterid[[i]] <- c.unique
+
+                cfit[[i]] <- .Call(Csurvfitkm, y, weights, sort1 -1L, 
+                               sort2 -1L, type, ctemp, length(c.unique),
+                               position, influence, 0L, entry)
             }
-            
-            if (ncluster > 0) 
-                cfit[[i]] <- .Call(Csurvfitkm, ytemp, weights[keep], sort1 -1L, 
-                               sort2 -1L, type,
-                               c2 -1L, length(c.unique), position, influence)
-            else cfit[[i]] <- .Call(Csurvfitkm, ytemp, weights[keep], sort1 -1L, 
-                               sort2 -1L, type,
-                               0L, 0L, position, influence)
+            else cfit[[i]] <- .Call(Csurvfitkm, y, weights, sort1 -1L, 
+                               sort2 -1L, type, 0L, 0L, 
+                               position, influence, 0L, entry)
         }
     }
-    # create the survfit object
+    # Create the survfit object by 'stacking' the curves one after the
+    #  other. Each is likely to have a unique set of times.
+    addcounts <- !isTRUE(all.equal(weights, rep(1.0, length(weights)))) 
     if (length(n.used) == 1) {
-        rval <- list(n= length(x),
+        rval <- list(n= n.used,
                      time= cfit$time,
                      n.risk = cfit$n[,4],
                      n.event= cfit$n[,5],
@@ -214,12 +221,21 @@ survfitKM <- function(x, y, weights=rep(1.0,length(x)),
                      std.err = cfit$std.err[,1],
                      cumhaz  = cfit$estimate[,2],
                      std.chaz = cfit$std.err[,2])
-        if (ncluster >0 & ny==3) rval$n.enter <- cfit$n[,8]
+        if (entry) rval$n.enter <- cfit$n[,8]
+        if (addcounts) {
+            if (entry) {
+                rval$counts <- cfit$n[,c(1:3, 7), drop=FALSE]
+                colnames(rval$counts) <- c("nrisk", "nevent", "ncensor","nenter")
+            } else {
+                rval$counts <- cfit$n[,1:3, drop=FALSE]
+                colnames(rval$counts) <- c("nrisk", "nevent", "ncensor")
+            }
+        }
      } else {
          strata <- sapply(cfit, function(x) if (is.null(x$n)) 0L else nrow(x$n))
          names(strata) <- xlev
          # we need to collapse the curves
-         rval <- list(n= as.vector(table(x)),
+         rval <- list(n= n.used,
                       time =   unlist(lapply(cfit, function(x) x$time)),
                       n.risk=  unlist(lapply(cfit, function(x) x$n[,4])),
                       n.event= unlist(lapply(cfit, function(x) x$n[,5])),
@@ -229,10 +245,20 @@ survfitKM <- function(x, y, weights=rep(1.0,length(x)),
                       cumhaz  =unlist(lapply(cfit, function(x) x$estimate[,2])),
                       std.chaz=unlist(lapply(cfit, function(x) x$std.err[,2])),
                       strata=strata)
-          if (ncluster > 0 & ny==3) 
-              rval$n.enter <- unlist(lapply(cfit, function(x) x$n[,8]))
-    }
-        
+         if (entry) rval$n.enter <- unlist(lapply(cfit, function(x) x$n[,8]))
+         if (addcounts) {
+            if (entry) {
+                rval$counts <- do.call("rbind", lapply(cfit, function(x)
+                                                              x$n[,c(1:3, 7)]))
+                colnames(rval$counts) <- c("nrisk", "nevent", "ncensor","nenter")
+            } else {
+                rval$counts <- do.call("rbind", lapply(cfit,function(x) 
+                                                               x$n[,1:3]))
+                colnames(rval$counts) <- c("nrisk", "nevent", "ncensor")
+            }
+        }
+     }
+    if (has.id) rval$n.id <- n.id   
     if (ny ==3) rval$type <- "counting"
     else rval$type <- "right"
 
@@ -333,6 +359,6 @@ survfitKM <- function(x, y, weights=rep(1.0,length(x)),
         }
     }
 
-    if (!missing(start.time)) rval$start.time <- start.time
+    if (!missing(start.time)) rval$t0 <- start.time
     rval  
 }

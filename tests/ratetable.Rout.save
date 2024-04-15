@@ -1,7 +1,7 @@
 
-R Under development (unstable) (2018-04-09 r74565) -- "Unsuffered Consequences"
-Copyright (C) 2018 The R Foundation for Statistical Computing
-Platform: x86_64-pc-linux-gnu (64-bit)
+R Under development (unstable) (2024-02-06 r85866) -- "Unsuffered Consequences"
+Copyright (C) 2024 The R Foundation for Statistical Computing
+Platform: aarch64-unknown-linux-gnu
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -136,8 +136,8 @@ age          male       female
 	age ranges from 0 to 39812.25; with 110 categories
 	sex has levels of: male female
 	race has levels of: white black
-	year ranges from 1940-01-01 to 2014-01-01; with 75 categories
+	year ranges from 1940-01-01 to 2020-01-01; with 81 categories
 > 
 > proc.time()
    user  system elapsed 
-  0.704   0.012   0.714 
+  0.418   0.029   0.442 

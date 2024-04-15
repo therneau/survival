@@ -63,8 +63,8 @@ static const R_CallMethodDef Callentries[] = {
     {"Cmulticheck",   (DL_FUNC) &multicheck,   6},
     {"Cpyears3b",     (DL_FUNC) &pyears3b,    10},
     {"Cresidcsum",    (DL_FUNC) &residcsum,    2},
-    {"Csurvfitci",    (DL_FUNC) &survfitci,   11},
-    {"Csurvfitkm",    (DL_FUNC) &survfitkm,    9},
+    {"Csurvfitaj",    (DL_FUNC) &survfitaj,   16},
+    {"Csurvfitkm",    (DL_FUNC) &survfitkm,   11},
     {"Csurvfitresid", (DL_FUNC) &survfitresid,10},
     {"Csurvreg6",     (DL_FUNC) &survreg6,    15},
     {"Csurvreg7",     (DL_FUNC) &survreg7,    21},
@@ -72,6 +72,7 @@ static const R_CallMethodDef Callentries[] = {
     {"Ctmerge",       (DL_FUNC) &tmerge,       7},
     {"Ctmerge2",      (DL_FUNC) &tmerge2,      4},
     {"Ctmerge3",      (DL_FUNC) &tmerge3,      2},
+    {"Ctwoclust",     (DL_FUNC) &twoclust,     3},
     {"Czph1",         (DL_FUNC) &zph1,         8},
     {"Czph2",         (DL_FUNC) &zph2,         9},
     {NULL, NULL, 0}

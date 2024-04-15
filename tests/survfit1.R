@@ -16,6 +16,14 @@ adata$id <- sample(LETTERS, nrow(aml)) # labels are not in time or data order
 adata <- adata[sample(1:nrow(aml), nrow(aml)),] # data is unordered
 adata$wt <- sample((2:30)/10, nrow(aml))  # non-integer weights
 
+group <- rep("", nrow(adata))
+temp <- table(adata$x)
+group[adata$x == "Maintained"] <- rep(letters[4:1], length=temp[1])
+group[adata$x != "Maintained"] <- rep(letters[4:7], length=temp[2])
+adata$group <- group
+
+adata2 <- survSplit(Surv(time, status) ~ ., adata, cut=c(10, 20, 40))
+
 byhand <- function(time, status, weights, id) {
     # for a single curve
     utime <- sort(unique(time))
@@ -24,7 +32,7 @@ byhand <- function(time, status, weights, id) {
     if (missing(weights)) weights <- rep(1.0, n)
     if (missing(id)) id <- seq(along=time)
 
-    uid <- sort(unique(id))
+    uid <- unique(id)
     nid <- length(uid)
     id <- match(id, uid)  # change it to 1:nid
 
@@ -64,6 +72,7 @@ byhand <- function(time, status, weights, id) {
         estimate[i,] <- c(KM, nelson)
         }
     dimnames(usave) <- list(uid, c("KM", "chaz"), utime)
+    dimnames(V) <- list(time=utime, c("KM", "chaz", "Greenwood", "Aalen"))
     list(time=utime, n.risk=n.risk, n.event=n.event, estimate=estimate,
          std = sqrt(V), influence=usave)
 }
@@ -91,9 +100,23 @@ aeq(fit1$std.chaz, c(true1a$std[,4], true1b$std[,4]))
 aeq(fit1$n.risk, c(true1a$n.risk, true1b$n.risk))
 aeq(fit1$n.event, c(true1a$n.event, true1b$n.event))
 fit1$logse   # logse should be TRUE
+fit1b <- survfit(Surv(tstart, time, status) ~x, data=adata2, id=id)
+eqsurv <- function(x, y) {
+    temp <- c("n.risk", "n.event", "n.censor", "surv", "std.err", "cumhaz",
+              "std.chaz", "strata", "logse")
+    if (!is.null(x$influence.surv)) temp <- c(temp, "influence.surv")
+    if (!is.null(x$influence.chaz)) temp <- c(temp, "influence.chaz")
+    # need unclass to avoid [.survfit
+    all.equal(unclass(x)[temp], unclass(y)[temp])
+}
+eqsurv(fit1, fit1b)
+fit1c <- survfit(Surv(tstart, time, status) ~x, data=adata2, id=id, entry=TRUE)
+aeq(fit1c$time[fit1c$time >0], fit1$time)
+aeq(fit1c$n.enter[fit1c$time==0], c(11, 12))
+all(fit1c$n.enter[fit1c$time >0] ==0)
 
 # fit2 will use the IJ method
-fit2 <- survfit(Surv(time, status) ~ x, data=adata, id=id, robust=TRUE)
+fit2 <- survfit(Surv(time, status) ~ x, data=adata, id=id, influence=1)
 aeq(fit2$surv, c(true1a$estimate[,1], true1b$estimate[,1]))
 aeq(fit2$cumhaz, c(true1a$estimate[,2], true1b$estimate[,2]))
 aeq(fit2$std.err, c(true1a$std[,1], true1b$std[,1]))
@@ -101,6 +124,25 @@ aeq(fit2$std.chaz, c(true1a$std[,2], true1b$std[,2]))
 aeq(fit2$n.risk, c(true1a$n.risk, true1b$n.risk))
 aeq(fit2$n.event, c(true1a$n.event, true1b$n.event))
 !fit2$logse  # logse should be FALSE
+fit2b <- survfit(Surv(tstart, time, status) ~ x, data=adata2, id=id,
+                 influence=1) 
+eqsurv(fit2, fit2b)
+fit2c <- survfit(Surv(tstart, time, status) ~ 1, data=adata2, id=id,
+                 subset=(x=="Maintained"), influence=1)
+aeq(fit2$influence.surv[[1]], fit2c$influence.surv)
+r2 <- resid(fit2c, times= fit2c$time, collapse=TRUE)
+aeq(r2, fit2c$influence.surv)
+
+fit2d <- survfit(Surv(time, factor(status)) ~ x, data=adata, id=id, influence=T) 
+aeq(fit2d$influence[[1]][,,1], r2)
+r3 <- resid(fit2d, times= fit2c$time, collapse=TRUE)
+aeq(r3[adata$x =="Maintained",1,], r2)
+
+fit2e <- survfit(Surv(time, factor(status)) ~1, adata, id=id, influence=T,
+                 subset=(x=="Maintained"))
+aeq(fit2e$influence, fit2d$influence[[1]])
+aeq(fit2e$influence[,,1], r2)
+
 
 # look at the leverage values
 fit3 <- survfit(Surv(time, status) ~ x, data=adata, id=id, influence=3)
@@ -108,10 +150,11 @@ aeq(fit3$influence.surv[[1]], true1a$influence[,1,])
 aeq(fit3$influence.surv[[2]], true1b$influence[,1,])
 aeq(fit3$influence.chaz[[1]], true1a$influence[,2,])
 aeq(fit3$influence.chaz[[2]], true1b$influence[,2,])
+fit3b <- survfit(Surv(tstart, time, status) ~x, adata2, id=id, influence=3)
+eqsurv(fit3, fit3b)
 
 # compute the influence by brute force
 tdata <- subset(adata, x != "Maintained")
-tdata <- tdata[order(tdata$id),]   # easier to compare if it's in order
 eps <- 1e-8
 imat1 <- imat2 <-  matrix(0., 12, 10)
 t1 <- survfit(Surv(time, status) ~x, data=tdata) 
@@ -132,6 +175,8 @@ aeq(fit1$cumhaz, c(true1a$estimate[,2], true1b$estimate[,2]))
 aeq(fit1$std.err, c(true1a$std[,4], true1b$std[,4]))
 aeq(fit1$std.chaz, c(true1a$std[,4], true1b$std[,4]))
 aeq(fit1$n.risk, c(true1a$n.risk, true1b$n.risk))
+fit1b <- survfit(Surv(tstart, time, status) ~x, adata2, stype=2, id=id)
+eqsurv(fit1, fit1b)
 
 # Nelson-Aalen + exp() surv, along with IJ variance
 fit2 <- survfit(Surv(time, status) ~ x, data=adata, id=id, stype=2,
@@ -144,9 +189,11 @@ aeq(fit2$n.risk, c(true1a$n.risk, true1b$n.risk))
 aeq(fit2$influence.chaz[[1]], true1a$influence[,2,])
 aeq(fit2$influence.chaz[[2]], true1b$influence[,2,])
 aeq(fit2$influence.surv[[2]], -true1b$influence[,2,]%*% diag(fit2[2]$surv))
-
+fit2b <- survfit(Surv(tstart, time, status) ~x, data=adata2, id=id, stype=2,
+                 influence=3)
+eqsurv(fit2, fit2b)
 # Cumulative hazard is the same for fit1 and fit2
-all.equal(fit2$influence.chaz, fit3$influence.chaz)
+all.equal(fit2$influence.chaz, fit2b$influence.chaz)
 
 # Weighted fits
 true2a <- with(subset(adata, x=="Maintained"), byhand(time, status, id=id,
@@ -165,6 +212,9 @@ aeq(fit3$std.err, c(true2a$std[,1], true2b$std[,1]))
 aeq(fit3$std.chaz, c(true2a$std[,2], true2b$std[,2]))
 aeq(fit3$n.risk, c(true2a$n.risk, true2b$n.risk))
 aeq(fit3$n.event, c(true2a$n.event, true2b$n.event))
+fit3b <- survfit(Surv(tstart, time, status) ~x, adata2, id=id, weights=wt,
+                 influence=TRUE)
+eqsurv(fit3, fit3b)
 
 # Different survival, same hazard
 fit3b <- survfit(Surv(time, status) ~ x, data=adata, id=id, weights=wt,
@@ -179,19 +229,14 @@ aeq(fit3b$n.risk, c(true2a$n.risk, true2b$n.risk))
 aeq(fit3b$n.event, c(true2a$n.event, true2b$n.event))
 
 # The grouped jackknife
-group <- rep("", nrow(adata))
-temp <- table(adata$x)
-group[adata$x == "Maintained"] <- rep(letters[1:4], length=temp[1])
-group[adata$x != "Maintained"] <- rep(letters[4:7], length=temp[2])
-adata$group <- group
 fit4 <-  survfit(Surv(time, status) ~ x, data=adata, id=id, weights=wt,
                  influence=TRUE, cluster=group)
 g1 <- adata$group[match(rownames(true2a$influence[,1,]), adata$id)]
 g2 <- adata$group[match(rownames(true2b$influence[,1,]), adata$id)] 
-aeq(fit4$influence.surv[[1]], rowsum(true2a$influence[,1,], g1))
-aeq(fit4$influence.surv[[2]], rowsum(true2b$influence[,1,], g2))
-aeq(fit4$influence.chaz[[1]], rowsum(true2a$influence[,2,], g1))
-aeq(fit4$influence.chaz[[2]], rowsum(true2b$influence[,2,], g2))
+aeq(fit4$influence.surv[[1]], rowsum(true2a$influence[,1,], g1, reorder=FALSE))
+aeq(fit4$influence.surv[[2]], rowsum(true2b$influence[,1,], g2, reorder=FALSE))
+aeq(fit4$influence.chaz[[1]], rowsum(true2a$influence[,2,], g1, reorder=FALSE))
+aeq(fit4$influence.chaz[[2]], rowsum(true2b$influence[,2,], g2, reorder=FALSE))
 
 aeq(c(colSums(fit4$influence.surv[[1]]^2), colSums(fit4$influence.surv[[2]]^2)),
     fit4$std.err^2)
@@ -242,11 +287,15 @@ fh <- function(time, status, weights, id) {
                    )
     keep <- match(utime, bfit$time)  # the real time points
 
+    # The influence from survfit is in data order, which we have perturbed.
+    # Fix that
+    indx <- match(unique(id), dimnames(bfit$influence)[[1]])
+
     list(time=bfit$time[keep], 
          n.risk=bfit$n.risk[keep - pmax(0, counts[,2]-1)],
          n.event = bfit$n.event[keep]* counts[,2],  
          estimate=bfit$estimate[keep,],
-         std = bfit$std[keep,], influence=bfit$influence[,,keep])
+         std = bfit$std[keep,], influence=bfit$influence[indx,,keep])
 }
 
 # Case weights
@@ -271,10 +320,10 @@ aeq(fit7$n.risk, c(true6a$n.risk, true6b$n.risk))
 aeq(fit7$n.event, c(true6a$n.event, true6b$n.event))
 aeq(fit7$influence.chaz[[1]], true6a$influence[,2,])
 aeq(fit7$influence.chaz[[2]], true6b$influence[,2,])
+ 
 
 # compute the influence by brute force
 tdata <- subset(adata, x != "Maintained")
-tdata <- tdata[order(tdata$id),]
 eps <- 1e-8
 imat <- matrix(0., 12, 10)
 t1 <- survfit(Surv(time, status) ~x, data=tdata, ctype=2, weights=wt) 

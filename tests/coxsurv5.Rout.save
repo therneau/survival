@@ -1,7 +1,7 @@
 
-R Under development (unstable) (2021-04-20 r80202) -- "Unsuffered Consequences"
-Copyright (C) 2021 The R Foundation for Statistical Computing
-Platform: x86_64-pc-linux-gnu (64-bit)
+R Under development (unstable) (2024-03-01 r86029) -- "Unsuffered Consequences"
+Copyright (C) 2024 The R Foundation for Statistical Computing
+Platform: aarch64-unknown-linux-gnu
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -197,7 +197,7 @@ Type 'q()' to quit R.
 > # s0 to c, cumhaz of 1/1 at 18
 > #  a to c, cumhaz of 1/2 at 16
 > time2 <-     c(4,5,6,8,10,15,16,18,20, 22)
-> chaz2 <- matrix(0, nrow=10, ncol=6,
+> chaz2 <- matrix(0, nrow= length(time2), ncol=6,
 +             dimnames=list(time2, c("1:2", "1:3", "1:3", "2:3", "1:4", "2:4")))
 > chaz2['4',1] <- 1/6; chaz2['8',1] <- 1/5
 > chaz2['20',2] <- 1/2
@@ -208,7 +208,7 @@ Type 'q()' to quit R.
 >  
 > 
 > cox3 <- coxph(Surv(t1, t2, state) ~x, id=id, test2, iter=0)  # no weights
-> csurv3 <- survfit(cox3, newdata=data.frame(x=0:1))
+> csurv3 <- survfit(cox3, newdata=data.frame(x=0:1), time0=FALSE)
 > aeq(csurv3$time, time2)
 [1] TRUE
 > aeq(csurv3$cumhaz[,1,], chaz2)
@@ -224,7 +224,7 @@ Type 'q()' to quit R.
 > 
 > cox4 <- coxph(Surv(t1,t2, state) ~ x, id=id, test2, 
 +                      init=log(1:6), iter=0)
-> csurv4 <- survfit(cox4, newdata=data.frame(x=0:1))
+> csurv4 <- survfit(cox4, newdata=data.frame(x=0:1), time0= FALSE)
 > mrisk4 <- exp(outer(test2$x, log(1:6), '*'))  # hazards for each transition
 > check4 <- with(test2, coxhaz(Surv(t1, t2, state), id=id, risk=mrisk4))
 > aeq(check4$cumhaz, csurv4$cumhaz[indx3,1,])
@@ -246,4 +246,4 @@ Type 'q()' to quit R.
 > 
 > proc.time()
    user  system elapsed 
-  1.224   0.078   1.296 
+  0.468   0.032   0.499 

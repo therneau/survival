@@ -1,7 +1,7 @@
 
-R Under development (unstable) (2021-06-11 r80486) -- "Unsuffered Consequences"
-Copyright (C) 2021 The R Foundation for Statistical Computing
-Platform: x86_64-pc-linux-gnu (64-bit)
+R Under development (unstable) (2024-03-04 r86048) -- "Unsuffered Consequences"
+Copyright (C) 2024 The R Foundation for Statistical Computing
+Platform: aarch64-unknown-linux-gnu
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -33,6 +33,14 @@ Type 'q()' to quit R.
 > adata <- adata[sample(1:nrow(aml), nrow(aml)),] # data is unordered
 > adata$wt <- sample((2:30)/10, nrow(aml))  # non-integer weights
 > 
+> group <- rep("", nrow(adata))
+> temp <- table(adata$x)
+> group[adata$x == "Maintained"] <- rep(letters[4:1], length=temp[1])
+> group[adata$x != "Maintained"] <- rep(letters[4:7], length=temp[2])
+> adata$group <- group
+> 
+> adata2 <- survSplit(Surv(time, status) ~ ., adata, cut=c(10, 20, 40))
+> 
 > byhand <- function(time, status, weights, id) {
 +     # for a single curve
 +     utime <- sort(unique(time))
@@ -41,7 +49,7 @@ Type 'q()' to quit R.
 +     if (missing(weights)) weights <- rep(1.0, n)
 +     if (missing(id)) id <- seq(along=time)
 + 
-+     uid <- sort(unique(id))
++     uid <- unique(id)
 +     nid <- length(uid)
 +     id <- match(id, uid)  # change it to 1:nid
 + 
@@ -81,6 +89,7 @@ Type 'q()' to quit R.
 +         estimate[i,] <- c(KM, nelson)
 +         }
 +     dimnames(usave) <- list(uid, c("KM", "chaz"), utime)
++     dimnames(V) <- list(time=utime, c("KM", "chaz", "Greenwood", "Aalen"))
 +     list(time=utime, n.risk=n.risk, n.event=n.event, estimate=estimate,
 +          std = sqrt(V), influence=usave)
 + }
@@ -120,9 +129,27 @@ Type 'q()' to quit R.
 [1] TRUE
 > fit1$logse   # logse should be TRUE
 [1] TRUE
+> fit1b <- survfit(Surv(tstart, time, status) ~x, data=adata2, id=id)
+> eqsurv <- function(x, y) {
++     temp <- c("n.risk", "n.event", "n.censor", "surv", "std.err", "cumhaz",
++               "std.chaz", "strata", "logse")
++     if (!is.null(x$influence.surv)) temp <- c(temp, "influence.surv")
++     if (!is.null(x$influence.chaz)) temp <- c(temp, "influence.chaz")
++     # need unclass to avoid [.survfit
++     all.equal(unclass(x)[temp], unclass(y)[temp])
++ }
+> eqsurv(fit1, fit1b)
+[1] TRUE
+> fit1c <- survfit(Surv(tstart, time, status) ~x, data=adata2, id=id, entry=TRUE)
+> aeq(fit1c$time[fit1c$time >0], fit1$time)
+[1] TRUE
+> aeq(fit1c$n.enter[fit1c$time==0], c(11, 12))
+[1] TRUE
+> all(fit1c$n.enter[fit1c$time >0] ==0)
+[1] TRUE
 > 
 > # fit2 will use the IJ method
-> fit2 <- survfit(Surv(time, status) ~ x, data=adata, id=id, robust=TRUE)
+> fit2 <- survfit(Surv(time, status) ~ x, data=adata, id=id, influence=1)
 > aeq(fit2$surv, c(true1a$estimate[,1], true1b$estimate[,1]))
 [1] TRUE
 > aeq(fit2$cumhaz, c(true1a$estimate[,2], true1b$estimate[,2]))
@@ -137,6 +164,32 @@ Type 'q()' to quit R.
 [1] TRUE
 > !fit2$logse  # logse should be FALSE
 [1] TRUE
+> fit2b <- survfit(Surv(tstart, time, status) ~ x, data=adata2, id=id,
++                  influence=1) 
+> eqsurv(fit2, fit2b)
+[1] TRUE
+> fit2c <- survfit(Surv(tstart, time, status) ~ 1, data=adata2, id=id,
++                  subset=(x=="Maintained"), influence=1)
+> aeq(fit2$influence.surv[[1]], fit2c$influence.surv)
+[1] TRUE
+> r2 <- resid(fit2c, times= fit2c$time, collapse=TRUE)
+> aeq(r2, fit2c$influence.surv)
+[1] TRUE
+> 
+> fit2d <- survfit(Surv(time, factor(status)) ~ x, data=adata, id=id, influence=T) 
+> aeq(fit2d$influence[[1]][,,1], r2)
+[1] TRUE
+> r3 <- resid(fit2d, times= fit2c$time, collapse=TRUE)
+> aeq(r3[adata$x =="Maintained",1,], r2)
+[1] TRUE
+> 
+> fit2e <- survfit(Surv(time, factor(status)) ~1, adata, id=id, influence=T,
++                  subset=(x=="Maintained"))
+> aeq(fit2e$influence, fit2d$influence[[1]])
+[1] TRUE
+> aeq(fit2e$influence[,,1], r2)
+[1] TRUE
+> 
 > 
 > # look at the leverage values
 > fit3 <- survfit(Surv(time, status) ~ x, data=adata, id=id, influence=3)
@@ -148,10 +201,12 @@ Type 'q()' to quit R.
 [1] TRUE
 > aeq(fit3$influence.chaz[[2]], true1b$influence[,2,])
 [1] TRUE
+> fit3b <- survfit(Surv(tstart, time, status) ~x, adata2, id=id, influence=3)
+> eqsurv(fit3, fit3b)
+[1] TRUE
 > 
 > # compute the influence by brute force
 > tdata <- subset(adata, x != "Maintained")
-> tdata <- tdata[order(tdata$id),]   # easier to compare if it's in order
 > eps <- 1e-8
 > imat1 <- imat2 <-  matrix(0., 12, 10)
 > t1 <- survfit(Surv(time, status) ~x, data=tdata) 
@@ -179,6 +234,9 @@ Type 'q()' to quit R.
 [1] TRUE
 > aeq(fit1$n.risk, c(true1a$n.risk, true1b$n.risk))
 [1] TRUE
+> fit1b <- survfit(Surv(tstart, time, status) ~x, adata2, stype=2, id=id)
+> eqsurv(fit1, fit1b)
+[1] TRUE
 > 
 > # Nelson-Aalen + exp() surv, along with IJ variance
 > fit2 <- survfit(Surv(time, status) ~ x, data=adata, id=id, stype=2,
@@ -199,9 +257,12 @@ Type 'q()' to quit R.
 [1] TRUE
 > aeq(fit2$influence.surv[[2]], -true1b$influence[,2,]%*% diag(fit2[2]$surv))
 [1] TRUE
-> 
+> fit2b <- survfit(Surv(tstart, time, status) ~x, data=adata2, id=id, stype=2,
++                  influence=3)
+> eqsurv(fit2, fit2b)
+[1] TRUE
 > # Cumulative hazard is the same for fit1 and fit2
-> all.equal(fit2$influence.chaz, fit3$influence.chaz)
+> all.equal(fit2$influence.chaz, fit2b$influence.chaz)
 [1] TRUE
 > 
 > # Weighted fits
@@ -231,6 +292,10 @@ Type 'q()' to quit R.
 [1] TRUE
 > aeq(fit3$n.event, c(true2a$n.event, true2b$n.event))
 [1] TRUE
+> fit3b <- survfit(Surv(tstart, time, status) ~x, adata2, id=id, weights=wt,
++                  influence=TRUE)
+> eqsurv(fit3, fit3b)
+[1] TRUE
 > 
 > # Different survival, same hazard
 > fit3b <- survfit(Surv(time, status) ~ x, data=adata, id=id, weights=wt,
@@ -251,22 +316,17 @@ Type 'q()' to quit R.
 [1] TRUE
 > 
 > # The grouped jackknife
-> group <- rep("", nrow(adata))
-> temp <- table(adata$x)
-> group[adata$x == "Maintained"] <- rep(letters[1:4], length=temp[1])
-> group[adata$x != "Maintained"] <- rep(letters[4:7], length=temp[2])
-> adata$group <- group
 > fit4 <-  survfit(Surv(time, status) ~ x, data=adata, id=id, weights=wt,
 +                  influence=TRUE, cluster=group)
 > g1 <- adata$group[match(rownames(true2a$influence[,1,]), adata$id)]
 > g2 <- adata$group[match(rownames(true2b$influence[,1,]), adata$id)] 
-> aeq(fit4$influence.surv[[1]], rowsum(true2a$influence[,1,], g1))
+> aeq(fit4$influence.surv[[1]], rowsum(true2a$influence[,1,], g1, reorder=FALSE))
 [1] TRUE
-> aeq(fit4$influence.surv[[2]], rowsum(true2b$influence[,1,], g2))
+> aeq(fit4$influence.surv[[2]], rowsum(true2b$influence[,1,], g2, reorder=FALSE))
 [1] TRUE
-> aeq(fit4$influence.chaz[[1]], rowsum(true2a$influence[,2,], g1))
+> aeq(fit4$influence.chaz[[1]], rowsum(true2a$influence[,2,], g1, reorder=FALSE))
 [1] TRUE
-> aeq(fit4$influence.chaz[[2]], rowsum(true2b$influence[,2,], g2))
+> aeq(fit4$influence.chaz[[2]], rowsum(true2b$influence[,2,], g2, reorder=FALSE))
 [1] TRUE
 > 
 > aeq(c(colSums(fit4$influence.surv[[1]]^2), colSums(fit4$influence.surv[[2]]^2)),
@@ -322,11 +382,15 @@ Type 'q()' to quit R.
 +                    )
 +     keep <- match(utime, bfit$time)  # the real time points
 + 
++     # The influence from survfit is in data order, which we have perturbed.
++     # Fix that
++     indx <- match(unique(id), dimnames(bfit$influence)[[1]])
++ 
 +     list(time=bfit$time[keep], 
 +          n.risk=bfit$n.risk[keep - pmax(0, counts[,2]-1)],
 +          n.event = bfit$n.event[keep]* counts[,2],  
 +          estimate=bfit$estimate[keep,],
-+          std = bfit$std[keep,], influence=bfit$influence[,,keep])
++          std = bfit$std[keep,], influence=bfit$influence[indx,,keep])
 + }
 > 
 > # Case weights
@@ -363,10 +427,10 @@ Type 'q()' to quit R.
 [1] TRUE
 > aeq(fit7$influence.chaz[[2]], true6b$influence[,2,])
 [1] TRUE
+>  
 > 
 > # compute the influence by brute force
 > tdata <- subset(adata, x != "Maintained")
-> tdata <- tdata[order(tdata$id),]
 > eps <- 1e-8
 > imat <- matrix(0., 12, 10)
 > t1 <- survfit(Surv(time, status) ~x, data=tdata, ctype=2, weights=wt) 
@@ -418,4 +482,4 @@ x=Nonmaintained 12     11   15.1      4.57   13.5     4.0      NA
 > 
 > proc.time()
    user  system elapsed 
-  0.944   0.056   0.993 
+  0.545   0.020   0.562 

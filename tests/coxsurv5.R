@@ -172,7 +172,7 @@ if (FALSE) {
 # s0 to c, cumhaz of 1/1 at 18
 #  a to c, cumhaz of 1/2 at 16
 time2 <-     c(4,5,6,8,10,15,16,18,20, 22)
-chaz2 <- matrix(0, nrow=10, ncol=6,
+chaz2 <- matrix(0, nrow= length(time2), ncol=6,
             dimnames=list(time2, c("1:2", "1:3", "1:3", "2:3", "1:4", "2:4")))
 chaz2['4',1] <- 1/6; chaz2['8',1] <- 1/5
 chaz2['20',2] <- 1/2
@@ -183,7 +183,7 @@ chaz2 <- apply(chaz2, 2, cumsum)
  
 
 cox3 <- coxph(Surv(t1, t2, state) ~x, id=id, test2, iter=0)  # no weights
-csurv3 <- survfit(cox3, newdata=data.frame(x=0:1))
+csurv3 <- survfit(cox3, newdata=data.frame(x=0:1), time0=FALSE)
 aeq(csurv3$time, time2)
 aeq(csurv3$cumhaz[,1,], chaz2)
 aeq(csurv3$cumhaz[,2,], chaz2)
@@ -194,7 +194,7 @@ aeq(check3$pstate, csurv3$pstate[indx3,1,])
 
 cox4 <- coxph(Surv(t1,t2, state) ~ x, id=id, test2, 
                      init=log(1:6), iter=0)
-csurv4 <- survfit(cox4, newdata=data.frame(x=0:1))
+csurv4 <- survfit(cox4, newdata=data.frame(x=0:1), time0= FALSE)
 mrisk4 <- exp(outer(test2$x, log(1:6), '*'))  # hazards for each transition
 check4 <- with(test2, coxhaz(Surv(t1, t2, state), id=id, risk=mrisk4))
 aeq(check4$cumhaz, csurv4$cumhaz[indx3,1,])

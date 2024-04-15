@@ -82,10 +82,11 @@ temp <- rbind(0, 0,
               colSums(m2$n.event[m2$time <= 300, ]))
 all.equal(s2$n.event, apply(temp,2, diff))
 
-temp <- c(0, 0,sum(m1$n.censor[m1$time <= 100]),
-               sum(m1$n.censor[m1$time <= 200]),
-               sum(m1$n.censor[m1$time <= 300]))
-all.equal(s1$n.censor, diff(temp))
+temp <- rbind(0, 0,
+              colSums(m1$n.censor[m1$time <= 100,]),
+              colSums(m1$n.censor[m1$time <= 200,]),
+              colSums(m1$n.censor[m1$time <= 300,]))
+all.equal(s1$n.censor, apply(temp, 2, diff))
               
 # check the same with survfit objects
 s1 <- summary(fit[1], times=c(0, 200, 400, 600))

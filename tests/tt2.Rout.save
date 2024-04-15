@@ -1,7 +1,7 @@
 
-R Under development (unstable) (2023-01-30 r83727) -- "Unsuffered Consequences"
+R Under development (unstable) (2023-08-01 r84818) -- "Unsuffered Consequences"
 Copyright (C) 2023 The R Foundation for Statistical Computing
-Platform: x86_64-pc-linux-gnu (64-bit)
+Platform: aarch64-unknown-linux-gnu
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -127,4 +127,4 @@ Type 'q()' to quit R.
 > 
 > proc.time()
    user  system elapsed 
-  1.548   0.092   1.632 
+  0.733   0.044   0.771 

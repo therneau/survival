@@ -40,7 +40,7 @@ timefix=TRUE,...)
   \describe{
     \item{overlap}{two observations for the same subject that overlap in
       time, e.g. intervals of (0, 100) and (90, 120).  
-      If \code{y} is simple (time, status) survival observation
+      If \code{y} is simple (time, status) survival then 
       intervals implicitly start at 0, so in that case any duplicate
       identifiers will generate an overlap.}
    \item{gap}{one or more gaps in a subject's timeline; where they are
@@ -58,6 +58,15 @@ timefix=TRUE,...)
   vector. Optional components give the location and identifiers of the
   flagged observations.
   The \code{Surv} function has already flagged any 0 length intervals as errors.
+
+  One important caveat is that survcheck does not deal with reuse of an id
+  value. For instance, a multi-institutional data set where the same
+  subject identifier happens to have been used for two different
+  subjects in two different institutions.  The routine is likely
+  generate a "false positive" error in this case, but this is simply
+  unavoidable.  Since the routine is used internally by \code{survfit},
+  \code{coxph}, etc. the same errors will appear in other routines in
+  the survival package.
 }
 \value{
   a list with components

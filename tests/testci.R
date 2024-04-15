@@ -1,19 +1,24 @@
+library(survival)
 options(na.action=na.exclude) # preserve missings
 options(contrasts=c('contr.treatment', 'contr.poly')) #ensure constrast type
-library(survival)
 aeq <- function(x,y,...) all.equal(as.vector(x), as.vector(y),...)
 
 #
-# Test out the survfit.ci function, which does competing risk
-#   estimates
-# Replaced by ordinary calls to survfit, with status a factor
+# Test out the results for competing risks.  Survfit does this directly as just
+#   one case of the Aalen-Johansen, but also known as 'cumulative incidence'.
 #
 # First trivial test
 tdata <- data.frame(time=c(1,2,2,3,3,3,5,6),
                     status = c(0,1,0,1,0,1,0,1),
                     event =  c(1,1,2,2,1,2,3,2),
-                    grp = c(1,2,1,2,1,2,1,2))
-fit <- survfit(Surv(time, status*event, type='mstate') ~1, tdata)
+                    grp = c(1,2,1,2,1,2,1,2),
+                    id = 1:8)
+old <- survfit(Surv(time, status*event, type="mstate") ~1, tdata) #old style
+fit <- survfit(Surv(time, factor(status*event)) ~1, tdata)
+
+# test that the old (should be depricated) form gives the same answer
+indx <- match("call", names(fit))
+all.equal(unclass(old)[-indx], unclass(fit)[-indx])
 
 byhand <- function() {
     #everyone starts in state 0
@@ -46,7 +51,35 @@ bfit <- byhand()
 aeq(fit$pstate, bfit$P)
 aeq(fit$n.risk[,1], c(8,7,5,2,1))
 aeq(fit$n.event[,2:3], c(0,1,0,0,0, 0,0 ,2,0,1))
-aeq(fit$std^2, bfit$V)
+aeq(fit$std.err, sqrt(bfit$V))
+
+# Check the influence directly, per row
+eps <- 1e-6
+deltaU <- array(0, dim= c(nrow(tdata), dim(fit$pstate))) 
+deltaC <- array(0, dim= c(nrow(tdata), dim(fit$cumhaz)))
+deltaA <- deltaU
+auc <- function(fit) {
+    nr <- length(fit$time)
+    rbind(fit$p0*fit$time[1], 
+          apply(diff(fit$time) * fit$pstate[-nr,], 2, cumsum))
+}   
+for (i in 1:nrow(tdata)) {
+    twt <- rep(1, nrow(tdata))
+    twt[i] <- twt[i] + eps
+    tfit <- survfit(Surv(time, factor(status*event)) ~1, tdata, id=id,
+                    weights= twt)
+    deltaU[i,,] <- (tfit$pstate - fit$pstate)/eps  # approx derivative
+    deltaC[i,,] <- (tfit$cumhaz - fit$cumhaz)/eps
+    deltaA[i,,] <- (auc(tfit) - auc(fit))/eps
+}
+aeq(bfit$u2, deltaU[,2,], tol=eps)
+aeq(bfit$u3, deltaU[,3,], tol=eps)
+aeq(bfit$u6, deltaU[,5,], tol=eps)
+
+sqmean <- function(x) sqrt(sum(x^2))
+aeq(fit$std.chaz, apply(deltaC, 2:3, sqmean), tol=eps)
+aeq(fit$std.err,  apply(deltaU, 2:3, sqmean), tol=eps)
+aeq(fit$std.auc,  apply(deltaA, 2:3, sqmean), tol=eps)
 
 # Times purposely has values that are before the start, exact, intermediate
 #  and after the end of the observed times

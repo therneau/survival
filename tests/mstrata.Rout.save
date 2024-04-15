@@ -1,7 +1,7 @@
 
-R version 4.1.2 (2021-11-01) -- "Bird Hippie"
-Copyright (C) 2021 The R Foundation for Statistical Computing
-Platform: x86_64-pc-linux-gnu (64-bit)
+R Under development (unstable) (2024-02-07 r85873) -- "Unsuffered Consequences"
+Copyright (C) 2024 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -99,7 +99,21 @@ state    0   1
 [1] TRUE
 > 
 > 
+> # Part 3: compare a shared baseline to identical baseline
+> if (FALSE) {
++  # not yet completed
++ fit3 <- coxph(list(Surv(time, state) ~1,
++                    1:4 + 2:4 + 3:4~ age + sex/ common + 1), 
++               id=id, istate=cstate, data= tdata)
++ fit4 <- coxph(list(Surv(time, state) ~1,
++                    1:4 + 2:4 + 3:4~ age + sex/ 1), 
++               id=id, istate=cstate, data= tdata)
++ 
++ fit0 <- coxph(Surv(time, status) ~ age + sex, tdata,  ties="breslow")
++ 
++ survfit(fit3, newdata= list(age=65, sex=1))
++ }
 > 
 > proc.time()
    user  system elapsed 
-  1.322   0.123   1.498 
+  1.085   0.106   1.183 

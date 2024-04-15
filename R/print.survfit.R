@@ -54,17 +54,22 @@ print.survfit <- function(x, scale=1,
     mtemp <- if (is.matrix(temp$matrix)) temp$matrix  
              else matrix(temp$matrix, nrow=1, 
                          dimnames=list(NULL, names(temp$matrix)))
-    if (all(mtemp[,2] == mtemp[,3])){
-        cname <- dimnames(mtemp)[[2]]
-        mtemp <- mtemp[,-2, drop=FALSE]
-        cname <-cname[-2]
-        cname[2] <- "n"
-        dimnames(mtemp)[[2]] <- cname
+    if (dimnames(mtemp)[[2]][2] == "n.id") {
+        mtemp <- mtemp[,-3, drop=FALSE]   # no need for n.start
+        dimnames(mtemp)[[2]][2] <- "n"
     }
+    else { # older path
+        if (all(mtemp[,2] == mtemp[,3])){  
+            cname <- dimnames(mtemp)[[2]]
+            mtemp <- mtemp[,-3, drop=FALSE]
+            cname <-cname[-3]
+            cname[2] <- "n"
+            dimnames(mtemp)[[2]] <- cname
+        }
 
-    if (all(mtemp[,1] == mtemp[,2])) 
-        mtemp <- mtemp[,-1, drop=FALSE]
-
+        if (all(mtemp[,1] == mtemp[,2])) 
+            mtemp <- mtemp[,-1, drop=FALSE]
+    }
     # for printing, put a footnote on the rmean label
     if (rmean != 'none') {
         dd <- dimnames(mtemp)
@@ -99,7 +104,7 @@ survmean <- function(x, scale=1, rmean) {
     #  i.e., once per curve.  It creates the line of output
     #
     pfun <- function(nused, time, surv, n.risk, n.event, lower, upper, 
-		      start.time, end.time) {
+		      start.time, end.time, nid) {
         #
         # Start by defining a small utility function
         # Multiple times, we need to find the x corresponding to the first
@@ -161,16 +166,17 @@ survmean <- function(x, scale=1, rmean) {
             varmean <- 0  #placeholders 
             }   
 
+        if (is.null(nid)) maxn= max(n.risk) else maxn = nid
         #compute the median  and ci(median)
 	med <- minmin(surv, time)
 	if (!is.null(upper)) {
 	    upper <- minmin(upper, time)
 	    lower <- minmin(lower, time)
-	    c(nused, max(n.risk), n.risk[1], 
+	    c(nused, maxn, n.risk[1], 
               sum(n.event), sum(mean), sqrt(varmean), med, lower, upper)
 	    }
 	else
-		c(nused, max(n.risk), n.risk[1], sum(n.event), 
+		c(nused, maxn, n.risk[1], sum(n.event), 
                   sum(mean), sqrt(varmean), med, 0, 0)
 	}
 
@@ -188,7 +194,7 @@ survmean <- function(x, scale=1, rmean) {
                   "rmean", "se(rmean)", "median",
               paste(x$conf.int, c("LCL", "UCL"), sep=''))  #col labels
     ncols <- 9    #number of columns in the output
-    
+    if (!is.null(x$n.id)) plab[2] <- "n.id"
 
     #Four cases: strata Y/N  by  ncol(surv)>1 Y/N
     #  Repeat the code, with minor variations, for each one
@@ -206,17 +212,17 @@ survmean <- function(x, scale=1, rmean) {
 		if (is.null(x$conf.int))
 		     out[i,] <- pfun(x$n, stime, surv[,i], x$n.risk, 
                                      x$n.event[,i],
-				      NULL, NULL, start.time, end.time)
+				      NULL, NULL, start.time, end.time, x$n.id)
 		else out[i,] <- pfun(x$n, stime, surv[,i], x$n.risk, 
                                      x$n.event[,i],
                                      x$lower[,i], x$upper[,i], start.time,
-                                     end.time)
+                                     end.time, x$n.id)
 		}
 	    dimnames(out) <- list(dimnames(surv)[[2]], plab)
 	    }
 	else {
 	    out <- matrix(pfun(x$n, stime, surv, x$n.risk, x$n.event, x$lower, 
-			x$upper, start.time, end.time), nrow=1)
+			x$upper, start.time, end.time, x$n.id), nrow=1)
 	    dimnames(out) <- list(NULL, plab)
  	    }
         }
@@ -248,11 +254,12 @@ survmean <- function(x, scale=1, rmean) {
 		    if (is.null(x$lower))
 		         out[k,] <- pfun(x$n[i], stime[who], surv[who,j],
 					 x$n.risk[who], x$n.event[who,j],
-					 NULL, NULL, start.time, end.time[i])
+					 NULL, NULL, start.time, end.time[i],
+                                         x$n.id[j])
 		    else out[k,] <- pfun(x$n[i], stime[who], surv[who,j],
 					 x$n.risk[who], x$n.event[who,j],
 					 x$lower[who,j], x$upper[who,j], 
-					 start.time, end.time[i])
+					 start.time, end.time[i], x$n.id[j])
 		    }
 		}
 	    }
@@ -264,11 +271,12 @@ survmean <- function(x, scale=1, rmean) {
 		if (is.null(x$lower))
 		     out[i,] <- pfun(x$n[i], stime[who], surv[who], 
 				     x$n.risk[who], x$n.event[who], 
-				     NULL, NULL, start.time, end.time[i])
+				     NULL, NULL, start.time, end.time[i], 
+                                     x$n.id[i])
 		else out[i,] <- pfun(x$n[i], stime[who], surv[who], 
 				     x$n.risk[who], x$n.event[who], 
 				     x$lower[who], x$upper[who], start.time,
-                                     end.time[i])
+                                     end.time[i], x$n.id[i])
 		}
 	    }
 	}
