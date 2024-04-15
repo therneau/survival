@@ -370,8 +370,49 @@ matplot(1:17, cbind(timat, tscore), pch='is', log='y',
 At iteration 17 the computations for both the first and second derivative
 fail due to exp() overflow.
 
+\section{Kalia data}
+This data set was provided by Sumeet Kalia, and breaks the maximizer due to a
+bad second step.
+
+<<kalia>>=
+kdata <- readRDS("kalia.rds")
+tfit1 <- coxph(Surv(time1, time2, status) ~ factor(x),  data=kdata, 
+               weights= wt, iter =1)
+coef(tfit1)
+@ 
+
+These are very large coefficients for a binary variable.
+A contour plot of the solution region is informative.
+
+<<kalia2>>=
+npt <- 25
+b1 <- seq(0, 15, length=npt)
+b2 <- seq(0, 15, length=npt)
+loglik <- matrix(0, npt, npt)
+for (i in 1:npt) {
+    for (j in 1:npt) {
+        tfit <- coxph(Surv(time1, time2, status) ~ factor(x), kdata,
+                      weights= wt, iter=0, init=c(b1[i], b2[j]))
+        loglik[i,j] <- tfit$loglik[1]
+    }
+}
+contour(b1, b2, loglik, levels=-c(19, seq(20,80, by=5) ))
+points(tfit1$coef[1], tfit1$coef[2], col=2, pch=19)
+points(0, 0, col=2, pch='o')
+@ 
+
+We see that the first iteration landed in a point where the likelihood surface
+is almost perfectly flat.   
+As a consequence, the information matrix (second deriviative) is near 0,  
+the inverse of the information matrix is huge, 
+and the next Newton Raphson step is crazy. If you start just a little bit
+closer to the max, at (1,1) say, the NR succeeds (in 6 steps).
+This appears to be a case where a trust region approach might be useful.
+
 
 \section{Trust region approach}
+This section is still in progress.
+
 A trust region approach asks the question: over what region is the Newton-Raphson
 step reliable?  It then takes the maximum step within the reliable region.
 Reliable is normally defined as $r$ =(actual improvement)/(predicted improvement)

@@ -236,7 +236,7 @@ for (i in 1:npt) {
         log2[i,j] <- tfit$loglik[1]
     }
 }
-contour(b1, b2, log2, levels=c(-19, -21, seq(-25, -85, by=-5)))
+contour(b1, b2, log2, levels=c(-(19:21), seq(-25, -85, by=-5)))
 
 tfit0 <- coxph(Surv(time1, time2, status) ~ factor(x), kdata, iter=0,
                weights = wt, x=TRUE)
