@@ -503,7 +503,7 @@ SEXP survfitaj(SEXP y2,       SEXP sort12,  SEXP sort22, SEXP utime2,
 	}	
 
 	/* Save out the results */
-	saveit: j=j;  
+	saveit: j=j+1;  /* dummy line to hang the label on */
 	for (j=0; j<nstate; j++) {
 	    pstate[j][i] = phat[j];
 	    if (sefit >0) {
