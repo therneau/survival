@@ -34,7 +34,8 @@ residuals.survfit <- function(object, times, type= "pstate",
         times <- sort(unique(times))
         if (timefix) times <- aeqSurv(Surv(times))[,1]
     }
-    timelab <- signif(times, 3)  # used for dimnames
+    timelab <- signif(times, 4)  # used for dimnames
+    if (any(duplicated(timelab)) timelab <- NULL  # give up on nice values
 
     if (!is.logical(collapse)) stop("collapse must be TRUE/FALSE")
  
@@ -89,7 +90,13 @@ residuals.survfit <- function(object, times, type= "pstate",
     if (is.name(idname)) idname <- as.character(idname)
     else idname <- "(id)"  
    
-    # What type of curve?  # to do, support the old 'type' arg
+    # if missing id, create one that is 'row number in original data'
+    if (length(id) ==0) {
+        id <- seq(n + length(object$na.action))
+        if (!is.null(object$na.action)) id <- id[-object$na.action]  
+    }
+
+   # What type of curve?  # to do, support the old 'type' arg
     stype <- Call$stype
     if (is.null(stype)) stype <- 1
     ctype <- Call$ctype
@@ -113,7 +120,7 @@ residuals.survfit <- function(object, times, type= "pstate",
             curve <- (as.integer(X))[!duplicated(id)] #which curve for each row
         } else {
             if (weighted && any(casewt !=1)) resid <- resid*casewt
-            if (length(id) >0) dimnames(resid) <- list(id=id, times=timelab)
+            dimnames(resid) <- list(id=id, times=timelab)
             curve <- as.integer(X)
         }
     }
@@ -169,23 +176,28 @@ residuals.survfit <- function(object, times, type= "pstate",
              curve <- (as.integer(X))[!duplicated(id)] #which curve for each row
          } else {
              if (weighted && any(casewt != 1)) resid <- resid*casewt
-             if (length(times) ==1) colnames(resid) <- sname
-             else dimnames(resid) <- list(NULL, sname, times=timelab)
+             if (length(times) ==1) dimnames(resid) <- list(id=id, sname)
+             else dimnames(resid) <- list(id=id, sname, times=timelab)
              curve <- as.integer(X)
         }       
     }       
- 
-    if (ncurve==1) curve <- NULL
 
-    # deal with na.action, but only for rectangular output
-    if (!is.null(object$na.action) && !collapse && length(dim(resid)) <3) {
-         if (length(dim(resid)) > 2) {
-            r2 <- naresid(object$na.action, matrix(resid, nrow=dim(resid)[1]))
-            d2 <- dim(resid)[-1]
-            resid <- array(r2, dim= c(length(r2)/prod(d2), d2))
-         } else resid <- naresid(object$na.action, resid)
-         if (length(id)) id <- naresid(object$na.action, id)
-         if (length(curve)) curve <- naresid(object$na.action,curve)
+    names(dimnames(resid))[1] <- idname
+    if (ncurve==1) curve <- NULL
+    
+    # deal with na.action
+    if (!is.null(object$na.action) && !collapse && !data.frame) {
+        test <- seq(dim(resid)[1])
+        # if naresid does nothing, i.e., the default na.omit, do nothing
+        if (!identical(test, naresid(object$na.action, test))) {
+            if (length(dim(resid)) > 2) {
+               r2 <- naresid(object$na.action, matrix(resid, nrow=dim(resid)[1]))
+               d2 <- dim(resid)[-1]
+               resid <- array(r2, dim= c(length(r2)/prod(d2), d2))
+            } else resid <- naresid(object$na.action, resid)
+            if (length(id)) id <- naresid(object$na.action, id)
+            if (length(curve)) curve <- naresid(object$na.action,curve)
+        }
     }
                           
    if (!data.frame) resid
@@ -194,22 +206,18 @@ residuals.survfit <- function(object, times, type= "pstate",
        rd <- dim(resid)
        if (length(rd) < 2) {
            # single time point, simple survival
-           if (is.null(id))
-               rdat <-data.frame(id= seq(along=resid),resid=resid, time=times)
-           else rdat <- data.frame(id=id, time=times, resid=resid)
+           rdat <- data.frame(id=id, time=times, resid=resid)
            if (length(curve)>0) rd$curve <- curve
        } else {
-           if (is.null(rname[[1]])) idx <- rep(seq.int(rd[1]), prod(rd[-1]))
-           else idx <- rep(rname[[1]], prod(rd[-1]))
-           
+           id <- rep(id, prod(rd[-1]))
            if (!survfitms) # simple surv, multiple times
-                rdat <- data.frame(id=idx, time=times[col(resid)],resid=c(resid))
+                rdat <- data.frame(id=id, time=times[col(resid)],resid=c(resid))
            else { #multistate
                if (length(times) ==1)
-                   rdat <- data.frame(id=idx, 
+                   rdat <- data.frame(id=id, 
                                     state= rname[[2]][col(resid)], 
                                     time= times, resid=c(resid))
-               else rdat <- data.frame(idx=idx, 
+               else rdat <- data.frame(id=id, 
                                   state= rep(rep(rname[[2]], each=rd[1]),rd[3]),
                                   time= rep(times, each= rd[1]*rd[2]),
                                   resid= c(resid))

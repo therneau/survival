@@ -109,22 +109,20 @@ pseudo <- function(fit, times, type, collapse=TRUE, data.frame=FALSE, ...){
         #  For multistate also add state or hazard
         # time will be continuous, so does not work well as a dimname
         # Each id is allowed to be in only 1 curve, so curve is not a dimension
-        if (names(rfit)[1] == "(id)") uid <- NULL else uid <- unique(rfit[[1]])
+        uid <- unique(rfit[[1]])
         if (nstate ==1) {
             if (ntime ==1) names(ptemp) <- uid  # return a vector
             else {
                 ptemp <- matrix(ptemp, ncol=ntime)
-                if (!is.null(uid)) {
-                    dd <- list(uid, NULL)
-                    names(dd) <- c(names(rfit)[1], "time")
-                    dimnames(ptemp) <- dd
-                }
+                dd <- list(uid, NULL)
+                names(dd) <- c(names(rfit)[1], "time")
+                dimnames(ptemp) <- dd
             }
         } else {
             if (type=="cumhaz") 
                 dd <- list(uid, transtion= unique(rfit$transition))
             else dd <- list(uid, state =unique(rfit$state))
-            if (!is.null(uid)) names(dd)[1] <- names(rfit)[1]
+            names(dd)[1] <- names(rfit)[1]
             if (ntime==1) 
                 ptemp <- matrix(ptemp, nrow=sum(nn), dimnames=dd)
             else {

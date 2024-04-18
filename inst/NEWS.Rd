@@ -1,5 +1,15 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 3.6.3}{
+  \itemize{
+    \itemFix small bug in residuals.survfit wrt labeling rows of the
+  output
+}}
+\section{Changes in version 3.6-2}{
+  \itemize{
+    \item Change survfitaj.c to avert a spurious compiler warning which
+    made the CRAN input unhappy
+}}
 \section{Changes in version 3.6-1}{
   \itemize{
     \item Major update to survfit routines. Infinitesimal jackknife (IJ)
