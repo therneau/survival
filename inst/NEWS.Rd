@@ -3,7 +3,8 @@
 \section{Changes in version 3.6.3}{
   \itemize{
     \item Fix small bug in residuals.survfit wrt labeling rows of the
-  output
+    output.  Update helpfile to describe the dimnames.
+    \item Submit to CRAN
 }}
 \section{Changes in version 3.6-2}{
   \itemize{

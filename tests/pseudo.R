@@ -38,8 +38,8 @@ fit2b <- survfit(Surv(futime, death) ~1, mdata, subset= (sex=='M'))
 fem <- (mdata$sex=='F')
 rr2a <- resid(fit2a, times=tvec)
 rr2b <- resid(fit2b, times=tvec)
-all.equal(rr2a, rr2[fem,])
-all.equal(rr2b, rr2[!fem,])
+aeq(rr2a, rr2[fem,])  # row names won't be equal
+aeq(rr2b, rr2[!fem,])
 
 # one time point
 ps2a <- pseudo(fit2a, time=100)
@@ -60,8 +60,8 @@ ps2e <- pseudo(fit2b, times=tvec)
 aeq(ps2e, sv2[2, col(rr2b)] + fit2$n[2]* rr2b)
 
 ps2f <- pseudo(fit2, times=tvec)
-all.equal(ps2d, ps2f[ fem,])
-all.equal(ps2e, ps2f[!fem,])
+aeq(ps2d, ps2f[ fem,])
+aeq(ps2e, ps2f[!fem,])
 
 # Repeat the process for a multi-state model
 fit3 <- survfit(Surv(etime, event) ~ sex, mdata)
@@ -71,14 +71,14 @@ rr3 <-  resid(fit3, times=tvec)
 aeq(apply(rr3, 2:3, sum), matrix(0,3,4)) # resids sum to 0 for each state & time
 rr3a <- resid(fit3a, times=tvec)
 rr3b <- resid(fit3b, times=tvec)
-all.equal(rr3[fem,,], rr3a)
-all.equal(rr3[!fem,,], rr3b)
+aeq(rr3[fem,,], rr3a)
+aeq(rr3[!fem,,], rr3b)
 
 ps3 <- pseudo(fit3, times=tvec)
 ps3a <- pseudo(fit3a, times=tvec)
 ps3b <- pseudo(fit3b, times=tvec)
-all.equal(ps3[ fem,,], ps3a)
-all.equal(ps3[!fem,,], ps3b)
+aeq(ps3[ fem,,], ps3a)
+aeq(ps3[!fem,,], ps3b)
 
 sv3 <- summary(fit3, times=tvec, extend=TRUE)$pstate
 sv3 <- array(sv3, dim=c(4,2,3))      #times, curve, order
@@ -121,8 +121,8 @@ sv2 <- t(matrix(sv2, ncol=2))   # row 1= female, row2 = male
 # residuals are the same as for separate models
 rr2a <- resid(fit2a, times=tvec, type= "cumhaz")
 rr2b <- resid(fit2b, times=tvec, type= "cumhaz")
-all.equal(rr2a, rr2[fem,])
-all.equal(rr2b, rr2[!fem,])
+aeq(rr2a, rr2[fem,])
+aeq(rr2b, rr2[!fem,])
 
 # one time point
 ps2a <- pseudo(fit2a, time=100, type="cumhaz")
@@ -143,22 +143,22 @@ ps2e <- pseudo(fit2b, times=tvec, type= "cumhaz")
 aeq(ps2e, sv2[2, col(rr2b)] + fit2$n[2]* rr2b)
 
 ps2f <- pseudo(fit2, times=tvec, type="cumhaz")
-all.equal(ps2d, ps2f[ fem,])
-all.equal(ps2e, ps2f[!fem,])
+aeq(ps2d, ps2f[ fem,])
+aeq(ps2e, ps2f[!fem,])
 
 # Repeat the process for a multi-state model
 rr3 <-  resid(fit3, times=tvec, type="cumhaz")
 aeq(apply(rr3, 2:3, sum), matrix(0, 2,4))
 rr3a <- resid(fit3a, times=tvec, type="cumhaz")
 rr3b <- resid(fit3b, times=tvec, type="cumhaz")
-all.equal(rr3[fem,,], rr3a)
-all.equal(rr3[!fem,,], rr3b)
+aeq(rr3[fem,,], rr3a)
+aeq(rr3[!fem,,], rr3b)
 
 ps3 <- pseudo(fit3, times=tvec, type="cumhaz")
 ps3a <- pseudo(fit3a, times=tvec, type="cumhaz")
 ps3b <- pseudo(fit3b, times=tvec, type="cumhaz")
-all.equal(ps3[ fem,,], ps3a)
-all.equal(ps3[!fem,,], ps3b)
+aeq(ps3[ fem,,], ps3a)
+aeq(ps3[!fem,,], ps3b)
 
 sv3 <- summary(fit3, times=tvec, extend=TRUE)$cumhaz
 sv3 <- array(sv3, dim=c(4,2,2))      #times, curve, hazard
@@ -184,7 +184,7 @@ aeq(temp2, ps3b)
 tvec <- tvec[2:4]
 
 rr1 <- resid(fit1, tvec, type="auc")
-all.equal(colSums(rr1), rep(0,3))
+aeq(colSums(rr1), rep(0,3))
 afun <- function(fit, times) {
     ntime <- length(times)
     if (length(fit$strata)) xfun <- function(x) x$table[, "rmean"]
@@ -212,13 +212,13 @@ aeq(ps1b,  sv1[col(rr1)] + fit1$n * rr1)
 # Single endpoint, multiple curves
 rr2 <- resid(fit2, time=tvec, type="auc")
 sv2 <- t(afun(fit2, tvec))
-all.equal(colSums(rr2), rep(0,3))
+aeq(colSums(rr2), rep(0,3))
 
 # residuals are the same as for separate models
 rr2a <- resid(fit2a, times=tvec, type= "auc")
 rr2b <- resid(fit2b, times=tvec, type= "auc")
-all.equal(rr2a, rr2[fem,])
-all.equal(rr2b, rr2[!fem,])
+aeq(rr2a, rr2[fem,])
+aeq(rr2b, rr2[!fem,])
 
 # one time point
 ps2a <- pseudo(fit2a, time=100, type="auc")
@@ -239,22 +239,22 @@ ps2e <- pseudo(fit2b, times=tvec, type= "auc")
 aeq(ps2e, sv2[2, col(rr2b)] + fit2$n[2]* rr2b)
 
 ps2f <- pseudo(fit2, times=tvec, type="auc")
-all.equal(ps2d, ps2f[ fem,])
-all.equal(ps2e, ps2f[!fem,])
+aeq(ps2d, ps2f[ fem,])
+aeq(ps2e, ps2f[!fem,])
 
 # Repeat the process for a multi-state model
 rr3 <-  resid(fit3, times=tvec, type="auc")
 aeq(apply(rr3, 2:3, sum), matrix(0, 3,3))
 rr3a <- resid(fit3a, times=tvec, type="auc")
 rr3b <- resid(fit3b, times=tvec, type="auc")
-all.equal(rr3[fem,,], rr3a)
-all.equal(rr3[!fem,,], rr3b)
+aeq(rr3[fem,,], rr3a)
+aeq(rr3[!fem,,], rr3b)
 
 ps3 <- pseudo(fit3, times=tvec, type="auc")
 ps3a <- pseudo(fit3a, times=tvec, type="auc")
 ps3b <- pseudo(fit3b, times=tvec, type="auc")
-all.equal(ps3[ fem,,], ps3a)
-all.equal(ps3[!fem,,], ps3b)
+aeq(ps3[ fem,,], ps3a)
+aeq(ps3[!fem,,], ps3b)
 
 sv3 <- rbind(summary(fit3, rmean=tvec[1])$table[,"rmean"],
              summary(fit3, rmean=tvec[2])$table[,"rmean"],

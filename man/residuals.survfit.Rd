@@ -63,6 +63,15 @@ but this was deemed too confusing.
   the second dimension is the set of transitions.  (A competing risks
   model for instance has 3 states and 2 transitions.)
 }
+\note{The first column of the data frame identifies the origin of the
+  row.  If there was an \code{id} variable in the \code{survfit} call it
+  will contain the values of that variable and be labeled with the
+  variable name, or "(id)" if there was an expression rather than a
+  name. (For example, \code{survfit(....  id= abc$def[z])}).  If there
+  was no \code{id} variable the label will be "(row)", and the column
+  will contain the row number of the survfit data.  For a matrix result
+  the first component of dimnames has similar structure.
+}
 \seealso{\code{\link{survfit}}, \code{\link{survfit.formula}}
 }
 \examples{

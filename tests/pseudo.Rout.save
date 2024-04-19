@@ -1,7 +1,7 @@
 
-R Under development (unstable) (2024-03-04 r86048) -- "Unsuffered Consequences"
+R Under development (unstable) (2024-04-01 r86255) -- "Unsuffered Consequences"
 Copyright (C) 2024 The R Foundation for Statistical Computing
-Platform: aarch64-unknown-linux-gnu
+Platform: x86_64-pc-linux-gnu
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -59,9 +59,9 @@ Type 'q()' to quit R.
 > fem <- (mdata$sex=='F')
 > rr2a <- resid(fit2a, times=tvec)
 > rr2b <- resid(fit2b, times=tvec)
-> all.equal(rr2a, rr2[fem,])
+> aeq(rr2a, rr2[fem,])  # row names won't be equal
 [1] TRUE
-> all.equal(rr2b, rr2[!fem,])
+> aeq(rr2b, rr2[!fem,])
 [1] TRUE
 > 
 > # one time point
@@ -89,9 +89,9 @@ Type 'q()' to quit R.
 [1] TRUE
 > 
 > ps2f <- pseudo(fit2, times=tvec)
-> all.equal(ps2d, ps2f[ fem,])
+> aeq(ps2d, ps2f[ fem,])
 [1] TRUE
-> all.equal(ps2e, ps2f[!fem,])
+> aeq(ps2e, ps2f[!fem,])
 [1] TRUE
 > 
 > # Repeat the process for a multi-state model
@@ -103,17 +103,17 @@ Type 'q()' to quit R.
 [1] TRUE
 > rr3a <- resid(fit3a, times=tvec)
 > rr3b <- resid(fit3b, times=tvec)
-> all.equal(rr3[fem,,], rr3a)
+> aeq(rr3[fem,,], rr3a)
 [1] TRUE
-> all.equal(rr3[!fem,,], rr3b)
+> aeq(rr3[!fem,,], rr3b)
 [1] TRUE
 > 
 > ps3 <- pseudo(fit3, times=tvec)
 > ps3a <- pseudo(fit3a, times=tvec)
 > ps3b <- pseudo(fit3b, times=tvec)
-> all.equal(ps3[ fem,,], ps3a)
+> aeq(ps3[ fem,,], ps3a)
 [1] TRUE
-> all.equal(ps3[!fem,,], ps3b)
+> aeq(ps3[!fem,,], ps3b)
 [1] TRUE
 > 
 > sv3 <- summary(fit3, times=tvec, extend=TRUE)$pstate
@@ -163,9 +163,9 @@ Type 'q()' to quit R.
 > # residuals are the same as for separate models
 > rr2a <- resid(fit2a, times=tvec, type= "cumhaz")
 > rr2b <- resid(fit2b, times=tvec, type= "cumhaz")
-> all.equal(rr2a, rr2[fem,])
+> aeq(rr2a, rr2[fem,])
 [1] TRUE
-> all.equal(rr2b, rr2[!fem,])
+> aeq(rr2b, rr2[!fem,])
 [1] TRUE
 > 
 > # one time point
@@ -193,9 +193,9 @@ Type 'q()' to quit R.
 [1] TRUE
 > 
 > ps2f <- pseudo(fit2, times=tvec, type="cumhaz")
-> all.equal(ps2d, ps2f[ fem,])
+> aeq(ps2d, ps2f[ fem,])
 [1] TRUE
-> all.equal(ps2e, ps2f[!fem,])
+> aeq(ps2e, ps2f[!fem,])
 [1] TRUE
 > 
 > # Repeat the process for a multi-state model
@@ -204,17 +204,17 @@ Type 'q()' to quit R.
 [1] TRUE
 > rr3a <- resid(fit3a, times=tvec, type="cumhaz")
 > rr3b <- resid(fit3b, times=tvec, type="cumhaz")
-> all.equal(rr3[fem,,], rr3a)
+> aeq(rr3[fem,,], rr3a)
 [1] TRUE
-> all.equal(rr3[!fem,,], rr3b)
+> aeq(rr3[!fem,,], rr3b)
 [1] TRUE
 > 
 > ps3 <- pseudo(fit3, times=tvec, type="cumhaz")
 > ps3a <- pseudo(fit3a, times=tvec, type="cumhaz")
 > ps3b <- pseudo(fit3b, times=tvec, type="cumhaz")
-> all.equal(ps3[ fem,,], ps3a)
+> aeq(ps3[ fem,,], ps3a)
 [1] TRUE
-> all.equal(ps3[!fem,,], ps3b)
+> aeq(ps3[!fem,,], ps3b)
 [1] TRUE
 > 
 > sv3 <- summary(fit3, times=tvec, extend=TRUE)$cumhaz
@@ -243,7 +243,7 @@ Type 'q()' to quit R.
 > tvec <- tvec[2:4]
 > 
 > rr1 <- resid(fit1, tvec, type="auc")
-> all.equal(colSums(rr1), rep(0,3))
+> aeq(colSums(rr1), rep(0,3))
 [1] TRUE
 > afun <- function(fit, times) {
 +     ntime <- length(times)
@@ -274,15 +274,15 @@ Type 'q()' to quit R.
 > # Single endpoint, multiple curves
 > rr2 <- resid(fit2, time=tvec, type="auc")
 > sv2 <- t(afun(fit2, tvec))
-> all.equal(colSums(rr2), rep(0,3))
+> aeq(colSums(rr2), rep(0,3))
 [1] TRUE
 > 
 > # residuals are the same as for separate models
 > rr2a <- resid(fit2a, times=tvec, type= "auc")
 > rr2b <- resid(fit2b, times=tvec, type= "auc")
-> all.equal(rr2a, rr2[fem,])
+> aeq(rr2a, rr2[fem,])
 [1] TRUE
-> all.equal(rr2b, rr2[!fem,])
+> aeq(rr2b, rr2[!fem,])
 [1] TRUE
 > 
 > # one time point
@@ -310,9 +310,9 @@ Type 'q()' to quit R.
 [1] TRUE
 > 
 > ps2f <- pseudo(fit2, times=tvec, type="auc")
-> all.equal(ps2d, ps2f[ fem,])
+> aeq(ps2d, ps2f[ fem,])
 [1] TRUE
-> all.equal(ps2e, ps2f[!fem,])
+> aeq(ps2e, ps2f[!fem,])
 [1] TRUE
 > 
 > # Repeat the process for a multi-state model
@@ -321,17 +321,17 @@ Type 'q()' to quit R.
 [1] TRUE
 > rr3a <- resid(fit3a, times=tvec, type="auc")
 > rr3b <- resid(fit3b, times=tvec, type="auc")
-> all.equal(rr3[fem,,], rr3a)
+> aeq(rr3[fem,,], rr3a)
 [1] TRUE
-> all.equal(rr3[!fem,,], rr3b)
+> aeq(rr3[!fem,,], rr3b)
 [1] TRUE
 > 
 > ps3 <- pseudo(fit3, times=tvec, type="auc")
 > ps3a <- pseudo(fit3a, times=tvec, type="auc")
 > ps3b <- pseudo(fit3b, times=tvec, type="auc")
-> all.equal(ps3[ fem,,], ps3a)
+> aeq(ps3[ fem,,], ps3a)
 [1] TRUE
-> all.equal(ps3[!fem,,], ps3b)
+> aeq(ps3[!fem,,], ps3b)
 [1] TRUE
 > 
 > sv3 <- rbind(summary(fit3, rmean=tvec[1])$table[,"rmean"],
@@ -356,4 +356,4 @@ Type 'q()' to quit R.
 > 
 > proc.time()
    user  system elapsed 
-  0.610   0.024   0.631 
+  1.173   0.095   1.260 

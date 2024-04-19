@@ -87,9 +87,10 @@ residuals.survfit <- function(object, times, type= "pstate",
     # remember the name of the id variable, if present, to use for a label
     #  but we don't try to parse it:  id= mydata$clinic becomes NULL
     idname <- Call$id
-    if (is.name(idname)) idname <- as.character(idname)
-    else idname <- "(id)"  
-   
+    if (!is.null(idname)) {
+        if (is.name(idname)) idname <- as.character(idname)
+        else idname <- "(id)"  
+    }
     # if missing id, create one that is 'row number in original data'
     if (length(id) ==0) {
         id <- seq(n + length(object$na.action))
@@ -182,7 +183,8 @@ residuals.survfit <- function(object, times, type= "pstate",
         }       
     }       
 
-    names(dimnames(resid))[1] <- idname
+    if (is.null(idname)) names(dimnames(resid))[1] <- ""
+    else  names(dimnames(resid))[1] <- idname
     if (ncurve==1) curve <- NULL
     
     # deal with na.action
@@ -225,7 +227,8 @@ residuals.survfit <- function(object, times, type= "pstate",
            }
            if (length(curve) >0) rdat$curve <- rep(curve, prod(rd[-1]))
        }
-       names(rdat)[1] <- idname        
+       if (is.null(idname)) names(rdat)[1] <- '(id)'
+       else names(rdat)[1] <- idname        
        rdat
    }        
 }
@@ -310,14 +313,16 @@ rsurvpart1 <- function(Y, times, type, stype, ctype, fit) {
         # The AUC is the area under the survival curve
         # see survfit:AUC in the methods document
         dtime <- fit$time[events]
-        delta <- diff(dtime)
+        if (min(dtime) >0) t0 <- 0 else t0 <- 2*min(dtime) -1
+        delta <- diff(c(t0,dtime))
         j <- length(dtime) #temp index
-        aucd <- cumsum(c(0,surv[-j] * delta))   #AUC from dtime[1] to dtime[k]
+        aucd <- cumsum(c(1,surv[-j]) * delta)   #AUC from t0 to dtime
+
         if (max(times) > max(dtime)) {
-            auctau <- approx(c(dtime, max(times)),
-                             c(aucd, aucd[j] + surv[j]*(max(times)-dtime[j])),
+            auctau <- approx(c(t0,dtime, max(times)),
+                             c(0,aucd, aucd[j] + surv[j]*(max(times)-dtime[j])),
                              times, yleft=0, rule=2)$y
-        } else auctau <- approx(dtime, aucd, times, yleft=0)$y #dtime[1] to times
+        } else auctau <- approx(c(t0,dtime), c(0,aucd), times, yleft=0)$y 
          
         if (stype==2) dd <- 1/nrisk   # the denominator for S= exp(-cumhaz)
         else          dd <- 1/(nrisk* (1-hazard)) # for KM
