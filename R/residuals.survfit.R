@@ -35,7 +35,7 @@ residuals.survfit <- function(object, times, type= "pstate",
         if (timefix) times <- aeqSurv(Surv(times))[,1]
     }
     timelab <- signif(times, 4)  # used for dimnames
-    if (any(duplicated(timelab)) timelab <- NULL  # give up on nice values
+    if (any(duplicated(timelab))) timelab <- NULL  # give up on nice values
 
     if (!is.logical(collapse)) stop("collapse must be TRUE/FALSE")
  
