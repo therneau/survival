@@ -2,7 +2,7 @@
 \title{NEWS file for the survival package}
 \section{Changes in version 3.6.3}{
   \itemize{
-    \itemFix small bug in residuals.survfit wrt labeling rows of the
+    \item Fix small bug in residuals.survfit wrt labeling rows of the
   output
 }}
 \section{Changes in version 3.6-2}{
