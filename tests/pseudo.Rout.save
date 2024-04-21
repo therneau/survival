@@ -1,7 +1,7 @@
 
-R Under development (unstable) (2024-04-01 r86255) -- "Unsuffered Consequences"
+R Under development (unstable) (2024-04-17 r86441) -- "Unsuffered Consequences"
 Copyright (C) 2024 The R Foundation for Statistical Computing
-Platform: x86_64-pc-linux-gnu
+Platform: aarch64-unknown-linux-gnu
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -354,6 +354,37 @@ Type 'q()' to quit R.
 > aeq(temp2, ps3b)
 [1] TRUE
 > 
+> #
+> # a data set with a missing value, and with a group that has only one obs
+> #  a good test of edge cases
+> #
+> lfit1 <- survfit(Surv(time, status) ~ ph.ecog, lung)
+> # This will warn about points beyond the curve; ph.ecog==3 has a single point
+> # at time=118, and it will have one fewer obs than the data
+> p1 <- pseudo(lfit1, times=c(100, 200))
+Warning message:
+In pseudo(lfit1, times = c(100, 200)) :
+  requested time points are beyond the end of one or more curves
+> aeq(dim(p1), c(nrow(lung)-1, 2))
+[1] TRUE
+> 
+> 
+> # This will have rows that match the data
+> lfit2 <- survfit(Surv(time, status) ~ ph.ecog, lung, na.action= na.exclude)
+> p2 <- pseudo(lfit2, time=c(100, 200))
+Warning message:
+In pseudo(lfit2, time = c(100, 200)) :
+  requested time points are beyond the end of one or more curves
+> aeq(dim(p2), c(nrow(lung), 2))
+[1] TRUE
+> all(is.na(p2[is.na(lung$ph.ecog)]))  # a row of missing was inserted
+[1] TRUE
+> 
+> row3 <- which(!is.na(lung$ph.ecog) & lung$ph.ecog ==3)  # the singleton row
+> all(p2[row3,] == c(1, 0))
+[1] TRUE
+> 
+> 
 > proc.time()
    user  system elapsed 
-  1.173   0.095   1.260 
+  0.622   0.024   0.643 

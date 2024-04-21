@@ -273,3 +273,24 @@ for (i in 1:3) { # each of the 3 states
 }
 aeq(temp1, ps3a)
 aeq(temp2, ps3b)
+
+#
+# a data set with a missing value, and with a group that has only one obs
+#  a good test of edge cases
+#
+lfit1 <- survfit(Surv(time, status) ~ ph.ecog, lung)
+# This will warn about points beyond the curve; ph.ecog==3 has a single point
+# at time=118, and it will have one fewer obs than the data
+p1 <- pseudo(lfit1, times=c(100, 200))
+aeq(dim(p1), c(nrow(lung)-1, 2))
+
+
+# This will have rows that match the data
+lfit2 <- survfit(Surv(time, status) ~ ph.ecog, lung, na.action= na.exclude)
+p2 <- pseudo(lfit2, time=c(100, 200))
+aeq(dim(p2), c(nrow(lung), 2))
+all(is.na(p2[is.na(lung$ph.ecog)]))  # a row of missing was inserted
+
+row3 <- which(!is.na(lung$ph.ecog) & lung$ph.ecog ==3)  # the singleton row
+all(p2[row3,] == c(1, 0))
+

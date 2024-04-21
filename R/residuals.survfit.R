@@ -1,7 +1,7 @@
 # residuals for a survfit object
 residuals.survfit <- function(object, times, type= "pstate",
                               collapse=FALSE, weighted=collapse, 
-                              data.frame= FALSE, ...){
+                              data.frame= FALSE, extra=FALSE, ...){
     if (!inherits(object, "survfit"))
         stop("argument must be a survfit object")
     if (object$type=="interval") {
@@ -55,7 +55,7 @@ residuals.survfit <- function(object, times, type= "pstate",
     id <- model.extract(mf, "id")
     cluster <- model.extract(mf, "cluster")
     if (is.null(cluster)) cluster <- id
-    if (is.null(cluster)) collapse <- FALSE
+    if (is.null(cluster) || all(!duplicated(cluster))) collapse <- FALSE
     if (collapse && !weighted) 
         stop("invalid combination of options: collapse=TRUE and weighted=FALSE")
      
@@ -202,7 +202,10 @@ residuals.survfit <- function(object, times, type= "pstate",
         }
     }
                           
-   if (!data.frame) resid
+   if (!data.frame) {
+       if (extra) list(resid=resid, curve=curve)
+       else resid
+   }
    else {
        rname <- dimnames(resid)
        rd <- dim(resid)

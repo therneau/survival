@@ -7,7 +7,8 @@
 }
 \usage{
 \method{residuals}{survfit}(object, times, 
-    type="pstate", collapse=FALSE, weighted= collapse, data.frame=FALSE, ...)
+    type="pstate", collapse=FALSE, weighted= collapse, data.frame=FALSE,
+    extra = FALSE, ...)
 }
 \arguments{
   \item{object}{a \code{survfit} object}
@@ -16,6 +17,8 @@
   \item{collapse}{add the residuals for all subjects in a cluster}
   \item{weighted}{weight the residuals by each observation's weight}
   \item{data.frame}{if FALSE return a matrix or array}
+  \item{extra}{return extra information when \code{data.frame=FALSE}.
+    (This is used internally by the psuedo function.)
   \item{...}{arguments for other methods}
 }
 \details{
