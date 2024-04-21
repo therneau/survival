@@ -18,7 +18,7 @@
   \item{weighted}{weight the residuals by each observation's weight}
   \item{data.frame}{if FALSE return a matrix or array}
   \item{extra}{return extra information when \code{data.frame=FALSE}.
-    (This is used internally by the psuedo function.)
+    (This is used internally by the psuedo function.)}
   \item{...}{arguments for other methods}
 }
 \details{
