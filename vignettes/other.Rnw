@@ -1,6 +1,5 @@
 \documentclass{article}[11pt]
 \usepackage{Sweave}
-\usepackage{amsmath}
 \addtolength{\textwidth}{1in}
 \addtolength{\oddsidemargin}{-.5in}
 \setlength{\evensidemargin}{\oddsidemargin}
@@ -12,45 +11,37 @@
 \begin{document}
 \maketitle
 
-A parallel source for the survival package is the therneau/survival directory on
-github.
-This copy contains several extra vignettes, in the vignette2 directory, that
-are not part of the CRAN copy.
-
+Many of the vignettes have been moved to a separate survivalVignettes package.
+There are 2 primary reasons. Primarily, as a recommended package survival cannot
+depend on anything outside of the base + recommended R.  
+(A minimally sufficient set that is self contained
+is useful for R maintainance and validation.)
+This means that we cannot use more modern tools such as knitR or markdown,
+refer to other packages for survival data such as mstate or ggsurvfit, nor
+use data from some of those packages in our examples.
+A secondary reason is that the survival package is becoming physically large,
+and it was useful to split these off for maintainance purposes.
+and even more importantly cannot
+ 
+A sample of vignettes in the companion package
 \begin{enumerate}
-   \item tutorial.Rnw: This works through the examples found in the excellent
+   \item tutorial: This works through the examples found in the excellent
      tutorial by H. Putter, M. Fiocco and R. Geskus. 
      Tutorial in biostatistics: competing risks and multi-state models,
      Statistics in Medicine, 2006.
-   \item sas.Rnw: An expanded discussion answering some repeated queries about 
-     how survival package results differ from SAS.
+   \item sas: An expanded discussion answering some repeated queries about 
+     how survival package results differ from SAS.  Some of these computations
+     take a very long time to run.
    \item ridge.Rmd: Addresses a recurrent question wrt using the ridge() function
      with a large number of covariates.
-   \item royston.Rnw: A small note that describes the data sets used in an
+   \item royston: A small note that describes the data sets used in an
      excellent paper on validation, and how those data were incorporated into
      the survival package. (Royston and Altman, DOI:10.1186/1471-2288-13-33)
-   \item tests.Rnw: A harder look at what SAS ``type 3'' tests are.
-   \item pseudo.Rnw: Use of pseudovalues and the pseudo function.
-   \item singer.Rnw: Worked examples from a texbook by Singer and Willett.
+   \item pseudo: Use of pseudovalues and the pseudo function.
 \end{enumerate}
 
-Number 1 is not on CRAN because it makes use of a data set from the mstate 
-package.  As a recommended package survival cannot depend on anything outside
-of the base + recommended R.  (A minimally sufficient set that is self contained
-is useful for R maintainance and validation.) 
-Multi-state models can be computed using either mstate or survival, and this
-vignettes shows how parallel the two packages are wrt to what is computed,
-though with styles in the setup of the data.  It also provides an extended
-validation check, for both packages.
-
-Number 2 delves into relative computing time questions, and those examples take
-a very long time to run.
-Material in the third vigette is now discussed at a higher level in the 
-population estimate and adjusted survival curves vignettes.
-Number 4 uses packages geepack and survey to compute corrected standard errors;
-packages that are outside the recommended list.
-
-In time, we expect this set of other vignettes to grow.  
+Over time, we expect more vignettes to transfer from the survival package,
+and new companions to be added.  
 \end{document}
 
 
