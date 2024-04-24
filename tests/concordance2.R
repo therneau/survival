@@ -94,7 +94,7 @@ aeq(fit$count, with(tdata, allpair(time, status, x)))
 aeq(fit$influence, with(tdata, leverage(time, status, x)))
 
 cfit <- coxph(Surv(time, status) ~ tt(x), tdata, tt=grank, ties='breslow',
-              iter=0, x=T)
+              iter.max=0, x=T)
 aeq(phget(cfit), fscale(fit))  # agree with Cox model
 
 # Test 2: Lots of ties
@@ -112,7 +112,7 @@ fit3 <- concordance(Surv(time, status) ~ predict(cox3), lung, influence=2)
 aeq(fit3$count, allpair(lung$time, lung$status-1,predict(cox3)))
 aeq(fit3$influence, leverage(lung$time, lung$status-1,predict(cox3)))
 cfit3 <- coxph(Surv(time, status) ~ tt(predict(cox3)), tt=grank,
-               ties="breslow", iter=0, data=lung)
+               ties="breslow", iter.max=0, data=lung)
 aeq(phget(cfit3), fscale(fit3))  # agree with Cox model
 
 # More ties
@@ -121,26 +121,26 @@ fit4b <- concordance(Surv(time, status) ~ ph.ecog, lung, reverse=TRUE)
 aeq(fit4$count, allpair(lung$time, lung$status-1, lung$ph.ecog))
 aeq(fit4b$count, c(8392, 4258, 7137, 21, 7))
 cfit4 <- coxph(Surv(time, status) ~ tt(ph.ecog), lung, 
-               iter=0, method='breslow', tt=grank)
+               iter.max=0, method='breslow', tt=grank)
 aeq(phget(cfit4), fscale(fit4))  # agree with Cox model
 
 # Case weights
-fit5 <- concordance(Surv(time, status) ~ x, tdata, weight=wt, influence=2)
+fit5 <- concordance(Surv(time, status) ~ x, tdata, weights=wt, influence=2)
 fit6 <- concordance(Surv(time, status) ~x, tdata[rep(1:11,tdata$wt),])
 aeq(fit5$count, with(tdata, allpair(time, status, x, wt)))
 aeq(fit5$count, c(91, 70, 7, 0, 0))  # checked by hand
 aeq(fit5$count[1:3], fit6$count[1:3])  #spurious "tied.xy" values, ignore
 aeq(fit5$var[2], fit6$var[2])
 aeq(fit5$influence, with(tdata, leverage(time, status, x, wt)))
-cfit5 <- coxph(Surv(time, status) ~ tt(x), tdata, weight=wt, 
-               iter=0, method='breslow', tt=grank)
+cfit5 <- coxph(Surv(time, status) ~ tt(x), tdata, weights=wt, 
+               iter.max=0, method='breslow', tt=grank)
 aeq(phget(cfit5), fscale(fit5))  # agree with Cox model
 
 # Start, stop simplest cases
 fit6 <- concordance(Surv(rep(0,11), time, status) ~ x, tdata)
 aeq(fit6$count, fit$count)
 aeq(fit6$var, fit$var)
-fit7 <- concordance(Surv(rep(0,11), time, status) ~ x, tdata, weight=wt)
+fit7 <- concordance(Surv(rep(0,11), time, status) ~ x, tdata, weights=wt)
 aeq(fit7$count, fit5$count)
 aeq(fit7$var, fit5$var)
 
@@ -154,13 +154,13 @@ tdata2 <- data.frame(time1=c(0,3, 5,  6,7,   0,  4,17,  7,  0,16,  2,  0,
                      wt= c(1,1, 2, 3,3, 2, 1,1, 2, 3,3, 4, 3, 2,2, 1),
                      id= c(1,1, 2, 3,3, 4, 5,5, 6, 7,7, 8, 9, 10,10, 11))
 fit8 <- concordance(Surv(time1, time2, status) ~x, cluster=id, tdata2, 
-                    weight=wt, influence=2)
+                    weights=wt, influence=2)
 aeq(fit5$count, fit8$count)
 # influence has one row per obs, so the next line is false: mismatched lengths
 # aeq(fit5$influence, fit8$influence) 
 aeq(fit5$var, fit8$var)
-cfit8 <- coxph(Surv(time1, time2, status) ~ tt(x), tdata2, weight=wt, 
-               iter=0, method='breslow', tt=grank)
+cfit8 <- coxph(Surv(time1, time2, status) ~ tt(x), tdata2, weights=wt, 
+               iter.max=0, method='breslow', tt=grank)
 aeq(phget(cfit8), fscale(fit8))  # agree with Cox model
 
 # Stratified
@@ -172,20 +172,20 @@ tdata3 <- data.frame(time1=c(tdata2$time1, rep(0, nrow(lung))),
                      grp=rep(1:2, c(nrow(tdata2), nrow(lung))),
                      id = c(tdata2$id, 100+ 1:nrow(lung)))
 fit9 <- concordance(Surv(time1, time2, status) ~x + strata(grp), cluster=id,
-                        data=tdata3, weight=wt, influence=2)
+                        data=tdata3, weights=wt, influence=2)
 aeq(fit9$count, rbind(fit8$count, fit4$count))
 
 # check out case weights, strata, and grouped jackknife;
 #   force several ties in x, y, and xy (with missing values too for good measure).
 tdata <- subset(lung, select=-c(meal.cal, wt.loss, sex, age))
-tdata$wt <- rep(1:25, length=nrow(tdata))/10
+tdata$wt <- rep(1:25, length.out=nrow(tdata))/10
 tdata$time <- ceiling(tdata$time/30)  # force ties in y
 tfit <- coxph(Surv(time, status) ~ ph.ecog + pat.karno + strata(inst)
-              + cluster(inst), tdata, weight=wt)
+              + cluster(inst), tdata, weights=wt)
 tdata$tpred <- predict(tfit)
 cm4 <- concordance(tfit, influence=3, keepstrata=TRUE)
 cm5 <- concordance(Surv(time, status) ~ tpred + strata(inst) + cluster(inst),
-                   data=tdata, weight=wt, reverse=TRUE, influence=3,
+                   data=tdata, weights=wt, reverse=TRUE, influence=3,
                    keepstrata=TRUE)
 all.equal(cm4[1:6], cm5[1:6])  # call and na.action won't match
 
@@ -205,7 +205,7 @@ for (i in 1:length(keep)) {
     wt2[keep[i]] <- wt2[keep[i]] + eps
 
     test <- concordance(Surv(time, status) ~ predict(tfit) + strata(inst),
-                   data=tdata, weight=wt2, group=group, reverse=TRUE,
+                   data=tdata, weights=wt2, group=group, reverse=TRUE,
                    keepstrata=TRUE)
     lmat[i,] <- colSums(test$count - cm4$count)/eps
 }

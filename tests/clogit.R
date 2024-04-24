@@ -21,8 +21,8 @@ dummy <- rep(1, nrow(logan2))
 fit2 <- coxph(Surv(dummy, y) ~ occ2 + occ2:education + occ2:race + strata(id),
                    logan2, method='breslow')
 
-all.equal(fit1$coef, fit2$coef)
+all.equal(fit1$coefficients, fit2$coefficients)
 all.equal(fit1$loglik, fit2$loglik)
 all.equal(fit1$var, fit2$var)
-all.equal(fit1$resid, fit2$resid)
+all.equal(fit1$residuals, fit2$residuals)
 
