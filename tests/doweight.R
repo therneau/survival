@@ -30,8 +30,8 @@ testw2 <- data.frame(time=   rep(c(1,1,2,2,2,2,3,4,5), xx),
 indx <- match(1:9, testw2$id)
 
 fit0 <- coxph(Surv(time, status) ~x, testw1, weights=wt,
-		    method='breslow', iter=0)
-fit0b <- coxph(Surv(time, status) ~x, testw2, ties='breslow', iter=0)
+		    method='breslow', iter.max=0)
+fit0b <- coxph(Surv(time, status) ~x, testw2, ties='breslow', iter.max=0)
 fit  <- coxph(Surv(time, status) ~x, testw1, weights=wt, ties='breslow')
 fitb <- coxph(Surv(time, status) ~x, testw2, ties='breslow')
 
@@ -90,7 +90,7 @@ testw3 <- data.frame(id  =  c( 1, 1, 2, 3, 3, 3, 4, 5, 5, 6, 7, 8, 8, 9),
 		    wt =    c( 1, 1, 2, 3, 3, 3, 4, 3, 3, 2, 1, 2, 2, 1))
 
 fit0 <- coxph(Surv(begin,time, status) ~x, testw3, weights=wt,
-		    ties='breslow', iter=0)
+		    ties='breslow', iter.max=0)
 fit  <- coxph(Surv(begin,time, status) ~x, testw3, weights=wt, ties='breslow')
 fit0
 summary(fit)
@@ -101,7 +101,7 @@ resid(fit0, type='scho')
 resid(fit, type='mart', collapse=testw3$id)
 resid(fit, type='score', collapse=testw3$id)
 resid(fit, type='scho')
-fit0 <- coxph(Surv(begin, time, status) ~x,testw3, weights=wt, iter=0)
+fit0 <- coxph(Surv(begin, time, status) ~x,testw3, weights=wt, iter.max=0)
 resid(fit0, 'mart', collapse=testw3$id)
 resid(coxph(Surv(begin, time, status) ~1, testw3, weights=wt)
 		      , collapse=testw3$id)  #Null model
@@ -131,8 +131,8 @@ fit3 <- coxph(Surv(futime, fustat) ~ age + ecog.ps, ovarian, weights=wtemp,
 # Effect of case weights on expected survival curves post Cox model
 #
 fit0  <- coxph(Surv(time, status) ~x, testw1, weights=wt, ties='breslow',
-	       iter=0)
-fit0b <- coxph(Surv(time, status) ~x, testw2, ties='breslow', iter=0)
+	       iter.max=0)
+fit0b <- coxph(Surv(time, status) ~x, testw2, ties='breslow', iter.max=0)
 
 surv1 <- survfit(fit0, newdata=list(x=0))
 surv2 <- survfit(fit0b, newdata=list(x=0))
@@ -141,7 +141,7 @@ aeq(surv1$surv, surv2$surv)
 # Check out the Efron approx. 
 #
 
-fit0 <- coxph(Surv(time, status) ~x,testw1, weights=wt, iter=0)
+fit0 <- coxph(Surv(time, status) ~x,testw1, weights=wt, iter.max=0)
 fit  <- coxph(Surv(time, status) ~x,testw1, weights=wt)
 resid(fit0, 'mart')
 resid(coxph(Surv(time, status) ~1, testw1, weights=wt))  #Null model

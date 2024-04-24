@@ -116,7 +116,7 @@ rsurvpart2 <- function(Y, casewt, istate, times, type, fit, method) {
             event <- (Y[,3] != 0) # the non-censored rows
             etime <- sort(unique(Y[event,2]))
             hindex <- matrix(0L, nstate, nstate)
-            hindex[cbind(from, to)] <- seq(along=from) -1L
+            hindex[cbind(from, to)] <- seq_along(from) -1L
             tindex <- cbind(from, to) - 1L
             # the max number at risk for any state, used for the skiplists
             if (is.null(fit$counts)) { # integer data

@@ -32,7 +32,7 @@ tdata <- do.call(expand.grid, fit2$xlevels[1:3])
 temp <- levels(solder$Mask)
 tpreda <- matrix(0., nrow(tdata), length(temp),
                  dimnames=list(NULL, temp))
-for (i in seq(along=temp)) {
+for (i in seq_along(temp)) {
     tdata$Mask <- temp[i]
     suppressWarnings(tpreda[,i] <- predict(fit2, newdata=tdata))
  }
@@ -43,7 +43,7 @@ tdata <- do.call(expand.grid, fit2$xlevels[1:3])
 temp <- levels(solder$Opening)
 tpredb <- matrix(0., nrow(tdata), length(temp),
                  dimnames=list(NULL, temp))
-for (i in seq(along=temp)) {
+for (i in seq_along(temp)) {
     tdata$Opening <- temp[i]
     suppressWarnings(tpredb[,i] <- predict(fit2, newdata=tdata))
  }
@@ -61,7 +61,7 @@ temp <- levels(solder$Solder)
 tdata <- solder
 tpredd <- matrix(0, nrow(tdata), length(temp),
                  dimnames=list(NULL, temp))
-for (i in seq(along=temp)) {
+for (i in seq_along(temp)) {
     tdata$Solder[] <- temp[i]
     suppressWarnings(tpredd[,i] <- predict(fit2, newdata=tdata))
 }
@@ -80,7 +80,7 @@ tdata <- do.call(expand.grid, fit2$xlevels[1:3]) # use orignal variable names
 temp <- levels(solder$Mask)
 cpred <- matrix(0., nrow(tdata), length(temp),
                  dimnames=list(NULL, temp))
-for (i in seq(along=temp)) {
+for (i in seq_along(temp)) {
     tdata$Mask <- temp[i]
     suppressWarnings(cpred[,i] <- predict(fit3, newdata=tdata))
  }

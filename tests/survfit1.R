@@ -30,7 +30,7 @@ byhand <- function(time, status, weights, id) {
     ntime <- length(utime)
     n <- length(time)
     if (missing(weights)) weights <- rep(1.0, n)
-    if (missing(id)) id <- seq(along=time)
+    if (missing(id)) id <- seq_along(time)
 
     uid <- unique(id)
     nid <- length(uid)
@@ -302,7 +302,7 @@ fh <- function(time, status, weights, id) {
 true6a <- with(subset(adata, x=="Maintained"), fh(time, status, wt, id))
 true6b <- with(subset(adata, x!="Maintained"), fh(time, status, wt, id))
 
-fit6 <- survfit(Surv(time, status) ~ x, weight=wt, data=adata, stype=2, 
+fit6 <- survfit(Surv(time, status) ~ x, weights=wt, data=adata, stype=2, 
                 ctype=2, robust=FALSE)
 aeq(fit6$cumhaz, c(true6a$estimate[,2], true6b$estimate[,2]))
 aeq(fit6$surv, exp(-c(true6a$estimate[,2], true6b$estimate[,2])))
@@ -311,7 +311,7 @@ aeq(fit6$n.risk, c(true6a$n.risk, true6b$n.risk))
 aeq(fit6$n.event, c(true6a$n.event, true6b$n.event))
 
 # Robust variance
-fit7 <- survfit(Surv(time, status) ~ x, weight=wt, data=adata, stype=2,ctype=2, 
+fit7 <- survfit(Surv(time, status) ~ x, weights=wt, data=adata, stype=2,ctype=2, 
                 id=id, influence=2, robust=TRUE)
 aeq(fit7$cumhaz, c(true6a$estimate[,2], true6b$estimate[,2]))
 aeq(fit7$surv, exp(-c(true6a$estimate[,2], true6b$estimate[,2])))

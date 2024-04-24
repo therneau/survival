@@ -73,8 +73,8 @@ byhand <- function(beta, newx=0) {
 aeq(byhand(0)$expected, c(1/19, 1/19, rep(103/152, 5), rep(613/456,2))) #verify 
 
 fit0 <- coxph(Surv(time, status) ~x, testw1, weights=wt,
-		    method='breslow', iter=0)
-fit0b <- coxph(Surv(time, status) ~x, testw2, method='breslow', iter=0)
+		    method='breslow', iter.max=0)
+fit0b <- coxph(Surv(time, status) ~x, testw2, method='breslow', iter.max=0)
 fit  <- coxph(Surv(time, status) ~x, testw1, weights=wt, method='breslow')
 fitb <- coxph(Surv(time, status) ~x, testw2, method='breslow')
 
@@ -85,23 +85,23 @@ aeq(unique(resid(fit0, type='scho')), unique(resid(fit0b, type='scho')))
 truth0 <- byhand(0,pi)
 aeq(fit0$loglik[1], truth0$loglik)
 aeq(1/truth0$imat, fit0$var)
-aeq(truth0$mart, fit0$resid)
-aeq(truth0$scho, resid(fit0, 'schoen'))
+aeq(truth0$mart, fit0$residuals)
+aeq(truth0$schoen, resid(fit0, 'schoen'))
 aeq(truth0$score, resid(fit0, 'score')) 
 sfit <- survfit(fit0, list(x=pi), censor=FALSE)
-aeq(sfit$std.err^2, truth0$var)
-aeq(-log(sfit$surv), cumsum(truth0$haz))
+aeq(sfit$std.err^2, truth0$varhaz)
+aeq(-log(sfit$surv), cumsum(truth0$hazard))
 
 truth <- byhand(0.85955744, .3)
 aeq(truth$loglik, fit$loglik[2])
 aeq(1/truth$imat, fit$var)
-aeq(truth$mart, fit$resid)
-aeq(truth$scho, resid(fit, 'schoen'))
+aeq(truth$mart, fit$residuals)
+aeq(truth$schoen, resid(fit, 'schoen'))
 aeq(truth$score, resid(fit, 'score'))
 
 sfit <- survfit(fit, list(x=.3), censor=FALSE)
-aeq(sfit$std.err^2, truth$var) 
-aeq(-log(sfit$surv), (cumsum(truth$haz)* exp(fit$coef*.3)))
+aeq(sfit$std.err^2, truth$varhaz) 
+aeq(-log(sfit$surv), (cumsum(truth$hazard)* exp(fit$coefficients*.3)))
 
 
 fit0

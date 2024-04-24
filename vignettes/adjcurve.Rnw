@@ -466,7 +466,7 @@ range(us.wt)
 index <- with(fdata, cbind(as.numeric(age2), as.numeric(sex), 
                            as.numeric(group)))
 fdata$uswt <- us.wt[index]                      
-sfit3a <-survfit(Surv(futime, death) ~ group, data=fdata, weight=uswt) 
+sfit3a <-survfit(Surv(futime, death) ~ group, data=fdata, weights=uswt) 
 @ 
 \begin{figure}[tb]
   \myfig{flc3a}
@@ -494,7 +494,7 @@ tab3 <- with(fdata, table(group)) / nrow(fdata)
 
 rwt <- rep(tab1,3)/tab2 
 fdata$rwt <- rwt[index]  # add per subject weights to the data set
-sfit3 <- survfit(Surv(futime, death) ~ group, data=fdata, weight=rwt)
+sfit3 <- survfit(Surv(futime, death) ~ group, data=fdata, weights=rwt)
 
 temp <- rwt[,1,]   #show female data
 temp <- temp %*% diag(1/apply(temp,2,min))
@@ -553,7 +553,7 @@ data set.)
 <<>>=
 id <- 1:nrow(fdata)
 cfit <- coxph(Surv(futime, death) ~ group, data=fdata, cluster=id,
-              weight=rwt)
+              weights=rwt)
 summary(cfit)$robscore
 
 if (exists("svykm")) { #true if the survey package is loaded
@@ -698,9 +698,9 @@ wt2 <- c(fdata$rwt * wtscale[fdata$group])
 c("rescaled cv"= sd(wt2)/mean(wt2), "rwt cv"=sd(fdata$rwt)/mean(fdata$rwt))
 
 cfit2a <- coxph(Surv(futime, death) ~ group, cluster = id,
-                data=fdata, weight= rwt)
+                data=fdata, weights= rwt)
 cfit2b <- coxph(Surv(futime, death) ~ group, cluster = id,
-                data=fdata, weight=wt2) 
+                data=fdata, weights=wt2) 
 round(c(cfit2a$rscore, cfit2b$rscore),1)
 @ 
 The rescaling results in weights that are much less variable

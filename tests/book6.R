@@ -71,29 +71,29 @@ temp <- byhand(0,0)
 aeq(temp$xbar, c(13/19, 11/16, 26/38, 19/28, 2/3))
 aeq(temp$hazard, c(1/19, 5/24, 5/19, 5/14, 2/3))
 
-fit0 <- coxph(Surv(time, status) ~x, testw1, weights=wt, iter=0)
+fit0 <- coxph(Surv(time, status) ~x, testw1, weights=wt, iter.max=0)
 fit  <- coxph(Surv(time, status) ~x, testw1, weights=wt)
 
 truth0 <- byhand(0,pi)
 aeq(fit0$loglik[1], truth0$loglik)
 aeq(1/truth0$imat, fit0$var)
-aeq(truth0$mart, fit0$resid)
-aeq(truth0$scho, resid(fit0, 'schoen'))
+aeq(truth0$mart, fit0$residuals)
+aeq(truth0$schoen, resid(fit0, 'schoen'))
 aeq(truth0$score, resid(fit0, 'score')) 
 sfit <- survfit(fit0, list(x=pi), censor=FALSE)
-aeq(sfit$std.err^2, truth0$var)  
+aeq(sfit$std.err^2, truth0$varhaz)  
 aeq(-log(sfit$surv), cumsum(truth0$hazard)[c(1,4,5)]) 
 
-truth <- byhand(fit$coef, .3)
+truth <- byhand(fit$coefficients, .3)
 aeq(truth$loglik, fit$loglik[2])
 aeq(1/truth$imat, fit$var)
-aeq(truth$mart, fit$resid)
-aeq(truth$scho, resid(fit, 'schoen'))
+aeq(truth$mart, fit$residuals)
+aeq(truth$schoen, resid(fit, 'schoen'))
 aeq(truth$score, resid(fit, 'score'))
 
 sfit <- survfit(fit, list(x=.3), censor=FALSE)
-aeq(sfit$std.err^2, truth$var)  
-aeq(-log(sfit$surv), (cumsum(truth$hazard)* exp(fit$coef*.3))[c(1,4,5)]) 
+aeq(sfit$std.err^2, truth$varhaz)  
+aeq(-log(sfit$surv), (cumsum(truth$hazard)* exp(fit$coefficients*.3))[c(1,4,5)]) 
 
 
 fit0

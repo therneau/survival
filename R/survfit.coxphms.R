@@ -414,7 +414,7 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95, individual=FALSE,
         ntime <- length(cifit$time)
         cifit$pstate <- array(0., dim=c(ntime, dim(tfit[[1]]$pstate)[2:3]))
         cifit$cumhaz <- array(0., dim=c(ntime, dim(tfit[[1]]$cumhaz)[2:3]))
-        rtemp <- split(seq(along=cifit$time), itemp)
+        rtemp <- split(seq_along(cifit$time), itemp)
         for (i in 1:nstrata) {
             cifit$pstate[rtemp[[i]],,] <- tfit[[i]]$pstate
             cifit$cumhaz[rtemp[[i]],,] <- tfit[[i]]$cumhaz

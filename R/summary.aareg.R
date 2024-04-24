@@ -21,9 +21,9 @@ summary.aareg <- function(object, maxtime, test=c('aalen', 'nrisk'), scale=1,...
     if (missing(test)) test <- object$test
     test <- match.arg(test)
 
-    if (!missing(maxtime)) ntime <- sum(object$time <= maxtime)
+    if (!missing(maxtime)) ntime <- sum(object$times <= maxtime)
     else 		   ntime <- nrow(object$coefficient)
-    times <- object$time[1:ntime]
+    times <- object$times[1:ntime]
 
     if (test=='aalen') {
         twt <- (as.matrix(object$tweight))[1:ntime,]

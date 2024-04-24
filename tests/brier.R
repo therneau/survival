@@ -27,5 +27,5 @@ y <- with(rott2, cbind(rfstime <=tau[1] & rfs==1,
 ss1 <- colSums(wtmat * (y - t(yhat))^2)
 ss2 <- colSums(wtmat * (y - rep(ybar, each=nrow(y)))^2)
 
-all.equal(unname(1- ss1/ss2), bfit$rsquare)
+all.equal(unname(1- ss1/ss2), bfit$rsquared)
 all.equal(unname(ss1), bfit$brier)

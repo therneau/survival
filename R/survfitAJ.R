@@ -67,7 +67,7 @@ survfitAJ <- function(X, Y, weights, id, cluster, robust, istate,
                           "\" survival data", sep=''))
 
     # Use survcheck to validate the data   
-    if (length(id) ==0) id <- seq(along=X)  # a dummy value for later work
+    if (length(id) ==0) id <- seq_along(X)  # a dummy value for later work
     if (missing(istate) || is.null(istate))
         mcheck <- survcheck2(Y, id)  
     else mcheck <- survcheck2(Y, id, istate)

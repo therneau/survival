@@ -45,7 +45,7 @@ statefig <- function(layout, connect, margin=.03, box=TRUE,
         cbox <- matrix(0, ncol=2, nrow=nstate)  #coordinates will be here
         n <- length(layout)
      
-        ix <- rep(seq(along=layout), layout) 
+        ix <- rep(seq_along(layout), layout) 
         if (is.vector(layout) || ncol(layout)> 1) { #left to right     
             cbox[,1] <- space(n)[ix]
             for (i in 1:n) cbox[ix==i,2] <- 1 -space(layout[i])

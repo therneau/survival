@@ -111,7 +111,7 @@ rm(temp, uvolt, plist, pred, ffit, kfit)
 crack2 <- with(cracks, data.frame(day1=c(NA, days), day2=c(days, NA),
                                   n=c(fail, 167-sum(fail))))
 cfit <- survreg(Surv(day1, day2, type='interval2') ~1, 
-                dist='weibull', data=crack2, weight=n)
+                dist='weibull', data=crack2, weights=n)
 
 summary(cfit)
 #Their output also has Wiebull scale = exp(cfit$coef), shape = 1/(cfit$scale)

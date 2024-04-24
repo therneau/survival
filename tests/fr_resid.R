@@ -24,7 +24,7 @@ aeq(kfitx$coef, kfit1$coef)
 
 # This will make them identical
 kfitx <- coxph(Surv(time, status) ~ age + sex  + offset(temp),kidney,
-	       iter=0, init=kfit1$coef)
+	       iter.max=0, init=kfit1$coef)
 aeq(resid(kfit1), resid(kfitx))
 aeq(resid(kfit1, type='score'), resid(kfitx, type='score'))
 aeq(resid(kfit1, type='schoe'), resid(kfitx, type='schoe'))

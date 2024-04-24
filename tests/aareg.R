@@ -59,7 +59,7 @@ tdata$status[8] <- 0      #for some variety
 afit <- aareg(Surv(time, status) ~ age + sex + ph.ecog, tdata, nmin=6)
 #
 # Now, do it "by hand"
-cfit <- coxph(Surv(time, status) ~ age + sex + ph.ecog, tdata, iter=0,
+cfit <- coxph(Surv(time, status) ~ age + sex + ph.ecog, tdata, iter.max=0,
                method='breslow')
 dt1   <- coxph.detail(cfit)
 sch1  <- resid(cfit, type='schoen')
@@ -77,7 +77,7 @@ mine <- rbind(solve(dt1$imat[,,1], sch1[1,]),
               solve(dt1$imat[,,9], sch1[9,])) 
 mine <- diag(1/dt1$nrisk[1:9]) %*% mine
 
-aeq(mine, afit$coef[1:9, -1])
+aeq(mine, afit$coefficient[1:9, -1])
 
 #
 # Check out the dfbeta matrix from aareg
@@ -101,18 +101,18 @@ afit <- aareg(Surv(time, status) ~ age + sex + ph.ecog, lung, dfbeta=T)
 
 ord <- order(lung$time, -lung$status)
 cfit <- coxph(Surv(time, status) ~ age + sex + ph.ecog, lung[ord,],
-	        method='breslow', iter=0, x=T)
+	        method='breslow', iter.max=0, x=T)
 cdt  <- coxph.detail(cfit, riskmat=T)
 
 # an arbitrary list of times
-acoef <- rowsum(afit$coef, afit$times) #per death time coefs
+acoef <- rowsum(afit$coefficient, afit$times) #per death time coefs
 indx <- match(cdt$time, afit$times)
 for (i in c(2,5,27,54,101, 135)) {
     lwho <- (cdt$riskmat[,i]==1)
     lmx <- cfit$x[lwho,]
     lmy <- 1*( cfit$y[lwho,2]==1 & cfit$y[lwho,1] == cdt$time[i])
     fit <- lm(lmy~ lmx)
-    cat("i=", i, "coef=", aeq(fit$coef, acoef[i,]))
+    cat("i=", i, "coef=", aeq(fit$coefficients, acoef[i,]))
 
     rr <- diag(resid(fit))
     zz <- cbind(1,lmx)
@@ -125,21 +125,21 @@ for (i in c(2,5,27,54,101, 135)) {
 	  
 
 # Repeat it with case weights
-ww <- rep(1:5, length=nrow(lung))/ 3.0
+ww <- rep(1:5, length.out=nrow(lung))/ 3.0
 afit <- aareg(Surv(time, status) ~ age + sex + ph.ecog, lung, dfbeta=T,
 	      weights=ww)
 cfit <- coxph(Surv(time, status) ~ age + sex + ph.ecog, lung[ord,],
-	        method='breslow', iter=0, x=T, weight=ww[ord])
+	        method='breslow', iter.max=0, x=T, weights=ww[ord])
 cdt  <- coxph.detail(cfit, riskmat=T)
 
-acoef <- rowsum(afit$coef, afit$times) #per death time coefs
+acoef <- rowsum(afit$coefficient, afit$times) #per death time coefs
 for (i in c(2,5,27,54,101, 135)) {
     who <- (cdt$riskmat[,i]==1)
     x <- cfit$x[who,]
     y <- 1*( cfit$y[who,2]==1 & cfit$y[who,1] == cdt$time[i])
-    w <- cfit$weight[who]
+    w <- cfit$weights[who]
     fit <- lm(y~x, weights=w)
-    cat("i=", i, "coef=", aeq(fit$coef, acoef[i,]))
+    cat("i=", i, "coef=", aeq(fit$coefficients, acoef[i,]))
 
     rr <- diag(resid(fit))
     zz <- cbind(1,x)
@@ -162,7 +162,7 @@ for (i in c(2,5,27,54,101, 135)) {
 #
 afit <- aareg(Surv(time, status) ~ age, lung, dfbeta=T)
 asum <- summary(afit, maxtime=max(afit$times))
-aeq(afit$test.stat, asum$test.stat)
+aeq(afit$test.statistic, asum$test.statistic)
 aeq(afit$test.var,  asum$test.var)
 aeq(afit$test.var2, asum$test.var2)
 
@@ -170,7 +170,7 @@ print(afit)
 
 afit <- aareg(Surv(time, status) ~ age, lung, dfbeta=T, test='nrisk')
 asum <- summary(afit, maxtime=max(afit$times))
-aeq(afit$test.stat, asum$test.stat)
+aeq(afit$test.statistic, asum$test.statistic)
 aeq(afit$test.var,  asum$test.var)
 aeq(afit$test.var2, asum$test.var2)
 
@@ -182,7 +182,7 @@ summary(afit)
 afit <- aareg(Surv(time, status) ~ age + sex + ph.karno + pat.karno, lung,
 	      dfbeta=T)
 asum <- summary(afit, maxtime=max(afit$times))
-aeq(afit$test.stat, asum$test.stat)
+aeq(afit$test.statistic, asum$test.statistic)
 aeq(afit$test.var,  asum$test.var)
 aeq(afit$test.var2, asum$test.var2)
 
@@ -191,7 +191,7 @@ print(afit)
 afit <- aareg(Surv(time, status) ~ age + sex + ph.karno + pat.karno, lung,
 	      dfbeta=T, test='nrisk')
 asum <- summary(afit, maxtime=max(afit$times))
-aeq(afit$test.stat, asum$test.stat)
+aeq(afit$test.statistic, asum$test.statistic)
 aeq(afit$test.var,  asum$test.var)
 aeq(afit$test.var2, asum$test.var2)
 

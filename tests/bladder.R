@@ -13,7 +13,7 @@ wfit
 # Check the rx coefs versus Wei, et al, JASA 1989
 rx <- c(1,4,5,6)  # the treatment coefs above
 cmat <- diag(4); cmat[1,] <- 1;          #contrast matrix
-wfit$coef[rx] %*% cmat                   # the coefs in their paper (table 5)
+wfit$coefficients[rx] %*% cmat           # the coefs in their paper (table 5)
 t(cmat) %*% wfit$var[rx,rx] %*% cmat  # var matrix (eqn 3.2)
 
 # Anderson-Gill fit

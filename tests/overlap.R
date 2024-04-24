@@ -26,7 +26,7 @@ fit3 <- coxph(Surv(time1, time2, event) ~ ridge(x, theta=.1), test2,
               subset= (x< 100))
 fit4 <-  coxph(Surv(time1, time2, event) ~ ridge(x, theta=.1), test2)
 fit5 <- coxph(Surv(time1,time2, event) ~ x, test2,
-              iter=0, init=fit4$coef)
+              iter.max=0, init=fit4$coef)
 
 all.equal(fit3[ii], fit4[ii])
 all.equal(c(fit3$residuals,0),  fit4$residuals, check.attributes=FALSE)

@@ -17,7 +17,7 @@ aeq <- function(x,y, ...) all.equal(as.vector(x), as.vector(y), ...)
 # I don't match their answers, and I think that I'm right
 kfit <- coxph(Surv(time, status)~ age + sex + disease + frailty(id), kidney)
 kfit1<- coxph(Surv(time, status) ~age + sex + disease +
-	      frailty(id, theta=1), kidney, iter=20)
+	      frailty(id, theta=1), kidney, iter.max=20)
 kfit0 <- coxph(Surv(time, status)~ age + sex + disease, kidney)
 temp <-  coxph(Surv(time, status) ~age + sex + disease +
 	      frailty(id, theta=1, sparse=F), kidney)
