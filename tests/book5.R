@@ -74,7 +74,7 @@ aeq(byhand(0)$expected, c(1/19, 1/19, rep(103/152, 5), rep(613/456,2))) #verify
 
 fit0 <- coxph(Surv(time, status) ~x, testw1, weights=wt,
 		    method='breslow', iter=0)
-fit0b <- coxph(Surv(time, status) ~x, testw2, method='breslow', iter=0)
+fit0b <- coxph(Surv(time, status) ~x, testw2, method='breslow', iter.max=0)
 fit  <- coxph(Surv(time, status) ~x, testw1, weights=wt, method='breslow')
 fitb <- coxph(Surv(time, status) ~x, testw2, method='breslow')
 

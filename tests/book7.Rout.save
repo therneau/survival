@@ -42,7 +42,7 @@ Type 'q()' to quit R.
 + }
 > aeq <- function(x,y) all.equal(as.vector(x), as.vector(y))
 > 
-> fit0 <-coxph(Surv(time, status) ~x, test1, iter=0, method='exact')
+> fit0 <-coxph(Surv(time, status) ~x, test1, iter.max=0, method='exact')
 > truth0 <- byhand7(0)
 > aeq(truth0$loglik, fit0$loglik[1])
 [1] TRUE
@@ -51,7 +51,7 @@ Type 'q()' to quit R.
 > aeq(truth0$mart, fit0$resid[c(2:6,1)])
 [1] TRUE
 > 
-> fit1 <- coxph(Surv(time, status) ~x, test1, iter=1, method='exact')
+> fit1 <- coxph(Surv(time, status) ~x, test1, iter.max=1, method='exact')
 > aeq(fit1$coef, truth0$u*fit0$var)
 [1] TRUE
 > truth1 <- byhand7(fit1$coef)

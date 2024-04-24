@@ -59,7 +59,7 @@ tdata$status[8] <- 0      #for some variety
 afit <- aareg(Surv(time, status) ~ age + sex + ph.ecog, tdata, nmin=6)
 #
 # Now, do it "by hand"
-cfit <- coxph(Surv(time, status) ~ age + sex + ph.ecog, tdata, iter=0,
+cfit <- coxph(Surv(time, status) ~ age + sex + ph.ecog, tdata, iter.max=0,
                method='breslow')
 dt1   <- coxph.detail(cfit)
 sch1  <- resid(cfit, type='schoen')

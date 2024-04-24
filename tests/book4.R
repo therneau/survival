@@ -64,7 +64,7 @@ byhand <- function(beta, newx=0) {
 
 aeq <- function(x,y) all.equal(as.vector(x), as.vector(y))
 
-fit0 <-coxph(Surv(start, stop, event) ~x, test2, iter=0)
+fit0 <-coxph(Surv(start, stop, event) ~x, test2, iter.max=0)
 truth0 <- byhand(0,0)
 aeq(truth0$loglik, fit0$loglik[1])
 aeq(1/truth0$imat, fit0$var)
@@ -88,7 +88,7 @@ test2b <- rbind(test2, test2, test2)
 test2b$group <- rep(1:3, each= nrow(test2))
 test2b$start <- test2b$start + test2b$group
 test2b$stop  <- test2b$stop  + test2b$group
-fit0 <- coxph(Surv(start, stop, event) ~ x + strata(group), test2b, iter=0)
+fit0 <- coxph(Surv(start, stop, event) ~ x + strata(group), test2b, iter.max=0)
 aeq(3*truth0$loglik, fit0$loglik[1])
 aeq(3*truth0$imat, 1/fit0$var)
 aeq(rep(truth0$mart,3), fit0$resid)

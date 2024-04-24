@@ -11,8 +11,8 @@ test1 <- data.frame(time=  c(9, 3,1,1,6,6,8),
                     z= factor(c('a', 'a', 'b', 'b', 'c', 'c', 'a')),
                     stringsAsFactors=FALSE)
 
-fit1 <- coxph(Surv(time, status) ~ z, test1, iter=1)
-fit2 <- coxph(Surv(time, status) ~z, test1, x=T, iter=1)
+fit1 <- coxph(Surv(time, status) ~ z, test1, iter.max=1)
+fit2 <- coxph(Surv(time, status) ~z, test1, x=T, iter.max=1)
 all.equal(model.matrix(fit1), fit2$x)
 
 # This has no level 'b', make sure dummies recode properly
@@ -35,7 +35,7 @@ all.equal(xtest[-2,], dummy, check.attributes=FALSE)
 # The case of a strata by factor interaction
 #  Use iter=0 since there are too many covariates and it won't converge
 test1$x2 <- factor(rep(1:2, length=7))
-fit3 <- coxph(Surv(time, status) ~ strata(x2)*z, test1, iter=0)
+fit3 <- coxph(Surv(time, status) ~ strata(x2)*z, test1, iter.max=0)
 xx <- model.matrix(fit3)
 all.equal(attr(xx, "assign"), c(2,2,3,3))
 all.equal(colnames(xx), c("zb", "zc", "strata(x2)2:zb",
@@ -43,12 +43,12 @@ all.equal(colnames(xx), c("zb", "zc", "strata(x2)2:zb",
 all.equal(attr(xx, "contrasts"), 
           list("strata(x2)"= "contr.treatment", z="contr.treatment"))
 
-fit3b <-   coxph(Surv(time, status) ~ strata(x2)*z, test1, iter=0, x=TRUE)
+fit3b <-   coxph(Surv(time, status) ~ strata(x2)*z, test1, iter.max=0, x=TRUE)
 all.equal(fit3b$x, xx)
 
 
 # A model with  a tt term
-fit4 <- coxph(Surv(time, status) ~ tt(x) + x, test1, iter=0,
+fit4 <- coxph(Surv(time, status) ~ tt(x) + x, test1, iter.max=0,
               tt = function(x, t, ...) x*t)
 ff <- model.frame(fit4)
 # There is 1 subject in the final risk set, 4 at risk at time 6, 6 at time 1

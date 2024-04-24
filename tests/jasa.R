@@ -54,7 +54,7 @@ summary(survfit(sfit.1, data, id=id))
 #  the mean offset.
 j.age <- jasa$age -48
 fit1 <- coxph(Surv(futime, fustat) ~ j.age, data=jasa)
-fit2 <- coxph(Surv(futime, fustat) ~ j.age, jasa, init=fit1$coef, iter=0)
+fit2 <- coxph(Surv(futime, fustat) ~ j.age, jasa, init=fit1$coef, iter.max=0)
 fit3 <- coxph(Surv(start, stop, event) ~ age, jasa1)
 fit4 <- coxph(Surv(start, stop, event) ~ offset(age*fit1$coef), jasa1)
 
