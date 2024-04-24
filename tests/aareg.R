@@ -137,7 +137,7 @@ for (i in c(2,5,27,54,101, 135)) {
     who <- (cdt$riskmat[,i]==1)
     x <- cfit$x[who,]
     y <- 1*( cfit$y[who,2]==1 & cfit$y[who,1] == cdt$time[i])
-    w <- cfit$weight[who]
+    w <- cfit$weights[who]
     fit <- lm(y~x, weights=w)
     cat("i=", i, "coef=", aeq(fit$coef, acoef[i,]))
 
@@ -162,7 +162,7 @@ for (i in c(2,5,27,54,101, 135)) {
 #
 afit <- aareg(Surv(time, status) ~ age, lung, dfbeta=T)
 asum <- summary(afit, maxtime=max(afit$times))
-aeq(afit$test.stat, asum$test.stat)
+aeq(afit$test.statistic, asum$test.statistic)
 aeq(afit$test.var,  asum$test.var)
 aeq(afit$test.var2, asum$test.var2)
 
@@ -170,7 +170,7 @@ print(afit)
 
 afit <- aareg(Surv(time, status) ~ age, lung, dfbeta=T, test='nrisk')
 asum <- summary(afit, maxtime=max(afit$times))
-aeq(afit$test.stat, asum$test.stat)
+aeq(afit$test.statistic, asum$test.statistic)
 aeq(afit$test.var,  asum$test.var)
 aeq(afit$test.var2, asum$test.var2)
 
@@ -182,7 +182,7 @@ summary(afit)
 afit <- aareg(Surv(time, status) ~ age + sex + ph.karno + pat.karno, lung,
 	      dfbeta=T)
 asum <- summary(afit, maxtime=max(afit$times))
-aeq(afit$test.stat, asum$test.stat)
+aeq(afit$test.statistic, asum$test.statistic)
 aeq(afit$test.var,  asum$test.var)
 aeq(afit$test.var2, asum$test.var2)
 
@@ -191,7 +191,7 @@ print(afit)
 afit <- aareg(Surv(time, status) ~ age + sex + ph.karno + pat.karno, lung,
 	      dfbeta=T, test='nrisk')
 asum <- summary(afit, maxtime=max(afit$times))
-aeq(afit$test.stat, asum$test.stat)
+aeq(afit$test.statistic, asum$test.statistic)
 aeq(afit$test.var,  asum$test.var)
 aeq(afit$test.var2, asum$test.var2)
 
