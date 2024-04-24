@@ -63,7 +63,7 @@ tempx <- c(5,5,4,4,3,3,7,6,5,4)
 fit2 <- concordance(tempy ~ tempx)
 addxy <- function(x) c(x[1:3], sum(x[4:5]))
 aeq(addxy(fit2$count), allpair(tempx, tempy[,1], tempy[,2]))
-cfit2 <-  coxph(tempy ~ tt(tempx), tt=grank, method='breslow', iter=0)
+cfit2 <-  coxph(tempy ~ tt(tempx), tt=grank, method='breslow', iter.max=0)
 aeq(cfit2$var, 1/cfun(fit2))
 
 # Direct call

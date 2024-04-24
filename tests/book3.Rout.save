@@ -83,7 +83,7 @@ Type 'q()' to quit R.
 > 
 > aeq <- function(x,y) all.equal(as.vector(x), as.vector(y))
 > 
-> fit0 <-coxph(Surv(start, stop, event) ~x, test2, iter=0, method='breslow')
+> fit0 <-coxph(Surv(start, stop, event) ~x, test2, iter.max=0, method='breslow')
 > truth0 <- byhand(0,0)
 > aeq(truth0$loglik, fit0$loglik[1])
 [1] TRUE
@@ -104,7 +104,7 @@ Type 'q()' to quit R.
 [1] TRUE
 > 
 > beta1 <- truth0$u/truth0$imat
-> fit1 <- coxph(Surv(start, stop, event) ~x, test2, iter=1, ties="breslow")
+> fit1 <- coxph(Surv(start, stop, event) ~x, test2, iter.max=1, ties="breslow")
 > aeq(beta1, coef(fit1))
 [1] TRUE
 > 

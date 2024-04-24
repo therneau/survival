@@ -18,9 +18,9 @@ aeq <- function(x,y) all.equal(as.vector(x), as.vector(y))
 #
 #  Check out the various residuals under an Efron approximation
 #
-fit0 <- coxph(Surv(time, status)~ x, test1, iter=0)
+fit0 <- coxph(Surv(time, status)~ x, test1, iter.max=0)
 fit  <- coxph(Surv(time, status) ~x, test1)
-fit0b <- coxph(Surv(start, stop, status) ~ x, test1b, iter=0)
+fit0b <- coxph(Surv(start, stop, status) ~ x, test1b, iter.max=0)
 fitb  <- coxph(Surv(start, stop, status) ~x, test1b)
 fitc  <- coxph(Surv(time, status) ~ offset(fit$coef*x), test1)
 fitd  <- coxph(Surv(start, stop, status) ~ offset(fit$coef*x), test1b)

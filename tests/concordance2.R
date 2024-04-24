@@ -103,7 +103,7 @@ tempx <- c(5,5,4,4,3,3,7,6,5,4)
 fit2 <- concordance(tempy ~ tempx, influence=2)
 aeq(fit2$count, allpair(tempy[,1], tempy[,2], tempx))
 aeq(fit2$influence, leverage(tempy[,1], tempy[,2], tempx))
-cfit2 <- coxph(tempy ~ tt(tempx), tt=grank, ties="breslow", iter=0)
+cfit2 <- coxph(tempy ~ tt(tempx), tt=grank, ties="breslow", iter.max=0)
 aeq(phget(cfit2), fscale(fit2))  # agree with Cox model
 
 # Bigger data

@@ -92,7 +92,7 @@ Type 'q()' to quit R.
 > 
 > fit0 <- coxph(Surv(time, status) ~x, testw1, weights=wt,
 + 		    method='breslow', iter=0)
-> fit0b <- coxph(Surv(time, status) ~x, testw2, method='breslow', iter=0)
+> fit0b <- coxph(Surv(time, status) ~x, testw2, method='breslow', iter.max=0)
 > fit  <- coxph(Surv(time, status) ~x, testw1, weights=wt, method='breslow')
 > fitb <- coxph(Surv(time, status) ~x, testw2, method='breslow')
 > 

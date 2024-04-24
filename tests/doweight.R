@@ -31,7 +31,7 @@ indx <- match(1:9, testw2$id)
 
 fit0 <- coxph(Surv(time, status) ~x, testw1, weights=wt,
 		    method='breslow', iter=0)
-fit0b <- coxph(Surv(time, status) ~x, testw2, ties='breslow', iter=0)
+fit0b <- coxph(Surv(time, status) ~x, testw2, ties='breslow', iter.max=0)
 fit  <- coxph(Surv(time, status) ~x, testw1, weights=wt, ties='breslow')
 fitb <- coxph(Surv(time, status) ~x, testw2, ties='breslow')
 
@@ -101,7 +101,7 @@ resid(fit0, type='scho')
 resid(fit, type='mart', collapse=testw3$id)
 resid(fit, type='score', collapse=testw3$id)
 resid(fit, type='scho')
-fit0 <- coxph(Surv(begin, time, status) ~x,testw3, weights=wt, iter=0)
+fit0 <- coxph(Surv(begin, time, status) ~x,testw3, weights=wt, iter.max=0)
 resid(fit0, 'mart', collapse=testw3$id)
 resid(coxph(Surv(begin, time, status) ~1, testw3, weights=wt)
 		      , collapse=testw3$id)  #Null model
@@ -132,7 +132,7 @@ fit3 <- coxph(Surv(futime, fustat) ~ age + ecog.ps, ovarian, weights=wtemp,
 #
 fit0  <- coxph(Surv(time, status) ~x, testw1, weights=wt, ties='breslow',
 	       iter=0)
-fit0b <- coxph(Surv(time, status) ~x, testw2, ties='breslow', iter=0)
+fit0b <- coxph(Surv(time, status) ~x, testw2, ties='breslow', iter.max=0)
 
 surv1 <- survfit(fit0, newdata=list(x=0))
 surv2 <- survfit(fit0b, newdata=list(x=0))
@@ -141,7 +141,7 @@ aeq(surv1$surv, surv2$surv)
 # Check out the Efron approx. 
 #
 
-fit0 <- coxph(Surv(time, status) ~x,testw1, weights=wt, iter=0)
+fit0 <- coxph(Surv(time, status) ~x,testw1, weights=wt, iter.max=0)
 fit  <- coxph(Surv(time, status) ~x,testw1, weights=wt)
 resid(fit0, 'mart')
 resid(coxph(Surv(time, status) ~1, testw1, weights=wt))  #Null model

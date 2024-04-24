@@ -66,7 +66,7 @@ byhand <- function(beta, newx=0) {
 
 aeq <- function(x,y) all.equal(as.vector(x), as.vector(y))
 
-fit0 <-coxph(Surv(start, stop, event) ~x, test2, iter=0, method='breslow')
+fit0 <-coxph(Surv(start, stop, event) ~x, test2, iter.max=0, method='breslow')
 truth0 <- byhand(0,0)
 aeq(truth0$loglik, fit0$loglik[1])
 aeq(1/truth0$imat, fit0$var)
@@ -79,7 +79,7 @@ aeq(sfit$surv, truth0$surv)
 aeq(fit0$score, truth0$u^2/truth0$imat)
 
 beta1 <- truth0$u/truth0$imat
-fit1 <- coxph(Surv(start, stop, event) ~x, test2, iter=1, ties="breslow")
+fit1 <- coxph(Surv(start, stop, event) ~x, test2, iter.max=1, ties="breslow")
 aeq(beta1, coef(fit1))
 
 truth <- byhand(-0.084526081, 0)

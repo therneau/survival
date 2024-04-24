@@ -70,7 +70,7 @@ byhand1 <- function(beta, newx=0) {
 
 
 
-fit0 <-coxph(Surv(time, status) ~x, test1, iter=0, method='breslow')
+fit0 <-coxph(Surv(time, status) ~x, test1, iter.max=0, method='breslow')
 truth0 <- byhand1(0,0)
 aeq(truth0$loglik, fit0$loglik[1])
 aeq(1/truth0$imat, fit0$var)
@@ -83,11 +83,11 @@ aeq(sfit$surv, exp(-cumsum(truth0$haz)))
 aeq(sfit$std.err^2, c(7/180, 2/9, 2/9, 11/9))
 aeq(resid(fit0, 'score'), c(5/24, NA, 5/12, -1/12, 7/24, -1/24, 5/24))
 
-fit1 <- coxph(Surv(time, status) ~x, test1, iter=1, method='breslow')
+fit1 <- coxph(Surv(time, status) ~x, test1, iter.max=1, method='breslow')
 aeq(fit1$coef, 8/5)
 
 # This next gives an ignorable warning message
-fit2 <- coxph(Surv(time, status) ~x, test1, method='breslow', iter=2)
+fit2 <- coxph(Surv(time, status) ~x, test1, method='breslow', iter.max=2)
 aeq(round(fit2$coef, 6), 1.472724)
 
 fit <- coxph(Surv(time, status) ~x, test1, method='breslow', eps=1e-8,
