@@ -212,7 +212,7 @@ i= 135 coef= TRUE twt= TRUE dfbeta= TRUE
 > #
 > afit <- aareg(Surv(time, status) ~ age, lung, dfbeta=T)
 > asum <- summary(afit, maxtime=max(afit$times))
-> aeq(afit$test.stat, asum$test.stat)
+> aeq(afit$test.statistic, asum$test.statistic)
 [1] TRUE
 > aeq(afit$test.var,  asum$test.var)
 [1] TRUE
@@ -234,7 +234,7 @@ Chisq=4.44 on 1 df, p=0.0351; test weights=aalen
 > 
 > afit <- aareg(Surv(time, status) ~ age, lung, dfbeta=T, test='nrisk')
 > asum <- summary(afit, maxtime=max(afit$times))
-> aeq(afit$test.stat, asum$test.stat)
+> aeq(afit$test.statistic, asum$test.statistic)
 [1] TRUE
 > aeq(afit$test.var,  asum$test.var)
 [1] TRUE
@@ -254,7 +254,7 @@ Chisq=4.23 on 1 df, p=0.0398; test weights=nrisk
 > afit <- aareg(Surv(time, status) ~ age + sex + ph.karno + pat.karno, lung,
 + 	      dfbeta=T)
 > asum <- summary(afit, maxtime=max(afit$times))
-> aeq(afit$test.stat, asum$test.stat)
+> aeq(afit$test.statistic, asum$test.statistic)
 [1] TRUE
 > aeq(afit$test.var,  asum$test.var)
 [1] TRUE
@@ -281,7 +281,7 @@ Chisq=23.36 on 4 df, p=0.000107; test weights=aalen
 > afit <- aareg(Surv(time, status) ~ age + sex + ph.karno + pat.karno, lung,
 + 	      dfbeta=T, test='nrisk')
 > asum <- summary(afit, maxtime=max(afit$times))
-> aeq(afit$test.stat, asum$test.stat)
+> aeq(afit$test.statistic, asum$test.statistic)
 [1] TRUE
 > aeq(afit$test.var,  asum$test.var)
 [1] TRUE
