@@ -77,7 +77,7 @@ mine <- rbind(solve(dt1$imat[,,1], sch1[1,]),
               solve(dt1$imat[,,9], sch1[9,])) 
 mine <- diag(1/dt1$nrisk[1:9]) %*% mine
 
-aeq(mine, afit$coef[1:9, -1])
+aeq(mine, afit$coefficient[1:9, -1])
 
 #
 # Check out the dfbeta matrix from aareg
@@ -105,7 +105,7 @@ cfit <- coxph(Surv(time, status) ~ age + sex + ph.ecog, lung[ord,],
 cdt  <- coxph.detail(cfit, riskmat=T)
 
 # an arbitrary list of times
-acoef <- rowsum(afit$coef, afit$times) #per death time coefs
+acoef <- rowsum(afit$coefficient, afit$times) #per death time coefs
 indx <- match(cdt$time, afit$times)
 for (i in c(2,5,27,54,101, 135)) {
     lwho <- (cdt$riskmat[,i]==1)
@@ -132,7 +132,7 @@ cfit <- coxph(Surv(time, status) ~ age + sex + ph.ecog, lung[ord,],
 	        method='breslow', iter=0, x=T, weight=ww[ord])
 cdt  <- coxph.detail(cfit, riskmat=T)
 
-acoef <- rowsum(afit$coef, afit$times) #per death time coefs
+acoef <- rowsum(afit$coefficient, afit$times) #per death time coefs
 for (i in c(2,5,27,54,101, 135)) {
     who <- (cdt$riskmat[,i]==1)
     x <- cfit$x[who,]
