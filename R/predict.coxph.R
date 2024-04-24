@@ -129,13 +129,13 @@ predict.coxph <- function(object, newdata,
             else newstrat <- factor(newstrat, levels=levels(oldstrat)) #give it all
             if (length(strat.term$terms))
                 newx <- model.matrix(Terms2[-strat.term$terms], mf2,
-                             contr=object$contrasts)[,-1,drop=FALSE]
+                             contrasts.arg=object$contrasts)[,-1,drop=FALSE]
             else newx <- model.matrix(Terms2, mf2,
-                             contr=object$contrasts)[,-1,drop=FALSE]
+                             contrasts.arg=object$contrasts)[,-1,drop=FALSE]
              }
         else {
             newx <- model.matrix(Terms2, mf2,
-                             contr=object$contrasts)[,-1,drop=FALSE]
+                             contrasts.arg=object$contrasts)[,-1,drop=FALSE]
             newstrat <- rep(0L, nrow(mf2))
             }
 
@@ -298,7 +298,7 @@ predict.coxph <- function(object, newdata,
                 tt <- asgn[[i]]
                 tt <- tt[!is.na(object$coefficients[tt])]
                 xtt <- newx[,tt, drop=F]
-                pred[,i] <- xtt %*% object$coefficient[tt]
+                pred[,i] <- xtt %*% object$coefficients[tt]
                 if (se.fit)
                     se[,i] <- sqrt(rowSums((xtt %*% object$var[tt,tt]) *xtt))
                 }
