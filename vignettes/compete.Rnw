@@ -770,10 +770,10 @@ the simpler \code{survfit(Surv(etime, event) \textasciitilde sex)}.
 <<pfit2>>=
 # The PCM curves of the multi-state model
 pfit2 <- survfit(Surv(fgstart, fgstop, fgstatus) ~ sex,
-                data=pcmdat, weight=fgwt)
+                data=pcmdat, weights=fgwt)
 # The death curves of the multi-state model
 dfit2 <- survfit(Surv(fgstart, fgstop, fgstatus) ~ sex, 
-                  data=deathdat, weight=fgwt)
+                  data=deathdat, weights=fgwt)
 @ 
 Inspection shows that the
 two new curves are almost identical to the prior estimates based on

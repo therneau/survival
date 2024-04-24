@@ -15,7 +15,7 @@ tdata <- data.frame(wt.loss=c(10,5,0,10, 15,20,25),
 surv1 <- survfit(fit1, newdata=tdata)
 
 fit2 <- coxph(Surv(time, status) ~ wt.loss + age + I(age*0), data=lung, 
-              init=fit1$coef, iter.max=0, subset=(sex==1 & ph.ecog==0))
+              init=fit1$coefficients, iter.max=0, subset=(sex==1 & ph.ecog==0))
 fit2$var <- fit1$var
 
 surv2 <- survfit(fit2, newdata=list(wt.loss=c(10,5), age=c(50,60)))
@@ -26,7 +26,7 @@ aeq(s1[1]$time, surv2$time)
 aeq(s1[1]$n.event, surv2$n.event)
 
 fit3 <- coxph(Surv(time, status) ~ wt.loss + age + I(age*1),
-              data=lung, init=fit1$coef, iter.max=0,
+              data=lung, init=fit1$coefficients, iter.max=0,
               subset=(sex==2 & ph.ecog==1))
 fit3$var <- fit1$var
 surv3 <- survfit(fit3, newdata=list(wt.loss=c(0,10), age=c(50,60)))
@@ -34,7 +34,7 @@ aeq(surv1[3:4]$surv, surv3$surv)
 aeq(surv1[3:4]$std, surv3$std)
 
 fit4 <- coxph(Surv(time, status) ~ wt.loss + age + I(age*0),
-              data=lung, init=fit1$coef, iter.max=0,
+              data=lung, init=fit1$coefficients, iter.max=0,
               subset=(sex==1 & ph.ecog==2))
 fit4$var <- fit1$var
 surv4 <- survfit(fit4, newdata=list(wt.loss=c(15,20,25), age=c(70,40,21)))

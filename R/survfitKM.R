@@ -77,7 +77,7 @@ survfitKM <- function(x, y, weights=rep(1.0,length(x)),
         if (influence) {
             robust <- TRUE
             if (!(has.cluster || has.id)) {
-                cluster <- seq(along=x)
+                cluster <- seq_along(x)
                 clname <- cluster
                 has.cluster <- TRUE
             }

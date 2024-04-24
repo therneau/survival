@@ -45,12 +45,12 @@ all.equal(unclass(surv1)[arglist], unclass(surv3)[arglist])
 
 # Efron method
 surv1 <- survfit(Surv(time,status) ~ sex, data=lung, stype=2, ctype=2,
-                 weight=rwt, robust=FALSE)
+                 weights=rwt, robust=FALSE)
 surv2 <- survfit(fit1, ctype=2, robust=FALSE)
 all.equal(unclass(surv1)[arglist], unclass(surv2)[arglist])
 
 # Kaplan-Meier
-surv1 <- survfit(Surv(time,status) ~ sex, data=lung, weight=rwt, robust=FALSE)
+surv1 <- survfit(Surv(time,status) ~ sex, data=lung, weights=rwt, robust=FALSE)
 surv2 <- survfit(fit1, stype=1, robust=FALSE)
 all.equal(unclass(surv1)[arglist], unclass(surv2)[arglist])
 

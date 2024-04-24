@@ -13,7 +13,7 @@ tdata <- data.frame(id=c(1,1,1,1, 2,2,2, 3,3, 4,4,4,4, 5, 6, 6),
 tdata$stat2 <- factor(tdata$status * as.numeric(tdata$event),
                       labels=c("censor", levels(tdata$event)))
          
-fit <- survfit(Surv(time1, time2, stat2) ~1, id=id, weight=wt, tdata,
+fit <- survfit(Surv(time1, time2, stat2) ~1, id=id, weights=wt, tdata,
                influence=TRUE)
 
 # The exact figures for testci2.
@@ -87,7 +87,7 @@ for (i in 1:n) {
     twt <- tdata$wt
     twt[i] <- twt[i] + eps
     tfit <- survfit(Surv(time1, time2, stat2) ~ 1, id=id, tdata,
-                    weight=twt)
+                    weights=twt)
     U[i,,] <- (tfit$pstate - fit$pstate)/eps  #finite difference approx
 }
 dfbeta <- rowsum(tdata$wt*matrix(U,nrow=n), tdata$id) # per subject
@@ -127,10 +127,10 @@ if (FALSE) {
 # the right place, but because there is no istate varaible, fit2x starts
 # everyone in (s0) at time 20.  There is no way for survfit to know.
 if (FALSE) {
-fit2 <- survfit(Surv(time1, time2, stat2) ~1, id=id, weight=wt, tdata,
+fit2 <- survfit(Surv(time1, time2, stat2) ~1, id=id, weights=wt, tdata,
                 start.time=20)
 data2 <- subset(tdata, time2>= 20)
-fit2x <- survfit(Surv(time1, time2, stat2) ~1, id=id, weight=wt, data2)
+fit2x <- survfit(Surv(time1, time2, stat2) ~1, id=id, weights=wt, data2)
 
 ii <- names(fit2)[!(names(fit2) %in%  c("call", "start.time"))]
 all.equal(unclass(fit2)[ii], unclass(fit2x)[ii])

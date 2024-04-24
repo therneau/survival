@@ -28,7 +28,7 @@ survdiff(Surv(aml$time, aml$status)~ aml$x)
 #
 #  First, equal case weights- shouldn't change the survival, but will
 #    halve the variance
-temp2 <-survfit(Surv(aml$time, aml$status)~1, weight=rep(2,23))
+temp2 <-survfit(Surv(aml$time, aml$status)~1, weights=rep(2,23))
 temp  <-survfit(Surv(time, status)~1, aml)
 aeq(temp$surv, temp2$surv)
 aeq(temp$std.err^2, 2*temp2$std.err^2)

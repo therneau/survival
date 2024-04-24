@@ -28,7 +28,7 @@ emsurv <- function(time, status, wt, verbose=T) {
     tempy <- Surv(time[!left.cen], status[!left.cen])
     ww <- wt[!left.cen]
     tempx <- factor(rep(1, sum(!left.cen)))
-    tfit <- survfit(tempy~tempx, weight=ww)
+    tfit <- survfit(tempy~tempx, weights=ww)
     if (verbose)
        cat("Iteration 0, survival=", format(round(tfit$surv[tfit$n.event>0],3)),
 		       "\n")
@@ -49,7 +49,7 @@ emsurv <- function(time, status, wt, verbose=T) {
 		stop("Left censored observation before the first death")
 	    wt2[1:k] <- wt2[1:k] + lwt[j]*sjump[1:k] /(ssurv[k]-1)
 	    }
-	tfit <- survfit(tempy~tempx, weight=c(ww, wt2))
+	tfit <- survfit(tempy~tempx, weights=c(ww, wt2))
 	if (verbose) {
 	   cat("Iteration", iter, "survival=",
 		 format(round(tfit$surv[tfit$n.event>0],3)),  "\n")
@@ -67,7 +67,7 @@ tdata <- data.frame(time  =c(1,1,1,2,2,2,3,3,3,4,4,4),
 		    status=rep(c(1,0,2),4),
 		    n     =c(12,3,2,6,2,4,2,0,2,3,3,5))
 
-tfit <- survfit(Surv(time, time, status, type='interval') ~1, tdata, weight=n)
+tfit <- survfit(Surv(time, time, status, type='interval') ~1, tdata, weights=n)
 all.equal(round(tfit$surv,3), c(.538, .295, .210, .095))
 
 

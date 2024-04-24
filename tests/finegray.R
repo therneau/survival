@@ -35,14 +35,14 @@ all.equal(test1$fgstop[test1$fgcount>0], c(4,6,12, 12,12))
 #  censoring times may be different in the two setups so only 
 #  compare at the event times
 sfit <- survfit(Surv(time, status) ~1, fdata)
-sfit1<- survfit(Surv(fgstart, fgstop, fgstatus) ~1, test1, weight=fgwt)
+sfit1<- survfit(Surv(fgstart, fgstop, fgstatus) ~1, test1, weights=fgwt)
 sfita<- sfit["type1"]
 i1 <- sfita$n.event > 0
 i2 <- sfit1$n.event > 0
 all.equal(sfita$pstate[i1], 1- sfit1$surv[i2])
 
 sfitb <- sfit["type2"]
-sfit2 <- survfit(Surv(fgstart, fgstop, fgstatus) ~1, test2, weight=fgwt)
+sfit2 <- survfit(Surv(fgstart, fgstop, fgstatus) ~1, test2, weights=fgwt)
 i1 <- sfitb$n.event > 0
 i2 <- sfit2$n.event > 0
 all.equal(sfitb$pstate[i1], 1- sfit2$surv[i2])
