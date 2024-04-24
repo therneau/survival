@@ -161,7 +161,7 @@ survfit.coxph <-
           xcenter <- offset.mean
           coef <- 0.0
           varmat <- matrix(0.0, 1, 1)
-          risk <- rep(exp(offset- offset.mean), length=n)
+          risk <- rep(exp(offset- offset.mean), length.out=n)
       }
       else {
           varmat <- object$var

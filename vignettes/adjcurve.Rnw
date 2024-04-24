@@ -553,7 +553,7 @@ data set.)
 <<>>=
 id <- 1:nrow(fdata)
 cfit <- coxph(Surv(futime, death) ~ group, data=fdata, cluster=id,
-              weight=rwt)
+              weights=rwt)
 summary(cfit)$robscore
 
 if (exists("svykm")) { #true if the survey package is loaded
@@ -698,9 +698,9 @@ wt2 <- c(fdata$rwt * wtscale[fdata$group])
 c("rescaled cv"= sd(wt2)/mean(wt2), "rwt cv"=sd(fdata$rwt)/mean(fdata$rwt))
 
 cfit2a <- coxph(Surv(futime, death) ~ group, cluster = id,
-                data=fdata, weight= rwt)
+                data=fdata, weights= rwt)
 cfit2b <- coxph(Surv(futime, death) ~ group, cluster = id,
-                data=fdata, weight=wt2) 
+                data=fdata, weights=wt2) 
 round(c(cfit2a$rscore, cfit2b$rscore),1)
 @ 
 The rescaling results in weights that are much less variable

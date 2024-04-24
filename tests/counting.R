@@ -22,10 +22,10 @@ fit0 <- coxph(Surv(time, status)~ x, test1, iter.max=0)
 fit  <- coxph(Surv(time, status) ~x, test1)
 fit0b <- coxph(Surv(start, stop, status) ~ x, test1b, iter.max=0)
 fitb  <- coxph(Surv(start, stop, status) ~x, test1b)
-fitc  <- coxph(Surv(time, status) ~ offset(fit$coef*x), test1)
-fitd  <- coxph(Surv(start, stop, status) ~ offset(fit$coef*x), test1b)
+fitc  <- coxph(Surv(time, status) ~ offset(fit$coefficients*x), test1)
+fitd  <- coxph(Surv(start, stop, status) ~ offset(fit$coefficients*x), test1b)
 
-aeq(fit0b$coef, fit0$coef)
+aeq(fit0b$coefficients, fit0$coefficients)
 
 aeq(resid(fit0), resid(fit0b, collapse=test1b$id))
 aeq(resid(fit), resid(fitb, collapse=test1b$id))

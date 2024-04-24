@@ -788,10 +788,10 @@ A Cox model fit to the constructed data set yields the Fine-Gray
 models for PCM and for death.  
 <<fg2, fig=TRUE>>=
 fgfit1 <- coxph(Surv(fgstart, fgstop, fgstatus) ~ sex, data=pcmdat,
-               weight= fgwt)
+               weights= fgwt)
 summary(fgfit1)
 fgfit2 <- coxph(Surv(fgstart, fgstop, fgstatus) ~ sex, data=deathdat,
-               weight= fgwt)
+               weights= fgwt)
 fgfit2
 
 mfit2 <- survfit(Surv(etime, event) ~ sex, data=mgus2) #reprise the AJ
@@ -862,10 +862,10 @@ if true for one, they will not be true for the other.
 Now consider a multivariate fit on age, sex, and serum m-spike.
 <<fg3>>=
 fgfit2a <- coxph(Surv(fgstart, fgstop, fgstatus) ~ age + sex + mspike,
-                 data=pcmdat, weight=fgwt)
+                 data=pcmdat, weights=fgwt)
 
 fgfit2b <-  coxph(Surv(fgstart, fgstop, fgstatus) ~ age + sex + mspike,
-                 data=deathdat, weight=fgwt)
+                 data=deathdat, weights=fgwt)
 round(rbind(PCM= coef(fgfit2a), death=coef(fgfit2b)), 3)
 @ 
 The Fine-Gray fits show an effect of all three  variables on the subdistribution

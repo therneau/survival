@@ -31,10 +31,10 @@ all.equal(unclass(surv1)[arglist], unclass(surv2)[arglist])
 
 # Now add some random weights
 rwt <- runif(nrow(lung), .5, 3)
-surv1 <- survfit(Surv(time,status) ~ sex, data=lung, stype=2, weight=rwt,
+surv1 <- survfit(Surv(time,status) ~ sex, data=lung, stype=2, weights=rwt,
                  robust=FALSE)
 fit1 <- coxph(Surv(time, status) ~ age + strata(sex), data=lung, iter.max=0,
-              ties='breslow', weight=rwt, robust=FALSE)
+              ties='breslow', weights=rwt, robust=FALSE)
 fit1$var <- 0*fit1$var   #sneaky
 surv2 <- survfit(fit1, stype=2, ctype=1)
 surv3 <- survfit(fit1)

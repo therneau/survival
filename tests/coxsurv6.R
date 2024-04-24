@@ -39,7 +39,7 @@ pbc3 <- subset(pbc2, id < 10)
 pbc3$age <- round(pbc3$age)  # easier to do "by hand" sums
 fit3 <- coxph(list(Surv(tstart, tstop, bstat) ~ 1, 
                    c(1:4):5 ~ age / common + shared),  x=TRUE,
-              id= id, istate=bili4, data=pbc3, init= c(.05, .6, 1.1), iter=0)
+              id= id, istate=bili4, data=pbc3, init= c(.05, .6, 1.1), iter.max=0)
 # a mixed p0 gives a stronger test than our usual (1, 0,0,0,0)
 surv3 <- survfit(fit3, newdata=list(age=50), p0=c(.4, .3, .2, .1, 0))
 
