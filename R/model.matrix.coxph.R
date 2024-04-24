@@ -197,8 +197,8 @@ model.frame.coxph <- function(formula, ...) {
             pvars <- attr(Terms, 'predvars')
             pmethod <- sub("makepredictcall.", "", as.vector(methods("makepredictcall")))
             for (i in 1:ntrans) {
-                newtt <- (tt[[i]])(mf[[timetrans$var[i]]], Y[,1], istrat, weights)
-                mf[[timetrans$var[i]]] <- newtt
+                newtt <- (tt[[i]])(mf[[timetrans$vars[i]]], Y[,1], istrat, weights)
+                mf[[timetrans$vars[i]]] <- newtt
                 nclass <- class(newtt)
                 if (any(nclass %in% pmethod)) { # It has a makepredictcall method
                     dummy <- as.call(list(as.name(class(newtt)[1]), tcall[[i]][[2]]))

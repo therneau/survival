@@ -42,7 +42,7 @@ tdata <- na.omit(lung[,c('time', 'status', 'pat.karno', 'inst')])
 
 temp1 <- tapply(tdata$status-1, list(tdata$pat.karno, tdata$inst), sum)
 temp1 <- ifelse(is.na(temp1), 0, temp1)
-temp2 <- tapply(cfit$resid,  list(tdata$pat.karno, tdata$inst), sum)
+temp2 <- tapply(cfit$residuals,  list(tdata$pat.karno, tdata$inst), sum)
 temp2 <- ifelse(is.na(temp2), 0, temp2)
 
 temp2 <- temp1 - temp2

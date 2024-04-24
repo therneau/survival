@@ -16,7 +16,7 @@ offvar <- fit1$frail[as.numeric(factor(lung$inst))]
 fit2 <- coxph(Surv(time, status) ~ age + offset(offvar),lung)
 fit2$var <- fit1$var  #force variances to match
 
-all.equal(fit1$coef, fit2$coef)
+all.equal(fit1$coefficients, fit2$coefficients)
 sfit2 <- survfit(fit2, newdata=list(age=fit1$means, offvar=0))
-all.equal(sfit1$surv, sfit2$surv, tol=1e-7)
+all.equal(sfit1$surv, sfit2$surv, tolerance=1e-7)
 all.equal(sfit1$var, sfit2$var)

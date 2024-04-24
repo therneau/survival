@@ -5,7 +5,7 @@ plot.cox.zph <- function(x, resid=TRUE, se=TRUE, df=4, nsmo=40,
     yy <- x$y
     df <- max(df)     # in case df is a vector
     nvar <- ncol(yy)
-    pred.x <- seq(from=min(xx), to=max(xx), length=nsmo)
+    pred.x <- seq(from=min(xx), to=max(xx), length.out=nsmo)
     temp <- c(pred.x, xx)
     lmat <- ns(temp, df=df, intercept=TRUE)
     pmat <- lmat[1:nsmo,]       # for prediction
@@ -37,16 +37,16 @@ plot.cox.zph <- function(x, resid=TRUE, se=TRUE, df=4, nsmo=40,
 	xtime <- x$time
         indx <- !duplicated(xx)  #avoid a warning message in R
 	apr1  <- approx(xx[indx], xtime[indx], 
-                        seq(min(xx), max(xx), length=17)[2*(1:8)])
+                        seq(min(xx), max(xx), length.out=17)[2*(1:8)])
 	temp <- signif(apr1$y,2)
 	apr2  <- approx(xtime[indx], xx[indx], temp)
 	xaxisval <- apr2$y
 	xaxislab <- rep("",8)
 	for (i in 1:8) xaxislab[i] <- format(temp[i])
 	}
-    col <- rep(col, length=2)
-    lwd <- rep(lwd, length=2)
-    lty <- rep(lty, length=2)
+    col <- rep(col, length.out=2)
+    lwd <- rep(lwd, length.out=2)
+    lty <- rep(lty, length.out=2)
 
     # Now, finally do the work
     for (i in var) {

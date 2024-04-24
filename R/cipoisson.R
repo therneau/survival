@@ -2,9 +2,9 @@ cipoisson <- function(k, time=1, p=0.95, method=c('exact', 'anscombe'))
 {
     nn <- max(length(k), length(time), length(p))
     if (nn>1) {
-        k <- rep(k, length=nn)
-        time <- rep(time, length=nn)
-        p <- rep(p, length=nn)
+        k <- rep(k, length.out=nn)
+        time <- rep(time, length.out=nn)
+        p <- rep(p, length.out=nn)
     }
     p <- (1-p)/2
     method <- match.arg(method)

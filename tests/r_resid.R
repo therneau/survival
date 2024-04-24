@@ -69,17 +69,17 @@ summary(fit1)
 #  upper left corner of the inverse information matrix.
 # Numbers 1 and 3 differ little for this dataset
 #
-predict(fit1, data.frame(temp=130), type='uquantile', p=c(.5, .1), se=T)
+predict(fit1, data.frame(temp=130), type='uquantile', p=c(.5, .1), se.fit=T)
 
 fit2 <- survreg(Surv(time, status) ~ temp, data=imotor, scale=fit1$scale)
-predict(fit2, data.frame(temp=130), type='uquantile', p=c(.5, .1), se=T)
+predict(fit2, data.frame(temp=130), type='uquantile', p=c(.5, .1), se.fit=T)
 
 fit3 <- fit2
 fit3$var <- fit1$var[1:2,1:2]
-predict(fit3, data.frame(temp=130), type='uquantile', p=c(.5, .1), se=T)
+predict(fit3, data.frame(temp=130), type='uquantile', p=c(.5, .1), se.fit=T)
 
-pp <- seq(.05, .7, length=40)
-xx <- predict(fit1, data.frame(temp=130), type='uquantile', se=T,
+pp <- seq(.05, .7, length.out=40)
+xx <- predict(fit1, data.frame(temp=130), type='uquantile', se.fit=T,
 	      p=pp)
 #matplot(pp, cbind(xx$fit, xx$fit+2*xx$se, xx$fit - 2*xx$se), type='l')
 
@@ -89,19 +89,19 @@ xx <- predict(fit1, data.frame(temp=130), type='uquantile', se=T,
 #  number of quantiles desired
 #
 fit1 <- survreg(Surv(time, status) ~ inst + strata(inst) + age + sex, lung)
-qq1 <- predict(fit1, type='quantile', p=.3, se=T)
-qq2 <- predict(fit1, type='quantile', p=c(.2, .3, .4), se=T)
+qq1 <- predict(fit1, type='quantile', p=.3, se.fit=T)
+qq2 <- predict(fit1, type='quantile', p=c(.2, .3, .4), se.fit=T)
 aeq <- function(x,y) all.equal(as.vector(x), as.vector(y))
 aeq(qq1$fit, qq2$fit[,2])
 aeq(qq1$se.fit, qq2$se.fit[,2])
 
-qq3 <- predict(fit1, type='quantile', p=c(.2, .3, .4), se=T,
+qq3 <- predict(fit1, type='quantile', p=c(.2, .3, .4), se.fit=T,
 	       newdata= lung[1:5,])
 aeq(qq3$fit, qq2$fit[1:5,])
 
-qq4 <- predict(fit1, type='quantile', p=c(.2, .3, .4), se=T, newdata=lung[7,])
+qq4 <- predict(fit1, type='quantile', p=c(.2, .3, .4), se.fit=T, newdata=lung[7,])
 aeq(qq4$fit, qq2$fit[7,])
 
-qq5 <- predict(fit1, type='quantile', p=c(.2, .3, .4), se=T, newdata=lung)
+qq5 <- predict(fit1, type='quantile', p=c(.2, .3, .4), se.fit=T, newdata=lung)
 aeq(qq2$fit, qq5$fit)
 aeq(qq2$se.fit, qq5$se.fit)

@@ -19,15 +19,15 @@ statefig <- function(layout, connect, margin=.03, box=TRUE,
     # expand out all of the graphical parameters.  This lets users
     #  use a vector of colors, line types, etc
     narrow <- sum(connect!=0) 
-    acol <- rep(acol, length=narrow)
-    alwd <- rep(alwd, length=narrow)
-    alty <- rep(alty, length=narrow)
+    acol <- rep(acol, length.out=narrow)
+    alwd <- rep(alwd, length.out=narrow)
+    alty <- rep(alty, length.out=narrow)
 
-    bcol <- rep(bcol, length=nstate)
-    lty  <- rep(lty, length=nstate)
-    lwd  <- rep(lwd, length=nstate)
+    bcol <- rep(bcol, lengt.outh=nstate)
+    lty  <- rep(lty, length.out=nstate)
+    lwd  <- rep(lwd, length.out=nstate)
     
-    col <- rep(col, length=nstate)  # text colors
+    col <- rep(col, length.out=nstate)  # text colors
  
     if (is.matrix(layout) && ncol(layout)==2 && nrow(layout) > 1) {
         # the user provided their own
@@ -99,7 +99,7 @@ statefig <- function(layout, connect, margin=.03, box=TRUE,
             else {
                 # approx the curve with 21 segments
                 #  arrowhead on the last one
-                phi <- seq(temp$angle[1], temp$angle[2], length=21)
+                phi <- seq(temp$angle[1], temp$angle[2], length.out=21)
                 lines(temp$center[1] + temp$r*cos(phi),
                       temp$center[2] + temp$r*sin(phi), lwd=lwd, lty=lty, col=col)
                 arrow2(temp$center[1] + temp$r*cos(phi[20]),

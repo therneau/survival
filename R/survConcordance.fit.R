@@ -10,13 +10,13 @@ survConcordance.fit <- function(y, x, strata, weight) {
         depth <- floor(logb(n,2))
         start <- as.integer(2^depth)
         lastrow.length <- 1+n-start
-        indx <- seq(1L, by=2L, length= lastrow.length)
+        indx <- seq(1L, by=2L, length.out= lastrow.length)
         ranks[yet.to.do[indx]] <- start + 0:(length(indx)-1L)
         yet.to.do <- yet.to.do[-indx]
 
         while (start >1) {
             start <- as.integer(start/2)
-            indx <- seq(1L, by=2L, length=start)
+            indx <- seq(1L, by=2L, length.out=start)
             ranks[yet.to.do[indx]] <- start + 0:(start-1L)
             yet.to.do <- yet.to.do[-indx]
         }

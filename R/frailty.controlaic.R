@@ -40,7 +40,7 @@ frailty.controlaic <- function(parms, iter, old, n, df, loglik) {
     if (correct) aic <- history[,5]   #use corrected aic for convergence
     else         aic <- history[,4]
 
-    done <- (abs(1- aic[iter]/aic[iter-1]) < parms$eps)
+    done <- (abs(1- aic[iter]/aic[iter-1]) < parms$eps2)
     x <- history[,1]
     
     if (x[iter]== max(aic) && x[iter]==max(x)) 

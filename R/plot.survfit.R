@@ -406,7 +406,7 @@ plot.survfit<- function(x, conf.int,  mark.time=FALSE,
     xend <- yend <- double(ncurve)
     if (length(conf.offset) ==1) 
         temp.offset <- (1:ncurve - (ncurve+1)/2)* conf.offset* diff(par("usr")[1:2])
-    else temp.offset <- rep(conf.offset, length=ncurve) *  diff(par("usr")[1:2])
+    else temp.offset <- rep(conf.offset, length.out=ncurve) *  diff(par("usr")[1:2])
     temp.cap    <-  conf.cap    * diff(par("usr")[1:2])
 
     for (j in 1:ncol(ssurv)) {
@@ -801,7 +801,7 @@ lines.survfit <- function(x, type='s',
     xend <- yend <- double(ncurve)
     if (length(conf.offset) ==1) 
         temp.offset <- (1:ncurve - (ncurve+1)/2)* conf.offset* diff(par("usr")[1:2])
-    else temp.offset <- rep(conf.offset, length=ncurve) *  diff(par("usr")[1:2])
+    else temp.offset <- rep(conf.offset, length.out=ncurve) *  diff(par("usr")[1:2])
     temp.cap    <-  conf.cap    * diff(par("usr")[1:2])
 
     for (j in 1:ncol(ssurv)) {
@@ -1072,11 +1072,11 @@ points.survfit <- function(x, fun, censor=FALSE,
     }
     else {
         c2 <- 1  #cycles through the colors and characters
-        col <- rep(col, length=ncurve)
+        col <- rep(col, length.out=ncurve)
         if (!missing(pch)) {
             if (length(pch)==1)
-                pch2 <- rep(strsplit(pch, '')[[1]], length=ncurve)
-            else pch2 <- rep(pch, length=ncurve)
+                pch2 <- rep(strsplit(pch, '')[[1]], length.out=ncurve)
+            else pch2 <- rep(pch, length.out=ncurve)
         }
         for (j in 1:ncol(ssurv)) {
             for (i in unique(stemp)) {

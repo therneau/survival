@@ -54,9 +54,9 @@ summary(survfit(sfit.1, data, id=id))
 #  the mean offset.
 j.age <- jasa$age -48
 fit1 <- coxph(Surv(futime, fustat) ~ j.age, data=jasa)
-fit2 <- coxph(Surv(futime, fustat) ~ j.age, jasa, init=fit1$coef, iter.max=0)
+fit2 <- coxph(Surv(futime, fustat) ~ j.age, jasa, init=fit1$coefficients, iter.max=0)
 fit3 <- coxph(Surv(start, stop, event) ~ age, jasa1)
-fit4 <- coxph(Surv(start, stop, event) ~ offset(age*fit1$coef), jasa1)
+fit4 <- coxph(Surv(start, stop, event) ~ offset(age*fit1$coefficients), jasa1)
 
 s1 <- survfit(fit1, list(j.age=fit3$means), censor=FALSE)
 s2 <- survfit(fit2, list(j.age=fit3$means), censor=FALSE)
@@ -80,7 +80,7 @@ fit <- coxph(Surv(start, stop, event) ~ age*strata(ss) + age2, tdata)
 #    Something with data frames, I expect.
 #fit <- coxph(Surv(rep(start,2), rep(stop,2), rep(event,2)) ~
 #			rep(age,2)*strata(ss) + I(rep(age,2)^2*ss) )
-all.equal(fit$coef[1], fit3$coef)
+all.equal(fit$coefficients[1], fit3$coefficients)
 s5 <- survfit(fit, data.frame(age=fit3$means, age2=0, ss=0), censor=FALSE)
 all.equal(s5$surv[1:(s5$strata[1])],  s3$surv)
 

@@ -46,7 +46,7 @@ frailty.controlgauss <- function(opt, iter, old, fcoef, trH, loglik){
 		list(theta=theta, done=FALSE, history=history)
 		}
 	    else {
-		done <- (abs(history[iter,2]) < opt$eps)
+		done <- (abs(history[iter,2]) < opt$eps2)
 		ord <- order(history[,1])
 		tempy <- history[ord,2]  #x & y from left to right
 		tempx <- history[ord,1]

@@ -61,9 +61,9 @@ p1 <- predict(fit1, type='response')
 p2 <- predict(fit2, type='response')
 aeq(p1, p2)
 
-p3 <- predict(fit2, type='terms', se=T)
-p4 <- predict(fit2, type='lp', se=T)
-p5 <- predict(fit1, type='lp', se=T)
+p3 <- predict(fit2, type='terms', se.fit=T)
+p4 <- predict(fit2, type='lp', se.fit=T)
+p5 <- predict(fit1, type='lp', se.fit=T)
 # aeq(p3$fit + attr(p3$fit, 'constant'), p4$fit)  #R is missing the attribute
 aeq(p4$fit, p5$fit)
 aeq(p3$se.fit, p4$se.fit)  #this one should be false

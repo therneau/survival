@@ -20,7 +20,7 @@ all.equal(mydata$ondrug, c(NA, NA,1, 1,0,1, NA, 1,0, NA, 1))
 tests$ff <- factor(tests$onoff, 0:1, letters[4:5])
 tests$fchar <- as.character(tests$ff)
 tests$logic <- as.logical(tests$onoff)
-tests$num <- rep(1:3, length=nrow(tests))
+tests$num <- rep(1:3, length.out=nrow(tests))
 
 mydata <- tmerge(mydata, tests, id=idd, fgrp= tdc(date, ff),
                  chgrp = tdc(date, fchar), 

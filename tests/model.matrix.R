@@ -34,7 +34,7 @@ all.equal(xtest[-2,], dummy, check.attributes=FALSE)
 
 # The case of a strata by factor interaction
 #  Use iter=0 since there are too many covariates and it won't converge
-test1$x2 <- factor(rep(1:2, length=7))
+test1$x2 <- factor(rep(1:2, length.out=7))
 fit3 <- coxph(Surv(time, status) ~ strata(x2)*z, test1, iter.max=0)
 xx <- model.matrix(fit3)
 all.equal(attr(xx, "assign"), c(2,2,3,3))

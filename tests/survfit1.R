@@ -18,8 +18,8 @@ adata$wt <- sample((2:30)/10, nrow(aml))  # non-integer weights
 
 group <- rep("", nrow(adata))
 temp <- table(adata$x)
-group[adata$x == "Maintained"] <- rep(letters[4:1], length=temp[1])
-group[adata$x != "Maintained"] <- rep(letters[4:7], length=temp[2])
+group[adata$x == "Maintained"] <- rep(letters[4:1], length.out=temp[1])
+group[adata$x != "Maintained"] <- rep(letters[4:7], length.out=temp[2])
 adata$group <- group
 
 adata2 <- survSplit(Surv(time, status) ~ ., adata, cut=c(10, 20, 40))

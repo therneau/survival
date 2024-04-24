@@ -154,7 +154,7 @@ cmatrix <- function(fit, term,
         cmat <- vector("list", ntest)
         for (k in 1:ntest) {
             temp <- rep(-1/ntest, ntest)
-            temp[k] <- (ntest-1)/ntest
+            temp[k] <- (ntest-1)/ntest77
             cmat[[k]] <- matrix(temp, nrow=1)
         }
         names(cmat) <- paste(1:ntest, "vs mean")
@@ -170,7 +170,7 @@ cmatrix <- function(fit, term,
             tcall <- Tatt$predvars[[indx + 1]]  # skip the 'call' 
             if (tcall[[1]] == as.name("pspline")) {
                 bb <- tcall[["Boundary.knots"]]
-                levels[[1]] <- seq(bb[1], bb[2], length=ntest)
+                levels[[1]] <- seq(bb[1], bb[2], length.out=ntest)
             }
             else if (tcall[[1]] %in% c("ns", "bs")) {
                 bb <- c(tcall[["Boundary.knots"]], tcall[["knots"]])
@@ -365,7 +365,7 @@ yates <- function(fit, term, population=c("data", "factorial", "sas"),
         #  interaction there will be many more colums to drop.
         if (inherits(fit, "coxph")) {
             nkeep <- length(fit$means)  # number of non-intercept columns
-            col.to.keep <- seq(to=ncol(Cmat), length= nkeep)
+            col.to.keep <- seq(to=ncol(Cmat), length.out= nkeep)
             Cmat <- Cmat[,col.to.keep, drop=FALSE]
             offset <- -sum(fit$means[!nabeta] * beta)  # recenter the predictions too
             }
@@ -674,7 +674,7 @@ yates_factorial_pop <- function(mframe, terms, x2indx, xlevels) {
     row.names(pdata) <- NULL        # throw away funny names
     n1 <- 1
     for (i in 1:nvar) {
-        j <- rep(rep(1:n2[i], each=n1), length=n)
+        j <- rep(rep(1:n2[i], each=n1), length.out=n)
         xx <- xlevels[[x2name[i]]]
         if (dclass[i] == "factor") 
             pdata[[x2name[i]]] <- factor(j, 1:n2[i], labels= xx)

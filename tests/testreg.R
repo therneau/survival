@@ -60,7 +60,7 @@ summary(fitft2)  #should be quite close to fitfg2
 
 # Gaussian
 x <- -10:10
-p <- seq(.1, .95, length=25)
+p <- seq(.1, .95, length.out=25)
 all.equal(dsurvreg(x, 1, 5, 'gaussian'), dnorm(x, 1, 5))
 all.equal(psurvreg(x, 1, 5, 'gaussian'), pnorm(x, 1, 5))
 all.equal(qsurvreg(p, 1, 5, 'gaussian'), qnorm(p, 1, 5))

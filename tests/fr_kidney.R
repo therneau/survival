@@ -31,7 +31,7 @@ temp1 <- coxph(Surv(time, status) ~ age + sex + disease +
 	       offset(kfit1$frail[id]), kidney)
 rr <- tapply(resid(temp1), kidney$id, sum)
 temp2 <- log(rr/1 +1)
-aeq(temp1$coef, kfit1$coef, tolerance=.005) 
+aeq(temp1$coefficients, kfit1$coefficients, tolerance=.005) 
 aeq(temp2, kfit1$frail, tolerance=.005)
 
 
@@ -45,9 +45,9 @@ temp
 # Now fit the data using REML
 #
 kfitm1 <- coxph(Surv(time,status) ~ age + sex + disease + 
-		frailty(id, dist='gauss'), kidney)
+		frailty(id, distribution='gauss'), kidney)
 kfitm2 <- coxph(Surv(time,status) ~ age + sex + disease + 
-		      frailty(id, dist='gauss', sparse=F), kidney)
+		      frailty(id, distribution='gauss', sparse=F), kidney)
 kfitm1
 summary(kfitm2)
 #
@@ -58,8 +58,8 @@ summary(kfitm2)
 coxph(Surv(time, status) ~ age + sex + frailty(id, method='aic', caic=T), 
       kidney)
 
-coxph(Surv(time, status) ~ age + sex + frailty(id, dist='t'), kidney)
-coxph(Surv(time, status) ~ age + sex + frailty(id, dist='gauss', method='aic',
+coxph(Surv(time, status) ~ age + sex + frailty(id, distribution='t'), kidney)
+coxph(Surv(time, status) ~ age + sex + frailty(id, distribution='gauss', method='aic',
 					       caic=T), kidney)
 
 
@@ -67,4 +67,4 @@ coxph(Surv(time, status) ~ age + sex + frailty(id, dist='gauss', method='aic',
 coxph(Surv(time, status) ~ age + sex + frailty(id, method='aic', caic=F), 
       kidney)
 
-coxph(Surv(time, status) ~ age + sex + frailty(id, dist='t', caic=F), kidney)
+coxph(Surv(time, status) ~ age + sex + frailty(id, distribution='t', caic=F), kidney)

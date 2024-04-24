@@ -248,7 +248,7 @@ strpad <- function(x, width, pad=' ') {
 
     if (all(right <=0)) {
         if (length(x) >= length(width)) x  # nothing needs to be done
-        else rep(x, length=length(width))
+        else rep(x, length.out=length(width))
     }
     else {
         # Each pad could be a different length.

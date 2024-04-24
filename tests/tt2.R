@@ -10,7 +10,7 @@ mkdata <- function(n, beta) {
     x <- rbinom(n, 1, .5)
 
     futime <- rep(40, n)   # everyone has 40 years of follow-up
-    entry  <- pmax(0, seq(-10, 30, length=n))  # 1/4 enter at 0
+    entry  <- pmax(0, seq(-10, 30, length.out=n))  # 1/4 enter at 0
     entry  <- round(entry)
     status <- rep(0, n)
     dtime <-  runif(n/2, 1, 40)  # 1/2 of them die

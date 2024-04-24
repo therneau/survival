@@ -64,6 +64,6 @@ byhand <- function(beta, newx=0) {
 #  the init and iter arguments, i.e., for any coefficient.
 fit1 <- coxph(Surv(start, stop, event) ~x, test2,init=-1, iter.max=0)
 temp <- coxph.detail(fit1)
-temp2 <- byhand(fit1$coef, fit1$means)
-aeq(temp$haz, c(temp2$haz[1:5], sum(temp2$haz[6:7])))
+temp2 <- byhand(fit1$coefficients, fit1$means)
+aeq(temp$hazard, c(temp2$hazard[1:5], sum(temp2$hazard[6:7])))
                   

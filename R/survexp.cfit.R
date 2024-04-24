@@ -4,7 +4,7 @@
 survexp.cfit <- function(group, ndata, y, method, coxfit, weights) {
     # If it is individual survival, call the predict method
     if (method=='individual') {
-        temp <- predict(coxfit, newdata=ndata, type='expect', se=FALSE)
+        temp <- predict(coxfit, newdata=ndata, type='expect', se.fit=FALSE)
         return(list(surv= exp(-temp)))
     }
  

@@ -7,9 +7,9 @@ aeq <- function(x, y, ...) all.equal(as.vector(x), as.vector(y), ...)
 tdata <- aml
 tdata$id <- 1:nrow(tdata)
 tdata <- survSplit(Surv(time, status) ~ ., tdata, cut= c(9, 17, 30))
-tdata$trt <- rep(c(1,1,2,2,2), length=nrow(tdata))
+tdata$trt <- rep(c(1,1,2,2,2), length.out=nrow(tdata))
 # different weights for different rows of the same subject = hardest case
-tdata$wt <-  rep(1:6, length= nrow(tdata))
+tdata$wt <-  rep(1:6, length.out= nrow(tdata))
 tdata$status[tdata$time==13] <- 1   # force at least 1 tied event
 
 # not exported, but used in byhand

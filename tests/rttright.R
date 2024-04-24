@@ -92,7 +92,7 @@ all.equal(mfit$pstate[,2], csum1[keep])
 all.equal(mfit$pstate[,3], csum2[keep])
 
 # Case weights, at multiple times
-bwt <- rep(1:2, length=nrow(bdata))
+bwt <- rep(1:2, length.out=nrow(bdata))
 tm <- c(2, 6, 10, 15, 18)
 fit1 <- rttright(Surv(time, status) ~1, bdata, weights=bwt, times= tm)
 casefit <- survfit(Surv(time, status) ~ 1, bdata, weights= bwt)

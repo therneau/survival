@@ -13,8 +13,8 @@ test3 <- data.frame(futime=1:12, fustat=c(1,0,1,0,1,0,0,0,0,0,0,0),
 #  on different machines
 fit3 <- coxph(Surv(futime, fustat) ~ x1 + x2, test3, iter.max=25)
 
-all(fit3$coef < -22)
-all.equal(round(fit3$log, 4),c(-6.8669, -1.7918))
+all(fit3$coefficients < -22)
+all.equal(round(fit3$loglik, 4),c(-6.8669, -1.7918))
 
 #
 # Actual solution
@@ -32,4 +32,4 @@ true <- function(beta) {
     loglik
 }
 
-all.equal(fit3$loglik[2], true(fit3$coef), check.attributes=FALSE)
+all.equal(fit3$loglik[2], true(fit3$coefficients), check.attributes=FALSE)

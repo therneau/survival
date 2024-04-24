@@ -214,10 +214,10 @@ for (i in 1:nrow(tdata)) {
     deltaC[i,,] <-(tfit$cumhaz - mfit$cumhaz)/eps
 }
 temp <- aperm(mtest$U, c(1,3,2)) # drop time 0, put state last
-all.equal(temp[,-1,], delta, tol=eps/2)
+all.equal(temp[,-1,], delta, tolerance=eps/2)
 
 tempC <-aperm(mtest$C, c(1,3,2))
-all.equal(tempC[,-1,], deltaC, tol= eps/2)
+all.equal(tempC[,-1,], deltaC, tolerance= eps/2)
 
 # Now check mfit, which returns the weighted collapsed values
 BD <- t(model.matrix(~ factor(id) -1, tdata)) %*% diag(tdata$wt)
@@ -236,7 +236,7 @@ collapse <- function(U, cmat=BD) {
 sqsum <- function(x) sqrt(sum(x^2))
 temp <- collapse(mtest$U[,,-1]) # mtest has time 0, mfit does not
 # mfit$influence is in id, time, state order
-aeq(aperm(temp, c(1,3,2)), mfit$influence)  # mtest has time 0, mfit does not
+aeq(aperm(temp, c(1,3,2)), mfit$influence.pstate)  # mtest has time 0, mfit does not
 
 setemp <- apply(collapse(mtest$U[,,-1]), 2:3, sqsum)
 aeq(t(setemp), mfit$std.err)

@@ -22,9 +22,9 @@ fit2 <- survreg(Surv(log(time), status) ~ I(1000/(273.2+temp)), imotor,
 #  in the SAS 9.2 manual
 
 pp1 <- predict(fit1, newdata=list(temp=c(130,150)), p=c(.1, .5, .9),
-		      type='quantile', se=T)
+		      type='quantile', se.fit=T)
 pp2 <- predict(fit1, newdata=list(temp=c(130,150)), p=c(.1, .5, .9),
-		      type='uquantile', se=T)
+		      type='uquantile', se.fit=T)
 pp1
 
 temp130 <- matrix(0, nrow=3, ncol=6)
@@ -135,10 +135,10 @@ points(kfit$time[who], tfun(1-kfit$surv[who]), pch='+')
 points(kfit$time[who], tfun(1-kfit$upper[who]), pch='-')
 points(kfit$time[who], tfun(1-kfit$lower[who]), pch='-')
 
-text(rep(3,6), seq(.5, -1.0, length=6), 
+text(rep(3,6), seq(.5, -1.0, length.out=6), 
          c("Scale", "Shape", "Right Censored", "Left Censored", 
            "Interval Censored", "Fit"), adj=0)
-text(rep(9,6), seq(.5, -1.0, length=6), 
+text(rep(9,6), seq(.5, -1.0, length.out=6), 
          c(format(round(exp(cfit$coef), 2)),
            format(round(1/cfit$scale, 2)),
            format(tapply(crack2$n, cfit$y[,3], sum)), "ML"), adj=1)
@@ -146,7 +146,7 @@ text(rep(9,6), seq(.5, -1.0, length=6),
 # Now a portion of his percentiles table
 #  I don't get the same SE as SAS, I haven't checked out why.  The
 #  estimates and se for the underlying Weibull model are the same.
-temp <- predict(cfit, type='quantile', p=plist, se=T)
+temp <- predict(cfit, type='quantile', p=plist, se.fit=T)
 tempse <- sqrt(temp$se[1,])
 mat <- cbind(temp$fit[1,], tempse, 
              temp$fit[1,] -1.96*tempse, temp$fit[1,] + 1.96*tempse)

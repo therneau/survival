@@ -46,7 +46,7 @@ predict.coxph.penal <- function(object,  newdata,
 		}
 	    else {
                 if (se.fit) se <- sqrt(object$fvar[indx])
-                pred <- object$linear.predictor
+                pred <- object$linear.predictors
             }
 	    if (type=='risk') pred <- exp(pred)
             if (type=='expected') {

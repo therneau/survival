@@ -221,12 +221,12 @@ efit <- survexp(time ~ 1, rmap= list(x=x), dummy, ratetable=fit, cohort=F)
 #
 # Now, compare to the true answer, which is known to us
 #
-ss <- exp(fit$coef)
+ss <- exp(fit$coefficients)
 haz <- c( 1/(3*ss+3), 2/(ss+3), 1) #truth at time 0,1,2,4+
 chaz <- cumsum(c(0,haz))
 chaz2 <- chaz[c(1,2,2,3,3,3,3,4,4)]
 
-risk <- exp(fit$coef*dummy$x)
+risk <- exp(fit$coefficients*dummy$x)
 efit2 <- exp(-risk*chaz2)
 
 all.equal(as.vector(efit), as.vector(efit2))  #ignore mismatched name attrib
@@ -234,7 +234,7 @@ all.equal(as.vector(efit), as.vector(efit2))  #ignore mismatched name attrib
 #
 # Now test the direct-adjusted curve (Ederer)
 #
-efit <- survexp( ~ 1, dummy, ratetable=fit, se=F)
+efit <- survexp( ~ 1, dummy, ratetable=fit, se.fit=F)
 direct <- survfit(fit, newdata=dummy, censor=FALSE)$surv
 
 chaz <- chaz[-1]                  #drop time 0
@@ -244,7 +244,7 @@ all.equal(as.vector(direct), as.vector(d2))   #this tests survfit
 all.equal(as.vector(efit$surv), as.vector(apply(direct,1,mean)))  #direct
 
 # Check out the "times" arg of survexp
-efit2 <- survexp( ~1, dummy, ratetable=fit, se=F,
+efit2 <- survexp( ~1, dummy, ratetable=fit, se.fit=F,
                   times=c(.5, 2, 3.5,6))
 aeq(efit2$surv, c(1, efit$surv[c(2,2,3)]))
 
@@ -255,7 +255,7 @@ aeq(efit2$surv, c(1, efit$surv[c(2,2,3)]))
 # In theory, hak1 and hak2 would be the same.  In practice, like a KM and
 #   F-H, they differ when n is small.
 #
-efit <- survexp( time ~1, dummy, ratetable=fit, se=F)
+efit <- survexp( time ~1, dummy, ratetable=fit, se.fit=F)
 
 surv  <- wt <- rep(1,9)
 tt <- c(1,2,4)
@@ -272,7 +272,7 @@ all.equal(as.vector(efit$surv), as.vector(cumprod(hak1)))
 #
 #  Now do the conditional estimate
 #
-efit <- survexp( time ~ 1, dummy, ratetable=fit, se=F,
+efit <- survexp( time ~ 1, dummy, ratetable=fit, se.fit=F,
 			conditional=T)
 wt <- rep(1,9)
 cond <- NULL

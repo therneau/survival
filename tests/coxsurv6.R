@@ -113,7 +113,7 @@ mysurv <- function(fit, istate, p0, x0, debug=0) {
     beta <- coef(fit, matrix=TRUE)
     if (nshare >0) {
         # coefficients for shared baseline will be the last nshare of them
-        i <- seq(length=nshare, to=length(fit$coefficients))
+        i <- seq(length.out=nshare, to=length(fit$coefficients))
         bcoef[shared] <- exp(fit$coefficients[i])
         # remove shared coef rows from beta
         phrow <- apply(fit$cmap, 1, function(x) any(x %in% i))

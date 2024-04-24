@@ -24,7 +24,7 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95, individual=FALSE,
         ncoef <- length(object$coefficients)
         ndup <- sum(idup)
         # shared baseline coefficients are last in the coefficient vector
-        i <- seq(to = ncoef, length=ndup)
+        i <- seq(to = ncoef, length.out=ndup)
         baselinecoef[2, idup] <- exp(object$coefficients[i])
 
         # which rows of cmap point to scale coefs?
@@ -225,7 +225,7 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95, individual=FALSE,
         xcenter <- offset.mean
         coef <- 0.0
         varmat <- matrix(0.0, 1, 1)
-        risk <- rep(exp(offset- offset.mean), length=n)
+        risk <- rep(exp(offset- offset.mean), length.out=n)
     }
     else {
         varmat <- object$var

@@ -59,7 +59,7 @@ aeq(resid(fit0, type='scor'), (resid(fit0b, type='scor'))[indx])
 aeq(unique(resid(fit0, type='scho')), unique(resid(fit0b, type='scho')))
 
 
-aeq(resid(fit, type='mart'), testw1$status - texp(fit$coef))
+aeq(resid(fit, type='mart'), testw1$status - texp(fit$coefficients))
 resid(fit, type='score')
 resid(fit, type='scho')
 aeq(resid(fit, type='mart'), (resid(fitb, type='mart'))[indx])
@@ -156,8 +156,8 @@ lfun <- function(beta) {
     11*beta - ( log(r^2 + 11*r +7) + 
 	(10/3)*(log(a+b) + log(2*a/3 +b) + log(a/3 +b)) + 2*log(2*r +1))
     }
-aeq(fit0$log[1], lfun(0))
-aeq(fit$log[2], lfun(fit$coef))
+aeq(fit0$loglik[1], lfun(0))
+aeq(fit$loglik[2], lfun(fit$coefficients))
 
 ufun <- function(beta, efron=T) {  #score statistic
     r <- exp(beta)
@@ -170,7 +170,7 @@ ufun <- function(beta, efron=T) {  #score statistic
     if (efron) temp - (10/3)*(xbar2 + xbar2b + xbar2c)
     else       temp - 10*xbar2
     }
-print(ufun(fit$coef) < 1e-4)  # Should be true
+print(ufun(fit$coefficients) < 1e-4)  # Should be true
 
 ifun <- function(beta, efron=T) {  # information matrix
     r <- exp(beta)
@@ -187,7 +187,7 @@ ifun <- function(beta, efron=T) {  # information matrix
     }
 
 aeq(fit0$var, 1/ifun(0))
-aeq(fit$var, 1/ifun(fit$coef))
+aeq(fit$var, 1/ifun(fit$coefficients))
 
 
       
@@ -204,7 +204,7 @@ aeq(rr2/rr1, testw1$wt)
 #
 dt0 <- coxph.detail(fit0)
 dt <- coxph.detail(fit)
-aeq(sum(dt$score), ufun(fit$coef))  #score statistic
+aeq(sum(dt$score), ufun(fit$coefficients))  #score statistic
 aeq(sum(dt0$score), ufun(0))
 aeq(dt0$hazard, c(1/19, (10/3)*(1/16 + 1/(6+20/3) + 1/(6+10/3)), 2/3))
 

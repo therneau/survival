@@ -297,14 +297,14 @@ dp10<- function(w) dp9(w) %*% aj10(w)
 w1 <- tdata$id 
 mfit4 <- survfit(Surv(t1, t2, st) ~1, tdata, id=id, weights=id, istate=i0,
                  influence=TRUE, time0= FALSE)
-aeq(mfit4$influence[,1,], 1:5*dp2(w1))  #time 2
-aeq(mfit4$influence[,2,], 1:5*dp3(w1))
-aeq(mfit4$influence[,3,], 1:5*dp4(w1))
-aeq(mfit4$influence[,4,], 1:5*dp5(w1))
-aeq(mfit4$influence[,5,], 1:5*dp8(w1)) # time 8
-aeq(mfit4$influence[,6,], 1:5* dp9(w1))
-aeq(mfit4$influence[,7,], 1:5* dp10(w1))
-aeq(mfit4$influence[,8,], 1:5* dp10(w1)) # no changes at time 11
+aeq(mfit4$influence.pstate[,1,], 1:5*dp2(w1))  #time 2
+aeq(mfit4$influence.pstate[,2,], 1:5*dp3(w1))
+aeq(mfit4$influence.pstate[,3,], 1:5*dp4(w1))
+aeq(mfit4$influence.pstate[,4,], 1:5*dp5(w1))
+aeq(mfit4$influence.pstate[,5,], 1:5*dp8(w1)) # time 8
+aeq(mfit4$influence.pstate[,6,], 1:5* dp9(w1))
+aeq(mfit4$influence.pstate[,7,], 1:5* dp10(w1))
+aeq(mfit4$influence.pstate[,8,], 1:5* dp10(w1)) # no changes at time 11
 
 ssq <- function(x) sqrt(sum(x^2))
 temp2 <- apply(mfit4$influence.pstate, 2:3, ssq)
@@ -312,15 +312,15 @@ aeq(temp2, mfit4$std.err)
 
 if (FALSE) { # old test, survfitci returned the time 0 influence as well
     w1 <- 1:10
-    aeq(mfit3$influence[,1,], dp0(w1))
-    aeq(mfit3$influence[,2,], dp2(w1))
-    aeq(mfit3$influence[,3,], dp3(w1))
-    aeq(mfit3$influence[,4,], dp4(w1))
-    aeq(mfit3$influence[,5,], dp5(w1))
-    aeq(mfit3$influence[,6,], dp8(w1))
-    aeq(mfit3$influence[,7,], dp9(w1))
-    aeq(mfit3$influence[,8,], dp10(w1))
-    aeq(mfit3$influence[,9,], dp10(w1)) # no changes at time 11
+    aeq(mfit3$influence.pstate[,1,], dp0(w1))
+    aeq(mfit3$influence.pstate[,2,], dp2(w1))
+    aeq(mfit3$influence.pstate[,3,], dp3(w1))
+    aeq(mfit3$influence.pstate[,4,], dp4(w1))
+    aeq(mfit3$influence.pstate[,5,], dp5(w1))
+    aeq(mfit3$influence.pstate[,6,], dp8(w1))
+    aeq(mfit3$influence.pstate[,7,], dp9(w1))
+    aeq(mfit3$influence.pstate[,8,], dp10(w1))
+    aeq(mfit3$influence.pstate[,9,], dp10(w1)) # no changes at time 11
 } # end of if (FALSE)
 
 # The cumulative hazard at each time point is remapped from a matrix

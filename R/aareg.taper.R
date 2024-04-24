@@ -25,10 +25,10 @@ aareg.taper <- function(taper, imat, nevent) {
         smoother <- matrix(0., ntime, ntime)
         tsum <- cumsum(rev(taper))
         for (i in 1:ntaper) 
-            smoother[1:i, i] <- taper[seq(to=ntaper, length=i)]/tsum[i]
+            smoother[1:i, i] <- taper[seq(to=ntaper, length.out=i)]/tsum[i]
         if (ntaper < ntime) {
             for (i in (ntaper+1):ntime)
-                smoother[seq(to=i, length=ntaper),i] <- taper/tsum[ntaper]
+                smoother[seq(to=i, length.out=ntaper),i] <- taper/tsum[ntaper]
             }
         imat <- imat %*% smoother
         }

@@ -56,5 +56,5 @@ summary(survfit(tfit))
 x1 <- coxph(Surv(time, status)~x, aml, method='efron')
 x1
 x2 <- coxph(Surv(rep(0,23),time, status) ~x, aml, method='efron')
-aeq(x1$coef, x2$coef)
+aeq(x1$coefficients, x2$coefficients)
 
