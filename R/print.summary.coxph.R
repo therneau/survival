@@ -20,7 +20,7 @@ print.summary.coxph <-
     if (length(omit))
 	cat("   (", naprint(omit), ")\n", sep="")
 
-    if (nrow(x$coef)==0) {   # Null model
+    if (nrow(x$coefficients)==0) {   # Null model
 	cat ("   Null model\n")
 	return()
         }
