@@ -1,11 +1,13 @@
 
-R version 4.3.2 (2023-10-31) -- "Eye Holes"
-Copyright (C) 2023 The R Foundation for Statistical Computing
-Platform: x86_64-pc-linux-gnu (64-bit)
+R version 4.4.0 (2024-04-24) -- "Puppy Cup"
+Copyright (C) 2024 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
 Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
 
 R is a collaborative project with many contributors.
 Type 'contributors()' for more information and
@@ -82,10 +84,10 @@ Type 'q()' to quit R.
 > fit1 <- coxph(Surv(start, stop, event) ~x, test2,init=-1, iter.max=0)
 > temp <- coxph.detail(fit1)
 > temp2 <- byhand(fit1$coefficients, fit1$means)
-> aeq(temp$hazard, c(temp2$hazard[1:5], sum(temp2$hazard[6:7])))
-[1] "Numeric: lengths (6, 1) differ"
+> aeq(temp$hazard, c(temp2$haz[1:5], sum(temp2$haz[6:7])))
+[1] TRUE
 >                   
 > 
 > proc.time()
    user  system elapsed 
-  1.121   0.077   1.184 
+  0.879   0.043   0.915 
