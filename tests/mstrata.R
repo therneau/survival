@@ -49,7 +49,7 @@ cfit1 <- coxph(Surv(etime, event) ~ age + mspike +strata(sex), mgus2, id=id)
 csurv1 <- survfit(cfit1, newdata=dummy)
 
 cfit2 <- coxph(Surv(etime, event) ~ age + mspike, id=id,
-               init= coef(cfit1), iter.max=0, data=mgus2, subset=(sex=='F'))
+               init= coef(cfit1), iter=0, data=mgus2, subset=(sex=='F'))
 csurv3 <- survfit(cfit2, newdata= expand.grid(age=c(60, 80), mspike=1.2))
 test <- c('n', 'time', 'n.risk', 'n.event', 'n.censor', 'pstate', 'cumhaz')
 all.equal(unclass(csurv1[1,,])[test], unclass(csurv3)[test])

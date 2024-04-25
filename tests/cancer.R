@@ -45,7 +45,7 @@ for (i in 1:ncoef) {
     # score test for this new variable
     tfit <- coxph(Surv(tstart, time, status) ~ ph.ecog + ph.karno + pat.karno + 
                   wt.loss + sex + age + strata(inst) +
-                  temp, lung2, init=c(cfit2$coefficients, 0), iter.max=0)
+                  temp, lung2, init=c(cfit2$coefficients, 0), iter=0)
     check[i] <- tfit$score
     } 
 aeq(check, zp1$table[1:ncoef,1]) # skip the 'global' test

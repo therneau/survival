@@ -36,7 +36,7 @@ survdiff(Surv(time, status) ~x, aml3)
 fit <- survdiff(Surv(time, status) ~ pat.karno + strata(inst), lung)
 
 cfit <- coxph(Surv(time, status) ~ factor(pat.karno) + strata(inst),
-		lung, iter.max=0)
+		lung, iter=0)
 
 tdata <- na.omit(lung[,c('time', 'status', 'pat.karno', 'inst')])
 

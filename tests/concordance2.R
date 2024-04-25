@@ -94,7 +94,7 @@ aeq(fit$count, with(tdata, allpair(time, status, x)))
 aeq(fit$influence, with(tdata, leverage(time, status, x)))
 
 cfit <- coxph(Surv(time, status) ~ tt(x), tdata, tt=grank, ties='breslow',
-              iter.max=0, x=T)
+              iter=0, x=T)
 aeq(phget(cfit), fscale(fit))  # agree with Cox model
 
 # Test 2: Lots of ties
@@ -103,7 +103,7 @@ tempx <- c(5,5,4,4,3,3,7,6,5,4)
 fit2 <- concordance(tempy ~ tempx, influence=2)
 aeq(fit2$count, allpair(tempy[,1], tempy[,2], tempx))
 aeq(fit2$influence, leverage(tempy[,1], tempy[,2], tempx))
-cfit2 <- coxph(tempy ~ tt(tempx), tt=grank, ties="breslow", iter.max=0)
+cfit2 <- coxph(tempy ~ tt(tempx), tt=grank, ties="breslow", iter=0)
 aeq(phget(cfit2), fscale(fit2))  # agree with Cox model
 
 # Bigger data
@@ -112,7 +112,7 @@ fit3 <- concordance(Surv(time, status) ~ predict(cox3), lung, influence=2)
 aeq(fit3$count, allpair(lung$time, lung$status-1,predict(cox3)))
 aeq(fit3$influence, leverage(lung$time, lung$status-1,predict(cox3)))
 cfit3 <- coxph(Surv(time, status) ~ tt(predict(cox3)), tt=grank,
-               ties="breslow", iter.max=0, data=lung)
+               ties="breslow", iter=0, data=lung)
 aeq(phget(cfit3), fscale(fit3))  # agree with Cox model
 
 # More ties
@@ -121,7 +121,7 @@ fit4b <- concordance(Surv(time, status) ~ ph.ecog, lung, reverse=TRUE)
 aeq(fit4$count, allpair(lung$time, lung$status-1, lung$ph.ecog))
 aeq(fit4b$count, c(8392, 4258, 7137, 21, 7))
 cfit4 <- coxph(Surv(time, status) ~ tt(ph.ecog), lung, 
-               iter.max=0, method='breslow', tt=grank)
+               iter=0, method='breslow', tt=grank)
 aeq(phget(cfit4), fscale(fit4))  # agree with Cox model
 
 # Case weights
@@ -133,7 +133,7 @@ aeq(fit5$count[1:3], fit6$count[1:3])  #spurious "tied.xy" values, ignore
 aeq(fit5$var[2], fit6$var[2])
 aeq(fit5$influence, with(tdata, leverage(time, status, x, wt)))
 cfit5 <- coxph(Surv(time, status) ~ tt(x), tdata, weights=wt, 
-               iter.max=0, method='breslow', tt=grank)
+               iter=0, method='breslow', tt=grank)
 aeq(phget(cfit5), fscale(fit5))  # agree with Cox model
 
 # Start, stop simplest cases
@@ -160,7 +160,7 @@ aeq(fit5$count, fit8$count)
 # aeq(fit5$influence, fit8$influence) 
 aeq(fit5$var, fit8$var)
 cfit8 <- coxph(Surv(time1, time2, status) ~ tt(x), tdata2, weights=wt, 
-               iter.max=0, method='breslow', tt=grank)
+               iter=0, method='breslow', tt=grank)
 aeq(phget(cfit8), fscale(fit8))  # agree with Cox model
 
 # Stratified

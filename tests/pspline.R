@@ -36,7 +36,7 @@ all.equal(m2, spfit3$model[keep,], check.attributes=FALSE)
 # Test of residuals, in response to a reported bug.  
 # These are three progam paths that should all lead to the same C routine
 fit <- coxph(Surv(tstart, tstop, status) ~ sex + treat + pspline(age), cgd)
-fit2 <- coxph(Surv(tstart, tstop, status) ~ fit$linear, cgd, iter.max=0, init=1)
+fit2 <- coxph(Surv(tstart, tstop, status) ~ fit$linear, cgd, iter=0, init=1)
 fit3 <- coxph(Surv(tstart, tstop, status) ~ offset(fit$linear), cgd)
 all.equal(fit$resid, fit2$resid)
 all.equal(fit$resid, fit3$resid)

@@ -16,7 +16,7 @@ lung2 <- na.omit(lung[c('time', 'status', 'wt.loss')])
 #
 fit <- coxph(Surv(time, status) ~ pspline(wt.loss,3), lung2, x=T)
 fit0<- coxph(Surv(time, status) ~ 1, lung2)
-fit1<- coxph(Surv(time, status) ~ fit$x, lung2, iter.max=0, init=fit$coef)
+fit1<- coxph(Surv(time, status) ~ fit$x, lung2, iter=0, init=fit$coef)
 
 all.equal(fit$loglik[1], fit0$loglik)
 all.equal(fit$loglik[2], fit1$loglik[2])

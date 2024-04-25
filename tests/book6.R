@@ -71,7 +71,7 @@ temp <- byhand(0,0)
 aeq(temp$xbar, c(13/19, 11/16, 26/38, 19/28, 2/3))
 aeq(temp$hazard, c(1/19, 5/24, 5/19, 5/14, 2/3))
 
-fit0 <- coxph(Surv(time, status) ~x, testw1, weights=wt, iter.max=0)
+fit0 <- coxph(Surv(time, status) ~x, testw1, weights=wt, iter=0)
 fit  <- coxph(Surv(time, status) ~x, testw1, weights=wt)
 
 truth0 <- byhand(0,pi)

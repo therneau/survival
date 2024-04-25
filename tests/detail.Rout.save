@@ -79,7 +79,7 @@ Type 'q()' to quit R.
 > # The actual coefficient of the fit is close to zero.  Using a larger
 > #  number pushes the test harder, but it should still work without
 > #  the init and iter arguments, i.e., for any coefficient.
-> fit1 <- coxph(Surv(start, stop, event) ~x, test2,init=-1, iter.max=0)
+> fit1 <- coxph(Surv(start, stop, event) ~x, test2,init=-1, iter=0)
 > temp <- coxph.detail(fit1)
 > temp2 <- byhand(fit1$coef, fit1$means)
 > aeq(temp$haz, c(temp2$haz[1:5], sum(temp2$haz[6:7])))

@@ -25,13 +25,13 @@ byhand7 <- function(beta) {
 }
 aeq <- function(x,y) all.equal(as.vector(x), as.vector(y))
 
-fit0 <-coxph(Surv(time, status) ~x, test1, iter.max=0, method='exact')
+fit0 <-coxph(Surv(time, status) ~x, test1, iter=0, method='exact')
 truth0 <- byhand7(0)
 aeq(truth0$loglik, fit0$loglik[1])
 aeq(1/truth0$imat, fit0$var)
 aeq(truth0$mart, fit0$residuals[c(2:6,1)])
 
-fit1 <- coxph(Surv(time, status) ~x, test1, iter.max=1, method='exact')
+fit1 <- coxph(Surv(time, status) ~x, test1, iter=1, method='exact')
 aeq(fit1$coefficients, truth0$u*fit0$var)
 truth1 <- byhand7(fit1$coefficients)
 aeq(fit1$loglik[2], truth1$loglik)

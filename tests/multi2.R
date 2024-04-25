@@ -8,14 +8,14 @@ tdata <- tmerge(myeloid[,1:3], myeloid, id=id, death=event(futime,death),
 tdata$event <- factor(with(tdata, sct + 2*death), 0:2,
                       c("censor", "sct", "death"))
 fit <- coxph(Surv(tstart, tstop, event) ~ trt + sex, tdata, id=id,
-             iter.max=4, x=TRUE, robust=FALSE)
+             iter=4, x=TRUE, robust=FALSE)
 
 fit12 <- coxph(Surv(tstart, tstop, event=='sct') ~ trt + sex, tdata,
-               subset=(priortx==0), iter.max=4, x=TRUE)
+               subset=(priortx==0), iter=4, x=TRUE)
 fit13 <- coxph(Surv(tstart, tstop, event=='death') ~ trt + sex, tdata,
-               subset=(priortx==0), iter.max=4, x=TRUE)
+               subset=(priortx==0), iter=4, x=TRUE)
 fit23 <- coxph(Surv(tstart, tstop, event=='death') ~ trt + sex, tdata,
-               subset=(priortx==1), iter.max=4, x=TRUE)
+               subset=(priortx==1), iter=4, x=TRUE)
 aeq(coef(fit), c(coef(fit12), coef(fit13), coef(fit23))) 
 aeq(fit$loglik, fit12$loglik + fit13$loglik + fit23$loglik)
 temp <- matrix(0, 6,6)

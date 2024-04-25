@@ -66,7 +66,7 @@ byhand <- function(beta, newx=0) {
 
 aeq <- function(x,y) all.equal(as.vector(x), as.vector(y))
 
-fit0 <-coxph(Surv(start, stop, event) ~x, test2, iter.max=0, method='breslow')
+fit0 <-coxph(Surv(start, stop, event) ~x, test2, iter=0, method='breslow')
 truth0 <- byhand(0,0)
 aeq(truth0$loglik, fit0$loglik[1])
 aeq(1/truth0$imat, fit0$var)
@@ -79,7 +79,7 @@ aeq(sfit$surv, truth0$surv)
 aeq(fit0$score, truth0$u^2/truth0$imat)
 
 beta1 <- truth0$u/truth0$imat
-fit1 <- coxph(Surv(start, stop, event) ~x, test2, iter.max=1, ties="breslow")
+fit1 <- coxph(Surv(start, stop, event) ~x, test2, iter=1, ties="breslow")
 aeq(beta1, coef(fit1))
 
 truth <- byhand(-0.084526081, 0)
@@ -105,7 +105,7 @@ test2b$group <- rep(1:3, each= nrow(test2))
 test2b$start <- test2b$start + test2b$group
 test2b$stop  <- test2b$stop  + test2b$group
 fit0 <- coxph(Surv(start, stop, event) ~ x + strata(group), test2b, 
-              iter.max=0, method="breslow")
+              iter=0, method="breslow")
 aeq(3*truth0$loglik, fit0$loglik[1])
 aeq(3*truth0$imat, 1/fit0$var)
 aeq(rep(truth0$mart,3), fit0$residuals)
@@ -113,7 +113,7 @@ aeq(rep(truth0$scho,3),  resid(fit0, 'schoen'))
 aeq(rep(truth0$score,3), resid(fit0, 'score')) 
 
 fit1 <- coxph(Surv(start, stop, event) ~ x + strata(group), test2b, 
-              iter.max=1, method="breslow")
+              iter=1, method="breslow")
 aeq(fit1$coefficients, beta1)
 
 fit3 <- coxph(Surv(start, stop, event) ~x + strata(group),

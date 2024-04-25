@@ -60,7 +60,7 @@ byhand <- function(beta, newx=0) {
 
 aeq <- function(x,y) all.equal(as.vector(x), as.vector(y))
 
-fit0 <-coxph(Surv(time, status) ~x, test1, iter.max=0)
+fit0 <-coxph(Surv(time, status) ~x, test1, iter=0)
 truth0 <- byhand(0,0)
 aeq(truth0$loglik, fit0$loglik[1])
 aeq(1/truth0$imat, fit0$var)

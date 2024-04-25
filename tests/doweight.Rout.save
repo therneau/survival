@@ -48,7 +48,7 @@ Type 'q()' to quit R.
 > 
 > fit0 <- coxph(Surv(time, status) ~x, testw1, weights=wt,
 + 		    method='breslow', iter=0)
-> fit0b <- coxph(Surv(time, status) ~x, testw2, ties='breslow', iter.max=0)
+> fit0b <- coxph(Surv(time, status) ~x, testw2, ties='breslow', iter=0)
 > fit  <- coxph(Surv(time, status) ~x, testw1, weights=wt, ties='breslow')
 > fitb <- coxph(Surv(time, status) ~x, testw2, ties='breslow')
 > 
@@ -232,7 +232,7 @@ Score (logrank) test = 1.52  on 1 df,   p=0.2
 > resid(fit, type='scho')
         10         20         20         20         40 
  1.0368337  0.1613774  0.1613774 -0.8386226  0.1746960 
-> fit0 <- coxph(Surv(begin, time, status) ~x,testw3, weights=wt, iter.max=0)
+> fit0 <- coxph(Surv(begin, time, status) ~x,testw3, weights=wt, iter=0)
 > resid(fit0, 'mart', collapse=testw3$id)
           1           2           3           4           5           6 
  0.94736842 -0.05263158  0.44454887  0.44454887  0.44454887 -0.88126566 
@@ -290,7 +290,7 @@ n= 14, number of events= 5
 > #
 > fit0  <- coxph(Surv(time, status) ~x, testw1, weights=wt, ties='breslow',
 + 	       iter=0)
-> fit0b <- coxph(Surv(time, status) ~x, testw2, ties='breslow', iter.max=0)
+> fit0b <- coxph(Surv(time, status) ~x, testw2, ties='breslow', iter=0)
 > 
 > surv1 <- survfit(fit0, newdata=list(x=0))
 > surv2 <- survfit(fit0b, newdata=list(x=0))
@@ -300,7 +300,7 @@ n= 14, number of events= 5
 > # Check out the Efron approx. 
 > #
 > 
-> fit0 <- coxph(Surv(time, status) ~x,testw1, weights=wt, iter.max=0)
+> fit0 <- coxph(Surv(time, status) ~x,testw1, weights=wt, iter=0)
 > fit  <- coxph(Surv(time, status) ~x,testw1, weights=wt)
 > resid(fit0, 'mart')
           1           2           3           4           5           6 

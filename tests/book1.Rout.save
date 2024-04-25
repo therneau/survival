@@ -90,7 +90,7 @@ Type 'q()' to quit R.
 > 
 > 
 > 
-> fit0 <-coxph(Surv(time, status) ~x, test1, iter.max=0, method='breslow')
+> fit0 <-coxph(Surv(time, status) ~x, test1, iter=0, method='breslow')
 > truth0 <- byhand1(0,0)
 > aeq(truth0$loglik, fit0$loglik[1])
 [1] TRUE
@@ -112,12 +112,12 @@ Type 'q()' to quit R.
 > aeq(resid(fit0, 'score'), c(5/24, NA, 5/12, -1/12, 7/24, -1/24, 5/24))
 [1] TRUE
 > 
-> fit1 <- coxph(Surv(time, status) ~x, test1, iter.max=1, method='breslow')
+> fit1 <- coxph(Surv(time, status) ~x, test1, iter=1, method='breslow')
 > aeq(fit1$coef, 8/5)
 [1] TRUE
 > 
 > # This next gives an ignorable warning message
-> fit2 <- coxph(Surv(time, status) ~x, test1, method='breslow', iter.max=2)
+> fit2 <- coxph(Surv(time, status) ~x, test1, method='breslow', iter=2)
 Warning message:
 In coxph.fit(X, Y, istrat, offset, init, control, weights = weights,  :
   Ran out of iterations and did not converge

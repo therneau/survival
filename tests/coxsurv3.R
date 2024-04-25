@@ -51,7 +51,7 @@ fit2 <- coxph(Surv(start, stop, event) ~ x + strata(grp), test3)
 # The above tests show the program works for a simple case, use it to
 #  get a true baseline for strata 2
 fit2b <- coxph(Surv(start, stop, event) ~x, test3,
-               subset=(grp=='b'), init=fit2$coefficients, iter.max=0)
+               subset=(grp=='b'), init=fit2$coefficients, iter=0)
 temp <- survfit(fit2b,  newdata=list(x=0), censor=F)
 true2 <- list(time=temp$time, lambda=diff(c(0, -log(temp$surv))))
 true1 <- lambda(fit2$coefficients, x=0)

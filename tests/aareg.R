@@ -59,7 +59,7 @@ tdata$status[8] <- 0      #for some variety
 afit <- aareg(Surv(time, status) ~ age + sex + ph.ecog, tdata, nmin=6)
 #
 # Now, do it "by hand"
-cfit <- coxph(Surv(time, status) ~ age + sex + ph.ecog, tdata, iter.max=0,
+cfit <- coxph(Surv(time, status) ~ age + sex + ph.ecog, tdata, iter=0,
                method='breslow')
 dt1   <- coxph.detail(cfit)
 sch1  <- resid(cfit, type='schoen')
@@ -101,7 +101,7 @@ afit <- aareg(Surv(time, status) ~ age + sex + ph.ecog, lung, dfbeta=T)
 
 ord <- order(lung$time, -lung$status)
 cfit <- coxph(Surv(time, status) ~ age + sex + ph.ecog, lung[ord,],
-	        method='breslow', iter.max=0, x=T)
+	        method='breslow', iter=0, x=T)
 cdt  <- coxph.detail(cfit, riskmat=T)
 
 # an arbitrary list of times
@@ -129,7 +129,7 @@ ww <- rep(1:5, length.out=nrow(lung))/ 3.0
 afit <- aareg(Surv(time, status) ~ age + sex + ph.ecog, lung, dfbeta=T,
 	      weights=ww)
 cfit <- coxph(Surv(time, status) ~ age + sex + ph.ecog, lung[ord,],
-	        method='breslow', iter.max=0, x=T, weights=ww[ord])
+	        method='breslow', iter=0, x=T, weights=ww[ord])
 cdt  <- coxph.detail(cfit, riskmat=T)
 
 acoef <- rowsum(afit$coefficient, afit$times) #per death time coefs

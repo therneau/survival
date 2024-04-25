@@ -108,7 +108,7 @@ fit1 <- survfit(Surv(t1, t2, state) ~1, mtest, id=id)
 aeq(check1$cumhaz, fit1$cumhaz[match(check1$time, fit1$time),])
 
 dummy <- data.frame(x=1:2)
-cox0 <-  coxph(Surv(t1, t2, state) ~x, iter.max=0, mtest, id=id)
+cox0 <-  coxph(Surv(t1, t2, state) ~x, iter=0, mtest, id=id)
 cfit0 <- survfit(cox0, newdata=dummy)
 indx <- match(check1$time, cfit0$time)
 aeq(check1$cumhaz, cfit0$cumhaz[indx,1,])
@@ -116,7 +116,7 @@ aeq(check1$cumhaz, cfit0$cumhaz[indx,2,])
 aeq(check1$pstate, cfit0$pstate[indx,1,])
 
 # a fixed coefficient
-mfit <- coxph(Surv(t1, t2, state) ~x, iter.max=0, mtest, id=id,
+mfit <- coxph(Surv(t1, t2, state) ~x, iter=0, mtest, id=id,
               init= log(1:6))
 msurv <- survfit(mfit, newdata=list(x=0:1))
 mrisk <- exp(outer(mtest$x, log(1:6), '*'))  # hazards for each transition
@@ -182,7 +182,7 @@ chaz2['16', 6] <- 1/2
 chaz2 <- apply(chaz2, 2, cumsum)
  
 
-cox3 <- coxph(Surv(t1, t2, state) ~x, id=id, test2, iter.max=0)  # no weights
+cox3 <- coxph(Surv(t1, t2, state) ~x, id=id, test2, iter=0)  # no weights
 csurv3 <- survfit(cox3, newdata=data.frame(x=0:1), time0=FALSE)
 aeq(csurv3$time, time2)
 aeq(csurv3$cumhaz[,1,], chaz2)
@@ -193,7 +193,7 @@ aeq(check3$cumhaz, chaz2[indx3,])  # a check on the coxhaz function above
 aeq(check3$pstate, csurv3$pstate[indx3,1,])
 
 cox4 <- coxph(Surv(t1,t2, state) ~ x, id=id, test2, 
-                     init=log(1:6), iter.max=0)
+                     init=log(1:6), iter=0)
 csurv4 <- survfit(cox4, newdata=data.frame(x=0:1), time0= FALSE)
 mrisk4 <- exp(outer(test2$x, log(1:6), '*'))  # hazards for each transition
 check4 <- with(test2, coxhaz(Surv(t1, t2, state), id=id, risk=mrisk4))

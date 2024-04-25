@@ -125,7 +125,7 @@ Type 'q()' to quit R.
 [1] TRUE
 > aeq(fit2$influence, leverage(tempy[,1], tempy[,2], tempx))
 [1] TRUE
-> cfit2 <- coxph(tempy ~ tt(tempx), tt=grank, ties="breslow", iter.max=0)
+> cfit2 <- coxph(tempy ~ tt(tempx), tt=grank, ties="breslow", iter=0)
 > aeq(phget(cfit2), fscale(fit2))  # agree with Cox model
 [1] TRUE
 > 
