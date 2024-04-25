@@ -154,7 +154,7 @@ cmatrix <- function(fit, term,
         cmat <- vector("list", ntest)
         for (k in 1:ntest) {
             temp <- rep(-1/ntest, ntest)
-            temp[k] <- (ntest-1)/ntest77
+            temp[k] <- (ntest-1)/ntest
             cmat[[k]] <- matrix(temp, nrow=1)
         }
         names(cmat) <- paste(1:ntest, "vs mean")
