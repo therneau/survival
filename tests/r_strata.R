@@ -18,7 +18,7 @@ fit1
 fit2
 aeq(fit2$scale, c(fit3a$scale, fit3b$scale), tolerance=tol)
 aeq(fit2$loglik[2], (fit3a$loglik + fit3b$loglik)[2], tolerance=tol)
-aeq(fit2$coef[1] + 1:2*fit2$coef[2], c(fit3a$coef, fit3b$coef), tolerance=tol)
+aeq(fit2$coefficients[1] + 1:2*fit2$coefficients[2], c(fit3a$coefficients, fit3b$coefficients), tolerance=tol)
 
 #penalized models
 fit1 <- survreg(Surv(time, status) ~ pspline(age, theta=.92)+

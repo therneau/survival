@@ -12,7 +12,7 @@ fitig <- survreg(Surv(time, status)~voltage,
 fit1 <- survreg(Surv(time, status) ~ voltage,
 		 dist='t', parms=500, capacitor)
 fitig
-summary(fit1, corr=F)
+summary(fit1, correlation=F)
 
 # A more realistic fit
 fit2 <- survreg(Surv(time, status) ~ voltage,

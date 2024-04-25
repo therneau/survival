@@ -96,7 +96,7 @@ bwt <- rep(1:2, length.out=nrow(bdata))
 tm <- c(2, 6, 10, 15, 18)
 fit1 <- rttright(Surv(time, status) ~1, bdata, weights=bwt, times= tm)
 casefit <- survfit(Surv(time, status) ~ 1, bdata, weights= bwt)
-csum1 <- summary(casefit, censor=FALSE, times= tm)
+csum1 <- summary(casefit, censored=FALSE, times= tm)
 for (i in 1:length(tm)) {
     c1 <- sum(fit1[bdata$status==1 & bdata$time <= tm[i], i])
     print(all.equal(c1, 1-csum1$surv[i]))

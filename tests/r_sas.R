@@ -79,9 +79,9 @@ for (i in 1:4) {
 
 # Now a table
 temp <- array(0, dim=c(4,4,4))  #4 groups by 4 parameters by 4 stats
-temp[,1,1] <- ffit$coef         # "EV Location" in SAS manual
+temp[,1,1] <- ffit$coefficients         # "EV Location" in SAS manual
 temp[,2,1] <- ffit$scale        # "EV scale"
-temp[,3,1] <- exp(ffit$coef)    # "Weibull Scale"
+temp[,3,1] <- exp(ffit$coefficients)    # "Weibull Scale"
 temp[,4,1] <- 1/ffit$scale      # "Weibull Shape"
  
 temp[,1,2] <- sqrt(diag(ffit$var))[1:4]   #standard error
@@ -121,13 +121,13 @@ summary(cfit)
 #  survival, and forces a Nelson-Aalen hazard estimate
 #
 plist <-  c(1, 2, 5, 1:8 *10)/100
-plot(qsurvreg(plist, cfit$coef, cfit$scale), tfun(plist), log='x',
+plot(qsurvreg(plist, cfit$coefficients, cfit$scale), tfun(plist), log='x',
      yaxt='n', type='l',
      xlab="Weibull Plot for Time", ylab="Percent")
 axis(2, tfun(plist), format(100*plist), adj=1)
 
 kfit <- survfit(Surv(day1, day2, type='interval2') ~1, data=crack2,
-                weight=n, type='fleming')
+                weights=n, type='fleming')
 # Only plot point where n.event > 0 
 # Why?  I'm trying to match them.  Personally, all should be plotted.
 who <- (kfit$n.event > 0)
@@ -139,7 +139,7 @@ text(rep(3,6), seq(.5, -1.0, length.out=6),
          c("Scale", "Shape", "Right Censored", "Left Censored", 
            "Interval Censored", "Fit"), adj=0)
 text(rep(9,6), seq(.5, -1.0, length.out=6), 
-         c(format(round(exp(cfit$coef), 2)),
+         c(format(round(exp(cfit$coefficients), 2)),
            format(round(1/cfit$scale, 2)),
            format(tapply(crack2$n, cfit$y[,3], sum)), "ML"), adj=1)
 
@@ -147,7 +147,7 @@ text(rep(9,6), seq(.5, -1.0, length.out=6),
 #  I don't get the same SE as SAS, I haven't checked out why.  The
 #  estimates and se for the underlying Weibull model are the same.
 temp <- predict(cfit, type='quantile', p=plist, se.fit=T)
-tempse <- sqrt(temp$se[1,])
+tempse <- sqrt(temp$se.fit[1,])
 mat <- cbind(temp$fit[1,], tempse, 
              temp$fit[1,] -1.96*tempse, temp$fit[1,] + 1.96*tempse)
 dimnames(mat) <- list(plist*100, c("Estimate", "SE", "Lower .95", "Upper .95"))
@@ -221,7 +221,7 @@ tdata <- turbine[rep(1:nrow(turbine), turbine$n),]
 qstat <- function(data) {
     temp <- survreg(Surv(time1, time2, type='interval2') ~1, data=data,
                     dist='lognormal')
-    qsurvreg(plist, temp$coef, temp$scale, dist='lognormal')
+    qsurvreg(plist, temp$coefficients, temp$scale, distribution='lognormal')
     }
 
 {if (exists('bootstrap')) {
@@ -239,7 +239,7 @@ else {
     bci <- t(apply(values,2, quantile, c(.05, .95)))
     }
  }
-xmat <- cbind(qsurvreg(plist, tfit$coef, tfit$scale, dist='lognormal'),
+xmat <- cbind(qsurvreg(plist, tfit$coefficients, tfit$scale, distribution='lognormal'),
               bci)
 
 

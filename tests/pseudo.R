@@ -16,20 +16,20 @@ fit1 <- survfit(Surv(ptime, pstat) ~1, mdata)
 #  and between event times
 rr1 <- resid(fit1, tvec)
 aeq(colSums(rr1), rep(0,4))
-sv1 <- summary(fit1, time=tvec, extend=TRUE)$surv
+sv1 <- summary(fit1, times=tvec, extend=TRUE)$surv
 
 # one time point  
-ps1a <- pseudo(fit1, time=100)
+ps1a <- pseudo(fit1, times=100)
 aeq(ps1a, sv1[2] + fit1$n*rr1[,2])
 # multiple
-ps1b <- pseudo(fit1,  time=tvec)
+ps1b <- pseudo(fit1,  times=tvec)
 aeq(ps1b,  sv1[col(rr1)] + fit1$n * rr1)
 
 # Single endpoint, multiple curves
 fit2 <- survfit(Surv(futime, death) ~ sex, mdata)
-rr2 <- resid(fit2, time=tvec)
+rr2 <- resid(fit2, times=tvec)
 aeq(colSums(rr2), rep(0,4))
-sv2 <- summary(fit2, time=tvec, extend=TRUE)$surv
+sv2 <- summary(fit2, times=tvec, extend=TRUE)$surv
 sv2 <- t(matrix(sv2, ncol=2))   # row 1= female, row2 = male
 
 # residuals are the same as for separate models
@@ -42,14 +42,14 @@ aeq(rr2a, rr2[fem,])  # row names won't be equal
 aeq(rr2b, rr2[!fem,])
 
 # one time point
-ps2a <- pseudo(fit2a, time=100)
+ps2a <- pseudo(fit2a, times=100)
 aeq(ps2a, sv2[1,2] + fit2a$n[1]* rr2a[,2])
-ps2b <- pseudo(fit2b, time=100)
+ps2b <- pseudo(fit2b, times=100)
 aeq(ps2b, sv2[2,2] + fit2b$n[1]* rr2b[,2])
 
 # overall psuedo are the same as for separate models
 #  (each row of mdata belongs to a single curve)
-ps2c <- pseudo(fit2, time=100)
+ps2c <- pseudo(fit2, times=100)
 aeq(ps2c[ fem], ps2a)
 aeq(ps2c[!fem], ps2b)
 
@@ -102,20 +102,20 @@ aeq(temp2, ps3b)
 #
 rr1 <- resid(fit1, tvec, type="cumhaz")
 aeq(colSums(rr1), rep(0,4))
-sv1 <- summary(fit1, time=tvec, extend=TRUE)$cumhaz
+sv1 <- summary(fit1, times=tvec, extend=TRUE)$cumhaz
 
 # one time point  
-ps1a <- pseudo(fit1, time=100, type="cumhaz")
+ps1a <- pseudo(fit1, times=100, type="cumhaz")
 aeq(ps1a, sv1[2] + fit1$n*rr1[,2])
 # multiple
-ps1b <- pseudo(fit1,  time=tvec, type="cumhaz")
+ps1b <- pseudo(fit1,  times=tvec, type="cumhaz")
 aeq(ps1b,  sv1[col(rr1)] + fit1$n * rr1)
 
 # Single endpoint, multiple curves
 fit2 <- survfit(Surv(futime, death) ~ sex, mdata)
-rr2 <- resid(fit2, time=tvec, type="cumhaz")
+rr2 <- resid(fit2, times=tvec, type="cumhaz")
 aeq(colSums(rr2), rep(0,4))
-sv2 <- summary(fit2, time=tvec, extend=TRUE)$cumhaz
+sv2 <- summary(fit2, times=tvec, extend=TRUE)$cumhaz
 sv2 <- t(matrix(sv2, ncol=2))   # row 1= female, row2 = male
 
 # residuals are the same as for separate models
@@ -125,14 +125,14 @@ aeq(rr2a, rr2[fem,])
 aeq(rr2b, rr2[!fem,])
 
 # one time point
-ps2a <- pseudo(fit2a, time=100, type="cumhaz")
+ps2a <- pseudo(fit2a, times=100, type="cumhaz")
 aeq(ps2a, sv2[1,2] + fit2a$n[1]* rr2a[,2])
-ps2b <- pseudo(fit2b, time=100, type="cumhaz")
+ps2b <- pseudo(fit2b, times=100, type="cumhaz")
 aeq(ps2b, sv2[2,2] + fit2b$n[1]* rr2b[,2])
 
 # overall psuedo are the same as for separate models
 #  (each row of mdata belongs to a single curve)
-ps2c <- pseudo(fit2, time=100, type="cumhaz")
+ps2c <- pseudo(fit2, times=100, type="cumhaz")
 aeq(ps2c[ fem], ps2a)
 aeq(ps2c[!fem], ps2b)
 
@@ -203,14 +203,14 @@ afun <- function(fit, times) {
 sv1 <- afun(fit1, tvec)
 
 # one time point  
-ps1a <- pseudo(fit1, time=tvec[1], type="auc")
+ps1a <- pseudo(fit1, times=tvec[1], type="auc")
 aeq(ps1a, sv1[1] + fit1$n*rr1[,1])
 # multiple
-ps1b <- pseudo(fit1,  time=tvec, type="auc")
+ps1b <- pseudo(fit1,  times=tvec, type="auc")
 aeq(ps1b,  sv1[col(rr1)] + fit1$n * rr1)
 
 # Single endpoint, multiple curves
-rr2 <- resid(fit2, time=tvec, type="auc")
+rr2 <- resid(fit2, times=tvec, type="auc")
 sv2 <- t(afun(fit2, tvec))
 aeq(colSums(rr2), rep(0,3))
 
@@ -221,14 +221,14 @@ aeq(rr2a, rr2[fem,])
 aeq(rr2b, rr2[!fem,])
 
 # one time point
-ps2a <- pseudo(fit2a, time=100, type="auc")
+ps2a <- pseudo(fit2a, times=100, type="auc")
 aeq(ps2a, sv2[1,1] + fit2a$n[1]* rr2a[,1])
-ps2b <- pseudo(fit2b, time=100, type="auc")
+ps2b <- pseudo(fit2b, times=100, type="auc")
 aeq(ps2b, sv2[2,1] + fit2b$n[1]* rr2b[,1])
 
 # overall psuedo are the same as for separate models
 #  (each row of mdata belongs to a single curve)
-ps2c <- pseudo(fit2, time=100, type="auc")
+ps2c <- pseudo(fit2, times=100, type="auc")
 aeq(ps2c[ fem], ps2a)
 aeq(ps2c[!fem], ps2b)
 
@@ -287,7 +287,7 @@ aeq(dim(p1), c(nrow(lung)-1, 2))
 
 # This will have rows that match the data
 lfit2 <- survfit(Surv(time, status) ~ ph.ecog, lung, na.action= na.exclude)
-p2 <- pseudo(lfit2, time=c(100, 200))
+p2 <- pseudo(lfit2, times=c(100, 200))
 aeq(dim(p2), c(nrow(lung), 2))
 all(is.na(p2[is.na(lung$ph.ecog)]))  # a row of missing was inserted
 

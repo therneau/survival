@@ -11,7 +11,7 @@ mydist$dist <- NULL
 fit1 <- survreg(Surv(time, status) ~ age + ph.ecog, lung)
 fit2 <- survreg(Surv(time, status) ~ age + ph.ecog, lung, dist=mydist)
 
-all.equal(fit1$coef, fit2$coef)
+all.equal(fit1$coefficients, fit2$coefficients)
 all.equal(fit1$var, fit2$var)
 
 #
@@ -23,7 +23,7 @@ fit1 <- survreg(Surv(ltime, rtime, type='interval2') ~ age + ecog.ps, idat)
 fit2 <- survreg(Surv(ltime, rtime, type='interval2') ~ age + ecog.ps, 
                 data=idat, dist=mydist)
 
-all.equal(fit1$coef, fit2$coef)
+all.equal(fit1$coefficients, fit2$coefficients)
 all.equal(fit1$var, fit2$var)
-all.equal(fit1$log, fit2$log)
+all.equal(fit1$loglik, fit2$loglik)
 

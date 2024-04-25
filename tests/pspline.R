@@ -36,10 +36,10 @@ all.equal(m2, spfit3$model[keep,], check.attributes=FALSE)
 # Test of residuals, in response to a reported bug.  
 # These are three progam paths that should all lead to the same C routine
 fit <- coxph(Surv(tstart, tstop, status) ~ sex + treat + pspline(age), cgd)
-fit2 <- coxph(Surv(tstart, tstop, status) ~ fit$linear, cgd, iter.max=0, init=1)
-fit3 <- coxph(Surv(tstart, tstop, status) ~ offset(fit$linear), cgd)
-all.equal(fit$resid, fit2$resid)
-all.equal(fit$resid, fit3$resid)
+fit2 <- coxph(Surv(tstart, tstop, status) ~ fit$linear.predictors, cgd, iter.max=0, init=1)
+fit3 <- coxph(Surv(tstart, tstop, status) ~ offset(fit$linear.predictors), cgd)
+all.equal(fit$residuals, fit2$residuals)
+all.equal(fit$residuals, fit3$residuals)
 
 # 
 # Check using coxph.detail. The matrix multiply below only is
@@ -50,7 +50,7 @@ dt <- coxph.detail(fit4, riskmat=TRUE)
 
 # the results of coxph.detail used to be in time order, now are in data set
 #  order
-rscore <- exp(fit4$linear)
+rscore <- exp(fit4$linear.predictors)
 exp4 <- (rscore *dt$riskmat) %*% dt$hazard
 r4 <- cgd$status - exp4
-aeq(r4, fit4$resid)
+aeq(r4, fit4$residuals)

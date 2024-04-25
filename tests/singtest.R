@@ -20,5 +20,5 @@ stest <- data.frame(start  = 10*temp,
 
 # Will create a warning about a singular X matrix
 fit1 <- coxph(Surv(start, stop, status) ~ x * factor(epoch), stest)
-fit1$coef    # elements 2:4 should be NA
-all.equal(is.na(fit1$coef), c(F,T,T,T,F,F,F), check.attributes=FALSE)
+fit1$coefficients    # elements 2:4 should be NA
+all.equal(is.na(fit1$coefficients), c(F,T,T,T,F,F,F), check.attributes=FALSE)

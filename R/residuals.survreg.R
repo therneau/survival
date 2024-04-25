@@ -91,7 +91,7 @@ residuals.survreg <- function(object, type=c('response', 'deviance',
     dens <- dd$density
     if (type=='response') {
         yhat0 <- deviance(y, sigma, object$parms)
-        rr <-  itrans(yhat0$center) - itrans(object$linear.predictor)
+        rr <-  itrans(yhat0$center) - itrans(object$linear.predictors)
         }
     else {
         status <- y[,ncol(y)]

@@ -134,14 +134,14 @@ r2 <- resid(fit2c, times= fit2c$time, collapse=TRUE)
 aeq(r2, fit2c$influence.surv)
 
 fit2d <- survfit(Surv(time, factor(status)) ~ x, data=adata, id=id, influence=T) 
-aeq(fit2d$influence[[1]][,,1], r2)
+aeq(fit2d$influence.pstate[[1]][,,1], r2)
 r3 <- resid(fit2d, times= fit2c$time, collapse=TRUE)
 aeq(r3[adata$x =="Maintained",1,], r2)
 
 fit2e <- survfit(Surv(time, factor(status)) ~1, adata, id=id, influence=T,
                  subset=(x=="Maintained"))
-aeq(fit2e$influence, fit2d$influence[[1]])
-aeq(fit2e$influence[,,1], r2)
+aeq(fit2e$influence.pstate, fit2d$influence.pstate[[1]])
+aeq(fit2e$influence.pstate[,,1], r2)
 
 
 # look at the leverage values
@@ -165,8 +165,8 @@ for (i in 1:12) {
     imat2[i,] <- (tfit$cumhaz - t1$cumhaz)/eps
     imat1[i,] <- (tfit$surv - t1$surv)/eps
 }
-aeq(imat1, true1b$influence[,1,], tol= sqrt(eps))
-aeq(imat2, true1b$influence[,2,], tol= sqrt(eps))
+aeq(imat1, true1b$influence[,1,], tolerance= sqrt(eps))
+aeq(imat2, true1b$influence[,2,], tolerance= sqrt(eps))
 
 # Repeat using the Nelson-Aalen hazard and exp(NA) for survival
 fit1 <- survfit(Surv(time, status) ~ x, adata, stype=2)
@@ -334,7 +334,7 @@ for (i in 1:12) {
               weights=wtemp)
     imat[i,] <- tdata$wt[i] * (tfit$cumhaz - t1$cumhaz)/eps
 }
-aeq(fit7$influence.chaz[[2]], imat, tol=sqrt(eps))
+aeq(fit7$influence.chaz[[2]], imat, tolerance=sqrt(eps))
 
 #
 # verify that the times and scale arguments work as expected.  They

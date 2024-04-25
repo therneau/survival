@@ -45,7 +45,7 @@ x4 <- model.matrix(t1, m1, contrasts.arg=ctemp)  # no saved contrast
 
 fit3 <- lm(y ~ x1 + C(x2, contr.SAS), tdata)   
 m3 <- fit3$model
-attr(m3[[3]], 'contr')   # the contrast is saved
+attr(m3[[3]], 'contrasts')   # the contrast is saved
 c2 <- ctemp
 names(c2) <- names(fit3$contrasts)
 x5 <- model.matrix(terms(fit3), m3, contrasts.arg=c2)

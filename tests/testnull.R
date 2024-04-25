@@ -9,11 +9,11 @@ fit1 <- coxph(Surv(stop, event) ~ rx + strata(number), bladder, iter.max=0)
 fit2 <- coxph(Surv(stop, event) ~ strata(number), bladder)
 
 all.equal(fit1$loglik[2], fit2$loglik)
-all.equal(fit1$resid, fit2$resid)
+all.equal(fit1$residuals, fit2$residuals)
 
 
 fit1 <- coxph(Surv(start, stop, event) ~ rx + strata(number), bladder2, iter.max=0)
 fit2 <- coxph(Surv(start, stop, event) ~ strata(number), bladder2)
 
 all.equal(fit1$loglik[2], fit2$loglik)
-all.equal(fit1$resid, fit2$resid)
+all.equal(fit1$residuals, fit2$residuals)

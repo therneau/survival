@@ -15,6 +15,6 @@ tdata$sex <- lung$sex +3
 fit1 <- coxph(Surv(time, status) ~ age + sex:strata(ph.ecog), lung)
 fit2 <- coxph(Surv(time, status) ~ age + sex:strata(ph.ecog), tdata)
 
-aeq(fit1$coef, fit2$coef)
+aeq(fit1$coefficients, fit2$coefficients)
 aeq(fit1$var, fit2$var)
 aeq(predict(fit1), predict(fit2))

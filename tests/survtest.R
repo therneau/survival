@@ -51,7 +51,7 @@ aeq(fit3$std.err, sqrt(cumsum(temp)))
 #  Verify that both surv AND n.risk are right between time points.
 #
 fit <- survfit(Surv(time, status) ~1, test1)
-temp <- summary(fit, time=c(.5,1, 1.5, 6, 7.5, 8, 8.9, 9, 10), extend=TRUE)
+temp <- summary(fit, times=c(.5,1, 1.5, 6, 7.5, 8, 8.9, 9, 10), extend=TRUE)
 
 aeq(temp$n.risk, c(6,6,4,4,2,2,1,1,0))
 aeq(temp$surv, c(1, fit$surv[c(1,1,2,2,3,3,4,4)]))
@@ -72,7 +72,7 @@ if (FALSE) aeq(temp$n.risk, c(0, 2, 3, 3, 4, 1,1))
 fit1 <- survfit(Surv(start, stop, event)~1, test2, weights=wt)
 fit2 <- survfit(Surv(start, stop, event)~1, test2, weights=wt, start.time=5)
 
-aeq(fit1$surv[2], summary(fit1, time=5)$surv)  # verify my subscript
+aeq(fit1$surv[2], summary(fit1, times=5)$surv)  # verify my subscript
 aeq(fit2$surv, fit1$surv[3:8]/fit1$surv[2])
 aeq(fit2$std.err^2,   fit1$std.err[3:8]^2 - fit1$std.err[2]^2)
 aeq(fit2$cumhaz, fit1$cumhaz[3:8] - fit1$cumhaz[2])

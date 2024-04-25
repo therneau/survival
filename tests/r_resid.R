@@ -20,7 +20,7 @@ summary(fit4)
 if (exists('censorReg')) {  #true for Splus, not R
     fit2 <- censorReg(censor(futime, fustat) ~ age + ecog.ps, ovarian)
     fit3 <- survreg(Surv(futime, fustat) ~ age + ecog.ps, ovarian,
-		iter=0, init=c(fit2$coef,   log(fit2$scale)))
+		iter=0, init=c(fit2$coefficients,   log(fit2$scale)))
 
     aeq(resid(fit2, type='working')[,1], resid(fit3, type='working'))
     aeq(resid(fit2, type='response')[,1], resid(fit3, type='response'))
@@ -34,7 +34,7 @@ if (exists('censorReg')) {  #true for Splus, not R
 # Now check fit1 and fit4, which should follow identical iteration paths
 #   These tests should all be true
 #
-aeq(fit1$coef, fit4$coef)
+aeq(fit1$coefficients, fit4$coefficients)
  
 resid(fit1, type='working')
 resid(fit1, type='response')

@@ -41,9 +41,9 @@ lfit5 <- survreg(Surv(time, status) ~age, lung)
 
 lfit6 <- survreg(Surv(time, status)~pspline(age, df=2), lung)
 
-lfit7 <- survreg(Surv(time, status) ~ offset(lfit6$lin), lung)
+lfit7 <- survreg(Surv(time, status) ~ offset(lfit6$linear.predictors), lung)
 
 lfit4
 lfit5
 lfit6
-signif(lfit7$coef,6)
+signif(lfit7$coefficients,6)

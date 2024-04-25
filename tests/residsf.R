@@ -70,19 +70,19 @@ test2 <- data.frame(t1  =c(1, 2, 5, 2, 1, 7, 3, 4, 8, 8,
                     id   = 1:16)
 
 s4 <- survfit(Surv(t1, t2, event) ~ x, test2, influence=TRUE)
-r6 <- resid(s4, time=c(4, 8, 10), type="surv")
+r6 <- resid(s4, times=c(4, 8, 10), type="surv")
 aeq(r6[1:10,], s4$influence.surv[[1]][,c(2, 5, 6)])
 aeq(r6[11:16,],s4$influence.surv[[2]][,c(1,3, 4)])
 aeq(r6[11:16,2:3], r1[,4:5])
 
-r7 <- resid(s4, time=c(4, 8, 10), type="cumhaz")
+r7 <- resid(s4, times=c(4, 8, 10), type="cumhaz")
 aeq(r7[1:10,], s4$influence.chaz[[1]][,c(2, 5, 6)])
 aeq(r7[11:16,],s4$influence.chaz[[2]][,c(1,3, 4)])
 aeq(r7[11:16, 2:3], r2[,4:5])
 
 # Compute the AUC at times 8 and 10, the first is a reporting time, the
 #  second is in between
-r8 <- resid(s4, time= c(8, 10), type="auc")
+r8 <- resid(s4, times= c(8, 10), type="auc")
 aeq(r8[11:16,], r3[,3:4])
 
 # curve1:
@@ -101,7 +101,7 @@ aeq(cbind(d3, d4), r8[11:16,])
 reord <- c(1,3,5,7,9,11,13, 15,2,4,6,8,10,12,14,16)
 test2b <-test2[reord,]
 s5 <- survfit(Surv(t1, t2, event) ~x, test2b, influence=TRUE)
-r9 <- resid(s5, time=c(4, 8, 10), type="surv")
+r9 <- resid(s5, times=c(4, 8, 10), type="surv")
 aeq(r6[reord,], r9)
  
 # 
@@ -145,11 +145,11 @@ mfit1 <- survfit(Surv(t1, t2, st) ~ 1, tdata, id=id, istate=i0,
                  influence=1)
 
 test1 <- resid(mfit1, times= mfit1$time, collapse=TRUE)
-aeq(test1, aperm(mfit1$influence, c(1,3,2)))
+aeq(test1, aperm(mfit1$influence.pstate, c(1,3,2)))
 aeq(sqrt(apply(test1^2, 2:3, sum)), t(mfit1$std.err))
 
 test1a <- resid(mfit1, times=c(3, 7, 9), method=1, collapse=TRUE)
-minf <- aperm(mfit1$influence, c(1,3,2)) # influence has time second, resid third
+minf <- aperm(mfit1$influence.pstate, c(1,3,2)) # influence has time second, resid third
 aeq(test1a, minf[,,c(2,4,6)])  # interpolated times work
 
 test2 <- resid(mfit1, times= mfit1$time, collapse=TRUE, type="cumhaz")
@@ -177,7 +177,7 @@ mdata$etime <- with(mdata, ifelse(pstat==1, ptime, futime))
 temp <- with(mdata, ifelse(pstat==1, 1, 2*death))
 mdata$event <- factor(temp, 0:2, c("censor", "PCM", "Death"))
 mfit <- survfit(Surv(etime, event) ~1, mdata, influence=1)
-rr <- resid(mfit, time=360)
+rr <- resid(mfit, times=360)
 index <- sum(mfit$time <= 360)
 aeq(mfit$influence.pstate[,index,], rr)
 

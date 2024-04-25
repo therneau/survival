@@ -25,7 +25,7 @@ data2 <- data.frame(id=rep(LETTERS[1:3], each=3),
 fit2 <- survcheck(Surv(t1, t2, status) ~ 1, data2, id=id)
 
 aeq(fit2$flag , c(1,2,0,0,0))
-aeq(fit2$transition, rbind(c(3,0,0,0), c(0,2,1,0), c(0,0,0,1), 0))
+aeq(fit2$transitions, rbind(c(3,0,0,0), c(0,2,1,0), c(0,0,0,1), 0))
 (fit2$overlap$id == 'B')
 (fit2$overlap$row ==5)
 all(fit2$gap$id == c("B", "C"))
@@ -39,7 +39,7 @@ all.equal(fit2[1:4], tfit[1:4])
 # let a missing value in
 fit2b <- survcheck(Surv(t1, t2, status) ~ x, data2, id=id)
 aeq(fit2b$flag , c(1,1,0,0,0))
-aeq(fit2b$transition, rbind(c(3,0,0), c(0,2,1), 0,0))
+aeq(fit2b$transitions, rbind(c(3,0,0), c(0,2,1), 0,0))
 (fit2b$overlap$id == 'B')
 (fit2b$overlap$row ==5)
 all(fit2b$gap$id == "C")

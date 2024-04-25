@@ -238,7 +238,7 @@ survfitTurnbull <- function(x, y, weights,
 	time[[i]]   <- tfit$time
 	n.risk[[i]] <- tfit$n.risk
 	surv[[i]]   <- tfit$surv
-	n.cens[[i]] <- tfit$n.cens
+	n.cens[[i]] <- tfit$n.censor
 	n.event[[i]]<- tfit$n.event
 	if (i==1) {
 	    if (!is.null(tfit$std.err)) {

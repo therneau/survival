@@ -27,14 +27,14 @@ all.equal(sctest, sctest2)
 
 # Now check the program
 fit1 <- coxph(Surv(time, status) ~ x, test1, ties='breslow')
-aeq(fit1$coef, log(r))
+aeq(fit1$coefficients, log(r))
 zp1 <- cox.zph(fit1, transform='identity', global=FALSE)
 aeq(zp1$table[,1], sctest)
 aeq(zp1$y, resid(fit1, type="scaledsch"))
 
 dummy <- rep(0, nrow(test1))
 fit1b <- coxph(Surv(dummy, time, status) ~ x, test1, ties='breslow')
-aeq(fit1b$coef, log(r))
+aeq(fit1b$coefficients, log(r))
 zp1b <- cox.zph(fit1b, transform='identity', global=FALSE)
 aeq(zp1b$table[,1], sctest)
 # the pair of tied times gets reversed in the zph result
@@ -62,13 +62,13 @@ i4 <- matrix(c(sum(imat), sum(g3*imat), sum(g3*imat), sum(g3^2*imat)),
 sctest4 <- solve(i4, u4) %*% u4
 
 fit4 <- coxph(Surv(time, status) ~ x, test1, ties='efron')
-aeq(fit4$coef, log(r))
+aeq(fit4$coefficients, log(r))
 zp4 <- cox.zph(fit4, transform='log', global=FALSE)
 aeq(zp4$table[,1], sctest4)
 aeq(zp4$y, resid(fit4, type="scaledsch"))
 
 fit5 <-  coxph(Surv(dummy, time, status) ~ x, test1, ties="efron")
-aeq(fit5$coef, log(r))
+aeq(fit5$coefficients, log(r))
 zp5 <- cox.zph(fit5, transform="log", global=FALSE)
 aeq(zp5$table[,1], sctest4)
 
@@ -78,8 +78,8 @@ test2$group <- rep(letters[1:2], each=nrow(test1))
 # U, imat, and sctest will all double
 dummy <- c(dummy, dummy)
 fit6 <- coxph(Surv(dummy, time, status) ~ x + strata(group), test2)
-aeq(fit6$coef, log(r))
-zp6 <- cox.zph(fit6, transform="log", globa=FALSE)
+aeq(fit6$coefficients, log(r))
+zp6 <- cox.zph(fit6, transform="log", global=FALSE)
 aeq(zp6$table[,1], 2*sctest4)
 
 # A multi-state check, 2 covariates
@@ -123,7 +123,7 @@ pfit <- coxph(Surv(tstart, tstop, death) ~ log(bili) + albumin + edema +
 zp7  <- cox.zph(pfit, transform='log', global=FALSE)
 
 direct <- function(fit) {
-    nvar <- length(fit$coef)
+    nvar <- length(fit$coefficients)
     dt <- coxph.detail(fit)
     gtime <- log(dt$time) - mean(log(dt$time))
     # key idea: at any event time I have a first deriviative vector

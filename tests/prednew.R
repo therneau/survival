@@ -60,7 +60,7 @@ p1 <- predict(myfit, type='risk', se.fit=T)
 myfit2 <- coxph(Surv(time, status) ~ age + factor(sex), lung)
 p2 <- predict(myfit2, type='risk', se.fit=T)
 aeq(p1$fit, p2$fit)
-aeq(p1$se, p2$se)
+aeq(p1$se.fit, p2$se.fit)
 
 p1 <- predict(myfit, type='expected', se.fit=T)
 p2 <- predict(myfit2, type='expected', se.fit=T)

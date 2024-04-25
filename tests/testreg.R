@@ -51,7 +51,7 @@ logt <- c(survreg.distributions$t,
 logt$name <- 'log(t)'
 
 fitft2 <- survreg(Surv(ltime, rtime, type='interval2') ~ age + ecog.ps,
-            idat, dist=logt, parm=100)
+            idat, dist=logt, parms=100)
 summary(fitft2)  #should be quite close to fitfg2
 
 #

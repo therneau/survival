@@ -199,15 +199,15 @@ parsecovar2 <- function(covar1, statedata, dformula, Terms, transitions,states) 
                         stop("numeric state is out of range")
                 }
                 else if (is.list(x$right) && names(x$right)[1] == "stateid") {
-                    if (is.null(x$right$value))
+                    if (is.null(x$right$values))
                         stop("state variable with no list of values: ",x$right$stateid)
                     else {
                         if (any(k= is.na(match(x$right$stateid, names(statedata)))))
                             stop(x$right$stateid[k], ": state variable not found")
                         zz <- statedata[[x$right$stateid]]
-                        if (any(k= is.na(match(x$right$value, zz))))
-                            stop(x$right$value[k], ": state value not found")
-                        temp2 <- which(zz %in% x$right$value)
+                        if (any(k= is.na(match(x$right$values, zz))))
+                            stop(x$right$values[k], ": state value not found")
+                        temp2 <- which(zz %in% x$right$values)
                     }
                 }
                 else {

@@ -92,7 +92,7 @@ for (i in 1:n) {
 }
 dfbeta <- rowsum(tdata$wt*matrix(U,nrow=n), tdata$id) # per subject
 dfbeta <- array(dfbeta, dim=c(6,12,5))
-aeq(dfbeta, fit$influence, tolerance= eps*10)
+aeq(dfbeta, fit$influence.pstate, tolerance= eps*10)
 
 aeq(fit$std.err, sqrt(apply(fit$influence.pstate^2, 2:3, sum)))
 

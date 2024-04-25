@@ -57,15 +57,15 @@ py3 <-  pyears(temp.time ~ temp.age + temp.yr,
 		rmap=list(age=temp2-temp1, year=temp2, sex=1),
 	     scale=1, ratetable=survexp.us , expect='pyears')
 all.equal(py2$n, py3$n)
-all.equal(py2$pyear, py3$pyear)
-all.equal(py3$n, 1*(py3$expect>0))
+all.equal(py2$pyears, py3$pyears)
+all.equal(py3$n, 1*(py3$expected>0))
 
 # Now, compute the py3 result "by hand".  Since there is only one person
 #   it can be derived from py2.
 #
-xx1 <- py2$expect[py2$n>0]   		# the hazard over each interval
+xx1 <- py2$expected[py2$n>0]   		# the hazard over each interval
 cumhaz <- cumsum(c(0, xx1[-length(xx1)]))     # the cumulative hazard	
-xx2 <- py3$expect[py3$n>0]   		# the expected number of person days
+xx2 <- py3$expected[py3$n>0]   		# the expected number of person days
 xx3 <- py3$pyears[py3$n>0]   		# the potential number of person days
 
 # This is the integral of the curve "exp(-haz *t)" over the interval
@@ -79,8 +79,8 @@ temp.age <- tcut(temp2-temp1, floor(c(-1, (18:27 * 365.24))),
 	labels=c('0-18', paste(18:26, 19:27, sep='-')))
 
 py4 <- eval(py3$call)
-all.equal(py4$pyear, py3$pyear[1:10,])
-all.equal(py4$expect, py3$expect[1:10,])
+all.equal(py4$pyears, py3$pyears[1:10,])
+all.equal(py4$expected, py3$expected[1:10,])
 
 
 rm(temp.age, integral, xx1, xx2, xx3, cumhaz, py1, py2, py3, py4)
@@ -139,15 +139,15 @@ py3 <-  pyears(temp.time ~ temp.age + temp.yr,
 		rmap= list(age=temp2-temp1, year=temp2, sex=1),
 	     scale=1, ratetable=survexp.us , expect='pyears')
 all.equal(py2$n, py3$n)
-all.equal(py2$pyear, py3$pyear)
-all.equal(py3$n, 1*(py3$expect>0))
+all.equal(py2$pyears, py3$pyears)
+all.equal(py3$n, 1*(py3$expected>0))
 
 # Now, compute the py3 result "by hand".  Since there is only one person
 #   it can be derived from py2.
 #
-xx1 <- py2$expect[py2$n>0]   		# the hazard over each interval
+xx1 <- py2$expected[py2$n>0]   		# the hazard over each interval
 cumhaz <- cumsum(c(0, xx1[-length(xx1)]))     # the cumulative hazard	
-xx2 <- py3$expect[py3$n>0]   		# the expected number of person days
+xx2 <- py3$expected[py3$n>0]   		# the expected number of person days
 xx3 <- py3$pyears[py3$n>0]   		# the potential number of person days
 
 # This is the integral of the curve "exp(-haz *t)" over the interval
@@ -161,8 +161,8 @@ temp.age <- tcut(temp2-temp1, floor(c(-1, (18:27 * 365.24))),
 	labels=c('0-18', paste(18:26, 19:27, sep='-')))
 
 py4 <- eval(py3$call)
-all.equal(py4$pyear, py3$pyear[1:10,])
-all.equal(py4$expect, py3$expect[1:10,])
+all.equal(py4$pyears, py3$pyears[1:10,])
+all.equal(py4$expected, py3$expected[1:10,])
 
 
 rm(temp.age, integral, xx1, xx2, xx3, cumhaz, py1, py2, py3, py4)

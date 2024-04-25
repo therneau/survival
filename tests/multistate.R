@@ -26,10 +26,10 @@ fit1c <- coxph(Surv(time, status) ~ strata(type)/(age + sex+ mspike),
                data2, x=TRUE)
 
 aeq(fit1$loglik, fit1a$loglik + fit1b$loglik)
-aeq(fit1$coef, c(fit1a$coef, fit1b$coef))
+aeq(fit1$coefficients, c(fit1a$coefficients, fit1b$coefficients))
 aeq(fit1$var[1:3, 1:3], fit1a$var)
 aeq(fit1$var[4:6, 4:6], fit1b$var)
-aeq(fit1$coef[c(1,4,2,5,3,6)], fit1c$coef)
+aeq(fit1$coefficients[c(1,4,2,5,3,6)], fit1c$coefficients)
 
 # force a common age effect across all states
 fit2 <- coxph(list(Surv(etime, event) ~ sex,
@@ -53,7 +53,7 @@ fit2c <-  coxph(list(Surv(etime, event) ~ sex,
                 istate=entry, data1, id=id)
 
 aeq(fit2b$loglik, fit2$loglik)
-aeq(fit2c$coef, fit2$coef)
+aeq(fit2c$coefficients, fit2$coefficients)
 
 # mspike size as a covariate for PCM only
 # first, 4 different ways to write the same
@@ -69,15 +69,15 @@ fit3c <- coxph(list(Surv(etime, event) ~ age + sex,
 fit3d <- coxph(list(Surv(etime, event) ~ age + sex + mspike,
                     1:3 ~ -mspike), data1, id=id)
 
-aeq(fit3b$coef, fit3$coef)
-aeq(fit3c$coef, fit3$coef)
-aeq(fit3d$coef, fit3$coef)
+aeq(fit3b$coefficients, fit3$coefficients)
+aeq(fit3c$coefficients, fit3$coefficients)
+aeq(fit3d$coefficients, fit3$coefficients)
 
 data3 <- data2
 data3$mspike[data3$etype==2] <- 0
 fit3a <-  coxph(Surv(etime, status) ~ strata(etype)/(age + sex + mspike), data3)
 aeq(fit3$loglik, fit3a$loglik)
-aeq(fit3$coef, fit3a$coef[c(1,3,5,2,4)])
+aeq(fit3$coefficients, fit3a$coefficients[c(1,3,5,2,4)])
 
 # models with strata
 test1 <-  coxph(Surv(etime, event=="PCM") ~ age + mspike + strata(sex), data1)

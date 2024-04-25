@@ -4,7 +4,7 @@ library(survival)
 
 #
 # Test the coxph program on the Ovarian data
-summary(survfit(Surv(futime, fustat)~1, data=ovarian), censor=TRUE)
+summary(survfit(Surv(futime, fustat)~1, data=ovarian), censored=TRUE)
 
 # Various models
 coxph(Surv(futime, fustat)~ age, data=ovarian)
@@ -35,9 +35,9 @@ summary(sfit)
 # Check of offset + surv, added 7/2000
 fit1 <- coxph(Surv(futime, fustat) ~ age + rx, ovarian,
 	      control=coxph.control(eps=1e-8))
-fit2 <- coxph(Surv(futime, fustat) ~ age + offset(rx*fit1$coef[2]), ovarian,
+fit2 <- coxph(Surv(futime, fustat) ~ age + offset(rx*fit1$coefficients[2]), ovarian,
 	      control=coxph.control(eps=1e-8))
-all.equal(fit1$coef[1], fit2$coef[1])
+all.equal(fit1$coefficients[1], fit2$coefficients[1])
 
 fit <- coxph(Surv(futime, fustat) ~ age + offset(rx), ovarian)
 survfit(fit, censor=FALSE)$surv^exp(-1.5)
@@ -45,7 +45,7 @@ survfit(fit, censor=FALSE)$surv^exp(-1.5)
 # Check it by hand -- there are no tied times
 #  Remember that offsets from survfit are centered, which is 1.5 for
 #  this data set.
-eta <- fit$coef*(ovarian$age - fit$mean) + (ovarian$rx - 1.5)
+eta <- fit$coefficients*(ovarian$age - fit$means) + (ovarian$rx - 1.5)
 ord <- order(ovarian$futime)
 risk <- exp(eta[ord])
 rsum <- rev(cumsum(rev(risk)))   # cumulative risk at each time point

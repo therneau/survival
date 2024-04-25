@@ -72,14 +72,14 @@ for (i in 1:nrow(tdata)) {
     deltaC[i,,] <- (tfit$cumhaz - fit$cumhaz)/eps
     deltaA[i,,] <- (auc(tfit) - auc(fit))/eps
 }
-aeq(bfit$u2, deltaU[,2,], tol=eps)
-aeq(bfit$u3, deltaU[,3,], tol=eps)
-aeq(bfit$u6, deltaU[,5,], tol=eps)
+aeq(bfit$u2, deltaU[,2,], tolerance=eps)
+aeq(bfit$u3, deltaU[,3,], tolerance=eps)
+aeq(bfit$u6, deltaU[,5,], tolerance=eps)
 
 sqmean <- function(x) sqrt(sum(x^2))
-aeq(fit$std.chaz, apply(deltaC, 2:3, sqmean), tol=eps)
-aeq(fit$std.err,  apply(deltaU, 2:3, sqmean), tol=eps)
-aeq(fit$std.auc,  apply(deltaA, 2:3, sqmean), tol=eps)
+aeq(fit$std.chaz, apply(deltaC, 2:3, sqmean), tolerance=eps)
+aeq(fit$std.err,  apply(deltaU, 2:3, sqmean), tolerance=eps)
+aeq(fit$std.auc,  apply(deltaA, 2:3, sqmean), tolerance=eps)
 
 # Times purposely has values that are before the start, exact, intermediate
 #  and after the end of the observed times

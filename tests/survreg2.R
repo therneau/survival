@@ -13,7 +13,7 @@ fit1 <- survreg(Surv(time, status) ~ 1, lung)
 fit2 <- survreg(Surv(futime, fustat) ~ 1, ovarian)
 fit3 <- survreg(Surv(time, status) ~ group + strata(group), tdata)
 
-aeq(c(fit1$coef, fit2$coef-fit1$coef), fit3$coef)
+aeq(c(fit1$coefficients, fit2$coefficients-fit1$coefficients), fit3$coefficients)
 aeq(c(fit1$scale, fit2$scale), fit3$scale)
 aeq(fit1$loglik[2] + fit2$loglik[2], fit3$loglik[2])
 
@@ -35,11 +35,11 @@ eps <- 1e-7
 for (i in 1:7) {
     temp <- rep(1.0,7)
     temp[i] <- 1-eps
-    tfit <- survreg(Surv(time, status) ~ x, test1, weight=temp)
-    ijack[i,] <- c(tfit$coef, log(tfit$scale)) 
+    tfit <- survreg(Surv(time, status) ~ x, test1, weights=temp)
+    ijack[i,] <- c(tfit$coefficients, log(tfit$scale)) 
     }
 ijack[2,] <- NA  # stick the NA back in
-ijack <- (rep(c(fit1$coef, log(fit1$scale)), each=nrow(db1)) - ijack)/eps
+ijack <- (rep(c(fit1$coefficients, log(fit1$scale)), each=nrow(db1)) - ijack)/eps
 all.equal(db1, ijack, tolerance=eps)
 all.equal(t(db1[-2,])%*% db1[-2,], fit1$var)
 
@@ -57,9 +57,9 @@ for (i in 1:nrow(db1)) {
     twt[bladder2$id==i] <- 1-eps
     tfit <- survreg(Surv(stop-start, event) ~ rx + size + number + 
                     factor(enum) + strata(enum), data=bladder2, 
-                    weight=twt)
+                    weights=twt)
     ijack[i,] <- c(coef(tfit), log(tfit$scale)) 
     }
-ijack <- (rep(c(fit1$coef, log(fit1$scale)), each=nrow(db1)) - ijack)/eps
+ijack <- (rep(c(fit1$coefficients, log(fit1$scale)), each=nrow(db1)) - ijack)/eps
 all.equal(db1, ijack, tolerance=eps*2)
 

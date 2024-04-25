@@ -8,7 +8,7 @@ aeq <- function(x,y, ...) all.equal(as.vector(x), as.vector(y), ...)
 fit1 <- survreg(Surv(futime, fustat) ~ age + ecog.ps, ovarian, x=TRUE)
 fit4 <- survreg(Surv(log(futime), fustat) ~age + ecog.ps, ovarian,
 		dist='extreme')
-aeq(fit1$coef, fit4$coef)
+aeq(fit1$coefficients, fit4$coefficients)
 aeq(fit1$var, fit4$var)
  
 resid(fit1, type='working')
