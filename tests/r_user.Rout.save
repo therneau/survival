@@ -1,7 +1,7 @@
 
-R version 2.9.0 (2009-04-17)
-Copyright (C) 2009 The R Foundation for Statistical Computing
-ISBN 3-900051-07-0
+R version 4.3.2 (2023-10-31) -- "Eye Holes"
+Copyright (C) 2023 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -17,7 +17,6 @@ Type 'q()' to quit R.
 
 > options(na.action=na.exclude)  #preserve length of missings
 > library(survival)
-Loading required package: splines
 > 
 > #
 > # Check out using a "user specified" distribution
@@ -29,7 +28,7 @@ Loading required package: splines
 > fit1 <- survreg(Surv(time, status) ~ age + ph.ecog, lung)
 > fit2 <- survreg(Surv(time, status) ~ age + ph.ecog, lung, dist=mydist)
 > 
-> all.equal(fit1$coef, fit2$coef)
+> all.equal(fit1$coefficients, fit2$coefficients)
 [1] TRUE
 > all.equal(fit1$var, fit2$var)
 [1] TRUE
@@ -43,11 +42,14 @@ Loading required package: splines
 > fit2 <- survreg(Surv(ltime, rtime, type='interval2') ~ age + ecog.ps, 
 +                 data=idat, dist=mydist)
 > 
-> all.equal(fit1$coef, fit2$coef)
+> all.equal(fit1$coefficients, fit2$coefficients)
 [1] TRUE
 > all.equal(fit1$var, fit2$var)
 [1] TRUE
-> all.equal(fit1$log, fit2$log)
+> all.equal(fit1$loglik, fit2$loglik)
 [1] TRUE
 > 
 > 
+> proc.time()
+   user  system elapsed 
+  0.869   0.053   0.915 

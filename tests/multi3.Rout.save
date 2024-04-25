@@ -1,6 +1,6 @@
 
-R Under development (unstable) (2022-07-22 r82614) -- "Unsuffered Consequences"
-Copyright (C) 2022 The R Foundation for Statistical Computing
+R version 4.3.2 (2023-10-31) -- "Eye Holes"
+Copyright (C) 2023 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -114,4 +114,4 @@ from     normal 1-2x 2-4x  >4 death (censored)
 > 
 > proc.time()
    user  system elapsed 
-  1.281   0.096   1.369 
+  1.259   0.081   1.333 

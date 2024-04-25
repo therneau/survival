@@ -1,7 +1,7 @@
 
-R Under development (unstable) (2024-04-01 r86255) -- "Unsuffered Consequences"
-Copyright (C) 2024 The R Foundation for Statistical Computing
-Platform: x86_64-pc-linux-gnu
+R version 4.3.2 (2023-10-31) -- "Eye Holes"
+Copyright (C) 2023 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -237,11 +237,11 @@ Type 'q()' to quit R.
 +     deltaC[i,,] <-(tfit$cumhaz - mfit$cumhaz)/eps
 + }
 > temp <- aperm(mtest$U, c(1,3,2)) # drop time 0, put state last
-> all.equal(temp[,-1,], delta, tol=eps/2)
+> all.equal(temp[,-1,], delta, tolerance=eps/2)
 [1] TRUE
 > 
 > tempC <-aperm(mtest$C, c(1,3,2))
-> all.equal(tempC[,-1,], deltaC, tol= eps/2)
+> all.equal(tempC[,-1,], deltaC, tolerance= eps/2)
 [1] TRUE
 > 
 > # Now check mfit, which returns the weighted collapsed values
@@ -261,7 +261,7 @@ Type 'q()' to quit R.
 > sqsum <- function(x) sqrt(sum(x^2))
 > temp <- collapse(mtest$U[,,-1]) # mtest has time 0, mfit does not
 > # mfit$influence is in id, time, state order
-> aeq(aperm(temp, c(1,3,2)), mfit$influence)  # mtest has time 0, mfit does not
+> aeq(aperm(temp, c(1,3,2)), mfit$influence.pstate)  # mtest has time 0, mfit does not
 [1] TRUE
 > 
 > setemp <- apply(collapse(mtest$U[,,-1]), 2:3, sqsum)
@@ -289,4 +289,4 @@ Type 'q()' to quit R.
 > 
 > proc.time()
    user  system elapsed 
-  1.175   0.081   1.248 
+  1.111   0.060   1.165 

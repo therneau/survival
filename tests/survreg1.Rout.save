@@ -1,6 +1,6 @@
 
-R Under development (unstable) (2019-06-28 r76752) -- "Unsuffered Consequences"
-Copyright (C) 2019 The R Foundation for Statistical Computing
+R version 4.3.2 (2023-10-31) -- "Eye Holes"
+Copyright (C) 2023 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -25,7 +25,7 @@ Type 'q()' to quit R.
 > fit1 <- survreg(Surv(futime, fustat) ~ age + ecog.ps, ovarian, x=TRUE)
 > fit4 <- survreg(Surv(log(futime), fustat) ~age + ecog.ps, ovarian,
 + 		dist='extreme')
-> aeq(fit1$coef, fit4$coef)
+> aeq(fit1$coefficients, fit4$coefficients)
 [1] TRUE
 > aeq(fit1$var, fit4$var)
 [1] TRUE
@@ -243,7 +243,7 @@ n= 40
 > #  upper left corner of the inverse information matrix.
 > # Numbers 1 and 3 differ little for this dataset
 > #
-> predict(fit1, data.frame(temp=130), type='uquantile', p=c(.5, .1), se=T)
+> predict(fit1, data.frame(temp=130), type='uquantile', p=c(.5, .1), se.fit=T)
 $fit
 [1] 10.306068  9.676248
 
@@ -252,7 +252,7 @@ $se.fit
 
 > 
 > fit2 <- survreg(Surv(time, status) ~ temp, data=imotor, scale=fit1$scale)
-> predict(fit2, data.frame(temp=130), type='uquantile', p=c(.5, .1), se=T)
+> predict(fit2, data.frame(temp=130), type='uquantile', p=c(.5, .1), se.fit=T)
 $fit
 [1] 10.306068  9.676248
 
@@ -263,7 +263,7 @@ $se.fit
 > 
 > fit3 <- fit2
 > fit3$var <- fit1$var[1:2,1:2]
-> predict(fit3, data.frame(temp=130), type='uquantile', p=c(.5, .1), se=T)
+> predict(fit3, data.frame(temp=130), type='uquantile', p=c(.5, .1), se.fit=T)
 $fit
 [1] 10.306068  9.676248
 
@@ -272,8 +272,8 @@ $se.fit
 0.2219959 0.2219959 
 
 > 
-> pp <- seq(.05, .7, length=40)
-> xx <- predict(fit1, data.frame(temp=130), type='uquantile', se=T,
+> pp <- seq(.05, .7, length.out=40)
+> xx <- predict(fit1, data.frame(temp=130), type='uquantile', se.fit=T,
 + 	      p=pp)
 > #matplot(pp, cbind(xx$fit, xx$fit+2*xx$se, xx$fit - 2*xx$se), type='l')
 > 
@@ -283,24 +283,24 @@ $se.fit
 > #  number of quantiles desired
 > #
 > fit1 <- survreg(Surv(time, status) ~ inst + strata(inst) + age + sex, lung)
-> qq1 <- predict(fit1, type='quantile', p=.3, se=T)
-> qq2 <- predict(fit1, type='quantile', p=c(.2, .3, .4), se=T)
+> qq1 <- predict(fit1, type='quantile', p=.3, se.fit=T)
+> qq2 <- predict(fit1, type='quantile', p=c(.2, .3, .4), se.fit=T)
 > aeq <- function(x,y) all.equal(as.vector(x), as.vector(y))
 > aeq(qq1$fit, qq2$fit[,2])
 [1] TRUE
 > aeq(qq1$se.fit, qq2$se.fit[,2])
 [1] TRUE
 > 
-> qq3 <- predict(fit1, type='quantile', p=c(.2, .3, .4), se=T,
+> qq3 <- predict(fit1, type='quantile', p=c(.2, .3, .4), se.fit=T,
 + 	       newdata= lung[1:5,])
 > aeq(qq3$fit, qq2$fit[1:5,])
 [1] TRUE
 > 
-> qq4 <- predict(fit1, type='quantile', p=c(.2, .3, .4), se=T, newdata=lung[7,])
+> qq4 <- predict(fit1, type='quantile', p=c(.2, .3, .4), se.fit=T, newdata=lung[7,])
 > aeq(qq4$fit, qq2$fit[7,])
 [1] TRUE
 > 
-> qq5 <- predict(fit1, type='quantile', p=c(.2, .3, .4), se=T, newdata=lung)
+> qq5 <- predict(fit1, type='quantile', p=c(.2, .3, .4), se.fit=T, newdata=lung)
 > aeq(qq2$fit, qq5$fit)
 [1] TRUE
 > aeq(qq2$se.fit, qq5$se.fit)
@@ -308,4 +308,4 @@ $se.fit
 > 
 > proc.time()
    user  system elapsed 
-  1.592   0.131   1.709 
+  0.901   0.037   0.932 

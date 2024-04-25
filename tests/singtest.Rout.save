@@ -1,6 +1,6 @@
 
-R Under development (unstable) (2018-04-09 r74565) -- "Unsuffered Consequences"
-Copyright (C) 2018 The R Foundation for Statistical Computing
+R version 4.3.2 (2023-10-31) -- "Eye Holes"
+Copyright (C) 2023 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -37,14 +37,14 @@ Type 'q()' to quit R.
 > 
 > # Will create a warning about a singular X matrix
 > fit1 <- coxph(Surv(start, stop, status) ~ x * factor(epoch), stest)
-> fit1$coef    # elements 2:4 should be NA
+> fit1$coefficients    # elements 2:4 should be NA
                x   factor(epoch)2   factor(epoch)3   factor(epoch)4 
        0.1041579               NA               NA               NA 
 x:factor(epoch)2 x:factor(epoch)3 x:factor(epoch)4 
        1.5726996        1.5726996        1.5726996 
-> all.equal(is.na(fit1$coef), c(F,T,T,T,F,F,F), check.attributes=FALSE)
+> all.equal(is.na(fit1$coefficients), c(F,T,T,T,F,F,F), check.attributes=FALSE)
 [1] TRUE
 > 
 > proc.time()
    user  system elapsed 
-  0.668   0.040   0.704 
+  0.863   0.035   0.893 

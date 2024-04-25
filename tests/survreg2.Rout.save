@@ -1,6 +1,6 @@
 
-R Under development (unstable) (2020-03-27 r78086) -- "Unsuffered Consequences"
-Copyright (C) 2020 The R Foundation for Statistical Computing
+R version 4.3.2 (2023-10-31) -- "Eye Holes"
+Copyright (C) 2023 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -30,7 +30,7 @@ Type 'q()' to quit R.
 > fit2 <- survreg(Surv(futime, fustat) ~ 1, ovarian)
 > fit3 <- survreg(Surv(time, status) ~ group + strata(group), tdata)
 > 
-> aeq(c(fit1$coef, fit2$coef-fit1$coef), fit3$coef)
+> aeq(c(fit1$coefficients, fit2$coefficients-fit1$coefficients), fit3$coefficients)
 [1] TRUE
 > aeq(c(fit1$scale, fit2$scale), fit3$scale)
 [1] TRUE
@@ -56,11 +56,11 @@ Type 'q()' to quit R.
 > for (i in 1:7) {
 +     temp <- rep(1.0,7)
 +     temp[i] <- 1-eps
-+     tfit <- survreg(Surv(time, status) ~ x, test1, weight=temp)
-+     ijack[i,] <- c(tfit$coef, log(tfit$scale)) 
++     tfit <- survreg(Surv(time, status) ~ x, test1, weights=temp)
++     ijack[i,] <- c(tfit$coefficients, log(tfit$scale)) 
 +     }
 > ijack[2,] <- NA  # stick the NA back in
-> ijack <- (rep(c(fit1$coef, log(fit1$scale)), each=nrow(db1)) - ijack)/eps
+> ijack <- (rep(c(fit1$coefficients, log(fit1$scale)), each=nrow(db1)) - ijack)/eps
 > all.equal(db1, ijack, tolerance=eps)
 [1] TRUE
 > all.equal(t(db1[-2,])%*% db1[-2,], fit1$var)
@@ -80,14 +80,14 @@ Type 'q()' to quit R.
 +     twt[bladder2$id==i] <- 1-eps
 +     tfit <- survreg(Surv(stop-start, event) ~ rx + size + number + 
 +                     factor(enum) + strata(enum), data=bladder2, 
-+                     weight=twt)
++                     weights=twt)
 +     ijack[i,] <- c(coef(tfit), log(tfit$scale)) 
 +     }
-> ijack <- (rep(c(fit1$coef, log(fit1$scale)), each=nrow(db1)) - ijack)/eps
+> ijack <- (rep(c(fit1$coefficients, log(fit1$scale)), each=nrow(db1)) - ijack)/eps
 > all.equal(db1, ijack, tolerance=eps*2)
 [1] TRUE
 > 
 > 
 > proc.time()
    user  system elapsed 
-  1.207   0.065   1.262 
+  1.186   0.056   1.236 

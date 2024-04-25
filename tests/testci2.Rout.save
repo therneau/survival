@@ -1,7 +1,7 @@
 
-R Under development (unstable) (2024-03-04 r86048) -- "Unsuffered Consequences"
-Copyright (C) 2024 The R Foundation for Statistical Computing
-Platform: aarch64-unknown-linux-gnu
+R version 4.3.2 (2023-10-31) -- "Eye Holes"
+Copyright (C) 2023 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -30,7 +30,7 @@ Type 'q()' to quit R.
 > tdata$stat2 <- factor(tdata$status * as.numeric(tdata$event),
 +                       labels=c("censor", levels(tdata$event)))
 >          
-> fit <- survfit(Surv(time1, time2, stat2) ~1, id=id, weight=wt, tdata,
+> fit <- survfit(Surv(time1, time2, stat2) ~1, id=id, weights=wt, tdata,
 +                influence=TRUE)
 > 
 > # The exact figures for testci2.
@@ -105,12 +105,12 @@ Type 'q()' to quit R.
 +     twt <- tdata$wt
 +     twt[i] <- twt[i] + eps
 +     tfit <- survfit(Surv(time1, time2, stat2) ~ 1, id=id, tdata,
-+                     weight=twt)
++                     weights=twt)
 +     U[i,,] <- (tfit$pstate - fit$pstate)/eps  #finite difference approx
 + }
 > dfbeta <- rowsum(tdata$wt*matrix(U,nrow=n), tdata$id) # per subject
 > dfbeta <- array(dfbeta, dim=c(6,12,5))
-> aeq(dfbeta, fit$influence, tolerance= eps*10)
+> aeq(dfbeta, fit$influence.pstate, tolerance= eps*10)
 [1] TRUE
 > 
 > aeq(fit$std.err, sqrt(apply(fit$influence.pstate^2, 2:3, sum)))
@@ -147,10 +147,10 @@ Type 'q()' to quit R.
 > # the right place, but because there is no istate varaible, fit2x starts
 > # everyone in (s0) at time 20.  There is no way for survfit to know.
 > if (FALSE) {
-+ fit2 <- survfit(Surv(time1, time2, stat2) ~1, id=id, weight=wt, tdata,
++ fit2 <- survfit(Surv(time1, time2, stat2) ~1, id=id, weights=wt, tdata,
 +                 start.time=20)
 + data2 <- subset(tdata, time2>= 20)
-+ fit2x <- survfit(Surv(time1, time2, stat2) ~1, id=id, weight=wt, data2)
++ fit2x <- survfit(Surv(time1, time2, stat2) ~1, id=id, weights=wt, data2)
 + 
 + ii <- names(fit2)[!(names(fit2) %in%  c("call", "start.time"))]
 + all.equal(unclass(fit2)[ii], unclass(fit2x)[ii])
@@ -158,4 +158,4 @@ Type 'q()' to quit R.
 > 
 > proc.time()
    user  system elapsed 
-  0.415   0.040   0.452 
+  0.914   0.059   0.967 

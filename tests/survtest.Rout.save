@@ -1,6 +1,6 @@
 
-R Under development (unstable) (2022-01-17 r81511) -- "Unsuffered Consequences"
-Copyright (C) 2022 The R Foundation for Statistical Computing
+R version 4.3.2 (2023-10-31) -- "Eye Holes"
+Copyright (C) 2023 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -83,7 +83,7 @@ Type 'q()' to quit R.
 > #  Verify that both surv AND n.risk are right between time points.
 > #
 > fit <- survfit(Surv(time, status) ~1, test1)
-> temp <- summary(fit, time=c(.5,1, 1.5, 6, 7.5, 8, 8.9, 9, 10), extend=TRUE)
+> temp <- summary(fit, times=c(.5,1, 1.5, 6, 7.5, 8, 8.9, 9, 10), extend=TRUE)
 > 
 > aeq(temp$n.risk, c(6,6,4,4,2,2,1,1,0))
 [1] TRUE
@@ -109,7 +109,7 @@ Type 'q()' to quit R.
 > fit1 <- survfit(Surv(start, stop, event)~1, test2, weights=wt)
 > fit2 <- survfit(Surv(start, stop, event)~1, test2, weights=wt, start.time=5)
 > 
-> aeq(fit1$surv[2], summary(fit1, time=5)$surv)  # verify my subscript
+> aeq(fit1$surv[2], summary(fit1, times=5)$surv)  # verify my subscript
 [1] TRUE
 > aeq(fit2$surv, fit1$surv[3:8]/fit1$surv[2])
 [1] TRUE
@@ -151,4 +151,4 @@ Type 'q()' to quit R.
 > 
 > proc.time()
    user  system elapsed 
-  0.942   0.048   0.982 
+  0.918   0.048   0.958 

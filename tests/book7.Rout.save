@@ -1,6 +1,6 @@
 
-R Under development (unstable) (2021-01-28 r79896) -- "Unsuffered Consequences"
-Copyright (C) 2021 The R Foundation for Statistical Computing
+R version 4.3.2 (2023-10-31) -- "Eye Holes"
+Copyright (C) 2023 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -48,13 +48,13 @@ Type 'q()' to quit R.
 [1] TRUE
 > aeq(1/truth0$imat, fit0$var)
 [1] TRUE
-> aeq(truth0$mart, fit0$resid[c(2:6,1)])
+> aeq(truth0$mart, fit0$residuals[c(2:6,1)])
 [1] TRUE
 > 
 > fit1 <- coxph(Surv(time, status) ~x, test1, iter.max=1, method='exact')
-> aeq(fit1$coef, truth0$u*fit0$var)
+> aeq(fit1$coefficients, truth0$u*fit0$var)
 [1] TRUE
-> truth1 <- byhand7(fit1$coef)
+> truth1 <- byhand7(fit1$coefficients)
 > aeq(fit1$loglik[2], truth1$loglik)
 [1] TRUE
 > aeq(1/truth1$imat, fit1$var)
@@ -84,9 +84,9 @@ In coxexact.fit(X, Y, istrat, offset, init, control, weights = weights,  :
 [1] TRUE
 > aeq(fit1$score, fit2$score)
 [1] TRUE
-> aeq(fit1$resid, fit2$resid)
+> aeq(fit1$residuals, fit2$residuals)
 [1] TRUE
 > 
 > proc.time()
    user  system elapsed 
-  1.080   0.045   1.118 
+  1.119   0.032   1.144 

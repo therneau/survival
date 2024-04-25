@@ -1,6 +1,6 @@
 
-R version 3.4.1 (2017-06-30) -- "Single Candle"
-Copyright (C) 2017 The R Foundation for Statistical Computing
+R version 4.3.2 (2023-10-31) -- "Eye Holes"
+Copyright (C) 2023 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -64,7 +64,7 @@ n= 228
 [1] TRUE
 > aeq(fit2$loglik[2], (fit3a$loglik + fit3b$loglik)[2], tolerance=tol)
 [1] TRUE
-> aeq(fit2$coef[1] + 1:2*fit2$coef[2], c(fit3a$coef, fit3b$coef), tolerance=tol)
+> aeq(fit2$coefficients[1] + 1:2*fit2$coefficients[2], c(fit3a$coefficients, fit3b$coefficients), tolerance=tol)
 [1] TRUE
 > 
 > #penalized models
@@ -147,4 +147,4 @@ Likelihood ratio test=16.8  on 4.2 df, p=0.002  n= 228
 > 
 > proc.time()
    user  system elapsed 
-  2.032   0.131   2.443 
+  0.961   0.056   1.009 

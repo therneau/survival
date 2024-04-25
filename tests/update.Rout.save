@@ -1,6 +1,6 @@
 
-R Under development (unstable) (2019-08-23 r77061) -- "Unsuffered Consequences"
-Copyright (C) 2019 The R Foundation for Statistical Computing
+R version 4.3.2 (2023-10-31) -- "Eye Holes"
+Copyright (C) 2023 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -41,4 +41,4 @@ In coxph(formula = Surv(time, status) ~ age + sex + cluster(inst),  :
 > 
 > proc.time()
    user  system elapsed 
-  0.751   0.039   0.791 
+  0.888   0.032   0.912 

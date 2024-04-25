@@ -1,6 +1,6 @@
 
-R Under development (unstable) (2019-06-28 r76752) -- "Unsuffered Consequences"
-Copyright (C) 2019 The R Foundation for Statistical Computing
+R version 4.3.2 (2023-10-31) -- "Eye Holes"
+Copyright (C) 2023 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -244,7 +244,7 @@ n= 26
 > logt$name <- 'log(t)'
 > 
 > fitft2 <- survreg(Surv(ltime, rtime, type='interval2') ~ age + ecog.ps,
-+             idat, dist=logt, parm=100)
++             idat, dist=logt, parms=100)
 > summary(fitft2)  #should be quite close to fitfg2
 
 Call:
@@ -271,7 +271,7 @@ n= 26
 > 
 > # Gaussian
 > x <- -10:10
-> p <- seq(.1, .95, length=25)
+> p <- seq(.1, .95, length.out=25)
 > all.equal(dsurvreg(x, 1, 5, 'gaussian'), dnorm(x, 1, 5))
 [1] TRUE
 > all.equal(psurvreg(x, 1, 5, 'gaussian'), pnorm(x, 1, 5))
@@ -330,4 +330,4 @@ Log(scale[sex=2])      0.0113833096
 > 
 > proc.time()
    user  system elapsed 
-  0.804   0.044   0.853 
+  0.879   0.048   0.921 

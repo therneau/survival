@@ -1,6 +1,6 @@
 
-R Under development (unstable) (2019-08-23 r77061) -- "Unsuffered Consequences"
-Copyright (C) 2019 The R Foundation for Statistical Computing
+R version 4.3.2 (2023-10-31) -- "Eye Holes"
+Copyright (C) 2023 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -54,7 +54,7 @@ Type 'q()' to quit R.
 > 
 > # The case of a strata by factor interaction
 > #  Use iter=0 since there are too many covariates and it won't converge
-> test1$x2 <- factor(rep(1:2, length=7))
+> test1$x2 <- factor(rep(1:2, length.out=7))
 > fit3 <- coxph(Surv(time, status) ~ strata(x2)*z, test1, iter.max=0)
 > xx <- model.matrix(fit3)
 > all.equal(attr(xx, "assign"), c(2,2,3,3))
@@ -89,4 +89,4 @@ Type 'q()' to quit R.
 > 
 > proc.time()
    user  system elapsed 
-  0.746   0.041   0.781 
+  1.185   0.071   1.250 

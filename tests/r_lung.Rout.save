@@ -1,6 +1,6 @@
 
-R version 3.4.1 (2017-06-30) -- "Single Candle"
-Copyright (C) 2017 The R Foundation for Statistical Computing
+R version 4.3.2 (2023-10-31) -- "Eye Holes"
+Copyright (C) 2023 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -113,7 +113,7 @@ n=227 (1 observation deleted due to missingness)
 > 
 > lfit6 <- survreg(Surv(time, status)~pspline(age, df=2), lung)
 > 
-> lfit7 <- survreg(Surv(time, status) ~ offset(lfit6$lin), lung)
+> lfit7 <- survreg(Surv(time, status) ~ offset(lfit6$linear.predictors), lung)
 > 
 > lfit4
 Call:
@@ -157,10 +157,10 @@ Iterations: 4 outer, 12 Newton-Raphson
      Theta= 0.926 
 Degrees of freedom for terms= 0.4 2.1 1.0 
 Likelihood ratio test=5.2  on 1.5 df, p=0.04  n= 228 
-> signif(lfit7$coef,6)
+> signif(lfit7$coefficients,6)
 (Intercept) 
 1.47899e-09 
 > 
 > proc.time()
    user  system elapsed 
-  1.959   0.081   2.236 
+  1.144   0.083   1.225 

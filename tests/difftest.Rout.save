@@ -1,6 +1,6 @@
 
-R Under development (unstable) (2021-02-16 r80015) -- "Unsuffered Consequences"
-Copyright (C) 2021 The R Foundation for Statistical Computing
+R version 4.3.2 (2023-10-31) -- "Eye Holes"
+Copyright (C) 2023 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -70,13 +70,13 @@ x=Nonmaintained 12       11     7.31      1.86       3.4
 > fit <- survdiff(Surv(time, status) ~ pat.karno + strata(inst), lung)
 > 
 > cfit <- coxph(Surv(time, status) ~ factor(pat.karno) + strata(inst),
-+ 		lung, iter=0)
++ 		lung, iter.max=0)
 > 
 > tdata <- na.omit(lung[,c('time', 'status', 'pat.karno', 'inst')])
 > 
 > temp1 <- tapply(tdata$status-1, list(tdata$pat.karno, tdata$inst), sum)
 > temp1 <- ifelse(is.na(temp1), 0, temp1)
-> temp2 <- tapply(cfit$resid,  list(tdata$pat.karno, tdata$inst), sum)
+> temp2 <- tapply(cfit$residuals,  list(tdata$pat.karno, tdata$inst), sum)
 > temp2 <- ifelse(is.na(temp2), 0, temp2)
 > 
 > temp2 <- temp1 - temp2
@@ -94,4 +94,4 @@ x=Nonmaintained 12       11     7.31      1.86       3.4
 > 
 > proc.time()
    user  system elapsed 
-  0.827   0.047   0.867 
+  0.821   0.056   0.871 

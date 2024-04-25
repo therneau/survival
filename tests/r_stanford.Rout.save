@@ -1,6 +1,6 @@
 
-R Under development (unstable) (2018-01-04 r74052) -- "Unsuffered Consequences"
-Copyright (C) 2018 The R Foundation for Statistical Computing
+R version 4.3.2 (2023-10-31) -- "Eye Holes"
+Copyright (C) 2023 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -96,9 +96,9 @@ null device
 > aeq(p1, p2)
 [1] TRUE
 > 
-> p3 <- predict(fit2, type='terms', se=T)
-> p4 <- predict(fit2, type='lp', se=T)
-> p5 <- predict(fit1, type='lp', se=T)
+> p3 <- predict(fit2, type='terms', se.fit=T)
+> p4 <- predict(fit2, type='lp', se.fit=T)
+> p5 <- predict(fit1, type='lp', se.fit=T)
 > # aeq(p3$fit + attr(p3$fit, 'constant'), p4$fit)  #R is missing the attribute
 > aeq(p4$fit, p5$fit)
 [1] TRUE
@@ -110,4 +110,4 @@ null device
 > 
 > proc.time()
    user  system elapsed 
-  0.864   0.064   0.925 
+  1.086   0.047   1.126 

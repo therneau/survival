@@ -1,6 +1,6 @@
 
-R Under development (unstable) (2020-02-28 r77869) -- "Unsuffered Consequences"
-Copyright (C) 2020 The R Foundation for Statistical Computing
+R version 4.3.2 (2023-10-31) -- "Eye Holes"
+Copyright (C) 2023 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -47,7 +47,7 @@ Type 'q()' to quit R.
 > indx <- match(1:9, testw2$id)
 > 
 > fit0 <- coxph(Surv(time, status) ~x, testw1, weights=wt,
-+ 		    method='breslow', iter=0)
++ 		    method='breslow', iter.max=0)
 > fit0b <- coxph(Surv(time, status) ~x, testw2, ties='breslow', iter.max=0)
 > fit  <- coxph(Surv(time, status) ~x, testw1, weights=wt, ties='breslow')
 > fitb <- coxph(Surv(time, status) ~x, testw2, ties='breslow')
@@ -69,7 +69,7 @@ Type 'q()' to quit R.
 > fit0
 Call:
 coxph(formula = Surv(time, status) ~ x, data = testw1, weights = wt, 
-    method = "breslow", iter = 0)
+    method = "breslow", iter.max = 0)
 
     coef exp(coef) se(coef) z p
 x 0.0000    1.0000   0.5858 0 1
@@ -113,7 +113,7 @@ Score (logrank) test = 1.52  on 1 df,   p=0.2
 [1] TRUE
 > 
 > 
-> aeq(resid(fit, type='mart'), testw1$status - texp(fit$coef))
+> aeq(resid(fit, type='mart'), testw1$status - texp(fit$coefficients))
 [1] TRUE
 > resid(fit, type='score')
           1           2           3           4           5           6 
@@ -175,12 +175,12 @@ n= 9, number of events= 5
 + 		    wt =    c( 1, 1, 2, 3, 3, 3, 4, 3, 3, 2, 1, 2, 2, 1))
 > 
 > fit0 <- coxph(Surv(begin,time, status) ~x, testw3, weights=wt,
-+ 		    ties='breslow', iter=0)
++ 		    ties='breslow', iter.max=0)
 > fit  <- coxph(Surv(begin,time, status) ~x, testw3, weights=wt, ties='breslow')
 > fit0
 Call:
 coxph(formula = Surv(begin, time, status) ~ x, data = testw3, 
-    weights = wt, ties = "breslow", iter = 0)
+    weights = wt, ties = "breslow", iter.max = 0)
 
     coef exp(coef) se(coef) z p
 x 0.0000    1.0000   0.5858 0 1
@@ -289,7 +289,7 @@ n= 14, number of events= 5
 > # Effect of case weights on expected survival curves post Cox model
 > #
 > fit0  <- coxph(Surv(time, status) ~x, testw1, weights=wt, ties='breslow',
-+ 	       iter=0)
++ 	       iter.max=0)
 > fit0b <- coxph(Surv(time, status) ~x, testw2, ties='breslow', iter.max=0)
 > 
 > surv1 <- survfit(fit0, newdata=list(x=0))
@@ -323,9 +323,9 @@ n= 14, number of events= 5
 +     11*beta - ( log(r^2 + 11*r +7) + 
 + 	(10/3)*(log(a+b) + log(2*a/3 +b) + log(a/3 +b)) + 2*log(2*r +1))
 +     }
-> aeq(fit0$log[1], lfun(0))
+> aeq(fit0$loglik[1], lfun(0))
 [1] TRUE
-> aeq(fit$log[2], lfun(fit$coef))
+> aeq(fit$loglik[2], lfun(fit$coefficients))
 [1] TRUE
 > 
 > ufun <- function(beta, efron=T) {  #score statistic
@@ -339,7 +339,7 @@ n= 14, number of events= 5
 +     if (efron) temp - (10/3)*(xbar2 + xbar2b + xbar2c)
 +     else       temp - 10*xbar2
 +     }
-> print(ufun(fit$coef) < 1e-4)  # Should be true
+> print(ufun(fit$coefficients) < 1e-4)  # Should be true
    x 
 TRUE 
 > 
@@ -359,7 +359,7 @@ TRUE
 > 
 > aeq(fit0$var, 1/ifun(0))
 [1] TRUE
-> aeq(fit$var, 1/ifun(fit$coef))
+> aeq(fit$var, 1/ifun(fit$coefficients))
 [1] TRUE
 > 
 > 
@@ -379,7 +379,7 @@ TRUE
 > #
 > dt0 <- coxph.detail(fit0)
 > dt <- coxph.detail(fit)
-> aeq(sum(dt$score), ufun(fit$coef))  #score statistic
+> aeq(sum(dt$score), ufun(fit$coefficients))  #score statistic
 [1] TRUE
 > aeq(sum(dt0$score), ufun(0))
 [1] TRUE
@@ -422,4 +422,4 @@ TRUE
 > 
 > proc.time()
    user  system elapsed 
-  0.986   0.049   1.028 
+  1.182   0.044   1.219 

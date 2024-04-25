@@ -1,7 +1,7 @@
 
-R version 3.0.0 (2013-04-03) -- "Masked Marvel"
-Copyright (C) 2013 The R Foundation for Statistical Computing
-Platform: i686-pc-linux-gnu (32-bit)
+R version 4.3.2 (2023-10-31) -- "Eye Holes"
+Copyright (C) 2023 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -20,7 +20,6 @@ Type 'q()' to quit R.
 > #
 > options(na.action=na.omit)
 > library(survival)
-Loading required package: splines
 > 
 > fit1 <- coxph(Surv(time, status) ~ ph.ecog + wt.loss + strata(sex) + 
 +               poly(age,3), lung)
@@ -59,4 +58,4 @@ Loading required package: splines
 > 
 > proc.time()
    user  system elapsed 
-  0.284   0.020   0.301 
+  0.867   0.041   0.900 

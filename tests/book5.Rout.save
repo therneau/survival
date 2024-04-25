@@ -1,6 +1,6 @@
 
-R Under development (unstable) (2020-02-28 r77869) -- "Unsuffered Consequences"
-Copyright (C) 2020 The R Foundation for Statistical Computing
+R version 4.3.2 (2023-10-31) -- "Eye Holes"
+Copyright (C) 2023 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -91,7 +91,7 @@ Type 'q()' to quit R.
 [1] TRUE
 > 
 > fit0 <- coxph(Surv(time, status) ~x, testw1, weights=wt,
-+ 		    method='breslow', iter=0)
++ 		    method='breslow', iter.max=0)
 > fit0b <- coxph(Surv(time, status) ~x, testw2, method='breslow', iter.max=0)
 > fit  <- coxph(Surv(time, status) ~x, testw1, weights=wt, method='breslow')
 > fitb <- coxph(Surv(time, status) ~x, testw2, method='breslow')
@@ -108,16 +108,16 @@ Type 'q()' to quit R.
 [1] TRUE
 > aeq(1/truth0$imat, fit0$var)
 [1] TRUE
-> aeq(truth0$mart, fit0$resid)
+> aeq(truth0$mart, fit0$residuals)
 [1] TRUE
-> aeq(truth0$scho, resid(fit0, 'schoen'))
+> aeq(truth0$schoen, resid(fit0, 'schoen'))
 [1] TRUE
 > aeq(truth0$score, resid(fit0, 'score')) 
 [1] TRUE
 > sfit <- survfit(fit0, list(x=pi), censor=FALSE)
-> aeq(sfit$std.err^2, truth0$var)
+> aeq(sfit$std.err^2, truth0$varhaz)
 [1] TRUE
-> aeq(-log(sfit$surv), cumsum(truth0$haz))
+> aeq(-log(sfit$surv), cumsum(truth0$hazard))
 [1] TRUE
 > 
 > truth <- byhand(0.85955744, .3)
@@ -125,24 +125,24 @@ Type 'q()' to quit R.
 [1] TRUE
 > aeq(1/truth$imat, fit$var)
 [1] TRUE
-> aeq(truth$mart, fit$resid)
+> aeq(truth$mart, fit$residuals)
 [1] TRUE
-> aeq(truth$scho, resid(fit, 'schoen'))
+> aeq(truth$schoen, resid(fit, 'schoen'))
 [1] TRUE
 > aeq(truth$score, resid(fit, 'score'))
 [1] TRUE
 > 
 > sfit <- survfit(fit, list(x=.3), censor=FALSE)
-> aeq(sfit$std.err^2, truth$var) 
+> aeq(sfit$std.err^2, truth$varhaz) 
 [1] TRUE
-> aeq(-log(sfit$surv), (cumsum(truth$haz)* exp(fit$coef*.3)))
+> aeq(-log(sfit$surv), (cumsum(truth$hazard)* exp(fit$coefficients*.3)))
 [1] TRUE
 > 
 > 
 > fit0
 Call:
 coxph(formula = Surv(time, status) ~ x, data = testw1, weights = wt, 
-    method = "breslow", iter = 0)
+    method = "breslow", iter.max = 0)
 
     coef exp(coef) se(coef) z p
 x 0.0000    1.0000   0.5858 0 1
@@ -203,4 +203,4 @@ Score (logrank) test = 1.52  on 1 df,   p=0.2
 > 
 > proc.time()
    user  system elapsed 
-  0.906   0.043   0.941 
+  0.928   0.046   0.968 

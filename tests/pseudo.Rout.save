@@ -1,7 +1,7 @@
 
-R Under development (unstable) (2024-04-17 r86441) -- "Unsuffered Consequences"
-Copyright (C) 2024 The R Foundation for Statistical Computing
-Platform: aarch64-unknown-linux-gnu
+R version 4.3.2 (2023-10-31) -- "Eye Holes"
+Copyright (C) 2023 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -34,23 +34,23 @@ Type 'q()' to quit R.
 > rr1 <- resid(fit1, tvec)
 > aeq(colSums(rr1), rep(0,4))
 [1] TRUE
-> sv1 <- summary(fit1, time=tvec, extend=TRUE)$surv
+> sv1 <- summary(fit1, times=tvec, extend=TRUE)$surv
 > 
 > # one time point  
-> ps1a <- pseudo(fit1, time=100)
+> ps1a <- pseudo(fit1, times=100)
 > aeq(ps1a, sv1[2] + fit1$n*rr1[,2])
 [1] TRUE
 > # multiple
-> ps1b <- pseudo(fit1,  time=tvec)
+> ps1b <- pseudo(fit1,  times=tvec)
 > aeq(ps1b,  sv1[col(rr1)] + fit1$n * rr1)
 [1] TRUE
 > 
 > # Single endpoint, multiple curves
 > fit2 <- survfit(Surv(futime, death) ~ sex, mdata)
-> rr2 <- resid(fit2, time=tvec)
+> rr2 <- resid(fit2, times=tvec)
 > aeq(colSums(rr2), rep(0,4))
 [1] TRUE
-> sv2 <- summary(fit2, time=tvec, extend=TRUE)$surv
+> sv2 <- summary(fit2, times=tvec, extend=TRUE)$surv
 > sv2 <- t(matrix(sv2, ncol=2))   # row 1= female, row2 = male
 > 
 > # residuals are the same as for separate models
@@ -65,16 +65,16 @@ Type 'q()' to quit R.
 [1] TRUE
 > 
 > # one time point
-> ps2a <- pseudo(fit2a, time=100)
+> ps2a <- pseudo(fit2a, times=100)
 > aeq(ps2a, sv2[1,2] + fit2a$n[1]* rr2a[,2])
 [1] TRUE
-> ps2b <- pseudo(fit2b, time=100)
+> ps2b <- pseudo(fit2b, times=100)
 > aeq(ps2b, sv2[2,2] + fit2b$n[1]* rr2b[,2])
 [1] TRUE
 > 
 > # overall psuedo are the same as for separate models
 > #  (each row of mdata belongs to a single curve)
-> ps2c <- pseudo(fit2, time=100)
+> ps2c <- pseudo(fit2, times=100)
 > aeq(ps2c[ fem], ps2a)
 [1] TRUE
 > aeq(ps2c[!fem], ps2b)
@@ -141,23 +141,23 @@ Type 'q()' to quit R.
 > rr1 <- resid(fit1, tvec, type="cumhaz")
 > aeq(colSums(rr1), rep(0,4))
 [1] TRUE
-> sv1 <- summary(fit1, time=tvec, extend=TRUE)$cumhaz
+> sv1 <- summary(fit1, times=tvec, extend=TRUE)$cumhaz
 > 
 > # one time point  
-> ps1a <- pseudo(fit1, time=100, type="cumhaz")
+> ps1a <- pseudo(fit1, times=100, type="cumhaz")
 > aeq(ps1a, sv1[2] + fit1$n*rr1[,2])
 [1] TRUE
 > # multiple
-> ps1b <- pseudo(fit1,  time=tvec, type="cumhaz")
+> ps1b <- pseudo(fit1,  times=tvec, type="cumhaz")
 > aeq(ps1b,  sv1[col(rr1)] + fit1$n * rr1)
 [1] TRUE
 > 
 > # Single endpoint, multiple curves
 > fit2 <- survfit(Surv(futime, death) ~ sex, mdata)
-> rr2 <- resid(fit2, time=tvec, type="cumhaz")
+> rr2 <- resid(fit2, times=tvec, type="cumhaz")
 > aeq(colSums(rr2), rep(0,4))
 [1] TRUE
-> sv2 <- summary(fit2, time=tvec, extend=TRUE)$cumhaz
+> sv2 <- summary(fit2, times=tvec, extend=TRUE)$cumhaz
 > sv2 <- t(matrix(sv2, ncol=2))   # row 1= female, row2 = male
 > 
 > # residuals are the same as for separate models
@@ -169,16 +169,16 @@ Type 'q()' to quit R.
 [1] TRUE
 > 
 > # one time point
-> ps2a <- pseudo(fit2a, time=100, type="cumhaz")
+> ps2a <- pseudo(fit2a, times=100, type="cumhaz")
 > aeq(ps2a, sv2[1,2] + fit2a$n[1]* rr2a[,2])
 [1] TRUE
-> ps2b <- pseudo(fit2b, time=100, type="cumhaz")
+> ps2b <- pseudo(fit2b, times=100, type="cumhaz")
 > aeq(ps2b, sv2[2,2] + fit2b$n[1]* rr2b[,2])
 [1] TRUE
 > 
 > # overall psuedo are the same as for separate models
 > #  (each row of mdata belongs to a single curve)
-> ps2c <- pseudo(fit2, time=100, type="cumhaz")
+> ps2c <- pseudo(fit2, times=100, type="cumhaz")
 > aeq(ps2c[ fem], ps2a)
 [1] TRUE
 > aeq(ps2c[!fem], ps2b)
@@ -263,16 +263,16 @@ Type 'q()' to quit R.
 > sv1 <- afun(fit1, tvec)
 > 
 > # one time point  
-> ps1a <- pseudo(fit1, time=tvec[1], type="auc")
+> ps1a <- pseudo(fit1, times=tvec[1], type="auc")
 > aeq(ps1a, sv1[1] + fit1$n*rr1[,1])
 [1] TRUE
 > # multiple
-> ps1b <- pseudo(fit1,  time=tvec, type="auc")
+> ps1b <- pseudo(fit1,  times=tvec, type="auc")
 > aeq(ps1b,  sv1[col(rr1)] + fit1$n * rr1)
 [1] TRUE
 > 
 > # Single endpoint, multiple curves
-> rr2 <- resid(fit2, time=tvec, type="auc")
+> rr2 <- resid(fit2, times=tvec, type="auc")
 > sv2 <- t(afun(fit2, tvec))
 > aeq(colSums(rr2), rep(0,3))
 [1] TRUE
@@ -286,16 +286,16 @@ Type 'q()' to quit R.
 [1] TRUE
 > 
 > # one time point
-> ps2a <- pseudo(fit2a, time=100, type="auc")
+> ps2a <- pseudo(fit2a, times=100, type="auc")
 > aeq(ps2a, sv2[1,1] + fit2a$n[1]* rr2a[,1])
 [1] TRUE
-> ps2b <- pseudo(fit2b, time=100, type="auc")
+> ps2b <- pseudo(fit2b, times=100, type="auc")
 > aeq(ps2b, sv2[2,1] + fit2b$n[1]* rr2b[,1])
 [1] TRUE
 > 
 > # overall psuedo are the same as for separate models
 > #  (each row of mdata belongs to a single curve)
-> ps2c <- pseudo(fit2, time=100, type="auc")
+> ps2c <- pseudo(fit2, times=100, type="auc")
 > aeq(ps2c[ fem], ps2a)
 [1] TRUE
 > aeq(ps2c[!fem], ps2b)
@@ -371,9 +371,9 @@ In pseudo(lfit1, times = c(100, 200)) :
 > 
 > # This will have rows that match the data
 > lfit2 <- survfit(Surv(time, status) ~ ph.ecog, lung, na.action= na.exclude)
-> p2 <- pseudo(lfit2, time=c(100, 200))
+> p2 <- pseudo(lfit2, times=c(100, 200))
 Warning message:
-In pseudo(lfit2, time = c(100, 200)) :
+In pseudo(lfit2, times = c(100, 200)) :
   requested time points are beyond the end of one or more curves
 > aeq(dim(p2), c(nrow(lung), 2))
 [1] TRUE
@@ -387,4 +387,4 @@ In pseudo(lfit2, time = c(100, 200)) :
 > 
 > proc.time()
    user  system elapsed 
-  0.622   0.024   0.643 
+  1.386   0.057   1.434 

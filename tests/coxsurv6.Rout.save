@@ -1,7 +1,7 @@
 
-R Under development (unstable) (2023-08-01 r84818) -- "Unsuffered Consequences"
+R version 4.3.2 (2023-10-31) -- "Eye Holes"
 Copyright (C) 2023 The R Foundation for Statistical Computing
-Platform: aarch64-unknown-linux-gnu
+Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -63,7 +63,7 @@ from     normal 1-2 2-4  >4 death (censored)
 > pbc3$age <- round(pbc3$age)  # easier to do "by hand" sums
 > fit3 <- coxph(list(Surv(tstart, tstop, bstat) ~ 1, 
 +                    c(1:4):5 ~ age / common + shared),  x=TRUE,
-+               id= id, istate=bili4, data=pbc3, init= c(.05, .6, 1.1), iter=0)
++               id= id, istate=bili4, data=pbc3, init= c(.05, .6, 1.1), iter.max=0)
 > # a mixed p0 gives a stronger test than our usual (1, 0,0,0,0)
 > surv3 <- survfit(fit3, newdata=list(age=50), p0=c(.4, .3, .2, .1, 0))
 > 
@@ -160,7 +160,7 @@ normal    1-2    2-4     >4
 +     beta <- coef(fit, matrix=TRUE)
 +     if (nshare >0) {
 +         # coefficients for shared baseline will be the last nshare of them
-+         i <- seq(length=nshare, to=length(fit$coefficients))
++         i <- seq(length.out=nshare, to=length(fit$coefficients))
 +         bcoef[shared] <- exp(fit$coefficients[i])
 +         # remove shared coef rows from beta
 +         phrow <- apply(fit$cmap, 1, function(x) any(x %in% i))
@@ -258,4 +258,4 @@ normal    1-2    2-4     >4
 > 
 > proc.time()
    user  system elapsed 
-  0.732   0.029   0.755 
+  1.660   0.112   1.766 

@@ -1,6 +1,6 @@
 
-R Under development (unstable) (2019-09-06 r77159) -- "Unsuffered Consequences"
-Copyright (C) 2019 The R Foundation for Statistical Computing
+R version 4.3.2 (2023-10-31) -- "Eye Holes"
+Copyright (C) 2023 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -21,7 +21,7 @@ Type 'q()' to quit R.
 > 
 > #
 > # Test the coxph program on the Ovarian data
-> summary(survfit(Surv(futime, fustat)~1, data=ovarian), censor=TRUE)
+> summary(survfit(Surv(futime, fustat)~1, data=ovarian), censored=TRUE)
 Call: survfit(formula = Surv(futime, fustat) ~ 1, data = ovarian)
 
  time n.risk n.event survival std.err lower 95% CI upper 95% CI
@@ -285,9 +285,9 @@ Call: survfit(formula = fit, newdata = list(age = c(30, 70), ecog.ps = c(2,
 > # Check of offset + surv, added 7/2000
 > fit1 <- coxph(Surv(futime, fustat) ~ age + rx, ovarian,
 + 	      control=coxph.control(eps=1e-8))
-> fit2 <- coxph(Surv(futime, fustat) ~ age + offset(rx*fit1$coef[2]), ovarian,
+> fit2 <- coxph(Surv(futime, fustat) ~ age + offset(rx*fit1$coefficients[2]), ovarian,
 + 	      control=coxph.control(eps=1e-8))
-> all.equal(fit1$coef[1], fit2$coef[1])
+> all.equal(fit1$coefficients[1], fit2$coefficients[1])
 [1] TRUE
 > 
 > fit <- coxph(Surv(futime, fustat) ~ age + offset(rx), ovarian)
@@ -298,7 +298,7 @@ Call: survfit(formula = fit, newdata = list(age = c(30, 70), ecog.ps = c(2,
 > # Check it by hand -- there are no tied times
 > #  Remember that offsets from survfit are centered, which is 1.5 for
 > #  this data set.
-> eta <- fit$coef*(ovarian$age - fit$mean) + (ovarian$rx - 1.5)
+> eta <- fit$coefficients*(ovarian$age - fit$means) + (ovarian$rx - 1.5)
 > ord <- order(ovarian$futime)
 > risk <- exp(eta[ord])
 > rsum <- rev(cumsum(rev(risk)))   # cumulative risk at each time point
@@ -311,4 +311,4 @@ Call: survfit(formula = fit, newdata = list(age = c(30, 70), ecog.ps = c(2,
 > 
 > proc.time()
    user  system elapsed 
-  1.529   0.203   1.714 
+  0.975   0.067   1.032 

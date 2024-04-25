@@ -1,6 +1,6 @@
 
-R Under development (unstable) (2021-01-28 r79896) -- "Unsuffered Consequences"
-Copyright (C) 2021 The R Foundation for Statistical Computing
+R version 4.3.2 (2023-10-31) -- "Eye Holes"
+Copyright (C) 2023 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -87,7 +87,7 @@ Type 'q()' to quit R.
 [1] TRUE
 > aeq(1/truth0$imat, fit0$var)
 [1] TRUE
-> aeq(truth0$mart, fit0$resid)
+> aeq(truth0$mart, fit0$residuals)
 [1] TRUE
 > aeq(truth0$scho, resid(fit0, 'schoen'))
 [1] TRUE
@@ -96,12 +96,12 @@ Type 'q()' to quit R.
 > 
 > 
 > fit <- coxph(Surv(start, stop, event) ~x, test2, eps=1e-8, nocenter=NULL)
-> truth <- byhand(fit$coef, 0)
+> truth <- byhand(fit$coefficients, 0)
 > aeq(truth$loglik, fit$loglik[2])
 [1] TRUE
 > aeq(1/truth$imat, fit$var)
 [1] TRUE
-> aeq(truth$mart, fit$resid)
+> aeq(truth$mart, fit$residuals)
 [1] TRUE
 > aeq(truth$scho, resid(fit, 'schoen'))
 [1] TRUE
@@ -120,7 +120,7 @@ Type 'q()' to quit R.
 [1] TRUE
 > aeq(3*truth0$imat, 1/fit0$var)
 [1] TRUE
-> aeq(rep(truth0$mart,3), fit0$resid)
+> aeq(rep(truth0$mart,3), fit0$residuals)
 [1] TRUE
 > aeq(rep(truth0$scho,3),  resid(fit0, 'schoen'))
 [1] TRUE
@@ -132,7 +132,7 @@ Type 'q()' to quit R.
 [1] TRUE
 > aeq(3*truth$imat, 1/fit3$var)
 [1] TRUE
-> aeq(rep(truth$mart,3), fit3$resid)
+> aeq(rep(truth$mart,3), fit3$residuals)
 [1] TRUE
 > aeq(rep(truth$scho,3), resid(fit3, 'schoen'))
 [1] TRUE
@@ -271,4 +271,4 @@ Call: survfit(formula = fit, newdata = list(x = 2))
 > 
 > proc.time()
    user  system elapsed 
-  0.907   0.072   0.972 
+  0.948   0.052   0.993 

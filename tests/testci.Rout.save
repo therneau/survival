@@ -1,7 +1,7 @@
 
-R Under development (unstable) (2024-02-06 r85866) -- "Unsuffered Consequences"
-Copyright (C) 2024 The R Foundation for Statistical Computing
-Platform: aarch64-unknown-linux-gnu
+R version 4.3.2 (2023-10-31) -- "Eye Holes"
+Copyright (C) 2023 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -94,19 +94,19 @@ Type 'q()' to quit R.
 +     deltaC[i,,] <- (tfit$cumhaz - fit$cumhaz)/eps
 +     deltaA[i,,] <- (auc(tfit) - auc(fit))/eps
 + }
-> aeq(bfit$u2, deltaU[,2,], tol=eps)
+> aeq(bfit$u2, deltaU[,2,], tolerance=eps)
 [1] TRUE
-> aeq(bfit$u3, deltaU[,3,], tol=eps)
+> aeq(bfit$u3, deltaU[,3,], tolerance=eps)
 [1] TRUE
-> aeq(bfit$u6, deltaU[,5,], tol=eps)
+> aeq(bfit$u6, deltaU[,5,], tolerance=eps)
 [1] TRUE
 > 
 > sqmean <- function(x) sqrt(sum(x^2))
-> aeq(fit$std.chaz, apply(deltaC, 2:3, sqmean), tol=eps)
+> aeq(fit$std.chaz, apply(deltaC, 2:3, sqmean), tolerance=eps)
 [1] TRUE
-> aeq(fit$std.err,  apply(deltaU, 2:3, sqmean), tol=eps)
+> aeq(fit$std.err,  apply(deltaU, 2:3, sqmean), tolerance=eps)
 [1] TRUE
-> aeq(fit$std.auc,  apply(deltaA, 2:3, sqmean), tol=eps)
+> aeq(fit$std.auc,  apply(deltaA, 2:3, sqmean), tolerance=eps)
 [1] TRUE
 > 
 > # Times purposely has values that are before the start, exact, intermediate
@@ -197,4 +197,4 @@ Type 'q()' to quit R.
 > 
 > proc.time()
    user  system elapsed 
-  0.449   0.028   0.475 
+  0.959   0.073   1.025 

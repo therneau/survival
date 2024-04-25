@@ -1,6 +1,6 @@
 
-R Under development (unstable) (2019-01-23 r76006) -- "Unsuffered Consequences"
-Copyright (C) 2019 The R Foundation for Statistical Computing
+R version 4.3.2 (2023-10-31) -- "Eye Holes"
+Copyright (C) 2023 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -42,7 +42,7 @@ Scale= 314.4748
 Loglik(model)= -249.2   Loglik(intercept only)= -258.7
 	Chisq= 18.97 on 1 degrees of freedom, p= 1.32e-05 
 n= 64 
-> summary(fit1, corr=F)
+> summary(fit1, correlation=F)
 
 Call:
 survreg(formula = Surv(time, status) ~ voltage, data = capacitor, 
@@ -97,4 +97,4 @@ n= 64
 > 
 > proc.time()
    user  system elapsed 
-  0.752   0.028   0.782 
+  0.862   0.029   0.883 

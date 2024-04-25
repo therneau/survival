@@ -1,7 +1,7 @@
 
-R version 3.0.0 (2013-04-03) -- "Masked Marvel"
-Copyright (C) 2013 The R Foundation for Statistical Computing
-Platform: i686-pc-linux-gnu (32-bit)
+R version 4.3.2 (2023-10-31) -- "Eye Holes"
+Copyright (C) 2023 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -18,7 +18,6 @@ Type 'q()' to quit R.
 > options(na.action=na.exclude) # preserve missings
 > options(contrasts=c('contr.treatment', 'contr.poly')) #ensure constrast type
 > library(survival)
-Loading required package: splines
 > 
 > #
 > # Verify that scale can be fixed at a value
@@ -28,7 +27,7 @@ Loading required package: splines
 > # Intercept only models
 > fit1 <- survreg(Surv(time,status) ~ 1, lung)
 > fit2 <- survreg(Surv(time,status) ~ 1, lung, scale=fit1$scale)
-> all.equal(fit1$coef, fit2$coef, tolerance= tol)
+> all.equal(fit1$coefficients, fit2$coefficients, tolerance= tol)
 [1] TRUE
 > all.equal(fit1$loglik, fit2$loglik, tolerance= tol)
 [1] TRUE
@@ -44,7 +43,7 @@ Loading required package: splines
 > fit1 <- survreg(Surv(time,status) ~ age + ph.karno, lung)
 > fit2 <- survreg(Surv(time,status) ~ age + ph.karno, lung,
 + 		scale=fit1$scale)
-> all.equal(fit1$coef, fit2$coef, tolerance=tol)
+> all.equal(fit1$coefficients, fit2$coefficients, tolerance=tol)
 [1] TRUE
 > all.equal(fit1$loglik[2], fit2$loglik[2], tolerance=tol)
 [1] TRUE
@@ -56,7 +55,7 @@ Loading required package: splines
 > # penalized models
 > fit1 <- survreg(Surv(time, status) ~ pspline(age), lung)
 > fit2 <- survreg(Surv(time, status) ~ pspline(age), lung, scale=fit1$scale)
-> all.equal(fit1$coef, fit2$coef, tolerance=tol)
+> all.equal(fit1$coefficients, fit2$coefficients, tolerance=tol)
 [1] TRUE
 > all.equal(fit1$loglik[2], fit2$loglik[2], tolerance=tol)
 [1] TRUE
@@ -69,4 +68,4 @@ Loading required package: splines
 > 
 > proc.time()
    user  system elapsed 
-  0.304   0.044   0.344 
+  0.986   0.064   1.043 

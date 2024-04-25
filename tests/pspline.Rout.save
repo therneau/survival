@@ -1,6 +1,6 @@
 
-R Under development (unstable) (2020-06-10 r78681) -- "Unsuffered Consequences"
-Copyright (C) 2020 The R Foundation for Statistical Computing
+R version 4.3.2 (2023-10-31) -- "Eye Holes"
+Copyright (C) 2023 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -59,11 +59,11 @@ Type 'q()' to quit R.
 > # Test of residuals, in response to a reported bug.  
 > # These are three progam paths that should all lead to the same C routine
 > fit <- coxph(Surv(tstart, tstop, status) ~ sex + treat + pspline(age), cgd)
-> fit2 <- coxph(Surv(tstart, tstop, status) ~ fit$linear, cgd, iter.max=0, init=1)
-> fit3 <- coxph(Surv(tstart, tstop, status) ~ offset(fit$linear), cgd)
-> all.equal(fit$resid, fit2$resid)
+> fit2 <- coxph(Surv(tstart, tstop, status) ~ fit$linear.predictors, cgd, iter.max=0, init=1)
+> fit3 <- coxph(Surv(tstart, tstop, status) ~ offset(fit$linear.predictors), cgd)
+> all.equal(fit$residuals, fit2$residuals)
 [1] TRUE
-> all.equal(fit$resid, fit3$resid)
+> all.equal(fit$residuals, fit3$residuals)
 [1] TRUE
 > 
 > # 
@@ -75,12 +75,12 @@ Type 'q()' to quit R.
 > 
 > # the results of coxph.detail used to be in time order, now are in data set
 > #  order
-> rscore <- exp(fit4$linear)
+> rscore <- exp(fit4$linear.predictors)
 > exp4 <- (rscore *dt$riskmat) %*% dt$hazard
 > r4 <- cgd$status - exp4
-> aeq(r4, fit4$resid)
+> aeq(r4, fit4$residuals)
 [1] TRUE
 > 
 > proc.time()
    user  system elapsed 
-  0.853   0.088   0.934 
+  1.031   0.076   1.100 

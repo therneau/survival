@@ -1,6 +1,6 @@
 
-R Under development (unstable) (2018-05-10 r74706) -- "Unsuffered Consequences"
-Copyright (C) 2018 The R Foundation for Statistical Computing
+R version 4.3.2 (2023-10-31) -- "Eye Holes"
+Copyright (C) 2023 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -73,4 +73,4 @@ n= 26, number of events= 12
 > 
 > proc.time()
    user  system elapsed 
-  0.808   0.040   0.847 
+  1.105   0.071   1.169 

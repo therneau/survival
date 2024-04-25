@@ -1,7 +1,7 @@
 
-R Under development (unstable) (2024-02-07 r85873) -- "Unsuffered Consequences"
-Copyright (C) 2024 The R Foundation for Statistical Computing
-Platform: x86_64-pc-linux-gnu
+R version 4.3.2 (2023-10-31) -- "Eye Holes"
+Copyright (C) 2023 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -92,7 +92,7 @@ state    0   1
 > csurv1 <- survfit(cfit1, newdata=dummy)
 > 
 > cfit2 <- coxph(Surv(etime, event) ~ age + mspike, id=id,
-+                init= coef(cfit1), iter=0, data=mgus2, subset=(sex=='F'))
++                init= coef(cfit1), iter.max=0, data=mgus2, subset=(sex=='F'))
 > csurv3 <- survfit(cfit2, newdata= expand.grid(age=c(60, 80), mspike=1.2))
 > test <- c('n', 'time', 'n.risk', 'n.event', 'n.censor', 'pstate', 'cumhaz')
 > all.equal(unclass(csurv1[1,,])[test], unclass(csurv3)[test])
@@ -116,4 +116,4 @@ state    0   1
 > 
 > proc.time()
    user  system elapsed 
-  1.085   0.106   1.183 
+  1.340   0.055   1.397 

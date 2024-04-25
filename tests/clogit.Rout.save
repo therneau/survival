@@ -1,6 +1,6 @@
 
-R Under development (unstable) (2018-04-09 r74565) -- "Unsuffered Consequences"
-Copyright (C) 2018 The R Foundation for Statistical Computing
+R version 4.3.2 (2023-10-31) -- "Eye Holes"
+Copyright (C) 2023 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -38,16 +38,16 @@ Type 'q()' to quit R.
 > fit2 <- coxph(Surv(dummy, y) ~ occ2 + occ2:education + occ2:race + strata(id),
 +                    logan2, method='breslow')
 > 
-> all.equal(fit1$coef, fit2$coef)
+> all.equal(fit1$coefficients, fit2$coefficients)
 [1] TRUE
 > all.equal(fit1$loglik, fit2$loglik)
 [1] TRUE
 > all.equal(fit1$var, fit2$var)
 [1] TRUE
-> all.equal(fit1$resid, fit2$resid)
+> all.equal(fit1$residuals, fit2$residuals)
 [1] TRUE
 > 
 > 
 > proc.time()
    user  system elapsed 
-  0.868   0.024   0.890 
+  0.883   0.063   0.939 

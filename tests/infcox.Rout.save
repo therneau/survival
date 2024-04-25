@@ -1,6 +1,6 @@
 
-R Under development (unstable) (2021-01-28 r79896) -- "Unsuffered Consequences"
-Copyright (C) 2021 The R Foundation for Statistical Computing
+R version 4.3.2 (2023-10-31) -- "Eye Holes"
+Copyright (C) 2023 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -33,9 +33,9 @@ Warning message:
 In coxph.fit(X, Y, istrat, offset, init, control, weights = weights,  :
   Loglik converged before variable  1,2 ; coefficient may be infinite. 
 > 
-> all(fit3$coef < -22)
+> all(fit3$coefficients < -22)
 [1] TRUE
-> all.equal(round(fit3$log, 4),c(-6.8669, -1.7918))
+> all.equal(round(fit3$loglik, 4),c(-6.8669, -1.7918))
 [1] TRUE
 > 
 > #
@@ -54,9 +54,9 @@ In coxph.fit(X, Y, istrat, offset, init, control, weights = weights,  :
 +     loglik
 + }
 > 
-> all.equal(fit3$loglik[2], true(fit3$coef), check.attributes=FALSE)
+> all.equal(fit3$loglik[2], true(fit3$coefficients), check.attributes=FALSE)
 [1] TRUE
 > 
 > proc.time()
    user  system elapsed 
-  0.828   0.048   0.867 
+  1.049   0.060   1.101 

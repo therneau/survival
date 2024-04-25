@@ -1,7 +1,7 @@
 
-R Under development (unstable) (2023-08-01 r84818) -- "Unsuffered Consequences"
+R version 4.3.2 (2023-10-31) -- "Eye Holes"
 Copyright (C) 2023 The R Foundation for Statistical Computing
-Platform: aarch64-unknown-linux-gnu
+Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -27,7 +27,7 @@ Type 'q()' to quit R.
 +     x <- rbinom(n, 1, .5)
 + 
 +     futime <- rep(40, n)   # everyone has 40 years of follow-up
-+     entry  <- pmax(0, seq(-10, 30, length=n))  # 1/4 enter at 0
++     entry  <- pmax(0, seq(-10, 30, length.out=n))  # 1/4 enter at 0
 +     entry  <- round(entry)
 +     status <- rep(0, n)
 +     dtime <-  runif(n/2, 1, 40)  # 1/2 of them die
@@ -127,4 +127,4 @@ Type 'q()' to quit R.
 > 
 > proc.time()
    user  system elapsed 
-  0.733   0.044   0.771 
+  1.415   0.048   1.454 

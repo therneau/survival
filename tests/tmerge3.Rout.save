@@ -1,6 +1,6 @@
 
-R Under development (unstable) (2022-08-09 r82699) -- "Unsuffered Consequences"
-Copyright (C) 2022 The R Foundation for Statistical Computing
+R version 4.3.2 (2023-10-31) -- "Eye Holes"
+Copyright (C) 2023 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -111,4 +111,4 @@ successful tmerge error test
 > 
 > proc.time()
    user  system elapsed 
-  1.142   0.080   1.219 
+  0.863   0.047   0.904 

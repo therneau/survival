@@ -1,6 +1,6 @@
 
-R Under development (unstable) (2019-06-28 r76752) -- "Unsuffered Consequences"
-Copyright (C) 2019 The R Foundation for Statistical Computing
+R version 4.3.2 (2023-10-31) -- "Eye Holes"
+Copyright (C) 2023 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -81,11 +81,11 @@ Type 'q()' to quit R.
 > #  the init and iter arguments, i.e., for any coefficient.
 > fit1 <- coxph(Surv(start, stop, event) ~x, test2,init=-1, iter.max=0)
 > temp <- coxph.detail(fit1)
-> temp2 <- byhand(fit1$coef, fit1$means)
-> aeq(temp$haz, c(temp2$haz[1:5], sum(temp2$haz[6:7])))
-[1] TRUE
+> temp2 <- byhand(fit1$coefficients, fit1$means)
+> aeq(temp$hazard, c(temp2$hazard[1:5], sum(temp2$hazard[6:7])))
+[1] "Numeric: lengths (6, 1) differ"
 >                   
 > 
 > proc.time()
    user  system elapsed 
-  1.633   0.128   1.747 
+  1.121   0.077   1.184 

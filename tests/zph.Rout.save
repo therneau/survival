@@ -1,5 +1,5 @@
 
-R Under development (unstable) (2023-01-03 r83550) -- "Unsuffered Consequences"
+R version 4.3.2 (2023-10-31) -- "Eye Holes"
 Copyright (C) 2023 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
@@ -45,7 +45,7 @@ Type 'q()' to quit R.
 > 
 > # Now check the program
 > fit1 <- coxph(Surv(time, status) ~ x, test1, ties='breslow')
-> aeq(fit1$coef, log(r))
+> aeq(fit1$coefficients, log(r))
 [1] TRUE
 > zp1 <- cox.zph(fit1, transform='identity', global=FALSE)
 > aeq(zp1$table[,1], sctest)
@@ -55,7 +55,7 @@ Type 'q()' to quit R.
 > 
 > dummy <- rep(0, nrow(test1))
 > fit1b <- coxph(Surv(dummy, time, status) ~ x, test1, ties='breslow')
-> aeq(fit1b$coef, log(r))
+> aeq(fit1b$coefficients, log(r))
 [1] TRUE
 > zp1b <- cox.zph(fit1b, transform='identity', global=FALSE)
 > aeq(zp1b$table[,1], sctest)
@@ -87,7 +87,7 @@ Type 'q()' to quit R.
 > sctest4 <- solve(i4, u4) %*% u4
 > 
 > fit4 <- coxph(Surv(time, status) ~ x, test1, ties='efron')
-> aeq(fit4$coef, log(r))
+> aeq(fit4$coefficients, log(r))
 [1] TRUE
 > zp4 <- cox.zph(fit4, transform='log', global=FALSE)
 > aeq(zp4$table[,1], sctest4)
@@ -96,7 +96,7 @@ Type 'q()' to quit R.
 [1] TRUE
 > 
 > fit5 <-  coxph(Surv(dummy, time, status) ~ x, test1, ties="efron")
-> aeq(fit5$coef, log(r))
+> aeq(fit5$coefficients, log(r))
 [1] TRUE
 > zp5 <- cox.zph(fit5, transform="log", global=FALSE)
 > aeq(zp5$table[,1], sctest4)
@@ -108,9 +108,9 @@ Type 'q()' to quit R.
 > # U, imat, and sctest will all double
 > dummy <- c(dummy, dummy)
 > fit6 <- coxph(Surv(dummy, time, status) ~ x + strata(group), test2)
-> aeq(fit6$coef, log(r))
+> aeq(fit6$coefficients, log(r))
 [1] TRUE
-> zp6 <- cox.zph(fit6, transform="log", globa=FALSE)
+> zp6 <- cox.zph(fit6, transform="log", global=FALSE)
 > aeq(zp6$table[,1], 2*sctest4)
 [1] TRUE
 > 
@@ -162,7 +162,7 @@ censor    pcm  death
 > zp7  <- cox.zph(pfit, transform='log', global=FALSE)
 > 
 > direct <- function(fit) {
-+     nvar <- length(fit$coef)
++     nvar <- length(fit$coefficients)
 +     dt <- coxph.detail(fit)
 +     gtime <- log(dt$time) - mean(log(dt$time))
 +     # key idea: at any event time I have a first deriviative vector
@@ -220,4 +220,4 @@ censor    pcm  death
 > 
 > proc.time()
    user  system elapsed 
-  1.154   0.089   1.233 
+  1.193   0.044   1.230 

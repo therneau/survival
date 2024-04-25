@@ -1,6 +1,6 @@
 
-R Under development (unstable) (2019-06-28 r76752) -- "Unsuffered Consequences"
-Copyright (C) 2019 The R Foundation for Statistical Computing
+R version 4.3.2 (2023-10-31) -- "Eye Holes"
+Copyright (C) 2023 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -162,7 +162,7 @@ inst=33  2  0.929177  0.416202 0.632249272 0.676682390
 +     # score test for this new variable
 +     tfit <- coxph(Surv(tstart, time, status) ~ ph.ecog + ph.karno + pat.karno + 
 +                   wt.loss + sex + age + strata(inst) +
-+                   temp, lung2, init=c(cfit2$coef, 0), iter=0)
++                   temp, lung2, init=c(cfit2$coefficients, 0), iter.max=0)
 +     check[i] <- tfit$score
 +     } 
 > aeq(check, zp1$table[1:ncoef,1]) # skip the 'global' test
@@ -179,4 +179,4 @@ inst=33  2  0.929177  0.416202 0.632249272 0.676682390
 > 
 > proc.time()
    user  system elapsed 
-  1.492   0.052   1.544 
+  1.508   0.063   1.565 

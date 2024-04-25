@@ -1,7 +1,7 @@
 
-R Under development (unstable) (2024-02-06 r85866) -- "Unsuffered Consequences"
-Copyright (C) 2024 The R Foundation for Statistical Computing
-Platform: aarch64-unknown-linux-gnu
+R version 4.3.2 (2023-10-31) -- "Eye Holes"
+Copyright (C) 2023 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -140,4 +140,4 @@ age          male       female
 > 
 > proc.time()
    user  system elapsed 
-  0.418   0.029   0.442 
+  0.902   0.039   0.935 

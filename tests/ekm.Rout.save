@@ -1,7 +1,7 @@
 
-R Under development (unstable) (2024-04-01 r86255) -- "Unsuffered Consequences"
-Copyright (C) 2024 The R Foundation for Statistical Computing
-Platform: x86_64-pc-linux-gnu
+R version 4.3.2 (2023-10-31) -- "Eye Holes"
+Copyright (C) 2023 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -24,9 +24,9 @@ Type 'q()' to quit R.
 > tdata <- aml
 > tdata$id <- 1:nrow(tdata)
 > tdata <- survSplit(Surv(time, status) ~ ., tdata, cut= c(9, 17, 30))
-> tdata$trt <- rep(c(1,1,2,2,2), length=nrow(tdata))
+> tdata$trt <- rep(c(1,1,2,2,2), length.out=nrow(tdata))
 > # different weights for different rows of the same subject = hardest case
-> tdata$wt <-  rep(1:6, length= nrow(tdata))
+> tdata$wt <-  rep(1:6, length.out= nrow(tdata))
 > tdata$status[tdata$time==13] <- 1   # force at least 1 tied event
 > 
 > # not exported, but used in byhand
@@ -189,4 +189,4 @@ Type 'q()' to quit R.
 > 
 > proc.time()
    user  system elapsed 
-  0.971   0.071   1.034 
+  1.350   0.067   1.410 

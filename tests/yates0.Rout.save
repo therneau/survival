@@ -1,6 +1,6 @@
 
-R Under development (unstable) (2022-07-22 r82614) -- "Unsuffered Consequences"
-Copyright (C) 2022 The R Foundation for Statistical Computing
+R version 4.3.2 (2023-10-31) -- "Eye Holes"
+Copyright (C) 2023 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -74,7 +74,7 @@ $class
 > 
 > fit3 <- lm(y ~ x1 + C(x2, contr.SAS), tdata)   
 > m3 <- fit3$model
-> attr(m3[[3]], 'contr')   # the contrast is saved
+> attr(m3[[3]], 'contrasts')   # the contrast is saved
   A B C
 A 1 0 0
 B 0 1 0
@@ -99,4 +99,4 @@ D 0 0 0
 > 
 > proc.time()
    user  system elapsed 
-  0.128   0.017   0.138 
+  0.128   0.016   0.138 

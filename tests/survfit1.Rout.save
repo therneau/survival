@@ -1,7 +1,7 @@
 
-R Under development (unstable) (2024-03-04 r86048) -- "Unsuffered Consequences"
-Copyright (C) 2024 The R Foundation for Statistical Computing
-Platform: aarch64-unknown-linux-gnu
+R version 4.3.2 (2023-10-31) -- "Eye Holes"
+Copyright (C) 2023 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -35,8 +35,8 @@ Type 'q()' to quit R.
 > 
 > group <- rep("", nrow(adata))
 > temp <- table(adata$x)
-> group[adata$x == "Maintained"] <- rep(letters[4:1], length=temp[1])
-> group[adata$x != "Maintained"] <- rep(letters[4:7], length=temp[2])
+> group[adata$x == "Maintained"] <- rep(letters[4:1], length.out=temp[1])
+> group[adata$x != "Maintained"] <- rep(letters[4:7], length.out=temp[2])
 > adata$group <- group
 > 
 > adata2 <- survSplit(Surv(time, status) ~ ., adata, cut=c(10, 20, 40))
@@ -47,7 +47,7 @@ Type 'q()' to quit R.
 +     ntime <- length(utime)
 +     n <- length(time)
 +     if (missing(weights)) weights <- rep(1.0, n)
-+     if (missing(id)) id <- seq(along=time)
++     if (missing(id)) id <- seq_along(time)
 + 
 +     uid <- unique(id)
 +     nid <- length(uid)
@@ -177,7 +177,7 @@ Type 'q()' to quit R.
 [1] TRUE
 > 
 > fit2d <- survfit(Surv(time, factor(status)) ~ x, data=adata, id=id, influence=T) 
-> aeq(fit2d$influence[[1]][,,1], r2)
+> aeq(fit2d$influence.pstate[[1]][,,1], r2)
 [1] TRUE
 > r3 <- resid(fit2d, times= fit2c$time, collapse=TRUE)
 > aeq(r3[adata$x =="Maintained",1,], r2)
@@ -185,9 +185,9 @@ Type 'q()' to quit R.
 > 
 > fit2e <- survfit(Surv(time, factor(status)) ~1, adata, id=id, influence=T,
 +                  subset=(x=="Maintained"))
-> aeq(fit2e$influence, fit2d$influence[[1]])
+> aeq(fit2e$influence.pstate, fit2d$influence.pstate[[1]])
 [1] TRUE
-> aeq(fit2e$influence[,,1], r2)
+> aeq(fit2e$influence.pstate[,,1], r2)
 [1] TRUE
 > 
 > 
@@ -217,9 +217,9 @@ Type 'q()' to quit R.
 +     imat2[i,] <- (tfit$cumhaz - t1$cumhaz)/eps
 +     imat1[i,] <- (tfit$surv - t1$surv)/eps
 + }
-> aeq(imat1, true1b$influence[,1,], tol= sqrt(eps))
+> aeq(imat1, true1b$influence[,1,], tolerance= sqrt(eps))
 [1] TRUE
-> aeq(imat2, true1b$influence[,2,], tol= sqrt(eps))
+> aeq(imat2, true1b$influence[,2,], tolerance= sqrt(eps))
 [1] TRUE
 > 
 > # Repeat using the Nelson-Aalen hazard and exp(NA) for survival
@@ -397,7 +397,7 @@ Type 'q()' to quit R.
 > true6a <- with(subset(adata, x=="Maintained"), fh(time, status, wt, id))
 > true6b <- with(subset(adata, x!="Maintained"), fh(time, status, wt, id))
 > 
-> fit6 <- survfit(Surv(time, status) ~ x, weight=wt, data=adata, stype=2, 
+> fit6 <- survfit(Surv(time, status) ~ x, weights=wt, data=adata, stype=2, 
 +                 ctype=2, robust=FALSE)
 > aeq(fit6$cumhaz, c(true6a$estimate[,2], true6b$estimate[,2]))
 [1] TRUE
@@ -411,7 +411,7 @@ Type 'q()' to quit R.
 [1] TRUE
 > 
 > # Robust variance
-> fit7 <- survfit(Surv(time, status) ~ x, weight=wt, data=adata, stype=2,ctype=2, 
+> fit7 <- survfit(Surv(time, status) ~ x, weights=wt, data=adata, stype=2,ctype=2, 
 +                 id=id, influence=2, robust=TRUE)
 > aeq(fit7$cumhaz, c(true6a$estimate[,2], true6b$estimate[,2]))
 [1] TRUE
@@ -441,7 +441,7 @@ Type 'q()' to quit R.
 +               weights=wtemp)
 +     imat[i,] <- tdata$wt[i] * (tfit$cumhaz - t1$cumhaz)/eps
 + }
-> aeq(fit7$influence.chaz[[2]], imat, tol=sqrt(eps))
+> aeq(fit7$influence.chaz[[2]], imat, tolerance=sqrt(eps))
 [1] TRUE
 > 
 > #
@@ -482,4 +482,4 @@ x=Nonmaintained 12     11   15.1      4.57   13.5     4.0      NA
 > 
 > proc.time()
    user  system elapsed 
-  0.545   0.020   0.562 
+  1.047   0.076   1.117 

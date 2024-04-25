@@ -1,6 +1,6 @@
 
-R Under development (unstable) (2018-04-09 r74565) -- "Unsuffered Consequences"
-Copyright (C) 2018 The R Foundation for Statistical Computing
+R version 4.3.2 (2023-10-31) -- "Eye Holes"
+Copyright (C) 2023 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -32,7 +32,7 @@ Type 'q()' to quit R.
 > fit1 <- coxph(Surv(time, status) ~ age + sex:strata(ph.ecog), lung)
 > fit2 <- coxph(Surv(time, status) ~ age + sex:strata(ph.ecog), tdata)
 > 
-> aeq(fit1$coef, fit2$coef)
+> aeq(fit1$coefficients, fit2$coefficients)
 [1] TRUE
 > aeq(fit1$var, fit2$var)
 [1] TRUE
@@ -41,4 +41,4 @@ Type 'q()' to quit R.
 > 
 > proc.time()
    user  system elapsed 
-  0.692   0.036   0.727 
+  0.856   0.053   0.897 

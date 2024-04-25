@@ -1,5 +1,5 @@
 
-R Under development (unstable) (2023-03-05 r83940) -- "Unsuffered Consequences"
+R version 4.3.2 (2023-10-31) -- "Eye Holes"
 Copyright (C) 2023 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
@@ -44,11 +44,11 @@ Type 'q()' to quit R.
 > ss1 <- colSums(wtmat * (y - t(yhat))^2)
 > ss2 <- colSums(wtmat * (y - rep(ybar, each=nrow(y)))^2)
 > 
-> all.equal(unname(1- ss1/ss2), bfit$rsquare)
+> all.equal(unname(1- ss1/ss2), bfit$rsquared)
 [1] TRUE
 > all.equal(unname(ss1), bfit$brier)
 [1] TRUE
 > 
 > proc.time()
    user  system elapsed 
-  8.134   0.738   8.871 
+  6.010   0.509   6.513 

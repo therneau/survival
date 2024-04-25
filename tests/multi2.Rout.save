@@ -1,6 +1,6 @@
 
-R Under development (unstable) (2021-04-20 r80202) -- "Unsuffered Consequences"
-Copyright (C) 2021 The R Foundation for Statistical Computing
+R version 4.3.2 (2023-10-31) -- "Eye Holes"
+Copyright (C) 2023 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -25,14 +25,14 @@ Type 'q()' to quit R.
 > tdata$event <- factor(with(tdata, sct + 2*death), 0:2,
 +                       c("censor", "sct", "death"))
 > fit <- coxph(Surv(tstart, tstop, event) ~ trt + sex, tdata, id=id,
-+              iter=4, x=TRUE, robust=FALSE)
++              iter.max=4, x=TRUE, robust=FALSE)
 > 
 > fit12 <- coxph(Surv(tstart, tstop, event=='sct') ~ trt + sex, tdata,
-+                subset=(priortx==0), iter=4, x=TRUE)
++                subset=(priortx==0), iter.max=4, x=TRUE)
 > fit13 <- coxph(Surv(tstart, tstop, event=='death') ~ trt + sex, tdata,
-+                subset=(priortx==0), iter=4, x=TRUE)
++                subset=(priortx==0), iter.max=4, x=TRUE)
 > fit23 <- coxph(Surv(tstart, tstop, event=='death') ~ trt + sex, tdata,
-+                subset=(priortx==1), iter=4, x=TRUE)
++                subset=(priortx==1), iter.max=4, x=TRUE)
 > aeq(coef(fit), c(coef(fit12), coef(fit13), coef(fit23))) 
 [1] TRUE
 > aeq(fit$loglik, fit12$loglik + fit13$loglik + fit23$loglik)
@@ -239,4 +239,4 @@ table     x  time     y   var
 > 
 > proc.time()
    user  system elapsed 
-  1.314   0.113   1.428 
+  1.173   0.051   1.216 

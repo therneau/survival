@@ -1,5 +1,5 @@
 
-R Under development (unstable) (2023-01-30 r83727) -- "Unsuffered Consequences"
+R version 4.3.2 (2023-10-31) -- "Eye Holes"
 Copyright (C) 2023 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
@@ -132,4 +132,4 @@ Type 'q()' to quit R.
 > 
 > proc.time()
    user  system elapsed 
-  0.855   0.089   0.935 
+  1.111   0.088   1.193 

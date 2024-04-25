@@ -1,6 +1,6 @@
 
-R Under development (unstable) (2020-03-27 r78086) -- "Unsuffered Consequences"
-Copyright (C) 2020 The R Foundation for Statistical Computing
+R version 4.3.2 (2023-10-31) -- "Eye Holes"
+Copyright (C) 2023 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -56,9 +56,9 @@ n= 30
 > #  in the SAS 9.2 manual
 > 
 > pp1 <- predict(fit1, newdata=list(temp=c(130,150)), p=c(.1, .5, .9),
-+ 		      type='quantile', se=T)
++ 		      type='quantile', se.fit=T)
 > pp2 <- predict(fit1, newdata=list(temp=c(130,150)), p=c(.1, .5, .9),
-+ 		      type='uquantile', se=T)
++ 		      type='uquantile', se.fit=T)
 > pp1
 $fit
           [,1]      [,2]     [,3]
@@ -127,9 +127,9 @@ p=.3 56592.20 26036.917 10.943626     0.4600796 26611.422 120349.71
 > 
 > # Now a table
 > temp <- array(0, dim=c(4,4,4))  #4 groups by 4 parameters by 4 stats
-> temp[,1,1] <- ffit$coef         # "EV Location" in SAS manual
+> temp[,1,1] <- ffit$coefficients         # "EV Location" in SAS manual
 > temp[,2,1] <- ffit$scale        # "EV scale"
-> temp[,3,1] <- exp(ffit$coef)    # "Weibull Scale"
+> temp[,3,1] <- exp(ffit$coefficients)    # "Weibull Scale"
 > temp[,4,1] <- 1/ffit$scale      # "Weibull Shape"
 >  
 > temp[,1,2] <- sqrt(diag(ffit$var))[1:4]   #standard error
@@ -191,7 +191,7 @@ Weibull shape 1.36299929 0.37861      0.79077       2.34933
 > crack2 <- with(cracks, data.frame(day1=c(NA, days), day2=c(days, NA),
 +                                   n=c(fail, 167-sum(fail))))
 > cfit <- survreg(Surv(day1, day2, type='interval2') ~1, 
-+                 dist='weibull', data=crack2, weight=n)
++                 dist='weibull', data=crack2, weights=n)
 > 
 > summary(cfit)
 
@@ -216,13 +216,13 @@ n= 9
 > #  survival, and forces a Nelson-Aalen hazard estimate
 > #
 > plist <-  c(1, 2, 5, 1:8 *10)/100
-> plot(qsurvreg(plist, cfit$coef, cfit$scale), tfun(plist), log='x',
+> plot(qsurvreg(plist, cfit$coefficients, cfit$scale), tfun(plist), log='x',
 +      yaxt='n', type='l',
 +      xlab="Weibull Plot for Time", ylab="Percent")
 > axis(2, tfun(plist), format(100*plist), adj=1)
 > 
 > kfit <- survfit(Surv(day1, day2, type='interval2') ~1, data=crack2,
-+                 weight=n, type='fleming')
++                 weights=n, type='fleming')
 > # Only plot point where n.event > 0 
 > # Why?  I'm trying to match them.  Personally, all should be plotted.
 > who <- (kfit$n.event > 0)
@@ -230,19 +230,19 @@ n= 9
 > points(kfit$time[who], tfun(1-kfit$upper[who]), pch='-')
 > points(kfit$time[who], tfun(1-kfit$lower[who]), pch='-')
 > 
-> text(rep(3,6), seq(.5, -1.0, length=6), 
+> text(rep(3,6), seq(.5, -1.0, length.out=6), 
 +          c("Scale", "Shape", "Right Censored", "Left Censored", 
 +            "Interval Censored", "Fit"), adj=0)
-> text(rep(9,6), seq(.5, -1.0, length=6), 
-+          c(format(round(exp(cfit$coef), 2)),
+> text(rep(9,6), seq(.5, -1.0, length.out=6), 
++          c(format(round(exp(cfit$coefficients), 2)),
 +            format(round(1/cfit$scale, 2)),
 +            format(tapply(crack2$n, cfit$y[,3], sum)), "ML"), adj=1)
 > 
 > # Now a portion of his percentiles table
 > #  I don't get the same SE as SAS, I haven't checked out why.  The
 > #  estimates and se for the underlying Weibull model are the same.
-> temp <- predict(cfit, type='quantile', p=plist, se=T)
-> tempse <- sqrt(temp$se[1,])
+> temp <- predict(cfit, type='quantile', p=plist, se.fit=T)
+> tempse <- sqrt(temp$se.fit[1,])
 > mat <- cbind(temp$fit[1,], tempse, 
 +              temp$fit[1,] -1.96*tempse, temp$fit[1,] + 1.96*tempse)
 > dimnames(mat) <- list(plist*100, c("Estimate", "SE", "Lower .95", "Upper .95"))
@@ -394,7 +394,7 @@ n= 21
 > qstat <- function(data) {
 +     temp <- survreg(Surv(time1, time2, type='interval2') ~1, data=data,
 +                     dist='lognormal')
-+     qsurvreg(plist, temp$coef, temp$scale, dist='lognormal')
++     qsurvreg(plist, temp$coefficients, temp$scale, distribution='lognormal')
 +     }
 > 
 > {if (exists('bootstrap')) {
@@ -412,7 +412,7 @@ n= 21
 +     bci <- t(apply(values,2, quantile, c(.05, .95)))
 +     }
 +  }
-> xmat <- cbind(qsurvreg(plist, tfit$coef, tfit$scale, dist='lognormal'),
+> xmat <- cbind(qsurvreg(plist, tfit$coefficients, tfit$scale, distribution='lognormal'),
 +               bci)
 > 
 > 
@@ -432,4 +432,4 @@ null device
 > 
 > proc.time()
    user  system elapsed 
-  3.004   0.053   3.048 
+  2.983   0.084   3.061 
