@@ -12,18 +12,17 @@
 \maketitle
 
 Many of the vignettes have been moved to a separate survivalVignettes package.
-There are 2 primary reasons. Primarily, as a recommended package survival cannot
-depend on anything outside of the base + recommended R.  
+There are 2 primary reasons. First, as a recommended package survival cannot
+depend on any packages outside of  base + recommended.  
 (A minimally sufficient set that is self contained
-is useful for R maintainance and validation.)
+is important for R maintainance and validation.)
 This means that we cannot use more modern tools such as knitR or markdown,
-refer to other packages for survival data such as mstate or ggsurvfit, nor
+refer to other packages such as mstate or ggsurvfit, nor
 use data from some of those packages in our examples.
 A secondary reason is that the survival package is becoming physically large,
 and it was useful to split these off for maintainance purposes.
-and even more importantly cannot
  
-A sample of vignettes in the companion package
+Vignettes that have currently been relocated
 \begin{enumerate}
    \item tutorial: This works through the examples found in the excellent
      tutorial by H. Putter, M. Fiocco and R. Geskus. 
@@ -41,7 +40,7 @@ A sample of vignettes in the companion package
 \end{enumerate}
 
 Over time, we expect more vignettes to transfer from the survival package,
-and new companions to be added.  
+and new ones to be written and added.  
 \end{document}
 
 

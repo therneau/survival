@@ -1,7 +1,7 @@
 
-R Under development (unstable) (2020-03-27 r78086) -- "Unsuffered Consequences"
-Copyright (C) 2020 The R Foundation for Statistical Computing
-Platform: x86_64-pc-linux-gnu (64-bit)
+R Under development (unstable) (2024-04-17 r86441) -- "Unsuffered Consequences"
+Copyright (C) 2024 The R Foundation for Statistical Computing
+Platform: aarch64-unknown-linux-gnu
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -52,10 +52,10 @@ Type 'q()' to quit R.
 > 
 > # Now add some random weights
 > rwt <- runif(nrow(lung), .5, 3)
-> surv1 <- survfit(Surv(time,status) ~ sex, data=lung, stype=2, weight=rwt,
+> surv1 <- survfit(Surv(time,status) ~ sex, data=lung, stype=2, weights=rwt,
 +                  robust=FALSE)
 > fit1 <- coxph(Surv(time, status) ~ age + strata(sex), data=lung, iter=0,
-+               ties='breslow', weight=rwt, robust=FALSE)
++               ties='breslow', weights=rwt, robust=FALSE)
 > fit1$var <- 0*fit1$var   #sneaky
 > surv2 <- survfit(fit1, stype=2, ctype=1)
 > surv3 <- survfit(fit1)
@@ -68,13 +68,13 @@ Type 'q()' to quit R.
 > 
 > # Efron method
 > surv1 <- survfit(Surv(time,status) ~ sex, data=lung, stype=2, ctype=2,
-+                  weight=rwt, robust=FALSE)
++                  weights=rwt, robust=FALSE)
 > surv2 <- survfit(fit1, ctype=2, robust=FALSE)
 > all.equal(unclass(surv1)[arglist], unclass(surv2)[arglist])
 [1] TRUE
 > 
 > # Kaplan-Meier
-> surv1 <- survfit(Surv(time,status) ~ sex, data=lung, weight=rwt, robust=FALSE)
+> surv1 <- survfit(Surv(time,status) ~ sex, data=lung, weights=rwt, robust=FALSE)
 > surv2 <- survfit(fit1, stype=1, robust=FALSE)
 > all.equal(unclass(surv1)[arglist], unclass(surv2)[arglist])
 [1] TRUE
@@ -82,4 +82,4 @@ Type 'q()' to quit R.
 > 
 > proc.time()
    user  system elapsed 
-  0.940   0.037   0.969 
+  0.412   0.023   0.433 

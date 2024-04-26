@@ -98,3 +98,33 @@ tfun(cn2)
 tfun(cn3)
 tfun(cn4)
 
+# Simple check of (time1, time2) data
+# First a check on the fastkm2 (internal) routine
+test1 <- survfit(Surv(tstart, tstop, status) ~1, cgd, id=id)
+nr <- nrow(cgd)
+y <- with(cgd, Surv(tstart,tstop, status))
+sort1 <- order(-cgd$tstart); sort2 <- order(-cgd$tstop, cgd$status)
+if (!exists("Cfastkm2")) Cfastkm2 <- survival:::Cfastkm2  # for my test env
+test2 <- .Call(Cfastkm2, y, rep(1.0, nr), order(-cgd$tstart)-1L,
+               order(-cgd$tstop, cgd$status) -1L)
+ii <- which(test1$n.event>0)
+all.equal(test1$time[ii], test2$etime)
+all.equal(test1$n.risk[ii], test2$nrisk)
+all.equal(c(1, test1$surv[ii[-length(ii)]]), test2$S) # test 2 is lagged
+
+zero <- rep(0, nrow(nafld1))
+test3 <- survfit(Surv(futime, status) ~1, nafld1, id=id)
+test4 <- with(nafld1, .Call(Cfastkm2, Surv(zero, futime, status), zero+1,
+                            seq.int(nrow(nafld1)) -1L,
+                            order(-futime, status) -1L))
+ii <- which(test3$n.event >0)
+all.equal(test3$time[ii], test4$etime)
+all.equal(test3$n.risk[ii], test4$nrisk)
+all.equal(c(1, test3$surv[ii[-length(ii)]]), test4$S) # test 2 is lagged
+
+# Now a check of concordance
+nfitx <- coxph(Surv(zero, futime, status) ~ male + pspline(age), nafld1)
+cn1x <- concordance(nfitx, timewt='n', ranks=TRUE)
+cn2x <- concordance(nfitx, timewt='S', ranks=TRUE)
+all.equal(cn1x$count, cn1$count)
+all.equal(cn2x$count, cn2$count)

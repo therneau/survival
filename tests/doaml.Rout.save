@@ -1,7 +1,7 @@
 
-R Under development (unstable) (2019-05-15 r76504) -- "Unsuffered Consequences"
-Copyright (C) 2019 The R Foundation for Statistical Computing
-Platform: x86_64-pc-linux-gnu (64-bit)
+R Under development (unstable) (2024-04-17 r86441) -- "Unsuffered Consequences"
+Copyright (C) 2024 The R Foundation for Statistical Computing
+Platform: aarch64-unknown-linux-gnu
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -115,7 +115,7 @@ aml$x=Nonmaintained 12       11     7.31      1.86       3.4
 > #
 > #  First, equal case weights- shouldn't change the survival, but will
 > #    halve the variance
-> temp2 <-survfit(Surv(aml$time, aml$status)~1, weight=rep(2,23))
+> temp2 <-survfit(Surv(aml$time, aml$status)~1, weights=rep(2,23))
 > temp  <-survfit(Surv(time, status)~1, aml)
 > aeq(temp$surv, temp2$surv)
 [1] TRUE
@@ -178,4 +178,4 @@ n= 23, number of events= 18
 > 
 > proc.time()
    user  system elapsed 
-  0.820   0.028   0.848 
+  0.406   0.032   0.436 

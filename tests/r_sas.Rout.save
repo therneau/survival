@@ -1,7 +1,7 @@
 
-R Under development (unstable) (2020-03-27 r78086) -- "Unsuffered Consequences"
-Copyright (C) 2020 The R Foundation for Statistical Computing
-Platform: x86_64-pc-linux-gnu (64-bit)
+R Under development (unstable) (2024-04-17 r86441) -- "Unsuffered Consequences"
+Copyright (C) 2024 The R Foundation for Statistical Computing
+Platform: aarch64-unknown-linux-gnu
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -191,7 +191,7 @@ Weibull shape 1.36299929 0.37861      0.79077       2.34933
 > crack2 <- with(cracks, data.frame(day1=c(NA, days), day2=c(days, NA),
 +                                   n=c(fail, 167-sum(fail))))
 > cfit <- survreg(Surv(day1, day2, type='interval2') ~1, 
-+                 dist='weibull', data=crack2, weight=n)
++                 dist='weibull', data=crack2, weights=n)
 > 
 > summary(cfit)
 
@@ -432,4 +432,4 @@ null device
 > 
 > proc.time()
    user  system elapsed 
-  3.004   0.053   3.048 
+  1.224   0.016   1.238 

@@ -1,7 +1,7 @@
 
-R version 2.10.0 (2009-10-26)
-Copyright (C) 2009 The R Foundation for Statistical Computing
-ISBN 3-900051-07-0
+R Under development (unstable) (2024-04-17 r86441) -- "Unsuffered Consequences"
+Copyright (C) 2024 The R Foundation for Statistical Computing
+Platform: aarch64-unknown-linux-gnu
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -18,7 +18,6 @@ Type 'q()' to quit R.
 > options(na.action=na.exclude) # preserve missings
 > options(contrasts=c('contr.treatment', 'contr.poly')) #ensure constrast type
 > library(survival)
-Loading required package: splines
 > 
 > # Create a "counting process" version of the simplest test data set
 > #
@@ -40,10 +39,10 @@ Loading required package: splines
 > fit  <- coxph(Surv(time, status) ~x, test1)
 > fit0b <- coxph(Surv(start, stop, status) ~ x, test1b, iter=0)
 > fitb  <- coxph(Surv(start, stop, status) ~x, test1b)
-> fitc  <- coxph(Surv(time, status) ~ offset(fit$coef*x), test1)
-> fitd  <- coxph(Surv(start, stop, status) ~ offset(fit$coef*x), test1b)
+> fitc  <- coxph(Surv(time, status) ~ offset(fit$coefficients*x), test1)
+> fitd  <- coxph(Surv(start, stop, status) ~ offset(fit$coefficients*x), test1b)
 > 
-> aeq(fit0b$coef, fit0$coef)
+> aeq(fit0b$coefficients, fit0$coefficients)
 [1] TRUE
 > 
 > aeq(resid(fit0), resid(fit0b, collapse=test1b$id))
@@ -74,3 +73,6 @@ Loading required package: splines
 > 
 > 
 > 
+> proc.time()
+   user  system elapsed 
+  0.436   0.012   0.445 

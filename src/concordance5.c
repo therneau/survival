@@ -179,7 +179,7 @@ SEXP concordance6(SEXP y, SEXP x2, SEXP wt2, SEXP timewt2,
                 jj = sort2[j];
                 ndeath++; 
                 jj = sort2[j];
-                count[3] += wt[jj] * dwt;  /* update total tied on y */
+                count[3] += wt[jj] * dwt *adjtimewt; /* update total tied on y */
                 dwt += wt[jj];   /* count of deaths and sum of wts */
 
                 if (x[jj] != xsave) {  /* restart the tied.xy counts */

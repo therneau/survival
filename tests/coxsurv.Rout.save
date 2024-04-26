@@ -1,7 +1,7 @@
 
-R Under development (unstable) (2023-05-10 r84417) -- "Unsuffered Consequences"
-Copyright (C) 2023 The R Foundation for Statistical Computing
-Platform: x86_64-pc-linux-gnu (64-bit)
+R Under development (unstable) (2024-04-17 r86441) -- "Unsuffered Consequences"
+Copyright (C) 2024 The R Foundation for Statistical Computing
+Platform: aarch64-unknown-linux-gnu
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -74,7 +74,7 @@ Type 'q()' to quit R.
 > 
 > # Test out offsets, which have recently become popular due to a Langholz paper
 > fit1 <- coxph(Surv(time, status) ~ age + ph.ecog, lung)
-> fit2 <- coxph(Surv(time, status) ~ age + offset(ph.ecog * fit1$coef[2]), lung)
+> fit2 <- coxph(Surv(time, status) ~ age + offset(ph.ecog * fit1$coefficients[2]), lung)
 >  
 > surv1 <- survfit(fit1, newdata=data.frame(age=50, ph.ecog=1))
 > surv2 <- survfit(fit2, newdata=data.frame(age=50, ph.ecog=1))
@@ -84,10 +84,10 @@ Type 'q()' to quit R.
 > # And a model with only offsets.
 > eta <- cbind(lung$age, lung$ph.ecog) %*% coef(fit1)
 > fit3 <- coxph(Surv(time, status) ~ offset(eta), lung)
-> aeq(fit3$log, fit1$log[2])
+> aeq(fit3$loglik, fit1$loglik[2])
 [1] TRUE
 > 
-> surv3 <- survfit(fit3, newdata=data.frame(eta= 50*fit1$coef[1] + fit1$coef[2]))
+> surv3 <- survfit(fit3, newdata=data.frame(eta= 50*fit1$coefficients[1] + fit1$coefficients[2]))
 > all.equal(surv3$surv, surv1$surv)
 [1] TRUE
 > 
@@ -97,11 +97,11 @@ Type 'q()' to quit R.
 > surv3 <- survfit(fit1, newdata=data.frame(age=50, ph.ecog=1),
 +                  start.time=100)
 > index <- match(surv3$time, surv1$time)
-> rescale <- summary(surv1, time=100)$surv
+> rescale <- summary(surv1, times=100)$surv
 > all.equal(surv3$surv, surv1$surv[index]/rescale)
 [1] TRUE
 > 
 > 
 > proc.time()
    user  system elapsed 
-  0.947   0.094   1.032 
+  0.407   0.036   0.440 

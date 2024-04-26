@@ -111,15 +111,17 @@ SEXP fastkm1(SEXP y2, SEXP wt2, SEXP sort2) {
 
 /*
 ** The case of start-stop data.  
-** G will be incorrect here, so don't compute it.
-** The reason is that a subject with two rows of (0,5) (5,10) will get counted
-**   as a censor at time 5, when they were not; to solve this the parent would
-**   need to recode the status as censor/event/ignore.  Concordance currently
-**   does not do that. The case of delayed entry is even more subtle. 
+** G (censoring distribution) will be incorrect here, so don't compute it.
+** The first reason is that G is conceptually difficult for me when there is
+**   delayed entry.  Should someone late get credit for avoiding censoring before
+**   they enrolled, G(t), or only for censorings after, G(t)/G(entry)?
+** The second is that the below was written before I refined the survflag routine
+**   to deal with the not-actually-censoring at 6 and 15 of a (0,6)(6,15)(15,30)
+**   subject
 **  We do need number at risk and S(t-).
 */
 SEXP fastkm2(SEXP y2, SEXP wt2, SEXP sort12, SEXP sort22) {
-    int i, k, p1, p2;
+    int i, j, k, p1, p2;
     int n, nevent;
     int dfirst;
     double *tstart, *tstop, *status, *wt;
@@ -141,38 +143,40 @@ SEXP fastkm2(SEXP y2, SEXP wt2, SEXP sort12, SEXP sort22) {
     sort1 = INTEGER(sort12);
 
     /*
-    ** Pass 1, find the number of unique event times
+    ** Pass 1, find the number at risk and number of events, at each unique
+    ** event time.
     **  Data was sorted by reverse time: for a tied censor/death the
     **  censors are found first.
-    ** Save the number at risk, for later use.  We want to accumulate this
-    **  from oldest to newest, to avoid any roundoff error.
-    ** The number of tied deaths (dcount), censors (ccount), and the time of
-    **  the event (etime) are accumulated at the same time.
     */
     dtime = tstop[sort2[0]];  /* most recently found death time */
-    dfirst = 1;
     nevent = 0;
-    ntemp = 0;  dtemp =0;
+    ntemp = 0;  
     ncount = (double *) ALLOC(n, sizeof(double));  /*n at risk */
     dcount = (double *) ALLOC(n, sizeof(double));  /* number of deaths */
     k=0;  /* tracks removals */
-    for (i=0; i<n; i++) {
+    for (i=0; i<n;) {
 	p2 = sort2[i];
-	if (dtime != tstop[p2]) dtemp =0;
-	ntemp += wt[p2];
-	if (status[p2] ==1)  dtemp += wt[p2];
-	ncount[i] = ntemp;
-	dcount[i] = dtemp;
-	if (status[p2]==1 && (dfirst==1 || dtime != tstop[p2])) {
-	    dtime = tstop[p2];  /* set to the new value*/
-	    dfirst =0;   
-	    nevent++;
-	    for (; k<n; k++) {
-		p1 = sort1[k];
-		if (tstart[p1] >= dtime) ntemp -= wt[p1];
-		else break;
-	    }
+	dtime = tstop[p2];
+	/* first remove any who are no longer at risk */
+	for (; k<n; k++) {
+	    p1 = sort1[k];
+	    if (tstart[p1] >= dtime) ntemp -= wt[p1];
+	    else break;
 	}
+	
+	/* add up deaths over ties at this time */
+	dtemp =0;
+	for( ; i<n; i++) {
+	    p2 = sort2[i];
+	    if (dtime != tstop[p2]) break;
+
+	    ntemp += wt[p2];
+	    if (status[p2] ==1)  dtemp += wt[p2];
+	    /* Note: only the value at the last of a set of tied times is used*/
+	    ncount[i] = ntemp;
+	    dcount[i] = dtemp;
+	}
+	if (dtemp >0) nevent++;
     }
     
     /*
@@ -188,11 +192,10 @@ SEXP fastkm2(SEXP y2, SEXP wt2, SEXP sort12, SEXP sort22) {
 
     /* 
     ** Pass 2: Create the lagged survival curve
-    ** 1. Whenver we see a new event time
+    ** Whenver we see a new event time
     **    a. write out the number at risk, current values of S.
-    **    b. update the value of S.
-    ** 2. At each new censoring time, update the value of G.  For a tied
-    **    event and censoring, censors come after events.
+    **    b. write out the event time
+    **    c. update the value of S.
     */
     k=0;  /* counts the output values */
     stemp =1;

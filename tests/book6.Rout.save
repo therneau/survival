@@ -1,7 +1,7 @@
 
-R Under development (unstable) (2020-02-28 r77869) -- "Unsuffered Consequences"
-Copyright (C) 2020 The R Foundation for Statistical Computing
-Platform: x86_64-pc-linux-gnu (64-bit)
+R Under development (unstable) (2024-04-17 r86441) -- "Unsuffered Consequences"
+Copyright (C) 2024 The R Foundation for Statistical Computing
+Platform: aarch64-unknown-linux-gnu
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -98,34 +98,34 @@ Type 'q()' to quit R.
 [1] TRUE
 > aeq(1/truth0$imat, fit0$var)
 [1] TRUE
-> aeq(truth0$mart, fit0$resid)
+> aeq(truth0$mart, fit0$residuals)
 [1] TRUE
-> aeq(truth0$scho, resid(fit0, 'schoen'))
+> aeq(truth0$schoen, resid(fit0, 'schoen'))
 [1] TRUE
 > aeq(truth0$score, resid(fit0, 'score')) 
 [1] TRUE
 > sfit <- survfit(fit0, list(x=pi), censor=FALSE)
-> aeq(sfit$std.err^2, truth0$var)  
+> aeq(sfit$std.err^2, truth0$varhaz)  
 [1] TRUE
 > aeq(-log(sfit$surv), cumsum(truth0$hazard)[c(1,4,5)]) 
 [1] TRUE
 > 
-> truth <- byhand(fit$coef, .3)
+> truth <- byhand(fit$coefficients, .3)
 > aeq(truth$loglik, fit$loglik[2])
 [1] TRUE
 > aeq(1/truth$imat, fit$var)
 [1] TRUE
-> aeq(truth$mart, fit$resid)
+> aeq(truth$mart, fit$residuals)
 [1] TRUE
-> aeq(truth$scho, resid(fit, 'schoen'))
+> aeq(truth$schoen, resid(fit, 'schoen'))
 [1] TRUE
 > aeq(truth$score, resid(fit, 'score'))
 [1] TRUE
 > 
 > sfit <- survfit(fit, list(x=.3), censor=FALSE)
-> aeq(sfit$std.err^2, truth$var)  
+> aeq(sfit$std.err^2, truth$varhaz)  
 [1] TRUE
-> aeq(-log(sfit$surv), (cumsum(truth$hazard)* exp(fit$coef*.3))[c(1,4,5)]) 
+> aeq(-log(sfit$surv), (cumsum(truth$hazard)* exp(fit$coefficients*.3))[c(1,4,5)]) 
 [1] TRUE
 > 
 > 
@@ -187,4 +187,4 @@ Score (logrank) test = 1.58  on 1 df,   p=0.2
 > 
 > proc.time()
    user  system elapsed 
-  0.891   0.068   0.952 
+  0.440   0.024   0.462 

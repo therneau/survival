@@ -1,3 +1,5 @@
 *.o
 *~
 *.so
+noweb/code.nw
+noweb/code.tex

@@ -1,7 +1,7 @@
 
-R Under development (unstable) (2021-01-28 r79896) -- "Unsuffered Consequences"
-Copyright (C) 2021 The R Foundation for Statistical Computing
-Platform: x86_64-pc-linux-gnu (64-bit)
+R Under development (unstable) (2024-04-17 r86441) -- "Unsuffered Consequences"
+Copyright (C) 2024 The R Foundation for Statistical Computing
+Platform: aarch64-unknown-linux-gnu
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -89,7 +89,7 @@ Type 'q()' to quit R.
 [1] TRUE
 > aeq(1/truth0$imat, fit0$var)
 [1] TRUE
-> aeq(truth0$mart, fit0$resid)
+> aeq(truth0$mart, fit0$residuals)
 [1] TRUE
 > aeq(truth0$scho, resid(fit0, 'schoen'))
 [1] TRUE
@@ -115,14 +115,14 @@ Type 'q()' to quit R.
 [1] TRUE
 > aeq(1/truth$imat, fit$var)
 [1] TRUE
-> aeq(truth$mart, fit$resid)
+> aeq(truth$mart, fit$residuals)
 [1] TRUE
 > aeq(truth$scho, resid(fit, 'schoen'))
 [1] TRUE
 > aeq(truth$score, resid(fit, 'score'))
 [1] TRUE
 > expect <- predict(fit, type='expected', newdata=test2) #force recalc
-> aeq(test2$event -fit$resid, expect) #tests the predict function
+> aeq(test2$event -fit$residuals, expect) #tests the predict function
 [1] TRUE
 > 
 > sfit <- survfit(fit, list(x=0), censor=FALSE)
@@ -144,7 +144,7 @@ Type 'q()' to quit R.
 [1] TRUE
 > aeq(3*truth0$imat, 1/fit0$var)
 [1] TRUE
-> aeq(rep(truth0$mart,3), fit0$resid)
+> aeq(rep(truth0$mart,3), fit0$residuals)
 [1] TRUE
 > aeq(rep(truth0$scho,3),  resid(fit0, 'schoen'))
 [1] TRUE
@@ -153,7 +153,7 @@ Type 'q()' to quit R.
 > 
 > fit1 <- coxph(Surv(start, stop, event) ~ x + strata(group), test2b, 
 +               iter=1, method="breslow")
-> aeq(fit1$coef, beta1)
+> aeq(fit1$coefficients, beta1)
 [1] TRUE
 > 
 > fit3 <- coxph(Surv(start, stop, event) ~x + strata(group),
@@ -162,7 +162,7 @@ Type 'q()' to quit R.
 [1] TRUE
 > aeq(3*truth$imat, 1/fit3$var)
 [1] TRUE
-> aeq(rep(truth$mart,3), fit3$resid)
+> aeq(rep(truth$mart,3), fit3$residuals)
 [1] TRUE
 > aeq(rep(truth$scho,3), resid(fit3, 'schoen'))
 [1] TRUE
@@ -301,4 +301,4 @@ Call: survfit(formula = fit, newdata = list(x = 2))
 > 
 > proc.time()
    user  system elapsed 
-  1.079   0.084   1.165 
+  0.467   0.020   0.484 

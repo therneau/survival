@@ -1,7 +1,7 @@
 
-R Under development (unstable) (2018-04-09 r74565) -- "Unsuffered Consequences"
-Copyright (C) 2018 The R Foundation for Statistical Computing
-Platform: x86_64-pc-linux-gnu (64-bit)
+R Under development (unstable) (2024-04-17 r86441) -- "Unsuffered Consequences"
+Copyright (C) 2024 The R Foundation for Statistical Computing
+Platform: aarch64-unknown-linux-gnu
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -50,7 +50,7 @@ Type 'q()' to quit R.
 > temp <- levels(solder$Mask)
 > tpreda <- matrix(0., nrow(tdata), length(temp),
 +                  dimnames=list(NULL, temp))
-> for (i in seq(along=temp)) {
+> for (i in seq_along(temp)) {
 +     tdata$Mask <- temp[i]
 +     suppressWarnings(tpreda[,i] <- predict(fit2, newdata=tdata))
 +  }
@@ -62,7 +62,7 @@ Type 'q()' to quit R.
 > temp <- levels(solder$Opening)
 > tpredb <- matrix(0., nrow(tdata), length(temp),
 +                  dimnames=list(NULL, temp))
-> for (i in seq(along=temp)) {
+> for (i in seq_along(temp)) {
 +     tdata$Opening <- temp[i]
 +     suppressWarnings(tpredb[,i] <- predict(fit2, newdata=tdata))
 +  }
@@ -82,7 +82,7 @@ Type 'q()' to quit R.
 > tdata <- solder
 > tpredd <- matrix(0, nrow(tdata), length(temp),
 +                  dimnames=list(NULL, temp))
-> for (i in seq(along=temp)) {
+> for (i in seq_along(temp)) {
 +     tdata$Solder[] <- temp[i]
 +     suppressWarnings(tpredd[,i] <- predict(fit2, newdata=tdata))
 + }
@@ -103,7 +103,7 @@ Type 'q()' to quit R.
 > temp <- levels(solder$Mask)
 > cpred <- matrix(0., nrow(tdata), length(temp),
 +                  dimnames=list(NULL, temp))
-> for (i in seq(along=temp)) {
+> for (i in seq_along(temp)) {
 +     tdata$Mask <- temp[i]
 +     suppressWarnings(cpred[,i] <- predict(fit3, newdata=tdata))
 +  }
@@ -142,4 +142,4 @@ Type 'q()' to quit R.
 > 
 > proc.time()
    user  system elapsed 
-  1.004   0.032   1.034 
+  0.490   0.008   0.495 
