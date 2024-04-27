@@ -1,92 +1,55 @@
-Proper variance for yates survival curve
+Outside input appreciated:
 
-Robust variance for multi-state Cox survival
+Deal with variables that have spaces, e.g.
+   survfit( Surv(time, status) ~ `bad idea for a name`, data=yourdata)
+I never use such things so it has been low on my list, but some others do.  I think that the heart of the issue is in the strata() function, and may just need smarter use of text manipulation tools when building the strata label.  This overlaps with issue 232
 
-survfit.coxph does not correctly save p0 if differnt data= arguments would
-lead to a differnt p0.  But when would they?  p0 is an unweighted mean.  This
-just needs a bit more thought.  What isn't done is to save p0 when using a
-single subsript for a multidim object -- not sure what to do there.  Hopefully
-people won't use that feature
+Add include.lowest option to tcut(), to make it align with cut().
 
-Reliability models vignette
+confint method for coxph objects that uses profile likelihood. Standard +-1.96*se intervals acually work very well for the Cox model, so I don't expect it to matter a lot, but it is a user request
 
-Update iteration for penalized models wrt the changes in version 2.44.
-actually - rewrite the penalized models
+Depricate survConcordance.  The replacement concordance function handles a wider range of models and has a superior variance.  But there are a bunch of packages that use it, and they will need coaxing/help with the conversion. 
 
-add design of the survival library document to vignettes
+coxph still returns the Splus style assign attribute.  It's overdue to change.
 
-include.lowest for tcut (first find out what the issue is)
+If you fit a coxph model fit <- coxph(Surv(time, status) ~ x1 + x2, data1)
+then predict(fit, newdata=data2), x1 is a factor, and the levels of the factor for data2 have values not in data1, this should give an clear error message.  This hasn't been checked out for all newdata cases, i.e., predict, survfit, and concordance.  Also test cases for when they are valid, but either a subset or in a different order.
 
-add "fun" to summary.survfit (really want this?)
- 
-confint method for coxph objects that uses profile likelihood.  (But will it
-actually matter?)
+-----
 
-deal with variables that have spaces, e.g.,  Surv(time, status) ~ `bad name`
+Bugs:
+ cox.zph for a model with robust variance has incorrect confidence intervals on curves.  This is a result of a change over a year ago; the math behind this is still a bit opaque to me.
 
----
+And see the list of open issues
+
+------
+
+Harder tasks:
+
+Predict method for multi-state coxph model. The computational core is I think mostly simple, i.e., stacker() is needed to rebuild the X matrix.  Less clear is what a user would want the output to look like, which needs some thought.  
+
+residuals.survfit for curves from a multi-state Cox model.  This is needed for variance estimates.  (Hard, I think)
+
+predict(coxmodel, type='surv') needs to redfined.  Type= 'expected' is good, it is the cumulative hazard for each subject at their own follow-up time; it has strong connections to counting processes and to standardized incidence ratios. The type=surv is simply exp(-expected).  A.I've never found a use for it and B. users want (and constantly mistake it for) the predicted survival at some fixed time tau.  Give the users what they want by adding a time= argument and calling survfit under the covers.
+
+Proper variance for yates survival curve.  Think about a discussion with the emmeans package, whether they could inherit some of what yates tries to do.
+
+Reliability models vignette.
+
+Rewrite the penalized models code.  
+
+Add the design of the survival library document to vignettes
+
+Add likeihood displacement residuals?
 Cook and Lawless, Multistate models for life history data, page 104, just above 
-section 3.5.2.  State that  
+section 3.5.2.  States that  
   $\hat \theta - \hat\theta_{(i)} \approx V U_i$
 where $V$ is the Cox model variance.
-This is my formula for the dfbeta residuals.  Thay also state that
+This is my formula for the dfbeta residuals.  They also state that
  $LD_i = 2(loglik(\theta) - loglik(\theta_{(i)}) = U'_i V U_i $
 
 This appears to be Han Van H's likelihood displacement residual and would lead
 to the cross-validated log-likelhood?   They are talking about parametric
 models though.
 
-----------------
-
-Depricate survConcordance.  Issues that may arise:
-
-Functions that use survConcordance:
-CatPredi: survConcordance.fit
-messina:  survConcordance.fit
-distcomp:  ""
-
-These use survConcordance()$concordance
-palasso
-ePCR
-ncvreg
-MXM
-compound.Cox
-survminer
-
-These include my survproto.h, but don't seem to use concordance1/2
-KMgene, distcomp, seqMeta
-
-survBootOutliers uses cox_object$concordance with C/(C+D), and does not notice
-the issue of strata.  
-
----------
-coxph still returns the Splus style assign.  It's time to give it up.
-
-outside: a covariate with variance=0 in all the risk sets leads to a
-	 "contact the author" message
----
-
-Request to add a row for the entry times in the survfit object:
-"Dear Terry,
-the issue came from clinicians who complained about false counts. These counts are needed in the reporting of survival curves in clinical papers. Of course the exact counts it are not relevant when you just plot a survival curve, but the statistician is in trouble if he has not got these numbers right. 
-I see your point, too, as I know that the code of the survival package is quite complex. Maybe at least warning in the summary output would be helpful so that the user knows that he has to calculate the exact figures by himself.
-Best 
-Franz Quehenberger"
-
-
----
- 
-False values from cox.zph for a model with robust variance
-
----
-
-This fails:
- fit <- coxph(Surv(time, status) ~ .- zed, data1)
- concordance(fit, newdata= data2)
-If a. zed is a factor and b. data2 has levels not in data1
-Strange
-
----
-The predict(coxmodel, type='surv') needs a times= argument. Users don't get
-what they expect, at present.   And what is there now is not useful.
 
