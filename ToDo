@@ -30,8 +30,6 @@ Predict method for multi-state coxph model. The computational core is I think mo
 
 residuals.survfit for curves from a multi-state Cox model.  This is needed for variance estimates.  (Hard, I think)
 
-predict(coxmodel, type='surv') needs to redfined.  Type= 'expected' is good, it is the cumulative hazard for each subject at their own follow-up time; it has strong connections to counting processes and to standardized incidence ratios. The type=surv is simply exp(-expected).  A.I've never found a use for it and B. users want (and constantly mistake it for) the predicted survival at some fixed time tau.  Give the users what they want by adding a time= argument and calling survfit under the covers.
-
 Proper variance for yates survival curve.  Think about a discussion with the emmeans package, whether they could inherit some of what yates tries to do.
 
 Reliability models vignette.

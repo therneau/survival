@@ -44,12 +44,16 @@ survfitKM <- function(x, y, weights=rep(1.0,length(x)),
     xlev <- levels(x)   # Will supply names for the curves
     x <- as.integer(x)  # keep the integer index
 
-    if (missing(start.time)) time0 <- min(0, y[,ny-1])
-    else time0 <- start.time
+    if (missing(start.time)) t0 <- min(0, y[,-ny])
+    else {
+        if (!is.numeric(start.time) || length(start.time) > 1)
+            stop("start.time must be a single numeric value")
+        t0 <- start.time
+    }
     # delete obs if necessary that fall entirely before the staring time
     #  (do this before the robust/cluster/id logic
     #  below, else we could mess up the clname variable
-    keep <- y[,ny-1] >= time0
+    keep <- y[,ny-1] >= t0
     if (!all(keep)) {
         if (!any(keep)) stop("all observations removed by start.time")
         y <- y[keep,,drop=FALSE]
@@ -359,6 +363,6 @@ survfitKM <- function(x, y, weights=rep(1.0,length(x)),
         }
     }
 
-    if (!missing(start.time)) rval$t0 <- start.time
+    rval$t0 <- t0
     rval  
 }

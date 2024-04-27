@@ -130,9 +130,11 @@ survfit.coxph <-
       if (!type %in% c("right", "counting", "mright", "mcounting"))
           stop("Cannot handle \"", type, "\" type survival data")
 
-      if (!missing(start.time)) {
+      if (missing(start.time)) t0 <- min(c(0, Y[,-ncol(Y)]))
+      else {
           if (!is.numeric(start.time) || length(start.time) > 1)
               stop("start.time must be a single numeric value")
+          t0 <- start.time
           # Start the curves after start.time
           # To do so, remove any rows of the data with an endpoint before that
           #  time.
@@ -161,7 +163,7 @@ survfit.coxph <-
           xcenter <- offset.mean
           coef <- 0.0
           varmat <- matrix(0.0, 1, 1)
-          risk <- rep(exp(offset- offset.mean), length.out=n)
+          risk <- rep(exp(offset- offset.mean), length=n)
       }
       else {
           varmat <- object$var

@@ -274,9 +274,11 @@ type <- attr(Y, 'type')
 if (!type %in% c("right", "counting", "mright", "mcounting"))
     stop("Cannot handle \"", type, "\" type survival data")
 
-if (!missing(start.time)) {
+if (missing(start.time)) t0 <- min(c(0, Y[,-ncol(Y)]))
+else {
     if (!is.numeric(start.time) || length(start.time) > 1)
         stop("start.time must be a single numeric value")
+    t0 <- start.time
     # Start the curves after start.time
     # To do so, remove any rows of the data with an endpoint before that
     #  time.

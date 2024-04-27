@@ -84,7 +84,7 @@ The following components must be included in a legitimate
   \item{lower}{options 
     lower confidence limit for the survival curve or pstate
   }
-  \item{t0}{for multi-state curves,the starting time for the curve}
+  \item{t0}{optional, the starting time for the curve}
   \item{p0, sp0}{for a multistate object, the distribution of starting
     states.  If the curve has a strata dimension, this will be a matrix
     one row per stratum.  The \code{sp0} element has the standard error
