@@ -10,6 +10,9 @@
     \item Begin movement of many vignettes to the survivalVignettes
     package. See the "other vignettes" vignette stub for more
     information.
+    \item Fix error in predict.coxph pointed out by Julianna
+    Harwood. Add text to help file to clarify prediction at per-subject
+    vs a global time.  Add new test file.
 }}
 \section{Changes in version 3.6.4}{
   \itemize{

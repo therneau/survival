@@ -76,21 +76,20 @@ Second, downstream calculations depend on the risk score exp(linear
 predictor), which will fall prey to numeric overflow for a linear
 predictor greater than \code{.Machine\$double.max.exp}.
 The \code{coxph} routines try to approximately center the predictors out
-of self protection.
+of self protection.  
 Using the \code{reference="strata"} option is the safest centering,
 since strata occassionally have different means.
 When the results of \code{predict} are used in further calculations it
 may be desirable to use a single reference level for all observations.
-Use of \code{reference="sample"} will use the overall means, and agrees
-with the \code{linear.predictors} component of the coxph object (which
-uses the overall mean for backwards compatability with older code).
+Use of \code{reference="sample"} will use \code{object$means}, which agrees
+with the \code{linear.predictors} component of the coxph object.
 Predictions of \code{type="terms"} are almost invariably passed
 forward to further calculation, so for these we default to using
 the sample as the reference.
 A reference of \code{"zero"} causes no centering to be done.
 
-Predictions of type "expected" incorporate the baseline hazard and are
-thus absolute instead of relative; the
+Predictions of type "expected" or "survival" incorporate the baseline
+hazard and are thus absolute instead of relative; the
 \code{reference} option has no effect on these.
 These values depend on the follow-up time for the future subjects as
 well as covariates so the \code{newdata} argument needs to include both
@@ -100,7 +99,19 @@ underlying code needs to reconstruct the entire formula.)
 
 Models that contain a \code{frailty} term are a special case: due
 to the technical difficulty, when there is a \code{newdata} argument the
-predictions will always be for a random effect of zero.  
+predictions will always be for a random effect of zero.
+
+For predictions of type expected a user will normally want to use
+\eqn{\Lambda(t_i)}{H(t[i])}, i.e., the cumulative hazard at the individual
+follow-up time \eqn{t_i}{t[i]}of each individual subject.
+This is E in the martingale residual O-E and plays a natural role in
+assessments of model validation (Crowson 2016).
+For predictions of type survival, on the other hand, a user
+will normally want S(tau), where tau is a single pre-specified time
+point which is the same for all subjects, e.g., predicted 5 year
+survival.  The \code{newdata} data set should contain actual survival
+time(s) for each subject for the first case, as the survival time variable(s),
+and the target time tau in the second case; (0, tau) for (time1, time2) data.
 }
 \note{
 Some predictions can be obtained directly from the coxph object, and for
@@ -137,5 +148,10 @@ predict(fit,type="terms",se.fit=TRUE)
 # For someone who demands reference='zero'
 pzero <- function(fit)
   predict(fit, reference="sample") + sum(coef(fit) * fit$means, na.rm=TRUE)
+}
+\references{
+  C Crowson, E Atkinson and T Therneau, 
+    Assessing calibration of prognostic risk scores,
+    Stat Methods Med Res, 2016.
 }
 \keyword{survival}

@@ -377,14 +377,14 @@ for (i in ustrata) {
             pred[indx2] <- (chaz2 - chaz) * newrisk[indx2]
         
             if (se.fit) {
-                varh2 <- c(0, cumsum(afit$varhaz))[j1+1]
-                xbar2 <- rbind(0, afit$xbar)[j1+1,,drop=F]
+                varh2 <- c(0, cumsum(afit$varhaz))[j2+1]
+                xbar2 <- rbind(0, afit$xbar)[j2+1,,drop=F]
                 dt <- (chaz * newx[indx2,]) - xbar
                 dt2 <- (chaz2 * newx[indx2,]) - xbar2
 
                 v2 <- varh2 + rowSums((dt2 %*% object$var) *dt2)
                 v1 <- varh +  rowSums((dt %*% object$var) *dt)
-                se[indx2] <- sqrt(v2-v1)* risk[indx2]
+                se[indx2] <- sqrt(v2-v1)* newrisk[indx2]
                 }
             }
         }

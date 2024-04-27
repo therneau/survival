@@ -129,13 +129,13 @@ predict.coxph <- function(object, newdata,
             else newstrat <- factor(newstrat, levels=levels(oldstrat)) #give it all
             if (length(strat.term$terms))
                 newx <- model.matrix(Terms2[-strat.term$terms], mf2,
-                             contrasts.arg=object$contrasts)[,-1,drop=FALSE]
+                             contr=object$contrasts)[,-1,drop=FALSE]
             else newx <- model.matrix(Terms2, mf2,
-                             contrasts.arg=object$contrasts)[,-1,drop=FALSE]
+                             contr=object$contrasts)[,-1,drop=FALSE]
              }
         else {
             newx <- model.matrix(Terms2, mf2,
-                             contrasts.arg=object$contrasts)[,-1,drop=FALSE]
+                             contr=object$contrasts)[,-1,drop=FALSE]
             newstrat <- rep(0L, nrow(mf2))
             }
 
@@ -161,7 +161,7 @@ predict.coxph <- function(object, newdata,
             else {
                 pred <- se <- double(nrow(mf2))
                 newx <- newx - rep(object$means, each=nrow(newx))
-                newrisk <- c(exp(newx %*% object$coefficients) + newoffset)
+                newrisk <- c(exp(newx %*% object$coef) + newoffset)
                 }
 
             survtype<- ifelse(object$method=='efron', 3,2)
@@ -225,14 +225,14 @@ predict.coxph <- function(object, newdata,
                         pred[indx2] <- (chaz2 - chaz) * newrisk[indx2]
                     
                         if (se.fit) {
-                            varh2 <- c(0, cumsum(afit$varhaz))[j1+1]
-                            xbar2 <- rbind(0, afit$xbar)[j1+1,,drop=F]
+                            varh2 <- c(0, cumsum(afit$varhaz))[j2+1]
+                            xbar2 <- rbind(0, afit$xbar)[j2+1,,drop=F]
                             dt <- (chaz * newx[indx2,]) - xbar
                             dt2 <- (chaz2 * newx[indx2,]) - xbar2
 
                             v2 <- varh2 + rowSums((dt2 %*% object$var) *dt2)
                             v1 <- varh +  rowSums((dt %*% object$var) *dt)
-                            se[indx2] <- sqrt(v2-v1)* risk[indx2]
+                            se[indx2] <- sqrt(v2-v1)* newrisk[indx2]
                             }
                         }
                     }
@@ -298,7 +298,7 @@ predict.coxph <- function(object, newdata,
                 tt <- asgn[[i]]
                 tt <- tt[!is.na(object$coefficients[tt])]
                 xtt <- newx[,tt, drop=F]
-                pred[,i] <- xtt %*% object$coefficients[tt]
+                pred[,i] <- xtt %*% object$coefficient[tt]
                 if (se.fit)
                     se[,i] <- sqrt(rowSums((xtt %*% object$var[tt,tt]) *xtt))
                 }
