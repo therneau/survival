@@ -12,7 +12,9 @@
     information.
     \item Fix error in predict.coxph pointed out by Julianna
     Harwood. Add text to help file to clarify prediction at per-subject
-    vs a global time.  Add new test file.
+    vs a global time.  Add new test file predsurv.R
+    \item Add a data.frame option to summary.survfit and
+    summary.survfitms; it causes the result to be in data frame form.
 }}
 \section{Changes in version 3.6.4}{
   \itemize{
