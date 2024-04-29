@@ -1,0 +1,25 @@
+%
+% The format files for the noweave package
+%  It looks like a short form of Sweave.sty
+%
+\NeedsTeXFormat{LaTeX2e}
+\RequirePackage{fancyvrb,hyperref}
+%forward, backward, and both hyperlinks
+% nwhypf{my label}{text to put here}{label of forward link}
+% nwhypb{my label}{text to put here}{label of backwards link}
+% nwhyp {my label}{text to put here}{label of backwards link}{forward link label}
+\newcommand{\nwhypf}[3]{\hypertarget{#1}{$\langle$\textit{#2}}\hyperlink{#3}{$\rangle$}}
+\newcommand{\nwhypb}[3]{\hyperlink{#3}{$\langle$}\hypertarget{#1}{\textit{#2}$\rangle$}}
+\newcommand{\nwhyp}[4]{\hyperlink{#3}{$\langle$}\hypertarget{#1}{\textit{#2}}\hyperlink{#4}{$\rangle$}}
+% no hyperlink code reference
+\newcommand{\nwhypn}[1]{$\langle$\textit{#1}$\rangle$}
+% dummy out noweboptions, in case someone used them (they are part
+%  of Ramsay's standalone version
+\newcommand{\noweboptions}[1]{}
+% The standard font for ~ used in formulas is ugly, redefine it
+%  to the math mode symbol by making use of an active charcter trick
+% Leave the \, {, and } characters active
+%\newcommand{\twiddle}{\ensuremath{\sim}}
+\newcommand{\twiddle}{\textasciitilde}
+\DefineVerbatimEnvironment{nwchunk}{Verbatim}{commandchars=\\\{\},%
+codes={\catcode`~=\active},defineactive=\def~{\twiddle}}
