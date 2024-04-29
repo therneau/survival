@@ -1,5 +1,6 @@
 \name{summary.survfit}
 \alias{summary.survfit}
+\alias{summary.survfitms}
 \title{
   Summary of a Survival Curve 
 }
@@ -10,7 +11,9 @@
 
 \usage{
   \method{summary}{survfit}(object, times, censored=FALSE, scale=1,
-  extend=FALSE, rmean=getOption('survfit.rmean'), ...)
+  extend=FALSE, rmean=getOption('survfit.rmean'), data.frame=FALSE, ...)
+  \method{summary}{survfitms}(object, times, censored=FALSE, scale=1,
+  extend=FALSE, rmean=getOption('survfit.rmean'), data.frame=FALSE, ...)
   }
 \arguments{
     \item{object}{
@@ -41,12 +44,19 @@
     This is only used if the \code{times} argument is present. 
   }
   \item{rmean}{Show restricted mean: see
-  \code{\link{print.survfit}} for details}
+    \code{\link{print.survfit}} for details}
+  \item{data.frame}{if TRUE, return the results as a data frame, rather
+    than a summary.survfit object}
   \item{\dots}{for future methods}
   }
 
 \value{
-a list with the following components: 
+  if \code{data.frame = TRUE}, a data frame with columns of time,
+  n.risk, n.event, n.censor, surv, cumhaz, strata (if present) and
+  data (the row of newdata for survfit.coxph).  Also std.err, std.chaz,
+  upper and lower if the curve had se.fit=TRUE.
+
+  if \code{data.frame = FALSE}, a list with the following components: 
 
 \item{surv}{
 the estimate of survival at time t+0. 
@@ -120,11 +130,17 @@ In the first case we normally want \code{extend=FALSE}, i.e., don't print out
 data past the end of the curve.  If the \code{times} option only
 contains values beyond the last point in the curve then there is nothing
 to print and an error message will result.
-For the second usage we almost always want \code{extend=TRUE}, so that the
-results will have a predictable length.
+For the second usage we often want \code{extend=TRUE}, so that the
+results will have a predictable length. 
+If \code{data.frame = TRUE} then either might be desired.
+
+For a survfitms object replace the \code{surv} component with
+\code{pstate}.  Also, a data frame will not include the cumulative
+hazard since it has a different multiplicity: one column per transition
+rather than one per state.
 
 The \code{survfit} object itself will have a row of information at each
-censoring or event time, it does not save information on each unique
+censoring or event time, the default is not save information on each unique
 entry time.  For printout at two time points t1, t2, this function will
 give the the number at risk at the smallest event times that are >= t1
 and >= t2, respectively, the survival curve at the largest recorded times

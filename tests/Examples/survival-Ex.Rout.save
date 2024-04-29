@@ -1,7 +1,7 @@
 
-R Under development (unstable) (2024-04-01 r86255) -- "Unsuffered Consequences"
+R Under development (unstable) (2024-04-29 r86493) -- "Unsuffered Consequences"
 Copyright (C) 2024 The R Foundation for Statistical Computing
-Platform: x86_64-pc-linux-gnu
+Platform: aarch64-unknown-linux-gnu
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -2931,7 +2931,7 @@ Score (logrank) test = 13.72  on 2 df,   p=0.001
 > 
 > ### Name: summary.survfit
 > ### Title: Summary of a Survival Curve
-> ### Aliases: summary.survfit
+> ### Aliases: summary.survfit summary.survfitms
 > ### Keywords: survival
 > 
 > ### ** Examples
@@ -3839,7 +3839,7 @@ $terms
 > cleanEx()
 > options(digits = 7L)
 > base::cat("Time elapsed: ", proc.time() - base::get("ptime", pos = 'CheckExEnv'),"\n")
-Time elapsed:  4.664 0.292 4.956 0 0 
+Time elapsed:  2.718 0.085 2.802 0 0 
 > grDevices::dev.off()
 null device 
           1 

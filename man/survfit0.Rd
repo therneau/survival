@@ -8,14 +8,13 @@ Convert the format of a survfit object.
   elements.  This is useful for plotting.
 }
 \usage{
-survfit0(x, start.time)
+survfit0(x, ...)
 }
 \arguments{
   \item{x}{a survfit object}
-  \item{start.time}{optional, a default starting time; see details below.}
+  \item{...}{any other arguments are ignored}
   }
-\value{a reformulated version of the object with an initial data point
-  at \code{start.time} added. 
+\value{a reformulated version of the object with an initial data point added.
   The \code{time}, \code{surv}, \code{pstate}, \code{cumhaz},
   \code{std.err}, \code{std.cumhaz} and other components will all be aligned,
   so as to make plots and summaries easier to produce.
@@ -34,8 +33,11 @@ survfit0(x, start.time)
   Whether that (1989) decision was wise or foolish,
   it is now far too late to change it. (We tried it once as a
   trial, resulting in over 20 errors in the survival test suite.  We
-  extrapolate that it might break 1/3 of the other CRAN packages
+  extrapolated that it might break 1/3 of the other CRAN packages
   that depend on survival, if made a default.)
+  Many curves do include a value \code{t0} for "time 0",
+  which is where the survfit
+  routine has surmised that the curve would start.
     
   One problem with this choice is that some functions must choose a
   starting point, plots and computation of the restricted mean survival
@@ -45,9 +47,7 @@ survfit0(x, start.time)
 
   The value used for this first time point is the first one below
   \enumerate{
-    \item the value of the \code{start.time} argument
-    \item a \code{start.time} argument used in the \code{survfit} call
-    itself
+    \item a \code{t0} value found in the  in the object. 
     \item for single state survival \itemize{
       \item min(0, time) for Surv(time, status) data
       \item min(time1) for Surv(time1, time2, status) data
@@ -57,9 +57,6 @@ survfit0(x, start.time)
       risks
       \item min(time1) for Surv(time1, time2, event) data, if everyone
       starts in the same state
-      \item no addition: the timepoint used to estimate p0, the intial
-      prevalence of states, will already be the first point of the curve.
-      See \code{survfit.formula}
     }
   }
   (Remember that negative times are allowed in Surv objects.)
@@ -71,13 +68,12 @@ survfit0(x, start.time)
   (The question of whether the plotted curve in this case should or
   should not start with a vertical segment can be debated ad nauseum.
   It has no effect on the area under the curve (RMST), and the summary
-  for time 0 should report the smaller value.)  Likewise if the
-  \code{start.time} argument is not prior to a curve's first time point.
+  for time 0 should report the smaller value.) 
 
   The resulting object is \emph{not} currently
   guarranteed to work with functions that further manipulate a
   \code{survfit} object such as subscripting, aggregation, pseudovalues,
   etc. (remember the 20 errors).  Rather it is intended as a penultimate
-  step, most often when creating a plot.
+  step, most often when creating a plot or summary of the curve(s).
 }
 \keyword{survival}

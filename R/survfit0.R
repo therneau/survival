@@ -9,7 +9,7 @@
 #  The influence matrix, if present, is also filled out using i0, if present.
 # Older versions of survfit had included time0 in the influence.
 #
-survfit0 <- function(x, start.time) {
+survfit0 <- function(x, ...) {
     if (!inherits(x, "survfit")) stop("function requires a survfit object")
     # the !is.na is for backwards compatability with a saved object
     if (inherits (x, "survfit0") || (!is.null(x$time0) && x$time0)) return(x)
@@ -21,16 +21,16 @@ survfit0 <- function(x, start.time) {
     if (is.null(x$strata)) insert <- 1   # where to add the zero
     else insert <- unname(1 + cumsum(c(0, x$strata[-length(x$strata)])))
 
-    same <- x$time[insert] == t0  # no row need to be inserted here
+    same <- (x$time[insert] == t0)  # no row need to be inserted here
     insert <- insert[!same]
     if (length(insert)==0) return(x)   # nothing  to do
-
+    # actual work needs to be done
+ 
     if (!is.null(x$strata)) {
         newstrat <- x$strata
         newstrat[!same] <- newstrat[!same] +1
     }
 
-    # actual work needs to be done
     # this adds rows to a vector or matrix, and preserves double/integer
     addto <- function(x, i, z) {
         # i = where to add, z = what to add
@@ -135,7 +135,7 @@ survfit0 <- function(x, start.time) {
                     new$influence[[i]] <- addi0(x$influence[[i]], x$i0[[i]])
             }
         } else new$influence <- addi0(x$influence, x$i0)
-    }
+    }   
 
     if (is.null(new$logse)) {
         # reprise the logic of the older code

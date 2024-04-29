@@ -11,9 +11,10 @@ predict.coxph <- function(object, newdata,
     type <-match.arg(type)
     if (type=="survival") {
         survival <- TRUE
-        type <- "expected"  #this is to stop lots of "or" statements
+        type <- "expected"  # survival and expecte have nearly the same code path
     }
     else survival <- FALSE
+    if (type == "expected") reference <- "sample"  # a common ref is easiest
 
     n <- object$n
     Terms <-  object$terms
@@ -179,8 +180,7 @@ predict.coxph <- function(object, newdata,
                 afit.n <- length(afit$time)
                 if (missing(newdata)) { 
                     # In this case we need se.fit, nothing else
-                    j1 <- approx(afit$time, 1:afit.n, y[indx,1], method='constant',
-                                 f=0, yleft=0, yright=afit.n)$y
+                    j1 <- findInterval(y[indx,1], afit$time)
                     chaz <- c(0, afit$cumhaz)[j1 +1]
                     varh <- c(0, cumsum(afit$varhaz))[j1 +1]
                     xbar <- rbind(0, afit$xbar)[j1+1,,drop=F]
@@ -188,51 +188,46 @@ predict.coxph <- function(object, newdata,
                         dt <- (chaz * x[indx,]) - xbar
                         se[indx] <- sqrt(varh + rowSums((dt %*% object$var) *dt)) *
                             risk[indx]
-                        }
+                    }
                     else {
-                        j2 <- approx(afit$time, 1:afit.n, y[indx,2], method='constant',
-                                 f=0, yleft=0, yright=afit.n)$y
-                        chaz2 <- c(0, afit$cumhaz)[j2 +1]
-                        varh2 <- c(0, cumsum(afit$varhaz))[j2 +1]
-                        xbar2 <- rbind(0, afit$xbar)[j2+1,,drop=F]
+                        j2 <- findInterval(y[indx,2], afit$time)
+                        chaz2 <- c(0, afit$cumhaz)[j2 +1L]
+                        varh2 <- c(0, cumsum(afit$varhaz))[j2 +1L]
+                        xbar2 <- rbind(0, afit$xbar)[j2+ 1L,,drop=F]
                         dt <- (chaz * x[indx,]) - xbar
                         v1 <- varh +  rowSums((dt %*% object$var) *dt)
                         dt2 <- (chaz2 * x[indx,]) - xbar2
                         v2 <- varh2 + rowSums((dt2 %*% object$var) *dt2)
                         se[indx] <- sqrt(v2-v1)* risk[indx]
-                        }
                     }
+                }
 
                 else {
                     #there is new data
                     use.x <- TRUE
                     indx2 <- which(newstrat == i)
-                    j1 <- approx(afit$time, 1:afit.n, newy[indx2,1], 
-                                 method='constant', f=0, yleft=0, yright=afit.n)$y
+                    j1 <- findInterval(newy[indx2,1], afit$time)
                     chaz <-c(0, afit$cumhaz)[j1+1]
                     pred[indx2] <- chaz * newrisk[indx2]
                     if (se.fit) {
                         varh <- c(0, cumsum(afit$varhaz))[j1+1]
                         xbar <- rbind(0, afit$xbar)[j1+1,,drop=F]
-                        }
+                    }
                     if (ncol(y)==2) {
                         if (se.fit) {
                             dt <- (chaz * newx[indx2,]) - xbar
                             se[indx2] <- sqrt(varh + rowSums((dt %*% object$var) *dt)) *
                                 newrisk[indx2]
-                            }
                         }
+                    }
                     else {
-                        j2 <- approx(afit$time, 1:afit.n, newy[indx2,2], 
-                                 method='constant', f=0, yleft=0, yright=afit.n)$y
-                                    chaz2 <- approx(-afit$time, afit$cumhaz, -newy[indx2,2],
-                                   method="constant", rule=2, f=0)$y
-                        chaz2 <-c(0, afit$cumhaz)[j2+1]
+                        j2 <- findInterval(newy[indx2,2], afit$time)
+                        chaz2 <-c(0, afit$cumhaz)[j2+1L]
                         pred[indx2] <- (chaz2 - chaz) * newrisk[indx2]
-                    
+
                         if (se.fit) {
-                            varh2 <- c(0, cumsum(afit$varhaz))[j2+1]
-                            xbar2 <- rbind(0, afit$xbar)[j2+1,,drop=F]
+                            varh2 <- c(0, cumsum(afit$varhaz))[j2 +1L]
+                            xbar2 <- rbind(0, afit$xbar)[j2 + 1L,,drop=F]
                             dt <- (chaz * newx[indx2,]) - xbar
                             dt2 <- (chaz2 * newx[indx2,]) - xbar2
 

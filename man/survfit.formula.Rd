@@ -83,9 +83,18 @@
     The following additional arguments are passed to internal functions
     called by \code{survfit}.
     \describe{
-      \item{se.fit}{logical value, default is TRUE.  If FALSE then
-	standard error computations are omitted.
-	}
+      \item{se.fit}{
+	a logical value indicating whether standard errors should be 
+	computed.  Default is \code{TRUE}. For a multistate model, where
+	the infinitesimal jackknife (robust) standar error is used, the
+	compute time for the standard error is O(ndp) where n = number of
+	observations, d = number of events and p = number of states,
+	while that for all other portions of the output
+	(\code{pstate}, \code{cumhaz} and counts) is O((n+d)p).
+	For a moderate to large data set the compute time difference
+	between nd and n+d can be huge; using \code{se.fit = FALSE} may
+	be a wise choice.
+      }
       \item{conf.type}{
 	One of \code{"none"}, \code{"plain"}, \code{"log"} (the default),
 	\code{"log-log"}, \code{"logit"} or \code{"arcsin"}.  Only
@@ -127,18 +136,6 @@
       \item{conf.int}{
 	the level for a two-sided confidence interval on the survival curve(s). 
 	Default is 0.95. 
-      }
-      \item{se.fit}{
-	a logical value indicating whether standard errors should be 
-	computed.  Default is \code{TRUE}. For a multistate model, where
-	the infinitesimal jackknife (robust) standar error is used, the
-	compute time for the standard error is O(ndp) where n = number of
-	observations, d = number of events and p = number of states,
-	while that for all other portions of the output
-	(\code{pstate}, \code{cumhaz} and counts) is O((n+d)p).
-	For a moderate to large data set the compute time difference
-	between nd and n+d can be huge; using \code{se.fit = FALSE} may
-	be a wise choice.
       }
       \item{influence}{a logical value indicating whether to return the
 	infinitesimal jackknife (influence) values for each subject.

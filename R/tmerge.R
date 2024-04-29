@@ -73,7 +73,7 @@ tmerge <- function(data1, data2, id, ..., tstart, tstop, options) {
             any(is.null(match(tm.retain$tcdname, names(data1)))) ||
             any(is.null(match(tevent$name, names(data1)))))
             stop("tmerge object has been modified, missing variables")
-        for (i in seq_along(tevent$name)) {
+        for (i in seq(along=tevent$name)) {
             ename <- tevent$name[i]
             if (is.numeric(data1[[ename]])) {
                 if (!is.numeric(tevent$censor[[i]]))
@@ -353,7 +353,7 @@ tmerge <- function(data1, data2, id, ..., tstart, tstop, options) {
             icount <- unique(icount)   
             # the icount data frame will be sorted by second column within first
             #  so rle is faster than table
-            n.add <- rle(icount$irow)$lengths # number of rows to add for each id
+            n.add <- rle(icount$irow)$length # number of rows to add for each id
             
             # expand the data 
             irep <- rep.int(1L, nrow(newdata))
