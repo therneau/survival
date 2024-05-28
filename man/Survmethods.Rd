@@ -65,9 +65,11 @@
   \item{\ldots}{other arguments to the method}
 }
 \details{
-   These functions extend the standard methods to \code{Surv} objects.
-   The arguments and results from these are mostly as expected, with the
-   following further details:
+  These functions extend the standard methods to \code{Surv} objects.
+  (There is no central index of R methods, so there may well be useful
+  candidates that the author has missed.)
+  The arguments and results from these are mostly as expected, with the
+  following further details:
    \itemize{
      \item The \code{as.character} function uses "5+" for right censored
      at time 5, "5-" for left censored at time 5, "[2,7]" for an
@@ -82,15 +84,15 @@
      \item The \code{print} and \code{format} methods make use of
      \code{as.character}.
 
-     \item The \code{as.numeric} and \code{as.integer} methods perform
+     \item The \code{as.double} and \code{as.integer} methods perform
      these actions on the survival times, but do not affect the
-     censoring indicator.
+     censoring indicator; \code{as.numeric} is the same as \code{as.double}
 
      \item The \code{as.matrix} and \code{t} methods return a matrix
 
      \item The \code{length} of a \code{Surv} object is the number of
      survival times it contains, not the number of items required to
-     encode it, e.g., \code{x <- Surv(1:4, 5:9, c(1,0,1,0)); length(x)}
+     encode it, e.g., \code{x <- Surv(1:4, 5:8, c(1,0,1,0)); length(x)}
      has a value of 4.
      Likewise \code{names(x)} will be NULL or a vector of length 4.
      (For technical reasons, any names are actually stored in the
@@ -103,12 +105,21 @@
      first construct a survival curve using \code{survfit}, then apply
      the appropriate method to that curve.
 
+     \item The \code{xtfrm} method, which underlies sort and order,
+     sorts by time, with censored after uncensored within a tied time.
+     For an interval censored observation the midpoint is used.
+     For (time1, time2) counting process data, sorting is by time2, censoring,
+     and then time1.
+
+     \item The \code{unique} method treats censored and uncensored
+     observations at the same time as distinct, it returns a Surv object.
+     
     \item The concatonation method \code{c()} is asymmetric, its first
-     argument determines the exection path.  For instance
-     \code{c(Surv(1:4), Surv(5:6))} will concatonate the two objects,
+     argument determines the execution path.  For instance
+     \code{c(Surv(1:4), Surv(5:6))} will return a Surv object of length 6,
      \code{c(Surv(1:4), 5:6)} will give an error, and
      \code{c(5:6, Surv(1:4))} is equivalent to
-     \code{c(5:6, as.vector(Surv(1:4)))}. 
+     \code{c(5:6, as.vector(Surv(1:4)))} which is a numeric of length 10. 
    }
  }
  \seealso{ \code{\link{Surv}}}
