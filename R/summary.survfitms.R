@@ -215,6 +215,7 @@ summary.survfitms <- function(object, times, censored=FALSE,
                                  if (length(x)==0) NULL
                                  else if (is.matrix(x)) as.vector(x)
                                  else rep(x, dd[2])})
+            ndata <- data.frame(ndata)
             if (!is.null(fit$strata)) ndata$strata <- rep(newstrat, dd[2])
             ndata$state <- rep(fit$states, each=dd[1])
         }
