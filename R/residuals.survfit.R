@@ -97,7 +97,7 @@ residuals.survfit <- function(object, times, type= "pstate",
         if (!is.null(object$na.action)) id <- id[-object$na.action]  
     }
 
-   # What type of curve?  # to do, support the old 'type' arg
+   # What type of curve?  # still to do, support the old 'type' arg
     stype <- Call$stype
     if (is.null(stype)) stype <- 1
     ctype <- Call$ctype
@@ -119,6 +119,7 @@ residuals.survfit <- function(object, times, type= "pstate",
             resid <- rowsum(resid*casewt, id, reorder=FALSE)
             dimnames(resid) <- list(id= unique(id), times=timelab)
             curve <- (as.integer(X))[!duplicated(id)] #which curve for each row
+            id <- unique(id)  # keep the unique values
         } else {
             if (weighted && any(casewt !=1)) resid <- resid*casewt
             dimnames(resid) <- list(id=id, times=timelab)
@@ -175,6 +176,7 @@ residuals.survfit <- function(object, times, type= "pstate",
                  dimnames(resid) <- list(id= unique(id), sname, times=timelab)
              else dimnames(resid) <- list(id= unique(id), sname)
              curve <- (as.integer(X))[!duplicated(id)] #which curve for each row
+             id <- unique(id) # keep the unique values
          } else {
              if (weighted && any(casewt != 1)) resid <- resid*casewt
              if (length(times) ==1) dimnames(resid) <- list(id=id, sname)
