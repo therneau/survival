@@ -79,6 +79,7 @@ print.coxph <-
         "\n",  sep="")
     omit <- x$na.action
     cat("n=", x$n)
+    if (!is.null(x$n.id)) cat(", n.id=" x$n.id)
     if (!is.null(x$nevent)) cat(", number of events=", x$nevent, "\n")
     else cat("\n")
     if (length(omit))

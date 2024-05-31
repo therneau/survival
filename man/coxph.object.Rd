@@ -68,6 +68,8 @@ the number of observations used in the fit.
 \item{nevent}{
 the number of events (usually deaths) used in the fit. 
 }
+\item{n.id}{if the call had an \code{id} argument, the number of unique
+  id values}
 \item{concordance}{a vector of length 6, containing the number of pairs
   that are concordant, discordant, tied on x, tied on y, and tied on both,
   followed by the standard error of the concordance statistic.}

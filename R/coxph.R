@@ -136,6 +136,7 @@ coxph <- function(formula, data, weights, subset, na.action,
         istate <- model.extract(mf, "istate")
     }
     if (n==0) stop("No (non-missing) observations")
+    if (length(id) >0) n.id <- length(unique(id))
 
     type <- attr(Y, "type")
     multi <- FALSE
@@ -588,6 +589,7 @@ coxph <- function(formula, data, weights, subset, na.action,
         }
         fit$n <- data.n
         fit$nevent <- sum(Y[,ncol(Y)])
+        if (length(id)>0) fit$n.id <- n.id
         fit$terms <- Terms
         fit$assign <- assign
         class(fit) <- fit$class
