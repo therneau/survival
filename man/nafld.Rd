@@ -3,7 +3,7 @@
 \alias{nafld2}
 \alias{nafld3}
 \docType{data}
-\title{Non-alcohol fatty liver disease}
+\title{Non-alcoholic fatty liver disease}
 \description{
   Data sets containing the data from a population study of non-alcoholic
   fatty liver disease (NAFLD).  Subjects with the condition and a set of
@@ -48,20 +48,25 @@ data(nafld, package="survival")
   }
 }
 \details{
-The primary reference for the NAFLD study is Allen (2018).
-The incidence of non-alcoholic fatty liver disease (NAFLD) has been rising
+The primary reference for this study is Allen (2018).
+Nonalcoholic fatty liver disease (NAFLD) was renamed metabolic
+dysfunction-associated steatotic liver disease (MASLD) in June 2023.
+The new name is intended to better reflect the disease's underlying causes, 
+identify subgroups of patients, and avoid stigmatizing words.
+
+The incidence of MASLD has been rising
 rapidly in the last decade and it is now one of the main drivers of
 hepatology practice \cite{Tapper2018}.
 It is essentially the presence of excess fat in the
 liver, and parallels the ongoing obesity epidemic.
-Approximately 20-25\% of NAFLD patients will develop the inflammatory state
-of non-alcoholic steatohepatitis (NASH), leading to fibrosis 
+Approximately 20-25\% of MASLD patients will develop the inflammatory state
+of metabolic dysfunction associated steatohepatitis (MASH), leading to fibrosis 
 and eventual end-stage liver disease.
-NAFLD can be accurately diagnosed by MRI methods, 
-but NASH diagnosis currently requires a biopsy.
+MASLD can be accurately diagnosed by MRI methods, 
+but MASH diagnosis currently requires a biopsy.
 
 The current study constructed a population cohort of
-all adult NAFLD subjects from 1997 to 2014  along with 4 potential
+all adult MASLD subjects from 1997 to 2014  along with 4 potential
 controls for each case.
 To protect patient confidentiality all time intervals are in days since
 the index date; none of the dates from the original data were retained.

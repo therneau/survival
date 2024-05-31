@@ -417,7 +417,9 @@ as.integer.Surv <- function(x, ...) {
         stop("invalid survival time created")
     x
 }
-as.numeric.Surv <- function(x, ...) {
+
+# per the help file for as.numeric, make the method for as.double
+as.double.Surv <- function(x, ...) {
     nc <- ncol(x)
     x[,-nc] <- as.numeric(x[, -nc])
     x
