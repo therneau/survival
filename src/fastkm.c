@@ -121,7 +121,7 @@ SEXP fastkm1(SEXP y2, SEXP wt2, SEXP sort2) {
 **  We do need number at risk and S(t-).
 */
 SEXP fastkm2(SEXP y2, SEXP wt2, SEXP sort12, SEXP sort22) {
-    int i, j, k, p1, p2;
+    int i, k, p1, p2;
     int n, nevent;
     int dfirst;
     double *tstart, *tstop, *status, *wt;

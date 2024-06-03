@@ -5,9 +5,7 @@
 \alias{anyDuplicated.Surv}
 \alias{as.character.Surv}
 \alias{as.data.frame.Surv}
-\alias{as.integer.Surv}
 \alias{as.matrix.Surv}
-\alias{as.numeric.Surv}
 \alias{c.Surv}
 \alias{duplicated.Surv}
 \alias{format.Surv}
@@ -33,9 +31,7 @@
     \method{anyDuplicated}{Surv}(x, ...)
     \method{as.character}{Surv}(x, ...)
     \method{as.data.frame}{Surv}(x, ...)
-    \method{as.integer}{Surv}(x, ...)
     \method{as.matrix}{Surv}(x, ...)
-    \method{as.numeric}{Surv}(x, ...)
     \method{c}{Surv}(...)
     \method{duplicated}{Surv}(x, ...)
     \method{format}{Surv}(x, ...)
@@ -83,12 +79,6 @@
 
      \item The \code{print} and \code{format} methods make use of
      \code{as.character}.
-
-     \item The \code{as.double} and \code{as.integer} methods perform
-     these actions on the survival times, but do not affect the
-     censoring indicator; \code{as.numeric} is the same as \code{as.double}
-
-     \item The \code{as.matrix} and \code{t} methods return a matrix
 
      \item The \code{length} of a \code{Surv} object is the number of
      survival times it contains, not the number of items required to

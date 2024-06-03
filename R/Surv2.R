@@ -202,14 +202,6 @@ t.Surv2 <- function(x) t(as.matrix(x))
 
 as.logical.Surv2 <- function(x, ...)
     stop("invalid operation on a survival time")
-as.integer.Surv2 <- function(x, ...) {
-    x[,1] <- as.integer(x[,1])
-    x
-}
-as.numeric.Surv2 <- function(x, ...) {
-    x[,1] <- as.numeric(x[,1])
-    x
-}
 
 mean.Surv2 <-function(x, ...)
     stop("a mean method has not been defined for Surv2 objects")

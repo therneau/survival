@@ -92,7 +92,7 @@ SEXP survfitaj(SEXP y2,       SEXP sort12,  SEXP sort22, SEXP utime2,
 			   "n.enter", "n.transition", ""};
     SEXP setemp;
     double **pstate, **cumhaz, *usave=0; /*=0 to silence -Wall warning */
-    double **nrisk, **nevent, **ncensor, **nenter, **ntrans;
+    double **nrisk, **nevent, **ncensor, **nenter=0, **ntrans;
     double **stdp,  **stdc, **stda; 
 
     ntime= LENGTH(utime2);

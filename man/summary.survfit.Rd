@@ -11,7 +11,7 @@
 
 \usage{
   \method{summary}{survfit}(object, times, censored=FALSE, scale=1,
-  extend=FALSE, rmean=getOption('survfit.rmean'), data.frame=FALSE, ...)
+  extend=FALSE, rmean=getOption('survfit.rmean'), data.frame=FALSE, dosum, ...)
   \method{summary}{survfitms}(object, times, censored=FALSE, scale=1,
   extend=FALSE, rmean=getOption('survfit.rmean'), data.frame=FALSE, ...)
   }
@@ -47,6 +47,7 @@
     \code{\link{print.survfit}} for details}
   \item{data.frame}{if TRUE, return the results as a data frame, rather
     than a summary.survfit object}
+  \item{dosum}{only applicable if \code{times} is present, see details below}
   \item{\dots}{for future methods}
   }
 
@@ -133,6 +134,15 @@ to print and an error message will result.
 For the second usage we often want \code{extend=TRUE}, so that the
 results will have a predictable length. 
 If \code{data.frame = TRUE} then either might be desired.
+
+For a printout at fixed times, for example yearly values for a curve,
+the printed number of events will by default be the total number of
+events that have occured since the prior line of printout, and likewise
+for number of censored and number at entry, \code{dosum = TRUE}.
+Alternately, the routine can return the number of events/censors/entry at
+that time, \code{dosum=FALSE}.
+The default for \code{dosum} is TRUE if the \code{times} vector is
+strictly increasing and FALSE otherwise.
 
 For a survfitms object replace the \code{surv} component with
 \code{pstate}.  Also, a data frame will not include the cumulative

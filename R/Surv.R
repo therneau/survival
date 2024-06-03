@@ -410,20 +410,23 @@ t.Surv <- function(x) t(as.matrix(x))
 
 as.logical.Surv <- function(x, ...)
     stop("invalid operation on a survival time")
-as.integer.Surv <- function(x, ...) {
-    nc <- ncol(x)
-    x[,-nc] <- as.integer(x[,-nc])
-    if (nc==3 && any(x[,1] >= x[,2]))
-        stop("invalid survival time created")
-    x
-}
 
-# per the help file for as.numeric, make the method for as.double
-as.double.Surv <- function(x, ...) {
-    nc <- ncol(x)
-    x[,-nc] <- as.numeric(x[, -nc])
-    x
-}
+# removed 2024-06-02, make Surv act like a matrix for this op
+#as.integer.Surv <- function(x, ...) {
+#    nc <- ncol(x)
+#    x[,-nc] <- as.integer(x[,-nc])
+#    if (nc==3 && any(x[,1] >= x[,2]))
+#        stop("invalid survival time created")
+#    x
+#}
+
+# per the help file for as.numeric, this should have been as.double
+#  so never worked anyway
+#as.numeric.Surv <- function(x, ...) {
+#    nc <- ncol(x)
+#    x[,-nc] <- as.numeric(x[, -nc])
+#    x
+#}
 
 mean.Surv <-function(x, ...)
     stop("a mean method has not been defined for Surv objects")

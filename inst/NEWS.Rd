@@ -1,6 +1,15 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
-\section{Changes in version 3.6.5}{
+\section{Changes in version 3.7-0}{
+  \itemize{
+    \item Add n.id element to the coxph object, for a call that uses the
+    id argument
+    \item Remove as.integer.Surv and as.numeric.Surv; essentially treat Surv as
+a matrix for this purpose.  The as.numeric.Surv method never worked anyway, as
+it should have been as.double.Surv
+    \item Run all tests and submit to CRAN
+}}
+\section{Changes in version 3.6-5}{
   \itemize{
     \item Update nearly all uses of partially matched arguments, e.g.,
     fit$coef to fit$coefficients. (MichaelChirico)
@@ -11,17 +20,17 @@
     package. See the "other vignettes" vignette stub for more
     information.
     \item Fix error in predict.coxph pointed out by Julianna
-    Harwood. Add text to help file to clarify prediction at per-subject
+    Harwood. Add text to the help file to clarify prediction at per-subject
     vs a global time.  Add new test file predsurv.R
     \item Add a data.frame option to summary.survfit and summary.survfitms;
     it causes the result to be in data frame form.
 }}
-\section{Changes in version 3.6.4}{
+\section{Changes in version 3.6-4}{
   \itemize{
     \item Oversight in final CRAN submission, change version number and
     resubmit
 }}
-\section{Changes in version 3.6.3}{
+\section{Changes in version 3.6-3}{
   \itemize{
     \item Fix small bug in residuals.survfit wrt labeling rows of the
     output.  Update helpfile to describe the dimnames.

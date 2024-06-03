@@ -2,7 +2,7 @@
 summary.survfit <- function(object, times, censored=FALSE, 
                             scale=1, extend=FALSE, 
                             rmean=getOption('survfit.rmean'),
-                            data.frame= FALSE, 
+                            data.frame= FALSE, dosum,
                             ...) {
     fit <- object  # I get tired of typing "object"
     if (!inherits(fit, 'survfit'))
@@ -103,8 +103,14 @@ summary.survfit <- function(object, times, censored=FALSE,
         if (length(times) ==0) stop("no values in times vector")
         if (inherits(times, "Date")) times <- as.numeric(times) # allow Dates
         if (!is.numeric(times)) stop("times must be a numeric vector")
-        if (!all(is.finite(times))) stop("times contains missing or infinite values")  
-        times <- unique(sort(times))
+        if (any(is.na(times))) stop("times contains missing values")  
+        
+        # if the times are not ordered, we assume the person is doing lookup
+        if (missing(dosum)) dosum <- all(diff(times) > 0)
+        else if (!logical(dosum)) stop("dosum must be TRUE/FALSE")
+        else if (dosum && !all(diff(times) >0))
+            stop ("dosum=TRUE requires the times to be increasing")
+
         fit <- fit0  # findrow() needs the starting time
 
         # findrow is called once per stratum
@@ -139,12 +145,17 @@ summary.survfit <- function(object, times, censored=FALSE,
             #  value must be 0.
             fit$n.risk <- c(fit$n.risk, 0)[index2]
 
-            for (i in c("n.event", "n.censor", "n.enter"))
-                fit[[i]] <- delta(fit[[i]], index1)
+            for (i in c("n.event", "n.censor", "n.enter")) {
+                if (dosum) fit[[i]] <- delta(fit[[i]], index1)
+                else fit[[i]] <- ssub(fit[[i]], index1)
+            }
             fit
         }
 
-        if (nstrat ==1) fit <- findrow(fit, times, extend)
+        if (nstrat ==1) {
+            fit <- findrow(fit, times, extend)
+            if (!is.null(fit$strata)) fit$strata[1] <- length(fit$time)
+        }
         else {
             ltemp <- vector("list", nstrat)
             if (length(dim(fit)) > 1) {
