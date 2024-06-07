@@ -1,5 +1,12 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 3.7-1}{
+  \itemize{
+    \item Update survreg to allow an interval of (0,t) for the Weibull,
+    lognormal, and other distributions a lower bound of 0.  (Internally,
+    it replaces these with the equivalent left censored value.)
+    Addresses github issue 234.
+}}
 \section{Changes in version 3.7-0}{
   \itemize{
     \item Add n.id element to the coxph object, for a call that uses the

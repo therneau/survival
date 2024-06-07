@@ -118,7 +118,14 @@ survreg <- function(formula, data, weights, subset, na.action,
     #   said transform.
     #  
     logcorrect <- 0   #correction to the loglik due to transformations
-    Ysave <- Y  # for use in the y component
+    # deal with the lower bound of zero
+    if (dlist$name %in% c("Weibull", "Exponential", "Rayleigh", "Log Normal",
+                          "Log logisit")) {
+        fix <- (Y[,1]==0 & Y[,3]==3)  #interval censored with lower bound of 0
+        if (any(fix)) Y[fix,] <- cbind(Y[fix,2], 1,2) # convert to left censored
+    }
+    
+    Ysave <- Y  # for use in the y component of the returned list
     if (!is.null(dlist$trans)) {
 	tranfun <- dlist$trans
 	exactsurv <- Y[,ncol(Y)] ==1
