@@ -163,13 +163,16 @@ predict.coxph <- function(object, newdata,
                 pred <- se <- double(nrow(mf2))
                 newx <- newx - rep(object$means, each=nrow(newx))
                 newrisk <- c(exp(newx %*% object$coef) + newoffset)
-                if (ncol(y) ==3 && survival) { # 
-                    t0 <- unname(min(y[,1]))  # the start of the survival curve
+                # This was added in May 2024, and removed a few weeks later
+                #  For (time1, time2) type survival estimates P(dead at t2 | alive at t1),
+                # which I saw no use case for.  But a user did.  Added notes to .Rd file
+                #if (ncol(y) ==3 && survival) {  
+                #    t0 <- unname(min(y[,1]))  # the start of the survival curve
                     # simpler is all(newy[,1] == t0), but
                     # use of all.equal allows for roundoff error in newdata
-                    if (!isTRUE(all.equal(as.vector(newy[,1]), rep(t0, nrow(newy)))))
-                        stop("predicted survival must be from the start of the curve")
-                }
+                #   if (!isTRUE(all.equal(as.vector(newy[,1]), rep(t0, nrow(newy)))))
+                #        stop("predicted survival must be from the start of the curve")
+                #}
             }
             survtype<- ifelse(object$method=='efron', 3,2)
             for (i in ustrata) {

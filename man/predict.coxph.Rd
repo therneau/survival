@@ -91,7 +91,7 @@ A reference of \code{"zero"} causes no centering to be done.
 Predictions of type "expected" or "survival" incorporate the baseline
 hazard and are thus absolute instead of relative; the
 \code{reference} option has no effect on these.
-These values depend on the follow-up time for the future subjects as
+These values depend on the follow-up time for the subjects as
 well as covariates so the \code{newdata} argument needs to include both
 the right and \emph{left} hand side variables from the formula.
 (The status variable will not be used, but is required since the
@@ -111,7 +111,17 @@ will normally want S(tau), where tau is a single pre-specified time
 point which is the same for all subjects, e.g., predicted 5 year
 survival.  The \code{newdata} data set should contain actual survival
 time(s) for each subject for the first case, as the survival time variable(s),
-and the target time tau in the second case; (0, tau) for (time1, time2) data.
+and the target time tau in the second case; (0, tau) for (time1, time2)
+data.
+
+For counting process data with (time1, time2) form, residuals of
+type \code{expected} estimate the increment in hazard over said interval, and
+those of type \code{survival} the probability of an event at time2 given
+that the observation is still alive at time1.  The estimated hazards
+over two intervals (t1, t2) and (t2, t3) add to the total hazard over
+the interval (t1, t3), and the variances also add: the formulas treat these as
+independent increments, given the covariates.
+Estimated survivals multiply, but variances do not add.
 }
 \note{
 Some predictions can be obtained directly from the coxph object, and for
