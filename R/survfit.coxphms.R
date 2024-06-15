@@ -16,21 +16,26 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95, individual=FALSE,
         stop("using a covariate path is not supported for multi-state")
     temp <- object$smap["(Baseline)",] 
     baselinecoef <- rbind(temp, coef= 1.0)
+    phbase <- rep(FALSE, nrow(object$cmap))
     if (any(duplicated(temp))) {
-        # We have shared hazards 
-        # If there are k duplicates, then the last k coefficient in beta are
-        #  the coefs that match them
-        idup <- duplicated(temp)
-        ncoef <- length(object$coefficients)
-        ndup <- sum(idup)
-        # shared baseline coefficients are last in the coefficient vector
-        i <- seq(to = ncoef, length=ndup)
-        baselinecoef[2, idup] <- exp(object$coefficients[i])
-
-        # which rows of cmap point to scale coefs?
-        phbase <- apply(object$cmap, 1, function(i) any(i > ncoef-ndup))
+        # We have shared hazards
+        # Any rows of cmap with names like ph(1:4) are special. The coefs they
+        #  point to shoule be copied over to the baselinecoef vector.
+        # There might not be such coefs, by the way.
+        pattern <- "^ph\\([0:9]*:[0:9]*\\)$"
+        cname <- rownames(object$cmap)
+        phbase <- grepl(pattern, cname) # this row points to a "ph" coef        
+        for (i in which(phbase)) {
+            # Say that this row (i) of cmap had label ph(1:4), and contains
+            #   elements 0,0,0,0,0, 8,9.
+            # This means that coefs 8 and 9 are special.  They should be
+            #   plugged into a matching element of baselinecoef.
+            #   The columns names of smap and cmap are identical, and tell us
+            #   where to put them.
+            j <- object$cmap[i,]
+            baselinecoef[2, j>0] <- exp(object$coef[j])
+        }
     }
-    else phbase <- rep(FALSE, nrow(object$cmap))
       
     # process options, set up Y and the model frame for the original data
     Terms  <- terms(object)
