@@ -1,6 +1,7 @@
 \name{reliability}
 \docType{data}
 \alias{reliability}
+\alias{braking}
 \alias{capacitor}
 \alias{cracks}
 \alias{genfan}
@@ -17,6 +18,9 @@ Meeker and Escobar.
 }
 \details{
   \itemize{
+    \item \code{braking}: Locomotive age at the time of replacement of
+    braking grids, 1-4 replacements for each locomotive. The grids are
+    part of two manufacturing batches.
     \item \code{capacitor}:
     Data from a factorial experiment on the life of glass capacitors as a
     function of voltage and operating temperature.  There were 8 capacitors

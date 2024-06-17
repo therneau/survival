@@ -36,13 +36,13 @@ pseudo(fit, times, type, collapse= TRUE, data.frame=FALSE, ...)
 This function computes pseudo values based on a first order Taylor
 series, also known as the "infinitesimal jackknife" (IJ) or "dfbeta"
 residuals.  To be completely correct the results of this function
-could perhaps be
-called `IJ pseudo values' or even pseudo psuedo-values.
-For moderate to large data, however, the resulta will
-be almost identical, numerically, to the ordinary jackknife.
+could perhaps be called `IJ pseudo values' or even pseudo psuedo-values
+to distinguish them from Andersen and Pohar-Perme.
+For moderate to large data, however, the result will
+be almost identical, numerically, to the ordinary jackknife psuedovalues.
 
 A primary advantage of this approach is computational speed.
-Other features, neither good nor bad, are that they will agree with
+Two other features, neither good nor bad, are that they will agree with
 robust standard errors of other survival package estimates,
 which are based on the IJ, and that the mean of the estimates, over
 subjects, is exactly the underlying survival estimate.
@@ -55,40 +55,42 @@ All of these are case insensitive.
 
 If the orginal \code{survfit} call produced multiple curves, the internal
 computations are done separately for each curve.
-The result from this routine is simply n times the IJ value, where n is
-the number of uniue subjects in the respective curve.
-(If the the \code{survfit} call included and \code{id} option, n is
-the number of unique id values, otherwise the number of rows in the data set.) 
-IJ values are well defined for all variants of the Aalen-Johansen
-estimate, as computed by the \code{survfit} function; indeed, they are
-the basis for standard errors of the result.
+The result from this routine is the IJ (as computed by resid.survfit)
+scaled by n and then recentered.
+If the the \code{survfit} call included an \code{id} option, n is
+the number of unique id values, otherwise the number of rows in the data
+set.
+If the original \code{survfit} call used case weights, those weights are
+part of the IJ residuals, but are not used to compute the rescaling
+factor n.
 
-Understanding of the properties of the pseudo-values is still
+IJ values are well defined for all variants of the Aalen-Johansen
+estimate; indeed, they are the basis for standard errors of the result.
+However, understanding properties of the pseudovalues is still
 evolving.  Validity has been verified for the probability in state and
 sojourn times whenever all subjects start in the same state;
 this includes for instance the usual Kaplan-Meier and competing risks cases.
-On the other hand, one must be cautious when the data includes
-left-truncation (Parner); and pseudo-values for the cumulative hazard
+On the other hand, regression results based on pseudovalues from left-truncated
+data will be biased (Parner); and pseudo-values for the cumulative hazard
 have not been widely explored.
-When a given subject is spread across multiple (time1, time2) windows
-with different weights for each of those portions, which can happen
-with time-dependent inverse probability of censoring (IPW) weights for
-instance, the current thought is to set both collapse and weight to
-FALSE, with clustering and weighting as part of the subsequent GEE
-model; but this is quite tentative.
+When a given subject is spread across multiple (time1, time2) windows,
+e.g., a data set with a time-dependent covariate, the IJ values from a
+simple survival (without TD variables) will sum to the overall IJ for
+that subject; however, whether and how these partial pseudovalues can be
+directly used in a model is still uncertain.
 As understanding evolves, treat this routine's results as a reseach
-tool, not production, for these more complex models.
+tool, not production, for these more complex cases.
 }
 \value{
   A vector, matrix, or array.  The first dimension is always the number of
-  observations in \code{fit} object, in the same order as the original
+  observations in the data object, in the same order as the original
   data set (less any missing values that were removed when creating the
   survfit object);
-  the second, if applicable, corresponds to \code{fit$states}, e.g.,
+  the second dimension, if applicable, corresponds to \code{fit$states}, e.g.,
   multi-state
   survival, and the last dimension to the selected time points.
-  (If there are multiple rows for a given id, there is only one
-  pseudovalue per unique id.)
+  (If there are multiple rows for a given id and \code{collapse=TRUE},
+  there is only one row per unique id.)
 
   For the data.frame option, a data frame containing values for id,
   time, and pseudo.  If the original \code{survfit} call contained an
