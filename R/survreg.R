@@ -119,7 +119,8 @@ survreg <- function(formula, data, weights, subset, na.action,
     #  
     logcorrect <- 0   #correction to the loglik due to transformations
     # deal with the lower bound of zero
-    if (dlist$name %in% c("Weibull", "Exponential", "Rayleigh", "Log Normal",
+    if (attr(Y, "type") == "interval" &&
+        dlist$name %in% c("Weibull", "Exponential", "Rayleigh", "Log Normal",
                           "Log logisit")) {
         fix <- (Y[,1]==0 & Y[,3]==3)  #interval censored with lower bound of 0
         if (any(fix)) Y[fix,] <- cbind(Y[fix,2], 1,2) # convert to left censored

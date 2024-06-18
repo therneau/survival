@@ -20,9 +20,9 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95, individual=FALSE,
     if (any(duplicated(temp))) {
         # We have shared hazards
         # Any rows of cmap with names like ph(1:4) are special. The coefs they
-        #  point to shoule be copied over to the baselinecoef vector.
-        # There might not be such coefs, by the way.
-        pattern <- "^ph\\([0:9]*:[0:9]*\\)$"
+        #  point to should be copied over to the baselinecoef vector.
+        # There might not be such rows, by the way.
+        pattern <- "^ph\\([0-9]+:[0-9]+\\)$"
         cname <- rownames(object$cmap)
         phbase <- grepl(pattern, cname) # this row points to a "ph" coef        
         for (i in which(phbase)) {
