@@ -65,6 +65,8 @@ plot.survfit<- function(x, conf.int,  mark.time=FALSE,
         else conf.level = 0.95
     }
 
+    if (!(is.logical(cumhaz) || is.numeric(cumhaz))) stop("invalid cumhaz argument")
+
     # Organize data into stime, ssurv, supper, slower
     stime <- x$time
     std   <- NULL
@@ -77,25 +79,20 @@ plot.survfit<- function(x, conf.int,  mark.time=FALSE,
         else matrix(x, nrow=dd[1])
     }
 
-    if (cumhaz) {  # plot the cumulative hazard instead
+    if (is.numeric(cumhaz)) { # plot the cumulative hazard
+        dd <- dim(x$cumhaz)
+        if (is.null(dd)) nhazard <- 1
+        else nhazard <- prod(dd[-1])
+
+        if (!all(cumhaz == floor(cumhaz))) stop("cumhaz argument is not integer")
+        if (any(cumhaz < 1 | cumhaz > nhazard)) stop("subscript out of range")
+        ssurv <- smat(x$cumhaz)[,cumhaz, drop=FALSE]
+        if (!is.null(x$std.chaz)) std <- smat(x$std.chaz)[,cumhaz, drop=FALSE]
+    } else if (cumhaz) {
         if (is.null(x$cumhaz)) 
             stop("survfit object does not contain a cumulative hazard")
-
-        if (is.numeric(cumhaz)) {
-            dd <- dim(x$cumhaz)
-            if (is.null(dd)) nhazard <- 1
-            else nhazard <- prod(dd[-1])
-
-            if (cumhaz != floor(cumhaz)) stop("cumhaz argument is not integer")
-            if (any(cumhaz < 1 | cumhaz > nhazard)) stop("subscript out of range")
-            ssurv <- smat(x$cumhaz)[,cumhaz, drop=FALSE]
-            if (!is.null(x$std.chaz)) std <- smat(x$std.chaz)[,cumhaz, drop=FALSE]
-        }
-        else if (is.logical(cumhaz)) {
-            ssurv <- smat(x$cumhaz)
-            if (!is.null(x$std.chaz)) std <- smat(x$std.chaz)
-        }
-        else stop("invalid cumhaz argument")
+        ssurv <- smat(x$cumhaz)
+        if (!is.null(x$std.chaz)) std <- smat(x$std.chaz)
     }
     else if (inherits(x, "survfitms")) {
         i <- !(x$states %in% noplot)
@@ -533,6 +530,8 @@ lines.survfit <- function(x, type='s',
         else conf.level = 0.95
     }
 
+    if (!(is.logical(cumhaz) || is.numeric(cumhaz))) stop("invalid cumhaz argument")
+
     # Organize data into stime, ssurv, supper, slower
     stime <- x$time
     std   <- NULL
@@ -545,25 +544,20 @@ lines.survfit <- function(x, type='s',
         else matrix(x, nrow=dd[1])
     }
 
-    if (cumhaz) {  # plot the cumulative hazard instead
+    if (is.numeric(cumhaz)) { # plot the cumulative hazard
+        dd <- dim(x$cumhaz)
+        if (is.null(dd)) nhazard <- 1
+        else nhazard <- prod(dd[-1])
+
+        if (!all(cumhaz == floor(cumhaz))) stop("cumhaz argument is not integer")
+        if (any(cumhaz < 1 | cumhaz > nhazard)) stop("subscript out of range")
+        ssurv <- smat(x$cumhaz)[,cumhaz, drop=FALSE]
+        if (!is.null(x$std.chaz)) std <- smat(x$std.chaz)[,cumhaz, drop=FALSE]
+    } else if (cumhaz) {
         if (is.null(x$cumhaz)) 
             stop("survfit object does not contain a cumulative hazard")
-
-        if (is.numeric(cumhaz)) {
-            dd <- dim(x$cumhaz)
-            if (is.null(dd)) nhazard <- 1
-            else nhazard <- prod(dd[-1])
-
-            if (cumhaz != floor(cumhaz)) stop("cumhaz argument is not integer")
-            if (any(cumhaz < 1 | cumhaz > nhazard)) stop("subscript out of range")
-            ssurv <- smat(x$cumhaz)[,cumhaz, drop=FALSE]
-            if (!is.null(x$std.chaz)) std <- smat(x$std.chaz)[,cumhaz, drop=FALSE]
-        }
-        else if (is.logical(cumhaz)) {
-            ssurv <- smat(x$cumhaz)
-            if (!is.null(x$std.chaz)) std <- smat(x$std.chaz)
-        }
-        else stop("invalid cumhaz argument")
+        ssurv <- smat(x$cumhaz)
+        if (!is.null(x$std.chaz)) std <- smat(x$std.chaz)
     }
     else if (inherits(x, "survfitms")) {
         i <- !(x$states %in% noplot)
@@ -922,6 +916,8 @@ points.survfit <- function(x, fun, censor=FALSE,
         else conf.level = 0.95
     }
 
+    if (!(is.logical(cumhaz) || is.numeric(cumhaz))) stop("invalid cumhaz argument")
+
     # Organize data into stime, ssurv, supper, slower
     stime <- x$time
     std   <- NULL
@@ -934,25 +930,20 @@ points.survfit <- function(x, fun, censor=FALSE,
         else matrix(x, nrow=dd[1])
     }
 
-    if (cumhaz) {  # plot the cumulative hazard instead
+    if (is.numeric(cumhaz)) { # plot the cumulative hazard
+        dd <- dim(x$cumhaz)
+        if (is.null(dd)) nhazard <- 1
+        else nhazard <- prod(dd[-1])
+
+        if (!all(cumhaz == floor(cumhaz))) stop("cumhaz argument is not integer")
+        if (any(cumhaz < 1 | cumhaz > nhazard)) stop("subscript out of range")
+        ssurv <- smat(x$cumhaz)[,cumhaz, drop=FALSE]
+        if (!is.null(x$std.chaz)) std <- smat(x$std.chaz)[,cumhaz, drop=FALSE]
+    } else if (cumhaz) {
         if (is.null(x$cumhaz)) 
             stop("survfit object does not contain a cumulative hazard")
-
-        if (is.numeric(cumhaz)) {
-            dd <- dim(x$cumhaz)
-            if (is.null(dd)) nhazard <- 1
-            else nhazard <- prod(dd[-1])
-
-            if (cumhaz != floor(cumhaz)) stop("cumhaz argument is not integer")
-            if (any(cumhaz < 1 | cumhaz > nhazard)) stop("subscript out of range")
-            ssurv <- smat(x$cumhaz)[,cumhaz, drop=FALSE]
-            if (!is.null(x$std.chaz)) std <- smat(x$std.chaz)[,cumhaz, drop=FALSE]
-        }
-        else if (is.logical(cumhaz)) {
-            ssurv <- smat(x$cumhaz)
-            if (!is.null(x$std.chaz)) std <- smat(x$std.chaz)
-        }
-        else stop("invalid cumhaz argument")
+        ssurv <- smat(x$cumhaz)
+        if (!is.null(x$std.chaz)) std <- smat(x$std.chaz)
     }
     else if (inherits(x, "survfitms")) {
         i <- !(x$states %in% noplot)

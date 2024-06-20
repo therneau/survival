@@ -1,14 +1,4 @@
 \section{Plotting survival curves}
-This version of the curves uses the newer form of the survfit object, which
-fixes an original design decision that I now consider to have been a mistake.
-That is, an ordinary survival curve did not store the intial (time=0, S=1)
-point in the survfit object, leaving it up to plotting and/or printing routines
-to glue it back on.  
-Later additions of delayed starting time and multi-state curves meant that I
-had to store those values anyway, sticking them into appended objects.
-The version3 survfit object puts the intial time back where it belongs, and
-makes this routine easier to write.
-
 The plot, lines, and points routines use several common code blocks in order to 
 maintain consistency.
 
@@ -163,6 +153,8 @@ if (!missing(conf.int)) {
     else conf.level = 0.95
 }
 
+if (!(is.logical(cumhaz) || is.numeric(cumhaz))) stop("invalid cumhaz argument")
+
 # Organize data into stime, ssurv, supper, slower
 stime <- x$time
 std   <- NULL
@@ -175,25 +167,20 @@ smat <- function(x) {
     else matrix(x, nrow=dd[1])
 }
 
-if (cumhaz) {  # plot the cumulative hazard instead
+if (is.numeric(cumhaz)) { # plot the cumulative hazard
+    dd <- dim(x$cumhaz)
+    if (is.null(dd)) nhazard <- 1
+    else nhazard <- prod(dd[-1])
+
+    if (!all(cumhaz == floor(cumhaz))) stop("cumhaz argument is not integer")
+    if (any(cumhaz < 1 | cumhaz > nhazard)) stop("subscript out of range")
+    ssurv <- smat(x$cumhaz)[,cumhaz, drop=FALSE]
+    if (!is.null(x$std.chaz)) std <- smat(x$std.chaz)[,cumhaz, drop=FALSE]
+} else if (cumhaz) {
     if (is.null(x$cumhaz)) 
         stop("survfit object does not contain a cumulative hazard")
-
-    if (is.numeric(cumhaz)) {
-        dd <- dim(x$cumhaz)
-        if (is.null(dd)) nhazard <- 1
-        else nhazard <- prod(dd[-1])
-
-        if (cumhaz != floor(cumhaz)) stop("cumhaz argument is not integer")
-        if (any(cumhaz < 1 | cumhaz > nhazard)) stop("subscript out of range")
-        ssurv <- smat(x$cumhaz)[,cumhaz, drop=FALSE]
-        if (!is.null(x$std.chaz)) std <- smat(x$std.chaz)[,cumhaz, drop=FALSE]
-    }
-    else if (is.logical(cumhaz)) {
-        ssurv <- smat(x$cumhaz)
-        if (!is.null(x$std.chaz)) std <- smat(x$std.chaz)
-    }
-    else stop("invalid cumhaz argument")
+    ssurv <- smat(x$cumhaz)
+    if (!is.null(x$std.chaz)) std <- smat(x$std.chaz)
 }
 else if (inherits(x, "survfitms")) {
     i <- !(x$states %in% noplot)
