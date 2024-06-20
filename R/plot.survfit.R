@@ -160,7 +160,8 @@ plot.survfit<- function(x, conf.int,  mark.time=FALSE,
         stemp <- rep(1:nstrat, x$strata) # same length as stime
     }
     ncurve <- nstrat * ncol(ssurv)
-    conf.type <- match.arg(conf.type)
+    if (missing(conf.type) & cumhaz) conf.type <- "plain" # default for cumhaz
+    else conf.type <- match.arg(conf.type)
     if (conf.type=="none") conf.int <- FALSE
     if (conf.int== "none") conf.int <- FALSE
     if (conf.int=="only") {
@@ -625,7 +626,8 @@ lines.survfit <- function(x, type='s',
         stemp <- rep(1:nstrat, x$strata) # same length as stime
     }
     ncurve <- nstrat * ncol(ssurv)
-    conf.type <- match.arg(conf.type)
+    if (missing(conf.type) & cumhaz) conf.type <- "plain" # default for cumhaz
+    else conf.type <- match.arg(conf.type)
     if (conf.type=="none") conf.int <- FALSE
     if (conf.int== "none") conf.int <- FALSE
     if (conf.int=="only") {

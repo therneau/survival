@@ -3,17 +3,21 @@
 \section{Changes in version 3.7-1}{
   \itemize{
     \item Update survreg to allow an interval of (0,t) for the Weibull,
-    lognormal, and other distributions a lower bound of 0.  (Internally,
+    lognormal, and other distributions with lower bound of 0.  (Internally,
     it replaces these with the equivalent left censored value.)
     Addresses github issue 234.
+    \item Change the default confidence intervals to "plain" for plots
+    of the cumulative hazard, which concurs with the default of "log" for
+    the survival curve.
+    \item Add the braking data as part of the 'reliability' bundle.
 }}
 \section{Changes in version 3.7-0}{
   \itemize{
     \item Add n.id element to the coxph object, for a call that uses the
     id argument
     \item Remove as.integer.Surv and as.numeric.Surv; essentially treat Surv as
-a matrix for this purpose.  The as.numeric.Surv method never worked anyway, as
-it should have been as.double.Surv
+a matrix for this purpose.  (The as.numeric.Surv method never worked anyway, as
+it should have been as.double.Surv).
     \item Run all tests and submit to CRAN
 }}
 \section{Changes in version 3.6-5}{
