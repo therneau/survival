@@ -254,7 +254,8 @@ If confidence limits are to be plotted, and they were not part of the
 data that is passed in, create them.  Confidence limits for the 
 cumulative hazard must always be created, and they don't use transforms.
 <<plot-confint>>=
-conf.type <- match.arg(conf.type)
+if (missing(conf.type) & cumhaz) conf.type <- "plain" # default for cumhaz
+else conf.type <- match.arg(conf.type)
 if (conf.type=="none") conf.int <- FALSE
 if (conf.int== "none") conf.int <- FALSE
 if (conf.int=="only") {
