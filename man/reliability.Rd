@@ -91,6 +91,12 @@ Meeker and Escobar.
 \examples{
 survreg(Surv(time, status) ~ temperature + voltage, capacitor)
 
+# Figure 16.7 of Meeker, cumulative replacement of locomotive braking
+#  grids
+gfit <- survfit(Surv(day1, day2, status) ~ batch, braking, id= locomotive)
+plot(gfit, cumhaz=TRUE, col=1:2, xscale=30.5, conf.time= c(6,12,18)*30.5, 
+     xlab="Locomotive Age in Months", ylab="Mean cumulative number replacements")
+
 # Replacement of valve seats.  In this case the cumulative hazard is the 
 #  natural target, an estimate of the number of replacements by a given time
 #  (known as the cumulative mean function = CMF in relability).
