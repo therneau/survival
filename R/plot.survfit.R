@@ -40,8 +40,12 @@ plot.survfit<- function(x, conf.int,  mark.time=FALSE,
             if (fun=="cumhaz" && missing(cumhaz)) cumhaz <- TRUE
         }
     }
+    if (!(is.logical(cumhaz) || is.numeric(cumhaz))) stop("invalid cumhaz argument")
+
     # The default for plot and lines is to add confidence limits
     #  if there is only one curve
+    if (!missing(conf.type) && conf.type=="none") conf.int <- FALSE
+
     if (missing(conf.int) && missing(conf.times))  
         conf.int <- (!is.null(x$std.err) && prod(dim(x) ==1))
 
@@ -50,7 +54,7 @@ plot.survfit<- function(x, conf.int,  mark.time=FALSE,
         if (!is.numeric(conf.times)) stop('conf.times must be numeric')
         if (missing(conf.int)) conf.int <- TRUE
     }
-
+    if (!missing(conf.type) && conf.type=="none") conf.int <- FALSE # this overrides
     if (!missing(conf.int)) {
         if (is.numeric(conf.int)) {
             conf.level <- conf.int
@@ -65,7 +69,6 @@ plot.survfit<- function(x, conf.int,  mark.time=FALSE,
         else conf.level = 0.95
     }
 
-    if (!(is.logical(cumhaz) || is.numeric(cumhaz))) stop("invalid cumhaz argument")
 
     # Organize data into stime, ssurv, supper, slower
     stime <- x$time
@@ -160,7 +163,10 @@ plot.survfit<- function(x, conf.int,  mark.time=FALSE,
         stemp <- rep(1:nstrat, x$strata) # same length as stime
     }
     ncurve <- nstrat * ncol(ssurv)
-    conf.type <- match.arg(conf.type)
+    if (missing(conf.type)) {
+        missingtype <- TRUE
+        conf.type <- match.arg(conf.type)
+    } else missingtype <- FALSE  # used below for cumhaz
     if (conf.type=="none") conf.int <- FALSE
     if (conf.int== "none") conf.int <- FALSE
     if (conf.int=="only") {
@@ -172,7 +178,7 @@ plot.survfit<- function(x, conf.int,  mark.time=FALSE,
     if (conf.int) {
         if (is.null(std)) stop("object does not have standard errors, CI not possible")
         if (cumhaz) {
-            if (missing(conf.type)) conf.type="plain"
+            if (missingtype) conf.type="plain"
             temp <- survfit_confint(ssurv, std, logse=FALSE,
                                     conf.type, conf.level, ulimit=FALSE)
             supper <- as.matrix(temp$upper)
@@ -505,8 +511,12 @@ lines.survfit <- function(x, type='s',
     x <- survfit0(x, x$start.time)
 
     xlog <- par("xlog")
+    if (!(is.logical(cumhaz) || is.numeric(cumhaz))) stop("invalid cumhaz argument")
+
     # The default for plot and lines is to add confidence limits
     #  if there is only one curve
+    if (!missing(conf.type) && conf.type=="none") conf.int <- FALSE
+
     if (missing(conf.int) && missing(conf.times))  
         conf.int <- (!is.null(x$std.err) && prod(dim(x) ==1))
 
@@ -515,7 +525,7 @@ lines.survfit <- function(x, type='s',
         if (!is.numeric(conf.times)) stop('conf.times must be numeric')
         if (missing(conf.int)) conf.int <- TRUE
     }
-
+    if (!missing(conf.type) && conf.type=="none") conf.int <- FALSE # this overrides
     if (!missing(conf.int)) {
         if (is.numeric(conf.int)) {
             conf.level <- conf.int
@@ -530,7 +540,6 @@ lines.survfit <- function(x, type='s',
         else conf.level = 0.95
     }
 
-    if (!(is.logical(cumhaz) || is.numeric(cumhaz))) stop("invalid cumhaz argument")
 
     # Organize data into stime, ssurv, supper, slower
     stime <- x$time
@@ -625,7 +634,10 @@ lines.survfit <- function(x, type='s',
         stemp <- rep(1:nstrat, x$strata) # same length as stime
     }
     ncurve <- nstrat * ncol(ssurv)
-    conf.type <- match.arg(conf.type)
+    if (missing(conf.type)) {
+        missingtype <- TRUE
+        conf.type <- match.arg(conf.type)
+    } else missingtype <- FALSE  # used below for cumhaz
     if (conf.type=="none") conf.int <- FALSE
     if (conf.int== "none") conf.int <- FALSE
     if (conf.int=="only") {
@@ -637,7 +649,7 @@ lines.survfit <- function(x, type='s',
     if (conf.int) {
         if (is.null(std)) stop("object does not have standard errors, CI not possible")
         if (cumhaz) {
-            if (missing(conf.type)) conf.type="plain"
+            if (missingtype) conf.type="plain"
             temp <- survfit_confint(ssurv, std, logse=FALSE,
                                     conf.type, conf.level, ulimit=FALSE)
             supper <- as.matrix(temp$upper)
@@ -891,8 +903,12 @@ points.survfit <- function(x, fun, censor=FALSE,
     conf.int <- conf.times <- FALSE  # never draw these with 'points'
     x <- survfit0(x, x$start.time)
 
+    if (!(is.logical(cumhaz) || is.numeric(cumhaz))) stop("invalid cumhaz argument")
+
     # The default for plot and lines is to add confidence limits
     #  if there is only one curve
+    if (!missing(conf.type) && conf.type=="none") conf.int <- FALSE
+
     if (missing(conf.int) && missing(conf.times))  
         conf.int <- (!is.null(x$std.err) && prod(dim(x) ==1))
 
@@ -901,7 +917,7 @@ points.survfit <- function(x, fun, censor=FALSE,
         if (!is.numeric(conf.times)) stop('conf.times must be numeric')
         if (missing(conf.int)) conf.int <- TRUE
     }
-
+    if (!missing(conf.type) && conf.type=="none") conf.int <- FALSE # this overrides
     if (!missing(conf.int)) {
         if (is.numeric(conf.int)) {
             conf.level <- conf.int
@@ -916,7 +932,6 @@ points.survfit <- function(x, fun, censor=FALSE,
         else conf.level = 0.95
     }
 
-    if (!(is.logical(cumhaz) || is.numeric(cumhaz))) stop("invalid cumhaz argument")
 
     # Organize data into stime, ssurv, supper, slower
     stime <- x$time
