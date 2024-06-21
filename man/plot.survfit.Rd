@@ -126,17 +126,18 @@
     region. If this is a single number then each curve's bars are offset
     by this amount from the prior curve's bars, if it is a vector the values are
     used directly.}
-     \item{conf.type}{
-	One of \code{"plain"}, \code{"log"} (the default),
+  \item{conf.type}{
+       One of \code{"none"}, \code{"plain"}, \code{"log"} (the default),
 	\code{"log-log"} or \code{"logit"}.  Only
 	enough of the string to uniquely identify it is necessary.
 	The first option causes confidence intervals not to be
-	generated.  The second causes the standard intervals
+	generated.  The second causes the  intervals
 	\code{curve +- k *se(curve)}, where k is determined from
 	\code{conf.int}.  The log option calculates intervals based on the
 	cumulative hazard or log(survival). The log-log option bases the
 	intervals on the log hazard or log(-log(survival)), and the
-	logit option on log(survival/(1-survival)). 
+	logit option on log(survival/(1-survival)) The default is
+	"plain" for a plot of the cumulative hazard. 
       }
   \item{mark}{a historical alias for \code{pch}}
   \item{noplot}{for multi-state models, curves with this label will not

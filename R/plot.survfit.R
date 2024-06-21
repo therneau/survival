@@ -40,8 +40,6 @@ plot.survfit<- function(x, conf.int,  mark.time=FALSE,
             if (fun=="cumhaz" && missing(cumhaz)) cumhaz <- TRUE
         }
     }
-    if (!(is.logical(cumhaz) || is.numeric(cumhaz))) stop("invalid cumhaz argument")
-
     # The default for plot and lines is to add confidence limits
     #  if there is only one curve
     if (!missing(conf.type) && conf.type=="none") conf.int <- FALSE
@@ -69,7 +67,6 @@ plot.survfit<- function(x, conf.int,  mark.time=FALSE,
         else conf.level = 0.95
     }
 
-
     # Organize data into stime, ssurv, supper, slower
     stime <- x$time
     std   <- NULL
@@ -83,6 +80,8 @@ plot.survfit<- function(x, conf.int,  mark.time=FALSE,
     }
 
     if (is.numeric(cumhaz)) { # plot the cumulative hazard
+        if (!inherits(x, "survfitms") && any(cumhaz != 1))
+            stop("numeric cumhaz argument only applies to multi-state")
         dd <- dim(x$cumhaz)
         if (is.null(dd)) nhazard <- 1
         else nhazard <- prod(dd[-1])
@@ -91,6 +90,7 @@ plot.survfit<- function(x, conf.int,  mark.time=FALSE,
         if (any(cumhaz < 1 | cumhaz > nhazard)) stop("subscript out of range")
         ssurv <- smat(x$cumhaz)[,cumhaz, drop=FALSE]
         if (!is.null(x$std.chaz)) std <- smat(x$std.chaz)[,cumhaz, drop=FALSE]
+        cumhaz <- TRUE # for the rest of the code
     } else if (cumhaz) {
         if (is.null(x$cumhaz)) 
             stop("survfit object does not contain a cumulative hazard")
@@ -511,8 +511,6 @@ lines.survfit <- function(x, type='s',
     x <- survfit0(x, x$start.time)
 
     xlog <- par("xlog")
-    if (!(is.logical(cumhaz) || is.numeric(cumhaz))) stop("invalid cumhaz argument")
-
     # The default for plot and lines is to add confidence limits
     #  if there is only one curve
     if (!missing(conf.type) && conf.type=="none") conf.int <- FALSE
@@ -540,7 +538,6 @@ lines.survfit <- function(x, type='s',
         else conf.level = 0.95
     }
 
-
     # Organize data into stime, ssurv, supper, slower
     stime <- x$time
     std   <- NULL
@@ -554,6 +551,8 @@ lines.survfit <- function(x, type='s',
     }
 
     if (is.numeric(cumhaz)) { # plot the cumulative hazard
+        if (!inherits(x, "survfitms") && any(cumhaz != 1))
+            stop("numeric cumhaz argument only applies to multi-state")
         dd <- dim(x$cumhaz)
         if (is.null(dd)) nhazard <- 1
         else nhazard <- prod(dd[-1])
@@ -562,6 +561,7 @@ lines.survfit <- function(x, type='s',
         if (any(cumhaz < 1 | cumhaz > nhazard)) stop("subscript out of range")
         ssurv <- smat(x$cumhaz)[,cumhaz, drop=FALSE]
         if (!is.null(x$std.chaz)) std <- smat(x$std.chaz)[,cumhaz, drop=FALSE]
+        cumhaz <- TRUE # for the rest of the code
     } else if (cumhaz) {
         if (is.null(x$cumhaz)) 
             stop("survfit object does not contain a cumulative hazard")
@@ -903,8 +903,6 @@ points.survfit <- function(x, fun, censor=FALSE,
     conf.int <- conf.times <- FALSE  # never draw these with 'points'
     x <- survfit0(x, x$start.time)
 
-    if (!(is.logical(cumhaz) || is.numeric(cumhaz))) stop("invalid cumhaz argument")
-
     # The default for plot and lines is to add confidence limits
     #  if there is only one curve
     if (!missing(conf.type) && conf.type=="none") conf.int <- FALSE
@@ -932,7 +930,6 @@ points.survfit <- function(x, fun, censor=FALSE,
         else conf.level = 0.95
     }
 
-
     # Organize data into stime, ssurv, supper, slower
     stime <- x$time
     std   <- NULL
@@ -946,6 +943,8 @@ points.survfit <- function(x, fun, censor=FALSE,
     }
 
     if (is.numeric(cumhaz)) { # plot the cumulative hazard
+        if (!inherits(x, "survfitms") && any(cumhaz != 1))
+            stop("numeric cumhaz argument only applies to multi-state")
         dd <- dim(x$cumhaz)
         if (is.null(dd)) nhazard <- 1
         else nhazard <- prod(dd[-1])
@@ -954,6 +953,7 @@ points.survfit <- function(x, fun, censor=FALSE,
         if (any(cumhaz < 1 | cumhaz > nhazard)) stop("subscript out of range")
         ssurv <- smat(x$cumhaz)[,cumhaz, drop=FALSE]
         if (!is.null(x$std.chaz)) std <- smat(x$std.chaz)[,cumhaz, drop=FALSE]
+        cumhaz <- TRUE # for the rest of the code
     } else if (cumhaz) {
         if (is.null(x$cumhaz)) 
             stop("survfit object does not contain a cumulative hazard")
