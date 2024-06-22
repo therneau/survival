@@ -4,7 +4,7 @@ residuals.survfit <- function(object, times, type= "pstate",
                               data.frame= FALSE, extra=FALSE, ...){
     if (!inherits(object, "survfit"))
         stop("argument must be a survfit object")
-    if (attr(object, "type") =="interval") {
+    if (object$type =="interval") {
         stop("residuals for interval-censored data are not available")
         }
     survfitms <- inherits(object, "survfitms")  # if multi-state
