@@ -3,14 +3,13 @@
 \title{Shorten a (time1, time2) survival dataset
 }
 \description{
-  Counting process data sets can sometimes grow to be unweildy, this can
-  be used to compact one.
+  Counting process data sets can sometimes grow to an uweildy size, this can
+  be used to reduce the number of rows.
 }
 \usage{
 survcondense(formula, data, subset, weights, na.action= na.pass, id, 
              start = "tstart", end = "tstop", event = "event")
 }
-%- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{formula}{
     a formula object, with the response on the left of a \code{~} operator, and 
@@ -39,14 +38,14 @@ survcondense(formula, data, subset, weights, na.action= na.pass, id,
   Occassionally it is useful to collapse this surplus back down, e.g.,
   when interest is to be focused on only a few covariates, or for
   debugging.  The right hand side of \code{formula} will often have only
-  a few variables, in this use.
+  a few variables in this use case.
 
   If a row of data is censored, and represents the same covariates and
   identifier as the row below it, then the two rows can be merged
   together using a single (time1, time2) interval.  The compression can
   sometimes be large.
 
-  The \code{start}, \code{stop} and \code{end} options are used when the
+  The \code{start}, \code{stop} and \code{end} options are only used when the
   left hand side of the formula has expressions that are not a simple
   name, e.g. \code{Surv(time1, time2, death | progression)} would be a
   case where \code{event} is used to set the outcome variable's name.

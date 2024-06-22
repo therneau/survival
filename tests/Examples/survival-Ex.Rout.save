@@ -1,5 +1,5 @@
 
-R Under development (unstable) (2024-04-29 r86493) -- "Unsuffered Consequences"
+R Under development (unstable) (2024-06-14 r86747) -- "Unsuffered Consequences"
 Copyright (C) 2024 The R Foundation for Statistical Computing
 Platform: aarch64-unknown-linux-gnu
 
@@ -2412,8 +2412,8 @@ ph.ecog=3  NA  NA  NA
 > 
 > ### Name: reliability
 > ### Title: Reliability data sets
-> ### Aliases: reliability capacitor cracks genfan ifluid imotor turbine
-> ###   valveSeat
+> ### Aliases: reliability braking capacitor cracks genfan ifluid imotor
+> ###   turbine valveSeat
 > ### Keywords: datasets
 > 
 > ### ** Examples
@@ -2432,6 +2432,12 @@ Scale= 0.3638092
 Loglik(model)= -244.2   Loglik(intercept only)= -254.5
 	Chisq= 20.57 on 2 degrees of freedom, p= 3.41e-05 
 n= 64 
+> 
+> # Figure 16.7 of Meeker, cumulative replacement of locomotive braking
+> #  grids
+> gfit <- survfit(Surv(day1, day2, status) ~ batch, braking, id= locomotive)
+> plot(gfit, cumhaz=TRUE, col=1:2, xscale=30.5, conf.time= c(6,12,18)*30.5, 
++      xlab="Locomotive Age in Months", ylab="Mean cumulative number replacements")
 > 
 > # Replacement of valve seats.  In this case the cumulative hazard is the 
 > #  natural target, an estimate of the number of replacements by a given time
@@ -3839,7 +3845,7 @@ $terms
 > cleanEx()
 > options(digits = 7L)
 > base::cat("Time elapsed: ", proc.time() - base::get("ptime", pos = 'CheckExEnv'),"\n")
-Time elapsed:  2.718 0.085 2.802 0 0 
+Time elapsed:  2.668 0.175 2.844 0 0 
 > grDevices::dev.off()
 null device 
           1 
