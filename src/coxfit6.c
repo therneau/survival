@@ -62,8 +62,10 @@ static double *xtime, *weights, *offset;
 static int *status, *strata;
 static double *u; 
 static double **covar, **cmat, **imat;  /*ragged arrays */
+static double **null_score; /*score for each patient and each var*/
+static double **null_imat; /*hessian matrix under the null*/
 
-static double coxfit6_iter(int nvar, int nused, int method, double *beta);
+static double coxfit6_iter(int nvar, int nused, int method, double *beta, int update_score);
 
 SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2, 
 	     SEXP covar2,    SEXP offset2, SEXP weights2,
@@ -84,6 +86,7 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
    
     /* returned objects */
     SEXP imat2, means2, beta2, u2, loglik2;
+    SEXP null_score2, null_imat2;
     double *beta, *loglik, *means;
     SEXP sctest2, flag2, iter2;
     double *sctest;
@@ -147,7 +150,15 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
     PROTECT(iter2 = allocVector(INTSXP, 1));
     iter = INTEGER(iter2);
     nprotect += 7;
-
+    
+    PROTECT(null_score2 = allocVector(REALSXP, nused*nvar)); 
+    null_score = dmatrix(REAL(null_score2), nused, nvar);
+    nprotect++;
+    
+    PROTECT(null_imat2 = allocVector(REALSXP, nvar*nvar)); 
+    nprotect++;
+    null_imat = dmatrix(REAL(null_imat2),  nvar, nvar);
+    
     /*
     ** Subtract the mean from each covar, as this makes the regression
     **  much more stable.
@@ -186,8 +197,14 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
     */
     *iter =0; 
     strata[nused-1] =1;
-    loglik[0] = coxfit6_iter(nvar, nused, method, beta);
+    loglik[0] = coxfit6_iter(nvar, nused, method, beta, 1);
     loglik[1] = loglik[0];
+    
+    for(i = 0; i<nvar; i++){
+      for(j = 0; j<nvar; j++){
+        null_imat[i][j] = imat[i][j];
+      }
+    }
 
     /* am I done?
     **   update the betas and test for convergence
@@ -199,8 +216,10 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
     chsolve2(imat,nvar,a);        /* a replaced by  a *inverse(i) */
 
     temp=0;
-    for (i=0; i<nvar; i++)
-	temp +=  u[i]*a[i];
+    for (i=0; i<nvar; i++){
+      temp +=  u[i]*a[i];
+    }
+    
     *sctest = temp;  /* score test */
 
     /*
@@ -234,7 +253,7 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
     halving = 0;       /* =1 when in the midst of "step halving" */
     for (*iter=1; *iter<= maxiter; (*iter)++) {
 	R_CheckUserInterrupt();  
-	newlk = coxfit6_iter(nvar, nused, method, newbeta);
+	newlk = coxfit6_iter(nvar, nused, method, newbeta, 0);
 
 	/* am I done?
 	**   test for convergence and then update beta
@@ -292,7 +311,7 @@ SEXP coxfit6(SEXP maxiter2,  SEXP time2,   SEXP status2,
     ** If maxiter =0 or 1, though, leave well enough alone.
     */
     if (maxiter > 1) 
-	loglik[1] = coxfit6_iter(nvar, nused, method, beta);
+	loglik[1] = coxfit6_iter(nvar, nused, method, beta, 0);
     chinv2(imat, nvar);
     for (i=0; i<nvar; i++) {
 	beta[i] = beta[i]*scale[i];
@@ -309,7 +328,7 @@ finish:
     /*
     ** create the output list
     */
-    PROTECT(rlist= allocVector(VECSXP, 8));
+    PROTECT(rlist= allocVector(VECSXP, 10));
     SET_VECTOR_ELT(rlist, 0, beta2);
     SET_VECTOR_ELT(rlist, 1, means2);
     SET_VECTOR_ELT(rlist, 2, u2);
@@ -318,10 +337,12 @@ finish:
     SET_VECTOR_ELT(rlist, 5, sctest2);
     SET_VECTOR_ELT(rlist, 6, iter2);
     SET_VECTOR_ELT(rlist, 7, flag2);
+    SET_VECTOR_ELT(rlist, 8, null_score2);
+    SET_VECTOR_ELT(rlist, 9, null_imat2);
     
 
     /* add names to the objects */
-    PROTECT(rlistnames = allocVector(STRSXP, 8));
+    PROTECT(rlistnames = allocVector(STRSXP, 10));
     SET_STRING_ELT(rlistnames, 0, mkChar("coef"));
     SET_STRING_ELT(rlistnames, 1, mkChar("means"));
     SET_STRING_ELT(rlistnames, 2, mkChar("u"));
@@ -330,13 +351,15 @@ finish:
     SET_STRING_ELT(rlistnames, 5, mkChar("sctest"));
     SET_STRING_ELT(rlistnames, 6, mkChar("iter"));
     SET_STRING_ELT(rlistnames, 7, mkChar("flag"));
+    SET_STRING_ELT(rlistnames, 8, mkChar("null_score"));
+    SET_STRING_ELT(rlistnames, 9, mkChar("null_imat"));
     setAttrib(rlist, R_NamesSymbol, rlistnames);
 
     unprotect(nprotect+2);
     return(rlist);
 }
 
-static double coxfit6_iter(int nvar, int nused,  int method, double *beta) {
+static double coxfit6_iter(int nvar, int nused,  int method, double *beta, int update_score) {
     int i, j, k, person;
     double  loglik =0;
     double  wtave;
@@ -352,6 +375,11 @@ static double coxfit6_iter(int nvar, int nused,  int method, double *beta) {
     for (i=0; i<nvar; i++) {
 	u[i] =0;
 	a2[i] =0;
+	for(person=0; person < nused; person++){
+	  if(update_score){
+	    null_score[i][person] = 0;
+	  }
+	}
 	for (j=0; j<nvar; j++) {
 	    imat[i][j] =0 ;
 	    cmat2[i][j] =0;
@@ -372,7 +400,11 @@ static double coxfit6_iter(int nvar, int nused,  int method, double *beta) {
 	ndead =0; /*number of deaths at this time point */
 	deadwt =0;  /* sum of weights for the deaths */
 	denom2=0;  /* sum of weighted risks for the deaths */
+  
+  int start_person = person; /*id of first person in ties*/
+  int end_person = person;
 	while(person >=0 && xtime[person]==dtime) {
+	    end_person = person;
 	    /* walk through the this set of tied times */
 	    nrisk++;
 	    zbeta = offset[person];    /* form the term beta*z (vector mult) */
@@ -397,6 +429,9 @@ static double coxfit6_iter(int nvar, int nused,  int method, double *beta) {
 		for (i=0; i<nvar; i++) {
 		    u[i] += weights[person]*covar[i][person];
 		    a2[i] +=  risk*covar[i][person];
+		    if(update_score){
+		      null_score[i][person] += weights[person]*covar[i][person];
+		    }
 		    for (j=0; j<=i; j++)
 			cmat2[i][j] += risk*covar[i][person]*covar[j][person];
 		        }
@@ -414,9 +449,15 @@ static double coxfit6_iter(int nvar, int nused,  int method, double *beta) {
 		    a[i] += a2[i];
 		    temp2= a[i]/ denom;  /* mean */
 		    u[i] -=  deadwt* temp2;
+		    if(update_score){
+		      for(int iperson = start_person; iperson >= end_person; iperson--){
+		        null_score[i][iperson] -= weights[iperson] * temp2;
+		      }
+		    }
 		    for (j=0; j<=i; j++) {
 			cmat[i][j] += cmat2[i][j];
 			imat[j][i] += deadwt*(cmat[i][j] - temp2*a[j])/denom;
+			imat[i][j] = imat[j][i];
 			}
 		    }
 		}
@@ -436,9 +477,15 @@ static double coxfit6_iter(int nvar, int nused,  int method, double *beta) {
 			a[i] += a2[i]/ndead;
 			temp2 = a[i]/denom;
 			u[i] -= wtave *temp2;
+			if(update_score){
+			  for(int iperson = start_person; iperson >= end_person; iperson--){
+			    null_score[i][iperson] -= weights[iperson]/ndead * temp2;
+			  }
+			}
 			for (j=0; j<=i; j++) {
 			    cmat[i][j] += cmat2[i][j]/ndead;
 			    imat[j][i] += wtave*(cmat[i][j] - temp2*a[j])/denom;
+			    imat[i][j] = imat[j][i];
 			}	
 		    }
 		}
@@ -449,7 +496,7 @@ static double coxfit6_iter(int nvar, int nused,  int method, double *beta) {
 	    }
 	}
     }   /* end  of accumulation loop */
-
+		
     /* A dummy line to stop a "set but never used" line in the compiler
     **  I don't use nrisk, but often used it in a print statement when debugging
     **  the code.   That may happen again 

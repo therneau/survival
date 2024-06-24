@@ -69,6 +69,15 @@ coxph.fit <- function(x, y, strata, offset, init, control,
                      as.double(control$toler.chol),
                      as.vector(init),
                      ifelse(zero.one, 0L, 1L))
+    
+    if(!is.null(coxfit$null_score)){
+      coxfit$null_score <- matrix(coxfit$null_score, ncol = ncol(x), byrow = FALSE)
+      rownames(coxfit$null_score) <- rownames(x)[sorted]
+      coxfit$null_score <- coxfit$null_score[rownames(x), , drop = FALSE]
+      coxfit$null_imat <- matrix(coxfit$null_imat, ncol = ncol(x), byrow = FALSE)
+      coxfit$logrank <- solve(coxfit$null_imat, colSums(coxfit$null_score))
+      coxfit$logrank_vcov <- nrow(coxfit$null_score) * solve(coxfit$null_imat) %*% cov(coxfit$null_score) %*% solve(coxfit$null_imat)
+    }
 
     if (nullmodel) {
         if (resid) {
@@ -130,6 +139,10 @@ coxph.fit <- function(x, y, strata, offset, init, control,
 		    iter   = coxfit$iter,
 		    linear.predictors = as.vector(lp),
 		    means = coxfit$means,
+		    null_score = coxfit$null_score,
+		    null_imat = coxfit$null_imat,
+		    logrank = coxfit$logrank,
+		    logrank_vcov = coxfit$logrank_vcov,
                     method = method,
  		    class ='coxph')
 	if (resid) {
