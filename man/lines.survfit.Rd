@@ -15,7 +15,7 @@ generated with \code{plot.survfit}.
         fun, conf.int=FALSE,
         conf.times, conf.cap=.005, conf.offset=.012,
         conf.type = c("log", "log-log", "plain", "logit", "arcsin"),
-        mark, noplot="(s0)", cumhaz= FALSE,  ...)
+        mark, noplot="(s0)", cumhaz= FALSE,  cumprob= FALSE, ...)
 \method{lines}{survexp}(x, type="l", ...)
 \method{points}{survfit}(x, fun, censor=FALSE, col=1, pch,
         noplot="(s0)", cumhaz=FALSE, ...)
@@ -72,7 +72,6 @@ If set to \code{"only"}, then only the CI bands are plotted, and the curve
 itself is left off.   
 This can be useful for fine control over the colors or line types of a
 plot.
-A numeric value, e.g. \code{conf.int = .90}, can be used to 
 }
   \item{conf.times}{optional vector of times at which to place a
     confidence bar on the curve(s).  If present, these will be used
@@ -101,12 +100,20 @@ A numeric value, e.g. \code{conf.int = .90}, can be used to
     be plotted.  The default corresponds to an unspecified state.}
   \item{cumhaz}{plot the cumulative hazard, rather than the survival or
     probability in state.}
+  \item{cumprob}{for a multi-state curve, plot the probabilities in
+    state 1, (state1 + state2), (state1 + state2 + state3), \ldots.
+    If \code{cumprob} is an integer vector the totals will be in the
+    order indicated. }
+
 \item{...}{other graphical parameters}
 }
 \value{
 a list with components \code{x} and \code{y}, containing the coordinates of the 
 last point on each of the curves (but not of the confidence limits). 
 This may be useful for labeling. 
+If \code{cumprob=TRUE} then \code{y} will be a matrix with one row per
+curve and \code{x} will be all the time points.  This may be useful for
+adding shading.
 }
 \section{Side Effects}{
 one or more curves are added to the current plot. 

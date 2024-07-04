@@ -875,15 +875,15 @@ abline(h= vfit$coef[3], lwd=2, lty=3)
 Karnofsky score is a very important predictor, but its effect is not
 constant over time as shown by both the test and the plot. 
 Early on it has a large negative
-effect: the risk of someone at the first quartile is
+effect: the risk for someone at the first quartile is
 approximately exp(35*.05) = 5.7 fold times that of someone at
 the third quartile, but by 200 days this has waned and is not much
-different from zero.  
+different from one.  
 One explanation is that, in this very acute illness, any measure
 that is over 6 months old is no longer relevant.
 Another is that a large portion of subjects with the lowest Karnofsky
-values have been lost; at 200 days 4\% of the remaining subjects have
-a value $\le 40$ versus 28\% at the start.
+values have been lost; at 200 days 4\% of the remaining subjects had
+a initial value $\le 40$ versus 28\% at the start.
 
 The proportional hazards model estimates an average hazard over time,
 the value of which is shown by the dotted horizontal line.

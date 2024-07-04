@@ -10,6 +10,8 @@
     of the cumulative hazard, which concurs with the default of "log" for
     the survival curve.
     \item Add the braking data as part of the 'reliability' bundle.
+    \item Add the cumprob option to plot.survfit and lines.survfit. It
+    is applicable to multi-state models.
 }}
 \section{Changes in version 3.7-0}{
   \itemize{

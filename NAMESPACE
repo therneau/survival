@@ -35,7 +35,7 @@ export(Surv, Surv2, Surv2data, aeqSurv, aareg, agreg.fit,
        survobrien,  
        survpenal.fit, 
        survreg, survreg.control, survreg.fit,
-       survreg.distributions, survregDtest, tcut,
+       survreg.distributions, survregDtest, tcut, totimeline, fromtimeline,
        tmerge, untangle.specials, yates, yates_setup,
        survConcordance, survConcordance.fit, survfitcoxph.fit)
 S3method('[', aareg)

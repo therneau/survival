@@ -165,6 +165,9 @@ survreg.fit<- function(x, y, weights, offset, init, controlvals, dist,
 		       as.integer(dnum),
 		       f.expr,
 		       rho)
+        if (!all(is.finite(fit0$coef)) || !all(is.finite(fit0$loglik)) ||
+            !all(is.finite(fit0$var))) 
+            stop("initial iteration failed (use starting estimates?)")
 	}
     #
     # Fit the model with all covariates
