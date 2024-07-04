@@ -1,5 +1,5 @@
 
-R Under development (unstable) (2024-04-17 r86441) -- "Unsuffered Consequences"
+R Under development (unstable) (2024-06-14 r86747) -- "Unsuffered Consequences"
 Copyright (C) 2024 The R Foundation for Statistical Computing
 Platform: aarch64-unknown-linux-gnu
 
@@ -43,6 +43,13 @@ Type 'q()' to quit R.
 > surv2 <- survfit(fit)
 > all.equal(surv1, surv2)
 [1] TRUE
+> 
+> # Test summary
+> dummy <- data.frame(age=c(50,60), sex=1:2, meal.cal=c(650, 1200))
+> surv3 <- survfit(fit, newdata= dummy)
+> summ <- summary(surv3, time= 1:3 * 100)
+>                                          
+> 
 > 
 > #
 > # Now a result with a matrix of survival curves
@@ -104,4 +111,4 @@ Type 'q()' to quit R.
 > 
 > proc.time()
    user  system elapsed 
-  0.407   0.036   0.440 
+  0.442   0.020   0.459 

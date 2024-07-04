@@ -73,7 +73,7 @@ totimeline <- function(formula, data, id, istate) {
     row.names(newdata) <- NULL  # they are annoying and useless
     names(newdata)[1:2] <- c(tname, sname)
     indx <- match(c("(id)", "(istate)"), names(newdata), nomatch=0)
-    newdata[, indx==0]  # remove the redundant (id) and (istate) columns
+    newdata[, -indx]  # remove the redundant (id) and (istate) columns
 }
    
 # The function from timeline to counting process is likely more useful

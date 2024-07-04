@@ -24,6 +24,13 @@ fit <- coxph(Surv(time, status) ~ age + sex + meal.cal + strata(ph.ecog),
 surv2 <- survfit(fit)
 all.equal(surv1, surv2)
 
+# Test summary
+dummy <- data.frame(age=c(50,60), sex=1:2, meal.cal=c(650, 1200))
+surv3 <- survfit(fit, newdata= dummy)
+summ <- summary(surv3, time= 1:3 * 100)
+                                         
+
+
 #
 # Now a result with a matrix of survival curves
 #
