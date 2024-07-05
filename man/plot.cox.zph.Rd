@@ -8,7 +8,8 @@ Displays a graph of the scaled Schoenfeld residuals, along with a smooth curve.
 }
 \usage{
 \method{plot}{cox.zph}(x, resid=TRUE, se=TRUE, df=4, nsmo=40, var,
-        xlab="Time", ylab, lty=1:2, col=1, lwd=1, hr=FALSE, plot=TRUE, ...)
+        xlab="Time", ylab, lty=1:2, col=1, lwd=1, pch=1, cex=1,
+    hr=FALSE, plot=TRUE, ...)
 }
 \arguments{
 \item{x}{
@@ -48,6 +49,8 @@ This has been superseded by a subscripting method; see the example below.
   second element is used for the confidence interval.}
 \item{plot}{if FALSE, return a list containing the x and y values of
   the curve, instead of drawing a plot}
+\item{pch}{used for points on the plot, see \code{points}}
+\item{cex}{used for points on the plot, see \code{points}}
 \item{\dots}{
 additional graphical arguments passed to the \code{plot} function. 
 }

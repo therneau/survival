@@ -12,6 +12,7 @@
     \item Add the braking data as part of the 'reliability' bundle.
     \item Add the cumprob option to plot.survfit and lines.survfit. It
     is applicable to multi-state models.
+    \item Add cex and pch options to plot.cox.zph.
 }}
 \section{Changes in version 3.7-0}{
   \itemize{

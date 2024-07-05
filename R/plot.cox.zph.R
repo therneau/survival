@@ -1,5 +1,6 @@
 plot.cox.zph <- function(x, resid=TRUE, se=TRUE, df=4, nsmo=40, 
                          var, xlab="Time", ylab="", lty=1:2, col=1, lwd=1,
+                         pch= 1, cex=1,
                          hr = FALSE, plot=TRUE, ...) {
     xx <- x$x
     yy <- x$y
@@ -23,6 +24,11 @@ plot.cox.zph <- function(x, resid=TRUE, se=TRUE, df=4, nsmo=40,
 	    stop("Invalid variable requested")
     }
     if (!plot) resid <- FALSE   # only return the curve
+    
+    # xaxt might be in ...
+    plotpar <- list(...)
+    doxaxis <- TRUE
+    if (!is.null(plotpar$xaxt)) doxaxis <- FALSE
 
     #
     # Figure out a 'good' set of x-axis labels.  Find 8 equally spaced
@@ -80,13 +86,10 @@ plot.cox.zph <- function(x, resid=TRUE, se=TRUE, df=4, nsmo=40,
 	    yr <- range(yr, yup, ylow)
 	    }
 
-        plotpar <- list(...)
-        doxaxis <- TRUE
-        if (!is.null(plotpar$xaxt)) doxaxis <- FALSE
 
         if (!plot)  # return the curve
             return(list(x=pred.x, y=cbind(yhat, yup, ylow)))
-4
+
         if (!hr) {
             if (x$transform=='identity')
                 plot(range(xx), yr, type='n', xlab=xlab, ylab=ylab[i], ...)
@@ -102,7 +105,7 @@ plot.cox.zph <- function(x, resid=TRUE, se=TRUE, df=4, nsmo=40,
                 else plot(range(xx[keep]), yr, type='n', xlab=xlab,
                           ylab=ylab[i], ...)
             }
-            if (resid) points(xx[keep], y)
+            if (resid) points(xx[keep], y, pch=pch, cex=cex)
 
             lines(pred.x, yhat, lty=lty[1], col=col[1], lwd=lwd[1])
             if (se) {
@@ -125,7 +128,7 @@ plot.cox.zph <- function(x, resid=TRUE, se=TRUE, df=4, nsmo=40,
                 else  plot(range(xx[keep]), exp(yr), type='n', xlab=xlab, 
                          ylab=ylab[i], log='y', ...)
 	    }
-            if (resid) points(xx[keep], exp(y))
+            if (resid) points(xx[keep], exp(y), pch=pch, cex=cex)
 
             lines(pred.x, exp(yhat), lty=lty[1], col=col[1], lwd=lwd[1])
             if (se) {
