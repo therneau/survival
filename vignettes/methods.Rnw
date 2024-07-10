@@ -36,8 +36,23 @@ library(survival)
 \makeindex
 \begin{document}
 \maketitle
-
 \chapter{Introduction}
+\begin{quote}
+Kernighan's Law:  ``Everyone knows that debugging is twice as
+hard as writing a program in the first place. So if you're as clever as 
+you can be when you write it, how will you ever debug it?''
+\end{quote}
+
+The most complex code in the survival package arises out of two aspects.
+First, some of the mathematics formulas underlying the code are themselves
+complex, a second is the work I have done to avoid $O(n^2)$ computations
+in the algorithms. 
+A consequence of this is that a few comment lines interspersed into the source
+code will never be enough information.  Anyone reading it, including myself,
+is likely to ask ``what the heck is he trying to \emph{do} here?'' 
+A higher level overview is needed that can include equations and
+talk about higher level concepts.
+
   For many years I have used the noweb package to intersperse technical
 documentation with the source code for the survival package.
 However, despite its advantages, the uptake of noweb by the R community
@@ -45,13 +60,13 @@ in general has been nearly nil.
 It is increasingly clear that no future maintainer will continue the 
 work --- 
 on the github page I have yet to recieve a suggested update that actually
-fixed the .Rmd source file instead of the .R file derived from it.  This means
+fixed the .Rnw source file instead of the .R file derived from it.  This means
 that I can't merge a suggested change automatically, but have to replicate it
 myself.
 
 This document is a start at addressing this.  As routines undergo maintainance,
 I will remove the relevant .Rnw file in the noweb directory and work directly
-on the C and R code, migrating the ``extra'' material into this document.
+on the C and R code, migrating the extra material into this document.
 In this
 vignette are discussions of design issues, algorithms, and detailed
 formulas.  In the .R and .c code I will place comments of the form
@@ -64,7 +79,7 @@ The three advantages are
   \item The methods document will be a more ready source of documentation for
     those who want to know technical details, but are not currently modifying
     the code.
-  \item (minor) I expect it will be useful to have the methods document and
+  \item (minor) I expect it will be useful to have the methods document and the
     R or C code open simultaneously in 2 windows, when editing. 
 \end{itemize}
 However, this conversion will be a long process.  
