@@ -324,7 +324,7 @@ survfitAJ <- function(X, Y, weights, id, cluster, robust, istate,
                 U0 <- rowsum(utemp, c2[indx2]) # collapse
                 sd0 <- sqrt(colSums(U0^2))
             } 
-        } else p00 <- p0
+        } else p00 <- as.numeric(p0)  # just in case they passsed integers
 
         fit <- .Call(Csurvfitaj, Y, sort1[indx]-1L, sort2[indx]-1L, 
                      utime, as.integer(istate) -1L, weights, c2, nclust, p00,
