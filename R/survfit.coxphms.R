@@ -1,7 +1,7 @@
 # Automatically generated from the noweb directory
 survfit.coxphms <-
 function(formula, newdata, se.fit=FALSE, conf.int=.95, individual=FALSE,
-         stype=2, ctype, 
+         stype=2, ctype,
          conf.type=c("log", "log-log", "plain", "none", "logit", "arcsin"),
          censor=TRUE, start.time, id, influence=FALSE,
          na.action=na.pass, type, p0=NULL, time0=FALSE, ...) {
@@ -12,9 +12,9 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95, individual=FALSE,
     se.fit <- FALSE   #still to do
     if (missing(newdata))
         stop("multi-state survival requires a newdata argument")
-    if (!missing(id)) 
+    if (!missing(id))
         stop("using a covariate path is not supported for multi-state")
-    temp <- object$smap["(Baseline)",] 
+    temp <- object$smap["(Baseline)",]
     baselinecoef <- rbind(temp, coef= 1.0)
     phbase <- rep(FALSE, nrow(object$cmap))
     if (any(duplicated(temp))) {
@@ -24,7 +24,7 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95, individual=FALSE,
         # There might not be such rows, by the way.
         pattern <- "^ph\\([0-9]+:[0-9]+\\)$"
         cname <- rownames(object$cmap)
-        phbase <- grepl(pattern, cname) # this row points to a "ph" coef        
+        phbase <- grepl(pattern, cname) # this row points to a "ph" coef
         for (i in which(phbase)) {
             # Say that this row (i) of cmap had label ph(1:4), and contains
             #   elements 0,0,0,0,0, 8,9.
@@ -36,7 +36,7 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95, individual=FALSE,
             baselinecoef[2, j>0] <- exp(object$coef[j])
         }
     }
-      
+
     # process options, set up Y and the model frame for the original data
     Terms  <- terms(object)
     robust <- !is.null(object$naive.var)   # did the coxph model use robust var?
@@ -163,7 +163,7 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95, individual=FALSE,
             istate <- istate[-toss]
         }
     }
-    
+
     # expansion of the X matrix with stacker, set up shared hazards
     # Rebuild istate using the survcheck routine, as a double check
     # that the data set hasn't been modified
@@ -175,7 +175,7 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95, individual=FALSE,
     else {
         # if istate has unused levels, mcheck$istate won't have them so they
         #  need to be dropped.
-        istate <- factor(istate, object$states) 
+        istate <- factor(istate, object$states)
         # a new level in state should only happen if someone has mucked up the
         #  data set used in the coxph fit
         if (any(is.na(istate))) stop("unrecognized initial state, data changed?")
@@ -190,14 +190,14 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95, individual=FALSE,
     if (is.null(strata))  tempstrat <- rep(1L, nrow(Y))
     else                  tempstrat <- strata
 
-    cifit <- survfitAJ(as.factor(tempstrat), Y, weights, 
-                            id= oldid, istate = istate, se.fit=FALSE, 
+    cifit <- survfitAJ(as.factor(tempstrat), Y, weights,
+                            id= oldid, istate = istate, se.fit=FALSE,
                             start.time=start.time, p0=p0, time0= time0)
 
     # For computing the  actual estimates it is easier to work with an
     #  expanded data set.
     # Replicate actions found in the coxph-multi-X chunk
-    # Note the dropzero=FALSE argument: if there is a transition with no 
+    # Note the dropzero=FALSE argument: if there is a transition with no
     #  covariates we still need it expanded; this differs from coxph.
     # A second differnence is tstrata: force stacker to think that every
     #  transition is a unique hazard, so that it does proper expansion.
@@ -378,7 +378,7 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95, individual=FALSE,
     # x2 will have one row per desired curve and one col per 'normal' covariate.
     risk2 <- exp(x2 %*% ifelse(is.na(temp), 0, temp) - xcenter)
     # risk2 has a risk score with rows= curve and cols= transition
-    # make the expansion map.  
+    # make the expansion map.
     # The H matrices we will need are nstate by nstate, at each time, with
     # elements that are non-zero only for observed transtions.
     states <- object$states
@@ -393,7 +393,7 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95, individual=FALSE,
     ny <- ncol(Y)
     if (is.null(strata)) {
         fit <- multihaz(Y, X, position, weights, risk, istrat, ctype, stype,
-                        baselinecoef, hfill, x2, risk2, varmat, nstate, se.fit, 
+                        baselinecoef, hfill, x2, risk2, varmat, nstate, se.fit,
                         cifit$p0, cifit$time)
         cifit$pstate <- fit$pstate
         cifit$cumhaz <- fit$cumhaz
@@ -432,8 +432,8 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95, individual=FALSE,
     class(cifit) <- c("survfitcoxms", "survfitms", "survfit")
     cifit
 }
-# Compute the hazard  and survival functions 
-multihaz <- function(y, x, position, weight, risk, istrat, ctype, stype, 
+# Compute the hazard  and survival functions
+multihaz <- function(y, x, position, weight, risk, istrat, ctype, stype,
                      bcoef, hfill, x2, risk2, vmat, nstate, se.fit, p0, utime) {
     ny <- ncol(y)
     sort2 <- order(istrat, y[,ny-1L]) -1L
@@ -443,22 +443,22 @@ multihaz <- function(y, x, position, weight, risk, istrat, ctype, stype,
     # this returns all of the counts we might desire.
     if (ny ==2) {
         fit <- .Call(Ccoxsurv1, utime, y, weight, sort2, istrat, x, risk)
-        cn <- fit$count  
-        dim(cn) <- c(length(utime), fit$ntrans, 10) 
+        cn <- fit$count
+        dim(cn) <- c(length(utime), fit$ntrans, 10)
     }
-    else {    
+    else {
         sort1 <- order(istrat, y[,1]) -1L
-        fit <- .Call(Ccoxsurv2, utime, y, weight, sort1, sort2, position, 
+        fit <- .Call(Ccoxsurv2, utime, y, weight, sort1, sort2, position,
                         istrat, x, risk)
-        cn <- fit$count  
-        dim(cn) <- c(length(utime), fit$ntrans, 12) 
+        cn <- fit$count
+        dim(cn) <- c(length(utime), fit$ntrans, 12)
     }
     # cn is returned as a matrix since there is an allocMatrix C macro, but
     #  no allocArray macro.  So we first reset the dimensions.
     # The first dimension is time
     # Second is the transition, same order as columns of bcoef
     # Third is the count type: 1-3 = at risk (unweighted, with case weights,
-    #  with casewt * risk wt), 4-6 = events (unweighted, case, risk), 
+    #  with casewt * risk wt), 4-6 = events (unweighted, case, risk),
     #  7-8 = censored events, 9-10 = censored, 11-12 = Efron
 
     # We will use events/(at risk) = cn[,,5]/cn[,,3] a few lines below; avoid 0/0
@@ -471,8 +471,8 @@ multihaz <- function(y, x, position, weight, risk, istrat, ctype, stype,
         denom1 <- ifelse(none.atrisk, 1, cn[,,3])   # avoid a later 0/0
         denom2 <- ifelse(none.atrisk, 1, cn[,,3]^2)
     } else {
-        denom1 <- ifelse(none.atrisk, 1, cn[,,9])
-        denom2 <- ifelse(none.atrisk, 1, cn[,,10])
+        denom1 <- ifelse(none.atrisk, 1, 1/cn[,,9])
+        denom2 <- ifelse(none.atrisk, 1, 1/cn[,,10])
     }
 
     # We want to avoid 0/0. If there is no one at risk (denominator) then
@@ -488,10 +488,10 @@ multihaz <- function(y, x, position, weight, risk, istrat, ctype, stype,
         else          atrisk <- cn[,,9] %*% design
         basehaz <- events/ifelse(atrisk<=0, 1, atrisk)
         hazard <- basehaz[,bcoef[1,]] * rep(bcoef[2,], each=nrow(basehaz))
-    }                                  
+    }
     else {
         if (ctype==1) hazard <- cn[,,5]/ifelse(cn[,,3]<=0, 1, cn[,,3])
-        else          hazard <- cn[,,5]/ifelse(cn[,,9] <=0, 1, cn[,,9])
+        else          hazard <- cn[,,5] * ifelse(cn[,,9] <=0, 1, cn[,,9])
     }
 
     # Expand the result, one "hazard set" for each row of x2
@@ -499,7 +499,7 @@ multihaz <- function(y, x, position, weight, risk, istrat, ctype, stype,
     h2 <- array(0, dim=c(nrow(hazard), nx2, ncol(hazard)))
     S <- double(nstate)  # survival at the current time
     S2 <- array(0, dim=c(nrow(hazard), nx2, nstate))
- 
+
     H <- matrix(0, nstate, nstate)
     if (stype==2) {
         H[hfill] <- colMeans(hazard)    # dummy H to drive esetup
