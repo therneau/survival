@@ -163,7 +163,7 @@ coxph <- function(formula, data, weights, subset, na.action,
             stop("multi-state models do not currently support pspline terms")
         if (length(attr(Terms, "specials")$ridge) >0)
             stop("multi-state models do not currently support ridge penalties")
-        if (!missing.ties) method <- ties <- "breslow"
+        if (missing.ties) method <- ties <- "breslow"
     }
     
     if (control$timefix) Y <- aeqSurv(Y)
