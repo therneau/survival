@@ -13,6 +13,8 @@
     \item Add the cumprob option to plot.survfit and lines.survfit. It
     is applicable to multi-state models.
     \item Add cex and pch options to plot.cox.zph.
+    \item The change to ties documented below for 3.4.2 actually never
+    happened, due to a typo.  Now fixed.
 }}
 \section{Changes in version 3.7-0}{
   \itemize{
