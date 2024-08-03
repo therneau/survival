@@ -89,7 +89,7 @@ event <- with(mgus2, ifelse(pstat==0, 2*death, 1))
 event <- factor(event, 0:2, labels=c("censor", "pcm", "death"))
 table(event)
 
-ct1 <- coxph(Surv(etime, event) ~ sex + age, mgus2, id=id)
+ct1 <- coxph(Surv(etime, event) ~ sex + age, mgus2, id=id, ties='efron')
 ct2 <- coxph(Surv(etime, event=='pcm') ~ sex + age, mgus2)
 ct3 <- coxph(Surv(etime, event=='death') ~ sex + age, mgus2)
 
@@ -101,7 +101,7 @@ aeq(zp1$table[3:4,], zp3$table[1:2,])
 
 # Now add a starting time of zero
 dummy <- rep(0, nrow(mgus2))
-ct4 <- coxph(Surv(dummy, etime, event) ~ sex + age, mgus2, id=id)
+ct4 <- coxph(Surv(dummy, etime, event) ~ sex + age, mgus2, id=id, ties='efron')
 ct5 <- coxph(Surv(dummy, etime, event=='pcm') ~ sex + age, mgus2)
 ct6 <- coxph(Surv(dummy, etime, event=='death') ~ sex + age, mgus2)
 zp4 <- cox.zph(ct4, transform='identity')

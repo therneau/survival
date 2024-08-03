@@ -33,13 +33,15 @@ fit2 <- coxph(list(Surv(tstart, tstop, bstat) ~ 1,
 
 # Before we tackle fit2, start small with just 9 subjects, coefs fixed to 
 # simple values to make hand computation easier.  There are no transitions
-# from state 3 to death in this subset, so there is one age coefficient and 
-# 2 PH coefs.  
+# from state 3 to death in this subset.  Since it is a shared hazard the
+# subjects in state 3 ARE at risk and so are found in the denominator of the
+# hazard, but since none of the progress the MLE for that ph coef is -infinity. 
+# We set it to -1.  
 pbc3 <- subset(pbc2, id < 10)
 pbc3$age <- round(pbc3$age)  # easier to do "by hand" sums
 fit3 <- coxph(list(Surv(tstart, tstop, bstat) ~ 1, 
                    c(1:4):5 ~ age / common + shared),  x=TRUE,
-              id= id, istate=bili4, data=pbc3, init= c(.05, .6, 1.1), iter=0)
+              id= id, istate=bili4, data=pbc3, init= c(.05, .6, -1, 1.1), iter=0)
 # a mixed p0 gives a stronger test than our usual (1, 0,0,0,0)
 surv3 <- survfit(fit3, newdata=list(age=50), p0=c(.4, .3, .2, .1, 0))
 
@@ -65,19 +67,18 @@ hmat[2,3,4] <- 1/3; hmat[2,2,4] <- -1/3   # new count= 4,2,1,2
 hmat[1,2,5] <- 1/4; hmat[1,1,5] <- -1/4   # new count= 3,3,1,2
 
 # Event 6 is a transition from state 4 to death, at day 400
-# For the shared hazard, the denominator is all those in states 1,2, or 4.
+# For the shared hazard, the denominator is all those in states 1,2,3, or 4.
 atrisk <- with(pbc3, tstart < etime[6] & tstop >= etime[6])
 table(pbc3$bili4[atrisk]) # current states just before time 6
  
-# The subject in state 2-4 is not considered to be at risk for a death.  
-# The coxph routine assumes that the set of transitions that CAN happen = the 
-# set that did happen at least once.
-adata <- subset(pbc3, atrisk & bili4 != '2-4')
-eta <- with(adata, .05*(age-50) + .6*(bili4=="1-2") + 1.1*(bili4 == ">4"))
+adata <- subset(pbc3, atrisk)
+eta <- with(adata, .05*(age-50) + .6*(bili4=="1-2") + 1.1*(bili4 == ">4") -
+                   1*(bili4=="2-4"))
 cbind(adata[,c('id', 'age', 'tstop', 'bili4', 'bstat')], eta, risk=exp(eta)) 
 basehaz <- 1/sum(exp(eta))
 hmat[1,5,6] <- basehaz;            hmat[1,1,6] <- -basehaz
 hmat[2,5,6] <- basehaz * exp(.6);  hmat[2,2,6] <- -basehaz*exp(.6)
+hmat[3,5,6] <- basehaz * exp(-1);  hmat[3,3,6] <- -basehaz*exp(-1)
 hmat[4,5,6] <- basehaz * exp(1.1); hmat[4,4,6] <- -basehaz*exp(1.1)
 # double check: sum of per-subject hazards at this time point = number of
 #  events at this time point 

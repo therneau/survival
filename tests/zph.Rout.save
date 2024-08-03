@@ -1,7 +1,7 @@
 
-R Under development (unstable) (2023-01-03 r83550) -- "Unsuffered Consequences"
-Copyright (C) 2023 The R Foundation for Statistical Computing
-Platform: x86_64-pc-linux-gnu (64-bit)
+R Under development (unstable) (2024-06-14 r86747) -- "Unsuffered Consequences"
+Copyright (C) 2024 The R Foundation for Statistical Computing
+Platform: aarch64-unknown-linux-gnu
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -124,7 +124,7 @@ event
 censor    pcm  death 
    409    115    860 
 > 
-> ct1 <- coxph(Surv(etime, event) ~ sex + age, mgus2, id=id)
+> ct1 <- coxph(Surv(etime, event) ~ sex + age, mgus2, id=id, ties='efron')
 > ct2 <- coxph(Surv(etime, event=='pcm') ~ sex + age, mgus2)
 > ct3 <- coxph(Surv(etime, event=='death') ~ sex + age, mgus2)
 > 
@@ -138,7 +138,7 @@ censor    pcm  death
 > 
 > # Now add a starting time of zero
 > dummy <- rep(0, nrow(mgus2))
-> ct4 <- coxph(Surv(dummy, etime, event) ~ sex + age, mgus2, id=id)
+> ct4 <- coxph(Surv(dummy, etime, event) ~ sex + age, mgus2, id=id, ties='efron')
 > ct5 <- coxph(Surv(dummy, etime, event=='pcm') ~ sex + age, mgus2)
 > ct6 <- coxph(Surv(dummy, etime, event=='death') ~ sex + age, mgus2)
 > zp4 <- cox.zph(ct4, transform='identity')
@@ -220,4 +220,4 @@ censor    pcm  death
 > 
 > proc.time()
    user  system elapsed 
-  1.154   0.089   1.233 
+  0.515   0.028   0.540 

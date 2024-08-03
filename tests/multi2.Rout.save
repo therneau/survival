@@ -1,7 +1,7 @@
 
-R Under development (unstable) (2021-04-20 r80202) -- "Unsuffered Consequences"
-Copyright (C) 2021 The R Foundation for Statistical Computing
-Platform: x86_64-pc-linux-gnu (64-bit)
+R Under development (unstable) (2024-06-14 r86747) -- "Unsuffered Consequences"
+Copyright (C) 2024 The R Foundation for Statistical Computing
+Platform: aarch64-unknown-linux-gnu
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -27,12 +27,13 @@ Type 'q()' to quit R.
 > fit <- coxph(Surv(tstart, tstop, event) ~ trt + sex, tdata, id=id,
 +              iter=4, x=TRUE, robust=FALSE)
 > 
+> # Multi-state now defaults to breslow rather than efron
 > fit12 <- coxph(Surv(tstart, tstop, event=='sct') ~ trt + sex, tdata,
-+                subset=(priortx==0), iter=4, x=TRUE)
++                subset=(priortx==0), iter=4, x=TRUE, method='breslow')
 > fit13 <- coxph(Surv(tstart, tstop, event=='death') ~ trt + sex, tdata,
-+                subset=(priortx==0), iter=4, x=TRUE)
++                subset=(priortx==0), iter=4, x=TRUE, method= 'breslow')
 > fit23 <- coxph(Surv(tstart, tstop, event=='death') ~ trt + sex, tdata,
-+                subset=(priortx==1), iter=4, x=TRUE)
++                subset=(priortx==1), iter=4, x=TRUE, method="breslow")
 > aeq(coef(fit), c(coef(fit12), coef(fit13), coef(fit23))) 
 [1] TRUE
 > aeq(fit$loglik, fit12$loglik + fit13$loglik + fit23$loglik)
@@ -239,4 +240,4 @@ table     x  time     y   var
 > 
 > proc.time()
    user  system elapsed 
-  1.314   0.113   1.428 
+  0.481   0.040   0.518 

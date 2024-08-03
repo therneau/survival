@@ -30,7 +30,7 @@ all.equal(as.character(pbc2$bili4), as.character(check1$istate))
 # the above verifies that I created the data set correctly
 
 # Standard coxph fit with a time dependent bili4 variable.
-fit1 <- coxph(Surv(tstart, tstop, death) ~ age + bili4, pbc2)
+fit1 <- coxph(Surv(tstart, tstop, death) ~ age + bili4, pbc2, ties='breslow')
 
 # An additive multi-state fit, where bili4 is a state
 #  The three forms below should all give identical models
@@ -51,8 +51,8 @@ all.equal(coef(fit2), coef(fit2b))
 all.equal(coef(fit2), coef(fit2c))
 
 # Now a model with a separate age effect for each bilirubin group
-fit3  <- coxph(Surv(tstart, tstop, death) ~ age*bili4, pbc2)
-fit3b <- coxph(Surv(tstart, tstop, death) ~ bili4/age, pbc2)
+fit3  <- coxph(Surv(tstart, tstop, death) ~ age*bili4, pbc2, ties='breslow')
+fit3b <- coxph(Surv(tstart, tstop, death) ~ bili4/age, pbc2, ties='breslow')
 fit4 <-  coxph(list(Surv(tstart, tstop, bstat) ~ 1,
                    c(1:4):5 ~ age / shared), id= id, istate=bili4,
               data=pbc2)
@@ -69,7 +69,7 @@ aeq(temp, coef(fit4))
 
 # Third, a model with separate baseline hazards for each bili group
 fit5 <- coxph(Surv(tstart, tstop, death) ~ strata(bili4)/age, pbc2,
-              cluster=id)
+              cluster=id, ties='breslow')
 fit6 <- coxph(list(Surv(tstart, tstop, bstat) ~ 1, 0:5 ~ age),
                    id=id, istate=bili4, pbc2)
 aeq(coef(fit5), coef(fit6))
