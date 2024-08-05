@@ -44,7 +44,7 @@ you can be when you write it, how will you ever debug it?''
 \end{quote}
 
 The most complex code in the survival package arises out of two aspects.
-First, some of the mathematics formulas underlying the code are themselves
+First, some of the mathematical formulas underlying the code are themselves
 complex, a second is the work I have done to avoid $O(n^2)$ computations
 in the algorithms. 
 A consequence of this is that a few comment lines interspersed into the source
@@ -58,7 +58,7 @@ documentation with the source code for the survival package.
 However, despite its advantages, the uptake of noweb by the R community
 in general has been nearly nil. 
 It is increasingly clear that no future maintainer will continue the 
-work --- 
+work, e.g.,
 on the github page I have yet to recieve a suggested update that actually
 fixed the .Rnw source file instead of the .R file derived from it.  This means
 that I can't merge a suggested change automatically, but have to replicate it
