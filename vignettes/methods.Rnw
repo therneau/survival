@@ -1261,7 +1261,7 @@ nfit <- survfit(Surv(age1, age2, event) ~1, ndata, id=id, start.time=50,
 netime <- (nfit$time <=90 & rowSums(nfit$n.event) > 0)
 # the number at risk at any time is all those in the intial state of a transition
 #  at that time
-from <- as.numeric(sub("\\.[0-9]*", "", colnames(nfit$n.transition)))
+from <- as.numeric(sub(":[0-9]*", "", colnames(nfit$n.transition)))
 fmat <- model.matrix(~ factor(from, 1:5) -1)
 temp <- (nfit$n.transition %*% fmat) >0 # TRUE for any transition 'from' state
 frisk <- (nfit$n.risk * ifelse(temp,1, 0))

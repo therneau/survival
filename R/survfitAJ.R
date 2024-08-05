@@ -350,7 +350,7 @@ survfitAJ <- function(X, Y, weights, id, cluster, robust, istate,
     }
 
     # Names for the cumulative hazard
-    cname <- paste(trmat[,1], trmat[,2], sep='.')
+    cname <- paste(trmat[,1], trmat[,2], sep=':')
 
     # Turn the result into a survfit type object
     # The C routine returns weighted and unweighted versions of the counts:
