@@ -1,8 +1,8 @@
 Title: Survival Analysis
 Priority: recommended
 Package: survival
-Version: 3.7-1
-Date: 2024-06-07
+Version: 3.7-2
+Date: 2024-08-01
 Depends: R (>= 3.5.0)
 Imports: graphics, Matrix, methods, splines, stats, utils
 LazyData: Yes
