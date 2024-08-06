@@ -279,7 +279,7 @@ parsecovar2 <- function(covar1, statedata, dformula, Terms, transitions,states) 
     indx1 <- match(rownames(t2), states)
     indx2 <- match(colnames(t2), states)
     # check shared hazards
-    temp <- tmap[1,indx1,indx2]
+    temp <- matrix(tmap[1,indx1,indx2], nrow=nrow(t2))
     for (i in unique(temp)) {
         if (sum(temp==i) > 1) { #shared hazard
             j <- cbind(row(temp)[temp==i], col(temp)[temp==i])
@@ -352,7 +352,7 @@ parsecovar3 <- function(tmap, Xcol, Xassign, phbaseline=NULL) {
     if (hasintercept) rownames(cmap) <- c(Xcol[-1], newname)
     else rownames(cmap) <- c(Xcol, newname)
 
-    nonzero <- colSums(cmap) > 0  # there is at least one covariate
-    if (!all(nonzero)) cmap <- cmap[, nonzero, drop=FALSE]
+#    nonzero <- colSums(cmap) > 0  # there is at least one covariate
+#    if (!all(nonzero)) cmap <- cmap[, nonzero, drop=FALSE]
     cmap
 }

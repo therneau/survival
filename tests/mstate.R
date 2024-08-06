@@ -334,7 +334,7 @@ temp[indx1, indx2] <- mfit4$transitions[, indx2>0]
 # temp is an nstate by nstate version of the transitions matrix
 from <- row(temp)[temp>0]
 to   <- col(temp)[temp>0]
-all.equal(colnames(mfit4$cumhaz), paste(from, to, sep='.'))
+all.equal(colnames(mfit4$cumhaz), paste(from, to, sep=':'))
 
 # check the cumulative hazard
 temp <- mfit4$n.risk[,from]

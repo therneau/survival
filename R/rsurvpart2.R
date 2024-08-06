@@ -45,8 +45,8 @@ rsurvpart2 <- function(Y, casewt, istate, times, type, fit, method) {
     t0 <- fit$t0
     # get the values of from:to for each transition
     temp <- colnames(fit$cumhaz)
-    from <- as.integer(sub("\\.[0-9]*$", "", temp))
-    to   <- as.integer(sub("^[0-9]*\\.", "", temp))
+    from <- as.integer(sub(":[0-9]*$", "", temp))
+    to   <- as.integer(sub("^[0-9]*:", "", temp))
  
     if (type== "cumhaz") {
         events <- (rowSums(fit$n.event) >0)  # minor speedup, only event times

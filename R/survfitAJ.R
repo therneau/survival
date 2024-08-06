@@ -426,10 +426,10 @@ survfitAJ <- function(X, Y, weights, id, cluster, robust, istate,
                             grabit2(curves, "n.transition"),
                             grabit2(curves, "n.censor"),
                             grabit2(curves, "n.enter"))
-            colnames(counts) <- c(paste0("nrisk:", 1:nstate),
-                                  paste0("ntrans:", cname),
-                                  paste0("ncensor:", 1:nstate),
-                                  paste0("nenter:", 1:nstate))
+            colnames(counts) <- c(paste0("nrisk ", 1:nstate),
+                                  paste0("ntrans ", cname),
+                                  paste0("ncensor ", 1:nstate),
+                                  paste0("nenter ", 1:nstate))
         } else {
             counts <- cbind(grabit2(curves, "n.risk"),
                             grabit2(curves, "n.transition"),

@@ -1,5 +1,5 @@
 
-R Under development (unstable) (2024-04-01 r86255) -- "Unsuffered Consequences"
+R Under development (unstable) (2024-06-14 r86747) -- "Unsuffered Consequences"
 Copyright (C) 2024 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu
 
@@ -372,7 +372,7 @@ Type 'q()' to quit R.
 > # temp is an nstate by nstate version of the transitions matrix
 > from <- row(temp)[temp>0]
 > to   <- col(temp)[temp>0]
-> all.equal(colnames(mfit4$cumhaz), paste(from, to, sep='.'))
+> all.equal(colnames(mfit4$cumhaz), paste(from, to, sep=':'))
 [1] TRUE
 > 
 > # check the cumulative hazard
@@ -384,4 +384,4 @@ Type 'q()' to quit R.
 > 
 > proc.time()
    user  system elapsed 
-  0.958   0.105   1.055 
+  1.736   0.162   1.885 
