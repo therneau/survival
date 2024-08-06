@@ -1,6 +1,7 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
 \section{Changes in version 3.7-2}{
+  \itemize{
     \item The change to ties documented below for 3.4.2 actually never
     happened, due to a typo.  Now fixed.  This forced multiple additions
     of ties='breslow' to the test suite, when comparing multi-state to

@@ -436,8 +436,7 @@ Shared hazards create a nuisance though.
 Suppose 1:death and 2:death have shared hazard, no state 1 obs actually die,
 but there are state 1 subjects at risk, i.e., there is a nonzero row for
 state 1 in the transitions matrix.  (The death row is normally all zero).
-The 1:death transition certainly needs to appear in the final smap object,
-and cmap/smap are assumed to have the same column names.
+The 1:death transition certainly needs to appear in the final smap object.
 Shared transitions can be found in the [1,,] element of tmap; use that to
 put sums into the t2 matrix below.
 This isn't perfect, e.g., if there was a single state 1 subject who is censored
@@ -490,7 +489,8 @@ list(tmap = tmap2, inits=inits, mapid= cbind(from=indx1[trow], to=indx2[tcol]),
 
 Last is a helper routine that converts tmap, which has one row per term,
 into cmap, which has one row per coefficient.  Both have one column per 
-transition.
+transition.  If there a transition with no covariates, that is removed from
+cmap.
 It uses the assign attribute of the X matrix along with the column names.
 
 Consider the model \code{~ x1 + strata(x2) + factor(x3)} where x3 has 4 levels.
@@ -556,6 +556,8 @@ parsecovar3 <- function(tmap, Xcol, Xassign, phbaseline=NULL) {
     if (hasintercept) rownames(cmap) <- c(Xcol[-1], newname)
     else rownames(cmap) <- c(Xcol, newname)
 
+    nonzero <- colSums(cmap) > 0  # there is at least one covariate
+    if (!all(nonzero)) cmap <- cmap[, nonzero, drop=FALSE]
     cmap
 }
 @ 
