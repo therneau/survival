@@ -107,7 +107,7 @@ summary.survfit <- function(object, times, censored=FALSE,
         
         # if the times are not ordered, we assume the person is doing lookup
         if (missing(dosum)) dosum <- all(diff(times) > 0)
-        else if (!logical(dosum)) stop("dosum must be TRUE/FALSE")
+        else if (!is.logical(dosum)) stop("dosum must be TRUE/FALSE")
         else if (dosum && !all(diff(times) >0))
             stop ("dosum=TRUE requires the times to be increasing")
 
