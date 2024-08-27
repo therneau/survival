@@ -26,8 +26,8 @@ plot.cox.zph <- function(x, resid=TRUE, se=TRUE, df=4, nsmo=40,
     if (!plot) resid <- FALSE   # only return the curve
     
     # xaxt might be in ...
-    if (!is.na(match("xaxt", ...names()))) doaxis <- FALSE
-    else doaxis <- TRUE
+    if (!is.na(match("xaxt", ...names()))) doxaxis <- FALSE
+    else doxaxis <- TRUE
 
     #
     # Figure out a 'good' set of x-axis labels.  Find 8 equally spaced
