@@ -141,6 +141,10 @@ events that have occured since the prior line of printout, and likewise
 for number of censored and number at entry, \code{dosum = TRUE}.
 Alternately, the routine can return the number of events/censors/entry at
 that time, \code{dosum=FALSE}.
+This feature was added at the request of a user who essentially wanted to
+use the \code{times} argument as a subscript to pick off selected rows
+of the output, e.g., to select survival values corresponding to the
+last follow-up times of a new set of observations.
 The default for \code{dosum} is TRUE if the \code{times} vector is
 strictly increasing and FALSE otherwise.
 

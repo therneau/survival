@@ -1380,6 +1380,130 @@ of a long final search on level 1, but even a string of 10 is unlikely:
 $(3/4)^{10} < .06$.  
 
 
+\chapter{Misc numerics}
+\section{Matrix exponentials and transition matrices}
+For multi-state models, we need to compute the exponential of the transition
+matrix, sometimes many times.
+The matrix exponential is formally defined as
+\begin{equation*}
+  \exp(A) = I + \sum_{j=1}^\infty A^i/i!
+  \end{equation*}
+The computation is nicely solved by the expm package
+\emph{if} we didn't need derivatives and/or high speed.  
+We want both.
+
+We take advantage of three special cases to speed things up.  Each
+depends on the structure of $A$, which has the transition rates from
+state $j$ to state $k$ in off diagonal element $A_{jk}$ (non negative),
+and diagonal elements such that each row sums to zero.
+$P= \exp(A)$ is the transition probabilty matrix for this time point,
+each row of $P$ sums to 1 and all elements are non-negative.
+
+\begin{enumerate}
+  \item  If all the non-zero rates fall into a single row, or they all
+    fall into a single column, then there are simple closed form formulas
+    shown below. 
+  \item If the rate matrix $R$ is upper triangular and the (non-zero) diagonal
+    elements are distinct, there is a fast matrix decomposition algorithm.
+    If the transition matrix is acylic then it can be rearranged to be in upper
+    triangular form.  The decomposition also gives a simple expression for
+    the derivative.
+  \item In the general case we use a Pade-Laplace algorithm: the same found 
+    in the matexp package, but also supply derivatives if requested.
+\end{enumerate}
+
+When derivatives are needed, the routine is also passed an array \code{dR} whose
+$(j,k,i)$ element is the derivative of $A_{jk}$ with respect to parameter 
+$\theta_i$.
+In the case of infinitesimal jackknife compuations, which is what is most
+used in the survival package, $\theta$ will be the per-subject leverage
+on each of the underlying hazards at that time.  
+(Or a group of subjects, for a grouped jackknife).
+Since the rows of $P$ must sum to one, note that the rows of any derivative of
+$P$ will sum to zero, i.e., 
+$dR_{jji}= -\sum_{k!=j} dR_{jki}$.
+Since zero rates only occur for transitions that are not possible
+($\exp(X\beta) \lambda(t)$ is 0 only if $\lambda(t)$ is 0)
+the derivative will be non-zero only if the rate is non-zero. 
+
+Let $P(t)= \exp(A(t))$. 
+If there is only one non-zero diagonal element, $A_{jj}$ say, then
+\begin{align*} 
+    P_{jj} &= e^{-A_{jj}} \\
+    P_{jk} &= \left(1- e^{-A_{jj}}\right) \frac{A_{jk}}/{\sum_{l\ne j} A_{jl}} \\
+    P_{kk} &= 1; k\ne j 
+\end{align*}
+and all other elements of $P$ are zero.
+If there is only a single event at this time, which turns out to be the most
+common case with continuous time data, then $P$ and its derivative have only
+two non-zero elements, corresponding to $k$= current state of the observation
+with an event.  It is not true that the derivative is zero for other subjects
+than the $i$ who had an event, as everyone has an impact on $\hat \beta$ and
+thus on the estimated rate at that time.
+
+\begin{align*}
+  \frac{\partial P_{jj}}{\partial \theta_{jki}} &=
+     -P_{jj} \partial{A_{jk}} \partial{\theta_{jki}} \\
+ \frac{\partial P_{jk}}{\partial \theta_{jki}} &=
+     P_{jj} \partial{A_{jk}} \partial{\theta_{jki}} \\
+\end{align*}
+
+If there are multiple events at this time point but all have the same
+starting state, the     
+The derivative of $P$ with respect to $\theta_{jki}$ will be 0 for all rows
+except row $j$.
+\begin{align*} 
+ \frac{\partial P_{jk}}{\partial \theta_{jki}} &= eta_{jk}A_{jj} 
+     \;\mbox{single event type} \\
+    \frac{\partial A_{jk}}{\partial \eta_{jm}}&=  
+      A_{jj} eta_{jm}\frac{A_{jm}}{\sum_{l\ne j} A_{jl}} +
+      (A_{jj} -1) \frac{\eta_{jm} (1- \sum_{l\ne j} A_{jl})}{(\sum_{l\ne j} A_{jl})^2}
+\end{align*}
+
+
+If all non-zero rates lie in a single column $k$, then 
+\begin{align*} 
+  P_{jj} = exp(-A_{jk}) \quad j\ne k\\
+  P_{jk} = 1- P_{jj} \quad j \ne k\\
+  P_{kk} =1
+\end{align*}
+
+If time is continuous then most events will be at a unique event time, and the
+first formula will thus be the most common case.  This formula also holds
+for competing risks.  If there is a shared hazard
+for a set of transitions to a single state $k$ (often death), then for a 
+unique event time (or tied events of the same type) the second formula will hold.
+
+The matrix decomposition is use when
+the state space is acylic, the case for many survival problems.  
+The states can be reordered so that A is always upper triangular.
+In that case, the diagonal elements of A are the eigenvalues.  If these
+are unique (ignoring the zeros), then an algorithm of Kalbfleisch and Lawless
+gives both A and the derivatives of A in terms of a matrix decomposition.
+For the remaining cases use the Pade' approximation as found in the
+matexp package.
+
+The overall stategy is the following:
+\begin{enumerate} 
+  \item Call \code{survexpmsetup} once, which will decide if the matrix is
+    acyclic, and return a reorder vector if so or a flag if it is not.
+    This determination is based on the possible transitions, e.g., on the
+    transitions matrix from survcheck.
+  \item Call \code{survexpm} for each individual transition matrix.
+    In that routine
+    \begin{itemize}
+      \item First check for the simple cases, otherwise
+      \item Do not need derivatives: call survexpm
+      \item Do need derivatives
+        \begin{itemize}
+          \item If upper triangular and no tied values, use the deriv routine
+          \item Otherwise use the Pade routine
+        \end{itemize}
+    \end{itemize}
+\end{enumerate}
+
+
+
 \printindex
 \bibliographystyle{plain}
 \bibliography{refer}
