@@ -90,6 +90,10 @@ then a one sample test is done.
 To cause missing values in the predictors to be treated as a separate
 group, rather than being omitted, use the \code{factor} function with its
 \code{exclude} argument to recode the righ-hand-side covariate.
+
+Note that the ordinary log-rank test is equivalent to the score test
+from a Cox model, using the Breslow approximation for ties.
+Use the Cox model form for more complex models, e.g., time-dependent covariates.
 }
 \references{
   Harrington, D. P. and Fleming, T. R. (1982).
@@ -105,10 +109,13 @@ A class of rank test procedures for censored survival data.
 \examples{
 ## Two-sample test
 survdiff(Surv(futime, fustat) ~ rx,data=ovarian)
+check <- coxph(Surv(futime, fustat) ~ rx, data=ovarian, ties="breslow")
+round(summary(check)$sctest, 3)
 
-## Stratified 7-sample test
-
+## Stratified 8-sample test (7 df)
 survdiff(Surv(time, status) ~ pat.karno + strata(inst), data=lung)
+check <- coxph(Surv(time, status) ~ factor(pat.karno) + strata(inst), lung)
+round(summary(check)$sctest, 3)
 
 ## Expected survival for heart transplant patients based on
 ## US mortality tables
