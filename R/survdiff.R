@@ -5,6 +5,8 @@ survdiff <- function(formula, data, subset, na.action, rho=0, timefix=TRUE) {
 
     if (!inherits(formula, 'formula'))
         stop("The 'formula' argument is not a formula")
+    formula <- removeDoubleColonSurv(formula)  # protect from survival::strata
+    call$formula <- formula
 
     Terms <- if(missing(data)) terms(formula, 'strata')
 	     else              terms(formula, 'strata', data=data)
