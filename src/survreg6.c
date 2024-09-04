@@ -225,9 +225,11 @@ SEXP survreg6(SEXP maxiter2,   SEXP nvarx,  SEXP y,
     for (iter=1; iter<= maxiter; iter++) {
 	/* 
 	**   Am I done?  Check for convergence, then update betas
+	**   The *loglik > -eps is for the extremely rare case that the
+	**    loglik settles at a value very near 0.
 	*/
-	if (!isnan(newlk) && 0== isinf(newlk) && 
-	    fabs(1-(*loglik/newlk))<=eps && halving==0 ) { /* all done */
+	if (!isnan(newlk) && 0== isinf(newlk) &&  halving==0 &&
+	    (fabs(1- *loglik/newlk) <=eps || *loglik > -eps)) { /* all done */
 	    *loglik = newlk;
 	    *flag = cholesky3(imat, nvar2, 0, NULL, tol_chol);
 
@@ -244,35 +246,32 @@ SEXP survreg6(SEXP maxiter2,   SEXP nvarx,  SEXP y,
 	
 	if (isnan(newlk) || 0 != isinf(newlk) || newlk < *loglik)   {    
 	    /*it is not converging ! */
-	    for (j=0; j<5 && newlk < *loglik; j++) {
-		halving++;
-		for (i=0; i<nvar2; i++)
-		    newbeta[i] = (newbeta[i] + beta[i]) /2; 
-		/*
-		** Special code for sigmas.  Often, they are the part
-		**  that gets this routine in trouble.  The prior NR step
-		**  may have decreased one of them by a factor of >10, in which
-		**  case step halving isn't quite enough.  Make sure the new
-		**  try differs from the last good one by no more than 1/3
-		**  approx log(3) = 1.1
-		**  Step halving isn't enough of a "back away" when a
-		**  log(sigma) goes from 0.5 to -3, or has become singular.
-		*/
-		if (halving==1) {  /* only the first time */
-		    for (i=0; i<nstrat; i++) {
-			if ((beta[nvar+i]-newbeta[nvar+i])> 1.1)
-			    newbeta[nvar+i] = beta[nvar+i] - 1.1;  
-			}
-		    }
-		newlk = (*dolik)(n,      nvar,             nstrat,  1,
-				 newbeta,asInteger(dist),  strat,   offset,
-				 time1,  time2,            status,  wt,
-				 covar,  imat,             JJ,      u,
-				 dexpr,  rho,              zptr,
-				 0,      NULL,             NULL,    NULL); 
+	    halving++;
+	    for (i=0; i<nvar2; i++)
+		newbeta[i] = (newbeta[i] + 2*beta[i]) /3.0; 
+	    /*
+	    ** Special code for sigmas.  Often, they are the part
+	    **  that gets this routine in trouble.  The prior NR step
+	    **  may have decreased one of them by a factor of >10, in which
+	    **  case step halving isn't quite enough.  Make sure the new
+	    **  try differs from the last good one by no more than 1/3
+	    **  approx log(3) = 1.1
+	    **  Step halving isn't enough of a "back away" when a
+	    **  log(sigma) goes from 0.5 to -3, or has become singular.
+	    */
+	    if (halving==1) {  /* only the first time */
+		for (i=0; i<nstrat; i++) {
+		    if ((beta[nvar+i]-newbeta[nvar+i])> 1.1)
+			newbeta[nvar+i] = beta[nvar+i] - 1.1;  
 		}
 	    }
-
+	    newlk = (*dolik)(n,      nvar,             nstrat,  1,
+			     newbeta,asInteger(dist),  strat,   offset,
+			     time1,  time2,            status,  wt,
+			     covar,  imat,             JJ,      u,
+			     dexpr,  rho,              zptr,
+			     0,      NULL,             NULL,    NULL); 
+	}
 	else {    /* take a standard NR step */
 	    halving=0;
 	    *loglik = newlk;
@@ -295,17 +294,22 @@ SEXP survreg6(SEXP maxiter2,   SEXP nvarx,  SEXP y,
 			 dexpr,  rho,              zptr,
 			 0,      NULL,             NULL,    NULL); 
 	for (i=0; i<nvar2; i++) usave[i] = u[i];
-	}   /* return for another iteration */
-    *iter2 = maxiter;
-    *loglik = newlk;
+    }   /* return for another iteration */
+
+    *iter2 = maxiter; 	
+    /* did not converge, return the last good iter 
+       restore u and imat to correct values for beta */
+    (*dolik)(n,      nvar,             nstrat,  0,
+	     beta,asInteger(dist),  strat,   offset,
+	     time1,  time2,            status,  wt,
+	     covar,  imat,             JJ,      u,
+	     dexpr,  rho,              zptr,
+	     0,      NULL,             NULL,    NULL); 
     cholesky3(imat, nvar2, 0, NULL, tol_chol);
     chinv2(imat, nvar2); 
     for (i=1; i<nvar2; i++) {
         for (j=0; j<i; j++)  imat[i][j] = imat[j][i];
-        }
-    
-    for (i=0; i<nvar2; i++)
-	beta[i] = newbeta[i];
+    }
     *flag= 1000;
 
     /*
