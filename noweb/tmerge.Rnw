@@ -227,8 +227,7 @@ if (any(argname== "")) stop("all additional argments must have a name")
        
 check <- match(argclass, c("tdc", "cumtdc", "event", "cumevent"))
 if (any(is.na(check)))
-    stop(paste("argument(s)", argname[is.na(check)], 
-                   "not a recognized type"))
+    gettextf("argument(s) %s not a recognized type", argname[is.na(check)])
 @ 
 
 The tcount matrix keeps track of what we have done, and is added to

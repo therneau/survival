@@ -18,8 +18,8 @@ anova.coxphlist <- function (object, test =  'Chisq' ,...) {
     sameresp <- (responses == responses[1])
     if (!all(sameresp)) {
         object <- object[sameresp]
-        warning(paste("Models with response", deparse(responses[!sameresp]), 
-            "removed because response differs from", "model 1"))
+	warning(gettextf("Models with response %s removed because response differs from model 1",
+            deparse(responses[!sameresp])))
     }
 
     ns <- sapply(object, function(x) length(x$residuals))

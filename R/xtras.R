@@ -110,8 +110,7 @@ coef.survfit <- function(object, ...)
 vcov.survfit <- function(object, ...) 
     stop("vcov method not applicable for survfit objects")
 confint.survfit <- function(object, ...)
-    stop(paste("confint method not defined for survfit objects," ,
-         "use quantile for confidence intervals of the median survival"))
+    stop(gettextf("confint method not defined for survfit objects, use quantile for confidence intervals of the median survival"))
 
 # This is self defense for my functions agains the survival:: affectianos.
 # Replace survival::strata with strata, survival:cluster with cluster

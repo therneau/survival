@@ -128,7 +128,7 @@ survfit.coxph <-
       }
       type <- attr(Y, 'type')
       if (!type %in% c("right", "counting", "mright", "mcounting"))
-          stop("Cannot handle \"", type, "\" type survival data")
+          stop(gettextf("Cannot handle \"%s\" type survival data", type))
 
       if (missing(start.time)) t0 <- min(c(0, Y[,-ncol(Y)]))
       else {

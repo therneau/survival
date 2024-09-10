@@ -49,7 +49,7 @@ survSplit <- function(formula, data, subset, na.action=na.pass,
     states <- attr(Y, "states")
     if (!is.Surv(Y)) stop ("the model must have a Surv object as the response")
     if (!(attr(Y, "type") %in% c("right", "mright", "counting", "mcounting")))
-        stop(paste("not valid for", attr(Y, "type"), "censored survival data"))
+        stop(gettextf("not valid for %s censored survival data", attr(Y, "type")))
     nY <- ncol(Y)
     ymiss <- is.na(Y)  # these pass through unchanged
     if (nY ==2) {

@@ -166,17 +166,15 @@ else which.sing <- rep(FALSE,nvar)
 if (maxiter >1) {
     infs <- abs(agfit$u %*% vmat)
     if (any(!is.finite(coef)) || any(!is.finite(vmat)))
-        stop("routine failed due to numeric overflow.",
-             "This should never happen.  Please contact the author.")   
+        stop("routine failed due to numeric overflow. This should never happen. Please contact the author.")
     if (agfit$flag[4] > 0)
         warning("Ran out of iterations and did not converge")
     else {
         infs <- (!is.finite(agfit$u) |
                  infs > control$toler.inf*(1+ abs(coef)))
         if (any(infs))
-            warning(paste("Loglik converged before variable ",
-                          paste((1:nvar)[infs],collapse=","),
-                          "; beta may be infinite. "))
+            warning(gettextf("Loglik converged before variable %s; beta may be infinite.",
+                          paste((1:nvar)[infs],collapse=",")))
     }
 }
 @ 

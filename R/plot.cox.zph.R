@@ -66,7 +66,7 @@ plot.cox.zph <- function(x, resid=TRUE, se=TRUE, df=4, nsmo=40,
         
         qmat <- qr(xmat[keep,])
         if (qmat$rank < df) {
-            warning("spline fit is singular, variable ", i, " skipped")
+            warning(gettextf("spline fit is singular, variable %d skipped", i))
             next
         } 
 

@@ -23,7 +23,7 @@ coxph <- function(formula, data, weights, subset, na.action,
         indx <- pmatch(names(extraArgs), controlargs, nomatch=0L)
         if (any(indx==0L))
             stop(gettextf("Argument %s not matched", 
-                          names(extraArgs)[indx==0L]), domain = NA)
+                          names(extraArgs)[indx==0L]), domain = "R-survival")
     }
     if (missing(control)) control <- coxph.control(...) 
 
@@ -144,8 +144,7 @@ coxph <- function(formula, data, weights, subset, na.action,
     multi <- FALSE
     if (type=="mright" || type == "mcounting") multi <- TRUE
     else if (type!='right' && type!='counting')
-        stop(paste("Cox model doesn't support \"", type,
-                          "\" survival data", sep=''))
+        stop(gettextf("Cox model doesn't support \"%s\" survival data", type))
     data.n <- nrow(Y)   #remember this before any time transforms
 
     if (!multi && multiform)
@@ -575,7 +574,7 @@ coxph <- function(formula, data, weights, subset, na.action,
                                     weights=weights, method=method, 
                                     rname, nocenter=nocenter)
         }
-        else stop(paste ("Unknown method to ties", method))
+        else stop(gettextf("Unknown method to ties %s", method))
     }
     if (is.character(fit)) {
         fit <- list(fail=fit)
@@ -584,8 +583,7 @@ coxph <- function(formula, data, weights, subset, na.action,
     else {
         if (!is.null(fit$coefficients) && any(is.na(fit$coefficients))) {
            vars <- (1:length(fit$coefficients))[is.na(fit$coefficients)]
-           msg <-paste("X matrix deemed to be singular; variable",
-                           paste(vars, collapse=" "))
+           msg <- gettextf("X matrix deemed to be singular; variable %s", paste(vars, collapse=" "))
            if (!singular.ok) stop(msg)
            # else warning(msg)  # stop being chatty
         }

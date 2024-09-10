@@ -104,7 +104,7 @@ survreg <- function(formula, data, weights, subset, na.action,
         #   first use match.arg, e.g. turn 'exp' into 'exponential'
         dist <- match.arg(dist, names(survreg.distributions))
 	dlist <- survreg.distributions[[dist]]
-	if (is.null(dlist)) stop(paste(dist, ": distribution not found"))
+	if (is.null(dlist)) stop(gettextf("%s distribution not found", sQuote(dist)))
 	}
     else if (is.list(dist)) dlist <- dist
     else stop("Invalid distribution object")
@@ -152,8 +152,8 @@ survreg <- function(formula, data, weights, subset, na.action,
 	}
 
     if (!is.null(dlist$scale)) {
-        if (!missing(scale)) warning(paste(dlist$name, 
-                           "has a fixed scale, user specified value ignored"))
+        if (!missing(scale)) warning(gettextf("%s has a fixed scale, user specified value ignored",
+                           dlist$name))
         scale <- dlist$scale
         }
 
@@ -164,8 +164,7 @@ survreg <- function(formula, data, weights, subset, na.action,
     # check for parameters
     ptemp <- dlist$parms
     if (is.null(ptemp)) {
-        if (!is.null(parms)) stop(paste(dlist$name, 
-                              "distribution has no optional parameters"))
+        if (!is.null(parms)) stop(gettextf("%s distribution has no optional parameters", sQuote(dlist$name)))
         }
     else {
         if (!is.numeric(ptemp)) 

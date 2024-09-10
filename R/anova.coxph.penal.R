@@ -12,9 +12,8 @@ anova.coxph.penal <- function (object, ...,  test = 'Chisq') {
 	           rep(FALSE, length(dotargs))
              else (names(dotargs) != "")
     if (any(named)) 
-        warning(paste("The following arguments to anova.coxph(..)", 
-            "are invalid and dropped:", paste(deparse(dotargs[named]), 
-                collapse = ", ")))
+        warning(gettextf("The following arguments to anova.coxph(..) are invalid and dropped: %s",
+            paste(deparse(dotargs[named]), collapse = ", ")))
     dotargs <- dotargs[!named]
 
     # frailties don't work, due to mutability.  

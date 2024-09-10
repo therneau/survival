@@ -34,7 +34,7 @@ cch <- function(formula, data, subcoh, id, stratum=NULL, cohort.size,
         if (robust)
             warning("`robust' not implemented for stratified analysis.")
         if (is.null(stratum))
-            stop("method (",method,") requires 'stratum'")
+            stop(gettextf("method (%s) requires 'stratum'", method))
         if (length(cohort.size)!=length(levels(stratum)))
             stop("cohort.size and stratum do not match")
         if (!(all(levels(stratum) %in% names(cohort.size))))
@@ -42,9 +42,9 @@ cch <- function(formula, data, subcoh, id, stratum=NULL, cohort.size,
         subcohort.sizes<-table(stratum)
     } else if(!stratified) {
         if (!(method =="LinYing") && robust)
-            warning("`robust' ignored for  method (",method,")")
+            warning(gettextf("'robust' ignored for method (%s)", method))
         if (!is.null(stratum))
-            warning("'stratum' ignored for method (",method,")")
+            warning(gettextf("'stratum' ignored for method (%s)", method))
         if (length(cohort.size)!=1)
             stop("cohort size must be a scalar for unstratified analysis")
         subcohort.sizes<-length(id)
@@ -63,11 +63,14 @@ cch <- function(formula, data, subcoh, id, stratum=NULL, cohort.size,
     type <- attr(Y, "type")
     itype<-charmatch(type,c("right","counting"),nomatch=0)
     cens<-switch(itype+1,
-                 stop(paste("Cox model doesn't support \"", type, "\" survival data", sep = "")),
+                 stop(gettextf("Cox model doesn't support \"%s\" survival data", type)),
                  Y[,2],
                  Y[,3])
     if (any(!subcoh & !cens))
-        stop(sum(!subcoh & !cens),"censored observations not in subcohort")
+        stop(sprintf(ngettext(sum(!subcoh & !cens),
+				"%d censored observation not in subcohort",
+				"%d censored observations not in subcohort", domain = "R-survival"),
+			 sum(!subcoh & !cens)), domain = NA)
     cc<-cens+1-subcoh
     texit<-switch(itype+1, stop(), Y[,1], Y[,2])
     tenter<-switch(itype+1, stop(), rep(0,length(texit)), Y[,1])

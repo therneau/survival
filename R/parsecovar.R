@@ -90,8 +90,8 @@ parse_rightside <- function(rhs) {
             ff <- rownames(attr(optterms, "factors"))
             index <- match(ff, c("common", "shared", "init"))
             if (any(is.na(index)))
-                stop("option not recognized in a covariates formula: ",
-                     paste(ff[is.na(index)], collapse=", "))
+                stop(gettextf("option not recognized in a covariates formula: %s",
+                     paste(ff[is.na(index)], collapse=", ")))
             common <- any(index==1)
             shared  <- any(index==2)
             if (any(index==3)) {
@@ -161,7 +161,7 @@ parsecovar2 <- function(covar1, statedata, dformula, Terms, transitions,states) 
             state1 <- state2 <- NULL
             for (x in lhs) {
                 # x is one term
-                if (!is.list(x) || is.null(x$left)) stop("term found without a ':' ", x)
+                if (!is.list(x) || is.null(x$left)) stop(gettextf("term found without a ':' %s", x))
                 # left of the colon
                 if (!is.list(x$left) && length(x$left) ==1 && x$left==0) 
                     temp1 <- 1:nrow(statedata)
@@ -176,16 +176,16 @@ parsecovar2 <- function(covar1, statedata, dformula, Terms, transitions,states) 
                         stop("state variable with no list of values: ",x$left$stateid)
                     else {
                         if (any(k= is.na(match(x$left$stateid, names(statedata)))))
-                            stop(x$left$stateid[k], ": state variable not found")
+                            stop(gettextf("%s: state variable not found", x$left$stateid[k]))
                         zz <- statedata[[x$left$stateid]]
                         if (any(k= is.na(match(x$left$value, zz))))
-                            stop(x$left$value[k], ": state value not found")
+                            stop(gettextf("%s: state value not found", x$left$value[k]))
                         temp1 <- which(zz %in% x$left$value)
                     }
                 }
                 else {
                     k <- match(x$left, statedata$state)
-                    if (any(is.na(k))) stop(x$left[is.na(k)], ": state not found")
+                    if (any(is.na(k))) stop(gettextf("%s: state not found", x$left[is.na(k)]))
                     temp1 <- which(statedata$state %in% x$left)
                 }
                 
@@ -203,16 +203,16 @@ parsecovar2 <- function(covar1, statedata, dformula, Terms, transitions,states) 
                         stop("state variable with no list of values: ",x$right$stateid)
                     else {
                         if (any(k= is.na(match(x$right$stateid, names(statedata)))))
-                            stop(x$right$stateid[k], ": state variable not found")
+                            stop(gettextf("%s: state variable not found", x$right$stateid[k]))
                         zz <- statedata[[x$right$stateid]]
                         if (any(k= is.na(match(x$right$value, zz))))
-                            stop(x$right$value[k], ": state value not found")
+                            stop(gettextf("%s: state value not found", x$right$value[k]))
                         temp2 <- which(zz %in% x$right$value)
                     }
                 }
                 else {
                     k <- match(x$right, statedata$state)
-                    if (any(is.na(k))) stop(x$right, ": state not found")
+                    if (any(is.na(k))) stop(gettextf("%s: state not found", x$right[k]))
                     temp2 <- which(statedata$state %in% x$right)
                 }
 

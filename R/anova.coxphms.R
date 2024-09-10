@@ -15,8 +15,8 @@ anova.coxphms <- function (object, ...,  test = c("score", "Wald", "PL")) {
 	           rep(FALSE, length(dotargs))
              else (names(dotargs) != "")
     if (any(named)) 
-        warning(paste("The following arguments to anova.coxphms(..)", 
-            "are invalid and dropped:", paste(deparse(dotargs[named]), 
+        warning(gettextf("The following arguments to anova.coxphms(..) are invalid and dropped: %s",
+            paste(deparse(dotargs[named]), 
                 collapse = ", ")))
 
     allmod <- c(object, dotargs[!named])  # all the models
@@ -33,8 +33,8 @@ stop("anova not yet available for multistate")
     sameresp <- (responses == responses[1])
     if (!all(sameresp)) {
         allmod <- allmod[sameresp]
-        warning(paste("Models with response", deparse(responses[!sameresp]), 
-            "removed because response differs from", "model 1"))
+        warning(gettextf("Models with response %s removed because response differs from model 1",
+            deparse(responses[!sameresp])))
     }
     nmodel <- length(allmod)
     if (nmodel < 2) stop("must have more than one model")
@@ -64,7 +64,7 @@ stop("anova not yet available for multistate")
         indx <- match(rownames(allmod[i-1][["cmap"]]),
                       rownames(allmod[i][["cmap"]]), nomatch=0)
         if (any(indx==0))
-            stop(paste("model", i-1, "contains variables not in model", i))
+            stop(gettextf("model %d contains variables not in model %d", i-1, i))
     }
  
     # They all must have the same response

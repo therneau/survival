@@ -32,16 +32,16 @@ SEXP gchol_solve(SEXP x2, SEXP y2, SEXP flag2) {
     double **mat;
     int flag;
     
-    SEXP new;   /*returned matrix */
+    SEXP new_;   /*returned matrix */
     
     n = nrows(x2);
     flag = asInteger(flag2);
-    PROTECT(new = duplicate(x2));
+    PROTECT(new_ = duplicate(x2));
 
-    mat = dmatrix(REAL(new), n, n);
+    mat = dmatrix(REAL(new_), n, n);
     chsolve5(mat, n, REAL(y2), flag);
     UNPROTECT(1);
-    return(new);
+    return(new_);
     }
     
 SEXP gchol_inv(SEXP matrix, SEXP flag2) {
@@ -49,12 +49,12 @@ SEXP gchol_inv(SEXP matrix, SEXP flag2) {
     double **mat;
     int i,j;
     int flag;
-    SEXP new;  /* returned matrix */
+    SEXP new_;  /* returned matrix */
 
     n = nrows(matrix);
     flag = asInteger(flag2);
-    PROTECT(new = duplicate(matrix));
-    mat = dmatrix(REAL(new), n, n);
+    PROTECT(new_ = duplicate(matrix));
+    mat = dmatrix(REAL(new_), n, n);
 
     chinv5(mat, n, flag);
 
@@ -81,6 +81,6 @@ SEXP gchol_inv(SEXP matrix, SEXP flag2) {
 	}
     
     UNPROTECT(1);
-    return(new);
+    return(new_);
     }
    

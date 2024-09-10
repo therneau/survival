@@ -62,7 +62,7 @@ print.summary.survfitms <- function(x,
     if (!is.null(x$start.time)) {
 	mat.keep <- mat[,1] >= x$start.time
         if (!any(mat.keep))
-            stop(paste("No rows remain using start.time =", x$start.time, "."))
+            stop(gettextf("No rows remain using start.time = %s.", x$start.time))
 	mat <- mat[mat.keep,,drop=FALSE]
         if (!is.null(group)) group <- group[mat.keep]
     }
@@ -79,8 +79,6 @@ print.summary.survfitms <- function(x,
             }
         }
     } else 
-	stop("There are no events to print.  Please use the option ",
-	    "censored=TRUE with the summary function to see the censored ",
-	    "observations.")
+	stop("There are no events to print. Please use the option censored=TRUE with the summary function to see the censored observations.")
     invisible(x)
     }

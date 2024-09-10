@@ -262,8 +262,7 @@ coxpenal.fit <- function(x, y, strata, offset, init, control,
 	    calls[i] <- parse(text=paste(tempchar, ")"))
 	else {
 	    temp <- match(cargs[[i]], temp1)
-	    if (any(is.na(temp))) stop(paste((cargs[[i]])[is.na(temp)],
-					    "not matched"))
+	    if (any(is.na(temp))) stop(gettextf("%s not matched", (cargs[[i]])[is.na(temp)]))
 	    if (sparse[i]) temp4 <- paste(temp2b[temp], collapse=',')
 	    else           temp4 <- paste(temp3b[temp], collapse=',')
 	    
@@ -506,7 +505,7 @@ coxpenal.fit <- function(x, y, strata, offset, init, control,
         }
 
     if (control$iter.max >1 && length(iterfail)>0)
-	    warning(paste("Inner loop failed to coverge for iterations", 
+	    warning(gettextf("Inner loop failed to coverge for iterations %s", 
 			  paste(iterfail, collapse=' ')))
     which.sing <- (fdiag[nfrail + 1:nvar] ==0)
     

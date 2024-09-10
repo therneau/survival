@@ -102,9 +102,8 @@ aareg <- function(formula, data, weights, subset, na.action,
 
     type <- attr(Y, "type")
     if (type!='right' && type!='counting')
-	stop(paste("Aalen model doesn't support \"", type,
-			  "\" survival data", sep=''))
-   
+	stop(gettextf("Aalen model doesn't support \"%s\" survival data", type))
+
     # Get the pieces that I need from the coxdetail routine
     #  1. It expects a "counting process" type of Y
     if (ncol(Y)==2) {

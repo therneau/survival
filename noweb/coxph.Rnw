@@ -152,8 +152,7 @@ coxph <- function(formula, data, weights, subset, na.action,
     multi <- FALSE
     if (type=="mright" || type == "mcounting") multi <- TRUE
     else if (type!='right' && type!='counting')
-	stop(paste("Cox model doesn't support \"", type,
-			  "\" survival data", sep=''))
+	gettextf("Cox model doesn't support \"%s\" survival data", type)
     data.n <- nrow(Y)   #remember this before any time transforms
 
     if (!multi && multiform)

@@ -9,7 +9,7 @@ frailty <- function(x, distribution = 'gamma', ...) {
 
     temp <- paste("frailty", distribution, sep='.')
     if (!exists(temp))
-	    stop(paste("Function '", temp, "' not found", sep=""))
+	    stop(gettextf("function %s not found", sQuote(temp)))
     (get(temp))(x, ...)
     }
 

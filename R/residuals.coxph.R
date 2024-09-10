@@ -24,7 +24,7 @@ residuals.coxph <-
     strat <- object$strata
     method <- object$method
     if (method=='exact' && (type=='score' || type=='schoenfeld'))
-	stop(paste(otype, 'residuals are not available for the exact method'))
+	stop(gettextf("'%s' residuals are not available for the exact method", otype))
 
     if (type == 'martingale' || type == 'partial')
         rr <- object$residuals

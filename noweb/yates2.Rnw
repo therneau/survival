@@ -360,7 +360,7 @@ yates_xmat <- function(Terms, Tatt, contr, population, mframe, fit,
         if (length(contr$termname) > 1) stop("incomplete code 1")
         x1indx <- (contr$termname== rownames(Tatt$factors))
         names(x1indx) <- rownames(Tatt$factors)
-        if (!any(x1indx)) stop(paste("variable", contr$termname, "not found"))
+        if (!any(x1indx)) stop(gettextf("variable %s not found", contr$termname))
     } else x1indx <- apply(Tatt$factors[,contr$termname,drop=FALSE] >0, 1, any)  
     x2indx <- !x1indx  # adjusters
     if (inherits(population, "data.frame")) pdata <- population  #user data

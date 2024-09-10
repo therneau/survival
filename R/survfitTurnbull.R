@@ -38,8 +38,7 @@ survfitTurnbull <- function(x, y, weights,
 	# remove any obs whose end time is <= start.time
 	keep <- (y[,ny-1] >= start.time)
 	if (all(keep==FALSE))
-		stop(paste("start.time =", start.time,
-			   "is greater than all time points."))
+		stop(gettextf("start.time = %s is greater than all time points.", start.time))
 	x <- x[keep]
 	y <- y[keep,,drop=FALSE]  #make sure y remains a matrix
 	weights <- weights[keep]

@@ -80,9 +80,10 @@ else {
         if (any(Y[,1] <0)) stop("Negative survival time")
         nzero <- sum(Y[,1]==0 & Y[,2] ==1)
         if (nzero >0) 
-            warning(paste(nzero, 
-                     "observations with an event and 0 follow-up time,",
-                   "any rate calculations are statistically questionable"))
+                warning(sprintf(ngettext(nzero,
+                         "%d observation with an event and 0 follow-up time, any rate calculations are statistically questionable",
+                         "%d observations with an event and 0 follow-up time, any rate calculations are statistically questionable",
+                          domain = "R-survival"), nzero), domain = NA)
         }
     else if (stype != 'counting')
         stop("Only right-censored and counting process survival types are supported")

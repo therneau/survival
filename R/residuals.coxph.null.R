@@ -5,6 +5,5 @@ residuals.coxph.null <-
     {
     type <- match.arg(type)
     if (type=='martingale' || type=='deviance') NextMethod()
-    else stop(paste("\'", type, "\' residuals are not defined for a null model",
-			sep=""))
+    else stop(gettextf("'%s' residuals are not defined for a null model", type))
     }

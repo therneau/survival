@@ -63,8 +63,7 @@ survfitAJ <- function(X, Y, weights, id, cluster, robust, istate,
     ny <- ncol(Y)
     # This line should be unreachable, unless they call "surfitAJ" directly
     if (type !='mright' && type!='mcounting')
-         stop(paste("multi-state computation doesn't support \"", type,
-                          "\" survival data", sep=''))
+         stop(gettextf("multi-state computation doesn't support \"%s\" survival data", type))
 
     # Use survcheck to validate the data   
     if (length(id) ==0) id <- seq_along(X)  # a dummy value for later work
@@ -306,8 +305,7 @@ survfitAJ <- function(X, Y, weights, id, cluster, robust, istate,
             if (ny==2) atrisk <- indx2
             else atrisk <- (indx2 & Y[,1] < t0 & Y[,2] >= t0)
             if (!any(atrisk)) 
-                stop(paste("no one at risk for one of the curves, at the",
-                           "default time 0; specify a start.time"))
+                stop("no one at risk for one of the curves, at the default time 0; specify a start.time")
             # compute p0 and i0
             wtsum <- sum(weights[atrisk])  # weights at that time
             p00 <- tapply(weights[atrisk], istate[atrisk], sum) / wtsum

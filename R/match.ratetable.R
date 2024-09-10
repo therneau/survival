@@ -39,8 +39,7 @@ match.ratetable <- function(R, ratetable) {
     ord <- match(dimid, Rnames)
     # This should have already been checked in pyears or survexp
     if (any(is.na(ord)))
-       stop(paste("Argument '", dimid[is.na(ord)],
-	    "' needed by the ratetable was not found in the data", sep=''))
+       stop(gettextf("'%s' argument needed by the ratetable was not found in the data", dimid[is.na(ord)]))
     # Neither should this -- two argments matched one of the dimids -- since
     #  I demand an exact match
     if (any(duplicated(ord)))
@@ -56,29 +55,24 @@ match.ratetable <- function(R, ratetable) {
     dtemp <-dimnames(ratetable)
     if (any((rtype<3) & isDate)) {
         indx <- which(rtype<3 & isDate)
-        stop(paste("Data has a date type variable, but the reference",
-                   "ratetable is not a date variable:", 
-                   paste(dimid[indx], collapse=" ")))
+        stop(gettextf("data has a date type variable, but the reference ratetable is not a date variable %s", paste(dimid[indx], collapse=" ")))
         }
     if (any((rtype>2) & !isDate)) {
         indx <- which(rtype>2 & !isDate)
 #  currently relsurv fails with this check
-#        stop(paste("the reference ratetable expects a date for variable",
+#        stop(gettextf("the reference ratetable expects a date for variable %s",
 #                    dimid[indx]))
         }
     for (i in (1:ncol(R))) {
         if (rtype[i] > 2) R[,i] <- ratetableDate(R[,i])
 
 	if (length(levlist[[i]]) >0) {  #factor or character variable
-	    if (rtype[i]!=1) stop(paste("for this ratetable,", dimid[i],
-				     "must be a continuous variable"))
+	    if (rtype[i]!=1) stop(gettextf("for this ratetable, %s must be a continuous variable", dimid[i]))
 	    temp <- charmatch(casefold(levlist[[i]]), casefold(dtemp[[i]]))
 	    if (any(is.na(temp)))
-		stop(paste("Levels do not match for ratetable() variable",
-			    dimid[i]))
+		stop(gettextf("levels do not match for 'ratetable()' variable %s", dimid[i]))
             if (any(temp==0)) 
-                stop(paste("Non-unique ratetable match for variable",
-                               dimid[i]))
+                stop(gettextf("non-unique ratetable match for variable %s", dimid[i]))
 	    R[,i] <- temp[as.numeric(R[,i])]
 	    }
 
@@ -88,7 +82,7 @@ match.ratetable <- function(R, ratetable) {
 		temp <- R[,i]
 		if (any(floor(temp)!=temp) || any(temp<=0) ||
 			    max(temp) > length(dtemp[[i]]))
-		stop(paste("The variable", dimid[i], "is out of range"))
+		stop(gettextf("the variable %s is out of range", dimid[i]))
 		}
 	    }
 	}

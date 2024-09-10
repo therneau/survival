@@ -4,7 +4,7 @@
 */
 #include "survS.h"
 #include "Rinternals.h"
-
+#include "localization.h"
 /*
 ** This part is called by the coxfit4 function, to get the penalty terms
 */
@@ -45,7 +45,7 @@ void cox_callback (int which,      double *coef,    double *first,
     PROTECT(temp=lang3(install("[["),coxlist,index));
     PROTECT(data=eval(temp,rho));
     if (!isNumeric(data))
-                error("coef:invalid type\n");
+                error(_("coef: invalid type\n"));
     for (i=0;i<length(data);i++){
       coef[i]=REAL(data)[i];
     }
@@ -54,7 +54,7 @@ void cox_callback (int which,      double *coef,    double *first,
     PROTECT(temp=lang3(install("[["),coxlist,index));
     PROTECT(data=eval(temp,rho));
     if (!isNumeric(data))
-                error("first: invalid type\n");
+                error(_("first: invalid type\n"));
     for (i=0;i<length(data);i++){
       first[i]=REAL(data)[i];
       /* printf("%g,",first[i]);*/
@@ -64,7 +64,7 @@ void cox_callback (int which,      double *coef,    double *first,
     PROTECT(temp=lang3(install("[["),coxlist,index));
     PROTECT(data=eval(temp,rho));
     if (!isNumeric(data))
-                error("second: invalid type\n");
+                error(_("second: invalid type\n"));
     for (i=0;i<length(data);i++){
       second[i]=REAL(data)[i];
     }
@@ -73,7 +73,7 @@ void cox_callback (int which,      double *coef,    double *first,
     PROTECT(temp=lang3(install("[["),coxlist,index));
     PROTECT(data=eval(temp,rho));
     if (!(isInteger(data) | isLogical(data)))
-                error("flag:invalid type\n");
+                error(_("flag: invalid type\n"));
     for (i=0;i<length(data);i++){
       flag[i]=LOGICAL(data)[i];
     }
@@ -82,7 +82,7 @@ void cox_callback (int which,      double *coef,    double *first,
     PROTECT(temp=lang3(install("[["),coxlist,index));
     PROTECT(data=eval(temp,rho));
     if (!isNumeric(data))
-                error("penalty: invalid type\n");
+                error(_("penalty: invalid type\n"));
     for (i=0;i<length(data);i++){
       penalty[i]=REAL(data)[i];
     }

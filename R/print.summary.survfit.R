@@ -47,7 +47,7 @@ print.summary.survfit <- function(x,
 	mat.keep <- mat[,1] >= x$start.time
 	mat <- mat[mat.keep,,drop=FALSE]
 	if (is.null(dim(mat)))
-		stop(paste("No information available using start.time =", x$start.time, "."))
+		stop(gettextf("no information available using start.time = %s.", x$start.time))
         }
     if (!is.matrix(mat)) mat <- matrix(mat, nrow=1)
     if (!is.null(mat)) {
@@ -66,8 +66,6 @@ print.summary.survfit <- function(x,
 	    }
         }
     else 
-	stop("There are no events to print.  Please use the option ",
-	    "censored=TRUE with the summary function to see the censored ",
-	    "observations.")
+	stop("There are no events to print. Please use the option censored=TRUE with the summary function to see the censored observations.")
     invisible(x)
     }

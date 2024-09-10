@@ -30,7 +30,7 @@ cmatrix <- function(fit, term,
     termname <- all.vars(fatt$variables)
     indx <- match(termname, all.vars(Tatt$variables))
     if (any(is.na(indx))) 
-        stop("variable ", termname[is.na(indx)], " not found in the formula")
+        stop(gettextf("variable %s not found in the formula", termname[is.na(indx)]))
     
     # What kind of term is being tested?  It can be categorical, continuous,
     #  an interaction of only categorical terms, interaction of only continuous
@@ -106,10 +106,10 @@ cmatrix <- function(fit, term,
     for (i in which(iscat==1)) {
         xlev <- fit$xlevels[[parts[i]]]
         if (is.null(xlev))
-            stop("xlevels attribute not found for", termname[i])
+            stop(gettextf("xlevels attribute not found for %s", termname[i]))
         temp <- match(levels[[i]], xlev)
         if (any(is.na(temp)))
-            stop("invalid level for term", termname[i])
+            stop(gettextf("invalid level for term %s", termname[i]))
     }
     
     rval <- list(levels=levels, termname=termname)
@@ -353,7 +353,7 @@ yates <- function(fit, term, population=c("data", "factorial", "sas"),
         # population averages of the simple linear predictor
         #temp <- match(contr$termname, colnames(Tatt$factors)) 
         #if (any(is.na(temp)))
-        #    stop("term '", contr$termname[is.na(temp)], "' not found in the model")
+        #    stop(gettextf("term '%s' not found in the model", contr$termname[is.na(temp)]))
 
         meanfun <- if (is.null(weight)) colMeans else function(x) {
             colSums(x*weight)/ sum(weight)}
@@ -571,7 +571,7 @@ yates_xmat <- function(Terms, Tatt, contr, population, mframe, fit,
         if (length(contr$termname) > 1) stop("incomplete code 1")
         x1indx <- (contr$termname== rownames(Tatt$factors))
         names(x1indx) <- rownames(Tatt$factors)
-        if (!any(x1indx)) stop(paste("variable", contr$termname, "not found"))
+        if (!any(x1indx)) stop(gettextf("variable %s not found", contr$termname))
     } else x1indx <- apply(Tatt$factors[,contr$termname,drop=FALSE] >0, 1, any)  
     x2indx <- !x1indx  # adjusters
     if (inherits(population, "data.frame")) pdata <- population  #user data
@@ -724,9 +724,8 @@ yates_setup <- function(fit, ...)
 
 yates_setup.default <- function(fit, type, ...) {
     if (!missing(type) && !(type %in% c("linear", "link")))
-        warning("no yates_setup method exists for a model of class ",
-                class(fit)[1], " and estimate type ", type,
-                ", linear predictor estimate used by default")
+        warning(gettextf("no yates_setup method exists for a model of class %s and estimate type %s, linear predictor estimate used by default",
+                dQuote(class(fit)[1]), type))
     NULL
 }
 

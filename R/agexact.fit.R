@@ -80,9 +80,8 @@ agexact.fit <- function(x, y, strata, offset, init, control,
 		infs <- ((infs > control$eps) & 
 			 infs > control$toler.inf*abs(coef))
 		if (any(infs))
-		warning(paste("Loglik converged before variable ",
-			  paste((1:nvar)[infs],collapse=","),
-			  "; beta may be infinite. "))
+		warning(gettextf("Loglik converged before variable %s; beta may be infinite.",
+			  paste((1:nvar)[infs],collapse=",")))
             }
     }
 

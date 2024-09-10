@@ -29,7 +29,8 @@ tmerge <- function(data1, data2, id, ..., tstart, tstop, options) {
                                delay =0, na.rm=TRUE, tdcstart=NA_real_, ...) {
         extras <- list(...)
         if (length(extras) > 0) 
-            stop("unrecognized option(s):", paste(names(extras), collapse=', '))
+            stop(sprintf(ngettext(length(extras), "unrecognized option: %s", "unrecognized options: %s",
+                domain = "R-survival"), paste(names(extras), collapse = ", ")), domain = NA)
         if (length(idname) != 1 || make.names(idname) != idname)
             stop("idname option must be a valid variable name")
         if (!is.null(tstartname) && 
@@ -77,25 +78,21 @@ tmerge <- function(data1, data2, id, ..., tstart, tstop, options) {
             ename <- tevent$name[i]
             if (is.numeric(data1[[ename]])) {
                 if (!is.numeric(tevent$censor[[i]]))
-                    stop("event variable ", ename, 
-                         " no longer matches it's original class")
+                    stop(gettextf("event variable %s no longer matches it's original class", ename))
             }
             else if (is.character(data1[[ename]])) {
                 if (!is.character(tevent$censor[[i]]))
-                    stop("event variable ", ename, 
-                         " no longer matches it's original class")
+                    stop(gettextf("event variable %s no longer matches it's original class", ename))
             }
             else if (is.logical(data1[[ename]])) {
                 if (!is.logical(tevent$censor[[i]]))
-                    stop("event variable ", ename,
-                         " no longer matches it's original class")
+                    stop(gettextf("event variable %s no longer matches it's original class", ename))
             }
             else if (is.factor(data1[[ename]])) {
                 if (levels(data1[[ename]])[1] != tevent$censor[[i]])
-                    stop("event variable ", ename,
-                         " has a new first level")
+                    stop(gettextf("event variable %s has a new first level", ename))
             }
-            else stop("event variable ", ename, " is of an invalid class")
+            else stop(gettextf("event variable %s is of an invalid class", ename))
         }
     } else {
         firstcall <- TRUE
@@ -164,12 +161,11 @@ tmerge <- function(data1, data2, id, ..., tstart, tstop, options) {
         
     argclass <- sapply(args, function(x) (class(x))[1])
     argname <- names(args)
-    if (any(argname== "")) stop("all additional argments must have a name")
+    if (any(argname== "")) stop("all additional arguments must have a name")
            
     check <- match(argclass, c("tdc", "cumtdc", "event", "cumevent"))
     if (any(is.na(check)))
-        stop(paste("argument(s)", argname[is.na(check)], 
-                       "not a recognized type"))
+        stop(gettextf("argument(s) %s not a recognized type", argname[is.na(check)]))
     # The tcount matrix is useful for debugging
     tcount <- matrix(0L, length(argname), 9)
     dimnames(tcount) <- list(argname, c("early","late", "gap", "within", 
@@ -192,7 +188,7 @@ tmerge <- function(data1, data2, id, ..., tstart, tstop, options) {
                       nomatch=0)
         if (any(indx[1:2]>0) && FALSE) {  # warning currently turned off. Be chatty?
             overwrite <- c(topt$tstartname, topt$tstopname)[indx[2:3]]
-            warning("overwriting data1 variables", paste(overwrite, collapse=' '))
+            warning(gettextf("overwriting data1 variables %s", paste(overwrite, collapse = " ")))
             }
         
         temp <- as.character(idname)
@@ -234,8 +230,7 @@ tmerge <- function(data1, data2, id, ..., tstart, tstop, options) {
             stop("missing time value, when that variable defines the span")
         if (missing(tstart)) {
             indx <- which(tstop <=0)
-            if (length(indx) >0) stop("found an ending time of ", tstop[indx[1]],
-                                      ", the default starting time of 0 is invalid")
+            if (length(indx) >0) stop(gettextf("found an ending time of %s, the default starting time of 0 is invalid", tstop[indx[1]]))
             tstart <- rep(0, length(tstop))
         }
         if (any(tstart >= tstop)) 
@@ -274,10 +269,10 @@ tmerge <- function(data1, data2, id, ..., tstart, tstop, options) {
         if (idmiss ==0) keep <- rep(TRUE, length(etime))
         else keep <- (idmatch > 0)
         if (length(etime) != length(saveid))
-            stop("argument ", argname[ii], " is not the same length as id")
+            stop(gettextf("'%s' argument is not the same length as id", argname[ii]))
         if (!is.null(argi$value)) {
            if (length(argi$value) != length(saveid))
-                stop("argument ", argname[ii], " is not the same length as id")
+                stop(gettextf("'%s' argument is not the same length as id", argname[ii]))
             if (topt$na.rm) keep <- keep & !(is.na(etime) | is.na(argi$value))
             else keep <- keep & !is.na(etime)
             if (!all(keep)) {
@@ -390,11 +385,11 @@ tmerge <- function(data1, data2, id, ..., tstart, tstop, options) {
         newvar <- newdata[[argname[ii]]]  # prior value (for sequential tmerge calls)
         if (argclass[ii] %in% c("tdc", "cumtdc")){
             if (argname[[ii]] %in% tevent)
-                stop("attempt to turn event variable", argname[[ii]], "into a tdc")
+                stop(gettextf("attempt to turn event variable %s into a tdc", argname[[ii]]))
             if (!(argname[[ii]] %in% tdcvar)){
                 tdcvar <- c(tdcvar, argname[[ii]])
                 if (!is.null(newvar) && argclass[ii] == "tdc") {
-                    warning(paste0("replacement of variable '", argname[ii], "'"))
+                    warning(gettextf("replacement of variable '%s'", argname[ii]))
                     newvar <- NULL
                 }
             }
@@ -510,7 +505,7 @@ tmerge <- function(data1, data2, id, ..., tstart, tstop, options) {
         else if (argclass[ii] == "cumtdc") {  # process a cumtdc variable
             # I don't have a good way to catch the reverse of this user error
             if (argname[[ii]] %in% tevent)
-                stop("attempt to turn event variable", argname[[ii]], "into a cumtdc")
+                stop(gettextf("attempt to turn event variable %s into a cumtdc", argname[[ii]]))
 
             keep <- itype != 2  # changes after the last interval are ignored
             indx <- ifelse(subtype==1, indx1, 

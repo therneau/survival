@@ -16,8 +16,7 @@ ratetable <- function(...) {
     for (i in 1:nargs) {
         if (ll[i] ==1) args[[i]] <- rep(args[[i]], n)
         else if (ll[i] != n) 
-            stop(paste("Aguments do not all have the same length (arg ",
-			i, ")", sep=''))
+            stop(gettextf("Aguments do not all have the same length (arg %d)", i))
 
 	# In Splus cut and tcut produce class 'category'
         if (inherits(args[[i]], 'cateogory') || is.character(args[[i]]))

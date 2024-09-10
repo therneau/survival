@@ -1,8 +1,7 @@
 coxph.detail <-  function(object, riskmat=FALSE, rorder=c("data", "time")) {
     method <- object$method
     if (method!='breslow' && method!='efron')
-	stop(paste("Detailed output is not available for the", method,
-			"method"))
+	stop(gettextf("detailed output is not available for the %s method", method))
     rorder <- match.arg(rorder)
     n <- length(object$residuals)
     temp <- coxph.getdata(object, offset=TRUE)

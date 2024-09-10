@@ -286,9 +286,7 @@ dim.survfit <- function(x) {
         if (is.null(i)) indx <- seq(along.with= x$strata)
         else indx <- nmatch(i, names(x$strata)) #strata to keep
         if (any(is.na(indx))) 
-            stop(paste("strata", 
-                       paste(i[is.na(indx)], collapse=' '),
-                       'not matched'))
+            stop(gettextf("strata %s not matched", paste(i[is.na(indx)], collapse = " ")))
         # Now, indx may not be in order: some can use curve[3:2] to reorder
         #  The list/unlist construct will reorder the data
         temp <- split(seq(along.with =x$time), 

@@ -51,8 +51,7 @@ summary.pyears <- function(object, header=TRUE, call=header,
                "rate", "ci.r", "rr", "ci.rr", "vline", "vertical", 
                "legend", "totals")
     if (any(!temp) || length(temp) != 14 || any(is.na(temp))) {
-        stop("the ", paste(tname[!temp], collapse=", "), 
-             "argument(s) must be single logical values")
+        stop(gettextf("the %s argument(s) must be single logical values", paste(tname[!temp], collapse=", ")))
     }
     if (!is.numeric(conf.level) || conf.level <=0 || conf.level >=1 |
         length(conf.level) > 1 || is.na(conf.level) > 1)
