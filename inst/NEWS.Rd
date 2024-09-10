@@ -1,5 +1,15 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 3.7-2}{
+  \itemize{
+    \item The change to ties documented below for 3.4.2 actually never
+    happened, due to a typo.  Now fixed.  This forced multiple additions
+    of ties='breslow' to the test suite, when comparing multi-state to
+    single state fits.
+    \item Fix an inconsistency: survfit would label a transition from
+    state 1 to 3 as "1.3", coxph as "1:3". Use a colon in both places.  
+}}
+
 \section{Changes in version 3.7-1}{
   \itemize{
     \item Update survreg to allow an interval of (0,t) for the Weibull,

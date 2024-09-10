@@ -133,7 +133,7 @@ aeq(ekm$std.chaz, ekm2$std.chaz[,1])
 aeq(ekm$strata,   ekm2$strata)
 aeq(ekm$n.id,     ekm2$n.id)
 aeq(ekm$counts, 
-    ekm2$counts[,c("nrisk:1", "ntrans:1.2", "ncensor:1", "nenter:1")])
+    ekm2$counts[,c("nrisk 1", "ntrans 1:2", "ncensor 1", "nenter 1")])
 aeq(ekm$influence.surv[[1]], ekm2$influence.pstate[[1]][,,1])
 aeq(ekm$influence.surv[[2]], ekm2$influence.pstate[[2]][,,1])
 

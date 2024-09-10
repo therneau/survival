@@ -1,6 +1,7 @@
 #
 # Tests for multi-state Cox models
-#
+#  The default for multi-state is now ties='breslow'
+bb <- "breslow"  # I'm a lazy typist
 library(survival)
 
 aeq <- function(x,y, ...) all.equal(as.vector(x), as.vector(y), ...)
@@ -20,10 +21,10 @@ data2$type   <- rep(c(2:3), each=nrow(mgus2))
 
 fit1 <- coxph(Surv(etime, event) ~ age + sex + mspike, data1, id=id, x=TRUE,
               robust=FALSE)
-fit1a <- coxph(Surv(etime, event=="PCM") ~ age + sex + mspike, data1)
-fit1b <- coxph(Surv(etime, event=='death') ~ age + sex + mspike, data1)
+fit1a <- coxph(Surv(etime, event=="PCM") ~ age + sex + mspike, ties=bb, data1)
+fit1b <- coxph(Surv(etime, event=='death') ~ age + sex + mspike, ties=bb, data1)
 fit1c <- coxph(Surv(time, status) ~ strata(type)/(age + sex+ mspike), 
-               data2, x=TRUE)
+               data2, x=TRUE, ties=bb)
 
 aeq(fit1$loglik, fit1a$loglik + fit1b$loglik)
 aeq(fit1$coef, c(fit1a$coef, fit1b$coef))
@@ -38,7 +39,7 @@ fit2 <- coxph(list(Surv(etime, event) ~ sex,
 
 data2 <- rbind(cbind(data1, status= (data1$event=="PCM"), etype=1),
                cbind(data1, status= (data1$event=='death'), etype=2))
-fit2a <- coxph(Surv(etime, status) ~ age + strata(etype)/sex, data2)
+fit2a <- coxph(Surv(etime, status) ~ age + strata(etype)/sex, data2, ties=bb)
 
 aeq(coef(fit2), coef(fit2a)[c(2,1,3)])  # not in the same order
 aeq(fit2$loglik, fit2a$loglik)
@@ -75,20 +76,22 @@ aeq(fit3d$coef, fit3$coef)
 
 data3 <- data2
 data3$mspike[data3$etype==2] <- 0
-fit3a <-  coxph(Surv(etime, status) ~ strata(etype)/(age + sex + mspike), data3)
+fit3a <-  coxph(Surv(etime, status) ~ strata(etype)/(age + sex + mspike), 
+                data3, ties=bb)
 aeq(fit3$loglik, fit3a$loglik)
 aeq(fit3$coef, fit3a$coef[c(1,3,5,2,4)])
 
 # models with strata
-test1 <-  coxph(Surv(etime, event=="PCM") ~ age + mspike + strata(sex), data1)
-test2 <-  coxph(Surv(etime, event=="death") ~ age + strata(sex), data1)
+test1 <-  coxph(Surv(etime, event=="PCM") ~ age + mspike + strata(sex), 
+                data1, ties=bb)
+test2 <-  coxph(Surv(etime, event=="death") ~ age + strata(sex), data1, ties=bb)
 
 sfit1 <-  coxph(list(Surv(etime, event) ~ age + strata(sex), 
                    1:state("PCM") ~ mspike),
-              data1, id=id)
+              data1, id=id, ties=bb)
 aeq(coef(sfit1), c(coef(test1), coef(test2)))
 
-test3 <- coxph(Surv(etime, event=="death") ~ age +sex, data1)
+test3 <- coxph(Surv(etime, event=="death") ~ age +sex, data1, ties=bb)
 sfit2 <- coxph(list(Surv(etime, event) ~ age + sex,
                     1:2 ~ mspike + strata(sex) - sex),  data1, id=id)
 aeq(coef(sfit2), c(coef(test1), coef(test3)))

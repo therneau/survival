@@ -1,4 +1,3 @@
-# Automatically generated from the noweb directory
 survexpmsetup <- function(rmat) {
     # check the validity of the transition matrix, and determine if it
     #  is acyclic, i.e., can be reordered into an upper triangular matrix.
@@ -18,12 +17,14 @@ survexpmsetup <- function(rmat) {
     if (all(temp[lower]== 0)) indx  # it worked!
     else -1  # there is a loop in the states
 }
+
 survexpm <- function(rmat, time=1.0, setup, eps=1e-6) {
     # rmat is a transition matrix, so the diagonal elements are 0 or negative
-    if (length(rmat)==1) exp(rmat[1]*time)  #failsafe -- should never be called
+    if (length(rmat)==1) exp(rmat*time)  #failsafe -- should never be called
     else {
         nonzero <- (diag(rmat) != 0)
-        if (sum(nonzero ==0)) diag(nrow(rmat))  # expm(0 matrix) = identity
+        zcol  <- colSums(rmat >0) >0
+        if (sum(nonzero) ==0) diag(nrow(rmat))  # expm(0 matrix) = identity
         if (sum(nonzero) ==1) {   # only one state had departures
             j <- which(nonzero)
             emat <- diag(nrow(rmat))
@@ -32,6 +33,12 @@ survexpm <- function(rmat, time=1.0, setup, eps=1e-6) {
             emat[j, -j] <- (1-temp)* rmat[j, -j]/sum(rmat[j,-j])
             emat
         }
+        else if (sum(zcol)==1) {  # only one state has additions
+            k <- which(zcol)
+            emat <- diag(exp(-rmat[,k] * time))
+            emat[-k,k] <- 1- diag(emat)[-k]
+            emat
+        }                 
         else if (missing(setup) || setup[1] < 0 ||
                  any(diff(sort(diag(rmat)))< eps)) pade(rmat*time)
         else {
@@ -44,10 +51,30 @@ survexpm <- function(rmat, time=1.0, setup, eps=1e-6) {
         }
     }
 }
-derivative <- function(rmat, time, dR, setup, eps=1e-8) {
+
+# This portion is still untested
+expderiv<- function(rmat, time=1.0, dR, setup, eps=1e-8) {
+    if (length(rmat)==1) { # should not happen, not a multi-state model
+        stop("deriv function called with 1x1 matrix")
+    }
+    nr <- nrow(rmat)
+    nonzero <- (diag(rmat) != 0)
+    if (sum(nonzero) ==0) { # expm(0 matrix) = identity
+        return(list(P= diag(nr), dmat=array(nr, nr, length(dR))))
+    }
+               
+    if (sum(nonzero) ==1) {   # only one state had departures
+        stop("not yet filled in")
+    }
+    zcol <- colSums(rmat>0) >0  # states with at least one inward transition
+    if (sum(zcol)==1) {
+        stop("not yet filled in")
+    }
+
     if (missing(setup) || setup[1] <0 || any(diff(sort(diag(rmat)))< eps)) 
         return (pade(rmat*time, dR*time))
 
+    # The cholesky case
     if (setup==0) dlist <- .Call(Ccdecomp, rmat, time)
     else dlist <- .Call(Ccdecomp, rmat[setup, setup], time)
     ncoef <- dim(dR)[3]

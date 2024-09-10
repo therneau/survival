@@ -1,7 +1,7 @@
 
-R Under development (unstable) (2022-07-22 r82614) -- "Unsuffered Consequences"
-Copyright (C) 2022 The R Foundation for Statistical Computing
-Platform: x86_64-pc-linux-gnu (64-bit)
+R Under development (unstable) (2024-06-14 r86747) -- "Unsuffered Consequences"
+Copyright (C) 2024 The R Foundation for Statistical Computing
+Platform: aarch64-unknown-linux-gnu
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -55,7 +55,7 @@ from     normal 1-2x 2-4x  >4 death (censored)
 > # the above verifies that I created the data set correctly
 > 
 > # Standard coxph fit with a time dependent bili4 variable.
-> fit1 <- coxph(Surv(tstart, tstop, death) ~ age + bili4, pbc2)
+> fit1 <- coxph(Surv(tstart, tstop, death) ~ age + bili4, pbc2, ties='breslow')
 > 
 > # An additive multi-state fit, where bili4 is a state
 > #  The three forms below should all give identical models
@@ -80,8 +80,8 @@ from     normal 1-2x 2-4x  >4 death (censored)
 [1] TRUE
 > 
 > # Now a model with a separate age effect for each bilirubin group
-> fit3  <- coxph(Surv(tstart, tstop, death) ~ age*bili4, pbc2)
-> fit3b <- coxph(Surv(tstart, tstop, death) ~ bili4/age, pbc2)
+> fit3  <- coxph(Surv(tstart, tstop, death) ~ age*bili4, pbc2, ties='breslow')
+> fit3b <- coxph(Surv(tstart, tstop, death) ~ bili4/age, pbc2, ties='breslow')
 > fit4 <-  coxph(list(Surv(tstart, tstop, bstat) ~ 1,
 +                    c(1:4):5 ~ age / shared), id= id, istate=bili4,
 +               data=pbc2)
@@ -102,7 +102,7 @@ from     normal 1-2x 2-4x  >4 death (censored)
 > 
 > # Third, a model with separate baseline hazards for each bili group
 > fit5 <- coxph(Surv(tstart, tstop, death) ~ strata(bili4)/age, pbc2,
-+               cluster=id)
++               cluster=id, ties='breslow')
 > fit6 <- coxph(list(Surv(tstart, tstop, bstat) ~ 1, 0:5 ~ age),
 +                    id=id, istate=bili4, pbc2)
 > aeq(coef(fit5), coef(fit6))
@@ -114,4 +114,4 @@ from     normal 1-2x 2-4x  >4 death (censored)
 > 
 > proc.time()
    user  system elapsed 
-  1.281   0.096   1.369 
+  0.536   0.024   0.557 

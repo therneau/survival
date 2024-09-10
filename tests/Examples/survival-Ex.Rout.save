@@ -1,7 +1,7 @@
 
-R Under development (unstable) (2024-06-14 r86747) -- "Unsuffered Consequences"
+R Under development (unstable) (2024-08-21 r87038) -- "Unsuffered Consequences"
 Copyright (C) 2024 The R Foundation for Statistical Computing
-Platform: aarch64-unknown-linux-gnu
+Platform: x86_64-pc-linux-gnu
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -3080,9 +3080,12 @@ rx=1 13        7     5.23     0.596      1.06
 rx=2 13        5     6.77     0.461      1.06
 
  Chisq= 1.1  on 1 degrees of freedom, p= 0.3 
+> check <- coxph(Surv(futime, fustat) ~ rx, data=ovarian, ties="breslow")
+> round(summary(check)$sctest, 3)
+  test     df pvalue 
+ 1.063  1.000  0.303 
 > 
-> ## Stratified 7-sample test
-> 
+> ## Stratified 8-sample test (7 df)
 > survdiff(Surv(time, status) ~ pat.karno + strata(inst), data=lung)
 Call:
 survdiff(formula = Surv(time, status) ~ pat.karno + strata(inst), 
@@ -3101,6 +3104,10 @@ pat.karno=90  60       38   47.242   1.80800   3.23078
 pat.karno=100 35       21   26.207   1.03451   1.44067
 
  Chisq= 21.4  on 7 degrees of freedom, p= 0.003 
+> check <- coxph(Surv(time, status) ~ factor(pat.karno) + strata(inst), lung)
+> round(summary(check)$sctest, 3)
+  test     df pvalue 
+21.368  7.000  0.003 
 > 
 > ## Expected survival for heart transplant patients based on
 > ## US mortality tables
@@ -3845,7 +3852,7 @@ $terms
 > cleanEx()
 > options(digits = 7L)
 > base::cat("Time elapsed: ", proc.time() - base::get("ptime", pos = 'CheckExEnv'),"\n")
-Time elapsed:  2.668 0.175 2.844 0 0 
+Time elapsed:  4.93 0.288 5.243 0 0 
 > grDevices::dev.off()
 null device 
           1 

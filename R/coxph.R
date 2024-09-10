@@ -9,6 +9,11 @@ coxph <- function(formula, data, weights, subset, na.action,
     missing.ties <- missing(ties) & missing(method) #see later multistate sect
     ties <- match.arg(ties)
     Call <- match.call()
+    if (missing(formula)) stop("a formula argument is required")
+    # Protection from the survival::Surv crowd
+    formula <- removeDoubleColonSurv(formula)
+    Call$formula <- formula
+    
     ## We want to pass any ... args to coxph.control, but not pass things
     ##  like "dats=mydata" where someone just made a typo.  The use of ...
     ##  is simply to allow things like "eps=1e6" with easier typing
@@ -23,11 +28,9 @@ coxph <- function(formula, data, weights, subset, na.action,
     if (missing(control)) control <- coxph.control(...) 
 
     # Move any cluster() term out of the formula, and make it an argument
-    #  instead.  This makes everything easier.  But, I can only do that with
+     #  instead.  This makes everything easier.  But, I can only do that with
     #  a local copy, doing otherwise messes up future use of update() on
     #  the model object for a user stuck in "+ cluster()" mode.
-    if (missing(formula)) stop("a formula argument is required")
-    
     ss <- "cluster"
     if (is.list(formula))
         Terms <- if (missing(data)) terms(formula[[1]], specials=ss) else
@@ -60,7 +63,6 @@ coxph <- function(formula, data, weights, subset, na.action,
     indx <- match(c("formula", "data", "weights", "subset", "na.action",
                     "cluster", "id", "istate"),
                   names(Call), nomatch=0) 
-    if (indx[1] ==0) stop("A formula argument is required")
     tform <- Call[c(1,indx)]  # only keep the arguments we wanted
     tform[[1L]] <- quote(stats::model.frame)  # change the function called
 
@@ -155,7 +157,7 @@ coxph <- function(formula, data, weights, subset, na.action,
             stop("multi-state models do not currently support pspline terms")
         if (length(attr(Terms, "specials")$ridge) >0)
             stop("multi-state models do not currently support ridge penalties")
-        if (!missing.ties) method <- ties <- "breslow"
+        if (missing.ties) method <- ties <- "breslow"
     }
     
     if (control$timefix) Y <- aeqSurv(Y)

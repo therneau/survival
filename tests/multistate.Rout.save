@@ -1,7 +1,7 @@
 
-R Under development (unstable) (2021-04-20 r80202) -- "Unsuffered Consequences"
-Copyright (C) 2021 The R Foundation for Statistical Computing
-Platform: x86_64-pc-linux-gnu (64-bit)
+R Under development (unstable) (2024-06-14 r86747) -- "Unsuffered Consequences"
+Copyright (C) 2024 The R Foundation for Statistical Computing
+Platform: aarch64-unknown-linux-gnu
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -17,7 +17,8 @@ Type 'q()' to quit R.
 
 > #
 > # Tests for multi-state Cox models
-> #
+> #  The default for multi-state is now ties='breslow'
+> bb <- "breslow"  # I'm a lazy typist
 > library(survival)
 > 
 > aeq <- function(x,y, ...) all.equal(as.vector(x), as.vector(y), ...)
@@ -37,10 +38,10 @@ Type 'q()' to quit R.
 > 
 > fit1 <- coxph(Surv(etime, event) ~ age + sex + mspike, data1, id=id, x=TRUE,
 +               robust=FALSE)
-> fit1a <- coxph(Surv(etime, event=="PCM") ~ age + sex + mspike, data1)
-> fit1b <- coxph(Surv(etime, event=='death') ~ age + sex + mspike, data1)
+> fit1a <- coxph(Surv(etime, event=="PCM") ~ age + sex + mspike, ties=bb, data1)
+> fit1b <- coxph(Surv(etime, event=='death') ~ age + sex + mspike, ties=bb, data1)
 > fit1c <- coxph(Surv(time, status) ~ strata(type)/(age + sex+ mspike), 
-+                data2, x=TRUE)
++                data2, x=TRUE, ties=bb)
 > 
 > aeq(fit1$loglik, fit1a$loglik + fit1b$loglik)
 [1] TRUE
@@ -60,7 +61,7 @@ Type 'q()' to quit R.
 > 
 > data2 <- rbind(cbind(data1, status= (data1$event=="PCM"), etype=1),
 +                cbind(data1, status= (data1$event=='death'), etype=2))
-> fit2a <- coxph(Surv(etime, status) ~ age + strata(etype)/sex, data2)
+> fit2a <- coxph(Surv(etime, status) ~ age + strata(etype)/sex, data2, ties=bb)
 > 
 > aeq(coef(fit2), coef(fit2a)[c(2,1,3)])  # not in the same order
 [1] TRUE
@@ -104,23 +105,25 @@ Type 'q()' to quit R.
 > 
 > data3 <- data2
 > data3$mspike[data3$etype==2] <- 0
-> fit3a <-  coxph(Surv(etime, status) ~ strata(etype)/(age + sex + mspike), data3)
+> fit3a <-  coxph(Surv(etime, status) ~ strata(etype)/(age + sex + mspike), 
++                 data3, ties=bb)
 > aeq(fit3$loglik, fit3a$loglik)
 [1] TRUE
 > aeq(fit3$coef, fit3a$coef[c(1,3,5,2,4)])
 [1] TRUE
 > 
 > # models with strata
-> test1 <-  coxph(Surv(etime, event=="PCM") ~ age + mspike + strata(sex), data1)
-> test2 <-  coxph(Surv(etime, event=="death") ~ age + strata(sex), data1)
+> test1 <-  coxph(Surv(etime, event=="PCM") ~ age + mspike + strata(sex), 
++                 data1, ties=bb)
+> test2 <-  coxph(Surv(etime, event=="death") ~ age + strata(sex), data1, ties=bb)
 > 
 > sfit1 <-  coxph(list(Surv(etime, event) ~ age + strata(sex), 
 +                    1:state("PCM") ~ mspike),
-+               data1, id=id)
++               data1, id=id, ties=bb)
 > aeq(coef(sfit1), c(coef(test1), coef(test2)))
 [1] TRUE
 > 
-> test3 <- coxph(Surv(etime, event=="death") ~ age +sex, data1)
+> test3 <- coxph(Surv(etime, event=="death") ~ age +sex, data1, ties=bb)
 > sfit2 <- coxph(list(Surv(etime, event) ~ age + sex,
 +                     1:2 ~ mspike + strata(sex) - sex),  data1, id=id)
 > aeq(coef(sfit2), c(coef(test1), coef(test3)))
@@ -129,4 +132,4 @@ Type 'q()' to quit R.
 > 
 > proc.time()
    user  system elapsed 
-  1.749   0.125   1.900 
+  0.581   0.035   0.614 

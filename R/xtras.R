@@ -113,3 +113,23 @@ confint.survfit <- function(object, ...)
     stop(paste("confint method not defined for survfit objects," ,
          "use quantile for confidence intervals of the median survival"))
 
+# This is self defense for my functions agains the survival:: affectianos.
+# Replace survival::strata with strata, survival:cluster with cluster
+removeDoubleColonSurv <- function (formula)
+{
+    doubleColon <- as.name("::")
+    fix <- function(expr) {
+        if (is.call(expr) && identical(expr[[1]], doubleColon) && 
+            identical(expr[[2]], as.name("survival")) &&
+            (identical(expr[[3]], as.name("strata")) ||
+             identical(expr[[3]], as.name("cluster")) )) {
+            expr <- expr[[3]]
+        } else if (is.call(expr)) {
+            for(i in seq_along(expr)){
+                expr[[i]] <- fix(expr[[i]])
+            }
+        }
+        expr
+    }
+  fix(formula)
+}
