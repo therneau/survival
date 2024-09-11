@@ -34,7 +34,7 @@ survpenal.fit<- function(x, y, weights, offset, init, controlvals, dist,
 
     if (is.character(dist)) {
 	sd <- survreg.distributions[[dist]]
-	if (is.null(sd)) stop ("Unrecognized distribution")
+	if (is.null(sd)) stop("Unrecognized distribution")
 	}
     else sd <- dist
     dnum <- match(sd$name, c("Extreme value", "Logistic", "Gaussian"))

@@ -136,7 +136,7 @@ t = list(
     variance = function(df) df/(df-2),
     parms = c(df=4),
     init  = function(x, weights, df) {
-	if (df <=2) stop ("Degrees of freedom must be >=3")
+	if (df <=2) stop("Degrees of freedom must be >=3")
 	mean <- sum(x*weights)/ sum(weights)
 	var  <- sum(weights*(x-mean)^2)/ sum(weights)
 	c(mean, var*(df-2)/df)

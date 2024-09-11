@@ -3,15 +3,15 @@
 #  This variant is for time-course data
 #
 Surv2 <- function(time, event, repeated=FALSE) {
-    if (missing(time)) stop ("must have a time argument")
+    if (missing(time)) stop("must have a time argument")
     if (inherits(time ,"difftime")) time <- unclass(time)
-    if (!is.numeric(time)) stop ("Time variable is not numeric")
+    if (!is.numeric(time)) stop("Time variable is not numeric")
     nn <- length(time)
     if (!is.logical(repeated) || length(repeated) != 1)
         stop("invalid value for repeated option")
 
     if (missing(event)) stop("must have an event argument")
-    if (length(event) != nn) stop ("Time and event are different lengths")
+    if (length(event) != nn) stop("Time and event are different lengths")
     event <- as.factor(event)
     states <- levels(event)[-1]
     status <- as.integer(event) -1L # usually time is not integer, but

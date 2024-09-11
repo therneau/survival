@@ -4,7 +4,7 @@
 # 
 anova.coxphms <- function (object, ...,  test = c("score", "Wald", "PL")) {
     if (!inherits(object, "coxphms"))
-        stop ("argument must be the fit of a multistate hazard  model")
+        stop("argument must be the fit of a multistate hazard  model")
 
     # All the ... args need to be coxphms fits. If any of them
     #  have a name attached, e.g., 'charlie=T' we assume a priori

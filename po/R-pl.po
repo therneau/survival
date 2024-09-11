@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: survival\n"
 "POT-Creation-Date: 2024-09-10 20:40\n"
-"PO-Revision-Date: 2024-09-10 20:25+0200\n"
+"PO-Revision-Date: 2024-09-11 15:58+0200\n"
 "Last-Translator: Łukasz Daniel <lukasz.daniel@gmail.com>\n"
 "Language-Team: Łukasz Daniel <lukasz.daniel@gmail.com>\n"
 "Language: pl_PL\n"
@@ -154,7 +154,7 @@ msgstr "argument 'ratetable' pojawia się dwukrotnie w danych"
 #. R/aareg.R: gettextf("Aalen model doesn't support \"%s\" survival data",     type)
 #: R/aareg.R:0
 msgid "Aalen model doesn't support \"%s\" survival data"
-msgstr "model Aalena nie wspiera danych przeżycia \"%s\""
+msgstr "Model Aalena nie wspiera danych przeżycia \"%s\""
 
 #. R/ratetableold.R: gettextf("Aguments do not all have the same length (arg %d)",     i)
 #: R/ratetableold.R:0
@@ -405,7 +405,7 @@ msgstr "dla numerycznej precyzyjności, wartość argumentu 'tolerance' powinna 
 #. R/survexp.R: stop("Illegal response value")
 #: R/survexp.R:0
 msgid "Illegal response value"
-msgstr "niepoprawna wartość zmiennej zależnej"
+msgstr "Niepoprawna wartość zmiennej zależnej"
 
 #. R/coxpenal.fit.R: stop("Incorrect length in coxlist1")
 #. R/survcallback.R: stop("Incorrect length in coxlist1")

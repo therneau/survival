@@ -68,7 +68,7 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95,
         temp1 <- match(object$method, c("exact", "breslow", "efron"))
         ctype <- c(1,1,2)[temp1]
     }
-    else if (!(ctype %in% 1:2)) stop ("ctype must be 1 or 2")
+    else if (!(ctype %in% 1:2)) stop("ctype must be 1 or 2")
     if (!(stype %in% 1:2)) stop("stype must be 1 or 2")
 
     if (!se.fit) conf.type <- "none"
@@ -354,7 +354,7 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95,
     }
     else if (missing(newdata)) {
         if (has.strata && strata.interaction)
-            stop ("Models with strata by covariate interaction terms require newdata")
+            stop("Models with strata by covariate interaction terms require newdata")
         offset2 <- 0
         if (length(object$means)) {
             x2 <- matrix(object$means, nrow=1, ncol=ncol(X))

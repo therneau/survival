@@ -4,11 +4,11 @@ survdiff.fit <- function(y, x, strat, rho=0) {
     #  If called directly, remember that it does no error checking
     #
     n <- length(x)
-    if (ncol(y) !=2) stop ("Invalid y matrix")
+    if (ncol(y) !=2) stop("Invalid y matrix")
     if (nrow(y) !=n | length(x) !=n) stop("Data length mismatch")
 
     ngroup <- length(unique(x))
-    if (ngroup <2) stop ("There is only 1 group")
+    if (ngroup <2) stop("There is only 1 group")
     if (inherits(x, "factor")) x <- as.numeric(x)
     else x <- match(x, unique(x))
 

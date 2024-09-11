@@ -194,7 +194,7 @@ survmean2 <- function(x, scale=1, rmean) {
     dd <- dim(x)
     dmatch <- match(c("strata", "data", "states"), names(dd), nomatch=0)
     if (is.null(x$states)) stop("survfitms object has no states component")
-    if (dmatch[3]==0) stop ("survfitms object has no states dimension")
+    if (dmatch[3]==0) stop("survfitms object has no states dimension")
     dtype <- match(names(dd), c("strata", "data", "states"))
 
     if (ndots==0) return(x)  # no subscript given

@@ -12,7 +12,7 @@ pade <- function(A, deriv) {
     I <- diag(n)
     if (!missing(deriv)) {
         if (!is.array(deriv) || length(dim(deriv))!=3 ||
-            any(dim(deriv)[1:2] != n)) stop ("invalid derivative array")
+            any(dim(deriv)[1:2] != n)) stop("invalid derivative array")
         nderiv <- dim(deriv)[3]
         dmat <- array(0., dim=c(n, n, nderiv))
     }

@@ -544,7 +544,7 @@ coxph <- function(formula, data, weights, subset, na.action,
         # 
         # Check the order of any penalty terms
         ord <- attr(Terms, "order")[match(pname, attr(Terms, 'term.labels'))]
-        if (any(ord>1)) stop ('Penalty terms cannot be in an interaction')
+        if (any(ord>1)) stop("Penalty terms cannot be in an interaction")
         pcols <- assign[match(pname, names(assign))] 
         
         fit <- coxpenal.fit(X, Y, istrat, offset, init=init,

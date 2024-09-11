@@ -49,7 +49,7 @@ plot.survfit<- function(x, conf.int,  mark.time=FALSE,
 
     if (missing(conf.times)) conf.times <- NULL   
     else {
-        if (!is.numeric(conf.times)) stop('conf.times must be numeric')
+        if (!is.numeric(conf.times)) stop("conf.times must be numeric")
         if (missing(conf.int)) conf.int <- TRUE
     }
     if (!missing(conf.type) && conf.type=="none") conf.int <- FALSE # this overrides
@@ -549,7 +549,7 @@ lines.survfit <- function(x, type='s',
 
     if (missing(conf.times)) conf.times <- NULL   
     else {
-        if (!is.numeric(conf.times)) stop('conf.times must be numeric')
+        if (!is.numeric(conf.times)) stop("conf.times must be numeric")
         if (missing(conf.int)) conf.int <- TRUE
     }
     if (!missing(conf.type) && conf.type=="none") conf.int <- FALSE # this overrides
@@ -970,7 +970,7 @@ points.survfit <- function(x, fun, censor=FALSE,
 
     if (missing(conf.times)) conf.times <- NULL   
     else {
-        if (!is.numeric(conf.times)) stop('conf.times must be numeric')
+        if (!is.numeric(conf.times)) stop("conf.times must be numeric")
         if (missing(conf.int)) conf.int <- TRUE
     }
     if (!missing(conf.type) && conf.type=="none") conf.int <- FALSE # this overrides

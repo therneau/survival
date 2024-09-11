@@ -6,7 +6,7 @@
 #
 frailty.brent <- function(x, y, lower, upper) {
     n <- length(x)
-    if (length(y) != n) stop ("Length mismatch for x and y")
+    if (length(y) != n) stop("Length mismatch for x and y")
  
     if (n<3) return(mean(x))
 

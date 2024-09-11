@@ -80,7 +80,7 @@ survresid.fit <- function(object, times,
 
     # check input arguments
     if (missing(times)) 
-        stop ("the times argument is required")
+        stop("the times argument is required")
     else {
         if (!is.numeric(times)) stop("times must be a numeric vector")
         times <- sort(unique(times))
@@ -555,7 +555,7 @@ rsurvpart2 <- function(Y, X, casewt, istate, times, cluster, type, fit,
         if (is.factor(istate)) {
             if (!identical(levels(istate), fit$states)) {
                 map <- match(levels(istate), fit$states)
-                if (any(is.na(map))) stop ("invalid levels in istate")
+                if (any(is.na(map))) stop("invalid levels in istate")
                 istate <- map[istate]
             }       
         } # istate is numeric, we take what we get and hope it is right

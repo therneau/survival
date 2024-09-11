@@ -3,7 +3,7 @@ survexpmsetup <- function(rmat) {
     #  is acyclic, i.e., can be reordered into an upper triangular matrix.
     if (!is.matrix(rmat) || nrow(rmat) != ncol(rmat) || any(diag(rmat) > 0) ||
         any(rmat[row(rmat) != col(rmat)] < 0))
-        stop ("input is not a transition matrix")
+        stop("input is not a transition matrix")
     if (!is.logical(all.equal(rowSums(rmat), rep(0, ncol(rmat)))))
         stop("input is not a transition matrix")
     nc <- ncol(rmat)

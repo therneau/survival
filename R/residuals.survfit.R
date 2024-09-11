@@ -28,7 +28,7 @@ residuals.survfit <- function(object, times, type= "pstate",
     # Skip roundoff correction for the times only if the survfit call did so
     timefix <- (is.null(object$timefix) || object$timefix)
     if (missing(times)) 
-        stop ("the times argument is required")
+        stop("the times argument is required")
     else {
         if (!is.numeric(times)) stop("times must be a numeric vector")
         times <- sort(unique(times))

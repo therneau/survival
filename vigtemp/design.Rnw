@@ -2211,7 +2211,7 @@ I don't know what they would mean if they were \ldots.   %'
             return(list(fixed=x))   # The simple case, no random terms
 
         if (!is.null(temp1$random) && !is.null(temp2$random))
-                stop ("The interaction of two random terms is not defined")
+                stop("The interaction of two random terms is not defined")
 @ 
 Create the new ``fixed'' term.  In the case of \code{(1|group):sex}, there is no
 fixed term in the result.  

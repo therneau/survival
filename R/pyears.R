@@ -27,7 +27,7 @@ pyears <- function(formula, data,
         if (!missing(rmap)) {
             rcall <- substitute(rmap)
             if (!is.call(rcall) || rcall[[1]] != as.name('list'))
-                stop ("Invalid rcall argument")
+                stop("Invalid rcall argument")
             }
         else rcall <- NULL   # A ratetable, but no rcall argument
 
@@ -70,9 +70,9 @@ pyears <- function(formula, data,
     mf <- eval(tform, parent.frame())
 
     Y <- model.extract(mf, 'response')
-    if (is.null(Y)) stop ("Follow-up time must appear in the formula")
+    if (is.null(Y)) stop("Follow-up time must appear in the formula")
     if (!is.Surv(Y)){
-        if (any(Y <0)) stop ("Negative follow up time")
+        if (any(Y <0)) stop("Negative follow up time")
         Y <- as.matrix(Y)
         if (ncol(Y) >2) stop("Y has too many columns")
         }

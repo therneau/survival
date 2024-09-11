@@ -1,5 +1,5 @@
 print.aareg <- function(x, maxtime, test=c('aalen', 'nrisk'), scale=1, ...) {
-    if (!inherits(x, 'aareg')) stop ("Must be an addreg object")
+    if (!inherits(x, 'aareg')) stop("Must be an addreg object")
     if (!is.null(cl<- x$call)) {
 	cat("Call:\n")
 	dput(cl)

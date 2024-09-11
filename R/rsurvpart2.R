@@ -20,7 +20,7 @@ rsurvpart2 <- function(Y, casewt, istate, times, type, fit, method) {
         if (is.factor(istate)) {
             if (!identical(levels(istate), fit$states)) {
                 map <- match(levels(istate), fit$states)
-                if (any(is.na(map))) stop ("invalid levels in istate")
+                if (any(is.na(map))) stop("invalid levels in istate")
                 istate <- map[istate]
             }       
         } 

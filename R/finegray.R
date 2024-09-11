@@ -76,7 +76,7 @@ finegray <- function(formula, data, weights, subset, na.action= na.pass,
     else {
         index <- match(etype, states)
         if (any(is.na(index)))
-            stop ("etype argument has a state that is not in the data")
+            stop("etype argument has a state that is not in the data")
         enum <- index[1]
         if (length(index) > 1) warning("only the first endpoint was used")
     }

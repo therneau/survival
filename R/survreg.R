@@ -50,7 +50,7 @@ survreg <- function(formula, data, weights, subset, na.action,
     if (!inherits(Y, "Surv")) stop("Response must be a survival object")
     type <- attr(Y, "type")
     if (type== 'counting') 
-        stop ("start-stop type Surv objects are not supported")
+        stop("start-stop type Surv objects are not supported")
     if (type=="mright" || type=="mcounting") 
         stop("multi-state survival is not supported")
    
@@ -208,7 +208,7 @@ survreg <- function(formula, data, weights, subset, na.action,
 	pterms <- pterms[-temp]
 	temp <- match((names(pterms))[pterms], attr(Terms, 'term.labels'))
 	ord <- attr(Terms, 'order')[temp]
-	if (any(ord>1)) stop ('Penalty terms cannot be in an interaction')
+	if (any(ord>1)) stop("Penalty terms cannot be in an interaction")
 
         
         assign <- attrassign(X, newTerms)

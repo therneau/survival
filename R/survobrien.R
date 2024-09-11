@@ -34,13 +34,13 @@ survobrien <- function(formula, data, subset,
     Terms <- attr(m, 'terms')
 
     y <- model.extract(m, 'response')
-    if (!inherits(y, "Surv")) stop ("Response must be a survival object")
+    if (!inherits(y, "Surv")) stop("Response must be a survival object")
     if (!attr(y, "type") %in% c("right", "counting"))
         stop("Response must be right censored or (start, stop] data")
 
     cluster <- untangle.specials(Terms, "cluster")
     if (length(cluster$terms) > 0) {
-        if (length(cluster$terms) >1) stop ("Can have only 1 cluster term")
+        if (length(cluster$terms) >1) stop("Can have only 1 cluster term")
         idvar <- m[[cluster$vars]]
         Terms2 <- Terms[-cluster$tvar]
     }
@@ -67,7 +67,7 @@ survobrien <- function(formula, data, subset,
     protected <- sapply(m[myvars], function(x) inherits(x, "AsIs"))
     keepers <- factors | protected  #variables to be left alone
 
-    if (all(keepers)) stop ("No continuous variables to modify")
+    if (all(keepers)) stop("No continuous variables to modify")
     
     if (ncol(y) ==3) {
         # counting process data

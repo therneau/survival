@@ -20,7 +20,7 @@ survexp <- function(formula, data,
     if (!missing(rmap)) {
         rcall <- substitute(rmap)
         if (!is.call(rcall) || rcall[[1]] != as.name('list'))
-            stop ("Invalid rcall argument")
+            stop("Invalid rcall argument")
         }
     else rcall <- NULL   # A ratetable, but no rcall argument
 
@@ -89,7 +89,7 @@ survexp <- function(formula, data,
             if (is.Surv(Y) && attr(Y, 'type')=='right') Y <- Y[,1]
             else stop("Illegal response value")
             }
-        if (any(Y<0)) stop ("Negative follow up time")
+        if (any(Y<0)) stop("Negative follow up time")
     #    if (missing(npoints)) temp <- unique(Y)
     #    else                  temp <- seq(min(Y), max(Y), length=npoints)
         temp <- unique(Y)

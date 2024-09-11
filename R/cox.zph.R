@@ -3,7 +3,7 @@ cox.zph <- function(fit, transform='km', terms=TRUE, singledf =FALSE,
                     global=TRUE) {
     Call <- match.call()
     if (!inherits(fit, "coxph") && !inherits(fit, "coxme")) 
-        stop ("argument must be the result of Cox model fit")
+        stop("argument must be the result of Cox model fit")
     if (inherits(fit, "coxph.null"))
         stop("there are no score residuals for a Null model")
     if (!is.null(attr(terms(fit), "specials")[["tt"]]))
@@ -46,7 +46,7 @@ cox.zph <- function(fit, transform='km', terms=TRUE, singledf =FALSE,
     }
     else   asgn <- fit$assign
         
-    if (!is.list(asgn)) stop ("unexpected assign component")
+    if (!is.list(asgn)) stop("unexpected assign component")
 
     frail <- grepl("frailty(", names(asgn), fixed=TRUE) |
              grepl("frailty.gamma(", names(asgn), fixed = TRUE) |

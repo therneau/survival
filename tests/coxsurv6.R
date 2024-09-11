@@ -127,7 +127,7 @@ mysurv <- function(fit, istate, p0, x0, debug=0) {
     #  is always the right size
     nstate <- length(fit$states)
     state <-  factor(fit$y[,3], 1:nstate)  # endpoint of a transition
-    if (length(istate) != nrow(fit$y)) stop ("mismatched istate")
+    if (length(istate) != nrow(fit$y)) stop("mismatched istate")
     istate <- factor(as.character(istate), fit$states)
 
     # set up output

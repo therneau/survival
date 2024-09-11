@@ -1,6 +1,7 @@
 *.o
 *~
 *.so
+po/*.mo
 noweb/code.nw
 noweb/code.tex
 noweb/code.aux

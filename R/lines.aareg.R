@@ -1,6 +1,6 @@
 # $Id: lines.aareg.S 11166 2008-11-24 22:10:34Z therneau $
 lines.aareg <- function(x, se=FALSE, maxtime, type='s', ...) {
-    if (!inherits(x, 'aareg')) stop ("Must be an aareg object")
+    if (!inherits(x, 'aareg')) stop("Must be an aareg object")
 
     if (missing(maxtime)) keep <- 1:length(x$time)
     else		  keep <- 1:sum(x$time <= maxtime)

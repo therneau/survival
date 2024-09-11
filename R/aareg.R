@@ -387,7 +387,7 @@ aareg <- function(formula, data, weights, subset, na.action,
     }
 
 "[.aareg" <- function(x, ..., drop=FALSE) {
-    if (!inherits(x, 'aareg')) stop ("Must be an aareg object")
+    if (!inherits(x, 'aareg')) stop("Must be an aareg object")
     i <- ..1
     if (is.matrix(x$coefficient)) {
 	x$coefficient <- x$coefficient[,i, drop=drop]

@@ -1,7 +1,7 @@
 # The anova function for a coxph object
 anova.coxph <- function (object, ...,  test = 'Chisq') {
     if (!inherits(object, "coxph"))
-        stop ("argument must be a cox model")
+        stop("argument must be a cox model")
 
     # All the ... args need to be coxph or coxme fits.  If any of them
     #  have a name attached, e.g., 'charlie=T' we assume a priori

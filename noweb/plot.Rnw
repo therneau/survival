@@ -139,7 +139,7 @@ if (missing(conf.int) && missing(conf.times))
 
 if (missing(conf.times)) conf.times <- NULL   
 else {
-    if (!is.numeric(conf.times)) stop('conf.times must be numeric')
+    if (!is.numeric(conf.times)) stop("conf.times must be numeric")
     if (missing(conf.int)) conf.int <- TRUE
 }
 if (!missing(conf.type) && conf.type=="none") conf.int <- FALSE # this overrides

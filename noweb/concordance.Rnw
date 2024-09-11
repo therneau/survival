@@ -102,7 +102,7 @@ concordance.formula <- function(object, data,
     if (length(cluster)) {
         tempc <- untangle.specials(Terms, 'cluster', 1:10)
         ord <- attr(Terms, 'order')[tempc$terms]
-        if (any(ord>1)) stop ("Cluster can not be used in an interaction")
+        if (any(ord>1)) stop("Cluster can not be used in an interaction")
         cluster <- strata(mf[,tempc$vars], shortlabel=TRUE)  #allow multiples
         Terms <- Terms[-tempc$terms]  # toss it away
     }
@@ -115,7 +115,7 @@ concordance.formula <- function(object, data,
     if (!is.null(ymax) & (length(ymax)> 1 || !is.numeric(ymax)))
         stop("ymax must be a single number")
     if (!is.logical(reverse)) 
-        stop ("the reverse argument must be TRUE/FALSE")
+        stop("the reverse argument must be TRUE/FALSE")
  
     fit <- concordancefit(Y, x, strat, wt, ymin, ymax, timewt, cluster,
                            influence, ranks, reverse, keepstrata=keepstrata)

@@ -48,7 +48,7 @@ addterm <- function(oldform, new) {
 }
 newterm <- list()
 
-if (missing(subcoh)) stop ("the subcoh argument is required")
+if (missing(subcoh)) stop("the subcoh argument is required")
 else {
     if (is.call(Call$subcoh) && Call$subcoh[[1]] == as.name("~")) 
         newterm$subcoh <- Call$subcoh[[2]]
@@ -139,10 +139,10 @@ else {
     subcohort.sizes <- n
 }
 if (robust && method != "LinYing") 
-    warning ("robust option ignored for this method")
+    warning("robust option ignored for this method")
 
 if (!is.null(id) && any(duplicated(id))) 
-    stop ("multiple records per id not allowed")
+    stop("multiple records per id not allowed")
 @ 
 
 Now create the data set that will be used for the calls to the underlying
@@ -167,7 +167,7 @@ else cdata <- data.frame(tstart= Y[,1],
                          X = model.matrix(Terms, mf[, -1, drop=FALSE)))
 
 if (any (!subcoh & cens==0))
-    stop ("every observation should either be in the subcohort or be an event")
+    stop("every observation should either be in the subcohort or be an event")
 
 
 

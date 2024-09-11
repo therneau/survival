@@ -109,7 +109,7 @@ summary.survfit <- function(object, times, censored=FALSE,
         if (missing(dosum)) dosum <- all(diff(times) > 0)
         else if (!is.logical(dosum)) stop("dosum must be TRUE/FALSE")
         else if (dosum && !all(diff(times) >0))
-            stop ("dosum=TRUE requires the times to be increasing")
+            stop("dosum=TRUE requires the times to be increasing")
 
         fit <- fit0  # findrow() needs the starting time
 

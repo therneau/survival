@@ -15,7 +15,7 @@ pspline <- function(x, df=4, theta, nterm=2.5*df, degree=3, eps=0.1,
 	}
     else {
 	method <- 'df'
-	if (df <=1) stop ('Too few degrees of freedom')
+	if (df <=1) stop("Too few degrees of freedom")
 	# The below used to say "df+1 > nterm", but we need some scope for
 	#  the smoother parameter to avoid strange conditions
         if (df > nterm) stop("`nterm' too small for df=",df)
