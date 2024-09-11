@@ -123,6 +123,9 @@ removeDoubleColonSurv <- function (formula)
             identical(expr[[2]], as.name("survival")) &&
             (identical(expr[[3]], as.name("strata")) ||
              identical(expr[[3]], as.name("cluster")) )) {
+            if (identical(expr[[3]], as.name("strata")))
+                warning("replaced invalid `survival::strata' operator with `strata'")
+            else warning("replaced invalid `survival::cluster' operator with `cluster'")
             expr <- expr[[3]]
         } else if (is.call(expr)) {
             for(i in seq_along(expr)){

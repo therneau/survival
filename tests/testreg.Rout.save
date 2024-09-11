@@ -1,7 +1,7 @@
 
-R Under development (unstable) (2019-06-28 r76752) -- "Unsuffered Consequences"
-Copyright (C) 2019 The R Foundation for Statistical Computing
-Platform: x86_64-pc-linux-gnu (64-bit)
+R Under development (unstable) (2024-08-21 r87038) -- "Unsuffered Consequences"
+Copyright (C) 2024 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -52,7 +52,7 @@ Scale= 0.456
 Weibull distribution
 Loglik(model)= -10.3   Loglik(intercept only)= -11.4
 	Chisq= 2.22 on 1 degrees of freedom, p= 0.14 
-Number of Newton-Raphson Iterations: 8 
+Number of Newton-Raphson Iterations: 9 
 n=6 (1 observation deleted due to missingness)
 
 > 
@@ -330,4 +330,4 @@ Log(scale[sex=2])      0.0113833096
 > 
 > proc.time()
    user  system elapsed 
-  0.804   0.044   0.853 
+  0.924   0.047   0.963 

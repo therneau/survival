@@ -47,7 +47,7 @@ SEXP survreg6(SEXP maxiter2,   SEXP nvarx,  SEXP y,
 	      SEXP offset2,    SEXP beta2,  SEXP nstratx,
 	      SEXP stratax,    SEXP epsx,   SEXP  tolx,
 	      SEXP dist,       SEXP dexpr,  SEXP rho) {
-    int i,j;	
+    int i,j, bad;	
     int n, maxiter,
 	ny;
     double *newbeta;
@@ -209,7 +209,6 @@ SEXP survreg6(SEXP maxiter2,   SEXP nvarx,  SEXP y,
 	goto alldone;
 	}
 
-
     /*
     ** here is the main loop
     */
@@ -224,12 +223,25 @@ SEXP survreg6(SEXP maxiter2,   SEXP nvarx,  SEXP y,
 
     for (iter=1; iter<= maxiter; iter++) {
 	/* 
-	**   Am I done?  Check for convergence, then update betas
-	**   The *loglik > -eps is for the extremely rare case that the
+	** When a Newton-Raphson step goes seriously awry, we can end up with
+	**   an infinite or not-a-number loglik, or the same for a first or
+	**   second derivative.
+	** the isnan and isinf function return 1 on failure, 0 for valid
+	*/
+	bad = isnan(newlk) + isinf(newlk);  /* an invalid value */
+	for (j=0; j< nvar2; j++) {
+	    bad += isnan(imat[j][j]) + isinf(imat[j][j]);
+	    bad += isnan(u[j]) + isinf(u[j]);
+	}
+	/* 
+	**   Am I done?  Check for convergence, then update betas.
+	**   Most often the relative change in loglik will signal convergence,
+	**   the second absolute check can occur when the final 
 	**    loglik settles at a value very near 0.
 	*/
-	if (!isnan(newlk) && 0== isinf(newlk) &&  halving==0 &&
-	    (fabs(1- *loglik/newlk) <=eps || *loglik > -eps)) { /* all done */
+	if (bad== 0 &&  halving==0 &&
+	    (fabs(1- *loglik/newlk) <=eps || 
+	     fabs(*loglik - newlk)  <=eps)) { /* all done */
 	    *loglik = newlk;
 	    *flag = cholesky3(imat, nvar2, 0, NULL, tol_chol);
 
@@ -244,7 +256,7 @@ SEXP survreg6(SEXP maxiter2,   SEXP nvarx,  SEXP y,
 	    goto alldone;
 	    }
 	
-	if (isnan(newlk) || 0 != isinf(newlk) || newlk < *loglik)   {    
+	if (bad > 0  || newlk < *loglik)   {    
 	    /*it is not converging ! */
 	    halving++;
 	    for (i=0; i<nvar2; i++)
@@ -297,14 +309,18 @@ SEXP survreg6(SEXP maxiter2,   SEXP nvarx,  SEXP y,
     }   /* return for another iteration */
 
     *iter2 = maxiter; 	
-    /* did not converge, return the last good iter 
-       restore u and imat to correct values for beta */
-    (*dolik)(n,      nvar,             nstrat,  0,
+    if (halving ==0 && isnan(newlk)==0 && isinf(newlk)==0 && newlk >= *loglik) {
+	/* Accept the final step */
+	for (i=0; i< nvar2; i++) beta[i]= newbeta[i];
+    } else {
+	/* Last step was not a success, get imat for last good iter */
+	(*dolik)(n,      nvar,             nstrat,  0,
 	     beta,asInteger(dist),  strat,   offset,
 	     time1,  time2,            status,  wt,
 	     covar,  imat,             JJ,      u,
 	     dexpr,  rho,              zptr,
 	     0,      NULL,             NULL,    NULL); 
+    }
     cholesky3(imat, nvar2, 0, NULL, tol_chol);
     chinv2(imat, nvar2); 
     for (i=1; i<nvar2; i++) {

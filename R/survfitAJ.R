@@ -304,7 +304,10 @@ survfitAJ <- function(X, Y, weights, id, cluster, robust, istate,
         sd0 <- NULL
         if (is.null(p0)) {  # a per-curve p0
             if (ny==2) atrisk <- indx2
+            else if (t0== min(Y[,1])) atrisk <- (indx2 & Y[,1] <=t0 & Y[,2]>=t0)
             else atrisk <- (indx2 & Y[,1] < t0 & Y[,2] >= t0)
+            # the second else above prevents the error message below in the
+            #  case that everyone starts at the same time, but p0 not specified
             if (!any(atrisk)) 
                 stop(paste("no one at risk for one of the curves, at the",
                            "default time 0; specify a start.time"))

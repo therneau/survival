@@ -1,7 +1,7 @@
 
-R version 3.4.1 (2017-06-30) -- "Single Candle"
-Copyright (C) 2017 The R Foundation for Statistical Computing
-Platform: x86_64-pc-linux-gnu (64-bit)
+R Under development (unstable) (2024-08-21 r87038) -- "Unsuffered Consequences"
+Copyright (C) 2024 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -159,8 +159,8 @@ Degrees of freedom for terms= 0.4 2.1 1.0
 Likelihood ratio test=5.2  on 1.5 df, p=0.04  n= 228 
 > signif(lfit7$coef,6)
 (Intercept) 
-1.47899e-09 
+1.44318e-09 
 > 
 > proc.time()
    user  system elapsed 
-  1.959   0.081   2.236 
+  0.945   0.076   1.012 
