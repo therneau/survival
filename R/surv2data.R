@@ -123,7 +123,7 @@ Surv2data <- function(formula, data, subset, id){
     indx <- match(c("formula", "data", "weights", "subset", "na.action",
                     "cluster", "id", "istate"),
                   names(Call), nomatch=0)
-    if (indx[1] ==0) stop("A formula argument is required")
+    if (indx[1] ==0) stop(gettextf("'%s' argument is required", "formula"))
     tform <- Call[c(1, indx)]  # only keep arguments we wanted
     tform$na.action <- stats::na.pass
     tform[[1L]] <- quote(stats::model.frame)

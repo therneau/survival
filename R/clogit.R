@@ -13,7 +13,7 @@ clogit <- function(formula, data, weights, subset, na.action,
     # It's only job is to find out the number of rows in the data
     #  before subset or na.action are applied.
     indx <- match(c("formula", "data"), names(Call), nomatch=0)
-    if (indx[1]==0) stop("A formula argument is required")
+    if (indx[1]==0) stop(gettextf("'%s' argument is required", "formula"))
     mf <- Call[c(1,indx)]
     mf[[1L]] <- quote(stats::model.frame)
     mf$na.action <- "na.pass"

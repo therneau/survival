@@ -29,7 +29,7 @@ concordance.formula <- function(object, data,
     if (inherits(Y, "Surv")) {
         if (timefix) Y <- aeqSurv(Y)
         if (ncol(Y) == 3 && timewt %in% c("S/G", "n/G", "n/G2"))
-            stop(timewt, " timewt option not supported for (time1, time2) data")
+            stop(gettext("'%s' timewt option not supported for (time1, time2) data", timewt))
     } else {
         if (is.factor(Y) && (is.ordered(Y) || length(levels(Y))==2))
             Y <- Surv(as.numeric(Y))
@@ -147,7 +147,7 @@ concordancefit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL,
     if (is.Surv(y)) {
         ny <- ncol(y)
         if (ny == 3 && timewt %in% c("S/G", "n/G2"))
-            stop(timewt, " timewt option not supported for (time1, time2) data")
+            stop(gettext("'%s' timewt option not supported for (time1, time2) data", timewt))
         if (!is.null(attr(y, "states"))) 
             stop("concordance not defined for a multi-state outcome")
         if (timefix) y <- aeqSurv(y)

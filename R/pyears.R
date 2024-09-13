@@ -12,7 +12,7 @@ pyears <- function(formula, data,
     # then evaluate it in the proper frame
     indx <- match(c("formula", "data", "weights", "subset", "na.action"),
                       names(Call), nomatch=0) 
-    if (indx[1] ==0) stop("A formula argument is required")
+    if (indx[1] ==0) stop(gettextf("'%s' argument is required", "formula"))
     tform <- Call[c(1,indx)]  # only keep the arguments we wanted
     tform[[1L]] <- quote(stats::model.frame)  # change the function called
 

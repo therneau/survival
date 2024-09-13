@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: survival 3.7-2\n"
-"POT-Creation-Date: 2024-09-10 20:40\n"
+"POT-Creation-Date: 2024-09-13 18:50\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -74,6 +74,29 @@ msgid "'%s' argument is not the same length as id"
 msgstr ""
 
 
+#: R/aareg.R: 0
+#: R/clogit.R: 0
+#: R/finegray.R: 0
+#: R/pyears.R: 0
+#: R/surv2data.R: 0
+#: R/survcondense.R: 0
+#: R/survexp.R: 0
+#: R/survobrien.R: 0
+#: R/survreg.R: 0
+#. R/aareg.R: gettextf("'%s' argument is required", "formula")
+#. R/clogit.R: gettextf("'%s' argument is required", "formula")
+#. R/finegray.R: gettextf("'%s' argument is required", "formula")
+#. R/pyears.R: gettextf("'%s' argument is required", "formula")
+#. R/surv2data.R: gettextf("'%s' argument is required", "formula")
+#. R/survcondense.R: gettextf("'%s' argument is required", "formula")
+#. R/survexp.R: gettextf("'%s' argument is required", "formula")
+#. R/survobrien.R: gettextf("'%s' argument is required", "formula")
+#. R/survreg.R: gettextf("'%s' argument is required", "formula")
+
+msgid "'%s' argument is required"
+msgstr ""
+
+
 #: R/match.ratetable.R: 0
 #. R/match.ratetable.R: gettextf("'%s' argument needed by the ratetable was not found in the data",     dimid[is.na(ord)])
 
@@ -92,6 +115,14 @@ msgstr ""
 #. R/residuals.coxph.null.R: gettextf("'%s' residuals are not defined for a null model", type)
 
 msgid "'%s' residuals are not defined for a null model"
+msgstr ""
+
+
+#: R/concordance.R: 0
+#. R/concordance.R: gettext("'%s' timewt option not supported for (time1, time2) data",     timewt)
+#. R/concordance.R: gettext("'%s' timewt option not supported for (time1, time2) data",     timewt)
+
+msgid "'%s' timewt option not supported for (time1, time2) data"
 msgstr ""
 
 
@@ -148,29 +179,6 @@ msgstr ""
 #. R/finegray.R: stop("(start, stop] data requires a subject id")
 
 msgid "(start, stop] data requires a subject id"
-msgstr ""
-
-
-#: R/aareg.R: 0
-#: R/clogit.R: 0
-#: R/finegray.R: 0
-#: R/pyears.R: 0
-#: R/surv2data.R: 0
-#: R/survcondense.R: 0
-#: R/survexp.R: 0
-#: R/survobrien.R: 0
-#: R/survreg.R: 0
-#. R/aareg.R: stop("A formula argument is required")
-#. R/clogit.R: stop("A formula argument is required")
-#. R/finegray.R: stop("A formula argument is required")
-#. R/pyears.R: stop("A formula argument is required")
-#. R/surv2data.R: stop("A formula argument is required")
-#. R/survcondense.R: stop("A formula argument is required")
-#. R/survexp.R: stop("A formula argument is required")
-#. R/survobrien.R: stop("A formula argument is required")
-#. R/survreg.R: stop("A formula argument is required")
-
-msgid "A formula argument is required"
 msgstr ""
 
 
@@ -4906,14 +4914,6 @@ msgstr ""
 #. R/summary.survfitms.R: stop("times must be a numeric vector")
 
 msgid "times must be a numeric vector"
-msgstr ""
-
-
-#: R/concordance.R: 0
-#. R/concordance.R: stop(timewt, " timewt option not supported for (time1, time2) data")
-#. R/concordance.R: stop(timewt, " timewt option not supported for (time1, time2) data")
-
-msgid "timewt option not supported for (time1, time2) data"
 msgstr ""
 
 
