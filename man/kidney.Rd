@@ -12,7 +12,9 @@ This data has often been used to illustrate the use of random effects
 large outlier, with much longer survival than his peers.  If this
 observation is removed no evidence remains for a random subject effect.
 }
-\usage{kidney
+\usage{
+kidney
+# or
 data(cancer, package="survival")
 }
 \format{

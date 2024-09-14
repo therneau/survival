@@ -1,5 +1,4 @@
 # Automatically generated from the noweb directory
-#tt <- function(x) x
 coxph <- function(formula, data, weights, subset, na.action,
         init, control, ties= c("efron", "breslow", "exact"),
         singular.ok =TRUE,  robust,
@@ -101,12 +100,19 @@ coxph <- function(formula, data, weights, subset, na.action,
     tform$formula <- if(missing(data)) terms(formula, special) else
                                       terms(formula, special, data=data)
 
-    # Make "tt" visible for coxph formulas, without making it visible elsewhere
-    if (!is.null(attr(tform$formula, "specials")$tt)) {
-        coxenv <- new.env(parent= environment(formula))
-        assign("tt", function(x) x, envir=coxenv)
-        environment(tform$formula) <- coxenv
-    }
+    # Make "tt" and "strata" be local to the formula, without invoking any
+    #  outside functions. We do this by inserting another environment on
+    #  the front of the search path.
+    # For tt, this was done out of concern that users might have created
+    #  a dummy variable of that name.  For strata, this is
+    #  part of my defense against use of survival::strata.  Putting a local
+    #  copy first on the path allows for users who don't want to load the
+    #  survival namespace. (I think that is crazy, but the tidy universe has
+    #  a subset of them.)
+    coxenv <- new.env(parent= environment(formula))
+    assign("tt", function(x) x, envir=coxenv)
+    assign("strata", survival::strata, envir= coxenv)
+    environment(tform$formula) <- coxenv
 
     # okay, now evaluate the formula
     mf <- eval(tform, parent.frame())
