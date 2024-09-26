@@ -199,10 +199,6 @@ coxph <- function(formula, data, weights, subset, na.action,
         if (!hasinteractions) dropterms <- stemp$terms 
     } else istrat <- NULL
 
-    if (hasinteractions && multi)
-        stop("multi-state coxph does not support strata*covariate interactions")
-
-
     timetrans <- attr(Terms, "specials")$tt
     if (missing(tt)) tt <- NULL
     if (length(timetrans)) {

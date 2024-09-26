@@ -8,14 +8,14 @@
     survival::strata() with strata() and likewise with cluster().  The
     reason for this is that strata is a special in coxph formulas (see
     the specials argument to the terms function) and will not be
-    properly recognized when survival:: is prepended.  Yet to do: the
-    same change for survdiff.
+    properly recognized when survival:: is prepended. 
     \item Update survreg6.c. If the first Newton-Raphson step was
     particularly bad the trial solution could have NA or NaN values for
     the loglikelihood, first, and/or second derivatives.  The
     "is this solution worse than the prior one" test was not picking
     this up to initiate step halving.  Github issue 263. 
-    
+}}
+
 \section{Changes in version 3.7-2}{
   \itemize{
     \item The change to ties documented below for 3.4.2 actually never

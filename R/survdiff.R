@@ -11,6 +11,16 @@ survdiff <- function(formula, data, subset, na.action, rho=0, timefix=TRUE) {
     Terms <- if(missing(data)) terms(formula, 'strata')
 	     else              terms(formula, 'strata', data=data)
     m$formula <- Terms
+    # Make "strata" be local to the formula, without invoking any
+    #  outside functions. We do this by inserting another environment on
+    #  the front of the search path.  This is
+    #  part of my defense against use of survival::strata.  Putting a local
+    #  copy first on the path allows for users who don't want to load the
+    #  survival namespace.
+    coxenv <- new.env(parent= environment(formula))
+    assign("strata", survival::strata, envir= coxenv)
+    environment(m$formula) <- coxenv
+
     m[[1L]] <- quote(stats::model.frame)
     m <- eval(m, parent.frame())
     

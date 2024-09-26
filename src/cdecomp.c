@@ -1,4 +1,3 @@
-/* Automatically generated from the noweb directory */
 /*
 ** Compute the eigenvectors for the upper triangular matrix R
 */
