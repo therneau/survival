@@ -122,6 +122,7 @@ table of information that is returned from \code{print.survfit} function.
 \item{type}{
 type of data censoring.  Passed through from the fit object. 
 }
+
 }
 \section{Details}{
 This routine has two uses: printing out a survival curve at specified
@@ -132,8 +133,26 @@ data past the end of the curve.  If the \code{times} option only
 contains values beyond the last point in the curve then there is nothing
 to print and an error message will result.
 For the second usage we often want \code{extend=TRUE}, so that the
-results will have a predictable length. 
+results will have a predictable length.
 If \code{data.frame = TRUE} then either might be desired.
+Be aware, however, that these extended values will often be badly
+biased; we are essentialy treating the final censored subjects as
+immortal.
+
+The underlying survival object will have a row for each unique event or
+censoring time.
+When the \code{times} argument contains values not in the data, the
+routine can only use a best guess for the number at risk, i.e., the
+number at risk at the next event/censoring time.
+When the routine is called with counting process data many users are
+confused by counts that appear too large.
+For example, \code{Surv(c(0,0, 1, 5), c(2, 3, 8, 10), c(1, 0, 1, 0))},
+which prints as \code{(0,2] (0, 3+] (1, 8]  (5,10+]}.
+Do \code{survfit} followed by \code{summary} with
+a request for the values at time 0.
+The \code{survfit} object has entries only at times 2, 3, 8, and 10;
+there are 3 subjects at risk at time 2, so that is what will be printed
+for time 0.
 
 For a printout at fixed times, for example yearly values for a curve,
 the printed number of events will by default be the total number of
@@ -152,21 +171,6 @@ For a survfitms object replace the \code{surv} component with
 \code{pstate}.  Also, a data frame will not include the cumulative
 hazard since it has a different multiplicity: one column per transition
 rather than one per state.
-
-The \code{survfit} object itself will have a row of information at each
-censoring or event time, the default is not save information on each unique
-entry time.  For printout at two time points t1, t2, this function will
-give the the number at risk at the smallest event times that are >= t1
-and >= t2, respectively, the survival curve at the largest recorded times
-<= t1 and <= t2, and the number of events and censorings in the interval
-t1 < t <= t2.
-
-When the routine is called with counting process data many users are
-confused by counts that are too large.
-For example, \code{Surv(c(0,0, 5, 5), c(2, 3, 8, 10), c(1, 0, 1, 0))}
-followed by a request for the values at time 4.
-The \code{survfit} object has entries only at times 2, 3, 8, and 10;
-there are 2 subjects at risk at time 8, so that is what will be printed.
 }
 \seealso{
 \code{\link{survfit}},  \code{\link{print.summary.survfit}}   

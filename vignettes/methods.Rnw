@@ -1,6 +1,7 @@
 \documentclass{report}[notitlepage,11pt]
 \usepackage{Sweave}
 \usepackage{amsmath}
+\usepackage{amssymb}
 \usepackage{makeidx}
 
 \addtolength{\textwidth}{1in}
@@ -628,13 +629,12 @@ The C code for survfit has adapted case 3 above, for all three of the hazard,
 survival, and AUC.
 A rationale is that if the data set is very large the user can choose 
 \code{std.err =FALSE} as an option, then later use the residuals function to
-get values at selected times.  When the number of deaths gets over 1000, which
-is where we begin to really notice the $O(nd)$ slowdown, a plot only needs
-100 points to look smooth. Most use cases will only need variance at a few
-points.  Another reason is that for ordinary survival, robust variance is almost
+get values at selected times.  When the number of deaths gets over 1000
+is where we begin to really notice the $O(nd)$ slowdown, but a plot only needs
+100 points to look smooth
+Most use cases will only need variance at a 1--3 points.
+Another reason is that for ordinary survival, robust variance is almost
 never requested unless there is clustering.
-
-
 
 \section{Aalen-Johansen}
 In a multistate model let the hazard for the $jk$ transition be 
@@ -741,10 +741,10 @@ impossible to clearly define the number at risk.
 But perhaps there are use cases for 2 and/or 4?
  
 One data example I have used in the past for the Cox
-model is a subject on a research protocol, over 20 years ago now, 
+model is a subject on a research protocol, over 30 years ago now, 
 who was completely lost to follow-up for nearly 2 years and then reappeared.
 Should they be counted as ``at risk'' in that interim?  
-I argue no, on the grounds that the were not at risk for an ``event that would
+I argued no, on the grounds that the were not at risk for an ``event that would
 have been captured'' in our data set --- we would never have learned of a
 disease progression.
 Someone should not be in the denominator of the Cox model (or KM) at a
@@ -819,7 +819,7 @@ an error in that case.
 The code does its summation starting at the largest time and moving left,
 adding and subtracting from the number at risk (by state) as it goes. 
 In most data sets the number at risk decreases over time, going from right
-to left results in more additions than subtractions and thus a smidge less
+to left results in more additions than subtractions and thus less
 potential roundoff error. 
 Since it is possible for a subject's intervals to have different case
 weights, the number at risk \emph{does} need to be updated at time 6 for
@@ -943,17 +943,16 @@ a matrix of the same form as $U$ and can be efficiently updated.
 Each row of the grouped $C$ is computed with the same effort as a row of
 the ungrouped matrix. 
   
-Let $C$ be the per observation influence matrix, $D$ a diagonal matrix
+Let $C$ be the per observation influence matrix, $W$ a diagonal matrix
 of per-observation weights, and $B$ the $n$ by $g$ 01/ design matrix that
 collapses observations by groups.
 For instance, \code{B = model.matrix(~ factor(grp) -1)}.
-The the weighted and collapsed influence is $V= B'DC$, and the infinitesimal
+The the weighted and collapsed influence is $V= B'WC$, and the infinitesimal
 jackknife variances are the column sums of the squared elements of V,
-\code{colSums(V*V)}. A feature of the IJ is that the column sums of $DC$ and of
-$B'DC$ are zero.
+\code{colSums(V*V)}. A feature of the IJ is that the column sums of $WC$ and of
+$B'WC$ are zero.
 In the special case where each subject is a group and the weight for a 
-subject is constant over time, then $B'D = WB'$ where $W$ is a diagonal matrix
-of per-subject weights, i.e, one can collapse and then weight rather than
+subject is constant over time, then one can collapse and then weight rather than
 weight and then collapse. 
 The survfitci.c routine (now replaced by survfitaj.c) made this assumption,
 but unfortunately the code had no test cases with disparate weights within
@@ -1110,8 +1109,74 @@ For the NAFLD example in the survival vignette, for instance, this is true for
 all but 161 out of the 6108 unique event times (5\%).  For the remainder of
 the event times it suffices to create a temporary copy of $U(t-)$.
 
+\chapter{Cox model}
+\section{Survival curves from a coxph model}
 
-\subsection{Residuals}
+\chapter{Multistate hazard model}
+\section{Absolute risk}
+Let $A(t; x)$ be the hazards matrix at time $t$ for covariate values $x$
+\begin{align*}
+  A &= \left( \begin{array}{cccc}
+       \square & \lhat_{12}(t;x) & \lhat_{13}(t;x) & \ldots \\
+       \lhat_{21}(t;x) & \square & \lhat_{23}(t;x) & \ldots \\
+       \vdots & \square & \vdots & \vdots & \ddots \end{array} \right) \\
+  p(t;x) &= p(0) \prod_{s\le t} e^{A(s;z)}
+\end{align*}
+where $\lhat_{jk}$ is the predicted hazard from the model for a $j$ to $k$
+transition.  The diagonal elements are such that row sums are zero.
+
+The mstate package uses the first order Taylor series  $\exp(A) \approx I + A$,
+which is parallel to the formula in the Aalen-Johansen.
+We do not, for a couple of reasons.
+\begin{itemize}
+  \item If the chosen $x$ corresponds to a particularly high relative hazard,
+    then the diagonal element can be negative, and $A$ is no longer a valid
+    transition matrix.
+  \item Consistency with the single state Cox model's Breslow estimate.
+    (This approximation has never been proposed for the simple Cox model.)
+\end{itemize}
+
+For two matrices $A$ and $B$, $\exp(A)\exp(B) != \exp(A+B)$ unless $AB=BA$,
+a condition that does not occur with our transtion matrices.
+Per section \ref{matexp}, the computation of $exp(A)$ will normally be very
+fast, so this does not add any undue time burden.
+    
+\subsection{Leverage}
+The derivative of $lambda_{jk}(t)$ with respect to observation $i$ will have
+two components: one essentially the same as the usual hazard, and another
+involving the leverage wrt $\beta$.
+Let $Y_{ij}(t)$ be the indicator that subject $i$ is at risk and in state $j$
+at time $t$ (at risk for transtition to somewhere else),
+and $N_{ijk}(t)$ be the cumulative number of $jk$ events for observation $i$.
+In the code, an observation (row of data) is only ever in one state, and has
+at most one transition at the end, so $dN =N$.
+
+\begin{align*}   
+\frac{\partial \lhat_{jk}(t))}{\partial w_m} &=
+  &= \left[\frac{N_{mjk}(t)}{\sum_i w_i Y_{ij}(t) r_{ijk}t)} -  \lhat_{jk}(t;z)
+                  \frac{Y_{mj}(t)}{\sum_i w_i Y_{ij}(t) r_{ijk}(t)}\right] -
+       \lhat_{jk}(t;z) D_{m(jk)} (\xbar(t)-z)_{(jk)} \\
+  &= [A] - B
+\end{equation} 
+In the above, part A is of exactly the same form as developed in equation
+\eqref{e1} and following, with $w_ir_{ijk}$ replacing $w_i$, so it can be
+accumulated efficiently using the same approach.
+In a MSH the risk score $r_{ijk}$ for a particular transtion $jk$ will often use
+only a subset of the coefficient vector, indexed by the \code{cmat} component of
+the fit.  For part B above we have abused notation slightly with $(jk)$ standing
+for the subset of columns of $D$, $\xbar$ and $z$ that contrbute to
+$r_{ijk}$.  
+If there are shared coefficients then some columns of $D$ will affect multiple
+transitions.  
+Since the $\lhat$ term is a scalar we have freedom to move it to the middle
+for final term.
+A more interesting aspect of term B is that there is no time window: the
+contribution to $\hat\beta$ appears at all time points.  
+This makes the bookkeeping for accumulation of this term somewhat easier.
+
+
+\chapter{Residuals}
+\section{Survival}
 \index{Aalen-Johansen!residuals}
 The residuals.survfit function will return the IJ values at selected times,
 and is the more useful interface for a user.

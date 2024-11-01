@@ -3,7 +3,7 @@
 \title{Compute Royston's D for a Cox model}
 \description{
   Compute the D statistic proposed by Royston and Sauerbrei along with
-  several pseudo- R square values.
+  several synthetic R square values.
 }
 \usage{
 royston(fit, newdata, ties = TRUE, adjust = FALSE)
@@ -16,8 +16,14 @@ royston(fit, newdata, ties = TRUE, adjust = FALSE)
   \item{adjust}{adjust for possible overfitting}
 }
 \details{
-  These values are called pseudo R-squared since they involve only
+  We refer to these estimates of association as
+  \emph{synthetic} values, since they involve only
   the linear predictor, and not the outcome.
+  They exploit mathematical associations which hold for certain models,
+  e.g. between R-squared and a certain chiquare test of association in the
+  linear model, and assume that the same holds in a Cox model where said
+  test is readily available but not a simple R-square computation.
+  
   \code{R.D} is the value that corresponsds the Royston and Sauerbrei
   \eqn{D}{D} statistic.  \code{R.KO} is the value proposed by Kent and
   O'Quigley, \code{R.N} is the value proposed by Nagelkerke, and
@@ -35,7 +41,7 @@ royston(fit, newdata, ties = TRUE, adjust = FALSE)
   The Nagelkerke estimate is not returned when \code{newdata} is present.
 }
 \value{a vector containing the value of D, the estimated standard error
-  of D, and three or four pseudo R-squared values.
+  of D, and three or four synthetic values.
 }
 \references{
 M. Goen and G. Heller, Concordance probability and discriminatory power

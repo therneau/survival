@@ -108,7 +108,7 @@ coxph <- function(formula, data, weights, subset, na.action,
     #  part of my defense against use of survival::strata.  Putting a local
     #  copy first on the path allows for users who don't want to load the
     #  survival namespace. (I think that is crazy, but the tidy universe has
-    #  a subset of them.)
+    #  a set of them.)
     coxenv <- new.env(parent= environment(formula))
     assign("tt", function(x) x, envir=coxenv)
     assign("strata", survival::strata, envir= coxenv)
@@ -166,6 +166,10 @@ coxph <- function(formula, data, weights, subset, na.action,
         if (missing.ties) method <- ties <- "breslow"
     }
     
+    # the code was never designed for multiple fraily terms, but of course
+    #  someone tried it
+    if (length(attr(Terms, "specials")$frailty) >1)
+            stop("multiple frailty terms is not supported")
     if (control$timefix) Y <- aeqSurv(Y)
     if (length(attr(Terms, 'variables')) > 2) { # a ~1 formula has length 2
         ytemp <- innerterms(formula[1:2])

@@ -115,18 +115,21 @@ confint.survfit <- function(object, ...)
 
 # This is self defense for my functions agains the survival:: affectianos.
 # Replace survival::strata with strata, survival:cluster with cluster
+#  Update the envionment of the formula
 removeDoubleColonSurv <- function (formula)
 {
     doubleColon <- as.name("::")
+    sname <- c("Surv", "strata", "cluster", "pspline")
     fix <- function(expr) {
         if (is.call(expr) && identical(expr[[1]], doubleColon) && 
-            identical(expr[[2]], as.name("survival")) &&
-            (identical(expr[[3]], as.name("strata")) ||
-             identical(expr[[3]], as.name("cluster")) )) {
-            if (identical(expr[[3]], as.name("strata")))
-                warning("replaced invalid `survival::strata' operator with `strata'")
-            else warning("replaced invalid `survival::cluster' operator with `cluster'")
-            expr <- expr[[3]]
+            identical(expr[[2]], as.name("survival"))) {
+            for (i in sname) {
+                if (identical(expr[[3]], as.name(i))) {
+                    temp <- paste0("replaced `survival::", i, "' with `", i, "'")
+                    # warning(temp)
+                    expr <- expr[[3]]
+                }
+            }
         } else if (is.call(expr)) {
             for(i in seq_along(expr)){
                 expr[[i]] <- fix(expr[[i]])
@@ -135,4 +138,15 @@ removeDoubleColonSurv <- function (formula)
         expr
     }
   fix(formula)
+}
+
+addSurvFun <- function(formula) {
+    coxenv <- new.env(parent= environment(formula))
+    assign("tt", function(x) x, envir=coxenv)
+    assign("strata", survival::strata, envir= coxenv)
+    assign("Surv", survival::Surv, envir= coxenv)
+    assign("cluster", survival::cluster, envir= coxenv)
+    assign("pspline", survival::pspline, envir= coxenv)
+    environment(formula) <- coxenv
+    formula
 }

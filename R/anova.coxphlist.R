@@ -26,6 +26,13 @@ anova.coxphlist <- function (object, test =  'Chisq' ,...) {
     if (any(ns != ns[1])) 
         stop("models were not all fit to the same size of dataset")
 
+    # verify that all of them used the same strata, if present
+    stemp <- lapply(object, function(x) 
+        untangle.specials(x$terms, "strata")[["vars"]])
+    fail <- (any(sapply(stemp, length) > 0) &&
+             any(sapply(stemp, function(x) !identical(x, stemp[[1]]))))
+    if (fail) stop("models do not have the same strata")
+
     nmodels <- length(object)
     if (nmodels == 1) # only one model remains
         return(anova.coxph(object[[1]], test = test))
