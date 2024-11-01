@@ -25,6 +25,7 @@
 \newcommand{\FH}{{\rm FH}}
 \newcommand{\Ybar}{\overline Y}
 \newcommand{\Nbar}{\overline N}
+\newcommand{\xbar}{\overline x}
 
 
 \title{Further documentation on code and methods in the survival package}
@@ -1119,7 +1120,7 @@ Let $A(t; x)$ be the hazards matrix at time $t$ for covariate values $x$
   A &= \left( \begin{array}{cccc}
        \square & \lhat_{12}(t;x) & \lhat_{13}(t;x) & \ldots \\
        \lhat_{21}(t;x) & \square & \lhat_{23}(t;x) & \ldots \\
-       \vdots & \square & \vdots & \vdots & \ddots \end{array} \right) \\
+       \vdots & \square & \vdots & \ddots \end{array} \right) \\
   p(t;x) &= p(0) \prod_{s\le t} e^{A(s;z)}
 \end{align*}
 where $\lhat_{jk}$ is the predicted hazard from the model for a $j$ to $k$
@@ -1156,8 +1157,8 @@ at most one transition at the end, so $dN =N$.
   &= \left[\frac{N_{mjk}(t)}{\sum_i w_i Y_{ij}(t) r_{ijk}t)} -  \lhat_{jk}(t;z)
                   \frac{Y_{mj}(t)}{\sum_i w_i Y_{ij}(t) r_{ijk}(t)}\right] -
        \lhat_{jk}(t;z) D_{m(jk)} (\xbar(t)-z)_{(jk)} \\
-  &= [A] - B
-\end{equation} 
+  &= A - B
+\end{align*} 
 In the above, part A is of exactly the same form as developed in equation
 \eqref{e1} and following, with $w_ir_{ijk}$ replacing $w_i$, so it can be
 accumulated efficiently using the same approach.
