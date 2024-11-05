@@ -14,11 +14,11 @@ anova.coxphlist <- function (object, test =  'Chisq' ,...) {
         stop("all models must have the same ties option")
 
     responses <- as.character(unlist(lapply(object, 
-				     function(x) deparse(formula(x)[[2]]))))
+				     function(x) deparse1(formula(x)[[2]]))))
     sameresp <- (responses == responses[1])
     if (!all(sameresp)) {
         object <- object[sameresp]
-        warning(paste("Models with response", deparse(responses[!sameresp]), 
+        warning(paste("Models with response", deparse1(responses[!sameresp]), 
             "removed because response differs from", "model 1"))
     }
 

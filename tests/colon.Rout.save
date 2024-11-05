@@ -24,38 +24,24 @@ Type 'q()' to quit R.
 > fit1a <- coxph(Surv(time, status) ~ age + strata(sex) + cluster(inst), lung)
 > fit1b <- coxph(Surv(time, status) ~ age + survival::strata(sex) +
 +                    survival::cluster(inst), lung)
-Warning messages:
-1: In fix(expr[[i]]) :
-  replaced invalid `survival::strata' operator with `strata'
-2: In fix(expr[[i]]) :
-  replaced invalid `survival::cluster' operator with `cluster'
 > all.equal(fit1a, fit1b)
 [1] TRUE
 > 
 > fit2a <- survdiff(Surv(time, status) ~ ph.ecog + strata(sex), lung)
 > fit2b <- survdiff(Surv(time, status) ~ ph.ecog + survival::strata(sex), lung)
-Warning message:
-In fix(expr[[i]]) :
-  replaced invalid `survival::strata' operator with `strata'
 > all.equal(fit2a, fit2b)
 [1] TRUE
 > 
 > fit3a <- survreg(Surv(time, status) ~ ph.ecog + strata(sex), lung)
 > fit3b <- survreg(Surv(time, status) ~ ph.ecog + survival::strata(sex), lung)
-Warning message:
-In fix(expr[[i]]) :
-  replaced invalid `survival::strata' operator with `strata'
 > all.equal(fit3a, fit3b)
 [1] TRUE
 > 
 > fit4a <- concordance(Surv(time, status) ~ ph.ecog + strata(sex), lung)
 > fit4b <- concordance(Surv(time, status) ~ ph.ecog + survival::strata(sex), lung)
-Warning message:
-In fix(expr[[i]]) :
-  replaced invalid `survival::strata' operator with `strata'
 > all.equal(fit4a, fit4b)
 [1] TRUE
 > 
 > proc.time()
    user  system elapsed 
-  0.816   0.040   0.848 
+  0.805   0.072   0.870 

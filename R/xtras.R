@@ -128,6 +128,7 @@ removeDoubleColonSurv <- function (formula)
                     temp <- paste0("replaced `survival::", i, "' with `", i, "'")
                     # warning(temp)
                     expr <- expr[[3]]
+                    break
                 }
             }
         } else if (is.call(expr)) {
