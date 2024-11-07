@@ -1112,6 +1112,72 @@ the event times it suffices to create a temporary copy of $U(t-)$.
 
 \chapter{Cox model}
 \section{Survival curves from a coxph model}
+\index{cox:survival}
+To begin, first remember that predicitons from a Cox model are always for
+\emph{someone}, that is, some particular covariate vector $z$.
+This includes survival curves and other estimates of absolute risk.  
+Put aside the notion of ``the'' baseline survival curve from the start.
+For a multistate model the predicted curve is a matrix product
+\begin{align*}
+  r_i(z) &= \exp((x_i-z) \beta) \\
+  \lambda_{jk}(t;z) & = \frac{\sum_i w_i dN_{ijk}(t)}{\sum_i w_i r_i(z) Y_{ij}(t)} 
+      \\
+  p(t;z) &= p(0) \prod_{s\le t} e^{A(s;z)} \\
+  A(s;z) &= \left( \begin{array}{cccc}
+        \square & \lambda_{12}(s;z) & \lambda_{13}(s;z) & \ldots \\
+        \lambda_{21}(s;z) & \square & \lambda_{23}(s;z) & \ldots \\
+        \vdots & \vdots & \vdots & \ddots \end{array} \right)
+\end{align*}
+In the above $j$, $k$ are states, $i$ is an observation, and the
+$\square$ stands in for the fact that each row of $A$ must sum to zero
+(it saves writing the negative sum of the other elements).
+
+For matrices, $\exp(A)\exp(B) \ne \exp(A+B)$
+unless $AB= BA$, which does not hold for this application: we cannot avoid
+the matrix multiplication.
+For transition matrices such as these $\exp(A(s))$ will have row sums of 1
+and all elements non-negative, numerically they are very well behaved 
+arguments to the matrix exponential function.
+
+For simple survival the above reduces to $\exp(-\Lambda(t;z)$, 
+and in that case the
+variance of the cumulative hazard estimate has been derived by (ref) as
+\begin{align*}
+  v(t;z) &= d'{\cal I}^-1 d +
+      \int_0^t \frac{\sum_i dN_i(t)}{\sum_i Y_i(t) r_i(z)} \\
+      d(t;z) &= \int_0^t (\xbar(s)-z) d\Lambda(s; z)
+\end{align*}
+
+For multistate we will use the IJ estimate of the hazard.
+
+\begin{align}
+  \frac{\partial \sum_i w_i Y_i(t) r_i(t;z)}{\partial w_m} &=
+  Y_m(t)r_m(t;z) + \sum_i w_iY_i(t) r_i(t;z) (x_i- z)' 
+     \frac{\partial \beta}{\partial w_m}  \label{ajij1} \\
+     &= Y_m(t)r_m(t;z) + \sum_i w_iY_i(t) r_i(t;z) D_m(x_i- z) \label{ajij2} \\
+ \frac{ \partial\lambda_{jk}(t;z)}{\partial w_m} &= Y_{mj}(t)
+    \frac{dN_{mjk}(t) -  \lambda_{jk}(t;z) - D_m(\xbar(t)-z)} 
+         {\sum_i w_i r_i(z) Y_{ij}(t)}      \label{ajij4}
+\end{align}
+
+$D_m$ is row $m$ of the 
+dfbeta matrix for the Cox model's coefficent vector $\beta$; $D$ is an $n$
+by $p$ matrix where $n$ is the number of observations and $p$ the number
+of coefficients.  
+The term $\xbar(t)-z)$ is a $p$ by 1 column vector.
+Recognize that the term to the right of $D_m$ is a $p$ by 1
+vector that is independent of $m$ so need only be computed once at each
+event time.
+In equation \eqref{ajij4} the first two terms are essentially the 
+leverage for the
+ordinary cumulative hazard, the third the impact of $w_m$ as mediated through
+its effect on the model coefficients.
+We are taking advantage of the fact that any row of the data will be at
+risk in exactly one state for the (time1, time2) interval of that row to
+simplify notation.  The matrix product $D(\xbar(t)-z)$ can be done for all
+rows at once.
+
+
 
 \chapter{Multistate hazard model}
 \section{Absolute risk}
@@ -1369,6 +1435,8 @@ with $w_3I$, at the next step we multiply the prior matrix by $H_3$ and add
 $w_2I$, at the third multiply the prior matrix by $H_2$ and add $w_1$, etc.
 
 
+
+
 \section{Skiplists}
 \index{skiplist}
 An efficient structure for a continually updated index to the rows currently
@@ -1390,7 +1458,7 @@ so that ordering by observation's ending time skips wildly across data rows.
 For the nafld data example above, the next figure shows the row number of the
 first 200 additions to the risk set, when going from largest time to smallest.
 For the example given above, the maximum number at risk in each of the 5
-states is (`r paste(apply(nfit\$n.risk, 2, max), collapse=', ')`).  %$
+states is (\Sexpr{paste(apply(nfit$n.risk, 2, max), collapse=', ')}).  %$
 
 <<skiplist1, fig=TRUE>>=
 sort2 <- order(ndata$age2)
@@ -1399,7 +1467,7 @@ plot(1:200, rev(sort2)[1:200], xlab="Addition to the list",
 @ 
 
 Using $p=4$ as recommended by Pugh \cite{Pugh90} leads to $\log_4(1420) =5$
-linked lists; 1420 is the maximum number of the $n$ =`r nrow(ndata)` rows at
+linked lists; 1420 is the maximum number of the $n$ =\Sexpr{nrow(ndata)} rows at
 risk in any one state at any one time.  
 The first is a forward linked list containing all those currently at risk,
 the second has 1/4 the elements, the third 1/16, 1/64, 1/256.  
