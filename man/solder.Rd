@@ -28,12 +28,12 @@ data(solder, package="survival")
 \details{
   After the first 1/2 of the experiment the A6 mask, which was doing the
 worst, was abandoned and the freed up space used for further replicates
-of A3. This leads to an unbalanced experiment with some missing cells.
+of A3. This leads to an unbalanced experiment with some missing A6 combinations.
 
 This data set is used as a detailed example in chapter 1 of Chambers and
 Hastie.  However, they chose to use only a subset of the data, i.e., 
 observations 1-360 and 541-900 form a balanced design of 3*2*10*3= 180
-observations for four of the pad types (A1.5, A3, B3, B6).
+observations for each of four mask types (A1.5, A3, B3, B6).
 }
 \references{
 J Chambers and T Hastie, Statistical models in S.  Chapman and Hall, 1993.
@@ -43,8 +43,10 @@ fit1 <- glm(skips ~ Opening * Solder, poisson, solder,
             subset= (Mask != "A6"))
 anova(fit1)  # The interaction is important
 dummy <- expand.grid(Opening= c("S", "M", "L"), Solder=c("Thin", "Thick"))
-yhat <- predict(fit1, newdata=dummy)
-round(matrix(yhat, ncol=2), 1) # thin and thick have very different patterns
+yhat <- matrix(predict(fit1, newdata=dummy), ncol=2,
+            dimnames=list(Opening= c("S", "M", "L"), Solder=c("Thin", "Thick")))
+yhat <- cbind(yhat, difference= yhat[,1]- yhat[,2])
+round(yhat, 1) # thin and thick have  different patterns
 
 # The balanced subset used by Chambers and Hastie
 #   contains the first 180 of each mask and deletes mask A6. 

@@ -2778,6 +2778,35 @@ FALSE  TRUE
 > 
 > ### ** Examples
 > 
+> fit1 <- glm(skips ~ Opening * Solder, poisson, solder,
++             subset= (Mask != "A6"))
+> anova(fit1)  # The interaction is important
+Analysis of Deviance Table
+
+Model: poisson, link: log
+
+Response: skips
+
+Terms added sequentially (first to last)
+
+
+               Df Deviance Resid. Df Resid. Dev  Pr(>Chi)    
+NULL                             809     7336.9              
+Opening         2  2638.44       807     4698.5 < 2.2e-16 ***
+Solder          1  1120.85       806     3577.7 < 2.2e-16 ***
+Opening:Solder  2    41.14       804     3536.5 1.166e-09 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+> dummy <- expand.grid(Opening= c("S", "M", "L"), Solder=c("Thin", "Thick"))
+> yhat <- matrix(predict(fit1, newdata=dummy), ncol=2,
++             dimnames=list(Opening= c("S", "M", "L"), Solder=c("Thin", "Thick")))
+> yhat <- cbind(yhat, difference= yhat[,1]- yhat[,2])
+> round(yhat, 1) # thin and thick have  different patterns
+  Thin Thick difference
+S  2.8   1.7        1.1
+M  1.1   0.2        1.0
+L  1.0  -0.9        1.9
+> 
 > # The balanced subset used by Chambers and Hastie
 > #   contains the first 180 of each mask and deletes mask A6. 
 > index <- 1 + (1:nrow(solder)) - match(solder$Mask, solder$Mask)
@@ -3852,7 +3881,7 @@ $terms
 > cleanEx()
 > options(digits = 7L)
 > base::cat("Time elapsed: ", proc.time() - base::get("ptime", pos = 'CheckExEnv'),"\n")
-Time elapsed:  4.93 0.288 5.243 0 0 
+Time elapsed:  6.683 0.484 7.167 0 0 
 > grDevices::dev.off()
 null device 
           1 

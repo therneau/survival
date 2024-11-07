@@ -123,13 +123,7 @@ removeDoubleColonSurv <- function (formula)
     fix <- function(expr) {
         if (is.call(expr) && identical(expr[[1]], doubleColon) && 
             identical(expr[[2]], as.name("survival"))) {
-            for (i in sname) {
-                if (identical(expr[[3]], as.name(i))) {
-                    temp <- paste0("replaced `survival::", i, "' with `", i, "'")
-                    # warning(temp)
-                    expr <- expr[[3]]
-                }
-            }
+            if (!is.na(match(deparse1(expr[[3]]), sname))) expr <- expr[[3]]
         } else if (is.call(expr)) {
             for(i in seq_along(expr)){
                 expr[[i]] <- fix(expr[[i]])
@@ -140,13 +134,15 @@ removeDoubleColonSurv <- function (formula)
   fix(formula)
 }
 
+# This is used within coxph, concordance, survfit, and others to ensure
+#   we use the versions of these function that are from the survival package.
 addSurvFun <- function(formula) {
-    coxenv <- new.env(parent= environment(formula))
-    assign("tt", function(x) x, envir=coxenv)
-    assign("strata", survival::strata, envir= coxenv)
-    assign("Surv", survival::Surv, envir= coxenv)
-    assign("cluster", survival::cluster, envir= coxenv)
-    assign("pspline", survival::pspline, envir= coxenv)
-    environment(formula) <- coxenv
+    myenv <- new.env(parent= environment(formula))
+    assign("tt", function(x) x, envir=myenv)
+    assign("strata", survival::strata, envir= myenv)
+    assign("Surv", survival::Surv, envir= myenv)
+    assign("cluster", survival::cluster, envir= myenv)
+    assign("pspline", survival::pspline, envir= myenv)
+    environment(formula) <- myenv
     formula
 }
