@@ -11,6 +11,11 @@ survexpmsetup <- function(rmat) {
     if (all(rmat[lower] ==0))  return(0)  # already in order
     
     # score each state by (number of states it follows) - (number it precedes)
+    # DOI: 10.1007/978-3-662-48971-0_15 show that in general, determining f
+    # a matrix can be permuted to upper triangular is hard and give an 
+    # exponential time algorithm.  The crude algorithm below can get lucky if
+    # the transition matrix is sparse, which many are, but it is best if the
+    # user orders states in a way that makes it easy.
     temp <- 1*(rmat >0) # 0/1 matrix
     indx <- order(colSums(temp) - rowSums(temp))
     temp <- rmat[indx, indx]  # try that ordering
@@ -44,23 +49,21 @@ survexpm <- function(rmat, time=1.0, setup, eps=1e-6) {
         else {
             if (setup[1]==0) .Call(Ccdecomp, rmat, time)$P
             else {
-                temp <- rmat
-                temp[setup, setup] <- .Call(Ccdecomp, rmat[setup, setup], time)
-                temp$P
+                temp <- .Call(Ccdecomp, rmat[setup, setup], time)
+                temp$P[order(setup2), order(setup2)]
             }
         }
     }
 }
 
-# This portion is still untested
-expderiv<- function(rmat, time=1.0, dR, setup, eps=1e-8) {
+expmderiv<- function(rmat, time=1.0, dR, setup, eps=1e-8) {
     if (length(rmat)==1) { # should not happen, not a multi-state model
         stop("deriv function called with 1x1 matrix")
     }
     nr <- nrow(rmat)
     nonzero <- (diag(rmat) != 0)
     if (sum(nonzero) ==0) { # expm(0 matrix) = identity
-        return(list(P= diag(nr), dmat=array(nr, nr, length(dR))))
+        return(list(P= diag(nr), dmat=array(0, dim=c(nr, nr, length(dR)))))
     }
                
     if (sum(nonzero) ==1) {   # only one state had departures
@@ -92,14 +95,10 @@ expderiv<- function(rmat, time=1.0, dR, setup, eps=1e-8) {
         V <- G*vtemp
         dmat[,,i] <- dlist$A %*% V %*% dlist$Ainv
     }
-    dlist$dmat <- dmat
     
     # undo the reordering, if needed
     if (setup[1] >0) {
         indx <- order(setup)
-        dlist <- list(P = dlist$P[indx, indx],
-                      dmat = apply(dmat,1:2, function(x) x[indx, indx]))
-    }
-                      
-    dlist
+        list(P = dlist$P[indx, indx], dmat = dmat[indx, indx, ])
+    } else list(P= dlist$P, dmat=dmat)
 }
