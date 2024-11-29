@@ -24,7 +24,13 @@ coxph <- function(formula, data, weights, subset, na.action,
             stop(gettextf("Argument %s not matched", 
                           names(extraArgs)[indx==0L]), domain = NA)
     }
+    
+    # Gather any leftover arguments into a coxph.control call
+    # If there is a control argument, force a call to coxph.control to both
+    #  fill it out with all the elements and do sanity checks
     if (missing(control)) control <- coxph.control(...) 
+    else if (is.list(control)) control <- do.call(coxph.control, control)
+    else stop("control argument must be a list")
 
     # Move any cluster() term out of the formula, and make it an argument
      #  instead.  This makes everything easier.  But, I can only do that with
@@ -169,7 +175,8 @@ coxph <- function(formula, data, weights, subset, na.action,
     # the code was never designed for multiple fraily terms, but of course
     #  someone tried it
     if (length(attr(Terms, "specials")$frailty) >1)
-            stop("multiple frailty terms is not supported")
+            stop("multiple frailty terms are not supported")
+
     if (control$timefix) Y <- aeqSurv(Y)
     if (length(attr(Terms, 'variables')) > 2) { # a ~1 formula has length 2
         ytemp <- innerterms(formula[1:2])
