@@ -1,4 +1,24 @@
-# Automatically generated from the noweb directory
+# Routine to generate survival curves from a fitted coxph model.
+# This is called by survfit.coxph, which does a lot of data and argument
+#  checking. It is exposed to users, the rms package for instance calls this
+#  interface directly.  If you do so, make sure the arguments are valid!
+#
+# ctype: cumulative hazard type, 1= Nelson (Breslow) 2= F-H (Efron)
+# stype: survival type: 1= product limit, 2= exp(cum hazard)
+#   stype will almost always be 2, ctype matches the ties option of coxph
+# se.fit: compute the standard error
+# varmat: the variance-covariance matrix of the coxph model
+# cluster: TRUE/FALSE, do a clustered estimatate
+# y, x, wt: data fed into the coxph fit (y a Surv object)
+# risk = risk score for each of the fitted subjects
+# position: 1*(first time interval for a subject) + 2*(last time interval for
+#   a subject); used to distinguish actual censoring
+# strata: integer, there will be separate curves per stratum
+# oldid: id variable for the original data
+# y2, x2, risk2, strata2, id2: variables for the newdata argument
+#
+# See coxph:survival in the methods document.
+#
 coxsurv.fit <- function(ctype, stype, se.fit, varmat, cluster, 
                          y, x, wt, risk, position, strata, oldid,
                          y2, x2, risk2, strata2, id2, unlist=TRUE) {
@@ -16,14 +36,17 @@ coxsurv.fit <- function(ctype, stype, se.fit, varmat, cluster,
     if (is.null(strata)) strata <- rep(1L, nrow(y))
     for (i in 1:nstrata) {
         indx <- which(strata== ustrata[i])
+        # agsurv does the actual work
         survlist[[i]] <- agsurv(y[indx,,drop=F], x[indx,,drop=F], 
                                 wt[indx], risk[indx],
                                 survtype, vartype)
         }
-    expand <- function(fit, x2, varmat, se.fit) {
+
+    # Expand out the result; x2 has a row for each row in newdata.
+    expand <- function(fit, x2, risk2, varmat, se.fit) {
         if (survtype==1) 
-            surv <- cumprod(fit$surv)
-        else surv <- exp(-fit$cumhaz)
+            surv <- cumprod(fit$surv) # Kalbfleisch-Prentice
+        else surv <- exp(-fit$cumhaz) # Breslow
 
         if (is.matrix(x2) && nrow(x2) >1) {  #more than 1 row in newdata
             fit$surv <- outer(surv, risk2, '^')
@@ -31,7 +54,8 @@ coxsurv.fit <- function(ctype, stype, se.fit, varmat, cluster,
             if (se.fit) {
                 varh <- matrix(0., nrow=length(fit$varhaz), ncol=nrow(x2))
                 for (i in 1:nrow(x2)) {
-                    dt <- outer(fit$cumhaz, x2[i,], '*') - fit$xbar
+                    dt <- outer(fit$hazard, x2[i,], '*') - fit$xbar
+                    dt <- apply(dt, 2, cumsum) # integrate
                     varh[,i] <- (cumsum(fit$varhaz) + rowSums((dt %*% varmat)* dt))*
                         risk2[i]^2
                     }
@@ -42,7 +66,8 @@ coxsurv.fit <- function(ctype, stype, se.fit, varmat, cluster,
         else {
             fit$surv <- surv^risk2
             if (se.fit) {
-                dt <-  outer(fit$cumhaz, c(x2)) - fit$xbar
+                dt <-  outer(fit$hazard, c(x2), '*') - fit$xbar
+                dt <-  apply(dt, 2, cumsum) # integrate
                 varh <- (cumsum(fit$varhaz) + rowSums((dt %*% varmat)* dt)) * 
                     risk2^2
                 fit$std.err <- sqrt(varh)
@@ -51,28 +76,46 @@ coxsurv.fit <- function(ctype, stype, se.fit, varmat, cluster,
             }
         fit
         }
+
     if (missing(id2) || is.null(id2)) 
-        result <- lapply(survlist, expand, x2, varmat, se.fit)
+        result <- lapply(survlist, expand, x2, risk2, varmat, se.fit)
     else {
-        onecurve <- function(slist, x2, y2, strata2,  risk2, se.fit) {
+        # The harder case of time-dependent coefficients or covariates.
+        # The output object will have one curve per id, stored in the output
+        #  as a "stratum", since each curve might have a different number
+        #  of rows.
+        # Any given subject will usually spend time in multiple strata; they
+        #  can even revisit one of them (odd case but possible.
+        # Basic algorithm: the survlist object will have one curve per stratum.
+        #  * If subject 1 occupies 3 rows of newdata, then pick off the 
+        #  (time1, time2) interval of their first row from the strata marked in
+        #  that row, then the (time1, time2) interval of their second row,
+        #  then the third.
+        #  * Then stitch the results together.
+        #  * The second component of the variance has to computed after we
+        #    stitch the dt matrix together.
+        #  * Because risk2 can vary within a subject, final scaling cannot
+        #  *  wait until the end.
+        #  * Call onecurve below once per unique id.
+        # See survival:time dependent coefficients in the methods document.
+        #
+        onecurve <- function(survlist, x2, y2, strata2,  risk2, se.fit) {
             ntarget <- nrow(x2)  #number of different time intervals
             surv <- vector('list', ntarget)
-            n.event <- n.risk <- n.censor <- varh1 <- varh2 <-  time <- surv
+            n.event <- n.risk <- n.censor <- varh1 <- dt <-  time <- surv
             hazard  <- vector('list', ntarget)
             stemp <- as.integer(strata2)
-            timeforward <- 0
             for (i in 1:ntarget) {
+                if (i==1) toffset <- 0
+                else toffset <- toffset + y2[i-1,2]- y2[i,1]
+
                 slist <- survlist[[stemp[i]]]
                 indx <- which(slist$time > y2[i,1] & slist$time <= y2[i,2])
                 if (length(indx)==0) {
-                    timeforward <- timeforward + y2[i,2] - y2[i,1]
                     # No deaths or censors in user interval.  Possible
                     # user error, but not uncommon at the tail of the curve.
-                }
-                else {
-                    time[[i]] <- diff(c(y2[i,1], slist$time[indx])) #time increments
-                    time[[i]][1] <- time[[i]][1] + timeforward
-                    timeforward <- y2[i,2] - max(slist$time[indx])
+                } else {
+                    time[[i]] <- toffset + slist$time[indx]
                 
                     hazard[[i]] <- slist$hazard[indx]*risk2[i]
                     if (survtype==1) surv[[i]] <- slist$surv[indx]^risk2[i]
@@ -80,9 +123,9 @@ coxsurv.fit <- function(ctype, stype, se.fit, varmat, cluster,
                     n.event[[i]] <- slist$n.event[indx]
                     n.risk[[i]]  <- slist$n.risk[indx]
                     n.censor[[i]]<- slist$n.censor[indx]
-                    dt <-  outer(slist$cumhaz[indx], x2[i,]) - slist$xbar[indx,,drop=F]
-                    varh1[[i]] <- slist$varhaz[indx] *risk2[i]^2
-                    varh2[[i]] <- rowSums((dt %*% varmat)* dt) * risk2[i]^2
+                    dt[[i]] <- (outer(slist$hazard[indx], x2[i,], '*') -
+                        slist$xbar[indx,,drop=F]) * risk2[i]
+                    varh1[[i]] <- slist$varhaz[indx] *risk2[i]^2 
                 }
             }
 
@@ -90,17 +133,22 @@ coxsurv.fit <- function(ctype, stype, se.fit, varmat, cluster,
             if (survtype==1) surv <- cumprod(unlist(surv))  #increments (K-M)
             else surv <- exp(-cumhaz)
 
-            if (se.fit) 
+            if (se.fit) {
+                # paste together dt, integrate, and compute term 2
+                dt <- do.call(rbind, dt)
+                dt <- apply(dt, 2, cumsum)
+                varh2 <- rowSums((dt %*% varmat)* dt)
+ 
                 list(n=as.vector(table(strata)[stemp[1]]),
-                       time=cumsum(unlist(time)),
+                       time= unlist(time),
                        n.risk = unlist(n.risk),
                        n.event= unlist(n.event),
                        n.censor= unlist(n.censor),
                        surv = surv,
                        cumhaz= cumhaz,
-                       std.err = sqrt(cumsum(unlist(varh1)) + unlist(varh2)))
-            else list(n=as.vector(table(strata)[stemp[1]]),
-                       time=cumsum(unlist(time)),
+                       std.err = sqrt(cumsum(unlist(varh1)) + varh2))
+            } else list(n=as.vector(table(strata)[stemp[1]]),
+                       time= unlist(time),
                        n.risk = unlist(n.risk),
                        n.event= unlist(n.event),
                        n.censor= unlist(n.censor),

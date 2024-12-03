@@ -1,4 +1,8 @@
-/* Automatically generated from the noweb directory */
+/*
+** a helper function for the Efron approximation, for a survival curve
+**  post coxph fit, called by agsurv
+*/
+
 #include "survS.h"
 void agsurv5(int *n2,      int *nvar2,   int *dd,  double *x1,  
              double *x2,   double *xsum, double *xsum2, 

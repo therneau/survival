@@ -1,3 +1,5 @@
+% This portion is currently migrating to the methods document, but keep the
+% old code for a bit, for safety.
 %
 % Second part of coxsurv.Rnw, broken in two to make it easier for me
 %   to work with emacs.

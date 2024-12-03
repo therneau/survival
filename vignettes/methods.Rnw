@@ -26,6 +26,7 @@
 \newcommand{\Ybar}{\overline Y}
 \newcommand{\Nbar}{\overline N}
 \newcommand{\xbar}{\overline x}
+\newcommand{\zmu}{\tilde \mu}
 
 
 \title{Further documentation on code and methods in the survival package}
@@ -676,7 +677,7 @@ reduces to the cumulative incidence (CI) estimator.
 Interestingly, the exponential form \eqref{AJexp} is
 almost never used for survfit.formula, but is always used for the curves after
 a Cox model.
-For survfit.formula, but of the forms obey the basic probability rules that
+Both of the forms obey the basic probability rules that
 $0 \le p_k(t) \le 1$ and $\sum_k p_k(t) =1$; all probabilities are between 0 and
 1 and the sum is 1.
 The analog of \eqref{AJmat} has been proposed by some authors for Cox model 
@@ -709,7 +710,7 @@ A variant of this is if a given subject changed curves at time 15, which occurs
 when users are estimating the ``extended Kaplan-Meier'' curves proposed by 
 Snapinn \cite{Snapinn05}, in which case the subject will be counted as censored
 at time 15 wrt the first curve, and an entry at time 15 for the second.
-(I myself consider this approach to be statistically unsound.)
+(I myself consider Snapinn's estimate to be statistically unsound.)
 
 If a subject changed case weights between the (0,10) and (10,15) interval we
 do not count them as separate entry and exits for the weighted n.enter
@@ -1111,7 +1112,222 @@ all but 161 out of the 6108 unique event times (5\%).  For the remainder of
 the event times it suffices to create a temporary copy of $U(t-)$.
 
 \chapter{Cox model}
-\section{Survival curves from a coxph model}
+\section{Fitting}
+To be filled in.
+\section{Absolute risk}
+\index{coxph:survival}
+\subsection{Cumulative hazard and survival curves}
+The survival curves from a fitted coxph model default to the Breslow
+estimate = exp(cumulative hazard).  
+We also support the simple product-limit estimate (for which I have concerns,
+see more in the multi-state section), and the Kalfleisch-Prentice modification
+of the product-limit form. 
+
+Predicted survival curves are always for a particular set of covariates.
+We do not have much sympathy for the notion of \emph{the} baseline hazard,
+which textbooks define as the predicites survival for all $x$ equal to zero,
+since it can easily lead to overflow or underflow errors in the exponential
+function.
+The coxph object includes a \code{means} component, which contains a 
+workable vector of centering constants, i.e., a set for which the exponential
+will not be a problem.  
+The labels of ``means'' is historical, as individual elements of the vector are
+not necessarily a mean, 0/1 covariates for instance are given a centering
+constant of zero.  Let $c$ be that centering vector, and define
+$r(z;c) = \exp[(z-c)\beta]$ be the recentered risk score for a hypothetical
+subject with covariate vector $z$.
+The predicted cumulative hazard for a new subject with covariate vector
+$z$ is
+\begin{align} 
+  \lhat(t;z) &= \frac{\sum_i w_i dN_i(t)}{\sum_i Y_i(t)w_i r(x_i;z)} \nonumber \\
+             &= e^{(z-c)\beta} \lhat(t; c) \nonumber \\
+  \Lambda(t; z) &= \int_0^t \lhat(s; z) ds \nonumber \\
+               &=  e^{(z-c)\beta}\Lambda(t;c) \label{coxcumhaz}\\
+   \Shat(t; z) &= e^{-\Lambda(t; z)} \nonumber \\
+           &= \Shat(t; c)^{e^{(z-c)\beta}} \label{coxsurv}
+\end{align*}
+
+Per above we can compute the survival curve for any covariate $z$ from
+the ``baseline'' curve for $x=c$. 
+Any vector $c$ that will ensure that the above can be calculated
+without roundoff error will suffice for safety, the survival code uses the
+mean component from the fit.
+To be clear, for most data sets use of $c=0$ as a centering constant
+will be just fine; it is sufficient to keep the $r(x_i,c)$ values far enough 
+away from the \code{double.min.exp} and \code{double.max.exp} components of
+\code{.Machine} (around 1000 on many machines) such that weighted means and
+variances, using $r(x_i,c)$ as the weights, do not lose precision.
+One case we have seen is where someone is looking at a seasonal effect
+and uses a Date variable for the covariate.  Say that the study were centered
+in 2022, then the mean $x$ value is approximately 19000.
+(Even then we would be okay if $\beta$ is small enough).
+
+If a user requested the product-limit form, then the predicted survival is
+\begin{align*} 
+  \Shat(t; z) &= \prod_{s\le t} \left[1- lhat(t;z)] \\
+              &\ne \left(\prod_{s\le t} \left[1- lhat(t;c)]\right)^{e^{(z-c)\beta}}
+\end{align*}
+ 
+A key issue is that if $r(x_i;z)$ is very small, e.g., when 
+computing the predicted curve for a very high risk subject,
+then $1- \lhat(t;z)$ may be negative, leading to an invalid survival estimate.
+For this reason the survival package does not support using a product-limit form.
+
+\index{survival:{Kalbfleisch-Prentice estimate}}
+An alternative estimate of $\lhat$ proposed by Kalbfleisch and Prentice 
+avoids this issue of an invalid estimate.  
+Also, it collapses to the Kaplan-Meier when $\beta=0$, something that some 
+consider to be a major plus. 
+In this author's opinion it is a ``meh''; a numerical difference that is tiny
+until the number at risk falls below 20, and even then much smaller than the
+se of the estimate. 
+For ordinary survival, Fleming and Harrington showed the exp(-cumulative hazard)
+actually had a smaller MSE than the KM, but again the difference is so small
+that no one really cares.
+For completeness, our software allows the KP as an option.  The variance of
+$\log(S)$, however, is assumed to be exactly the same as that of the
+exponential estimate, i.e., the variance of $\Lambda$.  Creating a special
+variance estimate is just too much work
+
+
+The KP approach computes a multiplicative increment $z(t)$ as the 
+solution to equation \eqref{KPhaz1}.
+If there is a single event at time $t$, this reduces to the closed form
+of \eqref{KPhaz2}, where $d$ is shorthand for the index of the death at
+that time point.  Otherwise the code uses simple bisection on the interval [0,1),
+which must contain the solution.
+A bit of algebra confirms that the final estimate is mathematically independent
+of the centering vector $c$. 
+
+\begin{align*}
+  \sum  w_i Y_i(t) r(x_i;c) &= \sum dN_i(t) w_i \frac{r(x_i;c)}{1- z(t)^{r(x_i;c)}}
+      \label{KPhaz1}\\
+      z(t) &= left(1- w_d\frac{r(x_d;c)}{\sum  w_i Y_i(t) r(x_i;c)\right)^
+        {1/r(x_d;c)} \label{KPhaz2} \\
+      \Shat(t; z) &= \left(\prod_{s \le t} z(t)\right)^{e^{(z-c)\beta}} \label{KPhaz3}
+\end{align*}
+
+\subsection{Variance}
+
+The variance of $\Lhat(t;z)$ has two terms, the first an analog to the
+variance increment for the Nelson-Aalen estimate, the second accounts for the
+variance of $\bhat$. 
+Let $\tmu(t;z)$ be the cumulative weighted differnce between $z$ and the
+running mean
+\begin{equation}
+  \tmu(t;z) &= \int_0^t (z- \xbar(s))\dLambda(s; z) \\
+               \e^{(z-c)\beta} \int_0^t (z- \xbar(s))\dLambda(s; c) \label{tmu}
+\end{equation}
+This is a weighted average distance between $z$ and the center of the data.
+The variance is
+\begin{equation*}
+  \rm{var}\Lhat(t;z) &= \left[e^{2(z-c)\beta} \int_0^t \frac{\lhat(s;c)
+    {\sum_i w_i Y_i(s) r(x_i; c)} \right] + \tmu(t;z)'V \tmu(t;z)
+\end{equation*}
+
+The \code{agsurv} routine returns individual terms of the integral as
+a vector \code{varhaz}, the first term of the variance is then a weighted
+cumulative sum.
+A matrix with a row for each time point is returned as \code{xbar}, containing
+the product of $\lhat(t;c)$ with $\xbar(t)$.  (Note the $\xbar$ itself does not
+depend on centering.) The routine also returns the vector $\lambda(t;c)$.
+
+The second term of the variance cannot be treated as a cumulative sum of squares,
+we need to first add and \emph{then} multiply. 
+In the pseudo code below, hazard and xbar are results from agsurv and vmat the
+variance matrix from the coxph model.
+<<echo=TRUE, eval=FALSE>>=
+temp1 <- outer(hazard, z, '*') - xbar
+temp2 <- apply(temp1, 2, cumsum)
+v2 <-  rowSums((temp2 %*% vmat)* temp2)
+@ 
+\begin{itemize}
+  \item temp1 is a matrix where each row is $\lambda(t;c) (z- \xbar(t))$
+  \item each row of temp2 is the integral up to that point
+  \item element $i$ of v2 contains the result of 
+    \code{temp2[i,] \%*\% vmat \%*\% t(temp2[i,])}.  
+    The use of both matrix multiplication and elementwise multiplication, in
+    the right order, is important.
+\end{itemize}  
+We can offset the use of $\lambda(t;c)$ instead of $\lambda(t;z)$ at the 
+end, but creation and summation of the $z-\xbar$ matrix needs to be
+done separately for each $z$.  
+
+\subsection{Time-dependent coefficients}
+\index{survival:{time-dependent coefficients}}
+Look at an example from the time-dependent vignette.
+
+<<tdcoef>>=
+vet2 <- survSplit(Surv(time, status) ~ ., data= veteran, cut=c(90, 180), 
+                  episode= "tgroup", id="id", start="time1", end="time2")
+vfit2 <- coxph(Surv(time1, time2, status) ~ trt + prior +
+                  I(karno/10):strata(tgroup), data=vet2)
+vfit2
+
+cdata <- data.frame(time1 = rep(c(0,90,180), 2),
+                    time2 =  rep(c(90,180, 365), 2),
+                    status= rep(0,6),   #necessary, but ignored
+                    tgroup= rep(1:3, 2),
+                    trt  =  rep(1,6),
+                    prior=  rep(0,6),
+                    karno=  rep(c(40, 75), each=3),
+                    curve=  rep(1:2, each=3))
+cdata
+vsurv <- survfit(vfit2, newdata=cdata, id=curve)
+@   
+
+In the code \code{slist} will have one curve per stratum, 3 in the above case.
+The \code{id} for this new curve has nothing to do with any id variable in
+the original fit, here it is an id for the resulting curve.
+The algorithm is executed once per new curve
+\begin{itemize}
+  \item For each row of data corresponding to this id,
+    pluck off the appropriate rows of slist[[stratum of this row]],
+        i.e.  the time, n.censor, n.event, etc components.
+  \item Glue these together into a new curve
+\end{itemize}
+
+The (time1, time2) values in the new data correspond to the time values in the
+chosen stratum; in this case those are consistent, but one could have
+strata on different time scales.  The time values in the new curve will
+be 
+\begin{itemize}
+  \item time values for the stratum of row 1
+  \item (time2[1] - time1[2]) + time values for the stratum of row 2
+  \item (time2[2] - time2[3]) + time values for the stratum of row 3
+  \item \ldots
+\end{itemzie}
+The idea is that if stratum 1 went from 30 to 100 and stratum 2 from 150 to
+200, we want our new time scale to be from 30 to 150. 
+In the case above these splicing constants are all zero, which is what I
+expect, but users do things I have never thought of.
+
+The underlying routine agsurv returns results for the hazard function centered
+at $c$ = the means component of the coxph result.
+But from this point forward, we need to do separate computations for each
+new id, a simple loop since there are unlikely to be many separate id values.
+Let $j$ be the rows of newdata that corresond to the first id. 
+For each of these rows pull off the hazard increments, increments of term 1
+of the variance, and the $\tmu$ values of \eqref{tmu}; multiple the first
+and third by risk[j], the second by risk[j] squared, and save them.
+When that is done,
+\begin{itemize}
+  \item Compute the cumulate hazard, cumsum(unlist(hazard increments))
+  \item Exponential survial is exp(-cum haz), KP survival is cumprod of the
+    KP contributions
+  \item The first term of the variance is again cumsum(unlist(var1))
+  \item For the second term we need the $tmu$ matrix, using cumsum(unlist)
+    for each column, separately.  Then the quadratic form can be computed.
+\end{itemize}
+
+I am moderately confident of the statisical theory for this in the case of a
+time-dependent covariate, where each new id covers the same range of time, 
+without holes or overlaps.  For the more complex cases I am much less certain,
+and would myself use a jackknife or boostrap.
+
+
+\chapter{Multistate hazard model}
+\section{Absolute risk}
 \index{cox:survival}
 To begin, first remember that predicitons from a Cox model are always for
 \emph{someone}, that is, some particular covariate vector $z$.
@@ -1128,9 +1344,21 @@ For a multistate model the predicted curve is a matrix product
         \lambda_{21}(s;z) & \square & \lambda_{23}(s;z) & \ldots \\
         \vdots & \vdots & \vdots & \ddots \end{array} \right)
 \end{align*}
-In the above $j$, $k$ are states, $i$ is an observation, and the
-$\square$ stands in for the fact that each row of $A$ must sum to zero
-(it saves writing the negative sum of the other elements).
+In the above $j$, $k$ are states, $i$ is an observation.  
+The diagonal elements are such that row sums are zero.
+
+The mstate package uses the first order Taylor series  $\exp(A) \approx I + A$,
+for $p(t;z)$, which is parallel to the formula in the Aalen-Johansen.
+We do not, for a couple of reasons.
+\begin{itemize}
+  \item If the chosen $x$ corresponds to a particularly high relative hazard,
+    then the diagonal element if $I+A$ can be negative, and 
+    $I+A$ is no longer a valid transition matrix.
+  \item Consistency with the single state Cox model's Breslow estimate,
+    which uses the exponential.
+    The I+A approximation has never been seriously proposed for the simple 
+    Cox model, probably because of the point just above.
+\end{itemize}
 
 For matrices, $\exp(A)\exp(B) \ne \exp(A+B)$
 unless $AB= BA$, which does not hold for this application: we cannot avoid
@@ -1138,108 +1366,18 @@ the matrix multiplication.
 For transition matrices such as these $\exp(A(s))$ will have row sums of 1
 and all elements non-negative, numerically they are very well behaved 
 arguments to the matrix exponential function.
+Per section \ref{matexp}, for non-tied death times (only 1 event at this time)
+$A$ and $\exp(A)$ have a simple closed form and computation will be fast.
 
 For simple survival the above reduces to $\exp(-\Lambda(t;z)$, 
 and in that case the
-variance of the cumulative hazard estimate has been derived by (ref) as
+variance of the cumulative hazard estimate has been derived by (ref),
+not using the IJ as
 \begin{align*}
   v(t;z) &= d'{\cal I}^-1 d +
       \int_0^t \frac{\sum_i dN_i(t)}{\sum_i Y_i(t) r_i(z)} \\
       d(t;z) &= \int_0^t (\xbar(s)-z) d\Lambda(s; z)
 \end{align*}
-
-For multistate we will use the IJ estimate of the hazard.
-
-\begin{align}
-  \frac{\partial \sum_i w_i Y_i(t) r_i(t;z)}{\partial w_m} &=
-  Y_m(t)r_m(t;z) + \sum_i w_iY_i(t) r_i(t;z) (x_i- z)' 
-     \frac{\partial \beta}{\partial w_m}  \label{ajij1} \\
-     &= Y_m(t)r_m(t;z) + \sum_i w_iY_i(t) r_i(t;z) D_m(x_i- z) \label{ajij2} \\
- \frac{ \partial\lambda_{jk}(t;z)}{\partial w_m} &= Y_{mj}(t)
-    \frac{dN_{mjk}(t) -  \lambda_{jk}(t;z) - D_m(\xbar(t)-z)} 
-         {\sum_i w_i r_i(z) Y_{ij}(t)}      \label{ajij4}
-\end{align}
-
-$D_m$ is row $m$ of the 
-dfbeta matrix for the Cox model's coefficent vector $\beta$; $D$ is an $n$
-by $p$ matrix where $n$ is the number of observations and $p$ the number
-of coefficients.  
-The term $\xbar(t)-z)$ is a $p$ by 1 column vector.
-Recognize that the term to the right of $D_m$ is a $p$ by 1
-vector that is independent of $m$ so need only be computed once at each
-event time.
-In equation \eqref{ajij4} the first two terms are essentially the 
-leverage for the
-ordinary cumulative hazard, the third the impact of $w_m$ as mediated through
-its effect on the model coefficients.
-We are taking advantage of the fact that any row of the data will be at
-risk in exactly one state for the (time1, time2) interval of that row to
-simplify notation.  The matrix product $D(\xbar(t)-z)$ can be done for all
-rows at once.
-
-
-
-\chapter{Multistate hazard model}
-\section{Absolute risk}
-Let $A(t; x)$ be the hazards matrix at time $t$ for covariate values $x$
-\begin{align*}
-  A &= \left( \begin{array}{cccc}
-       \square & \lhat_{12}(t;x) & \lhat_{13}(t;x) & \ldots \\
-       \lhat_{21}(t;x) & \square & \lhat_{23}(t;x) & \ldots \\
-       \vdots & \square & \vdots & \ddots \end{array} \right) \\
-  p(t;x) &= p(0) \prod_{s\le t} e^{A(s;z)}
-\end{align*}
-where $\lhat_{jk}$ is the predicted hazard from the model for a $j$ to $k$
-transition.  The diagonal elements are such that row sums are zero.
-
-The mstate package uses the first order Taylor series  $\exp(A) \approx I + A$,
-which is parallel to the formula in the Aalen-Johansen.
-We do not, for a couple of reasons.
-\begin{itemize}
-  \item If the chosen $x$ corresponds to a particularly high relative hazard,
-    then the diagonal element can be negative, and $A$ is no longer a valid
-    transition matrix.
-  \item Consistency with the single state Cox model's Breslow estimate.
-    (This approximation has never been proposed for the simple Cox model.)
-\end{itemize}
-
-For two matrices $A$ and $B$, $\exp(A)\exp(B) != \exp(A+B)$ unless $AB=BA$,
-a condition that does not occur with our transtion matrices.
-Per section \ref{matexp}, the computation of $exp(A)$ will normally be very
-fast, so this does not add any undue time burden.
-    
-\subsection{Leverage}
-The derivative of $lambda_{jk}(t)$ with respect to observation $i$ will have
-two components: one essentially the same as the usual hazard, and another
-involving the leverage wrt $\beta$.
-Let $Y_{ij}(t)$ be the indicator that subject $i$ is at risk and in state $j$
-at time $t$ (at risk for transtition to somewhere else),
-and $N_{ijk}(t)$ be the cumulative number of $jk$ events for observation $i$.
-In the code, an observation (row of data) is only ever in one state, and has
-at most one transition at the end, so $dN =N$.
-
-\begin{align*}   
-\frac{\partial \lhat_{jk}(t))}{\partial w_m} &=
-  &= \left[\frac{N_{mjk}(t)}{\sum_i w_i Y_{ij}(t) r_{ijk}t)} -  \lhat_{jk}(t;z)
-                  \frac{Y_{mj}(t)}{\sum_i w_i Y_{ij}(t) r_{ijk}(t)}\right] -
-       \lhat_{jk}(t;z) D_{m(jk)} (\xbar(t)-z)_{(jk)} \\
-  &= A - B
-\end{align*} 
-In the above, part A is of exactly the same form as developed in equation
-\eqref{e1} and following, with $w_ir_{ijk}$ replacing $w_i$, so it can be
-accumulated efficiently using the same approach.
-In a MSH the risk score $r_{ijk}$ for a particular transtion $jk$ will often use
-only a subset of the coefficient vector, indexed by the \code{cmat} component of
-the fit.  For part B above we have abused notation slightly with $(jk)$ standing
-for the subset of columns of $D$, $\xbar$ and $z$ that contrbute to
-$r_{ijk}$.  
-If there are shared coefficients then some columns of $D$ will affect multiple
-transitions.  
-Since the $\lhat$ term is a scalar we have freedom to move it to the middle
-for final term.
-A more interesting aspect of term B is that there is no time window: the
-contribution to $\hat\beta$ appears at all time points.  
-This makes the bookkeeping for accumulation of this term somewhat easier.
 
 
 \chapter{Residuals}
@@ -1332,7 +1470,7 @@ once for every death time $k$ such that $Y_i(d_k) =1$ (i.e., each $B$ term
 that it is part of), and once more for each prior reporting time.
 
 I have not explored whether this idea will work in practice, nor do I see how
-to extend ti to the AUC computation.
+to extend it to the AUC computation.
 
 
 <<competecheck, echo=FALSE>>=
@@ -1405,11 +1543,11 @@ As a second case consider the NAFLD data used as an example in the survival
 vignette, a 5 state model with death and 0, 1, 2, or 3 metabolic comorbidities
 as the states.
 For a survival curve on age scale, using age 50 as a starting point and computing
-the influence at age 90, the data set has `r nrow(ndata2)` rows that overlap
+the influence at age 90, the data set has \Sexpr{nrow(ndata2)} rows that overlap
 the age 50-90 interval, while the
-average risk set size is $r=$ `r round(mean(nrisk))`, $<12$\% of the data rows.
-There are `r sum(netime)` unique event times between 50 and 90 of
-which `r sum(rowSums(nfit\$n.transition[netime,]) ==1)` have only a single %$
+average risk set size is $r=$ \Sexpr{round(mean(nrisk))}, $<12$\% of the data rows.
+There are \Sexpr{sum(netime)} unique event times between 50 and 90 of
+which \Sexpr{sum(rowSums(nfit$n.transition[netime,]) ==1)} have only a single %$
 event type and the remainder 2. 
 
 In this case the first algorithm can take advantage of sparse $H$ matrices and
@@ -1433,6 +1571,71 @@ A(d_4) &= U(0)\left[w_0 + H(d_1) w_1 + H(d_1)H(d_2)w_2 + H(d_1)H(d_2)H(d_3)w_3\r
 For $U$ the matrix sequence was $I$, $H_3I$, $H_2H_3I$, \ldots, it is now starts
 with $w_3I$, at the next step we multiply the prior matrix by $H_3$ and add 
 $w_2I$, at the third multiply the prior matrix by $H_2$ and add $w_1$, etc.
+
+\section{Mulistate hazard models}
+
+For multistate models, or for simple models with multiple events per
+subject,  we will use the IJ estimate of variance. 
+As a preliminar write down the martingale process for subject $i$
+\begin{align*}
+ M_{mjk}(t) &= \int_0^t dN_{mjk}(s) - Y_{mj}(s)e^{r_m(z)}d\Lambda_{jk}(t;z) \\
+            \int_0^t dN_{mjk}(s) - Y_{mj}(s) e^{r_m(z)}\frac{\sum_i w_i dN_{ijk}(s)}
+                          {\sum_iY_{ij}(s) e^{r_i(z)}
+\end{align*}
+Because of cancellation of $\exp(z)$ in the numerator and denominator the
+second expression is independent of the target value $z$.
+Computationally, we will
+always use a centering constant $c$ = the \code{mean} component of the fit
+object to forestall any round off issues in the exp function.
+ 
+\begin{align}
+  \frac{\partial \sum_i w_i Y_{ij}(t) r_i(t;z)}{\partial w_m} &=
+  Y_{mj}(t)r_m(t;z) + \sum_i w_iY_{ij}(t) r_i(t;z) 
+    \left[ \sum_p(x_{ip}- z_p)
+     \frac{\partial \beta_p}{\partial w_m} \right] \label{ajij1} \\
+     &= Y_m(t)r_m(t;z) + \sum_i w_iY_i(t) r_i(t;z) (x_i- z)D_m' \label{ajij2} \\
+ \frac{ \partial\lambda_{jk}(t;z)}{\partial w_m} &= 
+    \frac{dN_{mjk}(t) -  dM_m(t)} {\sum_i w_i r_i(z) Y_{ij}(t)}
+    - \frac{\left[\sum_iw_i dN_{ijk}(t)\right] 
+            \left[\sum_i  w_iY_i(t) r_i(t;z) (x_i- z)D_m' \right]}
+         {\left[\sum_i w_i r_i(z) Y_{ij}(t)\ right]^2}      \nonumber \\
+    &= a - b \label{ajij3} \\
+    a &= \exp(z-c)\frac{dN_{mjk}(t) -  dM_m(t)} {\sum_i w_i r_i(c) Y_{ij}(t)} 
+             \nonumber \\
+    b &= \exp(z-c)\lambda_{jk}(t;c) (\xbar(t) -z)D'_m \label{ajij4}
+\end{align}
+
+$D_m$ is row $m$ of the 
+dfbeta matrix for the Cox model's coefficent vector $\beta$; $D$ is an $n$
+by $p$ matrix where $n$ is the number of observations and $p$ the number
+of coefficients; treat $x_i-z$ as a row vector, 
+the $i$th row of the $X$ matrix, recentered.
+The first term of equation \eqref{ajij3} is essentially the leverage of the
+ordinary cumulative hazard, with $w_i r_i$ replacing $w_i$. 
+The second term is the the impact of $w_m$ as mediated through
+its effect on the model coefficients.
+Much like confidence intervals for the fitted line in a linear regression,
+the impact is greater when $z$ is far from the mean of the covariates.
+
+Any row of the data will be at
+risk in exactly one state for the (time1, time2) interval of that data row,
+so $Y_{ij}(t)$ is non-zero for only one $j$.
+The second term is the the impact of $w_m$ as mediated through
+its effect on the model coefficients.
+In the AJ estimate this meant that any row of the data only has an
+effect on hazards that originate from that state.
+For the MSH model, a coefficient that is common to two transitions means that
+all observations at risk for either transition will also have an IJ term
+for both.
+
+When the same covariate affects two transitions but with disjoint coefficients,
+the \code{stacker} routine will have created an expanded $X$ matrix which
+has separate columns for the two coefficients.
+Likewise, the $D$ matrix will have a separate column for each coefficient and
+will be semi-sparse, in that it has zeros for data rows that do not contribute
+to a give coefficient.
+Over all rows, the right hand portion of equation \eqref{ajij4} is
+\Sexpr{rowSums((X- rep(z, each=nrow(X)))* D)}. 
 
 
 

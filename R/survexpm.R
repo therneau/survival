@@ -50,7 +50,7 @@ survexpm <- function(rmat, time=1.0, setup, eps=1e-6) {
             if (setup[1]==0) .Call(Ccdecomp, rmat, time)$P
             else {
                 temp <- .Call(Ccdecomp, rmat[setup, setup], time)
-                temp$P[order(setup2), order(setup2)]
+                temp$P[order(setup), order(setup)]
             }
         }
     }

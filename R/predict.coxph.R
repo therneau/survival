@@ -186,7 +186,9 @@ predict.coxph <- function(object, newdata,
                     j1 <- findInterval(y[indx,1], afit$time)
                     chaz <- c(0, afit$cumhaz)[j1 +1]
                     varh <- c(0, cumsum(afit$varhaz))[j1 +1]
-                    xbar <- rbind(0, afit$xbar)[j1+1,,drop=F]
+                    xbar <- apply(afit$xbar, 2, cumsum)
+                    xbar <- rbind(0, afit$xbar)
+                    [j1+1,,drop=F]
                     if (ncol(y)==2) {
                         dt <- (chaz * x[indx,]) - xbar
                         se[indx] <- sqrt(varh + rowSums((dt %*% object$var) *dt)) *

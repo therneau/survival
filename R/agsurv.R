@@ -1,5 +1,13 @@
-# Automatically generated from the noweb directory
 agsurv <- function(y, x, wt, risk, survtype, vartype) {
+    # This is called by coxsurv.fit, once per stratum, to compute all the
+    # peices of a coxph survival curve
+    # y: Surv object
+    # x: covariate matrix
+    # wt: case weights
+    # risk: exp(X beta) = risk score for each observation
+    # survtype =1 Kalbfleisch-Prentice, 2= exp(cum hazard): Breslow,
+    #  3= exp(cum hazard) : Efron
+    #
     nvar <- ncol(as.matrix(x))
     status <- y[,ncol(y)]
     dtime <- y[,ncol(y) -1]
@@ -74,7 +82,13 @@ agsurv <- function(y, x, wt, risk, survtype, vartype) {
     result <- list(n= nrow(y), time=time, n.event=nevent, n.risk=irisk, 
                    n.censor=ncens, hazard=haz, 
                    cumhaz=cumsum(haz), varhaz=varhaz, ndeath=ndeath, 
-                   xbar=apply(matrix(xbar, ncol=nvar),2, cumsum))
-    if (survtype==1) result$surv <- km$inc
+                   xbar= matrix(xbar, ncol=nvar))
+    # varhaz is the first part of the variance; the increment to var(\Lambda)
+    #  at each time, that one we would have if beta were a fixed constant.
+    # Each row of xbar is (mean of those at risk) * lambda; we
+    # need it for the second part of the variance.  The other elements are
+    # what you would expect.
+
+    if (survtype==1) result$surv <- km$inc  # Kalbfleisch-Prentice
     result
 }

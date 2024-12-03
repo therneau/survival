@@ -1,4 +1,9 @@
-/* Automatically generated from the noweb directory */
+/* 
+** Compute the Kalbfleisch-Prentice estimate of a Cox model survival curve.
+** This is not the default computation, so I don't worry about making the
+**  simple bisection solution below at all fast.
+** See survival:Kalbfleisch-Prentice in the methods document
+*/
 #include "survS.h"
 #include "survproto.h"
 
