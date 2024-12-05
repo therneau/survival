@@ -180,17 +180,16 @@ predict.coxph <- function(object, newdata,
                 afit <- agsurv(y[indx,,drop=F], x[indx,,drop=F], 
                                               weights[indx], risk[indx],
                                               survtype, survtype)
+                xbar <- apply(afit$xbar, 2, cumsum) 
                 afit.n <- length(afit$time)
                 if (missing(newdata)) { 
                     # In this case we need se.fit, nothing else
                     j1 <- findInterval(y[indx,1], afit$time)
                     chaz <- c(0, afit$cumhaz)[j1 +1]
                     varh <- c(0, cumsum(afit$varhaz))[j1 +1]
-                    xbar <- apply(afit$xbar, 2, cumsum)
-                    xbar <- rbind(0, afit$xbar)
-                    [j1+1,,drop=F]
+                    xbar2 <- rbind(0, xbar)[j1+1,,drop=F]
                     if (ncol(y)==2) {
-                        dt <- (chaz * x[indx,]) - xbar
+                        dt <- (chaz * x[indx,]) - xbar2
                         se[indx] <- sqrt(varh + rowSums((dt %*% object$var) *dt)) *
                             risk[indx]
                     }
@@ -198,8 +197,8 @@ predict.coxph <- function(object, newdata,
                         j2 <- findInterval(y[indx,2], afit$time)
                         chaz2 <- c(0, afit$cumhaz)[j2 +1L]
                         varh2 <- c(0, cumsum(afit$varhaz))[j2 +1L]
-                        xbar2 <- rbind(0, afit$xbar)[j2+ 1L,,drop=F]
-                        dt <- (chaz * x[indx,]) - xbar
+                        xbar2 <- rbind(0, xbar)[j2+ 1L,,drop=F]
+                        dt <- (chaz * x[indx,]) - xbar2
                         v1 <- varh +  rowSums((dt %*% object$var) *dt)
                         dt2 <- (chaz2 * x[indx,]) - xbar2
                         v2 <- varh2 + rowSums((dt2 %*% object$var) *dt2)
@@ -216,11 +215,11 @@ predict.coxph <- function(object, newdata,
                     pred[indx2] <- chaz * newrisk[indx2]
                     if (se.fit) {
                         varh <- c(0, cumsum(afit$varhaz))[j1+1]
-                        xbar <- rbind(0, afit$xbar)[j1+1,,drop=F]
+                        xbar2 <- rbind(0, xbar)[j1+1,,drop=F]
                     }
                     if (ncol(y)==2) {
                         if (se.fit) {
-                            dt <- (chaz * newx[indx2,]) - xbar
+                            dt <- (chaz * newx[indx2,]) - xbar2
                             se[indx2] <- sqrt(varh + rowSums((dt %*% object$var) *dt)) *
                                 newrisk[indx2]
                         }
@@ -232,8 +231,8 @@ predict.coxph <- function(object, newdata,
 
                         if (se.fit) {
                             varh2 <- c(0, cumsum(afit$varhaz))[j2 +1L]
-                            xbar2 <- rbind(0, afit$xbar)[j2 + 1L,,drop=F]
-                            dt <- (chaz * newx[indx2,]) - xbar
+                            xbar2 <- rbind(0, xbar)[j2 + 1L,,drop=F]
+                            dt <- (chaz * newx[indx2,]) - xbar2
                             dt2 <- (chaz2 * newx[indx2,]) - xbar2
 
                             v2 <- varh2 + rowSums((dt2 %*% object$var) *dt2)

@@ -26,10 +26,8 @@ PARTS = main.Rnw \
 #	residuals.survfit2.Rnw\
 
 SFUN =  agreg.fit.R \
-	agsurv.R \
         concordance.R \
 	coxph.R \
-	coxsurvfit.R \
 	finegray.R \
 	model.matrix.coxph.R \
 	parsecovar.R \

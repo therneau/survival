@@ -4,7 +4,7 @@ options(na.action=na.exclude, contrasts=c('contr.treatment', 'contr.poly'))
 # Verify stratified fits in a simple way, but combining two data
 #  sets and doing a single fit
 #
-aeq <- function(x,y) all.equal(as.vector(x), as.vector(y))
+aeq <- function(x,y, ...) all.equal(as.vector(x), as.vector(y), ...)
 
 tdata <- data.frame(time=c(lung$time, ovarian$futime),
                     status=c(lung$status-1, ovarian$fustat),
@@ -47,19 +47,33 @@ all.equal(t(db1[-2,])%*% db1[-2,], fit1$var)
 #  obs/subject.  Use of enum + strata(enum) in essenence fits a different
 #  baseline Weibull to each strata, with common coefficients for rx, size, and
 #  number.
-fit1 <- survreg(Surv(stop-start, event) ~  rx + size + number + 
-                factor(enum) + strata(enum), data=bladder2)
+# 12/2024 : expand the test to add weights.  Different weights for different
+#  rows of the same subject is the most general test.
+bladder2$wt <- rep(1:4, length=nrow(bladder2))
+fit0 <- survreg(Surv(stop-start, event) ~  rx + size + number + 
+                factor(enum) + strata(enum), data=bladder2, weights= wt)
 
-db1 <- resid(fit1, type='dfbeta', collapse=bladder2$id)
-ijack <- db1  # a matrix of the same size
-for (i in 1:nrow(db1)) {
-    twt <- rep(1., nrow(bladder2))
-    twt[bladder2$id==i] <- 1-eps
+fit1 <- survreg(Surv(stop-start, event) ~  rx + size + number + 
+                factor(enum) + strata(enum), data=bladder2, weights= wt,
+                cluster=id)
+aeq(coef(fit0), coef(fit1))
+
+db0 <- resid(fit1, type='dfbeta')
+db1 <- resid(fit1, type='dfbeta', collapse=bladder2$id, weighted=TRUE)
+ijack <- matrix(0, nrow(bladder2), ncol(db1))
+fcoef <- c(fit1$coef, log(fit1$scale))
+for (i in 1:nrow(bladder2)) {
+    twt <- bladder2$wt
+    twt[i] <- twt[i] + eps
     tfit <- survreg(Surv(stop-start, event) ~ rx + size + number + 
                     factor(enum) + strata(enum), data=bladder2, 
                     weight=twt)
-    ijack[i,] <- c(coef(tfit), log(tfit$scale)) 
+    ijack[i,] <- (c(coef(tfit), log(tfit$scale)) - fcoef)/eps
     }
-ijack <- (rep(c(fit1$coef, log(fit1$scale)), each=nrow(db1)) - ijack)/eps
-all.equal(db1, ijack, tolerance=eps*2)
 
+aeq(db0, ijack, tolerance= eps)
+
+ij2 <- rowsum(ijack* bladder2$wt, bladder2$id)
+aeq(db1, ij2, tolerance=eps)
+
+aeq(vcov(fit1), crossprod(db1))
