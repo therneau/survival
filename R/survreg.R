@@ -276,10 +276,12 @@ survreg <- function(formula, data, weights, subset, na.action,
         fit$naive.var <- fit$var
         if (!model) fit$model <- m  #temporary addition, so resid doesn't
                                     # have to reconstruct
-        if (length(cluster))
-             fit$var <- crossprod(rowsum(residuals.survreg(fit, 'dfbeta'), 
-                                         cluster))
-        else fit$var <- crossprod(residuals.survreg(fit, 'dfbeta'))
+        if (length(cluster)) 
+            dfbeta <- residuals.survreg(fit, "dfbeta", weighted=TRUE, 
+                                        collapse=cluster)
+        else dfbeta <- residuals.survreg(fit, "dfbeta", weighted=TRUE)
+        fit$var <- crossprod(dfbeta)
+
         if (!model) fit$model <- NULL  # take it back out
         }
 
