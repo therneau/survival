@@ -2,7 +2,7 @@
 # Test the survexpm code, which is not exported so we need :::
 #
 library(survival)
-survexpm <- survival:::survexp
+survexpm <- survival:::survexpm
 
 nstate <- 10
 set.seed(1953)
@@ -35,7 +35,7 @@ if (FALSE) {
     t1 <- system.time({for (i in 1:n) z <- survexpm(rmat, 1, 0)})
     t2 <- system.time({for (i in 1:n) z <- survexpm(rmat, 1, -1)})
     t3 <- system.time({for (i in 1:n) z <- Matrix::expm(rmat)})
-
+    rbind(t1, t2, t3)
     # For nstate=10 the cholesky approach just barely beats Pade, for 
     #   nstate =6 Pade won.  I was surprised.  
     # Expm is fastest, perhaps due to sparse matrix routines?
@@ -61,7 +61,7 @@ if (FALSE) {
     n <- 2e4
     t3 <- system.time({for (i in 1:n) z <- expmderiv(rmat, 1, dr, 0)})
     t4 <- system.time({for (i in 1:n) z <- expmderiv(rmat, 1, dr, -1)})
-
+    rbind(t3, t4)
     # The diagonal algorithm is substantially faster than Pade for 10 states (7x)
 }
 eps <- 1e-6
