@@ -47,6 +47,8 @@ all.equal(unclass(surv1)[-ii],
 #  Remember that 'age' in jasa 1 was centered at 48
 data <- data.frame(start=c(0,183), stop=c(183,3*365), event=c(1,1),
 		   age=c(2,2),  surgery=c(1,1), transplant=c(0,1), id=c(1,1))
+# This output changed in version 3.8-0; the drop in std(surv) at 183 was
+# incorrect
 summary(survfit(sfit.1, data, id=id))
 
 # These should all give the same answer

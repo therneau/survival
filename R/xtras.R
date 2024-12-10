@@ -131,7 +131,9 @@ removeDoubleColonSurv <- function (formula)
         }
         expr
     }
-  fix(formula)
+    newform <- fix(formula)
+    if (!identical(formula, newform)) addSurvFun(newform) 
+    else newform
 }
 
 # This is used within coxph, concordance, survfit, and others to ensure
@@ -139,10 +141,10 @@ removeDoubleColonSurv <- function (formula)
 addSurvFun <- function(formula) {
     myenv <- new.env(parent= environment(formula))
     assign("tt", function(x) x, envir=myenv)
-    assign("strata", survival::strata, envir= myenv)
-    assign("Surv", survival::Surv, envir= myenv)
-    assign("cluster", survival::cluster, envir= myenv)
-    assign("pspline", survival::pspline, envir= myenv)
+    assign("strata", strata, envir= myenv)
+    assign("Surv", Surv, envir= myenv)
+    assign("cluster", cluster, envir= myenv)
+    assign("pspline", pspline, envir= myenv)
     environment(formula) <- myenv
     formula
 }

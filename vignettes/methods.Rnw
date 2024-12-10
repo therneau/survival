@@ -20,13 +20,15 @@
 \newcommand{\code}[1]{\texttt{#1}}
 \newcommand{\Lhat}{\hat\Lambda}
 \newcommand{\lhat}{\hat\lambda}
+\newcommand{\Shat}{\hat S}
 \newcommand{\KM}{{\rm KM}}
 \newcommand{\NA}{{\rm NA}}
 \newcommand{\FH}{{\rm FH}}
 \newcommand{\Ybar}{\overline Y}
 \newcommand{\Nbar}{\overline N}
 \newcommand{\xbar}{\overline x}
-\newcommand{\zmu}{\tilde \mu}
+\newcommand{\tmu}{\tilde \mu}
+\newcommand{\bhat}{\hat\beta}
 
 
 \title{Further documentation on code and methods in the survival package}
@@ -1145,7 +1147,7 @@ $z$ is
                &=  e^{(z-c)\beta}\Lambda(t;c) \label{coxcumhaz}\\
    \Shat(t; z) &= e^{-\Lambda(t; z)} \nonumber \\
            &= \Shat(t; c)^{e^{(z-c)\beta}} \label{coxsurv}
-\end{align*}
+\end{align}
 
 Per above we can compute the survival curve for any covariate $z$ from
 the ``baseline'' curve for $x=c$. 
@@ -1164,8 +1166,8 @@ in 2022, then the mean $x$ value is approximately 19000.
 
 If a user requested the product-limit form, then the predicted survival is
 \begin{align*} 
-  \Shat(t; z) &= \prod_{s\le t} \left[1- lhat(t;z)] \\
-              &\ne \left(\prod_{s\le t} \left[1- lhat(t;c)]\right)^{e^{(z-c)\beta}}
+  \Shat(t; z) &= \prod_{s\le t} [1- lhat(t;z)] \\
+              &\ne \left(\prod_{s\le t} [1- lhat(t;c)]\right)^{e^{(z-c)\beta}}
 \end{align*}
  
 A key issue is that if $r(x_i;z)$ is very small, e.g., when 
@@ -1199,13 +1201,13 @@ which must contain the solution.
 A bit of algebra confirms that the final estimate is mathematically independent
 of the centering vector $c$. 
 
-\begin{align*}
+\begin{align}
   \sum  w_i Y_i(t) r(x_i;c) &= \sum dN_i(t) w_i \frac{r(x_i;c)}{1- z(t)^{r(x_i;c)}}
-      \label{KPhaz1}\\
-      z(t) &= left(1- w_d\frac{r(x_d;c)}{\sum  w_i Y_i(t) r(x_i;c)\right)^
-        {1/r(x_d;c)} \label{KPhaz2} \\
+      \label{KPhaz1}  \\
+    z(t) &= 1- w_d\frac{r(x_d;c)}{\left(\sum  w_i Y_i(t) r(x_i;c)\right)^
+        {1/r(x_d;c)}} \label{KPhaz2} \\
       \Shat(t; z) &= \left(\prod_{s \le t} z(t)\right)^{e^{(z-c)\beta}} \label{KPhaz3}
-\end{align*}
+\end{align}
 
 \subsection{Variance}
 
@@ -1215,13 +1217,13 @@ variance of $\bhat$.
 Let $\tmu(t;z)$ be the cumulative weighted differnce between $z$ and the
 running mean
 \begin{equation}
-  \tmu(t;z) &= \int_0^t (z- \xbar(s))\dLambda(s; z) \\
-               \e^{(z-c)\beta} \int_0^t (z- \xbar(s))\dLambda(s; c) \label{tmu}
+  \tmu(t;z) = \int_0^t (z- \xbar(s)) d\Lambda(s; z) 
+               e^{(z-c)\beta} \int_0^t (z- \xbar(s)) d\Lambda(s; c) \label{tmu}
 \end{equation}
 This is a weighted average distance between $z$ and the center of the data.
 The variance is
 \begin{equation*}
-  \rm{var}\Lhat(t;z) &= \left[e^{2(z-c)\beta} \int_0^t \frac{\lhat(s;c)
+  \rm{var}\Lhat(t;z) = \left[e^{2(z-c)\beta} \int_0^t \frac{\lhat(s;c)}
     {\sum_i w_i Y_i(s) r(x_i; c)} \right] + \tmu(t;z)'V \tmu(t;z)
 \end{equation*}
 
@@ -1296,7 +1298,7 @@ be
   \item (time2[1] - time1[2]) + time values for the stratum of row 2
   \item (time2[2] - time2[3]) + time values for the stratum of row 3
   \item \ldots
-\end{itemzie}
+\end{itemize}
 The idea is that if stratum 1 went from 30 to 100 and stratum 2 from 150 to
 200, we want our new time scale to be from 30 to 150. 
 In the case above these splicing constants are all zero, which is what I
@@ -1579,8 +1581,8 @@ subject,  we will use the IJ estimate of variance.
 As a preliminar write down the martingale process for subject $i$
 \begin{align*}
  M_{mjk}(t) &= \int_0^t dN_{mjk}(s) - Y_{mj}(s)e^{r_m(z)}d\Lambda_{jk}(t;z) \\
-            \int_0^t dN_{mjk}(s) - Y_{mj}(s) e^{r_m(z)}\frac{\sum_i w_i dN_{ijk}(s)}
-                          {\sum_iY_{ij}(s) e^{r_i(z)}
+          &= \int_0^t dN_{mjk}(s) - Y_{mj}(s) e^{r_m(z)}\frac{\sum_i w_i dN_{ijk}(s)}
+                          {\sum_iY_{ij}(s) e^{r_i(z)}}
 \end{align*}
 Because of cancellation of $\exp(z)$ in the numerator and denominator the
 second expression is independent of the target value $z$.
@@ -1594,7 +1596,7 @@ object to forestall any round off issues in the exp function.
     \left[ \sum_p(x_{ip}- z_p)
      \frac{\partial \beta_p}{\partial w_m} \right] \label{ajij1} \\
      &= Y_m(t)r_m(t;z) + \sum_i w_iY_i(t) r_i(t;z) (x_i- z)D_m' \label{ajij2} \\
- \frac{ \partial\lambda_{jk}(t;z)}{\partial w_m} &= 
+ \frac{\partial\lambda_{jk}(t;z)}{\partial w_m} &= 
     \frac{dN_{mjk}(t) -  dM_m(t)} {\sum_i w_i r_i(z) Y_{ij}(t)}
     - \frac{\left[\sum_iw_i dN_{ijk}(t)\right] 
             \left[\sum_i  w_iY_i(t) r_i(t;z) (x_i- z)D_m' \right]}
@@ -1635,8 +1637,7 @@ Likewise, the $D$ matrix will have a separate column for each coefficient and
 will be semi-sparse, in that it has zeros for data rows that do not contribute
 to a give coefficient.
 Over all rows, the right hand portion of equation \eqref{ajij4} is
-\Sexpr{rowSums((X- rep(z, each=nrow(X)))* D)}. 
-
+\code{rowSums((X- rep(z, each=nrow(X)))* D)}. 
 
 
 

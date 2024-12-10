@@ -1,5 +1,20 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 3.8-0}{
+  \itemize{
+    \item Survival curves which used the id option, for a coxph fit with
+    time dependent coefficients, would have too small a std error after
+    the transition. Github issue 282
+    \item Error in the robust variance in survreg, when there were case
+    weights. (Forgot the weighted=TRUE argument to an internal resid
+    call.) Github issue 287
+    \item Fix an oversight in anova.coxph. A comparison of a stratified
+    to an unstratified model is not valid; it now checks for this and
+    issues an error.  Also, very long variable names would crash anova.
+    \item Extend the fix to strata of 3.7-3. Now Surv, strata, cluster,
+    and pspline calls internal to a coxph, survfit, survreg, survdiff,
+    or concordance formula are forced to be internal to the survival package.
+}}    
 \section{Changes in version 3.7-3}{
   \itemize{
     \item Incorporate a copy of strata() local to coxph, something

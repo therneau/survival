@@ -912,7 +912,7 @@ The second and third subjects contribute time to each of the three
 intervals.
 <<split2>>=
 vfit2 <- coxph(Surv(tstart, time, status) ~ trt + prior +
-                  karno:factor(tgroup), data=vet2)
+                  karno:strata(tgroup), data=vet2)
 vfit2
 cox.zph(vfit2)
 @ 

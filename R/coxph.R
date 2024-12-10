@@ -9,9 +9,6 @@ coxph <- function(formula, data, weights, subset, na.action,
     ties <- match.arg(ties)
     Call <- match.call()
     if (missing(formula)) stop("a formula argument is required")
-    # Protection from the survival::Surv crowd
-    formula <- removeDoubleColonSurv(formula)
-    Call$formula <- formula
     
     ## We want to pass any ... args to coxph.control, but not pass things
     ##  like "dats=mydata" where someone just made a typo.  The use of ...
@@ -32,8 +29,13 @@ coxph <- function(formula, data, weights, subset, na.action,
     else if (is.list(control)) control <- do.call(coxph.control, control)
     else stop("control argument must be a list")
 
+    # Protect internal calls in the formula from surviva:: users
+    if (is.list(formula)) formula[[1]] <- removeDoubleColonSurv(formula[[1]])
+    else formula <- removeDoubleColonSurv(formula)
+    Call$formula <- formula  # save the nicer version
+
     # Move any cluster() term out of the formula, and make it an argument
-     #  instead.  This makes everything easier.  But, I can only do that with
+    #  instead.  This makes everything easier.  But, I can only do that with
     #  a local copy, doing otherwise messes up future use of update() on
     #  the model object for a user stuck in "+ cluster()" mode.
     ss <- "cluster"

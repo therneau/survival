@@ -1,7 +1,7 @@
 
-R Under development (unstable) (2023-05-10 r84417) -- "Unsuffered Consequences"
-Copyright (C) 2023 The R Foundation for Statistical Computing
-Platform: x86_64-pc-linux-gnu (64-bit)
+R Under development (unstable) (2024-12-09 r87433) -- "Unsuffered Consequences"
+Copyright (C) 2024 The R Foundation for Statistical Computing
+Platform: aarch64-unknown-linux-gnu
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -173,6 +173,8 @@ n= 170, number of events= 75
 > #  Remember that 'age' in jasa 1 was centered at 48
 > data <- data.frame(start=c(0,183), stop=c(183,3*365), event=c(1,1),
 + 		   age=c(2,2),  surgery=c(1,1), transplant=c(0,1), id=c(1,1))
+> # This output changed in version 3.8-0; the drop in std(surv) at 183 was
+> # incorrect
 > summary(survfit(sfit.1, data, id=id))
 Call: survfit(formula = sfit.1, newdata = data, id = id)
 
@@ -221,23 +223,23 @@ Call: survfit(formula = sfit.1, newdata = data, id = id)
   148.0     45       1    0.611 0.17927        0.344        1.000
   152.0     44       1    0.601 0.18236        0.332        1.000
   164.0     43       1    0.592 0.18551        0.320        1.000
-  185.0     41       1    0.583 0.12737        0.380        0.894
-  187.0     40       1    0.574 0.12889        0.370        0.891
-  206.0     39       1    0.565 0.13036        0.359        0.888
-  218.0     38       1    0.556 0.13180        0.349        0.885
-  262.0     37       1    0.546 0.13320        0.339        0.881
-  284.0     35       2    0.527 0.13585        0.318        0.874
-  307.0     33       1    0.517 0.13707        0.308        0.869
-  333.0     32       1    0.507 0.13823        0.297        0.865
-  339.0     31       1    0.497 0.13930        0.287        0.861
-  342.0     29       1    0.486 0.14029        0.276        0.856
-  583.0     21       1    0.471 0.14187        0.261        0.850
-  674.0     17       1    0.452 0.14361        0.243        0.843
-  732.0     16       1    0.433 0.14506        0.225        0.835
-  851.0     14       1    0.410 0.14622        0.204        0.825
-  979.0     11       1    0.383 0.14698        0.180        0.813
-  995.0     10       1    0.356 0.14735        0.158        0.801
- 1031.0      9       1    0.330 0.14743        0.137        0.792
+  185.0     41       1    0.583 0.18292        0.315        1.000
+  187.0     40       1    0.574 0.18040        0.310        1.000
+  206.0     39       1    0.565 0.17790        0.305        1.000
+  218.0     38       1    0.556 0.17543        0.299        1.000
+  262.0     37       1    0.546 0.17298        0.294        1.000
+  284.0     35       2    0.527 0.16813        0.282        0.985
+  307.0     33       1    0.517 0.16575        0.276        0.969
+  333.0     32       1    0.507 0.16341        0.270        0.954
+  339.0     31       1    0.497 0.16110        0.263        0.938
+  342.0     29       1    0.486 0.15876        0.256        0.922
+  583.0     21       1    0.471 0.15581        0.246        0.900
+  674.0     17       1    0.452 0.15262        0.233        0.876
+  732.0     16       1    0.433 0.14944        0.220        0.852
+  851.0     14       1    0.410 0.14600        0.204        0.824
+  979.0     11       1    0.383 0.14229        0.185        0.793
+  995.0     10       1    0.356 0.13883        0.166        0.765
+ 1031.0      9       1    0.330 0.13567        0.147        0.739
 > 
 > # These should all give the same answer
 > # When there are offsets, the default curve is always for someone with
@@ -283,4 +285,4 @@ Call: survfit(formula = sfit.1, newdata = data, id = id)
 > 
 > proc.time()
    user  system elapsed 
-  1.011   0.101   1.104 
+  0.443   0.036   0.476 

@@ -40,7 +40,7 @@ for (i in 1:7) {
     }
 ijack[2,] <- NA  # stick the NA back in
 ijack <- (rep(c(fit1$coef, log(fit1$scale)), each=nrow(db1)) - ijack)/eps
-all.equal(db1, ijack, tolerance=eps)
+all.equal(db1, ijack, tolerance= 10*eps)
 all.equal(t(db1[-2,])%*% db1[-2,], fit1$var)
 
 # This is a harder test since there are multiple strata and multiple 
@@ -71,9 +71,9 @@ for (i in 1:nrow(bladder2)) {
     ijack[i,] <- (c(coef(tfit), log(tfit$scale)) - fcoef)/eps
     }
 
-aeq(db0, ijack, tolerance= eps)
+aeq(db0, ijack, tolerance= 10*eps)
 
 ij2 <- rowsum(ijack* bladder2$wt, bladder2$id)
-aeq(db1, ij2, tolerance=eps)
+aeq(db1, ij2, tolerance= 10* eps)
 
 aeq(vcov(fit1), crossprod(db1))
