@@ -113,9 +113,9 @@ confint.survfit <- function(object, ...)
     stop(paste("confint method not defined for survfit objects," ,
          "use quantile for confidence intervals of the median survival"))
 
-# This is self defense for my functions agains the survival:: affectianos.
-# Replace survival::strata with strata, survival:cluster with cluster
-#  Update the envionment of the formula
+# This is self defense for my functions agains the survival:: aficiandos.
+# Replace survival::strata with strata, survival:cluster with cluster, etc.
+#  Then update the envionment of the formula
 removeDoubleColonSurv <- function (formula)
 {
     doubleColon <- as.name("::")
@@ -132,12 +132,20 @@ removeDoubleColonSurv <- function (formula)
         expr
     }
     newform <- fix(formula)
-    if (!identical(formula, newform)) addSurvFun(newform) 
-    else newform
+    addSurvFun(newform)
 }
 
-# This is used within coxph, concordance, survfit, and others to ensure
-#   we use the versions of these function that are from the survival package.
+# The second part of my defense. Because model.frame is not a part of the
+#  survival package, invocations of Surv, strata, etc within a formula are
+#  not guarranteed to use my version; if a user had their own local copy of Surv
+#  it would use that!  To ensure I get the proper ones, we insert a new 
+#  environment into the call chain, and attach it to the formula.
+# Because this routine is a part of the surival package I can refer to
+#  strata and etc below without resorting to the survival:: form.
+#  (In fact, we found out that the :: form can fail, i.e., if another
+#  package has Imports:survival in the DESCRIPTION file but does not
+#  have import(survival) in the NAMESPACE.)
+#
 addSurvFun <- function(formula) {
     myenv <- new.env(parent= environment(formula))
     assign("tt", function(x) x, envir=myenv)

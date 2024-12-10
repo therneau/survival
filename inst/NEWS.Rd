@@ -13,7 +13,9 @@
     issues an error.  Also, very long variable names would crash anova.
     \item Extend the fix to strata of 3.7-3. Now Surv, strata, cluster,
     and pspline calls internal to a coxph, survfit, survreg, survdiff,
-    or concordance formula are forced to be internal to the survival package.
+    or concordance formula are forced to be internal to the survival
+    package, and will not accidentally pick a local copy of the
+    function.
 }}    
 \section{Changes in version 3.7-3}{
   \itemize{

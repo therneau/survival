@@ -29,7 +29,7 @@ coxph <- function(formula, data, weights, subset, na.action,
     else if (is.list(control)) control <- do.call(coxph.control, control)
     else stop("control argument must be a list")
 
-    # Protect internal calls in the formula from surviva:: users
+    # Protect internal calls in the formula from survival:: users
     if (is.list(formula)) formula[[1]] <- removeDoubleColonSurv(formula[[1]])
     else formula <- removeDoubleColonSurv(formula)
     Call$formula <- formula  # save the nicer version
@@ -107,20 +107,6 @@ coxph <- function(formula, data, weights, subset, na.action,
     special <- c("strata", "tt", "frailty", "ridge", "pspline")
     tform$formula <- if(missing(data)) terms(formula, special) else
                                       terms(formula, special, data=data)
-
-    # Make "tt" and "strata" be local to the formula, without invoking any
-    #  outside functions. We do this by inserting another environment on
-    #  the front of the search path.
-    # For tt, this was done out of concern that users might have created
-    #  a dummy variable of that name.  For strata, this is
-    #  part of my defense against use of survival::strata.  Putting a local
-    #  copy first on the path allows for users who don't want to load the
-    #  survival namespace. (I think that is crazy, but the tidy universe has
-    #  a set of them.)
-    coxenv <- new.env(parent= environment(formula))
-    assign("tt", function(x) x, envir=coxenv)
-    assign("strata", survival::strata, envir= coxenv)
-    environment(tform$formula) <- coxenv
 
     # okay, now evaluate the formula
     mf <- eval(tform, parent.frame())

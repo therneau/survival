@@ -1597,10 +1597,10 @@ object to forestall any round off issues in the exp function.
      \frac{\partial \beta_p}{\partial w_m} \right] \label{ajij1} \\
      &= Y_m(t)r_m(t;z) + \sum_i w_iY_i(t) r_i(t;z) (x_i- z)D_m' \label{ajij2} \\
  \frac{\partial\lambda_{jk}(t;z)}{\partial w_m} &= 
-    \frac{dN_{mjk}(t) -  dM_m(t)} {\sum_i w_i r_i(z) Y_{ij}(t)}
+    \frac{dN_{mjk}(t) -  dM_m(t)} {\sum_i w_i r_i(z) Y_{ij}(t)} 
     - \frac{\left[\sum_iw_i dN_{ijk}(t)\right] 
-            \left[\sum_i  w_iY_i(t) r_i(t;z) (x_i- z)D_m' \right]}
-         {\left[\sum_i w_i r_i(z) Y_{ij}(t)\ right]^2}      \nonumber \\
+           \left[\sum_i  w_iY_i(t) r_i(t;z) (x_i- z)D_m' \right]}
+           {\left[\sum_i w_i r_i(z) Y_{ij}(t) \right]^2}      \nonumber \\
     &= a - b \label{ajij3} \\
     a &= \exp(z-c)\frac{dN_{mjk}(t) -  dM_m(t)} {\sum_i w_i r_i(c) Y_{ij}(t)} 
              \nonumber \\
