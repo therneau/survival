@@ -12,8 +12,10 @@ concordance.formula <- function(object, data,
     timewt <- match.arg(timewt)
     if (missing(ymin)) ymin <- NULL
     if (missing(ymax)) ymax <- NULL
-    formula <- removeDoubleColonSurv(object)
-    Call$object <- formula
+    if (!identical(formula, newform)) {
+        formula <- newform
+        Call$formula <- formula
+    }
     
     index <- match(c("data", "weights", "subset", "na.action", 
                      "cluster"),

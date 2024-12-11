@@ -116,23 +116,39 @@ confint.survfit <- function(object, ...)
 # This is self defense for my functions agains the survival:: aficiandos.
 # Replace survival::strata with strata, survival:cluster with cluster, etc.
 #  Then update the envionment of the formula
-removeDoubleColonSurv <- function (formula)
+removeDoubleColonSurv <- function(formula)
 {
     doubleColon <- as.name("::")
-    sname <- c("Surv", "strata", "cluster", "pspline")
+    sname <- c("Surv", "strata", "cluster", "pspline", "tt")
+    found <- NULL; found2 <- NULL   # found = functions, found2= names
     fix <- function(expr) {
         if (is.call(expr) && identical(expr[[1]], doubleColon) && 
             identical(expr[[2]], as.name("survival"))) {
-            if (!is.na(match(deparse1(expr[[3]]), sname))) expr <- expr[[3]]
+            if (!is.na(i<- match(deparse1(expr[[3]]), sname))) {
+                expr <- expr[[3]]
+                found <<- c(found, sname[i])
+            }
         } else if (is.call(expr)) {
-            for(i in seq_along(expr)){
+             for(i in seq_along(expr)[-1]) {
                 expr[[i]] <- fix(expr[[i]])
             }
-        }
+        } else if (is.name(expr) && 
+                   !is.na(i <- match(as.character(expr), sname))) 
+            found2 <<- c(found2, sname[i])
         expr
     }
     newform <- fix(formula)
-    addSurvFun(newform)
+
+    # If something is used as a name and also a function, we can't add the
+    #  function to our env, e.g.,  coxph(Surv(time,stat) ~ strata + strata(group)
+    #  which is exactly what EPI:eff.match does. We will find the function as
+    #  a match for both of them, since our env is searched first.
+    # If some user has their own strata function and calls EPI:eff.match, they
+    #  are SOL, we can't save them
+
+    if (length(found2)) found <- found[!(found %in% found2)]
+    if (length(found))  addSurvFun(newform, found)
+    else formula
 }
 
 # The second part of my defense. Because model.frame is not a part of the
@@ -146,13 +162,13 @@ removeDoubleColonSurv <- function (formula)
 #  package has Imports:survival in the DESCRIPTION file but does not
 #  have import(survival) in the NAMESPACE.)
 #
-addSurvFun <- function(formula) {
+addSurvFun <- function(formula, found) {
     myenv <- new.env(parent= environment(formula))
-    assign("tt", function(x) x, envir=myenv)
-    assign("strata", strata, envir= myenv)
-    assign("Surv", Surv, envir= myenv)
-    assign("cluster", cluster, envir= myenv)
-    assign("pspline", pspline, envir= myenv)
+    if ("tt" %in% found)      assign("tt", function(x) x, envir=myenv)
+    if ("strta" %in% found)   assign("strata", strata, envir= myenv)
+    if ("Surv"  %in% found)   assign("Surv", Surv, envir= myenv)
+    if ("cluster" %in% found) assign("cluster", cluster, envir= myenv)
+    if ("pspline" %in% found) assign("pspline", pspline, envir= myenv)
     environment(formula) <- myenv
     formula
 }

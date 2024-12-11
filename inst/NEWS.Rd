@@ -1,5 +1,21 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 3.8-1}{
+  \itemize{
+    \item Changes needed to pass reverse dependency checks, largely
+    tightening things up wrt to the formula fix. In summary, the
+    survival package routines now ensure that anything in a formula that
+    is a part of the package, is found in the package first.  There is
+    no need for things like coxph(survival::Surv(time, status) ~ ph.ecog
+    + survival::strata(inst), data=lung), in fact you should not do
+    this. Using survival::coxph rather than coxph is a completely
+    different question, these updates have no bearing on that, only on
+    functions within a formula.  Note that prior to this update using
+    survival::strata(inst) above would give the wrong answer; because ::
+    mucks up formula processing the term would not be recognized as a
+    stratum, and the resulting fit equivalent to using factor(inst).
+}}
+
 \section{Changes in version 3.8-0}{
   \itemize{
     \item Survival curves which used the id option, for a coxph fit with

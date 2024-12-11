@@ -9,8 +9,11 @@ survreg <- function(formula, data, weights, subset, na.action,
     #  a local copy, doing otherwise messes up future use of update() on
     #  the model object for a user stuck in "+ cluster()" mode.
     if (missing(formula)) stop("a formula argument is required")
-    formula <- removeDoubleColonSurv(formula)
-    Call$formula <- formula
+    newform <- removeDoubleColonSurv(formula)
+    if (!identical(formula, newform)) {
+        formula <- newform
+        Call$formula <- formula
+    }
  
     ss <- c("cluster", "offset")
     Terms <- if (missing(data)) terms(formula, specials=ss) else

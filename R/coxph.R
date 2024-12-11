@@ -30,10 +30,19 @@ coxph <- function(formula, data, weights, subset, na.action,
     else stop("control argument must be a list")
 
     # Protect internal calls in the formula from survival:: users
-    if (is.list(formula)) formula[[1]] <- removeDoubleColonSurv(formula[[1]])
-    else formula <- removeDoubleColonSurv(formula)
-    Call$formula <- formula  # save the nicer version
-
+    if (is.list(formula)) {
+        newform <- removeDoubleColonSurv(formula[[1]])
+        if (!identical(newform, formula[[1]])) {
+            formula[[1]] <- newform
+            Call$formula <- newform
+        }
+    } else {
+        newform <- removeDoubleColonSurv(formula)
+        if (!identical(formula, newform)) {
+            formula <- newform
+            Call$formula <- formula  # save the nicer version
+        }
+    }
     # Move any cluster() term out of the formula, and make it an argument
     #  instead.  This makes everything easier.  But, I can only do that with
     #  a local copy, doing otherwise messes up future use of update() on
