@@ -129,6 +129,10 @@ removeDoubleColonSurv <- function(formula)
                 found <<- c(found, sname[i])
             }
         } else if (is.call(expr)) {
+            if (TRUE) {  # there are arguments about this one
+                if (!is.na(i <- match(deparse1(expr[[1]]), sname)))
+                    found <<- c(found, sname[i])
+            }
              for(i in seq_along(expr)[-1]) {
                 expr[[i]] <- fix(expr[[i]])
             }
