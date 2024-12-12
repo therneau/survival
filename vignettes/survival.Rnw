@@ -2306,22 +2306,17 @@ tldata <- merge(tldata, with(nafld1, data.frame(id=id, days=futime, death=status
 
 # Add in the comorbidities of interest.  None of these 4 happen to have
 #  duplicates (MI does, for instance).  
-# Start by removing the the 13 rows with a "confirmed NAFLD" (actual NAFLD + 1 year)
-#  that is after the actual last follow-up date.
 # Treat diabetes before day 0 as diabetes on day 0.
-badrow <- which(nafld3$days > nafld1$futime[match(nafld3$id, nafld1$id)])
-fixnf3 <- nafld3[-badrow,]
-
-tldata <- merge(tldata, with(subset(fixnf3, event=="diabetes"),
+tldata <- merge(tldata, with(subset(nafld3, event=="diabetes"),
                            data.frame(id=id, days=pmax(0,days), diabetes=1)),
                    all=TRUE, by=c("id", "days"))
-tldata <- merge(tldata, with(subset(fixnf3, event=="htn"),
+tldata <- merge(tldata, with(subset(nafld3, event=="htn"),
                            data.frame(id=id, days=pmax(0,days), htn=1)),
                      all=TRUE, by=c("id", "days"))
-tldata <- merge(tldata, with(subset(fixnf3, event=="dyslipidemia"),
+tldata <- merge(tldata, with(subset(nafld3, event=="dyslipidemia"),
                            data.frame(id=id, days= pmax(0, days), dyslipid=1)),
                        all=TRUE, by=c("id", "days"))
-tldata <- merge(tldata, with(subset(fixnf3, event=="nafld"),
+tldata <- merge(tldata, with(subset(nafld3, event=="nafld"),
                            data.frame(id=id, days= pmax(0,days), nafld=1)),
                     by=c("id", "days"), all=TRUE)
 
@@ -2332,7 +2327,7 @@ We want to assume that a subject is non-NAFLD until detection, which means setti
 \code{nafld} to 0 at time 0; this was done in the first tldata line above.
 Ideally, we would have a version of \code{merge} that overwrites that value for
 a subject with NAFLD on day 0, but that is not how \code{merge} works;
-given \code{any} tied days between tldata and fixnf3 there will be two variables
+given \code{any} tied days between tldata and nafld3 there will be two variables
 \code{nafld.x} and \code{nafld.y}.  The last line above makes one from the two.
 Initial values for the number of comorbidities are handled by the cumevent function.
 

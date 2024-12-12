@@ -60,13 +60,13 @@ coxph <- function(formula, data, weights, subset, na.action,
     # make Surv(), strata() etc in a formula resolve to the survival namespace
     if (is.list(formula)) {
         newform <- removeDoubleColonSurv(formula[[1]])
-        if (!is.null(newform) {
+        if (!is.null(newform)) {
             formula[[1]] <- newform$formula
             if (newform$newcall) Call$formula <- newform$formula
         }
     } else {
         newform <- removeDoubleColonSurv(formula)
-        if (!is.null(newform) {
+        if (!is.null(newform)) {
             formula <- newform$formula
             if (newform$newcall) Call$formula <- formula  #save the nicer version
         }

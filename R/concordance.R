@@ -12,7 +12,8 @@ concordance.formula <- function(object, data,
     timewt <- match.arg(timewt)
     if (missing(ymin)) ymin <- NULL
     if (missing(ymax)) ymax <- NULL
-    if (missing(formula)) stop("a formula argument is required")
+    if (missing(object)) stop("a formula argument is required")
+    formula <- object  # clearer to read below
 
     # make Surv(), strata() etc in a formula resolve to the survival namespace
     newform <- removeDoubleColonSurv(formula)
