@@ -159,10 +159,6 @@ removeDoubleColonSurv <- function(formula)
     # c. Option a causes more downstream techncial troubles than it is worth.
     # We currenty opt for c.
     
-    # Note on 12/12: I've discovered that an entire premise is wrong: adding Surv
-    #  to the environment of the formula does not make it found before a local
-    #  copy.  Until I figure this out, revert to only tt(), needed for coxph
-#    if (any(found== "tt")){
     if (length(found) >0) { # most often true 
         list(formula = addSurvFun(newform, found), newcall=FALSE)
        #list(newform = addSurvFun(newform, found), newcall= !is.null(found1))
@@ -183,7 +179,7 @@ removeDoubleColonSurv <- function(formula)
 addSurvFun <- function(formula, found) {
     myenv <- new.env(parent= environment(formula))
     if ("tt" %in% found)      assign("tt", function(x) x, envir=myenv)
-    if ("strta" %in% found)   assign("strata", strata, envir= myenv)
+    if ("strata" %in% found)  assign("strata", strata, envir= myenv)
     if ("Surv"  %in% found)   assign("Surv", Surv, envir= myenv)
     if ("cluster" %in% found) assign("cluster", cluster, envir= myenv)
     if ("pspline" %in% found) assign("pspline", pspline, envir= myenv)

@@ -168,22 +168,24 @@ option the computed variance treats any weights as sampling weights;
 setting all weights to 2 will in this case give the same variance as weights of 1.
 }
 \section{Special terms}{
-There are three special terms that may be used in the model equation. 
+  There are a few special terms that may be used in the model equation:
+\code{strata}, \code{tt}, \code{pspline}, \code{frailty} and
+\code{ridge}.
+Each look like an ordinary function, e.g. \code{+ strata(group)} but are
+specially identifies so that they can be treated in a special way.
+The term \code{+ cluster(group)} is also but is depricated, use a
+a \code{cluster} arguement outside the formula instead.
+
 A \code{strata} term identifies a stratified Cox model; separate baseline 
-hazard functions are fit for each strata. 
-The \code{cluster} term is used to compute a robust variance for the model. 
-The term \code{+ cluster(id)} where each value of \code{id} is unique is
-equivalent to 
-specifying the \code{robust=TRUE} argument.
+hazard functions are fit for each strata.
+
+A time-transform term allows variables to vary dynamically in time.  In
+this case the \code{tt} argument will be a function or a list of
+functions (if there are more than one tt() term in the model) giving the
+appropriate transform.   See the examples below.
 If the \code{id} variable is not 
 unique, it is assumed that it identifies clusters of correlated
 observations.
-The robust estimate arises from many different arguments and thus has
-had many labels.  It is variously known as the
-Huber sandwich estimator, White's estimate (linear models/econometrics),
-the Horvitz-Thompson estimate (survey sampling), the working
-independence variance (generalized estimating equations), the
-infinitesimal jackknife, and the Wei, Lin, Weissfeld (WLW) estimate.
 
 A time-transform term allows variables to vary dynamically in time.  In
 this case the \code{tt} argument will be a function or a list of
@@ -194,17 +196,34 @@ One user mistake that has recently arisen is to slavishly follow the
 advice of some coding guides and prepend \code{survival::} onto
 everthing, including the special terms, e.g.,
   \code{survival::coxph(survival:Surv(time, status) ~ age +
-    survival::cluster(inst), data=lung)}
-First, this is unnecessary: arguments within the \code{coxph} call will
-be evaluated within the survival namespace, so another package's Surv or
-cluster function would not be noticed.
-(Full qualification of the coxph call itself may be protective, however.)
-Second, and more importantly, the call just above will not give the
-correct answer.  The specials are recognized by their name, and
-\code{survival::cluster} is not the same as \code{cluster}; the above model would
-treat \code{inst} as an ordinary variable.
-A similar issue arises from using \code{stats::offset} as a term, in
-either survival or glm models.
+    survival::strata(inst), data=lung)}
+  
+First, for this actually will not fit the model that was intended, as
+the :: interferes with the recognition of specials by the underlying
+\code{model.frame} function; there will a coefficient per
+institution rather than fitting a stratified model.
+A similar issue arises from using \code{stats::offset} as a term in
+a glm model.
+
+From survival 3.8-1 onward it is also unnessary: the common formula
+arguments that are part of the survival namespace will be found in that
+namespace, i.e., Surv, strata, tt, pspline, and cluster.  A survival::
+prefex found on any of these is actually removed before evaluation of
+the formula.
+This only affects the formula itself; whether to use the qualified
+form \code{survival::coxph} for the call itself is a different discussion.
+}
+
+\section{Robust variance}{
+The robust estimate arises from many different arguments and thus has
+had many labels.  It is variously known as the
+Huber sandwich estimator, White's estimate (linear models/econometrics),
+the Horvitz-Thompson estimate (survey sampling), the working
+independence variance (generalized estimating equations), the
+infinitesimal jackknife, and the Wei, Lin, Weissfeld (WLW) estimate.
+
+If there is an \code{id} or \code{cluster} argument in the call, or
+\code{robust=TRUE}, the robust variance is computed.
 }
 
 \section{Convergence}{

@@ -1,5 +1,5 @@
 
-R Under development (unstable) (2024-08-21 r87038) -- "Unsuffered Consequences"
+R Under development (unstable) (2024-12-10 r87437) -- "Unsuffered Consequences"
 Copyright (C) 2024 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu
 
@@ -15,33 +15,56 @@ Type 'demo()' for some demos, 'help()' for on-line help, or
 'help.start()' for an HTML browser interface to help.
 Type 'q()' to quit R.
 
-> #
-> # Verify the success of my "stop the :: madness" fixes
-> #
+> # 
+> # Check that my updates to a. remove survival:: out of formulas and
+> #  b: ensure that Surv(), cluster(), strata(), pspline(), and tt() use
+> #   those functions from the survival namespace, when called in a coxph,
+> #   survfit, survreg, etc formula
 > library(survival)
-> aeq <- function(x, y, ...) all.equal(as.vector(x), as.vector(y), ...)
 > 
+> c1 <- coxph(Surv(time, status) ~ age + strata(inst), lung)
+> 
+> # a local Surv that gives the wrong answer but won't error out
+> Surv <- function(x, ...) survival::Surv(x, rep(1, length(x)))
+> c2 <-  coxph(Surv(time, status) ~ age + strata(inst), lung)
+> 
+> c3 <- coxph(survival::Surv(time, status) ~ age + survival::strata(inst), lung)
+> # in prior releases the above fits a different model, stata is not recognized
+> #  as a special and becomes a factor
+> 
+> all.equal(coef(c1), coef(c2))
+[1] TRUE
+> all.equal(coef(c1), coef(c3))
+[1] TRUE
+> 
+> !(c2$call$formula == c3$call$formula)  # the call doesn't get changed
+[1] TRUE
+> c2$formula == c3$formula               # but the formula is changed
+[1] TRUE
+> 
+> 
+> nocall <- function(x) x[-match("call", names(x))]  # all but $call
 > fit1a <- coxph(Surv(time, status) ~ age + strata(sex) + cluster(inst), lung)
 > fit1b <- coxph(Surv(time, status) ~ age + survival::strata(sex) +
 +                    survival::cluster(inst), lung)
-> all.equal(fit1a, fit1b)
+> all.equal(nocall(fit1a), nocall(fit1b))
 [1] TRUE
 > 
 > fit2a <- survdiff(Surv(time, status) ~ ph.ecog + strata(sex), lung)
 > fit2b <- survdiff(Surv(time, status) ~ ph.ecog + survival::strata(sex), lung)
-> all.equal(fit2a, fit2b)
+> all.equal(nocall(fit2a), nocall(fit2b))
 [1] TRUE
 > 
 > fit3a <- survreg(Surv(time, status) ~ ph.ecog + strata(sex), lung)
 > fit3b <- survreg(Surv(time, status) ~ ph.ecog + survival::strata(sex), lung)
-> all.equal(fit3a, fit3b)
+> all.equal(nocall(fit3a), nocall(fit3b))
 [1] TRUE
 > 
 > fit4a <- concordance(Surv(time, status) ~ ph.ecog + strata(sex), lung)
 > fit4b <- concordance(Surv(time, status) ~ ph.ecog + survival::strata(sex), lung)
-> all.equal(fit4a, fit4b)
+> all.equal(nocall(fit4a), nocall(fit4b))
 [1] TRUE
 > 
 > proc.time()
    user  system elapsed 
-  0.805   0.072   0.870 
+  0.959   0.056   1.005 
