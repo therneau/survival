@@ -5,10 +5,12 @@ survdiff <- function(formula, data, subset, na.action, rho=0, timefix=TRUE) {
 
     if (!inherits(formula, 'formula'))
         stop("The 'formula' argument is not a formula")
+    # make Surv(), strata() etc in a formula resolve to the survival namespace
+    if (missing(formula)) stop("a formula argument is required")
     newform <- removeDoubleColonSurv(formula)
-    if (!identical(formula, newform)) {
-        formula <- newform
-        call$formula <- formula
+    if (!is.null(newform)) {
+        formula <- newform$formula
+        if (newform$newcall) Call$formula <- formula
     }
 
     Terms <- if(missing(data)) terms(formula, 'strata')

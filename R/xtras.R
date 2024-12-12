@@ -120,25 +120,26 @@ removeDoubleColonSurv <- function(formula)
 {
     doubleColon <- as.name("::")
     sname <- c("Surv", "strata", "cluster", "pspline", "tt")
-    found <- NULL; found2 <- NULL   # found = functions, found2= names
+    # three counts: survival::sname(), sname(), sname as variable
+    found1 <- found2 <- found3 <- NULL 
     fix <- function(expr) {
         if (is.call(expr) && identical(expr[[1]], doubleColon) && 
             identical(expr[[2]], as.name("survival"))) {
             if (!is.na(i<- match(deparse1(expr[[3]]), sname))) {
                 expr <- expr[[3]]
-                found <<- c(found, sname[i])
+                found1 <<- c(found1, sname[i])
             }
         } else if (is.call(expr)) {
             if (TRUE) {  # there are arguments about this one
                 if (!is.na(i <- match(deparse1(expr[[1]]), sname)))
-                    found <<- c(found, sname[i])
+                    found2 <<- c(found2, sname[i])
             }
              for(i in seq_along(expr)[-1]) {
                 expr[[i]] <- fix(expr[[i]])
             }
         } else if (is.name(expr) && 
                    !is.na(i <- match(as.character(expr), sname))) 
-            found2 <<- c(found2, sname[i])
+            found3 <<- c(found3, sname[i])
         expr
     }
     newform <- fix(formula)
@@ -149,10 +150,21 @@ removeDoubleColonSurv <- function(formula)
     #  a match for both of them, since our env is searched first.
     # If some user has their own strata function and calls EPI:eff.match, they
     #  are SOL, we can't save them
+    found <- unique(c(found1, found2))
+    if (length(found3)) found <- found[!(found %in% found2)]
 
-    if (length(found2)) found <- found[!(found %in% found2)]
-    if (length(found))  addSurvFun(newform, found)
-    else formula
+    # Return a list of 2 parts: the new formula (with updated environment),
+    # and whether the "call" component should be rewritten. There are three
+    # opinions wrt the second. a. If a survival:: was removed, then we want
+    # that to also disappear from model printouts, a reinforcement for the
+    # users that they shouldn't type that. (length of found1 > 0)
+    # b. Option a is dishonest, the call should be what you typed  
+    # c. Option a causes more downstream techncial troubles than it is worth.
+    # We currenty opt for c.
+    if (length(found)) { # most often true 
+        list(formula = addSurvFun(newform, found), newcall=FALSE)
+       #list(newform = addSurvFun(newform, found), newcall= !is.null(found1))
+    } else NULL # don't return a new formula
 }
 
 # The second part of my defense. Because model.frame is not a part of the

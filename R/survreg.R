@@ -4,17 +4,18 @@ survreg <- function(formula, data, weights, subset, na.action,
 
     Call <- match.call()    # save a copy of the call
 
+    # make Surv(), strata() etc in a formula resolve to the survival namespace
+    if (missing(formula)) stop("a formula argument is required")
+    newform <- removeDoubleColonSurv(formula)
+    if (!is.null(newform)) {
+        formula <- newform$formula
+        if (newform$newcall) Call$formula <- formula
+    }
+    
     # Move any cluster() term out of the formula, and make it an argument
     #  instead.  This makes everything easier.  But, I can only do that with
     #  a local copy, doing otherwise messes up future use of update() on
     #  the model object for a user stuck in "+ cluster()" mode.
-    if (missing(formula)) stop("a formula argument is required")
-    newform <- removeDoubleColonSurv(formula)
-    if (!identical(formula, newform)) {
-        formula <- newform
-        Call$formula <- formula
-    }
- 
     ss <- c("cluster", "offset")
     Terms <- if (missing(data)) terms(formula, specials=ss) else
                  terms(formula, specials=ss, data=data)

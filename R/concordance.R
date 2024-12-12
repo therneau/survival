@@ -12,11 +12,15 @@ concordance.formula <- function(object, data,
     timewt <- match.arg(timewt)
     if (missing(ymin)) ymin <- NULL
     if (missing(ymax)) ymax <- NULL
-    if (!identical(formula, newform)) {
-        formula <- newform
-        Call$formula <- formula
+    if (missing(formula)) stop("a formula argument is required")
+
+    # make Surv(), strata() etc in a formula resolve to the survival namespace
+    newform <- removeDoubleColonSurv(formula)
+    if (!is.null(newform)) {
+        formula <- newform$formula
+        if (newform$newcall) Call$formula <- formula
     }
-    
+   
     index <- match(c("data", "weights", "subset", "na.action", 
                      "cluster"),
                    names(Call), nomatch=0)
@@ -26,17 +30,6 @@ concordance.formula <- function(object, data,
     temp$formula <- if(missing(data)) terms(formula, special)
                     else              terms(formula, special, data=data)
 
-    # Make "strata" be local to the formula, without invoking any
-    #  outside functions. We do this by inserting another environment on
-    #  the front of the search path.  This is
-    #  part of my defense against use of survival::strata.  Putting a local
-    #  copy first on the path allows for users who don't want to load the
-    #  survival namespace.
-    coxenv <- new.env(parent= environment(formula))
-    assign("strata", survival::strata, envir= coxenv)
-    assign("cluster", survival::cluster, envir=coxenv)
-    environment(temp$formula) <- coxenv
- 
     mf <- eval(temp, parent.frame())  # model frame
     if (nrow(mf) ==0) stop("No (non-missing) observations")
     Terms <- terms(mf)

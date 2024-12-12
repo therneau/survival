@@ -18,9 +18,9 @@ survfit.formula <- function(formula, data, weights, subset,
     Call <- match.call()
     if (missing(formula)) stop("a formula argument is required")
     newform <- removeDoubleColonSurv(formula)
-    if (!identical(formula, newform)) {
-        formula <- newform
-        Call$formula <- formula
+    if (!is.null(newform)) {
+        formula <- newform$formula
+        if (newform$newcall) Call$formula <- formula
     }
     Call[[1]] <- as.name('survfit')  #make nicer printout for the user
 
