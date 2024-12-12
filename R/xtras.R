@@ -118,23 +118,20 @@ confint.survfit <- function(object, ...)
 #  Then update the envionment of the formula
 removeDoubleColonSurv <- function(formula)
 {
-    doubleColon <- as.name("::")
     sname <- c("Surv", "strata", "cluster", "pspline", "tt")
+    cname <- paste0("survival::", sname)
     # three counts: survival::sname(), sname(), sname as variable
     found1 <- found2 <- found3 <- NULL 
     fix <- function(expr) {
-        if (is.call(expr) && identical(expr[[1]], doubleColon) && 
-            identical(expr[[2]], as.name("survival"))) {
-            if (!is.na(i<- match(deparse1(expr[[3]]), sname))) {
-                expr <- expr[[3]]
-                found1 <<- c(found1, sname[i])
-            }
-        } else if (is.call(expr)) {
-            if (TRUE) {  # there are arguments about this one
-                if (!is.na(i <- match(deparse1(expr[[1]]), sname)))
+        if (is.call(expr)) {
+            if (!is.na(i <- match(deparse1(expr[[1]]), sname)))
                     found2 <<- c(found2, sname[i])
+            else if (!is.na(i <- match(deparse1(expr[[1]]), cname))) {
+                found1 <<- c(found1, sname[i])
+                # remove the survival:: part
+                expr[[1]] <- str2lang(paste0(sname[i], '()'))[[1]]
             }
-             for(i in seq_along(expr)[-1]) {
+            for(i in seq_along(expr)[-1]) {
                 expr[[i]] <- fix(expr[[i]])
             }
         } else if (is.name(expr) && 
@@ -161,7 +158,12 @@ removeDoubleColonSurv <- function(formula)
     # b. Option a is dishonest, the call should be what you typed  
     # c. Option a causes more downstream techncial troubles than it is worth.
     # We currenty opt for c.
-    if (length(found)) { # most often true 
+    
+    # Note on 12/12: I've discovered that an entire premise is wrong: adding Surv
+    #  to the environment of the formula does not make it found before a local
+    #  copy.  Until I figure this out, revert to only tt(), needed for coxph
+#    if (any(found== "tt")){
+    if (length(found) >0) { # most often true 
         list(formula = addSurvFun(newform, found), newcall=FALSE)
        #list(newform = addSurvFun(newform, found), newcall= !is.null(found1))
     } else NULL # don't return a new formula
