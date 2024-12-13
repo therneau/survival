@@ -1,6 +1,6 @@
 print.summary.coxph.penal <-
  function(x,  digits = max(options()$digits - 3, 3),
-           signif.stars = getOption("show.signif.stars"), ...) {
+           signif.stars = getOption("show.signif.stars"), maxlabel = 25, ...) {
     if (!is.null(x$call)) {
 	cat("Call:\n")
 	dput(x$call)
@@ -30,7 +30,8 @@ print.summary.coxph.penal <-
 		       format(round(print1[,5], 2)),
 		       format(signif(print1[,6], 2)))
     temp <- ifelse(is.na(print1), "", temp)
-    dimnames(temp) <- dimnames(print1)
+    dimnames(temp) <- list(substring(rownames(print1), 1, maxlabel),
+			   colnames(print1))
     print(temp, quote=FALSE)
 
     if(length(x$conf.int) >0 ) {
