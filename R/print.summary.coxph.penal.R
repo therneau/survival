@@ -36,7 +36,9 @@ print.summary.coxph.penal <-
 
     if(length(x$conf.int) >0 ) {
         cat("\n")
-        print(x$conf.int)
+	temp2 <- x$conf.int
+	rownames(temp2) <- substring(rownames(temp2), 1, maxlabel)
+        print(temp2)
         }
     logtest <- -2 * (x$loglik[1] - x$loglik[2])
     sctest <- x$score
