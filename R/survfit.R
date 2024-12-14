@@ -30,6 +30,12 @@ survfit.formula <- function(formula, data, weights, subset,
                     'istate', 'id', 'cluster', "etype"), names(Call), nomatch=0)
     temp <- Call[c(1, indx)]
     temp[[1L]] <- quote(stats::model.frame)
+    # make sure we evaluate Surv, strata etc in the survival namespace
+    newform <- removeDoubleColonSurv(formula)
+    if (!is.null(newform)) {
+        temp$formula <- newform$formula
+        if (newform$newcall) Call$formula <- formula
+    }
     mf <- eval.parent(temp)
 
     Terms <- terms(formula, c("strata", "cluster"))

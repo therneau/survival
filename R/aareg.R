@@ -18,6 +18,12 @@ aareg <- function(formula, data, weights, subset, na.action,
     #  a local copy, doing otherwise messes up future use of update() on
     #  the model object for a user stuck in "+ cluster()" mode.
     if (missing(formula)) stop("a formula argument is required")
+    # make Surv(), strata() resolve to the survival namespace
+    newform <- removeDoubleColonSurv(formula)
+    if (!is.null(newform)) {
+        formula <- newform$formula
+        if (newform$newcall) Call$formula <- formula
+    }
     
     ss <- c("cluster", "offset")
     Terms <- if (missing(data)) terms(formula, specials=ss) else

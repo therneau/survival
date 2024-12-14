@@ -1,5 +1,14 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 3.8-2}{
+  \itemize{
+    \item Round 2 of updates, to pass reverse dependency checks. In
+    3.8-1 I had made a silly copy-paste mistake in the update to
+    survfit, and also added a new test for my changes (doublecolon.R).
+    Of course, the only check that I forgot to include in the new
+    doublecolon file was for ... survfit (coxph, survdiff, survreg,
+    survcheck, and concordance were all there).
+}}
 \section{Changes in version 3.8-1}{
   \itemize{
     \item Changes needed to pass reverse dependency checks, largely
