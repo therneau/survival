@@ -132,8 +132,12 @@ removeDoubleColonSurv <- function(formula)
                 expr[[1]] <- str2lang(paste0(sname[i], '()'))[[1]]
             }
             for(i in seq_along(expr)[-1]) {
-                expr[[i]] <- fix(expr[[i]])
-            }
+                # the !is.null is to deal with the rare case of 
+                # Surv(time, status) ~ NULL, which is legal (I was surprised:
+                # and My.stepwise does it). Setting a term to NULL removes it,
+                # leaving an invalid formula with no right hand side.
+                if (!is.null(expr[[i]])) expr[[i]] <- fix(expr[[i]])
+             }
         } else if (is.name(expr) && 
                    !is.na(i <- match(as.character(expr), sname))) 
             found3 <<- c(found3, sname[i])

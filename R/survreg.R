@@ -45,15 +45,6 @@ survreg <- function(formula, data, weights, subset, na.action,
     temp <- Call[c(1,indx)]  # only keep the arguments we wanted
     temp[[1L]] <- quote(stats::model.frame)   # change the function called
 
-    # Make "strata" be local to the formula, without invoking any
-    #  outside functions. We do this by inserting another environment on
-    #  the front of the search path.  This is
-    #  part of my defense against use of survival::strata.  Putting a local
-    #  copy first on the path allows for users who don't want to load the
-    #  survival namespace.
-    coxenv <- new.env(parent= environment(formula))
-    assign("strata", survival::strata, envir= coxenv)
-    environment(temp$formula) <- coxenv
     special <- c("strata")
     temp$formula <- if(missing(data)) terms(formula, special)
                     else              terms(formula, special, data=data)
