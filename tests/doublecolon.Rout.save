@@ -39,9 +39,9 @@ Type 'q()' to quit R.
 > all.equal(coef(c1), coef(c3))
 [1] TRUE
 > 
-> !(c2$call$formula == c3$call$formula)  # the call doesn't get changed
+> !(c2$call$formula == c3$call$formula)  # c3$call will have 2 survival::, c2 none
 [1] TRUE
-> c2$formula == c3$formula               # but the formula is changed
+> deparse1(c3$formula) == "survival::Surv(time, status) ~ age + strata(inst)"  
 [1] TRUE
 > 
 > nocall <- function(x, omit="call") {
@@ -60,7 +60,7 @@ Type 'q()' to quit R.
 [1] TRUE
 > 
 > fit2a <- survdiff(Surv(time, status) ~ sex + strata(inst), lung)
-> fit2b <- survdiff(survival::Surv(time, status) ~ sex + survival::strata(inst),
+> fit2b <- survdiff(Surv(time, status) ~ sex + survival::strata(inst),
 +                   data= lung)
 > all.equal(nocall(fit2a), nocall(fit2b))
 [1] TRUE
@@ -68,7 +68,7 @@ Type 'q()' to quit R.
 [1] TRUE
 > 
 > fit3a <- survreg(Surv(time, status) ~ ph.ecog + strata(sex), lung)
-> fit3b <- survreg(survival::Surv(time, status) ~ ph.ecog + survival::strata(sex),
+> fit3b <- survreg(Surv(time, status) ~ ph.ecog + survival::strata(sex),
 +                  data= survival::lung)
 > all.equal(nocall(fit3a), nocall(fit3b))
 [1] TRUE
@@ -80,7 +80,7 @@ Type 'q()' to quit R.
 > 
 > fit5a <- survfit(Surv(time, status) ~ sex, lung)
 > fit5b <- survfit(Surv(time, status) ~ strata(sex), lung)
-> fit5c <- survfit(survival::Surv(time, status) ~  survival::strata(sex), lung)
+> fit5c <- survfit(Surv(time, status) ~  survival::strata(sex), lung)
 > fit5d <- survfit(y2 ~  survival::strata(sex), lung)
 > all.equal(nocall(fit5a, c("call", "strata")), nocall(fit5b, c("call", "strata")))
 [1] TRUE
@@ -91,4 +91,4 @@ Type 'q()' to quit R.
 > 
 > proc.time()
    user  system elapsed 
-  1.041   0.089   1.129 
+  1.231   0.072   1.293 

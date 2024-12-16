@@ -115,11 +115,15 @@ confint.survfit <- function(object, ...)
 
 # This is self defense for my functions agains the survival:: aficiandos.
 # Replace survival::strata with strata, survival:cluster with cluster, etc.
+# We don't need to replace survival::Surv, it is legal either way, and there
+#  is a lot of usage of this.
 #  Then update the envionment of the formula
 removeDoubleColonSurv <- function(formula)
 {
-    sname <- c("Surv", "strata", "cluster", "pspline", "tt")
-    cname <- paste0("survival::", sname)
+    sname <- c("Surv", "strata", "cluster", "pspline", "tt",
+               "frailty", "ridge", "frailty", "frailty.gaussian",
+               "frailty.gamma", "frailty.t")
+    cname <- paste0("survival::", sname[-1])
     # three counts: survival::sname(), sname(), sname as variable
     found1 <- found2 <- found3 <- NULL 
     fix <- function(expr) {
@@ -127,9 +131,9 @@ removeDoubleColonSurv <- function(formula)
             if (!is.na(i <- match(deparse1(expr[[1]]), sname)))
                     found2 <<- c(found2, sname[i])
             else if (!is.na(i <- match(deparse1(expr[[1]]), cname))) {
-                found1 <<- c(found1, sname[i])
+                found1 <<- c(found1, sname[i+1])
                 # remove the survival:: part
-                expr[[1]] <- str2lang(paste0(sname[i], '()'))[[1]]
+                expr[[1]] <- str2lang(paste0(sname[i+1], '()'))[[1]]
             }
             for(i in seq_along(expr)[-1]) {
                 # the !is.null is to deal with the rare case of 
@@ -179,14 +183,13 @@ removeDoubleColonSurv <- function(formula)
 #  (In fact, we found out that the :: form can fail, i.e., if another
 #  package has Imports:survival in the DESCRIPTION file but does not
 #  have import(survival) in the NAMESPACE.)
+#  Thus get(i) rather than get(paste0("survival::", i))
 #
 addSurvFun <- function(formula, found) {
     myenv <- new.env(parent= environment(formula))
-    if ("tt" %in% found)      assign("tt", function(x) x, envir=myenv)
-    if ("strata" %in% found)  assign("strata", strata, envir= myenv)
-    if ("Surv"  %in% found)   assign("Surv", Surv, envir= myenv)
-    if ("cluster" %in% found) assign("cluster", cluster, envir= myenv)
-    if ("pspline" %in% found) assign("pspline", pspline, envir= myenv)
+    tt <- function(x) x
+    for (i in found) 
+        assign(i, get(i), envir= myenv)
     environment(formula) <- myenv
     formula
 }

@@ -10,7 +10,8 @@ model.frame.survreg <- function (formula, ...) {
         if (indx[1] == 0) 
             stop("The coxph call is missing a formula!")
         temp <- fcall[c(1, indx)]
-        temp[[1L]] <- quote(stats::model.frame)
+        temp[[1L]] <- quote(stats::model.frame) 
+        temp$formula <- formula$terms #retain removeDoubleColon changes
         temp$xlev <- formula$xlevels
         if (length(nargs) > 0) 
             temp[names(nargs)] <- nargs

@@ -5,7 +5,7 @@
     \item Round 2 of updates, to pass reverse dependency checks. In
     3.8-1 I had made a silly copy-paste mistake in the update to
     survfit, and also added a new test for my changes (doublecolon.R).
-    Of course, the only check that I forgot to include in the new
+    Of course, the only check that I forgot to include in the
     doublecolon file was for ... survfit (coxph, survdiff, survreg,
     survcheck, and concordance were all there).
 }}

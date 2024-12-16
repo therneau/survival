@@ -20,8 +20,8 @@ c3 <- coxph(survival::Surv(time, status) ~ age + survival::strata(inst), lung)
 all.equal(coef(c1), coef(c2))
 all.equal(coef(c1), coef(c3))
 
-!(c2$call$formula == c3$call$formula)  # the call doesn't get changed
-c2$formula == c3$formula               # but the formula is changed
+!(c2$call$formula == c3$call$formula)  # c3$call will have 2 survival::, c2 none
+deparse1(c3$formula) == "survival::Surv(time, status) ~ age + strata(inst)"  
 
 nocall <- function(x, omit="call") {
     z <- unclass(x)  # needed for any object with a [ method
@@ -37,13 +37,13 @@ all.equal(nocall(fit1a), nocall(fit1b))
 aeq(coef(fit1a), coef(fit1c))
 
 fit2a <- survdiff(Surv(time, status) ~ sex + strata(inst), lung)
-fit2b <- survdiff(survival::Surv(time, status) ~ sex + survival::strata(inst),
+fit2b <- survdiff(Surv(time, status) ~ sex + survival::strata(inst),
                   data= lung)
 all.equal(nocall(fit2a), nocall(fit2b))
 aeq(rowSums(fit2a$obs), c(111, 53))  # make sure it use the correct Surv
 
 fit3a <- survreg(Surv(time, status) ~ ph.ecog + strata(sex), lung)
-fit3b <- survreg(survival::Surv(time, status) ~ ph.ecog + survival::strata(sex),
+fit3b <- survreg(Surv(time, status) ~ ph.ecog + survival::strata(sex),
                  data= survival::lung)
 all.equal(nocall(fit3a), nocall(fit3b))
 
@@ -53,7 +53,7 @@ all.equal(nocall(fit4a), nocall(fit4b))
 
 fit5a <- survfit(Surv(time, status) ~ sex, lung)
 fit5b <- survfit(Surv(time, status) ~ strata(sex), lung)
-fit5c <- survfit(survival::Surv(time, status) ~  survival::strata(sex), lung)
+fit5c <- survfit(Surv(time, status) ~  survival::strata(sex), lung)
 fit5d <- survfit(y2 ~  survival::strata(sex), lung)
 all.equal(nocall(fit5a, c("call", "strata")), nocall(fit5b, c("call", "strata")))
 all.equal(nocall(fit5b), nocall(fit5c))
