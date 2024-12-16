@@ -18,15 +18,15 @@
 **  routine will be called separatedly for individual strata, with otime the
 **  event times in that stratum.  Ditto for a multistate model that had
 **  external strata.
-** 
+**
 **  otime:  vector of output times.  All the transitions will get reports at
-**            these time points.  This fcn is called for all of the 
+**            these time points.  This fcn is called for all of the
 **            transitions at once, sorted by transition,
 **            but called separately for any strata() groups.
 **  y   :    survival response, two column
 **  weight:  observation weight
 **  sort2: sort index for the survival time
-**  trans:   the data set is stacked: all the data for transition 1, then 
+**  trans:   the data set is stacked: all the data for transition 1, then
 **            transition 2, etc for a multi-state model (th
 **  xmat2:   covariates
 **  risk2:   risk score
@@ -35,7 +35,7 @@
 **           matrices with xbar for those at risk, and the sum of x for
 **	     terminal events at the current time.
 **
-**  For the weighted counts, number at risk != entries - exits.  Someone with 
+**  For the weighted counts, number at risk != entries - exits.  Someone with
 **    a sequence of (1,2)(2,5)(5,6) will have 1 entry and 1 exit, but they might
 **    have 3 changes of risk score due to time-dependent covariates.
 **  n0-3 has to count all the changes, while n8-n9 (only used in printout)
@@ -54,9 +54,9 @@
 #include "survproto.h"
 #include <stdio.h>
 
-SEXP coxsurv1(SEXP otime2, SEXP y2,    SEXP weight2,  SEXP sort22, 
+SEXP coxsurv1(SEXP otime2, SEXP y2,    SEXP weight2,  SEXP sort22,
               SEXP trans2, SEXP xmat2, SEXP risk2) {
-              
+
     int i, i2, k, person2, itrans;
     int nused, ntrans, ntime, irow, ii, jj;
     double *tstop, *status, *wt, *otime;
@@ -67,8 +67,8 @@ SEXP coxsurv1(SEXP otime2, SEXP y2,    SEXP weight2,  SEXP sort22,
     int nvar;              /* number of covariates */
     double  *xsum1,  /* a weighted sum, for computing xbar */
 	    *xsum2;
-	    
-    static const char *outnames[]={"ntrans", "count", 
+
+    static const char *outnames[]={"ntrans", "count",
 				   "xbar", "xsum2", ""};
     SEXP rlist;
     double n[12];
@@ -100,29 +100,29 @@ SEXP coxsurv1(SEXP otime2, SEXP y2,    SEXP weight2,  SEXP sort22,
 	if (trans[i2] != itrans) {
 	    ntrans++;
 	    itrans = trans[i2];
-	}	
-    }  
- 
+	}
+    }
+
     /* Allocate memory for the working matrices. */
     xsum1 = (double *) ALLOC(2*nvar, sizeof(double));
     xsum2 = xsum1 + nvar;
-    
+
     /* Allocate memory for returned objects: ntime*ntrans copies of n, xsum1,
        and xsum2
     */
     PROTECT(rlist = mkNamed(VECSXP, outnames));
     irow = ntime*ntrans;
     rstrat = REAL(SET_VECTOR_ELT(rlist, 0, allocVector(REALSXP, 1)));
-    rn = dmatrix(REAL(SET_VECTOR_ELT(rlist, 1, 
+    rn = dmatrix(REAL(SET_VECTOR_ELT(rlist, 1,
 			    allocMatrix(REALSXP, irow, 10))), irow, 10);
-    rx1 = dmatrix(REAL(SET_VECTOR_ELT(rlist, 2, 
+    rx1 = dmatrix(REAL(SET_VECTOR_ELT(rlist, 2,
 			      allocMatrix(REALSXP, irow, nvar))), irow, nvar);
-    rx2 = dmatrix(REAL(SET_VECTOR_ELT(rlist, 3, 
+    rx2 = dmatrix(REAL(SET_VECTOR_ELT(rlist, 3,
 			      allocMatrix(REALSXP, irow, nvar))), irow, nvar);
-						     
+
     R_CheckUserInterrupt();  /*check for control-C */
 
-    /* now add up all the sums 
+    /* now add up all the sums
     **  All this is done backwards in time.  The logic is a bit easier, and
     **   the computation is numerically more stable (fewer subtractions).
     **  One by one for the desired output times "otime".
@@ -130,15 +130,15 @@ SEXP coxsurv1(SEXP otime2, SEXP y2,    SEXP weight2,  SEXP sort22,
     **     set when we cross their ending time.  Also add them to the "censored"
     **     count.  Don't add any who will be removed before otime to either
     **     count, however.
-    **  
-    **  2. While tstop==otime, add them to the risk set, and count the 
+    **
+    **  2. While tstop==otime, add them to the risk set, and count the
     **   observation with repect to n3- n7.
     **
     ** In the code position2 is the current index into the sort2 vector,
     **   and i2 is the current value of sort2.
     */
     rstrat[0] = ntrans;   /* single element, number of transitions found */
-    person2= nused-1;  
+    person2= nused-1;
     irow = (ntime*ntrans);                /* row of output objects */
     for (ii =0; ii<ntrans; ii++) {
 	itrans= trans[sort2[person2]];  /* current transition */
@@ -147,7 +147,7 @@ SEXP coxsurv1(SEXP otime2, SEXP y2,    SEXP weight2,  SEXP sort22,
 
 	for (jj=ntime-1; jj>=0; jj--) { /* one by one through the times */
 	    dtime = otime[jj];
-	    for (k=3; k<8; k++) n[k]=0;  /* counts are only for this interval*/
+	    for (k=3; k<10; k++) n[k]=0;  /* counts are only for this interval*/
 
 	    /* Step 1 */
 	    for(; person2 >=0 && trans[person2]==itrans; person2--) {
@@ -156,7 +156,7 @@ SEXP coxsurv1(SEXP otime2, SEXP y2,    SEXP weight2,  SEXP sort22,
 		n[0]++;
 		n[1] += wt[i2];
 		n[2] += wt[i2] * risk[i2];
-		for (k=0; k<nvar; k++) 
+		for (k=0; k<nvar; k++)
 		    xsum1[k] += wt[i2]*risk[i2]*xmat[k][i2];
 
 		if (status[i2]==0) {
@@ -176,18 +176,18 @@ SEXP coxsurv1(SEXP otime2, SEXP y2,    SEXP weight2,  SEXP sort22,
 
 	    /* Compute the Efron number at risk */
 	    if (n[3] <=1) {   /* only one event */
-		n[8]= n[2];
-		n[9] = n[2]*n[2];
-	    }		
+		n[8]= 1/n[2];
+		n[9] = 1/(n[2]*n[2]);
+	    }
 	    else {
-		meanwt = n[5]/(n[3]*n[3]);  /* average weight of deaths /n */
+		meanwt = n[5]/n[3];  /* average weight of deaths /n */
 		for (k=0; k<n[3]; k++) {
-		    n[8] += n[2] - k*meanwt;
-		    n[9] += (n[2] -k*meanwt)*(n[2] - k*meanwt);
+		    n[8] += 1/(n[2] - k*meanwt);
+		    n[9] += 1/((n[2] -k*meanwt)*(n[2] - k*meanwt));
 		}
 		n[8] /= n[3];
 		n[9] /= n[3];
-	    }		
+	    }
 
 	    /* save the results */
 	    irow--;
@@ -206,4 +206,4 @@ SEXP coxsurv1(SEXP otime2, SEXP y2,    SEXP weight2,  SEXP sort22,
     UNPROTECT(1);
     return(rlist);
 }
-    
+
