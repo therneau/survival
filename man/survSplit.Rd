@@ -10,7 +10,7 @@
 \usage{
 survSplit(formula, data, subset, na.action=na.pass,
             cut, start="tstart", id, zero=0, episode,
-                              end="tstop", event="event")
+                              end="tstop", event="event", added)
 }
 \arguments{
   \item{formula}{a model formula}
@@ -28,6 +28,8 @@ survSplit(formula, data, subset, na.action=na.pass,
     variable (optional)}
   \item{end}{character string with the name of event time variable }
   \item{event}{character string with the name of censoring indicator }
+  \item{added}{character string with the name of the new
+    "this observation was added" variable (optional)}
 }
 
 \value{
@@ -45,6 +47,7 @@ survSplit(formula, data, subset, na.action=na.pass,
   \code{episode} variable, where 1= less than the first cutpoint, 2=
   between the first and the second, etc.
   For the example above the values would be 2, 3, and 4.
+  Whether a given row was added is shown by the \code{added} variable.
 
   The routine is called with a formula as the first
   argument. 

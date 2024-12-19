@@ -1,5 +1,9 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 3.8-4}{
+  \itemize{
+    \item Add the "added" option to survSplit
+}}
 \section{Changes in version 3.8-2}{
   \itemize{
     \item Round 2 of updates, to pass reverse dependency checks. In

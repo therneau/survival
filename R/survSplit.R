@@ -1,6 +1,6 @@
 survSplit <- function(formula, data, subset, na.action=na.pass,
                               cut, start="tstart", id, zero=0, episode,
-                              end="tstop", event="event") {
+                              end="tstop", event="event", added) {
     Call <- match.call()
     if (missing(formula) || is.data.frame(formula)) {
         # an old style call
@@ -129,6 +129,10 @@ survSplit <- function(formula, data, subset, na.action=na.pass,
     if (!missing(episode)) {
         if (!is.character(episode)) stop("episode must be a character string")
         newdata[[make.names(episode)]] <- index$interval +1
+    }
+    if (!missing(added)) {
+        if (!is.character(added)) stop("added must be a character string")
+        newdata[[make.names(added)]] <- index$censor
     }
     newdata
 }
