@@ -81,7 +81,10 @@ coxph <- function(formula, data, weights, subset, na.action,
                  terms(formula[[1]], specials=ss, data=data)
     else Terms <- if (missing(data)) terms(formula, specials=ss) else
                  terms(formula, specials=ss, data=data)
-
+    attr(Terms,'term.labels') = gsub('\n',' ', attr(Terms,'term.labels'))
+    colnames(attr(Terms,'factors')) = gsub('\n',' ', colnames(attr(Terms,'factors')))
+    rownames(attr(Terms,'factors')) = gsub('\n',' ', rownames(attr(Terms,'factors')))
+    
     tcl <- attr(Terms, 'specials')$cluster
     if (length(tcl) > 1) stop("a formula cannot have multiple cluster terms")
 
@@ -128,7 +131,10 @@ coxph <- function(formula, data, weights, subset, na.action,
     # okay, now evaluate the formula
     mf <- eval(tform, parent.frame())
     Terms <- terms(mf)
-
+    attr(Terms,'term.labels') = gsub('\n',' ', attr(Terms,'term.labels'))
+    colnames(attr(Terms,'factors')) = gsub('\n',' ', colnames(attr(Terms,'factors')))
+    rownames(attr(Terms,'factors')) = gsub('\n',' ', rownames(attr(Terms,'factors')))
+    
     # Grab the response variable, and deal with Surv2 objects
     n <- nrow(mf)
     Y <- model.response(mf)
