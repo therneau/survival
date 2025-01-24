@@ -41,6 +41,8 @@ extractAIC.coxph.null <- function(fit, scale, k=2, ...) {
 }
 
 labels.survreg <- function(object, ...) attr(object$terms, "term.labels")
+labels.coxph <- function(object, ...) attr(object$terms, "term.labels")
+labels.aareg <- function(object, ...) attr(object$terms, "term.labels")
 
 
 # This function is just like all.vars -- except that it does not recur
