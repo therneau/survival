@@ -14,7 +14,7 @@ print.survfit <- function(x, scale=1,
     savedig <- options(digits=digits)
     on.exit(options(savedig))
 
- #   x <- survfit32(x)
+    #   x <- survfit32(x)
     # The print.rmean option is depreciated, with the more general
     #   rmean option taking its place.  But if someone specifically
     #   uses print.rmean in the call, or has it as an option without
@@ -96,9 +96,8 @@ print.survfit <- function(x, scale=1,
 survmean <- function(x, scale=1, rmean) {
 
     # The starting point for the integration of the AUC
-    if (!is.null(x$start.time)) start.time <- x$start.time
-    else                        start.time <- min(0, x$time)
-    
+    if (!is.null(x$t0)) start.time <- x$t0
+    else                start.time <- min(0, x$time)
     #
     # The function below is called once for each line of output,
     #  i.e., once per curve.  It creates the line of output
@@ -159,7 +158,7 @@ survmean <- function(x, scale=1, rmean) {
             delta <- diff(c(start.time, temptime))     #width of rectangles
             rectangles <- delta * c(1, tempsurv[-n])   #area of rectangles
             varmean <- sum( cumsum(rev(rectangles[-1]))^2 * rev(hh)[-1])
-            mean <- sum(rectangles) + start.time
+            mean <- sum(rectangles) 
             }
         else { 
             mean <- 0

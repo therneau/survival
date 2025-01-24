@@ -37,23 +37,37 @@ stacker <- function(cmap, smap, istate, X, Y, strata, states, dropzero=TRUE) {
         from.state <- from.state[!zerocol]
         to.state <- to.state[!zerocol]
     }
-        
+         
     endpoint <- c(0, match(attr(Y, "states"), states))
-    endpoint <- endpoint[ 1 + Y[,ncol(Y)]]  # endpoint of each row, 0=censor
+    endpoint <- endpoint[1 + Y[,ncol(Y)]]  # endpoint of each row, 0=censor
 
     # Jan 2021: changed from looping once per strata to once per transition.
     #  Essentially, a block of data for each unique column of cmap.  If two
     #  of those columns have the same starting state, it makes me nervous
     #  (statistically), but forge onward and sort the issues out in the
     #  fits.
+    # Dec 2024: change to once per stratum.  The issue was multiple
+    #  transitions like 1:4 and 2:5 in the same stratum, which led to the
+    #  same row of data twice in one stratum; which is not valid.
+    # But, it meant a new error check. Say that 1:4 and 2:5 are 
+    # in the same strata, then cmap[,1:4] and cmap[,2:5] need to be the same, 
+    # otherwise we don't know what the right risk score is for a subject at risk 
+    #  for the common transition.
     # Pass 1 to find the total data set size
-    nblock <- ncol(cmap)
+    nblock <- max(smap)
     n.perblock <- integer(nblock)
     for (i in 1:nblock) {
-        n.perblock[i] <- sum(istate == from.state[i]) # can participate
+        dups <- which(smap==i)
+        for (j in dups[-1]) {
+            if (!identical(cmap[,j], cmap[,dups[1]]))
+                stop("all transitions in a shared stratum must have the same coefficient map")
+        }
+        state1 <- unique(from.state[dups])
+        irow <- match(istate, state1, nomatch=0)
+        n.perblock[i] <- sum(irow > 0) # can participate
     }
-    
-    # The constructed X matrix has a block of rows for each column of cmap
+
+    # The constructed X matrix has a block of rows for each unique stratum
     n2 <- sum(n.perblock)  # number of rows in new data
     newX <- matrix(0, nrow=n2, ncol=max(cmap))
     k <- 0
@@ -61,19 +75,21 @@ stacker <- function(cmap, smap, istate, X, Y, strata, states, dropzero=TRUE) {
     newstat <- integer(n2)  # new status
     Xcols   <- ncol(X)      # number of columns in X
     for (i in 1:nblock) {
-        subject <- which(istate == from.state[i]) # data rows in strata
+        state1 <- unique(from.state[smap==i])
+        state2 <- unique(to.state[smap==i])
+        subject <- which(!is.na(match(istate, state1))) # data rows in strata
         nr <- k + seq(along.with =subject)  # rows in the newX for this strata
         rindex[nr] <- subject
-        nc <- cmap[,i]  
+        nc <- cmap[, which(smap==i)[1]]  
         if (any(nc > Xcols)) { # constructed PH variables
             newX[nr, nc[nc>Xcols] ] <- 1
             nc <- nc[1:Xcols]
         }
         newX[nr, nc[nc>0]] <- X[subject, which(nc>0)] # row of cmap= col of X
-        
-        event.that.counts <- (endpoint[subject] == to.state[i])
+        event.that.counts <- (endpoint[subject] %in% state2)
         newstat[nr] <- ifelse(event.that.counts, 1L, 0L)
         k <- max(nr)
+#        browser()
     }
 
     # which transition each row of newX represents
@@ -95,7 +111,8 @@ stacker <- function(cmap, smap, istate, X, Y, strata, states, dropzero=TRUE) {
     else newY <- Surv(Y[rindex,1], Y[rindex,2], newstat)
 
     # newstrat will be an integer vector.
-    newstrat <- smap[1, transition]   # start with strata induced by multi-state
+    #newstrat <- smap[1, transition]   # start with strata induced by multi-state
+    newstrat <- transition
     # then add any strata from the users strata() terms
     if (is.matrix(strata)){
         # this is the most complex case. 
