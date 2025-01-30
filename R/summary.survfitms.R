@@ -90,7 +90,7 @@ summary.survfitms <- function(object, times, censored=FALSE,
                 sindx <- rep(1:nstrat, fit$strata)
                 for (i in c("n.enter", "n.censor", "n.transition")) {
                     if (!is.null(fit[[i]]))
-                        fit[[i]] <- unlist(sapply(1:nstrat, function(j) 
+                        fit[[i]] <- unlist(lapply(1:nstrat, function(j) 
                                      delta(fit[[i]][sindx==j], index[sindx==j])))
                 }
                 # the "factor" is needed for the case that a strata has no
