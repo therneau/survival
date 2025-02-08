@@ -74,10 +74,17 @@ concordance(object, \ldots)
   \item{ranks}{if TRUE, return a data frame containing the
     scaled ranks that make up the overall score.  
   }
-  \item{reverse}{if TRUE then assume that larger \code{x} values predict
-    smaller response values \code{y}; a proportional hazards model is
-    the common example of this, larger hazard = shorter survival.}
-
+  \item{reverse}{by default (\code{FALSE}) larger predictions \code{x} are
+    associated with larger response values \code{y}; this is the
+    expected behavior for a linear model, logistic regression,
+    parametric survival, random forest, ...  The exception to this rule
+    is a Cox model, where a larger risk score \code{x} corresponds to
+    \emph{shorter} survival time, if \code{x} is the prediction from
+    a \code{coxph} fit use \code{reverse = TRUE}.
+    If concordance is called directly with the result of a
+    \code{coxph} fit this is not necessary, as in that case the function
+    knows this is a coxph result and will choose the correct default.
+    }
   \item{timefix}{correct for possible rounding error.  See the
     vignette on tied times for more explanation. Essentially, exact ties
     are an important part of the concordance computatation, but "exact"
