@@ -1,5 +1,5 @@
 summary.coxph.penal <-  function(object, conf.int = 0.95, scale=1,
-                                 terms=FALSE, maxlabel=25, ...) {
+                                 terms=FALSE, ...) {
     
     beta <- object$coefficients
     if (length(beta)==0 && length(object$frail)==0)
@@ -70,8 +70,8 @@ summary.coxph.penal <-  function(object, conf.int = 0.95, scale=1,
 	}
 
 
-    dimnames(print1) <- list(substring(pname1,1, maxlabel), 
-			     c("coef","se(coef)", "se2", "Chisq","DF","p"))
+    dimnames(print1) <- list(pname1, 
+                             c("coef","se(coef)", "se2", "Chisq","DF","p"))
 
     rval <- object[match(c("call", "fail", "na.action", "n", "nevent", "loglik",
                      "iter", "df"), names(object), nomatch=0)]
@@ -84,7 +84,7 @@ summary.coxph.penal <-  function(object, conf.int = 0.95, scale=1,
         se <- se * scale
         tmp <- cbind(exp(beta), exp(-beta), exp(beta - z * se),
             exp(beta + z * se))
-        dimnames(tmp) <- list(substring(names(beta),1, maxlabel), 
+        dimnames(tmp) <- list(names(beta), 
 			      c("exp(coef)", "exp(-coef)",
             paste("lower .", round(100 * conf.int, 2), sep = ""),
             paste("upper .", round(100 * conf.int, 2), sep = "")))

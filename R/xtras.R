@@ -10,6 +10,29 @@ vcov.coxph <- function (object, complete=TRUE, ...) {
     else vmat
 }
 
+vcov.coxphms <- function (object, complete=TRUE, matrix=FALSE, ...) {
+    # conform to the standard vcov results
+    vmat <- object$var
+    vname <- names(object$coefficients)
+    dimnames(vmat) <- list(vname, vname)
+    cmap <- object$cmap
+    if (!complete && any(is.na(coef(object)))) {
+        keep <- !is.na(coef(object))
+        vmat <- vmat[keep, keep, drop=FALSE]
+        cmap <- cmap[keep,]
+    }
+    
+    if (!matrix) vmat
+    else {
+        v2 <- array(0, dim=c(dim(vout), ncol(cmap)),
+                    dimnames= c(dimnames(vout), transition=list(colnames(cmap))))
+        for (i in 1:ncol(cmap)) {
+            j <- cmap[,i]
+            v2[j>0, j>0, i] <- vmat[j,j]
+        }
+    v2
+}
+
 vcov.survreg<-function (object, complete=TRUE, ...) {
     if (!complete && any(is.na(coef(object)))) {
         keep <- !is.na(coef(object))

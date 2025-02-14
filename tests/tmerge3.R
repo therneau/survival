@@ -40,7 +40,7 @@ all.equal(b3$x3, c(1,0,0,0,2,0,4,0,0,0))
 all.equal(b3$x4, c(1,0,0,0,2,0,9,0,0,0))
 
 # Multiple overlapping time windows in the first step.
-#  Should generate an error message
+#  Should generate an error message "duplicate identifiers"
 test <- tryCatch(
             {tmerge(pbcseq[, c("id", "trt", "age", "sex")], pbcseq, id,
                death = event(futime, status==2))},

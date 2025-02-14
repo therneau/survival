@@ -1,10 +1,5 @@
 \name{coxph}
 \alias{coxph}
-\alias{print.coxph.null}
-\alias{print.coxph.penal}
-\alias{coxph.penalty}
-\alias{coxph.getdata}
-\alias{summary.coxph.penal}
 \title{
   Fit Proportional Hazards Regression Model 
 }

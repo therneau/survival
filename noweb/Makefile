@@ -1,4 +1,12 @@
-PARTS = main.Rnw \
+# Over the next few years the plan is to migrate all of the material out of
+#  noweb, with documentation in the methods vignette. I like noweb (T Therneau)
+#  but its set of users is near zero, and the package needs to move to a more
+#  open model of maintainance and developement.
+#
+PARTSall.equal(test3$idd, c(1,1,1,5,5,4,3,2,2,2,6))
+all.equal(test3$xx,  c(8, 1, 3, NA, 4, NA, NA, 9, 2, 5, NA))
+all.equal(test3$cx,  c(17, 18, 21, 2, 6, 2,2, 21, 23, 28, 2))
+ = main.Rnw \
 	coxph.Rnw \
 	exact.nw \
 	agreg.Rnw \
@@ -6,7 +14,6 @@ PARTS = main.Rnw \
 	coxsurv3.Rnw \
 	finegray.Rnw \
 	predict.coxph.Rnw \
-	concordance.Rnw \
 	survexp.Rnw \
 	parse.Rnw \
 	pyears.Rnw pyears2.Rnw \
@@ -17,16 +24,16 @@ PARTS = main.Rnw \
 	msurv.nw \
 	plot.Rnw \
 	statefig.Rnw\
-	tmerge.Rnw\
 	yates.Rnw  yates2.Rnw\
 	zph.Rnw \
 	tail
+#	concordance.Rnw \
 #	coxsurv2.Rnw \
 #	coxdetail.nw
 #	residuals.survfit2.Rnw\
+#	tmerge.Rnw\
 
 SFUN =  agreg.fit.R \
-        concordance.R \
 	coxph.R \
 	finegray.R \
 	model.matrix.coxph.R \
@@ -39,14 +46,15 @@ SFUN =  agreg.fit.R \
 	statefig.R \
 	survexp.R \
 	survfit.coxphms.R \
-	tmerge.R \
 	yates.R \
 	cox.zph.R
+#        concordance.R \
 #	residuals.survfitcox.R \
 #	survfit.R \
+#	tmerge.R \
 
-CFUN =  concordance3.c \
-        coxexact.c
+# CFUN =  concordance3.c \
+CFUN =  coxexact.c
 
 RDIR = ../R
 RFUN = $(SFUN:%=$(RDIR)/%)

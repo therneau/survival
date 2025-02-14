@@ -95,7 +95,8 @@ survreg(Surv(time, status) ~ temperature + voltage, capacitor)
 #  grids
 gfit <- survfit(Surv(day1, day2, status) ~ batch, braking, id= locomotive)
 plot(gfit, cumhaz=TRUE, col=1:2, xscale=30.5, conf.time= c(6,12,18)*30.5, 
-     xlab="Locomotive Age in Months", ylab="Mean cumulative number replacements")
+     xlab="Locomotive Age in Months", 
+     ylab="Mean cumulative number of replacements")
 
 # Replacement of valve seats.  In this case the cumulative hazard is the 
 #  natural target, an estimate of the number of replacements by a given time

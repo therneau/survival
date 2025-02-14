@@ -35,8 +35,8 @@ data(cancer, package="survival")
   which led to a policy within the section of Biostatistics to never
   use "0" as a data value since one could not distinguish it from a
   missing value.
-  The policy became a habit, as is often the case; and the 1/2 coding
-  endured long beyond the demise of punch cards and Fortran.
+  The policy became a habit, as is often the case; and the 1/2 coding rule
+  endured long beyond the demise of punch cards.
 }
   
 

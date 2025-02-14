@@ -1,6 +1,7 @@
 print.summary.coxph.penal <-
  function(x,  digits = max(options()$digits - 3, 3),
-           signif.stars = getOption("show.signif.stars"), ...) {
+           signif.stars = getOption("show.signif.stars"), 
+           maxlabel = 25, ...) {
     if (!is.null(x$call)) {
 	cat("Call:\n")
 	dput(x$call)
@@ -31,10 +32,15 @@ print.summary.coxph.penal <-
 		       format(signif(print1[,6], 2)))
     temp <- ifelse(is.na(print1), "", temp)
     dimnames(temp) <- dimnames(print1)
+    if (any(nchar(rownames(temp)) > maxlabel)) 
+        rownames(temp) <- substring(rownames(temp), 1, maxlabel)
+
     print(temp, quote=FALSE)
 
     if(length(x$conf.int) >0 ) {
         cat("\n")
+        if (any(nchar(rownames(x$conf.inf)) > maxlabel))
+            rownames(x$conf.inf) <- substring(rownames(x$conf.inf, 1, maxlabel))
         print(x$conf.int)
         }
     logtest <- -2 * (x$loglik[1] - x$loglik[2])

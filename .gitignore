@@ -8,4 +8,5 @@ noweb/code.log
 noweb/code.out
 noweb/code.toc
 noweb/noweb.sty
+noweb/code.pdf
 tests/survexpm.R.notyet
