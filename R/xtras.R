@@ -30,7 +30,8 @@ vcov.coxphms <- function (object, complete=TRUE, matrix=FALSE, ...) {
             j <- cmap[,i]
             v2[j>0, j>0, i] <- vmat[j,j]
         }
-    v2
+        v2
+    }
 }
 
 vcov.survreg<-function (object, complete=TRUE, ...) {

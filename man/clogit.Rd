@@ -69,7 +69,7 @@ clogit(formula, data, weights, subset, na.action,
   The 'approximate' option maps to the
   Breslow approximation for the Cox model, for historical reasons.
 
-  Case weights are not allowed when the exact option is used, as the
+  Case weights are not allowed when the exact likelihood (method) is used, as the
   likelihood is not defined for fractional weights.
   Even with integer case weights it is not clear how they should be  
   handled.  For instance if
@@ -77,6 +77,8 @@ clogit(formula, data, weights, subset, na.action,
   weight=2, should the likelihood calculation consider all subsets of
   size 2 or all subsets of size 3?
   Consequently, case weights are ignored by the routine in this case.
+  For methods other than \code{exact}, case weights work as they do in
+  an ordinary coxph model.
   }
 \seealso{\code{\link{strata}},\code{\link{coxph}},\code{\link{glm}} }
 
