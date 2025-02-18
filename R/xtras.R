@@ -219,3 +219,21 @@ addSurvFun <- function(formula, found) {
     environment(formula) <- myenv
     formula
 }
+
+# This is useful for a timeline data set; for a counting process one the
+#  tdc function in tmerge already does this.
+# Replace any NA with the most recent non-NA, for each id separately
+#  Better known as "last value carried forward"
+#
+lvcf <- function(x, id, time) {
+    if (!missing(time)) indx <- order(id, time)
+    else indx <- order(id)   
+
+    for (i in seq(along=x)) {
+        j <- indx[i]
+        if (!is.na(x[j]) || i==1 || id[j]!= id[jlag]) current <- x[j]
+        else x[j] <- current
+        jlag <- j
+    }
+    x
+}

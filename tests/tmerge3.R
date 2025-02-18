@@ -25,6 +25,8 @@ b2 <- tmerge(base, events, id = id, got_flu = cumevent(time, got_flu),
                has_flu = tdc(time, has_flu))
 
 all.equal(b2$got_flu, c(0,0,1,0,0,0,3,0))
+# Per the above-- a cumevent result is only non-zero at a new event time.
+# b2$id= 1, 2,2,2,2,2,2,2; a tdc would be 0,0, 1,1,1,3,3.
 
 
 # Tied times in the merger data set
@@ -36,7 +38,7 @@ b3 <- tmerge(base, tiedat, id=id, x1= tdc(time, x), x2=cumtdc(time, x),
              x3= event(time, x), x4 = cumevent(time, x))
 all.equal(b3$x1, c(NA, 1, 0, NA, NA, 2,2, 4,4,4))
 all.equal(b3$x2, c(NA, 1, 1, NA, NA, 2,2, 9,9,9))
-all.equal(b3$x3, c(1,0,0,0,2,0,4,0,0,0))
+all.equal(b3$x3, factor(c(1,0,0,0,2,0,4,0,0,0), 0:4, c("censor", 1:4)))
 all.equal(b3$x4, c(1,0,0,0,2,0,9,0,0,0))
 
 # Multiple overlapping time windows in the first step.

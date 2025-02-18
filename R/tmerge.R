@@ -184,6 +184,8 @@ tmerge <- function(data1, data2, id, ..., tstart, tstop, options) {
     tevent <- tevent$name
     if (is.null(tcens)) tcens <- vector('list', 0)
     newdata <- data1 #make a copy
+    firstevent <- FALSE  # a flag used later in the code
+
     if (firstcall) {
         # We don't look for topt$id.  What if the user had id=clinic, but their
         #  starting data set also had a variable named "id".  We want clinic for
@@ -213,8 +215,9 @@ tmerge <- function(data1, data2, id, ..., tstart, tstop, options) {
         if (missing(tstop)) {
             if (length(argclass)==0 || argclass[1] != "event")
                 stop("neither a tstop argument nor an initial event argument was found")
-            # this is case 2 -- the first time value for each obs sets the range
-            last <- !duplicated(id)
+            # this is case 2 -- the last time value for each obs sets the range
+            firstevent <- TRUE
+            last <- !duplicated(id, fromLast=TRUE)
             indx2 <- match(unique(id[last]), baseid)
             if (any(is.na(indx2)))
                 stop("setting the range, and data2 has id values not in data1")
@@ -265,7 +268,7 @@ tmerge <- function(data1, data2, id, ..., tstart, tstop, options) {
         if (any(idmatch==0)) idmiss <- sum(idmatch==0)
         else idmiss <- 0
     }
-    saveid <- id  # each ii might use a different subset of id, taken from this
+    saveid <- id  # each ii might use a different subset of id, start with this
     for (ii in seq(along.with=args)) {
         argi <- args[[ii]]
         baseid <- newdata[[topt$idname]]
@@ -279,8 +282,14 @@ tmerge <- function(data1, data2, id, ..., tstart, tstop, options) {
         #  - events or cumevents that are censored
         #  - repeated events, if rep=FALSE
         #  This can make the resulting data set smaller. 
+        #  Except -- it a time is already in the data set, then deleting these
+        #   will not make the data smaller.  We want to follow a "last update
+        #   wins" strategy when the same variable is updated twice at the same
+        #   time, so should keep repeated times.  (We agree that two values, for
+        #   the same variable at same time, looks like a data error.)
         # 
         etime <- argi$time
+        sametime <- !is.na(match(etime, dstop)) | !is.na(match(etime, dstart))
         if (idmiss ==0) keep <- rep(TRUE, length(etime))
         else keep <- (idmatch > 0)
         if (length(etime) != length(saveid))
@@ -293,15 +302,16 @@ tmerge <- function(data1, data2, id, ..., tstart, tstop, options) {
            if (argclass[ii] != "tdc" ||
                (is.null(argi$na.rm) && topt$na.rm) || argi$na.rm)
                keep <- keep & !is.na(argi$value)
-           
-           if (!all(keep)) argi$value <- argi$value[keep]
         }
+        
         if (!all(keep)) {
             etime <- etime[keep]
             argi$time <- argi$time[keep]
+            if (!is.null(argi$value)) argi$value <- argi$value[keep]
+            sametime <- sametime[keep]
         }
-        id <- saveid[keep]  #defer the event checks until after the sort
-        
+        id <- saveid[keep]  #the first time, use saveid
+
         # Later steps become easier if we sort the new data by time within
         # id.  Why not have done this once and for all in an earlier step?
         # A user could have different time variables in different tdc or
@@ -333,29 +343,56 @@ tmerge <- function(data1, data2, id, ..., tstart, tstop, options) {
         #  d. for factors, the optional censor argument can set the code for
         #    censoring
         if (argclass[ii] %in% c("event", "cumevent")) {
-            if (is.null(yinc)) yinc <- rep(1L, length(id))
+            oldcens <- tcens[[argname[ii]]]
+            if (!is.null(oldcens) && is.null(yinc)) { #make a default
+                if (length(oldcens) >1) yinc <- rep(oldcens[1], length(id))
+                else if (is.logical(oldcens)) yinc <- rep(TRUE, length(id))
+                else yinc <- rep(1L, length(id))
+            } 
+            else if (is.null(yinc)) yinc <- rep(1L, length(id))
             cval <- NULL
+
             if (is.logical(yinc)) {
-                yinc <- as.integer(yinc)  # becomes 0/1
-                if (!is.null(argi$censor) && argi$censor) yinc <- 1L- yinc
-                cval <- 0
-            }
+                cval <- FALSE
+                yinc <- as.numeric(yinc) # for computation
+                if (!is.null(oldcens) && !is.logical(oldcens))
+                    stop("update does not match current event variable", 
+                         argname[ii])
+                if (!is.null(argi$censor)) {
+                    if (!is.logical(argi$censor))
+                        stop("event variable and its censor value must be the same type")
+                    if (argi$censor) yinc <- 1L- yinc
+                }
+            } 
             if (argclass[ii] == "cumevent" && !is.numeric(yinc))
                 stop("argument for cumevent must be numeric or logical")
+            
             if (is.numeric(yinc)) {
                 if (any(yinc != floor(yinc)))
-                    stop("the argument for an event must be logical, integer or a factor")
+                    stop("numeric argument for an event must be an integer")
                 if (any(yinc <0)) 
                     stop("numeric event values must be non-negative")
                 if (!is.null(argi$censor)) cval <- argi$censor 
                 else cval <- 0
-                if (cval !=0 || length(unique(yinc)) >2) {
-                    # turn it into a factor
-                    if (cval==0 && is.null(argi$censor)) cval <- "censor"
-                    ylev <- unique(c(cval, sort(unique(yinc))))
-                    yinc <- factor(yinc, ylev)
+                if (argclass[ii] == "event" ) {
+                    if (cval !=0 || length(unique(yinc)) >2) {
+                        # turn it into a factor
+                        ylev <- unique(c(cval, sort(unique(yinc))))
+                        yinc <- factor(yinc, ylev)
+                        if (is.null(argi$censor)) {
+                            # IMHO, leaving '0' as the censoring level will
+                            # confuse everyone, including me.  But if the user
+                            # explicitly put "censor=0", listen to them.
+                            cval <- c("censor", levels(yinc)[-1])
+                            levels(yinc) <- cval
+                        }
+                    }
+                    else if (length(oldcens) > 1)
+                        stop("event variable is a factor, update is numeric")
                 }
             }
+
+            # characters are turned into a factor
             if (is.character(yinc)) yinc <- factor(yinc)
             
             if (is.factor(yinc)) {
@@ -363,45 +400,75 @@ tmerge <- function(data1, data2, id, ..., tstart, tstop, options) {
                     if (!is.null(argi$censor)) cval <- argi$censor
                     else cval <- "censor"
                 }
-                newlev <- unique(c(cval, levels(yinc))) # save for later
-                    yinc <- as.integer(factor(yinc, newlev)) -1L
+                cval <- unique(c(cval, levels(yinc))) # temporary
+                yinc <- as.integer(factor(yinc, cval)) -1L
+
+                # Have we seen this one before as an event? If so double check
+                #  the values, otherwise add it to the list
+                if (!is.null(oldcens)) {
+                    if (length(oldcens) ==1) {
+                         stop("factor event used to update a 0/1 event",
+                             argname[ii])
+                    } else if (!identical(oldcens, cval)) {
+                        # make a merged set of levels, old ones first
+                        newlev <- unique(c(oldcens, cval[-1]))
+                        tcens[[argname[ii]]] <- newlev
+                        # there will be a nomatch for censoring, if it's name
+                        #  changed
+                        indx <- match(cval, newlev, nomatch=1L) -1L
+                        yinc <- indx[yinc +1L]
+                    }
                 }
+            }                  
+
             # Done with the recode, yinc will now be an integer with 0
             #  for the censoring code.
-            keep <- which(yinc !=0)  # all non-censored rows
-            if (!argi$rep) { 
-                # remove 'stutterings' from the  data, i.e. a repeated
-                #  non-censored event type, as well
-                keep.n <- length(keep)
-                stutter <- (id[keep[-1]]== id[keep[-keep.n]]) &
-                    (yinc[keep[-1]] == yinc[keep[-keep.n]])
-                
-                keep <- keep[c(TRUE, !stutter)]
+            if (argclass[ii]== "event" && !argi$rep) { 
+                # remove 'stutterings' from the update, i.e. a repeated
+                #  non-censored event type
+                nocen <- which(yinc >0)  # ignore censord rows
+                nocen.n <- length(nocen)
+                stutter <- (id[nocen[-1]]== id[nocen[-nocen.n]]) &
+                    (yinc[nocen[-1]] == yinc[nocen[-nocen.n]])
+                yinc[noncen[c(FALSE, stutter)]] <- 0
             } 
-            # remove censored rows from the additions (why add them?)
-            #  along with any stutters
-            id <- id[keep]
-            etime <- etime[keep]
-            yinc <- yinc[keep]
-        } #done with pre-processing an event
+ 
+             if (firstevent && ii==1) {
+                # special case of a event that sets the range. Do not
+                # remove censors; we want row 1 of tcount to count all
+                # (this will never be a cumevent)
+            } else {
+                # don't add new censored rows to the data.  They make the
+                #  data set bigger, but don't add information.  For cumevent
+                #  this removal is essential
+                keep <- (yinc > 0)
+                if (argclass[ii] == "event") keep <- keep | sametime
+                if (!all(keep)) {
+                    id <- id[keep]
+                    etime <- etime[keep]
+                    yinc <- yinc[keep]
+                }
+            }
+        } #done with pre-processing work for an event
 
-        if (argclass[ii] %in% c("tdc", "cumtdc") && !is.null(yinc) &&
+        if (argclass[ii] %in% c("tdc") && !is.null(yinc) &&
             ((is.null(argi$na.rm) && topt$na.rm) || argi$na.rm)) {
-            # Also remove "stuttered" event() or tdc() rows, unless na.rm=FALSE
+            # Also remove "stuttered" tdc() rows, unless na.rm=FALSE
             #  Removing repeats in the presence of NA is too much work, and
             # this action only saves space. (Truth be told, the savings may 
             # often be trivial with multiple tcd vars; at any given time
             # *something* will change, and thus a new row.
             ny <- length(id)
             stutter <- (id[-1] == id[-ny]) & (yinc[-1] == yinc[-ny])
-            if (any(stutter)) {
-                keep <- c(TRUE, !stutter)
+            keep <-  (c(TRUE, !stutter) | sametime)
+            if (!all(keep)) {
                 id <- id[keep]
                 etime <- etime[keep]
                 yinc <- yinc[keep]
             }
         }
 
+        if (length(id) ==0) next # all obs were removed!
         # indx1 points to the closest start time in the baseline data (data1)
         #  that is <= etime.  indx2 to the closest end time that is >=etime.
         # If etime falls into a (tstart, tstop) interval, indx1 and indx2
@@ -478,7 +545,7 @@ tmerge <- function(data1, data2, id, ..., tstart, tstop, options) {
             newdata[[topt$tstartname]] <- dstart
             newdata[[topt$tstopname]]  <- dstop
             for (ename in tevent) 
-                newdata[newrows-1, ename] <- tcens[[ename]][[1]]
+                newdata[newrows-1, ename] <- tcens[[ename]][1]
 
             # refresh indices
             baseid <- newdata[[topt$idname]]
@@ -488,7 +555,10 @@ tmerge <- function(data1, data2, id, ..., tstart, tstop, options) {
             itype[itype==4]   <- 5  
         }
 
+        # The data set has been expanded to have the needed rows for our new
+        #  addition.  So now add the new data.
         newvar <- newdata[[argname[ii]]]  # prior value (sequential tmerge calls)
+
         # add a tdc variable
         if (argclass[ii] %in% c("tdc", "cumtdc")){
             if (argname[[ii]] %in% tevent)
@@ -501,6 +571,7 @@ tmerge <- function(data1, data2, id, ..., tstart, tstop, options) {
                 }
             }
         }
+
         if (argclass[ii] == "tdc") {
             default <- argi$default   # default value
             if (is.null(default)) default <- topt$tdcstart
@@ -559,42 +630,28 @@ tmerge <- function(data1, data2, id, ..., tstart, tstop, options) {
         }
 
         # add events
-        if (argclass[ii] %in% c("cumtdc", "cumevent")) {
-            if (is.null(yinc)) yinc <- rep(1L, length(id))
-        }   
-        if (argclass[ii] == "cumevent"){
-            ykeep <- (yinc !=0)  # ignore the addition of a censoring event
-            yinc <- unlist(tapply(yinc, match(id, baseid), cumsum))
-        }
-
-        if (argclass[ii] %in% c("event", "cumevent")) {
-            if (is.null(yinc)) yinc <- rep(1L, length(id))
-            if (!is.null(newvar)) {
-                if (!argname[ii] %in% tevent) {
-                    #warning(paste0("non-event variable '", argname[ii], "' replaced by an event variable"))
-                    newvar <- NULL
-                }
-                if 
-            } else newvar <- rep(0L, nrow(newdata))
-         
-            if (is.null(yinc)) yinc <- rep(1L, length(id))
-            keep <- (subtype==1 | subtype==3) # all other events are thrown away
-            if (argclass[ii] == "cumevent") keep <- (keep & ykeep)
-            newvar[indx2[keep]] <- yinc[keep]
-            # add this into our list of 'this is an event type variable'
-            if (!(argname[ii] %in% tevent)) {
-                tevent <- c(tevent, argname[[ii]])
-                if (is.factor(yinc)) tcens <- c(tcens, list(levels(yinc)))
-                else if (is.logical(yinc)) tcens <- c(tcens, list(FALSE))
-                else if (is.integer(yinc))   tcens <- c(tcens, list(0L))
-                else tcens <- c(tcens, list(0))
+        else if (argclass[ii] %in% c("event", "cumevent")) {
+            if (is.null(newvar)) newvar <- rep(0L, nrow(newdata))
+            if (is.na(match(argname[ii], tevent))) {
+                tevent <- c(tevent, argname[ii])
+                tcens  <- c(tcens, list(cval))
                 names(tcens) <- tevent
             }
+            # yinc will not be null
+            if (argclass[ii] == "cumevent")
+                yinc <- unlist(tapply(yinc, match(id, baseid), cumsum))
+            keep <- (subtype==1 | subtype==3) # all other events are thrown away
+
+            newvar[indx2[keep]] <- yinc[keep]
         }
+
+        #  and last, cumtdc variables
         else if (argclass[ii] == "cumtdc") {  # process a cumtdc variable
+            if (is.null(yinc)) yinc <- rep(1L, length(id))
             # I don't have a good way to catch the reverse of this user error
             if (argname[[ii]] %in% tevent)
                 stop("attempt to turn event variable", argname[[ii]], "into a cumtdc")
+            
 
             keep <- itype != 2  # changes after the last interval are ignored
             indx <- ifelse(subtype==1, indx1, 
@@ -606,12 +663,11 @@ tmerge <- function(data1, data2, id, ..., tstart, tstop, options) {
             else {
                 if (length(default) != 1) stop("tdc initial value must be of length 1")
                 if (!is.numeric(default)) stop("cumtdc initial value must be numeric")
-            }       
+            }  
             if (is.null(newvar)) {  # not overwriting a prior value
                 if (is.null(argi$value)) newvar <- rep(0.0, nrow(newdata))
                 else newvar <- rep(default, nrow(newdata))
             }
-            
             # the increment must be numeric
             if (!is.numeric(newvar)) 
                 stop("data and starting value do not agree on data type")
@@ -625,16 +681,18 @@ tmerge <- function(data1, data2, id, ..., tstart, tstop, options) {
 
         newdata[[argname[ii]]] <- newvar
     }
+    names(argclass) <- argname
     tm.retain <- list(tname = topt[c("idname", "tstartname", "tstopname")],
-                      n= nrow(newdata))
+                      n= nrow(newdata), argtype = argclass)
     if (length(tevent)) {
         tm.retain$tevent <- list(name = tevent, censor=tcens)
         for (i in 1:length(tevent)) {
             if (length(tcens[[i]]) > 1){ # this was a factor
                 temp <- newdata[[tevent[i]]]
-                temp <- factor(temp, seq(along.with(tcens[[i]])) -1L, tcens[[i]])
+                temp <- factor(temp, seq(along.with=tcens[[i]]) -1L, tcens[[i]])
                 newdata[[tevent[i]]] <- temp
-            }
+            } else if (is.logical(tcens)) 
+                newdata[[tevent[i]]] <- as.logical(newdata[[tevent[i]]])
         }
     }
         
@@ -667,4 +725,4 @@ summary.tmerge <- function(object, ...) {
     attr(x, "tcount") <- NULL
     attr(x, "call") <- NULL
     NextMethod(x)
-    }
+}
