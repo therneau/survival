@@ -23,7 +23,7 @@
   \item{matrix}{if TRUE the result will be an array with one covariance
     matrix per transition in the model;
     \code{vcov(object, matrix=TRUE)[,,i]} will be the variance matrix
-    corresponding to \code{coef(object, matrix=TRUE)[,i]}
+    corresponding to \code{coef(object, matrix=TRUE)[,i]}}
   \item{\ldots}{additional arguments for method functions}
 }
 \value{a matrix or array}

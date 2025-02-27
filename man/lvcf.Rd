@@ -12,7 +12,6 @@ lvcf(x, id, time)
 }
 \arguments{
   \item{x}{the covariate which will be modified}
-
   \item{id}{subject identifier}
   \item{time}{optional; used to sort observations within subject}
 }
@@ -34,7 +33,6 @@ the data to be sorted by \code{id}.
 an updated copy of \code{x}
 }
 \author{Terry Therneau}
-}
 \note{
 Other R packages also implement an locf function, e.g., \code{na.locf}
 in the \code{zoo} package or \code{LOCF} in \code{DescTools}.

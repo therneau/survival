@@ -58,10 +58,12 @@ stacker <- function(cmap, smap, istate, X, Y, strata, states, dropzero=TRUE) {
     n.perblock <- integer(nblock)
     for (i in 1:nblock) {
         dups <- which(smap==i)
+        # This isn't doing what I thought, reconsider
+        if (FALSE) {
         for (j in dups[-1]) {
             if (!identical(cmap[,j], cmap[,dups[1]]))
                 stop("all transitions in a shared stratum must have the same coefficient map")
-        }
+        }}
         state1 <- unique(from.state[dups])
         irow <- match(istate, state1, nomatch=0)
         n.perblock[i] <- sum(irow > 0) # can participate

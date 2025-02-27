@@ -3,11 +3,7 @@
 #  but its set of users is near zero, and the package needs to move to a more
 #  open model of maintainance and developement.
 #
-PARTSall.equal(test3$idd, c(1,1,1,5,5,4,3,2,2,2,6))
-all.equal(test3$xx,  c(8, 1, 3, NA, 4, NA, NA, 9, 2, 5, NA))
-all.equal(test3$cx,  c(17, 18, 21, 2, 6, 2,2, 21, 23, 28, 2))
- = main.Rnw \
-	coxph.Rnw \
+PARTS = coxph.Rnw \
 	exact.nw \
 	agreg.Rnw \
 	coxsurv.Rnw \
@@ -46,6 +42,7 @@ SFUN =  agreg.fit.R \
 	statefig.R \
 	survexp.R \
 	survfit.coxphms.R \
+	tmerge.R \
 	yates.R \
 	cox.zph.R
 #        concordance.R \
