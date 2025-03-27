@@ -94,7 +94,7 @@ coef.coxphms <- function(object, matrix=FALSE, ...){
         attr(cmap, "states") <- object$states
         cmap
     }
-    else NextMethod(object, ...)
+    else NextMethod()
 }
 
         
