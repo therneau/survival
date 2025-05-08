@@ -33,6 +33,9 @@ print.coxph <-
 	}
     
     if (inherits(x, "coxphms")) {
+        # drop the non-robust se
+        tmp <- tmp[,-match("se(coef)", colnames(tmp))]
+
         # print it group by group
         # lazy: I don't want to type x$cmap many times
         #  remove transitions with no covariates

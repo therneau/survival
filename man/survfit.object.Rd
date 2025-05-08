@@ -79,10 +79,10 @@ The following components must be included in a legitimate
     The names of the elements are labels for the curves. 
   }
   \item{upper}{optional
-    upper confidence limit for the survival curve or pstate
+    upper (2-sided) confidence limit for the survival curve or probability in state
   }
-  \item{lower}{options 
-    lower confidence limit for the survival curve or pstate
+  \item{lower}{optional 
+    lower (2-sidedconfidence limit for the survival curve or probability in state
   }
   \item{t0}{optional, the starting time for the curve}
   \item{p0, sp0}{for a multistate object, the distribution of starting

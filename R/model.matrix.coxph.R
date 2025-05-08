@@ -1,4 +1,3 @@
-# Automatically generated from the noweb directory
 # In internal use "data" will often be an already derived model frame.
 #  We detect this via it having a terms attribute.
 model.matrix.coxph <- function(object, data=NULL, 
@@ -63,6 +62,7 @@ model.matrix.coxph <- function(object, data=NULL,
     X <- X[, !xdrop, drop=FALSE]
     attr(X, "assign") <- Xatt$assign[!xdrop]
     attr(X, "contrasts") <- Xatt$contrasts
+
     X
 }
 model.frame.coxph <- function(formula, ...) {

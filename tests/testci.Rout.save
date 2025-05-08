@@ -1,7 +1,7 @@
 
-R Under development (unstable) (2024-02-06 r85866) -- "Unsuffered Consequences"
-Copyright (C) 2024 The R Foundation for Statistical Computing
-Platform: aarch64-unknown-linux-gnu
+R Under development (unstable) (2025-03-16 r87984) -- "Unsuffered Consequences"
+Copyright (C) 2025 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -30,13 +30,15 @@ Type 'q()' to quit R.
 +                     event =  c(1,1,2,2,1,2,3,2),
 +                     grp = c(1,2,1,2,1,2,1,2),
 +                     id = 1:8)
-> old <- survfit(Surv(time, status*event, type="mstate") ~1, tdata) #old style
 > fit <- survfit(Surv(time, factor(status*event)) ~1, tdata)
 > 
-> # test that the old (should be depricated) form gives the same answer
-> indx <- match("call", names(fit))
-> all.equal(unclass(old)[-indx], unclass(fit)[-indx])
-[1] TRUE
+> if (FALSE) {
++     # This has now been depricated
++     # test that the old (should be depricated) form gives the same answer
++     old <- survfit(Surv(time, status*event, type="mstate") ~1, tdata) #old style
++     indx <- match("call", names(fit))
++     all.equal(unclass(old)[-indx], unclass(fit)[-indx])
++ }
 > 
 > byhand <- function() {
 +     #everyone starts in state 0
@@ -126,6 +128,9 @@ Type 'q()' to quit R.
 > tdata <- mgus1[mgus1$enum==1,]
 > # Ensure the old-style call using "etype" works (backwards compatability)
 > fit1 <- survfit(Surv(stop, status) ~ 1, etype=event, tdata)
+Warning message:
+In Surv(Y[, 1], status, type = "mstate") :
+  type= 'mstate' is depricated, use a factor variable as status
 > fit1b <-survfit(Surv(stop, event) ~1, tdata)
 > indx <- match("call", names(fit1)) 
 > all.equal(unclass(fit1)[-indx], unclass(fit1b)[-indx])
@@ -197,4 +202,4 @@ Type 'q()' to quit R.
 > 
 > proc.time()
    user  system elapsed 
-  0.449   0.028   0.475 
+  1.054   0.087   1.133 

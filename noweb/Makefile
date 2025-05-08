@@ -32,7 +32,6 @@ PARTS = coxph.Rnw \
 SFUN =  agreg.fit.R \
 	coxph.R \
 	finegray.R \
-	model.matrix.coxph.R \
 	parsecovar.R \
 	plot.survfit.R \
 	predict.coxph.R \
@@ -42,10 +41,10 @@ SFUN =  agreg.fit.R \
 	statefig.R \
 	survexp.R \
 	survfit.coxphms.R \
-	tmerge.R \
 	yates.R \
 	cox.zph.R
-#        concordance.R \
+#       concordance.R \
+#	model.matrix.coxph.R \
 #	residuals.survfitcox.R \
 #	survfit.R \
 #	tmerge.R \

@@ -1,6 +1,6 @@
 
-R Under development (unstable) (2024-08-21 r87038) -- "Unsuffered Consequences"
-Copyright (C) 2024 The R Foundation for Statistical Computing
+R Under development (unstable) (2025-03-16 r87984) -- "Unsuffered Consequences"
+Copyright (C) 2025 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -614,8 +614,7 @@ GLOBAL  3.633  2 0.16
 > 
 > ### Name: coxph
 > ### Title: Fit Proportional Hazards Regression Model
-> ### Aliases: coxph print.coxph.null print.coxph.penal coxph.penalty
-> ###   coxph.getdata summary.coxph.penal
+> ### Aliases: coxph
 > ### Keywords: survival
 > 
 > ### ** Examples
@@ -1051,6 +1050,28 @@ NULL
 > text(temp, c("Male", "Female"), adj= -.1) #labels just past the ends
 > title(main="Primary Biliary Cirrhosis, Observed and Expected")
 > 
+> 
+> 
+> 
+> cleanEx()
+> nameEx("lvcf")
+> ### * lvcf
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: lvcf
+> ### Title: Last Value Carried Forward
+> ### Aliases: lvcf
+> ### Keywords: survival
+> 
+> ### ** Examples
+> 
+> newplat <- with(pbcseq, lvcf(id, platelet))
+> table(is.na(pbcseq$platelet), is.na(newplat))
+       
+        FALSE TRUE
+  FALSE  1872    0
+  TRUE     69    4
 > 
 > 
 > 
@@ -2437,7 +2458,8 @@ n= 64
 > #  grids
 > gfit <- survfit(Surv(day1, day2, status) ~ batch, braking, id= locomotive)
 > plot(gfit, cumhaz=TRUE, col=1:2, xscale=30.5, conf.time= c(6,12,18)*30.5, 
-+      xlab="Locomotive Age in Months", ylab="Mean cumulative number replacements")
++      xlab="Locomotive Age in Months", 
++      ylab="Mean cumulative number of replacements")
 > 
 > # Replacement of valve seats.  In this case the cumulative hazard is the 
 > #  natural target, an estimate of the number of replacements by a given time
@@ -3881,7 +3903,7 @@ $terms
 > cleanEx()
 > options(digits = 7L)
 > base::cat("Time elapsed: ", proc.time() - base::get("ptime", pos = 'CheckExEnv'),"\n")
-Time elapsed:  6.683 0.484 7.167 0 0 
+Time elapsed:  7.03 0.496 7.528 0 0 
 > grDevices::dev.off()
 null device 
           1 

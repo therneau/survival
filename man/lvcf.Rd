@@ -8,11 +8,11 @@
   separately for each id.
 }
 \usage{
-lvcf(x, id, time)
+lvcf(id, x, time)
 }
 \arguments{
-  \item{x}{the covariate which will be modified}
   \item{id}{subject identifier}
+  \item{x}{the covariate which will be modified}
   \item{time}{optional; used to sort observations within subject}
 }
 \details{

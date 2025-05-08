@@ -1,5 +1,5 @@
 print.summary.coxph.penal <-
- function(x,  digits = max(options()$digits - 3, 3),
+ function(x,  digits = max(getOption("digits") - 3, 3),
            signif.stars = getOption("show.signif.stars"), 
            maxlabel = 25, ...) {
     if (!is.null(x$call)) {

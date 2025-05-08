@@ -132,6 +132,8 @@ if (!missing(fun)) {
 <<plot-data>>=
 # The default for plot and lines is to add confidence limits
 #  if there is only one curve
+if (!missing(conf.type)) conf.type <- match.arg(conf.type) # check for legal
+else conf.type <- x$conf.type  # use the default in the curve
 if (!missing(conf.type) && conf.type=="none") conf.int <- FALSE
 
 if (missing(conf.int) && missing(conf.times))  

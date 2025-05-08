@@ -447,6 +447,8 @@ coxph <- function(formula, data, weights, subset, na.action,
     X <- X[, !xdrop, drop=FALSE]
     attr(X, "assign") <- Xatt$assign[!xdrop]
     attr(X, "contrasts") <- Xatt$contrasts
+
+    Xmeans <- colMeans(X) # do this before expanding a multistate model
     offset <- model.offset(mf)
     if (is.null(offset) || all(offset==0)) {
         offset <- rep(0., nrow(mf))
