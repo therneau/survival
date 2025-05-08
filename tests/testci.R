@@ -13,12 +13,15 @@ tdata <- data.frame(time=c(1,2,2,3,3,3,5,6),
                     event =  c(1,1,2,2,1,2,3,2),
                     grp = c(1,2,1,2,1,2,1,2),
                     id = 1:8)
-old <- survfit(Surv(time, status*event, type="mstate") ~1, tdata) #old style
 fit <- survfit(Surv(time, factor(status*event)) ~1, tdata)
 
-# test that the old (should be depricated) form gives the same answer
-indx <- match("call", names(fit))
-all.equal(unclass(old)[-indx], unclass(fit)[-indx])
+if (FALSE) {
+    # This has now been depricated
+    # test that the old (should be depricated) form gives the same answer
+    old <- survfit(Surv(time, status*event, type="mstate") ~1, tdata) #old style
+    indx <- match("call", names(fit))
+    all.equal(unclass(old)[-indx], unclass(fit)[-indx])
+}
 
 byhand <- function() {
     #everyone starts in state 0

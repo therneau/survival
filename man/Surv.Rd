@@ -11,7 +11,7 @@ formula. Argument matching is special for this function, see Details below.
 }
 \usage{
 Surv(time, time2, event,
-    type=c('right', 'left', 'interval', 'counting', 'interval2', 'mstate'),
+    type=c('right', 'left', 'interval', 'counting', 'interval2'),
     origin=0)
 is.Surv(x)
 }
@@ -22,11 +22,14 @@ is.Surv(x)
   }
   \item{event}{
     The status indicator, normally 0=alive, 1=dead.  Other choices are
-    \code{TRUE}/\code{FALSE} (\code{TRUE} = death) or 1/2 (2=death). For
-    interval censored data, the status indicator is 0=right censored,
+    \code{TRUE}/\code{FALSE} (\code{TRUE} = death), 1/2 (2=death), or
+    a factor variable.
+    For interval censored data, the status indicator is 0=right censoed,
     1=event at \code{time}, 2=left censored, 3=interval censored.
-    For multiple endpoint data the event variable will be a factor,
-    whose first level is treated as censoring.
+    For multiple endpoint data the event variable will always be a factor,
+    whose first level is treated as censoring, or more formally
+    "no transtition at this time point".
+    There is no constraint on the labels of the factor.
     Although unusual, the event indicator can be omitted, in which case
     all subjects are assumed to have an event.
   }
@@ -34,20 +37,23 @@ is.Surv(x)
     ending time of the interval for interval censored  or counting
     process data only.  Intervals are assumed to be open on the left and
     closed on the right, \code{(start, end]}.  For counting process
-    data, \code{event} indicates whether an event occurred at the end of
-    the interval.
+    data, \code{event} indicates whether a transtion to another state
+    occurred at the end of the interval.
   }
   \item{type}{
     character string specifying the type of censoring. Possible values
     are \code{"right"}, \code{"left"}, \code{"counting"},
-    \code{"interval"}, \code{"interval2"} or \code{"mstate"}.  
+    \code{"interval"}, \code{"interval2"}.  The default is multi-state
+    if \code{event} is a factor, counting process if \code{time2} is
+    present, or right censored, in that order. 
   }
   \item{origin}{
     for counting process data, the hazard function origin.  This option
     was intended to be used in conjunction with a model containing
     time dependent
     strata in order to align the subjects properly when they cross over
-    from one strata to another, but it has rarely proven useful.}
+    from one strata to another, but it has rarely proven useful and is
+    depricated.}
   \item{x}{
     any R object.
   }
@@ -69,24 +75,7 @@ is.Surv(x)
   inherits from class \code{"Surv"}, otherwise an \code{FALSE}.
 }
 \details{
-  When the \code{type} argument is missing the code assumes a type based
-  on the following rules:
-  \itemize{
-    \item If there are two unnamed arguments, they will match \code{time} and
-     \code{event} in that order.  If there are three unnamed arguments
-     they match \code{time}, \code{time2} and \code{event}.
-     \item If the event variable is a factor then type \code{mstate} is
-     assumed.  Otherwise type \code{right} if there is no \code{time2}
-     argument, and type \code{counting} if there is.
-   }
-   As a consequence the \code{type} argument will normally be omitted.
-
-   When the survival type is "mstate" then the status variable will be
-   treated as a factor.  The first level of the factor is taken to
-   represent censoring and remaining ones a transition to the given
-   state.  (If the status variable is a factor then \code{mstate} is assumed.)
-   
-    Interval censored data can be represented in two ways.  For the first
+   Interval censored data can be represented in two ways.  For the first
    use \code{type = "interval"} and the codes shown above.  In that usage the
    value of the \code{time2} argument is ignored unless event=3.
    The second approach is to think of each observation as a time
@@ -114,6 +103,8 @@ e.g., \code{Surv(time, status==3)} would indicate that '3' is
 the code for an event.
 For multi-state survival the status variable will be a factor, whose
 first level is assumed to correspond to censoring.
+If there are no uncensored subjects, ensure that the levels of the
+factor still contain the censored level!
 
 Surv objects can be subscripted either as a vector, e.g.
 \code{x[1:3]} using a single subscript,
@@ -128,17 +119,15 @@ otherwise the result will be a matrix (or vector), in accordance with
 the default behavior for subscripting matrices. 
 }
 
-
 \note{
-  The use of 1/2 coding for status is an interesting historical
-  artifact.
+  The use of 1/2 coding for status is an interesting historical artifact.
   For data contained on punch cards, IBM 360 Fortran treated blank as a zero,
   which led to a policy within the Mayo Clinic section of Biostatistics to never
-  use "0" as a data value since one could not distinguish it from a
-  missing value.
+  use "0" as a data value, since one could not distinguish it from a
+  missing value (blank).
   Policy became habit, as is often the case, and the use of 1/2 coding for
-  alive/dead endured long after the demise of the punch cards that had
-  sired the practice.
+  no/yes variables, including death, endured long after the demise of
+  the punch cards that had sired the practice.
   At the time \code{Surv} was written many Mayo data sets still used this
   obsolete convention, e.g., the \code{lung} data set found in the package.
 }   
