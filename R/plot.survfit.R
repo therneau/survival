@@ -6,8 +6,8 @@ plot.survfit<- function(x, conf.int,  mark.time=FALSE,
                         xlim, ylim, xmax, 
                         fun, xlab="", ylab="", xaxs='r', 
                         conf.times, conf.cap=.005, conf.offset=.012, 
-                        conf.type=c('log',  'log-log',  'plain', 
-                                  'logit', "arcsin"),
+                        conf.type=c("log",  "log-log",  "plain", 
+                                  "logit", "arcsin", "none"),
                         mark, noplot="(s0)", cumhaz=FALSE,
                         firstx, ymin, cumprob=FALSE, ...) {
 
@@ -42,7 +42,10 @@ plot.survfit<- function(x, conf.int,  mark.time=FALSE,
     }
     # The default for plot and lines is to add confidence limits
     #  if there is only one curve
-    if (!missing(conf.type) && conf.type=="none") conf.int <- FALSE
+    if (!missing(conf.type) || is.null(x$conf.type)) 
+        conf.type <- match.arg(conf.type) # check for legal
+    else conf.type <- x$conf.type  # use the default in the curve
+    if (conf.type=="none") conf.int <- FALSE
 
     if (missing(conf.int) && missing(conf.times))  
         conf.int <- (!is.null(x$std.err) && prod(dim(x) ==1))
@@ -52,7 +55,6 @@ plot.survfit<- function(x, conf.int,  mark.time=FALSE,
         if (!is.numeric(conf.times)) stop('conf.times must be numeric')
         if (missing(conf.int)) conf.int <- TRUE
     }
-    if (!missing(conf.type) && conf.type=="none") conf.int <- FALSE # this overrides
     if (!missing(conf.int)) {
         if (is.numeric(conf.int)) {
             conf.level <- conf.int
@@ -111,11 +113,23 @@ plot.survfit<- function(x, conf.int,  mark.time=FALSE,
                      || any(cumprob != floor(cumprob)))
                 stop("cumprob contains an invalid numeric")
                 
-            # The pstate object will be of dimension 2 or 3
-            if (length(dd) ==1) 
-                ssurv <- smat(t(apply(x$pstate[,cumprob],1,cumsum)))
-            else stop("cumprob not available for multiple states + mulitple groups")
-            cumprob <- TRUE  # for the lastx line
+            if (dd[j] ==1) {
+                # nothing to do, user subscripted to only 1 state
+                ssurv <- x$pstate
+            } else {
+                # reorder the states, pstate has dimension 2 or 3,
+                #  time/strata is first, data (if present), then states
+                #  (dd is the dimension from the user's point of view, of
+                #  strata, data, state)
+                if (length(dim(x$pstate))==2) {
+                    # drop = FALSE for the rare case of a single time point
+                    ssurv <- t(apply(x$pstate[,cumprob, drop=FALSE],1,cumsum))
+                } else {
+                    temp <- apply(x$pstate[,,cumprob, drop=FALSE],1:2, cumsum)
+                    ssurv <- smat(aperm(temp, c(2,3,1)))
+                }
+                cumprob <- TRUE  # for the lastx line
+            }
         } else {
             i <- !(x$states %in% noplot)
             if (all(i) || !any(i)) {
@@ -542,7 +556,10 @@ lines.survfit <- function(x, type='s',
     xlog <- par("xlog")
     # The default for plot and lines is to add confidence limits
     #  if there is only one curve
-    if (!missing(conf.type) && conf.type=="none") conf.int <- FALSE
+    if (!missing(conf.type) || is.null(x$conf.type)) 
+        conf.type <- match.arg(conf.type) # check for legal
+    else conf.type <- x$conf.type  # use the default in the curve
+    if (conf.type=="none") conf.int <- FALSE
 
     if (missing(conf.int) && missing(conf.times))  
         conf.int <- (!is.null(x$std.err) && prod(dim(x) ==1))
@@ -552,7 +569,6 @@ lines.survfit <- function(x, type='s',
         if (!is.numeric(conf.times)) stop('conf.times must be numeric')
         if (missing(conf.int)) conf.int <- TRUE
     }
-    if (!missing(conf.type) && conf.type=="none") conf.int <- FALSE # this overrides
     if (!missing(conf.int)) {
         if (is.numeric(conf.int)) {
             conf.level <- conf.int
@@ -611,11 +627,23 @@ lines.survfit <- function(x, type='s',
                      || any(cumprob != floor(cumprob)))
                 stop("cumprob contains an invalid numeric")
                 
-            # The pstate object will be of dimension 2 or 3
-            if (length(dd) ==1) 
-                ssurv <- smat(t(apply(x$pstate[,cumprob],1,cumsum)))
-            else stop("cumprob not available for multiple states + mulitple groups")
-            cumprob <- TRUE  # for the lastx line
+            if (dd[j] ==1) {
+                # nothing to do, user subscripted to only 1 state
+                ssurv <- x$pstate
+            } else {
+                # reorder the states, pstate has dimension 2 or 3,
+                #  time/strata is first, data (if present), then states
+                #  (dd is the dimension from the user's point of view, of
+                #  strata, data, state)
+                if (length(dim(x$pstate))==2) {
+                    # drop = FALSE for the rare case of a single time point
+                    ssurv <- t(apply(x$pstate[,cumprob, drop=FALSE],1,cumsum))
+                } else {
+                    temp <- apply(x$pstate[,,cumprob, drop=FALSE],1:2, cumsum)
+                    ssurv <- smat(aperm(temp, c(2,3,1)))
+                }
+                cumprob <- TRUE  # for the lastx line
+            }
         } else {
             i <- !(x$states %in% noplot)
             if (all(i) || !any(i)) {
@@ -958,12 +986,15 @@ points.survfit <- function(x, fun, censor=FALSE,
                            col=1, pch, noplot="(s0)", cumhaz=FALSE, ...) {
 
     conf.int <- conf.times <- FALSE  # never draw these with 'points'
-    cumprob <- FALSE; conf.type <- 'none' 
+    cumprob <- FALSE; conf.type <- "none" 
     x <- survfit0(x, x$start.time)
 
     # The default for plot and lines is to add confidence limits
     #  if there is only one curve
-    if (!missing(conf.type) && conf.type=="none") conf.int <- FALSE
+    if (!missing(conf.type) || is.null(x$conf.type)) 
+        conf.type <- match.arg(conf.type) # check for legal
+    else conf.type <- x$conf.type  # use the default in the curve
+    if (conf.type=="none") conf.int <- FALSE
 
     if (missing(conf.int) && missing(conf.times))  
         conf.int <- (!is.null(x$std.err) && prod(dim(x) ==1))
@@ -973,7 +1004,6 @@ points.survfit <- function(x, fun, censor=FALSE,
         if (!is.numeric(conf.times)) stop('conf.times must be numeric')
         if (missing(conf.int)) conf.int <- TRUE
     }
-    if (!missing(conf.type) && conf.type=="none") conf.int <- FALSE # this overrides
     if (!missing(conf.int)) {
         if (is.numeric(conf.int)) {
             conf.level <- conf.int
@@ -1032,11 +1062,23 @@ points.survfit <- function(x, fun, censor=FALSE,
                      || any(cumprob != floor(cumprob)))
                 stop("cumprob contains an invalid numeric")
                 
-            # The pstate object will be of dimension 2 or 3
-            if (length(dd) ==1) 
-                ssurv <- smat(t(apply(x$pstate[,cumprob],1,cumsum)))
-            else stop("cumprob not available for multiple states + mulitple groups")
-            cumprob <- TRUE  # for the lastx line
+            if (dd[j] ==1) {
+                # nothing to do, user subscripted to only 1 state
+                ssurv <- x$pstate
+            } else {
+                # reorder the states, pstate has dimension 2 or 3,
+                #  time/strata is first, data (if present), then states
+                #  (dd is the dimension from the user's point of view, of
+                #  strata, data, state)
+                if (length(dim(x$pstate))==2) {
+                    # drop = FALSE for the rare case of a single time point
+                    ssurv <- t(apply(x$pstate[,cumprob, drop=FALSE],1,cumsum))
+                } else {
+                    temp <- apply(x$pstate[,,cumprob, drop=FALSE],1:2, cumsum)
+                    ssurv <- smat(aperm(temp, c(2,3,1)))
+                }
+                cumprob <- TRUE  # for the lastx line
+            }
         } else {
             i <- !(x$states %in% noplot)
             if (all(i) || !any(i)) {

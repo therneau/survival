@@ -29,6 +29,4 @@ nostutter(id, x, censor = 0)
 \value{an updated vector with repeated values marked as "censor"}
 \seealso{\code{\link{lvcf}}, \code{\link{tmerge}}
 }
-\examples{
-}
 \keyword{ survival }
