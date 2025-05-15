@@ -554,6 +554,10 @@ coxph <- function(formula, data, weights, subset, na.action,
     if (any(pterms)) {
         pattr <- lapply(mf[pterms], attributes)
         pname <- names(pterms)[pterms]
+        if (robust) {
+            warning("the robust variance is not defined for a penalized model, option ignored")
+            robust <- FALSE
+        }
         # 
         # Check the order of any penalty terms
         ord <- attr(Terms, "order")[match(pname, attr(Terms, 'term.labels'))]

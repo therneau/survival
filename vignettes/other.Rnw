@@ -23,26 +23,26 @@ is important for R maintainance and validation.)
 This means that we cannot use more modern tools such as knitR or markdown,
 refer to other packages such as mstate or ggsurvfit, nor
 use data from some of those packages in our examples.
-A secondary reason is that the survival package is becoming physically large,
-and it was useful to split these off for maintainance purposes.
  
-Vignettes that have currently been relocated
+The following vignettes are found in this other location
 \begin{enumerate}
    \item external: A long discussion and examples focused on the external
      validation of a survival model.
+   \item pseudo: Use of pseudovalues and the pseudo function.
+   \item ridge: Addresses a recurrent question wrt using the ridge()
+     function with a large number of covariates.
+   \item royston: A small note that describes the data sets used in an
+     excellent paper on validation, and how those data were incorporated into
+     the survival package. (Royston and Altman, doi:10.1186/1471-2288-13-33)
    \item tutorial: This works through the examples found in the excellent
-     tutorial by H. Putter, M. Fiocco and R. Geskus. 
+     tutorial by H. Putter, M. Fiocco and R. Geskus, 
      Tutorial in biostatistics: competing risks and multi-state models,
-     Statistics in Medicine, 2006.
+     Statistics in Medicine, 2006 (doi:10.1002/sim.2712).
    \item sas: An expanded discussion answering some repeated queries about 
      how survival package results differ from SAS.  Some of these computations
      take a very long time to run.
-   \item ridge.Rmd: Addresses a recurrent question wrt using the ridge() function
-     with a large number of covariates.
-   \item royston: A small note that describes the data sets used in an
-     excellent paper on validation, and how those data were incorporated into
-     the survival package. (Royston and Altman, DOI:10.1186/1471-2288-13-33)
-   \item pseudo: Use of pseudovalues and the pseudo function.
+   \item shared: Use of shared coefficients and/or shared baseline hazards in
+     multistate models.
 \end{enumerate}
 
 Over time, we expect more vignettes to transfer from the survival package,

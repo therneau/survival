@@ -13,6 +13,11 @@
     creating certain multistate data sets.
     \item Depricate the type="mstate" option of Surv; a factor variable
     is the better option.
+    \item Add code to ignore the robust option to coxph for a penalized
+    model; this combination makes no sense and does not appear in any
+    examples. However, to my dismay I have just discovered that in the
+    prior code this does not outright fail as it should, and produces
+    *something* that is returned as a purported variance.
 }}
 \section{Changes in version 3.8-2}{
   \itemize{
