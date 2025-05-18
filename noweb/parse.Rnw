@@ -441,7 +441,18 @@ Shared transitions can be found in the [1,,] element of tmap; use that to
 put sums into the t2 matrix below.
 This isn't perfect, e.g., if there was a single state 1 subject who is censored
 before anything happens, then the 1:death state is never actually part of a 
-risk set and could be omitted from cmap and smap.  So be it.
+risk set and could be omitted from cmap and smap. 
+
+A more complex case shows up when we divide a covariate into groups in order
+to deal with time dependent covariates.  Say we have states A, B and death,
+and two covariates x1 and x2 with 3 levels each.
+This leads to a 10 state model A11, A12,\ldots A33, B11, \ldots, B33, death.
+If covariates change slowly we might never have an A11 to B33 transition, ever.
+If the user used statedata, the model statement might be 
+\code{A(1:9) *B(1:9)~ x1 + x2 + 1/common}, collapsing all 81 possiblilties 
+into a stratum with shared coefficients and baseline.
+Without due care one could end up with 9 copies of each subject in the A:B
+transition's risk set. This routine passes the buck to stacker to deal with it.
 
 <<parse-finish>>=
 t2 <- transitions[rowSums(transitions) > 0,, drop=FALSE]

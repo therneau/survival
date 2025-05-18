@@ -24,6 +24,8 @@ finegray <- function(formula, data, weights, subset, na.action= na.pass,
         stop("Fine-Gray model requires a multi-state survival")
     nY <- ncol(Y)
     states <- attr(Y, "states")
+    # The next line is a response to github issue 316
+    if (length(states) < 2) stop("survival time has only a single state")
     if (timefix) Y <- aeqSurv(Y)
 
     strats <- attr(Terms, "specials")$strata
