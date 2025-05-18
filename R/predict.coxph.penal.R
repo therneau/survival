@@ -9,7 +9,7 @@ predict.coxph.penal <- function(object,  newdata,
     # If there are no sparse terms
     if (!any(pterms==2) ||  
 	(missing(newdata) && se.fit==FALSE && type!='terms')) 
-	    NextMethod('predict',object,...)
+	    NextMethod()
     else {
 	# treat the sparse term as an offset term
 	#  It gets picked up in the linear predictor, so all I need to
