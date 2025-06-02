@@ -20,7 +20,7 @@ the results of a coxph fit.
 }
 \item{newdata}{
   Optional new data at which to do predictions.
-  If absent predictions are for the  data frame used in the original
+  If absent, predictions are for the  data frame used in the original
   fit. 
   When coxph has been called with a formula argument created in another
   context, i.e., coxph has been called within another function and the
@@ -67,18 +67,18 @@ option is TRUE.
 of type "linear predictor", "risk", and "terms" are all
 relative to the sample from which they came.  By default, the reference
 value for each of these is the mean covariate within strata.
-The underlying reason is both statistical and practial.
+The underlying reason is both statistical and practical.
 First, a Cox model only predicts relative risks
 between pairs of subjects within the same strata, and hence the addition
 of a constant to any covariate, either overall or only within a
 particular stratum, has no effect on the fitted results.
 Second, downstream calculations depend on the risk score exp(linear
 predictor), which will fall prey to numeric overflow for a linear
-predictor greater than \code{.Machine\$double.max.exp}.
+predictor greater than \code{.Machine$double.max.exp}.
 The \code{coxph} routines try to approximately center the predictors out
 of self protection.  
 Using the \code{reference="strata"} option is the safest centering,
-since strata occassionally have different means.
+since strata occasionally have different means.
 When the results of \code{predict} are used in further calculations it
 may be desirable to use a single reference level for all observations.
 Use of \code{reference="sample"} will use \code{object$means}, which agrees
