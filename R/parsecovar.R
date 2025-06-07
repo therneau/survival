@@ -278,14 +278,16 @@ parsecovar2 <- function(covar1, statedata, dformula, Terms, transitions,states) 
     if (i>0) t2 <- t2[,-i, drop=FALSE]   # transitions to 'censor' don't count
     indx1 <- match(rownames(t2), states)
     indx2 <- match(colnames(t2), states)
+
     # check shared hazards
-    temp <- matrix(tmap[1,indx1,indx2], nrow=nrow(t2))
-    for (i in unique(temp)) {
-        if (sum(temp==i) > 1) { #shared hazard
-            j <- cbind(row(temp)[temp==i], col(temp)[temp==i])
-            t2[j] <- sum(t2[j])  # credit all with all the events
-        }
-    }
+    #  Commented out per the comment above, but remember the code just in case
+    #temp <- matrix(tmap[1,indx1,indx2], nrow=nrow(t2))
+    #for (i in unique(temp)) {
+    #    if (sum(temp==i) > 1) { #shared hazard
+    #        j <- cbind(row(temp)[temp==i], col(temp)[temp==i])
+    #        t2[j] <- sum(t2[j])  # credit all with all the events
+    #    }
+    #}
 
     tmap2 <- matrix(0L, nrow= 1+nterm, ncol= sum(t2>0))
     trow <- row(t2)[t2>0]
