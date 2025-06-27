@@ -785,13 +785,16 @@ females (by adding \code{strata(sex)} to the right hand side of the
 
 
 A Cox model fit to the constructed data set yields the Fine-Gray
-models for PCM and for death.  
+models for PCM and for death. Per \cite{Geskus11}, the robust
+variance estimate from the coxph call should closely match the variance
+formula in Fine and Gray, model coefficients will be identical.
+
 <<fg2, fig=TRUE>>=
 fgfit1 <- coxph(Surv(fgstart, fgstop, fgstatus) ~ sex, data=pcmdat,
-               weights= fgwt)
+               weights= fgwt, id=id)
 summary(fgfit1)
 fgfit2 <- coxph(Surv(fgstart, fgstop, fgstatus) ~ sex, data=deathdat,
-               weights= fgwt)
+               weights= fgwt, id=id)
 fgfit2
 
 mfit2 <- survfit(Surv(etime, event) ~ sex, data=mgus2) #reprise the AJ
@@ -862,10 +865,10 @@ if true for one, they will not be true for the other.
 Now consider a multivariate fit on age, sex, and serum m-spike.
 <<fg3>>=
 fgfit2a <- coxph(Surv(fgstart, fgstop, fgstatus) ~ age + sex + mspike,
-                 data=pcmdat, weights=fgwt)
+                 data=pcmdat, weights=fgwt, id=id)
 
 fgfit2b <-  coxph(Surv(fgstart, fgstop, fgstatus) ~ age + sex + mspike,
-                 data=deathdat, weights=fgwt)
+                 data=deathdat, weights=fgwt, id=id)
 round(rbind(PCM= coef(fgfit2a), death=coef(fgfit2b)), 3)
 @ 
 The Fine-Gray fits show an effect of all three  variables on the subdistribution

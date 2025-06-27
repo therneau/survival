@@ -90,7 +90,10 @@ finegray(formula, data, weights, subset, na.action= na.pass, etype,
   interval does not span any event times the subsequent Cox model will
   never use that row.  The \code{finegray} output omits such rows.
   
-  See the competing risks vignette for more details.
+  In the simulation results of Geskus, he found that the robust sandwich
+  estimate of the standard error was equal to the Fine and Gray estimate
+  up to 3 digits, we thus recomment including the \code{cluster} option
+  in the subsequent \code{coxph} call.
 }
 \value{a data frame}
 \references{
@@ -114,7 +117,7 @@ event <- factor(event, 0:2, labels=c("censor", "pcm", "death"))
 # FG model for PCM
 pdata <- finegray(Surv(etime, event) ~ ., data=mgus2)
 fgfit <- coxph(Surv(fgstart, fgstop, fgstatus) ~ age + sex,
-                     weight=fgwt, data=pdata)
+                     weight=fgwt, data=pdata, cluster=id)
 
 # Compute the weights separately by sex
 adata <- finegray(Surv(etime, event) ~ . + strata(sex),
