@@ -82,8 +82,10 @@ survSplit <- function(formula, data, subset, na.action=na.pass,
 
     status <- Y[index$row, 3]
     status[index$censor] <- 0
+    # the factor line needs 0:length(states) in case there is a state
+    #  with no event, then status will be missing a category
     if (!is.null(states))  
-        status <- factor(status, labels=c("censor", states))
+        status <- factor(status, 0:length(states),labels=c("censor", states))
 
     # Did the user hand me a Surv call with multiple variables, or a
     #  premade Surv object?
