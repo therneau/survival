@@ -11,6 +11,9 @@ temp <- survfit(Surv(time, status) ~ ph.ecog, lung)
 summary(temp, times=c(30*1:11, 365*1:3))
 print(temp[2:3])
 
+temp <- survdiff(temp, rho=.5) #survdiff on a survfit object
+print(temp, digits=6)
+
 temp <- survfit(Surv(time, status)~1, lung, type='fleming',
 		   conf.int=.9, conf.type='log-log', error='tsiatis')
 summary(temp, times=30 *1:5)
