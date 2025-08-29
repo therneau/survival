@@ -343,7 +343,12 @@ survfit.Surv <- function(formula, ...)
     stop("the survfit function requires a formula as its first argument")
 
 # The confidence interval compututation is needed in more than one place, so
-# make it a function.  To do: make this user callable?
+# make it a function.  
+#  Dealing with edges. For conf.type=log, say that p=0 and se=1. Then the 
+# upper CI is formally exp(log(0) +1) = exp(-inf) =0, but will end up as
+# NA in the code. We leave it as NA, since we prefer the resulting plot: the
+# CI curve doesn't "dive" to zero at the end.  The current rule is to use
+# p if se=0 and NA if se!=0 for 0 (log), 0 and 1 (log-log, logit)
 
 survfit_confint <- function(p, se, logse=TRUE, conf.type, conf.int,
                             selow, ulimit=TRUE) {
@@ -361,24 +366,24 @@ survfit_confint <- function(p, se, logse=TRUE, conf.type, conf.int,
         #avoid some "log(0)" messages
         xx <- ifelse(p==0, NA, p)  
         se2 <- zval* se 
-        temp1 <- exp(log(xx) - se2*scale)
-        temp2 <- exp(log(xx) + se2)
+        temp1 <- ifelse(se==0, p, exp(log(xx) - se2*scale))
+        temp2 <- ifelse(se==0, p, exp(log(xx) + se2))
         if (ulimit) list(lower= temp1, upper= pmin(temp2, 1))
         else  list(lower= temp1, upper= temp2)
     }
     else if (conf.type=='log-log') {
         xx <- ifelse(p==0 | p==1, NA, p)
         se2 <- zval * se/log(xx)
-        temp1 <- exp(-exp(log(-log(xx)) - se2*scale))
-        temp2 <- exp(-exp(log(-log(xx)) + se2))
+        temp1 <- ifelse(se==0, p, exp(-exp(log(-log(xx)) - se2*scale)))
+        temp2 <- ifelse(se==0, p, exp(-exp(log(-log(xx)) + se2)))
         list(lower = temp1 , upper = temp2)
     }
     else if (conf.type=='logit') {
         xx <- ifelse(p==0, NA, p)  # avoid log(0) messages
         se2 <- zval * se *(1 + xx/(1-xx))
  
-        temp1 <- 1- 1/(1+exp(log(p/(1-p)) - se2*scale))
-        temp2 <- 1- 1/(1+exp(log(p/(1-p)) + se2))
+        temp1 <- ifelse(se==0, p, 1- 1/(1+exp(log(p/(1-p)) - se2*scale)))
+        temp2 <- ifelse(se==0, 1- 1/(1+exp(log(p/(1-p)) + se2)))
         list(lower = temp1, upper=temp2)
     }
     else if (conf.type=="arcsin") {

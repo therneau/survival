@@ -106,7 +106,7 @@
 	cumulative hazard or log(survival). The log-log option bases the
 	intervals on the log hazard or log(-log(survival)), the
 	logit option on log(survival/(1-survival))
-	and arcsin on arcsin(survival). 
+	and arcsin on arcsin(sqrt(survival)). 
       }
       \item{conf.lower}{
 	a character string to specify modified lower limits to the curve, the 

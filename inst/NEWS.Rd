@@ -16,8 +16,12 @@
     \item Add code to ignore the robust option to coxph for a penalized
     model; this combination makes no sense and does not appear in any
     examples. However, to my dismay I have just discovered that in the
-    prior code this does not outright fail as it should, and produces
+    current code this does not outright fail, and instead produces
     *something* that is returned as a purported variance.
+    \item Fix error in survfit_confint that would sometime produce
+    spurious NA.  Export the function.
+    \item Allow character indices for [.cox.zph, per github issue 299
+    
 }}
 \section{Changes in version 3.8-2}{
   \itemize{
@@ -25,7 +29,7 @@
     3.8-1 I had made a silly copy-paste mistake in the update to
     survfit, and also added a new test for my changes (doublecolon.R).
     Of course, the only check that I forgot to include in the
-    doublecolon file was for ... survfit (coxph, survdiff, survreg,
+    doublecolon file was for the survfit function (coxph, survdiff, survreg,
     survcheck, and concordance were all there).
 }}
 \section{Changes in version 3.8-1}{

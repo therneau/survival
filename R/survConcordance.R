@@ -1,6 +1,6 @@
 # Automatically generated from the noweb directory
-# Replaced by concordance.R; this code now frozen and will eventually be
-#  deprecated
+# Replaced by concordance.R; this code now deprecated and will eventually be
+#  removed
 survConcordance <- function(formula, data,
                             weights, subset, na.action) {
     Call <- match.call()  # save a copy of of the call, as documentation

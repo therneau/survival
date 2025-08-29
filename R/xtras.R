@@ -226,16 +226,31 @@ addSurvFun <- function(formula, found) {
 #  Better known as "last value carried forward"
 #
 lvcf <- function(id, x, time) {
+    # the input will normally already be sorted by time, and users will
+    #  then omit that argument
     if (!missing(time)) indx <- order(id, time)
     else indx <- order(id)   
 
-    for (i in seq(along=x)) {
-        j <- indx[i]
-        if (!is.na(x[j]) || i==1 || id[j]!= id[jlag]) current <- x[j]
-        else x[j] <- current
-        jlag <- j
+    # factors are really slow in replacement, convert to integer
+    if (is.factor(x)) {
+        xlev <- levels(x)
+        x <- as.integer(x)
+        for (i in seq(along=x)) {
+            j <- indx[i]
+            if (i==1 || !is.na(x[j]) || id[j]!= id[jlag]) current <- x[j]
+            else x[j] <- current
+            jlag <- j
+        }
+        factor(x, seq(along.with= xlev), xlev) # return to factor form
+    } else {
+        for (i in seq(along=x)) {
+            j <- indx[i]
+            if (i==1 || !is.na(x[j]) || id[j]!= id[jlag]) current <- x[j]
+            else x[j] <- current
+            jlag <- j
+        }
+        x
     }
-    x
 }
 
 # A function useful for timeline data.  Turn repeated instances of an

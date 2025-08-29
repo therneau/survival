@@ -159,8 +159,11 @@ of the data will not give exactly the same coefficients as the weights option,
 and in this case the weighted fit is arguably the correct one.
 
 When the model includes a \code{cluster} term or the \code{robust=TRUE}
-option the computed variance treats any weights as sampling weights;
-setting all weights to 2 will in this case give the same variance as weights of 1.
+option the computed variance is based on an infinitesimal jackknife,
+which treats any weights as sampling weights;
+setting all weights to 2 will in this case give the same variance as
+weights of 1.  If there are any non-integer weights, the code also
+defaults \code{robust=TRUE}.
 }
 \section{Special terms}{
   There are a few special terms that may be used in the model equation:
@@ -218,7 +221,14 @@ independence variance (generalized estimating equations), the
 infinitesimal jackknife, and the Wei, Lin, Weissfeld (WLW) estimate.
 
 If there is an \code{id} or \code{cluster} argument in the call, or
-\code{robust=TRUE}, the robust variance is computed.
+\code{robust=TRUE}, or there are non-integer case weights, the robust
+variance is the default.  If there are multiple rows per id
+and no id has more than one event and the underlying proportional
+hazards model is exactly correct, then the multiple rows for a given
+id will represent independent increments and the variance (robust or standard)
+obtained without an \code{id} statement will be an unbiased estimate.
+But it will not be equal to the estimate with \code{id} specified and we
+do not recommend it.
 }
 
 \section{Convergence}{

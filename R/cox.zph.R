@@ -234,6 +234,11 @@ print.cox.zph <- function(x, digits = max(options()$digits - 4, 3),
 }
 "[.cox.zph" <- function(x, ..., drop=FALSE) {
     i <- ..1
+    if (is.logical(i)) i <- which(i)
+    else if (is.character(i)) 
+        i <- match(i, colnames(x$y))
+    if (any(is.na(i) | i> ncol(x$y))) stop ("invalid variable requested")
+
     if (!is.null(x$strata)) {
         y2 <- x$y[,i,drop=FALSE]
         ymiss <- apply(is.na(y2), 1, all)
