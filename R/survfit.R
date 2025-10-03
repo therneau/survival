@@ -352,6 +352,8 @@ survfit.Surv <- function(formula, ...)
 
 survfit_confint <- function(p, se, logse=TRUE, conf.type, conf.int,
                             selow, ulimit=TRUE) {
+    if (conf.int <=0 || conf.int >=1)
+        stop("confidence intervals must be between 0 and 1")
     zval <- qnorm(1- (1-conf.int)/2, 0,1)
     if (missing(selow)) scale <- 1.0
     else scale <- ifelse(selow==0, 1.0, selow/se)  # avoid 0/0 at the origin
