@@ -5,13 +5,14 @@
 #  proportional baseline hazards
 # The first row of smat contains state to strata information.
 # Input data is X, Y, strata, and initial state (integer).
+# The model.frame is used only for strata, currently a rare case in multistate
 #
 # For each transition the expanded data has a set of rows, all those whose
 #  initial state makes them eligible for the transition.  
 # Strata is most often null; it encodes a users strata() addition(s). Such terms
 #  occur less often in multistate models (in my experience so far.)
 #
-stacker <- function(cmap, smap, istate, X, Y, strata, states, dropzero=TRUE) {
+stacker <- function(cmap, smap, istate, X, Y, mf, states, dropzero=TRUE) {
     from.state <- as.numeric(sub(":.*$", "", colnames(cmap)))
     to.state   <- as.numeric(sub("^.*:", "", colnames(cmap)))
 
@@ -29,7 +30,7 @@ stacker <- function(cmap, smap, istate, X, Y, strata, states, dropzero=TRUE) {
     }
 
     # Don't create X and Y matrices for transitions with no covariates, for
-    #  coxph calls.  But I need them for survfit.coxph (will eventually cease)
+    #  coxph calls.  But I need them for survfit.coxph (at present)
     zerocol <- apply(cmap==0, 2, all)
     if (dropzero && any(zerocol)) {
         cmap <- cmap[,!zerocol, drop=FALSE] 
@@ -50,15 +51,15 @@ stacker <- function(cmap, smap, istate, X, Y, strata, states, dropzero=TRUE) {
     # Dec 2024: change to once per stratum.  The issue was multiple
     #  transitions like 1:4 and 1:5 in the same stratum, which led to the
     #  same row of data twice in one stratum; which is not valid.
-    # May 2025: further update in conjunction with the "Shared coefficients
-    #  shared baselines in multistate models", which forced a re-thinking
+    # May 2025: further update in conjunction with "Shared coefficients
+    #  and shared baselines in multistate models", which forced a re-thinking
     #  of the process.  For the use cases found there, the code below is now
     #  correct.  For others, the data produced may be questionable;
     #  we await an actual use case to work things out.
     # The constructed X matrix will have a block of rows for each column of
-    #  cmap such that: the column is not 0, it is not a duplicated of another
+    #  cmap such that: the column is not 0, it is not a duplicate of another
     #  cmap column that is in the same stratum.  
-    # Within a stratum we need to retain sort order of the data
+    # Within a stratum we retain sort order of the data
 
     sgrp   <- match(smap[1,], unique(smap[1,]))  # the stratum group
     nblock <- max(sgrp)  # total number of blocks
@@ -111,6 +112,25 @@ stacker <- function(cmap, smap, istate, X, Y, strata, states, dropzero=TRUE) {
 
     # which (grouped) transition each row of newX represents
     transition <- rep(1:nblock, n.perblock)
+    # create the remaining strata, if needed
+    newstrat <- factor(colnames(smap)[transition], colnames(smap))
+    if (nrow(smap) >1) {
+        tmap <- smap[-1,, drop=FALSE]  #ignore (Baseline) row
+        # if all the states have the same strata variables, things are a
+        # bit easier
+        allsame <- TRUE
+        for (i in 1:ncol(tmap)) 
+            if (any(tmap[,i] != tmap[,1])) allsame <- FALSE
+        if (allsame) temp <- do.call(paste, c(mf[,tmap[,1]], sep='.'))
+        else {
+            rtemp <- split(rindex, rep(1:nblock, n.perblock)) #rows per trans
+            temp <- vector("list", nblock)
+            for (i in 1:nblock)
+                temp[[i]] <- do.call(paste, 
+                                     c(mf[rtemp[[i]], tmap[,i]], sep='.'))
+        }
+        newstrat <- factor(paste(newstrat, unlist(temp), sep='.'))
+    } 
 
     # remove any rows where X is missing
     #  these arise when a variable is used only for some transitions
@@ -122,38 +142,12 @@ stacker <- function(cmap, smap, istate, X, Y, strata, states, dropzero=TRUE) {
         rindex <- rindex[keep]
         newstat <- newstat[keep]
         transition <- transition[keep]
+        newstrat <- newstrat[keep]
     }
 
     if (ncol(Y) ==2) newY <- Surv(Y[rindex,1], newstat)
     else newY <- Surv(Y[rindex,1], Y[rindex,2], newstat)
 
-    # newstrat will be an integer vector.
-    newstrat <- transition  # start with strata induced by multi-state
-    # then add any strata from the users strata() terms
-    # First, I have as yet no idea what do do in this case.
-    # If there was an overall strata(celltype) then okay, it would split
-    #  everything, but I have yet to need such. If the user were to stratify 
-    #  some transitions and not others - yikes.
-    if (length(strata) > 0 && length(cgrp) < ncol(smap))
-        stop("external strata + shared hazard, solution not yet available")
-    if (is.matrix(strata)){
-        # does this ever happen?
-        # this is the most complex case. 
-        maxstrat <- apply(strata, 2, max)  # max in each colum of strata
-        mult <- cumprod(c(1, maxstrat))
-        temp <- max(mult) * newstrat
-        for (i in 1:ncol(strata)) {
-            k <- smap[i+1, transition]
-            temp <- temp + ifelse(k ==0, 0L, strata[i, rindex]* temp[i] -1L)
-        } 
-        newstrat <- match(temp, sort(unique(temp)))
-    }
-    else if (length(strata) > 0) {
-        # strata will be an integer vector with elements of 1, 2 etc 
-        mult <- max(strata)
-        temp <- mult * newstrat + ifelse(smap[2,transition]==0, 0L, strata[rindex] -1L)
-        newstrat <- match(temp, sort(unique(temp)))
-    }       
 
     # If there were multiple unique cmap columns within one strata, then an
     #  observation might appear twice, and we might no longer be sorted.

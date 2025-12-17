@@ -19,6 +19,7 @@ survcheck <- function(formula, data, subset, na.action,  id, istate,
     Terms <- terms(mf)
 
     Y <- model.response(mf)
+
     isSurv2 <- inherits(Y, "Surv2")
     if (isSurv2) {
         # this is Surv2 style data
@@ -57,8 +58,11 @@ survcheck <- function(formula, data, subset, na.action,  id, istate,
     if (n==0) stop("No (non-missing) observations")
 
     type <- attr(Y, "type")
-    if (type=="right") Y <- Surv(Y[,1], factor(Y[,2]))  # pretend its multi
-    else if (type=="counting")  Y <- Surv(Y[,1], Y[,2], factor(Y[,3]))
+    if (type=="right") 
+        Y <- Surv(Y[,1], factor(Y[,2], 0:1, 
+                                c("censor", "event"))) #force multistate
+    else if (type=="counting")  
+        Y <- Surv(Y[,1], Y[,2], factor(Y[,3], 0:1, c("censor", "event")))
     else if (!(type %in% c("mright", "mcounting")))
         stop("response must be right censored")
     n <- nrow(Y)
@@ -75,7 +79,6 @@ survcheck <- function(formula, data, subset, na.action,  id, istate,
     temp <- fit$transitions[, is.na(match(colnames(fit$transitions), "(censored)"))]
     fit$n <- c(id = length(unique(id)), observations =length(id), 
                transitions = sum(temp))
-
     fit$flag <- c(fit$flag, "duplicate"=0)
     if (isSurv2) {
         # make any numbering match the input data, not the retained data
@@ -166,19 +169,26 @@ survcheck2 <- function(y, id, istate=NULL, istate0="(s0)") {
     # Count the censors, so that each subject gets a row in the table,
     #  but then toss that column
     tab1 <- table(id, factor(y[,ncol(y)], 0:length(ystate)))[,-1, drop=FALSE]
-    tab1 <- cbind(tab1, rowSums(tab1))
-    tab1.levels <- sort(unique(c(tab1)))  #unique counts
-    if (length(tab1.levels) ==1) {
-        # In this special case the table command does not give a matrix
-        #  A data set with no events falls here, for instance
-        events <- matrix(tab1.levels, nrow=1, ncol= (1 + length(ystate)))
+    # Special case: no events at all
+    if (all(tab1==0)) events <- NULL
+    else if (ncol(tab1) ==1) {
+        # Special case: only 1 type of event is present, often a call that
+        #  had simple 0/1 survival
+        temp <- table(tab1)
+        yname <- ystate[as.integer(colnames(tab1))] #
+        events <- matrix(temp, nrow=1,
+                         dimnames=list(yname, names(temp)))
+    } else { # the usual case
+        # add the "any" column = total events for each subject
+        tab1 <- cbind(tab1, rowSums(tab1))
+        tab1.levels <- sort(unique(c(tab1)))  # unique observed counts
+        events <- t(apply(tab1, 2, function(x) table(factor(x, tab1.levels))))
+        dimnames(events) = list("state"= c(ystate, "(any)"),
+                                "count"= tab1.levels)
+        # remove rows (states) with no events
+        novisit <- rowSums(events[,-1, drop=FALSE]) ==0
+        if (any(novisit)) events <- events[!novisit,, drop=FALSE]
     }
-    else events <- apply(tab1, 2, function(x) table(factor(x, tab1.levels)))
-    dimnames(events) = list("count"= tab1.levels,
-                                "state"= c(ystate, "(any)"))
-    # remove columns with no visits
-    novisit <- colSums(events[-1,, drop=FALSE]) ==0
-    if (any(novisit)) events <- events[,!novisit]
 
     # Use a C routine to create 3 variables: a: an index of whether this is
     #   the first (1) or last(2) observation for a subject, 3=both, 0=neither,
@@ -218,7 +228,8 @@ survcheck2 <- function(y, id, istate=NULL, istate0="(s0)") {
                                     c(states, "(censored)")),
                          useNA="ifany")
     nr <- nrow(transitions)
-    never <- (rowSums(transitions) + colSums(transitions[,1:nr]))==0
+    never <- (rowSums(transitions) + 
+              colSums(transitions[,1:nr, drop=FALSE]))==0
     transitions <- transitions[!never, colSums(transitions)>0, drop = FALSE]
 
     # now continue with error checks
@@ -236,7 +247,7 @@ survcheck2 <- function(y, id, istate=NULL, istate0="(s0)") {
               teleport = sum(check$gap==0 & mismatch & check$dupid%%2 ==0))
 
     rval <- list(states=states, transitions=transitions,
-                 events= t(events), flag=flag, 
+                 events= events, flag=flag, 
                  istate= factor(check$cstate, seq(along.with=states), states))
  
     # add error details, if necessary

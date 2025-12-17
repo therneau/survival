@@ -6,7 +6,7 @@
 \alias{concordance.survreg}
 \title{Compute the concordance statistic for data or a model}
 \description{
-The concordance statistic compute the agreement between an observed
+The concordance statistic computes the agreement between an observed
 response and a predictor.  It is closely related to Kendall's tau-a and
 tau-b, Goodman's gamma, and Somers' d, all of which can also be
 calculated from the results of this function.
@@ -109,7 +109,7 @@ concordance(object, \ldots)
   Relatations to other statistics:
   For continuous x and y, 2C- 1 is equal to Somers' d.
   If the response is binary, C is equal to the area under the receiver
-  operating curve or AUC.
+  operating curve or AUROC.
   For a survival response and binary predictor C is the numerator of
   the Gehan-Wilcoxon test.
 
@@ -121,7 +121,7 @@ concordance(object, \ldots)
   survival, where the rank has value between 0 and 1.
   The concordance is a weighted mean of these ranks,
   determined by the \code{timewt} option. The rank vector can be
-  efficiently updated as subjects are added to the risk set.
+  efficiently updated as subjects are added or removed from the risk set.
   For further details see the vignette.
 
   The variance is based on an infinetesimal jackknife.  One advantage of
@@ -134,15 +134,19 @@ concordance(object, \ldots)
   It is absolutely critical, however, that the predicted values line up
   exactly, with the same observation in each row; otherwise the result
   will be nonsense.  (Be alert to the impact of missing values.)
+  The IJ variance used here is very close but not precisely identical to
+  the U-statistics approach of DeLong, in our limited experience they have
+  differed by .1 percent or less.  Thus a comparison of two binomial
+  models is extremely close to DeLong's test.
 
   The \code{timewt} option is only applicable to censored data.  In this
-  case the default corresponds to Harrell's C statistic, which is
+  case the default of n(t) corresponds to Harrell's C statistic, which is
   closely related to the Gehan-Wilcoxon test;
   \code{timewt="S"} corrsponds to the Peto-Wilcoxon,
   \code{timewt="S/G"} is suggested by Schemper, and
   \code{timewt="n/G2"} corresponds to Uno's C.
   It turns out that the Schemper and Uno weights are computationally
-  identical, we have retained both option labels as a user convenience.
+  identical, we have retained both options as a user convenience.
   The \code{timewt= "I"} option is related to the log-rank
   statistic.
   
@@ -206,10 +210,21 @@ fit1 <- coxph(Surv(ptime, pstat) ~ age + sex + mspike, mgus2)
 concordance(fit1, timewt="n/G2")  # Uno's weighting
 
 # logistic regression 
-fit2 <- glm(I(sex=='M') ~ age + log(creatinine), binomial, data= flchain)
-concordance(fit2)  # equal to the AUC
+tdata <- flchain
+options(na.action= na.exclude) # fit2a has many more missings, this causes
+ # predict to return nrow(flchain) values, but has to be set before the fit
+fit2a <- glm(I(sex=='M') ~ age + log(creatinine), binomial, data= flchain)
+fit2b <- glm(I(sex=='M') ~ age + kappa + lambda,  binomial, data= flchain)
+tdata$eta1 <- predict(fit2a)
+tdata$eta2 <- predict(fit2b)
+cfit <- concordance(I(sex=="M") ~ eta1 + eta2, tdata)  # equal to the AUC
+coef(cfit)  # males and females differ in creatinine, less in kappa/lambda
+convec <- c(1,-1) # compute a contrast
+c(test= unname(convec\%*\% coef(cfit)),
+  std = unname(sqrt(convec \%*\% vcov(cfit) \%*\% convec)))
 
-# compare multiple models 
+
+# compare multiple survival models 
 options(na.action = na.exclude)   # predict all 1384 obs, including missing
 fit3 <- glm(pstat ~ age + sex + mspike + offset(log(ptime)), 
             poisson, data= mgus2)
@@ -232,6 +247,10 @@ round(c(difference = test \%*\% coef(cfit),
         sd= sqrt(test \%*\% vcov(cfit) \%*\% test)), 3)
 }
 \references{
+  E DeLong, D DeLong, and D Clarke-Pearson,
+  Comparing the areas under two or more correlated reciever operating curves:
+  a nonparametric approach, Biometics, 1988.
+
   F Harrell, R Califf, D Pryor, K Lee and R Rosati, 
   Evaluating the yield of medical tests, J Am Medical Assoc, 1982.
 

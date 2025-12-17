@@ -1,17 +1,30 @@
-# Slightly modified from predict.coxph
-predict.coxphms <- function(object, newdata, 
+# Modified from predict.coxph
+predict.coxphms <- function(zedz, newdata, 
                        type=c("lp", "risk", "expected", "terms", "survival"),
                        se.fit=FALSE, na.action=na.pass,
                        terms=names(object$assign), collapse, 
                        reference=c("strata", "sample", "zero"), ...) {
-    if (!inherits(object, 'coxph'))
-        stop("Primary argument much be a coxph object")
+    if (!inherits(object, 'coxphms'))
+        stop("Primary argument much be a coxphms object")
 
     Call <- match.call()
     type <-match.arg(type)
+    if (missing(newdata) && (type=="lp" || type=="risk")) {
+        # this is a common and simple case, so dispose of it first
+        beta <- coef(object, matrix=TRUE)
+        if (missing(newdata)) X <- model.matrix(object)
+        else X <- model.matrix(object, data=newdata)
+        if (reference=="sample") X <- X- rep(object$means, each=row(X))
+        else if (reference=="strata") stop ("strata reference unfinished")
+        
+        eta <- X %*% beta 
+        if (type=="lp") return(eta) else return(exp(eta))
+    }       
+
+    # All the other cases
     if (type=="survival") {
         survival <- TRUE
-        type <- "expected"  # survival and expecte have nearly the same code path
+        type <- "expected"  # survival and expected have nearly the same code path
     }
     else survival <- FALSE
     if (type == "expected") reference <- "sample"  # a common ref is easiest

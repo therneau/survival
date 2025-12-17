@@ -387,34 +387,45 @@ coxph <- function(formula, data, weights, subset, na.action,
                                 Terms, transitions, states)
         tmap <- covlist2$tmap
         if (!is.null(covlist)) {
+            miss0 <- is.na(Y) | is.na(id)  # id and Y are required
+            if (!is.null(weights)) miss0 <- miss0 | is.na(weights)
+            if (!is.null(istate))  miss0 <- miss0 | is.na(istate)
+            if (!is.null(cluster)) miss0 <- miss0 | is.na(cluster)
+
             # first vector will be true if there is at least 1 transition for which all
             #  covariates are present, second if there is at least 1 for which some are not
             good.tran <- bad.tran <- rep(FALSE, nrow(Y))  
-            # We don't need to check interaction terms
-            termname <- rownames(attr(Terms, 'factors'))
-            trow <- (!is.na(match(rownames(tmap), termname)))
+
+            # If someone has a term like sex:trt in the model but no main effect for trt
+            # then we have no choice but to expand tmap to a 'per col of mf' form
+            tmap2 <- matrix(0, ncol(mf), ncol(tmap))  # will have 1 for "mf col was used"
+            temp <- sapply(strsplit(rownames(tmap), ":"),    
+                               function(x) match(x, colnames(mf)))
+            for (i in seq(along.with=temp)[-1]) {  # skip the (Baseline) row
+                tmap2[temp[[i]], tmap[i,] >0] <- 1
+            }
 
             # create a missing indicator for each term
             termiss <- matrix(0L, nrow(mf), ncol(mf))
             for (i in 1:ncol(mf)) {
                 xx <- is.na(mf[[i]])
-                if (is.matrix(xx)) termiss[,i] <- apply(xx, 1, any)
+                # spline terms have multiple columns; treat any missing as missing
+                if (is.matrix(xx)) termiss[,i] <- apply(xx, 1, any) 
                 else termiss[,i] <- xx
             }
 
-            for (i in levels(istate)) {
-                rindex <- which(istate ==i)
-                j <- which(covlist2$mapid[,1] == match(i, states))  #possible transitions
-                for (jcol in j) {
-                    k <- which(trow & tmap[,jcol] > 0)  # the terms involved in that 
-                    bad.tran[rindex] <- (bad.tran[rindex] | 
-                                         apply(termiss[rindex, k, drop=FALSE], 1, any))
-                    good.tran[rindex] <- (good.tran[rindex] |
-                                          apply(!termiss[rindex, k, drop=FALSE], 1, all))
-                }
+            for (i in 1:ncol(tmap2)) { # for each transition
+                rindex <- which(as.integer(istate) == covlist2$mapid[i,1]) #relevant obs
+                j <- which(tmap[,i] >0)  # which cols of mf used in this transition
+                anymiss <- apply(termiss[rindex, j, drop=FALSE],1, any)
+                bad.tran[rindex] <- (bad.tran[rindex]  | anymiss)   #failed for this trans
+                good.tran[rindex]<- (good.tran[rindex] | !anymiss)  # success
             }
-            n.partially.used <- sum(good.tran & bad.tran & !is.na(Y))   
-            omit <- (!good.tran & bad.tran) | is.na(Y)
+
+            # the value below was useful during testing, but isn't used directly
+            n.partially.used <- sum(good.tran & bad.tran & !miss0)   
+
+            omit <- (!good.tran & bad.tran) | miss0
             if (all(omit)) stop("all observations deleted due to missing values")
             temp <- setNames(seq(omit)[omit], attr(mf, "row.names")[omit])
             attr(temp, "class") <- "omit"
@@ -423,6 +434,7 @@ coxph <- function(formula, data, weights, subset, na.action,
             Y <- Y[!omit]
             id <- id[!omit]
             if (length(istate)) istate <- istate[!omit]  # istate can be NULL
+            n <- data.n <- nrow(mf) # reset n
         }
     }
 
@@ -494,20 +506,10 @@ coxph <- function(formula, data, weights, subset, na.action,
             #  turns out to be correct for the remaining rows of tmap
             smap <- tmap[c(1L, strats),] 
             smap[-1,] <- ifelse(smap[-1,] >0, 1L, 0L)
-            if (nrow(smap) > 2) {
-                # multi state with more than 1 strata statement -- really unusual
-                temp <- smap[-1,]
-                if (!all(apply(temp, 2, function(x) all(x==0) || all(x==1)))) {
-                    # the hard case: some transitions use one strata variable, some
-                    #  transitions use another.  We need to keep them separate
-                    strata.keep <- mf[,strats]  # this will be a data frame
-                    istrat <- sapply(strata.keep, as.numeric)
-                }
-            }
         }
         else smap <- tmap[1,,drop=FALSE]
         cmap <- parsecovar3(tmap, colnames(X), attr(X, "assign"), covlist2$phbaseline)
-        xstack <- stacker(cmap, smap, as.integer(istate), X, Y, strata=istrat,
+        xstack <- stacker(cmap, smap, as.integer(istate), X, Y, mf = mf,
                           states=states)
 
         rkeep <- unique(xstack$rindex)
@@ -717,6 +719,8 @@ coxph <- function(formula, data, weights, subset, na.action,
         if (FALSE) { 
             # an idea that was tried, then paused: make the linear predictors
             # and residuals into matrices with one column per transition
+            # It leads to a much larger fit object, so we do this expansion in
+            # predict/residuals instead.
             matcoef[matcoef>0] <- fit$coefficients[matcoef]
             temp <- Xsave %*% matcoef
             colnames(temp) <- colnames(cmap)

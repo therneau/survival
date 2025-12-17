@@ -1,47 +1,18 @@
-plot.survfit<- function(x, conf.int,  mark.time=FALSE,
-                        pch=3,  col=1,lty=1, lwd=1, 
-                        cex=1, log=FALSE,
-                        xscale=1, yscale=1, 
-                        xlim, ylim, xmax, 
-                        fun, xlab="", ylab="", xaxs='r', 
-                        conf.times, conf.cap=.005, conf.offset=.012, 
-                        conf.type=c("log",  "log-log",  "plain", 
-                                  "logit", "arcsin", "none"),
-                        mark, mark.col, noplot="(s0)", cumhaz=FALSE,
-                        firstx, ymin, cumprob=FALSE, ...) {
+# This has a lot of common code with plot.survfit, make sure to keep them
+#  in sync!
+lines.survfit <- function(x, type='s', 
+                          pch=3, col=1, lty=1, lwd=1,
+                          cex=1,
+                          mark.time=FALSE, xmax,
+                          fun,  conf.int=FALSE,  
+                          conf.times, conf.cap=.005, conf.offset=.012,
+                          conf.type=c('log',  'log-log',  'plain', 
+                                  'logit', "arcsin"),
+                          mark, noplot="(s0)", cumhaz=FALSE, cumprob=FALSE, 
+                          ...) {
+    x <- survfit0(x, x$start.time)
 
-    dotnames <- ...names()
-    if (any(dotnames =='type'))
-        stop("The graphical argument 'type' is not allowed")
-    if (!missing(mark))
-        warning("the mark option is deprecated, use mark.time=TRUE along with pch for the character")
-
-    x <- survfit0(x, x$start.time)   # align data at 0 for plotting
-
-    # decide on logarithmic axes, yes or no
-    if (is.logical(log)) {
-        ylog <- log
-        xlog <- FALSE
-        if (ylog) logax <- 'y'
-        else      logax <- ""
-    }
-    else {
-        ylog <- (log=='y' || log=='xy')
-        xlog <- (log=='x' || log=='xy')
-        logax  <- log
-    }
-
-    if (!missing(fun)) {
-        if (is.character(fun)) {
-            if (fun=='log'|| fun=='logpct') ylog <- TRUE
-            if (fun=='cloglog') {
-                xlog <- TRUE
-                if (ylog) logax <- 'xy'
-                else logax <- 'x'
-            }
-            if (fun=="cumhaz" && missing(cumhaz)) cumhaz <- TRUE
-        }
-    }
+    xlog <- par("xlog")
     # The default for plot and lines is to add confidence limits
     #  if there is only one curve
     if (!missing(conf.type) || is.null(x$conf.type)) 
@@ -74,7 +45,7 @@ plot.survfit<- function(x, conf.int,  mark.time=FALSE,
     # Organize data into stime, ssurv, supper, slower
     stime <- x$time
     std   <- NULL
-    yzero <- FALSE   #a marker that we have an "ordinary survival curve" with min 0
+    yzero <- FALSE   # a marker that we have an "ordinary survival curve" with min 0
     smat <- function(x) {
         # the rest of the routine is simpler if everything is a matrix
         dd <- dim(x)
@@ -278,21 +249,14 @@ plot.survfit<- function(x, conf.int,  mark.time=FALSE,
             slower <- tfun(slower)
         }
     }
+    if (missing(mark.time) & !missing(mark)) mark.time <- TRUE
+    if (missing(pch) && !missing(mark)) pch <- mark
+    if (length(pch)==1 && is.character(pch)) pch <- strsplit(pch, "")[[1]]
 
-    # Marks are not placed on confidence bands, pch only applies to marks
-    if (is.numeric(mark.time) || mark.time) {
-        if (is.numeric(mark.time)) mark.time <- sort(mark.time)
-        if ("pch" %in% ...names()) {
-            pch <- ...elt(match("pch", ...names()))
-            if (length(pch)==1 && is.character(pch) && nchar(pch)>1) 
-                pch <- unlist(strsplit(pch, ""))  # make it a vector
-            pch  <- rep(pch, length.out=ncurve)
-        } else pch <- rep(3, ncurve)  # the historic default is a +
-        if (!missing(mark.col)) mark.col <- rep(mark.col, length.out=ncurve)
-        else if ("col" %in% ...names())
-            mark.col <- rep(...elt(match("col", ...names())), length.out=ncurve)
-        else mark.col <- rep(1, ncurve)
-    }
+    # Marks are not placed on confidence bands
+    pch  <- rep(pch, length.out=ncurve)
+    mcol <- rep(col, length.out=ncurve)
+    if (is.numeric(mark.time)) mark.time <- sort(mark.time)
 
     # The actual number of curves is ncurve*3 if there are confidence bands,
     #  unless conf.times has been given.  Colors and line types in the latter
@@ -321,86 +285,9 @@ plot.survfit<- function(x, conf.int,  mark.time=FALSE,
         lty  <- rep(lty, length.out=ncurve)
         lwd  <- rep(lwd, length.out=ncurve)
     }
-    # check consistency
-    if (!missing(xlim)) {
-        if (!missing(xmax)) warning("cannot have both xlim and xmax arguments, xmax ignored")
-        if (!missing(firstx)) stop("cannot have both xlim and firstx arguments")
-    }
-    if (!missing(ylim)) {
-        if (!missing(ymin)) stop("cannot have both ylim and ymin arguments")
-    }
 
-    # Do axis range computations
-    if (!missing(xlim) && !is.null(xlim)) {
-        tempx <- xlim
-        xmax <- xlim[2]
-        if (xaxs == 'S') tempx[2] <- tempx[1] + diff(tempx)*1.04
-    }
-    else {
-        temp <-  stime[is.finite(stime)]
-        if (!missing(xmax) && missing(xlim)) temp <- pmin(temp, xmax)
-        else xmax <- NULL
-        
-        if (xaxs=='S') {
-            rtemp <- range(temp)
-            delta <- diff(rtemp)
-            #special x- axis style for survival curves
-            if (xlog) tempx <- c(min(rtemp[rtemp>0]), min(rtemp)+ delta*1.04)
-            else tempx <- c(min(rtemp), min(rtemp)+ delta*1.04)
-        }
-        else if (xlog) tempx <- range(temp[temp > 0])
-        else tempx <- range(temp)
-    }  
-    if (!missing(xlim) || !missing(xmax)) 
-        options(plot.survfit = list(xmax=tempx[2]))
-    else options(plot.survfit = NULL)
-
-    if (!missing(ylim) && !is.null(ylim)) tempy <- ylim
-    else {
-        skeep <- is.finite(stime) & stime >= tempx[1] & stime <= tempx[2]
-
-        if (ylog) {
-            if (!is.null(supper))
-                tempy <- range(c(slower[is.finite(slower) & slower>0 & skeep], 
-                                 supper[is.finite(supper) & skeep]))
-            else tempy <-  range(ssurv[is.finite(ssurv)& ssurv>0 & skeep])
-            if (tempy[2]==1) tempy[2] <- .99   # makes for a prettier axis
-            if (any(c(ssurv, slower)[skeep] ==0)) {
-                tempy[1] <- tempy[1]*.8
-                ssurv[ssurv==0] <- tempy[1]
-                if (!is.null(slower))  slower[slower==0] <- tempy[1]
-            }
-        }
-        else {
-            if (!is.null(supper)) 
-                tempy <- range(c(supper[skeep], slower[skeep]), finite=TRUE, na.rm=TRUE)
-            else tempy <- range(ssurv[skeep], finite=TRUE, na.rm= TRUE)
-            if (yzero) tempy <- range(c(0, tempy))
-        }
-    }
-
-    if (!missing(ymin)) tempy[1] <- ymin
-
-    #
-    # Draw the basic box
-    #
-    temp <- if (xaxs=='S') 'i' else xaxs
-    plot(range(tempx, finite=TRUE, na.rm=TRUE)/xscale, 
-         range(tempy, finite=TRUE, na.rm=TRUE)*yscale, 
-         type='n', log=logax, xlab=xlab, ylab=ylab, xaxs=temp,...)
-    if(yscale != 1) {
-        if (ylog) par(usr =par("usr") -c(0, 0, log10(yscale), log10(yscale))) 
-        else par(usr =par("usr")/c(1, 1, yscale, yscale))   
-    }
-    if (xscale !=1) {
-        if (xlog) par(usr =par("usr") -c(log10(xscale), log10(xscale), 0,0)) 
-        else par(usr =par("usr")*c(xscale, xscale, 1, 1))   
-    } 
-    # The use of [[par(usr)]] just above is a bit sneaky.  I want the
-    # lines and points routines to be able to add to the plot, *without*
-    # passing them a global parameter that determines the y-scale or forcing
-    # the user to repeat it.
-
+    # remember a prior xmax 
+    if (missing(xmax)) xmax <- getOption("plot.survfit")$xmax 
     # Create a step function, removing redundancies that sometimes occur in
     #  curves with lots of censoring.
     dostep <- function(x,y) {
@@ -451,7 +338,6 @@ plot.survfit<- function(x, conf.int,  mark.time=FALSE,
         }
         points(xx, yy, cex=cex, ...)
     }
-    type <- 's'
     c1 <- 1  # keeps track of the curve number
     c2 <- 1  # keeps track of the lty, col, etc
     xend <- yend <- double(ncurve)
@@ -496,8 +382,8 @@ plot.survfit<- function(x, conf.int,  mark.time=FALSE,
                     lines(dostep(xx, yy), lty=lty[c2], col=col[c2], lwd=lwd[c2]) 
                 else lines(xx, yy, type=type, lty=lty[c2], col=col[c2], lwd=lwd[c2])
                 if (is.numeric(mark.time) || mark.time) 
-                    drawmark(xx, yy, mark.time, censor, pch=pch[c1], 
-                             col=mark.col[c1], pch=pch[c1], cex=cex)
+                    drawmark(xx, yy, mark.time, censor, pch=pch[c1], col=mcol[c1],
+                             cex=cex)
             }
             xend[c1] <- max(xx)
             yend[c1] <- yy[length(yy)]

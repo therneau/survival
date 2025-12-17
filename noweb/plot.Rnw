@@ -19,7 +19,7 @@ plot.survfit<- function(x, conf.int,  mark.time=FALSE,
                         conf.times, conf.cap=.005, conf.offset=.012, 
                         conf.type=c("log",  "log-log",  "plain", 
                                   "logit", "arcsin", "none"),
-                        mark, noplot="(s0)", cumhaz=FALSE,
+                        mark.col, noplot="(s0)", cumhaz=FALSE,
                         firstx, ymin, cumprob=FALSE, ...) {
 
     dotnames <- names(list(...))
@@ -46,7 +46,7 @@ lines.survfit <- function(x, type='s',
                           fun,  conf.int=FALSE,  
                           conf.times, conf.cap=.005, conf.offset=.012,
                           conf.type=c('log',  'log-log',  'plain', 
-                                  'logit', "arcsin"),
+                                  'logit', "arcsin", "none"),
                           mark, noplot="(s0)", cumhaz=FALSE, cumprob=FALSE, 
                           ...) {
     x <- survfit0(x, x$start.time)
@@ -132,8 +132,11 @@ if (!missing(fun)) {
 <<plot-data>>=
 # The default for plot and lines is to add confidence limits
 #  if there is only one curve
-if (!missing(conf.type) || is.null(x$conf.type)) 
-    conf.type <- match.arg(conf.type) # check for legal
+if (!missing(conf.type) || is.null(x$conf.type)) {
+    legal <- c("log",  "log-log",  "plain", 
+                                  "logit", "arcsin", "none")
+    if (!(conf.type %in% legal)) stop("conf.type must be one of ", legal)
+}
 else conf.type <- x$conf.type  # use the default in the curve
 if (conf.type=="none") conf.int <- FALSE
 
@@ -318,7 +321,7 @@ if (conf.int) {
         if (missing(conf.type) && !is.null(x$conf.type))
             conf.type <- x$conf.type
         temp <- survfit_confint(ssurv, std, logse= x$logse,
-                                conf.type, conf.level, ulimit=FALSE)
+                                conf.type, conf.level, ulimit=TRUE)
         supper <- as.matrix(temp$upper)
         slower <- as.matrix(temp$lower)
     }

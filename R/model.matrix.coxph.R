@@ -62,7 +62,7 @@ model.matrix.coxph <- function(object, data=NULL,
     X <- X[, !xdrop, drop=FALSE]
     attr(X, "assign") <- Xatt$assign[!xdrop]
     attr(X, "contrasts") <- Xatt$contrasts
-
+    if (length(istrat)>0) attr(X, "strata") <- istrat
     X
 }
 model.frame.coxph <- function(formula, ...) {
@@ -78,7 +78,7 @@ model.frame.coxph <- function(formula, ...) {
         Terms <- terms(formula)
         fcall <- formula$call
         indx <- match(c("formula", "data", "weights", "subset", "na.action",
-                        "cluster", "id", "istate"),
+                        "cluster", "id"),
                   names(fcall), nomatch=0) 
         if (indx[1] ==0) stop("The coxph call is missing a formula!")
    

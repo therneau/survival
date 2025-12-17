@@ -229,7 +229,7 @@ One nuisance is that the terms function sometimes inverts things.  For
 example in the formula
 \code{terms(~ x1 + x1:iage + x2 + x2:iage)} the label for the second
 of these becomes \code{iage:x2}.  
-I'm guessing it is because the variable first appear in the order x1, iage, x2
+I'm guessing it is because the variables first appear in the order x1, iage, x2
 and labels make use of that order. 
 But when we look at the formula fragment \code{~ x2 + x2:iage} the terms
 will be in the other order.  
@@ -456,7 +456,7 @@ transition's risk set. This routine passes the buck to stacker to deal with it.
 
 Later addition: For the real data cases we have seen so far, it is best to
 assume that any transition that isn't observed, won't occur.  Given that, it
-is easier if we don't put don't mark extra shared hazards a possible in the
+is easier if we don't mark extra shared hazards a possible in the
 returned object.  An example was states of not demented, demented and death,
 with the first 2 divided by the presence of 0-7 cardiometabolic comorbidities.
 It is easy to declare all 8*8 ND:dementia transitions as 'shared', but because
@@ -473,7 +473,12 @@ indx1 <- match(rownames(t2), states)
 indx2 <- match(colnames(t2), states)
 
 # check shared hazards
-#  Commented out per the comment above, but remember the code just in case
+#  Commented out per discussion in the noweb file: in more complex shared hazard
+# models such as multiple time-dependent covariates, assuming that all the
+# transitions implied by the user's model statement should be counted can lead
+# to including a *lot* of state combinations that are improbable or impossible.
+# So we no longer extend the state space.
+#  But keep the code here just in case we change our mind
 #temp <- matrix(tmap[1,indx1,indx2], nrow=nrow(t2))
 #for (i in unique(temp)) {
 #    if (sum(temp==i) > 1) { #shared hazard

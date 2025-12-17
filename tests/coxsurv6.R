@@ -34,21 +34,26 @@ fit2 <- coxph(list(Surv(tstart, tstop, bstat) ~ 1,
 # Before we tackle fit2, start small with just 9 subjects, coefs fixed to 
 # simple values to make hand computation easier.  There are no transitions
 # from state 3 to death in this subset.  Since it is a shared hazard the
-# subjects in state 3 ARE at risk and so are found in the denominator of the
-# hazard, but since none of the progress the MLE for that ph coef is -infinity. 
-# We set it to -1.  
+# subjects in state 3 formally are at risk and so would be found in the 
+# denominator of the hazard, but since none of them die the MLE for 
+# that ph coef is -infinity. More importantly, time-dependent covariate
+# modeling can lead to a lot of states like this, that should be ignored.
+#  The upshot is that parsecovar3 only counts transitions with at least one
+#  actual case.
 pbc3 <- subset(pbc2, id < 10)
 pbc3$age <- round(pbc3$age)  # easier to do "by hand" sums
+survcheck(Surv(tstart, tstop, bstat) ~1, pbc3, id=id, istate=bili4)$transitions
+
 fit3 <- coxph(list(Surv(tstart, tstop, bstat) ~ 1, 
                    c(1:4):5 ~ age / common + shared),  x=TRUE,
-              id= id, istate=bili4, data=pbc3, init= c(.05, .6, -1, 1.1), iter=0)
+              id= id, istate=bili4, data=pbc3, init= c(.05, .6, 1.1), iter=0)
 # a mixed p0 gives a stronger test than our usual (1, 0,0,0,0)
 surv3 <- survfit(fit3, newdata=list(age=50), p0=c(.4, .3, .2, .1, 0))
 
 etime <- sort(unique(pbc3$tstop[pbc3$bstat != "censor"]))
 # At event time 1 (182), all 9 are at risk, (3,3,2,1) in initial states 1-4
 atrisk <- pbc3$tstart < etime[1] & pbc3$tstop >= etime[1]  # all 9 at risk
-table(pbc3$bili4[atrisk])
+aeq(table(pbc3$bili4[atrisk]), c(3,3,2,1))
 
 #  One event occurs at 182, a 2:1 transition  (1-2 to normal)
 #  Risk scores for the non-death transitions are all exp(0) =1,

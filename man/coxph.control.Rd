@@ -54,7 +54,7 @@ number of iterations for this outer loop.}
   covariate value who perished.  In that situation the coefficient
   increases at each iteration while the log-likelihood asymptotes to a
   maximum.  As iteration proceeds there is a race condition
-  condition for three endpoint: exp(coef) overflows,
+  for three endpoint: exp(coef) overflows,
   the Hessian matrix become singular, or the change in loglik is small
   enough to satisfy the convergence criterion.  The first two are
   difficult to anticipate and lead to numeric diffculties, which is

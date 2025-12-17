@@ -280,7 +280,12 @@ parsecovar2 <- function(covar1, statedata, dformula, Terms, transitions,states) 
     indx2 <- match(colnames(t2), states)
 
     # check shared hazards
-    #  Commented out per the comment above, but remember the code just in case
+    #  Commented out per discussion in the noweb file: in more complex shared hazard
+    # models such as multiple time-dependent covariates, assuming that all the
+    # transitions implied by the user's model statement should be counted can lead
+    # to including a *lot* of state combinations that are improbable or impossible.
+    # So we no longer extend the state space.
+    #  But keep the code here just in case we change our mind
     #temp <- matrix(tmap[1,indx1,indx2], nrow=nrow(t2))
     #for (i in unique(temp)) {
     #    if (sum(temp==i) > 1) { #shared hazard

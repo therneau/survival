@@ -1,7 +1,8 @@
 residuals.coxph <-
   function(object, type=c("martingale", "deviance", "score", "schoenfeld",
 			  "dfbeta", "dfbetas", "scaledsch","partial"),
-	    collapse=FALSE, weighted=(type %in% c("dfbeta", "dfbetas")), ...) {
+	    collapse=FALSE, weighted=(type %in% c("dfbeta", "dfbetas")), 
+           na.action, ...) {
       
     type <- match.arg(type)
     otype <- type
@@ -12,6 +13,15 @@ residuals.coxph <-
             weighted <- TRUE  # different default for this case
     }
     if (type=='scaledsch') type<-'schoenfeld'
+
+    omit <- object$na.action
+    if (!is.null(omit) && !missing(na.action)){
+        if (collapse && (na.action=="na.omit" || class(omit)=="exclude"))
+            stop("collapse and expansion of missing are mutually exclusive")
+        if (na.action=="na.omit") class(omit) <- "omit"
+        else if (na.action=="na.exclude") class(omit) <- "exclude"
+        else stop("invalid na.action argument")
+    }
 
     n <- length(object$residuals)
     rr <- object$residuals
@@ -34,8 +44,7 @@ residuals.coxph <-
 	if (!inherits(Terms, 'terms'))
 		stop("invalid terms component of object")
 	strats <- attr(Terms, "specials")$strata
-	if (is.null(y)  ||  (is.null(x) && type!= 'deviance') ||
-            inherits(object, "coxphms")) {
+	if (is.null(y)  ||  (is.null(x) && type!= 'deviance')) {
 	    temp <- coxph.getdata(object, y=TRUE, x=TRUE, stratax=TRUE)
 	    y <- temp$y
 	    x <- temp$x
@@ -161,11 +170,11 @@ residuals.coxph <-
     if (weighted) rr <- rr * weights
     
     #Expand out the missing values in the result
-    if (!is.null(object$na.action)) {
-	rr <- naresid(object$na.action, rr)
+    if (!is.null(omit)) {
+	rr <- naresid(omit, rr)
    	if (is.matrix(rr)) n <- nrow(rr)
 	else               n <- length(rr)
-	if (type=='deviance') status <- naresid(object$na.action, status)
+	if (type=='deviance') status <- naresid(omit, status)
     }
     
     if (type=="partial"){
@@ -187,25 +196,5 @@ residuals.coxph <-
 	sign(rr) *sqrt(-2* (rr+
 			      ifelse(status==0, 0, status*log(status-rr))))
     else rr
-}
-    
-
-# Much of this may be folded directly into residuals.coxph, later
-
-residuals.coxphms <- function(object, type=c("martingale","score",
-                                             "schoenfeld",
-			  "dfbeta", "dfbetas", "scaledsch"),
-                          collapse=FALSE, weighted=FALSE, ...) {
-    type <- match.arg(type)
-    # Do I need to reconscruct the data frame?  This routine is not yet done
-    #  for that case
-    y <- object$y
-    x <- object[['x']]  # avoid matching object$xlevels
-
-    if (type != "martingale" && (is.null(y) || is.null(x))) {
-        # we need to reconstruct Y and X both
-        stop("residuals method for multistate coxph objects is incomplete")
-    }       
-    else NextMethod()
 }
 

@@ -15,11 +15,14 @@ print.survcheck <- function(x, ...){
     print(x$transitions)
     cat('\n')
 
-    ## how many of each state does each id have?
-    cat("Number of subjects with 0, 1, ... transitions to each state:\n")
-    print(x$events)
-    cat("\n")
-    
+    # how many of each state does each id have?
+    # In the rare edge case of a survcheck call for a data set with no events
+    #  at all (all are censored) x$event will be NULL
+    if (!is.null(x$events)){
+        cat("Number of subjects with 0, 1, ... transitions to each state:\n")
+        print(x$events)
+        cat("\n")
+    }
     if(x$flag["overlap"]>0) {
         cat("Overlap check: ", 
             length(x$overlap$id),
