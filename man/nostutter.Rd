@@ -28,7 +28,7 @@ nostutter(id, x, censor = 0, first=FALSE)
   total do not count as entry into a new state.
 
   This routine will often be called on a current state variable before
-  using that variable as and event variable in \code{tmerge}, in this
+  using that variable as an event variable in \code{tmerge}, in this
   case we want to use the \code{first=FALSE} option. 
 }
 \value{an updated vector with repeated values marked as \code{censor}}

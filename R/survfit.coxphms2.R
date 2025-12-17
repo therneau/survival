@@ -1,7 +1,7 @@
 #
-# Survival curves from a coxphms model
+# Survival curves from a coxphms model, rename it when done
 #  
-survfit.coxphms <-
+survfit.coxphms2 <-
 function(formula, newdata, se.fit=FALSE, conf.int=.95, individual=FALSE,
          stype=2, ctype, 
          conf.type=c("log", "log-log", "plain", "none", "logit", "arcsin"),
@@ -11,7 +11,12 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95, individual=FALSE,
     Call <- match.call()
     Call[[1]] <- as.name("survfit")  #nicer output for the user
     object <- formula     #'formula' because it has to match survfit
-    se.fit <- FALSE   #still to do
+    if (se.fit) {
+        warn("se.fit not yet implemented for multistate coxph")
+        se.fit <- FALSE
+    }
+    if (missing(newdata))
+        stop("multi-state survival requires a newdata argument")
     if (!missing(id) || !missing(individual)) 
         stop("using a covariate path is not supported for multi-state")
 

@@ -197,7 +197,7 @@ if (coxms || is.null(object$y) || is.null(object[['x']]) ||
     (has.strata && is.null(object$strata)) ||
     !is.null(attr(object$terms, 'offset'))) {
     
-    mf <- stats::model.frame(object)
+    mf <- model.frame(object)
     }
 else mf <- NULL  #useful for if statements later
 @ 
@@ -240,7 +240,7 @@ else {
     if (length(oldid) && ncol(Y)==3) position <- survflag(Y, oldid)
     else position <- NULL
     if (!coxms && (nrow(Y) != object$n[1])) 
-        stop("Failed to reconstruct the original data set")
+        stop("Failed to reconstruct the original data set, wrong number of rows")
     if (has.strata) {
         if (length(strata)==0) {
             if (length(stangle$vars) ==1) strata <- mf[[stangle$vars]]

@@ -112,31 +112,34 @@ stacker <- function(cmap, smap, istate, X, Y, mf, states, dropzero=TRUE) {
 
     # which (grouped) transition each row of newX represents
     transition <- rep(1:nblock, n.perblock)
-    # create the remaining strata, if needed
     newstrat <- factor(colnames(smap)[transition], colnames(smap))
+    # newstrat will be 1:2, ... i.e. the from:to pairs
     if (nrow(smap) >1) {
+        # there are strata in the call as well, so expand the strata to
+        #  "strata from the model".1:2, etc
+        sstrat <- function(...) strata(..., shortlabel=TRUE)
         tmap <- smap[-1,, drop=FALSE]  #ignore (Baseline) row
-        # if all the states have the same strata variables, things are a
-        # bit easier
-        allsame <- TRUE
-        for (i in 1:ncol(tmap)) 
-            if (any(tmap[,i] != tmap[,1])) allsame <- FALSE
-        if (allsame) temp <- do.call(paste, c(mf[,tmap[,1]], sep='.'))
-        else {
-            rtemp <- split(rindex, rep(1:nblock, n.perblock)) #rows per trans
-            temp <- vector("list", nblock)
-            for (i in 1:nblock)
-                temp[[i]] <- do.call(paste, 
-                                     c(mf[rtemp[[i]], tmap[,i]], sep='.'))
+        # rtemp will be list, row numbers for transition 1, rows for 2,..
+        rtemp <- split(rindex, rep(1:nblock, n.perblock)) #rows per trans
+        temp <- vector("list", nblock) # one per transition
+        for (i in 1:nblock){
+            j <- (tmap[,i]>0) # which stata vars for this transition?
+            if (sum(j) ==1) {
+                zz <- mf[[rownames(tmap)[j]]] # the strata
+                temp[[i]] <- zz[rtemp[[i]]]         
+            } else if (sum(j)>1) { 
+                zz <- mf[rtemp[[i]], rownames(tmap)[j]] 
+                temp[[i]] <- do.call(sstrat, zz)
+            }      
         }
-        newstrat <- factor(paste(newstrat, unlist(temp), sep='.'))
+        newstrat <- do.call(sstrat, list(newstrat, unlist(temp)))
     } 
 
-    # remove any rows where X is missing
+    # remove any rows where X or strata is missing
     #  these arise when a variable is used only for some transitions
     #  the row of data needs to be tossed for the given ones, but will be
     #  okay for other transitions which do not use the offending variable.
-    keep <- !apply(is.na(newX), 1, any)
+    keep <- !apply(is.na(newX), 1, any) & !is.na(newstrat)
     if (!all(keep)) {
         newX <- newX[keep,, drop=FALSE]
         rindex <- rindex[keep]

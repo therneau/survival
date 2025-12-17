@@ -108,7 +108,7 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95, individual=FALSE,
         (has.strata && is.null(object$strata)) ||
         !is.null(attr(object$terms, 'offset'))) {
         
-        mf <- stats::model.frame(object)
+        mf <- model.frame(object)
         }
     else mf <- NULL  #useful for if statements later
     position <- NULL

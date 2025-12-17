@@ -50,9 +50,13 @@ csurv1 <- survfit(cfit1, newdata=dummy)
 
 cfit2 <- coxph(Surv(etime, event) ~ age + mspike, id=id,
                init= coef(cfit1), iter=0, data=mgus2, subset=(sex=='F'))
-csurv3 <- survfit(cfit2, newdata= expand.grid(age=c(60, 80), mspike=1.2))
+cfit3 <- coxph(Surv(etime, event) ~ age + mspike, id=id,
+               init= coef(cfit1), iter=0, data=mgus2, subset=(sex=='M'))
+csurv2 <- survfit(cfit2, newdata= dummy)
+csurv3 <- survfit(cfit3, newdata= dummy)
+
 test <- c('n', 'time', 'n.risk', 'n.event', 'n.censor', 'pstate', 'cumhaz')
-all.equal(unclass(csurv1[1,,])[test], unclass(csurv3)[test])
+all.equal(unclass(csurv1[1,,])[test], unclass(csurv2)[test])
 
 
 # Part 3: compare a shared baseline to identical baseline
@@ -69,3 +73,8 @@ fit0 <- coxph(Surv(time, status) ~ age + sex, tdata,  ties="breslow")
 
 survfit(fit3, newdata= list(age=65, sex=1))
 }
+
+# Part 4: very complex strata
+mgus2$cgrp <- cut(mgus2$creat, c(0,1,2,30))
+fit5 <- coxph(list(Surv(etime, event) ~ age + mspike + strata(sex),
+                   1:3 ~ strata(cgrp)), id=id, mgus2)

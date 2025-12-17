@@ -62,7 +62,7 @@ model.matrix.coxph <- function(object, data=NULL,
     X <- X[, !xdrop, drop=FALSE]
     attr(X, "assign") <- Xatt$assign[!xdrop]
     attr(X, "contrasts") <- Xatt$contrasts
-    if (length(istrat)>0) attr(X, "strata") <- istrat
+    if (length(istrat)>0) attr(X, "strata") <- strata.keep
     X
 }
 model.frame.coxph <- function(formula, ...) {

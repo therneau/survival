@@ -350,7 +350,7 @@ survfit.Surv <- function(formula, ...)
 # CI curve doesn't "dive" to zero at the end.  The current rule is to use
 # p if se=0 and NA if se!=0 for 0 (log), 0 and 1 (log-log, logit)
 
-survfit_confint <- function(p, se, logse=TRUE, conf.type, conf.int,
+survfit_confint <- function(p, se, logse=TRUE, conf.type, conf.int= .95,
                             selow, ulimit=TRUE) {
     if (conf.int <=0 || conf.int >=1)
         stop("confidence intervals must be between 0 and 1")

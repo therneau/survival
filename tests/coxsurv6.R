@@ -33,11 +33,14 @@ fit2 <- coxph(list(Surv(tstart, tstop, bstat) ~ 1,
 
 # Before we tackle fit2, start small with just 9 subjects, coefs fixed to 
 # simple values to make hand computation easier.  There are no transitions
-# from state 3 to death in this subset.  Since it is a shared hazard the
-# subjects in state 3 formally are at risk and so would be found in the 
-# denominator of the hazard, but since none of them die the MLE for 
-# that ph coef is -infinity. More importantly, time-dependent covariate
-# modeling can lead to a lot of states like this, that should be ignored.
+# from state 3 to death in this subset. The design of coxph is such that
+# the set of (observed transitions) is assumed to be the set of (possible
+# transitions): it does not know that "death" is something special.  One could
+# argue that the above call explicitly included 3:5, and we considered this
+# (added to the code even) but found out that it opens a can of worms. More
+# discussion can be found in the "shared coefficients and shared baseline"
+# vignette (survivalVignettes package).
+# 
 #  The upshot is that parsecovar3 only counts transitions with at least one
 #  actual case.
 pbc3 <- subset(pbc2, id < 10)
@@ -51,15 +54,12 @@ fit3 <- coxph(list(Surv(tstart, tstop, bstat) ~ 1,
 surv3 <- survfit(fit3, newdata=list(age=50), p0=c(.4, .3, .2, .1, 0))
 
 etime <- sort(unique(pbc3$tstop[pbc3$bstat != "censor"]))
-# At event time 1 (182), all 9 are at risk, (3,3,2,1) in initial states 1-4
-atrisk <- pbc3$tstart < etime[1] & pbc3$tstop >= etime[1]  # all 9 at risk
-aeq(table(pbc3$bili4[atrisk]), c(3,3,2,1))
-
-#  One event occurs at 182, a 2:1 transition  (1-2 to normal)
+#  One event occurs at 182, a 2:1 transition  (1-2 to normal) out of 3 at risk
 #  Risk scores for the non-death transitions are all exp(0) =1,
 #  so the hazard matrix H will have second row of (1/3, -1/3, 0,0,0) and all
-#  other rows are 0. 
-with(subset(pbc3, tstop== 182), table(istate= bili4, state=bstat))
+#  other rows are 0. etime[1] = 182
+atrisk1 <- (pbc3$tstart < etime[1] & pbc3$tstop >= etime[1]) 
+with(subset(pbc3, atrisk1), table(istate= bili4, state=bstat))
 
 # The next four events are from 3:4, 3:2, 2:3, and 1:2, so also have 
 #  simple transtions, i.e., no covariates so all risk scores are exp(0) =1
@@ -72,18 +72,16 @@ hmat[2,3,4] <- 1/3; hmat[2,2,4] <- -1/3   # new count= 4,2,1,2
 hmat[1,2,5] <- 1/4; hmat[1,1,5] <- -1/4   # new count= 3,3,1,2
 
 # Event 6 is a transition from state 4 to death, at day 400
-# For the shared hazard, the denominator is all those in states 1,2,3, or 4.
-atrisk <- with(pbc3, tstart < etime[6] & tstop >= etime[6])
-table(pbc3$bili4[atrisk]) # current states just before time 6
+# For the shared hazard, the denominator is all those in states 1,2 or 4.
+atrisk6 <- with(pbc3, tstart < etime[6] & tstop >= etime[6] & bili4 != '2-4')
+table(pbc3$bili4[atrisk6]) # current states just before time 6
  
-adata <- subset(pbc3, atrisk)
-eta <- with(adata, .05*(age-50) + .6*(bili4=="1-2") + 1.1*(bili4 == ">4") -
-                   1*(bili4=="2-4"))
+adata <- subset(pbc3, atrisk6)
+eta <- with(adata, .05*(age-50) + .6*(bili4=="1-2") + 1.1*(bili4 == ">4"))
 cbind(adata[,c('id', 'age', 'tstop', 'bili4', 'bstat')], eta, risk=exp(eta)) 
 basehaz <- 1/sum(exp(eta))
 hmat[1,5,6] <- basehaz;            hmat[1,1,6] <- -basehaz
 hmat[2,5,6] <- basehaz * exp(.6);  hmat[2,2,6] <- -basehaz*exp(.6)
-hmat[3,5,6] <- basehaz * exp(-1);  hmat[3,3,6] <- -basehaz*exp(-1)
 hmat[4,5,6] <- basehaz * exp(1.1); hmat[4,4,6] <- -basehaz*exp(1.1)
 # double check: sum of per-subject hazards at this time point = number of
 #  events at this time point 
@@ -203,7 +201,7 @@ aeq(test2$pstate, surv2$pstate[match(test2$time, surv2$time),1,])
 
 
 if (FALSE){
-    # for testing, make a plot
+    # for testing, make a plot: solid= survival package, points= test
     xfun <- function(i) {
         j <- match(test2$time[i], surv2$time)
         all.equal(test2$pstate[i,], surv2$pstate[j,1,])
