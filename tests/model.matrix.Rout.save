@@ -1,7 +1,7 @@
 
-R Under development (unstable) (2019-08-23 r77061) -- "Unsuffered Consequences"
-Copyright (C) 2019 The R Foundation for Statistical Computing
-Platform: x86_64-pc-linux-gnu (64-bit)
+R Under development (unstable) (2025-03-06 r87893) -- "Unsuffered Consequences"
+Copyright (C) 2025 The R Foundation for Statistical Computing
+Platform: aarch64-unknown-linux-gnu
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -15,9 +15,10 @@ Type 'demo()' for some demos, 'help()' for on-line help, or
 'help.start()' for an HTML browser interface to help.
 Type 'q()' to quit R.
 
+> library(survival)
 > options(na.action=na.exclude) # preserve missings
 > options(contrasts=c('contr.treatment', 'contr.poly')) #ensure constrast type
-> library(survival)
+> aeq <- function(x, y, ...) all.equal(as.vector(x), as.vector(y), ...)
 > 
 > #
 > # Test out the revised model.matrix code
@@ -67,7 +68,9 @@ Type 'q()' to quit R.
 [1] TRUE
 > 
 > fit3b <-   coxph(Surv(time, status) ~ strata(x2)*z, test1, iter=0, x=TRUE)
-> all.equal(fit3b$x, xx)
+> aeq(attr(xx, "strata"), fit3b$strata)
+[1] TRUE
+> aeq(fit3b$x, xx)
 [1] TRUE
 > 
 > 
@@ -89,4 +92,4 @@ Type 'q()' to quit R.
 > 
 > proc.time()
    user  system elapsed 
-  0.746   0.041   0.781 
+  0.438   0.008   0.444 

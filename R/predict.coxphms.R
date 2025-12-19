@@ -1,5 +1,5 @@
 # Modified from predict.coxph
-predict.coxphms <- function(zedz, newdata, 
+predict.coxphms <- function(object, newdata, 
                        type=c("lp", "risk", "expected", "terms", "survival"),
                        se.fit=FALSE, na.action=na.pass,
                        terms=names(object$assign), collapse, 

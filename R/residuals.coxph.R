@@ -44,11 +44,14 @@ residuals.coxph <-
 	if (!inherits(Terms, 'terms'))
 		stop("invalid terms component of object")
 	strats <- attr(Terms, "specials")$strata
-	if (is.null(y)  ||  (is.null(x) && type!= 'deviance')) {
+	if (is.null(y)  ||  (is.null(x) && type!= 'deviance') ||
+            (is.logical(collapse) && collapse)) {
 	    temp <- coxph.getdata(object, y=TRUE, x=TRUE, stratax=TRUE)
 	    y <- temp$y
 	    x <- temp$x
 	    strat <- temp$strata
+            id <- temp$id
+            cluster <- temp$cluster
         }
 
 	ny <- ncol(y)
@@ -186,7 +189,11 @@ residuals.coxph <-
 
     # Collapse if desired
     if (!missing(collapse)) {
-	if (length(collapse) !=n) stop("Wrong length for 'collapse'")
+        if (is.logical(collapse) && collapse) {
+            if (!is.null(cluster)) collapse <- cluster
+            else if (!is.null(id)) collapse <- id
+	}
+        else if (length(collapse) !=n) stop("Wrong length for 'collapse'")
 	rr <- drop(rowsum(rr, collapse))
   	if (type=='deviance') status <- drop(rowsum(status, collapse))
     }

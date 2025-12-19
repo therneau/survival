@@ -1,6 +1,7 @@
+library(survival)
 options(na.action=na.exclude) # preserve missings
 options(contrasts=c('contr.treatment', 'contr.poly')) #ensure constrast type
-library(survival)
+aeq <- function(x, y, ...) all.equal(as.vector(x), as.vector(y), ...)
 
 #
 # Test out the revised model.matrix code

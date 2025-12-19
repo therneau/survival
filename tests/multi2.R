@@ -29,64 +29,50 @@ aeq(fit$var, temp)
 fita <- coxph(Surv(tstart, tstop, event) ~ trt, tdata, id=id)
 fitb <- coxph(Surv(tstart, tstop, event) ~ trt, tdata, id=id, model=TRUE)
 all.equal(model.frame(fita), fitb$model)
-# model.frame fails due to an interal rule in R, factors vs characters
+# model.frame fails due to an internal rule in R, factors vs characters
 #  result when the xlev arg is in the call.  So model.frame(fita) has trt
 #  as a factor, not character.
 
-#check residuals
-indx1 <- which(fit$rmap[,2] ==1)
-indx2 <- which(fit$rmap[,2] ==2)
-indx3 <- which(fit$rmap[,2] ==3)
-aeq(residuals(fit), c(residuals(fit12), residuals(fit13), residuals(fit23)))
-aeq(residuals(fit)[indx1], residuals(fit12))
-aeq(residuals(fit)[indx2], residuals(fit13))
-aeq(residuals(fit)[indx3], residuals(fit23))
+#check residuals.  As of 3.8-4 the martingale resids are a matrix with one
+# row per row of input data, one col per transition, and structural zeros
+# for obs that are not at risk
+scheck <- survcheck(Surv(tstart, tstop, event) ~1, tdata, id=id)
+istate <- as.numeric(scheck$istate) # istate==1: obs at risk for 1:2 or 1:3
+aeq(residuals(fit)[istate==1, 1], residuals(fit12))
+aeq(residuals(fit)[istate==1, 2], residuals(fit13))
+aeq(residuals(fit)[istate==2, 3], residuals(fit23))
 
-# score residuals
+# score residuals are an array with a row per obs, dimension 3= transition
+#  dimension 2 = covariate
 temp <- residuals(fit, type='score')
-aeq(temp[indx1, 1:2], residuals(fit12, type='score'))
-aeq(temp[indx2, 3:4], residuals(fit13, type='score'))
-aeq(temp[indx3, 5:6], residuals(fit23, type='score'))
+aeq(temp[istate==1,,1], residuals(fit12, type='score'))
+aeq(temp[istate==1,,2], residuals(fit13, type='score'))
+aeq(temp[istate==2,,3], residuals(fit23, type='score'))
 
-all(temp[indx1, 3:6] ==0)
-all(temp[indx2, c(1,2,5,6)] ==0)
-all(temp[indx3, 1:4]==0)
-
+# same for dfbeta resids
 temp <- residuals(fit, type="dfbeta")
-all(temp[indx1, 3:6] ==0)
-all(temp[indx2, c(1,2,5,6)] ==0)
-all(temp[indx3, 1:4]==0)
-aeq(temp[indx1, 1:2], residuals(fit12, type='dfbeta'))
-aeq(temp[indx2, 3:4], residuals(fit13, type='dfbeta'))
-aeq(temp[indx3, 5:6], residuals(fit23, type='dfbeta'))
+aeq(temp[istate==1,,1], residuals(fit12, type='dfbeta'))
+aeq(temp[istate==1,,2], residuals(fit13, type='dfbeta'))
+aeq(temp[istate==2,,3], residuals(fit23, type='dfbeta'))
 
 temp <- residuals(fit, type="dfbetas")
-all(temp[indx1, 3:6] ==0)
-all(temp[indx2, c(1,2,5,6)] ==0)
-all(temp[indx3, 1:4]==0)
-aeq(temp[indx1, 1:2], residuals(fit12, type='dfbetas'))
-aeq(temp[indx2, 3:4], residuals(fit13, type='dfbetas'))
-aeq(temp[indx3, 5:6], residuals(fit23, type='dfbetas'))
+aeq(temp[istate==1,,1], residuals(fit12, type='dfbetas'))
+aeq(temp[istate==1,,2], residuals(fit13, type='dfbetas'))
+aeq(temp[istate==2,,3], residuals(fit23, type='dfbetas'))
 
 # Schoenfeld and scaled shoenfeld have one row per event
+temp <- residuals(fit, type="schoenfeld")
 sr1 <- residuals(fit12, type="schoenfeld")
 sr2 <- residuals(fit13, type="schoenfeld")
 sr3 <- residuals(fit23, type="schoenfeld")
-end <- rep(1:3, c(nrow(sr1), nrow(sr2), nrow(sr3)))
-temp <- residuals(fit, type="schoenfeld")
-aeq(temp[end==1, 1:2], sr1)
-aeq(temp[end==2, 3:4], sr2)
-aeq(temp[end==3, 5:6], sr3)
-all(temp[end==1, 3:6] ==0)
-all(temp[end==2, c(1,2,5,6)] ==0)
-all(temp[end==3, 1:4] ==0)
-
+trans <- attr(temp, "transition")
+all.equal(temp[trans=="1:2",], sr1)
+all.equal(temp[trans=="1:3",], sr2)
+all.equal(temp[trans=="2:3",], sr3)
 
 #The scaled Schoenfeld don't agree, due to the use of a robust
 #  variance in fit, regular variance in fit12, fit13 and fit23
 #Along with being scaled by different event counts
-xfit <- fit
-xfit$var <- xfit$naive.var
 if (FALSE) {
     xfit <- fit
     xfit$var <- xfit$naive.var  # fixes the first issue
@@ -97,23 +83,22 @@ if (FALSE) {
 }
 
 if (FALSE) { # the predicted values are a work in progress
-# predicted values differ because of different centering
-c0 <-  sum(fit$mean * coef(fit))
-c12 <- sum(fit12$mean * coef(fit12))
-c13 <- sum(fit13$mean* coef(fit13))
-c23 <- sum(fit23$mean * coef(fit23))
+    # predicted values differ because of different centering
+    c0 <-  sum(fit$mean * coef(fit))
+    c12 <- sum(fit12$mean * coef(fit12))
+    c13 <- sum(fit13$mean* coef(fit13))
+    c23 <- sum(fit23$mean * coef(fit23))
 
-aeq(predict(fit)+c0, c(predict(fit12)+c12, predict(fit13)+c13, 
-                       predict(fit23)+c23))
-aeq(exp(predict(fit)), predict(fit, type='risk'))
+    aeq(predict(fit)+c0, c(predict(fit12)+c12, predict(fit13)+c13, 
+                           predict(fit23)+c23))
+    aeq(exp(predict(fit)), predict(fit, type='risk'))
 
-# expected survival is independent of centering
-aeq(predict(fit, type="expected"), c(predict(fit12, type="expected"),
-                                     predict(fit13, type="expected"),
-                                     predict(fit23, type="expected")))
-}
-# predict(type='terms') is a matrix, centering changes as well
-if (FALSE) {
+    # expected survival is independent of centering
+    aeq(predict(fit, type="expected"), c(predict(fit12, type="expected"),
+                                         predict(fit13, type="expected"),
+                                         predict(fit23, type="expected")))
+
+    # predict(type='terms') is a matrix, centering changes as well
     temp <- predict(fit, type='terms')
     all(temp[indx1, 3:6] ==0)
     all(temp[indx2, c(1,2,5,6)] ==0)

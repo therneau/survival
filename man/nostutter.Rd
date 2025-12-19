@@ -8,14 +8,13 @@ For a subject with repeated follow-up visits, do not count the second,
 third, etc. visit in a row with the same state as a repeated event.
 }
 \usage{
-nostutter(id, x, censor = 0, first=FALSE)
+nostutter(id, x, censor = 0)
 }
 \arguments{
   \item{id}{subject identifier}
   \item{x}{covariate of interest}
   \item{censor}{censoring code to be used as the "no event at this time"
     value}
-  \item{first}{can the first obs for each id be an event?}
 }
 \details{
   When an covariate is recorded multiple times during follow-up, and that
@@ -28,8 +27,7 @@ nostutter(id, x, censor = 0, first=FALSE)
   total do not count as entry into a new state.
 
   This routine will often be called on a current state variable before
-  using that variable as an event variable in \code{tmerge}, in this
-  case we want to use the \code{first=FALSE} option. 
+  using that variable as an event variable in \code{tmerge}.
 }
 \value{an updated vector with repeated values marked as \code{censor}}
 \seealso{\code{\link{lvcf}}, \code{\link{tmerge}}

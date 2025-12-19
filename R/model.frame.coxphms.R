@@ -105,7 +105,7 @@ model.frame.coxphms <- function(formula, ...) {
                 atrisk <- (as.integer(istate) == from[i])
                 if (smap[2,j]>0) {
                     bad[atrisk] <- bad[atrisk] | stemp[atrisk]
-                    good[atrisk] <-good[atrisk]| !stemp[atrisk]
+                    good[atrisk] <-good[atrisk]& !stemp[atrisk]
                 }
             }
         }

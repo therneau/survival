@@ -1,7 +1,7 @@
 
-R Under development (unstable) (2025-03-16 r87984) -- "Unsuffered Consequences"
+R Under development (unstable) (2025-03-06 r87893) -- "Unsuffered Consequences"
 Copyright (C) 2025 The R Foundation for Statistical Computing
-Platform: x86_64-pc-linux-gnu
+Platform: aarch64-unknown-linux-gnu
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -525,17 +525,25 @@ concordant discordant     tied.x     tied.y    tied.xy
  461425.07  290956.09     265.66     120.39       0.00 
 > 
 > # logistic regression 
-> fit2 <- glm(I(sex=='M') ~ age + log(creatinine), binomial, data= flchain)
-> concordance(fit2)  # equal to the AUC
-Call:
-concordance.lm(object = fit2)
-
-n= 6524 
-Concordance= 0.8151 se= 0.005304
-concordant discordant     tied.x     tied.y    tied.xy 
-   8568768    1931502      31474   10689870      56412 
+> tdata <- flchain
+> options(na.action= na.exclude) # fit2a has many more missings, this causes
+>  # predict to return nrow(flchain) values, but has to be set before the fit
+> fit2a <- glm(I(sex=='M') ~ age + log(creatinine), binomial, data= flchain)
+> fit2b <- glm(I(sex=='M') ~ age + kappa + lambda,  binomial, data= flchain)
+> tdata$eta1 <- predict(fit2a)
+> tdata$eta2 <- predict(fit2b)
+> cfit <- concordance(I(sex=="M") ~ eta1 + eta2, tdata)  # equal to the AUC
+> coef(cfit)  # males and females differ in creatinine, less in kappa/lambda
+     eta1      eta2 
+0.8151076 0.5983134 
+> convec <- c(1,-1) # compute a contrast
+> c(test= unname(convec%*% coef(cfit)),
++   std = unname(sqrt(convec %*% vcov(cfit) %*% convec)))
+      test        std 
+0.21679420 0.00721701 
 > 
-> # compare multiple models 
+> 
+> # compare multiple survival models 
 > options(na.action = na.exclude)   # predict all 1384 obs, including missing
 > fit3 <- glm(pstat ~ age + sex + mspike + offset(log(ptime)), 
 +             poisson, data= mgus2)
@@ -859,7 +867,7 @@ mean.(Intercept)
 > # FG model for PCM
 > pdata <- finegray(Surv(etime, event) ~ ., data=mgus2)
 > fgfit <- coxph(Surv(fgstart, fgstop, fgstatus) ~ age + sex,
-+                      weight=fgwt, data=pdata)
++                      weight=fgwt, data=pdata, cluster=id)
 > 
 > # Compute the weights separately by sex
 > adata <- finegray(Surv(etime, event) ~ . + strata(sex),
@@ -3903,7 +3911,7 @@ $terms
 > cleanEx()
 > options(digits = 7L)
 > base::cat("Time elapsed: ", proc.time() - base::get("ptime", pos = 'CheckExEnv'),"\n")
-Time elapsed:  7.03 0.496 7.528 0 0 
+Time elapsed:  2.858 0.089 2.948 0 0 
 > grDevices::dev.off()
 null device 
           1 

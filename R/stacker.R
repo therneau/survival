@@ -125,12 +125,12 @@ stacker <- function(cmap, smap, istate, X, Y, mf, states, dropzero=TRUE) {
         for (i in 1:nblock){
             j <- (tmap[,i]>0) # which stata vars for this transition?
             if (sum(j) ==1) {
-                zz <- mf[[rownames(tmap)[j]]] # the strata
+                zz <- mf[[(rownames(tmap))[j]]] # the strata
                 temp[[i]] <- zz[rtemp[[i]]]         
             } else if (sum(j)>1) { 
-                zz <- mf[rtemp[[i]], rownames(tmap)[j]] 
+                zz <- mf[rtemp[[i]], (rownames(tmap))[j]] 
                 temp[[i]] <- do.call(sstrat, zz)
-            }      
+            } else temp[[i]] <- rep(0, n.perblock[i]) #no prior strata    
         }
         newstrat <- do.call(sstrat, list(newstrat, unlist(temp)))
     } 

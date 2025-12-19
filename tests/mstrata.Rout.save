@@ -1,7 +1,7 @@
 
-R Under development (unstable) (2024-02-07 r85873) -- "Unsuffered Consequences"
-Copyright (C) 2024 The R Foundation for Statistical Computing
-Platform: x86_64-pc-linux-gnu
+R Under development (unstable) (2025-03-06 r87893) -- "Unsuffered Consequences"
+Copyright (C) 2025 The R Foundation for Statistical Computing
+Platform: aarch64-unknown-linux-gnu
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -43,10 +43,8 @@ from    death (censored)
   death     0          0
 
 Number of subjects with 0, 1, ... transitions to each state:
-       count
-state    0   1
-  death 63 163
-  (any) 63 163
+       0   1
+death 63 163
 
 > 
 > # standard coxph fit, stratified by the ph0/1/2 groups
@@ -93,9 +91,13 @@ state    0   1
 > 
 > cfit2 <- coxph(Surv(etime, event) ~ age + mspike, id=id,
 +                init= coef(cfit1), iter=0, data=mgus2, subset=(sex=='F'))
-> csurv3 <- survfit(cfit2, newdata= expand.grid(age=c(60, 80), mspike=1.2))
+> cfit3 <- coxph(Surv(etime, event) ~ age + mspike, id=id,
++                init= coef(cfit1), iter=0, data=mgus2, subset=(sex=='M'))
+> csurv2 <- survfit(cfit2, newdata= dummy)
+> csurv3 <- survfit(cfit3, newdata= dummy)
+> 
 > test <- c('n', 'time', 'n.risk', 'n.event', 'n.censor', 'pstate', 'cumhaz')
-> all.equal(unclass(csurv1[1,,])[test], unclass(csurv3)[test])
+> all.equal(unclass(csurv1[1,,])[test], unclass(csurv2)[test])
 [1] TRUE
 > 
 > 
@@ -114,6 +116,11 @@ state    0   1
 + survfit(fit3, newdata= list(age=65, sex=1))
 + }
 > 
+> # Part 4: very complex strata
+> mgus2$cgrp <- cut(mgus2$creat, c(0,1,2,30))
+> fit5 <- coxph(list(Surv(etime, event) ~ age + mspike + strata(sex),
++                    1:3 ~ strata(cgrp)), id=id, mgus2)
+> 
 > proc.time()
    user  system elapsed 
-  1.085   0.106   1.183 
+  0.547   0.024   0.569 

@@ -1,8 +1,8 @@
 #
 # Tests for multi-state Cox models
 #  The default for multi-state is now ties='breslow'
-bb <- "breslow"  # I'm a lazy typist
 library(survival)
+bb <- "breslow"  # I'm a lazy typist
 
 aeq <- function(x,y, ...) all.equal(as.vector(x), as.vector(y), ...)
 

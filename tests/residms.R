@@ -5,80 +5,96 @@
 # Use the same myeloid data set as multi2.R
 library(survival)
 aeq <- function(x, y, ...) all.equal(as.vector(x), as.vector(y), ...)
-
+table2 <- function(...) table(..., useNA= "ifany")
 tdata <- tmerge(myeloid[,1:4], myeloid, id=id, death=event(futime,death),
                 priortx = tdc(txtime), sct= event(txtime))
 tdata$event <- factor(with(tdata, sct + 2*death), 0:2,
                       c("censor", "sct", "death"))
 
-# make the processing a little harder by making sex missing for 3 people,
-#  but don't use it as a covariate in the entry to sct transition.
-# Obs 428 is a 2:3 transition and sex is missing, so it will end up omitted
-#  in fit, listed in na.action, ditto in fit23.  
-# The other 3 NA are at risk for entry:death so appear as residuals in fit12,
-#  but are part of na.omit in fit13.
+# Make the processing a little harder by making sex missing for 3 people,
+#  use it as a covariate for transitions to death, but not entry to sct
+#  flt3 missing for 3, a covariate for entry:sct and sct:death, but not 1:3.
+# Subject 275 for instance has two rows (427,428): entry to sct, then sct to 
+#  censor, missing sex. They will not be omitted from the data frame since 
+#  they are at risk for entry:sct, but not sct:death. Subject 271 is missing
+#  flt for both entry:sct and sct:death, but will be counted in the risk set
+#  for an entry:death transtion. Only one subject, 273, is deleted completely.
+# The 646 subject/1009 obs data set is first thinned down to 645/1006; this is
+#  what shows as 'deleted due to missing' in the printout.  Rows with a
+#  prior stem cell transplant (priortx) and missing sex or flt have
+#  nowhere to go, nor id 273 who is missing both.
 tdata$sex[tdata$id %in% 273:275] <- NA   # obs 425 to 428
+tdata$flt3[tdata$id %in% 271:273] <- NA  # obs 422 to 425
 
 check <- survcheck(Surv(tstart, tstop, event) ~ 1, tdata, id=id)
 fit <- coxph(list(Surv(tstart, tstop, event) ~ trt, 
                   1:3 + 2:3 ~ sex,
                   1:2 + 2:3 ~ flt3), tdata, id=id)
-aeq(check$transitions, fit$transitions + c(0,0,0, 0,0,0, 0,1,0))
 
-# this is a difference between coxph, which has the more sophisticated list
-#  form of a formula, and survfit/survcheck which do not.
-# survcheck with ~1 on the right uses all 1009 obs, 1 more obs than fit, but 
-#  with ~sex on the right it will use 1004, 3 less than fit
-aeq(fit$n, 1008)
+aeq(check$transitions, fit$transitions + c(0,0,0, 1,1,0, 0,1,0))
+# The above is due to the difference between coxph, which has the more 
+#  sophisticated list form of a formula, and survfit/survcheck which do not.
+# survcheck with ~1 on the right uses all 1009 obs, 3 more obs than fit, but 
+#  with ~sex on the right it will use fewer rows fit
 
-# Multi-state coxph defaults to breslow rather than efron
-fit12 <- coxph(Surv(tstart, tstop, event=='sct') ~ trt + flt3, tdata,
+# Multi-state now defaults to breslow rather than efron
+#  The id option allows for collapse=TRUE later
+fit12 <- coxph(Surv(tstart, tstop, event=='sct') ~ trt + flt3, tdata, id=id,
                subset=(priortx==0), iter=4, x=TRUE, method='breslow')
-fit13 <- coxph(Surv(tstart, tstop, event=='death') ~ trt + sex, tdata,
+fit13 <- coxph(Surv(tstart, tstop, event=='death') ~ trt + sex, tdata, id =id,
                subset=(priortx==0), iter=4, x=TRUE, method= 'breslow')
-fit23 <- coxph(Surv(tstart, tstop, event=='death') ~ trt + sex+ flt3, tdata,
+fit23 <- coxph(Surv(tstart, tstop, event=='death') ~ trt + sex + flt3, 
+               tdata, id=id,
                subset=(priortx==1), iter=4, x=TRUE, method="breslow")
 
 # martingale residuals
+# one row per retained obs, one col per transition
 rr1 <- resid(fit)
-# One row per obs (except row 428), one col per transtition
+aeq(dim(rr1), c(nrow(tdata)-3, 3))
+#
 # Obs 1-2 start in state (s0) so contribute to the 1:2 and 1:3 transitions,
 #  columns 1 and 2 of rr1, while rr1[1:2, 3] =0.
-# Obs 3 starts in the sct state and only contributes to the 2:3 transition
 all(rr1[1:2,3] ==0)
  
-temp1 <- 0* rr1  # on row per retained obs, one col per state
-tdat2 <- tdata[-fit$na.action,] # version of data without obs 428
-temp1[tdat2$priortx==0, 1] <- resid(fit12)
-temp1[tdat2$priortx==0 & !is.na(tdat2$sex), 2] <- resid(fit13)
-temp1[tdat2$priortx==1 & !is.na(tdat2$sex), 3] <- resid(fit23)
-aeq(rr1, temp1)
+# Comparing the overall fit to the per-transaction ones is a bit of nuisance
+# rr1 = resid(fit) has 1006 rows and 3 columns. 
+# Rows where priortx=0 are not at risk for a 2:3 transition, the 2:3 colum will
+#  be deterministicly 0 in rr1.  Where priortx==1 the 1:2 and 1:3 columns are 0.
+mf2 <- tdata[-fit$na.action, ] # the 1006 subset
+dim(mf2)
+all(rr1[mf2$priortx==0, 3] ==0)
+all(rr1[mf2$priortx==1, 1:2] ==0)
 
-# collapsed martingale
-aeq(resid(fit, collapse=TRUE), rowsum(temp1, tdat2$id))
+# fit12 has 643 obs while mf2 has 645 with priortx==0, two of those have missing
+#  flt.  To match the fit residuals with fit12 we need to pick off the proper
+#  643 rows, indx1 below.  The 1:3 transition is similar, but with sex.
+with(mf2, table2(priortx))
+with(mf2, table2(priortx, flt3))
+indx1 <- (mf2$priortx==0 & !is.na(mf2$flt3))
+aeq(rr1[indx1, 1], resid(fit12))
+indx2 <- (mf2$priortx==0 & !is.na(mf2$sex))
+aeq(rr1[indx2, 2], resid(fit13))
+indx3 <- (mf2$priortx==1 & !is.na(mf2$sex) & !is.na(mf2$flt3))
+aeq(rr1[indx3, 3], resid(fit23))
 
-# Schoenfeld residuals, which have one row per observed event.  The rows
-#  for transition 1:2, 1:3, and 2:3 follow one after the other in a 
-#  single matrix
-rr2 <- resid(fit, type="schoen")
-transition <- attr(rr2, "transition")
-temp2 <- 0 * rr2
-temp2[transition=="1:2", c(1,3,4)] <- resid(fit12, type="schoen")
-temp2[transition=="1:3", 1:2]      <- resid(fit13, type="schoen")
-temp2[transition=="2:3", ]         <- resid(fit23, type="schoen")
-aeq(rr2, temp2)
-
-# dfbeta residuals
+# dfbeta residuals, dim of (data row, covariate, transition)
+#  The sex column for the 1:2 transition will be a structural zero, since that
+#  model doesn't include sex.
 rr3 <- resid(fit, type='dfbeta')
-temp3 <- 0*rr3
-temp3[tdat2$priortx==0, c(1,3,4),1] <- resid(fit12, type='dfbeta')
-temp3[tdat2$priortx==0 &!is.na(tdat2$sex), 1:2, 2] <- 
-    resid(fit13, type='dfbeta')
-temp3[tdat2$priortx==1 & !is.na(tdat2$sex), 1:4, 3] <- 
-    resid(fit23, type='dfbeta')
-aeq(rr3, temp3)
+all(rr3[, 2,1] ==0)
+aeq(rr3[indx1, c(1,3,4),1], resid(fit12, type='dfbeta'))
+aeq(rr3[indx2, 1:2, 2], resid(fit13, type='dfbeta'))
+aeq(rr3[indx3, 1:4, 3], resid(fit23, type='dfbeta'))
 
-# rowsum requires a matrix, fold temp3 into one, then unfold it
+# collapsed residuals need a bit different indexing.
+# The collapsed dfbeta have subject as the first dimension, covariate the
+#  second, and transition the third. For the overall fit there are 625 subjects,
+#  only 1 of particpated in no transitions.  For fit12 623 participate.
+cindx1 <- -c(
+rr3b <- resid(fit, type='dfbeta', collapse=TRUE)
+aeq(rr3b[, c(1,3,4),1], 
+    resid(fit12, type='dfbeta', collapse= TRUE))
+
 temp3b <- rowsum(matrix(temp3, ncol=prod(dim(temp3)[-1])), tdat2$id, 
                  reorder=FALSE)
 temp3b <- array(temp3b, dim=c(nrow(temp3b), dim(temp3)[-1]))

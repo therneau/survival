@@ -169,15 +169,10 @@ residuals.coxphms <- function(object, type=c("martingale","score",
         #  out one after the other. Strata, if present, are within transition.
         #  (I've never found a use for the transition or strata attributes,
         #  but include them as information.)
-        # What we can do, however, is reduce the covariate list, collapsing
-        #  things like sex_1:2 and sex_1:3 in to a single column "sex".
         #  A single observation might affect multiple transitions as a part of
         #  the risk set, but an event belongs to only one.
-        temp <- (row(object$cmap))[object$cmap >0]
-        cmat <- model.matrix( ~ factor(temp) -1)
-        rr <- rr %*% cmat
   	time <- c(y[deaths,2])  # 'c' kills all of the attributes
-        dimnames(rr) <- list(time, rownames(cmap))
+        dimnames(rr) <- list(time, names(object$coef))
 
         tran <- object$rmap[,2] # the observed transitions
         attr(rr, "transition") <- 
@@ -232,7 +227,7 @@ residuals.coxphms <- function(object, type=c("martingale","score",
     # The result has rows for transition 1, then rows for transition 2,
     #   etc. It also will have separate columns for sex_1:2 and sex_1:3 for 
     #   instance.  
-    # Our target is an array of (observation, covariate, state)
+    # Our target is an array of (observation, coefficient)
     # Weights are the simplest, do them first
     if (weighted) rr <- rr * weights[object$rmap[,1]]
 

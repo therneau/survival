@@ -1,6 +1,6 @@
 
-R Under development (unstable) (2024-06-14 r86747) -- "Unsuffered Consequences"
-Copyright (C) 2024 The R Foundation for Statistical Computing
+R Under development (unstable) (2025-03-06 r87893) -- "Unsuffered Consequences"
+Copyright (C) 2025 The R Foundation for Statistical Computing
 Platform: aarch64-unknown-linux-gnu
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -57,37 +57,46 @@ from     normal 1-2 2-4  >4 death (censored)
 > 
 > # Before we tackle fit2, start small with just 9 subjects, coefs fixed to 
 > # simple values to make hand computation easier.  There are no transitions
-> # from state 3 to death in this subset.  Since it is a shared hazard the
-> # subjects in state 3 ARE at risk and so are found in the denominator of the
-> # hazard, but since none of the progress the MLE for that ph coef is -infinity. 
-> # We set it to -1.  
+> # from state 3 to death in this subset. The design of coxph is such that
+> # the set of (observed transitions) is assumed to be the set of (possible
+> # transitions): it does not know that "death" is something special.  One could
+> # argue that the above call explicitly included 3:5, and we considered this
+> # (added to the code even) but found out that it opens a can of worms. More
+> # discussion can be found in the "shared coefficients and shared baseline"
+> # vignette (survivalVignettes package).
+> # 
+> #  The upshot is that parsecovar3 only counts transitions with at least one
+> #  actual case.
 > pbc3 <- subset(pbc2, id < 10)
 > pbc3$age <- round(pbc3$age)  # easier to do "by hand" sums
+> survcheck(Surv(tstart, tstop, bstat) ~1, pbc3, id=id, istate=bili4)$transitions
+        to
+from     normal 1-2 2-4 >4 death (censored)
+  normal      0   4   0  0     1          0
+  1-2         2   0   3  1     1          1
+  2-4         0   1   0  5     0          0
+  >4          0   0   1  0     4          2
+  death       0   0   0  0     0          0
+> 
 > fit3 <- coxph(list(Surv(tstart, tstop, bstat) ~ 1, 
 +                    c(1:4):5 ~ age / common + shared),  x=TRUE,
-+               id= id, istate=bili4, data=pbc3, init= c(.05, .6, -1, 1.1), iter=0)
++               id= id, istate=bili4, data=pbc3, init= c(.05, .6, 1.1), iter=0)
 > # a mixed p0 gives a stronger test than our usual (1, 0,0,0,0)
 > surv3 <- survfit(fit3, newdata=list(age=50), p0=c(.4, .3, .2, .1, 0))
 > 
 > etime <- sort(unique(pbc3$tstop[pbc3$bstat != "censor"]))
-> # At event time 1 (182), all 9 are at risk, (3,3,2,1) in initial states 1-4
-> atrisk <- pbc3$tstart < etime[1] & pbc3$tstop >= etime[1]  # all 9 at risk
-> table(pbc3$bili4[atrisk])
-
-normal    1-2    2-4     >4 
-     3      3      2      1 
-> 
-> #  One event occurs at 182, a 2:1 transition  (1-2 to normal)
+> #  One event occurs at 182, a 2:1 transition  (1-2 to normal) out of 3 at risk
 > #  Risk scores for the non-death transitions are all exp(0) =1,
 > #  so the hazard matrix H will have second row of (1/3, -1/3, 0,0,0) and all
-> #  other rows are 0. 
-> with(subset(pbc3, tstop== 182), table(istate= bili4, state=bstat))
+> #  other rows are 0. etime[1] = 182
+> atrisk1 <- (pbc3$tstart < etime[1] & pbc3$tstop >= etime[1]) 
+> with(subset(pbc3, atrisk1), table(istate= bili4, state=bstat))
         state
 istate   censor normal 1-2 2-4 >4 death
-  normal      0      0   0   0  0     0
-  1-2         0      1   0   0  0     0
-  2-4         0      0   0   0  0     0
-  >4          0      0   0   0  0     0
+  normal      2      0   1   0  0     0
+  1-2         2      1   0   0  0     0
+  2-4         0      0   1   0  1     0
+  >4          1      0   0   0  0     0
 > 
 > # The next four events are from 3:4, 3:2, 2:3, and 1:2, so also have 
 > #  simple transtions, i.e., no covariates so all risk scores are exp(0) =1
@@ -100,31 +109,28 @@ istate   censor normal 1-2 2-4 >4 death
 > hmat[1,2,5] <- 1/4; hmat[1,1,5] <- -1/4   # new count= 3,3,1,2
 > 
 > # Event 6 is a transition from state 4 to death, at day 400
-> # For the shared hazard, the denominator is all those in states 1,2,3, or 4.
-> atrisk <- with(pbc3, tstart < etime[6] & tstop >= etime[6])
-> table(pbc3$bili4[atrisk]) # current states just before time 6
+> # For the shared hazard, the denominator is all those in states 1,2 or 4.
+> atrisk6 <- with(pbc3, tstart < etime[6] & tstop >= etime[6] & bili4 != '2-4')
+> table(pbc3$bili4[atrisk6]) # current states just before time 6
 
 normal    1-2    2-4     >4 
-     3      3      1      2 
+     3      3      0      2 
 >  
-> adata <- subset(pbc3, atrisk)
-> eta <- with(adata, .05*(age-50) + .6*(bili4=="1-2") + 1.1*(bili4 == ">4") -
-+                    1*(bili4=="2-4"))
+> adata <- subset(pbc3, atrisk6)
+> eta <- with(adata, .05*(age-50) + .6*(bili4=="1-2") + 1.1*(bili4 == ">4"))
 > cbind(adata[,c('id', 'age', 'tstop', 'bili4', 'bstat')], eta, risk=exp(eta)) 
-   id age tstop  bili4  bstat   eta      risk
-2   1  59   400     >4  death  1.55 4.7114702
-5   2  56   768 normal    1-2  0.30 1.3498588
-14  3  70   743    1-2 censor  1.60 4.9530324
-18  4  55   729    1-2    2-4  0.85 2.3396469
-25  5  38   769    2-4     >4 -1.60 0.2018965
-30  6  66   737 normal censor  0.80 2.2255409
-36  7  56   545    1-2 normal  0.90 2.4596031
-44  8  53   795 normal censor  0.15 1.1618342
-52  9  43   723     >4 censor  0.75 2.1170000
+   id age tstop  bili4  bstat  eta     risk
+2   1  59   400     >4  death 1.55 4.711470
+5   2  56   768 normal    1-2 0.30 1.349859
+14  3  70   743    1-2 censor 1.60 4.953032
+18  4  55   729    1-2    2-4 0.85 2.339647
+30  6  66   737 normal censor 0.80 2.225541
+36  7  56   545    1-2 normal 0.90 2.459603
+44  8  53   795 normal censor 0.15 1.161834
+52  9  43   723     >4 censor 0.75 2.117000
 > basehaz <- 1/sum(exp(eta))
 > hmat[1,5,6] <- basehaz;            hmat[1,1,6] <- -basehaz
 > hmat[2,5,6] <- basehaz * exp(.6);  hmat[2,2,6] <- -basehaz*exp(.6)
-> hmat[3,5,6] <- basehaz * exp(-1);  hmat[3,3,6] <- -basehaz*exp(-1)
 > hmat[4,5,6] <- basehaz * exp(1.1); hmat[4,4,6] <- -basehaz*exp(1.1)
 > # double check: sum of per-subject hazards at this time point = number of
 > #  events at this time point 
@@ -248,7 +254,7 @@ normal    1-2    2-4     >4
 > 
 > 
 > if (FALSE){
-+     # for testing, make a plot
++     # for testing, make a plot: solid= survival package, points= test
 +     xfun <- function(i) {
 +         j <- match(test2$time[i], surv2$time)
 +         all.equal(test2$pstate[i,], surv2$pstate[j,1,])
@@ -260,4 +266,4 @@ normal    1-2    2-4     >4
 > 
 > proc.time()
    user  system elapsed 
-  0.725   0.020   0.742 
+  0.711   0.012   0.721 

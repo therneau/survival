@@ -136,7 +136,7 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95, individual=FALSE,
         if (length(oldid) && ncol(Y)==3) position <- survflag(Y, oldid)
         else position <- NULL
         if (!coxms && (nrow(Y) != object$n[1])) 
-            stop("Failed to reconstruct the original data set")
+            stop("Failed to reconstruct the original data set, wrong number of rows")
         if (has.strata) {
             if (length(strata)==0) {
                 if (length(stangle$vars) ==1) strata <- mf[[stangle$vars]]
@@ -205,8 +205,7 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95, individual=FALSE,
     tstrata <- object$smap
     tstrata[1,] <- 1:ncol(tstrata)
     xstack <- stacker(object$cmap, tstrata, as.integer(istate), X, Y,
-                      as.integer(strata),
-                      states= object$states, dropzero=FALSE)
+                      mf=mf, states= object$states, dropzero=FALSE)
     if (length(position) >0)
         position <- position[xstack$rindex]   # id was required by coxph
     X <- xstack$X
