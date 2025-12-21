@@ -44,7 +44,7 @@ Only enough of the string to determine a unique match is required.
 
  If the original coxph fit contained a \code{cluster} argument this will
  be used as the collapsing index, or lacking this the \code{id} argument
- will be used. The third alternative is an explicit vector.
+ will be used. The third alternative is an explicit use supplied vector.
 If there were 4 individuals represented by 3, 1, 2 and 4 rows of data
 respectively, then \code{collapse=c(1,1,1, 2, 3,3, 4,4,4,4)} could be used to
 obtain per subject rather than per observation residuals.
@@ -78,19 +78,19 @@ Deviance residuals are a transform of the martingale residuals, one
 which has not proven to be useful. They have not been defined for
 multistate models.
 
-The score residuals will be a matrix with one row per observation and
-one column per covariate, for a multistate model the result is an array
-with dimensions of observation, covariate, and transition.
-This constains each observation's contribution to the score vector
-(first derivative of the log partial likelihood).
+The score residuals is each observation's contribution to the score vector
+(first derivative of the log partial likelihood), and will be a matrix
+one row per observation and one column per covariate.
 Two transformations of
 this are often more useful: \code{dfbeta} is the approximate change in the
 coefficient vector if that observation were dropped,
 and \code{dfbetas} is the approximate change in the coefficients, scaled by
 the standard error for the coefficients.
-For multi-state models the result will be an array with dimensions of
-(observation, covariate, transition). Some variables might not be used for all
-transitions, on which case the appropriate element of the array will be zero.
+For multi-state models the coefficient names are a concatonation of the
+variable name and the transition, e.g., \code{male_1:2};
+some variables might not be used for all transitions.
+If a particular observation were not at risk for a 1:2 transition, then
+the residual value for \code{male_1:2}
 
 For each of the above first dimension is in the same order as the original data,
 either before (\code{na.action= "na.exclude"}) or after removal of

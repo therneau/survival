@@ -259,7 +259,7 @@ lvcf <- function(id, x, time) {
 #  curve it actually doesn't matter, since p(state) doesn't change if someone
 #  "transitions" from state xyz to state xyz; leaving as is just makes the 
 #  output object a bit longer (it may add another time point).
-nostutter <- function(id, x, censor=0) {
+nostutter <- function(id, x, censor=0, single=FALSE) {
     # censor is the code to use for censoring, 
     # the output will have censor as the first code
     if (is.character(x) | is.numeric(x)) x <- as.factor(x)
@@ -272,14 +272,31 @@ nostutter <- function(id, x, censor=0) {
     
     n <- length(id)
     if (length(x) != n) stop("wrong length for x or id")
-    for (i in 1:n) {
-        if (i==1 || id[i] != id[i-1]) {
-            if (is.na(x[i])) current <- 0 else current <- x[i]
-        } else if (!is.na(x[i])) {
-            if (x[i]== current) x[i] <- 0
-            else if (x[i] >0) current <- x[i]
+    if (single) {
+        used <- logical(1L+ length(levels(x)))
+        for (i in 1:n) {
+            if (i==1 || (id[i] != id[i-1] && !used[x[i]])) {
+                if (is.na(x[i])) current <- 0 
+                else {
+                    current <- x[i]
+                    uses[x[i]] <- TRUE
+                }
+            } else if (!is.na(x[i])) {
+                if (x[i]== current) x[i] <- 0
+                else if (x[i] >0) current <- x[i]
+            }
+        }
+    } else{
+        for (i in 1:n) {
+            if (i==1 || id[i] != id[i-1]) {
+                if (is.na(x[i])) current <- 0 else current <- x[i]
+            } else if (!is.na(x[i])) {
+                if (x[i]== current) x[i] <- 0
+                else if (x[i] >0) current <- x[i]
+            }
         }
     }
+
     # if censor were level 3 of 5 in input, then the unique x at
     #  this point would be 0, 1, 2, 4, 5
     factor(x, sort(unique(x)), newlev)  

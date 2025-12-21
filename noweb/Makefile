@@ -3,7 +3,8 @@
 #  but its set of users is near zero, and the package needs to move to a more
 #  open model of maintainance and developement.
 #
-PARTS = coxph.Rnw \
+PARTS = main.Rnw \
+	coxph.Rnw \
 	exact.nw \
 	agreg.Rnw \
 	coxsurv.Rnw \

@@ -8,13 +8,14 @@ For a subject with repeated follow-up visits, do not count the second,
 third, etc. visit in a row with the same state as a repeated event.
 }
 \usage{
-nostutter(id, x, censor = 0)
+nostutter(id, x, censor = 0, single=FALSE)
 }
 \arguments{
   \item{id}{subject identifier}
   \item{x}{covariate of interest}
   \item{censor}{censoring code to be used as the "no event at this time"
     value}
+  \item{single}{if TRUE, a given level can appear only once}
 }
 \details{
   When an covariate is recorded multiple times during follow-up, and that

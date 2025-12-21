@@ -107,12 +107,10 @@ residuals.coxphms <- function(object, type=c("martingale","score",
     n <- nrow(y)
     istrat <- xstack$strata
     istate <- mcheck$istate[xstack$rindex]  #initial state
-    id <- id[xstack$rindex]
     if (length(offset)) offset <- offset[xstack$rindex]
     else offset <- double(n)  # all zero
     if (length(weights)) weights <- weights[xstack$rindex]
     else weights <- rep(1, n)
-    if (length(cluster)) cluster <- cluster[xstack$rindex]
     
     ny <- ncol(y)
     status <- y[,ny,drop=TRUE]
@@ -233,26 +231,20 @@ residuals.coxphms <- function(object, type=c("martingale","score",
 
     # Since each row of the current rr goes with exactly 1 transition,
     #  only one of sex_1:2, sex_1:3 etc in a given row will be nonzero.
-    #  Because of this we can now collapse: the rowsum function is
-    #  fast if given a matrix
+    #  Because of this we can use the unadorned rowsum function (which is fast)
     if (collapse){
         uid <- unique(cluster) #order in data might differ from rmap
-        rr <- rowsum(rr, match(cluster[object$rmap[,1]], uid), reorder=TRUE)
-        # now fold into an array
-        newr <- array(0, dim=c(length(uid), nrow(cmap), ncol(cmap)))
-
-        for (i in ncol(cmap)) { # one transition at a time
-            newr[, which(cmap[,i]>0), i] <- rr[, cmap[,i]]
-        }       
-        dimnames(newr) <- list(uid, rownames(cmap), colnames(cmap))
+        newr <- rowsum(rr, match(cluster[object$rmap[,1]], uid), reorder=TRUE)
+        dimnames(newr) <- list(uid, names(object$coefficients))
     } else {
-        newr <- array(0, dim=c(nrow(mf), nrow(cmap), ncol(cmap)))
+        newr <- matrix(0, nrow(mf), length(object$coefficients))
         obs <- object$rmap[,1] # where each row in rr comes from
         for (i in 1:ncol(cmap)) {
             keep <- object$rmap[,2]==i # this row applies to this trans
-            newr[obs[keep], cmap[,i]>0, i] <- rr[keep, cmap[,i]]
+            j <- cmap[cmap[,i]>0, i] # coefficient indices for this transition
+            newr[obs[keep], j] <- rr[keep, j]
         }
-        dimnames(newr) <- list(rownames(mf), rownames(cmap), colnames(cmap))
+        dimnames(newr) <- list(rownames(mf), names(object$coefficients))
         if (class(omit)== 'exclude')
             newr <- naresid(omit, newr)
     }

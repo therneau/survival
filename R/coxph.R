@@ -638,7 +638,7 @@ coxph <- function(formula, data, weights, subset, na.action,
                 fit2$linear.predictors <- 0*fit$linear.predictors
                 temp0 <- residuals.coxph(fit2, type='score', weighted=TRUE)
             }
-            fit$var <- t(temp) %*% temp
+            fit$var <- crossprod(temp)
             u <- apply(as.matrix(temp0), 2, sum)
             fit$rscore <- coxph.wtest(t(temp0)%*%temp0, u, control$toler.chol)$test
         }

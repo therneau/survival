@@ -35,7 +35,7 @@ aeq(check$transitions, fit$transitions + c(0,0,0, 1,1,0, 0,1,0))
 # The above is due to the difference between coxph, which has the more 
 #  sophisticated list form of a formula, and survfit/survcheck which do not.
 # survcheck with ~1 on the right uses all 1009 obs, 3 more obs than fit, but 
-#  with ~sex on the right it will use fewer rows fit
+#  with ~sex on the right it will use fewer rows
 
 # Multi-state now defaults to breslow rather than efron
 #  The id option allows for collapse=TRUE later
@@ -77,23 +77,18 @@ aeq(rr1[indx2, 2], resid(fit13))
 indx3 <- (mf2$priortx==1 & !is.na(mf2$sex) & !is.na(mf2$flt3))
 aeq(rr1[indx3, 3], resid(fit23))
 
-# dfbeta residuals, dim of (data row, covariate, transition)
-#  The sex column for the 1:2 transition will be a structural zero, since that
-#  model doesn't include sex.
-rr3 <- resid(fit, type='dfbeta')
-all(rr3[, 2,1] ==0)
-aeq(rr3[indx1, c(1,3,4),1], resid(fit12, type='dfbeta'))
-aeq(rr3[indx2, 1:2, 2], resid(fit13, type='dfbeta'))
-aeq(rr3[indx3, 1:4, 3], resid(fit23, type='dfbeta'))
+# dfbeta residuals have dim of (data row, coefficient)
+aeq(rr3[indx1, 1:3], resid(fit12, type='dfbeta'))
+aeq(rr3[indx2, 4:5], resid(fit13, type='dfbeta'))
+aeq(rr3[indx3, 6:9], resid(fit23, type='dfbeta'))
 
-# collapsed residuals need a bit different indexing.
-# The collapsed dfbeta have subject as the first dimension, covariate the
-#  second, and transition the third. For the overall fit there are 625 subjects,
-#  only 1 of particpated in no transitions.  For fit12 623 participate.
-cindx1 <- -c(
+# The collapsed dfbeta have subject as the first dimension.
+# For the overall fit there are 625 subjects, 2 of which (271 and 275) will
+#  have 0 for the the "1:2" variables.
 rr3b <- resid(fit, type='dfbeta', collapse=TRUE)
-aeq(rr3b[, c(1,3,4),1], 
-    resid(fit12, type='dfbeta', collapse= TRUE))
+cindx1 <- match(c("271", "275"), row.names(rr3b))
+
+aeq(rr3b[-cindx1, 1:3], resid(fit12, type='dfbeta', collapse= TRUE))
 
 temp3b <- rowsum(matrix(temp3, ncol=prod(dim(temp3)[-1])), tdat2$id, 
                  reorder=FALSE)
