@@ -41,13 +41,6 @@ Only enough of the string to determine a unique match is required.
   collapse (sum) over.
   In time-dependent models more than one row data can pertain
   to a single individual or group.
-
- If the original coxph fit contained a \code{cluster} argument this will
- be used as the collapsing index, or lacking this the \code{id} argument
- will be used. The third alternative is an explicit use supplied vector.
-If there were 4 individuals represented by 3, 1, 2 and 4 rows of data
-respectively, then \code{collapse=c(1,1,1, 2, 3,3, 4,4,4,4)} could be used to
-obtain per subject rather than per observation residuals.
 }
 \item{weighted}{
 if \code{TRUE} and the model was fit with case weights, then the weighted
@@ -69,8 +62,17 @@ residuals are returned.
 \value{a vector or matrix of residuals}
 
 \section{Details}{
-
-The martingale residuals are a vector for each observation, for a
+If \code{collapse=FALSE} then the residuals will be a matrix with one
+row for each row in the data in the same order as the data,
+or for simple martingale residuals one element per row of the data.
+Otherwise, the result will have a row for each unique value of the
+collapsing vector, as provided by the \code{cluster} or \code{id}
+argument in the \code{coxph} call, or the \code{collapse} argument
+itself. If the collasping vector is a factor, the result will be in the
+order of the levels of the factor, otherwise the order in which the
+unique values are encountered.
+  
+The martingale residuals are a vector for each observation, or for a
 multi-state model they will be a matrix with one row per observation and
 one column per transition. If a particular observation was not at risk
 for a given transition, that matrix value will be zero.
@@ -78,8 +80,8 @@ Deviance residuals are a transform of the martingale residuals, one
 which has not proven to be useful. They have not been defined for
 multistate models.
 
-The score residuals is each observation's contribution to the score vector
-(first derivative of the log partial likelihood), and will be a matrix
+The score residual is each observation's contribution to the score vector
+(first derivative of the log partial likelihood), and will be a matrix with
 one row per observation and one column per covariate.
 Two transformations of
 this are often more useful: \code{dfbeta} is the approximate change in the
@@ -90,22 +92,16 @@ For multi-state models the coefficient names are a concatonation of the
 variable name and the transition, e.g., \code{male_1:2};
 some variables might not be used for all transitions.
 If a particular observation were not at risk for a 1:2 transition, then
-the residual value for \code{male_1:2}
-
-For each of the above first dimension is in the same order as the original data,
-either before (\code{na.action= "na.exclude"}) or after removal of
-missings by the coxph function.
-When \code{collapse = TRUE} the result will be in the order in which the
-cluster and/or id variables are encountered in the data.
+the residual value for \code{male_1:2} would be 0 for that observation.
 
 The Schoenfeld residuals have a row for each event time and a column for
 each covariate. If the coxph model was stratified, the resulting matrix
 will contain a \code{strata} attribute showing which stratum contributed
 each of the events, and the result will be sorted by time within strata.
-For multistate models the resulting matrix will have the events for
+For multistate models the matrix will have the events for
 transition 1, then transition 2, etc. and will also have a
 \code{transition} attribute.  Different transitions will have different
-event times, so an array form of the output is not practical.
+event times, so an array form is not practical for Schoenfeld residuals.
 }
 \references{
 T. Therneau, P. Grambsch, and T. Fleming. "Martingale based residuals

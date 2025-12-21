@@ -282,16 +282,12 @@ plot.survfit<- function(x, conf.int,  mark.time=FALSE,
     # Marks are not placed on confidence bands, pch only applies to marks
     if (is.numeric(mark.time) || mark.time) {
         if (is.numeric(mark.time)) mark.time <- sort(mark.time)
-        if ("pch" %in% ...names()) {
-            pch <- ...elt(match("pch", ...names()))
-            if (length(pch)==1 && is.character(pch) && nchar(pch)>1) 
-                pch <- unlist(strsplit(pch, ""))  # make it a vector
-            pch  <- rep(pch, length.out=ncurve)
-        } else pch <- rep(3, ncurve)  # the historic default is a +
+        if (missing(pch)) pch <- rep(3, ncurve)
+        else pch  <- rep(pch, length.out=ncurve)
+
         if (!missing(mark.col)) mark.col <- rep(mark.col, length.out=ncurve)
-        else if ("col" %in% ...names())
-            mark.col <- rep(...elt(match("col", ...names())), length.out=ncurve)
-        else mark.col <- rep(1, ncurve)
+        else if (missing(col)) mark.col <- rep(1L, ncurve)
+        else mark.col <- rep(col, length.out=ncurve)
     }
 
     # The actual number of curves is ncurve*3 if there are confidence bands,
@@ -497,7 +493,7 @@ plot.survfit<- function(x, conf.int,  mark.time=FALSE,
                 else lines(xx, yy, type=type, lty=lty[c2], col=col[c2], lwd=lwd[c2])
                 if (is.numeric(mark.time) || mark.time) 
                     drawmark(xx, yy, mark.time, censor, pch=pch[c1], 
-                             col=mark.col[c1], pch=pch[c1], cex=cex)
+                             col=mark.col[c1], cex=cex)
             }
             xend[c1] <- max(xx)
             yend[c1] <- yy[length(yy)]

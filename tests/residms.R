@@ -78,6 +78,7 @@ indx3 <- (mf2$priortx==1 & !is.na(mf2$sex) & !is.na(mf2$flt3))
 aeq(rr1[indx3, 3], resid(fit23))
 
 # dfbeta residuals have dim of (data row, coefficient)
+rr3 <- resid(fit, type='dfbeta')
 aeq(rr3[indx1, 1:3], resid(fit12, type='dfbeta'))
 aeq(rr3[indx2, 4:5], resid(fit13, type='dfbeta'))
 aeq(rr3[indx3, 6:9], resid(fit23, type='dfbeta'))
@@ -86,15 +87,18 @@ aeq(rr3[indx3, 6:9], resid(fit23, type='dfbeta'))
 # For the overall fit there are 625 subjects, 2 of which (271 and 275) will
 #  have 0 for the the "1:2" variables.
 rr3b <- resid(fit, type='dfbeta', collapse=TRUE)
-cindx1 <- match(c("271", "275"), row.names(rr3b))
+test12 <- resid(fit12, type='dfbeta', collapse= TRUE)
+indx12 <- match(rownames(test12), rownames(rr3b))
+all(rr3b[-indx12, 1:3] ==0)
+aeq(rr3b[indx12, 1:3], test12)  #colnames won't match
 
-aeq(rr3b[-cindx1, 1:3], resid(fit12, type='dfbeta', collapse= TRUE))
+test13 <- resid(fit13, type='dfbeta', collapse= TRUE)
+indx13 <- match(rownames(test13), rownames(rr3b))
+aeq(rr3b[indx13, 4:5], test13)  
 
-temp3b <- rowsum(matrix(temp3, ncol=prod(dim(temp3)[-1])), tdat2$id, 
-                 reorder=FALSE)
-temp3b <- array(temp3b, dim=c(nrow(temp3b), dim(temp3)[-1]))
-aeq(resid(fit, type='dfbeta', collapse=TRUE), temp3b)
-
+test23 <- resid(fit23, type='dfbeta', collapse= TRUE)
+indx23 <- match(rownames(test23), rownames(rr3b))
+aeq(rr3b[indx23, 6:9], test23) 
 
 # More complex formula
 fit2 <- coxph(list(Surv(tstart, tstop, event) ~ trt,

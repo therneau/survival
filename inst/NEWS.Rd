@@ -15,21 +15,20 @@
     for 'status' is the better option.
     \item Add code to ignore the robust option to coxph for a penalized
     model; this combination makes no sense (to me) and does not appear in
-    any examples. However, to my dismay I have just discovered that in the
+    any examples. However, to my dismay a user pointed that in the
     current code this did not outright fail, and instead produces
     *something* that is returned as a purported variance.  (Is is a
-    sensible idea though? I'm curious, but someone else will need to
+    sensible idea? I'm curious, but someone else will need to
     answer the question.)
     \item Fix error in survfit_confint that would sometime produce
     spurious NA.  Export the survfit_confint function due to a request.
     \item Allow character indices for [.cox.zph, per github issue 299
     \item Major update of residuals.coxphms, i.e., residuals from a
-    multistate hazards model (MSH). The returned martingale, score,
-    and dfbeta residuals are now matrices or arrays whose first
-    dimension is the length of the input data set and last dimension is
-    the set of transitions. The first of these aligns with (nearly) all
-    other resid functions in R. The Schoenfeld residuals, which have one
-    row per observed event, gain a "transition" attribute.  
+    multistate hazards model (MSH), i.e., create the necessary test
+    suites to verify results. The Schoenfeld residuals, which have one
+    row per observed event, gain a "transition" attribute.
+    \item Add "mark.col" and "cumprob" options to plot.survfit. The
+    latter is used for stacked plots of multistate data.
 }}
 \section{Changes in version 3.8-2}{
   \itemize{

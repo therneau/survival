@@ -1,10 +1,11 @@
 #
 # Much of this function is a close copy of residuals.coxph.  The difference
 #  is that we need to set up the X matrix, strata, and id differently, using
-#  stacker.  This is needed for shared coefficients and/or shared baselines,
-#  to do all the transitions at once.  Then we need to reformat the results
-#  back to the form of the model frame.
-
+#  stacker. The model component of the object, or result of model.frame(object),
+#  will be in the same row order as the original data; and if collapse=FALSE
+#  that is exactly the order we want for the residuals. But the analysis
+#  used a stacked data frame, which we need to recreate for any residual that
+#  needs X or Y.  Then at the end put results in the right order.
 residuals.coxphms <- function(object, type=c("martingale","score",
                                              "schoenfeld",
                                              "dfbeta", "dfbetas", "scaledsch"),
@@ -49,11 +50,10 @@ residuals.coxphms <- function(object, type=c("martingale","score",
 
     # For all other cases we need the model frame
     mf <- model.frame(object)  # grab the model frame
-    id <- model.extract(mf, "id")  # required for a coxphms model
+    id <- model.extract(mf, "id")  # required for a coxphms models
     weights <- model.weights(mf)
     offset <- model.offset(mf)
-    cluster <- model.extract(mf, "cluster")
-    if (is.null(cluster)) cluster <- id
+
     # and we will refer to these multiple times
     smap <- object$smap
     cmap <- object$cmap
@@ -64,12 +64,14 @@ residuals.coxphms <- function(object, type=c("martingale","score",
         nrow <- nrow(mf)
         if (length(collapse) != nrow) 
             stop("collapse vector not the same length as the model frame")
-        id <- collapse
+        cluster <- collapse
         collapse <- TRUE
     } else if (collapse) {
         cluster <- model.extract(mf, "cluster")
         if (is.null(cluster)) cluster <- id
     }        
+    if (collapse & !inherits(cluster, "factor")) 
+        cluster <- factor(cluster, unique(cluster)) # remember original order
 
     if (type=="martingale") { # finish up the martingale case
         rr <- matrix(0, nrow=object$n, ncol= ncol(object$cmap))
@@ -106,6 +108,7 @@ residuals.coxphms <- function(object, type=c("martingale","score",
     y <- xstack$Y
     n <- nrow(y)
     istrat <- xstack$strata
+    if (collapse) cluster <- cluster[xstack$rindex]
     istate <- mcheck$istate[xstack$rindex]  #initial state
     if (length(offset)) offset <- offset[xstack$rindex]
     else offset <- double(n)  # all zero
@@ -233,16 +236,18 @@ residuals.coxphms <- function(object, type=c("martingale","score",
     #  only one of sex_1:2, sex_1:3 etc in a given row will be nonzero.
     #  Because of this we can use the unadorned rowsum function (which is fast)
     if (collapse){
-        uid <- unique(cluster) #order in data might differ from rmap
-        newr <- rowsum(rr, match(cluster[object$rmap[,1]], uid), reorder=TRUE)
-        dimnames(newr) <- list(uid, names(object$coefficients))
+        newr <- rowsum(rr, cluster, reorder=TRUE)
+        dimnames(newr) <- list(levels(cluster), names(object$coefficients))
     } else {
-        newr <- matrix(0, nrow(mf), length(object$coefficients))
-        obs <- object$rmap[,1] # where each row in rr comes from
-        for (i in 1:ncol(cmap)) {
-            keep <- object$rmap[,2]==i # this row applies to this trans
-            j <- cmap[cmap[,i]>0, i] # coefficient indices for this transition
-            newr[obs[keep], j] <- rr[keep, j]
+        if (TRUE) newr <- rowsum(rr, xstack$rindex, reorder=TRUE)
+        else{ # is placing each resid by hand faster than rowsum?
+            newr <- matrix(0, nrow(mf), length(object$coefficients))
+            obs <- object$rmap[,1] # where each row in rr comes from
+            for (i in 1:ncol(cmap)) {
+                keep <- object$rmap[,2]==i # this row applies to this trans
+                j <- cmap[cmap[,i]>0, i] # coefficient ind for this transition
+                newr[obs[keep], j] <- rr[keep, j]
+            }
         }
         dimnames(newr) <- list(rownames(mf), names(object$coefficients))
         if (class(omit)== 'exclude')

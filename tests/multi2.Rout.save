@@ -66,31 +66,30 @@ Type 'q()' to quit R.
 > aeq(residuals(fit)[istate==2, 3], residuals(fit23))
 [1] TRUE
 > 
-> # score residuals are an array with a row per obs, dimension 3= transition
-> #  dimension 2 = covariate
+> # score residuals are an array with a row per obs, one col per coef
 > temp <- residuals(fit, type='score')
-> aeq(temp[istate==1,,1], residuals(fit12, type='score'))
+> aeq(temp[istate==1,1:2], residuals(fit12, type='score'))
 [1] TRUE
-> aeq(temp[istate==1,,2], residuals(fit13, type='score'))
+> aeq(temp[istate==1,3:4], residuals(fit13, type='score'))
 [1] TRUE
-> aeq(temp[istate==2,,3], residuals(fit23, type='score'))
+> aeq(temp[istate==2,5:6], residuals(fit23, type='score'))
 [1] TRUE
 > 
 > # same for dfbeta resids
 > temp <- residuals(fit, type="dfbeta")
-> aeq(temp[istate==1,,1], residuals(fit12, type='dfbeta'))
+> aeq(temp[istate==1,1:2], residuals(fit12, type='dfbeta'))
 [1] TRUE
-> aeq(temp[istate==1,,2], residuals(fit13, type='dfbeta'))
+> aeq(temp[istate==1,3:4], residuals(fit13, type='dfbeta'))
 [1] TRUE
-> aeq(temp[istate==2,,3], residuals(fit23, type='dfbeta'))
+> aeq(temp[istate==2,5:6], residuals(fit23, type='dfbeta'))
 [1] TRUE
 > 
 > temp <- residuals(fit, type="dfbetas")
-> aeq(temp[istate==1,,1], residuals(fit12, type='dfbetas'))
+> aeq(temp[istate==1,1:2], residuals(fit12, type='dfbetas'))
 [1] TRUE
-> aeq(temp[istate==1,,2], residuals(fit13, type='dfbetas'))
+> aeq(temp[istate==1,3:4], residuals(fit13, type='dfbetas'))
 [1] TRUE
-> aeq(temp[istate==2,,3], residuals(fit23, type='dfbetas'))
+> aeq(temp[istate==2,5:6], residuals(fit23, type='dfbetas'))
 [1] TRUE
 > 
 > # Schoenfeld and scaled shoenfeld have one row per event
@@ -99,11 +98,11 @@ Type 'q()' to quit R.
 > sr2 <- residuals(fit13, type="schoenfeld")
 > sr3 <- residuals(fit23, type="schoenfeld")
 > trans <- attr(temp, "transition")
-> all.equal(temp[trans=="1:2",], sr1)
+> aeq(temp[trans=="1:2",1:2], sr1)
 [1] TRUE
-> all.equal(temp[trans=="1:3",], sr2)
+> aeq(temp[trans=="1:3",3:4], sr2)
 [1] TRUE
-> all.equal(temp[trans=="2:3",], sr3)
+> aeq(temp[trans=="2:3",5:6], sr3)
 [1] TRUE
 > 
 > #The scaled Schoenfeld don't agree, due to the use of a robust
@@ -212,4 +211,4 @@ table     x  time     y   var
 > 
 > proc.time()
    user  system elapsed 
-  0.512   0.031   0.542 
+  0.509   0.036   0.543 

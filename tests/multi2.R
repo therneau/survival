@@ -42,23 +42,22 @@ aeq(residuals(fit)[istate==1, 1], residuals(fit12))
 aeq(residuals(fit)[istate==1, 2], residuals(fit13))
 aeq(residuals(fit)[istate==2, 3], residuals(fit23))
 
-# score residuals are an array with a row per obs, dimension 3= transition
-#  dimension 2 = covariate
+# score residuals are an array with a row per obs, one col per coef
 temp <- residuals(fit, type='score')
-aeq(temp[istate==1,,1], residuals(fit12, type='score'))
-aeq(temp[istate==1,,2], residuals(fit13, type='score'))
-aeq(temp[istate==2,,3], residuals(fit23, type='score'))
+aeq(temp[istate==1,1:2], residuals(fit12, type='score'))
+aeq(temp[istate==1,3:4], residuals(fit13, type='score'))
+aeq(temp[istate==2,5:6], residuals(fit23, type='score'))
 
 # same for dfbeta resids
 temp <- residuals(fit, type="dfbeta")
-aeq(temp[istate==1,,1], residuals(fit12, type='dfbeta'))
-aeq(temp[istate==1,,2], residuals(fit13, type='dfbeta'))
-aeq(temp[istate==2,,3], residuals(fit23, type='dfbeta'))
+aeq(temp[istate==1,1:2], residuals(fit12, type='dfbeta'))
+aeq(temp[istate==1,3:4], residuals(fit13, type='dfbeta'))
+aeq(temp[istate==2,5:6], residuals(fit23, type='dfbeta'))
 
 temp <- residuals(fit, type="dfbetas")
-aeq(temp[istate==1,,1], residuals(fit12, type='dfbetas'))
-aeq(temp[istate==1,,2], residuals(fit13, type='dfbetas'))
-aeq(temp[istate==2,,3], residuals(fit23, type='dfbetas'))
+aeq(temp[istate==1,1:2], residuals(fit12, type='dfbetas'))
+aeq(temp[istate==1,3:4], residuals(fit13, type='dfbetas'))
+aeq(temp[istate==2,5:6], residuals(fit23, type='dfbetas'))
 
 # Schoenfeld and scaled shoenfeld have one row per event
 temp <- residuals(fit, type="schoenfeld")
@@ -66,9 +65,9 @@ sr1 <- residuals(fit12, type="schoenfeld")
 sr2 <- residuals(fit13, type="schoenfeld")
 sr3 <- residuals(fit23, type="schoenfeld")
 trans <- attr(temp, "transition")
-all.equal(temp[trans=="1:2",], sr1)
-all.equal(temp[trans=="1:3",], sr2)
-all.equal(temp[trans=="2:3",], sr3)
+aeq(temp[trans=="1:2",1:2], sr1)
+aeq(temp[trans=="1:3",3:4], sr2)
+aeq(temp[trans=="2:3",5:6], sr3)
 
 #The scaled Schoenfeld don't agree, due to the use of a robust
 #  variance in fit, regular variance in fit12, fit13 and fit23

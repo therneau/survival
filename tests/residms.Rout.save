@@ -1,0 +1,151 @@
+
+R Under development (unstable) (2025-03-06 r87893) -- "Unsuffered Consequences"
+Copyright (C) 2025 The R Foundation for Statistical Computing
+Platform: aarch64-unknown-linux-gnu
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> #
+> # Test residuals for a coxphms model.
+> # This is done by explicitly fitting the three individual transitions and 
+> #  computing the residuals on those. 
+> # Use the same myeloid data set as multi2.R
+> library(survival)
+> aeq <- function(x, y, ...) all.equal(as.vector(x), as.vector(y), ...)
+> table2 <- function(...) table(..., useNA= "ifany")
+> tdata <- tmerge(myeloid[,1:4], myeloid, id=id, death=event(futime,death),
++                 priortx = tdc(txtime), sct= event(txtime))
+> tdata$event <- factor(with(tdata, sct + 2*death), 0:2,
++                       c("censor", "sct", "death"))
+> 
+> # Make the processing a little harder by making sex missing for 3 people,
+> #  use it as a covariate for transitions to death, but not entry to sct
+> #  flt3 missing for 3, a covariate for entry:sct and sct:death, but not 1:3.
+> # Subject 275 for instance has two rows (427,428): entry to sct, then sct to 
+> #  censor, missing sex. They will not be omitted from the data frame since 
+> #  they are at risk for entry:sct, but not sct:death. Subject 271 is missing
+> #  flt for both entry:sct and sct:death, but will be counted in the risk set
+> #  for an entry:death transtion. Only one subject, 273, is deleted completely.
+> # The 646 subject/1009 obs data set is first thinned down to 645/1006; this is
+> #  what shows as 'deleted due to missing' in the printout.  Rows with a
+> #  prior stem cell transplant (priortx) and missing sex or flt have
+> #  nowhere to go, nor id 273 who is missing both.
+> tdata$sex[tdata$id %in% 273:275] <- NA   # obs 425 to 428
+> tdata$flt3[tdata$id %in% 271:273] <- NA  # obs 422 to 425
+> 
+> check <- survcheck(Surv(tstart, tstop, event) ~ 1, tdata, id=id)
+> fit <- coxph(list(Surv(tstart, tstop, event) ~ trt, 
++                   1:3 + 2:3 ~ sex,
++                   1:2 + 2:3 ~ flt3), tdata, id=id)
+> 
+> aeq(check$transitions, fit$transitions + c(0,0,0, 1,1,0, 0,1,0))
+[1] TRUE
+> # The above is due to the difference between coxph, which has the more 
+> #  sophisticated list form of a formula, and survfit/survcheck which do not.
+> # survcheck with ~1 on the right uses all 1009 obs, 3 more obs than fit, but 
+> #  with ~sex on the right it will use fewer rows
+> 
+> # Multi-state now defaults to breslow rather than efron
+> #  The id option allows for collapse=TRUE later
+> fit12 <- coxph(Surv(tstart, tstop, event=='sct') ~ trt + flt3, tdata, id=id,
++                subset=(priortx==0), iter=4, x=TRUE, method='breslow')
+> fit13 <- coxph(Surv(tstart, tstop, event=='death') ~ trt + sex, tdata, id =id,
++                subset=(priortx==0), iter=4, x=TRUE, method= 'breslow')
+> fit23 <- coxph(Surv(tstart, tstop, event=='death') ~ trt + sex + flt3, 
++                tdata, id=id,
++                subset=(priortx==1), iter=4, x=TRUE, method="breslow")
+> 
+> # martingale residuals
+> # one row per retained obs, one col per transition
+> rr1 <- resid(fit)
+> aeq(dim(rr1), c(nrow(tdata)-3, 3))
+[1] TRUE
+> #
+> # Obs 1-2 start in state (s0) so contribute to the 1:2 and 1:3 transitions,
+> #  columns 1 and 2 of rr1, while rr1[1:2, 3] =0.
+> all(rr1[1:2,3] ==0)
+[1] TRUE
+>  
+> # Comparing the overall fit to the per-transaction ones is a bit of nuisance
+> # rr1 = resid(fit) has 1006 rows and 3 columns. 
+> # Rows where priortx=0 are not at risk for a 2:3 transition, the 2:3 colum will
+> #  be deterministicly 0 in rr1.  Where priortx==1 the 1:2 and 1:3 columns are 0.
+> mf2 <- tdata[-fit$na.action, ] # the 1006 subset
+> dim(mf2)
+[1] 1006   10
+> all(rr1[mf2$priortx==0, 3] ==0)
+[1] TRUE
+> all(rr1[mf2$priortx==1, 1:2] ==0)
+[1] TRUE
+> 
+> # fit12 has 643 obs while mf2 has 645 with priortx==0, two of those have missing
+> #  flt.  To match the fit residuals with fit12 we need to pick off the proper
+> #  643 rows, indx1 below.  The 1:3 transition is similar, but with sex.
+> with(mf2, table2(priortx))
+priortx
+  0   1 
+645 361 
+> with(mf2, table2(priortx, flt3))
+       flt3
+priortx   A   B   C <NA>
+      0 149 317 177    2
+      1  71 182 108    0
+> indx1 <- (mf2$priortx==0 & !is.na(mf2$flt3))
+> aeq(rr1[indx1, 1], resid(fit12))
+[1] TRUE
+> indx2 <- (mf2$priortx==0 & !is.na(mf2$sex))
+> aeq(rr1[indx2, 2], resid(fit13))
+[1] TRUE
+> indx3 <- (mf2$priortx==1 & !is.na(mf2$sex) & !is.na(mf2$flt3))
+> aeq(rr1[indx3, 3], resid(fit23))
+[1] TRUE
+> 
+> # dfbeta residuals have dim of (data row, coefficient)
+> rr3 <- resid(fit, type='dfbeta')
+> aeq(rr3[indx1, 1:3], resid(fit12, type='dfbeta'))
+[1] TRUE
+> aeq(rr3[indx2, 4:5], resid(fit13, type='dfbeta'))
+[1] TRUE
+> aeq(rr3[indx3, 6:9], resid(fit23, type='dfbeta'))
+[1] TRUE
+> 
+> # The collapsed dfbeta have subject as the first dimension.
+> # For the overall fit there are 625 subjects, 2 of which (271 and 275) will
+> #  have 0 for the the "1:2" variables.
+> rr3b <- resid(fit, type='dfbeta', collapse=TRUE)
+> test12 <- resid(fit12, type='dfbeta', collapse= TRUE)
+> indx12 <- match(rownames(test12), rownames(rr3b))
+> all(rr3b[-indx12, 1:3] ==0)
+[1] TRUE
+> aeq(rr3b[indx12, 1:3], test12)  #colnames won't match
+[1] TRUE
+> 
+> test13 <- resid(fit13, type='dfbeta', collapse= TRUE)
+> indx13 <- match(rownames(test13), rownames(rr3b))
+> aeq(rr3b[indx13, 4:5], test13)  
+[1] TRUE
+> 
+> test23 <- resid(fit23, type='dfbeta', collapse= TRUE)
+> indx23 <- match(rownames(test23), rownames(rr3b))
+> aeq(rr3b[indx23, 6:9], test23) 
+[1] TRUE
+> 
+> # More complex formula
+> fit2 <- coxph(list(Surv(tstart, tstop, event) ~ trt,
++                    1:3 + 2:3 ~ trt + strata(sex),
++                    1:2 + 2:3 ~ flt3:sex), tdata, id=id)
+> 
+> 
+> proc.time()
+   user  system elapsed 
+  0.480   0.012   0.489 

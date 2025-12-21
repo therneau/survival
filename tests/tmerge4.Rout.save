@@ -1,0 +1,42 @@
+
+R Under development (unstable) (2025-03-06 r87893) -- "Unsuffered Consequences"
+Copyright (C) 2025 The R Foundation for Statistical Computing
+Platform: aarch64-unknown-linux-gnu
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> # Better control of repeats
+> library(survival)
+> aeq <- function(x, y, ...) all.equal(as.vector(x), as.vector(y), ...)
+> 
+> # When there are multiple censored rows, don't add more than we need
+> baseline <- data.frame(idd=1:5,  sex=c('f', 'm')[c(1,2,1,2,2)], 
++                        futime=c(20, 30, 40, 30, 20),
++                        status= c(0, 1, 0, 1, 0))
+> d2 <- data.frame(idd= rep(2:5, each=3), 
++                  day=c(0,15, 21, 0,25, 31, 0,20, 25, 0,10, 12),
++                  cmc=c(2,3,3, 3,3,4, 2,3,3, 3,4,2))
+> 
+> test1 <- tmerge(baseline[,1:2], baseline, id=idd, death=event(futime, status))
+> test2 <- tmerge(test1, d2, id=idd, cmc= tdc(day, cmc))
+> 
+> # idd 2 has an obs at (0, 30), add new one at 21
+> # idd 3
+> aeq(test2$idd, c(1,2,2,3,3,4,4,5,5,5))
+[1] "Numeric: lengths (13, 10) differ"
+> aeq(test2$cmc, c(NA, 2,3,3,4,2,3,3,4,2)) 
+[1] "Numeric: lengths (13, 10) differ"
+> 
+> proc.time()
+   user  system elapsed 
+  0.401   0.007   0.406 

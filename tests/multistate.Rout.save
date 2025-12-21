@@ -1,6 +1,6 @@
 
-R Under development (unstable) (2024-06-14 r86747) -- "Unsuffered Consequences"
-Copyright (C) 2024 The R Foundation for Statistical Computing
+R Under development (unstable) (2025-03-06 r87893) -- "Unsuffered Consequences"
+Copyright (C) 2025 The R Foundation for Statistical Computing
 Platform: aarch64-unknown-linux-gnu
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -18,8 +18,8 @@ Type 'q()' to quit R.
 > #
 > # Tests for multi-state Cox models
 > #  The default for multi-state is now ties='breslow'
-> bb <- "breslow"  # I'm a lazy typist
 > library(survival)
+> bb <- "breslow"  # I'm a lazy typist
 > 
 > aeq <- function(x,y, ...) all.equal(as.vector(x), as.vector(y), ...)
 > 
@@ -132,4 +132,4 @@ Type 'q()' to quit R.
 > 
 > proc.time()
    user  system elapsed 
-  0.581   0.035   0.614 
+  0.567   0.035   0.601 
