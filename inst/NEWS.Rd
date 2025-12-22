@@ -29,6 +29,7 @@
     row per observed event, gain a "transition" attribute.
     \item Add "mark.col" and "cumprob" options to plot.survfit. The
     latter is used for stacked plots of multistate data.
+    \item Address github issue 328.
 }}
 \section{Changes in version 3.8-2}{
   \itemize{
