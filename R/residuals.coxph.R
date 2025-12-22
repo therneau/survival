@@ -16,7 +16,7 @@ residuals.coxph <-
 
     omit <- object$na.action
     if (!is.null(omit) && !missing(na.action)){
-        if (collapse && (na.action=="na.omit" || inherits(omit, "exclude"))
+        if (collapse && (na.action=="na.omit" || inherits(omit, "exclude")))
             stop("collapse and expansion of missing are mutually exclusive")
         if (na.action=="na.omit") class(omit) <- "omit"
         else if (na.action=="na.exclude") class(omit) <- "exclude"
