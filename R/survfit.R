@@ -385,7 +385,7 @@ survfit_confint <- function(p, se, logse=TRUE, conf.type, conf.int= .95,
         se2 <- zval * se *(1 + xx/(1-xx))
  
         temp1 <- ifelse(se==0, p, 1- 1/(1+exp(log(p/(1-p)) - se2*scale)))
-        temp2 <- ifelse(se==0, 1- 1/(1+exp(log(p/(1-p)) + se2)))
+        temp2 <- ifelse(se==0, p, 1- 1/(1+exp(log(p/(1-p)) + se2)))
         list(lower = temp1, upper=temp2)
     }
     else if (conf.type=="arcsin") {
