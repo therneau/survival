@@ -1,5 +1,10 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 3.8-5}{
+  \itemize{
+    \item Fix error in survfit_confint that showed up in a CRAN test
+  (simple typo).
+}}
 \section{Changes in version 3.8-4}{
   \itemize{
     \item The rmean option for print.survfit for a single and multi
