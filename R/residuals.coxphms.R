@@ -250,7 +250,7 @@ residuals.coxphms <- function(object, type=c("martingale","score",
             }
         }
         dimnames(newr) <- list(rownames(mf), names(object$coefficients))
-        if (class(omit)== 'exclude')
+        if (inherits(omit, 'exclude'))
             newr <- naresid(omit, newr)
     }
     newr
