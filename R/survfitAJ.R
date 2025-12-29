@@ -486,6 +486,8 @@ survfitAJ <- function(X, Y, weights, id, cluster, robust, istate,
     if (se.fit && conf.type != "none") {
         ci <- survfit_confint(kfit$pstate, kfit$std.err, logse=FALSE, 
                                   conf.type, conf.int)
+        colnames(ci$lower) <- states # the flexsurv package depends on these
+        colnames(ci$upper) <- states
         kfit <- c(kfit, ci, conf.type=conf.type, conf.int=conf.int)
     }
     #
