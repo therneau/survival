@@ -11,6 +11,9 @@
     That is, for survfit from a coxph fit, if newdata had age=c(50,60)
     and sex=0:1, then the resuling data.frame will have age and sex
     variables rather than data=1 or 2.
+    \item Add suggested text wrt to the actions of subset to the help files
+    for coxph, survreg, and survfit. This parallels changes in lm and
+    glm, see github issue 324.
 }}
 \section{Changes in version 3.8-4}{
   \itemize{

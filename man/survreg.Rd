@@ -102,7 +102,14 @@ an object of class \code{survreg} is returned.
   the default variance, for sampling weights use the robust variance.
   Replication weights were once common (when computer memory was much
   smaller) but are now rare.  
-  }
+
+  All of weights, subset and offset are evaluated in the same way as variables
+in formula, that is first in data and then in the environment of
+formula. Note that values calculated inside the formula, such as
+mean(x), are evaluated before subsetting - which may lead to unexpected
+results if used with subset. For more information see the ‘Details’
+section of \code{model.frame}.
+}
 \seealso{
 \code{\link{survreg.object}}, \code{\link{survreg.distributions}},
 \code{\link{pspline}}, \code{\link{frailty}}, \code{\link{ridge}}
