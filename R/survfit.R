@@ -123,10 +123,12 @@ survfit.formula <- function(formula, data, weights, subset,
         status <- factor(ifelse(status==0,0, as.numeric(etype)),
                              labels=newlev)
 
+        #12/2015 change 'status, type="mstate"' to 'as.factor(status)'
+        # to avoid my own depricated message
         if (attr(Y, 'type') == "right")
-            Y <- Surv(Y[,1], status, type="mstate")
+            Y <- Surv(Y[,1], as.factor(status))
         else if (attr(Y, "type") == "counting")
-            Y <- Surv(Y[,1], Y[,2], status, type="mstate")
+            Y <- Surv(Y[,1], Y[,2], as.factor(status))
         else stop("etype argument incompatable with survival type")
     }
                          

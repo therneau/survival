@@ -3,7 +3,14 @@
 \section{Changes in version 3.8-5}{
   \itemize{
     \item Fix error in survfit_confint that showed up in a CRAN test
-  (simple typo).
+    (simple typo, but led to an error message).
+    \item Add a stronger test case for the data.frame option of
+    summary.survfit and fix the errors it uncovered (github issue
+    305). The return for data.frame=TRUE has been changed to include the
+    values from newdata rather than the row numbers of newdata.
+    That is, for survfit from a coxph fit, if newdata had age=c(50,60)
+    and sex=0:1, then the resuling data.frame will have age and sex
+    variables rather than data=1 or 2.
 }}
 \section{Changes in version 3.8-4}{
   \itemize{
@@ -16,7 +23,7 @@
     state.  A rare case, but it arises with curves for TD covariates.
     \item Add the lvcf and nostutter functions, both useful when
     creating certain multistate data sets.
-    \item Depricate the type="mstate" option of Surv; a factor variable
+    \item Deprecate the type="mstate" option of Surv; a factor variable
     for 'status' is the better option.
     \item Add code to ignore the robust option to coxph for a penalized
     model; this combination makes no sense (to me) and does not appear in

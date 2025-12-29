@@ -13,7 +13,7 @@
   \method{summary}{survfit}(object, times, censored=FALSE, scale=1,
   extend=FALSE, rmean=getOption('survfit.rmean'), data.frame=FALSE, dosum, ...)
   \method{summary}{survfitms}(object, times, censored=FALSE, scale=1,
-  extend=FALSE, rmean=getOption('survfit.rmean'), data.frame=FALSE, ...)
+  extend=FALSE, rmean=getOption('survfit.rmean'), data.frame=FALSE, dosum, ...)
   }
 \arguments{
     \item{object}{
@@ -53,8 +53,8 @@
 
 \value{
   if \code{data.frame = TRUE}, a data frame with columns of time,
-  n.risk, n.event, n.censor, surv, cumhaz, strata (if present) and
-  data (the row of newdata for survfit.coxph).  Also std.err, std.chaz,
+  n.risk, n.event, n.censor, surv, strata (if present) and, for survfit.coxph,
+  the relevant row of newdata.  Also std.err, 
   upper and lower if the curve had se.fit=TRUE.
 
   if \code{data.frame = FALSE}, a list with the following components: 
@@ -169,8 +169,8 @@ strictly increasing and FALSE otherwise.
 
 For a survfitms object replace the \code{surv} component with
 \code{pstate}.  Also, a data frame will not include the cumulative
-hazard since it has a different multiplicity: one column per transition
-rather than one per state.
+hazard nor its standard error, since it has a different multiplicity:
+one column per transition rather than one per state.
 }
 \seealso{
 \code{\link{survfit}},  \code{\link{print.summary.survfit}}   

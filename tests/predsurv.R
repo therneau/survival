@@ -41,7 +41,7 @@ p2 <- predict(fit2, newdata= d2a, type="survival", se.fit=TRUE)
 p3 <- predict(fit2, newdata= d2b, type="survival", se.fit=TRUE)
 
 csum1 <- summary(curve2, time= 1:8 * 60, data.frame=TRUE) 
-dummy <- data.frame(data=1:8, time= 1:8*60, strata=paste0("sex=", rep(1:2,4)))
+dummy <- data.frame(d2[,1:2], time= 1:8*60, strata=paste0("sex=", rep(1:2,4)))
 temp <- merge(dummy, csum1, all.x=TRUE) # select the correct rows from csum1
 aeq(p1$fit, temp$cumhaz) 
 aeq(p1$se.fit , temp$std.chaz)

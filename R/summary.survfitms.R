@@ -4,12 +4,12 @@
 summary.survfitms <- function(object, times, censored=FALSE, 
                             scale=1, extend=FALSE, 
                             rmean=getOption('survfit.rmean'),
-                            data.frame= FALSE, 
+                            data.frame= FALSE, dosum=TRUE,
                             ...) {
-    fit <- object  # I get tired of typing "object"
-    if (!inherits(fit, 'survfit'))
+    if (!inherits(object, 'survfit'))
             stop("summary.survfit can only be used for survfit",
                  " and survfit.coxph objects")
+    fit <- object  # I get tired of typing "object"
     if (is.null(fit$logse)) fit$logse <- TRUE   #older style objects lack this
 
     # The print.rmean option is depreciated, it is still listened
@@ -28,7 +28,7 @@ summary.survfitms <- function(object, times, censored=FALSE,
         if (length(rmean)==0) stop("Invalid value for rmean option")
     }
 
-    fit0 <- survfit0(fit)  #add time 0
+    fit0 <- survfit0(object)  #add time 0
     if (!data.frame) {
         # adding time 0 makes the mean and median easier
         temp <- survmean2(fit0, scale=scale, rmean)  
@@ -57,18 +57,20 @@ summary.survfitms <- function(object, times, censored=FALSE,
     }
 
     # called for each component of the curve that has a time dimension
-    #  and is not summed
+    #  and is not summed, to pick of the right rows of times
+    # the pmax(1, indx) is for when a user gives a time before the first event
+    #  in which case findInterval has given a 0
     ssub<- function(x, indx) {  #select an object and index
         if (is.logical(indx)) indx <- which(indx)
         if (!is.null(x) && length(indx)>0) {
             if (is.matrix(x)) x[pmax(1,indx),,drop=FALSE]
-            else if (is.array(x))  x[pmax(1,indx),,,drop=FALSE]
             else x[pmax(1, indx)]
         }
         else NULL
     }
     
-    # By replacing components of fit, summary.surfit inherits several bits
+    # By replacing elements of fit, we retain the ones that don't need
+    #  to be subscripted (n, logse, etc)
     if (missing(times)) {
         if (!censored) {  # do not retain time points with no events
             index <- (rowSums(fit$n.event) >0)
@@ -101,133 +103,152 @@ summary.survfitms <- function(object, times, censored=FALSE,
         }
         #if missing(times) and censored=TRUE, the fit object is ok as it is
     }
-    else {
+    else { # the user specified times
         if (length(times) ==0) stop("no values in times vector")
         if (inherits(times, "Date")) times <- as.numeric(times) # allow Dates
         if (!is.numeric(times)) stop("times must be a numeric vector")
         if (!all(is.finite(times))) stop("times contains missing or infinite values")
         times <- unique(sort(times))
-        fit <- fit0  # findrow needs time 0
+        fit <- fit0  # makes summing easier 
 
         # findrow is called once per stratum
-        #   times will be the user specified times
-        #   returned is a subset of the rows for the stratum
         # We have to deal with user specified times that are before the first
         #  time value in the curve or after the last, which is easier done one
-        #  curve at at time
-        findrow <- function(fit, times, extend) {
+        #  curve at at time.  Ditto for summing number of events & censors.
+        # For the summed terms (n.event, n.censor, n.enter) it turns out to
+        #  be easier to extract them within findrow, ditto for the updated
+        #  time vector (a user might ask for times that are past the end of
+        #  one stratum, but not past the end of another).  
+        # For other components it is easier to return the index vectors 
+        #  do the subset after findrow, all at once.
+        # The calling routine makes use of the fact that [.survfit knows how
+        #  to extract a single stratum, giving a simpler curve.
+        findrow <- function(fit, times, extend, first) {
             if (!extend) {
                 maxtime <- max(fit$time)
                 times <- times[times <= maxtime]
             }
             ntime <- length(fit$time)
-            if (ntime ==0) { 
-                if (!data.frame)
-                    stop("no points selected for one or more curves,", 
-                     " data error (?) or consider using the extend argument")
-                else return(list(time = times))
+            if (ntime ==0) {
+                return(list(time=NULL, index1 =NULL, index2=NULL, 
+                            n.censor=NULL,  n.event=NULL, n.enter=NULL))
             }
                             
             index1 <- findInterval(times, fit$time) 
             index2 <- 1 + findInterval(times, fit$time, left.open=TRUE)
-                
-            fit$time <- times
+            index2 <- ifelse(index2 > length(fit$time), 0, index2 + first)  
 
-            for (i in c("pstate", "upper", "lower", "std.err", "cumhaz",
-                        "std.chaz")) {
-                if (!is.null(fit[[i]])) fit[[i]] <- ssub(fit[[i]], index1)
+            flist <- list(time =times, index1= index1+first, index2= index2)
+            # Now the ones that are summed between reporting times
+            for (i in c("n.event", "n.censor", "n.enter", "n.transition")) {
+                if (dosum) flist[[i]] <- delta(fit[[i]], index1)
+                else flist[[i]] <- ssub(fit[[i]], index1)
             }
-            
-            # Every observation in the data has to end with a censor or event.
-            #  So by definition the number at risk after the last observed time
-            #  value must be 0.
-            fit$n.risk <- rbind(fit$n.risk, 0)[index2,,drop=FALSE]
-            for (i in c("n.event", "n.censor", "n.enter", "n.transition"))
-                fit[[i]] <- delta(fit[[i]], index1)
-            fit
+            # within this function index1 = index to the rows of this stratum
+            # returned value = index to the rows of the full survfit object
+            flist
         }
 
-        if (nstrat ==1) fit <- findrow(fit, times, extend)
+        if (nstrat ==1) {
+            ltemp <- list(findrow(fit, times, extend, 0))
+        }
         else {
+            # first = first obs of each stratum
+            first <- cumsum(c(0, fit$strata[-length(fit$strata)]))
             ltemp <- vector("list", nstrat)
-            if (length(dim(fit)) > 2) {
+            if (length(dim(fit)) > 2) { # there is a data dimension
                 for (i in 1:nstrat) 
-                    ltemp[[i]] <- findrow(fit[i,,], times, extend)
+                    ltemp[[i]] <- findrow(fit[i,,], times, extend, first[i])
             } else { 
-                for (i in 1:nstrat) ltemp[[i]] <- findrow(fit[i,], times, extend)
+                for (i in 1:nstrat) 
+                    ltemp[[i]] <- findrow(fit[i,], times, extend, first[i])
             }
-         
-            # now stack them: time= c(time for curve 1, time for curve 2, etc)
-            #  and so on for all components
-            unlistsurv <- function(x, name) {
-                temp <- lapply(x, function(x) x[[name]])
-                if (is.vector(temp[[1]])) unlist(temp)
-                else if (is.matrix(temp[[1]])) do.call("rbind", temp)
-            }
+        }
+ 
+        # Replace bits of the fit object one by one
+        # get() saves me some typing
+        # For strata, if the times arg ended up with 0 rows in a stratum,
+        #  we retain that strata with a count of 0. This is resolved further
+        #  below when strata is expanded.
+        get <- function(x,y) lapply(x, function(x) x[[y]]) 
+        if (!is.null(fit$strata))
+            fit$strata[] <- sapply(get(ltemp, "time"), length)
+        fit$time <- unlist(get(ltemp, "time"))
+        
+        # Elements n, n.id, p0, logse, conf.type, conf.ing, states, type, t0,
+        #  call are left as is.
+        # The summed elements need to be unstacked
+        for (i in c("n.event", "n.censor", "n.enter", "n.transition")) {
+            if (!is.null(fit[[i]]))
+                fit[[i]] <- do.call(rbind, get(ltemp, i))
+        }
 
-            # unlist all the components built by a set of calls to findrow
-            #  and remake the strata
-            keep <- c("time", "pstate", "upper", "lower", "std.err",
-                      "cumhaz", "n.risk", "n.event", "n.censor", "n.enter",
-                      "std.chaz", "n.transition")
-            for (i in keep) 
-                if (!is.null(fit[[i]])) fit[[i]] <- unlistsurv(ltemp, i)
-            fit$strata[] <- sapply(ltemp, function(x) length(x$time))
+        # For an intermediate time, e.g., curve has time points of 10 and 20,
+        #  user asked for 15, the n.risk component will be for the later
+        #  time.  Every curve ends with censors or deaths, so n.risk beyond
+        #  the endpoint is 0
+        fit$n.risk <- rbind(0, fit$n.risk)[1L + unlist(get(ltemp, "index2")),]
+
+        # For the curves, an intermediate time maps to the earlier
+        # time point, e.g., the pstate at time 15 is the curve value at time 10
+        index1 <- unlist(get(ltemp, "index1"))
+        for (i in c("pstate", "upper", "lower", "std.err", "cumhaz",
+                    "std.chaz")) {
+            if (!is.null(fit[[i]])) {
+                # matrix= survfitms, array= survfit.coxphms
+                if (is.matrix(fit[[i]]))
+                    fit[[i]] <-(fit[[i]])[index1,, drop=FALSE]
+                else  fit[[i]] <-(fit[[i]])[index1,,, drop=FALSE]
+            }
         }
     }
 
     # finish off the output structure
-    # A survfit object may contain std(log S) or std(S), summary always std(S)
-    if (!is.null(fit$std.err) && fit$logse) 
-        fit$std.err <- fit$std.err * fit$surv   
     if (scale != 1) {
         # fix scale in the output
         fit$time <- fit$time/scale
     }
-
+    # Strata is expanded to an element per row
+    if (!is.null(fit$strata)) 
+        fit$strata <- factor(rep(1:nstrat, fit$strata), 1:nstrat,
+                             labels= names(fit$strata))
     if (data.frame) {
-        fit <- unclass(fit)  # toss the survfit class
-        # cumhaz, n.transtion, and std.cumhaz have a column for each transtion,
-        # which doesn't fit into the 1 row per state form of the data frame
-        #  so they are left out
-        indx <- match(c("time", "n.risk", "n.event", "n.censor", 
-                        "pstate", "std.err",
-                        "lower", "upper"), names(fit), nomatch=0)
-        if (!is.null(fit$strata))
-            newstrat <- factor(rep(1:nstrat, fit$strata), 1:nstrat,
-                               labels= names(fit$strata))
-        dd <- dim(fit$pstate)
-        if (length(dd) ==3) { # survfit.coxph object
-            # dd will be number of rows, number of states, number of curves
-            ndata <- lapply(fit[indx], function(x) {
-                                 if (length(x)==0) NULL
-                                 else if (is.matrix(x))
-                                     rep(as.vector(x), dd[3])
-                                 else if (is.array(x)) as.vector(x)
-                                 else rep(x, dd[2]*dd[3])})
-            ndata <- data.frame(ndata)
-            if (!is.null(fit$strata)) 
-                ndata$strata <- rep(newstrat, dd[2]*dd[3])
-            ndata$state <- rep(rep(fit$states, each=dd[1]), dd[3]) 
-            ndata$data <- rep(1:dd[3], each= dd[1]*dd[2])
-        } else {
-            ndata <- lapply(fit[indx], function(x) {
-                                 if (length(x)==0) NULL
-                                 else if (is.matrix(x)) as.vector(x)
-                                 else rep(x, dd[2])})
-            ndata <- data.frame(ndata)
-            if (!is.null(fit$strata)) ndata$strata <- rep(newstrat, dd[2])
-            ndata$state <- rep(fit$states, each=dd[1])
+        # dim(fit) will be (strata, data, state), the data frame should be
+        #  in the standard 'first subscript varies fastest' order used by R.
+        #  Think of (time,strata) as a single subscript.
+        # The cumulative hazard, std.chaz, and n.transitions component have
+        #  a different dimension (number of transitions vs number of states)
+        #  so don't get included, and likewise informational things like call,
+        #  t0, n, n.id, p0, ...
+        # The array bits of the fit (pstate, std.err) can be strung out with c()
+        # The matrix ones (n.risk, n.event, n.censor) have dimensions of
+        #  (time-strata, state) so need to be expanded by making nrow(newdata)
+        #  copies of each column.
+        # The newdata expansion is the most complex, e
+        if (is.null(fit$newdata)) nd <-1
+        else  nd <- nrow(fit$newdata) # data dimension, might be 1
+        nt <- nrow(fit$n.risk) # the time-strata dimension
+        ns <- length(fit$states)
+        
+        j <- rep(1:nt, nd)
+        new <- data.frame(time= rep(fit$time, nd*ns),
+                          n.risk  = c(fit$n.risk[j,]),
+                          n.event = c(fit$n.event[j,]),
+                          n.censor= c(fit$n.censor[j,]),
+                          pstate = c(fit$pstate))
+        if (!is.null(fit$std.err)) new <- cbind(new, std.err= c(fit$std.err),
+                          lower = c(fit$lower), upper = c(fit$upper))
+        if (!is.null(fit$strata)) new$stratra <- rep(fit$strata, nd*ns)
+        new$state <- rep(fit$states, each= nd*nt)
+        if (!is.null(fit$newdata)) { #coxph curves
+            k <- rep(rep(1:nd, each=nt), ns)
+            new <- cbind(new, fit$newdata[k,])
         }
-        ndata
+        new  # result is of class data.frame
     } else {
         fit$table <- table
         if (length(rmean.endtime)>0  && !any(is.na(rmean.endtime[1]))) 
             fit$rmean.endtime <- rmean.endtime
-        # Expand the strata. It has used 1,2,3 for a long while
-        if (!is.null(fit$strata)) 
-            fit$strata <- factor(rep(1:nstrat, fit$strata), 1:nstrat,
-                                 labels= names(fit$strata))
         class(fit) <- "summary.survfitms"
         fit
     }

@@ -16,7 +16,7 @@ tdata <- data.frame(time=c(1,2,2,3,3,3,5,6),
 fit <- survfit(Surv(time, factor(status*event)) ~1, tdata)
 
 if (FALSE) {
-    # This has now been depricated
+    # This has now been deprecated
     # test that the old (should be depricated) form gives the same answer
     old <- survfit(Surv(time, status*event, type="mstate") ~1, tdata) #old style
     indx <- match("call", names(fit))

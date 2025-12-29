@@ -202,6 +202,9 @@ summary.survfit <- function(object, times, censored=FALSE,
             newstrat <- factor(rep(1:nstrat, fit$strata), 1:nstrat,
                                labels= names(fit$strata))
         if (is.matrix(fit$surv)) { # survfit.coxph object
+            # The output will have time, survival etc for all strata and
+            # newdata[1,]; then a repeat for newdata[2,], ..
+            #  then newdata[2,] etc
             nc <- ncol(fit$surv)
             ndata <- lapply(fit[indx], function(x) {
                                  if (length(x)==0) NULL
@@ -210,7 +213,13 @@ summary.survfit <- function(object, times, censored=FALSE,
             ndata <- data.frame(ndata)
             if (!is.null(fit$strata)) 
                 ndata$strata <- rep(newstrat, nc)
-            ndata$data <- rep(1:nc, each= length(fit$time))
+ 
+            nindx <- rep(1:nrow(fit$newdata), each= nrow(fit$surv))
+            if (any(names(fit$newdata) %in% names(ndata))) {
+                # the user's data frame has an already used name, add _
+                names(newdata) <- paste0(names(newdata), "_")
+            }             
+            ndata <- cbind(ndata, fit$newdata[nindx,])
         } else {
             ndata <- data.frame(fit[indx])
             if (!is.null(fit$strata)) ndata$strata <- newstrat

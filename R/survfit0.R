@@ -73,7 +73,8 @@ survfit0 <- function(x, ...) {
     names(new) <- newname
 
     add1 <- "surv"
-    add0 <- c("n.event", "n.censor", "n.add", "cumhaz", "std.chaz", "std.auc")
+    add0 <- c("n.event", "n.censor", "n.enter", "n.transition",
+              "cumhaz", "std.chaz", "std.auc")
     if (inherits(x, "survfitms")) add0 <- c(add0, "lower", "upper")
     else add1 <- c(add1, "lower", "upper")
 

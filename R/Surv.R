@@ -18,7 +18,7 @@ Surv <- function(time, time2, event,
     # "Surv(a,b)" has the variable b matched to event rather than time2.
     #
     if (!missing(type) && type =="mstate") {
-        warning("type= 'mstate' is depricated, use a factor variable as status")
+        warning("type= 'mstate' is deprecated, use a factor variable as status")
         mtype <- "mstate"
     }  else mtype <- match.arg(type) 
     
