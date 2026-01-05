@@ -284,7 +284,7 @@ details. Some of the methods defined for survfit objects are
 in formula, that is first in data and then in the environment of
 formula. Note that values calculated inside the formula, such as
 mean(x), are evaluated before subsetting - which may lead to unexpected
-results if used with subset. For more information see the ‘Details’
+results if used with subset. For more information see the Details
 section of \code{model.frame}.
 }
 

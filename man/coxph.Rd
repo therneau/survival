@@ -153,7 +153,7 @@ in formula, that is first in data and then in the environment of
 formula. Note that values calculated inside the formula, such as
 \code{mean(x)} or \code{pspline(x)}, are evaluated before subsetting --
 which may lead to unexpected results if used with subset.
-For more information see the ‘Details’ section of \code{model.frame}.
+For more information see the Details section of \code{model.frame}.
 }
 \section{Case weights}{
 Case weights are treated as replication weights, i.e., a case weight of
