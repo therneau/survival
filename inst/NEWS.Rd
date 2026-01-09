@@ -1,5 +1,13 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 3.8-6}{
+  \itemize{
+    \item Small error in plot.survfit. If there were censoring at 20 and
+    40, say, a plot with xmax=30, mark.time=TRUE would add an incorrect
+    censoring mark at 30.
+    \item Issue with summary.survfitms when the times arg was a single
+    value.  A drop=FALSE was needed, or print.summary.survfitms failed.
+}}
 \section{Changes in version 3.8-5}{
   \itemize{
     \item Fix error in survfit_confint that showed up in a CRAN test

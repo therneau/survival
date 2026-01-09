@@ -473,9 +473,14 @@ plot.survfit<- function(x, conf.int,  mark.time=FALSE,
                 yupper <- (supper[who,j])
             }
             if (!is.null(xmax) && max(xx) > xmax) {  # truncate on the right
+                # say that there are points at 10 and 20, with xmax=15
+                # we want to draw the line up to time 15, so we don't want to
+                # toss out the point at 20, rather change its time to 15.
+                # But, we also need to remove the mark
                 xn <- min(which(xx > xmax))
                 xx <- xx[1:xn]
                 yy <- yy[1:xn]
+                if (xx[xn] > xmax) censor[xn] <-0  # don't draw a "+" here 
                 xx[xn] <- xmax
                 yy[xn] <- yy[xn-1]
                 if (conf.int) {

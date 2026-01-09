@@ -1042,26 +1042,29 @@ flexible than R, i.e., you cannot simply write
 
 A more general approach is to allow a flexible fit on the right hand
 side, as shown in the following code.
-(The Boundary.knots=FALSE argument simply says that the \code{knots} argument
-contains \emph{all} the knots, i.e., don't separate them into two sets.)
 
 <<vet4>>=
 vfit4 <-  coxph(Surv(time, status) ~ trt + prior + karno + tt(karno),
                 data=veteran,
-                tt = function(x, t, ...) x* nsk(t, knots=c(5, 100, 200, 400),
-                                                Boundary.knots = FALSE))
+                tt = function(x, t, ...) x* ns(t, knots=c(100, 200),
+                                                Boundary.knots = c(5,400)))
 vfit4
+# look at the spline term
+smat <- cbind(1, ns(1:600,  knots=c(100, 200), Boundary.knots = c(5,400)))
+estimate <- smat%*% coef(vfit4)[3:6]
+sd.est  <- sqrt(diag(smat %*% vcov(vfit4)[3:6, 3:6] %*% t(smat)))
+ytemp <- c(estimate) + outer(sd.est, c(0, -1.96, 1.96), '*')
+
+matplot(1:600/30.5, ytemp, type='l', lty=c(1,2,2), lwd=c(2,1,1), col=1,
+    xlab="Months post randomization", ylab="Estimated Karnofsky effect")
+abline(0,0, lty=3)
 @ 
 
-The \code{nsk} function is a variant if \code{ns} such that the coefficients
-are the predicted values at knots 2, 3, \ldots - the predicted value at knot
-1, the \code{Boundary= FALSE} argument omits addition of extra knots at the 
-boundary times of t=1 and 999.
-We see a large decrease in effect from time= 5 to time 100,
-a coefficient of essentially -.060 + .048 = -.012 for Karnofsky at this later
-point, with minimal changes thereafter.
-Unfortunately, follow-on functions such as \code{cox.zph} within the 
-survival package do not work reliably.  We will come back to this example
+We see a large decrease in effect over the first 5 months, to near zero;
+with very wide CI for any changes thereafter.
+Unfortunately, follow-on functions such as \code{termplot}, which would have
+made the plot much simpler, or \code{cox.zph} to test for PH do not work
+with this specialized fit.  We will come back to this example
 in the next section, using another approach.
 @ 
 
@@ -1250,13 +1253,13 @@ vdata2 <- survSplit(Surv(time, status) ~ ., veteran, cut=dtime,
                     episode= "month")
 vfit1 <- coxph(Surv(tstart, time, status) ~ trt + prior + karno, vdata2)
 vfit5 <- coxph(Surv(tstart, time, status) ~ trt + prior + karno + 
-                   karno:nsk(month, df=3), vdata2)
+                   karno:ns(month, df=3), vdata2)
 anova(vfit1, vfit5)
 
 tdata <- expand.grid(trt=0, prior=0, karno=30, month=seq(1,13, length=50))
 yhat <- predict(vfit5, newdata=tdata, se.fit=TRUE, reference="zero")
 yy <- yhat$fit+ outer(yhat$se.fit, c(0, -1.96, 1.96), '*')
-matplot(seq(1,13, length=50), yy, type='l', lty=c(1,2,2), col=1, lwd=c(1,2,2),
+matplot(seq(1,13, length=50), yy, type='l', lty=c(1,2,2), col=1, lwd=c(2,1,1),
         xlab="Month of fu", ylab="Effect, Karnofsky 60 vs 90")
 @ 
 

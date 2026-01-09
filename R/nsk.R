@@ -1,9 +1,14 @@
 # Natural spline, parameterized so that the coefficients are the values of the
 #  spline at the knots.
+# As of 1/2026 this is deprecated, the splines2 package has a version with
+#  better error checks, and that is really where this belongs in any case.
 #
 nsk <- function(x, df=NULL, knots=NULL, intercept=FALSE, b=.05,
                 Boundary.knots = quantile(x, c(b, 1-b), na.rm=TRUE)) {
 
+#    .Deprecated("nsk", "splines2", 
+#                "this function has been moved to a more appropriate package")
+#    
     if (is.logical(Boundary.knots)) {
         if (Boundary.knots) Boundary.knots <- range(x, na.rm=TRUE) # ns default
         else Boundary.knots <- NULL

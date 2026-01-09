@@ -179,15 +179,18 @@ summary.survfitms <- function(object, times, censored=FALSE,
         #  call are left as is.
         # The summed elements need to be unstacked
         for (i in c("n.event", "n.censor", "n.enter", "n.transition")) {
-            if (!is.null(fit[[i]]))
-                fit[[i]] <- do.call(rbind, get(ltemp, i))
+            if (!is.null(fit[[i]])) {
+                if (length(ltemp)==1) fit[[i]] <- ltemp[[1]][[i]] # no strata
+                else fit[[i]] <- do.call(rbind, get(ltemp, i))
+            }
         }
 
         # For an intermediate time, e.g., curve has time points of 10 and 20,
         #  user asked for 15, the n.risk component will be for the later
         #  time.  Every curve ends with censors or deaths, so n.risk beyond
         #  the endpoint is 0
-        fit$n.risk <- rbind(0, fit$n.risk)[1L + unlist(get(ltemp, "index2")),]
+        temp <- 1L + unlist(get(ltemp, "index2"))
+        fit$n.risk <- rbind(0, fit$n.risk)[temp,, drop=FALSE]
 
         # For the curves, an intermediate time maps to the earlier
         # time point, e.g., the pstate at time 15 is the curve value at time 10
