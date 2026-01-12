@@ -241,7 +241,7 @@ summary.survfitms <- function(object, times, censored=FALSE,
                           pstate = c(fit$pstate))
         if (!is.null(fit$std.err)) new <- cbind(new, std.err= c(fit$std.err),
                           lower = c(fit$lower), upper = c(fit$upper))
-        if (!is.null(fit$strata)) new$stratra <- rep(fit$strata, nd*ns)
+        if (!is.null(fit$strata)) new$strata <- rep(fit$strata, nd*ns)
         new$state <- rep(fit$states, each= nd*nt)
         if (!is.null(fit$newdata)) { #coxph curves
             k <- rep(rep(1:nd, each=nt), ns)

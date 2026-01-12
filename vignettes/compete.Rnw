@@ -59,16 +59,12 @@ cmat3 <- matrix(0, 3, 3, dimnames = list(state3, state3))
 cmat3[1,2] <- cmat3[2,1] <- cmat3[-3, 3] <- 1
 statefig(c(1,2), cmat3, offset=.03, cex=1.5)
 
-state4 <- c("0", "1", "2", "...")
-cmat4 <- matrix(0, 4,4, dimnames= list(state4, state4))
-cmat4[1,2] <- cmat4[2,3] <- cmat4[3,4] <- 1
-statefig(c(1,1,1,1), cmat4, bcol=c(1,1,1,0), cex=c(1.5, 1.5, 1.5, 3))
 par(oldpar)
 @
  \caption{Four multi-state models.  The upper left panel depicts simple 
    survival, the upper right depicts sequential events,
 the lower left is an example of competing risks, and
- the lower right panel is a multi-state illness-death model.}
+ the lower right panel is an illness-death model.}
  \label{mfig1}
 \end{figure}
 
