@@ -7,6 +7,7 @@
     censoring mark at 30.
     \item Issue with summary.survfitms when the times arg was a single
     value.  A drop=FALSE was needed, or print.summary.survfitms failed.
+    \item Version pushed to CRAN
 }}
 \section{Changes in version 3.8-5}{
   \itemize{

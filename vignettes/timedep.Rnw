@@ -1046,11 +1046,11 @@ side, as shown in the following code.
 <<vet4>>=
 vfit4 <-  coxph(Surv(time, status) ~ trt + prior + karno + tt(karno),
                 data=veteran,
-                tt = function(x, t, ...) x* ns(t, knots=c(100, 200),
+                tt = function(x, t, ...) x* nsk(t, knots=c(100, 200),
                                                 Boundary.knots = c(5,400)))
 vfit4
 # look at the spline term
-smat <- cbind(1, ns(1:600,  knots=c(100, 200), Boundary.knots = c(5,400)))
+smat <- cbind(1, nsk(1:600,  knots=c(100, 200), Boundary.knots = c(5,400)))
 estimate <- smat%*% coef(vfit4)[3:6]
 sd.est  <- sqrt(diag(smat %*% vcov(vfit4)[3:6, 3:6] %*% t(smat)))
 ytemp <- c(estimate) + outer(sd.est, c(0, -1.96, 1.96), '*')
@@ -1253,7 +1253,7 @@ vdata2 <- survSplit(Surv(time, status) ~ ., veteran, cut=dtime,
                     episode= "month")
 vfit1 <- coxph(Surv(tstart, time, status) ~ trt + prior + karno, vdata2)
 vfit5 <- coxph(Surv(tstart, time, status) ~ trt + prior + karno + 
-                   karno:ns(month, df=3), vdata2)
+                   karno:nsk(month, df=3), vdata2)
 anova(vfit1, vfit5)
 
 tdata <- expand.grid(trt=0, prior=0, karno=30, month=seq(1,13, length=50))
