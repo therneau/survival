@@ -1,10 +1,13 @@
 # $Id: ridge.S 11166 2008-11-24 22:10:34Z therneau $
 ridge <- function(..., theta, df=nvar/2, eps=.1, scale=TRUE) {
-    x <- cbind(...)
-    nvar <- ncol(x)
-    xname <- as.character(parse(text=substitute(cbind(...))))[-1]
-    vars <- apply(x, 2, function(z) var(z[!is.na(z)]))
-    class(x) <- 'coxph.penalty'
+  
+  xvars        <- cbind(data.frame( list(...) ))
+  names(xvars) <- as.character(parse(text=substitute(cbind(...))))[-1]
+  x            <- model.matrix(~.,model.frame(~., data=xvars, na.action=na.pass))[,-1]
+  nvar         <- ncol(x)
+  xname        <- colnames(x)
+  vars         <- apply(x, 2, function(z) var(z[!is.na(z)]))
+  class(x)     <- 'coxph.penalty'
 
     if (!missing(theta) && !missing(df))
 	    stop("Only one of df or theta can be specified")
