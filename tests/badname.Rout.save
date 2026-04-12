@@ -1,0 +1,57 @@
+
+R Under development (unstable) (2026-04-01 r89772) -- "Unsuffered Consequences"
+Copyright (C) 2026 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> # check for acceptance of non-syntatic variable names
+> # survfit was the one with issues
+> library(survival)
+> aeq <- function(x,y,...) all.equal(as.vector(x), as.vector(y))
+> 
+> lung2 <- lung
+> lung2["bad sex"] <- lung2$sex
+> 
+> fit1a <- coxph(Surv(time, status) ~ ph.ecog + sex, lung2)
+> fit1b <- coxph(Surv(time, status) ~ ph.ecog + `bad sex`, lung2)
+> aeq(coef(fit1a), coef(fit1b))
+[1] TRUE
+> aeq(fit1a$loglik, fit1b$loglik)
+[1] TRUE
+> 
+> dummy <- expand.grid(ph.ecog=0:2, sex=1:2)
+> dummy["bad sex"] <- dummy$sex
+> surv1a <- survfit(fit1a, newdata= dummy)
+> surv2a <- survfit(fit1b, newdata= dummy)
+> all.equal(surv1a$surv, surv2a$surv)
+[1] TRUE
+> 
+> 
+> fit2a <- survfit(Surv(time, status) ~ ph.ecog + sex, lung2)
+> fit2b <- survfit(Surv(time, status) ~ ph.ecog + `bad sex`, lung2)
+> aeq(fit2a$surv, fit2b$surv)
+[1] TRUE
+> 
+> fit3a <- survreg(Surv(time, status) ~ ph.ecog + sex, lung2)
+> fit3b <- survreg(Surv(time, status) ~ ph.ecog + `bad sex`, lung2)
+> aeq(coef(fit3a), coef(fit3b))
+[1] TRUE
+> aeq(fit3a$loglik, fit3b$loglik)
+[1] TRUE
+> 
+> # Need to add other calls?
+> 
+> proc.time()
+   user  system elapsed 
+  0.827   0.078   0.896 

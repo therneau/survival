@@ -17,17 +17,17 @@ clogit <- function(formula, data, weights, subset, na.action,
     mf <- Call[c(1,indx)]
     mf[[1L]] <- quote(stats::model.frame)
     mf$na.action <- "na.pass"
-    nrows<-NROW(eval(mf, parent.frame()))
+    nrows <- NROW(eval(mf, parent.frame()))
  
     # Now build a call to coxph with the formula fixed up to have
     #  our special left hand side.
     coxcall <- Call
     coxcall[[1]] <- as.name("coxph")
     newformula <- formula
-    newformula[[2]] <- substitute(Surv(rep(1,nn),case),
-                                list(case=formula[[2]],nn=nrows))
+    newformula[[2]] <- substitute(Surv(1+ 0*case, case),
+                                list(case=formula[[2]]))
     environment(newformula) <- environment(formula)
-    coxcall$formula<-newformula
+    coxcall$formula <- newformula
 
     # Set the method, with "approximate" matched to "breslow"
     method <- match.arg(method)

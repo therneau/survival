@@ -1,5 +1,14 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 3.8-7}{
+  \itemize{
+    \item Found and changed the lines that caused failure in survfit with
+    a non-syntactic name on the rhs.  Add test badname.R. Github issues
+    232 and 330.
+    \item Fix issue with clogit and update(): any update that changed
+    the data set size would fail; be more careful in constructing the
+    fake survival time.  Add to clogit.R test file. Github issue 331
+}}
 \section{Changes in version 3.8-6}{
   \itemize{
     \item Small error in plot.survfit. If there were censoring at 20 and

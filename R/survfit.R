@@ -17,11 +17,6 @@ survfit.formula <- function(formula, data, weights, subset,
 
     Call <- match.call()
     if (missing(formula)) stop("a formula argument is required")
-    newform <- removeDoubleColonSurv(formula)
-    if (!is.null(newform)) {
-        formula <- newform$formula
-        if (newform$newcall) Call$formula <- formula
-    }
     Call[[1]] <- as.name('survfit')  #make nicer printout for the user
 
     # create a copy of the call that has only the arguments we want,
@@ -38,7 +33,7 @@ survfit.formula <- function(formula, data, weights, subset,
     }
     mf <- eval.parent(temp)
 
-    Terms <- terms(formula, c("strata", "cluster"))
+    Terms <- terms(mf, c("strata", "cluster"))  #mf not formula: allow newform
     ord <- attr(Terms, 'order')
     if (length(ord) & any(ord !=1))
             stop("Interaction terms are not valid for this function")
@@ -100,8 +95,15 @@ survfit.formula <- function(formula, data, weights, subset,
     }
 
     ll <- attr(Terms, 'term.labels')
+    # if there are non-syntactic names, ll will have backticks in it and []
+    #  will fail; we need to strip them off. 
+    # sub("`", "", ll) looks simpler, but someone, someday will put ` in a name
     if (length(ll) == 0) X <- factor(rep(1,n))  # ~1 on the right
-    else X <- strata(mf[ll])
+    else {
+        ll <- ifelse(startsWith(ll, "`") & endsWith(ll, "`"),
+                     substring(ll, 2, nchar(ll)-1L), ll)
+        X <- strata(mf[ll])
+    }
 
     # Backwards support for the now-depreciated etype argument
     etype <- model.extract(mf, "etype")

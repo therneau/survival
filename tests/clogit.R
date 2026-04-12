@@ -26,3 +26,9 @@ all.equal(fit1$loglik, fit2$loglik)
 all.equal(fit1$var, fit2$var)
 all.equal(fit1$residuals, fit2$residuals)
 
+# Test update, github issue 331
+clr1 <- clogit(case ~ spontaneous + induced + strata(stratum), infert)
+
+clr2 <- update(clr1, . ~ .-induced)
+infert2 <- infert[1:240,]   # drop last 8 rows
+clr3 <- update(clr1, data=infert2)

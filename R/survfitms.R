@@ -340,7 +340,7 @@ survmean2 <- function(x, scale=1, rmean) {
         if (length(j)== nstate && all(j == seq.int(nstate))) {
             # user kept all the states, in original order
             newx$states <- x$states
-            for (z in c("cumhaz", "std.chaz", "n.transtion"))
+            for (z in c("cumhaz", "std.chaz", "n.transition"))
                  if (!is.null(x[[z]])) newx[[z]] <- (x[[z]])[irow,, drop=drop2]
             if (!is.null(x$influence.chaz)) {
                 if (is.list(x$influence.chaz)) {

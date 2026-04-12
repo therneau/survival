@@ -1,7 +1,7 @@
 
-R Under development (unstable) (2024-04-17 r86441) -- "Unsuffered Consequences"
-Copyright (C) 2024 The R Foundation for Statistical Computing
-Platform: aarch64-unknown-linux-gnu
+R Under development (unstable) (2026-04-01 r89772) -- "Unsuffered Consequences"
+Copyright (C) 2026 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -47,7 +47,13 @@ Type 'q()' to quit R.
 > all.equal(fit1$residuals, fit2$residuals)
 [1] TRUE
 > 
+> # Test update, github issue 331
+> clr1 <- clogit(case ~ spontaneous + induced + strata(stratum), infert)
+> 
+> clr2 <- update(clr1, . ~ .-induced)
+> infert2 <- infert[1:240,]   # drop last 8 rows
+> clr3 <- update(clr1, data=infert2)
 > 
 > proc.time()
    user  system elapsed 
-  0.424   0.020   0.441 
+  0.915   0.064   0.970 
