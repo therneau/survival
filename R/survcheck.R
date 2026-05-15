@@ -199,6 +199,7 @@ survcheck2 <- function(y, id, istate=NULL, istate0="(s0)") {
     sindx <- match(ystate, states)
     stat2 <- ifelse(y[,ny]==0, 0L, sindx[pmax(1L, y[,ny])])
     id2 <- match(id, unique(id))  # we need unique integers
+    storage.mode(y) <- "double"
     if (ncol(y)==2) {
         index <- order(id, y[,1])
         check <- .Call(Cmulticheck, rep(0., n), y[,1], stat2, id2,

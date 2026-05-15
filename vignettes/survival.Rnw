@@ -1626,7 +1626,7 @@ of which the Cox model is far and away the most popular.
 As seen in the equations they are closely related.
 
 \begin{eqnarray}
-  \lambda(t) &= e^{beta_0 + \beta_1 x_1 + \beta_2 x_2 + \ldots} \
+  \lambda(t) &= e^{\beta_0 + \beta_1 x_1 + \beta_2 x_2 + \ldots} \
            \label{eq2.1} \\
   \lambda(t) &= e^{\beta_0(t) + \beta_1 x_1 + \beta_2 x_2 + \ldots}  \nonumber \\
              &= \lambda_0(t) e^{\beta_1 x_1 + \beta_2 x_2 + \ldots} \label{eq2.2} \\
