@@ -735,7 +735,8 @@ For the MGUS data these are
 
 An interesting aspect of this is that the fit can be done as a
 two stage process: the first stage creates a special data set while the
-second fits a weighted \code{coxph} or \code{survfit} model to the data.
+second fits a weighted \code{coxph} or \code{survfit} model to the data
+\cite{Geskus11}.
 The data set can be created using the \code{finegray} command.
 
 <<fg1>>=
