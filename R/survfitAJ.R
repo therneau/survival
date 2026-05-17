@@ -329,9 +329,12 @@ survfitAJ <- function(X, Y, weights, id, cluster, robust, istate,
             } 
         } else p00 <- as.numeric(p0)  # just in case they passsed integers
 
+        storage.mode(Y) <- "double"     # in case time is an integer
+        storage.mode(utime) <- "double"
         fit <- .Call(Csurvfitaj, Y, sort1[indx]-1L, sort2[indx]-1L, 
                      utime, as.integer(istate) -1L, weights, c2, nclust, p00,
-                     U0, separm, entry, position, hindx-1L, trmat- 1L, t0)
+                     U0, separm, entry, position, hindx-1L, trmat- 1L, 
+                     as.double(t0))
         curves[[i]] <- c(list(n= length(indx), time=utime, uclust= uclust, 
                             n.id = n.id, p0=p00), fit)
         if (!is.null(sd0)) curves[[i]]$sd0 <- sd0

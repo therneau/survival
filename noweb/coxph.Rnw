@@ -27,7 +27,7 @@ The analysis for multi-state data is a bit more complex.
 \end{itemize}
  
 <<coxph>>=
-coxph <- function(formula, data, weights, subset, na.action,
+coxph <- function(formula, data, weights, subset, na.action= na.coxph,
 	init, control, ties= c("efron", "breslow", "exact"),
 	singular.ok =TRUE,  robust,
 	model=FALSE, x=FALSE, y=TRUE,  tt, method=ties, 

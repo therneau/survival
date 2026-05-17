@@ -4,6 +4,9 @@ residuals.coxph <-
 	    collapse=FALSE, weighted=(type %in% c("dfbeta", "dfbetas")), 
            na.action, ...) {
       
+    if (!is.null(attr(terms(object), "specials")[["tt"]]))
+        stop("function not defined for models with tt() terms")
+
     type <- match.arg(type)
     otype <- type
     if (type=='dfbeta' || type=='dfbetas') {
