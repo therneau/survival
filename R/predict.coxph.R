@@ -4,6 +4,9 @@ predict.coxph <- function(object, newdata,
                        se.fit=FALSE, na.action=na.pass,
                        terms=names(object$assign), collapse, 
                        reference=c("strata", "sample", "zero"), ...) {
+    if (!is.null(attr(terms(object), "specials")[["tt"]]))
+        stop("function not defined for models with tt() terms")
+
     if (!inherits(object, 'coxph'))
         stop("Primary argument much be a coxph object")
 

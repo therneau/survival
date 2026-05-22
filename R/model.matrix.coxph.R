@@ -65,14 +65,15 @@ model.matrix.coxph <- function(object, data=NULL,
     if (length(istrat)>0) attr(X, "strata") <- strata.keep
     X
 }
-model.frame.coxph <- function(formula, ...) {
+model.frame.coxph <- function(formula, data, ...) {
     dots <- list(...)
-    nargs <- dots[match(c("data", "na.action", "subset", "weights",
+    nargs <- dots[match(c("na.action", "subset", "weights",
                           "id", "cluster", "istate"), 
                         names(dots), 0)] 
     # If nothing has changed and the coxph object had a model component,
     #   simply return it.
-    if (length(nargs) ==0  && !is.null(formula$model)) return(formula$model)
+    if (missing(data) && length(nargs) ==0  && !is.null(formula$model)) 
+        return(formula$model)
     else {
         # Rebuild the original call to model.frame
         Terms <- terms(formula)
@@ -84,6 +85,8 @@ model.frame.coxph <- function(formula, ...) {
    
         temp <- fcall[c(1,indx)]  # only keep the arguments we wanted
         temp[[1]] <- quote(stats::model.frame)  # change the function called
+        if (missing(data))
+            temp$na.action <- quote(stats::na.pass) # defer NA processing
         temp$xlev <- formula$xlevels  # this will turn strings to factors
         temp$formula <- Terms   #keep the predvars attribute
         # Now, any arguments that were on this call overtake the ones that
@@ -107,108 +110,29 @@ model.frame.coxph <- function(formula, ...) {
         if (!is.null(attr(formula$terms, "dataClasses")))
             .checkMFClasses(attr(formula$terms, "dataClasses"), mf)
        
-        if (is.null(attr(Terms, "specials")$tt)) return(mf)
-        else {
-            # Do time transform
-            tt <- eval(formula$call$tt)
-            Y <- aeqSurv(model.response(mf))
-            strats <- attr(Terms, "specials")$strata
-            if (length(strats)) {
-                stemp <- untangle.specials(Terms, 'strata', 1)
-                if (length(stemp$vars)==1) strata.keep <- mf[[stemp$vars]]
-                else strata.keep <- strata(mf[,stemp$vars], shortlabel=TRUE)
-                istrat <- as.numeric(strata.keep)
+        # None of the functions that would call model.frame (survfit, predict
+        #  or residuals) allow for tt(), so we don't need to expand it.
+        # But we do need to deal with timeline data
+        Y <- model.response(mf)
+        id <- model.extract(mf, "id")
+        if (inherits(Y, "Surv2") || (!is.null(id) && any(duplicated(id)) && 
+                                 attr(Y, 'type') %in% c("right", "mright"))) {
+            # timeline data, convert to regular
+            mf <- surv2counting(mf)
+            Y <- model.response(mf)
+            id <- model.extract(mf, "id")
+        }   
+        
+        if (missing(data)) {
+            # remove na.action rows when recreating original data
+            # for new data from a user, leave them in
+            if (!is.null(formula$na.action) && length(formula$na.action)>0)
+                mf <- mf[-formula$na.action,, drop=FALSE]
             }
-            
-            timetrans <- untangle.specials(Terms, 'tt')
-            ntrans <- length(timetrans$terms)
-
-            if (is.null(tt)) {
-                tt <- function(x, time, riskset, weights){ #default to O'Brien's logit rank
-                    obrien <- function(x) {
-                        r <- rank(x)
-                        (r-.5)/(.5+length(r)-r)
-                    }
-                    unlist(tapply(x, riskset, obrien))
-                }
-            }
-            if (is.function(tt)) tt <- list(tt)  #single function becomes a list
                 
-            if (is.list(tt)) {
-                if (any(!sapply(tt, is.function))) 
-                    stop("The tt argument must contain function or list of functions")
-                if (length(tt) != ntrans) {
-                    if (length(tt) ==1) {
-                        temp <- vector("list", ntrans)
-                        for (i in 1:ntrans) temp[[i]] <- tt[[1]]
-                        tt <- temp
-                    }
-                    else stop("Wrong length for tt argument")
-                }
-            }
-            else stop("The tt argument must contain a function or list of functions")
+        # should I also do aeqSurv here? I think yes
+        browser()
+        timefix <- formula$Call$timefix
 
-            if (ncol(Y)==2) {
-                if (length(strats)==0) {
-                    sorted <- order(-Y[,1], Y[,2])
-                    newstrat <- rep.int(0L, nrow(Y))
-                    newstrat[1] <- 1L
-                    }
-                else {
-                    sorted <- order(istrat, -Y[,1], Y[,2])
-                    #newstrat marks the first obs of each strata
-                    newstrat <-  as.integer(c(1, 1*(diff(istrat[sorted])!=0))) 
-                    }
-                if (storage.mode(Y) != "double") storage.mode(Y) <- "double"
-                counts <- .Call(Ccoxcount1, Y[sorted,], 
-                                as.integer(newstrat))
-                tindex <- sorted[counts$index]
-            }
-            else {
-                if (length(strats)==0) {
-                    sort.end  <- order(-Y[,2], Y[,3])
-                    sort.start<- order(-Y[,1])
-                    newstrat  <- c(1L, rep(0, nrow(Y) -1))
-                }
-                else {
-                    sort.end  <- order(istrat, -Y[,2], Y[,3])
-                    sort.start<- order(istrat, -Y[,1])
-                    newstrat  <- c(1L, as.integer(diff(istrat[sort.end])!=0))
-                }
-                if (storage.mode(Y) != "double") storage.mode(Y) <- "double"
-                counts <- .Call(Ccoxcount2, Y, 
-                                as.integer(sort.start -1L),
-                                as.integer(sort.end -1L), 
-                                as.integer(newstrat))
-                tindex <- counts$index
-            }
-            Y <- Surv(rep(counts$time, counts$nrisk), counts$status)
-            type <- 'right'  # new Y is right censored, even if the old was (start, stop]
-
-            mf <- mf[tindex,]
-            istrat <- rep(1:length(counts$nrisk), counts$nrisk)
-            weights <- model.weights(mf)
-            if (!is.null(weights) && any(!is.finite(weights)))
-                stop("weights must be finite") 
-            id <- model.extract(mf, "id")   # update the id and/or cluster, if present
-            cluster <- model.extract(mf, "cluster")
-
-            tcall <- attr(Terms, 'variables')[timetrans$terms+2]
-            pvars <- attr(Terms, 'predvars')
-            pmethod <- sub("makepredictcall.", "", as.vector(methods("makepredictcall")))
-            for (i in 1:ntrans) {
-                newtt <- (tt[[i]])(mf[[timetrans$var[i]]], Y[,1], istrat, weights)
-                mf[[timetrans$var[i]]] <- newtt
-                nclass <- class(newtt)
-                if (any(nclass %in% pmethod)) { # It has a makepredictcall method
-                    dummy <- as.call(list(as.name(class(newtt)[1]), tcall[[i]][[2]]))
-                    ptemp <- makepredictcall(newtt, dummy)
-                    pvars[[timetrans$terms[i]+2]] <- ptemp
-                }
-            }
-            attr(Terms, "predvars") <- pvars
-            mf[[".strata."]] <- istrat
-            return(mf)
-        }
     }
 }

@@ -3,6 +3,8 @@
 #  This variant is for time-course data
 #
 Surv2 <- function(time, event, repeated=FALSE) {
+    .Deprecated("Surv", msg="Surv2 is no longer necessary, use Surv",
+                old="Surv2")
     if (missing(time)) stop ("must have a time argument")
     if (inherits(time ,"difftime")) time <- unclass(time)
     if (!is.numeric(time)) stop ("Time variable is not numeric")

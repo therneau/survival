@@ -44,7 +44,7 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95, individual=FALSE,
     # process options, set up Y and the model frame for the original data
     <<survfit.coxph-setup1>>
     <<survfit.coxph-setup2>>
-    istate <- model.extract(mf, "istate")
+    if (is.null(istate)) istate <- model.extract(mf, "istate") # not already done
 
     #deal with start time, by throwing out observations that end before then
     if (!missing(start.time)) {

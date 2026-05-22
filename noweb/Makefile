@@ -4,7 +4,6 @@
 #  open model of maintainance and developement.
 #
 PARTS = main.Rnw \
-	coxph.Rnw \
 	exact.nw \
 	agreg.Rnw \
 	coxsurv.Rnw \
@@ -23,6 +22,7 @@ PARTS = main.Rnw \
 	yates.Rnw  yates2.Rnw\
 	zph.Rnw \
 	tail
+#       coxph.Rnw
 #	concordance.Rnw \
 #	coxsurv2.Rnw \
 #	coxdetail.nw
@@ -31,7 +31,6 @@ PARTS = main.Rnw \
 #	tmerge.Rnw\
 
 SFUN =  agreg.fit.R \
-	coxph.R \
 	finegray.R \
 	parsecovar.R \
 	predict.coxph.R \
@@ -43,6 +42,7 @@ SFUN =  agreg.fit.R \
 	survfit.coxphms.R \
 	yates.R \
 	cox.zph.R
+#       coxph.R
 #       concordance.R \
 #	model.matrix.coxph.R \
 #	plot.survfit.R \

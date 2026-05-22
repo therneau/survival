@@ -11,7 +11,8 @@ aeqSurv <- function(x, tolerance = sqrt(.Machine$double.eps)) {
         if (tolerance <=0) return(x)  # do nothing
     }
 
-    if (!is.Surv(x)) stop("argument is not a Surv object")
+    if (!(is.Surv(x) || inherits(x, "Surv2"))) 
+        stop("argument is not a Surv object")
     y <- sort(unique(c(x[, -ncol(x)])))
     y <- y[is.finite(y)]  #someone may hand us an INF
 

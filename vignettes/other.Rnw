@@ -21,7 +21,7 @@ depend on any packages outside of  base + recommended.
 (A minimally sufficient set that is self contained
 is important for R maintainance and validation.)
 This means that we cannot use more modern tools such as knitR or markdown,
-refer to other packages such as mstate or ggsurvfit, nor
+refer to other packages such as splines, mstate or ggsurvfit, nor
 use data from some of those packages in our examples.
  
 The following vignettes are found in this other location
@@ -43,6 +43,7 @@ The following vignettes are found in this other location
      take a very long time to run.
    \item shared: Use of shared coefficients and/or shared baseline hazards in
      multistate models.
+   \item timedep: Time dependent covariates and time dependent coefficients.
 \end{enumerate}
 
 Over time, we expect more vignettes to transfer from the survival package,

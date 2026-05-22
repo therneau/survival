@@ -1114,8 +1114,75 @@ all but 161 out of the 6108 unique event times (5\%).  For the remainder of
 the event times it suffices to create a temporary copy of $U(t-)$.
 
 \chapter{Cox model}
-\section{Fitting}
-To be filled in.
+\chapter{Specials}
+R formulas allow for special terms. When parsing the coxph formula using the
+standard \code{terms} function, the optional argument \code{specials= 'strata'}
+will cause the returned object to specially mark any strata terms.
+We then deal with this properly in the fit; a stratum is not just another
+covariate.
+
+The advent of hundreds of libraries, more users have been using double colon
+notation ensure that they actually invoke the function that they think they
+are invoking, e.g., 
+<<echo=TRUE, eval=FALSE>>=
+survival::coxph(survival::Surv(time, status) ~ 
+                    age + sex + survival::strata(inst), data=lung)
+@
+Saying library(tidyverse), alone, attaches 60 (19 packages + 41 name spaces).
+A problem with this is that the terms function searches for and recognizes 
+the character string ``strata'' and so will not detect ``survival::strata''
+as special.  
+At least one package assigns the result of \code{strata::(group)} to a
+temporary variable and then uses that variable in their formula, i.e.; it would 
+not suffice to add survival::strata to my list of specials.
+
+In version 3.7 of the package I made a valiant effort to combat this by 
+essentially re-writing the user's formula.  It worked pretty well, but I've
+now thrown in the towel and ensured that all of my special functions return
+a recognized class and key off of that.  The functions that were special
+were Surv, strata, cluster, pspline, frailty, ridge and tt.
+\begin{itemize}
+  \item The pspline, frailty, and ridge functions (and frailty subfunctions
+    like frailty.t) already had the class coxph.penalty. It suffices to recognize
+    that rather use terms.
+  \item The Surv function also has a class. We never use it on the right hand
+    side, however, so have never used specials to find it.
+  \item The tt() function did not have to change, since I never created a dummy
+    function in the package to correspond to it, it only exists ``on the fly''
+    within the package and will always be recognized first.
+  \item An update is to do the same with cluster(). Using this within a 
+    formula is on its way to deprecation in any case.
+  \item That leaves strata.  It appears in lots and lots of places, and all
+    will need to be changed.
+\end{itemize}
+
+\section{Missing values}
+\index{multistate missing}
+When the formula is a list, then the possiblility exists that different
+transitions will have different covariates.
+If a particular row of the data is missing variable x3 say, but x3 is
+only used in transitions for which that row is not at risk, then there is
+no need to remove said observation.
+Assume for instance that one of the states was surgical recection of a
+cancer, then pathology results will only be available after that time point.
+
+This leads to a simple dichotomy: if the model formula is simple then call
+the model.frame matrix in the usual way. If not, use na.pass to retain all
+observations until a proper determination can be made.  To make that 
+determination we need the current state for each data row, which is either
+obtained or validated by survcheck.
+
+The model.frame and the tmap object suffice for missings, we don't need to
+create the X matrix.  (Someone might have saved X and not the model frame,
+though, in which case we can use cmap and X).
+
+Steps for a multi-formula model
+\begin{enumerate}
+  \item Get the raw model frame, no missings removed
+  \item Extract Y, istate if present, weights if present
+  \item Use survcheck2 to get the      
+
+
 \section{Absolute risk}
 \index{coxph:survival}
 \subsection{Cumulative hazard and survival curves}

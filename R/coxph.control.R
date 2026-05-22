@@ -5,7 +5,8 @@ coxph.control <- function(eps=1e-9,
                           toler.chol = .Machine$double.eps ^ .75, 
 			  iter.max=20,
 			  toler.inf= sqrt(eps), outer.max=10,
-                          timefix =TRUE) {
+                          timefix =TRUE,
+                          survcheckallow="gap") {
     if (!is.numeric(iter.max) ||iter.max <0) stop("Invalid value for iterations")
     if (!is.numeric(eps) || eps <=0) stop ("Invalid convergence criteria")
     if (!is.numeric(toler.chol) || toler.chol <=0)
@@ -20,5 +21,5 @@ coxph.control <- function(eps=1e-9,
         stop("invalid value for outer.max")
     list(eps=eps, toler.chol=toler.chol, iter.max=as.integer(iter.max), 
 	 toler.inf=toler.inf, outer.max=as.integer(outer.max), 
-         timefix=timefix)
+         timefix=timefix, survcheckallow=survcheckallow)
     }

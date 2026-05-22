@@ -7,7 +7,8 @@ Typically it would only be used in a call to \code{coxph}.
 }
 \usage{
 coxph.control(eps = 1e-09, toler.chol = .Machine$double.eps^0.75,
-iter.max = 20, toler.inf = sqrt(eps), outer.max = 10, timefix=TRUE)
+iter.max = 20, toler.inf = sqrt(eps), outer.max = 10, timefix=TRUE,
+survcheckallow="gap")
 }
 \arguments{
   \item{eps}{Iteration continues until the relative change in the log partial
@@ -23,6 +24,9 @@ infinite coefficient value.}
 is an outer loop of iteration to determine the penalty parameters; maximum
 number of iterations for this outer loop.}
 \item{timefix}{Resolve any near ties in the time variables.}
+\item{survcheckallow}{The set of errors, found by survcheck, which will
+  allowed to pass, i.e., the model fit will continue.  The possible values
+  are gap, jump, teleport, and overlap.}
 }
 
 \value{
@@ -74,6 +78,13 @@ number of iterations for this outer loop.}
   In analysis of simulated data sets, however, where often by defintion there
   can be no duplicates, the option will often need to be set to 
   \code{FALSE} to avoid spurious merging of close numeric values.
+
+  In internal survcheck call creates the transtion table, which is used
+  to set up the model, and also flags some errors.  See the help page
+  for survcheck for explanation. In this investigator's opinion, the
+  model should not proceed if any arise, the current value of "gap"
+  reflects some other's opinion that results from such a data set can
+  make sense.
 }  
 \seealso{\code{\link{coxph}}
   }

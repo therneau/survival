@@ -2,6 +2,7 @@
 \subsection{Coxph}
 The \code{coxph} routine is the underlying basis for all the models.
 The source was converted to noweb when adding time-transform terms.
+Converted out of noweb when cleaning up Surv2 (2026)
 
 The call starts out with the basic building of a model frame
 and proceeds from there.

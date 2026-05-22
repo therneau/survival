@@ -31,6 +31,8 @@ survfit.formula <- function(formula, data, weights, subset,
         temp$formula <- newform$formula
         if (newform$newcall) Call$formula <- formula
     }
+    # To deal with Surv2, defer na.action until later (unless user insists)
+    if (missing(na.action)) temp$na.action <- na.pass 
     mf <- eval.parent(temp)
 
     Terms <- terms(mf, c("strata", "cluster"))  #mf not formula: allow newform
@@ -38,42 +40,44 @@ survfit.formula <- function(formula, data, weights, subset,
     if (length(ord) & any(ord !=1))
             stop("Interaction terms are not valid for this function")
 
-    n <- nrow(mf)
     Y <- model.response(mf)
-    # The Surv2 approach is experimental, and may not survive.  If a data set is
-    #  in that form, covert it to a "standard" layout
-    if (inherits(Y, "Surv2")) {
-        # this is Surv2 style data
-        # if there are any obs removed due to missing, remake the model frame
-        if (length(attr(mf, "na.action"))) {
-            temp$na.action <- na.pass
-            mf <- eval.parent(temp)
-        }
-        if (!is.null(attr(Terms, "specials")$cluster))
-            stop("cluster() cannot appear in the model statement")
-        new <- surv2data(mf)
-        mf <- new$mf
-        istate <- new$istate
-        id <- new$id
-        Y <- new$y
-        if (anyNA(mf[-1])) { #ignore the response variable still found there
-            if (missing(na.action)) temp <- get(getOption("na.action"))(mf[-1])
-            else temp <- na.action(mf[-1])
-            omit <- attr(temp, "na.action")
-            mf <- mf[-omit,]
-            Y <- Y[-omit]
-            id <- id[-omit]
-            istate <- istate[-omit]
-        }                      
-        n <- nrow(mf)
-    }       
-    else {
-        if (!is.Surv(Y)) stop("Response must be a survival object")
-        id <- model.extract(mf, "id")
-        istate <- model.extract(mf, "istate")
-    }
+    if (!(is.Surv(Y) || inherits(Y, "Surv2")))
+        stop("response must be a survival object")
+
+    # is this timeline data?  True if either the user typed Surv2 (deprecated)
+    #  or [ids with multiple rows and not (time, time2) form]
+    id <- model.extract(mf, "id")
+    if (inherits(Y, "Surv2") || (!is.null(id) && any(duplicated(id)) && 
+                                 attr(Y, 'type') %in% c("right", "mright"))) {
+        # timeline data, convert to regular
+        mf <- surv2counting(mf)
+    }                      
+
+    # Apply missing value logic after the code has dealt with timeline data
+    if (missing(na.action)) 
+        mf <- get(getOption("na.action"), pos="package:stats")(mf)
+    else if (is.function(na.action)) mf <- na.action(mf)
+    else mf <- get(na.action)(mf)
+    Y <- model.response(mf)       # grab the (possibly new) values
+    id <- model.extract(mf, "id")
+
+    n <- nrow(mf)
     if (n==0) stop("data set has no non-missing observations")
 
+    # Deal with the near-ties problem
+    if (!is.logical(timefix) || length(timefix) > 1)
+        stop("invalid value for timefix option")
+    if (timefix) Y <- aeqSurv(Y) 
+    # fixing ties may have caused bad intervals, one more look
+    istate <- model.extract(mf, "istate")
+    if (ncol(Y)==3 && !is.null(attr(Y, "states"))) {
+        # survcheck2 only does multistate
+        check <- survcheck2(Y, id, istate)
+        if (any(check$flag >0)) 
+            stop("data set fails survcheck for one or more subjects")
+    }
+
+    istate <- model.extract(mf, "istate")
     casewt <- model.extract(mf, "weights")
     if (is.null(casewt)) casewt <- rep(1.0, n)
     else {
@@ -90,6 +94,8 @@ survfit.formula <- function(formula, data, weights, subset,
     if (length(temp$vars)>0) {
         if (length(cluster) >0) stop("cluster appears as both an argument and a model term")
         if (length(temp$vars) > 1) stop("can not have two cluster terms")
+        .Depecated(msg = "use the 'cluster' argument to the survfit function",
+                   old = "use of cluster() in a formula")
         cluster <- mf[[temp$vars]]
         Terms <- Terms[-temp$terms]
     }
@@ -108,36 +114,9 @@ survfit.formula <- function(formula, data, weights, subset,
     # Backwards support for the now-depreciated etype argument
     etype <- model.extract(mf, "etype")
     if (!is.null(etype)) {
-        if (attr(Y, "type") == "mcounting" ||
-            attr(Y, "type") == "mright")
-            stop("cannot use both the etype argument and mstate survival type")
-        if (length(istate)) 
-            stop("cannot use both the etype and istate arguments")
-        status <- Y[,ncol(Y)]
-        etype <- as.factor(etype)
-        temp <- table(etype, status==0)
-
-        if (all(rowSums(temp==0) ==1)) {
-            # The user had a unique level of etype for the censors
-            newlev <- levels(etype)[order(-temp[,2])] #censors first
-        }
-        else newlev <- c(" ", levels(etype)[temp[,1] >0])
-        status <- factor(ifelse(status==0,0, as.numeric(etype)),
-                             labels=newlev)
-
-        #12/2015 change 'status, type="mstate"' to 'as.factor(status)'
-        # to avoid my own depricated message
-        if (attr(Y, 'type') == "right")
-            Y <- Surv(Y[,1], as.factor(status))
-        else if (attr(Y, "type") == "counting")
-            Y <- Surv(Y[,1], Y[,2], as.factor(status))
-        else stop("etype argument incompatable with survival type")
+        stop("the etype argument is no longer supported, use a factor as the status variable")
     }
                          
-    # Deal with the near-ties problem
-    if (!is.logical(timefix) || length(timefix) > 1)
-        stop("invalid value for timefix option")
-    if (timefix) newY <- aeqSurv(Y) else newY <- Y
     
     if (missing(robust)) robust <- NULL
     if (!is.logical(time0)) stop("time0 must be TRUE/FALSE")
@@ -147,14 +126,14 @@ survfit.formula <- function(formula, data, weights, subset,
     # KM = Kaplan-Meier for survival with a single endpoint
     # AJ = Aalen-Johansen for multi-state models
     if (attr(Y, 'type') == 'left' || attr(Y, 'type') == 'interval')
-        temp <-  survfitTurnbull(X, newY, casewt, cluster= cluster,
+        temp <-  survfitTurnbull(X, Y, casewt, cluster= cluster,
                                  robust= robust, time0= time0,...)
     else if (attr(Y, 'type') == "right" || attr(Y, 'type')== "counting")
-        temp <- survfitKM(X, newY, casewt, stype=stype, ctype=ctype, id=id, 
+        temp <- survfitKM(X, Y, casewt, stype=stype, ctype=ctype, id=id, 
                           cluster=cluster, robust=robust, entry=entry, 
                           time0=time0, ...)
     else if (attr(Y, 'type') == "mright" || attr(Y, "type")== "mcounting")
-        temp <- survfitAJ(X, newY, weights=casewt, stype=stype, ctype=ctype, 
+        temp <- survfitAJ(X, Y, weights=casewt, stype=stype, ctype=ctype, 
                           id=id, cluster=cluster, robust=robust, 
                           istate=istate, entry=entry, time0=time0, ...)
     else {
@@ -171,7 +150,7 @@ survfit.formula <- function(formula, data, weights, subset,
 
     if (!is.null(attr(mf, 'na.action')))
             temp$na.action <- attr(mf, 'na.action')
-    if (model) temp$model <- mf
+    # if (model) temp$model <- mf  # I don't allow a model argument
     temp$call <- Call
     temp
     }
