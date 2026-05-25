@@ -1181,7 +1181,7 @@ Steps for a multi-formula model
   \item Get the raw model frame, no missings removed
   \item Extract Y, istate if present, weights if present
   \item Use survcheck2 to get the      
-
+\end{enumerate}
 
 \section{Absolute risk}
 \index{coxph:survival}

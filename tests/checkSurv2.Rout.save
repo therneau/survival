@@ -1,7 +1,7 @@
 
-R Under development (unstable) (2021-01-18 r79846) -- "Unsuffered Consequences"
-Copyright (C) 2021 The R Foundation for Statistical Computing
-Platform: x86_64-pc-linux-gnu (64-bit)
+R Under development (unstable) (2026-04-25 r89962) -- "Unsuffered Consequences"
+Copyright (C) 2026 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -34,68 +34,75 @@ Type 'q()' to quit R.
 +                                 event=ifelse(death==0, "censor", "death")))
 > mflat <- merge(temp1, rbind(temp2, temp3), all=TRUE)
 > mflat$event <- factor(mflat$event, c("censor", "progression", "death"))
-> 
-> sfit1 <- survfit(Surv2(ftime, event) ~ sex, mflat, id=id)
+> mflatc <- timeline2counting(Surv(ftime, event) ~., mflat, id=id)
 > 
 > # now compare it to the usual way
 > etime <- with(mgus2, ifelse(pstat==1, ptime, futime))
 > estat <- with(mgus2, ifelse(pstat==1, 1, 2*death))
 > estat <- factor(estat, 0:2, c("censor", "progression", "death"))
-> sfit2 <- survfit(Surv(etime, estat) ~ sex, mgus2)
+> 
+> sfit1 <- survfit(Surv(etime, estat) ~ sex, mgus2)  # original way
+> sfit2 <- survfit(Surv2(ftime, event) ~ sex, mflat, id=id) # timeline with Surv2
+> sfit3 <- survfit(Surv(ftime, event) ~ sex, mflat, id=id)  # timeline with Surv
+> sfit4 <- survfit(Surv(ftime, event) ~ sex, mflatc, id=id)# converted timeline
 > 
 > all.equal(sfit1$pstate, sfit2$pstate)
 [1] TRUE
+> all.equal(sfit1$pstate, sfit3$pstate)
+[1] TRUE
+> all.equal(sfit1$pstate, sfit4$pstate)
+[1] TRUE
 > 
 > # Cox model
-> cfit1 <- coxph(Surv2(ftime, event) ~ sex + age, data=mflat, id=id)
-> cfit2 <- coxph(Surv(etime, estat)  ~ sex + age, data=mgus2, id=id)
+> cfit1 <- coxph(Surv(etime, estat)  ~ sex + age, data=mgus2, id=id)
+> cfit2 <- coxph(Surv2(ftime, event) ~ sex + age, data=mflat, id=id)
+> cfit3 <- coxph(Surv(ftime, event)  ~ sex + age, data=mflat, id=id)
+> cfit4 <- coxph(Surv(ftime, event)  ~ sex + age, data=mflatc, id=id)
 > all.equal(cfit1[c("coefficients", "var", "loglik", "score")],
 +           cfit2[c("coefficients", "var", "loglik", "score")])
 [1] TRUE
-> 
-> # And using the explicit call to build a data set
-> sdata <- Surv2data(Surv2(ftime, event) ~ ., data=mflat, id=id)
-> cfit3 <- coxph(Surv2.y ~ sex + age, data=sdata, id=id)
 > all.equal(cfit1[c("coefficients", "var", "loglik", "score")],
 +           cfit3[c("coefficients", "var", "loglik", "score")])
 [1] TRUE
-> 
-> # Create a data set with error = two events on the same day
-> #  A model with this data will generate an error.
-> temp4 <- with(m2, 
-+               data.frame(id=id, ftime=futime, 
-+                                 event=ifelse(death==0, "censor", "death")))
-> mflat2 <- merge(temp1, rbind(temp2, temp4), all=TRUE)
-> mflat2$event <- factor(mflat2$event, c("censor", "prog", "death"))
-> stemp <- survcheck(Surv2(ftime, event) ~ sex, data=mflat2, id=id)
-> all.equal(stemp$duplicate$row, which(duplicated(mflat2[,c("id", "ftime")])))
+> all.equal(cfit1[c("coefficients", "var", "loglik", "score")],
++           cfit4[c("coefficients", "var", "loglik", "score")])
 [1] TRUE
 > 
 > # Full 3 state model.  We need to make progressions that are tied with
 > #  deaths be just a bit sooner.
 > temp2b <- with(subset(m2, pstat==1),
-+                data.frame(id=id, ftime= ifelse(ptime==futime & death==1, ptime-.1, ptime),
++                data.frame(id=id, ftime= ifelse(ptime==futime & death==1, 
++                                                ptime-.1, ptime),
 +                event="progression"))
 > temp3b <- with(m2,
-+                data.frame(id=id, ftime=futime, event=ifelse(death==0, "censor", "death")))
-> 
++                data.frame(id=id, ftime=futime, event=ifelse(death==0,   
++                                                             "censor", "death")))
 > mflat3 <- merge(temp1, rbind(temp2b, temp3b), all=TRUE)
 > mflat3$event <- factor(mflat3$event, c("censor", "progression", "death"))
-> 
-> cfit4 <- coxph(Surv2(ftime, event) ~ sex + age + mspike, mflat3, id=id)
 > 
 > # For a standard start-stop data set use tmerge
 > m3 <- tmerge(m2[,1:7], subset(m2,,c(id, futime, death)), id=id, 
 +                                   event= event(futime, 2*death))
 > m3 <- tmerge(m3, temp2b, id=id, event= event(ftime))
 > m3$event <- factor(m3$event, 0:2, c("censor", "progression", "death"))
-> cfit5 <- coxph(Surv(tstart, tstop, event) ~ sex + age + mspike, m3, id=id)
+> 
+> cfit4 <- coxph(Surv(tstart, tstop, event) ~ sex + age + mspike, m3, id=id)
+> cfit5 <- coxph(Surv2(ftime, event) ~ sex + age + mspike, mflat3, id=id)
+> cfit6 <- coxph(Surv(ftime, event) ~ sex + age + mspike, mflat3, id=id)
+> mflat3c <- timeline2counting(Surv(ftime, event) ~ ., mflat3, id=id)
+> cfit7 <- coxph(Surv(ftime1, ftime2, event) ~ sex + age + mspike, mflat3c, id=id)
 > 
 > all.equal(cfit4[c("coefficients", "var", "loglik", "score")],
 +           cfit5[c("coefficients", "var", "loglik", "score")])
+[1] TRUE
+> all.equal(cfit4[c("coefficients", "var", "loglik", "score")],
++           cfit6[c("coefficients", "var", "loglik", "score")])
+[1] TRUE
+> all.equal(cfit4[c("coefficients", "var", "loglik", "score")],
++           cfit7[c("coefficients", "var", "loglik", "score")])
 [1] TRUE
 > 
 > 
 > proc.time()
    user  system elapsed 
-  1.906   0.109   2.060 
+  0.666   0.080   0.741 

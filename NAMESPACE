@@ -16,7 +16,7 @@ importFrom(graphics, arrows, axis, barplot, box, clip, matlines, matplot,
 importFrom(Matrix, expm)
 importFrom(methods, as)
 importFrom(utils, getS3method, type.convert, methods, head, tail)
-export(Surv, Surv2, Surv2data, aeqSurv, aareg, agreg.fit,
+export(Surv, Surv2,Surv2data, aeqSurv, aareg, agreg.fit,
        agexact.fit, attrassign, 
        blogit, bprobit, bcloglog, blog, brier,
        basehaz, cch, clogit, cipoisson, cluster, concordance, concordancefit, 
@@ -34,7 +34,7 @@ export(Surv, Surv2, Surv2data, aeqSurv, aareg, agreg.fit,
        coxsurv.fit, survfitKM, survobrien,  
        survpenal.fit, 
        survreg, survreg.control, survreg.fit,
-       survreg.distributions, survregDtest, tcut, totimeline, fromtimeline,
+       survreg.distributions, survregDtest, tcut, timeline2counting,
        tmerge, untangle.specials, yates, yates_setup,
        survConcordance, survConcordance.fit, survfitcoxph.fit)
 S3method('[', aareg)

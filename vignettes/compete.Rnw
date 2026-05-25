@@ -17,9 +17,12 @@
 % I had been putting figures in the figures/ directory, but the standard
 %  R build script does not copy it and then R CMD check fails
 \SweaveOpts{prefix.string=compete,width=6,height=4}
+\setkeys{Gin}{width=\textwidth}
+
 \newcommand{\myfig}[1]{\includegraphics[height=!, width=\textwidth]
                         {compete-#1.pdf}}
-\setkeys{Gin}{width=\textwidth}
+\newcommand{\code}[1]{\texttt{#1}}
+
 <<echo=FALSE>>=
 options(continue="  ", width=60)
 options(SweaveHooks=list(fig=function() par(mar=c(4.1, 4.1, .3, 1.1))))
@@ -31,7 +34,6 @@ library("survival")
 
 \title{Multi-state models and competing risks}
 \author{Terry Therneau \and Cynthia Crowson \and Elizabeth Atkinson}
-\newcommand{\code}[1]{\texttt{#1}}
 
 \begin{document}
 \maketitle

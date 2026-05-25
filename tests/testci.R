@@ -88,11 +88,13 @@ aeq(sfit$n.event,  matrix(c(0,0,0,0,0, 0,0,1,0,0, 0,0,2,1,0), ncol=3))
 #  event
 #
 tdata <- mgus1[mgus1$enum==1,]
+
 # Ensure the old-style call using "etype" works (backwards compatability)
-fit1 <- survfit(Surv(stop, status) ~ 1, etype=event, tdata)
-fit1b <-survfit(Surv(stop, event) ~1, tdata)
+# 5/2026, etype is no longer allowed
+#fit1b <- survfit(Surv(stop, status) ~ 1, etype=event, tdata)
+fit1 <-survfit(Surv(stop, event) ~1, tdata)
 indx <- match("call", names(fit1)) 
-all.equal(unclass(fit1)[-indx], unclass(fit1b)[-indx])
+#all.equal(unclass(fit1)[-indx], unclass(fit1b)[-indx])
 
 # Now get the overall survival, and the hazard for progression
 fit2 <- survfit(Surv(stop, status) ~1, tdata)  #overall to "first bad thing"

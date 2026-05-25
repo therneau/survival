@@ -47,17 +47,21 @@ survfit.formula <- function(formula, data, weights, subset,
     # is this timeline data?  True if either the user typed Surv2 (deprecated)
     #  or [ids with multiple rows and not (time, time2) form]
     id <- model.extract(mf, "id")
-    if (inherits(Y, "Surv2") || (!is.null(id) && any(duplicated(id)) && 
+    if (inherits(Y, "Surv2") || (!is.null(id) && all(table(id)>1) && 
                                  attr(Y, 'type') %in% c("right", "mright"))) {
         # timeline data, convert to regular
         mf <- surv2counting(mf)
     }                      
 
     # Apply missing value logic after the code has dealt with timeline data
-    if (missing(na.action)) 
-        mf <- get(getOption("na.action"), pos="package:stats")(mf)
-    else if (is.function(na.action)) mf <- na.action(mf)
-    else mf <- get(na.action)(mf)
+    if (missing(na.action)) {   #use the same na.action model.frame would have
+        nafun <- getOption("na.action")
+        if (is.character(nafun)) nafun <- get(nafun, pos="package:stats")
+    }
+    else if (is.function(na.action)) nafun <- na.action
+    else nafun <- get(na.action)
+    mf <- nafun(mf) 
+
     Y <- model.response(mf)       # grab the (possibly new) values
     id <- model.extract(mf, "id")
 
@@ -94,7 +98,7 @@ survfit.formula <- function(formula, data, weights, subset,
     if (length(temp$vars)>0) {
         if (length(cluster) >0) stop("cluster appears as both an argument and a model term")
         if (length(temp$vars) > 1) stop("can not have two cluster terms")
-        .Depecated(msg = "use the 'cluster' argument to the survfit function",
+        .Deprecated(msg = "use the 'cluster' argument to the survfit function",
                    old = "use of cluster() in a formula")
         cluster <- mf[[temp$vars]]
         Terms <- Terms[-temp$terms]

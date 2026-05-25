@@ -132,7 +132,7 @@ coxph <- function(formula, data, weights, subset, na.action,
     # is this timeline data?  True if either the user typed Surv2 (deprecated)
     #  or [ids with multiple rows and not (time, time2) form]
     id <- model.extract(mf, "id")
-    if (inherits(Y, "Surv2") || (!is.null(id) && any(duplicated(id)) && 
+    if (inherits(Y, "Surv2") || (!is.null(id) && all(table(id)>1) && 
                                  attr(Y, 'type') %in% c("right", "mright"))) {
         # timeline data, convert to regular
         mf <- surv2counting(mf)
@@ -140,18 +140,12 @@ coxph <- function(formula, data, weights, subset, na.action,
         id <- model.extract(mf, "id")
     }                      
 
-    n <- nrow(mf)
-    if (n==0) stop("No (non-missing) observations")
-    if (length(id) >0) n.id <- length(unique(id))
-
-    istate <- model.extract(mf, "istate")
     type <- attr(Y, "type")
     multi <- FALSE
     if (type=="mright" || type == "mcounting") multi <- TRUE
     else if (type!='right' && type!='counting')
         stop(paste("Cox model doesn't support \"", type,
                           "\" survival data", sep=''))
-    data.n <- nrow(Y)   #remember this before any time transforms
 
     if (!multi && multiform)
         stop("formula is a list but the response is not multi-state")
@@ -165,6 +159,26 @@ coxph <- function(formula, data, weights, subset, na.action,
         if (missing.ties) method <- ties <- "breslow"
     }
     
+    # Dealing with NA has been deferred; either timeline
+    #  data or multiple formulas forces this delay; the first is finished
+    if (missing(na.action)) {   #use the same na.action model.frame would have
+        nafun <- getOption("na.action")
+        if (is.character(nafun)) nafun <- get(nafun, pos="package:stats")
+    }
+    else if (is.function(na.action)) nafun <- na.action
+    else nafun <- get(na.action)
+    if (!multiform) {
+        mf <- nafun(mf)
+        Y <- model.response(mf) # get a new copy
+    }
+
+    n <- nrow(mf)
+    if (n==0) stop("No (non-missing) observations")
+    data.n <- n    #remember this before any time transforms
+    id <- model.extract(mf, "id")
+    if (length(id) >0) n.id <- length(unique(id))
+    istate <- model.extract(mf, "istate")
+
     # the code was never designed for multiple fraily terms, but of course
     #  someone tried it
     if (length(attr(Terms, "specials")$frailty) >1)
@@ -206,7 +220,7 @@ coxph <- function(formula, data, weights, subset, na.action,
     timetrans <- attr(Terms, "specials")$tt
     if (missing(tt)) tt <- NULL
     if (length(timetrans)) {
-        if (multi || isSurv2) stop("the tt() transform is not implemented for multi-state or Surv2 models")
+        if (multi) stop("the tt() transform is not implemented for multi-state models")
         # begin tt() preprocessing
         timetrans <- untangle.specials(Terms, 'tt')
         ntrans <- length(timetrans$terms)
@@ -299,7 +313,6 @@ coxph <- function(formula, data, weights, subset, na.action,
     # end of the tt() section of code, which will have expanded mf and etc.
    
     xlevels <- .getXlevels(Terms, mf)
-
     # grab the cluster, if present.  Using cluster() in a formula is no
     #  longer encouraged
     cluster <- model.extract(mf, "cluster")
@@ -361,11 +374,21 @@ coxph <- function(formula, data, weights, subset, na.action,
     attr(Terms, "intercept") <- 1  # always have a baseline hazard
 
     if (multi) {
-        # check for consistency of the states, and create a transition
-        #  matrix
         if (length(id)==0) 
             stop("an id statement is required for multi-state models")
-        mcheck <- survcheck2(Y, id, istate)
+        if (multiform) {
+            # Do the first step of NA: any missing Y, id, or istate
+            # will cause survcheck2 to fail, but further removed lines due
+            # to missing covariates can give a false positive
+            drop <- any(is.na(Y) | is.na(id))
+            if (all(drop)) stop("all observations deleted due to missing")
+            if (!is.null(istate)) {
+                drop <- drop | missing(istate)
+                if (all(drop)) stop("all observations deleted due to missing")
+                mcheck <- survcheck2(Y[!drop], id[!drop], istate[!drop])
+            } else mcheck <- survcheck2(Y[!drop], id[!drop])
+        } else  mcheck <- survcheck2(Y, id, istate)
+
         # error messages here
         temp <- mcheck$flag[-match(control$survcheckallow,
                                    names(mcheck$flag), nomatch=0)]
@@ -384,32 +407,25 @@ coxph <- function(formula, data, weights, subset, na.action,
                                 Terms, transitions, states)
         tmap <- covlist2$tmap
 
-        # we may end up calling survcheck again if there are missings
-        if (multiform) {
-            # The full check for missing has been deferred until now
-            #  see model.frame.coxphms.R for multimiss
+        if (multiform){
+            #  Finish processing missing values
             mdrop <- multimiss(mf, Y, id, istate, tmap)
             if (any(mdrop)) { # missings were found
-                dindex <- which(mdrop)
-                names(dindex) <- attr(mf, "row.names")[dindex]
                 if (all(mdrop))
                     stop("all observations deleted due to missing values")
+                # why not just "dindex <- which(mdrop)"?  I want the na.action
+                #  object to have the proper class, the one it would have had
+                #  were model.frame used to remove missings
+                dindex <- attr(nafun(ifelse(mdrop, NA, 0)), "na.action")
                 mf <- mf[-dindex,]
                 attr(mf, "na.action") <- dindex
                 Y  <- Y[-dindex]
                 istate <- istate[-dindex]
                 id <- id[-dindex]
                 n <- data.n <- nrow(mf) # reset n
+                # update the transitions table, for the printout
                 mcheck <- survcheck2(Y, id, istate)
-                temp <- mcheck$flag[-match(control$survcheckallow,
-                                           names(mcheck$flag), nomatch=0)]
-                if (length(temp) & any(temp>0)) {
-                    if (length(dindex) > 3)
-                        stop("survcheck fails after removing observations ", 
-                             format(dindex[1:3]), " ... due to missing")
-                    else  stop("survcheck fails after removing observations ",
-                               format(dindex), " due to missing")
-                }
+                transitions <- mcheck$transitions
             }
         }
     }

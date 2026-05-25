@@ -72,8 +72,22 @@ surv2counting <- function(mf, repeated=FALSE, lvcf=TRUE) {
         }
     }
     
+    # If there are missing status values, assume that NA is actually
+    #  the code for censored.
+    if (any(is.na(y2[,2]))) {
+        if (is.null(states)) {
+            # Really? The user had NA, 1, 2 and didn't use a factor?
+            # I'm going to guess not
+        } else { # the user input was a factor
+            newstate <- attr(y, "inputAttributes")$event$levels
+            if (is.null(newstate)) {cat("surv2data bug "); browser()}
+            y2[,2] <- ifelse(is.na(y2[,2]), 0, 1+ y2[,2])
+            attr(y2, "states") <- newstate
+            states <- newstate
+        }
+    }
     # Create a current state vector, which is just LVCF using the state.
-    # Both missing and censored  treated as "not present" for the tmerge3 call.  
+    # NA or censored  treated as "not present" for the tmerge3 call.  
     # Y[,2]=0 is censored for either single state or multistate timeline
     y3 <- y2[!last]
     censored <- ifelse(is.na(y2[,2]), TRUE, y2[,2] ==0) # sorted version
@@ -134,7 +148,7 @@ surv2counting <- function(mf, repeated=FALSE, lvcf=TRUE) {
 }
    
 # User callable version
-Surv2data <- function(formula, data, subset, id, lvcf=TRUE){
+Surv2data <- function(formula, data, subset, id){
     .Deprecated("timeline2counting", old="Surv2data")
     Call <- match.call()
     indx <- match(c("formula", "data", "weights", "subset", "na.action",
@@ -147,7 +161,7 @@ Surv2data <- function(formula, data, subset, id, lvcf=TRUE){
     mf <- eval(tform, parent.frame())
     if (!inherits(model.response(mf), "Surv2"))
         stop("the response must be a Surv2 object")
-    surv2counting(mf, check=FALSE, lvcf)
+    surv2counting(mf)
 }
 
 timeline2counting <- function(formula, data, subset, id, repeated= FALSE,
@@ -197,10 +211,10 @@ timeline2counting <- function(formula, data, subset, id, repeated= FALSE,
         if (any(!is.na(match(yname, names(new)))))
             stop("element of yname conflicts with an existing name in the data")
         if (ny==2) {
-            if (!(length(tname) %in% 2:3)) stop("wrong length for tname")
+            if (!(length(yname) %in% 2:3)) stop("wrong length for yname")
             names(tdata) <- c(yname[1], yname[length(yname)])
         } else {
-            if (length(tname) != 3) stop("wrong length for tname") 
+            if (length(yname) != 3) stop("wrong length for yname") 
             names(tdata) <- yname
         }
     } else {
@@ -217,11 +231,6 @@ timeline2counting <- function(formula, data, subset, id, repeated= FALSE,
             yname[conflict>0] <- paste0("_", yname[conflict>0], "_")
         names(tdata) <- yname
     }
-
-    oldid <- model.extract(mf, "id")
-    if (any(names(new)== "originalrow"))
-        tdata[['(originalrow)']] <- which(duplicated(oldid, fromLast=TRUE))
-    else tdata[["originalrow"]] <-  which(duplicated(oldid, fromLast=TRUE))
     cbind(new[,-1,drop=FALSE], tdata)
 }
 

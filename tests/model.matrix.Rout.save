@@ -1,7 +1,7 @@
 
-R Under development (unstable) (2025-03-06 r87893) -- "Unsuffered Consequences"
-Copyright (C) 2025 The R Foundation for Statistical Computing
-Platform: aarch64-unknown-linux-gnu
+R Under development (unstable) (2026-04-25 r89962) -- "Unsuffered Consequences"
+Copyright (C) 2026 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -75,21 +75,20 @@ Type 'q()' to quit R.
 > 
 > 
 > # A model with  a tt term
-> fit4 <- coxph(Surv(time, status) ~ tt(x) + x, test1, iter=0,
+> # Removed 5/2026, we no longer support model.frame, resid, ... with tt terms
+> if (FALSE) {
++ fit4 <- coxph(Surv(time, status) ~ tt(x) + x, test1, iter=0,
 +               tt = function(x, t, ...) x*t)
-> ff <- model.frame(fit4)
-> # There is 1 subject in the final risk set, 4 at risk at time 6, 6 at time 1
-> # The .strata. variable numbers from last time point to first
-> all.equal(ff$.strata., rep(1:3, c(1, 4,6)))
-[1] TRUE
-> all.equal(ff[["tt(x)"]], ff$x* c(9,6,1)[ff$.strata.])
-[1] TRUE
-> 
-> xx <- model.matrix(fit4)
-> all.equal(xx[,1], ff[[2]], check.attributes=FALSE)
-[1] TRUE
-> 
++ ff <- model.frame(fit4)
++ # There is 1 subject in the final risk set, 4 at risk at time 6, 6 at time 1
++ # The .strata. variable numbers from last time point to first
++ all.equal(ff$.strata., rep(1:3, c(1, 4,6)))
++ all.equal(ff[["tt(x)"]], ff$x* c(9,6,1)[ff$.strata.])
++ 
++ xx <- model.matrix(fit4)
++ all.equal(xx[,1], ff[[2]], check.attributes=FALSE)
++ }
 > 
 > proc.time()
    user  system elapsed 
-  0.438   0.008   0.444 
+  0.476   0.067   0.533 

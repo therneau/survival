@@ -35,7 +35,7 @@ aeq(check$transitions, fit$transitions + c(0,0,0, 1,1,0, 0,1,0))
 # The above is due to the difference between coxph, which has the more 
 #  sophisticated list form of a formula, and survfit/survcheck which do not.
 # survcheck with ~1 on the right uses all 1009 obs, 3 more obs than fit, but 
-#  with ~sex on the right it will use fewer rows
+#  with ~sex on the right it will use fewer rows than fit
 
 # Multi-state now defaults to breslow rather than efron
 #  The id option allows for collapse=TRUE later
@@ -50,7 +50,8 @@ fit23 <- coxph(Surv(tstart, tstop, event=='death') ~ trt + sex + flt3,
 # martingale residuals
 # one row per retained obs, one col per transition
 rr1 <- resid(fit)
-aeq(dim(rr1), c(nrow(tdata)-3, 3))
+aeq(dim(rr1), c(nrow(tdata), 3))
+
 #
 # Obs 1-2 start in state (s0) so contribute to the 1:2 and 1:3 transitions,
 #  columns 1 and 2 of rr1, while rr1[1:2, 3] =0.

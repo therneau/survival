@@ -13,7 +13,7 @@ survcheck <- function(formula, data, subset, na.action, id, istate,
                   names(Call), nomatch=0) 
     tform <- Call[c(1,indx)]  # only keep the arguments we wanted
     tform$formula <- formula
-    tform$na.action <- quote(stats::na.pass)
+    tform$na.action <- quote(stats::na.pass)  # defer, due to timeline
     tform[[1L]] <- quote(stats::model.frame)  # change the function called
 
     mf <- eval(tform, parent.frame())
@@ -26,18 +26,21 @@ survcheck <- function(formula, data, subset, na.action, id, istate,
     # is this timeline data?  True if either the user typed Surv2 (deprecated)
     #  or [ids with multiple rows and not (time, time2) form]
     id <- model.extract(mf, "id")
-    if (inherits(Y, "Surv2") || (!is.null(id) && any(duplicated(id)) && 
+    if (inherits(Y, "Surv2") || (!is.null(id) && all(table(id)>1) && 
                                  attr(Y, 'type') %in% c("right", "mright"))) {
         # timeline data, convert to regular
-        mf <- surv2counting(mf, check=FALSE)
+        mf <- surv2counting(mf)
         Y <- model.response(mf)
         id <- model.extract(mf, "id")
     }                      
     # Apply missing value logic after the code has dealt with timeline data
-    if (missing(na.action)) 
-        mf <- get(getOption("na.action"), pos="package:stats")(mf)
-    else if (is.function(na.action)) mf <- na.action(mf)
-    else mf <- get(na.action)(mf)
+    if (missing(na.action)) {   #use the same na.action model.frame would have
+        nafun <- getOption("na.action")
+        if (is.character(nafun)) nafun <- get(nafun, pos="package:stats")
+    }
+    else if (is.function(na.action)) nafun <- na.action
+    else nafun <- get(na.action)
+    mf <- nafun(mf)
     Y <- model.response(mf)       # grab the (possibly new) values
     id <- model.extract(mf, "id")
     n <- nrow(Y)
@@ -48,11 +51,9 @@ survcheck <- function(formula, data, subset, na.action, id, istate,
         stop("invalid value for timefix option")
     if (timefix) Y <- aeqSurv(Y) 
     # fixing ties may have caused bad intervals, but we'll find them soon
-    }
 
     istate <- model.extract(mf, "istate")
     omit <- attr(mf, "na.action")
-
     type <- attr(Y, "type")
     if (type=="right") 
         Y <- Surv(Y[,1], factor(Y[,2], 0:1, 
@@ -72,35 +73,18 @@ survcheck <- function(formula, data, subset, na.action, id, istate,
     fit$n <- c(id = length(unique(id)), observations =length(id), 
                transitions = sum(temp))
     fit$flag <- c(fit$flag, "duplicate"=0)
-    if (any(fit$flag >0) && isSurv2) {
-        # make any numbering match the input data, not the retained data
-        toss1 <- new2$isort[new2$last]  # original obs numbers that were the
-                                       # last for a subject
-        dummy <- seq(along.with=new2$isort)[-toss1]  # rows we kept
-        if (length(Ydup)) {
-            fit$flag["duplicate"] <- length(Ydup)
-            # if rows i and i+1 are duplicate times, we see it as i, the
-            #  R duplicated function as i+1.  Mimic that rule.
-            fit$duplicate <- list(id= unname(iddup), row=dummy[Ydup]+1)
-        } 
 
-        if (length(omit)>0) dummy <- dummy[-omit]
-        for (i in c("overlap", "gap", "teleport", "jump")){
-            if (!is.null(fit[[i]]$row)) {
-                temp <- fit[[i]]
-                temp$row <- dummy[temp$row]
-                fit[[i]] <- temp
-            }
-        }
-    }
-    else if (length(omit)) {
-        dummy <- seq.int(1, n+ length(omit))[-omit]
-        for (i in c("overlap", "gap", "teleport", "jump")){
-            if (!is.null(fit[[i]]$row)) {
-                temp <- fit[[i]]
-                temp$row <- dummy[temp$row]
-                fit[[i]] <- temp
-            }
+    # Make the row numbers agree with the original data BEFORE missings
+    #  were removed, it's easier for the users
+    # It would be nice to do this wrt timeline data as well, but the 
+    #  surv2data function doesn't return that information
+    if (is.null(omit))  dummy <- seq.int(1, n)
+    else dummy <- seq.int(1, n+ length(omit))[-omit]
+    for (i in c("overlap", "gap", "teleport", "jump")){
+        if (!is.null(fit[[i]]$row)) {
+            temp <- fit[[i]]
+            temp$row <- dummy[temp$row]
+            fit[[i]] <- temp
         }
     }
 

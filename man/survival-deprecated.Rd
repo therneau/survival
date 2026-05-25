@@ -2,6 +2,7 @@
 \alias{survival-deprecated}
 \alias{survConcordance}
 \alias{survConcordance.fit}
+\alias{Surv2data}
 \title{Deprecated functions in package \pkg{survival}}
 \description{
   These functions are temporarily retained for compatability with older programs,
@@ -10,6 +11,7 @@
 \usage{
 survConcordance(formula, data, weights, subset, na.action) # use concordance
 survConcordance.fit(y, x, strata, weight)    # use concordancefit
+Surv2data(formula, data, subset, id)
 }
 \arguments{
   \item{formula}{
@@ -22,6 +24,7 @@ survConcordance.fit(y, x, strata, weight)    # use concordancefit
 \item{weights,subset,na.action}{as for \code{coxph}}
 \item{x, y, strata, weight}{predictor, response, strata, and weight
   vectors for the direct call}
+\item{id}{identifies rows of data that are for the same subject}
 }
 \seealso{
   \code{\link{Deprecated}}

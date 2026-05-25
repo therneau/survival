@@ -320,7 +320,7 @@ concordancefit <- function(y, x, strata, weights, ymin=NULL, ymax=NULL,
         }
         fit
     }       
-        
+
     # unpack the strata, if needed
     if (nstrat < 2) fit <- cfun(y, drop(X), weights, timewt)
     else {

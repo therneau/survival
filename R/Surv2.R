@@ -3,8 +3,8 @@
 #  This variant is for time-course data
 #
 Surv2 <- function(time, event, repeated=FALSE) {
-    .Deprecated("Surv", msg="Surv2 is no longer necessary, use Surv",
-                old="Surv2")
+#    .Deprecated("Surv", msg="Surv2 is no longer necessary, use Surv",
+#                old="Surv2")
     if (missing(time)) stop ("must have a time argument")
     if (inherits(time ,"difftime")) time <- unclass(time)
     if (!is.numeric(time)) stop ("Time variable is not numeric")
@@ -19,6 +19,13 @@ Surv2 <- function(time, event, repeated=FALSE) {
     status <- as.integer(event) -1L # usually time is not integer, but
     ss <- cbind(time=time, status=status) # sometimes it is
  
+    # Retain any attributes of the input arguments. Originally requested
+    #  by the rms package
+    inputAttributes <- list()
+    if (!is.null(attributes(time)))
+        inputAttributes$time  <-attributes(time)
+    if (!missing(event) && !is.null(attributes(event)))
+        inputAttributes$event <- attributes(event)
     # In rare cases there are no column names, and I have discovered that
     #  people depend on them.
     cname <- dimnames(ss)[[2]]
@@ -27,6 +34,8 @@ Surv2 <- function(time, event, repeated=FALSE) {
                                            
     if (any(is.na(states) | states=='') )
         stop("each state must have a non-blank name")
+    if (length(inputAttributes) > 0) 
+        attr(ss, "inputAttributes") <- inputAttributes
     attr(ss, "states") <- states
     attr(ss, "repeated") <- repeated
     class(ss) <- 'Surv2'

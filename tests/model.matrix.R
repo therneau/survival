@@ -50,6 +50,8 @@ aeq(fit3b$x, xx)
 
 
 # A model with  a tt term
+# Removed 5/2026, we no longer support model.frame, resid, ... with tt terms
+if (FALSE) {
 fit4 <- coxph(Surv(time, status) ~ tt(x) + x, test1, iter=0,
               tt = function(x, t, ...) x*t)
 ff <- model.frame(fit4)
@@ -60,4 +62,4 @@ all.equal(ff[["tt(x)"]], ff$x* c(9,6,1)[ff$.strata.])
 
 xx <- model.matrix(fit4)
 all.equal(xx[,1], ff[[2]], check.attributes=FALSE)
-
+}

@@ -12,7 +12,6 @@ agsurv <- function(y, x, wt, risk, survtype, vartype) {
     status <- y[,ncol(y)]
     dtime <- y[,ncol(y) -1]
     death <- (status==1)
-
     time <- sort(unique(dtime))
     nevent <- as.vector(rowsum(wt*death, dtime))  
     ncens  <- as.vector(rowsum(wt*(!death), dtime))

@@ -65,34 +65,35 @@ model.matrix.coxph <- function(object, data=NULL,
     if (length(istrat)>0) attr(X, "strata") <- strata.keep
     X
 }
-model.frame.coxph <- function(formula, data, ...) {
-    dots <- list(...)
-    nargs <- dots[match(c("na.action", "subset", "weights",
+model.frame.coxph <- function(formula, ...) {
+    Call <- match.call()
+    newargs <- Call[match(c("data", "na.action", "subset", "weights",
                           "id", "cluster", "istate"), 
-                        names(dots), 0)] 
+                        names(Call), nomatch=0)] 
     # If nothing has changed and the coxph object had a model component,
     #   simply return it.
-    if (missing(data) && length(nargs) ==0  && !is.null(formula$model)) 
+    if (length(newargs)==0  && !is.null(formula$model)) 
         return(formula$model)
     else {
-        # Rebuild the original call to model.frame
+        # Rebuild the original call to model.frame. Ignore na.action
+        #  and cluster: we won't use them
+        newdata <- !is.null(Call$data)  # was there a "data" arg
         Terms <- terms(formula)
         fcall <- formula$call
-        indx <- match(c("formula", "data", "weights", "subset", "na.action",
-                        "cluster", "id"),
+        indx <- match(c("formula", "data", "weights", "subset", "id", "istate"),
                   names(fcall), nomatch=0) 
         if (indx[1] ==0) stop("The coxph call is missing a formula!")
    
         temp <- fcall[c(1,indx)]  # only keep the arguments we wanted
         temp[[1]] <- quote(stats::model.frame)  # change the function called
-        if (missing(data))
-            temp$na.action <- quote(stats::na.pass) # defer NA processing
+        
+        temp$na.action <- quote(stats::na.pass) # defer NA processing
         temp$xlev <- formula$xlevels  # this will turn strings to factors
         temp$formula <- Terms   #keep the predvars attribute
         # Now, any arguments that were on this call overtake the ones that
         #  were in the original call.  
-        if (length(nargs) >0)
-            temp[names(nargs)] <- nargs
+        if (length(newargs) >0) 
+            temp[names(newargs)] <- newargs
 
         # Make "tt" visible for coxph formulas, 
         if (!is.null(attr(temp$formula, "specials")$tt)) {
@@ -123,16 +124,17 @@ model.frame.coxph <- function(formula, data, ...) {
             id <- model.extract(mf, "id")
         }   
         
-        if (missing(data)) {
+        if (!newdata) {
             # remove na.action rows when recreating original data
             # for new data from a user, leave them in
-            if (!is.null(formula$na.action) && length(formula$na.action)>0)
+            if (!is.null(formula$na.action) && length(formula$na.action)>0) {
                 mf <- mf[-formula$na.action,, drop=FALSE]
+                attr(mf, "na.action") <- formula$na.action
             }
-                
+        }        
         # should I also do aeqSurv here? I think yes
-        browser()
-        timefix <- formula$Call$timefix
-
+        timefix <- formula$call$timefix
+        if (is.null(timefix) || timefix) mf[[1]] <- aeqSurv(mf[[1]])
+        mf
     }
 }

@@ -110,12 +110,7 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95, individual=FALSE,
         
         mf <- model.frame(object)
         y <- model.extract(mf, "response")
-        if (inherits(y, "Surv2")){
-            # this is Surv2 style data
-            new <- surv2data(mf)
-            mf <- new$mf
-            istate <- new$istate
-        } else istate <- NULL # leave breadcrumbs for later
+        istate <- model.extract(mf, "istate")
     }
     else mf <- NULL  #useful for if statements later
     position <- NULL
