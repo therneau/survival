@@ -1,6 +1,6 @@
 survSplit <- function(formula, data, subset, na.action=na.pass,
                               cut, start="tstart", id, zero=0, episode,
-                              end="tstop", event="event", added) {
+                              end="tstop", event="event", added, timefix=TRUE) {
     Call <- match.call()
     if (missing(formula) || is.data.frame(formula)) {
         # an old style call
@@ -52,6 +52,34 @@ survSplit <- function(formula, data, subset, na.action=na.pass,
         stop(paste("not valid for", attr(Y, "type"), "censored survival data"))
     nY <- ncol(Y)
     ymiss <- is.na(Y)  # these pass through unchanged
+
+    if (!is.numeric(cut) || any(!is.finite(cut)))
+        stop("cut must be a vector of finite numbers")
+    cut <- unique(sort(cut))
+    ntimes <- length(cut)
+    n <- nrow(data)
+
+    # Deal with the near-ties problem
+    if (!is.logical(timefix) || length(timefix) > 1)
+        stop("invalid value for timefix option")
+    if (timefix) {
+        # to make this work, we have to include the cutpoints in the aeqSurv
+        #  process
+        if (ncol(Y)==2) {
+            ty <- rbind(cbind(cut,0), as.matrix(Y))
+            class(ty) <- "Surv" # a little white lie
+            ty <- aeqSurv(ty)
+            cut <- ty[1:ntimes, 1]
+            Y[,1] <- ty[-(1:ntimes), 1]
+        } else {
+            ty <- rbind(cbind(min(Y[!ymiss,1]), cut, 0), as.matrix(Y))
+            class(ty) <- "Surv" # a little white lie
+            ty <- aeqSurv(ty)
+            cut <- ty[1:ntimes,2]
+            Y[,1:2] <- ty[-(1:ntimes), 1:2]
+        }
+    }
+
     if (nY ==2) {
         if (any(Y[!ymiss,1] <= zero))
             stop("'zero' parameter must be less than any observed times")
@@ -60,11 +88,6 @@ survSplit <- function(formula, data, subset, na.action=na.pass,
     temp <- (Y[!ymiss,1] >= Y[!ymiss,2])
     if (any(temp)) stop("start time must be < stop time")
         
-    if (!is.numeric(cut) || any(!is.finite(cut)))
-        stop("cut must be a vector of finite numbers")
-    cut <- unique(sort(cut))
-    ntimes <- length(cut)
-    n <- nrow(data)
 
     if (!missing(id)) {
         if (!is.character(id)) stop("id must be a variable name")

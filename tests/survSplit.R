@@ -56,4 +56,9 @@ all.equal(rname, as.character(pfit2$ayear))
 cname <- colnames(pfit$pyears)[col(pfit$pyears)[keep]]
 all.equal(cname, as.character(pfit2$ftime))
 
-                   
+# make sure that ties between the data and the cutpoints are okay
+tdata <- data.frame(id=c(1,1,1,1),
+                    t1=c(0, 1.2, 2.8, 4.0),
+                    t2=c(1.2, 2.8, 4.0, 5.9),
+                    status=c(0,0,0,0))
+survSplit(Surv(t1,t2, status) ~., data=tdata, cut=c(1,4))

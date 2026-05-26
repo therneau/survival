@@ -1,5 +1,15 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 3.8-8}{
+  \itemize{
+    \item Add the timefix option to survSplit, after finding that the
+    roundoff issue can affect it as well.
+    \item Add full support for timeline style data, see the new timeline
+    vignette.  For multistate models this style data set is easier to
+    constuct than the counting process variant (you don't need tmerge),
+    so I suspect that users will shift to it for that use case. This
+    addresses github issue 264.
+}}
 \section{Changes in version 3.8-7}{
   \itemize{
     \item Found and changed the lines that caused failure in survfit with
