@@ -80,8 +80,8 @@ model.frame.coxph <- function(formula, ...) {
         newdata <- !is.null(Call$data)  # was there a "data" arg
         Terms <- terms(formula)
         fcall <- formula$call
-        indx <- match(c("formula", "data", "weights", "subset", "id", "istate"),
-                  names(fcall), nomatch=0) 
+        indx <- match(c("formula", "data", "weights", "subset", "id", "istate",
+                  "cluster"), names(fcall), nomatch=0) 
         if (indx[1] ==0) stop("The coxph call is missing a formula!")
    
         temp <- fcall[c(1,indx)]  # only keep the arguments we wanted
