@@ -181,7 +181,7 @@ tdata <- subset(lung, select=-c(meal.cal, wt.loss, sex, age))
 tdata$wt <- rep(1:25, length.out=nrow(tdata))/10
 tdata$time <- ceiling(tdata$time/30)  # force ties in y
 tfit <- coxph(Surv(time, status) ~ ph.ecog + pat.karno + strata(inst)
-              + cluster(inst), tdata, weights=wt)
+              + cluster(inst), tdata, weights=wt, na.action= na.exclude)
 tdata$tpred <- predict(tfit)
 cm4 <- concordance(tfit, influence=3, keepstrata=TRUE)
 cm5 <- concordance(Surv(time, status) ~ tpred + strata(inst) + cluster(inst),
