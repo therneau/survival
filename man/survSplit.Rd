@@ -10,7 +10,7 @@
 \usage{
 survSplit(formula, data, subset, na.action=na.pass,
             cut, start="tstart", id, zero=0, episode,
-                              end="tstop", event="event", added)
+          end="tstop", event="event", added, timefix=TRUE)
 }
 \arguments{
   \item{formula}{a model formula}
@@ -30,6 +30,8 @@ survSplit(formula, data, subset, na.action=na.pass,
   \item{event}{character string with the name of censoring indicator }
   \item{added}{character string with the name of the new
     "this observation was added" variable (optional)}
+  \item{timefix}{process times through the \code{aeqSurv} function to
+  eliminate potential roundoff issues.}
 }
 
 \value{

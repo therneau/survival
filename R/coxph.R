@@ -124,7 +124,6 @@ coxph <- function(formula, data, weights, subset, na.action,
     # okay, now evaluate the formula
     mf <- eval(tform, parent.frame())
     Terms <- terms(mf)
-
     Y <- model.response(mf)
     if (!(is.Surv(Y) || inherits(Y, "Surv2")))
         stop("response must be a survival object")
@@ -133,11 +132,10 @@ coxph <- function(formula, data, weights, subset, na.action,
     #  or [ids with multiple rows and not (time, time2) form]
     id <- model.extract(mf, "id")
     if (inherits(Y, "Surv2") || (!is.null(id) && all(table(id)>1) && 
-                                 attr(Y, 'type') %in% c("right", "mright"))) {
+                                 attr(Y, 'type') == "mright")) {
         # timeline data, convert to regular
         mf <- surv2counting(mf)
         Y <- model.response(mf)
-        id <- model.extract(mf, "id")
     }                      
 
     type <- attr(Y, "type")
@@ -376,28 +374,51 @@ coxph <- function(formula, data, weights, subset, na.action,
     if (multi) {
         if (length(id)==0) 
             stop("an id statement is required for multi-state models")
+
+        # There is a bit of a dance here.  If there are multiple 
+        #  formulas (multiform=TRUE), then missing have not yet been dealt with
+        # They fall into 2 parts: missing values in Y, id, istate, wt, cluster
+        #  need to be removed before calling survcheck: any survcheck
+        #  errors due to these are "real" and we need to act on them. Plus,
+        #  for the first 3, survcheck2 isn't set up for missings.
+        #   If istate was missing, survcheck will have constructed one for us
+        # 2. Call covlist2 to get the transitions map 'tmap', which is needed by
+        # 3. Call multimiss to mark any observations that would generate only
+        #   missing linear predictors; these are removed from the model.frame.
+        #   Also update the transitions table
+        # 4. Fix up the na.action attribute of mf, istate, Y, etc
+        # 5. The stacker routine called further below tosses out an NA linear
+        #  predictors, i.e. from a row of data that generates NA for only some 
+        #  transitions and thus was retained at this step.
         if (multiform) {
             # Do the first step of NA: any missing Y, id, or istate
             # will cause survcheck2 to fail, but further removed lines due
-            # to missing covariates can give a false positive
-            drop <- any(is.na(Y) | is.na(id))
+            # to missing covariates can give a false positive from survcheck
+            drop <- (is.na(Y) | is.na(id))
+            if (!is.null(weights)) drop <- drop | is.na(weights)
+            if (!is.null(istate)) drop | missing(istate)
+            if (!is.null(cluster)) drop | missing(cluster)
             if (all(drop)) stop("all observations deleted due to missing")
-            if (!is.null(istate)) {
-                drop <- drop | missing(istate)
-                if (all(drop)) stop("all observations deleted due to missing")
-                mcheck <- survcheck2(Y[!drop], id[!drop], istate[!drop])
-            } else mcheck <- survcheck2(Y[!drop], id[!drop])
-        } else  mcheck <- survcheck2(Y, id, istate)
-
-        # error messages here
+            if (any(drop)) {
+                names(drop) <- rownames(mf) # needed for na.action, later
+                Y <- Y[!drop,,drop=FALSE]
+                id <- id[!drop]
+                istate <- istate[!drop]
+                mf <- mf[!drop,, drop=FALSE]
+            }
+        } 
+        mcheck <- survcheck2(Y, id, istate) # istate might be NULL
+        # look at mcheck error messages, if any
         temp <- mcheck$flag[-match(control$survcheckallow,
                                    names(mcheck$flag), nomatch=0)]
         if (length(temp) & any(temp>0))
             stop("data set fails survcheck for one or more subjects")
-
-        transitions <- mcheck$transitions
-        istate <- mcheck$istate
+        transitions <- mcheck$transitions  # needed for parsecovar2
         states <- mcheck$states
+        # if istate was missing, mcheck fills it in. If not missing then
+        # mcheck will have aligned to to match states (the input may have
+        # been a factor with fewer levels)
+        istate <- mcheck$istate
 
         #  build tmap, which has one row per term, one column per transition
         if (missing(statedata))
@@ -408,27 +429,40 @@ coxph <- function(formula, data, weights, subset, na.action,
         tmap <- covlist2$tmap
 
         if (multiform){
-            #  Finish processing missing values
-            mdrop <- multimiss(mf, Y, id, istate, tmap)
-            if (any(mdrop)) { # missings were found
-                if (all(mdrop))
+            #  Finish processing missing values, for which we needed tmap
+            mdrop <- multimiss(mf, Y, istate, tmap, states)
+            if (any(mdrop$omit)) { # missings were found
+                if (all(mdrop$omit))
                     stop("all observations deleted due to missing values")
-                # why not just "dindex <- which(mdrop)"?  I want the na.action
+                jj <- which(mdrop$omit)
+                mf <- mf[-jj,]
+                Y  <- Y[-jj]
+                istate <- istate[-jj]
+                id <- id[-jj]
+                n <- data.n <- nrow(mf) # reset n
+                n.id <- length(unique(id))
+                # update the transitions table, for the printout
+                #  only update row/cols which appear in both
+                indx1 <- match(rownames(mdrop$count), rownames(transitions),
+                               nomatch=0)
+                indx2 <- match( colnames(mdrop$count),colnames(transitions), 
+                               nomatch=0)
+                transitions[indx1, indx2] <- transitions[indx1, indx2] -
+                    mdrop$count[indx1>0, indx2>0]
+            }
+            if (any(drop) || any(mdrop$omit)) {
+                # update the na.action, which is a list of rows relative to
+                #  the original mf
+                if (any(mdrop$omit)) drop[which(!drop)[mdrop$omit]] <- TRUE
+                dindex <- attr(nafun(ifelse(drop, NA, 0)), "na.action")
+                # why not just "dindex <- which(drop)"?  I want the na.action
                 #  object to have the proper class, the one it would have had
                 #  were model.frame used to remove missings
-                dindex <- attr(nafun(ifelse(mdrop, NA, 0)), "na.action")
-                mf <- mf[-dindex,]
                 attr(mf, "na.action") <- dindex
-                Y  <- Y[-dindex]
-                istate <- istate[-dindex]
-                id <- id[-dindex]
-                n <- data.n <- nrow(mf) # reset n
-                # update the transitions table, for the printout
-                mcheck <- survcheck2(Y, id, istate)
-                transitions <- mcheck$transitions
             }
         }
     }
+
     if (length(dropterms)) {
         Terms2 <- Terms[-dropterms]
         X <- model.matrix(Terms2, mf, constrasts.arg=contrast.arg)
@@ -492,18 +526,16 @@ coxph <- function(formula, data, weights, subset, na.action,
     if (multi) {
         if (length(strats) >0) {
             # tmap starts with a "(Baseline)" row, which we want
-            # strats is indexed off the data frame, which includes the response, so
-            #  turns out to be correct for the remaining rows of tmap
+            # strats is indexed off the data frame, which includes the response,
+            #  so turns out to be correct for the remaining rows of tmap
             smap <- tmap[c(1L, strats),] 
             smap[-1,] <- ifelse(smap[-1,] >0, 1L, 0L)
         }
         else smap <- tmap[1,,drop=FALSE]
-        cmap <- parsecovar3(tmap, colnames(X), attr(X, "assign"), covlist2$phbaseline)
+        cmap <- parsecovar3(tmap, colnames(X), attr(X, "assign"), 
+                            covlist2$phbaseline)
         xstack <- stacker(cmap, smap, as.integer(istate), X, Y, mf = mf,
                           states=states)
-
-        rkeep <- unique(xstack$rindex)
-        transitions <- survcheck2(Y[rkeep,], id[rkeep], istate[rkeep])$transitions
 
         Xsave <- X  # the originals may be needed later
         Ysave <- Y

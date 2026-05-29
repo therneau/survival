@@ -1,5 +1,5 @@
 
-R Under development (unstable) (2026-01-05 r89273) -- "Unsuffered Consequences"
+R Under development (unstable) (2026-05-26 r90078) -- "Unsuffered Consequences"
 Copyright (C) 2026 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu
 
@@ -118,12 +118,13 @@ Type 'q()' to quit R.
 > #  event
 > #
 > tdata <- mgus1[mgus1$enum==1,]
+> 
 > # Ensure the old-style call using "etype" works (backwards compatability)
-> fit1 <- survfit(Surv(stop, status) ~ 1, etype=event, tdata)
-> fit1b <-survfit(Surv(stop, event) ~1, tdata)
+> # 5/2026, etype is no longer allowed
+> #fit1b <- survfit(Surv(stop, status) ~ 1, etype=event, tdata)
+> fit1 <-survfit(Surv(stop, event) ~1, tdata)
 > indx <- match("call", names(fit1)) 
-> all.equal(unclass(fit1)[-indx], unclass(fit1b)[-indx])
-[1] TRUE
+> #all.equal(unclass(fit1)[-indx], unclass(fit1b)[-indx])
 > 
 > # Now get the overall survival, and the hazard for progression
 > fit2 <- survfit(Surv(stop, status) ~1, tdata)  #overall to "first bad thing"
@@ -191,4 +192,4 @@ Type 'q()' to quit R.
 > 
 > proc.time()
    user  system elapsed 
-  1.008   0.068   1.068 
+  0.526   0.076   0.595 

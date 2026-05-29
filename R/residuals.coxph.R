@@ -1,11 +1,11 @@
-residuals.coxph <-
-  function(object, type=c("martingale", "deviance", "score", "schoenfeld",
+residuals.coxph <-  function(object, 
+                type=c("martingale", "deviance", "score", "schoenfeld",
 			  "dfbeta", "dfbetas", "scaledsch","partial"),
-	    collapse=FALSE, weighted=(type %in% c("dfbeta", "dfbetas")), 
-           na.action, ...) {
+                collapse=FALSE, weighted=(type %in% c("dfbeta", "dfbetas")), 
+                na.action, ...) {
       
-#    if (!is.null(attr(terms(object), "specials")[["tt"]]))
-#        stop("function not defined for models with tt() terms")
+    #    if (!is.null(attr(terms(object), "specials")[["tt"]]))
+    #        stop("function not defined for models with tt() terms")
 
     type <- match.arg(type)
     otype <- type
@@ -16,16 +16,20 @@ residuals.coxph <-
             weighted <- TRUE  # different default for this case
     }
     if (type=='scaledsch') type<-'schoenfeld'
-
+    
     omit <- object$na.action
     if (!is.null(omit) && !missing(na.action)){
-        if (collapse && (na.action=="na.omit" || inherits(omit, "exclude")))
-            stop("collapse and expansion of missing are mutually exclusive")
-        if (na.action=="na.omit") class(omit) <- "omit"
-        else if (na.action=="na.exclude") class(omit) <- "exclude"
-        else stop("invalid na.action argument")
-    }
-
+        # the user wants to override. First deal with the fact that they
+        # might provide either a function name or a function
+        if (is.character(na.action)) na.action <- get(na.action)
+        naclass <- attr(na.action(c(1:3, NA)), "class") # what class is assigned?
+        if (naclass != attr(omit, "class")) {
+            if (naclass== "na.exclude" || naclass== "na.omit") 
+                class(omit) <- naclass  # I know this will work
+            else stop("changing to an unrecognized na.action type")
+        }
+    } else naclass <- NULL
+      
     n <- length(object$residuals)
     rr <- object$residuals
     y <- object$y

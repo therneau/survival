@@ -1,7 +1,7 @@
 
-R Under development (unstable) (2025-03-06 r87893) -- "Unsuffered Consequences"
-Copyright (C) 2025 The R Foundation for Statistical Computing
-Platform: aarch64-unknown-linux-gnu
+R Under development (unstable) (2026-05-26 r90078) -- "Unsuffered Consequences"
+Copyright (C) 2026 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -31,6 +31,7 @@ Type 'q()' to quit R.
 > # Make the processing a little harder by making sex missing for 3 people,
 > #  use it as a covariate for transitions to death, but not entry to sct
 > #  flt3 missing for 3, a covariate for entry:sct and sct:death, but not 1:3.
+> # 
 > # Subject 275 for instance has two rows (427,428): entry to sct, then sct to 
 > #  censor, missing sex. They will not be omitted from the data frame since 
 > #  they are at risk for entry:sct, but not sct:death. Subject 271 is missing
@@ -42,18 +43,34 @@ Type 'q()' to quit R.
 > #  nowhere to go, nor id 273 who is missing both.
 > tdata$sex[tdata$id %in% 273:275] <- NA   # obs 425 to 428
 > tdata$flt3[tdata$id %in% 271:273] <- NA  # obs 422 to 425
+> subset(tdata, id %in% 270:275)
+     id trt  sex flt3 tstart tstop death priortx sct  event
+420 270   A    m    C      0   121     0       0   1    sct
+421 270   A    m    C    121   191     1       1   0  death
+422 271   A    f <NA>      0   223     0       0   1    sct
+423 271   A    f <NA>    223   707     1       1   0  death
+424 272   B    m <NA>      0   103     1       0   0  death
+425 273   A <NA> <NA>      0   283     1       0   0  death
+426 274   B <NA>    C      0   293     1       0   0  death
+427 275   B <NA>    A      0   102     0       0   1    sct
+428 275   B <NA>    A    102  1442     0       1   0 censor
+> 
+> # Now scramble the data set, which tests the logic in multimiss
+> set.seed(1960)
+> index <- sample(1:nrow(tdata), nrow(tdata))
+> tdata <- tdata[index,]
 > 
 > check <- survcheck(Surv(tstart, tstop, event) ~ 1, tdata, id=id)
 > fit <- coxph(list(Surv(tstart, tstop, event) ~ trt, 
 +                   1:3 + 2:3 ~ sex,
 +                   1:2 + 2:3 ~ flt3), tdata, id=id)
 > 
-> aeq(check$transitions, fit$transitions + c(0,0,0, 1,1,0, 0,1,0))
+> aeq(check$transitions, fit$transitions + c(1,0,0, 2,1,0, 0,0,0))
 [1] TRUE
 > # The above is due to the difference between coxph, which has the more 
 > #  sophisticated list form of a formula, and survfit/survcheck which do not.
 > # survcheck with ~1 on the right uses all 1009 obs, 3 more obs than fit, but 
-> #  with ~sex on the right it will use fewer rows
+> #  with ~sex on the right it will use fewer rows than fit
 > 
 > # Multi-state now defaults to breslow rather than efron
 > #  The id option allows for collapse=TRUE later
@@ -70,6 +87,7 @@ Type 'q()' to quit R.
 > rr1 <- resid(fit)
 > aeq(dim(rr1), c(nrow(tdata)-3, 3))
 [1] TRUE
+> 
 > #
 > # Obs 1-2 start in state (s0) so contribute to the 1:2 and 1:3 transitions,
 > #  columns 1 and 2 of rr1, while rr1[1:2, 3] =0.
@@ -140,12 +158,15 @@ priortx   A   B   C <NA>
 > aeq(rr3b[indx23, 6:9], test23) 
 [1] TRUE
 > 
-> # More complex formula
+> # More complex formula, checks whether multimiss handles interactions
+> # should lose the same rows
 > fit2 <- coxph(list(Surv(tstart, tstop, event) ~ trt,
 +                    1:3 + 2:3 ~ trt + strata(sex),
-+                    1:2 + 2:3 ~ flt3:sex), tdata, id=id)
++                    1:2 + 2:3 ~ flt3:priortx), tdata, id=id)
+> all.equal(dim(resid(fit2)), dim(resid(fit)))
+[1] TRUE
 > 
 > 
 > proc.time()
    user  system elapsed 
-  0.480   0.012   0.489 
+  0.550   0.085   0.628 

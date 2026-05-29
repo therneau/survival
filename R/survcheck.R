@@ -26,26 +26,24 @@ survcheck <- function(formula, data, subset, na.action, id, istate,
     # is this timeline data?  True if either the user typed Surv2 (deprecated)
     #  or [ids with multiple rows and not (time, time2) form]
     id <- model.extract(mf, "id")
-    if (inherits(Y, "Surv2") || (!is.null(id) && all(table(id)>1) && 
-                                 attr(Y, 'type') %in% c("right", "mright"))) {
+    if (inherits(Y, "Surv2")){
         # timeline data, convert to regular
         mf <- surv2counting(mf)
-        Y <- model.response(mf)
-        id <- model.extract(mf, "id")
     }                      
     # Apply missing value logic after the code has dealt with timeline data
-    if (missing(na.action)) {   #use the same na.action model.frame would have
+    if (missing(na.action)) {  #use the same na.action model.frame would have
         nafun <- getOption("na.action")
         if (is.character(nafun)) nafun <- get(nafun, pos="package:stats")
     }
     else if (is.function(na.action)) nafun <- na.action
     else nafun <- get(na.action)
+
     mf <- nafun(mf)
     Y <- model.response(mf)       # grab the (possibly new) values
     id <- model.extract(mf, "id")
     n <- nrow(Y)
     if (n==0) stop("No (non-missing) observations")
-        
+
     # Deal with the near-ties problem
     if (!is.logical(timefix) || length(timefix) > 1)
         stop("invalid value for timefix option")

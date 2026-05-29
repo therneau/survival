@@ -44,11 +44,9 @@ survfit.formula <- function(formula, data, weights, subset,
     if (!(is.Surv(Y) || inherits(Y, "Surv2")))
         stop("response must be a survival object")
 
-    # is this timeline data?  True if either the user typed Surv2 (deprecated)
-    #  or [ids with multiple rows and not (time, time2) form]
+    # is this timeline data?
     id <- model.extract(mf, "id")
-    if (inherits(Y, "Surv2") || (!is.null(id) && all(table(id)>1) && 
-                                 attr(Y, 'type') %in% c("right", "mright"))) {
+    if (inherits(Y, "Surv2")){
         # timeline data, convert to regular
         mf <- surv2counting(mf)
     }                      

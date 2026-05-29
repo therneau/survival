@@ -46,16 +46,9 @@ Only enough of the string to determine a unique match is required.
 if \code{TRUE} and the model was fit with case weights, then the weighted
 residuals are returned.
 }
-\item{na.action}{either \code{"na.omit"} or \code{"na.exclude"},
-  the default is the
-  global option in effect when the \code{coxph} model was fit.
-  The latter option causes the residuals to be the same size as the
-  original data \emph{before} missings were excluded by \code{coxph}, it
-  is useful when plotting residuals versus a variable in the data
-  frame, for instance.  Not applicable to Schoenfeld or scaled
-  Schoenfeld residuals, which have a row per event, nor when
-  \code{collapse=TRUE}.
-  }
+\item{na.action}{optional override of the na.action used in the original
+  fit, see details below. }
+  either \code{"na.omit"} or \code{"na.exclude"},
   \item{...}{other unused arguments}
 }
 
@@ -102,6 +95,21 @@ For multistate models the matrix will have the events for
 transition 1, then transition 2, etc. and will also have a
 \code{transition} attribute.  Different transitions will have different
 event times, so an array form is not practical for Schoenfeld residuals.
+
+If the original data set had no rows removed due to missing values, then
+the \code{na.action} argument above is irrelvant.
+If their were removed rows, then the \code{na.action} element of the
+coxph object will normally have a class of "na.omit" or "na.exclude".
+In the former case the returned vector of residuals will of the same
+length as the retained data, in the latter they will be the same length
+as the original data frame, with NA inserted at the appropriate points.
+The second form is useful if, for instance, one wanted to plot the model
+residuals against a variable in the data frame that was not in the
+model; the returned residuals will then be the right length.
+For summaries of the residuals like quantiles, the first form without NA
+is more useful.
+The \code{na.action} argument of this function allows one to override
+that earlier choice.
 }
 \references{
 T. Therneau, P. Grambsch, and T. Fleming. "Martingale based residuals

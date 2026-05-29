@@ -14,6 +14,7 @@ tdata$event <- factor(with(tdata, sct + 2*death), 0:2,
 # Make the processing a little harder by making sex missing for 3 people,
 #  use it as a covariate for transitions to death, but not entry to sct
 #  flt3 missing for 3, a covariate for entry:sct and sct:death, but not 1:3.
+# 
 # Subject 275 for instance has two rows (427,428): entry to sct, then sct to 
 #  censor, missing sex. They will not be omitted from the data frame since 
 #  they are at risk for entry:sct, but not sct:death. Subject 271 is missing
@@ -25,13 +26,19 @@ tdata$event <- factor(with(tdata, sct + 2*death), 0:2,
 #  nowhere to go, nor id 273 who is missing both.
 tdata$sex[tdata$id %in% 273:275] <- NA   # obs 425 to 428
 tdata$flt3[tdata$id %in% 271:273] <- NA  # obs 422 to 425
+subset(tdata, id %in% 270:275)
+
+# Now scramble the data set, which tests the logic in multimiss
+set.seed(1960)
+index <- sample(1:nrow(tdata), nrow(tdata))
+tdata <- tdata[index,]
 
 check <- survcheck(Surv(tstart, tstop, event) ~ 1, tdata, id=id)
 fit <- coxph(list(Surv(tstart, tstop, event) ~ trt, 
                   1:3 + 2:3 ~ sex,
                   1:2 + 2:3 ~ flt3), tdata, id=id)
 
-aeq(check$transitions, fit$transitions + c(0,0,0, 1,1,0, 0,1,0))
+aeq(check$transitions, fit$transitions + c(1,0,0, 2,1,0, 0,0,0))
 # The above is due to the difference between coxph, which has the more 
 #  sophisticated list form of a formula, and survfit/survcheck which do not.
 # survcheck with ~1 on the right uses all 1009 obs, 3 more obs than fit, but 
@@ -50,7 +57,7 @@ fit23 <- coxph(Surv(tstart, tstop, event=='death') ~ trt + sex + flt3,
 # martingale residuals
 # one row per retained obs, one col per transition
 rr1 <- resid(fit)
-aeq(dim(rr1), c(nrow(tdata), 3))
+aeq(dim(rr1), c(nrow(tdata)-3, 3))
 
 #
 # Obs 1-2 start in state (s0) so contribute to the 1:2 and 1:3 transitions,
@@ -101,8 +108,10 @@ test23 <- resid(fit23, type='dfbeta', collapse= TRUE)
 indx23 <- match(rownames(test23), rownames(rr3b))
 aeq(rr3b[indx23, 6:9], test23) 
 
-# More complex formula
+# More complex formula, checks whether multimiss handles interactions
+# should lose the same rows
 fit2 <- coxph(list(Surv(tstart, tstop, event) ~ trt,
                    1:3 + 2:3 ~ trt + strata(sex),
-                   1:2 + 2:3 ~ flt3:sex), tdata, id=id)
+                   1:2 + 2:3 ~ flt3:priortx), tdata, id=id)
+all.equal(dim(resid(fit2)), dim(resid(fit)))
 

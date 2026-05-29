@@ -49,8 +49,8 @@ Survival data for the package is supported in four types:
 \end{enumerate}
 
 At it origin, the survfit and coxph routines supported only
-the simple style, and this is still true for some of the functions, e.g.,
-survdiff.  
+the simple style, and this is still true for some of the functions in the
+survival pacakge, e.g., survdiff.  
 The counting process style was originally added solely to support time-dependent
 covariates. Data sets have a structure like one below, which displays
 data from the primary biliary cirrhosis study.
@@ -69,46 +69,53 @@ subset(pdata, id<3, c(id, tstart, tstop, death, age, bili, ascites, chol))
 @ 
 
 For a simple time-dependent data set like this we have the subject id, the
-time interval (tstart, tstop], a fixed covariate of age at enrollment, followed
+time interval (tstart, tstop], the death indicator,
+a fixed covariate of age at enrollment, followed
 by time dependent covariates of bilirubin, ascites, and chol count.
 Each row contains the covariate values that apply over the interval
-(tstart, tstop], along with the indicator of an event (death) exactly
-at time tstop. 
+(tstart, tstop], along with the indicator of whether the interval ends
+in an event (death).
 
 The use of open and closed brackets (tstart, tstop] for the intervals is
 purposefull and necessary.
 For example, in the PBC data subject 185 dies on day 2882, and subject 2
-listed above is in the risk set for that death.
+listed above is in the risk set for that death, but also has a new bilirubin
+recorded on that day.
 In a Cox model assessing the relationship of bilirubin and ascites to the
 risk of death, should the model use the value of 4.2 (row 9) or 3.6 (row 10)
 as subject 2's bilirubin at that death time? 
-The answer is that the code should use the first.
+The proper answer is that the code should use the first.
 The underlying theory for the Cox model, which is based on martingales and
 counting processes, requires that covariate values used for an event must
 be known strictly before the time of that event.
 In analogy to a gambling game, bets must be placed before the dice leave the
 shooter's hand.
 
-It was fairly quickly discovered that this form of the data was directly useful
-for the Andersen-Gill model for multiple events per subject of the same type;
-and example is the \code{cgd} data set, which recored multiple infections in
-immuncompromised children.  The status variable can now have a value of 1 
-multiple times for a subject. It also allows for time-dependent strata.
+It was fairly quickly discovered that this form for the data made it easy to
+handle time-dependent strata, and within another year that it also allows
+for multiple events per subject, which was useful in a study of recurrent
+myocardial infarction. (I forsaw neither when the time1, time2 form was
+first created).  The \code{cdg} data is an example of multiple events of
+the same type, and use of the Andersen-Gill model for analysis.
+The status variable can now have a value of 1 
+multiple times for a subject.
 
-The addition of factors as the ``status'' variable extends Surv(time, status)
-to the case of competing risks and Surv(time1, time2, status) to general
-multi-state models.  
+Use of a factor as the ``status'' variable extends the 
+\code{Surv(time, status)} form
+to the case of competing risks and the
+\code{Surv(time1, time2, status)} form to general multi-state models.  
 The first level of the factor is assumed to be ``censored'', though for a
-multi-state model ``no transistion in states occured at the end of this
+multi-state model ``no transistion to another state occured at the end of this
 interval'' is the more accurate description.  The label associated with
 this first or censoring level can be anything the user desires, the author
-uses both ``censor'' and ``none'' fairly commonly.
+uses both ``censored'' and ``none'' fairly commonly.
 
 Multistate counting process data sets can get complex, particularly if there
-are also time-dependent covariates, which is often the case.
+are also time-dependent covariates (which is often the case).
 The code below builds a time-dependent data set for the PBC data with two
 different state variables: simple alive/dead, and a second for modeling
-the progression of bilirubin.  It corresponds to the state space just below.
+the progression of bilirubin over time.  
+The second corresponds to the state space illustrated below.
 If subjects were under continuous observation we would expect only the state
 changes shown by the black arrows.
 
@@ -180,12 +187,12 @@ It is important to not just print the table, but carefully \emph{read} it.
 
 The counting process style offers great flexibility. Unfortunately, it is 
 easy to create data sets which are not valid. 
-With rare exceptions, the final rows representing any subject should follow
-a simple rule: the desribed path describes on that is physically possible.
+With rare exceptions, the final rows representing a subject should follow
+a simple rule: the desribed path is physically possible.
 In particular
 \begin{enumerate}
   \item A subject cannot be two places at once (no overlapping intervals)
-  \item They cannot disappear for a time (no disjoint intervals)
+  \item They cannot disappear and then return (no disjoint intervals)
   \item Any state that is entered must be occupied for a positive time interval
     (no zero length intervals, current state and transitions must be consistent)
 \end{enumerate}
@@ -200,20 +207,20 @@ cholesterol of 302 at baseline, is missing a
 cholesterol measurement on visits 2--4, and has a new value of 230 at
 visit 5. In the \code{pdata2} data set above has this been filled in.
 If this were not done then the standard ``delete all rows with missing
-value'' action of the coxph or survfit routine would result in a data set
+values'' action, which is the first step of the coxph or survfit routines,
+ would result in a data set
 that violated rule 2 above, leading to an invalid analysis.
 (Or an error message when those routines do an interal call of the survcheck 
 code, see the \code{survcheckallow} argument of \code{coxph.control}).
 
-An example where we allowed a violation of rule 2 was a cancer clinical trial
+An example where we once allowed a violation of rule 2 was a cancer clinical 
+trial
 with long follow-up. One patient completely disappeared from the surveillance
 system for 3 years, then re-appeared at the clinic one day and resumed regular
 appointments.  After some discussion, we assumed that neither death nor
-progression would have been discovered had they occured in this interim, but
+progression would have been discovered had they occured in the interim, but
 that the information post rejoining was useful, so we allowed disjoint intervals
 of follow up.  But this remains a rare case.  
-When such a gap is the consequence of a missing covariate value we are
-particularly suspicious.
 
 Below are two Aalen-Johansen fits, the first with bilirubin as a time-dependent
 covariate, the second with it a state.
@@ -243,10 +250,11 @@ A more recent addition to to package is to allow what we call a \emph{timeline}
 data sets. Such data has a unique (subject identifier, time) pair that identifies
 each row of data, along with information that was observed at that time. 
 Time constant covariates such a genotype can appear on all rows, or only when
-first recorded, the latter obeying the strict ``at that time'' rule.
+first recorded, the latter obeying the strict ``observed at that 
+time'' rule.
 For simple survival for instance, the timeline form would have two rows per
 subject. The first 3 subjects of the lung cancer data set would appear
-as below (some variables omitted from the printout for width)
+as below (some variables omitted from the printout for width).
 <<lung1, echo=FALSE>>=
 lung2 <- data.frame(id=1:228, time=0, death=0, lung[, -(2:3)])
 temp <- data.frame(id=1:228, time=lung$time, death= lung$status-1)
@@ -255,7 +263,7 @@ subset(lung2, id<4, c(id, time, death, inst, age, sex, ph.ecog, pat.karno))
 @ 
 
 This is clearly not an advantageous approach for either simple survival or
-competing risks data, which have only one row per subject.  
+competing risks data, which have only one row per subject in the standard form. 
 The advantage comes with multistate data sets: we no longer need to distinguish
 between covariates and outcomes in the data, and data sets can be created with
 any number of tools, we are not tied to tmerge.
@@ -277,48 +285,116 @@ pdata3$bstate <- factor(temp3, 1:4, c("normal","1-4", "4+", "death"))
 subset(pdata3, id<3, c(id, day, death, age, bili, ascites, chol,
                       bstate))
 
-psurv3 <-  survfit(Surv(day, death) ~ bstate, pdata3, id= id)
+psurv3 <-  survfit(Surv2(day, death) ~ bstate, pdata3, id= id)
 ii <- match("call", names(psurv3))
 all.equal(unclass(psurv1)[-ii], unclass(psurv3)[-ii])
 @ 
 
 The call is different, but the result of the fit is the same.
-
-Internally, the timeline data set is rewritten into counting process form,
+Internally, the timeline data set is first rewritten into counting process form,
 and then computations are done using the counting process data.
-The code recognizes a timeline data as a case where the Surv(time, status)
-form is used with multiple rows per subject.  The latter requires the presence
-of an id variable, of course.
+The use of \code{Surv2} instead of \code{Surv} informs the routine that
+the data is of timeline form.
 A user version of the transformed data can be obtained using the 
 \code{timeline2counting} function.
 Such a call may sometimes be necessary, i.e., if one wants to change the 
 arguments of \code{lvcf=TRUE} and \code{repeated=FALSE}, which are the
 default arguments for the internal call.
 
+Footnote: We serious considered making the detection of the timeline form
+be automatic, i.e., any time there was an id statement, multiple rows per
+subject, and simple Surv(time, status) form.  There are, however, a few
+exceptions. One example is the diabetic retinopathy study,
+where each patient has one treated and one untreated eye.
+There are two rows per subject (eyes) that both start at time 0.
+A survcheck call will complain about overlapping time intervals, but the
+following survfit call is perfectly legal, both statistically and in the code.
+
+<<eyes>>=
+rfit1 <- survfit(Surv(futime, status) ~ trt, id=id, retinopathy)
+rfit2 <- survfit(Surv(futime, status) ~ trt, cluster=id, retinopathy)
+@ 
+
+The two calls give the same result.  The help file for the retinopathy
+data shows the second form, and indeed for all valid cases that we can think
+of with simple (time, status) data and multiple rows per subject the
+cluster form is both valid and clearer,
+However, the current decision is to require Surv2 and not try to auto
+detect the timeline case, a primary argument being that it makes the code
+somewhat clearer to a user.
+
 \section{Multistate models and missing values}
 One of the features of the multistate \code{coxph} call is the ability
 to have certain covariates apply to only a subset of the transitions.
 Say for instance that one of the states was surgical intervention, such
 as in the Crohn's disease data set, and that a particular covariate depended on
-available on tissue from that procedure.
-Then by definition that covariate is only applicable to any further 
-transitions from the surgical state.
+availablity of tissue from that procedure.
+Then by definition that covariate is only applicable to further 
+transitions after the surgical state.
 A user might choose to use a particular covariate for only a subset of
 transitions for multiple reasons, however.
 
 Say that a covariate `zed' is only used for the 2:3 transition within a 3 state
 model. Any observation (time1, time2, status, istate) with istate not equal
 to 2 will be unaffected by the value of zed, or whether zed is NA. The
-coxph routine will, properly, not remove this observation from the data set
-due to an NA value for zed.
+coxph routine will, properly, not remove this observation from the risk sets
+for a 2:3 transition due to a missing value for zed.
 What about a subject with a (time1, time2) row with a current state (istate) 
 of 2 and missing value for zed?  
 This row will be removed due to missing, but other rows of data for this
 subject are still informative for other transitions.
-If the \code{survcheck} routine were called on this post-removal data it
-would signal an error due to the resulting discontinuity in the subject's
-follow-up. We consider this to be a false positive, and the coxph routine
-routine does the check before missing value removal for this reason. 
+
+Here is a constructed example using the myeloid data.
+<<mtest>>= 
+tdata <- tmerge(myeloid[,1:4], myeloid, id=id, death=event(futime,death),
+                priortx = tdc(txtime), sct= event(txtime))
+tdata$event <- factor(with(tdata, sct + 2*death), 0:2,
+                      c("censor", "sct", "death"))
+tdata$sex[tdata$id %in% 273:275] <- NA   # obs 425 to 428
+tdata$flt3[tdata$id %in% 271:273] <- NA  # obs 422 to 425
+tdata$event[tdata$id==270 & tdata$tstart>0] <- NA
+
+subset(tdata, id %in% 270:275)
+
+check1 <- survcheck(Surv(tstart, tstop, event) ~1, tdata, id=id)
+check1
+
+check2 <- survcheck(Surv(tstart, tstop, event) ~sex, tdata, id=id)
+
+fit <- coxph(list(Surv(tstart, tstop, event) ~ trt, 
+                  1:3 + 2:3 ~ sex,
+                  1:2 + 2:3 ~ flt3), tdata, id=id)
+fit
+
+check1$transitions- fit$transitions
+@
+
+The data set has 1009 observations on 646 subjects. 
+Since there is no istate option, all subjects are assumed to start in
+state 1, which will be labeled as ``(s0)'' on the printout.
+The result of check1 will have 646/1008, one observation is lost due to the
+missing event on row 421, but no subjects.
+The check2 result has 643/1004 since all rows with missing sex are removed.
+For the coxph model the transition table reflects events that are actually 
+counted for a transition.
+\begin{itemize}
+  \item One 1:2 transition is lost, obs 427, due to missing flt. Observation
+    422 is missing sex, but that is not used in the 1:2 model
+  \item One 2:3 transition is lost, obs 423
+  \item Two 1:3 transitions are lost, obs 425--426
+\end{itemize}
+Three observations are removed from the model frame, 421 which is also removed
+in check1, 423 which is at risk for only the 2:3 transition,
+and 425 which has missings for both the 1:2 and 1:3 transitions 
+and is not at risk for 2:3.
+This drops the number of unique subjects to 645 and the rows to 1006.
+
+Internally, the coxph code calls the survcheck function to verify
+legality of the data, but it does so before removal of any rows due to
+missing covariates. 
+If the \code{survcheck} routine were called post removal, and
+some subjects' now had an induced discontinuity in follow-up an error would
+be signaled; but we consider this to be a false positive.
 (Reporting is further
 modified by the \code{survcheckfail} argument of \code{control.coxph}.)
 Likewise, user calls to survcheck will almost always want to use 
