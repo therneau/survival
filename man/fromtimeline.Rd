@@ -1,5 +1,5 @@
-\name{timeline2counting}
-\alias{timeline2counting}
+\name{fromtimeline}
+\alias{fromtimeline}
 \title{
 Create counting process data from timeline data
 }
@@ -9,7 +9,7 @@ or timeline style arrangement of the data.  This converts the third to
 the second
 }
 \usage{
-timeline2counting(formula, data, subset, id, repeated = FALSE, lvcf = TRUE, 
+fromtimeline(formula, data, subset, id, repeated = FALSE, lvcf = TRUE, 
                   yname = c("tstart", "tstop", "status"))
 }
 \arguments{
@@ -63,11 +63,6 @@ timeline2counting(formula, data, subset, id, repeated = FALSE, lvcf = TRUE,
   censor, death) with \code{repeated = "first"}.
 
   See the vignette on timeline data for a more complete discussion.
-}
-\note{The timeline2counting routine is one of the only ones where
-  \code{Surv2(time, state)} and \code{Surv(time, state)} 
-  will create the same result.  The routine knows that the input data is
-  of timeline form without needing "Surv2" as a hint.
 }
 \value{a data frame}
 \author{Terry Therneau}

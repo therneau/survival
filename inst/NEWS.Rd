@@ -9,6 +9,8 @@
     constuct than the counting process variant (you don't need tmerge),
     so I suspect that users will shift to it for that use case. This
     addresses github issue 264.
+    \item Parallel routines fromtimeline, Surv2data, timeline2counting
+    had been added at various times, merge and remove all but fromtimeline.
 }}
 \section{Changes in version 3.8-7}{
   \itemize{

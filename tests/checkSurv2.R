@@ -21,7 +21,7 @@ temp3 <- with(subset(m2, pstat==0),
                                 event=ifelse(death==0, "censor", "death")))
 mflat <- merge(temp1, rbind(temp2, temp3), all=TRUE)
 mflat$event <- factor(mflat$event, c("censor", "progression", "death"))
-mflatc <- timeline2counting(Surv2(ftime, event) ~., mflat, id=id)
+mflatc <- fromtimeline(Surv2(ftime, event) ~., mflat, id=id)
 
 # now compare it to the usual way
 etime <- with(mgus2, ifelse(pstat==1, ptime, futime))
@@ -70,7 +70,7 @@ m3$event <- factor(m3$event, 0:2, c("censor", "progression", "death"))
 cfit4 <- coxph(Surv(tstart, tstop, event) ~ sex + age + mspike, m3, id=id)
 cfit5 <- coxph(Surv2(ftime, event) ~ sex + age + mspike, mflat3, id=id)
 #cfit6 <- coxph(Surv(ftime, event) ~ sex + age + mspike, mflat3, id=id)
-mflat3c <- timeline2counting(Surv2(ftime, event) ~ ., mflat3, id=id)
+mflat3c <- fromtimeline(Surv2(ftime, event) ~ ., mflat3, id=id)
 cfit7 <- coxph(Surv(ftime1, ftime2, event) ~ sex + age + mspike, mflat3c, id=id)
 
 all.equal(cfit4[c("coefficients", "var", "loglik", "score")],

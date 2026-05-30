@@ -13,6 +13,17 @@ Surv2 <- function(time, event, repeated=FALSE) {
 
     if (missing(event)) stop("must have an event argument")
     if (length(event) != nn) stop ("Time and event are different lengths")
+
+    # Special code to allow for 0/1/NA or FALSE/TRUE/NA, but if missing time
+    #  leave NA as is 
+    if (any(is.na(event) & !is.na(time))) { # there are solo NA events
+        if (is.numeric(event) && any(event==0)) fill <- 0
+        else if (is.logical(event) && any(!event)) fill <- FALSE
+        else if (is.factor(event)) fill <- levels(event)[1]
+        else fill <- NA  # I don't think this can happen
+        event[is.na(event) & !is.na(time)] <- fill
+    } # end special
+    
     event <- as.factor(event)
     states <- levels(event)[-1]
     status <- as.integer(event) -1L # usually time is not integer, but

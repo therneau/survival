@@ -16,14 +16,14 @@ importFrom(graphics, arrows, axis, barplot, box, clip, matlines, matplot,
 importFrom(Matrix, expm)
 importFrom(methods, as)
 importFrom(utils, getS3method, type.convert, methods, head, tail)
-export(Surv, Surv2,Surv2data, aeqSurv, aareg, agreg.fit,
+export(Surv, Surv2, aeqSurv, aareg, agreg.fit,
        agexact.fit, attrassign, 
        blogit, bprobit, bcloglog, blog, brier,
        basehaz, cch, clogit, cipoisson, cluster, concordance, concordancefit, 
        coxph, cox.zph, coxph.control, coxph.detail, coxph.fit,
        coxph.wtest, finegray, format.Surv, 
        frailty,  frailty.gamma, 
-       frailty.gaussian, frailty.t, is.Surv, 
+       frailty.gaussian, frailty.t, is.Surv, fromtimeline,
        is.na.Surv, is.ratetable, lvcf, nsk,
        match.ratetable, neardate, nostutter,
        psurvreg, qsurvreg, dsurvreg, pseudo,
@@ -34,7 +34,7 @@ export(Surv, Surv2,Surv2data, aeqSurv, aareg, agreg.fit,
        coxsurv.fit, survfitKM, survobrien,  
        survpenal.fit, 
        survreg, survreg.control, survreg.fit,
-       survreg.distributions, survregDtest, tcut, timeline2counting,
+       survreg.distributions, survregDtest, tcut, 
        tmerge, untangle.specials, yates, yates_setup,
        survConcordance, survConcordance.fit, survfitcoxph.fit)
 S3method('[', aareg)

@@ -164,24 +164,8 @@ surv2counting <- function(mf, repeated=FALSE, lvcf=TRUE) {
     mf2[jj,]
 }
    
-# User callable version
-Surv2data <- function(formula, data, subset, id){
-    .Deprecated("timeline2counting", old="Surv2data")
-    Call <- match.call()
-    indx <- match(c("formula", "data", "weights", "subset", "na.action",
-                    "cluster", "id"),
-                  names(Call), nomatch=0)
-    if (indx[1] ==0) stop("A formula argument is required")
-    tform <- Call[c(1, indx)]  # only keep arguments we wanted
-    tform$na.action <- stats::na.pass
-    tform[[1L]] <- quote(stats::model.frame)
-    mf <- eval(tform, parent.frame())
-    if (!inherits(model.response(mf), "Surv2"))
-        stop("the response must be a Surv2 object")
-    surv2counting(mf)
-}
 
-timeline2counting <- function(formula, data, subset, id, repeated= FALSE,
+fromtimeline <- function(formula, data, subset, id, repeated= FALSE,
                               lvcf = TRUE, yname=c("tstart", "tstop", "status")){
     # Get the formula for the response
     Call <- match.call()
@@ -251,5 +235,82 @@ timeline2counting <- function(formula, data, subset, id, repeated= FALSE,
     cbind(new[,-1,drop=FALSE], tdata)
 }
 
+# This function has not been tested (not the browser call)
+# We await any definite proof of need before working more
+# Until tested, it won't appear in the NAMESPACE file or the man pages
 
+totimeline <- function(formula, data, id, istate) {
+    if (missing(formula) || missing(data) || missing(id))
+        stop("formula, data, and id arguments are required")
+    Call <- match.call()
+    tcall <- Call
+    tcall[[1L]] <- quote(stats::model.frame)
 
+    mf <- eval(tcall, parent.frame())
+
+    Y <- model.response(mf)
+    id <- model.extract(mf, "id")
+
+    if (!inherits(Y, "Surv")) stop("response must be a Surv object")
+    type <- attr(Y, "type")
+    if (type== "left" || type=="interval")
+        stop("not valid for interval censored or left censored data")
+    if (ncol(Y) != 3) stop("initial data is not in (time1, time2) form")
+    
+    # get a name for the resulting time and state variables, by parsing
+    #  the formula.  Don't try too hard, though.
+    tname <- "(time)"
+    sname <- "(state)"  # backup defaults
+    lhs <- formula[[2]]
+    if ((is.name(lhs[[1]]) && lhs[[1]]== as.name("Surv")) ||
+        deparse(lhs[[1]]) == "survival::Surv")  {
+        # the lhs if of length 4
+        if (is.name(lhs[[3]])) tname <- as.character(lhs[[3]])
+        if (is.name(lhs[[4]]))  sname <- as.character(lhs[[4]])
+        else if (is.call(lhs[[4]])){
+            temp <- lhs[[4]]
+            if (deparse(temp[[1]])== "factor" && is.name(temp[[2]]))
+                sname <- as.character(temp[[2]])
+        }
+    }   
+    
+    if (is.name(Call$id)) {
+        idname <- as.character(Call$id)
+        i <- match(idname, names(mf))
+        if (is.na(i)) names(mf)[match("(id)", names(mf))] <- idname
+    } else stop("id must be a simple variable name")
+
+    # Get the list of states and istate
+    if (missing(istate)) check <- survcheck2(Y, id)
+    else {
+        istate <- model.extract(mf, "istate")
+        check <- survcheck2(Y, id, istate)
+        }
+    browser()
+    if (any(check$states == "censor")) states <- c("(censor)", check$states)
+    else states <- c("censor", check$states)
+    nstate <- length(check$states)
+    # In the new data, there is 1 more row per subject.
+    # newtime for subject i = c(first time1, time2) 
+    # newstate is c(initial, Y[i,3])
+    # for covariates, the last row of each subject is a repeat
+    first <- !duplicated(id)
+    last  <- !duplicated(id, fromLast=TRUE)
+    n <- nrow(mf)
+
+    indx1 <- rep(1:n, ifelse(first, 2, 1))
+    indx2 <- rep(1:n, ifelse(last,  2, 1))
+    newtime <- Y[indx1,2]
+    newstat <- c(0L, match(attr(Y, "states"), check$states))[1L+ Y[indx1,3]]
+
+    row1 <- duplicated(indx1, fromLast=TRUE) # first row of each subject
+    newtime[row1] <- Y[first, 1]
+    newstat[row1] <- as.numeric(check$istate[first])
+    newdata <- cbind(data.frame("(time)"= newtime, 
+                                "(state)"= factor(newstat, 0:nstate, states)),
+                     mf[indx2,-1])
+    row.names(newdata) <- NULL  # they are annoying and useless
+    names(newdata)[1:2] <- c(tname, sname)
+    indx <- match(c("(id)", "(istate)"), names(newdata), nomatch=0)
+    newdata[, -indx]  # remove the redundant (id) and (istate) columns
+}

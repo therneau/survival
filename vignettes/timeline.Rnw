@@ -296,7 +296,7 @@ and then computations are done using the counting process data.
 The use of \code{Surv2} instead of \code{Surv} informs the routine that
 the data is of timeline form.
 A user version of the transformed data can be obtained using the 
-\code{timeline2counting} function.
+\code{fromtimeline} function.
 Such a call may sometimes be necessary, i.e., if one wants to change the 
 arguments of \code{lvcf=TRUE} and \code{repeated=FALSE}, which are the
 default arguments for the internal call.

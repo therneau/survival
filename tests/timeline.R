@@ -28,7 +28,7 @@ pdata$bstat2 <- pdata$bstat
 pdata$bstat2[2] <- NA
 
 subset(pdata, id<4)  # the printout looks good
-cdata <- timeline2counting(Surv(day, bstat) ~ ., pdata, id=id)
+cdata <- fromtimeline(Surv(day, bstat) ~ ., pdata, id=id)
 subset(cdata, id<4)
 # in the above, bstat2 also gets the lvcf treatment -- it's just a covariate
 

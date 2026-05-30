@@ -1,5 +1,5 @@
 
-R Under development (unstable) (2026-05-26 r90078) -- "Unsuffered Consequences"
+R Under development (unstable) (2026-05-28 r90087) -- "Unsuffered Consequences"
 Copyright (C) 2026 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu
 
@@ -38,7 +38,7 @@ Type 'q()' to quit R.
 +                                 event=ifelse(death==0, "censor", "death")))
 > mflat <- merge(temp1, rbind(temp2, temp3), all=TRUE)
 > mflat$event <- factor(mflat$event, c("censor", "progression", "death"))
-> mflatc <- timeline2counting(Surv2(ftime, event) ~., mflat, id=id)
+> mflatc <- fromtimeline(Surv2(ftime, event) ~., mflat, id=id)
 > 
 > # now compare it to the usual way
 > etime <- with(mgus2, ifelse(pstat==1, ptime, futime))
@@ -91,7 +91,7 @@ Type 'q()' to quit R.
 > cfit4 <- coxph(Surv(tstart, tstop, event) ~ sex + age + mspike, m3, id=id)
 > cfit5 <- coxph(Surv2(ftime, event) ~ sex + age + mspike, mflat3, id=id)
 > #cfit6 <- coxph(Surv(ftime, event) ~ sex + age + mspike, mflat3, id=id)
-> mflat3c <- timeline2counting(Surv2(ftime, event) ~ ., mflat3, id=id)
+> mflat3c <- fromtimeline(Surv2(ftime, event) ~ ., mflat3, id=id)
 > cfit7 <- coxph(Surv(ftime1, ftime2, event) ~ sex + age + mspike, mflat3c, id=id)
 > 
 > all.equal(cfit4[c("coefficients", "var", "loglik", "score")],
@@ -106,4 +106,4 @@ Type 'q()' to quit R.
 > 
 > proc.time()
    user  system elapsed 
-  0.697   0.069   0.759 
+  0.668   0.077   0.738 

@@ -49,7 +49,7 @@ Surv2(time, event, repeated=FALSE)
   censor, death) with \code{repeated = "first"}.
 }
 \seealso{
-\code{\link{Surv2data}}, \code{\link{coxph}},  
+\code{\link{fromtimeline}}, \code{\link{coxph}},  
 \code{\link{survfit}}  
 }
 \keyword{survival}

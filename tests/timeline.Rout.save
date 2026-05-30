@@ -64,7 +64,7 @@ Type 'q()' to quit R.
 16  3  364    1-4 70.07255  1.5    3.57   0.5  57.4    1-4
 17  3  743    1-4 70.07255  1.8    3.25   0.5  88.4    1-4
 18  3 1012  death       NA   NA      NA    NA    NA  death
-> cdata <- timeline2counting(Surv(day, bstat) ~ ., pdata, id=id)
+> cdata <- fromtimeline(Surv(day, bstat) ~ ., pdata, id=id)
 > subset(cdata, id<4)
    id      age bili albumin edema   ast bstat2 istate day1 day2  bstat
 1   1 58.76523 14.5    2.60    NA 138.0     4+     4+    0  192 censor
@@ -119,4 +119,4 @@ Type 'q()' to quit R.
 > 
 > proc.time()
    user  system elapsed 
-  0.688   0.072   0.749 
+  0.692   0.075   0.759 
