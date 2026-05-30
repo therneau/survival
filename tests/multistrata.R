@@ -2,6 +2,7 @@ library(survival)
 
 # work out the consequences of complex strata in a multistate model
 # one subject has CR and SCT on the same day, make CR a day earlier
+# this test is still in progress
 tdata <- myeloid  # temporary working copy
 tied <- with(tdata, (!is.na(crtime) & !is.na(txtime) & crtime==txtime))
 tdata$crtime[tied] <- tdata$crtime[tied] -1

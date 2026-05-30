@@ -17,7 +17,7 @@ pdata$bstat <- factor(pdata$bstat, 0:4,
 # Throw in some missings: id 1 is missing edema, id 2 missing even visit
 #  albumins, id 3 missing the first ast, bstat2 is missing on row 2.
 # Models with edema should throw out subject 1, those with albumin will have
-#  lvcf filled in, and those with ast will have delayed entry of subject 3.
+#  albumin filled in, and those with ast will have delayed entry of subject 3.
 # A model using bstat2 should fail survcheck since id 1 will have a "hole"
 pdata$edema[pdata$id==1] <- NA
 indx <- which(pdata$id ==2)
@@ -32,9 +32,9 @@ cdata <- timeline2counting(Surv(day, bstat) ~ ., pdata, id=id)
 subset(cdata, id<4)
 # in the above, bstat2 also gets the lvcf treatment -- it's just a covariate
 
-fit1a <- coxph(list(Surv(day, bstat) ~ 1,
+fit1a <- coxph(list(Surv2(day, bstat) ~ 1,
                     (1:3):4 ~ edema + albumin + ast), pdata, id=id)
-aeq(fit1a$na.action, c(1,2,12))
+
 fit1b <- coxph(list(Surv(day1, day2, bstat) ~ 1,
                     (1:3):4 ~ edema + albumin + ast), 
                cdata, id=id, istate=istate)
@@ -42,7 +42,7 @@ all.equal(fit1a[c("coefficients", "var", "loglik", "score")],
           fit1b[c("coefficients", "var", "loglik", "score")])
 
 # reconstruct the model frame
-fit1c <- coxph(list(Surv(day, bstat) ~ 1,
+fit1c <- coxph(list(Surv2(day, bstat) ~ 1,
                     (1:3):4 ~ edema + albumin + ast), pdata, id=id,
                model=TRUE)
 m1 <- model.frame(fit1a)

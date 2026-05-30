@@ -1,7 +1,7 @@
 
-R Under development (unstable) (2024-04-17 r86441) -- "Unsuffered Consequences"
-Copyright (C) 2024 The R Foundation for Statistical Computing
-Platform: aarch64-unknown-linux-gnu
+R Under development (unstable) (2026-05-28 r90087) -- "Unsuffered Consequences"
+Copyright (C) 2026 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -224,7 +224,7 @@ Type 'q()' to quit R.
 > tdata$wt <- rep(1:25, length.out=nrow(tdata))/10
 > tdata$time <- ceiling(tdata$time/30)  # force ties in y
 > tfit <- coxph(Surv(time, status) ~ ph.ecog + pat.karno + strata(inst)
-+               + cluster(inst), tdata, weights=wt)
++               + cluster(inst), tdata, weights=wt, na.action= na.exclude)
 > tdata$tpred <- predict(tfit)
 > cm4 <- concordance(tfit, influence=3, keepstrata=TRUE)
 > cm5 <- concordance(Surv(time, status) ~ tpred + strata(inst) + cluster(inst),
@@ -264,4 +264,4 @@ Type 'q()' to quit R.
 > 
 > proc.time()
    user  system elapsed 
-  1.246   0.027   1.271 
+  1.490   0.070   1.552 

@@ -18,9 +18,8 @@ timeline2counting(formula, data, subset, id, repeated = FALSE, lvcf = TRUE,
   \item{data}{a data set currently in timeline form}
   \item{subset}{optional expression to select a subset of rows}
   \item{id}{the identifier variable, which rows go with each subject}
-  \item{repeated}{if TRUE, then two adjacent rows of data with the same
-    response are treated as new events, repeated infections is one
-    example.}
+  \item{repeated}{if the same level of the outcome repeats, without an
+    intervening event of another type, should this be treated as a new event?}
   \item{lvcf}{the last-value-carried-forward operation is applied to
     covariates on the right hand side}
   \item{yname}{names to be used for the new response variable set,
@@ -45,7 +44,30 @@ timeline2counting(formula, data, subset, id, repeated = FALSE, lvcf = TRUE,
   already had a variable named "status", then "_status_" would be used as
   the name.
 
+  The \code{repeated} argument controls how repeated instances of the same event
+  code are treated.  If TRUE, they are treated as new events, an example
+  where this might be desired is repeated infections in a subject.
+  If FALSE, then repeats are not a new
+  event.  An example would be a data set where we wanted to use
+  diabetes, say, as an endpoint, but this is diagnosis code is repeated
+  in the data at each medical visit.
+
+  The third option is repeated="first", in which case any repeated
+  instance of any level is treated as censored.  In an data set with
+  states of cognitively unimpaired (CU), mild cognitive impairment
+  (MCI), dementia, and death, say, we might want an analysis with
+  "ever MCI" and "ever dementia" as the states. A subject with observed
+  states of (CU, CU, MCI, CU, MCI, MCI, dementia)
+  would have transitions of (CU, censor, MCI, CU, MCI, censor, dementia)
+  with \code{repeated =FALSE} and (CU, censor, MCI, censor, censor,
+  censor, death) with \code{repeated = "first"}.
+
   See the vignette on timeline data for a more complete discussion.
+}
+\note{The timeline2counting routine is one of the only ones where
+  \code{Surv2(time, state)} and \code{Surv(time, state)} 
+  will create the same result.  The routine knows that the input data is
+  of timeline form without needing "Surv2" as a hint.
 }
 \value{a data frame}
 \author{Terry Therneau}

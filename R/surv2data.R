@@ -1,7 +1,7 @@
 #
 # Routine to turn a "timeline" model frame into a "counting process" model
 #  frame. 
-# The mf arg is almost certainly the result of a call to coxph or survfit (or a
+# The mf arg is most often the result of a call to coxph or survfit (or a
 #  survfit.coxphms or residuals.coxphms call that had to recreate the data), and
 #  that fcn is using this function to transform to CP style. As such, there will 
 #  normally be a column named "(id)", and perhaps "(istate)" and/or "(cluster)".
@@ -86,6 +86,17 @@ surv2counting <- function(mf, repeated=FALSE, lvcf=TRUE) {
             states <- newstate
         }
     }
+
+    if (is.character(repeated) && casefold(repeated) == "first") {
+        # only allow the first instance of any outcome. We need to do
+        # this before computing istate2, since it may change the definition
+        # of 'current state'
+        temp <- unlist(tapply(y2[,2], id2, function(x) {
+            ifelse(x==0, 0, ifelse(duplicated(x),0,0))
+            }))
+        y[,2] <- temp
+    }
+
     # Create a current state vector, which is just LVCF using the state.
     # NA or censored  treated as "not present" for the tmerge3 call.  
     # Y[,2]=0 is censored for either single state or multistate timeline
@@ -129,8 +140,14 @@ surv2counting <- function(mf, repeated=FALSE, lvcf=TRUE) {
     #    "mright"  :  (time, state)
     #    "mcounting": (time1, time2, state)
     status <- y2[!first, 2] # integer version
-    if (!repeated  && !is.null(istate2)) 
-        status[status== istate2] <- 0 # no repeat of current state
+    if (is.logical(repeated)) {
+        if (!repeated  && !is.null(istate2)) 
+            status[status== istate2] <- 0 # no repeat of current state
+    } else {
+        if (!is.character(repeated) || casefold(repeated) != "first") 
+            stop("invalid value for repeated option")
+    }
+        
     if (!is.null(states)) 
         status <- factor(status, 0:length(states), c("censor", states))
 

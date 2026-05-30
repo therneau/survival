@@ -131,8 +131,7 @@ coxph <- function(formula, data, weights, subset, na.action,
     # is this timeline data?  True if either the user typed Surv2 (deprecated)
     #  or [ids with multiple rows and not (time, time2) form]
     id <- model.extract(mf, "id")
-    if (inherits(Y, "Surv2") || (!is.null(id) && all(table(id)>1) && 
-                                 attr(Y, 'type') == "mright")) {
+    if (inherits(Y, "Surv2")) {
         # timeline data, convert to regular
         mf <- surv2counting(mf)
         Y <- model.response(mf)
@@ -719,10 +718,10 @@ coxph <- function(formula, data, weights, subset, na.action,
         fit$cmap <- cmap
         fit$smap <- smap   # why not 'stratamap'?  Confusion with fit$strata
         nonzero <- which(colSums(cmap)!=0)
-        fit$rmap <- cbind(row=xstack$rindex, transition= nonzero[xstack$transition])
-        
-        # add a suffix to each coefficent name.  Those that map to multiple transitions
-        #  get the first transition they map to
+        fit$rmap <- matrix(c(xstack$rindex, nonzero[xstack$transition]), 
+                           ncol=2, dimnames= list(NULL, c("row", "transition")))
+        # add a suffix to each coefficent name.  Those that map to multiple 
+        #  transitions get the first transition they map to
         single <- apply(cmap, 1, function(x) all(x %in% c(0, max(x)))) #only 1 coef
         cindx <- col(cmap)[match(1:length(fit$coefficients), cmap)]
         rindx <- row(cmap)[match(1:length(fit$coefficients), cmap)]
