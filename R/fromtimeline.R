@@ -92,9 +92,9 @@ surv2counting <- function(mf, repeated=FALSE, lvcf=TRUE) {
         # this before computing istate2, since it may change the definition
         # of 'current state'
         temp <- unlist(tapply(y2[,2], id2, function(x) {
-            ifelse(x==0, 0, ifelse(duplicated(x),0,0))
+            ifelse(x==0, 0, ifelse(duplicated(x),0,x))
             }))
-        y[,2] <- temp
+        y2[,2] <- temp
     }
 
     # Create a current state vector, which is just LVCF using the state.
