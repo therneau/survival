@@ -548,7 +548,7 @@ plot.survfit<- function(x, conf.int,  mark.time=FALSE,
     if (cumprob) {
         if (!is.null(xmax) && max(stime) > xmax) {  # truncate on the right
             keep <- (stime <= xmax)
-            lastx <- list(x = stime[keep], y= ssurv[,keep])
+            lastx <- list(x = stime[keep], y= ssurv[keep,])
         }
         else lastx <- list(x=stime, y=ssurv)
     }

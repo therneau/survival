@@ -225,13 +225,21 @@ addSurvFun <- function(formula, found) {
 # Replace any NA with the most recent non-NA, for each id separately
 #  Better known as "last value carried forward"
 #
-lvcf <- function(id, x, time) {
+lvcf <- function(id, x, time, first=TRUE) {
     # the input will normally already be sorted by time, and users will
     #  then omit that argument
     if (!missing(time)) indx <- order(id, time)
     else indx <- order(id)   
 
-    # factors are really slow in replacement, convert to integer
+    obs1 <- indx[which(!duplicated(id[indx]))]
+    if (first & any(is.na(x[obs1]))) {
+        if (is.logical(x))
+            x[obs1] <- ifelse(is.na(x[obs1]), FALSE, x[obs1])
+        else if (is.numeric(x) && all(is.na(x) | x==0 | x==1))
+            x[obs1] <- ifelse(is.na(x[obs1]), 0L, x[obs1])
+    }
+    # factors are really slow in replacement, convert to integer, do the
+    #  work, then convert back
     if (is.factor(x)) {
         xlev <- levels(x)
         x <- as.integer(x)

@@ -10,7 +10,9 @@
     so I suspect that users will shift to it for that use case. This
     addresses github issue 264.
     \item Parallel routines fromtimeline, Surv2data, timeline2counting
-    had been added at various times, merge and remove all but fromtimeline.
+    had been added at various times, merge and remove all but
+    fromtimeline, which is the oldest so most likely to have use.
+    \item Add the first argument to lvcf, to better support yes/no variables.
 }}
 \section{Changes in version 3.8-7}{
   \itemize{

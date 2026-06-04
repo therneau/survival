@@ -8,12 +8,15 @@
   separately for each id.
 }
 \usage{
-lvcf(id, x, time)
+lvcf(id, x, time, first= TRUE)
 }
 \arguments{
   \item{id}{subject identifier}
   \item{x}{the covariate which will be modified}
   \item{time}{optional; used to sort observations within subject}
+  \item{first}{if TRUE and x is 0/1 or logical, then if the first
+    value for a subject is NA it is assumed to be 0 or FALSE,
+    as appropriate}
 }
 \details{
 If an analysis includes a covariate that was measured repeatedly,
@@ -24,6 +27,10 @@ When a value is extended beyond the last measurement, rather that just
 replacement of intermediate values, there is the potential for bias,
 e.g., if the reason for discontinuation is predictive of the future
 trajectory of values.
+
+Yes/no indicators of an event, e.g., onset of diabetes, are sometimes
+NA in a data set until the time point when they first occur.
+The \code{first} argument is in response to this.
 
 If \code{time} is missing, then the order of the values within subject
 is assumed to be the calendar time order.  It is not necessary for the
