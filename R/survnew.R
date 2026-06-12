@@ -1,14 +1,12 @@
 #
-# Add new states to track time dependent covariates
-# Done by creating factors out of select covariates
-# The first part of this is exactly like survfit.coxphms
-survfitnew <-
+# Currently a test, this will replace survfit.coxphms
+#
+survfit.coxphms <-
 function(formula, newdata, se.fit=FALSE, conf.int=.95,
          stype=2, ctype, 
          conf.type=c("log", "log-log", "plain", "none", "logit", "arcsin"),
          censor=TRUE, start.time, id, influence=FALSE,
-         na.action=na.pass, type, p0=NULL, time0=FALSE,
-         newstate, ...) {
+         na.action=na.pass, type, p0=NULL, time0=FALSE, ...) {
 
     Call <- match.call()
     Call[[1]] <- as.name("survfit")  #nicer output for the user
@@ -21,26 +19,14 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95,
     missid <- TRUE
 
     temp <- object$smap["(Baseline)",] 
-    baselinecoef <- rbind(temp, coef= 1.0)
-    phbase <- rep(FALSE, nrow(object$cmap))
-    if (any(duplicated(temp))) {
-        # We have shared hazards
-        # Any rows of cmap with names like ph(1:4) are special. The coefs they
-        #  point to should be copied over to the baselinecoef vector.
-        # There might not be such rows, by the way.
-        pattern <- "^ph\\([0-9]+:[0-9]+\\)$"
-        cname <- rownames(object$cmap)
-        phbase <- grepl(pattern, cname) # this row points to a "ph" coef        
-        for (i in which(phbase)) {
-            # Say that this row (i) of cmap had label ph(1:4), and contains
-            #   elements 0,0,0,0,0, 8,9.
-            # This means that coefs 8 and 9 are special.  They should be
-            #   plugged into a matching element of baselinecoef.
-            #   The columns names of smap and cmap are identical, and tell us
-            #   where to put them.
-            j <- object$cmap[i,]
-            baselinecoef[2, j>0] <- exp(object$coef[j])
-        }
+    B <- coef(object, matrix=TRUE)
+    if (any(duplicated(temp)) && !is.null(object$phZ)) {
+        # We have shared proportional hazards
+        Z <- 0*object$cmap
+        browser()
+        Z[rownames(object$phZ),] <- object$phZ
+        eta <- Z %*% coef(object, matrix=TRUE)
+        baselinecoef <- rbind(temp, exp(eta))
     }
       
     # process options, set up Y and the model frame for the original data

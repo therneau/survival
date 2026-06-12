@@ -1,11 +1,15 @@
-# Automatically generated from the noweb directory
+#
+# Currently a test, this will replace survfit.coxphms
+#
 survfit.coxphms <-
-function(formula, newdata, se.fit=FALSE, conf.int=.95, individual=FALSE,
+function(formula, newdata, se.fit=FALSE, conf.int=.95,
          stype=2, ctype, 
          conf.type=c("log", "log-log", "plain", "none", "logit", "arcsin"),
          censor=TRUE, start.time, id, influence=FALSE,
          na.action=na.pass, type, p0=NULL, time0=FALSE, ...) {
 
+    if (!inherits(formula, "survfit.coxphms"))
+        stop("argument must be a survfit.coxphms object")
     Call <- match.call()
     Call[[1]] <- as.name("survfit")  #nicer output for the user
     object <- formula     #'formula' because it has to match survfit
@@ -14,33 +18,10 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95, individual=FALSE,
         stop("multi-state survival requires a newdata argument")
     if (!missing(id)) 
         stop("using a covariate path is not supported for multi-state")
-    temp <- object$smap["(Baseline)",] 
-    baselinecoef <- rbind(temp, coef= 1.0)
-    phbase <- rep(FALSE, nrow(object$cmap))
-    if (any(duplicated(temp))) {
-        # We have shared hazards
-        # Any rows of cmap with names like ph(1:4) are special. The coefs they
-        #  point to should be copied over to the baselinecoef vector.
-        # There might not be such rows, by the way.
-        pattern <- "^ph\\([0-9]+:[0-9]+\\)$"
-        cname <- rownames(object$cmap)
-        phbase <- grepl(pattern, cname) # this row points to a "ph" coef        
-        for (i in which(phbase)) {
-            # Say that this row (i) of cmap had label ph(1:4), and contains
-            #   elements 0,0,0,0,0, 8,9.
-            # This means that coefs 8 and 9 are special.  They should be
-            #   plugged into a matching element of baselinecoef.
-            #   The columns names of smap and cmap are identical, and tell us
-            #   where to put them.
-            j <- object$cmap[i,]
-            baselinecoef[2, j>0] <- exp(object$coef[j])
-        }
-    }
-      
+    missid <- TRUE
+
     # process options, set up Y and the model frame for the original data
     Terms  <- terms(object)
-    robust <- !is.null(object$naive.var)   # did the coxph model use robust var?
-
     if (!is.null(attr(object$terms, "specials")$tt))
         stop("The survfit function can not process coxph models with a tt term")
 
@@ -81,73 +62,43 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95, individual=FALSE,
     if (any(tfac >1))
         stop("not able to create a curve for models that contain an interaction without the lower order effect")
 
-    Terms <- object$terms
     n <- object$n[1]
     if (!has.strata) strata <- NULL
     else strata <- object$strata
 
-    if (!missing(individual)) warning("the `id' option supersedes `individual'")
-    missid <- missing(id) # I need this later, and setting id below makes
-                          # "missing(id)" always false
-
-    if (!missid) individual <- TRUE
-    else if (missid && individual) id <- rep(0L,n)  #dummy value
-    else id <- NULL
-
-    if (individual & missing(newdata)) {
-        stop("the id option only makes sense with new data")
-    }
     if (has.strata) {
         temp <- attr(Terms, "specials")$strata
         factors <- attr(Terms, "factors")[temp,]
         strata.interaction <- any(t(factors)*attr(Terms, "order") >1)
     }
-    coxms <- inherits(object, "coxphms")
-    if (coxms || is.null(object$y) || is.null(object[['x']]) ||
-        !is.null(object$call$weights) || !is.null(object$call$id) ||
-        (has.strata && is.null(object$strata)) ||
-        !is.null(attr(object$terms, 'offset'))) {
-        
-        mf <- model.frame(object)
-        y <- model.extract(mf, "response")
-        istate <- model.extract(mf, "istate")
-    }
-    else mf <- NULL  #useful for if statements later
+    mf <- model.frame(object) # I currently have not choice
     position <- NULL
     Y <- object[['y']]
-    if (is.null(mf)) {
-        weights <- object$weights  # let offsets/weights be NULL until needed
-        offset <- NULL
-        offset.mean <- 0
-        X <- object[['x']]
-    }
+    weights <- model.weights(mf)
+    offset <- model.offset(mf)
+    if (is.null(offset)) offset.mean <- 0
     else {
-        weights <- model.weights(mf)
-        offset <- model.offset(mf)
-        if (is.null(offset)) offset.mean <- 0
-        else {
-            if (is.null(weights)) offset.mean <- mean(offset)
-            else offset.mean <- sum(offset * (weights/sum(weights)))
-        }
-        X <- model.matrix.coxph(object, data=mf)
-        if (is.null(Y) || coxms) {
-            Y <- model.response(mf)
-            if (is.null(object$timefix) || object$timefix) Y <- aeqSurv(Y)
-        }
-        oldid <- model.extract(mf, "id")
-        if (length(oldid) && ncol(Y)==3) position <- survflag(Y, oldid)
-        else position <- NULL
-        if (!coxms && (nrow(Y) != object$n[1])) 
-            stop("Failed to reconstruct the original data set, wrong number of rows")
-        if (has.strata) {
-            if (length(strata)==0) {
-                if (length(stangle$vars) ==1) strata <- mf[[stangle$vars]]
-                else strata <- strata(mf[, stangle$vars], shortlabel=TRUE)
-            }
-        }
-
+        if (is.null(weights)) offset.mean <- mean(offset)
+        else offset.mean <- sum(offset * (weights/sum(weights)))
     }
-    if (is.null(istate)) istate <- model.extract(mf, "istate") # not already done
+    X <- model.matrix(object, data=mf)
+    if (is.null(Y)) {
+        Y <- model.response(mf)
+        if (is.null(object$timefix) || object$timefix) Y <- aeqSurv(Y)
+    }
+    oldid <- model.extract(mf, "id")
+    if (length(oldid) && ncol(Y)==3) position <- survflag(Y, oldid)
+    else position <- NULL
+    if (nrow(Y) != object$n[1]) 
+        stop("Failed to reconstruct the original data set")
+    if (has.strata) {
+        if (length(strata)==0) {
+            if (length(stangle$vars) ==1) strata <- mf[[stangle$vars]]
+            else strata <- strata(mf[, stangle$vars], shortlabel=TRUE)
+        }
+    }
+
+    istate <- model.extract(mf, "istate")
 
     #deal with start time, by throwing out observations that end before then
     if (!missing(start.time)) {
@@ -166,7 +117,6 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95, individual=FALSE,
         }
     }
     
-    # expansion of the X matrix with stacker, set up shared hazards
     # Rebuild istate using the survcheck routine, as a double check
     # that the data set hasn't been modified
     mcheck <- survcheck2(Y, oldid, istate)
@@ -183,6 +133,15 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95, individual=FALSE,
         if (any(is.na(istate))) stop("unrecognized initial state, data changed?")
     }
 
+    temp <- object$smap["(Baseline)",] 
+    B <- coef(object, matrix=TRUE)
+    if (any(duplicated(temp)) && !is.null(object$phZ)) {
+        # We have shared proportional hazards
+        eta <- colSums(object$phZ * B[rownames(object$phZ),, drop=F])
+        browser()
+        baselinecoef <- rbind(temp, exp(eta))
+    }
+      
     # Let the survfitAJ routine do the work of creating the
     #  overall counts (n.risk, etc).  The rest of this code then
     #  replaces the surv and hazard components.
@@ -198,21 +157,20 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95, individual=FALSE,
 
     # For computing the  actual estimates it is easier to work with an
     #  expanded data set.
-    # Replicate actions found in the coxph-multi-X chunk
+    # Replicate actions found in the coxph.
     # Note the dropzero=FALSE argument: if there is a transition with no 
     #  covariates we still need it expanded; this differs from coxph.
     # A second differnence is tstrata: force stacker to think that every
     #  transition is a unique hazard, so that it does proper expansion.
     cluster <- model.extract(mf, "cluster")
     tstrata <- object$smap
-    tstrata[1,] <- 1:ncol(tstrata)
-    xstack <- stacker(object$cmap, tstrata, as.integer(istate), X, Y,
-                      mf=mf, states= object$states, dropzero=FALSE)
+    xstack <- stacker(object$cmap, tstrata, as.integer(istate), X, Y, mf=mf,
+                      states=object$states)
     if (length(position) >0)
         position <- position[xstack$rindex]   # id was required by coxph
     X <- xstack$X
     Y <- xstack$Y
-    strata <- strata[xstack$rindex]  # strat in the model, other than transitions
+    strata <- strata[xstack$rindex] # strat in the model, other than transitions
     transition <- xstack$transition
     istrat <- xstack$strata
     if (length(offset)) offset <- offset[xstack$rindex]

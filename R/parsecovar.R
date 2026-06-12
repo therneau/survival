@@ -285,14 +285,14 @@ parsecovar2 <- function(covar1, statedata, dformula, Terms, transitions,states) 
     # transitions implied by the user's model statement should be counted can lead
     # to including a *lot* of state combinations that are improbable or impossible.
     # So we no longer extend the state space.
-    #  But keep the code here just in case we change our mind
-    #temp <- matrix(tmap[1,indx1,indx2], nrow=nrow(t2))
-    #for (i in unique(temp)) {
-    #    if (sum(temp==i) > 1) { #shared hazard
-    #        j <- cbind(row(temp)[temp==i], col(temp)[temp==i])
-    #        t2[j] <- sum(t2[j])  # credit all with all the events
-    #    }
-    #}
+    #  Added back in on 6/2026
+    temp <- matrix(tmap[1,indx1,indx2], nrow=nrow(t2))
+    for (i in unique(temp)) {
+        if (sum(temp==i) > 1) { #shared hazard
+            j <- cbind(row(temp)[temp==i], col(temp)[temp==i])
+            t2[j] <- sum(t2[j])  # credit all with all the events
+        }
+    }
 
     tmap2 <- matrix(0L, nrow= 1+nterm, ncol= sum(t2>0))
     trow <- row(t2)[t2>0]

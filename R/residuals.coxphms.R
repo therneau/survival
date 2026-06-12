@@ -31,23 +31,25 @@ residuals.coxphms <- function(object, type=c("martingale","score",
         stop("deviance residuals not supported for multi-state")
     otype <- type
     if (type=='dfbeta' || type=='dfbetas') {
-        otype <- type   # used for error messge
+        otype <- type   # used for error message
 	type <- 'score'
 	if (missing(weighted))
             weighted <- TRUE  # different default for this case
     }
     if (type=='scaledsch') type<-'schoenfeld'
     method <- object$method
-    if (method=='exact' && (type=='score' || type=='schoenfeld'))
-	stop(paste(otype, 'residuals are not available for the exact method'))
 
     # if type = martingale and collapse is false the computation is quick
     # it is also a common use case
+    # don't return a colum of residuals for a transition with no covariates:
+    #  those weren't returned by the coxph call
+    nonzero <- colSums(object$cmap) >0
+    cmap <- object$cmap[,nonzero]
     if (type=='martingale' && is.logical(collapse) && !collapse &&
           is.logical(weighted) && !weighted) {
-        rr <- matrix(0, nrow=object$n, ncol= ncol(object$cmap))
+        rr <- matrix(0, nrow=object$n, ncol= ncol(cmap))
         rr[object$rmap] <- object$residuals   # matrix subscript
-        colnames(rr) <- colnames(object$cmap)
+        colnames(rr) <- colnames(cmap)
         if (!is.null(omit)) return(naresid(omit, rr))
         else return(rr)
     }
@@ -59,8 +61,7 @@ residuals.coxphms <- function(object, type=c("martingale","score",
     offset <- model.offset(mf)
 
     # and we will refer to these multiple times
-    smap <- object$smap
-    cmap <- object$cmap
+    smap <- object$smap[,nonzero]
     utran <- colnames(smap)[unique(smap[1,])]  # the unique transitions
 
     if (!is.logical(collapse)) {

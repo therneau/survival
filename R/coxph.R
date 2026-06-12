@@ -523,6 +523,7 @@ coxph <- function(formula, data, weights, subset, na.action,
         return(rval)
     }
     if (multi) {
+        if (method=="exact") stop("ties='exact' not supported for multistate")
         if (length(strats) >0) {
             # tmap starts with a "(Baseline)" row, which we want
             # strats is indexed off the data frame, which includes the response,
@@ -535,7 +536,6 @@ coxph <- function(formula, data, weights, subset, na.action,
                             covlist2$phbaseline)
         xstack <- stacker(cmap, smap, as.integer(istate), X, Y, mf = mf,
                           states=states)
-
         Xsave <- X  # the originals may be needed later
         Ysave <- Y
         X <- xstack$X
@@ -717,8 +717,7 @@ coxph <- function(formula, data, weights, subset, na.action,
         fit$states <- states
         fit$cmap <- cmap
         fit$smap <- smap   # why not 'stratamap'?  Confusion with fit$strata
-        nonzero <- which(colSums(cmap)!=0)
-        fit$rmap <- matrix(c(xstack$rindex, nonzero[xstack$transition]), 
+        fit$rmap <- matrix(c(xstack$rindex, xstack$stran), 
                            ncol=2, dimnames= list(NULL, c("row", "transition")))
         # add a suffix to each coefficent name.  Those that map to multiple 
         #  transitions get the first transition they map to
@@ -756,9 +755,58 @@ coxph <- function(formula, data, weights, subset, na.action,
             if (any(colSums(cmap) ==0)) {
                 from.state <- as.numeric(sub(":.*$", "", colnames(cmap)))
                 to.state   <- as.numeric(sub("^.*:", "", colnames(cmap)))
-               # warning("no covariate residuals not filled in")
+               # warning("no covariate residuals are not filled in")
             }
             fit$residuals <- temp
+        }
+        
+        # Add information about covariates linked to a shared hazard. In my
+        #  documentation these are called \gamma coefs
+        # Say that we had 4 states, 1:4, 2:4, and 3:4 have a shared baseline
+        #  hazard, and the values of some variable 'zed' exactly align, i.e.
+        #  all 1:4 rows have the same value of zed, all 2:4 have the same value
+        #  (but different from 1:4 rows), and ditto for 3:4.  Then we assume that
+        #  this coef is a gamma not a beta.
+        if (any(duplicated(smap[1,]))) {
+            # There are shared baselines, see if there are special coefs
+            # See the section on "shared hazards" in the methods document
+            # 1. only time-dependent variables are elibible (or phbaseline)
+            tdvar <- apply(Xsave, 2, function(x)
+                any(unlist(tapply(x, id, function(z) any(z!=z[1])))))
+            tdvar2 <- rep(TRUE, nrow(cmap)) # this line and next for "ph(a:b)"
+            tdvar2[match(names(tdvar), rownames(cmap))] <- tdvar
+            phcoef <- 0*cmap # inherit dimnames
+            from.state <- as.numeric(sub(":.*$", "", colnames(cmap)))
+            xtran <- as.numeric(xstack$transition) # transition number, each row
+            isgamma <- tdvar2
+            # 2. xstack counts strata over cols of cmap that are not all 0
+            #  create sbase so that sbase[i] aligns with xstack$strata
+            ckeep <- which(colSums(cmap)>0)
+            sbase <- match(smap[1, ], unique(smap[1, ckeep]), nomatch=0)
+            for (i in which(tdvar2)) { # might be none
+                # for each potential covar, is it always constant?
+                for (j in 1:ncol(smap)) { # for each hazard
+                    if (isgamma[i] && cmap[i,j] > 0) { # the variable is used
+                        irow <- (xstack$strata== sbase[j] & xtran==j)
+                        if (any(irow)) {
+                            temp <- X[irow, cmap[i,j]]
+                            if (all(temp== temp[1])) phcoef[i,j] <- temp[1]
+                            else isgamma[i] <- FALSE
+                        }
+                    }
+                }
+            }
+            # Last check: if variables are part of a single term, it is
+            #  all or none.
+            # "j" is a fix for ph() terms
+            if (any(tdvar)) {
+                j <- which(tdvar)
+                isgamma[j] <- unlist(tapply(isgamma[j], 
+                                            attr(Xsave, "assign")[j],
+                                     function(i) i & all(i)))
+            }
+
+            if (any(isgamma)) fit$phZ <- phcoef[isgamma,,drop=FALSE]
         }
         class(fit) <- c("coxphms", class(fit))
     }

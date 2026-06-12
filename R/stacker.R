@@ -28,18 +28,6 @@ stacker <- function(cmap, smap, istate, X, Y, mf, states, dropzero=TRUE) {
         from.state <- from.state[check>0]
         to.state <- to.state[check>0]
     }
-
-    # Don't create X and Y matrices for transitions with no covariates, for
-    #  coxph calls.  But I need them for survfit.coxph (at present)
-    zerocol <- apply(cmap==0, 2, all)
-    if (dropzero && any(zerocol)) {
-        cmap <- cmap[,!zerocol, drop=FALSE] 
-        smap <- smap[,!zerocol, drop=FALSE]
-        smap[,] <- match(smap, sort(unique(c(smap)))) # relabel as 1, 2,...
-        from.state <- from.state[!zerocol]
-        to.state <- to.state[!zerocol]
-    }
-        
     endpoint <- c(0, match(attr(Y, "states"), states))
     endpoint <- endpoint[ 1 + Y[,ncol(Y)]]  # endpoint of each row, 0=censor
 
@@ -56,32 +44,45 @@ stacker <- function(cmap, smap, istate, X, Y, mf, states, dropzero=TRUE) {
     #  of the process.  For the use cases found there, the code below is now
     #  correct.  For others, the data produced may be questionable;
     #  we await an actual use case to work things out.
-    # The constructed X matrix will have a block of rows for each column of
-    #  cmap such that: the column is not 0, it is not a duplicate of another
-    #  cmap column that is in the same stratum.  
-    # Within a stratum we retain sort order of the data
+    # June 2026: if 1:3, 2:3 and 1:4 were shared strata, there are 3 blocks
+    #  First all those at risk for 1:3: istate==1, then all those at risk
+    #  for 2:3: istate==2, then at risk for 1:3: istate==1. If the user included
+    #  a +shared arg the resulting model could possibly make sense?
+    #  Also return an transition vector containing the transition number of 
+    #  each block. This is different from strans = the shared one and strata=
+    #  strans + user strata; the likelihood computation needs the last of 
+    #  these.
+    # Within a given hazard we retain sort order of the data
 
-    sgrp   <- match(smap[1,], unique(smap[1,]))  # the stratum group
-    nblock <- max(sgrp)  # total number of blocks
+    # Don't create X and Y matrices for transitions with no covariates, for
+    #  coxph calls.  But I need them for survfit.coxphms (at present)
+    # June 2026 -- I not longer think so
+    zerocol <- apply(cmap==0, 2, all)
+    baseline <- smap[1,]
+    if (dropzero && any(zerocol)) {
+        sgrp <- match(baseline[!zerocol], unique(baseline))
+    } else sgrp   <- match(baseline, unique(baseline)) 
+#        cmap <- cmap[,!zerocol, drop=FALSE] 
+#        smap <- smap[,!zerocol, drop=FALSE]
+#        smap[,] <- match(smap, sort(unique(c(smap)))) # relabel as 1, 2,...
+#        from.state <- from.state[!zerocol]
+#        to.state <- to.state[!zerocol]
+#    }
+#     sgrp   <- match(smap[1,], unique(smap[1,]))  # the stratum group
+    ugrp <- unique(sgrp)
+    nblock <- length(ugrp)  # total number of blocks
     # Pass 1 to find the total data set size
     n.perblock <- integer(nblock)
     cgrp <- vector("list", nblock)
+    icount <- table(istate)
     for (i in 1:nblock) {
-        j <- which(sgrp == i)  # which cols of cmap & smap apply
-        ctemp <- !duplicated(t(cmap[,j, drop=FALSE])) # unique coef sets in sgrp
-        cgrp[[i]] <- lapply(j[which(ctemp)],
-                       function(i) {
-                           temp <- cmap[,j,drop=FALSE] - cmap[,i]
-                           j[which(apply(temp, 2, function(x) all(x==0)))]})
-        # cgrp[[i]] will be a list, 99% of the time it will be of length 1: 
-        #  a vector containing all the columns of cmap that go with this strata
-        #  This is the case found in the vignette (with multiple subcases):
-        #  everyone at risk appears once in the stratum
-        # if cgrp has length >1 the resulting risk sets have dups of some or
-        #  all obs, but with different coefficient patterns.
+        cgrp[[i]] <- which(baseline == ugrp[i]) 
+        # cgrp[[i]] will be a list, 99% of the time there are no shared
+        #  baseline hazards and it will be of length 1
+        #
         temp <- 0
         for (k in cgrp[[i]])
-            temp <- temp + sum(istate %in% from.state[k])
+            temp <- temp + icount[from.state[k]]
         n.perblock[i] <- temp
     }
     
@@ -91,18 +92,21 @@ stacker <- function(cmap, smap, istate, X, Y, mf, states, dropzero=TRUE) {
     k <- 0
     rindex <- integer(n2)   # original row for each new row of data
     newstat <- integer(n2)  # new status
-    Xcols   <- ncol(X)      # number of columns in X
+    stran   <- rep(1:nblock, n.perblock) # the shared transition number
+    transition <- unlist(lapply(cgrp, function(i) {
+        rep(i, icount[from.state[i]])}))
+    Xcols <- ncol(X)
     for (i in 1:nblock) {
         for (j in cgrp[[i]]) {
             subject <- which(istate %in% from.state[j]) # data rows in strata
             nr <- k + seq(along.with =subject)  # rows in the newX for subblock
             rindex[nr] <- subject
-            nc <- cmap[,min(j)]  # all cols j of cmap are the same
+            nc <- cmap[,j] # coefficients for this transition
+            newX[nr, nc] <- X[subject, which(nc>0)]
             if (any(nc > Xcols)) { # constructed PH variables
                 newX[nr, nc[nc>Xcols] ] <- 1
                 nc <- nc[1:Xcols]
             }
-            newX[nr, nc[nc>0]] <- X[subject, which(nc>0)] #row of cmap= col of X
         
             event.that.counts <- (endpoint[subject] %in% to.state[j])
             newstat[nr] <- ifelse(event.that.counts, 1L, 0L)
@@ -111,8 +115,7 @@ stacker <- function(cmap, smap, istate, X, Y, mf, states, dropzero=TRUE) {
     }
 
     # which (grouped) transition each row of newX represents
-    transition <- rep(1:nblock, n.perblock)
-    newstrat <- factor(colnames(smap)[transition], colnames(smap))
+    newstrat <- stran
     # newstrat will be 1:2, ... i.e. the from:to pairs
     if (nrow(smap) >1) {
         # there are strata in the call as well, so expand the strata to
@@ -145,27 +148,13 @@ stacker <- function(cmap, smap, istate, X, Y, mf, states, dropzero=TRUE) {
         rindex <- rindex[keep]
         newstat <- newstat[keep]
         transition <- transition[keep]
+        stran <- stran[keep]
         newstrat <- newstrat[keep]
     }
 
     if (ncol(Y) ==2) newY <- Surv(Y[rindex,1], newstat)
     else newY <- Surv(Y[rindex,1], Y[rindex,2], newstat)
 
-
-    # If there were multiple unique cmap columns within one strata, then an
-    #  observation might appear twice, and we might no longer be sorted.
-    # (This is also the case where we do not yet know what a 'sensible'
-    # result of stacker should be, i.e., very rare.)
-    if (any(sapply(cgrp, length)) > 1) {
-        indx <- order(newstrat, rindex)
-        if (any(diff(indx) !=1)) {
-            newX <- newX[indx,, drop=FALSE]
-            rindex <- rindex[indx]
-            newstat <- newstat[indx]
-            transition <- transition[indx]
-        }
-    }
-                      
     #
     # give variable names to the new data  (some names get used more than once)
     #    vname <- rep("", ncol(newX))
@@ -174,5 +163,7 @@ stacker <- function(cmap, smap, istate, X, Y, mf, states, dropzero=TRUE) {
     vname <- rownames(cmap)[row(cmap)[first]]
     colnames(newX) <- vname
     list(X=newX, Y=newY, strata=as.integer(newstrat), 
-         transition= as.integer(transition), rindex=rindex)
+         transition= factor(transition, 1:ncol(smap), colnames(smap)),
+         rindex=rindex,
+         stran = stran)
 }
