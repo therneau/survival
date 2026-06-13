@@ -95,17 +95,17 @@ stacker <- function(cmap, smap, istate, X, Y, mf, states, dropzero=TRUE) {
     stran   <- rep(1:nblock, n.perblock) # the shared transition number
     transition <- unlist(lapply(cgrp, function(i) {
         rep(i, icount[from.state[i]])}))
-    Xcols <- ncol(X)
+    Xcols <- 1:ncol(X)
+    hasph <- nrow(cmap) > ncol(X)  # there are constructed PH variables
     for (i in 1:nblock) {
         for (j in cgrp[[i]]) {
             subject <- which(istate %in% from.state[j]) # data rows in strata
             nr <- k + seq(along.with =subject)  # rows in the newX for subblock
             rindex[nr] <- subject
-            nc <- cmap[,j] # coefficients for this transition
+            nc <- cmap[Xcols,j] # coefficients for this transition
             newX[nr, nc] <- X[subject, which(nc>0)]
-            if (any(nc > Xcols)) { # constructed PH variables
-                newX[nr, nc[nc>Xcols] ] <- 1
-                nc <- nc[1:Xcols]
+            if (hasph) { # constructed PH variables
+                newX[nr, cmap[-Xcols,j]] <- 1
             }
         
             event.that.counts <- (endpoint[subject] %in% to.state[j])

@@ -1527,8 +1527,9 @@ Think of the right hand side as $Z\gamma + X\beta$, covariate/coefficient block
 for shared proportional hazards and another for covariates.
 
 The \code{stacker} routine creates a working $X$ matrix with a block of rows for
-each of the 7 baseline hazards and a column for each of the 14 coefficients
-and working $Y$ and strata vectors.  It proceeds column by column through
+each of the 7 baseline hazards and a column for each of the 14 coefficients,
+along with $Y$ and strata vectors.
+It proceeds column by column through
 smap and cmap, with one block of rows for each unique baseline in smap, and
 coefficients determined by cmap.
 \begin{itemize}
@@ -1567,25 +1568,25 @@ In the fit, there is no distinction between the $\gamma$ coefficients
 of our equations,
 which are associated with proportional baseline hazards, and the $\beta$
 coefficients associated with per-subject covariates.
-This distinction is inferred at the end of the fit, by identifying 
+This distinction is recovered at the end of the fit, by identifying 
 components of $XB$ that are constant within each sub-hazard of a shared
 hazard. Such terms are effectively independent of subject, and we assign
 them to the $X\gamma$ portion.  This is important later, when computing
 absolute risks.
-If any are identified, a phcoef matrix is included that duplicates relevant
-rows of cmap, and contains relevant value from the $X$ matrix.
-By definition, any time-fixed covariate is not eligible, and (IMHO) it
+If any are identified, a phZ matrix is included that duplicates relevant
+rows of cmap, and contains relevant value from the $Z$ matrix.
+By definition, a time-fixed covariate is not eligible, and (IMHO) it
 makes no sense to have a TD covariate which is sometime bundled with the
 hazard and sometimes not, as I have no blueprint to create a proper curve
 in such a case.
 
 In the above example, the nafld and male variable are time-fixed so not
 considered. The 3 cstate variables appear in the 1:5, 2:5, 3:5, and 4:5
-strata. All are 0 in the 1:5 group, are (1,0,0) for all rows in the second,
-(0,1,0) for all in the third and (0,0,1) for the last.  The code is a pair
+strata. All are 0 in the 1:5 group, are (1,0,0) for all rows in the 2:5 group,
+(0,1,0) for all in the 3:4 and (0,0,1) and 4:5 data rows.  The code is a pair
 of nested loops over row of cmap and col of smap.
 
-The shared vignette now does this 2 other ways, leading to similar fits
+The shared vignette now fits the model in 2 other ways, leading to similar fits
 <<nfit2>>=
 ndata$notzero <- 1*(ndata$cstate != "0mc")
 nfit2 <- coxph(list(Surv(age1, age2, event) ~ nafld + male,
@@ -1631,21 +1632,33 @@ pbc10$be <- with(pbc10, factor(ifelse(lastrow, 10*death, temp9),0:10,
 
 check1 <- survcheck(Surv2(day, bili3) ~ 1, pbc10, id=id)
 check2 <- survcheck(Surv2(day, be) ~ 1, pbc10, id=id)
+table(check2$transitions[1:9, 1:9] >0)
 
 # td model, and states model
 pfit1 <- coxph(list(Surv2(day, be) ~1,
                     0:'death' ~ age + bgrp + edema +1 / common),
                pbc10, id=id)
+
 ckeep <- colSums(pfit1$cmap) >0
-pfit1$phcoef[,ckeep]
+table(ckeep)
+pfit1$cmap[,ckeep]
+pfit1$phZ[,ckeep]
 @ 
 
-In the above model $X\gamma$ has two coefficients for the 3 bilirubin
-groups and one for edema: 10 hazards with an additive structure. To
-create the multiplier the survfit routine needs to the $X$ values from
-phcoef, and the coefficients from the coefficient vector.
+The fit imposes no model for the 46 observed transtions between pairs
+of the  9 bilrubin*edema states, those 46 have only zeros in the cmap table
+since there are no associated coefficients.
+(I have thought about not storing these unused columns, since typing
+\code{pfit1\$cmap} leads to so much output, but computation is
+a bit easier if cmap and smap match and it is easy for a user to create an
+index like my ckeep above.)
 
- 
+In the above model there are 9 shared hazards but only 3 $\gamma$ coefficients,
+as we have an additive structure $Z\gamma$.  Two coefficients for the 3
+level factor \code{bgrp} and one coefficient for edema. 
+If we had said \code{/ common + shared} there would have been 8 coefficients,
+treating 9 starting states as a factor.
+
 
 \chapter{Residuals}
 \section{Survival}

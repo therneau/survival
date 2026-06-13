@@ -1,5 +1,10 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 3.8-9}{
+  \itemize{
+    \item Additions to coxph and stacker to more fully support shared
+    baseline hazards.
+}}
 \section{Changes in version 3.8-8}{
   \itemize{
     \item Add the timefix option to survSplit, after finding that the

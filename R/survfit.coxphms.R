@@ -142,6 +142,7 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95,
         browser()
         baselinecoef <- rbind(temp, exp(eta))
     }
+
       
     # Let the survfitAJ routine do the work of creating the
     #  overall counts (n.risk, etc).  The rest of this code then
@@ -159,10 +160,6 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95,
     # For computing the  actual estimates it is easier to work with an
     #  expanded data set.
     # Replicate actions found in the coxph.
-    # Note the dropzero=FALSE argument: if there is a transition with no 
-    #  covariates we still need it expanded; this differs from coxph.
-    # A second differnence is tstrata: force stacker to think that every
-    #  transition is a unique hazard, so that it does proper expansion.
     cluster <- model.extract(mf, "cluster")
     tstrata <- object$smap
     xstack <- stacker(object$cmap, tstrata, as.integer(istate), X, Y, mf=mf,
@@ -178,7 +175,7 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95,
     if (length(weights)) weights <- weights[xstack$rindex]
     if (length(cluster)) cluster <- cluster[xstack$rindex]
     oldid <- oldid[xstack$rindex]
-    if (robust & length(cluster)==0) cluster <- oldid
+    if (length(cluster)==0) cluster <- oldid
 
     # risk scores, mf2, and x2
     if (length(object$means) ==0) { # a model with only an offset term
@@ -205,79 +202,54 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95,
         else     risk <- c(exp(X%*% beta + offset - xcenter))
     }
     if (missing(newdata)) {
-        # If the model has interactions, print out a long warning message.
-        #  People may hate it, but I don't see another way to stamp out these
-        #  bad curves without backwards-incompatability.  
-        # I probably should complain about factors too (but never in a strata
-        #   or cluster term).
-        if (any(attr(Terms, "order") > 1) )
-            warning("the model contains interactions; the default curve based on columm means of the X matrix is almost certainly not useful. Consider adding a newdata argument.")
+        stop("a newdata argument is required for multistate model predictions")
+    }
+    Terms2 <- delete.response(Terms)
+    y2 <- NULL  # a dummy to carry along, for the call to coxsurv.fit
+
+    if (is.vector(newdata, "numeric")) {
+        if (is.null(names(newdata))) {
+            stop("Newdata argument must be a data frame")
+        }
+        newdata <- data.frame(as.list(newdata), stringsAsFactors=FALSE)
+    }  else if (is.list(newdata)) newdata <- as.data.frame(newdata) 
+    if (has.strata) {
+        found.strata <- TRUE
+        tempenv <- new.env(, parent=emptyenv())
+        assign("strata", function(..., na.group, shortlabel, sep)
+            list(...), envir=tempenv)
+        assign("list", list, envir=tempenv)
+        for (svar in stangle$vars) {
+            temp <- try(eval(parse(text=svar), newdata, tempenv),
+                        silent=TRUE)
+            if (!is.list(temp) || 
+                any(unlist(lapply(temp, class))== "function"))
+                found.strata <- FALSE
+        }
         
-        if (length(object$means)) {
-            mf2 <- as.list(object$means)   #create a dummy newdata
-            names(mf2) <- names(object$coefficients)
-            mf2 <- as.data.frame(mf2)
-            x2 <- matrix(object$means, 1)
+        if (!found.strata) {
+            ss <- untangle.specials(Terms2, "strata")
+            Terms2 <- Terms2[-ss$terms]
         }
-        else { # nothing but an offset
-            mf2 <- data.frame(X=0)
-            x2 <- 0
-        }
-        offset2 <- 0
-        found.strata <- FALSE  
     }
-    else {
-        if (!is.null(object$frail))
-            stop("Newdata cannot be used when a model has frailty terms")
+        
+    if (!is.null(object$phZ)) {
+        # covariates in shared hazards don't have to be in the
+        # newdata data frame
+        # this part is not yet done
+    }
 
-        Terms2 <- Terms 
-        if (!individual)  {
-            Terms2 <- delete.response(Terms)
-            y2 <- NULL  # a dummy to carry along, for the call to coxsurv.fit
-        }
-        if (is.vector(newdata, "numeric")) {
-            if (individual) stop("newdata must be a data frame")
-            if (is.null(names(newdata))) {
-                stop("Newdata argument must be a data frame")
-            }
-            newdata <- data.frame(as.list(newdata), stringsAsFactors=FALSE)
-        }  else if (is.list(newdata)) newdata <- as.data.frame(newdata) 
-        if (has.strata) {
-            found.strata <- TRUE
-            tempenv <- new.env(, parent=emptyenv())
-            assign("strata", function(..., na.group, shortlabel, sep)
-                list(...), envir=tempenv)
-            assign("list", list, envir=tempenv)
-            for (svar in stangle$vars) {
-                temp <- try(eval(parse(text=svar), newdata, tempenv),
-                            silent=TRUE)
-                if (!is.list(temp) || 
-                    any(unlist(lapply(temp, class))== "function"))
-                    found.strata <- FALSE
-            }
-            
-            if (!found.strata) {
-                ss <- untangle.specials(Terms2, "strata")
-                Terms2 <- Terms2[-ss$terms]
-            }
-        }
-        if (!is.null(object$phZ)) {
-            # covariates in shared hazards don't have to be in the
-            # newdata data frame
-            browser()
-            }
-
-        tcall <- Call[c(1, match(c("id", "na.action"), 
+    tcall <- Call[c(1, match(c("id", "na.action"), 
                                      names(Call), nomatch=0))]
-        tcall$data <- newdata
-        tcall$formula <- Terms2
-        tcall$xlev <- object$xlevels[match(attr(Terms2,'term.labels'),
-                                           names(object$xlevels), nomatch=0)]
-        tcall[[1L]] <- quote(stats::model.frame)
-        mf2 <- eval(tcall)
-        if (nrow(mf2) ==0)
-            stop("all rows of newdata have missing values")
-    }
+    tcall$data <- newdata
+    tcall$formula <- Terms2
+    tcall$xlev <- object$xlevels[match(attr(Terms2,'term.labels'),
+                                       names(object$xlevels), nomatch=0)]
+    tcall[[1L]] <- quote(stats::model.frame)
+    mf2 <- eval(tcall)
+    if (nrow(mf2) ==0)
+        stop("all rows of newdata have missing values")
+    
     if (has.strata && found.strata) { #pull them off
         temp <- untangle.specials(Terms2, 'strata')
         strata2 <- strata(mf2[temp$vars], shortlabel=TRUE)
@@ -290,46 +262,11 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95,
     }
     else strata2 <- factor(rep(0, nrow(mf2)))
 
-    if (!robust) cluster <- NULL
-    if (individual) {
-        if (missing(newdata)) 
-            stop("The newdata argument must be present when individual=TRUE")
-        if (!missid) {  #grab the id variable
-            id2 <- model.extract(mf2, "id")
-            if (is.null(id2)) stop("id=NULL is an invalid argument")
-            }
-        else id2 <- rep(1, nrow(mf2))
-        
-        x2 <- model.matrix(Terms2, mf2)[,-1, drop=FALSE]  #no intercept
-        if (length(x2)==0) stop("Individual survival but no variables")
-
-        offset2 <- model.offset(mf2)
-        if (length(offset2) ==0) offset2 <- 0
-                     
-        y2 <- model.extract(mf2, 'response')
-        if (attr(y2,'type') != type)
-            stop("Survival type of newdata does not match the fitted model")
-        if (attr(y2, "type") != "counting")
-            stop("Individual=TRUE is only valid for counting process data")
-        y2 <- y2[,1:2, drop=F]  #throw away status, it's never used
-    }
-    else if (missing(newdata)) {
-        if (has.strata && strata.interaction)
-            stop ("Models with strata by covariate interaction terms require newdata")
-        offset2 <- 0
-        if (length(object$means)) {
-            x2 <- matrix(object$means, nrow=1, ncol=ncol(X))
-        } else {
-            # model with only an offset and no new data: very rare case 
-            x2 <- matrix(0.0, nrow=1, ncol=1)   # make a dummy x2
-        }
-    } else {
-        offset2 <- model.offset(mf2)
-        if (length(offset2)==0 ) offset2 <- 0
-        # a model with only an offset, but newdata containing a value for it
-        if (length(object$means)==0) x2 <- 0
-        else x2 <- model.matrix(Terms2, mf2)[,-1, drop=FALSE]  #no intercept
-    }
+    offset2 <- model.offset(mf2)
+    if (length(offset2)==0 ) offset2 <- 0
+    # a model with only an offset, but newdata containing a value for it
+    if (length(object$means)==0) x2 <- 0
+    else x2 <- model.matrix(Terms2, mf2)[,-1, drop=FALSE]  #no intercept
 
     if (has.strata && any(stangle$vars %in% names(mf2))){
         mf2 <- mf2[is.na(match(names(mf2), stangle$vars))]
