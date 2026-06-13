@@ -8,17 +8,18 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95,
          censor=TRUE, start.time, id, influence=FALSE,
          na.action=na.pass, type, p0=NULL, time0=FALSE, ...) {
 
-    if (!inherits(formula, "survfit.coxphms"))
-        stop("argument must be a survfit.coxphms object")
+    if (!inherits(formula, "coxphms"))
+        stop("argument must be a coxphms object")
     Call <- match.call()
     Call[[1]] <- as.name("survfit")  #nicer output for the user
     object <- formula     #'formula' because it has to match survfit
     se.fit <- FALSE   #still to do
     if (missing(newdata))
         stop("multi-state survival requires a newdata argument")
-    if (!missing(id)) 
+    if (!missing(id))
         stop("using a covariate path is not supported for multi-state")
     missid <- TRUE
+    individual <- FALSE
 
     # process options, set up Y and the model frame for the original data
     Terms  <- terms(object)
@@ -260,14 +261,18 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95,
                 Terms2 <- Terms2[-ss$terms]
             }
         }
+        if (!is.null(object$phZ)) {
+            # covariates in shared hazards don't have to be in the
+            # newdata data frame
+            browser()
+            }
 
-        tcall <- Call[c(1, match(c('id', "na.action"), 
+        tcall <- Call[c(1, match(c("id", "na.action"), 
                                      names(Call), nomatch=0))]
         tcall$data <- newdata
         tcall$formula <- Terms2
         tcall$xlev <- object$xlevels[match(attr(Terms2,'term.labels'),
                                            names(object$xlevels), nomatch=0)]
-        tcall$na.action <- na.omit  # do not allow missing values
         tcall[[1L]] <- quote(stats::model.frame)
         mf2 <- eval(tcall)
         if (nrow(mf2) ==0)
