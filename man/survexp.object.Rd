@@ -13,38 +13,38 @@ methods from \code{survfit}.
 }
 \section{Structure}{
 The following components must be included in a legitimate 
-\code{survfit} 
+\code{survexp} 
 object. 
-}
-\arguments{
-\item{surv}{
+\describe{
+\item{\code{surv}}{
 the estimate of survival at time t+0. 
 This may be a vector or a matrix. 
 }
-\item{n.risk}{
+\item{\code{n.risk}}{
 the number of subjects who contribute at this time.
 }
-\item{time}{
+\item{\code{time}}{
 the time points at which the curve has a step. 
 }
-\item{std.err}{
+\item{\code{std.err}}{
 the standard error of the cumulative hazard or -log(survival). 
 }
-\item{strata}{
+\item{\code{strata}}{
 if there are multiple curves, this component gives the number of elements of 
 the \code{time} etc. vectors corresponding to the first curve,
 the second curve, 
 and so on.  The names of the elements are labels for the curves. 
 }
-\item{method}{the estimation method used.  One of "Ederer", "Hakulinen",
+\item{\code{method}}{the estimation method used.  One of "Ederer", "Hakulinen",
   or "conditional".}
-\item{na.action}{
+\item{\code{na.action}}{
 the returned value from the na.action function, if any.  It will be used 
 in the printout of the curve, e.g., the number of observations deleted due 
 to missing values. 
 }
-\item{call}{
+\item{\code{call}}{
 an image of the call that produced the object. 
+}
 }
 }
 \section{Subscripts}{

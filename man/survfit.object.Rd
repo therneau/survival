@@ -17,113 +17,113 @@ for a print method and is documented on a separate page.
 \section{Structure}{
 The following components must be included in a legitimate 
 \code{survfit} or \code{survfitms} object. 
-}
-\arguments{
-  \item{n}{
+\describe{
+  \item{\code{n}}{
     total number of observations in each curve.
   }
-  \item{time}{
+  \item{\code{time}}{
     the time points at which the curve has a step. 
   }
-  \item{n.risk}{
+  \item{\code{n.risk}}{
     the number of subjects at risk at t. 
   }
-  \item{n.event}{
+  \item{\code{n.event}}{
     the number of events that occur at time t. 
   }
-  \item{n.enter}{
+  \item{\code{n.enter}}{
     for counting process data only, and only if there was an \code{id}
     argument, the number of subjects that enter the risk set during the
     current interval.  If there are event/censoring times at 1, 3, 5 for
     instance, someone who enters at time 1 is counted in the (1, 3]
     interval, i.e., appears in the row for time 3. 
   }
-  \item{n.censor}{
+  \item{\code{n.censor}}{
     for counting process data only,
     the number of subjects who exit the risk set,
     without an event,  at time t. 
     (For right censored data, this number can be computed from the successive
     values of the number at risk).
   }
-  \item{surv}{
+  \item{\code{surv}}{
     the estimate of survival at time t+0. 
     This may be a vector or a matrix. The latter occurs when a set of
     survival curves is created from a single Cox model, in which case
     there is one column for each covariate set. 
   }
-  \item{pstate}{
+  \item{\code{pstate}}{
     a multi-state survival will have the \code{pstate} component
     instead of \code{surv}.
     It will be a matrix containing the estimated probability
     of each state at each time, one column per state.
   }
-  \item{std.err}{
+  \item{\code{std.err}}{
     for a survival curve this contains standard error of the cumulative
     hazard or -log(survival), for a multi-state curve it contains the
     standard error of prev.  This difference is a reflection of
     the fact that each is the natural calculation for that case.
   }
-  \item{cumhaz}{optional.  Contains the cumulative
+  \item{\code{cumhaz}}{optional.  Contains the cumulative
     hazard for each possible transition.
   }
-  \item{counts}{optional. If weights were used, the \code{n.risk} etc
+  \item{\code{counts}}{optional. If weights were used, the \code{n.risk} etc
     elements contain weighted sums; the \code{counts} matrix will
     contain unweighted values.  Weighted values are normally more useful
     for further computation, unweighted may be preferred for labeling or
     printout.
   }
-  \item{strata}{
+  \item{\code{strata}}{
     if there are multiple curves, this component gives the number of
     elements of the \code{time}  vector corresponding to the first curve,
     the second curve, and so on.
     The names of the elements are labels for the curves. 
   }
-  \item{upper}{optional
+  \item{\code{upper}}{optional
     upper (2-sided) confidence limit for the survival curve or probability in state
   }
-  \item{lower}{optional 
+  \item{\code{lower}}{optional 
     lower (2-sidedconfidence limit for the survival curve or probability in state
   }
-  \item{t0}{optional, the starting time for the curve}
-  \item{p0, sp0}{for a multistate object, the distribution of starting
+  \item{\code{t0}}{optional, the starting time for the curve}
+  \item{\code{p0}, \code{sp0}}{for a multistate object, the distribution of starting
     states.  If the curve has a strata dimension, this will be a matrix
     one row per stratum.  The \code{sp0} element has the standard error
     of p0, if p0 was estimated.
   }
-  \item{newdata}{for survival curves from a fitted model, this contains
+  \item{\code{newdata}}{for survival curves from a fitted model, this contains
     the covariate values for the curves
   }
 
-  \item{n.id}{the total number of unique id values that contributed to
+  \item{\code{n.id}}{the total number of unique id values that contributed to
     the curve.  This is only available if the original call used the id
     option.
   }
-  \item{conf.type}{
+  \item{\code{conf.type}}{
     the approximation used to compute the confidence limits. 
   }
-  \item{conf.int}{
+  \item{\code{conf.int}}{
     the level of the confidence limits, e.g. 90 or 95\%. 
   }
-  \item{transitions}{for multi-state data, the total number
+  \item{\code{transitions}}{for multi-state data, the total number
     of transitions of each type.}
-  \item{na.action}{
+  \item{\code{na.action}}{
     the returned value from the na.action function, if any.  It will be used 
     in the printout of the curve, e.g., the number of observations deleted due 
     to missing values. 
   }
-  \item{call}{
+  \item{\code{call}}{
     an image of the call that produced the object. 
   }
-  \item{type}{
+  \item{\code{type}}{
     type of survival censoring. 
   }
-  \item{influence.p, influence.c}{optional influence
+  \item{\code{influence.p}, \code{influence.c}}{optional influence
     matrices for the \code{pstate} (or \code{surv}) and for the
     \code{cumhaz} estimates.
     A list with one element per stratum, each
     element of the list is an array indexed by subject, time, state.
   }
-  \item{version}{the version of the object.  Will be missing, 2, or 3}
+  \item{\code{version}}{the version of the object.  Will be missing, 2, or 3}
+}
 }
 
 \section{Subscripts}{
