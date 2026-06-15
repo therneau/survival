@@ -1,12 +1,12 @@
 #
-# Currently a test, this will replace survfit.coxphms
+# Curves from a coxphms object
 #
 survfit.coxphms <-
 function(formula, newdata, se.fit=FALSE, conf.int=.95,
-         stype=2, ctype, 
+         individual= FALSE, stype=2, ctype, 
          conf.type=c("log", "log-log", "plain", "none", "logit", "arcsin"),
          censor=TRUE, start.time, id, influence=FALSE,
-         na.action=na.pass, type, p0=NULL, time0=FALSE, ...) {
+         na.action, type, p0=NULL, time0=FALSE, ...) {
 
     if (!inherits(formula, "coxphms"))
         stop("argument must be a coxphms object")
@@ -16,16 +16,16 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95,
     se.fit <- FALSE   #still to do
     if (missing(newdata))
         stop("multi-state survival requires a newdata argument")
-    if (!missing(id))
+    if (!missing(id) || individual)
         stop("using a covariate path is not supported for multi-state")
     missid <- TRUE
     individual <- FALSE
+    if (se.fit) {
+        warning("se.fit not yet implemented for multistate coxph models")
+        se.fit <- FALSE
+    }
 
     # process options, set up Y and the model frame for the original data
-    Terms  <- terms(object)
-    if (!is.null(attr(object$terms, "specials")$tt))
-        stop("The survfit function can not process coxph models with a tt term")
-
     if (!missing(type)) {  # old style argument
         if (!missing(stype) || !missing(ctype))
             warning("type argument ignored")
@@ -50,10 +50,12 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95,
     if (!se.fit) conf.type <- "none"
     else conf.type <- match.arg(conf.type)
 
+    Terms  <- terms(object)
     tfac <- attr(Terms, 'factors')
     temp <- attr(Terms, 'specials')$strata 
     has.strata <- !is.null(temp)
     if (has.strata) {
+        stop("survfit.coxph has not been updated for strata")
         stangle = untangle.specials(Terms, "strata")  #used multiple times, later
         # Toss out strata terms in tfac before doing the test 1 line below, as
         #  strata end up in the model with age:strat(grp) terms or *strata() terms
@@ -72,9 +74,11 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95,
         factors <- attr(Terms, "factors")[temp,]
         strata.interaction <- any(t(factors)*attr(Terms, "order") >1)
     }
-    mf <- model.frame(object) # I currently have not choice
-    position <- NULL
-    Y <- object[['y']]
+
+    # We need Y, X, istate, and id, also strata if present
+    # If it was a Surv2() call, istate will be in the model frame and not
+    #  explicit.  We have to get the model frame
+    mf <- model.frame(object) 
     weights <- model.weights(mf)
     offset <- model.offset(mf)
     if (is.null(offset)) offset.mean <- 0
@@ -83,23 +87,25 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95,
         else offset.mean <- sum(offset * (weights/sum(weights)))
     }
     X <- model.matrix(object, data=mf)
+    Y <- object[['y']]
     if (is.null(Y)) {
         Y <- model.response(mf)
         if (is.null(object$timefix) || object$timefix) Y <- aeqSurv(Y)
     }
+    if (nrow(Y) != object$n[1]) 
+        stop("Failed to reconstruct the original data set")
+ 
+    istate <- model.extract(mf, "istate")
     oldid <- model.extract(mf, "id")
     if (length(oldid) && ncol(Y)==3) position <- survflag(Y, oldid)
     else position <- NULL
-    if (nrow(Y) != object$n[1]) 
-        stop("Failed to reconstruct the original data set")
+
     if (has.strata) {
         if (length(strata)==0) {
             if (length(stangle$vars) ==1) strata <- mf[[stangle$vars]]
             else strata <- strata(mf[, stangle$vars], shortlabel=TRUE)
         }
-    }
-
-    istate <- model.extract(mf, "istate")
+    } else strata <- NULL
 
     #deal with start time, by throwing out observations that end before then
     if (!missing(start.time)) {
@@ -115,6 +121,7 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95,
             weights <- weights[-toss]
             oldid <- oldid[-toss]
             istate <- istate[-toss]
+            if (!is.null(strata)) strata <- strata[-toss]
         }
     }
     
@@ -124,95 +131,66 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95,
     transitions <- mcheck$transitions
     if (!identical(object$states, mcheck$states))
         stop("failed to rebuild the data set")
-    if (is.null(istate)) istate <- mcheck$istate
-    else {
-        # if istate has unused levels, mcheck$istate won't have them so they
-        #  need to be dropped.
-        istate <- factor(istate, object$states) 
-        # a new level in state should only happen if someone has mucked up the
-        #  data set used in the coxph fit
-        if (any(is.na(istate))) stop("unrecognized initial state, data changed?")
-    }
+    istate <- mcheck$istate
+    nstate <- length(object$states)
 
-    temp <- object$smap["(Baseline)",] 
-    B <- coef(object, matrix=TRUE)
-    if (any(duplicated(temp)) && !is.null(object$phZ)) {
-        # We have shared proportional hazards
-        eta <- colSums(object$phZ * B[rownames(object$phZ),, drop=F])
-        browser()
-        baselinecoef <- rbind(temp, exp(eta))
-    }
-
-      
-    # Let the survfitAJ routine do the work of creating the
-    #  overall counts (n.risk, etc).  The rest of this code then
-    #  replaces the surv and hazard components.
-    if (missing(start.time)) start.time <- min(Y[,2], 0)
-
-    if (is.null(weights)) weights <- rep(1.0, nrow(Y))
-    if (is.null(strata))  tempstrat <- rep(1L, nrow(Y))
-    else                  tempstrat <- strata
-
-    cifit <- survfitAJ(as.factor(tempstrat), Y, weights, 
-                            id= oldid, istate = istate, se.fit=FALSE, 
-                            start.time=start.time, p0=p0, time0= time0)
-
-    # For computing the  actual estimates it is easier to work with an
-    #  expanded data set.
-    # Replicate actions found in the coxph.
-    cluster <- model.extract(mf, "cluster")
-    tstrata <- object$smap
-    xstack <- stacker(object$cmap, tstrata, as.integer(istate), X, Y, mf=mf,
-                      states=object$states)
-    if (length(position) >0)
-        position <- position[xstack$rindex]   # id was required by coxph
-    X <- xstack$X
-    Y <- xstack$Y
-    strata <- strata[xstack$rindex] # strat in the model, other than transitions
-    transition <- xstack$transition
-    istrat <- xstack$strata
-    if (length(offset)) offset <- offset[xstack$rindex]
-    if (length(weights)) weights <- weights[xstack$rindex]
-    if (length(cluster)) cluster <- cluster[xstack$rindex]
-    oldid <- oldid[xstack$rindex]
-    if (length(cluster)==0) cluster <- oldid
-
-    # risk scores, mf2, and x2
-    if (length(object$means) ==0) { # a model with only an offset term
-        # Give it a dummy X so the rest of the code goes through
-        #  (This case is really rare)
-        # se.fit <- FALSE
-        X <- matrix(0., nrow=n, ncol=1)
-        if (is.null(offset)) offset <- rep(0, n)
-        xcenter <- offset.mean
-        coef <- 0.0
-        varmat <- matrix(0.0, 1, 1)
-        risk <- rep(exp(offset- offset.mean), length=n)
-    }
-    else {
-        varmat <- object$var
-        beta <- ifelse(is.na(object$coefficients), 0, object$coefficients)
-        xcenter <- sum(object$means * beta) + offset.mean
-        if (!is.null(object$frail)) {
-           keep <- !grepl("frailty(", dimnames(X)[[2]], fixed=TRUE)
-           X <- X[,keep, drop=F]
-        }
-            
-        if (is.null(offset)) risk <- c(exp(X%*% beta - xcenter))
-        else     risk <- c(exp(X%*% beta + offset - xcenter))
-    }
+    #
+    # Build the X matrix for the prototype subject(s)
+    #
     if (missing(newdata)) {
         stop("a newdata argument is required for multistate model predictions")
     }
     Terms2 <- delete.response(Terms)
-    y2 <- NULL  # a dummy to carry along, for the call to coxsurv.fit
 
-    if (is.vector(newdata, "numeric")) {
-        if (is.null(names(newdata))) {
-            stop("Newdata argument must be a data frame")
+    # A named vector or list is allowed, sometimes used for a "1 row" newdata
+    #  in my own code. (But I never should have done that, and make sure to
+    #  never mention it's legality to users.)
+    if (!inherits(newdata, "data.frame")) {
+        if (is.list(newdata)) newdata <- data.frame(newdata)
+        else if (is.numeric(newdata)) {
+            if (is.null(names(newdata))) {
+                stop("Newdata argument must be a data frame")
+            }
+            newdata <- data.frame(as.list(newdata), stringsAsFactors=FALSE)
+        }  
+    }
+
+    # Now we have a valid newdata --- almost
+    # If there were shared hazards, then phZ covariates will have been omitted
+    #  from newdata by the user (the values in newdata won't be used), but
+    #  the model.frame and model.matrix routines will be unhappy without it.
+    # However, it turns out to be tricky to create a sensible covariate when you
+    #  have the terms and model frame, but not the original data: imagine
+    #  ns(df=5, x=zed).  The code below works for simple names or factors, 
+    #  anything else the user will need to put in their own dummy.
+    if (!is.null(object$phZ)) {
+        # Zindex = which rows of cmap = cols of final X, are "Z" variables?
+        Zindex <- match(rownames(object$phZ), rownames(object$cmap))
+        # this code works for simple variables and factors
+        vname <- all.vars(Terms2)
+        # covert from Splus style assign to R style assign
+        asn  <- rep(seq(along=object$assign), sapply(object$assign, length))
+        Zname <- unique((names(object$assign))[asn[Zindex]])
+        # Zname = list of variables we hope is in newdata
+        for (k in 1:length(Zname)) {
+            if (is.na(match(Zname[k], names(newdata)))) {
+                # the name isn't there
+                if (!is.null(object$xlevels) && 
+                    !is.na(kk <- match(Zname[k], names(object$xlevels)))){
+                    temp <- object$xlevels[[kk]]
+                    dummy <- data.frame(x= factor(temp[1], temp))
+                    names(dummy) <- Zname[k]
+                    newdata <- cbind(newdata, dummy)
+                }
+                else if (!is.na(kk <- match(Zname[k], names(object$means)))) {
+                    dummy <- data.frame(x= unname(object$means[kk]))
+                    names(dummy) <- Zname[k]
+                    newdata <- cbind(newdata, dummy)
+                }
+            }
         }
-        newdata <- data.frame(as.list(newdata), stringsAsFactors=FALSE)
-    }  else if (is.list(newdata)) newdata <- as.data.frame(newdata) 
+    }
+
     if (has.strata) {
         found.strata <- TRUE
         tempenv <- new.env(, parent=emptyenv())
@@ -233,23 +211,23 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95,
         }
     }
         
-    if (!is.null(object$phZ)) {
-        # covariates in shared hazards don't have to be in the
-        # newdata data frame
-        # this part is not yet done
-    }
-
-    tcall <- Call[c(1, match(c("id", "na.action"), 
+    # create a model frame and X matrix for the new data
+    tcall <- Call[c(1, match(c("formula", "na.action"), 
                                      names(Call), nomatch=0))]
     tcall$data <- newdata
     tcall$formula <- Terms2
     tcall$xlev <- object$xlevels[match(attr(Terms2,'term.labels'),
                                        names(object$xlevels), nomatch=0)]
     tcall[[1L]] <- quote(stats::model.frame)
+ 
     mf2 <- eval(tcall)
     if (nrow(mf2) ==0)
         stop("all rows of newdata have missing values")
-    
+    x2 <- model.matrix(object, mf2)
+
+    offset2 <- model.offset(mf2)
+    if (length(offset2)==0 ) offset2 <- 0
+
     if (has.strata && found.strata) { #pull them off
         temp <- untangle.specials(Terms2, 'strata')
         strata2 <- strata(mf2[temp$vars], shortlabel=TRUE)
@@ -264,34 +242,74 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95,
 
     offset2 <- model.offset(mf2)
     if (length(offset2)==0 ) offset2 <- 0
-    # a model with only an offset, but newdata containing a value for it
-    if (length(object$means)==0) x2 <- 0
-    else x2 <- model.matrix(Terms2, mf2)[,-1, drop=FALSE]  #no intercept
 
-    if (has.strata && any(stangle$vars %in% names(mf2))){
-        mf2 <- mf2[is.na(match(names(mf2), stangle$vars))]
-        mf2 <- unique(mf2)
-        x2 <- unique(x2)
-    }
-    temp <- coef(object, matrix=TRUE)[!phbase,,drop=FALSE] # ignore missing coefs
-    # temp will be a matrix of coefficients, with ncol = number of transtions
-    #  and nrow = the covariate set of a "normal" Cox model.
-    # x2 will have one row per desired curve and one col per 'normal' covariate.
-    risk2 <- exp(x2 %*% ifelse(is.na(temp), 0, temp) - xcenter)
-    # risk2 has a risk score with rows= curve and cols= transition
-    # make the expansion map.  
-    # The H matrices we will need are nstate by nstate, at each time, with
-    # elements that are non-zero only for observed transtions.
-    states <- object$states
-    nstate <- length(states)
-    from <- as.numeric(sub(":.*$", "", colnames(object$smap)))
-    to   <- as.numeric(sub("^.*:", "", colnames(object$smap)))
-    hfill <- cbind(from, to)
+    # Let the survfitAJ routine do the work of creating the
+    #  overall counts (n.risk, etc).  The rest of this code then
+    #  replaces the surv and hazard components.
+    if (missing(start.time)) start.time <- min(Y[,2], 0)
 
-    if (individual) {
-        stop("time dependent survival curves are not supported for multistate")
+    if (is.null(weights)) weights <- rep(1.0, nrow(Y))
+    if (is.null(strata))  tempstrat <- rep(1L, nrow(Y))
+    else                  tempstrat <- strata
+
+
+    cifit <- survfitAJ(as.factor(tempstrat), Y, weights, 
+                        id= oldid, istate = istate, se.fit=FALSE, 
+                        start.time=start.time, p0=p0, time0= time0)
+
+    # Create matrices for the final cumhaz and pstate
+    ntime <- length(cifit$time)
+    ndata <- nrow(x2)
+    baseline <- object$smap[1,]
+    nhaz <- length(unique(baseline))
+    cumhaz <- array(0, dim=c(ntime, ndata, nhaz))
+    pstate <- array(0, dim=c(ntime, ndata, nhaz))
+    B <- coef(object, matrix=TRUE)
+    # For each row of newdata
+    #   1. Update the X matrix, so that each column is recentered at this
+    #   row of newdata, i.e., the curves for a subject with covariate x2[i,]
+    #   2. Use stacker to create the expanded X and Y
+    #   3. For any phZ variables, replace selected columns of the expanded X,
+    #       compute the risk weight exp(XB) for each data row
+    #   4. Iterate over time (within strata if present)
+    #     a. compute dN(jk,t) and the risk sum Y(jk,t) for each hazard jk at
+    #         this time, using both case weights and risk weights
+    #     b. collapse shared hazards to get lambda(t)
+    #     c. incement the cumulative hazard and the p(t)
+    #     d. if multiple strata, rezero temps at the start of each stratum
+    
+    for (idata in 1:ndata) {
+        tempX <- scale(X, center=x2[idata,], scale=FALSE)
+        xstack <- stacker(object$cmap, object$smap, as.integer(istate), tempX,
+                          Y, mf=mf, states=object$states, dropzero=FALSE)
+        X2 <- xstack$X
+        n.per.strat <- table(xstack$transition)
+        if (!is.null(object$phZ)) {
+            temp <- t(object$phZ)[as.integer(xstack$transition),]
+            X2[, Zindex] <- temp
+        }
+        browser()
+        eta <- X2 %*% B
+        # move this to C code
+        if (idata==1) { # the sort won't change across iterations, eta will
+            # remember that C indices start at 0
+            if (!is.null(strata)) {
+                sort1 <- order(strata[xstack$rindex], xstack$Y[,1]) -1L
+                sort2 <- order(strata[xstace$rindex], xstack$Y[,2]) -1L
+            } else {
+                sort1 <- order(xstack$Y[,1]) -1L
+                sort2 <- order(xstack$Y[,2]) -1L
+            }
+        }   
+        # the eta for each transition
+        xeta <- eta[cbind(1:nrow(eta), xstack$transition)]
+        hcount  <- .Call("coxcount3", xstack$Y, weights[xstack$rindex], 
+                         exp(xeta), 
+                         sort1, sort2, tempstrat[xstack$rindex], 
+                         as.integer(xstack$stran), nhaz, cifit$time)
+        browser()
     }
-    ny <- ncol(Y)
+
     if (is.null(strata)) {
         fit <- multihaz(Y, X, position, weights, risk, istrat, ctype, stype,
                         baselinecoef, hfill, x2, risk2, varmat, nstate, se.fit, 

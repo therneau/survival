@@ -3,7 +3,10 @@
 \section{Changes in version 3.8-9}{
   \itemize{
     \item Additions to coxph and stacker to more fully support shared
-    baseline hazards.
+    baseline hazards.  Rework survfit.coxphms to make use of those
+    changes.
+    \item Updates to DESCRIPTION and coxph.object.RD courtesy of
+    Sebastian Meyer.
 }}
 \section{Changes in version 3.8-8}{
   \itemize{
