@@ -3,29 +3,26 @@
 \title{Split a survival data set at specified times }
 \description{
   Given a survival data set and a set of specified cut times, split
-  each record into multiple subrecords at each cut time.  The new data
-  set will be in `counting process' format, with a start time, stop
-  time, and event status for each record. 
+  each record into multiple subrecords at each cut time. 
 }
 \usage{
 survSplit(formula, data, subset, na.action=na.pass,
-            cut, start="tstart", id, zero=0, episode,
+            id, cut, zero=0, episode, start="tstart",
           end="tstop", event="event", added, timefix=TRUE)
 }
 \arguments{
   \item{formula}{a model formula}
   \item{data}{a data frame}
   \item{subset, na.action}{rows of the data to be retained}
+  \item{id}{name of an id variable, normally found in the data frame. Necessary
+    for timeline data.}
   \item{cut}{the vector of timepoints to cut at}
-  \item{start}{character string with the name of a start time variable (will
-    be created if needed) }
-  \item{id}{character string with the name of new id variable to
-    create (optional).  This can be useful if the data set does not
-    already contain an identifier.}
-  \item{zero}{If \code{start} doesn't already exist, this is the time
-    that the original records start.}
+  \item{zero}{For simple \code{Surv(time, status)} data, the starting
+    point for the first interval.}
   \item{episode}{character string with the name of new episode
     variable (optional)}
+  \item{start}{character string with the name of a start time variable (will
+    be created if needed) }
   \item{end}{character string with the name of event time variable }
   \item{event}{character string with the name of censoring indicator }
   \item{added}{character string with the name of the new
@@ -35,7 +32,7 @@ survSplit(formula, data, subset, na.action=na.pass,
 }
 
 \value{
- New, longer, data frame.
+ New, longer data frame.
 }
 
 \details{
@@ -51,25 +48,32 @@ survSplit(formula, data, subset, na.action=na.pass,
   For the example above the values would be 2, 3, and 4.
   Whether a given row was added is shown by the \code{added} variable.
 
-  The routine is called with a formula as the first
-  argument. 
+  The routine is called with a formula as the first argument. 
   The right hand side of the formula can be used to delimit variables
   that should be retained; normally one will use \code{ ~ .} as a
-  shorthand to retain them all.  The routine
-  will try to retain variable names, e.g. \code{Surv(adam, joe, fred)~.}
-  will result in a data set with those same variable names for
-  \code{tstart}, \code{end}, and \code{event} options rather than
-  the defaults.  Any user specified values for these options will be
-  used if they are present, of course.
+  shorthand to retain them all.
+
+  The most common call would have \code{Surv(name1, name2, name3)} or
+  \code{Surv2(name1, name2)} as
+  the left hand side, where name1, name2, name3 are simple variable
+  names; in that case the output will have the same variable names.
+  For a \code{Surv(name1, name2)} call a new variable with the name
+  given by \code{start} option will be added to the data.
   However, the routine is not sophisticated; it only does this
   substitution for simple names.  A call of \code{Surv(time, stat==2)}
-  for instance will not retain "stat" as the name of the event variable.
+  for instance will not retain "stat" as the name of the event variable,
+  it will instead use the name found in the \code{event} argument.
+  If the response variable is the variable names of a Surv or Surv2
+  object then the updated response will have the same name.
 
   Rows of data with a missing time or status are copied across
   unchanged, unless the na.action argument is changed from its default
   value of \code{na.pass}.  But in the latter case any row
   that is missing for any variable will be removed, which is rarely
   what is desired.
+
+  An older, now deprecated usage is a call without a formula,
+  e.g., \code{survSplit(veteran, time="time", event="status", cut=c(90,180))}
   }
 
 \seealso{\code{\link{Surv}}, \code{\link{cut}}, \code{\link{reshape}} }

@@ -12,7 +12,11 @@
     \item Parallel routines fromtimeline, Surv2data, timeline2counting
     had been added at various times, merge and remove all but
     fromtimeline, which is the oldest so most likely to have use.
-    \item Add the first argument to lvcf, to better support yes/no variables.
+    \item Add the first argument to lvcf, to better support yes/no
+    variables.
+    \item Note: the coxph, survcheck, survfit, and survSplit routines
+    now accept a Surv2 argument, i.e., the routines that also allow
+    Surv(time1, time2, status) format.
 }}
 \section{Changes in version 3.8-7}{
   \itemize{
