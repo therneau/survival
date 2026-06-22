@@ -44,7 +44,7 @@ print.coxph <-
         printed <- rep(FALSE, length(cname))
         rname <- rownames(cmap)
         if (!is.null(x$phZ)) { # mark coefs that are ph baselines
-            j <- match(rownames(x$phZ), rname)
+            j <- match(dimnames(x$phZ)[[1]], rname)
             rname[j] <- paste(rname[j], "*", sep='')
         }
         extrarows <- NULL
@@ -55,11 +55,11 @@ print.coxph <-
                 j <- apply(cmap, 2, function(x) all(x == cmap[,i])) 
                 printed[j] <- TRUE
                 tlab <- c(paste(cname[j], collapse=", "), "") #label for block
-                if (nchar(tlab[1]) > 20) {
-                    extrarows <- c(extrarows, tlab)
-                    tname <-paste0('(', LETTERS[1:length(extrarows)], ')') 
-                    names(extrarows) <- tname
-                    tlab <- c(tname[length(tname)], "")
+                if (nchar(tlab[1]) > 20) {     
+                    k <- length(extrarows) +1L
+                    extrarows <- c(extrarows, 
+                                paste(LETTERS[k], tlab, sep=': '))
+                    tlab <- c(LETTERS[k], "") # new block label
                 }
                 tmp2 <- tmp[cmap[,i],, drop=FALSE]
                 names(dimnames(tmp2)) <- tlab

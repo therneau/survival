@@ -544,16 +544,26 @@ coxph <- function(formula, data, weights, subset, na.action,
         if (length(offset)) offset <- offset[xstack$rindex]
         if (length(weights)) weights <- weights[xstack$rindex]
         if (length(cluster)) cluster <- cluster[xstack$rindex]
-        t2 <- tmap[-c(1, strats),,drop=FALSE]   # remove the intercept row and strata rows
-        r2 <- row(t2)[!duplicated(as.vector(t2)) & t2 !=0]
-        c2 <- col(t2)[!duplicated(as.vector(t2)) & t2 !=0]
-        a2 <- lapply(seq(along.with=r2), function(i) {cmap[assign[[r2[i]]], c2[i]]})
-        # which elements are unique?  
-        tab <- table(r2)
-        count <- tab[r2]
-        names(a2) <- ifelse(count==1, row.names(t2)[r2],
-                            paste(row.names(t2)[r2], colnames(cmap)[c2], sep="_"))
-        assign <- a2
+
+        if (FALSE) {
+            # rebuild the 'assign' attribute for the new X
+            # I later realized that downstream code (survfit) needs the assign
+            # of the original X.  Once I'm totally sure about that, remove this
+            #
+            # remove intercept row and strata rows
+            t2 <- tmap[-c(1, strats),,drop=FALSE]  
+            r2 <- row(t2)[!duplicated(as.vector(t2)) & t2 !=0]
+            c2 <- col(t2)[!duplicated(as.vector(t2)) & t2 !=0]
+
+            a2 <- lapply(seq(along.with=r2), function(i) {
+                cmap[assign[[r2[i]]], c2[i]]})
+            # which elements are unique?  
+            tab <- table(r2)
+            count <- tab[r2]
+            names(a2) <- ifelse(count==1, row.names(t2)[r2],
+                         paste(row.names(t2)[r2], colnames(cmap)[c2], sep="_"))
+            assign <- a2
+        }
     }
  
     # infinite covariates are not screened out by the na.omit routines
@@ -717,7 +727,7 @@ coxph <- function(formula, data, weights, subset, na.action,
         fit$states <- states
         fit$cmap <- cmap
         fit$smap <- smap   # why not 'stratamap'?  Confusion with fit$strata
-        fit$rmap <- matrix(c(xstack$rindex, xstack$stran), 
+        fit$rmap <- matrix(c(xstack$rindex, xstack$shared), 
                            ncol=2, dimnames= list(NULL, c("row", "transition")))
         # add a suffix to each coefficent name.  Those that map to multiple 
         #  transitions get the first transition they map to
@@ -749,7 +759,7 @@ coxph <- function(formula, data, weights, subset, na.action,
             fit$linear.predictors <- temp
 
             temp <- matrix(0., nrow=nrow(Xsave), ncol=ncol(fit$cmap))
-            temp[cbind(xstack$rindex, xstack$transition)] <- fit$residuals
+            temp[cbind(xstack$rindex, xstack$subshare)] <- fit$residuals
             # if there are any transitions with no covariates, residuals have not
             #  yet been calculated for those.
             if (any(colSums(cmap) ==0)) {
@@ -761,12 +771,14 @@ coxph <- function(formula, data, weights, subset, na.action,
         }
         
         # Add information about covariates linked to a shared hazard. In my
-        #  documentation these are called \gamma coefs
+        #  documentation these are called \gamma coefs with fixed covariates Z.
         # Say that we had 4 states, 1:4, 2:4, and 3:4 have a shared baseline
-        #  hazard, and the values of some variable 'zed' exactly align, i.e.
-        #  all 1:4 rows have the same value of zed, all 2:4 have the same value
-        #  (but different from 1:4 rows), and ditto for 3:4.  Then we assume that
-        #  this coef is a gamma not a beta.
+        #  hazard, and the values of some variable 'zed' exactly align within
+        #  each sub-hazard, i.e., all 1:4 rows have the same value of zed, 
+        #  all 2:4 have the same value (normally different from 1:4 rows),
+        #  and ditto for 3:4.  Then we assume that this coef is a gamma not a 
+        #  beta.
+        # The xtran$transition variable contains the sub-transition identifier
         if (any(duplicated(smap[1,]))) {
             # There are shared baselines, see if there are special coefs
             # See the section on "shared hazards" in the methods document
@@ -775,38 +787,40 @@ coxph <- function(formula, data, weights, subset, na.action,
                 any(unlist(tapply(x, id, function(z) any(z!=z[1])))))
             tdvar2 <- rep(TRUE, nrow(cmap)) # this line and next for "ph(a:b)"
             tdvar2[match(names(tdvar), rownames(cmap))] <- tdvar
-            phcoef <- 0*cmap # inherit dimnames
+
+            # phZ will contain the fixedcovariate values Z
+            sval <- unique(xstack$subshare) # each is associated with a cmap col
+            nsub <- length(sval)  # number of subshare values
+            phZ <- array(0., dim=c(dim(cmap), nsub), dimnames=c(dimnames(cmap), 
+                                                   list(stran= sval)))
             from.state <- as.numeric(sub(":.*$", "", colnames(cmap)))
-            xtran <- as.numeric(xstack$transition) # transition number, each row
-            isgamma <- tdvar2
-            # 2. xstack counts strata over cols of cmap that are not all 0
-            #  create sbase so that sbase[i] aligns with xstack$strata
-            ckeep <- which(colSums(cmap)>0)
-            sbase <- match(smap[1, ], unique(smap[1, ckeep]), nomatch=0)
-            for (i in which(tdvar2)) { # might be none
-                # for each potential covar, is it always constant?
-                for (j in 1:ncol(smap)) { # for each hazard
-                    if (isgamma[i] && cmap[i,j] > 0) { # the variable is used
-                        irow <- (xstack$strata== sbase[j] & xtran==j)
-                        if (any(irow)) {
-                            temp <- X[irow, cmap[i,j]]
-                            if (all(temp== temp[1])) phcoef[i,j] <- temp[1]
-                            else isgamma[i] <- FALSE
+            xtran <- xstack$subshare # transition number, each row
+            isgamma <- tdvar2  # inital: which vars could be a gamma
+            # 2. Which variables are constant across sub-transitions?
+            if (any(tdvar2)) { # might be none
+                for (sub in 1:nsub) {
+                    # the "sub transition" might be a set of transitions, i.e.,
+                    #  columns of cmap
+                    irow <- (xstack$subshare == sval[sub]) # rows for this sub
+                    for (j in xstack$submap[[sub]]) { # cols of cmap
+                        for (k in which(isgamma & cmap[,j]>0)) {
+                            xcol <- cmap[k, j] # X has a col for each coefficient
+                            temp <- X[irow, xcol]
+                            if (all(temp== temp[1])) phZ[k,j,sub] <- temp[1]
+                            else isgamma[k] <- FALSE
                         }
                     }
                 }
             }
             # Last check: if variables are part of a single term, it is
             #  all or none.
-            # "j" is a fix for ph() terms
             if (any(tdvar)) {
-                j <- which(tdvar)
+                j <- which(tdvar) # don't test manufactured ph() covariates
                 isgamma[j] <- unlist(tapply(isgamma[j], 
                                             attr(Xsave, "assign")[j],
                                      function(i) i & all(i)))
             }
-
-            if (any(isgamma)) fit$phZ <- phcoef[isgamma,,drop=FALSE]
+            if (any(isgamma)) fit$phZ <- phZ[isgamma,,,drop=FALSE]
         }
         class(fit) <- c("coxphms", class(fit))
     }

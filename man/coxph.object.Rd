@@ -90,7 +90,7 @@ routine.
   component retains those values. They will be treated as the
   \eqn{Z\gamma} term by \code{survfit.coxphms} when creating probability
   state curves. See the 'Shared coefficients and shared baselines' vignette.
-  
+}  
 \item{\dots}{
 The object will also contain the following, for documentation see the \code{lm} 
 object: \code{terms}, \code{assign}, \code{formula}, \code{call}, and, optionally, \code{x}, \code{y}, 

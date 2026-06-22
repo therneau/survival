@@ -7,6 +7,7 @@
     changes.
     \item Updates to DESCRIPTION and coxph.object.RD courtesy of
     Sebastian Meyer.
+    \item Update survSplit to support timeline data.
 }}
 \section{Changes in version 3.8-8}{
   \itemize{

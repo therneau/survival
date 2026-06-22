@@ -55,25 +55,20 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95,
     temp <- attr(Terms, 'specials')$strata 
     has.strata <- !is.null(temp)
     if (has.strata) {
-        stop("survfit.coxph has not been updated for strata")
-        stangle = untangle.specials(Terms, "strata")  #used multiple times, later
+        strata <- object$strata
+        stangle = untangle.specials(Terms, "strata")  #used later
         # Toss out strata terms in tfac before doing the test 1 line below, as
-        #  strata end up in the model with age:strat(grp) terms or *strata() terms
-        #  (There might be more than one strata term)
+        #  strata end up in the model with age:strat(grp) terms or *strata() 
+        #  terms  (There might be more than one strata term)
         for (i in temp) tfac <- tfac[,tfac[i,] ==0]  # toss out strata terms
-    }
-    if (any(tfac >1))
-        stop("not able to create a curve for models that contain an interaction without the lower order effect")
-
-    n <- object$n[1]
-    if (!has.strata) strata <- NULL
-    else strata <- object$strata
-
-    if (has.strata) {
+        if (any(tfac >1))
+            stop("not able to create a curve for models that contain an interaction without the lower order effect")
         temp <- attr(Terms, "specials")$strata
         factors <- attr(Terms, "factors")[temp,]
         strata.interaction <- any(t(factors)*attr(Terms, "order") >1)
-    }
+    } else strata <- NULL
+
+    n <- object$n[1]
 
     # We need Y, X, istate, and id, also strata if present
     # If it was a Surv2() call, istate will be in the model frame and not
@@ -132,7 +127,8 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95,
     if (!identical(object$states, mcheck$states))
         stop("failed to rebuild the data set")
     istate <- mcheck$istate
-    nstate <- length(object$states)
+    states <- object$states
+    nstate <- length(states)
 
     #
     # Build the X matrix for the prototype subject(s)
@@ -256,133 +252,154 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95,
     cifit <- survfitAJ(as.factor(tempstrat), Y, weights, 
                         id= oldid, istate = istate, se.fit=FALSE, 
                         start.time=start.time, p0=p0, time0= time0)
+    # if the user did not provide p0, survfitAJ fills one in for us
+    p0 <- cifit$p0
+    if (is.null(cifit$strata)) cifit.index <- 1:length(cifit$time)
+    else cifit.index <- rep(1:length(cifit$strata), cifit$strata)
 
     # Create matrices for the final cumhaz and pstate
     ntime <- length(cifit$time)
     ndata <- nrow(x2)
     baseline <- object$smap[1,]
     nhaz <- length(unique(baseline))
-    cumhaz <- array(0, dim=c(ntime, ndata, nhaz))
-    pstate <- array(0, dim=c(ntime, ndata, nhaz))
-    B <- coef(object, matrix=TRUE)
+    cumhaz <- array(0, dim=c(ntime, ndata, nhaz), 
+                dimnames= list(NULL, NULL, names(baseline)[unique(baseline)]))
+    pstate <- array(0, dim=c(ntime, ndata, nstate),
+                    dimnames= list(NULL, NULL, states))
+
+    from.state <- as.numeric(sub(":[0-9]*$", "", names(baseline)))
+    to.state   <- as.numeric(sub("^[0-9]*:", "", names(baseline)))
+    hindex1 <- cbind(from.state, to.state)
+    hindex2 <- match(baseline, unique(baseline))
+    Afill <- function(lambda, h1, h2, nstate) {
+        # create the A matrix from a set of hazards
+        A <- matrix(0, nstate, nstate)
+        A[h1] <- lambda[h2]
+        diag(A) <- -rowSums(A)
+        A
+    }
+    # this is a trick that sets the defaults for Afill, so that I don't
+    #  have to pass these to multihaz
+    temp <- formals(Afill)
+    temp$h1 <- hindex1
+    temp$h2 <- hindex2
+    temp$nstate <- nstate
+    formals(Afill) <- temp
+
     # For each row of newdata
     #   1. Update the X matrix, so that each column is recentered at this
     #   row of newdata, i.e., the curves for a subject with covariate x2[i,]
     #   2. Use stacker to create the expanded X and Y
     #   3. For any phZ variables, replace selected columns of the expanded X,
     #       compute the risk weight exp(XB) for each data row
+    #      Create the phscale vector
     #   4. Iterate over time (within strata if present)
     #     a. compute dN(jk,t) and the risk sum Y(jk,t) for each hazard jk at
     #         this time, using both case weights and risk weights
     #     b. collapse shared hazards to get lambda(t)
     #     c. incement the cumulative hazard and the p(t)
     #     d. if multiple strata, rezero temps at the start of each stratum
-    
+    tempstrat <- as.integer(tempstrat)
+    phscale <- model.matrix(~factor(object$smap[1,]) -1)
     for (idata in 1:ndata) {
         tempX <- scale(X, center=x2[idata,], scale=FALSE)
         xstack <- stacker(object$cmap, object$smap, as.integer(istate), tempX,
                           Y, mf=mf, states=object$states, dropzero=FALSE)
         X2 <- xstack$X
-        n.per.strat <- table(xstack$transition)
         if (!is.null(object$phZ)) {
-            temp <- t(object$phZ)[as.integer(xstack$transition),]
-            X2[, Zindex] <- temp
-        }
-        browser()
-        eta <- X2 %*% B
-        # move this to C code
-        if (idata==1) { # the sort won't change across iterations, eta will
-            # remember that C indices start at 0
-            if (!is.null(strata)) {
-                sort1 <- order(strata[xstack$rindex], xstack$Y[,1]) -1L
-                sort2 <- order(strata[xstace$rindex], xstack$Y[,2]) -1L
-            } else {
-                sort1 <- order(xstack$Y[,1]) -1L
-                sort2 <- order(xstack$Y[,2]) -1L
+            phZ <- object$phZ  # less typing below
+            cmap <- object$cmap
+            ctemp <- cmap[match(dimnames(phZ)[[1]], rownames(cmap)),, drop=FALSE]
+            # Go through the individual subshared terms one at a time.
+            # There are never very many (commonly < 10). 
+            # If there are transitions with no covariates, the xstack$X matrix
+            #  will have rows for them, none are relevant to this calculation.
+            # Only look at xstack$subshare values that match names in phZ
+            for (sub in dimnames(phZ)[[3]]) {
+                irow <- which(xstack$subshare == sub) #relevant rows of X
+                nr <- length(irow)
+                for (j in xstack$submap[sub]) {
+                    # j = columns for this shared subterm
+                    k <- (ctemp[,j] >0)
+                    if (any(k)) {
+                        X2[irow, ctemp[k,j]] <- rep(phZ[k,j,sub], each=nr)
+                        eta <- sum(phZ[k,j,sub] * object$coef[ctemp[k,j]])
+                        browser()
+                        phscale[j] <- exp(eta)
+                    }
+                }
             }
-        }   
-        # the eta for each transition
-        xeta <- eta[cbind(1:nrow(eta), xstack$transition)]
-        hcount  <- .Call("coxcount3", xstack$Y, weights[xstack$rindex], 
-                         exp(xeta), 
-                         sort1, sort2, tempstrat[xstack$rindex], 
-                         as.integer(xstack$stran), nhaz, cifit$time)
-        browser()
-    }
-
-    if (is.null(strata)) {
-        fit <- multihaz(Y, X, position, weights, risk, istrat, ctype, stype,
-                        baselinecoef, hfill, x2, risk2, varmat, nstate, se.fit, 
-                        cifit$p0, cifit$time)
-        cifit$pstate <- fit$pstate
-        cifit$cumhaz <- fit$cumhaz
-    }
-    else {
-        if (is.factor(strata)) ustrata <- levels(strata)
-        else                   ustrata <- sort(unique(strata))
-        nstrata <- length(cifit$strata)
-        itemp <- rep(1:nstrata, cifit$strata)
-        timelist <- split(cifit$time, itemp)
-        ustrata <- names(cifit$strata)
-        tfit <- vector("list", nstrata)
-        for (i in 1:nstrata) {
-            indx <- which(strata== ustrata[i])  # divides the data
-            tfit[[i]] <- multihaz(Y[indx,,drop=F], X[indx,,drop=F],
-                                  position[indx], weights[indx], risk[indx],
-                                  istrat[indx], ctype, stype, baselinecoef, hfill,
-                                  x2, risk2, varmat, nstate, se.fit,
-                                  cifit$p0[i,], timelist[[i]])
         }
+        eta <- X2 %*% object$coefficients
 
-        # do.call(rbind) doesn't work for arrays, it loses a dimension
-        ntime <- length(cifit$time)
-        cifit$pstate <- array(0., dim=c(ntime, dim(tfit[[1]]$pstate)[2:3]))
-        cifit$cumhaz <- array(0., dim=c(ntime, dim(tfit[[1]]$cumhaz)[2:3]))
-        rtemp <- split(seq(along=cifit$time), itemp)
-        for (i in 1:nstrata) {
-            cifit$pstate[rtemp[[i]],,] <- tfit[[i]]$pstate
-            cifit$cumhaz[rtemp[[i]],,] <- tfit[[i]]$cumhaz
+        if (is.null(strata)) {
+            kk <- xstack$rindex
+            mfit <- multihaz(xstack$Y, X2, position[kk], weights[kk], exp(eta),
+                             xstack$shared, ctype=ctype, stype=stype, Afill, 
+                             phscale, p0 = p0, utime= cifit$time, nstate=nstate)
+            cumhaz[,idata,] <- mfit$cumhaz
+            pstate[,idata,] <- mfit$pstate
+        }
+        else {
+            cumhaz <- array(0, dim=c(ntime, ndata, nhaz))
+            pstate <- array(0, dim=c(ntime, ndata, nhaz))
+            for (tstrat in 1:nstrat) {
+                jj <- which(tempstrat[xstack$rindex] == tstrat) # rows of xstacl
+                kk <- xstack$rindex[jj] # rows of data
+                mfit <- multihaz(xstack$Y[jj,,drop= FALSE], X2[jj,, drop=FALSE],
+                             position[kk], weights[kk], exp(eta[jj]), 
+                             xstack$stran[jj], ctype=ctype, stype=stype, Afill, 
+                             p0 = p0, 
+                             utime= cifit$time[cifit.index== tstrat], nstate)
+                cumhaz[cifit.index==i, idata,] <- mfit$cumhaz
+                pstate[cifit.index==i, idata,] <- mfit$cumhaz
+            }
         }
     }
-
+    cifit$cumhaz <- drop(cumhaz)
+    cifit$pstate <- drop(pstate)
     cifit$newdata <- newdata
 
     cifit$call <- Call
     class(cifit) <- c("survfitcoxms", "survfitms", "survfit")
     cifit
 }
-# Compute the hazard  and survival functions 
-multihaz <- function(y, x, position, weight, risk, istrat, ctype, stype, 
-                     bcoef, hfill, x2, risk2, vmat, nstate, se.fit, p0, utime) {
+
+# Compute the cumulative hazard and probability in state functions 
+#  This can only handle one external strata at a time, but we expect 
+#  external strata to be rare in multistate models
+multihaz <- function(y, x, position, weight, risk, transition, ctype, stype, 
+                     Afill, phscale, p0, utime, nstate) {
     ny <- ncol(y)
-    sort2 <- order(istrat, y[,ny-1L]) -1L
+    sort2 <- order(transition, y[,ny-1L]) -1L
     ntime <- length(utime)
     storage.mode(weight) <- "double"  #failsafe
 
     # this returns all of the counts we might desire.
     if (ny ==2) {
-        fit <- .Call(Ccoxsurv1, utime, y, weight, sort2, istrat, x, risk)
+        fit <- .Call(Ccoxsurv1, utime, y, weight, sort2, transition, x, risk)
         cn <- fit$count  
         dim(cn) <- c(length(utime), fit$ntrans, 10) 
     }
     else {    
-        sort1 <- order(istrat, y[,1]) -1L
+        sort1 <- order(transition, y[,1]) -1L
         fit <- .Call(Ccoxsurv2, utime, y, weight, sort1, sort2, position, 
-                        istrat, x, risk)
+                        transition, x, risk)
         cn <- fit$count  
         dim(cn) <- c(length(utime), fit$ntrans, 12) 
     }
+
     # cn is returned as a matrix since there is an allocMatrix C macro, but
     #  no allocArray macro.  So we first reset the dimensions.
     # The first dimension is time
-    # Second is the transition, same order as columns of bcoef
+    # Second is the transition
     # Third is the count type: 1-3 = at risk (unweighted, with case weights,
     #  with casewt * risk wt), 4-6 = events (unweighted, case, risk), 
-    #  7-8 = censored events, 9-10 = censored, 11-12 = Efron
+    #  7-8 = censored, 9-10 = Efron, 11-12= unused
 
-    # We will use events/(at risk) = cn[,,5]/cn[,,3] a few lines below; avoid 0/0
-    # If there is no one at risk there are no events, obviously.
-    # cn[,,1] is the safer check since it is an integer, but if there are weights
+    # We will use events/(at risk) = cn[,,5]/cn[,,3] a few lines below; but
+    #  avoid 0/0. If there is no one at risk there are no events, obviously.
+    # cn[,,1] is the safer check since it is an integer, but if there are wts
     #  and a subject with weight=0 were the only one at risk, we need cn[,,2]
     # (Users should never use weights of 0, but someone, somewhere, will do it.)
     none.atrisk <- (cn[,,1]==0 | cn[,,2]==0)
@@ -394,67 +411,23 @@ multihaz <- function(y, x, position, weight, risk, istrat, ctype, stype,
         denom2 <- ifelse(none.atrisk, 1, cn[,,10])
     }
 
-    # We want to avoid 0/0. If there is no one at risk (denominator) then
-    # by definition there will be no events (numerator), and that element of
-    # the hazard is by definintion also 0.
-    if (any(duplicated(bcoef[1,]))) {
-        # there are shared hazards: we have to collapse and then expand
-        if (all(bcoef[1,] == bcoef[1,1])) design <- matrix(1, nrow=ncol(bcoef))
-        else design <- model.matrix(~factor(zed) -1, data.frame(zed=bcoef[1,]))
-        colnames(design) <- 1:ncol(design)  # easier to read when debuggin
-        events <- cn[,,5] %*% design
-        if (ctype==1) atrisk <- cn[,,3]  %*% design
-        else          atrisk <- cn[,,9] %*% design
-        basehaz <- events/ifelse(atrisk<=0, 1, atrisk)
-        hazard <- basehaz[,bcoef[1,]] * rep(bcoef[2,], each=nrow(basehaz))
-    }                                  
-    else {
-        if (ctype==1) hazard <- cn[,,5]/ifelse(cn[,,3]<=0, 1, cn[,,3])
-        else          hazard <- cn[,,5]/ifelse(cn[,,9] <=0, 1, cn[,,9])
-    }
+    if (ctype==1) hazard <- cn[,,5]/ifelse(cn[,,3]<=0, 1, cn[,,3])
+    else          hazard <- cn[,,5]/ifelse(cn[,,9] <=0, 1, cn[,,9])
 
-    # Expand the result, one "hazard set" for each row of x2
-    nx2 <- nrow(x2)
-    h2 <- array(0, dim=c(nrow(hazard), nx2, ncol(hazard)))
-    S <- double(nstate)  # survival at the current time
-    S2 <- array(0, dim=c(nrow(hazard), nx2, nstate))
- 
-    H <- matrix(0, nstate, nstate)
-    if (stype==2) {
-        H[hfill] <- colMeans(hazard)    # dummy H to drive esetup
-        diag(H) <- diag(H) -rowSums(H)
-        esetup <- survexpmsetup(H)
-    }
-
-    for (i in 1:nx2) {
-        h2[,i,] <- apply(hazard * rep(risk2[i,], each=ntime), 2, cumsum)
-        if (FALSE) {  # if (se.fit) eventually
-            d1 <- fit$xbar - rep(x[i,], each=nrow(fit$xbar))
-            d2 <- apply(d1*hazard, 2, cumsum)
-            d3 <- rowSums((d2%*% vmat) * d2)
-            v2[jj,] <- (apply(varhaz[jj,],2, cumsum) + d3) * (risk2[i])^2
-        }
-
-        S <- p0
-        for (j in 1:ntime) {
-            if (any(hazard[j,] > 0)) { # hazard =0 for censoring times
-                H[,] <- 0.0
-                H[hfill] <- hazard[j,] *risk2[i,]
-                if (stype==1) {
-                    diag(H) <- pmax(0, 1.0 - rowSums(H))
-                    S <- as.vector(S %*% H)  # don't keep any names
-                }
-                else {
-                    diag(H) <- 0.0 - rowSums(H)
-                    #S <- as.vector(S %*% expm(H))  # dgeMatrix issue
-                    S <- as.vector(S %*% survexpm(H, 1, esetup))
-                }
-            }
-            S2[j,i,] <- S
+    browser()
+    hazard <- hazard * rep(phscale, each=nrow(hazard))
+    
+    cumhaz <- apply(hazard, 2, cumsum)
+    pstate <- matrix(0, length(utime), nstate)
+    phat <- p0
+    for (i in 1:length(utime)) {
+        if (all(hazard[i,] ==0)) pstate[i,] <- phat
+        else {
+            amat <- Afill(hazard[i,])
+            if (stype==1) phat <- phat %*% (diag(nstate) + amat)
+            else phat <- phat %*% survexpm(amat)
+            pstate[i,] <- phat
         }
     }
-    rval <- list(time=utime, xgrp=rep(1:nx2, each=nrow(hazard)),
-                 pstate=S2, cumhaz=h2)
-    #if (se.fit) rval$varhaz <- v2
-    rval
+    list(cumhaz = cumhaz, pstate=pstate, ntran= cn[,,3])
 }

@@ -87,9 +87,6 @@ void cox_callback(int which, double *coef, double *first, double *second,
 
 SEXP coxcount1(SEXP y2, SEXP strat2) ;
 SEXP coxcount2(SEXP y2, SEXP isort1, SEXP isort2, SEXP strat2) ;
-SEXP coxcount3(SEXP y2,      SEXP weight2,    SEXP rwt2,
-	       SEXP sort12,  SEXP sort22,     SEXP strata2,
-	       SEXP transition2, SEXP nhaz2,  SEXP utime2);
 
 void coxdetail(int   *nusedx,    int   *nvarx,     int   *ndeadx, 
 	       double *center,

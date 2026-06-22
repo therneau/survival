@@ -30,16 +30,16 @@
 **  For the weighted counts, number at risk != entries - exits.  Someone with 
 **    a sequence of (1,2)(2,5)(5,6) will have 1 entry and 1 exit, but they might
 **    have 3 changes of risk score due to time-dependent covariates.
-**  n0-3 has to count all the changes, while n8-n9 (only used in printout)
-**    keep track of the final exit, and 3-7 and 10-11 refer only to a given
-**    timepoint.
+**    3-5 will count all the events, while 6-7 and 10-11 only count the (5,6)
+**    one. (6-7 play a role in the printout as 'censored', but 10-11 are not
+**    currently used).
 **
 **  Let w1=1, w2= wt, w3= wt*risk.  The counts n[] are
 **   0-2: number at risk: w1, w2, w3
 **   3-5: events: w1, w2, w3
-**   6-7: censored endpoints: w1,w2
+**   6-7: censored with sindex of 2-3: w1, w2 (really censored)
 **   8-9: Efron sums 1 and 2
-**  10-11: censored counts w1 and w2
+**  10-11: an event with sindex of 2-3: w1,w2 
 */
 
 #include <math.h>
@@ -170,8 +170,8 @@ SEXP coxsurv2(SEXP otime2, SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22,
 
 		    if (sindex[i2]>1 && status[i2]==0) {
 			/* count them as a 'censor' */
-			n[10]++;
-			n[11]+= wt[i2];
+			n[6]++;
+			n[7]+= wt[i2];
 		    }
 		}
 
@@ -183,8 +183,8 @@ SEXP coxsurv2(SEXP otime2, SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22,
 		    for (k=0; k<nvar; k++)
 			xsum2[k] += wt[i2]*risk[i2]*xmat[k][i2];
 		    if (sindex[i2] >1) {
-			n[6]++;
-			n[7] += wt[i2];
+			n[10]++;
+			n[11] += wt[i2];
 		    }
 		}
 	    }
