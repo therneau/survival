@@ -7,18 +7,16 @@
 }
 \usage{
 survSplit(formula, data, subset, na.action=na.pass,
-            cut, id, zero=0, episode, start="tstart",
+            id, cut, zero=0, episode, start="tstart",
           end="tstop", event="event", added, timefix=TRUE)
 }
 \arguments{
   \item{formula}{a model formula}
   \item{data}{a data frame}
   \item{subset, na.action}{rows of the data to be retained}
-  \item{cut}{the vector of timepoints to cut at}
   \item{id}{name of an id variable, normally found in the data frame. Necessary
     for timeline data.}
-  \item{start}{character string with the name of a start time variable (will
-    be created if needed) }
+  \item{cut}{the vector of timepoints to cut at}
   \item{zero}{For simple \code{Surv(time, status)} data, the starting
     point for the first interval.}
   \item{episode}{character string with the name of new episode
@@ -34,7 +32,7 @@ survSplit(formula, data, subset, na.action=na.pass,
 }
 
 \value{
- New, longer, data frame.
+ New, longer data frame.
 }
 
 \details{
@@ -50,8 +48,7 @@ survSplit(formula, data, subset, na.action=na.pass,
   For the example above the values would be 2, 3, and 4.
   Whether a given row was added is shown by the \code{added} variable.
 
-  The routine is called with a formula as the first
-  argument. 
+  The routine is called with a formula as the first argument. 
   The right hand side of the formula can be used to delimit variables
   that should be retained; normally one will use \code{ ~ .} as a
   shorthand to retain them all.
@@ -59,7 +56,7 @@ survSplit(formula, data, subset, na.action=na.pass,
   The most common call would have \code{Surv(name1, name2, name3)} or
   \code{Surv2(name1, name2)} as
   the left hand side, where name1, name2, name3 are simple variable
-  names; and in that case the output will have the same variable names.
+  names; in that case the output will have the same variable names.
   For a \code{Surv(name1, name2)} call a new variable with the name
   given by \code{start} option will be added to the data.
   However, the routine is not sophisticated; it only does this

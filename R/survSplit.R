@@ -2,10 +2,15 @@ survSplit <- function(formula, data, subset, na.action=na.pass, id,
                               cut, zero=0, episode, start="tstart",
                               end="tstop", event="event", added, timefix=TRUE) {
     Call <- match.call()
+    charid <- FALSE
     if (missing(formula) || is.data.frame(formula)) {
         # an old style call
         # match arguments and build a formula
-        warning("using survSplit without a formula is no longer supported")
+        if (!missing(id)) {
+            idname <- id
+            charid <- TRUE
+        }
+        #warning("using survSplit without a formula will be deprecated")
         #stop("using survSplit without a formula is no longer supported")
         if (missing(data)) {
             if (!missing(formula)) {
@@ -42,22 +47,26 @@ survSplit <- function(formula, data, subset, na.action=na.pass, id,
     # one catch is that for Surv2 we need the id as an argument in the
     #  same way as id in coxph or survfit, but for Surv have historically
     #  allowed a character name, used to add an id for Surv(time, status) data. 
-    # Checking for a character form of id is subtle, it works for id="charlie"
-    #  but not for id=zed where zed is a length 1 character variable.  We have
-    #  removed any mention of this from the help file, but
-    if (!missing(id) && is.character(Call$id)){
-        charid <- TRUE
-        indx <- match(c("formula", "data", "subset", "na.action"), 
-                      names(Call),nomatch=0)
-    } else {
-        charid <- FALSE
-        indx <- match(c("formula", "data", "subset", "na.action", "id"), 
-                      names(Call), nomatch=0)
+    # Checking for a character form of id is subtle, they might have id="charlie"
+    #  (simple) or id=zed where zed is a length 1 character variable. If a 
+    #  length 1 non character assume an error, otherwise assume it should be
+    #  looked for in the data frame.
+    if (!charid && !missing(id)) {  # there is a formula
+        idname <- try(id, silent=TRUE)
+        if (!inherits(idname, "try-error") && length(id) ==1) {
+            if (is.character(id)) charid <- TRUE
+            else stop ("invalid value for id")
+        }
     }
+    if (charid) indx <- match(c("formula", "data", "subset", "na.action"), 
+                      names(Call),nomatch=0)
+    else  indx <- match(c("formula", "data", "subset", "na.action", "id"), 
+                          names(Call), nomatch=0)
 
+    temp <- Call[c(1L,indx)]  # only keep the arguments we wanted
     if (indx[1]==0) temp$formula <- formula
     if (indx[2]==0) stop("a data argument is required")
-    temp <- Call[c(1L,indx)]  # only keep the arguments we wanted
+
     if (missing(na.action)) temp$na.action <- quote(stats::na.pass)
     temp[[1L]] <- quote(stats::model.frame)  # change the function called
     mf <- eval.parent(temp)      
@@ -113,10 +122,10 @@ survSplit <- function(formula, data, subset, na.action=na.pass, id,
     # If charid and simple survival and the id variable name is not already in
     # the data, then add it. For anything other than simple survival we don't
     # have the information to add one.
-    if (charid && is.na(match(id, names(data))) && is.Surv(Y) &&
+    if (charid && is.na(match(idname, names(data))) && is.Surv(Y) &&
         attr(Y, "type") == "right") {
-        data[[id]] <- 1:nrow(data)
-        mf[[id]] <- 1:nrow(data)
+        data[[idname]] <- 1:nrow(data)
+        mf[[idname]] <- 1:nrow(data)
     }
 
     # Now for the actual work
@@ -217,7 +226,7 @@ survSplit <- function(formula, data, subset, na.action=na.pass, id,
         temp <- as.character(formula[[2]])
         if (is.Surv(Y))
             newdata[[temp]] <- Surv(index$start, index$end, status)
-        else newdata[[temp]]<- Surv2(Ynew[,1], status)
+        else newdata[[temp]]<- Surv2(index$start, status)
     }
 
     if (!missing(episode)) {
