@@ -1,7 +1,7 @@
 Title: Survival Analysis
 Priority: recommended
 Package: survival
-Version: 3.8-8
+Version: 4.1.0
 Date: 2026-06-04
 Depends: R (>= 3.5.0)
 Imports: graphics, Matrix, methods, splines, stats, utils
