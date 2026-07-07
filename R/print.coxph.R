@@ -43,8 +43,8 @@ print.coxph <-
         cname <- colnames(cmap)
         printed <- rep(FALSE, length(cname))
         rname <- rownames(cmap)
-        if (!is.null(x$phZ)) { # mark coefs that are ph baselines
-            j <- match(dimnames(x$phZ)[[1]], rname)
+        if (!is.null(x$share)) { # mark coefs that are ph baselines
+            j <- (x$share$vtype ==2)
             rname[j] <- paste(rname[j], "*", sep='')
         }
         extrarows <- NULL
@@ -75,7 +75,7 @@ print.coxph <-
         cat(" States: ", paste(paste(seq(along.with=x$states), x$states, 
                                      sep='= '), collapse=", "), '\n')
         if (!is.null(extrarows)) cat(extrarows, sep='\n')
-        if (!is.null(x$phZ)) cat(" (*) = coef for proportional baselines\n")
+        if (any(x$share$vtype==2))cat(" (*) = coef for proportional baselines\n")
         # cat(" States: ", paste(x$states, collapse=", "), '\n')
         if (FALSE) { # alternate forms, still deciding which I like
             stemp <- x$states

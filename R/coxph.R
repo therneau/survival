@@ -323,7 +323,7 @@ coxph <- function(formula, data, weights, subset, na.action,
     has.rwt<-      (!is.null(weights) && any(weights != floor(weights)))
     #has.rwt<- FALSE  # we are rethinking this
     has.robust <-  (!missing(robust) && !is.null(robust))  # arg present
-    if (has.id) id <- as.factor(id)
+#    if (has.id) id <- as.factor(id)
 
     if (missing(robust) || is.null(robust)) {
         if (has.cluster || has.rwt ||
@@ -336,24 +336,20 @@ coxph <- function(formula, data, weights, subset, na.action,
         if (!robust) {
             warning("cluster specified with robust=FALSE, cluster ignored")
             ncluster <- 0
-            clname <- NULL
         }
         else {
             if (is.factor(cluster)) {
-                clname <- levels(cluster)
                 cluster <- as.integer(cluster)
             } else {
-                clname  <- sort(unique(cluster))
-                cluster <- match(cluster, clname)
+                cluster <- match(cluster, unique(cluster))
             }
-            ncluster <- length(clname)
+            ncluster <- max(cluster)
         }
     } else {
         if (robust && has.id) {
             # treat the id as both identifier and clustering
-            clname <- levels(id)
-            cluster <- as.integer(id)
-            ncluster <- length(clname)
+            cluster <- match(id, unique(id))
+            ncluster <- max(cluster)
         }
         else {
             ncluster <- 0  # has neither
@@ -374,21 +370,25 @@ coxph <- function(formula, data, weights, subset, na.action,
         if (length(id)==0) 
             stop("an id statement is required for multi-state models")
 
-        # There is a bit of a dance here.  If there are multiple 
-        #  formulas (multiform=TRUE), then missing have not yet been dealt with
-        # They fall into 2 parts: missing values in Y, id, istate, wt, cluster
-        #  need to be removed before calling survcheck: any survcheck
-        #  errors due to these are "real" and we need to act on them. Plus,
-        #  for the first 3, survcheck2 isn't set up for missings.
-        #   If istate was missing, survcheck will have constructed one for us
-        # 2. Call covlist2 to get the transitions map 'tmap', which is needed by
-        # 3. Call multimiss to mark any observations that would generate only
-        #   missing linear predictors; these are removed from the model.frame.
+        # There is a bit of a dance here.  If there are multiple formulas
+        #  (multiform=TRUE), then missing have not yet been dealt with.
+        # They fall into 2 parts: a. missing values in Y, id, istate, wt, 
+        #  cluster are like missing for any other model: toss em before going
+        #  further. (And, survcheck2 isn't expecting missings). 
+        #  b. Say that a covariate is used for only the 2:4 transition, then for
+        #  a row of data that is not at risk for that transitions, istate=1 for
+        #  instance, whether that covariate is missing is immaterial.  Rule: any
+        #  data row that would be not NA for at least one transition is kept.
+        #
+        # 1. Call covlist2 to get the transitions map 'tmap', which tells us
+        #  which terms are used by each transition.
+        # 2. Call multimiss to mark any observations that would generate no 
+        #   non-NA linear predictors; these are removed from the model.frame.
         #   Also update the transitions table
-        # 4. Fix up the na.action attribute of mf, istate, Y, etc
-        # 5. The stacker routine called further below tosses out an NA linear
-        #  predictors, i.e. from a row of data that generates NA for only some 
-        #  transitions and thus was retained at this step.
+        # 3. Fix up the na.action attribute of mf, istate, Y, etc
+        # 4. The stacker routine called further below tosses out an NA linear
+        #  predictors, i.e. from a row of data that generates NA for some 
+        #  transitions but not all, and thus was retained at this step.
         if (multiform) {
             # Do the first step of NA: any missing Y, id, or istate
             # will cause survcheck2 to fail, but further removed lines due
@@ -483,7 +483,6 @@ coxph <- function(formula, data, weights, subset, na.action,
     attr(X, "assign") <- Xatt$assign[!xdrop]
     attr(X, "contrasts") <- Xatt$contrasts
 
-    Xmeans <- colMeans(X) # do this before expanding a multistate model
     offset <- model.offset(mf)
     if (is.null(offset) || all(offset==0)) {
         offset <- rep(0., nrow(mf))
@@ -536,7 +535,7 @@ coxph <- function(formula, data, weights, subset, na.action,
                             covlist2$phbaseline)
         xstack <- stacker(cmap, smap, as.integer(istate), X, Y, mf = mf,
                           states=states)
-        Xsave <- X  # the originals may be needed later
+        Xsave <- X  # the originals will be needed later
         Ysave <- Y
         X <- xstack$X
         Y <- xstack$Y
@@ -748,28 +747,6 @@ coxph <- function(formula, data, weights, subset, na.action,
         else matcoef <- cmap   
         names(fit$coefficients) <- newname
         
-        if (FALSE) { 
-            # an idea that was tried, then paused: make the linear predictors
-            # and residuals into matrices with one column per transition
-            # It leads to a much larger fit object, so we do this expansion in
-            # predict/residuals instead.
-            matcoef[matcoef>0] <- fit$coefficients[matcoef]
-            temp <- Xsave %*% matcoef
-            colnames(temp) <- colnames(cmap)
-            fit$linear.predictors <- temp
-
-            temp <- matrix(0., nrow=nrow(Xsave), ncol=ncol(fit$cmap))
-            temp[cbind(xstack$rindex, xstack$subshare)] <- fit$residuals
-            # if there are any transitions with no covariates, residuals have not
-            #  yet been calculated for those.
-            if (any(colSums(cmap) ==0)) {
-                from.state <- as.numeric(sub(":.*$", "", colnames(cmap)))
-                to.state   <- as.numeric(sub("^.*:", "", colnames(cmap)))
-               # warning("no covariate residuals are not filled in")
-            }
-            fit$residuals <- temp
-        }
-        
         # Add information about covariates linked to a shared hazard. In my
         #  documentation these are called \gamma coefs with fixed covariates Z.
         # Say that we had 4 states, 1:4, 2:4, and 3:4 have a shared baseline
@@ -778,53 +755,83 @@ coxph <- function(formula, data, weights, subset, na.action,
         #  all 2:4 have the same value (normally different from 1:4 rows),
         #  and ditto for 3:4.  Then we assume that this coef is a gamma not a 
         #  beta.
-        # The xtran$transition variable contains the sub-transition identifier
+        # The xtran$hazard variable contains the sub-transition identifier
         if (any(duplicated(smap[1,]))) {
             # There are shared baselines, see if there are special coefs
             # See the section on "shared hazards" in the methods document
             # 1. only time-dependent variables are elibible (or phbaseline)
             tdvar <- apply(Xsave, 2, function(x)
-                any(unlist(tapply(x, id, function(z) any(z!=z[1])))))
-            tdvar2 <- rep(TRUE, nrow(cmap)) # this line and next for "ph(a:b)"
+                any(tapply(x, id, function(z) any(z!=z[1]))))
+            # next 2 lines for "ph(a:b)" terms, which are in cmap but not X
+            tdvar2 <- rep(TRUE, nrow(cmap))            
             tdvar2[match(names(tdvar), rownames(cmap))] <- tdvar
 
-            # phZ will contain the fixedcovariate values Z
-            sval <- unique(xstack$subshare) # each is associated with a cmap col
-            nsub <- length(sval)  # number of subshare values
-            phZ <- array(0., dim=c(dim(cmap), nsub), dimnames=c(dimnames(cmap), 
-                                                   list(stran= sval)))
+            nhaz  <- ncol(smap)  # number of underlying hazards
+            phhaz <- rep(1, nhaz) # the vector of multipliers
             from.state <- as.numeric(sub(":.*$", "", colnames(cmap)))
-            xtran <- xstack$subshare # transition number, each row
+            xtran <- xstack$hazard # transition number, for each xstack$X row
             isgamma <- tdvar2  # inital: which vars could be a gamma
             # 2. Which variables are constant across sub-transitions?
             if (any(tdvar2)) { # might be none
-                for (sub in 1:nsub) {
-                    # the "sub transition" might be a set of transitions, i.e.,
-                    #  columns of cmap
-                    irow <- (xstack$subshare == sval[sub]) # rows for this sub
-                    for (j in xstack$submap[[sub]]) { # cols of cmap
-                        for (k in which(isgamma & cmap[,j]>0)) {
-                            xcol <- cmap[k, j] # X has a col for each coefficient
-                            temp <- X[irow, xcol]
-                            if (all(temp== temp[1])) phZ[k,j,sub] <- temp[1]
-                            else isgamma[k] <- FALSE
-                        }
+                for (j in 1:nhaz) {
+                    irow <- (xstack$hazard == j) # rows for this haz
+                    for (k in which(isgamma & cmap[,j]>0)) {
+                        xcol <- cmap[k, j] # X has a col for each coefficient
+                        temp <- X[irow, xcol]
+                        # if there are multiple Zgamma that affect hazard j,
+                        #  they accumulate (col j of cmap, element j of phhaz)
+                        if (all(temp== temp[1])) 
+                            phhaz[j] <- phhaz[j]* 
+                                    exp(temp[1]*fit$coefficients[xcol])
+                        else isgamma[k] <- FALSE
                     }
                 }
             }
             # Last check: if variables are part of a single term, it is
             #  all or none.
             if (any(tdvar)) {
+                temp <- isgamma
                 j <- which(tdvar) # don't test manufactured ph() covariates
-                isgamma[j] <- unlist(tapply(isgamma[j], 
+                temp[j] <- unlist(tapply(isgamma[j], 
                                             attr(Xsave, "assign")[j],
                                      function(i) i & all(i)))
+                if (any(temp!= isgamma & isgamma)) {
+                    # One column of a term, e.g., the dummy variable for a
+                    #  factor, was marked as isgamma but not all of them.
+                    # I don't think this should ever happen, but if it does we
+                    #  need to redo the compuation of phhaz from scratch.
+                    isgamma <- temp
+                    phhaz <- rep(1, ncol(tmap))
+                    for (j in 1:nhaz) {
+                        irow <- (xstack$hazard == j) # rows for this haz
+                        for (k in which(isgamma & cmap[,j]>0)) {
+                            xcol <- cmap[k, j]
+                            temp <- X[irow, xcol]
+                            if (all(temp== temp[1])) 
+                                phhaz[j] <- phhaz[j]* 
+                                    exp(temp[1]*fit$coefficients[xcol])
+                            else isgamma[k] <- FALSE
+                        }   
+                    }
+                }
             }
-            if (any(isgamma)) fit$phZ <- phZ[isgamma,,,drop=FALSE]
+            if (any(isgamma)) {
+                vtype <- tdvar2+isgamma  # 0, 1 (TD) or 2 (isgamma)
+                fit$share <- list(vtype=vtype, scale= phhaz)
+            }
         }
+
+
+        # means needs to refer to the original X
+        tfun <- function(x) {
+            xx <- x[!is.na(x)]  # there might be some
+            if (all(xx %in% nocenter)) 0 else mean(xx)
+        }
+        fit$means <- apply(Xsave, 2, tfun)
+
         class(fit) <- c("coxphms", class(fit))
     }
-    names(fit$means) <- names(fit$coefficients)
+    else names(fit$means) <- names(fit$coefficients)
      
     fit$formula <- formula(Terms)
     if (length(xlevels) >0) fit$xlevels <- xlevels

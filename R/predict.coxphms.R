@@ -8,19 +8,25 @@ predict.coxphms <- function(object, newdata,
         stop("Primary argument much be a coxphms object")
 
     Call <- match.call()
+    has.strata <- nrow(object$smap) >1
     type <-match.arg(type)
-    if (missing(newdata) && (type=="lp" || type=="risk")) {
+    if (missing(reference) && (type=="terms" || !has.strata)) 
+        reference <- "sample"
+    else reference <- match.arg(reference)
+
+    if (type=="lp" || type=="risk") {
         # this is a common and simple case, so dispose of it first
         beta <- coef(object, matrix=TRUE)
         if (missing(newdata)) X <- model.matrix(object)
         else X <- model.matrix(object, data=newdata)
-        if (reference=="sample") X <- X- rep(object$means, each=row(X))
+        if (reference=="sample") X <- X- rep(object$means, each=nrow(X))
         else if (reference=="strata") stop ("strata reference unfinished")
         
         eta <- X %*% beta 
         if (type=="lp") return(eta) else return(exp(eta))
     }       
 
+    stop("predict.coxphms not complete for type expected, survival and terms")
     # All the other cases
     if (type=="survival") {
         survival <- TRUE

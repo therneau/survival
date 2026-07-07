@@ -44,7 +44,7 @@ residuals.coxphms <- function(object, type=c("martingale","score",
     # don't return a colum of residuals for a transition with no covariates:
     #  those weren't returned by the coxph call
     nonzero <- colSums(object$cmap) >0
-    cmap <- object$cmap[,nonzero]
+    cmap <- object$cmap[,nonzero, drop=FALSE]
     if (type=='martingale' && is.logical(collapse) && !collapse &&
           is.logical(weighted) && !weighted) {
         rr <- matrix(0, nrow=object$n, ncol= ncol(cmap))
@@ -61,7 +61,7 @@ residuals.coxphms <- function(object, type=c("martingale","score",
     offset <- model.offset(mf)
 
     # and we will refer to these multiple times
-    smap <- object$smap[,nonzero]
+    smap <- object$smap[,nonzero, drop=FALSE]
     utran <- colnames(smap)[unique(smap[1,])]  # the unique transitions
 
     if (!is.logical(collapse)) {

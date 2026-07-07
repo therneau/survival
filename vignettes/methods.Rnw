@@ -1450,9 +1450,6 @@ not using the IJ as
 \section{Shared hazards}
 The vignette on shared coefficients and shared hazards in the survivalVignettes
 package gives important background on this problem. 
-Say that there is a shared proportional baseline hazard. 
-Consider the simple model shown in figure \ref{label:simplems},
-a data set with covarariates of (time1,time, state), cstate, x1, and x2.
 
 \begin{figure}
 <<nafld1, echo=FALSE>>=
@@ -1492,7 +1489,7 @@ ndata$event  <- with(ndata, factor(ifelse(death==1, 4, mevent), 0:4,
 ndata$age1 <- ndata$age + ndata$day1/365.25   # analysis on age scale
 ndata$age2 <- ndata$age + ndata$day2/365.25
 
-check <- survcheck(Surv(day1, day2, event) ~ 1, ndata, id=id, istate=cstate)
+check <- survcheck(Surv(age1, age2, event) ~ 1, ndata, id=id, istate=cstate)
 
 ndata$notzero <- 1*(ndata$cstate != "0mc")
 nfit <- coxph(list(Surv(age1, age2, event) ~ nafld + male,
@@ -1504,12 +1501,11 @@ nfit <- coxph(list(Surv(age1, age2, event) ~ nafld + male,
 print(nfit, digits=2)
 nfit$cmap
 nfit$smap
-dim(nfit$phZ)
-nfit$phZ[1, 7:10, 7:10]
+nfit$share
 @ 
 
 A base model would have 10 hazards and 20 coefficients. The above
-restricts this to 7 hazards and 14 coefficients. 
+restricts this to 7 hazards and 17 coefficients. 
 Here is what was fit, using 0:4 as the state labels, $beta_{m1}$ as the
 first male coefficient, $X_i$= (male, nafld) as the data vector for each.
 \begin{align}
@@ -1524,17 +1520,18 @@ first male coefficient, $X_i$= (male, nafld) as the data vector for each.
   \lambda_{14}(t;x) &= \lambda_{04}(t)e^{\gamma_2 + x_{i1}\beta_{m4} + x_{i2}\beta_{n5} \\
   \lambda_{24}(t;x) &= \lambda_{04}(t)e^{\gamma_3 + x_{i1}\beta_{m4} + x_{i2}\beta_{n6} \\
   \lambda_{34}(t;x) &= \lambda_{04}(t)e^{\gamma_4 + x_{i1}\beta_{m4} + x_{i2}\beta_{n7} \\
-Equation eqref{nogamma} has no $\gamma_1=0$ term, because \code{state} is
-a factor variable and we are using the default R coding for factors.
-Think of the right hand side as $Z\gamma + X\beta$, a covariate/coefficient block
-for shared proportional hazards and another for covariates.
+Equation eqref{nogamma} has no $\gamma_1=0$ term since we have \code{(2:4):5}
+rather than \code{(1:4):5}.
+Think of the right hand side as $Z\gamma + X\beta$, a covariate/coefficien
+block for shared proportional hazards (Z= notzero) and another for covariates
+(X= nafld, male).
 
 The \code{stacker} routine creates a working $X$ matrix with a block of rows for
-each of the 7 baseline hazards and a column for each of the 14 coefficients,
+each of the 7 baseline hazards and a column for each of the 17 coefficients,
 along with $Y$ and strata vectors.
 Block 1 contains all those rows at risk for a 1:2 transition, which is all those
 rows with initial state of 1. Likewise block 2 for 2:3 transitons, etc.,
-see the Baseline row in smap above.
+per the Baseline row in smap above.
 For the shared 1:5, 2:5, 3:5, 4:5 the working X matrix will have first the
 rows with an initial state of 1, then initial state of 2, then 3, then 4,
 all marked with the same value of \code{share} but different values for
@@ -1544,40 +1541,93 @@ position in the smap vector.
 
 The coxph routine uses this information to reason out two things. The first
 is what covariates in this working matrix are time dependent, and which of those
-constant within every subshare value.  Such covariates can be shifted from
+are constant within every subshare value.  Such covariates can be shifted from
 the $X\beta$ to the $X\gamma$ portion of our model.
 The second is a multiplier for every transition, based on these constant values.
-The two are returned as a list \code{shared} with two elements: the first is
-a vector of 0/1/2 values, identifying each row of cmap as a variable that is
-ordinary, time-dependent, or ``move to Z''. 
-The second is a vector of $exp(Z\gamma)$ values, one per hazard.
+This information is returned as a list \code{shared} with two elements: 
+the first is a vector of 0/1/2 values, identifying each row of cmap as a 
+variable that is ordinary, time-dependent, or ``moved to Z''. 
+The second is a vector of $exp(Z\gamma)$ values, one per hazard. The $Z$ 
+values themselves do not need to be saved.
 
-In creating a the cumulative hazard and probability in state estimates, the
-survfit.coxphms routine needs, for each curve
+In creating the cumulative hazard and probability in state estimates, the
+survfit.coxphms function, for each curve
 \begin{enumerate}
  \item Recenter each column of the $X$ matrix to match the target $x$ of the
    curve, then call stacker to recreate the working X matrix.
  \item Form $\eta=X\beta$, ignoring those coefficients that were moved to $Z$.
-   This can be done by zeroing those elements of the coefficient vector.
+   This is done by zeroing those elements of the coefficient vector.
  \item Sums of events and risk, for each subshare are computed by the coxsurv1
-   or coxsurv2 routine, within the multihaz.
- \item Compute the shared hazards as sum(event)/sum(risk * exp(Zgamma)), and the
+   or coxsurv2 routine, within the multihaz function.
+ \item Compute the shared hazards as sum(event)/sum(risk * exp(Zgamma)), where
+   the sum is over the subhazards that are bundled.  Then the
    individual hazards as exp(Zgamma) * shared.
-   
-   routines, within the multi
-   way
-   $Z\gamma$ value.
- \item Generate shared baseline hazards as the     
-for each row of cmap that identifies the variable as ordinary (0),
-time-dependent (1) or time-dependent and constant (2) 
-The phZ component contains the $Z$ covariate values for each relevant row of 
-cmap, for each substratum of a shared baseline.
+\end{enumerate}
 
-When creating a survival curve, ... to fill in.
+The example that has caused the most thinking is from the dementia data set,
+which is included in the mshmm package. We need to treat amyloid
+level as a state, because it is time dependent.  There are 4 levels of amyloid,
+along with outcomes of non-demented (ND), dementia, and death.
+This led to the state space below:
 
-For a more complex example consider the pbc data with two time-dependent
-covariates of bilirubin group and ascites. We are using timeline style
-data below.
+<<amyloidsstate>>=
+astate <- c(outer( c("miss", "low", "mod", "high"),c("ND", "dem"),
+                  paste, sep="\n"), "death")
+amat <- matrix(0, 9, 9, dimnames=list(astate, astate))
+for (i in 1:3) { amat[i, i+1] <- 1; amat[i+4, i+5] <- 1} # right arrows
+for (i in 1:4) {amat[i, i+4] <- 1} #down arrows
+amat[1:8,9] <- 1
+amat[1,3] <- amat[1,4] <- .6
+
+amat2 <- amat
+amat2[2,4] <- amat2[6,8] <- .6
+amat2[3,2] <- amat2[4,3] <- 1
+amat2[1,6] <- amat2[1,7] <- amat2[1,8] <- amat2[2,7] <- 1
+
+temp <- sum(amat2[,-9] >0)
+statefig(rbind(4,4,1), amat2, acol=rep(1:0, c(temp,8)),
+         alty= (1 + 1*(amat2 != amat))[amat2 >0], offset=.01)
+@ 
+
+We have left out arrows for the 8 transitions to death to make the
+figure less busy.
+The solid lines are transitions we expect, i.e., amyloid accumulates,
+without jumps, and does not change state at the exact same instant as
+cognition. The dashed lines are observed transitions that don't fit this
+model. But, the transition-based likelihood needs to account for \emph{all}
+observed transitions.  
+The two solid arcs from missing amyloid to moderate and high
+are consequences of the fact that the amyloid ligand for PET (Pittsburgh
+compound B) was not available until several years after the study started, so
+many imaged subjects start out with a series of non-imaged visits. 
+Due to LVCF, no one reverts to the missing state.
+
+If we declare that all transtions from ND to dementia have a shared baseline
+hazard based on amyloid group: \code{D(1):D(2) ~ agrp +1 / common}, this
+implies that all possible transitions from ND to dementia have the same
+hazard. That is, all 16 of them.  
+The code really has no choice but to believe the user's declaration.
+The result in the stacker routine will be 16 subshare sets for that transition,
+with every at risk observation (current state of ND) appearing in 4 of
+them.
+The partial likelihood for each observed ND:dementia transition will
+have all of these, so 4 copies of each.  We can factor this out, giving
+a constant term of -log(4) time the number of events in the LPL, thus
+the PL will maximize with exactly the same coefficients as before.
+Still, the ``wrong'' PL bothered me, and a lot of the excursions documented
+in stacker.R (comment block with Dec2024) are based on this, and an attempt
+to correct it.
+
+We need all 4 copies to get a proper cumulative hazard, however, since
+the solution needs to obey sum(expected) = sum(observed), and the left hand
+side of this equation will have all 16 hazards. 
+ The real problem is that this is
+the correct solution to the wrong estimate.
+Say for instance that the ND:dementia rate is 1/20 person-years but the 
+amyloid low:mod rate was 1/200.  The above forces both of them to be about
+11/200.
+What we actually want is an additive model.  
+
 
 <<pbc10>>=
 death <- with(subset(pbcseq, !duplicated(id)),

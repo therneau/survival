@@ -1435,7 +1435,7 @@ to particularly simple code, but this will not always be the case.
 \section{Differences in survival}
 There is a single function \code{survdiff} to test for differences between 2
 or more survival curves.  It implements the $G^\rho$ family of Fleming and
-Harrington \cite{FH2}.  A single parameter $\rho$ controls the weights
+Harrington \cite{Fleming81}.  A single parameter $\rho$ controls the weights
 given to different survival times, $\rho=0$ yields the log-rank test and
 $\rho=1$ the Peto-Wilcoxon.  Other values give a test that is intermediate
 to these two. The default value is $\rho=0$. 
@@ -1974,7 +1974,7 @@ Non-alcoholic fatty liver disease (NAFLD) is defined by three criteria:
 presence of greater than 5\% fat in the liver (steatosis),
 absence of other indications for the steatosis such as excessive
 alcohol consumption or certain medications, and absence of other 
-liver disease \cite{Puri12}.
+liver disease.
 NAFLD is currently responsible for almost 1/3 of
 liver transplants and it's impact is growing, it is expected to be a major
 driver of hepatology practice in the coming decade \cite{Tapper18},

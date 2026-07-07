@@ -151,7 +151,7 @@ for mounting electronic components to printed circuit boards.
 The experiment varied a number of factors relevant to the process.
 The response, measured by eye, is the number of visible solder skips.
 The data set was used in the
-book Statistical Models in S \cite{Chambers93} and is included in the
+book Statistical Models in S \cite{Chambers83} and is included in the
 \code{survival} package.
 
 <<solder1a>>=
@@ -708,7 +708,8 @@ Goodnight writes
   but for which observations were lost due to external forces, there is no
   reason to alter the hypothesis \cite{Goodnight78}. 
 \end{quote}
-This is actually quite different than the rationale found in Yates \cite{Yate34}:
+This is actually quite different than the rationale found in Yates 
+\cite{Yates34}:
 Yates focused on an estimate of interest (a marginal mean) for which he derived
 a test statistic, while the above is focused on the test statistic itself.
 Type I and II never coincide for continuous variables and so none of this
@@ -735,8 +736,9 @@ in question and parameters of effects that contain it; and each $L$ is
 orthogonal to all $L$s of effects that contain the effect in question.''
 The outline of an algorithm to create such an $L$ for design that
 may or may not have missing cells can be inferred from the examples of a second
-SAS technical report \cite{SAS2013}.  
+SAS technical report \cite{SAS13}.  
 This is the algorithm used by the \code{yates} function.
+
 \begin{enumerate}
   \item Create a design matrix $X$ in standard form, i.e., intercept, then
     main effects, then first order interaction, etc., from left to right,

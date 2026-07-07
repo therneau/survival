@@ -64,6 +64,7 @@ summary.survfitms <- function(object, times, censored=FALSE,
         if (is.logical(indx)) indx <- which(indx)
         if (!is.null(x) && length(indx)>0) {
             if (is.matrix(x)) x[pmax(1,indx),,drop=FALSE]
+            else if (is.array(x)) x[pmax(1,indx),,,drop=FALSE]
             else x[pmax(1, indx)]
         }
         else NULL

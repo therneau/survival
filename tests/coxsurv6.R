@@ -80,15 +80,15 @@ table(pbc3$bili4[atrisk6]) # current states just before time 6
  
 adata <- subset(pbc3, atrisk6)
 eta <- with(adata, init3[1]*(age-50) + init3[2]*(bili4=="1-2") + 
-                   init3[4]*(bili=="2-4") + 1.1*(bili4 == ">4"))
+                   init3[3]*(bili4=="2-4") + init3[4]*(bili4 == ">4"))
 cbind(adata[,c('id', 'age', 'tstop', 'bili4', 'bstat')], eta, risk=exp(eta)) 
 basehaz <- 1/sum(exp(eta))
-zz <-exp(init3)
-hmat[1:4,5,6] <- basehaz*c(1,zz)
+zz <- c(1, exp(init3[-1]))  # or exp(fit3$coef[2:4])
+hmat[1:4,5,6] <- basehaz*zz
 for (i in 1:4) hmat[i,i,6] <- -hmat[i,5,6]
 # double check: sum of per-subject hazards at this time point = number of
 #  events at this time point 
-sum(basehaz * exp(eta)) ==1
+all.equal(sum(basehaz * exp(eta)), 1)
 
 tmat <- array(0., dim= dim(hmat))  # transition matrices
 pstate <- matrix((4:0)/10, nrow=1)
@@ -98,7 +98,7 @@ for (i in 1:6) {
 }
 
 dtime <- which(surv3$time %in% etime)  # skip censored rows
-aeq(surv3$pstate[dtime[1:6],], pstate[-1,])
+aeq(surv3$pstate[dtime[1:6],1,], pstate[-1,])
 
 #
 # A function to do the above "by hand" calculations, over all time points
@@ -183,7 +183,7 @@ mysurv <- function(fit, istate, p0, x0, debug=0) {
         }
         diag(hmat) <- diag(hmat) - rowSums(hmat)   # rows sum to zero
         tmat <- as.matrix(Matrix::expm(hmat))      # transtion matrix
-#        if (i >= debug) browser()
+#        if (debug>0 && i >= debug) browser()
         pmat <- pmat %*% tmat
         pstate[i,] <- drop(p0 %*% pmat)
     }
@@ -201,7 +201,6 @@ fit2 <- coxph(list(Surv(tstart, tstop, bstat) ~ 1,
 surv2 <- survfit(fit2, newdata=list(age=50), p0=c(.4, .3, .2, .1, 0))
 test2 <- mysurv(fit2, pbc2$bili4, p0= 4:0/10, fit2, x0 =50)
 aeq(test2$pstate, surv2$pstate[match(test2$time, surv2$time),1,])
-
 
 if (FALSE){
     # for testing, make a plot: solid= survival package, points= test

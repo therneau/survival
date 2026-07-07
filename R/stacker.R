@@ -52,10 +52,12 @@ stacker <- function(cmap, smap, istate, X, Y, mf, states, dropzero=TRUE) {
     #  each row that was at risk for one of the shared transitions.  Since 
     #  every row has a single istate, the simple way to handle this is to
     #  select istate in list of "from" states.
+    # July 2026: Carrying through a difficult case, carefully, I now think 
+    #  that the 2021 argument is the right one. We have come full circle.
     # The methods vignette has more discussion. See the 'shared hazards' secton.
 
     # Don't create X and Y matrices for transitions with no covariates, for
-    #  coxph calls.  But I need them for survfit.coxphms (at present)
+    #  coxph calls (dropzero TRUE). But I need them for survfit.coxphms.
     if (dropzero) keepcol <- apply(cmap>0, 2, any)
     else keepcol <- rep(TRUE, ncol(cmap))
     baseline <- smap[1,]
@@ -70,10 +72,10 @@ stacker <- function(cmap, smap, istate, X, Y, mf, states, dropzero=TRUE) {
     for (i in 1:nblock) {
         k <- which(baseline == ugrp[i]) 
         cgrp[[i]] <- k
-        # cgrp[[i]] will be a list, 99% of the time there are no shared
+        # cgrp[[i]] will be a vector, 99% of the time there are no shared
         #  baseline hazards and it will be of length 1
         #
-        n.perblock[i] <- sum(icount[unique(from.state[k])])
+        n.perblock[i] <- sum(icount[from.state[k]])
     }
     
     # The constructed X matrix has a block of rows for each stratum
@@ -85,35 +87,30 @@ stacker <- function(cmap, smap, istate, X, Y, mf, states, dropzero=TRUE) {
     #  element of submap a list of length 1
     shared   <- rep(1:nblock, n.perblock) # the shared baseline number
     subshare <- integer(n2)
-    submap <- list()
     newstat <- integer(n2)  # new status
     Xcols <- 1:ncol(X)
     hasph <- nrow(cmap) > ncol(X)  # there are constructed PH variables
     kk <- 0
     for (i in 1:nblock) {
         j <- cgrp[[i]]
-        jinit <- unique(from.state[j])
         # do separate push for each unique istate
-        for (k in jinit) {
-            subject <- which(istate %in% k) # data rows in strata
+        #jinit <- unique(from.state[j])
+        #for (k in jinit) {
+        for (k in j) {
+            subject <- which(istate %in% from.state[k]) # data rows in strata
             nr <- kk + seq(along.with =subject)  # rows in the newX for subblock
             rindex[nr] <- subject
 
-            subtran <- j[from.state[j] ==k]
-            for (jk in subtran) {
-                nc <- cmap[Xcols,jk] # coefficients for this subshare
-                newX[nr, nc] <- X[subject, which(nc>0)]
-                if (hasph && any(cmap[-Xcols,jk]>0)) {
-                    # constructed PH variables aren't in X, but act like x=1
-                    newX[nr, cmap[-Xcols,jk]] <- 1
-                }
+            subshare[nr] <- k
+            nc <- cmap[Xcols,k] # coefficients for this subshare
+            newX[nr, nc] <- X[subject, which(nc>0)]
+            if (hasph && any(cmap[-Xcols,k]>0)) {
+                # constructed PH variables aren't in X, but act like x=1
+                newX[nr, cmap[-Xcols,k]] <- 1
             }
-            event.that.counts <- (endpoint[subject] %in% to.state[j])
+            event.that.counts <- (endpoint[subject] %in% to.state[k])
             newstat[nr] <- ifelse(event.that.counts, 1L, 0L)
         
-            # set the subshare, by using a representative state 
-            subshare[nr] <- subtran[1]
-            submap <- c(submap,list(subtran))
             kk <- max(nr)
         }
     }
@@ -164,10 +161,9 @@ stacker <- function(cmap, smap, istate, X, Y, mf, states, dropzero=TRUE) {
     first <- match(sort(unique(cmap[cmap>0])), cmap) #first instance of each 
     vname <- rownames(cmap)[row(cmap)[first]]
     colnames(newX) <- vname
-    # save the transision map, which shows which subshares are in each
-    #  subshare subgroup (subshare), within each set of shared subshares
-    #  (shared).  If there are no shared transtions it never gets used, though.
-    names(submap) <- unique(subshare)
+    #  There is a block for each transition (hazard), but if there are
+    #  shared hazards they are not necessarily in the order 1, 2, 3, ...
+    #  If there are no shared transtions hazard never gets used.
     list(X=newX, Y=newY, strata=as.integer(newstrat), rindex=rindex,
-         shared = shared,  subshare=subshare, submap=submap)
+         shared = shared,  hazard=subshare)
 }

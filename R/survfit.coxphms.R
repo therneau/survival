@@ -6,7 +6,7 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95,
          individual= FALSE, stype=2, ctype, 
          conf.type=c("log", "log-log", "plain", "none", "logit", "arcsin"),
          censor=TRUE, start.time, id, influence=FALSE,
-         na.action, type, p0=NULL, time0=FALSE, ...) {
+         na.action=na.pass, type, p0=NULL, time0=FALSE, ...) {
 
     if (!inherits(formula, "coxphms"))
         stop("argument must be a coxphms object")
@@ -70,9 +70,7 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95,
 
     n <- object$n[1]
 
-    # We need Y, X, istate, and id, also strata if present
-    # If it was a Surv2() call, istate will be in the model frame and not
-    #  explicit.  We have to get the model frame
+    # We need the model frame, regardless of what was saved in the fit.
     mf <- model.frame(object) 
     weights <- model.weights(mf)
     offset <- model.offset(mf)
@@ -151,17 +149,17 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95,
         }  
     }
 
-    # Now we have a valid newdata --- almost
-    # If there were shared hazards, then phZ covariates will have been omitted
+    # Now we have a valid newdata --- almost.  If there are shared
+    #  hazards, then X variables moved to the Zgamma term may have been omitted
     #  from newdata by the user (the values in newdata won't be used), but
     #  the model.frame and model.matrix routines will be unhappy without it.
     # However, it turns out to be tricky to create a sensible covariate when you
     #  have the terms and model frame, but not the original data: imagine
     #  ns(df=5, x=zed).  The code below works for simple names or factors, 
     #  anything else the user will need to put in their own dummy.
-    if (!is.null(object$phZ)) {
+    if (!is.null(object$share)) {
         # Zindex = which rows of cmap = cols of final X, are "Z" variables?
-        Zindex <- match(rownames(object$phZ), rownames(object$cmap))
+        Zindex <- which(object$share$vtype ==2)
         # this code works for simple variables and factors
         vname <- all.vars(Terms2)
         # covert from Splus style assign to R style assign
@@ -247,7 +245,7 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95,
     if (is.null(weights)) weights <- rep(1.0, nrow(Y))
     if (is.null(strata))  tempstrat <- rep(1L, nrow(Y))
     else                  tempstrat <- strata
-
+    nstrat <- length(unique(strata))
 
     cifit <- survfitAJ(as.factor(tempstrat), Y, weights, 
                         id= oldid, istate = istate, se.fit=FALSE, 
@@ -261,38 +259,42 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95,
     ntime <- length(cifit$time)
     ndata <- nrow(x2)
     baseline <- object$smap[1,]
-    nhaz <- length(unique(baseline))
+    nhaz <- length(baseline)
     cumhaz <- array(0, dim=c(ntime, ndata, nhaz), 
-                dimnames= list(NULL, NULL, names(baseline)[unique(baseline)]))
+                dimnames= list(NULL, NULL, names(baseline)))
     pstate <- array(0, dim=c(ntime, ndata, nstate),
                     dimnames= list(NULL, NULL, states))
 
     from.state <- as.numeric(sub(":[0-9]*$", "", names(baseline)))
     to.state   <- as.numeric(sub("^[0-9]*:", "", names(baseline)))
-    hindex1 <- cbind(from.state, to.state)
-    hindex2 <- match(baseline, unique(baseline))
-    Afill <- function(lambda, h1, h2, nstate) {
+    hindex <- cbind(from.state, to.state)
+    Afill <- function(lambda, hindex, nstate) {
         # create the A matrix from a set of hazards
         A <- matrix(0, nstate, nstate)
-        A[h1] <- lambda[h2]
+        A[hindex] <- lambda
         diag(A) <- -rowSums(A)
         A
     }
     # this is a trick that sets the defaults for Afill, so that I don't
-    #  have to pass these to multihaz
+    #  have to pass the parameters to multihaz
     temp <- formals(Afill)
-    temp$h1 <- hindex1
-    temp$h2 <- hindex2
+    temp$hindex <- hindex
     temp$nstate <- nstate
     formals(Afill) <- temp
 
+    # If there are shared strata, create contraction and expansion matrices.
+    #  1. Say that hazard values 1:4 are found in shared strata 1 (the
+    #    hazard and share vectors of xstack).  We need to sum the events
+    #    (numerator of the shared hazard) and the at risk totals (denominator)
+    #    for hazard 1-4.  The denomominator sums are scaled by 
+    #    object$share$scale, numerator a simple sum.
+    #  2.This single shared estimates are then expanded out to 4 values,
+    #    each scaled by object$share$scale.
     # For each row of newdata
     #   1. Update the X matrix, so that each column is recentered at this
     #   row of newdata, i.e., the curves for a subject with covariate x2[i,]
     #   2. Use stacker to create the expanded X and Y
-    #   3. For any phZ variables, replace selected columns of the expanded X,
-    #       compute the risk weight exp(XB) for each data row
-    #      Create the phscale vector
+    #   3. eta= exp(Xbeta) is computed with "gamma" coefs of 0
     #   4. Iterate over time (within strata if present)
     #     a. compute dN(jk,t) and the risk sum Y(jk,t) for each hazard jk at
     #         this time, using both case weights and risk weights
@@ -300,43 +302,32 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95,
     #     c. incement the cumulative hazard and the p(t)
     #     d. if multiple strata, rezero temps at the start of each stratum
     tempstrat <- as.integer(tempstrat)
-    phscale <- model.matrix(~factor(object$smap[1,]) -1)
+    beta <- object$coefficients
+    if (!is.null(object$share)) { # reset "gamma" coefs to 0
+        temp <- object$cmap[(object$share)$vtype==2,]
+        beta[unique(temp[temp>0])] <- 0
+    }              
     for (idata in 1:ndata) {
         tempX <- scale(X, center=x2[idata,], scale=FALSE)
         xstack <- stacker(object$cmap, object$smap, as.integer(istate), tempX,
                           Y, mf=mf, states=object$states, dropzero=FALSE)
         X2 <- xstack$X
-        if (!is.null(object$phZ)) {
-            phZ <- object$phZ  # less typing below
-            cmap <- object$cmap
-            ctemp <- cmap[match(dimnames(phZ)[[1]], rownames(cmap)),, drop=FALSE]
-            # Go through the individual subshared terms one at a time.
-            # There are never very many (commonly < 10). 
-            # If there are transitions with no covariates, the xstack$X matrix
-            #  will have rows for them, none are relevant to this calculation.
-            # Only look at xstack$subshare values that match names in phZ
-            for (sub in dimnames(phZ)[[3]]) {
-                irow <- which(xstack$subshare == sub) #relevant rows of X
-                nr <- length(irow)
-                for (j in xstack$submap[sub]) {
-                    # j = columns for this shared subterm
-                    k <- (ctemp[,j] >0)
-                    if (any(k)) {
-                        X2[irow, ctemp[k,j]] <- rep(phZ[k,j,sub], each=nr)
-                        eta <- sum(phZ[k,j,sub] * object$coef[ctemp[k,j]])
-                        browser()
-                        phscale[j] <- exp(eta)
-                    }
-                }
-            }
-        }
-        eta <- X2 %*% object$coefficients
-
+        if (idata==1) {
+            if (any(duplicated(baseline))) {
+                # There are shared hazards, create a design matrix to 
+                #  collapse them
+                if (all(baseline == baseline[1])) 
+                    sharemat <- matrix(1, nrow=length(baseline), ncol=1)
+                else sharemat<- model.matrix(~factor(baseline) -1)
+            } else sharemat <- NULL
+        }                   
+        eta <- drop(X2 %*% beta)
         if (is.null(strata)) {
             kk <- xstack$rindex
             mfit <- multihaz(xstack$Y, X2, position[kk], weights[kk], exp(eta),
-                             xstack$shared, ctype=ctype, stype=stype, Afill, 
-                             phscale, p0 = p0, utime= cifit$time, nstate=nstate)
+                             xstack$hazard, ctype=ctype, stype=stype, Afill, 
+                             p0 = p0, utime= cifit$time, nstate=nstate,
+                             sharemat, object$share$scale)
             cumhaz[,idata,] <- mfit$cumhaz
             pstate[,idata,] <- mfit$pstate
         }
@@ -350,14 +341,15 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95,
                              position[kk], weights[kk], exp(eta[jj]), 
                              xstack$stran[jj], ctype=ctype, stype=stype, Afill, 
                              p0 = p0, 
-                             utime= cifit$time[cifit.index== tstrat], nstate)
+                             utime= cifit$time[cifit.index== tstrat], nstate,
+                             sharemat, isharemat, object$share$scale)
                 cumhaz[cifit.index==i, idata,] <- mfit$cumhaz
                 pstate[cifit.index==i, idata,] <- mfit$cumhaz
             }
         }
     }
-    cifit$cumhaz <- drop(cumhaz)
-    cifit$pstate <- drop(pstate)
+    cifit$cumhaz <- cumhaz
+    cifit$pstate <- pstate
     cifit$newdata <- newdata
 
     cifit$call <- Call
@@ -369,7 +361,8 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95,
 #  This can only handle one external strata at a time, but we expect 
 #  external strata to be rare in multistate models
 multihaz <- function(y, x, position, weight, risk, transition, ctype, stype, 
-                     Afill, phscale, p0, utime, nstate) {
+                     Afill, p0, utime, nstate,
+                     sharemat, shscale) {
     ny <- ncol(y)
     sort2 <- order(transition, y[,ny-1L]) -1L
     ntime <- length(utime)
@@ -394,29 +387,32 @@ multihaz <- function(y, x, position, weight, risk, transition, ctype, stype,
     # The first dimension is time
     # Second is the transition
     # Third is the count type: 1-3 = at risk (unweighted, with case weights,
-    #  with casewt * risk wt), 4-6 = events (unweighted, case, risk), 
+    #  with casewt * risk wt), 4-6 = events (unweighted, case wt, risk), 
     #  7-8 = censored, 9-10 = Efron, 11-12= unused
 
     # We will use events/(at risk) = cn[,,5]/cn[,,3] a few lines below; but
-    #  avoid 0/0. If there is no one at risk there are no events, obviously.
-    # cn[,,1] is the safer check since it is an integer, but if there are wts
-    #  and a subject with weight=0 were the only one at risk, we need cn[,,2]
-    # (Users should never use weights of 0, but someone, somewhere, will do it.)
-    none.atrisk <- (cn[,,1]==0 | cn[,,2]==0)
-    if (ctype ==1) {
-        denom1 <- ifelse(none.atrisk, 1, cn[,,3])   # avoid a later 0/0
-        denom2 <- ifelse(none.atrisk, 1, cn[,,3]^2)
+    #  avoid 0/0. (All implmentations plug in hazard=0 when there is no one
+    #  at risk).
+    if (is.null(sharemat)) {
+        zero <- (cn[,,5] ==0)
+        if (ctype==1) hazard <- ifelse(zero, 0, cn[,,5]/cn[,,3])
+        else          hazard <- ifelse(zero, 0, cn[,,5]/cn[,,9])
     } else {
-        denom1 <- ifelse(none.atrisk, 1, cn[,,9])
-        denom2 <- ifelse(none.atrisk, 1, cn[,,10])
+        # there are shared hazards
+        nn <- cn[,,5] %*% sharemat  # numerator of shared hazards
+        if (is.null(shscale)) {
+            if (ctype==1) dd <- cn[,,3] %*% sharemat # denom sum
+            else          dd <- cn[,,9] %*% sharemat
+        } else {
+            if (ctype==1) dd <- cn[,,3] %*% (shscale*sharemat) #weighted denom
+            else          dd <- cn[,,9] %*% (shscale*sharemat)
+        }
+        shared <- ifelse(nn==0, 0, nn/dd) # the shared hazards
+        # Now expand back out to 1 col per hazard
+        if (is.null(shscale)) hazard <- shared %*% t(sharemat)
+        else hazard <- shared %*% t(shscale*sharemat)
     }
 
-    if (ctype==1) hazard <- cn[,,5]/ifelse(cn[,,3]<=0, 1, cn[,,3])
-    else          hazard <- cn[,,5]/ifelse(cn[,,9] <=0, 1, cn[,,9])
-
-    browser()
-    hazard <- hazard * rep(phscale, each=nrow(hazard))
-    
     cumhaz <- apply(hazard, 2, cumsum)
     pstate <- matrix(0, length(utime), nstate)
     phat <- p0

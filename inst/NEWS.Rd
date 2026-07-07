@@ -8,6 +8,7 @@
     \item Updates to DESCRIPTION and coxph.object.RD courtesy of
     Sebastian Meyer.
     \item Update survSplit to support timeline data.
+    \item Make small corrections to the nafld data set (missing case.id values)
 }}
 \section{Changes in version 3.8-8}{
   \itemize{
