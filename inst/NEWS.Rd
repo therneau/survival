@@ -1,5 +1,11 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 3.8-9}{
+  \itemize{
+    \item Minor fix to model.matrix.coxph. Fixes a bug I introduced,
+    which led to failure in reverse CRAN checks.
+    \item Submit to CRAN
+}}
 \section{Changes in version 3.8-8}{
   \itemize{
     \item Add the timefix option to survSplit, after finding that the

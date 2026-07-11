@@ -222,26 +222,24 @@ progression would have been discovered had they occured in the interim, but
 that the information post rejoining was useful, so we allowed disjoint intervals
 of follow up.  But this remains a rare case.  
 
-Below are two Aalen-Johansen fits, the first with bilirubin as a time-dependent
-covariate, the second with it a state.
+Below are two fits, the first with bilirubin as a time-dependent
+covariate, the second with it a state.  The latter is a valid way 
+to create  time-dependent survival curves.
 
 <<pbc2b>>=
-psurv1 <- survfit(Surv(tstart, tstop, death) ~ bili3, pdata2,
+pcox1 <- coxph(Surv(tstart, tstop, death) ~ bili3, pdata2,
                   id=id)
-psurv2a <- survfit(Surv(tstart, tstop, bstate) ~ 1, pdata2,
+psurv1a <- survfit(Surv(tstart, tstop, bstate) ~ 1, pdata2,
                   id= id, istate= bili3, p0=c(1,0,0,0))
-psurv2b <- survfit(Surv(tstart, tstop, bstate) ~ 1, pdata2,
+psurv1b <- survfit(Surv(tstart, tstop, bstate) ~ 1, pdata2,
                   id= id, istate= bili3, p0=c(0,1,0,0))
-psurv2c <- survfit(Surv(tstart, tstop, bstate) ~ 1, pdata2,
+psurv1c <- survfit(Surv(tstart, tstop, bstate) ~ 1, pdata2,
                   id= id, istate= bili3, p0=c(0,0,1,0))
 
-if (FALSE) {  #if I show it I have to explain it
-plot(psurv1, col=1:3, fun= "event", lwd=2, xscale=365.25,
+plot(psurv1c[4], col=3, lwd=2, conf.int=F, xscale=365.25,
      xlab= "Years from randomization", ylab="Death")
-lines(psurv2c[4], col=3, lwd=2, lty=2, conf.int=F)
-lines(psurv2b[4], col=2, lwd=2, lty=2, conf.int=F)
-lines(psurv2a[4], col=1, lwd=2, lty=2, conf.int=F)
-}
+lines(psurv1b[4], col=2, lwd=2, conf.int=F)
+lines(psurv1a[4], col=1, lwd=2, conf.int=F)
 @ 
 
 \section{Timeline data}
@@ -278,16 +276,19 @@ pdata3 <- cbind(pbcseq[, -(2:3)], death=0)
 pdata3 <- merge(pdata3, temp, all=TRUE)
 
 # create a factor for joint outcome
-temp2 <- as.numeric(cut(pdata3$bili, c(0,1,4, 50)))
-temp3 <- ifelse(pdata3$death==1, 4, temp2)
-pdata3$bstate <- factor(temp3, 1:4, c("normal","1-4", "4+", "death"))
+pdata3$bili3 <- cut(pdata3$bili, c(0,1,4, 50),  c("normal","1-4", "4+"))
+temp <- with(pdata3, ifelse(!duplicated(id, fromLast=TRUE), 4*death,
+                as.numeric(bili3)))
+pdata3$bstate <- factor(temp, 0:4, c("censor", "normal","1-4", "4+", "death"))
 
 subset(pdata3, id<3, c(id, day, death, age, bili, ascites, chol,
-                      bstate))
+                     bili3,  bstate))
 
-psurv3 <-  survfit(Surv2(day, death) ~ bstate, pdata3, id= id)
-ii <- match("call", names(psurv3))
-all.equal(unclass(psurv1)[-ii], unclass(psurv3)[-ii])
+pcox2 <-  coxph(Surv2(day, death) ~ bili3, pdata3, id= id, ties="efron")
+all.equal(coef(pcox1), coef(pcox2))
+
+psurv2a <- survfit(Surv2(day, bstate) ~1, pdata3, id=id, p0=c(1,0,0,0))
+all.equal(psurv1a$pstate, psurv2a$pstate)
 @ 
 
 The call is different, but the result of the fit is the same.

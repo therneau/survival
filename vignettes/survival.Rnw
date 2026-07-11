@@ -944,7 +944,7 @@ legend(20, .4, c("Arm A", "Arm B"),
 The full multi-state data set can be created with the 
 \code{tmerge} routine.
 <<sfit0a, echo=TRUE>>=
-mdata <- tmerge(myeloid[,1:2], myeloid,  id=id,  death= event(futime, death),
+mdata <- tmerge(myeloid[,1:4], myeloid,  id=id,  death= event(futime, death),
                 sct = event(txtime), cr = event(crtime), 
                 relapse = event(rltime))
 temp <- with(mdata, cr + 2*sct  + 4*relapse + 8*death)

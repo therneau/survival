@@ -133,7 +133,8 @@ model.frame.coxph <- function(formula, ...) {
             }
         }        
         # should I also do aeqSurv here? I think yes
-        if (formula$timefix) mf[[1]] <- aeqSurv(mf[[1]])
+        timefix <- formula$timefix  #if timefix was a variable we want to eval
+        if (is.null(timefix) || timefix) mf[[1]] <- aeqSurv(mf[[1]])
         mf
     }
 }
