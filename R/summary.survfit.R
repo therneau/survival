@@ -217,7 +217,7 @@ summary.survfit <- function(object, times, censored=FALSE,
             nindx <- rep(1:nrow(fit$newdata), each= nrow(fit$surv))
             if (any(names(fit$newdata) %in% names(ndata))) {
                 # the user's data frame has an already used name, add _
-                names(newdata) <- paste0(names(newdata), "_")
+                names(fit$newdata) <- paste0(names(fit$newdata), "_")
             }             
             ndata <- cbind(ndata, fit$newdata[nindx,])
         } else {
