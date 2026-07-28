@@ -9,11 +9,11 @@ S-plus is sometimes useful.  This function produces the Splus style from
 the R style
 }
 \usage{
-attrassign(object, terms)
+attrassign(object, tt)
 }
 \arguments{
   \item{object}{model matrix}
-  \item{terms}{terms object}
+  \item{tt}{terms object}
 }
 
 \value{

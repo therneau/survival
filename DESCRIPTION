@@ -9,7 +9,7 @@ LazyData: Yes
 LazyDataCompression: xz
 ByteCompile: Yes
 Authors@R: c(person(c("Terry", "M"), "Therneau",
-                    email="therneau.terry@mayo.edu",
+                    email="terry.therneau@proton.me",
 	            role=c("aut", "cre")),
                person("Thomas", "Lumley", role=c("ctb", "trl"),
 	       comment="original S->R port and R maintainer until 2009"),

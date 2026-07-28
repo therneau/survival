@@ -8,6 +8,7 @@
     \item More work, and tests, for coxph models with shared baseline
     hazards
     \item Vignette updates for timeline data (Surv2)
+    \item Change my address from mayo.edu to proton.me (I retired July 1)
 }}
 \section{Changes in version 3.8-9}{
   \itemize{
