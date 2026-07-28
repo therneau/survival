@@ -150,8 +150,8 @@ mat4 <- model.matrix(fit23)
 tcheck <- survcheck(Surv(tstart, tstop, event) ~ 1, tdata, id=id)
 temp <- survival:::stacker(fit$cmap, fit$smap, as.numeric(tcheck$istate), fit$x,
                           fit$y, NULL, fit$states)
-aeq(temp$X[temp$transition==1, 1:2], mat2)
-aeq(temp$X[temp$transition==2, 3:4], mat3)
-aeq(temp$X[temp$transition==3, 5:6], mat4)
+aeq(temp$X[temp$shared==1, 1:2], mat2)
+aeq(temp$X[temp$shared==2, 3:4], mat3)
+aeq(temp$X[temp$shared==3, 5:6], mat4)
 
 

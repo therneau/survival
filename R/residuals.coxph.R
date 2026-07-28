@@ -112,7 +112,7 @@ residuals.coxph <-  function(object,
 
 	if (nvar==1) rr <- temp$resid[deaths]
 	else         rr <- matrix(temp$resid[deaths], ncol=nvar) #pick rows 
-	if (weighted) rr <- rr * weights[deaths]
+	if (weighted) rr <- rr * (weights[ord])[deaths]
 
 	if (length(strats)) attr(rr, "strata")  <- table((strat[ord])[deaths])
 	time <- c(y[deaths,2])  # 'c' kills all of the attributes

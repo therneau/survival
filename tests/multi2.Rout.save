@@ -1,7 +1,7 @@
 
-R Under development (unstable) (2025-03-06 r87893) -- "Unsuffered Consequences"
-Copyright (C) 2025 The R Foundation for Statistical Computing
-Platform: aarch64-unknown-linux-gnu
+R Under development (unstable) (2026-06-21 r90185) -- "Unsuffered Consequences"
+Copyright (C) 2026 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -200,15 +200,15 @@ table     x  time     y   var
 > tcheck <- survcheck(Surv(tstart, tstop, event) ~ 1, tdata, id=id)
 > temp <- survival:::stacker(fit$cmap, fit$smap, as.numeric(tcheck$istate), fit$x,
 +                           fit$y, NULL, fit$states)
-> aeq(temp$X[temp$transition==1, 1:2], mat2)
+> aeq(temp$X[temp$shared==1, 1:2], mat2)
 [1] TRUE
-> aeq(temp$X[temp$transition==2, 3:4], mat3)
+> aeq(temp$X[temp$shared==2, 3:4], mat3)
 [1] TRUE
-> aeq(temp$X[temp$transition==3, 5:6], mat4)
+> aeq(temp$X[temp$shared==3, 5:6], mat4)
 [1] TRUE
 > 
 > 
 > 
 > proc.time()
    user  system elapsed 
-  0.509   0.036   0.543 
+  0.589   0.086   0.667 

@@ -61,8 +61,7 @@ stacker <- function(cmap, smap, istate, X, Y, mf, states, dropzero=TRUE) {
     if (dropzero) keepcol <- apply(cmap>0, 2, any)
     else keepcol <- rep(TRUE, ncol(cmap))
     baseline <- smap[1,]
-    sgrp <- match(baseline[keepcol], baseline)
-    ugrp <- unique(sgrp)
+    ugrp <- unique(baseline[keepcol])  # the shared strata
     nblock <- length(ugrp)  # total number of blocks
 
     # Pass 1 to find the total data set size
@@ -91,11 +90,13 @@ stacker <- function(cmap, smap, istate, X, Y, mf, states, dropzero=TRUE) {
     Xcols <- 1:ncol(X)
     hasph <- nrow(cmap) > ncol(X)  # there are constructed PH variables
     kk <- 0
+
     for (i in 1:nblock) {
         j <- cgrp[[i]]
-        # do separate push for each unique istate
-        #jinit <- unique(from.state[j])
-        #for (k in jinit) {
+        # older code, push out a block for each unique istate
+        #   jinit <- unique(from.state[j])
+        #   for (k in jinit) {
+        # Now, push out a block for each transition j
         for (k in j) {
             subject <- which(istate %in% from.state[k]) # data rows in strata
             nr <- kk + seq(along.with =subject)  # rows in the newX for subblock

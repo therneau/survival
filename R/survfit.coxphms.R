@@ -251,6 +251,7 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95,
                         id= oldid, istate = istate, se.fit=FALSE, 
                         start.time=start.time, p0=p0, time0= time0)
     # if the user did not provide p0, survfitAJ fills one in for us
+    #  if there are strata it wll be a matrix, one row per stratum
     p0 <- cifit$p0
     if (is.null(cifit$strata)) cifit.index <- 1:length(cifit$time)
     else cifit.index <- rep(1:length(cifit$strata), cifit$strata)
@@ -332,19 +333,17 @@ function(formula, newdata, se.fit=FALSE, conf.int=.95,
             pstate[,idata,] <- mfit$pstate
         }
         else {
-            cumhaz <- array(0, dim=c(ntime, ndata, nhaz))
-            pstate <- array(0, dim=c(ntime, ndata, nhaz))
             for (tstrat in 1:nstrat) {
-                jj <- which(tempstrat[xstack$rindex] == tstrat) # rows of xstacl
+                jj <- which(tempstrat[xstack$rindex] == tstrat) # rows of xstack
                 kk <- xstack$rindex[jj] # rows of data
                 mfit <- multihaz(xstack$Y[jj,,drop= FALSE], X2[jj,, drop=FALSE],
                              position[kk], weights[kk], exp(eta[jj]), 
-                             xstack$stran[jj], ctype=ctype, stype=stype, Afill, 
-                             p0 = p0, 
+                             xstack$hazard[jj], ctype=ctype, stype=stype, Afill,
+                             p0 = p0[tstrat,] , 
                              utime= cifit$time[cifit.index== tstrat], nstate,
-                             sharemat, isharemat, object$share$scale)
-                cumhaz[cifit.index==i, idata,] <- mfit$cumhaz
-                pstate[cifit.index==i, idata,] <- mfit$cumhaz
+                             sharemat, object$share$scale)
+                cumhaz[cifit.index==tstrat, idata,] <- mfit$cumhaz
+                pstate[cifit.index==tstrat, idata,] <- mfit$pstate
             }
         }
     }

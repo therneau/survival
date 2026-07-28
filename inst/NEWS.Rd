@@ -1,5 +1,14 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 3.8-10}{
+  \itemize{
+    \item Fix github issues 339 (incorrect weighted Schoenfeld
+    residuals), 338 (missing references), 332 (cox.zph failure in a
+    model with psline and an NA coefficient).
+    \item More work, and tests, for coxph models with shared baseline
+    hazards
+    \item Vignette updates for timeline data (Surv2)
+}}
 \section{Changes in version 3.8-9}{
   \itemize{
     \item Additions to coxph and stacker to more fully support shared

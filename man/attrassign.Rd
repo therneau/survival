@@ -1,24 +1,19 @@
 \name{attrassign}
-\alias{attrassign.default}
 \alias{attrassign}
-\alias{attrassign.lm}
 \title{Create new-style "assign" attribute}
 \description{
 The \code{"assign"} attribute on model matrices describes which columns
 come from which terms in the model formula. It has two versions. R uses
-the original version, but the alternate version found in
-S-plus is sometimes useful.
+the original (S) version, but the alternate version found in
+S-plus is sometimes useful.  This function produces the Splus style from
+the R style
 }
 \usage{
-attrassign(object, ...)
-\method{attrassign}{default}(object, tt,...)
-\method{attrassign}{lm}(object,...)
+attrassign(object, terms)
 }
-%- maybe also `usage' for other objects documented here.
 \arguments{
-  \item{object}{model matrix or linear model object}
-  \item{tt}{terms object}
-  \item{...}{further arguments for other methods}
+  \item{object}{model matrix}
+  \item{terms}{terms object}
 }
 
 \value{

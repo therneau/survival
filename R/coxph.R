@@ -543,26 +543,6 @@ coxph <- function(formula, data, weights, subset, na.action,
         if (length(offset)) offset <- offset[xstack$rindex]
         if (length(weights)) weights <- weights[xstack$rindex]
         if (length(cluster)) cluster <- cluster[xstack$rindex]
-
-        if (FALSE) {
-            # rebuild the 'assign' attribute for the new X
-            # I later realized that downstream code (survfit) needs the assign
-            # of the original X.  Once I'm totally sure about that, remove this
-            #
-            # remove intercept row and strata rows
-            t2 <- tmap[-c(1, strats),,drop=FALSE]  
-            r2 <- row(t2)[!duplicated(as.vector(t2)) & t2 !=0]
-            c2 <- col(t2)[!duplicated(as.vector(t2)) & t2 !=0]
-
-            a2 <- lapply(seq(along.with=r2), function(i) {
-                cmap[assign[[r2[i]]], c2[i]]})
-            # which elements are unique?  
-            tab <- table(r2)
-            count <- tab[r2]
-            names(a2) <- ifelse(count==1, row.names(t2)[r2],
-                         paste(row.names(t2)[r2], colnames(cmap)[c2], sep="_"))
-            assign <- a2
-        }
     }
  
     # infinite covariates are not screened out by the na.omit routines
@@ -761,7 +741,9 @@ coxph <- function(formula, data, weights, subset, na.action,
             # See the section on "shared hazards" in the methods document
             # 1. only time-dependent variables are elibible (or phbaseline)
             tdvar <- apply(Xsave, 2, function(x)
-                any(tapply(x, id, function(z) any(z!=z[1]))))
+                any(tapply(x, id, function(z) {
+                    zz <- z[!is.na(z)]
+                    any(zz!=zz[1])})))
             # next 2 lines for "ph(a:b)" terms, which are in cmap but not X
             tdvar2 <- rep(TRUE, nrow(cmap))            
             tdvar2[match(names(tdvar), rownames(cmap))] <- tdvar
@@ -786,10 +768,11 @@ coxph <- function(formula, data, weights, subset, na.action,
                         else isgamma[k] <- FALSE
                     }
                 }
-            }
+            } 
+
             # Last check: if variables are part of a single term, it is
             #  all or none.
-            if (any(tdvar)) {
+            if (any(tdvar2)) {
                 temp <- isgamma
                 j <- which(tdvar) # don't test manufactured ph() covariates
                 temp[j] <- unlist(tapply(isgamma[j], 

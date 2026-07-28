@@ -1,7 +1,7 @@
 
-R Under development (unstable) (2024-06-14 r86747) -- "Unsuffered Consequences"
-Copyright (C) 2024 The R Foundation for Statistical Computing
-Platform: aarch64-unknown-linux-gnu
+R Under development (unstable) (2026-06-21 r90185) -- "Unsuffered Consequences"
+Copyright (C) 2026 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -106,11 +106,11 @@ Type 'q()' to quit R.
 > test2 <- rbind(test1, test1)
 > test2$group <- rep(letters[1:2], each=nrow(test1))
 > # U, imat, and sctest will all double
-> dummy <- c(dummy, dummy)
+> dummy <- rep(0,14)
 > fit6 <- coxph(Surv(dummy, time, status) ~ x + strata(group), test2)
 > aeq(fit6$coef, log(r))
 [1] TRUE
-> zp6 <- cox.zph(fit6, transform="log", globa=FALSE)
+> zp6 <- cox.zph(fit6, transform="log", global=FALSE)
 > aeq(zp6$table[,1], 2*sctest4)
 [1] TRUE
 > 
@@ -220,4 +220,4 @@ censor    pcm  death
 > 
 > proc.time()
    user  system elapsed 
-  0.515   0.028   0.540 
+  0.613   0.082   0.688 

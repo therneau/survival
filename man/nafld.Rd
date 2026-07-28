@@ -89,7 +89,7 @@ each yes/no outcome that occured.
 AM Allen, TM Therneau, JJ Larson, A Coward, VK Somers and PS Kamath,
    Nonalcoholic Fatty Liver Disease Incidence and Impact on Metabolic
             Burden and Death: A 20 Year Community Study,
-   Hepatology 67:1726-1736, 2018.
+   Hepatology 67:1726-1736, 2018. PMID: 41240917
 }
 
 \keyword{datasets}

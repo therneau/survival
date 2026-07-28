@@ -415,7 +415,7 @@ the KM curves themselves.
 However, they are the central computation for psuedovalues, which are steadily
 increasing in popularity.
 Let $U_k(t)$ be the IJ for observation $k$ at time $t$.
-This is a vector, but in section \ref{sect:IJ2} for multi-state data it will
+This is a vector, but for multi-state data it will
 be a matrix with 1 column per state.
 Likewise let $C(t)$ and $A(t)$ be influence vectors for the cumulative hazard 
 and the area under the curve at time $t$.
@@ -835,10 +835,10 @@ It would be quite unusual to have a data set with some repeated states and
 others not, but the code allows it.
 
 
-Consider the simple illness-death model in figure \ref{illdeath}. 
+Consider the simple illness-death model with recovery.
 There are 3 states and 4 transtions in the model. The number at risk (n.risk),
 number censored (n.censor), probability in state (pstate) and number of
-entries (n.enter) comonents of the survfit call will have 3 columns, one
+entries (n.enter) components of the survfit call will have 3 columns, one
 per state.
 The number of events (n.event) and cumulative hazard (cumhaz) components 
 will have 4 columns, one per transition,  labeled as 1.2, 1.3, 2.1, and 2.3.
@@ -1113,7 +1113,7 @@ all but 161 out of the 6108 unique event times (5\%).  For the remainder of
 the event times it suffices to create a temporary copy of $U(t-)$.
 
 \chapter{Cox model}
-\chapter{Specials}
+\section{Specials}
 R formulas allow for special terms. When parsing the coxph formula using the
 standard \code{terms} function, the optional argument \code{specials= 'strata'}
 will cause the returned object to specially mark any strata terms.
@@ -1509,18 +1509,19 @@ restricts this to 7 hazards and 17 coefficients.
 Here is what was fit, using 0:4 as the state labels, $beta_{m1}$ as the
 first male coefficient, $X_i$= (male, nafld) as the data vector for each.
 \begin{align}
-  \lambda_{01}(t;x) &= \lambda_{01}(t)e^{x_{i1}\beta_{m1} + x_{i2}\beta_{n1} \\
-  \lambda_{02}(t;x) &= \lambda_{02}(t)e^{x_{i1}\beta_{m1} + x_{i2}\beta_{n1} \\
-  \lambda_{03}(t;x) &= \lambda_{03}(t)e^{x_{i1}\beta_{m1} + x_{i2}\beta_{n1} \\
-  \lambda_{12}(t;x) &= \lambda_{12}(t)e^{x_{i1}\beta_{m2} + x_{i2}\beta_{n2} \\
-  \lambda_{13}(t;x) &= \lambda_{13}(t)e^{x_{i1}\beta_{m2} + x_{i2}\beta_{n2} \\
-  \lambda_{23}(t;x) &= \lambda_{23}(t)e^{x_{i1}\beta_{m3} + x_{i2}\beta_{n3} \\
-  \lambda_{04}(t;x) &= \lambda_{04}(t)e^{x_{i1}\beta_{m4} + x_{i2}\beta_{n4}
+  \lambda_{01}(t;x) &= \lambda_{01}(t)e^{x_{i1}\beta_{m1} + x_{i2}\beta_{n1}} \\
+  \lambda_{02}(t;x) &= \lambda_{02}(t)e^{x_{i1}\beta_{m1} + x_{i2}\beta_{n1}} \\
+  \lambda_{03}(t;x) &= \lambda_{03}(t)e^{x_{i1}\beta_{m1} + x_{i2}\beta_{n1}} \\
+  \lambda_{12}(t;x) &= \lambda_{12}(t)e^{x_{i1}\beta_{m2} + x_{i2}\beta_{n2}} \\
+  \lambda_{13}(t;x) &= \lambda_{13}(t)e^{x_{i1}\beta_{m2} + x_{i2}\beta_{n2}} \\
+  \lambda_{23}(t;x) &= \lambda_{23}(t)e^{x_{i1}\beta_{m3} + x_{i2}\beta_{n3}} \\
+  \lambda_{04}(t;x) &= \lambda_{04}(t)e^{x_{i1}\beta_{m4} + x_{i2}\beta_{n4}}
     \label{nogamma}\\
-  \lambda_{14}(t;x) &= \lambda_{04}(t)e^{\gamma_2 + x_{i1}\beta_{m4} + x_{i2}\beta_{n5} \\
-  \lambda_{24}(t;x) &= \lambda_{04}(t)e^{\gamma_3 + x_{i1}\beta_{m4} + x_{i2}\beta_{n6} \\
-  \lambda_{34}(t;x) &= \lambda_{04}(t)e^{\gamma_4 + x_{i1}\beta_{m4} + x_{i2}\beta_{n7} \\
-Equation eqref{nogamma} has no $\gamma_1=0$ term since we have \code{(2:4):5}
+  \lambda_{14}(t;x) &= \lambda_{04}(t)e^{\gamma_2 + x_{i1}\beta_{m4} + x_{i2}\beta_{n5}} \\
+  \lambda_{24}(t;x) &= \lambda_{04}(t)e^{\gamma_3 + x_{i1}\beta_{m4} + x_{i2}\beta_{n6}} \\
+  \lambda_{34}(t;x) &= \lambda_{04}(t)e^{\gamma_4 + x_{i1}\beta_{m4} + x_{i2}\beta_{n7}} 
+\end{align}
+Equation \eqref{nogamma} has no $\gamma_1=0$ term since we have \code{(2:4):5}
 rather than \code{(1:4):5}.
 Think of the right hand side as $Z\gamma + X\beta$, a covariate/coefficien
 block for shared proportional hazards (Z= notzero) and another for covariates
@@ -1529,15 +1530,20 @@ block for shared proportional hazards (Z= notzero) and another for covariates
 The \code{stacker} routine creates a working $X$ matrix with a block of rows for
 each of the 7 baseline hazards and a column for each of the 17 coefficients,
 along with $Y$ and strata vectors.
-Block 1 contains all those rows at risk for a 1:2 transition, which is all those
-rows with initial state of 1. Likewise block 2 for 2:3 transitons, etc.,
-per the Baseline row in smap above.
-For the shared 1:5, 2:5, 3:5, 4:5 the working X matrix will have first the
-rows with an initial state of 1, then initial state of 2, then 3, then 4,
-all marked with the same value of \code{share} but different values for
-\code{subshare}.
-The subshare for these 4 will have values of 7, 8, 9, and 10, i.e., their
-position in the smap vector.
+\begin{itemize}
+  \item Block 1 contains all those rows at risk for a 1:2 transition, 
+    which is all those rows with initial state of 1. The 0/1 status variable
+    for this block is 1 if the row ended in a transition to state 2.
+    Covariate columns that don't play a role in this transition are 0.
+  \item Likewise block 2 for 2:3 transitons, etc., per the Baseline row in 
+    smap above.
+  \item For the shared 1:5, 2:5, 3:5, 4:5 the working X matrix will have 
+    first the rows at risk for the 1:5 transition, then rows for the 2:5, etc.,
+    all marked with the same value of \code{share} but different values for
+    \code{subshare}.
+    The subshare for these 4 will have values of 7, 8, 9, and 10, i.e., their
+    position in the smap vector.
+\end{itemize}
 
 The coxph routine uses this information to reason out two things. The first
 is what covariates in this working matrix are time dependent, and which of those
@@ -1564,13 +1570,50 @@ survfit.coxphms function, for each curve
    individual hazards as exp(Zgamma) * shared.
 \end{enumerate}
 
+In the fit, there is no distinction between the $\gamma$ coefficients 
+of our equations,
+which are associated with proportional baseline hazards, and the $\beta$
+coefficients associated with per-subject covariates.
+This distinction is recovered at the end of the fit, by identifying 
+components of $XB$ that are constant within each sub-hazard of a shared
+hazard. Such terms are effectively independent of subject, and we assign
+them to the $X\gamma$ portion.  This is important later, when computing
+absolute risks.
+If any are identified, a phZ matrix is included that duplicates relevant
+rows of cmap, and contains relevant value from the $Z$ matrix.
+By definition, a time-fixed covariate is not eligible, and (IMHO) it
+makes no sense to have a TD covariate which is sometime bundled with the
+hazard and sometimes not, as I have no blueprint to create a proper curve
+in such a case.
+
+
+Two cases have led to a lot of thinking.
+The first is one that I don't yet see any use for. Imagine a semi-competing
+risks problem, with arrows for A:B, A:death, and B:death; and further that
+the user asked for a single shared hazard using \code{+ shared}.
+The above code will lead to three substrata: A:B and A:death contain exactly the
+same data rows (all rows with initial state A), 
+but one set has an extra variable ph(A:B); the third subgroup has all rows with
+initial state of B. 
+The code will work, but the likelihood is a puzzle to me.
+\begin{itemize}
+  \item In one sense, each subject in state A actually is a risk twice, 
+    once for an A:B and once for an A:death transition. 
+  \item This setup does generate martingal residuals that sum to 0, and curves
+    that are properly proportional
+  \item A robust variance should counter the dual appearance of the same subject
+    twice in a risk set
+  \item Yet, a risk set containing clones feels wrong.
+\end{itemize}
+
+
 The example that has caused the most thinking is from the dementia data set,
 which is included in the mshmm package. We need to treat amyloid
 level as a state, because it is time dependent.  There are 4 levels of amyloid,
 along with outcomes of non-demented (ND), dementia, and death.
 This led to the state space below:
 
-<<amyloidsstate>>=
+<<amyloidsstate, fig=TRUE>>=
 astate <- c(outer( c("miss", "low", "mod", "high"),c("ND", "dem"),
                   paste, sep="\n"), "death")
 amat <- matrix(0, 9, 9, dimnames=list(astate, astate))
@@ -1592,7 +1635,7 @@ statefig(rbind(4,4,1), amat2, acol=rep(1:0, c(temp,8)),
 We have left out arrows for the 8 transitions to death to make the
 figure less busy.
 The solid lines are transitions we expect, i.e., amyloid accumulates,
-without jumps, and does not change state at the exact same instant as
+without jumps, and does not change at the exact same instant as
 cognition. The dashed lines are observed transitions that don't fit this
 model. But, the transition-based likelihood needs to account for \emph{all}
 observed transitions.  
@@ -1600,7 +1643,7 @@ The two solid arcs from missing amyloid to moderate and high
 are consequences of the fact that the amyloid ligand for PET (Pittsburgh
 compound B) was not available until several years after the study started, so
 many imaged subjects start out with a series of non-imaged visits. 
-Due to LVCF, no one reverts to the missing state.
+Due to application of LVCF, no one reverts to the missing state.
 
 If we declare that all transtions from ND to dementia have a shared baseline
 hazard based on amyloid group: \code{D(1):D(2) ~ agrp +1 / common}, this
@@ -1614,234 +1657,88 @@ The partial likelihood for each observed ND:dementia transition will
 have all of these, so 4 copies of each.  We can factor this out, giving
 a constant term of -log(4) time the number of events in the LPL, thus
 the PL will maximize with exactly the same coefficients as before.
-Still, the ``wrong'' PL bothered me, and a lot of the excursions documented
+Still, the ``wrong'' PL bothers me, and a lot of the excursions documented
 in stacker.R (comment block with Dec2024) are based on this, and an attempt
 to correct it.
 
 We need all 4 copies to get a proper cumulative hazard, however, since
 the solution needs to obey sum(expected) = sum(observed), and the left hand
 side of this equation will have all 16 hazards. 
- The real problem is that this is
+The real problem is that this is
 the correct solution to the wrong estimate.
 Say for instance that the ND:dementia rate is 1/20 person-years but the 
 amyloid low:mod rate was 1/200.  The above forces both of them to be about
 11/200.
 What we actually want is an additive model.  
+This is not supported by the coxph/survfit code; one needs to use the 
+intermittent likelihood of mshmm.
 
-
-<<pbc10>>=
-death <- with(subset(pbcseq, !duplicated(id)),
-              data.frame(id=id, day=futime, death= 1*(status==2)))
-temp <- subset(pbcseq,,c(id, day, age, sex, albumin, bili, edema, protime))
-temp$death <- 0
-temp$age <- round(temp$age, 1)  # nicer printout
-p10 <- merge(temp, death, all=TRUE)
-
-
-# bili, bili*edema, and bili*edema*albumin,  all + death
-p10$bgrp <- cut(p10$bili, c(0,1,4, 100), c("0-1", "1-4", "4+"))
-p10$agrp  <- cut(-p10$albumin, c(-100, -3.5, -3, 0),
-                   c("normal", "3-3.5", "<3"))
-lastrow <- !duplicated(p10$id, fromLast=TRUE)
-p10$bili3 <- with(p10, factor(ifelse(lastrow, 4*death, 1+ 2*edema), 0:4,
-                    c("none", levels(bgrp), 'death')))
-p10$e3 <- with(p10, factor(ifelse(lastrow, 4*death, egrp+1), 0:4,
-                    c("none", "e0", "e.5", "e1", 'death')))
-check1 <- survcheck(Surv2(day, bili3) ~ 1, p10, id=id)
-check1$transitions 
-
-pfit0 <- coxph(Surv2(day, death) ~ age + bgrp + edema, p10, id=id)
-pfit1 <- coxph(list(Surv2(day, e3) ~1, 
-                    0:"death" ~ age + bgrp + edema + 1/common), p10, id=id)
-pfit1
-pfit1$phZ[1,,]
-
-rbind(simple= pfit0$loglik, multi= pfit1$loglik)
-@
-
-In the above the transitions to death are proportional, but with respect to
-a continuous variable $Z$ rather than a factor.  
-A proper survival curve is not possible, however, due to the presence of
-bilirubin, a time dependent covariate that has not been converted to a state.
-Make a 10 state model with joint bilirubin and edema states.
-
-<<pbc10b>>= 
-# make a 3x3 + death outcome, for 2 TD variables
-name9 <- outer(c("b0", "b1", "b2"), c("e0", "e1", "e2"), paste, sep='.')
-temp9 <- with(p10, as.numeric(bgrp) + 6*edema)
-p10$be <- with(p10, factor(ifelse(lastrow, 10*death, temp9), 0:10, 
-                 c("none", name9, "death")))
-check2 <- survcheck(Surv2(day, be) ~ 1, p10, id=id)
-check2$transitions[,-11] # leave off censored, for width
-
-alias <- data.frame(state=c(name9, "death"), B=c(rep(1:3, 3), 0),
-                    E= c(rep(1:3, each=3), 0))
-pmat <- matrix(0, 10, 10, dimnames=list(alias$state, alias$state))
-for (i in 1:3) {for (j in 0:1) pmat[i+3*j, i+ 3 + 3*j] <- 1}
-for (i in 1:2) {for (j in 0:2) pmat[i+3*j, i+ 1+ 3*j] <- 1}
-pmat[1:9,10] <- 1
-pmat[c(2,5),10] <- .7
-statefig(rbind(3,3,3,1), pmat, col=rep(c("black", "gray"), c(12,9)))
+\subsubsection{The assign attribute}
+Consider a 3 state model with the following call
+<<echo=TRUE, eval=FALSE>>=
+fit <- coxph(list(Surv(time1, time2, state) ~ x1 + x2, 
+                  1:2 + 2:3~ x3/common,  1:3 ~ x4- x2), ...)
 @ 
+where x2 and x3 are factors with 3 and 4 levels, respectively.
+The assign attribute returned by model.matrix will be (1, 2,2, 3,3,3, 4),
+which correspond to the rows of cmap.
+The fit, however, will have 13 coefficients.
+The proper assign vector now is (1,2,2, 3,3,3) for coefficients 1 to 6,
+then the 2:3 transtion with (4, 5,5, 3,3,3), and (6,7) for the last two 
+coefficients.
+The expandassign function works this out.
 
-We would like to think of the progression process in terms of the figure above.
-However, where we have 12 arrows for progression of bilirubin and edema,
-24 if we allow reversions, the transtions matrix shows 46.
-One of the arrows to death (7:10, b0.e2) is also not present. 
-Fit a model with shared hazards.
-
-<<pbc10c>>=
-pfit2 <- coxph(list(Surv2(day, be) ~1,
-                    0:"death" ~ age + bgrp + edema + 1/ common),
-               id=id, data= p10)
-
-dim(pfit2$cmap)
-cpos <- colSums(pfit2$cmap) >0
-pfit2$cmap[,cpos]
-
-dim(pfit2$phZ)
-pfit2$phZ[, cpos,3:5]
-
-sfit <- survfit(pfit2, newdata=list(age=50), p0=rep(1:0, c(1,9)))
-@ 
-
-The shared baseline has caused the 7:10 transition to be included, even though
-it has no events; these subjects now contribute to the denominator of the
-shared hazard. The fixed covariates $Z$ differ for each of the 9 components
-of the shared hazard.
-
-
-
-
-It proceeds column by column through
-smap and cmap, with one block of rows for each unique baseline in smap, and
-coefficients determined by cmap.
+\chapter{Testing proportional hazards}
+The simplest test of proportional hazards is to use a time dependent
+coefficient $\beta(t) = a + bt$.
+Then $\beta(t) x = ax + b*(tx)$, and the extended coefficients $a$ and $b$
+can be obtained from a Cox model with an extra 'fake' covariate $tx$.
+More generally, replace $t$ with some function $g(t)$, which gives rise to
+an entire family of tests.
+An efficient assessment of this extended model can be done using a score
+test.
 \begin{itemize}
-  \item Block 1 for the 0mc:1mc transition (1:2 in cmap/smap) 
-    includes everyone at risk for said
-transtion, i.e., all data rows with a starting state of 0mc. Within the block
-the rows are in the same order as the input data frame. 
-The first two columns of X are copies of the male and nafld columns, the 
-remaining columns are for coefficients not relevant to this transition and
-are set to 0. The working Y has a status of 1 for a 0mc:1mc transtion and 0
-otherwise, and the strata will be 1.
-  \item Blocks 2 and 4 are for the the 0mc:2mc and 0mc:3mc transitions
-    (1:3 and 1:4 in smap). The each have the same $X$ as block
-    1, strata=2 or 3, but the 'status' portion of Y now is 1 for an 
-    observed 0mc:2mc (block 2) or 0m:3mc (block 4) transition, respectively.
-  \item Blocks 3 and 5 are for the 1mc:2mc and 1mc:3mc transitions, each
-    contains all data rows for which the initial state is 1mc. 
-    Columns 3 and 4 of X will contain copies of the
-    male and nafld variables, and all others are 0. 
-    Y has a 0/1 status for observed 1mc:2mc transitions in block 3,
-    1mc:3mc in block 5.
-   \item Block 6 has rows at risk for the 2mc:3mc (3:4 in cmap) transition,
-     which is all rows with an initial state of 2mc.
-   \item Block 7 has all rows at risk for a 1:5, then rows at risk for 2:5, 
-    rows at risk for 3:5, and finally rows at risk for the 4:5 transition,
-    i.e. everyone in the data. Columns 7 contains a copy of nafld, but only
-    for those rows that start in the 0mc state, column 12--14 nafld for the 1mc
-    rows, 2mc, and 3mc rows, respectively. Columns 8-11 contain copies of
-    the male covariate then the 3 dummy variables corresponding to cstate.
-    The status portion of Y is 1 for any death.
+  \item Augment the original variables $x_1, \ldots x_k$ with $k$ new ones
+$g(t)x_1, \ldots, g(t)x_k$
+  \item Compute the first and second derivatives $U$ and $H$ of the Cox model
+at the starting estimate of $(\hat\beta, 0)$; prior covariates at their
+prior values, and the new covariates at 0.  No iteration is done.
+This can be done efficiently with a modified version of the primary C routines
+for coxph.
+  \item By design, the first $k$ elements of $U$ will be zero. Thus the 
+first iteration of the new coefficients, and the score tests for them, are
+particularly easy.  
 \end{itemize}
-This set of Y,X, strata is then used to fit a single coxph model for all the
-coefficients at once. 
 
-In the fit, there is no distinction between the $\gamma$ coefficients 
-of our equations,
-which are associated with proportional baseline hazards, and the $\beta$
-coefficients associated with per-subject covariates.
-This distinction is recovered at the end of the fit, by identifying 
-components of $XB$ that are constant within each sub-hazard of a shared
-hazard. Such terms are effectively independent of subject, and we assign
-them to the $X\gamma$ portion.  This is important later, when computing
-absolute risks.
-If any are identified, a phZ matrix is included that duplicates relevant
-rows of cmap, and contains relevant value from the $Z$ matrix.
-By definition, a time-fixed covariate is not eligible, and (IMHO) it
-makes no sense to have a TD covariate which is sometime bundled with the
-hazard and sometimes not, as I have no blueprint to create a proper curve
-in such a case.
+The information or Hessian matrix for a Cox model is 
+$$ \sum_{j \in deaths} V(t_j)  = \sum_jV_j$$
+where $V_j$ is the variance matrix of the weighted covariate values, over
+all subjects at risk at time $t_j$.
+Then the expanded information matrix for the score test is
+\begin{align*}
+  H &= \left(\begin{array}{cc}  H_1 & H_2 \\ H_2' & H_3 \end{array} \right) \\
+  H_1 &= \sum V(t_j) \\
+  H_2 &= \sum V(t_j) g(t_j) \\
+  H_3 &= \sum V(t_j) g^2(t_j)
+\end{align*}
+The inverse of the matrix will be more numerically stable if $g(t)$ is centered
+at zero, and this does not change the test statistic.
+In the usual case $V(t)$ is close to constant in time --- the variance of
+$X$ does not change rapidly --- and then $H_2$ is approximately zero.
+The original cox.zph used an approximation, which is to assume that
+$V(t)$ is exactly constant.
+In that case $H_2=0$ and $H_3= \sum V(t_j) \sum g^2(t_j)$ and the test
+is particularly easy to compute.
+This assumption of constant components can fail badly for models with a
+covariate by strata interaction, and for some models with covariate
+dependent censoring.
+Multi-state models finally forced a change.
 
-In the above example, the nafld and male variable are time-fixed so not
-considered. The 3 cstate variables appear in the 1:5, 2:5, 3:5, and 4:5
-strata. All are 0 in the 1:5 group, are (1,0,0) for all rows in the 2:5 group,
-(0,1,0) for all in the 3:4 and (0,0,1) and 4:5 data rows.  The code is a pair
-of nested loops over row of cmap and col of smap.
+The newer version of the routine has two separate tracks: for the formal test
+and another for the residuals.
 
-The shared vignette now fits the model in 2 other ways, leading to similar fits
-<<nfit2>>=
-ndata$notzero <- 1*(ndata$cstate != "0mc")
-nfit2 <- coxph(list(Surv(age1, age2, event) ~ nafld + male,
-                    1:2 + 1:3 + 1:4 ~ nafld + male / common,
-                    2:3 + 2:4 ~ nafld + male/common,
-                    c(2,3,4):5 ~ notzero,
-                    0:5  ~ 1 / common), 
-               data=ndata, id= id, istate= cstate)
-nfit2
 
-nfit3 <- coxph(list(Surv(age1, age2, event) ~ nafld + male,
-                    1:2 + 1:3 + 1:4 ~ nafld + male / common,
-                    2:3 + 2:4 ~ nafld + male/common,
-                    0:5 ~ nafld + male/ shared),
-               data=ndata, id= id, istate= cstate)
-nfit3
-@ 
 
-A second example is the pbc data set, where a bit more complexity arises.
-I will have 10 states: 3 bilirubin catetories * 3 edema + death.
-
-<<pbc10>>=
-death <- with(subset(pbcseq, !duplicated(id)),
-              data.frame(id=id, day=futime, death= 1*(status==2)))
-temp <- subset(pbcseq,,c(id, day, age, sex, albumin, bili, edema, protime))
-temp$death <- 0
-temp$age <- round(temp$age, 1)  # nicer printout
-pbc10 <- merge(temp, death, all=TRUE)
-
-# bili, bili*edema, and bili*edema*albumin,  all + death
-pbc10$bgrp <- cut(pbc10$bili, c(0,1,4, 100), c("0-1", "1-4", "4+"))
-pbc10$egrp <- 2*pbc10$edema   # 0, .5, 1 to 0, 1, 2
-pbc10$agrp  <- cut(-pbc10$albumin, c(-100, -3.5, -3, 0),
-                   c("normal", "3-3.5", "<3"))
-# no one died on the day of a visit
-lastrow <- !duplicated(pbc10$id, fromLast=TRUE)
-pbc10$bili3 <- with(pbc10, factor(ifelse(lastrow, 4*death, as.numeric(bgrp)), 
-                                  0:4, c("none", levels(bgrp), 'death')))
-name9 <- outer(c("b0", "b1", "b2"), c("e0", "e1", "e2"), paste, sep='.')
-temp9 <- with(pbc10, as.numeric(bgrp) + 3*egrp)
-pbc10$be <- with(pbc10, factor(ifelse(lastrow, 10*death, temp9),0:10, 
-                 c("none", name9, "death")))
-
-check1 <- survcheck(Surv2(day, bili3) ~ 1, pbc10, id=id)
-check2 <- survcheck(Surv2(day, be) ~ 1, pbc10, id=id)
-table(check2$transitions[1:9, 1:9] >0)
-
-# td model, and states model
-pfit1 <- coxph(list(Surv2(day, be) ~1,
-                    0:'death' ~ age + bgrp + edema +1 / common),
-               pbc10, id=id)
-
-ckeep <- colSums(pfit1$cmap) >0
-table(ckeep)
-pfit1$cmap[,ckeep]
-pfit1$phZ[,ckeep]
-@ 
-
-The fit imposes no model for the 46 observed transtions between pairs
-of the  9 bilrubin*edema states, those 46 have only zeros in the cmap table
-since there are no associated coefficients.
-(I have thought about not storing these unused columns, since typing
-\code{pfit1\$cmap} leads to so much output, but computation is
-a bit easier if cmap and smap match and it is easy for a user to create an
-index like my ckeep above.)
-
-In the above model there are 9 shared hazards but only 3 $\gamma$ coefficients,
-as we have an additive structure $Z\gamma$.  Two coefficients for the 3
-level factor \code{bgrp} and one coefficient for edema. 
-If we had said \code{/ common + shared} there would have been 8 coefficients,
-treating 9 starting states as a factor.
 
 
 \chapter{Residuals}
@@ -2182,6 +2079,7 @@ $(3/4)^{10} < .06$.
 
 \chapter{Misc numerics}
 \section{Matrix exponentials and transition matrices}
+\label{matexp}
 For multi-state models, we need to compute the exponential of the transition
 matrix, sometimes many times.
 The matrix exponential is formally defined as

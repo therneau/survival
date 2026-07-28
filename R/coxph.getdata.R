@@ -37,7 +37,7 @@ coxph.getdata <- function(fit, y=TRUE, x=TRUE, stratax=TRUE,
     strats <- attr(Terms, "specials")$strata
     if (length(strats)==0 && length(strat)==0 & !coxms) stratax <- FALSE
 
-    if ((y && is.null(ty)) || (x && is.null(tx)) || 
+    if (coxms || (y && is.null(ty)) || (x && is.null(tx)) || 
         (weights && is.null(twt)) ||  cluster || id ||
 	(stratax && is.null(strat)) || (offset && is.null(toff)) ||
         !is.null(fit$call$istate)) {
@@ -45,7 +45,18 @@ coxph.getdata <- function(fit, y=TRUE, x=TRUE, stratax=TRUE,
 	mf <- stats::model.frame(fit)
         n <- nrow(mf)
 
-	# Pull things out
+ 	# Pull things out
+        if (is.null(ty)) {
+            ty <- model.response(mf)
+            if (is.null(fit$timefix) || fit$timefix) ty <- aeqSurv(ty) 
+        }
+        if (is.null(tx)) tx <- model.matrix(fit, data=mf)
+
+        if (stratax && is.null(strat) && length(strats) >0) {
+            temp <- untangle.specials(Terms, 'strata', 1)
+            strat <- strata(mf[temp$vars], shortlabel=T)
+        }       
+
         if (weights) {
             twt <- model.extract(mf, "weights")
             if (is.null(twt)) twt <- rep(1.0, n)
@@ -60,19 +71,18 @@ coxph.getdata <- function(fit, y=TRUE, x=TRUE, stratax=TRUE,
 
         if (inherits(fit, "coxphms")) {
             # we need to call stacker
-            idx <- model.extract(mf, "id")
             istate <- model.extract(mf, "istate")
-            ty <- model.response(mf)
             if (is.null(fit$timefix) || fit$timefix) ty <- aeqSurv(ty) 
             check <- survcheck2(ty, idx, istate)
             tx <- model.matrix.coxph(fit, data=mf)
-            if (length(strats)) {
+            if (length(strats) >0) {
   		temp <- untangle.specials(Terms, 'strata', 1)
 		strat <- as.integer(strata(mf[temp$vars], shortlabel=T))
             }
             else strat <- NULL
             # Now expand the data
-            xstack <- stacker(fit$cmap, fit$smap, as.integer(check$istate), tx, ty, 
+            xstack <- stacker(fit$cmap, fit$smap, as.integer(check$istate), tx, 
+                              ty, 
                               strat, check$states)
             tx <- xstack$X
             ty <- xstack$Y
@@ -97,21 +107,6 @@ coxph.getdata <- function(fit, y=TRUE, x=TRUE, stratax=TRUE,
                 if (cluster) clusterx <- clusterx[!ismiss]
             }       
         } 
-        else { # not multi-state, or everything was there
-            if (y && is.null(ty)) {
-                ty <- model.extract(mf, "response")
-                if (is.null(fit$timefix) || fit$timefix) ty <- aeqSurv(ty)
-            }
-
-            # strata was saved in the fit if and only if x was
-            if ((x || stratax) && is.null(tx)) {
-                if (stratax) {
-                    temp <- untangle.specials(Terms, 'strata', 1)
-                    strat <- strata(mf[temp$vars], shortlabel=T)
-		}
-                tx <- model.matrix.coxph(fit, data=mf)
-            }
-        }   
     }
 
     temp <- list()
