@@ -20,7 +20,6 @@ PARTS = main.Rnw \
 	msurv.nw \
 	statefig.Rnw\
 	yates.Rnw  yates2.Rnw\
-	zph.Rnw \
 	tail
 #       coxph.Rnw
 #	concordance.Rnw \
@@ -29,6 +28,7 @@ PARTS = main.Rnw \
 #	plot.Rnw \
 #	residuals.survfit2.Rnw\
 #	tmerge.Rnw\
+#	zph.Rnw \
 
 SFUN =  agreg.fit.R \
 	finegray.R \
@@ -40,8 +40,8 @@ SFUN =  agreg.fit.R \
 	statefig.R \
 	survexp.R \
 	survfit.coxphms.R \
-	yates.R \
-	cox.zph.R
+	yates.R 
+#	cox.zph.R
 #       coxph.R
 #       concordance.R \
 #	model.matrix.coxph.R \

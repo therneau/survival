@@ -1,9 +1,11 @@
-# Automatically generated from the noweb directory
+#
+# Test proportional hazards
+#
 cox.zph <- function(fit, transform='km', terms=TRUE, singledf =FALSE, 
                     global=TRUE) {
     Call <- match.call()
     if (!inherits(fit, "coxph") && !inherits(fit, "coxme")) 
-        stop ("argument must be the result of Cox model fit")
+        stop ("argument must be the result of a coxph or coxme fit")
     if (inherits(fit, "coxph.null"))
         stop("there are no score residuals for a Null model")
     if (!is.null(attr(terms(fit), "specials")[["tt"]]))
@@ -19,7 +21,7 @@ cox.zph <- function(fit, transform='km', terms=TRUE, singledf =FALSE,
     y <- cget$y
     ny <- ncol(y)
     event <- (y[,ny] ==1)
-    if (length(cget$strata)) 
+    if (length(cget$strata) >0 ) 
         istrat <- as.integer(cget$strata) - 1L # number from 0 for C
     else istrat <- rep(0L, nrow(y))
 
@@ -27,8 +29,10 @@ cox.zph <- function(fit, transform='km', terms=TRUE, singledf =FALSE,
     #   leads to a simpler path through the code
     if (!terms) singledf <- FALSE 
     
-    eta <- fit$linear.predictors
+    # subtracting the mean can give a tiny bit less roundoff error
+    eta <- fit$linear.predictors - mean(fit$linear.predictors)
     X <- cget$x
+
     varnames <- names(fit$coefficients)
     nvar <- length(varnames)
 
@@ -37,17 +41,12 @@ cox.zph <- function(fit, transform='km', terms=TRUE, singledf =FALSE,
         asgn <- as.list(1:nvar)
         names(asgn) <- names(fit$coefficients)
     }
-    else if (inherits(fit, "coxme")) {
-        asgn <- attrassign(cget$x, terms(fit))
-        # allow for a spelling inconsistency in coxme, later fixed
-        if (is.null(fit$linear.predictors)) 
-            eta <- fit$linear.predictor
-        fit$df <- NULL  # don't confuse later code
-    }
-    else   asgn <- fit$assign
-        
-    if (!is.list(asgn)) stop ("unexpected assign component")
+    else if (inherits(fit, "coxphms"))
+        asgn <- expandassign(fit$assign, fit$cmap, terms(fit))
+    else asgn <- fit$assign
 
+    if (inherits(fit, "coxme")) fit$df <- NULL  # don't confuse later code
+        
     frail <- grepl("frailty(", names(asgn), fixed=TRUE) |
              grepl("frailty.gamma(", names(asgn), fixed = TRUE) |
              grepl("frailty.gaussian(", names(asgn), fixed = TRUE)
@@ -119,8 +118,13 @@ cox.zph <- function(fit, transform='km', terms=TRUE, singledf =FALSE,
     u0 <- rep(0, nvar)
     if (!is.null(fit$coxlist2)) { # there are penalized terms
         pmat <- matrix(0., 2*nvar, 2*nvar) # second derivative penalty
-        pmat[1:nvar, 1:nvar] <- fit$coxlist2$second
-        pmat[1:nvar + nvar, 1:nvar + nvar] <- fit$coxlist2$second
+        tmat <- matrix(fit$coxlist2$second, length(fit$coefficients))
+        if (any(is.na(fit$coefficients))) {
+            keep <- !is.na(fit$coefficients)
+            tmat <- tmat[keep, keep]
+        }
+        pmat[1:nvar, 1:nvar] <- tmat
+        pmat[1:nvar + nvar, 1:nvar + nvar] <- tmat
         imatr <- resid$imat + pmat
     }
     else imatr <- resid$imat

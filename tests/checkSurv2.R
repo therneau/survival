@@ -28,6 +28,9 @@ etime <- with(mgus2, ifelse(pstat==1, ptime, futime))
 estat <- with(mgus2, ifelse(pstat==1, 1, 2*death))
 estat <- factor(estat, 0:2, c("censor", "progression", "death"))
 
+# The sfit3 lines are from the brief time that I thought I could dispense with
+#  Surv2, (time, status) data with multiple rows per subject implied it. But
+#  Beth/Cindy pointed out the diabetic retinopathy data
 sfit1 <- survfit(Surv(etime, estat) ~ sex, mgus2)  # original way
 sfit2 <- survfit(Surv2(ftime, event) ~ sex, mflat, id=id) # timeline with Surv2
 #sfit3 <- survfit(Surv(ftime, event) ~ sex, mflat, id=id)  # timeline with Surv

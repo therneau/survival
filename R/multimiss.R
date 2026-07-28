@@ -34,7 +34,11 @@ multimiss <- function(mf, y, istate, tmap, states) {
         tmap2[temp[[i]], tmap[i,] >0] <- 1
     }
     # create a missing indicator for each column of mf
-    termiss <- sapply(mf, is.na)  # will be a matrix, mf[1] is the response
+    # for a multi-column object like ns() we need to apply any() to each row
+    termiss <- sapply(mf, function(x) {
+        z <- is.na(x)
+        if (is.matrix(z)) apply(z, 1, any) else z}
+        )  # will be a matrix, mf[1] is the response
 
     # Every term is used somewhere, otherwise mf wouldn't have included it,
     #  which means that every row of tmap has at least one non-zero value.

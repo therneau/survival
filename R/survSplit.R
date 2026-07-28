@@ -66,6 +66,7 @@ survSplit <- function(formula, data, subset, na.action=na.pass, id,
     temp <- Call[c(1L,indx)]  # only keep the arguments we wanted
     if (indx[1]==0) temp$formula <- formula
     if (indx[2]==0) stop("a data argument is required")
+
     if (missing(na.action)) temp$na.action <- quote(stats::na.pass)
     temp[[1L]] <- quote(stats::model.frame)  # change the function called
     mf <- eval.parent(temp)      

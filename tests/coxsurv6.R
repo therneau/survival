@@ -35,21 +35,23 @@ fit2 <- coxph(list(Surv(tstart, tstop, bstat) ~ 1,
 # simple values to make hand computation easier.  There are no transitions
 # from state 3 to death in this subset. The design of coxph is such that
 # the set of (observed transitions) is assumed to be the set of (possible
-# transitions): it does not know that "death" is something special.  One could
-# argue that the above call explicitly included 3:5, and we considered this
-# (added to the code even) but found out that it opens a can of worms. More
-# discussion can be found in the "shared coefficients and shared baseline"
-# vignette (survivalVignettes package).
+# transitions): it does not know that "death" is something special. However,
+# the above call explicitly included 3:5 via the shared argument. This leads
+# to some 'interesting' special cases, not all of which have yet been
+# worked through.  More discussion can be found in the "shared coefficients 
+# and shared baseline" vignette (survivalVignettes package).
 # 
-#  The upshot is that parsecovar3 only counts transitions with at least one
-#  actual case.
+#  The parsecovar3 has an option to only count transitions with at least one
+#  actual case --- if we comment out selected lines.
+#
 pbc3 <- subset(pbc2, id < 10)
 pbc3$age <- round(pbc3$age)  # easier to do "by hand" sums
 survcheck(Surv(tstart, tstop, bstat) ~1, pbc3, id=id, istate=bili4)$transitions
 
+init3 <- c(.05, .7, 1.5, 3.4)
 fit3 <- coxph(list(Surv(tstart, tstop, bstat) ~ 1, 
                    c(1:4):5 ~ age / common + shared),  x=TRUE,
-              id= id, istate=bili4, data=pbc3, init= c(.05, .6, 1.1), iter=0)
+              id= id, istate=bili4, data=pbc3, init= init3, iter=0)
 # a mixed p0 gives a stronger test than our usual (1, 0,0,0,0)
 surv3 <- survfit(fit3, newdata=list(age=50), p0=c(.4, .3, .2, .1, 0))
 
@@ -72,20 +74,21 @@ hmat[2,3,4] <- 1/3; hmat[2,2,4] <- -1/3   # new count= 4,2,1,2
 hmat[1,2,5] <- 1/4; hmat[1,1,5] <- -1/4   # new count= 3,3,1,2
 
 # Event 6 is a transition from state 4 to death, at day 400
-# For the shared hazard, the denominator is all those in states 1,2 or 4.
-atrisk6 <- with(pbc3, tstart < etime[6] & tstop >= etime[6] & bili4 != '2-4')
+# For the shared hazard, the denominator is all those in states 1,2,3 4.
+atrisk6 <- with(pbc3, tstart < etime[6] & tstop >= etime[6])
 table(pbc3$bili4[atrisk6]) # current states just before time 6
  
 adata <- subset(pbc3, atrisk6)
-eta <- with(adata, .05*(age-50) + .6*(bili4=="1-2") + 1.1*(bili4 == ">4"))
+eta <- with(adata, init3[1]*(age-50) + init3[2]*(bili4=="1-2") + 
+                   init3[3]*(bili4=="2-4") + init3[4]*(bili4 == ">4"))
 cbind(adata[,c('id', 'age', 'tstop', 'bili4', 'bstat')], eta, risk=exp(eta)) 
 basehaz <- 1/sum(exp(eta))
-hmat[1,5,6] <- basehaz;            hmat[1,1,6] <- -basehaz
-hmat[2,5,6] <- basehaz * exp(.6);  hmat[2,2,6] <- -basehaz*exp(.6)
-hmat[4,5,6] <- basehaz * exp(1.1); hmat[4,4,6] <- -basehaz*exp(1.1)
+zz <- c(1, exp(init3[-1]))  # or exp(fit3$coef[2:4])
+hmat[1:4,5,6] <- basehaz*zz
+for (i in 1:4) hmat[i,i,6] <- -hmat[i,5,6]
 # double check: sum of per-subject hazards at this time point = number of
 #  events at this time point 
-sum(basehaz * exp(eta)) ==1
+all.equal(sum(basehaz * exp(eta)), 1)
 
 tmat <- array(0., dim= dim(hmat))  # transition matrices
 pstate <- matrix((4:0)/10, nrow=1)
@@ -180,7 +183,7 @@ mysurv <- function(fit, istate, p0, x0, debug=0) {
         }
         diag(hmat) <- diag(hmat) - rowSums(hmat)   # rows sum to zero
         tmat <- as.matrix(Matrix::expm(hmat))      # transtion matrix
-#        if (i >= debug) browser()
+#        if (debug>0 && i >= debug) browser()
         pmat <- pmat %*% tmat
         pstate[i,] <- drop(p0 %*% pmat)
     }
@@ -198,7 +201,6 @@ fit2 <- coxph(list(Surv(tstart, tstop, bstat) ~ 1,
 surv2 <- survfit(fit2, newdata=list(age=50), p0=c(.4, .3, .2, .1, 0))
 test2 <- mysurv(fit2, pbc2$bili4, p0= 4:0/10, fit2, x0 =50)
 aeq(test2$pstate, surv2$pstate[match(test2$time, surv2$time),1,])
-
 
 if (FALSE){
     # for testing, make a plot: solid= survival package, points= test

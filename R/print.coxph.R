@@ -42,26 +42,40 @@ print.coxph <-
         cmap <- x$cmap[, colSums(x$cmap) > 0, drop=FALSE]
         cname <- colnames(cmap)
         printed <- rep(FALSE, length(cname))
+        rname <- rownames(cmap)
+        if (!is.null(x$share)) { # mark coefs that are ph baselines
+            j <- (x$share$vtype ==2)
+            rname[j] <- paste(rname[j], "*", sep='')
+        }
+        extrarows <- NULL
         for (i in 1:length(cname)) {
             # if multiple colums of tmat are identical, only print that
             #  set of coefficients once
             if (!printed[i]) {
                 j <- apply(cmap, 2, function(x) all(x == cmap[,i])) 
                 printed[j] <- TRUE
-
+                tlab <- c(paste(cname[j], collapse=", "), "") #label for block
+                if (nchar(tlab[1]) > 20) {     
+                    k <- length(extrarows) +1L
+                    extrarows <- c(extrarows, 
+                                paste(LETTERS[k], tlab, sep=': '))
+                    tlab <- c(LETTERS[k], "") # new block label
+                }
                 tmp2 <- tmp[cmap[,i],, drop=FALSE]
-                names(dimnames(tmp2)) <- c(paste(cname[j], collapse=", "), "")
+                names(dimnames(tmp2)) <- tlab
                 # restore character row names
-                rownames(tmp2) <- rownames(cmap)[cmap[,i]>0]
+                rownames(tmp2) <- rname[cmap[,i]>0]
                 printCoefmat(tmp2, digits=digits, P.values=TRUE, 
                              has.Pvalue=TRUE,
                              signif.stars = signif.stars, ...)
                 cat("\n")   
-            }       
+            }
         }
 
-        cat(" States: ", paste(paste(seq(along.with=x$states), x$states, sep='= '), 
-                               collapse=", "), '\n')
+        cat(" States: ", paste(paste(seq(along.with=x$states), x$states, 
+                                     sep='= '), collapse=", "), '\n')
+        if (!is.null(extrarows)) cat(extrarows, sep='\n')
+        if (any(x$share$vtype==2))cat(" (*) = coef for proportional baselines\n")
         # cat(" States: ", paste(x$states, collapse=", "), '\n')
         if (FALSE) { # alternate forms, still deciding which I like
             stemp <- x$states

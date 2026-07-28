@@ -146,9 +146,10 @@ If \code{singledf} is TRUE then treat each term as a single degree of
 freedom test, otherwise as a multi-degree of freedom.
 If terms=FALSE test each covariate individually.
 If all the variables are univariate this is a moot point.
-The survival routines return Splus style assign components, that is a list
-with one element per term, each element an integer vector of coefficient
-indices.
+The coxph routine returns an Splus style assign component, which is a list with
+one element per term. However, for a multistate model, the X matrix that
+comes back from coxph.getdata will have more columns, and asgn needs to be
+rebuilt.
 
 The asgn vector is our main workhorse: loop over asgn to process term by
 term.
@@ -170,6 +171,7 @@ asgn, nvar, and fcoef.  The variable matrix won't have the NA columns.
 <<zph-setup>>=
 eta <- fit$linear.predictors
 X <- cget$x
+
 varnames <- names(fit$coefficients)
 nvar <- length(varnames)
 
@@ -178,14 +180,8 @@ if (!terms) {
     asgn <- as.list(1:nvar)
     names(asgn) <- names(fit$coefficients)
 }
-else if (inherits(fit, "coxme")) {
-    asgn <- attrassign(cget$x, terms(fit))
-    # allow for a spelling inconsistency in coxme, later fixed
-    if (is.null(fit$linear.predictors)) 
-        eta <- fit$linear.predictor
-    fit$df <- NULL  # don't confuse later code
-}
-else   asgn <- fit$assign
+else asgn <- attrassign(cget$x, terms(fit))
+if (inherits(fit, "coxme")) fit$df <- NULL  # don't confuse later code
     
 if (!is.list(asgn)) stop ("unexpected assign component")
 

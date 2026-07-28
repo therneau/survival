@@ -76,10 +76,10 @@ aeq(zp5$table[,1], sctest4)
 test2 <- rbind(test1, test1)
 test2$group <- rep(letters[1:2], each=nrow(test1))
 # U, imat, and sctest will all double
-dummy <- c(dummy, dummy)
+dummy <- rep(0,14)
 fit6 <- coxph(Surv(dummy, time, status) ~ x + strata(group), test2)
 aeq(fit6$coef, log(r))
-zp6 <- cox.zph(fit6, transform="log", globa=FALSE)
+zp6 <- cox.zph(fit6, transform="log", global=FALSE)
 aeq(zp6$table[,1], 2*sctest4)
 
 # A multi-state check, 2 covariates

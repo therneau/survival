@@ -92,8 +92,17 @@ plot.survfit<- function(x, conf.int,  mark.time=FALSE,
 
         if (!all(cumhaz == floor(cumhaz))) stop("cumhaz argument is not integer")
         if (any(cumhaz < 1 | cumhaz > nhazard)) stop("subscript out of range")
-        ssurv <- smat(x$cumhaz)[,cumhaz, drop=FALSE]
-        if (!is.null(x$std.chaz)) std <- smat(x$std.chaz)[,cumhaz, drop=FALSE]
+        if (length(dim(x$cumhaz)) ==3) {
+            # we need to subscript before collapsing with smat(), in order
+            #  to select the correct hazards
+            ssurv <- smat(x$cumhaz[,,cumhaz, drop=FALSE])
+            if (!is.null(x$std.chaz)) 
+                std <- smat(x$std.chaz[,,cumhaz, drop=FALSE])
+        } else {
+            ssurv <- x$cumhaz[,cumhaz, drop=FALSE]
+            if (!is.null(x$std.chaz)) 
+                std <- x$std.chaz[,cumhaz, drop=FALSE]
+        }
         cumhaz <- TRUE # for the rest of the code
     } else if (cumhaz) {
         if (is.null(x$cumhaz)) 

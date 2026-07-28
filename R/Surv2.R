@@ -28,7 +28,7 @@ Surv2 <- function(time, event, repeated=FALSE) {
     states <- levels(event)[-1]
     status <- as.integer(event) -1L # usually time is not integer, but
     ss <- cbind(time=time, status=status) # sometimes it is
- 
+     
     # Retain any attributes of the input arguments. Originally requested
     #  by the rms package
     inputAttributes <- list()
@@ -46,7 +46,7 @@ Surv2 <- function(time, event, repeated=FALSE) {
         stop("each state must have a non-blank name")
     if (length(inputAttributes) > 0) 
         attr(ss, "inputAttributes") <- inputAttributes
-    attr(ss, "states") <- states
+    if (!is.null(states)) attr(ss, "states") <- states
     attr(ss, "repeated") <- repeated
     class(ss) <- 'Surv2'
     ss

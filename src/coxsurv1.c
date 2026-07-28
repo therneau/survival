@@ -35,13 +35,6 @@
 **           matrices with xbar for those at risk, and the sum of x for
 **	     terminal events at the current time.
 **
-**  For the weighted counts, number at risk != entries - exits.  Someone with 
-**    a sequence of (1,2)(2,5)(5,6) will have 1 entry and 1 exit, but they might
-**    have 3 changes of risk score due to time-dependent covariates.
-**  n0-3 has to count all the changes, while n8-n9 (only used in printout)
-**    keep track of the final exit, and 3-7 and 10-11 refer only to a given
-**    timepoint.
-**
 **  Let w1=1, w2= wt, w3= wt*risk.  The counts n[] are
 **   0-2: number at risk: w1, w2, w3
 **   3-5: events: w1, w2, w3

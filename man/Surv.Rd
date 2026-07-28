@@ -24,12 +24,13 @@ is.Surv(x)
     The status indicator, normally 0=alive, 1=dead.  Other choices are
     \code{TRUE}/\code{FALSE} (\code{TRUE} = death), 1/2 (2=death), or
     a factor variable.
-    For interval censored data, the status indicator is 0=right censoed,
+    For interval censored data, the status indicator is 0=right censored,
     1=event at \code{time}, 2=left censored, 3=interval censored.
     For multiple endpoint data the event variable will always be a factor,
-    whose first level is treated as censoring, or more formally
-    "no transtition at this time point".
-    There is no constraint on the labels of the factor.
+    whose first level must correspond to 
+    "no observed transtition for this subject at this time point".
+    There is no constraint on the labels of the factor; "none",
+    "censored", and "alive" are common choices for the first level.
     Although unusual, the event indicator can be omitted, in which case
     all subjects are assumed to have an event.
   }
