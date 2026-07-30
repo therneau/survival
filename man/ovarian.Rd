@@ -7,17 +7,19 @@ data(cancer, package="survival")
 }
 \description{Survival in a randomised trial comparing two treatments for
     ovarian cancer}
-\format{
-  \tabular{ll}{
-    futime:\tab survival or censoring time\cr
-    fustat:\tab censoring status\cr
-    age: \tab in years\cr
-    resid.ds:\tab residual disease present (1=no,2=yes)\cr
-    rx:\tab treatment group\cr
-    ecog.ps:\tab ECOG performance status (1 is better, see reference)\cr
+  \format{
+    A data frame with 26 observations and the following variables
+    \describe{
+      \item{\code{futime}}{survival or censoring time}
+      \item{\code{fustat}}{0=censored, 1=death}
+      \item{\code{age}}{age in years}
+      \item{\code{resid.ds}}{residual disease present (1=no,2=yes)}
+      \item{\code{rx}}{treatment group, 1= cyclophosphamide,
+	2= cyclophosphamide + adriamycin}
+      \item{\code{ecog.ps}}{ECOG performance status (1 is better)}
+    }
   }
 }
-\source{Terry Therneau}
 \references{
    Edmunson, J.H., Fleming, T.R., Decker, D.G.,
     Malkasian, G.D., Jefferies, J.A., Webb, M.J., and Kvols, L.K.,

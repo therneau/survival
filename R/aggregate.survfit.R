@@ -39,7 +39,7 @@ aggregate.survfit <- function(x, by=NULL, FUN= mean, ...) {
     if (is.null(by)) { # simple case
         if (!is.null(x$surv)) {
             if (missing(FUN)) newx$surv <- rowMeans(x$surv)
-            else              news$surv <- apply(x$surv, 1, FUN)
+            else              newx$surv <- apply(x$surv, 1, FUN)
         }
         if (!is.null(x$pstate)) 
             newx$pstate <- apply(x$pstate, c(1,3), FUN)

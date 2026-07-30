@@ -8,7 +8,9 @@
     \item More work, and tests, for coxph models with shared baseline
     hazards
     \item Vignette updates for timeline data (Surv2)
-    \item Change my address from mayo.edu to proton.me (I retired July 1)
+    \item Change my address from mayo.edu to proton.me (I retired July1)
+    \item Fix incorrect names in summary.surfit and aggregate.survfit found
+    by M Scholtz (git pull 340).
 }}
 \section{Changes in version 3.8-9}{
   \itemize{
