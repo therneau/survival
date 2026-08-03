@@ -116,8 +116,7 @@ model.frame.coxph <- function(formula, ...) {
         # But we do need to deal with timeline data
         Y <- model.response(mf)
         id <- model.extract(mf, "id")
-        if (inherits(Y, "Surv2") || (!is.null(id) && any(duplicated(id)) && 
-                                 attr(Y, 'type') %in% c("right", "mright"))) {
+        if (inherits(Y, "Surv2")) {
             # timeline data, convert to regular
             mf <- surv2counting(mf)
             Y <- model.response(mf)
