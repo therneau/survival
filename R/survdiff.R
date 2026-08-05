@@ -3,6 +3,12 @@ survdiff <- function(formula, data, subset, na.action, rho=0, timefix=TRUE) {
     m <- match.call(expand.dots=FALSE)
     m$rho <- NULL
 
+    if (inherits(formula, "survfit")) {
+      fit <- formula
+      formula <- as.formula(fit$call$formula, env=parent.frame())
+      data <- get(fit$call$data, envir=parent.frame())
+      m$data <- data
+    }
     if (!inherits(formula, 'formula'))
         stop("The 'formula' argument is not a formula")
     # make Surv(), strata() etc in a formula resolve to the survival namespace
