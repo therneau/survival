@@ -11,6 +11,7 @@
     \item Change my address from mayo.edu to proton.me (I retired July1)
     \item Fix incorrect names in summary.surfit and aggregate.survfit found
     by M Scholtz (git pull 340).
+    \item Fix github issue 341 (model.frame.coxph)
 }}
 \section{Changes in version 3.8-9}{
   \itemize{
