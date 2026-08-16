@@ -3,7 +3,6 @@
 \alias{logan}
 \title{Data from the 1972-78 GSS data used by Logan}
 \usage{logan
-data(logan, package="survival")
 }
 \description{
 Intergenerational occupational mobility data with covariates.

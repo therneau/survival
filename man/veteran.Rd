@@ -5,7 +5,6 @@
 \description{Randomised trial of two treatment regimens for lung cancer.
   This is a standard survival analysis data set.} 
 \usage{veteran
-data(cancer, package="survival")
 }
 \format{
   \tabular{ll}{
@@ -18,6 +17,12 @@ data(cancer, package="survival")
     age:\tab in years\cr
     prior:\tab prior therapy 0=no, 10=yes\cr
   }
+}
+\note{
+  The usage above assumes that the survival package is attached via
+  \code{library(survival)} or via another package that depends on
+  survival, e.g., mstate.  If not, then either \code{survival::veteran}
+  can be used or \code{data(cancer, package="survival")}.
 }
 \source{
   D Kalbfleisch and RL Prentice (1980),

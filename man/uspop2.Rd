@@ -3,6 +3,7 @@
 \docType{data}
 \title{Projected US Population}
 \description{US population by age and sex, for 2000 through 2020}
+\usage{uspop2}
 \format{
   The data is a matrix with dimensions age, sex, and calendar year.
   Age goes from 0 through 100, where the value for age 100 is the total
@@ -10,7 +11,12 @@
 }
 \details{ This data is often used as a "standardized" population for
   epidemiology studies.}
-
+\note{
+  The usage above assumes that the survival package is attached via
+  \code{library(survival)} or via another package that depends on
+  survival, e.g., mstate.  If not, then either \code{survival::uspop2}
+  can be used or \code{data(survexp, package="survival")}.
+}
 \source{
 NP2008_D1:  Projected Population by Single Year of Age, Sex, Race, and Hispanic 
 Origin for the United States: July 1, 2000 to July 1, 2050,

@@ -7,9 +7,11 @@
 \description{Survival of patients on the waiting list for the Stanford
   heart transplant program.}
 \usage{heart
-data(heart, package="survival")}
+jasa1
+jasa
+}
 \format{
-  jasa: original data
+  jasa: original data in the format of Crowly and Hu
   \tabular{ll}{
    birth.dt:\tab birth date \cr
    accept.dt:\tab acceptance into program \cr

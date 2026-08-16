@@ -14,7 +14,6 @@
 \usage{nafld1
        nafld2
        nafld3
-data(nafld, package="survival")
 }
 \format{
   \code{nafld1} is a data frame with 17549 observations on the following 10 variables.
@@ -82,6 +81,13 @@ one observation per subject, \code{nafld2} has one observation for
 each (time dependent) continuous measurement,
 and \code{nafld3} has one observation for
 each yes/no outcome that occured.
+}
+\note{
+  The usage above assumes that the survival package is attached via
+  \code{library(survival)} or via another package that depends on
+  survival, e.g., mstate.  If not, then either \code{survival::nafld1}
+  can be used or \code{data(nafld, package="survival")}; the latter will
+  load all 3 data sets.
 }
 
 \source{Data obtained from the author.}

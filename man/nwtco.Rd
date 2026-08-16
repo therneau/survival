@@ -8,7 +8,6 @@
   with the local institution determination.
 }
 \usage{nwtco
-data(nwtco, package="survival")
 }
 \format{
   A data frame with 4028 observations on the following 9 variables.
@@ -30,6 +29,12 @@ data(nwtco, package="survival")
   Design and analysis of two-phase studies with binary outcome applied
   to Wilms tumour prognosis.
   \emph{Applied Statistics} \bold{48}, 457--68.
+}
+\note{
+  The usage above assumes that the survival package is attached via
+  \code{library(survival)} or via another package that depends on
+  survival, e.g., mstate.  If not, then either \code{survival::nwtco}
+  can be used or \code{data(nwtco, package="survival")}.
 }
 \examples{
 with(nwtco, table(instit,histol))

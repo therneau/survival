@@ -30,7 +30,6 @@ this version has fewer missing values.
 
 }
 \usage{pbc
-data(pbc, package="survival")
 }
 \format{
   \tabular{ll}{
@@ -57,6 +56,12 @@ data(pbc, package="survival")
     trt:\tab 1/2/NA for D-penicillmain, placebo, not randomised\cr
     trig:\tab triglycerides (mg/dl)\cr
   }
+}
+\note{
+  The usage above assumes that the survival package is attached via
+  \code{library(survival)} or via another package that depends on
+  survival, e.g., mstate.  If not, then either \code{survival::pbc}
+  can be used or \code{data(pbc, package="survival")}.
 }
 \source{
   T Therneau and P Grambsch (2000),

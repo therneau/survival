@@ -10,7 +10,6 @@
   end of study for each patient. 
 }
 \usage{cgd
-data(cgd)
 }
 \format{
   \describe{
@@ -34,10 +33,15 @@ data(cgd)
  \details{
    The \code{cgd0} data set is in the form found in the references,
    with one line per patient and no recoding of the variables.
-   The \code{cgd} data set (this one) has been cast into (start, stop]
+   The \code{cgd} data set (documented above) has been cast into (start, stop]
    format with one line per event, and covariates
-   such as center recoded as factors
-   to include meaningful labels. 
+   such as center recoded as factors so as to create meaningful labels. 
+}
+\note{
+  The usage above assumes that the survival package is attached via
+  \code{library(survival)} or via another package that depends on
+  survival, e.g., mstate.  If not, then either \code{survival::cdg}
+  or \code{data(cgd, package="survival") can be used}.
 }
 \source{
   Fleming and Harrington, Counting Processes and Survival Analysis,

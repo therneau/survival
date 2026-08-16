@@ -7,7 +7,6 @@
   of diabetic retinopathy.
 }
 \usage{diabetic
-data(diabetic, package="survival")
 }
 \format{
   A data frame with 394 observations on the following 8 variables.
@@ -34,6 +33,12 @@ approximately 6 months (visits were every 3 months).  Survival times
 in this dataset are therefore the actual time to blindness in months,
 minus the minimum possible time to event (6.5 months).  Censoring was
 caused by death, dropout, or end of the study.
+}
+\note{
+  The usage above assumes that the survival package is attached via
+  \code{library(survival)} or via another package that depends on
+  survival, e.g., mstate.  If not, then either \code{survival::diabetic}
+  or \code{data(diabetic, package="survival") can be used}.
 }
 \references{
   Huster, Brookmeyer and Self, Biometrics, 1989.

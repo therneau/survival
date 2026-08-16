@@ -1,4 +1,5 @@
 \name{kidney}
+\docType{data}
 \alias{kidney}
 \title{Kidney catheter data}
 \description{
@@ -14,8 +15,6 @@ observation is removed no evidence remains for a random subject effect.
 }
 \usage{
 kidney
-# or
-data(cancer, package="survival")
 }
 \format{
 \tabular{ll}{
@@ -30,6 +29,11 @@ frail:\tab frailty estimate from original paper\cr
 \section{Note}{
   The original paper ignored the issue of tied times and so is not
   exactly reproduced by the survival package.
+
+  The usage above assumes that the survival package is attached via
+  \code{library(survival)} or via another package that depends on
+  survival, e.g., mstate.  If not, then either \code{survival::kidney}
+  can be used or \code{data(cancer, package="survival")}.
 }
 \examples{
 kfit <- coxph(Surv(time, status)~ age + sex + disease + frailty(id), kidney)

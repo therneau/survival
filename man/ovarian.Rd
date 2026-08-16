@@ -2,12 +2,10 @@
 \alias{ovarian}
 \docType{data}
 \title{Ovarian Cancer Survival Data}
-\usage{ovarian
-data(cancer, package="survival")
-}
 \description{Survival in a randomised trial comparing two treatments for
     ovarian cancer}
-  \format{
+\usage{ovarian}
+\format{
     A data frame with 26 observations and the following variables
     \describe{
       \item{\code{futime}}{survival or censoring time}
@@ -18,7 +16,12 @@ data(cancer, package="survival")
 	2= cyclophosphamide + adriamycin}
       \item{\code{ecog.ps}}{ECOG performance status (1 is better)}
     }
-  }
+}
+\note{
+  The usage above assumes that the survival package is attached via
+  \code{library(survival)} or via another package that depends on
+  survival, e.g., mstate.  If not, then either \code{survival::ovarian}
+  can be used or \code{data(cancer, package="survival")}.
 }
 \references{
    Edmunson, J.H., Fleming, T.R., Decker, D.G.,

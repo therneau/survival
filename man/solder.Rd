@@ -10,7 +10,6 @@ The experiment varied a number of factors relevant to the process.
 The response, measured by eye, is the number of visible solder skips.
 }
 \usage{solder
-data(solder, package="survival")
 }
 \format{
   A data frame with 900 observations on the following 6 variables.
@@ -34,6 +33,12 @@ This data set is used as a detailed example in chapter 1 of Chambers and
 Hastie.  However, they chose to use only a subset of the data, i.e., 
 observations 1-360 and 541-900 form a balanced design of 3*2*10*3= 180
 observations for each of four mask types (A1.5, A3, B3, B6).
+}
+\note{
+  The usage above assumes that the survival package is attached via
+  \code{library(survival)} or via another package that depends on
+  survival, e.g., mstate.  If not, then either \code{survival::solder}
+  can be used or \code{data(solder, package="survival")}.
 }
 \references{
 J Chambers and T Hastie, Statistical models in S.  Chapman and Hall, 1993.

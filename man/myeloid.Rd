@@ -7,7 +7,6 @@
   leukemia.
 }
 \usage{myeloid
-data(cancer, package="survival")
 }
 \format{
   A data frame with 646 observations on the following 9 variables.
@@ -37,6 +36,12 @@ data(cancer, package="survival")
   only.  This was a stratification factor for treatment assignment in
   the study.   The levels of A, B, C correspond to increasing severity of the
   mutation burden.
+}
+\note{
+  The usage above assumes that the survival package is attached via
+  \code{library(survival)} or via another package that depends on
+  survival, e.g., mstate.  If not, then either \code{survival::myeloid}
+  or \code{data(cancer, package="survival") can be used}.
 }
 \examples{
 coxph(Surv(futime, death) ~ trt + flt3, data=myeloid)

@@ -10,7 +10,6 @@ cycles.}
 \usage{
 aml
 leukemia
-data(cancer, package="survival")
 }
 \format{
   \tabular{ll}{
@@ -18,6 +17,12 @@ data(cancer, package="survival")
     status:\tab censoring status\cr
     x: \tab maintenance chemotherapy given? (factor)\cr
   }
+}
+\note{
+  The usage above assumes that the survival package is attached via
+  \code{library(survival)} or via another package that depends on
+  survival, e.g., mstate.  If not, then either \code{survival::aml}
+  can be used or \code{data(cancer, package="survival")}.
 }
 \source{
   Rupert G. Miller (1997),

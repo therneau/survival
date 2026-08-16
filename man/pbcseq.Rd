@@ -26,7 +26,6 @@ necessarily have all this lab work.
 The missing values are thus potentially informative.
 }
 \usage{pbcseq
-data(pbc, package="survival")
 }
 \format{
   \tabular{ll}{
@@ -55,6 +54,12 @@ data(pbc, package="survival")
     stage:\tab histologic stage of disease (needs biopsy)\cr
     trig:\tab triglycerides (mg/dl)\cr
   }
+}
+\note{
+  The usage above assumes that the survival package is attached via
+  \code{library(survival)} or via another package that depends on
+  survival, e.g., mstate.  If not, then either \code{survival::pbcseq}
+  can be used or \code{data(pbc, package="survival")}.
 }
 \source{
   T Therneau and P Grambsch,

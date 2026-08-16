@@ -9,7 +9,7 @@ Survival times of 3882 subjects with multiple myeloma, seen at Mayo
 Clinic from 1947--1996.
 }
 \usage{myeloma
-data("cancer", package="survival")}
+}
 \format{
   A data frame with 3882 observations on the following 5 variables.
   \describe{
@@ -23,6 +23,12 @@ data("cancer", package="survival")}
 \details{
 Subjects who were diagnosed at Mayo will have \code{entry} =0, those who
 were diagnosed elsewhere and later referred will have positive values.
+}
+\note{
+  The usage above assumes that the survival package is attached via
+  \code{library(survival)} or via another package that depends on
+  survival, e.g., mstate.  If not, then either \code{survival::myeloma}
+  can be used or \code{data(cancer, package="survival")}.
 }
 \references{
   R. Kyle, Long term survival in multiple myeloma.

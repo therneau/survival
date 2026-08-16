@@ -8,7 +8,6 @@
 bladder1
 bladder
 bladder2
-data(cancer, package="survival")
 }
 \description{Data on recurrences of bladder cancer, used by many people
   to demonstrate methodology for recurrent event modelling.
@@ -72,6 +71,12 @@ shrinks the fitted coefficients towards zero.
     enum:\tab which recurrence (up to 4)\cr
   }
   
+}
+\note{
+    The usage above assumes that the survival package is attached via
+  \code{library(survival)} or via another package that depends on
+  survival, e.g., mstate.  If not, then either \code{survival::aml}
+  can be used or \code{data(cancer, package="survival")}.
 }
 \source{
   Andrews DF, Hertzberg AM (1985), 

@@ -3,7 +3,6 @@
 \alias{cgd0}
 \title{Chronic Granulotomous Disease data}
 
-
 \description{Data are from a placebo controlled trial of gamma
   interferon in chronic granulotomous disease (CGD).
   Contains the data on time to serious infections observed through
@@ -29,12 +28,15 @@
    }
  }
  \details{
-   The \code{cgdraw} data set (this one) is in the form found in the references,
+   This data set is in the form found in the references,
    with one line per patient and no recoding of the variables.
-
-   The \code{cgd} data set has been further processed so as to have one
-   line per event, with covariates such as center recoded as factors
-   to include meaningful labels. }
+}
+\note{
+  The usage above assumes that the survival package is attached via
+  \code{library(survival)} or via another package that depends on
+  survival, e.g., mstate.  If not, then either \code{survival::cgd0}
+  or \code{data(cgd, package="survival")} can be used.
+}
 \source{
   Fleming and Harrington, Counting Processes and Survival Analysis,
   appendix D.2. 

@@ -9,7 +9,6 @@
   scores rate how well the patient can perform usual daily activities.
 }
 \usage{lung
-data(cancer, package="survival")
 }
 \format{
   \tabular{ll}{
@@ -29,17 +28,26 @@ data(cancer, package="survival")
   }
 }
 \note{
+  The usage above assumes that the survival package is attached via
+  \code{library(survival)} or via another package that depends on
+  survival, e.g., mstate.  If not, then either \code{survival::lung}
+  or \code{data(cancer, package="survival") can be used}.
+
   The use of 1/2 for alive/dead instead of the usual 0/1 is a historical
   footnote.
   For data contained on punch cards, IBM 360 Fortran treated blank as a zero,
   which led to a policy within the section of Biostatistics to never
   use "0" as a data value since one could not distinguish it from a
   missing value.
-  The policy became a habit, as is often the case; and the 1/2 coding rule
+  The policy became a habit, as is often the case, and the 1/2 coding rule
   endured long beyond the demise of punch cards.
 }
-  
-
+\note{
+  The useage above assumes that the survival package is attached via
+  \code{library(survival)} or via another package that depends on
+  survival, e.g., mstate.  If not, then either \code{survival::ovarian}
+  can be used or \code{data(cancer, package="survival")}.
+}  
 \source{Terry Therneau}
 \references{
   Loprinzi CL. Laurie JA. Wieand HS. Krook JE. Novotny PJ.

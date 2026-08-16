@@ -16,8 +16,13 @@
     t5: \tab T5 mismatch score\cr
   }
 }
+\note{
+  The usage above assumes that the survival package is attached via
+  \code{library(survival)} or via another package that depends on
+  survival, e.g., mstate.  If not, then either \code{survival::stanford2}
+  can be used or \code{data(heart, package="survival")}.
+}
 \seealso{
-  \code{\link{predict.survreg}},
   \code{\link{heart}}
 }
 \source{

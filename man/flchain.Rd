@@ -9,7 +9,6 @@
   approximately 2/3 of the residents of Olmsted County aged 50 or greater.
 }
 \usage{flchain
-data(flchain, package="survival")
 }
 \format{
   A data frame with 7874 persons containing the following variables.
@@ -73,8 +72,13 @@ R Kyle, T Therneau, SV Rajkumar,
 	    Prevalence of monoclonal gammopathy of undetermined significance,
 	    New England J Medicine 354:1362-1369.
 }
+\note{
+  The usage above assumes that the survival package is attached via
+  \code{library(survival)} or via another package that depends on
+  survival, e.g., mstate.  If not, then either \code{survival::flchain}
+  or \code{data(flchain, package="survival") can be used}.
+}
 \examples{
-data(flchain)
 age.grp <-  cut(flchain$age, c(49,54, 59,64, 69,74,79, 89, 110),
                labels= paste(c(50,55,60,65,70,75,80,90),
                              c(54,59,64,69,74,79,89,109), sep='-'))

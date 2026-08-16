@@ -7,7 +7,6 @@
   treated with a drug, and then all followed for tumor incidence.
 }
 \usage{rats
-data(cancer, package="survival")
 }
 \format{
   \tabular{ll}{
@@ -17,6 +16,12 @@ data(cancer, package="survival")
     status:\tab event status, 1=tumor and 0=censored\cr
     sex:\tab male or female
   }
+}
+\note{
+  The usege above assumes that the survival package is attached via
+  \code{library(survival)} or via another package that depends on
+  survival, e.g., mstate.  If not, then either \code{survival::rats}
+  can be used or \code{data(cancer, package="survival")}.
 }
 \source{
   N. Mantel, N. R. Bohidar and J. L. Ciminera.

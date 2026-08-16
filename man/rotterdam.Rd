@@ -7,7 +7,6 @@ The \code{rotterdam} data set includes 2982 primary breast cancers patients
 whose records were included in the Rotterdam tumor bank.
 }
 \usage{rotterdam
-data(cancer, package="survival")
 }
 \format{
   A data frame with 2982 observations on the following 15 variables.
@@ -57,6 +56,12 @@ However, that may be unlikely.  Death information is often in a
 centralized location in electronic health records, easily accessed by a
 programmer and merged with the study data, while recurrence may
 require manual review.  How best to address this is an open issue.
+}
+\note{
+  The usage above assumes that the survival package is attached via
+  \code{library(survival)} or via another package that depends on
+  survival, e.g., mstate.  If not, then either \code{survival::rotterdam}
+  or \code{data(cancer, package="survival") can be used}.
 }
 \seealso{
   \code{\link{gbsg}}

@@ -1,4 +1,5 @@
 \name{ratetables}
+\docType{data}
 \alias{survexp.us}
 \alias{survexp.usr}
 \alias{survexp.mn}
@@ -8,8 +9,9 @@
 \description{
   Census data sets for the expected survival and person years functions.
 }
-\usage{
-data(survexp, package="survival")
+\usage{surexp.us
+survexp.usr
+survexp.mn
 }
 \details{
   \describe{
@@ -44,6 +46,12 @@ data(survexp, package="survival")
   All numeric dimensions of a rate table must be in the same units.
    The \code{survexp.us} rate table contains daily hazard rates, the age
    cutpoints are in days, and the calendar year cutpoints are a Date.
+}
+\note{
+  The usage above assumes that the survival package is attached via
+  \code{library(survival)} or via another package that depends on
+  survival, e.g., mstate.  If not, then either \code{survival::survexp.us}
+  can be used or \code{data(survexp, package="survival")}.
 }
 \seealso{\code{\link{ratetable}}, \code{\link{survexp}},
   \code{\link{pyears}}

@@ -7,7 +7,6 @@
   \sQuote{tobit}.  These data are from Tobin's original paper. 
 }
 \usage{tobin
-data(tobin, package="survival")
 }
 \format{
   A data frame with 20 observations on the following 3 variables.
@@ -16,6 +15,12 @@ data(tobin, package="survival")
     \item{age}{Age in years}
     \item{quant}{Liquidity ratio (x 1000)}
   }
+}
+\note{
+  The usage above assumes that the survival package is attached via
+  \code{library(survival)} or via another package that depends on
+  survival, e.g., mstate.  If not, then either \code{survival::tobin}
+  can be used or \code{data(tobin, package="survival")}.
 }
 \source{
   J Tobin (1958),

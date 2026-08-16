@@ -2,7 +2,6 @@
 \alias{colon}
 \title{Chemotherapy for Stage B/C colon cancer}
 \usage{colon
-       data(cancer, package="survival")
 }
 \description{These are data from one of the first successful trials of
     adjuvant chemotherapy for colon cancer. Levamisole is a low-toxicity
@@ -39,6 +38,11 @@ etype:\tab event type: 1=recurrence,2=death\cr
    \code{table(colon$nodes, colon$node4)}.  We don't know which of the
    two variables is actually correct so have elected not to 'fix' it.
    (Real data has warts, why not have some in the example data too?)
+
+   The usage above assumes that the survival package is attached via
+  \code{library(survival)} or via another package that depends on
+  survival, e.g., mstate.  If not, then either \code{survival::aml}
+  can be used or \code{data(cancer, package="survival")}.
    }
 \references{
   JA Laurie, CG Moertel, TR Fleming, HS Wieand, JE Leigh, J Rubin,

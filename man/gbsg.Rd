@@ -9,7 +9,7 @@ with node positive breast cancer; it retains the 686 patients with
 complete data for the prognostic variables.
 }
 \usage{gbsg
-data(cancer, package="survival")
+rotterdam
 }
 \format{
    A data set with 686 observations and 11 variables.
@@ -31,6 +31,12 @@ death}
 These data sets are used in the paper by Royston and Altman.
 The Rotterdam data is used to create a fitted model, and the GBSG data for 
 validation of the model.  The paper gives references for the data source.
+}
+\note{
+  The usage above assumes that the survival package is attached via
+  \code{library(survival)} or via another package that depends on
+  survival, e.g., mstate.  If not, then either \code{survival::gbsg}
+  or \code{data(cancer, package="survival") can be used}.
 }
 \seealso{
   \code{\link{rotterdam}}

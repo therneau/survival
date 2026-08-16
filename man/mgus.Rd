@@ -10,7 +10,6 @@ undetermined significance (MGUS).
 \usage{
 mgus
 mgus1
-data(cancer, package="survival")
 }
 \format{
   mgus: A data frame with 241 observations on the following 12 variables.
@@ -62,6 +61,12 @@ Three subjects had MGUS detected on the day of death.  In data set
 the death in order to avoid tied times.
 
 These data sets were updated in Jan 2015 to correct some small errors.
+}
+\note{
+  The usage above assumes that the survival package is attached via
+  \code{library(survival)} or via another package that depends on
+  survival, e.g., mstate.  If not, then either \code{survival::mgus}
+  or \code{data(cancer, package="survival") can be used}.
 }
 \source{
 Mayo Clinic data courtesy of Dr. Robert Kyle.

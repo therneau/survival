@@ -7,7 +7,6 @@
   from 0 to 13; all rats were  censored at 6 months after randomization.
 }
 \usage{rats2
-data(cancer, package="survival")
 }
 \format{
   \tabular{ll}{
@@ -18,6 +17,12 @@ data(cancer, package="survival")
     stop:\tab exit time\cr
     status:\tab event status, 1=tumor, 0=censored\cr
   }
+}
+\note{
+  The usage above assumes that the survival package is attached via
+  \code{library(survival)} or via another package that depends on
+  survival, e.g., mstate.  If not, then either \code{survival::rats2}
+  can be used or \code{data(cancer, package="survival")}.
 }
 \source{
   MH Gail, TJ Santner, and CC Brown (1980),

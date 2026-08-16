@@ -7,7 +7,6 @@
   diabetic retinopathy.
 }
 \usage{retinopathy
-data(retinopathy, package="survival")
 }
 \format{
   A data frame with 394 observations on the following 9 variables.

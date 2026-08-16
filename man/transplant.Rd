@@ -8,7 +8,6 @@
   the list, or censored.
 }
 \usage{transplant
-data(transplant, package="survival")
 }
 \format{
   A data frame with 815 (transplant) observations
@@ -50,6 +49,12 @@ The overall organ shortage remains acute, however.
 The \code{transplant} data set was a version used early in the analysis,
 \code{transplant2} has several additions and corrections, and
 was the final data set and matches the paper.
+}
+\note{
+  The usage above assumes that the survival package is attached via
+  \code{library(survival)} or via another package that depends on
+  survival, e.g., mstate.  If not, then either \code{survival::transplant}
+  can be used or \code{data(transplant, package="survival")}.
 }
 \examples{
 #since event is a factor, survfit creates competing risk curves

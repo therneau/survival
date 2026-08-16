@@ -29,4 +29,5 @@ ToDo
 todo
 xconfig
 R/residuals.survfitcox.R
-R/survnew.R
+man/gastric.Rd
+tests/zph2.R

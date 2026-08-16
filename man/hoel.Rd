@@ -5,7 +5,7 @@
 \description{
 Days until occurence of cancer for male mice
 }
-\usage{data("cancer")}
+\usage{hoel}
 \format{
   A data frame with 181 observations on the following 4 variables.
   \describe{
@@ -27,6 +27,11 @@ Days until occurence of cancer for male mice
 \note{The Ontology Search website defines reticulm cell sarcoma as
   "An antiquated term that refers to a non-Hodgkin lymphoma composed of
   diffuse infiltrates of large, often anaplastic lymphocytes".
+
+  The usage above assumes that the survival package is attached via
+  \code{library(survival)} or via another package that depends on
+  survival, e.g., mstate.  If not, then either \code{survival::aml}
+  can be used or \code{data(cancer, package="survival")}.
 }
 \source{
   The data can be found in appendix I of Kalbfleisch and Prentice.

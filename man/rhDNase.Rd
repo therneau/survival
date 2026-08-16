@@ -7,7 +7,6 @@
   fibrosis.
 }
 \usage{rhDNase
-data(rhDNase, package="survival")
 }
 \format{
   A data frame with 767 observations on the following 8 variables.
@@ -65,6 +64,12 @@ then from a medical standpoint this would not be a new infection.)
 
 This data set reproduces the data in Therneau and Grambsch, it does not
 exactly reproduce those in Therneau and Hamilton due to data set updates.
+}
+\note{
+  The usage above assumes that the survival package is attached via
+  \code{library(survival)} or via another package that depends on
+  survival, e.g., mstate.  If not, then either \code{survival::rhDNase}
+  or \code{data(rhDNase, package="survival") can be used}.
 }
 \references{
 T. M. Therneau and P. M. Grambsch, Modeling Survival Data: Extending

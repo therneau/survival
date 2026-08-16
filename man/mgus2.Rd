@@ -8,7 +8,6 @@
   the \code{mgus} data, at a later point in the accrual process
 }
 \usage{mgus2
-data(cancer, package="survival")
 }
 \format{
   A data frame with 1384 observations on the following 10 variables.
@@ -30,6 +29,12 @@ data(cancer, package="survival")
 \details{
   This is an extension of the study found in the \code{mgus} data set,
   containing enrollment through 1994 and follow-up through 1999.
+}
+\note{
+  The usage above assumes that the survival package is attached via
+  \code{library(survival)} or via another package that depends on
+  survival, e.g., mstate.  If not, then either \code{survival::mgus2}
+  or \code{data(cancer, package="survival") can be used}.
 }
 \source{Mayo Clinic data courtesy of Dr. Robert Kyle.  All patient
   identifiers have been removed, age rounded to the nearest year, and

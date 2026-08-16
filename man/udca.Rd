@@ -11,7 +11,6 @@
 }
 \usage{udca
 udca2
-data(udca, package="survival")
 }
 \format{
   A data frame with 170 observations on the following 15 variables.
@@ -40,6 +39,13 @@ data(udca, package="survival")
   The \code{udca2} data set treats all of the endpoints as parallel
   events and has a stratum for each.
 }
+\note{
+  The usage above assumes that the survival package is attached via
+  \code{library(survival)} or via another package that depends on
+  survival, e.g., mstate.  If not, then either \code{survival::udca}
+  can be used or \code{data(udca, package="survival")}.
+}
+
 
 \references{
 T. M. Therneau and P. M. Grambsch, Modeling survival data: extending the Cox

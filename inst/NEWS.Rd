@@ -1,5 +1,12 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 3.8-11}{
+  \itemize{
+    \item Change the .Rd files to remove \code{data()} from the usage
+    section, making them more in line with base R and lazy loaded data
+    (suggestion from CRAN).
+    \item Submit to CRAN
+}}
 \section{Changes in version 3.8-10}{
   \itemize{
     \item Fix github issues 339 (incorrect weighted Schoenfeld

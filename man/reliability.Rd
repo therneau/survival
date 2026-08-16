@@ -14,7 +14,14 @@
   A set of data for simple reliablility analyses, taken from the book by
 Meeker and Escobar.
 }
-\usage{data(reliability, package="survival")
+\usage{braking
+capacitor
+ cracks
+genfan
+ifluid
+imotor
+turbine
+valveSeat
 }
 \details{
   \itemize{
@@ -84,6 +91,13 @@ Meeker and Escobar.
     }
   }
 }
+\note{
+  The usage above assumes that the survival package is attached via
+  \code{library(survival)} or via another package that depends on
+  survival, e.g., mstate.  If not, then either \code{survival::turbine}
+  or \code{data(reliability, package="survival") can be used}.
+}
+
 \references{
   Meeker and Escobar, Statistical Methods for Reliability Data, 1998.
 }
