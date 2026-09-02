@@ -495,8 +495,9 @@ survpenal.fit<- function(x, y, weights, offset, init, controlvals, dist,
 	    df <- dftemp$df
 	    var  <- dftemp$var
 	    var2 <- dftemp$var2
-	    pdf <- df[pterms>0]	          # df's for penalized terms
-	    trH <- dftemp$trH[pterms>0]   # trace H 
+		dfkeep <- which(pterms>0)         # 'assign' has an extra entry for sigma
+        pdf <- df[dfkeep]                 # df's for penalized terms
+        trH <- dftemp$trH[dfkeep]         # trace H 
 	    }
 
 	#
@@ -559,7 +560,7 @@ survpenal.fit<- function(x, y, weights, offset, init, controlvals, dist,
     if (iter.max >1 && length(iterfail)>0)
 	    warning(paste("Inner loop failed to coverge for iterations", 
 			  paste(iterfail, collapse=' ')))
-    which.sing <- (hdiag[nfrail + 1:nvar] ==0)
+	which.sing <- which(hdiag[nfrail + 1:nvar] ==0)
     coef[which.sing] <- NA
 
     names(iterlist) <- names(pterms[pterms>0])
