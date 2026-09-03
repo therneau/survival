@@ -240,10 +240,10 @@ details. Some of the methods defined for survfit objects are
   The last two above are a failsafe to prevent the routine from basing
   the initial prevalence of the states on none or only a handful of
   observations.   That does not mean such curves
-  will be scientfically sensible: when using age scale the user may wish
-  to specify an explicit starting time.
-  If \code{time0 = TRUE} the first row of output for each curve will be
-  at the starting time, 
+  will be scientfically sensible: when using age scale the user will 
+  normally specify an explicit starting time.
+  If \code{time0 = TRUE} or \code{entry=TRUE}
+  the first row of output for each curve will be at the starting time, 
   otherwise the first event time (for each curve separately).
     
   Robust variance:
@@ -264,8 +264,9 @@ details. Some of the methods defined for survfit objects are
 
   With the IJ estimate, the leverage values themselves can be returned
   as an array using the \code{influence} argument.
-  Be forwarned that this array can be huge. Post fit influence using the
-  \code{resid} method is more flexible and would normally be preferred,
+  Be forwarned that this array can be huge.
+  Obtaining an influence matrix after the fit, using the
+  \code{resid} method, is more flexible and would normally be preferred,
   in particular to get influence at only a select set of time points.
   The \code{influence} option is currently used mostly in the package's
   validity checks.

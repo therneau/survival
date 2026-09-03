@@ -45,7 +45,6 @@ survfit.formula <- function(formula, data, weights, subset,
         stop("response must be a survival object")
 
     # is this timeline data?
-    id <- model.extract(mf, "id")
     if (inherits(Y, "Surv2")){
         # timeline data, convert to regular
         mf <- surv2counting(mf)
@@ -74,6 +73,7 @@ survfit.formula <- function(formula, data, weights, subset,
     istate <- model.extract(mf, "istate")
     if (ncol(Y)==3 && !is.null(attr(Y, "states"))) {
         # survcheck2 only does multistate
+        if (is.null(id)) stop("id statement is required")
         check <- survcheck2(Y, id, istate)
         if (any(check$flag >0)) 
             stop("data set fails survcheck for one or more subjects")

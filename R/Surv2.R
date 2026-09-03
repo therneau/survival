@@ -14,21 +14,6 @@ Surv2 <- function(time, event, repeated=FALSE) {
     if (missing(event)) stop("must have an event argument")
     if (length(event) != nn) stop ("Time and event are different lengths")
 
-    # Special code to allow for 0/1/NA or FALSE/TRUE/NA, but if missing time
-    #  leave NA as is 
-    if (any(is.na(event) & !is.na(time))) { # there are solo NA events
-        if (is.numeric(event) && any(event==0)) fill <- 0
-        else if (is.logical(event) && any(!event)) fill <- FALSE
-        else if (is.factor(event)) fill <- levels(event)[1]
-        else fill <- NA  # I don't think this can happen
-        event[is.na(event) & !is.na(time)] <- fill
-    } # end special
-    
-    event <- as.factor(event)
-    states <- levels(event)[-1]
-    status <- as.integer(event) -1L # usually time is not integer, but
-    ss <- cbind(time=time, status=status) # sometimes it is
-     
     # Retain any attributes of the input arguments. Originally requested
     #  by the rms package
     inputAttributes <- list()
@@ -36,17 +21,39 @@ Surv2 <- function(time, event, repeated=FALSE) {
         inputAttributes$time  <-attributes(time)
     if (!missing(event) && !is.null(attributes(event)))
         inputAttributes$event <- attributes(event)
+
+    states <- NULL # if status is 0/1 or FALSE/TRUE
+    if (all(is.logical(event) | is.na(event))) event <- as.integer(event)
+    else if (is.numeric(event)) {
+        who2 <- !is.na(event)
+        if (max(event[who2])==2) event <- event - 1L # history: allow 1/2
+        if (!all(event==0 | event==1, na.rm=TRUE)) {
+            event <- ifelse(event==0 | event==1, event, NA)
+            warning("Invalid status value, converted to NA")
+        }
+    } else if (is.factor(event)) {
+      states <- levels(event)[-1]         
+      clabel <- levels(event)[1]
+      event <-  as.integer(event) -1L
+      }
+    else  stop("invalid status")
+    ss <- cbind(time=time, status=event) # sometimes it is
+     
     # In rare cases there are no column names, and I have discovered that
     #  people depend on them.
     cname <- dimnames(ss)[[2]]
     if (length(cname) ==0) cname <- c("time", "status")
     dimnames(ss) <- list(NULL, cname)  #kill extraneous row names
                                            
-    if (any(is.na(states) | states=='') )
-        stop("each state must have a non-blank name")
+    if (!is.null(states)) {
+        if (any(is.na(states) | states=='') )
+            stop("each state must have a non-blank name")
+        attr(ss, "states") <- states
+        attr(ss, "clabel") <- clabel
+    }
+
     if (length(inputAttributes) > 0) 
         attr(ss, "inputAttributes") <- inputAttributes
-    if (!is.null(states)) attr(ss, "states") <- states
     attr(ss, "repeated") <- repeated
     class(ss) <- 'Surv2'
     ss
@@ -64,7 +71,9 @@ as.character.Surv2 <- function(x, ...) {
         new <- paste0(format(x[,1]), temp)
     } else {
         temp <- x[,2]
-        end <- c("+", paste(":", states, sep='')) #endpoint
+        if (is.null(attr(x, "clabel")))
+            end <- c("+", paste0(":", attr(x, "states"))) 
+        else end <- paste0(":", c(attr(x, "clabel"), attr(x, "states")))
         temp <- ifelse(is.na(temp), "?", end[temp+1])
         new <- paste0(format(x[,1]), temp)
     }

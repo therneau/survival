@@ -1,6 +1,8 @@
 /*
 ** The survfit routine for raw data, not multi-state, not Cox
 ** See methods document, survival:survfitkm
+** When there are multiple curves (not a ~1 model), this is called once for
+**  each curve
 **
 **  For a variable "zed" used in the code, I use "zed2" as the argument
 **    passed from R
@@ -19,6 +21,7 @@
 **       1*(cumhaz) + 2 * (survival)
 **  reverse: 0= ordinary KM, 1= estimate of censoring distribution (not finished)
 **  entry:   1= also keep rows with unique entry times
+**  utime: the set of unique time points to report
 */
 #include <math.h>
 #include "survS.h"
@@ -26,7 +29,7 @@
 
 SEXP survfitkm(SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22, 
                SEXP type2, SEXP id2, SEXP nid2,   SEXP position2,
-               SEXP influence2, SEXP reverse2,   SEXP entry2) {
+               SEXP influence2, SEXP reverse2,  SEXP entry2, SEXP utime2) {
               
     int i, i1, i2, j, k, person1, person2;
     int nused, nid, type, influence;
@@ -44,6 +47,7 @@ SEXP survfitkm(SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22,
     int *gcount=0;
     int n1, n2, n3, n4;
     int *position=0;
+    double *utime =0;
     double wt1, wt2, wt3, wt4;
                       
     /* output variables */
@@ -72,54 +76,21 @@ SEXP survfitkm(SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22,
     influence = asInteger(influence2);
     reverse = asInteger(reverse2);
     entry   = asInteger(entry2);
+    ntime = LENGTH(utime2);
+    utime = REAL(utime2);
 
     /* nused was used for two things just above.  The first was the length of
-       the input data y, only needed for a moment to set up time1, time2, and
-       status.  The second is the number of these observations we will actually
-       use, which is the length of sort2.  This routine can be called multiple
-       times with sort1/sort2 pointing to different subsets of the data while
-       y, wt, id and position can remain unchanged
+    ** the input data y, only needed for a moment to set up time1, time2, and
+    ** status.  The second is the number of these observations we will actually
+    ** use, which is the length of sort2.  This routine can be called multiple
+    ** times with sort1/sort2 pointing to different subsets of the data while
+    ** y, wt, id and position can remain unchanged
     */
 
-    /* pass 1, get the number of unique times, needed for memory allocation 
-      Number of xval groups (unique id values) has been supplied.  I count
-      both unique starting and ending times.
-    */
-    if (entry ==1) {
-        ntime =1; 
-        temp = time1[sort1[0]];  /* less than any event/censor time */
-	j =1;
-        for (i=0; i<nused; i++) {
-            i2 = sort2[i];
-	    for (; j< nused && (time1[sort1[j]] < time2[i2]); j++) {
-		i1 = sort1[j];
-		if (time1[i1] != temp && (position[i1] & 1)==1) {
-		    ntime++;
-		    temp = time1[i1];
-		}
-	    }
-            if ((time2[i2] != temp) && (position[i2] >1 || status[i2]>0)) {
-                ntime++;
-                temp = time2[i2];
-            }
-        }
-    } else {
-	/* count unique time2 values (with position >1)*/
-        ntime = 1; 
-        temp = time2[sort2[0]];  /* shortest ending time */
-        for (i=1; i<nused; i++) {
-            i2 = sort2[i];
-            if ((position[i2] >1 || status[i2]>0) && time2[i2] != temp) {
-                ntime++;
-                temp = time2[i2];
-            }
-        }
-    }
- 
-   /* Allocate memory for the output 
-        n has 6 columns for number at risk, events, censor, then the 
-        3 weighted versions of the same, then optionally two more for
-        number added to the risk set (when entry=1)
+    /* Allocate memory for the output 
+    **   n has 6 columns for number at risk, events, censor, then the 
+    **   3 weighted versions of the same, then optionally two more for
+    **   number added to the risk set (when entry=1)
     */
     PROTECT(rlist = mkNamed(VECSXP, outnames));
     
@@ -177,42 +148,9 @@ SEXP survfitkm(SEXP y2, SEXP weight2,  SEXP sort12, SEXP sort22,
     R_CheckUserInterrupt();  /*check for control-C */
 
     /* 
-    ** First fill in the list of unique times, a reprise of the code that
-    **  counted the number of them.  (But now dtime has been allocated.)
+    ** First fill in the list of unique times,
     */
-    if (entry==1) {
-	temp = time1[sort1[0]];  /* less than any event/censor time */
-	dtime[0] = temp;
-	k =1; 
-	j =1;
-        for (i=0; i<nused; i++) {
-            i2 = sort2[i];
-	    for (; j< nused && (time1[sort1[j]] < time2[i2]); j++) {
-		i1 = sort1[j];
-		if (time1[i1] != temp && (position[i1] & 1)==1) {
-		    temp = time1[i1];
-		    dtime[k++] = temp;
-		}
-	    }
-            if ((time2[i2] != temp) && (position[i2] >1 || status[i2]>0)) {
-                temp = time2[i2];
-		dtime[k++] = temp;
-            }
-        }
-    } else {
-	/* count ending times */
-        temp = time2[sort2[0]];  /* shortest ending time */
-	dtime[0]= temp;
-	k=1;
-        for (i=1; i<nused; i++) {
-            i2 = sort2[i];
-            if ((position[i2] > 1 || status[i2]>0) && time2[i2] != temp) {
-                temp = time2[i2];
-		dtime[k++] = temp;
-            }
-        }
-    }
- 
+    for (i=0; i<ntime; i++) dtime[i] = utime[i];
     /*
     ** Next compute all the counts
     ** Temp variables n1 = number at risk, n2= number of events, n3 = censors,

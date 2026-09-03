@@ -1,10 +1,27 @@
 \name{NEWS}
 \title{NEWS file for the survival package}
+\section{Changes in version 3.8-12}{
+  \itemize{
+  \item Update Surv2 so that a 0/1 or TRUE/FALSE status is not turned
+  into a factor, in agreement with Surv
+  \item Add the clabel attribute to Surv and Surv2 objects, i.e., retain
+  the label that was used for "censoring" when status is a factor.
+  Begin to use that label in printout.  Some code used (censor) and some
+  (censored) as a default label for non-factor status, standardize on
+  the first.
+  \item Minor error in survfit: if a subject had data of (0,10+), (10,24)
+  the "censor" at time 10 really isn't a censoring, and 10 should not
+  appear in the time component.  But sometimes it did, depending on the
+  path through the code.  The curve was always correct, just with extra
+  time points.  Add tests/survfit3.R to C test for this.
+}}
 \section{Changes in version 3.8-11}{
   \itemize{
     \item Change the .Rd files to remove \code{data()} from the usage
     section, making them more in line with base R and lazy loaded data
-    (suggestion from CRAN).
+    (suggestion from CRAN). Add a note section to each to show usage when
+    survival has not been loaded, either directly or via another package
+    that includes survival in the DEPENDS field.
     \item Submit to CRAN
 }}
 \section{Changes in version 3.8-10}{

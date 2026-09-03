@@ -227,7 +227,7 @@ SEXP survfitaj(SEXP y2,       SEXP sort12,  SEXP sort22, SEXP utime2,
      
 SEXP survfitkm(SEXP y2,     SEXP weight2,  SEXP sort12, SEXP sort22, 
                SEXP type2,  SEXP id2,      SEXP nid2,   SEXP position2, 
-               SEXP influence2,  SEXP reverse2,  SEXP entry2) ;
+               SEXP influence2,  SEXP reverse2,  SEXP entry2, SEXP utime) ;
 
 SEXP survfitresid(SEXP Y2,      SEXP sort12,  SEXP sort22,  SEXP cstate2, 
 		  SEXP wt2,     SEXP p02,     SEXP i02,     SEXP otime2,  

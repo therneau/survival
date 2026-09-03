@@ -65,9 +65,10 @@ survcheck <- function(formula, data, subset, na.action, id, istate,
     else if (length(id) !=n) stop("wrong length for id")
      
     if (!is.null(istate) && length(istate) !=n) stop("wrong length for istate")
-
     fit <- survcheck2(Y, id, istate, istate0)
-    temp <- fit$transitions[, is.na(match(colnames(fit$transitions), "(censored)"))]
+    censorlabel <- paste0('(', attr(Y, "clabel"), ')')
+    temp <- fit$transitions[, is.na(match(colnames(fit$transitions), 
+                                          censorlabel))]
     fit$n <- c(id = length(unique(id)), observations =length(id), 
                transitions = sum(temp))
     fit$flag <- c(fit$flag, "duplicate"=0)
@@ -116,7 +117,6 @@ survcheck2 <- function(y, id, istate=NULL, istate0="(s0)") {
     if (!is.Surv(y) || is.null(attr(y, "states")) ||
         any(y[,ncol(y)] > length(attr(y, "states"))))
         stop("survcheck2 called with an invalid y argument")
-    to.names <- c(attr(y, "states"), "(censored)")
  
     if (length(istate)==0) {
         inull<- TRUE
@@ -200,8 +200,11 @@ survcheck2 <- function(y, id, istate=NULL, istate0="(s0)") {
     keep <- (stat2 !=0 | check$dupid > 1)  # not censored or last obs of this id
     transitions <- table(from=cstate2[keep], 
                          to= factor(stat2[keep], c(seq(along.with=states), 0),
-                                    c(states, "(censored)")),
+                                    c(states, paste0('(', attr(y, "clabel"),
+                                                     ')'))),
                          useNA="ifany")
+    # An NA in cstate2 or stat2 should be impossible: useNA is to force an
+    #  error or wierd table if I'm wrong about that.
     nr <- nrow(transitions)
     never <- (rowSums(transitions) + 
               colSums(transitions[,1:nr, drop=FALSE]))==0

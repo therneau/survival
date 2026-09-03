@@ -1,6 +1,6 @@
 
-R Under development (unstable) (2025-12-05 r89107) -- "Unsuffered Consequences"
-Copyright (C) 2025 The R Foundation for Statistical Computing
+R Under development (unstable) (2026-08-21 r90440) -- "Unsuffered Consequences"
+Copyright (C) 2026 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -109,14 +109,14 @@ Type 'q()' to quit R.
 > is.null(fit4a$events)
 [1] TRUE
 > all.equal(fit4a$transitions, 
-+           table(from= rep("(s0)",6), to= rep("(censored)", 6)))
++           table(from= rep("(s0)",6), to= rep("(censor)", 6)))
 [1] TRUE
 > 
 > data4b <- data.frame(id=rep(1:6, 3), time1=c(1:6, 2:7, 3:8),
 +                      time2=c(2:7, 3:8, 11:16), status=0)
 > fit4b <- survcheck(Surv(time1, time2, status) ~1, id=id, data4b)
 > all.equal(fit4b$transitions, 
-+           table(from= rep("(s0)",6), to= rep("(censored)", 6)))
++           table(from= rep("(s0)",6), to= rep("(censor)", 6)))
 [1] TRUE
 > is.null(fit4b$events)
 [1] TRUE
@@ -135,4 +135,4 @@ Type 'q()' to quit R.
 > 
 > proc.time()
    user  system elapsed 
-  0.833   0.063   0.888 
+  0.509   0.055   0.556 

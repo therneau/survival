@@ -11,4 +11,5 @@ noweb/noweb.sty
 noweb/code.pdf
 tests/survexpm.R.notyet
 vignettes/temp
+vignettes/test
 vigtemp/figures

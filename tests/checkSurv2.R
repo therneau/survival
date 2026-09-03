@@ -11,7 +11,7 @@ library(survival)
 set.seed(1953)
 m2 <- mgus2[sample(1:nrow(mgus2), nrow(mgus2),replace=FALSE),]
 
-temp1 <- data.frame(m2[,1:7], ftime=0)
+temp1 <- data.frame(m2[,1:7], ftime=0)  # the baseline variables
 temp2 <- with(subset(m2, pstat==1), 
               data.frame(id=id, ftime=ptime, event="progression"))
 
@@ -29,8 +29,9 @@ estat <- with(mgus2, ifelse(pstat==1, 1, 2*death))
 estat <- factor(estat, 0:2, c("censor", "progression", "death"))
 
 # The sfit3 lines are from the brief time that I thought I could dispense with
-#  Surv2, (time, status) data with multiple rows per subject implied it. But
-#  Beth/Cindy pointed out the diabetic retinopathy data
+#  Surv2, (time, status), i.e., that data with multiple rows per subject implied
+#  that this must be timeline data. But Beth and Cindy pointed out that the 
+#  diabetic retinopathy data breaks that rule
 sfit1 <- survfit(Surv(etime, estat) ~ sex, mgus2)  # original way
 sfit2 <- survfit(Surv2(ftime, event) ~ sex, mflat, id=id) # timeline with Surv2
 #sfit3 <- survfit(Surv(ftime, event) ~ sex, mflat, id=id)  # timeline with Surv

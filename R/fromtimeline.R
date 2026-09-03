@@ -50,7 +50,7 @@ surv2counting <- function(mf, repeated=FALSE, lvcf=TRUE) {
     #  missing.  This is easiest to do with the tmerge3 C routine, which expects
     #  the data to be in time within id order
     # Use LVCF on all colums except: doesn't have any missings (not needed),
-    #  column 1= response, those with () names, normally (id), (cluster)
+    #  column 1= response, and those with () names, normally (id), (cluster)
     id3 <- id2[!last]  # I need idi again later
     if (is.factor(id3)) idi <- as.integer(id3)
     else    idi <- match(id3, unique(id3))  # tmerge3 wants an integer id
@@ -73,17 +73,18 @@ surv2counting <- function(mf, repeated=FALSE, lvcf=TRUE) {
     }
     
     # If there are missing status values, assume that NA is actually
-    #  the code for censored.
+    #  the code for censored.  This is not uncommon when merge() is
+    #  used to create a data set
     if (any(is.na(y2[,2]))) {
         if (is.null(states)) {
             # Really? The user had NA, 1, 2 and didn't use a factor?
-            # I'm going to guess not
-        } else { # the user input was a factor
-            newstate <- attr(y, "inputAttributes")$event$levels
-            if (is.null(newstate)) {cat("surv2data bug "); browser()}
-            y2[,2] <- ifelse(is.na(y2[,2]), 0, 1+ y2[,2])
-            attr(y2, "states") <- newstate
-            states <- newstate
+            # I'm going to guess not and leave the NA rows to be removed
+            # later by na.action
+        } else { 
+            # input was a factor
+            # it's the user's job to make sure that the first level of that
+            #   factor is "censored"
+            y2[,2] <- ifelse(is.na(y2[,2]), 0, y2[,2])
         }
     }
 
@@ -120,7 +121,6 @@ surv2counting <- function(mf, repeated=FALSE, lvcf=TRUE) {
 
         istate <- model.extract(mf, "istate")
         if (!is.null(istate)) {
-            istate <- model.extract
             # The user had an istate= argument in their multistate (coxph) or 
             #  Aalen-Johansen (survfit) call.  It should agree, perfectly.  
             # Well, they could legally put the states in a different order
@@ -235,7 +235,8 @@ fromtimeline <- function(formula, data, subset, id, repeated= FALSE,
     cbind(new[,-1,drop=FALSE], tdata)
 }
 
-# This function has not been tested (not the browser call)
+# This function has not been tested (note the browser call), it would
+#  be the basis of a Surv(time1, time2, stat) to Surv2 transform function
 # We await any definite proof of need before working more
 # Until tested, it won't appear in the NAMESPACE file or the man pages
 
@@ -286,7 +287,6 @@ totimeline <- function(formula, data, id, istate) {
         istate <- model.extract(mf, "istate")
         check <- survcheck2(Y, id, istate)
         }
-    browser()
     if (any(check$states == "censor")) states <- c("(censor)", check$states)
     else states <- c("censor", check$states)
     nstate <- length(check$states)
@@ -302,7 +302,7 @@ totimeline <- function(formula, data, id, istate) {
     indx2 <- rep(1:n, ifelse(last,  2, 1))
     newtime <- Y[indx1,2]
     newstat <- c(0L, match(attr(Y, "states"), check$states))[1L+ Y[indx1,3]]
-
+    browser()
     row1 <- duplicated(indx1, fromLast=TRUE) # first row of each subject
     newtime[row1] <- Y[first, 1]
     newstat[row1] <- as.numeric(check$istate[first])

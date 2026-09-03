@@ -1,5 +1,5 @@
 
-R Under development (unstable) (2026-06-21 r90185) -- "Unsuffered Consequences"
+R Under development (unstable) (2026-08-21 r90440) -- "Unsuffered Consequences"
 Copyright (C) 2026 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu
 
@@ -36,11 +36,11 @@ Unique identifiers       Observations        Transitions
 
 Transitions table:
        to
-from    death (censored)
-  ph0      37         26
-  ph1      82         31
-  ph2      44          6
-  death     0          0
+from    death (censor)
+  ph0      37       26
+  ph1      82       31
+  ph2      44        6
+  death     0        0
 
 Number of subjects with 0, 1, ... transitions to each state:
        0   1
@@ -123,4 +123,4 @@ death 63 163
 > 
 > proc.time()
    user  system elapsed 
-  0.618   0.082   0.692 
+  0.622   0.075   0.690 

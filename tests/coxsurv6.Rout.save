@@ -1,5 +1,5 @@
 
-R Under development (unstable) (2026-06-21 r90185) -- "Unsuffered Consequences"
+R Under development (unstable) (2026-08-21 r90440) -- "Unsuffered Consequences"
 Copyright (C) 2026 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu
 
@@ -44,12 +44,12 @@ Type 'q()' to quit R.
 +                     id = id, data=pbc2)
 > check1$transitions
         to
-from     normal 1-2 2-4  >4 death (censored)
-  normal      0  81  10   3     9         77
-  1-2        61   0  68  15     9         36
-  2-4         2  33   0  94    12         24
-  >4          1   3  28   0   110         35
-  death       0   0   0   0     0          0
+from     normal 1-2 2-4  >4 death (censor)
+  normal      0  81  10   3     9       77
+  1-2        61   0  68  15     9       36
+  2-4         2  33   0  94    12       24
+  >4          1   3  28   0   110       35
+  death       0   0   0   0     0        0
 > 
 > fit2 <- coxph(list(Surv(tstart, tstop, bstat) ~ 1,
 +                    c(1:4):5 ~ age / common + shared), id= id, istate=bili4,
@@ -72,12 +72,12 @@ from     normal 1-2 2-4  >4 death (censored)
 > pbc3$age <- round(pbc3$age)  # easier to do "by hand" sums
 > survcheck(Surv(tstart, tstop, bstat) ~1, pbc3, id=id, istate=bili4)$transitions
         to
-from     normal 1-2 2-4 >4 death (censored)
-  normal      0   4   0  0     1          0
-  1-2         2   0   3  1     1          1
-  2-4         0   1   0  5     0          0
-  >4          0   0   1  0     4          2
-  death       0   0   0  0     0          0
+from     normal 1-2 2-4 >4 death (censor)
+  normal      0   4   0  0     1        0
+  1-2         2   0   3  1     1        1
+  2-4         0   1   0  5     0        0
+  >4          0   0   1  0     4        2
+  death       0   0   0  0     0        0
 > 
 > init3 <- c(.05, .7, 1.5, 3.4)
 > fit3 <- coxph(list(Surv(tstart, tstop, bstat) ~ 1, 
@@ -269,4 +269,4 @@ normal    1-2    2-4     >4
 > 
 > proc.time()
    user  system elapsed 
-  0.792   0.111   0.896 
+  0.818   0.088   0.898 

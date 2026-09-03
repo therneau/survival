@@ -178,6 +178,7 @@ Surv <- function(time, time2, event,
         if (any(is.na(states) | states=='') )
             stop("each state must have a non-blank name")
         attr(ss, "states") <- states
+        attr(ss, "clabel") <- levels(mstat)[1]
     }
     if (length(inputAttributes) > 0) 
         attr(ss, "inputAttributes") <- inputAttributes
@@ -217,16 +218,19 @@ as.character.Surv <- function(x, ...) {
            },
            "mright" = {  #multi-state
                temp <- x[,2]
-               end <- c("+", paste(":", attr(x, "states"), sep='')) #endpoint
+               if (is.null(attr(x, "clabel")))
+                   end <- c("+", paste0(":", attr(x, "states"))) 
+               else end <- paste0(":", c(attr(x, "clabel"), attr(x, "states")))
                temp <- ifelse(is.na(temp), "?", end[temp+1])
                paste0(format(x[,1]), temp)
            },
            "mcounting"= {
                temp <- x[,3]
-               end <- c("+", paste(":", attr(x, "states"), sep='')) #endpoint
+               if (is.null(attr(x, "clabel")))
+                   end <- c("+", paste0(":", attr(x, "states"))) 
+               else end <- paste0(":", c(attr(x, "clabel"), attr(x, "states")))
                temp <- ifelse(is.na(temp), "?", end[temp+1])
-               paste0('(', format(x[,1]), ',', format(x[,2]), temp,
-                     ']')
+               paste0('(', format(x[,1]), ',', format(x[,2]), temp, ']')
            })
     names(new) <- rownames(x)
     new
@@ -245,6 +249,7 @@ as.character.Surv <- function(x, ...) {
         x <- unclass(x)[i,, drop=FALSE] # treat it as a matrix: handles dimnames
         attr(x, 'type') <- xattr$type
         if (!is.null(xattr$states)) attr(x, "states") <- xattr$states
+        if (!is.null(xattr$clabel)) attr(x, "clabel") <- xattr$clabel
         if (!is.null(xattr$inputAttributes)) {
             # If I see "names" subscript it, leave all else alone
             attr(x, 'inputAttributes') <- 

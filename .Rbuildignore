@@ -22,6 +22,7 @@ vignettes/.*.log
 vignettes/.*.tex
 vignettes/.*.pdf
 vignettes/old
+vignettes/test
 fail
 Readme.md
 R/plot.survexp.R.notdone

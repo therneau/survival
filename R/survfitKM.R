@@ -76,6 +76,7 @@ survfitKM <- function(x, y, weights=rep(1.0,length(x)),
     # Residuals will be in the order of integer(id), and we want them to
     #  be in the same order as the data.  So prevent the default sorted levels
     if (has.id) id <- factor(id, unique(id))
+    else entry <- FALSE
 
     if (missing(robust) || is.null(robust)) {
         if (influence) {
@@ -145,33 +146,45 @@ survfitKM <- function(x, y, weights=rep(1.0,length(x)),
 
     if (ny==3 && has.id) position <- survflag(y, id, x)
     else position <- rep.int(3L, nrow(y))  # every observation stands alone
+    # note that position depends on id, it drives the decision of whether
+    #  a time is "unique" for the purposes of adding it to the printout
+    # cluster drives the robust variance
 
     if (length(xlev) ==1) {# only one group
         n.used <- nrow(y)
         if (ny==2) {
             sort1 <- NULL
             sort2 <- order(y[,1])
+            utime <- unique(y[sort2,1]) 
         }
         else {
             sort2 <- order(y[,2])
             sort1 <- order(y[,1])
+            event <- (y[,3]==1)
+            if (entry) {
+                u1 <- unique(y[position==1 | position==3, 1]) #start times
+                u2 <- unique(y[event | position>1, 2])  # stop times
+                utime <- sort(unique(c(u1, u2)))
+            } else utime <- sort(unique(y[event | position>1, 2]))
         }
         if (has.id) n.id <- length(unique(id))
 
         if (ncluster > 0) {
             # cluster is an integer vector, clname the levels
             cfit <- .Call(Csurvfitkm, y, weights, sort1-1L, sort2-1L, type,
-                          cluster- 1L, ncluster, position, influence, 0L, entry)
+                          cluster- 1L, ncluster, position, influence, 0L, entry,
+                          utime)
         }
         else cfit <- .Call(Csurvfitkm, y, weights, sort1-1L, sort2-1L, 
-                           type, 0L, 0L, position, influence, 0L, entry)
+                           type, 0L, 0L, position, influence, 0L, entry,
+                           utime)
     } else {
         # multiple groups
         ngroup <- length(xlev)
         n.used <- integer(ngroup)
         cfit <- vector("list", ngroup)
         if (influence) clusterid <- cfit # empty list, fill later with group ids
-        if (has.id) n.id <- integer(ngroup)
+        if (has.id) n.id <- integer(ngroup) # vector of values
 
         # The C routine will be called once per curve (values of x)
         # The y, weights, & position values stay the same across calls,
@@ -185,16 +198,26 @@ survfitKM <- function(x, y, weights=rep(1.0,length(x)),
             if (ny==2) {
                 sort1 <- NULL
                 sort2 <- keep[order(y[keep,1])]
+                utime <- sort(unique(y[keep,1]))
             }
             else {
                 sort2 <- keep[order(y[keep,2])]
                 sort1 <- keep[order(y[keep,1])]
+                if (entry) {
+                    utime <- c(y[x==i & (position==1 |position==3), 1], 
+                               y[x==i & position>1, 2])
+                    utime <- sort(unique(utime))
+                }
+                else utime <- sort(unique(y[x==i & position>1, 2]))
             }
-      
+
             # Cluster is a nuisance: each curve will often have a different set
             #  Say curve1 had id 1,3,5,...99 and curve2 2,4,...,100  
+            #  A subject by time influence matrix will have 100 rows and all the
+            #  unique times found in either curvea
             # We don't want to add up over the 50 extra zeros for curve1, and 
-            #  more importantly shouldn't return rows for all thos
+            #  as importantly shouldn't return extra times, i.e., influence
+            #  needs to be a set of matrices, one per group.
             # Use ctemp to give clusters of 0, 1, 2, ...; it can be full length
             #  since the .Call only looks at the sort1/sort2 rows.
             if (ncluster > 0) {
@@ -205,11 +228,11 @@ survfitKM <- function(x, y, weights=rep(1.0,length(x)),
 
                 cfit[[i]] <- .Call(Csurvfitkm, y, weights, sort1 -1L, 
                                sort2 -1L, type, ctemp, length(c.unique),
-                               position, influence, 0L, entry)
+                               position, influence, 0L, entry, utime)
             }
             else cfit[[i]] <- .Call(Csurvfitkm, y, weights, sort1 -1L, 
                                sort2 -1L, type, 0L, 0L, 
-                               position, influence, 0L, entry)
+                               position, influence, 0L, entry, utime)
         }
     }
     # Create the survfit object by 'stacking' the curves one after the

@@ -93,23 +93,29 @@ have intermediate rows with a status of `no event at this time', coded
 as the first level of the factor variable in the Surv() call.
 For instance a subject who started in state 'a' at time 0, transitioned to state
 'b' at time 10, had a covariate \code{x} change from 135 to 156 at time
-20, and a final transition to state 'c' at time 30.
+20, a transition to state 'c' at time 30 and final follow-up at time 40
 The response would be \code{Surv(c(0, 10, a), c(10, 20, censor),
-  c(20,0,c))} where the state variable is a factor with levels of censor,
-  a, b, c.
+  c(20,30,c)), c(30,40, censor} where the state variable is a factor
+with levels of censor, a, b, c.
 The state variable records \emph{changes} in state, and there was no
-change at time 20.
-The \code{istate} variable would be (a, b, b); it contains the \emph{current}
+change at time 20 or 40.
+The \code{istate} variable would be (a, b, b, c); it contains the \emph{current}
 state, and the value is unchanged when status = censored.
 (It behaves like a \code{tdc} variable from \code{tmerge}).
 
 The intermediate time above is not actually censoring, i.e., a point at
 which follow-up for the observation ceases.
-The 'censor' label is traditional, but 'none' may be a more accurate choice.
+The 'censor' label is traditional, but 'none' may be a more accurate
+choice.
+In the returned \code{transitions} table, the final column for
+transitions to 'censored' will contain a count for the final row of this
+subject but not for the intermediate censoring, i.e., it counts the
+number of those with further follow-up after their last observed state change.
+This is the reason that the label of that column is put into parentheses.
 
-When there are intermediate observations \code{istate} is not
+When there are such intermediate 'no event' observations \code{istate} is not
 simply a lagged version of the state, and may be more challenging to
-create.
+create in the original data set.
 One approach is to let \code{survcheck} do the work: call it with
 an \code{istate} argument that is correct for the first row of each
 subject, or no \code{istate} argument at all, and then insert the

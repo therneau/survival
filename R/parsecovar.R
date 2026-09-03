@@ -274,8 +274,8 @@ parsecovar2 <- function(covar1, statedata, dformula, Terms, transitions,states) 
         }    
     }
     t2 <- transitions[rowSums(transitions) > 0,, drop=FALSE]
-    i <- match("(censored)", colnames(transitions), nomatch=0)
-    if (i>0) t2 <- t2[,-i, drop=FALSE]   # transitions to 'censor' don't count
+    t2 <- t2[,!is.na(match(colnames(t2), states)), drop=FALSE] 
+    # a'censored' col won't match just above
     indx1 <- match(rownames(t2), states)
     indx2 <- match(colnames(t2), states)
 

@@ -61,22 +61,41 @@ is.Surv(x)
 }
 
 \value{
-  An object of class \code{Surv}.  There are methods for \code{print},
-  \code{is.na}, and subscripting survival objects.   \code{Surv} objects
-  are implemented as a matrix of 2 or 3 columns that has further
-  attributes. These include the type (left censored, right censored,
-  counting process, etc.) and labels for the states for multi-state
-  objects.  Any attributes of the input arguments are also preserved
-  in \code{inputAttributes}.  This may be useful for other packages that
-  have attached further information to data items such as labels; none
-  of the routines in the survival package make use of these
-  values, however.
+  An object of class \code{Surv}.  \code{Surv} objects
+  are implemented as a matrix of 2 columns (column names of time,
+  status) or 3 columns (column names of start, stop, status) with
+  further attributes.
+  The last column will always be integer values of 0, 1, 2, ...
+  where 0= "no event at this time point" and 1, 2, ... are the
+  event types.  When \code{status} us 0/1 or FALSE/TRUE there is
+  only a single event type.
 
+  Attributes include
+  \describe{
+    \item{dim, dimnames}{as for any matrix}
+    \item{type}{one of \code{right}, \code{mright}, \code{counting}, or
+      or \code{mcounting}}
+    \item{states}{for multi-state data, the transition states, e.g., the
+      labels of the boxes in a \code{statefig} diagram}
+    \item{clabel}{for multi-state data, the label for censoring, i.e.,
+      the first level of the \code{status} variable when \code{status}
+      is a factor}
+    \item{inputAttributes}{attributes of the input arguments, if any.
+      This may be useful for other packages that
+      have attached further information to data items such as labels; none
+      of the routines in the survival package make use of these
+      values, however.}
+    \item{class}{\code{Surv}}
+   }
+}  
+
+\details{
+  There are methods for \code{print},
+  \code{is.na}, and subscripting survival objects. 
   In the case of \code{is.Surv}, a logical value \code{TRUE} if \code{x}
   inherits from class \code{"Surv"}, otherwise an \code{FALSE}.
-}
-\details{
-   Interval censored data can be represented in two ways.  For the first
+
+  Interval censored data can be represented in two ways.  For the first
    use \code{type = "interval"} and the codes shown above.  In that usage the
    value of the \code{time2} argument is ignored unless event=3.
    The second approach is to think of each observation as a time
@@ -124,13 +143,17 @@ the default behavior for subscripting matrices.
   The use of 1/2 coding for status is an interesting historical artifact.
   For data contained on punch cards, IBM 360 Fortran treated blank as a zero,
   which led to a policy within the Mayo Clinic section of Biostatistics to never
-  use "0" as a data value, since one could not distinguish it from a
+  use "0" as a data value, since code could not distinguish it from a
   missing value (blank).
   Policy became habit, as is often the case, and the use of 1/2 coding for
   no/yes variables, including death, endured long after the demise of
   the punch cards that had sired the practice.
   At the time \code{Surv} was written many Mayo data sets still used this
-  obsolete convention, e.g., the \code{lung} data set found in the package.
+  obsolete convention, e.g., the \code{lung} data set found in the
+  package.
+
+  The \code{states} and \code{cstate} attributes should have been saved
+  as a single vector from the start.
 }   
   
 \seealso{

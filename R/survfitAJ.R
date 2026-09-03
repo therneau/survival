@@ -266,21 +266,22 @@ survfitAJ <- function(X, Y, weights, id, cluster, robust, istate,
 
     for (i in 1:ncurve) {
         indx <- seq(n2[i]+1, n2[i+1])  # the relevant rows of sort1 and sort2
-        indx2 <- (iX ==i)              # rows of Y, weight, etc
+        indx2 <- (iX ==i)              # rows of Y, weight, etc (logical)
         
         # utime = set of time points to be reported in the output
         # because we report se(AUC), the utime vector needs to have the
         # starting time
+        event <- (Y[,3]>0)
         if (entry) {
             # There is no need to list a time point where nothing happened
             # e.g., a survSplit cutpoint that doesn't appear in the raw data.
             # So ignore rows with neither entry or exit, i.e., position==0
-            # which don't end in an event
-            ignore <- (position==0 & Y[,3]== 0)
-            utime <- unique(sort(Y[indx2 & !ignore, 1:2])) #not sort(unique( !
+            utime <- c(Y[indx2 & (position==1 |position==3), 1], 
+                       Y[indx2 & (event| position>1), 2])
+            utime <- sort(unique(utime))
         } else {
             # count only ending times: position =2 or 3
-            ignore <- position <2 & Y[,3]==0
+            ignore <- position <2 & Y[,3]==0 # a 'censor' within a subject
             utime <- unique(sort(Y[indx2 & !ignore, 2]))
         } 
 

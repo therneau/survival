@@ -36,7 +36,7 @@ Surv2(time, event, repeated=FALSE)
   If FALSE, then repeats are not a new
   event.  An example would be a data set where we wanted to use
   diabetes, say, as an endpoint, but this is diagnosis code is repeated
-  in the data at each medical visit.
+  in the data at each subsequent medical visit.
 
   The third option is repeated="first", in which case any repeated
   instance of any level is treated as censored.  In an data set with

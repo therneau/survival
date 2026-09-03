@@ -1,7 +1,7 @@
 
-R Under development (unstable) (2024-06-14 r86747) -- "Unsuffered Consequences"
-Copyright (C) 2024 The R Foundation for Statistical Computing
-Platform: aarch64-unknown-linux-gnu
+R Under development (unstable) (2026-08-21 r90440) -- "Unsuffered Consequences"
+Copyright (C) 2026 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -44,12 +44,12 @@ Type 'q()' to quit R.
 +                     id = id, data=pbc2)
 > check1$transitions
         to
-from     normal 1-2x 2-4x  >4 death (censored)
-  normal      0   81   10   3     9         77
-  1-2x       61    0   68  15     9         36
-  2-4x        2   33    0  94    12         24
-  >4          1    3   28   0   110         35
-  death       0    0    0   0     0          0
+from     normal 1-2x 2-4x  >4 death (censor)
+  normal      0   81   10   3     9       77
+  1-2x       61    0   68  15     9       36
+  2-4x        2   33    0  94    12       24
+  >4          1    3   28   0   110       35
+  death       0    0    0   0     0        0
 > all.equal(as.character(pbc2$bili4), as.character(check1$istate))
 [1] TRUE
 > # the above verifies that I created the data set correctly
@@ -114,4 +114,4 @@ from     normal 1-2x 2-4x  >4 death (censored)
 > 
 > proc.time()
    user  system elapsed 
-  0.536   0.024   0.557 
+  0.594   0.071   0.657 

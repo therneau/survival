@@ -66,13 +66,13 @@ data4a <- data.frame(id= 1:6, time= 1:6, status=0)
 fit4a <- survcheck(Surv(time, status) ~1, id=id, data4a)
 is.null(fit4a$events)
 all.equal(fit4a$transitions, 
-          table(from= rep("(s0)",6), to= rep("(censored)", 6)))
+          table(from= rep("(s0)",6), to= rep("(censor)", 6)))
 
 data4b <- data.frame(id=rep(1:6, 3), time1=c(1:6, 2:7, 3:8),
                      time2=c(2:7, 3:8, 11:16), status=0)
 fit4b <- survcheck(Surv(time1, time2, status) ~1, id=id, data4b)
 all.equal(fit4b$transitions, 
-          table(from= rep("(s0)",6), to= rep("(censored)", 6)))
+          table(from= rep("(s0)",6), to= rep("(censor)", 6)))
 is.null(fit4b$events)
 
 # Special case: Andersen-Gill data
