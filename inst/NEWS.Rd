@@ -14,6 +14,10 @@
   appear in the time component.  But sometimes it did, depending on the
   path through the code.  The curve was always correct, just with extra
   time points.  Add tests/survfit3.R to C test for this.
+  \item Fix subscripting errors in yates() for a coxph model with an NA
+  coefficient, and add a test case. Git pull request 343 found the error
+  but the code change needed more documentation/comments.  A similar
+  length error is now fixed in survpenal.fit.
 }}
 \section{Changes in version 3.8-11}{
   \itemize{

@@ -357,7 +357,7 @@ yates <- function(fit, term, population=c("data", "factorial", "sas"),
 
         meanfun <- if (is.null(weight)) colMeans else function(x) {
             colSums(x*weight)/ sum(weight)}
-        Cmat <- t(sapply(xmatlist, meanfun))[,!nabeta]
+        Cmat <- t(sapply(xmatlist, meanfun))
                   
         # coxph model: the X matrix is built as though an intercept were there (the
         #  baseline hazard plays that role), but then drop it from the coefficients
@@ -365,12 +365,14 @@ yates <- function(fit, term, population=c("data", "factorial", "sas"),
         #  interaction there will be many more colums to drop.
         if (inherits(fit, "coxph")) {
             nkeep <- length(fit$means)  # number of non-intercept columns
-            col.to.keep <- seq(to=ncol(Cmat), length= nkeep)
+            col.to.keep <- seq(to=ncol(Cmat), length= nkeep)[!nabeta]
             Cmat <- Cmat[,col.to.keep, drop=FALSE]
             offset <- -sum(fit$means[!nabeta] * beta)  # recenter the predictions too
-            }
-        else offset <- 0
-            
+        }
+        else {
+                Cmat <- Cmat[,!nabeta, drop=FALSE]
+                offset <- 0
+        }
         # Get the PMM estimates, but only for estimable ones
         estimate <- cbind(x1data, pmm=NA, std=NA)
         if (any(estimable)) {
@@ -477,12 +479,15 @@ yates <- function(fit, term, population=c("data", "factorial", "sas"),
         if (method=="sgtt") result$SAS <- Smat
     }
     else {
-        xall <- do.call(rbind, xmatlist)[,!nabeta, drop=FALSE]
         if (inherits(fit, "coxph")) {
-            xall <- xall[,-1, drop=FALSE]  # remove the intercept
+            keep <- 1L + which(!nabeta)  #skip intercept and NA coefs
+            xall <- do.call(rbind, xmatlist)[,keep, drop=FALSE] 
             eta <- xall %*% beta -sum(fit$means[!nabeta]* beta)
         }
-        else eta <- xall %*% beta
+        else {
+            xall <- do.call(rbind, xmatlist)[,!nabeta, drop=FALSE]
+            eta <- xall %*% beta
+        }
         n1 <- nrow(xmatlist[[1]])  # all of them are the same size
         index <- rep(1:length(xmatlist), each = n1)
         if (is.function(mfun)) predfun <- mfun
