@@ -25,5 +25,19 @@ tdata <- expand.grid(ph.ecog=0:3, sex=smean, age=amean)
 yhat <- predict(fit2, newdata=tdata)
 all.equal(c(yhat[1:3], NA),  yf1$estimate[, "pmm"], check.attributes=FALSE)
 
+# for predicted risk, the code uses a simulation variance
+set.seed(1950)  # make the se reproducable
+yf2 <- yates(fit2, ~ph.ecog, predict="risk")
+yf2
+# compute PMM by hand
+dummy <- temp
+est <- c(0,0,0, NA)
+for (i in 0:2) {
+    dummy$ph.ecog <- i
+    est[i+1] <- mean(exp(predict(fit2, newdata=dummy)))
+}
+all.equal(est, yf2$estimate[,"pmm"])
+
+
 # For age, we don't have missing, so NA does not appear
 yates(fit2, ~ age, levels=c(50,60, 70))

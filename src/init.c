@@ -64,7 +64,7 @@ static const R_CallMethodDef Callentries[] = {
     {"Cpyears3b",     (DL_FUNC) &pyears3b,    10},
     {"Cresidcsum",    (DL_FUNC) &residcsum,    2},
     {"Csurvfitaj",    (DL_FUNC) &survfitaj,   16},
-    {"Csurvfitkm",    (DL_FUNC) &survfitkm,   11},
+    {"Csurvfitkm",    (DL_FUNC) &survfitkm,   12},
     {"Csurvfitresid", (DL_FUNC) &survfitresid,10},
     {"Csurvreg6",     (DL_FUNC) &survreg6,    15},
     {"Csurvreg7",     (DL_FUNC) &survreg7,    21},

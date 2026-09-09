@@ -1,5 +1,5 @@
 
-R Under development (unstable) (2026-08-05 r90351) -- "Unsuffered Consequences"
+R Under development (unstable) (2026-09-04 r90492) -- "Unsuffered Consequences"
 Copyright (C) 2026 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu
 
@@ -3896,12 +3896,14 @@ $terms
        S 12.3519 0.31251                                   
 > 
 > fit2 <- coxph(Surv(time, status) ~ factor(ph.ecog)*sex + age, lung)
+> # the yates call below uses a simulated SE, make it reproducable
+> set.seed(1953)
 > yates(fit2, ~ ph.ecog, predict="risk")  # hazard ratio
  factor(ph.ecog)     pmm      std                 test chisq df Pr
-               0 0.94238  0.46334      factor(ph.ecog)    NA NA NA
-               1 1.42677  0.75697                                 
-               2 1.74848  3.80017                                 
-               3      NA 74.01221                                 
+               0 0.94238  0.46761      factor(ph.ecog)    NA NA NA
+               1 1.42677  0.67632                                 
+               2 2.31986  1.11345                                 
+               3      NA 48.75324                                 
 > 
 > 
 > 
@@ -3910,7 +3912,7 @@ $terms
 > cleanEx()
 > options(digits = 7L)
 > base::cat("Time elapsed: ", proc.time() - base::get("ptime", pos = 'CheckExEnv'),"\n")
-Time elapsed:  2.937 0.26 3.199 0 0 
+Time elapsed:  2.959 0.286 3.245 0 0 
 > grDevices::dev.off()
 null device 
           1 

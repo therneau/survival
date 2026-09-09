@@ -1,0 +1,97 @@
+
+R Under development (unstable) (2026-09-04 r90492) -- "Unsuffered Consequences"
+Copyright (C) 2026 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> library(survival)
+> # Tests for glm
+> 
+> gfit1 <- glm(skips ~ Mask* Opening + Solder, data=solder, poisson)
+> yg1 <- yates(gfit1, ~Mask)
+> yg2 <- yates(gfit1, ~ Mask, predict='response')
+> 
+> # Fit a model with an NA coef
+> # there is only one subject with ph.ecog=3, so the interaction of
+> #  ph.ecog=3 with sex is not estimable.
+> fit2 <- coxph(Surv(time, status) ~ factor(ph.ecog) *sex + age, lung)
+> fit2
+Call:
+coxph(formula = Surv(time, status) ~ factor(ph.ecog) * sex + 
+    age, data = lung)
+
+                          coef exp(coef)  se(coef)      z      p
+factor(ph.ecog)1      0.335017  1.397964  0.609291  0.550 0.5824
+factor(ph.ecog)2      0.618092  1.855384  0.686960  0.900 0.3683
+factor(ph.ecog)3      1.941570  6.969687  1.033409  1.879 0.0603
+sex                  -0.641345  0.526583  0.385890 -1.662 0.0965
+age                   0.009667  1.009714  0.009601  1.007 0.3140
+factor(ph.ecog)1:sex  0.063350  1.065400  0.451918  0.140 0.8885
+factor(ph.ecog)2:sex  0.221865  1.248403  0.507016  0.438 0.6617
+factor(ph.ecog)3:sex        NA        NA  0.000000     NA     NA
+
+Likelihood ratio test=31.09  on 7 df, p=5.976e-05
+n= 227, number of events= 164 
+   (1 observation deleted due to missingness)
+> 
+> # The marginal estimate for that group, averaged over sex, is not available
+> #  so becomes NA, as does the test for "all 4 ph.ecog population averages are
+> #  the same
+> yf1 <- yates(fit2, ~ph.ecog)
+> yf1
+ factor(ph.ecog)      pmm     std        test chisq df Pr
+               0 -0.11265 0.84226      global    NA NA NA
+               1  0.31083 0.82154                        
+               2  0.81527 0.80076                        
+               3       NA      NA                        
+> 
+> # Do it by hand,
+> temp <- subset(lung, !is.na(ph.ecog))  # the one person removed
+> smean <- mean(temp$sex)   # fraction males +1
+> amean <- mean(temp$age)
+> tdata <- expand.grid(ph.ecog=0:3, sex=smean, age=amean)
+> yhat <- predict(fit2, newdata=tdata)
+> all.equal(c(yhat[1:3], NA),  yf1$estimate[, "pmm"], check.attributes=FALSE)
+[1] TRUE
+> 
+> # for predicted risk, the code uses a simulation variance
+> set.seed(1950)  # make the se reproducable
+> yf2 <- yates(fit2, ~ph.ecog, predict="risk")
+> yf2
+ factor(ph.ecog)     pmm      std                 test chisq df Pr
+               0 0.94238  0.51954      factor(ph.ecog)    NA NA NA
+               1 1.42677  0.82623                                 
+               2 2.31986  1.46851                                 
+               3      NA 15.68184                                 
+> # compute PMM by hand
+> dummy <- temp
+> est <- c(0,0,0, NA)
+> for (i in 0:2) {
++     dummy$ph.ecog <- i
++     est[i+1] <- mean(exp(predict(fit2, newdata=dummy)))
++ }
+> all.equal(est, yf2$estimate[,"pmm"])
+[1] TRUE
+> 
+> 
+> # For age, we don't have missing, so NA does not appear
+> yates(fit2, ~ age, levels=c(50,60, 70))
+ age     pmm     std        test chisq df    Pr
+  50 0.19103 0.72752      global 1.014  1 0.314
+  60 0.28770 0.79803                           
+  70 0.38438 0.87343                           
+> 
+> proc.time()
+   user  system elapsed 
+  0.596   0.070   0.659 

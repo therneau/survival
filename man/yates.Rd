@@ -61,6 +61,8 @@ fit1 <- lm(skips ~ Solder*Opening + Mask, data = solder)
 yates(fit1, ~Opening, population = "factorial")
 
 fit2 <- coxph(Surv(time, status) ~ factor(ph.ecog)*sex + age, lung)
+# the yates call below uses a simulated SE, make it reproducable
+set.seed(1953)
 yates(fit2, ~ ph.ecog, predict="risk")  # hazard ratio
 }
 \keyword{ models }
