@@ -93,6 +93,7 @@ as.character.Surv2 <- function(x, ...) {
         xattr <- attributes(x)
         x <- unclass(x)[i,, drop=FALSE] # treat it as a matrix: handles dimnames
         if (!is.null(xattr$states)) attr(x, "states") <- xattr$states
+        if (!is.null(xattr$clabel)) attr(x, "clabel") <- xattr$clabel
         attr(x, "repeated") <- xattr$repeated
         class(x) <- "Surv2"  #restore the class
         x

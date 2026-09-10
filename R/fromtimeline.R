@@ -22,6 +22,8 @@ surv2counting <- function(mf, repeated=FALSE, lvcf=TRUE) {
     y <- model.response(mf)
     n <- nrow(y)
     states <- attr(y, "states")
+    clabel <- attr(y, "clabel")
+    if (is.null(clabel)) clabel<- "censor"  # the default
     # the next line supports Surv2 objects
     if (missing(repeated) && !is.null(attr(y, "repeated"))) 
         repeated <- attr(y, "repeated")
@@ -148,8 +150,8 @@ surv2counting <- function(mf, repeated=FALSE, lvcf=TRUE) {
             stop("invalid value for repeated option")
     }
         
-    if (!is.null(states)) 
-        status <- factor(status, 0:length(states), c("censor", states))
+    if (!is.null(states))
+        status <- factor(status, 0:length(states), c(clabel, states))
 
     tstart <- y2[!last, 1]
     tstop  <- y2[!first,1]
