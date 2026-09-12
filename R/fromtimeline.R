@@ -203,9 +203,12 @@ fromtimeline <- function(formula, data, subset, id, repeated= FALSE,
     #
     yy <- new[[1]] # the response is always variable 1
     states <- attr(yy, "states")
+    clabel <- attr(yy, "clabel")
+    if (is.null(clabel)) clabel <- "censor"
+
     ny <- ncol(yy)  # ny=2 for competing risks, for instance
     if (is.null(states)) status <- yy[,ny]     
-    else status <- factor(yy[,ny], 0:length(states), c("censor", states))
+    else status <- factor(yy[,ny], 0:length(states), c(clabel, states))
     if (ncol(yy) ==3) 
         tdata <- data.frame(tstart= yy[,1], tstop = yy[,2], status)
     else tdata <- data.frame(tstart=yy[,1], status)

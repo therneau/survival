@@ -287,7 +287,18 @@ lines.survfit <- function(x, type='s',
     }
 
     # remember a prior xmax 
-    if (missing(xmax)) xmax <- getOption("plot.survfit")$xmax 
+    if (missing(xmax)) {
+        # xmax <- getOption("plot.survfit")$xmax  # old line
+        poption <- getOption("plot.survfit")
+        # if any of usr, pin, plt, or mfg has changed, then another plot call
+        #  has occured since plot.survfit set the xmax option, and xmax will
+        #  no longer be relevant (This foursome is set by plot, boxplot
+        #  and other high level plot functions)
+        if (!is.null(poption) && 
+            isTRUE(all.equal(poption$spar, par(c("usr", "pin", "plt", "mfg")))))
+            xmax <- poption$xmax
+        else xmax <- NULL
+    }
     # Create a step function, removing redundancies that sometimes occur in
     #  curves with lots of censoring.
     dostep <- function(x,y) {

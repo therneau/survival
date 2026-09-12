@@ -1,5 +1,5 @@
 
-R Under development (unstable) (2026-09-04 r90492) -- "Unsuffered Consequences"
+R Under development (unstable) (2026-09-09 r90510) -- "Unsuffered Consequences"
 Copyright (C) 2026 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu
 
@@ -642,39 +642,18 @@ x 0.8023    2.2307   0.8224 0.976 0.329
 
 Likelihood ratio test=1.09  on 1 df, p=0.2971
 n= 7, number of events= 5 
-> # Create a simple data set for a time-dependent model 
-> test2 <- list(start=c(1,2,5,2,1,7,3,4,8,8), 
-+               stop=c(2,3,6,7,8,9,9,9,14,17), 
-+               event=c(1,1,1,1,1,1,1,0,0,0), 
-+               x=c(1,0,0,1,0,1,1,1,0,0)) 
-> summary(coxph(Surv(start, stop, event) ~ x, test2)) 
-Call:
-coxph(formula = Surv(start, stop, event) ~ x, data = test2)
-
-  n= 10, number of events= 7 
-
-      coef exp(coef) se(coef)      z Pr(>|z|)
-x -0.02111   0.97912  0.79518 -0.027    0.979
-
-  exp(coef) exp(-coef) lower .95 upper .95
-x    0.9791      1.021    0.2061     4.653
-
-Concordance= 0.526  (se = 0.129 )
-Likelihood ratio test= 0  on 1 df,   p=1
-Wald test            = 0  on 1 df,   p=1
-Score (logrank) test = 0  on 1 df,   p=1
-
 > 
 > #
 > # Create a simple data set for a time-dependent model
-> #
-> test2 <- list(start=c(1, 2, 5, 2, 1, 7, 3, 4, 8, 8),
-+                 stop =c(2, 3, 6, 7, 8, 9, 9, 9,14,17),
-+                 event=c(1, 1, 1, 1, 1, 1, 1, 0, 0, 0),
-+                 x    =c(1, 0, 0, 1, 0, 1, 1, 1, 0, 0) )
-> 
-> 
-> summary( coxph( Surv(start, stop, event) ~ x, test2))
+> #  (Appendix E.2, Therneau and Grambsch 2000)
+> test2 <- data.frame(start=c(1, 2, 5, 2, 1, 7, 3, 4, 8, 8),
++                     stop =c(2, 3, 6, 7, 8, 9, 9, 9,14,17),
++                     event=c(1, 1, 1, 1, 1, 1, 1, 0, 0, 0),
++                     x    =c(1, 0, 0, 1, 0, 1, 1, 1, 0, 0) )
+> fit <- coxph(Surv(start, stop, event) ~ x, test2)
+> diff(fit$loglik)   # almost no improvment
+[1] 0.0003519127
+> summary(fit)
 Call:
 coxph(formula = Surv(start, stop, event) ~ x, data = test2)
 
@@ -693,7 +672,6 @@ Score (logrank) test = 0  on 1 df,   p=1
 
 > 
 > # Fit a stratified model, clustered on patients 
-> 
 > bladder1 <- bladder[bladder$enum < 5, ] 
 > coxph(Surv(stop, event) ~ (rx + size + number) * strata(enum),
 +       cluster = id, bladder1)
@@ -3912,7 +3890,7 @@ $terms
 > cleanEx()
 > options(digits = 7L)
 > base::cat("Time elapsed: ", proc.time() - base::get("ptime", pos = 'CheckExEnv'),"\n")
-Time elapsed:  2.959 0.286 3.245 0 0 
+Time elapsed:  2.935 0.262 3.197 0 0 
 > grDevices::dev.off()
 null device 
           1 

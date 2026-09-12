@@ -356,8 +356,10 @@ plot.survfit<- function(x, conf.int,  mark.time=FALSE,
         else if (xlog) tempx <- range(temp[temp > 0])
         else tempx <- range(temp)
     }  
+
     if (!missing(xlim) || !missing(xmax)) 
-        options(plot.survfit = list(xmax=tempx[2]))
+        options(plot.survfit = list(xmax=tempx[2], 
+                                    spar=par(c("usr", "plt","pin", "mfg"))))
     else options(plot.survfit = NULL)
 
     if (!missing(ylim) && !is.null(ylim)) tempy <- ylim
