@@ -359,7 +359,7 @@ plot.survfit<- function(x, conf.int,  mark.time=FALSE,
 
     if (!missing(xlim) || !missing(xmax)) 
         options(plot.survfit = list(xmax=tempx[2], 
-                                    spar=par(c("usr", "plt","pin", "mfg"))))
+                                    spar=par(c("usr", "xaxp","yaxp", "mfg"))))
     else options(plot.survfit = NULL)
 
     if (!missing(ylim) && !is.null(ylim)) tempy <- ylim

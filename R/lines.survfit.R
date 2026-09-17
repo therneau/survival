@@ -295,7 +295,7 @@ lines.survfit <- function(x, type='s',
         #  no longer be relevant (This foursome is set by plot, boxplot
         #  and other high level plot functions)
         if (!is.null(poption) && 
-            isTRUE(all.equal(poption$spar, par(c("usr", "pin", "plt", "mfg")))))
+            isTRUE(all.equal(poption$spar, par(c("usr", "xaxp", "yaxp", "mfg")))))
             xmax <- poption$xmax
         else xmax <- NULL
     }

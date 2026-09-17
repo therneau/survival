@@ -30,12 +30,12 @@ The missing values are thus potentially informative.
 \format{
   \tabular{ll}{
     id:\tab case number\cr
-    age:\tab in years\cr
-    sex:\tab m/f\cr
-    trt:\tab 1/2/NA for D-penicillmain, placebo, not randomised\cr
-    time:\tab number of days between registration and the earlier of death,\cr
+    futime:\tab number of days between registration and the earlier of death,\cr
        \tab transplantion, or study analysis in July, 1986\cr
     status:\tab status at endpoint, 0/1/2 for censored, transplant, dead\cr
+    trt:\tab 1/2/NA for D-penicillmain, placebo, not randomised\cr
+    age:\tab in years\cr
+    sex:\tab m/f\cr
     day:\tab number of days between enrollment and this visit date\cr
        \tab all measurements below refer to this date\cr
     albumin:\tab serum albumin (mg/dl)\cr
@@ -44,7 +44,6 @@ The missing values are thus potentially informative.
     ast:\tab aspartate aminotransferase, once called SGOT (U/ml)\cr
     bili:\tab serum bilirunbin (mg/dl)\cr
     chol:\tab serum cholesterol (mg/dl)\cr
-    copper:\tab urine copper (ug/day)\cr
     edema:\tab 0 no edema, 0.5 untreated or successfully treated\cr
     \tab 1 edema despite diuretic therapy\cr
     hepato:\tab presence of hepatomegaly or enlarged liver\cr
@@ -52,7 +51,6 @@ The missing values are thus potentially informative.
     protime:\tab standardised blood clotting time\cr
     spiders:\tab blood vessel malformations in the skin\cr
     stage:\tab histologic stage of disease (needs biopsy)\cr
-    trig:\tab triglycerides (mg/dl)\cr
   }
 }
 \note{

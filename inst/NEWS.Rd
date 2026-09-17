@@ -5,10 +5,11 @@
     \item Remove a duplicate example in the coxph.Rd file
     \item The clabel attribute of a Surv object was not always
     preserved, update that
-    \item Fix an odd error in plot.survfit, which saves the xmax
+    \item Address an odd error in plot.survfit, which saves the xmax
     argument (if present) to be used in a later lines.survfit call.
     If there was another plot command between the plot.survfit and
     lines.survfit the xmax value was retained, but should not have been.
+    \item github issue 345, wrong variable name in pbcseq.Rd file
 }}
 \section{Changes in version 3.8-12}{
   \itemize{
