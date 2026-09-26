@@ -24,6 +24,11 @@ obtained for a pre-specified battery of tests.  "Extra" visits,
 often undertaken because of worsening medical condition, did not
 necessarily have all this lab work. 
 The missing values are thus potentially informative.
+
+At the time of this study otrhotopic liver transplant (OLT) was in its
+infancy and still experimental, and those chosen for transplant were neither
+too healthy nor too advanced in the disease course.  It has been most
+common to treat them as censored for the analysis.
 }
 \usage{pbcseq
 }
@@ -75,7 +80,11 @@ time1 <- with(pbcseq, ifelse(first, 0, day))
 time2 <- with(pbcseq, ifelse(last,  futime, c(day[-1], 0)))
 event <- with(pbcseq, ifelse(last,  status, 0))
 
-fit1 <- coxph(Surv(time1, time2, event) ~ age + sex + log(bili), pbcseq)
+# time to death, transplant as censored
+fit1 <- coxph(Surv(time1, time2, event==2) ~ age + sex + log(bili), pbcseq)
+# competing risk, transplant or death
+fit2 <- coxph(Surv(time1, time2, factor(event)) ~ age + sex + log(bili), 
+              pbcseq, id=id)
 }
 \references{
   Murtaugh PA. Dickson ER. Van Dam GM. Malinchoc M. Grambsch PM.
